@@ -42,8 +42,8 @@ $$\Delta p = \sigma \kappa = \sigma \left(\frac{1}{R_1} + \frac{1}{R_2}\right) \
 $$\gamma_{sv} = \gamma_{sl} + \gamma_{lv} \cos(\theta_c) \tag{1.2}$$
 
 **นิยามตัวแปร:**
-- $\gamma_{sv}$: พลังงานพื้นผิวระหว่างผงกับระยะไกล
-- $\gamma_{sl}$: พลังงานพื้นผิวระหว่างผงกับของเหลว
+- $\gamma_{sv}$: พลังงานพื้นผิวระหว่างผนังกับระยะไกล
+- $\gamma_{sl}$: พลังงานพื้นผิวระหว่างผนังกับของเหลว
 - $\gamma_{lv}$: พลังงานพื้นผิวระหว่างของเหลวกับระยะไกล
 
 #### การจำแนกประเภทตามมุมสัมผัส
@@ -101,6 +101,11 @@ $$L_c = \sqrt{\frac{\sigma}{\rho g}} \tag{1.4}$$
 
 ==แรงฉุดระหว่างเฟส== เป็นกลไกพื้นฐานของการถ่ายเทพลังงานโมเมนตัมที่ควบคุมการมีปฏิสัมพันธ์ระหว่างเฟส
 
+แรงนี้เกิดขึ้นจากการเคลื่อนที่สัมพัทธ์ระหว่างเฟส และมีความสำคัญอย่างยิ่งต่อการทำนายพฤติกรรมของของไหลได้อย่างแม่นยำในการใช้งานทางอุตสาหกรรม เช่น:
+- ฟลูอิดไดซ์เบด (fluidized beds)
+- คอลัมน์ฟอง (bubble columns)
+- เครื่องแยกเฟส (separators)
+
 #### สมการแรงฉุด
 
 แรงฉุดต่อหน่วยปริมาตาระหว่างเฟส $i$ และเฟส $j$:
@@ -137,17 +142,22 @@ $$K = \frac{3}{4} C_D \frac{\alpha_d \rho_c |\mathbf{U}_d - \mathbf{U}_c|}{d_p} 
 
 โดยที่ $Re_p = \frac{\rho_c |\mathbf{U}_d - \mathbf{U}_c| d_p}{\mu_c}$ คือ Particle Reynolds number
 
+แบบจำลองนี้ให้การทำนายที่แม่นยำสำหรับระบบที่มีความเข้มข้นเจือจางถึงปานกลางที่มีอนุภาคทรงกลม ทำให้เหมาะสำหรับ:
+- ของไหลแก๊ส-ของเหลว (gas-liquid)
+- ของแข็ง-ของเหลว (solid-liquid)
+- การเสียรูปของอนุภาคมีน้อยที่สุด
+
 ### 2.3 แบบจำลองแรงฉุด Ergun
 
-==แบบจำลอง Ergun== ขยายการจำลองแรงฉุดไปยังสภาวะการบรรจุหนาแน่น (dense packing conditions)
+==แบบจำลอง Ergun== ขยายการจำลองแรงฉุดไปยังสภาวะการบรรจุหนาแน่น (dense packing conditions) ซึ่งการมีปฏิสัมพันธ์ระหว่างอนุภาคต่ออนุภาคมีความสำคัญ:
 
 $$K = 150 \frac{\alpha_d^2 \mu_c (1 - \alpha_c)}{d_p^2 \alpha_c^3} + 1.75 \frac{\alpha_d \rho_c |\mathbf{U}_d - \mathbf{U}_c|}{\alpha_c^3} \tag{2.3}$$
 
 สมการสหสัมพันธ์นี้รวมเอาส่วนประกอบจาก:
-- **แรงหนืด** (พจน์แรก): แรงต้านจากความหนืดของของไหล
+- **แรงหนืว** (พจน์แรก): แรงต้านจากความหนืวของของไหล
 - **แรงเฉื่อย** (พจน์ที่สอง): แรงต้านจากความเร็วสัมพัทธ์
 
-เหมาะสำหรับ:
+เพื่ออธิบายฟิสิกส์ของของไหลที่ซับซ้อนใน:
 - ชั้นบรรจุ (packed beds)
 - ฟลูอิดไดซ์เบด (fluidized beds)
 - ใกล้กับความเร็วขั้นต่ำของการฟลูอิดไดซ์
@@ -215,6 +225,13 @@ $$\dot{m}_{ij} = k_{ij} A_{ij} (C_j - C_i) \tag{4.1}$$
 - $A_{ij}$: ความหนาแน่นของพื้นที่ผิวสัมผัส [m²/m³]
 - $(C_j - C_i)$: แรงขับเคลื่อนความเข้มข้น [kg/m³]
 
+**หลักการเทียบเคียง (Analogies):** สัมประสิทธิ์การถ่ายเทมวลมักมีความสัมพันธ์กับสัมประสิทธิ์การถ่ายเทความร้อน:
+
+| หลักการเทียบเคียง | สมการ | เงื่อนไข |
+|-------------------|---------|-----------|
+| Chilton-Colburn analogy | $\frac{h}{\rho c_p U} = \frac{k}{U} = \text{St}_m = \text{St}_h \text{Pr}^{2/3}$ | ทั่วไป |
+| Reynolds analogy | $\text{St}_m = \text{St}_h$ | $\text{Pr} = \text{Sc} = 1$ |
+
 ### 4.2 กฎของเฮนรีและสมดุลแก๊ส-ของเหลว
 
 ==กฎของเฮนรี (Henry's Law)== กำหนดความสัมพันธ์สมดุลสำหรับระบบแก๊ส-ของเหลว:
@@ -256,7 +273,7 @@ $$R\ddot{R} + \frac{3}{2}\dot{R}^2 = \frac{p_b - p_\infty}{\rho_l} - \frac{2\sig
 - $p_b$: ความดันในฟอง [Pa]
 - $p_\infty$: ความดันที่ระยะไกล [Pa]
 - $\sigma$: แรงตึงผิว [N/m]
-- $\mu_l$: ความหนืดของของเหลว [Pa·s]
+- $\mu_l$: ความหนืวของของเหลว [Pa·s]
 
 ---
 
@@ -264,7 +281,7 @@ $$R\ddot{R} + \frac{3}{2}\dot{R}^2 = \frac{p_b - p_\infty}{\rho_l} - \frac{2\sig
 
 ### 5.1 แรงมวลเสมือน (Virtual Mass Force)
 
-==แรงมวลเสมือน== พิจารณาถึงการเร่งความเร็วของของไหลโดยรอบเมื่ออนุภาคเร่งความเร็ว
+==แรงมวลเสมือน== พิจารณาถึงการเร่งความเร็วของของไหลโดยรอบเมื่ออนุภาคเร่งความเร็ว ซึ่งแสดงถึงผลกระทบของมวลที่เพิ่มเข้ามา (added mass effects):
 
 $$\mathbf{F}_{vm} = C_{vm} \rho_c \alpha_d (\mathbf{a}_d - \mathbf{a}_c) \tag{5.1}$$
 
@@ -275,32 +292,35 @@ $$\mathbf{F}_{vm} = C_{vm} \rho_c \alpha_d (\mathbf{a}_d - \mathbf{a}_c) \tag{5.
 - $(\mathbf{a}_d - \mathbf{a}_c)$: การเร่งความเร็วสัมพัทธ์ [m/s²]
 
 แรงนี้จะมีความสำคัญในระบบที่มี:
-- การเร่งความเร็วความถี่สูง
-- การไหลที่ไม่คงที่ (unsteady flows)
+- การเร่งความเร็วความถี่สูง เช่น การสั่นสะเทือนของคลื่นเสียง
+- การไหลที่ไม่คงที่ (unsteady flows) ที่มีการเปลี่ยนแปลงตามเวลาอย่างรุนแรง
 
 ### 5.2 แรงยก (Lift Force)
 
-==แรงยก== เกิดขึ้นจากความแตกต่างของความเร็วที่ตั้งฉากกับการเคลื่อนที่สัมพัทธ์ระหว่างเฟส:
+==แรงยก== เกิดขึ้นจากความแตกต่างของความเร็ว (velocity gradients) ที่ตั้งฉากกับการเคลื่อนที่สัมพัทธ์ระหว่างเฟส:
 
 $$\mathbf{F}_{lift} = C_L \rho_c \alpha_d (\mathbf{U}_d - \mathbf{U}_c) \times (\nabla \times \mathbf{U}_c) \tag{5.2}$$
 
 **นิยามตัวแปร:**
-- $C_L$: สัมประสิทธิ์แรงยก ซึ่งขึ้นอยู่กับ particle Reynolds number และอัตราการเฉือน
+- $C_L$: สัมประสิทธิ์แรงยก ซึ่งขึ้นอยู่กับ:
+  - particle Reynolds number
+  - อัตราการเฉือน (shear rate)
+  - ระบบการไหล (flow regime)
 
-สัมประสิทธิ์แรงยก Saffman-Mei สำหรับอนุภาคขนาดเล็ก:
+สัมประสิทธิ์แรงยก Saffman-Mei ให้การทำนายที่แม่นยำสำหรับอนุภาคขนาดเล็ก:
 
 $$C_L = \frac{2.255}{\sqrt{\text{Re}_p \text{Sr}}} \quad \text{สำหรับ} \quad \text{Re}_p \ll \text{Sr} \tag{5.3}$$
 
 ### 5.3 แรงหล่อลื่นผนัง (Wall Lubrication Force)
 
-==แรงหล่อลื่นผนัง== ป้องกันการสะสมตัวของอนุภาคใกล้ผนัง
+==แรงหล่อลื่นผนัง== ป้องกันการสะสมตัวของอนุภาคใกล้ผนัง โดยใช้แรงผลักที่เพิ่มขึ้นเมื่ออนุภาคเข้าใกล้ขอบเขตของแข็ง:
 
 $$\mathbf{F}_{wl} = C_{wl} \rho_c \alpha_d |\mathbf{U}_d - \mathbf{U}_c|^2 n_w f(y) \tag{5.4}$$
 
 **นิยามตัวแปร:**
 - $C_{wl}$: สัมประสิทธิ์แรงหล่อลื่นผนัง
 - $n_w$: เวกเตอร์แนวฉากของผนัง
-- $f(y)$: ฟังก์ชันของระยะห่างจากผนัง
+- $f(y)$: ฟังก์ชันของระยะห่างจากผนัง ซึ่งโดยทั่วไปจะลดลงแบบเอกซ์โพเนนเชียล
 
 #### ฟังก์ชันระยะห่างจากผนัง
 
@@ -312,7 +332,7 @@ $$f(y) = \frac{1}{y^2} - \frac{1}{(y + \epsilon)^2} \tag{5.5}$$
 
 ### 5.4 แรงกระจายตัวจากความปั่นป่วน (Turbulent Dispersion Force)
 
-==แรงกระจายตัวจากความปั่นป่วน== พิจารณาถึงการเคลื่อนที่แบบสุ่มของอนุภาคอันเนื่องมาจากการผันผวนของความปั่นป่วน
+==แรงกระจายตัวจากความปั่นป่วน== (Turbulent dispersion) พิจารณาถึงการเคลื่อนที่แบบสุ่มของอนุภาคอันเนื่องมาจากการผันผวนของความปั่นป่วน (turbulent fluctuations) ซึ่งส่งเสริมการผสมและป้องกันการแยกเฟสที่มากเกินไป:
 
 $$\mathbf{F}_{td} = -C_{td} \rho_c k \nabla \alpha_d \tag{5.6}$$
 
@@ -320,9 +340,9 @@ $$\mathbf{F}_{td} = -C_{td} \rho_c k \nabla \alpha_d \tag{5.6}$$
 - $C_{td}$: สัมประสิทธิ์แรงกระจายตัวจากความปั่นป่วน
 - $k$: พลังงานจลน์จากความปั่นป่วน [m²/s²]
 
-แรงนี้ช่วย:
-- ส่งเสริมการผสม
-- ป้องกันการแยกเฟสที่มากเกินไป
+แรงนี้มักถูกจำลองโดยใช้:
+- การประมาณการแพร่แบบเกรเดียนต์ (gradient diffusion approximations)
+- วิธีการสมการ Langevin ที่ซับซ้อน
 
 ---
 
@@ -468,6 +488,109 @@ private:
 };
 ```
 
+### 6.6 ระบบแรงรวม (Comprehensive Force System)
+
+คลาส `MomentumTransferPhaseSystem` รวมแรงระหว่างเฟสทั้งหมด:
+
+```cpp
+template<class BasePhaseSystem>
+class MomentumTransferPhaseSystem
+:
+    public BasePhaseSystem
+{
+private:
+    // แบบจำลองแรงฉุด
+    HashTable<autoPtr<dragModel>, phasePairKey> dragModels_;
+
+    // แบบจำลองแรงยก
+    HashTable<autoPtr<liftModel>, phasePairKey> liftModels_;
+
+    // แบบจำลองมวลเสมือน
+    HashTable<autoPtr<virtualMassModel>, phasePairKey> virtualMassModels_;
+
+    // แบบจำลองแรงหล่อลื่นผนัง
+    HashTable<autoPtr<wallLubricationModel>, phasePairKey> wallLubricationModels_;
+
+    // แบบจำลองแรงกระจายตัวจากความปั่นป่วน
+    HashTable<autoPtr<turbulentDispersionModel>, phasePairKey> turbulentDispersionModels_;
+
+    // คำนวณแรงระหว่างเฟสทั้งหมด
+    virtual tmp<surfaceScalarField> calculateKd
+    (
+        const phaseModel& phase1,
+        const phaseModel& phase2
+    ) const;
+
+    // คำนวณพจน์การถ่ายเทโมเมนตัม
+    virtual void correctMomentumTransfer();
+};
+```
+
+#### สถาปัตยกรรมแบบจำลองแรง (Force Model Architecture)
+
+แต่ละประเภทของแรงเป็นไปตามลำดับชั้นการสืบทอดที่สอดคล้องกัน:
+
+```cpp
+class interfacialMomentumTransferModel
+{
+public:
+    // คำนวณส่วนประกอบของแรง
+    virtual tmp<volVectorField> Fi() const = 0;
+
+    // กลไกการเลือกขณะรัน
+    declareRunTimeSelectionTable
+    (
+        autoPtr,
+        interfacialMomentumTransferModel,
+        dictionary,
+        (
+            const dictionary& dict,
+            const phasePair& pair
+        ),
+        (dict, pair)
+    );
+};
+
+class liftModel
+:
+    public interfacialMomentumTransferModel
+{
+protected:
+    // คำนวณสัมประสิทธิ์แรงยก
+    virtual tmp<volScalarField> Cl() const = 0;
+
+    // การนำการคำนวณแรงไปใช้
+    virtual tmp<volVectorField> Fi() const
+    {
+        return Cl()*rhoC()*alphaD()*
+               (Ud() - Uc())*(curl(Uc()));
+    }
+};
+```
+
+#### กลยุทธ์การผสมแรง (Force Blending Strategies)
+
+แรงต่างๆ จะถูกผสมกันตามสภาวการไหลเฉพาะที่และเศษส่วนเฟส เพื่อให้แน่ใจว่าการเปลี่ยนผ่านจะราบรื่นและมีความเสถียรเชิงตัวเลข (numerical stability):
+
+```cpp
+class forceBlendingModel
+{
+public:
+    // คำนวณฟังก์ชันการผสม
+    virtual tmp<volScalarField> dragBlending() const = 0;
+    virtual tmp<volScalarField> liftBlending() const = 0;
+    virtual tmp<volScalarField> wallBlending() const = 0;
+
+    // ใช้แรงที่ผสมแล้ว
+    virtual tmp<volVectorField> blendedForce() const
+    {
+        return dragBlending()*dragForce() +
+               liftBlending()*liftForce() +
+               wallBlending()*wallLubricationForce();
+    }
+};
+```
+
 ---
 
 ## 7. ปัญหาทางกายภาพทั่วไปและวิธีแก้ไข
@@ -486,7 +609,7 @@ private:
 - ใช้ Scheme การประมาณค่าอันดับสูง (higher-order discretization schemes)
 - ใช้เทคนิคการบีบอัดพื้นผิวสัมผัส (interface compression methods)
 - ปรับปรุง Mesh บริเวณพื้นผิวสัมผัสให้ละเอียดขึ้น
-- ใช้ Scheme พิเศษสำหรับการติดตามพื้นผิวสัมผัส
+- ใช้ Scheme พิเศษสำหรับการติดตามพื้นผิวสัมผัส (interface tracking schemes)
 
 ### 7.2 ค่าเฟสแฟรกชันที่ผิดธรรมชาติ
 
@@ -517,6 +640,20 @@ private:
 - ใช้ Algorithm การกำจัดบางส่วน (partial elimination algorithm)
 - เพิ่มการลดค่าความผ่อนคลาย (under-relaxation)
 - ใช้ Linear solvers ที่มีความเสถียร (robust linear solvers)
+
+### 7.4 ความไม่สมดุลของการถ่ายเทความร้อน
+
+**ปัญหาทางกายภาพ**: การแลกเปลี่ยนพลังงานระหว่างเฟสละเมิดกฎการอนุรักษ์
+
+**สาเหตุ:**
+- ค่าสัมประสิทธิ์การถ่ายเทความร้อนไม่สอดคล้องกัน
+- Scheme การอินทิเกรตเวลาที่แตกต่างกัน
+- ข้อผิดพลาดจากการปัดเศษเชิงตัวเลข (Numerical round-off errors)
+
+**วิธีแก้ไข:**
+- ตรวจสอบให้แน่ใจว่าการคำนวณค่าสัมประสิทธิ์การถ่ายเทความร้อนมีความสอดคล้องกัน
+- ใช้ Scheme การประมาณค่าเวลาเดียวกันสำหรับทุกเฟส
+- ใช้การแก้ไขเพื่อการอนุรักษ์พลังงาน
 
 ---
 

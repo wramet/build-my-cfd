@@ -26,8 +26,8 @@ graph TD
     style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
     style F fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
 ```
+> **Figure 1:** เรขาคณิตของ Lid-Driven Cavity และลักษณะการไหล แสดงให้เห็นฝาปิดด้านบนที่เคลื่อนที่ซึ่งขับเคลื่อนให้เกิดกระแสวนหลักขนาดใหญ่ตรงกลางและกระแสวนรองในมุมกล่อง พร้อมอิทธิพลของชั้นขอบเขตและความเค้นเฉือนที่ผนัง
 
-### พารามิเตอร์ทางกายภาพ
 
 | พารามิเตอร์ | ค่าที่กำหนด | คำอธิบาย |
 |---|---|---|
@@ -89,8 +89,8 @@ graph TD
     D --> D3["fvSolution<br/>Linear Solver<br/>Settings"]
     D --> D4["blockMeshDict<br/>Mesh Generation<br/>Parameters"]
 ```
+> **Figure 2:** โครงสร้างไดเรกทอรีของกรณีทดสอบใน OpenFOAM แสดงการจัดเก็บเงื่อนไขเริ่มต้นในโฟลเดอร์ `0/`, ข้อมูล Mesh และคุณสมบัติของไหลใน `constant/` และการตั้งค่า Solver ใน `system/`
 
-### ไดเรกทอรีและวัตถุประสงค์
 
 | ไดเรกทอรี | วัตถุประสงค์ | คำอธิบาย |
 |-----------|-------------|----------|
@@ -367,10 +367,8 @@ graph LR
     style F fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
     style H fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
 ```
+> **Figure 3:** ภาพรวมของเงื่อนไขขอบเขตสำหรับปัญหาการไหลในโพรง แสดงการกำหนดความเร็วคงที่ที่ฝาปิดบน (movingWall), เงื่อนไข no-slip ที่ผนังด้านอื่น ๆ (fixedWalls) และเงื่อนไข empty สำหรับการจำลองแบบ 2 มิติ
 
----
-
-## ขั้นตอนที่ 4: คุณสมบัติทางกายภาพ (`constant/transportProperties`)
 
 **Dictionary `constant/transportProperties`** กำหนดคุณสมบัติของของไหลที่ Solver ต้องการ สำหรับ `icoFoam` ซึ่งแก้สมการ Incompressible Navier-Stokes สำหรับของไหลแบบ Newtonian เราจำเป็นต้องระบุเพียง Kinematic viscosity เท่านั้น
 
@@ -494,8 +492,8 @@ graph LR
     style I fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
     style K fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
 ```
+> **Figure 4:** ไทม์ไลน์การจำลองและความถี่ในการส่งออกข้อมูล แสดงขนาดขั้นตอนเวลา ($\Delta t$) และช่วงเวลาที่จะมีการบันทึกผลลัพธ์ลงในไดเรกทอรีเวลาตั้งแต่เริ่มต้นจนสิ้นสุดการจำลอง
 
-### `system/fvSchemes` - Discretization Schemes
 
 **Dictionary นี้กำหนดระเบียบวิธี Discretization** สำหรับพจน์ต่างๆ ในสมการควบคุม
 
@@ -746,10 +744,8 @@ graph TD
     style H fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
     style I fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
 ```
+> **Figure 5:** สรุปขั้นตอนการทำงานของ OpenFOAM อย่างครบถ้วน ตั้งแต่การสร้างไดเรกทอรีและ Mesh การกำหนดเงื่อนไขขอบเขตและคุณสมบัติของไหล การตั้งค่า Solver ไปจนถึงการรันการจำลองและประมวลผลขั้นหลัง
 
----
-
-## แหล่งอ้างอิงเพิ่มเติม
 
 ### เอกสารที่เกี่ยวข้อง
 

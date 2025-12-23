@@ -17,6 +17,7 @@ flowchart TD
 
     style Sync fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
 ```
+> **Figure 1:** กระบวนการประสานงานมิติทางฟิสิกส์ (Dimension Sync) ระหว่างโซลเวอร์ประเภทต่างๆ เช่น ของไหลและโครงสร้าง เพื่อให้การส่งผ่านข้อมูลที่รอยต่อขอบเขตมีความสอดคล้องกันความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ![[of_fsi_dimension_sync.png]]
 `A diagram showing the transfer of a pressure field from a fluid solver to a structural solver, illustrating how the dimensionSet ensures the units are interpreted correctly as Stress [M L⁻¹ T⁻²], scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
@@ -322,6 +323,7 @@ flowchart TD
     style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
     style G fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
 ```
+> **Figure 2:** ขั้นตอนการพัฒนาสมการตั้งแต่การตั้งสูตรทางคณิตศาสตร์ การวิเคราะห์มิติ ไปจนถึงการตรวจสอบความถูกต้องขณะคอมไพล์และรันโปรแกรมความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ---
 

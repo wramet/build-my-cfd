@@ -24,8 +24,8 @@ flowchart TD
     style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
     style F fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
 ```
-
-การจัดวางที่ดูเรียบง่ายนี้สร้างรูปแบบการไหลที่ซับซ้อน ซึ่งทำหน้าที่เป็น **ปัญหาอ้างอิง (benchmark problems)** พื้นฐานที่สุดในพลศาสตร์ของไหลเชิงคำนวณ (Computational Fluid Dynamics หรือ CFD)
+> **Figure 1:** เรขาคณิตของ Lid-Driven Cavity และลักษณะการไหล แสดงให้เห็นฝาปิดด้านบนที่เคลื่อนที่ด้วยความเร็วคงที่ซึ่งขับเคลื่อนให้เกิดกระแสวนหลักขนาดใหญ่และกระแสวนรองในมุมกล่อง พร้อมผลกระทบจากความเค้นเฉือนที่ผนัง
+ ซึ่งทำหน้าที่เป็น **ปัญหาอ้างอิง (benchmark problems)** พื้นฐานที่สุดในพลศาสตร์ของไหลเชิงคำนวณ (Computational Fluid Dynamics หรือ CFD)
 
 **ปัญหา Lid-Driven Cavity ถูกนำมาใช้อย่างแพร่หลายสำหรับการตรวจสอบความถูกต้องของ Numerical Solver** เนื่องจากมีรูปทรงเรขาคณิตที่เรียบง่าย แต่มีฟิสิกส์ที่หลากหลาย
 
@@ -161,9 +161,8 @@ flowchart TD
     class B,C,D,E process;
     class B1,B2,B3,B4,C1,C2,C3,D1,D2,D3,D4,E1,E2,E3 terminator;
 ```
+> **Figure 2:** โครงสร้างไดเรกทอรีของกรณีทดสอบใน OpenFOAM แสดงการจัดแบ่งไฟล์เงื่อนไขเริ่มต้น ข้อมูล Mesh และการตั้งค่า Solver พร้อมสคริปต์สำหรับการรันและการประมวลผลขั้นหลัง
 
-```
-lidDrivenCavity/
 ├── 0/                    # เงื่อนไขเริ่มต้น (Initial conditions)
 │   ├── U                # ฟิลด์ความเร็ว (Velocity field)
 │   └── p                # ฟิลด์ความดัน (Pressure field)
@@ -465,8 +464,8 @@ flowchart TD
     class E,J storage;
     class H,K decision;
 ```
+> **Figure 3:** แผนผังลำดับขั้นตอนของอัลกอริทึม PISO ซึ่งใช้วิธีการทำนายและแก้ไขความดันและความเร็วในแต่ละขั้นตอนเวลา เพื่อรักษาความต่อเนื่องของมวลในแต่ละขั้นตอนของการจำลอง
 
-### ขั้นตอนการทำงานของ PISO Algorithm
 
 1. **Predict Velocity** - แก้สมการโมเมนตัมโดยใช้ความดันจาก time step ก่อนหน้า:
    $$\rho \left(\frac{\partial \mathbf{u}^*}{\partial t} + \mathbf{u}^* \cdot \nabla \mathbf{u}^*\right) = -\nabla p^* + \mu \nabla^2 \mathbf{u}^*$$

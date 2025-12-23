@@ -88,6 +88,7 @@ flowchart LR
     E --> G[Built-in Dimension Analysis]
     E --> H[Parallel Vectorized Computation]
 ```
+> **Figure 1:** การเปรียบเทียบระหว่างสเปรดชีต Excel ทั่วไปกับระบบฟิลด์ของ OpenFOAM ซึ่งโดดเด่นด้วยการตรวจสอบมิติอัตโนมัติและการประมวลผลแบบขนานประสิทธิภาพสูงความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ### Field Architecture: Beyond Simple Arrays
 
@@ -133,6 +134,7 @@ graph TD
     C --> C1[Patch Values]
     C --> C2[Boundary Conditions]
 ```
+> **Figure 2:** องค์ประกอบภายในของฟิลด์ความดัน (`volScalarField p`) ซึ่งประกอบด้วยค่าภายในเซลล์ ค่าที่ขอบเขต มิติทางฟิสิกส์ และการเชื่อมโยงกับเมชคำนวณความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ### Mathematical Operations: Natural Physics Notation
 
@@ -184,6 +186,7 @@ graph TD
     J[volTensorField] --> A
     K[surfaceScalarField] --> A
 ```
+> **Figure 3:** ลำดับชั้นการสืบทอดของคลาสฟิลด์ใน OpenFOAM แสดงความสัมพันธ์ระหว่างคอนเทนเนอร์ข้อมูลพื้นฐานไปจนถึงฟิลด์เรขาคณิตที่ซับซ้อนความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 **At the base level:**
 - `List<Type>` provides a dynamic array container for any data type
@@ -267,6 +270,7 @@ graph TD
     B --> D[Type Safety]
     B --> E[Performance Optimization]
 ```
+> **Figure 4:** แผนผังการเลือกนโยบายขอบเขต (PatchField Policy) ซึ่งช่วยให้ระบบสามารถจัดการเงื่อนไขขอบเขตที่หลากหลายได้ผ่านพหุสัณฑ์ในเวลาคอมไพล์ (Compile-time Polymorphism)ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ### Parameter 3: `GeoMesh` - Where Is the Data?
 

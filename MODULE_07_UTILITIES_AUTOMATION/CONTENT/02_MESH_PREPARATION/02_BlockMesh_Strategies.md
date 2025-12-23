@@ -46,6 +46,7 @@ flowchart TD
     L --> M[Grading Strategy]
     M --> N[Quality Validation]
 ```
+> **Figure 1:** แผนภูมิขั้นตอนการเลือกโทโพโลยีของบล็อก (Block Topology Selection) โดยพิจารณาจากลักษณะเรขาคณิต เช่น H-Grid สำหรับท่อทางไหลทั่วไป O-Grid สำหรับรูปทรงวงกลม และ C-Grid สำหรับแอร์ฟอยล์ เพื่อนำไปสู่การกำหนดจุดยอด การเชื่อมต่อ และกลยุทธ์การจัดระดับความละเอียดของเมช
 
 #### 3D Pipe Junction Example
 

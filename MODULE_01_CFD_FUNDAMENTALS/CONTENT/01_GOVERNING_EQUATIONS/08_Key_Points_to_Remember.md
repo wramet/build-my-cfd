@@ -26,8 +26,7 @@ $$\frac{\partial (\rho \phi)}{\partial t} + \nabla \cdot (\rho \phi \mathbf{u}) 
 สมการขนส่งแบบทั่วไปนี้เป็นแม่แบบสำหรับสมการการอนุรักษ์ทั้งหมดใน CFD โดยที่ $\phi$ แทนปริมาณทางกายภาพที่แตกต่างกันขึ้นอยู่กับสมการเฉพาะที่กำลังถูกแก้
 
 ### การใช้ Gauss's Divergence Theorem
-
-> **Prompt:** Technical 3D isometric schematic of a CFD control volume cell showing finite volume method discretization. Display a hexahedral control volume with: 1) six faces clearly labeled as inlet/outlet boundaries with arrows showing flux directions, 2) outward normal vectors (n) at each face center shown as red lines, 3) velocity vectors (u) as blue streamlines passing through the cell, 4) cell center point marked, 5) face centers marked, 6) scalar field gradient visualized as color intensity on surfaces, 7) coordinate axes (x,y,z) for reference. Render with semi-transparent materials for volume visibility. Style: Engineering illustration, high-contrast, white background, 8k resolution with clean sans-serif labels.
+![[Pasted image 20251223200317.png]]
 
 การนำ finite volume มาใช้ใน OpenFOAM จะทำการ discretize สมการอินทิกรัลเหล่านี้โดยการประยุกต์ใช้ Gauss's divergence theorem:
 $$\int_V \nabla \cdot \mathbf{F} \, \mathrm{d}V = \oint_S \mathbf{F} \cdot \mathbf{n} \, \mathrm{d}S$$
@@ -116,8 +115,7 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \
   - Pressure gradient forces: $-\nabla p$
   - Viscous forces: $\mu \nabla^2 \mathbf{u}$
 
-> **Prompt:** Technical 3D isometric schematic of a fluid element (control volume) with force vectors. Display a cubic fluid element in the center with multiple force fields acting on it. Show pressure gradient forces as blue arrows pointing inward from all faces, viscous forces as red shear arrows along faces showing tangential stress, and velocity field as a surface color gradient from blue to red. Add coordinate system and clear labeling. Render with semi-transparent materials for volume visibility. Style: Engineering illustration, high-contrast, white background, 8k resolution with clean sans-serif labels.
-
+![[Pasted image 20251223200332.png]]
 ### การ Implement ใน OpenFOAM
 
 ใน OpenFOAM เทอมเหล่านี้ถูกนำมาใช้โดยใช้ finite volume discretization พร้อมฟังก์ชันเฉพาะทาง:

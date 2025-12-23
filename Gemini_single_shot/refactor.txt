@@ -1,7 +1,7 @@
 Role: Senior Instructional Designer & Technical
   Editor (OpenFOAM Specialist).
   Target Context: Please focus on the directory:
-  TARGET_PATH =  {{MODULE_06_ADVANCED_PHYSICS}} and
+  TARGET_PATH =  {{/Users/woramet/Documents/th_new/TBD/MODULE_08_TESTING_VALIDATION}} and
   all its subdirectories recursively.
   The Problem: The current structure is
   "Meta-Oriented" (organized by document types like

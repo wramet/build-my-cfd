@@ -27,6 +27,7 @@ graph LR
     class Inlet,Outlet,Wall,Symmetry boundary;
     class Domain domain;
 ```
+> **Figure 1:** การจำแนกประเภทเงื่อนไขขอบเขตพื้นฐานใน CFD โดยจับคู่ขอบเขตทางกายภาพ (Inlet, Outlet, Wall, Symmetry) เข้ากับข้อจำกัดทางคณิตศาสตร์ที่เกี่ยวข้อง (Dirichlet, Neumann) บนโดเมนการคำนวณ
 
 
 การนำ Boundary conditions ไปใช้ทางคณิตศาสตร์ส่งผลโดยตรงต่อ:
@@ -243,6 +244,7 @@ graph LR
         F --> G --> H --> I
     end
 ```
+> **Figure 2:** โครงสร้างของชั้นขอบเขตบรรยากาศ แสดงการแบ่งส่วนในแนวตั้งออกเป็นชั้นความขรุขระ (roughness layer), บริเวณกฎลอการิทึม (log-law region) และชั้นบน ซึ่งควบคุมโดยสมการโปรไฟล์ความเร็วแบบลอการิทึม
 
 
 Boundary conditions ขั้นสูงเหล่านี้ช่วยให้สามารถจำลองสถานการณ์การไหลในโลกแห่งความเป็นจริงได้อย่างแม่นยำ รวมถึง:
@@ -331,7 +333,7 @@ graph TD
     class F,G math;
     class H,I,J param;
 ```
-
+> **Figure 3:** การแบ่งโซนของชั้นขอบเขตแบบปั่นป่วนใกล้ผนัง โดยกำหนดชั้นย่อยหนืด (viscous sublayer, $y^+ < 5$), ชั้นกันชน (buffer layer) และบริเวณกฎลอการิทึม (log-law region, $y^+ > 30$) สัมพันธ์กับระยะห่างจากผนังแบบไร้มิติ ($y^+$)
 
 ---
 
@@ -383,7 +385,7 @@ graph LR
     classDef physics fill:#fff4e6,stroke:#fd7e14,stroke-width:2px,color:#000;
     classDef properties fill:#ebf8ff,stroke:#1971c2,stroke-width:2px,color:#000;
 ```
-
+> **Figure 4:** กลไกการถ่ายโอนความร้อนแบบคอนจูเกต (CHT) ที่รอยต่อระหว่างของไหลและของแข็ง โดยเน้นการบังคับใช้สมดุลพลังงานและความต่อเนื่องของฟลักซ์ความร้อน ($q_{fluid} = q_{solid}$) ข้ามขอบเขตโดเมน
 
 Boundary Conditions เหล่านี้แก้สมดุลพลังงานที่ Interface:
 
@@ -461,7 +463,7 @@ graph TD
     style E fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
     style F fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
 ```
-
+> **Figure 5:** วิวัฒนาการเชิงเวลาของเงื่อนไขขอบเขตขาเข้าที่เปลี่ยนแปลงตามเวลา แสดงลำดับของช่วงเพิ่มความเร็ว (ramp-up), สภาวะคงตัว (steady-state) และช่วงลดความเร็ว (ramp-down) ซึ่งมีประโยชน์สำหรับการจำลองพลวัตแบบไม่คงที่
 
 ---
 

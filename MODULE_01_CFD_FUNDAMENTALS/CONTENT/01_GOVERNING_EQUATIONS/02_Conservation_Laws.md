@@ -49,6 +49,7 @@ graph LR
     class CV,Eq process;
     class Rho,Vel input;
 ```
+> **Figure 1:** การวิเคราะห์ปริมาตรควบคุมสำหรับการอนุรักษ์มวล แสดงให้เห็นว่าฟลักซ์มวล (เข้า/ออก) และการสะสมมวลนำไปสู่สมการความต่อเนื่อง $\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$ ได้อย่างไร
 
 ### รูปแบบสมการทั่วไป
 
@@ -178,6 +179,7 @@ graph TD
     style Sum fill:#fff9c4,stroke:#fbc02d
     style Acc fill:#e8f5e9,stroke:#2e7d32
 ```
+> **Figure 2:** โครงสร้างของสมการการอนุรักษ์โมเมนตัม โดยจับคู่แรงที่กระทำ (แรงดัน, แรงหนืด, แรงภายนอก) เข้ากับพจน์ความเร่งที่เกิดขึ้นตามกฎข้อที่สองของนิวตัน
 
 ### แรงที่กระทำต่อองค์ประกอบของไหล
 
@@ -320,7 +322,7 @@ graph TD
     class B,C,E,F process;
     class D storage;
 ```
-
+> **Figure 3:** สมดุลพลังงานบนปริมาตรควบคุม โดยคำนึงถึงฟลักซ์ของพลังงานจลน์ พลังงานภายใน และพลังงานศักย์ พจน์ของงาน และการถ่ายเทความร้อน เพื่อหาอนุพันธ์ของสมการการอนุรักษ์พลังงานรวม
 ### การกำหนดสมการพลังงาน
 
 พลังงานรวมต่อหน่วยมวล:
@@ -335,14 +337,14 @@ $$\frac{\partial (\rho E)}{\partial t} + \nabla \cdot (\rho E \mathbf{u}) = \nab
 
 ### การแยกย่อยแต่ละเทอม (Detailed Term Analysis)
 
-| เทอม | ความหมาย |
-|------|-----------|
-| $\frac{\partial (\rho E)}{\partial t}$ | อัตราการสะสมพลังงานต่อหน่วยปริมาตร |
-| $\nabla \cdot (\rho E \mathbf{u})$ | การขนส่งพลังงานแบบพา (convective energy transport) |
-| $\nabla \cdot (k \nabla T)$ | การนำความร้อนตามกฎของ Fourier (heat conduction) |
-| $-\nabla \cdot (p \mathbf{u})$ | งานที่ทำโดยแรงดัน (pressure work) |
-| $\rho \mathbf{g} \cdot \mathbf{u}$ | งานที่ทำโดยแรงโน้มถ่วง (gravitational work) |
-| $\Phi$ | ฟังก์ชันการสลายพลังงานเนื่องจากความหนืด (viscous dissipation) |
+| เทอม                                   | ความหมาย                                                      |
+| -------------------------------------- | ------------------------------------------------------------- |
+| $\frac{\partial (\rho E)}{\partial t}$ | อัตราการสะสมพลังงานต่อหน่วยปริมาตร                            |
+| $\nabla \cdot (\rho E \mathbf{u})$     | การขนส่งพลังงานแบบพา (convective energy transport)            |
+| $\nabla \cdot (k \nabla T)$            | การนำความร้อนตามกฎของ Fourier (heat conduction)               |
+| $-\nabla \cdot (p \mathbf{u})$         | งานที่ทำโดยแรงดัน (pressure work)                             |
+| $\rho \mathbf{g} \cdot \mathbf{u}$     | งานที่ทำโดยแรงโน้มถ่วง (gravitational work)                   |
+| $\Phi$                                 | ฟังก์ชันการสลายพลังงานเนื่องจากความหนืด (viscous dissipation) |
 
 **ฟังก์ชันการสลายพลังงานเนื่องจากความหนืด**:
 $$\Phi = \boldsymbol{\tau} : \nabla \mathbf{u}$$

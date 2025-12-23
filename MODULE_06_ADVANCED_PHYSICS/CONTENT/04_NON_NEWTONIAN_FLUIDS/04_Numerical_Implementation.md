@@ -354,6 +354,8 @@ flowchart TD
     style E fill:#4caf50,stroke:#2e7d32
     style F fill:#f44336,stroke:#c62828
 ```
+> **Figure 1:** แผนภาพแสดงรูปแบบการออกแบบโรงงาน (Factory Pattern) สำหรับการเลือกแบบจำลองความหนืดขณะรันโปรแกรม (Runtime Selection) ซึ่งช่วยให้ผู้ใช้สามารถสลับเปลี่ยนแบบจำลองผ่านไฟล์ Dictionary ได้โดยไม่ต้องทำการคอมไพล์โค้ดใหม่
+
 
 ### Runtime Selection Table Structure
 
@@ -459,6 +461,8 @@ flowchart LR
     style C fill:#ffcc80,stroke:#ef6c00
     style D fill:#ffa726,stroke:#ef6c00
 ```
+> **Figure 2:** แผนภูมิแสดงกลไกการลงทะเบียนแบบสถิต (Static Registration) ซึ่งเป็นพื้นฐานของสถาปัตยกรรมแบบปลั๊กอินใน OpenFOAM ช่วยให้ระบบสามารถค้นพบและเรียกใช้งานแบบจำลองความหนืดใหม่ๆ ได้โดยอัตโนมัติ
+
 
 ### Architectural Benefits
 
@@ -578,6 +582,8 @@ graph TD
     style C fill:#bbdefb
     style D fill:#bbdefb
 ```
+> **Figure 3:** แผนภาพสรุปกลยุทธ์การรักษาเสถียรภาพทางตัวเลข (Stabilization Strategies) สำหรับการจำลองของไหลที่ไม่ใช่แบบนิวตัน เพื่อป้องกันปัญหาการไม่ลู่เข้าของคำตอบที่เกิดจากการเปลี่ยนแปลงความหนืดอย่างรวดเร็ว
+
 
 | Strategy | Description | Effect |
 |----------|-------------|--------|

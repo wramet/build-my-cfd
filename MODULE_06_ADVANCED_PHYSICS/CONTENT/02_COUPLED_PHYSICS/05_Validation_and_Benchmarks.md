@@ -21,6 +21,8 @@ flowchart TD
     D[Forced Convection] --> A
     E[Conduction] --> B
 ```
+> **Figure 1:** แผนภาพแสดงองค์ประกอบและกลไกของปัญหาการถ่ายเทความร้อนแบบคอนจูเกต (CHT) แบบ 1 มิติ ซึ่งประกอบด้วยกระบวนการพาความร้อนและการนำความร้อนที่เกิดขึ้นพร้อมกัน
+
 
 **Problem Configuration**
 
@@ -119,10 +121,11 @@ flowchart LR
     A[OpenFOAM] -->|Compare| B[Results]
     C[StarCCM+] -->|Compare| B
     B --> D[Validation Metrics]
-    D --> E[Heat Flux Distribution]
     D --> F[Temperature Field]
     D --> G[Convergence Behavior]
 ```
+> **Figure 2:** แผนผังกระบวนการตรวจสอบความถูกต้องข้ามซอฟต์แวร์ (Cross-Validation Methodology) เพื่อยืนยันความแม่นยำของ OpenFOAM เทียบกับซอฟต์แวร์เชิงพาณิชย์ที่เป็นมาตรฐาน
+
 
 **Comparison Methodology**
 
@@ -258,6 +261,8 @@ flowchart TD
     F -->|Pass| G[Conservation Satisfied]
     F -->|Fail| H[Warning Issued]
 ```
+> **Figure 3:** แผนผังลำดับขั้นตอนการตรวจสอบการอนุรักษ์มวลในระบบหลายเฟส เพื่อประเมินความคลาดเคลื่อนเชิงตัวเลขและความต่อเนื่องของข้อมูลมวลในระหว่างการจำลอง
+
 
 ---
 
@@ -326,6 +331,8 @@ flowchart LR
     F -->|Balanced| G[Conservation OK]
     F -->|Imbalance| H[Adjust Parameters]
 ```
+> **Figure 4:** แผนภาพแสดงกระบวนการตรวจสอบสมดุลโมเมนตัมภายในปริมาตรควบคุม ซึ่งพิจารณาจากผลรวมของโมเมนตัมขาเข้า-ขาออก และแรงภายนอกที่กระทำต่อระบบ
+
 
 ---
 
@@ -666,6 +673,8 @@ flowchart TD
     M -->|No| C
     M -->|Yes| N[Write Final Report]
 ```
+> **Figure 5:** แผนผังระบบการเฝ้าสังเกตการอนุรักษ์โดยอัตโนมัติ (Automated Conservation Monitoring Framework) ซึ่งครอบคลุมการตรวจสอบสมดุลมวล โมเมนตัม พลังงาน และสัดส่วนเฟสตลอดระยะเวลาการจำลอง
+
 
 ---
 
@@ -751,6 +760,8 @@ flowchart TD
     K --> E
     L --> E
 ```
+> **Figure 6:** แผนภูมิแสดงขั้นตอนการตรวจสอบความถูกต้องอย่างเป็นระบบ (Systematic Validation Process) เพื่อให้มั่นใจว่าการจำลองสามารถสะท้อนพฤติกรรมทางฟิสิกส์จริงได้อย่างแม่นยำและน่าเชื่อถือ
+
 
 ---
 

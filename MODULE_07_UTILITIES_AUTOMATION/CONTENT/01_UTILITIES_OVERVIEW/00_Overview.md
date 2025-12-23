@@ -136,6 +136,7 @@ flowchart LR
     CHECK -->|Fail| REPAIR[Repair Tools]
     REPAIR --> CHECK
 ```
+> **Figure 1:** แผนภูมิแสดงขั้นตอนการแปลงรูปแบบไฟล์ (Format Conversion Pipeline) จากไฟล์ CAD ต้นฉบับผ่านมาตรฐาน STEP/IGES เข้าสู่รูปแบบ STL เพื่อเข้าสู่กระบวนการตรวจสอบคุณภาพและการซ่อมแซมก่อนการสร้างเมช
 
 #### 3. Mesh Quality Assessment
 
@@ -183,6 +184,7 @@ flowchart TD
     SNAP --> LAYER[Layer Addition]
     LAYER --> FINAL[Final Mesh]
 ```
+> **Figure 2:** กระบวนการทำงาน 3 ขั้นตอนหลักของ `snappyHexMesh` ประกอบด้วยขั้นตอนการสร้างเมชแบบ Castellated การปรับพื้นผิวให้แนบชิด (Snapping) และการเพิ่มชั้นขอบเขต (Layer Addition) เพื่อให้ได้เมชสุดท้ายที่สมบูรณ์
 
 **Castellation Stage**
 

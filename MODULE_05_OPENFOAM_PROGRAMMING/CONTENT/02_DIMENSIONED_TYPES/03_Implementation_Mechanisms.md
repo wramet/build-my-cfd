@@ -45,6 +45,7 @@ graph TD
     C --> C7["Luminous intensity J"]
     D --> D1["scalar/vector/tensor"]
 ```
+> **Figure 1:** องค์ประกอบภายในของคลาส `dimensioned<Type>` ซึ่งประกอบด้วยชื่อ มิติ และค่าตัวเลข โดยมิติจะถูกจัดเก็บในรูปของเลขชี้กำลังของหน่วยพื้นฐาน 7 ชนิดตามมาตรฐาน SI เพื่อความปลอดภัยทางฟิสิกส์ระดับคอมไพล์
 
 ### Template Specialization Mechanisms
 

@@ -291,6 +291,8 @@ flowchart TD
     style I fill:#f99,stroke:#333
     style J fill:#cfc,stroke:#333
 ```
+> **Figure 1:** แผนผังลำดับขั้นตอนการจำลองของไหลที่ไม่ใช่แบบนิวตัน (Complete Workflow) ตั้งแต่การเตรียมเมช การตั้งค่าพารามิเตอร์ของแบบจำลองความหนืด ไปจนถึงกระบวนการวิเคราะห์ผลและการตรวจสอบความลู่เข้า
+
 
 ### 4.1 Pre-processing Checklist
 
@@ -317,6 +319,8 @@ flowchart LR
     style D fill:#fff9c4,stroke:#fbc02d
     style H fill:#c8e6c9,stroke:#2e7d32
 ```
+> **Figure 2:** แผนผังแสดงแนวทางปฏิบัติที่เป็นเลิศ (Best Practice) โดยใช้ลำดับการคำนวณจากแบบจำลองนิวตันไปสู่แบบจำลองที่ไม่ใช่แบบนิวตัน เพื่อรักษาเสถียรภาพทางตัวเลขและลดความซับซ้อนในการตั้งค่าเบื้องต้น
+
 
 ---
 
@@ -410,6 +414,8 @@ flowchart LR
     C --> D[Validate Results]
     D --> E[Apply Complex Model]
 ```
+> **Figure 3:** แผนภูมิแสดงกลยุทธ์การเพิ่มระดับความซับซ้อนของแบบจำลองความหนืด (Progressive Modeling Strategy) เพื่อการตรวจสอบความถูกต้องของระบบอย่างเป็นลำดับ
+
 
 #### Tip 2: Monitor Strain Rate
 

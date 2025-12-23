@@ -65,6 +65,7 @@ flowchart TD
     H[Operation: Q1 / Q2] --> I[Subtract dimension exponents]
     I --> J[Return new dimensionedType]
 ```
+> **Figure 1:** แผนผังขั้นตอนการตรวจสอบมิติทางฟิสิกส์ (Dimension Checking Workflow) เพื่อยืนยันความถูกต้องของหน่วยในการดำเนินการทางคณิตศาสตร์ระหว่างปริมาณทางกายภาพต่างๆ
 
 ## 🧠 ภายใต้ฝาครอบ
 
@@ -85,6 +86,7 @@ mindmap
     N(Quantity - mol)
     J(Luminous - cd)
 ```
+> **Figure 2:** ส่วนประกอบของ `dimensionSet` ซึ่งครอบคลุม 7 มิติพื้นฐานตามมาตรฐาน SI ที่ใช้ในการระบุมิติทางฟิสิกส์ของทุกปริมาณใน OpenFOAM
 
 โดยที่:
 - $M$: มวล (กิโลกรัม)
@@ -134,6 +136,7 @@ classDiagram
 
     note for dimensionedType "Tracks physical dimensions"
 ```
+> **Figure 3:** แผนผังคลาสแสดงลำดับชั้นการสืบทอดของประเภทข้อมูลที่มีมิติ โดย `dimensionedType` เป็นฐานในการสร้างประเภทข้อมูลสเปกตรัมต่างๆ เช่น สเกลาร์ เวกเตอร์ และเทนเซอร์
 
 ## ⚠️ ข้อผิดพลาดทั่วไป
 

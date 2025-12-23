@@ -116,8 +116,8 @@ graph LR
     class Sf,nf,Af vector;
     class V_P property;
 ```
+> **Figure 1:** การนิยามทางเรขาคณิตของปริมาตรควบคุมแบบเน้นจุดศูนย์กลางเซลล์ โดยระบุเซลล์เจ้าของและเซลล์ข้างเคียง รอยต่อระหว่างเซลล์ (หน้า) และข้อมูลพื้นที่และปริมาตรที่จำเป็นสำหรับการคำนวณฟลักซ์และเกรเดียนต์
 
-### ข้อมูลทางเรขาคณิตที่จำเป็น
 
 **ข้อมูลทางเรขาคณิตที่ใช้ในการประกอบเมทริกซ์:**
 - **ปริมาตรเซลล์** ($V_P$): ใช้สำหรับ Volume Integrals
@@ -189,8 +189,8 @@ graph TD
     class I,J,K,L,M decision;
     class N,O terminator;
 ```
+> **Figure 2:** การไหลของข้อมูลในกระบวนการประกอบ `fvMatrix` แสดงการประมาณค่าจากปริมาตรไปยังพื้นผิว และการใช้แผนการคำนวณต่าง ๆ (Interpolation schemes) เพื่อสร้างระบบสมการเชิงเส้นแบบเบาบางสำหรับ Solver
 
-### อัลกอริทึมการประกอบเมทริกซ์
 
 การสร้างเมทริกซ์จริงใน OpenFOAM เป็นไปตามอัลกอริทึมที่เป็นระบบ:
 
@@ -269,48 +269,70 @@ Coefficient matrix `[A]` ใน OpenFOAM แสดงโครงสร้าง
 | **Diagonal storage** | สำหรับอัลกอริทึม Solver ที่ต้องการการเข้าถึง Diagonal บ่อยครั้ง | การปรับปรุงประสิทธิภาพ |
 | **Symmetric storage** | เมื่อ Discretization ส่งผลให้เกิด Symmetric Coefficient Matrices | ปัญหา Symmetric |
 
-> **Prompt:** Technical 3D isometric schematic of sparse matrix pattern [A] showing non-zero coefficients. Primary: Diagonal dominance visualization as thick blue lines. Secondary: Off-diagonal elements as thin gray connections between neighboring nodes. Annotations: Single-letter labels (P, N) using LaTeX notation. Clear sans-serif font for coefficients. Ray-traced studio lighting on semi-transparent materials. Style: Engineering illustration, high-contrast, white background, 8k resolution.
 
 ### โครงสร้างเมทริกซ์แบบ Sparse
 
 ```mermaid
 graph LR
-    A["Cell P"] --> B["Cell N1"]
-    A --> C["Cell N2"]
-    A --> D["Cell N3"]
-    A --> E["Cell N4"]
-    F["Face 1"] --> A
-    F --> B
-    G["Face 2"] --> A
-    G --> C
-    H["Face 3"] --> A
-    H --> D
-    I["Face 4"] --> A
-    I --> E
-    J["a_P coefficient"] --> A
-    K["a_N1 coefficient"] --> B
-    L["a_N2 coefficient"] --> C
-    M["a_N3 coefficient"] --> D
-    N["a_N4 coefficient"] --> E
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style E fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style F fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style G fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style H fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style I fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style J fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style K fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style L fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style M fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style N fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    %% Central Control Volume
+    subgraph CV_P [Control Volume P]
+        direction TB
+        A[Cell P]
+        J[a_P coeff]
+        J --- A
+    end
+
+    %% Neighbor 1 Group
+    subgraph N1_Group [Neighbor 1]
+        direction TB
+        B[Cell N1]
+        K[a_N1 coeff]
+        K --- B
+    end
+
+    %% Neighbor 2 Group
+    subgraph N2_Group [Neighbor 2]
+        direction TB
+        C[Cell N2]
+        L[a_N2 coeff]
+        L --- C
+    end
+
+    %% Neighbor 3 Group
+    subgraph N3_Group [Neighbor 3]
+        direction TB
+        D[Cell N3]
+        M[a_N3 coeff]
+        M --- D
+    end
+
+    %% Neighbor 4 Group
+    subgraph N4_Group [Neighbor 4]
+        direction TB
+        E[Cell N4]
+        N[a_N4 coeff]
+        N --- E
+    end
+
+    %% Connections: Neighbor -> Shared Face -> Cell P
+    B --> F[Face 1] --> A
+    C --> G[Face 2] --> A
+    D --> H[Face 3] --> A
+    E --> I[Face 4] --> A
+
+    %% Styling using Classes (Much cleaner code)
+    classDef cell fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef neighbor fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    classDef face fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef coeff fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+
+    class A cell;
+    class B,C,D,E neighbor;
+    class F,G,H,I face;
+    class J,K,L,M,N coeff;
 ```
+> **Figure 3:** การเปลี่ยนความสัมพันธ์ระหว่างเซลล์ที่อยู่ติดกันให้เป็นสัมประสิทธิ์เมทริกซ์ ($a_P, a_N$) โดยแสดงให้เห็นว่าฟลักซ์ที่ผ่านหน้าเซลล์แต่ละหน้าส่งผลต่อสัมประสิทธิ์ในแนวทแยงและนอกแนวทแยงของเมทริกซ์อย่างไร
 
----
-
-## ตัวอย่างการคำนวณสัมประสิทธิ์ (Coefficient Calculation Examples)
 
 ### ตัวอย่างสัมประสิทธิ์เมทริกซ์
 
@@ -345,9 +367,7 @@ $$a_f = \rho_f \mathbf{u}_f \cdot \mathbf{S}_f + \frac{\Gamma_f A_f}{\delta_f} \
 โดยที่เครื่องหมายของเทอม Convective ขึ้นอยู่กับ:
 - ทิศทางการไหล
 - Upwind Scheme ที่ใช้
-
-> **Prompt:** Technical 3D isometric schematic of finite volume cell interface between Cell P and Cell N. Primary: Velocity vector (u) as blue arrows showing flow direction through the face. Secondary: Face normal vector (n) as red perpendicular arrows. Face area vector (S_f) shown as yellow arrows. Distance vector (δ_f) shown as gray dashed line between cell centers. Annotations: Single-letter labels using LaTeX notation. Clear sans-serif font. Ray-traced studio lighting on semi-transparent materials. Style: Engineering illustration, high-contrast, white background, 8k resolution.
-
+![[Pasted image 20251223201626.png]]
 ---
 
 ## การนำ Boundary Condition ไปใช้
@@ -457,10 +477,8 @@ graph LR
     style F fill:#e0f2f1,stroke:#00796b,stroke-width:2px,color:#000;
     style G fill:#fce4ec,stroke:#ad1457,stroke-width:2px,color:#000;
 ```
+> **Figure 4:** ขั้นตอนการหาผลเฉลยแบบวนซ้ำสำหรับระบบสมการเชิงเส้น แสดงกระบวนการตั้งแต่การเลือก Solver การกำหนดค่าเริ่มต้น ไปจนถึงการตรวจสอบการลู่เข้าของค่าความคลาดเคลื่อน (Residual)
 
----
-
-## การนำไปใช้ใน OpenFOAM
 
 ### ตัวอย่างการใช้งาน `fvMatrix`
 

@@ -1,166 +1,166 @@
-# Drag Forces in Multiphase Flow
+# แรงลากในกระแสของไหลแบบหลายเฟส (Drag Forces in Multiphase Flow)
 
-> [!INFO] Overview Note
-> This comprehensive overview covers **drag forces** - the primary mechanism for interfacial momentum exchange in Eulerian-Eulerian multiphase flows. It bridges fundamental physics with OpenFOAM implementation.
-
----
-
-## 📋 Table of Contents
-
-- [[01_Introduction|Introduction to Drag Forces]]
-- [[02_Fundamental_Drag_Concept|Fundamental Drag Concepts]]
-- [[03_Single_Particle_Drag_-_Fundamental_Derivation|Single Particle Drag Derivation]]
-- [[04_Multiphase_Extension_-_Volume_Averaged_Drag|Volume-Averaged Multiphase Extension]]
-- [[05_Specific_Drag_Models|Specific Drag Models]]
-- [[06_Non-Spherical_Particles|Non-Spherical Particles]]
-- [[07_Dense_Suspension_Effects|Dense Suspension Effects]]
-- [[08_Deformable_Interfaces|Deformable Interfaces]]
-- [[09_OpenFOAM_Implementation_Details|OpenFOAM Implementation]]
-- [[10_Turbulent_Effects|Turbulent Effects]]
-- [[11_Stability_Considerations|Stability Considerations]]
-- [[12_Validation_and_Applications|Validation and Applications]]
-- [[13_Summary|Summary]]
+> [!INFO] ภาพรวมโน้ต (Overview Note)
+> โน้ตภาพรวมนี้ครอบคลุม **แรงลาก (drag forces)** ซึ่งเป็นกลไกหลักในการแลกเปลี่ยนโมเมนตัมระหว่างเฟสใน Eulerian-Eulerian multiphase flows โดยเชื่อมโยงหลักการทางฟิสิกส์กับการนำไปใช้ใน OpenFOAM
 
 ---
 
-## 🎯 Core Concepts
+## 📋 สารบัญ (Table of Contents)
 
-### What is Drag?
+- [[01_Introduction|บทนำสู่แรงลาก (Introduction to Drag Forces)]]
+- [[02_Fundamental_Drag_Concept|แนวคิดพื้นฐานของแรงลาก (Fundamental Drag Concepts)]]
+- [[03_Single_Particle_Drag_-_Fundamental_Derivation|การอนุพันธ์แรงลากอนุภาคเดี่ยว (Single Particle Drag Derivation)]]
+- [[04_Multiphase_Extension_-_Volume_Averaged_Drag|การขยายผลแบบหลายเฟส - แรงลากเฉลี่ยเชิงปริมาตร (Volume-Averaged Multiphase Extension)]]
+- [[05_Specific_Drag_Models|แบบจำลองแรงลากเฉพาะ (Specific Drag Models)]]
+- [[06_Non-Spherical_Particles|อนุภาคที่ไม่ใช่ทรงกลม (Non-Spherical Particles)]]
+- [[07_Dense_Suspension_Effects|ผลกระทบของสารแขวนลอยหนาแน่น (Dense Suspension Effects)]]
+- [[08_Deformable_Interfaces|พื้นผิวที่เปลี่ยนรูปได้ (Deformable Interfaces)]]
+- [[09_OpenFOAM_Implementation_Details|รายละเอียดการนำไปใช้ใน OpenFOAM (OpenFOAM Implementation)]]
+- [[10_Turbulent_Effects|ผลกระทบจากความปั่นป่วน (Turbulent Effects)]]
+- [[11_Stability_Considerations|ข้อควรพิจารณาด้านเสถียรภาพ (Stability Considerations)]]
+- [[12_Validation_and_Applications|การตรวจสอบความถูกต้องและการประยุกต์ใช้ (Validation and Applications)]]
+- [[13_Summary|สรุป (Summary)]]
 
-**Drag forces** represent the resistance experienced by objects moving through fluids, or the resistance between two interpenetrating fluids. In multiphase flow, drag is the ==dominant mechanism for interfacial momentum transfer== between phases.
+---
 
-### Mathematical Framework
+## 🎯 แนวคิดพื้นฐาน (Core Concepts)
 
-For phase $k$ experiencing drag due to phase $l$:
+### แรงลากคืออะไร? (What is Drag?)
+
+**แรงลาก (Drag forces)** หมายถึงแรงต้านที่วัตถุประสบเมื่อเคลื่อนที่ผ่านของไหล หรือแรงต้านระหว่างของไหลสองชนิดที่แทรกซึมซึ่งกันและกัน ใน multiphase flow แรงลากเป็น ==กลไกหลักในการแลกเปลี่ยนโมเมนตัมระหว่างเฟส==
+
+### กรอบคณิตศาสตร์ (Mathematical Framework)
+
+สำหรับเฟส $k$ ที่ได้รับแรงลากจากเฟส $l$:
 
 $$\mathbf{F}_{D,kl} = \mathbf{K}_{kl}(\mathbf{u}_l - \mathbf{u}_k)$$
 
-Where:
-- $\mathbf{K}_{kl}$ = **Interfacial momentum exchange coefficient**
-- $\mathbf{u}_l - \mathbf{u}_k$ = Relative velocity between phases
+โดยที่:
+- $\mathbf{K}_{kl}$ = **สัมประสิทธิ์การแลกเปลี่ยนโมเมนตัมระหว่างเฟส** (interfacial momentum exchange coefficient)
+- $\mathbf{u}_l - \mathbf{u}_k$ = ความเร็วสัมพัทธ์ระหว่างเฟส
 
 ---
 
-## 🔬 Physical Mechanisms
+## 🔬 กลไกทางฟิสิกส์ (Physical Mechanisms)
 
-Drag in multiphase flow arises from four fundamental mechanisms:
+แรงลากใน multiphase flow เกิดจากกลไกพื้นฐาน 4 ประการ:
 
-| Mechanism | Description | Governing Physics |
-|-----------|-------------|-------------------|
-| **Form Drag** | Pressure differences around inclusions | Flow separation, wake formation |
-| **Friction Drag** | Viscous stresses on interfaces | No-slip boundary conditions |
-| **Wave Drag** | Surface wave propagation | Deformable interfaces |
-| **Added Mass** | Fluid acceleration around objects | Virtual mass effects |
+| กลไก | คำอธิบาย | ฟิสิกส์ที่ควบคุม |
+|--------|-------------|-------------------|
+| **Form Drag** | ความแตกต่างของความดันรอบๆ สิ่งแปลกปลอม | Flow separation, wake formation |
+| **Friction Drag** | แรงเค้นจากความหนืดบนพื้นผิว | No-slip boundary conditions |
+| **Wave Drag** | การแพร่กระจายของคลื่นพื้นผิว | Deformable interfaces |
+| **Added Mass** | การเร่งความเร็วของของไหลรอบๆ วัตถุ | Virtual mass effects |
 
 ```mermaid
 flowchart TD
-    A[Drag Force] --> B[Form Drag]
-    A --> C[Friction Drag]
-    A --> D[Wave Drag]
-    A --> E[Added Mass]
+    A["Drag Force"] --> B["Form Drag"]
+    A --> C["Friction Drag"]
+    A --> D["Wave Drag"]
+    A --> E["Added Mass"]
 
-    B --> B1[Pressure Differences]
-    B --> B2[Flow Separation]
+    B --> B1["Pressure Differences"]
+    B --> B2["Flow Separation"]
 
-    C --> C1[Viscous Stresses]
-    C --> C2[No-Slip Condition]
+    C --> C1["Viscous Stresses"]
+    C --> C2["No-Slip Condition"]
 
-    D --> D1[Surface Waves]
-    D --> D2[Deformable Interfaces]
+    D --> D1["Surface Waves"]
+    D --> D2["Deformable Interfaces"]
 
-    E --> E1[Virtual Mass]
-    E --> E2[Transient Acceleration]
+    E --> E1["Virtual Mass"]
+    E --> E2["Transient Acceleration"]
 ```
 
 ---
 
-## 📊 From Single Particle to Multiphase
+## 📊 จากอนุภาคเดี่ยวสู่ Multiphase (From Single Particle to Multiphase)
 
-### Single Particle Foundation
+### รากฐานอนุภาคเดี่ยว (Single Particle Foundation)
 
-For a single sphere in a flow:
+สำหรับทรงกลมเดี่ยวในกระแสของไหล:
 
 $$\mathbf{F}_D = \frac{1}{2} C_D \rho_f A |\mathbf{u}_f - \mathbf{u}_p| (\mathbf{u}_f - \mathbf{u}_p)$$
 
-**Key Parameter: Particle Reynolds Number**
+**พารามิเตอร์สำคัญ: จำนวนเรย์โนลด์ของอนุภาค**
 $$Re_p = \frac{\rho_f |\mathbf{u}_p - \mathbf{u}_f| d}{\mu_f}$$
 
-### Flow Regimes
+### ระบอบการไหล (Flow Regimes)
 
-| Regime | Reynolds Range | Drag Coefficient | Flow Character |
+| ระบอบ | ช่วง Reynolds | สัมประสิทธิ์แรงลาก | ลักษณะการไหล |
 |--------|---------------|------------------|----------------|
 | **Stokes** | $Re_p < 1$ | $C_D = \frac{24}{Re_p}$ | Creeping flow |
 | **Transitional** | $1 < Re_p < 1000$ | Schiller-Naumann | Flow separation begins |
 | **Newton** | $Re_p > 1000$ | $C_D \approx 0.44$ | Fully turbulent |
 
-### Volume-Averaged Extension
+### การขยายผลแบบเฉลี่ยเชิงปริมาตร (Volume-Averaged Extension)
 
-For multiphase systems, we extend to volume-averaged drag:
+สำหรับระบบ multiphase เราขยายผลไปสู่แรงลากเฉลี่ยเชิงปริมาตร:
 
 $$\mathbf{F}_{D,kl} = \frac{3}{4} C_D \frac{\alpha_k \alpha_l \rho_l}{d_k} |\mathbf{u}_l - \mathbf{u}_k| (\mathbf{u}_l - \mathbf{u}_k)$$
 
-**Momentum Exchange Coefficient:**
+**สัมประสิทธิ์การแลกเปลี่ยนโมเมนตัม (Momentum Exchange Coefficient):**
 $$\mathbf{K}_{kl} = \frac{3}{4} C_D \frac{\alpha_k \alpha_l \rho_l}{d_k} |\mathbf{u}_l - \mathbf{u}_k|$$
 
 ---
 
-## 🧩 Major Drag Models in OpenFOAM
+## 🧩 แบบจำลองแรงลากหลักใน OpenFOAM (Major Drag Models in OpenFOAM)
 
-### 1. Schiller-Naumann Model
+### 1. แบบจำลอง Schiller-Naumann (Schiller-Naumann Model)
 
-**Most widely used** for spherical particles:
+**แบบจำลองแรงลากที่ใช้กันอย่างแพร่หลายที่สุด** สำหรับอนุภาคทรงกลม:
 
 $$C_D = \begin{cases}
 \frac{24}{Re_p}(1 + 0.15 Re_p^{0.687}) & Re_p < 1000 \\
 0.44 & Re_p \geq 1000
 \end{cases}$$
 
-**Use when:**
-- Particles are approximately spherical
-- Moderate Reynolds numbers
-- General multiphase flows
+**ใช้เมื่อ:**
+- อนุภาคมีรูปร่างเกือบทรงกลม
+- จำนวนเรย์โนลด์ปานกลาง
+- กระแสของไหลแบบ multiphase ทั่วไป
 
-### 2. Ishii-Zuber Model
+### 2. แบบจำลอง Ishii-Zuber (Ishii-Zuber Model)
 
-**For deformable bubbles/droplets:**
+**สำหรับฟอง/หยดที่เปลี่ยนรูปได้ (deformable bubbles/droplets):**
 
 $$C_D = \begin{cases}
 \frac{24}{Re_p}(1 + 0.1 Re_p^{0.75}) & Re_p < 1000 \\
 \frac{8}{3}\frac{Eo}{Eo + 4} & \text{Distorted regime}
 \end{cases}$$
 
-**Eötvös Number:** $Eo = \frac{g(\rho_c - \rho_d)d^2}{\sigma}$
+**เลข Eötvös:** $Eo = \frac{g(\rho_c - \rho_d)d^2}{\sigma}$
 
-**Use when:**
-- Gas-liquid systems
-- Deformable interfaces
-- High Eötvös numbers
+**ใช้เมื่อ:**
+- ระบบแก๊ส-ของเหลว (gas-liquid systems)
+- พื้นผิวที่เปลี่ยนรูปได้
+- เลข Eötvös สูง
 
-### 3. Syamlal-O'Brien Model
+### 3. แบบจำลอง Syamlal-O'Brien (Syamlal-O'Brien Model)
 
-**For fluidized beds and dense suspensions:**
+**สำหรับเตาอบฟลูอิดไดซ์และสารแขวนลอยหนาแน่น:**
 
 $$C_D = \frac{v_r^2}{v_s^2}$$
 
-**Use when:**
-- Fluidized bed applications
-- Dense particle suspensions
-- Significant particle concentration effects
+**ใช้เมื่อ:**
+- แอปพลิเคชันเตาอบฟลูอิดไดซ์ (fluidized bed applications)
+- สารแขวนลอยอนุภาคหนาแน่น (dense particle suspensions)
+- ผลกระทบของความเข้มข้นอนุภาคมีนัยสำคัญ
 
-### Model Comparison
+### การเปรียบเทียบแบบจำลอง (Model Comparison)
 
-| Model | Best For | Advantages | Limitations |
+| แบบจำลอง | เหมาะสำหรับ | ข้อดี | ข้อจำกัด |
 |-------|----------|------------|-------------|
-| **Schiller-Naumann** | General spherical particles | Simple, robust, stable | Not for deformed particles |
-| **Ishii-Zuber** | Bubbly flows, distorted interfaces | Accounts for deformation | More complex |
-| **Morsi-Alexander** | Wide $Re_p$ range | High accuracy | Complex, many parameters |
-| **Syamlal-O'Brien** | Fluidized beds, dense suspensions | Handles crowding effects | Limited to other flow types |
+| **Schiller-Naumann** | อนุภาคทรงกลมทั่วไป | ใช้ง่าย, เสถียร, แข็งแรง | ไม่เหมาะกับอนุภาคที่เปลี่ยนรูป |
+| **Ishii-Zuber** | กระแสฟอง, พื้นผิวที่บิดเบี้ยว | รองรับการเปลี่ยนรูป | ซับซ้อนกว่า |
+| **Morsi-Alexander** | ช่วง $Re_p$ กว้าง | ความแม่นยำสูง | ซับซ้อน, ต้องการพารามิเตอร์มาก |
+| **Syamlal-O'Brien** | เตาอบฟลูอิดไดซ์, สารแขวนลอยหนาแน่น | จัดการผลกระทบแบบแน่นได้ | จำกัดสำหรับประเภทการไหลอื่น |
 
 ---
 
-## ⚙️ OpenFOAM Implementation Architecture
+## ⚙️ สถาปัตยกรรมการนำไปใช้ใน OpenFOAM (OpenFOAM Implementation Architecture)
 
-### Class Hierarchy
+### ลำดับชั้นของคลาส (Class Hierarchy)
 
 ```cpp
 // Base drag model class
@@ -178,7 +178,7 @@ public:
 };
 ```
 
-### Schiller-Naumann Implementation
+### การนำไปใช้ Schiller-Naumann (Schiller-Naumann Implementation)
 
 ```cpp
 template<class PhasePair>
@@ -203,7 +203,7 @@ class SchillerNaumann
 };
 ```
 
-### Momentum Exchange Calculation
+### การคำนวณสัมประสิทธิ์การแลกเปลี่ยนโมเมนตัม (Momentum Exchange Calculation)
 
 ```cpp
 tmp<volScalarField> dragModel::K() const
@@ -218,7 +218,7 @@ tmp<volScalarField> dragModel::K() const
 }
 ```
 
-### Relative Velocity Handling
+### การจัดการความเร็วสัมพัทธ์ (Relative Velocity Handling)
 
 ```cpp
 tmp<volScalarField> PhasePair::Ur() const
@@ -234,80 +234,80 @@ tmp<volScalarField> PhasePair::Re() const
 
 ---
 
-## 🌊 Advanced Considerations
+## 🌊 ข้อควรพิจารณาขั้นสูง (Advanced Considerations)
 
-### Non-Spherical Particles
+### อนุภาคที่ไม่ใช่ทรงกลม (Non-Spherical Particles)
 
-**Shape Factor:** $\phi = \frac{\text{Surface area of equivalent sphere}}{\text{Actual surface area}}$
+**ตัวประกอบรูปร่าง (Shape Factor):** $\phi = \frac{\text{พื้นที่ผิวของทรงกลมเทียบเท่า}}{\text{พื้นที่ผิวจริง}}$
 
-**Effective Diameter:** $d_{eff} = d_v \phi^{0.5}$
+**เส้นผ่านศูนย์กลางประสิทธิผล (Effective Diameter):** $d_{eff} = d_v \phi^{0.5}$
 
-**Haider-Levenspiel Correlation:**
+**สหสัมพันธ์ Haider-Levenspiel:**
 $$C_D = \frac{24}{Re_p}(1 + a Re_p^b) + \frac{c}{1 + d/Re_p}$$
 
-### Dense Suspension Effects
+### ผลกระทบของสารแขวนลอยหนาแน่น (Dense Suspension Effects)
 
-**Hindered settling** becomes significant at $\alpha_d > 0.1$:
+**การตกตะกอนแบบถูกขัดขวาง (Hindered settling)** มีนัยสำคัญที่ $\alpha_d > 0.1$:
 
-**Richardson-Zaki Equation:**
+**สมการ Richardson-Zaki:**
 $$v_t = v_{t,0} (1 - \alpha_d)^n$$
 
-**Modified Momentum Exchange:**
+**การแลกเปลี่ยนโมเมนตัมที่ปรับเปลี่ยนแล้ว (Modified Momentum Exchange):**
 $$\mathbf{K}_{kl}^{modified} = \mathbf{K}_{kl} f(\alpha_l)$$
 
-| Correction | Formula | Application |
+| การแก้ไข | สูตร | แอปพลิเคชัน |
 |------------|---------|-------------|
-| **Einstein** | $f(\alpha_l) = (1 - \alpha_d)^{2.5}$ | Low concentrations |
-| **Barnea-Mizrahi** | $f(\alpha_l) = (1 - \alpha_d)^{2.0} \exp\left(\frac{2.5\alpha_d}{1 - \alpha_d}\right)$ | High concentrations |
+| **Einstein** | $f(\alpha_l) = (1 - \alpha_d)^{2.5}$ | ความเข้มข้นต่ำ |
+| **Barnea-Mizrahi** | $f(\alpha_l) = (1 - \alpha_d)^{2.0} \exp\left(\frac{2.5\alpha_d}{1 - \alpha_d}\right)$ | ความเข้มข้นสูง |
 
-### Deformable Interfaces
+### พื้นผิวที่เปลี่ยนรูปได้ (Deformable Interfaces)
 
-**For bubbles/drops with deformation:**
+**สำหรับฟอง/หยดที่เปลี่ยนรูป:**
 
-1. **Shape deformation** - Aspect ratio changes
-2. **Internal circulation** - Internal flow patterns
-3. **Surfactant effects** - Interface contamination
+1. **การเปลี่ยนรูปร่าง** - การเปลี่ยนแปลงอัตราส่วนรูปร่าง
+2. **การไหลเวียนภายใน** - รูปแบบการไหลภายใน
+3. **ผลกระทบของสารลดแรงตึงผิว** - การปนเปื้อนของพื้นผิว
 
-**Grace Correlation:**
+**สหสัมพันธ์ Grace:**
 $$C_D = \max\left[\frac{2}{\sqrt{Re_p}}, \min\left(\frac{8}{3}\frac{Eo}{Eo + 4}, 0.44\right)\right]$$
 
-**Tomiyama Correlation:**
+**สหสัมพันธ์ Tomiyama:**
 $$C_D = \max\left[0.44, \min\left(\frac{24}{Re_p}(1 + 0.15 Re_p^{0.687}), \frac{72}{Re_p}\right)\right]$$
 
-### Turbulent Dispersion
+### การกระจายตัวเนื่องจากความปั่นป่วน (Turbulent Dispersion)
 
-**Turbulent dispersion force:**
+**แรงกระจายตัวเนื่องจากความปั่นป่วน:**
 $$\mathbf{F}_{TD} = -C_{TD} \rho_c k_c \nabla \alpha_d$$
 
-**Effective relative velocity:**
+**ความเร็วสัมพัทธ์ประสิทธิผล:**
 $$|\mathbf{u}_{rel}|_{eff} = \sqrt{|\mathbf{u}_l - \mathbf{u}_k|^2 + 2k_c}$$
 
 ---
 
-## 🔒 Stability Considerations
+## 🔒 ข้อควรพิจารณาด้านเสถียรภาพ (Stability Considerations)
 
-### Explicit vs. Implicit Treatment
+### การจัดการแบบชัดเจนเทียบกับแบบปริยาย (Explicit vs. Implicit Treatment)
 
-| Aspect | Explicit | Implicit |
+| ด้าน | Explicit | Implicit |
 |--------|----------|----------|
-| **Stability** | Conditional (CFL) | Unconditional |
-| **Time step** | Limited | Larger possible |
-| **Cost per step** | Low | Higher |
-| **Complexity** | Simple | Complex |
+| **เสถียรภาพ** | มีเงื่อนไข (CFL) | ไม่มีเงื่อนไข |
+| **ขั้นเวลา** | จำกัด | ใหญ่ขึ้นได้ |
+| **ต้นทุนต่อขั้น** | ต่ำ | สูงกว่า |
+| **ความซับซ้อน** | ง่าย | ซับซ้อน |
 
-**Explicit Drag:**
+**แรงลากแบบชัดเจน (Explicit Drag):**
 $$\mathbf{M}_k^{n+1} = \mathbf{K}_{kl}^n (\mathbf{u}_l^n - \mathbf{u}_k^n)$$
 
-**Implicit Drag:**
+**แรงลากแบบปริยาย (Implicit Drag):**
 $$\mathbf{M}_k^{n+1} = \mathbf{K}_{kl}^{n+1} (\mathbf{u}_l^{n+1} - \mathbf{u}_k^{n+1})$$
 
-### Under-Relaxation Strategies
+### กลยุทธ์การลดทอน (Under-Relaxation Strategies)
 
 $$\mathbf{K}_{kl}^{new} = (1-\lambda)\mathbf{K}_{kl}^{old} + \lambda \mathbf{K}_{kl}^{calculated}$$
 
-**Typical relaxation factors:** $\lambda = 0.3 - 0.7$
+**ตัวประกอบการลดทอนทั่วไป:** $\lambda = 0.3 - 0.7$
 
-**OpenFOAM configuration:**
+**การกำหนดค่า OpenFOAM:**
 ```cpp
 relaxationFactors
 {
@@ -328,101 +328,101 @@ relaxationFactors
 
 ---
 
-## ✅ Validation and Applications
+## ✅ การตรวจสอบความถูกต้องและการประยุกต์ใช้ (Validation and Applications)
 
-### Benchmark Cases
+### กรณี Benchmark (Benchmark Cases)
 
-| Case | Validation Target | Key Metrics |
+| กรณี | เป้าหมายการตรวจสอบ | เมตริกสำคัญ |
 |------|------------------|-------------|
-| **Single particle settling** | Terminal velocity | Analytical solutions |
-| **Fluidized bed** | Minimum fluidization velocity | Pressure drop, bed expansion |
-| **Bubble column** | Rise velocity correlations | Gas holdup, flow regimes |
-| **Pipeline flow** | Pressure drop predictions | Flow pattern transitions |
+| **การตกตะกอนอนุภาคเดี่ยว** | ความเร็วสุดท้าย | ผลเฉลยเชิงวิเคราะห์ |
+| **เตาอบฟลูอิดไดซ์** | ความเร็วฟลูอิดไดซ์ขั้นต่ำ | ความดันตก, การขยายตัวของชั้น |
+| **คอลัมน์ฟอง** | สหสัมพันธ์ความเร็วในการลอย | กักเก็บก๊าซ, ระบอบการไหล |
+| **การไหลในท่อ** | การทำนายความดันตก | การเปลี่ยนรูปแบบการไหล |
 
-### Model Selection Guidelines
+### แนวทางการเลือกแบบจำลอง (Model Selection Guidelines)
 
-#### Dimensionless Parameter Analysis
+#### การวิเคราะห์พารามิเตอร์ไร้มิติ (Dimensionless Parameter Analysis)
 
-**1. Particle Reynolds Number ($Re_p$):**
+**1. จำนวนเรย์โนลด์ของอนุภาค ($Re_p$):**
 
-| Value | Recommendation | Suitable Model |
+| ค่า | คำแนะนำ | แบบจำลองที่เหมาะสม |
 |-------|----------------|-----------------|
-| $Re_p < 1$ | Creeping flow | Schiller-Naumann or Stokes |
-| $1 < Re_p < 100$ | Intermediate | Schiller-Naumann with corrections |
-| $Re_p > 1000$ | High speed | Ishii-Zuber for deformable interfaces |
+| $Re_p < 1$ | Creeping flow | Schiller-Naumann หรือ Stokes |
+| $1 < Re_p < 100$ | Intermediate | Schiller-Naumann พร้อมการแก้ไข |
+| $Re_p > 1000$ | ความเร็วสูง | Ishii-Zuber สำหรับพื้นผิวที่เปลี่ยนรูป |
 
-**2. Eötvös Number ($Eo$):**
+**2. เลข Eötvös ($Eo$):**
 
-| Value | Surface tension effect | Suitable Model |
+| ค่า | ผลกระทบแรงตึงผิว | แบบจำลองที่เหมาะสม |
 |-------|----------------------|-----------------|
-| $Eo < 1$ | Surface tension dominates | Schiller-Naumann |
-| $1 < Eo < 40$ | Moderate deformation | Ishii-Zuber |
-| $Eo > 40$ | Significant deformation | Ishii-Zuber |
+| $Eo < 1$ | แรงตึงผิวเด่น | Schiller-Naumann |
+| $1 < Eo < 40$ | การเปลี่ยนรูปปานกลาง | Ishii-Zuber |
+| $Eo > 40$ | การเปลี่ยนรูปอย่างมีนัยสำคัญ | Ishii-Zuber |
 
-**3. Void Fraction ($\alpha_d$):**
+**3. สัดส่วนช่องว่าง ($\alpha_d$):**
 
-| Value | Particle concentration | Suitable Model |
+| ค่า | ความเข้มข้นอนุภาค | แบบจำลองที่เหมาะสม |
 |-------|----------------------|-----------------|
-| $\alpha_d < 0.1$ | Dilute suspension | Schiller-Naumann |
-| $0.1 < \alpha_d < 0.4$ | Moderate concentration | Ishii-Zuber |
-| $\alpha_d > 0.4$ | Dense suspension | Syamlal-O'Brien |
+| $\alpha_d < 0.1$ | สารแขวนลอยเจือจาง | Schiller-Naumann |
+| $0.1 < \alpha_d < 0.4$ | ความเข้มข้นปานกลาง | Ishii-Zuber |
+| $\alpha_d > 0.4$ | สารแขวนลอยหนาแน่น | Syamlal-O'Brien |
 
 ---
 
-## 📈 Key Takeaways
+## 📈 จุดสำคัญ (Key Takeaways)
 
-### Fundamental Principles
+### หลักการพื้นฐาน (Fundamental Principles)
 
-1. **Physics Foundation** - Based on single-particle drag fundamentals
-2. **Volume Averaging** - Extends to multiphase systems
-3. **Multiple Correlations** - For different flow regimes
-4. **Dense Suspension Effects** - Important at high volume fractions
-5. **Deformable Interface Considerations** - For bubbles/drops
-6. **OpenFOAM Implementation** - Modular drag model architecture
-7. **Stability Considerations** - Critical for numerical solutions
+1. **ฐานฟิสิกส์** - อิงตามหลักการแรงลากอนุภาคเดี่ยว
+2. **การเฉลี่ยเชิงปริมาตร** - ขยายผลไปยังระบบ multiphase
+3. **สหสัมพันธ์หลายรูปแบบ** - สำหรับระบอบการไหลที่แตกต่างกัน
+4. **ผลกระทบสารแขวนลอยหนาแน่น** - สำคัญที่สัดส่วนปริมาตรสูง
+5. **ข้อควรพิจารณาพื้นผิวที่เปลี่ยนรูป** - สำหรับฟอง/หยด
+6. **การนำไปใช้ OpenFOAM** - สถาปัตยกรรมแบบจำลองแรงลากแบบแยกส่วน
+7. **ข้อควรพิจารณาด้านเสถียรภาพ** - สำคัญสำหรับการแก้ปัญหาเชิงตัวเลข
 
-### Implementation Best Practices
+### แนวปฏิบัติที่ดีที่สุดในการนำไปใช้ (Implementation Best Practices)
 
-> [!TIP] Practical Recommendations
-> - **Start simple** with Schiller-Naumann for spherical particles
-> - **Consider deformation** for gas-liquid systems (Ishii-Zuber)
-> - **Account for crowding** in dense suspensions (Syamlal-O'Brien)
-> - **Use implicit treatment** for strongly coupled flows
-> - **Apply under-relaxation** for improved convergence
-> - **Validate against** experimental or analytical data when possible
+> [!TIP] คำแนะนำเชิงปฏิบัติ
+> - **เริ่มต้นง่ายๆ** ด้วย Schiller-Naumann สำหรับอนุภาคทรงกลม
+> - **พิจารณาการเปลี่ยนรูป** สำหรับระบบแก๊ส-ของเหลว (Ishii-Zuber)
+> - **คำนึงถึงความแน่น** ในสารแขวนลอยหนาแน่น (Syamlal-O'Brien)
+> - **ใช้การจัดการแบบปริยาย** สำหรับการไหลที่เชื่อมโยงกันอย่างรุนแรง
+> - **ใช้การลดทอน** เพื่อปรับปรุงการลู่เข้า
+> - **ตรวจสอบความถูกต้อง** เทียบกับข้อมูลการทดลองหรือเชิงวิเคราะห์เมื่อเป็นไปได้
 
-### Industrial Applications
+### แอปพลิเคชันอุตสาหกรรม (Industrial Applications)
 
-- **Fluidized beds** - Combustion, chemical processing
-- **Bubble columns** - Reactors, separations
-- **Spray systems** - Fuel injection, coating
-- **Sediment transport** - Environmental, geological flows
-- **Pipeline flows** - Oil & gas, slurry transport
-
----
-
-## 🔗 Related Topics
-
-Understanding drag forces is essential for:
-- [[Lift Forces|Interfacial lift forces]]
-- [[Virtual Mass|Virtual mass effects]]
-- [[Turbulent Dispersion|Turbulent dispersion modeling]]
-- [[Heat Mass Transfer|Interfacial heat and mass transfer]]
+- **เตาอบฟลูอิดไดซ์** - การเผาไหม้, การประมวลผลทางเคมี
+- **คอลัมน์ฟอง** - เครื่องปฏิกรณ์, การแยก
+- **ระบบสเปรย์** - การฉีดเชื้อเพลิง, การเคลือบ
+- **การขนส่งตะกอน** - สิ่งแวดล้อม, กระแสของไหลทางธรณีวิทยา
+- **การไหลในท่อ** - น้ำมันและก๊าซ, การขนส่งสารแขวนลอย
 
 ---
 
-## 📚 Further Reading
+## 🔗 หัวข้อที่เกี่ยวข้อง (Related Topics)
 
-**Primary References:**
+การทำความเข้าใจแรงลากมีความจำเป็นสำหรับ:
+- [[05_LIFT_FORCES|แรงยกระหว่างพื้นผิว (Interfacial lift forces)]]
+- [[06_VIRTUAL_MASS|ผลกระทบมวลเสมือน (Virtual mass effects)]]
+- [[07_TURBULENT_DISPERSION|การจำลองการกระจายตัวเนื่องจากความปั่นป่วน (Turbulent dispersion modeling)]]
+- [[../HEAT_MASS_TRANSFER|การแลกเปลี่ยนความร้อนและมวลระหว่างพื้นผิว (Interfacial heat and mass transfer)]]
+
+---
+
+## 📚 อ่านเพิ่มเติม (Further Reading)
+
+**แหล่งอ้างอิงหลัก:**
 - Ishii, M., & Hibiki, T. (2011). *Thermo-Fluid Dynamics of Two-Phase Flow*. Springer.
 - Crowe, C. T., et al. (2011). *Multiphase Flows with Droplets and Particles*. CRC Press.
 - Clift, R., Grace, J. R., & Weber, M. E. (2005). *Bubbles, Drops, and Particles*. Dover.
 
-**OpenFOAM Implementation:**
-- Source: `src/transportModels/interfaceProperties/dragModel/`
-- Tutorial: `multiphase/multiphaseEulerFoam/`
+**การนำไปใช้ใน OpenFOAM:**
+- ซอร์สโค้ด: `src/transportModels/interfaceProperties/dragModel/`
+- บทช่วยสอน: `multiphase/multiphaseEulerFoam/`
 
 ---
 
-> [!QUOTE] Final Note
-> **Drag forces are the cornerstone of multiphase flow modeling** - they govern how phases interact, exchange momentum, and ultimately determine flow behavior. Master these fundamentals, and you'll have the foundation for accurate multiphase CFD simulations.
+> [!QUOTE] โน้ตสุดท้าย
+> **แรงลากเป็นหัวใจของการจำลองกระแสของไหลแบบหลายเฟส** - พวกมันควบคุมว่าเฟสโต้ตอบ แลกเปลี่ยนโมเมนตัม และในที่สุดกำหนดพฤติกรรมการไหล เชี่ยวชาญหลักการพื้นฐานเหล่านี้ และคุณจะมีรากฐานสำหรับการจำลอง CFD แบบหลายเฟสที่แม่นยำ

@@ -3,7 +3,7 @@
 
   **Target Scope:**
   FOCUS ONLY FOLDER
-  **`[/Users/woramet/Documents/th_new/MODULE_06_ADVANCED_PHYSICS/CONTENT]`**.
+  **`[/Users/woramet/Documents/th_new/TBD/MODULE_08_TESTING_VALIDATION]`**.
   Please recursively process **ALL subfolders** and
   **ALL Markdown files** within this module.
 

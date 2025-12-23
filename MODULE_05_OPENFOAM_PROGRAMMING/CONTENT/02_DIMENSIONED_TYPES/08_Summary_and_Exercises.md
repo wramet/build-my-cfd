@@ -805,6 +805,7 @@ classDiagram
     note for dimensioned~Type~ "Primary template for all dimensioned types"
     note for dimensionSet "Stores exponents for 7 base SI dimensions"
 ```
+> **Figure 1:** แผนผังความสัมพันธ์คลาส (Class Relationship Diagram) ของระบบประเภทข้อมูลที่มีมิติใน OpenFOAM แสดงให้เห็นโครงสร้างเทมเพลตหลักและการสืบทอดไปยังประเภทข้อมูลพื้นฐานอย่างสเกลาร์ เวกเตอร์ และเทนเซอร์พร้อมมิติทางกายภาพที่เกี่ยวข้องตามมาตรฐาน SI 7 มิติหลัก
 
 ---
 

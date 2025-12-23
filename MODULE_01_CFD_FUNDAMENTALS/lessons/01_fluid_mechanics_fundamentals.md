@@ -39,10 +39,35 @@
 - **ปริมาตร (Volume)**: ขยายตัวเพื่อเติมเต็มพื้นที่ที่มีอยู่
 - **สมการสถานะ (Equation of state)**: $p = \rho R T$ (ก๊าซในอุดมคติ)
 
+```mermaid
+graph LR
+    subgraph "ของเหลว (Liquids)"
+        A["ความหนาแน่นสูง<br/>โมเลกุลใกล้กัน"] --> B["แรงระหว่างโมเลกุล<br/>มีนัยสำคัญ"]
+        B --> C["อัดตัวไม่ได้<br/>คงที่"]
+        C --> D["ปริมาตรคงที่<br/>ขึ้นกับภาชนะ"]
+    end
 
-[Diagram: Technical 3D isometric schematic of of molecular arrangement comparison between liquids and gases , on a neutral background. , engineering . clear labeling in white font. arrowheads for all vectors (n = red, u = blue). clear labeling in font using single letters (v, s, n, u) or short latex equations. , semi-transparent materials for volumes. , , clean , high contrast. velocity field shown as blue vectors (u). in font using single letters or latex equations. with semi-transparent materials. : engineering , , clean. Primary: Velocity field (u) as blue streamlines. Annotations: Sharp professional arrowheads (n = Red, u = Blue). Clear labels in sans-serif font using single letters or LaTeX. Ray-traced studio lighting on semi-transparent materials. Style: Engineering illustration, high-contrast, white background, 8k resolution.]
-> **Prompt:** Technical 3D isometric schematic of of visualization comparing molecular arrangements in liquids versus gases. show liquid molecules closely packed with some order but still able to move past each other, with visible intermolecular forces. show gas molecules widely dispersed with high kinetic energy, moving randomly at high speeds. include for key properties: density differences, compressibility, molecular mobility, and average molecular distance. use contrasting colors - blue for liquid phase showing cohesive forces, red for gas phase showing high energy movement. include scale indicators and temperature/pressure context. scientific suitable for cfd documentation. 3/4 perspective view. , on a neutral background. , engineering . clear labeling in white font. pressure gradient from blue (low) to red (high). arrowheads for all vectors (n = red, u = blue). clear labeling in font using single letters (v, s, n, u) or short latex equations. , semi-transparent materials for volumes. , , clean , high contrast. velocity field shown as blue vectors (u). pressure scalar field as a surface gradient from blue to red. in font using single letters or latex equations. with semi-transparent materials. : engineering , , clean. Primary: Velocity field (u) as blue streamlines. Secondary: Pressure scalar field as a surface color gradient. Annotations: Sharp professional arrowheads (n = Red, u = Blue). Clear labels in sans-serif font using single letters or LaTeX. Ray-traced studio lighting on semi-transparent materials. Style: Engineering illustration, high-contrast, white background, 8k resolution.
+    subgraph "ก๊าซ (Gases)"
+        E["ความหนาแน่นต่ำ<br/>โมเลกุลห่างกัน"] --> F["พลังงานจลน์สูง<br/>เคลื่อนที่สุ่ม"]
+        F --> G["อัดตัวได้<br/>แปรผัน"]
+        G --> H["ขยายเต็มภาชนะ<br/>ไม่มีรูปร่างเป็นตัวเอง"]
+    end
 
+    I["สมการสถานะ"] --> J["ก๊าซในอุดมคติ:<br/>p = ρRT"]
+    I --> K["ของเหลว:<br/>ρ ≈ คงที่"]
+
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    style E fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000;
+    style B fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    style F fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000;
+    style C fill:#bbdefb,stroke:#1565c0,stroke-width:2px,color:#000;
+    style G fill:#ffe0b2,stroke:#ef6c00,stroke-width:2px,color:#000;
+    style D fill:#90caf9,stroke:#1565c0,stroke-width:2px,color:#000;
+    style H fill:#ffcc80,stroke:#ef6c00,stroke-width:2px,color:#000;
+    style I fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+```
+> **Figure 1:** การเปรียบเทียบคุณสมบัติทางกายภาพพื้นฐานระหว่างของเหลวและก๊าซ โดยเน้นที่ความแตกต่างของระยะห่างระหว่างโมเลกุล ความสามารถในการอัดตัว และพฤติกรรมของปริมาตร ซึ่งนำไปสู่สมการสถานะที่แตกต่างกัน
+> **Figure 1:** Comparison of fundamental physical properties between liquids and gases, highlighting differences in molecular spacing, compressibility, and volume behavior, leading to their respective equations of state.
 
 ---
 
@@ -73,8 +98,8 @@
 
 | คุณสมบัติ | สัญลักษณ์ | ความหมาย | หน่วย SI |
 |-------------|-------------|-------------|-----------|
-| ความร้อนจำเพาะความดันคงที่ | $c_p$ | พลังงานความร้อนต่อมวลต่ออุณหภูมิ (ความดันคงที่) | J/(kg·K) |
-| ความร้อนจำเพาะปริมาตรคงที่ | $c_v$ | พลังงานความร้อนต่อมวลต่ออุณหภูมิ (ปริมาตรคงที่) | J/(kg·K) |
+| ความร้อนจำเพาะความดันคงที่ | $c_p$ | พลังงานความร้อนต่อมวสต่ออุณหภูมิ (ความดันคงที่) | J/(kg·K) |
+| ความร้อนจำเพาะปริมาตรคงที่ | $c_v$ | พลังงานความร้อนต่อมวสต่ออุณหภูมิ (ปริมาตรคงที่) | J/(kg·K) |
 | สภาพนำความร้อน | $k$ | ความสามารถในการถ่ายเทความร้อน | W/(m·K) |
 | แรงตึงผิว | $\sigma$ | พลังงานต่อหนึ่งหน่วยพื้นที่ที่รอยต่อ | N/m |
 
@@ -85,7 +110,7 @@
 ### มิติพื้นฐาน
 
 - **มวล (Mass)**: [M]
-- **ความยาว (Length)**: [L]  
+- **ความยาว (Length)**: [L]
 - **เวลา (Time)**: [T]
 - **อุณหภูมิ (Temperature)**: [θ]
 - **กระแสไฟฟ้า (Electric Current)**: [I]
@@ -158,87 +183,86 @@ $$
 
 **ความสำคัญ**: มีความสำคัญในการก่อตัวของหยดน้ำ, พลวัตของฟองอากาศ, การวิเคราะห์ละอองสเปรย์
 
-
 ```mermaid
 graph TD
-    A["Inertial Forces<br/><b>\(F_i = \rho U^2 L^2\)</b>"] --> D["Flow Characterization"]
-    B["Viscous Forces<br/><b>\(F_v = \mu U L\)</b>"] --> D
-    C["Gravity Forces<br/><b>\(F_g = \rho g L^3\)</b>"] --> D
-    E["Surface Tension<br/><b>\(F_\sigma = \sigma L\)</b>"] --> D
-    
-    D --> F["Reynolds Number<br/><b>Re = \frac{\rho U L}{\mu}</b><br/>Inertial/Viscous"]
-    D --> G["Froude Number<br/><b>Fr = \frac{U}{\sqrt{g L}}</b><br/>Inertial/Gravity"]
-    D --> H["Weber Number<br/><b>We = \frac{\rho U^2 L}{\sigma}</b><br/>Inertial/Surface Tension"]
-    D --> I["Mach Number<br/><b>Ma = \frac{U}{a}</b><br/>Flow Speed/Sound Speed"]
-    
-    F --> J["<b>Re < 2300:</b><br/>Laminar Flow<br/>Smooth, ordered"]
-    F --> K["<b>Re > 4000:</b><br/>Turbulent Flow<br/>Chaotic, mixing"]
-    
-    G --> L["<b>Fr < 1:</b><br/>Subcritical<br/>Tranquil flow"]
-    G --> M["<b>Fr > 1:</b><br/>Supercritical<br/>Rapid flow"]
-    
-    H --> N["<b>We > 1:</b><br/>Droplet formation<br/>Atomization"]
-    H --> O["<b>We < 1:</b><br/>Surface tension<br/>dominates"]
-    
-    I --> P["<b>Ma < 0.3:</b><br/>Incompressible<br/>\(\rho = \text{constant}\)"]
-    I --> Q["<b>Ma > 1:</b><br/>Compressible<br/>Shock waves"]
-    
-    %% Styling Definitions
+    A["แรงเฉื่อย<br/><b>\(F_i = \rho U^2 L^2\)</b>"] --> D["การจำแนกการไหล"]
+    B["แรงหนืด<br/><b>\(F_v = \mu U L\)</b>"] --> D
+    C["แรงโน้มถ่วง<br/><b>\(F_g = \rho g L^3\)</b>"] --> D
+    E["แรงตึงผิว<br/><b>\(F_\sigma = \sigma L\)</b>"] --> D
+
+    D --> F["เลขเรย์โนลด์<br/><b>Re = \frac{\rho U L}{\mu}</b><br/>แรงเฉื่อย/แรงหนืด"]
+    D --> G["เลขฟรูด<br/><b>Fr = \frac{U}{\sqrt{g L}}</b><br/>แรงเฉื่อย/แรงโน้มถ่วง"]
+    D --> H["เลขเวเบอร์<br/><b>We = \frac{\rho U^2 L}{\sigma}</b><br/>แรงเฉื่อย/แรงตึงผิว"]
+    D --> I["เลขมัค<br/><b>Ma = \frac{U}{a}</b><br/>ความเร็วไหล/ความเร็วเสียง"]
+
+    F --> J["<b>Re < 2300:</b><br/>การไหลแบบราบเรียบ<br/>เรียบเนียน เป็นเลเยอร์"]
+    F --> K["<b>Re > 4000:</b><br/>การไหลแบบปั่นป่วน<br/>วุ่นวาย ผสมได้ดี"]
+
+    G --> L["<b>Fr < 1:</b><br/>Subcritical<br/>การไหลสงบ"]
+    G --> M["<b>Fr > 1:</b><br/>Supercritical<br/>การไหลเร็ว"]
+
+    H --> N["<b>We > 1:</b><br/>การก่อตัวของหยด<br/>การฟอุ้นอนุภาค"]
+    H --> O["<b>We < 1:</b><br/>แรงตึงผิว<br/>มีอิทธิพลเหนือกว่า"]
+
+    I --> P["<b>Ma < 0.3:</b><br/>อัดตัวไม่ได้<br/>\(\rho = \text{คงที่}\)"]
+    I --> Q["<b>Ma > 1:</b><br/>อัดตัวได้<br/>คลื่นกระแทก"]
+
+    %% นิยามสไตล์
     classDef force fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
     classDef dimensionless fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
     classDef regime fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    
+
     class A,B,C,E force;
     class D,F,G,H,I dimensionless;
     class J,K,L,M,N,O,P,Q regime;
 ```
-
+> **Figure 2:** การจำแนกประเภทของระบอบการไหลของไหลตามเลขไร้มิติ (เลขเรย์โนลด์, ฟรูด, เวเบอร์ และมัค) แสดงความสัมพันธ์ระหว่างแรงทางกายภาพที่เด่นชัดและลักษณะการไหลที่เกิดขึ้น
+> **Figure 2:** Classification of fluid flow regimes based on dimensionless numbers (Reynolds, Froude, Weber, and Mach numbers), illustrating the relationship between dominant physical forces and resulting flow characteristics.
 
 ---
 
 ## 🔬 สมมติฐานคอนตินิวอัม (Continuum Hypothesis)
 
-### คำนิยาน
+### คำนิยาม
 
 **สมมติฐานคอนตินิวอัม (continuum hypothesis)** สมมติว่าคุณสมบัติของไหลสามารถนิยามได้ทุกจุดในอวกาศ โดยถือว่าของไหลเป็นตัวกลางต่อเนื่องแทนที่จะเป็นโมเลกุลแยกส่วน
 
-
 ```mermaid
 graph LR
-    subgraph "Continuum Perspective"
-        A["Control Volume<br/>dV"] --> B["Continuous Properties<br/>ρ, u, p, T"]
-        B --> C["Differential Equations<br/>Navier-Stokes"]
+    subgraph "ทัศนะแบบคอนตินิวอัม (Continuum Perspective)"
+        A["ปริมาตรควบคุม<br/>dV"] --> B["คุณสมบัติต่อเนื่อง<br/>ρ, u, p, T"]
+        B --> C["สมการเชิงอนุพันธ์<br/>Navier-Stokes"]
     end
-    
-    subgraph "Molecular Perspective"
-        D["Molecules<br/>Random Motion"] --> E["Statistical Properties<br/>Average velocity"]
-        E --> F["Kinetic Theory<br/>Boltzmann Equation"]
+
+    subgraph "ทัศนะแบบโมเลกุล (Molecular Perspective)"
+        D["โมเลกุล<br/>การเคลื่อนที่แบบสุ่ม"] --> E["คุณสมบัติทางสถิติ<br/>ความเร็วเฉลี่ย"]
+        E --> F["ทฤษฎีจลน์<br/>สมการ Boltzmann"]
     end
-    
+
     A -.-> D
     B -.-> E
     C -.-> F
-    
-    G["Knudsen Number<br/>Kn = λ/L"] --> H{"Flow Regime"}
-    H -->|"Kn < 0.01"| I["Continuum<br/>Valid"]
-    H -->|"0.01 < Kn < 0.1"| J["Slip Flow<br/>Transition"]
-    H -->|"Kn > 0.1"| K["Free Molecular<br/>Rarefied"]
-    
+
+    G["เลขคนุดเซน<br/>Kn = λ/L"] --> H{"ระบอบการไหล"}
+    H -->|"Kn < 0.01"| I["คอนตินิวอัม<br/>ใช้ได้"]
+    H -->|"0.01 < Kn < 0.1"| J["Slip Flow<br/>เปลี่ยนผ่าน"]
+    H -->|"Kn > 0.1"| K["Free Molecular<br/>กระจายตัว"]
+
     I --> A
-    J --> L["Modified Continuum<br/>with Slip Conditions"]
+    J --> L["คอนตินิวอัมดัดแปลง<br/>พร้อมเงื่อนไขสลิป"]
     K --> D
-    
-    %% Styling Definitions
+
+    %% นิยามสไตล์
     classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
     classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
     classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    
-    class A,B,C,G,I,J,K,L process
-    class H decision
-    class D,E,F storage
-```
 
+    class A,B,C,G,I,J,K,L process;
+    class H decision;
+    class D,E,F storage;
+```
+> **Figure 3:** กรอบแนวคิดของสมมติฐานคอนตินิวอัมเปรียบเทียบกับทัศนะแบบโมเลกุล ความถูกต้องของสมมติฐานนี้ถูกกำหนดโดยเลขคนุดเซน ($Kn$) ซึ่งบ่งบอกถึงการเปลี่ยนผ่านจากการคำนวณแบบ Navier-Stokes มาตรฐานไปสู่ระบอบการไหลแบบสลิปและแบบโมเลกุลอิสระ
+> **Figure 3:** The Continuum Hypothesis framework contrasted with the molecular perspective. The validity of the continuum assumption is determined by the Knudsen number ($Kn$), which dictates the transition from standard Navier-Stokes formulations to slip-flow and free-molecular regimes.
 
 ### เลขคนุดเซน (Knudsen Number) ($\text{Kn}$)
 
@@ -259,34 +283,28 @@ $$
 
 ### แนวคิดปริมาตรควบคุม (Control Volume Concept)
 
-
 ```mermaid
 graph LR
-    subgraph "Control Volume Types"
-        A["Differential Control Volume<br/>(dV = dx·dy·dz)"]
-        B["Integral Control Volume<br/>(V = ∫∫∫ dV)"]
+    subgraph "ประเภทของปริมาตรควบคุม"
+        A["ปริมาตรควบคุมเชิงอนุพันธ์<br/>(dV = dx·dy·dz)"]
+        B["ปริมาตรควบคุมเชิงปริพันธ์<br/>(V = ∫∫∫ dV)"]
     end
-    
-    A --> C["Point-wise Analysis<br/>Governing Equations"]
-    B --> D["Global Analysis<br/>Conservation Laws"]
-    
-    C --> E["Local Properties<br/>velocity u(x,y,z,t)<br/>pressure p(x,y,z,t)"]
-    D --> F["Bulk Properties<br/>total mass flow rate<br/>average properties"]
-    
+
+    A --> C["การวิเคราะห์เชิงจุด<br/>สมการควบคุม"]
+    B --> D["การวิเคราะห์เชิงโดยรวม<br/>กฎการอนุรักษ์"]
+
+    C --> E["คุณสมบัติเฉพาะจุด<br/>ความเร็ว u(x,y,z,t)<br/>ความดัน p(x,y,z,t)"]
+    D --> F["คุณสมบัติเชิงปริมาณ<br/>อัตราการไหลทั้งหมด<br/>คุณสมบัติเฉลี่ย"]
+
     style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
     style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
     style C fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000;
     style D fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px,color:#000;
     style E fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000;
     style F fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#000;
-
-%% Styling Definitions
-classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
-
+> **Figure 4:** การจำแนกแนวทางการใช้ปริมาตรควบคุมในกลศาสตร์ของไหล โดยปริมาตรควบคุมเชิงอนุพันธ์ ($\mathrm{d}V$) นำไปสู่สมการเชิงอนุพันธ์ย่อยที่อธิบายคุณสมบัติเฉพาะจุด ในขณะที่ปริมาตรควบคุมจำกัด ($V$) นำไปสู่รูปแบบปริพันธ์สำหรับการวิเคราะห์การไหลในภาพรวม
+> **Figure 4:** Classification of Control Volume approaches in fluid mechanics. Differential control volumes ($\mathrm{d}V$) lead to partial differential equations describing point-wise properties, while finite control volumes ($V$) result in integral formulations for global flow analysis.
 
 - **ปริมาตรควบคุมเชิงอนุพันธ์**: องค์ประกอบปริมาตรขนาดเล็ก $\mathrm{d}V = \mathrm{d}x \,\mathrm{d}y \,\mathrm{d}z$
 - **ปริมาตรควบคุมเชิงปริพันธ์**: ปริมาตรจำกัด $V$ ที่ล้อมรอบด้วยพื้นผิว $S$
@@ -322,34 +340,32 @@ $$
 F_b = \rho_{fluid} g V_{displaced}
 $$
 
-
 ```mermaid
 graph LR
-    A["Hydrostatic Pressure Distribution"] --> B["Pressure gradient formula"]
+    A["การกระจายความดันสถิตยศาสตร์"] --> B["สูตรความชันความดัน"]
     B --> C["dp/dz = -ρg"]
-    C --> D["Integrated form"]
+    C --> D["รูปแบบปริพันธ์"]
     D --> E["p = p0 + ρgh"]
-    
-    F["Buoyancy Force"] --> G["Archimedes Principle"]
+
+    F["แรงลอยตัว"] --> G["หลักการของอาร์คิมิดีส"]
     G --> H["Fb = ρfluid × g × Vdisplaced"]
-    
-    I["Key Variables:"] --> J["p = pressure at height h"]
-    I --> K["p0 = reference pressure"]
-    I --> L["ρ = fluid density"]
-    I --> M["g = gravity acceleration"]
-    I --> N["h = height above reference"]
-    I --> O["Fb = buoyancy force"]
-    I --> P["Vdisplaced = displaced volume"]
-    
+
+    I["ตัวแปรสำคัญ:"] --> J["p = ความดัน ณ ความสูง h"]
+    I --> K["p0 = ความดัน ณ จุดอ้างอิง"]
+    I --> L["ρ = ความหนาแน่นของไหล"]
+    I --> M["g = ความเร่งเนื่องจากแรงโน้มถ่วง"]
+    I --> N["h = ความสูงเหนือจุดอ้างอิง"]
+    I --> O["Fb = แรงลอยตัว"]
+    I --> P["Vdisplaced = ปริมาตรที่ถูกแทนที่"]
+
     classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
     classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    
+
     class A,B,C,D,E,F,G,H process;
     class I,J,K,L,M,N,O,P storage;
 ```
-
+> **Figure 5:** หลักการของสถิตยศาสตร์ของไหล แสดงการหาการกระจายความดันสถิตยศาสตร์ ($p = p_0 + \rho g h$) และหลักการของอาร์คิมิดีสสำหรับแรงลอยตัว ($F_b$) ตามการแทนที่ของไหล
+> **Figure 5:** Principles of fluid statics, showing the derivation of the hydrostatic pressure distribution ($p = p_0 + \rho g h$) and Archimedes' principle for buoyancy force ($F_b$) based on fluid displacement.
 
 ---
 
@@ -369,34 +385,32 @@ $$
 \mathbf{x} = \mathbf{x}(\mathbf{x}_0, t)
 $$
 
-
 ```mermaid
 graph LR
-    subgraph "Eulerian Description"
-        A["Fixed Point in Space"] --> B["Properties measured at<br/>specific locations"]
+    subgraph "คำอธิบายแบบออยเลอร์ (Eulerian Description)"
+        A["จุดคงที่ในอวกาศ"] --> B["วัดคุณสมบัติที่<br/>ตำแหน่งเฉพาะ"]
         B --> C["u = u(x,t)"]
-        C --> D["Field-based approach"]
-        D --> E["Weather station analogy"]
+        C --> D["แนวทางแบบฟิลด์"]
+        D --> E["อนาล็อกสถานีอากาศ"]
     end
-    
-    subgraph "Lagrangian Description"
-        F["Fluid Particle"] --> G["Properties follow<br/>individual particles"]
+
+    subgraph "คำอธิบายแบบลากรางจ์ (Lagrangian Description)"
+        F["อนุภาคของไหล"] --> G["ติดตามคุณสมบัติ<br/>ของแต่ละอนุภาค"]
         G --> H["x = x(x₀,t)"]
-        H --> I["Particle tracking approach"]
-        I --> J["Drifter buoy analogy"]
+        H --> I["แนวทางติดตามอนุภาค"]
+        I --> J["อนาล็อกทุ่นลอยติดตาม"]
     end
-    
-    K["Same Physical Flow"] --> A
+
+    K["การไหลทางกายภาพเดียวกัน"] --> A
     K --> F
-    
-    style Eulerian fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style Lagrangian fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+
     classDef eulerian fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
     classDef lagrangian fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
     class A,B,C,D,E eulerian;
     class F,G,H,I,J lagrangian;
 ```
-
+> **Figure 6:** การเปรียบเทียบระหว่างคำอธิบายการไหลแบบออยเลอร์และลากรางจ์ โดยวิธีแบบออยเลอร์จะสังเกตคุณสมบัติ ณ จุดคงที่ในอวกาศ (ซึ่งเป็นที่นิยมใน CFD) ในขณะที่วิธีแบบลากรางจ์จะติดตามการเคลื่อนที่ของแต่ละอนุภาคของไหลตามเวลา
+> **Figure 6:** Contrast between Eulerian and Lagrangian flow descriptions. The Eulerian approach observes properties at fixed spatial points (typical in CFD), while the Lagrangian approach tracks individual fluid particles over time.
 
 ### การแสดงภาพสนามการไหล (Flow Field Visualization)
 
@@ -415,23 +429,23 @@ $$
 #### เส้นสาย (Streaklines)
 ตำแหน่งของอนุภาคทั้งหมดที่เคยผ่านจุดที่กำหนด
 
-
 ```mermaid
 graph LR
-    subgraph "Flow Field Visualization"
-        A["<b>Streamlines</b><br/>Tangent to velocity vectors<br/>at each instant"] --> B["<b>Pathlines</b><br/>Actual trajectories<br/>of fluid particles"]
-        B --> C["<b>Streaklines</b><br/>All particles that have<br/>passed through a point"]
-        
-        D["<b>Steady Flow</b><br/>Streamlines = Pathlines<br/>= Streaklines"] -.-> A
-        E["<b>Unsteady Flow</b><br/>Streamlines ≠ Pathlines<br/>≠ Streaklines"] -.-> B
+    subgraph "การแสดงภาพสนามการไหล"
+        A["<b>เส้นกระแส (Streamlines)</b><br/>สัมผัสกับเวกเตอร์ความเร็ว<br/>ณ แต่ละขณะ"] --> B["<b>เส้นทางเดินอนุภาค (Pathlines)</b><br/>วิถีจริง<br/>ของอนุภาคของไหล"]
+        B --> C["<b>เส้นสาย (Streaklines)</b><br/>อนุภาคทั้งหมดที่เคย<br/>ผ่านจุดหนึ่ง"]
+
+        D["<b>การไหลคงที่</b><br/>เส้นกระแส = เส้นทาง<br/>= เส้นสาย"] -.-> A
+        E["<b>การไหลไม่คงที่</b><br/>เส้นกระแส ≠ เส้นทาง<br/>≠ เส้นสาย"] -.-> B
     end
-    
+
     classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
     classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
     class A,B,C process;
     class D,E decision;
 ```
-
+> **Figure 7:** ความสัมพันธ์ระหว่างเทคนิคการแสดงภาพสนามการไหลแบบต่าง ๆ ในการไหลแบบคงที่ เส้นกระแส เส้นทางเดินอนุภาค และเส้นสายจะทับซ้อนกัน แต่ในการไหลแบบไม่คงที่ เส้นเหล่านี้จะแยกจากกัน ซึ่งแสดงให้เห็นถึงประวัติการไหลและสนามการไหลในขณะนั้นที่แตกต่างกัน
+> **Figure 7:** Relationship between different flow visualization techniques. In steady flows, streamlines, pathlines, and streaklines coincide; in unsteady flows, they diverge, revealing different aspects of the flow history and instantaneous field.
 
 ### การจำแนกประเภทการไหล (Flow Classification)
 
@@ -475,34 +489,32 @@ $$
 \end{bmatrix}
 $$
 
-
 ```mermaid
 graph LR
-    A["Fluid Cube"] --> B["Normal Stress σxx"]
-    A --> C["Normal Stress σyy"]
-    A --> D["Normal Stress σzz"]
-    A --> E["Shear Stress τxy"]
-    A --> F["Shear Stress τxz"]
-    A --> G["Shear Stress τyz"]
-    B --> H["σxx = Normal stress<br/>on x-face"]
-    C --> I["σyy = Normal stress<br/>on y-face"]
-    D --> J["σzz = Normal stress<br/>on z-face"]
-    E --> K["τxy = Shear stress<br/>on x-face in y-direction"]
-    F --> L["τxz = Shear stress<br/>on x-face in z-direction"]
-    G --> M["τyz = Shear stress<br/>on y-face in z-direction"]
-    
-    %% Styling Definitions
+    A["ลูกบาศก์ของไหล"] --> B["ความเค้นปกติ σxx"]
+    A --> C["ความเค้นปกติ σyy"]
+    A --> D["ความเค้นปกติ σzz"]
+    A --> E["ความเค้นเฉือย τxy"]
+    A --> F["ความเค้นเฉือย τxz"]
+    A --> G["ความเค้นเฉือย τyz"]
+    B --> H["σxx = ความเค้นปกติ<br/>บนผิว x"]
+    C --> I["σyy = ความเค้นปกติ<br/>บนผิว y"]
+    D --> J["σzz = ความเค้นปกติ<br/>บนผิว z"]
+    E --> K["τxy = ความเค้นเฉือย<br/>บนผิว x ทิศทาง y"]
+    F --> L["τxz = ความเค้นเฉือย<br/>บนผิว x ทิศทาง z"]
+    G --> M["τyz = ความเค้นเฉือย<br/>บนผิว y ทิศทาง z"]
+
     classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
     classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
     classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    
+
     class A process;
     class B,C,D decision;
-    class E,F,G terminator;
+    class E,F,G storage;
     class H,I,J,K,L,M storage;
 ```
-
+> **Figure 8:** ส่วนประกอบของเทนเซอร์ความเค้นที่กระทำต่อองค์ประกอบของไหล โดยแยกความแตกต่างระหว่างความเค้นปกติ ($\sigma$) และความเค้นเฉือน ($\tau$) บนระนาบที่ตั้งฉากกัน ($x, y, z$)
+> **Figure 8:** Components of the stress tensor acting on a fluid element, distinguishing between normal stresses ($\sigma$) and shear stresses ($\tau$) on orthogonal planes ($x, y, z$).
 
 ### ความดันและความเค้นหนืด (Pressure and Viscous Stress)
 
@@ -546,33 +558,31 @@ $$
 
 **ทฤษฎี Circulation ของเคลวิน (Kelvin's Circulation Theorem)**: Circulation ถูกอนุรักษ์ในการไหลแบบไร้ความหนืด (inviscid), แบบบารอทรอปิก (barotropic) ที่มีแรงภายนอกแบบอนุรักษ์ (conservative body forces)
 
-
 ```mermaid
 graph LR
-    subgraph "Vorticity and Circulation Concepts"
-        A["Velocity Field u(x,y,z)"] --> B["Calculate Vorticity ω = ∇ × u"]
-        B --> C["Vorticity Components"]
+    subgraph "แนวคิด Vorticity และ Circulation"
+        A["สนามความเร็ว u(x,y,z)"] --> B["คำนวณ Vorticity ω = ∇ × u"]
+        B --> C["ส่วนประกอบ Vorticity"]
         C --> Cx["ωx = ∂w/∂y - ∂v/∂z"]
         C --> Cy["ωy = ∂u/∂z - ∂w/∂x"]
         C --> Cz["ωz = ∂v/∂x - ∂u/∂y"]
-        
-        A --> D["Closed Curve C"]
-        D --> E["Calculate Circulation Γ = ∮C u ⋅ dl"]
-        E --> F["Apply Stokes Theorem"]
+
+        A --> D["เส้นโค้งปิด C"]
+        D --> E["คำนวณ Circulation Γ = ∮C u ⋅ dl"]
+        E --> F["ใช้ทฤษฎีของ Stokes"]
         F --> G["Γ = ∫S ω ⋅ dS"]
-        
-        H["Inviscid Flow"] --> I["Barotropic"]
-        I --> J["Conservative Body Forces"]
-        J --> K["Kelvin's Theorem: Γ = Constant"]
+
+        H["การไหลแบบไร้ความหนืด"] --> I["Barotropic"]
+        I --> J["แรงภายนอกอนุรักษ์"]
+        J --> K["ทฤษฎีของเคลวิน: Γ = คงที่"]
     end
-    
-    %% Styling Definitions
+
     classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
     classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    class A,B,C,Cx,Cy,Cz,D,E,F,G,H,I,J,K process;
 ```
-
+> **Figure 9:** คำนิยามทางคณิตศาสตร์ของ Vorticity ($\omega$) ในฐานะ curl ของความเร็ว และความสัมพันธ์กับ Circulation ($\Gamma$) ผ่านทฤษฎีของ Stokes รวมถึงทฤษฎี Circulation ของเคลวินสำหรับการไหลแบบไร้ความหนืดและบารอทรอปิก
+> **Figure 9:** Mathematical definition of vorticity ($\omega$) as the curl of velocity and its relationship to circulation ($\Gamma$) via Stokes' theorem, including Kelvin's circulation theorem for inviscid, barotropic flows.
 
 ---
 
@@ -597,27 +607,22 @@ $$
 u = \frac{\partial \psi}{\partial y}, \quad v = -\frac{\partial \psi}{\partial x}
 $$
 
-
 ```mermaid
 graph LR
-    A["Velocity Potential φ"] --> B["Laplace Equation: ∇²φ = 0"]
-    C["Stream Function ψ"] --> D["Flow Field: u = ∂φ/∂x, v = ∂φ/∂y"]
-    E["Irrotational Flow"] --> F["Potential Flow"]
-    G["Incompressible Flow"] --> H["Streamlines: ψ = constant"]
-    I["Equipotential Lines"] --> J["φ = constant"]
-    K["Orthogonal Grid"] --> L["Streamlines ⟂ Equipotentials"]
-    M["Complex Potential"] --> N["W(z) = φ + iψ"]
-    O["Conformal Mapping"] --> P["Flow Around Bodies"]
-    
-    %% Styling Definitions
+    A["ศักย์ความเร็ว φ"] --> B["สมการลาปลาซ: ∇²φ = 0"]
+    C["ฟังก์ชันกระแส ψ"] --> D["สนามการไหล: u = ∂φ/∂x, v = ∂φ/∂y"]
+    E["การไหลไร้การหมุน"] --> F["การไหลแบบศักย์"]
+    G["การไหลแบบอัดตัวไม่ได้"] --> H["เส้นกระแส: ψ = คงที่"]
+    I["เส้นศักย์เท่ากัน"] --> J["φ = คงที่"]
+    K["ตารางตั้งฉาก"] --> L["เส้นกระแส ⟂ เส้นศักย์"]
+    M["ศักย์เชิงซ้อน"] --> N["W(z) = φ + iψ"]
+    O["Conformal Mapping"] --> P["การไหลรอบวัตถุ"]
+
     classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    
     class A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P process;
 ```
-
+> **Figure 10:** โครงสร้างของทฤษฎีการไหลแบบศักย์ เชื่อมโยงศักย์ความเร็ว ($\phi$) และฟังก์ชันกระแส ($\psi$) เข้ากับสมการลาปลาซ ($\nabla^2\phi=0$) สำหรับการไหลที่ไร้การหมุน อัดตัวไม่ได้ และไร้ความหนืด
+> **Figure 10:** Structure of Potential Flow theory, linking the velocity potential ($\phi$) and stream function ($\psi$) to the Laplace equation ($\nabla^2\phi=0$) for irrotational, incompressible, and inviscid flows.
 
 ---
 
@@ -651,24 +656,20 @@ $$
 C_f = \frac{\tau_w}{\frac{1}{2}\rho U_\infty^2}
 $$
 
-
 ```mermaid
 graph TD
-    A["Free Stream Flow"] --> B["Leading Edge"]
-    B --> C["Laminar Boundary Layer"]
-    C --> D["Transition Region"]
-    D --> E["Turbulent Boundary Layer"]
-    E --> F["Wake Region"]
-    
-    C --> G["δ ≈ 5.0x/√Re_x<br/>Blasius Solution"]
-    E --> H["δ ≈ 0.37x/Re_x^1/5<br/>Turbulent Profile"]
-    
-    G --> I["τ_w = μ(∂u/∂y)_y=0<br/>Wall Shear Stress"]
-    H --> J["C_f = τ_w/(½ρU_∞²)<br/>Skin Friction Coefficient"]
-    
-    K["Stream Function ψ<br/>u = ∂ψ/∂y<br/>v = -∂ψ/∂x"] --> C
-    K --> E
-    
+    A["การไหลอิสระ"] --> B["ขอบนำ Leading Edge"]
+    B --> C["ชั้นขอบเขตแบบราบเรียบ"]
+    C --> D["บริเวณเปลี่ยนผ่าน"]
+    D --> E["ชั้นขอบเขตแบบปั่นป่วน"]
+    E --> F["บริเวณปลายทาง Wake"]
+
+    C --> G["δ ≈ 5.0x/√Re_x<br/>ผลเฉลย Blasius"]
+    E --> H["δ ≈ 0.37x/Re_x^1/5<br/>โปรไฟล์แบบปั่นป่วน"]
+
+    G --> I["τ_w = μ(∂u/∂y)_y=0<br/>ความเค้นเฉือยที่ผนัง"]
+    H --> J["C_f = τ_w/(½ρU_∞²)<br/>สัมประสิทธิ์แรงเสียดทาน"]
+
     style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
     style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
     style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
@@ -679,19 +680,14 @@ graph TD
     style H fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
     style I fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
     style J fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style K fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
-    
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
-
+> **Figure 11:** แผนผังการพัฒนาของชั้นขอบเขตเหนือแผ่นเรียบ แสดงลำดับจากการไหลแบบราบเรียบไปสู่การไหลแบบปั่นป่วน การขยายตัวของความหนาชั้นขอบเขต ($\delta$) และการคำนวณความเค้นเฉือนที่ผนัง ($\tau_w$)
+> **Figure 11:** Schematic of boundary layer development over a flat plate, showing the progression from laminar to turbulent flow, the associated growth of boundary layer thickness ($\delta$), and the calculation of wall shear stress ($\tau_w$).
 
 ### OpenFOAM Code Implementation
 
 ```cpp
-// Boundary layer thickness calculation in OpenFOAM
+// การคำนวณความหนาชั้นขอบเขตใน OpenFOAM
 scalar delta = 5.0 * sqrt(nu * x / Uinf);
 label wallCell = mesh.boundaryMesh()[wallPatchID].whichCell(x);
 scalar yPlus = wallDist[wallCell] * sqrt(tauW[wallCell] / rho);
@@ -713,20 +709,17 @@ scalar yPlus = wallDist[wallCell] * sqrt(tauW[wallCell] / rho);
 ### การไหลแบบ Jet และ Plume (Jet and Plume Flows)
 กระแสของไหลความเร็วสูงที่พุ่งเข้าสู่ของไหลรอบข้าง
 
-
 ```mermaid
 graph LR
-    A["Free Stream<br/>U<span style='font-size:0.8em;'>∞</span>"] --> B["Boundary Layer<br/>Growth"]
-    B --> C["Separation Point<br/>∂p/∂x < 0"]
-    C --> D["Recirculation<br/>Zone"]
-    D --> E["Wake Region<br/>Turbulent Flow"]
-    E --> F["Vortex Shedding<br/>von Kármán Street"]
-    
-    G["Jet Flow<br/>High Velocity"] --> H["Mixing Layer<br/>Shear Instability"]
-    H --> I["Plume Rise<br/>Buoyancy Driven"]
-    
-    J["Skin Friction<br/>τ<span style="font-size:0.8em;w</span> = μ(∂u/∂y)<span style="font-size:0.8em;y=0</span>"] --> K["Coefficient C<span style="font-size:0.8em;f</span><br/>= 2τ<span style="font-size:0.8em;w</span>/(ρU<span style="font-size:0.8em;∞</span>²)"]
-    
+    A["Free Stream<br/>U<span style='font-size:0.8em;'>∞</span>"] --> B["การเจริญเติบโตของ<br/>ชั้นขอบเขต"]
+    B --> C["จุดแยกตัว<br/>∂p/∂x < 0"]
+    C --> D["โซน Recirculation<br/>บริเวณหมุนเวียน"]
+    D --> E["บริเวณ Wake<br/>การไหลแบบปั่นป่วน"]
+    E --> F["การหลุดของ Vortex<br/>von Kármán Street"]
+
+    G["การไหลแบบ Jet<br/>ความเร็วสูง"] --> H["ชั้นผสม<br/>ความไม่เสถียรจากเฉือย"]
+    H --> I["การลอยตัวของ Plume<br/>ขับเคลื่อนโดยแรงลอยตัว"]
+
     style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
     style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
     style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
@@ -736,15 +729,9 @@ graph LR
     style G fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000;
     style H fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000;
     style I fill:#f1f8e9,stroke:#558b2f,stroke-width:2px,color:#000;
-    style J fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px,color:#000;
-    style K fill:#e0f7fa,stroke:#00acc1,stroke-width:2px,color:#000;
-    
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
-
+> **Figure 12:** ภาพรวมของปรากฏการณ์การไหลที่ซับซ้อน รวมถึงการแยกตัวของชั้นขอบเขตเนื่องจากความชันความดันที่ไม่เอื้ออำนวย การเกิด Wake การหลุดของ Vortex แบบ von Kármán และความไม่เสถียรของชั้นเฉือนใน Jet และ Plume
+> **Figure 12:** Overview of complex flow phenomena including boundary layer separation due to adverse pressure gradients, wake formation, von Kármán vortex shedding, and shear-layer instabilities in jets and plumes.
 
 ---
 
@@ -791,21 +778,21 @@ graph LR
 ### OpenFOAM Code Implementation
 
 ```cpp
-// Reynolds number calculation and flow regime check
+// การคำนวณเลขเรย์โนลด์และตรวจสอบระบอบการไหล
 scalar Re = rho * U * L / mu;
 
 if (Re < 2000)
 {
-    Info << "Laminar flow regime detected" << endl;
+    Info << "ตรวจพบระบอบการไหลแบบราบเรียบ (Laminar flow regime detected)" << endl;
 }
 else if (Re > 4000)
 {
-    Info << "Turbulent flow regime detected" << endl;
-    // Select appropriate turbulence model
+    Info << "ตรวจพบระบอบการไหลแบบปั่นป่วน (Turbulent flow regime detected)" << endl;
+    // เลือกแบบจำลองความปั่นป่วนที่เหมาะสม
 }
 else
 {
-    Info << "Transition flow regime detected" << endl;
+    Info << "ตรวจพบระบอบการไหลแบบเปลี่ยนผ่าน (Transition flow regime detected)" << endl;
 }
 ```
 
@@ -850,23 +837,23 @@ $$
 ### OpenFOAM Code Implementation
 
 ```cpp
-// Boundary layer calculation example
+// ตัวอย่างการคำนวณชั้นขอบเขต
 scalar Re_x = Uinf * x / nu;
 scalar delta;
 
 if (Re_x < 5e5)
 {
-    // Laminar boundary layer
+    // ชั้นขอบเขตแบบราบเรียบ
     delta = 5.0 * sqrt(nu * x / Uinf);
 }
 else
 {
-    // Turbulent boundary layer  
+    // ชั้นขอบเขตแบบปั่นป่วน
     delta = 0.37 * x / pow(Re_x, 0.2);
 }
 
-Info << "Boundary layer thickness at x = " << x 
-     << " is " << delta << " m" << endl;
+Info << "ความหนาชั้นขอบเขตที่ x = " << x
+     << " คือ " << delta << " m" << endl;
 ```
 
 ---
@@ -900,4 +887,4 @@ Info << "Boundary layer thickness at x = " << x
 
 ---
 
-**บทเรียนถัดไป**: [บทเรียนที่ 2: สมการควบคุมการไหลของไหล](02_governing_equations.md)
+**บทเรียนถัดไป**: [[บทเรียนที่ 2: สมการควบคุมการไหลของไหล|02_governing_equations]]

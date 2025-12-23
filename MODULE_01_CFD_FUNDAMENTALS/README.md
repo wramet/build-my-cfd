@@ -156,6 +156,8 @@ flowchart TD
     class F,J,M,Q storage
     class G,H,I,K,L,N,P,R,S,T special
 ```
+> **Figure 1:** กรอบแนวคิดสำหรับการวิเคราะห์เลขไร้มิติ โดยจำแนกระบอบการไหลตามผลกระทบทางกายภาพที่เด่นชัด (ความหนืด การถ่ายเทความร้อน ความสามารถในการอัดตัว และแรงโน้มถ่วง) พร้อมทั้งพารามิเตอร์ไร้มิติที่เกี่ยวข้อง (Re, Pe, Ma, Fr)
+> **Figure 1:** Framework for dimensionless number analysis, categorizing flow regimes based on dominant physical effects (viscosity, heat transfer, compressibility, gravity) and their respective non-dimensional parameters (Re, Pe, Ma, Fr).
 
 
 ---
@@ -238,6 +240,8 @@ flowchart LR
     class Speed,Accuracy,Complexity,Flexibility decision
     class FDM_Props,FVM_Props,FEM_Props storage
 ```
+> **Figure 2:** การวิเคราะห์เปรียบเทียบระเบียบวิธี Discretization เชิงตัวเลขหลัก (FDM, FVM, FEM) โดยประเมินข้อดีข้อเสียในด้านความเร็วในการคำนวณ ความแม่นยำ ความซับซ้อนในการนำไปใช้งาน และความยืดหยุ่นต่อรูปทรงเรขาคณิต
+> **Figure 2:** Comparative analysis of major numerical discretization methods (FDM, FVM, FEM), evaluating their trade-offs in terms of computational speed, accuracy, implementation complexity, and geometric flexibility.
 
 
 ---
@@ -626,6 +630,8 @@ flowchart LR
     class C,C1,C2,D,D1,D2 implementation
     class E,E1,E2,E3 solution
 ```
+> **Figure 3:** กระบวนการหาผลเฉลย CFD ที่สมบูรณ์ภายในโครงสร้างของ OpenFOAM โดยไล่เรียงเส้นทางตั้งแต่สมการควบคุมทางทฤษฎี ผ่านการ Discretization แบบ Finite Volume และการประกอบ Matrix ไปจนถึงการหาผลเฉลยเชิงตัวเลขของตัวแปรสนามสุดท้าย
+> **Figure 3:** The complete CFD solution process within the OpenFOAM framework, tracing the path from governing theoretical equations through finite volume discretization and matrix assembly to the final numerical solution of field variables.
 
 
 ### การประยุกต์ใช้งานจริง

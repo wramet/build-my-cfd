@@ -39,8 +39,8 @@ graph LR
     class C core;
     class D derived;
 ```
+> **Figure 1:** ลำดับชั้นของคลาสที่เกี่ยวข้องกับ Mesh ใน OpenFOAM แสดงการสืบทอดของ `fvMesh` จากคลาสฐานที่จัดการด้านโทโพโลยีและการจัดการฟิลด์ เพื่อรองรับการทำงานของปริมาตรควบคุมทั้งแบบคงที่และแบบเคลื่อนที่
 
-`fvMesh` รักษาโครงสร้างเมชที่สมบูรณ์ รวมถึง:
 
 - **ข้อมูลทางเรขาคณิต (Geometric Data)**: ปริมาตรเซลล์ ($V_P$), พื้นที่หน้า ($|\mathbf{S}_f|$), เวกเตอร์แนวฉากของหน้า ($\mathbf{n}_f$), จุดศูนย์กลางหน้า และจุดศูนย์กลางเซลล์ ที่คำนวณจากโครงสร้างโพลีฮีดรอลพื้นฐาน
 
@@ -146,8 +146,8 @@ graph TD
     class I,J,K,L,M decision;
     class N,O terminator;
 ```
+> **Figure 2:** การไหลของข้อมูลในกระบวนการประกอบ `fvMatrix` แสดงการประมาณค่าตัวแปรจากจุดศูนย์กลางเซลล์ไปยังหน้าเซลล์ (interpolation) เพื่อใช้ในการคำนวณฟลักซ์และเกรเดียนต์ ซึ่งจะถูกนำไปสร้างเป็นระบบสมการเชิงเส้นแบบเบาบาง
 
-เมทริกซ์นี้ใช้สมการ $\mathbf{A}\mathbf{x} = \mathbf{b}$ โดยที่:
 
 - **เมทริกซ์ A (A-matrix)**: เมทริกซ์สัมประสิทธิ์ที่สร้างจากการดิสครีตแบบปริมาตรจำกัดของ derivative operators จัดเก็บในรูปแบบ sparse เพื่อประสิทธิภาพหน่วยความจำ
 
@@ -380,12 +380,10 @@ graph LR
     style G fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
     style F fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
 ```
+> **Figure 3:** แผนผังตรรกะของอัลกอริทึม SIMPLE สำหรับการแก้ปัญหาการไหลในสภาวะคงตัว โดยเน้นที่วงรอบการทำนายและแก้ไขความเร็วและความดันจนกว่าผลเฉลยจะลู่เข้า
 
 **OpenFOAM Code Implementation**:
-
 ```cpp
-// Momentum prediction
-tmp<fvVectorMatrix> tUEqn
 (
     fvm::ddt(U) + fvm::div(phi, U)
   - fvm::laplacian(nu, U)
@@ -424,6 +422,7 @@ while (simple.correctNonOrthogonal())
     }
 }
 
+
 // Velocity correction
 U = HbyA - rAU*fvc::grad(p);
 U.correctBoundaryConditions();
@@ -447,12 +446,10 @@ graph LR
     style G fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
     style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
 ```
+> **Figure 4:** ตรรกะการวนซ้ำของอัลกอริทึม PISO สำหรับปัญหาแบบไม่คงที่ แสดงขั้นตอนการทำนายโมเมนตัมตามด้วยวงรอบการแก้ไขความดันหลายครั้งในแต่ละขั้นตอนเวลา เพื่อรักษาความต่อเนื่องของมวลอย่างแม่นยำ
 
 **OpenFOAM Code Implementation**:
-
 ```cpp
-// Momentum predictor
-fvVectorMatrix UEqn
 (
     fvm::ddt(U) + fvm::div(phi, U)
   - fvm::laplacian(nu, U)

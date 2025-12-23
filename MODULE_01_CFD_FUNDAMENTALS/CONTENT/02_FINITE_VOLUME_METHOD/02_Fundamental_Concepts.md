@@ -60,8 +60,8 @@ graph LR
     class CV1,CV2,CV3,CV4,CV5,CV6 cv;
     class F12,F23,F34,F45,F56,F61,F13,F24,F35,F46 flux;
 ```
+> **Figure 1:** การแบ่งโดเมนการคำนวณออกเป็นปริมาตรควบคุม (เซลล์) ที่ไม่ทับซ้อนกัน แสดงการไหลของมวล โมเมนตัม และพลังงาน (ฟลักซ์) ข้ามขอบเขตระหว่างเซลล์ที่อยู่ติดกัน
 
-## ความเข้าใจเชิงกายภาพ
 
 ### หลักการสมดุล
 
@@ -118,10 +118,8 @@ graph LR
     class E,F,G,H,I storage
     class J,K,L decision
 ```
+> **Figure 2:** ความสัมพันธ์ระหว่างโดเมนแบบต่อเนื่องและโดเมนแบบดิสครีต แสดงกระบวนการแปลงสมการเชิงอนุพันธ์และฟิลด์ทางคณิตศาสตร์ให้เป็นระบบสมการพีชคณิตและค่าตัวแปรประจำเซลล์ที่สามารถหาผลเฉลยเชิงตัวเลขได้
 
----
-
-## สมการควบคุม (Governing Equations)
 
 ### การอนุรักษ์มวล (Mass Conservation)
 
@@ -145,8 +143,8 @@ graph TD
     style Balance fill:#fff9c4,stroke:#fbc02d
     style Accum fill:#e8f5e9,stroke:#2e7d32
 ```
+> **Figure 3:** การหาที่มาของสมการความต่อเนื่องผ่านสมดุลมวลบนปริมาตรควบคุม โดยการรักษาสมดุลระหว่างฟลักซ์มวลที่ไหลเข้าและไหลออกกับการสะสมมวลภายในปริมาตร
 
-สำหรับปริมาตรควบคุม (control volume) $V$ ที่มีพื้นที่ผิว $S$ อัตราการสะสมมวลภายในปริมาตรจะเท่ากับอัตราการไหลสุทธิของมวล (net mass flux) ผ่านพื้นผิว
 
 **รูปแบบทั่วไป:**
 $$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$$
@@ -184,8 +182,8 @@ graph TD
     style Net fill:#fff9c4,stroke:#fbc02d
     style Acc fill:#e8f5e9,stroke:#2e7d32
 ```
+> **Figure 4:** สมดุลแรงพลวัตในสมการโมเมนตัม ซึ่งแรงที่ผิว (แรงดันและแรงหนืด) และแรงภายนอก ส่งผลต่อความเร่งและการตอบสนองเชิงความเฉื่อยขององค์ประกอบของไหล
 
-สมการนี้ปรับสมดุลระหว่างแรงเฉื่อย (inertial forces) กับแรงที่กระทำต่อปริมาตร (body forces) และแรงที่กระทำต่อพื้นผิว (surface forces) ที่กระทำต่อองค์ประกอบของไหล
 
 **รูปแบบทั่วไป:**
 $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
@@ -245,8 +243,8 @@ graph LR
 
     class A,B,C,D,E,F,G,H,I,J,K,L process;
 ```
+> **Figure 5:** ส่วนประกอบของสมดุลพลังงานบนปริมาตรควบคุม แสดงกลไกการถ่ายโอนความร้อนผ่านการพา (Convection) และการนำ (Conduction) รวมถึงพจน์แหล่งกำเนิดและการสะสมพลังงาน
 
-สำหรับของไหลที่มีอุณหภูมิ $T$ สมการพลังงานในรูปของอุณหภูมิคือ:
 
 $$\rho c_p \frac{\partial T}{\partial t} + \rho c_p \mathbf{u} \cdot \nabla T = k \nabla^2 T + Q$$
 
@@ -308,8 +306,8 @@ graph LR
     class D,E decision;
     class F,G,H,I terminator;
 ```
+> **Figure 6:** สมดุลการถ่ายเทชนิดสารและหลักการอนุรักษ์ แสดงการเปลี่ยนแปลงตามเวลา การพา การแพร่ และพจน์การผลิตหรือทำลายจากการทำปฏิกิริยาเคมีภายในปริมาตรควบคุม
 
-$$\frac{\partial (\rho Y_i)}{\partial t} + \nabla \cdot (\rho \mathbf{u} Y_i) = -\nabla \cdot \mathbf{J}_i + \dot{\omega}_i$$
 
 โดยที่:
 * $Y_i$ = สัดส่วนมวล (mass fraction) ของชนิดสาร $i$
@@ -335,32 +333,52 @@ $$\mathbf{J}_i = -\rho D_i \nabla Y_i$$
 **สมการสภาวะ** (equation of state) ให้ความสัมพันธ์ทางอุณหพลศาสตร์ระหว่างความดัน ความหนาแน่น และอุณหภูมิ ซึ่งเป็นการปิดระบบสมการควบคุม (governing equations)
 
 ```mermaid
-graph LR
-    P["Pressure (p)"] --> EOS["Equation of State"]
-    T["Temperature (T)"] --> EOS
-    R["Gas Constant (R)"] --> EOS
-    Rho["Density (rho)"]
-    EOS --> Rho
-
-    subgraph "Thermodynamic Relationship"
-        P2["p"]
-        T2["T"]
-        R2["R"]
-        Rho2["rho"]
-        P2 --- "*" R2
-        R2 --- "*" T2
-        P2 --- "=" Rho2
+graph TD
+    %% 1. High-Level Dependency
+    subgraph Context [Flow Dependency]
+        direction LR
+        In_P[Pressure p] --> Process[EOS Calc]
+        In_T[Temperature T] --> Process
+        Process --> Out_Rho[Density rho]
     end
 
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    class P,T,Rho,R,EOS process;
-    class P2,T2,R2,Rho2 storage;
-```
+    %% 2. Detailed Calculation Logic (Expression Tree)
+    subgraph Logic [Equation Logic: rho = p / RT]
+        direction TB
+        
+        %% Inputs
+        L_P(p)
+        L_R(R)
+        L_T(T)
 
-#### ก๊าซในอุดมคติ (Ideal Gas):
+        %% Operators
+        Op_Mult(("×"))
+        Op_Div(("÷"))
+
+        %% Result
+        L_Rho(rho)
+
+        %% Connections
+        L_R --> Op_Mult
+        L_T --> Op_Mult
+        
+        L_P --> Op_Div
+        Op_Mult -->|RT| Op_Div
+        
+        Op_Div --> L_Rho
+    end
+
+    %% Styling
+    classDef inputs fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef result fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef operator fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,shape:circle;
+
+    class In_P,In_T,L_P,L_R,L_T inputs;
+    class Out_Rho,L_Rho result;
+    class Op_Mult,Op_Div operator;
+```
+> **Figure 7:** ความสัมพันธ์ทางอุณหพลศาสตร์ในสมการสถานะ ซึ่งปิดระบบสมการควบคุมโดยการเชื่อมโยงความดัน อุณหภูมิ และความหนาแน่นผ่านค่าคงที่ของก๊าซ
+
 
 สำหรับก๊าซในอุดมคติ ความสัมพันธ์แสดงได้ดังนี้:
 
@@ -442,8 +460,8 @@ graph LR
     classDef cell fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
     classDef flux fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000;
 ```
+> **Figure 8:** คุณสมบัติการอนุรักษ์โดยธรรมชาติใน FVM แสดงให้เห็นว่าฟลักซ์ที่ไหลออกจากเซลล์หนึ่งจะกลายเป็นฟลักซ์ที่ไหลเข้าสู่เซลล์ข้างเคียงโดยตรง ทำให้มั่นใจในความถูกต้องของการอนุรักษ์ในระดับรวม
 
-### กลไกการจัดการข้อผิดพลาดใน OpenFOAM
 
 OpenFOAM ใช้กลไกการจัดการข้อผิดพลาด (error handling) และการควบคุมคุณภาพ (quality control) ที่ซับซ้อน:
 

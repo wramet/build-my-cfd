@@ -346,6 +346,7 @@ flowchart TD
     E --> E1["ข้อดี: อิสระสูง"]
     E --> E2["ข้อเสีย: Complex management"]
 ```
+> **Figure 1:** แผนผังกลยุทธ์การจัดการ I/O ในการจำลองแบบขนาน เปรียบเทียบระหว่างการเขียนข้อมูลผ่าน Master Process, การเขียนแบบรวมกลุ่ม (Collective) และการเขียนแบบอิสระ (Independent) พร้อมข้อดีและข้อเสียในแต่ละรูปแบบ
 
 #### 2.2.2 Optimizing Decomposition for I/O
 
@@ -432,6 +433,7 @@ flowchart LR
     I --> J["Post-process"]
     J --> K["Visualization"]
 ```
+> **Figure 2:** ขั้นตอนการจำลองแบบขนานแบบครบวงจร ตั้งแต่การเตรียมเคส การสร้างและตรวจสอบเมช การย่อยโดเมน การรัน Solver พร้อมติดตามประสิทธิภาพ ไปจนถึงการรวมผลลัพธ์และแสดงผลภาพ
 
 ### 3.2 ตัวอย่าง Workflow Script
 
@@ -1083,6 +1085,7 @@ decomposePar -cellDist -decomposeParDict system/decomposeParDict.scotch
 >     D --> E["16 Cores: 95s"]
 >     E --> F["32 Cores: 65s"]
 > ```
+> > **Figure 3:** แผนภูมิแสดงตัวอย่างการวิเคราะห์การขยายตัว (Scaling Analysis) แสดงแนวโน้มของเวลาที่ใช้ในการคำนวณลดลงเมื่อเพิ่มจำนวนคอร์ประมวลผล ซึ่งใช้สำหรับการประเมินประสิทธิภาพและจุดคุ้มทุนในการใช้ทรัพยากรขนาน
 >
 > > **[MISSING DATA]**: Insert specific scaling results for your hardware and case
 >

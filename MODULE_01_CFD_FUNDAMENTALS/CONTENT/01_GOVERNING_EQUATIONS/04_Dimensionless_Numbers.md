@@ -55,6 +55,7 @@ graph LR
     classDef external fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
     classDef dimensionless fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000;
 ```
+> **Figure 1:** การหาที่มาของเลขไร้มิติที่สำคัญ (Re, Fr, We, Eu) จากอัตราส่วนของแรงพื้นฐานต่าง ๆ (แรงเฉื่อย, แรงหนืด, แรงโน้มถ่วง, แรงดัน และแรงตึงผิว)
 
 
 ## **ประโยชน์ของเลขไร้มิติ**
@@ -182,15 +183,17 @@ graph LR
     classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
     classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
 ```
+> **Figure 2:** การจำแนกการไหลตามเลขฟรูด ($Fr$) แสดงการเปลี่ยนผ่านจากระบอบการไหลแบบ Subcritical ไปสู่ Supercritical และปรากฏการณ์ทางกายภาพที่เกี่ยวข้อง (คลื่น, Hydraulic jumps)
+
 
 
 ### **Flow Classification by Froude Number**
 
-| ค่า Froude Number | ระบอบการไหล | ลักษณะการไหล |
-|-------------------|--------------|----------------|
-| $Fr < 1$ | Subcritical | การไหลสงบ คลื่นสามารถแพร่ทวนน้ำได้ |
-| $Fr = 1$ | Critical | สภาวะวิกฤต Hydraulic Jump |
-| $Fr > 1$ | Supercritical | การไหลรวดเร็ว การรบกวนไม่สามารถทวนน้ำได้ |
+| ค่า Froude Number | ระบอบการไหล   | ลักษณะการไหล                             |
+| ----------------- | ------------- | ---------------------------------------- |
+| $Fr < 1$          | Subcritical   | การไหลสงบ คลื่นสามารถแพร่ทวนน้ำได้       |
+| $Fr = 1$          | Critical      | สภาวะวิกฤต Hydraulic Jump                |
+| $Fr > 1$          | Supercritical | การไหลรวดเร็ว การรบกวนไม่สามารถทวนน้ำได้ |
 
 Froude number มีความสำคัญอย่างยิ่งใน:
 - **การไหลแบบ Free Surface**
@@ -291,6 +294,8 @@ graph LR
     style F fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
     style G fill:#fbe9e7,stroke:#bf360c,stroke-width:2px,color:#000
 ```
+> **Figure 3:** การจำแนกระบอบการไหลแบบอัดตัวได้ตามเลขมัค ($Ma$) โดยรายละเอียดการเปลี่ยนผ่านจากการไหลแบบอัดตัวไม่ได้ไปสู่ความเร็วเหนือเสียง และข้อกำหนดของ Solver ใน OpenFOAM ที่เกี่ยวข้อง
+
 
 
 ### **Mach Number Flow Regimes**
@@ -408,6 +413,8 @@ graph LR
     class G decision
     class H,I,J,K storage
 ```
+> **Figure 4:** ผลกระทบของเลขพรานดท์ ($Pr$) ต่อฟิสิกส์ของชั้นขอบเขต โดยเปรียบเทียบความหนาสัมพัทธ์ของชั้นขอบเขตความร้อนและชั้นขอบเขตความเร็วสำหรับก๊าซ ($Pr$ ต่ำ) และของเหลว ($Pr$ สูง)
+
 
 
 ### **Schmidt Number ($Sc$)**
@@ -466,7 +473,7 @@ graph LR
     style L fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
     style M fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
-
+> **Figure 5:** กลไกการหลุดของ Vortex แบบ von Kármán จากทรงกระบอก ซึ่งอธิบายโดยเลขสเตราฮัล ($St$) ที่เชื่อมโยงความถี่ของการหลุดเข้ากับความเร็วการไหลและความยาวลักษณะเฉพาะ
 
 ---
 

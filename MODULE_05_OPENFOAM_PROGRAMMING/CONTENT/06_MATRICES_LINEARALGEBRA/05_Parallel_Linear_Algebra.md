@@ -49,6 +49,7 @@ flowchart TD
         F --> G[Global Solution]
     end
 ```
+> **Figure 1:** การเปรียบเทียบระหว่างการประมวลผลแบบลำดับ (Serial) และแบบขนาน (Parallel) ซึ่งแสดงให้เห็นถึงความจำเป็นในการสื่อสารระหว่างโปรเซสเซอร์ผ่านกลไก Halo Exchangeความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ---
 
@@ -236,6 +237,7 @@ flowchart LR
     A1 -->|Local Operations| A1
     A2 -->|Local Operations| A2
 ```
+> **Figure 2:** กลไกของเซลล์ผี (Ghost Cells) หรือพื้นที่ Halo ที่ช่วยให้แต่ละโปรเซสเซอร์สามารถคำนวณข้อมูลในโดเมนของตนเองได้อย่างอิสระก่อนที่จะแลกเปลี่ยนข้อมูลขอบเขตกับโปรเซสเซอร์ข้างเคียงความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 **Mathematical Foundation** relies on **domain decomposition theory**, where:
 - Local computational domain of processor $p$: $\Omega_p$
@@ -475,6 +477,7 @@ flowchart TD
     E --> F[Interface Communication]
     F --> G[Global Linear System]
 ```
+> **Figure 3:** ขั้นตอนการประกอบเมทริกซ์แบบขนาน (Parallel Matrix Assembly) ซึ่งเริ่มจากการประกอบหน้าผิวภายในโปรเซสเซอร์ไปจนถึงการตรวจสอบความสอดคล้องระดับโลก (Global Consistency)ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 **Assembly Process follows a face-by-face approach** where each mesh face contributes to the matrix of exactly one processor.
 
@@ -754,6 +757,7 @@ sequenceDiagram
     P2->>P2: Apply boundary contributions
     P3->>P3: Apply boundary contributions
 ```
+> **Figure 4:** ลำดับขั้นตอนการคูณเมทริกซ์กับเวกเตอร์แบบขนาน ซึ่งมีการซ้อนทับกันระหว่างการสื่อสารข้อมูลขอบเขตและการคำนวณภายในโปรเซสเซอร์เพื่อลดโอเวอร์เฮดความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 **Function Parameters:**
 - `result field`: field storing the result
@@ -851,6 +855,7 @@ flowchart TD
         B1 -.->|Jacobi-like| B2
     end
 ```
+> **Figure 5:** ความท้าทายในการทำ Preconditioning แบบขนานที่ต้องรักษาสมดุลระหว่างความแม่นยำทางคณิตศาสตร์ระดับโลกกับประสิทธิภาพในการคำนวณระดับโปรเซสเซอร์ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 **Challenge in Forward Sweep:**
 

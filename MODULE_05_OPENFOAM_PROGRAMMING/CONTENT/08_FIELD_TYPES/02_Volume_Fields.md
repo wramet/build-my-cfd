@@ -49,6 +49,7 @@ flowchart TD
     style J fill:#ffe1e1
     style K fill:#e1ffe1
 ```
+> **Figure 1:** โครงสร้างการสืบทอดคลาสสำหรับฟิลด์ปริมาตร แสดงถึงความสัมพันธ์ตั้งแต่คลาสรายการข้อมูลดิบไปจนถึงฟิลด์เรขาคณิตที่สมบูรณ์ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 **At the base level:**
 - `List<Type>` provides a **dynamic array container** for any data type
@@ -146,6 +147,7 @@ flowchart TD
     style IF fill:#e3f2fd
     style BF fill:#fff3e0
 ```
+> **Figure 2:** สถาปัตยกรรมภายในของฟิลด์เรขาคณิตที่แยกการจัดเก็บข้อมูลภายในโดเมน (Internal Field) ออกจากข้อมูลขอบเขต (Boundary Field) เพื่อประสิทธิภาพในการประมวลผลความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 **Internal Field Characteristics:**
 - **Type**: Single contiguous `List<Type>`

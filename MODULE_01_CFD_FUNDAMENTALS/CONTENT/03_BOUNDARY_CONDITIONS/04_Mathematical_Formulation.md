@@ -66,8 +66,8 @@ graph LR
     class Elliptic,Parabolic,Hyperbolic pde;
     class EllipticCFD,ParabolicCFD,HyperbolicCFD cfd;
 ```
+> **Figure 1:** การจำแนกประเภทของสมการเชิงอนุพันธ์ย่อย (PDE) แบ่งออกเป็นประเภท Elliptic, Parabolic และ Hyperbolic ซึ่งแต่ละประเภทมีพฤติกรรมทางกายภาพและข้อกำหนดเงื่อนไขขอบเขตที่แตกต่างกันในการประยุกต์ใช้กับ CFD
 
-### เงื่อนไข Well-Posedness (Hadamard)
 
 สำหรับปัญหาที่จะมีผลเฉลยที่ถูกต้อง จะต้องเป็น **Well-Posed Problem** ตามเกณฑ์ของ Hadamard:
 
@@ -140,6 +140,7 @@ graph LR
     class A,B,C,D,E,F,G,H,I,J,K process;
     class L,M,N,O storage;
 ```
+> **Figure 2:** การนำเงื่อนไขขอบเขตแบบกำหนดค่าตายตัว (Dirichlet) ไปใช้งานใน OpenFOAM โดยกำหนดค่าตัวแปรสนาม $\phi$ ที่ขอบเขตโดยตรง เช่น ความเร็วขาเข้า อุณหภูมิที่ผนัง หรือความดันที่ทางออก
 
 #### OpenFOAM Code Implementation
 
@@ -233,6 +234,7 @@ graph LR
     class C,D,E decision;
     class H,J,L storage;
 ```
+> **Figure 3:** การนำเงื่อนไขขอบเขตแบบกำหนดเกรเดียนต์ตายตัว (Neumann) ไปใช้งาน แสดงการควบคุมอัตราการเปลี่ยนแปลงของตัวแปรในทิศทางแนวฉากเพื่อจัดการฟลักซ์ที่ผ่านขอบเขต เช่น ผนังฉนวนความร้อนหรือระนาบสมมาตร
 
 #### OpenFOAM Code Implementation
 
@@ -336,6 +338,7 @@ graph LR
     style H fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
     style N fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
 ```
+> **Figure 4:** ส่วนประกอบและการกำหนดรูปแบบของเงื่อนไขขอบเขตแบบผสม (Robin) ซึ่งรวมผลของทั้งค่าตัวแปรและเกรเดียนต์เข้าด้วยกัน เพื่อจำลองปรากฏการณ์ที่ซับซ้อน เช่น การถ่ายโอนความร้อนแบบพาตามกฎการทำให้เย็นของนิวตัน
 
 #### OpenFOAM Code Implementation
 
@@ -480,10 +483,8 @@ graph LR
     style Log fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style Outer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
 ```
+> **Figure 5:** การแบ่งโซนของชั้นขอบเขตแบบปั่นป่วนใกล้ผนัง โดยอธิบายโครงสร้างตั้งแต่ชั้นย่อยหนืด (viscous sublayer) ไปจนถึงบริเวณกฎลอการิทึม (log-law region) เพื่อใช้ในการเลือกและตั้งค่า Wall Function ที่เหมาะสม
 
-### การใช้งานใน OpenFOAM
-
-#### Wall Function สำหรับ k-epsilon Model
 
 ```cpp
 walls

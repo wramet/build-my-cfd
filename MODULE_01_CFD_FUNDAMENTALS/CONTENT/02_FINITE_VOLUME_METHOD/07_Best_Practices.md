@@ -56,11 +56,8 @@ graph TD
 
     class B1,B2,B3,C1,C2,C3,D1,D2,D3,E1,E2,E3,F1,F2,F3,G1,G2,H1,H2,H3 process
 ```
+> **Figure 1:** กรอบแนวคิดแนวปฏิบัติที่ดีที่สุดสำหรับการจำลอง CFD ครอบคลุมตั้งแต่คุณภาพของ Mesh, แผนการคำนวณเชิงตัวเลข, การตั้งค่า Solver ไปจนถึงการตรวจสอบความถูกต้องและการยืนยันผลลัพธ์
 
-
----
-
-## คุณภาพของ Mesh (Mesh Quality)
 
 คุณภาพของ Mesh เป็นปัจจัยสำคัญที่ส่งผลต่อความแม่นยำและความเสถียรของการจำลอง CFD คุณภาพ Mesh ที่ไม่ดีอาจทำให้เกิดข้อผิดพลาดเชิงตัวเลข ลดความแม่นยำของ Solution และอาจทำให้การจำลองเกิดการ Divergence ได้
 
@@ -135,9 +132,8 @@ graph LR
     class A terminator
     class D storage
 ```
+> **Figure 2:** การวิเคราะห์ความไม่ตั้งฉาก (Non-orthogonality) ของ Mesh และผลกระทบต่อการคำนวณเกรเดียนต์โดยใช้ทฤษฎีบทของเกาส์ ซึ่งความเบี่ยงเบนที่มากเกินไปจะลดความแม่นยำของผลเฉลยลง
 
-
-#### **Skewness**
 
 การวัดปริมาณการเบี่ยงเบนของจุด Face-cell intersection จาก Geometric face center
 
@@ -346,8 +342,8 @@ graph TD
     class G medium
     class H poor
 ```
+> **Figure 3:** แผนผังการตัดสินใจสำหรับการเลือกแผนการคำนวณการพา (Convection scheme) ตามเลขเพกเลต์ ($Pe$) เพื่อรักษาสมดุลระหว่างความแม่นยำและเสถียรภาพตามลักษณะการไหล
 
-### **Gradient Schemes**
 
 | Scheme | คำอธิบาย | ความแม่นยำ | กรณีที่เหมาะสม | Computational Cost |
 |--------|------------|-------------|-----------------|-------------------|
@@ -655,9 +651,8 @@ graph LR
     style E fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
     style F fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
 ```
+> **Figure 4:** ขั้นตอนการทำงานของการคำนวณแบบขนานผ่านการแบ่งโดเมน (Domain decomposition) แสดงการแยกส่วน Mesh ไปยังตัวประมวลผลต่าง ๆ และการสื่อสารผ่าน MPI เพื่อรวมผลลัพธ์กลับมาเป็นโดเมนที่สมบูรณ์
 
-
-**การตั้งค่า Decomposition:**
 
 ```cpp
 // system/decomposeParDict
@@ -902,10 +897,8 @@ graph TD
     style C,D,E,F fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
     style G,J,M,P fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
 ```
+> **Figure 5:** ขั้นตอนการแก้ปัญหาอย่างเป็นระบบเมื่อการจำลองล้มเหลว โดยไล่เรียงจากการตรวจสอบประเภทของข้อผิดพลาด (เช่น การไม่ลู่เข้า หรือข้อผิดพลาดทางคณิตศาสตร์) ไปจนถึงการปรับปรุงพารามิเตอร์และการรันซ้ำ
 
----
-
-## การจัดการไฟล์ Case (Case File Management)
 
 ### **Version Control ด้วย Git**
 
@@ -1120,8 +1113,8 @@ graph TD
     style F fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
     style I fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
 ```
+> **Figure 6:** ขั้นตอนการศึกษาความอิสระของ Mesh (Grid convergence study) เพื่อการยืนยันผลเลขนัยสำคัญเชิงตัวเลข โดยการเปรียบเทียบผลลัพธ์จาก Mesh หลายขนาดเพื่อหาผลเฉลยที่แม่นยำที่สุด
 
-**ขั้นตอน:**
 1. สร้าง Mesh หลายขนาด (coarse, medium, fine)
 2. ทำการจำลองบนแต่ละ Mesh
 3. วิเคราะห์ Order of accuracy: $p = \frac{\ln|\phi_2 - \phi_1|}{\ln|\phi_3 - \phi_2|}$

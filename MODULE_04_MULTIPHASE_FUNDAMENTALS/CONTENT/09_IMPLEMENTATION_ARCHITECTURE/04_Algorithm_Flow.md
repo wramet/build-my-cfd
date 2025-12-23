@@ -1,19 +1,46 @@
 # ขั้นตอนการทำงานของอัลกอริทึม (Algorithm Flow)
 
-## 1. บทนำ (Overview)
+## 1. ภาพรวม (Overview)
 
 `multiphaseEulerFoam` ใช้อัลกอริทึม **PIMPLE** (ซึ่งเป็นการผสมผสานระหว่าง PISO และ SIMPLE) เพื่อจัดการความเชื่อมโยงระหว่างความดันและความเร็ว (Pressure-Velocity Coupling) ในการจำลองการไหลหลายเฟสแบบ Transient อัลกอริทึมนี้รวมข้อดีของ PISO (ความแม่นยำในสภาวะไม่คงตัว) และ SIMPLE (ความเสถียรผ่าน Outer loops และ Under-relaxation) เข้าด้วยกัน
 
+> [!INFO] หลักการของ PIMPLE
+> PIMPLE = **P**ISO + **SIMPLE** ให้การแก้ปัญหาแบบ transient ที่แข็งแกร่งพร้อมความเสถียรจากการวนซ้ำภายนอก
+
 ---
 
-## 2. โครงสร้างวงจรคำนวณหลัก (Main Time Loop Structure)
+## 2. การกำหนดค่าเริ่มต้นของ Fields และ Models
+
+โปรแกรมแก้ปัญหาเริ่มต้นโดยการกำหนดค่าเริ่มต้นของ fields และโมเดลทางฟิสิกส์ทั้งหมดที่จำเป็นผ่านไฟล์ include `createFields.H`:
+
+```cpp
+#include "createFields.H"
+```
+
+### กระบวนการกำหนดค่าเริ่มต้น
+
+กระบวนการกำหนดค่าเริ่มต้นนี้สร้าง:
+- **Phase fraction fields** ($\alpha_k$) สำหรับแต่ละเฟส
+- **Velocity fields** ($\mathbf{u}_k$) สำหรับแต่ละเฟส
+- **Pressure field** ($p$)
+- **Temperature fields** ($T_k$) หากมีการแก้สมการพลังงาน
+- **Thermophysical models** สำหรับแต่ละเฟส
+- **Transport models** (ความหนื้ว, ความนำความร้อน)
+- **Turbulence models** หากมีความเกี่ยวข้อง
+
+---
+
+## 3. โครงสร้างวงจรคำนวณหลัก (Main Time Loop Structure)
 
 ในแต่ละขั้นตอนเวลา (Time step) อัลกอริทึมจะทำงานตามลำดับดังนี้:
+
+### 3.1 Time Loop หลัก
 
 ```cpp
 while (runTime.loop())
 {
     // 1. ปรับก้าวเวลา (Time step) ตามเลข Courant
+    #include "readTimeControls.H"
     #include "compressibleMultiphaseCourantNo.H"
 
     // PIMPLE Loop (Outer Correctors)
@@ -43,86 +70,391 @@ while (runTime.loop())
 }
 ```
 
+### 3.2 การคำนวณเลข Courant (Courant Number)
+
+ระบบคำนวณ Courant numbers เพื่อปรับ time step อัตโนมัติ:
+
+$$\text{Co} = \frac{\Delta t \cdot |\mathbf{u}|}{\Delta x}$$
+
+**นิยามตัวแปร**:
+- $\text{Co}$: Courant number
+- $\Delta t$: Time step
+- $|\mathbf{u}|$: ความเร็วของของไหล
+- $\Delta x$: ขนาดเซลล์
+
+Courant numbers สูงสุดถูกคำนวณสำหรับแต่ละเฟสเพื่อให้แน่ใจถึงเสถียรภาพเชิงตัวเลข:
+
+$$\text{Co}_{max} = \max\left(\frac{\Delta t \cdot |\mathbf{u}_k|}{\Delta x_k}\right) \quad \forall k$$
+
 ---
 
-## 3. สมการสัดส่วนเฟส (Phase Fraction Equations - `alphaEqns.H`)
+## 4. สมการสัดส่วนเฟส (Phase Fraction Equations - `alphaEqns.H`)
 
-ใช้ติดตามการกระจายตัวของแต่ละเฟสในปริภูมิและเวลา:
+ใช้ติดตามการกระจายตัวของแต่ละเฟสในปริภูมิและเวลา
 
-$$\frac{\partial (\alpha_k \rho_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k) = \sum_{l=1}^{N} \dot{m}_{lk}$$ 
+### 4.1 สมการต่อเนื่องเฟส
+
+$$\frac{\partial (\alpha_k \rho_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k) = \sum_{l=1}^{N} \dot{m}_{lk}$$
+
+**นิยามตัวแปร**:
+- $\alpha_k$: Phase fraction ของเฟส $k$
+- $\rho_k$: ความหนาแน่นของเฟส $k$
+- $\mathbf{u}_k$: ความเร็วของเฟส $k$
+- $\dot{m}_{lk}$: อัตราการถ่ายเทมวลระหว่างเฟส
 
 โดยมีเงื่อนไขบังคับคือ $\sum_{k=1}^{N} \alpha_k = 1$
 
-**การนำไปใช้งานในโค้ด:**
+### 4.2 การนำไปใช้งานในโค้ด
+
 ```cpp
 forAll(phases, phasei)
 {
     phaseModel& phase = phases[phasei];
     volScalarField& alpha = phase;
+    const volScalarField& rho = phase.rho();
+    const volVectorField& U = phase.U();
 
+    // Construct phase fraction equation
     fvScalarMatrix alphaEqn
     (
-        fvm::ddt(alpha, phase.rho())
-      + fvm::div(alphaPhi, phase.rho())
+        fvm::ddt(alpha, rho)
+      + fvm::div(alphaPhase*rho*U, alpha)
      ==
-        phase.massTransferSource()
+        phase.massTransferSource()  // Interphase mass transfer
     );
 
+    // Relax and solve
     alphaEqn.relax();
     alphaEqn.solve();
+
+    // Apply bounding
     alpha.maxMin(1.0, 0.0); // บังคับให้อยู่ในช่วง [0, 1]
+}
+
+// Ensure phase fractions sum to unity
+scalarField sumAlpha = phases[0];
+for (label phasei = 1; phasei < phases.size(); phasei++)
+{
+    sumAlpha += phases[phasei];
+}
+
+forAll(phases, phasei)
+{
+    phases[phasei] /= sumAlpha;
+}
+```
+
+### 4.3 การจับคู่โค้ดกับทฤษฎี
+
+- `fvm::ddt(alpha, rho)` → $\frac{\partial (\alpha_k \rho_k)}{\partial t}$ (อนุพันธ์เชิงเวลา)
+- `fvm::div(alphaPhase*rho*U, alpha)` → $\nabla \cdot (\alpha_k \rho_k \mathbf{u}_k)$ (พจน์นำพา)
+- `phase.massTransferSource()` → $\sum_{l=1}^{N} \dot{m}_{lk}$ (การถ่ายโอนมวลระหว่างเฟส)
+
+### 4.4 รายละเอียดการนำไปใช้งานเชิงตัวเลข
+
+1. **กลยุทธ์การ Discretization**:
+   - **การ Discretization เชิงเวลา**: แบบ Backward differentiation อันดับหนึ่งหรือสอง
+   - **การ Discretization เชิงพื้นที่**: แบบ Upwind หรือรูปแบบการนำพาอันดับสูงกว่า (Gaussian, limitedLinear)
+   - **การจัดการโดยปริยาย** ของอนุพันธ์เชิงเวลาเพื่อความเสถียรทางตัวเลข
+
+2. **การจำกัดและการ Normalization**:
+   - **การจำกัดโดยชัดแจ้ง**: `alpha.maxMin(1.0, 0.0)` ทำให้มั่นใจว่า $0 \leq \alpha_k \leq 1$
+   - **การ Renormalization**: เฟสถูกปรับขนาดใหม่เพื่อรักษาผลรวมเป็นหนึ่ง
+
+3. **กลยุทธ์การผ่อนคลาย**: การผ่อนคลายเกิน (`alphaEqn.relax()`) ช่วยเพิ่มความเสถียรสำหรับระบบหลายเฟสที่มีความแข็ง (stiff)
+
+---
+
+## 5. สมการโมเมนตัม (Momentum Equations - `UEqns.H`)
+
+แต่ละเฟสจะมีสมการโมเมนตัมของตัวเองที่เชื่อมโยงกันผ่านแรงระหว่างเฟส (Interphase forces)
+
+### 5.1 สมการโมเมนตัมหลายเฟส
+
+$$\frac{\partial (\alpha_k \rho_k \mathbf{u}_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \mathbf{u}_k) = -\alpha_k \nabla p + \nabla \cdot (\alpha_k \boldsymbol{\tau}_k) + \alpha_k \rho_k \mathbf{g} + \mathbf{M}_k$$
+
+**นิยามตัวแปร**:
+- $\mathbf{u}_k$: ความเร็วของเฟส $k$
+- $\boldsymbol{\tau}_k$: Tensor ความเค้นของเฟส $k$
+- $\mathbf{g}$: Vector ความโน้มถ่วง
+- $\mathbf{M}_k$: เวกเตอร์การถ่ายโอนโมเมนตัมระหว่างเฟส
+
+**เทนเซอร์ความเค้นแบบหนืว**:
+$$\boldsymbol{\tau}_k = \mu_k (\nabla \mathbf{u}_k + \nabla \mathbf{u}_k^T) - \frac{2}{3}\mu_k (\nabla \cdot \mathbf{u}_k)\mathbf{I}$$
+
+### 5.2 การนำไปใช้งานใน OpenFOAM
+
+```cpp
+PtrList<fvVectorMatrix> UEqns(phases.size());
+
+forAll(phases, phasei)
+{
+    phaseModel& phase = phases[phasei];
+    volVectorField& U = phase.U();
+    const volScalarField& alpha = phase;
+    const volScalarField& rho = phase.rho();
+
+    // Momentum equation matrix
+    fvVectorMatrix UEqn
+    (
+        fvm::ddt(alpha, rho, U)
+      + fvm::div(alphaPhi, rho, U)
+     ==
+        // Pressure gradient term
+        - alpha*fvc::grad(p)
+
+        // Viscous stress term
+      + fvc::div(alpha*phase.R())
+
+        // Gravity term
+      + alpha*rho*g
+
+        // Interphase momentum transfer
+      + phase.interfacialMomentumTransfer()
+    );
+
+    // Apply under-relaxation
+    UEqn.relax();
+
+    // Store for pressure equation
+    UEqns.set(phasei, new fvVectorMatrix(UEqn));
+}
+```
+
+### 5.3 การจับคู่โค้ดกับทฤษฎี
+
+- `fvm::ddt(alpha, rho, U)` → $\frac{\partial (\alpha_k \rho_k \mathbf{u}_k)}{\partial t}$
+- `fvm::div(alphaPhi, rho, U)` → $\nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \mathbf{u}_k)$
+- `- alpha*fvc::grad(p)` → $-\alpha_k \nabla p$ (ไล่ระดับความดัน)
+- `fvc::div(alpha*phase.R())` → $\nabla \cdot \boldsymbol{\tau}_k$ (ความเครียดแบบเหนียว)
+- `alpha*rho*g` → $\alpha_k \rho_k \mathbf{g}$ (แรงโน้มถ่วง/แรงตามตัว)
+- `phase.interfacialMomentumTransfer()` → $\mathbf{M}_k$ (การถ่ายโอนโมเมนตัมระหว่างเฟส)
+
+---
+
+## 6. การถ่ายโอนโมเมนตัมระหว่างเฟส
+
+### 6.1 การนำไปใช้งานใน OpenFOAM
+
+```cpp
+// Interphase momentum transfer calculation
+tmp<volVectorField> phaseModel::interfacialMomentumTransfer() const
+{
+    tmp<volVectorField> tF
+    (
+        new volVectorField
+        (
+            IOobject
+            (
+                "F",
+                mesh_.time().timeName(),
+                mesh_,
+                IOobject::NO_READ,
+                IOobject::NO_WRITE
+            ),
+            mesh_,
+            dimensionedVector("F", dimensionSet(1, -2, -2, 0, 0), Zero)
+        )
+    );
+
+    volVectorField& F = tF.ref();
+
+    // Sum forces from all other phases
+    forAll(otherPhases, otherPhasei)
+    {
+        const phaseModel& otherPhase = otherPhases[otherPhasei];
+
+        // Drag force
+        if (dragModel_.valid())
+        {
+            F += dragModel_->F(*this, otherPhase);
+        }
+
+        // Lift force
+        if (liftModel_.valid())
+        {
+            F += liftModel_->F(*this, otherPhase);
+        }
+
+        // Virtual mass force
+        if (virtualMassModel_.valid())
+        {
+            F += virtualMassModel_->F(*this, otherPhase);
+        }
+
+        // Turbulent dispersion
+        if (turbulentDispersionModel_.valid())
+        {
+            F += turbulentDispersionModel_->F(*this, otherPhase);
+        }
+    }
+
+    return tF;
+}
+```
+
+### 6.2 สมการการถ่ายโอนโมเมนตัมระหว่างเฟส
+
+$$\mathbf{M}_k = \sum_{l=1}^{N} (\mathbf{F}^{D}_{kl} + \mathbf{F}^{L}_{kl} + \mathbf{F}^{VM}_{kl} + \mathbf{F}^{TD}_{kl})$$
+
+### 6.3 ส่วนประกอบของแรงแต่ละอย่าง
+
+| ประเภทของแรง | สมการ | คำอธิบาย |
+|-------------|---------|-----------|
+| **Drag forces** | $\mathbf{F}_{D,k} = K_{kj}(\mathbf{u}_j - \mathbf{u}_k)$ | แรงต้านระหว่างเฟส |
+| **Lift forces** | $\mathbf{F}_{L,k} = C_L \rho_k (\mathbf{u}_j - \mathbf{u}_k) \times (\nabla \times \mathbf{u}_k)$ | แรงยกจากความไม่สมมาตร |
+| **Virtual mass** | $\mathbf{F}_{VM,k} = C_{VM} \rho_j \left(\frac{D\mathbf{u}_j}{Dt} - \frac{D\mathbf{u}_k}{Dt}\right)$ | แรงเสมือนมวล |
+| **Turbulent dispersion** | $\mathbf{F}_{TD,k} = C_{TD} \rho_k \frac{\mu_{t,k}}{\sigma_{t,k}} (\nabla \alpha_l - \nabla \alpha_k)$ | การกระเจืองความปั่นป่วน |
+
+---
+
+## 7. สมการความดัน (Pressure Equation - `pEqn.H`)
+
+สมการความดันทำหน้าที่รักษาการอนุรักษ์มวลโดยบังคับให้ฟิลด์ความเร็วของส่วนผสมเป็น Divergence-free
+
+### 7.1 สมการความดันร่วม
+
+$$\sum_{k=1}^{N} \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k) = 0$$
+
+### 7.2 อัลกอริทึม PISO
+
+**ขั้นตอนของอัลกอริทึม PISO:**
+
+1. **Predictor Step**: แก้สมการโมเมนตัมด้วยความดันปัจจุบัน เพื่อหาความเร็วชั่วคราว ($\mathbf{u}^*$)
+
+2. **Pressure Solution**: แก้สมการ Poisson เพื่อหาค่าความดันใหม่
+   $$\nabla \cdot \left(\frac{1}{A_k} \nabla p\right) = \nabla \cdot \mathbf{H}_k$$
+
+3. **Velocity Correction**: ปรับปรุงค่าความเร็วโดยใช้ Gradient ของความดันใหม่:
+   $$\mathbf{u}_k^{n+1} = \mathbf{u}_k^* - \frac{1}{A_k} \nabla p$$
+
+### 7.3 การนำไปใช้งานใน OpenFOAM
+
+```cpp
+// pEqn.H - Pressure correction equation
+for (int corr = 0; corr < nCorr; corr++)
+{
+    // Calculate pressure fluxes
+    surfaceScalarField rUAf
+    (
+        "rUAf",
+        fvc::interpolate(1.0/UEqn.A())
+    );
+
+    // Phase fluxes
+    PtrList<surfaceScalarField> phiPhis(phases.size());
+    forAll(phases, phasei)
+    {
+        const phaseModel& phase = phases[phasei];
+        const fvVectorMatrix& UEqn = UEqns[phasei];
+
+        phiPhis.set
+        (
+            phasei,
+            new surfaceScalarField
+            (
+                "phi" + phase.name(),
+                fvc::interpolate(phase.U()) & mesh_.Sf()
+            )
+        );
+    }
+
+    // Pressure equation matrix
+    fvScalarMatrix pEqn
+    (
+        fvm::laplacian(rUAf, p) ==
+        fvc::div(phiHbyA)
+    );
+
+    // Solve pressure equation
+    pEqn.solve();
+
+    // Correct phase fluxes
+    forAll(phases, phasei)
+    {
+        phiPhis[phasei] -= rUAf*fvc::snGrad(p)*mesh_.magSf();
+    }
+}
+```
+
+### 7.4 รายละเอียดการนำไปใช้งานเชิงตัวเลข
+
+1. **การ Interpolation ของ Rhie-Chow**: `fvc::interpolate(1.0/UEqn.A())` ป้องกันการแยกความดัน-ความเร็วแบบ checkerboard
+
+2. **การสร้าง Flux บนผิวหน้า**: ฟิลด์ `phiPhis` แทน $\alpha_k \mathbf{u}_k \cdot \mathbf{S}_f$ บนผิวหน้าเมช
+
+3. **การ Discretization ของไล่ระดับความดัน**: `fvc::snGrad(p)` ใช้การประเมินไล่ระดับความดันตามปกติผิวหน้า
+
+4. **การแก้ไขแบบวนซ้ำ**: ลูป `nCorr` อนุญาตการแก้ไขความดัน-ความเร็วหลายครั้งภายในแต่ละช่วงเวลา
+
+---
+
+## 8. สมการพลังงาน (Energy Equations - `EEqns.H`)
+
+คำนวณการถ่ายเทความร้อนจากการพา (Convection), การนำ (Conduction) และการแลกเปลี่ยนความร้อนระหว่างเฟส
+
+### 8.1 สมการพลังงานของเฟส
+
+$$\frac{\partial (\alpha_k \rho_k h_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k h_k \mathbf{u}_k) = \alpha_k \frac{D p_k}{D t} + \nabla \cdot (\alpha_k k_k \nabla T_k) + Q_{k}$$
+
+**นิยามตัวแปร**:
+- $h_k$: Enthalpy ของเฟส $k$
+- $k_k$: ความนำความร้อนของเฟส $k$
+- $T_k$: อุณหภูมิของเฟส $k$
+- $Q_k$: อัตราการถ่ายเทความร้อนระหว่างเฟส: $Q_k = \sum_{l=1}^{N} h_{kl} A_{kl} (T_l - T_k)$
+
+### 8.2 การนำไปใช้งานใน OpenFOAM
+
+```cpp
+forAll(phases, phasei)
+{
+    const phaseModel& phase = phases[phasei];
+    const volScalarField& h = phase.thermo().h();
+    const volScalarField& T = phase.T();
+    const volScalarField& alpha = phase;
+    const volScalarField& rho = phase.rho();
+
+    // Energy equation construction
+    fvScalarMatrix EEqn
+    (
+        fvm::ddt(alpha, rho, h)
+      + fvm::div(alphaRhoPhi, h)
+     ==
+        alpha*dpdt
+      + fvc::div(alphaKappaEff*fvc::grad(T))
+      + interphaseHeatTransfer[phasei]
+    );
+
+    EEqn.relax().solve();
+
+    // Update temperature from enthalpy
+    phase.T() = phase.thermo().THE(h, phase.T());
 }
 ```
 
 ---
 
-## 4. สมการโมเมนตัม (Momentum Equations - `UEqns.H`)
+## 9. กลยุทธ์ความเสถียร (Stability Strategies)
 
-แต่ละเฟสจะมีสมการโมเมนตัมของตัวเองที่เชื่อมโยงกันผ่านแรงระหว่างเฟส (Interphase forces):
+### 9.1 การคำนวณเลข Courant (Courant Number)
 
-$$\frac{\partial (\alpha_k \rho_k \mathbf{u}_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \mathbf{u}_k) = -\alpha_k \nabla p + \nabla \cdot \boldsymbol{\tau}_k + \alpha_k \rho_k \mathbf{g} + \mathbf{M}_k$$ 
+$$\text{Co} = \frac{\Delta t \cdot |\mathbf{u}|}{\Delta x}$$
 
-**เทอมการถ่ายโอนโมเมนตัมระหว่างเฟส ($\\mathbf{M}_k$):**
-ประกอบด้วยแรง Drag, Lift, Virtual Mass และ Turbulent Dispersion:
-$$\\mathbf{M}_k = \sum_{l=1}^{N} (\mathbf{F}^{D}_{kl} + \mathbf{F}^{L}_{kl} + \mathbf{F}^{VM}_{kl} + \mathbf{F}^{TD}_{kl})$$ 
+ระบบจะปรับ $\Delta t$ อัตโนมัติเพื่อให้ $\text{Co}$ อยู่ในเกณฑ์ที่กำหนดเพื่อความเสถียร
 
----
+### 9.2 การผ่อนคลาย (Under-Relaxation)
 
-## 5. สมการความดัน (Pressure Equation - `pEqn.H`)
-
-สมการความดันทำหน้าที่รักษาการอนุรักษ์มวลโดยบังคับให้ฟิลด์ความเร็วของส่วนผสมเป็น Divergence-free:
-
-$$\sum_{k=1}^{N} \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k) = 0$$ 
-
-**ขั้นตอนของอัลกอริทึม PISO:**
-1. **Predictor Step**: แก้สมการโมเมนตัมด้วยความดันปัจจุบัน เพื่อหาความเร็วชั่วคราว ($\\mathbf{u}^*$)
-2. **Pressure Solution**: แก้สมการ Poisson เพื่อหาค่าความดันใหม่
-3. **Velocity Correction**: ปรับปรุงค่าความเร็วโดยใช้ Gradient ของความดันใหม่:
-   $$\\mathbf{u}_k^{n+1} = \\mathbf{u}_k^* - \frac{1}{A_k} \nabla p$$ 
-
----
-
-## 6. สมการพลังงาน (Energy Equations - `EEqns.H`)
-
-คำนวณการถ่ายเทความร้อนจากการพา (Convection), การนำ (Conduction) และการแลกเปลี่ยนความร้อนระหว่างเฟส:
-
-$$\frac{\partial (\alpha_k \rho_k h_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k h_k \mathbf{u}_k) = \alpha_k \frac{D p_k}{D t} + \nabla \cdot (\alpha_k k_k \nabla T_k) + Q_{k}$$ 
-
-โดยที่ $Q_k$ คือการถ่ายเทความร้อนระหว่างเฟส: $Q_k = \sum_{l=1}^{N} h_{kl} A_{kl} (T_l - T_k)$ 
-
----
-
-## 7. กลยุทธ์ความเสถียร (Stability Strategies)
-
-### 7.1 การคำนวณเลข Courant (Courant Number)
-$$\\text{Co} = \frac{\\Delta t \cdot |\mathbf{u}|}{\\Delta x}$$ 
-ระบบจะปรับ $\\Delta t$ อัตโนมัติเพื่อให้ $\\text{Co}$ อยู่ในเกณฑ์ที่กำหนดเพื่อความเสถียร
-
-### 7.2 การผ่อนคลาย (Under-Relaxation)
 ใช้เพื่อป้องกันการแกว่งของค่าในการคำนวณแบบ Iterative:
-$$\\phi^{new} = \\phi^{old} + \lambda_{relax}(\\phi^{calculated} - \\phi^{old})$$ 
 
-| ฟิลด์ (Field) | ค่า $\\lambda$ ที่แนะนำ |
+$$\phi^{new} = \phi^{old} + \lambda_{relax}(\phi^{calculated} - \phi^{old})$$
+
+**นิยามตัวแปร**:
+- $\phi^{new}$: ค่าใหม่ของ field
+- $\phi^{old}$: ค่าเดิมของ field
+- $\phi^{calculated}$: ค่าที่คำนวณได้
+- $\lambda_{relax}$: Relaxation factor
+
+| ฟิลด์ (Field) | ค่า $\lambda$ ที่แนะนำ |
 |-------|------------------|
 | **Phase fractions** | 0.7 - 0.9 |
 | **Momentum (U)** | 0.6 - 0.8 |
@@ -131,8 +463,209 @@ $$\\phi^{new} = \\phi^{old} + \lambda_{relax}(\\phi^{calculated} - \\phi^{old})$
 
 ---
 
-## 8. สรุปขั้นตอนการทำงาน (Summary)
+## 10. กลยุทธ์การเชื่อมโยง (Coupling Strategies)
+
+### 10.1 Segregated Solution Approach
+
+โปรแกรมแก้ปัญหาใช้กลยุทธ์การแก้ปัญหาแบบ segregated ซึ่งสมการถูกแก้ตามลำดับภายในการวนซ้ำของแต่ละ time iteration
+
+#### โครงสร้างอัลกอริทึม
+
+1. **Phase fractions**: แก้สมการ $\alpha_k$ อย่างอิสระ
+2. **Momentum**: แก้สมการ $\mathbf{u}_k$ สำหรับแต่ละเฟส
+3. **Pressure**: แก้สมการแก้ไข pressure แบบทั่วไป
+4. **Velocity correction**: อัปเดต $\mathbf{u}_k$ ตาม pressure field
+5. **Energy**: แก้สมการ $T_k$ (หากจำเป็น)
+
+#### ข้อดีของ Segregated Approach
+
+- **ต้องการหน่วยความจำน้อยกว่า**
+- **ง่ายต่อการ implement และ debug**
+- **ทนทานสำหรับช่วงการใช้งานที่กว้าง**
+- **อนุญาตให้ใช้ under-relaxation ที่แตกต่างกันสำหรับแต่ละสมการ**
+
+#### ข้อเสีย
+
+- **การลู่เข้าช้าสำหรับปัญหาที่มีการเชื่อมโยงอย่างแรง**
+- **อาจต้องการการวนซ้ำมากขึ้นต่อ time step**
+- **เหมาะน้อยกว่าสำหรับระบบ multiphase ที่แข็ง**
+
+### 10.2 การกำหนดค่า Coupling
+
+```cpp
+// couplingProperties dictionary
+couplingOptions
+{
+    // Coupling scheme selection
+    couplingScheme    segregated; // segregated | coupled
+
+    // Under-relaxation factors
+    relaxationFactors
+    {
+        phases        0.7;    // Phase fraction equations
+        momentum      0.6;    // Momentum equations
+        pressure      0.3;    // Pressure equation
+        energy        0.8;    // Energy equations
+    }
+
+    // Solver convergence criteria
+    solverControls
+    {
+        alpha         1e-8;   // Phase fraction tolerance
+        U             1e-6;   // Momentum tolerance
+        p             1e-8;   // Pressure tolerance
+        T             1e-8;   // Energy tolerance
+    }
+
+    // Maximum iterations per equation
+    maxIterations
+    {
+        alpha         100;    // Phase fraction max iterations
+        U             50;     // Momentum max iterations
+        p             200;    // Pressure max iterations
+        T             100;    // Energy max iterations
+    }
+}
+```
+
+### 10.3 Implicit Treatment of Interphase Terms
+
+```cpp
+// Implicit drag matrix assembly
+forAll(phases, k)
+{
+    forAll(phases, j)
+    {
+        if (k != j)
+        {
+            scalarField Kd = dragCoefficient(phases[k], phases[j]);
+            KMatrix[k][j] = -Kd;
+            KMatrix[k][k] += Kd;
+        }
+    }
+
+    // Add to momentum matrix diagonal
+    UEqn += fvm::Sp(KMatrix[k][k], U[k]);
+}
+```
+
+### 10.4 Pressure-Velocity Coupling Enhancement
+
+- **SIMPLEC**: Consistent SIMPLE สำหรับการลู่เข้าที่ดีขึ้น
+- **PIMPLE**: Combined SIMPLE-PISO สำหรับความทนทานของ transient
+- **Multigrid**: Geometric/algebraic multigrid สำหรับสมการ pressure
+
+---
+
+## 11. Mermaid Diagram: ขั้นตอนอัลกอริทึม PIMPLE
+
+```mermaid
+flowchart TD
+    Start([เริ่มต้น Time Step]) --> Init[อ่าน Control Parameters]
+    Init --> Courant[คำนวณ Courant Number<br/>ปรับ Δt หากจำเป็น]
+
+    Courant --> PIMPLE_Start{เริ่ม PIMPLE Loop}
+
+    PIMPLE_Start --> Alpha[แก้สมการ Phase Fractions<br/>alphaEqns.H]
+    Alpha --> Alpha_Check{ตรวจสอบ<br/>Σα = 1?}
+    Alpha_Check -->|ไม่| Alpha_Normalize[Normalize α<br/>α<sub>k</sub> /= Σα]
+    Alpha_Normalize --> Alpha_Check
+    Alpha_Check -->|ใช่| Momentum[แก้สมการ Momentum<br/>UEqns.H<br/>สำหรับทุกเฟส]
+
+    Momentum --> Pressure_Construct[สร้างสมการความดัน<br/>จากเงื่อนไขความต่อเนื่อง]
+    Pressure_Construct --> Pressure_Solve[แก้สมการ Pressure<br/>pEqn.H]
+    Pressure_Solve --> Velocity_Correct[ปรับความเร็ว<br/>ตาม pressure gradient]
+
+    Velocity_Correct --> Energy_Check{แก้พลังงาน?}
+    Energy_Check -->|ใช่| Energy[แก้สมการ Energy<br/>EEqns.H]
+    Energy --> Turbulence
+    Energy_Check -->|ไม่| Turbulence[แก้โมเดลความปั่นป่วน<br/>turbulence.correct]
+
+    Turbulence --> Converged{ลู่เข้า?}
+    Converged -->|ไม่| PIMPLE_Start
+    Converged -->|ใช่| Output_Check{บันทึกผลลัพธ์?}
+
+    Output_Check -->|ใช่| Write[เขียน Results<br/>runTime.write]
+    Write --> Next_Time{ถึงเวลาสิ้นสุด?}
+    Output_Check -->|ไม่| Next_Time
+
+    Next_Time -->|ไม่| PIMPLE_Start
+    Next_Time -->|ใช่| End([สิ้นสุดการจำลอง])
+
+    style Start fill:#e1f5e1
+    style End fill:#ffe1e1
+    style PIMPLE_Start fill:#fff4e1
+    style Converged fill:#e1f0ff
+    style Alpha_Check fill:#e1f0ff
+    style Energy_Check fill:#e1f0ff
+    style Next_Time fill:#e1f0ff
+```
+
+---
+
+## 12. สรุปขั้นตอนการทำงาน
 
 `multiphaseEulerFoam` ใช้แนวทางการแก้ปัญหาแบบ **Segregated Approach** (แก้ทีละสมการตามลำดับ) ซึ่งมีข้อดีคือใช้หน่วยความจำน้อยและมีความยืดหยุ่นสูงในการจัดการฟิสิกส์ที่ซับซ้อน โดยมีการใช้เทคนิค **Implicit Treatment** สำหรับเทอมแรงระหว่างเฟสเพื่อเพิ่มความเสถียรในระบบที่มีแรง Drag สูง
 
-*อ้างอิง: วิเคราะห์ตามซอร์สโค้ด OpenFOAM-10 multiphaseEulerFoam.C, pEqn.H และ UEqns.H*
+### คุณสมบัติการแก้ปัญหาเชิงตัวเลข
+
+| คุณสมบัติ | คำอธิบาย | ผลกระทบ |
+|---|---|---|
+| Segregated solution | สมการโมเมนตัมของแต่ละเฟสถูกแก้ตามลำดับ | ลดหน่วยความจำ แต่ต้องการ iterations มากขึ้น |
+| Implicit treatment | การจัดการเทอม coupling ระหว่างเฟสโดยนัย | เพิ่มเสถียรภาพเชิงตัวเลข |
+| Pressure-velocity coupling | ผ่านอัลกอริทึม PIMPLE | ทำให้การคำนวณเสถียร |
+| Under-relaxation | กลยุทธ์การผ่อนความเร็ว | ทำให้มั่นใจในการบรรจบกันของระบบที่แข็ง |
+| Adaptive time stepping | ปรับก้าวเวลาโดยยึดตามจำนวน Courant | รักษาเสถียรภาพและประสิทธิภาพ |
+
+### ขั้นตอนอัลกอริทึม PIMPLE อย่างละเอียด
+
+1. **การคาดการณ์ (Prediction)**
+   - คาดการณ์ความเร็วของแต่ละเฟส: $\mathbf{u}_k^{*}$
+   - คาดการณ์ปริมาตรส่วน: $\alpha_k^{*}$
+
+2. **การแก้โมเมนตัม (Momentum Solve)**
+   - แก้สมการโมเมนตัมสำหรับแต่ละเฟส $k$
+   - พิจารณาเทอม coupling ระหว่างเฟสโดยนัย
+
+3. **การแก้ความดัน (Pressure Correction)**
+   - สร้างและแก้สมการความดันร่วม
+   - แก้ไขความเร็วเพื่อให้เป็นไปตามการอนุรักษ์มวล
+
+4. **การแก้ปริมาตรส่วน (Volume Fraction Correction)**
+   - แก้ไขปริมาตรส่วนให้เป็นไปตามเงื่อนไข $\sum \alpha_k = 1$
+
+5. **การแก้พลังงานและสมการอื่นๆ (Energy & Other Equations)**
+   - แก้สมการพลังงาน สมการความปั่นป่วน และสมการการถ่ายโอนอื่นๆ
+
+6. **การทำซ้ำ PISO (PISO Loops)**
+   - ทำซ้ำขั้นตอน 2-5 เพื่อให้ได้การบรรจบกันของ time step
+
+7. **การทำซ้ำ SIMPLE (SIMPLE Loops)**
+   - ทำซ้ำทั้งขั้นตอน 1-6 หากจำเป็นสำหรับความเสถียร
+
+### จุดเด่นของอัลกอริทึม
+
+1. **ความเข้มงวดทางคณิตศาสตร์**: รักษาหลักการอนุรักษ์ในขณะที่นำวิธีการเชิงตัวเลขที่เป็นประโยชน์มาใช้
+
+2. **เสถียรภาพทางตัวเลข**: ใช้รูปแบบตัวเลขที่จำกัดขอบเขตและกลยุทธ์ under-relaxation สำหรับความแข็งแกร่งของการลู่เข้า
+
+3. **ประสิทธิภาพการคำนวณ**: ปรับแบบรูปแบบการเข้าถึงหน่วยความจำและลดการคำนวณซ้ำซ้อน
+
+4. **ความสามารถในการขยาย**: ให้ส่วนติดต่อที่ชัดเจนสำหรับนำโมเดลฟิสิกส์และวิธีการเชิงตัวเลขใหม่ๆ มาใช้
+
+---
+
+## 13. การใช้งานข้ามอุตสาหกรรม
+
+MultiphaseEulerFoam ทำหน้าที่เป็น Solver หลักสำหรับการใช้งานในอุตสาหกรรมที่หลากหลาย
+
+| อุตสาหกรรม | การประยุกต์ใช้ | ตัวอย่าง |
+|-------------|----------------|----------|
+| **การประมวลผลเคมี** | การออกแบบและการเพิ่มประสิทธิภาพเครื่องปฏิกรณ์ | ปฏิกิริยาหลายเฟส, การผสม |
+| **ระบบพลังงาน** | การเดือด, การควบแน่น และการถ่ายเทความร้อนแบบหลายเฟส | หม้อน้ำ, ระบบทำความเย็น |
+| **วิศวกรรมสิ่งแวดล้อม** | การขนส่งมลพิษและการไหลแบบหลายเฟสในสิ่งแวดล้อม | การไหลของน้ำมัน, การกระจายของมลพิษ |
+| **อากาศยาน** | ระบบการฉีดเชื้อเพลิงและการเผาไหม้แบบหลายเฟส | ชั้นหมอก, ระบบเชื้อเพลิง |
+
+---
+
+*อ้างอิง: วิเคราะห์ตามซอร์สโค้ด OpenFOAM-10 multiphaseEulerFoam.C, pEqn.H, UEqns.H, และ alphaEqns.H*

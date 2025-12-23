@@ -520,10 +520,10 @@ flowchart LR
     C --> E
     E --> F[เผยแพร่<br/>Publish/Deliver]
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style E fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
     style F fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
 ```
+> **Figure 1:** ผังงานแสดงกระบวนการจัดทำเอกสารประกอบโครงการ (Documentation Workflow) ตั้งแต่การสกัดข้อมูลหลังการจำลอง การจัดทำรายงานทางเทคนิคและอัปเดตไฟล์ README ไปจนถึงการจัดเก็บเอกสารอย่างเป็นระบบและการส่งมอบงานขั้นสุดท้าย
 
 ### 5.1 โครงสร้างไดเรกทอรีเอกสาร (Documentation Directory)
 

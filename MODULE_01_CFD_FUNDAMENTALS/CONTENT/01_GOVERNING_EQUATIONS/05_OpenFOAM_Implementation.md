@@ -48,6 +48,7 @@ graph TD
     class P,W,E,N,S storage;
     class PW,PE,PN,PS decision;
 ```
+> **Figure 1:** ขั้นตอนการทำงานของการ Discretization ด้วยวิธี Finite Volume (FVM) ใน OpenFOAM แสดงการแปลงสมการควบคุมแบบต่อเนื่องให้เป็นระบบสมการเชิงเส้นแบบไม่ต่อเนื่องผ่านการอินทิเกรตปริมาตรควบคุมและทฤษฎีบทของเกาส์
 
 
 โดยพื้นฐานแล้ว OpenFOAM ใช้ **Operator Overloading** และ **Template Metaprogramming** เพื่อสร้างนิพจน์ C++ ที่คล้ายคลึงกับสมการทางคณิตศาสตร์
@@ -118,6 +119,8 @@ graph LR
     class F,H,J term;
     class I eq;
 ```
+> **Figure 2:** รายละเอียดขั้นตอนการ Discretization แบบ Finite Volume สำหรับสมการโมเมนตัม แสดงวิธีการประมาณค่าความเร็วและความดันที่หน้าเซลล์ (face interpolation) เพื่อประกอบเป็นพจน์การพา (convection), การแพร่ (diffusion) และพจน์แหล่งกำเนิด (source terms) ในระบบเมทริกซ์
+
 
 
 ---
@@ -253,6 +256,7 @@ graph LR
     class K,L,M,N result;
     class H loop;
 ```
+> **Figure 3:** แผนผังลำดับขั้นตอนรวมสำหรับอัลกอริทึมการเชื่อมโยงความดันและความเร็ว (SIMPLE, PISO, PIMPLE) แสดงลำดับการวนซ้ำของการทำนายโมเมนตัม การแก้ไขความดัน และการอัปเดตฟิลด์สำหรับ Solver ทั้งแบบสภาวะคงตัวและแบบไม่คงที่
 
 
 ### ความแตกต่างระหว่าง Algorithms
@@ -626,6 +630,7 @@ graph TD
     class C,L decision;
     class D,E storage;
 ```
+> **Figure 4:** ขั้นตอนการทำงานเชิงกลยุทธ์สำหรับการจำลอง CFD ใน OpenFOAM ซึ่งแนะนำผู้ใช้ตั้งแต่การกำหนดรูปแบบทางคณิตศาสตร์และการเลือก Solver ไปจนถึงการตั้งค่ากรณีทดสอบ การรันการจำลอง และการประมวลผลขั้นหลัง
 
 **Key Takeaways**:
 

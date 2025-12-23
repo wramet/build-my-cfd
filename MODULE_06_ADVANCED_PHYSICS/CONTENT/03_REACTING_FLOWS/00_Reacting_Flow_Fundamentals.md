@@ -42,6 +42,8 @@ flowchart TD
     L --|10⁶ Ratio|--> Eta
     tau_f --|Stiff ODEs|--> tau_c
 ```
+> **Figure 1:** แผนภาพแสดงความแตกต่างอย่างมหาศาลของมาตราส่วนเชิงพื้นที่ (Spatial Scales) และมาตราส่วนเชิงเวลา (Temporal Scales) ในการไหลแบบมีปฏิกิริยาเคมี ซึ่งเป็นความท้าทายหลักในการคำนวณเชิงตัวเลขเนื่องจากปัญหาความแข็งของสมการและช่วงความละเอียดที่กว้างมาก
+
 
 The **Damköhler number** quantifies the ratio of flow to chemical time scales:
 
@@ -457,6 +459,8 @@ flowchart LR
     E --> F[Run Simulation]
     F --> G[Post-process Results]
 ```
+> **Figure 2:** แผนผังลำดับขั้นตอนการปฏิบัติงานสำหรับการตั้งค่าการจำลองการไหลแบบมีปฏิกิริยาเคมีใน OpenFOAM ตั้งแต่การเตรียมข้อมูลกลไกปฏิกิริยาไปจนถึงการวิเคราะห์ผลลัพธ์เชิงวิศวกรรม
+
 
 ### 9.2 Thermophysical Properties Configuration
 

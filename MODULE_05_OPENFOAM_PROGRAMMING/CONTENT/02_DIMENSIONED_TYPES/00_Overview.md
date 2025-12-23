@@ -18,6 +18,7 @@ flowchart TD
     classDef step fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
     class PhysicsAware,Mechanisms,TMP,Pitfalls,Math step
 ```
+> **Figure 1:** โครงสร้างเนื้อหาของบทเรียนเรื่องประเภทข้อมูลที่มีมิติ (Dimensioned Types) ซึ่งครอบคลุมตั้งแต่พื้นฐาน กลไกการทำงาน ไปจนถึงการประยุกต์ใช้และการแก้ปัญหาเชิงลึก
 
 1. **บทนำ (Introduction)**: ทำไมเราต้องมีระบบหน่วยที่เข้มงวด
 2. **ระบบประเภทที่ตระหนักถึงฟิสิกส์ (Physics-Aware Type System)**: แนวคิดเบื้องต้นและการเปรียบเทียบ

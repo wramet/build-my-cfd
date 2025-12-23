@@ -74,6 +74,7 @@ graph TD
     style CC1 fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
     style CC2 fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
 ```
+> **Figure 1:** ความสัมพันธ์เชิงพื้นที่ระหว่างจุดยอด (Points) และจุดศูนย์กลางเซลล์ (Cell Centers) ซึ่งเป็นพื้นฐานในการทำ Interpolation ข้อมูลระหว่างตำแหน่งต่างๆ ในเมชความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ### Mathematical Representation
 

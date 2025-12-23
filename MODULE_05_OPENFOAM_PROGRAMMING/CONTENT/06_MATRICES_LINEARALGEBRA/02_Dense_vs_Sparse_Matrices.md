@@ -67,6 +67,7 @@ graph LR
     style L fill:#fff9c4,stroke:#fbc02d
     style U fill:#e8f5e9,stroke:#2e7d32
 ```
+> **Figure 1:** โครงสร้างการจัดเก็บเมทริกซ์สัมประสิทธิ์ A ในรูปแบบ LDU ซึ่งแบ่งออกเป็นอาร์เรย์แนวทแยง (Diagonal) และอาร์เรย์ส่วนบน/ส่วนล่าง (Upper/Lower) เพื่อประสิทธิภาพด้านหน่วยความจำสูงสุดความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 **Variable Definitions**:
 - $\mathbf{A} \in \mathbb{R}^{N \times N}$ = coefficient matrix

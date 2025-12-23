@@ -67,6 +67,7 @@ graph LR
 
     style F fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
 ```
+> **Figure 1:** กระบวนการแทรกสอด (Interpolation) ข้อมูลจากจุดศูนย์กลางเซลล์ (Cell Centers) ไปยังจุดศูนย์กลางหน้า (Face Centers) เพื่อสร้างฟิลด์ผิวสเกลาร์ (surfaceScalarField) สำหรับการคำนวณฟลักซ์ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ![[of_face_interpolation_concept.png]]
 `A diagram showing how cell-centered data (U1, U2) are interpolated to a shared face to compute a surface-centered value (Uf), scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`

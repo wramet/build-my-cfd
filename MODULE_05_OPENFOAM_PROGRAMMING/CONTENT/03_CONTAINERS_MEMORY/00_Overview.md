@@ -20,6 +20,7 @@ flowchart TD
     classDef step fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
     class Intro,MemFound,SysCont,Integration step
 ```
+> **Figure 1:** โครงสร้างเนื้อหาของโมดูลเรื่องคอนเทนเนอร์และการจัดการหน่วยความจำ ซึ่งแสดงลำดับการเรียนรู้ตั้งแต่พื้นฐานไปจนถึงการประยุกต์ใช้งานจริงในอัลกอริทึม CFD
 
 ---
 

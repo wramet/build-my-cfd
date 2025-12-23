@@ -20,6 +20,7 @@ mindmap
       Avoid Over-complex Expressions
       Check Unit Consistency
 ```
+> **Figure 1:** แผนผังความคิดสรุปองค์ประกอบสำคัญของพีชคณิตฟิลด์ ครอบคลุมทั้งตัวดำเนินการทางคณิตศาสตร์ ความปลอดภัยด้านมิติ และกลไกการเพิ่มประสิทธิภาพความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ## สรุปเนื้อหาสำคัญ
 
@@ -679,15 +680,12 @@ volScalarField dissipation = 2.0 * mu * (S && S);  // Viscous dissipation: 2μS:
 
 ```mermaid
 flowchart LR
-    A[Field Algebra] --> B[Vector Calculus]
-    A --> C[Tensor Algebra]
-    A --> D[Numerical Methods]
-    B --> E[CFD Solvers]
-    C --> E
-    D --> E
-    E --> F[Custom Models]
-    E --> G[Research Applications]
+    A[fieldA] --> C[+ Operator]
+    B[fieldB * 2.0] --> C
+    C --> D[No Temporary Allocation]
+    D --> E[Direct Computation on Assignment]
 ```
+> **Figure 2:** กระบวนการทำงานของ Expression Template ที่ช่วยลดการใช้หน่วยความจำและเพิ่มความเร็วในการคำนวณโดยการหลีกเลี่ยงการสร้างตัวแปรชั่วคราวระหว่างขั้นตอนการประมวลผลความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 เมื่อเสร็จสิ้นส่วนนี้และเชี่ยวชาญพีชคณิตฟิลด์ คุณจะพร้อมที่จะ:
 

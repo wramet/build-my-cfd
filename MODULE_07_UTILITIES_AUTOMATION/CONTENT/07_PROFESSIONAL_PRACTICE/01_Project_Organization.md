@@ -178,6 +178,7 @@ flowchart TD
     style RES fill:#fce4ec,stroke:#c2185b,stroke-width:2px
     style RSL fill:#fff9c4,stroke:#f57f17,stroke-width:2px
 ```
+> **Figure 1:** โครงสร้างไดเรกทอรีมาตรฐานสำหรับโครงการ OpenFOAM ระดับมืออาชีพ แสดงการแยกส่วนระหว่างเอกสาร (docs) สคริปต์ควบคุม (scripts) เคสจำลอง (cases) ข้อมูลนำเข้า (resources) และผลลัพธ์ (results) เพื่อความเป็นระเบียบและง่ายต่อการบำรุงรักษา
 
 > **[MISSING DATA]**: แทรกภาพ screenshot ของโครงสร้างไดเรกทอรีจริงจากโปรเจกต์ตัวอย่าง
 
@@ -1083,6 +1084,7 @@ flowchart TD
     style G fill:#1e88e5,stroke:#1565c0,stroke-width:2px
     style H fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
 ```
+> **Figure 2:** แผนภูมิแสดงลำดับการจัดระเบียบโครงการ CFD (Project Organization Workflow) ตั้งแต่การเริ่มโครงการ การสร้างโครงสร้างไดเรกทอรี การเตรียมข้อมูลและเคสต้นแบบ ไปจนถึงการสรุปผลและจัดทำเอกสารโครงการ
 
 ### 4.2 Workflow แบบละเอียด (Detailed Workflow)
 
@@ -1129,6 +1131,7 @@ flowchart TD
     style PHASE4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
     style PHASE5 fill:#fce4ec,stroke:#c2185b,stroke-width:2px
 ```
+> **Figure 3:** รายละเอียดขั้นตอนการดำเนินงานโครงการ CFD แบ่งเป็น 5 ระยะ ตั้งแต่การตั้งค่าเบื้องต้น การเตรียมการ การตรวจสอบความถูกต้อง (Validation) การผลิตเคสจำลองจริง และการจัดทำเอกสารสรุปโครงการ
 
 ### 4.3 การเชื่อมโยงระหว่างส่วนต่างๆ (Data Flow)
 
@@ -1173,6 +1176,7 @@ flowchart LR
     style PROCESS fill:#fff3e0,stroke:#e65100,stroke-width:2px
     style OUTPUTS fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
 ```
+> **Figure 4:** ผังการไหลของข้อมูล (Data Flow) ภายในโครงการ แสดงความเชื่อมโยงระหว่างข้อมูลนำเข้า (Inputs) กระบวนการประมวลผล (Processing) และผลลัพธ์สุดท้าย (Outputs) ทั้งในรูปแบบกราฟ ตารางรายงาน และเอกสารโครงการ
 
 ---
 

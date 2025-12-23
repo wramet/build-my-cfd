@@ -576,6 +576,7 @@ flowchart TD
     O --> P["Run mpirun -np N solver"]
     P --> Q["Reconstruct with reconstructPar"]
 ```
+> **Figure 1:** แผนภูมิแสดงลำดับขั้นตอนการย่อยโดเมน (Domain Decomposition Workflow) ตั้งแต่การตั้งค่าใน `decomposeParDict` การเลือกวิธีการย่อยที่เหมาะสม การรันคำสั่ง `decomposePar` ไปจนถึงการตรวจสอบการกระจายตัวของเซลล์และการรัน Solver แบบขนาน
 
 ### 5.1 ขั้นตอนการ Decomposition แบบละเอียด
 
@@ -994,6 +995,7 @@ flowchart TD
     I --> K[Run Simulation]
     J --> K
 ```
+> **Figure 2:** ผังการตัดสินใจสำหรับการเลือกวิธีการย่อยโดเมน (Decomposition Method Selection) โดยพิจารณาจากประเภทของเมช ขนาดของปัญหา และหน่วยความจำที่มีอยู่ เพื่อให้ได้ประสิทธิภาพการคำนวณสูงสุดและลดภาระการสื่อสารระหว่างโปรเซสเซอร์
 
 **แนะนำ:**
 

@@ -115,6 +115,7 @@ graph LR
     E --> F[Histograms & Metrics]
     F --> G[Quality Assessment]
 ```
+> **Figure 1:** สถาปัตยกรรมของเครื่องมือวิเคราะห์คุณภาพเมชด้วย Python แสดงลำดับการทำงานตั้งแต่การรันคำสั่ง `checkMesh` การแยกวิเคราะห์ Log การวิเคราะห์ทางสถิติ ไปจนถึงการสร้างรายงานในรูปแบบ PDF พร้อมกราฟฮิสโตแกรมและตัวชี้วัดต่างๆ
 
 ### 2.2 Python Quality Analyzer Implementation
 
@@ -1065,6 +1066,7 @@ graph TD
     D --> G[Validation สุดท้าย]
     G --> H[Simulation Ready]
 ```
+> **Figure 2:** แผนภูมิกระบวนการปรับปรุงคุณภาพเมชแบบวนซ้ำ (Iterative Mesh Improvement) ครอบคลุมตั้งแต่การสร้างเมช การตรวจสอบและระบุปัญหา จนถึงการสรุปผลความถูกต้องขั้นสุดท้ายเพื่อให้เมชพร้อมสำหรับการจำลอง
 
 ![[mesh_optimization_cycle.png]]
 > **ภาพประกอบ 5.1:** วงจรการเพิ่มประสิทธิภาพเมช (Mesh Optimization Cycle): จากการสร้างเมชเบื้องต้น -> การตรวจวิเคราะห์ด้วย checkMesh -> การระบุบริเวณที่มีปัญหา (Cell Sets) -> การปรับปรุงเฉพาะจุด (Local Refinement) จนกว่าจะได้คุณภาพที่ต้องการ, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9

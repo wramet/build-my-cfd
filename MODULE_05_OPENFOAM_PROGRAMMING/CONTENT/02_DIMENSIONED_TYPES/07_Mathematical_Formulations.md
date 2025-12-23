@@ -26,6 +26,7 @@ graph TD
     D --> E[Generate Dimensionless Groups]
     E --> F[Re, Fr, Ma, etc.]
 ```
+> **Figure 1:** ขั้นตอนการประยุกต์ใช้ทฤษฎีบท Buckingham π เพื่อระบุกลุ่มพารามิเตอร์ไร้มิติ (Dimensionless Groups) จากตัวแปรทางฟิสิกส์ที่มีมิติต่างๆ
 
 ### OpenFOAM Implementation
 
@@ -298,6 +299,7 @@ graph TD
     Check -->|Yes| Valid[Valid for Simulation]
     Check -->|No| Error[Dimensional Inconsistency Detected]
 ```
+> **Figure 2:** การตรวจสอบความเป็นเนื้อเดียวกันทางมิติ (Dimensional Homogeneity) ของสมการ Navier-Stokes เพื่อให้มั่นใจว่าทุกพจน์ในสมการมีหน่วยที่สอดคล้องกันก่อนเริ่มการจำลอง
 
 ### Automatic Characteristic Scale Detection
 

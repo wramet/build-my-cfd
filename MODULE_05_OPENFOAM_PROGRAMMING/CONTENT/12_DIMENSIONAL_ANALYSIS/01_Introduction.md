@@ -19,6 +19,7 @@ graph LR
     style Match fill:#e8f5e9,stroke:#2e7d32
     style Error fill:#ffebee,stroke:#c62828
 ```
+> **Figure 1:** แผนภาพ "ตาข่ายนิรภัย" ของวิศวกร ซึ่งแสดงให้เห็นว่าระบบจะบล็อกการจำลองทันทีหากพบว่าเทอมต่างๆ ในสมการมีหน่วยที่ไม่สอดคล้องกันความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ![[of_unit_consistency_check.png]]
 `A flowchart of the unit consistency check process: comparing dimensions of terms in a transport equation and triggering a Fatal Error if a mismatch is detected, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`

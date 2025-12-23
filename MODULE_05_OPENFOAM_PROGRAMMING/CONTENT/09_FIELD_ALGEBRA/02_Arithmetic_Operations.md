@@ -26,6 +26,7 @@ flowchart LR
 
     style R fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
 ```
+> **Figure 1:** การดำเนินการบวกแบบ Element-wise ซึ่งค่าในแต่ละเซลล์ของฟิลด์อินพุตจะถูกนำมาคำนวณร่วมกันเพื่อสร้างฟิลด์ผลลัพธ์ใหม่ที่มีโครงสร้างเมชเดียวกันความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ![[of_field_arithmetic_elements.png]]
 `A diagram showing the element-wise addition of two fields, A and B, where corresponding cell values are summed to produce the Result field, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`

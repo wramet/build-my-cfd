@@ -54,8 +54,8 @@ graph LR
     class C1,C2,C3 storage;
     class AW,AP,AE terminator;
 ```
+> **Figure 1:** การกำหนดรูปแบบ Mesh 1 มิติ และสัมประสิทธิ์เมทริกซ์ แสดงตำแหน่งของโหนด จุดศูนย์กลางเซลล์ และความสัมพันธ์ของปริมาตรควบคุมสำหรับปัญหาการแพร่
 
-### การพัฒนาสมการ
 
 #### Step 1: การอินทิเกรตบน Control Volume
 
@@ -234,8 +234,8 @@ graph LR
     classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
     classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
+> **Figure 2:** ปริมาตรควบคุมสำหรับการคำนวณฟลักซ์ แสดงการไหลจากเซลล์เจ้าของ (Owner) ไปยังเซลล์ข้างเคียง (Neighbor) ผ่านหน้าเซลล์ซึ่งเป็นจุดคำนวณฟลักซ์ของการพา
 
-### ทฤษฎีพื้นฐาน
 
 #### นิยาม Convective Flux
 

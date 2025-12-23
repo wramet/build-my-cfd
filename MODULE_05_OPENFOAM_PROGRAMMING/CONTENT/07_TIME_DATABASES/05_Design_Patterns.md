@@ -76,6 +76,7 @@ graph TD
         D -- "Report Status" --> R
     end
 ```
+> **Figure 1:** ความสัมพันธ์ระหว่างรูปแบบการออกแบบ (Design Patterns) ต่างๆ ใน OpenFOAM โดยมีคลาส Time เป็นตัวควบคุม และ Registry เป็นตัวกลางในการสื่อสารระหว่างออบเจ็กต์ข้อมูลความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 This architecture allows the same `GeometricField` implementation to work seamlessly across different discretization methods:
 

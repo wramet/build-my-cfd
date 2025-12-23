@@ -24,6 +24,7 @@ flowchart TD
     style G fill:#e8f5e9
     style H fill:#e8f5e9
 ```
+> **Figure 1:** สถาปัตยกรรมปลั๊กอินทางฟิสิกส์ที่รองรับการตรวจสอบความสอดคล้องของมิติทั้งในระดับคอมไพล์และรันไทม์ เพื่อให้สามารถขยายขีดความสามารถของโปรแกรมได้อย่างปลอดภัย
 
 This extensible framework allows researchers and engineers to incorporate domain-specific physics with compile-time and runtime dimensional consistency checks.
 
@@ -111,6 +112,7 @@ flowchart LR
     style D fill:#e8f5e9
     style E fill:#e8f5e9
 ```
+> **Figure 2:** ระบบการจัดการมิติข้ามสาขาวิชา (Cross-Disciplinary Dimension System) สำหรับการจำลองแบบหลายฟิสิกส์ (Multi-physics) ซึ่งรองรับการแปลงหน่วยโดยอัตโนมัติระหว่างโดเมนต่างๆ
 
 OpenFOAM's dimensional analysis naturally extends to these complex scenarios through a framework for handling cross-disciplinary dimensions and automatic unit conversion.
 
@@ -426,6 +428,7 @@ flowchart TD
     style F fill:#e8f5e9
     style G fill:#e8f5e9
 ```
+> **Figure 3:** ระบบการแปลงหน่วย (Unit Conversion System) ที่ช่วยให้นักวิจัยจากทั่วโลกสามารถทำงานร่วมกันได้โดยการแปลงหน่วยวัดต่างๆ เข้าสู่ระบบมาตรฐาน SI โดยอัตโนมัติพร้อมการตรวจสอบมิติ
 
 OpenFOAM's dimensional analysis framework provides comprehensive support for international unit standards and collaborative workflows.
 
@@ -556,6 +559,7 @@ flowchart TD
     style D fill:#fff4e6
     style G fill:#e8f5e9
 ```
+> **Figure 4:** กรอบการทำงานสำหรับการวิเคราะห์มิติ (Dimensional Analysis Framework) ของ OpenFOAM ที่ใช้พื้นฐานทางคณิตศาสตร์ที่เข้มงวดเพื่อรับประกันความถูกต้องทางฟิสิกส์ของการจำลอง CFD
 
 The implementation employs the **Buckingham Pi Theorem** and **Principle of Dimensional Homogeneity** to verify complex physical relationships.
 
@@ -612,6 +616,7 @@ flowchart TD
     style F fill:#e8f5e9
     style G fill:#e8f5e9
 ```
+> **Figure 5:** กระบวนการปรับประสิทธิภาพผ่าน Template Metaprogramming ซึ่งช่วยลดโอเวอร์เฮดในการตรวจสอบมิติจนเหลือศูนย์ในขั้นตอนการทำงานจริง (Zero Runtime Overhead)
 
 ### Optimization Strategies
 

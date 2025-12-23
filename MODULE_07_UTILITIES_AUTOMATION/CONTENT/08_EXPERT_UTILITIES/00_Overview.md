@@ -205,6 +205,7 @@ flowchart LR
     C --> D[Boundary Layers<br>Add Layers]
     D --> E[Final Mesh<br>checkMesh]
 ```
+> **Figure 1:** แผนภูมิแสดงขั้นตอนการทำงานของ `snappyHexMesh` ซึ่งประกอบด้วย 3 ขั้นตอนหลัก คือการเพิ่มความละเอียดแบบ Castellated, การปรับพื้นผิวให้แนบชิด (Snapping) และการเพิ่มชั้นขอบเขต (Boundary Layers) ก่อนจะจบด้วยการตรวจสอบคุณภาพเมช
 
 ---
 
@@ -732,6 +733,7 @@ flowchart TD
     D -->|Fail| C
     G -->|Monitor| L[foamMonitor<br>Residual Tracking]
 ```
+> **Figure 2:** เวิร์กโฟลว์การทำงานที่สมบูรณ์ใน OpenFOAM ตั้งแต่การเตรียมเรขาคณิต การสร้างและตรวจสอบเมช การย่อยโดเมนเพื่อประมวลผลแบบขนาน ไปจนถึงการรวมผลลัพธ์และการวิเคราะห์ข้อมูลขั้นสูง
 
 ### 3.2 การเฝ้าสังเกตการจำลอง (Monitoring)
 

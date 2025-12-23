@@ -33,6 +33,7 @@ graph LR
     style Vector fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style Tensor fill:#fce4ec,stroke:#c2185b,stroke-width:2px
 ```
+> **Figure 1:** การแปลงประเภทข้อมูลผ่านตัวดำเนินการเกรเดียนต์ (Gradient) โดยฟิลด์สเกลาร์จะเปลี่ยนเป็นฟิลด์เวกเตอร์ และฟิลด์เวกเตอร์จะเปลี่ยนเป็นฟิลด์เทนเซอร์ตามลำดับความซับซ้อนทางคณิตศาสตร์ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ![[of_gradient_discretization_formula.png]]
 `A diagram showing the discretization of the gradient operator using face area vectors (Sf) and face values (phi_f) on a 2D control volume, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`

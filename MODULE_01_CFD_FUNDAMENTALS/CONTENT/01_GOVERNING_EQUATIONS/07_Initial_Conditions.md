@@ -36,6 +36,7 @@ graph LR
     class SelectIC,Restart decision;
     class IC1,IC2,IC3,GoodStab,PoorStab,BestStab,FastConv,SlowConv,FastestConv process;
 ```
+> **Figure 1:** ผลกระทบของการเลือกเงื่อนไขเริ่มต้นต่อประสิทธิภาพการจำลอง โดยไล่เรียงความเชื่อมโยงตั้งแต่กลยุทธ์การกำหนดค่าเริ่มต้น (ตามหลักฟิสิกส์, ค่าศูนย์ หรือการใช้ผลเฉลยเดิม) ไปจนถึงความเสถียรเชิงตัวเลขและความเร็วในการลู่เข้า
 
 
 ใน OpenFOAM, Initial Conditions จะถูกระบุผ่าน **Field Dictionaries** ในไดเรกทอรี `0/` โดยแต่ละ Field (Velocity, Pressure, Temperature, เป็นต้น) จะมีไฟล์ของตัวเอง โครงสร้างเป็นไปตามรูปแบบที่สอดคล้องกัน
@@ -108,6 +109,7 @@ graph LR
     class A,B,C,H process;
     class D,E,F,G,I,J storage;
 ```
+> **Figure 2:** โครงสร้างของไฟล์กำหนดค่าเริ่มต้นฟิลด์ใน OpenFOAM (`0/U`) โดยแยกส่วนประกอบออกเป็น มิติ (dimensions), ค่าฟิลด์ภายใน (internal field) และการกำหนดเงื่อนไขขอบเขตสำหรับฟิลด์เวกเตอร์ความเร็ว
 
 
 ## Advanced Initialization Strategies
@@ -501,7 +503,7 @@ graph LR
     class E,H decision;
     class G,J terminator;
 ```
-
+> **Figure 3:** ขั้นตอนการตรวจสอบความถูกต้องของเงื่อนไขเริ่มต้นก่อนการจำลอง ซึ่งประกอบด้วยลำดับการตรวจสอบ (Mesh, ฟิลด์, มิติ และกฎการอนุรักษ์) เพื่อให้มั่นใจว่าการจำลองจะเริ่มต้นได้อย่างราบรื่นและปราศจากข้อผิดพลาด
 
 ## Summary
 

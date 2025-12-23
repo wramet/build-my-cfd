@@ -36,6 +36,8 @@ flowchart TD
     A --> D[Outlet<br/>Zero Gradient]
     E[Solid Walls<br/>Adiabatic] --> B
 ```
+> **Figure 1:** แผนภาพการตั้งค่ากรณีศึกษาการถ่ายเทความร้อนแบบคอนจูเกต (CHT) สำหรับบล็อกของแข็งในกระแสไหลขวาง แสดงการเชื่อมโยงระหว่างโดเมนของไหลและของแข็งผ่านส่วนต่อประสาน
+
 
 ### **Theoretical Foundation**
 
@@ -412,6 +414,8 @@ flowchart LR
     B -->|Displacement| C[Mesh Motion<br/>dynamicFvMesh]
     C -->|Updated Geometry| A
 ```
+> **Figure 2:** แผนภูมิแสดงวงจรการทำงานของการเชื่อมโยงแบบแบ่งส่วน (Partitioned Coupling) สำหรับปัญหา FSI โดยเน้นที่การแลกเปลี่ยนข้อมูลแรงและการกระจัดระหว่างตัวแก้สมการที่แตกต่างกัน
+
 
 ### **Physical Foundation**
 
@@ -681,6 +685,8 @@ flowchart TD
     F -->|Not Converged| A
     F -->|Converged| G[Output Results]
 ```
+> **Figure 3:** แผนผังลำดับขั้นตอนการทำงานของยูทิลิตี้วิเคราะห์การลู่เข้า (Coupling Convergence Monitor) แสดงกระบวนการปรับปรุงคำตอบที่ส่วนต่อประสานโดยใช้อัลกอริทึมการเร่งการลู่เข้าแบบ Aitken
+
 
 ### **Implementation Structure**
 

@@ -75,6 +75,8 @@ flowchart TD
     style D fill:#f8bbd0,stroke:#880e4f
     style E fill:#f8bbd0,stroke:#880e4f
 ```
+> **Figure 1:** แผนผังลำดับขั้นตอนการทำงานของอัลกอริทึม MULES ใน OpenFOAM ซึ่งใช้กลไกการจำกัดฟลักซ์ (Flux Limiting) เพื่อรักษาความเป็นบวกและการจำกัดช่วงของฟิลด์สัดส่วนปริมาตรให้อยู่ระหว่าง 0 และ 1
+
 
 ### 3.1 Functionality
 

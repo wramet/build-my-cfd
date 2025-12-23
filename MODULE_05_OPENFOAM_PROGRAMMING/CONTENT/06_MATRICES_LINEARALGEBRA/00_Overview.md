@@ -16,6 +16,7 @@ graph TD
     style A fill:#f9f,stroke:#333,stroke-width:2px
     style G fill:#00ff00,stroke:#333,stroke-width:2px
 ```
+> **Figure 1:** แผนผังลำดับการเรียนรู้ในโมดูลเรื่องเมทริกซ์และพีชคณิตเชิงเส้น ครอบคลุมตั้งแต่พื้นฐานการจัดเก็บข้อมูล สถาปัตยกรรม fvMatrix ไปจนถึงตัวแก้ปัญหาแบบขนานและการแก้ปัญหาที่พบบ่อยความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ![[of_matrix_algebra_architecture.png]]
 `A high-level architectural diagram of OpenFOAM's linear algebra system, showing the transition from Govering Equations to Matrix Assembly (LDU) and final Parallel Solving, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`

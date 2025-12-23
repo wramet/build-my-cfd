@@ -82,6 +82,8 @@ graph LR
     style K fill:#ffebee,stroke:#c62828,stroke-width:2px
     style L fill:#ffebee,stroke:#c62828,stroke-width:2px
 ```
+> **Figure 1:** แผนภาพแสดงการเปรียบเทียบสมบัติพื้นฐานและพฤติกรรมทางกายภาพระหว่างของไหลแบบนิวตัน (Newtonian) และของไหลที่ไม่ใช่แบบนิวตัน (Non-Newtonian) โดยเน้นที่ความแตกต่างของการตอบสนองความหนืดต่อแรงเฉือน
+
 
 ---
 
@@ -172,6 +174,8 @@ graph TD
     style E fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
     style F fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
 ```
+> **Figure 2:** แผนภูมิแสดงลำดับชั้นของคลาส (Class Hierarchy) สำหรับการจัดการแบบจำลองความหนืดใน OpenFOAM โดยแยกโครงสร้างระหว่างอินเทอร์เฟซหลักและกลไกการคำนวณอัตราความเครียดออกจากแบบจำลองทางสรีรวิทยาเฉพาะทาง
+
 
 #### **Base Tier:** `viscosityModel` (Abstract Base Class)
 
@@ -483,6 +487,8 @@ graph LR
     style D fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     style E fill:#ffebee,stroke:#c62828,stroke-width:2px
 ```
+> **Figure 3:** แผนภาพแสดงการประยุกต์ใช้งานแบบจำลองของไหลที่ไม่ใช่แบบนิวตันในอุตสาหกรรมต่างๆ โดยระบุประเภทของกระบวนการและสารตัวอย่างที่ต้องใช้แบบจำลองความหนืดขั้นสูงเพื่อให้ได้ผลการจำลองที่ใกล้เคียงกับความเป็นจริง
+
 
 #### **Common Use Cases:**
 
@@ -651,6 +657,8 @@ graph TD
     style G fill:#fff9c4,stroke:#fbc02d
     style H fill:#fff9c4,stroke:#fbc02d
 ```
+> **Figure 4:** แผนผังลำดับขั้นตอนการจำลอง (Summary Algorithm) แสดงกระบวนการคำนวณแบบวนซ้ำของความหนืดที่แปรผันตามเวลาและอัตราการเฉือน เพื่อให้ได้ผลเฉลยที่สอดคล้องกับพฤติกรรมทางรีโอโลยีของของไหล
+
 
 ---
 

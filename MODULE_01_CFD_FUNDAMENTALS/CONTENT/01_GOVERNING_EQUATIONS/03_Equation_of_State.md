@@ -39,6 +39,8 @@ graph TD
     class IDEAL,VARIABLES,SOLVER1,SOLVER2 storage
     class THERMO,COMP,INCOMP terminator
 ```
+> **Figure 1:** บทบาทของสมการสถานะ (EOS) ใน CFD โดยเชื่อมโยงตัวแปรทางอุณหพลศาสตร์ ($p, \rho, T$) และจำแนกระบอบการไหล (แบบอัดตัวได้และอัดตัวไม่ได้) เพื่อใช้ในการเลือก Solver ของ OpenFOAM ที่เหมาะสม
+
 
 ---
 
@@ -163,6 +165,8 @@ graph LR
     classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
     class A,B,C,D,E,F,G,H,I,J,K,L process
 ```
+> **Figure 2:** กระบวนการตัดสินใจเลือกแนวทางการจำลองการไหลตามเลขมัค (Mach number) และการเปลี่ยนแปลงความหนาแน่น โดยแยกความแตกต่างระหว่างข้อสมมติแก๊สอุดมคติสำหรับการไหลแบบอัดตัวได้และความหนาแน่นคงที่สำหรับการไหลแบบอัดตัวไม่ได้
+
 
 ### OpenFOAM Code Implementation
 

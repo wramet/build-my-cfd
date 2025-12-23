@@ -53,10 +53,8 @@ graph LR
     style F fill:#e0f2f1,stroke:#00695c,stroke-width:2px
     style G fill:#fff8e1,stroke:#f57f17,stroke-width:2px
 ```
+> **Figure 1:** การแมปขอบเขตทางกายภาพเข้ากับข้อจำกัดทางคณิตศาสตร์ในโดเมน CFD แสดงการจับคู่สถานการณ์จริง (เช่น ทางเข้า ทางออก ผนัง) เข้ากับประเภทเงื่อนไขขอบเขตที่สอดคล้องกันเพื่อความสมบูรณ์ของแบบจำลอง
 
----
-
-## ตารางการเลือกคู่ Boundary Condition
 
 | Flow Situation | Velocity BC | Pressure BC | Physical Justification | Best Use Case |
 | :--- | :--- | :--- | :--- | :--- |
@@ -92,8 +90,8 @@ graph LR
     style D fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
     style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
 ```
+> **Figure 2:** ประเภทของโปรไฟล์ความเร็วที่ทางเข้า (Velocity Inlet) แสดงรูปแบบการกระจายความเร็วที่แตกต่างกัน เช่น โปรไฟล์แบบสม่ำเสมอ พาราโบลา หรือแบบปั่นป่วน ตามพารามิเตอร์ที่กำหนด
 
-#### OpenFOAM Code Implementation
 
 ```cpp
 // 0/U file
@@ -160,10 +158,8 @@ graph LR
     style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
     style C fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000;
 ```
+> **Figure 3:** การจับคู่เงื่อนไขขอบเขตทั่วไปสำหรับการไหลแบบคงที่ โดยใช้การกำหนดความเร็วที่ทางเข้าและการกำหนดความดันที่ทางออก เพื่อให้สนามความดันและความเร็วภายในโดเมนพัฒนาขึ้นอย่างสมดุล
 
----
-
-### ทางเข้าที่มีความดันที่ทราบ
 
 สำหรับกรณีที่ความดันขาเข้าถูกกำหนดไว้ (เช่น การไหลที่ขับเคลื่อนด้วยความดันจากปั๊ม หรือระบบที่มี Pressure Head ที่ทราบ) ควรใช้ `fixedValue` กับ Pressure Field และ `pressureInletVelocity` กับ Velocity Field
 
@@ -328,10 +324,8 @@ graph LR
     style N1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
     style T1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
 ```
+> **Figure 4:** หลักการทางกายภาพของเงื่อนไขขอบเขตแบบ Slip แสดงพฤติกรรมของของไหลที่ผิวในอุดมคติที่ไม่มีแรงเสียดทาน โดยมีความเร็วแนวฉากเป็นศูนย์แต่สามารถลื่นไถลในแนวสัมผัสได้โดยไม่มีความเค้นเฉือน
 
----
-
-### ระนาบสมมาตร
 
 เงื่อนไข **Symmetry** บังคับใช้**สมมาตรทางเรขาคณิตและทางกายภาพ**ข้ามระนาบหรือขอบเขต
 
@@ -468,10 +462,8 @@ graph TD
     style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
     style D fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
 ```
+> **Figure 5:** กรอบแนวคิดสำหรับเงื่อนไขขอบเขตแบบเป็นคาบ (Cyclic) แสดงความต่อเนื่องทางกายภาพและการส่งผ่านข้อมูลของสนามตัวแปรระหว่างขอบเขตคู่ที่ระบุ เพื่อจำลองรูปทรงเรขาคณิตที่ซ้ำกัน
 
----
-
-## ปัญหาและการแก้ไข Boundary Condition ที่พบบ่อย
 
 ### ตารางสรุปปัญหา
 
@@ -625,10 +617,8 @@ graph LR
     style C fill:#ffebee,stroke:#c62828,stroke-width:2px
     style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
 ```
+> **Figure 6:** การตั้งค่าการไหลในท่อแบบพัฒนาเต็มที่ แสดงความสัมพันธ์ระหว่างเงื่อนไขขาเข้า ขาออก และเงื่อนไข No-Slip ที่ผนัง เพื่อสร้างรูปแบบการไหลที่สมดุลและสอดคล้องกับทฤษฎี
 
----
-
-### การไหลภายนอก (External Flow)
 
 ```cpp
 // Inlet

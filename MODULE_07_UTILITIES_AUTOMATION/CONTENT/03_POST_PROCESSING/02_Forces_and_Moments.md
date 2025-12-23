@@ -314,6 +314,7 @@ flowchart TD
     style K fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
     style F fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
 ```
+> **Figure 1:** แผนภูมิแสดงลำดับขั้นตอนการวิเคราะห์แรง (Force Analysis Workflow) เริ่มจากการตั้งค่า Function Object ใน `controlDict` การประมวลผลข้อมูลผ่านสคริปต์ภายนอก ไปจนถึงการตรวจสอบความบรรจบ (Convergence Check) และการเปรียบเทียบกับผลการทดลองเพื่อปรับปรุงการออกแบบ
 
 ### 3.1 การอ่านผลลัพธ์จากไฟล์ Output
 
@@ -672,6 +673,7 @@ flowchart LR
     D --> E[Validate vs Theory/Exp]
     E --> F[Optimize Design]
 ```
+> **Figure 2:** เวิร์กโฟลว์มาตรฐานที่แนะนำสำหรับการวิเคราะห์แรง ตั้งแต่การเตรียมคุณภาพของเมช การตรวจสอบความบรรจบระหว่างรัน ไปจนถึงขั้นตอนการสรุปผลและปรับปรุงการออกแบบ (Optimization)
 
 ---
 

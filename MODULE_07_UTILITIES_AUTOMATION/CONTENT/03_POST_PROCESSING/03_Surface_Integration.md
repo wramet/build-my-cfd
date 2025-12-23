@@ -310,6 +310,7 @@ flowchart TD
     style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
     style H fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
 ```
+> **Figure 1:** แผนภูมิแสดงกระบวนการทำงานสำหรับการอินทิเกรตบนพื้นผิว (Surface Integration) โดยใช้ FunctionObjects เพื่อคำนวณมาตรวัดทางวิศวกรรมที่สำคัญ เช่น สมดุลมวล แรงลัพธ์ และอัตราการถ่ายเทความร้อน เพื่อใช้ในการตรวจสอบความถูกต้องของผลการจำลอง
 
 ---
 

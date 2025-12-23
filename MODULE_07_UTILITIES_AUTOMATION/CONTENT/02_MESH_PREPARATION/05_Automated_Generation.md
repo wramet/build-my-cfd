@@ -23,6 +23,7 @@ flowchart TD
     F --> G[Quality Assessment]
     G --> H[Validation Report]
 ```
+> **Figure 1:** ผังงานแสดงกระบวนการทำงานของระบบสร้างเคสอัตโนมัติ (Automated Case Generation) เริ่มจากการรับค่าพารามิเตอร์ผ่านไฟล์ YAML การสร้างโครงสร้างโฟลเดอร์และไฟล์ Dictionary ต่างๆ ไปจนถึงการรันเมชและ Solver แบบกลุ่ม พร้อมทั้งการประเมินคุณภาพและสรุปผลความถูกต้องอัตโนมัติ
 
 > [!TIP] Automation Benefits
 > Automated workflows ensure consistency across parameter studies, reduce manual errors, and enable systematic exploration of design spaces.

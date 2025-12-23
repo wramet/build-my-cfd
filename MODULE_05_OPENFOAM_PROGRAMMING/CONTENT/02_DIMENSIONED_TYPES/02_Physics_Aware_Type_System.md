@@ -48,6 +48,7 @@ flowchart TD
     E --> G[Fix Physics Error early]
     F --> H[Fast Simulation]
 ```
+> **Figure 1:** กระบวนการทำงานของคอมไพเลอร์ในฐานะ "ตัวตรวจสอบฟิสิกส์" (Physics Checker) ซึ่งจะหยุดกระบวนการสร้างโปรแกรมทันทีหากตรวจพบความไม่สอดคล้องของมิติทางกายภาพ
 
 ---
 
@@ -589,6 +590,7 @@ classDiagram
     note for dimensioned~Type~ "Primary template for all dimensioned types"
     note for dimensionSet "Stores exponents for 7 base SI dimensions"
 ```
+> **Figure 2:** แผนผังคลาสแสดงความสัมพันธ์ระหว่าง `dimensioned<Type>` และ `dimensionSet` ซึ่งเป็นหัวใจสำคัญของการเก็บข้อมูลค่าตัวเลขควบคู่ไปกับหน่วยทางฟิสิกส์
 
 ### Compile-Time Verification Process
 
@@ -615,6 +617,7 @@ flowchart TD
     K --> M[Compile Success<br>Zero Runtime Overhead]
     L --> N[Compile Failure<br>Early Error Detection]
 ```
+> **Figure 3:** ขั้นตอนการตรวจสอบความถูกต้องระดับคอมไพล์ (Compile-Time Verification) สำหรับการดำเนินการทางคณิตศาสตร์ต่างๆ เพื่อให้ได้โค้ดที่มีประสิทธิภาพสูงสุดโดยไม่ต้องตรวจสอบซ้ำขณะรันโปรแกรม
 
 ---
 

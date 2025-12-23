@@ -38,8 +38,8 @@ graph TD
     style G3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:#000
     style G4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:#000
 ```
+> **Figure 1:** ประเภทเงื่อนไขขอบเขตพื้นฐานในโดเมน CFD แสดงความเชื่อมโยงระหว่างรูปแบบทางกายภาพ (เช่น ทางเข้า ทางออก ผนัง) และรูปแบบทางคณิตศาสตร์ (Dirichlet, Neumann, Robin) เพื่อกำหนดพฤติกรรมการไหลที่ขอบเขต
 
-### บทบาทหลักของ Boundary Condition
 
 - **การบังคับใช้ข้อจำกัดทางกายภาพ**: เช่น เงื่อนไขไม่ลื่น (no-slip conditions) ที่ผนังแข็ง
 - **การระบุแรงขับเคลื่อน**: เช่น การไล่ระดับความดัน (pressure gradients)
@@ -93,8 +93,8 @@ graph LR
     class Elliptic,Parabolic,Hyperbolic pde;
     class EllipticCFD,ParabolicCFD,HyperbolicCFD cfd;
 ```
+> **Figure 2:** การจำแนกประเภทของสมการเชิงอนุพันธ์ย่อย (PDE) และการประยุกต์ใช้ใน CFD โดยแบ่งตามลักษณะทางคณิตศาสตร์ (Elliptic, Parabolic, Hyperbolic) ซึ่งเป็นตัวกำหนดความต้องการเงื่อนไขขอบเขตที่แตกต่างกัน
 
-#### ระบบไฮเพอร์โบลิก (Hyperbolic Systems)
 
 - **ตัวอย่าง**: สมการ Euler (Euler equations)
 - **ทฤษฎีลักษณะเฉพาะ**: กำหนดว่า Boundary Condition ต้องถูกระบุที่ขอบเขตทางเข้า (inflow boundaries)
@@ -276,8 +276,8 @@ graph TD
     class B,C,D,E,F,G,H,I primary;
     class B1,C1,D1,G1,H1,H2 secondary;
 ```
+> **Figure 3:** ลำดับชั้นของคลาสสำหรับเงื่อนไขขอบเขตใน OpenFOAM แสดงการสืบทอดจากคลาสฐาน `fvPatchField` ไปยังคลาสเฉพาะทางประเภทต่าง ๆ เพื่อรองรับความต้องการทางคณิตศาสตร์และกายภาพที่หลากหลาย
 
-### ประเภทของ Boundary Condition ใน OpenFOAM
 
 | ประเภท | คลาส | การใช้งาน | ตัวอย่าง |
 |--------|-------|-------------|-----------|

@@ -1,60 +1,381 @@
-# รายละเอียดการนำไปใช้ใน OpenFOAM (OpenFOAM Implementation)
+# การนำไปใช้ใน OpenFOAM (OpenFOAM Implementation)
 
-## 1. ลำดับชั้นของคลาส (Lift Model Hierarchy) 
+## ภาพรวม (Overview)
 
-OpenFOAM จัดการแรงยกผ่านระบบคลาสที่มีความยืดหยุ่น โดยมีคลาสพื้นฐานคือ `liftModel` ซึ่งรองรับการเลือกใช้โมเดลต่างๆ ขณะรันโปรแกรม (Runtime Selection)
-
-### โครงสร้างคลาสใน C++
-```cpp
-class liftModel
-{
-public:
-    // คำนวณแรงยกต่อหน่วยปริมาตร
-    virtual tmp<volVectorField> Fi() const = 0;
-
-    // คำนวณสัมประสิทธิ์แรงยก
-    virtual tmp<volScalarField> Cl() const = 0;
-};
-```
+OpenFOAM มีกรอบการทำงานที่ครอบคลุมสำหรับการจำลองแรงยกในการไหลแบบหลายเฟส โดยใช้สถาปัตยกรรมเชิงวัตถุ (object-oriented architecture) ที่รองรับการเลือกโมเดลขณะรันโปรแกรม (runtime selection)
 
 ---
 
-## 2. การคำนวณใน Solver (Numerical Workflow)
+## สถาปัตยกรรมคลาส (Class Architecture)
+
+### คลาสพื้นฐานของโมเดลแรงยก (Lift Model Base Class)
+
+```cpp
+// Base lift model class
+class liftModel
+{
+public:
+    // Calculate lift force
+    virtual tmp<volVectorField> Fi() const = 0;
+
+    // Calculate lift coefficient
+    virtual tmp<volScalarField> Cl() const = 0;
+
+    // Virtual destructor
+    virtual ~liftModel() {}
+};
+```
+
+คลาสพื้นฐานของโมเดลแรงยก (lift model base class) กำหนดอินเทอร์เฟซสำหรับการคำนวณแรงยก (lift forces) ในการจำลองการไหลแบบหลายเฟส (multiphase flow simulations)
+
+**จุดสำคัญ:**
+- เป็น **abstract base class** ที่บังคับโครงสร้างทั่วไปสำหรับทุกการนำโมเดลแรงยกไปใช้
+- ใช้ฟังก์ชัน **pure virtual** `Fi()` และ `Cl()`
+- แรงยก $\mathbf{F}_L$ จะกระทำตั้งฉากกับทิศทางความเร็วสัมพัทธ์ระหว่างเฟส
+- มีความสำคัญอย่างยิ่งต่อการทำนายพฤติกรรมของเฟสที่กระจายตัวในการไหลแบบเฉือน
+
+---
+
+## ลำดับชั้นของคลาส (Lift Model Hierarchy)
+
+```
+liftModel (Abstract Interface)
+├── dispersedLiftModel (สำหรับอนุภาคในเฟสกระจายตัว)
+├── TomiyamaLift
+├── SaffmanMeiLift
+├── constantLiftCoefficient
+├── noLift
+└── wallDampedLift
+```
+
+### คุณสมบัติหลัก (Key Features)
+
+| คุณสมบัติ | คำอธิบาย |
+|-----------|----------|
+| **การเลือกขณะทำงาน (Runtime Selection)** | แบบจำลองสามารถเลือกได้ผ่านการป้อนข้อมูลใน dictionary |
+| **การรองรับการผสม (Blending Support)** | การผสมแบบอัตโนมัติระหว่างเฟสในระบบหลายเฟส |
+| **แรงที่หน้าตัดและปริมาตร (Face and Volume Forces)** | รองรับทั้งรูปแบบแรงต่อปริมาตรและแรงต่อพื้นผิว |
+| **การจัดการเงื่อนไขขอบเขต (Boundary Condition Handling)** | การจัดการที่เหมาะสมสำหรับขอบเขตฟลักซ์คงที่ (fixed flux boundaries) |
+
+---
+
+## การนำ Saffman-Mei ไปใช้ (Saffman-Mei Implementation)
+
+### สมการแรงยกและตัวแปร
+
+$$\mathbf{F}_L = \rho_c \alpha_d C_L \mathbf{U}_r \times \boldsymbol{\omega}$$
+
+**ตัวแปร:**
+- $\mathbf{F}_L$ = แรงยก (Lift force)
+- $\rho_c$ = ความหนาแน่นของเฟสต่อเนื่อง (Continuous phase density)
+- $\alpha_d$ = ส่วนประกอบปริมาตรของเฟสกระจายตัว (Dispersed phase volume fraction)
+- $C_L$ = สัมประสิทธิ์แรงยก (Lift coefficient)
+- $\mathbf{U}_r$ = ความเร็วสัมพัทธ์ (Relative velocity)
+- $\boldsymbol{\omega}$ = ความปั่นป่วนของเฟสต่อเนื่อง (Vorticity of continuous phase)
+
+### OpenFOAM Code Implementation
+
+```cpp
+class SaffmanMeiLift
+:
+    public liftModel
+{
+    // Calculate lift coefficient
+    virtual tmp<volScalarField> Cl() const
+    {
+        const volScalarField& Re = pair_.Re();
+        const volScalarField& Sr = pair_.Sr(); // Saffman parameter
+
+        tmp<volScalarField> tCl
+        (
+            new volScalarField
+            (
+                IOobject
+                (
+                    "Cl",
+                    pair_.mesh().time().timeName(),
+                    pair_.mesh()
+                ),
+                pair_.mesh(),
+                dimensionedScalar("Cl", dimless, 0)
+            )
+        );
+
+        volScalarField& Cl = tCl.ref();
+
+        forAll(Cl, celli)
+        {
+            if (Re[celli] < 40)
+            {
+                Cl[celli] = 2.255/sqrt(Re[celli]*Sr[celli])*
+                           (1.0 - 0.15*pow(Re[celli], 0.687));
+            }
+            else if (Re[celli] <= 1000)
+            {
+                Cl[celli] = (0.5 + 0.2*Re[celli])/sqrt(Re[celli]*Sr[celli]);
+            }
+            else
+            {
+                Cl[celli] = 0;
+            }
+        }
+
+        return tCl;
+    }
+
+    // Calculate lift force
+    virtual tmp<volVectorField> Fi() const
+    {
+        const phaseModel& dispersed = pair_.dispersed();
+        const phaseModel& continuous = pair_.continuous();
+
+        const volScalarField& alpha = dispersed.alpha();
+        const volScalarField& rho = continuous.rho();
+        const volVectorField& Uc = continuous.U();
+        const volVectorField& Ud = dispersed.U();
+        const volScalarField& Cl = this->Cl();
+
+        // Relative velocity
+        volVectorField Ur = Ud - Uc;
+
+        // Vorticity of continuous phase
+        volVectorField omega = fvc::curl(Uc);
+
+        // Lift force
+        return rho*alpha*Cl*Ur*omega;
+    }
+};
+```
+
+### สัมประสิทธิ์แรงยกตามช่วงเรย์โนลด์ส
+
+โมเดลนี้ใช้ **Saffman parameter** $Sr = \frac{Re_s^2}{Re}$ โดยที่ $Re_s$ คือ shear Reynolds number
+
+| ช่วงเรย์โนลด์ส | สมการสัมประสิทธิ์แรงยก $C_L$ | คำอธิบาย |
+|---|---|---|
+| $Re < 40$ | $C_L = \frac{2.255}{\sqrt{Re \cdot Sr}}(1 - 0.15 Re^{0.687})$ | แรงยกสูงสำหรับอนุภาคเล็ก |
+| $40 \leq Re \leq 1000$ | $C_L = \frac{0.5 + 0.2Re}{\sqrt{Re \cdot Sr}}$ | ช่วงเรย์โนลด์สกลาง |
+| $Re > 1000$ | $C_L = 0$ | แรงยกน้อยมาก |
+
+---
+
+## การนำ Tomiyama Lift Model ไปใช้
+
+### สมการและตัวแปรหลัก
+
+Tomiyama lift model ถูกออกแบบมาโดยเฉพาะสำหรับ **ฟองแก๊สในของเหลว** และคำนึงถึงการเปลี่ยนแปลงจากแรงยกที่เป็นบวกไปเป็นแรงยกที่เป็นลบ
+
+**Eötvös Number:**
+$$Eo = \frac{\Delta \rho g d^2}{\sigma}$$
+
+**ตัวแปร:**
+- $Eo$ = Eötvös number (อัตราส่วนแรงลอยตัวต่อแรงตึงผิว)
+- $\Delta \rho$ = ความแตกต่างความหนาแน่นระหว่างเฟส
+- $g$ = ความเร่งเนื่องจากแรงโน้มถ่วง
+- $d$ = เส้นผ่านศูนย์กลางของฟอง
+- $\sigma$ = ความตึงผิว
+
+### องค์ประกอบของสัมประสิทธิ์แรงยก
+
+**ส่วนประกอบจากความหนืด (Viscous contribution):**
+$$C_L^{viscous} = 0.288 \tanh(0.121 Re)$$
+
+**ส่วนประกอบจาก Eötvös (Eötvös contribution):**
+$$C_L^{Eo} = 0.00105Eo^3 - 0.1159Eo^2 + 0.426Eo - 0.2303$$
+
+### OpenFOAM Implementation
+
+```cpp
+class TomiyamaLift
+:
+    public liftModel
+{
+    virtual tmp<volScalarField> Cl() const
+    {
+        const volScalarField& Re = pair_.Re();
+        const volScalarField& Eo = pair_.Eo();
+
+        tmp<volScalarField> tCl = volScalarField::New("Cl", pair_.mesh(), 0.0);
+        volScalarField& Cl = tCl.ref();
+
+        forAll(Cl, celli)
+        {
+            scalar Re_local = Re[celli];
+            scalar Eo_local = Eo[celli];
+
+            scalar Cl_tanh = 0.288*tanh(0.121*Re_local);
+
+            scalar f_Eo = 0.00105*pow(Eo_local, 3)
+                        - 0.1159*pow(Eo_local, 2)
+                        + 0.426*Eo_local
+                        - 0.2303;
+
+            if (Eo_local <= 4)
+            {
+                Cl[celli] = min(Cl_tanh, f_Eo);
+            }
+            else if (Eo_local <= 10)
+            {
+                Cl[celli] = f_Eo;
+            }
+            else
+            {
+                Cl[celli] = -0.27; // Negative lift for large bubbles
+            }
+        }
+
+        return tCl;
+    }
+};
+```
+
+### สัมประสิทธิ์แรงยกตามขนาดฟอง
+
+| ขนาดฟอง (Eötvös number) | สมการสัมประสิทธิ์แรงยก $C_L$ | พฤติกรรม | คำอธิบาย |
+|---|---|---|---|
+| **ฟองขนาดเล็ก** ($Eo \leq 4$) | $C_L = \min(C_L^{viscous}, C_L^{Eo})$ | แรงยกบวก | ดึงดูดผนัง |
+| **ฟองขนาดกลาง** ($4 < Eo \leq 10$) | $C_L = C_L^{Eo}$ | แรงยกผันแปร | ช่วงเปลี่ยนผ่าน |
+| **ฟองขนาดใหญ่** ($Eo > 10$) | $C_L = -0.27$ | แรงยกติดลบ | ผลักผนัง (wall peeling) |
+
+### ความสำคัญในการจำลองการไหล
+
+**จุดสำคัญ:**
+- การเปลี่ยนแปลงจากพฤติกรรม **wall-attracting** ไปเป็น **wall-repelling** ส่งผลอย่างมากต่อ:
+  - การกระจายตัวของฟองในโดเมน
+  - ปริมาตรความเข้มข้นของพื้นที่ผิว (interfacial area concentration)
+  - การถ่ายเทมวลและมวลระหว่างเฟส
+
+---
+
+## การคำนวณใน Solver (Numerical Workflow)
 
 ใน Solver อย่าง `multiphaseEulerFoam`, ขั้นตอนการคำนวณแรงยกมีดังนี้:
 
-### 2.1 การคำนวณความหมุนวน (Vorticity)
-แรงยกอ้างอิงจากความไม่สมมาตรของสนามการไหล ซึ่งแทนด้วย Vorticity (\(\\boldsymbol{\\omega}\\)):
+### การคำนวณความหมุนวน (Vorticity)
+
+แรงยกอ้างอิงจากความไม่สมมาตรของสนามการไหล ซึ่งแทนด้วย Vorticity ($\boldsymbol{\omega}$):
+
 ```cpp
 volVectorField omega = fvc::curl(Uc);
 ```
 
-### 2.2 การรวมแรงเข้ากับสมการโมเมนตัม
+### การรวมแรงเข้ากับสมการโมเมนตัม
+
 แรงยกต่อหน่วยปริมาตรคำนวณจากสัมประสิทธิ์ $C_L$:
-$$\\mathbf{F}_L = C_L \\rho_c \\alpha_d (\\mathbf{u}_c - \\mathbf{u}_d) \\times \\boldsymbol{\\omega}$$
+
+$$\mathbf{F}_L = C_L \rho_c \alpha_d (\mathbf{u}_c - \mathbf{u}_d) \times \boldsymbol{\omega}$$
 
 ---
 
-## 3. ข้อควรพิจารณาด้านเสถียรภาพ (Stability Considerations)
+## ข้อควรพิจารณาด้านเสถียรภาพ (Stability Considerations)
 
 แรงยกอาจทำให้การคำนวณไม่เสถียรเนื่องจากใช้การคำนวณอนุพันธ์อันดับสอง (ผ่าน curl) OpenFOAM จึงมีเทคนิคควบคุมดังนี้:
 
-### 3.1 Vorticity Smoothing
-การทำให้สนาม Vorticity เรียบขึ้นเพื่อลดสัญญาณรบกวน (Noise):
-$$\\boldsymbol{\\omega}_{smoothed} = \\boldsymbol{\\omega} + \\nu_{smooth} \\nabla^2 \\boldsymbol{\\omega}$$
+### แหล่งที่มาหลักของความไม่เสถียรเชิงตัวเลข
 
-### 3.2 Lift Coefficient Limiting
-จำกัดค่า $C_L$ ไม่ให้สูงเกินไปจนทำให้ระบบระเบิด (Blow-up):
-$$C_L^{limited} = \\min(\\|C_L\|, C_L^{max}) \\cdot \\text{sign}(C_L)$$
-โดยทั่วไปค่า $C_L^{max}$ จะถูกตั้งไว้ที่ประมาณ 1.0
+แรงยกสามารถก่อให้เกิดความไม่เสถียรเชิงตัวเลขได้ผ่านกลไกพื้นฐานสามประการ:
 
-### 3.3 Under-Relaxation
-ใช้การผ่อนคลายค่าแรงเพื่อให้ลู่เข้าได้ดีขึ้น:
-$$\\mathbf{F}_L^{new} = (1-\\lambda_L)\\mathbf{F}_L^{old} + \\lambda_L \\mathbf{F}_L^{calculated}$$
+#### 1. ความไวต่อการคำนวณความหมุนวน (Vorticity Calculation Sensitivity)
+- การคำนวณความหมุนวน $\boldsymbol{\omega} = \nabla \times \mathbf{u}$ จำเป็นต้องใช้ค่าอนุพันธ์อันดับสองของสนามความเร็ว
+- อนุพันธ์เชิงพื้นที่เหล่านี้มีความไวต่อคุณภาพของ Mesh และข้อผิดพลาดจากการประมาณค่าเชิงตัวเลข
+- บน Mesh ที่หยาบ สนามความหมุนวนอาจแสดงสัญญาณรบกวนเชิงตัวเลขที่มีนัยสำคัญ
+
+#### 2. การขยายสัญญาณของผลคูณไขว้ (Cross-Product Amplification)
+- สูตรทางคณิตศาสตร์ของแรงยกเกี่ยวข้องกับผลคูณไขว้ $\mathbf{F}_L \propto \mathbf{u}_d \times \boldsymbol{\omega}$
+- การดำเนินการแบบเวกเตอร์นี้สามารถขยายข้อผิดพลาดเชิงตัวเลขขนาดเล็กได้อย่างทวีคูณ
+
+#### 3. การกระจายแรงแบบไม่สมมาตร (Anisotropic Force Distribution)
+- แรงยกจะกระทำในทิศทางตั้งฉากกับทิศทางของความเร็วสัมพัทธ์เป็นหลัก
+- ทำให้เกิดสนามแรงที่ไม่สมมาตรซึ่งอาจก่อให้เกิดการเคลื่อนที่ในแนวข้างที่ผิดปกติ
 
 ---
 
-## 4. การตั้งค่าใน `phaseProperties`
+## เทคนิคการทำให้เรียบ (Regularization Techniques)
+
+เพื่อบรรเทาความท้าทายด้านความเสถียรเหล่านี้ เทคนิคการทำให้เรียบหลายอย่างถูกนำมาใช้กันทั่วไปในการใช้งาน OpenFOAM
+
+### Vorticity Field Smoothing
+
+สนามความหมุนวนสามารถทำให้เรียบได้ผ่านการแพร่กระจายอย่างชัดเจน (explicit diffusion) เพื่อลดสัญญาณรบกวนความถี่สูง:
+
+$$\boldsymbol{\omega}_{smoothed} = \boldsymbol{\omega} + \nu_{smooth} \nabla^2 \boldsymbol{\omega}$$
+
+โดยที่:
+- $\boldsymbol{\omega}_{smoothed}$ คือสนามความหมุนวนที่ทำให้เรียบแล้ว
+- $\nu_{smooth}$ คือสัมประสิทธิ์การแพร่กระจายเทียม (artificial diffusion coefficient)
+
+#### OpenFOAM Code Implementation
+
+```cpp
+// Vorticity smoothing implementation
+volVectorField omegaSmoothed = omega + nuSmooth * fvc::laplacian(omega);
+```
+
+สัมประสิทธิ์การทำให้เรียบควรได้รับการเลือกอย่างระมัดระวัง:
+- ค่าทั่วไปอยู่ในช่วง $10^{-6}$ ถึง $10^{-4}$ ขึ้นอยู่กับความละเอียดของ Mesh และสภาวะการไหล
+- ต้องมีค่ามากพอที่จะลดทอนสัญญาณรบกวนเชิงตัวเลข
+- แต่ก็ต้องมีค่าน้อยพอที่จะรักษาโครงสร้างความหมุนวนที่มีความหมายทางกายภาพไว้ได้
+
+### Lift Coefficient Limiting
+
+เพื่อป้องกันขนาดแรงที่ผิดจริงซึ่งอาจทำให้การจำลองไม่เสถียร ค่าสัมประสิทธิ์แรงยกจะถูกจำกัดขอบเขตโดยใช้ฟังก์ชันการอิ่มตัว (saturation functions):
+
+$$C_L^{limited} = \text{sign}(C_L) \min(|C_L|, C_L^{max})$$
+
+ค่าสูงสุดทั่วไปสำหรับสัมประสิทธิ์แรงยกคือประมาณ:
+$$|C_L|^{max} \approx 1.0$$
+
+ค่านี้นับเป็นค่าสัมประสิทธิ์แรงยกสูงสุดตามทฤษฎีสำหรับอนุภาคทรงกลมในการไหลแบบไม่หนืด
+
+#### OpenFOAM Code Implementation
+
+```cpp
+// Lift coefficient limiting
+scalar CLimited = sign(CL) * min(mag(CL), CLmax);
+```
+
+---
+
+## การนำ Under-Relaxation มาใช้
+
+Under-relaxation เป็นอีกชั้นหนึ่งของความเสถียรเชิงตัวเลข โดยการควบคุมอัตราที่แรงยกถูกนำเข้าสู่สมการโมเมนตัม
+
+### สูตรการปรับค่าแรงยก
+
+แรงยกที่ปรับค่าแล้วจะถูกคำนวณเป็นการรวมกันแบบถ่วงน้ำหนักของค่าก่อนหน้าและค่าปัจจุบัน:
+
+$$\mathbf{F}_L^{new} = (1-\lambda_L)\mathbf{F}_L^{old} + \lambda_L \mathbf{F}_L^{calculated}$$
+
+โดยที่:
+- $\mathbf{F}_L^{new}$ คือแรงยกที่ปรับค่าแล้วสำหรับรอบปัจจุบัน
+- $\mathbf{F}_L^{old}$ คือแรงยกจากรอบการวนซ้ำก่อนหน้า
+- $\mathbf{F}_L^{calculated}$ คือแรงที่คำนวณใหม่ตามสภาวะการไหลปัจจุบัน
+- $\lambda_L$ คือตัวประกอบการปรับค่าแรงยก (lift force relaxation factor)
+
+### พารามิเตอร์การปรับค่าทั่วไป
+
+ตัวประกอบการปรับค่า $\lambda_L$ โดยทั่วไปจะอยู่ในช่วง 0.3 ถึง 0.5 ขึ้นอยู่กับ:
+
+| ปัจจัย | ค่า $\lambda_L$ ที่แนะนำ | คำอธิบาย |
+|--------|---------------------|-----------|
+| **คุณภาพของ Mesh** | 0.3 - 0.4 | Mesh ที่หยาบกว่าต้องการการปรับค่าที่เข้มข้นกว่า |
+| **ระบอบการไหล** | 0.4 - 0.5 | การไหลที่มีความปั่นป่วนสูงอาจต้องการการปรับค่าที่รอบคอบกว่า |
+| **ขนาด Time Step** | 0.2 - 0.4 | Time step ที่ใหญ่ขึ้นจำเป็นต้องใช้ตัวประกอบการปรับค่าที่เล็กลง |
+| **ปริมาณเฟสที่กระจายตัว** | 0.3 - 0.5 | ปริมาตรเศษส่วนที่สูงขึ้นอาจต้องการ $\lambda_L$ ที่ลดลง |
+
+#### OpenFOAM Code Implementation
+
+```cpp
+// Lift force under-relaxation
+scalar lambdaL = 0.4; // Typical relaxation factor
+liftForce = (1.0 - lambdaL) * liftForce.oldTime() + lambdaL * liftForceCalculated;
+```
+
+---
+
+## การตั้งค่าใน `phaseProperties`
+
+### ตัวอย่างการตั้งค่าโมเดล Tomiyama
 
 ตัวอย่างการตั้งค่าโมเดล Tomiyama พร้อมระบบหน่วงผนัง (Wall damping):
 
@@ -70,5 +391,96 @@ lift
 );
 ```
 
-การนำไปใช้เหล่านี้ช่วยให้สามารถจำลองพฤติกรรมการเคลื่อนที่แนวขวางของเฟสกระจายได้อย่างแม่นยำ ภายใต้สภาวะการไหลที่ซับซ้อนในอุตสาหกรรม
+### ตัวอย่างการตั้งค่าโมเดล Saffman-Mei
 
+```openfoam
+lift
+(
+    (particles in water)
+    {
+        type            SaffmanMei;
+        Cl              constant 0.5;
+    }
+);
+```
+
+### ตัวอย่างการตั้งค่าโมเดลสัมประสิทธิ์คงที่
+
+```openfoam
+lift
+(
+    (bubbles in liquid)
+    {
+        type            constantLiftCoefficient;
+        Cl              0.5;
+    }
+);
+```
+
+---
+
+## การประยุกต์ใช้งานใน Solver
+
+### การใช้งานใน multiphaseEulerFoam
+
+ใน `multiphaseEulerFoam` แรงยกจะถูกคำนวณและเพิ่มเข้าสมการโมเมนตัม:
+
+```cpp
+// Example usage in multiphaseEulerFoam
+liftModels::dispersedLiftModel dispersedLift(
+    phasePairs,
+    turbulence,
+    mesh,
+    dict.subDict("liftModels")
+);
+
+// Adding lift force to momentum equation
+tmp<volVectorField> liftForce = dispersedLift.Flift();
+momentumEqn += liftForce;
+```
+
+### การใช้งานใน DPMFoam
+
+สำหรับ Lagrangian particle tracking:
+
+```cpp
+// Enhanced particle force model including lift
+vectorField F_lift = this->lift().particleLiftForce(
+    particles,
+    Uc_,
+    rhoc_,
+    d_,
+    nuc_
+);
+```
+
+---
+
+## การตรวจสอบความถูกต้อง (Validation)
+
+การนำข้อความพิจารณาเชิงตัวเลขเหล่านี้มาใช้จำเป็นต้องมีการตรวจสอบความถูกต้องอย่างรอบคอบ:
+
+### 1. การศึกษาความเป็นอิสระของกริด (Grid Independence Studies)
+- ตรวจสอบว่าการทำให้เรียบไม่ส่งผลเสียต่อการลู่เข้าของผลเฉลยเมื่อ Mesh ละเอียดขึ้น
+- เปรียบเทียบผลลัพธ์บน Mesh ที่มีความละเอียดแตกต่างกัน
+
+### 2. การเปรียบเทียบกับ Benchmark (Benchmark Comparisons)
+- ตรวจสอบความถูกต้องกับผลเฉลยเชิงวิเคราะห์
+- เปรียบเทียบกับข้อมูลการทดลองสำหรับปัญหามาตรฐาน
+
+### 3. การทดสอบความเสถียร (Stability Testing)
+- ทดสอบพารามิเตอร์การปรับค่าและค่าจำกัดขอบเขตอย่างเป็นระบบในระบอบการไหลที่แตกต่างกัน
+- ประเมินขีดจำกัดของความเสถียรสำหรับแต่ละวิธีการทำให้เรียบ
+
+---
+
+## สรุป
+
+การนำแรงยกมาใช้ใน OpenFOAM ต้องการความเข้าใจทั้ง:
+
+1. **สถาปัตยกรรมคลาส** - โครงสร้าง OOP ที่รองรับการเลือกโมเดลขณะรัน
+2. **โมเดลทางฟิสิกส์** - Saffman-Mei, Tomiyama และโมเดลอื่นๆ
+3. **ข้อควรพิจารณาเชิงตัวเลข** - Vorticity smoothing, coefficient limiting, under-relaxation
+4. **การตั้งค่า** การใช้งาน - phaseProperties dictionary และ solver integration
+
+การสร้างสมดุลที่เหมาะสมระหว่างความเสถียรเชิงตัวเลขและความแม่นยำทางกายภาพเป็นสิ่งจำเป็นสำหรับการจำลอง CFD ที่เชื่อถือได้ซึ่งรวมถึงแรงยก โดยเฉพาะอย่างยิ่งในการใช้งานของไหลหลายเฟสที่ปรากฏการณ์ระหว่างพื้นผิวมีบทบาทสำคัญในพลวัตโดยรวม

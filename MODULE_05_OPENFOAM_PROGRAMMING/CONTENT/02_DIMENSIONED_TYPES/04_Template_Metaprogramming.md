@@ -13,6 +13,7 @@ classDiagram
     }
     DimensionedBase <|-- dimensioned : Inherits with self-type
 ```
+> **Figure 1:** การใช้งานรูปแบบ CRTP (Curiously Recurring Template Pattern) เพื่อสร้างระบบ Polymorphism ระดับคอมไพล์ที่ไม่มีโอเวอร์เฮดในการเรียกใช้ฟังก์ชันเสมือน (Virtual Function)
 
 ---
 
@@ -104,6 +105,7 @@ graph TD
     Op2
     end
 ```
+> **Figure 2:** โครงสร้างต้นไม้นิพจน์ (Expression Tree) สำหรับการประเมินค่าแบบ Lazy Evaluation ซึ่งช่วยให้ระบบสามารถรวบรวมการคำนวณหลายขั้นตอนมาทำในลูปเดียวเพื่อเพิ่มประสิทธิภาพสูงสุดในการประมวลผลฟิลด์ข้อมูลขนาดใหญ่
 
 ---
 
@@ -205,6 +207,7 @@ graph LR
 
     style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
 ```
+> **Figure 3:** กระบวนการรวมลูป (Loop Fusion) โดยใช้ Expression Templates ซึ่งเปลี่ยนนิพจน์ทางคณิตศาสตร์ที่ซับซ้อนให้กลายเป็นการประมวลผลข้อมูลในขั้นตอนเดียว ลดการสร้างออบเจ็กต์ชั่วคราวและเพิ่มความเร็วในการคำนวณทาง CFD
 
 ---
 

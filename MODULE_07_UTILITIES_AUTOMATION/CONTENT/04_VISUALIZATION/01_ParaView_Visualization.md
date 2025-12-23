@@ -48,6 +48,7 @@ flowchart TD
     F --> G[การสร้างภาพใน ParaView<br/>ParaView Visualization]
     G --> H[การวิเคราะห์และส่งออก<br/>Analysis & Export]
 ```
+> **Figure 1:** ผังงานแสดงกระบวนการแปลงข้อมูลจาก OpenFOAM โดยใช้ `foamToVTK` เพื่อแยกประเภทข้อมูลเป็น Volume Fields, Surface Fields และ Lagrangian Data ให้อยู่ในรูปแบบไฟล์ VTK ที่พร้อมสำหรับการสร้างภาพและวิเคราะห์ผลใน ParaView
 
 ### 1.4 สคริปต์การแปลงข้อมูลอัตโนมัติ (Automated Conversion Script)
 
@@ -213,6 +214,7 @@ flowchart TD
     D --> E[เรนเดอร์ภาพแบบกลุ่ม<br/>Batch Rendering]
     E --> F[ผลลัพธ์ภาพ/วิดีโอ]
 ```
+> **Figure 2:** แผนภูมิขั้นตอนการทำงานของระบบสร้างภาพอัตโนมัติ (ParaView Automation) ตั้งแต่การนำเข้าไฟล์ VTK การรันสคริปต์ Python เพื่อสร้างวัตถุ ตั้งค่ามุมมองและแสงสว่าง ไปจนถึงการเรนเดอร์ภาพแบบกลุ่มเพื่อสร้างเป็นวิดีโอสรุปผล
 
 ### 3.2 สคริปต์ ParaView Python แบบ Complete
 

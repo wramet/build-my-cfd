@@ -30,6 +30,8 @@ flowchart TD
     H --> L[Volume Fraction ξ*]
     H --> M[Residence Time τ*]
 ```
+> **Figure 1:** แผนภาพแสดงโครงสร้างการจำลองการเผาไหม้แบบปั่นป่วน (Turbulent Combustion) และความสัมพันธ์ระหว่างแบบจำลองแบบสองสภาวะ (Two-Environment Models) กับมาตราส่วนเวลาและพื้นที่ของความปั่นป่วน
+
 
 > [!INFO] Key Concept
 > Turbulent combustion models must account for the fact that **mixing rates** and **reaction rates** can be comparable in magnitude, leading to complex interactions that cannot be captured by chemistry or turbulence models alone.
@@ -111,6 +113,8 @@ flowchart TD
     SolveChem --> UpdateRates[Update reaction rates ω_i^PaSR]
     UpdateRates --> End[Return reaction rates]
 ```
+> **Figure 2:** แผนผังลำดับขั้นตอนการคำนวณของแบบจำลอง PaSR (Partially Stirred Reactor) แสดงกระบวนการคำนวณสัดส่วนการเกิดปฏิกิริยาโดยใช้ความสัมพันธ์ระหว่างมาตราส่วนเวลาของเคมีและการผสม
+
 
 ### OpenFOAM Implementation
 
@@ -199,6 +203,8 @@ flowchart TD
     SolveChem --> UpdateRates[Update reaction rates ω_i^EDC]
     UpdateRates --> End[Return reaction rates]
 ```
+> **Figure 3:** แผนผังลำดับขั้นตอนการคำนวณของแบบจำลอง EDC (Eddy Dissipation Concept) ซึ่งคำนวณลักษณะเฉพาะของโครงสร้างละเอียด (Fine Structures) โดยอิงตามทฤษฎีการกระจายพลังงานความปั่นป่วน
+
 
 ### OpenFOAM Implementation
 
@@ -287,6 +293,8 @@ flowchart LR
     D --> J[✓ Universal constants]
     D --> K[⚠ Higher cost]
 ```
+> **Figure 4:** แผนผังการตัดสินใจเลือกแบบจำลองการเผาไหม้ที่เหมาะสมโดยพิจารณาจากสภาวะของปฏิกิริยาเคมีและข้อจำกัดด้านทรัพยากรการคำนวณ เพื่อให้ได้สมดุลระหว่างความแม่นยำและความเร็ว
+
 
 ---
 
@@ -552,6 +560,8 @@ flowchart TD
     style H fill:#90EE90
     style I fill:#87CEEB
 ```
+> **Figure 5:** แผนภูมิสรุปการเลือกแบบจำลองการเผาไหม้ตามพฤติกรรมทางเคมีของระบบ เพื่อช่วยในการตัดสินใจเลือกใช้แบบจำลองที่เหมาะสมกับลักษณะของเปลวไฟและความต้องการของโครงการ
+
 
 ### Best Practices
 

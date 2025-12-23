@@ -62,6 +62,7 @@ graph TD
     style D fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
     style L fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
+> **Figure 1:** ผังงานแสดงโครงสร้างการทำงานของระบบ Post-processing ใน OpenFOAM ซึ่งเริ่มจากการนำข้อมูลดิบ (Raw Data) มาผ่านกระบวนการวิเคราะห์ใน 3 เส้นทางหลัก ได้แก่ การสกัดข้อมูลสนาม (Field Extraction), การวิเคราะห์แรง (Force Analysis) และการอินทิเกรตบนพื้นผิว (Surface Integration) เพื่อนำไปสู่การสรุปผลเชิงวิศวกรรม
 
 > **[MISSING DATA]**: แทรกภาพประกอบการทำงานของ Post-processing Pipeline
 
@@ -110,6 +111,7 @@ graph LR
     style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
     style H fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
 ```
+> **Figure 2:** โครงสร้างลำดับชั้นของข้อมูลภายใน Case Directory ของ OpenFOAM แสดงการจัดเก็บไฟล์ข้อมูลสนาม (Field Files) ในไดเรกทอรีเวลา (Time Directories) และการจัดเก็บผลลัพธ์จากการวิเคราะห์ในไดเรกทอรี `postProcessing` แยกตามประเภทของเครื่องมือที่ใช้
 
 ---
 
@@ -915,6 +917,7 @@ graph TD
     style F fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
     style L fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
 ```
+> **Figure 3:** แผนภูมิขั้นตอนการวางแผนและดำเนินการประมวลผลหลังการจำลอง (Post-processing Strategy) ครอบคลุมตั้งแต่การกำหนดวัตถุประสงค์ การตั้งค่า Runtime Monitoring เพื่อตรวจสอบความบรรจบ (Convergence) ไปจนถึงการวิเคราะห์แบบ Batch และการสร้างรายงานสรุปผล
 
 ### 7.2 รายการตรวจสอบก่อนการจำลอง (Pre-Simulation Checklist)
 

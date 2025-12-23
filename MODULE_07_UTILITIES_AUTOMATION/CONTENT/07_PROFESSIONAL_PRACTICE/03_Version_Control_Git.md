@@ -202,6 +202,7 @@ flowchart TD
     style Feature3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style Hotfix fill:#ffccbc,stroke:#d84315,stroke-width:2px
 ```
+> **Figure 1:** รูปแบบการแตกกิ่ง (Branching Model) มาตรฐานสำหรับโครงการ CFD แสดงการแยกกิ่งหลัก (main) กิ่งพัฒนา (develop) กิ่งฟีเจอร์สำหรับงานเฉพาะทาง และกิ่งแก้ไขปัญหาเร่งด่วน (hotfix) เพื่อรักษาความเสถียรของเคสที่พร้อมใช้งานจริง
 
 **คำอธิบายกิ่ง (Branch Description):**
 
@@ -391,6 +392,7 @@ flowchart TD
     style PR fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     style Merge fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
 ```
+> **Figure 2:** แผนภูมิขั้นตอนการทำงานแบบ Feature Branch Workflow ครอบคลุมตั้งแต่การสร้างกิ่งใหม่ การแก้ไขและทดสอบเคส การตรวจสอบโค้ด (Code Review) ผ่าน Pull Request ไปจนถึงการรวมกิ่งเข้าสู่สายการพัฒนาหลัก
 
 ### 5.2 การทำงานร่วมกันในทีม
 
@@ -419,6 +421,7 @@ sequenceDiagram
 
     Note over Git: ทั้งคู่อัปเดต develop
 ```
+> **Figure 3:** แผนผังลำดับเหตุการณ์ (Sequence Diagram) แสดงการทำงานร่วมกันระหว่างวิศวกรหลายคนในโครงการเดียวกัน โดยใช้ระบบ Git ในการจัดการการเปลี่ยนแปลงที่เกิดขึ้นพร้อมกันแบบขนาน (Parallel Development) โดยไม่เกิดความขัดแย้งของข้อมูล
 
 ---
 
@@ -790,6 +793,7 @@ flowchart TD
     style Cases1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
     style Shared fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
 ```
+> **Figure 4:** การเปรียบเทียบโครงสร้างการจัดเก็บ Repository ระหว่างแบบ Monorepo (รวมทุกเคสและสคริปต์ไว้ที่เดียว) และแบบ Multi-Repo โดยเน้นการจัดระเบียบส่วนที่ใช้งานร่วมกัน (Shared Resources) เพื่อความสะดวกในการบริหารจัดการโครงการขนาดใหญ่
 
 **โครงสร้าง Monorepo สำหรับ OpenFOAM:**
 

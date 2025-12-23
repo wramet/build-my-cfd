@@ -27,11 +27,8 @@ graph TD
     class A advanced;
     class B,C,D,E,F,G feature;
 ```
+> **Figure 1:** หมวดหมู่ของเงื่อนไขขอบเขตขั้นสูงใน OpenFOAM ครอบคลุมตั้งแต่การจัดการทิศทางการไหล (Inlet/Outlet) ความสมมาตรแบบเป็นคาบ (Cyclic) การจำลองผนัง (Wall Functions) ไปจนถึงการเชื่อมโยงหลายภูมิภาคและเงื่อนไขที่เปลี่ยนแปลงตามเวลา
 
-
----
-
-## Inlet/Outlet
 
 ### `inletOutlet` Boundary Condition
 
@@ -45,37 +42,41 @@ graph TD
 
 
 ```mermaid
-graph LR
-    A["Local Mass Flux<br/>φf = ρ u ⋅ n"] --> B{"φf > 0 ?"}
-    B -->|Yes (Inflow)| C["Fixed Value<br/>Inlet Condition"]
-    B -->|No (Outflow)| D["Zero Gradient<br/>Outlet Condition"]
+graph TD
+    %% --- Context / Physical Cause ---
+    subgraph Physics [Physical Phenomenon]
+        direction TB
+        Recirc[Recirculation / Swirl]
+        Recirc -->|Induces local flow reversal| Patch
+    end
 
-    E["Boundary Patch"] --> F["Calculate Local<br/>Mass Flux"]
-    F --> A
+    %% --- Main Solver Logic ---
+    subgraph Logic [Solver Logic: inletOutlet]
+        Patch(Boundary Patch Face) --> Calc["Calculate Flux<br/>φ = ρ(u &middot; n)"]
+        Calc --> Check{"Flux Direction<br/>(φ > 0 ?)"}
+        
+        %% Branch 1: Inflow
+        Check -->|Yes: Inflow| BranchIn[Flow Entering Domain]
+        BranchIn --> ActionIn["<b>Fixed Value</b><br/>u = u_fixed"]
 
-    C --> G["u = u_fixed"]
-    D --> H["∂u/∂n = 0"]
+        %% Branch 2: Outflow
+        Check -->|No: Outflow| BranchOut[Flow Leaving Domain]
+        BranchOut --> ActionOut["<b>Zero Gradient</b><br/>∂u/∂n = 0"]
+    end
 
-    G --> I["Flow Entering<br/>Domain"]
-    H --> J["Flow Leaving<br/>Domain"]
+    %% Styling
+    classDef state fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,shape:diamond;
+    classDef action fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef physics fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
 
-    K["Recirculation<br/>Zone"] --> L["Mixed Behavior<br/>on Same Patch"]
-    L --> M["Automatic<br/>Switching"]
-    M --> B
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,E,F,I,J process;
-    class B,L,M decision;
-    class C,D,G,H terminator;
-    class K storage;
+    class Patch,BranchIn,BranchOut state;
+    class Check decision;
+    class ActionIn,ActionOut,Calc action;
+    class Recirc physics;
 ```
+> **Figure 2:** ตรรกะการสลับพฤติกรรมอัตโนมัติของเงื่อนไข `inletOutlet` โดยพิจารณาจากเครื่องหมายของฟลักซ์มวลเฉพาะที่ เพื่อเลือกระหว่างเงื่อนไขกำหนดค่าตายตัว (เมื่อไหลเข้า) และเงื่อนไขเกรเดียนต์เป็นศูนย์ (เมื่อไหลออก)
 
-
-#### หลักการทางคณิตศาสตร์
 
 Boundary Condition นี้ทำงานโดยพิจารณาจากเครื่องหมายของ **Local Mass Flux**:
 $$\phi_f = \rho \mathbf{u} \cdot \mathbf{n}_f$$
@@ -188,9 +189,8 @@ graph TD
     style F fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:#000;
     style G fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:#000;
 ```
+> **Figure 3:** กรอบแนวคิดของเงื่อนไขขอบเขตแบบเป็นคาบ (Cyclic) แสดงการเชื่อมต่อเชิงทอพอโลยีเพื่อให้เกิดความต่อเนื่องทางกายภาพของฟิลด์และฟลักซ์ระหว่างขอบเขตคู่ที่ระบุ โดยใช้การแมปและการแปลงทางเรขาคณิต
 
-
-**หลักการทำงาน**:
 - ถือว่า Patch ที่ระบุมีความต่อเนื่องทางกายภาพ
 - ทำให้ของไหล, โมเมนตัม, และปริมาณอื่นๆ ที่ถูกขนส่งสามารถไหลผ่านได้อย่างราบรื่น
 - บังคับใช้ความเท่าเทียมกันของ Field และความต่อเนื่องของ Flux
@@ -290,9 +290,8 @@ graph LR
 
     classDef default fill:#f9f9f9,stroke:#333,stroke-width:1px,color:#000;
 ```
+> **Figure 4:** โครงสร้างของชั้นขอบเขตแบบปั่นป่วนและการสร้างแบบจำลองที่ผนัง แสดงลำดับชั้นตั้งแต่ผนัง (Wall) ไปจนถึงชั้นนอก (Outer layer) เพื่ออธิบายการทำงานของ Wall Function ในการเชื่อมโยงบริเวณต่าง ๆ เข้าด้วยกัน
 
-
-#### Wall Function สำหรับ k-epsilon Model
 
 ```cpp
 walls
@@ -369,6 +368,7 @@ graph TD
     style C2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
     style C3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
+> **Figure 5:** รอยต่อความร้อนแบบเชื่อมโยงสำหรับการจำลองแบบหลายภูมิภาค แสดงการบังคับใช้ความต่อเนื่องของอุณหภูมิและความสมดุลของฟลักซ์ความร้อนที่รอยต่อระหว่างของไหลและของแข็ง
 
 
 | Type | ความสามารถ | การประยุกต์ใช้ |
@@ -424,6 +424,7 @@ graph LR
     style HR fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
     style AC fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
 ```
+> **Figure 6:** การประมาณค่าในช่วงของ Overset Mesh และการแบ่งโซนเซลล์ แสดงการโต้ตอบระหว่าง Mesh พื้นหลังและ Mesh ซ้อนทับ รวมถึงบทบาทของเซลล์ประเภท Fringe, Hole และ Active ในการหาผลเฉลย
 
 
 | Type | ความสามารถ | การประยุกต์ใช้ |
@@ -481,6 +482,7 @@ graph LR
 
     class B,C,D,E,F,G,H,I process
 ```
+> **Figure 7:** วิวัฒนาการของโปรไฟล์ความเร็วขาเข้าที่เปลี่ยนแปลงตามเวลา แสดงขั้นตอนตั้งแต่การเพิ่มความเร็ว สภาวะคงตัว การแกว่งแบบไซน์ ไปจนถึงการลดความเร็วและการไหลออกเพื่อจำลองพลวัตที่ซับซ้อน
 
 
 #### ฟังก์ชันทางคณิตศาสตร์ (Mathematical Functions)

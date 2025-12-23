@@ -42,6 +42,7 @@ graph LR
     class C decision
     class I terminator
 ```
+> **Figure 1:** สถาปัตยกรรมการแยกส่วนฮาร์ดแวร์ (Hardware Abstraction Layer) ของ OpenFOAM ที่ช่วยให้โค้ดการคำนวณ CFD สามารถทำงานได้อย่างสอดคล้องกันบนหลากหลายแพลตฟอร์มผ่านระบบ Primitive Types ที่ปรับเปลี่ยนตามสถาจัตยกรรมเครื่อง
 
 Primitives ของ OpenFOAM มี consistent behavior บนทุก platform:
 - เมื่อ compile OpenFOAM บนระบบต่างๆ underlying primitive types จะปรับเปลี่ยนโดยอัตโนมัติ
@@ -157,6 +158,7 @@ graph TD
     classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
     classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
+> **Figure 2:** ลำดับชั้นของประเภทข้อมูลพื้นฐานใน OpenFOAM แบ่งออกเป็นระดับ Foundation (ข้อมูลพื้นฐาน) และระดับ Advanced (คอนเทนเนอร์และระบบจัดการหน่วยความจำอัจฉริยะ)
 
 ## แนวทางการเรียนรู้
 

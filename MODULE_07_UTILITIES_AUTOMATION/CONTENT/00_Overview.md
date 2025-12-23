@@ -121,6 +121,7 @@ graph TD
     class G terminator;
     class H storage;
 ```
+> **Figure 1:** แผนภูมิขั้นตอนการทำงานของ `snappyHexMesh` ตั้งแต่การนำเข้าเรขาคณิต CAD การสร้างเมชพื้นหลัง การเพิ่มความละเอียดเฉพาะจุด การปรับพื้นผิวให้แนบชิด ไปจนถึงการเพิ่มชั้นขอบเขตและการตรวจสอบคุณภาพเมชขั้นสุดท้าย
 
 #### มาตรวัดคุณภาพ Mesh (Mesh Quality Metrics)
 
@@ -184,6 +185,7 @@ graph TD
     style F fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
     style G fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
+> **Figure 2:** กรอบการประเมินคุณภาพเมช (Quality Assessment Framework) แสดงรายละเอียดมาตรวัดที่สำคัญสำหรับหน้าเซลล์ (Faces) เช่น Orthogonality และ Skewness และสำหรับตัวเซลล์ (Cells) เช่น Aspect Ratio และ Determinant พร้อมคำอธิบายเกณฑ์ที่เหมาะสม
 
 ---
 

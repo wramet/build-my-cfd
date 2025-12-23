@@ -201,8 +201,8 @@ graph LR
     style D3 fill:#ffe0b2,stroke:#f57c00,stroke-width:1px,color:#000
     style D4 fill:#ffe0b2,stroke:#f57c00,stroke-width:1px,color:#000
 ```
+> **Figure 1:** สถาปัตยกรรมของเงื่อนไขขอบเขตใน OpenFOAM แสดงโครงสร้างคลาสที่สืบทอดมาจาก `fvPatchField` โดยแบ่งออกเป็นประเภทพื้นฐาน (Basic), ประเภทที่เปลี่ยนแปลงตามเวลา (Derived) และประเภทเฉพาะทาง (Specialized) เพื่อรองรับสถานการณ์ทางกายภาพที่หลากหลาย
 
-### ลำดับชั้นของคลาส (Class Hierarchy)
 
 ระบบ Boundary Condition ของ OpenFOAM เป็นไปตามหลักการออกแบบเชิงวัตถุ (Object-Oriented Design) โดยมีความสัมพันธ์การสืบทอดที่ชัดเจน:
 

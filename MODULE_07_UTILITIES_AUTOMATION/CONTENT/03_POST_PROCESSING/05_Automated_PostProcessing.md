@@ -36,6 +36,7 @@ flowchart TD
     style J fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
     style K fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
 ```
+> **Figure 1:** ผังงานแสดงสถาปัตยกรรมของระบบประมวลผลหลังการจำลองอัตโนมัติ (Automated Post-Processing Architecture) ครอบคลุมตั้งแต่การสกัดข้อมูล (Data Extraction) การประมวลผลด้วย Python (Processing Layer) ไปจนถึงการวิเคราะห์ทางสถิติและการสร้างรายงานสรุปผลในขั้นตอนสุดท้าย
 
 ![[automated_analysis_pipeline.png]]
 > **รูปที่ 1.1:** ไปป์ไลน์การวิเคราะห์อัตโนมัติ (Automated Analysis Pipeline): แสดงการไหลของข้อมูลจากผลลัพธ์การจำลองผ่านชั้นการประมวลผลต่างๆ จนถึงการสร้างรายงานและกราฟิกสรุปผล

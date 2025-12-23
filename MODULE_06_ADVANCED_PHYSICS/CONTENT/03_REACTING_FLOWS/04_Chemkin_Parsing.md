@@ -28,6 +28,8 @@ flowchart TD
     style RL fill:#e8f5e9,stroke:#388e3c
     style TC fill:#fff3e0,stroke:#f57c00
 ```
+> **Figure 1:** แผนภาพแสดงโครงสร้างการจัดการไฟล์ Chemkin ใน OpenFOAM โดยเครื่องมือ `chemkinReader` จะทำหน้าที่อ่านข้อมูลจากไฟล์ปฏิกิริยา (chem.inp), ข้อมูลอุณหพลศาสตร์ (therm.dat) และข้อมูลการขนส่ง (tran.dat) เพื่อสร้างโครงสร้างข้อมูลภายในสำหรับการจำลอง
+
 
 | File | Description | Key Content |
 |------|-------------|-------------|
@@ -96,6 +98,8 @@ flowchart LR
     style G fill:#fff3e0,stroke:#ef6c00
     style H fill:#f3e5f5,stroke:#6a1b9a
 ```
+> **Figure 2:** แผนผังแสดงขั้นตอนการประมวลผลข้อมูล (Parsing Pipeline) ของไฟล์ Chemkin ซึ่งครอบคลุมตั้งแต่การวิเคราะห์ทางภาษาและไวยากรณ์ การตรวจสอบความถูกต้อง ไปจนถึงการสร้างโครงสร้างออบเจกต์ใน OpenFOAM
+
 
 ---
 

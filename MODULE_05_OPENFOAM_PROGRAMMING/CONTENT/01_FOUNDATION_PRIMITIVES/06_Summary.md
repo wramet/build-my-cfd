@@ -174,6 +174,7 @@ classDiagram
     note for autoPtr "Exclusive ownership"
     note for tmp "Reference counting with copy-on-write"
 ```
+> **Figure 1:** แผนผังคลาส (Class Diagram) แสดงความสัมพันธ์และการสืบทอดระหว่างโครงสร้างข้อมูลหลักใน OpenFOAM ตั้งแต่คอนเทนเนอร์พื้นฐานไปจนถึงประเภทข้อมูลที่มีมิติทางฟิสิกส์และการจัดการหน่วยความจำผ่าน Smart Pointers
 
 ---
 
@@ -191,6 +192,7 @@ flowchart TD
     H[Operation: Q1 / Q2] --> I[Subtract dimension exponents]
     I --> J[Return new dimensionedType]
 ```
+> **Figure 2:** แผนผังขั้นตอนการตรวจสอบมิติทางฟิสิกส์ (Dimension Checking Workflow) ซึ่งแสดงให้เห็นว่าระบบจะตรวจสอบความเข้ากันได้ของหน่วยสำหรับการบวก/ลบ และคำนวณเลขชี้กำลังของมิติใหม่สำหรับการคูณ/หาร เพื่อรักษาความถูกต้องทางฟิสิกส์ตลอดการคำนวณ
 
 ---
 

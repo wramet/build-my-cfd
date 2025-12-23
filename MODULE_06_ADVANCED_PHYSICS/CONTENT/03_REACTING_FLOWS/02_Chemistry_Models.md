@@ -93,6 +93,8 @@ classDiagram
     chemistryModel <|-- StandardChemistryModel
     StandardChemistryModel --> ReactionThermophysicalTransportModel
 ```
+> **Figure 1:** แผนผังคลาสแสดงโครงสร้างลำดับชั้นของแบบจำลองเคมีใน OpenFOAM โดยแสดงความสัมพันธ์ระหว่างคลาสฐานเชิงนามธรรมและคลาสที่นำไปใช้งานจริงสำหรับการคำนวณปฏิกิริยาและอุณหพลศาสตร์
+
 
 ### Key Methods
 
@@ -120,6 +122,8 @@ graph TD
     style B fill:#fff9c4,stroke:#fbc02d
     style D fill:#e1f5fe,stroke:#01579b
 ```
+> **Figure 2:** แผนภูมิแสดงกลยุทธ์การแยกตัวดำเนินการ (Operator Splitting) ซึ่งแบ่งขั้นตอนการคำนวณออกเป็นการแก้สมการเคมีและการแก้สมการขนส่งของไหลแยกจากกันในแต่ละขั้นตอนเวลา เพื่อจัดการกับความแตกต่างของมาตราส่วนเวลา (Time Scales)
+
 
 ### Algorithm
 
@@ -266,6 +270,8 @@ graph LR
     style A fill:#e1f5fe
     style F fill:#c8e6c9
 ```
+> **Figure 3:** แผนภาพแสดงกระบวนการคำนวณแบบขั้นตอนย่อย (Sub-cycling) ของเคมีภายในหนึ่งขั้นตอนเวลาของการไหลหลัก เพื่อรักษาความแม่นยำในการคำนวณปฏิกิริยาเคมีที่มีความเร็วสูง
+
 
 ---
 

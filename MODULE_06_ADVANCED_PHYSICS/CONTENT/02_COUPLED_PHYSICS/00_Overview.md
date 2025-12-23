@@ -254,6 +254,8 @@ graph TD
     style C fill:#9cf,stroke:#333
     style D fill:#9cf,stroke:#333
 ```
+> **Figure 1:** แผนภาพแสดงสถาปัตยกรรมการจัดการฟิลด์แบบแยกภูมิภาค (Region-wise Field Management) ใน OpenFOAM ซึ่งช่วยให้สามารถบริหารจัดการเมชและข้อมูลทางฟิสิกส์ที่แตกต่างกันในหลายโดเมนคำนวณพร้อมกันได้อย่างมีประสิทธิภาพ
+
 
 ### Key Components
 

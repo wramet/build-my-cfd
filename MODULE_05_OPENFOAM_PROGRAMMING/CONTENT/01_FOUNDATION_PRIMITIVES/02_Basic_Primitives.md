@@ -38,6 +38,7 @@ graph LR
     class B,C,D,E process
     class C1,C2,C3,D1,D2,D3,E1,E2,E3 storage
 ```
+> **Figure 1:** ความสัมพันธ์ระหว่างโครงสร้างการคำนวณ CFD ของ OpenFOAM กับประเภทข้อมูลพื้นฐาน (Primitive Types) ซึ่งเปรียบเสมือนองค์ประกอบหลักที่ใช้ในการสร้างระบบการจำลองที่มั่นคงและแม่นยำ
 
 > [!INFO] Why Redefine Basic Types?
 > OpenFOAM doesn't use standard C++ types like `int` and `double` directly. Instead, it defines its own primitives: `label`, `scalar`, and `word`. This design choice serves three critical purposes:

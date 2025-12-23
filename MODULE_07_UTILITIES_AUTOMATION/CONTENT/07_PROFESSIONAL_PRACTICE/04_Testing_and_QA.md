@@ -178,6 +178,7 @@ flowchart TD
     style C fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
     style F fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
 ```
+> **Figure 1:** แผนภูมิแสดงลำดับกระบวนการประกันคุณภาพ (QA Workflow) ครอบคลุมการทดสอบคุณภาพเมชและการจำลองระดับ Regression เพื่อเปรียบเทียบกับค่ามาตรฐานก่อนอนุมัติให้ดำเนินการจำลองจริงในระดับการผลิต
 
 ### 4.2 Mesh Quality Checks ใน OpenFOAM
 

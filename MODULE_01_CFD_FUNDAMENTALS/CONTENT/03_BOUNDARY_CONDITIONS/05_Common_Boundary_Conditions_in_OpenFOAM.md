@@ -32,10 +32,8 @@ graph TD
     classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
     classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
+> **Figure 1:** เงื่อนไขขอบเขตทั่วไปใน OpenFOAM โดยแยกตามประเภทของตัวแปรสนาม เช่น ความเร็ว ความดัน ความปั่นป่วน อุณหภูมิ และสัดส่วนปริมาตร เพื่อระบุพฤติกรรมทางกายภาพที่แตกต่างกันในโดเมนการคำนวณ
 
----
-
-## พื้นฐานทางคณิตศาสตร์ของ Boundary Condition
 
 สำหรับตัวแปร Field ทั่วไป $\phi$, Boundary Condition สามารถแบ่งออกได้เป็นสามประเภททางคณิตศาสตร์หลักๆ
 
@@ -217,10 +215,8 @@ graph LR
     B --> W1
     B --> W2
 ```
+> **Figure 2:** องค์ประกอบทางกายภาพของเงื่อนไขขอบเขตแบบ Slip แสดงการบังคับใช้ความเร็วแนวฉากเป็นศูนย์ (ไม่มีการซึมผ่าน) และเกรเดียนต์ของความเร็วแนวสัมผัสเป็นศูนย์ (ไม่มีความเค้นเฉือน) เพื่อจำลองผนังที่ไม่มีแรงเสียดทานหรือระนาบสมมาตร
 
----
-
-### Pressure Inlet/Outlet Velocity
 
 Boundary Condition นี้จะ **คำนวณ Velocity โดยอิงตาม Pressure Gradient** เพื่อให้มั่นใจถึงการอนุรักษ์มวล
 
@@ -405,8 +401,8 @@ graph LR
 
     classDef default fill:#f9f9f9,stroke:#333,stroke-width:1px,color:#000;
 ```
+> **Figure 3:** โครงสร้างและการแบ่งโซนของชั้นขอบเขตแบบปั่นป่วน อธิบายตั้งแต่ผนัง (Wall) ไปจนถึงชั้นนอก (Outer layer) เพื่อแสดงความสำคัญของค่า $y^+$ ในการเลือกใช้ Wall Function ที่เหมาะสมสำหรับแต่ละบริเวณ
 
-#### Wall Function สำหรับ k-epsilon Model
 
 ```cpp
 walls

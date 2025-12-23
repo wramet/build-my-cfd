@@ -12,6 +12,7 @@ graph TD
     List --> Field["Field<T><br/>(Algebraic Ops)"]
     Field --> GeometricField["GeometricField<T><br/>(Physical Field: p, U)"]
 ```
+> **Figure 1:** ลำดับชั้นการสืบทอด (Inheritance Hierarchy) ของคลาสคอนเทนเนอร์ใน OpenFOAM เริ่มต้นจาก `UList` ที่ไม่มีความเป็นเจ้าของหน่วยความจำ ไปจนถึง `GeometricField` ซึ่งเป็นคลาสที่มีความซับซ้อนสูงสุดสำหรับการจัดการฟิลด์ทางฟิสิกส์ที่มีข้อมูลเมชประกอบอยู่
 
 ### สถาปัตยกรรมการจัดเก็บข้อมูลหลัก
 

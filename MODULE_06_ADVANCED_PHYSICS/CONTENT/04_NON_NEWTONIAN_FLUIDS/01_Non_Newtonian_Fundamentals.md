@@ -74,6 +74,8 @@ graph LR
     style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style D fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
 ```
+> **Figure 1:** แผนภาพแสดงการเปรียบเทียบสมบัติทางฟิสิกส์ระหว่างของไหลแบบนิวตัน (Newtonian) และของไหลที่ไม่ใช่แบบนิวตัน (Non-Newtonian) โดยระบุความแตกต่างของความหนืดและความสัมพันธ์ระหว่างความเค้นและอัตราการเฉือน
+
 
 ---
 
@@ -207,6 +209,8 @@ graph TD
     C --> F[powerLaw]
     C --> G[Cross Power Law]
 ```
+> **Figure 2:** แผนภูมิแสดงลำดับชั้นของคลาส (Class Hierarchy) ใน OpenFOAM สำหรับการจัดการแบบจำลองความหนืด ซึ่งแยกส่วนอินเทอร์เฟซหลักออกจากกลไกการคำนวณอัตราความเครียดและแบบจำลองทางรีโอโลยีเฉพาะทาง
+
 
 ### Factory Pattern การเลือกขณะ Runtime
 

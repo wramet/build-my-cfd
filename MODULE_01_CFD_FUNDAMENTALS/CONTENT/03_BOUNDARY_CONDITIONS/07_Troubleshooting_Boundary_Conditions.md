@@ -61,8 +61,8 @@ graph TD
     classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
     classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
+> **Figure 1:** ความขัดแย้งทางคณิตศาสตร์ในระบบที่ถูกจำกัดเงื่อนไขมากเกินไป (Over-specification) แสดงให้เห็นว่าการกำหนดทั้งความเร็วและความดันตายตัวที่ทางเข้าเดียวกันส่งผลให้ระบบไม่มีผลเฉลยและเกิดความไม่เสถียร
 
-พิจารณาสมการ Navier-Stokes สำหรับการไหลที่อัดตัวไม่ได้ (incompressible):
 
 $$\nabla \cdot \mathbf{u} = 0 \quad \text{(continuity)}$$
 
@@ -192,8 +192,8 @@ graph LR
     style H fill:#c8e6c9,stroke:#2e7d32,color:#000
     style I fill:#c8e6c9,stroke:#2e7d32,color:#000
 ```
+> **Figure 2:** การขยายโดเมนการคำนวณเพื่อแก้ไขปัญหาการไหลย้อนกลับที่ทางออก โดยการเพิ่มระยะห่างปลายน้ำให้เพียงพอสำหรับการพัฒนาการไหลแบบสมบูรณ์ ช่วยป้องกันการรบกวนจากกระแสวนที่ขอบเขต
 
-**Solution 3: Advanced Outlet Conditions**
 
 สำหรับการไหลที่ซับซ้อน ให้พิจารณาทางเลือกเหล่านี้:
 
@@ -258,8 +258,8 @@ graph TD
     class D,G,J storage;
     class K,L,M,N terminator;
 ```
+> **Figure 3:** การนำเงื่อนไขขอบเขตที่ผนังไปใช้งานอย่างถูกต้อง โดยเปรียบเทียบความแตกต่างระหว่างการใช้ `noSlip` ซึ่งให้โปรไฟล์ความเร็วที่ราบรื่นและสมจริง กับการใช้งานที่ผิดพลาดซึ่งนำไปสู่การพุ่งสูงของความเร็วและแรงเค้นเฉือนที่ผนังเกินความเป็นจริง
 
-**Root Cause**:
 การกำหนดหรือการใช้งาน Wall Boundary Condition ที่ไม่ถูกต้อง
 
 **Correct Wall Boundary Conditions**:
@@ -360,8 +360,8 @@ graph LR
     style J fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
     style K fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
 ```
+> **Figure 4:** การวินิจฉัยและการทำให้สนามความดันเสถียรเพื่อป้องกันปัญหา Pressure Drifting โดยการกำหนดจุดอ้างอิงความดันหรือใช้เงื่อนไขขอบเขตแบบผสม เพื่อให้ระบบสามารถหาผลเฉลยความดันที่เป็นเอกลักษณ์ได้
 
-**Solutions**:
 
 **Option 1: Reference Pressure Point**
 ```cpp
@@ -575,8 +575,8 @@ graph LR
     class STEP,REC decision;
     class WALL1,WALL2 storage;
 ```
+> **Figure 5:** เรขาคณิตของ Backward Facing Step และลักษณะการไหล แสดงจุดแยกตัวและการไหลย้อนกลับในบริเวณ Recirculation Zone พร้อมการกำหนดเงื่อนไขขอบเขตที่เหมาะสมสำหรับทางเข้า ทางออก และผนัง
 
-### Example 2: Pipe Flow with Recirculation
 
 ```cpp
 // Outlet ที่อาจมีการไหลย้อนกลับ
@@ -611,10 +611,8 @@ graph LR
     style F fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
     style G fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000;
 ```
+> **Figure 6:** การไหลในท่อที่มีการไหลย้อนกลับและการจัดการที่ทางออก โดยใช้เงื่อนไข `inletOutlet` เพื่อรองรับการไหลที่อาจไหลกลับเข้าสู่โดเมนในบริเวณที่มีกระแสวนถึงขอบเขตทางออก
 
----
-
-## Diagnostic Checklist
 
 ก่อนรันการจำลอง ให้ตรวจสอบรายการต่อไปนี้:
 

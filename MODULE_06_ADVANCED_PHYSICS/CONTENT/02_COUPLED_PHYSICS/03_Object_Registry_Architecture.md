@@ -154,6 +154,8 @@ flowchart TD
     style C fill:#c8e6c9
     style F fill:#ffcdd2
 ```
+> **Figure 1:** แผนภาพแสดงวงจรชีวิตของวัตถุ (Object Lifecycle) ภายในระบบการจดทะเบียนของ OpenFOAM ตั้งแต่การสร้างออบเจกต์ การลงทะเบียนเข้าสู่ระบบ (checkIn) ไปจนถึงการล้างข้อมูลโดยอัตโนมัติเพื่อป้องกันปัญหาหน่วยความจำรั่วไหล
+
 
 ---
 
@@ -317,6 +319,8 @@ flowchart TD
     style FM fill:#e3f2fd,stroke:#1565c0
     style SM fill:#e8f5e9,stroke:#2e7d32
 ```
+> **Figure 2:** แผนภูมิแสดงโครงสร้างลำดับชั้นของระบบการจดทะเบียนวัตถุ (Registry Hierarchy) ในการจำลองแบบหลายภูมิภาค ซึ่งช่วยให้สามารถแยกแยะฟิลด์ที่มีชื่อซ้ำกันได้ภายใต้ภูมิภาคที่แตกต่างกัน ( fluidMesh vs solidMesh )
+
 
 ### 6.2 Structure Overview
 
@@ -362,6 +366,8 @@ classDiagram
     regIOobject <|-- volScalarField
     fvMesh "1" *-- "many" volScalarField : contains
 ```
+> **Figure 3:** แผนผังคลาสแสดงความสัมพันธ์ระหว่างระบบจัดการข้อมูล (objectRegistry) และฟิลด์ข้อมูลทางฟิสิกส์ โดยแสดงให้เห็นว่าเมชทำหน้าที่เป็นศูนย์กลางในการบรรจุและจัดการข้อมูลฟิลด์ต่างๆ ภายในแต่ละภูมิภาค
+
 
 ---
 

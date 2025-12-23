@@ -40,10 +40,8 @@ graph TD
     style E fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
     style F fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
 ```
+> **Figure 1:** ภาพรวมของการจำแนกประเภทเงื่อนไขขอบเขตใน OpenFOAM โดยแบ่งออกเป็นกลุ่มหลักตามลักษณะทางคณิตศาสตร์และกายภาพ เช่น Dirichlet, Neumann, Robin และกลุ่มเฉพาะทางสำหรับการคำนวณแบบหลายภูมิภาคและการสื่อสารแบบขนาน
 
----
-
-## 1. Dirichlet Boundary Conditions (Fixed Value)
 
 ### แนวคิดหลัก
 
@@ -154,10 +152,8 @@ graph LR
     class A,B,C,D,E,F,G,H,I,J,K process;
     class L,M,N,O storage;
 ```
+> **Figure 2:** การนำเงื่อนไขขอบเขตแบบกำหนดค่าตายตัว (Dirichlet) ไปใช้งานใน OpenFOAM โดยกำหนดค่าตัวแปรสนามที่ขอบเขตโดยตรง เพื่อจำลองสถานการณ์ที่มีค่าทางกายภาพที่ทราบแน่นอน เช่น ความเร็วขาเข้าหรืออุณหภูมิที่ผนัง
 
----
-
-## 2. Neumann Boundary Conditions (Fixed Gradient)
 
 ### แนวคิดหลัก
 
@@ -266,10 +262,8 @@ graph LR
     class A,B,F,G process;
     class C,D,E,H,I,J,K,L,M storage;
 ```
+> **Figure 3:** การนำเงื่อนไขขอบเขตแบบกำหนดเกรเดียนต์ตายตัว (Neumann) ไปใช้งาน แสดงการควบคุมฟลักซ์ที่ผ่านขอบเขตโดยการกำหนดอัตราการเปลี่ยนแปลงของตัวแปรในทิศทางแนวฉาก เช่น ผนังที่เป็นฉนวนความร้อนหรือระนาบสมมาตร
 
----
-
-## 3. Mixed (Robin) Boundary Conditions
 
 ### แนวคิดหลัก
 
@@ -398,10 +392,8 @@ graph LR
     style H fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
     style N fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
 ```
+> **Figure 4:** ส่วนประกอบและการกำหนดรูปแบบของเงื่อนไขขอบเขตแบบผสม (Robin) ซึ่งรวมผลของทั้งค่าตัวแปรและเกรเดียนต์เข้าด้วยกัน เพื่อให้ได้การแสดงพฤติกรรมทางกายภาพที่สมจริงยิ่งขึ้น เช่น ในการถ่ายโอนความร้อนแบบพา
 
----
-
-## 4. Calculated Boundary Conditions
 
 ### แนวคิดหลัก
 
@@ -511,10 +503,8 @@ graph LR
     class D,E terminator;
     class G,H,I,J,K,L,M,N storage;
 ```
+> **Figure 5:** การนำ Wall Function ไปใช้งานเพื่อจัดการความปั่นป่วนใกล้ผนัง โดยอธิบายความสัมพันธ์ระหว่างค่า $y^+$ และโครงสร้างของชั้นขอบเขต (Viscous sublayer และ Log-law region) เพื่อความแม่นยำในการคำนวณแรงเค้นเฉือนที่ผนัง
 
----
-
-## กรอบทางคณิตศาสตร์และการนำไปใช้งาน
 
 ### ทฤษฎีพื้นฐานของ PDEs
 
@@ -573,8 +563,8 @@ graph LR
     class Elliptic,Parabolic,Hyperbolic pde;
     class EllipticCFD,ParabolicCFD,HyperbolicCFD cfd;
 ```
+> **Figure 6:** การจำแนกประเภทของสมการเชิงอนุพันธ์ย่อย (PDE) และการประยุกต์ใช้ใน CFD โดยแบ่งตามลักษณะทางคณิตศาสตร์ (Elliptic, Parabolic, Hyperbolic) ซึ่งเป็นตัวกำหนดความต้องการเงื่อนไขขอบเขตที่แตกต่างกัน
 
-### การนำไปใช้งานใน OpenFOAM
 
 ใน Finite Volume Framework ของ OpenFOAM, Boundary Conditions ถูกนำไปใช้ผ่าน Class Hierarchy `fvPatchField`:
 
@@ -650,8 +640,8 @@ graph TD
     class B,C,D,E,F,G,H,I primary;
     class J,K,L,M,N,O,P secondary;
 ```
+> **Figure 7:** ลำดับชั้นของคลาสสำหรับเงื่อนไขขอบเขตใน OpenFOAM แสดงการสืบทอดจากคลาสฐาน `fvPatchField` ไปยังคลาสเฉพาะทางประเภทต่าง ๆ ที่รองรับความต้องการทางคณิตศาสตร์และกายภาพที่หลากหลาย
 
-### กลไกการเลือกขณะรันไทม์ (Runtime Selection Mechanism)
 
 OpenFOAM ใช้กลไกการเลือกขณะรันไทม์ที่ช่วยให้สามารถระบุ Boundary Condition ในไฟล์ Dictionary ได้โดยไม่ต้องคอมไพล์โค้ดใหม่:
 
@@ -684,8 +674,8 @@ graph LR
     style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
     style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
 ```
+> **Figure 8:** กลไกการเลือกเงื่อนไขขอบเขตขณะรันไทม์ (Runtime Selection) ช่วยให้ผู้ใช้สามารถระบุประเภทของเงื่อนไขขอบเขตในไฟล์ Dictionary ได้อย่างยืดหยุ่นโดยไม่ต้องคอมไพล์โค้ดใหม่
 
-**ข้อดีของรูปแบบการออกแบบนี้:**
 - **การเลือกแบบไดนามิก (Dynamic selection)**: Boundary Condition สามารถเปลี่ยนแปลงได้ขณะรันไทม์
 - **ความสามารถในการขยาย (Extensibility)**: สามารถเพิ่ม Boundary Condition ใหม่ได้โดยไม่ต้องแก้ไขโค้ดที่มีอยู่
 - **ความยืดหยุ่นของผู้ใช้ (User flexibility)**: พารามิเตอร์การจำลองสามารถแก้ไขได้ผ่านไฟล์ข้อความ
@@ -802,8 +792,8 @@ graph LR
 
     class B,C,D,E,F,G,H,I process
 ```
+> **Figure 9:** วิวัฒนาการของโปรไฟล์ความเร็วขาเข้าที่เปลี่ยนแปลงตามเวลา แสดงลำดับขั้นตอนตั้งแต่การเพิ่มความเร็ว สภาวะคงตัว การแกว่งแบบไซน์ และการลดความเร็ว เพื่อจำลองพลวัตของการไหลที่ซับซ้อน
 
-### Coupled Boundary Conditions
 
 สำหรับปัญหา Multiphysics ที่ต้องการการเชื่อมโยงระหว่าง Region ต่างๆ:
 
@@ -863,8 +853,8 @@ graph TD
     style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
     style C fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
 ```
+> **Figure 10:** รอยต่อความร้อนแบบเชื่อมโยงสำหรับการถ่ายโอนความร้อนแบบคอนจูเกต แสดงการสื่อสารข้อมูลอุณหภูมิและฟลักซ์ความร้อนระหว่างภูมิภาคของไหลและของแข็งเพื่อให้มั่นใจในความต่อเนื่องของพลังงาน
 
-### Overset Mesh Boundary Conditions
 
 สำหรับเทคนิค Overset (Chimera) Mesh ที่ซับซ้อน:
 
@@ -911,10 +901,8 @@ graph LR
     style HR fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
     style AC fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
 ```
+> **Figure 11:** การประมาณค่าในช่วงของ Overset Mesh และประเภทของเซลล์ แสดงการโต้ตอบระหว่าง Mesh พื้นหลังและ Mesh ซ้อนทับในบริเวณที่ทับซ้อนกัน รวมถึงการจัดการเซลล์แบบ Fringe, Hole และ Active
 
----
-
-## สรุปการเปรียบเทียบ Boundary Conditions
 
 | Boundary Condition Type | Mathematical Form | Physical Meaning | Common Applications |
 |------------------------|-------------------|------------------|-------------------|

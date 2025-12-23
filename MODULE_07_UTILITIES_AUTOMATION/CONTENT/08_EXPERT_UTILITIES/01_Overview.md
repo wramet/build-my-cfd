@@ -323,6 +323,7 @@ flowchart TD
     style G fill:#fff4e1
     style H fill:#f0e1ff
 ```
+> **Figure 1:** แผนภูมิแสดงลำดับการทำงาน (Workflow) ในการใช้งาน Utilities ร่วมกับ Solver ของ OpenFOAM โดยเน้นการตรวจสอบคุณภาพเมชและการจัดการข้อมูลแบบขนาน (Parallel Processing) ก่อนนำไปแสดงผล
 
 ### 3.1 การสร้าง Automation Script
 

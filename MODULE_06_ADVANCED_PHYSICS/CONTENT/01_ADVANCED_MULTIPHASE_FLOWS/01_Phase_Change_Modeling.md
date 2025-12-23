@@ -76,6 +76,8 @@ flowchart LR
     style E fill:#f96,stroke:#333,stroke-width:2px
     style F fill:#f96,stroke:#333,stroke-width:2px
 ```
+> **Figure 1:** แผนภาพแสดงกระบวนการเกิดการเดือดตั้งแต่การรับความร้อนที่ผนังจนถึงการเคลื่อนที่ของส่วนต่อประสานระหว่างเฟสเนื่องจากการถ่ายโอนมวล
+
 
 ---
 
@@ -257,6 +259,8 @@ graph TD
     style C fill:#f96,stroke:#333,stroke-width:2px
     style D fill:#f96,stroke:#333,stroke-width:2px
 ```
+> **Figure 2:** แผนผังลำดับขั้นตอนการคำนวณของ Solver สำหรับแบบจำลองการเปลี่ยนสถานะเฟส โดยแสดงการเชื่อมโยงระหว่างการคำนวณอัตราการถ่ายโอนมวลและสมการพลังงานในแต่ละขั้นตอนการวนซ้ำ
+
 
 ### 5.3 Configuration in `phaseProperties`
 

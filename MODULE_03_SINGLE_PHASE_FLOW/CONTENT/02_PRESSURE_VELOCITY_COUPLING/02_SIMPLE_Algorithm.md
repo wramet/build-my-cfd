@@ -1,109 +1,680 @@
 # อัลกอริทึม SIMPLE (Semi-Implicit Method for Pressure-Linked Equations)
 
-## 🎯 วัตถุประสงค์ (Purpose) 
+## 🎯 วัตถุประสงค์
 
-**อัลกอริทึม SIMPLE** ถูกออกแบบมาเพื่อหาผลเฉลยของสนามความดันและความเร็วใน **สภาวะคงที่ (Steady-state)** พัฒนาโดย Patankar และ Spalding (1972) อัลกอริทึมนี้เป็นหัวใจสำคัญของ Solver เช่น `simpleFoam` ใน OpenFOAM
-
----
-
-## 📐 1. ขั้นตอนการทำงานของ SIMPLE Algorithm
-
-กระบวนการวนซ้ำ (Iterative Process) มีขั้นตอนดังนี้:
-
-1. **ทำนายโมเมนตัม (Momentum Prediction)**:
-   แก้สมการโมเมนตัมโดยใช้สนามความดันชั่วคราว ($p^*$) จากรอบก่อนหน้า เพื่อหาความเร็วชั่วคราว ($\\mathbf{u}^*$):
-   $$a_P \\mathbf{u}^* = \\mathbf{H}(\\mathbf{u}^*) - \\nabla p^* \\tag{1.1}$$ 
-
-2. **แก้สมการการแก้ไขความดัน (Pressure Correction)**:
-   สร้างและแก้สมการ Poisson สำหรับ $p'$ (Pressure correction):
-   $$\\nabla \\cdot \\left( \\frac{1}{a_P} \\nabla p' \\right) = \\nabla \\cdot \\mathbf{u}^* \\tag{1.2}$$ 
-
-3. **แก้ไขความดันและความเร็ว (Field Update)**:
-   อัปเดตสนามตัวแปรโดยใช้ $p'$:
-   $$p = p^* + \\alpha_p p' \\tag{1.3}$$ 
-   $$\\mathbf{u} = \\mathbf{u}^* - \\frac{1}{a_P} \\nabla p' \\tag{1.4}$$ 
-
-4. **Under-Relaxation**:
-   ใช้ค่า $\\alpha$ เพื่อหน่วงการเปลี่ยนแปลงของคำตอบ ป้องกันการลู่ออก (Divergence) 
-
-5. **ตรวจสอบการลู่เข้า (Convergence Check)**:
-   ตรวจสอบค่า Residuals หากต่ำกว่าเกณฑ์ (เช่น $10^{-6}$) ให้จบการทำงาน
+อัลกอริทึม **SIMPLE (Semi-Implicit Method for Pressure-Linked Equations)** เป็นอัลกอริทึมหลักสำหรับการแก้ปัญหาการเชื่อมโยงความดัน-ความเร็วใน **สภาวะคงที่ (Steady-state)** สำหรับของไหลที่อัดตัวไม่ได้ พัฒนาโดย **Patankar และ Spalding (1972)** และเป็นรากฐานของ Solver อย่าง `simpleFoam` ใน OpenFOAM
 
 ---
 
-## 🔧 2. การควบคุมความเสถียร (Under-Relaxation)
+## 📐 1. รากฐานทางคณิตศาสตร์
 
-เนื่องจาก SIMPLE เป็นอัลกอริทึมแบบ Segregated การอัปเดตค่าที่เร็วเกินไปอาจทำให้ระบบไม่เสถียร OpenFOAM ใช้การปรับแต่งใน `fvSolution`:
+### 1.1 ปัญหาการเชื่อมโยงความดัน-ความเร็ว
 
-```cpp
-relaxationFactors
-{
-    fields
-    {
-        p               0.3;    // แรงดันต้องการการหน่วงที่สูง
-    }
-    equations
-    {
-        U               0.7;    // ความเร็ว
-        "(k|epsilon|omega)" 0.7;
-    }
-}
+สำหรับของไหลที่อัดตัวไม่ได้ (Incompressible Flow) สมการควบคุมคือ:
+
+**การอนุรักษ์มวล (สมการความต่อเนื่อง):**
+$$\nabla \cdot \mathbf{u} = 0 \tag{1.1}$$
+
+**การอนุรักษ์โมเมนตัม (Navier-Stokes):**
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f} \tag{1.2}$$
+
+โดยที่:
+- $\mathbf{u}$ = เวกเตอร์สนามความเร็ว (m/s)
+- $p$ = สนามความดัน (Pa)
+- $\rho$ = ความหนาแน่นคงที่ (kg/m³)
+- $\mu$ = ความหนืดพลวัต (Pa·s)
+- $\mathbf{f}$ = แรงภายนอก (N/m³)
+
+### 1.2 ความท้าทายพื้นฐาน
+
+> [!INFO] ปัญหา Saddle-Point
+> ความดันปรากฏเฉพาะในรูปของ **เกรเดียนต์** ($\nabla p$) ในสมการโมเมนตัม แต่ **ไม่มีสมการความดันโดยตรง** สมการความต่อเนื่องทำหน้าที่เป็นข้อจำกัดของความเร็วเท่านั้น
+
+สิ่งนี้สร้าง **ปัญหาจุดอานม้า (saddle-point problem)** ซึ่งความดันทำหน้าที่เป็นตัวคูณ Lagrange ที่บังคับใช้ข้อจำกัด divergence-free
+
+### 1.3 รูปแบบที่ทำให้เป็นดิสครีต (Discretized Form)
+
+เมื่อใช้วิธี **Finite Volume Method** สมการโมเมนตัมที่เซลล์ $P$ จะกลายเป็น:
+
+$$a_P \mathbf{u}_P + \sum_{N} a_N \mathbf{u}_N = \mathbf{b}_P - (\nabla p)_P \tag{1.3}$$
+
+โดยที่:
+- $a_P$ = สัมประสิทธิ์แนวทแยง (รวมส่วนประกอบเชิงเวลาและการพา/การแพร่)
+- $a_N$ = สัมประสิทธิ์เพื่อนบ้าน
+- $\mathbf{b}_P$ = เทอมแหล่งกำเนิด (ไม่รวมความดัน)
+
+จัดเรียงใหม่เพื่อแสดงความเร็ว:
+
+$$\mathbf{u}_P = \frac{\mathbf{b}_P - \sum_N a_N \mathbf{u}_N}{a_P} - \frac{1}{a_P}(\nabla p)_P \tag{1.4}$$
+
+กำหนด **H-operator** (ความเร็วโดยไม่มีเกรเดียนต์ความดัน):
+
+$$\mathbf{H}(\mathbf{u}) = \frac{\mathbf{b}_P - \sum_N a_N \mathbf{u}_N}{a_P} \tag{1.5}$$
+
+ดังนั้น:
+
+$$\mathbf{u}_P = \mathbf{H}(\mathbf{u}) - \frac{1}{a_P}(\nabla p)_P \tag{1.6}$$
+
+---
+
+## 🔄 2. อัลกอริทึม SIMPLE แบบละเอียด
+
+### 2.1 ขั้นตอนวิธี (Algorithm Steps)
+
+#### ขั้นตอนที่ 1: การทำนายโมเมนตัม (Momentum Prediction)
+
+แก้สมการโมเมนตัมโดยใช้สนามความดันจากรอบก่อนหน้า $p^*$:
+
+$$a_P \mathbf{u}^* = \mathbf{H}(\mathbf{u}^*) - \nabla p^* \tag{2.1}$$
+
+ซึ่งให้ความเร็วชั่วคราว (predicted velocity) $\mathbf{u}^*$
+
+#### ขั้นตอนที่ 2: การอนุพันธ์สมการ Pressure Poisson
+
+กำหนด **การแก้ไขความเร็ว (velocity correction)**:
+
+$$\mathbf{u} = \mathbf{u}^* + \mathbf{u}' \tag{2.2}$$
+
+โดยที่ $\mathbf{u}'$ เชื่อมโยงกับการแก้ไขความดัน $p'$:
+
+$$\mathbf{u}' = -\frac{1}{a_P}\nabla p' \tag{2.3}$$
+
+ดังนั้น:
+
+$$\mathbf{u} = \mathbf{u}^* - \frac{1}{a_P}\nabla p' \tag{2.4}$$
+
+แทนค่าลงในสมการความต่อเนื่อง $\nabla \cdot \mathbf{u} = 0$:
+
+$$\nabla \cdot \left( \mathbf{u}^* - \frac{1}{a_P}\nabla p' \right) = 0 \tag{2.5}$$
+
+จัดเรียงใหม่เพื่อได้ **สมการ Pressure Poisson**:
+
+$$\nabla \cdot \left( \frac{1}{a_P} \nabla p' \right) = \nabla \cdot \mathbf{u}^* \tag{2.6}$$
+
+> [!TIP] การตีความสมการ Pressure Poisson
+> - ด้านซ้าย: ตัวดำเนินการ Laplacian ของการแก้ไขความดัน
+> - ด้านขวา: **continuity residual** (ความผิดพลาดในการอนุรักษ์มวลของความเร็วที่ทำนาย)
+
+#### ขั้นตอนที่ 3: การแก้ไขความดันและความเร็ว
+
+หลังจากแก้สมการ (2.6) สำหรับ $p'$:
+
+**อัปเดตความดัน:**
+$$p = p^* + p' \tag{2.7}$$
+
+**อัปเดตความเร็ว:**
+$$\mathbf{u} = \mathbf{u}^* - \frac{1}{a_P}\nabla p' \tag{2.8}$$
+
+#### ขั้นตอนที่ 4: Under-Relaxation
+
+เพื่อความเสถียร มีการใช้ปัจจัย under-relaxation ($\alpha_u$, $\alpha_p$):
+
+$$\mathbf{u}^{new} = \alpha_u \mathbf{u}^{corrected} + (1 - \alpha_u) \mathbf{u}^{old} \tag{2.9}$$
+$$p^{new} = \alpha_p p^{corrected} + (1 - \alpha_p) p^{old} \tag{2.10}$$
+
+ค่าทั่วไป:
+- $\alpha_u = 0.7$ (velocity relaxation)
+- $\alpha_p = 0.3$ (pressure relaxation - ต้องการการหน่วงที่แรงกว่า)
+
+### 2.2 ผังงานอัลกอริทึม (Algorithm Flowchart)
+
+```mermaid
+flowchart TD
+    A["Start: Initialize p*, u*"] --> B["Momentum Prediction<br/>Solve: aₚ u* = H(u) - ∇p*"]
+    B --> C["Pressure Correction<br/>Solve: ∇·(1/aₚ ∇p') = ∇·u*"]
+    C --> D["Velocity Correction<br/>u = u* - 1/aₚ ∇p'"]
+    D --> E["Pressure Update<br/>p = p* + p'"]
+    E --> F["Under-Relaxation<br/>Apply αᵤ, αₚ"]
+    F --> G{"Converged?"}
+    G -->|No| A
+    G -->|Yes| H["End: Converged Solution"]
 ```
-
-**สูตรทางคณิตศาสตร์:**
-$$\\phi^{new} = \\phi^{old} + \\alpha (\\phi^* - \\phi^{old})$$
-โดยที่ $\\phi^*$ คือค่าที่คำนวณได้ใหม่ในรอบนั้น
+> **Figure 1:** แผนผังลำดับขั้นตอน (Algorithm Flowchart) ของกระบวนการวนซ้ำในอัลกอริทึม SIMPLE แสดงขั้นตอนตั้งแต่การทำนายโมเมนตัม (Momentum Prediction) การแก้สมการ Pressure Poisson เพื่อหาค่าแก้ไข และการปรับปรุงฟิลด์ความดันและความเร็ว พร้อมการประยุกต์ใช้ Under-Relaxation เพื่อให้เกิดความเสถียรในการคำนวณแบบ Steady-state
+> **Figure 1:** แผนผังลำดับขั้นตอน (Algorithm Flowchart) ของกระบวนการวนซ้ำในอัลกอริทึม SIMPLE แสดงขั้นตอนตั้งแต่การทำนายโมเมนตัม (Momentum Prediction) การแก้สมการ Pressure Poisson เพื่อหาค่าแก้ไข และการปรับปรุงฟิลด์ความดันและความเร็ว พร้อมการประยุกต์ใช้ Under-Relaxation เพื่อให้เกิดความเสถียรในการคำนวณแบบ Steady-state
 
 ---
 
-## 💻 3. OpenFOAM Source Code ตัวอย่าง
+## 💻 3. การนำไปใช้ใน OpenFOAM
 
-ตัวอย่างโครงสร้างลูปใน `simpleFoam.C`:
+### 3.1 โครงสร้างโค้ดใน simpleFoam
+
+**ตำแหน่ง:** `applications/solvers/incompressible/simpleFoam/simpleFoam.C`
 
 ```cpp
+#include "fvCFD.H"
+#include "singlePhaseTransportModel.H"
+#include "turbulentTransportModel.H"
+#include "simpleControl.H"
+
+// ... การเริ่มต้นฟิลด์ ...
+
 while (simple.loop())
 {
-    // 1. Momentum Predictor
+    // === ขั้นตอนที่ 1: Momentum Predictor ===
     tmp<fvVectorMatrix> tUEqn
     (
-        fvm::div(phi, U) + turbulence->divDevReff(U)
+        fvm::div(phi, U)
+      + turbulence->divDevReff(U)
     );
+
     fvVectorMatrix& UEqn = tUEqn.ref();
+
     UEqn.relax();
+
     solve(UEqn == -fvc::grad(p));
 
-    // 2. Pressure Correction
+    // === ขั้นตอนที่ 2-3: Pressure Correction ===
     volScalarField rAU(1.0/UEqn.A());
-    surfaceScalarField phiHbyA("phiHbyA", fvc::flux(rAU*UEqn.H()));
-    
+    volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U, p));
+    surfaceScalarField phiHbyA
+    (
+        "phiHbyA",
+        fvc::flux(HbyA)
+      + fvc::interpolate(rAU)*fvc::ddtCorr(U, phi)
+    );
+
+    // Non-orthogonal correction loop
     while (simple.correctNonOrthogonal())
     {
         fvScalarMatrix pEqn
         (
             fvm::laplacian(rAU, p) == fvc::div(phiHbyA)
         );
+
+        pEqn.setReference(pRefCell, pRefValue);
         pEqn.solve();
+
         if (simple.finalNonOrthogonalIter())
         {
             phi = phiHbyA - pEqn.flux();
         }
     }
 
-    // 3. Velocity Correction
-    U = HbyA - rAU*fvc::grad(p);
-    U.correctBoundaryConditions();
+    // === ขั้นตอนที่ 4: Velocity Update with Relaxation ===
+    #include "UEqn.H"
+
+    // === ขั้นตอนที่ 5: Turbulence Update ===
+    turbulence->correct();
+}
+```
+
+### 3.2 การแมปสมการกับโค้ด
+
+| สมการ | OpenFOAM Code | คำอธิบาย |
+|---------|---------------|-------------|
+| $\mathbf{H}(\mathbf{u})$ | `UEqn.H()` | เทอม convection + diffusion |
+| $\frac{1}{a_P}$ | `rAU = 1.0/UEqn.A()` | ส่วนกลับของสัมประสิทธิ์แนวทแยง |
+| $-\nabla p$ | `-fvc::grad(p)` | เกรเดียนต์ความดัน (explicit) |
+| $\nabla \cdot \left( \frac{1}{a_P} \nabla p \right)$ | `fvm::laplacian(rAU, p)` | ตัวดำเนินการ Laplacian (implicit) |
+| $\nabla \cdot \mathbf{u}^*$ | `fvc::div(phiHbyA)` | Divergence ของ flux ที่ทำนาย |
+| Under-relaxation | `UEqn.relax()` | การผ่อนคลายสมการ |
+
+### 3.3 การตั้งค่าใน `fvSolution`
+
+```cpp
+SIMPLE
+{
+    nNonOrthogonalCorrectors 0;
+
+    pRefCell        0;
+    pRefValue       0;
+
+    residualControl
+    {
+        p               1e-6;
+        U               1e-6;
+        "(k|epsilon|omega)" 1e-6;
+    }
+
+    relaxationFactors
+    {
+        fields
+        {
+            p               0.3;
+        }
+        equations
+        {
+            U               0.7;
+            k               0.7;
+            epsilon         0.7;
+        }
+    }
+}
+```
+
+**คำอธิบายพารามิเตอร์:**
+
+| พารามิเตอร์ | ความหมาย | ค่าที่แนะนำ |
+|--------------|------------|----------------|
+| `nNonOrthogonalCorrectors` | จำนวนการแก้ไขสำหรับ mesh ที่ไม่ตั้งฉาก | 0-2 (ขึ้นกับคุณภาพ mesh) |
+| `pRefCell` | Cell ที่ใช้อ้างอิงสำหรับความดัน | 0 (cell แรก) |
+| `pRefValue` | ค่าความดันอ้างอิง | 0 Pa |
+| `p` (relaxation) | ปัจจัย under-relaxation ความดัน | 0.2-0.3 |
+| `U` (relaxation) | ปัจจัย under-relaxation ความเร็ว | 0.5-0.7 |
+
+### 3.4 การตั้งค่า Linear Solvers ใน `fvSchemes`
+
+```cpp
+solvers
+{
+    p
+    {
+        solver          GAMG;
+        tolerance       1e-7;
+        relTol          0.01;
+        smoother        GaussSeidel;
+        nPreSweeps      0;
+        nPostSweeps     2;
+        nFinestSweeps   2;
+        cacheAgglomeration on;
+        agglomerator    faceAreaPair;
+        mergeLevels     1;
+    }
+
+    U
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-8;
+        relTol          0;
+        nSweeps         1;
+    }
+}
+```
+
+**เหตุผลในการเลือก Solver:**
+
+| สมการ | Solver | เหตุผล |
+|---------|--------|---------|
+| **Pressure** | **GAMG** (Geometric Algebric Multigrid) | Pressure Poisson equation เป็น elliptic และมีประสิทธิภาพสูงกับ multigrid |
+| **Velocity** | **smoothSolver** | สมการโมเมนตัมมีความแข็งแรงน้อยกว่า ใช้ Gauss-Seidel ได้ผลดี |
+
+---
+
+## ⚙️ 4. ความสำคัญของ Under-Relaxation
+
+### 4.1 ทฤษฎีและสูตร
+
+**สูตร Under-Relaxation ทั่วไป:**
+
+$$\phi^{new} = \phi^{old} + \alpha (\phi^* - \phi^{old}) \tag{4.1}$$
+
+โดยที่:
+- $\phi$ = ตัวแปรฟิลด์ใดๆ (ความดัน ความเร็ว ฯลฯ)
+- $\alpha$ = ตัวประกอบการผ่อนคลาย ($0 < \alpha \leq 1$)
+- $\phi^*$ = ค่าจากการวนซ้ำปัจจุบัน
+- $\phi^{old}$ = ค่าจากการวนซ้ำก่อนหน้า
+
+### 4.2 การนำไปใช้ใน OpenFOAM
+
+#### การผ่อนคลายสมการ (Equation Relaxation)
+
+```cpp
+// ใน src/finiteVolume/fvMatrix/fvMatrix.C
+template<class Type>
+void Foam::fvMatrix<Type>::relax(const scalar alpha)
+{
+    if (alpha <= 0)
+    {
+        return;
+    }
+
+    // ปรับสัมประสิทธิ์แนวทแยง
+    if (alpha < 1)
+    {
+        Field<Type>& D = diag();
+        D /= alpha;
+    }
+}
+```
+
+**ผลกระทบ:** การเรียก `UEqn.relax(0.7)` จะปรับสัมประสิทธิ์แนวทแยง $a_P$ ให้เป็น $a_P / 0.7$ ซึ่งเทียบเท่ากับการใช้ under-relaxation
+
+#### การผ่อนคลายฟิลด์ (Field Relaxation)
+
+```cpp
+// การอัปเดตฟิลด์ความเร็วด้วย under-relaxation
+U = U.oldTime() + alphaU * (U - U.oldTime());
+
+// การอัปเดตฟิลด์ความดัน
+p = p.oldTime() + alphaP * (p - p.oldTime());
+```
+
+### 4.3 แนวทางการเลือกค่า Under-Relaxation Factors
+
+| ตัวแปร | ช่วงค่าที่แนะนำ | เหตุผล |
+|---------|---------------------|---------|
+| **ความดัน (p)** | 0.1 - 0.3 | การเชื่อมโยงสูง ต้องการการเปลี่ยนแปลงช้าๆ |
+| **ความเร็ว (U)** | 0.5 - 0.7 | การเชื่อมโยงปานกลาง |
+| **Turbulence (k, ε, ω)** | 0.5 - 0.8 | การเชื่อมโยงต่ำกว่าความเร็ว |
+| **อุณหภูมิ (T)** | 0.7 - 0.9 | การเชื่อมโยงต่ำ (ถ้าแยกจาก velocity) |
+
+> [!WARNING] อันตรายของ Over-Relaxation
+> หากตั้งค่า $\alpha$ สูงเกินไป (เช่น $\alpha_p > 0.5$) อาจเกิด **oscillatory divergence** ได้ ซึ่งแสดงด้วย:
+> - ค่า residual ที่แกว่ง
+> - การเปลี่ยนแปลงของค่าระหว่าง iterations ที่รุนแรง
+> - การลู่ออกของ solver
+
+### 4.4 กลยุทธ์การปรับค่าแบบ Adaptive
+
+```cpp
+// กลยุทธ์การปรับค่าแบบ渐进式
+if (iteration < 10)
+{
+    alphaP = 0.1;  // การผ่อนคลายสูงในช่วงต้น
+    alphaU = 0.3;
+}
+else if (iteration < 50)
+{
+    alphaP = 0.3;  // ค่าปกติ
+    alphaU = 0.7;
+}
+else
+{
+    alphaP = 0.5;  // เพิ่มค่าเพื่อเร่งการลู่เข้า
+    alphaU = 0.8;
 }
 ```
 
 ---
 
-## 📊 4. ข้อดีและข้อจำกัดของ SIMPLE
+## 🔍 5. การตรวจสอบการลู่เข้า (Convergence Monitoring)
 
-| ข้อดี (Advantages) | ข้อจำกัด (Limitations) |
-|-------------------|----------------------|
-| แข็งแกร่ง (Robust) สำหรับปัญหาคงตัว | ไม่เหมาะสำหรับปัญหาชั่วคร่าว (Transient) |
-| ใช้หน่วยความจำน้อย | ต้องปรับแต่ง Relaxation Factors อย่างระมัดระวัง |
-| ลู่เข้าสู่คำตอบสุดท้ายได้แน่นอน | อัตราการลู่เข้าช้ากว่าแบบ Coupled |
+### 5.1 เกณฑ์ Residual-based Convergence
+
+**ค่า Residual** $R$ แสดงให้เห็นว่าผลเฉลยปัจจุบันเป็นไปตามสมการที่ทำให้เป็นดิสครีตได้ดีเพียงใด:
+
+$$R = |\mathbf{A}\mathbf{x} - \mathbf{b}| \tag{5.1}$$
+
+#### Relative Tolerance
+$$\text{relative residual} = \frac{R^{n+1}}{R^0} < \text{tolerance} \tag{5.2}$$
+
+#### Absolute Tolerance
+$$\text{absolute residual} = R^{n+1} < \text{tolerance} \tag{5.3}$$
+
+### 5.2 การตั้งค่า Convergence Criteria
+
+```cpp
+SIMPLE
+{
+    residualControl
+    {
+        p               1e-6;
+        U               1e-6;
+        k               1e-6;
+        epsilon         1e-6;
+    }
+}
+```
+
+### 5.3 การติดตามเชิงฟิสิกส์
+
+นอกเหนือจาก residual แล้ว ยังควรติดตาม:
+
+| ตัวบ่งชี้ | วิธีการตรวจสอบ | เกณฑ์การลู่เข้า |
+|------------|-------------------|-------------------|
+| **Drag/Lift Coefficient** | `forces` function object | ΔCᴅ/Cᴅ < 1% |
+| **Mass Flow Rate** | `flowRate` function object | < 1% ความแตกต่าง |
+| **Pressure Drop** | Monitoring probes | ค่าคงที่ |
+| **Field Values** | `probes` หรือ `sets` | ค่าเปลี่ยนแปลง < 0.1% |
+
+### 5.4 ตัวอย่างข้อมูลการลู่เข้า (Lid-Driven Cavity, Re = 1000)
+
+| Iteration | Continuity | x-Momentum | y-Momentum | Pressure |
+|-----------|------------|------------|------------|----------|
+|    10     | 1.2e-02    | 8.5e-03    | 7.2e-03    | 9.1e-02  |
+|    50     | 1.7e-04    | 8.1e-05    | 6.4e-05    | 2.6e-03  |
+|   100     | 3.2e-06    | 6.4e-07    | 5.2e-07    | 1.2e-04  |
+|   200     | 5.1e-08    | 1.2e-08    | 9.8e-09    | 3.4e-06  |
 
 ---
-**หัวข้อถัดไป**: [อัลกอริทึม PISO และ PIMPLE สำหรับ Transient](./03_PISO_and_PIMPLE_Algorithms.md)
+
+## 🔧 6. การแก้ไขปัญหา (Troubleshooting)
+
+### 6.1 ปัญหาการลู่เข้าที่พบบ่อย
+
+#### 6.1.1 Pressure-Velocity Decoupling (Checkerboard Patterns)
+
+**อาการ:**
+- สนามความดันแบบตารางหมากรุก
+- การแกว่งของค่า residual
+- การไหลที่ไม่สมเหตุสมผล
+
+**การวินิจฉัย:**
+```bash
+checkMesh -allGeometry -allTopology
+```
+
+**แนวทางแก้ไข:**
+1. เพิ่ม `nNonOrthogonalCorrectors`:
+   ```cpp
+   nNonOrthogonalCorrectors 2;  // เพิ่มจาก 0
+   ```
+2. ใช้ตัวเลือก `consistent` flux (สำหรับ OpenFOAM เวอร์ชันใหม่)
+3. ตรวจสอบ mesh quality (skewness < 0.85, non-orthogonality < 70°)
+
+#### 6.1.2 Over-Relaxation (Oscillatory Divergence)
+
+**อาการ:**
+- ค่า residual ที่ลู่ออกแบบแกว่ง
+- ผลลัพธ์ที่ไม่เสถียร
+
+**แนวทางแก้ไข:**
+```cpp
+relaxationFactors
+{
+    fields
+    {
+        p               0.1;    // ลดจาก 0.3
+    }
+    equations
+    {
+        U               0.5;    // ลดจาก 0.7
+    }
+}
+```
+
+#### 6.1.3 Under-Relaxation (Slow Convergence)
+
+**อาการ:**
+- การลู่เข้าที่ช้ามาก
+- ค่า residual ลดลงอย่างต่อเนื่องแต่ช้า
+
+**แนวทางแก้ไข:**
+ค่อยๆ เพิ่ม relaxation factors:
+- Iteration 1-10: $\alpha_p = 0.1$, $\alpha_u = 0.3$
+- Iteration 11-50: $\alpha_p = 0.3$, $\alpha_u = 0.5$
+- Iteration 51+: $\alpha_p = 0.5$, $\alpha_u = 0.7$
+
+### 6.2 ผังงานการแก้ไขปัญหา
+
+```mermaid
+flowchart TD
+    A[Simulation not converging] --> B{Residual pattern}
+    B -->|Oscillatory| C[Under-relaxation issues]
+    B -->|Monotonic increase| D[Mesh quality problems]
+    B -->|No progress| E[Convergence criteria issues]
+
+    C --> F[Reduce relaxation factors]
+    F --> F1[αₚ: 0.1-0.2]
+    F --> F2[αᵤ: 0.3-0.5]
+    F1 --> G[Test convergence]
+    F2 --> G
+
+    D --> H[Check mesh quality]
+    H --> H1[Max skewness < 0.85]
+    H --> H2[Max non-orthogonality < 70°]
+    H1 --> I[Improve mesh]
+    H2 --> I
+
+    E --> J[Adjust convergence criteria]
+    J --> J1[Relax tolerance]
+    J --> J2[Increase max iterations]
+    J1 --> K[Re-run]
+    J2 --> K
+
+    G --> L{Converged?}
+    I --> L
+    K --> L
+    L -->|Yes| M[Problem solved]
+    L -->|No| N[Advanced debugging]
+```
+> **Figure 2:** แผนผังลำดับการวิเคราะห์และแก้ไขปัญหา (Troubleshooting Workflow) เมื่อการจำลองไม่ลู่เข้า โดยพิจารณาจากพฤติกรรมของค่า Residual เพื่อจำแนกสาเหตุระหว่างปัจจัยด้านความเสถียรเชิงตัวเลข (Numerical Stability) คุณภาพของเมช (Mesh Quality) หรือเกณฑ์การหยุดคำนวณ (Convergence Criteria) พร้อมแนวทางการปรับปรุงในแต่ละกรณีความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 2:** แผนผังลำดับการวิเคราะห์และแก้ไขปัญหา (Troubleshooting Workflow) เมื่อการจำลองไม่ลู่เข้า โดยพิจารณาจากพฤติกรรมของค่า Residual เพื่อจำแนกสาเหตุระหว่างปัจจัยด้านความเสถียรเชิงตัวเลข (Numerical Stability) คุณภาพของเมช (Mesh Quality) หรือเกณฑ์การหยุดคำนวณ (Convergence Criteria) พร้อมแนวทางการปรับปรุงในแต่ละกรณี
+
+---
+
+## 📊 7. การประยุกต์ใช้และตัวอย่าง
+
+### 7.1 กรณีศึกษาที่ 1: การไหลแบบ Steady รอบ Airfoil
+
+**ปัญหา:** NACA 0012 airfoil ที่ Reynolds number 6×10⁶
+
+**การเลือกอัลกอริทึม:** SIMPLE (เหมาะสำหรับ steady-state)
+
+**การตั้งค่า:**
+```cpp
+SIMPLE
+{
+    nNonOrthogonalCorrectors 1;
+
+    residualControl
+    {
+        p           1e-7;
+        U           1e-7;
+        k           1e-7;
+        omega       1e-7;
+    }
+
+    relaxationFactors
+    {
+        fields
+        {
+            p           0.2;  // ค่าต่ำสำหรับความเสถียร
+        }
+        equations
+        {
+            U           0.5;
+            k           0.5;
+            omega       0.5;
+        }
+    }
+}
+```
+
+**ผลลัพธ์:** Convergence ภายใน 1000 iterations พร้อม drag coefficient ที่ตรงกับทดลอง
+
+### 7.2 กรณีศึกษาที่ 2: การไหลในท่อ (Pipe Flow)
+
+**ปัญหา:** Fully developed turbulent flow in a pipe
+
+**ความท้าทาย:**
+- ความแม่นยำของโปรไฟล์ความเร็ว
+- การอนุรักษ์มวล
+
+**การตั้งค่า:**
+```cpp
+SIMPLE
+{
+    nNonOrthogonalCorrectors 0;
+
+    relaxationFactors
+    {
+        fields
+        {
+            p           0.3;
+        }
+        equations
+        {
+            U           0.7;
+            nuTilda     0.7;
+        }
+    }
+}
+```
+
+---
+
+## 📈 8. การเปรียบเทียบกับ PISO และ PIMPLE
+
+| คุณสมบัติ | **SIMPLE** | **PISO** | **PIMPLE** |
+|---------|-----------|----------|-----------|
+| **ชื่อเต็ม** | Semi-Implicit Method for Pressure-Linked Equations | Pressure-Implicit with Splitting of Operators | Merged PISO-SIMPLE |
+| **ความแม่นยำเชิงเวลา** | สภาวะคงที่ (pseudo-time) | Transient อันดับ 2 | อันดับ 1-2 |
+| **Relaxation factors** | จำเป็น (αᵤ ≈ 0.7, αₚ ≈ 0.3) | ไม่มี | Outer: จำเป็น, Inner: ไม่มี |
+| **การแก้ไขต่อขั้นตอน** | 1 | 2–4 (nCorrectors) | Outer × Inner |
+| **ขีดจำกัด Courant number** | ไม่มี (pseudo-time) | Co < 1 โดยทั่วไป | Co > 1 เป็นไปได้ |
+| **เหมาะที่สุดสำหรับ** | **Steady RANS**, natural convection | LES, DNS, startup transients | Large Time Steps, Moving Mesh |
+| **OpenFOAM solver** | `simpleFoam` | `pisoFoam` | `pimpleFoam` |
+
+---
+
+## 🎓 9. สรุปและข้อแนะนำ
+
+### 9.1 ข้อดีของ SIMPLE
+
+- ✅ **แข็งแกร่ง (Robust)** สำหรับปัญหาสภาวะคงที่
+- ✅ **ใช้หน่วยความจำน้อย** (เมื่อเทียบกับ coupled solvers)
+- ✅ **ลู่เข้าสู่คำตอบสุดท้ายได้แน่นอน** (ถ้าตั้งค่า relaxation เหมาะสม)
+- ✅ **ง่ายต่อการนำไปใช้งาน** และมีความยืดหยุ่น
+
+### 9.2 ข้อจำกัดของ SIMPLE
+
+- ❌ **ไม่เหมาะสำหรับปัญหาแบบชั่วคราว (transient)**
+- ❌ **ต้องปรับแต่ง Relaxation Factors อย่างระมัดระวัง**
+- ❌ **อัตราการลู่เข้าช้ากว่าแบบ Coupled**
+- ❌ **อาจเกิด divergence** ถ้าค่า relaxation สูงเกินไป
+
+### 9.3 เกณฑ์การเลือกใช้ SIMPLE
+
+ใช้ SIMPLE เมื่อ:
+1. **ปัญหาเป็นแบบ steady-state** หรือ pseudo-steady
+2. **ต้องการความแข็งแกร่ง** มากกว่าความเร็วในการลู่เข้า
+3. **ทรัพยากรหน่วยความจำจำกัด**
+4. **การจำลองเบื้องต้น** สำหรับปัญหา transient
+
+### 9.4 แนวทางปฏิบัติที่ดีที่สุด
+
+1. **เริ่มต้นด้วยค่า relaxation ที่ต่ำ** (αₚ = 0.2, αᵤ = 0.5)
+2. **ตรวจสอบคุณภาพ mesh** ก่อนรันการจำลอง
+3. **ติดตามทั้ง residual และ physical quantities**
+4. **ปรับค่า relaxation แบบ adaptive** หากการลู่เข้าช้า
+5. **ใช้ multigrid solver (GAMG)** สำหรับ pressure equation
+
+---
+
+## 📚 10. แหล่งข้อมูลเพิ่มเติม
+
+### 10.1 เอกสารพื้นฐาน
+
+**1. Patankar, S. V., & Spalding, D. B. (1972).** "A calculation procedure for heat, mass and momentum transfer in three-dimensional parabolic flows." *International Journal of Heat and Mass Transfer*, 15(10), 1787-1806.
+
+- **DOI:** [10.1016/0017-9310(72)90002-7](https://doi.org/10.1016/0017-9310(72)90002-7)
+- **คุณูปการ:** พัฒนา SIMPLE algorithm ครั้งแรก
+- **OpenFOAM implementation:** `applications/solvers/incompressible/simpleFoam/`
+
+**2. Ferziger, J. H., & Perić, M. (2002).** *Computational Methods for Fluid Dynamics* (3rd ed.). Springer.
+
+- **บทที่ 7:** Pressure-Velocity Coupling
+- **ครอบคลุม:** การวิเคราะห์เชิงลึกของ SIMPLE และ variants
+
+**3. Jasak, H. (1996).** "Error analysis and estimation for the finite volume method with applications to fluid flows." *PhD Thesis, Imperial College, London*.
+
+- **บทที่ 5:** Pressure-Velocity Coupling Algorithms
+- **OpenFOAM implementation:** `src/finiteVolume/fvSolution/`
+
+### 10.2 เอกสาร OpenFOAM
+
+- **OpenFOAM User Guide:** Section on SIMPLE algorithm
+- **OpenFOAM Programmer's Guide:** Pressure-velocity coupling implementation
+- **Doxygen API:** Class `simpleControl` reference
+
+### 10.3 แหล่งข้อมูลออนไลน์
+
+- **OpenFOAM Forums:** [simpleFoam convergence issues](https://www.cfd-online.com/Forums/openfoam/)
+- **CFD Online:** Pressure-velocity coupling discussions
+- **Wiki:** SIMPLE algorithm explanation
+
+---
+
+**หัวข้อถัดไป:** [[อัลกอริทึม PISO และ PIMPLE สำหรับ Transient Flow|./03_PISO_and_PIMPLE_Algorithms.md]]

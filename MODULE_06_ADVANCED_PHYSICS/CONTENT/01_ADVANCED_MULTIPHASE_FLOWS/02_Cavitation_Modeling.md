@@ -31,6 +31,8 @@ flowchart LR
     style A fill:#ffebee,stroke:#c62828
     style E fill:#ffcdd2,stroke:#c62828
 ```
+> **Figure 1:** แผนภาพแสดงสี่ระยะหลักของปรากฏการณ์แควิเทชัน เริ่มจากการลดลงของความดันจนถึงการยุบตัวของฟองไออย่างรุนแรงซึ่งส่งผลต่อความคงทนของวัสดุ
+
 
 **Key Parameters:**
 - $p_{sat}$: Saturation vapor pressure at operating temperature
@@ -391,6 +393,8 @@ flowchart TD
     style F fill:#ffebee,stroke:#c62828
     style G fill:#e3f2fd,stroke:#1565c0
 ```
+> **Figure 2:** แผนผังลำดับขั้นตอนการคำนวณการจำลองแควิเทชัน โดยแสดงกลไกการเปลี่ยนสถานะเฟส (ระเหย/ควบแน่น) ที่ถูกควบคุมโดยความดันภายในแต่ละขั้นตอนการวนซ้ำ
+
 
 ---
 
@@ -588,6 +592,8 @@ flowchart TD
     style C fill:#e8f5e9,stroke:#2e7d32;
     style D fill:#fff3e0,stroke:#ef6c00;
 ```
+> **Figure 3:** แผนผังการตัดสินใจเลือกแบบจำลองและตัวแก้สมการแควิเทชันที่เหมาะสม โดยใช้ความเร็วการไหลและความซับซ้อนของเรขาคณิตเป็นเกณฑ์ในการเลือกเพื่อความแม่นยำและเสถียรภาพ
+
 
 ### 8.2 Verification Checklist
 

@@ -20,6 +20,7 @@ graph TD
     classDef step fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
     class Basic,Types,Dimensions,Memory,Containers,Fields,Mesh step
 ```
+> **Figure 1:** แผนผังลำดับชั้นขององค์ประกอบใน OpenFOAM ที่แสดงให้เห็นการสร้างระบบจากพื้นฐานขนาดเล็ก (Primitives) ไปสู่ระบบที่มีความซับซ้อนสูง (Solvers) โดยแต่ละระดับจะต่อยอดจากระดับก่อนหน้าเพื่อสร้างโครงสร้างที่สมบูรณ์สำหรับการคำนวณ CFD
 
 ## ทำไมต้อง Redefine ประเภทข้อมูลพื้นฐานของ C++?
 
