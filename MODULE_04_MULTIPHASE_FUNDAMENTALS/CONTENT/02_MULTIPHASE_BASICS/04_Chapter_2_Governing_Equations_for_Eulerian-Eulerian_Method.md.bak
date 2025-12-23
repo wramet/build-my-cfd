@@ -1,0 +1,268 @@
+## บทที่ 2: สมการควบคุมสำหรับวิธี Eulerian-Eulerian
+
+### 2.1 สมการการอนุรักษ์มวล
+
+#### **สมการหลัก**
+
+สำหรับแต่ละเฟส *i* สมการการอนุรักษ์มวลคือ:
+
+$$\frac{\partial (\alpha_i \rho_i)}{\partial t} + \nabla \cdot (\alpha_i \rho_i \mathbf{U}_i) = \dot{m}_{ij} \quad \text{(การถ่ายเทมวลจากเฟส j ไปยัง i)}$$
+
+**ตัวแปรในสมการ:**
+- $\alpha_i$ = เศษส่วนปริมาตร (volume fraction) ของเฟส *i*
+- $\rho_i$ = ความหนาแน่นของเฟส *i*
+- $\mathbf{U}_i$ = เวกเตอร์ความเร็วของเฟส *i*
+- $\dot{m}_{ij}$ = อัตราการถ่ายเทมวลจากเฟส *j* ไปยังเฟส *i*
+
+#### **เงื่อนไขขอบเขต**
+
+เศษส่วนปริมาตรต้องสอดคล้องกับเงื่อนไข:
+
+$$\sum_{i=1}^{N} \alpha_i = 1$$
+
+#### **กรณีพิเศษ: ของไหลที่ไม่สามารถอัดตัวได้**
+
+สำหรับเฟสที่ไม่สามารถอัดตัวได้ (incompressible phases) ซึ่ง $\rho_i$ มีค่าคงที่:
+
+$$\frac{\partial (\alpha_i)}{\partial t} + \nabla \cdot (\alpha_i \mathbf{U}_i) = \frac{\dot{m}_{ij}}{\rho_i}$$
+
+#### **การตีความทางกายภาพ**
+
+สมการการอนุรักษ์มวลระบุว่า:
+- **อัตราการเปลี่ยนแปลงมวล**ของเฟส *i* ในปริมาตรควบคุม **บวกกับ** 
+- **อัตราการไหลของมวลสุทธิ**ผ่านขอบเขตของปริมาตรควบคุม **จะเท่ากับ**
+- **มวลที่ถ่ายเทมา**จากเฟสอื่น ๆ
+
+สมการพื้นฐานนี้รับประกันว่ามวลจะไม่ถูกสร้างขึ้นหรือทำลาย แต่จะถูกถ่ายเทระหว่างเฟสเท่านั้น
+
+[Diagram: การไหลของมวลระหว่างเฟสในปริมาตรควบคุม]
+
+#### **การนำไปใช้ใน OpenFOAM**
+
+**สถาปัตยกรรมหลัก:**
+
+| ส่วนประกอบ | ไฟล์หลัก | หน้าที่ |
+|-------------|-------------|----------|
+| **Main Solver** | `multiphaseEulerFoam.C` | Loop เวลาหลักและลำดับการแก้สมการ |
+| **Field Creation** | `createFields.H` | การเริ่มต้นของ field เศษส่วนเฟส, field ความเร็ว |
+| **Phase System** | `phaseSystem.H` | คลาสพื้นฐานสำหรับการจัดการหลายเฟส |
+
+**กลยุทธ์การแก้ปัญหา:**
+- **Segregated Solution Approach**: สมการความต่อเนื่องของแต่ละเฟสจะถูกแก้ตามลำดับ
+- **Coupling Management**: การเชื่อมโยงจัดการผ่านเทอมแหล่งที่มา (source terms)
+- **Coefficient Updates**: การปรับปรุงค่าสัมประสิทธิ์ที่เหมาะสม
+
+### 2.2 สมการการอนุรักษ์โมเมนตัม
+
+#### **สมการหลัก**
+
+สำหรับแต่ละเฟส *i* สมการโมเมนตัมคือ:
+
+$$\frac{\partial (\alpha_i \rho_i \mathbf{U}_i)}{\partial t} + \nabla \cdot (\alpha_i \rho_i \mathbf{U}_i \mathbf{U}_i) = -\alpha_i \nabla p + \nabla \cdot (\alpha_i \boldsymbol{\tau}_i) + \alpha_i \rho_i \mathbf{g} + K_{ij}(\mathbf{U}_j - \mathbf{U}_i) + \mathbf{S}_i$$
+
+**ตัวแปรในสมการ:**
+- $K_{ij}$ = สัมประสิทธิ์การถ่ายเทโมเมนตัมระหว่างเฟส (drag)
+- $\boldsymbol{\tau}_i$ = เทนเซอร์ความเค้น (stress tensor) สำหรับเฟส *i*
+- $\mathbf{S}_i$ = เทอมแหล่งที่มา (virtual mass, lift, wall lubrication)
+
+#### **การวิเคราะห์ทีละเทอม**
+
+1. **Unsteady Term**: $\frac{\partial (\alpha_i \rho_i \mathbf{U}_i)}{\partial t}$
+   - แสดงถึงความเร่งเฉพาะที่ (local acceleration) ของเฟส *i*
+
+2. **Convection Term**: $\nabla \cdot (\alpha_i \rho_i \mathbf{U}_i \mathbf{U}_i)$
+   - แสดงถึงความเร่งจากการพา (convective acceleration)
+
+3. **Pressure Gradient**: $-\alpha_i \nabla p$
+   - แสดงถึงแรงดัน (pressure force) ที่กระทำต่อเฟส *i*
+
+4. **Viscous Forces**: $\nabla \cdot (\alpha_i \boldsymbol{\tau}_i)$
+   - แสดงถึงความเค้นหนืด (viscous stresses) ภายในเฟส *i*
+
+5. **Gravity**: $\alpha_i \rho_i \mathbf{g}$
+   - แสดงถึงแรงปริมาตร (body force) เนื่องมาจากแรงโน้มถ่วง
+
+6. **Interphase Drag**: $K_{ij}(\mathbf{U}_j - \mathbf{U}_i)$
+   - แสดงถึงการแลกเปลี่ยนโมเมนตัมระหว่างเฟส
+
+7. **Additional Forces**: $\mathbf{S}_i$
+   - รวมถึง virtual mass, แรงยก (lift forces), wall lubrication, และแรงระหว่างพื้นผิวอื่น ๆ
+
+#### **การกำหนดสูตรเทนเซอร์ความเค้น**
+
+เทนเซอร์ความเค้น $\boldsymbol{\tau}_i$ สำหรับเฟส *i*:
+
+$$\boldsymbol{\tau}_i = \mu_i (\nabla \mathbf{U}_i + (\nabla \mathbf{U}_i)^T) - \frac{2}{3}\mu_i (\nabla \cdot \mathbf{U}_i)\mathbf{I}$$
+
+- $\mu_i$ = ความหนืดจลน์ (dynamic viscosity) ของเฟส *i*
+- $\mathbf{I}$ = เทนเซอร์เอกลักษณ์ (identity tensor)
+
+#### **แบบจำลอง Drag**
+
+สัมประสิทธิ์การถ่ายเทโมเมนตัมระหว่างเฟส $K_{ij}$ ขึ้นอยู่กับแบบจำลอง drag:
+
+| แบบจำลอง | สูตร | คุณสมบัติ |
+|-----------|-------|-----------|
+| **Schiller-Naumann** | $K_{ij} = \frac{3}{4}C_D \frac{\alpha_i \alpha_j \rho_i}{d_i} |\mathbf{U}_j - \mathbf{U}_i|$ | พื้นฐาน ใช้งานง่าย |
+| **Syamlal-O'Brien** | - | พิจารณาผลของความเข้มข้นของอนุภาค |
+| **Ishii-Zuber** | - | เหมาะสำหรับระบอบการไหลที่แตกต่างกัน |
+
+[Diagram: การถ่ายเทโมเมนตัมระหว่างอนุภาคในของไหลหลายเฟส]
+
+#### **การนำไปใช้ใน OpenFOAM**
+
+**สถาปัตยกรรมการถ่ายเทโมเมนตัม:**
+
+| ส่วนประกอบ | ไฟล์หลัก | หน้าที่ |
+|-------------|-------------|----------|
+| **Momentum Transfer** | `MomentumTransferPhaseSystem.H` | กรอบการทำงานสำหรับการคำนวณการแลกเปลี่ยนโมเมนตัมระหว่างเฟส |
+| **Stress Models** | `MomentumTransportModels` | แบบจำลองความปั่นป่วน |
+| **Coupling Algorithm** | - | อัลกอริทึมการกำจัดบางส่วน (partial elimination) |
+
+**กลยุทธ์การแก้ปัญหา:**
+- **Coupled Solution Strategy**: สมการโมเมนตัมสำหรับทุกเฟสจะถูกแก้พร้อมกัน
+- **Implicit Treatment**: เทอมที่เชื่อมโยงจะถูกจัดการแบบอิมพลิพลิตเพื่อความเสถียร
+- **Drag Model Application**: แบบจำลอง drag จะถูกนำไปใช้เป็นเทอมแหล่งที่มาในสมการโมเมนตัมของแต่ละเฟส
+
+### 2.3 สมการการอนุรักษ์พลังงาน
+
+#### **สมการหลัก**
+
+สำหรับแต่ละเฟส *i* สมการพลังงานคือ:
+
+$$\frac{\partial (\alpha_i \rho_i h_i)}{\partial t} + \nabla \cdot (\alpha_i \rho_i \mathbf{U}_i h_i) = \alpha_i \frac{\partial p}{\partial t} + \nabla \cdot (\alpha_i k_i \nabla T_i) + Q_{ij} + S_{i,h}$$
+
+**ตัวแปรในสมการ:**
+- $h_i$ = เอนทาลปีจำเพาะ (specific enthalpy) ของเฟส *i*
+- $Q_{ij}$ = การถ่ายเทความร้อนระหว่างเฟส
+- $S_{i,h}$ = แหล่งกำเนิดความร้อน (heat sources)
+
+#### **ความสัมพันธ์ทางอุณหพลศาสตร์**
+
+เอนทาลปีจำเพาะสัมพันธ์กับอุณหภูมิผ่าน:
+
+$$h_i = c_{p,i} T_i$$
+
+- $c_{p,i}$ = ความจุความร้อนจำเพาะ (specific heat capacity) ของเฟส *i*
+
+#### **กลไกการถ่ายเทความร้อน**
+
+1. **Convective Transport**: $\nabla \cdot (\alpha_i \rho_i \mathbf{U}_i h_i)$
+   - พลังงานที่ถูกพาไปกับการไหล
+
+2. **Compression Work**: $\alpha_i \frac{\partial p}{\partial t}$
+   - งานที่ทำจากการเปลี่ยนแปลงความดัน
+
+3. **Conduction**: $\nabla \cdot (\alpha_i k_i \nabla T_i)$
+   - การนำความร้อน (heat conduction) ภายในเฟส *i*
+
+4. **Interphase Heat Transfer**: $Q_{ij}$
+   - การแลกเปลี่ยนความร้อนระหว่างเฟส
+
+5. **External Heat Sources**: $S_{i,h}$
+   - การให้ความร้อนเชิงปริมาตร, ปฏิกิริยาเคมี, ฯลฯ
+
+#### **การถ่ายเทความร้อนระหว่างเฟส**
+
+การถ่ายเทความร้อนระหว่างเฟส:
+
+$$Q_{ij} = h_{ij} A_{ij} (T_j - T_i)$$
+
+- $h_{ij}$ = สัมประสิทธิ์การถ่ายเทความร้อนระหว่างเฟส
+- $A_{ij}$ = ความเข้มข้นของพื้นที่พื้นผิวระหว่างเฟส (interfacial area concentration)
+- $T_i$, $T_j$ = อุณหภูมิของเฟส *i* และ *j*
+
+#### **แบบจำลองสองความต้านทาน (Two-Resistance Model)**
+
+สำหรับระบบที่มีหลายเฟส แบบจำลองสองความต้านทานพิจารณาความต้านทานความร้อนทั้งสองด้านของพื้นผิวระหว่างเฟส:
+
+$$\frac{1}{h_{ij}} = \frac{1}{h_{i,\text{side}}} + \frac{1}{h_{j,\text{side}}}$$
+
+[Diagram: แบบจำลองสองความต้านทานสำหรับการถ่ายเทความร้อนระหว่างเฟส]
+
+#### **การนำไปใช้ใน OpenFOAM**
+
+**สถาปัตยกรรมพลังงาน:**
+
+| ส่วนประกอบ | ไฟล์หลัก | หน้าที่ |
+|-------------|-------------|----------|
+| **Energy Equations** | `EEqns.H` | ลำดับการแก้สมการพลังงาน |
+| **Heat Transfer Models** | `HeatTransferPhaseSystem.H` | กรอบการทำงานพื้นฐานสำหรับการถ่ายเทความร้อน |
+| **Two-Resistance Model** | `TwoResistanceHeatTransferPhaseSystem.H` | สูตรการถ่ายเทความร้อนแบบสองความต้านทาน |
+
+**กลยุทธ์การแก้ปัญหา:**
+- **Segregated Approach**: สมการพลังงานสำหรับแต่ละเฟสจะถูกแก้ตามลำดับ
+- **Source Term Management**: การถ่ายเทความร้อนระหว่างเฟสจะถูกจัดการเป็นเทอมแหล่งที่มา
+- **Thermal Boundary Layers**: แบบจำลองสองความต้านทานช่วยให้มั่นใจได้ถึงอัตราการถ่ายเทความร้อนที่สมจริง
+
+### 2.4 การเชื่อมโยงความดัน-ความเร็วในหลายเฟส
+
+#### **อัลกอริทึม SIMPLE สำหรับหลายเฟส**
+
+อัลกอริทึม SIMPLE (Semi-Implicit Method for Pressure-Linked Equations) ถูกขยายสำหรับของไหลหลายเฟสเพื่อจัดการกับการเชื่อมโยงระหว่างความดัน, ความเร็ว, และเศษส่วนเฟส
+
+**ขั้นตอนที่ 1: การปรับปรุงเศษส่วนเฟส**
+
+$$\alpha_i^{k+1} = \alpha_i^k - \Delta t \left[ \frac{\partial \alpha_i}{\partial t} + \nabla \cdot (\alpha_i \mathbf{U}_i^*) - \frac{\dot{m}_{ij}}{\rho_i} \right]$$
+
+- $\mathbf{U}_i^*$ = สนามความเร็วที่คาดการณ์จากการวนซ้ำก่อนหน้า
+
+**ขั้นตอนที่ 2: การคาดการณ์โมเมนตัม**
+
+$$\frac{\partial (\alpha_i \rho_i \mathbf{U}_i)}{\partial t} + \nabla \cdot (\alpha_i \rho_i \mathbf{U}_i^* \mathbf{U}_i^*) = -\alpha_i \nabla p^k + \nabla \cdot (\alpha_i \boldsymbol{\tau}_i^*) + \alpha_i \rho_i \mathbf{g} + K_{ij}(\mathbf{U}_j^* - \mathbf{U}_i^*)$$
+
+**ขั้นตอนที่ 3: การแก้ไขความดัน**
+
+สมการแก้ไขความดัน (pressure correction equation):
+
+$$\nabla \cdot \left( \sum_{i=1}^{N} \frac{\alpha_i}{\rho_i} \nabla p' \right) = \sum_{i=1}^{N} \left( \frac{\partial \alpha_i}{\partial t} + \nabla \cdot (\alpha_i \mathbf{U}_i^*) \right)$$
+
+- $p'$ = การแก้ไขความดัน (pressure correction)
+
+**ขั้นตอนที่ 4: การแก้ไขความเร็วและเศษส่วนเฟส**
+
+$$\mathbf{U}_i^{k+1} = \mathbf{U}_i^* - \frac{\Delta t}{\rho_i} \nabla p'$$
+$$\alpha_i^{k+1} = \alpha_i^k - \frac{\Delta t}{\rho_i} \nabla \cdot (\alpha_i \nabla p')$$
+
+[Diagram: ขั้นตอนอัลกอริทึม SIMPLE สำหรับหลายเฟส]
+
+#### **อัลกอริทึมการกำจัดบางส่วน (Partial Elimination Algorithm)**
+
+เพื่อเพิ่มความเสถียรเชิงตัวเลข OpenFOAM ใช้อัลกอริทึมนี้สำหรับการเชื่อมโยงเศษส่วนเฟสโดยการกำจัดเศษส่วนเฟสออกจากสมการโมเมนตัม:
+
+$$\mathbf{U}_i^{k+1} = \frac{1}{A_i} \left[ H_i - \alpha_i \nabla p^{k+1} + \sum_{j \neq i} K_{ij} \mathbf{U}_j^{k+1} \right]$$
+
+- $A_i$ = เมทริกซ์สัมประสิทธิ์แนวทแยง (diagonal coefficient matrix)
+- $H_i$ = ประกอบด้วยเทอมอื่น ๆ ทั้งหมด
+
+#### **อัลกอริทึม PIMPLE สำหรับกรณีชั่วขณะ (Transient Cases)**
+
+สำหรับการจำลองแบบชั่วขณะ จะใช้อัลกอริทึม PIMPLE (การรวมกันของ PISO และ SIMPLE):
+
+1. **Outer SIMPLE loops**: การบรรจบกันของการเชื่อมโยงความดัน-ความเร็วภายในแต่ละขั้นเวลา
+2. **Inner PISO loops**: ความแม่นยำเชิงเวลาสำหรับเทอมชั่วขณะ
+3. **Under-relaxation**: นำไปใช้เพื่อให้แน่ใจถึงความเสถียร
+4. **Courant number control**: การปรับขั้นเวลาอัตโนมัติ
+
+#### **กลยุทธ์การเชื่อมโยง**
+
+| กลยุทธ์ | คำอธิบาย |
+|---------|-----------|
+| **Implicit Pressure-Velocity Coupling** | รับประกันการอนุรักษ์มวลสำหรับทุกเฟส |
+| **Explicit Drag Treatment** | เทอมการถ่ายเทโมเมนตัมระหว่างเฟส |
+| **Phase Fraction Constraints** | รักษาเงื่อนไข $\sum \alpha_i = 1$ ผ่านการแก้ไข |
+| **Consistent Mass Transfer** | รับประกันการอนุรักษ์มวลทั่วโลก |
+
+#### **การนำไปใช้ใน OpenFOAM**
+
+| ส่วนประกอบ | การตั้งค่า | ผลลัพธ์ |
+|-------------|-------------|----------|
+| **PIMPLE Algorithm** | `fvSolution` dictionary | การควบคุมการบรรจบกัน |
+| **Coupling Strategy** | Partial elimination | การกำจัดเศษส่วนเฟสจากสมการโมเมนตัม |
+| **Convergence Criteria** | Residual monitoring | การตรวจสอบค่าสำหรับทุกสมการ |
+| **Under-relaxation Factors** | Per-equation tuning | การปรับแต่งเพื่อเสถียรภาพ |
+
+**ประโยชน์ของการนำไปใช้:**
+- ผลลัพธ์ที่เสถียรและแม่นยำสำหรับของไหลหลายเฟส
+- ประสิทธิภาพการคำนวณผ่าน solver แบบแยกส่วน
+- การเชื่อมโยงแบบอิมพลิพลิตในจุดที่สำคัญ

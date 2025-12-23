@@ -1,0 +1,1579 @@
+# 5.2 การตรวจสอบการอนุรักษ์
+
+การตรวจสอบการอนุรักษ์เป็นเครื่องมือ **พื้นฐานในพลศาสตร์ของไหลเชิงคำนวณ** ที่รับประกันว่าผลลัพธ์เชิงตัวเลจะยังคงรักษาหลักการทางฟิสิกส์พื้นฐานของการอนุรักษ์มวล โมเมนตัม และพลังงาน
+
+สำหรับการจำลองการไหลแบบหลายเฟส โดยเฉพาะอย่างยิ่งที่เกี่ยวข้องกับการถ่ายเทความร้อนและมวลระหว่างเฟส การตรวจสอบเหล่านี้กลายเป็นสิ่ง **สำคัญอย่างยิ่ง** สำหรับการตรวจสอบความถูกต้องของผลลัพธ์และการตรวจจับข้อผิดพลาดเชิงตัวเลข
+
+## 5.2.1 การตรวจสอบการอนุรักษ์มวล
+
+การอนุรักษ์มวลเป็นการตรวจสอบ **พื้นฐานที่สุด** ในการจำลอง CFD ใดๆ สำหรับระบบหลายเฟส การตรวจสอบนี้เกี่ยวข้องกับการตรวจสอบทั้งการอนุรักษ์มวลทั่วโลกและสมดุลมวลของเฟสแต่ละเฟส
+
+### OpenFOAM Code Implementation
+
+```cpp
+// Phase mass conservation check for multiphaseEulerFoam
+forAll(phases, phasei)
+{
+    const phaseModel& phase = phases[phasei];
+    const volScalarField& alpha = phase;
+    const volScalarField& rho = phase.rho();
+    
+    // Calculate volume integral of phase mass
+    scalar totalPhaseMass = fvc::domainIntegrate(alpha * rho).value();
+    
+    // Store initial mass for comparison
+    if (!massHistory.found(phase.name()))
+    {
+        massHistory.set(phase.name(), totalPhaseMass);
+    }
+    else
+    {
+        scalar initialMass = massHistory[phase.name()];
+        scalar massError = mag(totalPhaseMass - initialMass)/initialMass;
+        
+        if (massError > massTolerance)
+        {
+            WarningInFunction
+                << "Phase " << phase.name() 
+                << " mass imbalance: " << massError << endl;
+        }
+    }
+}
+
+// Global continuity check
+scalar divError = fvc::domainIntegrate
+(
+    fvc::div(phaseSystem.phi()) / runTime().deltaT()
+).value();
+
+Info << "Global divergence error: " << divError << endl;
+```
+
+### การติดตามการอนุรักษ์มวล:
+
+- **มวลของเฟสแต่ละเฟส**: เพื่อตรวจสอบการอนุรักษ์เฟส
+- **ความต่อเนื่องทั่วโลก**: เพื่อตรวจสอบข้อผิดพลาดของการ发散เชิงตัวเลข
+- **เมตริกความผิดพลาดสัมพัทธ์**: เพื่อระบุการละเมิดการอนุรักษ์ที่สำคัญ
+- **การติดตามประวัติเวลา**: เพื่อตรวจจับการเคลื่อนที่ค่อยเป็นค่อยไปของคุณสมบัติการอนุรักษ์
+
+[Diagram: การไหลของการตรวจสอบการอนุรักษ์มวลในระบบหลายเฟส]
+
+## 5.2.2 การตรวจสอบสมดุลโมเมนตัม
+
+การตรวจสอบการอนุรักษ์โมเมนตัมตรวจสอบว่าแรงและการถ่ายโอนโมเมนตัมได้รับการพิจารณาอย่างเหมาะสมในระบบ
+
+### OpenFOAM Code Implementation
+
+```cpp
+// Momentum conservation check
+void momentumBalanceCheck::execute()
+{
+    const volVectorField& U = mesh_.lookupObject<volVectorField>("U");
+    const surfaceScalarField& phi = mesh_.lookupObject<surfaceScalarField>("phi");
+    
+    // Calculate momentum flux through boundaries
+    vector totalMomentumInflux = vector::zero;
+    vector totalMomentumOutflux = vector::zero;
+    
+    forAll(phi.boundaryField(), patchi)
+    {
+        const fvsPatchScalarField& phiP = phi.boundaryField()[patchi];
+        const fvPatchVectorField& UP = U.boundaryField()[patchi];
+        
+        vector patchMomentum = sum(phiP * UP);
+        
+        if (phiP.size() > 0 && sum(phiP) > 0)
+        {
+            totalMomentumInflux += patchMomentum;
+        }
+        else if (phiP.size() > 0 && sum(phiP) < 0)
+        {
+            totalMomentumOutflux += patchMomentum;
+        }
+    }
+    
+    // Calculate body forces (gravity, etc.)
+    vector totalBodyForce = vector::zero;
+    if (mesh_.foundObject<uniformDimensionedVectorField>("g"))
+    {
+        const uniformDimensionedVectorField& g = 
+            mesh_.lookupObject<uniformDimensionedVectorField>("g");
+        totalBodyForce = g.value() * fvc::domainIntegrate(rho).value();
+    }
+    
+    // Momentum balance check
+    vector momentumError = totalMomentumInflux + totalMomentumOutflux - totalBodyForce;
+    scalar relativeError = mag(momentumError)/(mag(totalMomentumInflux) + SMALL);
+    
+    if (relativeError > momentumTolerance)
+    {
+        WarningInFunction
+            << "Momentum imbalance: " << relativeError << endl;
+    }
+}
+```
+
+[Diagram: สมดุลโมเมนตัมในเซลล์ควบคุม - แรงภายในและแรงภายนอก]
+
+## 5.2.3 การตรวจสอบสมดุลพลังงาน
+
+การอนุรักษ์พลังงานเป็นสิ่ง **สำคัญอย่างยิ่ง** ในปัญหาการถ่ายเทความร้อนแบบหลายเฟสที่พลังงานถูกแลกเปลี่ยนระหว่างเฟสผ่านส่วนติดต่อ
+
+### ปัจจัยที่ต้องพิจารณาในสมดุลพลังงาน:
+
+1. **การขนส่งพลังงานแบบพาความร้อน**: พลังงานที่ถูกพาโดยการไหลของมวล
+2. **การถ่ายเทความร้อนแบบนำ**: การแพร่กระจายพลังงานผ่านเฟส
+3. **การถ่ายเทความร้อนระหว่างส่วนติดต่อ**: การแลกเปลี่ยนพลังงานระหว่างเฟส
+4. **แหล่ง/ซิงค์ความร้อนภายนอก**: การสร้างหรือการกำจัดความร้อนตามปริมาตร
+
+### OpenFOAM Code Implementation
+
+```cpp
+class energyBalanceCheck
+{
+    private:
+        const fvMesh& mesh_;
+        const phaseSystem& phaseSystem_;
+        scalar energyTolerance_;
+        
+    public:
+        energyBalanceCheck
+        (
+            const fvMesh& mesh,
+            const phaseSystem& phaseSystem,
+            scalar tolerance = 1e-6
+        )
+        :
+            mesh_(mesh),
+            phaseSystem_(phaseSystem),
+            energyTolerance_(tolerance)
+        {}
+        
+        void execute()
+        {
+            // Initialize energy balance components
+            scalar totalConvection = 0.0;
+            scalar totalConduction = 0.0;
+            scalar totalInterfacial = 0.0;
+            scalar totalSources = 0.0;
+            
+            // Phase-specific energy calculations
+            forAll(phaseSystem_.phases(), phasei)
+            {
+                const phaseModel& phase = phaseSystem_.phases()[phasei];
+                const volScalarField& alpha = phase;
+                const volScalarField& rho = phase.rho();
+                const volScalarField& h = phase.thermo().he();
+                const surfaceScalarField& phi = phase.phi();
+                
+                // Convective energy transport through boundaries
+                scalar phaseConvection = 0.0;
+                forAll(phi.boundaryField(), patchi)
+                {
+                    const fvsPatchScalarField& phiP = phi.boundaryField()[patchi];
+                    const fvPatchScalarField& hP = h.boundaryField()[patchi];
+                    
+                    phaseConvection += sum(phiP * hP);
+                }
+                totalConvection += phaseConvection;
+                
+                // Conductive heat transfer (Fourier's law)
+                const volScalarField& k = phase.thermo().kappa();
+                scalar phaseConduction = -fvc::domainIntegrate
+                (
+                    fvc::grad(k * fvc::grad(h))
+                ).value();
+                totalConduction += phaseConduction;
+                
+                // Volumetric heat sources
+                if (mesh_.foundObject<volScalarField>("Q_" + phase.name()))
+                {
+                    const volScalarField& Q = 
+                        mesh_.lookupObject<volScalarField>("Q_" + phase.name());
+                    totalSources += fvc::domainIntegrate(alpha * rho * Q).value();
+                }
+            }
+            
+            // Interfacial heat transfer
+            const heatTransferPhaseSystem& htPhaseSystem = 
+                dynamic_cast<const heatTransferPhaseSystem&>(phaseSystem_);
+            
+            forAll(htPhaseSystem.interfacialHeatTransferModels(), pairi)
+            {
+                const heatTransferModelInterface& htModel = 
+                    htPhaseSystem.interfacialHeatTransferModels()[pairi];
+                
+                totalInterfacial += fvc::domainIntegrate(htModel.Ti()).value();
+            }
+            
+            // Energy balance calculation
+            scalar totalEnergyChange = totalConvection + totalConduction + 
+                                     totalInterfacial + totalSources;
+            
+            // Calculate relative error using system total energy as reference
+            scalar referenceEnergy = 0.0;
+            forAll(phaseSystem_.phases(), phasei)
+            {
+                const phaseModel& phase = phaseSystem_.phases()[phasei];
+                const volScalarField& alpha = phase;
+                const volScalarField& rho = phase.rho();
+                const volScalarField& h = phase.thermo().he();
+                
+                referenceEnergy += fvc::domainIntegrate(alpha * rho * h).value();
+            }
+            
+            scalar energyError = mag(totalEnergyChange)/(mag(referenceEnergy) + SMALL);
+            
+            // Report conservation status
+            if (energyError > energyTolerance_)
+            {
+                WarningInFunction
+                    << "Energy imbalance detected: " << energyError << nl
+                    << "Convection: " << totalConvection << nl
+                    << "Conduction: " << totalConduction << nl
+                    << "Interfacial: " << totalInterfacial << nl
+                    << "Sources: " << totalSources << nl
+                    << "Total: " << totalEnergyChange << endl;
+            }
+            else
+            {
+                Info << "Energy conservation satisfied: " << energyError << endl;
+            }
+        }
+};
+```
+
+## 5.2.4 การอนุรักษ์สัดส่วนปริมาตรเฟส
+
+ในการไหลแบบหลายเฟส ผลรวมของสัดส่วนปริมาตรต้องเท่ากับหนึ่งตลอดเวลา ข้อจำกัดพื้นฐานนี้ต้องได้รับการติดตาม:
+
+### OpenFOAM Code Implementation
+
+```cpp
+// Phase fraction conservation check
+void checkPhaseFractionSum()
+{
+    const PtrList<volScalarField>& alphas = phaseSystem_.phases();
+    volScalarField alphaSum
+    (
+        IOobject
+        (
+            "alphaSum",
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar("zero", dimless, 0.0)
+    );
+    
+    // Sum all phase fractions
+    forAll(alphas, phasei)
+    {
+        alphaSum += alphas[phasei];
+    }
+    
+    // Check deviation from unity
+    volScalarField alphaError = mag(alphaSum - 1.0);
+    scalar maxError = max(alphaError).value();
+    scalar meanError = average(alphaError).value();
+    
+    Info << "Phase fraction sum check:" << nl
+         << "  Maximum deviation: " << maxError << nl
+         << "  Mean deviation: " << meanError << endl;
+    
+    // Report cells with significant deviation
+    if (maxError > phaseTolerance_)
+    {
+        volScalarField::Internal& alphaErrorI = alphaError.ref();
+        
+        forAll(alphaErrorI, celli)
+        {
+            if (alphaErrorI[celli] > phaseTolerance_)
+            {
+                WarningInFunction
+                    << "Cell " << celli 
+                    << " phase fraction sum: " << alphaSum[celli] << endl;
+            }
+        }
+    }
+}
+```
+
+## 5.2.5 กรอบงานการตรวจสอบการอนุรักษ์แบบอัตโนมัติ
+
+สำหรับการตรวจสอบการอนุรักษ์อย่างครอบคลุม กรอบงานแบบอัตโนมัติสามารถถูกนำมาใช้เป็น function object:
+
+### OpenFOAM Code Implementation
+
+```cpp
+class conservationMonitor
+:
+    public fvMeshFunctionObject
+{
+    private:
+        // Conservation tolerances
+        dimensionedScalar massTolerance_;
+        dimensionedScalar momentumTolerance_;
+        dimensionedScalar energyTolerance_;
+        dimensionedScalar phaseTolerance_;
+        
+        // Previous time step values for rate calculations
+        scalar previousMass_;
+        vector previousMomentum_;
+        scalar previousEnergy_;
+        
+        // Output frequency
+        label writeInterval_;
+        
+    public:
+        TypeName("conservationMonitor");
+        
+        conservationMonitor
+        (
+            const word& name,
+            const Time& runTime,
+            const dictionary& dict
+        )
+        :
+            fvMeshFunctionObject(name, runTime, dict),
+            massTolerance_(dict.lookupOrDefault<scalar>("massTolerance", 1e-8)),
+            momentumTolerance_(dict.lookupOrDefault<scalar>("momentumTolerance", 1e-8)),
+            energyTolerance_(dict.lookupOrDefault<scalar>("energyTolerance", 1e-6)),
+            phaseTolerance_(dict.lookupOrDefault<scalar>("phaseTolerance", 1e-6)),
+            writeInterval_(dict.lookupOrDefault<label>("writeInterval", 1))
+        {}
+        
+        virtual void execute()
+        {
+            if (mesh_.time().timeIndex() % writeInterval_ != 0) return;
+            
+            // Perform all conservation checks
+            checkMassConservation();
+            checkMomentumConservation();
+            checkEnergyConservation();
+            checkPhaseFractionConservation();
+        }
+        
+        virtual bool write()
+        {
+            // Write detailed conservation report to file
+            writeConservationReport();
+            return true;
+        }
+        
+    private:
+        void checkMassConservation()
+        {
+            // Implementation as shown in previous sections
+        }
+        
+        void checkMomentumConservation()
+        {
+            // Implementation as shown in previous sections
+        }
+        
+        void checkEnergyConservation()
+        {
+            // Implementation as shown in previous sections
+        }
+        
+        void checkPhaseFractionConservation()
+        {
+            // Implementation as shown in previous sections
+        }
+        
+        void writeConservationReport()
+        {
+            // Generate comprehensive conservation report
+            OFstream file
+            (
+                mesh_.time().timePath()/"conservationReport.dat"
+            );
+            
+            file << "Time\tMassError\tMomentumError\tEnergyError\tPhaseError" << nl;
+            
+            // Write current conservation metrics
+        }
+};
+```
+
+## 5.2.6 การนำไปใช้ในการควบคุมการจำลอง
+
+เพื่อเปิดใช้งานการตรวจสอบการอนุรักษ์ในการจำลอง เพิ่มสิ่งต่อไปนี้ใน `controlDict`:
+
+```cpp
+functions
+{
+    conservationMonitor
+    {
+        type conservationMonitor;
+        
+        // Conservation tolerances
+        massTolerance 1e-8;
+        momentumTolerance 1e-8;
+        energyTolerance 1e-6;
+        phaseTolerance 1e-6;
+        
+        // Output control
+        writeInterval 1;
+        
+        // Enable detailed reporting
+        verbose true;
+    }
+}
+```
+
+[Diagram: การไหลงานของกรอบงานการตรวจสอบการอนุรักษ์แบบอัตโนมัติ]
+
+# 6. แบบฝึกหัดปฏิบัติ
+
+ส่วนนี้ให้แบบฝึกหัดปฏิบัติเพื่อพัฒนาความชำนาญในการนำไปใช้และทดสอบแบบจำลองการถ่ายเทความร้อนแบบหลายเฟสใน OpenFOAM แต่ละแบบฝึกหัดสร้างบนแนวคิดก่อนหน้าและให้ประสบการณ์จริงกับแอปพลิเคชัน CFD
+
+## แบบฝึกหัด 6.1: การนำไปใช้แบบจำลองการถ่ายเทความร้อนแบบกำหนดเอง
+
+**วัตถุประสงค์**: สร้างแบบจำลองสัมประสิทธิ์การถ่ายเทความร้อนแบบกำหนดเองและนำไปใช้ใน OpenFOAM
+
+### ภารกิจ 6.1.1: การกำหนดรูปแบบแบบจำลอง
+
+นำไปใช้ความสัมพันธ์ Nusselt ที่ขึ้นกับอุณหภูมิสำหรับการถ่ายเทความร้อนระหว่างส่วนติดต่อ:
+
+### OpenFOAM Code Implementation
+
+```cpp
+class TemperatureDependentNuModel
+:
+    public heatTransferModel
+{
+    private:
+        // Model constants
+        dimensionedScalar Pr_;
+        dimensionedScalar A_;
+        dimensionedScalar n_;
+        dimensionedScalar Tref_;
+        
+        // Temperature field reference
+        const volScalarField& T_;
+        
+    public:
+        TypeName("temperatureDependentNu");
+        
+        TemperatureDependentNuModel
+        (
+            const dictionary& dict,
+            const phasePair& pair,
+            const bool registerObject
+        )
+        :
+            heatTransferModel(dict, pair, registerObject),
+            Pr_(dict.lookupOrDefault<dimensionedScalar>("Pr", dimensionedScalar("Pr", dimless, 0.7))),
+            A_(dict.lookupOrDefault<dimensionedScalar>("A", dimensionedScalar("A", dimless, 0.023))),
+            n_(dict.lookupOrDefault<dimensionedScalar>("n", dimensionedScalar("n", dimless, 0.8))),
+            Tref_(dict.lookupOrDefault<dimensionedScalar>("Tref", dimensionedScalar("Tref", dimTemperature, 293.15))),
+            T_(mesh().lookupObject<volScalarField>("T"))
+        {}
+        
+        virtual tmp<volScalarField> K() const
+        {
+            const phaseModel& phase1 = pair_.phase1();
+            const phaseModel& phase2 = pair_.phase2();
+            
+            // Calculate Reynolds number
+            const volScalarField& rho = phase1.rho();
+            const volScalarField& mu = phase1.mu();
+            const volScalarField& d = phase1.d();
+            const volVectorField& U = phase1.U();
+            
+            volScalarField Re = rho*mag(U)*d/mu;
+            
+            // Temperature-dependent Nusselt number
+            volScalarField T_ratio = T_/Tref_;
+            volScalarField Nu = A_ * pow(Re, n_) * pow(T_ratio, 0.3) * pow(Pr_.value(), 0.333);
+            
+            // Heat transfer coefficient
+            const volScalarField& k = phase1.thermo().kappa();
+            return Nu*k/d;
+        }
+        
+        virtual bool read(const dictionary& dict)
+        {
+            heatTransferModel::read(dict);
+            dict.readIfPresent("Pr", Pr_);
+            dict.readIfPresent("A", A_);
+            dict.readIfPresent("n", n_);
+            dict.readIfPresent("Tref", Tref_);
+            return true;
+        }
+};
+```
+
+### ภารกิจ 6.1.2: การลงทะเบียนแบบจำลอง
+
+ลงทะเบียนแบบจำลองใหม่ในไฟล์ต้นฉบับที่เหมาะสม:
+
+```cpp
+addToRunTimeSelectionTable
+(
+    heatTransferModel,
+    TemperatureDependentNuModel,
+    dictionary
+);
+```
+
+### ภารกิจ 6.1.3: กรณีทดสอบความถูกต้อง
+
+สร้างกรณีทดสอบความถูกต้องที่ง่ายด้วยวิธีแก้ปัญหาวิเคราะห์ที่ทราบ:
+
+```cpp
+// validationDictionary
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      validationDictionary;
+}
+
+// Model parameters
+A           0.023;
+n           0.8;
+Pr          0.7;
+Tref        293.15;
+
+// Validation conditions
+T_hot       373.15;  // K
+T_cold      293.15;  // K
+flowRate    0.001;   // m³/s
+```
+
+[Diagram: การไหลงานของการพัฒนาและทดสอบแบบจำลอมการถ่ายเทความร้อนแบบกำหนดเอง]
+
+## แบบฝึกหัด 6.2: การจำลองการถ่ายเทความร้อนแบบหลายเฟส
+
+**วัตถุประสงค์**: ตั้งค่าและรันการจำลองการถ่ายเทความร้อนแบบหลายเฟสที่สมบูรณ์
+
+### ภารกิจ 6.2.1: เรขาคณิตและ Mesh
+
+สร้างท่อแนวตั้งด้วยเงื่อนไขขอบเขตผนังที่มีความร้อน:
+
+### OpenFOAM Code Implementation
+
+```cpp
+// blockMeshDict
+convertToMeters 1;
+
+vertices
+(
+    (0 0 0)                    // 0
+    (0.05 0 0)                // 1
+    (0.05 0.05 0)             // 2
+    (0 0.05 0)                // 3
+    (0 0 2)                   // 4
+    (0.05 0 2)                // 5
+    (0.05 0.05 2)             // 6
+    (0 0.05 2)                // 7
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (20 20 100) simpleGrading (1 1 1)
+);
+
+edges();
+
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces ((0 4 7 3));
+    }
+    outlet
+    {
+        type patch;
+        faces ((1 5 6 2));
+    }
+    wall
+    {
+        type wall;
+        faces ((0 1 5 4) (1 2 6 5) (2 3 7 6) (3 0 4 7));
+    }
+);
+```
+
+### ภารกิจ 6.2.2: คุณสมบัติทางความร้อน
+
+กำหนดคุณสมบัติทางความร้อนของสองเฟส:
+
+### OpenFOAM Code Implementation
+
+```cpp
+// thermophysicalProperties
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      thermophysicalProperties;
+}
+
+phase1
+{
+    type            compressible::icoPolynomial;
+    mixture         1 100;
+    
+    rhoCoeffs<8>    ( 1000 0 0 0 0 0 0 0 );  // Water density
+    CpCoeffs<8>     ( 4186 0 0 0 0 0 0 0 );  // Specific heat
+    muCoeffs<8>     ( 0.001 0 0 0 0 0 0 0 ); // Dynamic viscosity
+    kappaCoeffs<8>  ( 0.6 0 0 0 0 0 0 0 );   // Thermal conductivity
+}
+
+phase2
+{
+    type            compressible::icoPolynomial;
+    mixture         1 100;
+    
+    rhoCoeffs<8>    ( 1.2 0 0 0 0 0 0 0 );   // Air density
+    CpCoeffs<8>     ( 1005 0 0 0 0 0 0 0 );  // Specific heat
+    muCoeffs<8>     ( 1.8e-5 0 0 0 0 0 0 0 ); // Dynamic viscosity
+    kappaCoeffs<8>  ( 0.025 0 0 0 0 0 0 0 ); // Thermal conductivity
+}
+
+// Interfacial heat transfer model
+interfacialHeatTransferModel temperatureDependentNu;
+```
+
+### คุณสมบัติทางความร้อนของเฟส:
+
+| คุณสมบัติ | น้ำ (Phase 1) | อากาศ (Phase 2) | หน่วย |
+|----------|---------------|------------------|--------|
+| ความหนาแน่น (ρ) | 1000 | 1.2 | kg/m³ |
+| ความจุความร้อนจำเพาะ (Cp) | 4186 | 1005 | J/kg·K |
+| ความหนืดพลศาสตร์ (μ) | 0.001 | 1.8×10⁻⁵ | Pa·s |
+| ความนำความร้อน (k) | 0.6 | 0.025 | W/m·K |
+
+### ภารกิจ 6.2.3: เงื่อนไขเริ่มต้น
+
+ตั้งค่าสัดส่วนปริมาตรเฟสและฟิลด์อุณหภูมิ:
+
+### OpenFOAM Code Implementation
+
+```cpp
+// 0/alpha.water
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      alpha.water;
+}
+
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform 0.5;
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 0.8;  // 80% water at inlet
+    }
+    outlet
+    {
+        type            zeroGradient;
+    }
+    wall
+    {
+        type            zeroGradient;
+    }
+}
+
+// 0/T
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      T;
+}
+
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   uniform 293.15;
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 293.15;  // Cold inlet
+    }
+    outlet
+    {
+        type            zeroGradient;
+    }
+    wall
+    {
+        type            fixedValue;
+        value           uniform 373.15;  // Hot wall
+    }
+}
+```
+
+### ภารกิจ 6.2.4: การกำหนดค่า Solver
+
+กำหนดค่าการตั้งค่า solver แบบหลายเฟส:
+
+### OpenFOAM Code Implementation
+
+```cpp
+// fvSolution
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSolution;
+}
+
+solvers
+{
+    p
+    {
+        solver          GAMG;
+        tolerance       1e-6;
+        relTol          0.1;
+        smoother        GaussSeidel;
+        nPreSweeps      0;
+        nPostSweeps     2;
+        nFinestSweeps   2;
+        cacheAgglomeration on;
+        agglomerator    faceAreaPair;
+        nCellsInCoarsestLevel 10;
+        mergeLevels     1;
+    }
+
+    pFinal
+    {
+        solver          GAMG;
+        tolerance       1e-8;
+        relTol          0;
+        smoother        GaussSeidel;
+        nPreSweeps      0;
+        nPostSweeps     2;
+        nFinestSweeps   2;
+        cacheAgglomeration on;
+        agglomerator    faceAreaPair;
+        nCellsInCoarsestLevel 10;
+        mergeLevels     1;
+    }
+
+    "U.*"
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-6;
+        relTol          0.1;
+        nSweeps         1;
+    }
+
+    "U.*Final"
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-8;
+        relTol          0;
+        nSweeps         2;
+    }
+
+    "h.*"
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-6;
+        relTol          0.1;
+        nSweeps         1;
+    }
+
+    "h.*Final"
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-8;
+        relTol          0;
+        nSweeps         2;
+    }
+}
+
+PIMPLE
+{
+    nCorrectors      2;
+    nNonOrthogonalCorrectors 0;
+    nOuterCorrectors 1;
+    nAlphaCorr       1;
+    nAlphaSubCycles  2;
+    cAlpha           1;
+}
+```
+
+[Diagram: การจัดเรียงเรขาคณิตและเงื่อนไขขอบเขตสำหรับการจำลองการถ่ายเทความร้อนแบบหลายเฟส]
+
+## แบบฝึกหัด 6.3: การนำไปใช้การตรวจสอบการอนุรักษ์
+
+**วัตถุประสงค์**: นำไปใช้ระบบตรวจสอบการอนุรักษ์ที่ครอบคลุมสำหรับการถ่ายเทความร้อนแบบหลายเฟส
+
+### ภารกิจ 6.3.1: คลาสตรวจสอบการอนุรักษ์
+
+สร้าง function object สำหรับตรวจสอบการอนุรักษ์ที่สมบูรณ์:
+
+### OpenFOAM Code Implementation
+
+```cpp
+class multiphaseConservationMonitor
+:
+    public fvMeshFunctionObject
+{
+    private:
+        // Reference to phase system
+        const phaseSystem& phaseSystem_;
+        
+        // Conservation tolerances
+        scalar massTolerance_;
+        scalar energyTolerance_;
+        scalar phaseTolerance_;
+        
+        // Time history storage
+        HashTable<List<scalar>> conservationHistory_;
+        
+        // Output control
+        label writeInterval_;
+        word outputFileName_;
+        
+        // Conservation state tracking
+        struct ConservationState
+        {
+            scalar currentTime;
+            scalar massError;
+            scalar energyError;
+            scalar phaseError;
+            scalar totalMass;
+            scalar totalEnergy;
+        };
+        
+        List<ConservationState> stateHistory_;
+        
+    public:
+        TypeName("multiphaseConservationMonitor");
+        
+        multiphaseConservationMonitor
+        (
+            const word& name,
+            const Time& runTime,
+            const dictionary& dict
+        )
+        :
+            fvMeshFunctionObject(name, runTime, dict),
+            phaseSystem_
+            (
+                mesh_.lookupObject<phaseSystem>
+                (
+                    dict.lookupOrDefault<word>("phaseSystem", "phaseProperties")
+                )
+            ),
+            massTolerance_(dict.lookupOrDefault<scalar>("massTolerance", 1e-8)),
+            energyTolerance_(dict.lookupOrDefault<scalar>("energyTolerance", 1e-6)),
+            phaseTolerance_(dict.lookupOrDefault<scalar>("phaseTolerance", 1e-6)),
+            writeInterval_(dict.lookupOrDefault<label>("writeInterval", 1)),
+            outputFileName_(dict.lookupOrDefault<word>("outputFileName", "conservation.dat"))
+        {
+            // Initialize conservation tracking
+            initializeConservationTracking();
+        }
+        
+        virtual void execute()
+        {
+            if (mesh_.time().timeIndex() % writeInterval_ != 0) return;
+            
+            // Calculate current conservation state
+            ConservationState currentState = calculateConservationState();
+            
+            // Check conservation errors
+            checkConservationErrors(currentState);
+            
+            // Store state
+            stateHistory_.append(currentState);
+            
+            // Report current status
+            reportConservationStatus(currentState);
+        }
+        
+        virtual bool write()
+        {
+            writeConservationData();
+            return true;
+        }
+        
+    private:
+        void initializeConservationTracking()
+        {
+            Info << "Initializing multiphase conservation monitoring" << nl
+                 << "Mass tolerance: " << massTolerance_ << nl
+                 << "Energy tolerance: " << energyTolerance_ << nl
+                 << "Phase tolerance: " << phaseTolerance_ << endl;
+        }
+        
+        ConservationState calculateConservationState()
+        {
+            ConservationState state;
+            state.currentTime = mesh_.time().value();
+            
+            // Calculate total system mass
+            state.totalMass = 0.0;
+            forAll(phaseSystem_.phases(), phasei)
+            {
+                const phaseModel& phase = phaseSystem_.phases()[phasei];
+                const volScalarField& alpha = phase;
+                const volScalarField& rho = phase.rho();
+                
+                state.totalMass += fvc::domainIntegrate(alpha * rho).value();
+            }
+            
+            // Calculate total system energy
+            state.totalEnergy = 0.0;
+            forAll(phaseSystem_.phases(), phasei)
+            {
+                const phaseModel& phase = phaseSystem_.phases()[phasei];
+                const volScalarField& alpha = phase;
+                const volScalarField& rho = phase.rho();
+                const volScalarField& h = phase.thermo().he();
+                
+                state.totalEnergy += fvc::domainIntegrate(alpha * rho * h).value();
+            }
+            
+            // Calculate conservation errors
+            state.massError = calculateMassError();
+            state.energyError = calculateEnergyError();
+            state.phaseError = calculatePhaseError();
+            
+            return state;
+        }
+        
+        scalar calculateMassError()
+        {
+            if (stateHistory_.empty()) return 0.0;
+            
+            scalar initialMass = stateHistory_[0].totalMass;
+            scalar currentMass = stateHistory_.last().totalMass;
+            
+            return mag(currentMass - initialMass)/(mag(initialMass) + SMALL);
+        }
+        
+        scalar calculateEnergyError()
+        {
+            if (stateHistory_.empty()) return 0.0;
+            
+            scalar initialEnergy = stateHistory_[0].totalEnergy;
+            scalar currentEnergy = stateHistory_.last().totalEnergy;
+            
+            // Account for heat flux through boundaries
+            scalar netHeatFlux = calculateNetHeatFlux();
+            scalar expectedEnergyChange = netHeatFlux * mesh_.time().deltaTValue();
+            
+            scalar actualEnergyChange = currentEnergy - initialEnergy;
+            scalar energyError = mag(actualEnergyChange - expectedEnergyChange);
+            
+            return energyError/(mag(initialEnergy) + mag(expectedEnergyChange) + SMALL);
+        }
+        
+        scalar calculateNetHeatFlux()
+        {
+            scalar netFlux = 0.0;
+            
+            // Calculate heat flux through all boundaries
+            forAll(phaseSystem_.phases(), phasei)
+            {
+                const phaseModel& phase = phaseSystem_.phases()[phasei];
+                const volScalarField& alpha = phase;
+                const volScalarField& h = phase.thermo().he();
+                const surfaceScalarField& phi = phase.phi();
+                
+                forAll(phi.boundaryField(), patchi)
+                {
+                    const fvsPatchScalarField& phiP = phi.boundaryField()[patchi];
+                    const fvPatchScalarField& hP = h.boundaryField()[patchi];
+                    
+                    netFlux += sum(phiP * hP);
+                }
+            }
+            
+            return netFlux;
+        }
+        
+        scalar calculatePhaseError()
+        {
+            // Calculate maximum deviation from unity sum
+            volScalarField alphaSum
+            (
+                IOobject("alphaSum", mesh_.time().timeName(), mesh_),
+                mesh_,
+                dimensionedScalar("zero", dimless, 0.0)
+            );
+            
+            forAll(phaseSystem_.phases(), phasei)
+            {
+                const phaseModel& phase = phaseSystem_.phases()[phasei];
+                alphaSum += phase;
+            }
+            
+            volScalarField alphaError = mag(alphaSum - 1.0);
+            return max(alphaError).value();
+        }
+        
+        void checkConservationErrors(const ConservationState& state)
+        {
+            bool conservationViolated = false;
+            
+            if (state.massError > massTolerance_)
+            {
+                WarningInFunction
+                    << "Mass conservation violation: " << state.massError 
+                    << " (tolerance: " << massTolerance_ << ")" << endl;
+                conservationViolated = true;
+            }
+            
+            if (state.energyError > energyTolerance_)
+            {
+                WarningInFunction
+                    << "Energy conservation violation: " << state.energyError 
+                    << " (tolerance: " << energyTolerance_ << ")" << endl;
+                conservationViolated = true;
+            }
+            
+            if (state.phaseError > phaseTolerance_)
+            {
+                WarningInFunction
+                    << "Phase fraction violation: " << state.phaseError 
+                    << " (tolerance: " << phaseTolerance_ << ")" << endl;
+                conservationViolated = true;
+            }
+            
+            if (conservationViolated)
+            {
+                writeDetailedConservationReport(state);
+            }
+        }
+        
+        void reportConservationStatus(const ConservationState& state)
+        {
+            Info << "Conservation Report at t=" << state.currentTime << nl
+                 << "  Mass error: " << state.massError << nl
+                 << "  Energy error: " << state.energyError << nl
+                 << "  Phase error: " << state.phaseError << nl
+                 << "  Total mass: " << state.totalMass << nl
+                 << "  Total energy: " << state.totalEnergy << endl;
+        }
+        
+        void writeConservationData()
+        {
+            OFstream file
+            (
+                mesh_.time().timePath() / outputFileName_
+            );
+            
+            // Write header
+            file << "# Time MassError EnergyError PhaseError TotalMass TotalEnergy" << nl;
+            
+            // Write data
+            forAll(stateHistory_, i)
+            {
+                const ConservationState& state = stateHistory_[i];
+                file << state.currentTime << " "
+                     << state.massError << " "
+                     << state.energyError << " "
+                     << state.phaseError << " "
+                     << state.totalMass << " "
+                     << state.totalEnergy << nl;
+            }
+            
+            Info << "Conservation data written to " << outputFileName_ << endl;
+        }
+        
+        void writeDetailedConservationReport(const ConservationState& state)
+        {
+            OFstream file
+            (
+                mesh_.time().timePath() / "conservationViolation.dat"
+            );
+            
+            file << "Conservation Violation Report" << nl
+                 << "Time: " << state.currentTime << nl
+                 << "Mass Error: " << state.massError << nl
+                 << "Energy Error: " << state.energyError << nl
+                 << "Phase Error: " << state.phaseError << nl
+                 << "Total Mass: " << state.totalMass << nl
+                 << "Total Energy: " << state.totalEnergy << nl;
+            
+            // Write phase-specific details
+            file << nl << "Phase Details:" << nl;
+            forAll(phaseSystem_.phases(), phasei)
+            {
+                const phaseModel& phase = phaseSystem_.phases()[phasei];
+                const volScalarField& alpha = phase;
+                const volScalarField& rho = phase.rho();
+                const volScalarField& h = phase.thermo().he();
+                
+                scalar phaseMass = fvc::domainIntegrate(alpha * rho).value();
+                scalar phaseEnergy = fvc::domainIntegrate(alpha * rho * h).value();
+                
+                file << "  Phase " << phase.name() << nl
+                     << "    Mass: " << phaseMass << nl
+                     << "    Energy: " << phaseEnergy << nl
+                     << "    Volume Fraction (avg): " << average(alpha).value() << nl;
+            }
+        }
+};
+```
+
+### ภารกิจ 6.3.2: การผสานรวมกับ Control Dictionary
+
+เพิ่ม conservation monitor ในการควบคุมการจำลอง:
+
+### OpenFOAM Code Implementation
+
+```cpp
+// system/controlDict
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      controlDict;
+}
+
+application     multiphaseEulerFoam;
+
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         10.0;
+
+deltaT          0.001;
+
+adjustTimeStep  yes;
+
+maxCo           0.5;
+maxAlphaCo      0.5;
+maxDeltaT       1.0;
+
+writeControl    timeStep;
+
+writeInterval   100;
+
+purgeWrite      0;
+
+runTimeModifiable true;
+
+functions
+{
+    conservationMonitor
+    {
+        type            multiphaseConservationMonitor;
+        
+        phaseSystem     phaseProperties;
+        
+        massTolerance   1e-8;
+        energyTolerance 1e-6;
+        phaseTolerance  1e-6;
+        
+        writeInterval   10;
+        outputFileName  conservation.dat;
+    }
+    
+    heatFluxMonitor
+    {
+        type            surfaceField;
+        
+        functionObjectLibs ("libutilityFunctionObjects.so");
+        
+        outputControl   timeStep;
+        outputInterval  50;
+        
+        fields
+        (
+            phi
+            alpha.water
+            h.water
+            h.air
+        );
+        
+        patches
+        (
+            wall
+        );
+        
+        writeFields     false;
+    }
+}
+```
+
+[Diagram: สถาปัตยกรรมของระบบตรวจสอบการอนุรักษ์แบบหลายเฟส]
+
+## แบบฝึกหัด 6.4: การเพิ่มประสิทธิภาพประสิทธิภาพการคำนวณ
+
+**วัตถุประสงค์**: เพิ่มประสิทธิภาพประสิทธิภาพการคำนวณของการจำลองการถ่ายเทความร้อนแบบหลายเฟส
+
+### ภารกิจ 6.4.1: การเพิ่มประสิทธิภาพ Solver เชิงเส้น
+
+กำหนดค่า solvers ที่เหมาะสมสำหรับระบบที่เชื่อมโยงกันของเฟส:
+
+### OpenFOAM Code Implementation
+
+```cpp
+// Optimized fvSolution
+solvers
+{
+    p
+    {
+        solver          GAMG;
+        tolerance       1e-7;
+        relTol          0.05;
+        smoother        symGaussSeidel;
+        nPreSweeps      1;
+        nPostSweeps     2;
+        nFinestSweeps   3;
+        cacheAgglomeration true;
+        agglomerator    faceAreaPair;
+        nCellsInCoarsestLevel 50;
+        mergeLevels     1;
+        directSolveCoarsest false;
+    }
+    
+    "alpha.*"
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-8;
+        relTol          0;
+        nSweeps         2;
+    }
+    
+    "U.*"
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-6;
+        relTol          0.1;
+        nSweeps         2;
+    }
+    
+    "h.*"
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-6;
+        relTol          0.1;
+        nSweeps         1;
+    }
+}
+
+relaxationFactors
+{
+    fields
+    {
+        p               0.3;
+        "alpha.*"       0.5;
+    }
+    equations
+    {
+        "U.*"           0.7;
+        "h.*"           0.8;
+    }
+}
+
+PIMPLE
+{
+    nCorrectors      3;
+    nNonOrthogonalCorrectors 0;
+    nOuterCorrectors 2;
+    nAlphaCorr       2;
+    nAlphaSubCycles  1;
+    cAlpha           1;
+    pRefCell        0;
+    pRefValue       0;
+}
+```
+
+### การตั้งค่า Solver เชิงเส้นที่เหมาะสม:
+
+| ตัวแปร | ประเภท | Tolerance | Relaxation | คำอธิบาย |
+|----------|---------|-----------|------------|------------|
+| p | GAMG | 1e-7 | 0.3 | ความดัน |
+| alpha.* | smoothSolver | 1e-8 | 0.5 | สัดส่วนปริมาตรเฟส |
+| U.* | smoothSolver | 1e-6 | 0.7 | ความเร็ว |
+| h.* | smoothSolver | 1e-6 | 0.8 | เอนทาลปี |
+
+### ภารกิจ 6.4.2: การวิเคราะห์คุณภาพ Mesh
+
+นำไปใช้การตรวจสอบคุณภาพ mesh สำหรับการถ่ายเทความร้อนแบบหลายเฟส:
+
+### OpenFOAM Code Implementation
+
+```cpp
+// meshQualityCheck function object
+class multiphaseMeshQuality
+:
+    public fvMeshFunctionObject
+{
+    private:
+        // Quality criteria thresholds
+        scalar maxNonOrthogonality_;
+        scalar maxSkewness_;
+        scalar maxAspectRatio_;
+        
+        // Phase-specific requirements
+        scalar maxAlphaGradient_;
+        scalar minInterfaceResolution_;
+        
+    public:
+        multiphaseMeshQuality
+        (
+            const word& name,
+            const Time& runTime,
+            const dictionary& dict
+        )
+        :
+            fvMeshFunctionObject(name, runTime, dict),
+            maxNonOrthogonality_(dict.lookupOrDefault<scalar>("maxNonOrthogonality", 70)),
+            maxSkewness_(dict.lookupOrDefault<scalar>("maxSkewness", 4)),
+            maxAspectRatio_(dict.lookupOrDefault<scalar>("maxAspectRatio", 1000)),
+            maxAlphaGradient_(dict.lookupOrDefault<scalar>("maxAlphaGradient", 10)),
+            minInterfaceResolution_(dict.lookupOrDefault<scalar>("minInterfaceResolution", 3))
+        {}
+        
+        virtual void execute()
+        {
+            checkBasicMeshQuality();
+            checkPhaseResolution();
+            checkInterfaceCapturing();
+        }
+        
+    private:
+        void checkBasicMeshQuality()
+        {
+            const fvMesh& mesh = mesh_;
+            
+            // Non-orthogonality check
+            scalar maxNonOrth = max
+            (
+                mesh.nonOrthogonalAngles()
+            ).value();
+            
+            if (maxNonOrth > maxNonOrthogonality_)
+            {
+                WarningInFunction
+                    << "Maximum non-orthogonality (" << maxNonOrth 
+                    << ") exceeds recommended limit (" << maxNonOrthogonality_ << ")" << endl;
+            }
+            
+            // Skewness check
+            scalar maxSkew = max
+            (
+                mesh.skewness()
+            ).value();
+            
+            if (maxSkew > maxSkewness_)
+            {
+                WarningInFunction
+                    << "Maximum skewness (" << maxSkew 
+                    << ") exceeds recommended limit (" << maxSkewness_ << ")" << endl;
+            }
+            
+            // Aspect ratio check
+            scalar maxAR = max
+            (
+                mesh.aspectRatio()
+            ).value();
+            
+            if (maxAR > maxAspectRatio_)
+            {
+                WarningInFunction
+                    << "Maximum aspect ratio (" << maxAR 
+                    << ") exceeds recommended limit (" << maxAspectRatio_ << ")" << endl;
+            }
+        }
+        
+        void checkPhaseResolution()
+        {
+            if (!mesh_.foundObject<phaseSystem>("phaseProperties")) return;
+            
+            const phaseSystem& phases = 
+                mesh_.lookupObject<phaseSystem>("phaseProperties");
+            
+            forAll(phases.phases(), phasei)
+            {
+                const phaseModel& phase = phases.phases()[phasei];
+                const volScalarField& alpha = phase;
+                
+                // Check phase fraction gradients
+                volScalarField magGradAlpha = mag(fvc::grad(alpha));
+                scalar maxGradAlpha = max(magGradAlpha).value();
+                
+                if (maxGradAlpha > maxAlphaGradient_)
+                {
+                    WarningInFunction
+                        << "Phase " << phase.name() 
+                        << " maximum gradient (" << maxGradAlpha 
+                        << ") exceeds recommended limit (" << maxAlphaGradient_ << ")" << endl;
+                }
+            }
+        }
+        
+        void checkInterfaceCapturing()
+        {
+            // Interface thickness relative to cell size
+            const fvMesh& mesh = mesh_;
+            const volScalarField::Internal& V = mesh.V();
+            const surfaceScalarField& magSf = mesh.magSf();
+            
+            // Calculate characteristic cell size
+            volScalarField cellSize
+            (
+                IOobject
+                (
+                    "cellSize",
+                    mesh.time().timeName(),
+                    mesh
+                ),
+                mesh,
+                dimensionedScalar("cellSize", dimLength, 0.0)
+            );
+            
+            cellSize.primitiveFieldRef() = pow(V, 1.0/3.0);
+            
+            // Check interface resolution
+            if (mesh_.foundObject<volScalarField>("alpha1"))
+            {
+                const volScalarField& alpha1 = mesh_.lookupObject<volScalarField>("alpha1");
+                
+                // Interface cells (where 0.01 < alpha < 0.99)
+                forAll(alpha1, celli)
+                {
+                    if (alpha1[celli] > 0.01 && alpha1[celli] < 0.99)
+                    {
+                        scalar interfaceThickness = cellSize[celli];
+                        
+                        if (interfaceThickness > minInterfaceResolution_)
+                        {
+                            WarningInFunction
+                                << "Interface cell " << celli 
+                                << " too coarse for accurate interface capturing" << endl;
+                        }
+                    }
+                }
+            }
+        }
+};
+```
+
+[Diagram: กระบวนการตรวจสอบคุณภาพ Mesh สำหรับการจำลองแบบหลายเฟส]
+
+## แบบฝึกหัด 6.5: การตรวจสอบความถูกต้องกับข้อมูลทดลอง
+
+**วัตถุประสงค์**: ตรวจสอบความถูกต้องของแบบจำลองการถ่ายเทความร้อนแบบหลายเฟสกับกรณีมาตรฐาน
+
+### ภารกิจ 6.5.1: การเลือกกรณีมาตรฐาน
+
+เลือกกรณีทดสอบความถูกต้องที่เหมาะสม:
+
+1. **การถ่ายเทความร้อนฟองเดี่ยว**: เรขาคณิตง่ายด้วยวิธีแก้ปัญหาวิเคราะห์
+2. **การไหลในท่อแบบสองเฟส**: ข้อมูลทดลองที่ได้รับการบันทึกอย่างดี
+3. **การระเหยของฟิล์มหย่อน**: การตรวจสอบความสัมพันธ์การถ่ายเทความร้อนแบบคลาสสิก
+
+### ภารกิจ 6.5.2: การประมาณความผิดพลาด
+
+นำไปใช้การวิเคราะห์ความผิดพลาดอย่างครอบคลุม:
+
+### OpenFOAM Code Implementation
+
+```cpp
+// validationAnalysis function object
+class validationAnalysis
+:
+    public fvMeshFunctionObject
+{
+    private:
+        // Experimental data file
+        fileName experimentalDataFile_;
+        
+        // Reference solution data
+        fileName referenceDataFile_;
+        
+        // Error metrics storage
+        List<scalar> l2NormHistory_;
+        List<scalar> maxErrorHistory_;
+        List<scalar> correlationCoeff_;
+        
+    public:
+        validationAnalysis
+        (
+            const word& name,
+            const Time& runTime,
+            const dictionary& dict
+        )
+        :
+            fvMeshFunctionObject(name, runTime, dict),
+            experimentalDataFile_(dict.lookupOrDefault<fileName>("experimentalDataFile", "experimental.dat")),
+            referenceDataFile_(dict.lookupOrDefault<fileName>("referenceDataFile", "reference.dat"))
+        {
+            loadExperimentalData();
+        }
+        
+        virtual void execute()
+        {
+            if (mesh_.time().timeIndex() % 10 == 0)
+            {
+                calculateValidationMetrics();
+                reportValidationStatus();
+            }
+        }
+        
+    private:
+        void loadExperimentalData()
+        {
+            // Load experimental data from file
+            // Parse and store for comparison
+        }
+        
+        void calculateValidationMetrics()
+        {
+            // Compare numerical results with experimental data
+            // Calculate L2 norm, maximum error, correlation coefficient
+        }
+        
+        void reportValidationStatus()
+        {
+            // Report validation results
+            // Identify regions of poor agreement
+            // Suggest model improvements
+        }
+};
+```
+
+### การวิเคราะห์ความผิดพลาดสำหรับการตรวจสอบความถูกต้อง:
+
+| เมตริก | สูตร | การใช้งาน | ค่าที่ยอมรับได้ |
+|----------|--------|--------------|------------------|
+| L2 Norm | $\|e\|_{L2} = \sqrt{\sum_{i=1}^{N} (u_i^{\text{num}} - u_i^{\text{exp}})^2}$ | ข้อผิดพลาดโดยรวม | < 5% |
+| Maximum Error | $|e|_{\max} = \max_i |u_i^{\text{num}} - u_i^{\text{exp}}|$ | ข้อผิดพลาดสูงสุด | < 10% |
+| Correlation Coefficient | $R = \frac{\sum_i (u_i^{\text{num}} - \bar{u}^{\text{num}})(u_i^{\text{exp}} - \bar{u}^{\text{exp}})}{\sigma^{\text{num}} \sigma^{\text{exp}}}$ | ความสัมพันธ์ | > 0.9 |
+
+แบบฝึกหัดเหล่านี้ให้ประสบการณ์จริงอย่างครอบคลุมกับการนำไปใช้ ทดสอบ และตรวจสอบความถูกต้องของแบบจำลองการถ่ายเทความร้อนแบบหลายเฟสใน OpenFOAM ครอบคลุมทุกแง่มุมตั้งแต่การพัฒนาแบบจำลองไปจนถึงการเพิ่มประสิทธิภาพประสิทธิภาพและการตรวจสอบความถูกต้อง

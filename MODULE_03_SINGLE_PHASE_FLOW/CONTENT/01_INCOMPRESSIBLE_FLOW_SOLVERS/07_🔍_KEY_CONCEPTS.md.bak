@@ -1,0 +1,346 @@
+## 🔍 แนวคิดหลัก
+
+### สมมติฐานการไหลแบบอัดตัวไม่ได้ (Incompressibility Assumption)
+
+**สมมติฐานการไหลแบบอัดตัวไม่ได้** เป็นการทำให้ง่ายขึ้นขั้นพื้นฐานในพลศาสตร์ของไหล ซึ่งถือว่าความหนาแน่นของของไหลคงที่ตลอดสนามการไหล
+
+**เงื่อนไขที่ใช้ได้:**
+- Mach numbers ต่ำกว่า 0.3 (โดยทั่วไป < 0.1 สำหรับการใช้งานทางวิศวกรรมส่วนใหญ่)
+- ความแปรผันของความดันมีค่าน้อยมากจนการเปลี่ยนแปลงความหนาแน่นมีค่าน้อยมากจนละเลยได้
+- ความแปรผันของอุณหภูมิไม่ส่งผลกระทบต่อความหนาแน่นอย่างมีนัยสำคัญ
+
+[Diagram: การเปรียบเทียบการไหลแบบอัดตัวได้กับการไหลแบบอัดตัวไม่ได้ แสดงความแตกต่างของความหนาแน่น]
+
+ในทางคณิตศาสตร์ สมมติฐานนี้ทำให้สมการความต่อเนื่องง่ายขึ้นจาก:
+$$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$$
+
+ไปสู่รูปแบบที่ง่ายกว่า:
+$$\nabla \cdot \mathbf{u} = 0$$
+
+**ตัวแปรในสมการ:**
+- $\rho$ = ความหนาแน่นของของไหล
+- $\mathbf{u}$ = ความเร็วของของไหล (เวกเตอร์)
+- $t$ = เวลา
+
+เงื่อนไขที่ไม่มี Divergence นี้หมายความว่าอัตราการไหลเชิงปริมาตรที่เข้าสู่ปริมาตรควบคุมใด ๆ จะต้องเท่ากับอัตราการไหลเชิงปริมาตรที่ออกจากปริมาตรควบคุมนั้น
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Incompressible solvers ใช้สมการความต่อเนื่องที่ง่ายขึ้น
+fvVectorMatrix UEqn
+(
+    fvm::ddt(U) + fvm::div(phi, U)
+  + turbulence->divDevReff(U)
+ ==
+    fvOptions(U)
+);
+
+// ไม่ต้องแก้สมการพลังงานสำหรับ compressible flow
+```
+
+### การไหลแบบ Steady-State เทียบกับการไหลแบบ Transient
+
+**การไหลแบบ Steady-state** คือการไหลที่ไม่ขึ้นกับเวลา โดยที่คุณสมบัติการไหลทั้งหมดคงที่ ณ จุดใด ๆ ในสนามการไหล:
+$$\frac{\partial \phi}{\partial t} = 0$$
+
+โดยที่ $\phi$ แทนตัวแปรการไหลใด ๆ (ความเร็ว, ความดัน, อุณหภูมิ, เป็นต้น)
+
+**สมการควบคุมแบบ Steady:**
+- **สมการความต่อเนื่องแบบ Steady**: $\nabla \cdot \mathbf{u} = 0$
+- **สมการโมเมนตัมแบบ Steady**: $\rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$
+
+**การไหลแบบ Transient** (หรือการไหลแบบไม่คงที่) มีคุณสมบัติที่แปรผันตามเวลา:
+$$\frac{\partial \phi}{\partial t} \neq 0$$
+
+**สมการควบคุมแบบ Transient:**
+- **สมการความต่อเนื่องแบบ Transient**: $\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$
+- **สมการโมเมนตัมแบบ Transient**: $\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$
+
+**ตัวแปรเพิ่มเติม:**
+- $p$ = ความดัน
+- $\mu$ = ความหนืดของของไหล
+- $\mathbf{f}$ = แรงภายนอกต่อหน่วยปริมาตร
+
+[Diagram: แสดงความแตกต่างระหว่างการไหลแบบ steady-state (เส้นกระแสคงที่) กับ transient (เส้นกระแสเปลี่ยนแปลงตามเวลา)]
+
+**การเปรียบเทียบ Solvers ใน OpenFOAM:**
+
+| Solver | Type | การใช้งาน | อัลกอริทึม |
+|--------|------|-------------|-------------|
+| `simpleFoam` | Steady-state | การไหลแบบ incompressible | SIMPLE |
+| `buoyantSimpleFoam` | Steady-state | การไหลความร้อน | SIMPLE |
+| `pimpleFoam` | Transient | การไหลแบบ incompressible | PIMPLE |
+| `icoFoam` | Transient | การไหลลามินาร์ | PISO |
+| `buoyantPimpleFoam` | Transient | การไหลความร้อน | PIMPLE |
+
+### การเชื่อมโยงความดัน-ความเร็ว (Pressure-Velocity Coupling)
+
+**การเชื่อมโยงความดัน-ความเร็ว** เป็นความท้าทายที่สำคัญในการจำลองการไหลแบบอัดตัวไม่ได้ เนื่องจากสมการความต่อเนื่องมีเพียงความเร็วเท่านั้น ในขณะที่สมการโมเมนตัมมีทั้งความดันและความเร็ว
+
+**การพึ่งพาแบบวงกลม:**
+1. **ความดัน** ส่งผลต่อ **ความเร็ว** ผ่านสมการโมเมนตัม
+2. **ความเร็ว** ส่งผลต่อ **ความดัน** ผ่านสมการความต่อเนื่อง
+
+[Diagram: แผนภาพการไหลแสดงความสัมพันธ์ระหว่างความดันและความเร็วในอัลกอริทึม SIMPLE]
+
+**สมการโมเมนตัมที่มี Pressure Gradient:**
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
+
+#### SIMPLE Algorithm (Semi-Implicit Method for Pressure-Linked Equations)
+
+ใช้ใน Steady-state Solvers:
+
+**ขั้นตอนการทำงาน:**
+```
+for each iteration:
+    1. Guess pressure field (p*)
+    2. Solve momentum equations using p* → u*
+    3. Solve pressure correction equation → p'
+    4. Correct pressure: p = p* + p'
+    5. Correct velocity: u = u* + u'
+    6. Update other scalar fields
+    7. Check convergence
+```
+
+**OpenFOAM Code Implementation:**
+```cpp
+// SIMPLE loop in simpleFoam
+while (pimple.loop())
+{
+    // Momentum predictor
+    tmp<fvVectorMatrix> tUEqn
+    (
+        fvm::div(phi, U)
+      + turbulence->divDevReff(U)
+     ==
+        fvOptions(U)
+    );
+
+    // Pressure-velocity coupling
+    while (pimple.correctNonOrthogonal())
+    {
+        fvScalarMatrix pEqn
+        (
+            fvm::laplacian(rAU, p) == fvc::div(phiHbyA)
+        );
+
+        pEqn.solve();
+
+        if (pimple.finalNonOrthogonalIter())
+        {
+            phi -= pEqn.flux();
+        }
+    }
+
+    // Correct velocity
+    U -= rAU*fvc::grad(p);
+    U.correctBoundaryConditions();
+}
+```
+
+#### PISO Algorithm (Pressure Implicit with Splitting of Operators)
+
+ใช้ใน Transient Solvers ที่มีการแก้ไขความดันหลายครั้งต่อหนึ่ง Time Step:
+
+**ขั้นตอนการทำงาน:**
+```
+for each time step:
+    for each PISO correction:
+        1. Solve momentum equations → u*
+        2. Solve pressure correction → p'
+        3. Correct velocity and pressure
+        4. Optional: solve additional equations
+```
+
+**OpenFOAM Code Implementation:**
+```cpp
+// PISO loop in icoFoam
+while (pimple.loop())
+{
+    // Momentum equation
+    fvVectorMatrix UEqn
+    (
+        fvm::ddt(U) + fvm::div(phi, U)
+      - fvm::laplacian(nu, U)
+     ==
+        fvc::ddt(phi, U) - fvc::div(phi, U)
+    );
+
+    // PISO corrections
+    while (pimple.correct())
+    {
+        // Pressure equation
+        fvScalarMatrix pEqn
+        (
+            fvm::laplacian(rAU, p) == fvc::div(phi)
+        );
+
+        pEqn.solve();
+
+        // Correct velocity flux
+        phi -= pEqn.flux();
+    }
+
+    // Explicit velocity correction
+    U -= rAU*fvc::grad(p);
+    U.correctBoundaryConditions();
+}
+```
+
+### เกณฑ์การ Convergence (Convergence Criteria)
+
+**เกณฑ์การ Convergence** กำหนดว่าการจำลอง CFD ได้บรรลุผลลัพธ์เมื่อใด
+
+**1. Convergence โดยอิงตาม Residual**
+
+ตรวจสอบความไม่สมดุลในสมการควบคุม:
+$$\text{Residual} = \| \mathbf{A}x - \mathbf{b} \|$$
+
+**เกณฑ์ Convergence ทั่วไป:**
+- **Residual สัมบูรณ์**: $10^{-6}$ ถึง $10^{-8}$ สำหรับสมการโมเมนตัม
+- **Residual สัมพัทธ์**: $10^{-3}$ ถึง $10^{-5}$ ของ Residual เริ่มต้น
+
+**ตัวแปร:**
+- $\mathbf{A}$ = Matrix of coefficients
+- $x$ = Solution vector
+- $\mathbf{b}$ = Source vector
+
+**2. การตรวจสอบ Solution (Solution Monitoring)**
+
+ติดตามปริมาณทางกายภาพที่สำคัญ:
+
+| ปริมาณ | สูตรการคำนวณ | การใช้งาน |
+|---------|----------------|-------------|
+| Drag coefficient | $C_D = \frac{F_D}{0.5\rho U^2 A}$ | แรงต้าน |
+| Lift coefficient | $C_L = \frac{F_L}{0.5\rho U^2 A}$ | แรงยก |
+| Pressure drop | $\Delta p = p_{in} - p_{out}$ | การไหล |
+| Mass flow rate | $\dot{m} = \rho \int \mathbf{u} \cdot \mathbf{n} \, dA$ | มวล |
+
+**3. การตรวจสอบ Global Balance**
+
+ตรวจสอบหลักการอนุรักษ์:
+- **สมดุลมวล**: $\dot{m}_{in} - \dot{m}_{out} < \epsilon_m$
+- **สมดุลพลังงาน**: $Q_{in} - Q_{out} < \epsilon_e$
+
+**OpenFOAM Code Implementation:**
+```cpp
+// controlDict
+solvers {
+    p {
+        solver          GAMG;
+        tolerance       1e-7;          // ค่า Tolerance สัมบูรณ์
+        relTol          0.01;          // ค่า Tolerance สัมพัทธ์
+    }
+    U {
+        solver          smoothSolver;
+        tolerance       1e-8;
+        relTol          0;
+    }
+}
+```
+
+### Under-Relaxation
+
+**Under-Relaxation** เป็นเทคนิคความเสถียรที่จำกัดการเปลี่ยนแปลงของตัวแปร Solution ระหว่าง Iteration:
+
+$$\phi^{n+1} = \phi^n + \alpha (\phi^{new} - \phi^n)$$
+
+โดยที่ $\alpha$ คือ Under-Relaxation Factor (0 < $\alpha$ ≤ 1)
+
+[Diagram: กราฟแสดงผลของค่า under-relaxation ต่อความเร็วในการ收敛 แสดงค่าที่เหมาะสมและค่าที่สูงเกินไป]
+
+**ค่า Under-Relaxation ทั่วไป:**
+
+| ตัวแปร | ช่วงค่าที่แนะนำ | ผลกระทบ |
+|---------|-----------------|----------|
+| ความดัน | 0.3 - 0.7 | ค่าต่ำ = เสถียรขึ้น, ช้าลง |
+| ความเร็ว | 0.5 - 0.8 | ค่าต่ำ = เสถียรขึ้น, ช้าลง |
+| Turbulence | 0.4 - 0.8 | ค่าต่ำ = เสถียรขึ้น, ช้าลง |
+| อุณหภูมิ | 0.6 - 0.9 | ค่าต่ำ = เสถียรขึ้น, ช้าลง |
+| ความหนาแน่น | 0.6 - 1.0 | สำหรับการไหลแบบอัดตัวได้ |
+
+**OpenFOAM Code Implementation:**
+```cpp
+// fvSolution
+relaxationFactors {
+    fields {
+        p               0.3;    // Under-Relaxation ของความดัน
+        rho             0.8;    // Under-Relaxation ของความหนาแน่น
+    }
+    equations {
+        U               0.7;    // Under-Relaxation ของความเร็ว
+        k               0.6;    // พลังงานจลน์ Turbulence
+        epsilon         0.6;    // อัตราการสลายตัวของ Turbulence
+    }
+}
+```
+
+### การตรวจสอบ Residual (Residual Monitoring)
+
+**Residual** ให้ข้อมูลเชิงปริมาณเกี่ยวกับ Convergence ของ Solution และประสิทธิภาพของ Solver
+
+**ประเภทของ Residual:**
+
+**1. Residual เริ่มต้น (Initial Residuals)**
+$$\text{Res}_0 = \| \mathbf{A}x_0 - \mathbf{b} \|$$
+แสดงถึงจุดเริ่มต้นสำหรับแต่ละ Iteration
+
+**2. Residual สุดท้าย (Final Residuals)**
+$$\text{Res}_f = \| \mathbf{A}x_n - \mathbf{b} \|$$
+แสดงให้เห็นว่า Solution ปัจจุบันเป็นไปตามสมการได้ดีเพียงใด
+
+**3. Residual แบบ Normalized (Normalized Residuals)**
+$$\text{Res}_{norm} = \frac{\text{Res}_f}{\text{Res}_0}$$
+ช่วยให้สามารถเปรียบเทียบระหว่างสมการและ Scale ที่แตกต่างกันได้
+
+**4. Residual แบบ Scaled (Scaled Residuals)**
+$$\text{Res}_{scaled} = \frac{\| \mathbf{A}x_n - \mathbf{b} \|}{\| \mathbf{b} \|}$$
+ทำให้เป็นมาตรฐานโดยขนาดของ Source Term
+
+[Diagram: กราฟแสดงลักษณะการ收敛 4 แบบ - monotonic decrease, oscillatory convergence, plateau, และ divergence]
+
+**รูปแบบ Convergence:**
+
+| รูปแบบ | ลักษณะ | การจัดการ |
+|---------|---------|-------------|
+| ลดลงอย่างต่อเนื่อง | Convergence ในอุดมคติ | ดำเนินการต่อ |
+| Convergence แบบแกว่ง | Amplitude ลดลง | ยอมรับได้หากลดลง |
+| คงที่ (Plateau) | ค่าต่ำสุดเฉพาะที่ | ปรับพารามิเตอร์ |
+| Divergence | Residual เพิ่มขึ้น | ต้องแก้ไขทันที |
+
+**OpenFOAM Code Implementation:**
+```cpp
+// controlDict
+residualControl {
+    p               1e-6;      // เกณฑ์ Convergence ของความดัน
+    U               1e-6;      // เกณฑ์ Convergence ของความเร็ว
+    "(k|epsilon|omega)" 1e-5;  // สมการ Turbulence
+}
+
+// การตรวจสอบใน code
+if (finalResidual < tolerance)
+{
+    Info << "Converged!" << endl;
+    break;
+}
+```
+
+**เทคนิคการตรวจสอบ:**
+- **การวิเคราะห์ Log File**: ติดตามการเปลี่ยนแปลงของ Residual
+- **การพล็อตกราฟ**: แสดงแนวโน้ม Convergence ด้วยภาพ
+- **การหยุดอัตโนมัติ**: ใช้เกณฑ์ Residual ในการหยุดการทำงานอัตโนมัติ
+- **เกณฑ์แบบปรับได้**: ปรับเกณฑ์ตามความคืบหน้าของ Solution
+
+**ตัวอย่าง Log File Analysis:**
+```bash
+# ตัวอย่างข้อความใน log file
+Time = 1
+smoothSolver: Solving for Ux, Initial residual = 0.00123, Final residual = 3.45e-06, No Iterations 4
+smoothSolver: Solving for Uy, Initial residual = 0.000987, Final residual = 2.76e-06, No Iterations 4
+GAMG: Solving for p, Initial residual = 0.0456, Final residual = 1.23e-07, No Iterations 12
+```
+
+จากข้อมูลนี้สามารถตรวจสอบว่า:
+- ความเร็วมีการลดลงจาก 0.00123 เหลือ 3.45e-06
+- ความดันมีการลดลงจาก 0.0456 เหลือ 1.23e-07
+- จำนวน Iteration ยังอยู่ในช่วงที่ยอมรับได้

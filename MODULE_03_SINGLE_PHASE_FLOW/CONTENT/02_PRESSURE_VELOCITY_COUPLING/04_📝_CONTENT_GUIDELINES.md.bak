@@ -1,0 +1,393 @@
+# 📝 แนวทางการจัดทำเอกสารทางเทคนิค
+
+## การพิสูจน์ทางคณิตศาสตร์
+
+เอกสารทางเทคนิคทั้งหมดต้องมีการพิสูจน์ทางคณิตศาสตร์ที่ครอบคลุมและเป็นไปตาม **Obsidian Math & Calculus Notation Guide**
+
+### โครงสร้างการพิสูจน์ที่ครอบคลุม
+
+1.  **เริ่มต้นจากหลักการพื้นฐาน** (กฎการอนุรักษ์, ความสัมพันธ์ทางอุณหพลศาสตร์)
+2.  **แสดงทุกขั้นตอนกลาง** พร้อมคำอธิบายที่ชัดเจน
+3.  **อ้างอิงสมมติฐาน** และการทำให้ง่ายขึ้นที่ใช้
+4.  **จบลงด้วยรูปแบบสุดท้าย** ที่พร้อมสำหรับการนำไปใช้เชิงตัวเลข
+
+### ตัวอย่างการพิสูจน์: Navier-Stokes จาก Conservation of Momentum
+
+**ขั้นที่ 1: เริ่มต้นจากหลักการ momentum conservation**
+$$\frac{\partial}{\partial t}(\rho \mathbf{u}) + \nabla \cdot (\rho \mathbf{u} \otimes \mathbf{u}) = \nabla \cdot \boldsymbol{\tau} + \rho \mathbf{g}$$
+
+[Diagram: แสดง control volume พร้อม momentum flux]
+
+**ขั้นที่ 2: นิยาม stress tensor สำหรับ Newtonian fluids**
+$$\boldsymbol{\tau} = -p\mathbf{I} + \mu\left(\nabla\mathbf{u} + (\nabla\mathbf{u})^T\right) - \frac{2}{3}\mu(\nabla \cdot \mathbf{u})\mathbf{I}$$
+
+**ขั้นที่ 3: แทนค่าและกระจาย**
+$$\frac{\partial}{\partial t}(\rho \mathbf{u}) + \nabla \cdot (\rho \mathbf{u} \otimes \mathbf{u}) = -\nabla p + \mu \nabla^2 \mathbf{u} + \nabla\left(\frac{1}{3}\mu(\nabla \cdot \mathbf{u})\right) + \rho \mathbf{g}$$
+
+**ขั้นที่ 4: สำหรับ incompressible flow** ($\nabla \cdot \mathbf{u} = 0$, $\rho = \text{constant}$):
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla)\mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \rho \mathbf{g}$$
+
+**ตัวแปรที่ใช้:**
+- $\rho$ = ความหนาแน่นของของไหล (kg/m³)
+- $\mathbf{u}$ = ความเร็วของของไหล (m/s)
+- $p$ = ความดัน (Pa)
+- $\mu$ = ความหนืดไดนามิก (Pa·s)
+- $\mathbf{g}$ = ความเร่งเนื่องจากแรงโน้มถ่วง (m/s²)
+- $\boldsymbol{\tau}$ = stress tensor (Pa)
+
+### OpenFOAM Code Implementation: Momentum Equation
+
+**ตำแหน่ง**: `applications/solvers/incompressible/simpleFoam/simpleFoam.C:105-125`
+
+```cpp
+// Momentum equation
+fvVectorMatrix UEqn
+(
+    fvm::div(phi, U)
+  + fvm::SuSp(-fvc::div(phi), U)
+  + turbulence->divDevReff(U)
+ ==
+    fvOptions(U)
+);
+
+UEqn.relax();
+
+fvOptions.constrain(UEqn);
+
+if (simple.momentumPredictor())
+{
+    solve
+    (
+        UEqn == -fvc::grad(p)
+    );
+    
+    fvOptions.correct(U);
+}
+```
+
+**การแปลงสมการเป็น Code:**
+- `fvm::div(phi, U)`: Convection term $\nabla \cdot (\rho \mathbf{u} \otimes \mathbf{u})$
+- `turbulence->divDevReff(U)`: Turbulent stress divergence $\nabla \cdot \boldsymbol{\tau}_{\text{turb}}$
+- `fvc::grad(p)`: Pressure gradient $-\nabla p$
+- `fvOptions(U)`: Source terms และ momentum coupling
+
+## ผังงาน Algorithm สำหรับ Solver
+
+### SIMPLE Algorithm Flowchart
+
+[Diagram: ผังงาน SIMPLE algorithm แบบละเอียด]
+
+```mermaid
+flowchart TD
+    A[Start: Read mesh & initial fields] --> B[Initialize physical models]
+    B --> C{Converged?}
+    C -->|No| D[Momentum equation solve]
+    D --> E[Pressure correction equation solve]
+    E --> F[Correct pressure & flux]
+    F --> G[Correct velocity field]
+    G --> H[Update turbulence properties]
+    H --> I[Check residuals & convergence]
+    I --> C
+    C -->|Yes| J[Write results]
+    J --> K{Next time step?}
+    K -->|Yes| L[Advance time]
+    L --> C
+    K -->|No| M[End]
+```
+
+### ขั้นตอน Algorithm โดยละเอียด
+
+#### **ขั้นที่ 1: Momentum Equation**
+$$\mathbf{A}_{\mathbf{u}} \mathbf{u}^* = \mathbf{H}(\mathbf{u}^{n}) - \nabla p^n$$
+
+- $\mathbf{A}_{\mathbf{u}}$ = Momentum coefficient matrix
+- $\mathbf{u}^*$ = Intermediate velocity field
+- $\mathbf{H}(\mathbf{u}^{n})$ = Convection and diffusion terms
+- $p^n$ = Pressure from previous iteration
+
+#### **ขั้นที่ 2: Pressure Correction Equation**
+$$\nabla \cdot \left(\frac{\mathbf{D}}{\mathbf{A}_{\mathbf{u}}} \nabla p'\right) = \nabla \cdot \mathbf{u}^*$$
+
+- $p'$ = Pressure correction
+- $\mathbf{D}$ = Diagonal of momentum matrix
+- $\mathbf{A}_{\mathbf{u}}$ = Momentum coefficient matrix
+
+#### **ขั้นที่ 3: Pressure and Velocity Updates**
+$$p^{n+1} = p^n + p'$$
+$$\mathbf{u}^{n+1} = \mathbf{u}^* - \frac{\mathbf{D}}{\mathbf{A}_{\mathbf{u}}} \nabla p'$$
+
+### OpenFOAM Template Implementation: Field Types
+
+**ตำแหน่ง**: `src/OpenFOAM/fields/GeometricFields/GeometricField.H`
+
+```cpp
+template<class Type, class PatchField, class GeoMesh>
+class GeometricField
+:
+    public DimensionedField<Type, GeoMesh>,
+    public Field<Type>
+{
+    // ... implementation details
+    
+    template<class Type2>
+    void operator=
+    (
+        const GeometricField<Type2, PatchField, GeoMesh>&
+    );
+    
+    template<class Type2>
+    void operator+=
+    (
+        const GeometricField<Type2, PatchField, GeoMesh>&
+    );
+};
+```
+
+**คำอธิบาย Template:**
+- `Type` = ประเภทข้อมูล (scalar, vector, tensor)
+- `PatchField` = Boundary condition type
+- `GeoMesh` = Mesh type (volMesh, surfaceMesh)
+
+## การวิเคราะห์ Convergence
+
+### ข้อกำหนดของ Convergence Analysis
+
+1.  **Residual plots**: แสดง convergence ของแต่ละสมการ
+2.  **Physics convergence**: ตรวจสอบปริมาณทางฟิสิกส์ที่เกี่ยวข้อง
+3.  **Mesh convergence**: แสดงความเป็นอิสระจาก Grid
+4.  **Parameter convergence**: แสดงความไวต่อ Parameter หลัก
+
+### ข้อมูล Convergence ตัวอย่าง: Lid-driven Cavity
+
+**กรณีศึกษา**: Lid-driven cavity flow, Re = 1000, 50×50 mesh
+
+[Diagram: แสดง lid-driven cavity geometry พร้อม boundary conditions]
+
+| Time Step | Continuity | x-Momentum | y-Momentum | Pressure |
+|-----------|------------|------------|------------|----------|
+|    10     | 1.2e-02    | 8.5e-03    | 7.2e-03    | 9.1e-02  |
+|    20     | 3.4e-03    | 2.1e-03    | 1.9e-03    | 2.8e-02  |
+|    30     | 1.1e-03    | 6.8e-04    | 5.2e-04    | 1.2e-02  |
+|    40     | 4.2e-04    | 2.3e-04    | 1.8e-04    | 5.4e-03  |
+|    50     | 1.7e-04    | 8.1e-05    | 6.4e-05    | 2.6e-03  |
+|    60     | 7.3e-05    | 2.9e-05    | 2.3e-05    | 1.3e-03  |
+|    70     | 3.1e-05    | 1.1e-05    | 8.7e-06    | 6.8e-04  |
+|    80     | 1.4e-05    | 4.2e-06    | 3.4e-06    | 3.7e-04  |
+|    90     | 6.7e-06    | 1.6e-06    | 1.3e-06    | 2.1e-04  |
+|   100     | 3.2e-06    | 6.4e-07    | 5.2e-07    | 1.2e-04  |
+
+### การสร้าง Convergence Plot ด้วย Python
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Convergence data
+iterations = np.arange(10, 101, 10)
+residuals = {
+    'Continuity': [1.2e-02, 3.4e-03, 1.1e-03, 4.2e-04, 1.7e-04, 
+                   7.3e-05, 3.1e-05, 1.4e-05, 6.7e-06, 3.2e-06],
+    'x-Momentum': [8.5e-03, 2.1e-03, 6.8e-04, 2.3e-04, 8.1e-05,
+                   2.9e-05, 1.1e-05, 4.2e-06, 1.6e-06, 6.4e-07],
+    'y-Momentum': [7.2e-03, 1.9e-03, 5.2e-04, 1.8e-04, 6.4e-05,
+                   2.3e-05, 8.7e-06, 3.4e-06, 1.3e-06, 5.2e-07]
+}
+
+plt.figure(figsize=(10, 6))
+for equation, data in residuals.items():
+    plt.semilogy(iterations, data, 'o-', label=equation, linewidth=2)
+
+plt.xlabel('Iterations')
+plt.ylabel('Residuals (log scale)')
+plt.title('SIMPLE Algorithm Convergence - Lid-Driven Cavity, Re=1000')
+plt.grid(True, alpha=0.3)
+plt.legend()
+plt.tight_layout()
+plt.show()
+```
+
+[Diagram: แสดง convergence plot พร้อม axis labels และ legend]
+
+## เอกสารอ้างอิงพื้นฐาน
+
+### หมวดหมู่เอกสารที่จำเป็น
+
+1.  **วิธีการคำนวณเชิงตัวเลขพื้นฐาน**
+2.  **การพัฒนา Algorithm**
+3.  **การศึกษา Validation**
+4.  **ความก้าวหน้าล่าสุด**
+
+### เอกสารพื้นฐานหลัก
+
+#### **Numerical Methods**
+
+**1. Patankar, S. V., & Spalding, D. B. (1972).** "A calculation procedure for heat, mass and momentum transfer in three-dimensional parabolic flows." *International Journal of Heat and Mass Transfer*, 15(10), 1787-1806.
+
+- **Key contribution**: พัฒนา SIMPLE algorithm
+- **Relevance**: รากฐานสำหรับ OpenFOAM steady-state solvers ส่วนใหญ่
+- **OpenFOAM implementation**: `applications/solvers/incompressible/simpleFoam/`
+
+**2. Issa, R. I. (1986).** "Solution of the implicitly discretised fluid flow equations by operator-splitting." *Journal of Computational Physics*, 62(1), 40-65.
+
+- **Key contribution**: พัฒนา PISO algorithm
+- **Relevance**: รากฐานสำหรับ transient solvers เช่น `pimpleFoam`
+- **OpenFOAM implementation**: `applications/solvers/incompressible/pisoFoam/`
+
+#### **Turbulence Modeling**
+
+**3. Menter, F. R. (1994).** "Two-equation eddy-viscosity turbulence models for engineering applications." *AIAA Journal*, 32(8), 1598-1605.
+
+- **Key contribution**: SST k-ω turbulence model
+- **Relevance**: ใช้ในงาน CFD ทางวิศวกรรมส่วนใหญ่
+- **OpenFOAM implementation**: `src/TurbulenceModels/turbulenceModels/RAS/kOmegaSST/`
+
+**4. Launder, B. E., & Spalding, D. B. (1974).** "The numerical computation of turbulent flows." *Computer Methods in Applied Mechanics and Engineering*, 3(2), 269-289.
+
+- **Key contribution**: Standard k-ε turbulence model
+- **Relevance**: Turbulence model ที่ใช้กันอย่างแพร่หลายที่สุด
+- **OpenFOAM implementation**: `src/TurbulenceModels/turbulenceModels/RAS/kEpsilon/`
+
+#### **Multiphase Flow**
+
+**5. Hirt, C. W., & Nichols, B. D. (1981).** "Volume of fluid (VOF) method for the dynamics of free boundaries." *Journal of Computational Physics*, 39(1), 201-225.
+
+- **Key contribution**: VOF method สำหรับการติดตาม Interface
+- **Relevance**: รากฐานสำหรับ `interFoam` solver
+- **OpenFOAM implementation**: `applications/solvers/multiphase/interFoam/`
+
+**6. Ishii, T., & Hibiki, T. (2011).** *Thermo-fluid dynamics of two-phase flow*. Springer Science & Business Media.
+
+- **Key contribution**: ทฤษฎี Multiphase flow ที่ครอบคลุม
+- **Relevance**: รากฐานสำหรับ `multiphaseEulerFoam`
+- **OpenFOAM implementation**: `applications/solvers/multiphase/multiphaseEulerFoam/`
+
+#### **OpenFOAM Specific**
+
+**7. Weller, H. G., Tabor, G., Jasak, H., & Fureby, C. (1998).** "A tensorial approach to computational continuum mechanics using object-oriented techniques." *Computers in Physics*, 12(6), 620-631.
+
+- **Key contribution**: OpenFOAM's tensorial mathematics framework
+- **Relevance**: ปรัชญาการออกแบบพื้นฐานของ OpenFOAM
+- **OpenFOAM implementation**: `src/OpenFOAM/fields/TensorField/`
+
+**8. Jasak, H. (1996).** "Error analysis and estimation for the finite volume method with applications to fluid flows." *PhD Thesis, Imperial College, London*.
+
+- **Key contribution**: Finite volume error analysis
+- **Relevance**: การศึกษาความแม่นยำเชิงตัวเลขและ convergence
+- **OpenFOAM implementation**: Error estimation tools in `src/finiteVolume/`
+
+### รูปแบบการอ้างอิงมาตรฐาน
+
+```bibtex
+@article{author_year_title,
+    author = {Author(s)},
+    title = {Paper Title},
+    journal = {Journal Name},
+    volume = {Volume},
+    number = {Number},
+    pages = {Page Range},
+    year = {Year},
+    doi = {DOI number if available}
+}
+```
+
+### ข้อมูลการเข้าถึงเอกสาร
+
+| เอกสาร | DOI Link | Open Access | OpenFOAM Implementation |
+|----------|----------|-------------|-------------------------|
+| Patankar & Spalding (1972) | 10.1016/0017-9310(72)90002-7 | ❌ Limited | `simpleFoam/` |
+| Issa (1986) | 10.1016/0021-9991(86)90002-1 | ❌ Limited | `pisoFoam/` |
+| Menter (1994) | 10.2514/3.12149 | ✅ Available | `kOmegaSST/` |
+| Hirt & Nichols (1981) | 10.1016/0021-9991(81)90145-5 | ✅ Available | `interFoam/` |
+
+## ผังงาน Troubleshooting สำหรับ Solver
+
+### โครงสร้างการวินิจฉัยปัญหา
+
+1.  **การระบุ Symptom**: ข้อความแสดงข้อผิดพลาดและพฤติกรรมทั่วไป
+2.  **ขั้นตอนการวินิจฉัย**: แนวทางที่เป็นระบบในการระบุปัญหา
+3.  **แนวทางแก้ไข**: กลยุทธ์การแก้ไขปัญหาหลายวิธี
+4.  **วิธีการตรวจสอบ**: การยืนยันการแก้ไขปัญหาที่สำเร็จ
+
+### Divergence Troubleshooting Flowchart
+
+```mermaid
+flowchart TD
+    A[Simulation diverging] --> B{Residual pattern}
+    B -->|Oscillatory| C[Under-relaxation issues]
+    B -->|Monotonic increase| D[Numerical stability problems]
+    B -->|No progress| E[Convergence criteria issues]
+    
+    C --> F[Reduce under-relaxation factors]
+    F --> F1[URF velocity: 0.3-0.5]
+    F --> F2[URF pressure: 0.1-0.3]
+    F1 --> G[Test convergence]
+    F2 --> G
+    
+    D --> H[Check mesh quality]
+    H --> H1[Max skewness < 0.85]
+    H --> H2[Max non-orthogonality < 70°]
+    H1 --> I[Improve mesh]
+    H2 --> I
+    
+    E --> J[Check convergence criteria]
+    J --> J1[Relax tolerance values]
+    J --> J2[Increase max iterations]
+    J1 --> K[Re-run simulation]
+    J2 --> K
+    
+    G --> L{Converged?}
+    I --> L
+    K --> L
+    L -->|Yes| M[Problem solved]
+    L -->|No| N[Advanced troubleshooting]
+```
+
+### Troubleshooting Matrix แบบละเอียด
+
+| Symptom | สาเหตุที่เป็นไปได้ | การวินิจฉัย | แนวทางแก้ไข |
+|---------|-------------------|--------------|--------------|
+| **Pressure spikes** | คุณภาพ Mesh ไม่ดีใกล้ผนัง | ตรวจสอบ output ของ `checkMesh` | ปรับปรุง Mesh บริเวณ Boundary Layer |
+| **Velocity oscillations** | Under-relaxation ไม่เพียงพอ | ตรวจสอบ Residuals ระหว่าง Iterations | ลดค่า URF |
+| **Turbulence model blow-up** | Initial turbulence intensity สูง | ตรวจสอบค่า `k`, `omega`, `epsilon` | ใช้ Initial Conditions ที่สมจริงมากขึ้น |
+| **Mass imbalance** | Boundary Conditions ไม่ถูกต้อง | ตรวจสอบ Mass flux ที่ Inlets/Outlets | ตรวจสอบความสอดคล้องของ Flux |
+| **Solver crashes** | Matrix ill-conditioning | ตรวจสอบ Matrix condition number | ปรับปรุง Mesh หรือใช้ Discretization ที่ดีขึ้น |
+
+### การวินิจฉัยเชิงลึกแบบเป็นขั้นตอน
+
+#### **ขั้นที่ 1: ตรวจสอดสอบคุณภาพ Mesh**
+```bash
+checkMesh -allGeometry -allTopology
+```
+
+**เกณฑ์คุณภาพ Mesh:**
+- Max skewness < 0.85
+- Max non-orthogonality < 70°
+- Max aspect ratio < 1000
+
+#### **ขั้นที่ 2: วิเคราะห์ Residual Pattern**
+- **Oscillatory**: ปัญหา Under-relaxation
+- **Monotonic increase**: ปัญหาความเสถียรเชิงตัวเลข
+- **Plateau**: ปัญหา convergence criteria
+
+#### **ขั้นที่ 3: ปรับ Under-relaxation Factors**
+```cpp
+// ใน fvSolution
+relaxationFactors
+{
+    fields
+    {
+        p               0.3;
+    }
+    equations
+    {
+        U               0.7;
+        k               0.7;
+        epsilon         0.7;
+    }
+}
+```
+
+#### **ขั้นที่ 4: ตรวจสอบ Physical Consistency**
+- Dimensional analysis
+- Boundary condition compatibility
+- Mass conservation verification

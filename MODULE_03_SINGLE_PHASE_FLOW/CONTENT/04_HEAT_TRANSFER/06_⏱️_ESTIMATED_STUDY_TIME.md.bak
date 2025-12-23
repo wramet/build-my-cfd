@@ -1,0 +1,115 @@
+# ⏱️ เวลาโดยประมาณที่ใช้ในการศึกษา
+
+โมดูล **Advanced Linear Solvers** ถูกออกแบบมาเพื่อเป็นการสำรวจเชิงลึกในระดับบัณฑิตศึกษาเกี่ยวกับโครงสร้างพื้นฐานด้านพีชคณิตเชิงเส้น (linear algebra) ของ OpenFOAM 
+
+การประมาณเวลาเหล่านี้สะท้อนถึงทั้งความซับซ้อนทางทฤษฎีและความท้าทายในการนำไปปฏิบัติจริงที่เกี่ยวข้องกับพีชคณิตเชิงเส้นเชิงตัวเลขที่ซับซ้อน
+
+## 📖 ส่วนการอ่าน: 2-3 ชั่วโมง
+
+พื้นฐานทางทฤษฎีประกอบด้วย:
+
+### 1. Linear Solver Architecture (45 นาที)
+- **การทำความเข้าใจรูปแบบการออกแบบ (design patterns)**
+- **เทคนิค metaprogramming แบบ template**
+- **ชั้นนามธรรม (abstraction layers)** ที่ทำให้ระบบ solver ของ OpenFOAM สามารถขยายขอบเขตและมีประสิทธิภาพ
+
+[Diagram: OpenFOAM Solver Architecture - Layered design showing inheritance hierarchy]
+
+### 2. Krylov Subspace Methods (60 นาที)
+การศึกษาอย่างละเอียดเกี่ยวกับ:
+- **Conjugate Gradient (CG)**
+- **Generalized Minimal Residual (GMRES)**
+- **Bi-Conjugate Gradient Stabilized (BiCGSTAB)**
+
+รวมถึงสูตรทางคณิตศาสตร์และคุณสมบัติการลู่เข้า (convergence properties)
+
+### 3. Preconditioning Strategies (45 นาที)
+การวิเคราะห์:
+- **Incomplete LU factorization**
+- **Algebraic Multigrid (AMG)**
+- **Domain decomposition methods**
+
+โดยเน้นบทบาทในการปรับปรุง **condition number** และเร่งการลู่เข้า
+
+| Preconditioner | ประสิทธิภาพ | หน่วยความจำ | ความเหมาะสม |
+|---|---|---|---|
+| Incomplete LU | สูง | ปานกลาง | เมทริกซ์หนาแน่น |
+| AMG | สูงมาก | สูง | เมทริกซ์ขนาดใหญ่ |
+| Domain Decomposition | ปานกลาง | ต่ำ | การประมวลผลแบบขนาน |
+
+### 4. Parallel Linear Algebra (30 นาที)
+การตรวจสอบ:
+- **การทำ parallelization แบบ matrix-vector**
+- **รูปแบบการจัดเก็บ matrix แบบกระจาย (distributed matrix storage formats)**
+- **รูปแบบการสื่อสารที่จำเป็น** สำหรับประสิทธิภาพของ solver ที่สามารถปรับขนาดได้ (scalable solver performance)
+
+## 💻 ส่วนการปฏิบัติ: 3-4 ชั่วโมง
+
+งานที่เน้นการนำไปปฏิบัติจริงประกอบด้วย:
+
+### 1. Solver Implementation Exercise (90 นาที)
+การปรับเปลี่ยนคลาส solver ที่มีอยู่:
+- **เพิ่มเกณฑ์การลู่เข้าแบบกำหนดเอง (custom convergence criteria)**
+- **การผสมผสาน preconditioner**
+- **กลยุทธ์การแก้ปัญหาแบบผสม (hybrid solution strategies)**
+
+**ตัวอย่างโค้ด:**
+```cpp
+// Custom convergence criteria implementation
+class CustomConvergenceSolver : public LduMatrix::solver {
+    bool convergenceCriterion(const scalar tolerance) {
+        // Implementation of custom convergence check
+        return residualNorm < tolerance;
+    }
+};
+```
+
+[Diagram: Performance Metrics Flow - Timeline of solver execution with bottlenecks highlighted]
+
+### 2. Performance Profiling (60 นาที)
+การใช้เครื่องมือติดตามประสิทธิภาพ:
+- **Performance monitoring tools** ที่มีมาพร้อมกับ OpenFOAM
+- **วิเคราะห์ประสิทธิภาพของ solver**
+- **ระบุคอขวดในการคำนวณ (computational bottlenecks)**
+- **ปรับแต่งการตั้งค่าพารามิเตอร์**
+
+### 3. Advanced Case Studies (90 นาที)
+การนำการผสมผสาน solver-preconditioner ที่แตกต่างกันไปใช้กับ:
+- **การไหลแบบปั่นป่วน (turbulent flows)**
+- **ระบบหลายเฟส (multiphase systems)**
+- **ปัญหาฟิสิกส์แบบควบคู่ (coupled physics problems)**
+
+**อัลกอริทึมการเลือก Solver:**
+```
+1. วิเคราะห์คุณสมบัติเมทริกซ์ (symmetry, conditioning)
+2. ประเมินข้อจำกัดหน่วยความจำ
+3. เลือก preconditioner ที่เหมาะสม
+4. กำหนดพารามิเตอร์การลู่เข้า
+5. ทดสอบและปรับปรุงประสิทธิภาพ
+```
+
+## 📊 การลงทุนรวม: 5-7 ชั่วโมง
+
+### ผลลัพธ์ที่ได้รับ:
+
+- **ความเชี่ยวชาญในการเลือก Linear Solver**
+  - ความสามารถในการเลือก solver ที่เหมาะสมโดยพิจารณาจากคุณสมบัติของ matrix, ฟิสิกส์ของปัญหา, และข้อจำกัดในการคำนวณ
+
+- **ความสามารถในการแก้ไขปัญหา (Debugging Competence)**
+  - ทักษะในการวินิจฉัยปัญหาการลู่เข้า, ระบุแหล่งที่มาของความไม่เสถียรเชิงตัวเลข (numerical instability), และนำมาตรการแก้ไขมาใช้
+
+- **การเพิ่มประสิทธิภาพ (Performance Optimization)**
+  - ความเข้าใจเกี่ยวกับวิธีการปรับแต่งพารามิเตอร์ของ solver เพื่อให้ได้ประสิทธิภาพสูงสุดบนสถาปัตยกรรมฮาร์ดแวร์และขนาดปัญหาที่แตกต่างกัน
+
+### ความรู้พื้นฐานที่จำเป็น:
+นักศึกษาควรมีความคุ้นเคยกับ:
+- **แนวคิดพีชคณิตเชิงเส้นเชิงตัวเลข (numerical linear algebra concepts)** (เช่น matrix norms, condition numbers, eigenvalues)
+- **การเขียนโปรแกรมด้วย C++ template** และการออกแบบเชิงวัตถุ (object-oriented design)
+- **ประเภทข้อมูล field** และโครงสร้าง mesh ของ OpenFOAM
+- **ประสบการณ์การใช้งาน solver** เบื้องต้นจากโมดูลแนะนำ
+
+### ผลลัพธ์การเรียนรู้:
+เมื่อสำเร็จหลักสูตรนี้ นักศึกษาจะมีความสามารถในการ:
+- **ออกแบบ** custom linear solvers สำหรับการใช้งาน CFD เฉพาะทาง
+- **นำไปปฏิบัติ** และปรับปรุง solver ที่มีอยู่
+- **ทำความเข้าใจอย่างลึกซึ้ง** เกี่ยวกับความสมดุลระหว่างต้นทุนการคำนวณ, การใช้หน่วยความจำ, และความทนทานต่อการลู่เข้า (convergence robustness)

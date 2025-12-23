@@ -1,0 +1,130 @@
+## 📊 สัญกรณ์ทางคณิตศาสตร์
+
+### การทำให้สมการโมเมนตัมเป็นแบบไม่ต่อเนื่อง
+
+**สมการโมเมนตัมใน OpenFOAM** ถูกทำให้เป็นแบบไม่ต่อเนื่องโดยใช้วิธี Finite Volume Method สำหรับ Incompressible Flow สมการโมเมนตัมคือ:
+
+$$\frac{\partial (\rho \mathbf{u})}{\partial t} + \nabla \cdot (\rho \mathbf{u} \mathbf{u}) = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}_b$$
+
+**นิยามตัวแปร:**
+- $\rho$ คือความหนาแน่นของของไหล (kg/m³)
+- $\mathbf{u}$ คือเวกเตอร์ความเร็ว (m/s)
+- $p$ คือสนามความดัน (Pa)
+- $\mu$ คือความหนืดพลวัต (Pa·s)
+- $\mathbf{f}_b$ แทนแรงภายนอก (Body Forces) (N/m³)
+
+[Diagram: Finite Volume Control Volume แสดง Cell P และ Neighbors N พร้อม Fluxes ที่ Interfaces]
+
+ในรูปแบบที่ถูกทำให้เป็นแบบไม่ต่อเนื่องสำหรับเซลล์ $P$:
+
+$$a_P \mathbf{u}_P + \sum_{N} a_N \mathbf{u}_N = \mathbf{b}_P - \nabla p_P$$
+
+**สัมประสิทธิ์การทำให้เป็นแบบไม่ต่อเนื่อง:**
+- $a_P = \frac{\rho_P V_P}{\Delta t} + \sum_{f} \Gamma_f S_f$ (สัมประสิทธิ์แนวทแยง)
+- $a_N = -\Gamma_f S_f$ (สัมประสิทธิ์เพื่อนบ้าน)
+- $\mathbf{b}_P = \frac{\rho_P V_P}{\Delta t} \mathbf{u}_P^n + \mathbf{f}_{b,P} V_P$ (เทอมแหล่งกำเนิด)
+
+### สมการการแก้ไขความดัน
+
+**สมการการแก้ไขความดัน** ได้มาจากสมการความต่อเนื่องและการทำให้โมเมนตัมเป็นแบบไม่ต่อเนื่อง
+
+#### อัลกอริทึม SIMPLE (Steady-State)
+**SIMPLE (Semi-Implicit Method for Pressure-Linked Equations)** ใช้:
+
+$$\nabla \cdot \left( \frac{1}{a_P} \nabla p' \right) = \frac{\rho_P V_P}{\Delta t} \nabla \cdot \mathbf{u}^*$$
+
+**นิยามตัวแปร:**
+- $p'$ คือการแก้ไขความดัน (Pa)
+- $\mathbf{u}^*$ คือสนามความเร็วชั่วคราว (m/s)
+- $a_P$ คือสัมประสิทธิ์แนวทแยงของสมการโมเมนตัม
+
+#### อัลกอริทึม PISO (Transient)
+สำหรับ Transient Flow (อัลกอริทึม PISO) การแก้ไขความดันจะกลายเป็น:
+
+$$\nabla \cdot \left( \frac{1}{a_P} \nabla p' \right) = \nabla \cdot \mathbf{u}^*$$
+
+**รูปแบบเมทริกซ์ใน OpenFOAM:**
+$$\mathbf{A}_p \mathbf{p}' = \mathbf{r}_p$$
+
+โดยที่ $\mathbf{A}_p$ คือเมทริกซ์สัมประสิทธิ์ความดัน และ $\mathbf{r}_p$ คือเวกเตอร์ Residual
+
+### สูตรการแก้ไขความเร็ว
+
+**การแก้ไขความเร็ว** คำนวณจาก Pressure Gradient ของการแก้ไขความดัน:
+
+$$\mathbf{u}^{n+1} = \mathbf{u}^* - \frac{1}{a_P} \nabla p'$$
+
+**ความเร็วที่ Face** สำหรับการคำนวณ Flux คือ:
+$$\mathbf{u}_f^{n+1} = \mathbf{u}_f^* - \frac{1}{a_P} \left( \nabla p' \right)_f$$
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Velocity correction
+U = U - (1.0/apu) * fvc::grad(p_prime);
+```
+
+#### Rhie-Chow Interpolation สำหรับ Collocated Grids
+สำหรับ Collocated Grids จะใช้ Rhie-Chow Interpolation เพื่อป้องกัน Pressure-Velocity Decoupling:
+
+$$\mathbf{u}_f = \mathbf{u}_f^* - \frac{1}{a_P} \left( \nabla p \right)_f + D_f \left( \nabla p \right)_f - D_f \left( \nabla p \right)_P$$
+
+โดยที่ $D_f = \frac{1}{a_P}$ คือสัมประสิทธิ์การประมาณค่าในช่วง (Interpolation Coefficient)
+
+[Diagram: Rhie-Chow Interpolation แสดงการคำนวณ Face Velocity จาก Cell Center Values]
+
+### สูตรการผ่อนคลาย
+
+**Relaxation** มีความสำคัญอย่างยิ่งต่อ Convergence ใน Steady-State Simulations การ Under-Relaxation ช่วยลดการแกว่งและปรับปรุงความเสถียร
+
+#### การ Under-Relaxation โมเมนตัม
+**สมการการผ่อนคลายโมเมนตัม:**
+$$\mathbf{u}^{k+1} = \mathbf{u}^k + \alpha_u (\mathbf{u}^* - \mathbf{u}^k)$$
+
+**นิยามตัวแปร:**
+- $\alpha_u$ คือ Momentum Under-Relaxation Factor (โดยทั่วไป 0.3-0.7)
+- $\mathbf{u}^*$ คือความเร็วที่คาดการณ์ไว้
+- $\mathbf{u}^k$ คือความเร็วจากการวนซ้ำครั้งก่อน
+
+**การปรับเปลี่ยนสัมประสิทธิ์ใน OpenFOAM:**
+ใน OpenFOAM สิ่งนี้จะปรับเปลี่ยนสัมประสิทธิ์สมการโมเมนตัม:
+$$a_P = \frac{a_P}{\alpha_u}, \quad \mathbf{b}_P = \mathbf{b}_P + \frac{1-\alpha_u}{\alpha_u} a_P \mathbf{u}_P^k$$
+
+#### การ Under-Relaxation ความดัน
+สำหรับอัลกอริทึม SIMPLE จะใช้ Pressure Relaxation:
+$$p^{k+1} = p^k + \alpha_p p'$$
+
+โดยที่ $\alpha_p$ โดยทั่วไปคือ 0.1-0.3 สำหรับความดัน
+
+#### อัลกอริทึม PIMPLE (PISO-SIMPLE แบบรวม)
+
+**PIMPLE Algorithm** สำหรับการจำลอง Transient Simulations ที่มี Time Steps ขนาดใหญ่ อัลกอริทึม PIMPLE ของ OpenFOAM ใช้:
+
+1. **การวนซ้ำ SIMPLE** ภายนอกพร้อม Under-Relaxation
+2. **การแก้ไข PISO** ภายในในการวนซ้ำภายนอกแต่ละครั้ง
+
+**สูตร PIMPLE:**
+$$\mathbf{u}^{n+1,k+1} = \mathbf{u}^{n+1,k} + \alpha_u (\mathbf{u}^* - \mathbf{u}^{n+1,k})$$
+$$p^{n+1,k+1} = p^{n+1,k} + \alpha_p p'$$
+
+โดยที่:
+- $k$ แสดงถึงตัวนับการวนซ้ำ SIMPLE 
+- $n$ แสดงถึงระดับเวลา
+
+[Diagram: PIMPLE Algorithm Flow Chart แสดง Outer Loop (SIMPLE) และ Inner Loop (PISO)]
+
+#### การ Under-Relaxation เทอมแหล่งกำเนิด
+
+สำหรับ Source Terms ที่รุนแรง จะมีการใช้ Relaxation เพิ่มเติม:
+$$\mathbf{S}^{k+1} = \mathbf{S}^k + \alpha_s (\mathbf{S}^* - \mathbf{S}^k)$$
+
+โดยที่ $\alpha_s$ โดยทั่วไปคือ 0.1-0.2 สำหรับ Physics Models ที่ละเอียดอ่อน เช่น Combustion หรือ Phase Change
+
+**ตารางค่า Under-Relaxation Factors ทั่วไป:**
+
+| Physics | Relaxation Factor | ช่วงที่แนะนำ |
+|---------|------------------|-----------------|
+| Momentum | $\alpha_u$ | 0.3 - 0.7 |
+| Pressure | $\alpha_p$ | 0.1 - 0.3 |
+| Temperature | $\alpha_T$ | 0.5 - 0.9 |
+| Turbulence | $\alpha_k, \alpha_\omega$ | 0.5 - 0.8 |
+| Source Terms | $\alpha_s$ | 0.1 - 0.2 |

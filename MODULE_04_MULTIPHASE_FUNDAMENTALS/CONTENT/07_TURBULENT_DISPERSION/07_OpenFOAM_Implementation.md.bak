@@ -1,0 +1,249 @@
+## การนำ OpenFOAM ไปใช้งาน
+
+### คลาสฐานของรุ่นการกระจายตัวของความปั่นป่วน
+
+รุ่นการกระจายตัวของความปั่นป่วนใน OpenFOAM ปฏิบัติตามรูปแบบการออกแบบเชิงวัตถุแบบคลาสสิก โดยมีคลาสฐานแบบนามธรรมที่กำหนดอินเทอร์เฟซ
+
+**คลาส `turbulentDispersionModel`** กำหนดข้อตกลงที่รุ่นการกระจายตัวของความปั่นป่วนทั้งหมดต้องนำไปใช้งาน:
+
+```cpp
+// คลาสฐานของรุ่นการกระจายตัวของความปั่นป่วน
+class turbulentDispersionModel
+{
+public:
+    // คำนวณแรงการกระจายตัวของความปั่นป่วน
+    virtual tmp<volVectorField> Fi() const = 0;
+
+    // คำนวณสัมประสิทธิ์การกระจายตัวของความปั่นป่วน
+    virtual tmp<volScalarField> D() const = 0;
+
+    // Destructor แบบเสมือน
+    virtual ~turbulentDispersionModel() {}
+};
+```
+
+**สถาปัตยกรรม Polymorphic:**
+- รุ่นการกระจายตัวของความปั่นป่วนที่แตกต่างกันสามารถถูกเลือกในระหว่างการทำงาน
+- ฟังก์ชันเสมือนบริสุทธิ์ `Fi()` และ `D()` ต้องถูกนำไปใช้งานโดยคลาสที่ได้รับมา
+- `Fi()` ส่งคืนฟิลด์เวกเตอร์แรงการกระจายตัวของความปั่นป่วน
+- `D()` ส่งคืนฟิลด์สเกลาร์สัมประสิทธิ์การกระจายตัวของความปั่นป่วน
+
+[Diagram: แผนผังการสืบทอดคลาสสำหรับรุ่นการกระจายตัวของความปั่นป่วน]
+
+---
+
+### รุ่นการกระจายตัวของความปั่นป่วนของ Burns
+
+รุ่นการกระจายตัวของความปั่นป่วนของ Burns ใช้แนวทางการแพร่กระจายแบบกราดิเอนต์ โดยยึดตามงานของ Burns et al. (2004)
+
+**หลักการ:**
+- การกระจายตัวของความปั่นป่วนทำหน้าที่เป็นกระบวนการแพร่กระจายที่สัดส่วนกับกราดิเอนต์ของปริมาตรส่วนเฟส
+
+**สมการหลัก:**
+$$D_{td} = \frac{\mu_t}{\sigma_{td} \alpha_{max}} \alpha_1 \alpha_2$$
+
+โดยที่:
+- $\mu_t$ = ความหนืดความปั่นป่วน
+- $\sigma_{td}$ = จำนวน Schmidt ของการกระจายตัวของความปั่นป่วน (โดยทั่วไป 0.9-1.0)
+- $\alpha_{max}$ = เศษส่วนบรรจุภาชนะสูงสุด (ประมาณ 0.64 สำหรับการบรรจุแบบสุ่มของทรงกลม)
+- $\alpha_1, \alpha_2$ = เศษส่วนปริมาตรของเฟสที่ 1 และเฟสที่ 2
+
+**แรงการกระจายตัวของความปั่นป่วน:**
+$$\mathbf{F}_{td} = -\rho_c D_{td} \nabla \alpha_d$$
+
+โดยที่:
+- $\rho_c$ = ความหนาแน่นของเฟสต่อเนื่อง
+- $\alpha_d$ = เศษส่วนปริมาตรของเฟสกระจาย
+
+#### การนำไปใช้งานใน OpenFOAM
+
+```cpp
+class BurnsTurbulentDispersion
+:
+    public turbulentDispersionModel
+{
+private:
+    // จำนวน Schmidt ของการกระจายตัวของความปั่นป่วน
+    dimensionedScalar sigmaTD_;
+
+    // เศษส่วนบรรจุภาชนะสูงสุด
+    dimensionedScalar alphaMax_;
+
+public:
+    // คำนวณสัมประสิทธิ์การกระจายตัวของความปั่นป่วน
+    virtual tmp<volScalarField> D() const
+    {
+        const phaseModel& phase1 = pair_.phase1();
+        const phaseModel& phase2 = pair_.phase2();
+
+        const volScalarField& alpha1 = phase1.alpha();
+        const volScalarField& alpha2 = phase2.alpha();
+        const volScalarField& muT = phase1.turbulence().mutEff();
+
+        return muT/(sigmaTD_*alphaMax_)*alpha1*alpha2;
+    }
+
+    // คำนวณแรงการกระจายตัวของความปั่นป่วน
+    virtual tmp<volVectorField> Fi() const
+    {
+        const phaseModel& dispersed = pair_.dispersed();
+        const phaseModel& continuous = pair_.continuous();
+
+        const volScalarField& alpha = dispersed.alpha();
+        const volScalarField& rho = continuous.rho();
+
+        // สัมประสิทธิ์การกระจายตัวของความปั่นป่วน
+        const volScalarField Dtd = this->D();
+
+        // แรงการกระจายตัวของความปั่นป่วน (รุ่นการแพร่กระจายแบบกราดิเอนต์)
+        return -rho*Dtd*fvc::grad(alpha);
+    }
+};
+```
+
+[Diagram: การไหลของการคำนวณสำหรับรุ่น Burns]
+
+---
+
+### รุ่นการกระจายตัวของความปั่นป่วนของ Simonin
+
+รุ่น Simonin ใช้แนวทางที่แตกต่างกันโดยยึดตามทฤษฎีจลนศาสตร์ของการไหลแบบเม็ด
+
+**หลักการ:**
+- ใช้ลักษณะเฉพาะของความปั่นป่วนของเฟสต่อเนื่อง
+- พิจารณามาตราส่วนความยาวความปั่นป่วน
+
+**สมการหลัก:**
+$$D_{td} = C_{td} \sqrt{k} l_t$$
+
+โดยที่:
+- $k$ = พลังงานจลน์ความปั่นป่วนของเฟสต่อเนื่อง
+- $l_t$ = มาตราส่วนความยาวความปั่นป่วน (คำนวณจาก $l_t = k^{3/2}/\epsilon$)
+- $C_{td}$ = สัมประสิทธิ์เชิงประจักษ์ (โดยทั่วไป 0.1-0.3)
+- $\epsilon$ = อัตราการสลายตัวของพลังงานจลน์ความปั่นป่วน
+
+**แรงการกระจายตัวของความปั่นป่วน:**
+$$\mathbf{F}_{td} = -\rho_c D_{td} \frac{\alpha_d \alpha_c}{\max(\alpha_c, \epsilon)} \nabla \alpha_d$$
+
+**คุณสมบัติพิเศษ:**
+- การรวมทั้ง $\alpha_d$ และ $\alpha_c$ ช่วยให้มั่นใจว่าการกระจายตัวของความปั่นป่วนจะแข็งแกร่งที่สุดในบริเวณที่มีทั้งสองเฟสอยู่
+- ตัวหาร $\max(\alpha_c, \epsilon)$ ป้องกันปัญหาเชิงตัวเลขเมื่อเศษส่วนเฟสต่อเนื่องใกล้เคียงศูนย์
+
+#### การนำไปใช้งานใน OpenFOAM
+
+```cpp
+class SimoninTurbulentDispersion
+:
+    public turbulentDispersionModel
+{
+private:
+    // สัมประสิทธิ์การกระจายตัวของความปั่นป่วน
+    dimensionedScalar CTD_;
+
+public:
+    virtual tmp<volScalarField> D() const
+    {
+        const phaseModel& continuous = pair_.continuous();
+
+        const volScalarField& k = continuous.turbulence().k();
+        const volScalarField& epsilon = continuous.turbulence().epsilon();
+
+        // มาตราส่วนความยาวความปั่นป่วน
+        volScalarField lT = pow(k, 1.5)/epsilon;
+
+        return CTD_*sqrt(k)*lT;
+    }
+
+    virtual tmp<volVectorField> Fi() const
+    {
+        const phaseModel& dispersed = pair_.dispersed();
+        const phaseModel& continuous = pair_.continuous();
+
+        const volScalarField& alphaD = dispersed.alpha();
+        const volScalarField& alphaC = continuous.alpha();
+        const volScalarField& rhoC = continuous.rho();
+
+        const volScalarField Dtd = this->D();
+
+        return -rhoC*Dtd*alphaD*alphaC*fvc::grad(alphaD)/max(alphaC, small);
+    }
+};
+```
+
+[Diagram: การเปรียบเทียบการไหลข้อมูลระหว่างรุ่น Burns และ Simonin]
+
+---
+
+### การเชื่อมโยงกับรุ่นการลาก
+
+การถ่ายโอนโมเมนต์ระหว่างเฟสในการไหลแบบหลายเฟสเกี่ยวข้องกับกลไกแรงหลายอย่างที่ต้องถูกเชื่อมโยงอย่างเหมาะสม
+
+**แนวทางการรวมแรงใน OpenFOAM:**
+$$\mathbf{F}_{total} = \mathbf{F}_{drag} + \mathbf{F}_{td} + \mathbf{F}_{lift} + \mathbf{F}_{vm}$$
+
+**ชนิดของแรง:**
+
+| แรง | คำอธิบาย | สถานะ |
+|------|-------------|--------|
+| Drag Force ($\mathbf{F}_{drag}$) | แรงต้านอากาศระหว่างเฟส | จำเป็น |
+| Turbulent Dispersion ($\mathbf{F}_{td}$) | แรงการกระจายตัวความปั่นป่วน | เลือกได้ |
+| Lift Force ($\mathbf{F}_{lift}$) | แรงยกต่อเนื่อง | เลือกได้ |
+| Virtual Mass ($\mathbf{F}_{vm}$) | แรงมวลเสมือน | เลือกได้ |
+
+#### การนำไปใช้งานใน OpenFOAM
+
+```cpp
+// แรงลากและแรงการกระจายตัวของความปั่นป่วนรวมกัน
+tmp<volVectorField> PhasePair::F() const
+{
+    tmp<volVectorField> tF
+    (
+        new volVectorField
+        (
+            IOobject
+            (
+                "F",
+                mesh_.time().timeName(),
+                mesh_,
+                IOobject::NO_READ,
+                IOobject::NO_WRITE
+            ),
+            mesh_,
+            dimensionedVector("F", dimensionSet(1, -2, -2, 0, 0, 0, 0), Zero)
+        )
+    );
+
+    volVectorField& F = tF.ref();
+
+    if (drag_.valid())
+    {
+        F += drag_->F();
+    }
+
+    if (turbulentDispersion_.valid())
+    {
+        F += turbulentDispersion_->F();
+    }
+
+    if (lift_.valid())
+    {
+        F += lift_->F();
+    }
+
+    if (virtualMass_.valid())
+    {
+        F += virtualMass_->F();
+    }
+
+    return tF;
+}
+```
+
+**ข้อดีของสถาปัตยกรรมนี้:**
+
+1. **การออกแบบแบบโมดูล**: แต่ละรุ่นแรงเป็นอิสระและสามารถเปิด/ปิดได้
+2. **การจัดการข้อผิดพลาดที่แข็งแกร่ง**: การตรวจสอบ `valid()` ป้องกันการใช้รุ่นที่ไม่ได้กำหนดค่า
+3. **ความยืดหยุ่น**: สามารถเลือกรุ่นแรงที่ต้องการสำหรับการจำลองแต่ละกรณี
+4. **การคำนวณแบบสะสม**: แรงระหว่างเฟสทั้งหมดเป็นเพียงผลรวมของแรงที่ใช้งาน
+
+[Diagram: แผนภาพการไหลของการคำนวณแรงระหว่างเฟสใน OpenFOAM]

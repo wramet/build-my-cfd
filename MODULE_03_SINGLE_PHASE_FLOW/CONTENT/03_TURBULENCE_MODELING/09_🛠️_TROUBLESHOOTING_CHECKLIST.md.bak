@@ -1,0 +1,297 @@
+## 🛠️ เช็คลิสต์การแก้ไขปัญหา (TROUBLESHOOTING CHECKLIST)
+
+### ปัญหาการลู่เข้า (Convergence Issues)
+
+#### ปัญหาการลู่เข้าของ Turbulence (Turbulence Divergence Problems)
+
+เมื่อสมการ Turbulence **เกิดการลู่เข้าผิดปกติ** (diverge) ในระหว่างการจำลอง วิธีแก้ไขหลักคือการ**ลดค่า Under-relaxation factors** สำหรับ Turbulent kinetic energy ($k$) และ Dissipation rate ($\varepsilon$) ใน dictionary ชื่อ `fvSolution`
+
+**OpenFOAM Code Implementation:**
+```cpp
+// In fvSolution
+relaxationFactors
+{
+    equations
+    {
+        k               0.5;    // Reduced from typical 0.7-0.8
+        epsilon         0.4;    // Reduced from typical 0.6-0.7
+    }
+}
+```
+
+**ค่า Relaxation factors ที่แนะนำสำหรับโมเดล $k$-$\varepsilon$ มาตรฐาน:**
+
+| ตัวแปร | ช่วงค่าปกติ | ค่าที่แนะนำสำหรับการแก้ไข |
+|---------|-------------|----------------------|
+| $k$ | 0.5-0.8 | 0.4-0.6 |
+| $\varepsilon$ | 0.4-0.7 | 0.3-0.5 |
+
+**Algorithm Flow:**
+1. **ตรวจสอบ**การลู่เข้าของสมการ turbulence
+2. **ลด** under-relaxation factors ทีละ 10-20%
+3. **เปลี่ยน**เป็น SIMPLEC algorithm สำหรับกรณี steady-state หากจำเป็น
+4. **ใช้** limiters ที่เสถียรสำหรับปริมาณ turbulence
+
+[Diagram: Convergence monitoring showing divergence of turbulence equations]
+
+#### Turbulent Viscosity เป็นค่าลบ (Negative Turbulent Viscosity)
+
+ค่า Turbulent Viscosity (`nut`) ที่เป็นลบบ่งชี้ถึง**ความไม่เสถียรเชิงตัวเลข** (numerical instability) ในโมเดล Turbulence
+
+**OpenFOAM Code Implementation:**
+```cpp
+// In RASProperties
+RASModel
+{
+    turbulence       on;
+    printCoeffs     on;
+    
+    // Minimum bounds to prevent negative values
+    kMin            1e-6;
+    epsilonMin      1e-8;
+    omegaMin        1e-8;
+    nutMin          1e-10;
+}
+```
+
+**การตรวจสอบคุณภาพ Mesh:**
+- **Orthogonality**: > 0.1
+- **Skewness**: < 2
+- **Aspect Ratio**: < 1000 (สำหรับ turbulence ที่ดี)
+
+**Variable Definitions:**
+- `kMin` = ค่าต่ำสุดของ Turbulent kinetic energy
+- `epsilonMin` = ค่าต่ำสุดของ Dissipation rate  
+- `omegaMin` = ค่าต่ำสุดของ Specific dissipation rate
+- `nutMin` = ค่าต่ำสุดของ Turbulent viscosity
+
+[Diagram: Mesh quality visualization showing problematic regions]
+
+#### การสั่นใกล้ผนัง (Near-Wall Oscillations)
+
+พฤติกรรม**การสั่นที่เกิดขึ้นใกล้ Boundary Wall** มักเกิดจากค่า $y^+$ ที่ไม่เหมาะสม หรือการใช้งาน Wall function ที่ไม่ถูกต้อง
+
+**Step-by-Step Algorithm:**
+1. **คำนวณ**ระยะห่างไร้มิติที่ผนัง:
+   $$y^+ = \frac{\rho u_\tau y}{\mu} = \frac{y \sqrt{\tau_w}}{\nu}$$
+
+2. **ตรวจสอบ**ค่า $y^+$ ว่าอยู่ในช่วงที่เหมาะสมหรือไม่
+
+3. **ปรับ** mesh หรือเปลี่ยน wall function ตามผลลัพธ์
+
+**Variable Definitions:**
+- $u_\tau = \sqrt{\tau_w/\rho}$ = Friction velocity
+- $y$ = ระยะห่างจากผนัง
+- $\tau_w$ = แรงเสียดทานผนัง
+- $\nu$ = Kinematic viscosity
+
+**Wall Function Selection Guide:**
+
+| ช่วง $y^+$ | Wall Function ที่แนะนำ | คำอธิบาย |
+|------------|---------------------|-----------|
+| $y^+ < 30$ | `kLowReWallFunction` | Low-Re models, mesh refinement |
+| $30 \leq y^+ \leq 300$ | `kqRWallFunction` | Standard wall functions |
+| $y^+ > 300$ | ปรับปรุง mesh | ค่าสูงเกินไป, refine near-wall |
+
+### ปัญหาการใช้งาน Wall Function (Wall-Function Implementation Issues)
+
+#### การปรับค่า $y^+$ ให้เหมาะสม ($y^+$ Range Optimization)
+
+**OpenFOAM Code Implementation:**
+```cpp
+// In transportProperties
+wallFunction
+{
+    type            enhancedWallFunction;
+    blending        continuous;
+    EWT             yes;
+    
+    // y+ control parameters
+    yPlusMin        30;
+    yPlusMax        300;
+    yPlusOptimal    100;
+}
+```
+
+**ค่า $y^+$ ที่เหมาะสมสำหรับ Standard wall functions:**
+- **ช่วงที่เหมาะสมที่สุด (Ideal range)**: $30 \leq y^+ \leq 300$
+- **ช่วงที่ทำงานได้ดีที่สุด (Optimal range)**: $50 \leq y^+ \leq 150$
+- **ค่าต่ำสุดที่ยอมรับได้ (Minimum acceptable)**: $y^+ > 11.225$
+
+**Algorithm สำหรับการปรับ $y^+$:**
+1. **คำนวณ** $y^+$ จาก simulation ปัจจุบัน
+2. **เปรียบเทียบ**กับช่วงที่เหมาะสม
+3. **ดำเนินการ**ตามผลลัพธ์:
+   - $y^+ < 30$: Coarsen mesh หรือใช้ Low-Re models
+   - $30 \leq y^+ \leq 300$: ค่าที่เหมาะสม
+   - $y^+ > 300$: Refine near-wall mesh
+
+[Diagram: y+ distribution showing optimal ranges]
+
+#### การตรวจสอบ Velocity Profile (Velocity Profile Verification)
+
+**OpenFOAM Boundary Condition Setup:**
+```cpp
+// In 0/U
+U
+{
+    type            fixedValue;
+    value           uniform (0 0 0);
+}
+
+// In 0/k  
+k
+{
+    type            kqRWallFunction;
+    value           uniform 0;
+}
+
+// In 0/epsilon
+epsilon
+{
+    type            epsilonWallFunction;
+    value           uniform 0;
+}
+
+// For k-omega model:
+omega
+{
+    type            omegaWallFunction;
+    value           uniform 0;
+}
+```
+
+**Wall Function Compatibility Table:**
+
+| Turbulence Model | Wall Function สำหรับ $k$ | Wall Function สำหรับ $\varepsilon$ | Wall Function สำหรับ $\omega$ |
+|-----------------|---------------------------|-----------------------------------|-----------------------------|
+| k-ε Standard | `kqRWallFunction` | `epsilonWallFunction` | - |
+| k-ε RNG | `kqRWallFunction` | `epsilonWallFunction` | - |
+| k-ω SST | `kqRWallFunction` | - | `omegaWallFunction` |
+
+#### การปรับปรุงการทำนาย Skin Friction (Skin Friction Prediction Enhancement)
+
+**OpenFOAM Enhanced Wall Treatment:**
+```cpp
+wallFunction
+{
+    type            enhancedWallFunction;
+    blending        continuous;
+    EWT             yes;
+    
+    // Advanced options
+    nutU            nut;
+    yPlus           yPlus;
+    
+    // Blending parameters
+    kappa           0.4187;        // von Karman constant
+    E               9.793;         // Wall function constant
+}
+```
+
+**เปรียบเทียบวิธีการจัดการผนัง:**
+
+| วิธีการ | ความแม่นยำใกล้ผนัง | ความเร็วในการคำนวณ | กรณีที่เหมาะสม |
+|-----------|---------------------|---------------------|-----------------|
+| Standard Wall Functions | ปานกลาง | เร็วมาก | กระแสหลัก |
+| Enhanced Wall Treatment | สูง | ปานกลาง | การแยกชั้นขอบเขต |
+| Low-Re Models (Full Res) | สูงสุด | ช้ามาก | Heat transfer, การไหลซับซ้อน |
+
+### การระบุ Turbulence ที่ทางเข้า (Inlet Turbulence Specification)
+
+#### การประมาณค่าพารามิเตอร์ Turbulence (Turbulence Parameter Estimation)
+
+**Mathematical Formulations:**
+
+**Turbulent Kinetic Energy:**
+$$k = \frac{3}{2} (U_{\text{avg}} I)^2$$
+
+**Dissipation Rate:**
+$$\varepsilon = C_\mu^{3/4} \frac{k^{3/2}}{\ell}$$
+
+**Specific Dissipation Rate (สำหรับโมเดล $k$-$\omega$):**
+$$\omega = \frac{\varepsilon}{k} = C_\mu^{3/4} \frac{k^{1/2}}{\ell}$$
+
+**Variable Definitions:**
+- $I$ = Turbulence intensity (สัดส่วนความเร็วสั่นพลิกต่อความเร็วเฉลี่ย)
+- $\ell$ = Length scale (ลักษณะเด่นของเซลล์ turbulence)
+- $U_{\text{avg}}$ = ความเร็วเฉลี่ย
+- $C_\mu = 0.09$ = ค่าคงที่ของ Turbulence model
+
+**OpenFOAM Code Implementation:**
+```cpp
+// In 0/k
+inlet
+{
+    type            turbulentIntensityKineticEnergyInlet;
+    intensity       0.05;           // 5% turbulence intensity
+    value           uniform 0.5;    // k value in m²/s²
+}
+
+// In 0/epsilon
+inlet
+{
+    type            turbulentMixingLengthDissipationRateInlet;
+    mixingLength    0.07;           // 7% of characteristic length
+    value           uniform 0.05;   // epsilon value
+}
+```
+
+**Turbulence Intensity Guidelines:**
+
+| ชนิดการไหล | ช่วง $I$ ที่แนะนำ | ตัวอย่าง |
+|-------------|-------------------|-----------|
+| External flows | 0.01-0.05 (1-5%) | อากาศไหลผ่านอาคาร |
+| Internal flows | 0.05-0.10 (5-10%) | ของไหลในท่อ |
+| Highly turbulent | >0.10 (>10%) | การผสม, หม้อน้ำ |
+
+**Length Scale Estimation:**
+
+| เรขาคณิต | Length Scale ($\ell$) | สูตร |
+|-----------|----------------------|-------|
+| ท่อวงกลม | 0.07 × เส้นผ่านศูนย์กลาง | $\ell = 0.07 D_H$ |
+| ช่องสี่เหลี่ยม | 0.07 × ความสูง | $\ell = 0.07 H$ |
+| Boundary layer | 0.4 × ความหนา | $\ell = 0.4 \delta_{99}$ |
+| ทั่วไป | 0.07 × ความยาวลักษณะเด่น | $\ell = 0.07 L_{\text{char}}$ |
+
+[Diagram: Inlet turbulence specification showing flow profiles]
+
+#### การป้องกันการลดลงของ Turbulence ต้นน้ำ (Upstream Turbulence Decay Prevention)
+
+**Algorithm สำหรับแก้ไข Turbulence Decay:**
+1. **วินิจฉัย** ค่า turbulence ที่ลดลงผิดปกติในบริเวณต้นน้ำ
+2. **เพิ่ม** Turbulence intensity ที่ทางเข้า 50-100%
+3. **ขยาย** Turbulence length scale: $\ell_{\text{new}} = 1.5 \ell_{\text{original}}$
+4. **เพิ่ม** Turbulence source terms ในบริเวณต้นน้ำหากจำเป็น
+5. **พิจารณา** ใช้ Precursor simulations สำหรับความแม่นยำสูง
+
+**OpenFOAM Advanced Inlet Specification:**
+```cpp
+// Time-varying inlet conditions
+inletTurbulence
+{
+    type            turbulentInlet;
+    referenceField  U;
+    fluctuationScale 0.05;
+    interpolationScheme linear;
+    
+    // Synthetic turbulence generation
+    turbulentInletCoeffs
+    {
+        type            digitalFilter;
+        TInlet          0.1;            // Time scale
+        LInlet          (0.1 0.05 0.05); // Length scales
+        UMean           (10 0 0);       // Mean velocity
+    }
+}
+```
+
+**Strategy Comparison:**
+
+| กลยุทธ์ | ความซับซ้อน | ความแม่นยำ | กรณีที่เหมาะสม |
+|--------|-------------|------------|-----------------|
+| Simple inlet specs | ต่ำ | ปานกลาง | การไหลง่าย |
+| Synthetic turbulence | สูง | สูง | การไหลซับซ้อน |
+| Precursor simulation | สูงมาก | สูงสุด | งานวิจัย, การไหลซับซ้อนมาก |
+
+[Diagram: Turbulence decay visualization showing upstream development]

@@ -1,0 +1,53 @@
+## Multiphase Extension - Volume Averaged Drag
+
+### Interfacial Area Density
+
+สำหรับระบบหลายเฟส (multiphase system) เราต้องการ **interfacial area density** $a_i$ (พื้นที่ผิวระหว่างเฟสต่อหนึ่งหน่วยปริมาตร):
+
+$$a_i = \frac{\text{Total interfacial area in REV}}{\text{REV volume}}$$
+
+[Diagram: แสดง REV (Representative Elementary Volume) ที่มีหลายเฟส พร้อมแสดงพื้นที่ผิวติดต่อระหว่างเฟส]
+
+สำหรับอนุภาคทรงกลมที่มีเส้นผ่านศูนย์กลาง $d$ และมี volume fraction $\alpha_p$:
+
+$$a_i = \frac{6\alpha_p}{d}$$
+
+### Volume Averaged Drag Force
+
+**แรงต้าน (drag force) ต่อหนึ่งหน่วยปริมาตร** คือ:
+
+$$\mathbf{F}_{D,kl} = \frac{3}{4} C_D \frac{\alpha_k \alpha_l \rho_l}{d_k} |\mathbf{u}_l - \mathbf{u}_k| (\mathbf{u}_l - \mathbf{u}_k)$$
+
+โดยที่:
+- $\alpha_k$, $\alpha_l$ คือ **phase fractions** (ปริมาตรสัดส่วนของแต่ละเฟส)
+- $\rho_l$ คือ **ความหนาแน่นของ continuous phase** (เฟสต่อเนื่อง)
+- $d_k$ คือ **characteristic diameter** ของ dispersed phase $k$ (เส้นผ่านศูนย์กลางลักษณะเฉพาะของเฟสกระจาย)
+- $C_D$ คือ **drag coefficient** (สัมประสิทธิ์แรงต้าน)
+- $|\mathbf{u}_l - \mathbf{u}_k|$ คือ **relative velocity magnitude** (ขนาดของความเร็วสัมพัทธ์)
+
+[Diagram: แสดงเวกเตอร์ความเร็วของสองเฟสที่มีการเคลื่อนที่สัมพัทธ์กัน พร้อมแสดงแรงต้านที่เกิดขึ้น]
+
+### OpenFOAM Code Implementation
+
+ใน OpenFOAM แรงต้านระหว่างเฟสถูก implement ใน `dragModels`:
+
+```cpp
+// Volume averaged drag model
+template<class CloudType>
+Foam::tmp<Foam::volSymmTensorField>
+Foam::DragModels::VolumeAveraged<CloudType>::Kdl() const
+{
+    const volScalarField& alpha = this->owner().alpha();
+    const volVectorField& Uc = this->owner().Uc();
+    
+    return 0.75*Cd_*alpha*rho_*mag(Uc - Up_)*(Uc - Up_)/d_;
+}
+```
+
+### Momentum Exchange Coefficient
+
+เมื่อเปรียบเทียบกับสมการ $\mathbf{F}_{D,kl} = \mathbf{K}_{kl}(\mathbf{u}_l - \mathbf{u}_k)$:
+
+$$\mathbf{K}_{kl} = \frac{3}{4} C_D \frac{\alpha_k \alpha_l \rho_l}{d_k} |\mathbf{u}_l - \mathbf{u}_k|$$
+
+**สมการข้างต้นแสดงถึง momentum exchange coefficient** ซึ่งเป็นพารามิเตอร์สำคัญในการคำนวณการถ่ายเทโมเมนตัมระหว่างเฟส ใน OpenFOAM ค่านี้ถูกคำนวณใน `dragModel` และใช้ในสมการโมเมนตัมของแต่ละเฟส

@@ -1,0 +1,274 @@
+# 📝 แนวทางการเขียนเนื้อหา
+
+## 📂 โครงสร้าง OpenFOAM Case ที่สมบูรณ์
+
+### การจัดระเบียบ Directory ที่จำเป็น
+
+[Diagram: Directory tree structure showing the hierarchical organization of an OpenFOAM case]
+
+```
+tutorialCase/
+├── 0/                    # เงื่อนไขเริ่มต้น (Initial conditions)
+│   ├── U                # สนามความเร็ว (Velocity field)
+│   ├── p                # สนามความดัน (Pressure field)  
+│   ├── T                # สนามอุณหภูมิ (Temperature field) (ถ้าจำเป็น)
+│   ├── alphawater       # สัดส่วนเฟส (Phase fraction) (สำหรับ Multiphase)
+│   └── nut              # ความหนืดปั่นป่วน (Turbulent viscosity)
+├── constant/
+│   ├── transportProperties  # คุณสมบัติของของไหล (Fluid properties)
+│   ├── thermophysicalProperties (ถ้าจำเป็น)
+│   ├── turbulenceProperties # แบบจำลองความปั่นป่วน (Turbulence model)
+│   └── polyMesh/            # ไฟล์ Mesh
+├── system/
+│   ├── controlDict      # การควบคุมการก้าวของเวลา (Time stepping controls)
+│   ├── fvSchemes        # รูปแบบการแบ่งส่วน (Discretization schemes)
+│   ├── fvSolution       # การตั้งค่า Solver เชิงเส้น (Linear solver settings)
+│   └── blockMeshDict    # การสร้าง Mesh (ถ้าใช้ blockMesh)
+└── Allrun              # สคริปต์การรัน (Execution script)
+```
+
+### การระบุ Boundary Condition ที่ครอบคลุม
+
+```cpp
+// ตัวอย่าง: ไฟล์ 0/U
+dimensions [0 1 -1 0 0 0 0];
+internalField uniform 0;
+boundary
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform (1.0 0.0 0.0);
+    }
+    outlet
+    {
+        type            zeroGradient;
+    }
+    walls
+    {
+        type            noSlip;
+    }
+}
+```
+
+## 🔄 วิธีการโดยละเอียดทีละขั้นตอน
+
+### ระยะที่ 1: การประมวลผลเบื้องต้น (Pre-Processing)
+
+1. **การเตรียมรูปทรงเรขาคณิต** โดยใช้เครื่องมือ CAD (Salomé, FreeCAD)
+2. **การสร้าง Surface mesh** ด้วย snappyHexMesh
+3. **การปรับปรุง Volume mesh** และการตรวจสอบคุณภาพ
+4. **การสร้าง Boundary layer mesh**
+
+### ระยะที่ 2: การกำหนดค่า Solver (Solver Configuration)
+
+1. **การเลือก Solver ที่เหมาะสม** (simpleFoam, pimpleFoam, etc.)
+2. **การตั้งค่าพารามิเตอร์การก้าวของเวลา** (Time stepping parameters)
+3. **การเลือกรูปแบบการแบ่งส่วน** (Discretization scheme)
+4. **การกำหนดเกณฑ์การลู่เข้า** (Convergence criteria)
+
+### ระยะที่ 3: การดำเนินการ (Execution)
+
+1. **คำสั่งการสร้าง Mesh** (Mesh generation commands)
+2. **การแบ่งส่วนสำหรับการประมวลผลแบบขนาน** (Decomposition for parallel processing)
+3. **การรัน Solver พร้อมการติดตามผล** (Solver execution with monitoring)
+4. **การตรวจสอบผลลัพธ์ระหว่างดำเนินการ** (Intermediate results verification)
+
+### ระยะที่ 4: การประมวลผลหลังการคำนวณ (Post-Processing)
+
+1. **การดึงข้อมูลสนาม** (Field extraction) **และการแสดงผล** (visualization)
+2. **การคำนวณปริมาณที่ได้จากการอนุพันธ์** (Derived quantities calculation)
+3. **การตรวจสอบความถูกต้องกับข้อมูลเชิงวิเคราะห์/การทดลอง** (Validation against analytical/experimental data)
+
+## 📐 รายละเอียดทางเทคนิคของการสร้าง Mesh
+
+### แนวทาง BlockMesh
+
+```cpp
+convertToMeters 1;
+
+vertices
+(
+    (0 0 0)    // 0
+    (1 0 0)    // 1
+    (1 1 0)    // 2
+    (0 1 0)    // 3
+    (0 0 0.1)  // 4
+    (1 0 0.1)  // 5
+    (1 1 0.1)  // 6
+    (0 1 0.1)  // 7
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (200 200 50) simpleGrading (1 1 1)
+);
+```
+
+[Diagram: Visual representation of the hexahedral block mesh with vertex labeling]
+
+### ขั้นตอนการทำงานของ SnappyHexMesh
+
+```cpp
+// system/snappySnapDict
+castellatedMesh true;
+snap            true;
+addLayers       true;
+
+geometry
+{
+    stlFile.stl
+    {
+        type triSurfaceMesh;
+        name obstacle;
+    }
+}
+
+refinementSurfaces
+{
+    obstacle
+    {
+        level (2 2);
+        patchInfo
+        {
+            type wall;
+            inGroups (obstacleGroup);
+        }
+    }
+}
+```
+
+[Diagram: Flowchart showing the snappyHexMesh process from STL to refined mesh]
+
+## ✅ การประกันคุณภาพของ Mesh
+
+### ตัวชี้วัดคุณภาพ (Quality Metrics)
+
+| ตัวชี้วัด | ค่าที่แนะนำ (ทั่วไป) | ค่าที่แนะนำ (กรณีพิเศษ) |
+|----------|----------------------|-------------------|
+| ความไม่ตั้งฉาก (Non-orthogonality) | < 65° | < 45° (Reynolds number สูง) |
+| อัตราส่วนภาพ (Aspect ratio) | < 1000 | - |
+| ความเบ้ (Skewness) | < 4 | - |
+| อัตราส่วนการขยาย (Expansion ratio) | < 1.2 | - |
+
+### คำสั่งตรวจสอบคุณภาพ (Quality Check Commands)
+
+```bash
+# การวิเคราะห์คุณภาพ Mesh
+checkMesh
+
+# สถิติ Mesh โดยละเอียด
+paraFoam -touch
+```
+
+## 🚪 กลยุทธ์การนำ Boundary Condition ไปใช้
+
+### Boundary Condition สำหรับความเร็ว (Velocity Boundary Conditions)
+
+```cpp
+// การระบุ Inlet
+inlet
+{
+    type            turbulentInlet;
+    referenceField  uniform (1.0 0.0 0.0);
+    fluctuationScale uniform 0.05;
+}
+
+// การจัดการ Wall
+walls
+{
+    type            nutkWallFunction;
+    value           uniform 0;
+}
+```
+
+### Boundary Condition สำหรับความดัน (Pressure Boundary Conditions)
+
+```cpp
+// Outlet ที่มีความดันคงที่
+outlet
+{
+    type            fixedValue;
+    value           uniform 0;
+}
+
+// Walls ที่มี Zero gradient  
+walls
+{
+    type            zeroGradient;
+}
+```
+
+## 📊 กรอบการวิเคราะห์ผลลัพธ์ (Results Analysis Framework)
+
+### การดึงข้อมูลสนาม (Field Extraction)
+
+```bash
+# ดึงข้อมูลตัวอย่าง
+probes -case caseDirectory
+
+# การคำนวณแรงและโมเมนต์
+forces -case caseDirectory
+
+# การอินทิเกรตบนพื้นผิว
+surfaceIntegrate -case caseDirectory
+```
+
+### เกณฑ์การลู่เข้า (Convergence Criteria)
+
+* **การลดลงของ Residual:** 3-4 ลำดับของขนาด (orders of magnitude)
+* **การทำให้ปริมาณทางกายภาพคงที่:** < 1% การเปลี่ยนแปลงในช่วง 10 time steps
+* **การอนุรักษ์มวล (Mass conservation):** ความคลาดเคลื่อนของความต่อเนื่องทั่วทั้งโดเมน (global continuity error) < 1e-6
+
+### ตัวชี้วัดการตรวจสอบความถูกต้อง (Validation Metrics)
+
+$$\text{Error} = \frac{1}{N}\sum_{i=1}^{N}\left|\frac{u_{\text{CFD},i} - u_{\text{ref},i}}{u_{\text{ref},i}}\right| \times 100\%$$
+
+**ตัวแปรในสมการ:**
+- $u_{\text{CFD},i}$: ค่าความเร็วจากการจำลอง CFD ที่ตำแหน่ง $i$
+- $u_{\text{ref},i}$: ค่าความเร็วจากข้อมูลอ้างอิง (การทดลอง/วิเคราะห์) ที่ตำแหน่ง $i$
+- $N$: จำนวนของจุดที่ตรวจสอบ
+- $\text{Error}$: เปอร์เซ็นต์ความคลาดเคลื่อนเฉลี่ย
+
+## 🎯 วิธีการออกแบบเพื่อการปรับปรุงประสิทธิภาพ (Design Optimization Methodology)
+
+### การกำหนดปริภูมิพารามิเตอร์ (Parameter Space Definition)
+
+* **พารามิเตอร์ทางเรขาคณิต (Geometric parameters):** อัตราส่วนภาพ, รัศมีการโค้ง
+* **เงื่อนไขการทำงาน (Operating conditions):** Reynolds number, Mach number
+* **พารามิเตอร์ Mesh (Mesh parameters):** จำนวนเซลล์, ระดับการปรับปรุง (refinement levels)
+
+### การปรับปรุงหลายวัตถุประสงค์ (Multi-Objective Optimization)
+
+$$\min_{\mathbf{x}} \left[ w_1 f_1(\mathbf{x}) + w_2 f_2(\mathbf{x}) + \ldots + w_n f_n(\mathbf{x}) \right]$$
+
+**ตัวแปรในสมการ:**
+- $\mathbf{x}$: ตัวแปรการออกแบบ
+- $f_i(\mathbf{x})$: ฟังก์ชันวัตถุประสงค์ที่ $i$
+- $w_i$: ค่าน้ำหนักสำหรับวัตถุประสงค์ที่ $i$
+
+### การออกแบบการทดลอง (Design of Experiments - DoE)
+
+1. **การวิเคราะห์ความไวของพารามิเตอร์โดยใช้แผนภาพ Tornado** (Parameter sensitivity analysis using tornado diagrams)
+2. **ระเบียบวิธีพื้นผิวการตอบสนอง (Response surface methodology - RSM)** สำหรับแบบจำลองตัวแทน (surrogate models)
+3. **อัลกอริทึมเชิงพันธุกรรม (Genetic algorithms)** สำหรับการปรับปรุงประสิทธิภาพทั่วโลก (global optimization)
+4. **วิธีการที่ใช้เกรเดียนต์ (Gradient-based methods)** สำหรับการปรับปรุงเฉพาะที่ (local refinement)
+
+[Diagram: Workflow diagram showing the DoE process from parameter definition to optimal solution]
+
+## ⚡ การวัดประสิทธิภาพ (Performance Benchmarking)
+
+### ตัวชี้วัดประสิทธิภาพการคำนวณ (Computational Efficiency Metrics)
+
+| ตัวชี้วัด | หน่วย | คำอธิบาย |
+|----------|--------|---------|
+| เวลาจริงต่อการจำลอง | วินาที | เวลาที่ใช้ในการทำการจำลองแบบจำลองหนึ่งรอบ |
+| ชั่วโมง CPU | ชั่วโมง | ทรัพยากรคอมพิวเตอร์ที่ต้องการให้การคำนวณลู่เข้า |
+| การใช้หน่วยความจำ | GB | ความต้องการหน่วยความจำสูงสุดระหว่างการคำนวณ |
+| ประสิทธิภาพขนาน | % | ประสิทธิภาพของการประมวลผลแบบขนาน |
+
+### การประเมินความแม่นยำ (Accuracy Assessment)
+
+* **การศึกษาความเป็นอิสระของกริดโดยใช้ Richardson extrapolation**
+* **การวิเคราะห์ความไวของ time step**
+* **การศึกษาเปรียบเทียบแบบจำลองความปั่นป่วน** (Turbulence model comparison studies)

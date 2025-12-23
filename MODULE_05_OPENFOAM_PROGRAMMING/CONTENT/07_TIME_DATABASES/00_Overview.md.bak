@@ -1,0 +1,305 @@
+# 04.7 Geometric Fields: หัวใจสำคัญของการแสดงข้อมูล CFD
+
+**Geometric fields** ใน OpenFOAM เป็นโครงสร้างข้อมูลพื้นฐานสำหรับการแสดงปริมาณทางกายภาพที่นิยามบน mesh คำนวณ ฟิลด์เหล่านี้เป็นกระดูกสันหลังของการจำลอง CFD ใดๆ โดยให้กรอบการทำงานสำหรับการจัดเก็บ จัดการ และเข้าถึงปริมาณสเกลาร์ เวกเตอร์ และเทนเซอร์ทั่วทั้งโดเมน
+
+[Diagram: Geometric fields แสดงการกระจายค่าบน mesh 3D พร้อมการแยกระหว่าง cell-centered และ surface fields]
+
+## ประเภทและการจำแนกฟิลด์
+
+OpenFOAM ใช้งานลำดับชั้นฟิลด์ที่ครอบคลุมซึ่งจำแนกฟิลด์ตามธรรมชาติทางคณิตศาสตร์ (สเกลาร์, เวกเตอร์, เทนเซอร์) และตำแหน่งเชิงพื้นที่ (จุดศูนย์ถ่วงของเซลล์, จุดศูนย์ถ่วงของหน้า, จุดศูนย์ถ่วงของจุด)
+
+### ฟิลด์จุดศูนย์ถ่วงของเซลล์ (Cell-Centered Fields)
+
+**Cell-centered fields** จัดเก็บค่าที่จุดศูนย์ถ่วงทางเรขาคณิตของเซลล์คำนวณ ทำให้เหมาะสำหรับการ discretization แบบ finite volume:
+
+| ประเภทฟิลด์ | การใช้งาน | ตัวอย่างปริมาณ |
+|-------------|-------------|-----------------|
+| `volScalarField` | จัดเก็บปริมาณสเกลาร์ | ความดัน, อุณหภูมิ, ความเข้มข้นของชนิด |
+| `volVectorField` | จัดเก็บปริมาณเวกเตอร์ | ความเร็ว, โมเมนตัม, การกระจัด |
+| `volTensorField` | จัดเก็บเทนเซอร์อันดับสอง | เทนเซอร์ความเครียด, ฟลักซ์โมเมนตัม |
+| `volSymmTensorField` | จัดเก็บเทนเซอร์สมมาตร | เทนเซอร์อัตราการไหล, ความเครียด Reynolds |
+
+### ฟิลด์ผิว (Surface Fields)
+
+**Surface fields** ถูกนิยามบนหน้า mesh และเป็นสิ่งสำคัญสำหรับการคำนวณฟลักซ์:
+
+| ประเภทฟิลด์ | การใช้งาน | ตัวอย่างปริมาณ |
+|-------------|-------------|-----------------|
+| `surfaceScalarField` | ปริมาณฟลักซ์แนวตั้งหน้า | ฟลักซ์มวล, ฟลักซ์ความร้อน |
+| `surfaceVectorField` | เวกเตอร์หน้า | เวกเตอร์พื้นที่, ความเร็วหน้า |
+
+[Diagram: การเปรียบเทียบระหว่าง cell-centered fields และ surface fields บน mesh element]
+
+## สถาปัตยกรรม Geometric Field
+
+### การประกอบฟิลด์
+
+**Geometric field** ใน OpenFOAM ประกอบด้วยส่วนประกอบหลักหลายส่วน:
+
+```cpp
+template<class Type>
+class GeometricField
+{
+    // Core data
+    DimensionedField<Type, volMesh> internalField_;  // ค่าจุดศูนย์ถ่วงของเซลล์
+    Field<Type> boundaryField_;                      // ค่าเงื่อนไขขอบเขต
+    
+    // Geometric information
+    const fvMesh& mesh_;                            // อ้างอิงถึง mesh คำนวณ
+    const word& name_;                              // ชื่อฟิลด์สำหรับการระบุตัวตน
+    
+    // Temporal characteristics
+    const dimensionSet& dimensions_;                // มิติทางกายภาพ
+    const wordList& boundaryTypes_;                 // ประเภทเงื่อนไขขอบเขต
+};
+```
+
+### ความสม่ำเสมอของมิติ
+
+OpenFOAM ใช้ระบบวิเคราะห์มิติที่ซับซ้อนเพื่อให้แน่ใจว่ามีความสม่ำเสมอทางกายภาพ:
+
+```cpp
+dimensionSet dimensions
+(
+    massExponent,      // kg
+    lengthExponent,    // m
+    timeExponent,      // s
+    temperatureExponent, // K
+    molExponent,       // mol
+    currentExponent    // A
+);
+
+// Example: velocity dimensions [L/T]
+dimensionSet velocityDims(0, 1, -1, 0, 0, 0);
+
+// Example: pressure dimensions [M/(L·T²)]
+dimensionSet pressureDims(1, -1, -2, 0, 0, 0);
+```
+
+## การสร้างและการเริ่มต้นฟิลด์
+
+### การลงทะเบียนฟิลด์อัตโนมัติ
+
+ฟิลด์มักจะถูกลงทะเบียนกับฐานข้อมูล mesh สำหรับ time-stepping อัตโนมัติ:
+
+```cpp
+// Pressure field creation
+volScalarField p
+(
+    IOobject
+    (
+        "p",                      // Field name
+        runTime.timeName(),       // Time directory
+        mesh,                     // Reference to mesh
+        IOobject::MUST_READ,      // Read from file
+        IOobject::AUTO_WRITE      // Write to file automatically
+    ),
+    mesh
+);
+
+// Velocity field with initial conditions
+volVectorField U
+(
+    IOobject
+    (
+        "U",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedVector("U", dimVelocity, vector(1.0, 0.0, 0.0))  // Initial uniform field
+);
+```
+
+### การแปลและการสร้างฟิลด์ขึ้นใหม่
+
+OpenFOAM ให้การแปลที่ซับซ้อนสำหรับการแปลงระหว่างการแสดงฟิลด์ที่แตกต่างกัน:
+
+```cpp
+// Linear interpolation from cell to face centers
+surfaceScalarField phi = fvc::interpolate(U) & mesh.Sf();
+
+// Reconstruction from face to cell centers
+volVectorField U_reconstructed = fvc::reconstruct(phi);
+```
+
+## การดำเนินการทางคณิตศาสตร์บนฟิลด์
+
+### พีชคณิตฟิลด์
+
+OpenFOAM โอเวอร์โหลดตัวดำเนินการทางคณิตศาสตร์สำหรับการดำเนินการฟิลด์ที่เข้าใจง่าย:
+
+```cpp
+// Vector operations
+volVectorField a = U1 + U2;           // Vector addition
+volScalarField magU = mag(U);          // Vector magnitude
+volVectorField gradP = fvc::grad(p);   // Pressure gradient
+
+// Tensor operations
+volTensorField stress = mu * gradU;    // Stress tensor
+volScalarField divergence = tr(gradU); // Trace (divergence)
+```
+
+### ตัวดำเนินการเชิงอนุพันธ์
+
+การใช้งาน finite volume method ให้ตัวดำเนินการเชิงอนุพันธ์ที่ครอบคลุม:
+
+$$\nabla \cdot (\rho \mathbf{U}) = \text{fvc::div(phi)}$$
+
+- **`rho`** - ความหนาแน่น (density)
+- **`U`** - เวกเตอร์ความเร็ว (velocity vector)
+- **`phi`** - ฟลักซ์มวล (mass flux)
+- **`fvc::div()`** - ตัวดำเนินการ divergence
+
+```cpp
+// Divergence operator
+surfaceScalarField phi = rho * fvc::interpolate(U) & mesh.Sf();
+volScalarField divPhi = fvc::div(phi);
+
+// Gradient operator  
+volVectorField gradP = fvc::grad(p);
+
+// Laplacian operator
+volScalarField laplacianU = fvc::laplacian(nu, U);
+
+// Temporal derivative
+volScalarField dUdt = fvc::ddt(U);
+```
+
+[Diagram: การ visualise ตัวดำเนินการเชิงอนุพันธ์บน mesh แสดง divergence, gradient และ laplacian]
+
+## การบูรณาการเงื่อนไขขอบเขต
+
+### ขอบเขต Geometric Field
+
+เงื่อนไขขอบเขตถูกผสานเข้ากับ geometric fields อย่างใกล้ชิด:
+
+```cpp
+class GeometricBoundaryField
+{
+    // Boundary field access
+    const wordList& types() const;      // BC type names
+    const FieldField<Field, Type>& boundaryField() const;
+    
+    // Individual boundary patch access
+    const Field<Type>& operator[](const label patchi) const;
+    Field<Type>& operator[](const label patchi);
+};
+```
+
+### การอัปเดตขอบเขตแบบไดนามิก
+
+```cpp
+// Apply boundary conditions
+U.correctBoundaryConditions();
+p.correctBoundaryConditions();
+
+// Non-orthogonal correction for gradient calculation
+volVectorField gradP = fvc::grad(p, "gradP" + p.name());
+```
+
+## การดำเนินการฟิลด์ขั้นสูง
+
+### การแม็ปฟิลด์และการแปลง
+
+OpenFOAM ให้ความสามารถในการแม็ปฟิลด์ที่ซับซ้อน:
+
+```cpp
+// Mesh-to-mesh interpolation
+meshToMesh interpolator(sourceMesh, targetMesh);
+volScalarField targetField = interpolator.interpolate(sourceField);
+
+// Coordinate transformations
+volVectorField rotatedU = transform(rotationTensor, U);
+volTensorField principalStress = eigenVectors(stressTensor);
+```
+
+### การรวมฟิลด์และสถิติ
+
+```cpp
+// Volume-weighted averages
+scalar avgPressure = sum(p * mesh.V()) / sum(mesh.V());
+
+// Field minima and maxima
+scalar maxVelocity = max(mag(U)).value();
+scalar minTemperature = min(T).value();
+
+// Root mean square calculations
+scalar urms = sqrt(sum(magSqr(U)) / mesh.nCells());
+```
+
+## การจัดการหน่วยความจำและประสิทธิภาพ
+
+### การนับรีเฟอเรนซ์
+
+OpenFOAM ใช้พอยน์เตอร์ที่นับรีเฟอเรนซ์สำหรับการจัดการหน่วยความจำที่มีประสิทธิภาพ:
+
+```cpp
+tmp<volScalarField> tT(new volScalarField(IOobject(...), mesh));
+volScalarField& T = tT();  // Automatic reference management
+```
+
+### การบีบอัดฟิลด์และการเพิ่มประสิทธิภาพการจัดเก็บ
+
+```cpp
+// Compact storage for sparse fields
+volScalarField::Internal& internalField = field.ref();
+
+// Parallel communication reduction
+reduce(maxValue, maxOp<scalar>());
+```
+
+## การดีบักและการแสดงภาพฟิลด์
+
+### การตรวจสอบฟิลด์
+
+```cpp
+// Check for numerical issues
+if (mag(p).value() > 1e6)
+{
+    WarningIn("GeometricField validation")
+        << "Pressure field has excessive magnitude: " << max(mag(p)) << endl;
+}
+
+// Verify field bounds
+p.minMax(minP, maxP);
+```
+
+### การจัดรูปแบบเอาต์พุต
+
+```cpp
+// Custom field output for debugging
+Info << "Field statistics for " << U.name() << nl
+     << "  min: " << min(mag(U)).value() << nl
+     << "  max: " << max(mag(U)).value() << nl
+     << "  avg: " << sum(mag(U) * mesh.V()).value() / sum(mesh.V()).value() << nl;
+```
+
+## ประเภทฟิลด์เฉพาะ
+
+### ฟิลด์เฟส (หลายเฟส)
+
+```cpp
+// Volume fraction fields for multiphase flow
+volScalarField alpha1
+(
+    IOobject("alpha1", runTime.timeName(), mesh, IOobject::READ_IF_PRESENT),
+    mesh,
+    dimensionedScalar("alpha1", dimless, 1.0)
+);
+
+// Phase-weighted fields
+volScalarField rhoMix = alpha1 * rho1 + (1.0 - alpha1) * rho2;
+```
+
+### ฟิลด์คุณสมบัติทางความร้อน
+
+```cpp
+// Temperature-dependent material properties
+volScalarField k = k0 * pow(T/T0, kExp);
+volScalarField mu = mu0 * pow(T/T0, muExp) * pow(P/P0, muExpP);
+```
+
+**สรุป:** ระบบฟิลด์ที่ครอบคลุมนี้ช่วยให้ OpenFOAM สามารถจัดการปัญหา CFD ที่ซับซ้อนด้วยความสามารถในการแสดงข้อมูลและการจัดการที่ซับซ้อน ซึ่งเป็นพื้นฐานที่จำเป็นสำหรับความแม่นยำของการจำลองเชิงตัวเลขและประสิทธิภาพการคำนวณ

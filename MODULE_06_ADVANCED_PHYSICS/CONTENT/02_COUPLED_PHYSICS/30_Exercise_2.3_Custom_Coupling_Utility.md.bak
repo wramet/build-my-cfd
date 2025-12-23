@@ -1,0 +1,484 @@
+## แบบฝึกหัด 2.3: Custom Coupling Utility
+
+### 🎯 วัตถุประสงค์
+เขียน utility ที่ตรวจสอบการลู่เข้าของการเชื่อมโยงระหว่าง region ในปัญหาการถ่ายเทความร้อนร่วม (conjugate heat transfer)
+
+---
+
+## 7.1 หลักการพื้นฐาน
+
+การเชื่อมโยงระหว่าง region ต้องการการตรวจสอบการลู่เข้าแบบวนซ้ำเพื่อให้แน่ใจว่าการถ่ายเทความร้อนที่ขอบเขต interface มีความถูกต้อง
+
+**Coupling utility** ให้:
+- การวินิจฉัยที่จำเป็น
+- การเร่งการลู่เข้าสำหรับการจำลองแบบหลาย region
+
+[Diagram: Flow chart แสดงการทำงานของ coupling utility ตั้งแต่ field sampling ถึง convergence check]
+
+---
+
+## 7.2 โครงสร้างการ Implement
+
+### 7.2.1 Field Sampling Class
+
+```cpp
+class CouplingSampler
+{
+    const fvMesh& fluidMesh_;
+    const fvMesh& solidMesh_;
+    
+    // Interface field sampling
+    void sampleInterfaceFields
+    (
+        const volScalarField& T_f,
+        const volScalarField& T_s,
+        scalarField& fluidInterface,
+        scalarField& solidInterface
+    );
+};
+```
+
+**อัลกอริทึมการสุ่มตัวอย่าง** ดึงค่าอุณหภูมิจาก coupled interface patches โดยใช้ patch interpolation ของ OpenFOAM:
+
+```cpp
+void CouplingSampler::sampleInterfaceFields
+(
+    const volScalarField& T_f,
+    const volScalarField& T_s,
+    scalarField& fluidInterface,
+    scalarField& solidInterface
+)
+{
+    // Sample fluid interface values
+    const fvPatch& fluidPatch = T_f.boundaryRef()[fluidPatchID_];
+    fluidInterface = fluidPatch.patchInternalField();
+    
+    // Sample solid interface values  
+    const fvPatch& solidPatch = T_s.boundaryRef()[solidPatchID_];
+    solidInterface = solidPatch.patchInternalField();
+}
+```
+
+### 7.2.2 Residual Computation
+
+**Coupling residual** ประเมินความต่อเนื่องของอุณหภูมิที่ interface:
+
+$$\epsilon_{\text{coupling}} = \frac{\|T_f - T_s\|_2}{\|T_f\|_2}$$
+
+โดยที่:
+- $\| \cdot \|_2$ แทน L2 norm บน interface cells
+- $T_f$ คือ อุณหภูมิของ fluid ที่ interface
+- $T_s$ คือ อุณหภูมิของ solid ที่ interface
+
+```cpp
+scalar computeCouplingResidual
+(
+    const scalarField& fluidInterface,
+    const scalarField& solidInterface
+)
+{
+    scalarField diff = fluidInterface - solidInterface;
+    scalar numerator = sqrt(sum(diff*diff));
+    scalar denominator = sqrt(sum(fluidInterface*fluidInterface));
+    
+    return numerator/(denominator + SMALL);
+}
+```
+
+### 7.2.3 Aitken Acceleration
+
+**Aitken relaxation** ปรับปรุง under-relaxation factor แบบไดนามิกตามพฤติกรรมการลู่เข้า:
+
+$$\alpha_{k+1} = \alpha_k + (1 - \alpha_k) \frac{\Delta r_k \cdot \Delta r_{k-1}}{\Delta r_k \cdot \Delta r_k}$$
+
+โดยที่:
+- $\alpha_k$ คือ relaxation factor ที่การวนซ้ำ $k$
+- $\Delta r_k$ คือการเปลี่ยนแปลงของ residual
+- $\Delta r_{k-1}$ คือการเปลี่ยนแปลงของ residual ที่การวนซ้ำก่อนหน้า
+
+```cpp
+scalar AitkenRelaxation::calculateRelaxationFactor
+(
+    const scalar residual_k,
+    const scalar residual_k_minus_1,
+    const scalar alpha_k
+)
+{
+    if (firstIteration_)
+    {
+        return alpha_k;
+    }
+    
+    scalar deltaR = residual_k - residual_k_minus_1;
+    scalar deltaR_prev = residual_k_minus_1 - residual_k_minus_2;
+    
+    scalar relaxation = alpha_k + (1 - alpha_k) * 
+                      (deltaR * deltaR_prev)/(deltaR * deltaR);
+    
+    return min(max(relaxation, 0.1), 0.9);
+}
+```
+
+---
+
+## 7.3 Function Object Integration
+
+**Coupling utility** เชื่อมโยงกับระบบ function object ของ OpenFOAM:
+
+```cpp
+class CouplingConvergenceMonitor : public fvMeshFunctionObject
+{
+    // Data members
+    autoPtr<CouplingSampler> sampler_;
+    autoPtr<AitkenRelaxation> relaxation_;
+    
+    // Iteration tracking
+    scalarField residualHistory_;
+    label currentIteration_;
+    scalar convergenceTolerance_;
+    
+    // Function object interface
+    virtual void execute();
+    virtual bool read(const dictionary& dict);
+    virtual bool write();
+};
+```
+
+### 7.3.1 Control Dictionary
+
+```cpp
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      couplingControl;
+}
+
+couplingMonitor
+{
+    type            couplingConvergence;
+    
+    // Patch identification
+    fluidPatch      fluidInterface;
+    solidPatch      solidInterface;
+    
+    // Convergence criteria
+    tolerance       1e-6;
+    maxIterations   100;
+    
+    // Aitken parameters
+    initialRelax    0.8;
+    minRelax        0.1;
+    maxRelax        0.9;
+    
+    // Output control
+    writeResiduals  true;
+    outputInterval  1;
+}
+```
+
+**Table: Coupling Parameters**
+
+| พารามิเตอร์ | ค่าเริ่มต้น | คำอธิบาย |
+|-------------|-------------|----------|
+| `tolerance` | 1e-6 | ค่าความคลาดเคลื่อนที่ยอมรับ |
+| `maxIterations` | 100 | จำนวนการวนซ้ำสูงสุด |
+| `initialRelax` | 0.8 | Relaxation factor เริ่มต้น |
+| `minRelax` | 0.1 | Relaxation factor ต่ำสุด |
+| `maxRelax` | 0.9 | Relaxation factor สูงสุด |
+
+---
+
+## 7.4 Monitoring Algorithm
+
+**อัลกอริทึมการตรวจสอบการลู่เข้าของการเชื่อมโยงที่สมบูรณ์:**
+
+```cpp
+void CouplingConvergenceMonitor::execute()
+{
+    // 1. Sample interface fields
+    sampler_->sampleInterfaceFields
+    (
+        T_f,
+        T_s, 
+        fluidInterface_,
+        solidInterface_
+    );
+    
+    // 2. Compute current residual
+    scalar currentResidual = computeCouplingResidual
+    (
+        fluidInterface_,
+        solidInterface_
+    );
+    
+    // 3. Store residual history
+    residualHistory_.append(currentResidual);
+    currentIteration_++;
+    
+    // 4. Calculate dynamic relaxation factor
+    scalar relaxationFactor = relaxation_->calculateRelaxationFactor
+    (
+        currentResidual,
+        residualHistory_[currentIteration_-2],
+        relaxationFactor_
+    );
+    
+    // 5. Apply relaxation to interface temperatures
+    applyRelaxation(relaxationFactor);
+    
+    // 6. Check convergence
+    bool converged = currentResidual < convergenceTolerance_;
+    
+    // 7. Write monitoring data
+    if (converged)
+    {
+        Info << "Coupling converged after " << currentIteration_ 
+             << " iterations with residual: " << currentResidual << endl;
+    }
+}
+```
+
+**Algorithm Flow:**
+1. **Sample** interface fields จาก fluid และ solid regions
+2. **Compute** coupling residual ด้วย L2 norm
+3. **Store** residual history สำหรับ Aitken acceleration
+4. **Calculate** dynamic relaxation factor
+5. **Apply** relaxation ไปยัง interface temperatures
+6. **Check** convergence criteria
+7. **Output** monitoring data
+
+---
+
+## 7.5 Data Output Structure
+
+**Utility สร้างสถิติการเชื่อมโยงที่ครอบคลุม:**
+
+```
+Coupling Convergence History:
+Iteration  Residual    RelaxationFactor  ConvergenceRate
+1          0.015234    0.800000         ---
+2          0.008127    0.750000         1.874
+3          0.004281    0.712500         1.898
+4          0.002293    0.684375         1.867
+5          0.001248    0.663281         1.837
+...
+
+Convergence Summary:
+- Final Residual: 2.456e-07
+- Iterations: 12
+- Average Relaxation: 0.634
+- Initial Residual: 1.523e-02
+- Reduction Factor: 6.202e+04
+```
+
+**Table: Convergence Metrics**
+
+| เมตริก | ค่า | คำอธิบาย |
+|---------|------|----------|
+| Final Residual | 2.456e-07 | ค่าความคลาดเคลื่อนสุดท้าย |
+| Iterations | 12 | จำนวนการวนซ้ำทั้งหมด |
+| Average Relaxation | 0.634 | ค่าเฉลี่ยของ relaxation factor |
+| Initial Residual | 1.523e-02 | ค่าความคลาดเคลื่อนเริ่มต้น |
+| Reduction Factor | 6.202e+04 | อัตราการลดความคลาดเคลื่อน |
+
+---
+
+## 7.6 Error Handling and Diagnostics
+
+### 7.6.1 Mesh Compatibility Verification
+
+```cpp
+bool CouplingSampler::verifyInterfaceCompatibility()
+{
+    // Check patch sizes
+    if (fluidPatch_.size() != solidPatch_.size())
+    {
+        WarningIn("CouplingSampler::verifyInterfaceCompatibility()")
+            << "Interface patch size mismatch: fluid=" 
+            << fluidPatch_.size() << " solid=" 
+            << solidPatch_.size() << endl;
+        return false;
+    }
+    
+    // Verify face-to-face correspondence
+    forAll(fluidPatch_, i)
+    {
+        scalar distance = mag
+        (
+            fluidPatch_.faceCentres()[i] - 
+            solidPatch_.faceCentres()[i]
+        );
+        
+        if (distance > interfaceTolerance_)
+        {
+            Warning << "Large interface gap at face " << i 
+                    << ": distance = " << distance << endl;
+        }
+    }
+    
+    return true;
+}
+```
+
+### 7.6.2 Convergence Stagnation Detection
+
+```cpp
+bool CouplingConvergenceMonitor::checkStagnation()
+{
+    if (residualHistory_.size() < stagnationWindow_)
+    {
+        return false;
+    }
+    
+    // Check residual reduction over last N iterations
+    scalar initialResidual = residualHistory_[currentIteration_-stagnationWindow_];
+    scalar currentResidual = residualHistory_.last();
+    scalar reduction = (initialResidual - currentResidual)/initialResidual;
+    
+    if (reduction < stagnationThreshold_)
+    {
+        Warning << "Coupling stagnation detected: reduction = " 
+                << reduction << " over " << stagnationWindow_ 
+                << " iterations" << endl;
+        
+        // Adaptive strategy: reduce relaxation factor
+        relaxationFactor_ *= 0.8;
+        
+        return true;
+    }
+    
+    return false;
+}
+```
+
+**Table: Error Conditions**
+
+| ประเภทข้อผิดพลาด | เงื่อนไข | การจัดการ |
+|------------------|-----------|-------------|
+| Patch size mismatch | `fluidPatch.size() != solidPatch.size()` | แสดง warning และ return false |
+| Large interface gap | `distance > interfaceTolerance_` | แสดง warning ต่อแต่ละ face |
+| Convergence stagnation | `reduction < stagnationThreshold_` | ลด relaxation factor ลง 20% |
+
+---
+
+## 7.7 Performance Optimization
+
+### 7.7.1 Selective Interface Sampling
+
+สำหรับปัญหาขนาดใหญ่ ทำ selective sampling ตาม interface regions ที่มี gradient สำคัญ:
+
+```cpp
+class SelectiveCouplingSampler : public CouplingSampler
+{
+    scalarField interfaceGradient_;
+    scalar gradientThreshold_;
+    
+    void identifyCriticalRegions();
+    void sampleCriticalRegions();
+};
+```
+
+**Algorithm สำหรับ Selective Sampling:**
+
+1. **Compute** gradient ที่ interface: `∇T`
+2. **Identify** regions ที่ `|∇T| > gradientThreshold_`
+3. **Sample** เฉพาะ critical regions
+4. **Interpolate** ค่าระหว่าง regions ที่ไม่สำคัญ
+
+### 7.7.2 Parallel Coupling Communication
+
+ปรับปรุงการสื่อสารระหว่าง process สำหรับ distributed interface patches:
+
+```cpp
+void parallelInterfaceCommunication
+(
+    const scalarField& localInterface,
+    scalarField& globalInterface
+)
+{
+    // Reduce interface data to root process
+    reduce(localInterface, sumOp<scalarField>());
+    
+    // Apply convergence algorithm on aggregated data
+    if (Pstream::master())
+    {
+        // Convergence computation
+    }
+    
+    // Broadcast results to all processes
+    Pstream::broadcast(globalInterface);
+}
+```
+
+**Communication Pattern:**
+- **Gather**: รวม interface data จากทุก process
+- **Compute**: ทำ convergence calculation บน master process
+- **Broadcast**: ส่งผลลัพธ์กลับไปทุก process
+
+---
+
+## 7.8 Validation and Testing
+
+### 7.8.1 Test Case Structure
+
+```
+CouplingUtilityTest/
+├── 0/
+│   ├── T           # Initial temperature field
+│   └── T_solid     # Solid temperature field
+├── constant/
+│   ├── polyMesh/   # Multi-region mesh
+│   └── thermophysicalProperties
+├── system/
+│   ├── controlDict
+│   ├── fvSchemes
+│   ├── fvSolution
+│   └── couplingDict  # Coupling utility control
+└── Allrun
+```
+
+### 7.8.2 Convergence Verification
+
+```cpp
+// Expected convergence behavior
+scalar expectedResiduals[] = {1.5e-02, 8.1e-03, 4.3e-03, 
+                              2.3e-03, 1.2e-03, 6.4e-04};
+
+for (int i = 0; i < 6; i++)
+{
+    Info << "Iteration " << i+1 
+         << " residual: " << residualHistory_[i] 
+         << " (expected: ~" << expectedResiduals[i] << ")" << endl;
+    
+    if (abs(residualHistory_[i] - expectedResiduals[i]) > 
+        1e-04 * expectedResiduals[i])
+    {
+        FatalError << "Convergence behavior deviation at iteration " 
+                   << i+1 << exit(FatalError);
+    }
+}
+```
+
+**Table: Test Validation Criteria**
+
+| การทดสอบ | เกณฑ์การผ่าน | วิธีการตรวจสอบ |
+|-----------|----------------|------------------|
+| Interface compatibility | Patch sizes match | `verifyInterfaceCompatibility()` |
+| Convergence rate | Residual reduction > 1.5× ต่อ iteration | เปรียบเทียบกับค่าที่คาดหวัง |
+| Aitken acceleration | Relaxation factor อยู่ในช่วง [0.1, 0.9] | Monitor relaxation history |
+| Parallel scalability | Speedup > 0.7 สำหรับ 4 processes | Performance benchmarking |
+
+---
+
+## 📋 บทสรุป
+
+**Custom coupling utility** ให้การตรวจสอบการลู่เข้าและการเร่งที่มั่นคงสำหรับปัญหาการถ่ายเทความร้อนหลาย region ทำให้มั่นใจได้ถึง:
+
+✅ **การแก้ปัญหาที่ถูกต้อง** (Correct Solution)  
+✅ **ประสิทธิภาพการคำนวณ** (Computational Efficiency)  
+✅ **เสถียรภาพการลู่เข้า** (Convergence Stability)  
+✅ **การจัดการข้อผิดพลาด** (Error Handling)  
+
+สำหรับแอปพลิเคชันทางวิศวกรรมที่ซับซ้อน

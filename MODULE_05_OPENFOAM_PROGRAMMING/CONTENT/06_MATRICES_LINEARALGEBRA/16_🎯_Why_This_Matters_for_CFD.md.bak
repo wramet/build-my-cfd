@@ -1,0 +1,181 @@
+# 🎯 **ความสำคัญสำหรับ CFD**
+
+## **ประ๋ยชน์ทางวิศวกรรม 1: สมการพลังงานกับการแผ่รังสี**
+
+ในการประยุกต์ใช้ในอุตสาหกรรม เช่น **การออกแบบเตาเผา** ห้องเผาไหม้ และระบบระบายความร้อนอิเล็กทรอนิกส์ สมการพลังงานจะต้องคำนึงถึงกลไกการถ่ายเทความร้อนที่เชื่อมโยงกัน
+
+### สมการพลังงานที่สมบูรณ์กับการแผ่รังสี
+
+$$\rho c_p \frac{\partial T}{\partial t} + \rho c_p \mathbf{U} \cdot \nabla T = \nabla \cdot (k \nabla T) + Q_{\text{rad}}$$
+
+**นิยามตัวแปร:**
+- $\rho$ - ความหนาแน่น (kg/m³)
+- $c_p$ - ความร้อนจำเพาะ (J/kg·K)
+- $T$ - อุณหภูมิ (K)
+- $\mathbf{U}$ - เวกเตอร์ความเร็ว (m/s)
+- $k$ - สัมประสิทธิ์การนำความร้อน (W/m·K)
+- $Q_{\text{rad}}$ - แหล่งความร้อนจากรังสี (W/m³)
+
+[Diagram: การไหลของความร้อนในเตาอุตสาหกรรมแสดงการถ่ายเทความร้อนแบบต่างๆ]
+
+### OpenFOAM Code Implementation
+
+```cpp
+// คุณสมบัติความร้อน
+dimensionedScalar rhoCp("rhoCp", dimensionSet(1,-1,-2,1,0), 1000);
+dimensionedScalar k("k", dimensionSet(1,1,-3,1,0), 0.6);
+
+// แหล่งรังสี (ขึ้นกับอุณหภูมิ)
+volScalarField Qrad = radiation->Sh(T);
+
+// สมการพลังงานที่สมบูรณ์
+fvMatrix<scalar> TEqn = fvm::ddt(rhoCp, T)
+                      + fvm::div(rhoCp*phi, T)
+                      - fvm::laplacian(k, T)
+                      == Qrad;
+```
+
+### เงื่อนไขขอบเขตแบบผสม convection-radiation
+
+เงื่อนไขขอบเขตจะกลายเป็นซับซ้อนโดยเฉพาะสำหรับปัญหา对流-รังสีที่เชื่อมโยงกัน สำหรับขอบเขตแบบผสม เราต้องใช้ทั้งการไหลของความร้อน对流 ($h(T_{\infty} - T)$) และการไหลของรังสี ($\varepsilon\sigma(T_{\text{amb}}^4 - T^4)$):
+
+```cpp
+// ขอบเขต: Mixed convection-radiation
+forAll(T.boundaryField(), patchi)
+{
+    if (isA<mixedFvPatchScalarField>(T.boundaryField()[patchi]))
+    {
+        // h(T_inf - T) + εσ(T_amb⁴ - T⁴)
+        mixedFvPatchScalarField& Tpatch =
+            refCast<mixedFvPatchScalarField>(T.boundaryFieldRef()[patchi]);
+
+        Tpatch.refValue() = Tinf.value();
+        Tpatch.refGrad() = radiationFlux(Tpatch);
+        Tpatch.valueFraction() = 0.5;  // การผสมผสาน
+    }
+}
+```
+
+**ความสำคัญทางวิศวกรรม:** การกำหนดรูปแบบนี้ช่วยให้การจำลองเตาอุตสาหกรรมที่แม่นยำ ซึ่งการแผ่รังสีสามารถมีส่วนช่วยในการถ่ายเทความร้อนทั้งหมด **30-80%**
+
+---
+
+## **ประโยชน์ทางวิศวกรรม 2: การขนส่งสารเคมีกับปฏิกิริยา**
+
+สำหรับการจำลอง **การเผาไหม้** และ **การประมวลผลทางเคมี** สมการการอนุรักษ์สารเคมีจะต้องคำนึงถึงการ对流 การแพร่กระจาย และปฏิกิริยาเคมี
+
+### สมการการอนุรักษ์สารเคมี
+
+$$\frac{\partial(\rho Y_i)}{\partial t} + \nabla \cdot (\rho \mathbf{U} Y_i) = \nabla \cdot (\rho D_i \nabla Y_i) + R_i$$
+
+**นิยามตัวแปร:**
+- $Y_i$ - สัดส่วนมวลของสารเคมีชนิดที่ $i$
+- $D_i$ - สัมประสิทธิ์การแพร่กระจายของสารชนิดที่ $i$
+- $R_i$ - เทอมแหล่งปฏิกิริยาของสารชนิดที่ $i$
+
+### OpenFOAM Code Implementation (reactingFoam)
+
+```cpp
+PtrList<fvMatrix<scalar>> YEqns(species.size());
+
+forAll(species, i)
+{
+    YEqns.set
+    (
+        i,
+        new fvMatrix<scalar>
+        (
+            fvm::ddt(rho, Yi)
+          + fvm::div(phi, Yi)
+          - fvm::laplacian(rho*Di, Yi)
+          == chemistry->RR(i)  // แหล่งปฏิกิริยา
+        )
+    );
+}
+```
+
+### ข้อจำกัดการอนุรักษ์สัดส่วนมวล
+
+ข้อจำกัดที่สำคัญในระบบหลายส่วนประกอบคือ **การอนุรักษ์สัดส่วนมวล:** $\sum_{i=1}^{N} Y_i = 1$
+
+OpenFOAM ใช้เรื่องนี้โดยแก้สำหรับ $N-1$ ชนิดและคำนวณชนิดสุดท้ายโดยความแตกต่าง:
+
+```cpp
+    // ผลรวมของสัดส่วนมวล = 1 constraint
+    if (i < species.size() - 1)
+    {
+        // แก้สำหรับทุกชนิดยกเว้นชนิดสุดท้าย
+        solve(YEqns[i]);
+    }
+    else
+    {
+        // ชนิดสุดท้าย: Y_n = 1 - ΣY_i
+        Yi = scalar(1);
+        for (label j = 0; j < i; j++)
+            Yi -= Y[j];
+    }
+}
+```
+
+[Diagram: การไหลและปฏิกิริยาในเตาเผาแสดงการเคลื่อนที่ของสารเคมี]
+
+**ความสำคัญทางวิศวกรรม:** แนวทางนี้ช่วยให้มั่นใจในความมั่นคงทางตัวเลขและความสอดคล้องทางฟิสิกส์ในการจำลองการเผาไหม้
+
+---
+
+## **ประโยชน์ทางวิศวกรรม 3: การไหลแบบหลายเฟสกับการติดตามอินเทอร์เฟซ**
+
+สำหรับระบบหลายเฟสที่มีอินเทอร์เฟซที่แตกต่างกัน (เช่น **การแยกน้ำมัน-น้ำ** คอลัมน์ฟอง การเคลื่อนที่ของเชื้อเพลิง) วิธี **Volume-of-Fluid (VOF)** ติดตามสัดส่วนเฟส $\alpha$
+
+### สมการ VOF
+
+$$\frac{\partial \alpha}{\partial t} + \nabla \cdot (\mathbf{U} \alpha) + \nabla \cdot (\mathbf{U}_c \alpha(1-\alpha)) = 0$$
+
+**นิยามตัวแปร:**
+- $\alpha$ - สัดส่วนเฟส (0 ≤ α ≤ 1)
+- $\mathbf{U}$ - เวกเตอร์ความเร็ว (m/s)
+- $\mathbf{U}_c$ - เวกเตอร์ความเร็วบีบอัด (m/s)
+
+เทอมการบีบอัดเพิ่มเติม $\nabla \cdot (\mathbf{U}_c \alpha(1-\alpha))$ รักษาอินเทอร์เฟซที่คมชัดโดยต่อต้านการแพร่กระจายทางตัวเลข
+
+### OpenFOAM Code Implementation (interFoam)
+
+```cpp
+fvMatrix<scalar> alphaEqn
+(
+    fvm::ddt(alpha)
+  + fvm::div(phi, alpha)
+  + fvm::div(phic, alpha, "div(phic,alpha)")  // เทอมการบีบอัด
+);
+```
+
+### อัลกอริทึม MULES สำหรับ Boundedness
+
+อัลกอริทึม **MULES** (Multidimensional Universal Limiter with Explicit Solution) ช่วยให้มั่นใจว่าสัดส่วนเฟสมีขอบเขต:
+
+```cpp
+// MULES (Multidimensional Universal Limiter with Explicit Solution)
+MULES::solve(alphaEqn, phi, phic, alpha);
+
+// จำกัด alpha ให้อยู่ใน [0,1] สำหรับ boundedness
+alpha.min(1);
+alpha.max(0);
+```
+
+**ความสำคัญทางวิศวกรรม:** ความมีขอบเขตนี้มีความสำคัญอย่างยิ่งสำหรับความสมจริงทางฟิสิกส์ - สัดส่วนเฟสจะต้องอยู่ใน [0,1] เพื่อแสดงถึงสัดส่วนปริมาตรที่เหมาะสม
+
+### การประยุกต์ใช้ VOF ในอุตสาหกรรม
+
+| การประยุกต์ใช้ | คำอธิบาย |
+|---|---|
+| **การไหลผิวอิสระ** | สถานีตกพลาง, การทลายของเขื่อน |
+| **การผสมหลายเฟส** | เครื่องแยกน้ำมัน-น้ำ |
+| **รีแอกเตอร์ก๊าซ-ของเหลว** | คอลัมน์ฟอง |
+| **การเคลื่อนที่ของเชื้อเพลิง** | การประยุกต์ใช้อวกาศ |
+
+[Diagram: การไหลแบบหลายเฟสแสดงอินเทอร์เฟซระหว่างของเหลวและก๊าซ]
+
+---
+
+# 📊 **หัวข้อ 4: Linear Solvers - เครื่องมือแก้สมการ**
+```

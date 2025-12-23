@@ -1,0 +1,184 @@
+# ⚙️ **กลไกสำคัญ: Sparse Matrix Storage**
+
+## **Step 1: LDU Storage Format - กลยุทธ์ "Neighbor Lists"**
+
+รูปแบบการจัดเก็บ **LDU (Lower Diagonal Upper)** ใน OpenFOAM เป็นแนวทางที่ซับซ้อนสำหรับการจัดเก็บ sparse matrix ที่ใช้ประโยชน์จากรูปแบบความกระจัดกระจายโดยธรรมชาติของการ discretization แบบ finite volume
+
+[Diagram: LDU storage format showing three arrays - diagonal, lower, and upper triangles]
+
+**หลักการพื้นฐาน:**
+- ออกแบบมาโดยเฉพาะสำหรับเมทริกซ์ที่เกิดจากการ discretization ของสมการอนุพันธ์ย่อยบน meshes แบบ unstructured
+- แต่ละ cell โดยทั่วไปจะโต้ตอบกับ neighbors ที่ใกล้ที่สุดผ่าน faces ที่แชร์กันเท่านั้น
+
+คลาส `lduMatrix` นำกลยุทธ์การจัดเก็บนี้มาใช้ผ่านสาม arrays หลัก:
+
+```cpp
+// 🔧 MECHANISM: lduMatrix stores three arrays for symmetric/asymmetric matrices
+class lduMatrix
+{
+private:
+    // Mesh reference for connectivity
+    const lduMesh& lduMesh_;
+
+    // Matrix coefficients (only non-zeros)
+    scalarField* lowerPtr_;   // Lower triangle coefficients
+    scalarField* diagPtr_;    // Diagonal coefficients
+    scalarField* upperPtr_;   // Upper triangle coefficients
+
+public:
+    // Access to mesh addressing
+    const lduAddressing& lduAddr() const
+    {
+        return lduMesh_.lduAddr();  // Cell-to-cell connectivity
+    }
+};
+```
+
+### **ประสิทธิภาพการจัดเก็บ:**
+
+สำหรับ mesh ที่มี $n$ cells และ $m$ internal faces:
+
+| รูปแบบเมทริกซ์ | จำนวน entries | อัตราส่วนการบีบอัด |
+|-------------|------------|------------------|
+| Dense Matrix | $n^2$ | 1.0 |
+| LDU Storage | $n + 2m$ | $\frac{n + 2m}{n^2} = \frac{2m}{n^2}$ |
+
+**ข้อสังเกต:** สำหรับ meshes ขนาดใหญ่โดยที่ $m \sim O(n)$ สำหรับ finite volume meshes ทั่วไป
+
+```cpp
+// 🔍 STORAGE SCHEME: Compressed row/column storage variant
+// For n cells with m internal faces:
+// - diag: n entries (always stored)
+// - lower/upper: m entries each (only for internal faces)
+// Total storage: n + 2m entries vs n² for dense matrix
+```
+
+**ประโยชน์สำคัญ:**
+- **เหมาะสำหรับ CFD** discretized operators (gradient, divergence, Laplacian) ผลิต sparse matrix patterns ที่สะท้อน mesh connectivity โดยธรรมชาติ
+- **ประหยัด memory** อย่างมากสำหรับ problems ขนาดใหญ่
+
+---
+
+## **Step 2: Mesh Addressing - ระบบ "Who's My Neighbor?"**
+
+คลาส `lduAddressing` ให้โครงสร้างพื้นฐานสำหรับการทำความเข้าใจ cell connectivity ภายใน finite volume mesh
+
+[Diagram: Mesh addressing showing owner-neighbour relationships for internal faces]
+
+**หน้าที่หลัก:**
+- รักษารายการที่ชัดเจนของความสัมพันธ์ cell-cell ผ่าน faces ที่แชร์กัน
+- ช่วยให้ sparse matrix operations ที่มีประสิทธิภาพและการท่องผ่าน mesh topology
+
+```cpp
+// 🔧 MECHANISM: lduAddressing provides cell connectivity
+class lduAddressing
+{
+private:
+    // Owner list: cell index for each face's "owner" side
+    labelList owner_;
+
+    // Neighbour list: cell index for each face's "neighbour" side
+    labelList neighbour_;
+
+    // For face i: owner_[i] and neighbour_[i] are connected cells
+    // Lower triangle: owner → neighbour
+    // Upper triangle: neighbour → owner
+
+public:
+    // Number of internal faces (non-boundary connections)
+    label nInternalFaces() const { return neighbour_.size(); }
+
+    // Face-cell connectivity
+    const labelList& lowerAddr() const { return owner_; }      // Lower addressing
+    const labelList& upperAddr() const { return neighbour_; }  // Upper addressing
+};
+```
+
+### **ระบบ Orientation:**
+
+ตามข้อตกลงที่สอดคล้องกัน:
+
+| Face Type | Owner Cell | Neighbor Cell | หมายเหตุ |
+|-----------|------------|---------------|-----------|
+| Internal Face | Lower cell index | Higher cell index | มีทั้ง owner และ neighbour |
+| Boundary Face | Cell index | - | มีเพียง owner อย่างเดียว |
+
+```cpp
+// 🔍 CONNECTIVITY: Each internal face connects exactly two cells
+// Boundary faces have only owner (no neighbour)
+// Matrix entry A[owner][neighbour] stored in upperPtr_[face]
+// Matrix entry A[neighbour][owner] stored in lowerPtr_[face]
+```
+
+**ประสิทธิภาพ:**
+- **O(1) access** สำหรับข้อมูล neighbor ของ cell ใดๆ
+- **รองรับ iterative solvers** ที่มีประสิทธิภาพสำหรับ operations เช่น matrix-vector multiplication: $(A\mathbf{x})_i = A_{ii}x_i + \sum_{j \in \text{neighbors}(i)} A_{ij}x_j$
+
+---
+
+## **Step 3: Matrix Assembly - รูปแบบ "Per-Face Contribution"**
+
+Matrix assembly ใน OpenFOAM ตามรูปแบบ **"per-face contribution"** ที่สอดคล้องกัน
+
+[Diagram: Per-face contribution showing how each internal face contributes to matrix coefficients]
+
+**หลักการ:**
+- แต่ละ internal face มีส่วนสนับสนุน coefficients ของ cells สองอันที่เชื่อมต่อกัน
+- **Conservation by construction** - fluxes ข้าม faces ที่แชร์กันจะตอบสนองความสมดุลระหว่าง cells ที่อยู่ติดกันโดยอัตโนมัติ
+
+```cpp
+// 🔧 MECHANISM: Building matrix coefficients face by face
+void assembleLaplacian(lduMatrix& matrix, const scalar gamma)
+{
+    const lduAddressing& addr = matrix.lduAddr();
+    scalarField& diag = matrix.diag();
+    scalarField& upper = matrix.upper();
+    scalarField& lower = matrix.lower();
+
+    // For each internal face (connection between two cells)
+    forAll(addr.upperAddr(), facei)
+    {
+        label own = addr.lowerAddr()[facei];   // Owner cell
+        label nei = addr.upperAddr()[facei];   // Neighbor cell
+
+        // Geometric factor (face area/magnitude)
+        scalar coeff = gamma * mesh.magSf()[facei] / mesh.magDelta()[facei];
+
+        // Add to matrix: -coeff * (φ_nei - φ_own) contribution
+        diag[own] += coeff;    // Owner's diagonal
+        diag[nei] += coeff;    // Neighbor's diagonal
+        upper[facei] = -coeff; // Owner→neighbor
+        lower[facei] = -coeff; // Neighbor→owner
+    }
+}
+```
+
+### **Discretization ของ Laplacian:**
+
+สมการที่ถูก discretized: $-\nabla \cdot (\gamma \nabla \phi)$
+
+**คำนวณ coefficient:** $\text{coeff} = \gamma \frac{|S_f|}{|\delta_f|}$
+
+โดยที่:
+- $\gamma$ = diffusion coefficient
+- $|S_f|$ = face area 
+- $|\delta_f|$ = ระยะห่างระหว่าง cell centers
+
+```cpp
+// 🔍 PHYSICS: Represents -∇·(γ∇φ) discretization
+// Each face contributes to both connected cells
+```
+
+### **ผลลัพธ์ของ Assembly:**
+
+| คุณสมบัติ | คำอธิบาย |
+|-----------|------------|
+| **SPD Matrix** | Symmetric Positive Definite สำหรับปัญหา diffusion |
+| **Conservation** | Flux balance ระหว่าง cells ที่อยู่ติดกันอัตโนมัติ |
+| **Mesh Adaptability** | รองรับ non-orthogonal และ non-uniform meshes โดยธรรมชาติ |
+| **Solver Compatibility** | เหมาะสำหรับ conjugate gradient methods กับ preconditioners |
+
+**ประโยชน์ของ face-based assembly:**
+- จัดการ mesh quality variations ตามธรรมชาติ
+- geometric factors คำนึงถึง non-orthogonalities โดยอัตโนมัติผ่าน `magDelta()`
+- รับประกัน conservation properties โดย construction

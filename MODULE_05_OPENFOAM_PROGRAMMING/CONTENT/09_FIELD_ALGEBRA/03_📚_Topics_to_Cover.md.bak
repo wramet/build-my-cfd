@@ -1,0 +1,445 @@
+# 📚 คณิตศาสตร์ของฟิลด์และเทมเพลตนิพจน์
+
+## 1. การดำเนินการทางคณิตศาสตร์
+
+### การบวกและลบของฟิลด์
+**OpenFOAM ให้ไวยากรณ์ที่สวยงาม** สำหรับการคำนวณทางคณิตศาสตร์ของฟิลด์ผ่านการ overload operator สำหรับฟิลด์สเกลาร์ $\phi_1$ และ $\phi_2$:
+
+```cpp
+// การบวกฟิลด์สองฟิลด์โดยตรง
+volScalarField sum = phi1 + phi2;
+
+// การลบฟิลด์พร้อมการคูณสเกลาร์
+volScalarField diff = phi1 - 0.5*phi2;
+
+// การดำเนินการต่อเนื่อง
+volScalarField result = 2.0*phi1 + phi2 - phi3;
+```
+
+**การดำเนินการบวกจะถูกดำเนินการตามองค์ประกอบ** (element-wise) ทั่วทั้งเมช โดยมีการจัดการเงื่อนไขขอบเขตโดยอัตโนมัติ แต่ละเซลล์จะได้รับการดำเนินการ: $\phi_{result,i} = \phi_{1,i} + \phi_{2,i}$
+
+### การดำเนินการคูณและหาร
+**การคูณฟิลด์จะต้องเป็นไปตามกฎของการวิเคราะห์มิติ** พิจารณาฟิลด์ความเร็ว $\mathbf{u}$ และฟิลด์ความหนาแน่น $\rho$:
+
+```cpp
+// การคูณสเกลาร์-เวกเตอร์ (สอดคล้องกับมิติ)
+volVectorField momentum = rho * U;  // ผลลัพธ์: [kg/(m²·s)]
+
+// การหารฟิลด์
+volScalarField velocityMag = mag(U);
+volScalarField timescale = L / velocityMag;  // [s]
+
+// การดำเนินการตามองค์ประกอบ
+volScalarField kineticEnergy = 0.5 * rho * (U & U);  // [J/m³]
+```
+
+[Diagram: ภาพแสดงการดำเนินการทางคณิตศาสตร์แบบ element-wise บนเมช 3 มิติ]
+
+### การดำเนินการระหว่างสเกลาร์-ฟิลด์และฟิลด์-ฟิลด์
+**OpenFOAM แยกความแตกต่าง** ระหว่างการดำเนินการสเกลาร์-ฟิลด์และฟิลด์-ฟิลด์:
+
+```cpp
+// การดำเนินการสเกลาร์-ฟิลด์ (broadcast)
+volScalarField temp2 = 2.0 * T;  // คูณแต่ละเซลล์ด้วยสเกลาร์ 2.0
+volScalarField tempOffset = T + 273.15;  // เพิ่มค่าคงที่
+
+// การดำเนินการฟิลด์-ฟิลด์ (element-wise)
+volScalarField tempDiff = T_hot - T_cold;  // ลบเซลล์ที่สอดคล้องกัน
+volScalarField heatFlux = k * grad(T);    // สเกลาร์ * ฟิลด์เวกเตอร์
+```
+
+### ความสอดคล้องทางมิติในการคำนวณ
+**ระบบประเภทของ OpenFOAM บังคับให้มีความสอดคล้องทางมิติ** ในระหว่างการคอมไพล์:
+
+```cpp
+dimensionSet pressureDim(dimPressure);    // [kg/(m·s²)]
+dimensionSet velocityDim(dimVelocity);     // [m/s]
+
+// สิ่งนี้จะคอมไพล์ได้ - มิติตรงกัน
+volScalarField pressureWork = p * dimensionedScalar("rate", dimless/dimTime, 1.0);
+
+// สิ่งนี้จะทำให้เกิดความผิดพลาดในการคอมไพล์ - มิติไม่ตรงกัน
+// volScalarField invalid = p + U;  // ข้อผิดพลาด: ไม่สามารถบวกความดันและความเร็วได้
+```
+
+## 2. การ Overload Operator
+
+### รูปแบบการ Overload Operator ของ OpenFOAM
+**OpenFOAM ใช้ expression templates** สำหรับการ overload operator อย่างมีประสิทธิภาพ รูปแบบหลักคือ:
+
+```cpp
+template<class Type1, class Type2>
+class plusOp
+{
+public:
+    typedef typename typeOfSum<Type1, Type2>::type type;
+    
+    static inline Type operator()(const Type1& t1, const Type2& t2)
+    {
+        return t1 + t2;
+    }
+};
+
+// การใช้งานในการดำเนินการฟิลด์
+template<class Type, class UnaryOp>
+void operator=(const tmp<GeometricField<Type, fvPatchField, volMesh>>& tf1,
+              const UnaryOp& op)
+{
+    // การประเมิน expression template
+    const GeometricField<Type, fvPatchField, volMesh>& f1 = tf1();
+    
+    forAll(f1, cellI)
+    {
+        this->operator[](cellI) = op(f1[cellI]);
+    }
+}
+```
+
+### การ Implement Operator แบบกำหนดเอง
+**ผู้ใช้สามารถกำหนดการดำเนินการแบบกำหนดเอง** ผ่าน function objects:
+
+```cpp
+// การดำเนินการค่าสูงสุดแบบกำหนดเอง
+template<class Type>
+class maxOp
+{
+public:
+    Type operator()(const Type& a, const Type& b) const
+    {
+        return max(a, b);
+    }
+};
+
+// การใช้ operator แบบกำหนดเอง
+volScalarField fieldMax = maxOp<scalar>()(field1, field2);
+
+// การดำเนินการแบบกำหนดเองแบบ Lambda (C++11 และใหม่กว่า)
+auto customOp = [](const scalar& a, const scalar& b) { 
+    return pow(a, 2) + sin(b); 
+};
+volScalarField customField = customOp(fieldA, fieldB);
+```
+
+### การจัดการข้อผิดพลาดใน Overloaded Operators
+**OpenFOAM ให้การตรวจสอบข้อผิดพลาดอย่างครอบคลุม**:
+
+```cpp
+template<class Type1, class Type2>
+class safeDivision
+{
+public:
+    typedef typename typeOfSum<Type1, Type2>::type type;
+    
+    static inline type operator()(const Type1& num, const Type2& den)
+    {
+        if (mag(den) < SMALL)
+        {
+            WarningIn("safeDivision::operator()")
+                << "Division by very small number: " << den
+                << ", returning zero" << endl;
+            return pTraits<type>::zero;
+        }
+        return num/den;
+    }
+};
+```
+
+### การ Promotion ประเภทและการอนุมานประเภทผลลัพธ์
+**เทมเพลต `typeOfSum` และ `typeOfProduct` จัดการการ promotion ประเภท**:
+
+```cpp
+// กฎการ promotion ประเภท
+template<class Type1, class Type2>
+class typeOfProduct
+{
+    // อนุมานประเภทผลลัพธ์จากประเภทอินพุต
+    // scalar * vector -> vector
+    // vector * tensor -> vector
+    // scalar * tensor -> tensor
+};
+
+// ตัวอย่างการใช้งาน
+typedef typeOfProduct<scalar, vector>::type scalarVectorProduct;  // = vector
+typedef typeOfSum<vector, vector>::type vectorVectorSum;          // = vector
+```
+
+[Diagram: ตารางแสดงการ promotion ประเภทในการดำเนินการทางคณิตศาสตร์]
+
+| การดำเนินการ | ประเภทอินพุต 1 | ประเภทอินพุต 2 | ประเภทผลลัพธ์ |
+|---|---|---|---|
+| คูณ | scalar | vector | vector |
+| คูณ | vector | tensor | vector |
+| บวก | vector | vector | vector |
+| บวก | scalar | scalar | scalar |
+
+## 3. การตรวจสอบมิติ
+
+### ระบบการวิเคราะห์มิติของ OpenFOAM
+**ระบบมิติถูกสร้างขึ้นรอบคลาส `dimensionSet`**:
+
+```cpp
+// กำหนดมิติโดยใช้มวล ความยาว เวลา อุณหภูมิ โมล กระแส
+dimensionSet velocityDim(1, -1, -1, 0, 0, 0);    // [L·T⁻¹] = [m/s]
+dimensionSet pressureDim(1, -1, -2, 0, 0, 0);    // [M·L⁻¹·T⁻²] = [kg/(m·s²)]
+dimensionSet energyDim(1, 2, -2, 0, 0, 0);      // [M·L²·T⁻²] = [kg·m²/s²] = [J]
+```
+
+**มิติพื้นฐาน:**
+- **มวล (M)**: [kg]
+- **ความยาว (L)**: [m] 
+- **เวลา (T)**: [s]
+- **อุณหภูมิ (Θ)**: [K]
+- **โมล (N)**: [mol]
+- **กระแส (I)**: [A]
+
+### ชุดมิติและความสอดคล้องของหน่วย
+**ฟิลด์มีข้อมูลมิติ**:
+
+```cpp
+// สร้างฟิลด์ที่มีมิติ
+dimensionedVector U
+(
+    "U",
+    dimensionSet(0, 1, -1, 0, 0, 0),  // [m/s]
+    vector(1.0, 0.0, 0.0)
+);
+
+dimensionedScalar rho
+(
+    "rho",
+    dimensionSet(1, -3, 0, 0, 0, 0),  // [kg/m³]
+    1.2
+);
+
+// การตรวจสอบมิติโดยอัตโนมัติ
+dimensionedVector momentum = rho * U;  // ผลลัพธ์: [kg/(m²·s)] - สอดคล้องกับมิติ
+```
+
+### การตรวจสอบมิติในระหว่าง Runtime
+**การดำเนินการจะถูกตรวจสอบในระหว่าง runtime** พร้อมข้อความแสดงข้อผิดพลาดที่ชัดเจน:
+
+```cpp
+void checkDimensions(const dimensionSet& ds1, const dimensionSet& ds2)
+{
+    if (ds1 != ds2)
+    {
+        FatalErrorIn("checkDimensions")
+            << "Dimensional inconsistency:" << nl
+            << "    Dim1: " << ds1 << nl
+            << "    Dim2: " << ds2 << nl
+            << abort(FatalError);
+    }
+}
+
+// การใช้งานในการดำเนินการฟิลด์
+template<class Type>
+void GeometricField<Type, fvPatchField, volMesh>::operator+=
+(
+    const GeometricField<Type, fvPatchField, volMesh>& gf
+)
+{
+    checkDimensions(this->dimensions(), gf.dimensions());
+    // ... ดำเนินการบวก
+}
+```
+
+### รูปแบบข้อผิดพลาดมิติที่พบบ่อย
+**ข้อผิดพลาดมิติทั่วไปและการแก้ไข**:
+
+#### ข้อผิดพลาดที่ 1: การบวกปริมาณที่ไม่เข้ากัน
+```cpp
+// ❌ ข้อผิดพลาดในการคอมไพล์
+// volScalarField invalid = pressure + velocity;
+
+// ✅ วิธีแก้ไข: ทำให้ปริมาณสอดคล้องกับมิติ
+volScalarField dynamicPressure = 0.5 * rho * magSqr(velocity);  // [Pa]
+volScalarField totalPressure = pressure + dynamicPressure;      // [Pa]
+```
+
+#### ข้อผิดพลาดที่ 2: การปรับสเกลมิติไม่ถูกต้อง
+```cpp
+// ❌ หน่วยผิด
+// volScalarField wrong = heatFlux / conductivity;
+
+// ✅ วิธีแก้ไข: ใช้การวิเคราะห์มิติที่เหมาะสม
+volScalarField temperatureGradient = heatFlux / thermalConductivity;  // [K/m]
+```
+
+## 4. การประกอบฟิลด์
+
+### การสร้างนิพจน์ฟิลด์ที่ซับซ้อน
+**OpenFOAM รองรับไวยากรณ์ทางคณิตศาสตร์ธรรมชาติ** สำหรับนิพจน์ที่ซับซ้อน:
+
+```cpp
+// นิพจน์โมเดลความปั่นป่วนที่ซับซ้อน
+volScalarField mut = rho * cmu * sqr(kappa * yPlus) / 
+                    (log(E * yPlus) * log(E * yPlus));
+
+// สหสัมพันธ์การถ่ายเทความร้อน
+volScalarField h = Nu * k / L;  // สัมประสิทธิ์การถ่ายเทความร้อน
+volScalarField q = h * (T_hot - T_cold);  // อัตราการไหลของความร้อน
+
+// เทอมแหล่งกำเนิดสมการโมเมนตัม
+volVectorField momentumSource = 
+    -grad(p) + fvc::laplacian(mu, U) + rho * g;
+
+// สมการพลังงานพร้อมเทอมหลายรายการ
+volScalarField T_new = T_old + dt * (
+    alpha * fvc::laplacian(T) - 
+    (U & fvc::grad(T)) + 
+    Q/(rho * cp)
+);
+```
+
+[Diagram: แผนภูมิแสดงการประกอบฟิลด์ที่ซับซ้อนด้วยหลายเทอม]
+
+### เทคนิคการสลายฟิลด์
+**ฟิลด์สามารถสลายเพื่อการวิเคราะห์**:
+
+```cpp
+// สลายฟิลด์เวกเตอร์เป็นองค์ประกอบ
+volScalarField Ux = U.component(0);  // ความเร็วในแกน x
+volScalarField Uy = U.component(1);  // ความเร็วในแกน y
+volScalarField Uz = U.component(2);  // ความเร็วในแกน z
+
+// การสลายเทนเซอร์
+volScalarField normalStress = sigma.component(symmTensor::XX);  // σ_xx
+volScalarField shearStress = sigma.component(symmTensor::XY);   // σ_xy
+
+// การสลายค่า eigenvalue
+volScalarField lambda1, lambda2, lambda3;
+vector e1, e2, e3;
+eigenValues(sigma, lambda1, lambda2, lambda3);
+eigenVectors(sigma, e1, e2, e3);
+```
+
+### การดำเนินการฟิลด์ซ้อนกัน
+**การดำเนินการซ้อนกันที่ซับซ้อนยังคงประสิทธิภาพ**:
+
+```cpp
+// การดำเนินการ gradient และ divergence ซ้อนกัน
+volScalarField vorticityMag = mag(curl(U));
+
+// อนุพันธ์อันดับสอง
+volTensorField gradU = fvc::grad(U);
+volScalarField divergenceGradU = tr(fvc::grad(gradU));
+
+// การดำเนินการไม่เชิงเส้นที่ซับซ้อน
+volScalarField Richardson = 
+    (2.0*omega & (Omega & omega)) / 
+    (magSqr(gradU) + SMALL);
+
+// การดำเนินการฟิลด์แบบมีเงื่อนไข
+volScalarField limitedField = max(min(field, maxValue), minValue);
+```
+
+### Expression Templates สำหรับการประเมินอย่างมีประสิทธิภาพ
+**Expression templates จะกำจัดวัตถุชั่วคราว**:
+
+```cpp
+// ❌ โดยไม่มี expression templates (สร้างตัวแปรชั่วคราว)
+tmp<volScalarField> temp1 = phi1 + phi2;           // ตัวแปรชั่วคราว 1
+tmp<volScalarField> temp2 = temp1 * scalarField;    // ตัวแปรชั่วคราว 2  
+result = temp2 / phi3;                             // ผลลัพธ์สุดท้าย
+
+// ✅ ด้วย expression templates (ไม่มีตัวแปรชั่วคราว)
+result = (phi1 + phi2) * scalarField / phi3;       // การประเมินครั้งเดียว
+```
+
+**กลไก expression template**:
+
+```cpp
+template<class Arg1, class Arg2, class Op>
+class binaryExpr
+{
+    const Arg1& arg1_;
+    const Arg2& arg2_;
+    
+public:
+    binaryExpr(const Arg1& a1, const Arg2& a2) : arg1_(a1), arg2_(a2) {}
+    
+    Type operator[](const label cellI) const
+    {
+        return Op::operator()(arg1_[cellI], arg2_[cellI]);
+    }
+};
+```
+
+## 5. การปรับปรุงประสิทธิภาพ
+
+### รูปแบบการเข้าถึงหน่วยความจำในการดำเนินการฟิลด์
+**รูปแบบการเข้าถึงหน่วยความจำที่เหมาะสมที่สุดมีความสำคัญต่อประสิทธิภาพ**:
+
+```cpp
+// ✅ ดี: การเข้าถึงหน่วยความจำตามลำดับ
+forAll(field, cellI)
+{
+    result[cellI] = field1[cellI] + field2[cellI];
+}
+
+// ❌ ไม่ดี: รูปแบบการเข้าถึงแบบสุ่ม
+forAll(faceCells, faceI)
+{
+    result[faceCells[faceI]] = faceField[faceI];
+}
+```
+
+### โอกาสในการเวกเตอร์ไลเซชัน
+**คอมไพเลอร์สมัยใหม่สามารถเวกเตอร์ไลซ์การดำเนินการฟิลด์** ที่เรียบง่าย:
+
+```cpp
+// การดำเนินการที่เวกเตอร์ไลซ์ได้
+void addFields(const scalar* f1, const scalar* f2, scalar* result, label n)
+{
+    #pragma omp simd
+    for (label i = 0; i < n; i++)
+    {
+        result[i] = f1[i] + f2[i];
+    }
+}
+
+// ของ OpenFOAM ที่เทียบเท่าด้วยการเวกเตอร์ไลเซชันอัตโนมัติ
+result = field1 + field2;  // คอมไพเลอร์อาจเวกเตอร์ไลซ์โดยอัตโนมัติ
+```
+
+### กลยุทธ์การปรับแต่งแคช
+**การดำเนินการที่เป็นมิตรกับแคชช่วยปรับปรุงประสิทธิภาพ**:
+
+```cpp
+// การดำเนินการแบบบล็อกที่เป็นมิตรกับแคช
+const label blockSize = 1024;  // เหมาะสมสำหรับ L1 cache
+for (label block = 0; block < nCells; block += blockSize)
+{
+    label endBlock = min(block + blockSize, nCells);
+    for (label i = block; i < endBlock; i++)
+    {
+        // ประมวลผลบล็อก - รักษาข้อมูลไว้ในแคช
+        result[i] = complexOperation(field1[i], field2[i], field3[i]);
+    }
+}
+```
+
+### การกำจัดตัวแปรชั่วคราวผ่าน Expression Templates
+**Expression templates ช่วยลดการใช้หน่วยความจำอย่างมีนัยสำคัญ**:
+
+```cpp
+// ❌ แนวทางดั้งเดิม (การใช้หน่วยความจำสูง)
+volScalarField temp1 = fieldA * fieldB;      // การจองตัวแปรชั่วคราว
+volScalarField temp2 = fieldC + temp1;       // ตัวแปรชั่วคราวอีกตัว
+volScalarField temp3 = temp2 * fieldD;       // ตัวแปรชั่วคราวอีกตัว
+result = temp3 / fieldE;                     // ผลลัพธ์สุดท้าย
+
+// ✅ แนวทาง expression template (การใช้หน่วยความจำน้อยที่สุด)
+result = ((fieldC + fieldA * fieldB) * fieldD) / fieldE;  // การประเมินครั้งเดียว
+```
+
+### การเปรียบเทียบประสิทธิภาพ
+
+| วิธีการ | ตัวแปรชั่วคราว | การใช้หน่วยความจำ | ประสิทธิภาพแบนด์วิดท์ |
+|---|---|---|---|
+| แนวทางดั้งเดิม | 4 ฟิลด์ | สูง | 1x |
+| Expression Templates | 0 ฟิลด์ | ต่ำ | 3-4x |
+
+**การปรับปรุงประสิทธิภาพ:** การลดการใช้แบนด์วิดท์หน่วยความจำลง 3-4 เท่า
+
+[Diagram: แผนภูมิเปรียบเทียบการใช้หน่วยความจำและประสิทธิภาพระหว่างวิธีการต่างๆ]

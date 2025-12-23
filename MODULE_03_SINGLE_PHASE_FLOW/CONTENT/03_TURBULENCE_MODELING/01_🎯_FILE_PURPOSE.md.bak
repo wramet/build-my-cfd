@@ -1,0 +1,477 @@
+# 🎯 วัตถุประสงค์ของไฟล์
+
+ไฟล์นี้ให้การวิเคราะห์ทางเทคนิคที่ครอบคลุมเกี่ยวกับการสร้างแบบจำลองความปั่นป่วน (turbulence modeling) ใน OpenFOAM โดยมุ่งเน้นไปที่:
+
+- **ลำดับชั้นการสืบทอดคลาสพื้นฐานนามธรรม** ของ `turbulenceModel`
+- **รายละเอียดการนำไปใช้** ของตัวดำเนินการไดเวอร์เจนซ์ `divDevReff` สำหรับเทนเซอร์ความเค้นประสิทธิผล
+- **การตรวจสอบอย่างละเอียด** ของแบบจำลองความปั่นป่วน k-epsilon
+- **การกำหนดสูตรเทอมการผลิต**, กลไกการสลายตัว และการนำฟังก์ชันผนังไปใช้
+
+---
+
+## 🏗️ ลำดับชั้นคลาสพื้นฐานนามธรรม: `turbulenceModel`
+
+คลาส `turbulenceModel` ทำหน้าที่เป็นคลาสพื้นฐานนามธรรมที่เป็นรากฐานสำหรับแบบจำลองความปั่นป่วนทั้งหมดใน OpenFOAM
+
+**ตำแหน่งไฟล์**: `src/TurbulenceModels/turbulenceModels/turbulenceModel/turbulenceModel.H`
+
+### โครงสร้างลำดับชั้นคลาส
+
+```cpp
+// Abstract base class template
+template<class BasicTurbulenceModel>
+class turbulenceModel
+    :
+    public BasicTurbulenceModel
+{
+    // ... members and virtual methods
+};
+```
+
+`turbulenceModel` เป็นเทมเพลตบน `BasicTurbulenceModel` ซึ่งโดยทั่วไปจะแสดงถึง:
+- การไหลแบบอัดตัวไม่ได้ (incompressible)
+- การไหลแบบอัดตัวได้ (compressible)
+
+[Diagram: Class inheritance hierarchy showing turbulenceModel at the base, with RASModel, LESModel, and other model types inheriting from it]
+
+### เมธอดอินเทอร์เฟซนามธรรมหลัก
+
+คลาสพื้นฐานนามธรรมกำหนดเมธอดเสมือน (virtual methods) ที่จำเป็น:
+
+```cpp
+// Return the turbulent viscosity
+virtual tmp<volScalarField> nut() const = 0;
+
+// Return the effective viscosity (laminar + turbulent)
+virtual tmp<volScalarField> nuEff() const = 0;
+
+// Return the Reynolds stress tensor
+virtual tmp<volSymmTensorField> R() const = 0;
+
+// Return the turbulence kinetic energy
+virtual tmp<volScalarField> k() const = 0;
+
+// Return the turbulence dissipation rate
+virtual tmp<volScalarField> epsilon() const = 0;
+
+// Return the turbulence specific dissipation rate
+virtual tmp<volScalarField> omega() const = 0;
+
+// Correct the turbulence variables
+virtual void correct() = 0;
+```
+
+### เส้นทางการสืบทอดสำหรับแบบจำลอง k-epsilon
+
+แบบจำลอง k-epsilon มาตรฐาน (`kEpsilon`) สืบทอดผ่านหลายระดับ:
+
+```cpp
+class kEpsilon
+    :
+    public eddyViscosity<incompressible::RASModel<kEpsilon>>
+{
+    // Implementation specific to k-epsilon
+};
+
+template<class Type>
+class eddyViscosity
+    :
+    public RASModel<Type>
+{
+    // Eddy viscosity framework
+};
+
+template<class Type>
+class RASModel
+    :
+    public turbulenceModel<BasicTurbulenceModel>
+{
+    // Reynolds-Averaged Simulation framework
+};
+```
+
+**การสืบทอมแบบเป็นชั้นนี้ให้**:
+
+| ระดับ | ฟังก์ชันหลัก |
+|--------|--------------|
+| **turbulenceModel** | อินเทอร์เฟซหลักและฟังก์ชันการทำงานทั่วไป |
+| **RASModel** | คุณสมบัติเฉพาะของ Reynolds-Averaged Simulation (RAS) |
+| **eddyViscosity** | การนำสมมติฐาน Boussinesq ไปใช้ |
+| **kEpsilon** | สมการการขนส่งและค่าคงที่เฉพาะของ k-epsilon |
+
+---
+
+## 🔍 การวิเคราะห์การนำ `divDevReff` ไปใช้
+
+ฟังก์ชัน `divDevReff` คำนวณไดเวอร์เจนซ์ของเทนเซอร์ความเค้นประสิทธิผลแบบเดเวียทอริก ซึ่งมีความสำคัญอย่างยิ่งต่อการกำหนดสูตรสมการโมเมนตัม
+
+### รากฐานทางคณิตศาสตร์
+
+ไดเวอร์เจนซ์ของเทนเซอร์ความเค้นประสิทธิผลในการไหลแบบปั่นป่วน:
+
+$$\nabla \cdot \left( \boldsymbol{\tau}_{\text{eff}}^{\text{dev}} \right) = \nabla \cdot \left( 2 \mu_{\text{eff}} \mathbf{D}^{\text{dev}} \right)$$
+
+**โดยที่**:
+- $\boldsymbol{\tau}_{\text{eff}}^{\text{dev}}$ = เทนเซอร์ความเค้นประสิทธิผลแบบเดเวียทอริก
+- $\mu_{\text{eff}} = \mu + \mu_t$ = ความหนืดประสิทธิผล (effective viscosity)
+- $\mathbf{D}^{\text{dev}}$ = เทนเซอร์อัตราการคงรูปแบบเดเวียทอริก
+
+[Diagram: Visualization of the effective stress tensor decomposition showing deviatoric and volumetric components]
+
+### การนำไปใช้ใน OpenFOAM
+
+ฟังก์ชัน `divDevReff` ถูกนำไปใช้แตกต่างกันสำหรับของไหลแบบอัดตัวไม่ได้และแบบอัดตัวได้:
+
+#### การนำไปใช้สำหรับของไหลแบบอัดตัวไม่ได้
+
+```cpp
+// Located in: src/TurbulenceModels/incompressible/TurbulenceModel/TurbulenceModel.C
+template<class BasicTurbulenceModel>
+tmp<Foam::fvVectorMatrix>
+incompressible::TurbulenceModel<BasicTurbulenceModel>::divDevReff
+(
+    volVectorField& U
+) const
+{
+    return
+    (
+      - fvc::div(nuEff()*fvc::grad(U))
+      - fvc::div(nuEff()*dev2(fvc::grad(U)().T()))
+    );
+}
+```
+
+#### การนำไปใช้สำหรับของไหลแบบอัดตัวได้
+
+```cpp
+// Located in: src/TurbulenceModels/compressible/TurbulenceModel/TurbulenceModel.C
+template<class BasicTurbulenceModel>
+tmp<Foam::fvVectorMatrix>
+compressible::TurbulenceModel<BasicTurbulenceModel>::divDevReff
+(
+    volVectorField& U
+) const
+{
+    return
+    (
+      - fvc::div(rho()*nuEff()*fvc::grad(U))
+      - fvc::div(rho()*nuEff()*dev2(fvc::grad(U)().T()))
+    );
+}
+```
+
+### รายละเอียดการนำไปใช้ที่สำคัญ
+
+1. **ตัวดำเนินการ `dev2()`**: ฟังก์ชัน OpenFOAM นี้คำนวณส่วนเดเวียทอริกของเทนเซอร์:
+
+```cpp
+template<class Type2>
+tmp<GeometricField<Type2, fvPatchField, volMesh>>
+dev2(const GeometricField<Type2, fvPatchField, volMesh>& gf)
+{
+    return gf - (2.0/3.0)*tr(gf)*I;
+}
+```
+
+2. **ความหนืดประสิทธิผล**: ฟังก์ชันนี้ใช้ `nuEff()` ซึ่งคืนค่าผลรวมของความหนืดโมเลกุลและความหนืดปั่นป่วน:
+   - ของไหลแบบอัดตัวไม่ได้: $\nu_{\text{eff}} = \nu + \nu_t$
+   - ของไหลแบบอัดตัวได้: $\nu_{\text{eff}} = \frac{\mu + \mu_t}{\rho}$
+
+3. **การประมาณค่าปริมาตรจำกัด**: ใช้ตัวดำเนินการ `fvc::div()` สำหรับไดเวอร์เจนซ์ และ `fvc::grad()` สำหรับเกรเดียนต์
+
+---
+
+## 🌪️ การวิเคราะห์โดยละเอียดของแบบจำลอง k-epsilon
+
+แบบจำลอง k-epsilon เป็นแบบจำลองความปั่นป่วนแบบสองสมการที่ใช้กันอย่างแพร่หลายที่สุดใน OpenFOAM โดยแก้สมการการขนส่งสำหรับ:
+
+- **พลังงานจลน์ความปั่นป่วน** ($k$)
+- **อัตราการสลายตัวของความปั่นป่วน** ($\epsilon$)
+
+[Diagram: Flow chart showing k-epsilon model transport equations with production, diffusion, and dissipation terms]
+
+### สมการการขนส่ง
+
+#### สมการพลังงานจลน์ความปั่นป่วน ($k$)
+
+$$\frac{\partial k}{\partial t} + \mathbf{U} \cdot \nabla k = \nabla \cdot \left[ \left(\nu + \frac{\nu_t}{\sigma_k}\right) \nabla k \right] + P_k - \epsilon$$
+
+**โดยที่**:
+- $P_k$ = เทอมการผลิต (production term)
+- $\epsilon$ = อัตราการสลายตัว (dissipation rate)
+- $\sigma_k$ = ค่าคงที่ Prandtl ของความปั่นป่วนสำหรับ $k$
+
+#### สมการอัตราการสลายตัว ($\epsilon$)
+
+$$\frac{\partial \epsilon}{\partial t} + \mathbf{U} \cdot \nabla \epsilon = \nabla \cdot \left[ \left(\nu + \frac{\nu_t}{\sigma_\epsilon}\right) \nabla \epsilon \right] + C_{\epsilon 1} \frac{\epsilon}{k} P_k - C_{\epsilon 2} \frac{\epsilon^2}{k}$$
+
+**โดยที่**:
+- $C_{\epsilon 1}$, $C_{\epsilon 2}$ = ค่าคงที่ของแบบจำลอง
+- $\sigma_\epsilon$ = ค่าคงที่ Prandtl ของความปั่นป่วนสำหรับ $\epsilon$
+
+### การนำเทอมการผลิต ($P_k$) ไปใช้
+
+เทอมการผลิตแสดงถึงการแปลงพลังงานจลน์ของการไหลเฉลี่ยไปเป็นพลังงานจลน์ความปั่นป่วน:
+
+$$P_k = 2 \nu_t \mathbf{S} : \mathbf{S} = \nu_t \left(\frac{\partial u_i}{\partial x_j} + \frac{\partial u_j}{\partial x_i}\right)\frac{\partial u_i}{\partial x_j}$$
+
+#### การนำไปใช้ใน OpenFOAM
+
+```cpp
+// Located in: src/TurbulenceModels/incompressible/RAS/kEpsilon/kEpsilon.C
+template<class BasicTurbulenceModel>
+tmp<volScalarField>
+incompressible::RASModel<kEpsilon>::kEpsilon::epsilonGen() const
+{
+    const volScalarField& k = this->k_;
+    const volTensorField& gradU = this->U_.grad();
+    
+    volSymmTensorField S = dev(symm(gradU));
+    return 2.0*nuEff()*magSqr(S);
+}
+```
+
+**การนำไปใช้ใช้**:
+- `symm(gradU)`: ส่วนสมมาตรของเทนเซอร์ความเร็วเกรเดียนต์
+- `dev()`: ตัวดำเนินการเดเวียทอริก
+- `magSqr()`: ขนาดกำลังสองของเทนเซอร์อัตราการคงรูปสมมาตร
+
+### การคำนวณความหนืดปั่นป่วน
+
+ความหนืดจลน์ปั่นป่วนคำนวณโดยใช้สมมติฐาน Boussinesq:
+
+$$\nu_t = C_\mu \frac{k^2}{\epsilon}$$
+
+#### การนำไปใช้ใน OpenFOAM
+
+```cpp
+tmp<volScalarField>
+incompressible::RASModel<kEpsilon>::kEpsilon::nuEff() const
+{
+    return
+        volScalarField::New
+        (
+            IOobject::groupName("nuEff", this->U_.group()),
+            this->nu() + nut()
+        );
+}
+
+tmp<volScalarField>
+incompressible::RASModel<kEpsilon>::kEpsilon::nut() const
+{
+    return Cmu_*sqr(k_)/epsilon_;
+}
+```
+
+### ค่าคงที่ของแบบจำลอง
+
+ค่าคงที่มาตรฐานของแบบจำลอง k-epsilon (แนะนำโดย Launder และ Spalding, 1974):
+
+| ค่าคงที่ | ค่า | คำอธิบาย |
+|-----------|------|----------|
+| `Cmu` | 0.09 | Turbulent viscosity constant |
+| `C1` | 1.44 | Epsilon production constant |
+| `C2` | 1.92 | Epsilon destruction constant |
+| `sigmaEps` | 1.3 | Turbulent Prandtl number for epsilon |
+| `sigmaK` | 1.0 | Turbulent Prandtl number for k |
+
+```cpp
+// Default coefficients in OpenFOAM
+static const scalar Cmu = 0.09;          // Turbulent viscosity constant
+static const scalar C1 = 1.44;           // Epsilon production constant
+static const scalar C2 = 1.92;           // Epsilon destruction constant
+static const scalar sigmaEps = 1.3;      // Turbulent Prandtl number for epsilon
+static const scalar sigmaK = 1.0;        // Turbulent Prandtl number for k
+```
+
+---
+
+## 🧱 การนำฟังก์ชันผนังไปใช้ (Wall Function Implementation)
+
+ฟังก์ชันผนังให้เงื่อนไขขอบเขตสำหรับการจัดการใกล้ผนัง ทำให้สามารถใช้ Mesh ที่หยาบได้โดยไม่ต้องแยกชั้นใต้ความหนืด
+
+[Diagram: Wall function regions showing viscous sublayer, buffer layer, and log-layer with y+ values]
+
+### ฟังก์ชันผนังมาตรฐาน (Standard Wall Functions)
+
+ฟังก์ชันผนังมาตรฐานกำหนดความเค้นเฉือนที่ผนังโดยอิงตามกฎลอการิทึม:
+
+$$u^+ = \frac{1}{\kappa} \ln(Ey^+)$$
+
+**โดยที่**:
+- $u^+ = \frac{u}{u_\tau}$ = ความเร็วแบบไร้มิติ (dimensionless velocity)
+- $y^+ = \frac{y u_\tau}{\nu}$ = ระยะทางแบบไร้มิติ (dimensionless distance)
+- $\kappa = 0.41$ = ค่าคงที่ von Kármán
+- $E = 9.8$ = ค่าคงที่ความขรุขระ (roughness constant)
+
+#### การนำฟังก์ชันผนัง k-epsilon ไปใช้
+
+```cpp
+// Located in: src/TurbulenceModels/incompressible/RAS/wallFunctions/nutWallFunction/nutWallFunctionFvPatchScalarField.C
+void nutWallFunctionFvPatchScalarField::updateCoeffs()
+{
+    const volScalarField& k = 
+        this->db().objectRegistry::lookupObject<volScalarField>
+        (
+            IOobject::groupName("k", this->internalField().group())
+        );
+    
+    const fvPatchVectorField& Uw = 
+        this->db().objectRegistry::lookupObject<volVectorField>
+        (
+            IOobject::groupName("U", this->internalField().group())
+        ).boundaryField()[this->patch().index()];
+    
+    scalarField& nutw = *this;
+    const scalarField& magGradUw = mag(Uw.snGrad());
+    
+    // Calculate y+ and apply wall function
+    const scalarField& y = this->patch().deltaCoeffs()/this->patch().wallDist();
+    const scalarField Rey = mag(this->nu()*y);
+    
+    forAll(nutw, i)
+    {
+        scalar yPlus = Rey[i] * sqrt(k[i]/this->nu());
+        
+        if (yPlus > yPlusLam_)
+        {
+            // Log-law region
+            scalar uTau = sqrt(k[i]/Cmu_);
+            nutw[i] = uTau*y[i]/(uTau*y[i]/this->nu() - log(E_*yPlus)/kappa_);
+        }
+        else
+        {
+            // Viscous sublayer
+            nutw[i] = 0.0;
+        }
+    }
+}
+```
+
+#### เงื่อนไขขอบเขต k และ epsilon ที่ผนัง
+
+ที่ผนัง โดยทั่วไปจะใช้เงื่อนไขขอบเขตดังต่อไปนี้:
+
+```cpp
+// k wall boundary condition
+k
+{
+    type            compressible::kqRWallFunction;
+    value           uniform 0;
+}
+
+// epsilon wall boundary condition  
+epsilon
+{
+    type            compressible::epsilonWallFunction;
+    value           uniform 0;
+}
+```
+
+ฟังก์ชันผนัง epsilon คำนวณค่าขอบเขตโดยอัตโนมัติตาม:
+
+$$\epsilon_w = \frac{C_\mu^{3/4} k_p^{3/2}}{\kappa y_p}$$
+
+โดยที่ subscript $p$ หมายถึงจุดศูนย์กลางเซลล์ใกล้ผนัง
+
+---
+
+## 🏛️ โครงสร้างการนำแบบจำลอง k-epsilon ที่สมบูรณ์
+
+```cpp
+template<class BasicTurbulenceModel>
+class kEpsilon
+    :
+    public eddyViscosity<incompressible::RASModel<kEpsilon>>
+{
+protected:
+    // Model coefficients
+    dimensionedScalar Cmu_;
+    dimensionedScalar C1_;
+    dimensionedScalar C2_;
+    dimensionedScalar sigmaEps_;
+    
+    // Protected member functions
+    virtual tmp<volScalarField> epsilonGen() const;
+    virtual void correctNut();
+    
+public:
+    // Constructors
+    kEpsilon
+    (
+        const volVectorField& U,
+        const surfaceScalarField& phi,
+        const transportModel& transport
+    );
+    
+    // Virtual functions from turbulenceModel
+    virtual tmp<volScalarField> nut() const;
+    virtual tmp<volScalarField> k() const;
+    virtual tmp<volScalarField> epsilon() const;
+    virtual void correct();
+};
+```
+
+---
+
+## 📊 สรุปแนวทางการใช้งาน
+
+### อัลกอริทึมการแก้สมการ k-epsilon
+
+**Step-by-step process**:
+
+1. **Read transport properties**
+   - Viscosity ($\nu$)
+   - Density ($\rho$) for compressible flow
+
+2. **Initialize turbulence fields**
+   - Turbulent kinetic energy ($k$)
+   - Dissipation rate ($\epsilon$)
+
+3. **Time loop**:
+   ```
+   while (time loop):
+       // Update mean flow fields
+       solve Ueqn 
+       
+       // Calculate turbulence production
+       Pk = 2*nut*S:S
+       
+       // Solve k equation
+       solve(kEqn)
+       
+       // Solve epsilon equation  
+       solve(epsilonEqn)
+       
+       // Update turbulent viscosity
+       nut = Cmu*k²/epsilon
+       
+       // Update wall functions
+       updateWallFunctions()
+   ```
+
+4. **Apply convergence criteria**
+   - Residual tolerances for k and epsilon
+   - Monitor y+ values at walls
+
+### การเลือกใช้ฟังก์ชันผนัง
+
+| ชนิดของการไหล | ช่วง y+ ที่แนะนำ | ฟังก์ชันผนังที่เหมาะสม |
+|--------------|------------------|-------------------|
+| **External flow** | 30-300 | Standard wall functions |
+| **Internal flow** | 20-200 | Enhanced wall functions |
+| **Separated flow** | 1-5 | Low-Re y+ treatment |
+| **Heat transfer** | <1 | Enhanced/thermal wall functions |
+
+---
+
+## 🔬 บทสรุปทางเทคนิค
+
+การวิเคราะห์ที่ครอบคลุมนี้แสดงให้เห็นถึง:
+
+- **การออกแบบเชิงวัตถุที่ซับซ้อน** ของระบบความปั่นป่วนใน OpenFOAM
+- **ความเข้มงวดทางคณิตศาสตร์** เบื้องหลังการสร้างแบบจำลอง
+- **สถาปัตยกรรมแบบโมดูลาร์** ที่อนุญาตให้ขยายและแก้ไขแบบจำลองได้
+- **การบูรณาการระหว่างทฤษฎี** กับการนำไปใช้จริงผ่าน finite volume method
+
+รากฐานเหล่านี้เป็นหลักประกันสำหรับการทำความเข้าใจและขยายขีดความสามารถด้านความปั่นป่วนใน OpenFOAM

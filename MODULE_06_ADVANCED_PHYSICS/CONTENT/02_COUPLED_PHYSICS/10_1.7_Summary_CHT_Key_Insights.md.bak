@@ -1,0 +1,414 @@
+## 1.7 บทสรุป: ข้อมูลเชิงลึก CHT ที่สำคัญ
+
+### 1.7.1 ภาพรวมสถาปัตยกรรม
+
+Solver `chtMultiRegionFoam` ใช้ **partitioned region approach** สำหรับปัญหา conjugate heat transfer 
+
+**การออกแบบสถาปัตยกรรม:**
+- แบ่งโดเมนการคำนวณออกเป็น regions ที่แตกต่างกัน
+- แต่ละ region แสดงถึงวัสดุหรือเฟสต่างๆ (โดเมนของแข็งและของไหล)
+- แต่ละ region รักษา mesh, ตัวแปร field และคุณสมบัติทางกายภาพของตัวเอง
+- สามารถแสดงถึงปรากฏการณ์การถ่ายเทความร้อนแบบ heterogeneous ได้อย่างแม่นยำ
+
+**[Diagram: Multi-region architecture showing separate fluid and solid domains with interface coupling]**
+
+**ส่วนประกอบทางสถาปัตยกรรมที่สำคัญ:**
+
+| ส่วนประกอบ | คำอธิบาย |
+|-------------|----------|
+| **Region Management** | แต่ละ region ถูก treat เป็น object `fvMesh` ที่เป็นอิสระพร้อมระบบการจัดการ field ของตัวเอง |
+| **Region Registry** | รีจิสทรีทั่วไปรักษาการอ้างอิงถึงทุก active regions และการเชื่อมต่อระหว่างกัน |
+| **Memory Organization** | เลย์เอาต์หน่วยความจำที่มีประสิทธิภาพช่วยให้ประมวลผล regions แบบขนานได้ในขณะที่รักษาข้อมูล coupling |
+
+### 1.7.2 การใช้งานกลไก Coupling
+
+การเชื่อมต่อระหว่าง regions ถูกจัดการหลักผ่าน class `mappedPatchBase` ซึ่งให้ **geometric mapping functionality** ระหว่าง boundary patches ของ regions ที่อยู่ติดกัน
+
+**การ mapping นี้สร้างความสอดคล้องของพื้นที่ที่จำเป็นสำหรับ:**
+- การถ่ายเทความร้อนที่แม่นยำข้าม interfaces
+- การถ่ายโอนโมเมนตัมระหว่าง regions
+
+**[Diagram: Geometric mapping between fluid and solid interface patches]**
+
+**การใช้งาน Field Transfer:**
+
+เงื่อนไขขอบเขต `mappedFixedValue` ใช้งานกลไกการถ่ายโอน field จริง สำหรับ temperature coupling ที่ fluid-solid interfaces:
+
+```cpp
+// Temperature mapping from solid to fluid region
+mappedFixedValue<T> fluidSolidInterface
+(
+    fluidMesh.boundary()[fluidPatchID],
+    solidField   // Source field from solid region
+);
+
+// Heat flux coupling back to solid
+mappedFixedValue<scalar> solidHeatFlux
+(
+    solidMesh.boundary()[solidPatchID],
+    -kFluid * gradTFluid  // Heat flux from fluid
+);
+```
+
+**Geometric Transformation:**
+
+การ mapping เกี่ยวข้องกับการแปลงพิกัดระหว่างระบบพิกัด patch ท้องถิ่น:
+
+$$\mathbf{x}_{\text{target}} = \mathbf{R} \cdot \mathbf{x}_{\text{source}} + \mathbf{t}$$
+
+**ตัวแปร:**
+- $\mathbf{x}_{\text{target}}$: พิกัดในระบบพิกัดเป้าหมาย
+- $\mathbf{x}_{\text{source}}$: พิกัดในระบบพิกัดต้นทาง
+- $\mathbf{R}$: เมทริกซ์หมุนระหว่างระบบพิกัด
+- $\mathbf{t}$: เวกเตอร์การเลื่อนระหว่างระบบพิกัด
+
+### 1.7.3 การพิจารณาเสถียรภาพ
+
+**Property contrasts** ระหว่าง regions ที่แตกต่างกัน (ความนำความร้อน, ความหนาแน่น, ความจุความร้อนจำเพาะ) อาจนำไปสู่ความไม่เสถียรทางตัวเลข
+
+**กลยุทธ์ทางตัวเลขที่ใช้:**
+- Under-relaxation สำหรับ temperature coupling
+- Iterative coupling algorithms
+- Convergence criteria สำหรับ interface quantities
+
+**Under-Relaxation Strategy:**
+
+สำหรับ temperature coupling กับ under-relaxation factor $\alpha_T$:
+
+$$T^{n+1} = (1-\alpha_T) T^n + \alpha_T T_{\text{mapped}}$$
+
+**ตัวแปร:**
+- $T^{n+1}$: อุณหภูมิใน iteration ถัดไป
+- $T^n$: อุณหภูมิใน iteration ปัจจุบัน
+- $T_{\text{mapped}}$: อุณหภูมิที่ map มาจาก region อื่น
+- $\alpha_T$: under-relaxation factor (ค่าทั่วไป: $0.6-0.8$ สำหรับกรณีความเปรียบต่างสูง)
+
+**Iterative Coupling Algorithm:**
+
+```cpp
+// Outer iteration loop for region coupling
+for (int couplingIter = 0; couplingIter < maxCouplingIter; couplingIter++)
+{
+    // Solve fluid region
+    fluidRegion.solve();
+    
+    // Apply under-relaxation to interface temperature
+    TInterface = (1-alphaT)*TInterface.oldTime() + alphaT*TFluid;
+    
+    // Solve solid region  
+    solidRegion.solve();
+    
+    // Check convergence
+    scalar residual = mag(TInterface - TInterface.oldTime());
+    if (residual < couplingTolerance) break;
+}
+```
+
+### 1.7.4 การตรวจสอบและการตรวจสอบความถูกต้อง
+
+**Heat Flux Continuity Check:**
+
+ความต้องการทางกายภาพพื้นฐานสำหรับ conjugate heat transfer คือความต่อเนื่องของปริมาณความร้อนข้าม interfaces:
+
+$$q_f = -k_f \frac{\partial T_f}{\partial n} = -k_s \frac{\partial T_s}{\partial n} = q_s$$
+
+**ตัวแปร:**
+- $q_f$: ปริมาณความร้อนจากฝั่งของไหล
+- $q_s$: ปริมาณความร้อนจากฝั่งของแข็ง
+- $k_f, k_s$: ค่าสัมประสิทธิ์การนำความร้อนของของไหลและของแข็ง
+- $T_f, T_s$: อุณหภูมิของของไหลและของแข็ง
+- $\frac{\partial}{\partial n}$: อนุพันธ์ในทิศทางปกติของ interface
+
+**Verification Criterion:**
+
+ข้อผิดพลาดสัมพัทธ์ในความต่อเนื่องของปริมาณความร้อนต้องเป็นไปตาม:
+
+$$\frac{|q_f + q_s|}{|q_f|} < 10^{-6}$$
+
+เกณฑ์นี้ช่วยให้มั่นใจว่าคำตอบทางตัวเลขรักษาความสอดคล้องทางกายภาพที่ region interfaces
+
+**การใช้งาน Verification:**
+
+```cpp
+// Heat flux continuity verification
+scalarField qFluid = -kFluid.boundaryField()[fluidPatchID] * 
+                     gradTFluid.boundaryField()[fluidPatchID];
+                     
+scalarField qSolid = -kSolid.boundaryField()[solidPatchID] * 
+                     gradTSolid.boundaryField()[solidPatchID];
+
+scalar maxRelError = max(mag(qFluid + qSolid)/mag(qFluid));
+                     
+if (maxRelError < 1e-6)
+{
+    Info << "Heat flux continuity verified: " << maxRelError << endl;
+}
+```
+
+### 1.7.5 กลยุทธ์การปรับแต่งประสิทธิภาพ
+
+**Memory Access Patterns:**
+
+| กลยุทธ์ | คำอธิบาย |
+|---------|----------|
+| **Region-Level Blocking** | ประมวลผลแต่ละ region อย่างสมบูรณ์ก่อนที่จะไปยังถัดไป |
+| **Cache-Aware Layout** | เก็บข้อมูล interface ที่เข้าถึงบ่อยติดกัน |
+| **Parallel Region Processing** | ใช้ OpenMP สำหรับ region parallelism เมื่อ regions เป็นอิสระ |
+
+**Solver Configuration:**
+
+สำหรับประสิทธิภาพ CHT ที่ดีที่สุด:
+
+```foam
+// system/fvSolution
+solvers
+{
+    T
+    {
+        solver          GAMG;
+        tolerance       1e-8;
+        relTol          1e-5;
+        smoother        GaussSeidel;
+        nPreSweeps      1;
+        nPostSweeps     2;
+        nFinestSweeps   2;
+    }
+}
+
+// Coupling settings
+PIMPLE
+{
+    nOuterCorrectors 50;      // Maximum coupling iterations
+    nCorrectors      2;       // Pressure-velocity corrections
+    nNonOrthogonalCorrectors 0;
+    pRefCell         0;
+    pRefValue        0;
+}
+```
+
+---
+
+# 2. Fluid-Structure Interaction (FSI) พื้นฐาน
+
+## 2.1 การจำแนกประเภทและการประยุกต์ใช้ FSI
+
+Fluid-Structure Interaction (FSI) ครอบคลุมคลาสของปัญหา multiphysics ที่หลากหลายซึ่ง:
+- **การไหลของของไหล** ส่งผลต่อการเสียรูปของของแข็ง
+- **การเคลื่อนที่ของของแข็ง** ส่งผลต่อพฤติกรรมของของไหล
+
+การเชื่อมต่อนี้สร้างระบบที่ไม่เป็นเชิงเส้นอย่างสูงซึ่งต้องการแนวทางทางตัวเลขเฉพาะ
+
+**[Diagram: FSI coupling showing fluid forces on structure and structural deformation affecting fluid flow]**
+
+### 2.1.1 รูปแบบการจำแนกประเภท FSI
+
+ปัญหา FSI ถูกจำแนกตามความแข็งแกร่งของการเชื่อมต่อแบบสัมพัทธ์และขนาดของการกระจัดที่คาดหวัง:
+
+**One-Way vs Two-Way Coupling:**
+
+| ประเภท | คำอธิบาย | สมการขับเคลื่อน | การประยุกต์ใช้ |
+|--------|----------|------------------|-------------|
+| **One-Way FSI** | แรงของของไหลส่งผลต่อโครงสร้าง แต่การตอบสนองของโครงสร้างไม่ส่งผลต่อการไหลของของไหล | $\mathbf{F}_{\text{fluid}} \rightarrow \mathbf{u}_{\text{solid}}$, $\mathbf{u}_{\text{solid}} \nrightarrow \mathbf{v}_{\text{fluid}}$ | Static wind loading, thermal stress analysis |
+| **Two-Way FSI** | การเชื่อมต่อแบบสองทิศทางระหว่างของไหลและโครงสร้าง | $\mathbf{F}_{\text{fluid}} \leftrightarrow \mathbf{u}_{\text{solid}}$, $\mathbf{v}_{\text{fluid}} \leftrightarrow \mathbf{u}_{\text{solid}}$ | Flutter analysis, vortex-induced vibrations |
+
+### 2.1.2 กรอบงานคณิตศาสตร์
+
+**สมการโดเมนของไหล:**
+
+Navier-Stokes สำหรับของไหลอัดตัวไม่ได้ในการกำหนดรูปแบบ arbitrary Lagrangian-Eulerian (ALE):
+
+$$\rho_f \left( \frac{\partial \mathbf{v}_f}{\partial t} + ((\mathbf{v}_f - \mathbf{v}_m) \cdot \nabla) \mathbf{v}_f \right) = -\nabla p_f + \mu_f \nabla^2 \mathbf{v}_f + \mathbf{f}_f$$
+
+$$\nabla \cdot \mathbf{v}_f = 0$$
+
+**ตัวแปร:**
+- $\rho_f$: ความหนาแน่นของของไหล
+- $\mathbf{v}_f$: ความเร็วของของไหล
+- $\mathbf{v}_m$: ความเร็ว mesh จากการเสียรูปของโดเมน
+- $p_f$: ความดันของของไหล
+- $\mu_f$: ความหนืดของของไหล
+- $\mathbf{f}_f$: แรงภายนอกต่อของไหล
+
+**สมการโดเมนของแข็ง:**
+
+Elastodynamics ที่ไม่เป็นเชิงเส้น:
+
+$$\rho_s \frac{\partial^2 \mathbf{u}_s}{\partial t^2} = \nabla \cdot \boldsymbol{\sigma}_s + \mathbf{f}_s$$
+
+พร้อมความสัมพันธ์เชิงโครงสร้างสำหรับวัสดุ hyperelastic:
+
+$$\boldsymbol{\sigma}_s = \frac{2}{J} \frac{\partial W}{\partial \mathbf{C}} \mathbf{F} - p\mathbf{I}$$
+
+**ตัวแปร:**
+- $\rho_s$: ความหนาแน่นของของแข็ง
+- $\mathbf{u}_s$: การกระจัดของของแข็ง
+- $\boldsymbol{\sigma}_s$: tensor ความเครียดของของแข็ง
+- $\mathbf{f}_s$: แรงภายนอกต่อของแข็ง
+- $W$: พลังงาน strain
+- $\mathbf{C}$: right Cauchy-Green deformation tensor
+- $\mathbf{F}$: deformation gradient
+- $J$: ดีเทอร์มิแนนต์ของ $\mathbf{F}$
+- $p$: ความดัน hydrostatic
+
+**เงื่อนไขการเชื่อมต่อ Interface:**
+
+**ความต่อเนื่องของ kinematic** (การจับคู่ความเร็ว):
+$$\mathbf{v}_f = \frac{\partial \mathbf{u}_s}{\partial t} \quad \text{on } \Gamma_{FSI}$$
+
+**ความต่อเนื่องของ dynamic** (สมดุลความเครียด):
+$$\boldsymbol{\sigma}_f \cdot \mathbf{n}_f = \boldsymbol{\sigma}_s \cdot \mathbf{n}_s \quad \text{on } \Gamma_{FSI}$$
+
+### 2.1.3 กลยุทธ์การแก้ปัญหาทางตัวเลข
+
+**Partitioned Approach:**
+
+```cpp
+// Pseudo-code for partitioned FSI solver
+while (t < endTime)
+{
+    // Fluid solve on deformed mesh
+    fluidSolver.solve();
+    
+    // Extract fluid stresses on interface
+    InterfaceStresses = extractFluidStresses();
+    
+    // Apply to solid as boundary conditions
+    solidSolver.setInterfaceLoads(InterfaceStresses);
+    
+    // Solve solid mechanics
+    solidSolver.solve();
+    
+    // Update mesh based on solid displacement
+    meshDeformer.update(solidDisplacement);
+    
+    // Check coupling convergence
+    if (couplingConverged) advanceTime();
+}
+```
+
+**Monolithic Approach:**
+
+การประกอบเมทริกซ์ระบบที่เชื่อมต่อกัน:
+
+$$
+\begin{bmatrix}
+\mathbf{A}_f & \mathbf{B}_{fs} \\
+\mathbf{B}_{sf} & \mathbf{A}_s
+\end{bmatrix}
+\begin{bmatrix}
+\Delta \mathbf{x}_f \\
+\Delta \mathbf{x}_s
+\end{bmatrix}
+=
+\begin{bmatrix}
+\mathbf{r}_f \\
+\mathbf{r}_s
+\end{bmatrix}
+$$
+
+**ตัวแปร:**
+- $\mathbf{A}_f, \mathbf{A}_s$: เมทริกซ์ระบบของของไหลและของแข็ง
+- $\mathbf{B}_{fs}, \mathbf{B}_{sf}$: coupling matrices สำหรับ interface
+- $\Delta \mathbf{x}_f, \Delta \mathbf{x}_s$: การเปลี่ยนแปลง solution vectors
+- $\mathbf{r}_f, \mathbf{r}_s$: residual vectors
+
+### 2.1.4 เทคนิคการเสียรูป Mesh
+
+**Spring-Based Deformation:**
+
+Interface springs พร้อมความแข็ง $k_i$:
+
+$$\mathbf{F}_i = k_i (\mathbf{x}_j - \mathbf{x}_i)$$
+
+พลังงานเครือข่ายสปริงทั้งหมด:
+
+$$E_{\text{springs}} = \frac{1}{2} \sum_{i} \sum_{j \in \mathcal{N}(i)} k_{ij} |\mathbf{x}_j - \mathbf{x}_i|^2$$
+
+**[Diagram: Spring-based mesh deformation showing interconnected mesh points]**
+
+**Radial Basis Function (RBF) Interpolation:**
+
+การสร้างสนามการกระจัดใหม่:
+
+$$\mathbf{u}(\mathbf{x}) = \sum_{i=1}^{n_{cp}} \boldsymbol{\alpha}_i \phi(|\mathbf{x} - \mathbf{x}_{cp,i}|)$$
+
+**ตัวแปร:**
+- $\mathbf{u}(\mathbf{x})$: สนามการกระจัดที่จุด $\mathbf{x}$
+- $n_{cp}$: จำนวน control points
+- $\boldsymbol{\alpha}_i$: coefficients ของ RBF
+- $\phi(r)$: radial basis function (เช่น $\phi(r) = r^2 \log r$ สำหรับ thin-plate splines)
+- $\mathbf{x}_{cp,i}$: ตำแหน่งของ control points
+
+### 2.1.5 ปัญหาเสถียรภาพและการลู่เข้า
+
+**Added Mass Effect:**
+
+พารามิเตอร์วิกฤตสำหรับเสถียรภาพของ partitioned FSI:
+
+$$\beta = \frac{\rho_s h_s}{\rho_f L_f}$$
+
+**ตัวแปร:**
+- $\rho_s h_s$: ความหนาแน่นพื้นที่ของแข็ง
+- $\rho_f L_f$: added mass ของของไหล
+- $\beta$: พารามิเตอร์วิกฤตสำหรับเสถียรภาพ
+
+**Artificial Compressibility Enhancement:**
+
+สมการโมเมนตัมของของไหลที่ปรับเปลี่ยน:
+
+$$\rho_f \frac{\partial \mathbf{v}_f}{\partial t} + \rho_f (\mathbf{v}_f \cdot \nabla) \mathbf{v}_f = -\nabla p_f + (\mu_f + \mu_{\text{art}}) \nabla^2 \mathbf{v}_f + \mathbf{f}_f$$
+
+ความหนืดเทียม:
+
+$$\mu_{\text{art}} = C_{\text{art}} \rho_f h |\mathbf{v}_f - \mathbf{v}_m|$$
+
+**ตัวแปร:**
+- $\mu_{\text{art}}$: ความหนืดเทียม
+- $C_{\text{art}}$: ค่าสัมประสิทธิ์
+- $h$: ค่าลักษณะเฉพาะ mesh
+
+### 2.1.6 การใช้งาน FSI ใน OpenFOAM
+
+**solidDisplacementFoam:**
+
+Solid mechanics solver ที่ใช้การกำหนดรูปแบบ total Lagrangian:
+
+```cpp
+// Momentum equation in reference configuration
+fvVectorMatrix dUEqn
+(
+    rho_*d2dt2(U_)
+ == 
+    fvc::div(J*(sigma - sigma*sigmaT))
+  + rho_*g
+);
+
+dUEqn.solve();
+```
+
+**Mesh Motion Framework:**
+
+```cpp
+// Dynamic mesh handling for FSI
+dynamicFvMesh mesh;
+
+while (runTime.loop())
+{
+    // Update mesh motion
+    mesh.update();
+    
+    // Solve fluid equations on moving mesh
+    #include "UEqn.H"
+    #include "pEqn.H"
+}
+```
+
+**Coupling Libraries:**
+
+การผสานรวมกับ solid mechanics codes ภายนอกผ่าน:
+
+| Library | คำอธิบาย |
+|---------|----------|
+| **preCICE** | Open-source coupling library สำหรับ multi-physics แบบ partitioned |
+| **MPI-based communication** | การแลกเปลี่ยนข้อมูลโดยตรงระหว่าง solvers |
+| **File-based coupling** | Interface ง่ายๆ สำหรับการประยุกต์ใช้พื้นฐาน |

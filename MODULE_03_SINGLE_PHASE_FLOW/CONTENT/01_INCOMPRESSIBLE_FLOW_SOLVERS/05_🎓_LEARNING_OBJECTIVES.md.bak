@@ -1,0 +1,361 @@
+## 🎯 วัตถุประสงค์การเรียนรู้
+
+เมื่อสิ้นสุดเนื้อหาในไฟล์นี้ ผู้เรียนควรจะสามารถ:
+
+---
+
+## 1. 🔍 ระบุ OpenFOAM Solver ที่เหมาะสมสำหรับปัญหาการไหลที่กำหนด
+
+### **กรอบการจำแนกประเภทการไหล**
+
+OpenFOAM มี Solver ที่จัดเรียงตามหลักฟิสิกส์และลักษณะการไหล กระบวนการเลือกเริ่มต้นด้วยการจำแนกประเภทปัญหา:
+
+| ประเภทการไหล | เกณฑ์การตัดสินใจ | ค่าอ้างอิงทั่วไป |
+|---------------|-------------------|------------------|
+| **Incompressible vs Compressible** | ความแปรผันของความหนาแน่นมีนัยสำคัญหรือไม่ | Mach < 0.3 สำหรับ Incompressible |
+| **Laminar vs Turbulent** | Reynolds number | $Re = \frac{\rho UL}{\mu}$ |
+| **Single-phase vs Multiphase** | มีหลายเฟสหรือการเปลี่ยนเฟสเกิดขึ้นหรือไม่ | - |
+| **Steady vs Transient** | ผลกระทบทางเวลามีความสำคัญหรือไม่ | - |
+| **Heat Transfer** | ผลกระทบทางความร้อนมีอิทธิพลต่อการไหลหรือไม่ | - |
+
+[Diagram: Decision tree for solver selection showing the five main classification criteria]
+
+### **การจับคู่ Solver หลัก**
+
+| Solver | ประเภทการไหล | อัลกอริทึม | คำอธิบาย |
+|--------|----------------|-------------|-----------|
+| **`simpleFoam`** | Steady-state, Incompressible, Turbulent | SIMPLE | Pressure-velocity coupling สำหรับสถานะคงที่ |
+| **`pimpleFoam`** | Transient, Incompressible | PIMPLE | ผสมผสาน PISO และ SIMPLE สำหรับการไหลชั่วคราว |
+| **`icoFoam`** | Transient, Incompressible, Laminar | PISO | การไหลราบเรียบแบบชั่วคราว |
+| **`multiphaseEulerFoam`** | Eulerian Multiphase | - | หลายเฟสพร้อมการถ่ายเทความร้อน/มวล |
+| **`interFoam`** | Free-surface | VOF | Volume of Fluid สำหรับพื้นผิวอิสระ |
+| **`buoyantBoussinesqSimpleFoam`** | Heat Transfer with Buoyancy | SIMPLE | การไหลที่มีผลจากความร้อนและแรงลอยตัว |
+
+---
+
+## 2. ⚙️ กำหนดค่า Solver Settings ใน `fvSolution`
+
+Dictionary `system/fvSolution` ควบคุมพฤติกรรมของ Solver ผ่านการกำหนดค่าแบบลำดับชั้น:
+
+### **Linear Solver Configuration**
+
+```cpp
+solvers
+{
+    p
+    {
+        solver          GAMG;           // Geometric-algebraic multigrid
+        tolerance       1e-07;          // Convergence tolerance
+        relTol          0.01;           // Relative tolerance
+        smoother        GaussSeidel;    // Smoothing method
+        nPreSweeps      0;              // Pre-smoothing sweeps
+        nPostSweeps     2;              // Post-smoothing sweeps
+        nFinestSweeps   2;              // Finest level sweeps
+    }
+    
+    U
+    {
+        solver          smoothSolver;   // Conjugate gradient with smoothing
+        tolerance       1e-08;
+        relTol          0;
+        smoother        GaussSeidel;
+    }
+}
+```
+
+**ตัวแปรควบคุม Linear Solver:**
+- `solver`: ประเภทของ Linear Solver (GAMG, smoothSolver, PCG, PBiCG)
+- `tolerance`: ค่า Absolute tolerance สำหรับการลู่เข้า
+- `relTol`: ค่า Relative tolerance สำหรับการลู่เข้า
+- `smoother`: วิธีการ smoothing (GaussSeidel, DILU, DIC)
+
+### **Algorithm Configuration**
+
+```cpp
+SIMPLE
+{
+    nNonOrthogonalCorrectors 0;    // Non-orthogonal correction loops
+    nCorrectors      2;             // Pressure-momentum coupling iterations
+    pRefCell         0;             // Pressure reference cell
+    pRefValue        0;             // Reference pressure value
+}
+
+relaxationFactors
+{
+    fields
+    {
+        p               0.3;         // Pressure relaxation
+        U               0.7;         // Momentum relaxation
+    }
+    equations
+    {
+        k               0.7;         // Turbulent kinetic energy
+        epsilon         0.7;         // Turbulent dissipation
+    }
+}
+```
+
+**ตัวแปรควบคุม SIMPLE Algorithm:**
+- `nCorrectors`: จำนวนรอบการแก้ไข pressure-velocity coupling
+- `nNonOrthogonalCorrectors`: จำนวนรอบการแก้ไขสำหรับ non-orthogonal mesh
+- `relaxationFactors`: ค่า under-relaxation สำหรับความเสถียร
+
+[Diagram: Flow chart showing SIMPLE algorithm iteration process with corrections]
+
+---
+
+## 3. 📊 ตรวจสอบและตีความ Solver Convergence
+
+### **ตัวชี้วัด Convergence**
+
+1. **การลดลงของ Residual**
+   - ตรวจสอบ Normalized Residual:
+   $$R = \frac{\|\mathbf{A}\mathbf{x} - \mathbf{b}\|}{\|\mathbf{b}\|}$$
+   - *$\mathbf{A}$ = Coefficient matrix*
+   - *$\mathbf{x}$ = Solution vector*
+   - *$\mathbf{b}$ = Right-hand side vector*
+
+2. **สมดุลทางกายภาพ**
+   - ตรวจสอบ Integral Quantities (เช่น อัตราการไหลของมวล, สัมประสิทธิ์แรง)
+   - ตรวจสอบ Conservation ของพลังงาน
+
+3. **การตรวจสอบ Field**
+   - ติดตามค่า ณ จุด (Point monitoring)
+   - ติดตาม Integral บนพื้นผิว (Surface monitoring)
+
+### **การตีความ Residual Output**
+
+```bash
+# Monitor convergence during runtime
+# Typical log output format:
+Time = 0.001
+
+Solving for Ux, Initial residual = 0.023456, Final residual = 1.234e-05, No Iterations 4
+Solving for Uy, Initial residual = 0.018765, Final residual = 9.876e-06, No Iterations 4
+Solving for p, Initial residual = 0.045678, Final residual = 2.345e-06, No Iterations 8
+SIMPLE iteration converged
+```
+
+### **เกณฑ์ Convergence**
+
+| เกณฑ์ | ค่าที่แนะนำ | การประยุกต์ใช้ |
+|--------|---------------|---------------|
+| **Absolute Tolerance** | $10^{-6}$ ถึง $10^{-8}$ | Residual ต่ำกว่าค่า Absolute |
+| **Relative Tolerance** | 0.1% ของ Initial Residual | ปัจจัยการลดลงของ Residual |
+| **Solution Independence** | ปริมาณทางกายภาพไม่เปลี่ยนแปลง | ตรวจสอบ Drag, Lift, Flow rate |
+| **Continuity Error** | < 1% ของ inlet mass flow | การอนุรักษ์มวลอยู่ในขีดจำกัด |
+
+---
+
+## 4. 🛠️ การแก้ไขปัญหา Solver ทั่วไป
+
+### **การวินิจฉัยและแก้ไข Divergence**
+
+| อาการ | สาเหตุที่เป็นไปได้ | การวินิจฉัย | วิธีแก้ไข |
+|---------|-------------------|---------------|-----------|
+| **Residual เพิ่มขึ้น** | Initial Conditions ไม่ดี | ตรวจสอบ Field Bounds | กำหนด Initial Conditions ที่ดีขึ้น |
+| **Residual แกว่ง** | Under-relaxation ไม่เพียงพอ | ตรวจสอบ Relaxation Factors | ลดค่า Relaxation |
+| **Convergence ช้า** | Matrix ที่มีสภาพไม่ดี | ตรวจสอบคุณภาพ Mesh | ปรับปรุง Mesh Orthogonality |
+| **Convergence หยุดนิ่ง** | Corrections ไม่เพียงพอ | ทบทวน Solver Settings | เพิ่ม nCorrectors |
+
+### **กลยุทธ์การแก้ไขปัญหาทั่วไป**
+
+#### **1. การตรวจสอบคุณภาพ Mesh**
+```bash
+checkMesh -allGeometry -allTopology
+```
+
+**เกณฑ์คุณภาพ Mesh:**
+- **Aspect Ratio**: < 1000
+- **Non-orthogonality**: < 70°
+- **Skewness**: < 0.5
+- **Expansion Ratio**: < 5
+
+#### **2. การปรับปรุงความเสถียรเชิงตัวเลข**
+
+```cpp
+relaxationFactors
+{
+    fields
+    {
+        p           0.2;     // ลดลงเพื่อความเสถียร
+        U           0.5;
+    }
+    equations
+    {
+        k           0.6;
+        epsilon     0.6;
+    }
+}
+```
+
+#### **3. การตรวจสอบ Boundary Condition**
+
+- ✅ ความสอดคล้องของ Inlet/Outlet
+- ✅ การกำหนด Pressure Reference
+- ✅ ความเข้ากันได้ของ Wall Function
+
+#### **4. การปรับ Discretization Schemes**
+
+```cpp
+fvSchemes
+{
+    divSchemes
+    {
+        div(phi,U)    Gauss upwind;      // อันดับหนึ่งเพื่อความเสถียร
+        div(phi,k)    Gauss upwind;
+        div(phi,epsilon) Gauss upwind;
+    }
+    
+    interpolationSchemes
+    {
+        interpolate(U)      linear;
+    }
+}
+```
+
+---
+
+## 5. 🏗️ การตั้งค่าการจำลองการไหลแบบ Incompressible พื้นฐาน
+
+### **โครงสร้าง Directory ของ Case**
+
+```bash
+# โครงสร้างไดเรกทอรีสำหรับ Case การไหลแบบ Incompressible
+pipeFlow/
+├── 0/               # Initial Conditions
+│   ├── U           # Field ความเร็ว
+│   ├── p           # Field ความดัน
+│   ├── k           # Turbulent kinetic energy
+│   └── epsilon     # Turbulent dissipation
+├── constant/
+│   ├── polyMesh/   # Mesh definition
+│   └── transportProperties # Fluid properties
+├── system/
+│   ├── controlDict # Time stepping control
+│   ├── fvSchemes   # Discretization schemes
+│   └── fvSolution  # Solver settings
+└── Allrun          # Execution script
+```
+
+[Diagram: Tree structure of OpenFOAM case directory with file contents]
+
+### **ไฟล์การกำหนดค่าหลัก**
+
+#### **`system/controlDict`**
+```cpp
+application     simpleFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         1000;
+deltaT          1;
+adjustTimeStep  no;
+maxCo           1;
+maxDeltaT       1;
+
+functions
+{
+    residuals
+    {
+        type            residuals;
+        functionObjectLibs ("libutilityFunctionObjects.so");
+        fields          (p U k epsilon);
+    }
+}
+```
+
+#### **`constant/transportProperties`**
+```cpp
+transportModel  Newtonian;
+nu              [0 2 -1 0 0 0 0] 1.5e-05;    // Kinematic Viscosity [m²/s]
+```
+
+#### **`0/U` (Velocity Field)**
+```cpp
+dimensions      [0 1 -1 0 0 0 0];
+internalField   uniform 0;
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform (10 0 0);    // Inlet velocity [m/s]
+    }
+    outlet
+    {
+        type            zeroGradient;
+    }
+    walls
+    {
+        type            noSlip;
+    }
+}
+```
+
+#### **`0/p` (Pressure Field)**
+```cpp
+dimensions      [1 -1 -2 0 0 0 0];
+internalField   uniform 0;
+boundaryField
+{
+    inlet
+    {
+        type            zeroGradient;
+    }
+    outlet
+    {
+        type            fixedValue;
+        value           uniform 0;          // Reference pressure
+    }
+    walls
+    {
+        type            zeroGradient;
+    }
+}
+```
+
+### **การรัน Workflow**
+
+```bash
+# 1. สร้าง Mesh (หากใช้ blockMesh)
+blockMesh
+
+# 2. ตรวจสอบคุณภาพ Mesh
+checkMesh
+
+# 3. รัน Solver
+simpleFoam
+
+# 4. ประมวลผลผลลัพธ์
+paraFoam
+```
+
+### **Algorithm Flow: SIMPLE Algorithm**
+
+1. **Initialize** velocity and pressure fields
+2. **Solve** momentum equations using guessed pressure
+3. **Solve** pressure correction equation
+4. **Correct** velocity field
+5. **Update** turbulence quantities
+6. **Check** convergence criteria
+7. **Repeat** until convergence
+
+---
+
+## 📝 สรุปหลักการสำคัญ
+
+### **ขั้นตอนการเลือกและตั้งค่า Solver:**
+
+1. **🔍 จำแนกปัญหา** → เลือก Solver ที่เหมาะสม
+2. **🏗️ สร้างโครงสร้าง Case** → จัดระเบียบไฟล์อย่างถูกต้อง  
+3. **⚙️ ตั้งค่า fvSolution** → กำหนดพฤติกรรม Solver
+4. **🏃 รับการจำลอง** → ตรวจสอบ Convergence
+5. **🛠️ แก้ไขปัญหา** → ปรับปรุงความเสถียรและประสิทธิภาพ
+
+### **คำแนะนำเชิงปฏิบัติ:**
+- เริ่มต้นด้วย **Low-order schemes** เพื่อความเสถียร
+- ใช้ **Under-relaxation** สำหรับปัญหาที่ซับซ้อน
+- ตรวจสอบ **Mesh quality** ก่อนรันเสมอ
+- Monitor **Multiple convergence criteria** ไม่ใช่เพียง Residuals
+- **Document** การเปลี่ยนแปลงและผลลัพธ์

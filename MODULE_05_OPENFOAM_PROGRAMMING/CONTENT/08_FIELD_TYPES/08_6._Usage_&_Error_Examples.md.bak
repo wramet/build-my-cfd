@@ -1,0 +1,280 @@
+# 6. ตัวอย่างการใช้งานและข้อผิดพลาด
+
+## 6.1 การสร้างฟิลด์ที่ถูกต้อง
+
+ใน OpenFOAM การสร้างฟิลด์จะต้องทำตามรูปแบบที่เข้มงวดเพื่อให้แน่ใจว่า **การเริ่มต้น**, **ความสอดคล้องของมิติ**, และ **ความสามารถด้าน I/O** เป็นไปอย่างถูกต้อง รูปแบบ constructor พื้นฐานสำหรับฟิลด์เรขาคณิตจำเป็นต้องมี:
+
+1. **การระบุ IOobject**: กำหนดวิธีการที่ฟิลด์โต้ตอบกับระบบไฟล์
+2. **การอ้างอิง Mesh**: เชื่อมโยงฟิลด์กับเมชคำนวณ
+3. **การวิเคราะห์มิติ**: ทำให้แน่ใจว่าหน่วยฟิสิกส์ถูกติดตามอย่างถูกต้อง
+
+```cpp
+// สร้างฟิลด์ความเร็วพร้อมมิติที่ถูกต้อง
+volVectorField U
+(
+    IOobject
+    (
+        "U",                    // ชื่อฟิลด์
+        runTime.timeName(),     // ไดเรกทอรีเวลา
+        mesh,                   // การอ้างอิงถึงเมช
+        IOobject::MUST_READ,    // อ่านจากไฟล์ถ้ามี
+        IOobject::AUTO_WRITE    // เขียนโดยอัตโนมัติ
+    ),
+    mesh,                       // การอ้างอิงเมช
+    dimensionSet(0, 1, -1, 0, 0, 0, 0)  // [L/T] = m/s
+);
+
+// สร้างฟิลด์ความดัน
+volScalarField p
+(
+    IOobject("p", runTime.timeName(), mesh, IOobject::MUST_READ),
+    mesh,
+    dimensionSet(1, -1, -2, 0, 0, 0, 0)  // [ML⁻¹T⁻²] = Pa
+);
+```
+
+### รูปแบบ dimensionSet
+
+Constructor `dimensionSet` จะทำตามรูปแบบ `[M, L, T, I, Θ, N, J]`:
+
+| สัญลักษณ์ | คำอธิบาย | หน่วย | ตัวอย่างการใช้งาน |
+|----------|----------|--------|-------------------|
+| **M** | มวล | kg | `1` สำหรับความหนาแน่น |
+| **L** | ความยาว | m | `1` สำหรับความเร็ว, `2` สำหรับพื้นที่ |
+| **T** | เวลา | s | `-1` สำหรับอัตรา, `-2` สำหรับความเร่ง |
+| **I** | กระแสไฟฟ้า | A | `0` ในกรณีส่วนใหญ่ทาง CFD |
+| **Θ** | อุณหภูมิ | K | `1` สำหรับอุณหภูมิ |
+| **N** | ปริมาณของสาร | mol | `0` ในกรณีส่วนใหญ่ |
+| **J** | ความเข้มแสง | cd | `0` ในกรณีส่วนใหญ่ |
+
+## 6.2 ข้อผิดพลาดทั่วไปและวิธีแก้ไข
+
+### ข้อผิดพลาดที่ 1: ความไม่สอดคล้องของมิติ
+
+**ปัญหา**: พยายามดำเนินการระหว่างประเภทฟิลด์ที่ไม่เข้ากัน
+
+```cpp
+volScalarField wrong = p + U;  // ข้อผิดพลาด: ไม่สามารถบวกสเกลาร์กับเวกเตอร์ได้
+```
+
+**สาเหตุหลัก**: OpenFOAM บังคับใช้ **การตรวจสอบมิติอย่างเข้มงวดในระดับ compile-time** นิพจน์ `p + U` พยายามบวกฟิลด์ความดัน (สเกลาร์) กับฟิลด์ความเร็ว (เวกเตอร์) ซึ่งไม่ถูกต้องทางคณิตศาสตร์
+
+**วิธีแก้ไข**:
+
+| กรณีที่ต้องการ | โซลูชันที่ถูกต้อง | คำอธิบาย |
+|------------------|---------------------|------------|
+| ความดันจลน์ | `p + 0.5 * rho * magSqr(U)` | ใช้ dot product สำหรับพลังงานจลน์ |
+| ความดันบวกขนาดความเร็ว | `p + mag(U)` | ใช้ magnitude สำหรับขนาดเวกเตอร์ |
+| องค์ประกอบความเร็วที่เฉพาะเจาะจง | `p + U.component(0)` | ใช้ component access สำหรับแกน x |
+
+### ข้อผิดพลาดที่ 2: การขาดเงื่อนไขขอบเขต
+
+**ปัญหา**: การเริ่มต้นฟิลด์ไม่สมบูรณ์ ขาดอาร์กิวเมนต์ constructor ที่จำเป็น
+
+```cpp
+volScalarField T(mesh);  // ข้อผิดพลาด: ไม่มีมิติหรือ IOobject
+```
+
+**สาเหตุหลัก**: Constructor ขั้นต่ำ `volScalarField(mesh)` สร้างฟิลด์ที่ไม่ได้เริ่มต้นโดยไม่มี:
+- **มิติฟิสิกส์** (จำเป็นสำหรับความสอดคล้องของมิติ)
+- **ข้อมูล IOobject** (จำเป็นสำหรับไฟล์ I/O)
+- **ค่าฟิลด์เริ่มต้น** หรือ **เงื่อนไขขอบเขต**
+
+**การ Implement ที่ถูกต้อง**:
+```cpp
+volScalarField T
+(
+    IOobject
+    (
+        "T",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionSet(0, 0, 0, 1, 0, 0, 0),  // [Θ] = K
+    TInit.value()  // ค่าเริ่มต้นที่สม่ำเสมอ
+);
+```
+
+### ข้อผิดพลาดที่ 3: ประเภทฟิลด์ Patch ไม่ถูกต้อง
+
+**ปัญหา**: ใช้ประเภทฟิลด์ผิดสำหรับพื้นผิว vs. ปริมาตรเมช
+
+```cpp
+surfaceScalarField phi
+(
+    IOobject(...),
+    mesh,
+    dimensionSet(0, 3, -1, 0, 0, 0, 0)  // [L³/T] = m³/s
+);
+// ต้องใช้ fvsPatchField สำหรับ surfaceMesh ไม่ใช่ fvPatchField
+```
+
+**สาเหตุหลัก**: OpenFOAM แยกความแตกต่างระหว่าง:
+
+| ประเภทฟิลด์ | คลาสฐาน | เงื่อนไขขอบเขต | ตำแหน่งทางกายภาพ |
+|--------------|----------|----------------|------------------|
+| Volume Fields | `volScalarField`, `volVectorField` | `fvPatchField` | ศูนย์กลางเซลล์ |
+| Surface Fields | `surfaceScalarField`, `surfaceVectorField` | `fvsPatchField` | ใบหน้าเซลล์ |
+
+**การระบุเงื่อนไขขอบเขตที่ถูกต้อง**:
+```cpp
+// สำหรับฟิลด์ปริมาตร
+volScalarField::Boundary& Tbf = T.boundaryField();
+Tbf.set(0, fixedValueFvPatchField<scalar>(mesh.boundary()[0], T));
+
+// สำหรับฟิลด์พื้นผิว  
+surfaceScalarField::Boundary& phibf = phi.boundaryField();
+phibf.set(0, calculatedFvsPatchField<scalar>(mesh.boundary()[0], phi));
+```
+
+### ข้อผิดพลาดที่ 4: การจัดการหน่วยความจำกับ `tmp<T>`
+
+**ปัญหา**: การจัดการฟิลด์ชั่วคราวไม่ถูกต้องทำให้เกิด **การอ้างอิงที่แขวนอยู่ (dangling references)**
+
+```cpp
+tmp<volScalarField> tTemp = p + q;
+volScalarField& ref = tTemp();  // สร้างการอ้างอิงแบบไม่คงที่
+// ถ้า tTemp ออกจาก scope, ref จะกลายเป็น dangling!
+```
+
+**สาเหตุหลัก**: คลาส `tmp<T>` ใช้ **การจัดการหน่วยความจำอัตโนมัติ** โดยวัตถุที่อยู่ภายในจะถูกลบเมื่อการอ้างอิงทั้งหมดออกจาก scope การสร้างการอ้างอิงแบบไม่คงที่จะข้ามกลไกความปลอดภัยนี้
+
+**[Diagram: tmp<T> Memory Management Lifecycle]**
+
+**รูปแบบการใช้งานที่ปลอดภัย**:
+
+#### ตัวเลือกที่ 1: การอ้างอิงแบบคงที่ (แนะนำสำหรับการเข้าถึงชั่วคราว)
+```cpp
+tmp<volScalarField> tTemp = p + q;
+const volScalarField& ref = tTemp();  // การอ้างอิงแบบคงที่ที่ปลอดภัย
+// ใช้ ref เฉพาะภายใน scope ปัจจุบันเท่านั้น
+```
+
+#### ตัวเลือกที่ 2: การเก็บสำเนา (สำหรับการเก็บรักษาระยะยาว)
+```cpp
+tmp<volScalarField> tTemp = p + q;
+volScalarField permanentCopy = tTemp();  // สร้างสำเนาที่ไม่ขึ้นกับ
+// permanentCopy ยังคงอยู่หลังจาก tTemp ถูกทำลาย
+```
+
+#### ตัวเลือกที่ 3: การกำหนดค่าโดยตรง (สำหรับการใช้งานทันที)
+```cpp
+volScalarField result = p + q;  // การจัดการ tmp อัตโนมัติ
+```
+
+## 6.3 รูปแบบข้อผิดพลาดขั้นสูง
+
+### การละเมิดขอบเขตอาร์เรย์
+
+```cpp
+// อันตราย: เข้าถึงขอบเขตเกิน patches ที่มี
+label badPatch = mesh.boundary().size();  // นอกขอบเขต!
+scalarField& badField = T.boundaryField()[badPatch];  // Segmentation fault
+```
+
+**รูปแบบที่ปลอดภัย**:
+```cpp
+if (patchID < mesh.boundary().size())
+{
+    scalarField& patchField = T.boundaryField()[patchID];
+    // การดำเนินการที่ปลอดภัย
+}
+```
+
+### ความล้มเหลวในการวิเคราะห์มิติ
+
+```cpp
+// ข้อผิดพลาดที่ละเอียด: อนุพันธ์ตามเวลามีหน่วยผิด
+volScalarField dTdt = fvc::ddt(T);  // ถูกต้อง: [K/s]
+volScalarField wrong = dTdt * T;    // ผิด: [K²/s]
+volScalarField correct = dTdt * rho*T;  // ถูกต้อง: [kg·K/(m³·s)]
+```
+
+### ปัญหาการเข้าถึง Ghost Cell
+
+```cpp
+// ข้อผิดพลาด: เข้าถึงค่าฟิลด์ภายในโดยตรงใกล้ขอบเขต
+forAll(T.internalField(), i)
+{
+    label faceI = mesh.faceNeighbour()[i];  // อาจเข้าถึง face ที่ไม่ถูกต้อง
+    // ควรใช้การจับคู่เซลล์กับเฟสที่เหมาะสม
+}
+```
+
+**การจัดการ Ghost Cell ที่ถูกต้อง**:
+```cpp
+// การเข้าถึงค่าเซลล์ที่เหมาะสม
+forAll(T, cellI)
+{
+    scalar cellValue = T[cellI];  // การเข้าถึงเซลล์โดยตรง
+    // ใช้ฟิลด์เรขาคณิตสำหรับค่าเฟส
+}
+```
+
+## 6.4 เทคนิคการ Debug
+
+### การตรวจสอบมิติในระดับ Compile-Time
+
+ใช้ชุดมิติที่ชัดเจนเพื่อตรวจจับข้อผิดพลาดตั้งแต่เนิ่นๆ:
+```cpp
+dimensionSet velocityDim(0, 1, -1, 0, 0, 0, 0);  // [m/s]
+dimensionSet pressureDim(1, -1, -2, 0, 0, 0, 0); // [Pa]
+
+// นี่จะล้มเหลวในระดับ compile-time ถ้ามิติไม่ตรงกัน
+volScalarField kineticEnergy = 0.5 * magSqr(U);  // [m²/s²]
+```
+
+### การตรวจสอบในระดับ Runtime
+
+เพิ่มการตรวจสอบขอบเขตเพื่อความแข็งแกร่ง:
+```cpp
+void validateField(const volScalarField& field)
+{
+    if (min(field).value() < 0 && field.name() == "T")
+    {
+        WarningInFunction << "ตรวจพบอุณหภูมิติดลบใน " 
+                         << field.name() << endl;
+    }
+    
+    if (gMax(field.internalField()) > GREAT)
+    {
+        FatalErrorInFunction << "ค่าอนันต์ใน " << field.name() 
+                            << abort(FatalError);
+    }
+}
+```
+
+## 6.5 พิจารณาด้านประสิทธิภาพ
+
+### รูปแบบการเข้าถึงหน่วยความจำ
+
+```cpp
+// ดี: การเข้าถึงหน่วยความจำที่ติดกัน
+forAll(T, cellI)
+{
+    T[cellI] = T[cellI] + source[cellI];
+}
+
+// ไม่ดี: การเข้าถึงหน่วยความจำแบบสุ่มผ่านเงื่อนไขขอบเขต
+forAll(mesh.boundary(), patchI)
+{
+    forAll(T.boundaryField()[patchI], faceI)
+    {
+        T.boundaryField()[patchI][faceI] = value;
+    }
+}
+```
+
+### การลดฟิลด์ชั่วคราว
+
+```cpp
+// ไม่มีประสิทธิภาพ: สร้างตัวแปรชั่วคราวหลายตัว
+volScalarField result = p + 0.5 * rho * magSqr(U);
+
+// มีประสิทธิภาพ: ลดตัวแปรชั่วคราว
+tmp<volScalarField> tKE = 0.5 * rho * magSqr(U);
+volScalarField result = p + tKE;
+```

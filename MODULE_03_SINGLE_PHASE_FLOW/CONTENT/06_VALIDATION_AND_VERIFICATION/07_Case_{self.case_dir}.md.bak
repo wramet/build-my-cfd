@@ -1,0 +1,144 @@
+## เคส: {self.case_dir}
+
+เคสนี้สาธิตการนำหลักการคำนวณพลศาสตร์ของไหล (CFD) มาประยุกต์ใช้โดยใช้ OpenFOAM เพื่อแก้สมการพื้นฐานของการเคลื่อนที่ของของไหล
+
+### โครงสร้างไดเรกทอรี OpenFOAM
+```
+{self.case_dir}/
+├── constant/
+│   └── polyMesh/          # Mesh files
+├── 0/                     # เงื่อนไขเริ่มต้น
+└── system/                # พารามิเตอร์ควบคุม Solver
+```
+
+### กรอบการทำงานทางคณิตศาสตร์
+
+สมการพื้นฐานที่ใช้แก้ในเคสนี้คือสมการ Navier-Stokes สำหรับการไหลแบบอัดตัวไม่ได้ (incompressible flow):
+
+**สมการความต่อเนื่อง (Continuity Equation):**
+$$\nabla \cdot \mathbf{u} = 0$$
+
+**การอนุรักษ์โมเมนตัม (Momentum Conservation):**
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
+
+โดยที่:
+* $\mathbf{u}$ = สนามเวกเตอร์ความเร็ว (velocity vector field)
+* $p$ = สนามความดัน (pressure field)
+* $\rho$ = ความหนาแน่นของของไหล (fluid density)
+* $\mu$ = ความหนืดพลวัต (dynamic viscosity)
+* $\mathbf{f}$ = แรงกระทำต่อมวล (body forces) (โดยทั่วไปคือแรงโน้มถ่วง)
+
+[Diagram: การไหลของของไหลในโดเมนคำนวณ แสดงสนามความเร็ว ความดัน และแรงภายนอก]
+
+### การกำหนดค่าเคส
+
+**Algorithm ที่ใช้: PISO (Pressure Implicit with Splitting of Operators)**
+- ใช้สำหรับการเชื่อมโยงความดัน-ความเร็ว (pressure-velocity coupling)
+- เหมาะสำหรับการจำลองแบบชั่วขณะ (transient simulations)
+- ใช้สกีมการหาผลต่างแบบย้อนกลับอันดับสอง (second-order backward differencing) สำหรับความแม่นยำ
+
+**ขั้นตอนการทำงานของ PISO Algorithm:**
+1. แก้สมการโมเมนตัมโดยใช้ค่าความดันจาก time step ก่อนหน้า
+2. แก้สมการความดันเพื่อแก้ไขความสัมพันธ์ความดัน-ความเร็ว
+3. แก้ไขความเร็วโดยใช้ความดันใหม่
+4. ทำซ้ำขั้นตอนที่ 2-3 สำหรับ pressure correction loops
+5. อัปเดตค่าจาก time step ปัจจุบัน
+
+### เงื่อนไขขอบเขต (Boundary Conditions)
+
+| ฟิลด์ | เงื่อนไขขอบเขต | คำอธิบาย |
+|--------|------------------|------------|
+| **ความเร็ว (Velocity)** | No-slip walls | ผนังแบบไม่ลื่น |
+| | Inlet/outlet specifications | การกำหนดค่าที่ทางเข้า/ทางออก |
+| **ความดัน (Pressure)** | Fixed values at outlets | ค่าคงที่ที่ทางออก |
+| | Zero gradient at walls | ค่าความชันเป็นศูนย์ที่ผนัง |
+| **ความปั่นป่วน (Turbulence)** | Wall functions | ฟังก์ชันผนังสำหรับ $k$, $\omega$, $\epsilon$ |
+
+[Diagram: การแสดงเงื่อนไขขอบเขตบนโดเมนคำนวณ แบ่งตามประเภทของเงื่อนไข]
+
+### สกีมเชิงตัวเลข (Numerical Schemes)
+
+**การแบ่งช่วงเชิงพื้นที่ (Spatial Discretization):**
+- **Gauss linear**: สำหรับเทอม divergence
+- **Gauss corrected**: สำหรับการประมาณค่าระหว่างจุด (interpolation)
+- **อันดับสอง**: สำหรับอนุพันธ์เชิงเวลา (temporal derivatives)
+
+**Linear Solvers:**
+
+| Solver | Preconditioner | การใช้งาน | วัตถุประสงค์ |
+|--------|---------------|-------------|-------------|
+| **GAMG** | - | ความดัน | การลู่เข้าที่รวดเร็วสำหรับสมการ Poisson |
+| **smoothSolver** | - | โมเมนตัม | การแก้สมการเชิงเส้นที่เสถียร |
+
+### OpenFOAM Code Implementation
+
+ตัวอย่างการกำหนดค่าสกีมใน `fvSchemes`:
+
+```cpp
+// Time discretization
+ddtSchemes
+{
+    default         backward;
+}
+
+// Gradient schemes
+gradSchemes
+{
+    default         Gauss linear;
+}
+
+// Divergence schemes
+divSchemes
+{
+    div(phi,U)      Gauss linear;
+}
+```
+
+ตัวอย่างการกำหนดค่า solver ใน `fvSolution`:
+
+```cpp
+solvers
+{
+    p
+    {
+        solver          GAMG;
+        tolerance       1e-06;
+        relTol          0.01;
+    }
+    
+    U
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-05;
+        relTol          0;
+    }
+}
+```
+
+### การดำเนินการและการวิเคราะห์ (Execution and Analysis)
+
+**การรันเคส:**
+```bash
+# สร้าง mesh พื้นฐาน
+blockMesh
+
+# สร้าง mesh ที่ซับซ้อน (ถ้าจำเป็น)
+# snappyHexMesh
+
+# รัน solver
+{self.solver} -case {self.case_dir}
+```
+
+**Post-processing Tools:**
+
+| Tool | การใช้งาน | ผลลัพธ์ |
+|------|-------------|----------|
+| **paraFoam** | การแสดงผลแบบ 3 มิติ | การสร้างภาพ visualizations |
+| **foamToVTK** | การแปลงข้อมูล | ไฟล์ VTK สำหรับ visualization software |
+| **sample** | การดึงข้อมูล | ข้อมูลตามแนวเส้น/ระนาบ (line/plane data) |
+
+**การตรวจสอบการลู่เข้า:**
+- ตรวจสอบ **residual fields** สำหรับ convergence
+- ตรวจสอบ **ปริมาณทางกายภาพที่น่าสนใจ** (เช่น drag, lift)
+- วิเคราะห์ **ความแม่นยำเชิงตัวเลข** ของผลลัพธ์

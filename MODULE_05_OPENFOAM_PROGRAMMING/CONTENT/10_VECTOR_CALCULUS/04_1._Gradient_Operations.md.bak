@@ -1,0 +1,218 @@
+# การดำเนินการ Gradient ใน OpenFOAM
+
+## 1. พื้นฐานทางคณิตศาสตร์
+
+**Operator นามิกร $\nabla$** ทำการแปลงสนามสเกลาร์เป็นสนามเวกเตอร์ และสนามเวกเตอร์เป็นสนามเทนเซอร์
+
+ในวิธีการปริมาตรจำกัด หลักการเชิงอนุพันธ์เชิงต่อเนื่องนี้จะถูกแบ่งส่วนโดยใช้ทฤษฎีบทของเกาส์:
+
+$$
+\int_V \nabla \phi \, \mathrm{d}V = \oint_S \phi \mathbf{n} \, \mathrm{d}S
+$$
+
+การประยุกต์ใช้กับปริมาตรควบคุมและประมาณค่าอินทิกรัลของพื้นผิวเป็นผลรวมเหนือพื้นผิว:
+
+$$
+\nabla \phi = \frac{1}{V} \sum_{f=1}^{n_f} \phi_f \mathbf{S}_f
+$$
+
+**โดยที่:**
+- $V$ คือปริมาตรของเซลล์
+- $n_f$ คือจำนวนของพื้นผิว
+- $\phi_f$ คือค่าสนามที่ถูกอินเตอร์โพลเลตไปยังพื้นผิว $f$
+- $\mathbf{S}_f = \mathbf{n}_f A_f$ คือเวกเตอร์พื้นที่พื้นผิว
+
+[Diagram: เซลล์ควบคุมแสดงปริมาตร V พื้นผิว S_f และเวกเตอร์ปกติ n_f]
+
+## 2. การใช้งานพื้นฐาน
+
+```cpp
+#include "fvc.H"
+
+// Gradient ของสนามสเกลาร์ → สนามเวกเตอร์
+volScalarField p(mesh);        // สนามความดัน
+volVectorField gradP = fvc::grad(p);
+
+// Gradient ของสนามเวกเตอร์ → สนามเทนเซอร์
+volVectorField U(mesh);        // สนามความเร็ว
+volTensorField gradU = fvc::grad(U);
+```
+
+## 3. รูปแบบการแบ่งส่วน
+
+ความแม่นยำของการคำนวณ gradient ขึ้นอยู่กับรูปแบบการอินเตอร์โพลเลชันที่ใช้สำหรับ $\phi_f$
+
+```cpp
+// ใน system/fvSchemes
+gradSchemes
+{
+    default         Gauss linear;
+    grad(p)         Gauss leastSquares;
+    grad(U)         Gauss fourth;
+}
+```
+
+**รูปแบบที่มีให้ใช้:**
+
+| รูปแบบ | คำอธิบาย | ความแม่นยำ | ความเหมาะสม |
+|---------|-----------|-------------|-------------|
+| **Gauss Linear** | การผลต่างกลางอันดับสอง | ปานกลาง | Mesh มีโครงสร้าง |
+| **Gauss Least Squares** | วิธีกำลังสองน้อยที่สุด | สูง | Mesh ไม่มีโครงสร้าง |
+| **Gauss Fourth** | รูปแบบความแม่นยำอันดับสี่ | สูงมาก | Mesh คุณภาพสูง |
+| **Gauss PointLinear** | การอินเตอร์โพลเลชันถ่วงน้ำหนัก | ปานกลาง | ทั่วไป |
+
+## 4. อัลกอริทึม Gradient แบบ Least Squares
+
+วิธี least squares ลดข้อผิดพลาดในการขยายแบบเทย์เลอร์เชิงเส้น:
+
+$$
+\phi_N \approx \phi_P + (\nabla \phi)_P \cdot (\mathbf{x}_N - \mathbf{x}_P)
+$$
+
+สำหรับเซลล์ $P$ ที่มีเพื่อนบ้าน $N_1, N_2, ..., N_m$ เราจะแก้สมการ:
+
+$$
+\begin{bmatrix}
+\Delta x_1 & \Delta y_1 & \Delta z_1 \\
+\Delta x_2 & \Delta y_2 & \Delta z_2 \\
+\vdots & \vdots & \vdots \\
+\Delta x_m & \Delta y_m & \Delta z_m
+\end{bmatrix}
+\begin{bmatrix}
+(\partial \phi/\partial x)_P \\
+(\partial \phi/\partial y)_P \\
+(\partial \phi/\partial z)_P
+\end{bmatrix}
+=
+\begin{bmatrix}
+\phi_{N_1} - \phi_P \\
+\phi_{N_2} - \phi_P \\
+\vdots \\
+\phi_{N_m} - \phi_P
+\end{bmatrix}
+$$
+
+ระบบสมการเกินที่ถูกกำหนดนี้ถูกแก้โดยใช้การลดค่าสองกำลังน้อยที่สุด:
+
+$$
+\mathbf{A}^T \mathbf{A} \nabla \phi_P = \mathbf{A}^T \mathbf{b}
+$$
+
+โดยที่ $\mathbf{A}$ มีสัมประสิทธิ์ทางเรขาคณิต และ $\mathbf{b}$ มีความแตกต่างของสนาม
+
+**ข้อดี:**
+- ✅ ความแม่นยำสูงกว่าบน mesh ที่เบี้ยว
+- ✅ เหมาะกว่าสำหรับ mesh ที่ไม่มีโครงสร้าง
+- ✅ แข็งแกร่งกว่าสำหรับเรขาคณิตที่ซับซ้อน
+
+## 5. การประยุกต์ใช้งานจริง
+
+### 5.1 เทอมต้นทางของสมการโมเมนตัม
+
+```cpp
+// การคำนวณแรงลอยตัว
+volVectorField g("g", dimensionedVector("g", dimAcceleration, vector(0, -9.81, 0)));
+volVectorField F_buoyancy = fvc::grad(rho) * g;
+
+// แรง gradient ความดัน
+volVectorField F_pressure = -fvc::grad(p);
+```
+
+### 5.2 เทนเซอร์อัตราการ Strain
+
+```cpp
+// เทนเซอร์ gradient ความเร็ว
+volTensorField gradU = fvc::grad(U);
+
+// เทนเซอร์อัตราการ strain: S = 1/2(∇U + ∇U^T)
+volTensorField S = 0.5 * (gradU + gradU.T());
+
+// เทนเซอร์ Vorticity: Ω = 1/2(∇U - ∇U^T)
+volTensorField Omega = 0.5 * (gradU - gradU.T());
+```
+
+### 5.3 การประมวลผลหลัง
+
+```cpp
+// สร้างสนามขนาดของ gradient
+volScalarField magGradP = mag(fvc::grad(p));
+
+// ความเค้นเฉือนผนัง
+volScalarField wallShearStress = mag(mu * fvc::grad(U));
+```
+
+## 6. ข้อผิดพลาดทั่วไปและวิธีแก้ไข
+
+### 6.1 ชนิดข้อมูลไม่ตรงกัน
+
+```cpp
+// ERROR: ไม่สามารถแปลง volVectorField เป็น volScalarField ได้
+volScalarField wrong = fvc::grad(p);  // p คือ volScalarField
+
+// CORRECT: gradient ของสเกลาร์ส่งคืนเวกเตอร์
+volVectorField correct = fvc::grad(p);
+```
+
+### 6.2 ไม่มี Header
+
+```cpp
+// ERROR: 'fvc' ยังไม่ถูกประกาศ
+volVectorField gradP = fvc::grad(p);
+
+// SOLUTION: เพิ่ม include ที่ถูกต้อง
+#include "fvc.H"
+```
+
+### 6.3 ปัญหาเงื่อนไขขอบเขต
+
+```cpp
+// ตรวจสอบค่าขอบเขตหลังจากการคำนวณ gradient
+volVectorField gradP = fvc::grad(p);
+Info << "ค่า gradient ขอบเขต: " << gradP.boundaryField() << endl;
+```
+
+## 7. การพิจารณาด้านประสิทธิภาพ
+
+### 7.1 การใช้หน่วยความจำ
+
+- **Gauss gradient**: การใช้หน่วยความจำขั้นต่ำ
+- **Least squares**: ต้องการพื้นที่จัดเก็บเพิ่มเติมสำหรับสัมประสิทธิ์ทางเรขาคณิต
+
+### 7.2 ต้นทุนการคำนวณ
+
+- **Gauss gradient**: การดำเนินการ $O(n_{faces})$
+- **Least squares**: การดำเนินการ $O(n_{cells})$ พร้อมการแก้เมทริกซ์เพิ่มเติม
+
+### 7.3 การแลกเปลี่ยนระหว่างความแม่นยำและเสถียรภาพ
+
+```cpp
+// ความแม่นยำสูงกว่าแต่อาจมีเสถียรภาพน้อยกว่า
+gradSchemes { default Gauss leastSquares; }
+
+// ความแม่นยำต่ำกว่าแต่แข็งแกร่งกว่า
+gradSchemes { default Gauss linear; }
+```
+
+## 8. คุณสมบัติขั้นสูง
+
+### 8.1 Gradient ที่ถูกจำกัดต่อเซลล์
+
+```cpp
+// ใช้ตัวจำกัดเพื่อป้องกันค่าที่ไม่จำกัด
+gradSchemes
+{
+    default         cellLimited Gauss linear 1;
+}
+```
+
+### 8.2 Gradient ที่ถูกจำกัดต่อพื้นผิว
+
+```cpp
+// การจำกัดตามพื้นผิวสำหรับเสถียรภาพที่ดีขึ้น
+gradSchemes
+{
+    default         faceLimited Gauss linear 1;
+}
+```
+
+**Operator gradient `fvc::grad`** เป็นพื้นฐานสำคัญสำหรับการคำนวณ CFD โดยแปลงแนวคิดการคำนวณเชิงต่อเนื่องให้เป็นการดำเนินการเชิงตัวเลขที่ไม่ต่อเนื่อง ในขณะเดียวกันก็รักษาความแม่นยำทางฟิสิกส์และประสิทธิภาพการคำนวณ

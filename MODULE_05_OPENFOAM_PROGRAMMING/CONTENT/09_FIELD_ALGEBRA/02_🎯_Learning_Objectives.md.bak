@@ -1,0 +1,346 @@
+# 🎯 วัตถุประสงค์การเรียนรู้
+
+## การควบคุมการดำเนินการคณิตศาสตร์พื้นฐานบน Fields
+
+OpenFOAM มีการดำเนินการคณิตศาสตร์ที่ครอบคลุมสำหรับคลาสฟิลด์ ซึ่งช่วยให้การจัดการข้อมูล CFD ทางคณิตศาสตร์เป็นไปอย่างเป็นธรรมชาติ 
+
+**การดำเนินการพื้นฐาน**:
+- **บวก/ลบ/คูณ/หาร** ผ่าน Operator Overloading
+- **รักษาความชัดเจน** ทางคณิตศาสตร์
+- **รับประกันประสิทธิภาพ** ทางการคำนวณ
+
+### ฟิลด์สเกลาร์: การดำเนินการพื้นฐาน
+
+สำหรับฟิลด์สเกลาร์ การดำเนินการพื้นฐานจะใช้รูปแบบทางคณิตศาสตร์ที่เป็นธรรมชาติ:
+
+```cpp
+volScalarField T1(mesh, dimensionSet(0, 0, 0, 1, 0, 0, 0)); // อุณหภูมิ
+volScalarField T2(mesh, dimensionSet(0, 0, 0, 1, 0, 0, 0)); // อุณหภูมิ
+
+// การบวกและการลบ
+volScalarField T_sum = T1 + T2;
+volScalarField T_diff = T1 - T2;
+
+// การคูณและการหาร
+volScalarField T_product = T1 * T2;
+volScalarField T_ratio = T1 / T2;
+
+// การดำเนินการกับสเกลาร์
+T1 *= 2.0;  // คูณด้วยสเกลาร์
+T2 += 300;  // เพิ่มค่าสเกลาร์
+```
+
+### ฟิลด์เวกเตอร์และเทนเซอร์: การดำเนินการขั้นสูง
+
+ฟิลด์เวกเตอร์และเทนเซอร์รองรับการดำเนินการที่คล้ายกันโดยมีการจัดการทางคณิตศาสตร์ที่เหมาะสม:
+
+```cpp
+volVectorField U1(mesh, dimensionSet(0, 1, -1, 0, 0, 0, 0)); // ความเร็ว
+volVectorField U2(mesh, dimensionSet(0, 1, -1, 0, 0, 0, 0)); // ความเร็ว
+
+// การดำเนินการเวกเตอร์
+volVectorField U_sum = U1 + U2;
+volVectorField U_cross = U1 ^ U2;  // ผลคูณไขว้
+scalar U_dot = U1 & U2;           // ผลคูณจุด
+
+// ขนาดและการทำให้เป็นมาตรฐาน
+volScalarField U_mag = mag(U1);
+volVectorField U_norm = U1 / mag(U1);
+```
+
+[Diagram: ภาพแสดงการดำเนินการทางคณิตศาสตร์บนฟิลด์ OpenFOAM แบบ visualize]
+
+---
+
+## การทำความเข้าใจรูปแบบของ Operator Overloading ในคลาสฟิลด์ของ OpenFOAM
+
+คลาสฟิลด์ของ OpenFOAM ใช้ **Operator Overloading ที่ซับซ้อน** เพื่อให้นิพจน์ทางคณิตศาสตร์เป็นไปตามธรรมชาติ ในขณะเดียวกันก็รักษา:
+
+- **ประสิทธิภาพ** ในการคำนวณ
+- **Type Safety** ในการ compile
+- **ความสม่ำเสมอ** ข้ามประเภทฟิลด์ต่างๆ
+
+### โครงสร้างการ Overload Operators
+
+Operators ทางคณิตศาสตร์พื้นฐานจะถูก Overload เป็น Member Functions และ Friend Functions:
+
+```cpp
+template<class Type, class GeoMesh>
+class GeometricField
+{
+public:
+    // การดำเนินการในตำแหน่ง
+    void operator+=(const GeometricField<Type, GeoMesh>&);
+    void operator-=(const GeometricField<Type, GeoMesh>&);
+    void operator*=(const GeometricField<Type, GeoMesh>&);
+    void operator/=(const GeometricField<Type, GeoMesh>&);
+    
+    // การดำเนินการกับสเกลาร์
+    void operator*=(const dimensionedScalar&);
+    void operator/=(const dimensionedScalar&);
+    
+    // การดำเนินการแบบไบนารี (friend functions)
+    friend GeometricField<Type, GeoMesh> operator+(
+        const GeometricField<Type, GeoMesh>&,
+        const GeometricField<Type, GeoMesh>&);
+    friend GeometricField<Type, GeoMesh> operator-(
+        const GeometricField<Type, GeoMesh>&,
+        const GeometricField<Type, GeoMesh>&);
+};
+```
+
+### การ Implement ที่รับประกันเงื่อนไขขอบเขต
+
+การ Implement จะรับประกันการจัดการเงื่อนไขขอบเขตและความสม่ำเสมอของฟิลด์ภายใน:
+
+```cpp
+// ตัวอย่างการ Implement ตัวดำเนินการบวก
+template<class Type, class GeoMesh>
+GeometricField<Type, GeoMesh> operator+(
+    const GeometricField<Type, GeoMesh>& f1,
+    const GeometricField<Type, GeoMesh>& f2)
+{
+    // สร้างฟิลด์ผลลัพธ์ที่มีมิติที่ถูกต้อง
+    GeometricField<Type, GeoMesh> result(f1);
+    
+    // บวกฟิลด์ภายใน
+    result.ref() += f2;
+    
+    // จัดการเงื่อนไขขอบเขต
+    forAll(result.boundaryFieldRef(), patchi)
+    {
+        result.boundaryFieldRef()[patchi] += f2.boundaryField()[patchi];
+    }
+    
+    return result;
+}
+```
+
+[Diagram: แผนภาพแสดงการทำงานของ operator overloading ใน OpenFOAM]
+
+---
+
+## การเรียนรู้การตรวจสอบมิติและการบังคับใช้ความสม่ำเสมอ
+
+OpenFOAM ใช้ **ระบบ Dimensional Analysis ที่เข้มงวด** เพื่อรับประกันความสม่ำเสมอทางฟิสิกส์ในการคำนวณ 
+
+**การตรวจสอบอัตโนมัติ**:
+- **Compile-time**: ตรวจสอบความสอดคล้องของมิติ
+- **Runtime**: ตรวจสอบการดำเนินการทางฟิสิกส์
+- **Type Safety**: ป้องกันข้อผิดพลาดทางมิติ
+
+### โครงสร้าง `dimensionSet`
+
+คลาส `dimensionSet` จะเข้ารหัสมิติทางฟิสิกส์โดยใช้หน่วยฐาน SI:
+
+```cpp
+dimensionSet dims(1, 1, -2, 0, 0, 0, 0); // แรง: ML/T²
+// รูปแบบ: (มวล, ความยาว, เวลา, อุณหภูมิ, โมล, กระแส, ความเข้มแสง)
+```
+
+### ปริมาณทางฟิสิกส์ทั่วไป
+
+| ปริมาณ | สัญลักษณ์ | มิติ | คำอธิบาย |
+|---------|-----------|-------|------------|
+| ความยาว | $L$ | `(0, 1, 0, 0, 0, 0, 0)` | ระยะทาง |
+| ความเร็ว | $U$ | `(0, 1, -1, 0, 0, 0, 0)` | $L/T$ |
+| ความดัน | $p$ | `(1, -1, -2, 0, 0, 0, 0)` | $M/(L·T^2)$ |
+| พลังงาน | $E$ | `(1, 2, -2, 0, 0, 0, 0)` | $ML^2/T^2$ |
+
+### การตรวจสอบมิติอัตโนมัติ
+
+```cpp
+volScalarField pressure(mesh, pressureDim);
+volScalarField density(mesh, dimensionSet(1, -3, 0, 0, 0, 0, 0));  // M/L³
+volScalarField volume(mesh, lengthDim^3);  // L³
+
+// การดำเนินการที่ถูกต้อง
+volScalarField mass = density * volume;  // M/L³ × L³ = M
+volScalarField force = pressure * area;  // M/(L·T²) × L² = ML/T²
+
+// การดำเนินการที่ไม่ถูกต้อง (compile-time error)
+// volScalarField invalid = pressure + density;  // มิติที่แตกต่างกัน
+```
+
+### `dimensioned` Types สำหรับสเกลาร์
+
+ประเภท `dimensioned` จะขยายสิ่งนี้ให้ค่าสเกลาร์:
+
+```cpp
+dimensionedScalar g("g", dimAcceleration, 9.81);  // ความเร่ง
+dimensionedScalar rho_ref("rho_ref", dimDensity, 1.2);  // ความหนาแน่นอ้างอิง
+
+// การดำเนินการที่ถูกตรวจสอบ
+dimensionedScalar weight = rho_ref * g;  // M/L³ × L/T² = M/(L²·T²)
+```
+
+[Diagram: แผนภูมิแสดงการตรวจสอบมิติใน OpenFOAM]
+
+---
+
+## การเพิ่มประสิทธิภาพการดำเนินการพื้นฐานด้วย Expression Templates
+
+OpenFOAM ใช้ **Expression Templates** เพื่อกำจัด Temporary Objects และเพิ่มประสิทธิภาพการดำเนินการทางคณิตศาสตร์
+
+**เทคนิคหลัก**:
+- **Expression Trees**: สร้างโครงสร้างแสดงออก
+- **Lazy Evaluation**: ประเมินครั้งเดียว
+- **Reference Counting**: จัดการหน่วยความจำ
+
+### การใช้ `tmp` Class
+
+คลาส `tmp` ใช้ Reference-Counted Smart Pointers สำหรับการจัดการฟิลด์ที่มีประสิทธิภาพ:
+
+```cpp
+// การดำเนินการมาตรฐานสร้าง temporaries
+volScalarField T_new = T1 + T2 * T3;  // สร้าง T2*T3 temporary
+
+// การใช้ tmp เพื่อการเพิ่มประสิทธิภาพ
+tmp<volScalarField> TT2T3 = T2 * T3;
+volScalarField T_new = T1 + TT2T3;  // กำจัด temporary ตัวหนึ่ง
+```
+
+### โครงสร้าง Expression Template
+
+Expression Templates ช่วยให้การประเมินแบบ Lazy Evaluation ผ่าน Template Metaprogramming:
+
+```cpp
+// โครงสร้าง Expression template (ที่ทำให้ง่ายขึ้น)
+template<class Op, class Arg1, class Arg2>
+class BinaryOpExpression
+{
+    const Arg1& arg1_;
+    const Arg2& arg2_;
+    
+public:
+    BinaryOpExpression(const Arg1& a1, const Arg2& a2) 
+        : arg1_(a1), arg2_(a2) {}
+    
+    template<class Index>
+    auto operator[](Index i) const -> decltype(Op::apply(arg1_[i], arg2_[i]))
+    {
+        return Op::apply(arg1_[i], arg2_[i]);
+    }
+};
+
+// การใช้งานช่วยให้การประเมินได้ดียิ่งขึ้น
+auto expr = T1 + T2 * T3;  // Expression tree ยังไม่ได้ประเมิน
+T_result = expr;  // การประเมินครั้งเดียว
+```
+
+### การเพิ่มประสิทธิภาพด้วย OpenMP
+
+การดำเนินการฟิลด์สามารถเพิ่มประสิทธิภาพได้โดยใช้ลูปชัดเจนและการทำงานแบบขนาน OpenMP:
+
+```cpp
+// การเพิ่มประสิทธิภาพด้วยตนเองสำหรับส่วนสำคัญ
+forAll(T_result, i)
+{
+    T_result[i] = T1[i] + T2[i] * T3[i];
+}
+
+// เวอร์ชันแบบขนาน
+#pragma omp parallel for
+forAll(T_result, i)
+{
+    T_result[i] = T1[i] + T2[i] * T3[i];
+}
+```
+
+[Diagram: แผนภาพเปรียบเทียบการทำงานของ expression templates กับการคำนวณแบบปกติ]
+
+---
+
+## การใช้เทคนิคการประกอบและการแยกฟิลด์
+
+การประกอบและการแยกฟิลด์ช่วยให้การดำเนินการทางคณิตศาสตร์ที่ซับซ้อนและการจัดการข้อมูลที่มีประสิทธิภาพ
+
+**ประโยชน์หลัก**:
+- **Implement อัลกอริทึม CFD ขั้นสูง**
+- **การรักษาการใช้ซ้ำของโค้ด**
+- **การจัดการข้อมูลที่มีประสิทธิภาพ**
+
+### การแยกฟิลด์เวกเตอร์เป็นส่วนประกอบ
+
+การแยกฟิลด์เวกเตอร์เป็นส่วนประกอบและฟิลด์สเกลาร์:
+
+```cpp
+// การแยกเวกเตอร์เป็นสเกลาร์
+volVectorField U(mesh, velocityDim);
+volScalarField Ux = U.component(0);  // ส่วนประกอบ x
+volScalarField Uy = U.component(1);  // ส่วนประกอบ y
+volScalarField Uz = U.component(2);  // ส่วนประกอบ z
+
+// ทางเลือกโดยใช้ Field Slicing
+volScalarField U_radial = U & radialDirection;  // ส่วนประกอบแนวรัศมี
+volScalarField U_tangential = U & tangentialDirection;  // ส่วนประกอบแนบเส้นสัมผัส
+```
+
+### การประกอบฟิลด์สเกลาร์เป็นฟิลด์เวกเตอร์
+
+การประกอบฟิลด์สเกลาร์เป็นฟิลด์เวกเตอร์:
+
+```cpp
+// สร้างเวกเตอร์จากส่วนประกอบสเกลาร์
+volVectorField U_composed
+(
+    IOobject("U_composed", runTime.timeName(), mesh),
+    mesh,
+    dimensionedVector("U_composed", velocityDim, vector::zero)
+);
+
+U_composed.replace(0, Ux);  // กำหนดส่วนประกอบ x
+U_composed.replace(1, Uy);  // กำหนดส่วนประกอบ y
+U_composed.replace(2, Uz);  // กำหนดส่วนประกอบ z
+
+// หรือใช้ Constructor
+volVectorField U_from_components
+(
+    IOobject("U", runTime.timeName(), mesh),
+    Ux, Uy, Uz  // การประกอบโดยอัตโนมัติ
+);
+```
+
+### การดำเนินการฟิลด์เทนเซอร์
+
+การดำเนินการฟิลด์เทนเซอร์สำหรับการสร้างแบบฟิสิกส์ขั้นสูง:
+
+```cpp
+// การแยกเทนเซอร์ความเครียด
+volTensorField tau(mesh, stressDim);
+volScalarField tau_normal = tr(tau) / 3.0;  // ความเครียดปกติ
+volTensorField tau_dev = tau - tau_normal * I;  // ความเครียดเบี่ยงเบน
+volScalarField tau_von_mises = sqrt(1.5 * magSqr(tau_dev));  // ความเครียด von Mises
+
+// การดำเนินการเทนเซอร์-เวกเตอร์
+volVectorField force = tau & U;  // การเชื่อมโยงความเครียด-ความเร็ว
+volScalarField dissipation = tau && fvc::grad(U);  // Double contraction
+```
+
+### การดำเนินการฟิลด์แบบเป็นชิ้นส่วน
+
+การดำเนินการฟิลด์แบบเป็นชิ้นส่วนสำหรับฟิสิกส์ที่ซับซ้อน:
+
+```cpp
+// การดำเนินการฟิลด์แบบมีเงื่อนไข
+volScalarField alpha(mesh, dimensionSet(0, 0, 0, 0, 0, 0, 0));
+forAll(alpha, i)
+{
+    if (p[i] > p_crit)  // เกณฑ์การเปลี่ยนสถานะ
+    {
+        alpha[i] = 1.0;  // สถานะก๊าซ
+    }
+    else
+    {
+        alpha[i] = 0.0;  // สถานะของเหลว
+    }
+}
+
+// การเปลี่ยนผ่านที่ราบรื่นโดยใช้ฟังก์ชันฟิลด์
+volScalarField transition = 1.0 / (1.0 + exp(-(p - p_crit) / transition_width));
+volScalarField alpha_smooth = transition * 1.0 + (1.0 - transition) * 0.0;
+```
+
+เทคนิคการจัดการฟิลด์ขั้นสูงเหล่านี้เป็น **พื้นฐานสำหรับการ Implement อัลกอริทึม CFD ที่ซับซ้อน** และช่วยให้มีโค้ดที่มีประสิทธิภาพและบำรุงรักษาง่ายสำหรับการจำลองฟิสิกส์ที่ซับซ้อน
+
+[Diagram: แผนภาพแสดงการแยกและประกอบฟิลด์ใน OpenFOAM]

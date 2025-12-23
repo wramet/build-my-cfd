@@ -1,0 +1,364 @@
+# Boundary Condition ทั่วไปใน OpenFOAM
+
+**Boundary condition** เป็นสิ่งสำคัญสำหรับการกำหนดว่าของไหลมีปฏิสัมพันธ์กับสภาพแวดล้อมอย่างไรในการจำลอง CFD ใน OpenFOAM เงื่อนไขเหล่านี้จะระบุค่าหรือพฤติกรรมของตัวแปร Field (เช่น Velocity, Pressure, Turbulence Quantities เป็นต้น) ที่ขอบเขตของ Domain
+
+**การเลือก Boundary Condition ที่เหมาะสม** มีความสำคัญอย่างยิ่งต่อการได้มาซึ่งผลลัพธ์ที่สมจริงทางกายภาพและมีเสถียรภาพเชิงตัวเลข
+
+---
+
+## Boundary Condition สำหรับ Velocity (`U`)
+
+### Fixed Value (Inlet)
+
+เงื่อนไข `fixedValue` ระบุ **Vector ของ Velocity ที่กำหนดไว้ล่วงหน้า** ณ Boundary ซึ่งโดยทั่วไปใช้สำหรับ Inlet ที่ทราบลักษณะการไหล
+
+**คุณสมบัติ:**
+- สามารถเป็นค่าคงที่หรือเปลี่ยนแปลงตามเวลา
+- ใช้ฟังก์ชันทางคณิตศาสตร์ได้
+- เหมาะสำหรับ Inlet ที่ทราบ Velocity Profile อย่างชัดเจน
+
+```cpp
+inlet
+{
+    type            fixedValue;
+    value           uniform (10 0 0); // Constant velocity in x-direction (m/s)
+}
+```
+
+**สำหรับ Inlet Condition ที่เปลี่ยนแปลงตามเวลา:**
+
+```cpp
+inlet
+{
+    type            fixedValue;
+    value           table
+    (
+        (0  (0 0 0))
+        (1  (5 0 0))
+        (5  (10 0 0))
+        (10 (10 0 0))
+    );
+}
+```
+
+### No-Slip (Wall)
+
+เงื่อนไข **No-Slip** จำลอง **การยึดเกาะของความหนืด** ที่ Solid Boundary โดยที่ Fluid Velocity จะตรงกับ Wall Velocity (โดยทั่วไปเป็นศูนย์สำหรับผนังที่หยุดนิ่ง)
+
+**คุณสมบัติ:**
+- เป็นเงื่อนไขมาตรฐานสำหรับการไหลแบบ Viscous
+- เหนือพื้นผิวของแข็ง
+- Fluid Velocity ตรงกับ Wall Velocity
+
+```cpp
+walls
+{
+    type            noSlip; // Modern standard shorthand
+    // Equivalent to:
+    // type            fixedValue;
+    // value           uniform (0 0 0);
+}
+```
+
+**การแสดงทางคณิตศาสตร์:**
+$$\mathbf{u} = \mathbf{u}_{\text{wall}}$$
+
+สำหรับผนังที่หยุดนิ่ง: $\mathbf{u} = \mathbf{0}$
+
+- **$\mathbf{u}$** = Fluid velocity vector
+- **$\mathbf{u}_{\text{wall}}$** = Wall velocity vector
+
+### Slip (Free Surface / Symmetry)
+
+เงื่อนไข **Slip** จำลอง Boundary ที่ **ไม่มี Shear Stress** ทำให้ของไหลสามารถเลื่อนไปตามพื้นผิวได้อย่างอิสระ
+
+**การใช้งาน:**
+- Symmetry Plane
+- Inviscid Wall  
+- Free Surface
+
+```cpp
+top
+{
+    type            slip;
+}
+```
+
+**ในทางคณิตศาสตร์บังคับใช้:**
+$$\mathbf{u} \cdot \mathbf{n} = 0 \quad \text{(no normal penetration)}$$
+$$\frac{\partial \mathbf{u}_t}{\partial n} = 0 \quad \text{(zero tangential shear)}$$
+
+- **$\mathbf{u}$** = Velocity vector
+- **$\mathbf{n}$** = Normal vector to boundary
+- **$\mathbf{u}_t$** = Tangential velocity component
+
+
+```mermaid
+graph LR
+    A["Fluid Flow"] --> B["Wall Boundary"]
+    B --> C["Slip Condition"]
+    
+    subgraph "Normal Component"
+        N1["Un⋅n = 0<br/><b>No normal penetration</b>"]
+        style N1 fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+    end
+    
+    subgraph "Tangential Component"
+        T1["∂Un_t/∂n = 0<br/><b>Zero shear stress</b>"]
+        style T1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    end
+    
+    subgraph "Wall Properties"
+        W1["Impermeable surface<br/><b>No flow through boundary</b>"]
+        W2["Free sliding<br/><b>No friction resistance</b>"]
+        style W1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+        style W2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    end
+    
+    C --> N1
+    C --> T1
+    B --> W1
+    B --> W2
+    
+    %% Styling Definitions
+    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+```
+
+
+### Pressure Inlet/Outlet Velocity
+
+Boundary Condition นี้จะ **คำนวณ Velocity โดยอิงตาม Pressure Gradient** เพื่อให้มั่นใจถึงการอนุรักษ์มวล
+
+**คุณสมบัติ:**
+- มีประโยชน์อย่างยิ่งที่ Boundary ที่ทิศทางการไหลอาจกลับทิศทาง
+- คำนวณจาก Flux โดยอัตโนมัติ
+- เหมาะสำหรับ Outlet ที่มี Flow Reversal
+
+```cpp
+outlet
+{
+    type            pressureInletOutletVelocity;
+    value           uniform (0 0 0); // Initial guess value
+}
+```
+
+**Velocity คำนวณจาก Flux:**
+$$\mathbf{u} = \frac{\dot{m}}{\rho A} \mathbf{n}$$
+
+- **$\dot{m}$** = Mass flux
+- **$\rho$** = Density  
+- **$A$** = Face area
+- **$\mathbf{n}$** = Normal vector
+
+---
+
+## Boundary Condition สำหรับ Pressure (`p`)
+
+### Zero Gradient
+
+เงื่อนไข `zeroGradient` ระบุว่า **Pressure ไม่เปลี่ยนแปลงในทิศทาง Normal** ไปยัง Boundary
+
+**การใช้งาน:**
+- Wall
+- Velocity Inlet ที่ Pressure พัฒนาขึ้นตามธรรมชาติ
+- กรณีที่ Pressure ไม่ทราบค่าแน่นอน
+
+```cpp
+walls
+{
+    type            zeroGradient;
+}
+```
+
+**ในทางคณิตศาสตร์:**
+$$\frac{\partial p}{\partial n} = 0$$
+
+- **$p$** = Pressure
+- **$\frac{\partial p}{\partial n}$** = Pressure gradient in normal direction
+
+### Fixed Value
+
+เงื่อนไขนี้ **กำหนดค่า Pressure ที่กำหนดไว้ล่วงหน้า** ณ Boundary ซึ่งโดยทั่วไปใช้สำหรับ Outlet ที่ทราบ Pressure
+
+**การใช้งาน:**
+- Outlet ที่ทราบ Pressure (มักจะตั้งค่าเป็น Gauge Pressure)
+- กรณีที่ต้องการควบคุม Pressure ที่ Outlet
+
+```cpp
+outlet
+{
+    type            fixedValue;
+    value           uniform 0; // Gauge pressure (relative to atmospheric)
+}
+```
+
+**สำหรับการใช้งานทางกายภาพ (Absolute Pressure):**
+
+```cpp
+outlet
+{
+    type            fixedValue;
+    value           uniform 101325; // Atmospheric pressure in Pascals
+}
+```
+
+---
+
+## Boundary Condition สำหรับ Turbulence (`k`, `epsilon`, `omega`)
+
+### Wall Functions
+
+**Wall Function** เป็น **Boundary Condition เฉพาะทาง** ที่จำลอง Turbulent Boundary Layer โดยไม่จำเป็นต้องใช้ Mesh Resolution ที่ละเอียดมากใกล้ Wall
+
+**หลักการทำงาน:**
+- เชื่อมต่อ Viscous Sublayer และ Logarithmic Layer
+- ใช้ Empirical Correlation
+- ลดความจำเป็นในการใช้ Mesh ที่ละเอียดมากใกล้ผนัง
+
+
+```mermaid
+graph LR
+    Wall["Wall Surface<br/>y+ < 1"]
+    Viscous["Viscous Sublayer<br/>y+ < 5<br/>u+ = y+"]
+    Buffer["Buffer Layer<br/>5 < y+ < 30<br/>Complex transition"]
+    Log["Logarithmic Layer<br/>y+ > 30<br/>u+ = (1/k) ln(y+) + B"]
+    Outer["Outer Layer<br/>Full turbulence<br/>u+ = u_tau"]
+    
+    Wall --> Viscous
+    Viscous --> Buffer
+    Buffer --> Log
+    Log --> Outer
+    
+    style Wall fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Viscous fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Buffer fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+    style Log fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Outer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    
+    classDef default fill:#f9f9f9,stroke:#333,stroke-width:1px,color:#000;
+```
+
+
+#### Wall Function สำหรับ k-epsilon Model
+
+```cpp
+walls
+{
+    type            kqRWallFunction; // For turbulent kinetic energy k
+    value           uniform 0.1;
+}
+
+walls
+{
+    type            epsilonWallFunction; // For turbulent dissipation epsilon
+    value           uniform 0.01;
+}
+```
+
+#### Wall Function สำหรับ k-omega Model
+
+```cpp
+walls
+{
+    type            omegaWallFunction; // For specific dissipation rate omega
+    value           uniform 1000;
+}
+```
+
+**Wall Function มาตรฐานสำหรับ Turbulent Kinetic Energy:**
+$$k_w = \frac{u_\tau^2}{\sqrt{C_\mu}}$$
+
+- **$k_w$** = Turbulent kinetic energy at wall
+- **$u_\tau$** = Friction velocity
+- **$C_\mu$** = Model constant (typically 0.09)
+
+---
+
+## Boundary Condition ที่สำคัญเพิ่มเติม
+
+### Boundary Condition สำหรับ Temperature (`T`)
+
+#### Fixed Temperature
+```cpp
+hotWall
+{
+    type            fixedValue;
+    value           uniform 373.15; // Temperature in Kelvin
+}
+```
+
+#### Fixed Heat Flux
+```cpp
+heatedWall
+{
+    type            fixedGradient; // For heat flux specification
+    gradient        uniform -1000; // W/m² (negative for heat into domain)
+}
+```
+
+### Boundary Condition สำหรับ Volume Fraction (`alpha`)
+
+สำหรับ Multiphase Flow:
+
+#### Fixed Value Interface
+```cpp
+inlet
+{
+    type            fixedValue;
+    value           uniform 1; // Pure phase
+}
+```
+
+#### Zero Gradient Interface
+```cpp
+outlet
+{
+    type            zeroGradient;
+    value           uniform 0; // Initial value
+}
+```
+
+---
+
+## แนวทางการเลือก Boundary Condition
+
+### Inlet Boundary
+
+| Variable | Recommended BC | หมายเหตุ |
+|----------|----------------|-----------|
+| **Velocity** | `fixedValue` | เมื่อทราบ Velocity Profile ของ Inlet |
+| **Pressure** | `zeroGradient` | เพื่อให้ Pressure พัฒนาขึ้นตามธรรมชาติ |
+| **Turbulence** | `fixedValue` | Turbulence Intensity 1-5% |
+
+### Outlet Boundary
+
+| Variable | Recommended BC | หมายเหตุ |
+|----------|----------------|-----------|
+| **Velocity** | `pressureInletOutletVelocity` หรือ `zeroGradient` | ขึ้นอยู่กับลักษณะการไหล |
+| **Pressure** | `fixedValue` | โดยทั่วไป 0 (Gauge pressure) |
+| **Turbulence** | `zeroGradient` | สำหรับ Developed Flow |
+
+### Wall Boundary
+
+| Variable | Recommended BC | หมายเหตุ |
+|----------|----------------|-----------|
+| **Velocity** | `noSlip` (viscous) หรือ `slip` (inviscid) | ขึ้นอยู่กับลักษณะการไหล |
+| **Pressure** | `zeroGradient` | สำหรับกรณีส่วนใหญ่ |
+| **Temperature** | `fixedValue` หรือ `fixedGradient` | ขึ้นอยู่กับเงื่อนไขความร้อน |
+| **Turbulence** | Wall Function | เพื่อหลีกเลี่ยงการปรับ Mesh ที่มากเกินไป |
+
+---
+
+## บทสรุป
+
+**การเลือกและการนำ Boundary Condition ไปใช้อย่างเหมาะสม** เป็นพื้นฐานสำคัญสำหรับการจำลอง CFD ที่แม่นยำ เนื่องจากมีอิทธิพลอย่างมากต่อ:
+
+- **Flow Physics** - ลักษณะการไหลที่เป็นจริง
+- **Solution Stability** - ความเสถียรของการคำนวณ
+- **Convergence** - การลู่เข้าสู่คำตอบ
+- **Physical Accuracy** - ความถูกต้องทางกายภาพ
+
+การทำความเข้าใจหลักการของแต่ละ Boundary Condition จะช่วยให้สามารถเลือกใช้ได้อย่างเหมาะสมกับปัญหาที่ต้องการแก้ไข

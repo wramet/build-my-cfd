@@ -1,0 +1,280 @@
+# การทำความเข้าใจ Namespace `fvc::`
+
+ใน OpenFOAM การดำเนินการทางแคลคูลัสเวกเตอร์มีอยู่ในรูปแบบพื้นฐานสองรูปแบบ:
+
+- **`fvc::` (Finite Volume Calculus)**: การดำเนินการ **ชัดแจ้ง** ที่คำนวณค่าโดยตรงจากข้อมูล field ใช้สำหรับ source terms, post-processing, และการ integration เวลาแบบชัดแจ้ง
+- **`fvm::` (Finite Volume Method)**: การดำเนินการ **โดยนัย** ที่สร้างค่าสัมประสิทธิ์เมทริกซ์สำหรับระบบเชิงเส้น ใช้สำหรับแก้สมการเชิงอนุพันธ์
+
+**ข้อเข้าใจสำคัญ**: `fvc::grad(p)` ส่งคืน `volVectorField` ที่มี $\nabla p$ ที่จุดกึ่งกลางของแต่ละ cell ในขณะที่ `fvm::laplacian(D, T)` เพิ่ม diffusion terms ลงในเมทริกซ์ของระบบ
+
+## การดำเนินการทางคณิตศาสตร์พื้นฐาน
+
+Namespace `fvc::` ทำการ implement discretization ของ finite volume พื้นฐานสำหรับตัวดำเนินการแคลคูลัสเวกเตอร์
+
+**การดำเนินการเหล่านี้แปลงสมการเชิงอนุพันธ์เชิงต่อเนื่องให้เป็นนิพจน์เชิงพีชคณิตเชิงกระจัดที่สามารถประเมินบน computational meshes ได้**
+
+[Diagram: Finite Volume Control Volume แสดงการคำนวณ divergence และ gradient บน cell และ faces]
+
+### การดำเนินการ Divergence
+
+ตัวดำเนินการ divergence `fvc::div()` คำนวณ flux สุทธิออกจากแต่ละ control volume:
+
+$$\nabla \cdot \mathbf{\phi} = \frac{1}{V} \sum_{faces} \mathbf{\phi}_f \cdot \mathbf{S}_f$$
+
+โดยที่:
+- $V$ คือปริมาตรของ cell
+- $\mathbf{\phi}_f$ คือค่าที่ face
+- $\mathbf{S}_f$ คือเวกเตอร์พื้นที่ของ face
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Divergence ของ velocity field (สมการต่อเนื่อง)
+volScalarField divU = fvc::div(U);
+
+// Divergence ของ flux (source term ของสมการโมเมนตัม)
+volVectorField divPhi = fvc::div(phi);
+```
+
+### การดำเนินการ Gradient
+
+ตัวดำเนินการ gradient `fvc::grad()` ประมาณค่าอนุพันธ์เชิงพื้นที่โดยใช้ทฤษฎีบทของ Gauss:
+
+$$\nabla \psi = \frac{1}{V} \sum_{faces} \psi_f \mathbf{S}_f$$
+
+โดยที่ $\psi_f$ ถูก interpolates จากจุดกึ่งกลางของ cell ไปยังจุดกึ่งกลางของ face
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Pressure gradient (แรงขับเคลื่อนในสมการโมเมนตัม)
+volVectorField gradP = fvc::grad(p);
+
+// Temperature gradient (การคำนวณความร้อน flux)
+volVectorField gradT = fvc::grad(T);
+```
+
+### การดำเนินการ Laplacian
+
+ตัวดำเนินการ Laplacian ทำการ implement diffusion term โดยใช้ discretization ของ finite volume มาตรฐาน:
+
+$$\nabla \cdot (\Gamma \nabla \psi) = \frac{1}{V} \sum_{faces} \Gamma_f (\nabla \psi)_f \cdot \mathbf{S}_f$$
+
+โดยที่:
+- $\Gamma$ คือสัมประสิทธิ์การ diffused
+- $(\nabla \psi)_f$ คือ gradient ที่ face
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Thermal diffusion
+volScalarField laplacianT = fvc::laplacian(DT, T);
+
+// Viscous diffusion
+volVectorField laplacianU = fvc::laplacian(nu, U);
+```
+
+### การดำเนินการ Curl
+
+ตัวดำเนินการ curl คำนวณ vorticity และปริมาณการหมุนที่เกี่ยวข้อง:
+
+$$\nabla \times \mathbf{u} = \nabla \times \mathbf{u}$$
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Vorticity field
+volVectorField vorticity = fvc::curl(U);
+
+// Stream function (การไหล 2 มิติ)
+volScalarField streamFunction = fvc::curl(U);
+```
+
+## Interpolation Schemes
+
+OpenFOAM ให้ interpolation schemes หลากหลายสำหรับการคำนวณค่า face จากข้อมูลที่จุดกึ่งกลางของ cell
+
+[Diagram: Cell-to-Face Interpolation แสดง linear, upwind, และ high-order schemes]
+
+### Linear Interpolation
+
+Linear scheme ที่เป็นค่าเริ่มต้นสมมติว่ามีการเปลี่ยนแปลงเชิงเส้นระหว่างจุดกึ่งกลางของ cell:
+
+$$\psi_f = f_x \psi_P + (1 - f_x) \psi_N$$
+
+โดยที่ $f_x$ คือปัจจัยการ interpolates ระหว่าง cell ที่เป็นเจ้าของ ($P$) และ cell ที่เป็นเพื่อนบ้าน ($N$)
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Linear interpolation ของอุณหภูมิไปยัง faces
+surfaceScalarField Tf = linearInterpolate(T);
+```
+
+### Upwind Schemes
+
+Upwind schemes ใช้ข้อมูลจากทิศทางต้นน้ำ ให้เสถียรภาพสำหรับ convective terms:
+
+$$\psi_f = \begin{cases}
+\psi_P & \text{if } \mathbf{\phi}_f \cdot \mathbf{S}_f > 0 \\
+\psi_N & \text{if } \mathbf{\phi}_f \cdot \mathbf{S}_f < 0
+\end{cases}$$
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Upwind interpolation สำหรับการพาความร้อน
+surfaceScalarField phiU = upwind<scalar>(mesh, phi).interpolate(T);
+```
+
+### Higher-Order Schemes
+
+Advanced schemes เช่น QUICK, MUSCL, และ limitedLinear ให้ความแม่นยำที่สูงขึ้น:
+
+**OpenFOAM Code Implementation:**
+```cpp
+// QUICK scheme สำหรับความแม่นยำลำดับที่สาม
+surfaceScalarField Tf = QUICK<scalar>(mesh).interpolate(T);
+
+// TVD-limited linear scheme
+surfaceScalarField Tf = limitedLinear<scalar>(1.0).interpolate(T);
+```
+
+**สรุป Interpolation Schemes:**
+
+| Scheme | ลำดับความแม่นยำ | ความเสถียร | การใช้งานทั่วไป |
+|--------|------------------|-------------|-------------------|
+| Linear | 2 | ปานกลาง | การไหลแบบ laminar |
+| Upwind | 1 | สูงมาก | การไหลแบบ turbulent |
+| QUICK | 3 | ต่ำ | การคำนวณที่ต้องการความแม่นยำสูง |
+| limitedLinear | 2 | สูง | การไหลที่มี shock/gradient สูง |
+
+## อนุพันธ์เชิงเวลา
+
+Namespace `fvc::` ประกอบด้วยตัวดำเนินการอนุพันธ์เวลาสำหรับการจำลองแบบ transient
+
+### First-Order Euler Scheme
+
+$$\left(\frac{\partial \psi}{\partial t}\right)^{n+1} \approx \frac{\psi^{n+1} - \psi^n}{\Delta t}$$
+
+**OpenFOAM Code Implementation:**
+```cpp
+// อนุพันธ์เวลาโดยใช้ Euler scheme
+volScalarField ddtT = fvc::ddt(T);
+```
+
+### Backward Differencing Scheme
+
+การเวลา integration แบบโดยนัยที่มีความแม่นยำลำดับที่สอง:
+
+$$\left(\frac{\partial \psi}{\partial t}\right)^{n+1} \approx \frac{3\psi^{n+1} - 4\psi^n + \psi^{n-1}}{2\Delta t}$$
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Backward scheme ลำดับที่สอง
+volScalarField ddtT = fvc::ddt(T, backward);
+```
+
+## การดำเนินการ Surface Field
+
+การดำเนินการบน surface fields (ที่กำหนดไว้ที่ mesh faces) เป็นสิ่งสำคัญสำหรับการคำนวณ flux
+
+### Surface Normal Gradients
+
+$$\left(\frac{\partial \psi}{\partial n}\right)_f = \nabla \psi_f \cdot \mathbf{n}_f$$
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Normal gradient ที่ faces
+surfaceScalarField snGradT = fvc::snGrad(T);
+```
+
+### การดำเนินการ Mesh Flux
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Face flux field
+surfaceScalarField phi = fvc::flux(U);
+
+// Mass flow rate
+surfaceScalarField rhoPhi = fvc::flux(rho, U);
+```
+
+## การ Implement ในรูปแบบจริง
+
+### Source Terms ของสมการโมเมนตัม
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Convective term แบบชัดแจ้ง
+volVectorField Uconv = fvc::div(phi, U);
+
+// Viscous term (ชัดแจ้ง)
+volVectorField Uvisc = fvc::laplacian(nu, U);
+
+// Pressure gradient force
+volVectorField gradP = fvc::grad(p);
+
+// Source term รวม
+volVectorField SU = -Uconv - Uvisc - gradP;
+```
+
+### การประเมินสมการพลังงาน
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Convective heat transfer
+volScalarField convTerm = fvc::div(phi, T);
+
+// Conductive heat transfer
+volScalarField condTerm = fvc::laplacian(alpha, T);
+
+// Total energy change
+volScalarField dTdt = fvc::ddt(T);
+
+volScalarField SE = -convTerm + condTerm;
+```
+
+### การบูรณาการรูปแบบความปั่นป่วน
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Turbulent kinetic energy production
+volScalarField P = 2*nuSgs*symm(gradU) && gradU;
+
+// Turbulent dissipation
+volScalarField epsilon = Cmu*pow(k, 1.5)/l;
+
+// TKE transport equation source term
+volScalarField Sk = P - epsilon;
+```
+
+## การพิจารณาประสิทธิภาพ
+
+### ประสิทธิภาพหน่วยความจำ
+
+- **ใช้ `tmp` objects** สำหรับผลลัพธ์ระหว่างการทำงานเพื่อหลีกเลี่ยงการจองหน่วยความจำที่ไม่จำเป็น
+- **เลือกใช้การดำเนินการ surface field** ให้มากที่สุดเท่าที่เป็นไปได้เพื่อลดความต้องการการจัดเก็บ
+
+**OpenFOAM Code Implementation:**
+```cpp
+// การคำนวณระหว่างการทำงานที่มีประสิทธิภาพ
+tmp<volVectorField> gradP = fvc::grad(p);
+tmp<volVectorField> laplacianU = fvc::laplacian(nu, U);
+```
+
+### การปรับให้เหมาะสมทางการคำนวณ
+
+- **Cache surface interpolations** ที่ใช้บ่อย
+- **ลดการคัดลอก field** ใน tight loops
+- **ใช้ discretization schemes** ที่เหมาะสมสำหรับเสถียรภาพเชิงตัวเลข
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Cached surface interpolation
+const surfaceScalarField& Tf = TInterpolator(T);
+
+// Vectorized operations
+forAll(cells, cellI)
+{
+    U[cellI] = U[cellI] + dt * (SU[cellI] / rho[cellI]);
+}
+```
+
+---
+
+**Namespace `fvc::` ให้กระดูกสันหลังทางการคำนวณสำหรับการดำเนินการ finite volume แบบชัดแจ้งใน OpenFOAM** ทำให้สามารถ implement รูปแบบทางกายภาพที่ซับซ้อนได้ผ่านส่วนติดต่อทางคณิตศาสตร์ที่สม่ำเสมอ

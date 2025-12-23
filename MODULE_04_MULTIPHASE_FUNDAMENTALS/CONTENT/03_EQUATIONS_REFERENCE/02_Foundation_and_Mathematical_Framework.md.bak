@@ -1,0 +1,352 @@
+# พื้นฐานและกรอบการทำงานทางคณิตศาสตร์
+
+## ทฤษฎีบทการหาค่าเฉลี่ยของเฟส (Phase Averaging Theorems)
+
+ความท้าทายพื้นฐานในการสร้างแบบจำลองการไหลแบบหลายเฟส (multiphase flow modeling) คือการเปลี่ยนจากการอธิบายระดับจุลภาคที่สามารถแยกแยะส่วนต่อประสาน (interface-resolved descriptions) ไปสู่การกำหนดสูตรแบบต่อเนื่องระดับมหภาค (macroscopic continuum formulations) ซึ่งจำเป็นต้องมีกระบวนการหาค่าเฉลี่ยที่เป็นระบบเพื่อรักษาฟิสิกส์ที่สำคัญไว้ ในขณะเดียวกันก็ทำให้ปัญหาสามารถคำนวณได้
+
+### การหาค่าเฉลี่ยเชิงปริมาตร - การแจกแจงรายละเอียด (Volume Averaging - Detailed Derivation)
+
+**โจทย์ปัญหา (Problem Statement)**: ในการไหลแบบหลายเฟส เรามีฟิลด์ที่ไม่ต่อเนื่อง (discontinuous fields) ข้ามส่วนต่อประสานของเฟส เพื่อนำกลศาสตร์แบบต่อเนื่อง (continuum mechanics) มาใช้ เราจำเป็นต้องเชื่อมโยงคำอธิบายระดับจุลภาค (interface-resolved) กับสูตรที่หาค่าเฉลี่ยระดับมหภาค (averaged formulations)
+
+**นิยามปริมาตรควบคุม (Control Volume Definition)**: พิจารณาปริมาตรพื้นฐานที่เป็นตัวแทน (representative elementary volume - REV) $V$ ซึ่งมีหลายเฟสอยู่ภายใน ให้ $V_k$ เป็นปริมาตรย่อยที่เฟส $k$ ครอบครอง โดยที่ $V_k \subset V$
+
+[Diagram: Representative Elementary Volume (REV) ที่แสดงหลายเฟสพร้อมการกำหนดปริมาตรควบคุม]
+
+#### ขั้นตอนที่ 1: นิยามพื้นฐานของการหาค่าเฉลี่ยเชิงปริมาตร (Basic Volume Average Definition)
+
+สำหรับปริมาณใดๆ $\phi_k$ ที่เกี่ยวข้องกับเฟส $k$ เรานิยาม **ค่าเฉลี่ยเชิงปริมาตรของเฟส (phase volume average)**:
+
+$$\langle \phi_k \rangle_V = \frac{1}{V_k} \int_{V_k} \phi_k \, \mathrm{d}V$$
+
+**เหตุผลสนับสนุนทางคณิตศาสตร์ (Mathematical Justification)**:
+- อินทิกรัล $\int_{V_k} \phi_k \, \mathrm{d}V$ แสดงถึงปริมาณรวมของ $\phi$ ในเฟส $k$
+- การหารด้วย $V_k$ จะได้ค่าเฉลี่ยต่อหนึ่งหน่วยปริมาตรของเฟส $k$
+- สิ่งนี้เทียบเคียงได้กับนิยามมาตรฐานของค่าเฉลี่ย: $\bar{f} = \frac{1}{L}\int_0^L f(x)\,dx$
+
+#### ขั้นตอนที่ 2: การแจกแจงการหาค่าเฉลี่ยเชิงเฟสภายใน (Intrinsic Phase Average Derivation)
+
+**ค่าเฉลี่ยเชิงเฟสภายใน (intrinsic phase average)** เชื่อมโยงค่าเฉลี่ยของเฟสกับปริมาตรควบคุมทั้งหมด:
+
+$$\bar{\phi}_k = \frac{1}{V} \int_{V_k} \phi_k \, \mathrm{d}V$$
+
+**การแจกแจงทางคณิตศาสตร์ (Mathematical Derivation)**:
+
+1. เริ่มต้นจากนิยาม:
+   $$\bar{\phi}_k = \frac{1}{V} \int_{V_k} \phi_k \, \mathrm{d}V$$
+
+2. คูณและหารด้วย $V_k$:
+   $$\bar{\phi}_k = \frac{V_k}{V} \cdot \frac{1}{V_k} \int_{V_k} \phi_k \, \mathrm{d}V$$
+
+3. ระบุได้ว่านิยามค่าเฉลี่ยเชิงปริมาตรของเฟส:
+   $$\bar{\phi}_k = \frac{V_k}{V} \cdot \langle \phi_k \rangle_V$$
+
+4. นิยามเศษส่วนปริมาตร (volume fraction):
+   $$\alpha_k = \frac{V_k}{V}$$
+
+5. ความสัมพันธ์สุดท้าย:
+   $$\bar{\phi}_k = \alpha_k \langle \phi_k \rangle_V$$
+
+**การตีความทางฟิสิกส์ (Physical Interpretation)**:
+- $\langle \phi_k \rangle_V$: ค่าเฉลี่ยภายในเฟส $k$ เท่านั้น
+- $\bar{\phi}_k$: ค่าเฉลี่ยทั่วทั้งปริมาตรควบคุม
+- $\alpha_k$: เศษส่วนของปริมาตรทั้งหมดที่เฟส $k$ ครอบครอง
+
+### ทฤษฎีบทการหาค่าเฉลี่ยเชิงปริภูมิ (Spatial Averaging Theorem) - การแจกแจงสมบูรณ์ (Complete Derivation)
+
+**ความท้าทาย (Challenge)**: เราจะหาค่าเฉลี่ยของอนุพันธ์เชิงปริภูมิ (spatial derivatives) ของฟิลด์ที่ไม่ต่อเนื่องข้ามส่วนต่อประสานของเฟสได้อย่างไร?
+
+**ข้อความทฤษฎีบท (Theorem Statement)**: ทฤษฎีบทการหาค่าเฉลี่ยเชิงปริภูมิเชื่อมโยงค่าเฉลี่ยของเกรเดียนต์ (gradient) กับเกรเดียนต์ของค่าเฉลี่ย:
+
+$$\langle \nabla \phi_k \rangle_V = \nabla \langle \phi_k \rangle_V + \frac{1}{V_k} \int_{A_k} \phi_k \mathbf{n}_k \, \mathrm{d}A$$
+
+[Diagram: การแสดงพจน์เกรเดียนต์และพจน์ที่เกิดจากส่วนต่อประสาน]
+
+**การแจกแจงโดยละเอียด (Detailed Derivation)**:
+
+#### ขั้นตอนที่ 1: ใช้ทฤษฎีบทไดเวอร์เจนซ์ (Divergence Theorem) กับปริมาตรเฟส
+
+พิจารณาอินทิกรัลบนปริมาตรเฟส $V_k$:
+
+$$\int_{V_k} \nabla \phi_k \, \mathrm{d}V$$
+
+ใช้ทฤษฎีบทไดเวอร์เจนซ์ (ทฤษฎีบทของเกาส์ - Gauss's theorem):
+
+$$\int_{V_k} \nabla \phi_k \, \mathrm{d}V = \int_{\partial V_k} \phi_k \mathbf{n}_k \, \mathrm{d}A$$
+
+โดยที่ $\partial V_k$ คือขอบเขตของเฟส $k$ และ $\mathbf{n}_k$ คือเวกเตอร์แนวฉากหน่วยที่ชี้ออกด้านนอก
+
+#### ขั้นตอนที่ 2: แยกอินทิกรัลที่ขอบเขต (Decompose Boundary Integral)
+
+ขอบเขต $\partial V_k$ ประกอบด้วย:
+1. ขอบเขตภายนอก: $A_k^{ext}$ (ส่วนที่ตัดกับขอบเขตปริมาตรควบคุม)
+2. ขอบเขตภายใน: $A_k^{int}$ (ส่วนต่อประสานของเฟส)
+
+ดังนั้น:
+$$\int_{\partial V_k} \phi_k \mathbf{n}_k \, \mathrm{d}A = \int_{A_k^{ext}} \phi_k \mathbf{n}_k \, \mathrm{d}A + \int_{A_k^{int}} \phi_k \mathbf{n}_k \, \mathrm{d}A$$
+
+[Diagram: การแยกขอบเขตภายนอกและภายในสำหรับปริมาตรควบคุม]
+
+#### ขั้นตอนที่ 3: สร้างค่าเฉลี่ยเชิงปริมาตร (Form the Volume Average)
+
+หารด้วยปริมาตรเฟส $V_k$:
+
+$$\langle \nabla \phi_k \rangle_V = \frac{1}{V_k} \int_{V_k} \nabla \phi_k \, \mathrm{d}V = \frac{1}{V_k} \int_{\partial V_k} \phi_k \mathbf{n}_k \, \mathrm{d}A$$
+
+#### ขั้นตอนที่ 4: แยกส่วนที่หาค่าเฉลี่ยเชิงปริมาตรและส่วนที่เกิดจากส่วนต่อประสาน (Separate Volume-Averaged and Interfacial Contributions)
+
+โดยใช้ทฤษฎีบท Reynolds transport สำหรับปริมาตรควบคุมที่เคลื่อนที่ และสมมติว่าส่วนที่เกิดจากขอบเขตภายนอกให้ผลลัพธ์เป็นเกรเดียนต์ที่หาค่าเฉลี่ยเชิงปริมาตร:
+
+$$\frac{1}{V_k} \int_{A_k^{ext}} \phi_k \mathbf{n}_k \, \mathrm{d}A \approx \nabla \langle \phi_k \rangle_V$$
+
+ส่วนที่เกิดจากส่วนต่อประสานยังคงอยู่:
+
+$$\frac{1}{V_k} \int_{A_k^{int}} \phi_k \mathbf{n}_k \, \mathrm{d}A = \frac{1}{V_k} \int_{A_k} \phi_k \mathbf{n}_k \, \mathrm{d}A$$
+
+#### ขั้นตอนที่ 5: ทฤษฎีบทสมบูรณ์ (Complete Theorem)
+
+รวมผลลัพธ์เหล่านี้:
+
+$$\langle \nabla \phi_k \rangle_V = \nabla \langle \phi_k \rangle_V + \frac{1}{V_k} \int_{A_k} \phi_k \mathbf{n}_k \, \mathrm{d}A$$
+
+**การตีความทางฟิสิกส์ (Physical Interpretation)**:
+- **พจน์แรก**: เกรเดียนต์ของฟิลด์ที่หาค่าเฉลี่ย (การเปลี่ยนแปลงที่ราบเรียบ)
+- **พจน์ที่สอง**: ส่วนที่เกิดจากส่วนต่อประสาน เนื่องจากการไม่ต่อเนื่อง
+- สิ่งนี้อธิบายถึง "การกระโดด" (jump) ของค่าฟิลด์ข้ามส่วนต่อประสานของเฟส
+
+### ทฤษฎีบทการหาค่าเฉลี่ยเชิงเวลา (Temporal Averaging Theorem) - การแจกแจงสมบูรณ์ (Complete Derivation)
+
+**ข้อความทฤษฎีบท (Theorem Statement)**: สำหรับอนุพันธ์เชิงเวลา:
+
+$$\left\langle \frac{\partial \phi_k}{\partial t} \right\rangle_V = \frac{\partial}{\partial t} \langle \phi_k \rangle_V - \frac{1}{V_k} \int_{A_k} \phi_k \mathbf{u}_i \cdot \mathbf{n}_k \, \mathrm{d}A$$
+
+**การแจกแจงโดยละเอียด (Detailed Derivation)**:
+
+#### ขั้นตอนที่ 1: เริ่มต้นจากนิยามอนุพันธ์เชิงเวลา (Start with Time Derivative Definition)
+
+$$\left\langle \frac{\partial \phi_k}{\partial t} \right\rangle_V = \frac{1}{V_k} \int_{V_k(t)} \frac{\partial \phi_k}{\partial t} \, \mathrm{d}V$$
+
+#### ขั้นตอนที่ 2: ใช้ทฤษฎีบท Reynolds Transport (Apply Reynolds Transport Theorem)
+
+สำหรับโดเมนที่เปลี่ยนแปลงตามเวลา $V_k(t)$ ที่มีส่วนต่อประสานเคลื่อนที่:
+
+$$\frac{\mathrm{d}}{\mathrm{d}t} \int_{V_k(t)} \phi_k \, \mathrm{d}V = \int_{V_k(t)} \frac{\partial \phi_k}{\partial t} \, \mathrm{d}V + \int_{A_k(t)} \phi_k \mathbf{u}_i \cdot \mathbf{n}_k \, \mathrm{d}A$$
+
+โดยที่ $\mathbf{u}_i$ คือความเร็วของส่วนต่อประสาน
+
+#### ขั้นตอนที่ 3: จัดรูปใหม่สำหรับพจน์อนุพันธ์เชิงเวลา (Rearrange for Time Derivative Term)
+
+$$\int_{V_k(t)} \frac{\partial \phi_k}{\partial t} \, \mathrm{d}V = \frac{\mathrm{d}}{\mathrm{d}t} \int_{V_k(t)} \phi_k \, \mathrm{d}V - \int_{A_k(t)} \phi_k \mathbf{u}_i \cdot \mathbf{n}_k \, \mathrm{d}A$$
+
+#### ขั้นตอนที่ 4: สร้างค่าเฉลี่ยเชิงปริมาตร (Form Volume Average)
+
+$$\left\langle \frac{\partial \phi_k}{\partial t} \right\rangle_V = \frac{1}{V_k} \frac{\mathrm{d}}{\mathrm{d}t} \int_{V_k} \phi_k \, \mathrm{d}V - \frac{1}{V_k} \int_{A_k} \phi_k \mathbf{u}_i \cdot \mathbf{n}_k \, \mathrm{d}A$$
+
+#### ขั้นตอนที่ 5: สลับการหาอนุพันธ์และการอินทิเกรต (Exchange Differentiation and Integration)
+
+โดยสมมติว่า $V_k$ มีค่าคงที่โดยประมาณในช่วงเวลา:
+
+$$\frac{1}{V_k} \frac{\mathrm{d}}{\mathrm{d}t} \int_{V_k} \phi_k \, \mathrm{d}V = \frac{\partial}{\partial t} \left( \frac{1}{V_k} \int_{V_k} \phi_k \, \mathrm{d}V \right) = \frac{\partial}{\partial t} \langle \phi_k \rangle_V$$
+
+#### ขั้นตอนที่ 6: ทฤษฎีบทเชิงเวลาสมบูรณ์ (Complete Temporal Theorem)
+
+$$\left\langle \frac{\partial \phi_k}{\partial t} \right\rangle_V = \frac{\partial}{\partial t} \langle \phi_k \rangle_V - \frac{1}{V_k} \int_{A_k} \phi_k \mathbf{u}_i \cdot \mathbf{n}_k \, \mathrm{d}A$$
+
+**การตีความทางฟิสิกส์ (Physical Interpretation)**:
+- **พจน์แรก**: อัตราการเปลี่ยนแปลงตามเวลาเฉพาะที่ของฟิลด์ที่หาค่าเฉลี่ย
+- **พจน์ที่สอง**: ส่วนที่เกิดจากฟลักซ์ที่ส่วนต่อประสาน เนื่องจากการเคลื่อนที่ของส่วนต่อประสาน
+- อธิบายถึงการขนส่งมวล/พลังงาน/โมเมนตัม ข้ามขอบเขตเฟสที่เคลื่อนที่
+
+### ข้อจำกัดเศษส่วนปริมาตร - การแจกแจง (Volume Fraction Constraint - Derivation)
+
+**หลักการพื้นฐาน (Fundamental Principle)**: ปริมาตรควบคุมถูกเติมเต็มโดยทุกเฟสอย่างสมบูรณ์ - ไม่มีช่องว่างหรือการทับซ้อน
+
+**ข้อความทางคณิตศาสตร์ (Mathematical Statement)**: สำหรับระบบที่มี $N$ เฟส:
+
+$$\sum_{k=1}^{N} \alpha_k = 1$$
+
+**การแจกแจงโดยละเอียด (Detailed Derivation)**:
+
+#### ขั้นตอนที่ 1: นิยามเศษส่วนปริมาตร (Definition of Volume Fractions)
+
+สำหรับแต่ละเฟส $k$:
+$$\alpha_k = \frac{V_k}{V}$$
+
+#### ขั้นตอนที่ 2: รวมปริมาตรของทุกเฟส (Sum All Phase Volumes)
+
+เนื่องจากเฟสต่างๆ แบ่งปริมาตรควบคุมอย่างสมบูรณ์:
+$$\sum_{k=1}^{N} V_k = V$$
+
+#### ขั้นตอนที่ 3: หารด้วยปริมาตรทั้งหมด (Divide by Total Volume)
+
+$$\sum_{k=1}^{N} \frac{V_k}{V} = \frac{V}{V} = 1$$
+
+#### ขั้นตอนที่ 4: ระบุเศษส่วนปริมาตร (Recognize Volume Fractions)
+
+$$\sum_{k=1}^{N} \alpha_k = 1$$
+
+**นัยสำคัญทางฟิสิกส์ (Physical Significance)**:
+- รับประกันการอนุรักษ์มวลผ่านข้อจำกัดการเติมเต็มปริมาตร
+- ให้ความสมบูรณ์ (closure) สำหรับสมการวิวัฒนาการของเศษส่วนปริมาตร
+- มีความสำคัญอย่างยิ่งต่อเสถียรภาพเชิงตัวเลขและความสอดคล้องทางฟิสิกส์ในการจำลอง CFD
+
+**นัยสำหรับการนำไปใช้ใน CFD (Implications for CFD Implementation)**:
+- จำเป็นต้องแก้สมการเศษส่วนปริมาตรเพียง $N-1$ สมการเท่านั้น
+- เศษส่วนปริมาตรที่ $N$ จะถูกคำนวณจาก: $\alpha_N = 1 - \sum_{k=1}^{N-1} \alpha_k$
+- ใช้ใน Solver แบบหลายเฟสของ OpenFOAM สำหรับการจัดการฟิลด์เศษส่วนเฟส
+
+[Diagram: การแสดงข้อจำกัดเศษส่วนปริมาตรใน REV]
+
+## กรอบการทำงานของกฎการอนุรักษ์ (Conservation Law Framework)
+
+สมการอนุรักษ์ทั่วไปสำหรับคุณสมบัติใดๆ $\psi_k$ ของเฟส $k$ มีรูปแบบดังนี้:
+
+$$\frac{\partial}{\partial t}(\alpha_k \rho_k \psi_k) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \psi_k) = \nabla \cdot (\alpha_k \mathbf{J}_k) + \alpha_k S_k + \Gamma_k$$
+
+**นิยามตัวแปร (Variable Definitions)**:
+- $\alpha_k$ = เศษส่วนปริมาตร (ไม่มีหน่วย)
+- $\rho_k$ = ความหนาแน่น ($\text{kg/m}^3$)
+- $\mathbf{u}_k$ = เวกเตอร์ความเร็ว ($\text{m/s}$)
+- $\mathbf{J}_k$ = เวกเตอร์ฟลักซ์การแพร่ (diffusive flux vector)
+- $S_k$ = พจน์แหล่งกำเนิด (source term)
+- $\Gamma_k$ = พจน์การแลกเปลี่ยนระหว่างเฟส (interfacial exchange term)
+
+### การแยกส่วนประกอบของสมการ (Equation Term Breakdown)
+
+| พจน์ | สมการ | ความหมายทางฟิสิกส์ |
+|-------|---------|-------------------|
+| **พจน์ชั่วขณะ** | $\frac{\partial}{\partial t}(\alpha_k \rho_k \psi_k)$ | การสะสมของคุณสมบัติ $\psi_k$ ตามเวลา คำนึงถึงการมีอยู่ของเฟสผ่าน $\alpha_k$ |
+| **พจน์การพา** | $\nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \psi_k)$ | การขนส่งคุณสมบัติโดยการเคลื่อนที่แบบกลุ่มของเฟส $k$ รวมเศษส่วนเฟสสำหรับการถ่วงน้ำหนักที่ถูกต้อง |
+| **พจน์การแพร่** | $\nabla \cdot (\alpha_k \mathbf{J}_k)$ | การขนส่งระดับโมเลกุลหรือความปั่นป่วนภายในเฟส $k$ ปรับสเกลตามการมีอยู่ของเฟส |
+| **พจน์แหล่งกำเนิด** | $\alpha_k S_k$ | แหล่งกำเนิด/แหล่งระบายปริมาตรภายในเฟส $k$ ตัวอย่าง: แรงโน้มถ่วง, ปฏิกิริยาเคมี, การให้ความร้อนจากภายนอก |
+| **การแลกเปลี่ยนระหว่างเฟส** | $\Gamma_k$ | การถ่ายโอนคุณสมบัติระหว่างเฟส ต้องเป็นไปตามกฎการอนุรักษ์: $\sum_{k=1}^{N} \Gamma_k = 0$ |
+
+### กฎการอนุรักษ์เฉพาะ (Specific Conservation Laws)
+
+โดยการเลือก $\psi_k$ ที่เหมาะสม เราจะได้สมการอนุรักฮ์เฉพาะ:
+
+#### 1. การอนุรักษ์มวล (Mass Conservation) ($\psi_k = 1$)
+
+$$\frac{\partial}{\partial t}(\alpha_k \rho_k) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k) = \alpha_k S_k + \Gamma_k$$
+
+**OpenFOAM Code Implementation**:
+```cpp
+// ใน multiphaseEulerFoam solver
+fvScalarMatrix alphaEqn
+(
+    fvm::ddt(alpha, rho)
+  + fvm::div(alphaRhoPhi, rho)
+ ==
+    alpha*rhoSource
+  + massTransfer
+);
+```
+
+#### 2. การอนุรักษ์โมเมนตัม (Momentum Conservation) ($\psi_k = \mathbf{u}_k$)
+
+$$\frac{\partial}{\partial t}(\alpha_k \rho_k \mathbf{u}_k) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \mathbf{u}_k) = -\alpha_k \nabla p_k + \nabla \cdot (\alpha_k \boldsymbol{\tau}_k) + \alpha_k \rho_k \mathbf{g} + \mathbf{M}_k$$
+
+**OpenFOAM Code Implementation**:
+```cpp
+// ใน momentum equation solver
+fvVectorMatrix UEqn
+(
+    fvm::ddt(alpha, rho, U)
+  + fvm::div(alphaRhoPhi, U)
+ ==
+    -alpha*fvc::grad(p)
+  + fvc::div(alpha*tau)
+  + alpha*rho*g
+  + momentumTransfer
+);
+```
+
+#### 3. การอนุรักษ์พลังงาน (Energy Conservation) ($\psi_k = h_k$)
+
+$$\frac{\partial}{\partial t}(\alpha_k \rho_k h_k) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k h_k) = \nabla \cdot (\alpha_k k_k \nabla T_k) + \alpha_k S_{h,k} + Q_k$$
+
+**OpenFOAM Code Implementation**:
+```cpp
+// ใน energy equation solver
+fvScalarMatrix hEqn
+(
+    fvm::ddt(alpha, rho, h)
+  + fvm::div(alphaRhoPhi, h)
+ ==
+    fvm::laplacian(alpha*k, T)
+  + alpha*rho*heatSource
+  + heatTransfer
+);
+```
+
+### ข้อกำหนดสำหรับการปิดสมการ (Mathematical Closure Requirements)
+
+สมการแบบหลายเฟสต้องการความสัมพันธ์ปิดเพิ่มเติม:
+
+#### 1. ความสัมพันธ์เชิงสสาร (Constitutive Relations)
+
+| ความสัมพันธ์ | สมการ | คำอธิบาย |
+|-------------|---------|-----------|
+| **ความสัมพันธ์ความเค้น-ความเครียด** | $\boldsymbol{\tau}_k = f(\nabla \mathbf{u}_k)$ | ความสัมพันธ์ระหว่างความเค้นและอัตราการไหล |
+| **การถ่ายเทความร้อน** | ความสัมพันธ์ของ $k_k$, $h_k$ | สัมประสิทธิ์การนำความร้อนและเอนทัลปี |
+| **คุณสมบัติของเฟส** | $\rho_k(p,T)$, $\mu_k(T)$ | การพึ่งพาความหนาแน่นและความหนืดต่อความดันและอุณหภูมิ |
+
+#### 2. แบบจำลองการถ่ายโอนระหว่างเฟส (Interfacial Transfer Models)
+
+| ประเภทการถ่ายโอน | สมการ | ตัวแปร |
+|------------------|---------|---------|
+| **แรงฉุดลาก (Drag Forces)** | $\mathbf{M}_k = \mathbf{M}_{drag} + \mathbf{M}_{lift} + \mathbf{M}_{virtual}$ | $\mathbf{M}_k$ = โมเมนตัมการถ่ายโอน |
+| **การถ่ายเทความร้อน** | $Q_k = h_{int}(T_j - T_k) A_{int}$ | $h_{int}$ = สัมประสิทธิ์ถ่ายเทความร้อนระหว่างเฟส |
+| **การถ่ายโอนมวล** | $\Gamma_k = k_{mass}(c_j - c_k) A_{int}$ | $k_{mass}$ = สัมประสิทธิ์การถ่ายโอนมวล |
+
+#### 3. การปิดสมการความปั่นป่วน (Turbulence Closure)
+
+| ประเภท | แบบจำลอง | คำอธิบาย |
+|--------|-----------|-----------|
+| **เฟสเดียว** | $k-\epsilon$, $k-\omega$, Reynolds stress | แบบจำลองความปั่นป่วนมาตรฐาน |
+| **หลายเฟส** | turbulence ของส่วนผสม, แบบจำลองเฟสกระจาย | พิจารณาปฏิสัมพันธ์ความปั่นป่วนระหว่างเฟส |
+
+### ข้อควรพิจารณาในการนำไปใช้ (Implementation Considerations)
+
+#### 1. รูปแบบเชิงตัวเลข (Numerical Schemes)
+
+**ข้อกำหนดสำคัญ**:
+- การแยกส่วนประกอบที่รักษาการอนุรักษ์เป็นสิ่งจำเป็น
+- การจัดการที่เหมาะสมสำหรับขอบเขตของเศษส่วนเฟส (phase fraction boundedness)
+- พจน์ที่ส่วนต่อประสานต้องการการจัดการพิเศษ
+
+**แผนภูมิการแก้ปัญหาเชิงตัวเลข (Numerical Solution Strategy)**:
+```
+ขั้นตอนที่ 1: แก้สมการเศษส่วนเฟส (α_k)
+  ↓
+ขั้นตอนที่ 2: แก้สมการโมเมนตัม (U_k)
+  ↓
+ขั้นตอนที่ 3: แก้สมการความดัน (p)
+  ↓
+ขั้นตอนที่ 4: แก้สมการพลังงาน/ปฏิกิริยา (T_k, Y_k)
+  ↓
+ขั้นตอนที่ 5: อัปเดตคุณสมบัติเฟส (ρ_k, μ_k, k_k)
+  ↓
+กลับไปที่ขั้นตอนที่ 1 (จนกว่าจะลู่เข้า)
+```
+
+#### 2. ข้อจำกัดด้านเสถียรภาพ (Stability Constraints)
+
+| ข้อจำกัด | สมการ | คำอธิบาย |
+|-----------|---------|-----------|
+| **เงื่อนไข CFL** | $\Delta t \leq \frac{\Delta x}{|u|_{max}}$ | สำหรับรูปแบบที่ชัดเจน |
+| **การรักษาค่าบวก** | $\alpha_k \geq 0, \quad \sum \alpha_k = 1$ | รักษาความเป็นบวกของเศษส่วนเฟส |
+| **การจัดการพจน์แข็ง** | รูปแบบที่ซ่อนเร้น | สำหรับพจน์แหล่งกำเนิดที่แข็ง |
+
+#### 3. ประสิทธิภาพการคำนวณ (Computational Efficiency)
+
+**กลยุทธ์การแก้ปัญหา (Solution Strategies)**:
+- **Solver แบบแยกส่วน (segregated)**: แก้สมการแยกกัน ใช้หน่วยความจำน้อย
+- **Solver แบบควบคู่ (coupled)**: แก้สมการพร้อมกัน ลู่เข้าเร็วขึ้น
+- **ตัวปรับสภาพแบบพีชคณิตหลายกริด (AMG)**: เร่งการลู่เข้าสำหรับระบบเชิงเส้นขนาดใหญ่
+- **การแบ่งส่วนโดเมนแบบขนาน**: ใช้ประโยชน์จาก CPU หลาย cores
+
+[Diagram: การแสดงโครงสร้างคอมพิวเตชันแบบขนานสำหรับการจำลองหลายเฟส]
+
+---
+
+กรอบการทำงานนี้เป็นพื้นฐานทางคณิตศาสตร์สำหรับการจำลองการไหลแบบหลายเฟสแบบออยเลอร์ (Eulerian multiphase flow simulations) ใน OpenFOAM โดยเฉพาะอย่างยิ่งใน Solver เช่น `multiphaseEulerFoam` ซึ่งหลายเฟสถูกปฏิบัติต่อเสมือนเป็นเนื้อเดียวกันที่แทรกซึมซึ่งกันและกัน โดยมีฟิลด์ความเร็วและคุณสมบัติที่แตกต่างกัน

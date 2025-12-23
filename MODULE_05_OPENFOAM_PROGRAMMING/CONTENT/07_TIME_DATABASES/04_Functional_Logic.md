@@ -1,0 +1,225 @@
+# ตรรกะการทำงานและการควบคุมเวลา
+
+![[automatic_archivist.png]]
+`An automated robot librarian (The Time class) checking a set of rules from a controlDict. If a condition is met (e.g., Write Interval reached), it stamps "ARCHIVE" on field data boxes and pushes them into a storage slot labeled with the current time name, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
+
+## 4. กลไก: ตรรกะฟังก์ชันการทำงานและปฏิสัมพันธ์กับ Mesh
+
+### **4.1 การสร้างฟิลด์: "ใบประกาศแรกเกิด"**
+
+ในสถาปัตยกรรมของ OpenFOAM การสร้าง computational field เป็นกระบวนการที่ถูกออกแบบมาอย่างระมัดระวัง ซึ่งกำหนดเอกลักษณ์ คุณสมบัติทางกายภาพ และความสัมพันธ์กับ computational mesh ของฟิลด์นั้นๆ
+
+**Constructor ของ `volScalarField`** ทำหน้าที่เป็น "ใบประกาศแรกเกิด" ของฟิลด์ โดยเข้ารหัสข้อมูลสำคัญที่ควบคุมพฤติกรรมของฟิลด์ตลอดการจำลอง
+
+```cpp
+volScalarField p
+(
+    IOobject
+    (
+        "p",                    // ชื่อฟิลด์
+        runTime.timeName(),     // ไดเรกทอรีเวลา
+        mesh,                   // การอ้างอิง fvMesh
+        IOobject::MUST_READ,    // อ่านจากดิสก์
+        IOobject::AUTO_WRITE    // เขียนโดยอัตโนมัติ
+    ),
+    mesh,                       // Mesh สำหรับกำหนดขนาด
+    dimensionedScalar("p", dimPressure, 101325)  // ค่าเริ่มต้น + หน่วย
+);
+```
+
+![[of_field_construction_params.png]]
+`A diagram showing the parameters of field construction: IOobject metadata, Mesh context, and Initial Value with Units, illustrating how these components combine to form a valid field, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
+
+กระบวนการสร้างนี้เป็นไปตามโปรโตคอลหลายขั้นตอนอย่างเคร่งครัด:
+
+#### **ขั้นที่ 1: การสร้าง IOobject**
+
+กำหนดเอกลักษณ์ถาวรและกลยุทธ์การจัดการข้อมูลของฟิลด์
+
+- **`IOobject`** ทำหน้าที่เป็นอินเทอร์เฟซระหว่างฟิลด์และระบบไฟล์
+- **`IOobject::MUST_READ`** บังคับให้ฟิลด์อ่านจากดิสก์ระหว่างการสร้าง (โดยทั่วไปจากไฟล์ `0/p`)
+- **`IOobject::AUTO_WRITE`** ทำให้มั่นใจได้ว่าจะมีการส่งออกโดยอัตโนมัติในแต่ละ time step
+
+#### **ขั้นที่ 2: การกำหนดขนาดของ Mesh**
+
+กำหนดมิติเชิงพื้นที่ของฟิลด์ผ่านการดำเนินการ `volMesh(mesh).size()`
+
+- นับจำนวน computational cells ใน mesh
+- สร้างความสัมพันธ์หนึ่งต่อหนึ่งระหว่างค่าฟิลด์และเซลล์ของ mesh
+- แน่ใจว่าแต่ละจุดศูนย์ถ่วงของเซลล์จะมีค่าฟิลด์ที่เกี่ยวข้อง
+
+#### **ขั้นที่ 3: การตรวจสอบมิติ**
+
+บังคับใช้ความสม่ำเสมอทางกายภาพผ่านระบบ dimensional analysis ของ OpenFOAM
+
+- **`dimPressure`** (มิติ: $M L^{-1} T^{-2}$) ทำให้มั่นใจได้ว่าการดำเนินการทั้งหมดจะรักษาความสม่ำเสมอของมิติ
+- ป้องกันการคำนวณที่ไม่มีความหมายทางกายภาพในช่วง compile time
+
+#### **ขั้นที่ 4: การตั้งค่าเขตแดน**
+
+อ่านและประมวลผลข้อมูลจำเพาะของเขตแดนจาก field dictionary
+
+- การแยกวิเคราะห์ประเภทของเขตแดน (fixedValue, zeroGradient, เป็นต้น)
+- ค่าที่เกี่ยวข้อง
+- Interpolation schemes
+- สร้างการกำหนดค่าฟิลด์ที่สมบูรณ์ที่จำเป็นสำหรับการจำลอง
+
+### **4.2 การ Overload Operator: "ไวยากรณ์คณิตศาสตร์"**
+
+Field operators ของ OpenFOAM ใช้ไวยากรณ์คณิตศาสตร์ที่ซับซ้อน ซึ่งช่วยให้สามารถคำนวณได้ตรงตามสัญชาตญาณและปลอดภัยต่อมิติ
+
+![[of_operator_overloading_flow.png]]
+`A flowchart showing the process of operator overloading: checking dimensions of operands, applying mathematical rules, and returning a result with derived dimensions, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
+
+#### **OpenFOAM Code Implementation**
+```cpp
+// Dimensional-safe operations
+volScalarField p = rho*R*T;               // p = ρRT (ideal gas law)
+volVectorField gradP = fvc::grad(p);      // ∇p (pressure gradient)
+volScalarField divU = fvc::div(U);        // ∇·U (velocity divergence)
+
+// Compile-time dimensional checking
+dimensionSet dims = p.dimensions() * U.dimensions();  // [p·U] = ML⁻¹T⁻² · LT⁻¹ = ML⁻²T⁻³
+```
+
+ระบบ operator overloading บังคับใช้ฟิสิกส์อย่างเคร่งครัดผ่านการตรวจสอบความสอดคล้องของมิติ:
+
+#### **การดำเนินการเชิงบวก** ($+$, $-$)
+
+- ต้องการมิติที่เหมือนกันระหว่าง operands
+- นิพจน์เช่น `p + T` ล้มเหลวในช่วง compile time
+- ความดัน ($M L^{-1} T^{-2}$) และอุณหภูมิ ($\Theta$) มีมิติที่ไม่เข้ากัน
+- ป้องกันการดำเนินการที่ไม่มีความหมายทางกายภาพ
+
+#### **การดำเนินการเชิงคูณ** ($\times$, $\div$)
+
+- ผสมและทำให้มิติง่ายขึ้นโดยอัตโนมัติตามกฎฟิสิกส์
+- ตัวอย่าง: `U * t` (ความเร็ว $\times$ เวลา) ผลิตการกระจัดโดยธรรมชาติด้วยมิติของความยาว ($L$)
+
+#### **Differential Operators**
+
+ใช้การแปลงมิติเฉพาะที่สะท้อนคำจำกัดความทางคณิตศาสตร์:
+
+| Operator | สัญลักษณ์ | การเปลี่ยนแปลงมิติ | คำอธิบาย |
+|----------|------------|-------------------|------------|
+| Gradient | $\nabla$ | เพิ่ม $L^{-1}$ | อนุพันธ์เชิงพื้นที่ |
+| Divergence | $\nabla \cdot$ | เพิ่ม $L^{-1}$ | การไหลออก |
+| Laplacian | $\nabla^2$ | เพิ่ม $L^{-2}$ | อนุพันธ์อันดับสอง |
+
+ระบบความปลอดภัยของมิตินี้ขยายไปถึงนิพจน์ที่ซับซ้อนเช่น $\nabla \cdot (\rho \mathbf{U})$ ซึ่งระบบจะตรวจสอบโดยอัตโนมัติว่า mass flux divergence รักษามิติที่ถูกต้องของ mass rate per unit volume ($M L^{-3} T^{-1}$)
+
+### **4.3 ปฏิสัมพันธ์กับ Mesh: "บริบทเชิงพื้นที่"**
+
+ความสัมพันธ์ระหว่างฟิลด์และ mesh ใน OpenFOAM เป็นตัวอย่างของการออกแบบเชิงวัตถุที่มีประสิทธิภาพ
+
+#### **OpenFOAM Code Implementation**
+```cpp
+// Field knows its mesh through GeoMesh template
+const fvMesh& mesh = p.mesh();  // Access underlying mesh
+
+// Mesh-aware operations
+const vectorField& cellCenters = mesh.C();  // Cell center coordinates
+const scalarField& cellVolumes = mesh.V();  // Cell volumes
+
+// Field interpolation uses mesh geometry
+surfaceScalarField phi = linearInterpolate(U) & mesh.Sf();  // Flux
+```
+
+#### **สถาปัตยกรรม Reference-Based Design**
+
+`GeometricField` objects เก็บการอ้างอิงไปยัง mesh ของตนมากกว่าเป็นเจ้าของโดยตรง
+
+**ประโยชน์ของ Reference-Based Design:**
+
+| คุณสมบัติ | คำอธิบาย | ประโยชน์ |
+|------------|------------|------------|
+| **ประสิทธิภาพหน่วยความจำ** | ฟิลด์หลายฟิลด์อ้างอิง mesh เดียวกันได้ | ลดการใช้หน่วยความจำอย่างมีนัยสำคัญ |
+| **การรับประกันการซิงโครไนซ์** | ฟิลด์อ้างอิง mesh มากกว่าการคัดลอก | การปรับเปลี่ยน mesh สะท้อนโดยอัตโนมัติ |
+| **ความเข้ากันได้แบบขนาน** | ข้อมูลฟิลด์ตาม mesh partitioning โดยธรรมชาติ | รองรับ domain decomposition ราบรื่น |
+
+#### **การดำเนินการเชิงพื้นที่ที่ซับซ้อน**
+
+ความตระหนักเกี่ยวกับ mesh ช่วยให้การดำเนินการเชิงพื้นที่ที่ซับซ้อนซึ่งใช้ประโยชน์จากข้อมูลทางเรขาคณิต:
+
+- **การคำนวณ Flux**: `phi = linearInterpolate(U) & mesh.Sf()`
+  - คำนวณ face fluxes โดยการ interpolation ค่าความเร็วจากจุดศูนย์ถ่วงของเซลล์ไปยังจุดศูนย์ถ่วงของหน้า
+  - Dot product กับเวกเตอร์ปกติของพื้นผิวหน้า $\mathbf{S_f}$
+
+- **การคำนวณ Gradient**:
+  - อนุพันธ์เชิงพื้นที่ใช้ mesh connectivity
+  - สร้าง finite-volume approximations โดยยึดตามค่าของเซลล์ใกล้เคียงและเรขาคณิตของหน้า
+
+- **การดำเนินการ Integration**:
+  - Volume integrals ใช้ `mesh.V()`
+  - ถ่วงน้ำหนักค่าฟิลด์ด้วยปริมาตรเซลล์สำหรับการ integration เชิงพื้นที่ที่แม่นยำ
+
+### **4.4 การจัดการเวลา: "ความทรงจำเชิงเวลา"**
+
+OpenFOAM ใช้ระบบการจัดการเวลาที่ซับซ้อน ซึ่งช่วยให้ temporal discretization ที่แม่นยำในขณะเดียวกันรักษาประสิทธิภาพการคำนวณ
+
+![[of_time_management_history.png]]
+`A diagram showing the temporal memory of a field: the current state (t), the old state (t-dt), and the old-old state (t-2dt), illustrating how they are used in temporal discretization schemes, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
+
+#### **OpenFOAM Code Implementation**
+```cpp
+void GeometricField::storeOldTime() {
+    if (!field0Ptr_) {
+        field0Ptr_ = new GeometricField(*this);  // Copy current field
+    }
+}
+
+scalarField ddt = (p - p.oldTime())/runTime.deltaT();  // ∂p/∂t ≈ Δp/Δt
+```
+
+#### **สถาปัตยกรรมการจัดการเวลา**
+
+สนับสนุนหลาย temporal discretization schemes ผ่านระบบจัดเก็บแบบลำดับชั้น:
+
+**กลยุทธ์การจัดสรรแบบล่าช้า**:
+- วิธี `storeOldTime()` ใช้การจัดการหน่วยความจำที่มีประสิทธิภาพ
+- จัดสรรพื้นที่จัดเก็บสำหรับระดับเวลาก่อนหน้าเฉพาะเมื่อต้องการ
+- ป้องกันการใช้หน่วยความจำโดยไม่จำเป็นในการจำลองสภาวะคงที่
+
+#### **Temporal Schemes และการจัดเก็บ**
+
+| Scheme | ระดับเวลาที่ต้องการ | การจัดเก็บ | สมการ |
+|--------|---------------------|-------------|----------|
+| **Euler implicit** | 1 ระดับ ($p^{n}$) | `field0Ptr_` | $p^{n+1} = p^n + \Delta t \cdot f(p^{n+1})$ |
+| **Backward differentiation** | 2 ระดับ ($p^{n}$, $p^{n-1}$) | `oldTime()` ซ้อนกัน | - |
+| **Crank-Nicolson** | 2 ระดับ | การถ่วงน้ำหนัก | $p^{n+\frac{1}{2}} = \frac{1}{2}(p^n + p^{n+1})$ |
+
+#### **การคำนวณอนุพันธ์เชิงเวลา**
+
+ตามการประมาณค่า finite-difference มาตรฐาน:
+$$\frac{\partial p}{\partial t} \approx \frac{p^{n+1} - p^n}{\Delta t}$$
+
+ระบบนี้ช่วยให้ OpenFOAM สามารถสลับระหว่าง temporal schemes ที่แตกต่างกันได้อย่างราบรื่นโดยไม่ต้องแก้ไขโค้ด เนื่องจากระบบการจัดการฟิลด์จะจัดหาข้อมูลประวัติศาสตร์ที่จำเป็นโดยอัตโนมัติตาม discretization method ที่เลือก
+
+---
+
+## 2. กลไกการบันทึกผลลัพธ์ (`runTime.write()`)
+
+```mermaid
+graph TD
+    W[Call runTime.write] --> C{Check controlDict Conditions}
+    C -- "Interval NOT reached" --> End[Continue Loop]
+    C -- "Interval Reached" --> Scan[Scan objectRegistry for AUTO_WRITE]
+    Scan --> Loop[For each regIOobject]
+    Loop --> Write[obj.write]
+    Write --> Done[Folder Created & Data Saved]
+```
+
+### **2.1 สถาปัตยกรรม Reference-Based Design**
+
+`GeometricField` objects เก็บการอ้างอิงไปยัง mesh ของตนมากกว่าเป็นเจ้าของโดยตรง
+
+**ประโยชน์ของ Reference-Based Design:**
+
+| คุณสมบัติ | คำอธิบาย | ประโยชน์ |
+|------------|------------|------------|
+| **ประสิทธิภาพหน่วยความจำ** | ฟิลด์หลายฟิลด์อ้างอิง mesh เดียวกันได้ | ลดการใช้หน่วยความจำอย่างมีนัยสำคัญ |
+| **การรับประกันการซิงโครไนซ์** | ฟิลด์อ้างอิง mesh มากกว่าการคัดลอก | การปรับเปลี่ยน mesh สะท้อนโดยอัตโนมัติ |
+| **ความเข้ากันได้แบบขนาน** | ข้อมูลฟิลด์ตาม mesh partitioning โดยธรรมชาติ | รองรับ domain decomposition ราบรื่น |
+
+> [!INFO] **สรุปการทำงาน**
+> การเรียกใช้ `runTime.write()` เพียงบรรทัดเดียวในโค้ด คือการสั่งให้ "ฐานข้อมูลออบเจกต์" ทั้งหมดทำการสำรองข้อมูลลงดิสก์อย่างเป็นระบบตามเงื่อนไขที่เราตั้งไว้

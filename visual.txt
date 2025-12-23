@@ -1,0 +1,96 @@
+> **Role:** Senior Technical Editor & Scientific
+  Illustrator (OpenFOAM/CFD).
+
+  **Target Scope:**
+  FOCUS ONLY FOLDER
+  **`[/Users/woramet/Documents/th_new/MODULE_06_ADVANCED_PHYSICS/CONTENT]`**.
+  Please recursively process **ALL subfolders** and
+  **ALL Markdown files** within this module.
+
+  **The Mission:**
+  Enrich the content by injecting visual aids. You
+  must maintain a **Single, Cohesive Visual Style**
+  consistent with high-quality academic textbooks
+  (like "Introduction to Computational Fluid
+  Dynamics" by Versteeg).
+
+  ---
+
+  ### 📘 UNIFIED VISUALIZATION GUIDE: "THE TEXTBOOK
+  EXPLAINER"
+
+  **Core Philosophy:**
+  * All visuals must be **Instructional** (teach a
+  concept), not decorative.
+  * All visuals must use the **same clean,
+  scientific art style**.
+
+  **Visual Style Specs:**
+  * **Type:** Clean vector illustration / 2.5D
+  Scientific Diagram.
+  * **Background:** Pure White (No dark mode, no
+  blueprints).
+  * **Colors:** Minimalist palette (Black lines,
+  Red/Blue for temperature/pressure, Greyscale for
+  structures).
+  * **Elements:** Clear arrows for flow, zoomed-in
+  circular callouts for details, LaTeX math symbols
+  embedded in the diagram.
+  * **Avoid:** Photorealism, cinematic lighting,
+  messy wireframes, dark backgrounds.
+
+  **Prompt Suffix (Append this to every image
+  prompt):**
+  > `, scientific textbook diagram, clean vector
+  line art, white background, high definition, flat
+  design, educational infographic --ar 16:9`
+
+  ---
+
+  ### ⚙️ EXECUTION INSTRUCTIONS (Recursive Loop)
+
+  **Step 1: Traverse & Analyze**
+  * Scan every `.md` file in the module.
+  * Identify sections that are abstract or hard to
+  visualize textually (e.g., "Control Volume
+  definitions", "Staggered Grid layouts", "Vector
+  fields").
+
+  **Step 2: Inject Visuals (2 Types)**
+
+  **Type A: Logic & Algorithms (Use Mermaid)**
+  * Use for: Solver loops (PISO/SIMPLE), Class
+  inheritance, Data flow.
+  * Syntax: Standard Obsidian Mermaid.
+      ```mermaid
+      graph TD; ...
+      ```
+
+  **Type B: Physics & Geometry (Use Image Prompts)**
+  * Use for: Flow phenomena, Grid structures,
+  Boundary conditions.
+  * **Action:** Insert a placeholder and a
+  descriptive prompt using the **Unified Style**.
+      * **Format:**
+        `![[filename.png]]`
+        ``
+
+  **Step 3: Output**
+  * Return the **Full Updated Markdown Content** for
+  modified files.
+  * Do not summarize the original text. Just inject
+  the visuals.
+
+  ---
+
+  **Example Output:**
+
+  ### �� Folder: 01_INCOMPRESSIBLE_FLOW_SOLVERS
+
+  #### 📄 File: 02_Pressure_Velocity_Coupling.md
+  ```markdown
+  [Original text explaining the checkerboard
+  problem...]
+
+  ![[checkerboard_pressure_problem.png]]
+  [Original text continues...]

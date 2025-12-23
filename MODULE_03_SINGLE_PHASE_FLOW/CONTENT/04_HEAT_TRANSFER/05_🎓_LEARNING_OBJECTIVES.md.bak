@@ -1,0 +1,273 @@
+## 🎓 วัตถุประสงค์การเรียนรู้
+
+เมื่อสิ้นสุดโมดูลนี้ ผู้เรียนควรจะสามารถ:
+
+### 1. ตั้งค่าการจำลองการถ่ายเทความร้อนใน OpenFOAM
+
+ตั้งค่าการจำลองการถ่ายเทความร้อนที่สมบูรณ์โดยการทำความเข้าใจการนำสมการพลังงานพื้นฐานไปใช้ใน OpenFOAM:
+
+$$\rho c_p \frac{\partial T}{\partial t} + \rho c_p \mathbf{u} \cdot \nabla T = \nabla \cdot (k \nabla T) + Q$$
+
+โดยที่:
+- $\rho$ คือ **ความหนาแน่นของของไหล** (fluid density)
+- $c_p$ คือ **ความจุความร้อนจำเพาะ** (specific heat capacity)
+- $T$ คือ **สนามอุณหภูมิ** (temperature field)
+- $\mathbf{u}$ คือ **เวกเตอร์ความเร็ว** (velocity vector)
+- $k$ คือ **สภาพนำความร้อน** (thermal conductivity)
+- $Q$ คือ **แหล่งกำเนิดหรือแหล่งระบายความร้อน** (heat sources or sinks)
+
+ผู้เรียนจะได้เรียนรู้วิธีการทำงานที่สมบูรณ์ตั้งแต่:
+- **การเริ่มต้นเคส** (case initialization)
+- **การเตรียม Mesh**
+- **การกำหนดค่าเริ่มต้นของฟิลด์** (field initialization)
+- **การเลือก Solver** และพารามิเตอร์ควบคุมสำหรับปัญหาการถ่ายเทความร้อน
+- **การลู่เข้าของผลเฉลย** (solution convergence)
+
+[Diagram: Energy equation terms with arrows showing convection, diffusion, and source terms]
+
+### 2. กำหนดค่าคุณสมบัติทางเทอร์โมฟิสิกส์
+
+กำหนดค่าและเลือกแบบจำลองทางเทอร์โมฟิสิกส์ (thermophysical models) ที่เหมาะสมตามข้อกำหนดของการจำลอง:
+
+#### แบบจำลองทางเทอร์โมฟิสิกส์แบบอัดตัวไม่ได้ (Incompressible Thermophysical Models)
+
+| แบบจำลอง | คุณสมบัติ | การใช้งาน |
+|-----------|-----------|----------|
+| `hConstThermo` | ความจุความร้อนจำเพาะคงที่, ความหนาแน่นแบบพหุนาม | ของไหลที่มีคุณสมบัติคงที่ |
+| `eConstThermo` | พลังงานภายในคงที่, ความหนาแน่นแบบพหุนาม | การวิเคราะห์พลังงานภายใน |
+| `icoPolynomial` | ความหนาแน่นและคุณสมบัติการนำส่งแบบพหุนาม | ของไหลที่มีคุณสมบัติขึ้นกับอุณหภูมิ |
+
+#### แบบจำลองทางเทอร์โมฟิสิกส์แบบอัดตัวได้ (Compressible Thermophysical Models)
+
+| แบบจำลอง | คุณสมบัติ | การใช้งาน |
+|-----------|-----------|----------|
+| `perfectGas` | พฤติกรรมของแก๊สในอุดมคติพร้อมคุณสมบัติที่ขึ้นกับอุณหภูมิ | แก๊สในอุดมคติ |
+| `hThermo` | สูตรที่ใช้เอนทาลปีสำหรับของไหลแบบอัดตัวได้ | การไหลแบบอัดตัวได้ |
+| `psiThermo` | สูตรที่ใช้การอัดตัวได้ | การวิเคราะห์การอัดตัว |
+
+#### การระบุคุณสมบัติ (Property Specification)
+
+```cpp
+// ตัวอย่างการกำหนดค่า thermophysicalProperties
+thermoType
+{
+    type            hePsiThermo;
+    mixture         pureMixture;
+    transport       sutherland;
+    thermo          janaf;
+    energy          sensibleEnthalpy;
+    equationOfState perfectGas;
+    specie          specie;
+}
+```
+
+### 3. การประยุกต์ใช้เงื่อนไขขอบเขตความร้อนที่เหมาะสม (Thermal Boundary Conditions)
+
+นำไปใช้และกำหนดค่าเงื่อนไขขอบเขตความร้อนสำหรับสถานการณ์การถ่ายเทความร้อนต่างๆ:
+
+#### อุณหภูมิคงที่ (Fixed Temperature - Dirichlet)
+
+```cpp
+walls
+{
+    type            fixedValue;
+    value           uniform 300;  // K
+}
+```
+
+#### ฟลักซ์ความร้อนคงที่ (Fixed Heat Flux - Neumann)
+
+```cpp
+heatedWall
+{
+    type            fixedGradient;
+    gradient        uniform 1000;  // W/m²
+}
+```
+
+#### การถ่ายเทความร้อนแบบพา (Convective Heat Transfer)
+
+```cpp
+externalWall
+{
+    type            externalWallHeatFluxTemperature;
+    mode            coefficient;
+    hConstant       uniform 25;    // W/m²K
+    Ta              uniform 293;   // K
+}
+```
+
+#### เงื่อนไขขอบเขตการแผ่รังสี (Radiation Boundary Conditions)
+
+| ประเภท | การใช้งาน |
+|--------|-------------|
+| `greyDiffusiveRadiation` | การแผ่รังสีแบบพื้นผิวสีเทาแบบกระจาย (Diffuse gray surface radiation) |
+| `viewFactorRadiation` | การแผ่รังสีแบบใช้ View Factor (View factor-based radiation) |
+| `solarLoad` | การรับภาระรังสีดวงอาทิตย์ (Solar radiation loading) |
+
+[Diagram: Different thermal boundary conditions showing temperature, flux, and convective boundaries]
+
+### 4. การแก้ปัญหาการไหลและการถ่ายเทความร้อนแบบควบคู่ (Coupled Flow and Heat Transfer Problems)
+
+เรียนรู้วิธีการแก้สมการโมเมนตัมและพลังงานแบบควบคู่โดยใช้อัลกอริทึมที่เหมาะสม:
+
+#### อัลกอริทึม SIMPLE (สำหรับสภาวะคงตัว - Steady-State)
+
+```cpp
+SIMPLE
+{
+    nNonOrthogonalCorrectors 2;
+    pRefCell        0;
+    pRefValue       0;
+}
+```
+
+#### อัลกอริทึม PISO (สำหรับสภาวะไม่คงตัว - Transient)
+
+```cpp
+PISO
+{
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 0;
+    pRefCell        0;
+    pRefValue       0;
+}
+```
+
+#### อัลกอริทึม PIMPLE (แบบผสม - Combined)
+
+```cpp
+PIMPLE
+{
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 0;
+    nOuterCorrectors 1;
+    nAlphaCorr      1;
+}
+```
+
+#### กลไกการควบคู่ระหว่างสนามความเร็วและสนามอุณหภูมิ:
+
+- **ผลกระทบจากแรงลอยตัว (Buoyancy effects)**:
+  - การประมาณค่า Boussinesq
+  - แรงลอยตัวเต็มรูปแบบ (Boussinesq approximation vs. full buoyancy)
+
+- **ผลกระทบของคุณสมบัติที่แปรผันต่อสนามการไหล (Variable property effects on flow field)**
+
+- **การควบคู่ความดัน-ความเร็วพร้อมความหนาแน่นที่ขึ้นกับอุณหภูมิ (Pressure-velocity coupling with temperature-dependent density)**
+
+[Diagram: Flow chart showing coupled velocity-temperature solving loop]
+
+### 5. การคำนวณสัมประสิทธิ์การถ่ายเทความร้อน (Heat Transfer Coefficients)
+
+คำนวณและวิเคราะห์ประสิทธิภาพการถ่ายเทความร้อนโดยใช้วิธีการต่างๆ:
+
+#### สัมประสิทธิ์การถ่ายเทความร้อนเฉพาะที่ (Local Heat Transfer Coefficient)
+
+คำนวณสัมประสิทธิ์การถ่ายเทความร้อนแบบพาโดยใช้กฎการเย็นตัวของนิวตัน (Newton's law of cooling):
+
+$$h = \frac{q''}{T_w - T_\infty}$$
+
+โดยที่:
+- $q''$ คือ **ฟลักซ์ความร้อนที่ผนัง** (wall heat flux)
+- $T_w - T_\infty$ คือ **ผลต่างของอุณหภูมิ** (temperature difference)
+
+#### สมการความสัมพันธ์ของจำนวนนัสเซิลต์ (Nusselt Number Correlations)
+
+คำนวณพารามิเตอร์การถ่ายเทความร้อนแบบไร้มิติ (dimensionless heat transfer parameters):
+
+$$\mathrm{Nu} = \frac{h L}{k}$$
+
+สำหรับสภาวะการไหลต่างๆ:
+
+| สภาวะการไหล | สมการความสัมพันธ์ | ข้อจำกัด |
+|--------------|-------------------|----------|
+| ลามินาร์ (Laminar) | $\mathrm{Nu} = 3.66$ | อุณหภูมิผนังคงที่, พัฒนาเต็มที่ |
+| ปั่นป่วน (Turbulent) | $\mathrm{Nu} = 0.023\mathrm{Re}^{0.8}\mathrm{Pr}^{n}$ | สมการความสัมพันธ์ Dittus-Boelter |
+
+#### ฟังก์ชันหลังการประมวลผล (Post-Processing Functions)
+
+```cpp
+// คำนวณฟลักซ์ความร้อนที่ผนัง
+wallHeatFlux
+{
+    type            wallHeatFlux;
+    fields          (T);
+    region          region0;
+}
+
+// คำนวณสัมประสิทธิ์การถ่ายเทความร้อนที่พื้นผิว
+wallHeatTransferCoeff
+{
+    type            wallHeatTransferCoeff;
+    fields          (T);
+    region          region0;
+}
+```
+
+### 6. การตรวจสอบความถูกต้องของการจำลองการถ่ายเทความร้อน (Validate Heat Transfer Simulations)
+
+นำกลยุทธ์การตรวจสอบความถูกต้องที่ครอบคลุมสำหรับการจำลองการถ่ายเทความร้อนไปใช้:
+
+#### กรณีตรวจสอบด้วยวิธีวิเคราะห์ (Analytical Validation Cases)
+
+- **การนำความร้อนแบบคงที่ในผนังระนาบ**: เปรียบเทียบกับผลเฉลยเชิงวิเคราะห์ (Steady conduction in a plane wall: Compare with analytical solution)
+- **การไหลที่ถ่ายเทความร้อนแบบพัฒนาเต็มที่**: ตรวจสอบสมการความสัมพันธ์ของจำนวนนัสเซิลต์ (Fully developed thermal flow: Verify Nusselt number correlations)
+- **การพาความร้อนตามธรรมชาติ**: ตรวจสอบความสัมพันธ์กับจำนวนเรย์ลี (Natural convection: Validate Rayleigh number dependencies)
+
+#### การตรวจสอบด้วยการทดลอง (Experimental Validation)
+
+| วิธีการ | รายละเอียด |
+|----------|-------------|
+| ปัญหามาตรฐาน (Benchmark problems) | กรณีศึกษา ASHRAE, ERCOFTAC |
+| การศึกษาความเป็นอิสระของกริด (Grid independence studies) | การวิเคราะห์การปรับปรุง Mesh อย่างเป็นระบบ |
+| ความไวต่อขั้นเวลา (Time step sensitivity) | สำหรับปัญหาการถ่ายเทความร้อนแบบไม่คงตัว |
+
+#### ตัวชี้วัดการตรวจสอบความถูกต้อง (Validation Metrics)
+
+- **การกระจายตัวของอุณหภูมิ**: การเปรียบเทียบ ณ จุดและสนาม (Temperature distributions: Point-wise and field comparisons)
+- **อัตราการถ่ายเทความร้อน**: ปริมาณรวมและค่าเฉพาะที่ (Heat transfer rates: Integral quantities and local values)
+- **จำนวนนัสเซิลต์**: เปรียบเทียบกับสมการความสัมพันธ์ที่ยอมรับกัน (Nusselt numbers: Compare with established correlations)
+- **เกณฑ์การลู่เข้า**: ค่า Residuals และความเสถียรของผลเฉลย (Convergence criteria: Residuals and solution stability)
+
+#### การวิเคราะห์ข้อผิดพลาด (Error Analysis)
+
+| ประเภทข้อผิดพลาด | รายละเอียด |
+|-------------------|-------------|
+| ข้อผิดพลาดจากการประมาณค่าผลต่าง (Discretization errors) | การลู่เข้าเชิงพื้นที่และเชิงเวลา |
+| ข้อผิดพลาดจากแบบจำลอง (Modeling errors) | ความไม่แน่นอนของแบบจำลองการปั่นป่วนและการแผ่รังสี |
+| ข้อผิดพลาดจากเงื่อนไขขอบเขต (Boundary condition errors) | ความเหมาะสมของเงื่อนไขขอบเขตความร้อน |
+| ข้อผิดพลาดจากข้อมูลคุณสมบัติ (Property data errors) | ความแม่นยำของคุณสมบัติทางเทอร์โมฟิสิกส์ |
+
+[Diagram: Validation workflow showing analytical, experimental, and error analysis paths]
+
+### จุดเน้นการพัฒนาทักษะ (Skills Development Focus)
+
+โมดูลนี้เน้นทักษะการนำไปปฏิบัติจริงควบคู่กับความเข้าใจเชิงทฤษฎี เพื่อให้ผู้เรียนสามารถ:
+
+#### ทักษะการเลือก Solver ที่เหมาะสม
+
+เลือกระหว่าง Solver ต่างๆ โดยพิจารณาจากลักษณะของปัญหา:
+
+| Solver | การใช้งาน | ลักษณะปัญหา |
+|--------|-------------|--------------|
+| `buoyantSimpleFoam` | การไหลคงตัวพร้อมแรงลอยตัว | สภาวะคงตัว |
+| `buoyantBoussinesqSimpleFoam` | การไหลคงตัวพร้อมการประมาณค่า Boussinesq | ความแตกต่างอุณหภูมิเล็กน้อย |
+| `buoyantPimpleFoam` | การไหลไม่คงตัวพร้อมแรงลอยตัว | สภาวะไม่คงตัว |
+| `reactingFoam` | การไหลเคมีเคมีพลศาสตร์ | ปฏิกิริยาเคมี |
+
+#### ทักษะการปรับปรุงพารามิเตอร์การจำลองให้เหมาะสม
+
+สร้างสมดุลระหว่างความแม่นยำกับต้นทุนการคำนวณสำหรับปัญหาการถ่ายเทความร้อน
+
+#### ทักษะการแก้ไขปัญหาการลู่เข้า (Troubleshoot convergence issues)
+
+ระบุและแก้ไขปัญหาทั่วไปในการจำลองการไหลและการถ่ายเทความร้อนแบบควบคู่
+
+#### ทักษะการตีความผลลัพธ์อย่างมีความหมาย
+
+ดึงข้อมูลเชิงลึกที่มีความหมายทางกายภาพจาก:
+- สนามอุณหภูมิ
+- ข้อมูลฟลักซ์ความร้อน
+
+ลำดับการเรียนรู้จะสร้างขึ้นจากแนวคิดพื้นฐานไปสู่การประยุกต์ใช้ขั้นสูง เพื่อให้มั่นใจในความสามารถที่ครอบคลุมในการสร้างแบบจำลองการถ่ายเทความร้อนด้วย OpenFOAM

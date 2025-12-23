@@ -1,0 +1,437 @@
+# ปัญหา Benchmark สำหรับการตรวจสอบความถูกต้องของการไหลแบบ Multiphase
+
+## 1. การลอยของฟองเดี่ยว
+
+### การกำหนดค่าทางกายภาพ
+
+**การตั้งค่า**: ปัญหาการลอยของฟองเดี่ยวเป็น benchmark พื้นฐานสำหรับการตรวจสอบความถูกต้องของ solver แบบ multiphase flow
+
+[Diagram: ฟองอากาศเดี่ยวที่ลอยขึ้นผ่านน้ำที่สงบเนื่องจากแรง buoyancy]
+
+การกำหนดค่าประกอบด้วยฟองอากาศเดี่ยวที่ลอยขึ้นผ่านน้ำที่สงบเนื่องจากแรง buoyancy กรณีทดสอบนี้มีคุณค่าอย่างยิ่งเพราะมันครอบคลุมปรากฏการณ์ของส่วนติดต่อที่ซับซ้อนรวมถึงผลของความตึงผิว การเคลื่อนที่ที่ขับเคลื่อนด้วยความหนาแน่น และการเปลี่ยนรูปทรง
+
+**ข้อกำหนดโดเมน**:
+- ช่วงเส้นผ่านศูนย์กลางฟอง: 2-10 มม. (ครอบคลุมระบบการเปลี่ยนรูปทรงที่แตกต่างกัน)
+- โดเมนคำนวณ: 10 เส้นผ่านศูนย์กลางฟองในแต่ละทิศทางพิกัดเพื่อลดผลของผนัง
+- เงื่อนไขเริ่มต้น: ฟองทรงกลมที่หยุดนิ่งในน้ำ อนุญาตให้มีการเร่งความเร็วตามธรรมชาติเนื่องจาก buoyancy
+
+### พารามิเตอร์ควบคุม
+
+พลศาสตร์ของฟองถูกควบคุมโดยพารามิเตอร์ไร้มิติสำคัญสามประการที่ระบุความสำคัญสัมพัทธ์ของกลไกทางกายภาพที่แตกต่างกัน:
+
+**จำนวน Eötvös (Eo)** - อัตราส่วนของแรง buoyancy ต่อแรงความตึงผิว:
+$$Eo = \frac{g(\rho_l - \rho_g)d_b^2}{\sigma}$$
+
+- $g$: ความเร่งโน้มถ่วง
+- $\rho_l$, $\rho_g$: ความหนาแน่นของของเหลวและก๊าซตามลำดับ
+- $d_b$: เส้นผ่านศูนย์กลางเทียบเท่าของฟอง
+- $\sigma$: ความตึงผิว
+
+**จำนวน Reynolds ของฟอง (Re_b)** - อัตราส่วนของแรงเฉื่อยยวังต่อแรงหนืด:
+$$Re_b = \frac{\rho_l u_t d_b}{\mu_l}$$
+
+- $u_t$: ความเร็วลอยขั้นสุดท้าย
+- $\mu_l$: ความหนืดไดนามิกของของเหลว
+
+**จำนวน Morton (Mo)** - ระบุคุณสมบัติของของไหลโดยไม่ขึ้นกับขนาดฟอง:
+$$Mo = \frac{g\mu_l^4(\rho_l - \rho_g)}{\rho_l^2 \sigma^3}$$
+
+พารามิเตอร์เหล่านี้กำหนดระบบรูปทรงของฟอง (ทรงกลม รูปไข่ หรือแบบกระโปรง) และเป็นสิ่งจำเป็นสำหรับการตรวจสอบความถูกต้องอย่างเหมาะสม
+
+### ผลลัพธ์ที่คาดหวังและสหสัมพันธ์การตรวจสอบความถูกต้อง
+
+**สหสัมพันธ์ความเร็วลอยขั้นสุดท้าย**:
+
+การตรวจสอบความถูกต้องของ benchmark ขึ้นอยู่กับสหสัมพันธ์การทดลองที่ได้รับการยอมรับ โดยเฉพาะสหสัมพันธ์ของ Grace et al. (1976) สำหรับความเร็วลอยขั้นสุดท้ายของฟอง:
+
+$$u_t = \frac{\mu_l}{\rho_l d_b} m^{m-1} Re_b$$
+
+โดยที่เลขชี้กำลัง $m$ และจำนวน Reynolds $Re_b$ เป็นฟังก์ชันของจำนวน Eötvös และ Morton สหสัมพันธ์นี้ให้ความเร็วลอยขั้นสุดท้ายที่ทำนายได้ในระบบรูปทรงฟองที่แตกต่างกันและได้รับการตรวจสอบความถูกต้องอย่างกว้างขวางกับข้อมูลการทดลอง
+
+สำหรับวัตถุประสงค์การตรวจสอบความถูกต้อง ผลลัพธ์การจำลองควรถูกเปรียบเทียบกับ:
+
+1. **ความเร็วขั้นสุดท้าย**: เปรียบเทียบความเร็วลอยสถานะคงที่กับสหสัมพันธ์ของ Grace
+2. **รูปทรงฟอง**: การเปรียบเทียบเชิงคุณภาพกับแผนที่ระบบการทดลอง
+3. **เสถียรภาพเส้นทาง**: ประเมินว่าฟองเคลื่อนที่เป็นเส้นตรง แบบสลับซิกแซก หรือเป็นเกลียวหรือไม่
+
+### การ Implement ใน OpenFOAM
+
+การ implement ใน OpenFOAM ต้องการการตั้งค่าเงื่อนไขเริ่มต้นอย่างระมัดระวังและการเลือกโมเดล multiphase อย่างเหมาะสม:
+
+**การตั้งค่าเงื่อนไขเริ่มต้น**:
+
+```cpp
+// 0/U (ความเร็วเริ่มต้น - ฟองหยุดนิ่ง)
+dimensions      [0 1 -1 0 0 0 0];
+internalField   uniform 0;
+
+// 0/alpha.gas (ส่วนของเฟสเริ่มต้น)
+dimensions      [0 0 0 0 0 0 0];
+internalField   uniform 0;
+
+// เพิ่มการกำหนดค่าเริ่มต้นฟองทรงกลม
+const Vector<double> bubbleCenter(0.05, 0.05, 0.05);
+const scalar bubbleRadius = 0.005;  // 5 มม.
+
+forAll(alphaGas, celli)
+{
+    const Vector<double>& cellCenter = mesh.C()[celli];
+    scalar r = mag(cellCenter - bubbleCenter);
+
+    if (r <= bubbleRadius)
+    {
+        alphaGas[celli] = 1.0;
+    }
+}
+```
+
+**การกำหนดค่า Solver**:
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| **Solver** | `multiphaseEulerFoam` หรือ `interFoam` | ขึ้นอยู่กับระบบการไหล |
+| **โมเดลความตึงผิว** | `CSF` (Continuum Surface Force) | การจำลองแรงความตึงผิว |
+| **การบีบอัดส่วนติดต่อ** | เปิดใช้งาน | การทำให้ส่วนติดต่อคมขึ้นเชิงตัวเลข |
+| **การกำหนดเวลา** | Courant number < 0.3 | ควบคุมเสถียรภาพส่วนติดต่อ |
+
+### เมตริกการตรวจสอบความถูกต้องและการประมวลผลหลัง
+
+**โค้ดการตรวจสอบความถูกต้องอย่างครอบคลุม**:
+
+```cpp
+// คำนวณการติดตามความเร็วลอยของฟอง
+scalar bubbleVelocity = average(U_gas.component(2));  // คอมโพเนนต์ z
+
+// คำนวณพารามิเตอร์ไร้มิติสำหรับสหสัมพันธ์
+scalar Eo = (rho_liquid - rho_gas) * 9.81 * pow(bubbleRadius*2, 2) / sigma;
+scalar Mo = 9.81 * pow(mu_liquid, 4) * (rho_liquid - rho_gas) /
+          (pow(rho_liquid, 2) * pow(sigma, 3));
+
+// คำนวณความเร็วลอยขั้นสุดท้ายเชิงทฤษฎีโดยใช้สหสัมพันธ์ของ Grace
+scalar u_t_corr = calculateGraceCorrelation(Eo, Mo, bubbleRadius*2);
+
+// คำนวณเมตริกการตรวจสอบความถูกต้อง
+scalar velocityError = mag(bubbleVelocity - u_t_corr) / u_t_corr;
+Info << "Bubble velocity error: " << velocityError * 100 << "%" << endl;
+Info << "Simulated velocity: " << bubbleVelocity << " m/s" << endl;
+Info << "Theoretical velocity: " << u_t_corr << " m/s" << endl;
+
+// เมตริกรูปทรงฟองเพิ่มเติม
+scalar bubbleVolume = sum(alphaGas * mesh.V());
+scalar equivalentDiameter = pow(6 * bubbleVolume / constant::mathematical::pi, 1.0/3.0);
+scalar aspectRatio = calculateBubbleAspectRatio(alphaGas);
+```
+
+**เกณฑ์การยอมรับ**:
+
+| Metric | Acceptance Criteria | Application Range |
+|--------|---------------------|-------------------|
+| **ความคลาดเคลื่อนความเร็ว** | < 10% | ฟองทรงกลม |
+| **ความคลาดเคลื่อนความเร็ว** | < 15% | ฟองที่เปลี่ยนรูป |
+| **การรักษารูปทรง** | ความคลาดเคลื่อน < 2% | การอนุรักษ์ปริมาตร |
+| **การบรรจบกันของเกรด** | แสดงผล | การละเอียดของ mesh |
+
+## 2. การไหลแบบ Stratified สองเฟส
+
+### การกำหนดค่าทางกายภาพ
+
+**การตั้งค่า**: การไหลแบบ stratified ในท่อแนวนอนเป็นรูปแบบการไหลแบบสองเฟสพื้นฐานที่พบได้ในแอปพลิเคชันอุตสาหกรรมหลายแห่ง โดยเฉพาะในการขนส่งในท่อของส่วนผสมแก๊ส-ของเหลว
+
+[Diagram: ท่อแนวนอนที่มีการไหลแบบ stratified โดยแก๊สไหลบนและของเหลวไหลล่าง]
+
+benchmark นี้ตรวจสอบความสามารถของ solver ในการจับภาพการจัดเรียงแบบ stratified ที่ขับเคลื่อนโดยแรงโน้มถ่วงและการแลกเปลี่ยนโมเมนตัมของส่วนติดต่อ
+
+**พารามิเตอร์เรขาคณิตและการดำเนินงาน**:
+- **การกำหนดค่าท่อ**: ท่อวงกลมแนวนอน
+- **เส้นผ่านศูนย์กลาง**: 0.05 ม. (มาตรฐานอุตสาหกรรม)
+- **ความยาว**: 10 เส้นผ่านศูนย์กลาง (0.5 ม.) เพื่อให้แน่ใจว่าการไหลพัฒนาอย่างเต็มที่
+- **ช่วงความเร็วแก๊ส**: 1-10 ม./วินาที (ครอบคลุมการไหลแก๊สจากแบบ laminar ถึง turbulent)
+- **ช่วงความเร็วของเหลว**: 0.1-1 ม./วินาที (เป็นตัวแทนของเงื่อนไขการดำเนินงานจริง)
+
+**โซนการพัฒนาการไหล**:
+1. **โซนทางเข้า**: การพัฒนาการไหลและการสร้างรูปแบบแบบ stratified
+2. **โซนการพัฒนา**: การทำให้เสถียรของส่วนติดต่อและโปรไฟล์ความเร็ว
+3. **โซนการวัด**: การไหลแบบ stratified ที่พัฒนาอย่างเต็มที่สำหรับการตรวจสอบความถูกต้อง
+
+### พารามิเตอร์ไร้มิติและระบบการไหล
+
+**จำนวน Froude (Fr)** - อัตราส่วนของแรงเฉื่อยยวังต่อแรงโน้มถ่วง:
+$$Fr = \frac{U_g}{\sqrt{gD}}$$
+
+พารามิเตอร์นี้ระบุแนวโน้มของเฟสแก๊สที่จะเอาชนะการตกตะกอนด้วยแรงโน้มถ่วงและมีอิทธิพลต่อรูปร่างของส่วนติดต่อ
+
+**พารามิเตอร์ Lockhart-Martinelli (X)** - อัตราส่วนของการไล่ระดับความดันสำหรับเฟสแต่ละเฟส:
+$$X = \sqrt{\frac{(dP/dx)_l}{(dP/dx)_g}}$$
+
+พารามิเตอร์นี้เป็นพื้นฐานสำหรับการทำนายการเปลี่ยนรูปแบบการไหลและการลดความดันในการไหลแบบ stratified
+
+**การจำแนกระบบการไหล**:
+
+| Flow Regime | Gas Velocity | Interface Characteristics |
+|-------------|-------------|---------------------------|
+| **Stratified เรียบ** | ต่ำ | ส่วนติดต่อสงบ |
+| **Stratified แบบคลื่น** | สูงขึ้น | คลื่นส่วนติดต่อ |
+| **การเริ่มต้นการไหลแบบ Slug** | สูงมาก | การเปลี่ยนไปสู่รูปแบบไม่ต่อเนื่อง |
+
+### โมเดลเชิงทฤษฎีสำหรับการตรวจสอบความถูกต้อง
+
+**โมเดล Taitel-Dukler** สำหรับความสูงของเหลวสมดุล:
+โมเดลนี้ให้การทำนายเชิงวิเคราะห์สำหรับความสูงของชั้นของเหลวในการไหลแบบ stratified โดยยึดตามสมดุลโมเมนตัม:
+
+$$\frac{h_l}{D} = f(X, Fr_g, Fr_l)$$
+
+ฟังก์ชัน $f$ เชื่อมโยงความสูงของเหลวไร้มิติกับพารามิเตอร์ Lockhart-Martinelli และจำนวน Froude ของเฟสผ่านสมการ超越 (transcendental equations) ที่ซับซ้อนที่แก้ด้วยวิธีวนซ้ำ
+
+**การทำนายการลดความดัน**:
+การลดความดันแบบสองเฟสสามารถทำนายได้โดยใช้แนวทางตัวคูณเฟสแก๊ส:
+
+$$\frac{dP}{dx} = \Phi_g^2 \left(\frac{dP}{dx}\right)_g$$
+
+โดยที่ $\Phi_g$ คือตัวคูณเฟสแก๊สที่คำนึงถึงการมีอยู่ของเฟสของเหลว
+
+### รายละเอียดการ Implement ใน OpenFOAM
+
+**กลยุทธ์ Computational Mesh**:
+```cpp
+// การละเอียดของ mesh ใกล้ส่วนติดต่อสำหรับการจับภาพที่แม่นยำ
+// การละเอียดชั้นขอบเขตใกล้ผนัง
+aspectRatio 1.0;  // รักษาคุณภาพของ mesh
+```
+
+**เงื่อนไขเริ่มต้น**:
+```cpp
+// กำหนดค่าเริ่มต้นการกำหนดค่าแบบ stratified
+scalar gasHeightFraction = 0.7;  // การประเมินเริ่มต้น
+
+forAll(alphaLiquid, celli)
+{
+    const vector& cellCenter = mesh.C()[celli];
+    scalar yCoord = cellCenter.y();
+    
+    if (yCoord < gasHeightFraction * pipeRadius)
+    {
+        alphaLiquid[celli] = 0.0;  // โซนแก๊ส
+    }
+    else
+    {
+        alphaLiquid[celli] = 1.0;  // โซนของเหลว
+    }
+}
+```
+
+### เมตริกการตรวจสอบความถูกต้องและการประมวลผลหลัง
+
+**โค้ดการตรวจสอบความถูกต้องอย่างครอบคลุม**:
+
+```cpp
+// คำนวณพารามิเตอร์การไหลแบบ stratified
+scalar D = 0.05;  // เส้นผ่านศูนย์กลางท่อ
+scalar g = 9.81;  // ความเร่งโน้มถ่วง
+scalar U_gas = 5.0;   // ความเร็วแก๊สต่อผิว
+scalar U_liquid = 0.5; // ความเร็วของเหลวต่อผิว
+
+// คำนวณพารามิเตอร์ไร้มิติ
+scalar Fr_gas = U_gas / sqrt(g * D);
+scalar Fr_liquid = U_liquid / sqrt(g * D);
+
+// คำนวณความสูงของเหลวเชิงทฤษฎีโดยใช้โมเดล Taitel-Dukler
+scalar hl_D_theory = calculateTaitelDuklerHeight(Fr_gas, Fr_liquid);
+
+// ดึงความสูงของเหลวจากการจำลอง
+scalar liquidHeight = calculateLiquidHeight(alpha_liquid);
+scalar liquidHeightFraction = liquidHeight / D;
+
+// ความคลาดเคลื่อนในการทำนายความสูง
+scalar heightError = mag(liquidHeightFraction - hl_D_theory) / hl_D_theory;
+Info << "Liquid height error: " << heightError * 100 << "%" << endl;
+
+// การตรวจสอบความดันการไล่ระดับ
+scalar dp_dx_sim = calculatePressureGradient(p);
+scalar dp_dx_theory = calculateTheoreticalPressureDrop(U_gas, U_liquid, D);
+
+scalar pressureDropError = mag(dp_dx_sim - dp_dx_theory) / dp_dx_theory;
+Info << "Pressure drop error: " << pressureDropError * 100 << "%" << endl;
+
+// การวิเคราะห์ความคลื่นของส่วนติดต่อ
+scalar interfaceWaviness = calculateInterfaceWaviness(alpha_liquid);
+Info << "Interface waviness parameter: " << interfaceWaviness << endl;
+```
+
+**เกณฑ์การยอมรับ**:
+- **การทำนายความสูงของเหลว**: ความคลาดเคลื่อน < 5% เทียบกับโมเดล Taitel-Dukler
+- **การลดความดัน**: ความคลาดเคลื่อน < 10% เทียบกับสหสัมพันธ์
+- **เสถียรภาพส่วนติดต่อ**: สังเกตรูปแบบคลื่นทางกายภาพ
+
+## 3. การจำลอง Fluidized Bed
+
+### การกำหนดค่าทางกายภาพ
+
+**การตั้งค่า**: Fluidized beds เป็นระบบ multiphase ที่ซับซ้อนซึ่งอนุภาคของแข็งถูกแขวนอยู่โดยแก๊สที่ไหลขึ้น สร้างพฤติกรรมเหมือนของไหล
+
+[Diagram: Fluidized bed ที่แสดงอนุภาคของแข็งที่ถูกแขวนโดยแก๊สที่ไหลขึ้น]
+
+benchmark นี้ท้าทายความสามารถของ solver ในการจับภาพปฏิสัมพันธ์อนุภาค-อนุภาค การ coupling แก๊ส-ของแข็ง และการเปลี่ยนระหว่างระบบ fixed bed, fluidized, และ transport
+
+**โดเมนทางกายภาพและพารามิเตอร์**:
+- **เรขาคณิตของเตียง**: หมวดหมู่สี่เหลี่ยมสำหรับประสิทธิภาพการคำนวณ
+- **มิติ**: 0.3 × 0.3 × 2.0 ม. (ความกว้าง × ความลึก × ความสูง)
+
+**คุณสมบัติอนุภาค**:
+
+| Property | Value | Description |
+|----------|-------|-------------|
+| **เส้นผ่านศูนย์กลาง** | 500 μm | เป็นเรื่องปกติสำหรับแอปพลิเคชันอุตสาหกรรม |
+| **ความหนาแน่น** | 2500 กก./ม³ | เป็นตัวแทนของทรายหรือวัสดุที่คล้ายกัน |
+| **รูปร่าง** | ทรงกลม | มีค่าสัมประสิทธิ์การกระเด้งที่ระบุ |
+
+**คุณสมบัติแก๊ส**:
+- **ของไหล**: อากาศในสภาวะบรรยากาศ
+- **อุณหภูมิ**: 293 K (20°C)
+- **ความดัน**: 1 แอตมอสเฟียร์ (สภาวะมาตรฐาน)
+
+### จุดดำเนินงานและระบบที่สำคัญ
+
+**ความเร็ว Fluidization ขั้นต่ำ ($U_{mf}$)**:
+ความเร็ววิกฤตนี้ทำเครื่องหมายการเปลี่ยนจากการดำเนินงาน fixed bed ไปเป็น fluidized bed มันถูกกำหนดโดยความสมดุลระหว่างแรงลากและแรงโน้มถ่วงบนอนุภาค
+
+**ช่วงความเร็วการดำเนินงาน**:
+
+| Operating Range | Velocity Ratio | Flow Behavior |
+|-----------------|---------------|----------------|
+| **Fluidization ขั้นต่ำ** | $U_{op} = U_{mf}$ | จุดเริ่มต้นของ fluidization |
+| **การดำเนินงานที่เหมาะสม** | $U_{op} = (1.5-3.0) \cdot U_{mf}$ | fluidization ที่เสถียร |
+| **ระบบการขนส่ง** | $U_{op} > 5 \cdot U_{mf}$ | การพาอนุภาค |
+
+### พื้นฐานทฤษฎีและการทำนาย
+
+**สมการ Ergun สำหรับการลดความดัน Fixed Bed**:
+ก่อน fluidization การลดความดันผ่านชั้นอนุภาคจะตามสมการ Ergun:
+
+$$\frac{\Delta P}{L} = \frac{150(1-\alpha_{mf})^2\mu_g U_{mf}}{\alpha_{mf}^3 d_p^2} + \frac{1.75(1-\alpha_{mf})\rho_g U_{mf}^2}{\alpha_{mf}^3 d_p}$$
+
+- $\alpha_{mf}$: void fraction ที่จุด fluidization ขั้นต่ำ (โดยทั่วไปอยู่รอบ 0.4-0.45 สำหรับอนุภาคทรงกลม)
+
+**สมดุลแรงที่จุด Fluidization ขั้นต่ำ**:
+ที่จุด fluidization ขั้นต่ำ แรงลากขึ้นจะสมดุลกับน้ำหนักสุทธิของอนุภาค:
+
+$$\Delta P = (\rho_s - \rho_g)(1-\alpha_{mf})gL$$
+
+เงื่อนไขนี้ให้ฐานทฤษฎีสำหรับการคำนวณ $U_{mf}$ และเป็นจุดตรวจสอบความถูกต้องที่สำคัญ
+
+### การ Implement ใน OpenFOAM
+
+**การตั้งค่าโมเดลสองเฟส Eulerian-Eulerian**:
+
+```cpp
+// constant/phaseProperties
+phases (solid gas);
+
+// คุณสมบัติเฟสของแข็ง
+solid
+{
+    rho             2500;     // ความหนาแน่นอนุภาค [kg/m³]
+    d               5e-4;     // เส้นผ่านศูนย์กลางอนุภาค [m]
+    maxAlpha        0.64;     // ขีดจำกัดการบรรจุสูงสุด
+    e               0.9;      // ค่าสัมประสิทธิ์การกระเด้งของอนุภาค
+    alpha0          0.6;      // ปริมาตรของแข็งเริ่มต้น
+}
+
+// คุณสมบัติเฟสแก๊ส
+gas
+{
+    rho             1.2;      // ความหนาแน่นอากาศ [kg/m³]
+    mu              1.8e-5;   // ความหนืดไดนามิกของอากาศ [Pa·s]
+    Cp              1005;     // ความจุความร้อนจำเพาะ [J/kg·K]
+    kappa           0.025;    // สภาพนำความร้อน [W/m·K]
+}
+
+// การกำหนดค่าโมเดลแรงลาก
+dragModel
+{
+    type            GidaspowErgunWenYu;
+    alphap          0.6;      // ขีดจำกัดการบรรจุ
+}
+```
+
+**เงื่อนไขขอบเขต**:
+- **ทางเข้า**: ความเร็วแก๊สสม่ำเสมอพร้อมพารามิเตอร์ความปั่นป่วนที่ระบุ
+- **ทางออก**: ทางออกความดันพร้อมการป้องกันการไหลย้อนกลับ
+- **ผนัง**: ไม่มีการไถลสำหรับเฟสแก๊ส, wall functions ที่เหมาะสมสำหรับความปั่นป่วน
+
+### เงื่อนไขการดำเนินงานและการคำนวณ
+
+```cpp
+// คำนวณความเร็ว fluidization ขั้นต่ำโดยใช้วิธีการแก้ปัญหาวนซ้ำ
+scalar rho_solid = 2500;  // kg/m³
+scalar rho_gas = 1.2;     // kg/m³
+scalar dp = 5e-4;         // เส้นผ่านศูนย์กลางอนุภาค [m]
+scalar mu_gas = 1.8e-5;   // ความหนืดไดนามิกของแก๊ส [Pa·s]
+scalar g = 9.81;          // ความเร่งโน้มถ่วง [m/s²]
+scalar alpha_mf = 0.4;    // Void fraction ที่จุด fluidization ขั้นต่ำ
+
+// การคำนวณแบบวนซ้ำของ U_mf
+scalar Umf = calculateMinimumFluidizationVelocity(rho_solid, rho_gas,
+                                               dp, mu_gas, alpha_mf);
+
+// ตั้งค่าเงื่อนไขการดำเนินงาน
+scalar Uop = 2.0 * Umf;  // การดำเนินงานที่ 2x fluidization ขั้นต่ำ
+
+Info << "Minimum fluidization velocity: " << Umf << " m/s" << endl;
+Info << "Operating velocity: " << Uop << " m/s" << endl;
+Info << "Operating ratio (Uop/Umf): " << Uop/Umf << endl;
+```
+
+### เมตริกการตรวจสอบความถูกต้องอย่างครอบคลุม
+
+**พารามิเตอร์การตรวจสอบความถูกต้องที่สำคัญ**:
+
+```cpp
+// การคำนวณอัตราส่วนการขยายตัวของเตียง
+scalar initialBedHeight = 1.0;  // ความสูงเตียงแบบแบ่งเริ่มต้น [m]
+scalar finalBedHeight = calculateBedHeight(alpha_solid);
+scalar expansionRatio = finalBedHeight / initialBedHeight;
+
+// การตรวจสอบความถูกต้องของความดัน
+scalar inletPressure = average(p.boundaryField()[inletID]);
+scalar outletPressure = average(p.boundaryField()[outletID]);
+scalar deltaP = inletPressure - outletPressure;
+
+// การลดความดันเชิงทฤษฎีที่จุด fluidization ขั้นต่ำ
+scalar theoreticalDeltaP = (rho_solid - rho_gas) * (1 - alpha_mf) *
+                          9.81 * finalBedHeight;
+
+// การวิเคราะห์การกระจายตัวของ voidage เตียง
+scalar averageVoidage = 1.0 - average(alpha_solid);
+scalar maxVoidage = max(alpha_solid);
+scalar minVoidage = min(alpha_solid);
+
+// รูปแบบการผสมและการไหลเวียนของของแข็ง
+scalar circulationIntensity = calculateSolidCirculation(U_solid, alpha_solid);
+scalar mixingIndex = calculateMixingIndex(alpha_solid);
+
+// ผลลัพธ์การตรวจสอบความถูกต้อง
+scalar pressureDropError = mag(deltaP - theoreticalDeltaP) / theoreticalDeltaP;
+Info << "Pressure drop error: " << pressureDropError * 100 << "%" << endl;
+Info << "Bed expansion ratio: " << expansionRatio << endl;
+Info << "Average voidage: " << averageVoidage << endl;
+Info << "Solid circulation intensity: " << circulationIntensity << endl;
+
+// ปริมาณเฉลี่ยตามเวลาสำหรับ fluidization แบบฟอง
+if (runTime.timeIndex() > averagingStartTime)
+{
+    scalar voidageFluctuation = calculateVoidageFluctuation(alpha_solid);
+    scalar bubbleFrequency = calculateBubbleFrequency(alpha_solid);
+    
+    Info << "Voidage fluctuation intensity: " << voidageFluctuation << endl;
+    Info << "Bubble passage frequency: " << bubbleFrequency << " Hz" << endl;
+}
+```
+
+**เกณฑ์การยอมรับการตรวจสอบความถูกต้อง**:
+
+| Metric | Acceptance Criteria | Description |
+|--------|---------------------|-------------|
+| **การลดความดันที่ $U_{mf}$** | ความคลาดเคลื่อน < 10% | เทียบกับสมการ Ergun |
+| **การขยายตัวของเตียง** | ความคลาดเคลื่อน < 15% | เทียบกับสหสัมพันธ์การทดลอง |
+| **ความเร็ว fluidization ขั้นต่ำ** | ความคลาดเคลื่อน < 20% | ในการทำนาย |
+| **การเปลี่ยนระบบการไหล** | การระบุถูกต้อง | จุดเริ่มต้นของ fluidization |

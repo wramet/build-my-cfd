@@ -1,0 +1,461 @@
+## 🎯 วัตถุประสงค์การเรียนรู้
+
+### 1. การดำเนินการ Gradient ด้วยรูปแบบการ Discretization ต่างๆ
+
+การดำเนินการ Gradient เป็นพื้นฐานสำคัญของ CFD เนื่องจากใช้คำนวณอนุพันธ์เชิงพื้นที่ของปริมาณสนาม ใน OpenFOAM ตัวดำเนินการ Gradient $\nabla$ ถูก implement ผ่านฟังก์ชัน `grad()` โดยมีรูปแบบการ Discretization หลายแบบเพื่อสมดุลระหว่างความแม่นยำและความเสถียร
+
+**พื้นฐานทางคณิตศาสตร์:**
+
+Gradient ของสนามสเกลาร์ $\phi$ ถูกนิยามเป็น:
+$$\nabla \phi = \frac{\partial \phi}{\partial x}\mathbf{i} + \frac{\partial \phi}{\partial y}\mathbf{j} + \frac{\partial \phi}{\partial z}\mathbf{k}$$
+
+- $\phi$ = สนามสเกลาร์ (scalar field)
+- $\mathbf{i}, \mathbf{j}, \mathbf{k}$ = unit vectors ในทิศทาง x, y, z
+- $\nabla$ = operator การดำเนินการ gradient
+
+สำหรับสนามเวคเตอร์ $\mathbf{u}$ Gradient จะกลายเป็นเทนเซอร์:
+$$(\nabla \mathbf{u})_{ij} = \frac{\partial u_j}{\partial x_i}$$
+
+- $\mathbf{u}$ = สนามเวคเตอร์ (vector field)
+- $i, j$ = indices ของเทนเซอร์
+- $(\nabla \mathbf{u})_{ij}$ = องค์ประกอบของ velocity gradient tensor
+
+**[Diagram: Velocity gradient tensor components showing how each velocity component varies with spatial coordinates]**
+
+**รูปแบบการ Discretization ที่สำคัญ:**
+
+| **รูปแบบ** | **ความแม่นยำ** | **ความเสถียร** | **การใช้งาน** |
+|------------|------------|-----------|---------|
+| **Gauss Linear** | อันดับที่สอง | เสถียรมาก | ทั่วไป |
+| **Least Squares** | อันดับที่สอง | เสถียรมาก | Mesh ไม่สม่ำเสมอ |
+| **Gauss Linear Upwind** | อันดับที่หนึ่ง | เสถียรมาก | Convection-dominant |
+| **Fourth-Order** | อันดับที่สี่ | เสถียรน้อย | High-accuracy |
+
+**OpenFOAM Code Implementation:**
+
+1. **Gauss Linear Scheme:** ใช้การประมาณค่าเชิงเส้นพร้อมการแก้ไขสำหรับ mesh ที่ไม่ตั้งฉาก
+   ```cpp
+   // ตัวอย่างการ implement
+   surfaceScalarField phi = linearInterpolate(phi_field) & mesh.Sf();
+   volVectorField gradPhi = fvc::grad(phi_field, "gradPhi");
+   ```
+
+2. **Least Squares Method:** มีความแม่นยำมากกว่าบน mesh ที่ไม่สม่ำเสมอ
+   ```cpp
+   volVectorField gradPhi = fvc::grad(phi_field, "leastSquares");
+   ```
+
+3. **Fourth-Order Schemes:** ความแม่นยำสูงขึ้นสำหรับสนามที่ราบรื่น
+   ```cpp
+   // Central differencing พร้อมการแก้ไขเชิงอันดับสูง
+   surfaceScalarField phi = central4Interpolate(phi_field) & mesh.Sf();
+   ```
+
+**[Diagram: Mesh quality impact on gradient accuracy comparison between different schemes]**
+
+**การประยุกต์ใช้จริง:**
+```cpp
+// Gradient ของความดันสำหรับสมการโมเมนตัม
+volVectorField gradP = fvc::grad(p);
+
+// Gradient ของอุณหภูมิสำหรับการถ่ายเทความร้อน
+volVectorField gradT = fvc::grad(T);
+
+// Gradient ของความเร็วเวคเตอร์สำหรับอัตราการไหลของเครื่องจักร
+volTensorField gradU = fvc::grad(U);
+```
+
+### 2. การดำเนินการ Divergence สำหรับกฎการอนุรักษ์
+
+การดำเนินการ Divergence เป็นศูนย์กลางของการบังคับใช้กฎการอนุรักษ์ใน CFD ตัวดำเนินการ Divergence $\nabla \cdot$ คำนวณ flux สุทธิที่ไหลออกจากระยบบควบคุม โดย implement รูปแบบอินทิกรัลของสมการการอนุรักษ์
+
+**พื้นฐานทางคณิตศาสตร์:**
+
+สำหรับสนามเวคเตอร์ $\mathbf{F}$:
+$$\nabla \cdot \mathbf{F} = \frac{\partial F_x}{\partial x} + \frac{\partial F_y}{\partial y} + \frac{\partial F_z}{\partial z}$$
+
+- $\mathbf{F}$ = สนามเวคเตอร์ (vector field)
+- $\nabla \cdot$ = divergence operator
+- $F_x, F_y, F_z$ = องค์ประกอบของสนามเวคเตอร์
+
+**การ Implement ทฤษฎีบทของ Gauss:**
+
+OpenFOAM ใช้ทฤษฎีบทของ Gauss ในการแปลงปริพันธ์ปริมาตรเป็นปริพันธ์พื้นผิว:
+$$\int_V \nabla \cdot \mathbf{F} \, \mathrm{d}V = \oint_S \mathbf{F} \cdot \mathbf{n} \, \mathrm{d}S$$
+
+- $V$ = ปริมาตร (volume)
+- $S$ = พื้นผิว (surface)
+- $\mathbf{n}$ = normal vector ของพื้นผิว
+- $\mathrm{d}V, \mathrm{d}S$ = differential volume และ surface
+
+**[Diagram: Control volume with flux vectors showing divergence calculation using Gauss theorem]**
+
+**การประยุกต์ใช้ที่สำคัญ:**
+
+| **ประเภท** | **สมการ** | **OpenFOAM Implementation** |
+|-----------|------------|-------------------------|
+| **Mass Conservation** | $\nabla \cdot \mathbf{U} = 0$ | `fvc::div(phi)` |
+| **Compressible Flow** | $\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{U}) = 0$ | `fvc::div(rhoPhi)` |
+| **Momentum Convection** | $\nabla \cdot (\mathbf{U}\mathbf{U})$ | `fvc::div(UU)` |
+| **Stress Divergence** | $\nabla \cdot \boldsymbol{\tau}$ | `fvc::div(tau)` |
+| **Heat Flux** | $\nabla \cdot \mathbf{q}$ | `fvc::div(q)` |
+
+**OpenFOAM Code Implementation:**
+
+1. **สมการต่อเนื่อง (การอนุรักษ์มวล):**
+   ```cpp
+   // การไหลแบบไม่บีบอัด: ∇·U = 0
+   surfaceScalarField phi = fvc::interpolate(U) & mesh.Sf();
+   volScalarField divU = fvc::div(phi);
+   
+   // การไหลแบบบีบอัด: ∂ρ/∂t + ∇·(ρU) = 0
+   surfaceScalarField rhoPhi = fvc::interpolate(rho*U) & mesh.Sf();
+   volScalarField divRhoU = fvc::div(rhoPhi);
+   ```
+
+2. **พจน์ Divergence ของสมการโมเมนตัม:**
+   ```cpp
+   // พจน์ convection: ∇·(UU)
+   surfaceTensorField UU = fvc::interpolate(U*U);
+   volVectorField divUU = fvc::div(UU);
+   
+   // Divergence ของความเค้น: ∇·τ
+   volVectorField divTau = fvc::div(tau);
+   ```
+
+3. **สมการพลังงาน:**
+   ```cpp
+   // Divergence ของความร้อน flux: ∇·q
+   surfaceScalarField q = fvc::interpolate(-k*gradT) & mesh.Sf();
+   volScalarField divQ = fvc::div(q);
+   ```
+
+**กลยุทธ์การคำนวณ Flux:**
+
+| **Scheme** | **ความเสถียร** | **ความแม่นยำ** | **การใช้งาน** |
+|-----------|-----------|-----------|---------|
+| **Upwind** | เสถียรมาก | อันดับที่หนึ่ง | High Reynolds number |
+| **Central Differencing** | มีเงื่อนไข | อันดับที่สอง | Low Reynolds number |
+| **Linear Upwind** | เสถียร | อันดับที่สอง | General purpose |
+| **QUICK** | เสถียร | อันดับที่สาม | Structured meshes |
+| **Limited Schemes** | เสถียร | Variable | เสถียร+แม่นยำ |
+
+```cpp
+// Upwind scheme (เสถียร, diffusive)
+surfaceScalarField phi_upwind = upwind<scalar>(mesh, phi_scheme).interpolate(phi_field);
+
+// Central differencing (แม่นยำ, อาจไม่เสถียร)
+surfaceScalarField phi_central = central<scalar>(mesh).interpolate(phi_field);
+
+// Limited schemes (สมดุลระหว่างความเสถียรและความแม่นยำ)
+surfaceScalarField phi_limited = limitedLinearV 1.0(mesh).interpolate(phi_field);
+```
+
+### 3. การดำเนินการ Curl สำหรับ Vorticity และการไหลแบบหมุน
+
+การดำเนินการ Curl ($\nabla \times$) มีความสำคัญในการวิเคราะห์ลักษณะการไหลแบบหมุนและพลวัตของ Vorticity โดยวัดการหมุนเฉพาะที่ขององค์ประกอบของของไหล
+
+**พื้นฐานทางคณิตศาสตร์:**
+
+สำหรับสนามเวคเตอร์ $\mathbf{u} = (u_x, u_y, u_z)$:
+$$\nabla \times \mathbf{u} = \begin{vmatrix}
+\mathbf{i} & \mathbf{j} & \mathbf{k} \\
+\frac{\partial}{\partial x} & \frac{\partial}{\partial y} & \frac{\partial}{\partial z} \\
+u_x & u_y & u_z
+\end{vmatrix}$$
+
+- $\mathbf{u}$ = สนามความเร็ว (velocity field)
+- $u_x, u_y, u_z$ = องค์ประกอบความเร็ว
+- $\nabla \times$ = curl operator
+
+**[Diagram: Curl operation visualization showing rotation of fluid elements]**
+
+**การคำนวณ Vorticity:**
+```cpp
+// Vorticity vector ω = ∇×U
+volVectorField vorticity = fvc::curl(U);
+
+// Vorticity magnitude สำหรับการ visualization
+volScalarField vorticityMag = mag(vorticity);
+
+// Q-criterion (invariant ที่สองของเทนเซอร์ gradient ความเร็ว)
+volScalarField Q = 0.5*(magSqr(gradU) - tr(gradU & gradU));
+```
+
+**การวิเคราะห์ Vorticity ขั้นสูง:**
+
+| **ปริมาณ** | **นิยาม** | **ความหมายทางกายภาพ** | **OpenFOAM** |
+|-----------|------------|---------------------|------------|
+| **Vorticity** | $\boldsymbol{\omega} = \nabla \times \mathbf{U}$ | อัตราการหมุนเฉพาะที่ | `fvc::curl(U)` |
+| **Lamb Vector** | $\mathbf{L} = \boldsymbol{\omega} \times \mathbf{U}$ | แรงที่เกิดจาก vorticity | `vorticity ^ U` |
+| **Enstrophy** | $E = \frac{1}{2}|\boldsymbol{\omega}|^2$ | พลังงานการหมุน | `0.5*magSqr(vorticity)` |
+| **Helicity** | $H = \boldsymbol{\omega} \cdot \mathbf{U}$ | ความเชื่อมโยง helical | `vorticity & U` |
+| **Q-Criterion** | $Q = \frac{1}{2}(|\boldsymbol{S}|^2 - |\boldsymbol{\Omega}|^2)$ | โครงสร้างการหมุน | `0.5*(magSqr(gradU) - tr(gradU & gradU))` |
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Lamb vector: ω × U
+volVectorField lambVector = vorticity ^ U;
+
+// Enstrophy density: 0.5|ω|²
+volScalarField enstrophy = 0.5 * magSqr(vorticity);
+
+// Helicity density: ω·U
+volScalarField helicity = vorticity & U;
+```
+
+**ฟังก์ชันกระแสและศักยภาพเวคเตอร์:**
+
+สำหรับการไหล 2 มิติแบบไม่บีบอัด ฟังก์ชันกระแส ψ ตอบสนอง:
+$$\frac{\partial^2 \psi}{\partial x^2} + \frac{\partial^2 \psi}{\partial y^2} = -\omega_z$$
+
+- $\psi$ = ฟังก์ชันกระแส (stream function)
+- $\omega_z$ = vorticity component ในทิศทาง z
+
+**[Diagram: Stream function visualization with vorticity sources and streamlines]**
+
+**OpenFOAM Implementation:**
+```cpp
+// แก้สมการ Poisson สำหรับฟังก์ชันกระแส
+fvScalarMatrix psiEqn
+(
+    fvm::laplacian(psi) == -vorticity.component(2)
+);
+psiEqn.solve();
+
+// สร้างความเร็วใหม่จากฟังก์ชันกระแส
+volVectorField U_from_psi
+(
+    IOobject("U_from_psi", runTime.timeName(), mesh),
+    mesh,
+    dimensionedVector("U_from_psi", dimVelocity, vector::zero)
+);
+U_from_psi.component(0) = fvc::ddt(psi);
+U_from_psi.component(1) = -fvc::ddt(psi, 0);
+```
+
+### 4. การประยุกต์ใช้ Laplacian Operations สำหรับปัญหาการแพร่
+
+ตัวดำเนินการ Laplacian ($\nabla^2 = \nabla \cdot \nabla$) เป็นพื้นฐานสำหรับกระบวนการแพร่ ปรากฏในปัญหาการนำความร้อน, การแพร่ตัวความหนืด และการไหลแบบศักยภาพ
+
+**พื้นฐานทางคณิตศาสตร์:**
+
+สำหรับสนามสเกลาร์ $\phi$:
+$$\nabla^2 \phi = \frac{\partial^2 \phi}{\partial x^2} + \frac{\partial^2 \phi}{\partial y^2} + \frac{\partial^2 \phi}{\partial z^2}$$
+
+- $\phi$ = สนามสเกลาร์ (scalar field)
+- $\nabla^2$ = Laplacian operator
+- $x, y, z$ = coordinates
+
+**การประยุกต์ใช้ทฤษฎีบทของ Gauss:**
+$$\int_V \nabla^2 \phi \, \mathrm{d}V = \int_V \nabla \cdot (\nabla \phi) \, \mathrm{d}V = \oint_S \nabla \phi \cdot \mathbf{n} \, \mathrm{d}S$$
+
+**[Diagram: Diffusion process visualization showing gradient and Laplacian operations]**
+
+**รูปแบบการแพร่ที่สำคัญ:**
+
+| **ประเภท** | **สมการ** | **สัมประสิทธิ์** | **การใช้งาน** |
+|-----------|------------|-----------|---------|
+| **Heat Diffusion** | $\frac{\partial T}{\partial t} = \alpha \nabla^2 T$ | $\alpha$ = thermal diffusivity | ถ่ายเทความร้อน |
+| **Viscous Diffusion** | $\frac{\partial \mathbf{U}}{\partial t} = \nu \nabla^2 \mathbf{U}$ | $\nu$ = kinematic viscosity | การไหลแบบ viscous |
+| **Mass Diffusion** | $\frac{\partial C}{\partial t} = D \nabla^2 C$ | $D$ = mass diffusivity | การแพร่มวล |
+| **Anisotropic Diffusion** | $\frac{\partial T}{\partial t} = \nabla \cdot (\mathbf{D} \nabla T)$ | $\mathbf{D}$ = diffusion tensor | คุณสมบัติ anisotropic |
+
+**OpenFOAM Code Implementation:**
+
+**การ Implement สมการแพร่:**
+```cpp
+// การแพร่ของความร้อน: ∂T/∂t = α∇²T
+fvScalarMatrix TEqn
+(
+    fvm::ddt(T) == fvm::laplacian(DT, T)  // DT = thermal diffusivity
+);
+TEqn.solve();
+
+// การแพร่ตัวความหนืด: ∂U/∂t = ν∇²U
+fvVectorMatrix UEqn
+(
+    fvm::ddt(U) == fvm::laplacian(nu, U)  // nu = kinematic viscosity
+);
+UEqn.solve();
+```
+
+**การแพร่แบบ Anisotropic:**
+```cpp
+// Diffusion tensor D สำหรับคุณสมบัติ anisotropic
+volTensorField D = ...;  // กำหนด diffusion tensor
+fvScalarMatrix TEqn
+(
+    fvm::ddt(T) == fvm::laplacian(D, T)
+);
+```
+
+**การแพร่สัมประสิทธิ์ตัวแปร:**
+```cpp
+// สภาพการนำความร้อน k(T) ขึ้นกับอุณหภูมิ
+volScalarField k = k0 * (1.0 + beta*(T - T_ref));
+fvScalarMatrix TEqn
+(
+    fvm::ddt(T) == fvm::laplacian(k/rho/cp, T)
+);
+```
+
+**เงื่อนไขขอบเขตสำหรับ Laplacian:**
+
+| **ประเภท** | **นิยาม** | **OpenFOAM Type** | **การใช้งาน** |
+|-----------|------------|------------------|---------|
+| **Dirichlet** | $\phi = \phi_0$ | `fixedValue` | อุณหภูมิคงที่ |
+| **Neumann** | $\frac{\partial \phi}{\partial n} = q_0$ | `fixedGradient` | flux คงที่ |
+| **Robin** | $a\frac{\partial \phi}{\partial n} + b\phi = c$ | `mixed` | convection |
+| **Periodic** | $\phi_L = \phi_R$ | `cyclic` | คาบเวลา |
+
+**การจัดการเงื่อนไขขอบเขต:**
+```cpp
+// Robin boundary condition: a∂φ/∂n + bφ = c
+// ทำงานผ่าน mixed boundary condition type
+mixScalarFvPatchField<T>& robinBC = 
+    refCast<mixScalarFvPatchField<T>>(T.boundaryFieldRef()[patchID]);
+robinBC.refValue() = c/b;        // ส่วนประกอบค่าคงที่
+robinBC.refGrad() = (c - a*phi)/b;  // ส่วนประกอบ gradient คงที่
+robinBC.valueFraction() = a/(a + b*mag(mesh.deltaCoeffs()[patchID]));
+```
+
+### 5. การแยกความแตกต่างระหว่างการดำเนินการ Explicit (`fvc::`) และ Implicit (`fvm::`)
+
+ความแตกต่างระหว่างการดำเนินการ explicit (finite volume calculus, `fvc::`) และ implicit (finite volume method, `fvm::`) เป็นสิ่งสำคัญสำหรับเสถียรภาพเชิงตัวเลข การบรรจบกัน และประสิทธิภาพการคำนวณในการจำลอง CFD
+
+**[Diagram: Explicit vs Implicit method comparison showing matrix structures]**
+
+**การดำเนินการ Explicit (`fvc::`)**
+
+การดำเนินการ Explicit ประเมินพจน์โดยใช้ค่าที่รู้จากการวนซ้ำปัจจุบันหรือ time step ปัจจุบัน ส่งผลให้เกิดเมทริกซ์ที่โดดเด่นเชิงแนวทแยงที่ง่ายต่อการแก้ แต่อาจต้องการ time step ที่เล็กสำหรับความเสถียร
+
+**ลักษณะเฉพาะ:**
+- **ใช้ค่าสนามปัจจุบันโดยตรง**
+- **สร้างพจน์ explicit (ย้ายไป RHS)**
+- **ไม่มีการ coupling ระหว่างเซลล์ข้างเคียง**
+- **ข้อจำกัดด้าน time step อาจเข้มงวด**
+- **ใช้ทรัพยากรการคำนวณน้อยต่อการประเมิน**
+
+**การดำเนินการ Explicit ทั่วไป:**
+```cpp
+// การประเมิน gradient แบบ explicit
+volVectorField gradP = fvc::grad(p);
+
+// Divergence แบบ explicit
+surfaceScalarField phi = fvc::interpolate(U) & mesh.Sf();
+volScalarField divU = fvc::div(phi);
+
+// Laplacian แบบ explicit (สำหรับพจน์ต้นทาง)
+volScalarField laplacianT = fvc::laplacian(k, T);
+
+// การประมาณค่าไปยังพื้นผิวเซลล์
+surfaceScalarField rho_face = fvc::interpolate(rho);
+
+// อนุพันธ์เชิงเวลา (explicit)
+volScalarField dTdt = fvc::ddt(T);
+```
+
+**การดำเนินการ Implicit (`fvm::`)**
+
+การดำเนินการ Implicit สร้างระบบสมการที่ coupled โดยค่าสนามที่ไม่รู้ปรากฏในทั้งด้านซ้ายมือ (สัมประสิทธิ์เมทริกซ์) และด้านขวามือ (พจน์ต้นทาง) ช่วยให้สามารถใช้ time step ที่ใหญ่ขึ้นและการบรรจบกันที่ดีขึ้น
+
+**ลักษณะเฉพาะ:**
+- **สร้างพจน์ implicit (สัมประสิทธิ์เมทริกซ์)**
+- **Coupling เซลล์ข้างเคียงผ่านพจน์ off-diagonal**
+- **อนุญาต time step ที่ใหญ่ขึ้นสำหรับความเสถียร**
+- **ต้องการการแก้ระบบสมการเชิงเส้น**
+- **ใช้ทรัพยากรการคำนวณมากขึ้นต่อการวนซ้ำ**
+
+**การดำเนินการ Implicit ทั่วไป:**
+```cpp
+// การบูรณาการเวลาแบบ implicit
+fvScalarMatrix TEqn(fvm::ddt(T));
+
+// การแพร่แบบ implicit
+fvScalarMatrix TEqn(fvm::laplacian(DT, T));
+
+// การพาความร้อนแบบ implicit (พร้อมการ upwind)
+fvVectorMatrix UEqn(fvm::div(phi, U));
+
+// การรวมพจน์ implicit
+fvScalarMatrix TEqn
+(
+    fvm::ddt(T)
+  + fvm::div(phi, T)
+  - fvm::laplacian(DT, T)
+);
+```
+
+**รูปแบบผสมและการผ่อนคลาย:**
+```cpp
+// การรักษาพาความร้อนแบบกึ่ง-implicit
+fvScalarMatrix TEqn
+(
+    fvm::ddt(T)
+  + fvm::div(phi, T)      // ส่วน implicit
+  - fvc::div(phi_implicit, T)  // การแก้ไข explicit
+);
+
+// การผ่อนคลายสำหรับความเสถียร
+TEqn.relax(relaxationFactor);
+TEqn.solve();
+```
+
+**การประยุกต์ใช้อัลกอริทึม PISO:**
+
+**[Diagram: PISO algorithm flowchart showing explicit/implicit operations]**
+
+**Step-by-Step PISO Algorithm:**
+
+1. **Momentum Prediction (Implicit)**
+   ```cpp
+   // การทำนายโมเมนตัมแบบ implicit
+   fvVectorMatrix UEqn
+   (
+       fvm::ddt(U) + fvm::div(phi, U) - fvm::laplacian(nu, U)
+   );
+   UEqn.solve();
+   ```
+
+2. **Pressure-Velocity Coupling (Explicit)**
+   ```cpp
+   // การแก้ไขความดันแบบ explicit
+   volScalarField rUA = 1.0/UEqn.A();
+   surfaceScalarField rUAf = fvc::interpolate(rUA);
+   surfaceScalarField phiHbyA = (UEqn.H() & UEqn.flux()) / UEqn.A();
+   ```
+
+3. **Pressure Equation (Implicit)**
+   ```cpp
+   // สมการความดันแบบ implicit
+   fvScalarMatrix pEqn
+   (
+       fvm::laplacian(rUAf, p) == fvc::div(phiHbyA)
+   );
+   pEqn.solve();
+   ```
+
+4. **Velocity Correction (Explicit)**
+   ```cpp
+   // การแก้ไขความเร็วแบบ explicit
+   U -= rUA * fvc::grad(p);
+   ```
+
+**การเปรียบเทียบ Explicit vs Implicit:**
+
+| **ปัจจัย** | **Explicit (`fvc::`)** | **Implicit (`fvm::`)** |
+|------------|-------------------------|-------------------------|
+| **ความเสถียร** | Time step จำกัด | เสถียรโดยไม่มีเงื่อนไข |
+| **ความแม่นยำ** | อันดับสูงกว่าได้ | มักเป็นอันดับแรก/ที่สอง |
+| **ต้นทุนการคำนวณ** | ต่ำต่อการวนซ้ำ | สูงกว่าต่อการวนซ้ำ |
+| **หน่วยความจำ** | จัดเก็บน้อยกว่า | ต้องการจัดเก็บเมทริกซ์ |
+| **การบรรจบกัน** | อาจต้องการการวนซ้ำหลายครั้ง | การวนซ้ำน้อยกว่าสำหรับ steady state |
+| **Complexity** | ง่าย | ซับซ้อน |
+
+**แนวปฏิบัติที่ดี:**
+- **ใช้ `fvm::`** สำหรับการแพร่, coupling ความดัน-ความเร็ว, และพจน์ต้นทางแบบ stiff
+- **ใช้ `fvc::`** สำหรับการพาความร้อนเมื่อใช้รูปแบบ explicit หรือการประมาณค่าเชิงอันดับสูง
+- **รวมทั้งสอง** เพื่อสมดุลที่เหมาะสมที่สุด: การรักษาพจน์ stiff แบบ implicit, แบบ explicit สำหรับพจน์ที่ไม่ stiff
+- **พิจารณา trade-offs** ระหว่างการแพร่เชิงตัวเลขและต้นทุนการคำนวณ
+- **ทดสอบความไวต่อ time step** เมื่อใช้การดำเนินการ explicit

@@ -1,0 +1,445 @@
+# ⚠️ **ข้อผิดพลาดที่พบบ่อยและวิธีแก้ไข**
+
+## **ข้อผิดพลาดที่ 1: ข้อผิดพลาดการไม่ตรงกันของมิติ**
+
+### **การทำความเข้าใจการวิเคราะห์มิติของ OpenFOAM**
+
+OpenFOAM ใช้การตรวจสอบมิติอย่างเข้มงวดเพื่อป้องกันการดำเนินการทางฟิสิกส์ที่ไม่มีความหมาย แต่ละฟิลด์มีข้อมูลมิติที่แสดงถึงมวล ความยาว เวลา อุณหภูมิ และปริมาณ สิ่งนี้จะตรวจจับข้อผิดพลาดการเขียนโปรแกรมหลายอย่างในขณะคอมไพล์ แต่ต้องการความเข้าใจในฟิสิกส์ที่อยู่เบื้องหลัง
+
+[Diagram: การแสดงภาพมิติของฟิลด์ต่างๆใน OpenFOAM พร้อมหน่วย SI]
+
+#### **การวิเคราะห์มิติตามระบบหน่วยสากล (SI)**
+
+การวิเคราะห์มิติตามระบบหน่วยสากล (SI) โดยที่มิติแสดงเป็นจำนวนเต็ม: `[มวล, ความยาว, เวลา, อุณหภูมิ, ปริมาณ, โมล]`
+
+| ประเภทฟิลด์ | มิติ | หน่วย | คำอธิบาย |
+|--------------|--------|--------|-------------|
+| ความดัน (Pressure) | `[1,-1,-2,0,0,0]` | kg·m⁻¹·s⁻² | Pascal |
+| ความเร็ว (Velocity) | `[0,1,-1,0,0,0]` | m·s⁻¹ | เมตรต่อวินาที |
+| ความหนาแน่น (Density) | `[1,-3,0,0,0,0]` | kg·m⁻³ | กิโลกรัมต่อลูกบาศก์เมตร |
+
+```cpp
+// ❌ ข้อผิดพลาดทั่วไป: การผสมหน่วยในการดำเนินการฟิลด์
+volScalarField p(IOobject("p", runTime.timeName(), mesh, IOobject::MUST_READ, IOobject::AUTO_WRITE),
+                 mesh);      // ความดัน [1,-1,-2,0,0,0] (Pa)
+volVectorField U(IOobject("U", runTime.timeName(), mesh, IOobject::MUST_READ, IOobject::AUTO_WRITE),
+                 mesh);      // ความเร็ว [0,1,-1,0,0,0] (m/s)
+
+// ❌ ดูเหมือนจะสมเหตุสมผลแต่ล้มเหลว:
+// auto nonsense = p + U;  // ข้อผิดพลาดคอมไพเลอร์!
+
+// 🔍 การวิเคราะห์ข้อความผิดพลาด:
+// "Cannot add [1,-1,-2] + [0,1,-1]"
+// การแปล: "ไม่สามารถบวกความดัน + ความเร็ว"
+// เหตุผลทางฟิสิกส์: คุณไม่สามารถบวก Pascal กับ เมตร/วินาทีได้!
+```
+
+#### **การแก้ไขปัญหามิติ**
+
+การแก้ไขปัญหานี้ต้องตรวจสอบฟิสิกส์และแปลงหน่วยอย่างถูกต้อง:
+
+- **หากต้องการความดันพลวัต:** $0.5 \rho |\mathbf{u}|^2$
+- **หากต้องการความดันรวม:** $p + 0.5 \rho |\mathbf{u}|^2$
+
+```cpp
+// ✅ วิธีแก้ไข: ตรวจสอบฟิสิกส์และแปลงอย่างถูกต้อง
+volScalarField rho(IOobject("rho", runTime.timeName(), mesh, IOobject::MUST_READ, IOobject::AUTO_WRITE),
+                   mesh);
+volScalarField dynamicPressure = 0.5 * rho * magSqr(U);  // [1,-1,-2] ✓
+volScalarField totalPressure = p + dynamicPressure;     // มิติเดียวกัน ✓
+```
+
+#### **ตัวอย่างการใช้งานมิติที่ถูกต้อง**
+
+```cpp
+// ✅ ถูกต้อง: การรวมฟิลด์ที่มีมิติที่สอดคล้องกัน
+dimensionedScalar rho("rho", dimensionSet(1, -3, 0, 0, 0, 0), 1.2);  // kg/m³
+dimensionedScalar g("g", dimensionSet(0, 1, -2, 0, 0, 0), 9.81);    // m/s²
+
+// ความดันไฮดรอสตาติก: p = rho * g * h
+volScalarField p_hydro = rho * g * mesh.C().component(vector::Y);  // [1,-1,-2] ✓
+
+// ✅ ถูกต้อง: การใช้ค่าคงที่ dimensionedScalar
+dimensionedScalar p_ref("p_ref", dimensionSet(1, -1, -2, 0, 0, 0), 101325.0);
+volScalarField p_gauge = p - p_ref;  // ทั้งสองมีมิติความดัน ✓
+```
+
+## **ข้อผิดพลาดที่ 2: การละเลยเงื่อนไขขอบ**
+
+### **ปัญหาความสอดคล้องของเงื่อนไขขอบ**
+
+ในวิธีการปริมาตรจำกัด เงื่อนไขขอบมีความสำคัญต่อการแก้ปัญหาที่แม่นยำ OpenFOAM แยกการจัดเก็บฟิลด์ภายในจากการจัดเก็บฟิลด์ขอบ และการอัปเดตอย่างใดอย่างหนึ่งไม่ได้อัปเดตอีกอย่างโดยอัตโนมัติ
+
+[Diagram: การแสดงความแตกต่างระหว่างฟิลด์ภายในและฟิลด์ขอบในเมช]
+
+```cpp
+// ❌ ข้อผิดพลาด: ลืมอัปเดตเงื่อนไขขอบ
+volVectorField U(IOobject("U", runTime.timeName(), mesh, IOobject::MUST_READ, IOobject::AUTO_WRITE),
+                 mesh);
+
+// การคำนวณบางอย่างที่อัปเดตฟิลด์ภายใน
+U = someNewVelocityField;  // อัปเดตเฉพาะฟิลด์ภายใน
+
+// ❌ อันตราย: ค่าขอบยังค้างอยู่!
+// U.boundaryField() ยังคงมีค่าเก่า
+// นี่ทำให้การคำนวณ flux ไม่ถูกต้อง!
+surfaceScalarField phi = linearInterpolate(U) & mesh.Sf();  // ใช้ค่าขอบที่ค้าง!
+```
+
+### **กลไก correctBoundaryConditions()**
+
+```cpp
+// ✅ วิธีแก้ไข: อัปเดตขอบเสมอ
+U = someNewVelocityField;
+U.correctBoundaryConditions();  // 🔑 ขั้นตอนสำคัญ!
+
+// 🎯 แนวทางปฏิบัติที่ดีที่สุด: อัปเดตหลังจากการแก้ไขฟิลด์ทุกครั้ง
+void updateVelocityField(volVectorField& U, const volVectorField& newU) {
+    U = newU;                          // อัปเดตฟิลด์ภายใน
+    U.correctBoundaryConditions();     // ซิงโครไนซ์เงื่อนไขขอบ
+    phi = linearInterpolate(U) & mesh.Sf();  // ตอนนี้ flux ถูกต้องแล้ว
+}
+```
+
+### **รูปแบบ Solver แบบทำซ้ำ**
+
+1. แก้สมการโมเมนตัม (อัปเดตฟิลด์ภายใน)
+2. **อัปเดตขอบหลังจากแก้** (ขั้นตอนสำคัญ!)
+3. คำนวณ flux ใหม่ด้วยค่าขอบที่อัปเดตแล้ว
+4. ตรวจสอบความลู่เข้า
+
+```cpp
+// ✅ ตัวอย่างครบถ้วน: รูปแบบ solver แบบทำซ้ำ
+while (residual > tolerance) {
+    // แก้สมการโมเมนตัม (อัปเดตฟิลด์ภายใน)
+    fvVectorMatrix UEqn(fvm::div(phi, U) - fvm::laplacian(nu, U));
+    UEqn.relax();
+    UEqn.solve();
+    
+    // 🚨 สำคัญ: อัปเดตขอบหลังจากแก้
+    U.correctBoundaryConditions();
+    
+    // คำนวณ flux ใหม่ด้วยค่าขอบที่อัปเดตแล้ว
+    phi = linearInterpolate(U) & mesh.Sf();
+    
+    residual = UEqn.initialResidual();
+}
+```
+
+### **ประเภทของเงื่อนไขขอบและพฤติกรรม**
+
+| ประเภทขอบ | พฤติกรรมเมื่อเรียก correctBoundaryConditions() |
+|-------------|-------------------------------------------------|
+| **ค่าคงที่ (fixedValue)** | ถูกเขียนทับด้วยค่าที่กำหนด |
+| **ไล่ระดับศูนย์ (zeroGradient)** | คำนวณจากเซลล์ภายในที่ใกล้ที่สุด |
+| **คำนวณ (calculated)** | อัปเดตโดยใช้นิพจน์ขอบที่กำหนด |
+| **ผสม (mixed)** | รวมส่วนค่าคงที่และไล่ระดับศูนย์อย่างถูกต้อง |
+
+```cpp
+// ประเภทขอบที่แตกต่างกันอัปเดตแตกต่างกัน:
+// 1. ขอบค่าคงที่: ถูกเขียนทับโดย correctBoundaryConditions()
+U.correctBoundaryConditions();  // คืนค่า fixedValue ไปยังค่าที่กำหนด
+
+// 2. ขอบไล่ระดับศูนย์: คำนวณจากฟิลด์ภายใน
+U.correctBoundaryConditions();  // ตั้งค่าขอบ = เซลล์ภายในที่ใกล้ที่สุด
+
+// 3. ขอบที่คำนวณ: อัปเดตโดยใช้สถานะฟิลด์ปัจจุบัน
+U.correctBoundaryConditions();  // ประเมินนิพจน์ขอบ
+
+// 4. ขอบผสม: รวมส่วนที่คงที่และไล่ระดับศูนย์
+U.correctBoundaryConditions();  // อัปเดตทั้งสองส่วนอย่างถูกต้อง
+```
+
+## **ข้อผิดพลาดที่ 3: ความสับสนในการจัดการหน่วยความจำ**
+
+### **การทำความเข้าใจการนับอ้างอิงใน OpenFOAM**
+
+OpenFOAM ใช้ระบบการจัดการหน่วยความจำที่นับอ้างอิงเพื่อปรับปรุงประสิทธิภาพและหลีกเลี่ยงการคัดลอกที่ไม่จำเป็น อย่างไรก็ตาม สิ่งนี้อาจนำไปสู่พฤติกรรมที่ไม่คาดคิดหากไม่เข้าใจอย่างถูกต้อง
+
+[Diagram: การแสดงโครงสร้างหน่วยความจำและการนับอ้างอิงใน OpenFOAM]
+
+```cpp
+// ❌ ข้อผิดพลาด: การเข้าใจผิดการนับอ้างอิง
+volScalarField p1(IOobject("p1", runTime.timeName(), mesh, IOobject::NO_READ, IOobject::AUTO_WRITE),
+                 mesh, dimensionedScalar("p1", dimensionSet(1, -1, -2, 0, 0, 0), 0.0));
+
+volScalarField p2 = p1;  // การคัดลอกตื้น (แชร์ข้อมูล!)
+                        // ทั้ง p1 และ p2 อ้างอิงตำแหน่งหน่วยความจำเดียวกัน
+
+p2[0] = 1000.0;  // ❌ อันตราย: ยังแก้ไข p1[0] ด้วย!
+                 // p1[0] ตอนนี้ก็เป็น 1000.0 ด้วย
+```
+
+### **โครงสร้างหน่วยความจำและการนับอ้างอิง**
+
+```cpp
+// ✅ วิธีแก้ไข: เข้าใจความหมายของการคัดลอก
+volScalarField p1(IOobject("p1", runTime.timeName(), mesh), mesh, dimensionedScalar("zero", dimPressure, 0.0));
+
+// 🔍 แผนภูมิหน่วยความจำ:
+// p1 ─┬─→ [ReferenceCountedData: count=1]
+//      │    └─→ [FieldData: values...]
+//      └─→ (ข้อมูลเมตาของฟิลด์: ชื่อ, mesh, มิติ)
+
+// การคัดลอกตื้น: แชร์ข้อมูล เพิ่มการนับอ้างอิง
+volScalarField p3 = p1;  // ReferenceCountedData: count=2
+
+// สถานะหน่วยความจำ:
+// p1 ─┬─→ [ReferenceCountedData: count=2]
+// p3 ─┘    └─→ [FieldData: values...]
+```
+
+### **เทคนิคการคัดลอกและโคลนที่เหมาะสม**
+
+| วิธีการ | คำอธิบาย | เมื่อไหร่ควรใช้ |
+|-----------|------------|------------------|
+| **Constructor คัดลอกลึก** | `volScalarField p4(p1, true);` | เมื่อต้องการสำเนาอิสระทันที |
+| **วิธีการโคลน** | `volScalarField p5 = p1.clone();` | ชัดเจนที่สุด สร้างสำเนาอิสระเสมอ |
+| **การกำหนดค่าพร้อมอัปเดตขอบ** | `p6 = p1; p6.correctBoundaryConditions();` | เมื่อต้องการคัดลอกค่าและเงื่อนไขขอบ |
+
+```cpp
+// ✅ วิธีการคัดลอกลึก:
+// วิธีที่ 1: คอนสตรักเตอร์คัดลอกลึกที่ชัดเจน
+volScalarField p4(p1, true);  // พารามิเตอร์ที่สอง=true หมายถึงการคัดลอกลึก
+
+// วิธีที่ 2: วิธีการโคลน (ชัดเจนที่สุด)
+volScalarField p5 = p1.clone();  // สร้างสำเนาอิสระเสมอ
+
+// วิธีที่ 3: การกำหนดค่าคัดลอกพร้อมเงื่อนไขขอบ
+volScalarField p6(IOobject("p6", runTime.timeName(), mesh), mesh, dimensionedScalar("zero", dimPressure, 0.0));
+p6 = p1;  // ตัวดำเนินการกำหนดค่าทำการคัดลอกลึก
+p6.correctBoundaryConditions();  // คัดลอกเงื่อนไขขอบด้วย
+```
+
+### **การจัดการหน่วยความจำในทางปฏิบัติ**
+
+```cpp
+// ✅ รูปแบบ: การทำงานกับฟิลด์ชั่วคราว
+void calculatePressureGradient(const volScalarField& p, volVectorField& gradP) {
+    // สร้างฟิลด์ชั่วคราวโดยใช้ tmp สำหรับการจัดการอัตโนมัติ
+    tmp<volScalarField> pTemp = fvc::grad(p);
+    
+    // tmp จัดการการนับอ้างอิงโดยอัตโนมัติ
+    // เมื่อ pTemp อยู่นอกขอบเขต การนับอ้างอิงจะลดลง
+    gradP = pTemp();  // แยกการอ้างอิงจาก tmp
+}
+
+// ✅ รูปแบบ: การแก้ไขฟิลด์พร้อมการสำรองข้อมูล
+void modifyFieldSafely(volScalarField& field, const scalar newValue) {
+    // สร้างการสำรองข้อมูลก่อนการแก้ไข
+    volScalarField backup = field.clone();
+    
+    try {
+        // ดำเนินการแก้ไข
+        field = newValue;
+        field.correctBoundaryConditions();
+        
+        // ขั้นตอนการตรวจสอบ
+        if (min(field).value() < 0) {
+            Info << "ตรวจพบค่าลบ กำลังคืนค่าสำรอง" << endl;
+            field = backup;
+            field.correctBoundaryConditions();
+        }
+    } catch (const std::exception& e) {
+        Info << "ข้อผิดพลาดระหว่างการแก้ไข: " << e.what() << endl;
+        field = backup;
+        field.correctBoundaryConditions();
+    }
+}
+
+// ✅ แนวทางปฏิบัติที่ดีที่สุด: ฟังก์ชันคัดลอกที่ปลอดภัย
+volScalarField safeCopyField(const volScalarField& source, const word& newName) {
+    volScalarField copy(IOobject(newName, source.instance(), source.db(), IOobject::NO_READ, IOobject::NO_WRITE),
+                        source.mesh(), source.dimensions(), source);
+    copy.correctBoundaryConditions();
+    return copy;  // การเพิ่มประสิทธิภาพค่าตอบแทน (RVO) ใช้ได้
+}
+```
+
+## **ข้อผิดพลาดที่ 4: ข้อผิดพลาดการจัดการเวลา**
+
+### **การทำความเข้าใจการจัดเก็บฟิลด์เวลาเก่า**
+
+OpenFOAM ให้กลไกสำหรับจัดเก็บค่าฟิลด์จากขั้นตอนเวลาก่อนหน้า ซึ่งจำเป็นสำหรับการคำนวณอนุพันธ์ตามเวลา การใช้กลไกเหล่านี้อย่างไม่ถูกต้องจะนำไปสู่อนุพันธ์ตามเวลาที่ไม่ถูกต้องและปัญหาการลู่เข้าของ solver
+
+[Diagram: การแสดงการจัดเก็บฟิลด์เวลาเก่าและการคำนวณอนุพันธ์ตามเวลา]
+
+```cpp
+// ❌ ข้อผิดพลาด: การใช้ฟิลด์เวลาเก่าไม่ถูกต้อง
+volScalarField T(IOobject("T", runTime.timeName(), mesh, IOobject::MUST_READ, IOobject::AUTO_WRITE),
+                 mesh);
+
+T.storeOldTime();  // เก็บค่าปัจจุบันเป็น T.oldTime()
+
+// ภายหลังในขั้นตอนเวลาเดียวกัน...
+T = newTemperature;  // อัปเดตฟิลด์
+
+// ❌ ผิด: การใช้การอ้างอิงเวลาเก่าผิด
+// auto dTdt = (T - T.oldTime())/dt;  // T.oldTime() ชี้ไปยังค่าใหม่!
+                                     // เพราะเราเขียนทับ T ก่อนเก็บเวลาเก่า!
+```
+
+#### **สมการอนุพันธ์ตามเวลา**
+
+อนุพันธ์ตามเวลาใช้สูตร: $$\frac{\partial \phi}{\partial t} = \frac{\phi^{n+1} - \phi^n}{\Delta t}$$
+
+โดยที่:
+- $\phi^{n+1}$ = ค่าฟิลด์ขณะปัจจุบัน
+- $\phi^n$ = ค่าฟิลด์จากขั้นตอนเวลาก่อนหน้า
+- $\Delta t$ = ขนาดขั้นตอนเวลา
+
+```cpp
+// ✅ วิธีแก้ไข: เก็บก่อนการแก้ไข
+T.storeOldTime();      // เก็บค่าเก่าเป็น oldTime
+T = newTemperature;    // อัปเดตเป็นค่าใหม่
+auto dTdt = (T - T.oldTime())/runTime.deltaT();  // ถูกต้อง: ใหม่ - เก่า
+```
+
+### **แนวทางปฏิบัติที่ดีที่สุดในการจัดการเวลา**
+
+#### **กฎหมายหลัก: เก็บเวลาเก่าเสมอก่อนการแก้ไข**
+
+```cpp
+// 🎯 รูปแบบ: จัดเก็บเวลาเก่าเสมอก่อนการแก้ไข
+void updateField(volScalarField& phi, const volScalarField& newPhi) {
+    phi.storeOldTime();    // เก็บค่าปัจจุบันเป็นเก่า
+    phi = newPhi;          // อัปเดตเป็นค่าใหม่
+    // ตอนนี้ phi.oldTime() มีค่าก่อนการอัปเดต
+}
+```
+
+#### **ลูป Time Marching ที่ถูกต้อง**
+
+1. **เพิ่มขั้นตอนเวลา**
+2. **เก็บฟิลด์เวลาเก่าที่จุดเริ่มต้น**
+3. แก้สมการต่างๆ
+4. **อัปเดตเงื่อนไขขอบ**
+5. ตรวจสอบการเปลี่ยนแปลง
+6. เขียนผลลัพธ์
+
+```cpp
+// ✅ ตัวอย่างครบถ้วน: ลูป time marching
+while (!runTime.end()) {
+    runTime++;  // เพิ่มขั้นตอนเวลา
+    
+    // เก็บฟิลด์เวลาเก่าที่จุดเริ่มต้นของขั้นตอนเวลาใหม่
+    U.storeOldTime();
+    p.storeOldTime();
+    T.storeOldTime();
+    
+    // แก้สมการ
+    solve(fvm::ddt(U) + fvm::div(phi, U) - fvm::laplacian(nu, U) == -fvc::grad(p));
+    solve(fvm::ddt(T) + fvm::div(phi, T) - fvm::laplacian(alpha, T) == Q);
+    
+    // อัปเดตเงื่อนไขขอบ
+    U.correctBoundaryConditions();
+    p.correctBoundaryConditions();
+    T.correctBoundaryConditions();
+    
+    // ตอนนี้ U.oldTime(), p.oldTime(), T.oldTime() มีค่าจากขั้นตอนเวลาก่อนหน้า
+    Info << "การเปลี่ยนแปลงความเร็วสูงสุด: " << max(mag(U - U.oldTime())).value() << endl;
+    Info << "การเปลี่ยนแปลงอุณหภูมิสูงสุด: " << max(abs(T - T.oldTime())).value() << endl;
+    
+    runTime.write();  // เขียนผลลัพธ์สำหรับขั้นตอนเวลาปัจจุบัน
+}
+```
+
+### **รูปแบบการจัดการเวลาขั้นสูง**
+
+#### **การรวมเวลาแบบหลายขั้นตอน (Runge-Kutta 4)**
+
+```cpp
+// ✅ รูปแบบ: การรวมเวลาแบบหลายขั้นตอน
+void RK4Step(volScalarField& phi, const scalar dt) {
+    // เก็บสถานะเดิม
+    volScalarField phi0 = phi.clone();
+    
+    // ขั้นที่ 1: k1
+    auto k1 = RHS(phi0);
+    phi = phi0 + 0.25*dt*k1;
+    phi.correctBoundaryConditions();
+    
+    // ขั้นที่ 2: k2
+    auto k2 = RHS(phi);
+    phi = phi0 + 0.333333*dt*k2;
+    phi.correctBoundaryConditions();
+    
+    // ขั้นที่ 3: k3
+    auto k3 = RHS(phi);
+    phi = phi0 + 0.5*dt*k3;
+    phi.correctBoundaryConditions();
+    
+    // ขั้นที่ 4: k4
+    auto k4 = RHS(phi);
+    phi = phi0 + dt*k4;
+    phi.correctBoundaryConditions();
+}
+```
+
+#### **การปรับขั้นตอนเวลาอย่างปรับตัวได้**
+
+```cpp
+// ✅ รูปแบบ: การปรับขั้นตอนเวลาอย่างปรับตัวได้
+void adaptiveTimeStep(volScalarField& T, const scalar maxChange) {
+    T.storeOldTime();
+    
+    // ทำนายอุณหภูมิใหม่
+    volScalarField T_pred = T + runTime.deltaT() * fvc::ddt(T);
+    T_pred.correctBoundaryConditions();
+    
+    // ตรวจสอบขนาดการเปลี่ยนแปลง
+    scalar maxTChange = max(abs(T_pred - T)).value();
+    
+    if (maxTChange > maxChange) {
+        // ลดขั้นตอนเวลา
+        runTime.setDeltaT(0.5 * runTime.deltaTValue());
+        Info << "ลดขั้นตอนเวลาเป็น: " << runTime.deltaTValue() << endl;
+        // ไม่เดินหน้าเวลา คำนวณใหม่ด้วย dt ที่เล็กลง
+        return;
+    }
+    
+    // ยอมรับขั้นตอนเวลา
+    T = T_pred;
+}
+```
+
+### **การแก้จุดบกพร่องปัญหาการจัดการเวลา**
+
+```cpp
+// ✅ การแก้จุดบกพร่อง: ตรวจสอบความสอดคล้องของฟิลด์เวลาเก่า
+void validateOldTimeFields(const volScalarField& phi, const word& fieldName) {
+    if (!phi.oldTime().valid()) {
+        FatalErrorIn("validateOldTimeFields")
+            << "Old time field ไม่ถูกต้องสำหรับ " << fieldName
+            << ". คุณลืมเรียก storeOldTime() หรือไมย้าย?"
+            << abort(FatalError);
+    }
+    
+    // ตรวจสอบการเปลี่ยนแปลงที่ไม่คาดคิด
+    scalar diff = max(abs(phi - phi.oldTime())).value();
+    if (diff > 1e10) {
+        WarningIn("validateOldTimeFields")
+            << "ตรวจพบการเปลี่ยนแปลงที่ใหญ่มากใน " << fieldName
+            << ": ความแตกต่างสูงสุด = " << diff << endl;
+    }
+}
+
+// ✅ การใช้งาน: ตรวจสอบที่จุดสำคัญ
+void timeStepSolve() {
+    // ตรวจสอบก่อนแก้
+    validateOldTimeFields(U, "U");
+    validateOldTimeFields(T, "T");
+    
+    // เก็บฟิลด์เวลาเก่า
+    U.storeOldTime();
+    T.storeOldTime();
+    
+    // แก้สมการ
+    solve(UEqn == -fvc::grad(p));
+    solve(TEqn == Q);
+    
+    // อัปเดตขอบ
+    U.correctBoundaryConditions();
+    T.correctBoundaryConditions();
+}
+```

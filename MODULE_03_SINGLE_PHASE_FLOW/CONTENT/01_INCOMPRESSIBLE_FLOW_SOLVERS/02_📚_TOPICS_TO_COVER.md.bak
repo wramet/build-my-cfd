@@ -1,0 +1,77 @@
+## 📚 หัวข้อที่ครอบคลุม
+
+### 1. บทนำสู่การไหลแบบ Incompressible Flow
+
+**Incompressible flow** เป็นสมมติฐานพื้นฐานใน fluid dynamics ที่ความหนาแน่นของของไหลยังคงที่ตลอดทั้ง flow field
+
+สมมติฐานนี้ใช้ได้เมื่อ **Mach number** $Ma < 0.3$ ซึ่งหมายความว่าความเร็วการไหลต่ำกว่าความเร็วเสียงในตัวกลางอย่างมีนัยสำคัญ
+
+[Diagram: แสดงความสัมพันธ์ระหว่าง Mach number และความเหมาะสมของสมมติฐาน incompressible]
+
+#### 1.1 สมการพื้นฐาน
+
+ในทางคณิตศาสตร์ สิ่งนี้แสดงออกผ่าน **continuity equation** สำหรับ incompressible flow:
+
+$$\nabla \cdot \mathbf{u} = 0$$
+
+โดยที่:
+- $\mathbf{u}$ = velocity vector
+- $\nabla \cdot$ = divergence operator
+
+การลดความซับซ้อนนี้ช่วยขจัด **energy equation** ออกจากระบบ **momentum equation** เมื่อผลกระทบจากอุณหภูมิมีน้อย ซึ่งช่วยลดความซับซ้อนในการคำนวณได้อย่างมาก
+
+#### 1.2 ข้อจำกัดทางกายภาพ
+
+สมมติฐานของ incompressibility จะใช้ไม่ได้เมื่อ:
+- การไหลด้วยความเร็วสูง ($Ma > 0.3$)
+- การไหลที่มีการเปลี่ยนแปลงอุณหภูมิอย่างมีนัยสำคัญ
+- การไหลที่เกี่ยวข้องกับการเปลี่ยนเฟส
+
+**ข้อจำกัดเฉพาะ:**
+- ใช้ได้เฉพาะกับของเหลวและการไหลของก๊าซความเร็วต่ำ
+- ไม่สามารถจับคลื่นเสียง (acoustic waves) หรือผลกระทบจาก compressibility ได้
+- อาจให้ผลลัพธ์ที่ไม่ถูกต้องสำหรับการไหลที่มีการทำความร้อน/ความเย็นที่รุนแรง
+- จำกัดเฉพาะการไหลที่การเปลี่ยนแปลงความดันไม่ส่งผลกระทบต่อความหนาแน่นอย่างมีนัยสำคัญ
+
+[Diagram: แสดงขอบเขตการใช้งานของ incompressible และ compressible solvers]
+
+#### 1.3 การเลือกใช้ Solver
+
+| สภาพการไหล (Flow Condition) | แนวทางที่แนะนำ (Recommended Approach) | การใช้งานทั่วไป (Typical Applications) |
+|----------------|---------------------|---------------------|
+| $Ma < 0.3$, isothermal | Incompressible solver | Pipe flow, external aerodynamics ที่ความเร็วต่ำ |
+| $0.3 < Ma < 0.8$, moderate heating | Compressible solver with simplified energy equation | Turbo-machinery, subsonic aircraft |
+| $Ma > 0.8$ or significant heating | Full compressible solver | Supersonic flows, combustion systems |
+
+### 2. สถาปัตยกรรมของ Incompressible Solvers มาตรฐาน
+
+#### 2.1 ปัญหา: ความท้าทายในการเชื่อมโยงความดัน-ความเร็ว (Pressure-Velocity Coupling Challenge)
+
+**Incompressible flow solvers** เผชิญกับความท้าทายเชิงตัวเลขพื้นฐาน: **momentum equation** ขึ้นอยู่กับ pressure แต่ pressure ไม่มี governing equation
+
+[Diagram: แสดงความสัมพันธ์ระหว่าง momentum equation และ pressure field]
+
+##### Momentum Equation สำหรับ Incompressible Flow
+
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
+
+โดยที่:
+- $\rho$ = density
+- $\mathbf{u}$ = velocity vector
+- $t$ = time
+- $p$ = pressure
+- $\mu$ = dynamic viscosity
+- $\mathbf{f}$ = body force vector
+- $\nabla$ = gradient operator
+- $\nabla^2$ = Laplacian operator
+
+##### ความท้าทายหลัก
+
+Momentum equation แสดงให้เห็นว่า:
+- **Pressure gradient** $-\nabla p$ เป็นตัวขับเคลื่อนการเร่งความเร็วของของไหล
+- ไม่มี **explicit evolution equation** สำหรับ pressure
+- **Continuity equation** ($\nabla \cdot \mathbf{u} = 0$) ให้ข้อจำกัดที่เชื่อมโยง velocity และ pressure
+
+การเชื่อมโยงนี้ต้องใช้อัลกอริทึมพิเศษ (**SIMPLE, PISO, PIMPLE**) ที่กำหนดสถาปัตยกรรมของ incompressible solvers
+
+[Diagram: แสดงขั้นตอนการทำงานของ pressure-velocity coupling algorithm]

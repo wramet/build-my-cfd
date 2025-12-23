@@ -1,0 +1,200 @@
+# ขั้นตอนการทำงานของการจำลอง CFD ใน OpenFOAM
+
+การจำลอง OpenFOAM เป็นไปตามขั้นตอนการทำงานที่เป็นระบบสามขั้นตอน ซึ่งเปลี่ยนคำจำกัดความของปัญหาทางกายภาพให้เป็นผลเฉลยเชิงตัวเลขและข้อมูลเชิงลึกที่นำไปใช้ได้จริง
+
+## 1. ขั้นตอน Pre-Processing
+
+### การวางรากฐานทางคณิตศาสตร์และเรขาคณิต
+ขั้นตอน Pre-processing เป็นการสร้างรากฐานสำหรับการจำลอง CFD ประกอบด้วยองค์ประกอบสี่ส่วนที่เชื่อมโยงกัน
+
+#### **1.1 การสร้าง Geometry และ Mesh**
+
+โดเมนการคำนวณถูกสร้างขึ้นโดยใช้ยูทิลิตี `blockMesh` ซึ่งแปลงคำจำกัดความทางเรขาคณิตให้เป็นโครงสร้าง Mesh แบบไม่ต่อเนื่อง
+
+
+```mermaid
+graph LR
+    A["Physical Domain"] --> B["blockMesh Utility"]
+    B --> C["Structured Mesh"]
+    C --> D["Grid Cells"]
+    D --> E["Discrete Geometry"]
+    
+    C --> F["Cell Centers"]
+    C --> G["Cell Faces"]
+    C --> H["Boundary Faces"]
+    
+    F --> I["Field Variables"]
+    G --> J["Flux Calculations"]
+    H --> K["Boundary Conditions"]
+    
+    I --> L["CFD Equations"]
+    J --> L
+    K --> L
+    
+    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    
+    class A,B,C,D,E,F,G,H,I,J,K,L process;
+```
+
+
+**ความสำคัญของ Mesh:**
+- **แสดงถึง**: พื้นที่ทางกายภาพที่สมการควบคุมจะถูกแก้ไข
+- **ผลกระทบ**: คุณภาพ Mesh ส่งผลโดยตรงต่อความแม่นยำของผลเฉลยและลักษณะการลู่เข้า
+
+#### **1.2 การกำหนด Boundary Condition**
+
+ไฟล์ Boundary Condition ในไดเรกทอรี `0/` จะกำหนดข้อจำกัดทางกายภาพที่ขอบเขตของโดเมน:
+
+| Boundary Type | คำอธิบาย | การใช้งานทั่วไป |
+|---------------|------------|------------------|
+| Velocity Inlets | กำหนดความเร็วที่ช่องเข้า | Inlet flows, ducts |
+| Pressure Outlets | กำหนดความดันที่ช่องออก | Exit conditions |
+| Wall Conditions | กำหนดเงื่อนไขผนัง | No-slip, isothermal |
+| Symmetry Planes | กำหนดเงื่อนไขสมมาตร | Symmetric domains |
+
+#### **1.3 การกำหนดค่าคุณสมบัติทางกายภาพ**
+
+ไดเรกทอรี `constant/` ประกอบด้วยคุณสมบัติของวัสดุและคำจำกัดความของ Physical Model:
+
+- **ความหนาแน่นของของไหล**: $\rho$ (kg/m³)
+- **ความหนืด**: $\mu$ (Pa·s) 
+- **ค่าการนำความร้อน**: $k$ (W/m·K)
+- **พารามิเตอร์ Turbulence Model**: k, ε, ω เป็นต้น
+
+#### **1.4 พารามิเตอร์ควบคุม Solver**
+
+ไดเรกทอรี `system/` เป็นที่เก็บไฟล์การกำหนดค่า Solver ที่ควบคุมด้านตัวเลข:
+
+| พารามิเตอร์ | สัญลักษณ์ | หน่วย | ผลกระทบ |
+|--------------|------------|--------|-----------|
+| Time Step | $\Delta t$ | s | เสถียรภาพและความแม่นยำ |
+| เกณฑ์การลู่เข้า | - | - | ความเร็วในการคำนวณ |
+| Discretization Schemes | - | - | ความแม่นยำเชิงตัวเลข |
+| Linear Solver Tolerance | - | - | ความแม่นยำของผลเฉลย |
+
+## 2. ขั้นตอน Solving
+
+### การดำเนินการแก้ไขเชิงตัวเลข
+
+Solver เฉพาะทางจะใช้การ Discretization แบบ Finite Volume ของสมการ Navier-Stokes
+
+**OpenFOAM Code Implementation:**
+```cpp
+// ตัวอย่างการ Discretization ใน OpenFOAM
+fvVectorMatrix UEqn
+(
+    fvm::ddt(rho, U)
+  + fvm::div(rhoPhi, U)
+  + fvm::SuSp(-fvc::div(rhoPhi), U)
+ ==
+    - fvc::grad(p)
+  + fvc::laplacian(mu, U)
+  + fvOptions(rho, U)
+);
+```
+
+**สมการพื้นฐาน:**
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
+
+$$\nabla \cdot \mathbf{u} = 0$$
+
+**การกำหนดตัวแปร:**
+- $\mathbf{u}$ = Velocity vector (m/s)
+- $p$ = Pressure (Pa)
+- $\rho$ = Density (kg/m³)
+- $\mu$ = Dynamic viscosity (Pa·s)
+- $\mathbf{f}$ = Body force (N/m³)
+
+### การตรวจสอบการลู่เข้า
+
+ความคืบหน้าของผลเฉลยจะถูกติดตามผ่านการตรวจสอบ Residual
+
+**Algorithm: การตรวจสอบการลู่เข้า**
+```
+เริ่มต้น Time Step
+    สำหรับแต่ละสมการ:
+        แก้สมการเชิงตัวเลข
+        คำนวณ Residual
+        ถ้า Residual < tolerance:
+            การแก้ลู่เข้าแล้ว
+        อื่น ๆ:
+            ทำซ้ำ iteration
+    จบการแก้สมการ
+ตรวจสอบความเสถียรระดับโลการิทึม
+```
+
+**OpenFOAM Log Analysis:**
+```
+Time = 0.1
+DILUPBiCG: Solving for Ux, initial residual = 0.0012, final residual = 1.2e-05, no iterations = 3
+DILUPBiCG: Solving for Uy, initial residual = 0.0008, final residual = 8.1e-06, no iterations = 2
+GAMG: Solving for p, initial residual = 0.05, final residual = 2.1e-04, no iterations = 12
+```
+
+## 3. ขั้นตอน Post-Processing
+
+### การแสดงผลและการวิเคราะห์
+
+การทำงานร่วมกับ ParaView ช่วยให้สามารถแสดงผล Flow Fields ได้อย่างครอบคลุม
+
+
+[Diagram: Contour plot ของความดันและ velocity vectors ในพื้นที่ที่มีอุปสรรค. Perspective: Isometric. Style: Engineering illustration, 8k, white background.]
+> **Prompt:** Technical 2D engineering cross-section of multiphase flow streamlines in a longitudinal pipe section. Primary: Velocity field (u) as blue streamlines. Secondary: Pressure scalar field as a surface color gradient. Annotations: Sharp professional arrowheads (n = Red, u = Blue). Clear labels in sans-serif font using single letters or LaTeX. Ray-traced studio lighting on semi-transparent materials. Style: Engineering illustration, high-contrast, white background, 8k resolution.
+
+
+**ปริมาณที่น่าสนใจ:**
+- **Velocity Vectors**: $\mathbf{u}$ (m/s)
+- **Pressure Contours**: $p$ (Pa)
+- **Vorticity**: $\omega = \nabla \times \mathbf{u}$ (1/s)
+- **Wall Shear Stress**: $\tau_w$ (Pa)
+
+### การดึงข้อมูลเชิงปริมาณ
+
+ยูทิลิตี `sample` และ `probes` จะดึงข้อมูลเชิงตัวเลข
+
+**OpenFOAM Code Implementation:**
+```cpp
+// การใช้งาน probes function object
+probes
+{
+    type            probes;
+    fields          (p U k epsilon);
+    probeLocations  ((0 0.1 0) (0.5 0.1 0));
+    writeFields     true;
+}
+```
+
+**Algorithm: การดึงข้อมูลตามแนวเส้น**
+```
+สร้างเส้นที่ต้องการวิเคราะห์
+    กำหนดจุดเริ่มต้นและสิ้นสุด
+    กำหนดจำนวนจุดตัดอ้างอิง
+สำหรับแต่ละ Field ที่สนใจ:
+    แทรกค่าจาก Mesh ไปยังเส้น
+    บันทึกข้อมูลเป็นไฟล์ CSV
+วิเคราะห์ Velocity Profiles และ Pressure Distributions
+```
+
+### การตรวจสอบความถูกต้องและการยืนยัน
+
+Post-Processing รวมถึงการเปรียบเทียบกับข้อมูลอ้างอิง
+
+**Grid Independence Study:**
+```cpp
+// การตรวจสอบความอิสระของ Mesh
+สำหรับแต่ละขนาด Mesh:
+    สร้าง Mesh (coarse, medium, fine)
+    ทำการจำลอง
+    วิเคราะห์ปริมาณสำคัญ (drag, pressure drop)
+    ตรวจสอบการเปลี่ยนแปลง < 1%
+```
+
+**Validation Framework:**
+- **Analytical Solutions**: กรณีที่มีผลเฉลยที่ทราบแน่นอน
+- **Experimental Data**: ข้อมูลจากการทดลองในห้องปฏิบัติการ
+- **Benchmark Cases**: กรณีมาตรฐานที่ได้รับการยอมรับ
+
+---
+
+**กรอบการทำงานของ Workflow นี้เป็นรากฐานที่แข็งแกร่งสำหรับการวิเคราะห์ CFD** ซึ่งช่วยให้สามารถสำรวจปัญหาพลศาสตร์ของไหลได้อย่างเป็นระบบ ตั้งแต่การไหลแบบ Laminar Flow อย่างง่าย ไปจนถึงปรากฏการณ์ Multiphase ที่ซับซ้อนพร้อมการถ่ายเทความร้อนและปฏิกิริยาเคมี

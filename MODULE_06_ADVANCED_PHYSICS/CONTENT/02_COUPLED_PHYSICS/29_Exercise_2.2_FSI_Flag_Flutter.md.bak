@@ -1,0 +1,525 @@
+# แบบฝึกหัด 2.2: การ Flap ของ Flag ด้วย Fluid-Structure Interaction
+
+## ภาพรวมปัญหา
+
+การโต้ตอบระหว่างของไหลและโครงสร้าง (Fluid-Structure Interaction - FSI) ของ flag ที่ยืดหยุ่นเป็นปัญหาคลาสสิกในการไหลของของไหลเชิงคำนวณที่แสดงถึงการ coupling ระหว่างการไหลของของไหลและการเปลี่ยนรูปของโครงสร้าง
+
+เมื่อ flag ที่ยืดหยุ่นถูกวางไว้ในการไหลสม่ำเสมอ มันสามารถแสดงพฤติกรรมต่างๆ ได้ตั้งแต่:
+- **การโก่งตัวแบบสถิต**
+- **ความไม่เสถียรแบบไดนามิก flutter**
+
+แบบฝึกหัดนี้แนะนำการ implement weak fluid-structure coupling ใน OpenFOAM โดยใช้ `solidDisplacementFoam` solver สำหรับโดเมนของแข็งที่ coupled กับ fluid solvers มาตรฐาน
+
+[Diagram: Flag flapping in fluid flow showing fluid-structure interface]
+
+## พื้นฐานทางกายภาพ
+
+ปรากฏการณ์ **flutter** เกิดขึ้นเมื่อแรงไดนามิกของของไหลบน flag โต้ตอนกับคุณสมบัติยืดหยุ่นของมัน นำไปสู่การสั่นสะเทือนแบบยั่งยืนด้วยตนเอง
+
+### สมการควบคุม
+
+**โดเมนของไหล (Navier-Stokes)**:
+$$\rho_f \frac{\partial \mathbf{u}_f}{\partial t} + \rho_f (\mathbf{u}_f \cdot \nabla) \mathbf{u}_f = -\nabla p + \mu_f \nabla^2 \mathbf{u}_f + \mathbf{f}_b$$
+$$\nabla \cdot \mathbf{u}_f = 0$$
+
+**โดเมนของแข็ง (Linear Elasticity)**:
+$$\rho_s \frac{\partial^2 \mathbf{u}_s}{\partial t^2} = \nabla \cdot \boldsymbol{\sigma} + \rho_s \mathbf{f}_s$$
+
+โดยที่ Cauchy stress tensor สำหรับวัสดุยืดหยุ่นเชิงเส้นคือ:
+$$\boldsymbol{\sigma} = \lambda \text{tr}(\boldsymbol{\varepsilon})\mathbf{I} + 2\mu\boldsymbol{\varepsilon}$$
+$$\boldsymbol{\varepsilon} = \frac{1}{2}(\nabla \mathbf{u}_s + (\nabla \mathbf{u}_s)^T)$$
+
+**ตัวแปรในสมการ:**
+- $\rho_f, \rho_s$ = ความหนาแน่นของของไหลและของแข็ง
+- $\mathbf{u}_f, \mathbf{u}_s$ = ความเร็วของของไหลและการกระจัดของของแข็ง
+- $p$ = ความดัน
+- $\mu_f$ = ความหนืดของของไหล
+- $\boldsymbol{\sigma}$ = stress tensor
+- $\boldsymbol{\varepsilon}$ = strain tensor
+- $\lambda, \mu$ = Lamé parameters
+
+### เงื่อนไข Interface
+
+- **ความต่อเนื่องเชิงจลนศาสตร์**: $\mathbf{u}_f = \frac{\partial \mathbf{u}_s}{\partial t}$ ที่ fluid-structure interface
+- **ความต่อเนื่องเชิงพลศาสตร์**: $\boldsymbol{\sigma}_f \cdot \mathbf{n} = \boldsymbol{\sigma}_s \cdot \mathbf{n}$ ที่ interface
+
+## ขั้นตอนการ Implement
+
+### ขั้นที่ 1: สร้าง Fluid Mesh ด้วย Flag-Shaped Obstacle
+
+โดเมนของไหลต้องการ **rectangular channel** ที่มี flag geometry แสดงเป็น solid obstacle
+
+ใช้ `blockMesh` สำหรับโดเมนพื้นฐานและ `snappyHexMesh` สำหรับ flag geometry
+
+#### การกำหนดค่า blockMeshDict
+
+```cpp
+convertToMeters 1;
+
+vertices
+(
+    (0 0 0)      // 0: domain origin
+    (2 0 0)      // 1: domain end (x-direction)
+    (2 0.5 0)    // 2: domain top
+    (0 0.5 0)    // 3: domain top-left
+    (0 0 0.1)    // 4: back
+    (2 0 0.1)    // 5: back-right
+    (2 0.5 0.1)  // 6: back-top-right
+    (0 0.5 0.1)  // 7: back-top-left
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (200 50 5) simpleGrading (1 1 1)
+);
+
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces ((0 4 7 3));
+    }
+    outlet
+    {
+        type patch;
+        faces ((1 5 6 2));
+    }
+    walls
+    {
+        type wall;
+        faces ((0 1 5 4) (3 2 6 7));
+    }
+);
+```
+
+#### การกำหนดค่า snappyHexMeshDict
+
+```cpp
+castellatedMesh false;
+snap false;
+addLayers false;
+
+geometry
+{
+    flag.stl
+    {
+        type triSurfaceMesh;
+        name flag;
+    }
+}
+
+refinementSurfaces
+{
+    flag
+    {
+        level (2 2);
+        patchInfo
+        {
+            type wall;
+        }
+    }
+}
+```
+
+[Diagram: Fluid domain mesh with flag-shaped obstacle]
+
+### ขั้นที่ 2: สร้าง Solid Mesh สำหรับโครงสร้าง Flag
+
+โดเมนของแข็งต้องการ mesh บางๆ ที่ยืดหยุ่นซึ่งแสดงถึง flag สร้างโดยใช้ `extrudeMesh` จาก 2D base mesh
+
+#### การกำหนดค่า extrudeMeshDict
+
+```cpp
+extrudeModel        linearDirectionExtrude;
+linearDirectionCoeffs
+{
+    direction       (0 0 1);
+    thickness       0.001;     // Flag thickness
+    nDivisions      3;
+}
+
+sectorCoeffs
+{
+    // Not used for linear extrusion
+}
+```
+
+#### คุณสมบัติ Solid Mesh
+
+| คุณสมบัติ | คำอธิบาย | ค่าแนะนำ |
+|-----------|----------|-----------|
+| ประเภท element | Hexahedral elements สำหรับความแม่นยำของโครงสร้างที่ดีขึ้น | - |
+| ความหนา | โดยทั่วไป $t/L = 0.001$ ถึง $0.01$ โดยที่ $L$ คือความยาวของ flag | 0.001-0.01 |
+| Mesh refinement | ความหนาแน่นสูงขึ้นใกล้ขอบที่ถูก clamped สำหรับความละเอียดของความเข้มของความเครียด | ใกล้ clamped edge |
+
+### ขั้นที่ 3: ตั้งค่า Mapped Boundaries สำหรับ Data Transfer
+
+กุญแจสำคัญสำหรับ weak FSI coupling ใน OpenFOAM คือการใช้ `mapped` boundary conditions สำหรับ data transfer ระหว่างโดเมนของไหลและของแข็ง
+
+#### Boundary Conditions ด้านของไหล
+
+```cpp
+// 0/U (velocity field)
+flag
+{
+    type            mapped;
+    setAverage      false;
+    average         false;
+    interpolationScheme cell;
+    value           uniform (0 0 0);
+}
+
+// 0/p (pressure field)  
+flag
+{
+    type            mapped;
+    setAverage      false;
+    average         false;
+    interpolationScheme cell;
+    value           uniform 0;
+}
+```
+
+#### Boundary Conditions ด้านของแข็ง
+
+```cpp
+// 0/D (displacement field)
+fluid
+{
+    type            fixedValue;
+    value           uniform (0 0 0);
+}
+
+// 0/pointDisplacement (for mesh motion)
+fluid
+{
+    type            solidDisplacement;
+    value           uniform (0 0 0);
+}
+```
+
+### ขั้นที่ 4: กำหนดค่า Dynamic Mesh Motion
+
+สำหรับโดเมนของไหล กำหนดค่า dynamic mesh handling โดยใช้ `dynamicMotionSolverFvMesh`
+
+#### การกำหนดค่า dynamicMeshDict
+
+```cpp
+dynamicFvMesh   dynamicMotionSolverFvMesh;
+
+motionSolver    displacement;
+solver          GaussSeidel;
+relaxationFactor 0.9;
+
+cellMotionBoundary
+{
+    type            solidDisplacement;
+    value           uniform (0 0 0);
+}
+
+cellZone         movingCells;
+}
+```
+
+#### การตั้งค่า solidDisplacementFoam
+
+โดเมนของแข็งใช้ `solidDisplacementFoam` solver กับคุณสมบัติวัสดุที่เหมาะสม:
+
+```cpp
+// constant/solidProperties
+// Material properties for typical flexible material
+density     1000;       // kg/m³
+E           1e6;        // Young's modulus (Pa)
+nu          0.3;        // Poisson's ratio
+```
+
+```cpp
+// system/fvSolution
+solvers
+{
+    D
+    {
+        solver          GAMG;
+        tolerance       1e-8;
+        relTol          0.01;
+        smoother        GaussSeidel;
+    }
+    
+    DDt
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-8;
+        relTol          0;
+    }
+}
+
+relaxationFactors
+{
+    fields
+    {
+        D               0.9;
+    }
+}
+```
+
+### ขั้นที่ 5: การ Implement Weak Coupling Algorithm
+
+Implement weak coupling ผ่าน sequential execution ของ fluid และ solid solvers พร้อม data transfer ระหว่าง iterations
+
+#### อัลกอริทึม Weak Coupling
+
+```
+สำหรับแต่ละ coupling iteration:
+1. Run fluid solver (pimpleFoam)
+2. Map fluid stresses ไปยัง solid boundary
+3. Run solid solver (solidDisplacementFoam)
+4. Map solid displacement ไปยัง fluid boundary
+5. Apply relaxation สำหรับ stability
+6. Check convergence
+7. ทำซ้ำจนกว่า converged
+```
+
+#### couplingFoam Script
+
+```bash
+#!/bin/bash
+# Weak FSI coupling script
+
+caseName="flagFSI"
+fluidCase="${caseName}_fluid"
+solidCase="${caseName}_solid"
+
+# Coupling parameters
+couplingIter=10
+fluidTimeStep=0.001
+solidTimeStep=0.001
+interfaceRelaxation=0.5
+
+echo "Starting weak FSI coupling for flag flutter..."
+
+for iter in {1..$couplingIter}; do
+    echo "Coupling iteration: $iter"
+    
+    # Step 1: Run fluid solver
+    echo "Running fluid solver..."
+    cd $fluidCase
+    pimpleFoam > fluid.log 2>&1
+    
+    # Step 2: Map fluid stresses to solid boundary
+    echo "Transferring fluid stresses to solid..."
+    mapFields ../$solidCase -consistent -sourceTime latestTime
+    
+    # Step 3: Run solid solver  
+    echo "Running solid solver..."
+    cd ../$solidCase
+    solidDisplacementFoam > solid.log 2>&1
+    
+    # Step 4: Map solid displacement to fluid boundary
+    echo "Transferring solid displacement to fluid..."
+    mapFields ../$fluidCase -consistent -sourceTime latestTime
+    
+    # Step 5: Apply relaxation for stability
+    if [ $iter -gt 1 ]; then
+        echo "Applying interface relaxation..."
+        # Under-relaxation of interface quantities
+        python3 apply_relaxation.py $fluidCase $solidCase $interfaceRelaxation
+    fi
+    
+    # Step 6: Check convergence
+    if [ $iter -gt 2 ]; then
+        python3 check_convergence.py $fluidCase $solidCase
+        if [ $? -eq 0 ]; then
+            echo "FSI coupling converged!"
+            break
+        fi
+    fi
+done
+
+echo "FSI coupling complete. Post-processing with paraFoam..."
+paraFoam -case $fluidCase &
+```
+
+#### Convergence Criteria
+
+```python
+# check_convergence.py
+import numpy as np
+import os
+
+def check_convergence(fluid_case, solid_case, tolerance=1e-6):
+    """Check convergence of FSI coupling"""
+    
+    # Read interface quantities from latest time directories
+    fluid_dir = f"{fluid_case}/processor0"
+    solid_dir = f"{solid_case}/processor0"
+    
+    # Get latest time directories
+    fluid_times = [d for d in os.listdir(fluid_dir) if d.isdigit()]
+    solid_times = [d for d in os.listdir(solid_dir) if d.isdigit()]
+    
+    if len(fluid_times) < 2 or len(solid_times) < 2:
+        return False
+    
+    # Load interface data
+    fluid_stress_new = np.loadtxt(f"{fluid_dir}/{fluid_times[-1]}/flag_stress")
+    fluid_stress_old = np.loadtxt(f"{fluid_dir}/{fluid_times[-2]}/flag_stress")
+    
+    solid_disp_new = np.loadtxt(f"{solid_dir}/{solid_times[-1]}/fluid_displacement") 
+    solid_disp_old = np.loadtxt(f"{solid_dir}/{solid_times[-2]}/fluid_displacement")
+    
+    # Calculate L2 norms of changes
+    stress_norm = np.linalg.norm(fluid_stress_new - fluid_stress_old)
+    disp_norm = np.linalg.norm(solid_disp_new - solid_disp_old)
+    
+    print(f"Interface stress change: {stress_norm:.2e}")
+    print(f"Interface displacement change: {disp_norm:.2e}")
+    
+    if stress_norm < tolerance and disp_norm < tolerance:
+        return True
+    return False
+```
+
+[Diagram: Sequential weak coupling algorithm flowchart]
+
+## การวิเคราะห์ Flutter Instability
+
+### พารามิเตอร์ Flutter
+
+ความเร็ววิกฤตสำหรับ flutter onset สามารถพยากรณ์ได้จากพารามิเตอร์ไร้มิติ:
+
+#### Reduced Velocity
+$$U^* = \frac{U_\infty}{f_n L} = \frac{U_\infty}{\frac{1}{2\pi}\sqrt{\frac{EI}{\rho_s A L^4}} \cdot L}$$
+
+#### Mass Ratio
+$$\mu = \frac{\rho_s t}{\rho_f L}$$
+
+#### Dimensionless Stiffness
+$$K = \frac{EI}{\rho_f U_\infty^2 L^3}$$
+
+**ตัวแปรในสมการ:**
+- $U_\infty$ = inlet velocity
+- $f_n$ = natural frequency ของ flag
+- $L$ = ความยาวของ flag
+- $EI$ = flexural rigidity
+- $\rho_s$ = ความหนาแน่นของของแข็ง
+- $\rho_f$ = ความหนาแน่นของของไหล
+- $t$ = ความหนาของ flag
+
+### การวิเคราะห์ Flutter Threshold
+
+**Flutter threshold** โดยทั่วไปเกิดขึ้นที่ $U^* \approx 6-10$ สำหรับ mass ratios ในช่วง $\mu = 0.1-10$
+
+**กลไกความไม่เสถียรประกอบด้วย:**
+
+1. **Energy Transfer**: จากการไหลของของไหลไปยังการสั่นสะเทือนของโครงสร้าง
+2. **Phase Lag**: ระหว่างแรงของของไหลและการตอบสนองของโครงสร้าง
+3. **Growth Rate**: กำหนดโดยความแข็งแกร่งของ fluid-structure interaction
+
+#### การตั้งค่า Post-Processing
+
+```cpp
+// system/controlDict for analysis
+functions
+{
+    flagTipDisplacement
+    {
+        type            surfFieldValue;
+        functionObjectLibs ("libfieldFunctionObjects.so");
+        writeControl    timeStep;
+        writeInterval   1;
+        operation       volAverage;
+        region          flag;
+        fields
+        (
+            D
+        );
+    }
+    
+    flagDrag
+    {
+        type            surfaceForce;
+        functionObjectLibs ("libforces.so");
+        writeControl    timeStep;
+        writeInterval   1;
+        patches         ("flag");
+        rho             rho;
+        p               p;
+        U               U;
+    }
+    
+    flutterFrequency
+    {
+        type            fft;
+        functionObjectLibs ("libfft.so");
+        writeControl    timeStep;
+        writeInterval   100;
+        fields          (D);
+        field           D;
+    }
+}
+```
+
+[Diagram: Flutter onset diagram showing stable/unstable regions]
+
+## การ Validation และผลลัพธ์ที่คาดหวัง
+
+### พารามิเตอร์ Simulation สำหรับการวิเคราะห์ Flutter
+
+#### การกำหนดค่าพื้นฐาน
+
+| พารามิเตอร์ | ค่า | หน่วย |
+|-------------|------|------|
+| ขนาด flag: L = 0.2 | ความยาว | m |
+| ขนาด flag: t = 0.002 | ความหนา | m |
+| ขนาด flag: width = 0.1 | ความกว้าง | m |
+| วัสดุ: E = 2.3 × 10⁶ | Young's modulus | Pa |
+| วัสดุ: ρs = 1200 | ความหนาแน่นของแข็ง | kg/m³ |
+| วัสดุ: ν = 0.35 | Poisson's ratio | - |
+| ของไหล: ρf = 1.225 | ความหนาแน่นของไหล | kg/m³ |
+| ของไหล: μf = 1.8 × 10⁻⁵ | ความหนืด | Pa·s |
+| ความเร็วการไหล: U∞ = 2-10 | ความเร็ว | m/s |
+
+### พฤติกรรมที่คาดหวัง
+
+1. **ความเร็วต่ำ** ($U < 3$ m/s): การโก่งตัวแบบสถิตขนาดเล็ก
+2. **ความเร็วปานกลาง** ($3 < U < 6$ m/s): การสั่นสะเทือนที่เพิ่มขึ้น
+3. **ความเร็วสูง** ($U > 6$ m/s): flutter ที่พัฒนาเต็มที่พร้อม limit cycles
+
+### Convergence Criteria
+
+| ประเภท | เกณฑ์ |
+|--------|--------|
+| **เชิงเวลา** | $||\mathbf{D}^{n+1} - \mathbf{D}^n||_2 < 10^{-8}$ |
+| **FSI Interface** | การเปลี่ยนแปลงความเครียด/การกระจัดของ interface $< 10^{-6}$ |
+| **Residual** | Global residuals $< 10^{-6}$ สำหรับสมการทั้งหมด |
+
+## การแก้ไขปัญหาที่พบบ่อย
+
+### ปัญหาคุณภาพ Mesh
+
+- **Fluid mesh**: ตรวจสอบให้แน่ใจว่ามีการ refine ที่เพียงพอใกล้ปลาย flag และ wake region
+- **Solid mesh**: ใช้ structured hexahedral elements สำหรับความแม่นยำของโครงสร้างที่ดีขึ้น
+- **Interface mesh**: รักษาความหนาแน่นของ mesh ที่เข้ากันได้ทั้งสองด้าน
+
+### ความเสถียรเชิงตัวเลข
+
+- **Time step**: ใช้ $\mathrm{d}t < 0.1 \cdot \min(\Delta x/U_\infty, \Delta x/c_s)$ โดยที่ $c_s$ คือ wave speed ในของแข็ง
+- **Relaxation**: ใช้ under-relaxation (0.3-0.7) สำหรับ interface quantities
+- **Solver tolerance**: Tolerances ที่แน่นหนา ($< 10^{-8}$) สำหรับ solid solver
+
+### ปัญหา Convergence
+
+| ปัญหา | การตรวจสอบ | การแก้ไข |
+|--------|-------------|------------|
+| **Material parameters** | ให้แน่ใจว่ามีค่าจริงสำหรับ Young's modulus และความหนาแน่น | ตรวจสอบค่าและ units |
+| **Boundary conditions** | Mapping ที่เหมาะสมระหว่าง fluid และ solid interfaces | ตรวจสอบ mapped patch definitions |
+| **Residuals** | ติดตาม residuals ของ fluid และ solid solvers แยกกัน | ปรับ solver tolerances |
+
+แบบฝึกหัดนี้ให้พื้นฐานสำหรับการ implement weak fluid-structure coupling ใน OpenFOAM และการวิเคราะห์ flutter instabilities ในโครงสร้างที่ยืดหยุ่น
+
+**ระเบียบวิธีนี้สามารถขยายไปยังปัญหา FSI ที่ซับซ้อนมากขึ้นซึ่งเกี่ยวข้องกับ:**
+- การเปลี่ยนรูปขนาดใหญ่
+- วัสดุ non-linear
+- Strong coupling schemes

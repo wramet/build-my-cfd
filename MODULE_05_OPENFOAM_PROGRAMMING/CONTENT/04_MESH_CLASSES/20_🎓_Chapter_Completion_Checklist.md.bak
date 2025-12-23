@@ -1,0 +1,512 @@
+# 🎓 **รายการตรวจสอบการสำเร็จหลักสูตร**
+
+## [x] **เข้าใจสถาปัตยกรรมสามชั้น: primitiveMesh → polyMesh → fvMesh**
+
+โครงสร้างลำดับชั้นเป็นโครงสร้างพื้นฐานทางคำนวณของ OpenFOAM:
+
+**[Diagram: โครงสร้างลำดับชั้น 3 ชั้นของ OpenFOAM Mesh]**
+
+```cpp
+// ชั้นล่าง: รูปทรงเรขาคณิตล้วนๆ
+primitiveMesh primMesh(points, faces, cells);
+
+// ชั้นกลาง: การเชื่อมต่อทางโทโพโลยี + เงื่อนไขขอบเขต
+polyMesh mesh(primMesh, boundaryMesh);
+
+// ชั้นบน: เฟรมเวิร์คการแยกส่วนปริมาตรจำกัด
+fvMesh fv(mesh);
+```
+
+### **บทบาทของแต่ละชั้น:**
+
+- **primitiveMesh**: การเชื่อมต่อเชิงเรขาคณิตล้วนๆ - จุด หน้า เซลล์ พร้อมโทโพโลยีขอบเขต
+- **polyMesh**: เพิ่มการจัดการขอบเขต โซน และการดำเนินการที่ตระหนักถึงโทโพโลยี
+- **fvMesh**: ให้การรวมปริมาตรจำกัด การประมาณค่า และโครงสร้างพื้นฐานการคำนวณ
+
+**หลักการออกแบบ**: ความงามอยู่ที่การแยกหน้าที่ - เรขาคณิตใน primitiveMesh, โทโพโลยีใน polyMesh, และการรวมตัวเชิงตัวเลขใน fvMesh ซึ่งช่วยให้การดำเนินการ mesh สามารถดำเนินการได้ในระดับนามธรรมที่เหมาะสม
+
+---
+
+## [x] **เชี่ยวชาญ Lazy Evaluation: รู้เมื่อเรขาคณิตถูกคำนวณ/ล้างข้อมูล**
+
+Lazy evaluation ของ OpenFOAM รับประกันประสิทธิภาพการคำนวณผ่านการคำนวณตามความต้องการ:
+
+```cpp
+class fvMesh : public polyMesh {
+private:
+    mutable surfaceVectorField Sf_;      // พื้นที่ผิว (คำนวณเมื่อจำเป็น)
+    mutable surfaceScalarField magSf_;   // ขนาดหน้า (คำนวณเมื่อจำเป็น)
+    mutable volScalarField V_;           // ปริมาตรเซลล์ (คำนวณเมื่อจำเป็น)
+    mutable bool moving_;                // สถานะการเคลื่อนที่ของ mesh
+    mutable bool points0_;               // ตำแหน่งจุดเวลาก่อนหน้า
+
+public:
+    const surfaceScalarField& magSf() const {
+        if (!magSf_.valid()) {
+            calculateMagSf();  // คำนวณเมื่อมีการร้องขอครั้งแรกเท่านั้น
+        }
+        return magSf_();
+    }
+    
+    void movePoints(const pointField& newPoints) {
+        polyMesh::movePoints(newPoints);
+        clearGeom();  // ทำให้ข้อมูลเรขาคณิตทั้งหมดไม่ถูกต้อง
+        moving_ = true;
+    }
+    
+    void clearGeom() const {
+        Sf_.clear();
+        magSf_.clear();
+        V_.clear();
+        // ทำให้ mesh-dependent objects ไม่ถูกต้อง
+        meshObjects.clear();
+    }
+};
+```
+
+### **รูปแบบหน่วยความจำที่สำคัญ:**
+
+- `mutable` fields อนุญาตการคำนวณใน const methods
+- `autoPtr<DimensionedField<Type>>` สำหรับการสร้างแบบ lazy
+- `valid()` ตรวจสอบก่อนการคำนวณที่แพง
+- การทำให้ไม่ถูกต้องอัตโนมัติหลังจากอัปเดต mesh
+
+---
+
+## [x] **จัดการขอบเขตอย่างถูกต้อง: Patches, Zones, และ Processor Boundaries**
+
+การจัดการขอบเขตเป็นหนึ่งในระบบย่อยที่ซับซ้อนที่สุดของ OpenFOAM:
+
+**[Diagram: โครงสร้าง Patch และ Processor Boundaries]**
+
+```cpp
+// ลำดับชั้นของ boundary patch
+class polyPatch {
+protected:
+    word name_;                    // ตัวระบุ patch
+    label index_;                  // ดัชนีตัวเลข
+    labelList faceCells_;          // รหัสเซลล์ที่เชื่อมต่อ
+    const polyBoundaryMesh& boundary_;  // อ้างอิงถึงเจ้าของ
+
+public:
+    virtual label start() const = 0;           // ดัชนีหน้าเริ่มต้น
+    virtual label size() const = 0;            // จำนวนหน้า
+    virtual const word& type() const = 0;      // ประเภททางกายภาพ
+    
+    // การประเมินเงื่อนไขขอบเขต
+    virtual void evaluate(const fvPatchScalarField& f) {
+        const_cast<fvPatchScalarField&>(f).updateCoeffs();
+    }
+};
+
+// ประเภท patch เฉพาะสำหรับการคำนวณแบบขนาน
+class processorPolyPatch : public polyPatch {
+private:
+    int myProcNo_;          // ลำดับ processor ในพื้นที่
+    int neighbProcNo_;      // ลำดับ processor ข้างเคียง
+    mutable labelList* sendProcAddress_;  // ดัชนีการสื่อสาร
+
+public:
+    virtual void initOrder(const primitivePatch&) const {
+        // เริ่มต้นโครงสร้างข้อมูลสำหรับการสื่อสารระหว่างกระบวนการ
+        initializeCommunicationBuffers();
+    }
+    
+    virtual bool order(const primitivePatch&, labelList& faceMap) const {
+        // เรียงลำดับหน้าใหม่สำหรับการแลกเปลี่ยนข้อมูลขนานที่เหมาะสมที่สุด
+        optimizeParallelDataLayout(faceMap);
+        return true;
+    }
+};
+```
+
+### **การจัดการโซน:**
+
+```cpp
+class cellZone {
+    const labelList& cells_;     // ดัชนีเซลล์ในโซนนี้
+    const word& name_;           // ตัวระบุโซน
+    const cellZoneMesh& zoneMesh_; // อ้างอิงถึงคอนเทนเนอร์โซน
+};
+
+// การดำเนินการที่ตระหนักถึงโซน
+void solveInZones() {
+    forAll(mesh.cellZones(), zoneI) {
+        const cellZone& cz = mesh.cellZones()[zoneI];
+        // ใช้ฟิสิกส์เฉพาะกับเซลล์ในโซนเฉพาะ
+        solveZonePhysics(cz);
+    }
+}
+```
+
+---
+
+## [x] **ใช้มิติที่เหมาะสม: จับข้อผิดพลาดหน่วยได้ที่เวลาคอมไพล์**
+
+การวิเคราะห์มิติของ OpenFOAM ให้ความปลอดภัยที่เวลาคอมไพล์สำหรับสมการทางฟิสิกส์:
+
+### **ชุดมิติพื้นฐาน:**
+
+```cpp
+// ชุดมิติ: [มวล ความยาว เวลา อุณหภูมิ โมล กระแส]
+dimensionSet dimless(0, 0, 0, 0, 0, 0);                     // [-]
+dimensionSet dimTime(0, 0, 1, 0, 0, 0);                    // [s]
+dimensionSet dimLength(0, 1, 0, 0, 0, 0);                  // [m]
+dimensionSet dimMass(1, 0, 0, 0, 0, 0);                    // [kg]
+dimensionSet dimPressure(1, -1, -2, 0, 0, 0);             // [kg·m⁻¹·s⁻²]
+dimensionSet dimEnergy(1, 2, -2, 0, 0, 0);                // [kg·m²·s⁻²]
+```
+
+### **การใช้งานจริง:**
+
+```cpp
+// สร้างฟิลด์ที่มีมิติ
+volScalarField p
+(
+    IOobject("p", runTime.timeName(), mesh, IOobject::MUST_READ),
+    mesh,
+    dimensionedScalar("p", dimPressure, 101325.0)  // Pa พร้อมมิติที่ถูกต้อง
+);
+
+// การดำเนินการที่ตระหนักถึงมิติ
+volScalarField dpdt = fvc::ddt(p);  // ผลลัพธ์มีมิติ: [Pa/s] = [kg·m⁻¹·s⁻³]
+
+// Surface flux: ต้องมีมิติ [m³/s]
+surfaceScalarField phi = fvc::interpolate(U) & mesh.Sf();  // [m/s] × [m²] = [m³/s]
+```
+
+**ความปลอดภัยที่สำคัญ**: ข้อผิดพลาดมิติถูกจับได้ที่เวลาคอมไพล์
+
+```cpp
+// volScalarField invalid = p * p;  // คอมไพล์ข้อผิดพลาด: [Pa] × [Pa] = [kg²·m⁻²·s⁻⁴] ≠ scalar
+```
+
+### **การบังคับใช้ความสม่ำเสมอทางคณิตศาสตร์:**
+
+```cpp
+// สมการ Navier-Stokes พร้อมการวิเคราะห์มิติ
+fvVectorMatrix UEqn
+(
+    fvm::ddt(rho, U)                       // [kg/(m³·s)] × [m/s] = [kg/(m²·s²)]
+  + fvm::div(phi, U)                      // [m³/s] × [m/s] / [m³] = [m/s²]
+  - fvm::laplacian(muEff, U)              // [Pa·s] × [m/s] / [m²] = [m/s²]
+ ==
+  -fvc::grad(p)                           // [Pa]/[m] = [kg/(m²·s²)]
+  + dimensionedVector("g", dimAcceleration, 9.81)  // [m/s²]
+);
+```
+
+---
+
+## [x] **เลือกรูปแบบที่เหมาะสม: จับคู่ Discretization กับฟิสิกส์/Mesh**
+
+การเลือกรูปแบบการแยกส่วนมีผลกระทบอย่างมากต่อความแม่นยำทางตัวเลข:
+
+### **รูปแบบการแยกส่วนใน fvSchemes:**
+
+```cpp
+// รูปแบบการเบี่ยงเบนใน fvSchemes
+ddtSchemes {
+    default Euler;                    // อันดับหนึ่งตามเวลา
+    ddt(rho, U) backward;             // การแยกส่วนอนุพันธ์ถอยหลังอันดับสอง
+}
+
+gradSchemes {
+    default Gauss linear;             // ความแตกต่างกลาง อันดับสอง
+    grad(p) Gauss linear;             // การไล่ระดับความดัน
+    grad(T) cellLimited Gauss linear 1;  // การไล่ระดับจำกัดสำหรับเสถียรภาพ
+}
+
+divSchemes {
+    default none;
+    div(phi, U) Gauss limitedLinearV 1;  // การพาความร้อน: มีขอบเขต, TVD
+    div(phi, T) Gauss upwind;            // Upwind: เสถียรสูงมาก
+    div(phiU, U) Gauss linearUpwindV gradU;  // รูปแบบคล้าย QUICK
+}
+
+laplacianSchemes {
+    default Gauss linear corrected;    // การแพร่: แก้ไขสำหรับความไม่ตั้งฉาก
+}
+
+interpolationSchemes {
+    default linear;
+    interpolate(U) linear;             // การประมาณค่าเชิงเส้น
+    interpolate(T) harmonic;           // ฮาร์โมนิกสำหรับการกระโดดสภาพนำความร้อน
+}
+```
+
+### **การเลือกรูปแบบตามฟิสิกส์:**
+
+| **ฟิสิกส์** | **รูปแบบตามเวลาที่แนะนำ** | **รูปแบบตามพื้นที่ที่แนะนำ** | **เหตุผล** |
+|-------------|-------------------------|-------------------------|---------|
+| การไหลแบบ Laminar | `Euler` หรือ `backward` | `Gauss linear` | ฟิลด์ราบรื่น ความแตกต่างกลางเหมาะสมที่สุด |
+| การไหลแบบ Turbulent | `Euler` หรือ `backward` | `Gauss limitedLinear` | รูปแบบที่มีขอบเขตป้องกันการสั่น |
+| การไหลแบบ Multiphase | `Euler` | `Gauss upwind` | ความคมชัดของอินเตอร์เฟซต้องการ upwind |
+| การถ่ายเทความร้อน | `backward` | `Gauss linear` | ความแม่นยำอันดับสองสำหรับอุณหภูมิ |
+| การไหลแบบอัดตัว | `backward` | `Gauss linearUpwind` | เสถียรภาพที่จำนวน Mach สูง |
+
+---
+
+## [x] **คิดแบบขนาน: สมมติการดำเนินการ mesh แบบกระจาย**
+
+OpenFOAM ถูกออกแบบมาตั้งแต่ต้นสำหรับ CFD แบบขนาน:
+
+### **การเริ่มต้น mesh แบบขนาน:**
+
+```cpp
+// กลยุทธ์การแยกส่วน
+Foam::fvMesh mesh
+(
+    Foam::IOobject
+    (
+        Foam::fvMesh::defaultRegion,
+        runTime.timeName(),
+        runTime,
+        Foam::IOobject::MUST_READ
+    )
+);
+
+// การเริ่มต้น mesh แบบขนาน
+if (Pstream::parRun()) {
+    // ซิงโครไนซ์ ghost cells
+    mesh.globalData().updateMesh();
+    
+    // เริ่มต้นโครงสร้างข้อมูลแบบขนาน
+    mesh.globalData().initParallel();
+    
+    // สร้างบัฟเฟอร์การสื่อสาร
+    mesh.globalData().initPatches();
+}
+```
+
+### **การดำเนินการฟิลด์ที่ตระหนักถึงการทำงานแบบขนาน:**
+
+```cpp
+volScalarField T
+(
+    IOobject("T", runTime.timeName(), mesh, IOobject::MUST_READ),
+    mesh
+);
+
+// การจัดการฟิลด์แบบขนาน
+for (int corr=0; corr<nCorr; ++corr) {
+    // การคำนวณในพื้นที่
+    solve(fvm::ddt(T) == fvm::laplacian(k, T) + Q);
+    
+    // ซิงโครไนซ์ข้อมูลขอบเขตระหว่าง processors
+    T.correctBoundaryConditions();
+    
+    // รับประกันความสม่ำเสมอทั่วโลก
+    reduce(max(T), maxOp<scalar>());
+    reduce(min(T), minOp<scalar>());
+}
+```
+
+### **กลยุทธ์การแยกโดเมน:**
+
+```bash
+# การแยกส่วนทางเรขาคณิต (metis เป็นค่าเริ่มต้น)
+decomposePar -force | tee log.decompose
+```
+
+**decomposeParDict:**
+```cpp
+{
+    method          metis;          // หรือ hierarchical, manual, scotch
+    numberOfSubdomains 8;
+    metisCoeffs {
+        nWeights        2;          // ถ่วงน้ำหนักโดยจำนวนเซลล์ + cell zones
+        processorWeights (1 2 3 4 5 6 7 8);  // ฮาร์ดแวร์ไม่สมดุล
+    }
+}
+```
+
+---
+
+## [x] **ตรวจสอบคุณภาพ Mesh: ตรวจสอบความไม่ตั้งฉาก, ความเบ้, เป็นต้น**
+
+คุณภาพ mesh ควบคุมความเสถียรและความแม่นยำทางตัวเลขโดยตรง:
+
+### **การวิเคราะห์คุณภาพ mesh:**
+
+```cpp
+void validateMesh(const fvMesh& mesh) {
+    // การตรวจสอบความไม่ตั้งฉาก (0° = ตั้งฉาก, 90° = สูงสุด)
+    const surfaceScalarField nonOrth = mesh.nonOrthogonality();
+    Info << "ความไม่ตั้งฉากสูงสุด: " << max(nonOrth).value() << "°" << endl;
+    
+    // ความเบ้ (0 = สมบูรณ์, 1 = เบ้รุนแรง)
+    const surfaceScalarField skewness = mesh.skewness();
+    Info << "ความเบ้สูงสุด: " << max(skewness).value() << endl;
+    
+    // อัตราส่วนด้าน (1 = ลูกบาศก์สมบูรณ์)
+    const scalarField aspectRatio = mesh.aspectRatio();
+    Info << "อัตราส่วนด้านสูงสุด: " << max(aspectRatio) << endl;
+    
+    // การจัดตำแหน่งหน้า (ตรวจพบองค์ประกอบ 3D ใน mesh 2D)
+    const scalarField alignment = mesh.alignment();
+    Info << "ความไม่สอดคล้องสูงสุด: " << max(alignment) << endl;
+}
+```
+
+### **การตีความเมตริกคุณภาพ:**
+
+```cpp
+if (max(mesh.nonOrthogonality()) > 70) {
+    Warning << "ตรวจพบความไม่ตั้งฉากสูง! พิจารณา:" << nl
+            << "  - ใช้ nonOrthogonalCorrector" << nl
+            << "  - รูปแบบ laplacian ที่แก้ไข" << nl
+            << "  - การปรับปรุง mesh" << endl;
+}
+
+if (max(mesh.skewness()) > 4.0) {
+    SeriousError << "ความเบ้มากเกินไป! ผลลัพธ์อาจแตกต่างกันได้" << nl
+                 << "  แนะนำการสร้าง mesh ใหม่หรือการแก้ไขความเบ้" << endl;
+}
+```
+
+### **ช่วงคุณภาพที่ยอมรับได้:**
+
+| **เมตริก** | **ดี** | **ยอมรับได้** | **แย่** | **ต้องดำเนินการ** |
+|------------|----------|----------------|----------|-------------------|
+| ความไม่ตั้งฉาก | 0-60° | 60-70° | 70-85° | การแก้ไขความไม่ตั้งฉาก |
+| ความเบ้ | 0-2.0 | 2.0-4.0 | >4.0 | การสร้าง mesh ใหม่ |
+| อัตราส่วนด้าน | 1-100 | 100-1000 | >1000 | การควบคุมการไล่ระดับ |
+| อัตราส่วนการขยาย | 1-2.0 | 2.0-3.0 | >3.0 | การทำให้การไล่ระดับราบรื่น |
+
+**[Diagram: การแสดงภาพคุณภาพ mesh - ความไม่ตั้งฉากและความเบ้]**
+
+---
+
+## [x] **จัดการวงจรชีวิตฟิลด์: การสร้าง, การแก้, การอัปเดตขอบเขต**
+
+การจัดการฟิลด์อย่างเหมาะสมรับประกันประสิทธิภาพหน่วยความจำและความเสถียรทางตัวเลข:
+
+### **FieldManager Class:**
+
+```cpp
+class FieldManager {
+private:
+    fvMesh& mesh_;
+    Time& runTime_;
+    
+    // ทะเบียนฟิลด์พร้อมความเป็นเจ้าของ
+    HashTable<autoPtr<volScalarField>> scalarFields_;
+    HashTable<autoPtr<volVectorField>> vectorFields_;
+    
+    // การพึ่งพาสำหรับการอัปเดตอัตโนมัติ
+    HashSet<word> temperatureDependent_;
+    HashSet<word> velocityDependent_;
+
+public:
+    // การสร้างฟิลด์พร้อมการติดตามการพึ่งพา
+    void createTemperatureField() {
+        autoPtr<volScalarField> TPtr
+        (
+            new volScalarField
+            (
+                IOobject("T", runTime_.timeName(), mesh_, 
+                       IOobject::MUST_READ, IOobject::AUTO_WRITE),
+                mesh_
+            )
+        );
+        
+        scalarFields_.insert("T", TPtr);
+        
+        // ทำเครื่องหมายฟิลด์ที่พึ่งพาสำหรับการอัปเดตขอบเขตอัตโนมัติ
+        forAllConstIter(HashSet<word>, temperatureDependent_, depIter) {
+            markFieldForUpdate(*depIter);
+        }
+    }
+    
+    // การอัปเดตเงื่อนไขขอบเขตอัตโนมัติ
+    void updateBoundaries() {
+        // อัปเดตขอบเขตที่พึ่งพาความเร็ว
+        forAllConstIter(HashSet<word>, velocityDependent_, depIter) {
+            if (vectorFields_.found(*depIter)) {
+                volVectorField& U = vectorFields_[*depIter]();
+                U.correctBoundaryConditions();
+            }
+        }
+        
+        // อัปเดตขอบเขตที่พึ่งพาอุณหภูมิ
+        forAllConstIter(HashSet<word>, temperatureDependent_, depIter) {
+            if (scalarFields_.found(*depIter)) {
+                volScalarField& T = scalarFields_[*depIter]();
+                T.correctBoundaryConditions();
+            }
+        }
+    }
+};
+```
+
+### **การแก้ปัญหาพร้อมการทำความสะอาดอัตโนมัติ:**
+
+```cpp
+void solveCoupledSystem() {
+    // รับการอ้างอิงฟิลด์
+    volScalarField& T = scalarFields_["T"]();
+    volVectorField& U = vectorFields_["U"]();
+    
+    // แก้สมการที่เชื่อมโยง
+    for (int corr=0; corr<nCorrectors; ++corr) {
+        // แก้โมเมนตัม (คุณสมบัติที่พึ่งพาอุณหภูมิ)
+        fvVectorMatrix UEqn = fvm::ddt(U) + fvm::div(phi, U) 
+                            - fvm::laplacian(nuEff(T), U);
+        solve(UEqn == -fvc::grad(p));
+        
+        // อัปเดตขอบเขตที่พึ่งพาความเร็ว
+        U.correctBoundaryConditions();
+        
+        // แก้พลังงาน (การพาความร้อนที่พึ่งพาความเร็ว)
+        fvScalarMatrix TEqn = fvm::ddt(rho, T) 
+                            + fvm::div(phi, T) 
+                            - fvm::laplacian(kEff, T);
+        solve(TEqn == Q);
+        
+        // อัปเดตขอบเขตที่พึ่งพาอุณหภูมิ
+        T.correctBoundaryConditions();
+    }
+}
+```
+
+### **รูปแบบการจัดการหน่วยความจำ:**
+
+```cpp
+// การทำความสะอาดฟิลด์อัตโนมัติด้วย smart pointers
+class autoField {
+    autoPtr<volScalarField> fieldPtr_;
+    
+public:
+    autoField(const word& name, const fvMesh& mesh) {
+        fieldPtr_.reset(new volScalarField(name, mesh));
+    }
+    
+    // การทำลายอัตโนมัติเมื่อออกจากขอบเขต
+    ~autoField() {
+        fieldPtr_.clear();
+    }
+    
+    // ตัวดำเนินการเข้าถึงที่ปลอดภัยและมีประสิทธิภาพ
+    volScalarField& operator()() {
+        if (!fieldPtr_.valid()) {
+            FatalError << "ฟิลด์ยังไม่ถูกเริ่มต้น" << abort(FatalError);
+        }
+        return fieldPtr_();
+    }
+};
+```
+
+---
+
+## **สรุปหลักสูตร**
+
+**ยินดีด้วย!** ตอนนี้คุณเข้าใจรากฐานสถาปัตยกรรมของเครื่องยนต์การคำนวณของ OpenFOAM คลาส mesh ให้โครงสร้างพื้นฐานที่ซับซ้อนซึ่งทำให้ CFD เรขาคณิตซับซ้อนขนาดใหญ่เป็นไปได้ในขณะที่รักษาความแข็งแกร่งทางตัวเลขและประสิทธิภาพการคำนวณ
+
+**จำไว้**: ความเข้าใจอย่างลึกซึ้งเกี่ยวกับคลาส mesh คือสิ่งที่แยก **ผู้ใช้ CFD** จาก **นักพัฒนา CFD** ตอนนี้คุณพร้อมที่จะไม่เพียงแค่ใช้ OpenFOAM แต่ยังขยาย ปรับให้เหมาะสม และสร้างนวัตกรรมภายในเฟรมเวิร์ค mesh ที่ทรงพลังของมัน
+
+**[Diagram: แผนที่ความรู้ที่ครอบคลุม - จากพื้นฐาน mesh ไปจนถึงการพัฒนา CFD ขั้นสูง]**
+
+---
+
+*"mesh ไม่ใช่เพียงการแยกส่วนของพื้นที่; มันคือจักรวาลการคำนวณที่ฟิสิกส์อาศัยอยู่และสมการถูกแก้"*

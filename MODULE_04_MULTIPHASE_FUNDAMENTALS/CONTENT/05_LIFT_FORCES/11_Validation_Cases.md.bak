@@ -1,0 +1,523 @@
+# กรณีตรวจสอบความถูกต้อง (Validation Cases)
+
+## อนุภาคเดี่ยวในโฟลว์เฉือน (Single Particle in Shear Flow)
+
+การตรวจสอบแรงยกของ Saffman (Saffman lift force) เป็นเกณฑ์มาตรฐานพื้นฐานสำหรับแบบจำลองแรงด้านข้างในโฟลว์ที่มีอนุภาคแขวนลอย ปัญหาวรรณกรรมนี้ตรวจสอบพฤติกรรมของอนุภาคทรงกลมเดี่ยวที่แขวนลอยอยู่ในโฟลว์เฉือนเชิงเส้น ทำให้สามารถเปรียบเทียบโดยตรงกับผลเฉลยเชิงวิเคราะห์ ซึ่งเป็นรากฐานของการกำหนดสูตรแรงยกในปัจจุบัน
+
+[Diagram: อนุภาคทรงกลมเดี่ยวในโฟลว์เฉือนเชิงเส้น แสดงความชันของความเร็วและแรงยกที่เกิดขึ้น]
+
+### พื้นฐานทางทฤษฎี (Theoretical Background)
+
+แรงยกของ Saffman แบบคลาสสิกเกิดจากการปฏิสัมพันธ์ระหว่างอนุภาคกับความชันของความเร็วในของไหลรอบข้าง สำหรับอนุภาคทรงกลมในโฟลว์ที่มีเลขเรย์โนลด์ต่ำพร้อมกับการเฉือนเชิงเส้น ผลเฉลยเชิงวิเคราะห์คาดการณ์ว่า:
+
+$$\mathbf{F}_{lift} = C_L \cdot \frac{1}{2} \rho_f A_p (\mathbf{u}_f - \mathbf{u}_p) \times \boldsymbol{\omega}$$
+
+โดยที่:
+- $\mathbf{F}_{lift}$ = **แรงยก** (lift force)
+- $C_L$ = **สัมประสิทธิ์แรงยก** (lift coefficient)
+- $\rho_f$ = **ความหนาแน่นของของไหล** (fluid density)
+- $A_p$ = **พื้นที่หน้าตัดอนุภาค** (particle cross-sectional area)
+- $\mathbf{u}_f$ = **ความเร็วของไหล** (fluid velocity)
+- $\mathbf{u}_p$ = **ความเร็วอนุภาค** (particle velocity)
+- $\boldsymbol{\omega}$ = **เวกเตอร์การหมุน** (vorticity vector)
+
+สัมประสิทธิ์แรงยก $C_L$ เป็นไปตามความสัมพันธ์การปรับขนาด:
+
+$$C_L = K_S \cdot Re_p^{-1/2} \cdot S^{-1}$$
+
+โดยที่:
+- $K_S = 6.46$ (ค่าคงที่สำหรับอนุภาคทรงกลม)
+- $Re_p = \frac{\rho_f d_p |\mathbf{u}_f - \mathbf{u}_p|}{\mu}$ = **เลขเรย์โนลด์ของอนุภาค**
+- $S = \frac{\omega d_p}{2|\mathbf{u}_f - \mathbf{u}_p|}$ = **พารามิเตอร์การเฉือนแบบไร้มิติ**
+- $d_p$ = **เส้นผ่านศูนย์กลางอนุภาค**
+- $\mu$ = **ความหนืดของของไหล**
+- $\omega$ = **อัตราการเฉือน**
+
+### การนำไปใช้ใน OpenFOAM (OpenFOAM Implementation)
+
+กรณีตรวจสอบความถูกต้องนี้ต้องการการตั้งค่าที่รอบคอบเพื่อให้แน่ใจว่าสมมติฐานที่รองรับผลเฉลยเชิงวิเคราะห์นั้นเป็นจริง:
+
+```cpp
+// Shear flow setup in constant/transportProperties
+phasea
+{
+    type            gas;
+    diameter        uniform 1e-3;      // อนุภาคขนาด 1 มม.
+    rho             constant 1000;     // ความหนาแน่นอนุภาค
+}
+    
+phaseb
+{
+    type            liquid;
+    rho             constant 1.2;      // ความหนาแน่นอากาศ
+    mu              constant 1.8e-5;   // ความหนืดอากาศ
+}
+```
+
+ฟิลด์โฟลว์เฉือนถูกกำหนดค่าเริ่มต้นโดยใช้เงื่อนไขขอบเขต `fixedValue` แบบกำหนดเอง หรือผ่าน `setFields`:
+
+```bash
+# สร้างโปรไฟล์การเฉือนเชิงเส้น
+setFields -field U.air -dict system/setFieldsDict
+```
+
+โดยที่ `system/setFieldsDict` มีเนื้อหาดังนี้:
+
+```cpp
+defaultFieldValues
+{
+    volScalarFieldValue alpha.air 1e-6;
+    volVectorFieldValue U.air (0 0 0);
+}
+
+regions
+{
+    boxToCell
+    {
+        box (0 0 0) (1 1 0.1);
+        fieldValues
+        {
+            volVectorFieldValue U.air "vector(0, 0, 0) + shearRate * vector(0, 0, 1) * pos().y";
+        }
+    }
+}
+```
+
+### ขั้นตอนการตรวจสอบความถูกต้อง (Validation Procedure)
+
+1. **การเลือกพารามิเตอร์**: เลือกเส้นผ่านศูนย์กลางอนุภาคและคุณสมบัติของของไหลเพื่อให้ได้ $Re_p < 1$ และรับรองเงื่อนไขโฟลว์แบบคืบคลาน
+
+2. **การแปรผันอัตราการเฉือน**: รันการจำลองด้วยอัตราการเฉือน $S = \{0.1, 0.5, 1.0, 2.0\}$ ที่แตกต่างกัน
+
+3. **การวัดแรง**: ดึงค่าแรงยกโดยใช้ฟังก์ชันออบเจกต์ `forces`:
+
+```cpp
+functions
+{
+    particleForces
+    {
+        type            forces;
+        functionObjectLibs ("libforces.so");
+        enabled         true;
+        outputControl   timeStep;
+        outputInterval  1;
+        log             true;
+        patches         ("walls");
+        rho             rho.air;
+        p               p;
+        U               U.air;
+    }
+}
+```
+
+4. **การวิเคราะห์การปรับขนาด**: พล็อต $C_L \cdot Re_p^{1/2} \cdot S$ เทียบกับอัตราการเฉือนเพื่อยืนยันค่าคงที่ที่คาดการณ์ไว้
+
+### ผลลัพธ์ที่คาดหวัง (Expected Results)
+
+การตรวจสอบความถูกต้องควรแสดงให้เห็นถึง:
+- **ความสัมพันธ์เชิงเส้น** ระหว่างแรงยกและอัตราการเฉือน
+- **การปรับขนาดแบบผกผันของรากที่สอง** กับเลขเรย์โนลด์
+- **ความสอดคล้องภายใน 5%** ของค่า $K_S = 6.46$ เชิงวิเคราะห์
+- **การลู่เข้า (convergence)** ด้วยการปรับปรุง Mesh และการลดขนาด Time step
+
+## ฟองอากาศลอยใกล้ผนัง (Bubble Rise Near Wall)
+
+การตรวจสอบแบบจำลองแรงยกของ Tomiyama พิจารณาการปฏิสัมพันธ์ที่ซับซ้อนระหว่างฟองอากาศที่กำลังลอยและผนังที่อยู่ใกล้เคียง โดยจับการเปลี่ยนผ่านจากแรงดึงเข้าหาผนังเป็นแรงผลักออกจากผนัง ขึ้นอยู่กับขนาดและการเสียรูปของฟองอากาศ
+
+[Diagram: ฟองอากาศลอยขึ้นใกล้ผนัง แสดงการเปลี่ยนทิศทางของแรงยกตามขนาดฟองอากาศ]
+
+### ฟิสิกส์ของการปฏิสัมพันธ์ระหว่างผนังและฟองอากาศ (Physics of Wall-Bubble Interaction)
+
+แบบจำลองแรงยกของ Tomiyama ขยายสูตร Saffman แบบคลาสสิกเพื่อพิจารณาการเสียรูปของฟองอากาศและผลกระทบจากผนัง:
+
+$$C_L = \begin{cases}
+\min\left[0.288 \tanh\left(0.1 Re_p\right), 0.0064 Re_p^{0.677}\right] & Eo \leq 4 \\
+-0.29 & Eo > 4
+\end{cases}$$
+
+โดยที่ Eötvös number $Eo = \frac{\rho_f g d_p^2}{\sigma}$ เป็นตัวบ่งชี้การเสียรูปของฟองอากาศ โดย:
+- $\sigma$ = **แรงตึงผิว** (surface tension)
+- $g$ = **ความเร่งเนื่องจากแรงโน้มถ่วง**
+
+### การกำหนดค่ากรณีศึกษา (Case Configuration)
+
+**รูปทรงเรขาคณิต**: ช่องแนวตั้งที่มีมิติ $L_x = 0.01$ ม., $L_y = 0.1$ ม., $L_z = 0.01$ ม.
+
+**เงื่อนไขเริ่มต้น**:
+```cpp
+// 0/alpha.air
+dimensions      [0 0 0 0 0 0 0];
+internalField   uniform 0.01;  // 1% void fraction
+boundaryField
+{
+    walls
+    {
+        type            zeroGradient;
+    }
+}
+
+// 0/U.air
+dimensions      [0 1 -1 0 0 0 0];
+internalField   uniform (0 0 0);
+boundaryField
+{
+    walls
+    {
+        type            noSlip;
+    }
+}
+```
+
+**คุณสมบัติทางกายภาพ**:
+```cpp
+// thermophysicalProperties
+mixture
+{
+    species         (air water);
+    air
+    {
+        specie       air;
+        thermo       hConst;
+        equationOfState perfectGas;
+        rho          constant 1.2;
+        Cp           constant 1005;
+    }
+    water
+    {
+        specie       water;
+        thermo       hConst;
+        equationOfState rhoConst;
+        rho          constant 998;
+        Cp           constant 4182;
+    }
+}
+
+// transportProperties
+phasea
+{
+    diameter        uniform 3e-3;      // ฟองอากาศขนาด 3 มม.
+    sigma           constant 0.072;    // แรงตึงผิว
+}
+```
+
+### กลยุทธ์การสร้าง Mesh (Mesh Generation Strategy)
+
+Mesh ที่ละเอียดใกล้ผนังเพื่อจับผลกระทบของชั้นขอบเขต:
+
+```bash
+# system/blockMeshDict
+convertToMeters 1;
+
+vertices
+(
+    (0 0 0)           // 0
+    (0.01 0 0)        // 1
+    (0.01 0.1 0)      // 2
+    (0 0.1 0)         // 3
+    (0 0 0.01)        // 4
+    (0.01 0 0.01)     // 5
+    (0.01 0.1 0.01)   // 6
+    (0 0.1 0.01)      // 7
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (50 200 50) simpleGrading (1 1 1)
+);
+
+boundary
+(
+    walls
+    {
+        type wall;
+        faces ((0 4 7 3)(1 5 6 2)(0 1 5 4)(3 2 6 7));
+    }
+);
+```
+
+เพิ่มการปรับ Mesh ชั้นขอบเขตด้วย `addLayer`:
+
+```cpp
+// system/snappyHexMeshDict
+addLayers
+{
+    layers
+    {
+        "walls.*"
+        {
+            nSurfaceLayers   10;
+            firstLayerThickness 0.0001;
+            finalLayerThickness 0.0005;
+            thicknessRatio   1.2;
+            minMedianAxisAngle 90;
+            nBufferCellsNoExtrude 0;
+            nLayerIter       50;
+            nRelaxedIter     20;
+        }
+    }
+}
+```
+
+### การวัดผลการตรวจสอบความถูกต้อง (Validation Measurements)
+
+**การวิเคราะห์วิถีการเคลื่อนที่**: ติดตามตำแหน่งศูนย์กลางของฟองอากาศตามเวลาโดยใช้ `probes`:
+
+```cpp
+functions
+{
+    bubbleTrajectory
+    {
+        type            surfaces;
+        functionObjectLibs ("libsampling.so");
+        outputControl   timeStep;
+        outputInterval  1;
+        surfaceFormat   csv;
+        fields          (alpha.air);
+        interpolationScheme cellPoint;
+        surfaces
+        {
+            bubbleLocation
+            {
+                type            isoSurface;
+                isoField        alpha.air;
+                isoValue        0.5;
+                interpolate    true;
+            }
+        }
+    }
+}
+```
+
+**การวัดการเสียรูป**: ดึงอัตราส่วนภาพของฟองอากาศ:
+
+```cpp
+// Custom functionObject for bubble deformation
+bubbleDeformation
+{
+    type            coded;
+    codeExecute
+    #{
+        // Calculate bubble centroid and moments
+        const volScalarField& alpha = mesh().lookupObject<volScalarField>("alpha.air");
+        // ... deformation calculation logic
+    #};
+}
+```
+
+### พฤติกรรมที่คาดหวัง (Expected Behavior)
+
+| ขนาดฟองอากาศ | เงื่อนไข | สัมประสิทธิ์แรงยก | พฤติกรรม |
+|--------------|----------|------------------|-----------|
+| **เล็ก** ($d_p < 2$ มม.) | $Eo < 4$ | **บวก** (เข้าหาผนัง) | การลอกออกจากผนัง, วิถีโค้งเข้าหาผนัง |
+| **ใหญ่** ($d_p > 4$ มม.) | $Eo > 4$ | **ลบ** (ออกจากผนัง) | แรงผลักออกจากผนัง, เคลื่อนที่สู่ศูนย์กลาง |
+
+**เกณฑ์การตรวจสอบความถูกต้อง**:
+- **เส้นผ่านศูนย์กลางการเปลี่ยนผ่าน** ประมาณ 2-3 มม. สำหรับระบบอากาศ-น้ำ
+- **ตำแหน่งสมดุลที่ผนัง** ตรงกับสมการความสัมพันธ์เชิงการทดลอง
+- **รูปแบบการเสียรูป** สอดคล้องกับการสังเกตของ Tomiyama
+
+## โฟลว์ช่องลมแบบปั่นป่วน (Turbulent Channel Flow)
+
+การตรวจสอบโฟลว์ช่องลมแบบปั่นป่วน ประเมินแบบจำลองแรงยกภายใต้สภาวะปั่นป่วนที่สมจริง โดยพิจารณาผลกระทบของการกระจุกตัวอย่างจำเพาะ และเทอร์โบฟอเรซิส
+
+[Diagram: โฟลว์ช่องลมแบบปั่นป่วน แสดงการกระจุกตัวอนุภาคและเทอร์โบฟอเรซิส]
+
+### ปรากฏการณ์ทางกายภาพ (Physical Phenomena)
+
+ในโฟลว์ช่องลมแบบปั่นป่วน อนุภาคจะประสบกับ:
+- **เทอร์โบฟอเรซิส (Turbophoresis)**: การเคลื่อนที่สุทธิเข้าหาผนังเนื่องจากความชันของความเข้มปั่นป่วน
+- **การกระจุกตัวอย่างจำเพาะ (Preferential concentration)**: การรวมกลุ่มในบริเวณที่มีความปั่นป่วนต่ำ
+- **แรงยกของ Saffman**: ความชันของความเร็วใกล้ผนัง
+- **แรงยกของ Magnus**: การหมุนของอนุภาคในกระแสปั่นป่วน
+
+### การตั้งค่ากรณีศึกษา (Case Setup)
+
+**รูปทรงเรขาคณิตช่องลม**: $L_x = 2\pi H$, $L_y = 2H$, $L_z = \pi H$ โดยที่ $H = 0.01$ ม.
+
+**เงื่อนไขโฟลว์**: เลขเรย์โนลด์ $Re_\tau = 180$ (friction Reynolds number)
+
+**คุณสมบัติอนุภาค**:
+```cpp
+phasea
+{
+    type            solid;
+    diameter        uniform 1e-4;      // อนุภาคขนาด 100 ไมโครเมตร
+    rho             constant 1500;     // ความหนาแน่นอนุภาค
+    tau             uniform 1.15e-3;   // เวลาตอบสนอง
+}
+```
+
+**เงื่อนไขเริ่มต้น**: โปรไฟล์ปั่นป่วนที่พัฒนาเต็มที่จาก `tutorials/incompressible/pisoFoam/channel395`:
+
+```bash
+# คัดลอกฟิลด์เริ่มต้นจากกรณีอ้างอิง
+cp -r $FOAM_TUTORIALS/incompressible/pisoFoam/channel395/0 ./0/
+cp -r $FOAM_TUTORIALS/incompressible/pisoFoam/channel395/constant ./constant/
+```
+
+### การกำหนดค่าเชิงตัวเลข (Numerical Configuration)
+
+**แบบจำลองความปั่นป่วน**:
+```cpp
+// constant/turbulenceProperties
+simulationType  LES;
+LES
+{
+    LESModel        Smagorinsky;
+    turbulence      on;
+    printCoeffs     on;
+    delta           cubeRootVol;
+    
+    SmagorinskyCoeffs
+    {
+        Ce          1.048;
+        Ck          0.094;
+    }
+}
+```
+
+**การอินทิเกรตเวลา**:
+```cpp
+// controlDict
+application     multiphaseEulerFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         10.0;
+deltaT          1e-4;
+maxCo           0.5;
+maxAlphaCo      0.5;
+maxDeltaT       1e-3;
+```
+
+**สกีมการแบ่งส่วน**:
+| Scheme Type | Configuration |
+|-------------|---------------|
+| **ddtSchemes** | `default Euler` |
+| **gradSchemes** | `default Gauss linear` |
+| **divSchemes** | `default Gauss limited linearV 1` |
+| **laplacianSchemes** | `default Gauss linear corrected` |
+
+### การวิเคราะห์ทางสถิติ (Statistical Analysis)
+
+**การหาค่าเฉลี่ยตามเวลา**: ใช้ฟังก์ชันออบเจกต์ `fieldAverage`:
+
+```cpp
+functions
+{
+    fieldAveraging
+    {
+        type            fieldAverage;
+        functionObjectLibs ("libfieldFunctionObjects.so");
+        enabled         true;
+        outputControl   timeStep;
+        outputInterval  100;
+        fields
+        (
+            U.air
+            {
+                mean        on;
+                prime2Mean  on;
+                base        time;
+            }
+            alpha.air
+            {
+                mean        on;
+                prime2Mean  on;
+                base        time;
+            }
+        );
+    }
+}
+```
+
+**โปรไฟล์ตามแนวตั้งฉากกับผนัง**: ดึงสถิติโดยใช้ `probes`:
+
+```cpp
+functions
+{
+    wallProfiles
+    {
+        type            sets;
+        functionObjectLibs ("libsampling.so");
+        sets
+        (
+            centerline
+            {
+                type            uniform;
+                axis            y;
+                start           (0.01 0 0.005);
+                end             (0.01 0.02 0.005);
+                nPoints         100;
+                fields          (U.air alpha.air mean(U.air) mean(alpha.air));
+            }
+        );
+    }
+}
+```
+
+**การวิเคราะห์การกระจุกตัวอย่างจำเพาะ**: คำนวณฟังก์ชันการกระจายตัวเชิงรัศมี (RDF):
+
+```python
+# postProcessing/rdf.py
+import numpy as np
+import matplotlib.pyplot as plt
+
+def calculate_rdf(positions, box_size, bin_width=0.001):
+    """Calculate radial distribution function"""
+    n_bins = int(box_size / (2 * bin_width))
+    rdf = np.zeros(n_bins)
+    
+    for i, pos1 in enumerate(positions):
+        for j, pos2 in enumerate(positions[i+1:], i+1):
+            r = np.linalg.norm(pos1 - pos2)
+            if r < box_size/2:
+                bin_idx = int(r / bin_width)
+                rdf[bin_idx] += 2
+    
+    # Normalize by expected random distribution
+    shell_volumes = 4*np.pi*np.arange(bin_width, box_size/2, bin_width)**2 * bin_width
+    expected = len(positions) * shell_volumes / box_size**3
+    rdf = rdf / expected
+    
+    return rdf
+```
+
+### ตัวชี้วัดการตรวจสอบความถูกต้อง (Validation Metrics)
+
+**ดัชนีการกระจุกตัวอย่างจำเพาะ (PCI)**:
+$$PCI = \frac{\sigma^2(\alpha)}{\bar{\alpha}^2} - 1$$
+
+โดยที่:
+- $\sigma^2(\alpha)$ = **ความแปรปรวนของความเข้มข้นอนุภาค**
+- $\bar{\alpha}$ = **ความเข้มข้นอนุภาคเฉลี่ย**
+
+**ความเร็วเทอร์โบฟอเรติก**:
+$$V_t = -D_T \frac{\partial \langle c \rangle}{\partial y}$$
+
+โดยที่:
+- $D_T$ = **ค่าการแพร่แบบปั่นป่วน** (turbulent diffusivity)
+- $\langle c \rangle$ = **ความเข้มข้นอนุภาคเฉลี่ย**
+
+**อัตราการสะสมที่ผนัง**:
+$$\dot{N}_w = \frac{1}{A_w} \int_{A_w} c_w \mathbf{v} \cdot \mathbf{n} \, \mathrm{d}A$$
+
+### ผลลัพธ์ที่คาดหวัง (Expected Results)
+
+**การกระจายตัวของอนุภาค**:
+- **ความเข้มข้นสูงขึ้นใกล้ผนัง** (เทอร์โบฟอเรซิส)
+- **ค่าสูงสุดที่ $y^+ \approx 20$** สำหรับ Stokes numbers ปานกลาง
+- **การกระจายตัวสม่ำเสมอในแกนกลาง** สำหรับ $St^+ < 1$
+
+**การขึ้นอยู่กับ Stokes Number**:
+
+| Stokes Number | พฤติกรรมอนุภาค | การกระจุกตัว |
+|---------------|-------------------|----------------|
+| **$St^+ < 1$** | อนุภาคตามของไหล | น้อยที่สุด |
+| **$1 < St^+ < 10$** | ตอบสนองปานกลาง | สูงสุด |
+| **$St^+ > 10$** | อนุภาคเฉื่อย | ลดลง |
+
+**การตรวจสอบแบบจำลอง**:
+- **รูปแบบการเคลื่อนที่ตามแนวตั้งฉากกับผนัง** ที่ถูกต้อง
+- **การกระจายตัวแบบปั่นป่วน** ตรงกับโปรไฟล์ความเข้มข้นอนุภาคจากการทดลอง
+- **การอินทิเกรตแรงยกและแรงฉุด** จับปรากฏการณ์การรวมกลุ่มที่สังเกตได้

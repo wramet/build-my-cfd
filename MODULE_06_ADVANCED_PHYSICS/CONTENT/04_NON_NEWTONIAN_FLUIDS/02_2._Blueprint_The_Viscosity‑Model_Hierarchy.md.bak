@@ -1,0 +1,281 @@
+# 2. แบบแผน: ลำดับชั้นของโมเดลความหนืด
+
+OpenFOAM จัดระเบียบโมเดลของไหลที่ไม่ใช่นิวตันเป็นต้นไม้การสืบทอดที่ชัดเจนซึ่งแยกส่วน **อินเทอร์เฟซนามธรรม**, **การคำนวณอัตราความเครียด**, และ **สมการจลนศาสตร์เชิงรูปนัย** แบบแผนนี้ตามแนวทาง *generalised Newtonian*: ความหนืดเป็นฟังก์ชันสเกลาร์ของขนาดอัตราความเครียด $\dot{\gamma}$
+
+```mermaid
+graph TD
+    A[viscosityModel] --> B[generalisedNewtonianViscosityModel]
+    B --> C[strainRateViscosityModel]
+    C --> D[BirdCarreau]
+    C --> E[HerschelBulkley]
+    C --> F[powerLaw]
+    C --> G[... other strain‑rate models]
+```
+
+## พื้นฐานคณิตศาสตร์
+
+โมเดลของไหลนิวตันทั่วไปสมมติว่าเทนเซอร์ความเครียดหนืด $\boldsymbol{\tau}$ เป็นสัดส่วนกับเทนเซอร์อัตราความเครียด $\mathbf{D}$:
+
+$$\boldsymbol{\tau} = 2\mu(\dot{\gamma})\mathbf{D}$$
+
+โดยที่:
+- $\mu(\dot{\gamma})$ เป็นความหนืดที่ขึ้นกับอัตราความเครียด
+- ขนาดอัตราความเครียด $\dot{\gamma}$ ถูกนิยามเป็น:
+  
+  $$\dot{\gamma} = \sqrt{2\mathbf{D}:\mathbf{D}} = \sqrt{2D_{ij}D_{ij}}$$
+
+- เทนเซอร์อัตราความเครียด $\mathbf{D}$ ถูกกำหนดโดย:
+  
+  $$\mathbf{D} = \frac{1}{2}\left(\nabla\mathbf{u} + (\nabla\mathbf{u})^T\right)$$
+
+โดยที่ $\mathbf{u}$ เป็นสนามความเร็ว
+
+[Diagram: แสดงความสัมพันธ์ระหว่างสนามความเร็ว การไล่ระดับของความเร็ว และเทนเซอร์อัตราความเครียด]
+
+## คลาสนามธรรมหลัก
+
+### คลาสฐาน `viscosityModel`
+
+**ตำแหน่ง**: `src/physicalProperties/viscosityModels/viscosityModel/viscosityModel.H`
+
+คลาส `viscosityModel` ทำหน้าที่เป็นพื้นฐานสำหรับโมเดลความหนืดทั้งหมดใน OpenFOAM มันนิยามอินเทอร์เฟซที่จำเป็นผ่านเมธอดเสมือนบริสุทธิ์:
+
+```cpp
+//- Return the kinematic viscosity [m^2/s]
+virtual tmp<volScalarField> nu() const = 0;
+
+//- Correct the viscosity field
+virtual void correct() = 0;
+
+//- Read and set model coefficients if they have changed
+virtual bool read(const dictionary& viscosityProperties) = 0;
+```
+
+คลาสนี้สร้างสัญญาที่โมเดลความหนืดทั้งหมดต้องเติมเต็ม ขณะที่ยังคงไม่แสดงความเห็นเกี่ยวกับความสัมพันธ์จลนศาสตร์เฉพาะ
+
+### `generalisedNewtonianViscosityModel`
+
+สร้างขึ้นจากอินเทอร์เฟซฐาน คลาสนี้นำเสนอข้อกำหนดพื้นฐานสำหรับของไหลนิวตันทั่วไป:
+
+```cpp
+class generalisedNewtonianViscosityModel
+:
+    public viscosityModel
+{
+protected:
+    // Reference to the velocity field
+    const volVectorField& U_;
+    
+    // Reference viscosity field
+    const dimensionedScalar viscosity_;
+    
+    // Strain-rate magnitude field
+    volScalarField strainRate_;
+    
+public:
+    //- Update strain-rate and viscosity fields
+    virtual void correct() = 0;
+    
+    //- Return strain-rate magnitude field
+    const volScalarField& strainRate() const;
+};
+```
+
+นวัตกรรมสำคัญที่นี่คือการแยกการจัดการอ้างอิงสนามความเร็วออกจากสมการจลนศาสตร์เฉพาะ
+
+### `strainRateViscosityModel`
+
+นี่คือคลาส **หลัก** ที่จัดการกับเครื่องมือคณิตศาสตร์ทั้งหมดสำหรับการคำนวณอัตราความเครียด:
+
+```cpp
+class strainRateViscosityModel
+:
+    public generalisedNewtonianViscosityModel
+{
+protected:
+    // Kinematic viscosity field
+    volScalarField nu_;
+    
+    // Core strain-rate calculation method
+    virtual tmp<volScalarField> strainRate() const;
+    
+    // Interface for concrete models to implement
+    virtual tmp<volScalarField> nu
+    (
+        const volScalarField& nu0,
+        const volScalarField& strainRate
+    ) const = 0;
+
+public:
+    //- Update viscosity based on strain rate
+    virtual void correct();
+    
+    //- Return kinematic viscosity
+    virtual tmp<volScalarField> nu() const;
+};
+```
+
+[Diagram: แสดงโครงสร้างการสืบทอดของคลาสความหนืดและการแยกความรับผิดชอบ]
+
+## อัลกอริทึมการคำนวณอัตราความเครียด
+
+เมธอด `strainRate()` จัดการคณิตศาสตร์เทนเซอร์อย่างมีประสิทธิภาพ:
+
+```cpp
+tmp<volScalarField> strainRateViscosityModel::strainRate() const
+{
+    // Calculate velocity gradient tensor ∇u
+    const tmp<volTensorField> tgradU(fvc::grad(U_));
+    const volTensorField& gradU = tgradU();
+    
+    // Calculate rate-of-strain tensor D = 0.5(∇u + ∇u^T)
+    const volTensorField D = 0.5*(gradU + gradU.T());
+    
+    // Calculate strain-rate magnitude γ̇ = √(2:D:D)
+    return sqrt(2*magSqr(D));
+}
+```
+
+### ขั้นตอนการคำนวณ
+
+1. **คำนวณการไล่ระดับของความเร็ว**: $\nabla\mathbf{u}$
+2. **สร้างเทนเซอร์อัตราความเครียด**: $\mathbf{D} = \frac{1}{2}(\nabla\mathbf{u} + (\nabla\mathbf{u})^T)$
+3. **คำนวณขนาดของอัตราความเครียด**: $\dot{\gamma} = \sqrt{2\mathbf{D}:\mathbf{D}}$
+
+## รูปแบบการ Implement โมเดลเชิงรูปนัย
+
+โมเดลความหนืดใหม่ตามรูปแบบที่สอดคล้องกันซึ่งเพียงแค่สมการจลนศาสตร์ที่ต้อง Implement:
+
+```cpp
+class BirdCarreau
+:
+    public strainRateViscosityModel
+{
+    // Model parameters
+    const dimensionedScalar k_;
+    const dimensionedScalar n_;
+    const dimensionedScalar nuInf_;
+    const dimensionedScalar nu0_;
+    const dimensionedScalar a_;
+    
+protected:
+    virtual tmp<volScalarField> nu
+    (
+        const volScalarField& nu0,
+        const volScalarField& strainRate
+    ) const
+    {
+        return nuInf_ + (nu0_ - nuInf_)*
+               pow(1.0 + pow(k_*strainRate, a_), (n_ - 1.0)/a_);
+    }
+    
+public:
+    TypeName("BirdCarreau");
+    
+    BirdCarreau
+    (
+        const volVectorField& U,
+        const dictionary& viscosityProperties
+    );
+};
+```
+
+### สมการ Bird-Carreau
+
+$$\mu = \mu_\infty + (\mu_0 - \mu_\infty)\left[1 + (k\dot{\gamma})^a\right]^{\frac{n-1}{a}}$$
+
+โดยที่:
+- $\mu_0$ = ความหนืดเมื่ออัตราความเครียดเป็นศูนย์
+- $\mu_\infty$ = ความหนืดเมื่ออัตราความเครียดสูงมาก
+- $k$ = เวลาที่จับคู่
+- $n$ = ดัชนีพฤติกรรม
+- $a$ = พารามิเตอร์การเปลี่ยนผ่าน
+
+## การรวมกับการเลือกรันไทม์
+
+ลำดับชั้นการสืบทอดช่วยให้การเลือกรันไทม์เป็นไปอย่างราบรื่น:
+
+```cpp
+// In viscosityModelNew.C
+addToRunTimeSelectionTable
+(
+    viscosityModel,
+    BirdCarreau,
+    dictionary
+);
+
+addToRunTimeSelectionTable
+(
+    viscosityModel,
+    HerschelBulkley,
+    dictionary
+);
+```
+
+### โมเดลที่รองรับ
+
+| โมเดล | สมการจลนศาสตร์ | พารามิเตอร์ |
+|--------|------------------|-------------|
+| **BirdCarreau** | $\mu = \mu_\infty + (\mu_0 - \mu_\infty)[1 + (k\dot{\gamma})^a]^{(n-1)/a}$ | $k, n, \mu_0, \mu_\infty, a$ |
+| **HerschelBulkley** | $\mu = \tau_0/\dot{\gamma} + k\dot{\gamma}^{n-1}$ | $\tau_0, k, n$ |
+| **powerLaw** | $\mu = k\dot{\gamma}^{n-1}$ | $k, n$ |
+
+## ประโยชน์ของสถาปัตยกรรมนี้
+
+1. **การซ้ำรหัสน้อยที่สุด**: การคำนวณอัตราความเครียดและการจัดการสนามถูก Implement ครั้งเดียวในคลาสฐาน
+2. **อินเทอร์เฟซที่สอดคล้องกัน**: โมเดลทั้งหมดให้เมธอด `nu()` และ `correct()` เหมือนกัน
+3. **การขยายง่าย**: การเพิ่มโมเดลใหม่ต้องการเพียง Implement สมการจลนศาสตร์
+4. **ความยืดหยุ่นรันไทม์**: โมเดลสามารถเปลี่ยนในไฟล์อินพุตโดยไม่ต้องคอมไพล์ซ้ำ
+5. **ความสม่ำเสมอทางตัวเลข**: โมเดลทั้งหมดใช้วิธีการคำนวณอัตราความเครียดเหมือนกัน
+
+## กลยุทธ์การขยาย
+
+เพื่อเพิ่มโมเดลความหนืดใหม่ (เช่น Cross model):
+
+### ขั้นตอนการพัฒนา
+
+1. **สืบทอดจาก `strainRateViscosityModel`**
+2. **เพิ่มพารามิเตอร์โมเดลเป็นสมาชิกที่ป้องกัน**
+3. **Implement เมธอด `nu()` ด้วยสมการ Cross**:
+   $$\mu = \mu_\infty + \frac{\mu_0 - \mu_\infty}{1 + (\lambda\dot{\gamma})^n}$$
+4. **เพิ่มรายการตารางการเลือกรันไทม์**
+5. **สร้างรายการพจนานุกรมสำหรับสัมประสิทธิ์โมเดล**
+
+### ตัวอย่าง Cross Model
+
+```cpp
+class CrossModel
+:
+    public strainRateViscosityModel
+{
+    // Cross model parameters
+    const dimensionedScalar lambda_;  // Time constant
+    const dimensionedScalar n_;       // Power index
+    const dimensionedScalar nu0_;     // Zero shear viscosity
+    const dimensionedScalar nuInf_;   // Infinite shear viscosity
+    
+protected:
+    virtual tmp<volScalarField> nu
+    (
+        const volScalarField& nu0,
+        const volScalarField& strainRate
+    ) const
+    {
+        return nuInf_ + (nu0_ - nuInf_) / 
+               (1.0 + pow(lambda_ * strainRate, n_));
+    }
+    
+public:
+    TypeName("CrossModel");
+    
+    CrossModel
+    (
+        const volVectorField& U,
+        const dictionary& viscosityProperties
+    );
+};
+```
+
+[Diagram: แสดงขั้นตอนการเพิ่มโมเดลความหนืดใหม่ในระบบสถาปัตยกรรม OpenFOAM]
+
+การออกแบบแบบโมดูลาร์นี้ช่วยให้มั่นใจว่าคณิตศาสตร์เทนเซอร์ที่ซับซ้อนของการคำนวณอัตราความเครียดยังคงรวมศูนย์และเพิ่มประสิทธิภาพ ในขณะที่โมเดลจลนศาสตร์ใหม่สามารถพัฒนาและรวมเข้ากับความพยายามน้อยที่สุด

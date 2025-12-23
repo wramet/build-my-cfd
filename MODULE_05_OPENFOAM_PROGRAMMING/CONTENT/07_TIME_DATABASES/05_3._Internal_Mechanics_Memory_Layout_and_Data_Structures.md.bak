@@ -1,0 +1,107 @@
+## 3. Internal Mechanics: Memory Layout and Data Structures
+
+### **3.1 Core Data Members: The "Field Anatomy"**
+
+คลาส `GeometricField` แสดงถึงแนวทางที่ซับซ้อนของ OpenFOAM ในการจัดการข้อมูลฟิลด์การคำนวณผ่านลำดับชั้นการสืบทอดที่ออกแบบมาอย่างพิถีพิถัน
+
+ในแกนกลางของคลาสเทมเพลตนี้ทำหน้าที่เป็นรากฐานสำหรับการแสดงถึงปริมาณทางกายภาพทั่วทั้งโดเมนการคำนวณ:
+
+- **ฟิลด์สเกลาร์**: ความดัน อุณหภูมิ
+- **ฟิลด์เวกเตอร์**: ความเร็ว
+- **ฟิลด์เทนเซอร์**: ความเค้นและความเครียด
+
+```cpp
+template<class Type, template<class> class PatchField, class GeoMesh>
+class GeometricField {
+private:
+    // Time management for temporal schemes
+    mutable label timeIndex_;                    // Current time index for time dependency tracking
+    mutable GeometricField* field0Ptr_;          // Pointer to field at previous time step (n-1)
+    mutable GeometricField* fieldPrevIterPtr_;   // Pointer to field from previous iteration (n)
+
+    // Boundary condition management
+    Boundary boundaryField_;                     // GeometricBoundaryField containing all patch conditions
+    
+    // Inherited from DimensionedField<Type, GeoMesh>:
+    // const Mesh& mesh_                         // Reference to the underlying computational mesh
+    // dimensionSet dimensions_                  // Physical dimensions (e.g., [M^1 L^-1 T^-2] for pressure)
+    // Field<Type> data_                         // Actual data storage for internal field values
+};
+```
+
+**ความสามารถในการจัดการเวลา**:
+- `timeIndex_` รับประกันการติดตามการก้าวหน้าของเวลาที่เหมาะสม
+- `field0Ptr_` และ `fieldPrevIterPtr_` อำนวยความสะดวกในรูปแบบการประมาณค่าเวลาที่แม่นยำระดับที่สอง
+- รองรับรูปแบบ: **backward differencing**, **Crank-Nicolson** และรูปแบบเชิงเวลาอื่น ๆ
+
+### **3.2 Memory Layout Visualization**
+
+[Diagram: โครงสร้างหน่วยความจำแบบลำดับชั้นของ GeometricField]
+
+การจัดระเบียบหน่วยความจำของ `GeometricField` ทำตามโครงสร้างลำดับชั้นที่แยกการจัดเก็บฟิลด์ภายในจากการจัดการเงื่อนไขขอบเขต:
+
+```
+GeometricField<scalar, fvPatchField, volMesh> (volScalarField representation)
+├── DimensionedField<scalar, volMesh> (base class)
+│   ├── Field<scalar> data_ = [p₁, p₂, ..., pₙ]  (n = total cells)
+│   │   ├── p₁ = pressure at cell center 1
+│   │   ├── p₂ = pressure at cell center 2
+│   │   └── pₙ = pressure at cell center n
+│   ├── dimensionSet dims_ = [1 -2 -2 0 0 0 0] (pressure: M L^-1 T^-2)
+│   └── const volMesh& mesh_ (reference to finite volume mesh)
+└── GeometricBoundaryField (boundary condition management)
+    ├── fvPatchField<scalar>[0] (patch 0: inlet)
+    │   ├── Reference to fvPatch (geometric information)
+    │   ├── Reference to internalField (coupling to interior)
+    │   └── Field<scalar> (values at boundary faces)
+    ├── fvPatchField<scalar>[1] (patch 1: outlet)
+    ├── fvPatchField<scalar>[2] (patch 2: walls)
+    └── ... (n patches total)
+```
+
+**การตีความทางกายภาพ**:
+พิจารณาฟิลด์อุณหภูมิ $T(\mathbf{x}, t)$ ที่ถูกแบ่งส่วนบนตาข่ายการคำนวณ:
+
+- `Field<scalar>` เก็บค่าศูนย์กลางเซลล์: $[T_1, T_2, ..., T_N]$ โดยที่แต่ละ $T_i$ แทนอุณหภูมิเฉลี่ยในเซลล์ $i$
+- `boundaryField_` รักษาค่าอุณหภูมิที่หน้าขอบเขต: $T_{\text{boundary}}^{(j)}$ สำหรับแต่ละชิ้นส่วนขอบเขต $j$
+- `dimensions_` บังคับให้มีความสอดคล้องของมิติ: $[T] = \Theta$ (หน่วยอุณหภูมิ)
+
+**ประสิทธิภาพการดำเนินการ**:
+โครงสร้างนี้ทำให้สามารถดำเนินการแบบเวกเตอร์ได้อย่างมีประสิทธิภาพในขณะที่รักษาการแยกอย่างชัดเจนระหว่างการคำนวณโดเมนจำนวนมากและการรักษาเงื่อนไขขอบเขตเฉพาะทาง
+
+### **3.3 Boundary Field Organization**
+
+[Diagram: สถาปัตยกรรม GeometricBoundaryField และความสัมพันธ์กับ PatchField]
+
+สถาปัตยกรรมเงื่อนไขขอบเขตแสดงให้เห็นถึงแนวทางที่ยืดหยุ่นและขยายได้ของ OpenFOAM ในการจัดการข้อจำกัดทางกายภาพที่หลากหลาย
+
+```cpp
+class GeometricBoundaryField {
+    PtrList<PatchField<Type>> patches_;  // Dynamic array of boundary patch fields
+
+    // Each fvPatchField<Type> instance contains:
+    // - Reference to fvPatch (geometric boundary information)
+    // - Reference to internalField (for coupled boundary conditions)
+    // - Field<Type> (actual boundary face values)
+    // - Virtual methods for boundary condition evaluation
+};
+```
+
+**หลักการออกแบบสำคัญ**:
+- **Patch-specific but type-consistent**: แต่ละชิ้นส่วนขอบเขตสามารถมีเงื่อนไขทางกายภาพที่แตกต่างกันได้
+- ชิ้นส่วนขอบเขตทั้งหมดภายในฟิลด์ยังคง 유型เทมเพลตเดียวกัน
+- **Runtime Polymorphism**: ความปลอดภัยของประเภทในเวลาคอมไพล์ พร้อมการเลือกพฤติกรรมในเวลาทำงาน
+
+#### **ประเภทของเงื่อนไขขอบเขต**
+
+| ประเภท | OpenFOAM | สมการ | ตัวอย่างการใช้งาน |
+|--------|----------|---------|------------------|
+| **Dirichlet** | `fixedValue` | $$\phi\|_{\partial\Omega} = \phi_0(\mathbf{x}, t)$$ | อุณหภูมิคงที่: $T = 300\text{ K}$ ที่ผนัง<br>ความเร็วคงที่: $\mathbf{u} = \mathbf{u}_0$ ที่ทางเข้า |
+| **Neumann** | `fixedGradient` | $$\frac{\partial \phi}{\partial n}\bigg\|_{\partial\Omega} = q_0(\mathbf{x}, t)$$ | Heat flux: $-k \nabla T \cdot \mathbf{n} = q''$ ที่ผนัง<br>Stress-free: $\boldsymbol{\tau} \cdot \mathbf{n} = \mathbf{0}$ ที่ทางออก |
+| **Coupled** | `processor`, `cyclic` | การสื่อสารระหว่างโดเมน | `processor`: ขอบเขตการแบ่งโดเมนสำหรับ MPI<br>`cyclic`: ขอบเขตเป็นระยะ<br>`wallFunction`: การรักษาความปั่นป่วนใกล้ผนัง |
+
+**ประสิทธิภาพหน่วยความจำ**:
+- การนำไปใช้ `PtrList` เก็บเฉพาะการอ้างอิงถึงออบเจกต์ฟิลด์ขอบเขต
+- หลีกเลี่ยงการทำซ้ำข้อมูลที่ไม่จำเป็น
+- เมื่อเงื่อนไขขอบเขตถูกอัปเดต การอ้างอิงฟิลด์ภายในยังคงไม่เปลี่ยนแปลง
+- ทำให้สามารถแก้ปัญหาอัลกอริทึมการวนซ้ำได้อย่างมีประสิทธิภาพ

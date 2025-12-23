@@ -1,0 +1,296 @@
+# Grid Convergence Study
+
+## การศึกษาการลู่เข้าของกริด (Grid Convergence)
+
+## การปรับเปลี่ยนกริดอย่างเป็นระบบ (Systematic Mesh Refinement)
+
+### บทนำ
+
+การศึกษาการลู่เข้าของกริดเป็นสิ่งจำเป็นเพื่อให้มั่นใจว่า **ผลเฉลยเชิงตัวเลขไม่ขึ้นอยู่กับความละเอียดของกริด** โดยการปรับเปลี่ยนกริดอย่างเป็นระบบและตรวจสอบการเปลี่ยนแปลงของปริมาณที่สนใจ เราสามารถ **ประเมินความไม่แน่นอนเชิงตัวเลข** และ **ระบุผลเฉลยที่ไม่ขึ้นอยู่กับกริด** ได้
+
+### วิธีการ Richardson Extrapolation
+
+**Richardson extrapolation** ให้แนวทางการทำงานอย่างเป็นระบบเพื่อประมาณค่าผลเฉลยที่ไม่ขึ้นอยู่กับกริด โดยใช้ผลลัพธ์จากกริดที่มีการปรับเปลี่ยนความละเอียดตามลำดับ
+
+#### พื้นฐานคณิตศาสตร์
+
+สำหรับกริดที่มีการปรับเปลี่ยนตามลำดับ 3 ระดับด้วยระยะห่าง $h$, $h/2$ และ $h/4$ ค่าที่ extrpolate จาก Richardson คือ:
+
+$$\phi_{exact} \approx \phi_{h/4} + \frac{\phi_{h/4} - \phi_{h/2}}{2^p - 1}$$
+
+โดยที่:
+- $\phi_h$ คือ ผลเฉลยบนกริดที่มีระยะห่าง $h$
+- $p$ คือ ลำดับของความแม่นยำที่สังเกตได้
+- อัตราส่วน 2 แทนการปรับเปลี่ยนกริดอย่างเป็นระบบด้วยค่า 2
+
+ลำดับของความแม่นยำ $p$ สามารถหาได้จากการปรับเปลี่ยน 2 ครั้งติดต่อกัน:
+
+$$p = \log\left(\frac{\phi_{h/2} - \phi_h}{\phi_{h/4} - \phi_{h/2}}\right) / \log(2)$$
+
+#### การ Implement ใน OpenFOAM
+
+```cpp
+// Grid convergence study implementation
+class gridConvergenceStudy
+{
+private:
+    labelList nCells_;           // จำนวนเซลล์ในแต่ละกริด
+    List<scalar> meshSizes_;     // ขนาดกริดลักษณะเฉพาะ
+    List<scalar> results_;       // ผลลัพธ์สำหรับปริมาณที่สนใจ
+    word quantityName_;          // ชื่อของปริมาณที่ตรวจสอบ
+
+public:
+    gridConvergenceStudy(const labelList& nCells, const word& quantityName)
+    : nCells_(nCells),
+      quantityName_(quantityName)
+    {
+        meshSizes_.setSize(nCells_.size());
+        results_.setSize(nCells_.size());
+
+        // คำนวณขนาดกริดลักษณะเฉพาะ
+        forAll(nCells_, i)
+        {
+            meshSizes_[i] = 1.0 / cbrt(scalar(nCells_[i]));
+        }
+    }
+
+    void runStudy()
+    {
+        forAll(nCells_, i)
+        {
+            // สร้างกริดด้วย nCells_[i]
+            createMesh(nCells_[i]);
+            
+            // รันการจำลอง
+            runSimulation();
+            
+            // ดึงผลลัพธ์ (เช่น gas holdup, pressure drop)
+            results_[i] = extractResult();
+        }
+
+        calculateConvergence();
+    }
+
+    void calculateConvergence()
+    {
+        if (nCells_.size() < 3)
+        {
+            WarningIn("gridConvergenceStudy::calculateConvergence()")
+                << "Need at least 3 mesh refinements for Richardson extrapolation"
+                << endl;
+            return;
+        }
+
+        // คำนวณลำดับของความแม่นยำที่สังเกตได้
+        scalar p = log((results_[1] - results_[0]) / (results_[2] - results_[1])) /
+                  log(meshSizes_[1]/meshSizes_[0]);
+
+        // Richardson extrapolation สำหรับค่าที่ไม่ขึ้นอยู่กับกริด
+        scalar phi_exact = results_[2] + (results_[2] - results_[1]) / (pow(2, p) - 1);
+
+        // คำนวณค่าความคลาดเคลื่อนสัมพัทธ์บนกริดที่ละเอียดที่สุด
+        scalar error = mag(results_[2] - phi_exact) / mag(phi_exact);
+
+        // แสดงผลลัพธ์การลู่เข้า
+        Info << "=== Grid Convergence Study Results ===" << nl
+             << "Quantity: " << quantityName_ << nl
+             << "Mesh refinements: " << nCells_.size() << nl
+             << "Observed order of accuracy: " << p << nl
+             << "Extrapolated exact value: " << phi_exact << nl
+             << "Relative error on finest mesh: " << error * 100 << "%" << nl
+             << "--------------------------------------" << endl;
+    }
+};
+```
+
+## เกณฑ์การลู่เข้า (Convergence Criteria)
+
+เพื่อหาค่าปริมาณการลู่เข้าของกริด เราใช้ **measures ที่ใช้ norm ต่างๆ** ที่ให้การประเมินคุณภาพของผลเฉลยเชิงตัวเลขอย่างครอบคลุม
+
+### Error Norms
+
+**L2 Norm Error** (Root Mean Square Error):
+$$\epsilon_{L2} = \sqrt{\frac{1}{N} \sum_{i=1}^{N} \left( \frac{\phi_i - \phi_{exact,i}}{\phi_{ref}} \right)^2 }$$
+
+L2 norm ให้ **ค่าเฉลี่ยของความคลาดเคลื่อน** ทั่วทั้งโดเมนการคำนวณ และเป็นประโยชน์อย่างยิ่งสำหรับการประเมินความแม่นยำโดยรวมของผลเฉลย
+
+**Maximum Norm Error** (Uniform Norm):
+$$\epsilon_{max} = \max_{i} \left| \frac{\phi_i - \phi_{exact,i}}{\phi_{ref}} \right|$$
+
+Maximum norm **ระบุค่าความคลาดเคลื่อนที่เลวร้ายที่สุดในโดเมน** ซึ่งสำคัญสำหรับการเข้าใจความแม่นยำเฉพาะที่และระบุบริเวณที่อาจต้องการการปรับปรุงเพิ่มเติม
+
+### การ Implement การคำนวณความคลาดเคลื่อน
+
+```cpp
+// Error calculation utilities
+class errorAnalysis
+{
+private:
+    scalar phiRef_;  // Reference magnitude for normalization
+
+public:
+    errorAnalysis(const scalar phiRef) : phiRef_(phiRef) {}
+
+    // คำนวณ L2 norm error
+    scalar calculateL2Error(const volScalarField& phi, const volScalarField& phiExact)
+    {
+        scalar errorSum = 0.0;
+        scalar phiRef = max(mag(phiExact));
+
+        // ข้าม boundary cells สำหรับค่าความคลาดเคลื่อนเฉลี่ยโดเมน
+        forAll(phi, celli)
+        {
+            scalar localError = mag(phi[celli] - phiExact[celli]) / phiRef;
+            errorSum += localError * localError;
+        }
+
+        return sqrt(errorSum / phi.size());
+    }
+
+    // คำนวณ maximum norm error
+    scalar calculateMaxError(const volScalarField& phi, const volScalarField& phiExact)
+    {
+        scalar phiRef = max(mag(phiExact));
+        scalar maxError = 0.0;
+        label maxErrorCell = -1;
+
+        forAll(phi, celli)
+        {
+            scalar localError = mag(phi[celli] - phiExact[celli]) / phiRef;
+            
+            if (localError > maxError)
+            {
+                maxError = localError;
+                maxErrorCell = celli;
+            }
+        }
+
+        Info << "Maximum error location: cell " << maxErrorCell << endl;
+        return maxError;
+    }
+
+    // คำนวณ metrics การลู่เข้าตาม field
+    void fieldConvergenceAnalysis(
+        const List<volScalarField*>& fields,
+        const List<volScalarField*>& referenceFields
+    )
+    {
+        if (fields.size() != referenceFields.size())
+        {
+            FatalErrorIn("errorAnalysis::fieldConvergenceAnalysis")
+                << "Field lists must have same size" << abort(FatalError);
+        }
+
+        Info << nl << "=== Field Convergence Analysis ===" << nl;
+        Info << setw(20) << "Field Name" 
+             << setw(15) << "L2 Error" 
+             << setw(15) << "Max Error" 
+             << setw(15) << "Avg Error" << nl;
+        Info << setw(20) << "---------" 
+             << setw(15) << "--------" 
+             << setw(15) << "--------" 
+             << setw(15) << "--------" << nl;
+
+        forAll(fields, fieldi)
+        {
+            scalar l2Error = calculateL2Error(*fields[fieldi], *referenceFields[fieldi]);
+            scalar maxError = calculateMaxError(*fields[fieldi], *referenceFields[fieldi]);
+            
+            // คำนวณค่าความคลาดเคลื่อนเฉลี่ย (L1 norm)
+            scalar avgError = calculateL1Error(*fields[fieldi], *referenceFields[fieldi]);
+
+            Info << setw(20) << fields[fieldi]->name()
+                 << setw(15) << l2Error
+                 << setw(15) << maxError
+                 << setw(15) << avgError << nl;
+        }
+    }
+
+private:
+    // คำนวณ L1 norm (average error)
+    scalar calculateL1Error(const volScalarField& phi, const volScalarField& phiExact)
+    {
+        scalar phiRef = max(mag(phiExact));
+        scalar errorSum = 0.0;
+
+        forAll(phi, celli)
+        {
+            errorSum += mag(phi[celli] - phiExact[celli]) / phiRef;
+        }
+
+        return errorSum / phi.size();
+    }
+};
+```
+
+## แนวทางการ Implement ในทางปฏิบัติ (Practical Implementation Guidelines)
+
+### กลยุทธ์การปรับเปลี่ยนกริด (Mesh Refinement Strategy)
+
+สำหรับการศึกษาการลู่เข้าของกริดอย่างมีประสิทธิภาพ:
+
+1. **การปรับเปลี่ยนแบบสม่ำเสมอ**: ปรับกริดโดยค่า 2 ในทุกทิศทาง
+2. **การรักษาคุณภาพกริด**: รักษาคุณภาพกริดขณะปรับเปลี่ยน
+3. **ความสอดคล้องของ Boundary Layer**: รักษาอัตราส่วนการปรับปรุงใกล้ผนัง
+4. **ต้นทุนการคำนวณ**: สมดุลระหว่างความต้องการความแม่นยำกับทรัพยากรการคำนวณ
+
+### การประเมินการลู่เข้า (Convergence Assessment)
+
+พิจารณาว่าผลเฉลยไม่ขึ้นอยู่กับกริดเมื่อ:
+$$|\epsilon_{L2}| < 10^{-4} \quad \text{และ} \quad |\epsilon_{max}| < 10^{-3}$$
+
+สำหรับ **แอปพลิเคชันทางวิศวกรรม** อาจยอมรับค่าที่ผ่อนปรนมากขึ้นโดยพิจารณาจาก:
+- ระดับความแม่นยำที่ต้องการ
+- ทรัพยากรการคำนวณที่มีอยู่
+- บริเวณสำคัญที่สนใจ
+- safety factors ในการออกแบบ
+
+### การทำงานอัตโนมัติ (Automated Workflow)
+
+```cpp
+// Automated grid convergence workflow
+class automatedConvergenceStudy
+{
+private:
+    gridConvergenceStudy convergenceAnalyzer_;
+    errorAnalysis errorAnalyzer_;
+
+public:
+    automatedConvergenceStudy(const labelList& nCells, const word& quantityName)
+    : convergenceAnalyzer_(nCells, quantityName),
+      errorAnalyzer_(1.0)  // Normalize by unity
+    {}
+
+    void runCompleteStudy()
+    {
+        // Phase 1: รันการศึกษาการลู่เข้า
+        convergenceAnalyzer_.runStudy();
+        
+        // Phase 2: วิเคราะห์ความคลาดเคลื่อนอย่างละเอียด
+        if (nCells_.size() >= 3)
+        {
+            performDetailedAnalysis();
+        }
+    }
+
+    void performDetailedAnalysis()
+    {
+        // เปรียบเทียบ fields ระหว่างกริดสองระดับที่ละเอียดที่สุด
+        const volScalarField& phi_h4 = getField("phi_h4");
+        const volScalarField& phi_h8 = getField("phi_h8");
+
+        List<volScalarField*> fields = {const_cast<volScalarField*>(&phi_h8)};
+        List<volScalarField*> reference = {const_cast<volScalarField*>(&phi_h4)};
+        
+        errorAnalyzer_.fieldConvergenceAnalysis(fields, reference);
+    }
+};
+```
+
+[Diagram: Richardson extrapolation แสดงการ extrapole จากกริด 3 ระดับไปยังค่าที่ไม่ขึ้นอยู่กับกริด]
+
+[Diagram: Error norm comparison แสดงความแตกต่างระหว่าง L1, L2 และ L∞ norms ในการประเมินความคลาดเคลื่อน]
+
+[Diagram: Convergence workflow แสดงขั้นตอนอัตโนมัติสำหรับการศึกษาการลู่เข้าของกริด]
+
+เฟรมเวิร์กการศึกษาการลู่เข้าของกริดอย่างครอบคลุมนี้ทำให้มั่นใจได้ว่า **ผลเฉลยเชิงตัวเลขได้รับการตรวจสอบความไม่ขึ้นอยู่กับกริดอย่างเหมาะสม** ให้ความมั่นใจในความแม่นยำของการจำลอง CFD และเปิดให้สามารถประเมินความไม่แน่นอนเชิงตัวเลขได้อย่างเป็นปริมาณ

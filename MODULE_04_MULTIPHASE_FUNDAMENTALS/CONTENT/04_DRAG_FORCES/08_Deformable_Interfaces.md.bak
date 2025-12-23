@@ -1,0 +1,36 @@
+## Deformable Interfaces
+
+### **Bubble and Drop Deformation**
+
+สำหรับส่วนที่ถูกเปลี่ยนแปลงรูปร่าง (deformable inclusions) แรงต้าน (drag) ขึ้นอยู่กับปัจจัยหลัก 3 ประการ:
+
+1.  **การเปลี่ยนแปลงรูปร่าง (Shape deformation)**: การเปลี่ยนแปลงอัตราส่วน (aspect ratio)
+2.  **การไหลเวียนภายใน (Internal circulation)**: การไหลภายในฟองอากาศ/หยด
+3.  **ผลกระทบจากสารลดแรงตึงผิว (Surfactant effects)**: การปนเปื้อนที่พื้นผิว (interface contamination)
+
+[Diagram: แสดงฟองอากาศที่มีการเปลี่ยนรูปร่างและการไหลเวียนภายใน]
+
+### **Grace Correlation**
+
+**ใช้สำหรับ**: ฟองอากาศในของเหลว (bubbles in liquids)
+
+**สมการ drag coefficient**:
+$$C_D = \max\left[\frac{2}{\sqrt{Re_p}}, \min\left(\frac{8}{3}\frac{Eo}{Eo + 4}, 0.44\right)\right]$$
+
+**ตัวแปรในสมการ**:
+- `$C_D$` = Drag coefficient
+- `$Re_p$` = Reynolds number ของ particle
+- `$Eo$` = Eötvös number
+
+### **Tomiyama Correlation**
+
+**ใช้สำหรับ**: ฟองอากาศที่มีการปนเปื้อน (contaminated bubbles)
+
+**สมการ drag coefficient**:
+$$C_D = \max\left[0.44, \min\left(\frac{24}{Re_p}(1 + 0.15 Re_p^{0.687}), \frac{72}{Re_p}\right)\right]$$
+
+**ตัวแปรในสมการ**:
+- `$C_D$` = Drag coefficient
+- `$Re_p$` = Reynolds number ของ particle
+
+[Diagram: เปรียบเทียบค่า drag coefficient ระหว่างฟองสะอาดและฟองที่ปนเปื้อน]

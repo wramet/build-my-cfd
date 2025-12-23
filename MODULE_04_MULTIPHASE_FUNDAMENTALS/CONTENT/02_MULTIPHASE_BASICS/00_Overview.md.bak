@@ -1,0 +1,239 @@
+# พื้นฐานการจำลองการไหลแบบหลายเฟสแบบออยเลอร์ (Eulerian Multiphase Flow Fundamentals)
+
+การจำลองการไหลแบบหลายเฟสแบบออยเลอร์ (Eulerian multiphase flow modeling) ถือเป็นหนึ่งในแนวทางที่ซับซ้อนที่สุดในสาขาพลศาสตร์ของไหลเชิงคำนวณ (computational fluid dynamics) สำหรับการจำลองระบบที่หลายเฟส (ของเหลว, ก๊าซ, ของแข็ง) อยู่ร่วมกันและมีปฏิสัมพันธ์กัน
+
+ในกรอบการทำงานแบบออยเลอร์ แต่ละเฟสจะถูกพิจารณาว่าเป็นสารต่อเนื่อง (continuum) ที่มีชุดสมการอนุรักษ์ของตนเอง ซึ่งช่วยให้สามารถวิเคราะห์ปรากฏการณ์ที่บริเวณรอยต่อ (interfacial phenomena) และปฏิสัมพันธ์ระหว่างเฟสที่ซับซ้อนได้อย่างละเอียด
+
+[Diagram: Eulerian framework showing multiple phases as interpenetrating continua with separate velocity fields]
+
+## แนวคิดพื้นฐาน (Fundamental Concepts)
+
+### การนิยามเฟสและเศษส่วนปริมาตร (Phase Definition and Volume Fractions)
+
+ในการจำลองแบบหลายเฟสแบบออยเลอร์ แต่ละเฟส $p$ จะถูกระบุด้วยเศษส่วนปริมาตร (volume fraction) $\alpha_p$ ซึ่งแสดงถึงสัดส่วนของปริมาตรควบคุม (control volume) ที่เฟสนั้นครอบครองอยู่:
+
+$$\sum_{p=1}^{n} \alpha_p = 1$$
+
+โดยที่:
+- $n$ คือจำนวนเฟสทั้งหมด
+- $\alpha_p$ มีค่า $0 \leq \alpha_p \leq 1$
+- $\alpha_p = 0$ หมายความว่าเฟสนั้นไม่มีอยู่ ณ ตำแหน่งนั้น
+- $\alpha_p = 1$ บ่งชี้ว่าเฟสนั้นครอบครองปริมาตรควบคุมทั้งหมด
+
+[Diagram: Control volume showing volume fractions for multiple phases]
+
+### คุณสมบัติของสารผสม (Mixture Properties)
+
+คุณสมบัติของสารผสมที่มีประสิทธิภาพ (effective mixture properties) จะถูกคำนวณโดยอิงจากเศษส่วนปริมาตรของเฟสและคุณสมบัติของแต่ละเฟส:
+
+**ความหนาแน่นของสารผสม:**
+$$\rho_{\text{mix}} = \sum_{p=1}^{n} \alpha_p \rho_p$$
+
+**ความหนืดของสารผสม:**
+$$\mu_{\text{mix}} = \sum_{p=1}^{n} \alpha_p \mu_p$$
+
+แนวทางการหาค่าเฉลี่ยนี้ช่วยให้คุณสมบัติมีการเปลี่ยนแปลงอย่างราบรื่นระหว่างบริเวณที่ถูกครอบงามโดยเฟสที่แตกต่างกัน
+
+## สมการควบคุม (Governing Equations)
+
+### สมการความต่อเนื่อง (Continuity Equations)
+
+แต่ละเฟส $p$ จะมีสมการความต่อเนื่องของตนเอง:
+
+$$\frac{\partial}{\partial t}(\alpha_p \rho_p) + \nabla \cdot (\alpha_p \rho_p \mathbf{u}_p) = \sum_{q=1}^{n} \Gamma_{qp}$$
+
+โดยที่:
+- $\mathbf{u}_p$ คือความเร็วของเฟส $p$
+- $\Gamma_{qp}$ คืออัตราการถ่ายเทมวล (mass transfer rate) จากเฟส $q$ ไปยังเฟส $p$
+
+สำหรับระบบที่ไม่มีการเปลี่ยนแปลงเฟส (phase change) เทอมการถ่ายเทมวลจะเป็นศูนย์ ทำให้สมการความต่อเนื่องง่ายขึ้น
+
+### สมการโมเมนตัม (Momentum Equations)
+
+การอนุรักษ์โมเมนตัมสำหรับแต่ละเฟสจะรวมถึงการถ่ายเทโมเมนตัมที่บริเวณรอยต่อ (interfacial momentum transfer):
+
+$$\frac{\partial}{\partial t}(\alpha_p \rho_p \mathbf{u}_p) + \nabla \cdot (\alpha_p \rho_p \mathbf{u}_p \mathbf{u}_p) = -\alpha_p \nabla p + \alpha_p \rho_p \mathbf{g} + \nabla \cdot \mathbf{\tau}_p + \sum_{q=1}^{n} \mathbf{M}_{qp}$$
+
+โดยที่:
+- $p$ คือสนามความดันร่วม (shared pressure field)
+- $\mathbf{g}$ คือความเร่งเนื่องจากแรงโน้มถ่วง (gravitational acceleration)
+- $\mathbf{\tau}_p$ คือเทนเซอร์ความเค้น (stress tensor) สำหรับเฟส $p$
+- $\mathbf{M}_{qp}$ คือการถ่ายเทโมเมนตัมที่บริเวณรอยต่อจากเฟส $q$ ไปยังเฟส $p$
+
+### เทนเซอร์ความเค้น (Stress Tensor)
+
+เทนเซอร์ความเค้นสำหรับเฟส $p$ จะพิจารณาทั้งผลกระทบจากความหนืด (viscous) และความปั่นป่วน (turbulent):
+
+$$\mathbf{\tau}_p = \mu_p \nabla \mathbf{u}_p + \mu_{p,t} \nabla \mathbf{u}_p - \frac{2}{3} \rho_p k_p \mathbf{I}$$
+
+โดยที่:
+- $\mu_{p,t}$ คือความหนืดเนื่องจากความปั่นป่วน (turbulent viscosity)
+- $k_p$ คือพลังงานจลน์เนื่องจากความปั่นป่วน (turbulent kinetic energy) สำหรับเฟส $p$
+
+## แรงที่บริเวณรอยต่อ (Interfacial Forces)
+
+การถ่ายเทโมเมนตัมที่บริเวณรอยต่อ $\mathbf{M}_{qp}$ ประกอบด้วยแรงที่แตกต่างกันหลายชนิดซึ่งควบคุมปฏิสัมพันธ์ระหว่างเฟส:
+
+### แรงฉุด (Drag Force)
+
+แรงฉุดแสดงถึงแรงต้านทานต่อการเคลื่อนที่สัมพัทธ์ระหว่างเฟส:
+
+$$\mathbf{F}_{\text{drag},qp} = C_D \alpha_q \alpha_p \rho_p |\mathbf{u}_q - \mathbf{u}_p|(\mathbf{u}_q - \mathbf{u}_p)$$
+
+โดยที่ $C_D$ คือสัมประสิทธิ์แรงฉุด (drag coefficient) ซึ่งขึ้นอยู่กับรูปแบบการไหล (flow regime) และคุณสมบัติของเฟส
+
+### แรงยก (Lift Force)
+
+แรงยกเกิดขึ้นจากแรงเฉือน (shear) ในเฟสต่อเนื่อง:
+
+$$\mathbf{F}_{\text{lift},qp} = C_L \alpha_q \alpha_p \rho_p (\mathbf{u}_q - \mathbf{u}_p) \times (\nabla \times \mathbf{u}_q)$$
+
+โดยที่ $C_L$ คือสัมประสิทธิ์แรงยก (lift coefficient) ซึ่งพิจารณาถึงผลของ Magnus effect
+
+### แรงมวลเสมือน (Virtual Mass Force)
+
+แรงมวลเสมือนพิจารณาถึงความเฉื่อยเพิ่มเติมที่จำเป็นในการเร่งของไหลที่ถูกแทนที่:
+
+$$\mathbf{F}_{\text{vm},qp} = C_{vm} \alpha_q \alpha_p \rho_p \left(\frac{D\mathbf{u}_q}{Dt} - \frac{D\mathbf{u}_p}{Dt}\right)$$
+
+โดยที่ $C_{vm}$ คือสัมประสิทธิ์มวลเสมือน (virtual mass coefficient) ซึ่งโดยทั่วไปมีค่าอยู่ระหว่าง 0.5 ถึง 1.0
+
+### แรงกระจายตัวเนื่องจากความปั่นป่วน (Turbulent Dispersion Force)
+
+แรงกระจายตัวเนื่องจากความปั่นป่วนพิจารณาถึงผลกระทบของการผันผวนของความปั่นป่วนต่อการกระจายตัวของอนุภาค:
+
+$$\mathbf{F}_{\text{td},qp} = -C_{td} \nabla \alpha_p$$
+
+โดยที่ $C_{td}$ คือสัมประสิทธิ์แรงกระจายตัวเนื่องจากความปั่นป่วน (turbulent dispersion coefficient)
+
+[Diagram: Forces acting on a bubble/droplet showing drag, lift, virtual mass, and turbulent dispersion forces]
+
+## การนำไปใช้เชิงตัวเลข (Numerical Implementation)
+
+### วิธีการแบ่งส่วน (Discretization Approaches)
+
+สมการการไหลแบบหลายเฟสแบบออยเลอร์มักจะถูกแบ่งส่วนโดยใช้วิธีปริมาตรจำกัด (finite volume method)
+
+- **เก็บข้อมูลที่จุดศูนย์กลางของเซลล์ (Cell Centers)**: เศษส่วนปริมาตร
+- **สร้างฟลักซ์ที่หน้าเซลล์ (Face Fluxes)**: โดยใช้สกีมที่เหมาะสม
+
+**ประเภทของสกีมที่ใช้:**
+
+| ประเภทสกีม | ตัวอย่าง | คุณสมบัติ |
+|---|---|---|
+| **สกีมความละเอียดสูง** | MUSCL, Van Leer, QUICK | ความแม่นยำสูงสำหรับการพา (advection) |
+| **สกีม TVD** | MinMod, SuperBee, van Albada | ป้องกันการแกว่งกวัดเชิงตัวเลข |
+| **การหาอนุพันธ์แบบศูนย์กลาง** | Central Differencing | ความแม่นยำอันดับสองสำหรับเทอมการแพร่ |
+
+### การจับคู่ความดัน-ความเร็ว (Pressure-Velocity Coupling)
+
+การจับคู่ระหว่างสนามความดันและสนามความเร็วในระบบหลายเฟสมีความท้าทายเฉพาะตัวเนื่องจากสนามความหนาแน่นและเศษส่วนปริมาตรที่เปลี่ยนแปลงไป
+
+**แนวทางทั่วไป:**
+
+1. **อัลกอริทึมที่แยกเฟส (Phase-Explicit Algorithms)**
+   - แก้สมการโมเมนตัมสำหรับแต่ละเฟสอย่างอิสระ
+
+2. **วิธีการแลกเปลี่ยนโมเมนตัม (Momentum Exchange Methods)**
+   - รวมแรงที่บริเวณรอยต่อโดยตรงในสมการโมเมนตัม
+
+3. **ตัวแก้แบบรวม (Unified Solvers)**
+   - พิจารณาทุกเฟสพร้อมกันโดยใช้คุณสมบัติของสารผสม
+
+### ข้อควรพิจารณาด้านเสถียรภาพ (Stability Considerations)
+
+การไหลแบบหลายเฟสมักแสดงการจับคู่ที่แข็งแกร่งระหว่างเฟส ซึ่งนำไปสู่ความไม่เสถียรภาพเชิงตัวเลข
+
+**กลยุทธ์ในการทำให้เสถียรภาพ:**
+
+- **การพิจารณาเทอมแรงที่บริเวณรอยต่อแบบอิมพลิซิท**: การลดค่าแรงฉุดและแรงยก (under-relaxation)
+- **การจำกัดเศษส่วนปริมาตร (Volume Fraction Limiting)**: ตรวจสอบให้แน่ใจว่า $\alpha_p$ ยังคงอยู่ในขอบเขตทางกายภาพ
+- **การควบคุม Courant Number**: การเลือกขนาดของช่วงเวลาแบบปรับได้ (adaptive time stepping) โดยอิงจากความเร็วของเฟส
+
+## การประยุกต์ใช้งาน (Applications)
+
+### การประยุกต์ใช้งานในอุตสาหกรรม (Industrial Applications)
+
+การจำลองแบบหลายเฟสแบบออยเลอร์มีการประยุกต์ใช้งานอย่างกว้างขวาง:
+
+| การประยุกต์ใช้งาน | คำอธิบาย |
+|---|---|
+| **คอลัมน์ฟอง (Bubble Columns)** | เครื่องปฏิกรณ์แก๊ส-ของเหลวที่มีฟองกระจายตัว |
+| **เตาอบแบบฟลูอิไดซ์ (Fluidized Beds)** | ระบบอนุภาค-ก๊าซที่มีอนุภาคของแข็งฟลูอิไดซ์ |
+| **ระบบสเปรย์ (Spray Systems)** | ละอองของเหลวกระจายตัวในเฟสก๊าซ |
+| **การขนส่งด้วยลม (Pneumatic Transport)** | การลำเลียงอนุภาคของแข็งผ่านกระแสลม |
+| **การเกิดโพรงอากาศ (Cavitation)** | การก่อตัวและการยุบตัวของฟองไอในของเหลว |
+
+### การประยุกต์ใช้งานด้านสิ่งแวดล้อม (Environmental Applications)
+
+- **การขนส่งตะกอน (Sediment Transport)**: การเคลื่อนที่ของอนุภาคของแข็งในแม่น้ำและบริเวณชายฝั่ง
+- **การกระจายตัวในชั้นบรรยากาศ (Atmospheric Dispersion)**: การขนส่งมลพิษในอากาศ
+- **การจำลองการรั่วไหลของน้ำมัน (Oil Spill Modeling)**: ปฏิสัมพันธ์ระหว่างน้ำมันและน้ำในสภาพแวดล้อมทางทะเล
+
+### การประยุกต์ใช้งานด้านธรณีวิทยา (Geological Applications)
+
+- **พลศาสตร์ของหินหนืด (Magma Dynamics)**: การไหลแบบหลายเฟสในระบบภูเขาไฟ
+- **การไหลของน้ำบาดาล (Groundwater Flow)**: การไหลของของไหลที่เข้ากันไม่ได้ในตัวกลางที่มีรูพรุน
+- **การเพิ่มประสิทธิภาพการผลิตน้ำมัน (Enhanced Oil Recovery)**: กลยุทธ์การฉีดของไหลหลายชนิด
+
+[Diagram: Various industrial applications showing bubble columns, fluidized beds, spray systems, etc.]
+
+## การตรวจสอบความถูกต้องและการยืนยัน (Validation and Verification)
+
+### กรณีทดสอบมาตรฐาน (Benchmark Cases)
+
+กรณีทดสอบมาตรฐานสำหรับการจำลองแบบหลายเฟสแบบออยเลอร์ประกอบด้วย:
+
+1. **เขื่อนแตก (Dam Break)**
+   - การไหลแบบอิสระที่มีการเปลี่ยนแปลงของรอยต่อขนาดใหญ่
+
+2. **การไหลของฟองในท่อ (Bubbly Pipe Flow)**
+   - ฟองก๊าซลอยขึ้นในท่อแนวตั้ง
+
+3. **พลศาสตร์อนุภาคในเตาอบแบบฟลูอิไดซ์ (Fluidized Bed Particle Dynamics)**
+   - การผสมและการแยกอนุภาค
+
+4. **ความไม่เสถียรภาพแบบ Rayleigh-Taylor (Rayleigh-Taylor Instability)**
+   - ความไม่เสถียรภาพของรอยต่อเนื่องจากความแตกต่างของความหนาแน่น
+
+### การเปรียบเทียบกับการทดลอง (Experimental Comparison)
+
+การตรวจสอบความถูกต้องโดยทั่วไปเกี่ยวข้องกับการเปรียบเทียบกับ:
+
+| การวัด | คำอธิบาย |
+|---|---|
+| **การวัดการกระจายตัวของเฟส (Phase Distribution Measurements)** | โปรไฟล์เศษส่วนปริมาตร |
+| **การวัดสนามความเร็ว (Velocity Field Measurements)** | ความเร็วที่แยกตามเฟสโดยใช้เทคนิคเช่น PIV |
+| **การวัดความดันตกคร่อม (Pressure Drop Measurements)** | การสูญเสียความดันโดยรวมของระบบ |
+| **แผนที่รูปแบบการไหล (Flow Regime Maps)** | ขอบเขตการเปลี่ยนแปลงระหว่างรูปแบบการไหล |
+
+## OpenFOAM Code Implementation
+
+```cpp
+// Example of phase definition in multiphaseEulerFoam
+phaseModel& phase = phases()[phasei];
+volScalarField& alpha = phase;
+
+// Continuity equation implementation
+fvScalarMatrix alphaEqn
+(
+    fvm::ddt(alpha, rho)
+  + fvm::div(alphaRhoPhi, phase.U())
+ ==
+    massTransfer[phasei]
+);
+
+// Momentum equation implementation
+fvVectorMatrix UEqn
+(
+    fvm::ddt(alpha, rho, U)
+  + fvm::div(alphaRhoPhi, U)
+ ==
+    - alpha*fvc::grad(p)
+  + alpha*rho*g
+  + fvc::div(alphaRho*dev2(tauEff))
+  + momentumTransfer[phasei]
+);
+```
+
+กรอบพื้นฐานนี้เป็นรากฐานสำหรับการนำการจำลองการไหลแบบหลายเฟสที่ซับซ้อนไปใช้ใน OpenFOAM โดยเฉพาะอย่างยิ่งการใช้ Solver เช่น `multiphaseEulerFoam` ซึ่งนำอัลกอริทึมการไหลแบบหลายเฟสแบบออยเลอร์ขั้นสูงเหล่านี้ไปใช้

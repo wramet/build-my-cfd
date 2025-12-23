@@ -1,0 +1,430 @@
+# 🎯 วัตถุประสงค์: อัลกอริทึมทางคณิตศาสตร์สำหรับการเชื่อมโยงความดัน-ความเร็วใน OpenFOAM
+
+เอกสารนี้ให้การวิเคราะห์ทางเทคนิคเกี่ยวกับอัลกอริทึมทางคณิตศาสตร์เบื้องหลังวิธีการเชื่อมโยงความดัน-ความเร็ว **SIMPLE, PISO และ PIMPLE** และการนำไปใช้ใน OpenFOAM สำหรับพลศาสตร์ของไหลเชิงคำนวณ (CFD)
+
+อัลกอริทึมเหล่านี้เป็นรากฐานสำหรับการแก้ปัญหาการไหลที่อัดตัวไม่ได้ (incompressible flow problems) ซึ่งฟิลด์ความดันและความเร็วมีการเชื่อมโยงกันผ่านสมการความต่อเนื่องและสมการโมเมนตัม
+
+## รากฐานทางคณิตศาสตร์
+
+### สมการควบคุม (Governing Equations)
+
+สมการพื้นฐานที่ควบคุมการไหลของไหลที่อัดตัวไม่ได้:
+
+**สมการความต่อเนื่อง (การอนุรักษ์มวล):**
+$$\nabla \cdot \mathbf{u} = 0$$
+
+**สมการโมเมนตัม:**
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
+
+โดยที่:
+- $\mathbf{u}$ = ฟิลด์เวกเตอร์ความเร็ว (velocity vector field)
+- $p$ = ฟิลด์ความดัน (pressure field)
+- $\rho$ = ความหนาแน่นของไหล (fluid density)
+- $\mu$ = ความหนืดจลน์ (dynamic viscosity)
+- $\mathbf{f}$ = แรงภายนอก (body forces)
+
+### กรอบการทำให้เป็นส่วนย่อย (Discretization Framework)
+
+[Diagram: Finite volume cell with center point P and neighboring cells]
+
+OpenFOAM ใช้วิธีไฟไนต์วอลุ่ม (finite volume method) ร่วมกับการจัดเรียงตัวแปรแบบ collocated รูปแบบไม่ต่อเนื่องของสมการโมเมนตัมที่จุดศูนย์กลางเซลล์ $P$ สามารถเขียนได้ดังนี้:
+
+$$a_P \mathbf{u}_P + \sum_N a_N \mathbf{u}_N = -\nabla p_P + \mathbf{f}_P$$
+
+โดยที่ผลรวมครอบคลุมเซลล์ข้างเคียง $N$ และ:
+- $a_P$ = สัมประสิทธิ์การทำให้เป็นส่วนย่อยที่จุด P (discretization coefficient at point P)
+- $a_N$ = สัมประสิทธิ์การทำให้เป็นส่วนย่อยของเซลล์ข้างเคียง (discretization coefficients of neighboring cells)
+
+## อัลกอริทึม SIMPLE (Semi-Implicit Method for Pressure-Linked Equations)
+
+### การกำหนดสูตรทางคณิตศาสตร์
+
+อัลกอริทึม SIMPLE ใช้วิธีการวนซ้ำพร้อมกับการแก้ไขความดันสำหรับปัญหาแบบสภาวะคงที่
+
+#### ขั้นตอนวิธี SIMPLE:
+
+1. **การทำนายโมเมนตัม (Momentum Prediction)**
+   $$\frac{H(\mathbf{u}^*)}{a_P} - \frac{1}{a_P}\nabla p^* = \mathbf{u}^*$$
+   
+   โดยที่ $H(\mathbf{u}^*) = \sum_N a_N \mathbf{u}_N^* + \mathbf{f}_P$ แทนเทอมนอกแนวทแยงและเทอมแหล่งกำเนิด
+
+2. **การแก้ไขความดัน (Pressure Correction)**
+   สมการแก้ไขความดันได้มาจากการบังคับใช้ความต่อเนื่อง:
+   $$\nabla^2 p' = \nabla \cdot \left(\frac{H(\mathbf{u}^*)}{a_P}\right)$$
+
+3. **การแก้ไขความเร็ว (Velocity Correction)**
+   แก้ไขความเร็วโดยใช้การแก้ไขความดัน:
+   $$\mathbf{u}^{k+1} = \mathbf{u}^* - \frac{1}{a_P}\nabla p'$$
+   $$p^{k+1} = p^* + \alpha_p p'$$
+   
+   โดยที่ $\alpha_p$ คือตัวประกอบการผ่อนคลายต่ำกว่าสำหรับความดัน
+
+### การนำไปใช้ใน OpenFOAM
+
+ใน OpenFOAM อัลกอริทึม SIMPLE ถูกนำไปใช้ใน `src/finiteVolume/fvSolution/SIMPLE`
+
+#### โครงสร้างคลาส:
+```cpp
+// Simplified implementation structure
+template<class Type>
+class SIMPLE
+{
+    // Under-relaxation factors
+    dictionary relaxationDict_;
+    Field<solverPerformance> solverPerfs_;
+    
+    // Core algorithm
+    bool correct(volScalarField& p, volVectorField& U);
+};
+```
+
+#### การแก้สมการโมเมนตัม:
+```cpp
+fvVectorMatrix UEqn
+(
+    fvm::div(phi, U)
+  + fvm::div(phi, U) * 2  // Symmetric treatment
+  + fvm::Sp(rAU, U)       // Under-relaxation
+  ==
+    fvOptions(U)
+);
+
+UEqn.relax();
+solve(UEqn == -fvc::grad(p));
+```
+
+## อัลกอริทึม PISO (Pressure-Implicit with Splitting of Operators)
+
+### การกำหนดสูตรทางคณิตศาสตร์
+
+PISO ขยาย SIMPLE สำหรับการคำนวณแบบชั่วคราวด้วยลูปแก้ไขเพิ่มเติม
+
+#### ขั้นตอนวิธี PISO:
+
+1. **การทำให้เป็นส่วนย่อยเชิงเวลา (Temporal Discretization)**
+   $$\frac{\mathbf{u}^{n+1} - \mathbf{u}^n}{\Delta t} + (\mathbf{u} \cdot \nabla) \mathbf{u}^{n+1} = -\frac{1}{\rho}\nabla p^{n+1} + \nu \nabla^2 \mathbf{u}^{n+1}$$
+
+2. **ขั้นตอนการทำนาย (Predictor Step)**
+   $$\frac{\mathbf{u}^* - \mathbf{u}^n}{\Delta t} + (\mathbf{u}^n \cdot \nabla) \mathbf{u}^* = -\frac{1}{\rho}\nabla p^n + \nu \nabla^2 \mathbf{u}^*$$
+
+3. **ขั้นตอนการแก้ไข (Corrector Steps)** (k = 1, 2, ..., N)
+   $$\nabla^2 p^{n+1,k} = \nabla \cdot \left(\frac{\mathbf{u}^*}{\Delta t}\right)$$
+   $$\mathbf{u}^{n+1,k} = \mathbf{u}^* - \Delta t \nabla \left(\frac{p^{n+1,k} - p^n}{\rho}\right)$$
+
+### การนำไปใช้ใน OpenFOAM
+
+การนำ PISO ไปใช้ใน `src/finiteVolume/fvSolution/PISO`:
+
+#### โครงสร้างคลาส:
+```cpp
+template<class Type>
+class PISO
+{
+    label nCorr_;      // Number of correctors
+    label nNonOrthogonalCorr_;
+    scalar refCell_;
+    scalar refValue_;
+    
+    // Core algorithm
+    bool correct(volScalarField& p, volVectorField& U);
+};
+```
+
+#### ลูปแก้ไข PISO:
+```cpp
+for (int corr = 0; corr < nCorr; corr++)
+{
+    volScalarField rAU = 1.0/UEqn.A();
+    surfaceScalarField rAUf = fvc::interpolate(rAU);
+    
+    // Pressure equation
+    fvScalarMatrix pEqn
+    (
+        fvm::laplacian(rAUf, p) == fvc::div(phi)
+    );
+    
+    pEqn.setReference(pRefCell, pRefValue);
+    pEqn.solve();
+    
+    // Velocity correction
+    phi -= pEqn.flux();
+    U -= rAU*fvc::grad(p);
+    U.correctBoundaryConditions();
+}
+```
+
+## อัลกอริทึม PIMPLE
+
+### การกำหนดสูตรทางคณิตศาสตร์
+
+PIMPLE รวมความแข็งแกร่งของ SIMPLE (สำหรับสภาวะคงที่) เข้ากับความแม่นยำของ PISO (สำหรับสภาวะชั่วคราว)
+
+#### ขั้นตอนวิธี PIMPLE:
+
+1. **ลูป SIMPLE ภายนอก (Outer Simple Loop)**
+   ใช้การผ่อนคลายต่ำกว่าเพื่อความเสถียรในขั้นตอนเวลาขนาดใหญ่:
+   $$\mathbf{u}^{k+1} = \alpha_u \mathbf{u}^* + (1 - \alpha_u) \mathbf{u}^k$$
+   $$p^{k+1} = \alpha_p p^* + (1 - \alpha_p) p^k$$
+
+2. **ลูป PISO ภายใน (Inner PISO Loop)**
+   ภายในแต่ละการวนซ้ำภายนอก ให้ใช้ตัวแก้ไข PISO:
+   $$\mathbf{u}^{k+1,j+1} = \mathbf{u}^{k+1,j} - \Delta t \nabla \left(\frac{p^{k+1,j+1} - p^{k+1,j}}{\rho}\right)$$
+
+3. **การปรับขั้นตอนเวลาแบบปรับได้ (Adaptive Time Stepping)**
+   การปรับขั้นตอนเวลาโดยอิงจากเลข Courant:
+   $$\Delta t_{new} = \text{Co}_{max} \frac{\Delta x}{|\mathbf{u}|}$$
+
+### การนำไปใช้ใน OpenFOAM
+
+PIMPLE รวมอัลกอริทึมทั้งสองไว้ใน `src/finiteVolume/fvSolution/PIMPLE`:
+
+#### โครงสร้างคลาส:
+```cpp
+template<class Type>
+class PIMPLE : public SIMPLE<Type>, public PISO<Type>
+{
+    // Time step control
+    scalar maxCo_;
+    scalar maxAlphaCo_;
+    
+    // Convergence criteria
+    scalar convergenceTolerance_;
+    label nOuterCorr_;
+    
+    // Hybrid algorithm
+    bool correct(volScalarField& p, volVectorField& U);
+};
+```
+
+#### ตัวอย่างการนำไปใช้:
+```cpp
+// PIMPLE control parameters
+PIMPLE pimple
+{
+    nOuterCorrectors 2;      // SIMPLE iterations
+    nCorrectors     2;       // PISO correctors
+    nNonOrthogonalCorrectors 0;
+    
+    pRefCell        0;
+    pRefValue       0;
+    
+    // Relaxation factors
+    relaxationFactors
+    {
+        U               0.7;
+        p               0.3;
+    }
+    
+    // Time step control
+    maxCo           0.5;
+    maxAlphaCo      0.05;
+}
+```
+
+## การเปรียบเทียบอัลกอริทึม
+
+| อัลกอริทึม | ประเภทปัญหา | ความแม่นยำ | เสถียรภาพ | ประสิทธิภาพ |
+|------------|------------|----------|-----------|------------|
+| **SIMPLE** | สภาวะคงที่ | ปานกลาง | สูง (ด้วย under-relaxation) | สูง |
+| **PISO** | ชั่วคราว | สูง (ชั่วคราว) | ปานกลาง | ปานกลาง |
+| **PIMPLE** | ชั่วคราว (Δt ใหญ่) | สูง | สูง | ต่ำ-ปานกลาง |
+
+[Diagram: Flow chart showing algorithm selection based on problem type]
+
+## เสถียรภาพเชิงตัวเลขและการลู่เข้า (Numerical Stability and Convergence)
+
+### กลยุทธ์การผ่อนคลายต่ำกว่า (Under-relaxation Strategies)
+
+สำหรับลูปภายนอกของ SIMPLE และ PIMPLE:
+$$\mathbf{u}^{new} = \mathbf{u}^{old} + \alpha_u (\mathbf{u}^{calculated} - \mathbf{u}^{old})$$
+$$p^{new} = p^{old} + \alpha_p (p^{calculated} - p^{old})$$
+
+ค่าการผ่อนคลายต่ำกว่าทั่วไป:
+
+| ตัวแปร | ช่วงที่แนะนำ | ค่าที่พบบ่อย |
+|----------|----------------|----------------|
+| ความเร็ว | [0.3, 0.8] | 0.5 - 0.7 |
+| ความดัน | [0.2, 0.7] | 0.3 - 0.5 |
+| ปริมาณความปั่นป่วน | [0.4, 0.8] | 0.6 - 0.8 |
+
+### เกณฑ์การลู่เข้า (Convergence Criteria)
+
+การลู่เข้าโดยอิงจากค่าคงเหลือ (Residual-based convergence):
+$$r_{\phi} = \frac{\|A\phi - b\|_2}{\|b\|_2} \leq \epsilon_{tol}$$
+
+ค่าความคลาดเคลื่อน (tolerance) ทั่วไป:
+
+| สมการ | ค่าความคลาดเคลื่อน | การใช้งาน |
+|----------|-------------------|----------------|
+| โมเมนตัม | [10⁻⁵, 10⁻³] | การไหลทั่วไป |
+| ความต่อเนื่อง | [10⁻⁶, 10⁻⁴] | การอนุรักษ์มวล |
+| ความดัน | [10⁻⁵, 10⁻³] | การลู่เข้าของความดัน |
+
+### การวิเคราะห์เสถียรภาพ (Stability Analysis)
+
+#### เงื่อนไข CFL (CFL Condition)
+สำหรับวิธีการแบบชัดแจ้ง (explicit schemes):
+$$\text{CFL} = \frac{|\mathbf{u}| \Delta t}{\Delta x} \leq \text{CFL}_{max}$$
+
+#### เสถียรภาพของ Von Neumann (Von Neumann Stability)
+สำหรับเทอมการแพร่ (diffusion terms):
+$$\Delta t \leq \frac{\Delta x^2}{2\nu}$$
+
+## คุณสมบัติขั้นสูงใน OpenFOAM
+
+### การแก้ไขความตั้งฉากของ Mesh (Mesh Orthogonality Correction)
+
+[Diagram: Non-orthogonal mesh cell showing correction vectors]
+
+สำหรับ Mesh แบบไม่ตั้งฉาก จะมีการใช้ขั้นตอนการแก้ไขเพิ่มเติม:
+$$p = p^* + p'$$
+$$\nabla p = \nabla p^* + \nabla p'$$
+
+#### การนำการแก้ไขแบบไม่ตั้งฉากไปใช้:
+```cpp
+for (int nonOrth = 0; nonOrth <= nNonOrthogonalCorr; nonOrth++)
+{
+    fvScalarMatrix pEqn
+    (
+        fvm::laplacian(rAUf, p) == fvc::div(phi)
+    );
+    
+    pEqn.solve();
+    
+    if (nonOrth == nNonOrthogonalCorr)
+    {
+        phi -= pEqn.flux();
+    }
+}
+```
+
+### การเร่งความเร็วแบบ Multigrid (Multigrid Acceleration)
+
+[Diagram: V-cycle multigrid structure with fine and coarse grids]
+
+Multigrid เชิงเรขาคณิต (Geometric multigrid) เพื่อการลู่เข้าที่เร็วขึ้น:
+
+- **การสร้างกริดหยาบ (Coarse grid generation)**: ระยะห่าง $2h$
+- **ตัวดำเนินการจำกัด (Restriction operators)**: $R = A^T / 2$
+- **ตัวดำเนินการขยาย (Prolongation operators)**: $P = I$
+- **V-cycle**: รูปแบบ $(V,W,V)$
+
+### การจัดการเทอมแหล่งกำเนิด (Source Term Treatment)
+
+การทำให้เทอมแหล่งกำเนิดของสมการโมเมนตัมเป็นเชิงเส้น (Source term linearization):
+$$\mathbf{f} = \mathbf{f}_0 + \mathbf{S}\mathbf{u}$$
+
+โดยที่ $\mathbf{S}$ คือเมทริกซ์แหล่งกำเนิดเชิงเส้นที่เพิ่มเข้าไปในสัมประสิทธิ์แนวทแยง
+
+## การเพิ่มประสิทธิภาพการทำงาน (Performance Optimization)
+
+### การเลือก Solver เมทริกซ์ (Matrix Solver Selection)
+
+การกำหนดค่า Solver ทั่วไป:
+```cpp
+solvers
+{
+    p
+    {
+        solver          GAMG;
+        tolerance       1e-7;
+        relTol          0.01;
+        smoother        GaussSeidel;
+        nPreSweeps      0;
+        nPostSweeps     2;
+        cacheAgglomerator true;
+        nFinestSweeps   2;
+    }
+    
+    U
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-8;
+        relTol          0;
+        nSweeps         1;
+    }
+}
+```
+
+#### การเปรียบเทียบ Solver:
+
+| Solver | ประเภท | ความเร็ว | หน่วยความจำ | เหมาะสำหรับ |
+|--------|--------|----------|--------------|----------------|
+| **GAMG** | Multigrid | เร็วมาก | ปานกลาง | ปัญหาขนาดใหญ่ |
+| **PCG** | Conjugate Gradient | เร็ว | ต่ำ | เมทริกซ์สมมาตร |
+| **PBiCG** | BiCGStab | เร็ว | ปานกลาง | เมทริกซ์ทั่วไป |
+| **smoothSolver** | Gauss-Seidel | ช้า | ต่ำมาก | ปัญหาเล็ก |
+
+### การนำไปใช้แบบขนาน (Parallel Implementation)
+
+[Diagram: Domain decomposition showing processor boundaries]
+
+การแบ่งโดเมน (Domain decomposition) ด้วย MPI:
+
+- **การกระจายโหลด (Load balancing)**: การแบ่งพาร์ติชันด้วย METIS/Scotch
+- **การจัดการอินเทอร์เฟซ (Interface handling)**: ขอบเขต `processor`
+- **การสื่อสาร (Communication)**: `PstreamReduceOp` สำหรับการดำเนินการทั่วโลก
+
+### การจัดการหน่วยความจำ (Memory Management)
+
+OpenFOAM ใช้พอยน์เตอร์แบบนับการอ้างอิง (reference-counted pointers):
+```cpp
+tmp<volScalarField> rAU = new volScalarField(1.0/UEqn.A());
+```
+
+การจัดสรรหน่วยความจำคืนอัตโนมัติเมื่อจำนวนการอ้างอิงเป็นศูนย์
+
+## การประยุกต์ใช้และกรณีศึกษา (Applications and Use Cases)
+
+### แนวทางการเลือกอัลกอริทึม (Algorithm Selection Guidelines)
+
+#### **SIMPLE**: ปัญหาแบบสภาวะคงที่
+- การไหลที่มีเลข Reynolds สูง (High Reynolds number flows)
+- สภาวะการไหลที่พัฒนาแล้ว (Developed flow conditions)
+- การจำลองการไหลแบบปั่นป่วน (Turbulent flow simulations)
+
+#### **PISO**: ปัญหาแบบชั่วคราวที่มีขั้นตอนเวลาขนาดเล็ก
+- ข้อกำหนดด้านความแม่นยำเชิงเวลา (Temporal accuracy requirements)
+- ผลกระทบจากการอัดตัวได้เล็กน้อย (Weak compressibility effects)
+- การคำนวณทางเสียง (Acoustic calculations)
+
+#### **PIMPLE**: ปัญหาแบบชั่วคราวที่มีขั้นตอนเวลาขนาดใหญ่
+- ปัญหา Mesh เคลื่อนที่ (moving mesh problems) (การปฏิสัมพันธ์ของของไหลกับโครงสร้าง - fluid-structure interaction)
+- การเชื่อมโยงที่แข็งแกร่งระหว่างฟิสิกส์ (Strong coupling between physics)
+- การเริ่มต้นจากผลเฉลยแบบสภาวะคงที่ (Initialization from steady-state solutions)
+
+### กรณีศึกษา (Case Studies)
+
+#### 1. **การวิเคราะห์การไหลในท่อ (Pipe Flow Analysis)**
+- **อัลกอริทึม**: SIMPLE
+- **ลักษณะ**: การไหลแบบปั่นป่วนในสภาวะคงที่
+- **ความท้าทาย**: ความแม่นยำของโปรไฟล์ความเร็ว
+
+#### 2. **การหลุดของกระแสวน (Vortex Shedding)**
+- **อัลกอริทึม**: PISO
+- **ลักษณะ**: พลศาสตร์ของกระแสวนที่แม่นยำ
+- **ความท้าทาย**: ความถี่ Strouhal และอัตราส่วนการหลุด
+
+#### 3. **การพังทลายของเขื่อน (Dam Break)**
+- **อัลกอริทึม**: PIMPLE
+- **ลักษณะ**: การเปลี่ยนรูปของอินเทอร์เฟซขนาดใหญ่
+- **ความท้าทาย**: การติดตามอินเทอร์เฟซและความเสถียร
+
+#### 4. **กังหันลม (Wind Turbine)**
+- **อัลกอริทึม**: PIMPLE พร้อมขอบเขตเคลื่อนที่ (moving boundaries)
+- **ลักษณะ**: การโต้ตอบระหว่างใบพัดและกระแสอากาศ
+- **ความท้าทาย**: การหมุนและการผลิตพลังงาน
+
+## บทสรุป
+
+อัลกอริทึมทางคณิตศาสตร์สำหรับการเชื่อมโยงความดัน-ความเร็วใน OpenFOAM เป็นเทคนิคเชิงตัวเลขที่ซับซ้อนซึ่งสร้างสมดุลระหว่าง **ความแม่นยำ**, **เสถียรภาพ** และ **ประสิทธิภาพการคำนวณ**
+
+การเลือกระหว่าง SIMPLE, PISO และ PIMPLE ขึ้นอยู่กับ:
+- ฟิสิกส์เฉพาะของปัญหา
+- ข้อกำหนดด้านช่วงเวลา
+- ข้อจำกัดด้านเสถียรภาพของการจำลอง
+
+การนำไปใช้ประโยชน์จากพีชคณิตเชิงเส้นเชิงตัวเลขขั้นสูง การเร่งความเร็วแบบ multigrid และการคำนวณแบบขนาน ช่วยให้ได้โซลูชันที่ปรับขนาดได้สำหรับการประยุกต์ใช้ CFD เชิงอุตสาหกรรมที่ซับซ้อน
+
+การทำความเข้าใจรากฐานทางคณิตศาสตร์ช่วยให้สามารถเลือกพารามิเตอร์อัลกอริทึมได้อย่างรอบรู้ และแก้ไขปัญหาการลู่เข้าได้อย่างเหมาะสม

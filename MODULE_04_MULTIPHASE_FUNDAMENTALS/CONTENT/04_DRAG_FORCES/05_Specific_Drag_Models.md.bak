@@ -1,0 +1,194 @@
+# Specific Drag Models
+
+## Schiller-Naumann Model
+
+**Schiller-Naumann drag model** เป็น drag correlation ที่ถูกใช้งานอย่างแพร่หลายที่สุดใน OpenFOAM โดยเฉพาะอย่างยิ่งสำหรับอนุภาคทรงกลมในทั้ง laminar และ turbulent regimes
+
+[Diagram: แสดงการเปลี่ยนผ่านของ drag coefficient ตาม Reynolds number]
+
+### หลักการทำงาน
+โมเดลนี้ให้การเปลี่ยนผ่านที่ราบรื่นระหว่างช่วง low และ high Reynolds number โดยการรวม **Stokes drag correction** เข้ากับค่า drag coefficient คงที่สำหรับ turbulent flows ที่มีความเข้มข้นสูง
+
+### สมการ Drag Coefficient
+Drag coefficient $C_D$ ขึ้นอยู่กับ particle Reynolds number $Re_p$:
+
+$$C_D = \begin{cases}
+\frac{24}{Re_p}(1 + 0.15 Re_p^{0.687}) & Re_p < 1000 \\
+0.44 & Re_p \geq 1000
+\end{cases}$$
+
+**ความหมายของตัวแปร:**
+- $C_D$ = drag coefficient (ไม่มีหน่วย)
+- $Re_p$ = particle Reynolds number (ไม่มีหน่วย)
+
+### การทำงานในแต่ละช่วง
+
+#### Low Reynolds Numbers ($Re_p < 1$)
+- โมเดลจะลดรูปเป็น **Stokes drag law**: $C_D = 24/Re_p$
+- เหมาะสำหรับ creeping flow
+
+#### Intermediate Reynolds Numbers 
+- เทอม **Schiller-Naumann correction**: $(1 + 0.15 Re_p^{0.687})$
+- คำนึงถึงความเบี่ยงเบนจาก Stokes flow อันเนื่องมาจากผลของแรงเฉื่อย
+
+#### High Reynolds Numbers ($Re_p \geq 1000$)
+- Drag coefficient เข้าใกล้ค่าคงที่ **0.44**
+- ค่าทั่วไปสำหรับ turbulent flow รอบทรงกลม
+- **Pressure drag** มีอิทธิพลหลัก
+
+### OpenFOAM Code Implementation
+```cpp
+// Schiller-Naumann drag model
+template<class PhasePair>
+class SchillerNaumann
+:
+    public dragModel
+{
+    virtual tmp<volScalarField> Cd() const
+    {
+        const volScalarField& Re = pair_.Re();
+
+        return volScalarField::New
+        (
+            "Cd",
+            max
+            (
+                24.0/Re*(1.0 + 0.15*pow(Re, 0.687)),
+                0.44
+            )
+        );
+    }
+};
+```
+
+**รายละเอียดการ Implement:**
+- `tmp<volScalarField>` = กลยุทธ์การจัดการหน่วยความจำสำหรับ temporary fields
+- `pair_.Re()` = เข้าถึง Reynolds number field จาก phase pair
+- `volScalarField::New` = สร้าง field ใหม่พร้อมการจัดการหน่วยความจำอัตโนมัติ
+- `max` function = ให้มั่นใจว่ามีการเปลี่ยนผ่านที่ราบรื่นระหว่างสอง regime
+- `pow(Re, 0.687)` = คำนวณ exponent ของ Reynolds number อย่างมีประสิทธิภาพ
+
+---
+
+## Ishii-Zuber Model
+
+**Ishii-Zuber model** ถูกพัฒนาขึ้นมาโดยเฉพาะสำหรับ multiphase flows ที่เกี่ยวข้องกับ **distorted bubbles** และ **droplets** ทำให้เหมาะอย่างยิ่งสำหรับระบบ gas-liquid
+
+[Diagram: แสดงการเสียรูปของฟองอากาศและผลต่อ drag force]
+
+### หลักการทำงาน
+โมเดลนี้คำนึงถึงการเปลี่ยนผ่านระหว่าง **spherical bubbles** และ **distorted/slug flow regimes**
+
+### สมการ Drag Coefficient
+$$C_D = \begin{cases}
+\frac{24}{Re_p}(1 + 0.1 Re_p^{0.75}) & Re_p < 1000 \\
+\frac{8}{3}\frac{Eo}{Eo + 4} & \text{Distorted regime}
+\end{cases}$$
+
+**ความหมายของตัวแปร:**
+- $C_D$ = drag coefficient (ไม่มีหน่วย)
+- $Re_p$ = particle Reynolds number (ไม่มีหน่วย)
+- $Eo$ = Eötvös number (ไม่มีหน่วย)
+
+### Eötvös Number (Eo)
+ใน distorted regime จะมีการใช้ **Eötvös number**:
+
+$$Eo = \frac{g(\rho_c - \rho_d)d^2}{\sigma}$$
+
+**ความหมายของตัวแปร:**
+- $g$ = gravitational acceleration (m/s²)
+- $\rho_c$ = density ของ continuous phase (kg/m³)
+- $\rho_d$ = density ของ dispersed phase (kg/m³)
+- $d$ = characteristic particle/bubble diameter (m)
+- $\sigma$ = surface tension (N/m)
+
+### การทำงานของโมเดล
+
+#### Low Reynolds Number Region
+- ใช้ **modified Stokes correlation** พร้อม exponent 0.75
+- แตกต่างจาก 0.687 ของ Schiller-Naumann
+- สะท้อนถึง flow physics ที่แตกต่างกันในระบบ multiphase
+
+#### Distorted Regime
+- **Eötvös number** แสดงถึงอัตราส่วนของ buoyancy forces ต่อ surface tension forces
+- บ่งชี้ว่าเมื่อใดที่การเสียรูปของฟองอากาศมีความสำคัญ
+- เทอม $\frac{8}{3}\frac{Eo}{Eo + 4}$ ให้การเปลี่ยนผ่านที่ราบรื่น:
+  - **Low $Eo$**: viscous-dominated drag
+  - **High $Eo$**: deformation-dominated drag
+
+---
+
+## Morsi-Alexander Model
+
+**Morsi-Alexander model** เป็นหนึ่งใน drag correlations ที่ครอบคลุมมากที่สุด โดยแบ่งช่วงของ Reynolds number ออกเป็นห้า distinct regions
+
+[Diagram: แสดง 5 ช่วงของ Reynolds number และ correlation ที่แตกต่างกัน]
+
+### หลักการทำงาน
+แนวทางแบบ **piecewise** ให้ความแม่นยำสูงในสภาวะการไหลที่หลากหลาย
+
+### สมการทั่วไป
+$$C_D = \sum_{i=1}^{5} a_i Re_p^{b_i}$$
+
+### 5 ช่วงของ Reynolds Number
+
+| ช่วง | ขอบเขต Reynolds number | ลักษณะการไหล | Coefficients |
+|-------|--------------------------|----------------|---------------|
+| 1 | $0 < Re_p \leq 0.1$ | Creeping flow | $(a_1, b_1)$ |
+| 2 | $0.1 < Re_p \leq 1000$ | Laminar transition | $(a_2, b_2)$ |
+| 3 | $1000 < Re_p \leq 5 \times 10^3$ | Early turbulent | $(a_3, b_3)$ |
+| 4 | $5 \times 10^3 < Re_p \leq 10^4$ | Turbulent developing | $(a_4, b_4)$ |
+| 5 | $10^4 < Re_p \leq 10^5$ | Fully turbulent | $(a_5, b_5)$ |
+
+### ข้อดีและข้อเสีย
+
+#### ข้อดี
+- **ความแม่นยำสูง** ในทุกช่วง Reynolds number
+- สามารถแสดงลักษณะของ drag ใน flow regimes ที่แตกต่างกันได้อย่างละเอียด
+- เหมาะสำหรับ **creeping flow** ไปจนถึง **highly turbulent flows**
+
+#### ข้อเสีย
+- **ความไม่ต่อเนื่อง** ที่ขอบเขตของแต่ละช่วงอาจก่อให้เกิดปัญหาทางตัวเลข
+- ต้องการ **smoothing** ที่เหมาะสมในการ implement
+- ซับซ้อนกว่าโมเดลอื่น
+
+---
+
+## Syamlal-O'Brien Model
+
+**Syamlal-O'Brien model** ถูกพัฒนาขึ้นมาโดยเฉพาะสำหรับ **fluidized bed applications** ซึ่งการมีปฏิสัมพันธ์ระหว่างอนุภาคและผลกระทบของ dense phase มีอิทธิพลอย่างมาก
+
+[Diagram: แสดง fluidized bed และการเคลื่อนที่ของอนุภาคใน dense phase]
+
+### หลักการทำงานที่แตกต่าง
+โมเดลนี้มีแนวทางที่แตกต่าง โดยการเชื่อมโยง drag coefficient กับอัตราส่วนของ relative velocity ต่อ terminal settling velocity
+
+### สมการหลัก
+$$C_D = \frac{v_r^2}{v_s^2}$$
+
+**ความหมายของตัวแปร:**
+- $C_D$ = drag coefficient (ไม่มีหน่วย)
+- $v_r$ = relative velocity ระหว่าง phases (m/s)
+- $v_s$ = terminal settling velocity ของอนุภาคเดี่ยว (m/s)
+
+### Terminal Settling Velocity
+$$v_s = 0.5 \left[ A - 0.06 Re_p + \sqrt{(0.06 Re_p)^2 + 0.12 Re_p (2B - A) + A^2} \right]$$
+
+**ความหมายของตัวแปรเพิ่มเติม:**
+- $A$ และ $B$ = ฟังก์ชันของ particle Reynolds number และ concentration
+- $Re_p$ = particle Reynolds number (ไม่มีหน่วย)
+
+### ประโยชน์เด่น
+
+#### การจับผลกระทบของ Particle Concentration
+- สูตรโดยธรรมชาติจับผลกระทบของ **particle concentration** ต่อ drag
+- เหมาะอย่างยิ่งสำหรับ **dense particulate flows**
+- **Traditional single-particle drag correlations** ไม่สามารถใช้งานได้
+
+#### การเปลี่ยนผ่านที่ราบรื่น
+- เปลี่ยนผ่านระหว่าง **dilute** และ **dense phase regimes** ได้อย่างเป็นธรรมชาติ
+- **ไม่จำเป็นต้องใช้ explicit regime switching logic**
+
+### การนำไปใช้งาน
+- ใช้งานอย่างแพร่หลายในการจำลอง **fluidized bed**
+- ทำให้เหมาะสำหรับ **industrial applications** ที่เกี่ยวข้องกับ particulate flows

@@ -1,0 +1,220 @@
+# ประเด็นสำคัญที่ควรจดจำ
+
+## 1. กฎการอนุรักษ์: รากฐานของ CFD
+
+**ทุกสิ่งใน computational fluid dynamics (CFD)** สร้างขึ้นบนหลักการพื้นฐานของการอนุรักษ์มวล (mass), โมเมนตัม (momentum) และพลังงาน (energy)
+
+กฎการอนุรักษ์เหล่านี้แสดงถึงข้อจำกัดทางกายภาพที่ควบคุมพฤติกรรมของไหล และเป็นแกนหลักทางคณิตศาสตร์ของการจำลอง CFD ทั้งหมด:
+
+- **การอนุรักษ์มวล**: ทำให้มั่นใจว่าของไหลไม่สามารถเกิดขึ้นหรือหายไปเองภายในโดเมนได้
+- **การอนุรักษ์โมเมนตัม**: เป็นไปตามกฎข้อที่สองของนิวตันที่นำมาใช้กับตัวกลางต่อเนื่อง
+- **การอนุรักษ์พลังงาน**: รักษากฎข้อที่หนึ่งของอุณหพลศาสตร์ตลอดทั้งโดเมนการคำนวณ
+
+ใน OpenFOAM หลักการเหล่านี้ถูกนำมาใช้ผ่านวิธี finite volume method ซึ่งรูปแบบอินทิกรัลของสมการการอนุรักษ์จะถูกนำไปใช้กับแต่ละ control volume
+
+### สมการการขนส่งทั่วไป
+
+สำหรับคุณสมบัติทั่วไป $\phi$ สมการการอนุรักษ์สามารถแสดงได้ดังนี้:
+$$\frac{\partial (\rho \phi)}{\partial t} + \nabla \cdot (\rho \phi \mathbf{u}) = \nabla \cdot (\Gamma \nabla \phi) + S_\phi$$
+
+โดยที่:
+- $\rho$ = density
+- $\mathbf{u}$ = velocity vector
+- $\Gamma$ = diffusion coefficient
+- $S_\phi$ = source terms
+
+สมการขนส่งแบบทั่วไปนี้เป็นแม่แบบสำหรับสมการการอนุรักษ์ทั้งหมดใน CFD โดยที่ $\phi$ แทนปริมาณทางกายภาพที่แตกต่างกันขึ้นอยู่กับสมการเฉพาะที่กำลังถูกแก้
+
+### การใช้ Gauss's Divergence Theorem
+
+
+[Diagram: Control volume ที่แสดง fluxes ผ่าน cell faces และ normal vectors. Perspective: Isometric. Style: Engineering illustration, 8k, white background.]
+> **Prompt:** Technical 3D isometric schematic of of a cfd control volume cell showing finite volume method discretization. the image should display a hexahedral control volume with: 1) six faces clearly labeled as inlet/outlet boundaries with arrows showing flux directions, 2) normal vectors (n) pointing outward from each face center, 3) velocity vectors (u) showing streamlines and vector fields direction through the cell, 4) cell center point marked, 5) face centers marked, 6) gradient field visualization showing diffusion, 7) coordinate axes (x,y,z) for reference. the should be clean and with a , similar to engineering textbooks. use color coding: blue for velocity vectors, red for normal vectors, green for flux arrows, and gray for the control volume edges. include mathematical notation for flux terms (∇·φ) and show how gauss's divergence theorem applies to surface integrals. 3/4 perspective view. , on a neutral background. , engineering . clear labeling in white font. use , arrowheads for vectors. arrowheads for all vectors (n = red, u = blue). smooth color gradients representing field intensity. clear labeling in font using single letters (v, s, n, u) or short latex equations. , semi-transparent materials for volumes. , , clean , high contrast. velocity field shown as blue vectors (u). surface normal shown as a single red line (n). in font using single letters or latex equations. with semi-transparent materials. : engineering , , clean. Primary: Velocity field (u) as blue streamlines. Secondary: Pressure scalar field as a surface color gradient. Annotations: Sharp professional arrowheads (n = Red, u = Blue). Clear labels in sans-serif font using single letters or LaTeX. Ray-traced studio lighting on semi-transparent materials. Style: Engineering illustration, high-contrast, white background, 8k resolution.
+
+
+การนำ finite volume มาใช้ใน OpenFOAM จะทำการ discretize สมการอินทิกรัลเหล่านี้โดยการประยุกต์ใช้ Gauss's divergence theorem:
+$$\int_V \nabla \cdot \mathbf{F} \, \mathrm{d}V = \oint_S \mathbf{F} \cdot \mathbf{n} \, \mathrm{d}S$$
+
+โดยที่:
+- $\mathbf{F}$ = flux vector
+- $\mathbf{n}$ = outward normal vector ที่ cell faces
+
+การ discretization นี้ทำให้มั่นใจถึงการอนุรักษ์ที่แม่นยำในระดับ discrete ทำให้ finite volume method เหมาะอย่างยิ่งสำหรับการประยุกต์ใช้ CFD ที่คุณสมบัติการอนุรักษ์มีความสำคัญสูงสุด
+
+## 2. สมการความต่อเนื่อง: หลักการอนุรักษ์มวล
+
+**สมการความต่อเนื่อง (continuity equation)** แสดงออกทางคณิตศาสตร์ถึงหลักการพื้นฐานที่ว่ามวลไม่สามารถถูกสร้างหรือทำลายได้ภายในระบบของไหล
+
+สมการนี้ระบุว่าอัตราการสะสมมวลภายใน control volume ใดๆ จะต้องเท่ากับ net mass flux ที่ไหลเข้าสู่ปริมาตรนั้น บวกกับ mass sources หรือ sinks ใดๆ
+
+### กรณี Incompressible Flow
+
+สำหรับ incompressible flows ซึ่ง density คงที่ สมการความต่อเนื่องจะลดรูปอย่างมาก:
+$$\nabla \cdot \mathbf{u} = 0$$
+
+ข้อจำกัดนี้ทำให้มั่นใจว่าการไหลของไหลยังคงเป็น **solenoidal (divergence-free)** ซึ่งหมายความว่าปริมาตรของ fluid elements ยังคงที่เมื่อเคลื่อนที่ผ่าน flow field
+
+### กรณี Compressible Flow
+
+ในสถานการณ์ compressible flow สมการความต่อเนื่องจะอยู่ในรูปแบบทั่วไปมากขึ้น:
+$$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$$
+
+สมการนี้คำนึงถึงความแปรผันของ density และมีความสำคัญอย่างยิ่งต่อการจับปรากฏการณ์ต่างๆ เช่น:
+- Shock waves
+- Acoustic propagation
+- High-speed gas dynamics
+
+### Pressure-Velocity Coupling ใน OpenFOAM
+
+ใน OpenFOAM สมการความต่อเนื่องมักจะถูกบังคับใช้ผ่าน pressure-velocity coupling algorithms เฉพาะทาง:
+
+| อัลกอริทึม | ประเภทการจำลอง | ลักษณะการทำงาน |
+|-------------|------------------|------------------|
+| **SIMPLE** | Steady-state | Semi-implicit พร้อมการวนซ้ำ |
+| **PISO** | Transient | Pressure-Implicit with Splitting of Operators |
+| **PIMPLE** | Transient ขนาดใหญ่ | ผสมระหว่าง SIMPLE และ PISO |
+
+#### อัลกอริทึม SIMPLE Algorithm
+
+อัลกอริทึม SIMPLE แก้ระบบที่เชื่อมโยงกันผ่านกระบวนการวนซ้ำ:
+
+1. **Momentum Prediction**: แก้สมการ momentum โดยใช้ current pressure field
+2. **Pressure Correction**: สร้างสมการ pressure correction จาก continuity
+3. **Velocity Correction**: อัปเดต velocity field ตาม pressure correction
+4. **Boundary Condition Update**: ใช้ค่าที่แก้ไขแล้วที่ boundaries
+5. **Convergence Check**: ตรวจสอบว่า residuals ต่ำกว่าค่า tolerance ที่กำหนด
+
+สำหรับการจำลอง transient อัลกอริทึม PISO จะเพิ่มขั้นตอน corrector เพิ่มเติมเพื่อรักษาความแม่นยำเชิงเวลาในขณะที่มั่นใจถึงการอนุรักษ์มวลในแต่ละ time step
+
+## 3. สมการ Navier-Stokes: กฎข้อที่สองของนิวตันสำหรับของไหล
+
+**สมการ Navier-Stokes** แสดงถึงการกำหนดทางคณิตศาสตร์ของกฎข้อที่สองของนิวตันว่าด้วยการเคลื่อนที่ที่นำมาใช้กับ fluid elements
+
+โดยหลักแล้วระบุว่าแรงที่กระทำต่ออนุภาคของไหลเท่ากับมวลของอนุภาคนั้นคูณด้วยความเร่ง สมการเหล่านี้จะรักษาสมดุลระหว่าง:
+- **Inertial forces**
+- **Pressure forces**  
+- **Viscous forces**
+- **External body forces**
+
+### สมการ Momentum ใน Conservative Form
+
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
+
+โดยที่:
+- $p$ = pressure
+- $\mu$ = dynamic viscosity
+- $\mathbf{f}$ = body forces (เช่น gravity หรือ electromagnetic forces)
+
+#### การวิเคราะห์เทอมสมการ:
+
+- **ด้านซ้ายมือ**: substantial derivative ของ velocity
+  - Temporal acceleration: $\frac{\partial \mathbf{u}}{\partial t}$
+  - Convective acceleration: $(\mathbf{u} \cdot \nabla) \mathbf{u}$
+
+- **ด้านขวามือ**: surface forces
+  - Pressure gradient forces: $-\nabla p$
+  - Viscous forces: $\mu \nabla^2 \mathbf{u}$
+
+
+[Diagram: Vector fields แสดง pressure gradient และ viscous forces บน fluid element. Perspective: Isometric. Style: Engineering illustration, 8k, white background.]
+> **Prompt:** Technical 3D isometric schematic of of physics visualization showing a fluid element (control volume) with force vectors. display a cubic fluid element in the center with multiple force fields acting on it. show pressure gradient forces as blue arrows pointing inward from all faces, viscous forces as red shear arrows along the faces showing tangential stress, and include velocity vectors as green arrows indicating streamlines and vector fields direction. add a coordinate system and clear labeling for each force type. the visualization should be scientifically accurate with proper vector representation of pressure gradients and viscous shear stresses in fluid dynamics. render in a clean with semi-transparent fluid element to show internal forces. 3/4 perspective view. , on a neutral background. , engineering . clear labeling in white font. use , arrowheads for vectors. arrowheads for all vectors (n = red, u = blue). smooth color gradients representing field intensity. clear labeling in font using single letters (v, s, n, u) or short latex equations. , semi-transparent materials for volumes. , , clean , high contrast. velocity field shown as blue vectors (u). pressure scalar field as a surface gradient from blue to red. in font using single letters or latex equations. with semi-transparent materials. : engineering , , clean. Primary: Velocity field (u) as blue streamlines. Secondary: Pressure scalar field as a surface color gradient. Annotations: Sharp professional arrowheads (n = Red, u = Blue). Clear labels in sans-serif font using single letters or LaTeX. Ray-traced studio lighting on semi-transparent materials. Style: Engineering illustration, high-contrast, white background, 8k resolution.
+
+
+### การ Implement ใน OpenFOAM
+
+ใน OpenFOAM เทอมเหล่านี้ถูกนำมาใช้โดยใช้ finite volume discretization พร้อมฟังก์ชันเฉพาะทาง:
+
+```cpp
+// OpenFOAM Code Implementation
+fvVectorMatrix UEqn
+(
+    fvm::ddt(rho, U)         // Temporal derivative
+  + fvm::div(phi, U)         // Convective term
+  - fvm::laplacian(mu, U)    // Diffusion term
+ ==
+    -fvc::grad(p)            // Pressure gradient
+);
+```
+
+### รูปแบบไร้มิติและเลขเรย์โนลด์
+
+สมการ Navier-Stokes สามารถทำให้เป็นไร้มิติ (non-dimensionalized) ได้:
+$$\frac{\partial \mathbf{u}^*}{\partial t^*} + (\mathbf{u}^* \cdot \nabla^*) \mathbf{u}^* = -\nabla^* p^* + \frac{1}{Re} \nabla^{*2} \mathbf{u}^* + \mathbf{f}^*$$
+
+โดยที่ **Reynolds number** $Re = \frac{\rho UL}{\mu}$ บ่งบอกถึงอัตราส่วนของ inertial forces ต่อ viscous forces
+
+- **ที่ Reynolds numbers สูง**: ผลกระทบของความหนืดจะกลายเป็นสิ่งที่ไม่สำคัญ ยกเว้นใน thin boundary layers ใกล้ผนัง
+- **ผลลัพธ์**: นำไปสู่การก่อตัวของ turbulent flow structures ที่ต้องใช้วิธีการ modeling เฉพาะทาง
+
+## 4. ไวยากรณ์ OpenFOAM: การแปลสัญลักษร์ทางคณิตศาสตร์
+
+**ไวยากรณ์ของ OpenFOAM** ได้รับการออกแบบมาโดยเจตนาให้สะท้อนสัญลักษร์ vector ทางคณิตศาสตร์ที่ใช้ในสมการพลศาสตร์ของไหลอย่างใกล้ชิด
+
+ทำให้โค้ดใช้งานง่ายขึ้นสำหรับวิศวกรและนักวิทยาศาสตร์ที่คุ้นเคยกับคณิตศาสตร์พื้นฐาน
+
+### การแม็ป Mathematical Operators กับ OpenFOAM Functions
+
+ฟังก์ชัน finite volume method (FVM) ใน OpenFOAM สอดคล้องโดยตรงกับ mathematical operators:
+
+| OpenFOAM Function | Mathematical Operator | ความหมาย |
+|------------------|---------------------|-----------|
+| `fvm::div(phi, U)` | $\nabla \cdot (\phi \mathbf{U})$ | Divergence operator |
+| `fvm::laplacian(DT, T)` | $\nabla \cdot (DT \nabla T)$ | Laplacian operator |
+| `fvm::ddt(rho, U)` | $\frac{\partial (\rho \mathbf{U})}{\partial t}$ | Temporal derivative |
+| `fvm::grad(p)` | $\nabla p$ | Pressure gradient |
+
+การสอดคล้องกันโดยตรงระหว่างสัญลักษร์ทางคณิตศาสตร์และการนำโค้ดไปใช้ช่วยลดภาระทางปัญญาได้อย่างมากเมื่อแปลสมการไปสู่แอปพลิเคชัน OpenFOAM
+
+### ระบบ Field Type ใน OpenFOAM
+
+OpenFOAM ใช้ระบบ template ที่ซับซ้อนสำหรับ field types ที่รักษาความสอดคล้องทางคณิตศาสตร์ตลอดทั้ง codebase:
+
+#### Geometric Fields
+- `volScalarField`
+- `volVectorField` 
+- `volTensorField`
+
+#### Surface Fields  
+- `surfaceScalarField`
+- `surfaceVectorField`
+
+#### Specialized Features
+- **Dimensional Sets**: การวิเคราะห์มิติอัตโนมัติและการตรวจสอบหน่วย
+- **Interpolation Schemes**: Linear, upwind, central differencing และ schemes ลำดับสูงกว่า
+
+สถาปัตยกรรม template metaprogramming ทำให้มั่นใจถึง type safety ในขณะที่รักษาประสิทธิภาพการคำนวณผ่าน compile-time optimization ของ mathematical operations
+
+## 5. Boundary Conditions: สิ่งจำเป็นสำหรับ Physical Solutions
+
+**Boundary conditions** มีความสำคัญอย่างยิ่งต่อการได้มาซึ่ง solution ที่ไม่ซ้ำกันและถูกต้องทางกายภาพสำหรับปัญหา CFD
+
+เนื่องจาก governing equations เองยอมรับ solutions ที่ไม่มีที่สิ้นสุดหากไม่มีข้อจำกัดที่เหมาะสม ใน finite volume method, boundary conditions จะต้องถูกระบุสำหรับตัวแปรทั้งหมดที่ domain boundaries ทั้งหมด
+
+### Domain Boundaries ทั่วไป
+- **Walls**
+- **Inlets** 
+- **Outlets**
+- **Symmetry planes**
+- **Far-field boundaries**
+
+### ประเภท Boundary Conditions ใน OpenFOAM
+
+| ประเภท | ตัวอย่างใน OpenFOAM | การใช้งาน |
+|---------|-------------------|-----------|
+| **Dirichlet conditions** | `fixedValue` | ระบุค่าที่แน่นอนที่ boundaries |
+| **Neumann conditions** | `fixedGradient` | ระบุค่า gradient (zero-gradient สำหรับ fully developed flow) |
+| **Mixed conditions** | `mixed` | รวมการระบุค่าและ gradient |
+| **Wall functions** | ต่างๆ | การจัดการเฉพาะทางสำหรับการจำลอง near-wall turbulence |
+| **Open boundary conditions** | `inletOutlet`, `outletInlet` | อนุญาตให้ flow reversal และระบุเงื่อนไขตาม local flow direction |
+
+### Advanced Boundary Condition Capabilities
+
+OpenFOAM มีความสามารถด้าน boundary condition ที่ซับซ้อนซึ่งขยายไปไกลกว่าการระบุค่าและ gradient พื้นฐาน:
+
+- **Time-varying conditions**: `uniformFixedValue` พร้อมฟังก์ชันที่ขึ้นกับเวลา
+- **Coupled boundaries**: `thermalBaffle` สำหรับ conjugate heat transfer
+- **Cyclic conditions**: `cyclicAMI` สำหรับ rotating machinery interfaces
+- **Atmospheric boundaries**: `atmBoundaryLayerInlet` สำหรับ atmospheric boundary layer modeling
+- **Wave generation**: `waveAlpha` และ `waveSurfaceHeight` สำหรับ ocean engineering applications
+
+แต่ละ boundary condition type จะนำเสนอการกำหนดทางคณิตศาสตร์และการจัดการเชิงตัวเลขที่เหมาะสมสำหรับปรากฏการณ์ทางกายภาพที่กำลังถูกจำลอง ทำให้มั่นใจว่า computational solution ยังคงสอดคล้องทางกายภาพตลอดทั้ง simulation domain

@@ -1,0 +1,457 @@
+## 📝 แนวทางการเขียนเนื้อหา
+
+### 🌡️ การอนุพันธ์สมการพลังงาน
+
+**หลักการพื้นฐาน**: สมการอนุรักษ์พลังงานใน OpenFOAM ตามกฎข้อที่หนึ่งของอุณหพลศาสตร์ สำหรับระบบการไหลแบบอัดตัวได้:
+
+$$\frac{\partial (\rho e_t)}{\partial t} + \nabla \cdot (\rho e_t \mathbf{u}) = \nabla \cdot (k \nabla T) + \frac{\partial p}{\partial t} + \mathbf{u} \cdot \nabla p + Q_{\text{source}}$$
+
+**ตัวแปรในสมการ**:
+- **$e_t$** = พลังงานจำเพาะรวม (total specific energy) = $e + \frac{|\mathbf{u}|^2}{2}$
+- **$k$** = สภาพนำความร้อน (thermal conductivity)
+- **$Q_{\text{source}}$** = แหล่งกำเนิดความร้อนเชิงปริมาตร (volumetric heat sources)
+
+[Diagram: การไหลของพลังงานในระบบ CFD แสดงการนำเข้า การสูญเสีย และการแปลงสถานะ]
+
+**สำหรับการไหลแบบอัดตัวไม่ได้ (Incompressible Flows)**:
+กรณีที่มีคุณสมบัติคงที่ สมการจะง่ายลงเป็นรูปแบบอุณหภูมิ:
+
+$$\rho c_p \frac{\partial T}{\partial t} + \rho c_p \mathbf{u} \cdot \nabla T = k \nabla^2 T + S_T$$
+
+**การแบ่งปริภูมิแบบ Finite Volume ใน OpenFOAM**:
+การกระจายสมการไปสู่รูปแบบดิสครีต:
+
+$$\sum_{f} \rho c_p \mathbf{u}_f \cdot \mathbf{n}_f T_f A_f = \sum_{f} \frac{k_f}{\delta_f} (T_N - T_P) A_f + S_T V_P$$
+
+**ตัวแปรดิสครีต**:
+- **$f$** = ผิวหน้าของเซลล์ (face)
+- **$A_f$** = พื้นที่ผิวหน้า
+- **$\mathbf{n}_f$** = เวกเตอร์หน่วยตั้งฉากผิวหน้า
+- **$T_P, T_N$** = อุณหภูมิที่เซลล์กลางและเซลล์ข้างเคียง
+- **$V_P$** = ปริมาตรเซลล์
+
+---
+
+### ⚙️ การตั้งค่าคุณสมบัติทางอุณหพลศาสตร์ใน OpenFOAM
+
+#### โครงสร้าง Dictionary ของ `thermophysicalProperties`
+
+**โครงสร้างพื้นฐาน**:
+```cpp
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      thermophysicalProperties;
+}
+```
+
+#### แบบจำลองแก๊สสมบูรณ์ (Perfect Gas Model)
+
+```cpp
+thermoType
+{
+    type            hePsiThermo;
+    mixture         pureMixture;
+    transport       sutherland;
+    thermo          hConst;
+    equationOfState perfectGas;
+    specie          specie;
+    energy          sensibleInternalEnergy;
+}
+
+specie
+{
+    molWeight       28.96;  // kg/kmol
+}
+
+thermo
+{
+    Cp              1005;   // J/(kg·K)
+    Hf              2.544e6; // J/kg
+}
+
+transport
+{
+    As              1.458e-06;  // Sutherland coefficient
+    Ts              110.4;      // Sutherland temperature [K]
+}
+```
+
+**ลักษณะเฉพาะ**: เหมาะสำหรับกระแสอากาศความเร็วสูง แก๊สในอุตสาหกรรม
+
+#### แบบจำลองของเหลวอัดตัวไม่ได้ (Incompressible Liquid Model)
+
+```cpp
+thermoType
+{
+    type            heRhoThermo;
+    mixture         pureMixture;
+    transport       const;
+    thermo          hConst;
+    equationOfState rhoConst;
+    specie          specie;
+    energy          sensibleInternalEnergy;
+}
+
+mixture
+{
+    specie
+    {
+        molWeight       18.01528;  // kg/kmol (น้ำ)
+    }
+    equationOfState
+    {
+        R           8314.462618;  // J/(kg·K)
+        rho         998.2;        // kg/m³ ที่อุณหภูมิอ้างอิง
+    }
+    thermodynamics
+    {
+        Cp          4182;         // J/(kg·K)
+        Hf          0;            // J/kg
+    }
+    transport
+    {
+        mu          1.002e-3;     // Pa·s
+        Pr          7.0;          // Prandtl number
+        kappa       0.606;        // W/(m·K)
+    }
+}
+```
+
+**ลักษณะเฉพาะ**: เหมาะสำหรับของเหลวความดันต่ำ การไหลน้ำ การไหลของเหลว
+
+#### การขนส่งชนิดสาร (Species Transport) สำหรับการไหลแบบมีปฏิกิริยา
+
+```cpp
+thermoType
+{
+    type            hePsiThermo;
+    mixture         multiComponentMixture;
+    transport       sutherland;
+    thermo          janaf;
+    equationOfState perfectGas;
+    specie          specie;
+    energy          sensibleEnthalpy;
+}
+
+species
+(
+    O2
+    N2
+    H2O
+    CO2
+);
+```
+
+[Diagram: การจัดการชนิดสารหลายส่วนประกอบในการไหลแบบมีปฏิกิริยา]
+
+**การเปรียบเทียบแบบจำลองทางอุณหพลศาสตร์**:
+
+| แบบจำลอง | ชนิดของไหล | ความเร็ว | ความดัน | การใช้งานทั่วไป |
+|----------|------------|-----------|-----------|----------------|
+| **Perfect Gas** | ก๊าซ | ความเร็วสูง | ความดันสูง | กระแสอากาศ อุตสาหกรรม |
+| **Incompressible Liquid** | ของเหลว | ความเร็วต่ำ-ปานกลาง | ความดันต่ำ | การไหลน้ำ ของเหลวทั่วไป |
+| **Multi-Component** | ก๊าซผสม | ความเร็วสูง | ความดันแปรผัน | การเผาไหม้ ปฏิกิริยาเคมี |
+
+---
+
+### 🧪 การตั้งค่ากรณีศึกษาเพื่อการตรวจสอบ (Validation Case Setups)
+
+#### กรณีศึกษาที่ 1: Backward Facing Step พร้อมการถ่ายเทความร้อน
+
+**การตั้งค่าฟิสิกส์**:
+- **ชนิดการไหล**: การไหลแบบอัดตัวไม่ได้ + การถ่ายเทความร้อน
+- **เลขเรย์โนลด์**: Re = 200-400 (Laminar)
+- **เลขพรันด์ทล์**: Pr = 0.7
+- **อัตราส่วนส่วนสูงต่อขั้น**: H/S = 1:2
+
+**เงื่อนไขขอบเขต (Boundary Conditions)**:
+
+`0/T` (สนามอุณหภูมิ):
+```cpp
+dimensions      [0 0 0 1 0 0 0];
+internalField   uniform 300;
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 350;
+    }
+    outlet
+    {
+        type            zeroGradient;
+    }
+    walls
+    {
+        type            fixedValue;
+        value           uniform 320;
+    }
+    frontAndBack
+    {
+        type            empty;
+    }
+}
+```
+
+[Diagram: การตั้งค่า Backward Facing Step แสดงเขตจำกัดความร้อนที่ผนังและขอบเขตการไหล]
+
+**คุณสมบัติทางอุณหพลศาสตร์**:
+```cpp
+thermoType
+{
+    type            heRhoThermo;
+    mixture         pureMixture;
+    transport       const;
+    thermo          hConst;
+    equationOfState rhoConst;
+    specie          specie;
+    energy          sensibleInternalEnergy;
+}
+
+mixture
+{
+    specie { molWeight 28.96; }
+    equationOfState { rho 1.2; }
+    thermodynamics { Cp 1005; Hf 0; }
+    transport { mu 1.8e-5; Pr 0.7; }
+}
+```
+
+**Dictionary ควบคุม (`controlDict`)**:
+```cpp
+application     buoyantSimpleFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         2000;
+deltaT          1;
+adjustTimeStep  no;
+maxCo           1;
+functions
+{
+    heatFlux
+    {
+        type            surfaceHeatFlux;
+        functionObjectLibs ("libfieldFunctionObjects.so");
+        region          region0;
+        fields          (T);
+        patches         ("walls");
+    }
+}
+```
+
+**ขั้นตอนการวิเคราะห์**:
+1. **Preprocessing**: สร้าง mesh ด้วย blockMesh และ refineMesh
+2. **求解设置**: ใช้ buoyantSimpleFoam สำหรับ steady-state
+3. **ส่วนต่อขยายกระแส**: คาดการณ์ตำแหน่ง reattachment point
+4. **การตรวจสอบ**: เปรียบเทียบอุณหภูมิและความเร็วกับข้อมูลอ้างอิง
+
+#### กรณีศึกษาที่ 2: การพาความร้อนตามธรรมชาติในช่องสี่เหลี่ยม
+
+**การตั้งค่า Rayleigh Number**:
+
+เพื่อให้ได้ค่า Rayleigh number ที่ต้องการ ให้กำหนดค่าคุณสมบัติดังนี้:
+
+```cpp
+// สำหรับ Ra = 10^4
+beta        3.0e-3;    // สัมประสิทธิ์การขยายตัวเนื่องจากความร้อน [1/K]
+T_ref       300;       // อุณหภูมิอ้างอิง [K]
+g           9.81;      // ความเร่งเนื่องจากแรงโน้มถ่วง [m/s²]
+
+// ผลต่างอุณหภูมิสำหรับ Ra ที่ต้องการ
+T_hot       310;       // อุณหภูมิผนังด้านร้อน [K]
+T_cold      290;       // อุณหภูมิผนังด้านเย็น [K]
+```
+
+**ความสัมพันธ์ Rayleigh Number**:
+$$Ra = \frac{g \beta (T_h - T_c) L^3}{\nu \alpha}$$
+
+**ตัวแปร**:
+- **$L$** = ความยาวลักษณะเฉพาะ (cavity height)
+- **$\nu$** = ความหนืดลักษณะเฉพาะ (kinematic viscosity)
+- **$\alpha$** = ความชื้นความร้อน (thermal diffusivity)
+
+**เงื่อนไขขอบเขตสำหรับการพาความร้อนตามธรรมชาติ**:
+
+`0/T`:
+```cpp
+dimensions      [0 0 0 1 0 0 0];
+internalField   uniform 300;
+
+boundaryField
+{
+    hotWall
+    {
+        type            fixedValue;
+        value           uniform 310;
+    }
+    coldWall
+    {
+        type            fixedValue;
+        value           uniform 290;
+    }
+    adiabaticWalls
+    {
+        type            zeroGradient;
+    }
+}
+```
+
+**การเปรียบเทียบผลลัพธ์กับข้อมูลอ้างอิง**:
+| Ra | จำนวนเซลล์แนะนำ | การลู่เข้า | ความเร็วสูงสุด [m/s] | Nu อ้างอิง |
+|----|------------------|-------------|---------------------|-------------|
+| 10^3 | 40×40 | 1e-6 | 3.49e-3 | 1.118 |
+| 10^4 | 50×50 | 1e-6 | 1.12e-2 | 2.243 |
+| 10^5 | 80×80 | 1e-7 | 3.71e-2 | 4.519 |
+| 10^6 | 100×100 | 1e-8 | 1.21e-1 | 8.800 |
+
+---
+
+### 📊 การพล็อตเส้นชั้นอุณหภูมิ (Temperature Contour Plots)
+
+#### การตั้งค่าการแสดงผลด้วย ParaFoam
+
+**การตั้งค่า Color Map**:
+- **ช่วงอุณหภูมิ**: 280-320 K (สำหรับการพาความร้อนตามธรรมชาติ)
+- **ชุดสี**: "Blue to Red Rainbow" (เข้าใจง่ายสำหรับอุณหภูมิ)
+- **จำนวน Contour**: 20-30 ระดับ (เพื่อการไล่ระดับสีที่ราบรื่น)
+- **ความละเอียด**: ปรับปรุง Mesh ใกล้ขอบเขตความร้อน
+
+**ขั้นตอนการสร้าง Temperature Contours**:
+```
+// ParaView Pipeline
+1. Load OpenFOAM case
+2. Apply "Contour" filter
+3. Set "Contour By: Temperature"
+4. Number of Contours: 25
+5. Adjust Color Map: Blue (cold) → Red (hot)
+```
+
+**ประเภท Plot ที่สำคัญ**:
+
+**1. Temperature Contours**:
+```
+Filters > Contour > Contour By: Temperature
+Number of Contours: 25
+```
+
+**2. Heat Flux Vectors**:
+```
+Filters > Calculator > Formula: -k*grad(T)
+Result Array Name: heatFlux
+```
+
+**3. Wall Temperature Distribution**:
+```
+Filters > Plot Data > Selection: Wall boundaries
+X-axis: Arc length along wall
+Y-axis: Temperature
+```
+
+[Diagram: การแสดงผล contour อุณหภูมิแสดงการไหลแบบพาความร้อนตามธรรมชาติ]
+
+**ตัวชี้วัดเชิงปริมาณ**:
+- **$T_{\max}$** = อุณหภูมิสูงสุด
+- **$T_{\min}$** = อุณหภูมิต่ำสุด  
+- **$\nabla T$** = ความชันอุณหภูมิ = $\frac{\partial T}{\partial n}$
+- **$\delta_T$** = ความหนาของชั้นขอบเขตความร้อน
+
+---
+
+### 🧮 การคำนวณสัมประสิทธิ์การถ่ายเทความร้อน
+
+#### สัมประสิทธิ์การถ่ายเทความร้อนเฉพาะที่ (Local Heat Transfer Coefficient)
+
+**สูตรคำนวณ**:
+$$h_{local} = -\frac{k \frac{\partial T}{\partial n}}{T_{wall} - T_{ref}}$$
+
+**ตัวแปร**:
+- **$k$** = สภาพนำความร้อน
+- **$\frac{\partial T}{\partial n}$** = ความชันอุณหภูมิในแนวตั้งฉากที่ผนัง
+- **$T_{wall}$** = อุณหภูมิผนังเฉพาะที่
+- **$T_{ref}$** = อุณหภูมิอ้างอิง (bulk fluid)
+
+**การนำไปใช้ใน OpenFOAM**:
+
+```cpp
+// ใน object ฟังก์ชันสำหรับ post-processing
+volScalarField hLocal
+(
+    IOobject
+    (
+        "hLocal",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("hLocal", dimensionSet(1 -1 -1 0 0 0 0), 0)
+);
+
+const volScalarField& T = mesh.lookupObject<volScalarField>("T");
+const volScalarField& k = mesh.lookupObject<volScalarField>("thermo:k");
+
+forAll(hLocal.boundaryField(), patchi)
+{
+    const fvPatchScalarField& Tw = T.boundaryField()[patchi];
+    const scalarField kPatch = k.boundaryField()[patchi];
+    const scalarField dTdn = Tw.snGrad();
+    
+    hLocal.boundaryFieldRef()[patchi] = -kPatch * dTdn / (Tw - T_ref);
+}
+```
+
+#### สัมประสิทธิ์การถ่ายเทความร้อนเฉลี่ย (Average Heat Transfer Coefficient)
+
+**สูตรคำนวณ**:
+$$h_{avg} = \frac{\int_A h_{local} \, \mathrm{d}A}{\int_A \mathrm{d}A} = \frac{\sum_{i=1}^{N} h_{local,i} A_i}{\sum_{i=1}^{N} A_i}$$
+
+**OpenFOAM Function Object**:
+```cpp
+hAvg
+{
+    type            surfaceFieldValue;
+    functionObjectLibs ("libfieldFunctionObjects.so");
+    operation       weightedAverage;
+    weightField     phi;  // หรือ area
+    fields          (hLocal);
+    region          region0;
+    surfaceFormat   none;
+    writeFields     true;
+}
+```
+
+#### การคำนวณ Nusselt Number
+
+**สำหรับการไหลภายนอก** (ความยาวลักษณะเฉพาะ $L$):
+$$Nu = \frac{h L}{k}$$
+
+**สำหรับการไหลภายในท่อ** (เส้นผ่านศูนย์กลางไฮดรอลิก $D_h$):
+$$Nu = \frac{h D_h}{k}$$
+
+**การตรวจสอบเทียบกับสมการความสัมพันธ์ (Validation)**:
+
+| กรณี | สมการเชิงประจักษ์ | ช่วงความถูกต้อง |
+|--------|------------------|----------------|
+| **Laminar (Blasius)** | $Nu_x = 0.332 Re_x^{1/2} Pr^{1/3}$<br>$\overline{Nu} = 0.664 Re^{1/2} Pr^{1/3}$ | $Re < 5×10^5$ |
+| **Turbulent** | $Nu_x = 0.0296 Re_x^{4/5} Pr^{1/3}$<br>$\overline{Nu} = 0.037 Re^{4/5} Pr^{1/3}$ | $5×10^5 < Re < 10^7$ |
+| **Natural Convection** | $Nu = C (Ra \cdot Pr)^n$ | ขึ้นอยู่กับ $Ra$ |
+
+**ค่าคงที่สำหรับการพาความร้อนตามธรรมชาติ**:
+| ช่วง Rayleigh | $C$ | $n$ |
+|----------------|-----|-----|
+| $10^4 < Ra < 10^9$ | 0.59 | 1/4 |
+| $10^9 < Ra < 10^{13}$ | 0.10 | 1/3 |
+
+[Diagram: การเปรียบเทียบ Nusselt number จากจำลองเชิงตัวเลขกับสมการเชิงประจักษ์]
+
+**ขั้นตอนการตรวจสอบความถูกต้อง**:
+1. **คำนวณ Re, Pr, Ra** จากคุณสมบัติของไหลและเงื่อนไขขอบเขต
+2. **คำนวณ Nu** จาก OpenFOAM โดยตรง
+3. **เปรียบเทียบ** กับค่าที่ได้จากสมการเชิงประจักษ์
+4. **วิเคราะห์** ความคลาดเคลื่อนและแหล่งที่มาของข้อผิดพลาด

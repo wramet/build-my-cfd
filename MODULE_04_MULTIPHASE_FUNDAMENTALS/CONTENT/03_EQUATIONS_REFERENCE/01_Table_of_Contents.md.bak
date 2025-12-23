@@ -1,0 +1,328 @@
+# สารบัญ
+
+1. **พื้นฐานและกรอบการทำงานทางคณิตศาสตร์**
+2. **สมการการอนุรักษ์มวล**
+3. **สมการการอนุรักษ์โมเมนตัม**
+4. **สมการการอนุรักษ์พลังงาน**
+5. **สมการปรากฏการณ์ระหว่างเฟส**
+6. **สมการการจำลองความปั่นป่วน (Turbulence Modeling Equations)**
+7. **ความสัมพันธ์ปิด (Closure Relations)**
+8. **การวิเคราะห์แบบไร้มิติ**
+9. **กรณีพิเศษ**
+
+---
+
+## พื้นฐานและกรอบการทำงานทางคณิตศาสตร์
+
+### ทฤษฎีการไหลแบบหลายเฟสแบบออยเลอร์ (Eulerian Multiphase Flow Theory)
+
+การจำลองการไหลแบบหลายเฟสแบบออยเลอร์จะพิจารณาแต่ละเฟสเป็นเนื้อเดียวกัน (continuum) ที่แทรกซึมอยู่ในโดเมนเดียวกัน แต่ละเฟส $k$ จะมีสัดส่วนปริมาตร (volume fraction) ของตัวเองคือ $\alpha_k$ ซึ่งเป็นไปตามเงื่อนไข:
+
+$$\sum_{k=1}^{N} \alpha_k = 1$$
+
+โดยที่:
+- $N$ = จำนวนเฟสทั้งหมด
+- $\alpha_k$ = สัดส่วนปริมาตรของเฟส $k$
+
+แต่ละเฟสจะมีชุดสมการอนุรักษ์ของตัวเอง ซึ่งเชื่อมโยงกันผ่านเทอมการถ่ายโอนระหว่างเฟส (interfacial transfer terms)
+
+[Diagram: แสดงโดเมนควบคุมที่มีหลายเฟสแทรกซึนอยู่ พร้อมแสดงสัดส่วนปริมาตร $\alpha_k$ ของแต่ละเฟส]
+
+### กรอบการทำงานทางคณิตศาสตร์ (Mathematical Framework)
+
+สมการพื้นฐานได้มาจากการประยุกต์ใช้กฎการอนุรักษ์ในรูปแบบอินทิกรัลกับปริมาตรควบคุม (control volumes) $V$ ที่มีพื้นผิว $S$:
+
+$$\int_V \frac{\partial (\alpha_k \rho_k \phi_k)}{\partial t} \, \mathrm{d}V + \int_S (\alpha_k \rho_k \phi_k \mathbf{u}_k) \cdot \mathbf{n} \, \mathrm{d}S = \int_S \Gamma_k \cdot \mathbf{n} \, \mathrm{d}S + \int_V S_k \, \mathrm{d}V$$
+
+โดยที่:
+- $\phi_k$ = ปริมาณที่ถูกขนส่ง (transported quantity)
+- $\Gamma_k$ = ฟลักซ์การแพร่ (diffusive flux)
+- $S_k$ = เทอมแหล่งกำเนิด (source term)
+- $\mathbf{n}$ = เวกเตอร์แนวฉากหน่วยของพื้นผิว
+
+### คุณสมบัติของเฟส (Phase Properties)
+
+แต่ละเฟส $k$ จะมีคุณสมบัติของตัวเอง:
+
+| คุณสมบัติ | สัญลักษณ์ | ความหมาย |
+|-----------|------------|------------|
+| ความหนาแน่น | $\rho_k(\mathbf{x}, t)$ | มวลต่อหน่วยปริมาตรของเฟส $k$ |
+| ความเร็ว | $\mathbf{u}_k(\mathbf{x}, t)$ | เวกเตอร์ความเร็วของเฟส $k$ |
+| ความดัน | $p_k(\mathbf{x}, t)$ | ความดันของเฟส $k$ |
+| อุณหภูมิ | $T_k(\mathbf{x}, t)$ | อุณหภูมิของเฟส $k$ |
+
+คุณสมบัติของส่วนผสม (mixture properties) ได้มาจากการหาค่าเฉลี่ยแบบถ่วงน้ำหนัก (weighted averaging):
+
+$$\rho = \sum_{k=1}^{N} \alpha_k \rho_k$$
+
+$$\mathbf{u} = \frac{1}{\rho} \sum_{k=1}^{N} \alpha_k \rho_k \mathbf{u}_k$$
+
+## สมการการอนุรักษ์มวล (Mass Conservation Equations)
+
+### การอนุรักษ์ของแต่ละเฟส (Individual Phase Conservation)
+
+สำหรับแต่ละเฟส $k$, สมการการอนุรักษ์มวล (สมการความต่อเนื่อง - continuity equation) คือ:
+
+$$\frac{\partial (\alpha_k \rho_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k) = \sum_{l=1}^{N} m_{lk}$$
+
+โดยที่:
+- $m_{lk}$ = อัตราการถ่ายเทมวลจากเฟส $l$ ไปยังเฟส $k$ (มีค่าเป็นบวกเมื่อมวลไหลจาก $l$ ไป $k$)
+
+เทอมเหล่านี้เป็นไปตามหลักการอนุรักษ์:
+
+$$m_{kl} = -m_{lk}$$
+
+สำหรับระบบที่มีอุณหภูมิคงที่และไม่มีการเปลี่ยนแปลงเฟส (phase change) เทอมเหล่านี้มักจะมีค่าเป็นศูนย์
+
+### สมการความต่อเนื่องของส่วนผสม (Mixture Continuity Equation)
+
+การอนุรักษ์มวลโดยรวมของส่วนผสมได้มาจากการรวมสมการของแต่ละเฟส:
+
+$$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$$
+
+### การเปลี่ยนแปลงของสัดส่วนปริมาตร (Volume Fraction Evolution)
+
+การเปลี่ยนแปลงของสัดส่วนปริมาตรสามารถหาได้จากสมการความต่อเนื่องของแต่ละเฟส:
+
+$$\frac{\partial \alpha_k}{\partial t} + \nabla \cdot (\alpha_k \mathbf{u}_k) + \frac{\alpha_k}{\rho_k} \left[ \frac{\partial \rho_k}{\partial t} + \mathbf{u}_k \cdot \nabla \rho_k \right] = \frac{1}{\rho_k} \sum_{l=1}^{N} m_{lk}$$
+
+สำหรับเฟสที่ไม่สามารถอัดตัวได้ (incompressible phases) ($\rho_k = \text{constant}$):
+
+$$\frac{\partial \alpha_k}{\partial t} + \nabla \cdot (\alpha_k \mathbf{u}_k) = \frac{1}{\rho_k} \sum_{l=1}^{N} m_{lk}$$
+
+## สมการการอนุรักษ์โมเมนตัม (Momentum Conservation Equations)
+
+### โมเมนตัมของแต่ละเฟส (Individual Phase Momentum)
+
+สำหรับแต่ละเฟส $k$, สมการการอนุรักษ์โมเมนตัมคือ:
+
+$$\frac{\partial (\alpha_k \rho_k \mathbf{u}_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \mathbf{u}_k) = -\alpha_k \nabla p + \nabla \cdot (\alpha_k \boldsymbol{\tau}_k) + \alpha_k \rho_k \mathbf{g} + \mathbf{M}_k$$
+
+โดยที่:
+- $\boldsymbol{\tau}_k$ = เทนเซอร์ความเค้น (stress tensor) สำหรับเฟส $k$
+- $\mathbf{g}$ = ความเร่งเนื่องจากแรงโน้มถ่วง (gravitational acceleration)
+- $\mathbf{M}_k$ = เทอมการถ่ายโอนโมเมนตัมระหว่างเฟส (interfacial momentum transfer term)
+
+สำหรับของไหลนิวโทเนียน (Newtonian fluids) เทนเซอร์ความเค้นคือ:
+
+$$\boldsymbol{\tau}_k = \mu_k \left[ \nabla \mathbf{u}_k + (\nabla \mathbf{u}_k)^T \right] - \frac{2}{3} \mu_k (\nabla \cdot \mathbf{u}_k) \mathbf{I}$$
+
+### การถ่ายโอนโมเมนตัมระหว่างเฟส (Interfacial Momentum Transfer)
+
+การถ่ายโอนโมเมนตัมระหว่างเฟส $\mathbf{M}_k$ ประกอบด้วย:
+
+| ประเภทแรง | สมการ | คำอธิบาย |
+|------------|---------|-----------|
+| **แรงลาก (Drag force)** | $\mathbf{M}_{D,k} = K_{kl}(\mathbf{u}_l - \mathbf{u}_k)$ | แรงต้านทานการเคลื่อนที่สัมพัทธ์ |
+| **แรงยก (Lift force)** | $\mathbf{M}_{L,k} = C_L \rho_k \alpha_k (\mathbf{u}_l - \mathbf{u}_k) \times (\nabla \times \mathbf{u}_k)$ | เกิดจากการไหลที่ไม่สมมาตร |
+| **แรงมวลเสมือน (Virtual mass force)** | $\mathbf{M}_{VM,k} = C_{VM} \alpha_l \rho_l \left( \frac{\partial \mathbf{u}_l}{\partial t} + \mathbf{u}_l \cdot \nabla \mathbf{u}_l - \frac{\partial \mathbf{u}_k}{\partial t} - \mathbf{u}_k \cdot \nabla \mathbf{u}_k \right)$ | แรงเสมือนจากการเร่งของของไหลโดยรอบ |
+
+### โมเมนตัมของส่วนผสม (Mixture Momentum)
+
+สมการโมเมนตัมของส่วนผสมได้มาจากการรวมสมการของแต่ละเฟส:
+
+$$\frac{\partial (\rho \mathbf{u})}{\partial t} + \nabla \cdot (\rho \mathbf{u} \mathbf{u}) = -\nabla p + \nabla \cdot \boldsymbol{\tau} + \rho \mathbf{g}$$
+
+[Diagram: แสดงแรงระหว่างเฟสต่างๆ ที่กระทำต่ออนุภาคในการไหลแบบหลายเฟส]
+
+## สมการการอนุรักษ์พลังงาน (Energy Conservation Equations)
+
+### พลังงานของแต่ละเฟส (Individual Phase Energy)
+
+สำหรับแต่ละเฟส $k$, สมการการอนุรักษ์พลังงานคือ:
+
+$$\frac{\partial (\alpha_k \rho_k h_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k h_k) = \alpha_k \frac{\partial p_k}{\partial t} + \nabla \cdot (\alpha_k k_k \nabla T_k) + Q_k + E_k$$
+
+โดยที่:
+- $h_k$ = เอนทัลปีจำเพาะ (specific enthalpy) ของเฟส $k$
+- $k_k$ = สภาพนำความร้อน (thermal conductivity) ของเฟส $k$
+- $Q_k$ = การถ่ายเทความร้อนระหว่างเฟส (interfacial heat transfer)
+- $E_k$ = กลไกการแลกเปลี่ยนพลังงานอื่นๆ (other energy exchange mechanisms)
+
+### การถ่ายเทความร้อนระหว่างเฟส (Interfacial Heat Transfer)
+
+อัตราการถ่ายเทความร้อนระหว่างเฟสมักจะจำลองได้ดังนี้:
+
+$$Q_k = h_{eff} A_{int} (T_l - T_k)$$
+
+โดยที่:
+- $h_{eff}$ = สัมประสิทธิ์การถ่ายเทความร้อนประสิทธิผล (effective heat transfer coefficient)
+- $A_{int}$ = ความหนาแน่นของพื้นที่ผิวระหว่างเฟส (interfacial area density)
+
+### พลังงานของส่วนผสม (Mixture Energy)
+
+สมการพลังงานของส่วนผสมให้สมดุลพลังงานโดยรวม:
+
+$$\frac{\partial (\rho h)}{\partial t} + \nabla \cdot (\rho \mathbf{u} h) = \frac{\partial p}{\partial t} + \nabla \cdot (k_{eff} \nabla T) + \Phi$$
+
+โดยที่:
+- $\Phi$ = การกระจายตัวเนื่องจากความหนืด (viscous dissipation) และเทอมแหล่งกำเนิดอื่นๆ
+
+## สมการปรากฏการณ์ระหว่างเฟส (Interfacial Phenomena Equations)
+
+### การขนส่งพื้นที่ผิวระหว่างเฟส (Interfacial Area Transport)
+
+พื้นที่ผิวระหว่างเฟสต่อหน่วยหนึ่งปริมาตร $A_{int}$ เป็นพารามิเตอร์สำคัญในการไหลแบบหลายเฟส สมการการขนส่งคือ:
+
+$$\frac{\partial (\rho A_{int})}{\partial t} + \nabla \cdot (\rho \mathbf{u} A_{int}) = \frac{\partial}{\partial x_i} \left( D_{A_{int}} \frac{\partial A_{int}}{\partial x_i} \right) + S_{A_{int}}$$
+
+โดยที่ $S_{A_{int}}$ รวมเทอมการแตกตัว (breakup) และการรวมตัว (coalescence) ของฟอง/หยด
+
+### ผลกระทบของแรงตึงผิวระหว่างเฟส (Interfacial Tension Effects)
+
+สำหรับการไหลที่มีผลกระทบจากแรงตึงผิวระหว่างเฟสอย่างมีนัยสำคัญ จะใช้แบบจำลองแรงต่อเนื่องที่พื้นผิว (continuum surface force - CSF model):
+
+$$\mathbf{F}_{st} = \sigma \kappa \nabla \alpha$$
+
+โดยที่:
+- $\sigma$ = สัมประสิทธิ์แรงตึงผิว (surface tension coefficient)
+- $\kappa = -\nabla \cdot \mathbf{n}$ = ความโค้งของพื้นผิวระหว่างเฟส (interface curvature)
+- $\mathbf{n} = \frac{\nabla \alpha}{|\nabla \alpha|}$ = เวกเตอร์แนวฉากของพื้นผิวระหว่างเฟส (interface normal vector)
+
+### พลวัตของเส้นสัมผัส (Contact Line Dynamics)
+
+ที่เส้นสัมผัสสามเฟส (three-phase contact lines) มุมสัมผัส (contact angle) $\theta$ จะสัมพันธ์กับแรงตึงผิวระหว่างเฟสผ่านสมการของยัง (Young's equation):
+
+$$\sigma_{SG} - \sigma_{SL} = \sigma \cos \theta$$
+
+[Diagram: แสดงเส้นสัมผัสสามเฟส มุมสัมผัส และแรงตึงผิวที่ทรงดุลยภาพ]
+
+## สมการการจำลองความปั่นป่วน (Turbulence Modeling Equations)
+
+### ความปั่นป่วนของส่วนผสม (Mixture Turbulence)
+
+สำหรับการไหลแบบหลายเฟสแบบออยเลอร์ มักใช้แบบจำลองความปั่นป่วนของส่วนผสม สมการ $k$-$\epsilon$ สำหรับส่วนผสมคือ:
+
+**พลังงานจลน์ความปั่นป่วน (Turbulent kinetic energy):**
+$$\frac{\partial (\rho k)}{\partial t} + \nabla \cdot (\rho \mathbf{u} k) = \nabla \cdot \left( \frac{\mu_t}{\sigma_k} \nabla k \right) + P_k - \rho \epsilon$$
+
+**อัตราการสลายตัวของความปั่นป่วน (Turbulent dissipation):**
+$$\frac{\partial (\rho \epsilon)}{\partial t} + \nabla \cdot (\rho \mathbf{u} \epsilon) = \nabla \cdot \left( \frac{\mu_t}{\sigma_\epsilon} \nabla \epsilon \right) + C_{1\epsilon} \frac{\epsilon}{k} P_k - C_{2\epsilon} \rho \frac{\epsilon^2}{k}$$
+
+โดยที่:
+- $k$ = พลังงานจลน์ความปั่นป่วน
+- $\epsilon$ = อัตราการสลายตัวของความปั่นป่วน
+- $P_k$ = การผลิตพลังงานจลน์ความปั่นป่วน (turbulent kinetic energy production)
+- $\mu_t = \rho C_\mu \frac{k^2}{\epsilon}$ = ความหนืดความปั่นป่วน (turbulent viscosity)
+
+### ความปั่นป่วนจำเพาะเฟส (Phase-Specific Turbulence)
+
+สำหรับความปั่นป่วนของเฟสที่กระจายตัว (dispersed phase turbulence) แบบจำลองของซาโตะ (Sato model) จะให้การผลิตความปั่นป่วนเพิ่มเติมเนื่องจากการมีอยู่ของอนุภาคที่กระจายตัว:
+
+$$\mu_{t,d} = 0.6 \rho_d \alpha_d d_p |\mathbf{u}_c - \mathbf{u}_d|$$
+
+โดยที่ $d_p$ คือเส้นผ่านศูนย์กลางลักษณะเฉพาะของอนุภาค/หยด
+
+## ความสัมพันธ์ปิด (Closure Relations)
+
+### แบบจำลองสัมประสิทธิ์แรงลาก (Drag Coefficient Models)
+
+สัมประสิทธิ์แรงลาระหว่างเฟส $K_{kl}$ จำลองได้ดังนี้:
+
+$$K_{kl} = \frac{3}{4} C_D \frac{\alpha_k \alpha_l \rho_{m}}{d_p} |\mathbf{u}_k - \mathbf{u}_l|$$
+
+โดยที่ $C_D$ ขึ้นอยู่กับระบอบการไหล (flow regime) และเลขเรย์โนลด์ของอนุภาค (particle Reynolds number):
+
+| ระบอบการไหล | เงื่อนไข | สัมประสิทธิ์แรงลาก |
+|--------------|-----------|------------------|
+| **ระบอบสโตกส์ (Stokes regime)** | Re < 1 | $C_D = \frac{24}{Re_p}$ |
+| **ระบอบกลาง (Intermediate regime)** | 1 < Re < 1000 | $C_D = \frac{24}{Re_p}(1 + 0.15 Re_p^{0.687})$ |
+| **ระบอบนิวตัน (Newton regime)** | Re > 1000 | $C_D = 0.44$ |
+
+### สัมประสิทธิ์แรงยก (Lift Force Coefficient)
+
+สัมประสิทธิ์แรงยก $C_L$ ขึ้นอยู่กับอัตราการเฉือน (shear rate) และขนาดอนุภาค:
+
+$$C_L = \begin{cases}
+0.5 & \text{สำหรับอนุภาคทรงกลม} \\
+f(Re_p, \text{อัตราการเฉือน}) & \text{กรณีทั่วไป}
+\end{cases}$$
+
+### สัมประสิทธิ์มวลเสมือน (Virtual Mass Coefficient)
+
+สัมประสิทธิ์มวลเสมือน $C_{VM}$ โดยทั่วไปมีค่าตั้งแต่ 0.5 สำหรับอนุภาคทรงกลม ไปจนถึงค่าที่สูงกว่าสำหรับรูปทรงที่ไม่สม่ำเสมอ
+
+[Diagram: แสดงแรงลาก แรงยก และแรงมวลเสมือนที่กระทำต่ออนุภาคในของไหล]
+
+## การวิเคราะห์แบบไร้มิติ (Dimensionless Analysis)
+
+### เลขมิติสำคัญ (Key Dimensionless Numbers)
+
+| ชื่อ | สมการ | ความหมาย |
+|------|---------|------------|
+| **เลขเรย์โนลด์ (Reynolds Number)** | $Re_k = \frac{\rho_k |\mathbf{u}_k| L}{\mu_k}$ | อัตราส่วนระหว่างแรงเฉื่อยและแรงหนืด |
+| **เลขฟรูด (Froude Number)** | $Fr_k = \frac{|\mathbf{u}_k|^2}{gL}$ | อัตราส่วนระหว่างแรงเฉื่อยและแรงโน้มถ่วง |
+| **เลขวีเบอร์ (Weber Number)** | $We_k = \frac{\rho_k |\mathbf{u}_k|^2 L}{\sigma}$ | อัตราส่วนระหว่างแรงเฉื่อยและแรงตึงผิว |
+| **เลขเออเวอส (Eötvös Number)** | $Eo = \frac{(\rho_k - \rho_l) g d_p^2}{\sigma}$ | อัตราส่วนระหว่างแรงโน้มถ่วงและแรงตึงผิว |
+| **เลขมอร์ตัน (Morton Number)** | $Mo = \frac{g \mu_l^4 (\rho_k - \rho_l)}{\rho_l^2 \sigma^3}$ | ค่าคงที่ของของไหลและอนุภาค |
+
+### แผนที่ระบอบการไหล (Flow Regime Maps)
+
+ระบอบการไหลสามารถจำแนกได้โดยใช้พารามิเตอร์แบบไร้มิติ:
+
+| ระบอบการไหล | ลักษณะ | ค่าพารามิเตอร์ |
+|---------------|---------|---------------|
+| **การไหลแบบฟอง (Bubble flow)** | ฟองแก๊สกระจายในของเหลว | เลขเออเวอสสูง, เลขเรย์โนลด์ต่ำ |
+| **การไหลแบบปลั๊ก (Slug flow)** | ปลั๊กแก๊สขนาดใหญ่ | เลขเออเวอสและเลขเรย์โนลด์ปานกลาง |
+| **การไหลแบบชัก (Churn flow)** | การไหลที่ไม่สม่ำเสมอ | เลขเรย์โนลด์สูง, เลขเออเวอสปานกลาง |
+| **การไหลแบบวงแหวน (Annular flow)** | ฟิล์มของเหลวติดผนัง | เลขเรย์โนลด์สูงมาก, สัดส่วนของเหลวต่ำ |
+
+[Diagram: แผนที่ระบอบการไหลแสดงพื้นที่ของแต่ละระบอบบนกราฟแกน x-y]
+
+## กรณีพิเศษ (Special Cases)
+
+### การไหลแบบสองเฟส (Two-Phase Flow)
+
+สำหรับการไหลแบบสองเฟส แก๊ส-ของเหลว ที่เฟสไม่สามารถอัดตัวได้และไม่มีการถ่ายเทมวล:
+
+**OpenFOAM Code Implementation:**
+```cpp
+// การกำหนดสมการสำหรับเฟสแก๊ส
+fvScalarMatrix alphaGaussEqn
+(
+    fvm::ddt(alpha_g, rho_g) 
+  + fvm::div(alpha_g*rho_g*U_g, U_g)
+ ==
+  - fvm::Sp(K_gl, U_g) + K_gl*U_l  // เทอมแรงลาก
+  + alpha_g*rho_g*g                // เทอมแรงโน้มถ่วง
+);
+
+// การกำหนดสมการสำหรับเฟสของเหลว
+fvScalarMatrix alphaLiquidEqn
+(
+    fvm::ddt(alpha_l, rho_l) 
+  + fvm::div(alpha_l*rho_l*U_l, U_l)
+ ==
+  - fvm::Sp(K_gl, U_l) + K_gl*U_g  // เทอมแรงลาก
+  + alpha_l*rho_l*g                // เทอมแรงโน้มถ่วง
+);
+```
+
+**เฟสแก๊ส:**
+$$\frac{\partial \alpha_g}{\partial t} + \nabla \cdot (\alpha_g \mathbf{u}_g) = 0$$
+$$\frac{\partial (\alpha_g \rho_g \mathbf{u}_g)}{\partial t} + \nabla \cdot (\alpha_g \rho_g \mathbf{u}_g \mathbf{u}_g) = -\alpha_g \nabla p + \nabla \cdot (\alpha_g \boldsymbol{\tau}_g) + \alpha_g \rho_g \mathbf{g} + \mathbf{M}_g$$
+
+**เฟสของเหลว:**
+$$\frac{\partial \alpha_l}{\partial t} + \nabla \cdot (\alpha_l \mathbf{u}_l) = 0$$
+$$\frac{\partial (\alpha_l \rho_l \mathbf{u}_l)}{\partial t} + \nabla \cdot (\alpha_l \rho_l \mathbf{u}_l \mathbf{u}_l) = -\alpha_l \nabla p + \nabla \cdot (\alpha_l \boldsymbol{\tau}_l) + \alpha_l \rho_l \mathbf{g} + \mathbf{M}_l$$
+
+### การไหลแบบกระจายตัวเจือจาง (Dilute Dispersed Flow)
+
+สำหรับการไหลแบบกระจายตัวเจือจาง ($\alpha_d \ll 1$) แรงลากจะมีบทบาทสำคัญ และแรงระหว่างเฟสอื่นๆ สามารถละเลยได้:
+
+$$\mathbf{M}_d \approx K_{cd}(\mathbf{u}_c - \mathbf{u}_d)$$
+
+สมการโมเมนตัมของเฟสต่อเนื่องจะลดรูปเป็น:
+
+$$\frac{\partial (\alpha_c \rho_c \mathbf{u}_c)}{\partial t} + \nabla \cdot (\alpha_c \rho_c \mathbf{u}_c \mathbf{u}_c) = -\alpha_c \nabla p + \nabla \cdot (\alpha_c \boldsymbol{\tau}_c) + \alpha_c \rho_c \mathbf{g} - K_{cd}(\mathbf{u}_c - \mathbf{u}_d)$$
+
+### การไหลแบบเนื้อเดียว (Homogeneous Flow)
+
+สำหรับการไหลแบบเนื้อเดียว ซึ่งทุกเฟสเคลื่อนที่ด้วยความเร็วเดียวกัน ($\mathbf{u}_k = \mathbf{u}$):
+
+$$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$$
+$$\frac{\partial (\rho \mathbf{u})}{\partial t} + \nabla \cdot (\rho \mathbf{u} \mathbf{u}) = -\nabla p + \nabla \cdot \boldsymbol{\tau} + \rho \mathbf{g}$$
+
+เทอมการถ่ายโอนโมเมนตัมระหว่างเฟสจะหักล้างกัน และส่วนผสมจะประพฤติตัวเหมือนเฟสเดียวที่มีคุณสมบัติแปรผัน
+
+[Diagram: เปรียบเทียบโครงสร้างการไหลแบบสองเฟส การไหลแบบกระจายตัวเจือจาง และการไหลแบบเนื้อเดียว]

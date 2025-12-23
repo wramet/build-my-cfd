@@ -1,0 +1,442 @@
+# 3.3 สถาปัตยกรรม Object Registry
+
+**Object registry** ของ OpenFOAM มีหน้าที่เป็นพื้นฐานสำหรับการแยกข้อมูลระหว่าง region และการจัดการข้อมูลแบบลำดับชั้นในการจำลองการไหลแบบหลายเฟส (multiphase flow) 
+
+ระบบที่ซับซ้อนนี้ช่วยให้:
+- หลาย region สามารถดำรงอยู่ร่วมกันในการจำลองเดียวกันได้
+- ยังคงการแยกข้อมูลและอ็อบเจ็กต์ของแต่ละ region อย่างเคร่งครัด
+
+[Diagram: โครงสร้างแบบลำดับชั้นของ Object Registry ในระบบ Multiphase]
+
+## การ Implement พื้นฐาน ObjectRegistry
+
+Object registry ถูก implement ในรูปแบบ **hash-based container** ที่จัดการวงจรชีวิตของ registered objects:
+
+```cpp
+// src/OpenFOAM/db/objectRegistry/objectRegistry.H
+class objectRegistry
+{
+    // เก็บ objects โดยใช้ชื่อที่ไม่ซ้ำกันผ่าน hash table สำหรับการค้นหา O(1)
+    HashTable<regIOobject*> objects_;
+
+    // Parent registry สำหรับการจัดระเบียบแบบลำดับชั้น
+    const objectRegistry& parent_;
+    
+    // ชื่อของ registry นี้ (โดยทั่วไปคือชื่อ region)
+    const word name_;
+
+public:
+    // Constructor พร้อม parent และชื่อ
+    objectRegistry(const word& name, const objectRegistry& parent);
+    
+    // ลงทะเบียน object พร้อมชื่อแบบ scoped (ถ้าต้องการ)
+    bool checkIn(regIOobject& io, const bool autoRegister = true);
+
+    // ค้นหา object ตามชื่อพร้อมการตรวจสอบ type
+    template<class Type>
+    const Type& lookupObject(const word& name) const;
+    
+    // รับ objects ทั้งหมดของ type ที่ระบุ
+    template<class Type>
+    HashTable<const Type*> lookupClass(const word& className) const;
+    
+    // ลบ object ออกจาก registry
+    bool checkOut(regIOobject& io);
+    
+    // Iterator support สำหรับการสำรวจ objects
+    HashTable<regIOobject*>::iterator begin();
+    HashTable<regIOobject*>::const_iterator begin() const;
+};
+```
+
+### ส่วนประกอบหลักของ ObjectRegistry
+
+| ส่วนประกอบ | ประเภท | หน้าที่ |
+|-------------|--------|----------|
+| `objects_` | `HashTable<regIOobject*>` | เก็บอ็อบเจ็กต์ด้วยชื่อที่ไม่ซ้ำกัน |
+| `parent_` | `const objectRegistry&` | อ้างอิงถึง registry แม่ |
+| `name_` | `const word` | ชื่อของ registry นี้ |
+
+## การรวมระบบกับ regIOobject
+
+แต่ละ object ที่เข้าร่วมในระบบ registry จะสืบทอดมาจาก `regIOobject`:
+
+```cpp
+// src/OpenFOAM/db/regIOobject/regIOobject.H
+class regIOobject : public IOobject
+{
+private:
+    // Reference count สำหรับการจัดการหน่วยความจำอัตโนมัติ
+    mutable int refCount_;
+    
+    // Pointer ไปยัง registry ที่เก็บ object
+    mutable objectRegistry* dbPtr_;
+    
+    // Flag บ่งชี้ว่า object ถูกลงทะเบียนหรือไม่
+    mutable bool registered_;
+
+public:
+    // ลงทะเบียน object นี้กับ registry ที่กำหนด
+    virtual bool checkIn(const objectRegistry& registry);
+    
+    // ยกเลิกการลงทะเบียนจาก registry ปัจจุบัน
+    virtual bool checkOut();
+    
+    // รับ registry ที่เก็บ object
+    const objectRegistry& db() const;
+    
+    // ชื่อร่วมกันของ global/region
+    word name() const;
+    word globalName() const;
+    
+    // การลงทะเบียนและการทำลายแบบอัตโนมัติ
+    virtual ~regIOobject();
+};
+```
+
+### วงจรชีวิตของ Object
+
+```mermaid
+graph TD
+    A[สร้าง regIOobject] --> B[checkIn กับ Registry]
+    B --> C[Object ถูกลงทะเบียน]
+    C --> D[ใช้งานใน Simulation]
+    D --> E[checkOut หรือ Destruct]
+    E --> F[Automatic Cleanup]
+```
+
+## สถาปัตยกรรม Multiphase Region
+
+ในการจำลองการไหลแบบหลายเฟส แต่ละ phase region จะรักษา object registry ของตัวเอง:
+
+```cpp
+// Phase region structure ใน multiphaseEulerFoam
+class phaseRegion
+{
+private:
+    // ตัวระบุที่ไม่ซ้ำกันสำหรับ region นี้
+    const word regionName_;
+    
+    // Mesh สำหรับ region นี้
+    fvMesh& regionMesh_;
+    
+    // Object registry สำหรับ region นี้
+    objectRegistry regionRegistry_;
+    
+    // Phase fields เฉพาะสำหรับ region นี้
+    volScalarField phaseFraction_;
+    volVectorField velocity_;
+    volScalarField pressure_;
+    volScalarField temperature_;
+
+public:
+    // Constructor ตั้งค่า registry เฉพาะของ region
+    phaseRegion
+    (
+        const word& name,
+        fvMesh& mesh,
+        const dictionary& dict
+    );
+    
+    // ลงทะเบียน field พร้อม region scoping
+    template<class FieldType>
+    void registerField
+    (
+        const word& fieldName,
+        const FieldType& field
+    );
+    
+    // เข้าถึง region registry
+    const objectRegistry& registry() const
+    {
+        return regionRegistry_;
+    }
+};
+```
+
+### โครงสร้าง Phase Region
+
+| คอมโพเนนต์ | ประเภท | คำอธิบาย |
+|-------------|--------|-----------|
+| `regionName_` | `const word` | ตัวระบุ region ที่ไม่ซ้ำกัน |
+| `regionMesh_` | `fvMesh&` | Mesh สำหรับ region |
+| `regionRegistry_` | `objectRegistry` | Registry สำหรับจัดการอ็อบเจ็กต์ |
+| `phaseFraction_` | `volScalarField` | ปริมาตรเศษเฟส |
+| `velocity_` | `volVectorField` | สนามความเร็ว |
+| `pressure_` | `volScalarField` | สนามความดัน |
+| `temperature_` | `volScalarField` | สนามอุณหภูมิ |
+
+## รูปแบบการตั้งชื่อแบบ Scoped
+
+เครื่องหมายทวิภาค (`::`) ในชื่อ field เช่น `fluid::T` แสดงถึง **รูปแบบการตั้งชื่อ** (naming convention) มากกว่า C++ namespace resolution:
+
+```cpp
+// Field registration พร้อม region scoping
+template<class FieldType>
+void phaseRegion::registerField
+(
+    const word& fieldName,
+    const FieldType& field
+)
+{
+    // สร้าง scoped name: "region::fieldName"
+    word scopedName = regionName_ + "::" + fieldName;
+    
+    // ลงทะเบียน field ใน region registry
+    regionRegistry_.checkIn(const_cast<FieldType&>(field));
+    
+    // กำหนด scoped name
+    const_cast<FieldType&>(field).rename(scopedName);
+}
+
+// การใช้งานใน phase system
+phaseRegion fluidRegion("fluid", mesh, fluidDict);
+fluidRegion.registerField("T", temperatureField); // ลงทะเบียนเป็น "fluid::T"
+```
+
+### ตัวอย่างรูปแบบการตั้งชื่อ
+
+| ชื่อดั้งเดิม | ชื่อที่ลงทะเบียน | Region |
+|---------------|-------------------|--------|
+| `T` | `fluid::T` | fluid |
+| `U` | `fluid::U` | fluid |
+| `alpha` | `vapor::alpha` | vapor |
+| `p` | `global::p` | global |
+
+[Diagram: การแปลงชื่อ field จาก local name เป็น scoped name]
+
+## โครงสร้าง Registry แบบลำดับชั้น
+
+ระบบ registry รองรับการซ้อนทับแบบลำดับชั้นสำหรับ topology ของการไหลแบบหลายเฟสที่ซับซ้อน:
+
+```cpp
+// ตัวอย่าง: Interface region ระหว่างสอง phases
+class interfaceRegion
+{
+private:
+    // Parent phase regions
+    phaseRegion& phase1Region_;
+    phaseRegion& phase2Region_;
+    
+    // Interface-specific registry
+    objectRegistry interfaceRegistry_;
+    
+    // Interface fields
+    surfaceScalarField alpha1_;
+    surfaceScalarField alpha2_;
+    surfaceVectorField interfaceVelocity_;
+
+public:
+    interfaceRegion
+    (
+        phaseRegion& phase1,
+        phaseRegion& phase2,
+        fvMesh& interfaceMesh
+    );
+    
+    // Interface field access พร้อม hierarchical lookup
+    template<class FieldType>
+    const FieldType& lookupInterfaceField(const word& fieldName) const;
+};
+```
+
+### โครงสร้างลำดับชั้นของ Registry
+
+```
+Global Registry
+├── fluid:: (Region)
+│   ├── fluid::T
+│   ├── fluid::U
+│   └── fluid::p
+├── vapor:: (Region)
+│   ├── vapor::T
+│   ├── vapor::U
+│   └── vapor::alpha
+└── interface:: (Region)
+    ├── interface::alpha
+    ├── interface::U
+    └── interface::surfaceTension
+```
+
+## การค้นหาและแก้ไข Field
+
+Registry ให้การค้นหา field อย่างมีประสิทธิภาพพร้อมการแก้ไขอัตโนมัติ:
+
+```cpp
+// Field lookup implementation
+template<class Type>
+const Type& phaseSystem::lookupField
+(
+    const word& regionName,
+    const word& fieldName
+) const
+{
+    // สร้าง scoped name
+    word scopedName = regionName + "::" + fieldName;
+    
+    // ลองค้นหาใน region-specific registry ก่อน
+    if (phaseRegions_.found(regionName))
+    {
+        const objectRegistry& reg = phaseRegions_[regionName].registry();
+        
+        try
+        {
+            return reg.lookupObject<Type>(scopedName);
+        }
+        catch (const Foam::error&)
+        {
+            // ย้อนกลับไปใช้ global registry ถ้าไม่พบใน region
+        }
+    }
+    
+    // Global registry lookup
+    return mesh_.lookupObject<Type>(scopedName);
+}
+```
+
+### ขั้นตอนการค้นหา Field
+
+1. **สร้าง scoped name**: `region::fieldName`
+2. **ค้นหาใน region registry**:
+   - ถ้าพบ → คืนค่า field
+   - ถ้าไม่พบ → ไปขั้นตอนที่ 3
+3. **ค้นหาใน global registry**
+4. **Throw error** ถ้าไม่พบในทั้งสองที่
+
+## การจัดการหน่วยความจำและวงจรชีวิต
+
+ระบบ registry ให้การจัดการหน่วยความจำอัตโนมัติผ่าน reference counting:
+
+```cpp
+// Automatic cleanup ใน destructor
+regIOobject::~regIOobject()
+{
+    if (registered_ && dbPtr_)
+    {
+        // ลบออกจาก registry อัตโนมัติ
+        dbPtr_->checkOut(*this);
+    }
+}
+
+// Reference counting สำหรับ shared objects
+void regIOobject::addRef() const
+{
+    refCount_++;
+}
+
+void regIOobject::release() const
+{
+    if (--refCount_ == 0)
+    {
+        delete this;
+    }
+}
+```
+
+### วงจรชีวิตของ Object ใน Registry
+
+| ขั้นตอน | การดำเนินการ | ผลลัพธ์ |
+|---------|---------------|----------|
+| สร้าง Object | สร้าง `regIOobject` | `refCount_ = 1` |
+| checkIn | ลงทะเบียนกับ registry | `registered_ = true` |
+| ใช้งาน | เข้าถึงผ่าน lookup | `refCount_` เพิ่ม/ลด |
+| checkOut | ยกเลิกการลงทะเบียน | `registered_ = false` |
+| ทำลาย | `refCount_` = 0 | คืนหน่วยความจำ |
+
+## การปรับปรุงประสิทธิภาพ
+
+การออกแบบ registry ปรับปรุงประสิทธิภาพสำหรับรูปแบบการเข้าถึง CFD ทั่วไป:
+
+```cpp
+// การแคช field อย่างมีประสิทธิภาพ
+template<class FieldType>
+class fieldCache
+{
+private:
+    // การอ้างอิง field ที่ถูกแคช
+    HashTable<const FieldType*> cachedFields_;
+    
+    // การอ้างอิง registry
+    const objectRegistry& registry_;
+
+public:
+    // รับ field พร้อมการแคช
+    const FieldType& getField(const word& fieldName)
+    {
+        if (!cachedFields_.found(fieldName))
+        {
+            const FieldType& field = 
+                registry_.lookupObject<FieldType>(fieldName);
+            cachedFields_.insert(fieldName, &field);
+        }
+        
+        return *cachedFields_[fieldName];
+    }
+    
+    // ล้าง cache เมื่อ registry เปลี่ยนแปลง
+    void clearCache()
+    {
+        cachedFields_.clear();
+    }
+};
+```
+
+### การปรับปรุงประสิทธิภาพ
+
+| เทคนิค | ผลกระทบด้านประสิทธิภาพ | กรณีที่เหมาะสม |
+|---------|-----------------------|---------------|
+| Hash table lookup | $O(1)$ สำหรับการค้นหา | การเข้าถึงซ้ำๆ |
+| Field caching | ลดการ lookup | Field ที่ใช้บ่อย |
+| Reference counting | ลดการสำเนา | Shared objects |
+| Scoped naming | ลดความกำกวม | Multiphase systems |
+
+## การพิจารณาด้านความปลอดภัยของ Thread
+
+ระบบ registry ให้การดำเนินการที่ปลอดภัยต่อ thread สำหรับการจำลองแบบขนาน:
+
+```cpp
+// Thread-safe registry operations
+class threadSafeObjectRegistry : public objectRegistry
+{
+private:
+    // Mutex สำหรับ thread safety
+    mutable std::mutex registryMutex_;
+
+public:
+    // Thread-safe object insertion
+    bool checkIn(regIOobject& io, const bool autoRegister = true)
+    {
+        std::lock_guard<std::mutex> lock(registryMutex_);
+        return objectRegistry::checkIn(io, autoRegister);
+    }
+    
+    // Thread-safe object lookup
+    const regIOobject& lookupObject(const word& name) const
+    {
+        std::lock_guard<std::mutex> lock(registryMutex_);
+        return objectRegistry::lookupObject(name);
+    }
+};
+```
+
+### ความปลอดภัยของ Thread
+
+| การดำเนินการ | Thread Safety | ประเภทการล็อค |
+|---------------|---------------|---------------|
+| `checkIn` | ✓ | Write lock |
+| `checkOut` | ✓ | Write lock |
+| `lookupObject` | ✓ | Read lock |
+| `Iterator` | ✗ | ต้องใช้ external lock |
+
+[Diagram: การจัดการการเข้าถึงแบบขนานด้วย Mutex]
+
+---
+
+**สรุป**
+
+สถาปัตยกรรม object registry นี้ทำให้ OpenFOAM สามารถจัดการการจำลองการไหลแบบหลายเฟสที่ซับซ้อนกับหลาย region ได้อย่างมีประสิทธิภาพ:
+
+- **ประสิทธิภาพ**: Hash table lookup พร้อม caching
+- **การจัดระเบียบ**: Scoped naming และ hierarchical structure  
+- **ความปลอดภัย**: Thread-safe operations สำหรับการจำลองแบบขนาน
+- **การจัดการหน่วยความจำ**: Automatic cleanup ผ่าน reference counting

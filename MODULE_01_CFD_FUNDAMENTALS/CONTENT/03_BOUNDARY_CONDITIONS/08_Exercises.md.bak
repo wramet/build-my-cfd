@@ -1,0 +1,237 @@
+# แบบฝึกหัด
+
+## แบบฝึกหัดที่ 1: การตั้งค่า Boundary Condition สำหรับการไหลในท่อ
+
+### การกำหนดค่าพื้นฐาน
+สำหรับแบบฝึกหัดนี้ คุณต้องกำหนดค่า Boundary Condition สำหรับการจำลองการไหลในท่ออย่างง่าย โดยการตั้งค่าทั้งสนามความเร็วและสนามความดัน
+
+### สนามความเร็ว (`0/U`)
+
+```cpp
+dimensions      [0 1 -1 0 0 0 0];
+internalField   uniform 0;
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform (5 0 0);  // 5 m/s in x-direction
+    }
+    outlet
+    {
+        type            zeroGradient;
+    }
+    walls
+    {
+        type            noSlip;
+    }
+}
+```
+
+### สนามความดัน (`0/p`)
+
+```cpp
+dimensions      [1 -1 -2 0 0 0 0];
+internalField   uniform 0;
+
+boundaryField
+{
+    inlet
+    {
+        type            zeroGradient;
+    }
+    outlet
+    {
+        type            fixedValue;
+        value           uniform 0;  // 0 Pa gauge pressure
+    }
+    walls
+    {
+        type            zeroGradient;
+    }
+}
+```
+
+### การตีความทางกายภาพ
+
+การตั้งค่านี้สร้าง **การไหลในท่อที่พัฒนาเต็มที่** (fully developed pipe flow)
+
+#### บทบาทของแต่ละขอบเขต:
+
+| ขอบเขต | ประเภท | ค่าที่กำหนด | บทบาททางกายภาพ |
+|---------|--------|-------------|----------------|
+| **Inlet** | `fixedValue` | `(5 0 0)` m/s | ขับเคลื่อนการไหลด้วยความเร็วสม่ำเสมอในทิศทาง x |
+| **Outlet** | `fixedValue` | `0` Pa | กำหนดความดันอ้างอิง ทำให้การไหลออกไปได้ตามธรรมชาติ |
+| **Walls** | `noSlip` | - | บังคับเงื่อนไขไม่มีการลื่นไถล เลียนแบบผลจากความหนืด |
+
+#### กลไกการเชื่อมโยงความดัน-ความเร็ว
+- **Pressure-velocity coupling** จะพัฒนา **Gradient ความดัน** ที่จำเป็นตามธรรมชาติ
+- รักษา **อัตราการไหล** ที่กำหนดผ่านท่อให้คงที่
+- เกิด **การไหลแบบ fully developed** เมื่อถึงสมดุล
+
+
+```mermaid
+graph LR
+    A["Inlet<br/>Fixed Velocity<br/>V = 5 m/s"] --> B["Pipe Flow<br/>Fully Developed<br/>Flow Pattern"]
+    B --> C["Outlet<br/>Fixed Pressure<br/>p = 0 Pa gauge"]
+    D["Walls<br/>No-Slip Condition<br/>V = 0 at surface"] --> B
+    
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style B fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style C fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+```
+
+
+---
+
+## แบบฝึกหัดที่ 2: ความหมายทางกายภาพของ Zero Gradient สำหรับอุณหภูมิ
+
+### พื้นฐานทางคณิตศาสตร์
+
+Boundary Condition แบบ `zeroGradient` สำหรับอุณหภูมิที่ผนังมีนัยยะทางกายภาพสำคัญ ตาม **กฎการนำความร้อนของฟูเรียร์**:
+
+$$q = -k \nabla T$$
+
+**ตัวแปร:**
+- $q$ = เวกเตอร์ฟลักซ์ความร้อน (W/m²)
+- $k$ = สภาพนำความร้อน (W/m·K)  
+- $\nabla T$ = Gradient อุณหภูมิ
+
+### ขอบเขตฉนวนความร้อน
+
+เมื่อใช้ `zeroGradient` ที่ผนัง:
+
+$$\frac{\partial T}{\partial n} = 0$$
+
+**โดยที่:** $\frac{\partial T}{\partial n}$ = อนุพันธ์เชิงตั้งฉากของอุณหภูมิที่พื้นผิวผนัง
+
+#### ผลทางคณิตศาสตร์
+เงื่อนไขนี้หมายความโดยตรงว่า **ฟลักซ์ความร้อนที่ผ่านขอบเขตเป็นศูนย์**:
+
+$$q_n = -k \frac{\partial T}{\partial n} = 0$$
+
+### การตีความทางกายภาพ
+
+**ไม่มีการถ่ายเทความร้อนข้ามขอบเขตผนัง** → ผนังเป็นฉนวนอย่างสมบูรณ์
+
+#### ลักษณะสำคัญ:
+- ผนังทำหน้าที่เป็น **กำแพงความร้อน** ป้องกันการไหลของความร้อนแบบนำ (conductive heat flow)
+- อุณหภูมิสามารถเปลี่ยนแปลง **ตามพื้นผิวผนัง** ได้
+- **ไม่มี Gradient อุณหภูมิในแนวตั้งฉาก** กับผนัง
+
+### การประยุกต์ใช้ในทางปฏิบัติ
+
+| สถานการณ์ | คำอธิบาย | เหตุผลที่ใช้ |
+|-------------|------------|----------------|
+| **ท่อที่เป็นฉนวน** | ท่อที่มีฉนวนหนา | ผลกระทบจากความร้อนภายนอกมีค่าน้อยมาก |
+| **ระนาบสมมาตร** | ที่รูปทรงสะท้อนอีกด้านหนึ่ง | การไหลมีความสมมาตรแบบกระจกเงา |
+| **โดเมนการคำนวณสั้น** | ไม่มีชั้นขอบเขตความร้อน | การพัฒนาชั้นขอบเขตไม่มีนัยสำคัญ |
+| **แบบจำลองในอุดมคติ** | ละเลยการสูญเสียความร้อน | ศึกษาพฤติกรรมพื้นฐาน |
+
+
+[Diagram: Technical 3D isometric schematic of of heat flux diagram showing zero gradient at wall with temperature gradient parallel to wall only , on a neutral background. , engineering . clear labeling in white font. arrowheads for all vectors (n = red, u = blue). smooth color gradients representing field intensity. clear labeling in font using single letters (v, s, n, u) or short latex equations. , semi-transparent materials for volumes. , , clean , high contrast. velocity field shown as blue vectors (u). in font using single letters or latex equations. with semi-transparent materials. : engineering , , clean. Primary: Velocity field (u) as blue streamlines. Secondary: Pressure scalar field as a surface color gradient. Annotations: Sharp professional arrowheads (n = Red, u = Blue). Clear labels in sans-serif font using single letters or LaTeX. Ray-traced studio lighting on semi-transparent materials. Style: Engineering illustration, high-contrast, white background, 8k resolution.]
+> **Prompt:** Technical 3D isometric schematic of boundary condition schematic on a computational patch. Primary: Velocity field (u) as blue streamlines. Secondary: Pressure scalar field as a surface color gradient. Annotations: Sharp professional arrowheads (n = Red, u = Blue). Clear labels in sans-serif font using single letters or LaTeX. Ray-traced studio lighting on semi-transparent materials. Style: Engineering illustration, high-contrast, white background, 8k resolution.
+
+
+---
+
+## แบบฝึกหัดที่ 3: Boundary Condition แบบ Symmetry เทียบกับ Slip
+
+### ข้อแตกต่างหลัก
+
+| ลักษณะ | Symmetry | Slip |
+|--------|----------|------|
+| **ความหมายทางกายภาพ** | สมมาตรทางเรขาคณิต/การไหลที่แท้จริง | ผนังในอุดมคติที่ไม่มีแรงเสียดทาน |
+| **การจัดการทางคณิตศาสตร์** | ตัวแปรทั้งหมดสะท้อนข้ามระนาบ | บังคับใช้เฉพาะการไหลแนวตั้งฉากเป็นศูนย์ |
+| **Shear Stress** | อาจมี Gradient ในแนวสัมผัส | **Shear Stress เป็นศูนย์** |
+| **การประยุกต์ใช้** | ต้องมีสมมาตรทางกายภาพที่แท้จริง | สามารถใช้กับผนังใดๆ ที่ผลกระทบจากความหนืดมีค่าน้อยมาก |
+
+### Boundary Condition แบบ Symmetry
+
+เงื่อนไข `symmetry` บังคับใช้**สมมาตรทางเรขาคณิตและทางกายภาพ**ข้ามระนาบหรือขอบเขต
+
+#### เงื่อนไขทางคณิตศาสตร์:
+
+1. **ข้อจำกัดความเร็วแนวตั้งฉาก:**
+   $$\mathbf{n} \cdot \mathbf{u} = 0 \quad \text{(ความเร็วแนวตั้งฉาก = 0)}$$
+
+2. **การจัดการสนามสเกลาร์ (อุณหภูมิ, ความดัน):**
+   $$\frac{\partial \phi}{\partial n} = 0 \quad \text{(Gradient แนวตั้งฉากเป็นศูนย์)}$$
+
+3. **พฤติกรรมความเร็วแนวสัมผัส:**
+   $$\frac{\partial \mathbf{u}_t}{\partial n} = 0 \quad \text{(Gradient ของความเร็วแนวสัมผัสเป็นศูนย์)}$$
+
+#### สถานการณ์การประยุกต์ใช้:
+- จำลองเพียงครึ่งหนึ่งของรูปทรงเรขาคณิตที่มีสมมาตร (ท่อ, ช่อง, ปีกเครื่องบิน)
+- การไหลแบบ **Axisymmetric** ที่จำลองภาพตัดขวาง 2D ของปัญหา 3D ที่มีสมมาตรการหมุน
+- การไหลที่ฟิสิกส์และรูปทรงเรขาคณิตสะท้อนกันอย่างสมบูรณ์ข้ามระนาบ
+
+### Boundary Condition แบบ Slip
+
+เงื่อนไข `slip` หรือ **free-slip** แสดงถึงขอบเขตในอุดมคติที่ของไหลสามารถเคลื่อนที่ในแนวสัมผัสได้ แต่ไม่สามารถทะลุผ่านขอบเขตได้
+
+#### เงื่อนไขทางคณิตศาสตร์:
+
+1. **ข้อจำกัดความเร็วแนวตั้งฉาก:**
+   $$\mathbf{n} \cdot \mathbf{u} = 0 \quad \text{(ความเร็วแนวตั้งฉาก = 0)}$$
+
+2. **เงื่อนไข Shear Stress:**
+   $$\mathbf{n} \times (\boldsymbol{\tau} \cdot \mathbf{n}) = 0$$
+
+#### การตีความทางกายภาพ:
+- สมมติให้เป็น **พื้นผิวในอุดมคติ** ที่ผลกระทบจากความหนืดมีค่าน้อยมาก
+- **การไหลตามขอบเขตเป็นไปอย่างไม่มีแรงเสียดทาน**
+- ใช้สำหรับประมาณค่าการไหลแบบไม่หนืด (inviscid flow approximations)
+
+### คำแนะนำในการเลือกใช้
+
+#### ✅ ใช้ Symmetry เมื่อ:
+- รูปทรงเรขาคณิตมี **สมมาตรทางกายภาพที่แท้จริง**
+- จำลองส่วนย่อยของโดเมนสมมาตรขนาดใหญ่เพื่อลดต้นทุนการคำนวณ
+- สนามการไหลคาดว่าจะเป็นแบบสมมาตรแบบกระจกเงา
+- ทั้งสนามความเร็วและสนามสเกลาร์ควรมีสมมาตรข้ามขอบเขต
+
+#### ✅ ใช้ Slip เมื่อ:
+- จำลอง **พื้นผิวที่ขัดมันสูง** หรือหล่อลื่นซึ่งแรงต้านจากความหนืดมีน้อยมาก
+- จำลองขอบเขตในอุดมคติที่ผลกระทบจากผนังถูกละเลยโดยเจตนา
+- ศึกษาการประมาณค่า **การไหลแบบไม่หนืด** ที่ชั้นขอบเขตความหนืดถูกละเลย
+- ต้องการให้มีการไหลแนวสัมผัสอย่างอิสระโดยไม่มีแรงเสียดทาน
+
+
+```mermaid
+graph LR
+    A["Symmetry Plane"] --> B["Physical Mirror"]
+    B --> C["Normal Velocity = 0"]
+    C --> D["Reverse Flow <br/> on Other Side"]
+    
+    E["Slip Wall"] --> F["Frictionless Surface"]
+    F --> G["Normal Velocity = 0"]
+    G --> H["Tangential Flow <br/> Zero Shear"]
+    
+    I["Mathematical <br/> Conditions"] --> J["n · u = 0"]
+    I --> K["n × (τ · n) = 0"]
+    
+    classDef symmetry fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef slip fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    classDef math fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    
+    class A,B,C,D symmetry;
+    class E,F,G,H slip;
+    class I,J,K math;
+    
+    %% Styling Definitions
+    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+```
+
+
+### ข้อควรพิจารณาในทางปฏิบัติ
+
+- **ระนาบ Symmetry**: มีข้อจำกัดมากกว่า ควรใช้เฉพาะเมื่อมีสมมาตรที่แท้จริงในปัญหาทางกายภาพ
+- **เงื่อนไข Slip**: มีความทั่วไปมากกว่า สามารถใช้เป็นแบบจำลองผนังในอุดมคติหรือศึกษาสถานการณ์การไหลที่เรียบง่าย
+
+**การเข้าใจความแตกต่างของ Boundary Condition เหล่านี้เป็นสิ่งสำคัญ** ในการตั้งค่าการจำลอง CFD ที่สมจริงทางกายภาพ และการเลือกการแสดงทางคณิตศาสตร์ที่เหมาะสมสำหรับขอบเขตทางกายภาพของคุณ

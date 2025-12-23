@@ -1,0 +1,533 @@
+## ระบบก๊าซ-ของเหลว
+
+### การจำแนกการไหลของฟองก๊าซ
+
+#### ฟองก๊าซขนาดเล็ก ($Eo < 1$, $We < 1$)
+
+ฟองก๊าซขนาดเล็กทรงกลมเป็นรีจีมที่ง่ายที่สุดในการไหลของก๊าซ-ของเหลว ซึ่งมีลักษณะเฉพาะคือรูปทรงกลมที่เกือบสมบูรณ์แบบและการเปลี่ยนรูปที่ต่ำ
+
+ในรีจีมนี้:
+- **จำนวน Eötvös** ($Eo = \frac{\Delta \rho g d^2}{\sigma}$) มีค่าน้อยกว่า 1 บ่งชี้ว่าแรงตึงผิวมีอำนาจเหนือกว่าแรงลอยตัว
+- **จำนวน Weber** ($We = \frac{\rho_g U^2 d}{\sigma}$) ที่น้อยกว่า 1 หมายความว่าแรงเฉื่อยไม่เพียงพอที่จะทำให้ฟองก๊าซเปลี่ยนรูป
+
+[Diagram: ฟองก๊าซทรงกลมขนาดเล็กที่ลอยอยู่ในของเหลว]
+
+**สมการควบคุมการเคลื่อนที่:**
+$$\mathbf{f}_D = \frac{1}{8} C_D \rho_l \pi d^2 |\mathbf{u}_g - \mathbf{u}_l| (\mathbf{u}_g - \mathbf{u}_l)$$
+
+โดยที่:
+- $\mathbf{f}_D$ = แรงลากต้านที่กระทำต่อฟองก๊าซ
+- $C_D$ = สัมประสิทธิ์การลากต้าน
+- $\rho_l$ = ความหนาแน่นของเฟสของเหลว
+- $d$ = เส้นผ่านศูนย์กลางฟองก๊าซ
+- $\mathbf{u}_g, \mathbf{u}_l$ = ความเร็วของเฟสก๊าซและของเหลว
+
+**สัมประสิทธิ์การลากต้าน** $C_D$ สำหรับฟองก๊าซทรงกลมทำตามสหสัมพันธ์ Schiller-Naumann:
+$$C_D = \begin{cases}
+24(1 + 0.15Re_g^{0.687})/Re_g & \text{for } Re_g < 1000 \\
+0.44 & \text{for } Re_g \geq 1000
+\end{cases}$$
+
+**การถ่ายเทความร้อน:**
+$$Nu = 2 + 0.6Re^{1/2}Pr^{1/3}$$
+
+นี่คือสหสัมพันธ์ Ranz-Marshall แบบคลาสสิก โดยที่จำนวน Nusselt ($Nu = \frac{h d}{k}$) ขึ้นอยู่กับจำนวน Reynolds และ Prandtl
+
+```cpp
+// OpenFOAM implementation for small bubbles
+phases
+{
+    gas
+    {
+        type            gas;
+        equationOfState perfectGas;
+        thermodynamics  hConst;
+        transport       sutherland;
+    }
+    
+    liquid
+    {
+        type            incompressible;
+        equationOfState rhoConst;
+        thermodynamics  hConst;
+        transport       const;
+    }
+}
+
+phaseInteraction
+{
+    dragModel       Schiller-Naumann;
+    liftModel       Saffman-Mei;
+    heatTransferModel   Ranz-Marshall;
+    
+    Schiller-NaumannCoeffs
+    {
+        switch1 1000;
+        Cd1     24;
+        Cd2     0.44;
+    }
+}
+```
+
+**การเลือกโมเดล:**
+- **Schiller-Naumann**: ให้การทำนายแรงลากต้านที่แม่นยำสำหรับอนุภาคทรงกลม
+- **Saffman-Mei**: จับแรงยกขึ้นบนอนุภาคทรงกลมขนาดเล็ก
+- **Ranz-Marshall**: ได้รับการตรวจสอบความถูกต้องอย่างกว้างขวาง
+
+#### ฟองก๊าซที่เปลี่ยนรูป ($1 < Eo < 4$, $We > 1$)
+
+ฟองก๊าซที่เปลี่ยนรูปแสดงความแตกต่างจากรูปทรงกลมอย่างมีนัยสำคัญ โดยมีรูปทรงแบบรีและรูปแบบการไหลเวียนภายใน
+
+[Diagram: ฟองก๊าซรูปรีที่เปลี่ยนรูประหว่างการเคลื่อนที่]
+
+**ช่วงของตัวเลขที่ไม่มิติ:**
+- **จำนวน Eötvös** $1 < Eo < 4$: ผลของแรงลอยตัวเริ่มแข่งขันกับแรงตึงผิว
+- **จำนวน Weber** $We > 1$: แรงเฉื่อยเพียงพอที่จะทำให้รูปร่างฟองก๊าซเปลี่ยนแปลง
+
+**สหสัมพันธ์การลากต้าน** ของ Tomiyama:
+$$C_D = \max\left[\min\left\{\frac{24}{Re_g}(1 + 0.15Re_g^{0.687}), \frac{72}{Re_g}\right\}, \frac{8}{3}\frac{Eo}{Eo + 4}\right]$$
+
+**แรงยก:**
+$$\mathbf{f}_L = C_L \rho_l V_b (\mathbf{u}_g - \mathbf{u}_l) \times (\nabla \times \mathbf{u}_l)$$
+
+โดยที่สัมประสิทธิ์แรงยก $C_L$ สามารถเป็นค่าลบสำหรับฟองก๊าซขนาดใหญ่ นำไปสู่ปรากฏการณ์ "wall-peaking"
+
+**การเปลี่ยนแปลงเส้นผ่านศูนย์กลาง** ตามมาตราส่วน Hinze:
+$$d_{max} = C \left(\frac{\sigma}{\rho_l}\right)^{3/5} \varepsilon^{-2/5}$$
+
+โดยที่ $\varepsilon$ แทนอัตราการสลายตัวของความปั่นพลุ้งและ $C$ เป็นค่าคงที่จากการทดลอง
+
+```cpp
+// OpenFOAM implementation for deforming bubbles
+phaseInteraction
+{
+    dragModel       Tomiyama;
+    liftModel       Tomiyama;
+    diameterModel   HinzeScale;
+    virtualMassModel    constant;
+    
+    TomiyamaCoeffs
+    {
+        C1          0.44;
+        C2          24.0;
+        C3          0.15;
+        C4          6.0;
+    }
+    
+    HinzeScaleCoeffs
+    {
+        Cmax        0.89;
+        Cbreakup    1.6;
+    }
+    
+    constantVirtualMassCoeffs
+    {
+        Cvm         0.5;
+    }
+}
+```
+
+**การเลือกโมเดล:**
+- **Tomiyama drag**: จับการเพิ่มขึ้นของสัมประสิทธิ์การลากต้านเนื่องจากการเปลี่ยนรูป
+- **Tomiyama lift**: คำนึงถึงการเปลี่ยนเครื่องหมายของแรงยก
+- **Hinze scale**: ทำนายเส้นผ่านศูนย์กลางฟองก๊าซสมดุล
+- **Virtual mass**: จำเป็นเนื่องจากผลของมวลเพิ่มในระหว่างการเร่งความเร็ว
+
+#### ฟองก๊าซแคป ($Eo > 4$, $We > 4$)
+
+ฟองก๊าซแคปเป็นรีจีมที่เปลี่ยนรูปมากที่สุด ซึ่งมีลักษณะเฉพาะคือรูปทรงเห็ดหรือคล้ายแคป
+
+[Diagram: ฟองก๊าซแคปทรงเห็ดกับ wake flow ที่ซับซ้อน]
+
+**ลักษณะทางฟิสิกส์:**
+- **จำนวน Eötvös สูง** ($Eo > 4$): แรงลอยตัวมีอำนาจเหนือแรงตึงผิว
+- **จำนวน Weber ใหญ่** ($We > 4$): การเปลี่ยนรูปอย่างมีนัยสำคัญเนื่องจากผลของความเฉื่อย
+
+**การไหลรอบฟองก๊าซแคป** แสดงโครงสร้าง wake ที่ซับซ้อนและการหลุดออกของ vortex
+
+**สัมประสิทธิ์การลากต้าน**:
+$$C_D \approx \frac{8}{3}$$
+
+สำหรับจำนวน Reynolds สูง การลากต้านจะไม่ขึ้นอยู่กับขนาดและความเร็วของฟองก๊าซเป็นอย่างมีนัยสำคัญ
+
+**แรงกระจายความปั่นพลุ้ง**:
+$$\mathbf{f}_{TD} = -C_{TD} \rho_l k \nabla \alpha_g$$
+
+โดยที่ $C_{TD}$ เป็นสัมประสิทธิ์การกระจายความปั่นพลุ้งและ $k$ เป็นพลังงานจลน์ของความปั่นพลุ้ง
+
+**การเปลี่ยนแปลงความหนาแน่นของพื้นที่อินเตอร์เฟซ**:
+$$\frac{\partial (\alpha_g a_i)}{\partial t} + \nabla \cdot (\alpha_g a_i \mathbf{u}_g) = S_{coalescence} + S_{breakup}$$
+
+โดยที่ $a_i$ แทนพื้นที่อินเตอร์เฟซต่อหน่วยปริมาตร
+
+```cpp
+// OpenFOAM implementation for cap bubbles
+phaseInteraction
+{
+    dragModel       Tomiyama;
+    liftModel       Tomiyama;
+    turbulentDispersionModel    Burns;
+    interfacialAreaModel    gradient;
+    
+    BurnsCoeffs
+    {
+        Ctd         1.0;
+        D           1.0;
+    }
+    
+    gradientInterfacialAreaCoeffs
+    {
+        Cia         1.0;
+    }
+    
+    wallLubricationModel    Antal;
+    
+    AntalCoeffs
+    {
+        Cw1         1.0;
+        Cw2         0.1;
+    }
+}
+```
+
+**ข้อควรพิจารณาในการสร้างโมเดล:**
+- **โมเดล Tomiyama**: ใช้ได้ทั่วทั้งสเปกตรัมการเปลี่ยนรูป
+- **Burns turbulent dispersion**: จำเป็นสำหรับการจับการผสมในการไหลที่มีจำนวน Reynolds สูง
+- **Gradient area model**: คำนึงถึงพลวัตของอินเตอร์เฟซ
+- **Wall lubrication**: สำคัญสำหรับการจับการกระจายฟองก๊าซใกล้ผนัง
+
+### การเลือกรีจีมการไหล
+
+#### การไหลของฟองก๊าซแบบเอกพันธ์
+
+การไหลของฟองก๊าซแบบเอกพันธ์เป็นรีจีมที่เสถียรที่สุดซึ่งฟองก๊าซกระจายอย่างสม่ำเสมอทั่วทั้งเฟสของเหลว
+
+**เงื่อนไข**: **อัตราส่วนปริมาตรก๊าซต่ำกว่า 0.1** โดยปฏิกิริยาระหว่างฟองก๊าซมีค่าต่ำ
+
+[Diagram: การกระจายฟองก๊าซแบบเอกพันธ์ในเฟสของเหลว]
+
+**สมการควบคุม:**
+
+**สมการความต่อเนื่อง:**
+$$\frac{\partial (\alpha_k \rho_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k) = 0 \quad \text{for } k = g,l$$
+
+**สมการโมเมนตัม:**
+$$\frac{\partial (\alpha_k \rho_k \mathbf{u}_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \mathbf{u}_k) = -\alpha_k \nabla p + \nabla \cdot \boldsymbol{\tau}_k + \alpha_k \rho_k \mathbf{g} + \mathbf{M}_k$$
+
+โดยที่ $\mathbf{M}_k$ แทนการถ่ายโอนโมเมนตัมระหว่างเฟส
+
+**การสร้างโมเดลความปั่นพลุ้ง** ใช้แนวทางแบบผสม:
+
+```cpp
+turbulence
+{
+    type            kEpsilon;
+    
+    turbulence      on;
+    printCoeffs     on;
+    
+    kEpsilonCoeffs
+    {
+        Cmu         0.09;
+        C1          1.44;
+        C2          1.92;
+        sigmaEps    1.3;
+        sigmaK      1.0;
+    }
+    
+    phaseModel
+    {
+        continuous     liquid;
+        dispersed      gas;
+        
+        dispersedMultiphaseTurbulence
+        {
+            type        continuousGasEuler;
+            
+            sigma        1.0;
+            Cmu          0.09;
+            Prt          1.0;
+        }
+    }
+}
+```
+
+**การเพิ่มประสิทธิภาพการถ่ายเทความร้อน:**
+$$h_{eff} = h_{liquid}(1 + \beta \alpha_g^{2/3})$$
+
+โดยที่ $\beta$ คำนึงถึงการเพิ่มประสิทธิภาพการผสมที่เกิดจากฟองก๊าซ
+
+```cpp
+simulationType  twoPhaseEulerFoam;
+
+solver
+{
+    p               GAMG;
+    pFinal          GAMG;
+    U               smoothSolver;
+    T               smoothSolver;
+    alpha           smoothSolver;
+}
+
+relaxationFactors
+{
+    fields
+    {
+        p           0.3;
+        U           0.7;
+        T           0.7;
+        alpha       0.7;
+    }
+    equations
+    {
+        p           1;
+        U           0.8;
+        T           0.8;
+        alpha       0.8;
+    }
+}
+```
+
+**ข้อควรพิจารณา:**
+- **Standard k-ε**: เหมาะสมสำหรับเฟสของเหลวต่อเนื่อง
+- **Schiller-Naumann drag**: แม่นยำสำหรับฟองก๊าซที่เป็นทรงกลมเป็นส่วนใหญ่
+- **Ranz-Marshall**: ได้รับการยอมรับอย่างกว้างขวาง
+
+#### การไหลของฟองก๊าซแบบไม่เอกพันธ์
+
+การไหลของฟองก๊าซแบบไม่เอกพันธ์เกิดขึ้นเมื่ออัตราส่วนปริมาตรก๊าซเพิ่มขึ้นถึง **ช่วง 0.1-0.3**
+
+[Diagram: การกระจายฟองก๊าซแบบไม่เอกพันธ์ที่มีการรวมตัวและแตกตัว]
+
+**ลักษณะเฉพาะ:**
+- ปฏิกิริยาระหว่างฟองก๊าซผ่าน **กระบวนการรวมตัวและแตกตัว** ที่สำคัญ
+- การเปลี่ยนแปลงของการกระจายขนาดฟองก๊าซ
+
+**สมการสมดุลประชากร (PBE):**
+$$\frac{\partial n(v)}{\partial t} + \nabla \cdot [\mathbf{u}_g n(v)] + \frac{\partial [G(v) n(v)]}{\partial v} = B_{breakup} - D_{breakup} + B_{coalescence} - D_{coalescence}$$
+
+**โมเดลการแตกตัว** ของ Luo และ Svendsen:
+$$B_{breakup} = \int_v^{\infty} \beta(v,v') \Omega_{breakup}(v') n(v') \, dv'$$
+
+กับความถี่การแตกตัว:
+$$\Omega_{breakup} = 0.923(1 - \alpha_g) \frac{\varepsilon^{1/3}}{d^{2/3}} \exp\left(-\frac{U_{crit}^2}{\varepsilon^{2/3} d^{2/3}}\right)$$
+
+**โมเดลการรวมตัว** ของ Coulaloglou และ Tavlarides:
+$$\Omega_{coalescence} = C_{co} \frac{\pi}{4} (d_i + d_j)^2 \mathbf{u}_{t,ij} \exp\left(-\frac{t_{ij}}{t_{c,ij}}\right)$$
+
+```cpp
+turbulence
+{
+    type            mixtureKEpsilon;
+    
+    mixtureKEpsilonCoeffs
+    {
+        Cmu         0.09;
+        C1          1.44;
+        C2          1.92;
+        sigmaEps    1.3;
+        sigmaK      1.0;
+        muMixture   on;
+        phaseTurbulence  on;
+    }
+    
+    dispersedTurbulence
+    {
+        type        dispersedTurbulenceModel;
+        
+        dispersedMultiphaseTurbulence
+        {
+            type        dispersedEuler;
+            sigma        1.0;
+            Cmu          0.09;
+            Prt          1.0;
+        }
+    }
+}
+```
+
+```cpp
+populationBalance
+{
+    populationBalanceModel    sizeGroup;
+    
+    sizeGroups
+    {
+        SG1 { d: 0.001; x: 0.2; }
+        SG2 { d: 0.002; x: 0.3; }
+        SG3 { d: 0.003; x: 0.3; }
+        SG4 { d: 0.004; x: 0.2; }
+    }
+    
+    coalescenceModels
+    {
+        LuoCoalescence
+        {
+            Cco         0.1;
+            Co          0.0;
+        }
+    }
+    
+    breakupModels
+    {
+        LuoBreakup
+        {
+            C1          0.923;
+            C2          1.0;
+            C3          2.45;
+        }
+    }
+}
+```
+
+**การเลือกโมเดล:**
+- **Tomiyama drag**: คำนึงถึงผลของการเปลี่ยนรูปตามขนาด
+- **Population balance**: จับพลวัตของการรวมตัว/แตกตัว
+- **Interfacial area transport**: แม่นยำกว่าโมเดลที่ใช้การไล่ระดับ
+
+#### การไหลแบบชัก (Slug Flow)
+
+การไหลแบบชักเป็นหนึ่งในรีจีมการไหลที่ท้าทายที่สุด ซึ่งมีลักษณะเฉพาะคือ **อัตราส่วนปริมาตรก๊าซเกิน 0.3**
+
+[Diagram: โครงสร้างการไหลแบบชักแสดงฟองก๊าซ Taylor และโซนต่างๆ]
+
+**ลักษณะเฉพาะ:**
+- **ฟองก๊าซ Taylor** ขนาดใหญ่ครอบงำโครงสร้างการไหล
+- ฟองก๊าซที่ยืดออกครอบคลุมส่วนสำคัญของหน้าตัดท่อ
+
+**โครงสร้างการไหล** ประกอบด้วยสามโซนที่แตกต่างกัน:
+1. **โซนฟองก๊าซ Taylor**: ฟองก๊าซขนาดใหญ่กับฟิล์มของเหลว
+2. **โซนของเหลวชัก**: การแขวนฟองก๊าซขนาดเล็กในของเหลว
+3. **โซนเปลี่ยนผ่าน**: โซนการผสมที่แกว่ง
+
+**สมการโมเมนตัมแบบสองของไหล:**
+$$\frac{\partial (\alpha_k \rho_k \mathbf{u}_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \mathbf{u}_k) = -\alpha_k \nabla p + \nabla \cdot \boldsymbol{\tau}_k + \alpha_k \rho_k \mathbf{g} + \mathbf{M}_k + \mathbf{M}_{k}^{wall}$$
+
+โดยที่ $\mathbf{M}_{k}^{wall}$ แทนการถ่ายโอนโมเมนตัมผนัง
+
+**สหสัมพันธ์ความหนาฟิล์ม** (Frokowiak et al.):
+$$\delta_f = 0.2 D \left(\frac{\rho_l g D^2}{\sigma}\right)^{0.25} \left(\frac{U_{TB}}{\sqrt{gD}}\right)^{0.5}$$
+
+**การลากต้านที่ขึ้นอยู่กับรูปร่าง:**
+$$C_D = \frac{16}{Re_{TB}} \left[1 + 0.15Re_{TB}^{0.687}\right] + \frac{2}{3} \frac{D}{L_{TB}}$$
+
+**สัมประสิทธิ์มวลเสมือน:**
+$$C_{vm} = 0.5 + 0.3 \frac{L_{TB}}{D}$$
+
+```cpp
+phaseInteraction
+{
+    dragModel       shapeDependent;
+    virtualMassModel    shapeDependent;
+    wallLubricationModel    Frank;
+    
+    shapeDependentDragCoeffs
+    {
+        TaylorBubble
+        {
+            C1          16.0;
+            C2          2.0;
+            n           0.687;
+        }
+        
+        SmallBubble
+        {
+            switch1     1000;
+            Cd1         24.0;
+            Cd2         0.44;
+        }
+    }
+    
+    shapeDependentVirtualMassCoeffs
+    {
+        CvmBase         0.5;
+        aspectRatioExp  0.3;
+    }
+    
+    FrankCoeffs
+    {
+        C1              0.01;
+        C2              0.001;
+        Cmu             0.09;
+    }
+}
+
+phases (gas TaylorBubble liquid);
+
+interfaceProperties
+{
+    type            interfaceCompression;
+    compressionCoeff    1.0;
+    interfaceAlpha      0.5;
+    
+    surfaceTensionModel   constant;
+    constantSurfaceTensionCoeffs
+    {
+        sigma         0.072;
+    }
+}
+```
+
+```cpp
+solver
+{
+    p               GAMG
+    {
+        smoother         GaussSeidel;
+        nSweeps         1;
+        tolerance       1e-6;
+        relTol          0.01;
+    };
+    
+    pFinal          GAMG
+    {
+        smoother         GaussSeidel;
+        nSweeps         2;
+        tolerance       1e-8;
+        relTol          0;
+    };
+    
+    U               smoothSolver
+    {
+        smoother         GaussSeidel;
+        nSweeps         2;
+        tolerance       1e-6;
+        relTol          0;
+    };
+    
+    alpha           smoothSolver
+    {
+        smoother         GaussSeidel;
+        nSweeps         2;
+        tolerance       1e-8;
+        relTol          0;
+    };
+}
+
+relaxationFactors
+{
+    fields
+    {
+        p           0.2;
+        U           0.5;
+        alpha       0.5;
+    }
+    equations
+    {
+        p           0.8;
+        U           0.7;
+        alpha       0.7;
+    }
+}
+```
+
+**ความท้าทายในการสร้างโมเดล:**
+- **Shape-dependent drag**: จำเป็นสำหรับการจับพลวัตของฟองก๊าซ Taylor
+- **Virtual mass**: สำคัญเนื่องจากการเร่งความเร็วฟองก๊าซขนาดใหญ่
+- **Wall effects**: ฟิล์มของเหลวและการหล่อลื่นผนังมีผลต่อการไหลอย่างมีนัยสำคัญ
+
+**การตรวจสอบความถูกต้อง:**
+- **การกระจาย void fraction**: โปรไฟล์รัศมีและแกน
+- **การสูญเสียแรงดัน**: การสร้างโมเดลหน่วยเซลล์
+- **การวิเคราะห์ความถี่**: ความถี่ลักษณะของฟองก๊าซและชัก
+- **ความหนาฟิล์ม**: การตรวจสอบความถูกต้องจากการทดลอง

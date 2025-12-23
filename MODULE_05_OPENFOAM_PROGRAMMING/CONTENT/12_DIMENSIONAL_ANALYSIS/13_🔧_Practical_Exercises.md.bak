@@ -1,0 +1,541 @@
+# 🔧 แบบฝึกปฏิบัติขั้นสูง: ระบบมิติและการขยาย OpenFOAM
+
+## แบบฝึกปฏิบัติที่ 1: เครื่องมือตรวจสอบมิติ (Dimension Inspector Utility)
+
+### **วัตถุประสงค์**
+สร้าง Utility สำหรับสแกนและตรวจสอบความสม่ำเสมอของมิติของ Field ทั้งหมดใน OpenFOAM Case
+
+### **ฟังก์ชันหลัก**
+- **สแกนไดเรกทอรี**: `0/`, `system/`, และ `constant/`
+- **วิเคราะห์ Field ทุกประเภท**: volScalarField, volVectorField, surfaceScalarField
+- **แสดง Object มิติ** และการตรวจสอบความสม่ำเสมอ
+
+[Diagram: Dimension Inspector แสดงภาพรวมของ Field ทั้งหมดใน Case พร้อมมิติและหน่วย]
+
+### **การใช้งาน**
+```bash
+dimensionInspector <caseDirectory>
+```
+
+### **โค้ดพื้นฐาน**
+```cpp
+// dimensionInspector.C
+#include "fvCFD.H"
+#include "dictionary.H"
+#include "dimensionSet.H"
+#include "volFields.H"
+#include "surfaceFields.H"
+
+int main(int argc, char *argv[])
+{
+    #include "setRootCase.H"
+    #include "createTime.H"
+    #include "createMesh.H"
+
+    // รับไฟล์ Field ทั้งหมดในไดเรกทอรี 0/
+    const fileName fieldDir(runTime.timePath());
+    const wordList fieldNames(mesh.objectNames(fieldDir));
+
+    Info << "=== Dimension Inspector Report ===" << nl << nl;
+
+    forAll(fieldNames, i)
+    {
+        const word& fieldName = fieldNames[i];
+        const word fieldType = mesh.type(fieldDir/fieldName);
+
+        Info << "Field: " << fieldName << nl;
+        Info << "Type: " << fieldType << nl;
+
+        // อ่านมิติของ Field
+        if (fieldType == "volScalarField")
+        {
+            volScalarField field
+            (
+                IOobject
+                (
+                    fieldName,
+                    runTime.timeName(),
+                    mesh,
+                    IOobject::MUST_READ,
+                    IOobject::NO_WRITE
+                ),
+                mesh
+            );
+            Info << "Dimensions: " << field.dimensions() << nl;
+        }
+        else if (fieldType == "volVectorField")
+        {
+            volVectorField field
+            (
+                IOobject
+                (
+                    fieldName,
+                    runTime.timeName(),
+                    mesh,
+                    IOobject::MUST_READ,
+                    IOobject::NO_WRITE
+                ),
+                mesh
+            );
+            Info << "Dimensions: " << field.dimensions() << nl;
+        }
+        // เพิ่มประเภท Field อื่นๆ ตามต้องการ
+        Info << nl;
+    }
+
+    return 0;
+}
+```
+
+---
+
+## แบบฝึกปฏิบัติที่ 2: เครื่องมือแปลงหน่วย (Unit Converter Utility)
+
+### **วัตถุประสงค์**
+สร้าง Utility สำหรับแปลง Field ระหว่างระบบหน่วย (SI → Imperial) โดยรักษาความถูกต้องทางฟิสิกส์
+
+### **ปัจจัยการแปลงหน่วย**
+| ปริมาณ | SI → Imperial | ค่าแปลง |
+|----------|---------------|-----------|
+| ความยาว | m → ft | 3.28084 |
+| มวล | kg → lb | 2.20462 |
+| เวลา | s → s | 1.0 |
+| อุณหภูมิ | K → R | 1.8 |
+| มุม | rad → deg | 57.2958 |
+
+[Diagram: การแปลงหน่วยจาก SI เป็น Imperial โดยคงค่ามิติไว้]
+
+### **Framework การแปลง**
+```cpp
+// unitConverter.H
+#ifndef unitConverter_H
+#define unitConverter_H
+
+#include "dimensionSet.H"
+#include "dictionary.H"
+
+class unitConverter
+{
+private:
+    // ปัจจัยการแปลง (จาก SI เป็น Imperial)
+    static const scalar lengthConversion_;
+    static const scalar massConversion_;
+    static const scalar timeConversion_;
+    static const scalar temperatureConversion_;
+    static const scalar angleConversion_;
+
+public:
+    // แปลง dimensionSet
+    static dimensionSet convertDimensions
+    (
+        const dimensionSet& siDimensions,
+        const word& fromSystem = "SI",
+        const word& toSystem = "imperial"
+    );
+
+    // แปลงค่า Scalar
+    static scalar convertValue
+    (
+        const scalar value,
+        const dimensionSet& dimensions,
+        const word& fromSystem = "SI",
+        const word& toSystem = "imperial"
+    );
+};
+
+#endif
+```
+
+### **การคำนวณการแปลง**
+```cpp
+// unitConverter.C
+#include "unitConverter.H"
+
+const scalar unitConverter::lengthConversion_ = 3.28084;     // m to ft
+const scalar unitConverter::massConversion_ = 2.20462;      // kg to lb
+const scalar unitConverter::timeConversion_ = 1.0;          // s to s (เหมือนเดิม)
+const scalar unitConverter::temperatureConversion_ = 1.8;    // K to R
+const scalar unitConverter::angleConversion_ = 57.2958;      // rad to deg
+
+scalar unitConverter::convertValue
+(
+    const scalar value,
+    const dimensionSet& dimensions,
+    const word& fromSystem,
+    const word& toSystem
+)
+{
+    if (fromSystem == toSystem)
+    {
+        return value;
+    }
+
+    scalar conversionFactor = 1.0;
+
+    if (fromSystem == "SI" && toSystem == "imperial")
+    {
+        // ใช้ปัจจัยการแปลงมิติ
+        conversionFactor *= pow(lengthConversion_, dimensions[dimLength]);
+        conversionFactor *= pow(massConversion_, dimensions[dimMass]);
+        conversionFactor *= pow(timeConversion_, dimensions[dimTime]);
+        conversionFactor *= pow(temperatureConversion_, dimensions[dimTemperature]);
+        conversionFactor *= pow(angleConversion_, dimensions[dimCurrent]); // สำหรับมุม
+    }
+
+    return value * conversionFactor;
+}
+```
+
+---
+
+## แบบฝึกปฏิบัติที่ 3: Solver ไร้มิติ (Non-Dimensional Solver)
+
+### **พื้นฐานทฤษฎี**
+สำหรับการไหลแบบไม่บีบอัด สมการควบคุมสามารถทำให้ไร้มิติได้โดยใช้สเกลลักษณะเฉพาะ:
+
+**สมการความต่อเนื่อง:**
+$$\nabla \cdot \mathbf{u}^* = 0$$
+
+**สมการโมเมนตัม:**
+$$\frac{\partial \mathbf{u}^*}{\partial t^*} + (\mathbf{u}^* \cdot \nabla^*) \mathbf{u}^* = -\nabla^* p^* + \frac{1}{Re} \nabla^{*2} \mathbf{u}^*$$
+
+โดยที่:
+- $\mathbf{u}^* = \mathbf{u}/U_{ref}$ (ความเร็วไร้มิติ)
+- $p^* = p/(\rho U_{ref}^2)$ (ความดันไร้มิติ)
+- $t^* = t U_{ref}/L_{ref}$ (เวลาไร้มิติ)
+- $Re = \frac{\rho U_{ref} L_{ref}}{\mu}$ (จำนวนเรย์โนลด์)
+
+[Diagram: การเปลี่ยนแปลงตัวแปรมิติเป็นตัวแปรไร้มิติใน CFD]
+
+### **ขั้นตอนการทำให้ไร้มิติ**
+1. **เลือกสเกลอ้างอิง**: $U_{ref}$, $L_{ref}$, $\rho$, $\mu$
+2. **กำหนดจำนวนไร้มิติ**: $Re$, $Fr$, $We$ เป็นต้น
+3. **ทำให้สมการไร้มิติ**: แทนค่าตัวแปรจริงด้วยตัวแปรไร้มิติ
+4. **ปรับขอบเขต**: เปลี่ยนเงื่อนไขขอบเขตเป็นรูปแบบไร้มิติ
+
+### **โครงสร้าง Solver ที่แก้ไข**
+```cpp
+// icoFoamNonDim.C
+#include "fvCFD.H"
+#include "pimpleControl.H"
+
+int main(int argc, char *argv[])
+{
+    #include "setRootCase.H"
+    #include "createTime.H"
+    #include "createMesh.H"
+    #include "createControl.H"
+    #include "createFields.H"
+    #include "initContinuityErrs.H"
+
+    // อ่านพารามิเตอร์ไร้มิติ
+    const scalar Re = readScalar(mesh.lookupObject<dictionary>("transportProperties").lookup("Re"));
+    const dimensionedScalar Uref(mesh.lookupObject<dictionary>("transportProperties").lookup("Uref"));
+    const dimensionedScalar Lref(mesh.lookupObject<dictionary>("transportProperties").lookup("Lref"));
+
+    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+    Info<< "\nStarting time loop\n" << endl;
+
+    while (runTime.loop())
+    {
+        Info<< "Time = " << runTime.timeName() << nl << endl;
+
+        #include "CourantNo.H"
+        #include "UEqn.H"
+
+        // --- PISO loop
+        while (pimple.correct())
+        {
+            #include "pEqn.H"
+        }
+
+        runTime.write();
+    }
+
+    Info<< "End\n" << endl;
+
+    return 0;
+}
+```
+
+### **OpenFOAM Code Implementation: สมการโมเมนตัมไร้มิติ**
+```cpp
+// UEqn.H - แก้ไขสำหรับรูปแบบไร้มิติ
+{
+    // สมการโมเมนตัม (ไร้มิติ)
+    fvVectorMatrix UEqn
+    (
+        fvm::ddt(U)
+      + fvm::div(phi, U)
+      - fvm::laplacian(1.0/Re, U)  // 1/Re แทนความหนืดลักษณะ
+    );
+
+    UEqn.relax();
+
+    if (pimple.momentumPredictor())
+    {
+        solve(UEqn == -fvc::grad(p));
+    }
+}
+```
+
+### **OpenFOAM Code Implementation: สมการความดันไร้มิติ**
+```cpp
+// pEqn.H - แก้ไขสำหรับรูปแบบไร้มิติ
+{
+    volScalarField rAU(1.0/UEqn.A());
+    surfaceScalarField rAUf(fvc::interpolate(rAU));
+
+    U = rAU*UEqn.H();
+    surfaceScalarField phiU("phiU", (fvc::interpolate(U) & mesh.Sf()));
+
+    adjustPhi(phiU, U, p);
+
+    // การแก้ไขความดันไร้มิติ
+    for (int nonOrth=0; nonOrth<=pimple.nNonOrthCorr(); nonOrth++)
+    {
+        fvScalarMatrix pEqn
+        (
+            fvm::laplacian(rAUf, p) == fvc::div(phiU)
+        );
+
+        pEqn.setReference(pRefCell, pRefValue);
+        pEqn.solve();
+
+        if (nonOrth == pimple.nNonOrthCorr())
+        {
+            phi -= pEqn.flux();
+        }
+    }
+
+    #include "continuityErrs.H"
+
+    U -= rAU*fvc::grad(p);
+    U.correctBoundaryConditions();
+}
+```
+
+---
+
+## แบบฝึกปฏิบัติที่ 4: มิติที่กำหนดเองสำหรับแม่เหล็กไฟฟ้า
+
+### **มิติมาตรฐานของ OpenFOAM**
+| มิติ | สัญลักษณ์ | ความหมาย |
+|------|------------|------------|
+| มวล | $[M]$ | Mass |
+| ความยาว | $[L]$ | Length |
+| เวลา | $[T]$ | Time |
+| อุณหภูมิ | $[\Theta]$ | Temperature |
+| ปริมาณ | $[N]$ | Amount |
+| กระแส | $[I]$ | Current |
+
+### **มิติเพิ่มเติมสำหรับแม่เหล็กไฟฟ้า**
+- ประจุไฟฟ้า $[Q]$ - Electric Charge
+- ฟลักซ์แม่เหล็ก $[\Phi]$ - Magnetic Flux
+
+[Diagram: การขยายระบบมิติของ OpenFOAM ให้รองรับฟิสิกส์แม่เหล็กไฟฟ้า]
+
+### **ปริมาณแม่เหล็กไฟฟ้าและมิติ**
+| ปริมาณ | สัญลักษณ์ | มิติ | หน่วย SI |
+|----------|------------|----------------|----------|
+| สนามไฟฟ้า | $\mathbf{E}$ | $[M][L][T]^{-3}[I]^{-1}[Q]$ | V/m |
+| สนามแม่เหล็ก | $\mathbf{B}$ | $[M][T]^{-2}[I]^{-1}[\Phi]$ | Tesla |
+| การกระจายตัวไฟฟ้า | $\mathbf{D}$ | $[M]^{-3}[L]^{-2}[T][I][Q]$ | C/m² |
+| ความเข้มสนามแม่เหล็ก | $\mathbf{H}$ | $[L]^{-1}[\Phi]^{-1}$ | A/m |
+| ความหนาแน่นกระแส | $\mathbf{J}$ | $[L]^{-2}[I]$ | A/m² |
+
+### **การนำมิติชุดที่กำหนดเองมาใช้งาน**
+```cpp
+// electromagneticDimensions.H
+#ifndef electromagneticDimensions_H
+#define electromagneticDimensions_H
+
+#include "dimensionSet.H"
+#include "dictionary.H"
+
+namespace Foam
+{
+    // มิติแม่เหล็กไฟฟ้าที่กำหนดเอง
+    enum emDimensions
+    {
+        dimCharge = 6,     // ประจุไฟฟ้า [Q]
+        dimFlux   = 7      // ฟลักซ์แม่เหล็ก [Φ]
+    };
+
+    // ชุดมิติแม่เหล็กไฟฟ้า
+    class emDimensionSet
+    :
+        public dimensionSet
+    {
+    public:
+        // Constructors
+        emDimensionSet();
+        emDimensionSet
+        (
+            scalar mass,
+            scalar length,
+            scalar time,
+            scalar temperature,
+            scalar moles,
+            scalar current,
+            scalar charge,
+            scalar flux
+        );
+
+        // เมธอดการเข้าถึง
+        scalar charge() const;
+        scalar flux() const;
+        
+        // ปริมาณแม่เหล็กไฟฟ้าทั่วไป
+        static emDimensionSet electricField();
+        static emDimensionSet magneticField();
+        static emDimensionSet electricDisplacement();
+        static emDimensionSet magneticFieldIntensity();
+        static emDimensionSet currentDensity();
+    };
+}
+
+#endif
+```
+
+### **OpenFOAM Code Implementation: ปริมาณแม่เหล็กไฟฟ้า**
+```cpp
+// electromagneticDimensions.C
+#include "electromagneticDimensions.H"
+
+namespace Foam
+{
+    // ปริมาณแม่เหล็กไฟฟ้าทั่วไป
+    emDimensionSet emDimensionSet::electricField()
+    {
+        return emDimensionSet(1, 1, -3, 0, 0, -1, 1, 0);  // V/m
+    }
+
+    emDimensionSet emDimensionSet::magneticField()
+    {
+        return emDimensionSet(1, 0, -2, 0, 0, -1, 0, 1);  // Tesla
+    }
+
+    emDimensionSet emDimensionSet::electricDisplacement()
+    {
+        return emDimensionSet(-3, -2, 1, 0, 0, 1, 1, 0);  // C/m²
+    }
+
+    emDimensionSet emDimensionSet::magneticFieldIntensity()
+    {
+        return emDimensionSet(0, -1, 0, 0, 0, 0, 0, -1);  // A/m
+    }
+
+    emDimensionSet emDimensionSet::currentDensity()
+    {
+        return emDimensionSet(0, -2, 0, 0, 0, 1, 0, 0);  // A/m²
+    }
+}
+```
+
+### **สมการของแมกซ์เวลล์ใน OpenFOAM**
+
+**สมการของแมกซ์เวลล์:**
+1. $\nabla \times \mathbf{E} = -\frac{\partial \mathbf{B}}{\partial t}$ (กฎของฟาราเดย์)
+2. $\nabla \times \mathbf{H} = \mathbf{J} + \frac{\partial \mathbf{D}}{\partial t}$ (กฎของแอมแปร์-แมกซ์เวลล์)
+
+### **OpenFOAM Code Implementation: Maxwell Solver**
+```cpp
+// maxwellFoam.C
+#include "fvCFD.H"
+#include "electromagneticDimensions.H"
+#include "electromagneticFields.H"
+
+int main(int argc, char *argv[])
+{
+    #include "setRootCase.H"
+    #include "createTime.H"
+    #include "createMesh.H"
+    #include "createFields.H"
+    #include "initContinuityErrs.H"
+
+    // ค่าคงที่ทางฟิสิกส์
+    const dimensionedScalar epsilon0("epsilon0", emDimensionSet::electricDisplacement(), 8.854e-12);
+    const dimensionedScalar mu0("mu0", emDimensionSet::magneticField(), 4*M_PI*1e-7);
+    const dimensionedScalar sigma("sigma", dimensionSet(0, -3, 3, 0, 0, 2, 0, 0), 1.0); // ความนำไฟฟ้า
+
+    Info<< "\nStarting Maxwell's equations solver\n" << endl;
+
+    while (runTime.loop())
+    {
+        Info<< "Time = " << runTime.timeName() << nl << endl;
+
+        // สมการของแมกซ์เวลล์
+        // ∇ × E = -∂B/∂t
+        volVectorField curlE = fvc::curl(E);
+        volVectorField dBdt = fvc::ddt(B);
+
+        // ∇ × H = J + ∂D/∂t
+        volVectorField H = B/mu0;
+        volVectorField curlH = fvc::curl(H);
+        volVectorField J = sigma*E;  // กฎของโอห์ม
+        volVectorField dDdt = fvc::ddt(epsilon0*E);
+
+        // อัปเดตสมการ
+        B = B - runTime.deltaT()*curlE;
+        E = (epsilon0*E + runTime.deltaT()*curlH - runTime.deltaT()*J)/(epsilon0 + runTime.deltaT()*sigma);
+
+        // เงื่อนไขขอบเขต
+        E.correctBoundaryConditions();
+        B.correctBoundaryConditions();
+
+        runTime.write();
+    }
+
+    Info<< "End\n" << endl;
+
+    return 0;
+}
+```
+
+### **การตั้งค่ากรณีทดสอบ**
+```python
+# 0/E
+dimensions      [1 1 -3 -1 0 -1 1 0]  # V/m
+internalField   uniform (0 0 0);
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform (1 0 0);
+    }
+    outlet
+    {
+        type            zeroGradient;
+    }
+    walls
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+}
+
+# 0/B
+dimensions      [1 0 -2 -1 0 -1 0 1]  # Tesla
+internalField   uniform (0 0 0);
+boundaryField
+{
+    inlet
+    {
+        type            zeroGradient;
+    }
+    outlet
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+    walls
+    {
+        type            zeroGradient;
+    }
+}
+```
+
+แบบฝึกปฏิบัติเหล่านี้ให้ประสบการณ์ที่ใช้งานได้จริงกับ **การวิเคราะห์มิติ** การแปลงหน่วย และการขยายระบบมิติของ OpenFOAM สำหรับการใช้งานทางฟิสิกส์เฉพาะทาง

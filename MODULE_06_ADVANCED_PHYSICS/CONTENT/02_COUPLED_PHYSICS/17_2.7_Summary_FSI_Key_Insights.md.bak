@@ -1,0 +1,472 @@
+# 2.7 บทสรุป: ข้อมูลเชิงลึกที่สำคัญของ FSI
+
+ข้อมูลเชิงลึกที่สำคัญจากการวิเคราะห์ Fluid-Structure Interaction (FSI) ได้เผยให้เห็นพิจารณาหลายประการที่สำคัญสำหรับการจำลองแบบ coupling ที่ประสบความสำเร็จ
+
+## ปัญหาสำคัญที่ต้องพิจารณา
+
+**Added Mass Effect**
+- **ปรากฏการณ์**: การเร่งความเร็วของของไหลโดยรอบจะสร้างแรงเฉื่อยเพิ่มเติมบนโครงสร้าง
+- **ผลกระทบ**: อาจนำไปสู่ความไม่เสถียรของตัวเลขหากไม่ได้รับการจัดการอย่างเหมาะสม
+- **ดัชนีความเสี่ยง**: เป็นความกังวลหลักเกี่ยวกับเสถียรภาพในปัญหา FSI
+
+**การเลือกกลยุทธ์ Coupling**
+
+การเลือกระหว่าง **weak coupling** และ **strong coupling** ขึ้นอยู่กับอัตราส่วนความหนาแน่นระหว่างของไหลและของแข็ง:
+
+| สถานการณ์ | เงื่อนไข | กลยุทธ์ที่เหมาะสม | เหตุผล |
+|-------------|------------|------------------|---------|
+| ของไหลเบากว่าโครงสร้าง | $\rho_f \ll \rho_s$ | **Weak coupling** | ความแม่นยำเพียงพอพร้อมต้นทุนต่ำ |
+| ความหนาแน่นใกล้เคียง | $\rho_f \approx \rho_s$ | **Strong coupling** | จำเป็นเพื่อเสถียรภาพเชิงตัวเลข |
+| ของไหลหนาแน่นกว่าโครงสร้าง | $\rho_f > \rho_s$ | **Strong coupling** | รักษาความแม่นยำทางฟิสิกส์ |
+
+## ระบบนิเวศ OpenFOAM สำหรับ FSI
+
+### ตัวเลือกหลัก
+- **solids4foam**: ห้องสมุด FSI ที่ครอบคลุมซึ่งให้การจำลองแบบไหล-โครงสร้างที่ coupled อย่างสมบูรณ์พร้อมกลศาสตร์ขั้นสูง
+- **mapped boundary conditions**: สำหรับกรณีง่ายๆ ที่ต้องการการ coupling พื้นฐานที่มีความซับซ้อนต่ำ
+- **Custom coupling strategies**: ใช้เฟรมเวิร์คห้องสมุดขนาดใหญ่ของ OpenFOAM สำหรับแอปพลิเคชันเฉพาะทาง
+
+## ขั้นตอนการตรวจสอบความน่าเชื่อถือ
+
+**การตรวจสอบสมดุลพลังงาน**
+- ติดตามพลังงานระบบทั้งหมด
+- ตรวจจับการสลายตัวของตัวเลข
+- ตรวจสอบการสร้างพลังงานเทียม
+
+**การติดตาม Residual อินเทอร์เฟซ**
+- ตรวจสอบการ converge ที่ขอบเขตไหล-โครงสร้าง
+- รักษาความแม่นยำของการ coupling
+
+**เมตริกความเสถียร**
+- ติดตามตัวบ่งชี้ความเสถียรเชิงตัวเลข
+- ตลอดการจำลองแบบ
+
+[Diagram: Flow chart แสดงขั้นตอนการเลือกกลยุทธ์ FSI ตามอัตราส่วนความหนาแน่น]
+
+---
+
+# 3. ระบบการจัดการฟิลด์แบบ Region-Wise
+
+ระบบการจัดการฟิลด์แบบ region-wise ของ OpenFOAM ช่วยให้การจำลองแบบ multi-domain และ multi-physics ที่ซับซ้อนได้โดยการจัดเตรียมเฟรมเวิร์คสำหรับการจัดการฟิลด์ในพื้นที่คำนวณที่แตกต่างกัน
+
+**ความสำคัญ**: ระบบนี้มีความสำคัญเป็นพิเศษสำหรับ:
+- **FSI** (Fluid-Structure Interaction)
+- **CHT** (Conjugate Heat Transfer)  
+- **แอปพลิเคชัน coupled physics** อื่นๆ
+
+[Diagram: แสดงโครงสร้าง multi-region พร้อมการเชื่อมต่อระหว่างโดเมน]
+
+## 3.1 สถาปัตยกรรมหลัก
+
+ระบบการจัดการแบบ region-wise ทำงานผ่านส่วนประกอบหลักหลายส่วน:
+
+### การจัดการ Mesh ของ Region
+
+แต่ละ region รักษา mesh อิสระของตัวเองในขณะที่แบ่งปันข้อมูลอินเทอร์เฟซผ่านกลไกการ coupling ที่อุทิศไว้
+
+**ประโยชน์**:
+- รูปแบบการ discretization ที่แตกต่างกัน
+- ความหนาแน่นของ mesh ที่แตกต่างกัน
+- โทโพโลยีที่ปรับให้เหมาะสมสำหรับแต่ละโดเมนฟิสิกส์
+
+```cpp
+// การจัดการ mesh ที่เฉพาะกับ region
+const fvMesh& fluidMesh = fluidRegions[i];
+const fvMesh& solidMesh = solidRegions[i];
+```
+
+### ระบบการลงทะเบียนฟิลด์
+
+ฟิลด์ถูกลงทะเบียนไปยัง region ที่เฉพาะเจาะจงผ่านออบเจกต์ region ซึ่งช่วยให้:
+- การค้นพบและการจัดการฟิลด์อัตโนมัติ
+- การแยกที่ชัดเจนระหว่างโดเมน
+
+```cpp
+// การสร้างฟิลด์ที่เฉพาะกับ region
+volScalarField T
+(
+    IOobject
+    (
+        "T",
+        runTime.timeName(),
+        solidRegions[i],
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    solidRegions[i]
+);
+```
+
+### การสื่อสารระหว่าง Region
+
+ระบบจัดการการสื่อสารระหว่าง region ผ่านการรักษาอินเทอร์เฟซที่เฉพาะเจาะจง
+
+#### Direct Interface Mapping
+```cpp
+// Mapped boundary conditions
+mappedVelocityFluxFixedValueTFvPatchScalarField TFluidPatch
+(
+    solidRegions[i].boundary()[patchID],
+    dimensionedScalar("zero", dimTemperature, 0.0)
+);
+```
+
+#### Advanced Coupling Mechanisms
+
+| กลไก | คำอธิบาย | การใช้งาน |
+|--------|------------|-------------|
+| **AMIPolyPatch** | Arbitrary Mesh Interface สำหรับอินเทอร์เฟซที่ไม่ conformal | Mesh ที่ไม่ตรงกัน |
+| **solidInteraction** | การ coupling เฉพาะ FSI | ปัญหา FSI ใน solids4foam |
+| **regionCouple** | ยูทิลิตี้การ coupling region ทั่วไป | การเชื่อมต่อทั่วไป |
+
+## 3.2 กลยุทธ์การใช้งาน
+
+### 3.2.1 การตั้งค่า Multi-Region พื้นฐาน
+
+โครงสร้างพื้นฐานสำหรับการจำลองแบบ multi-region:
+
+```cpp
+// การเลือกและตั้งค่า region
+PtrList<fvMesh> fluidRegions(fluidNames.size());
+PtrList<fvMesh> solidRegions(solidNames.size());
+
+// การเริ่มต้น mesh
+forAll(fluidNames, i)
+{
+    fluidRegions.set
+    (
+        i,
+        new fvMesh
+        (
+            IOobject
+            (
+                fluidNames[i],
+                runTime.timeName(),
+                runTime,
+                IOobject::MUST_READ
+            )
+        )
+    );
+}
+
+// การสร้างฟิลด์สำหรับแต่ละ region
+PtrList<volScalarField> Tfluids(fluidNames.size());
+PtrList<volScalarField> Tsolids(solidNames.size());
+
+forAll(fluidNames, i)
+{
+    Tfluids.set
+    (
+        i,
+        new volScalarField
+        (
+            IOobject
+            (
+                "T",
+                runTime.timeName(),
+                fluidRegions[i],
+                IOobject::MUST_READ,
+                IOobject::AUTO_WRITE
+            ),
+            fluidRegions[i]
+        )
+    );
+}
+```
+
+### 3.2.2 Interface Coupling
+
+Interface coupling ระหว่าง region ประกอบด้วยขั้นตอนหลักหลายขั้นตอน:
+
+#### Boundary Field Mapping
+```cpp
+// แมปอุณหภูมิของไหลไปยังอินเทอร์เฟซของแข็ง
+const volScalarField& Tfluid = Tfluids[fluidID];
+const fvPatch& fluidPatch = fluidMesh.boundary()[fluidPatchID];
+const fvPatch& solidPatch = solidMesh.boundary()[solidPatchID];
+
+// การแมปโดยตรงสำหรับ mesh แบบ conformal
+forAll(fluidPatch, faceI)
+{
+    Tsolid.boundaryField()[solidPatchID][faceI] = 
+        Tfluid.boundaryField()[fluidPatchID][faceI];
+}
+```
+
+#### Non-Conformal Interface Handling
+สำหรับ mesh ที่ไม่ตรงกัน ต้องการการอินเตอร์โพเลชัน:
+
+```cpp
+// ใช้ AMI interpolation
+const AMIPatchToPatchInterpolation& AMI = 
+    AMIPatches[interfaceID];
+
+scalarField solidT(fluidPatch.size(), 0.0);
+AMI.interpolateToSource
+(
+    Tfluid.boundaryField()[fluidPatchID],
+    solidT
+);
+```
+
+### 3.2.3 การประสาน Time Integration
+
+การจำลองแบบ multi-region ต้องการ time stepping ที่ประสานกัน:
+
+```cpp
+// Synchronized time stepping
+while (runTime.loop())
+{
+    forAll(fluidRegions, fluidI)
+    {
+        // Fluid region solve
+        #include "EEqn.H"  // Energy equation
+        #include "UEqn.H"  // Momentum equation
+    }
+    
+    forAll(solidRegions, solidI)
+    {
+        // Solid region solve
+        #include "solidEqn.H"  // Solid conduction equation
+    }
+    
+    // Interface coupling update
+    updateInterfaces();
+    
+    runTime.write();
+}
+```
+
+[Diagram: แสดงการทำงานแบบ parallel ของ multiple regions พร้อมการประสานเวลา]
+
+## 3.3 คุณสมบัติขั้นสูง
+
+### 3.3.1 Adaptive Mesh Refinement (AMR)
+
+Multi-region AMR ช่วยให้การ refine แบบ localised ในตำแหน่งที่ต้องการความละเอียดสูง
+
+```cpp
+// เกณฑ์ AMR ที่เฉพาะกับ region
+if (runTime.outputTime())
+{
+    forAll(fluidRegions, regionI)
+    {
+        // เกณฑ์การ refine แบบไดนามิกตามฟิสิกส์
+        const volScalarField& T = Tfluids[regionI];
+        const volVectorField& U = Ufluids[regionI];
+        
+        // เกณฑ์การไล่ระดับอุณหภูมิ
+        volScalarField refField = mag(fvc::grad(T));
+        
+        // เกณฑ์ขนาดความเร็ว
+        refField += mag(fvc::grad(U));
+        
+        // ดำเนินการ AMR
+        dynamicRefineFluidFvMesh& refMesh = 
+            refCast<dynamicRefineFluidFvMesh>(fluidRegions[regionI]);
+        refMesh.update(refField);
+    }
+}
+```
+
+**เกณฑ์การ refine แบบไดนามิก**:
+- เกณฑ์การไล่ระดับอุณหภูมิ
+- เกณฑ์ขนาดความเร็ว
+- การปรับตามฟิสิกส์เฉพาะทาง
+
+### 3.3.2 Parallel Processing
+
+การจัดการแบบ region-wise ช่วยให้กลยุทธ์การขนานพร้อมมากขึ้น
+
+#### Domain Decomposition
+```cpp
+// การแยกแต่ละ region อย่างอิสระ
+forAll(regions, regionI)
+{
+    // สร้าง dictionary สำหรับการแยก
+    dictionary decomposeDict;
+    decomposeDict.add("method", "scotch");
+    decomposeDict.add("numberOfSubdomains", nProcs);
+    
+    // แยก region แต่ละ region
+    fvMesh& regionMesh = regions[regionI];
+    decomposeRegion(regionMesh, decomposeDict);
+}
+```
+
+#### Load Balancing
+โดเมนฟิสิกส์ต่างๆ อาจต้องการทรัพยากรการคำนวณที่แตกต่างกัน
+
+```cpp
+// การจัดสรรโปรเซสเซอร์แบบปรับตามภาระการคำนวณ
+forAll(regionLoads, regionI)
+{
+    const label regionLoad = calculateRegionLoad(regions[regionI]);
+    const label nProcs = allocateProcessors(regionLoad);
+    
+    redistributeRegion(regionI, nProcs);
+}
+```
+
+### 3.3.3 การเพิ่มประสิทธิภาพ Solver Performance
+
+ระบบแบบ region-wise ช่วยให้การเพิ่มประสิทธิภาพ performance ที่เฉพาะเจาะจงสำหรับแต่ละโดเมนฟิสิกส์
+
+#### Physics-Specific Solver Selection
+```cpp
+// Linear solvers ที่เหมาะกับ region
+if (regionI < nFluidRegions)
+{
+    // Fluid regions: ใช้ GAMG สำหรับ pressure equations
+    pEqn.solve(gamgDict);
+}
+else
+{
+    // Solid regions: ใช้ conjugate gradient สำหรับการนำความร้อน
+    TEqn.solve(cgDict);
+}
+```
+
+#### Preconditioner Optimization
+```cpp
+// Preconditioners ที่ปรับแต่งสำหรับฟิสิกส์ต่างๆ
+if (isConductionDominant(regionI))
+{
+    // Diagonal preconditioning สำหรับการนำความร้อน
+    solver.setPreconditioner("diagonal");
+}
+else if (isConvectionDominant(regionI))
+{
+    // Incomplete LU สำหรับการไหลที่ครอบงำ convection
+    solver.setPreconditioner("DILU");
+}
+```
+
+**ตัวเลือก Preconditioner ตามฟิสิกส์**:
+
+| ประเภทโดเมน | Preconditioner แนะนำ | เหตุผล |
+|--------------|---------------------|---------|
+| การนำความร้อน (Conduction) | **Diagonal** | การแพร่ความร้อนมีความเป็นเส้นตรงสูง |
+| การไหลที่ครอบงำ Convection | **DILU** | การไหลมีความไม่เป็นเส้นตรงสูง |
+| ความดันในของไหล | **GAMG** | มีประสิทธิภาพกับปัญหาขนาดใหญ่ |
+
+## 3.4 แอปพลิเคชันทั่วไป
+
+### 3.4.1 Conjugate Heat Transfer (CHT)
+
+CHT เป็นแอปพลิเคชันที่พบบ่อยที่สุดของการจัดการแบบ region-wise
+
+```cpp
+// การวิเคราะห์ความร้อนแบบ coupled
+forAll(solidRegions, solidI)
+{
+    // Solid conduction equation
+    fvScalarMatrix TEqn
+    (
+        fvm::ddt(rho*Cp, T)
+      + fvm::div(rho*Cp*phi, T)
+      - fvm::laplacian(k, T)
+    );
+    
+    // เพิ่ม source terms ของอินเทอร์เฟซ
+    forAll(interfacePatches, patchI)
+    {
+        const label fluidPatch = interfacePatches[patchI].fluidPatch();
+        const label solidPatch = interfacePatches[patchI].solidPatch();
+        
+        // Interface heat flux coupling
+        scalarField heatFlux = 
+            hInterface[patchI] * 
+           (Tfluid.boundaryField()[fluidPatch] - 
+            T.boundaryField()[solidPatch]);
+        
+        TEqn.source().boundaryField()[solidPatch] -= heatFlux;
+    }
+    
+    TEqn.solve();
+}
+```
+
+[Diagram: แสดงการถ่ายเทความร้อนระหว่างโดเมนของไหลและโดเมนของแข็ง]
+
+### 3.4.2 Porous Media Flow
+
+บริเวณ porous ได้ประโยชน์จากการรักษา region ที่อุทิศไว้
+
+```cpp
+// Porous media resistance model
+if (regionTypes[regionI] == "porous")
+{
+    // Darcy-Forchheimer resistance
+    const dimensionedScalar Darcy("D", dimensionSet(0, -2, 0, 0, 0), 1e5);
+    const dimensionedScalar Forchheimer("F", dimensionSet(0, -1, 0, 0, 0), 100);
+    
+    // เพิ่ม resistance terms ใน momentum equation
+    fvVectorMatrix UEqn
+    (
+        fvm::ddt(rho, U)
+      + fvm::div(rho*phi, U)
+      - fvm::laplacian(mu, U)
+      + fvm::Sp(Darcy*rho, U)
+      + fvm::Sp(Forchheimer*rho*mag(U), U)
+    );
+    
+    UEqn.relax();
+    UEqn.solve();
+}
+```
+
+**Darcy-Forchheimer Model**:
+- **Darcy term**: ความต้านทานแบบเชิงเส้น ($\propto \mathbf{u}$)
+- **Forchheimer term**: ความต้านทานแบบกำลังสอง ($\propto |\mathbf{u}| \mathbf{u}$)
+
+### 3.4.3 Multi-Phase Flow ในโดเมนแยกกัน
+
+ระบบการไหลแบบต่างกันสามารถจัดการเป็น region แยกกันได้
+
+```cpp
+// Multi-phase coupling ระหว่าง region
+forAll(phaseRegions, regionI)
+{
+    const volScalarField& alpha = alphas[regionI];
+    const volVectorField& U = Ufluids[regionI];
+    
+    // Phase-fraction specific momentum equation
+    fvVectorMatrix UEqn
+    (
+        fvm::ddt(alpha*rho, U)
+      + fvm::div(alpha*rho*phi, U)
+      - fvm::laplacian(alpha*mu, U)
+    );
+    
+    // Interfacial momentum transfer
+    if (hasInterface[regionI])
+    {
+        const label coupledRegion = interfaceRegions[regionI];
+        const volScalarField& alphaCoupled = alphas[coupledRegion];
+        
+        // Momentum transfer coefficient
+        const dimensionedScalar K("K", dimensionSet(1, -3, 0, 0, 0), 0.1);
+        
+        fvScalarMatrix coupling
+        (
+            -fvm::Sp(K*alphaCoupled, U)
+        );
+        
+        UEqn += coupling;
+    }
+    
+    UEqn.solve();
+}
+```
+
+[Diagram: แสดงการไหลแบบ multi-phase ในหลายโดเมนพร้อมการถ่ายโอนโมเมนตัมระหว่างเฟส]
+
+## บทสรุป
+
+ระบบการจัดการฟิลด์แบบ region-wise มีเฟรมเวิร์คที่แข็งแกร่งสำหรับการจัดการการจำลองแบบ multi-physics ที่ซับซ้อนในขณะที่รักษาประสิทธิภาพการคำนวณและเสถียรภาพเชิงตัวเลข
+
+**ข้อดีหลัก**:
+- **การออกแบบแบบโมดูลาร์**: ช่วยให้นักวิจัยและวิศวกรสามารถแก้ไขปัญหาวิศวกรรมที่ซับซ้อนมากขึ้น
+- **การปรับแต่งตามฟิสิกส์**: การเลือก solver และ preconditioner ที่เหมาะสมสำหรับแต่ละโดเมน
+- **การขยายตัวง่าย**: รองรับการ coupling ของปรากฏการณ์ทางฟิสิกส์ที่แตกต่างกันในหลายๆ โดเมน

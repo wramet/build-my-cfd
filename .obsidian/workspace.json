@@ -1,0 +1,235 @@
+{
+  "main": {
+    "id": "1af325485ff0cf12",
+    "type": "split",
+    "children": [
+      {
+        "id": "5666cd9f4cb39998",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "7d9182055571dda0",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/02_Conservation_Laws.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "02_Conservation_Laws"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "14cba65aef9ad152",
+    "type": "split",
+    "children": [
+      {
+        "id": "1e6000b6449ffef4",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "15521585bcd515c5",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "0f18a6a0813b3007",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "a68bbbbd14662384",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "1dc58c25b9c317fa",
+    "type": "split",
+    "children": [
+      {
+        "id": "5c2fdb9d30ffb847",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "52f39caa342f8328",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/03_CONTAINERS_MEMORY/01_Introduction.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for 01_Introduction"
+            }
+          },
+          {
+            "id": "f4d4d08f20f7dfa2",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/03_CONTAINERS_MEMORY/01_Introduction.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from 01_Introduction"
+            }
+          },
+          {
+            "id": "52dea37c29bf9a7f",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "61fa6ffe453a463f",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "2eb6c6240eacb6af",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/03_CONTAINERS_MEMORY/01_Introduction.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of 01_Introduction"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "7d9182055571dda0",
+  "lastOpenFiles": [
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/01_Introduction.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/00_Overview.md",
+    "MODULE_03_SINGLE_PHASE_FLOW/CONTENT/01_INCOMPRESSIBLE_FLOW_SOLVERS/03_Simulation_Control.md",
+    "MODULE_03_SINGLE_PHASE_FLOW/CONTENT/01_INCOMPRESSIBLE_FLOW_SOLVERS/02_Standard_Solvers.md",
+    "MODULE_03_SINGLE_PHASE_FLOW/CONTENT/01_INCOMPRESSIBLE_FLOW_SOLVERS/01_Introduction.md",
+    "MODULE_03_SINGLE_PHASE_FLOW/CONTENT/01_INCOMPRESSIBLE_FLOW_SOLVERS/00_Overview.md",
+    "TBD/MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/04_Dimensionless_Numbers.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION/03_The_Lid-Driven_Cavity_Problem.md.bak",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION/04_Step-by-Step_Tutorial.md.bak",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION/06_Exercises.md.bak",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION/06_Exercises.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION/05_Expected_Results.md.bak",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION/05_Expected_Results.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION/04_Step-by-Step_Tutorial.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION/03_The_Lid-Driven_Cavity_Problem.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION/01_Introduction.md.bak",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION/01_Introduction.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION/00_Overview.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION/02_The_Workflow.md.bak",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION/02_The_Workflow.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION/00_Overview.md.bak",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/03_BOUNDARY_CONDITIONS/08_Exercises.md.bak",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/03_BOUNDARY_CONDITIONS/08_Exercises.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/03_BOUNDARY_CONDITIONS/05_Common_Boundary_Conditions_in_OpenFOAM.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/03_BOUNDARY_CONDITIONS/06_Advanced_Boundary_Conditions.md.bak",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/03_BOUNDARY_CONDITIONS/07_Troubleshooting_Boundary_Conditions.md.bak",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/03_BOUNDARY_CONDITIONS/06_Advanced_Boundary_Conditions.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/03_BOUNDARY_CONDITIONS/07_Troubleshooting_Boundary_Conditions.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/03_BOUNDARY_CONDITIONS/04_Mathematical_Formulation.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/03_BOUNDARY_CONDITIONS/03_Selection_Guide_Which_BC_to_Use.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/03_BOUNDARY_CONDITIONS/01_Introduction.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/03_BOUNDARY_CONDITIONS/00_Overview.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/03_BOUNDARY_CONDITIONS/02_Fundamental_Classification.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/02_FINITE_VOLUME_METHOD/07_Best_Practices.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/02_FINITE_VOLUME_METHOD/08_Exercises.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/02_FINITE_VOLUME_METHOD/04_Temporal_Discretization.md",
+    "img/03/Pasted image 20251223124956.png",
+    "img/03/Pasted image 20251223124710.png",
+    "img/03/Pasted image 20251223124640.png",
+    "img/03/Pasted image 20251223124304.png",
+    "img/03/Pasted image 20251223123943.png",
+    "img/03/Pasted image 20251223123924.png",
+    "img/03/Pasted image 20251223123903.png",
+    "img/03/Pasted image 20251223123850.png",
+    "img/03/Pasted image 20251223123824.png",
+    "img/03/Pasted image 20251223123813.png"
+  ]
+}

@@ -1,0 +1,561 @@
+# บทที่ 3: ปรากฏการณ์ระหว่างเฟส
+
+## 3.1 แรงฉุดระหว่างเฟส (Drag Forces Between Phases)
+
+### ทฤษฎีพื้นฐาน
+
+**แรงฉุดระหว่างเฟส**ในของไหลหลายเฟส (multiphase flows) เป็นกลไกพื้นฐานของการถ่ายเทพลังงานโมเมนตัม (momentum transfer) ที่ควบคุมการมีปฏิสัมพันธ์ระหว่างเฟส
+
+แรงนี้เกิดขึ้นจากการเคลื่อนที่สัมพัทธ์ระหว่างเฟส และมีความสำคัญอย่างยิ่งต่อการทำนายพฤติกรรมของของไหลได้อย่างแม่นยำในการใช้งานทางอุตสาหกรรม เช่น:
+- ฟลูอิดไดซ์เบด (fluidized beds)
+- คอลัมน์ฟอง (bubble columns)
+- เครื่องแยกเฟส (separators)
+
+**สมการแรงฉุด:** แรงฉุดต่อหนึ่งหน่วยปริมาตรระหว่างเฟส *i* และเฟส *j*:
+
+$$\mathbf{F}_{d,ij} = K_{ij}(\mathbf{U}_j - \mathbf{U}_i)$$
+
+**นิยามตัวแปร:**
+- $\mathbf{F}_{d,ij}$: เวกเตอร์แรงฉุด [N/m³]
+- $K_{ij}$: สัมประสิทธิ์การถ่ายเทพลังงานโมเมนตัมระหว่างเฟส [kg/(m³·s)]
+- $\mathbf{U}_i, \mathbf{U}_j$: เวกเตอร์ความเร็วของเฟส [m/s]
+
+สูตรนี้ทำให้มั่นใจได้ว่าแรงฉุดจะต้านทานการเคลื่อนที่สัมพัทธ์ระหว่างเฟส ซึ่งสอดคล้องกับธรรมชาติทางกายภาพของแรงต้านหนืด (viscous resistance)
+
+[Diagram: แสดงเวกเตอร์แรงฉุดระหว่างเฟสสองเฟสที่เคลื่อนที่ด้วยความเร็วต่างกัน]
+
+### แบบจำลองแรงฉุด Schiller-Naumann
+
+**แบบจำลอง Schiller-Naumann**เป็นหนึ่งในสมการสหสัมพันธ์แรงฉุดที่ใช้กันอย่างแพร่หลายที่สุดสำหรับอนุภาคทรงกลม:
+
+$$K = \frac{3}{4} C_D \frac{\alpha_d \rho_c |\mathbf{U}_d - \mathbf{U}_c|}{d_p}$$
+
+**นิยามตัวแปร:**
+- $C_D$: สัมประสิทธิ์แรงฉุด (drag coefficient) ซึ่งขึ้นอยู่กับ Reynolds number
+- $\alpha_d$: เศษส่วนปริมาตรของเฟสที่กระจายตัว (dispersed phase volume fraction) [-]
+- $\rho_c$: ความหนาแน่นของเฟสต่อเนื่อง (continuous phase density) [kg/m³]
+- $\mathbf{U}_d - \mathbf{U}_c$: ความเร็วสัมพัทธ์ (relative velocity) [m/s]
+- $d_p$: เส้นผ่านศูนย์กลางของอนุภาค (particle diameter) [m]
+
+**ความสัมพันธ์ของสัมประสิทธิ์แรงฉุด:**
+
+| เงื่อนไข | สมการสหสัมพันธ์ $C_D$ |
+|-------------|-------------------------|
+| $Re_p < 1000$ | $C_D = \frac{24}{Re_p}(1 + 0.15Re_p^{0.687})$ |
+| $Re_p \geq 1000$ | $C_D = 0.44$ |
+
+แบบจำลองนี้ให้การทำนายที่แม่นยำสำหรับระบบที่มีความเข้มข้นเจือจางถึงปานกลางที่มีอนุภาคทรงกลม ทำให้เหมาะสำหรับ:
+- ของไหลแก๊ส-ของเหลว (gas-liquid)
+- ของแข็ง-ของเหลว (solid-liquid)
+- การเสียรูปของอนุภาคมีน้อยที่สุด
+
+### แบบจำลองแรงฉุด Ergun
+
+**แบบจำลอง Ergun**ขยายการจำลองแรงฉุดไปยังสภาวะการบรรจุหนาแน่น (dense packing conditions) ซึ่งการมีปฏิสัมพันธ์ระหว่างอนุภาคต่ออนุภาคมีความสำคัญ:
+
+$$K = 150 \frac{\alpha_d^2 \mu_c (1 - \alpha_c)}{d_p^2 \alpha_c^3} + 1.75 \frac{\alpha_d \rho_c |\mathbf{U}_d - \mathbf{U}_c|}{\alpha_c^3}$$
+
+สมการสหสัมพันธ์นี้รวมเอาส่วนประกอบจาก:
+- **แรงหนืด** (พจน์แรก): แรงต้านจากความหนืดของของไหล
+- **แรงเฉื่อย** (พจน์ที่สอง): แรงต้านจากความเร็วสัมพัทธ์
+
+เพื่ออธิบายฟิสิกส์ของของไหลที่ซับซ้อนใน:
+- ชั้นบรรจุ (packed beds)
+- ฟลูอิดไดซ์เบด (fluidized beds)
+- ใกล้กับความเร็วขั้นต่ำของการฟลูอิดไดซ์ (minimum fluidization velocity)
+
+### สถาปัตยกรรมการนำไปใช้ใน OpenFOAM
+
+#### คลาสพื้นฐานของแบบจำลองแรงฉุด (Base Drag Model Class)
+
+คลาส `dragModel` ใน [dragModel.H](applications/solvers/multiphase/multiphaseEulerFoam/interfacialModels/dragModels/dragModel/dragModel.H) กำหนดอินเทอร์เฟซพื้นฐานผ่านฟังก์ชันเสมือน (virtual functions):
+
+```cpp
+class dragModel
+{
+    // คำนวณและคืนค่าสัมประสิทธิ์แรงฉุด
+    virtual tmp<volScalarField> K(const UDictionary&) = 0;
+    
+    // กลไกการเลือกขณะรัน (Runtime selection mechanism)
+    declareRunTimeSelectionTable
+    (
+        autoPtr,
+        dragModel,
+        dictionary,
+        (
+            const dictionary& dict,
+            const phaseModel& phase1,
+            const phaseModel& phase2
+        ),
+        (dict, phase1, phase2)
+    );
+};
+```
+
+#### การนำ Schiller-Naumann ไปใช้ (Schiller-Naumann Implementation)
+
+การนำไปใช้แบบพิเศษนี้ขยายคลาสพื้นฐานด้วยการคำนวณ Reynolds number และการประเมินสัมประสิทธิ์แรงฉุดแบบแบ่งช่วง (piecewise drag coefficient evaluation):
+
+```cpp
+class SchillerNaumann
+: 
+    public dragModel
+{
+private:
+    // เส้นผ่านศูนย์กลางขององค์ประกอบเฟสที่กระจายตัว
+    dimensionedScalar d_;
+    
+    // คำนวณ Reynolds number
+    tmp<volScalarField> Re() const
+    {
+        return mag(this->U2_ - this->U1_) * d_ / this->nu1_;
+    }
+    
+    // คำนวณสัมประสิทธิ์แรงฉุด
+    tmp<volScalarField> Cd(const volScalarField& Re) const
+    {
+        return pos(Re - 1000)*0.44 + neg(Re - 1000)*
+               24*(1 + 0.15*pow(Re, 0.687))/Re;
+    }
+};
+```
+
+#### การนำแบบจำลอง Ergun ไปใช้ (Ergun Model Implementation)
+
+ขยายเฟรมเวิร์กพื้นฐานสำหรับการจำลองเฟสหนาแน่นด้วยพจน์เพิ่มเติมสำหรับการมีปฏิสัมพันธ์ระหว่างอนุภาคต่ออนุภาค
+
+## 3.2 กลไกการถ่ายเทความร้อน (Heat Transfer Mechanisms)
+
+### พื้นฐานการถ่ายเทความร้อนระหว่างเฟส (Interphase Heat Transfer Fundamentals)
+
+**การถ่ายเทความร้อนระหว่างเฟส**ในของไหลหลายเฟสถูกควบคุมโดยสมการพื้นฐาน:
+
+$$Q_{ij} = h_{ij} A_{ij} (T_j - T_i)$$
+
+**นิยามตัวแปร:**
+- $Q_{ij}$: อัตราการถ่ายเทความร้อนเชิงปริมาตร (volumetric heat transfer rate) [W/m³]
+- $h_{ij}$: สัมประสิทธิ์การถ่ายเทความร้อนระหว่างเฟส (interphase heat transfer coefficient) [W/(m²·K)]
+- $A_{ij}$: ความหนาแน่นของพื้นที่ผิวสัมผัส (interfacial area density) [m²/m³]
+- $(T_j - T_i)$: แรงขับเคลื่อนอุณหภูมิ (temperature driving force) [K]
+
+**สัมประสิทธิ์การถ่ายเทความร้อน**ขึ้นอยู่กับ:
+
+$$h_{ij} = f(\text{Re}, \text{Pr}, \text{geometry})$$
+
+โดยที่:
+- $\text{Re}$: Reynolds number
+- $\text{Pr}$: Prandtl number  
+- ปัจจัยทางเรขาคณิต (geometry factors): พิจารณาถึงรูปร่างของอนุภาคและการจัดเรียงตัว
+
+[Diagram: แสดงกลไกการถ่ายเทความร้อนระหว่างเฟสพร้อมอุณหภูมิและกระแสความร้อน]
+
+### แบบจำลองการถ่ายเทความร้อนแบบสองแรงต้าน (Two-Resistance Heat Transfer Model)
+
+**แบบจำลองสองแรงต้าน**พิจารณาแรงต้านความร้อนในทั้งสองเฟส ให้การทำนายที่แม่นยำยิ่งขึ้นสำหรับระบบที่มีคุณสมบัติทางความร้อนใกล้เคียงกัน:
+
+$$\frac{1}{U_{\text{total}}} = \frac{1}{h_i} + \frac{1}{h_j}$$
+
+**นิยามตัวแปร:**
+- $U_{\text{total}}$: สัมประสิทธิ์การถ่ายเทความร้อนโดยรวม (overall heat transfer coefficient)
+
+สัมประสิทธิ์การถ่ายเทความร้อนแต่ละตัวมักคำนวณโดยใช้สมการสหสัมพันธ์ Nusselt number:
+
+$$\text{Nu} = \frac{h d_p}{k}$$
+
+**สมการสหสัมพันธ์ Nusselt ที่พบบ่อย:**
+
+| สมการ | สูตร | เงื่อนไขการใช้งาน |
+|---------|-------|-----------------|
+| Ranz-Marshall | $\text{Nu} = 2 + 0.6\text{Re}^{1/2}\text{Pr}^{1/3}$ | อนุภาคเดี่ยวในของไหล |
+| Gunn | $\text{Nu} = (7 - 10\alpha_c + 5\alpha_c^2)(1 + 0.7\text{Re}^{0.2}\text{Pr}^{1/3})$ | อนุภาคในระบบหนาแน่น |
+
+### การนำไปใช้การถ่ายเทความร้อนใน OpenFOAM
+
+#### ระบบเฟสการถ่ายเทความร้อน (Heat Transfer Phase System)
+
+คลาส `HeatTransferPhaseSystem` ใน [HeatTransferPhaseSystem.H](applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/HeatTransferPhaseSystem/HeatTransferPhaseSystem.H) จัดการการถ่ายเทความร้อนระหว่างเฟสหลายเฟส:
+
+```cpp
+template<class BasePhaseSystem>
+class HeatTransferPhaseSystem
+:
+    public BasePhaseSystem
+{
+private:
+    // แบบจำลองการถ่ายเทความร้อนระหว่างคู่เฟส
+    HashTable<autoPtr<heatTransferModel>, phasePairKey> heatTransferModels_;
+    
+    // สนามอุณหภูมิพื้นผิวสัมผัส
+    HashTable<volScalarField, phasePairKey> Tinterfaces_;
+    
+    // พจน์แหล่งความร้อน/อ่างความร้อน (Heat source/sink terms)
+    volScalarField Q_;
+    
+    // คำนวณการถ่ายเทความร้อนระหว่างคู่เฟสทั้งหมด
+    void calculateHeatTransfer();
+    
+    // ปรับปรุงอุณหภูมิพื้นผิวสัมผัส
+    void updateTinterfaces();
+};
+```
+
+#### ระบบเฟสการเปลี่ยนแปลงเฟสขององค์ประกอบพื้นผิวสัมผัส (Interface Composition Phase Change Phase System)
+
+คลาส `InterfaceCompositionPhaseChangePhaseSystem` ใน [InterfaceCompositionPhaseChangePhaseSystem.H](applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/InterfaceCompositionPhaseChangePhaseSystem/InterfaceCompositionPhaseChangePhaseSystem.H) เชื่อมโยงการถ่ายเทความร้อนและการถ่ายเทมวล (mass transfer):
+
+```cpp
+template<class BasePhaseSystem>
+class InterfaceCompositionPhaseChangePhaseSystem
+:
+    public HeatTransferPhaseSystem<BasePhaseSystem>
+{
+private:
+    // แบบจำลองการเปลี่ยนแปลงเฟส
+    HashTable<autoPtr<phaseChangeModel>, phasePairKey> phaseChangeModels_;
+    
+    // องค์ประกอบพื้นผิวสัมผัส
+    interfaceCompositionModel interfaceComposition_;
+    
+    // อัตราการถ่ายเทมวล
+    HashTable<volScalarField, phasePairKey> dmdt_;
+    
+    // ผลกระทบจากความร้อนแฝง (Latent heat effects)
+    volScalarField HLatent_;
+};
+```
+
+การนำไปใช้จัดการกลไกการถ่ายเทความร้อนหลายอย่าง รวมถึง:
+- **การถ่ายเทความร้อนแบบพาความร้อน (Convective heat transfer)** ระหว่างเฟสต่อเนื่องและเฟสที่กระจายตัว
+- **การถ่ายเทความร้อนแบบนำความร้อน (Conductive heat transfer)** ผ่านอนุภาคของแข็ง
+- **การถ่ายเทความร้อนแบบการแผ่รังสี (Radiative heat transfer)** ในการใช้งานที่อุณหภูมิสูง
+- **ผลกระทบจากความร้อนแฝง (Latent heat effects)** ในระหว่างกระบวนการเปลี่ยนแปลงเฟส
+
+## 3.3 การถ่ายเทมวลและการเปลี่ยนแปลงเฟส (Mass Transfer and Phase Change)
+
+### พื้นฐานการถ่ายเทมวล (Mass Transfer Fundamentals)
+
+**การถ่ายเทมวลระหว่างเฟส**เกิดขึ้นเนื่องจากความแตกต่างของความเข้มข้น อุณหภูมิ หรือศักย์เคมี (chemical potential)
+
+**สมการพื้นฐานของอัตราการถ่ายเทมวล:**
+
+$$\dot{m}_{ij} = k_{ij} A_{ij} (C_j - C_i)$$
+
+**นิยามตัวแปร:**
+- $\dot{m}_{ij}$: อัตราการถ่ายเทมวล (mass transfer rate) [kg/(m³·s)]
+- $k_{ij}$: สัมประสิทธิ์การถ่ายเทมวล (mass transfer coefficient) [m/s]
+- $A_{ij}$: ความหนาแน่นของพื้นที่ผิวสัมผัส [m²/m³]
+- $(C_j - C_i)$: แรงขับเคลื่อนความเข้มข้น (concentration driving force) [kg/m³]
+
+**หลักการเทียบเคียง (Analogies):** สัมประสิทธิ์การถ่ายเทมวลมักมีความสัมพันธ์กับสัมประสิทธิ์การถ่ายเทความร้อน:
+
+| หลักการเทียบเคียง | สมการ | เงื่อนไข |
+|-------------------|---------|-----------|
+| Chilton-Colburn analogy | $\frac{h}{\rho c_p U} = \frac{k}{U} = \text{St}_m = \text{St}_h \text{Pr}^{2/3}$ | ทั่วไป |
+| Reynolds analogy | $\text{St}_m = \text{St}_h$ | $\text{Pr} = \text{Sc} = 1$ |
+
+[Diagram: แสดงการถ่ายเทมวลระหว่างเฟสพร้อมความเข้มข้นและกระแสมวล]
+
+### กฎของเฮนรีและสมดุลแก๊ส-ของเหลว (Henry's Law and Gas-Liquid Equilibrium)
+
+**กฎของเฮนรี (Henry's Law)**กำหนดความสัมพันธ์สมดุลสำหรับระบบแก๊ส-ของเหลว:
+
+$$C_{\text{gas}} = H \cdot p_{\text{gas}}$$
+
+**นิยามตัวแปร:**
+- $C_{\text{gas}}$: ความเข้มข้นของแก๊สในเฟสของเหลว [mol/m³]
+- $p_{\text{gas}}$: ความดันย่อยของแก๊ส (partial pressure of the gas) [Pa]
+- $H$: ค่าคงที่ของเฮนรี (Henry's constant) [mol/(m³·Pa)]
+
+ค่าคงที่ของเฮนรีแบบไร้มิติ (non-dimensional Henry's constant) สัมพันธ์กับสัมประสิทธิ์การกระจายตัวแบบไร้มิติ (dimensionless distribution coefficient):
+
+$$K_{\text{GC}} = \frac{C_{\text{gas}}}{C_{\text{liquid}}} = HRT$$
+
+โดยที่:
+- $R$: ค่าคงที่ของแก๊ส (gas constant)
+- $T$: อุณหภูมิสมบูรณ์ (absolute temperature)
+
+### กลไกการเปลี่ยนแปลงเฟส (Phase Change Mechanisms)
+
+#### การระเหยและการควบแน่น (Evaporation and Condensation)
+
+**การระเหยและการควบแน่น**ถูกควบคุมโดยสมการ Hertz-Knudsen:
+
+$$\dot{m}_{evap} = \alpha \sqrt{\frac{M}{2\pi RT_{sat}}}(p_{sat} - p_{int})$$
+
+**นิยามตัวแปร:**
+- $\alpha$: สัมประสิทธิ์การปรับตัว (accommodation coefficient)
+- $M$: มวลโมเลกุล (molar mass)
+- $T_{sat}$: อุณหภูมิอิ่มตัว (saturation temperature)
+- $p_{sat}$: ความดันอิ่มตัว (saturation pressure)
+- $p_{int}$: ความดันที่พื้นผิวสัมผัส (interface pressure)
+
+#### พลวัตการขยายตัวของฟอง (Bubble Growth Dynamics)
+
+**พลวัตการขยายตัวของฟอง**สำหรับการขยายตัวของฟองในของเหลวที่มีความร้อนยิ่งยวด (superheated liquid) สมการ Rayleigh-Plesset จะควบคุมพลวัต:
+
+$$R\ddot{R} + \frac{3}{2}\dot{R}^2 = \frac{p_b - p_\infty}{\rho_l} - \frac{2\sigma}{\rho_l R} - \frac{4\mu_l \dot{R}}{\rho_l R}$$
+
+**นิยามตัวแปร:**
+- $R$: รัศมีของฟอง
+- $p_b$: ความดันในฟอง
+- $p_\infty$: ความดันที่ระยะไกล
+- $\sigma$: แรงตึงผิว (surface tension)
+- $\mu_l$: ความหนืดของของเหลว (liquid viscosity)
+
+[Diagram: แสดงพลวัตการขยายตัวของฟองและปัจจัยที่มีผลต่อการเปลี่ยนรูป]
+
+### การนำไปใช้การถ่ายเทมวลใน OpenFOAM
+
+#### แบบจำลองการถ่ายเทมวล (Mass Transfer Models)
+
+เฟรมเวิร์กการถ่ายเทมวลจะรวมเข้ากับลำดับชั้นของแบบจำลองพื้นผิวสัมผัส:
+
+```cpp
+class massTransferModel
+{
+public:
+    // คำนวณสัมประสิทธิ์การถ่ายเทมวล
+    virtual tmp<volScalarField> K() const = 0;
+    
+    // คำนวณแรงขับเคลื่อน
+    virtual tmp<volScalarField> drivingForce() const = 0;
+    
+    // อัตราการถ่ายเทมวลรวม
+    virtual tmp<volScalarField> dmdt() const
+    {
+        return K()*drivingForce();
+    }
+    
+    // การเลือกขณะรัน
+    declareRunTimeSelectionTable
+    (
+        autoPtr,
+        massTransferModel,
+        dictionary,
+        (
+            const dictionary& dict,
+            const phaseModel& phase1,
+            const phaseModel& phase2
+        ),
+        (dict, phase1, phase2)
+    );
+};
+```
+
+#### แบบจำลองการเปลี่ยนแปลงเฟส (Phase Change Models)
+
+การนำไปใช้แบบพิเศษสำหรับการระเหย การควบแน่น และการเกิดโพรงอากาศ (cavitation):
+
+```cpp
+class phaseChangeModel
+: 
+    public massTransferModel
+{
+protected:
+    // คุณสมบัติอิ่มตัว
+    autoPtr<saturationModel> saturation_;
+    
+    // อุณหภูมิพื้นผิวสัมผัส
+    volScalarField Tinterface_;
+    
+    // สัมประสิทธิ์การปรับตัว
+    dimensionedScalar alpha_;
+    
+    // คำนวณอัตราการระเหย/ควบแน่น
+    virtual tmp<volScalarField> calculateDmdt()
+    {
+        const volScalarField& p = this->phase1_.thermo().p();
+        const volScalarField psat = saturation_->psat(Tinterface_);
+        
+        return alpha_*sqrt(this->phase2_.thermo().rho()/
+            (2*constant::mathematical::pi*psat))*max(psat - p, 0);
+    }
+};
+```
+
+การนำไปใช้รวมถึงแบบจำลองที่ซับซ้อนสำหรับ:
+- **การถ่ายเทมวลตามกฎของเฮนรี (Henry's Law mass transfer)** สำหรับการละลายและการคายแก๊ส
+- **การเปลี่ยนแปลงเฟสจากความร้อน (Thermal phase change)** รวมถึงการระเหยและการควบแน่น
+- **แบบจำลองการเกิดโพรงอากาศ (Cavitation models)** สำหรับพลวัตของฟองไอ
+- **การถ่ายเทมวลหลายองค์ประกอบ (Multi-component mass transfer)** สำหรับระบบที่มีปฏิกิริยา
+
+## 3.4 แรงระหว่างเฟสเพิ่มเติม (Additional Interfacial Forces)
+
+### แรงมวลเสมือน (Virtual Mass Force)
+
+**แรงมวลเสมือน**พิจารณาถึงการเร่งความเร็วของของไหลโดยรอบเมื่ออนุภาคเร่งความเร็ว ซึ่งแสดงถึงผลกระทบของมวลที่เพิ่มเข้ามา (added mass effects):
+
+$$\mathbf{F}_{vm} = C_{vm} \rho_c \alpha_d (\mathbf{a}_d - \mathbf{a}_c)$$
+
+**นิยามตัวแปร:**
+- $C_{vm}$: สัมประสิทธิ์มวลเสมือน (virtual mass coefficient) (โดยทั่วไปคือ 0.5 สำหรับอนุภาคทรงกลม)
+- $\rho_c$: ความหนาแน่นของเฟสต่อเนื่อง
+- $\alpha_d$: เศษส่วนปริมาตรของเฟสที่กระจายตัว
+- $(\mathbf{a}_d - \mathbf{a}_c)$: การเร่งความเร็วสัมพัทธ์ระหว่างเฟส
+
+แรงนี้จะมีความสำคัญในระบบที่มี:
+- การเร่งความเร็วความถี่สูง เช่น การสั่นสะเทือนของคลื่นเสียง
+- การไหลที่ไม่คงที่ (unsteady flows) ที่มีการเปลี่ยนแปลงตามเวลาอย่างรุนแรง
+
+### แรงยก (Lift Force)
+
+**แรงยก**เกิดขึ้นจากความแตกต่างของความเร็ว (velocity gradients) ที่ตั้งฉากกับการเคลื่อนที่สัมพัทธ์ระหว่างเฟส:
+
+$$\mathbf{F}_{lift} = C_L \rho_c \alpha_d (\mathbf{U}_d - \mathbf{U}_c) \times (\nabla \times \mathbf{U}_c)$$
+
+**นิยามตัวแปร:**
+- $C_L$: สัมประสิทธิ์แรงยก (lift coefficient) ซึ่งขึ้นอยู่กับ:
+  - particle Reynolds number
+  - อัตราการเฉือน (shear rate)
+  - ระบอบการไหล (flow regime)
+
+สัมประสิทธิ์แรงยก Saffman-Mei ให้การทำนายที่แม่นยำสำหรับอนุภาคขนาดเล็ก:
+
+$$C_L = \frac{2.255}{\sqrt{\text{Re}_p \text{Sr}}} \quad \text{สำหรับ} \quad \text{Re}_p \ll \text{Sr}$$
+
+โดยที่ $\text{Sr}$ คือ shear Reynolds number ซึ่งคำนวณจากความแตกต่างของความเร็วและเส้นผ่านศูนย์กลางของอนุภาค
+
+### แรงหล่อลื่นผนัง (Wall Lubrication Force)
+
+**แรงหล่อลื่นผนัง**ป้องกันการสะสมตัวของอนุภาคใกล้ผนัง โดยใช้แรงผลักที่เพิ่มขึ้นเมื่ออนุภาคเข้าใกล้ขอบเขตของแข็ง:
+
+$$\mathbf{F}_{wl} = C_{wl} \rho_c \alpha_d |\mathbf{U}_d - \mathbf{U}_c|^2 n_w f(y)$$
+
+**นิยามตัวแปร:**
+- $C_{wl}$: สัมประสิทธิ์แรงหล่อลื่นผนัง
+- $n_w$: เวกเตอร์แนวฉากของผนัง (wall normal vector)
+- $f(y)$: ฟังก์ชันของระยะห่างจากผนัง ซึ่งโดยทั่วไปจะลดลงแบบเอกซ์โพเนนเชียล
+
+**ฟังก์ชันระยะห่างจากผนัง:**
+
+$$f(y) = \frac{1}{y^2} - \frac{1}{(y + \epsilon)^2}$$
+
+โดยที่:
+- $y$: ระยะห่างจากผนัง
+- $\epsilon$: พารามิเตอร์ขนาดเล็กเพื่อป้องกันค่าอนันต์ (singularities)
+
+[Diagram: แสดงแรงหล่อลื่นผนังที่ผลักอนุภาคออกจากผนัง]
+
+### แรงกระจายตัวจากความปั่นป่วน (Turbulent Dispersion Force)
+
+**แรงกระจายตัวจากความปั่นป่วน** (Turbulent dispersion) พิจารณาถึงการเคลื่อนที่แบบสุ่มของอนุภาคอันเนื่องมาจากการผันผวนของความปั่นป่วน (turbulent fluctuations) ซึ่งส่งเสริมการผสมและป้องกันการแยกเฟสที่มากเกินไป:
+
+$$\mathbf{F}_{td} = -C_{td} \rho_c k \nabla \alpha_d$$
+
+**นิยามตัวแปร:**
+- $C_{td}$: สัมประสิทธิ์แรงกระจายตัวจากความปั่นป่วน
+- $k$: พลังงานจลน์จากความปั่นป่วน (turbulent kinetic energy)
+
+แรงนี้มักถูกจำลองโดยใช้:
+- การประมาณการแพร่แบบเกรเดียนต์ (gradient diffusion approximations)
+- วิธีการสมการ Langevin ที่ซับซ้อน
+
+### สถาปัตยกรรมการถ่ายเทโมเมนตัมใน OpenFOAM
+
+#### ระบบแรงรวม (Comprehensive Force System)
+
+คลาส `MomentumTransferPhaseSystem` ใน [MomentumTransferPhaseSystem.H](applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.H) รวมแรงระหว่างเฟสทั้งหมด:
+
+```cpp
+template<class BasePhaseSystem>
+class MomentumTransferPhaseSystem
+:
+    public BasePhaseSystem
+{
+private:
+    // แบบจำลองแรงฉุด
+    HashTable<autoPtr<dragModel>, phasePairKey> dragModels_;
+    
+    // แบบจำลองแรงยก
+    HashTable<autoPtr<liftModel>, phasePairKey> liftModels_;
+    
+    // แบบจำลองมวลเสมือน
+    HashTable<autoPtr<virtualMassModel>, phasePairKey> virtualMassModels_;
+    
+    // แบบจำลองแรงหล่อลื่นผนัง
+    HashTable<autoPtr<wallLubricationModel>, phasePairKey> wallLubricationModels_;
+    
+    // แบบจำลองแรงกระจายตัวจากความปั่นป่วน
+    HashTable<autoPtr<turbulentDispersionModel>, phasePairKey> turbulentDispersionModels_;
+    
+    // คำนวณแรงระหว่างเฟสทั้งหมด
+    virtual tmp<surfaceScalarField> calculateKd
+    (
+        const phaseModel& phase1,
+        const phaseModel& phase2
+    ) const;
+    
+    // คำนวณพจน์การถ่ายเทโมเมนตัม
+    virtual void correctMomentumTransfer();
+};
+```
+
+#### สถาปัตยกรรมแบบจำลองแรง (Force Model Architecture)
+
+แต่ละประเภทของแรงเป็นไปตามลำดับชั้นการสืบทอดที่สอดคล้องกัน:
+
+```cpp
+class interfacialMomentumTransferModel
+{
+public:
+    // คำนวณส่วนประกอบของแรง
+    virtual tmp<volVectorField> Fi() const = 0;
+    
+    // กลไกการเลือกขณะรัน
+    declareRunTimeSelectionTable
+    (
+        autoPtr,
+        interfacialMomentumTransferModel,
+        dictionary,
+        (
+            const dictionary& dict,
+            const phasePair& pair
+        ),
+        (dict, pair)
+    );
+};
+
+class liftModel
+: 
+    public interfacialMomentumTransferModel
+{
+protected:
+    // คำนวณสัมประสิทธิ์แรงยก
+    virtual tmp<volScalarField> Cl() const = 0;
+    
+    // การนำการคำนวณแรงไปใช้
+    virtual tmp<volVectorField> Fi() const
+    {
+        return Cl()*rhoC()*alphaD()*
+               (Ud() - Uc())*(curl(Uc()));
+    }
+};
+```
+
+#### กลยุทธ์การผสมแรง (Force Blending Strategies)
+
+แรงต่างๆ จะถูกผสมกันตามสภาวะการไหลเฉพาะที่และเศษส่วนเฟส เพื่อให้แน่ใจว่าการเปลี่ยนผ่านจะราบรื่นและมีความเสถียรเชิงตัวเลข (numerical stability):
+
+```cpp
+class forceBlendingModel
+{
+public:
+    // คำนวณฟังก์ชันการผสม
+    virtual tmp<volScalarField> dragBlending() const = 0;
+    virtual tmp<volScalarField> liftBlending() const = 0;
+    virtual tmp<volScalarField> wallBlending() const = 0;
+    
+    // ใช้แรงที่ผสมแล้ว
+    virtual tmp<volVectorField> blendedForce() const
+    {
+        return dragBlending()*dragForce() +
+               liftBlending()*liftForce() +
+               wallBlending()*wallLubricationForce();
+    }
+};
+```
+
+การนำแรงไปใช้ที่ครอบคลุมนี้ช่วยให้สามารถจำลองปรากฏการณ์หลายเฟสที่ซับซ้อนได้อย่างแม่นยำ รวมถึง:
+- การมีปฏิสัมพันธ์ระหว่างฟอง-ของเหลวในวิศวกรรมเครื่องปฏิกรณ์
+- การไหลที่มีอนุภาคแขวนลอยในการลำเลียงด้วยลม
+- พลวัตของหยดในระบบสเปรย์

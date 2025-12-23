@@ -1,0 +1,140 @@
+# 🧠 **ภายใต้ฝาครอบ: การประสานงาน Parallel Solver**
+
+## **Parallel Matrix-Vector Product พร้อมการสื่อสาร**
+
+Parallel matrix-vector product ใน OpenFOAM ถูก implement ผ่านฟังก์ชัน `lduMatrix::Amul` ซึ่งสาธิตถึงการประสานงานอย่างซับซ้อนระหว่างการคำนวณและการสื่อสาร
+
+[Diagram: Parallel matrix-vector computation showing ghost cell exchanges between processors]
+
+**พารามิเตอร์ของฟังก์ชัน:**
+- `result field`: field ที่เก็บผลลัพธ์
+- `input field tx`: field ขาเข้าสำหรับการคูณ
+- `interface boundary coefficients`: ค่าสัมประสิทธิ์ขอบเขต
+- `interface field pointers`: ตัวชี้ไปยัง field ขอบเขต
+
+### **รูปแบบการสื่อสารและการคำนวณ**
+
+รูปแบบการสื่อสารทำตามลำดับที่ถูกปรับแต่งอย่างระมัดระวังเพื่อทำให้การคำนวณและการส่งข้อความเกิดการซ้อนทับกัน
+
+#### **ขั้นตอนการดำเนินการ:**
+
+1. **เริ่มต้น non-blocking sends**: ส่งค่าขอบเขต (border values) ไปยัง neighboring processors
+2. **รับ border values**: รับค่าจาก processors ข้างเคียง
+3. **คำนวณ local interior contributions**: ดำเนินการคำนวณในขณะที่ messages ผ่าน network
+4. **รอการสำเร็จของ messages**: รอให้ messages เสร็จสิ้นและเพิ่ม boundary contributions
+
+#### **กลไกการประมวลผล:**
+
+**Phase 1: Ghost Cell Updates**
+```cpp
+updateMatrixInterfaces(); // แลกเปลี่ยนค่าขอบเขตระหว่าง neighboring processors
+```
+- แต่ละ processor มั่นใจได้ว่ามีค่าที่จำเป็นจาก adjacent domains
+- เตรียมความพร้อมสำหรับการคำนวณในเครื่อง
+
+**Phase 2: Local Computation**
+```cpp
+result = diag() * x; // Diagonal multiplication
+```
+- วนซ้ำผ่าน faces ของแต่ละ processor
+- เพิ่ม contributions จากทั้ง upper และ lower triangular matrix elements
+
+**ข้อมูลเชิงลึก:** ในขณะที่ messages กำลังส่งอยู่ processors สามารถคำนวณ contributions จาก interior cells ที่ไม่ขึ้นอยู่กับข้อมูลขอบเขตได้
+
+การซ้อนทับนี้ลด communication overhead อย่างมีนัยสำคัญ ซึ่งเป็นสิ่งสำคัญต่อ parallel efficiency ใน CFD simulations ที่ matrix operations เป็นส่วนสำคัญของค่าใช้จ่ายในการคำนวณ
+
+---
+
+## **Parallel Dot Products และ Norms**
+
+ฟังก์ชัน `gSumProd` implement global reductions ผ่าน processors ทั้งหมด ซึ่งเป็นสิ่งจำเรียงสำหรับ iterative solver convergence checks
+
+### **รูปแบบการทำงานของ Global Reduction**
+
+**Phase 1: Local Computation**
+```cpp
+localSum += a[i] * b[i]; // คำนวณ local dot product
+```
+- แต่ละ processor คำนวณ local dot product โดยวนซ้ำผ่าน local elements
+- เป็นการทำงานแบบ embarrassingly parallel และไม่ต้องการการสื่อสาร
+
+**Phase 2: Global Reduction**
+```cpp
+reduce(globalSum, sumOp<scalar>()); // MPI_Allreduce operation
+```
+
+| ขั้นตอน | การดำเนินการ | คำอธิบาย |
+|---------|-------------|---------|
+| **Local Computation** | `localSum += a[i] * b[i]` | แต่ละ processor คำนวณผลคูณในพื้นที่ |
+| **Global Reduction** | `MPI_Allreduce` | รวมผลจากทุก processor ผ่าน network |
+| **Synchronization** | Collective Operation | ทุก processor ต้องถึงจุดเดียวกัน |
+
+### **ประสิทธิภาพและความท้าทาย**
+
+**ข้อดี:**
+- Local computation เป็นการทำงานแบบ parallel อย่างสมบูรณ์
+- ไม่ต้องการการสื่อสารในช่วงแรก
+
+**ข้อจำกัด:**
+- MPI_Allreduce สร้าง global synchronization barrier
+- อาจจำกัด scalability หากไม่ได้จัดการอย่างระมัดระวัง
+- เป็นจุดคอขวดใน large-scale parallel computation
+
+ประสิทธิภาพของ global reductions เป็นสิ่งสำคัญสำหรับประสิทธิภาพของ parallel solver ใน iterative methods เช่น **Conjugate Gradient** ที่ dot products และ vector norms ถูกคำนวณในแต่ละ iteration เพื่อตรวจสอบความ convergent
+
+---
+
+## **Parallel Preconditioners - "Localized Organizers"**
+
+คลาส `DICPreconditioner` แสดงให้เห็นถึงความท้าทายของการใช้ incomplete Cholesky preconditioning ในสภาพแวดล้อมแบบ parallel
+
+[Diagram: Processor boundary showing triangular solve dependencies]
+
+### **ความท้าทายใน Forward Sweep**
+
+Gauss-Seidel sweeps ต้องการ sequential updates ที่ไม่สามารถ parallelize ได้ตามธรรมชาติ ซึ่งสร้างความท้าทายพื้นฐาน:
+
+#### **การแก้ปัญหา:**
+```cpp
+if (!isProcessorFace[facei]) {
+    // อัปเดตเฉพาะ non-processor boundary faces
+}
+```
+
+**ข้อจำกัดนี้ทำให้:**
+- รักษา triangular solve dependencies ไว้ภายในแต่ละ local subdomain
+- แต่ processor boundaries ทำลาย dependencies เนื่องจากการอัปเดตของ boundary cell ขึ้นอยู่กับค่าจาก neighboring processors
+
+### **แนวทางผสม (Hybrid Approach)**
+
+| วิธีการ | บริเวณที่ใช้ | คุณสมบัติ |
+|-----------|------------|-----------|
+| **Gauss-Seidel** | ภายใน subdomains | การ convergence ทางคณิตศาสตร์ที่เคร่งครัด |
+| **Jacobi-like** | ที่ processor boundaries | Parallel efficiency ที่ดีขึ้น |
+
+**รูปแบบการสื่อสาร:**
+1. **Forward sweep**: อัปเดต interfaces ระหว่างการคำนวณ
+2. **Interface synchronization**: แลกเปลี่ยนค่าระหว่าง processors
+3. **Backward sweep**: ทำซ้ำการอัปเดตด้วยค่าใหม่
+
+### **Trade-off Analysis**
+
+**ประสิทธิภาพ:**
+- Preconditioner ที่ได้มีประสิทธิภาพน้อยกว่า serial counterpart
+- แต่ช่วยให้สามารถ scalable ไปยัง large processor counts ได้
+
+**การแลกเปลี่ยน:**
+- **Convergence rate**: ลดลงเล็กน้อย
+- **Parallel efficiency**: เพิ่มขึ้นอย่างมีนัยสำคัญ
+- **Synchronization overhead**: ลดลง
+
+### **ความต้องการการสื่อสาร**
+
+แต่ละ forward/backward sweep โดยทั่วไปต้องการสอง communication phases:
+
+1. **Interface exchange**: แลกเปลี่ยนค่า boundary ระหว่าง processors
+2. **Convergence check**: global reduction สำหรับ checking progress
+
+ทำให้ preconditioners เป็น components ที่ต้องการการสื่อสารมากของ parallel solvers
+
+การแลกเปลี่ยนระหว่าง convergence rate และ parallel efficiency เป็นความท้าทายพื้นฐานใน parallel iterative solvers ซึ่งต้องการการประสานงานอย่างระมัดระวังระหว่าง processors เพื่อรักษาเสถียรภาพในขณะที่ลด synchronization overhead

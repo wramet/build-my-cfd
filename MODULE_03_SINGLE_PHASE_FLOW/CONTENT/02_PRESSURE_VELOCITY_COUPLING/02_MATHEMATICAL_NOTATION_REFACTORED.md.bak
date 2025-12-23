@@ -1,0 +1,213 @@
+# 📊 สัญกรณ์ทางคณิตศาสตร์สำหรับการเชื่อมโยงความดัน-ความเร็ว
+
+## 1. การทำให้สมการโมเมนตัมเป็นแบบไม่ต่อเนื่อง
+
+### 1.1 สมการโมเมนตัมในรูปแบบต่อเนื่อง
+
+สมการโมเมนตัมใน OpenFOAM ถูกทำให้เป็นแบบไม่ต่อเนื่องโดยใช้วิธี **Finite Volume Method** สำหรับ **Incompressible Flow**
+
+[Diagram: ปริมาตรควบคุมแสดงการไหลของโมเมนตัมเข้า-ออก]
+
+$$\frac{\partial (\rho \mathbf{u})}{\partial t} + \nabla \cdot (\rho \mathbf{u} \mathbf{u}) = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}_b$$
+
+**นิยามตัวแปร:**
+- $\rho$ คือความหนาแน่นของของไหล (kg/m³)
+- $\mathbf{u}$ คือเวกเตอร์ความเร็ว (m/s)
+- $p$ คือสนามความดัน (Pa)
+- $\mu$ คือความหนืดพลวัต (Pa·s)
+- $\mathbf{f}_b$ แทนแรงภายนอก (Body Forces) (N/m³)
+
+### 1.2 รูปแบบไม่ต่อเนื่องสำหรับเซลล์ $P$
+
+ในรูปแบบที่ถูกทำให้เป็นแบบไม่ต่อเนื่องสำหรับเซลล์ $P$:
+
+[Diagram: โครงสร้างเซลล์ P และเพื่อนบ้าน N ในกริด]
+
+$$a_P \mathbf{u}_P + \sum_{N} a_N \mathbf{u}_N = \mathbf{b}_P - \nabla p_P$$
+
+**สัมประสิทธิ์การทำให้เป็นแบบไม่ต่อเนื่อง:**
+
+| สัมประสิทธิ์ | สูตร | คำอธิบาย |
+|------------|------|-----------|
+| $a_P$ | $\frac{\rho_P V_P}{\Delta t} + \sum_{f} \Gamma_f S_f$ | สัมประสิทธิ์แนวทแยง (Diagonal coefficient) |
+| $a_N$ | $-\Gamma_f S_f$ | สัมประสิทธิ์เพื่อนบ้าน (Neighbor coefficient) |
+| $\mathbf{b}_P$ | $\frac{\rho_P V_P}{\Delta t} \mathbf{u}_P^n + \mathbf{f}_{b,P} V_P$ | เทอมแหล่งกำเนิด (Source term) |
+
+**โดยที่:**
+- $V_P$ คือปริมาตรของเซลล์ $P$
+- $S_f$ คือพื้นที่ผิวหน้า $f$
+- $\Gamma_f$ คือค่าสัมประสิทธิ์การนำที่หน้า $f$
+
+---
+
+## 2. สมการการแก้ไขความดัน
+
+### 2.1 ที่มาของสมการความดัน
+
+สมการการแก้ไขความดันได้มาจาก **สมการความต่อเนื่อง** และ **การทำให้โมเมนตัมเป็นแบบไม่ต่อเนื่อง**
+
+[Diagram: ไดอะแกรมแสดงความสัมพันธ์ระหว่างสมการความต่อเนื่องและสมการความดัน]
+
+### 2.2 อัลกอริทึม SIMPLE (Semi-Implicit Method for Pressure-Linked Equations)
+
+$$\nabla \cdot \left( \frac{1}{a_P} \nabla p' \right) = \frac{\rho_P V_P}{\Delta t} \nabla \cdot \mathbf{u}^*$$
+
+**นิยามตัวแปร:**
+- $p'$ คือการแก้ไขความดัน (Pa)
+- $\mathbf{u}^*$ คือสนามความเร็วชั่วคราว (m/s)
+- $a_P$ คือสัมประสิทธิ์แนวทแยงของสมการโมเมนตัม
+
+### 2.3 กรณีการไหลแบบ Transient (อัลกอริทึม PISO)
+
+สำหรับ **Transient Flow** การแก้ไขความดันจะกลายเป็น:
+
+$$\nabla \cdot \left( \frac{1}{a_P} \nabla p' \right) = \nabla \cdot \mathbf{u}^*$$
+
+### 2.4 รูปแบบเมทริกซ์ใน OpenFOAM
+
+[Diagram: โครงสร้างเมทริกซ์สำหรับการแก้สมการความดัน]
+
+$$\mathbf{A}_p \mathbf{p}' = \mathbf{r}_p$$
+
+**โดยที่:**
+- $\mathbf{A}_p$ คือเมทริกซ์สัมประสิทธิ์ความดัน
+- $\mathbf{r}_p$ คือเวกเตอร์ Residual
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Pressure correction equation in OpenFOAM
+fvScalarMatrix pEqn
+(
+    fvm::laplacian(1.0/apu, p_prime) == fvc::div(u_star)
+);
+pEqn.solve();
+```
+
+---
+
+## 3. สูตรการแก้ไขความเร็ว
+
+### 3.1 การแก้ไขความเร็วจาก Pressure Gradient
+
+การแก้ไขความเร็วคำนวณจาก **Pressure Gradient** ของการแก้ไขความดัน:
+
+[Diagram: แสดงการปรับความเร็วจาก gradient ของความดัน]
+
+$$\mathbf{u}^{n+1} = \mathbf{u}^* - \frac{1}{a_P} \nabla p'$$
+
+### 3.2 ความเร็วที่ Face สำหรับการคำนวณ Flux
+
+ความเร็วที่ **Face** สำหรับการคำนวณ **Flux** คือ:
+
+$$\mathbf{u}_f^{n+1} = \mathbf{u}_f^* - \frac{1}{a_P} \left( \nabla p' \right)_f$$
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Velocity correction in OpenFOAM
+U = U - (1.0/apu) * fvc::grad(p_prime);
+```
+
+### 3.3 Rhie-Chow Interpolation สำหรับ Collocated Grids
+
+สำหรับ **Collocated Grids** จะใช้ **Rhie-Chow Interpolation** เพื่อป้องกัน **Pressure-Velocity Decoupling**:
+
+[Diagram: แสดงปัญหา Checkerboarding ใน collocated grids]
+
+$$\mathbf{u}_f = \mathbf{u}_f^* - \frac{1}{a_P} \left( \nabla p \right)_f + D_f \left( \nabla p \right)_f - D_f \left( \nabla p \right)_P$$
+
+**โดยที่:**
+- $D_f = \frac{1}{a_P}$ คือสัมประสิทธิ์การประมาณค่าในช่วง (Interpolation Coefficient)
+
+---
+
+## 4. สูตรการผ่อนคลาย (Relaxation Formulas)
+
+### 4.1 ความสำคัญของ Relaxation
+
+**Relaxation** มีความสำคัญอย่างยิ่งต่อ **Convergence** ใน **Steady-State Simulations**
+
+[Diagram: กราฟแสดงผลของการใช้และไม่ใช้ relaxation ต่อการลู่เข้า]
+
+**การ Under-Relaxation** ช่วย:
+- ลดการแกว่ง (oscillations)
+- ปรับปรุงความเสถียร (stability)
+- เพิ่มความน่าเชื่อถือของการคำนวณ
+
+### 4.2 การ Under-Relaxation โมเมนตัม
+
+$$\mathbf{u}^{k+1} = \mathbf{u}^k + \alpha_u (\mathbf{u}^* - \mathbf{u}^k)$$
+
+**นิยามตัวแปร:**
+- $\alpha_u$ คือ Momentum Under-Relaxation Factor (โดยทั่วไป 0.3-0.7)
+- $\mathbf{u}^*$ คือความเร็วที่คาดการณ์ไว้ (predicted velocity)
+- $\mathbf{u}^k$ คือความเร็วจากการวนซ้ำครั้งก่อน (previous iteration)
+
+**ใน OpenFOAM:** สิ่งนี้จะปรับเปลี่ยนสัมประสิทธิ์สมการโมเมนตัม:
+$$a_P = \frac{a_P}{\alpha_u}, \quad \mathbf{b}_P = \mathbf{b}_P + \frac{1-\alpha_u}{\alpha_u} a_P \mathbf{u}_P^k$$
+
+### 4.3 การ Under-Relaxation ความดัน
+
+สำหรับอัลกอริทึม **SIMPLE** จะใช้ **Pressure Relaxation**:
+
+$$p^{k+1} = p^k + \alpha_p p'$$
+
+**โดยที่:**
+- $\alpha_p$ โดยทั่วไปคือ 0.1-0.3 สำหรับความดัน
+
+### 4.4 อัลกอริทึม PIMPLE (PISO-SIMPLE Hybrid)
+
+สำหรับการจำลอง **Transient Simulations** ที่มี **Time Steps** ขนาดใหญ่ อัลกอริทึม **PIMPLE** ของ OpenFOAM ใช้:
+
+[Diagram: โครงสร้างการทำงานของ PIMPLE แสดงการผสมผสาน SIMPLE และ PISO]
+
+**คุณสมบัติหลัก:**
+- การวนซ้ำ **SIMPLE** ภายนอกพร้อม Under-Relaxation
+- การแก้ไข **PISO** ภายในในการวนซ้ำภายนอกแต่ละครั้ง
+
+**สูตรที่ผสมผสาน:**
+$$\mathbf{u}^{n+1,k+1} = \mathbf{u}^{n+1,k} + \alpha_u (\mathbf{u}^* - \mathbf{u}^{n+1,k})$$
+$$p^{n+1,k+1} = p^{n+1,k} + \alpha_p p'$$
+
+**โดยที่:**
+- $k$ แสดงถึงตัวนับการวนซ้ำ SIMPLE
+- $n$ แสดงถึงระดับเวลา (time level)
+
+### 4.5 การ Under-Relaxation เทอมแหล่งกำเนิด
+
+สำหรับ **Source Terms** ที่รุนแรง จะมีการใช้ Relaxation เพิ่มเติม:
+
+$$\mathbf{S}^{k+1} = \mathbf{S}^k + \alpha_s (\mathbf{S}^* - \mathbf{S}^k)$$
+
+**โดยที่:**
+- $\alpha_s$ โดยทั่วไปคือ 0.1-0.2 สำหรับ Physics Models ที่ละเอียดอ่อน
+
+**ตัวอย่าง Physics Models ที่ต้องการ Source Term Relaxation:**
+| โมเดลฟิสิกส์ | ค่า αs ที่แนะนำ | เหตุผล |
+|--------------|-------------------|---------|
+| Combustion | 0.1-0.15 | ปฏิกิริยาที่รุนแรงมาก |
+| Phase Change | 0.1-0.2 | การเปลี่ยนสถานะมีความไม่เสถียร |
+| Multiphase Drag | 0.1-0.15 | แรงลากที่มีการเปลี่ยนแปลงเร็ว |
+
+---
+
+## 5. สรุปสูตรสำคัญ
+
+### 5.1 ตารางสูตรที่ใช้บ่อย
+
+| สมการ | สูตร | การใช้งาน |
+|--------|------|-------------|
+| **Discretized Momentum** | $a_P \mathbf{u}_P + \sum a_N \mathbf{u}_N = \mathbf{b}_P - \nabla p_P$ | การแก้สมการโมเมนตัม |
+| **Pressure Correction (SIMPLE)** | $\nabla \cdot (\frac{1}{a_P} \nabla p') = \frac{\rho_P V_P}{\Delta t} \nabla \cdot \mathbf{u}^*$ | การแก้ไขความดัน steady-state |
+| **Pressure Correction (PISO)** | $\nabla \cdot (\frac{1}{a_P} \nabla p') = \nabla \cdot \mathbf{u}^*$ | การแก้ไขความดัน transient |
+| **Velocity Correction** | $\mathbf{u}^{n+1} = \mathbf{u}^* - \frac{1}{a_P} \nabla p'$ | การปรับความเร็ว |
+| **Momentum Relaxation** | $\mathbf{u}^{k+1} = \mathbf{u}^k + \alpha_u (\mathbf{u}^* - \mathbf{u}^k)$ | การทำให้เสถียร steady-state |
+
+### 5.2 ค่าที่แนะนำสำหรับ Parameters
+
+| Parameter | ช่วงค่าที่แนะนำ | คำอธิบาย |
+|-----------|-------------------|-----------|
+| $\alpha_u$ (Velocity Relaxation) | 0.3-0.7 | การผ่อนคลายความเร็ว |
+| $\alpha_p$ (Pressure Relaxation) | 0.1-0.3 | การผ่อนคลายความดัน |
+| $\alpha_s$ (Source Term Relaxation) | 0.1-0.2 | การผ่อนคลายเทอมแหล่งกำเนิด |
+
+[Diagram: แผนภูมิการไหลของอัลกอริทึมการเชื่อมโยงความดัน-ความเร็วใน OpenFOAM]

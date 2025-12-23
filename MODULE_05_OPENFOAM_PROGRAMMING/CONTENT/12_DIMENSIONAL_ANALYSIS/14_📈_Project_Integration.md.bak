@@ -1,0 +1,248 @@
+# 📈 การบูรณาการโปรเจกต์
+
+## การบูรณาการการตรวจสอบมิติในการพัฒนา Solver
+
+### การจัดการมิติแบบเป็นระบบ
+
+รวมการวิเคราะห์มิติเข้ากับขั้นตอนการพัฒนา solver ของ OpenFOAM ของคุณทั้งหมดเพื่อให้มั่นใจถึงความแข็งแกร่งและความสามารถในการบำรุงรักษา 
+
+**ประโยชน์หลัก:**
+- **ป้องกันข้อผิดพลาดด้านมิติในระหว่างการคอมไพล์** (ไม่ใช่รันไทม์)
+- **ให้ข้อเสนอแนะทันที** เกี่ยวกับความไม่สอดคล้องกันทางฟิสิกส์
+- **ปรับปรุงความน่าเชื่อถือ** ของ solver
+- **ลดเวลา debugging** ที่เกิดจากปัญหามิติ
+
+[Diagram: Flowchart showing dimensional checking integrated into solver development workflow]
+
+#### การประกาศค่าคงที่ที่มีมิติ
+
+ระบุมิติเสมอเมื่อสร้างค่าคงที่ทางกายภาพใน solver ของคุณ:
+
+```cpp
+// Physical constants with proper dimensions
+const dimensionedScalar rhoRef
+(
+    "rhoRef",
+    dimensionSet(1, -3, 0, 0, 0, 0, 0),  // [kg/m³]
+    1.225
+);
+
+const dimensionedScalar nu
+(
+    "nu",
+    dimensionSet(0, 2, -1, 0, 0, 0, 0),  // [m²/s]
+    1.5e-5
+);
+
+const dimensionedScalar g
+(
+    "g",
+    dimensionSet(0, 1, -2, 0, 0, 0, 0),  // [m/s²]
+    9.81
+);
+```
+
+**มิติที่กำหนด:**
+- `dimensionSet(1, -3, 0, 0, 0, 0, 0)` → มวล [M] กำลัง 1, ความยาว [L] กำลัง -3
+- `dimensionSet(0, 2, -1, 0, 0, 0, 0)` → ความยาว [L] กำลัง 2, เวลา [T] กำลัง -1
+
+#### ชุดมิติสำหรับฟิสิกส์แบบกำหนดเอง
+
+ใช้ constructor ของ `dimensionSet` สำหรับการนำโมเดลฟิสิกส์แบบกำหนดเองมาใช้งาน:
+
+```cpp
+// Custom dimension set for heat transfer coefficient
+dimensionSet htcDimensions
+(
+    1,    // Mass [M]
+    0,    // Length [L] 
+   -1,    // Time [T]
+   -1,    // Temperature [θ]
+    0,    // Moles [N]
+    0,    // Current [A]
+    0     // Luminous intensity [I]
+);
+
+// Surface tension coefficient
+dimensionedScalar sigma
+(
+    "sigma",
+    dimensionSet(1, 0, -2, 0, 0, 0, 0),  // [kg/s²]
+    0.072
+);
+```
+
+**โครงสร้าง dimensionSet:**
+`dimensionSet(M, L, T, θ, N, A, I)`
+
+| พารามิเตอร์ | สัญลักษณ์ | หน่วยฐาน SI | ตำแหน่งใน dimensionSet |
+|-------------|-----------|-------------|-------------------|
+| Mass | M | kg | ตำแหน่งที่ 1 |
+| Length | L | m | ตำแหน่งที่ 2 |
+| Time | T | s | ตำแหน่งที่ 3 |
+| Temperature | θ | K | ตำแหน่งที่ 4 |
+| Amount of substance | N | mol | ตำแหน่งที่ 5 |
+| Electric current | A | A | ตำแหน่งที่ 6 |
+| Luminous intensity | I | cd | ตำแหน่งที่ 7 |
+
+## ประโยชน์ของการทำให้ไร้มิติ
+
+### เสถียรภาพทางตัวเลข
+
+**การทำให้ไร้มิติช่วยเพิ่มเสถียรภาพของ solver โดย:**
+
+- ✅ **ลดช่วงค่าสุดขั้ว** ในเมทริกซ์
+- ✅ **ปรับปรุง condition number** ในระบบเชิงเส้น
+- ✅ **ลดข้อผิดพลาด** จากการปัดเศษจุดลอยตัว
+- ✅ **ปรับมาตราส่วนความสำคัญ** ให้เป็นปกติในแต่ละสมการ
+
+```cpp
+// Reynolds number-based non-dimensionalization
+const dimensionedScalar Re("Re", dimless, 1.0e4);
+const dimensionedScalar Uref("Uref", dimVelocity, 10.0);
+const dimensionedScalar Lref("Lref", dimLength, 1.0);
+
+// Non-dimensional velocity field
+volVectorField UDim
+(
+    IOobject
+    (
+        "UDim",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    U / Uref
+);
+```
+
+### การวิเคราะห์สเกล
+
+นำการปรับสเกลพารามิเตอร์แบบเป็นระบบมาใช้สำหรับการวิเคราะห์อย่างครอบคลุม:
+
+```cpp
+// Multi-scale analysis framework
+class ScalingAnalysis
+{
+    dimensionedScalar lengthScale_;
+    dimensionedScalar velocityScale_;
+    dimensionedScalar timeScale_;
+    
+public:
+    ScalingAnalysis(const dimensionedScalar& L, const dimensionedScalar& U)
+        : lengthScale_(L), velocityScale_(U), timeScale_(L/U) {}
+    
+    dimensionedScalar getReynoldsNumber(const dimensionedScalar& nu) const
+    {
+        return velocityScale_ * lengthScale_ / nu;
+    }
+};
+```
+
+**ขั้นตอนการวิเคราะห์สเกล:**
+
+1. **กำหนด characteristic scales** (ความยาว, ความเร็ว, เวลา)
+2. **คำนวณ dimensionless numbers** (Re, Pr, Pe, ฯลฯ)
+3. **ปรับเปลี่ยนตัวแปร** เป็นรูปไร้มิติ
+4. **วิเคราะห์พฤติกรรม** ที่สเกลต่าง ๆ
+
+[Diagram: Scaling analysis workflow showing the relationship between dimensional and dimensionless quantities]
+
+## การตีความข้อความแสดงข้อผิดพลาด
+
+### การตรวจจับความไม่สอดคล้องกันของมิติ
+
+OpenFOAM ให้ข้อความแสดงข้อผิดพลาดโดยละเอียดสำหรับความไม่สอดคล้องกันทางมิติ:
+
+```
+--> FOAM FATAL ERROR:
+    LHS and RHS of = have different dimensions
+    LHS dimensions : [0 2 -2 0 0 0 0]
+    RHS dimensions : [0 1 -1 0 0 0 0]
+```
+
+**การแปลงข้อความแสดงข้อผิดพลาด:**
+
+| ส่วนของข้อความ | ความหมาย | ตัวอย่าง |
+|-----------------|----------|----------|
+| `LHS dimensions` | มิติของด้านซ้ายของสมการ | `[0 2 -2 0 0 0 0]` = L²/T² (ความเร็ว²) |
+| `RHS dimensions` | มิติของด้านขวาของสมการ | `[0 1 -1 0 0 0 0]` = L/T (ความเร็ว) |
+
+**คำแปล**: ด้านซ้ายมีมิติของความหนืดจลน์ ($\nu$) [$\text{L}^2\text{T}^{-1}$] ในขณะที่ด้านขวามีมิติของความเร็ว ($\mathbf{u}$) [$\text{L}\text{T}^{-1}$]
+
+### กลยุทธ์การแก้จุดบกพร่อง
+
+**ขั้นตอนการแก้ปัญหามิติ:**
+
+1. **ค้นหาตำแหน่งข้อผิดพลาด**: ใช้ stack trace เพื่อระบุบรรทัดที่มีปัญหา
+2. **ตรวจสอบประเภทตัวแปร**: ยืนยันว่าตัวแปรที่มีมิติทั้งหมดมีมิติที่ถูกต้อง
+3. **ตรวจสอบการดำเนินงาน**: ให้มั่นใจว่าการดำเนินการทางคณิตศาสตร์ยังคงความสอดคล้องทางมิติ
+4. **ตรวจสอบค่าคงที่**: ยืนยันว่าค่าคงที่ทางฟิสิกส์มีชุดมิติที่เหมาะสม
+
+```cpp
+// Debugging dimensional errors
+Info << "Variable dimensions:" << endl;
+Info << "U: " << U.dimensions() << endl;
+Info << "p: " << p.dimensions() << endl;
+Info << "nu: " << nu.dimensions() << endl;
+Info << "rho: " << rho.dimensions() << endl;
+```
+
+**เครื่องมือ debugging เพิ่มเติม:**
+
+```cpp
+// Function to print detailed dimension information
+void printFieldDimensions(const word& fieldName, const dimensionSet& dims)
+{
+    Info << "Field: " << fieldName << nl
+         << "Dimensions: " << dims << nl
+         << "Mass exponent: " << dims[0] << nl
+         << "Length exponent: " << dims[1] << nl
+         << "Time exponent: " << dims[2] << nl
+         << "Temperature exponent: " << dims[3] << endl;
+}
+```
+
+## การบูรณาการแนวทางปฏิบัติที่ดีที่สุด
+
+### เฟรมเวิร์คมิติที่สอดคล้องกัน
+
+**จัดตั้งข้อตกลงด้านมิติที่สอดคล้องกันทั่วทั้ง solver ของคุณ:**
+
+- ✅ **ใช้หน่วยฐาน SI** เป็นข้อมูลอ้างอิง
+- ✅ **จัดทำเอกสารมิติแบบกำหนดเอง** ทั้งหมด
+- ✅ **นำการตรวจสอบมิติมาใช้** ในเงื่อนไขขอบเขต
+- ✅ **สร้างการทดสอบความสอดคล้อง** ทางมิติ
+
+### การนำเทมเพลตมาใช้งาน
+
+นำการตรวจสอบมิติไปใช้ในเทมเพลตของ solver:
+
+```cpp
+template<class Type>
+void checkDimensionalConsistency(const GeometricField<Type, fvPatchField, volMesh>& field)
+{
+    if (field.dimensions() != Type::dimensions)
+    {
+        FatalErrorInFunction
+            << "Field " << field.name() << " has incorrect dimensions" 
+            << nl << "Expected: " << Type::dimensions
+            << nl << "Actual: " << field.dimensions()
+            << exit(FatalError);
+    }
+}
+```
+
+**แนวทางปฏิบัติที่ดีที่สุด:**
+
+| แนวทางปฏิบัติ | วิธีการ | ผลลัพธ์ที่ได้ |
+|---------------|----------|-------------|
+| **กำหนดมิติเสมอ** | ใช้ `dimensionSet` สำหรับค่าคงที่ | ป้องกันข้อผิดพลาดคอมไพล์ |
+| **ทดสอบการทำให้ไร้มิติ** | ใช้หมายเลขไร้มิติ (Re, Pr, ฯลฯ) | เพิ่มความเสถียรทางตัวเลข |
+| **จัดทำเอกสาร** | แสดงมิติในความคิดเห็นโค้ด | ง่ายต่อการบำรุงรักษา |
+| **รวมเข้ากับการทดสอบ** | ตรวจสอบมิติใน unit tests | ความคงทนของโค้ด |
+
+---
+
+*ส่วนนี้พัฒนาขึ้นโดยอ้างอิงถึงซอร์สโค้ด OpenFOAM‑10 โปรดดู [เอกสาร OpenFOAM](https://openfoam.org/documentation/) สำหรับการอัปเดตล่าสุด*

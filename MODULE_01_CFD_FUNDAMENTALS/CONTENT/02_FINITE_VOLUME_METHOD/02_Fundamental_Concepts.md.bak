@@ -1,0 +1,125 @@
+# แนวคิดพื้นฐานของ Finite Volume Method
+
+## แนวทางการใช้ Control Volume
+
+**Finite Volume Method** แบ่ง Computational Domain ออกเป็นชุดของ **Control Volume (Cells)** ที่ไม่ทับซ้อนกัน โดย:
+
+- **Governing Equations** จะถูกอินทิเกรตเหนือ Control Volume แต่ละอัน
+- รับประกันการอนุรักษ์มวล โมเมนตัม และพลังงานในระดับท้องถิ่น (local conservation)
+- เป็นรากฐานทางคณิตศาสตร์ของ **Computational Framework ของ OpenFOAM**
+- วิธีการที่เข้มงวดในการ Discretize **Partial Differential Equations** โดยยังคงรักษ์ Conservation Laws พื้นฐานทางฟิสิกส์ไว้
+
+
+```mermaid
+graph LR
+    subgraph "Computational Domain"
+        CV1["Control Volume 1"]
+        CV2["Control Volume 2"]
+        CV3["Control Volume 3"]
+        CV4["Control Volume 4"]
+        CV5["Control Volume 5"]
+        CV6["Control Volume 6"]
+    end
+    
+    subgraph "Fluxes Across Boundaries"
+        F12["Flux 1→2"]
+        F23["Flux 2→3"]
+        F34["Flux 3→4"]
+        F45["Flux 4→5"]
+        F56["Flux 5→6"]
+        F61["Flux 6→1"]
+        F13["Flux 1→3"]
+        F24["Flux 2→4"]
+        F35["Flux 3→5"]
+        F46["Flux 4→6"]
+    end
+    
+    CV1 -- "Mass, Momentum, Energy" --> F12
+    F12 --> CV2
+    CV2 --> F23
+    F23 --> CV3
+    CV3 --> F34
+    F34 --> CV4
+    CV4 --> F45
+    F45 --> CV5
+    CV5 --> F56
+    F56 --> CV6
+    CV6 --> F61
+    F61 --> CV1
+    
+    CV1 -.-> F13
+    F13 -.-> CV3
+    CV2 -.-> F24
+    F24 -.-> CV4
+    CV3 -.-> F35
+    F35 -.-> CV5
+    CV4 -.-> F46
+    F46 -.-> CV6
+    
+    classDef cv fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef flux fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    class CV1,CV2,CV3,CV4,CV5,CV6 cv;
+    class F12,F23,F34,F45,F56,F61,F13,F24,F35,F46 flux;
+```
+
+
+## ความเข้าใจเชิงกายภาพ
+
+### หลักการสมดุล
+
+แนวทางการใช้ Control Volume สามารถเข้าใจได้ผ่านการเปรียบเทียบ:
+
+**ลองจินตนาการ** การแบ่ง Fluid Domain ที่ต่อเนื่องออกเป็นกล่องเล็กๆ หรือ **Control Volume** ที่แยกจากกัน:
+
+1. **สำหรับแต่ละกล่อง**: พิจารณา Fluxes (การไหล) ทั้งหมดที่ข้ามผ่านขอบเขต
+2. **การสมดุล**: การเปลี่ยนแปลงสุทธิของปริมาณที่อนุรักษ์ = ปริมาณที่ไหลเข้า - ปริมาณที่ไหลออก + Sources/Sinks
+3. **หลักการทางฟิสิกส์**: สิ่งที่เข้า + สิ่งที่ถูกสร้าง = สิ่งที่ออก + สิ่งที่ถูกทำลาย + การเปลี่ยนแปลงในระบบ
+
+### จากมุมมองการคำนวณ
+
+**Control Volume แต่ละอัน** จะกลายเป็น **Computational Cell** ที่เราเก็บและแก้สมการคณิตศาสตร์ โดยมีลักษณะสำคัญ:
+
+- **Local Conservation**: การอนุรักษ์ที่แม่นยำในระดับ Cell แต่ละอัน
+- **Flux Balance**: การคำนวณ Fluxes ที่ขอบเขทของ Cell
+- **Source Terms**: การรวม Sources หรือ Sinks ภายใน Cell
+
+
+```mermaid
+graph LR
+    subgraph "Continuous Domain"
+        A["Continuous Fluid<br/>Domain"] --> B["Mathematical<br/>Fields"]
+        B --> C["Differential<br/>Equations"]
+        C --> D["Analytical<br/>Solutions"]
+    end
+    
+    subgraph "Discretized Domain"
+        E["Control Volume<br/>Grid"] --> F["Computational<br/>Mesh"]
+        F --> G["Cell-centered<br/>Values"]
+        G --> H["Algebraic<br/>Equations"]
+        H --> I["Numerical<br/>Solution"]
+    end
+    
+    A -.->|Discretization| E
+    D -.->|Transformation| H
+    
+    subgraph "Key Relationships"
+        J["Flux Conservation<br/>at Cell Faces"]
+        K["Local Mass<br/>Balance"]
+        L["Numerical<br/>Integration"]
+    end
+    
+    F --> J
+    J --> K
+    K --> L
+    
+    %% Styling Definitions
+    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    
+    class A,B,C,D process
+    class E,F,G,H,I storage
+    class J,K,L decision
+```
+

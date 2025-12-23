@@ -1,0 +1,468 @@
+# 07_ADVANCED_TOPICS.md
+
+## หัวข้อขั้นสูง (Advanced Topics)
+
+### High-Performance Computing ใน OpenFOAM
+
+OpenFOAM ถูกออกแบบมาตั้งแต่ต้นสำหรับการประมวลผลแบบขนาน (parallel computing) โดยใช้ **MPI (Message Passing Interface)** สถาปัตยกรรมแบบขนานนี้ช่วยให้สามารถแบ่งโดเมน (domain decomposition) ซึ่งตาข่ายการคำนวณ (computational mesh) จะถูกแบ่งออกเป็นส่วนย่อยๆ (sub-domains) โดยแต่ละส่วนจะถูกประมวลผลโดยโปรเซสเซอร์แยกต่างหาก
+
+[Diagram: Domain Decomposition Architecture showing mesh partitioned across processors with MPI communication at interfaces]
+
+#### สถาปัตยกรรม Parallel Solver
+
+การแบ่งปริภูมิแบบ Finite Volume ทำให้เกิดระบบสมการเชิงเส้น $A\mathbf{x} = \mathbf{b}$ โดยที่:
+
+- $A$ คือ sparse coefficient matrix
+- $\mathbf{x}$ คือ vector ของค่า field ที่ไม่ทราบค่า  
+- $\mathbf{b}$ คือ vector ของ source term
+
+ในการประมวลผลแบบขนาน ระบบนี้จะถูกกระจายไปยังโปรเซสเซอร์ต่างๆ โดยมี Boundary Condition ที่ส่วนต่อประสาน (interface) จัดการผ่านการสื่อสารแบบ MPI:
+
+```
+processor0: A0 x0 = b0
+processor1: A1 x1 = b1  
+...
+มีการแลกเปลี่ยนข้อมูลผ่าน MPI ที่ขอบเขตของโปรเซสเซอร์
+```
+
+#### GPU Acceleration
+
+OpenFOAM เวอร์ชันใหม่รองรับ **GPU acceleration** ผ่าน CUDA และ OpenCL กลยุทธ์การเร่งความเร็วที่สำคัญ ได้แก่:
+
+1. **Linear Solver Acceleration**: การนำ iterative solvers (CG, BiCGStab, GMRES) ที่ปรับให้เหมาะสมกับ GPU
+2. **Preconditioner Optimization**: Algebraic multigrid (AMG) และ incomplete LU factorization  
+3. **Matrix-Vector Operations**: การดำเนินการกับ sparse matrix แบบขนาน โดยใช้ประโยชน์จากแบนด์วิดท์หน่วยความจำของ GPU
+
+การนำ GPU มาใช้รักษาความแม่นยำเชิงตัวเลขผ่าน:
+
+- การคำนวณแบบ double-precision สำหรับการคำนวณที่สำคัญ
+- การใช้ precision ที่ลดลงเพื่อเร่งการลู่เข้าของ iterative solver  
+- รูปแบบการประมวลผลแบบผสมผสาน CPU-GPU
+
+### Adaptive Mesh Refinement (AMR)
+
+OpenFOAM ใช้ **dynamic AMR** ผ่านคลาส `dynamicRefineFvMesh` เกณฑ์การปรับตาข่าย (refinement criteria) ขึ้นอยู่กับ:
+
+- Gradient magnitude: $|\nabla \phi| > \epsilon_{\text{grad}}$
+- Solution jump: $|\phi_{\text{max}} - \phi_{\text{min}}| > \epsilon_{\text{jump}}$  
+- Vorticity magnitude: $|\boldsymbol{\omega}| > \epsilon_{\text{vort}}$
+
+[Diagram: AMR process showing refined regions around high-gradient areas and hanging cells at refinement interfaces]
+
+#### Refinement Algorithm
+
+กระบวนการ AMR ใช้แนวทางแบบลำดับชั้น (hierarchical approach):
+
+1. **Error Estimation**: คำนวณตัวบ่งชี้การปรับตาข่าย (refinement indicators) โดยอิงตาม gradient ของ field
+2. **Cell Selection**: ทำเครื่องหมายเซลล์สำหรับการปรับตาข่ายให้ละเอียดขึ้น (refinement) หรือหยาบขึ้น (coarsening) โดยใช้เกณฑ์ threshold
+3. **Mesh Update**: ดำเนินการเปลี่ยนแปลงโครงสร้าง (topological changes) พร้อมทั้งรักษาความสอดคล้องของตาข่าย
+4. **Field Interpolation**: ขยายผลเฉลยจากเซลล์หยาบไปยังเซลล์ที่ละเอียดขึ้น
+
+อัตราส่วนการปรับตาข่าย (refinement ratio) โดยทั่วไปจะเป็นแบบ 2:1 โดยอนุญาตให้มี hanging cells ที่ส่วนต่อประสานของการปรับตาข่าย
+
+### Immersed Boundary Methods
+
+**Immersed boundary methods** จัดการกับรูปทรงเรขาคณิตที่ซับซ้อนโดยไม่ต้องสร้าง conformal mesh OpenFOAM นำวิธีการเหล่านี้มาใช้หลายรูปแบบ:
+
+#### Cut-Cell Method
+
+แนวทาง cut-cell จะตัดตาข่ายแบบ Cartesian กับรูปทรงเรขาคณิตที่ถูกฝัง (immersed geometry) ทำให้เกิด control volumes บางส่วนที่ขอบเขต การแบ่งปริภูมิจะคำนึงถึงปริมาตรของเซลล์ที่ถูกตัด $V_c$ และพื้นที่หน้าตัด $A_f$:
+
+$$\sum_f \mathbf{F}_f \cdot A_f = \mathbf{S} V_c + \sum_b \mathbf{F}_b \cdot A_b$$
+
+โดยที่ผลรวมจากขอบเขต $\mathbf{F}_b$ จะคำนึงถึงแรงเสียดทานบนพื้นผิวที่ถูกฝัง
+
+[Diagram: Cut-cell method showing Cartesian mesh intersecting complex geometry with partial cells]
+
+#### Ghost Cell Method  
+
+**Ghost cells** จะขยายโดเมนการคำนวณออกไปนอกโดเมนทางกายภาพ โดยมีการประมาณค่า (extrapolated) เพื่อบังคับใช้ Boundary Condition:
+
+$$\phi_{\text{ghost}} = 2\phi_{\text{boundary}} - \phi_{\text{interior}}$$
+
+แนวทางนี้รักษาความแม่นยำอันดับสอง (second-order accuracy) ในขณะที่จัดการกับรูปทรงเรขาคณิตที่ซับซ้อนได้อย่างมีประสิทธิภาพ
+
+### Reduced Order Models
+
+#### Proper Orthogonal Decomposition (POD)
+
+**POD** สกัดโครงสร้างที่เด่นชัด (dominant coherent structures) จากภาพถ่ายผลเฉลย (solution snapshots) เมื่อกำหนดภาพถ่ายผลเฉลย $\{ \mathbf{u}^{(n)} \}_{n=1}^N$, POD basis $\{\boldsymbol{\phi}_i\}_{i=1}^r$ จะแก้ปัญหา:
+
+$$\text{maximize } \frac{1}{N} \sum_{n=1}^N \left| \sum_{i=1}^r a_i \boldsymbol{\phi}_i \cdot \mathbf{u}^{(n)} \right|^2$$
+$$\text{subject to } \boldsymbol{\phi}_i \cdot \boldsymbol{\phi}_j = \delta_{ij}$$
+
+สัมประสิทธิ์ $a_i(t)$ จะจับการเปลี่ยนแปลงตามเวลาของแต่ละโหมด
+
+#### Dynamic Mode Decomposition (DMD)
+
+**DMD** ระบุพลวัตเชิงเส้น (linear dynamics) ที่ประมาณพฤติกรรมไม่เชิงเส้น (nonlinear behavior) สำหรับภาพถ่ายที่ห่างกัน $\Delta t$, DMD operator $\mathbf{A}$ จะสอดคล้องกับ:
+
+$$\mathbf{X}_{2} = \mathbf{A} \mathbf{X}_{1}$$
+
+โดยที่ $\mathbf{X}_1 = [\mathbf{u}_1, \mathbf{u}_2, ..., \mathbf{u}_{N-1}]$ และ $\mathbf{X}_2 = [\mathbf{u}_2, \mathbf{u}_3, ..., \mathbf{u}_N]$
+
+การแยกค่าเฉพาะ (eigenvalue decomposition) $\mathbf{A}\mathbf{v}_i = \lambda_i \mathbf{v}_i$ จะให้ค่าอัตราการเติบโต (growth rates) และความถี่ (frequencies) ของโหมดที่เด่นชัด
+
+## Advanced Numerical Methods
+
+### High-Order Schemes
+
+OpenFOAM มี discretization schemes ที่มีอันดับสูงกว่าอันดับสอง:
+
+| Scheme | Accuracy | Pros | Cons | Best Use Case |
+|--------|----------|------|------|---------------|
+| WENO | 5th-9th order | High accuracy, shock-capturing | Computational cost | Compressible flows |
+| DG | Variable order | Conservation, parallel efficiency | Memory usage | Spectral accuracy |
+| TVD | 2nd order | Robustness | Diffusive near shocks | Incompressible flows |
+
+#### Weighted Essentially Non-Oscillatory (WENO) Schemes
+
+การสร้างค่าที่หน้าตัด (face value) $\phi_f$ ด้วย WENO จะใช้การรวมกันแบบถ่วงน้ำหนักของ stencils:
+
+$$\phi_f = \sum_{k=1}^r \omega_k \phi_f^{(k)}$$
+
+โดยที่น้ำหนักแบบไม่เชิงเส้น (nonlinear weights) $\omega_k$ จะปรับตามความเรียบของผลเฉลย (solution smoothness):
+
+$$\omega_k = \frac{\alpha_k}{\sum_{l=1}^r \alpha_l}, \quad \alpha_k = \frac{C_k}{(\epsilon + \beta_k)^p}$$
+
+ตัวบ่งชี้ความเรียบ (smoothness indicators) $\beta_k$ จะวัดการเปลี่ยนแปลงของผลเฉลยในพื้นที่
+
+#### Discontinuous Galerkin Methods
+
+**DG methods** ให้ความแม่นยำอันดับสูงพร้อมความเสถียรในตัว รูปแบบอ่อน (weak form) สำหรับกฎการอนุรักษ์ $\partial_t \mathbf{u} + \nabla \cdot \mathbf{F}(\mathbf{u}) = 0$ จะกลายเป็น:
+
+$$\int_{K_e} \mathbf{v}_h \frac{\partial \mathbf{u}_h}{\partial t} \, \mathrm{d}V + \int_{K_e} \nabla \mathbf{v}_h \cdot \mathbf{F}(\mathbf{u}_h) \, \mathrm{d}V - \int_{\partial K_e} \mathbf{v}_h \cdot \hat{\mathbf{F}} \, \mathrm{d}S = 0$$
+
+โดยที่ $\hat{\mathbf{F}}$ คือ numerical flux ที่ขอบเขตของ element
+
+[Diagram: DG method showing element-based discretization with numerical fluxes at interfaces]
+
+### Linear Solver Optimizations
+
+#### Algebraic Multigrid (AMG)
+
+**AMG** จะสร้าง operator ของ grid ที่หยาบขึ้นโดยอัตโนมัติโดยอิงจากคุณสมบัติทางพีชคณิตของ matrix ตัวดำเนินการ prolongation $\mathbf{P}$ และ restriction $\mathbf{R}$ จะสอดคล้องกับ:
+
+$$\mathbf{A}_{c} = \mathbf{R} \mathbf{A}_f \mathbf{P}$$
+
+**AMG V-cycle** ประกอบด้วย:
+
+1. **Pre-smoothing** บน fine grid: $\nu_1$ iterations ของ Gauss-Seidel
+2. **การคำนวณ Residual**: $\mathbf{r} = \mathbf{b} - \mathbf{A}\mathbf{x}$
+3. **การแก้ไขบน coarse grid**: $\mathbf{e}_c = \mathbf{A}_c^{-1}(\mathbf{R}\mathbf{r})$
+4. **การขยาย error**: $\mathbf{x} \leftarrow \mathbf{x} + \mathbf{P}\mathbf{e}_c$
+5. **Post-smoothing**: $\nu_2$ iterations ของ Gauss-Seidel
+
+[Diagram: AMG V-cycle showing coarse grid correction and smoothing operations]
+
+#### Krylov Subspace Methods
+
+**GMRES** จะทำให้ residual มีค่าน้อยที่สุดใน Krylov subspace $\mathcal{K}_m = \text{span}\{\mathbf{r}, \mathbf{A}\mathbf{r}, \ldots, \mathbf{A}^{m-1}\mathbf{r}\}$:
+
+$$\mathbf{x}_m = \arg\min_{\mathbf{x} \in \mathbf{x}_0 + \mathcal{K}_m} \|\mathbf{b} - \mathbf{A}\mathbf{x}\|_2$$
+
+กระบวนการ **Arnoldi** สร้าง orthonormal basis vectors $\{\mathbf{v}_i\}$ ที่สอดคล้องกับ:
+
+$$\mathbf{A}\mathbf{V}_m = \mathbf{V}_{m+1}\mathbf{H}_m$$
+
+โดยที่ $\mathbf{H}_m$ คือ upper Hessenberg matrix
+
+## Coupled Physics
+
+### Fluid-Structure Interaction (FSI)
+
+ปัญหา **FSI** เกี่ยวข้องกับการเชื่อมโยงระหว่างการไหลของของไหลและการเสียรูปของของแข็ง
+
+#### Fluid Domain ($\Omega_f$)
+$$\rho_f \left( \frac{\partial \mathbf{u}_f}{\partial t} + (\mathbf{u}_f - \mathbf{u}_m) \cdot \nabla \mathbf{u}_f \right) = -\nabla p_f + \mu_f \nabla^2 \mathbf{u}_f + \mathbf{f}_f$$
+
+#### Solid Domain ($\Omega_s$)
+$$\rho_s \frac{\partial^2 \mathbf{d}_s}{\partial t^2} = \nabla \cdot \boldsymbol{\sigma}_s + \mathbf{f}_s$$
+
+#### Interface Conditions
+ที่ส่วนต่อประสานของของไหลและของแข็ง $\Gamma_{fsi}$:
+
+- **Kinematic condition**: $\mathbf{u}_f = \frac{\partial \mathbf{d}_s}{\partial t}$
+- **Dynamic condition**: $\boldsymbol{\sigma}_f \cdot \mathbf{n}_f = \boldsymbol{\sigma}_s \cdot \mathbf{n}_s$
+
+[Diagram: FSI coupling showing fluid and solid domains with interface conditions]
+
+#### Coupling Strategies
+
+| Strategy | Description | Advantages | Disadvantages |
+|----------|-------------|------------|---------------|
+| Partitioned | Sequential solving | Modular, existing solvers | Convergence issues |
+| Monolithic | Simultaneous solving | Robust, stable | Complex implementation |
+| Quasi-direct | Hybrid approach | Balanced performance | Moderate complexity |
+
+เทคนิค **Aitken relaxation** ช่วยให้มั่นใจในการลู่เข้าของการวนซ้ำที่ส่วนต่อประสาน:
+
+$$\lambda^{n+1} = \lambda^n + \omega \frac{\langle \mathbf{r}^n, \mathbf{r}^{n-1} - \mathbf{r}^n \rangle}{\|\mathbf{r}^{n-1} - \mathbf{r}^n\|^2}$$
+
+โดยที่ $\mathbf{r}^n$ คือ interface residual ที่การวนซ้ำครั้งที่ $n$
+
+### Conjugate Heat Transfer
+
+**Conjugate heat transfer** เชื่อมโยงการไหลของของไหลกับการนำความร้อนในบริเวณของแข็ง:
+
+#### Fluid Energy Equation
+$$\rho_f c_{p,f} \left( \frac{\partial T_f}{\partial t} + \mathbf{u}_f \cdot \nabla T_f \right) = k_f \nabla^2 T_f + Q_f$$
+
+#### Solid Energy Equation  
+$$\rho_s c_{p,s} \frac{\partial T_s}{\partial t} = k_s \nabla^2 T_s + Q_s$$
+
+#### Interface Conditions
+ที่ส่วนต่อประสานของของไหลและของแข็ง $\Gamma_{fs}$:
+
+- **Temperature continuity**: $T_f = T_s$
+- **Heat flux continuity**: $k_f \frac{\partial T_f}{\partial n} = k_s \frac{\partial T_s}{\partial n}$
+
+**Robin boundary condition** ให้การกำหนดรูปแบบส่วนต่อประสานที่เป็นหนึ่งเดียว:
+
+$$k_f \frac{\partial T_f}{\partial n} + h_{\text{int}}(T_f - T_s) = 0$$
+
+โดยที่ $h_{\text{int}}$ คือค่าสัมประสิทธิ์การถ่ายเทความร้อนที่ส่วนต่อประสาน
+
+## Machine Learning Integration
+
+### Neural Network Surrogates
+
+**Neural networks** สามารถใช้แทนการคำนวณ CFD ที่มีค่าใช้จ่ายสูง ด้วยการประมาณค่าที่รวดเร็ว:
+
+#### Physics-Informed Neural Networks (PINNs)
+
+**PINNs** ฝังสมการควบคุมโดยตรงลงในฟังก์ชัน loss:
+
+$$\mathcal{L} = \mathcal{L}_{\text{data}} + \lambda_1 \mathcal{L}_{\text{PDE}} + \lambda_2 \mathcal{L}_{\text{BC}} + \lambda_3 \mathcal{L}_{\text{IC}}$$
+
+โดยที่:
+
+- $\mathcal{L}_{\text{data}} = \frac{1}{N}\sum_{i=1}^N |y_i - \hat{y}_i|^2$ (ความคลาดเคลื่อนของข้อมูล)
+- $\mathcal{L}_{\text{PDE}} = \frac{1}{N_p}\sum_{i=1}^{N_p} |N[\hat{y}](\mathbf{x}_i)|^2$ (residual ของ PDE)  
+- $\mathcal{L}_{\text{BC}}$, $\mathcal{L}_{\text{IC}}$ คือค่าปรับสำหรับ boundary และ initial condition
+
+[Diagram: PINN architecture showing physics-based loss components]
+
+#### DeepONet Architecture
+
+**DeepONet** เรียนรู้ nonlinear operators จากข้อมูล:
+
+$$\mathcal{G}(u)(y) = \sum_{k=1}^{q} \underbrace{b_k(y)}_{\text{branch}} \underbrace{p_k(u)}_{\text{trunk}}$$
+
+branch network จะประมวลผล input functions $u(x)$ ในขณะที่ trunk network จะจัดการกับ output locations $y$
+
+### Reinforcement Learning for Flow Control
+
+#### Markov Decision Process Formulation
+
+ปัญหา flow control ถูกกำหนดในรูปแบบของ **MDPs** โดยมี:
+
+- **State space $\mathcal{S}$**: ข้อมูล flow field (velocity, pressure, vorticity)
+- **Action space $\mathcal{A}$**: การควบคุมอินพุต (jets, flaps, boundary conditions)
+- **Reward function $R$**: ตัวชี้วัดประสิทธิภาพ (drag reduction, mixing enhancement)
+- **Transition dynamics**: Navier-Stokes equations
+
+#### Policy Gradient Methods
+
+อัลกอริทึม **REINFORCE** จะอัปเดตพารามิเตอร์ของ policy $\theta$:
+
+$$\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}^T \nabla_\theta \log \pi_\theta(a_t|s_t) G_t \right]$$
+
+โดยที่ $G_t = \sum_{k=t}^T \gamma^{k-t} r_k$ คือ discounted return
+
+#### Actor-Critic Networks
+
+**Actor network** $\pi_\theta(a|s)$ เสนอ action ในขณะที่ **critic network** $V_\phi(s)$ ประมาณค่า:
+
+$$\mathcal{L}_\theta = -\mathbb{E}_{s \sim \mathcal{D}} [\log \pi_\theta(a|s) Q(s,a)]$$
+$$\mathcal{L}_\phi = \mathbb{E}_{s \sim \mathcal{D}} [(r + \gamma V_\phi(s') - V_\phi(s))^2]$$
+
+[Diagram: Actor-critic architecture for flow control with environment interaction]
+
+## Performance Optimization
+
+### Memory Management
+
+#### Cache Optimization
+
+OpenFOAM ใช้กลยุทธ์ที่คำนึงถึง cache หลายประการ:
+
+1. **Loop Tiling**: แบ่ง array ขนาดใหญ่เป็นบล็อกที่เข้ากันได้กับ cache
+2. **Data Structure Padding**: จัดแนว data structures ให้ตรงกับขอบของ cache line
+3. **Vectorization**: ใช้คำสั่ง SIMD สำหรับการดำเนินการแบบขนาน
+
+รูปแบบการเข้าถึงหน่วยความจำสำหรับการดำเนินการแบบ finite volume ได้รับการปรับให้เหมาะสมดังนี้:
+
+```cpp
+// การจัดลำดับ loop ที่เข้ากันได้กับ cache
+for (label face = 0; face < nFaces; face++) {
+    const label own = owner[face];
+    const label nei = neighbour[face];
+    const scalar faceFlux = phi[face];
+    
+    // ประมวลผล owner cell
+    rA[own] -= faceFlux * psi[face];
+    // ประมวลผล neighbor cell  
+    rA[nei] += faceFlux * psi[face];
+}
+```
+
+#### Memory Pool Allocation
+
+**Custom allocators** ช่วยลดการแตกตัวของหน่วยความจำ (fragmentation) และเพิ่มความเร็วในการจัดสรรหน่วยความจำ:
+
+```cpp
+template<class T>
+class MemoryPool {
+    T* pool_;
+    std::vector<bool> used_;
+    size_t capacity_;
+    
+public:
+    T* allocate(size_t n) {
+        // ค้นหา block ว่างที่ต่อเนื่องกัน
+        // คืนค่า pointer หากพบ, ขยาย pool หากจำเป็น
+    }
+};
+```
+
+### Parallel Load Balancing
+
+#### Graph-Based Decomposition
+
+การแบ่งตาข่าย (mesh decomposition) มีเป้าหมายเพื่อลดจำนวน edge cuts พร้อมทั้งรักษา load balance:
+
+$$\min_{\mathcal{P}} \sum_{(i,j) \in E} \omega_{ij} \delta_{p_i \neq p_j}$$
+$$\text{subject to } \sum_{v \in V_i} w_v \approx \frac{W_{\text{total}}}{N_p}$$
+
+โดยที่ $\mathcal{P}$ คือ partition, $\omega_{ij}$ คือ edge weights, และ $W_{\text{total}}$ คือ total computational weight
+
+#### Dynamic Load Balancing
+
+การแบ่งพาร์ติชันแบบไดนามิก (adaptive repartitioning) คำนึงถึงความต้องการในการคำนวณที่เปลี่ยนแปลงไป:
+
+1. **Load Monitoring**: ติดตามการใช้งานโปรเซสเซอร์และการใช้หน่วยความจำ
+2. **Migration Trigger**: เริ่มการปรับสมดุลเมื่อความไม่สมดุลเกินเกณฑ์ที่กำหนด
+3. **Data Migration**: ย้ายข้อมูลตาข่ายระหว่างโปรเซสเซอร์
+4. **Consistency Check**: ตรวจสอบความต่อเนื่องของผลเฉลยหลังจากการย้าย
+
+ตัวชี้วัดความไม่สมดุลของโหลด $\mathcal{I}$ ถูกกำหนดดังนี้:
+
+$$\mathcal{I} = \frac{W_{\text{max}} - W_{\text{avg}}}{W_{\text{avg}}}$$
+
+โดยที่ $W_{\text{max}}$ และ $W_{\text{avg}}$ คือ maximum และ average processor workloads
+
+## Verification and Validation
+
+### Method of Manufactured Solutions (MMS)
+
+**MMS** ให้ผลเฉลยที่แม่นยำสำหรับการตรวจสอบโค้ด (code verification) โดยการเพิ่ม source terms ให้กับสมการควบคุม
+
+#### Procedure
+
+1. **Choose analytical solution**: เลือก $u_{\text{exact}}(\mathbf{x},t)$
+2. **Compute source terms**: $f = \partial_t u_{\text{exact}} + \mathcal{L}[u_{\text{exact}}]$
+3. **Solve modified problem**: $\partial_t u + \mathcal{L}[u] = f$
+4. **Compare with exact solution**: คำนวณ error norms
+
+#### Convergence Rate Analysis
+
+สำหรับวิธีการเชิงตัวเลขอันดับ $p$, error $E_h$ ควรเป็นไปตาม:
+
+$$E_h = C h^p + \mathcal{O}(h^{p+1})$$
+
+อันดับการลู่เข้าที่สังเกตได้ $p_{\text{obs}}$ คำนวณได้ดังนี้:
+
+$$p_{\text{obs}} = \frac{\log(E_{h_1}/E_{h_2})}{\log(h_1/h_2)}$$
+
+### Uncertainty Quantification
+
+#### Polynomial Chaos Expansion (PCE)
+
+**PCE** แสดงปริมาณที่ไม่แน่นอน (uncertain quantities) เป็นการขยายแบบ spectral ใน orthogonal polynomials:
+
+$$Y(\boldsymbol{\xi}) = \sum_{j=0}^P y_j \Psi_j(\boldsymbol{\xi})$$
+
+โดยที่:
+
+- $\boldsymbol{\xi}$ คือ independent random variables
+- $\Psi_j$ คือ multivariate orthogonal polynomials  
+- $y_j$ คือ expansion coefficients
+
+สัมประสิทธิ์จะถูกคำนวณโดยใช้ Galerkin projection:
+
+$$y_j = \frac{\mathbb{E}[Y \Psi_j]}{\mathbb{E}[\Psi_j^2]}$$
+
+#### Monte Carlo Methods
+
+**Monte Carlo sampling** ประมาณค่าทางสถิติผ่านการสุ่มตัวอย่างแบบสุ่ม:
+
+$$\mathbb{E}[Q] \approx \frac{1}{N}\sum_{i=1}^N Q(\mathbf{x}^{(i)})$$
+$$\text{Var}[Q] \approx \frac{1}{N-1}\sum_{i=1}^N \left(Q(\mathbf{x}^{(i)}) - \bar{Q}\right)^2$$
+
+อัตราการลู่ตามมาด้วย $\mathcal{O}(N^{-1/2})$ โดยไม่ขึ้นกับมิติของปัญหา
+
+#### Sensitivity Analysis
+
+| Method | Description | Cost | Accuracy |
+|--------|-------------|------|----------|
+| Sobol Indices | Variance decomposition | High | Exact |
+| Morris Method | Screening analysis | Low | Approximate |
+| Fourier Amplitude | Frequency-based | Medium | Good |
+
+**Sobol sensitivity indices** แยก variance ของผลลัพธ์ออกเป็นส่วนที่มาจากพารามิเตอร์อินพุต:
+
+$$\text{Var}(Y) = \sum_i V_i + \sum_{i<j} V_{ij} + \cdots + V_{1,2,\ldots,n}$$
+
+**First-order Sobol index:**
+$$S_i = \frac{V_i}{\text{Var}(Y)}$$
+
+**Total Sobol index:**
+$$S_{T_i} = \frac{\sum_j V_{ij}}{\text{Var}(Y)}$$
+
+## Emerging Technologies
+
+### Quantum Computing Applications
+
+#### Quantum Linear Solvers
+
+อัลกอริทึม **Harrow-Hassidim-Lloyd (HHL)** แก้ระบบเชิงเส้นในเวลา $\mathcal{O}(\log N)$:
+
+1. **Quantum Phase Estimation**: สกัด eigenvalues ของ matrix $A$
+2. **Conditional Rotation**: คำนวณส่วนกลับของ eigenvalues
+3. **Inverse QFT**: แปลงกลับไปยัง computational basis
+
+quantum state $\mathbf{x}$ สอดคล้องกับ $A\mathbf{x} = \mathbf{b}$ ใน superposition
+
+#### Variational Quantum Algorithms
+
+**VQE (Variational Quantum Eigensolver)** ทำให้ energy functional มีค่าน้อยที่สุด:
+
+$$E(\boldsymbol{\theta}) = \langle \psi(\boldsymbol{\theta}) | H | \psi(\boldsymbol{\theta}) \rangle$$
+
+การอัปเดตพารามิเตอร์ใช้ gradient descent:
+
+$$\theta_{k+1} = \theta_k - \alpha \frac{\partial E}{\partial \theta_k}$$
+
+### Digital Twin Technology
+
+#### Real-Time Simulation Integration
+
+**Digital twins** เชื่อมโยงเซ็นเซอร์ทางกายภาพกับการจำลอง CFD:
+
+1. **Data Assimilation**: รวมการวัดจากเซ็นเซอร์โดยใช้ Kalman filtering
+2. **State Estimation**: ประมาณค่า field ที่สมบูรณ์จากข้อมูลที่กระจัดกระจาย
+3. **Prediction**: พยากรณ์สถานะของระบบในอนาคต
+4. **Control Optimization**: ปรับเงื่อนไขการทำงานตามการพยากรณ์
+
+#### Reduced-Order Digital Models
+
+**Proper generalized decomposition** สร้างการแสดงผลที่สามารถแยกส่วนได้ (separable representations):
+
+$$u(\mathbf{x},t,\boldsymbol{\mu}) \approx \sum_{i=1}^N \prod_{j=1}^d \phi_{i}^{(j)}(x_j, t, \mu_j)$$
+
+โดยที่ $\boldsymbol{\mu}$ แสดงถึงการเปลี่ยนแปลงพารามิเตอร์ในระบบทางกายภาพ
+
+[Diagram: Digital twin architecture connecting physical sensors with CFD simulation and control systems]
+
+การรวมกันนี้ช่วยให้สามารถพยากรณ์และควบคุมแบบเรียลไทม์ด้วยความแม่นยำตามหลักฟิสิกส์ ในขณะที่ยังคงประสิทธิภาพในการคำนวณที่เหมาะสมสำหรับการใช้งานในอุตสาหกรรม

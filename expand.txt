@@ -1,0 +1,56 @@
+Role: Senior Technical Editor & OpenFOAM Subject
+  Matter Expert.
+  Target Scope:
+  Recursively traverse the directory:
+  {{/Users/woramet/Documents/th_new/MODULE_03_SINGLE_PHASE_FLOW}} 
+  Objective:
+  Perform a "Smart Content Restoration" on all .md
+  files (Drafts) by retrieving missing technical
+  details from local .bak files (Source/Legacy).
+  Process Workflow:
+  Recursive Audit: Scan every subfolder within the
+  target scope.
+  File Identification: In each folder, identify
+  pairs of:
+  Target: *.md files (The current draft structure).
+  Source: *.bak files (The raw legacy content
+  containing technical details).
+  Smart Context Mapping (Crucial):
+  Do not blindly merge all backups.
+  For each .md file, scan the available .bak files
+  in the same folder.
+  Select only the .bak files that are logically
+  relevant to the specific .md file's topic (based
+  on shared keywords, physics concepts, or
+  equations).
+  Ignore .bak files that are unrelated to the
+  specific .md file being processed.
+  Execution Instructions (For each .md file):
+  Using the content from the Selected Source Files,
+  rewrite the Target .md File with the following
+  rules:
+  High-Fidelity Restoration:
+  Search the source .bak files for LaTeX equations,
+  OpenFOAM code snippets, tables, and parameter
+  definitions that are missing or summarized in the
+  .md draft.
+  Restore these technical elements fully into the
+  .md file.
+  Constraint: Do not lose any technical depth. If
+  the .bak has a complex equation or C++ code block,
+  it must appear in the final .md.
+  Language & Style:
+  Language: Write in Thai for explanations.
+  Terminology: Keep all technical terms (English),
+  Variable names, and OpenFOAM dictionaries in
+  English (e.g., alpha.water, p_rgh, interFoam).
+  Tone: Academic and technical (Textbook style).
+  Formatting:
+  Maintain strict Markdown structure.
+  Use $$ for block math equations.
+  Use correct syntax highlighting for code blocks
+  (e.g., cpp, openfoam).
+  Output Action:
+  Overwrite the existing .md file with the fully
+  enriched, restored content.
+  Do not modify or delete the .bak files.

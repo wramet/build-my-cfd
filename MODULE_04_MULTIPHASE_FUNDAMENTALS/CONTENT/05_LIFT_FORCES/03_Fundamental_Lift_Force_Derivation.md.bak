@@ -1,0 +1,145 @@
+# การหาแรงยกพื้นฐาน (Fundamental Lift Force Derivation)
+
+## แรงยกแบบคลาสสิก (Classical Lift Force)
+
+สำหรับอนุภาคที่เคลื่อนที่ในกระแสเฉือนแบบสม่ำเสมอ (uniform shear flow) แรงยกแบบคลาสสิกคือ:
+
+$$\mathbf{F}_L = C_L \rho_c V_p (\mathbf{u}_c - \mathbf{u}_p) \times (\nabla \times \mathbf{u}_c)$$
+
+โดยที่:
+- $C_L$ คือ **สัมประสิทธิ์แรงยก** (lift coefficient)
+- $\rho_c$ คือ **ความหนาแน่นของเฟสต่อเนื่อง** (continuous phase density)
+- $V_p$ คือ **ปริมาตรของอนุภาค** (particle volume)
+- $\mathbf{u}_c$ คือ **ความเร็วของเฟสต่อเนื่อง** (continuous phase velocity)
+- $\mathbf{u}_p$ คือ **ความเร็วของอนุภาค** (particle velocity)
+- $\nabla \times \mathbf{u}_c$ คือ **ความปั่นป่วน** (vorticity)
+
+[Diagram: แสดงอนุภาคในกระแสเฉือนพร้อมแรงยกที่ตั้งฉากกับทั้งความเร็วสัมพัทธ์และความปั่นป่วน]
+
+สูตรแรงยกแบบคลาสสิกแสดงถึง **ปรากฏการณ์ Magnus effect** พื้นฐาน:
+
+- อนุภาคจะได้รับแรงในแนวข้างตั้งฉากกับทั้งความเร็วสัมพัทธ์และความปั่นป่วนเฉพาะที่
+- **ความสัมพันธ์แบบ cross-product** ทำให้มั่นใจได้ว่าแรงยกจะตั้งฉากกับระนาบที่เกิดจากเวกเตอร์ความเร็วสัมพัทธ์และเวกเตอร์ความปั่นป่วนเสมอ
+- ส่งผลให้เกิดการเคลื่อนที่ของอนุภาคในแนวข้างสัมพันธ์กับทิศทางการไหล
+
+### OpenFOAM Code Implementation
+
+```cpp
+// Classical lift force calculation in OpenFOAM
+vectorClassicalLiftForce = 
+    Cl_ * rhoContinuous_ * particleVolume_ * 
+    (Ucontinuous_ - Uparticle_) & curl(Ucontinuous_);
+```
+
+---
+
+## แรงยก Saffman (Saffman Lift Force)
+
+สำหรับ **Reynolds number ที่มีค่าน้อย** ในกระแสเฉือนเชิงเส้น (linear shear flow) Saffman ได้ทำการหาค่าดังนี้:
+
+$$\mathbf{F}_L = C_S \rho_c \nu_c^{1/2} d^2 |\mathbf{u}_c - \mathbf{u}_p| \left(\frac{\partial u_c}{\partial y}\right)^{1/2} \mathbf{n}_L$$
+
+โดยที่:
+- $C_S = 6.46$ (**ค่าคงที่ทางทฤษฎี**)
+- $\nu_c = \mu_c/\rho_c$ คือ **ความหนืดจลนศาสตร์** (kinematic viscosity)
+- $d$ คือ **เส้นผ่านศูนย์กลางของอนุภาค** (particle diameter)
+- $\mathbf{n}_L$ คือ **เวกเตอร์หนึ่งหน่วยที่ตั้งฉาก**กับทั้งความเร็วสัมพัทธ์และทิศทางของการเฉือน
+
+[Diagram: แสดงการวิเคราะห์แรงยก Saffman ในกระแสเฉือนเชิงเส้น]
+
+แรงยก Saffmanเกิดจากการวิเคราะห์ทางทฤษฎีของกระแสไหลที่ **Reynolds number ต่ำ** รอบทรงกลมในฟิลด์เฉือนเชิงเส้น:
+
+- ค่าคงที่ $C_S = 6.46$ ได้มาจาก **การจับคู่แบบ asymptotic** ของผลเฉลยภายในและภายนอก (inner and outer flow solutions)
+- ใช้ได้เมื่อ **particle Reynolds number** มีค่าน้อยกว่ารากที่สองของ **shear Reynolds number** อย่างมาก
+- การขึ้นกับ $\nu_c^{1/2}$ สะท้อนถึง **ลักษณะความหนืด** ของกลไกแรงยก
+- แรงยกจะแปรผันตามรากที่สองของความหนืดจลนศาสตร์ ซึ่งบ่งชี้ถึงความสำคัญของ **การแพร่แบบหนืด** (viscous diffusion) ในกระบวนการสร้างแรงยก
+
+### OpenFOAM Code Implementation
+
+```cpp
+// Saffman lift force calculation in OpenFOAM
+scalar slipVelocity = mag(Ucontinuous_ - Uparticle_);
+scalar shearRate = mag(dUcdy_);
+
+vectorSaffmanLiftForce = 
+    6.46 * rhoContinuous_ * sqrt(nuContinuous_) * 
+    sqr(diameter_) * slipVelocity * sqrt(shearRate) * nL_;
+```
+
+---
+
+## การวิเคราะห์แบบไร้มิติ (Dimensionless Analysis)
+
+### 1. Particle Reynolds Number
+
+กำหนด **particle Reynolds number** โดยอิงตามความเร็วในการเลื่อน (slip velocity):
+
+$$Re_p = \frac{\rho_c |\mathbf{u}_c - \mathbf{u}_p| d}{\mu_c}$$
+
+**Particle Reynolds number** เป็นตัวบ่งชี้:
+
+- ความสำคัญสัมพัทธ์ของ **แรงเฉื่อย** ต่อ **แรงหนืด** สำหรับอนุภาคที่เคลื่อนที่ผ่านเฟสต่อเนื่อง
+- ใช้ความเร็วในการเลื่อน $|\mathbf{u}_c - \mathbf{u}_p|$ เป็น **มาตราความเร็วลักษณะเฉพาะ** (characteristic velocity scale)
+- แสดงถึงการเคลื่อนที่สัมพัทธ์ระหว่างอนุภาคและของไหลที่อยู่รอบๆ
+
+### 2. Shear Reynolds Number
+
+กำหนด **shear Reynolds number**:
+
+$$Re_\gamma = \frac{\rho_c \gamma d^2}{\mu_c}$$
+
+โดยที่ $\gamma = \frac{\partial u_c}{\partial y}$ คือ **อัตราการเฉือน** (shear rate)
+
+**Shear Reynolds number** เป็นตัววัด:
+
+- ความแรงของกระแสเฉือนที่กระทำเทียบกับผลของความหนืด
+- แตกต่างจาก particle Reynolds number ที่ขึ้นกับการเคลื่อนที่ของอนุภาค
+- จะขึ้นอยู่กับความชันของความเร็วที่กำหนดและขนาดของอนุภาคเท่านั้น
+- ทำให้เป็น **มาตรวัดความเข้มของการเฉือน** ของฟิลด์การไหล
+
+### 3. Saffman Parameter
+
+**Saffman parameter** คือ:
+
+$$S = \frac{Re_\gamma^{1/2}}{Re_p}$$
+
+[Diagram: แสดงความสัมพันธ์ระหว่าง Saffman parameter กับเงื่อนไขการใช้ทฤษฎี]
+
+#### เงื่อนไขการใช้งาน:
+
+| เงื่อนไข | ค่า S | ผลลัพธ์ |
+|-----------|--------|----------|
+| **Valid Saffman Theory** | $S \gg 1$ | $Re_p \ll Re_\gamma^{1/2}$ |
+| **Transition Region** | $S \sim 1$ | ต้องใช้โมเดลที่ซับซ้อนกว่า |
+| **Invalid Saffman Theory** | $S \ll 1$ | อนุภาคมีอิทธิพลเหนือการเฉือน |
+
+#### การตีความหมาย:
+
+เมื่อ **$S \gg 1$**:
+- กระแสเฉือนมีอิทธิพลเหนือการเคลื่อนที่สัมพัทธ์ของอนุภาค
+- อนุภาคจะทำตัวเหมือนเป็น **passive tracer** ในฟิลด์เฉือนที่แรง
+- ยืนยันสมมติฐานเบื้องหลังการวิเคราะห์ **asymptotic** ที่ Reynolds number ต่ำของ Saffman
+- การรบกวนของอนุภาคต่อการไหลมีค่าน้อยเมื่อเทียบกับการเฉือนที่กำหนด
+
+เมื่อ **$S \sim 1$ หรือน้อยกว่า**:
+- การเคลื่อนที่ของอนุภาคจะมีค่าเทียบเคียงได้กับผลกระทบจากการเฉือน
+- จะต้องใช้ **โมเดลแรงยกที่ซับซ้อนกว่า** ซึ่งคำนึงถึงผลกระทบของ Reynolds number ที่มีค่าจำกัด
+
+### OpenFOAM Code Implementation
+
+```cpp
+// Dimensionless parameters calculation
+scalar Re_p = rhoContinuous_ * slipVelocity * d_ / muContinuous_;
+scalar Re_gamma = rhoContinuous_ * shearRate * sqr(d_) / muContinuous_;
+scalar SaffmanParameter = sqrt(Re_gamma) / Re_p;
+
+// Check validity of Saffman theory
+if (SaffmanParameter > 10.0) // S >> 1
+{
+    // Use Saffman lift model
+}
+else
+{
+    // Use more complex lift model
+}
+```

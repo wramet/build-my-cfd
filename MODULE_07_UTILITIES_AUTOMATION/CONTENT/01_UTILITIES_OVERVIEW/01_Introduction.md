@@ -1,0 +1,345 @@
+# 🎯 บทนำสู่ยูทิลิตี้และเวิร์กโฟลว์ของ OpenFOAM
+
+## 1. ยูทิลิตี้ของ OpenFOAM คืออะไร?
+
+ในระบบนิเวศของ OpenFOAM **ยูทิลิตี้ (Utilities)** คือแอปพลิเคชันแบบ Command-line เฉพาะทางที่ออกแบบมาเพื่อจัดการงานในทุกขั้นตอนของกระบวนการทำงาน CFD ยกเว้นการคำนวณฟิสิกส์หลัก (ซึ่งเป็นหน้าที่ของ Solvers)
+
+ยูทิลิตี้เปรียบเสมือน "เครื่องมือช่าง" ในเวิร์กช็อปที่ช่วยให้นักวิจัยและวิศวกรสามารถ:
+- **จัดการเรขาคณิต**: เตรียมพื้นผิว CAD ให้พร้อมสำหรับการจำลอง
+- **สร้างเมช**: เปลี่ยนพื้นที่ว่างให้เป็นช่องคำนวณที่เหมาะสม
+- **จัดการข้อมูล**: ย้ายหรือแปลงข้อมูลระหว่างเฟรมเวิร์กต่างๆ
+- **วิเคราะห์ผล**: สกัดตัวเลขสำคัญจากข้อมูลสนาม (Fields) ที่มีขนาดใหญ่
+
+```mermaid
+flowchart TD
+    A[CAD Geometry] --> B[Surface Preparation]
+    B --> C[blockMesh]
+    C --> D[snappyHexMesh]
+    D --> E[Mesh Quality Check]
+    E --> F[Case Setup]
+    F --> G[Solver Execution]
+    G --> H[Post-Processing]
+    H --> I[Analysis & Reporting]
+
+    style A fill:#e1f5ff
+    style I fill:#c8e6c9
+```
+
+![[cfd_utility_workflow.png]]
+> **ภาพประกอบ 1.1:** เวิร์กโฟลว์การทำงานของยูทิลิตี้ใน OpenFOAM: แสดงการเชื่อมโยงข้อมูลตั้งแต่จุดเริ่มต้น (CAD) ผ่านการประมวลผลขั้นตอนต่างๆ จนถึงการสรุปผลทางวิศวกรรม
+
+---
+
+## 2. ความสำคัญของการจัดการเวิร์กโฟลว์ (Workflow Management)
+
+การจัดการเวิร์กโฟลว์ที่มีประสิทธิภาพมีความสำคัญพอๆ กับการตั้งค่าฟิสิกส์ของการจำลอง ในงานระดับอุตสาหกรรมหรือการวิจัยขั้นสูง การทำซ้ำได้ (Reproducibility) และความสม่ำเสมอ (Consistency) คือหัวใจหลัก
+
+### ทำไมต้องใช้การทำงานอัตโนมัติ?
+
+> [!INFO] **ประโยชน์ของการทำงานอัตโนมัติ**
+> - **ลดความผิดพลาดจากมนุษย์**: ป้องกันการตั้งค่าพารามิเตอร์ผิดพลาดในงานที่ซ้ำซาก
+> - **ประหยัดเวลา**: เปลี่ยนงานที่ต้องใช้เวลาหลายชั่วโมงให้เหลือเพียงไม่กี่นาที
+> - **การขยายขนาด (Scalability)**: รองรับการจำลองหลายร้อยกรณีศึกษาพร้อมกัน (Parametric Studies)
+> - **การทำซ้ำได้**: สคริปต์ทำหน้าที่เป็นเอกสารบันทึกทุกขั้นตอนที่เกิดขึ้นในการจำลอง
+
+### เวิร์กโฟลว์การประมวลผลแบตช์
+
+**Automated Meshing Workflows**
+
+```bash
+#!/bin/bash
+# ตัวอย่าง automated meshing workflow
+for geom in geometries/*.stl; do
+    case_name=$(basename "$geom" .stl)
+    mkdir -p "cases/$case_name"
+    cp mesh_template/* "cases/$case_name/"
+    # Generate surface features
+    surfaceFeatureExtract -case "cases/$case_name" "geometries/$case_name.stl"
+    # Run meshing pipeline
+    blockMesh -case "cases/$case_name"
+    snappyHexMesh -case "cases/$case_name" -overwrite
+    # Quality check
+    checkMesh -case "cases/$case_name" > "cases/$case_name/mesh_quality.txt"
+done
+```
+
+---
+
+## 3. เส้นทางการเรียนรู้และทักษะที่จำเป็น
+
+การเป็นผู้เชี่ยวชาญด้านเวิร์กโฟลว์ใน OpenFOAM ไม่ได้อาศัยเพียงความเข้าใจทางฟิสิกส์ แต่ยังรวมถึงทักษะทางเทคนิคอื่นๆ:
+
+### รากฐานทางเทคนิค (Technical Skills)
+
+1. **การเขียน Shell Script (Bash)**: ทักษะพื้นฐานที่สุดในการควบคุมคำสั่ง OpenFOAM
+2. **การบูรณาการ Python**: สำหรับงานประมวลผลข้อมูลที่ซับซ้อนและการวิเคราะห์ทางสถิติ
+3. **ความเข้าใจระบบไฟล์ I/O**: รูปแบบพจนานุกรม (Dictionaries) ของ OpenFOAM
+4. **เครื่องมือ Command Line**: เช่น `grep`, `awk`, `sed` สำหรับการวิเคราะห์ไฟล์ Log
+
+### การประเมินและตรวจสอบคุณภาพอย่างครอบคลุม
+
+**การใช้งาน Mesh Quality Metrics**
+
+คุณภาพของ Mesh ถูกวัดโดยใช้เมตริกหลักหลายตัว:
+
+- **Orthogonality**: เมื่อ $\theta = \cos^{-1}\left(\frac{\mathbf{n}_f \cdot \mathbf{d}_{PN}}{|\mathbf{n}_f| \cdot |\mathbf{d}_{PN}|}\right)$
+
+- **Aspect Ratio**: $AR = \frac{h_{max}}{h_{min}}$ โดยที่ $h$ แทนความสูงของเซลล์
+
+- **Skewness**: $\text{skewness} = \frac{|\mathbf{C} - \mathbf{C}_{ideal}|}{|\mathbf{C}_{PF} - \mathbf{C}_{ideal}|}$
+
+- **Non-orthogonality angle**: ค่าเบี่ยงเบนสูงสุดจาก $90°$ ระหว่าง face normal และ cell center vector
+
+> [!TIP] **เกณฑ์คุณภาพ Mesh ทั่วไป**
+> - Non-orthogonality < 70°
+> - Skewness < 4
+> - Aspect Ratio < 1000
+> - ค่าที่เข้มงวดมากขึ้นสำหรับโมเดลความปั่นป่วนที่ซับซ้อน
+
+**Automated Quality Control Pipelines**
+
+```python
+# Python script สำหรับ automated mesh quality assessment
+import numpy as np
+import pandas as pd
+
+def assess_mesh_quality(case_path):
+    # Parse checkMesh output
+    with open(f"{case_path}/mesh_quality.txt", 'r') as f:
+        content = f.read()
+
+    # Extract key metrics
+    orthogonality = extract_metric(content, "Non-orthogonality")
+    aspect_ratio = extract_metric(content, "Aspect ratio")
+    skewness = extract_metric(content, "Skewness")
+
+    # Quality classification
+    quality_score = calculate_quality_score(orthogonality, aspect_ratio, skewness)
+
+    return {
+        'case': case_path,
+        'orthogonality': orthogonality,
+        'aspect_ratio': aspect_ratio,
+        'skewness': skewness,
+        'quality_score': quality_score
+    }
+```
+
+```mermaid
+flowchart LR
+    A[Efficient Workflow Management] --> B[Successful Project Delivery]
+    C[Physics Simulation] --> B
+
+    style A fill:#bbdefb
+    style C fill:#bbdefb
+    style B fill:#c8e6c9
+```
+
+> **"การจัดการเวิร์กโฟลว์ที่มีประสิทธิภาพคือสะพานที่เชื่อมระหว่างการจำลองทางฟิสิกส์และความสำเร็จของโครงการ"**
+
+---
+
+## 4. ยูทิลิตี้หลักของ OpenFOAM
+
+### เครื่องมือสร้าง Mesh
+
+#### blockMesh
+
+**blockMesh** เป็นยูทิลิตี้สร้าง Mesh พื้นฐานของ OpenFOAM ที่สร้าง mesh หกเหลี่ยมโครงสร้างจากข้อมูลใน `system/blockMeshDict`
+
+> [!INFO] **ความสามารถของ blockMesh**
+> - เชี่ยวชาญไวยากรณ์ blockMeshDict และการกำหนด topology
+> - สร้าง multi-block structured mesh สำหรับเรขาคณิตที่ซับซ้อน
+> - ใช้งาน grading functions สำหรับการแก้ปัญหา boundary layer
+> - ใช้ edge grading ขั้นสูงและการควบคุมความหนาแน่นของ mesh ตามความโค้ง
+> - สร้าง conformal meshes ด้วย connectivity ที่สม่ำเสมอระหว่าง blocks
+
+**เทคนิค blockMesh ขั้นสูง** รวมถึง:
+- การสร้าง mesh แบบ multi-block สำหรับเรขาคณิตที่ซับซ้อน
+- การปรับโครงสร้าง topology ผ่านการวางบล็อกเชิงกลยุทธ์
+- การใช้ projection methods เพื่อให้สอดคล้องกับพื้นผิวที่ซับซ้อน
+- ฟังก์ชัน edge grading: การกระจายแบบเชิงเส้น เลขชี้กำลัง และกฎอำนาจ
+- Mesh topology แบบ O-type, H-type และ C-type สำหรับการไหลใกล้ผนัง
+
+#### snappyHexMesh
+
+**snappyHexMesh** ทำหน้าที่เป็นเครื่องมือสร้าง mesh ขั้นสูงของ OpenFOAM สำหรับเรขาคณิตที่ซับซ้อน ทำงานบนหลักการของการปรับ mesh และการบิดเบือน mesh หกเหลี่ยมพื้นหลังเริ่มต้น
+
+**กระบวนการ 3 ระยะ:**
+
+1. **Castellation** - การตรวจจับคุณสมบัติพื้นผิวและการปรับ mesh พื้นหลัง
+2. **Snapping** - การฉายจุดยอดบนเรขาคณิตพื้นผิว
+3. **Layer Addition** - การสร้าง boundary layer สำหรับการไหลที่ถูกจำกัดโดยผนัง
+
+> [!TIP] **ความสามารถด้าน surface meshing**
+> - การตรวจจับขอบคุณสมบัติอัตโนมัติ
+> - ระดับการปรับพื้นผิวตามความโค้งและความใกล้ชิด
+> - อัลกอริทึมการควบคุม layer ที่ซับซ้อน
+> - รองรับรูปแบบพื้นผิว STL, OBJ และ VTK
+
+### ยูทิลิตี้ตั้งค่า Solver
+
+#### การสร้าง Case อัตโนมัติ
+
+**การสร้าง case อัตโนมัติ** ใน OpenFOAM ได้รับการสนับสนุนผ่านระบบเทมเพลตและยูทิลิตี้สคริปต์:
+
+- ยูทิลิตี้ `foamNewCase` ให้ scaffolding case พื้นฐาน
+- สคริปต์ Python และ Bash แบบกำหนดเองสำหรับการสร้าง case ที่ขับเคลื่อนโดยพารามิเตอร์
+- ระบบเทมเพลตใช้ Jinja2 หรือเครื่องมือ templating ที่คล้ายกัน
+
+#### การศึกษาพารามิเตอร์
+
+**การศึกษาพารามิเตอร์และเวิร์กโฟลว์การปรับให้เหมาะสม** ได้รับการสนับสนุนผ่าน:
+
+- ความสามารถด้านการออกแบบการทดลอง (DOE)
+- การผสานรวมกับไลบรารีการปรับให้เหมาะสมภายนอก
+- แพ็กเกจ `pyFoam` สำหรับการ sweep พารามิเตอร์อัตโนมัติ
+- ยูทิลิตี้ `simpleSearch` สำหรับการปรับให้เหมาะสมแบบอาศัยการไล่ระดับสี
+
+### ยูทิลิตี้หลังการประมวลผล
+
+#### เครื่องมือวิเคราะห์ผลลัพธ์
+
+**ความสามารถด้านการสุ่มตัวอย่าง field และการวิเคราะห์ทางสถิติ**:
+
+- ยูทิลิตี้ `sample` สำหรับการสุ่มตัวอย่างเส้นและระนาบ
+- `probes` สำหรับการตรวจสอบจุด
+- `fieldAverage` สำหรับสถิติเชิงเวลาและเชิงพื้นที่
+
+**การคำนวณแรงและโมเมนต์**:
+
+ดำเนินการผ่านยูทิลิตี้ `forces` และ `forceCoeffs`:
+- รวมการกระจายแรงดันและความเครียดเฉือนบนพื้นผิวที่ระบุ
+- การแบ่งแรงอย่างครอบคลุมรวมถึงแรงดัน ความหนืด และความเป็นรูพรุน
+
+**เวิร์กโฟลว์การสร้างภาพและส่งออกข้อมูล**:
+
+- การผสานรวมกับ ParaView ผ่านยูทิลิตี้ `paraFoam`
+- รูปแบบส่งออก: CSV, VTK, Tecplot
+
+---
+
+## 5. การพัฒนา Custom Utilities
+
+การพัฒนายูทิลิตี้แบบกำหนดเองตามรูปแบบการเขียนโปรแกรม OpenFOAM:
+
+```cpp
+// ตัวอย่าง custom utility: meshStatisticsGenerator.C
+#include "fvMesh.H"
+#include "volFields.H"
+#include "surfaceFields.H"
+#include "OFstream.H"
+
+using namespace Foam;
+
+int main(int argc, char *argv[])
+{
+    #include "setRootCase.H"
+    #include "createTime.H"
+    #include "createMesh.H"
+
+    // Calculate mesh statistics
+    const fvPatchList& patches = mesh.boundary();
+    label nCells = mesh.nCells();
+    label nFaces = mesh.nFaces();
+    label nPoints = mesh.nPoints();
+
+    // Output detailed statistics
+    OFstream outFile("meshStatistics.txt");
+    outFile << "Mesh Statistics:" << nl
+            << "  Cells: " << nCells << nl
+            << "  Faces: " << nFaces << nl
+            << "  Points: " << nPoints << nl
+            << "  Patches: " << patches.size() << nl;
+
+    Info << "Mesh statistics generated successfully" << endl;
+    return 0;
+}
+```
+
+**ขั้นตอนการพัฒนา:**
+1. การวิเคราะห์ความต้องการและการออกแบบอัลกอริทึม
+2. การนำไปใช้ C++ โดยใช้คลาส OpenFOAM
+3. การคอมไพล์กับระบบ build wmake
+4. การทดสอบและการตรวจสอบ
+5. เอกสารประกอบและการสนับสนุนผู้ใช้
+
+---
+
+## 6. แอปพลิเคชันเฉพาะทาง
+
+### การไหลแบบหลายเฟส
+
+**การตั้งค่าและการกำหนดค่าโมเดลเฟส**:
+
+- Volume of Fluid (VOF) สำหรับการติดตามอินเตอร์เฟซ
+- การไหลแบบหลายเฟส Eulerian สำหรับการไหลแบบกระจาย
+- โมเดลผสมสำหรับการไหลแบบฟอง
+
+**การประมวลผลหลังการขั้นสูงสำหรับระบบแบบหลายเฟส**:
+- การวิเคราะห์สัดส่วนเฟส
+- การติดตามและการจำแนกอินเตอร์เฟซ
+- การคำนวณการขนส่งเฉพาะเฟส
+
+### แอปพลิเคชันอุตสาหกรรม
+
+**การประยุกต์ใช้ CFD ในอุตสาหกรรม**:
+- การจำลองกระบวนการผลิต: casting, welding, forming
+- การออกแบบระบบ HVAC
+- วิศวกรรมกระบวนการเคมี
+- การผลิตพลังงาน
+
+**สนามอากาศพลศาสตร์ยานยนต์**:
+- การไหลภายนอก
+- การระบายความร้อนใต้ฝาครอบเครื่อง
+- ระบบควบคุมสภาพอากาศ
+- กลไกการส่งกำลัง
+
+**การประยุกต์ใช้ CFD ด้านสิ่งแวดล้อม**:
+- ชั้นขอบเขตบรรยากาศ
+- การไหลในเมือง
+- ทรัพยากรน้ำ
+- การกระจายมลภาวะ
+
+---
+
+## 7. ผลลัพธ์ที่คาดหวังจากโมดูลนี้
+
+เมื่อคุณศึกษาโมดูลนี้จนจบ คุณจะมีความสามารถในการออกแบบไปป์ไลน์ CFD ที่สมบูรณ์ ตั้งแต่การรับไฟล์ CAD ดิบไปจนถึงการส่งมอบรายงานที่มีกราฟิกและตัวเลขวิเคราะห์คุณภาพสูงที่สอดคล้องกับมาตรฐานระดับมืออาชีพ
+
+### ความสามารถทางเทคนิคที่จะได้รับ
+
+#### 1. การสร้างและจัดการ Mesh ขั้นสูง
+- เชี่ยวชาญ blockMesh และ snappyHexMesh
+- กลยุทธ์การปรับปรุงคุณภาพ Mesh
+- การใช้ mesh quality metrics อย่างครอบคลุม
+
+#### 2. Process Automation และ Workflow Optimization
+- Automated Meshing Workflows
+- Batch Processing สำหรับ Parameter Studies
+- CAD Integration และ Geometry Processing
+
+#### 3. การประเมินและตรวจสอบคุณภาพอย่างครอบคลุม
+- Automated Quality Control Pipelines
+- Solver-Specific Optimization
+- Mesh Independence Studies
+
+#### 4. Advanced Workflow Integration และ Custom Development
+- การพัฒนา End-to-End CFD Pipeline
+- การพัฒนา Custom OpenFOAM Utilities
+- HPC Integration และ Performance Optimization
+
+### ความพร้อมสำหรับการใช้งานจริง
+
+โมดูลนี้เตรียมคุณสำหรับความท้าทายทางวิศวกรรม CFD ขั้นสูง ซึ่งการจัดการ workflow ที่มีประสิทธิภาพเป็นสิ่งสำคัญเท่ากับการจำลองทางฟิสิกส์พื้นฐานสำหรับการส่งมอบโครงการที่สำเร็จ
+
+ทักษะที่ได้รับจะเตรียมคุณสำหรับ:
+- การวิจัยขั้นสูง
+- การประยุกต์ใช้ในอุตสาหกรรม
+- การสร้าง mesh คุณภาพสูงแบบอัตโนมัติ
+- การปรับปรุงประสิทธิภาพกระบวนการ
+
+---
+
+> [!SUCCESS] **เริ่มต้นการเดินทางของคุณ**
+> โมดูลนี้ให้ทักษะที่จำเป็นสำหรับการปฏิบัติ OpenFOAM ระดับมืออาชีพ ครอบคลุมทุกอย่างตั้งแต่การใช้งาน utilities พื้นฐานไปจนถึง workflow automation ขั้นสูงและการปรับปรุงประสิทธิภาพด้าน high-performance computing

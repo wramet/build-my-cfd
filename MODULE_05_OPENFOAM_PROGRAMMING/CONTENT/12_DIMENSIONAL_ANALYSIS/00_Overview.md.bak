@@ -1,0 +1,589 @@
+# หัวข้อ 6.6: การวิเคราะห์มิติและความสอดคล้องทางกายภาพ
+
+## 6.6.1 บทนำสู่การวิเคราะห์มิติใน CFD
+
+การวิเคราะห์มิติเป็นเครื่องมือพื้นฐานในพลศาสตร์ของไหลเชิงคำนวณที่ทำให้มั่นใจได้ถึงความสอดคล้องทางคณิตศาสตร์และความเป็นจริงทางกายภาพในการจำลองเชิงตัวเลข 
+
+**OpenFOAM ใช้ระบบการวิเคราะห์มิติที่ซับซ้อน** ซึ่งติดตามและตรวจสอบหน่วยโดยอัตโนมัติตลอดกระบวนการจำลอง ป้องกันข้อผิดพลาดทั่วไปที่เกิดจากหน่วยที่ไม่สอดคล้องกันหรือการรวมตัวแปรทางกายภาพที่เป็นไปไม่ได้
+
+### ความสำคัญของการวิเคราะห์มิติ
+
+- **ความสอดคล้องทางกายภาพ**: ทำให้มั่นใจได้ว่าสมการทั้งหมดยังคงสมดุลมิติที่เหมาะสม
+- **การป้องกันข้อผิดพลาด**: ตรวจจับข้อผิดพลาดที่เกี่ยวข้องกับหน่วยก่อนที่จะทำลายผลลัพธ์การจำลอง
+- **การตรวจสอบ**: ให้การตรวจสอบเพิ่มเติมสำหรับ schemes เชิงตัวเลข
+- **การดีบัก**: ช่วยระบุแหล่งที่มาของความไม่เสถียรเชิงตัวเลขหรือผลลัพธ์ที่ไม่เป็นไปตามกายภาพ
+
+[Diagram: การตรวจสอบความสอดคล้องของมิติในสมการ CFD]
+
+### มิติพื้นฐานใน CFD
+
+ใน CFD เราทำงานกับปริมาณที่มีมิติพื้นฐานของมวล ($M$), ความยาว ($L$), เวลา ($T$), อุณหภูมิ ($\Theta$), กระแสไฟฟ้า ($I$), ปริมาณของสาร ($N$), และความเข้มแสง ($J$) ทุกปริมาณทางกายภาพสามารถแสดงเป็นผลคูณของมิติพื้นฐานเหล่านี้ยกกำลังต่างๆ ได้
+
+## 6.6.2 กรอบงานคณิตศาสต์ของมิติ
+
+### 6.6.2.1 มิติพื้นฐาน
+
+มิติพื้นฐานทั้งเจ็ดในระบบ SI:
+
+| มิติ | สัญลักษณ์ | หน่วย | คำอธิบาย |
+|-------|-------------|--------|-------------|
+| มวล | $[M]$ | kg | วัดเป็นกิโลกรัม |
+| ความยาว | $[L]$ | m | วัดเป็นเมตร |
+| เวลา | $[T]$ | s | วัดเป็นวินาที |
+| อุณหภูมิ | $[\Theta]$ | K | วัดเป็นเคลวิน |
+| กระแสไฟฟ้า | $[I]$ | A | วัดเป็นแอมแปร์ |
+| ปริมาณของสาร | $[N]$ | mol | วัดเป็นโมล |
+| ความเข้มแสง | $[J]$ | cd | วัดเป็นแคนเดลา |
+
+### 6.6.2.2 การวิเคราะห์มิติของปริมาณทางกายภาพ
+
+ปริมาณที่ได้มาแสดงเป็นผลคูณของมิติพื้นฐาน:
+
+$$[Q] = M^a L^b T^c \Theta^d I^e N^f J^g$$
+
+โดยที่เลขชี้กำลัง $a, b, c, d, e, f, g$ กำหนดลักษณะมิติของปริมาณ
+
+### 6.6.2.3 ทฤษฎีบท Buckingham Pi
+
+ทฤษฎีบท Buckingham Pi ระบุว่าถ้าสมการทางกายภาพเกี่ยวข้องกับตัวแปร $n$ ตัวและมิติพื้นฐาน $k$ มิติ สมการนั้นสามารถแสดงได้ในรูปของพารามิเตอร์ไร้มิติ $n-k$ ตัว:
+
+$$\pi_1, \pi_2, \ldots, \pi_{n-k}$$
+
+โดยที่แต่ละ $\pi_i$ เป็นกลุ่มตัวแปรไร้มิติ
+
+## 6.6.3 การใช้งานระบบมิติของ OpenFOAM
+
+### 6.6.3.1 คลาส dimensionSet
+
+การวิเคราะห์มิติของ OpenFOAM มีศูนย์กลางอยู่ที่คลาส `dimensionSet`:
+
+```cpp
+// ตัวอย่าง constructor ของ OpenFOAM dimensionSet
+dimensionSet noDimensions(0, 0, 0, 0, 0, 0, 0);     // ไร้มิติ
+dimensionSet lengthDims(0, 1, 0, 0, 0, 0, 0);      // [L]
+dimensionSet velocityDims(0, 1, -1, 0, 0, 0, 0);   // [L T^-1]
+dimensionSet pressureDims(1, -1, -2, 0, 0, 0, 0);  // [M L^-1 T^-2]
+dimensionSet forceDims(1, 1, -2, 0, 0, 0, 0);      // [M L T^-2]
+```
+
+คลาส `dimensionSet` เก็บมิติเป็นชุดของจำนวนตรรกยะเจ็ดตัวซึ่งแทนเลขชี้กำลังของแต่ละมิติพื้นฐาน
+
+### 6.6.3.2 ชุดมิติที่กำหนดไว้ล่วงหน้า
+
+OpenFOAM ให้ชุดมิติที่กำหนดไว้ล่วงหน้าสำหรับปริมาณทางกายภาพทั่วไป:
+
+```cpp
+// มิติที่กำหนดไว้ล่วงหน้าทั่วไปใน OpenFOAM
+namespace Foam
+{
+    namespace dimensionSets
+    {
+        extern const dimensionSet dimless;      // ไร้มิติ
+        extern const dimensionSet dimMass;      // [M]
+        extern const dimensionSet dimLength;    // [L]
+        extern const dimensionSet dimTime;      // [T]
+        extern const dimensionSet dimTemperature; // [Θ]
+        extern const dimensionSet dimDensity;   // [M L^-3]
+        extern const dimensionSet dimVelocity;  // [L T^-1]
+        extern const dimensionSet dimAcceleration; // [L T^-2]
+        extern const dimensionSet dimPressure;  // [M L^-1 T^-2]
+        extern const dimensionSet dimDynamicViscosity; // [M L^-1 T^-1]
+    }
+}
+```
+
+## 6.6.4 การกำหนดฟิลด์ที่สอดคล้องกับมิติ
+
+### 6.6.4.1 เทมเพลต GeometricField และมิติ
+
+เทมเพลตคลาส `GeometricField` ใน OpenFOAM รวมการวิเคราะห์มิติ:
+
+```cpp
+// ลายเซ็นเทมเพลตรวมชุดมิติ
+template<class Type, class PatchField, class GeoMesh>
+class GeometricField
+    : public DimensionedField<Type, GeoMesh>
+{
+    // ... รายละเอียดการ implement
+};
+```
+
+เมื่อสร้างฟิลด์ ต้องระบุมิติอย่างชัดเจน:
+
+```cpp
+// สร้างฟิลด์ที่สอดคล้องกับมิติ
+volScalarField p
+(
+    IOobject("p", runTime.timeName(), mesh),
+    mesh,
+    dimensionedScalar("p", dimPressure, 0.0)  // มิติความดัน
+);
+
+volVectorField U
+(
+    IOobject("U", runTime.timeName(), mesh),
+    mesh,
+    dimensionedVector("U", dimVelocity, vector::zero)  // มิติความเร็ว
+);
+```
+
+### 6.6.4.2 ประเภทที่มีมิติ
+
+OpenFOAM ให้ตัวแปรที่มีมิติของประเภทพื้นฐาน:
+
+```cpp
+// Scalar ที่มีมิติ
+dimensionedScalar rho
+(
+    "rho",                          // ชื่อ
+    dimDensity,                     // มิติ [M L^-3]
+    1.225                           // ค่า (kg/m³ สำหรับอากาศ)
+);
+
+// Vector ที่มีมิติ
+dimensionedVector g
+(
+    "g",                            // ชื่อ
+    dimAcceleration,                // มิติ [L T^-2]
+    vector(0, 0, -9.81)             // ค่า (ความโน้มถ่วง)
+);
+```
+
+## 6.6.5 การวิเคราะห์มิติในสมการควบคุม
+
+### 6.6.5.1 สมการการอนุรักษ์
+
+OpenFOAM บังคับใช้ความสอดคล้องของมิติในสมการควบคุมทั้งหมด:
+
+#### สมการต่อเนื่อง
+$$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$$
+
+**การวิเคราะห์มิติ:**
+- $\frac{\partial \rho}{\partial t}$: $[M L^{-3} T^{-1}]$
+- $\nabla \cdot (\rho \mathbf{u})$: $[L^{-1}] \cdot [M L^{-3}] \cdot [L T^{-1}] = [M L^{-3} T^{-1}]$
+
+ทั้งสองพจน์มีมิติเหมือนกัน ทำให้แน่ใจได้ถึงความสอดคล้อง
+
+#### สมการโมเมนตัม
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \rho \mathbf{g}$$
+
+**การวิเคราะห์มิติของแต่ละพจน์:**
+- $\rho \frac{\partial \mathbf{u}}{\partial t}$: $[M L^{-3}] \cdot [L T^{-2}] = [M L^{-2} T^{-2}]$
+- $\rho (\mathbf{u} \cdot \nabla) \mathbf{u}$: $[M L^{-3}] \cdot [L T^{-1}] \cdot [L^{-1}] \cdot [L T^{-1}] = [M L^{-2} T^{-2}]$
+- $-\nabla p$: $[L^{-1}] \cdot [M L^{-1} T^{-2}] = [M L^{-2} T^{-2}]$
+- $\mu \nabla^2 \mathbf{u}$: $[M L^{-1} T^{-1}] \cdot [L^{-2}] \cdot [L T^{-1}] = [M L^{-2} T^{-2}]$
+- $\rho \mathbf{g}$: $[M L^{-3}] \cdot [L T^{-2}] = [M L^{-2} T^{-2}]$
+
+### 6.6.5.2 สมการพลังงาน
+
+สำหรับปัญหาการถ่ายเทความร้อน:
+$$\rho c_p \frac{\partial T}{\partial t} + \rho c_p \mathbf{u} \cdot \nabla T = k \nabla^2 T + Q$$
+
+**การวิเคราะห์มิติ:**
+- ด้านซ้าย: $[M L^{-3}] \cdot [L^2 T^{-2} \Theta^{-1}] \cdot [\Theta T^{-1}] = [M L^{-1} T^{-3}]$
+- ด้านขวา (การแพร่): $[M L T^{-3} \Theta^{-1}] \cdot [L^{-2}] \cdot [\Theta] = [M L^{-1} T^{-3}]$
+
+## 6.6.6 จำนวนไร้มิติใน CFD
+
+### 6.6.6.1 กลุ่มไร้มิติทั่วไป
+
+OpenFOAM มักทำงานกับจำนวนไร้มิติ:
+
+#### เลข Reynolds (Re)
+$$\text{Re} = \frac{\rho U L}{\mu} = \frac{U L}{\nu}$$
+
+โดยที่:
+- $\rho$ คือความหนาแน่น $[M L^{-3}]$
+- $U$ คือความเร็วลักษณะเฉพาะ $[L T^{-1}]$
+- $L$ คือความยาวลักษณะเฉพาะ $[L]$
+- $\mu$ คือความหนืดไดนามิก $[M L^{-1} T^{-1}]$
+- $\nu = \mu/\rho$ คือความหนืดจลน์ $[L^2 T^{-1}]$
+
+#### เลข Prandtl (Pr)
+$$\text{Pr} = \frac{\nu}{\alpha} = \frac{\mu c_p}{k}$$
+
+โดยที่:
+- $\alpha$ คือการแพร่ความร้อน $[L^2 T^{-1}]$
+- $c_p$ คือความจุความร้อนจำเพาะ $[L^2 T^{-2} \Theta^{-1}]$
+- $k$ คือความนำความร้อน $[M L T^{-3} \Theta^{-1}]$
+
+#### เลข Peclet (Pe)
+$$\text{Pe} = \text{Re} \cdot \text{Pr} = \frac{U L}{\alpha}$$
+
+### 6.6.6.2 การ implement ใน OpenFOAM
+
+```cpp
+// คำนวณจำนวนไร้มิติ
+scalar Reynolds = (rho.value() * U.value() * L.value()) / mu.value();
+scalar Prandtl = mu.value() * cp.value() / k.value();
+scalar Peclet = Reynolds * Prandtl;
+
+// ใช้การคำนวณที่มีมิติ
+dimensionedScalar Re
+(
+    "Re", 
+    dimless,  // ผลลัพธ์ไร้มิติ
+    (rho * U * L) / mu
+);
+```
+
+[Diagram: การคำนวณจำนวนไร้มิติในการไหลของไหล]
+
+## 6.6.7 การวิเคราะห์มิติในเงื่อนไขขอบเขต
+
+### 6.6.7.1 การกำหนดค่าขอบเขตที่สอดคล้องกัน
+
+เงื่อนไขขอบเขตทั้งหมดต้องรักษาความสอดคล้องของมิติ:
+
+```cpp
+// เงื่อนไขขอบเขตผนัง
+wallPressure
+{
+    type            fixedValue;
+    value           uniform 101325;  // Pa [M L^-1 T^-2]
+}
+
+wallVelocity
+{
+    type            noSlip;           // ความเร็วศูนย์โดยอัตโนมัติ
+}
+
+wallTemperature
+{
+    type            fixedValue;
+    value           uniform 300;      // K [Θ]
+}
+
+wallHeatFlux
+{
+    type            fixedGradient;
+    gradient        uniform -100;     // [Θ L^-1] สำหรับอุณหภูมิ
+    // หรือ [M T^-3] สำหรับอัตราการไหลของความร้อน: -100 W/m²
+}
+```
+
+### 6.6.7.2 เงื่อนไขขอบเขตผสม
+
+```cpp
+// เงื่อนไขขอบเขตผสม (Robin) ที่มีความสอดคล้องของมิติ
+mixedT
+{
+    type            mixed;
+    refValue        uniform 293;      // อุณหภูมิอ้างอิง [K]
+    refGradient     uniform 0;        // ไกรเดียนต์อ้างอิง [K/m]
+    valueFraction   uniform 0.5;      // ตัวประกอบการผสม [ไร้มิติ]
+}
+```
+
+## 6.6.8 การวิเคราะห์มิติในรูปแบบเชิงตัวเลข
+
+### 6.6.8.1 ความสอดคล้องของรูปแบบ
+
+รูปแบบเชิงตัวเลขต้องรักษาความสอดคล้องของมิติ:
+
+#### การแยกตัวแปรเชิงเวลา
+$$\frac{\partial \phi}{\partial t} \approx \frac{\phi^{n+1} - \phi^n}{\Delta t}$$
+
+- $\phi$ อาจเป็นฟิลด์ใดๆ ที่มีมิติ $[\phi]$
+- $\Delta t$ มีมิติ $[T]$
+- ผลลัพธ์มีมิติ $[\phi T^{-1}]$
+
+#### การแยกตัวแปรเชิงพื้นที่
+$$\nabla \phi \approx \frac{\phi_{i+1} - \phi_{i-1}}{2 \Delta x}$$
+
+- $\Delta x$ มีมิติ $[L]$
+- ผลลัพธ์มีมิติ $[\phi L^{-1}]$
+
+### 6.6.8.2 ความสอดคล้องของพจน์แหล่งกำเนิด
+
+```cpp
+// เพิ่มพจน์แหล่งกำเนิดที่มีมิติที่ถูกต้อง
+fvScalarMatrix TEqn
+(
+    rho * cp * fvm::ddt(T)                     // [M L^-1 T^-3]
+  + rho * cp * fvm::div(phi, T)               // [M L^-1 T^-3]
+  - fvm::laplacian(k/cp, T)                   // [M L^-1 T^-3]
+ ==
+    Q_vol                                      // [M L^-1 T^-3] - แหล่งกำเนิดความร้อนต่อปริมาตร
+);
+```
+
+## 6.6.9 การดีบักด้วยการวิเคราะห์มิติ
+
+### 6.6.9.1 ข้อผิดพลาดมิติทั่วไป
+
+#### หน่วยที่ไม่สอดคล้องกันในอินพุต
+```
+--> FOAM FATAL ERROR:
+Attempt to read a dimless field from an entry with dimensions [0 2 -2 0 0 0 0]
+```
+
+#### มิติฟิลด์ที่ไม่ตรงกัน
+```
+--> FOAM FATAL ERROR:
+dimensions of two fields are different
+    dimensions of field: [0 2 -2 0 0 0 0]
+    dimensions of operand: [1 -1 -2 0 0 0 0]
+```
+
+### 6.6.9.2 เทคนิคการดีบักการวิเคราะห์มิติ
+
+```cpp
+// ตรวจสอบมิติฟิลด์
+Info << "Pressure field dimensions: " << p.dimensions() << endl;
+Info << "Velocity field dimensions: " << U.dimensions() << endl;
+
+// ตรวจสอบว่าฟิลด์ไร้มิติหรือไม่
+if (p.dimensions() == dimless)
+{
+    Info << "Pressure field is dimensionless" << endl;
+}
+
+// การตรวจสอบมิติในโค้ดที่กำหนดเอง
+template<class Type>
+void validateDimensions(const GeometricField<Type, fvPatchField, volMesh>& field)
+{
+    // ตรวจสอบว่าฟิลด์มีมิติที่ถูกต้องหรือไม่
+    if (field.dimensions() == dimensionSet::null)
+    {
+        WarningIn("validateDimensions")
+            << "Field " << field.name() << " has null dimensions" << endl;
+    }
+}
+```
+
+## 6.6.10 แนวคิดขั้นสูงของการวิเคราะห์มิติ
+
+### 6.6.10.1 กลยุทธ์การทำให้ไร้มิติ
+
+สำหรับปัญหา CFD บางอย่าง การกำหนดรูปแบบไร้มิติมีประโยชน์:
+
+#### การแปลงสมการควบคุม
+
+สมการโมเมนตัมที่มีมิติเดิม:
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u}$$
+
+**การกำหนดรูปแบบไร้มิติโดยใช้สเกลลักษณะเฉพาะ:**
+- สเกลความยาว: $L$
+- สเกลความเร็ว: $U_{\infty}$
+- สเกลความดัน: $\rho U_{\infty}^2$
+- สเกลเวลา: $L/U_{\infty}$
+
+**ตัวแปรไร้มิติ:**
+- $\mathbf{u}^* = \mathbf{u}/U_{\infty}$
+- $p^* = p/(\rho U_{\infty}^2)$
+- $t^* = t \cdot U_{\infty}/L$
+- $\nabla^* = L \cdot \nabla$
+
+**สมการไร้มิติที่ได้:**
+$$\frac{\partial \mathbf{u}^*}{\partial t^*} + (\mathbf{u}^* \cdot \nabla^*) \mathbf{u}^* = -\nabla^* p^* + \frac{1}{\text{Re}} \nabla^{*2} \mathbf{u}^*$$
+
+### 6.6.10.2 ความคล้ายคลึงและกฎการปรับสเกล
+
+การวิเคราะห์มิติช่วยในการทำนายพฤติกรรมการไหลในสเกลต่างๆ:
+
+#### ความคล้ายคลึงแบบไดนามิก
+
+การไหลสองกรณีมีความคล้ายคลึงแบบไดนามิกถ้ามี:
+- เรขาคณิตเหมือนกัน
+- เลข Reynolds เหมือนกัน
+- อัตราส่วนเงื่อนไขขอบเขตเหมือนกัน
+
+#### ความสัมพันธ์การปรับสเกล
+
+ใช้การวิเคราะห์มิติเพื่ออนุพันธ์กฎการปรับสเกล:
+
+- แรงยก: $F_L = \frac{1}{2} \rho U^2 A C_L(\text{Re}, \text{Ma}, \alpha)$
+- แรงลาก: $F_D = \frac{1}{2} \rho U^2 A C_D(\text{Re}, \text{Ma}, \alpha)$
+- การถ่ายเทความร้อน: $Q = h A \Delta T = k L \Delta T \cdot \text{Nu}(\text{Re}, \text{Pr})$
+
+## 6.6.11 แนวทางปฏิบัติสำหรับความสอดคล้องของมิติ
+
+### 6.6.11.1 แนวทางปฏิบัติที่ดีที่สุดสำหรับไฟล์อินพุต
+
+#### แนวทางการตั้งค่ากรณี
+
+**1. ระบุหน่วยอย่างชัดเจนเสมอ** ในเงื่อนไขขอบเขต:
+
+```cpp
+// การปฏิบัติที่ดี
+pressure
+{
+    type        fixedValue;
+    value       uniform 101325;    // Pa
+}
+
+// หลีกเลี่ยงหน่วยโดยนัย
+pressure
+{
+    type        fixedValue;
+    value       uniform 1.0;       // หน่วยที่คลุมเครือ
+}
+```
+
+**2. ใช้ระบบหน่วยที่สอดคล้องกัน** ทั่วทั้งกรณี:
+- แนะนำให้ใช้หน่วย SI (kg, m, s, K)
+- บันทึกการแปลงหน่วยใดๆ
+- ตรวจสอบหน่วยคุณสมบัติวัสดุ
+
+#### การกำหนดคุณสมบัติวัสดุ
+
+```cpp
+// ตัวอย่าง ThermophysicalProperties
+thermoType
+{
+    type            heRhoThermo;
+    mixture         puremixture;
+    transport       sutherland;           // โมเดลการขนส่ง
+    thermo          janaf;                // โมเดลเทอร์โมไดนามิก
+    energy          sensibleEnthalpy;     // การกำหนดรูปพลังงาน
+    equationOfState perfectGas;           // สมการสถานะ
+    specie          specie;               // คุณสมบัติชนิด
+}
+
+mixture
+{
+    specie
+    {
+        molWeight       28.96;            // kg/kmol [M N^-1]
+    }
+    
+    thermodynamics
+    {
+        Cp              1005;             // J/(kg·K) [L^2 T^-2 Θ^-1]
+        Hf              0;                // J/kg [L^2 T^-2]
+    }
+    
+    transport
+    {
+        As              1.4792e-06;       // Pa·s/K^0.5 [M L^-1 T^-1 Θ^-0.5]
+        Ts              110.4;            // K [Θ]
+    }
+}
+```
+
+### 6.6.11.2 แนวทางการพัฒนาโค้ด
+
+#### คลาสฟิลด์ที่กำหนดเอง
+
+เมื่อพัฒนาคลาสฟิลด์ที่กำหนดเอง ต้องแน่ใจว่ามีความสอดคล้องของมิติ:
+
+```cpp
+class CustomTransportModel
+{
+    // ฟิลด์สมาชิกที่มีมิติที่เหมาะสม
+    dimensionedScalar thermalConductivity_;    // [M L T^-3 Θ^-1]
+    dimensionedScalar specificHeat_;           // [L^2 T^-2 Θ^-1]
+    dimensionedScalar density_;                // [M L^-3]
+    
+public:
+    // Constructor ที่มีการตรวจสอบมิติ
+    CustomTransportModel
+    (
+        const dimensionedScalar& k,
+        const dimensionedScalar& cp,
+        const dimensionedScalar& rho
+    )
+    :
+        thermalConductivity_(k),
+        specificHeat_(cp),
+        density_(rho)
+    {
+        // ตรวจสอบมิติ
+        if (k.dimensions() != dimensionSet(1, 1, -3, -1, 0, 0, 0))
+        {
+            FatalErrorIn("CustomTransportModel::CustomTransportModel")
+                << "Thermal conductivity has wrong dimensions" << endl
+                << "Expected: [1 1 -3 -1 0 0 0]" << endl
+                << "Actual: " << k.dimensions() << endl
+                << exit(FatalError);
+        }
+    }
+    
+    // เมธอดที่สอดคล้องกับมิติ
+    dimensionedScalar thermalDiffusivity() const
+    {
+        // k/(rho*cp) มีมิติ: [L^2 T^-1]
+        return thermalConductivity_/(density_ * specificHeat_);
+    }
+};
+```
+
+## 6.6.12 การตรวจสอบและทดสอบการวิเคราะห์มิติ
+
+### 6.6.12.1 การตรวจสอบมิติอัตโนมัติ
+
+OpenFOAM ให้การตรวจสอบมิติระหว่างรันไทม์:
+
+```cpp
+// เปิดใช้งานการตรวจสอบมิติในโค้ด
+dimensionSet::debug = 1;  // เปิดใช้งานการดีบักมิติโดยละเอียด
+
+// ฟังก์ชันตรวจสอบมิติที่กำหนดเอง
+void validateEquationBalance
+(
+    const fvScalarMatrix& lhs,
+    const fvScalarMatrix& rhs
+)
+{
+    if (lhs.dimensions() != rhs.dimensions())
+    {
+        FatalErrorIn("validateEquationBalance")
+            << "Dimensional mismatch in equation:" << endl
+            << "LHS dimensions: " << lhs.dimensions() << endl
+            << "RHS dimensions: " << rhs.dimensions() << endl
+            << exit(FatalError);
+    }
+}
+```
+
+### 6.6.12.2 การทดสอบหน่วยสำหรับความสอดคล้องของมิติ
+
+```cpp
+// การทดสอบหน่วยสำหรับความสอดคล้องของมิติ
+void testDimensionalConsistency()
+{
+    // ทดสอบ 1: การคำนวณเลข Reynolds
+    dimensionedScalar rho("rho", dimDensity, 1.225);
+    dimensionedScalar U("U", dimVelocity, 10.0);
+    dimensionedScalar L("L", dimLength, 1.0);
+    dimensionedScalar mu("mu", dimDynamicViscosity, 1.8e-5);
+    
+    dimensionedScalar Re = (rho * U * L)/mu;
+    
+    if (Re.dimensions() != dimless)
+    {
+        FatalErrorIn("testDimensionalConsistency")
+            << "Reynolds number is not dimensionless" << endl
+            << "Dimensions: " << Re.dimensions() << endl
+            << exit(FatalError);
+    }
+    
+    Info << "Reynolds number: " << Re.value() << " (dimensionless)" << endl;
+}
+```
+
+## 6.6.13 สรุปและจุดสำคัญ
+
+การวิเคราะห์มิติใน OpenFOAM เป็นระบบที่ทรงพลังซึ่งทำให้มั่นใจได้ถึงความสอดคล้องทางกายภาพตลอดการจำลอง CFD 
+
+### หลักการสำคัญ:
+
+1. **ทุกปริมาณทางกายภาพต้องมีมิติที่ถูกต้อง** - OpenFOAM ติดตามมิติโดยอัตโนมัติและระบุความไม่สอดคล้อง
+2. **สมการต้องมีความเป็นเนื้อเดียวกันทางมิติ** - ทุกพจน์ในสมการต้องมีมิติเหมือนกัน
+3. **เงื่อนไขขอบเขตต้องเคารพความสอดคล้องของมิติ** - ค่าที่ระบุทั้งหมดต้องตรงกับมิติที่คาดหวัง
+4. **การทำให้ไร้มิติสามารถปรับปรุงเงื่อนไขเชิงตัวเลขได้** - ใช้ตัวแปรไร้มิติเมื่อเหมาะสม
+5. **การตรวจสอบมิติระหว่างรันไทม์ป้องกันข้อผิดพลาด** - OpenFOAM ให้การตรวจสอบความสอดคล้องของมิติในตัว
+
+### ประโยชน์ของการวิเคราะห์มิติ:
+
+โดยการเข้าใจและใช้ความสามารถด้านการวิเคราะห์มิติของ OpenFOAM ผู้ปฏิบัติงาน CFD สามารถ:
+- ตรวจจับข้อผิดพลาดได้ตั้งแต่เนิ่นๆ ในกระบวนการพัฒนา
+- ทำให้มั่นใจได้ถึงความเป็นจริงทางกายภาพในการจำลอง
+- ตรวจสอบการ implement เชิงตัวเลข
+- ปรับปรุงความน่าเชื่อถือและการบำรุงรักษาโค้ด
+- ดีบักปัญหาการจำลองได้ดียิ่งขึ้น
+
+[Diagram: ขั้นตอนการตรวจสอบความสอดคล้องของมิติใน OpenFOAM]
+
+**สรุป:** ระบบการวิเคราะห์มิติไม่ใช่แค่คุณสมบัติด้านความปลอดภัย—แต่เป็นเครื่องมือพื้นฐานที่เชื่อมโยงระหว่างการกำหนดรูปแบบทางคณิตศาสตร์และความเป็นจริงทางกายภาพในพลศาสตร์ของไหลเชิงคำนวณ

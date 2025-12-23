@@ -1,0 +1,864 @@
+## 🔬 การเชื่อมต่อทางฟิสิกส์: สูตรคณิตศาสตร์ขั้นสูง
+
+### ทฤษฎีบท Buckingham π และการนำไปใช้งาน
+
+#### พื้นฐานคณิตศาสตร์
+
+**ทฤษฎีบท Buckingham π** ให้กรอบพื้นฐานสำหรับการวิเคราะห์มิติในพลศาสตร์ของไหลและ CFD โดยระบุว่าสมการที่มีความหมายทางกายภาพใดๆ ที่เกี่ยวข้องกับตัวแปร $n$ ตัวสามารถเขียนใหม่ในรูปของพารามิเตอร์ไร้มิติ $n - k$ ตัว โดยที่ $k$ คือจำนวนมิติพื้นฐาน
+
+สำหรับตัวแปร $Q_1, Q_2, \ldots, Q_n$ ที่มีมิติแสดงเป็น:
+$$[Q_i] = \prod_{j=1}^k D_j^{a_{ij}}$$
+
+ทฤษฎีบทนี้มองหาการรวมกันของปริมาณไร้มิติ $\Pi_m$ ที่เกิดจาก:
+$$\Pi_m = \prod_{i=1}^n Q_i^{b_{im}} \quad \text{โดยที่} \quad \sum_{i=1}^n a_{ij} b_{im} = 0 \quad \forall j$$
+
+พื้นฐานคณิตศาสตร์นี้ช่วยให้สามารถระบุกลุ่มปริมาณไร้มิติอย่างเป็นระบบ เช่น **จำนวน Reynolds**, **จำนวน Froude** และ **จำนวน Mach** ที่ควบคุมพฤติกรรมการไหลและความเหมือนกันระหว่างการกำหนดค่าการไหลที่แตกต่างกัน
+
+[Diagram: แสดงความสัมพันธ์ระหว่างตัวแปรที่มีมิติและพารามิเตอร์ไร้มิติใน CFD]
+
+#### การนำไปใช้ใน OpenFOAM
+
+การนำทฤษฎีบท Buckingham π ไปใช้ใน OpenFOAM ต้องการการจัดการชุดมิติและพีชคณิตเชิงเส้นอย่างระมัดระวังเพื่อหาพื้นที่ว่างของเมทริกซ์มิติ:
+
+```cpp
+// การนำทฤษฎีบท Buckingham π ไปใช้สำหรับการวิเคราะห์มิติ
+class BuckinghamPiTheorem
+{
+public:
+    // หากลุ่มปริมาณไร้มิติจากตัวแปรที่มีมิติ
+    static std::vector<std::vector<int>> findDimensionlessGroups(
+        const std::vector<dimensionSet>& variables)
+    {
+        // สร้างเมทริกซ์มิติ A (k × n)
+        // A_ji = เลขชี้กำลังของมิติ j ในตัวแปร i
+        int n = variables.size();
+        int k = dimensionSet::nDimensions;
+
+        Eigen::MatrixXd A(k, n);
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < k; j++)
+            {
+                A(j, i) = variables[i][j];
+            }
+        }
+
+        // หาพื้นที่ว่างของ A (คำตอบของ A·b = 0)
+        Eigen::FullPivLU<Eigen::MatrixXd> lu(A);
+        Eigen::MatrixXd nullSpace = lu.kernel();
+
+        // แปลงเป็นการรวมกันแบบจำนวนเต็ม
+        std::vector<std::vector<int>> groups;
+        for (int col = 0; col < nullSpace.cols(); col++)
+        {
+            std::vector<int> group;
+            for (int row = 0; row < nullSpace.rows(); row++)
+            {
+                group.push_back(static_cast<int>(std::round(nullSpace(row, col))));
+            }
+            groups.push_back(group);
+        }
+
+        return groups;
+    }
+
+    // สร้างกลุ่มปริมาณไร้มิติจากตัวแปรที่มีมิติ
+    static std::vector<dimensionedScalar> createDimensionlessGroups(
+        const std::vector<dimensionedScalar>& variables,
+        const std::vector<std::vector<int>>& exponents)
+    {
+        std::vector<dimensionedScalar> groups;
+
+        for (const auto& expVec : exponents)
+        {
+            dimensionedScalar group("Pi", dimless, 1.0);
+
+            for (size_t i = 0; i < variables.size(); i++)
+            {
+                if (expVec[i] != 0)
+                {
+                    group *= pow(variables[i], expVec[i]);
+                }
+            }
+
+            // ตรวจสอบว่าเป็นปริมาณไร้มิติ
+            if (!group.dimensions().dimensionless())
+            {
+                FatalErrorInFunction
+                    << "Generated group is not dimensionless"
+                    << abort(FatalError);
+            }
+
+            groups.push_back(group);
+        }
+
+        return groups;
+    }
+};
+
+// ตัวอย่าง: กลุ่มปริมาณไร้มิติสำหรับการไหลในท่อ
+void analyzePipeFlow()
+{
+    // ตัวแปร: Δp (ความดันตก), ρ (ความหนาแน่น), μ (ความหนืด),
+    //            U (ความเร็ว), D (เส้นผ่านศูนย์กลาง), L (ความยาว)
+    std::vector<dimensionedScalar> variables = {
+        dimensionedScalar("deltaP", dimPressure, 1000.0),
+        dimensionedScalar("rho", dimDensity, 1000.0),
+        dimensionedScalar("mu", dimDynamicViscosity, 0.001),
+        dimensionedScalar("U", dimVelocity, 1.0),
+        dimensionedScalar("D", dimLength, 0.1),
+        dimensionedScalar("L", dimLength, 1.0)
+    };
+
+    // หากลุ่มปริมาณไร้มิติโดยใช้ทฤษฎีบท Buckingham π
+    std::vector<dimensionSet> dims;
+    for (const auto& var : variables)
+        dims.push_back(var.dimensions());
+
+    auto exponents = BuckinghamPiTheorem::findDimensionlessGroups(dims);
+    auto groups = BuckinghamPiTheorem::createDimensionlessGroups(variables, exponents);
+
+    // groups[0] = จำนวน Reynolds (ρUD/μ)
+    // groups[1] = จำนวน Euler (Δp/ρU²)
+    // groups[2] = อัตราส่วนลักษณะ (L/D)
+}
+```
+
+การนำไปใช้นี้สาธิตว่าความสามารถในการวิเคราะห์มิติของ OpenFOAM สามารถขยายเพื่อระบุพารามิเตอร์ความเหมือนกันอย่างเป็นระบบ การคำนวณพื้นที่ว่างโดยใช้ไลบรารีพีชคณิตเชิงเส้นของ Eigen ให้พื้นฐานทางคณิตศาสตร์สำหรับการหากลุ่มปริมาณไร้มิติ ในขณะที่การตรวจสอบมิติช่วยให้มั่นใจในความสอดคล้องทางกายภาพ
+
+[Diagram: แสดงขั้นตอนการคำนวณพื้นที่ว่างเมทริกซ์และการสร้างพารามิเตอร์ไร้มิติ]
+
+### เทคนิคการทำให้ไร้มิติสำหรับ CFD
+
+#### การวิเคราะห์สเกลเพื่อเสถียรภาพเชิงตัวเลข
+
+**การทำให้ไร้มิติ** มีบทบาทสำคัญในการคำนวณ CFD โดยการปรับปรุงเสถียรภาพเชิงตัวเลขและการบรรจบกันของคำตอบ กระบวนการนี้เกี่ยวข้องกับการระบุสเกลอ้างอิงที่เหมาะสมและการทำให้ตัวแปรทั้งหมดเป็นปกติเพื่อสร้างรูปไร้มิติของสมการควบคุม
+
+```cpp
+// ระบบการทำให้ไร้มิติสำหรับสมการ CFD
+class NonDimensionalizer
+{
+public:
+    // สเกลอ้างอิงสำหรับการทำให้ไร้มิติ
+    struct ReferenceScales
+    {
+        dimensionedScalar length;
+        dimensionedScalar velocity;
+        dimensionedScalar density;
+        dimensionedScalar viscosity;
+    };
+
+    // ทำให้สมการ Navier-Stokes เป็นไร้มิติ
+    void nonDimensionalizeNS(
+        volVectorField& U,      // ความเร็ว
+        volScalarField& p,      // ความดัน
+        volScalarField& rho,    // ความหนาแน่น
+        const ReferenceScales& scales) const
+    {
+        // ตัวแปรไร้มิติ
+        volVectorField U_tilde = U / scales.velocity;
+        volScalarField p_tilde = p / (scales.density * scales.velocity * scales.velocity);
+        volScalarField rho_tilde = rho / scales.density;
+
+        // ตรวจสอบว่าเป็นปริมาณไร้มิติ
+        if (!U_tilde.dimensions().dimensionless() ||
+            !p_tilde.dimensions().dimensionless() ||
+            !rho_tilde.dimensions().dimensionless())
+        {
+            FatalErrorInFunction
+                << "Non-dimensionalization failed"
+                << abort(FatalError);
+        }
+
+        // แทนที่ฟิลด์ดั้งเดิม
+        U = U_tilde;
+        p = p_tilde;
+        rho = rho_tilde;
+    }
+
+    // คำนวณจำนวนไร้มิติ
+    std::map<std::string, dimensionedScalar> computeDimensionlessNumbers(
+        const ReferenceScales& scales) const
+    {
+        std::map<std::string, dimensionedScalar> numbers;
+
+        // จำนวน Reynolds
+        numbers["Re"] = scales.density * scales.velocity * scales.length / scales.viscosity;
+
+        // จำนวน Froude (ถ้ามีความโน้มถ่วง)
+        dimensionedScalar g("g", dimAcceleration, 9.81);
+        numbers["Fr"] = scales.velocity / sqrt(g * scales.length);
+
+        // จำนวน Mach (ถ้าเป็นการบีบอัดได้)
+        dimensionedScalar c("c", dimVelocity, 340.0);  // ความเร็วเสียง
+        numbers["Ma"] = scales.velocity / c;
+
+        // ตรวจสอบว่าทั้งหมดเป็นปริมาณไร้มิติ
+        for (const auto& pair : numbers)
+        {
+            if (!pair.second.dimensions().dimensionless())
+            {
+                FatalErrorInFunction
+                    << pair.first << " is not dimensionless"
+                    << abort(FatalError);
+            }
+        }
+
+        return numbers;
+    }
+};
+```
+
+กระบวนการทำให้ไร้มิติแปลงสมการ Navier-Stokes ที่มีมิติ:
+$$\frac{\partial (\rho \mathbf{u})}{\partial t} + \nabla \cdot (\rho \mathbf{u} \mathbf{u}) = -\nabla p + \nabla \cdot (\mu \nabla \mathbf{u}) + \rho \mathbf{g}$$
+
+เป็นรูปไร้มิติ:
+$$\frac{\partial \tilde{\rho} \tilde{\mathbf{u}}}{\partial \tilde{t}} + \tilde{\nabla} \cdot (\tilde{\rho} \tilde{\mathbf{u}} \tilde{\mathbf{u}}) = -\tilde{\nabla} \tilde{p} + \frac{1}{\mathrm{Re}} \tilde{\nabla}^2 \tilde{\mathbf{u}} + \frac{1}{\mathrm{Fr}^2} \tilde{\rho} \tilde{\mathbf{g}}$$
+
+โดยที่พารามิเตอร์ไร้มิติ:
+- $\mathrm{Re} = \frac{\rho U L}{\mu}$ (จำนวน Reynolds)
+- $\mathrm{Fr} = \frac{U}{\sqrt{gL}}$ (จำนวน Froude)
+
+เกิดขึ้นจากกระบวนการสเกลตามธรรมชาติ
+
+[Diagram: แสดงการแปลงสมการ Navier-Stokes จากรูปมิติเป็นไร้มิติ]
+
+#### การตรวจจับสเกลลักษณะ
+
+**การตรวจจับสเกลลักษณะ** โดยอัตโนมัติจากฟิลด์การไหลช่วยให้สามารถทำให้ไร้มิติได้อย่างแข็งแกร่งโดยไม่ต้องแทรกแซงด้วยตนเอง:
+
+```cpp
+// การตรวจจับสเกลลักษณะโดยอัตโนมัติจากฟิลด์การไหล
+class ScaleDetector
+{
+public:
+    ReferenceScales detectScales(const volVectorField& U) const
+    {
+        ReferenceScales scales;
+
+        // สเกลความยาว: ความยาวลักษณะของโดเมน
+        scales.length = dimensionedScalar(
+            "L_ref",
+            dimLength,
+            max(mag(U.mesh().C()) - min(mag(U.mesh().C())))
+        );
+
+        // สเกลความเร็ว: ขนาดความเร็วสูงสุด
+        scales.velocity = dimensionedScalar(
+            "U_ref",
+            dimVelocity,
+            max(mag(U)).value()
+        );
+
+        // สเกลความหนาแน่น: จากคุณสมบัติการขนส่ง
+        scales.density = dimensionedScalar(
+            "rho_ref",
+            dimDensity,
+            thermo_.rho().average().value()
+        );
+
+        // สเกลความหนืด: จากคุณสมบัติการขนส่ง
+        scales.viscosity = dimensionedScalar(
+            "mu_ref",
+            dimDynamicViscosity,
+            thermo_.mu().average().value()
+        );
+
+        return scales;
+    }
+
+private:
+    const fluidThermo& thermo_;
+};
+```
+
+วิธีการตรวจจับสเกลนี้ใช้กลยุทธ์ต่างๆ สำหรับการระบุความยาวลักษณะ:
+
+- **สเกลตามโดเมน**: ใช้ลักษณะทางเรขาคณิตเช่นปริมาตรโดเมนหรือมิติของกล่องล้อมรอบ
+- **สเกลตามฟิสิกส์**: ได้มาจากความหนาชั้นขอบเขต รัศมีแกนกลางเวอร์เท็กซ์ หรือคุณสมบัติการไหลอื่นๆ
+- **สเกลตามพลังงาน**: ใช้พลังงานจลน์หรืออัตราการสลายตัวเป็นปริมาณอ้างอิง
+
+### ความเหมือนกันและกฎการสเกล
+
+#### ความเหมือนกันของ Reynolds
+
+**ความเหมือนกันของ Reynolds** เป็นพื้นฐานของพลศาสตร์ของไหล ช่วยให้สามารถถ่ายโอนผลลัพธ์ระหว่างการไหลของแบบจำลองและต้นแบบเมื่อพวกมันมีจำนวน Reynolds เหมือนกัน:
+
+$$\mathrm{Re}_{\text{model}} = \mathrm{Re}_{\text{prototype}} = \frac{\rho U L}{\mu}$$
+
+```cpp
+// การนำความเหมือนกันของ Reynolds ไปใช้
+class ReynoldsSimilarity
+{
+public:
+    // ตรวจสอบว่าการไหลสองแบบมีความเหมือนกันของ Reynolds หรือไม่
+    static bool checkSimilarity(
+        const dimensionedScalar& Re1,
+        const dimensionedScalar& Re2,
+        double tolerance = 1e-3)
+    {
+        if (!Re1.dimensions().dimensionless() || !Re2.dimensions().dimensionless())
+        {
+            FatalErrorInFunction
+                << "Reynolds numbers must be dimensionless"
+                << abort(FatalError);
+        }
+
+        return mag(Re1.value() - Re2.value()) / Re1.value() < tolerance;
+    }
+
+    // สเกลผลลัพธ์แบบจำลองไปยังต้นแบบโดยใช้ความเหมือนกันของ Reynolds
+    template<class FieldType>
+    FieldType scaleToPrototype(
+        const FieldType& modelField,
+        const dimensionedScalar& Re_model,
+        const dimensionedScalar& Re_prototype,
+        const dimensionSet& fieldDimensions) const
+    {
+        // ตรวจสอบมิติของฟิลด์
+        if (modelField.dimensions() != fieldDimensions)
+        {
+            FatalErrorInFunction
+                << "Model field has wrong dimensions"
+                << abort(FatalError);
+        }
+
+        // ปัจจัยการสเกลตามอัตราส่วนจำนวน Reynolds
+        double scaleFactor = Re_prototype.value() / Re_model.value();
+
+        // ใช้การสเกลตามมิติของฟิลด์
+        FieldType prototypeField = modelField;
+
+        // สำหรับความเร็ว: สเกลตามจำนวน Reynolds ถ้าความหนืด/ความหนาแน่นคงที่
+        if (fieldDimensions == dimVelocity)
+        {
+            prototypeField *= scaleFactor;  // สมมติความเหมือนกันทางเรขาคณิต
+        }
+        // สำหรับความดัน: สเกลตามกำลังสองของสเกลความเร็ว
+        else if (fieldDimensions == dimPressure)
+        {
+            prototypeField *= scaleFactor * scaleFactor;
+        }
+
+        return prototypeField;
+    }
+};
+```
+
+พื้นฐานทางคณิตศาสตร์ของความเหมือนกันของ Reynolds เกิดจากรูปไร้มิติของสมการ Navier-Stokes โดยที่จำนวน Reynolds ปรากฏเป็นพารามิเตอร์เดียวที่ควบคุมดุลของแรงเฉื่อยและแรงหนืด เมื่อการไหลสองแบบมีจำนวน Reynolds เหมือนกันและความเหมือนกันทางเรขาคณิต ฟิลด์ความเร็วจะสัมพันธ์กันโดย:
+$$\mathbf{u}_{\text{prototype}}(\mathbf{x},t) = \lambda \mathbf{u}_{\text{model}}\left(\frac{\mathbf{x}}{\lambda}, \frac{t}{\lambda}\right)$$
+
+โดยที่ $\lambda$ คือปัจจัยการสเกลทางเรขาคณิต
+
+[Diagram: แสดงการเปรียบเทียบฟิลด์ความเร็วระหว่างแบบจำลองและต้นแบบที่มีจำนวน Reynolds เหมือนกัน]
+
+#### ความเหมือนกันทางพลศาสตร์สำหรับปัญหาหลายฟิสิกส์
+
+**ความเหมือนกันทางพลศาสตร์** ขยายไปไกลกว่าความเหมือนกันแบบพารามิเตอร์เดียวเพื่อครอบคลุมปรากฏการณ์ทางฟิสิกส์ที่เชื่อมโยงกันหลายแบบ สำหรับความเหมือนกันทางพลศาสตร์ที่สมบูรณ์ ต้องจับคู่พารามิเตอร์ไร้มิติที่เกี่ยวข้องทั้งหมดระหว่างแบบจำลองและต้นแบบ
+
+```cpp
+// ความเหมือนกันทางพลศาสตร์สำหรับฟิสิกส์ที่เชื่อมโยงกัน
+class DynamicSimilarity
+{
+public:
+    struct SimilarityConditions
+    {
+        dimensionedScalar Re;      // จำนวน Reynolds
+        dimensionedScalar Fr;      // จำนวน Froude
+        dimensionedScalar We;      // จำนวน Weber (ความตึงผิว)
+        dimensionedScalar Ca;      // จำนวน Capillary
+        dimensionedScalar St;      // จำนวน Strouhal (การไหลแบบคาบ)
+    };
+
+    // ตรวจสอบความเหมือนกันทางพลศาสตร์ที่สมบูรณ์
+    static bool checkCompleteSimilarity(
+        const SimilarityConditions& model,
+        const SimilarityConditions& prototype,
+        double tolerance = 1e-3)
+    {
+        // ตรวจสอบว่าจำนวนทั้งหมดเป็นปริมาณไร้มิติ
+        dimensionSet dimless = dimless;
+
+        if (model.Re.dimensions() != dimless || prototype.Re.dimensions() != dimless ||
+            model.Fr.dimensions() != dimless || prototype.Fr.dimensions() != dimless ||
+            model.We.dimensions() != dimless || prototype.We.dimensions() != dimless)
+        {
+            FatalErrorInFunction
+                << "Similarity numbers must be dimensionless"
+                << abort(FatalError);
+        }
+
+        // ตรวจสอบแต่ละจำนวนไร้มิติ
+        bool similar = true;
+        similar &= mag(model.Re.value() - prototype.Re.value()) / model.Re.value() < tolerance;
+        similar &= mag(model.Fr.value() - prototype.Fr.value()) / model.Fr.value() < tolerance;
+        similar &= mag(model.We.value() - prototype.We.value()) / model.We.value() < tolerance;
+        similar &= mag(model.Ca.value() - prototype.Ca.value()) / model.Ca.value() < tolerance;
+        similar &= mag(model.St.value() - prototype.St.value()) / model.St.value() < tolerance;
+
+        return similar;
+    }
+
+    // การสเกลประนีประนอมเมื่อความเหมือนกันที่สมบูรณ์เป็นไปไม่ได้
+    static SimilarityConditions findCompromiseScaling(
+        const SimilarityConditions& prototype,
+        const std::vector<std::string>& priorityOrder)
+    {
+        // ใช้การสเกลประนีประนอมตามลำดับความสำคัญ
+        // (เช่น จับคู่ Re และ Fr โดยประมาณเมื่อการจับคู่แบบตรงเป็นไปไม่ได้)
+        SimilarityConditions model = prototype;
+
+        // ทำให้ง่าย: จับคู่จำนวนที่มีความสำคัญสูงสุดตรง
+        // ปรับตัวอื่นๆ ตามกฎการสเกล
+        for (const auto& priority : priorityOrder)
+        {
+            if (priority == "Re")
+            {
+                // คงการจับคู่ Re ปรับจำนวนอื่นๆ
+                // นี่คือตัวอย่างที่ทำให้ง่าย - การนำไปใช้จริงจะ
+                // แก้สมการการสเกล
+            }
+        }
+
+        return model;
+    }
+};
+```
+
+ในปัญหาหลายฟิสิกส์ การบรรลุความเหมือนกันที่สมบูรณ์มักต้องการการสเกลประนีประนอมเนื่องจากความต้องการที่ขัดแย้งกันของพารามิเตอร์ไร้มิติที่แตกต่างกัน **ลำดับชั้นของความสำคัญโดยทั่วไป:**
+
+| ลำดับ | พารามิเตอร์ | คำอธิบาย |
+|--------|-------------|-----------|
+| 1 | **จำนวน Reynolds** | สมดุลแรงเฉื่อย/แรงหนืด (พารามิเตอร์ความเหมือนกันหลัก) |
+| 2 | **จำนวน Froude/Weber** | สมดุลแรงเฉื่อย/แรงโน้มถ่วงหรือความตึงผิว (พารามิเตอร์รอง) |
+| 3 | **จำนวน Strouhal/Capillary** | ความเหมือนกันเชิงเวลาหรือสมดุลแรงหนืด/ความตึงผิว (พารามิเตอร์ตติยภูมิ) |
+
+### การวิเคราะห์มิติของเทนเซอร์
+
+#### เทนเซอร์ความเค้นและอัตราการยืดหยุ่น
+
+**การวิเคราะห์มิติของเทนเซอร์** มีความสำคัญในการตรวจสอบความสอดคล้องทางคณิตศาสตร์ของโมเดลร่วมและสูตรที่ขึ้นอยู่กับความเค้นใน CFD สมการร่วมของ Newtonian ให้ตัวอย่างพื้นฐาน:
+
+$$\boldsymbol{\tau} = \mu \dot{\boldsymbol{\gamma}}$$
+
+โดยที่:
+- $\boldsymbol{\tau}$ = เทนเซอร์ความเค้นที่มีมิติ $[\text{M L}^{-1} \text{T}^{-2}]$
+- $\mu$ = ความหนืดแบบไดนามิกที่มีมิติ $[\text{M L}^{-1} \text{T}^{-1}]$
+- $\dot{\boldsymbol{\gamma}}$ = เทนเซอร์อัตราการยืดหยุ่นที่มีมิติ $[\text{T}^{-1}]$
+
+```cpp
+// การวิเคราะห์มิติสำหรับการดำเนินการเทนเซอร์
+class TensorDimensionalAnalysis
+{
+public:
+    // ตรวจสอบมิติของสมการร่วม
+    static void verifyNewtonianConstitutive(
+        const dimensionedTensor& tau,      // เทนเซอร์ความเค้น
+        const dimensionedTensor& gammaDot, // เทนเซอร์อัตราการยืดหยุ่น
+        const dimensionedScalar& mu)       // ความหนืด
+    {
+        // มิติของความเค้น: [M L⁻¹ T⁻²]
+        dimensionSet stressDims = dimPressure;  // เหมือนกับความดัน
+
+        // มิติของอัตราการยืดหยุ่น: [T⁻¹]
+        dimensionSet strainRateDims(0, 0, -1, 0, 0, 0, 0);
+
+        // มิติของความหนืด: [M L⁻¹ T⁻¹]
+        dimensionSet viscosityDims = dimDynamicViscosity;
+
+        // ตรวจสอบมิติอินพุต
+        if (tau.dimensions() != stressDims)
+        {
+            FatalErrorInFunction
+                << "Stress tensor has wrong dimensions. Expected "
+                << stressDims << ", got " << tau.dimensions()
+                << abort(FatalError);
+        }
+
+        if (gammaDot.dimensions() != strainRateDims)
+        {
+            FatalErrorInFunction
+                << "Strain rate tensor has wrong dimensions. Expected "
+                << strainRateDims << ", got " << gammaDot.dimensions()
+                << abort(FatalError);
+        }
+
+        if (mu.dimensions() != viscosityDims)
+        {
+            FatalErrorInFunction
+                << "Viscosity has wrong dimensions. Expected "
+                << viscosityDims << ", got " << mu.dimensions()
+                << abort(FatalError);
+        }
+
+        // ตรวจสอบความสัมพันธ์ Newtonian: τ = μ·γ̇
+        dimensionSet expectedTauDims = mu.dimensions() * gammaDot.dimensions();
+        if (tau.dimensions() != expectedTauDims)
+        {
+            FatalErrorInFunction
+                << "Newtonian constitutive equation dimension mismatch. "
+                << "Expected τ dimensions: " << expectedTauDims
+                << ", actual: " << tau.dimensions()
+                << abort(FatalError);
+        }
+    }
+
+    // คำนวณอินวาเรียนต์ที่สองพร้อมการตรวจสอบมิติ
+    static dimensionedScalar secondInvariant(
+        const dimensionedTensor& T,
+        const dimensionSet& expectedDims)
+    {
+        // ตรวจสอบมิติของเทนเซอร์
+        if (T.dimensions() != expectedDims)
+        {
+            FatalErrorInFunction
+                << "Tensor dimension mismatch. Expected "
+                << expectedDims << ", got " << T.dimensions()
+                << abort(FatalError);
+        }
+
+        // คำนวณอินวาเรียนต์ที่สอง: 0.5*(tr(T²) - tr(T)²)
+        dimensionedScalar I2 = 0.5 * (tr(T & T) - tr(T)*tr(T));
+
+        // ตรวจสอบมิติของอินวาเรียนต์: กำลังสองของมิติเทนเซอร์
+        dimensionSet expectedInvariantDims = expectedDims * expectedDims;
+        if (I2.dimensions() != expectedInvariantDims)
+        {
+            FatalErrorInFunction
+                << "Second invariant dimension error. Expected "
+                << expectedInvariantDims << ", got " << I2.dimensions()
+                << abort(FatalError);
+        }
+
+        return I2;
+    }
+};
+```
+
+**อินวาเรียนต์ที่สอง** $II_2$ ของเทนเซอร์ความเค้นหรืออัตราการยืดหยุ่นมีบทบาทสำคัญในการจำลองความปั่นป่วนและความสัมพันธ์ร่วมแบบไม่ใช่ Newtonian สำหรับเทนเซอร์สมมาตร $\mathbf{A}$, อินวาเรียนต์ที่สองคือ:
+
+$$II_2 = \frac{1}{2}\left[\text{tr}(\mathbf{A}^2) - (\text{tr}\mathbf{A})^2\right]$$
+
+อินวาเรียนต์นี้มีมิติเท่ากับกำลังสองของมิติเทนเซอร์ดั้งเดิมและถูกใช้ในโมเดลความปั่นป่วนและความสัมพันธ์ร่วมต่างๆ
+
+[Diagram: แสดงการคำนวณอินวาเรียนต์ของเทนเซอร์และบทบาทในโมเดลความปั่นป่วน]
+
+#### มิติของเทนเซอร์แบบ anisotropic
+
+**เทนเซอร์แบบ anisotropic** สร้างความท้าทายพิเศษสำหรับการวิเคราะห์มิติ โดยเฉพาะเมื่อองค์ประกอบต่างๆ อาจมีการตีความหรือสเกลทางกายภาพที่แตกต่างกัน
+
+```cpp
+// การดำเนินการเทนเซอร์ anisotropic ที่มีมิติ
+class AnisotropicTensorDimensions
+{
+public:
+    // มิติที่แตกต่างกันสำหรับองค์ประกอบเทนเซอร์ที่แตกต่างกัน
+    struct ComponentDimensions
+    {
+        dimensionSet xx, xy, xz;
+        dimensionSet yx, yy, yz;
+        dimensionSet zx, zy, zz;
+    };
+
+    // สร้างเทนเซอร์ที่มีมิติโดยมีมิติแบบองค์ประกอบ
+    static dimensionedTensor createAnisotropic(
+        const ComponentDimensions& dims,
+        const tensor& values)
+    {
+        // ตรวจสอบว่าองค์ประกอบทั้งหมดมีมิติเหมือนกัน (สำหรับเทนเซอร์มาตรฐาน)
+        // หรืออนุญาตให้มีมิติที่แตกต่างกัน (สำหรับเทนเซอร์ทั่วไป)
+
+        // สำหรับเทนเซอร์มาตรฐานใน OpenFOAM องค์ประกอบทั้งหมดต้องมีมิติเหมือนกัน
+        if (dims.xx != dims.xy || dims.xx != dims.xz ||
+            dims.xx != dims.yx || dims.xx != dims.yy ||
+            dims.xx != dims.yz || dims.xx != dims.zx ||
+            dims.xx != dims.zy || dims.xx != dims.zz)
+        {
+            // อาจใช้เทนเซอร์ทั่วไปที่มีมิติแบบองค์ประกอบ
+            // แต่คลาสเทนเซอร์ของ OpenFOAM ต้องการมิติที่สม่ำเสมอ
+            FatalErrorInFunction
+                << "OpenFOAM tensors require uniform dimensions across components"
+                << abort(FatalError);
+        }
+
+        return dimensionedTensor("anisotropicTensor", dims.xx, values);
+    }
+
+    // ตรวจสอบมิติของการดำเนินการเทนเซอร์
+    static void verifyTensorOperation(
+        const dimensionedTensor& A,
+        const dimensionedTensor& B,
+        const char* operation)
+    {
+        dimensionSet expectedDims;
+
+        if (strcmp(operation, "addition") == 0 || strcmp(operation, "subtraction") == 0)
+        {
+            // การบวก/การลบ: มิติเหมือนกัน
+            if (A.dimensions() != B.dimensions())
+            {
+                FatalErrorInFunction
+                    << "Tensor " << operation << " requires same dimensions. "
+                    << "A: " << A.dimensions() << ", B: " << B.dimensions()
+                    << abort(FatalError);
+            }
+        }
+        else if (strcmp(operation, "multiplication") == 0)
+        {
+            // การคูณ: มิติคูณกัน
+            expectedDims = A.dimensions() * B.dimensions();
+            // หมายเหตุ: การคูณเทนเซอร์มีกฎมิติเฉพาะ
+            // ตามดัชนีการหดตัว
+        }
+        else if (strcmp(operation, "doubleDot") == 0)
+        {
+            // ผลคูณจุดสองครั้ง: มิติคูณกันและหดตัว
+            expectedDims = A.dimensions() * B.dimensions();
+            // ผลลัพธ์คือสเกลาร์ที่มีมิติผลคูณ
+        }
+    }
+};
+```
+
+สำหรับวัสดุแบบ anisotropic ความสัมพันธ์ร่วมอาจเกี่ยวข้องกับคุณสมบัติวัสดุที่แตกต่างกันในทิศทางต่างๆ:
+
+$$\tau_{ij} = C_{ijkl} \dot{\gamma}_{kl}$$
+
+โดยที่ $C_{ijkl}$ คือเทนเซอร์ความแข็งอันดับที่สี่ที่มีองค์ประกอบที่มีมิติของความเค้นหารด้วยอัตราการยืดหยุ่น ในการประยุกต์ใช้ CFD จริง ความซับซ้อนนี้มักจะถูกทำให้ง่ายขึ้นผ่านสมมติฐานความสมมาตรและการแปลงระบบพิกัด
+
+### มิติของการเชื่อมโยงหลายฟิสิกส์
+
+#### มิติของการเชื่อมโยงของไหลโครงสร้าง
+
+**การเชื่อมโยงของไหลโครงสร้าง (FSI)** แนะนำการเชื่อมโยงมิติที่ซับซ้อนระหว่างกลศาสตร์ของไหลและของแข็ง โดยต้องการความสนใจอย่างระมัดระวังในความเข้ากันได้ของแรงและพลังงานข้ามส่วนติดต่อ
+
+```cpp
+// การตรวจสอบมิติสำหรับการเชื่อมโยงของไหลโครงสร้าง
+class FSIDimensions
+{
+public:
+    // ตรวจสอบความเข้ากันได้ของแรงระหว่างของไหลและโครงสร้าง
+    static void verifyForceCompatibility(
+        const dimensionedScalar& fluidForceDensity,  // [N/m³]
+        const dimensionedScalar& structuralStiffness, // [N/m]
+        const dimensionedScalar& couplingLength)     // [m]
+    {
+        // มิติของความหนาแน่นแรงของไหล: [M L⁻² T⁻²]
+        dimensionSet fluidDims = dimForce / dimVolume;
+
+        // มิติของความแข็งโครงสร้าง: [M T⁻²]
+        dimensionSet structuralDims = dimForce / dimLength;
+
+        // มิติของความยาวการเชื่อมโยง: [L]
+        dimensionSet lengthDims = dimLength;
+
+        // ตรวจสอบมิติอินพุต
+        if (fluidForceDensity.dimensions() != fluidDims)
+        {
+            FatalErrorInFunction
+                << "Fluid force density has wrong dimensions. Expected "
+                << fluidDims << ", got " << fluidForceDensity.dimensions()
+                << abort(FatalError);
+        }
+
+        if (structuralStiffness.dimensions() != structuralDims)
+        {
+            FatalErrorInFunction
+                << "Structural stiffness has wrong dimensions. Expected "
+                << structuralDims << ", got " << structuralStiffness.dimensions()
+                << abort(FatalError);
+        }
+
+        if (couplingLength.dimensions() != lengthDims)
+        {
+            FatalErrorInFunction
+                << "Coupling length has wrong dimensions. Expected "
+                << lengthDims << ", got " << couplingLength.dimensions()
+                << abort(FatalError);
+        }
+
+        // ตรวจสอบความเข้ากันได้ของแรง: แรงของไหล * ปริมาตร = แรงโครงสร้าง
+        dimensionSet fluidForce = fluidForceDensity.dimensions() *
+                                  couplingLength.dimensions() *
+                                  couplingLength.dimensions() *
+                                  couplingLength.dimensions();
+
+        dimensionSet structuralForce = structuralStiffness.dimensions() *
+                                       couplingLength.dimensions();
+
+        if (fluidForce != structuralForce)
+        {
+            FatalErrorInFunction
+                << "Force dimension mismatch in FSI coupling. "
+                << "Fluid force dimensions: " << fluidForce
+                << ", Structural force dimensions: " << structuralForce
+                << abort(FatalError);
+        }
+    }
+
+    // คำนวณจำนวนการเชื่อมโยงไร้มิติ
+    static dimensionedScalar computeCouplingNumber(
+        const dimensionedScalar& fluidInertia,
+        const dimensionedScalar& structuralInertia,
+        const dimensionedScalar& couplingStiffness,
+        const dimensionedScalar& timeScale)
+    {
+        // มิติของความเฉื่อยของไหล: [M L⁻³]
+        dimensionSet fluidInertiaDims = dimDensity;
+
+        // มิติของความเฉื่อยโครงสร้าง: [M L⁻³]
+        dimensionSet structuralInertiaDims = dimDensity;
+
+        // มิติของความแข็งการเชื่อมโยง: [M L⁻² T⁻²]
+        dimensionSet stiffnessDims = dimPressure;
+
+        // มิติของสเกลเวลา: [T]
+        dimensionSet timeDims = dimTime;
+
+        // ตรวจสอบมิติ
+        if (fluidInertia.dimensions() != fluidInertiaDims ||
+            structuralInertia.dimensions() != structuralInertiaDims ||
+            couplingStiffness.dimensions() != stiffnessDims ||
+            timeScale.dimensions() != timeDims)
+        {
+            FatalErrorInFunction
+                << "Dimension mismatch in coupling number computation"
+                << abort(FatalError);
+        }
+
+        // คำนวณจำนวนการเชื่อมโยง: κ = (K * Δt²) / (ρ * L²)
+        // ตัวอย่างที่ทำให้ง่าย - จำนวนการเชื่อมโยง FSI จริงขึ้นอยู่กับการกำหนดสูตร
+        dimensionedScalar couplingNumber =
+            (couplingStiffness * timeScale * timeScale) /
+            (fluidInertia * structuralInertia);
+
+        // ตรวจสอบผลลัพธ์ไร้มิติ
+        if (!couplingNumber.dimensions().dimensionless())
+        {
+            FatalErrorInFunction
+                << "Coupling number is not dimensionless: "
+                << couplingNumber.dimensions()
+                << abort(FatalError);
+        }
+
+        return couplingNumber;
+    }
+};
+```
+
+**ความเข้ากันได้ของมิติใน FSI** เกี่ยวข้องกับการจับคู่แรงและความเค้นข้ามส่วนติดต่อของไหลโครงสร้าง **พารามิเตอร์ไร้มิติที่สำคัญ:**
+
+- **สัมประสิทธิ์มวลเพิ่ม**: $C_a = \frac{\rho_f V_f}{\rho_s V_s}$
+- **จำนวนการเชื่อมโยง**: $\Pi_c = \frac{K \Delta t^2}{\rho L^2}$
+- **ความเร็วลด**: $U^* = \frac{U}{f_n D}$
+
+โดยที่:
+- $\rho_f$ และ $\rho_s$ = ความหนาแน่นของไหลและของแข็ง
+- $V_f$ และ $V_s$ = ปริมาตรของไหลและของแข็ง
+- $K$ = ความแข็งการเชื่อมโยง
+- $f_n$ = ความถี่ธรรมชาติ
+- $D$ = ความยาวลักษณะ
+
+[Diagram: แสดงการถ่ายโอนแรงและความเค้นระหว่างของไหลและโครงสร้างในระบบ FSI]
+
+#### มิติของความร้อน-ของไหล
+
+**ปัญหาความร้อน-ของไหลที่เชื่อมโยงกัน** ต้องการการวิเคราะห์มิติอย่างระมัดระวังเพื่อให้มั่นใจในการอนุรักษ์พลังงานและกลไกการถ่ายเทความร้อนที่เหมาะสม
+
+```cpp
+// การวิเคราะห์มิติสำหรับปัญหาความร้อน-ของไหลที่เชื่อมโยงกัน
+class ThermoFluidDimensions
+{
+public:
+    // ตรวจสอบมิติของสมการพลังงาน
+    static void verifyEnergyEquation(
+        const dimensionedScalar& rho,      // ความหนาแน่น [M L⁻³]
+        const dimensionedScalar& cp,       // ความจุความร้อนจำเพาะ [L² T⁻² Θ⁻¹]
+        const dimensionedScalar& T,        // อุณหภูมิ [Θ]
+        const dimensionedScalar& k,        // สภาพนำความร้อน [M L T⁻³ Θ⁻¹]
+        const dimensionedScalar& source)   // แหล่งพลังงาน [M L⁻¹ T⁻³]
+    {
+        // มิติของพจน์ convection: ρ·cp·U·∇T
+        dimensionSet convectionDims =
+            rho.dimensions() * cp.dimensions() * dimVelocity * dimTemperature / dimLength;
+        // = [M L⁻³]·[L² T⁻² Θ⁻¹]·[L T⁻¹]·[Θ]·[L⁻¹] = [M L⁻¹ T⁻³]
+
+        // มิติของพจน์ diffusion: ∇·(k·∇T)
+        dimensionSet diffusionDims =
+            k.dimensions() * dimTemperature / (dimLength * dimLength);
+        // = [M L T⁻³ Θ⁻¹]·[Θ]·[L⁻²] = [M L⁻¹ T⁻³]
+
+        // มิติของพจน์ source: [M L⁻¹ T⁻³]
+        dimensionSet sourceDims = source.dimensions();
+
+        // ตรวจสอบว่าพจน์ทั้งหมดมีมิติเหมือนกัน
+        if (convectionDims != diffusionDims || convectionDims != sourceDims)
+        {
+            FatalErrorInFunction
+                << "Energy equation dimension mismatch:\n"
+                << "  Convection term: " << convectionDims << "\n"
+                << "  Diffusion term: " << diffusionDims << "\n"
+                << "  Source term: " << sourceDims
+                << abort(FatalError);
+        }
+    }
+
+    // คำนวณจำนวนไร้มิติสำหรับการถ่ายเทความร้อน convection
+    static std::map<std::string, dimensionedScalar> computeHeatTransferNumbers(
+        const dimensionedScalar& rho,
+        const dimensionedScalar& U,
+        const dimensionedScalar& L,
+        const dimensionedScalar& mu,
+        const dimensionedScalar& cp,
+        const dimensionedScalar& k)
+    {
+        std::map<std::string, dimensionedScalar> numbers;
+
+        // จำนวน Reynolds
+        numbers["Re"] = rho * U * L / mu;
+
+        // จำนวน Prandtl
+        numbers["Pr"] = mu * cp / k;
+
+        // จำนวน Peclet (ความร้อน)
+        numbers["Pe"] = rho * cp * U * L / k;
+
+        // จำนวน Nusselt (คำนวณจากสหสัมพันธ์)
+        // Nu = f(Re, Pr)
+        numbers["Nu"] = 0.023 * pow(numbers["Re"], 0.8) * pow(numbers["Pr"], 0.4);
+
+        // ตรวจสอบว่าทั้งหมดเป็นปริมาณไร้มิติ
+        for (const auto& pair : numbers)
+        {
+            if (!pair.second.dimensions().dimensionless())
+            {
+                FatalErrorInFunction
+                    << pair.first << " is not dimensionless: "
+                    << pair.second.dimensions()
+                    << abort(FatalError);
+            }
+        }
+
+        return numbers;
+    }
+};
+```
+
+**การวิเคราะห์มิติของสมการพลังงาน** เปิดเผยความสัมพันธ์พื้นฐานระหว่างกลไกการถ่ายเทความร้อน:
+
+- **พจน์ convection**: $\rho c_p \mathbf{u} \cdot \nabla T$ ที่มีมิติ $[\text{M L}^{-1} \text{T}^{-3}]$
+- **พจน์ diffusion**: $\nabla \cdot (k \nabla T)$ ที่มีมิติ $[\text{M L}^{-1} \text{T}^{-3}]$
+- **พจน์ source**: $\dot{q}$ ที่มีมิติ $[\text{M L}^{-1} \text{T}^{-3}]$
+
+**กลุ่มปริมาณไร้มิติที่ควบคุมการถ่ายเทความร้อน convection:**
+
+| จำนวนไร้มิติ | สูตร | คำอธิบาย |
+|----------------|--------|-----------|
+| **จำนวน Reynolds** | $\mathrm{Re} = \frac{\rho U L}{\mu}$ | แรงเฉื่อย/แรงหนืด |
+| **จำนวน Prandtl** | $\mathrm{Pr} = \frac{\mu c_p}{k}$ | การแพร่ของโมเมนตัม/ความร้อน |
+| **จำนวน Peclet** | $\mathrm{Pe} = \frac{\rho c_p U L}{k} = \mathrm{Re} \cdot \mathrm{Pr}$ | การนำความร้อนแบบ convection/conduction |
+| **จำนวน Nusselt** | $\mathrm{Nu} = \frac{h L}{k}$ | การถ่ายเทความร้อน convection/conduction |
+
+พารามิเตอร์ไร้มิติเหล่านี้ช่วยให้สามารถวิเคราะห์ความเหมือนกันและการสเกลระหว่างระบบความร้อน-ของไหลที่แตกต่างกัน ทำให้มั่นใจได้ว่าฟิสิกส์พื้นฐานของการถ่ายเทความร้อนถูกเก็บรักษาไว้ข้ามสเกลเรขาคณิตและการไหล
+
+[Diagram: แสดงกระบวนการถ่ายเทความร้อนแบบ convection และความสัมพันธ์ระหว่างจำนวนไร้มิติ]

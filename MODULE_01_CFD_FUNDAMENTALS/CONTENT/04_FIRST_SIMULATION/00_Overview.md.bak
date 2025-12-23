@@ -1,0 +1,206 @@
+# การวิเคราะห์โครงสร้าง OpenFOAM Case: เวอร์ชันปกติ vs เวอร์ชันขยาย
+
+## 1. ความแตกต่างของเนื้อหา
+
+| **ด้าน** | **เวอร์ชันปกติ** | **เวอร์ชันขยาย** |
+|----------|-------------------|-------------------|
+| **ระดับ** | บทนำที่กระชับ เน้นแนวคิดพื้นฐาน | เอกสารทางเทคนิคที่ครอบคลุม |
+| **เป้าหมาย** | การเรียนรู้เบื้องต้น | ผู้ใช้ขั้นสูงและนักวิจัย |
+| **ความยาว** | กระชับ | ละเอียดมาก |
+
+## 2. รูปแบบทางคณิตศาสตร์
+
+### 2.1 การกำหนดรูปแบบ Finite Volume Method
+
+$$\int_{V_P} \frac{\partial \phi}{\partial t} \, \mathrm{d}V + \int_{V_P} \nabla \cdot \mathbf{F} \, \mathrm{d}V = \int_{V_P} S_\phi \, \mathrm{d}V$$
+
+**การนิยามตัวแปร:**
+- $\phi$ = ตัวแปรที่ต้องการแก้สมการ (field variable)
+- $V_P$ = Volume ของเซลล์ P
+- $\mathbf{F}$ = Flux vector
+- $S_\phi$ = Source term
+
+### 2.2 เกณฑ์คุณภาพ Mesh
+
+**Non-orthogonality Angle:**
+$$\theta_{\text{max}} = \cos^{-1}\left(\frac{\mathbf{n} \cdot \mathbf{d}}{|\mathbf{n}||\mathbf{d}|}\right)$$
+
+**การนิยามตัวแปร:**
+- $\mathbf{n}$ = Normal vector ของ face
+- $\mathbf{d}$ = Vector จาก cell center ของ owner ถึง neighbor
+
+
+```mermaid
+graph LR
+    A["Cell P<br/>Center Point"] --> B["Face<br/>Normal Vector n"]
+    B --> C["Non-orthogonality<br/>Angle θ"]
+    C --> D["Cell Q<br/>Center Point"]
+    A --> E["Vector d<br/>Owner to Neighbor"]
+    E --> D
+    B --> F["Face<br/>Plane"]
+    D --> F
+    C --> G["Quality Check:<br/>θ < 70° = Good<br/>θ > 70° = Poor"]
+
+    %% Styling Definitions
+    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    class A,E process;
+    class B,F storage;
+    class C decision;
+    class D terminator;
+```
+
+
+### 2.3 การวัดประสิทธิภาพการประมวลผลแบบขนาน
+
+**Speedup และ Efficiency:**
+- Speedup: $S = \frac{T_1}{T_p}$
+- Efficiency: $E = \frac{S}{p} \times 100\%$
+
+**การนิยามตัวแปร:**
+- $T_1$ = เวลาที่ใช้กับ 1 processor
+- $T_p$ = เวลาที่ใช้กับ p processors
+- $p$ = จำนวน processors
+
+## 3. หัวข้อขั้นสูง (เฉพาะเวอร์ชันขยาย)
+
+### 3.1 การสร้าง Mesh ขั้นสูง
+- **snappyHexMesh workflows**
+- **Mesh quality analysis**
+- **Refinement strategies**
+
+### 3.2 การประมวลผลแบบขนาน (Parallel Computing)
+- **Domain decomposition methods**
+- **Load balancing**
+- **Communication patterns**
+
+### 3.3 เทคนิคเชิงตัวเลขขั้นสูง
+- **TVD schemes**
+- **Multigrid solvers**
+- **Preconditioners**
+
+### 3.4 การเพิ่มประสิทธิภาพ (Performance Optimization)
+- **Memory management**
+- **I/O optimization**
+- **Solver tuning**
+
+## 4. การติดตั้ง OpenFOAM
+
+### 4.1 การตั้งค่า fvSchemes
+
+**OpenFOAM Code Implementation:**
+```cpp
+ddtSchemes
+{
+    default         Euler;
+}
+
+gradSchemes
+{
+    default         Gauss linear;
+    grad(p)         Gauss linear;
+}
+
+divSchemes
+{
+    default         none;
+    div(phi,U)      Gauss upwind;
+}
+
+laplacianSchemes
+{
+    default         Gauss linear corrected;
+}
+```
+
+### 4.2 การตั้งค่า fvSolution
+
+**OpenFOAM Code Implementation:**
+```cpp
+solvers
+{
+    p
+    {
+        solver          GAMG;
+        tolerance       1e-06;
+        relTol          0.05;
+        smoother        GaussSeidel;
+    }
+    
+    U
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-05;
+        relTol          0;
+    }
+}
+```
+
+### 4.3 การตั้งค่าการแบ่งส่วนข้อมูลแบบขนาน
+
+**OpenFOAM Code Implementation:**
+```cpp
+numberOfSubdomains 4;
+method hierarchical;
+simpleCoeffs
+{
+    n (2 2);
+}
+```
+
+## 5. โครงสร้างการเรียนรู้
+
+### 5.1 เวอร์ชันปกติ
+
+**คุณสมบัติหลัก:**
+- เป็นส่วนหนึ่งของ **ระบบการเรียนรู้แบบโมดูลาร์**
+- มี **วัตถุประสงค์การเรียนรู้ที่ชัดเจน**
+- เหมาะสำหรับ **ผู้เริ่มต้น**
+
+
+```mermaid
+graph TD
+    A["Foundation Module"] --> B["CFD Fundamentals"]
+    A --> C["OpenFOAM Basics"]
+    B --> D["Single Phase Flow"]
+    C --> D
+    D --> E["Multiphase Fundamentals"]
+    D --> F["OpenFOAM Programming"]
+    E --> G["Advanced Physics"]
+    F --> H["Utilities & Automation"]
+    G --> I["Testing & Validation"]
+    H --> I
+    I --> J["Advanced Topics"]
+    I --> K["Reference Materials"]
+    
+    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    
+    class A,B,C,D,E,F,G,H,I,J,K process;
+```
+
+
+### 5.2 เวอร์ชันขยาย
+
+**คุณสมบัติหลัก:**
+- เป็น **เอกสารอ้างอิงที่ครอบคลุม**
+- เหมาะสำหรับ **การอ้างอิงและค้นคว้า**
+- มี **รายละเอียดการนำไปใช้งานขั้นสูง**
+
+## 6. แนวทางการเลือกใช้เวอร์ชัน
+
+| **สถานการณ์** | **เวอร์ชันที่เหมาะสม** | **เหตุผล** |
+|---------------|---------------------|-------------|
+| เริ่มเรียนรู้ OpenFOAM | ปกติ | มีโครงสร้างการเรียนรู้ที่ชัดเจน |
+| วิจัยทางวิทยาศาสตร์ | ขยาย | มีสูตรและรายละเอียดครบถ้วน |
+| พัฒนา Solver ใหม่ | ขยาย | มีเทคนิคขั้นสูงและ code examples |
+| การสอนเบื้องต้น | ปกติ | เน้นหลักการที่เข้าใจง่าย |
+
+## สรุป
+
+**เวอร์ชันขยาย** ทำหน้าที่เป็นเอกสารอ้างอิงทางเทคนิคที่สมบูรณ์ ในขณะที่ **เวอร์ชันปกติ** ให้ความรู้พื้นฐานซึ่งเป็นส่วนหนึ่งของเส้นทางการเรียนรู้ที่มีโครงสร้าง ทั้งสองเวอร์ชันมีคุณค่าสำหรับขั้นตอนการเรียนรู้และกรณีการใช้งานที่แตกต่างกัน

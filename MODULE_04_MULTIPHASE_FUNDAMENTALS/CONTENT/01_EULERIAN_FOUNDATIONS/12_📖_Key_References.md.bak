@@ -1,0 +1,206 @@
+# 📖 เอกสารอ้างอิงหลัก
+
+## ตำราคลาสสิกเกี่ยวกับ Two-Phase Flow
+
+### 1. Ishii, T., & Hibiki, T. (2011). Thermo-Fluid Dynamics of Two-Phase Flow. Springer. ⭐⭐⭐⭐⭐
+
+ตำราเล่มนี้เป็นเอกสารอ้างอิงที่สมบูรณ์แบบสำหรับพลศาสตร์ของ Two-Phase Flow โดยให้การวิเคราะห์ทางคณิตศาสต์ที่เข้มงวดสำหรับปรากฏการณ์ Multiphase
+
+ผู้เขียนนำเสนอแนวทางที่เป็นระบบในการสร้างแบบจำลองปฏิสัมพันธ์ระหว่างเฟส (phase interactions), ปรากฏการณ์ที่พื้นผิว (interfacial phenomena) และความสัมพันธ์เชิงโครงสร้าง (constitutive relationships)
+
+**ผลงานสำคัญประกอบด้วย:**
+
+- **สมการอนุรักษ์พื้นฐาน (Fundamental Conservation Equations)**: การอนุมาน (derivation) สมการเฉลี่ยสำหรับระบบ Two-Phase โดยใช้เทคนิค Volume-averaging
+- **ปรากฎการณ์การถ่ายเทที่พื้นผิว (Interfacial Transport Phenomena)**: การจัดการอย่างละเอียดเกี่ยวกับการถ่ายเทมวล (mass), โมเมนตัม (momentum) และพลังงาน (energy) ข้ามพื้นผิวของเฟส
+- **แบบจำลองเชิงโครงสร้าง (Constitutive Models)**: การครอบคลุมอย่างสมบูรณ์เกี่ยวกับความเข้มข้นของพื้นที่พื้นผิว (interfacial area concentration), แรงฉุด (drag forces) และแบบจำลองปฏิสัมพันธ์ระหว่างเฟส (phase interaction models)
+- **ทฤษฎี Drift Flux (Drift Flux Theory)**: กรอบการทำงานทางคณิตศาสตร์สำหรับการเคลื่อนที่สัมพัทธ์ระหว่างเฟส
+- **ความสอดคล้องทางอุณหพลศาสตร์ (Thermodynamic Consistency)**: การรับรองการเชื่อมโยงที่เหมาะสมระหว่างปรากฏการณ์ทางความร้อนและอุทกพลศาสตร์ (hydrodynamic phenomena)
+
+> **[Diagram: Volume averaging technique showing control volume with dispersed and continuous phases]**
+
+พื้นฐานทางคณิตศาสต์ที่นำเสนอในผลงานนี้เป็นพื้นฐานทางทฤษฎีสำหรับ Solver แบบ Multiphase ที่ใช้ Eulerian จำนวนมากใน OpenFOAM โดยเฉพาะอย่างยิ่งตระกูล Solver **multiphaseEulerFoam**
+
+### 2. Crowe, C. T., Sommerfeld, M., & Tsuji, Y. (2011). Multiphase Flows with Droplets and Particles. CRC Press. ⭐⭐⭐⭐
+
+ตำราที่น่าเชื่อถือเล่มนี้มุ่งเน้นไปที่ Dispersed Phase Flows โดยให้ความรู้ที่จำเป็นสำหรับของไหลที่มีอนุภาคหรือหยดของเหลว
+
+หนังสือเล่มนี้เชื่อมโยงทฤษฎีพื้นฐานกับการประยุกต์ใช้จริง ทำให้มีคุณค่าอย่างยิ่งสำหรับทั้งนักวิจัยและวิศวกรผู้ปฏิบัติงาน
+
+**พื้นที่สำคัญที่ครอบคลุม:**
+
+| หมวดหมู่ | เนื้อหาสำคัญ | ความเกี่ยวข้องกับ OpenFOAM |
+|-----------|----------------|---------------------------|
+| **พลศาสตร์ของอนุภาค** | สมการการเคลื่อนที่สำหรับอนุภาคในของไหลพา | parcelCloud Framework |
+| **แบบจำลองแรงฉุด** | สัมประสิทธิ์แรงฉุดสำหรับรูปทรงต่างๆ | Drag force models |
+| **การกระจายในสภาวะปั่นป่วน** | แบบจำลองเชิงสุ่มสำหรับปฏิสัมพันธ์ความปั่นป่วน | Turbulent dispersion models |
+| **การถ่ายเทความร้อนและมวล** | กระบวนการถ่ายเทระหว่างเฟส | Heat and mass transfer |
+| **เทคนิคการวัด** | วิธีการทดลองสำหรับการจำแนก Multiphase Flow | Validation techniques |
+
+> **[Diagram: Particle trajectory showing forces acting on a dispersed particle in carrier flow]**
+
+เอกสารอ้างอิงนี้มีความเกี่ยวข้องอย่างยิ่งกับวิธีการ **Lagrangian particle tracking** ใน OpenFOAM รวมถึง Framework **parcelCloud** และแบบจำลอง Dispersed Phase ที่เกี่ยวข้อง
+
+### 3. Drew, D. A., & Passman, S. L. (1999). Theory of Multicomponent Fluids. Springer. ⭐⭐⭐
+
+ตำราคณิตศาสตร์ขั้นสูงเล่มนี้ให้พื้นฐานที่เข้มงวดสำหรับทฤษฎี Continuum ของ Multiphase Flows โดยใช้ทฤษฎีของส่วนผสม (mixture theory)
+
+**พื้นฐานทางคณิตศาสตร์ที่นำเสนอ:**
+
+- **ทฤษฎี Continuum Mixture**: กรอบการทำงานสำหรับระบบ Multiphase แบบแทรกซึม
+- **กระบวนการหาค่าเฉลี่ย (Averaging Procedures)**: Volume และ Ensemble averaging
+- **อุณหพลศาสตร์ของส่วนผสม**: Entropy production และทฤษฎีเชิงโครงสร้าง
+- **การวิเคราะห์เสถียรภาพ**: Linear stability theory สำหรับระบบ Multiphase
+- **การแพร่กระจายของคลื่น**: Pressure waves และ acoustic phenomena
+
+การพัฒนาทางทฤษฎีในผลงานนี้ให้พื้นฐานทางคณิตศาสตร์สำหรับ **Mixture models** และ **Multicomponent formulations** ใน OpenFOAM
+
+---
+
+## บทความวิจัย
+
+### Enwald, H., Peirano, E., & Almstedt, A.-E. (1996). Eulerian two-phase flow theory applied to fluidization. IJMF, 22, 21-66.
+
+บทควาบทความสำคัญนี้ให้การทบทวนอย่างครอบคลุมเกี่ยวกับแนวทางการสร้างแบบจำลองแบบ Eulerian-Eulerian สำหรับ Gas-Solid Flows โดยเน้นที่การประยุกต์ใช้กับ Fluidized Bed
+
+**ผลงานสำคัญประกอบด้วย:**
+
+| ประเภท | รายละเอียด |
+|--------|-------------|
+| **การวิเคราะห์เปรียบเทียบ** | เปรียบเทียบอย่างเป็นระบบของรูปแบบ Eulerian ต่างๆ สำหรับระบบ Gas-Solid |
+| **ความสัมพันธ์ปิด** | อภิปรายแบบจำลองแรงฉุด, solid pressure models และ turbulent stress closures |
+| **วิธีการเชิงตัวเลข** | ประเมินผลของ discretization schemes และ solution strategies |
+| **การศึกษาตรวจสอบความถูกต้อง** | เปรียบเทียบกับข้อมูลทดลองสำหรับ Bubbling และ Circulating Fluidized Beds |
+| **แนวทางปฏิบัติ** | ข้อเสนอแนะสำหรับการเลือกแบบจำลองตาม Flow regimes |
+
+> **[Diagram: Fluidized bed showing gas-solid interaction patterns and flow regimes]**
+
+บทความนี้มักถูกอ้างอิงในวรรณกรรม OpenFOAM และให้เหตุผลทางทฤษฎีสำหรับหลายแง่มุมของการนำ **multiphaseEulerFoam** ไปใช้
+
+### Hirt, C. W., & Nichols, B. D. (1981). Volume of Fluid (VOF) Method for the Dynamics of Free Boundaries. JCP, 39(1), 201-225.
+
+บทความบุกเบิกนี้ได้นำเสนอ Volume of Fluid (VOF) Method ซึ่งเป็นการปฏิวัติการจัดการเชิงตัวเลขของ Free Boundaries
+
+**นวัตกรรมสำคัญประกอบด้วย:**
+
+1. **การแทนพื้นผิว (Interface Representation)**
+   - ใช้ฟังก์ชัน Volume Fraction $H$
+   - $H = 0$ ในเฟส 1, $H = 1$ ในเฟส 2
+   - $0 < H < 1$ ที่พื้นผิว
+
+2. **การพาพื้นผิว (Interface Advection)**
+   - อัลกอริทึมสำหรับการขนส่งสนาม Volume Fraction:
+   $$\frac{\partial H}{\partial t} + \nabla \cdot (H\mathbf{u}) = 0$$
+
+3. **การสร้างพื้นผิวใหม่ (Interface Reconstruction)**
+   - วิธีการสร้างพื้นผิวที่คมชัดจากสนาม Volume Fraction
+
+4. **เงื่อนไขขอบเขต (Boundary Conditions)**
+   - การจัดการกับ contact lines และ surface tension effects
+
+5. **เสถียรภาพเชิงตัวเลข (Numerical Stability)**
+   - เทคนิคในการรักษาขอบเขตของ Volume Fraction
+
+> **[Diagram: VOF method showing interface reconstruction from volume fraction field]**
+
+VOF Method เป็นพื้นฐานสำหรับ **interFoam** และ Solver การติดตามพื้นผิวอื่นๆ ใน OpenFOAM
+
+### Sato, Y., & Sekoguchi, K. (1975). Liquid velocity in bubble flow. IJMF, 2(1), 79-95.
+
+บทความคลาสสิกนี้ได้นำเสนอการวิเคราะห์เชิงทดลองและเชิงทฤษฎีของพลศาสตร์ของ Bubble Flow
+
+**ผลการค้นพบที่สำคัญประกอบด้วย:**
+
+- **โปรไฟล์ความเร็ว (Velocity Profiles)**: การวัดเชิงทดลองของการกระจายตัวของความเร็วเฟสของเหลวใน Bubble Flows
+- **การกระจายตัวของ Void Fraction**: การจำแนกลักษณะของโปรไฟล์ Void Fraction ของก๊าซในแต่ละตำแหน่ง
+- **แบบจำลองความเร็วลอย (Drift Velocity Models)**: การพัฒนาความสัมพันธ์สำหรับความเร็วสัมพัทธ์ระหว่างเฟส
+- **การเปลี่ยนสภาวะการไหล (Flow Regime Transitions)**: เกณฑ์สำหรับการเปลี่ยนจาก Bubble, Slug และ Churn flows
+- **การปรับเปลี่ยนความปั่นป่วน (Turbulence Modulation)**: การวิเคราะห์ผลกระทบของความปั่นป่วนที่เกิดจากฟองอากาศ
+
+> **[Diagram: Bubble flow showing velocity profiles and void fraction distribution]**
+
+ความสัมพันธ์เชิงประจักษ์ (empirical correlations) และข้อมูลเชิงลึกทางกายภาพจากผลงานนี้ถูกนำไปรวมอยู่ในแบบจำลองแรงฉุด (drag) และการกระจายตัวในสภาวะปั่นป่วน (turbulent dispersion) จำนวนมากที่ใช้ใน Solver **multiphaseEulerFoam** ของ OpenFOAM
+
+---
+
+## ทรัพยากร OpenFOAM
+
+### OpenFOAM User Guide - Multiphase Flow Solvers
+
+คู่มือผู้ใช้ OpenFOAM อย่างเป็นทางการให้เอกสารประกอบที่ครอบคลุมสำหรับการสร้างแบบจำลอง Multiphase Flow
+
+**ตารางการเลือก Solver (Solver Selection Matrix):**
+
+| Solver | ประเภทการไหล | วิธีการ | ลักษณะเฉพาะ |
+|--------|---------------|----------|--------------|
+| **interFoam** | ของไหลเข้ากันไม่ได้ 2 เฟส | VOF | ใช้กับของไหลอัดตัวไม่ได้ อุณหภูมิคงที่ |
+| **multiphaseEulerFoam** | หลายเฟส | Eulerian | สมการโมเมนตัมและพลังงานแยกกัน |
+| **reactingEulerFoam** | หลายเฟส | Eulerian | ปฏิกิริยาเคมีพร้อมการถ่ายเทความร้อน |
+| **twoPhaseEulerFoam** | 2 เฟส | Eulerian-Eulerian | Solver แบบ Eulerian-Eulerian สองเฟส |
+
+**การตั้งค่าที่จำเป็น:**
+
+- **Boundary Conditions**: คำแนะนำโดยละเอียดสำหรับ Phase Fraction, Velocity และ Pressure
+- **Physical Properties**: วิธีการระบุ density, viscosity และ interfacial properties
+- **Numerical Schemes**: ข้อเสนอแนะสำหรับ Divergence และ Laplacian schemes
+- **Convergence Criteria**: แนวทางในการติดตามการลู่เข้าของการจำลอง Multiphase
+
+### OpenFOAM Documentation - Multiphase Modeling Guide
+
+เอกสารทางเทคนิคให้พื้นฐานทางทฤษฎีเชิงลึกและรายละเอียดการนำไปใช้
+
+**การสร้างแบบจำลองทางคณิตศาสตร์ (Mathematical Formulation):**
+
+- **สมการความต่อเนื่อง (Continuity Equation)**:
+  $$\frac{\partial \alpha_k}{\partial t} + \nabla \cdot (\alpha_k \mathbf{u}_k) = 0$$
+  
+  - $\alpha_k$ = ปริมาตรส่วนของเฟส k
+  - $\mathbf{u}_k$ = ความเร็วของเฟส k
+  - $t$ = เวลา
+
+- **สมการโมเมนตัม (Momentum Equation)**:
+  $$\rho_k \frac{\partial \alpha_k \mathbf{u}_k}{\partial t} + \rho_k \nabla \cdot (\alpha_k \mathbf{u}_k \mathbf{u}_k) = -\alpha_k \nabla p + \alpha_k \rho_k \mathbf{g} + \mathbf{M}_k$$
+  
+  - $\rho_k$ = ความหนาแน่นของเฟส k
+  - $p$ = ความดัน
+  - $\mathbf{g}$ = ความเร่งเนื่องจากความโน้มถ่วง
+  - $\mathbf{M}_k$ = ปฏิสัมพันธ์ระหว่างเฟส
+
+- **สมการพลังงาน (Energy Equation)**:
+  $$\rho_k \frac{\partial \alpha_k h_k}{\partial t} + \rho_k \nabla \cdot (\alpha_k \mathbf{u}_k h_k) = \alpha_k \frac{\mathrm{d}p}{\mathrm{d}t} + Q_k$$
+  
+  - $h_k$ = เอนทัลปีของเฟส k
+  - $Q_k$ = การถ่ายเทความร้อนระหว่างเฟส
+
+**แบบจำลองปฏิสัมพันธ์ระหว่างเฟส:**
+- **แบบจำลองแรงฉุด (drag)**
+- **แบบจำลองแรงยก (lift)**
+- **แบบจำลองแรงมวลเสมือน (virtual mass)**
+- **แบบจำลองแรงกระจายตัวในสภาวะปั่นป่วน (turbulent dispersion force)**
+
+**OpenFOAM Code Implementation:**
+
+```cpp
+// Phase interaction model implementation
+virtual tmp<surfaceScalarField> Kd() const = 0;
+virtual tmp<volScalarField> Kdf() const = 0;
+```
+
+### OpenFOAM Workshop Materials - Advanced Multiphase Topics
+
+เอกสารประชุมเชิงปฏิบัติการจากการประชุม OpenFOAM ประจำปีนำเสนอการพัฒนาที่ล้ำสมัย
+
+**หัวข้อขั้นสูงที่ครอบคลุม:**
+
+| หมวดหมู่ | เนื้อหา | ประโยชน์ในการใช้งาน |
+|-----------|-----------|-------------------|
+| **Advanced Drag Models** | สัมประสิทธิ์แรงฉุดสำหรับรูปทรงซับซ้อน | ความแม่นยำในการจำลอง |
+| **Mass Transfer Models** | การระเหย, การควบแน่น, การละลาย | ปฏิกิริยาเคมี |
+| **Heat Transfer Enhancements** | Conjugate heat transfer | ระบบความร้อน |
+| **Turbulence Modeling** | Mixture turbulence models | การไหลแบบปั่นป่วน |
+| **Parallel Computing** | กลยุทธ์ประมวลผลแบบขนาน | การจำลองขนาดใหญ่ |
+| **Validation Studies** | การเปรียบเทียบกับข้อมูลทดลอง | การตรวจสอบความถูกต้อง |
+| **Case Studies** | ตัวอย่างโดยละเอียด | การประยุกต์ใช้ในอุตสาหกรรม |
+
+> **[Diagram: Multiphase flow simulation workflow showing case setup, solver selection, and validation process]**
+
+ทรัพยากรเหล่านี้ให้คำแนะนำเชิงปฏิบัติสำหรับการนำ OpenFOAM ไปใช้กับปัญหา Multiphase Flow ในโลกแห่งความเป็นจริง

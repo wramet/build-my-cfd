@@ -1,0 +1,108 @@
+## 🧠 **ภายในเครื่อง: การพิจารณาด้านหน่วยความจำและประสิทธิภาพ**
+
+### **กลยุทธ์การเพิ่มประสิทธิภาพ Cache**
+
+```cpp
+// 🔍 พฤติกรรม CACHE: ประสิทธิภาพแบบ row-major vs column-major
+template<class Type>
+void matrixMultiply(const SquareMatrix<Type>& A,
+                    const SquareMatrix<Type>& B,
+                    SquareMatrix<Type>& C)
+{
+    const label n = A.n();
+
+    // ❌ ไม่ดี: Inner loop แบบ column-major (cache ไม่มีประสิทธิภาพ)
+    for (label i = 0; i < n; ++i)
+        for (label j = 0; j < n; ++j)
+            for (label k = 0; k < n; ++k)
+                C(i,j) += A(i,k) * B(k,j);  // การเข้าถึง B เป็นแบบ strided
+
+    // ✅ ดี: ปรับแต่งแบบ row-major (วิธีการของ OpenFOAM)
+    for (label i = 0; i < n; ++i)
+        for (label k = 0; k < n; ++k)
+        {
+            const Type aik = A(i,k);  // Cache ค่า A
+            for (label j = 0; j < n; ++j)
+                C(i,j) += aik * B(k,j);  // การเข้าถึง B แบบต่อเนื่อง
+        }
+
+    // 🔍 ประสิทธิภาพ: การเพิ่มความเร็ว 2-3 เท่าจากการจัดลำดับที่เป็นมิตรกับ cache
+}
+
+// 🔍 SIMD VECTORIZATION: การเวกเตอร์ไลเซชันอัตโนมัติของ compiler
+// Inner j-loop ประมวลผลหลายองค์ประกอบพร้อมกัน
+// ใช้คำสั่ง AVX/AVX2 บน CPU รุ่นใหม่
+```
+
+[Diagram: การเปรียบเทียบการเข้าถึงหน่วยความจำแบบ row-major กับ column-major]
+
+กลยุทธ์การเพิ่มประสิทธิภาพ cache ใน OpenFOAM ใช้หลักการพื้นฐานของ **locality of reference** ในการคำนวณ CFD
+
+**หลักการทางทฤษฎี:**
+- อาเรย์ใน CFD ถูกจัดเก็บในลำดับ **row-major**
+- องค์ประกอบที่ติดกันในแถวจะถูกจัดเก็บในตำแหน่งหน่วยความจำที่อยู่ติดกัน
+
+**ปัญหาของการเข้าถึงแบบ column-major:**
+- เกิด **cache thrashing** จากการเข้าถึง `B(k,j)` สำหรับค่า `k` ที่เปลี่ยนแปลง
+- CPU ต้องดึง cache lines ใหม่อย่างต่อเนื่อง
+
+**วิธีการแก้ปัญหาของ OpenFOAM:**
+1. **Cache ค่า `A(i,k)`** ในตัวแปรชั่วคราว
+2. **ประมวลผลค่า j ทั้งหมดอย่างต่อเนื่อง**
+3. ได้รับ **spatial locality** - การเข้าถึงองค์ประกอบ `B(k,j)` ที่ถูกจัดเก็บต่อเนื่องกัน
+
+**ผลลัพธ์:** การเพิ่มประสิทธิภาพ 2-3 เท่าสำหรับการดำเนินการเมทริกซ์ขนาดใหญ่ในการ discretization แบบ finite volume
+
+### **การเพิ่มประสิทธิภาพเมทริกซ์ขนาดเล็ก**
+
+```cpp
+// 🔧 กลไก: Template specialization สำหรับเมทริกซ์ขนาดเล็ก
+template<class Type, int nRows, int nCols>
+class FixedMatrix
+{
+private:
+    // การจัดสรรใน stack (ไม่มี overhead ของ heap)
+    Type data_[nRows * nCols];
+
+public:
+    // Compile-time loop unrolling
+    FixedMatrix operator+(const FixedMatrix& other) const
+    {
+        FixedMatrix result;
+        // Compiler ทำการ unroll ลูปนี้ทั้งหมด
+        for (int i = 0; i < nRows*nCols; ++i)
+            result.data_[i] = data_[i] + other.data_[i];
+        return result;
+    }
+};
+
+// การใช้งาน: เมทริกซ์การแปลงขนาด 3×3 (พบได้บ่อยใน CFD)
+FixedMatrix<scalar, 3, 3> rotationMatrix;
+// ไม่มีการจัดสรรหน่วยความจำแบบ dynamic, ประสิทธิภาพสูงสุด
+```
+
+[Diagram: การเปรียบเทียบระหว่าง stack allocation และ heap allocation]
+
+**ปัญหาที่แก้ไข:**
+- **Memory allocation overhead** สำหรับเมทริกซ์ขนาดเล็ก
+- ค่าใช้จ่ายจากการจัดการ heap, fragmentation และ cache pollution
+
+**การแก้ปัญหาของ OpenFOAM:**
+
+| คุณสมบัติ | FixedMatrix Template | Dynamic Matrix |
+|-----------|-------------------|----------------|
+| **การจัดสรร** | Stack allocation | Heap allocation |
+| **ขนาด** | กำหนดที่ compile-time | กำหนดที่ runtime |
+| **ประสิทธิภาพ** | Overhead เกือบศูนย์ | มี overhead สำคัญ |
+| **Cache** | เป็นมิตรกับ cache | อาจเป็น cache miss |
+
+**ประโยชน์ของ Template Parameters:**
+- `nRows` และ `nCols` ช่วยให้เกิด **compile-time optimization**
+- Compiler สามารถทำ **loop unrolling** ทั้งหมด
+- แปลง `operator+` เป็น **inline operations** โดยไม่มีโครงสร้างลูป
+
+**การใช้งานจริงใน CFD:**
+- **เมทริกซ์การแปลง** (3×3) สำหรับการแปลงพิกัด
+- **เทนเซอร์เกรเดียนต์** (3×1) สำหรับการคำนวณเกรเดียนต์
+- ปรากฏหลายล้านครั้งต่อการจำลองในการคำนวณเงื่อนไขขอบและ interpolation schemes
+```

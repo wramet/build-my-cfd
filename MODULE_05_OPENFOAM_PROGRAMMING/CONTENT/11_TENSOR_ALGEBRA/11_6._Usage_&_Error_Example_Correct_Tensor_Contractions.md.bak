@@ -1,0 +1,137 @@
+# 6. การใช้งาน & ตัวอย่างข้อผิดพลาด: Tensor Contractions ที่ถูกต้อง
+
+## การใช้งานที่ถูกต้อง
+
+**การทำความเข้าใจ Tensor Operations ใน OpenFOAM**
+
+การเข้าใจหลักการเกี่ยวกับการหดตัว (contractions) และการคำนวณเชิงปริพันธ์ของเทนเซอร์เป็นสิ่งจำเป็นสำหรับการคำนวณ CFD ที่แม่นยำ
+
+### ตัวอย่าง: การวิเคราะห์ความเครียด (Stress Analysis)
+
+```cpp
+// Create a symmetric tensor field representing stress
+volSymmTensorField sigma
+(
+    IOobject("sigma", runTime.timeName(), mesh, IOobject::READ_IF_PRESENT),
+    mesh,
+    dimensionedSymmTensor("sigma", dimPressure, symmTensor::zero)
+);
+
+// Compute principal stresses and directions
+volVectorField principalStresses(eigenValues(sigma));
+volTensorField principalDirections(eigenVectors(sigma));
+
+// Compute von Mises stress (scalar invariant)
+volScalarField vonMises = sqrt(1.5)*mag(dev(sigma));
+```
+
+**[Diagram: การวิเคราะห์ Tensor ความเครียด - แสดงการย่อยค่าลักษณะเฉพาะและการคำนวณความเครียด von Mises]**
+
+**ขั้นตอนการทำงาน:**
+1. สร้างเทนเซอร์ความเครียดสมมาตร
+2. ดึงค่าและเวกเตอร์หลักผ่านการย่อยค่าลักษณะเฉพาะ (eigenvalue decomposition)
+3. คำนวณความเครียด von Mises เป็นมาตรวัดความเครียดสมมูล
+
+---
+
+## ข้อผิดพลาดที่พบบ่อย: ความไม่ตรงกันของการหดตัวดัชนี
+
+**แหล่งที่มาของข้อผิดพลาดที่พบบ่อยที่สุด** คือรูปแบบการหดตัวที่ไม่ถูกต้อง
+
+### ความแตกต่างระหว่าง Single และ Double Contraction
+
+| การดำเนินการ | ตัวดำเนินการ | ผลลัพธ์ | สมการ | คำอธิบาย |
+|---|---|---|---|---|
+| **Double Contraction** | `&&` | `scalar` | $$s = \mathbf{A} : \mathbf{B} = A_{ij}B_{ij}$$ | การหดตัวดัชนีแบบเต็มระหว่างเทนเซอร์ |
+| **Single Contraction** | `&` | `vector/tensor` | $$w_i = A_{ij}v_j$$ (tensor-vector) | การหดตัวดัชนีบางส่วน |
+
+### ตัวอย่างการใช้งานที่ผิดและที่ถูกต้อง
+
+```cpp
+// ❌ ผิดพลาด
+vector v = A && B;  // Error: double contraction yields scalar, not vector
+
+// ✅ ถูกต้อง
+scalar s = A && B;      // Double contraction → scalar
+vector w = A & v;       // Single contraction → vector
+tensor T = A & B;       // Single contraction → tensor
+```
+
+---
+
+## การดำเนินการเชิงปริพันธ์ของเทนเซอร์
+
+**OpenFOAM Tensor Integral Operations**
+
+```cpp
+volTensorField gradU = fvc::grad(U);          // Gradient of vector → tensor
+volVectorField divSigma = fvc::div(sigma);    // Divergence of tensor → vector
+volSymmTensorField strain = symm(gradU);      // Symmetric part of gradient
+```
+
+### การดำเนินการเชิงปริพันธ์ของเทนเซอร์พื้นฐาน
+
+#### **1. เทนเซอร์ไล่ระดับความเร็ว (Velocity Gradient Tensor)**
+$$\nabla \mathbf{u} = \frac{\partial u_i}{\partial x_j}\mathbf{e}_i \otimes \mathbf{e}_j$$
+
+- **ประกอบด้วย**: ส่วนการเสียรูป (สมมาตร) และส่วนการหมุน (ไม่สมมาตร)
+- **การใช้งาน**: วิเคราะห์การไหลและความเครียดในของไหล
+
+#### **2. การไล่ระดับความเครียด (Stress Divergence)**
+$$\nabla \cdot \boldsymbol{\sigma} = \frac{\partial \sigma_{ij}}{\partial x_j}\mathbf{e}_i$$
+
+- **ความหมาย**: แรงสุทธิต่อหน่วยปริมาตรที่กระทำต่อองค์ประกอบของของไหล
+- **ปรากฏใน**: สมการโมเมนตัมเป็นเทอมความเครียด
+
+#### **3. เทนเซอร์อัตราการเสียรูป (Strain-Rate Tensor)**
+$$\mathbf{E} = \text{sym}(\nabla \mathbf{u}) = \frac{1}{2}\left(\nabla \mathbf{u} + (\nabla \mathbf{u})^T\right)$$
+
+- **ความสำคัญ**: สำคัญอย่างยิ่งสำหรับการเข้าใจผลของความหนืด
+- **ปรากฏใน**: กฎความหนืดของนิวตัน: $\boldsymbol{\tau} = 2\mu\mathbf{E}$
+
+---
+
+## การตีความทางกายภาพและรายละเอียดการนำไปใช้
+
+### **1. การวิเคราะห์ความเครียดหลัก (Principal Stress Analysis)**
+- **ค่าลักษณะเฉพาะ (Eigenvalues)**: แสดงถึงความเครียดหลัก
+- **เวกเตอร์ลักษณะเฉพาะ (Eigenvectors)**: กำหนดทิศทางหลัก
+- **การใช้งาน**: การวิเคราะห์ความล้มเหลวและการเข้าใจสถานะความเครียด
+
+### **2. ความเครียด Von Mises (Von Mises Stress)**
+$$\sigma_{vm} = \sqrt{\frac{3}{2}\mathbf{S}:\mathbf{S}}$$
+
+โดยที่:
+- $\mathbf{S} = \boldsymbol{\sigma} - \frac{1}{3}\text{tr}(\boldsymbol{\sigma})\mathbf{I}$ = เทนเซอร์ความเครียดเบี่ยงเบน
+- **การใช้งาน**: มาตรวัดความเครียดสมมูลสำหรับการวิเคราะห์ความล้มเหลว
+
+### **3. การวิเคราะห์การเสียรูป (Deformation Analysis)**
+- **เทนเซอร์อัตราการเสียรูป**: วัดปริมาณอัตราที่องค์ประกอบของของไหลเสียรูป
+- **เทนเซอร์ความหมุน**: $\frac{1}{2}(\nabla \mathbf{u} - (\nabla \mathbf{u})^T)$ แสดงถึงการหมุน
+
+---
+
+## กลยุทธ์การป้องกันข้อผิดพลาด
+
+### **ขั้นตอนการป้องกัน:**
+1. **ตรวจสอบลำดับของเทนเซอร์เสมอ** ก่อนใช้ตัวดำเนินการ
+2. **ใช้การแปลงชนิดที่ชัดเจน** เมื่อจำเป็น: `scalar s = scalar(A && B)`
+3. **ตรวจสอบมิติ** สำหรับเทนเซอร์ฟิลด์เพื่อให้แน่ใจว่าสม่ำเสมอกัน
+4. **ตรวจสอบเงื่อนไขขอบเขต** สำหรับเทนเซอร์ฟิลด์ เนื่องจากเงื่อนไขขอบเขตที่ไม่ถูกต้องอาจนำไปสู่ความไม่เสถียรเชิงตัวเลข
+
+**[Diagram: การตรวจสอบความถูกต้องของ Tensor Operations - แสดงขั้นตอน validation]**
+
+---
+
+## การพิจารณาประสิทธิภาพ
+
+### **การเพิ่มประสิทธิภาพการคำนวณ Tensor:**
+
+| เทคนิค | คำอธิบาย | ประโยชน์ |
+|---|---|---|
+| **Pre-computation** | คำนวณค่าคงที่ของเทนเซอร์ที่ใช้บ่อยล่วงหน้า (trace, determinant) | ลดการคำนวณซ้ำ |
+| **Symmetric Operations** | ใช้การดำเนินการเทนเซอร์สมมาตรเมื่อทราบว่าเทนเซอร์สมมาตร | ลดจำนวนการคำนวณครึ่ง |
+| **Memory Efficiency** | ลดการคัดลอกเทนเซอร์ฟิลด์ผ่านการจัดการการอ้างอิงที่มีประสิทธิภาพ | ประหยัดหน่วยความจำ |
+| **tmp Templates** | ใช้ประโยชน์จากแม่แบบ tmp ของ OpenFOAMสำหรับการจัดการหน่วยความจำอัตโนมัติ | ป้องกัน memory leaks |
+
+**การดำเนินการเทนเซอร์มีค่าใช้จ่ายในการคำนวณสูง** การปรับปรุงเหล่านี้มีความสำคัญอย่างยิ่งสำหรับการจำลอง CFD ขนาดใหญ่

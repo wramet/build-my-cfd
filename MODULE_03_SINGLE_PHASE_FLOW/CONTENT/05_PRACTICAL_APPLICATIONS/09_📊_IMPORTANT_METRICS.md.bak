@@ -1,0 +1,532 @@
+# 📊 ตัวชี้วัดที่สำคัญ (IMPORTANT METRICS)
+
+## บทนับ (Introduction)
+
+ในการคำนวณพลศาสตร์ของไหล (CFD) และการประยุกต์ใช้ทางวิศวกรรม **ตัวชี้วัดเฉพาะ** มีความสำคัญอย่างยิ่งต่อ:
+
+- การประเมินประสิทธิภาพของระบบ
+- การปรับปรุงการออกแบบ  
+- การตรวจสอบความถูกต้องของการจำลองเชิงตัวเลข
+
+OpenFOAM มีเครื่องมือที่ครอบคลุมสำหรับการคำนวณและวิเคราะห์ตัวชี้วัดที่สำคัญเหล่านี้ในสถานการณ์การไหลที่หลากหลาย
+
+---
+
+## 1. ความดันตก (Pressure Drop)
+
+### ความสำคัญทางกายภาพ (Physical Significance)
+
+**ความดันตก ($\Delta p$)** เป็นตัวชี้วัดพื้นฐานที่แสดงถึงการสูญเสียพลังงานอันเนื่องมาจาก:
+
+- ผลกระทบจากความหนืด
+- การจำกัดการไหล  
+- การเปลี่ยนแปลงทางเรขาคณิตในระบบของไหล
+
+สิ่งนี้ส่งผลโดยตรงต่อ **การกำหนดขนาดปั๊ม** **ประสิทธิภาพของระบบ** และ **ประสิทธิภาพโดยรวม**
+
+### นิยามทางคณิตศาสตร์ (Mathematical Definition)
+
+**ความดันตกพื้นฐาน:**
+$$\Delta p = p_{\text{inlet}} - p_{\text{outlet}}$$
+
+**ค่าสัมประสิทธิ์ความดันตก ($K_p$):**
+$$K_p = \frac{\Delta p}{0.5 \rho U_{\text{avg}}^2}$$
+
+โดยที่:
+- $\rho$ = ความหนาแน่นของของไหล
+- $U_{\text{avg}}$ = ความเร็วเฉลี่ย
+
+[Diagram: Pressure drop visualization across a pipe section showing inlet/outlet pressure difference]
+
+### OpenFOAM Code Implementation
+
+สามารถคำนวณความดันตกได้โดยใช้ function objects:
+
+```cpp
+// เพิ่มใน controlDict
+functions
+{
+    pressureDrop
+    {
+        type            surfaceFieldValue;
+        functionObjectLibs ("libfieldFunctionObjects.so");
+        operation       weightedAverage;
+        weightField     phi;
+        surfaceFormat   none;
+        region          region0;
+        fields
+        (
+            p
+        );
+        surfaces
+        (
+            inlet
+            {
+                type            patch;
+                patches         (inlet);
+            }
+            outlet
+            {
+                type            patch;
+                patches         (outlet);
+            }
+        );
+        writeFields     false;
+        writeLocation   false;
+    }
+}
+```
+
+### การประยุกต์ใช้ทางวิศวกรรม (Engineering Applications)
+
+| แอปพลิเคชัน | ความสำคัญของความดันตก |
+|-------------|------------------------|
+| **การออกแบบท่อ** | การเลือกขนาดปั๊มที่เหมาะสม |
+| **ตัวกรองและเครื่องแลกเปลี่ยนความร้อน** | ประเมินประสิทธิภาพการถ่ายเทความร้อน |
+| **ระบบ HVAC** | การปรับปรุงการกระจายอากาศ |
+| **ไมโครฟลูอิดิกส์** | การวิเคราะห์การไหลในช่องเล็ก |
+
+---
+
+## 2. สัมประสิทธิ์การถ่ายเทความร้อน (Heat Transfer Coefficient)
+
+### ความสำคัญทางกายภาพ (Physical Significance)
+
+**สัมประสิทธิ์การถ่ายเทความร้อน ($h$)** เป็นตัวบ่งชี้ **อัตราการถ่ายเทความร้อนระหว่างพื้นผิวกับของไหลโดยรอบ** ซึ่งมีความสำคัญอย่างยิ่งต่อการจัดการความร้อนและการออกแบบเครื่องแลกเปลี่ยนความร้อน
+
+### นิยามทางคณิตศาสตร์ (Mathematical Definition)
+
+**สัมประสิทธิ์การถ่ายเทความร้อน:**
+$$h = \frac{q''}{T_s - T_\infty}$$
+
+**จำนวนนัสเซิลต์ (Nusselt number) แบบไร้มิติ:**
+$$Nu = \frac{hL}{k}$$
+
+โดยที่:
+- $q''$ = ฟลักซ์ความร้อน
+- $T_s$ = อุณหภูมิพื้นผิว
+- $T_\infty$ = อุณหภูมิของไหลมวลรวม
+- $L$ = ความยาวลักษณะเฉพาะ
+- $k$ = ค่าการนำความร้อน
+
+### OpenFOAM Code Implementation
+
+```cpp
+// การคำนวณฟลักซ์ความร้อนที่ผนัง
+wallHeatFlux
+{
+    type            wallHeatFlux;
+    functionObjectLibs ("libfieldFunctionObjects.so");
+    region          region0;
+    fields          (h T);
+    writeFields     true;
+}
+
+// การคำนวณสัมประสิทธิ์การถ่ายเทความร้อน
+heatTransferCoeff
+{
+    type            coded;
+    functionObjectLibs ("libutilityFunctionObjects.so");
+    code
+    #{
+        const volScalarField& T = mesh().lookupObject<volScalarField>("T");
+        const volScalarField& h = mesh().lookupObject<volScalarField>("h");
+        const volScalarField& q = mesh().lookupObject<volScalarField>("wallHeatFlux");
+        
+        volScalarField HTC
+        (
+            IOobject
+            (
+                "HTC",
+                mesh().time().timeName(),
+                mesh(),
+                IOobject::NO_READ,
+                IOobject::AUTO_WRITE
+            ),
+            q/(T - T_ref)
+        );
+    #};
+}
+```
+
+### การประยุกต์ใช้ทางวิศวกรรม (Engineering Applications)
+
+| แอปพลิเคชัน | ความสำคัญของสัมประสิทธิ์ $h$ |
+|-------------|---------------------------|
+| **เครื่องแลกเปลี่ยนความร้อน** | การออกแบบและปรับปรุงประสิทธิภาพ |
+| **อุปกรณ์อิเล็กทรอนิกส์** | การวิเคราะห์การระบายความร้อน |
+| **อาคาร** | การจัดการความร้อน |
+| **วิศวกรรมกระบวนการ** | การเผาไหม้และปฏิกิริยาเคมี |
+
+[Diagram: Heat transfer coefficient visualization showing boundary layer and heat flux]
+
+---
+
+## 3. สัมประสิทธิ์แรงฉุดและแรงยก (Drag and Lift Coefficients)
+
+### ความสำคัญทางกายภาพ (Physical Significance)
+
+**สัมประสิทธิ์แรงฉุด ($C_D$)** และ **แรงยก ($C_L$)** เป็นตัวบ่งชี้ **แรงแอโรไดนามิกส์และไฮโดรไดนามิกส์** ที่กระทำต่อวัตถุในการไหลของของไหล ซึ่งจำเป็นสำหรับ:
+
+- การออกแบบยานพาหนะ
+- การวิเคราะห์โครงสร้าง
+- การควบคุมการไหล
+
+### นิยามทางคณิตศาสตร์ (Mathematical Definition)
+
+**สัมประสิทธิ์แรงฉุด (Drag Coefficient):**
+$$C_D = \frac{F_D}{0.5 \rho U_\infty^2 A}$$
+
+**สัมประสิทธิ์แรงยก (Lift Coefficient):**
+$$C_L = \frac{F_L}{0.5 \rho U_\infty^2 A}$$
+
+โดยที่:
+- $F_D$ และ $F_L$ = แรงฉุดและแรงยก
+- $U_\infty$ = ความเร็วของกระแสอิสระ (free-stream velocity)
+- $A$ = พื้นที่อ้างอิง
+
+### OpenFOAM Code Implementation
+
+```cpp
+// การคำนวณสัมประสิทธิ์แรง
+forcesCoeffs
+{
+    type            forces;
+    functionObjectLibs ("libforces.so");
+    enabled         true;
+    outputControl   timeStep;
+    outputInterval  1;
+    log             true;
+    fields
+    (
+        U
+        p
+    );
+    rho             rho;    // สำหรับการไหลแบบอัดตัวได้ (Compressible flows)
+    pRef            0;      // ความดันอ้างอิง (Reference pressure)
+    coordinateSystem
+    {
+        e1  (1 0 0);        // ทิศทางแกน x
+        e3  (0 0 1);        // ทิศทางแกน z
+    }
+    patches
+    (
+        objectSurface
+    );
+    rhoInf          1.225;  // ความหนาแน่นอ้างอิง (kg/m³)
+    CofR            (0 0 0); // จุดศูนย์กลางการหมุน (Center of rotation)
+    dragDir         (1 0 0); // ทิศทางแรงฉุด (Drag direction)
+    liftDir         (0 1 0); // ทิศทางแรงยก (Lift direction)
+    pitchAxis       (0 0 1); // แกนการหมุนควง (Pitch axis)
+    magUInf         10;     // ความเร็วอ้างอิง (Reference velocity)
+    lRef            1;      // ความยาวอ้างอิง (Reference length)
+    Aref            1;      // พื้นที่อ้างอิง (Reference area)
+}
+```
+
+### การประยุกต์ใช้ทางวิศวกรรม (Engineering Applications)
+
+| แอปพลิเคชัน | ความสำคัญของสัมประสิทธิ์แรง |
+|-------------|----------------------------|
+| **ยานพาหนะ** | การปรับปรุงอากาศพลศาสตร์ |
+| **ใบพัดกังหันลม** | การเพิ่มประสิทธิภาพการผลิตพลังงาน |
+| **ปีกเครื่องบิน** | การวิเคราะห์ประสิทธิภาพการบิน |
+| **เรือ** | การลดการต้านทานของน้ำ |
+
+[Diagram: Drag and lift forces acting on an airfoil with flow streamlines]
+
+---
+
+## 4. ประสิทธิภาพการผสม (Mixing Efficiency)
+
+### ความสำคัญทางกายภาพ (Physical Significance)
+
+**ประสิทธิภาพการผสม** เป็นตัวบ่งชี้ **ประสิทธิผลของกระบวนการผสมของไหล** ซึ่งมีความสำคัญอย่างยิ่งใน:
+
+- เครื่องปฏิกรณ์เคมี
+- ระบบการเผาไหม้
+- การไหลในสิ่งแวดล้อม
+
+### นิยามทางคณิตศาสตร์ (Mathematical Definition)
+
+**ดัชนีการผสม (Mixing Index - MI):**
+$$MI = \frac{\sigma_{\text{max}}^2 - \sigma^2}{\sigma_{\text{max}}^2 - \sigma_{\text{min}}^2}$$
+
+**ระดับของการผสม (Degree of Mixing - DOM):**
+$$\text{DOM} = 1 - \frac{\sigma}{\sigma_0}$$
+
+โดยที่:
+- $\sigma^2$ = ความแปรปรวนของความเข้มข้นของสเกลาร์
+- $\sigma_0$ = ค่าเบี่ยงเบนมาตรฐานเริ่มต้น
+
+### OpenFOAM Code Implementation
+
+```cpp
+// การคำนวณประสิทธิภาพการผสม
+mixingEfficiency
+{
+    type            scalarTransport;
+    functionObjectLibs ("libscalarTransportFunctionObjects.so");
+    field           mixtureFraction;
+    diffusivity     1e-5;
+    writeFields     true;
+}
+
+// การคำนวณความแปรปรวนสำหรับการวิเคราะห์การผสม
+mixingVariance
+{
+    type            coded;
+    functionObjectLibs ("libutilityFunctionObjects.so");
+    code
+    #{
+        const volScalarField& Z = mesh().lookupObject<volScalarField>("Z");
+        const scalar Z_mean = gAverage(Z);
+        const scalar Z_var = gAverage(pow(Z - Z_mean, 2));
+        
+        Info << "Mixing variance: " << Z_var << endl;
+        Info << "Mixing efficiency: " << (1.0 - Z_var/(Z_mean*(1.0-Z_mean))) << endl;
+    #};
+}
+```
+
+### การประยุกต์ใช้ทางวิศวกรรม (Engineering Applications)
+
+| แอปพลิเคชัน | ความสำคัญของประสิทธิภาพการผสม |
+|-------------|-----------------------------|
+| **เครื่องปฏิกรณ์เคมี** | การเพิ่มประสิทธิภาพปฏิกิริยา |
+| **ระบบการเผาไหม้** | การเผาไหม้สมบูรณ์ |
+| **สิ่งแวดล้อม** | การกระจายตัวของมลพิษ |
+| **อาหารและยา** | การผสมสารต่างๆ อย่างสม่ำเสมอ |
+
+[Diagram: Mixing efficiency visualization showing concentration distribution and mixing zones]
+
+---
+
+## 5. เวลากักตัว (Residence Time)
+
+### ความสำคัญทางกายภาพ (Physical Significance)
+
+**เวลาการกักตัว** แสดงถึง **เวลาเฉลี่ยที่อนุภาคของไหลใช้ภายในระบบหรือปริมาตรควบคุม** ซึ่งมีความสำคัญต่อ:
+
+- การออกแบบกระบวนการ
+- จลนพลศาสตร์ของปฏิกิริยา
+- การปรับปรุงระบบ
+
+### นิยามทางคณิตศาสตร์ (Mathematical Definition)
+
+**เวลาการกักตัวเฉลี่ย (Mean Residence Time):**
+$$\bar{t} = \frac{V}{\dot{V}}$$
+
+**การกระจายตัวของเวลาการกักตัว (Residence Time Distribution - RTD):**
+$$E(t) = \frac{c(t)}{\int_0^\infty c(t) \, \mathrm{d}t}$$
+
+โดยที่:
+- $V$ = ปริมาตรของระบบ
+- $\dot{V}$ = อัตราการไหลเชิงปริมาตร
+- $c(t)$ = ความเข้มข้นเป็นฟังก์ชันของเวลา
+
+### OpenFOAM Code Implementation
+
+```cpp
+// การติดตามสเกลาร์แบบพาสซีฟสำหรับเวลาการกักตัว
+residenceTime
+{
+    type            scalarTransport;
+    functionObjectLibs ("libscalarTransportFunctionObjects.so");
+    field           age;
+    diffusivity     0;
+    phi             phi;
+    rho             rho;
+    injectionRate   1;
+    writeFields     true;
+}
+
+// การวิเคราะห์ RTD
+rtdAnalysis
+{
+    type            coded;
+    functionObjectLibs ("libutilityFunctionObjects.so");
+    code
+    #{
+        const volScalarField& age = mesh().lookupObject<volScalarField>("age");
+        const surfaceScalarField& phi = mesh().lookupObject<surfaceScalarField>("phi");
+        
+        const scalar mean_age = gAverage(age);
+        const scalar variance = gAverage(pow(age - mean_age, 2));
+        
+        Info << "Mean residence time: " << mean_age << " s" << endl;
+        Info << "RTD variance: " << variance << " s²" << endl;
+    #};
+}
+```
+
+### การประยุกต์ใช้ทางวิศวกรรม (Engineering Applications)
+
+| แอปพลิเคชัน | ความสำคัญของเวลากักตัว |
+|-------------|--------------------------|
+| **เครื่องปฏิกรณ์เคมี** | การควบคุมเวลาปฏิกิริยา |
+| **บำบัดน้ำเสีย** | การปรับปรุงประสิทธิภาพการบำบัด |
+| **อาหาร** | การควบคุมคุณภาพการแปรรูป |
+| **ยา** | การผลิตยาที่มีคุณภาพสูง |
+
+[Diagram: Residence time distribution curve showing mean residence time and variance]
+
+---
+
+## 6. การใช้พลังงาน (Power Consumption)
+
+### ความสำคัญทางกายภาพ (Physical Significance)
+
+**การใช้พลังงาน** เป็นตัวบ่งชี้ **ความต้องการพลังงานสำหรับกระบวนการ** ไหลของของไหล การผสม หรือการถ่ายเทความร้อน ซึ่งจำเป็นสำหรับ:
+
+- การวิเคราะห์ประสิทธิภาพของระบบ
+- การประมาณการต้นทุนการดำเนินงาน
+
+### นิยามทางคณิตศาสตร์ (Mathematical Definition)
+
+**กำลังของปั๊ม (Pump Power):**
+$$P = \Delta p \cdot \dot{V}$$
+
+**กำลังเพลา (Shaft Power):**
+$$P_{\text{shaft}} = T \cdot \omega$$
+
+**เลขกำลัง (Power Number):**
+$$N_P = \frac{P}{\rho N^3 D^5}$$
+
+โดยที่:
+- $T$ = แรงบิด (torque)
+- $\omega$ = ความเร็วเชิงมุม (angular velocity)
+- $N$ = ความเร็วรอบของใบพัด
+- $D$ = เส้นผ่านศูนย์กลางของใบพัด
+
+### OpenFOAM Code Implementation
+
+```cpp
+// การคำนวณกำลังสำหรับระบบหมุน
+powerCalculation
+{
+    type            forces;
+    functionObjectLibs ("libforces.so");
+    enabled         true;
+    outputControl   timeStep;
+    outputInterval  1;
+    patches
+    (
+        rotor
+    );
+    rho             rho;
+    log             true;
+    
+    // คำนวณแรงบิดและกำลัง
+    CofR            (0 0 0);
+    pitchAxis       (0 0 1);
+    
+    // ผลลัพธ์กำลังในการประมวลผลภายหลัง (post-processing)
+    postProcess
+    {
+        func        power;
+    }
+}
+
+// การคำนวณเลขกำลัง
+powerNumber
+{
+    type            coded;
+    functionObjectLibs ("libutilityFunctionObjects.so");
+    code
+    #{
+        const wordList patches({"rotor"});
+        const vector axis(0, 0, 1);
+        const vector center(0, 0, 0);
+        
+        // คำนวณแรงบิด
+        vector torque = vector::zero;
+        forAll(patches, i)
+        {
+            const word patchName = patches[i];
+            const label patchID = mesh().boundaryMesh().findPatchID(patchName);
+            
+            if (patchID != -1)
+            {
+                const fvPatchVectorField& U = mesh().lookupObject<volVectorField>("U").boundaryField()[patchID];
+                const fvPatchScalarField& p = mesh().lookupObject<volScalarField>("p").boundaryField()[patchID];
+                const vectorField& Sf = mesh().Sf().boundaryField()[patchID];
+                const vectorField& Cf = mesh().Cf().boundaryField()[patchID];
+                
+                forAll(Sf, faceI)
+                {
+                    vector r = Cf[faceI] - center;
+                    vector force = -p[faceI] * Sf[faceI];
+                    torque += r ^ force;
+                }
+            }
+        }
+        
+        scalar power = torque & axis * omega;  // โดยที่ omega คือความเร็วเชิงมุม
+        scalar powerNumber = power / (rho * pow(N, 3) * pow(D, 5));
+        
+        Info << "Power consumption: " << power << " W" << endl;
+        Info << "Power number: " << powerNumber << endl;
+    #};
+}
+```
+
+### การประยุกต์ใช้ทางวิศวกรรม (Engineering Applications)
+
+| แอปพลิเคชัน | ความสำคัญของการใช้พลังงาน |
+|-------------|----------------------------|
+| **ปั๊มและพัดลม** | การเลือกอุปกรณ์ที่เหมาะสม |
+| **ถังผสม** | การปรับปรุงประสิทธิภาพการผสม |
+| **กังหันและคอมเพรสเซอร์** | การเพิ่มประสิทธิภาพการผลิตพลังงาน |
+| **ระบบอุตสาหกรรม** | การวิเคราะห์ประสิทธิภาพพลังงานโดยรวม |
+
+[Diagram: Power consumption visualization showing torque and angular velocity in rotating systems]
+
+---
+
+## สรุปและแนวปฏิบัติที่ดีที่สุด (Summary and Best Practices)
+
+### แนวทางการเลือกตัวชี้วัด (Metric Selection Guidelines)
+
+| ตัวชี้วัด | ความสำคัญ | แอปพลิเคชันหลัก |
+|------------|-------------|-------------------|
+| **ความดันตก** | การเลือกขนาดปั๊ม | ระบบการไหลภายใน |
+| **สัมประสิทธิ์การถ่ายเทความร้อน** | การจัดการความร้อน | เครื่องแลกเปลี่ยนความร้อน |
+| **สัมประสิทธิ์แรงฉุด/แรงยก** | การวิเคราะห์อากาศพลศาสตร์ | ยานพาหนะและโครงสร้าง |
+| **ประสิทธิภาพการผสม** | การควบคุมกระบวนการ | เคมีและกระบวนการ |
+| **เวลาการกักตัว** | จลนพลศาสตร์ปฏิกิริยา | เครื่องปฏิกรณ์ |
+| **การใช้พลังงาน** | ประสิทธิภาพพลังงาน | ระบบอุตสาหกรรม |
+
+### กลยุทธ์การนำไปใช้ใน OpenFOAM (Implementation Strategies)
+
+1. **ใช้ Function Objects ที่มีมาให้** สำหรับตัวชี้วัดมาตรฐาน
+2. **สร้าง Function Objects แบบกำหนดเอง** สำหรับการคำนวณเฉพาะทาง
+3. **ใช้ Post-processing Utilities** สำหรับการวิเคราะห์ที่ครอบคลุม
+4. **ตรวจสอบความถูกต้อง** กับผลเฉลยเชิงวิเคราะห์หรือข้อมูลจากการทดลอง
+
+### การประกันคุณภาพ (Quality Assurance)
+
+#### ข้อควรตรวจสอบก่อนการคำนวณ:
+
+- **ความละเอียดของ Mesh** ใกล้ผนังสำหรับค่าการถ่ายเทความร้อนและแรงที่แม่นยำ
+- **ขนาด Time-step** ที่เหมาะสมสำหรับการจำลองแบบชั่วคราว
+- **เกณฑ์การลู่เข้า** สำหรับการจำลองแบบสภาวะคงตัว
+- **การวิเคราะห์ความไว** ต่อพารามิเตอร์เชิงตัวเลข
+
+### ขั้นตอนการประมวลผลข้อมูล (Data Processing Workflow)
+
+```
+1. การตั้งค่า Function Objects
+   └── กำหนดใน controlDict
+   
+2. การรันการจำลอง
+   └── ตรวจสอบการลู่เข้า
+   
+3. การประมวลผลภายหลัง
+   └── ใช้ postProcess utilities
+   
+4. การวิเคราะห์และตรวจสอบ
+   └── เปรียบเทียบกับข้อมูลอ้างอิง
+```
+
+ตัวชี้วัดเหล่านี้เป็น **รากฐานของการวิเคราะห์ CFD** และ **การตัดสินใจออกแบบทางวิศวกรรม** โดยให้ข้อมูลเชิงปริมาณเกี่ยวกับประสิทธิภาพของระบบและโอกาสในการปรับปรุง

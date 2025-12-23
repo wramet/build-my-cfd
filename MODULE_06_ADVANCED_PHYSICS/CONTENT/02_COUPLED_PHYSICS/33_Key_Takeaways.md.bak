@@ -1,0 +1,224 @@
+# ประเด็นสำคัญ:
+
+## 1. สถาปัตยกรรม CHT: `chtMultiRegionFoam` ใช้การแบ่งพื้นที่แยกกันผ่าน `mapped` Boundaries
+
+**แนวคิดหลัก**: Conjugate Heat Transfer (CHT) ใช้สถาปัตยกรรมแบบแบ่งพื้นที่อย่างซับซ้อน โดยแต่ละโดเมนกายภาพจะถูกจัดการเป็นพื้นที่แยกกันที่มี mesh และสมการควบคุมของตัวเอง
+
+**สถาปัตยกรรมการเชื่อมโยง**:
+- เงื่อนไขขอบเขตประเภท `mapped` สร้างการเชื่อมโยงทางเทอร์โมไดนามิกและกลศาสตร์
+- รองรับ schemes, solvers และเกณฑ์การลู่เข้าที่เฉพาะกับแต่ละพื้นที่
+- รักษาความสอดคล้องทางกายภาพผ่านกรอบงานขอบเขตแบบ mapped
+
+[Diagram: แสดงโครงสร้างพื้นที่แยกกันของ CHT โดยมีขอบเขต mapped ที่เชื่อมโยงระหว่างพื้นที่ของไหลและของแข็ง]
+
+### สมการควบคุมในแต่ละพื้นที่
+
+**พื้นที่ของไหล:**
+$$\frac{\partial (\rho \mathbf{u})}{\partial t} + \nabla \cdot (\rho \mathbf{u} \mathbf{u}) = -\nabla p + \nabla \cdot \boldsymbol{\tau} + \mathbf{f}_b$$
+$$\frac{\partial (\rho e)}{\partial t} + \nabla \cdot [\mathbf{u}(\rho e + p)] = \nabla \cdot (k \nabla T) + \Phi$$
+
+**พื้นที่ของแข็ง:**
+$$\rho_s c_p \frac{\partial T_s}{\partial t} = \nabla \cdot (k_s \nabla T_s)$$
+
+### เงื่อนไขความต่อเนื่องที่ขอบเขต
+
+เงื่อนไขขอบเขต `mapped` รับประกันความต่อเนื่องของอุณหภูมิและอัตราการไหลของความร้อน:
+$$T_{fluid} = T_{solid}$$
+$$k_{fluid} \frac{\partial T_{fluid}}{\partial n} = k_{solid} \frac{\partial T_{solid}}{\partial n}$$
+
+**ตัวแปรในสมการ**:
+- $T_{fluid}$, $T_{solid}$: อุณหภูมิของของไหลและของแข็งที่ขอบเขต
+- $k_{fluid}$, $k_{solid}$: ค่าความนำความร้อน
+- $\frac{\partial T}{\partial n}$: อนุพันธ์ตามปกติที่ขอบเขต
+
+## 2. Mapping Engine: `mappedPatchBase` ให้การแทรกสอดเชิงเรขาคณิตระหว่างพื้นที่
+
+**แกนกลางการเชื่อมโยง**: คลาส `mappedPatchBase` ทำหน้าที่เป็นเครื่องมือแทรกสอดหลักสำหรับถ่ายโอนข้อมูลระหว่าง meshes ที่ไม่สอดคล้องกัน
+
+### อัลกอริทึมการแมปเชิงเรขาคณิต
+
+```cpp
+// Pseudo-code for mappedPatchBase interpolation
+void mappedPatchBase::map() {
+    const pointField& samplePoints = this->samplePoints();
+    const labelList& sampleCells = this->sampleCells();
+    const vectorField& sampleWeights = this->sampleWeights();
+    
+    // For each face on mapped patch
+    forAll(map(), i) {
+        // Find nearest cell/face in other region
+        findInterpolationTarget(i, samplePoints[i]);
+        
+        // Apply interpolation weighting
+        interpolateField(i, sampleCells[i], sampleWeights[i]);
+    }
+}
+```
+
+### โหมดการแทรกสอดที่รองรับ
+
+| โหมดการแมป | คำอธิบาย | ความแม่นยำ |
+|--------------|----------|-------------|
+| **การแมปเซลล์โดยตรง** | ความสัมพันธ์เซลล์ต่อเซลล์แบบตรง | สูงสุด |
+| **การแมปหน้าต่อเซลล์** | การแทรกสอดจากหน้าไปยังเซลล์ข้างเคียง | สูง |
+| **ค่าเฉลี่ยถ่วงน้ำหนัก** | ขึ้นอยู่กับความใกล้เคียงทางเรขาคณิตและพื้นที่ที่ทับซ้อนกัน | ปานกลาง |
+
+### การคำนวณน้ำหนักการแทรกสอด
+
+$$w_i = \frac{V_{overlap,i}}{\sum_j V_{overlap,j}}$$
+
+**ตัวแปร**:
+- $w_i$: น้ำหนักการแทรกสอดของเซลล์ $i$
+- $V_{overlap,i}$: ปริมาตรการทับซ้อนกันทางเรขาคณิตระหว่างเซลล์ต้นทาง $i$ กับพื้นที่เป้าหมาย
+
+[Diagram: แสดงกระบวนการ interpolation ระหว่าง meshes ที่ไม่สอดคล้องกัน]
+
+## 3. การแยกฟิลด์: Region-Specific Object Registries เปิดให้มีการแยกฟิลด์ที่สะอาด
+
+**ระบบจัดการหน่วยความจำ**: OpenFOAM ใช้โครงสร้างการจัดการหน่วยความจำแบบลำดับชั้น โดยแต่ละพื้นที่ CHT จะรักษา registry ฟิลด์ของตัวเอง
+
+### ประโยชน์ของระบบ Registry
+
+| คุณสมบัติ | ประโยชน์ | ผลกระทบ |
+|------------|----------|-----------|
+| **การแยกหน่วยความจำ** | ฟิลด์จากพื้นที่ต่างกันมีชื่อเหมือนกันได้ | ป้องกันความขัดแย้งในการตั้งชื่อ |
+| **การจัดการอัตโนมัติ** | การทำลายพื้นที่จะลบข้อมูลแบบ cascade | ป้องกันการรั่วไหลของหน่วยความจำ |
+| **การกระจายขนาน** | แต่ละพื้นที่แบ่งได้โดยอิสระใน MPI ranks | ปรับปรุงประสิทธิภาพขนาน |
+| **ประสิทธิภาพแคช** | ฟิลด์ที่เกี่ยวข้องยังคงต่อเนื่องกัน | ปรับปรุงการเข้าถึงหน่วยความจำ |
+
+### การลงทะเบียนฟิลด์ใน Registry
+
+```cpp
+// Region-specific field registration
+const fvMesh& fluidMesh = fluidRegion.mesh();
+const fvMesh& solidMesh = solidRegion.mesh();
+
+// Fluid region fields
+volScalarField T_fluid
+(
+    IOobject
+    (
+        "T",
+        fluidMesh.time().timeName(),
+        fluidMesh.objectRegistry(),
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    fluidMesh
+);
+
+// Solid region fields (independent registry)
+volScalarField T_solid
+(
+    IOobject
+    (
+        "T",  // Same name, different registry
+        solidMesh.time().timeName(),
+        solidMesh.objectRegistry(),
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    solidMesh
+);
+```
+
+[Diagram: แสดงโครงสร้าง registry แบบลำดับชั้นสำหรับพื้นที่ต่างๆ]
+
+## 4. ความซับซ้อนของ FSI: Added Mass Effect ต้องการการเลือกอัลกอริทึมการเชื่อมโยงอย่างระมัดระวัง
+
+**ปัญหาหลัก**: ปฏิสัมพันธ์ของไหล-โครงสร้าง (FSI) แนะนำ "added mass effect" ที่สร้างความท้าทายด้านความมั่นคงทางตัวเลข
+
+### พื้นฐานคณิตศาสตร์ของ Added Mass
+
+**แรง Added Mass:**
+$$\mathbf{F}_{added} = \rho_f V_{disp} \frac{\mathrm{d}^2 \mathbf{x}}{\mathrm{d}t^2}$$
+
+**สมการโครงสร้างที่ปรับเปลี่ยน:**
+$$m_s \frac{\mathrm{d}^2 \mathbf{x}}{\mathrm{d}t^2} = \mathbf{F}_{fluid} + \mathbf{F}_{structural} - \mathbf{F}_{added}$$
+
+**รูปแบบที่เรียบเรียงใหม่:**
+$$(m_s + m_{added}) \frac{\mathrm{d}^2 \mathbf{x}}{\mathrm{d}t^2} = \mathbf{F}_{fluid} + \mathbf{F}_{structural}$$
+
+**ตัวแปร**:
+- $\rho_f$: ความหนาแน่นของของไหล
+- $V_{disp}$: ปริมาตรของของไหลที่ถูกแทนที่
+- $\frac{\mathrm{d}^2 \mathbf{x}}{\mathrm{d}t^2}$: ความเร่งโครงสร้าง
+- $m_s$: มวลโครงสร้าง
+- $m_{added}$: มวลเพิ่มที่เทียบเท่า
+
+### กลยุทธ์อัลกอริทึมการเชื่อมโยง
+
+#### การเชื่อมโยงที่แข็งแกร่งโดยนัย
+
+```cpp
+// Iterative coupling loop
+for (int couplingIter = 0; couplingIter < nCouplingIters; couplingIter++) {
+    // Solve fluid equations with current structural position
+    fluidSolver.solve();
+    
+    // Calculate fluid forces on structure
+    fluidForces = calculateFluidForces(fluidMesh, structurePatch);
+    
+    // Solve structural dynamics with fluid forces
+    structureSolver.solve(fluidForces);
+    
+    // Check convergence
+    if (converged()) break;
+}
+```
+
+### ข้อควรพิจารณาด้านความมั่นคง
+
+| เกณฑ์ | เงื่อนไขความมั่นคง | คำอธิบาย |
+|--------|---------------------|-----------|
+| **อัตราส่วนความหนาแน่น** | $\frac{\rho_f}{\rho_s} < 1$ | มั่นคงสำหรับการเชื่อมโยงแบบชัดแจ้ง |
+| **ช่วงเวลา** | $\Delta t < \sqrt{\frac{m_s}{k_{structure}}}$ | ความมั่นคงเชิงวิกฤต |
+| **การผ่อนคลาย** | ใช้ปัจจัยการผ่อนคลาย | ป้องกันการสั่นคลอนเชิงตัวเลข |
+
+**การแลกเปลี่ยน**: การเลือกระหว่างการเชื่อมโยงแบบชัดแจ้งและแบบนัยแสดงถึงการแลกเปลี่ยนความมั่นคงกับต้นทุนการคำนวณ
+
+[Diagram: แสดงปฏิสัมพันธ์แรงระหว่างของไหลและโครงสร้างพร้อม added mass effect]
+
+## 5. การตรวจสอบ: ตรวจสอบการเก็บรักษาและเปรียบเทียบกับวิธีการวิเคราะห์เสมอ
+
+**ความสำคัญ**: กระบวนการตรวจสอบที่แข็งแกร่งมีความจำเป็นต่อการตรวจสอบความถูกต้องของการจำลอง CFD หลายฟิสิกส์
+
+### การตรวจสอบการเก็บรักษา
+
+**สมดุลพลังงานรวม:**
+$$\frac{\mathrm{d}}{\mathrm{d}t} \int_V (\rho e) \,\mathrm{d}V = -\int_{\partial V} q \cdot \mathbf{n} \,\mathrm{d}A + \int_V Q \,\mathrm{d}V$$
+
+**สมดุลมวลสำหรับการไหลที่อัดได้ไม่ได้:**
+$$\int_{\partial V} \mathbf{u} \cdot \mathbf{n} \,\mathrm{d}A = 0$$
+
+### การใช้งานการตรวจสอบใน OpenFOAM
+
+```cpp
+// Energy conservation check
+dimensionedScalar totalEnergy(
+    fluidRegions[i].energy().weightedAverage(fluidRegions[i].V()) *
+    sum(fluidRegions[i].V())
+);
+
+// Interface heat flux balance
+dimensionedScalar interfaceFluxBalance = 
+    sum(fluidRegion.heatFlux() * fluidRegion.boundaryField()[interfaceID].magSf()) +
+    sum(solidRegion.heatFlux() * solidRegion.boundaryField()[interfaceID].magSf());
+```
+
+### กรณีการตรวจสอบทางวิเคราะห์
+
+| ปัญหา | สมการวิเคราะห์ | พารามิเตอร์ |
+|--------|-----------------|-------------|
+| **CHT Steady-State** | $\frac{T - T_{cold}}{T_{hot} - T_{cold}} = \frac{1 + Bi \cdot (x/L)}{1 + Bi}$ | $Bi = \frac{hL}{k}$ |
+| **การแพร่กระจาย Transient** | $\frac{T(x,t) - T_{initial}}{T_{surface} - T_{initial}} = \text{erfc}\left(\frac{x}{2\sqrt{\alpha t}}\right)$ | $\alpha = \frac{k}{\rho c_p}$ |
+
+### ขั้นตอนการตรวจสอบที่แนะนำ
+
+1. **วิธีการวิเคราะห์**: อนุพันธ์หรือรับคำตอบที่แน่นอนสำหรับเรขาคณิตที่เรียบง่าย
+2. **การลู่เข้าของ Mesh**: การปรับแต่งแบบเป็นระบบเพื่อประเมินข้อผิดพลาดการแยกเชิงพื้นที่
+3. **ความไวต่อช่วงเวลา**: ตรวจสอบความถูกต้องเชิงเวลาสำหรับปัญหาแบบ transient
+4. **การเก็บรักษาขอบเขต**: รับประกันความต่อเนื่องของอัตราการไหลที่ขอบเขตการเชื่อมโยงทั้งหมด
+5. **ความไวต่อพารามิเตอร์**: ตรวจสอบความสัมพันธ์ทางพารามิเตอร์ที่ทราบ
+
+[Diagram: แสดงกระบวนการตรวจสอบแบบขั้นตอนสำหรับการจำลองหลายฟิสิกส์]

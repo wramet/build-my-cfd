@@ -1,0 +1,389 @@
+# 🏭 การเชื่อมโยงอุตสาหกรรม
+
+## 🚗 วิศวกรรมยานยนต์
+
+### พลศาสตร์อากาศยานของยานพาหนะ (Vehicle Aerodynamics)
+
+OpenFOAM ถูกนำไปใช้อย่างกว้างขวางในอุตสาหกรรมยานยนต์สำหรับ **การวิเคราะห์พลศาสตร์อากาศภายนอก** (external aerodynamics analysis), **การปรับปรุงประสิทธิภาพเพื่อลดแรงต้าน** (drag reduction optimization) และ **การศึกษาการจัดการความร้อน** (thermal management studies)
+
+#### การใช้งานหลัก
+
+| แอปพลิเคชัน | วัตถุประสงค์ | Solver ที่เกี่ยวข้อง |
+|----------------|----------------|--------------------------|
+| **พลศาสตร์อากาศภายนอก** | ลดค่าสัมประสิทธิ์แรงต้าน $C_d$ และเพิ่มประสิทธิภาพเชื้อเพลิง | simpleFoam, pimpleFoam |
+| **การจัดการความร้อนใต้ฝากระโปรง** | การถ่ายเทความร้อนแบบสังเคราะห์ (CHT) และการปรับแต่งระบบระบายความร้อน | chtMultiRegionFoam |
+| **การควบคุมสภาพอากาศภายในห้องโดยสาร** | การกระจายอากาศและการวิเคราะห์ความสบายทางความร้อน | buoyantBoussinesqSimpleFoam |
+
+[Diagram: การไหลของอากาศรอบตัวถังรถยนต์แสดงพื้นที่ที่เกิดแรงต้านสูงและตำแหน่งที่สามารถปรับปรุงได้]
+
+#### **สมการ RANS สำหรับพลศาสตร์อากาศภายนอก**
+
+$$\rho \frac{\partial \mathbf{u}_i}{\partial t} + \rho \mathbf{u}_j \frac{\partial \mathbf{u}_i}{\partial x_j} = -\frac{\partial p}{\partial x_i} + \frac{\partial}{\partial x_j}\left(\mu_{eff} \frac{\partial \mathbf{u}_i}{\partial x_j}\right) + \rho \mathbf{f}_i$$
+
+โดยที่:
+- $\mathbf{u}_i$ = ความเร็วในทิศทาง $i$
+- $p$ = ความดัน
+- $\mu_{eff} = \mu + \mu_t$ = ความหนืดที่มีประสิทธิภาพ (รวมความหนืดโมเลกุลและความหนืดจากการปั่นป่วน)
+- $\mathbf{f}_i$ = แรงต่อหน่วยมวลในทิศทาง $i$
+
+**OpenFOAM Code Implementation:**
+```cpp
+// RANS momentum equation solver
+fvVectorMatrix UEqn
+(
+    fvm::ddt(rho, U)
+  + fvm::div(rhoPhi, U)
+  + turbulence->divDevRhoReff(U)
+ ==
+    fvOptions(rho, U)
+);
+```
+
+### การใช้งานระบบส่งกำลัง (Powertrain Applications)
+
+#### **การเผาไหม้ในเครื่องยนต์ (Engine Combustion)**
+- การสร้างแบบจำลอง **กระบวนการภายในกระบอกสูบ** (in-cylinder processes)
+- การวิเคราะห์ **พลศาสตร์การฉีดเชื้อเพลิง** (fuel spray dynamics)
+- การคาดการณ์ **การก่อตัวของมลพิษ** (emission formation)
+
+#### **ระบบไอเสีย (Exhaust Systems)**
+- การวิเคราะห์การไหลผ่าน **ท่อร่วมไอเสีย** (exhaust manifolds)
+- การเพิ่มประสิทธิภาพ **ตัวเร่งปฏิกิริยา** (catalytic converters)
+- การออกแบบ **หม้อพักไอเสีย** (mufflers) เพื่อลดแรงดันย้อนกลับ
+
+#### **การระบายความร้อนรถยนต์ไฟฟ้า (Electric Vehicle Cooling)**
+| ระบบ | การประยุกต์ใช้ | ความท้าทายหลัก |
+|-------|----------------|------------------|
+| **ระบบการจัดการความร้อนแบตเตอรี่** | การรักษาอุณหภูมิแบตเตอรี่ที่เหมาะสม | การกระจายความร้อนอย่างสม่ำเสมอ |
+| **การระบายความร้อนอุปกรณ์อิเล็กทรอนิกส์กำลัง** | การควบคุมอุณหภูมิคอนเวอร์เตอร์และอินเวอร์เตอร์ | ความหนาแน่นของอุณหภูมิสูง |
+| **การระบายความร้อนมอเตอร์** | การทำความเย็นมอเตอร์ไฟฟ้าและสตาร์เตอร์ | การจัดการความร้อนจากการสูญเสียประสิทธิภาพ |
+
+## ✈️ วิศวกรรมการบินและอวกาศ
+
+### พลศาสตร์อากาศภายนอก (External Aerodynamics)
+
+OpenFOAM เป็นเครื่องมือสำคัญในการออกแบบอากาศยานสำหรับการวิเคราะห์ **ปรากฏการณ์พลศาสตร์อากาศที่ซับซ้อน**
+
+#### **การไหลแบบ Transonic และ Supersonic**
+
+การจำลองการไหลความเร็วสูงแบบอัดตัวได้ (compressible flow) โดยใช้ Solver แบบอิงความหนาแน่น (density-based solvers)
+
+**สมการ Navier-Stokes แบบอัดตัวได้:**
+
+**สมการต่อเนื่อง:**
+$$\frac{\partial \rho}{\partial t} + \frac{\partial}{\partial x_i}(\rho \mathbf{u}_i) = 0$$
+
+**สมการโมเมนตัม:**
+$$\frac{\partial}{\partial t}(\rho \mathbf{u}_i) + \frac{\partial}{\partial x_j}(\rho \mathbf{u}_i \mathbf{u}_j) = -\frac{\partial p}{\partial x_i} + \frac{\partial \boldsymbol{\tau}_{ij}}{\partial x_j} + \rho \mathbf{f}_i$$
+
+โดยที่:
+- $\rho$ = ความหนาแน่น
+- $\mathbf{u}_i$ = ความเร็วในทิศทาง $i$
+- $p$ = ความดัน
+- $\boldsymbol{\tau}_{ij}$ = เทนเซอร์ความเครียดฉับพลัน
+- $\mathbf{f}_i$ = แรงภายนอกต่อหน่วยมวล
+
+[Diagram: การไหลแบบ Transonic รอบปีกอากาศยานแสดงช่วงความเร็วเหนือเสียงและแรงกระตุ้นคลื่น]
+
+#### **ประเภทการวิเคราะห์พลศาสตร์อากาศภายนอก**
+
+| ประเภทการวิเคราะห์ | ความเร็วการไหล | Solver ที่ใช้ | ความท้าทาย |
+|---------------------|------------------|------------------|-------------|
+| **Subsonic** | M < 0.3 | incompressible solvers | การจัดการชั้นขอบเขต |
+| **Transonic** | 0.3 < M < 1.0 | compressible solvers | ปรากฏการณ์ shock waves |
+| **Supersonic** | M > 1.0 | density-based solvers | การวิเคราะห์ expansion fans |
+| **Hypersonic** | M > 5.0 | special high-Mach solvers | ผลกระทบความร้อนสูง |
+
+### ระบบขับเคลื่อน (Propulsion Systems)
+
+#### **การวิเคราะห์คอมเพรสเซอร์และเทอร์ไบน์**
+- การใช้ **ระเบียบวิธีกรอบอ้างอิงหมุน** (rotating reference frame)
+- การวิเคราะห์การไหลแบบ 3 มิติผ่านใบพัด
+- การปรับแต่งมุมใบพัดเพื่อประสิทธิภาพสูงสุด
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Rotating reference frame setup
+const dimensionedVector& Omega = rotatingZone.Omega();
+volVectorField Fcent = Omega ^ (Omega ^ mesh.C());
+volVectorField Fcor = 2.0*Omega ^ U;
+
+// Add source terms to momentum equation
+UEqn += Fcent + Fcor;
+```
+
+### การใช้งานในอวกาศ (Space Applications)
+
+#### **การวิเคราะห์ยานกลับเข้าสู่ชั้นบรรยากาศ**
+- การจำลองการไหลแบบ **Hypersonic** ที่ความเร็วสูงมาก
+- การวิเคราะห์ **การออกแบบระบบป้องกันความร้อน** (thermal protection system)
+- การศึกษาปฏิกิริยาเคมีในสภาพอุณหภูมิสูง
+
+## 🧪 การแปรรูปทางเคมี
+
+### การออกแบบเครื่องปฏิกรณ์ (Reactor Design)
+
+OpenFOAM มีความสามารถขั้นสูงสำหรับการวิเคราะห์ **เครื่องปฏิกรณ์เคมี** และ **กระบวนการทางเคมี**
+
+#### **การปฏิบัติการผสม (Mixing Operations)**
+
+การวิเคราะห์การผสมแบบ Laminar และ Turbulent ในถังผสมและเครื่องผสมแบบสถิต
+
+**สมการการขนส่งสาร:**
+$$\frac{\partial (\rho Y_k)}{\partial t} + \nabla \cdot (\rho \mathbf{u} Y_k) = -\nabla \cdot \mathbf{J}_k + \dot{\omega}_k$$
+
+โดยที่:
+- $Y_k$ = เศษมวลของสาร $k$
+- $\mathbf{J}_k$ = ฟลักซ์การแพร่ (diffusion flux)
+- $\dot{\omega}_k$ = อัตราการเกิดปฏิกิริยา (reaction rate)
+
+[Diagram: การไหลแบบวนภายในถังผสมแสดงโซนที่มีการผสมที่ดีและโซนที่มีการผสมไม่ดี]
+
+#### **ประเภทเครื่องปฏิกรณ์เคมี**
+
+| ประเภทเครื่องปฏิกรณ์ | ลักษณะเฉพาะ | การประยุกต์ OpenFOAM |
+|-----------------------|---------------|---------------------|
+| **Plug Flow Reactor (PFR)** | การไหลแบบเส้นตรง ไม่มีการผสมในแนวราน | scalarTransportFoam |
+| **Continuous Stirred Tank Reactor (CSTR)** | การผสมแบบสมบูรณ์ | reactingFoam |
+| **Packed Bed Reactor** | การไหลผ่านตัวกลางเม็ด | porousMultiphaseFoam |
+| **Fluidized Bed Reactor** | การไหลแบบหลายเฟส | multiphaseEulerFoam |
+
+### ความปลอดภัยและข้อกำหนดด้านสิ่งแวดล้อม
+
+#### **การวิเคราะห์ความปลอดภัยจากการระเบิด**
+- การวิเคราะห์ **การลุกไหม้อย่างรวดเร็ว** (deflagration) และ **การระเบิด** (detonation)
+- การประเมิน **รัศมีความเสียหาย** จากการระเบิด
+- การออกแบบ **ระบบป้องกันการระเบิด** สำหรับโรงงาน
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Explosion model setup
+volScalarField flameSpeed
+(
+    IOobject
+    (
+        "flameSpeed",
+        runTime.timeName(),
+        mesh,
+        IOobject::READ_IF_PRESENT,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("flameSpeed", dimVelocity, 2.0)
+);
+
+// Reacting species transport
+fvScalarMatrix YiEqn
+(
+    fvm::ddt(rho, Yi)
+  + fvm::div(rhoPhi, Yi)
+ ==
+    fvm::laplacian(turbulence->muEff()/Sct, Yi)
+  + chemistry.RR(Yi)
+);
+```
+
+## 🌡️ การออกแบบ HVAC
+
+### การระบายอากาศในอาคาร (Building Ventilation)
+
+OpenFOAM ถูกนำไปใช้อย่างกว้างขวางในการออกแบบระบบ **ทำความร้อน การระบายอากาศ และเครื่องปรับอากาศ** (HVAC)
+
+#### **แบบจำลองความปั่นป่วน $k$-$\epsilon$ สำหรับการไหลของอากาศภายในอาคาร**
+
+$$\frac{\partial (\rho k)}{\partial t} + \frac{\partial}{\partial x_i}(\rho k \mathbf{u}_i) = \frac{\partial}{\partial x_j}\left[\left(\mu + \frac{\mu_t}{\sigma_k}\right)\frac{\partial k}{\partial x_j}\right] + P_k - \rho \epsilon$$
+
+โดยที่:
+- $k$ = พลังงานจลน์การปั่นป่วน
+- $\epsilon$ = อัตราการสลายตัวของพลังงานจลน์
+- $P_k$ = การผลิตพลังงานจลน์จากการเฉือน
+- $\sigma_k$ = ค่าคงที่ Prandtl สำหรับ $k$
+- $\mu_t$ = ความหนืดจากการปั่นป่วน
+
+[Diagram: การไหลของอากาศภายในห้องแสดงรูปแบบการกระจายความร้อนและคุณภาพอากาศ]
+
+#### **ประเภทระบบระบายอากาศ**
+
+| ระบบระบายอากาศ | หลักการทำงาน | ประสิทธิภาพพลังงาน | การประยุกต์ OpenFOAM |
+|-------------------|---------------|---------------------|---------------------|
+| **Displacement Ventilation** | การไหลแบบแบ่งชั้นจากล่างขึ้นบน | สูง | buoyantBoussinesqSimpleFoam |
+| **Mixing Ventilation** | การผสมอากาศแบบสมบูรณ์ | ปานกลาง | incompressible solvers |
+| **Natural Ventilation** | การไหลที่ขับเคลือนด้วยแรงลอยตัว | สูงมาก | buoyancyFoam |
+| **Underfloor Air Distribution** | การส่งอากาศจากใต้พื้น | สูง | specialized CFD models |
+
+### ประสิทธิภาพอุปกรณ์ HVAC
+
+#### **การวิเคราะห์เครื่องแลกเปลี่ยนความร้อน**
+
+| ประเภทเครื่องแลกเปลี่ยน | การประยุกต์ OpenFOAM | ปัจจัยที่สำคัญ |
+|------------------------|---------------------|-------------------|
+| **Shell-and-tube** | chtMultiRegionFoam | การไหลข้ามท่อ การถ่ายเทความร้อน |
+| **Plate heat exchanger** | multiRegionFoam | พื้นที่ผิว ความต้านทานการไหล |
+| **Finned heat exchanger** | conjugateHeatFoam | การถ่ายเทความร้อนแบบขยายพื้นที่ |
+
+## 🏥 วิศวกรรมชีวการแพทย์
+
+### การใช้งานระบบหัวใจและหลอดเลือด (Cardiovascular Applications)
+
+OpenFOAM ถูกนำไปใช้เพิ่มขึ้นในการวิจัย **ชีวการแพทย์** และ **การพัฒนาอุปกรณ์ทางการแพทย์**
+
+#### **การจำลองการไหลของเลือด (Blood Flow Simulation)**
+
+การวิเคราะห์การไหลแบบเป็นจังหวะ (pulsatile flow) ในหลอดเลือดโดยใช้ **แบบจำลองของไหลที่ไม่ใช่นิวตัน** (non-Newtonian fluid models)
+
+**แบบจำลองความหนืดที่ไม่ใช่นิวตัน:**
+$$\boldsymbol{\tau} = 2\mu(\dot{\gamma})\mathbf{D}$$
+
+โดยที่:
+- $\boldsymbol{\tau}$ = เทนเซอร์ความเครียดฉับพลัน
+- $\mu(\dot{\gamma})$ = ความหนืดที่ขึ้นอยู่กับอัตราการเฉือน
+- $\mathbf{D}$ = เทนเซอร์อัตราการหดตัว
+
+[Diagram: การไหลของเลือดในหลอดเลือดโป่งพองแสดงพื้นที่ที่เค้นเฉือนต่ำสูง]
+
+#### **การประยุกต์ใช้งานทางการแพทย์**
+
+| แอปพลิเคชัน | วัตถุประสงค์ | ความท้าทาย |
+|--------------|----------------|--------------|
+| **การไหลในหัวใจและหลอดเลือด** | การวิเคราะห์โรคหัวใจและหลอดเลือด | การจำลองการไหลแบบเป็นจังหวะ |
+| **ลิ้นหัวใจเทียม** | การออกแบบและพัฒนาลิ้นหัวใจเทียม | การวิเคราะห์ FSI |
+| **การวินิจฉัยโรค** | การวิเคราะห์การไหลเพื่อการวินิจฉัย | ความต้องการความเร็วสูง |
+| **การผ่าตัด** | การวางแผนการผ่าตัด | ความต้องการความแม่นยำสูง |
+
+### ระบบทางเดินหายใจ (Respiratory System)
+
+#### **การไหลในทางเดินหายใจ**
+- การวิเคราะห์การไหลของอากาศผ่าน **โพรงจมูกและต้นไม้หลอดลม**
+- การเพิ่มประสิทธิภาพ **การนำส่งยา** (drug delivery optimization)
+- การสร้างแบบจำลอง **โรคทางเดินหายใจ**
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Non-Newtonian blood flow model
+const volScalarField& muEff = fluid.muEff();
+volVectorField U
+(
+    IOobject
+    (
+        "U",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+// Momentum equation for blood flow
+fvVectorMatrix UEqn
+(
+    fvm::ddt(rho, U)
+  + fvm::div(rhoPhi, U)
+ ==
+    fvm::laplacian(muEff, U)
+  - fvc::grad(p)
+);
+```
+
+## 🌍 วิศวกรรมสิ่งแวดล้อม
+
+### การบำบัดน้ำ (Water Treatment)
+
+OpenFOAM มีความสามารถสำหรับ **การบำบัดน้ำ** ในกระบวนการต่างๆ:
+
+#### **ระบบเติมอากาศ (Aeration Systems)**
+- การวิเคราะห์ **พลศาสตร์ของฟองอากาศ** (bubble plume dynamics)
+- การเพิ่มประสิทธิภาพ **การถ่ายเทออกซิเจน** (oxygen transfer efficiency)
+
+#### **การตกตะกอน (Sedimentation)**
+การวิเคราะห์การแยกของแข็ง-ของเหลวในถังตกตะกอนโดยใช้ **แบบจำลองการไหลแบบหลายเฟส**
+
+**สมการหลายเฟสสำหรับการตกตะกอน:**
+$$\frac{\partial (\alpha_l \rho_l)}{\partial t} + \nabla \cdot (\alpha_l \rho_l \mathbf{u}_l) = 0$$
+
+โดยที่:
+- $\alpha_l$ = เศษปริมาตรของเฟสของเหลว
+- $\rho_l$ = ความหนาแน่นของเฟสของเหลว
+- $\mathbf{u}_l$ = ความเร็วของเฟสของเหลว
+
+[Diagram: ถังตกตะกอนแสดงการไหลแบบลำดับชั้นและพื้นที่เก็บตะกอน]
+
+### พลังงานหมุนเวียน (Renewable Energy)
+
+#### **การเลือกที่ตั้งฟาร์มกังหันลม**
+- การวิเคราะห์ **การไหลของลมเหนือภูมิประเทศที่ซับซ้อน**
+- การเพิ่มประสิทธิภาพ **การวางตำแหน่งกังหันลม**
+- การประเมิน **ผลกระทบจาก wake effects**
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Wind farm modeling with actuator disk
+const volScalarField& Cp = turbineCoeffs.Cp();
+const volScalarField& Ct = turbineCoeffs.Ct();
+
+// Add momentum source for turbine
+volVectorField turbineSource
+(
+    IOobject
+    (
+        "turbineSource",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedVector("turbineSource", dimensionSet(1, -2, -2, 0, 0, 0, 0), vector::zero)
+);
+
+// Apply thrust coefficient
+turbineSource -= 0.5 * rho_ * Ct * mag(U) * U * turbineMask;
+```
+
+## การใช้งานข้ามอุตสาหกรรม (Cross-Industry Applications)
+
+### การเชื่อมโยงหลายฟิสิกส์ (Multiphysics Coupling)
+
+หลายอุตสาหกรรมได้รับประโยชน์จาก **ความสามารถหลายฟิสิกส์** ของ OpenFOAM:
+
+#### **ประเภทการเชื่อมโยงหลายฟิสิกส์**
+
+| ประเภทการเชื่อมโยง | วัตถุประสงค์ | ตัวอย่างแอปพลิเคชัน |
+|---------------------|----------------|---------------------|
+| **Fluid-Structure Interaction (FSI)** | การวิเคราะห์ของไหลและโครงสร้างร่วมกัน | ปีกอากาศยาน ลิ้นหัวใจ |
+| **Conjugate Heat Transfer (CHT)** | การไหลของของไหลและการนำความร้อนพร้อมกัน | ระบบระบายความร้อน อุปกรณ์อิเล็กทรอนิกส์ |
+| **Electromagnetics + Heat** | การวิเคราะห์แม่เหล็กไฟฟ้าและความร้อน | การให้ความร้อนด้วยการเหนี่ยวนำ |
+| **Chemistry + Fluid** | ปฏิกิริยาเคมีในการไหลของของไหล | ห้องเผาไหม้ ระบบไอเสีย |
+
+### ขั้นตอนวิเธีการปฏิสัมพันธ์ระหว่างของไหลกับโครงสร้าง (FSI)
+
+1. **การเตรียมเรขาคณิต**
+   - สร้าง mesh สำหรับโดเมนของไหล
+   - สร้าง mesh สำหรับโดเมนของแข็ง
+   - กำหนด interface ระหว่างทั้งสองโดเมน
+
+2. **การแก้สมการของไหล**
+   - คำนวณแรงดันและแรงเฉือนบน interface
+   - แก้สมการ Navier-Stokes ด้วย OpenFOAM
+
+3. **การถ่ายโอนโหลดไปยังโครงสร้าง**
+   - แปลงแรงจาก CFD เป็นโหลดสำหรับ FEA
+   - ส่งข้อมูลผ่าน interface coupling
+
+4. **การแก้สมการโครงสร้าง**
+   - คำนวณการเสียรูปและความเค้น
+   - อัปเดตตำแหน่ง interface
+
+5. **การอัปเดตเรขาคณิต**
+   - แก้ไข mesh ของไหลตามการเคลื่อนที่ของ interface
+   - ทำซ้ำขั้นตอน 2-5 จนกระทั่งลู่เข้า
+
+### แนวโน้มการพัฒนาและอนาคตของอุตสาหกรรม
+
+**เทคโนโลยีที่กำลังเกิดขึ้น:**
+- **Digital Twins** - การจำลองแบบเสมือนจริงของระบบอุตสาหกรรม
+- **AI/ML Integration** - การใช้เครื่องเรียนรู้เพื่อเพิ่มประสิทธิภาพการจำลอง
+- **High-Performance Computing** - การปรับปรุงประสิทธิภาพการคำนวณสำหรับปัญหาขนาดใหญ่
+- **Quantum Computing** - ความเป็นไปได้ในการแก้ปัญหา CFD ที่ซับซ้อนมาก
+
+การประยุกต์ใช้งานในอุตสาหกรรมที่ครอบคลุมนี้แสดงให้เห็นถึง **ความหลากหลายของ OpenFOAM** ในฐานะ **แพลตฟอร์ม CFD** ในภาคส่วนวิศวกรรมที่หลากหลาย โดยมอบ **ความสามารถในการจำลองที่แม่นยำ** **ปรับขนาดได้** และ **คุ้มค่า** สำหรับปัญหาการไหลของของเหลวและการถ่ายเทความร้อนที่ซับซ้อน

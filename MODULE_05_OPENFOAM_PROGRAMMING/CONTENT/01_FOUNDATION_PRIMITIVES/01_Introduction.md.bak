@@ -1,0 +1,106 @@
+# บทนำ
+
+ยินดีต้อนรับสู่พื้นฐานของการเขียนโปรแกรม OpenFOAM! ก่อนที่จะดำดิ่งสู่ CFD solvers ที่ซับซ้อนและ physical models ที่ละเอียดอ่อน เราต้องเข้าใจก่อนว่าองค์ประกอบพื้นฐานที่ OpenFOAM ใช้ในการสร้าง computational framework ทั้งหมดนั้นคืออะไร
+
+## ทำไมต้อง Redefine ประเภทข้อมูลพื้นฐานของ C++?
+
+OpenFOAM ไม่ได้ใช้ standard C++ types เช่น `int` และ `double` โดยตรง แต่จะ define  primitives ของตัวเอง: `label`, `scalar` และอื่นๆ การเลือกแบบนี้มีจุดประสงค์สำคัญ 3 ประการ:
+
+### 1. **Portability**
+การจำลอง CFD ทำงานได้บนอุปกรณ์ต่างๆ ตั้งแต่ laptop ไปจนถึง supercomputer ที่มีสถาปัตยกรรมแตกต่างกัน (32-bit vs 64-bit, single vs double precision)
+
+[Diagram: Cross-platform compatibility showing OpenFOAM primitives abstracting hardware differences]
+
+Primitives ของ OpenFOAM มี consistent behavior บนทุก platform:
+- เมื่อ compile OpenFOAM บนระบบต่างๆ underlying primitive types จะปรับเปลี่ยนโดยอัตโนมัติ
+- เพื่อ optimal representation สำหรับ hardware นั้นๆ 
+- ทำให้ CFD code ของคุณทำงานเหมือนเดิมไม่ว่าจะรันบน development laptop หรือ production cluster
+
+### 2. **Precision Control**
+ปัญหา CFD ที่แตกต่างกันต้องการ numerical precision ที่แตกต่างกัน
+
+`scalar` type สามารถ configure เป็น:
+- `float` (single precision)
+- `double` (double precision) 
+- `long double` (extended precision)
+
+| Precision Level | Use Case | Performance Impact |
+|-----------------|----------|-------------------|
+| Single | Rapid prototyping, educational purposes | Faster computation, less memory |
+| Double | High-fidelity simulations, production | Slower but more accurate |
+| Extended | Research requiring extreme accuracy | Slowest but highest precision |
+
+### 3. **Physics Safety**
+Primitives ของ OpenFOAM บังคับให้มี dimensional consistency และป้องกันการดำเนินการที่ไม่มีความหมายทางฟิสิกส์
+
+**ตัวอย่างการป้องกันข้อผิดพลาด:**
+```cpp
+// การบวก pressure กับ velocity - ไม่ได้รับอนุญาต!
+volScalarField p = ...;      // [kg/(m·s²)]
+volVectorField U = ...;      // [m/s]
+volScalarField error = p + U; // Compile error: dimensional inconsistency
+```
+
+**ประโยชน์ใน CFD:**
+- ป้องกัน dimensional errors ที่นำไปสู่ simulation crashes
+- หลีกเลี่ยง physically incorrect results ที่ดูเหมือนสมเหตุสมผล
+- Type system ทำหน้าที่เป็น first line of defense ต่อ implementation mistakes
+
+## ขอบเขตของบทนี้
+
+เราจะสำรวจ seven core primitive types ที่เป็นพื้นฐานของการเขียนโปรแกรม OpenFOAM:
+
+### **Basic Primitives**
+1. **`label`** - จำนวนเต็มสำหรับ indexing
+2. **`scalar`** - จำนวนจริงสำหรับค่าฟิสิกส์  
+3. **`word`** - ข้อความสำหรับ identifiers
+
+### **Advanced Primitives**
+4. **`dimensionedType`** - ประเภทข้อมูลพร้อมหน่วย
+5. **`autoPtr`**, **`tmp`** - Smart pointers สำหรับ memory management
+6. **`List`** - Containers สำหรับ data storage
+
+[Diagram: Pyramid showing primitive types hierarchy with basic at foundation and advanced at top]
+
+## แนวทางการเรียนรู้
+
+แต่ละหัวข้อตาม **"Analogy → Concept → Code"** teaching methodology:
+
+### 🔍 **High-Level Concept**
+- อุปมา analogies ในโลกจริงเพื่อสร้าง intuition
+
+### ⚙️ **Key Mechanisms** 
+- คำอธิบายเชิงเทคนิคเกี่ยวกับวิธีการทำงาน
+
+### 🧠 **Under the Hood**
+- การศึกษาลึกถึง implementation details
+
+### ⚠️ **Common Pitfalls**
+- ข้อผิดพลาดที่ควรหลีกเลี่ยง
+
+### 🎯 **Engineering Benefits**
+- ทำไม OpenFOAM ถึงเลือกการออกแบบเหล่านี้
+
+### Physics Connection
+- วิธีที่ primitives เหล่านี้ช่วยให้การจำลอง CFD ที่แม่นยำเป็นไปได้
+
+## การเชื่อมโยงกับงาน CFD จริง
+
+พื้นฐานที่เราสร้างขึ้นที่นี่จะสนับสนุนงานของคุณโดยตรงกับ:
+
+| CFD Application | Primitive Type | บทบาท |
+|-----------------|----------------|--------|
+| **Mesh generation** | `label` | จัดการ cell/face indexing |
+| **Field computations** | `scalar` | แทน physical quantities (pressure, temperature) |
+| **Memory management** | `autoPtr`, `tmp` | ป้องกัน resource leaks |
+| **Data storage** | `List` | จัดระเบียบ computational results |
+
+แนวทางที่มีโครงสร้างนี้ทำให้คุณไม่เพียงแต่เข้าใจ *ว่า* types เหล่านี้คืออะไร แต่ยังเข้าใจ *ทำไม* พวกมันถึงมีอยู่ และ *อย่างไร* พวกมันจึงช่วยให้ CFD simulations ที่มั่นคงและแม่นยำเป็นไปได้
+
+**การเชี่ยวชาญ fundamentals เหล่านี้จะทำให้คุณพร้อมที่จะ:**
+- เข้าใจและปรับเปลี่ยน OpenFOAM code ที่ซับซ้อนมากขึ้นด้วยความมั่นใจ
+- สร้าง CFD solvers และ utilities ของตัวเอง
+- แก้ไขปัญหาในการจำลอง CFD ที่ซับซ้อน
+- พัฒนา physics models ใหม่ๆ สำหรับการวิจัย
+
+Primitives เหล่านี้คือพื้นฐานทั้งหมดที่ OpenFOAM's sophisticated CFD capabilities ถูกสร้างขึ้นมา

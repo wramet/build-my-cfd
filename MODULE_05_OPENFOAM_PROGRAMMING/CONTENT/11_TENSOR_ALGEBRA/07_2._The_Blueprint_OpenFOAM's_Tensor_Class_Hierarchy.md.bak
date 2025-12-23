@@ -1,0 +1,217 @@
+# 2. แบบแผน: ลำดับชั้นคลาส Tensor ของ OpenFOAM
+
+ลำดับชั้นคลาส Tensor ของ OpenFOAM เป็นระบบที่ซับซ้อนสำหรับจัดการเทนเซอร์ทางคณิตศาสตร์ โดยรักษาประสิทธิภาพการคำนวณผ่าน **Template Metaprogramming**
+
+## พื้นฐาน Template และโครงสร้างการสืบทอด
+
+ลำดับชั้นของเทนเซอร์เริ่มจากคลาส Template พื้นฐาน `Template<Cmpt>` โดยที่ `Cmpt` แทน component type (โดยทั่วไปคือ `scalar`, `float`, หรือ `double`)
+
+[Diagram: ลำดับชั้นการสืบทอดของ Tensor ใน OpenFOAM]
+
+### ประเภทของเทนเซอร์พื้นฐาน
+
+| ประเภทเทนเซอร์ | จำนวน Components | ลำดับชั้นการสืบทอด | การใช้หน่วยความจำ |
+|----------------|------------------|----------------------|------------------|
+| **`tensor`** | 9 components อิสระ | `MatrixSpace<tensor<Cmpt>, Cmpt, 3, 3>` | 9 × sizeof(Cmpt) bytes |
+| **`symmTensor`** | 6 components อิสระ | `VectorSpace<symmTensor<Cmpt>, Cmpt, 6>` | 6 × sizeof(Cmpt) bytes |
+| **`sphericalTensor`** | 1 component อิสระ | `VectorSpace<sphericalTensor<Cmpt>, Cmpt, 1>` | 1 × sizeof(Cmpt) bytes |
+
+### สถาปัตยกรรมเทนเซอร์แต่ละประเภท
+
+#### 1. เทนเซอร์ทั่วไป (General Tensor)
+คลาส `tensor` สืบทอดจาก `MatrixSpace<tensor<Cmpt>, Cmpt, 3, 3>` โดยให้การแสดงเมทริกซ์ 3×3 แบบเต็ม
+
+- **ความยืดหยุ่น**: รองรับการดำเนินการที่ต้องการเทนเซอร์แบบเต็ม
+- **การประยุกต์ใช้**: Deformation gradients, stress tensors ที่มี shear components
+
+#### 2. เทนเซอร์สมมาตร (Symmetric Tensor)
+คลาส `symmTensor` สืบทอดจาก `VectorSpace<symmTensor<Cmpt>, Cmpt, 6>` โดยใช้คุณสมบัติทางคณิตศาสตร์:
+$$T_{ij} = T_{ji}$$
+
+- **การเพิ่มประสิทธิภาพ**: ลดการใช้หน่วยความจำลง **33%**
+- **การประยุกต์ใช้**: Reynolds stress tensor, symmetric stress tensors
+
+#### 3. เทนเซอร์ทรงกลม (Spherical Tensor)
+คลาส `sphericalTensor` แทนเทนเซอร์ไอโซทรอปิกที่สัดส่วนกับ identity matrix:
+$$\lambda I$$
+
+- **การเพิ่มประสิทธิภาพ**: ลดการใช้หน่วยความจำลง **89%**
+- **การประยุกต์ใช้**: ฟิลด์ความดัน, คุณสมบัติวัสดุไอโซทรอปิก
+
+## การจัดระเบียบ Component และรูปแบบการเข้าถึง
+
+### 1. โครงสร้างเทนเซอร์ทั่วไป
+
+#### การจัดเก็บแบบ Row-major
+คลาส `tensor` ตามแบบแผนการจัดเก็บแบบ row-major ที่สอดคล้องกับการจัดวางเมทริกซ์ C++:
+
+```cpp
+tensor T(1, 2, 3, 4, 5, 6, 7, 8, 9);  
+// Layout: XX, XY, XZ, YX, YY, YZ, ZX, ZY, ZZ
+```
+
+#### ฟังก์ชันการเข้าถึง Component
+
+```cpp
+// แถวที่ 1
+scalar Txx = T.xx();  // Access XX component
+scalar Txy = T.xy();  // Access XY component  
+scalar Txz = T.xz();  // Access XZ component
+
+// แถวที่ 2
+scalar Tyx = T.yx();  // Access YX component
+scalar Tyy = T.yy();  // Access YY component
+scalar Tyz = T.yz();  // Access YZ component
+
+// แถวที่ 3
+scalar Tzx = T.zx();  // Access ZX component
+scalar Tzy = T.zy();  // Access ZY component
+scalar Tzz = T.zz();  // Access ZZ component
+```
+
+### 2. โครงสร้างเทนเซอร์สมมาตร
+
+#### การจัดเก็บ 6 Components อิสระ
+คลาส `symmTensor` จัดเก็บตามลำดับ: **XX, XY, XZ, YY, YZ, ZZ**
+
+```cpp
+symmTensor S(1, 2, 3, 4, 5, 6);  
+// Independent components: XX=1, XY=2, XZ=3, YY=4, YZ=5, ZZ=6
+// Implied components: YX=2, ZX=3, ZY=5
+```
+
+#### การเข้าถึงทั้งแบบจัดเก็บและคำนวณ
+
+```cpp
+// Stored components
+scalar Sxx = S.xx();  // Direct access
+scalar Sxy = S.xy();  // Direct access  
+scalar Sxz = S.xz();  // Direct access
+scalar Syy = S.yy();  // Direct access
+scalar Syz = S.yz();  // Direct access
+scalar Szz = S.zz();  // Direct access
+
+// Implicitly computed (symmetry)
+scalar Syx = S.yx();  // Equal to S.xy()
+scalar Szx = S.zx();  // Equal to S.xz()  
+scalar Szy = S.zy();  // Equal to S.yz()
+```
+
+### 3. โครงสร้างเทนเซอร์ทรงกลม
+
+```cpp
+sphericalTensor P(2.0);  // Represents 2.0 * I
+// All diagonal = 2.0, all off-diagonal = 0.0
+```
+
+## การบูรณาการ Field Framework
+
+OpenFOAM บูรณาการ tensor types กับ field framework ผ่าน template specializations:
+
+```cpp
+typedef GeometricField<tensor, fvPatchField, volMesh> volTensorField;
+typedef GeometricField<symmTensor, fvPatchField, volMesh> volSymmTensorField;
+typedef GeometricField<sphericalTensor, fvPatchField, volMesh> volSphericalTensorField;
+```
+
+**ประโยชน์:**
+- การจัดการ boundary conditions อัตโนมัติ
+- Interpolation schemes ที่เข้ากันได้
+- Gradient operations ที่เหมาะสม
+
+## การดำเนินการทางคณิตศาสตร์
+
+### 1. การดำเนินการพื้นฐาน
+
+```cpp
+// การสร้างและการดำเนินการพื้นฐาน
+tensor T1(1, 0, 0, 0, 1, 0, 0, 0, 1);  // Identity tensor
+tensor T2(2, 1, 0, 1, 2, 1, 0, 1, 2);  // Symmetric tensor
+
+tensor T3 = T1 + T2;  // Element-wise addition
+tensor T4 = T1 * 2.0; // Scalar multiplication
+tensor T5 = T1 * T2;  // Matrix multiplication
+```
+
+### 2. การดำเนินการ Vector-Tensor
+
+```cpp
+vector v(1, 2, 3);
+tensor T(1, 2, 3, 4, 5, 6, 7, 8, 9);
+vector result = T & v;  // Tensor-vector multiplication
+```
+
+### 3. การดำเนินการเทนเซอร์เฉพาะ
+
+```cpp
+symmTensor S(1, 2, 3, 4, 5, 6);
+
+// การดำเนินการทางคณิตศาสตร์เฉพาะ
+scalar trace = tr(S);           // Trace: Sxx + Syy + Szz
+scalar determinant = det(S);    // Determinant
+tensor inverseTensor = inv(S);  // Tensor inverse
+symmTensor deviatoric = dev(S); // Deviatoric: S - (1/3)*tr(S)*I
+```
+
+## การเพิ่มประสิทธิภาพประสิทธิภาพ
+
+### การเพิ่มประสิทธิภาพหน่วยความจำ
+
+| ประเภทเทนเซอร์ | ขนาด (bytes) | การประหยัด | สัดส่วน |
+|----------------|----------------|---------------|----------|
+| `tensor` | 9 × sizeof(Cmpt) | - | 100% |
+| `symmTensor` | 6 × sizeof(Cmpt) | 3 × sizeof(Cmpt) | 67% |
+| `sphericalTensor` | 1 × sizeof(Cmpt) | 8 × sizeof(Cmpt) | 11% |
+
+### การเพิ่มประสิทธิภาพการคำนวณ
+
+```cpp
+// การคูณเทนเซอร์สมมาตร: คำนวณเฉพาะ 6 entries ที่ไม่ซ้ำกัน
+symmTensor A(1, 2, 3, 4, 5, 6);
+symmTensor B(6, 5, 4, 3, 2, 1);
+symmTensor C = A & B;  // การคูณที่เพิ่มประสิทธิภาพ
+```
+
+## บริบทการประยุกต์ใช้ทางฟิสิกส์
+
+### เทนเซอร์ทั่วไป
+- **เทนเซอร์การบิดเปลี่ยน ($\mathbf{F}$)**: อธิบายการบิดเปลี่ยนของวัสดุ
+- **เทนเซอร์การไล่ระดับความเร็ว ($\nabla\mathbf{u}$)**: อนุพันธ์ความเร็วแบบเต็ม
+- **เทนเซอร์การหมุน**: การหมุนวัตถุแข็งเกร็จทั่วไป
+
+### เทนเซอร์สมมาตร
+- **เทนเซอร์ความเครียด**: Cauchy stress, viscous stress
+- **เทนเซอร์อัตราการบิดเปลี่ยน**: ส่วนสมมาตรของการไล่ระดับความเร็ว
+- **เทนเซอร์ความเครียด Reynolds**: ส่วนประกอบความเครียดที่มีความปัวเปียน
+- **เทนเซอร์การเรียงสับเปลี่ยน**: เทนเซอร์คุณสมบัติวัสดุสมมาตร
+
+### เทนเซอร์ทรงกลม
+- **ฟิลด์ความดัน**: ส่วนประกอบความเครียดไอโซทรอปิก
+- **Identity tensor**: การดำเนินการทางคณิตศาสตร์
+- **คุณสมบัติวัสดุไอโซทรอปิก**: คุณสมบัติวัสดุที่สม่ำเสมอ
+
+## Template Metaprogramming และ Type Safety
+
+การออกแบบที่ใช้ template ให้ความปลอดภัยของประเภทตอน compile-time:
+
+```cpp
+template<class Type>
+void processTensor(const Type& tensor) {
+    if constexpr (std::is_same_v<Type, tensor>) {
+        // Process general tensor with full 9 components
+        // การประมวลผลเทนเซอร์ทั่วไปพร้อม 9 components
+    } else if constexpr (std::is_same_v<Type, symmTensor>) {
+        // Process symmetric tensor with optimized 6-component operations
+        // การประมวลผลเทนเซอร์สมมาตรพร้อมการดำเนินการ 6 components ที่เพิ่มประสิทธิภาพ
+    } else if constexpr (std::is_same_v<Type, sphericalTensor>) {
+        // Process spherical tensor with scalar operations
+        // การประมวลผลเทนเซอร์ทรงกลมพร้อมการดำเนินการสเกลาร์
+    }
+}
+```
+
+[Diagram: การจัดการ Type Safety และ Compile-time Optimization]
+
+---
+
+**สรุป**: โครงสร้างแบบลำดับชั้นของเทนเซอร์ใน OpenFOAM ให้ประสิทธิภาพการคำนวณ CFD ที่สูง ในขณะเดียวกันก็รักษาความเข้มงวดทางคณิตศาสตร์และการเพิ่มประสิทธิภาพด้านหน่วยความจำสำหรับประเภทเทนเซอร์ที่แตกต่างกันในการประยุกต์ใช้พลศาสตร์ของไหล

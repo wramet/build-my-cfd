@@ -1,0 +1,309 @@
+## 2. แบบแผน: สถาปัตยกรรมเทมเพลตและโครงสร้างการสืบทอด
+
+### **2.1 พารามิเตอร์เทมเพลตหลัก: "รหัสพันธุกรรม"**
+
+ที่หัวใจของระบบฟิลด์ของ OpenFOAM มีเทมเพลต `GeometricField` - ซึ่งเป็นหนึ่งในการออกแบบเทมเพลตที่ซับซ้อนที่สุดในพลศาสตร์ของไหลเชิงคำนวณ เทมเพลตนี้แสดงถึงการสรุปความหมายขั้นสูงสุดของปริมาณทางกายภาพในการจำลอง CFD:
+
+```cpp
+template<class Type, template<class> class PatchField, class GeoMesh>
+class GeometricField : public DimensionedField<Type, GeoMesh>
+```
+
+พารามิเตอร์เทมเพลตทั้งสามนี้สร้างระบบข้อกำหนดที่สมบูรณ์ที่ตอบคำถามพื้นฐานของการแสดงฟิลด์ทางกายภาพ:
+
+#### **พารามิเตอร์ Type: ปริมาณทางกายภาพ**
+
+พารามิเตอร์ `Type` กำหนด **สิ่งที่** เรากำลังแสดงถึง ชนิด C++ พื้นฐานนี้กำหนดลักษณะทางคณิตศาสตร์ของฟิลด์:
+
+- `scalar`: ปริมาณค่าเดียวเช่น อุณหภูมิ ความดัน ความหนาแน่น
+- `vector`: ปริมาณสามมิติเช่น ความเร็ว โมเมนตัม ตำแหน่ง
+- `tensor`: เทนเซอร์อันดับสองเช่น ความเค้น อัตราการไหล เมทริกซ์การหมุน
+- `symmTensor`: เทนเซอร์สมมาตรสำหรับความเค้น/ความเครียดสมมาตร
+- `sphericalTensor`: เทนเซอร์ทรงกลมสำหรับคุณสมบัติไอโซทรอปิก
+
+[Diagram: การแสดงภาพประเภทฟิลด์ที่แตกต่างกัน (scalar, vector, tensor) บนเมช CFD]
+
+ระบบชนิดนี้จะรับประกันความสม่ำเสมอทางคณิตศาสตร์ตลอดการจำลอง - คุณไม่สามารถบวกฟิลด์เวคเตอร์กับฟิลด์สกาลาร์โดยไม่ตั้งใจได้
+
+#### **พารามิเตอร์ PatchField: พฤติกรรมขอบเขต**
+
+พารามิเตอร์เทมเพลต `PatchField` กำหนด **วิธี** ที่ฟิลด์มีพฤติกรรมที่ขอบเขต ซึ่งเป็นสิ่งสำคัญสำหรับ CFD ที่ซึ่งเงื่อนไขขอบเขตมักขับเคลื่อนฟิสิกส์:
+
+```cpp
+template<class Type>
+class fvPatchField {
+    virtual void evaluate(const Pstream::commsTypes commsType) = 0;
+    virtual void operator=(const fvPatchField<Type>&) = 0;
+};
+```
+
+ชนิด `PatchField` ทั่วไป ได้แก่:
+
+- `fvPatchField`: เงื่อนไขขอบเขตปริมาตรจำกัด (Dirichlet, Neumann, Robin)
+- `pointPatchField`: เงื่อนไขขอบเขตยึดตามจุดสำหรับการเปลี่ยนรูปเมช
+- `fvsPatchField`: เงื่อนไขขอบเขตฟิลด์พื้นผิวสำหรับการคำนวณฟลักซ์
+
+#### **พารามิเตอร์ GeoMesh: โดเมนเชิงพื้นที่**
+
+พารามิเตอร์ `GeoMesh` กำหนด **ตำแหน่งที่** ค่าฟิลด์ตั้งอยู่ภายในโดเมนการคำนวณ:
+
+```cpp
+class volMesh {
+    // ค่าฟิลด์ที่จุดศูนย์ถ่วงของเซลล์
+    // ตำแหน่งหลักสำหรับการเปลี่ยนรูปปริมาตรจำกัด
+};
+
+class surfaceMesh {
+    // ค่าฟิลด์ที่จุดศูนย์ถ่วงของหน้า
+    // ตำแหน่งตามธรรมชาติสำหรับการคำนวณฟลักซ์
+};
+
+class pointMesh {
+    // ค่าฟิลด์ที่จุดเมช
+    // ใช้สำหรับการเคลื่อนที่ของเมชและการแปลงค่า
+};
+```
+
+| พารามิเตอร์ | ความหมายทางกายภาพ | ค่าเทียบเท่า CFD | ตัวอย่าง |
+|-----------|------------------|----------------|---------|
+| `Type` | **สิ่งที่** เราวัด | ชนิดข้อมูลฟิลด์ | `scalar` (อุณหภูมิ), `vector` (ความเร็ว) |
+| `PatchField` | **วิธี** ขอบเขตมีพฤติกรรม | ชนิดเงื่อนไขขอบเขต | `fvPatchField` (ปริมาตรจำกัด), `pointPatchField` (จุด) |
+| `GeoMesh` | **ตำแหน่งที่** การวัดอยู่ | ชนิดเรขาคณิตเมช | `volMesh` (เซลล์), `surfaceMesh` (หน้า), `pointMesh` (จุด) |
+
+### **2.2 ลำดับชั้นการสืบทอด: "ต้นไม้ตระกูล"**
+
+คลาส `GeometricField` สืบทอดมาจากลำดับชั้นที่สร้างขึ้นอย่างระมัดระวังซึ่งสร้างฟังก์ชันการทำงานเป็นชั้นๆ:
+
+[Diagram: แผนภาพแสดงลำดับชั้นการสืบทอดของ GeometricField จาก Field ไปจนถึงคลาสสมบูรณ์]
+
+```
+Field<Type> (คอนเทนเนอร์ข้อมูลดิบ)
+    ↑
+regIOobject (ความสามารถ I/O)
+    ↑
+DimensionedField<Type, GeoMesh> (หน่วยทางกายภาพ + การอ้างอิงเมช)
+    ↑
+GeometricField<Type, PatchField, GeoMesh> (ฟิลด์สมบูรณ์พร้อมขอบเขต)
+    |
+    ├── internalField_ (ค่าที่จุดศูนย์ถ่วงเซลล์)
+    ├── boundaryField_ (ค่าหน้าขอบเขต)
+    ├── timeIndex_ (การติดตามเวลา)
+    └── การอ้างอิงเมช (บริบทเชิงพื้นที่)
+```
+
+#### **ชั้นรากฐาน: Field<Type>**
+
+คลาสฐาน `Field<Type>` ให้การจัดเก็บข้อมูลดิบและการดำเนินการทางคณิตศาสตร์พื้นฐาน:
+
+```cpp
+template<class Type>
+class Field : public List<Type> {
+public:
+    // การดำเนินการทางคณิตศาสตร์
+    Field<Type>& operator=(const Field<Type>&);
+    Field<Type>& operator+=(const Field<Type>&);
+    Field<Type>& operator*=(const scalarField&);
+    
+    // การดำเนินการลดลง
+    Type sum() const;
+    Type max() const;
+    Type min() const;
+};
+```
+
+#### **ชั้น I/O: regIOobject**
+
+คลาส `regIOobject` เพิ่มความสามารถ I/O ไฟล์อัตโนมัติโดยใช้ระบบรีจิสทรีออบเจกต์ของ OpenFOAM:
+
+```cpp
+class regIOobject : public IOobject {
+    // ฟังก์ชันการอ่าน/เขียนอัตโนมัติ
+    bool readIfModified();
+    bool writeObject(IOstream::streamFormat fmt) const;
+    
+    // การจัดการรีจิสทรี
+    void checkOut();
+    void rename(const word& newName);
+};
+```
+
+#### **ชั้นทางกายภาพ: DimensionedField**
+
+คลาส `DimensionedField` เพิ่มมิติทางกายภาพและการเชื่อมโยงเมช:
+
+```cpp
+template<class Type, class GeoMesh>
+class DimensionedField : public Field<Type>, public regIOobject, public GeoMesh {
+    dimensionSet dimensions_;  // มิติทางกายภาพ (M, L, T, θ, I, N, J)
+    const GeoMesh& mesh_;      // การอ้างอิงถึงเมช
+    
+public:
+    const dimensionSet& dimensions() const { return dimensions_; }
+    const GeoMesh& mesh() const { return mesh_; }
+};
+```
+
+#### **ชั้นสมบูรณ์: GeometricField**
+
+คลาส `GeometricField` สุดท้ายเพิ่มการจัดการขอบเขตและการติดตามเชิงเวลา:
+
+```cpp
+template<class Type, template<class> class PatchField, class GeoMesh>
+class GeometricField : public DimensionedField<Type, GeoMesh> {
+    DimensionedField<Type, GeoMesh> internalField_;    // ค่าที่จุดศูนย์ถ่วงเซลล์
+    FieldField<PatchField, Type> boundaryField_;       // เงื่อนไขขอบเขต
+    label timeIndex_;                                  // การติดตามเวลา
+    
+public:
+    // การเข้าถึงฟิลด์ขอบเขต
+    const Boundary& boundaryField() const { return boundaryField_; }
+    Boundary& boundaryField() { return boundaryField_; }
+    
+    // การเข้าถึงฟิลด์ภายใน
+    const Internal& internalField() const { return internalField_; }
+    Internal& internalField() { return internalField_; }
+    
+    // การดำเนินการเชิงเวลา
+    void oldTime();
+    void writeOldTime() const;
+};
+```
+
+### **2.3 นามแฝงชนิด: "ชื่อที่ใช้งานง่าย"**
+
+OpenFOAM ให้ชุดนามแฝงชนิดที่หลากหลายซึ่งทำให้การประกาศฟิลด์เป็นไปอย่างเป็นธรรมชาติและมีความหมายทางกายภาพ:
+
+```cpp
+// Finite Volume Fields - จุดศูนย์ถ่วงเซลล์
+typedef GeometricField<scalar, fvPatchField, volMesh> volScalarField;
+typedef GeometricField<vector, fvPatchField, volMesh> volVectorField;
+typedef GeometricField<tensor, fvPatchField, volMesh> volTensorField;
+typedef GeometricField<symmTensor, fvPatchField, volMesh> volSymmTensorField;
+typedef GeometricField<sphericalTensor, fvPatchField, volMesh> volSphericalTensorField;
+
+// Surface Fields - จุดศูนย์ถ่วงหน้า
+typedef GeometricField<scalar, fvsPatchField, surfaceMesh> surfaceScalarField;
+typedef GeometricField<vector, fvsPatchField, surfaceMesh> surfaceVectorField;
+
+// Point Fields - จุดศูนย์ถ่วงจุด
+typedef GeometricField<scalar, pointPatchField, pointMesh> pointScalarField;
+typedef GeometricField<vector, pointPatchField, pointMesh> pointVectorField;
+
+// Internal Fields - สำหรับการดำเนินการทางคณิตศาสตร์
+typedef DimensionedField<scalar, volMesh> volScalarField::Internal;
+typedef DimensionedField<vector, volMesh> volVectorField::Internal;
+```
+
+แต่ละนามแฝงแสดงถึง **การตีความทางกายภาพเฉพาะ** ที่แม็ปโดยตรงกับแนวคิด CFD:
+
+#### **volScalarField: สกาลาร์ที่จุดศูนย์ถ่วงเซลล์**
+```cpp
+volScalarField p    // ฟิลด์ความดัน [Pa]
+volScalarField T    // ฟิลด์อุณหภูมิ [K]
+volScalarField rho  // ฟิลด์ความหนาแน่น [kg/m³]
+volScalarField alpha // อัตราส่วนความหนืดความปั่นป่วน [-]
+```
+
+#### **volVectorField: เวคเตอร์ที่จุดศูนย์ถ่วงเซลล์**
+```cpp
+volVectorField U       // ฟิลด์ความเร็ว [m/s]
+volVectorField g       // ฟิลด์แรงโน้มถ่วง [m/s²]
+volVectorField F       // ฟิลด์แรง [N]
+volVectorField gradP   // ไกรเดียนต์ความดัน [Pa/m]
+```
+
+#### **surfaceScalarField: ฟลักซ์ผ่านหน้า**
+```cpp
+surfaceScalarField phi        // ฟลักซ์ปริมาตร [m³/s]
+surfaceScalarField massFlux   // ฟลักซ์มวล [kg/s]
+surfaceScalarField heatFlux   // ฟลักซ์ความร้อน [W]
+```
+
+#### **Internal Fields: การดำเนินการทางคณิตศาสตร์**
+```cpp
+volScalarField::Internal deltaT   // ขนาดก้าวเวลาสำหรับการปรับ
+volVectorField::Internal gradU    // ไกรเดียนต์ความเร็วสำหรับการจำลองความปั่นป่วน
+```
+
+### **2.4 การสรุปความหมาย GeoMesh: "ตัวแม็ปตำแหน่ง"**
+
+พารามิเตอร์เทมเพลต `GeoMesh` ให้ชั้นการสรุปความหมายที่ซับซ้อนซึ่งอนุญาตให้เทมเพลตฟิลด์เดียวกันทำงานกับการกระจายตัวเชิงพื้นที่ที่แตกต่างกัน:
+
+[Diagram: การเปรียบเทียบ volMesh, surfaceMesh และ pointMesh บนเมช CFD เดียวกัน]
+
+```cpp
+template<class MESH>
+class GeoMesh {
+    const MESH& mesh_;  // การอ้างอิงถึงเมชจริง
+public:
+    typedef MESH Mesh;
+    
+    // การดำเนินการขนาด - โหลดเกินสำหรับชนิดเมชที่แตกต่างกัน
+    label size() const { return mesh_.nCells(); }  // หรือ nFaces(), nPoints()
+    
+    // การดำเนินการเข้าถึง
+    const point& coordinates(const label i) const;
+    const vector& normal(const label i) const;
+};
+```
+
+#### **ประเภท GeoMesh ที่สำคัญ:**
+
+**volMesh:**
+- ค่าฟิลด์ที่จุดศูนย์ถ่วงเซลล์
+- `size() = mesh.nCells()`
+- `coordinates() = จุดศูนย์ถ่วงของเซลล์`
+- การหาปริพันธ์บนปริมาตรเซลล์
+
+**surfaceMesh:**
+- ค่าฟิลด์ที่จุดศูนย์ถ่วงหน้า
+- `size() = mesh.nFaces()`
+- `coordinates() = จุดศูนย์ถ่วงของหน้า`
+- การหาปริพันธ์บนพื้นที่หน้า
+
+**pointMesh:**
+- ค่าฟิลด์ที่จุดเมช
+- `size() = mesh.nPoints()`
+- `coordinates() = ตำแหน่งจุด`
+- การเข้าถึงค่าโหนดโดยตรง
+
+#### **ข้อมูลเชิงการออกแบบ: รูปแบบเทมเพลตที่เกิดซ้ำอย่างน่าอัศจรรย์ (CRTP)**
+
+ระบบ `GeoMesh` ใช้ **Curiously Recurring Template Pattern (CRTP)** เพื่อให้ความหลากหลายแบบคงที่:
+
+```cpp
+// การส่งแบบคงที่โดยยึดตามชนิดเมช
+template<class Type, class GeoMesh>
+class GeometricField : public DimensionedField<Type, GeoMesh> {
+    // GeoMesh ให้บริบทเชิงพื้นที่
+    // ชนิด GeoMesh ที่แตกต่างกันให้พฤติกรรมเชิงพื้นที่ที่แตกต่างกัน
+    // ทั้งหมดได้รับการแก้ไขในระหว่างการคอมไพล์เพื่อประสิทธิภาพสูงสุด
+};
+```
+
+#### **ความสำคัญทางคณิตศาสตร์**
+
+การสรุปความหมายนี้อนุญาตให้การดำเนินการทางคณิตศาสตร์ที่แม่นยำ:
+
+**สำหรับ volMesh (จุดศูนย์ถ่วงเซลล์):**
+$$\int_{\Omega_i} \phi \, \mathrm{d}V = \phi_i |\Omega_i|$$
+
+- $\phi_i$ ถูกจัดเก็บที่จุดศูนย์ถ่วงเซลล์
+- การหาปริพันธ์ใช้ปริมาตรเซลล์โดยตรง
+
+**สำหรับ surfaceMesh (จุดศูนย์ถ่วงหน้า):**
+$$\int_{\Gamma_{ij}} \phi \, \mathrm{d}A = \phi_{ij} |\Gamma_{ij}|$$
+
+- $\phi_{ij}$ ถูกจัดเก็บที่จุดศูนย์ถ่วงหน้า
+- การหาปริพันธ์ใช้พื้นที่หน้าสำหรับการคำนวณฟลักซ์
+
+#### **การปรับให้เหมาะสมสำหรับประสิทธิภาพ**
+
+การออกแบบที่ยึดตามเทมเพลตให้:
+
+- **การแก้ไขเวลาคอมไพล์**: การดำเนินการเชิงพื้นที่ทั้งหมดได้รับการแก้ไขในระหว่างการคอมไพล์
+- **ค่าใช้จ่ายรันไทม์เป็นศูนย์**: ไม่มีการเรียกฟังก์ชันเสมือนสำหรับการเข้าถึงเมช
+- **ประสิทธิภาพหน่วยความจำ**: จัดเก็บค่าเฉพาะที่มีความหมายทางกายภาพเท่านั้น
+- **ความปลอดภัยของชนิด**: ไม่สามารถผสมการดำเนินการจุดศูนย์ถ่วงเซลล์และจุดศูนย์ถ่วงหน้าโดยไม่ตั้งใจ
+
+การสรุปความหมายนี้อนุญาตให้เทมเพลต `GeometricField` เดียวกันทำงานได้อย่างราบรื่นข้ามชนิดเมชที่แตกต่างกันในขณะที่รักษาความเคร่งครัดทางคณิตศาสตร์และประสิทธิภาพการคำนวณ

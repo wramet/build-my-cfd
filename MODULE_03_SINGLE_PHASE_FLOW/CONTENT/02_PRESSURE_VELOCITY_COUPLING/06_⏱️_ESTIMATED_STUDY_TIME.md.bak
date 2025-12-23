@@ -1,0 +1,179 @@
+# ⏱️ ระยะเวลาการศึกษาโดยประมาณ
+
+## ภาพรวมของโมดูล
+
+โมดูลนี้ให้การแนะนำที่ครอบคลุมเกี่ยวกับแนวปฏิบัติใน **Validation และ Verification** ในพลศาสตร์ของไหลเชิงคำนวณ (CFD) โดยใช้ OpenFOAM การจัดสรรเวลาถูกออกแบบมาเพื่อให้ผู้เรียนได้รับทั้งความเข้าใจเชิงทฤษฎีและประสบการณ์เชิงปฏิบัติในการ Validation การจำลอง CFD
+
+## การแบ่งเวลาโดยละเอียด
+
+### 🔖 ส่วนการอ่าน: 2-3 ชั่วโมง
+
+ส่วนการอ่านครอบคลุมแนวคิดเชิงทฤษฎีที่สำคัญ:
+
+| หัวข้อ | รายละเอียด |
+|---------|-------------|
+| **วิธีการ Verification** | เทคนิคการ Verification โค้ดเพื่อรับรองความแม่นยำเชิงตัวเลข |
+| **ระเบียบวิธี Validation** | แนวทางที่เป็นระบบในการ Validation โมเดลทางกายภาพเทียบกับข้อมูลจากการทดลอง |
+| **การวิเคราะห์ข้อผิดพลาด** | ประเภทของข้อผิดพลาดใน CFD (discretization, modeling, iteration) |
+| **เกณฑ์การลู่เข้า** | รากฐานทางคณิตศาสตร์สำหรับการลู่เข้าของผลเฉลย |
+| **กรณี Benchmark** | กรณีทดสอบ Validation มาตรฐานและสูตรทางคณิตศาสตร์ของมัน |
+
+#### 📐 แนวคิดทางคณิตศาสตร์สำคัญ
+
+**เมตริกข้อผิดพลาด (Error Metrics):**
+$$E = \sqrt{\frac{1}{N}\sum_{i=1}^{N}(u_i^{\text{numerical}} - u_i^{\text{exact}})^2}$$
+
+โดยที่:
+- $E$ = ค่าความคลาดเคลื่อน RMS (Root Mean Square)
+- $N$ = จำนวนจุดข้อมูลทั้งหมด
+- $u_i^{\text{numerical}}$ = ค่าผลลัพธ์จากการคำนวณเชิงตัวเลข
+- $u_i^{\text{exact}}$ = ค่าผลลัพธ์เชิงวิเคราะห์ (Exact solution)
+
+**การศึกษาอันดับการลู่เข้า (Convergence Order):**
+$$\text{Order} = \frac{\log(\frac{E_{h_2}}{E_{h_1}})}{\log(\frac{h_2}{h_1})}$$
+
+โดยที่:
+- $\text{Order}$ = อันดับของการลู่เข้า
+- $E_{h_1}$, $E_{h_2}$ = ค่าความคลาดเคลื่อนที่ mesh ขนาด $h_1$, $h_2$
+- $h_1$, $h_2$ = ขนาด mesh สองระดับที่ต่างกัน
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Error calculation function in OpenFOAM
+scalar calculateRMS
+(
+    const volVectorField& numerical,
+    const volVectorField& exact
+)
+{
+    scalar sumErrorSqr = 0;
+    scalar N = numerical.mesh().nCells();
+    
+    forAll(numerical, i)
+    {
+        vector diff = numerical[i] - exact[i];
+        sumErrorSqr += magSqr(diff);
+    }
+    
+    return sqrt(sumErrorSqr / N);
+}
+```
+
+[Diagram: แสดงความสัมพันธ์ระหว่าง mesh resolution และ error magnitude]
+
+### 💻 ส่วนแบบฝึกหัด: 2-3 ชั่วโมง
+
+แบบฝึกหัดเชิงปฏิบัติประกอบด้วยกิจกรรมหลัก:
+
+| กิจกรรม | รายละเอียด | ระยะเวลา |
+|----------|-------------|----------|
+| **Mesh Convergence Study** | การรันการจำลองบน Mesh ที่ละเอียดขึ้นเรื่อยๆ | 45 นาที |
+| **Code Verification** | การนำวิธี Manufactured Solutions (MMS) มาใช้ | 30 นาที |
+| **Experimental Validation** | การเปรียบเทียบผลการจำลองกับข้อมูล Benchmark | 45 นาที |
+| **Error Quantification** | การคำนวณและวิเคราะห์เมตริกข้อผิดพลาดต่างๆ | 30 นาที |
+| **Uncertainty Analysis** | การศึกษาพารามิเตอร์เพื่อหาปริมาณความไม่แน่นอน | 30 นาที |
+
+#### 🔧 ขั้นตอนการทำงานของแบบฝึกหัด
+
+**โครงสร้างการศึกษาการลู่เข้า:**
+```cpp
+// Example convergence study structure
+for (int i = 0; i < refinementLevels; i++) {
+    // Create refined mesh
+    meshPtr = refineMesh(meshPtr, refinementFactor);
+    
+    // Run simulation
+    solver.solve();
+    
+    // Calculate error metrics
+    calculateErrors(solution, analyticalSolution);
+    
+    // Store results for convergence analysis
+    results.append(getCurrentResults());
+}
+```
+
+**ขั้นตอนการดำเนินการ:**
+1. **เตรียม Mesh Base Case** - สร้าง mesh ระดับพื้นฐาน
+2. **รันการจำลอง** - ดำเนินการคำนวณและบันทึกผลลัพธ์
+3. **สร้าง Mesh ที่ละเอียดขึ้น** - ใช้ refinement factor ที่กำหนด
+4. **วิเคราะห์ Convergence** - คำนวณอันดับการลู่เข้า
+5. **ทำ Validation** - เปรียบเทียบกับข้อมูลอ้างอิง
+
+**OpenFOAM Convergence Study Implementation:**
+```cpp
+// Pseudo-code for OpenFOAM mesh convergence study
+List<scalar> refinementLevels = {0.5, 0.25, 0.125};
+List<scalar> errors;
+
+forAll(refinementLevels, i) 
+{
+    // Create refined mesh using refineMeshDict
+    system("refineMesh -overwrite");
+    
+    // Run solver
+    runSolver("simpleFoam");
+    
+    // Calculate error against analytical solution
+    scalar currentError = calculateError();
+    errors.append(currentError);
+    
+    // Store results
+    results.append(meshInfo() + currentError);
+}
+
+// Calculate convergence order
+scalar order = calculateConvergenceOrder(errors, refinementLevels);
+```
+
+[Diagram: Flowchart แสดงขั้นตอนการทำ Convergence Study และ Validation]
+
+## 🎯 ผลลัพธ์การเรียนรู้
+
+เมื่อทำส่วนการอ่านและแบบฝึกหัดเสร็จสิ้นภายในกรอบเวลาที่กำหนดโดยประมาณ ผู้เรียนจะสามารถ:
+
+- ✅ นำขั้นตอนการ **Verification** ที่เป็นระบบมาใช้สำหรับโค้ด CFD
+- ✅ ออกแบบและดำเนินการศึกษา **Validation** สำหรับปัญหาการไหลที่ซับซ้อน
+- ✅ หาปริมาณและวิเคราะห์ **ข้อผิดพลาดเชิงตัวเลข** ประเภทต่างๆ
+- ✅ ทำการศึกษา **การลู่เข้า** เพื่อให้มั่นใจว่าได้ผลเฉลยที่ไม่ขึ้นกับ Mesh
+- ✅ จัดทำ **เอกสารขั้นตอนการ Validation** ตามมาตรฐานทางวิศวกรรม
+
+## 📚 เคล็ดลับการบริหารเวลา
+
+### แนวทางที่มีโครงสร้าง
+- **จัดสรรช่วงเวลาที่เฉพาะเจาะจง** สำหรับการอ่านเทียบกับแบบฝึกหัด
+- **ตั้งเป้าหมายการเรียนรู้รายชั่วโมง** สำหรับแต่ละหัวข้อ
+
+### การอ่านเชิงรุก
+- **จดบันทึกรายละเอียดขณะอ่าน** เพื่อลดเวลาในส่วนแบบฝึกหัด
+- **สรุปสูตรคณิตศาสตร์** ในบันทึกส่วนตัว
+
+### ความก้าวหน้าแบบเพิ่มขึ้น
+- **ทำแบบฝึกหัดตามลำดับตรรกะ** เพื่อสร้างความเข้าใจ
+- **ตรวจสอบความเข้าใจ** หลังจากแต่ละกิจกรรม
+
+### การจัดทำเอกสาร
+- **เก็บบันทึกรายละเอียด** ของขั้นตอนการ Validation เพื่อใช้อ้างอิงในอนาคต
+- **สร้างแม่แบบ (template)** สำหรับการ Validation ในอนาคต
+
+## ⚠️ ข้อกำหนดเบื้องต้น
+
+โมดูลนี้สมมติว่าผู้เรียนมีความคุ้นเคยกับ:
+
+### ความรู้ทางคณิตศาสตร์
+- **สมการ CFD พื้นฐาน:**
+  - สมการต่อเนื่อง: $$\nabla \cdot \mathbf{u} = 0$$
+  - สมการโมเมนตัม: $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
+
+### ความรู้ทางเทคนิค
+- **โครงสร้างเคส OpenFOAM:** โฟลเดอร์ 0/, constant/, system/
+- **ขั้นตอนการทำงาน:** blockMesh → simpleFoam → paraFoam
+- **การใช้งานคำสั่งพื้นฐาน:** Linux/Unix command line
+- **ระเบียบวิธีเชิงตัวเลข:** Finite Volume Method สำหรับ PDEs
+
+### ความเชี่ยวชาญด้านซอฟต์แวร์
+- **ประสบการณ์ OpenFOAM:** การทำงานกับเคสง่ายๆ
+- **การใช้ ParaView:** การวิเคราะห์ผลลัพธ์
+- **การแก้ไขปัญหา:** การ debug และ troubleshooting
+
+[Diagram: แสดงความสัมพันธ์ระหว่างความรู้พื้นฐานและเนื้อหาโมดูล]

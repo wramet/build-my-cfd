@@ -1,0 +1,492 @@
+# 🧠 **Under the Hood: Geometric Algebraic Multigrid (GAMG)**
+
+## **ปรัชญา Multigrid - "แบ่งแยกและพิชิต"**
+
+**Geometric Algebraic Multigrid (GAMG) solver** เป็นหนึ่งในเครื่องมือพีชคณิตเชิงเส้นที่ซับซ้อนที่สุดของ OpenFOAM ซึ่งสะท้อนถึงหลักการทางคณิตศาสตร์ที่ว่าความถี่ความผิดพลาดที่แตกต่างกันนั้นถูกกำจัดได้ดีที่สุดในความละเอียดกริดที่แตกต่างกัน
+
+แนวทางนี้จะแปลงงานที่ต้องการคำนวณมากในการแก้ระบบเชิงเส้นเบาบางขนาดใหญ่ให้เป็นลำดับชั้นของปัญหาที่หยาบขึ้นตามลำดับ โดยแต่ละระดับมุ่งเป้าไปที่คอมโพเนนต์ความถี่ความผิดพลาดเฉพาะ
+
+### **รากฐานทางคณิตศาสตร์**
+
+ข้อมูลเชิงลึกหลักของวิธีการ multigrid มาจากการสังเกตว่า **iterative solvers** เช่น Gauss-Seidel หรือ Jacobi สามารถกำจัดความผิดพลาดความถี่สูงได้อย่างมีประสิทธิภาพ แต่ติดขัดกับคอมโพเนนต์ความผิดพลาดความถี่ต่ำที่เรียบ
+
+โดยการถ่ายโอนความผิดพลาดความถี่ต่ำเหล่านี้ไปยังกริดที่หยาบขึ้น ซึ่งในกริดเหล่านั้นพวกมันปรากฏเป็นความถี่สูงเมื่อเทียบกับระยะห่างกริด multigrid จึงบรรลุความซับซ้อนในการคำนวณที่เหมาะสมที่สุด
+
+[Diagram: แสดงลำดับชั้นของกริดจากละเอียดไปหยาบ พร้อมความถี่ความผิดพลาดที่แตกต่างกัน]
+
+สำหรับระบบเชิงเส้น $A\mathbf{x} = \mathbf{b}$ ความผิดพลาด $\mathbf{e} = \mathbf{x} - \mathbf{x}^*$ จะเป็นไปตาม $A\mathbf{e} = \mathbf{r}$ โดยที่ $\mathbf{r} = \mathbf{b} - A\mathbf{x}$ คือ residual
+
+อัลกอริทึม V-cycle ของ multigrid จะลดความผิดพลาดนี้อย่างเป็นระบบในหลายระดับความละเอียด:
+
+$$\mathbf{e}^{(k+1)} = \mathbf{e}^{(k)} + P\left(A_c^{-1}R(\mathbf{b} - A\mathbf{e}^{(k)})\right)$$
+
+**ตัวแปรในสมการ:**
+- $\mathbf{e}^{(k)}$ = เวกเตอร์ความผิดพลาดที่ iteration ที่ k
+- $P$ = ตัวดำเนินการ prolongation (แปลงจากกริดหยาบไปกริดละเอียด)
+- $R$ = ตัวดำเนินการ restriction (แปลงจากกริดละเอียดไปกริดหยาบ)
+- $A_c$ = ตัวดำเนินการกริดหยาบ (coarse grid operator)
+- $\mathbf{b}$ = เวกเตอร์ด้านขวามือ (right-hand side)
+- $A$ = เมตริกซ์สัมประสิทธิ์
+
+### **สถาปัตยกรรมการนำไปใช้งาน**
+
+```cpp
+// 🔧 MECHANISM: ลำดับชั้นของ GAMG solver
+class GAMGSolver : public lduMatrix::solver
+{
+private:
+    // ระดับกริดหยาบ
+    PtrList<lduMatrix> coarseMatrices_;    // เวอร์ชันที่หยาบขึ้นของ A
+    PtrList<FieldField<Field, scalar>> coarseBouCoeffs_;
+    PtrList<FieldField<Field, scalar>> coarseIntCoeffs_;
+    PtrList<lduInterfaceFieldPtrsList> coarseInterfaces_;
+
+    // ตัวดำเนินการ Restriction (ละเอียด→หยาบ) และ prolongation (หยาบ→ละเอียด)
+    PtrList<scalarField> restrictMatrices_;
+    PtrList<scalarField> prolongMatrices_;
+
+    // พารามิเตอร์ของ solver
+    label nLevels_;                        // จำนวนระดับ multigrid
+    label nPreSweeps_;                     // การวนซ้ำ pre-smoothing
+    label nPostSweeps_;                    // การวนซ้ำ post-smoothing
+    label nCoarseSweeps_;                  // การวนซ้ำกริดหยาบ
+    
+    // Smoother สำหรับกำจัดความผิดพลาดความถี่สูง
+    autoPtr<lduMatrix::smoother> smoother_;
+    
+    // Direct solver สำหรับระดับที่หยาบที่สุด
+    autoPtr<lduMatrix::solver> coarsestSolver_;
+
+public:
+    solverPerformance solve
+    (
+        scalarField& psi,
+        const scalarField& source,
+        const direction cmpt
+    ) const
+    {
+        // การนำอัลกอริทึม V-cycle ไปใช้งาน
+        // 1. Pre-smooth บนกริดละเอียด (relax ค่าเริ่มต้น)
+        // 2. Restrict residual ไปยังกริดหยาบ
+        // 3. แก้ปัญหากริดหยาบ (แบบเรียกซ้ำหรือแบบตรง)
+        // 4. Prolong correction ไปยังกริดละเอียด
+        // 5. Post-smooth บนกริดละเอียด
+
+        return Vcycle(0, psi, source, cmpt);  // เริ่มที่ระดับละเอียดที่สุด
+    }
+
+private:
+    solverPerformance Vcycle
+    (
+        const label level,
+        scalarField& psi,
+        const scalarField& source,
+        const direction cmpt
+    ) const
+    {
+        if (level == nLevels_ - 1)
+        {
+            // ระดับที่หยาบที่สุด: แก้โดยตรง
+            // ระบบขนาดเล็กทำให้การแก้โดยตรงเป็นไปได้
+            return coarsestSolver_->solve(psi, source, cmpt);
+        }
+
+        // ขั้นตอนที่ 1: Pre-smoothing
+        // ใช้ smoother เพื่อกำจัดความผิดพลาดความถี่สูง
+        for (label sweep = 0; sweep < nPreSweeps_; sweep++)
+        {
+            smoother_->smooth(psi, source, cmpt);
+        }
+
+        // ขั้นตอนที่ 2: คำนวณ residual
+        // r = b - A·x
+        scalarField res(source.size());
+        matrix_.Amul(res, psi, interfaceBouCoeffs_, interfaces_, cmpt);
+        res = source - res;
+
+        // ขั้นตอนที่ 3: Restrict residual ไปยังกริดหยาบ
+        // r_coarse = R·r
+        scalarField coarseRes = restrict(level, res);
+
+        // ขั้นตอนที่ 4: แก้ปัญหากริดหยาบ
+        // e_coarse = A_coarse⁻¹·r_coarse
+        scalarField coarseCorr(coarseRes.size(), 0.0);
+        Vcycle(level + 1, coarseCorr, coarseRes, cmpt);
+
+        // ขั้นตอนที่ 5: Prolong correction ไปยังกริดละเอียด
+        // e_fine = P·e_coarse
+        scalarField fineCorr = prolong(level, coarseCorr);
+
+        // ขั้นตอนที่ 6: ใช้ correction
+        // x = x + e_fine
+        psi += fineCorr;
+
+        // ขั้นตอนที่ 7: Post-smoothing
+        // Smoothing เพิ่มเติมเพื่อกำจัดความผิดพลาดความถี่สูงที่เกิดขึ้น
+        for (label sweep = 0; sweep < nPostSweeps_; sweep++)
+        {
+            smoother_->smooth(psi, source, cmpt);
+        }
+
+        // 🔍 EFFICIENCY: ความผิดพลาดถูก smooth ในแต่ละระดับ
+        // ความผิดพลาดความถี่สูงถูกกำจัดบนกริดละเอียด
+        // ความผิดพลาดความถี่ต่ำถูกถ่ายโอนไปยังกริดหยาบ
+        // ความซับซ้อน O(n) ที่เหมาะสมที่สุดสำหรับปัญหา elliptic
+        
+        return calculatePerformance(psi, source, cmpt);
+    }
+
+    // ตัวดำเนินการ Restriction: กริดละเอียดไปยังกริดหยาบ
+    scalarField restrict(const label level, const scalarField& fineField) const
+    {
+        const scalarField& restrictMatrix = restrictMatrices_[level];
+        scalarField coarseField(restrictMatrix.size() / fineField.size());
+        
+        // การถ่วงน้ำหนักโดยเฉลี่ยของค่ากริดละเอียด
+        forAll(coarseField, i)
+        {
+            scalar sum = 0.0;
+            for (label j = 0; j < fineField.size(); j++)
+            {
+                sum += restrictMatrix[i*fineField.size() + j] * fineField[j];
+            }
+            coarseField[i] = sum;
+        }
+        
+        return coarseField;
+    }
+
+    // ตัวดำเนินการ Prolongation: กริดหยาบไปยังกริดละเอียด
+    scalarField prolong(const label level, const scalarField& coarseField) const
+    {
+        const scalarField& prolongMatrix = prolongMatrices_[level];
+        scalarField fineField(prolongMatrix.size() / coarseField.size());
+        
+        // การประมาณค่ากริดหยาบไปยังกริดละเอียด
+        forAll(fineField, i)
+        {
+            scalar sum = 0.0;
+            for (label j = 0; j < coarseField.size(); j++)
+            {
+                sum += prolongMatrix[i*coarseField.size() + j] * coarseField[j];
+            }
+            fineField[i] = sum;
+        }
+        
+        return fineField;
+    }
+};
+```
+
+**อัลกอริทึม V-cycle** เป็นหัวใจของประสิทธิภาพของ multigrid โดยการใช้การดำเนินการ restriction การแก้ปัญหากริดหยาบ และ prolongation แบบเรียกซ้ำ วิธีการนี้จะกำจัดความผิดพลาดอย่างเป็นระบบในทุกช่วงความถี่
+
+ขั้นตอน pre- และ post-smoothing ช่วยให้มั่นใจว่าความผิดพลาดความถี่สูงจะไม่ปนเปื้อนกระบวนการแก้ไขกริดหยาบ
+
+[Diagram: แสดงขั้นตอน V-cycle จากกริดละเอียดขึ้นไปยังกริดหยาบสุดแล้วลงมาอีกครั้ง]
+
+## **กลยุทธ์การรวมกลุ่ม - "การจัดกลุ่มเซลล์"**
+
+ประสิทธิภาพของ GAMG ขึ้นอยู่กับคุณภาพของกระบวนการสร้างกริดหยาบอย่างมีนัยสำคัญ OpenFOAM นำอัลกอริทึมการรวมกลุ่มที่ซับซ้อนมาใช้เพื่อสร้างลำดับชั้นของ mesh ที่หยาบขึ้นตามลำดับในขณะที่ยังคงรักษาคุณสมบัติทางคณิตศาสตร์ที่สำคัญของระบบดั้งเดิม
+
+### **Algebraic vs. Geometric Multigrid**
+
+GAMG ผสมผสานแนวทางพีชคณิตและเรขาคณิตอย่างเฉพาะ:
+
+| แนวทาง | หลักการ | ประโยชน์ |
+|---------|----------|---------|
+| **ด้านพีชคณิต** | ใช้สัมประสิทธิ์เมตริกซ์ในการกำหนดการจัดกลุ่มเซลล์ | รักษาคุณสมบัติทางคณิตศาสตร์ของระบบ |
+| **ด้านเรขาคณิต** | ใช้ข้อมูลการเชื่อมต่อและรูปทรงของ mesh | รักษาคุณสมบัติทางกายภาพของโดเมน |
+
+แนวทางไฮบริดนี้ช่วยให้มั่นใจว่ากริดหยาบยังคงคุณสมบัติทางกายภาพและคณิตศาสตร์ของกริดละเอียดในขณะที่ให้เส้นทางการลดความผิดพลาดที่มีประสิทธิภาพ
+
+### **การสร้างกริดหยาบจากกริดละเอียด**
+
+```cpp
+// 🔧 MECHANISM: การสร้างกริดหยาบจากกริดละเอียด
+class GAMGAgglomeration
+{
+private:
+    const lduMatrix& matrix_;
+    const lduMesh& mesh_;
+    const scalar threshold_;  // เกณฑ์ความแข็งแกร่งของการเชื่อมต่อ
+    
+    // โครงสร้างข้อมูลการรวมกลุ่ม
+    List<labelList> fineToCoarse_;    // การแม็ปเซลล์ละเอียดไปยังเซลล์หยาบ
+    List<labelList> coarseToFine_;    // การแม็ปเซลล์หยาบไปยังเซลล์ละเอียด
+    PtrList<scalarField> restrictMatrices_;  // ตัวดำเนินการ restriction
+    PtrList<scalarField> prolongMatrices_;   // ตัวดำเนินการ prolongation
+
+public:
+    // วิธีการรวมกลุ่มหลัก
+    void agglomerate(const label nLevels)
+    {
+        // เริ่มต้นระดับละเอียดที่สุด
+        fineToCoarse_.setSize(nLevels);
+        coarseToFine_.setSize(nLevels);
+        
+        // เริ่มต้นด้วยแต่ละเซลล์เป็น aggregate แยกกัน
+        labelList currentAgglom(mesh_.nCells());
+        forAll(currentAgglom, i) 
+            currentAgglom[i] = i;
+
+        // สร้างลำดับชั้นระดับต่อระดับ
+        for (label level = 0; level < nLevels - 1; level++)
+        {
+            // รวมเซลล์ตามน้ำหนักหน้า
+            mergeCells(currentAgglom, level);
+            
+            // สร้างการแม็ปกริดหยาบ
+            createMappings(currentAgglom, level);
+            
+            // เตรียมสำหรับระดับถัดไป
+            currentAgglom = fineToCoarse_[level];
+        }
+    }
+
+private:
+    void mergeCells(labelList& agglom, const label level)
+    {
+        const label nCells = mesh_.nCells();
+        const labelList& upper = matrix_.upper();
+        const labelList& owner = matrix_.lowerAddr();
+        const labelList& neighbour = matrix_.upperAddr();
+        
+        // คำนวณน้ำหนักหน้าสำหรับความแข็งแกร่งการเชื่อมต่อ
+        scalarField faceWeights(upper.size());
+        forAll(faceWeights, facei)
+        {
+            // น้ำหนักโดยยึดตามขนาดของสัมประสิทธิ์เมตริกซ์
+            faceWeights[facei] = mag(upper[facei]);
+        }
+        
+        // ปรับมาตรฐานน้ำหนัก
+        const scalar maxWeight = max(faceWeights);
+        forAll(faceWeights, i)
+        {
+            faceWeights[i] /= maxWeight + SMALL;
+        }
+        
+        // การรวมกลุ่มตามลำดับความสำคัญ
+        List<bool> merged(nCells, false);
+        
+        // เรียงลำดับหน้าตามน้ำหนัก (การเชื่อมต่อที่แข็งแกร่งที่สุดก่อน)
+        labelList faceOrder;
+        sortedOrder(faceWeights, faceOrder, greaterOp<scalar>());
+        
+        forAll(faceOrder, orderi)
+        {
+            const label facei = faceOrder[orderi];
+            const label own = owner[facei];
+            const label nei = neighbour[facei];
+            
+            // ตรวจสอบว่าเซลล์ยังไม่ถูกรวมและมีการเชื่อมต่อที่แข็งแกร่ง
+            if (!merged[own] && !merged[nei] && 
+                faceWeights[facei] > threshold_)
+            {
+                // รวมเซลล์ตามเกณฑ์เรขาคณิตและพีชคณิต
+                if (shouldMerge(own, nei, faceWeights[facei]))
+                {
+                    // รวมเซลล์ข้างเคียงเข้ากับ aggregate ของ owner
+                    const label targetAgglom = agglom[own];
+                    const label sourceAgglom = agglom[nei];
+                    
+                    // อัปเดตเซลล์ทั้งหมดใน aggregate ต้นทาง
+                    forAll(agglom, celli)
+                    {
+                        if (agglom[celli] == sourceAgglom)
+                        {
+                            agglom[celli] = targetAgglom;
+                        }
+                    }
+                    
+                    merged[own] = true;
+                    merged[nei] = true;
+                }
+            }
+        }
+        
+        // จัดการเซลล์ที่ยังไม่ถูกรวม (สร้าง aggregate เซลล์เดี่ยว)
+        forAll(agglom, celli)
+        {
+            if (!merged[celli])
+            {
+                // มั่นใจว่าแต่ละเซลล์ที่ยังไม่ถูกรวมกลายเป็น aggregate ของตัวเอง
+                // นี่ป้องกันไม่ให้เซลล์ที่โดดเดี่ยวสูญหาย
+            }
+        }
+    }
+    
+    bool shouldMerge(const label cell1, const label cell2, const scalar weight) const
+    {
+        // 🔍 CRITERIA: รวมเซลล์ที่มีการ coupling ที่แข็งแกร่ง
+        // 1. ความแข็งแกร่งการเชื่อมต่อ (คำนวณเป็นน้ำหนักแล้ว)
+        // 2. ความเข้ากันได้ทางเรขาคณิต
+        // 3. รักษาคุณสมบัติเมตริกซ์
+        
+        // ตรวจสอบความเข้ากันได้ทางเรขาคณิต
+        const vector& c1 = mesh_.cellCentres()[cell1];
+        const vector& c2 = mesh_.cellCentres()[cell2];
+        const scalar distance = mag(c2 - c1);
+        const scalar avgCellSize = (pow(mesh_.volumes()[cell1], 1.0/3.0) + 
+                                   pow(mesh_.volumes()[cell2], 1.0/3.0)) / 2.0;
+        
+        // รวมเฉพาะเมื่อเซลล์มีความเข้ากันได้ทางเรขาคณิต
+        if (distance > avgCellSize * 2.0)
+        {
+            return false;
+        }
+        
+        // รักษา diagonal dominance
+        const scalar a11 = matrix_.diag()[cell1];
+        const scalar a22 = matrix_.diag()[cell2];
+        const scalar a12 = weight * max(mag(a11), mag(a22));
+        
+        // ตรวจสอบว่าการรวมกลุ่มรักษาคุณสมบัติ M-matrix
+        if (a12 > min(a11, a22))
+        {
+            return false;
+        }
+        
+        return true;
+    }
+
+    void createMappings(const labelList& agglom, const label level)
+    {
+        // นับ aggregates ที่ไม่ซ้ำกัน (เซลล์หยาบ)
+        labelHashSet coarseCellSet;
+        forAll(agglom, celli)
+        {
+            coarseCellSet.insert(agglom[celli]);
+        }
+        
+        const label nCoarseCells = coarseCellSet.size();
+        
+        // สร้างการแม็ปละเอียดไปยังหยาบ
+        fineToCoarse_[level].setSize(mesh_.nCells());
+        labelList coarseToFineMapping(nCoarseCells);
+        label coarseCounter = 0;
+        
+        // กำหนดหมายเลขเซลล์หยาบ
+        for (label celli = 0; celli < mesh_.nCells(); celli++)
+        {
+            const label agglomId = agglom[celli];
+            
+            if (!coarseCellSet.found(agglomId))
+            {
+                // พบเซลล์หยาบใหม่
+                coarseCellSet.insert(agglomId);
+                coarseToFineMapping[coarseCounter] = celli;
+                fineToCoarse_[level][celli] = coarseCounter;
+                coarseCounter++;
+            }
+            else
+            {
+                // หาหมายเลขเซลล์หยาบที่มีอยู่
+                for (label i = 0; i < coarseCounter; i++)
+                {
+                    if (agglom[coarseToFineMapping[i]] == agglomId)
+                    {
+                        fineToCoarse_[level][celli] = i;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // สร้างการแม็ปหยาบไปยังละเอียด (การแม็ปย้อนกลับ)
+        coarseToFine_[level].setSize(nCoarseCells);
+        forAll(fineToCoarse_[level], celli)
+        {
+            const label coarseCell = fineToCoarse_[level][celli];
+            coarseToFine_[level][coarseCell].append(celli);
+        }
+        
+        // สร้างเมตริกซ์ restriction และ prolongation
+        buildTransferOperators(level);
+    }
+    
+    void buildTransferOperators(const label level)
+    {
+        const labelList& f2c = fineToCoarse_[level];
+        const labelListList& c2f = coarseToFine_[level];
+        const label nFine = mesh_.nCells();
+        const label nCoarse = c2f.size();
+        
+        // เมตริกซ์ Restriction: R: ℝ^n → ℝ^n_coarse
+        restrictMatrices_.set(level, new scalarField(nCoarse * nFine, 0.0));
+        scalarField& R = restrictMatrices_[level];
+        
+        for (label coarseCell = 0; coarseCell < nCoarse; coarseCell++)
+        {
+            const labelList& fineCells = c2f[coarseCell];
+            scalar totalVolume = 0.0;
+            
+            // คำนวณปริมาตรทั้งหมดสำหรับการถ่วงน้ำหนัก
+            forAll(fineCells, i)
+            {
+                totalVolume += mesh_.volumes()[fineCells[i]];
+            }
+            
+            // กำหนดน้ำหนัก restriction (การถ่วงน้ำหนักตามปริมาตร)
+            forAll(fineCells, i)
+            {
+                const label fineCell = fineCells[i];
+                const scalar weight = mesh_.volumes()[fineCell] / totalVolume;
+                R[coarseCell * nFine + fineCell] = weight;
+            }
+        }
+        
+        // เมตริกซ์ Prolongation: P: ℝ^n_coarse → ℝ^n
+        prolongMatrices_.set(level, new scalarField(nFine * nCoarse, 0.0));
+        scalarField& P = prolongMatrices_[level];
+        
+        // Prolongation เป็นการสลับของ restriction สำหรับแนวทาง Galerkin
+        for (label coarseCell = 0; coarseCell < nCoarse; coarseCell++)
+        {
+            for (label fineCell = 0; fineCell < nFine; fineCell++)
+            {
+                P[fineCell * nCoarse + coarseCell] = R[coarseCell * nFine + fineCell];
+            }
+        }
+    }
+};
+```
+
+กระบวนการรวมกลุ่มใช้ **heuristic ที่ซับซ้อน** เพื่อให้มั่นใจว่าได้กริดหยาบคุณภาพสูง
+
+### **เกณฑ์การรักษาคุณภาพ**
+
+1. **ความแข็งแกร่งการเชื่อมต่อ**
+   - เซลล์ถูกรวมกลุ่มตามขนาดของสัมประสิทธิ์เมตริกซ์นอกเส้นทแยง
+   - แทนถึงความแข็งแกร่งของการ coupling ทางกายภาพ
+
+2. **ความเข้ากันได้ทางเรขาคณิต**
+   - เซลล์ที่ติดกันต้องมีขนาดและรูปร่างที่เข้ากันได้
+   - รักษาความแม่นยำทางเรขาคณิต
+
+3. **คุณสมบัติทางคณิตศาสตร์**
+   - รักษา diagonal dominance สำหรับเสถียรภาพเชิงตัวเลข
+   - รักษาคุณสมบัติ M-matrix สำหรับการรับประกันการบรรจบกัน
+   - มั่นใจในความเทียบเท่ากันของสเปกตรัมระหว่างตัวดำเนินการละเอียดและหยาบ
+
+4. **การกระจายภาระ**
+   - กระจายเซลล์อย่างสม่ำเสมอใน aggregates กริดหยาบ
+   - รักษาประสิทธิภาพของการประมวลผลขนาน
+
+[Diagram: แสดงการรวมกลุ่มเซลล์จากระดับละเอียดไปหยาบ พร้อมเกณฑ์การเลือก]
+
+### **ตัวดำเนินการกริดหยาบของ Galerkin**
+
+ตัวดำเนินการกริดหยาบ $A_c$ ถูกสร้างขึ้นโดยใช้แนวทางของ Galerkin:
+
+$$A_c = RAP$$
+
+**ตัวแปรในสมการ:**
+- $A_c$ = ตัวดำเนินการกริดหยาบ (coarse grid operator)
+- $R$ = ตัวดำเนินการ restriction 
+- $A$ = ตัวดำเนินการกริดละเอียด (fine grid operator)
+- $P$ = ตัวดำเนินการ prolongation
+
+แนวทางนี้รักษาคุณสมบัติทางคณิตศาสตร์ของระบบดั้งเดิมโดยอัตโนมัติในขณะที่ให้ลักษณะการเผยแพร่ความผิดพลาดที่เหมาะสมที่สุดระหว่างระดับกริด
+
+การสร้างที่ซับซ้อนนี้ช่วยให้มั่นใจว่า **GAMG บรรลุความซับซ้อนที่เหมาะสมที่สุดในทางทฤษฎีคือ $\mathcal{O}(n)$ สำหรับปัญหา elliptic** ทำให้เป็นตัวเลือกของ solver สำหรับการ coupling ความดัน-ความเร็วในขนาดใหญ่ในการจำลอง CFD

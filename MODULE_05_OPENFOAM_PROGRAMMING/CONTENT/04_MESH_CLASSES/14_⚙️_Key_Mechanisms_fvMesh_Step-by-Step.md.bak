@@ -1,0 +1,359 @@
+# ⚙️ **กลไกหลัก: fvMesh ขั้นตอนต่อขั้นตอน**
+
+## **ขั้นตอนที่ 1: โครงสร้างพื้นฐาน Finite Volume**
+
+**คลาส `fvMesh`** แสดงถึงโครงสร้างพื้นฐานหลักสำหรับการ discretize ด้วยวิธี finite volume ใน OpenFOAM
+
+- สืบทอดมาจาก `polyMesh` (ข้อมูล topology/geometry)
+- สืบทอดมาจาก `lduMesh` (อินเทอร์เฟซ linear algebra)  
+- สร้างระบบ meshing ที่ครอบคลุมซึ่งออกแบบมาโดยเฉพาะสำหรับการคำนวณ CFD
+
+[Diagram: แผนภาพแสดงการสืบทอดของ fvMesh จาก polyMesh และ lduMesh]
+
+### **ภาพรวมสถาปัตยกรรม**
+
+```cpp
+// 🔧 MECHANISM: ข้อมูล mesh ที่พร้อมสำหรับ discretization
+class fvMesh
+    : public polyMesh          // สืบทอด topology/geometry ทั้งหมด
+    , public lduMesh          // อินเทอร์เฟซ linear algebra
+{
+private:
+    // ข้อมูลเฉพาะของ finite volume
+    fvBoundaryMesh boundary_;  // เงื่อนไขขอบเขตเฉพาะ FV
+
+    // Discretization schemes
+    surfaceInterpolation interpolation_;  // น้ำหนักการ interpolate ของ face
+    fvSchemes schemes_;                   // Schemes ตัวเลข
+    fvSolution solution_;                 // การตั้งค่า solver
+
+    // Finite volume geometry ที่คำนวณตามความต้องการ
+    mutable autoPtr<volScalarField> Vptr_;      // ปริมาตร cell
+    mutable autoPtr<surfaceScalarField> magSfPtr_; // พื้นที่ face
+    mutable autoPtr<surfaceVectorField> SfPtr_;   // เวกเตอร์พื้นที่ face
+    mutable autoPtr<surfaceVectorField> CfPtr_;   // จุดศูนย์กลาง face
+```
+
+**คุณสมบัติสำคัญ:**
+- ใช้การคำนวณแบบ **demand-driven** ผ่าน smart pointer `autoPtr`
+- การคำนวณทางเรขาคณิตที่มีราคาแพงจะถูกดำเนินการก็ต่อเมื่อจำเป็น
+- มีการแคชสำหรับการเข้าถึงครั้งถัดไป
+- **Lazy evaluation** ช่วย optimize การใช้งานหน่วยความจำและประสิทธิภาพการคำนวณ
+
+### **การจัดการปริมาตรเซลล์**
+
+```cpp
+// ✅ FV-SPECIFIC ACCESS: ปริมาตรเซลล์เป็น field
+const volScalarField& V() const
+{
+    if (!Vptr_.valid())
+    {
+        Vptr_.reset(new volScalarField("V", *this, dimVolume));
+        Vptr_() = primitiveMesh::cellVolumes();  // คำนวณจากฐาน
+    }
+    return Vptr_();
+}
+```
+
+**ปริมาตรเซลล์** field `V()` แสดงถึงขนาด control volume $$V_i$$ สำหรับแต่ละเซลล์ $$i$$ ใน mesh
+
+- **พื้นฐานสำหรับการคำนวณ finite volume**
+- ใช้ในการแปลง surface integrals เป็น volume averages
+
+$$\frac{1}{V_i} \oint_{\partial V_i} \phi \cdot \mathrm{d}\mathbf{S} \approx \frac{1}{V_i} \sum_{f \in \partial V_i} \phi_f \cdot \mathbf{S}_f$$
+
+### **การคำนวณเวกเตอร์พื้นที่เฟซ**
+
+```cpp
+// ✅ FACE GEOMETRY: เวกเตอร์พื้นที่เป็น surface field
+const surfaceVectorField& Sf() const
+{
+    if (!SfPtr_.valid())
+    {
+        SfPtr_.reset(new surfaceVectorField("Sf", *this, dimArea));
+        SfPtr_() = primitiveMesh::faceAreas();  // คำนวณจากฐาน
+    }
+    return SfPtr_();
+}
+```
+
+**เวกเตอร์พื้นที่เฟซ** $$\mathbf{S}_f$$:
+- ชี้ออกจากแต่ละเซลล์และมีขนาดเท่ากับพื้นที่เฟซ
+- **สำคัญอย่างยิ่งสำหรับการคำนวณ surface integral**
+- แสดงถึง surface element ที่มีการวางแนว $$\mathrm{d}\mathbf{S}$$ ในรูปแบบ discretized
+
+$$\int_{\partial V} \mathbf{F} \cdot \mathrm{d}\mathbf{S} \approx \sum_{f \in \partial V} \mathbf{F}_f \cdot \mathbf{S}_f$$
+
+### **กรอบการ Interpolation**
+
+```cpp
+// ✅ INTERPOLATION WEIGHTS: สำหรับการคำนวณค่า face
+const surfaceScalarField& weights() const
+{
+    return interpolation_.weights();
+}
+```
+
+**น้ำหนัก interpolation** ให้สัมประสิทธิ์สำหรับ linear interpolation ระหว่าง cell centers เพื่อรับค่า face
+
+สำหรับ linear interpolation ระหว่างเซลล์ข้างเคียง $$i$$ และ $$j$$:
+$$\phi_f = \lambda_f \phi_i + (1-\lambda_f) \phi_j$$
+
+โดยที่:
+- $$\lambda_f$$ เป็นน้ำหนัก interpolation ที่ขึ้นอยู่กับตำแหน่งสัมพัทธ์ของ cell centers ต่อ face
+- $$\phi_i, \phi_j$$ เป็นค่าที่จุดศูนย์กลางเซลล์
+- $$\phi_f$$ เป็นค่าที่จุดศูนย์กลางเฟซ
+
+---
+
+## **ขั้นตอนที่ 2: ระบบการจัดการ Field**
+
+**ระบบการจัดการ field** ให้กรอบการทำงานแบบลำดับชั้นสำหรับการสร้างและเข้าถึงประเภทต่างๆ ของ geometric fields ในบริบท finite volume
+
+### **การจัดการ Volume Field**
+
+```cpp
+// ✅ VOLUME FIELD: ข้อมูลที่จุดศูนย์กลางเซลล์
+template<class Type>
+GeometricField<Type, fvPatchField, volMesh>&
+lookupObjectRef(const word& name) const
+{
+    return objectRegistry::lookupObjectRef<GeometricField<Type, fvPatchField, volMesh>>(name);
+}
+```
+
+**Volume fields** จัดเก็บปริมาณที่จุดศูนย์กลางเซลล์ $$\phi_i$$ สำหรับแต่ละเซลล์ $$i$$ ใน mesh
+
+- **เป็นค่าที่ไม่ทราบหลัก** ในการจำลอง CFD ส่วนใหญ่
+- แสดงถึงตัวแปรเช่น ความเร็ว, ความดัน, อุณหภูมิ, ความเข้มข้นของสเกลาร์
+
+[Diagram: แผนภาพแสดง volume fields ที่จุดศูนย์กลางเซลล์และ surface fields ที่จุดศูนย์กลางเฟซ]
+
+### **การสร้าง Field แบบไดนามิก**
+
+```cpp
+// ✅ CREATE FIELD: พร้อมการเชื่อมโยง mesh ที่เหมาะสม
+template<class Type>
+tmp<GeometricField<Type, fvPatchField, volMesh>>
+newField(const word& name, const dimensionSet& dims) const
+{
+    return tmp<GeometricField<Type, fvPatchField, volMesh>>::New
+    (
+        name,
+        *this,
+        dims,
+        calculatedFvPatchField<Type>::typeName
+    );
+}
+```
+
+**กลไกการสร้าง field**:
+- มั่นใจว่ามีการเชื่อมโยงระหว่าง mesh และ field อย่างเหมาะสม
+- สร้างความสัมพันธ์ทาง topology ที่จำเป็นสำหรับการดำเนินการ finite volume
+- `calculatedFvPatchField` ให้พฤติกรรม boundary field เริ่มต้นที่สามารถเชี่ยวชาญได้
+
+### **การดำเนินการ Surface Field**
+
+```cpp
+// ✅ SURFACE FIELD: ข้อมูลที่จุดศูนย์กลางเฟซ
+template<class Type>
+tmp<GeometricField<Type, fvsPatchField, surfaceMesh>>
+newSurfaceField(const word& name, const dimensionSet& dims) const
+{
+    return tmp<GeometricField<Type, fvsPatchField, surfaceMesh>>::New
+    (
+        name,
+        *this,
+        dims,
+        calculatedFvsPatchField<Type>::typeName
+    );
+}
+```
+
+**Surface fields** จัดเก็บปริมาณ $$\phi_f$$ ที่จุดศูนย์กลางเฟซ:
+
+- **จำเป็นสำหรับการคำนวณ flux** และการดำเนินการ interpolation
+- มาจาก volume fields ผ่าน interpolation schemes
+- **มีบทบาทสำคัญในการ discretize พจน์ convection**
+
+### **ความสามารถ Point Field**
+
+```cpp
+// ✅ POINT FIELD: ข้อมูลที่จุดยอด mesh
+template<class Type>
+tmp<GeometricField<Type, pointPatchField, pointMesh>>
+newPointField(const word& name, const dimensionSet& dims) const
+{
+    return tmp<GeometricField<Type, pointPatchField, pointMesh>>::New
+    (
+        name,
+        pointMesh::New(*this),  // Point mesh จาก cell mesh
+        dims,
+        calculatedPointPatchField<Type>::typeName
+    );
+}
+```
+
+**Point fields** ให้ข้อมูลที่จุดยอด mesh:
+
+- **ทำให้สามารถทำการเสียรูป mesh ขั้นสูง**
+- รองรับการจำลอง mesh ที่เคลื่อนที่
+- ใช้ในเทคนิคการแสดงผลภาพเฉพาะทาง
+- Point mesh ถูกสร้างจาก topology cell mesh ที่อยู่ฐาน
+
+---
+
+## **ขั้นตอนที่ 3: กรอบการ Discretization**
+
+**กรอบการ discretization** ใช้การดำเนินการทางคณิตศาสตร์ที่แปลงสมการอนุพันธ์ย่อยเป็นรูปแบบพีชคณิตโดยใช้วิธี finite volume
+
+### **กลไกการคำนวณ Gradient**
+
+```cpp
+// ✅ GRADIENT CALCULATION: ใช้ scheme ที่เลือก
+template<class Type>
+tmp<GeometricField<typename outerProduct<vector, Type>::type, fvPatchField, volMesh>>
+grad(const GeometricField<Type, fvPatchField, volMesh>& vf) const
+{
+    // ค้นหา gradient scheme จาก fvSchemes
+    const word& schemeName = schemes_.gradScheme(vf.name());
+
+    // ส่งไปยัง gradient calculator ที่เหมาะสม
+    if (schemeName == "Gauss linear")
+    {
+        return fv::gaussGrad<Type>(*this).grad(vf);
+    }
+    else if (schemeName == "leastSquares")
+    {
+        return fv::leastSquaresGrad<Type>(*this).grad(vf);
+    }
+    else if (schemeName == "cellLimited Gauss linear 1")
+    {
+        return fv::cellLimitedGrad<Type>(*this).grad(vf);
+    }
+    // ... และ schemes อื่นๆ อีกมากมาย
+
+    // ค่าเริ่มต้นเป็น Gauss linear
+    return fv::gaussGrad<Type>(*this).grad(vf);
+}
+```
+
+**การดำเนินการ gradient** คำนวณ $$\nabla \phi$$ โดยใช้ schemes ต่างๆ
+
+| **Scheme** | **วิธีการ** | **คุณสมบัติ** |
+|------------|---------------|----------------|
+| **Gauss linear** | ทฤษฎีบท Green-Gauss | ค่าเริ่มต้น, ความแม่นยำสูง |
+| **leastSquares** | Least squares | ทนต่อ mesh quality ต่ำ |
+| **cellLimited Gauss linear 1** | จำกัดความสูง-ต่ำ | เสถียร, ป้องกันความคลาดเคลื่อน |
+
+**วิธี Gauss linear** (ทฤษฎีบท Green-Gauss):
+$$\nabla \phi_i = \frac{1}{V_i} \sum_{f \in \partial V_i} \phi_f \mathbf{S}_f$$
+
+โดยที่ค่า face $$\phi_f$$ ถูก interpolate จาก cell centers ข้างเคียงโดยใช้ linear interpolation
+
+### **การคำนวณ Divergence**
+
+```cpp
+// ✅ DIVERGENCE CALCULATION: Surface integration
+template<class Type>
+tmp<GeometricField<typename innerProduct<vector, Type>::type, fvPatchField, volMesh>>
+div(const GeometricField<Type, fvsPatchField, surfaceMesh>& sf) const
+{
+    // Surface field → Volume field ผ่านทฤษฎีบท divergence
+    // ∫_V ∇·φ dV = ∮_∂V φ·dS
+
+    tmp<GeometricField<typename innerProduct<vector, Type>::type, fvPatchField, volMesh>>
+        tdiv = newField
+        (
+            "div(" + sf.name() + ")",
+            sf.dimensions()/dimVolume
+        );
+
+    GeometricField<typename innerProduct<vector, Type>::type, fvPatchField, volMesh>& div =
+        tdiv.ref();
+
+    // รวมผลรวมการมีส่วนร่วมของ face ไปยังเซลล์
+    forAll(owner(), faceI)
+    {
+        label own = owner()[faceI];
+        label nei = neighbour()[faceI];
+
+        // Face flux มีส่วนร่วมกับ owner และ neighbor
+        typename innerProduct<vector, Type>::type flux = sf[faceI];
+
+        div[own] += flux;
+        if (nei != -1)
+        {
+            div[nei] -= flux;  // ค่าลบสำหรับ neighbor (ปกติตรงข้าม)
+        }
+    }
+
+    // หารด้วยปริมาตรเซลล์
+    div.primitiveFieldRef() /= V();
+
+    return tdiv;
+}
+```
+
+**การดำเนินการ divergence** ใช้ทฤษฎีบท divergence:
+
+$$\int_V \nabla \cdot \mathbf{F} \, \mathrm{d}V = \oint_{\partial V} \mathbf{F} \cdot \mathrm{d}\mathbf{S}$$
+
+ในรูปแบบ discretized สำหรับเซลล์ $$i$$:
+$$(\nabla \cdot \mathbf{F})_i = \frac{1}{V_i} \sum_{f \in \partial V_i} \mathbf{F}_f \cdot \mathbf{S}_f$$
+
+**ขั้นตอนการคำนวณ:**
+1. รวมผลรวมการมีส่วนร่วมของ face flux ไปยังเซลล์
+2. **การวางแนวปกติ**: internal face มีส่วนร่วมเชิงบวกกับเซลล์ owner และเชิงลบกับเซลล์ neighbor
+3. หารด้วยปริมาตรเซลล์เพื่อให้ได้ค่า divergence
+
+### **การ Discretize Laplacian**
+
+```cpp
+// ✅ LAPLACIAN: การ discretize พจน์ diffusion
+template<class Type>
+tmp<GeometricField<Type, fvPatchField, volMesh>>
+laplacian
+(
+    const GeometricField<Type, fvPatchField, volMesh>& vf
+) const
+{
+    // ∇·(Γ∇φ) discretization
+    // ใช้ laplacian scheme ที่เลือกจาก fvSchemes
+
+    const word& schemeName = schemes_.laplacianScheme(vf.name());
+    // ... scheme dispatch คล้ายกับ grad()
+
+    // การ implement ค่าเริ่มต้น
+    return fv::gaussLaplacianScheme<Type>(*this).laplacian(vf);
+}
+```
+
+**ตัวดำเนินการ Laplacian** discretize พจน์ diffusion $$\nabla \cdot (\Gamma \nabla \phi)$$
+
+ใช้ทฤษฎีบท Gauss สองครั้ง:
+$$\int_V \nabla \cdot (\Gamma \nabla \phi) \, \mathrm{d}V = \oint_{\partial V} \Gamma \nabla \phi \cdot \mathrm{d}\mathbf{S}$$
+
+สำหรับเซลล์ $$i$$ รูปแบบ discretized จะกลายเป็น:
+$$\sum_{f \in \partial V_i} \Gamma_f \frac{\phi_{n} - \phi_i}{|\mathbf{d}_{fn}|} |\mathbf{S}_f|$$
+
+**ตัวแปรในสมการ:**
+- $$\Gamma_f$$: diffusivity ที่ face $$f$$
+- $$\phi_i$$: ค่าจุดศูนย์กลางเซลล์
+- $$\phi_n$$: ค่าเซลล์ข้างเคียง
+- $$\mathbf{d}_{fn}$$: เวกเตอร์ระยะห่างจากจุดศูนย์กลาง face ไปยังจุดศูนย์กลางเซลล์
+
+[Diagram: แผนภาพแสดงการคำนวณ laplacian ที่ face แสดงระยะห่างระหว่าง cell centers และ face center]
+
+---
+
+## **สรุปกรอบการทำงาน Finite Volume**
+
+**กรอบการทำงาน finite volume** ให้โครงสร้างการคำนวณที่สมบูรณ์สำหรับการแก้สมการอนุพันธ์ย่อย:
+
+- **Spatial discretization แบบเป็นระบบ**
+- **รับประกันการอนุรักษ์** มวล, โมเมนตัม และพลังงานในระดับ discrete
+- **การจัดการ field แบบไดนามิก** ที่เหมาะกับ CFD
+- **Schemes ที่ยืดหยุ่น** สำหรับ discretization ที่แม่นยำ
+
+[Diagram: แผนภาพแสดงขั้นตอนการทำงานโดยรวมของ fvMesh จาก mesh creation ถึง solving]

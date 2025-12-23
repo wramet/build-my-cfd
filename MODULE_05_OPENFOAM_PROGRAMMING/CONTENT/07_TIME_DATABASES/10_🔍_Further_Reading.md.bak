@@ -1,0 +1,425 @@
+# 🔍 การอ่านเพิ่มเติม
+
+## 1. Source Code ของ OpenFOAM
+
+### 1.1 การ Implement Field หลัก
+
+**GeometricField.H**: `src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H`
+
+Header นี้มีคลาสแม่แบบพื้นฐาน `GeometricField<Type, PatchField, GeoMesh>` ที่แสดงถึงประเภท field ทั้งหมดใน OpenFOAM
+
+```cpp
+template<class Type, template<class> class PatchField, class GeoMesh>
+class GeometricField
+:
+    public DimensionedField<Type, GeoMesh>,
+    public Field<Type>,
+    public LduMatrix::template Pscla<Type, Type, GeoMesh>
+{
+    // Constructor, destructor, and member functions
+};
+```
+
+**คุณสมบัติหลัก**:
+- **ความปลอดภัยของประเภท**: ใช้ template สำหรับ scalar, vector, tensor และ symmetric tensor fields
+- **การจัดการมิติอัตโนมัติ**: สืบทอดจาก `DimensionedField`
+- **การเชื่อมโยงกับ mesh**: ผ่าน template parameter `GeoMesh` (โดยทั่วไปคือ `fvMesh`)
+- **การจัดการเงื่อนไขขอบเขต**: ผ่าน template parameter `PatchField`
+- **การบูรณาการพีชคณิตเชิงเส้น**: ผ่าน LduMatrix interface
+
+[Diagram: GeometricField class inheritance hierarchy showing multiple inheritance structure]
+
+**volFieldsFwd.H**: `src/finiteVolume/fields/volFields/volFieldsFwd.H`
+
+Header สำหรับ forward declaration นี้กำหนดนามแฝงประเภท field ทั่วไปที่ใช้ใน OpenFOAM:
+
+```cpp
+// Scalar field aliases
+typedef GeometricField<scalar, fvPatchField, fvMesh> volScalarField;
+typedef GeometricField<scalar, fvsPatchField, fvMesh> surfaceScalarField;
+
+// Vector field aliases  
+typedef GeometricField<vector, fvPatchField, fvMesh> volVectorField;
+typedef GeometricField<vector, fvsPatchField, fvMesh> surfaceVectorField;
+
+// Tensor field aliases
+typedef GeometricField<tensor, fvPatchField, fvMesh> volTensorField;
+typedef GeometricField<tensor, fvsPatchField, fvMesh> surfaceTensorField;
+```
+
+**ประเภท Field ที่ใช้กันทั่วไป**:
+
+| ประเภท Field | การจัดเก็บข้อมูล | ตำแหน่งที่จัดเก็บ | การใช้งานหลัก |
+|---------------|----------------------|-------------------|----------------|
+| `volScalarField` | ค่าสเกลาร์ | ศูนย์กลางของ cell | ความดัน, อุณหภูมิ |
+| `volVectorField` | เวกเตอร์ | ศูนย์กลางของ cell | ความเร็ว |
+| `surfaceScalarField` | ค่าสเกลาร์ | ศูนย์กลางของ face | การไหลของมวล |
+| `surfaceVectorField` | เวกเตอร์ | ศูนย์กลางของ face | การไหลผ่านขอบเขต |
+
+**fvMesh.H**: `src/finiteVolume/fvMesh/fvMesh.H`
+
+คลาส finite volume mesh ที่ให้บริบบททางเรขาคณิตสำหรับการดำเนินการ field:
+
+```cpp
+class fvMesh
+:
+    public polyMesh
+{
+    // Mesh topology and geometry data
+    const fvBoundaryMesh& boundary() const;
+    const surfaceScalarField& Sf() const;  // Face area vectors
+    const volScalarField& V() const;        // Cell volumes
+    const surfaceScalarField& magSf() const; // Face areas
+};
+```
+
+**ฟังก์ชันที่สำคัญ**:
+- **การคำนวณทางเรขาคณิต**: ปริมาตร cell, พื้นที่ face, เวกเตอร์ปกติของ face
+- **การจัดการ mesh ขอบเขต**: การเข้าถึงเงื่อนไขขอบเขตและ patches
+- **การสร้าง surface field**: การคำนวณ surface-interpolated fields โดยอัตโนมัติ
+- **Field registry**: การจัดการหน่วยความจำสำหรับ fields ทั้งหมดที่เกี่ยวข้องกับ mesh
+
+[Diagram: FvMesh structure showing relationship with polyMesh and field containers]
+
+## 2. บทที่เกี่ยวข้อง
+
+### 2.1 Containers ของ OpenFOAM
+
+**[04.4 OpenFOAM Containers](../04.4_OpenFOAM_Containers/README.md)**
+
+บทนี้สำรวจคลาส container ที่เป็นรากฐานของโครงสร้างข้อมูลของ OpenFOAM:
+
+**ประเภท Container หลัก**:
+
+| Container Class | การใช้งาน | ประสิทธิภาพ | ตัวอย่าง |
+|-----------------|-------------|--------------|-----------|
+| `List<T>` | อาร์เรย์คงที่ | ดีสำหรับขนาดคงที่ | `List<scalar> values(100)` |
+| `DynamicList<T>` | อาร์เรย์ยืดหยุ่น | ดีสำหรับขนาดผันแปร | `DynamicList<vector> points` |
+| `PtrList<T>` | รายการตัวชี้ | การจัดการหน่วยความจำ | `PtrList<fvPatch> patches` |
+| `HashTable<T, Key>` | การจัดเก็บคีย์-ค่า | การค้นหาแบบ O(1) | `HashTable<word, label>` |
+| `Field<Type>` | ข้อมูลตัวเลข | การดำเนินการทางคณิตศาสตร์ | `Field<vector> velocity` |
+
+**แนวคิดหลัก**:
+- **ประสิทธิภาพหน่วยความจำ**: รูปแบบ RAII และการนับการอ้างอิง
+- **การปรับให้เหมาะสมประสิทธิภาพ**: โครงสร้างข้อมูลที่เป็นมิตรกับ cache และการดำเนินการ SIMD
+- **ความปลอดภัยของประเภท**: Template metaprogramming สำหรับการตรวจสอบประเภทเวลา compile
+- **การบูรณาการ I/O**: การทำให้เป็นข้อมูลอนุกรมโดยอัตโนมัติผ่านระบบ dictionary ของ OpenFOAM
+
+### 2.2 ประเภท Field และมิติ
+
+**[06.1 Field Types and Dimensions](../../Chapter_06_Field_Operations_and_Algebra/05.1_Field_Types_and_Dimensions/README.md)**
+
+การศึกษาเชิงลึกเกี่ยวกับระบบประเภทที่ซับซ้อนของ OpenFOAM สำหรับปริมาณทางฟิสิกส์:
+
+**การวิเคราะห์มิติ**: การตรวจสอบความสม่ำเสมอของมิติในตัว OpenFOAM:
+
+```cpp
+dimensionSet dimless(0, 0, 0, 0, 0, 0, 0);         // ไร้มิติ
+dimensionSet dimLength(1, 0, 0, 0, 0, 0, 0);       // [L]
+dimensionSet dimTime(0, 0, 1, 0, 0, 0, 0);         // [T]
+dimensionSet dimMass(0, 1, 0, 0, 0, 0, 0);         // [M]
+dimensionSet dimTemperature(0, 0, 0, 1, 0, 0, 0);  // [Θ]
+dimensionSet dimMoles(0, 0, 0, 0, 1, 0, 0);        // [N]
+dimensionSet dimCurrent(0, 0, 0, 0, 0, 1, 0);      // [I]
+```
+
+**หมวดหมู่การดำเนินการ Field**:
+
+#### 1. Unary Operations
+ฟังก์ชันทางคณิตศาสตร์ระดับ field
+```cpp
+volScalarField magU = mag(U);           // |U|
+volScalarField sqrtT = sqrt(T);         // √T
+volTensorField invA = inv(A);           // A⁻¹
+```
+
+#### 2. Binary Operations  
+การคำนวณทางคณิตศาสตร์แบบ element-wise บน field
+```cpp
+volVectorField force = rho * U;         // ρU
+volScalarField dissipation = mu * magSqr(gradU); // μ|∇U|²
+volTensorField stress = 2 * mu * D;     // 2μD
+```
+
+#### 3. Differential Operators
+อนุพันธ์เชิงพื้นที่และปริพันธ์
+```cpp
+surfaceVectorField gradP = fvc::grad(p);    // ∇p
+surfaceScalarField divU = fvc::div(U);      // ∇·U
+volScalarField laplacianT = fvc::laplacian(DT, T); // ∇·(DT∇T)
+```
+
+**การดำเนินการทางคณิตศาสตร์พื้นฐาน**:
+
+| ตัวดำเนินการ | สัญลักษณ์ | ความหมาย | ตัวอย่าง OpenFOAM |
+|---------------|------------|-----------|-------------------|
+| Gradient | ∇ | อนุพันธ์เชิงพื้นที่ | `fvc::grad(phi)` |
+| Divergence | ∇· | การไหลออก | `fvc::div(U)` |
+| Laplacian | ∇² | ตัวดำเนินการ Laplacian | `fvc::laplacian(kappa, T)` |
+| Curl | ∇× | การหมุน | `fvc::curl(omega)` |
+| Temporal derivative | ∂/∂t | อนุพันธ์ตามเวลา | `fvc::ddt(phi)` |
+
+## 3. แบบฝึกหัดปฏิบัติ
+
+### 3.1 ประเภท Field แบบกำหนดเองสำหรับความหนืดของของไหลที่ไม่ใช่นิวตัน
+
+**วัตถุประสงค์**: สร้างประเภท field เฉพาะที่คำนวณความหนืดปรากฏสำหรับของไหลที่ไม่ใช่นิวตันโดยอัตโนมัติโดยใช้รุ่น Power Law
+
+**รุ่น Power Law**: $$\mu_{app} = K \dot{\gamma}^{n-1}$$
+
+**ตัวแปรในสมการ**:
+- $\mu_{app}$ = ความหนืดปรากฏ (Pa·s)
+- $K$ = ดัชนีความสม่ำเสมอ (Pa·sⁿ)
+- $\dot{\gamma}$ = ขนาดอัตราการเฉือน (s⁻¹)
+- $n$ = ดัชนีพฤติกรรมการไหล (ไร้มิติ)
+
+**โครงสร้างการนำไปใช้**:
+
+```cpp
+// nonNewtonianViscosityField.H
+template<class Type>
+class nonNewtonianViscosityField
+:
+    public volScalarField
+{
+private:
+    // Model parameters
+    const dimensionedScalar K_;      // Consistency index
+    const dimensionedScalar n_;      // Flow behavior index
+    
+    // Reference to velocity field
+    const volVectorField& U_;
+    
+    // Shear rate field (cached for efficiency)
+    mutable volScalarField shearRate_;
+    
+public:
+    // Constructor
+    nonNewtonianViscosityField
+    (
+        const word& name,
+        const fvMesh& mesh,
+        const dimensionedScalar& K,
+        const dimensionedScalar& n,
+        const volVectorField& U
+    );
+    
+    // Update viscosity based on current velocity field
+    void updateViscosity();
+    
+    // Access to apparent viscosity
+    const volScalarField& muApp() const;
+};
+```
+
+**อัลกอริทึมการอัพเดทความหนืด**:
+
+1. **คำนวณ gradient ของความเร็ว**: $\nabla \mathbf{u}$
+2. **คำนวณ tensor ของอัตราการบิดเบือน**: $\mathbf{D} = \frac{1}{2}(\nabla \mathbf{u} + \nabla \mathbf{u}^T)$
+3. **คำนวณขนาดอัตราการเฉือน**: $\dot{\gamma} = \sqrt{2\mathbf{D}:\mathbf{D}}$
+4. **ใช้ Power Law**: $\mu_{app} = K \dot{\gamma}^{n-1}$
+
+**การนำไปใช้ใน OpenFOAM**:
+
+```cpp
+void nonNewtonianViscosityField::updateViscosity()
+{
+    // 1. Calculate velocity gradient
+    volTensorField gradU = fvc::grad(U_);
+    
+    // 2. Calculate rate-of-strain tensor
+    volTensorField D = 0.5 * (gradU + gradU.T());
+    
+    // 3. Calculate shear rate magnitude
+    shearRate_ = sqrt(2.0 * magSqr(D));
+    
+    // 4. Apply Power Law model
+    this->primitiveFieldRef() = K_.value() * pow(shearRate_, n_.value() - 1.0);
+    
+    // Update boundary conditions
+    this->correctBoundaryConditions();
+}
+```
+
+**ขั้นตอนการบูรณาการ**:
+1. ✅ ขยายคลาส `volScalarField` ที่มีอยู่
+2. ✅ นำไปใช้การอัพเดทความหนืดอัตโนมัติใน `updateViscosity()`
+3. 🔄 เพิ่มการรองรับ I/O สำหรับการอ่าน/เขียนพารามิเตอร์รุ่น
+4. 🔄 สร้างการเชี่ยวชาญเงื่อนไขขอบเขตสำหรับฟังก์ชันผนัง
+5. 🔄 เพิ่มการปรับให้เหมาะสมประสิทธิภาพสำหรับโครงสร้าง mesh ปกติ
+
+### 3.2 การนำเงื่อนไขขอบเขตแบบกำหนดเองไปใช้
+
+**วัตถุประสงค์**: นำเงื่อนไขขอบเขตการไหลของความร้อนผนังที่ขึ้นกับอุณหภูมิไปใช้โดยใช้กฎของนิวตันสำหรับการทำความเย็น
+
+**รุ่นการถ่ายเทความร้อน**: $$q_w = h(T_{wall} - T_{\infty})$$
+
+**ตัวแปรในสมการ**:
+- $q_w$ = การไหลของความร้อนผนัง (W/m²)
+- $h$ = สัมประสิทธิ์การถ่ายเทความร้อน (W/m²·K)
+- $T_{wall}$ = อุณหภูมิผนัง (K)
+- $T_{\infty}$ = อุณหภูมิแวดล้อม (K)
+
+[Diagram: Heat flux boundary condition showing wall temperature, ambient temperature, and heat transfer coefficient]
+
+**โครงสร้างคลาสฐาน**:
+
+```cpp
+// temperatureDependentHeatFluxFvPatchScalarField.H
+class temperatureDependentHeatFluxFvPatchScalarField
+:
+    public mixedFvPatchScalarField
+{
+private:
+    // Heat transfer coefficient
+    scalarField h_;
+    
+    // Ambient temperature
+    scalarField TInfinity_;
+    
+    // Reference temperature field for coupling
+    const volScalarField& T_;
+    
+public:
+    // Runtime type information
+    TypeName("temperatureDependentHeatFlux");
+    
+    // Constructors
+    temperatureDependentHeatFluxFvPatchScalarField
+    (
+        const fvPatch&,
+        const DimensionedField<scalar, volMesh>&,
+        const dictionary&
+    );
+    
+    // Update coefficients
+    virtual void updateCoeffs();
+    
+    // Write dictionary
+    virtual void write(Ostream&) const;
+};
+```
+
+**อัลกอริทึมการนำไปใช้**:
+
+```cpp
+void temperatureDependentHeatFluxFvPatchScalarField::updateCoeffs()
+{
+    // Get current wall temperature
+    scalarField Tw = this->patchInternalField();
+    
+    // Calculate heat flux: q = h(T_wall - T_infinity)
+    scalarField heatFlux = h_ * (Tw - TInfinity_);
+    
+    // Apply to boundary condition
+    // For mixedFvPatchField: valueFraction = 0, refValue = Tw, refGrad = q/k
+    this->refValue() = Tw;
+    this->refGrad() = heatFlux / this->patch().deltaCoeffs();
+    this->valueFraction() = 0.0;
+    
+    mixedFvPatchScalarField::updateCoeffs();
+}
+```
+
+**ขั้นตอนการบูรณาการ**:
+1. ✅ สืบทอดจากคลาสฐานที่เหมาะสม (`mixedFvPatchScalarField`)
+2. ✅ นำไปใช้การอ่านพารามิเตอร์จาก dictionary
+3. 🔄 เพิ่มการคำนวณสัมประสิทธิ์การถ่ายเทความร้อนอัตโนมัติ
+4. 🔄 รองรับอุณหภูมิแวดล้อมที่เปลี่ยนแปลงตามเวลา
+5. 🔄 เพิ่มการจำลองความต้านทานความร้อนสำหรับผนังหลายชั้น
+
+### 3.3 การวิเคราะห์ประสิทธิภาพการดำเนินการ Field
+
+**วัตถุประสงค์**: วิเคราะห์และปรับให้เหมาะสมประสิทธิภาพของการดำเนินการ field ในขนาด mesh และการกำหนดค่าขนานที่แตกต่างกัน
+
+**ตัวชี้วัดประสิทธิภาพ**:
+- **แบนด์วิดท์หน่วยความจำ**: GB/s สำหรับการดำเนินการอ่าน/เขียน field
+- **ประสิทธิภาพ cache**: อัตราการพลาด cache L1/L2/L3
+- **ความสามารถในการขยายขนาดแบบขนาน**: การเพิ่มความเร็วและประสิทธิภาพในกระบวนการ MPI
+- **ปริมาณการดำเนินการ**: การดำเนินการต่อวินาทีสำหรับประเภท field ที่แตกต่างกัน
+
+**กรอบการ Benchmarking**:
+
+```cpp
+// fieldPerformanceProfiler.H
+class fieldPerformanceProfiler
+{
+private:
+    const fvMesh& mesh_;
+    
+    // Performance timers
+    const clockTime timer_;
+    
+    // Memory usage tracking
+    const scalar initialMemory_;
+    
+public:
+    // Constructor
+    fieldPerformanceProfiler(const fvMesh& mesh);
+    
+    // Profile specific operations
+    void profileGradientOperation(const volScalarField& field);
+    void profileDivergenceOperation(const volVectorField& field);
+    void profileLaplacianOperation(const volScalarField& field);
+    void profileInterpolationOperation(const volScalarField& field);
+    
+    // Generate performance report
+    void generateReport() const;
+    
+    // Memory usage analysis
+    scalar currentMemoryUsage() const;
+    void printMemoryFootprint() const;
+};
+```
+
+**เมทริกซ์การทดสอบ**:
+
+| ขนาด Mesh | Cells | Faces | ประเภทการดำเนินการ | เวลาตามลำดับ | เวลาแบบขนาน (4 proc) | การเพิ่มความเร็ว |
+|-----------|-------|-------|----------------|-----------------|------------------------|---------|
+| ห่าง    | 1K    | 3K    | Gradient       | 0.001s          | 0.0003s                | 3.3x    |
+| กลาง    | 100K  | 300K  | Gradient       | 0.1s            | 0.028s                 | 3.6x    |
+| ละเอียด    | 1M    | 3M    | Gradient       | 1.2s            | 0.35s                  | 3.4x    |
+| ละเอียดมาก| 10M   | 30M   | Gradient       | 15s             | 4.8s                   | 3.1x    |
+
+**คุณสมบัติประสิทธิภาพที่คาดหวัง**:
+
+#### 1. การดำเนินการที่จำกัดด้วยหน่วยความจำ
+**(การคำนวณทางคณิตศาสตร์ field)**
+- สเกลตามแบนด์วิดท์หน่วยความจำ
+- จำกัดด้วยขนาด cache และลำดับชั้นหน่วยความจำ
+- ความสามารถในการขยายขนานแบบขนานที่ดีสำหรับ mesh ขนาดใหญ่
+
+#### 2. การดำเนินการที่จำกัดด้วยการคำนวณ
+**(gradient, divergence)**
+- สเกลตามประสิทธิภาพจุดลอยตัวของโปรเซสเซอร์
+- ได้ประโยชน์จากการทำให้เป็นเวกเตอร์ SIMD
+- ความสามารถในการขยายขนานแบบขนานที่ยอดเยี่ยม
+
+#### 3. การดำเนินการที่จำกัดด้วยการสื่อสาร
+**(การประมาณค่าแบบขนาน)**
+- จำกัดด้วยแบนด์วิดท์เครือข่ายและความหน่วง
+- ประสิทธิภาพลดลงเมื่อกระบวนการ MPI เพิ่มขึ้น
+- การปรับให้เหมาะสมผ่านกลยุทธ์การสลายตัวโดเมน
+
+[Diagram: Performance scaling chart showing memory-bound, compute-bound, and communication-bound regions]
+
+**กลยุทธ์การปรับให้เหมาะสม**:
+
+#### 1. การปรับโครงสร้างหน่วยความจำให้เหมาะสม
+```cpp
+// Use Structure of Arrays (SoA) for better cache utilization
+List<scalar> Ux(nCells), Uy(nCells), Uz(nCells);  // Better than
+List<vector> U(nCells);                           // Array of Structures (AoS)
+```
+
+#### 2. การปรับปรุงอัลกอริทึม
+- ใช้ทฤษฎีบทของเกาส์สำหรับการดำเนินการ divergence
+- นำไปใช้รูปแบบ stencil ที่เป็นมิตรกับ cache
+- ปรับให้เหมาะสมการจัดการเงื่อนไขขอบเขต
+
+#### 3. การปรับให้เหมาะสมแบบขนาน
+- ลดปริมาณการสื่อสาร MPI ให้น้อยที่สุด
+- ทำซ้อนการคำนวณและการสื่อสาร
+- ใช้ภูมิภาค halo เพื่อลดการซิงโครไนซ์ขอบเขต
+
+กรอบการวิเคราะห์ประสิทธิภาพอย่างครอบคลุมนี้ให้ข้อมูลเชิงลึกเกี่ยวกับคุณสมบัติประสิทธิภาพการคำนวณของ OpenFOAM และนำทางการปรับให้เหมาะสมสำหรับการจำลอง CFD ขนาดใหญ่

@@ -1,0 +1,493 @@
+## 1. Hook: ปัญหาทาง Rheological
+
+**ทำไมขวดซอสมะเขือเทศต้องตีแรงๆ ในขณะที่น้ำผึ้งไหลลื่นไหล?**
+
+ของไหลที่ไม่ใช่แบบนิวตัน—ซึ่งมีค่าความหนืดเปลี่ยนแปลงตามอัตราการเฉือน—ก่อให้เกิดความท้าทายพื้นฐานสำหรับ CFD
+
+OpenFOAM ตอบสนองความท้าทายนี้ด้วย **สถาปัตยกรรมแบบขยายได้ที่ใช้รูปแบบ Factory** ซึ่งให้คุณสลับไปมาระหว่างรุ่น Bird-Carreau, Herschel-Bulkley, Power-Law และแบบจำลอง rheological อื่นๆ โดยการเปลี่ยน dictionary entry เพียงรายการเดียว
+
+คู่มือนี้จะวิเคราะห์สถาปัตยกรรมนั้น แสดงให้คุณเห็นอย่างแน่ชัดว่า OpenFOAM คำนวณความหนืดที่ขึ้นกับอัตราการเคลื่อนที่อย่างไรและคุณสามารถเสียบรุ่นของคุณเองได้อย่างไร
+
+[Diagram: การเปรียบเทียบความหนืดระหว่างของไหลแบบนิวตันและไม่ใช่แบบนิวตัน]
+
+---
+
+### การทำความเข้าใจพฤติกรรมที่ไม่ใช่แบบนิวตัน
+
+ความแตกต่างพื้นฐานระหว่างของไหลแบบนิวตันและไม่ใช่แบบนิวตันอยู่ที่พฤติกรรมความหนืดของพวกมัน
+
+**สำหรับของไหลแบบนิวตัน:**
+$$\mu = \text{constant}$$
+
+โดยที่:
+- $\mu$ คือความหนืดพลศาสตร์
+
+**สำหรับของไหลที่ไม่ใช่แบบนิวตัน:**
+$$\mu = \mu(\dot{\gamma})$$
+
+โดยที่:
+- $\dot{\gamma}$ แทนขนาดเทนเซอร์อัตราการเฉือน
+
+**ขนาดเทนเซอร์อัตราการเฉือน:**
+$$\dot{\gamma} = \sqrt{2\mathbf{D}:\mathbf{D}} = \sqrt{2\sum_{i,j} D_{ij}D_{ij}}$$
+
+โดยที่:
+- $\mathbf{D}$ คือเทนเซอร์อัตราการผิดรูป
+
+**เทนเซอร์อัตราการผิดรูป:**
+$$\mathbf{D} = \frac{1}{2}\left(\nabla \mathbf{u} + (\nabla \mathbf{u})^T\right)$$
+
+โดยที่:
+- $\mathbf{u}$ คือเวกเตอร์ความเร็ว
+
+---
+
+### แบบจำลอง Rheological ทั่วไปใน OpenFOAM
+
+#### แบบจำลองกฎกำลัง (Power-Law Model)
+
+แบบจำลองที่ไม่ใช่แบบนิวตันที่ง่ายที่สุดเชื่อมโยงความหนืดกับอัตราการเฉือนดังนี้:
+
+$$\mu(\dot{\gamma}) = K \dot{\gamma}^{n-1}$$
+
+โดยที่:
+- $K$ คือดัชนีความสม่ำเสมอ (Pa·s$^n$)
+- $n$ คือดัชนีกฎกำลัง:
+  - **$n < 1$**: พฤติกรรม Shear-thinning (pseudoplastic)
+  - **$n > 1$**: พฤติกรรม Shear-thickening (dilatant)
+  - **$n = 1$**: ลดรูปเป็นของไหลแบบนิวตัน
+
+#### แบบจำลอง Bird-Carreau
+
+แบบจำลองที่ซับซ้อนมากขึ้นซึ่งจับความหนืดเมื่อไม่มีการเฉือนและเมื่อเฉือนอย่างไม่สิ้นสุด:
+
+$$\mu(\dot{\gamma}) = \mu_{\infty} + (\mu_0 - \mu_{\infty})\left[1 + (\lambda\dot{\gamma})^2\right]^{\frac{n-1}{2}}$$
+
+โดยที่:
+- $\mu_0$: ความหนืดเมื่อไม่มีการเฉือน
+- $\mu_{\infty}$: ความหนืดเมื่อเฉือนอย่างไม่สิ้นสุด  
+- $\lambda$: มาตราส่วนเวลาลักษณะเฉพาะ
+- $n$: ดัชนีกฎกำลัง
+
+#### แบบจำลอง Herschel-Bulkley
+
+รวมพฤติกรรมแรงเฉือนให้ไหลด้วยการไหลแบบกฎกำลัง:
+
+$$\mu(\dot{\gamma}) = \begin{cases}
+\infty & \text{if } \tau < \tau_y \\
+\tau_y/\dot{\gamma} + K\dot{\gamma}^{n-1} & \text{if } \tau \geq \tau_y
+\end{cases}$$
+
+โดยที่:
+- $\tau_y$: แรงเฉือนให้ไหล
+- $\tau$: ขนาดความเครียดเฉือน
+- $K$: ดัชนีความสม่ำเสมอ
+- $n$: ดัชนีพฤติกรรมการไหล
+
+[Diagram: กราฟความสัมพันธ์ระหว่างความหนืดและอัตราการเฉือนสำหรับแบบจำลองต่างๆ]
+
+---
+
+### สถาปัตยกรรม Factory ของ OpenFOAM
+
+ความยอดเยี่ยมของการใช้งาน OpenFOAM อยู่ที่การออกแบบรูปแบบ factory
+
+**ตัวอย่าง transportProperties dictionary:**
+```cpp
+transportModel  HerschelBulkley;
+
+HerschelBulkleyCoeffs
+{
+    nu0          [0 2 -1 0 0 0 0] 1e-06;
+    tauY         [0 2 -2 0 0 0 0] 10;
+    k            [0 2 -1 0 0 0 0] 0.01;
+    n            [0 0 0 0 0 0 0]  0.7;
+}
+```
+
+**OpenFOAM Code Implementation - กลไก Factory:**
+
+```cpp
+// In transportModel.H
+template<class BasicTransportModel>
+class viscosityModel
+{
+public:
+    TypeName("viscosityModel");
+    
+    declareRunTimeSelectionTable
+    (
+        autoPtr,
+        viscosityModel,
+        dictionary,
+        (
+            const dictionary& dict,
+            const BasicTransportModel& model
+        ),
+        (dict, model)
+    );
+    
+    // Virtual interface
+    virtual tmp<volScalarField> mu() const = 0;
+    virtual void correct() = 0;
+};
+
+// Factory method
+template<class BasicTransportModel>
+autoPtr<viscosityModel<BasicTransportModel>> 
+viscosityModel<BasicTransportModel>::New
+(
+    const dictionary& dict,
+    const BasicTransportModel& model
+)
+{
+    const word modelType(dict.lookup("transportModel"));
+    
+    typename dictionaryConstructorTable::iterator cstrIter =
+        dictionaryConstructorTablePtr_->find(modelType);
+        
+    return cstrIter()(dict, model);
+}
+```
+
+[Diagram: แผนภูมิการทำงานของรูปแบบ Factory Pattern ใน OpenFOAM]
+
+---
+
+### สถาปัตยกรรมการใช้งาน
+
+แต่ละแบบจำลอง rheological สืบทอดมาจากคลาสฐาน `viscosityModel`
+
+**OpenFOAM Code Implementation - โครงสร้างคลาส:**
+
+```cpp
+// HerschelBulkleyViscosityModel.H
+template<class BasicTransportModel>
+class HerschelBulkleyViscosityModel
+:
+    public viscosityModel<BasicTransportModel>
+{
+private:
+    // Model parameters
+    dimensionedScalar tauY_;
+    dimensionedScalar k_;
+    dimensionedScalar n_;
+    dimensionedScalar nu0_;
+    
+    // Cached fields for efficiency
+    mutable volScalarField mu_;
+    mutable volScalarField shearRate_;
+    
+public:
+    TypeName("HerschelBulkley");
+    
+    HerschelBulkleyViscosityModel
+    (
+        const dictionary& dict,
+        const BasicTransportModel& model
+    );
+    
+    virtual tmp<volScalarField> mu() const;
+    virtual void correct();
+};
+```
+
+วิธีการใช้งานหลักคือ `correct()` ซึ่งคำนวณความหนืดที่ขึ้นกับอัตราการเคลื่อนที่
+
+**OpenFOAM Code Implementation - การคำนวณความหนืด:**
+
+```cpp
+template<class BasicTransportModel>
+void HerschelBulkleyViscosityModel<BasicTransportModel>::correct()
+{
+    // Compute velocity gradient
+    const volTensorField gradU(fvc::grad(this->U()));
+    
+    // Calculate rate of deformation tensor
+    const volSymmTensorField D(symm(gradU));
+    
+    // Compute shear rate magnitude
+    shearRate_ = sqrt(2.0)*mag(D);
+    
+    // Calculate shear stress magnitude
+    const volScalarField tau
+    (
+        this->nu()*this->rho()*shearRate_
+    );
+    
+    // Herschel-Bulkley viscosity calculation
+    forAll(mu_, celli)
+    {
+        if (tau[celli] > tauY_.value())
+        {
+            // Viscous flow region
+            mu_[celli] = tauY_.value()/shearRate_[celli] 
+                       + k_.value()*pow(shearRate_[celli], n_.value() - 1.0);
+        }
+        else
+        {
+            // Yield stress region - use very high viscosity
+            mu_[celli] = nu0_.value()*this->rho().value();
+        }
+    }
+    
+    mu_.correctBoundaryConditions();
+}
+```
+
+---
+
+### วิธีการคำนวณอัตราการเคลื่อนที่
+
+OpenFOAM เสนอแนวทางหลายอย่างสำหรับการคำนวณ $\dot{\gamma}$
+
+#### 1. อัตราการเคลื่อนที่มาตรฐาน
+```cpp
+volSymmTensorField D = symm(fvc::grad(U));
+volScalarField shearRate = sqrt(2.0)*mag(D);
+```
+
+#### 2. วิธีการที่ใช้ Invariant
+```cpp
+volTensorField gradU = fvc::grad(U);
+volScalarField shearRate = sqrt(2.0*magSqr(symm(gradU)));
+```
+
+#### 3. Q-Criterion สำหรับบริเวณที่ Vorticity เป็นผู้นำ
+```cpp
+volTensorField gradU = fvc::grad(U);
+volScalarField Q = 0.5*(magSqr(skew(gradU)) - magSqr(symm(gradU)));
+volScalarField shearRate = sqrt(max(magSqr(symm(gradU)), Q));
+```
+
+| วิธีการ | ข้อดี | ข้อเสีย | การใช้งานที่เหมาะสม |
+|---------|--------|---------|------------------|
+| มาตรฐาน | ค่าตรงตามนิยามทางคณิตศาสตร์ | อาจมีปัญหาที่ความเครียดเฉือนต่ำ | การไหลทั่วไป |
+| Invariant | เสถียรทางตัวเลขมากขึ้น | คำนวณหนักกว่า | ของไหลที่มีความซับซ้อนสูง |
+| Q-Criterion | จัดการกับโครงสร้าง Vortex ได้ดี | ซับซ้อนและต้องการความเข้าใจ | การไหล Turbulent |
+
+---
+
+### ข้อควรพิจารณาทางตัวเลข
+
+#### เทคนิคการปรับความสม่ำเสมอ
+
+สำหรับแบบจำลองเช่น Herschel-Bulkley ความเสถียรทางตัวเลขต้องการการปรับความสม่ำเสมอ:
+
+**OpenFOAM Code Implementation - Papanastasiou Regularization:**
+```cpp
+// Papanastasiou regularization
+volScalarField regularizationFactor = tauY_/(m_*shearRate_ + dimensionedScalar("small", dimless, SMALL));
+```
+
+**OpenFOAM Code Implementation - Bercovier-Engleman Regularization:**
+```cpp
+// Bercovier-Engleman regularization  
+volScalarField regularizationFactor = tauY_/(shearRate_ + epsilon_);
+```
+
+#### ความท้าทายในการ Discretization
+
+การไหลแบบไม่ใช่นิวตันสร้างการเชื่อมโยงเพิ่มเติมระหว่างสมการโมเมนตัมและสมการรัฐธรรมนูญ
+
+**ขั้นตอนการแก้ไขปัญหา:**
+
+1. **Picard Iteration**: อัพเดตความหนืดตามการวนซ้ำก่อนหน้า
+2. **Newton-Raphson**: แก้ระบบที่เชื่อมโยงพร้อมกับการแยกส่วนที่สอดคล้องกัน
+3. **Under-Relaxation**: ป้องกันการเบี่ยงเบนด้วยการผ่อนคลายความหนืด
+
+**OpenFOAM Code Implementation - Under-Relaxation:**
+```cpp
+// Under-relaxation for viscosity
+mu_ = relaxationFactor_*mu_ + (1.0 - relaxationFactor_)*muOld_;
+```
+
+[Diagram: แผนภาพการวนซ้ำสำหรับแก้ปัญหาความหนืดที่ขึ้นกับอัตราการเคลื่อนที่]
+
+---
+
+### ตัวอย่างการใช้งานจริง
+
+การผสานรวม solver สมบูรณ์สำหรับของไหลแบบกฎกำลัง
+
+**OpenFOAM Code Implementation - Solver Integration:**
+
+```cpp
+// In createFields.H
+// Read transport properties
+IOdictionary transportProperties
+(
+    IOobject
+    (
+        "transportProperties",
+        runTime.constant(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::NO_WRITE
+    )
+);
+
+// Create viscosity model
+autoPtr<viscosityModel> viscosity
+(
+    viscosityModel::New
+    (
+        transportProperties,
+        thermophysicalProperties
+    )
+);
+
+// Main solver loop
+while (runTime.loop())
+{
+    // Update viscosity model
+    viscosity->correct();
+    
+    // Get current viscosity field
+    const volScalarField mu(viscosity->mu());
+    
+    // Momentum equation with variable viscosity
+    fvVectorMatrix UEqn
+    (
+        fvm::ddt(rho, U)
+      + fvm::div(rhoPhi, U)
+      - fvm::laplacian(mu, U)
+     ==
+        fvOptions(rho, U)
+    );
+    
+    // Solve momentum
+    UEqn.relax();
+    fvOptions.constrain(UEqn);
+    
+    if (pimple.momentumPredictor())
+    {
+        solve(UEqn == -fvc::grad(p));
+        fvOptions.correct(U);
+    }
+}
+```
+
+---
+
+### การขยายด้วยแบบจำลองที่กำหนดเอง
+
+การสร้างแบบจำลอง rheological ของคุณเองนั้นง่าย
+
+**OpenFOAM Code Implementation - แบบจำลองที่กำหนดเอง:**
+
+```cpp
+// CustomViscosityModel.H
+template<class BasicTransportModel>
+class CustomViscosityModel
+:
+    public viscosityModel<BasicTransportModel>
+{
+private:
+    dimensionedScalar customParam_;
+    mutable volScalarField mu_;
+    
+public:
+    TypeName("CustomModel");
+    
+    CustomViscosityModel
+    (
+        const dictionary& dict,
+        const BasicTransportModel& model
+    )
+    :
+        viscosityModel<BasicTransportModel>(dict, model),
+        customParam_
+        (
+            dimensionedScalar::lookupOrDefault
+            (
+                "customParam",
+                dict,
+                dimensionedScalar("customParam", dimless, 1.0)
+            )
+        ),
+        mu_
+        (
+            IOobject
+            (
+                "mu",
+                this->U().time().timeName(),
+                this->U().mesh(),
+                IOobject::NO_READ,
+                IOobject::NO_WRITE
+            ),
+            this->U().mesh(),
+            dimensionedScalar("mu", dimDynamicViscosity, 0)
+        )
+    {}
+    
+    virtual tmp<volScalarField> mu() const
+    {
+        return tmp<volScalarField>(new volScalarField(mu_));
+    }
+    
+    virtual void correct()
+    {
+        // Custom viscosity calculation
+        const volTensorField gradU(fvc::grad(this->U()));
+        const volSymmTensorField D(symm(gradU));
+        const volScalarField shearRate(sqrt(2.0)*mag(D));
+        
+        // Your custom formulation
+        mu_ = this->nu()*this->rho()*pow(1.0 + customParam_*shearRate, 0.5);
+        mu_.correctBoundaryConditions();
+    }
+};
+
+// Factory registration
+addToRunTimeSelectionTable
+(
+    viscosityModel,
+    CustomViscosityModel,
+    dictionary
+);
+```
+
+---
+
+### กลยุทธ์การเพิ่มประสิทธิภาพประสิทธิผล
+
+1. **Field Caching**: เก็บฟิลด์ที่คำนวณบ่อยไว้
+2. **Selective Recomputation**: อัพเดตเฉพาะที่อัตราการเคลื่อนที่เปลี่ยนแปลงอย่างมีนัยสำคัญ
+3. **Parallel Optimization**: ให้แน่ใจว่าการจัดสรรภาระที่เหมาะสม
+4. **Memory Management**: ใช้ `tmp<>` สำหรับฟิลด์ชั่วคราว
+
+**OpenFOAM Code Implementation - การปรับประสิทธิภาพ:**
+
+```cpp
+// Efficient implementation with caching
+virtual void correct()
+{
+    if (!this->updateViscosity())
+    {
+        return; // Skip if not needed
+    }
+    
+    // Computation only on necessary regions
+    forAll(shearRate_, celli)
+    {
+        if (abs(shearRate_[celli] - shearRateOld_[celli]) > tolerance_)
+        {
+            mu_[celli] = calculateViscosity(shearRate_[celli]);
+        }
+    }
+}
+```
+
+| เทคนิคการปรับประสิทธิภาพ | ผลกระทบด้านประสิทธิภาพ | ความซับซ้อนในการใช้งาน |
+|--------------------------|---------------------|---------------------|
+| Field Caching | ลดเวลาคำนวณ 30-50% | ต่ำ |
+| Selective Recomputation | ลดเวลาคำนวณ 20-40% | ปานกลาง |
+| Parallel Optimization | เพิ่มความเร็ว 2-4x | สูง |
+| Memory Management | ลดการใช้หน่วยความจำ 15-25% | ต่ำ |
+
+[Diagram: แผนภูมิการเปรียบเทียบประสิทธิภาพระหว่างเทคนิคการปรับประสิทธิภาพต่างๆ]
+
+---
+
+สถาปัตยกรรม rheological นี้เป็นหนึ่งในรูปแบบการออกแบบที่สง่างามที่สุดของ OpenFOAM—ซึ่งแปลงการจำลองรัฐธรรมนูญที่ซับซ้อนให้เป็นการเลือกแบบ dictionary ที่ง่ายในขณะที่ยังคงรักษาประสิทธิภาพการคำนวณและความเสถียรทางตัวเลข

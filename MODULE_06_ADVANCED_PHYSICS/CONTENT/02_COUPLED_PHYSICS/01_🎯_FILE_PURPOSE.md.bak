@@ -1,0 +1,440 @@
+# การจับคู่หลายฟิสิกส์ใน OpenFOAM: สถาปัตยกรรมและการนำไปใช้งาน
+
+## บทนำสู่การจับคู่หลายฟิสิกส์
+
+การจับคู่หลายฟิสิกส์ใน OpenFOAM เป็นการบูรณาการของโดเมนฟิสิกส์หลายๆ โดเมนภายในกรอบการจำลองเดียว ซึ่งรวมถึง:
+- **การถ่ายเทความร้อนร่วม (CHT)**
+- **การโต้ตอบระหว่างของไหลและโครงสร้าง (FSI)**
+- ปรากฏการณ์ที่เชื่อมโยงกันอื่นๆ
+
+ที่โดเมนฟิสิกส์ต่างๆ โต้ตอบกันที่ขอบเขตที่ใช้ร่วมกันหรือทั่วทั้งโดเมนการคำนวณ 
+
+**สถาปัตยกรรมพื้นฐาน:**
+- สร้างบนวิธีการปริมาตรจำกัด
+- ใช้ระบบการจัดการสนามขั้นสูง
+- แลกเปลี่ยนข้อมูลระหว่าง Solver ฟิสิกส์ต่างๆ
+
+**ความท้าทายหลัก:**
+- รักษาความสม่ำเสมอและการบรรจบกันข้ามอินเตอร์เฟซ
+- รับประกันเสถียรภาพเชิงตัวเลข
+- คงประสิทธิภาพการคำนวณ
+
+**[Diagram: Multi-Physics Coupling Architecture แสดงโดเมนฟิสิกส์ต่างๆ ที่เชื่อมต่อผ่านอินเตอร์เฟซมาตรฐาน]**
+
+## สถาปัตยกรรม Solver แบบจับคู่
+
+### กรอบการจับคู่แบบ Region-Based
+
+ความสามารถด้านหลายฟิสิกส์ของ OpenFOAM สร้างขึ้นบนแนวคิดของหลาย region โดยแต่ละ region แทนโดเมนฟิสิกส์ที่แตกต่างกันซึ่งมี:
+- mesh, สนาม และสมการควบคุมของตัวเอง
+- การจัดการผ่านลำดับชั้นคลาส `regionModel`
+
+#### OpenFOAM Code Implementation
+```cpp
+class regionModel
+:
+    public dictionary
+{
+    // Region mesh
+    const fvMesh& regionMesh_;
+    
+    // Inter-region heat transfer models
+    heatTransferModelTable HT_;
+    
+    // Inter-region mass transfer models  
+    massTransferModelTable MT_;
+    
+    // Time step control
+    const Time& runTime_;
+};
+```
+
+**ข้อดีของสถาปัตยกรรมนี้:**
+- การแก้ปัญหาอย่างอิสระในแต่ละ region
+- การแลกเปลี่ยนข้อมูลผ่านอินเตอร์เฟซมาตรฐาน
+- การจัดการการถ่ายโอนผ่านเงื่อนไขขอบเขต
+
+### การนำ Conjugate Heat Transfer ไปใช้งาน
+
+ปัญหา CHT เกี่ยวข้องกับการถ่ายเทความร้อนแบบจับคู่ระหว่าง region ของไหลและของแข็ง ซึ่งโดยทั่วไปเกิดขึ้นใน:
+- **Heat exchangers**
+- **การทำความเย็นอิเล็กทรอนิกส์**
+- **การทำความเย็นใบพัดเครื่องยนต์เทอร์ไบน์**
+
+#### Solvers สำหรับ CHT
+- `conjugateHeatFoam`
+- `reactingEulerFoam` (พร้อมการจับคู่การถ่ายเทความร้อน)
+
+#### OpenFOAM Code Implementation
+```cpp
+class heatTransferModel
+{
+public:
+    // Runtime type information
+    TypeName("heatTransferModel");
+    
+    // Heat transfer coefficient calculation
+    virtual tmp<volScalarField> htc() const = 0;
+    
+    // Heat flux calculation
+    virtual tmp<volScalarField> Q() const = 0;
+};
+```
+
+**การจับคู่ heat flux ที่ขอบเขตอินเตอร์เฟซ:**
+$$q''_f = -k_f \nabla T_f \cdot \mathbf{n} = q''_s = -k_s \nabla T_s \cdot \mathbf{n}$$
+
+โดยที่:
+- $q''_f$ = heat flux ที่ขอบเขตของไหล
+- $q''_s$ = heat flux ที่ขอบเขตของแข็ง
+- $k_f$, $k_s$ = ค่าความนำความร้อนของของไหลและของแข็ง
+- $\nabla T_f$, $\nabla T_s$ = gradient ของอุณหภูมิ
+- $\mathbf{n}$ = เวกเตอร์หน่วยตั้งฉากกับขอบเขต
+
+### กรอบการทำงาน Fluid-Structure Interaction
+
+การจับคู่ FSI ใน OpenFOAM ขยายกรอบการทำงานหลายฟิสิกส์ให้รวมถึงกลศาสตร์โครงสร้าง โดย:
+- จับคู่ระหว่าง fluid solver (สมการ Navier-Stokes) และ structural solver (สมการความยืดหยุ่น)
+- ส่งผ่านเงื่อนไขขอบเขตการกระจัดและแรง
+
+#### OpenFOAM Code Implementation
+```cpp
+class solidDisplacementFvPatchVectorField
+:
+    public fixedValueFvPatchVectorField
+{
+    // Structural displacement
+    vectorField displacement_;
+    
+    // Applied forces from fluid
+    vectorField force_;
+    
+    // Material properties
+    scalarField youngModulus_;
+    scalarField poissonRatio_;
+};
+```
+
+**กลไกการจับคู่:**
+- ถ่ายโอนความดันและความเค้นเฉือนของของไหลไปยังขอบเขตโครงสร้างเป็นแรงดึง
+- การเปลี่ยนรูปโครงสร้างปรับเปลี่ยนเรขาคณิตโดเมนของไหล
+- ต้องการอัลกอริทึมการเปลี่ยนรูป mesh เพื่อรักษาคุณภาพ mesh
+
+## กลไกการจับคู่เงื่อนไขขอบเขต
+
+### เงื่อนไขขอบเขตแบบจับคู่
+
+การจับคู่ระหว่าง region จัดการหลักๆ ผ่านเงื่อนไขขอบเขตเฉพาะทางที่รักษาความต่อเนื่องของสนามข้ามอินเตอร์เฟซ:
+
+**การจับคู่อุณหภูมิ:**
+$$T_f|_{\Gamma} = T_s|_{\Gamma} \quad \text{(ความต่อเนื่องของอุณหภูมิ)}$$
+
+**การจับคู่ heat flux:**
+$$-k_f \nabla T_f \cdot \mathbf{n}|_{\Gamma} = -k_s \nabla T_s \cdot \mathbf{n}|_{\Gamma} \quad \text{(ความต่อเนื่องของ heat flux)}$$
+
+**การจับคู่ความเร็ว/การกระจัด:**
+$$\mathbf{u}_f \cdot \mathbf{n}|_{\Gamma} = \frac{\partial \mathbf{d}_s}{\partial t} \cdot \mathbf{n}|_{\Gamma} \quad \text{(เงื่อนไขไม่มีการไถล)}$$
+
+**การจับคู่แรง:**
+$$\boldsymbol{\sigma}_f \cdot \mathbf{n}|_{\Gamma} = \boldsymbol{\sigma}_s \cdot \mathbf{n}|_{\Gamma} \quad \text{(สมดุลของแรงดึง)}$$
+
+โดยที่:
+- $\Gamma$ = ขอบเขตอินเตอร์เฟซ
+- $T_f$, $T_s$ = อุณหภูมิของไหลและของแข็ง
+- $\mathbf{u}_f$ = เวกเตอร์ความเร็วของไหล
+- $\mathbf{d}_s$ = เวกเตอร์การกระจัดของของแข็ง
+- $\boldsymbol{\sigma}_f$, $\boldsymbol{\sigma}_s$ = tensor ความเค้น
+
+**การนำไปใช้ใน OpenFOAM:**
+- `turbulentTemperatureCoupledBaffleMixed` (สำหรับการจับคู่ทางความร้อน)
+- `solidInteraction` (สำหรับการจับคู่โครงสร้าง)
+
+### กลยุทธ์การจับคู่ Implicit และ Explicit
+
+| กลยุทธ์ | ลักษณะ | ข้อดี | ข้อเสีย |
+|---------|---------|--------|----------|
+| **Explicit** | อัปเดตตามลำดับในแต่ละ time step | ต้นทุนต่อการวนซ้ำต่ำ | ต้องการ time step เล็กสำหรับเสถียรภาพ |
+| **Implicit** | แก้ระบบที่จับคู่พร้อมกัน | เสถียรภาพดีขึ้น, time step ใหญ่ขึ้น | ต้นทุนการคำนวณสูงขึ้น |
+
+**อัลกอริทึม PIMPLE:**
+- การรวมกันของ SIMPLE และ PISO
+- เหมาะสำหรับปัญหาจับคู่แบบ transient
+- ให้การจับคู่ความดัน-ความเร็วพร้อมกับการจัดการแบบ implicit ของ source terms
+
+## การจัดการสนามและการแลกเปลี่ยนข้อมูล
+
+### การประสานงานสนามหลาย Region
+
+ระบบการจัดการสนามของ OpenFOAM ขยายไปยังปัญหาหลาย region ผ่านกรอบการทำงาน `regionModel`:
+
+#### OpenFOAM Code Implementation
+```cpp
+class coupledRegionModel
+{
+    // Region field maps
+    HashTable<volScalarField*> scalarFields_;
+    HashTable<volVectorField*> vectorFields_;
+    
+    // Interface data storage
+    HashTable<interfaceData*> interfaces_;
+    
+    // Coupling operations
+    void updateInterfaces();
+    void syncBoundaryConditions();
+};
+```
+
+**คุณสมบัติของระบบ:**
+- แต่ละ region รักษาอินสแตนซ์สนามของตัวเอง
+- การจับคู่เกิดขึ้นผ่านการประเมินเงื่อนไขขอบเขตและการแทรกค่า
+- ความสม่ำเสมอข้าม region ผ่านแบบแผนการแทรกค่าขั้นสูง
+
+### การถ่ายโอนคุณสมบัติแบบ Conservative
+
+#### OpenFOAM Code Implementation
+```cpp
+class conservativeInterface
+{
+    // Face area weighting for flux conservation
+    scalarField faceWeights_;
+    
+    // Conservative interpolation
+    void conservativeInterpolate
+    (
+        const volScalarField& fieldFrom,
+        volScalarField& fieldTo
+    );
+};
+```
+
+**หลักการสำคัญ:**
+- รักษาการอนุรักษ์คุณสมบัติข้ามอินเตอร์เฟซ region
+- อัลกอริทึมการแทรกค่ารักษาคุณสมบัติ integral ข้ามอินเตอร์เฟซ
+- รับประกันการอนุรักษ์ความร้อน, มวล, และโมเมนตัม
+
+## รูปแบบการนำ Solver ไปใช้งาน
+
+### การออกแบบ Solver แบบ Template-Based
+
+#### OpenFOAM Code Implementation
+```cpp
+template<class PhaseType>
+class multiphaseEulerFoam
+{
+    // Phase models
+    PtrList<PhaseType> phases_;
+    
+    // Coupling models
+    autoPtr<heatTransferPhaseSystem<PhaseType>> heatTransfer_;
+    autoPtr<dragPhaseSystem<PhaseType>> drag_;
+    
+    // Solution algorithm
+    void correct();
+    void solveCoupled();
+};
+```
+
+**ข้อดีของการออกแบบแบบ template-based:**
+- ความยืดหยุ่นและความปลอดภัยของประเภท
+- การสร้าง solver เฉพาะทางสำหรับการผสมผสามฟิสิกส์ที่แตกต่างกัน
+- โครงสร้างโค้ดที่สม่ำเสมอและความสามารถในการนำกลับมาใช้ใหม่
+
+### เทคนิคการเร่งความเร็วการบรรจบกัน
+
+ปัญหาแบบจับคู่มักประสบปัญหาการบรรจบกันที่ช้าเนื่องจากการพึ่งพากันอย่างแข็งแกร่งระหว่างโดเมนฟิสิกส์ต่างๆ
+
+**การผ่อนความเร็ว (Under-Relaxation):**
+$$\phi^{n+1} = \phi^n + \omega (\phi^{*} - \phi^n)$$
+โดยที่ $\omega$ คือตัวปรับปริยายความเร็ว
+
+#### OpenFOAM Code Implementation
+```cpp
+class coupledResidualControl
+{
+    // Residual scaling factors
+    scalarField residualScale_;
+    
+    // Convergence criteria
+    scalar convergenceTolerance_;
+    
+    // Adaptive under-relaxation
+    void updateRelaxationFactors();
+};
+```
+
+**เทคนิคเพิ่มเติม:**
+- **การลดส่วนที่เหลือ (Residual Reduction):** การปรับสเกลส่วนที่เหลือและการตรวจสอบอัตโนมัติ
+- **การเร่งความเร็ว Multi-Grid:** สำหรับการแก้ระบบเชิงเส้นที่จับคู่อย่างมีประสิทธิภาพ
+
+## การนำไปใช้งานการจับคู่ขั้นสูง
+
+### การจำลองความปั่นป่วนแบบหลายฟิสิกส์
+
+ในปัญหาแบบจับคู่ การจำลองความปั่นป่วนมีความซับซ้อนเนื่องจากการโต้ตอบระหว่างการไหลแบบปั่นป่วนและฟิสิกส์อื่นๆ
+
+#### OpenFOAM Code Implementation
+```cpp
+class coupledTurbulenceModel
+{
+    // Fluid-side turbulence
+    autoPtr<incompressible::turbulenceModel> fluidTurbulence_;
+    
+    // Heat transfer effects on turbulence
+    scalarField buoyancySource_;
+    
+    // Interface modifications
+    void modifyWallFunctions();
+};
+```
+
+**ปัจจัยที่ต้องพิจารณา:**
+- ผลกระทบของ buoyancy
+- การบีบอัดได้ 
+- การเปลี่ยนแปลงคุณสมบัติข้ามอินเตอร์เฟซ
+
+### การจับคู่การไหลหลายเฟสแบบปฏิกิริยา
+
+แอปพลิเคชันขั้นสูงมักเกี่ยวข้องกับการจับคู่ระหว่าง:
+- การไหลหลายเฟส
+- การถ่ายเทความร้อน
+- ปฏิกิริยาเคมี
+
+#### OpenFOAM Code Implementation
+```cpp
+class reactingMultiphaseEulerFoam
+{
+    // Phase models
+    phaseSystem phases_;
+    
+    // Thermophysical models
+    reactingMixture mixture_;
+    
+    // Coupled chemistry and heat transfer
+    combustionModel combustion_;
+    heatTransferPhaseSystem heatTransfer_;
+    
+    // Solution sequence coordination
+    void solveCoupledSystem();
+};
+```
+
+**[Diagram: Multi-Phase Coupling Flow แสดงลำดับการแก้ปัญหาและการแลกเปลี่ยนข้อมูลระหว่างโมเดลต่างๆ]**
+
+## การปรับให้เหมาะสมด้านประสิทธิภาพและการคำนวณแบบขนาน
+
+### การแบ่งโดเมนสำหรับปัญหาแบบจับคู่
+
+#### OpenFOAM Code Implementation
+```cpp
+class coupledDecomposition
+{
+    // Region-specific decomposition methods
+    labelListList regionDecomposition_;
+    
+    // Interface processor mapping
+    processorInterface processorInterfaces_;
+    
+    // Ghost cell management
+    void updateCoupledGhostCells();
+};
+```
+
+**กลยุทธ์การแบ่งโดเมน:**
+- ลดการสื่อสารอินเตอร์เฟซ
+- รับประกันการสร้างสมดุลโหลดข้าม processor
+- จัดการข้อมูล ghost cells สำหรับการจับคู่
+
+### การจัดการหน่วยความจำและการแคช
+
+#### OpenFOAM Code Implementation
+```cpp
+class coupledFieldCache
+{
+    // Field storage optimization
+    HashTable<tmp<Field<scalar>>> cachedFields_;
+    
+    // Automatic cache management
+    void clearExpiredFields();
+    void optimizeMemoryUsage();
+};
+```
+
+**วัตถุประสงค์:**
+- ลดภาระการคำนวณโดยการจัดเก็บข้อมูลการจับคู่ที่เข้าถึงบ่อย
+- จัดการการใช้หน่วยความจำอย่างมีประสิทธิภาพ
+- ลดความต้องการหน่วยความจำที่สูงจากหลายชุดของสนาม
+
+## กลยุทธ์การดีบักและการตรวจสอบความถูกต้อง
+
+### การวินิจฉัยการจำลองแบบจับคู่
+
+#### OpenFOAM Code Implementation
+```cpp
+class couplingDiagnostics
+{
+    // Interface conservation checks
+    void checkInterfaceConservation();
+    
+    // Residual analysis across regions
+    void analyzeCoupledResiduals();
+    
+    // Convergence monitoring
+    void monitorCoupledConvergence();
+};
+```
+
+**ปัญหาที่ระบุได้:**
+- ความไม่สมดุลของมวล
+- ความไม่ต่อเนื่องของ heat flux
+- ปัญหาการบรรจบกัน
+
+### ระเบียบวิธีการตรวจสอบความถูกต้อง
+
+**กรณีทดสอบแบบจับคู่:**
+- การพาความร้อนแบบธรรมชาติในโพรงที่ปิดล้อม
+- การพาความร้อนแบบบังคับในช่องทาง
+- ปัญหาการสั่นสะเทือนที่เกิดจากการไหล
+- การวิเคราะห์การเปลี่ยนรูปเชิงเทอร์โม-กลศาสตร์
+
+#### OpenFOAM Code Implementation
+```cpp
+class couplingVerification
+{
+    // Order of accuracy analysis
+    void performGridConvergenceStudy();
+    
+    // Conservation property verification
+    void verifyConservationLaws();
+    
+    // Interface condition verification
+    void checkInterfaceConditions();
+};
+```
+
+## การพัฒนาและการขยายในอนาคต
+
+### แบบแผนการจับคู่ที่กำลังเกิดใหม่
+
+**การรวมเวลาแบบขั้นสูง:**
+- แบบแผนแบบ implicit อันดับสูงสำหรับปัญหาจับคู่แบบแข็ง
+- การปรับเปลี่ยน time step แบบปรับตัวตามเกณฑ์ฟิสิกส์หลายอย่าง
+- การรวมเวลาแบบอะซิงโครนัสสำหรับโดเมนฟิสิกส์ต่างๆ
+
+**การรวม Machine Learning:**
+- แบบจำลอง surrogate สำหรับการประเมินการจับคู่อย่างรวดเร็ว
+- แบบจำลองปิดที่ใช้โครงข่ายประสาทเทียมสำหรับอินเตอร์เฟซที่จับคู่
+- การปรับขนาด mesh แบบปรับตัวโดยใช้ตัวประมาณความผิดพลาดที่ใช้ ML
+
+### การเร่งความเร็ว GPU และการรวม HPC
+
+**Solver แบบจับคู่ที่เร่งความเร็วด้วย GPU:**
+- การนำไปใช้แบบ CUDA สำหรับระบบเชิงเส้นที่จับคู่
+- รูปแบบการสื่อสารแบบ multi-GPU สำหรับการถ่ายโอนข้อมูลอินเตอร์เฟซ
+- กลยุทธ์การดำเนินการแบบผสม CPU-GPU สำหรับโดเมนฟิสิกส์ต่างๆ
+
+**การคำนวณแบบ Exascale:**
+- การปรับให้เหมาะสมแบบ strong scaling สำหรับล้าน cores
+- อัลกอริทษที่ทนต่อข้อผิดพลาดสำหรับการดำเนินการทนต่อข้อผิดพลาด
+- อัลกอริทษการจับคู่ที่ประหยัดพลังงานสำหรับการคำนวณที่ยั่งยืน
+
+**[Diagram: Future Development Roadmap แสดงแนวทางการพัฒนาการจับคู่หลายฟิสิกส์ใน OpenFOAM]**

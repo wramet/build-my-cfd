@@ -1,0 +1,379 @@
+## การจำแนกพื้นฐาน
+
+### การแสดงภาพ Boundary Conditions
+
+```mermaid
+graph TD
+    A[Boundary Condition] --> B[Dirichlet]
+    A --> C[Neumann]
+    A --> D[Mixed/Robin]
+    B --> B1[Fixed Value]
+    B --> B2["ϕ = C"]
+    C --> C1[Fixed Gradient]
+    C --> C2["∂ϕ/∂n = C"]
+    D --> D1[Linear Combination]
+    D --> D2["aϕ + b∂ϕ/∂n = C"]
+```
+
+## ประเภทของ Boundary Conditions
+
+### **Dirichlet (Fixed Value)**
+
+**การนิยามทางคณิตศาสตร์:**
+$$\phi = \phi_0 \quad \text{บน Boundary} \quad \Gamma_D$$
+
+โดยที่:
+* $\phi$ = Field Variable ที่ต้องการกำหนดค่า
+* $\phi_0$ = ค่าคงที่หรือฟังก์ชันที่ทราบ
+* $\Gamma_D$ = Boundary ที่ใช้ Dirichlet Condition
+
+**ความหมายทางกายภาพ:**
+- **เหมาะสำหรับ:** ค่า Field ที่วัดหรือควบคุมได้โดยตรงที่พื้นผิว Boundary
+- **ตัวอย่าง:** Velocity Profile ที่ Inlet, อุณหภูมิคงที่บนพื้นผิวร้อน, ค่า Pressure ที่ Outlet
+
+**การนำไปใช้ใน OpenFOAM:**
+```cpp
+// การใช้งาน Dirichlet Condition ใน OpenFOAM
+fixedValue;           // กำหนดค่าคงที่
+timeVaryingFixedValue; // ค่าที่ขึ้นกับเวลา
+uniformFixedValue;    // นิพจน์ทางคณิตศาสตร์
+```
+
+
+```mermaid
+graph LR
+    A[Inlet Boundary] --> B[Fixed Velocity Profile]
+    B --> C[Dirichlet Condition]
+    C --> D["U = U<sub>inlet</sub>(y,z)"]
+    D --> E["Constant Values<br/>at Boundary Face"]
+    E --> F[No Gradient Required]
+    F --> G[Direct Specification]
+    
+    H[Implementation] --> I[OpenFOAM fixedValue]
+    I --> J["U = (U<sub>x</sub>, U<sub>y</sub>, U<sub>z</sub>)"]
+    J --> K[Time-Independent or Time-Varying]
+    
+    L[Physical Meaning] --> M[Prescribed Flow Rate]
+    M --> N[Known Entry Conditions]
+    N --> O[Experimental Data Input]
+    
+    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    
+    class A,B,C,D,E,F,G process;
+    class H,I,J,K storage;
+    class L,M,N,O terminator;
+```
+
+
+---
+
+### **Neumann (Fixed Gradient)**
+
+**การนิยามทางคณิตศาสตร์:**
+$$\frac{\partial \phi}{\partial n} = g_0 \quad \text{บน Boundary} \quad \Gamma_N$$
+
+โดยที่:
+* $n$ = ทิศทาง Normal ที่พุ่งออกจาก Boundary
+* $g_0$ = ค่า Gradient ที่ระบุ
+* $\Gamma_N$ = Boundary ที่ใช้ Neumann Condition
+
+**ความหมายทางกายภาพ:**
+- **เหมาะสำหรับ:** Flux ของปริมาณที่ข้าม Boundary เป็นที่ทราบ
+- **ตัวอย่าง:** ผนัง Adiabatic ในปัญหา Heat Transfer, ระนาบ Symmetry
+
+**กรณีพิเศษ - ผนัง Adiabatic:**
+$$\frac{\partial T}{\partial n} = 0$$
+บ่งชี้ว่าไม่มี Heat Flux ผ่าน Boundary
+
+**การนำไปใช้ใน OpenFOAM:**
+```cpp
+fixedGradient;        // กำหนดค่า Gradient คงที่
+zeroGradient;         // Gradient เป็นศูนย์ (กรณีพิเศษ)
+```
+
+
+[Diagram: Technical 3D isometric schematic of of heat flux visualization with zero gradient at adiabatic wall. 3/4 perspective view. , on a neutral background. , engineering . clear labeling in white font. arrowheads for all vectors (n = red, u = blue). smooth color gradients representing field intensity. clear labeling in font using single letters (v, s, n, u) or short latex equations. , semi-transparent materials for volumes. , , clean , high contrast. velocity field shown as blue vectors (u). in font using single letters or latex equations. with semi-transparent materials. : engineering , , clean. Primary: Velocity field (u) as blue streamlines. Secondary: Pressure scalar field as a surface color gradient. Annotations: Sharp professional arrowheads (n = Red, u = Blue). Clear labels in sans-serif font using single letters or LaTeX. Ray-traced studio lighting on semi-transparent materials. Style: Engineering illustration, high-contrast, white background, 8k resolution.]
+> **Prompt:** Technical 3D isometric schematic of boundary condition schematic on a computational patch. Primary: Velocity field (u) as blue streamlines. Secondary: Pressure scalar field as a surface color gradient. Annotations: Sharp professional arrowheads (n = Red, u = Blue). Clear labels in sans-serif font using single letters or LaTeX. Ray-traced studio lighting on semi-transparent materials. Style: Engineering illustration, high-contrast, white background, 8k resolution.
+
+
+---
+
+### **Robin (Mixed)**
+
+**การนิยามทางคณิตศาสตร์:**
+$$a\phi + b\frac{\partial \phi}{\partial n} = c \quad \text{บน Boundary} \quad \Gamma_R$$
+
+โดยที่:
+* $a, b, c$ = ค่าคงที่หรือฟังก์ชันที่ระบุ
+* $\Gamma_R$ = Boundary ที่ใช้ Robin Condition
+
+**การประยุกต์ใช้สำคัญ - Newton's Cooling Law:**
+$$-k\frac{\partial T}{\partial n} = h(T_s - T_\infty)$$
+
+โดยที่:
+* $k$ = Thermal Conductivity
+* $h$ = Convective Heat Transfer Coefficient
+* $T_s$ = Surface Temperature
+* $T_\infty$ = Ambient Fluid Temperature
+
+**การจัดรูปแบบใหม่:**
+$$hT + k\frac{\partial T}{\partial n} = hT_\infty$$
+
+**การนำไปใช้ใน OpenFOAM:**
+```cpp
+mixed;                         // การใช้งานทั่วไป
+convectiveHeatTransfer;        // การถ่ายเทความร้อนโดย Convection
+```
+
+
+[Diagram: Technical 3D isometric schematic of of convective heat transfer with ambient fluid , on a neutral background. , engineering . clear labeling in white font. arrowheads for all vectors (n = red, u = blue). clear labeling in font using single letters (v, s, n, u) or short latex equations. , semi-transparent materials for volumes. , , clean , high contrast. velocity field shown as blue vectors (u). in font using single letters or latex equations. with semi-transparent materials. : engineering , , clean. Primary: Velocity field (u) as blue streamlines. Annotations: Sharp professional arrowheads (n = Red, u = Blue). Clear labels in sans-serif font using single letters or LaTeX. Ray-traced studio lighting on semi-transparent materials. Style: Engineering illustration, high-contrast, white background, 8k resolution.]
+> **Prompt:** Technical 3D isometric schematic of of convective heat transfer between a solid wall and ambient fluid. heated wall surface with temperature gradient visualization using warm colors (red/orange) transitioning to cooler colors (blue). include animated arrows showing fluid streamlines and vector fields and heat flux vectors emanating from the wall surface into the surrounding fluid. display temperature distribution with isotherm contours, and annotate key parameters: surface temperature (ts), ambient fluid temperature (t∞), thermal conductivity (k), and convective heat transfer coefficient (h). the visualization should clearly demonstrate newton's cooling law with heat streamlines and vector fieldsing from the hot surface to the cooler ambient fluid. 3/4 perspective view. , on a neutral background. , engineering . clear labeling in white font. use , arrowheads for vectors. arrowheads for all vectors (n = red, u = blue). smooth color gradients representing field intensity. clear labeling in font using single letters (v, s, n, u) or short latex equations. , semi-transparent materials for volumes. , , clean , high contrast. velocity field shown as blue vectors (u). in font using single letters or latex equations. with semi-transparent materials. : engineering , , clean. Primary: Velocity field (u) as blue streamlines. Secondary: Pressure scalar field as a surface color gradient. Annotations: Sharp professional arrowheads (n = Red, u = Blue). Clear labels in sans-serif font using single letters or LaTeX. Ray-traced studio lighting on semi-transparent materials. Style: Engineering illustration, high-contrast, white background, 8k resolution.
+
+
+---
+
+## กรอบทางคณิตศาสตร์และการนำไปใช้งาน
+
+### **ทฤษฎีพื้นฐานของ PDEs**
+
+สำหรับ PDE ทั่วไปในรูปแบบ:
+$$\mathcal{L}(\phi) = f \quad \text{in} \quad \Omega$$
+
+โดยที่:
+* $\mathcal{L}$ = Differential Operator
+* $\phi$ = Field Variable
+* $f$ = Source Term
+* $\Omega$ = Computational Domain
+
+### **เงื่อนไข Well-Posedness (Hadamard)**
+
+1. **มี Solution อยู่**
+2. **Solution มีความเฉพาะเจาะจง (Unique)**
+3. **Solution ขึ้นอยู่กับ Boundary Data อย่างต่อเนื่อง**
+
+### **การจำแนกตามประเภท PDE**
+
+| ประเภท PDE | ตัวอย่าง | ข้อกำหนด Boundary Conditions |
+|-------------|------------|------------------------------|
+| **Elliptic** | Steady-State Diffusion, Potential Flow | Dirichlet หรือ Neumann บน Boundary ทั้งหมด |
+| **Parabolic** | Transient Diffusion, Boundary Layer | Initial Conditions + Boundary Conditions |
+| **Hyperbolic** | Wave Propagation, Inviscid Flow | Characteristics-Based Boundary Conditions |
+
+### **การนำไปใช้งานใน OpenFOAM**
+
+ใน Finite Volume Framework ของ OpenFOAM, Boundary Conditions ถูกนำไปใช้ผ่าน Class Hierarchy `fvPatchField`:
+
+**ฟังก์ชันหลัก:**
+1. **`updateCoeffs()`**: อัปเดต Boundary Condition Coefficients
+2. **`evaluate()`**: กำหนดค่า Boundary Face โดยตรง
+3. **`valueInternalCoeffs()`**: การมีส่วนร่วมของ Internal Coefficient
+4. **`valueBoundaryCoeffs()`**: การมีส่วนร่วมของ Boundary Coefficient
+
+**การแปลงสู่ Discretized System:**
+```cpp
+// Dirichlet Implementation
+// กำหนด Diagonal Coefficient ให้มีค่ามาก + Source Term
+
+// Neumann Implementation  
+// รวม Gradient โดยตรงในการคำนวณ Flux
+
+// Robin Implementation
+// เชื่อมโยงระหว่าง Value และ Gradient
+```
+
+---
+
+## การประยุกต์ใช้และตัวอย่างในทางปฏิบัติ
+
+### **Velocity Boundary Conditions**
+
+| Type | OpenFOAM Implementation | การนิยาม | สถานการณ์การใช้งาน |
+|------|------------------------|-------------|-------------------|
+| **Inlet** | `fixedValue` | $\mathbf{u} = \mathbf{u}_{inlet}(y,z,t)$ | การระบุ Velocity Profile ที่ทางเข้า |
+| **Outlet** | `zeroGradient` | $\frac{\partial \mathbf{u}}{\partial n} = 0$ | Flow พัฒนาเต็มที่ |
+| **Wall** | `noSlip` | $\mathbf{u} = 0$ | ผนังไม่สลิป |
+| **Symmetry** | `symmetryPlane` | $\mathbf{u} \cdot \mathbf{n} = 0$, $\frac{\partial \mathbf{u}_t}{\partial n} = 0$ | ระนาบสมมาตร |
+
+### **Pressure Boundary Conditions**
+
+| Type | OpenFOAM Implementation | การนิยาม | สถานการณ์การใช้งาน |
+|------|------------------------|-------------|-------------------|
+| **Fixed pressure** | `fixedValue` | $p = p_{ref}$ | ระบุค่า Pressure อ้างอิง |
+| **Open boundary** | `zeroGradient` | $\frac{\partial p}{\partial n} = 0$ | ขอบเขตเปิด |
+| **Wave boundary** | `waveTransmissive` | Non-Reflecting Condition | Acoustics, Wave Propagation |
+
+### **Thermal Boundary Conditions**
+
+| Type | OpenFOAM Implementation | การนิยาม | สถานการณ์การใช้งาน |
+|------|------------------------|-------------|-------------------|
+| **Fixed temperature** | `fixedValue` | $T = T_{wall}$ | ผนังที่มีอุณหภูมิคงที่ |
+| **Adiabatic wall** | `fixedGradient` | $\frac{\partial T}{\partial n} = 0$ | ผนังฉนวนความร้อน |
+| **Convective cooling** | `mixed`/`convectiveHeatTransfer` | $-k\frac{\partial T}{\partial n} = h(T - T_{\infty})$ | การทำความเย็นโดย Convection |
+
+---
+
+## คุณสมบัติ Boundary Condition ขั้นสูง
+
+### **Time-Varying Boundary Conditions**
+
+| Type | ความสามารถ | ตัวอย่างการใช้งาน |
+|------|-------------|-------------------|
+| `timeVaryingUniformFixedValue` | การประมาณค่าในช่วงเวลาโดยใช้ตาราง | Velocity ที่เปลี่ยนแปลงตามเวลา |
+| `uniformFixedValue` | การประเมินนิพจน์ทางคณิตศาสตร์ | Temperature ที่เป็นฟังก์ชันของตำแหน่ง |
+| `codedFixedValue` | โค้ด C++ ที่ผู้ใช้กำหนด | พฤติกรรม Boundary ที่ซับซ้อน |
+
+**โค้ดตัวอย่าง:**
+```cpp
+// การใช้งาน Time-Varying Boundary Condition
+timeVaryingUniformFixedValue
+{
+    outOfBounds         clamp;        // การจัดการค่านอกช่วง
+    fileName            "velocityProfile.txt";
+    fieldTable          (<field>);
+}
+```
+
+
+```mermaid
+graph LR
+    A["Inlet Velocity Profile"] --> B["Time: 0-2s"]
+    B --> C["Linear Ramp Up<br/>0 to 5 m/s"]
+    C --> D["Time: 2-8s"]
+    D --> E["Steady State<br/>5 m/s constant"]
+    E --> F["Time: 8-12s"]
+    F --> G["Oscillating Profile<br/>Sinusoidal variation"]
+    G --> H["Time: 12-15s"]
+    H --> I["Linear Ramp Down<br/>5 to 0 m/s"]
+    I --> J["Outlet Flow"]
+    
+    style A fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
+    style J fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+    
+    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    classDef transition fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
+    
+    class B,C,D,E,F,G,H,I process
+```
+
+
+---
+
+### **Coupled Boundary Conditions**
+
+สำหรับปัญหา Multiphysics ที่ต้องการการเชื่อมโยงระหว่าง Region ต่างๆ:
+
+| Type | ความสามารถ | การประยุกต์ใช้ |
+|------|-------------|-----------------|
+| `turbulentTemperatureCoupledBaffleMixed` | การเชื่อมโยงความร้อนระหว่าง Region | Conjugate Heat Transfer |
+| `thermalBaffle1DHeatTransfer` | การนำความร้อน 1 มิติผ่านผนัง | ผนังบางที่มีการนำความร้อน |
+| `regionCoupledAMIFVPatchField` | Interface Conditions สำหรับ Non-Conformal Meshes | การเชื่อมต่อ Mesh ที่ไม่ตรงกัน |
+
+
+```mermaid
+graph TD
+    A["Region 1: Fluid"] --> B["Coupled Thermal Interface"]
+    B --> C["Region 2: Solid"]
+    
+    A --> A1["Temperature T1"]
+    A --> A2["Heat Flux q1"]
+    A --> A3["Fluid Flow"]
+    
+    B --> B1["turbulentTemperatureCoupledBaffleMixed"]
+    B --> B2["Thermal Continuity"]
+    B --> B3["Heat Flux Conservation"]
+    
+    C --> C1["Temperature T2"]
+    C --> C2["Heat Flux q2"]
+    C --> C3["Solid Properties"]
+    
+    A1 -- "Conjugate" --> B2
+    B2 -- "Continuity" --> C1
+    A2 -- "Energy Balance" --> B3
+    B3 -- "Equal Flux" --> C2
+    
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    style C fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    style A1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    style A2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    style A3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    style B1 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
+    style B2 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
+    style B3 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
+    style C1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    style C2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    style C3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+```
+
+
+---
+
+### **Overset Mesh Boundary Conditions**
+
+สำหรับเทคนิค Overset (Chimera) Mesh ที่ซับซ้อน:
+
+| Type | ความสามารถ | การประยุกต์ใช้ |
+|------|-------------|-----------------|
+| `oversetFvPatchField` | การจัดการพิเศษสำหรับการประมาณค่าในช่วง Overset | Moving Meshes, Multiple Reference Frames |
+| `implicitOversetPressure` | การจัดการแบบ Implicit สำหรับ Pressure-Velocity Coupling | การแก้สมการความดันใน Overset Regions |
+
+
+```mermaid
+graph LR
+    subgraph "Background Mesh"
+        B1["Cell 1"]
+        B2["Cell 2"]
+        B3["Cell 3"]
+        B4["Cell 4"]
+    end
+    
+    subgraph "Overset Mesh"
+        O1["Fine Cell 1"]
+        O2["Fine Cell 2"]
+        O3["Fine Cell 3"]
+    end
+    
+    subgraph "Overlap Region"
+        FR["Fringe Cells<br/>Interpolation"]
+        HR["Hole Cells<br/>Donated"]
+        AC["Active Cells<br/>Primary Solver"]
+    end
+    
+    B2 --> FR
+    B3 --> FR
+    O1 --> AC
+    O2 --> AC
+    O3 --> HR
+    
+    style B1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    style B2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    style B3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    style B4 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    style O1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style O2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style O3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style FR fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
+    style HR fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+    style AC fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+```
+
+
+---
+
+## สรุปหลักการสำคัญ
+
+1. **การเลือก Boundary Condition ที่เหมาะสม** สำคัญต่อความแม่นยำและความเสถียรของ CFD Simulations
+
+2. **การจำแนกเป็น Dirichlet, Neumann, และ Robin** เป็นกรอบทางคณิตศาสตร์ที่รับประกัน Well-Posed Problems
+
+3. **การประยุกต์ใช้ใน OpenFOAM** ต้องคำนึงถึง Physical Meaning และ Numerical Stability
+
+4. **Boundary Conditions ขั้นสูง** ช่วยแก้ไขปัญหาที่ซับซ้อนใน Multiphysics และ Special Applications
+
+การเข้าใจและการนำ Boundary Conditions ไปใช้งานอย่างถูกต้องเป็นพื้นฐานสำคัญสำหรับการสร้าง CFD Simulations ที่แม่นยำและเชื่อถือได้ใน OpenFOAM

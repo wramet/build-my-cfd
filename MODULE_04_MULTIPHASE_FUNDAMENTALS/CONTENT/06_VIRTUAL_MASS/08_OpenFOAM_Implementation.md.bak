@@ -1,0 +1,323 @@
+# การนำ Virtual Mass Models ไปใช้ใน OpenFOAM
+
+## ภาพรวม
+
+ผลกระทบของ **Virtual Mass** ในการไหลแบบหลายเฟส (multiphase flows) หมายถึง แรงเฉื่อยเพิ่มเติมที่จำเป็นในการเร่งเฟสต่อเนื่องที่อยู่รอบๆ เมื่ออนุภาคเฟสที่กระจายตัว (dispersed phase particles) ถูกเร่ง
+
+ส่วนนี้จะบันทึกการนำ Virtual Mass Models ไปใช้ใน OpenFOAM ภายใต้กรอบการทำงานแบบ **Eulerian-Eulerian multiphase**
+
+[Diagram: Virtual Mass Effect แสดงการเร่งของอนุภาคในของเหลวและแรงต้านที่เกิดขึ้น]
+
+## สถาปัตยกรรมคลาสพื้นฐาน
+
+### คลาสพื้นฐาน VirtualMassModel
+
+สถาปัตยกรรม Virtual Mass Model เป็นไปตามรูปแบบการออกแบบแบบ **Polymorphic** ของ OpenFOAM โดยมีคลาสพื้นฐานแบบ Pure virtual:
+
+```cpp
+// Base virtual mass model class
+class virtualMassModel
+{
+public:
+    // Calculate virtual mass coefficient
+    virtual tmp<volScalarField> Cvm() const = 0;
+
+    // Calculate virtual mass force
+    virtual tmp<volVectorField> Fi() const = 0;
+
+    // Virtual destructor
+    virtual ~virtualMassModel() {}
+};
+```
+
+การออกแบบนี้ช่วยให้สามารถเลือกรุ่น Virtual Mass ที่แตกต่างกันได้ในขณะทำงาน (runtime) ผ่านกลไกการเลือกขณะทำงานของ OpenFOAM
+
+คลาสพื้นฐานกำหนดเมธอดแบบ Pure virtual สองเมธอด:
+
+- **`Cvm()`**: ส่งคืนสนามสัมประสิทธิ์ Virtual Mass (ไม่มีหน่วย)
+- **`Fi()`**: ส่งคืนสนามเวกเตอร์แรง Virtual Mass
+
+[Diagram: UML Class Diagram แสดงลำดับชั้นของ VirtualMassModel]
+
+## รุ่น Constant Virtual Mass Model
+
+คลาส `constantVirtualMass` นำ Virtual Mass Model ที่ง่ายที่สุดมาใช้ โดยมีสัมประสิทธิ์คงที่ที่ผู้ใช้กำหนด:
+
+```cpp
+class constantVirtualMass
+:
+    public virtualMassModel
+{
+private:
+    // Constant virtual mass coefficient
+    dimensionedScalar Cvm_;
+
+public:
+    // Constructor
+    constantVirtualMass
+    (
+        const dictionary& dict,
+        const phasePair& pair
+    )
+    :
+        virtualMassModel(dict, pair),
+        Cvm_("Cvm", dimless, dict)
+    {}
+
+    // Calculate virtual mass coefficient
+    virtual tmp<volScalarField> Cvm() const
+    {
+        return tmp<volScalarField>::New
+        (
+            "Cvm",
+            volScalarField::New
+            (
+                "Cvm",
+                pair_.mesh(),
+                Cvm_
+            )
+        );
+    }
+
+    // Calculate virtual mass force
+    virtual tmp<volVectorField> Fi() const
+    {
+        const phaseModel& phase1 = pair_.phase1();
+        const phaseModel& phase2 = pair_.phase2();
+
+        const volScalarField& alpha1 = phase1.alpha();
+        const volScalarField& alpha2 = phase2.alpha();
+        const volScalarField& rho1 = phase1.rho();
+        const volVectorField& U1 = phase1.U();
+        const volVectorField& U2 = phase2.U();
+
+        // Virtual mass coefficient
+        const volScalarField Cvm = this->Cvm();
+
+        // Material derivatives
+        volVectorField DUDt1 = fvc::ddt(U1) + fvc::div(U1, U1);
+        volVectorField DUDt2 = fvc::ddt(U2) + fvc::div(U2, U2);
+
+        // Virtual mass force
+        return Cvm * rho1 * alpha1 * alpha2 * (DUDt2 - DUDt1);
+    }
+};
+```
+
+### สูตรทางคณิตศาสตร์
+
+แรง Virtual Mass แบบคงที่คำนวณโดยใช้สูตรมาตรฐาน:
+
+$$\mathbf{F}_{vm} = C_{vm} \rho_1 \alpha_1 \alpha_2 \left(\frac{D\mathbf{u}_2}{Dt} - \frac{D\mathbf{u}_1}{Dt}\right)$$
+
+โดยที่:
+- $C_{vm}$ คือ สัมประสิทธิ์ Virtual Mass (โดยทั่วไปคือ 0.5 สำหรับทรงกลม)
+- $\rho_1$ คือ ความหนาแน่นของเฟสต่อเนื่อง
+- $\alpha_1, \alpha_2$ คือ เศษส่วนปริมาตรของทั้งสองเฟส
+- $\frac{D\mathbf{u}_i}{Dt}$ คือ อนุพันธ์เชิง مادي (material derivative) ของความเร็วเฟส
+
+อนุพันธ์เชิง مادي คำนวณโดยใช้รูปแบบการพา (convective form):
+
+$$\frac{D\mathbf{u}_i}{Dt} = \frac{\partial \mathbf{u}_i}{\partial t} + (\mathbf{u}_i \cdot \nabla)\mathbf{u}_i$$
+
+## รุ่น Shape-Dependent Virtual Mass Model
+
+คลาส `shapeVirtualMass` ขยายการสร้างแบบจำลอง Virtual Mass เพื่อพิจารณาผลกระทบของรูปร่างอนุภาค:
+
+```cpp
+class shapeVirtualMass
+:
+    public virtualMassModel
+{
+private:
+    // Particle shape
+    word shapeType_;
+
+    // Aspect ratio for non-spherical particles
+    autoPtr<volScalarField> aspectRatio_;
+
+public:
+    // Calculate shape-dependent coefficient
+    virtual tmp<volScalarField> Cvm() const
+    {
+        tmp<volScalarField> tCvm = volScalarField::New("Cvm", pair_.mesh(), 0.5);
+        volScalarField& Cvm = tCvm.ref();
+
+        if (shapeType_ == "ellipsoid")
+        {
+            const volScalarField& beta = aspectRatio_();
+
+            forAll(Cvm, celli)
+            {
+                scalar beta_local = beta[celli];
+
+                if (beta_local > 1.0) // Oblate spheroid
+                {
+                    Cvm[celli] = 2.0/(3.0*beta_local) /
+                                (beta_local/(beta_local - sqrt(beta_local*beta_local - 1.0)));
+                }
+                else // Prolate spheroid
+                {
+                    Cvm[celli] = (log(2.0/beta_local) - 0.5) /
+                                (log(2.0/beta_local) + 0.5);
+                }
+            }
+        }
+
+        return tCvm;
+    }
+};
+```
+
+### สูตรสำหรับอนุภาคทรงรี (Ellipsoidal Particle Formulations)
+
+สำหรับอนุภาคทรงรี สัมประสิทธิ์ Virtual Mass จะขึ้นอยู่กับอัตราส่วนภาพ (aspect ratio) $\beta = a/b$ โดยที่ $a$ คือแกนหลักและ $b$ คือแกนรอง:
+
+**Oblate Spheroid (รูปจาน, $\beta > 1$):**
+$$C_{vm} = \frac{2}{3\beta\left[\beta - \sqrt{\beta^2 - 1}\right]}$$
+
+**Prolate Spheroid (รูปแท่ง, $\beta < 1$):**
+$$C_{vm} = \frac{\ln(2/\beta) - 0.5}{\ln(2/\beta) + 0.5}$$
+
+[Diagram: แสดงรูปร่างอนุภาคทรงกลม ทรงรีแบบแบน และทรงรีแบบยาวพร้อมสัมประสิทธิ์ Virtual Mass]
+
+## การรวมเข้ากับ Multiphase Solvers
+
+### การรวมสมการโมเมนตัม
+
+แรง Virtual Mass ถูกรวมเข้ากับสมการโมเมนตัมของเฟสในฐานะเทอมการถ่ายโอนโมเมนตัมระหว่างเฟสเพิ่มเติม
+
+สำหรับเฟส $i$ สมการโมเมนตัมจะเป็น:
+
+$$\frac{\partial (\alpha_i \rho_i \mathbf{u}_i)}{\partial t} + \nabla \cdot (\alpha_i \rho_i \mathbf{u}_i \mathbf{u}_i) = -\alpha_i \nabla p_i + \nabla \cdot \boldsymbol{\tau}_i + \alpha_i \rho_i \mathbf{g} + \sum_{j \neq i} \mathbf{M}_{ij}$$
+
+โดยที่ $\mathbf{M}_{ij}$ รวมถึงแรง Virtual Mass:
+
+$$\mathbf{M}_{vm,ij} = C_{vm} \rho_i \alpha_i \alpha_j \left(\frac{D\mathbf{u}_j}{Dt} - \frac{D\mathbf{u}_i}{Dt}\right)$$
+
+### การเชื่อมโยงกับแรงฉุด (Drag Forces)
+
+แรง Virtual Mass ทำงานร่วมกับแรงฉุด (drag forces) เพื่อให้การถ่ายโอนโมเมนตัมระหว่างเฟสที่สมบูรณ์:
+
+$$\mathbf{M}_{ij} = \mathbf{F}_{drag,ij} + \mathbf{F}_{vm,ij} + \mathbf{F}_{lift,ij} + \mathbf{F}_{turbulent,dispersion,ij}$$
+
+แนวทางที่ครอบคลุมนี้ช่วยให้มั่นใจได้ถึงการแสดงปรากฏการณ์ระหว่างเฟสที่สำคัญทั้งหมดในการไหลแบบหลายเฟสได้อย่างแม่นยำ
+
+## การใช้งานใน OpenFOAM Cases
+
+### การกำหนดค่า Dictionary
+
+Virtual Mass Models มักจะถูกระบุใน dictionary `phaseProperties`:
+
+```foam
+phaseProperties
+{
+    phase1
+    {
+        type            gas;
+    }
+    
+    phase2
+    {
+        type            liquid;
+    }
+    
+    // Virtual mass model configuration
+    virtualMassModel
+    {
+        type            constant;
+        Cvm             0.5;
+    }
+}
+```
+
+สำหรับรุ่นที่ขึ้นกับรูปร่าง:
+
+```foam
+virtualMassModel
+{
+    type            shape;
+    shapeType       ellipsoid;
+    aspectRatio
+    {
+        type            uniform;
+        value           2.0;  // aspect ratio
+    }
+}
+```
+
+### แนวทางการเลือกรุ่น
+
+| รุ่น | เหมาะสำหรับ | ค่า $C_{vm}$ ทั่วไป | ภาระการคำนวณ |
+|------|---------------|-------------------|----------------|
+| **Constant** | ฟองอากาศ, อนุภาคทรงกลม | 0.5 (ทรงกลม), 0.3-0.7 (อื่นๆ) | ต่ำสุด |
+| **Shape-Dependent** | อนุภาคทรงรี, จาน, แท่ง | คำนวณตามรูปร่าง | สูง |
+
+**แนวทางการเลือกรุ่น:**
+
+- **รุ่น Constant:**
+  - เหมาะสำหรับฟองอากาศหรืออนุภาคทรงกลม
+  - ตัวเลือกเริ่มต้นเมื่อไม่ทราบการกระจายตัวของรูปร่างอนุภาค
+
+- **รุ่น Shape-Dependent:**
+  - จำเป็นสำหรับอนุภาคที่ไม่ใช่ทรงกลม (ทรงรี, จาน, แท่ง)
+  - สำคัญในการไหลแบบฟองอากาศที่มีฟองอากาศที่เสียรูป
+  - จำเป็นสำหรับการไหลแบบกระจายตัวที่มีการเปลี่ยนแปลงอัตราส่วนภาพอย่างมีนัยสำคัญ
+
+## ข้อควรพิจารณาด้านประสิทธิภาพ
+
+### ประสิทธิภาพการคำนวณ
+
+#### รุ่น Constant
+- **การจัดสรรสนามเดียวสำหรับสัมประสิทธิ์**
+- **การดำเนินการทางคณิตศาสตร์โดยตรงสำหรับการคำนวณแรง**
+- **การนำไปใช้ที่มีประสิทธิภาพด้วยการดำเนินการสนามของ OpenFOAM**
+
+#### รุ่น Shape-Dependent
+- **การคำนวณแบบสนามสำหรับอัตราส่วนภาพที่แปรผันตามตำแหน่ง**
+- **การคำนวณสัมประสิทธิ์แบบเซลล์ต่อเซลล์แบบวนซ้ำ**
+- **ความต้องการหน่วยความจำที่เพิ่มขึ้นสำหรับสนามอัตราส่วนภาพ**
+
+### ความเสถียรเชิงตัวเลข
+
+ผลกระทบของ Virtual Mass สามารถปรับปรุงความเสถียรเชิงตัวเลขได้โดย:
+- **การเพิ่มการเชื่อมโยงระหว่างเฟส**
+- **การลดความเร่งสัมพัทธ์ระหว่างเฟส**
+- **การหน่วงการสั่นความถี่สูงในความเร็วเฟส**
+
+อย่างไรก็ตาม สัมประสิทธิ์ Virtual Mass ที่สูงเกินไปอาจนำไปสู่:
+- **สมการโมเมนตัมที่แข็ง (stiff)** ซึ่งต้องการขั้นเวลาที่เล็กกว่า
+- **การเชื่อมโยงที่มากเกินไป** ซึ่งอาจยับยั้งการลื่นไถลของเฟสทางกายภาพ
+- **การแพร่กระจายเชิงตัวเลข** ของพลวัตของอินเทอร์เฟซ
+
+## การตรวจสอบและการประยุกต์ใช้
+
+### กรณีตรวจสอบ (Validation Cases)
+
+| กรณี | วัตถุประสงค์ | การตรวจสอบ |
+|-------|---------------|-------------|
+| **ทรงกลมที่กำลังเร่งในของเหลวที่อยู่นิ่ง** | ทดสอบพื้นฐาน | เปรียบเทียบกับผลเฉลยเชิงวิเคราะห์ |
+| **พลวัตของคอลัมน์ฟองอากาศ** | การใช้งานจริง | ตรวจสอบกับความเร็วการลอยขึ้นของฟองอากาศจากการทดลอง |
+| **การไหลที่มีอนุภาค** | ความเสถียร | ตรวจสอบผลกระทบของการเชื่อมโยงโมเมนตัม |
+
+### การประยุกต์ใช้ในอุตสาหกรรม
+
+#### **เครื่องปฏิกรณ์แบบคอลัมน์ฟองอากาศ**
+- การทำนายการเร่งความเร็วและการลอยขึ้นของฟองอากาศได้อย่างแม่นยำ
+- สำคัญสำหรับการออกแบบเครื่องปฏิกรณ์ที่มีประสิทธิภาพสูง
+
+#### **เตียงฟลูอิไดซ์ (Fluidized beds)**
+- การแสดงผลกระทบการเร่งความเร็วของอนุภาคในสารแขวนลอยหนาแน่น
+- ช่วยให้การพยากรณ์พฤติกรรมของเตียงฟลูอิไดซ์มีความแม่นยำมากขึ้น
+
+#### **การประยุกต์ใช้ในอวกาศ**
+- การสร้างแบบจำลองการเร่งความเร็วของหยดเชื้อเพลิงเหลวในกระแสแก๊ส
+- สำคัญสำหรับการออกแบบระบบขับเคลื่อนจรวด
+
+#### **การแปรรูปทางเคมี**
+- การทำนายพลวัตของเฟสที่กระจายตัวในภาชนะผสม
+- ปรับปรุงประสิทธิภาพของกระบวนการผสม
+
+---
+
+**Virtual Mass Models ใน OpenFOAM** นำเสนอโครงสร้างที่ครอบคลุมสำหรับการพิจารณาผลกระทบของมวลที่เพิ่มเข้ามาในการไหลแบบหลายเฟส ทำให้สามารถจำลองระบบที่การเร่งความเร็วของเฟสและการเคลื่อนที่สัมพัทธ์มีความสำคัญได้อย่างแม่นยำ

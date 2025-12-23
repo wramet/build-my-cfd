@@ -1,0 +1,231 @@
+# 🔍 แนวคิดหลัก (KEY CONCEPTS)
+
+## การเฉลี่ยแบบ Reynolds (Reynolds Averaging)
+
+การเฉลี่ยแบบ Reynolds เป็นเทคนิคพื้นฐานในการสร้างแบบจำลองความปั่นป่วน (turbulence modeling) ซึ่งแยกตัวแปรการไหลแบบทันที (instantaneous flow variables) ออกเป็นส่วนเฉลี่ย (mean components) และส่วนผันผวน (fluctuating components)
+
+**สำหรับตัวแปรการไหลใดๆ $\phi$:**
+$$\phi(\mathbf{x}, t) = \overline{\phi}(\mathbf{x}, t) + \phi'(\mathbf{x}, t)$$
+
+*   $\overline{\phi}$ คือส่วนเฉลี่ยตามเวลา (time-averaged component)
+*   $\phi'$ คือส่วนผันผวน โดยมีเงื่อนไข $\overline{\phi'} = 0$
+
+**เทนเซอร์ความเค้น Reynolds (Reynolds stress tensor):**
+$$\tau_{ij} = -\rho \overline{u'_i u'_j}$$
+
+เทอมนี้แสดงถึงการถ่ายโอนโมเมนตัมเพิ่มเติมที่เกิดจากการผันผวนของความปั่นป่วน และเป็นความท้าทายหลักในการสร้างแบบจำลองความปั่นป่วน
+
+[Diagram: การแยกส่วนของสนามความเร็วเป็นส่วนเฉลี่ยและส่วนผันผวน]
+
+## ความหนืดแบบ Eddy (Eddy Viscosity)
+
+สมมติฐานความหนืดแบบ Eddy ที่เสนอโดย Boussinesq เป็นแบบจำลองการปิด (closure model) โดยการเชื่อมโยงความเค้น Reynolds กับอัตราการแปรรูปเฉลี่ย (mean strain rate) ผ่านความหนืดแบบปั่นป่วน (turbulent viscosity)
+
+**สมการ Boussinesq:**
+$$\tau_{ij} = 2 \mu_t S_{ij} - \frac{2}{3} \rho k \delta_{ij}$$
+
+*   $\mu_t$ คือ eddy viscosity
+*   $S_{ij} = \frac{1}{2}\left(\frac{\partial \overline{u}_i}{\partial x_j} + \frac{\partial \overline{u}_j}{\partial x_i}\right)$ คือ mean strain rate tensor
+*   $k$ คือ turbulent kinetic energy
+*   $\delta_{ij}$ คือ Kronecker delta
+
+แนวคิด eddy viscosity เปลี่ยนความเค้น Reynolds ที่ไม่ทราบค่าให้เป็นความสัมพันธ์ที่สามารถคำนวณได้จากปริมาณการไหลที่ถูกแก้ไข (resolved flow quantities)
+
+**OpenFOAM Code Implementation:**
+```cpp
+// การคำนวณ Reynolds stress ใน OpenFOAM
+volSymmTensorField R
+(
+    IOobject
+    (
+        "R",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedSymmTensor("zero", R.dimensions(), Zero)
+);
+
+R = 2.0/3.0*k*I - nut*twoSymm(fvc::grad(U));
+```
+
+## พลังงานจลน์ความปั่นป่วน (Turbulent Kinetic Energy)
+
+พลังงานจลน์ความปั่นป่วน (TKE) แสดงถึงพลังงานจลน์ที่เกี่ยวข้องกับการผันผวนของความเร็วที่ปั่นป่วน
+
+**สมการ TKE:**
+$$k = \frac{1}{2} \overline{u'_i u'_i} = \frac{1}{2} (\overline{u'^2} + \overline{v'^2} + \overline{w'^2})$$
+
+**TKE ทำหน้าที่เป็น:**
+-   ตัววัดพื้นฐานของความเข้มข้นของความปั่นป่วน (turbulence intensity)
+-   ตัวแปรสำคัญในแบบจำลองความปั่นป่วนส่วนใหญ่
+-   ปรากฏในเทอมการผลิต (Production terms) และเทอมการสลายตัว (Dissipation terms)
+
+ใน OpenFOAM, TKE มักจะถูกเก็บเป็น `volScalarField` ชื่อ `k` และถูกแก้โดยสมการการขนส่ง (transport equation)
+
+**OpenFOAM Code Implementation:**
+```cpp
+// สมการการขนส่งสำหรับ k ใน OpenFOAM
+fvScalarMatrix kEqn
+(
+    fvm::ddt(rho, k)
+  + fvm::div(phi, k)
+  - fvm::Sp(fvc::div(phi), k)
+  - fvm::laplacian(DkEff, k)
+ ==
+    Pk - fvm::Sp(eps/k, k)
+);
+```
+
+## อัตราการสลายตัว (Dissipation Rate)
+
+อัตราการสลายตัว $\varepsilon$ วัดอัตราที่พลังงานจลน์ความปั่นป่วนถูกแปลงเป็นพลังงานความร้อนที่สเกลความปั่นป่วนที่เล็กที่สุด (Kolmogorov microscales)
+
+**สมการ Dissipation Rate:**
+$$\varepsilon = \nu \overline{\frac{\partial u'_i}{\partial x_j} \frac{\partial u'_i}{\partial x_j}}$$
+
+*   $\nu$ คือ kinematic viscosity
+
+**ความสัมพันธ์สำคัญในแบบจำลอง $k$-$\varepsilon$:**
+-   ช่วงเวลาของความปั่นป่วน: $$\tau_t = \frac{k}{\varepsilon}$$
+-   Eddy viscosity: $$\mu_t = \rho C_\mu \frac{k^2}{\varepsilon}$$
+
+**OpenFOAM Code Implementation:**
+```cpp
+// สมการการขนส่งสำหรับ epsilon ใน OpenFOAM
+fvScalarMatrix epsilonEqn
+(
+    fvm::ddt(rho, epsilon)
+  + fvm::div(phi, epsilon)
+  - fvm::Sp(fvc::div(phi), epsilon)
+  - fvm::laplacian(DepsilonEff, epsilon)
+ ==
+    C1*epsilon/k*Pk
+  - fvm::Sp(C2*epsilon/k, epsilon)
+);
+```
+
+## อัตราการสลายตัวจำเพาะ (Specific Dissipation Rate)
+
+อัตราการสลายตัวจำเพาะ $\omega$ แสดงถึงอัตราส่วนของการสลายตัวต่อพลังงานจลน์ความปั่นป่วน
+
+**สมการ Specific Dissipation Rate:**
+$$\omega = \frac{\varepsilon}{\beta^* k}$$
+
+**ข้อดีเมื่อเทียบกับ $k$-$\varepsilon$:**
+-   ให้พฤติกรรมใกล้ผนังที่ดีกว่า
+-   มีมิติเป็นส่วนกลับของเวลา
+-   แสดงถึงความถี่ของ eddy ที่ปั่นป่วน
+
+**ความสัมพันธ์กับช่วงเวลาของความปั่นป่วน:**
+$$\tau_t = \frac{1}{\omega}$$
+
+**OpenFOAM Code Implementation:**
+```cpp
+// สมการการขนส่งสำหรับ omega ใน OpenFOAM
+fvScalarMatrix omegaEqn
+(
+    fvm::ddt(rho, omega)
+  + fvm::div(phi, omega)
+  - fvm::Sp(fvc::div(phi), omega)
+  - fvm::laplacian(DomegaEff, omega)
+ ==
+    gamma*Pk*omega/k
+  - fvm::Sp(beta*omega, omega)
+);
+```
+
+## ฟังก์ชันผนัง (Wall Functions)
+
+ฟังก์ชันผนังทำหน้าที่เชื่อมช่องว่างระหว่างการไหลที่ติดผนัง (wall-bounded flows) และการสร้างแบบจำลองความปั่นป่วน โดยหลีกเลี่ยงความจำเป็นในการแก้ไขชั้นย่อยที่บางมาก (viscous sublayer)
+
+[Diagram: โครงสร้างชั้นขอบเขตผนังและตำแหน่งของ y+ ที่เหมาะสม]
+
+**กฎลอการิทึมของผนัง (Logarithmic Law of the Wall):**
+$$u^+ = \frac{1}{\kappa} \ln(y^+) + B$$
+
+*   $u^+ = \frac{u}{u_\tau}$ คือ dimensionless velocity
+*   $y^+ = \frac{y u_\tau}{\nu}$ คือ dimensionless wall distance
+*   $\kappa \approx 0.41$ คือ von Kármán constant
+*   $B \approx 5.2$ คือ ค่าคงที่
+*   $u_\tau = \sqrt{\frac{\tau_w}{\rho}}$ คือ friction velocity
+
+### **ประเภทของฟังก์ชันผนังใน OpenFOAM:**
+
+| ประเภทฟังก์ชัน | ตัวแปรที่จัดการ | ลักษณะการทำงาน |
+|---|---|---|
+| `epsilonWallFunction` | $\varepsilon$ ที่ผนัง | คำนวณค่า epsilon ที่เข้ากับกฎลอการิทึม |
+| `omegaWallFunction` | $\omega$ ที่ผนัง | คำนวณค่า omega ที่เข้ากับการไหลใกล้ผนัง |
+| `nutkWallFunction` | eddy viscosity | อิงตามค่า TKE ที่ผนัง |
+| `nutUWallFunction` | eddy viscosity | อิงตามโปรไฟล์ความเร็ว |
+
+## การระบุความปั่นป่วนที่ทางเข้า (Inlet Turbulence Specification)
+
+การระบุปริมาณความปั่นป่วนที่ทางเข้าอย่างถูกต้องเป็นสิ่งสำคัญสำหรับการจำลองที่แม่นยำ
+
+[Diagram: การระบุค่าความปั่นป่วนที่เข้า domain จากภายนอก]
+
+### **วิธีการระบุความปั่นป่วนที่ทางเข้า:**
+
+#### **1. การระบุโดยตรง (Direct Specification):**
+-   **ความเข้มข้นของความปั่นป่วน:** $$I = \frac{\sqrt{\frac{2}{3}k}}{U_{inlet}}$$
+-   **ความยาวสเกลของความปั่นป่วน:** $$L_t = 0.07L_{characteristic}$$
+-   **อัตราการสลายตัว:** $$\varepsilon = C_\mu^{3/4} \frac{k^{3/2}}{L_t}$$
+
+#### **2. วิธีเส้นผ่านศูนย์กลางไฮดรอลิก (Hydraulic Diameter Method):**
+
+| ค่าคงที่ | คำนวณจาก |
+|---|---|
+| **Turbulent Intensity** | $I = 0.16 \times Re^{-1/8}$ |
+| **Length Scale** | $L_t = 0.07 \times D_h$ |
+| **Dissipation Rate** | $\varepsilon = C_\mu^{3/4} \frac{k^{3/2}}{L_t}$ |
+
+#### **3. ข้อมูลจากการทดลอง/การวัด (Experimental Data):**
+-   ใช้พารามิเตอร์ความปั่นป่วนที่วัดได้จากการทดลองจริง
+-   หรือใช้ค่าจากการจำลองก่อนหน้า (converged solution)
+
+### **การใช้งานใน OpenFOAM:**
+
+```cpp
+// ตัวอย่างการระบุค่า k ที่ inlet ในไฟล์ 0/k
+dimensions      [0 2 -2 0 0 0 0];
+internalField   uniform 0.01;  // ค่า k เริ่มต้น
+
+boundaryField
+{
+    inlet
+    {
+        type            turbulentIntensityKineticEnergyInlet;
+        intensity       0.05;           // 5% turbulent intensity
+        value           uniform 0.01;   // ค่าเริ่มต้น
+    }
+}
+```
+
+#### **การระบุค่า epsilon/omega ที่ inlet:**
+
+```cpp
+// สำหรับ epsilon ใน 0/epsilon
+epsilon
+{
+    type            calculated;
+    inlet
+    {
+        type            epsilonWallFunction;
+        value           uniform 0.009;  // ค่า epsilon เริ่มต้น
+    }
+}
+
+// สำหรับ omega ใน 0/omega
+omega
+{
+    type            calculated;
+    inlet
+    {
+        type            omegaWallFunction;
+        value           uniform 0.3;    // ค่า omega เริ่มต้น
+    }
+}
+```

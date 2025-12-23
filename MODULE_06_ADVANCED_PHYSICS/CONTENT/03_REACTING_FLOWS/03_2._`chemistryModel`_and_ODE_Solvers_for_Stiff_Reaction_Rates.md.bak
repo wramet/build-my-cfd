@@ -1,0 +1,179 @@
+# `chemistryModel` และ ODE Solvers สำหรับ Stiff Reaction Rates
+
+## 🔮 Hook
+
+ปฏิกิริยาเคมีในการเผาไหม้เกิดขึ้นในช่วงเวลาตั้งแต่ไมโครวินาทีถึงมิลลิวินาที ซึ่งสร้าง **ระบบ ODE ที่แข็ง (stiff ODE systems)** ที่ท้าทายการอินทิเกรตแบบ explicit
+
+OpenFOAM's `chemistryModel` เป็นนามธรรมของพลศาสตร์เคมี และใช้ ODE solvers ที่แข็งแกร่ง (SEulex, Rosenbrock) เพื่อจัดการกับความแข็ง (stiffness) ในขณะที่รักษาประสิทธิภาพการคำนวณ
+
+[Diagram: Time scale comparison between fast radical reactions and slow fuel consumption showing the orders of magnitude difference that creates stiffness]
+
+## 📐 Blueprint
+
+**เทอมแหล่งที่มาของปฏิกิริยา (reaction source term)** $R_i$ ในสมการชนิดสารมาจากระบบของ **สมการเชิงอนุพันธ์สามัญ (ordinary differential equations)** ที่อธิบายการวิวัฒนาการของความเข้มข้นของชนิดสารเนื่องจากปฏิกิริยาเคมี:
+
+$$\frac{\mathrm{d} Y_i}{\mathrm{d} t} = \frac{R_i}{\rho} = \frac{1}{\rho} \sum_{r=1}^{N_r} \nu_{i,r} \dot{\omega}_r$$
+
+โดยที่:
+- $Y_i$: ความเข้มข้นมวลของชนิดสาร $i$
+- $R_i$: อัตราการเกิดปฏิกิริยาของชนิดสาร $i$
+- $\rho$: ความหนาแน่นของไหล
+- $\nu_{i,r}$: สัมประสิทธิ์สัดส่วน (stoichiometric coefficient) ของชนิดสาร $i$ ในปฏิกิริยา $r$
+- $\dot{\omega}_r$: อัตราปฏิกิริยาของปฏิกิริยา $r$
+
+อัตราปฏิกิริยาเป็นไปตาม **กฎของ Arrhenius**:
+
+$$\dot{\omega}_r = k_r \prod_{j} [C_j]^{\nu'_{j,r}}, \quad k_r = A_r T^{\beta_r} e^{-E_{a,r}/(R T)}$$
+
+โดยที่:
+- $A_r$: ตัวประกอบก่อนเลขชี้กำลัง (pre-exponential factor)
+- $\beta_r$: ตัวชี้กำลังอุณหภูมิ (temperature exponent)
+- $E_{a,r}$: พลังงานกระตุ้น (activation energy)
+- $[C_j]$: ความเข้มข้นโมลาร์ของชนิดสาร $j$
+
+## 🔬 Internal Mechanics
+
+**ความแข็ง (Stiffness)** เกิดขึ้นเมื่อมาตราส่วนเวลาของปฏิกิริยาต่างกันไปหลายลำดับขั้น
+
+เครื่องอินทิเกรตแบบ explicit (Euler, Runge-Kutta) ต้องการ time step ที่เล็กมากเพื่อให้ยังคงความเสถียร
+
+OpenFOAM ใช้ **ODE solvers แบบ implicit** หรือ **semi-implicit**:
+
+| Solver | ประเภท | คุณสมบัติพิเศษ |
+|--------|--------|------------------|
+| **SEulex** | Extrapolation-based | ระบบควบคุมลำดับและขนาดขั้นอัตโนมัติ |
+| **Rosenbrock** | Linearly implicit Runge-Kutta | Embedded error estimation |
+| **CVODE** | Variable step/order (external) | จาก SUNDIALS library |
+
+[Diagram: Comparison of explicit vs implicit ODE solver stability regions showing why implicit solvers can handle stiff systems]
+
+ระบบ ODE ถูกกำหนดในรูปแบบ:
+
+$$\frac{\mathrm{d} \mathbf{Y}}{\mathrm{d} t} = \mathbf{f}(\mathbf{Y}, T, p), \quad \mathbf{Y} = [Y_1, Y_2, \dots, Y_{N_s}]$$
+
+โดยที่ $\mathbf{f}$ ประกอบด้วยอัตราปฏิกิริยาทั้งหมดและการ coupling ทางอุณหพลศาสตร์
+
+## ⚙️ Mechanism
+
+คลาสฐาน `chemistryModel` (ใน `src/thermophysicalModels/chemistryModel/`) กำหนด interface:
+
+```cpp
+class chemistryModel
+{
+public:
+    // Solve chemistry for a time step
+    virtual scalar solve(scalar deltaT) = 0;
+
+    // Return reaction rates RR[i] in kg/(m³·s)
+    virtual const volScalarField::Internal& RR(const label i) const = 0;
+
+    // Access species list, reactions, thermodynamics
+    const speciesTable& species() const;
+    const ReactionList<ReactionThermo>& reactions() const;
+};
+```
+
+คลาสที่สืบทอด (`standardChemistryModel`, `TDACChemistryModel`) ใช้กลยุทธ์การอินทิเกรตที่แตกต่างกัน
+
+**Operator-splitting** ถูกใช้: ODE ทางเคมีถูกแก้แยกกันในแต่ละ cell โดยสมมติว่าความดันและอุณหภูมิคงที่ในช่วงเวลาของไดนามิกของไหล
+
+### OpenFOAM Code Implementation
+
+การกำหนดค่า Solver ใน `constant/chemistryProperties`:
+
+```cpp
+chemistryType
+{
+    solver          SEulex;      // or Rosenbrock, CVODE
+    tolerance       1e-6;
+    relTol          0.01;
+}
+```
+
+### Algorithm Flow: Chemical Integration
+
+1. **Preprocessing**: โหลดกลไกเคมีจากไฟล์ Chemkin
+2. **Per Cell Integration**:
+   - แยก ODE system สำหรับแต่ละ cell
+   - กำหนดเงื่อนไขเริ่มต้น (Y, T, p)
+   - Solve ด้วย ODE solver ที่เลือก
+3. **Post-processing**: คำนวณ reaction rates RR[i]
+4. **Coupling**: ส่งค่ากลับไปยัง CFD solver
+
+## ❓ Why
+
+- **ความแข็ง (Stiffness)** ต้องการวิธี implicit; explicit solvers จะต้องการ time step ~10⁻⁹ s ทำให้การจำลองไม่เป็นไปได้
+- **SEulex** เหมาะสำหรับกลไกขนาดปานกลาง (≤ 50 species) เนื่องจากการสกัดผลแบบปรับตัว
+- **Rosenbrock** แข็งแกร่งกว่าสำหรับระบบที่แข็งมาก (เช่น การเผาไหม้ไฮโดรเจน)
+- **CVODE** มอบประสิทธิภาพล่าสุดสำหรับกลไกขนาดใหญ่ แต่เพิ่มการพึ่งพา external library
+
+## 🛠 Usage
+
+กำหนดค่าเคมีใน `constant/chemistryProperties`:
+
+```cpp
+chemistry
+{
+    chemistry       on;
+    solver          SEulex;
+    initialChemicalTimeStep 1e-8;
+    maxChemicalTimeStep     1e-3;
+    tolerance       1e-6;
+    relTol          0.01;
+}
+
+thermoType
+{
+    type            hePsiThermo;
+    mixture         reactingMixture;
+    transport       multiComponent;
+    thermo          janaf;
+    energy          sensibleInternalEnergy;
+    equationOfState idealGas;
+    specie          specie;
+}
+```
+
+กลไกปฏิกิริยาจัดหาผ่าน **ไฟล์รูปแบบ Chemkin**:
+- `chem.inp`: ข้อมูลปฏิกิริยา
+- `therm.dat`: ข้อมูลคุณสมบัติอุณหพลศาสตร์
+- `tran.dat`: ข้อมูลคุณสมบัติการขนส่ง
+
+## 📌 Summary
+
+- **พลศาสตร์เคมีเป็น ODEs ที่แข็ง** ซึ่งต้องการการอินทิเกรตแบบ implicit
+- **OpenFOAM's `chemistryModel`** มอบ interface ที่รวมกับ solvers SEulex, Rosenbrock, และ CVODE
+- **Operator-splitting** แยกเคมีออกจาก time stepping ของไดนามิกของไหล
+- **การกำหนดค่า** ถูกรวมไว้ใน `chemistryProperties` และไฟล์ Chemkin
+
+## 🔍 Implementation Details
+
+### ODE Solver Selection Strategy
+
+การเลือก ODE solver ขึ้นอยู่กับลักษณะของปัญหา:
+
+| Solver | Best For | Complexity | Parallel Scaling | Memory Usage |
+|--------|----------|------------|------------------|--------------|
+| SEulex | Moderate mechanisms (≤ 50 species) | Medium | Good | Medium |
+| Rosenbrock | Very stiff systems, H₂ combustion | High | Fair | High |
+| CVODE | Large mechanisms (≥ 100 species) | Very High | Excellent | Very High |
+
+### Performance Considerations
+
+1. **Load Balancing**: Cells ต่างกันอาจต้องการจำนวน ODE iterations ที่แตกต่างกัน
+2. **Memory Management**: กลไกขนาดใหญ่ต้องการการจัดสรรหน่วยความจำอย่างระมัดระวัง
+3. **Adaptive Time Stepping**: แต่ละ cell สามารถใช้ chemical time steps ที่แตกต่างกัน
+4. **GPU Acceleration**: พร้อมใช้สำหรับ solver implementations ที่ระบุ
+
+[Diagram: Load balancing visualization showing cells with different numbers of ODE iterations per timestep]
+
+### Debugging Chemistry Issues
+
+ปัญหาทั่วไปและวิธีแก้ไข:
+
+| ปัญหา | สาเหตุ | วิธีแก้ไข |
+|--------|--------|-------------|
+| Negative Species Mass Fractions | Solver tolerance ไม่เพียงพอ | ทำ tolerance ให้แน่นยิ่งขึ้น |
+| Temperature Explosions | พารามิเตอร์พลังงานกระตุ้นผิด | ตรวจสอบ activation energy |
+| Slow Convergence | กลไกเคมีไม่สมบูรณ์ | ตรวจสอบ completeness ของ mechanism |
+| Memory Overflow | กลไกใหญ่เกินไป | ใช้ TDAC (Tabulated Dynamic Adaptive Chemistry) |

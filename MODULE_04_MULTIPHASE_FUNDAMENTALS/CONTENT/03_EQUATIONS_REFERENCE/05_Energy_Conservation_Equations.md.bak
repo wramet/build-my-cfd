@@ -1,0 +1,217 @@
+# สมการการอนุรักษ์พลังงาน
+
+## สมการพลังงานเฉพาะเฟส - การอนุมานฉบับสมบูรณ์
+
+**หลักการพื้นฐาน**: การอนุรักษ์พลังงานสำหรับแต่ละเฟส โดยพิจารณาถึงงาน การถ่ายเทความร้อน การถ่ายเทมวล และการแลกเปลี่ยนพลังงานระหว่างพื้นผิวสัมผัส
+
+**สมการพลังงานเฉพาะเฟส**: สำหรับเฟส $k$ ในรูปของเอนทัลปีจำเพาะ $h_k$:
+
+$$\frac{\partial}{\partial t}(\alpha_k \rho_k h_k) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k h_k) = \alpha_k \frac{\partial p}{\partial t} + \nabla \cdot (\alpha_k k_k \nabla T_k) + \dot{q}_k + \dot{m}_k h_{k,int} + \mathbf{M}_k \cdot \mathbf{u}_k$$
+
+**นิยามตัวแปร**:
+- $\alpha_k$ = สัดส่วนปริมาตรของเฟส $k$
+- $\rho_k$ = ความหนาแน่นของเฟส $k$ ($\text{kg/m}^3$)
+- $h_k$ = เอนทัลปีจำเพาะของเฟส $k$ ($\text{J/kg}$)
+- $\mathbf{u}_k$ = ความเร็วของเฟส $k$ ($\text{m/s}$)
+- $p$ = ความดัน ($\text{Pa}$)
+- $k_k$ = สภาพนำความร้อนของเฟส $k$ ($\text{W/(m·K)}$)
+- $T_k$ = อุณหภูมิของเฟส $k$ ($\text{K}$)
+- $\dot{q}_k$ = อัตราการถ่ายเทความร้อนระหว่างเฟส ($\text{W/m}^3$)
+- $\dot{m}_k$ = อัตราการถ่ายเทมวล ($\text{kg/(m}^3\cdot\text{s)}$)
+- $h_{k,int}$ = เอนทัลปีที่พื้นผิวสัมผัส ($\text{J/kg}$)
+- $\mathbf{M}_k$ = แรงที่พื้นผิวสัมผัสต่อหน่วยปริมาตร ($\text{N/m}^3$)
+
+[Diagram: แผนภาพแสดงการไหลของพลังงานในระบบหลายเฟส แสดงการแปลงพลังงานกลเป็นความร้อน การถ่ายเทความร้อนระหว่างเฟส และงานที่เกิดจากแรงที่พื้นผิวสัมผัส]
+
+### OpenFOAM Code Implementation
+
+```cpp
+// OpenFOAM energy equation for phase k
+fvScalarMatrix hEqn
+(
+    fvm::ddt(alpha, rho, h) + fvm::div(alphaRhoPhi, h)
+ ==
+    fvm::Sp(contErr, h)          // Compression work
+  + alpha*rho*(dpdt)            // Pressure work
+  + fvc::div(alpha*k*grad(T))   // Heat conduction
+  + viscousDissipation          // Phi_k
+  + interfacialHeatTransfer     // q_dot_k
+  + massTransfer*InterfaceEnthalpy  // m_dot_k * h_int
+  + interfacialMomentumTransfer & U  // M_k · u_k
+);
+```
+
+**การทำแผนที่กับสมการทางคณิตศาสตร์**:
+- `fvm::ddt(alpha, rho, h)` แทน $\frac{\partial}{\partial t}(\alpha_k \rho_k h_k)$
+- `fvm::div(alphaRhoPhi, h)` แทน $\nabla \cdot (\alpha_k \rho_k \mathbf{u}_k h_k)$
+- `alpha*rho*(dpdt)` แทน $\alpha_k \frac{\partial p}{\partial t}$
+- `fvc::div(alpha*k*grad(T))` แทน $\nabla \cdot (\alpha_k k_k \nabla T_k)$
+- `viscousDissipation` แทน $\Phi_k$
+- `interfacialHeatTransfer` แทน $\dot{q}_k$
+- `massTransfer*InterfaceEnthalpy` แทน $\dot{m}_k h_{k,int}$
+- `interfacialMomentumTransfer & U` แทน $\mathbf{M}_k \cdot \mathbf{u}_k$
+
+## การอนุมานอย่างละเอียดจากกฎข้อที่หนึ่งของอุณหพลศาสตร์
+
+### ขั้นที่ 1: กฎข้อที่หนึ่งของอุณหพลศาสตร์สำหรับเฟส $k$
+
+กฎข้อที่หนึ่งระบุว่าการเปลี่ยนแปลงพลังงานทั้งหมดเท่ากับความร้อนที่ได้รับบวกกับงานที่ทำ:
+
+$$\frac{\mathrm{d}E_k}{\mathrm{d}t} = \dot{Q}_k + \dot{W}_k$$
+
+### ขั้นที่ 2: นิยามพลังงานทั้งหมด
+
+พลังงานทั้งหมดของเฟส $k$ ในปริมาตรควบคุม $V$:
+
+$$E_k = \int_{V_k} \rho_k \left( e_k + \frac{1}{2}|\mathbf{u}_k|^2 \right) \, \mathrm{d}V = \int_V \alpha_k \rho_k \left( e_k + \frac{1}{2}|\mathbf{u}_k|^2 \right) \, \mathrm{d}V$$
+
+โดยที่ $e_k$ คือพลังงานภายในจำเพาะ
+
+### ขั้นที่ 3: ใช้ทฤษฎีบท Reynolds Transport
+
+สำหรับปริมาตรเฟสที่เปลี่ยนแปลงตามเวลา $V_k(t)$:
+
+$$\frac{\mathrm{d}E_k}{\mathrm{d}t} = \int_V \frac{\partial}{\partial t}\left[ \alpha_k \rho_k \left( e_k + \frac{1}{2}|\mathbf{u}_k|^2 \right) \right] \, \mathrm{d}V + \int_{\partial V} \alpha_k \rho_k \left( e_k + \frac{1}{2}|\mathbf{u}_k|^2 \right) (\mathbf{u}_k \cdot \mathbf{n}) \, \mathrm{d}A$$
+
+### ขั้นที่ 4: การวิเคราะห์ฟลักซ์พลังงาน
+
+**ฟลักซ์พลังงานแบบพา**:
+$$\mathbf{J}_{conv} = \alpha_k \rho_k \mathbf{u}_k \left( e_k + \frac{1}{2}|\mathbf{u}_k|^2 \right)$$
+
+**ฟลักซ์การนำความร้อน** (กฎของฟูเรียร์):
+$$\mathbf{J}_{cond} = -\alpha_k k_k \nabla T_k$$
+
+### ขั้นที่ 5: การวิเคราะห์งาน
+
+**เทอมงานที่พื้นผิว**:
+1. **งานเนื่องจากความดัน**: $-p \mathbf{u}_k \cdot \mathbf{n}$
+2. **งานเนื่องจากความหนืด**: $-(\boldsymbol{\tau}_k \cdot \mathbf{u}_k) \cdot \mathbf{n}$
+
+**เทอมงานที่เนื้อของไหล**:
+1. **งานเนื่องจากแรงโน้มถ่วง**: $\alpha_k \rho_k \mathbf{g} \cdot \mathbf{u}_k$
+2. **งานที่พื้นผิวสัมผัส**: $\mathbf{M}_k \cdot \mathbf{u}_k$
+
+### ขั้นที่ 6: สมดุลพลังงานที่สมบูรณ์
+
+การรวมผลกระทบทั้งหมด:
+
+$$\int_V \frac{\partial}{\partial t}\left[ \alpha_k \rho_k \left( e_k + \frac{1}{2}|\mathbf{u}_k|^2 \right) \right] \, \mathrm{d}V + \int_{\partial V} \alpha_k \rho_k \mathbf{u}_k \left( e_k + \frac{1}{2}|\mathbf{u}_k|^2 \right) (\mathbf{u}_k \cdot \mathbf{n}) \, \mathrm{d}A$$
+
+$$= -\int_{\partial V} p (\mathbf{u}_k \cdot \mathbf{n}) \, \mathrm{d}A + \int_{\partial V} (\boldsymbol{\tau}_k \cdot \mathbf{u}_k) \cdot \mathbf{n} \, \mathrm{d}A + \int_V \alpha_k \rho_k \mathbf{g} \cdot \mathbf{u}_k \, \mathrm{d}V + \int_V \nabla \cdot (\alpha_k k_k \nabla T_k) \, \mathrm{d}V + \int_V (\dot{q}_k + \dot{m}_k h_{k,int}) \, \mathrm{d}V + \int_V \mathbf{M}_k \cdot \mathbf{u}_k \, \mathrm{d}V$$
+
+### ขั้นที่ 7-9: การทำให้ง่ายขึ้นและการอนุมานในรูปเอนทัลปี
+
+หลังจากใช้ทฤษฎีบท Divergence ลบสมการพลังงานจลน์ และใช้ความสัมพันธ์ $h_k = e_k + p/\rho_k$ เราจะได้สมการสุดท้าย:
+
+$$\frac{\partial}{\partial t}(\alpha_k \rho_k h_k) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k h_k) = \alpha_k \frac{\partial p}{\partial t} + \nabla \cdot (\alpha_k k_k \nabla T_k) + \dot{q}_k + \dot{m}_k h_{k,int} + \mathbf{M}_k \cdot \mathbf{u}_k$$
+
+[Diagram: แผนภาพแสดงขั้นตอนการอนุมานสมการพลังงาน จากกฎข้อที่หนึ่งของอุณหพลศาสตร์ ผ่านการวิเคราะห์ฟลักซ์ และสมดุลพลังงาน ไปจนถึงสมการสุดท้ายในรูปเอนทัลปี]
+
+## การวิเคราะห์ทางคณิตศาสตร์และทางกายภาพของแต่ละเทอม
+
+| เทอม | นิพจน์ทางคณิตศาสตร์ | ความหมายทางกายภาพ | ลักษณะสำคัญ |
+|------|----------------------|------------------|-------------|
+| **การเปลี่ยนแปลงพลังงานตามเวลา** | $\frac{\partial}{\partial t}(\alpha_k \rho_k h_k)$ | อนุพันธ์ตามเวลาของความหนาแน่นเอนทัลปี | การสะสม/การลดลงของพลังงานเฉพาะที่ |
+| **การขนส่งพลังงานแบบพา** | $\nabla \cdot (\alpha_k \rho_k \mathbf{u}_k h_k)$ | ไดเวอร์เจนซ์ของเวกเตอร์ฟลักซ์พลังงาน | การขนส่งพลังงานโดยการเคลื่อนที่ของเฟส $k$ |
+| **งานเนื่องจากการอัดตัว** | $\alpha_k \frac{\partial p}{\partial t}$ | อัตราการเปลี่ยนแปลงความดันเฉพาะที่ | สำคัญอย่างยิ่งสำหรับของไหลหลายเฟสที่อัดตัวได้ |
+| **การนำความร้อน** | $\nabla \cdot (\alpha_k k_k \nabla T_k)$ | ไดเวอร์เจนซ์ของฟลักซ์ความร้อน (กฎของฟูเรียร์) | การนำความร้อนภายในเฟส $k$ เท่านั้น |
+| **การกระจายความหนืด** | $\Phi_k = \boldsymbol{\tau}_k : \nabla \mathbf{u}_k$ | การหดตัวสองครั้งของเทนเซอร์ความเค้นและความเร็วเกรเดียนต์ | การแปลงพลังงานกลเป็นความร้อน |
+| **การถ่ายเทความร้อนระหว่างพื้นผิวสัมผัส** | $\dot{q}_k$ | การแลกเปลี่ยนความร้อนระหว่างเฟส | การอนุรักษ์: $\sum_{k=1}^{N} \dot{q}_k = 0$ |
+| **พลังงานจากการเปลี่ยนเฟส** | $\dot{m}_k h_{k,int}$ | พลังงานที่ถูกขนส่งโดยการถ่ายเทมวล | เชื่อมโยงสมการมวลและพลังงาน |
+| **งานที่พื้นผิวสัมผัส** | $\mathbf{M}_k \cdot \mathbf{u}_k$ | งานที่ทำโดยแรงที่พื้นผิวสัมผัส | ตัวอย่าง: งานเนื่องจากแรงฉุด, งานเนื่องจากแรงตึงผิว |
+
+### รายละเอียดเพิ่มเติมของเทอมที่สำคัญ
+
+#### การกระจายความหนืด: $\Phi_k = \boldsymbol{\tau}_k : \nabla \mathbf{u}_k$
+
+**รูปแบบส่วนประกอบ**: $\Phi_k = \sum_{i,j} \tau_{k,ij} \frac{\partial u_{k,i}}{\partial x_j}$
+
+**การอนุมานการแปลง**:
+
+##### ขั้นตอน A: กระจายรูปแบบเอนโทรปี
+เริ่มต้นจากรูปแบบเอนทัลปีและแทนค่า $h_k = e_k + p/\rho_k$:
+
+$$\frac{\partial}{\partial t}[\alpha_k \rho_k (e_k + \frac{p}{\rho_k})] + \nabla \cdot [\alpha_k \rho_k \mathbf{u}_k (e_k + \frac{p}{\rho_k})] = \alpha_k \frac{\partial p}{\partial t} + \nabla \cdot (\alpha_k k_k \nabla T_k) + \dot{q}_k + \dot{m}_k h_{k,int} + \mathbf{M}_k \cdot \mathbf{u}_k$$
+
+##### ขั้นตอน B: กระจายและทำให้ง่ายขึ้น
+$$\frac{\partial}{\partial t}(\alpha_k \rho_k e_k) + \frac{\partial}{\partial t}(\alpha_k p) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k e_k) + \nabla \cdot (\alpha_k p \mathbf{u}_k) = \alpha_k \frac{\partial p}{\partial t} + \nabla \cdot (\alpha_k k_k \nabla T_k) + \dot{q}_k + \dot{m}_k h_{k,int} + \mathbf{M}_k \cdot \mathbf{u}_k$$
+
+##### ขั้นตอน C: ใช้กฎผลคูณและการอนุรักษ์มวล
+ใช้การอนุรักษ์มวล: $\frac{\partial}{\partial t}(\alpha_k \rho_k) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k) = \dot{m}_k$
+
+หลังจากการจัดการทางคณิตศาสตร์ เราจะได้รูปแบบพลังงานภายในพร้อมกับการกระจายความหนืด:
+
+$$\frac{\partial}{\partial t}(\alpha_k \rho_k e_k) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k e_k) = -\alpha_k p (\nabla \cdot \mathbf{u}_k) + \nabla \cdot (\alpha_k k_k \nabla T_k) + \Phi_k + \dot{q}_k + \dot{m}_k e_{k,int}$$
+
+## กรณีพิเศษและการทำให้ง่ายขึ้น
+
+### การไหลแบบอัดตัวไม่ได้: $\nabla \cdot \mathbf{u}_k = 0$
+
+$$\frac{\partial}{\partial t}(\alpha_k \rho_k e_k) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k e_k) = \nabla \cdot (\alpha_k k_k \nabla T_k) + \Phi_k + \dot{q}_k + \dot{m}_k e_{k,int}$$
+
+### การไหลแบบอะเดียแบติก: ไม่มีการถ่ายเทความร้อน, $\dot{q}_k = 0$, $k_k = 0$
+
+$$\frac{\partial}{\partial t}(\alpha_k \rho_k h_k) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k h_k) = \alpha_k \frac{\partial p}{\partial t} + \dot{m}_k h_{k,int} + \mathbf{M}_k \cdot \mathbf{u}_k$$
+
+### ไม่มีผลกระทบที่พื้นผิวสัมผัส: $\dot{q}_k = 0$, $\dot{m}_k = 0$, $\mathbf{M}_k = \mathbf{0}$
+
+$$\frac{\partial}{\partial t}(\alpha_k \rho_k h_k) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k h_k) = \alpha_k \frac{\partial p}{\partial t} + \nabla \cdot (\alpha_k k_k \nabla T_k)$$
+
+[Diagram: แผนภาพแสดงเงื่อนไขขอบเขตที่แตกต่างกันสำหรับการทำให้ง่ายของสมการพลังงาน เช่น การไหลแบบอัดตัวไม่ได้ การไหลแบบอะเดียแบติก และกรณีที่ไม่มีผลกระทบระหว่างเฟส]
+
+## การถ่ายเทความร้อนระหว่างพื้นผิวสัมผัส
+
+การถ่ายเทความร้อนระหว่างเฟส $i$ และ $j$ เป็นไปตาม:
+
+$$\dot{q}_{ij} = h_{ij} A_{ij} (T_j - T_i)$$
+
+### สหสัมพันธ์การถ่ายเทความร้อน
+
+#### สหสัมพันธ์ของเลข Nusselt
+
+สำหรับอนุภาค/ฟองกลม:
+$$Nu = \frac{h_{ij} d_p}{k_i} = 2 + 0.6 Re^{1/2} Pr^{1/3}$$
+
+**นิยามพารามิเตอร์**:
+- $Re$ = เลขเรย์โนลด์สที่อิงตามความเร็วสัมพัทธ์
+- $Pr = \frac{\mu_i c_{p,i}}{k_i}$ = เลขแพรนเทิล
+
+#### แบบจำลองสองแรงต้าน
+
+สำหรับการถ่ายเทความร้อนระหว่างของเหลวและแก๊ส:
+$$\frac{1}{h_{lg}} = \frac{1}{h_l} + \frac{1}{h_g}$$
+
+### การเปรียบเทียบแบบจำลองการถ่ายเทความร้อน
+
+| แบบจำลอง | สมการ | ข้อดี | ข้อเสีย |
+|------------|---------|--------|---------|
+| **Nusselt Correlation** | $Nu = 2 + 0.6 Re^{1/2} Pr^{1/3}$ | ง่ายต่อการคำนวณ | จำกัดสำหรับอนุภาคทรงกลม |
+| **Two-Resistance Model** | $\frac{1}{h_{lg}} = \frac{1}{h_l} + \frac{1}{h_g}$ | คำนึงถึงความต้านทานทั้งสองฝั่ง | ต้องการค่าสัมประสิทธิ์การถ่ายเทความร้อนของแต่ละเฟส |
+| **Energy Balance Model** | $\dot{q}_{ij} = h_{ij} A_{ij} (T_j - T_i)$ | พื้นฐานทางกายภาพชัดเจน | ต้องการพื้นที่สัมผัสที่แน่นอน |
+
+[Diagram: แผนภาพแสดงกลไกการถ่ายเทความร้อนระหว่างเฟส แสดงชั้นขอบเขต ความต้านทานต่อการถ่ายเทความร้อน และการไหลของความร้อน]
+
+## อุณหพลศาสตร์ของการเปลี่ยนเฟส
+
+### การพิจารณาความร้อนแฝง
+
+ระหว่างการเปลี่ยนเฟส สมดุลพลังงานต้องการ:
+
+$$\dot{m}_{lg} h_{lg}^{sat} + \dot{q}_{lg} = 0$$
+
+โดยที่ $h_{lg}^{sat}$ คือความร้อนแฝงของการกลายเป็นไอ
+
+### ความสัมพันธ์ของ Clausius-Clapeyron
+
+สำหรับการสมดุลเฟส:
+$$\frac{\mathrm{d}p_{sat}}{\mathrm{d}T} = \frac{h_{lg}^{sat}}{T (v_g - v_l)}$$
+
+โดยที่ $v_g$ และ $v_l$ คือปริมาตรจำเพาะของเฟสแก๊สและของเหลว
+
+## การพิจารณาเอนโทรปี
+
+กฎข้อที่สองสำหรับเฟส $k$:
+
+$$\rho_k \frac{\mathrm{D}s_k}{\mathrm{D}t} = \frac{1}{T_k} \left(\frac{\Phi_k}{T_k} + \frac{k_k}{T_k^2} |\nabla T_k|^2\right) + \frac{\dot{q}_{k,int}}{T_k} + \dot{s}_{k,gen}$$
+
+โดยที่ $\dot{s}_{k,gen} \geq 0$ คืออัตราการสร้างเอนโทรปี

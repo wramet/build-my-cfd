@@ -1,0 +1,489 @@
+# 🔧 แบบฝึกหัดปฏิบัติ
+
+## แบบฝึกหัดที่ 1: การวิเคราะห์การไล่ระดับสี
+
+### ภาพรวม
+แบบฝึกหัดนี้สำรวจความถูกต้องและพฤติกรรมของรูปแบบการคำนวณการไล่ระดับสีที่แตกต่างกันใน OpenFOAM การคำนวณการไล่ระดับสีเป็นพื้นฐานสำคัญของ CFD เนื่องจากปรากฏในพจน์ convection, แรง pressure gradient, และการจำลอง turbulence
+
+### การตั้งค่าปัญหา
+เราจะสร้างสนามสเกลาร์ด้วย solution เชิงวิเคราะห์ที่ทราบค่าเพื่อให้สามารถเปรียบเทียบระหว่างการไล่ระดับสีเชิงตัวเลขและการไล่ระดับสีแม่นยำโดยตรงได้:
+
+$$p(x,y,z) = x^2 + y^2 + z^2$$
+
+การไล่ระดับสีเชิงวิเคราะห์นั้นตรงไปตรงมา:
+
+$$\nabla p = \left(\frac{\partial p}{\partial x}, \frac{\partial p}{\partial y}, \frac{\partial p}{\partial z}\right) = (2x, 2y, 2z)$$
+
+[Diagram: สนามสเกลาร์ที่เพิ่มขึ้นตามระยะทางจากจุดกำเนิด พร้อมเวกเตอร์การไล่ระดับสีที่ชี้ออกจากจุดศูนย์กลาง]
+
+### ขั้นตอนการ Implement
+
+#### 1. การเริ่มต้นสนาม
+```cpp
+// Create scalar field with analytical solution
+volScalarField p
+(
+    IOobject
+    (
+        "p",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+// Initialize with p = x^2 + y^2 + z^2
+const volVectorField& C = mesh.C();
+forAll(p, i)
+{
+    p[i] = sqr(C[i].x()) + sqr(C[i].y()) + sqr(C[i].z());
+}
+```
+
+#### 2. การคำนวณการไล่ระดับสีด้วยรูปแบบที่แตกต่างกัน
+```cpp
+// Linear (second-order central differencing)
+surfaceScalarScheme::addSchemeToDict("grad(p)", "linear");
+tmp<volVectorField> gradP_linear = fvc::grad(p);
+
+// Least squares (second-order, unstructured)
+surfaceScalarScheme::addSchemeToDict("grad(p)", "leastSquares");
+tmp<volVectorField> gradP_ls = fvc::grad(p);
+
+// Fourth-order scheme
+surfaceScalarScheme::addSchemeToDict("grad(p)", "fourth");
+tmp<volVectorField> gradP_fourth = fvc::grad(p);
+```
+
+[Diagram: การเปรียบเทียบความแม่นยำของรูปแบบการไล่ระดับสีที่แตกต่างกันบน structured และ unstructured meshes]
+
+#### 3. การวิเคราะห์ความผิดพลาด
+```cpp
+// Analytical gradient
+volVectorField gradP_analytical
+(
+    IOobject("gradP_analytical", runTime.timeName(), mesh),
+    mesh,
+    dimensionedVector("zero", dimensionSet(0, -1, 0, 0, 0, 0, 0), vector::zero)
+);
+
+forAll(gradP_analytical, i)
+{
+    gradP_analytical[i] = vector(2*C[i].x(), 2*C[i].y(), 2*C[i].z());
+}
+
+// Error norms
+scalar L2_error_linear = sqrt(sum(sqr(mag(gradP_linear() - gradP_analytical))));
+scalar L2_error_ls = sqrt(sum(sqr(mag(gradP_ls() - gradP_analytical))));
+scalar L2_error_fourth = sqrt(sum(sqr(mag(gradP_fourth() - gradP_analytical))));
+```
+
+### ผลลัพธ์ที่คาดหวัง
+
+| รูปแบบ | ความถูกต้อง | เหมาะสำหรับ | ข้อสังเกต |
+|---------|-------------|--------------|------------|
+| **Linear** | ลำดับที่สอง | Structured meshes | ค่าคงที่ อ่านง่าย |
+| **Least squares** | ลำดับที่สอง | Unstructured meshes | ความยืดหยุ่นสูง |
+| **Fourth-order** | ลำดับที่สี่ | Solutions ที่ราบรื่น | อาจไม่เสถียรบน meshes ไม่สม่ำเสมอ |
+
+### การศึกษาการปรับปรุง Mesh
+เพื่อตรวจสอบอัตราการลู่เข้า ให้ทำการคำนวณซ้ำบน meshes ที่ปรับปรุงแล้วทีละขั้น และพล็อตความผิดพลาดเทียบกับระยะห่างของ mesh:
+
+$$\epsilon \propto \Delta x^n$$
+
+โดยที่:
+- $n$ คือลำดับของความถูกต้อง (2 สำหรับ linear/least squares, 4 สำหรับ fourth-order)
+- $\epsilon$ คือความผิดพลาด
+- $\Delta x$ คือขนาดของ mesh
+
+## แบบฝึกหัดที่ 2: การอนุรักษ์ Divergence
+
+### ภาพรวม
+แบบฝึกหัดนี้ทดสอบคุณสมบัติพื้นฐานของการไหลแบบ incompressible: การอนุรักษ์มวลผ่าน $\nabla \cdot \mathbf{u} = 0$ เราจะตรวจสอบว่ารูปแบบเชิงตัวเลขรักษาคุณสมบัตินี้ได้ดีเพียงใด
+
+### สนามความเร็วเชิงวิเคราะห์
+เราจะใช้สนามเชิงวิเคราะห์ที่ไม่มี divergence:
+
+$$\mathbf{u}(x,y,z) = (-\sin y, \sin x, 0)$$
+
+ตรวจสอบ divergence เชิงวิเคราะห์:
+$$\nabla \cdot \mathbf{u} = \frac{\partial u_x}{\partial x} + \frac{\partial u_y}{\partial y} + \frac{\partial u_z}{\partial z} = 0 + 0 + 0 = 0$$
+
+[Diagram: สนามความเร็วที่แสดงการไหลแบบ rotational โดยที่ไม่มีการบีบอัดหรือขยายตัว]
+
+### การ Implement
+
+#### 1. การเริ่มต้นสนาม
+```cpp
+volVectorField U
+(
+    IOobject
+    (
+        "U",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+const volVectorField& C = mesh.C();
+forAll(U, i)
+{
+    U[i] = vector(-sin(C[i].y()), sin(C[i].x()), 0);
+}
+```
+
+#### 2. การคำนวณ Divergence
+```cpp
+// Compute divergence using different schemes
+surfaceScalarScheme::addSchemeToDict("div(U)", "Gauss linear");
+volScalarField divU_linear = fvc::div(U);
+
+// For comparison, use non-divergence-free field
+volVectorField U_nonDiv
+(
+    IOobject("U_nonDiv", runTime.timeName(), mesh),
+    mesh,
+    dimensionedVector("zero", dimVelocity, vector::zero)
+);
+
+forAll(U_nonDiv, i)
+{
+    U_nonDiv[i] = vector(C[i].x(), C[i].y(), C[i].z());  // div = 3
+}
+
+volScalarField divU_nonDiv = fvc::div(U_nonDiv);
+```
+
+#### 3. การวิเคราะห์ความผิดพลาด
+```cpp
+// Maximum divergence magnitude for theoretically divergence-free field
+scalar maxDiv = max(mag(divU_linear));
+scalar meanDiv = average(mag(divU_linear));
+
+// Expected analytical value: 0
+Info<< "Maximum divergence: " << maxDiv << endl;
+Info<< "Mean divergence magnitude: " << meanDiv << endl;
+Info<< "Analytical divergence of nonDiv field: " << max(divU_nonDiv) << endl;
+```
+
+### การศึกษาการลู่เข้าของ Mesh
+ทดสอบบน meshes ที่ปรับปรุงแล้วทีละขั้น:
+
+```cpp
+// Store results for convergence study
+List<scalar> meshSizes(4);
+List<scalar> maxDivergences(4);
+
+for (label refI = 0; refI < 4; refI++)
+{
+    // Refine mesh (implementation depends on mesh type)
+    refineMesh(mesh);
+    
+    // Recompute field and divergence
+    // ... (field initialization code)
+    
+    meshSizes[refI] = average(mesh.V());
+    maxDivergences[refI] = max(mag(divU_linear));
+}
+```
+
+### พฤติกรรมที่คาดหวัง
+- **Divergence-free field**: Divergence ควรเข้าใกล้ค่าศูนย์ของเครื่องเมื่อปรับปรุง mesh
+- **Non-divergence-free field**: Divergence ที่คำนวณควรเข้าใกล้ค่าเชิงวิเคราะห์
+- **Convergence rate**: ลำดับที่สองสำหรับ linear schemes บน smooth solutions
+
+## แบบฝึกหัดที่ 3: การสร้างภาพ Vorticity
+
+### ภาพรวม
+Vorticity $\boldsymbol{\omega} = \nabla \times \mathbf{u}$ แทนการหมุนของอนุภาคของไหลในพื้นที่ แบบฝึกหัดนี้สำรวจการคำนวณและการสร้างภาพ vorticity ในปัญหา lid-driven cavity แบบคลาสสิก
+
+### พื้นฐานทางคณิตศาสตร์
+สนามเวกเตอร์ vorticity ถูกกำหนดเป็น:
+
+$$\boldsymbol{\omega} = \nabla \times \mathbf{u} = \begin{vmatrix} \mathbf{i} & \mathbf{j} & \mathbf{k} \\ \frac{\partial}{\partial x} & \frac{\partial}{\partial y} & \frac{\partial}{\partial z} \\ u_x & u_y & u_z \end{vmatrix}$$
+
+สำหรับการไหล 2D ในระนาบ x-y: $\boldsymbol{\omega} = (0, 0, \omega_z)$ โดยที่ $\omega_z = \frac{\partial v}{\partial x} - \frac{\partial u}{\partial y}$
+
+โดยที่:
+- $\mathbf{i}, \mathbf{j}, \mathbf{k}$ คือ unit vectors ในทิศทาง x, y, z
+- $u_x, u_y, u_z$ คือส่วนประกอบความเร็วในทิศทาง x, y, z
+
+[Diagram: การไหลใน lid-driven cavity แสดง primary vortex ตรงกลางและ secondary vortices ตามมุม]
+
+### ขั้นตอนการ Implement
+
+#### 1. การตั้งค่ากรณี
+ใช้ tutorial lid-driven cavity มาตรฐาน:
+```bash
+# Copy tutorial case
+cp -r $FOAM_TUTORIALS/incompressible/icoFoam/cavity/cavity .
+cd cavity
+
+# Modify controlDict for longer simulation
+# endTime = 1.0;
+# deltaT = 0.005;
+# writeInterval = 0.1;
+```
+
+#### 2. การคำนวณ Vorticity
+```cpp
+// Vorticity calculation
+volVectorField vorticity
+(
+    IOobject
+    (
+        "vorticity",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    fvc::curl(U)
+);
+
+// Vorticity magnitude
+volScalarField magVorticity
+(
+    IOobject
+    (
+        "magVorticity",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mag(vorticity)
+);
+```
+
+#### 3. การระบุ Vortex Core
+Implement Q-criterion สำหรับการระบุ vortex:
+
+$$Q = \frac{1}{2}(\|\boldsymbol{\Omega}\|^2 - \|\mathbf{S}\|^2)$$
+
+โดยที่ $\mathbf{S} = \frac{1}{2}(\nabla\mathbf{u} + \nabla\mathbf{u}^T)$ คือ strain rate tensor และ $\boldsymbol{\Omega} = \frac{1}{2}(\nabla\mathbf{u} - \nabla\mathbf{u}^T)$ คือ vorticity tensor
+
+```cpp
+// Velocity gradient tensor
+volTensorField gradU = fvc::grad(U);
+
+// Strain rate and vorticity tensors
+volTensorField S = 0.5*(gradU + gradU.T());
+volTensorField Omega = 0.5*(gradU - gradU.T());
+
+// Q-criterion
+volScalarField Qcriterion
+(
+    IOobject
+    (
+        "Q",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    0.5*(sqr(mag(Omega)) - sqr(mag(S)))
+);
+```
+
+### เทคนิคการสร้างภาพ
+
+#### 1. พล็อตเส้นโครงร่าง
+```bash
+# ParaFOAM visualization
+paraFoam
+
+# Plot vorticity magnitude contours
+# Filter: Contour -> magVorticity
+# Set contour levels: 0, 1, 2, 5, 10, 20
+```
+
+#### 2. เส้นกระแส
+```bash
+# Add streamlines filter
+# Seed points: uniform grid in cavity
+# Integration direction: both
+# Vector field: U
+```
+
+#### 3. การสร้างภาพ Vortex Core
+```bash
+# Plot Q-criterion isosurfaces
+# Filter: Threshold -> Q
+# Threshold value: Q > 0
+```
+
+### การตีความทางกายภาพ
+- **Primary vortex**: กระแสน้ำวนขนาดใหญ่ที่เติมเต็มส่วนใหญ่ของช่องว่าง
+- **Secondary vortices**: กระแสน้ำวนตามมุมเนื่องจากการแยกการไหล
+- **การรวมตัวของ Vorticity**: สูงสุดใกล้ฝาที่เคลื่อนที่และมุม
+- **Steady state**: รูปแบบ vorticity กลายเป็นอิสระจากเวลาที่จำนวน Reynolds ต่ำ
+
+## แบบฝึกหัดที่ 4: การวิเคราะห์พจน์ Diffusion
+
+### ภาพรวม
+แบบฝึกหัดนี้เปรียบเทียบการจัดการแบบ explicit และ implicit ของพจน์ diffusion $\nabla^2 T$ ในการนำความร้อน สำรวจความถูกต้อง เสถียรภาพ และประสิทธิภาพการคำนวณ
+
+### การตั้งค่าปัญหา
+พิจารณาการนำความร้อน 1D ในแท่งยาว $L$ ด้วย thermal diffusivity $\alpha$:
+
+$$\frac{\partial T}{\partial t} = \alpha \nabla^2 T$$
+
+[Diagram: แท่งที่มีการนำความร้อน แสดงการแพร่กระจายความร้อนจากพื้นที่ร้อนไปยังพื้นที่เย็น]
+
+โดยที่:
+- $T$ คืออุณหภูมิ
+- $t$ คือเวลา
+- $\alpha$ คือ thermal diffusivity ($\alpha = k/(\rho c_p)$)
+- $\nabla^2$ คือ Laplacian operator
+
+### การแก้ปัญหาเชิงวิเคราะห์
+สำหรับแท่งที่มีการกระจายอุณหภูมิเริ่มต้นและปลายที่หุ้มฉนวน:
+
+$$T(x,t) = \sum_{n=0}^{\infty} A_n \cos\left(\frac{n\pi x}{L}\right) \exp\left(-\alpha \left(\frac{n\pi}{L}\right)^2 t\right)$$
+
+โดยที่:
+- $A_n$ คือสัมประสิทธิ์ Fourier series ของเงื่อนไขเริ่มต้น
+- $L$ คือความยาวของแท่ง
+
+### การ Implement
+
+#### 1. การ Implement Diffusion แบบ Explicit
+```cpp
+// Explicit time integration
+scalar alpha = 1.0;  // Thermal diffusivity
+scalar dt = runTime.deltaTValue();
+
+volScalarField T_new = T;
+volScalarField laplacian_T = fvc::laplacian(alpha, T);
+
+// Forward Euler: T^(n+1) = T^n + dt * alpha * laplacian(T^n)
+T_new = T + dt * laplacian_T;
+
+T = T_new;
+```
+
+#### 2. การ Implement Diffusion แบบ Implicit
+```cpp
+// Implicit time integration using fvm
+fvScalarMatrix TEqn
+(
+    fvm::ddt(T) == fvm::laplacian(alpha, T)
+);
+
+// Solve: (I - dt*alpha*laplacian)T^(n+1) = T^n
+TEqn.solve();
+```
+
+[Diagram: การเปรียบเทียบ stability region ระหว่าง explicit (เล็ก) และ implicit (ใหญ่) ในปริภูมิ (dt, dx)]
+
+#### 3. การวิเคราะห์เสถียรภาพ
+สำหรับ diffusion แบบ explicit เงื่อนไข CFL ให้ขีดจำกัดความเสถียร:
+
+$$\Delta t \leq \frac{\Delta x^2}{2\alpha}$$
+
+```cpp
+// Calculate maximum stable time step
+scalar maxDeltaX = max(mesh.deltaCoeffs());  // 1/deltaX
+scalar dt_max_explicit = 1.0/(2.0*alpha*sqr(maxDeltaX));
+
+Info<< "Maximum stable explicit time step: " << dt_max_explicit << endl;
+Info<< "Current time step: " << dt << endl;
+```
+
+#### 4. การเปรียบเทียบความผิดพลาด
+```cpp
+// Compare with analytical solution (simplified case)
+volScalarField T_analytical
+(
+    IOobject("T_analytical", runTime.timeName(), mesh),
+    mesh,
+    dimensionedScalar("zero", dimTemperature, 0)
+);
+
+const volVectorField& C = mesh.C();
+scalar L = 1.0;  // Domain length
+scalar t = runTime.timeName();
+
+// First mode only (n=0)
+T_analytical = T0 * exp(-alpha*sqr(M_PI/L)*t);
+
+// Error norms
+scalar L2_error_explicit = sqrt(sum(sqr(T - T_analytical)));
+scalar L2_error_implicit = sqrt(sum(sqr(T - T_analytical)));
+```
+
+### การเปรียบเทียบประสิทธิภาพ
+
+#### 1. ต้นทุนการคำนวณ
+```cpp
+// Time explicit method
+clock_t start_explicit = clock();
+// ... explicit solve ...
+clock_t end_explicit = clock();
+scalar time_explicit = scalar(end_explicit - start_explicit)/CLOCKS_PER_SEC;
+
+// Time implicit method  
+clock_t start_implicit = clock();
+// ... implicit solve ...
+clock_t end_implicit = clock();
+scalar time_implicit = scalar(end_implicit - start_implicit)/CLOCKS_PER_SEC;
+
+Info<< "Explicit solve time: " << time_explicit << " s" << endl;
+Info<< "Implicit solve time: " << time_implicit << " s" << endl;
+```
+
+#### 2. การศึกษาการลู่เข้า
+```cpp
+// Test different time steps for stability analysis
+List<scalar> timeSteps(5);
+List<scalar> maxErrors(5);
+List<bool> isStable(5);
+
+forAll(timeSteps, i)
+{
+    scalar testDt = 0.0001 * pow(2.0, i);
+    timeSteps[i] = testDt;
+    
+    // Run simulation with testDt
+    // ... (implementation depends on stability)
+    
+    maxErrors[i] = max(mag(T - T_analytical));
+    isStable[i] = (max(T) < 1000);  // Simple stability check
+}
+```
+
+### ผลลัพธ์ที่คาดหวัง
+
+| วิธี | เสถียรภาพ | ขีดจำกัดความเสถียร | ความเร็วในการคำนวณ | ความแม่นยำ |
+|------|-----------|-------------------|-------------------|-----------|
+| **Explicit** | เงื่อนไข | $\Delta t \leq \frac{\Delta x^2}{2\alpha}$ | เร็วมากต่อขั้น | ลำดับแรก |
+| **Implicit** | ไม่มีเงื่อนไข | ไม่มี | ช้ากว่าต่อขั้น | ลำดับแรก |
+
+### การขยายขั้นสูง
+
+#### 1. **การรวมเวลาลำดับสูง**
+- Crank-Nicolson (ลำดับที่สอง)
+- Runge-Kutta (ลำดับที่สูง)
+
+#### 2. **การปรับเปลี่ยน time step แบบปรับได้**
+- ขึ้นอยู่กับการประเมินความผิดพลาด
+- การควบคุมตามสถานการณ์
+
+#### 3. **Diffusion แบบไม่เชิงเส้น**
+- ความนำความร้อนที่ขึ้นอยู่กับอุณหภูมิ
+- วัสดุ composite
+
+#### 4. **ปัญหาหลายมิติ**
+- การนำความร้อน 2D และ 3D
+- ผลกระทบของเรขาคณิตที่ซับซ้อน
+
+#### 5. **พจน์ต้นทาง**
+- การสร้างความร้อน
+- การสูญเสียรังสี
+- แรงต้านความร้อน

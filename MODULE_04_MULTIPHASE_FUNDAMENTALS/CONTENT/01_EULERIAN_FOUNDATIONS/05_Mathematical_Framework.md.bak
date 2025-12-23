@@ -1,0 +1,181 @@
+## กรอบแนวคิดทางคณิตศาสตร์สำหรับการไหลแบบหลายเฟส
+
+**กรอบแนวคิดทางคณิตศาสตร์สำหรับการไหลแบบหลายเฟส (multiphase flows)** ใน OpenFOAM เป็นรากฐานสำหรับแนวทางการคำนวณแบบ Eulerian-Eulerian ผ่านกระบวนการเฉลี่ยที่เป็นระบบและความสัมพันธ์แบบปิด (closure relationships)
+
+---
+
+### 📊 กระบวนการเฉลี่ย (Averaging Procedures)
+
+แนวทางการคำนวณแบบ Eulerian-Eulerian อาศัยเทคนิคการเฉลี่ยที่เข้มงวดเพื่ออนุมานสมการต่อเนื่อง (continuum equations) จากกฎการอนุรักษ์พื้นฐาน ซึ่งจำเป็นเนื่องจากที่ระดับจุลภาค การไหลแบบหลายเฟสประกอบด้วยพื้นผิวที่ขาดตอน (discontinuous interfaces) ระหว่างเฟส ในขณะที่ CFD ต้องการสนามที่ต่อเนื่อง (continuous fields) สำหรับการแก้ปัญหาเชิงคำนวณ
+
+#### 1. การเฉลี่ยเชิงปริมาตร (Volume Averaging)
+
+สำหรับปริมาณใดๆ $\phi$ ที่เกี่ยวข้องกับเฟส $\alpha$ ตัวดำเนินการเฉลี่ยเชิงปริมาตรถูกนิยามดังนี้:
+
+$$\langle \phi \rangle_\alpha = \frac{1}{V_\alpha} \int_{V_\alpha} \phi \, \mathrm{d}V$$
+
+**โดยที่:**
+- $\langle \phi \rangle_\alpha$ คือปริมาณที่เฉลี่ยตามเฟส
+- $V_\alpha$ คือปริมาตรชั่วขณะที่เฟส $\alpha$ ครอบครองภายในปริมาตรเฉลี่ย $V$
+- $\phi$ แทนสนามสเกลาร์ เวกเตอร์ หรือเทนเซอร์ใดๆ
+- การอินทิเกรตจะดำเนินการเฉพาะบนบริเวณของเฟสนั้นๆ เท่านั้น
+
+[Diagram: การแสดงภาพการเฉลี่ยเชิงปริมาตรในปริมาตรควบคุมที่มีหลายเฟส]
+
+กระบวนการเฉลี่ยนี้ช่วยลดทอนลักษณะที่ขาดตอนของพื้นผิวระหว่างเฟสได้อย่างมีประสิทธิภาพ ในขณะที่ยังคงรักษาฟิสิกส์ที่สำคัญของแต่ละเฟสไว้
+
+#### 2. การเฉลี่ยตามเฟส (Phase Averaging)
+
+การเฉลี่ยตามเฟสจะเชื่อมโยงปริมาณที่เฉลี่ยเชิงปริมาตรเข้ากับกรอบอ้างอิงที่เฉลี่ยของส่วนผสม (mixture-averaged frame):
+
+$$\bar{\phi}_\alpha = \frac{1}{V} \int_{V_\alpha} \phi \, \mathrm{d}V = \alpha_\alpha \langle \phi \rangle_\alpha$$
+
+**โดยที่:**
+- $\bar{\phi}_\alpha$ คือปริมาณที่เฉลี่ยตามเฟสในกรอบอ้างอิงของส่วนผสม
+- $\alpha_\alpha = \frac{V_\alpha}{V}$ คือสัดส่วนปริมาตร (volume fraction) ของเฟส $\alpha$
+- $V$ คือปริมาตรเฉลี่ยทั้งหมดที่ครอบคลุมทุกเฟส
+
+ความสัมพันธ์นี้มีความสำคัญอย่างยิ่ง เนื่องจากเป็นการเชื่อมโยงค่าเฉลี่ยภายในเฟสเข้ากับโดเมนการคำนวณที่ใช้ในการจำลอง CFD
+
+#### 3. การเฉลี่ยตามเวลา (Temporal Averaging)
+
+สำหรับการไหลแบบหลายเฟสที่มีความปั่นป่วน (turbulent multiphase flows) อาจมีการใช้การเฉลี่ยตามเวลาด้วย:
+
+$$\tilde{\phi}_\alpha = \frac{1}{\Delta t} \int_{t}^{t+\Delta t} \phi_\alpha(\mathbf{x},\tau) \, \mathrm{d}\tau$$
+
+การรวมกันของการเฉลี่ยเชิงพื้นที่และการเฉลี่ยตามเวลาจะให้ปริมาณของเฟสที่เฉลี่ยแบบ Reynolds (Reynolds-averaged phase quantities) ซึ่งใช้ในแบบจำลอง RANS
+
+---
+
+### ⚖️ กฎการอนุรักษ์ในรูปแบบที่เฉลี่ยแล้ว (Conservation Laws in Averaged Form)
+
+สมการอนุรักษ์ที่เฉลี่ยแล้วสำหรับมวล โมเมนตัม และพลังงานสำหรับเฟส $\alpha$ จะกลายเป็น:
+
+#### **1. ความต่อเนื่อง (Continuity):**
+$$\frac{\partial}{\partial t}(\alpha_\alpha \rho_\alpha) + \nabla \cdot (\alpha_\alpha \rho_\alpha \mathbf{u}_\alpha) = 0$$
+
+#### **2. โมเมนตัม (Momentum):**
+$$\frac{\partial}{\partial t}(\alpha_\alpha \rho_\alpha \mathbf{u}_\alpha) + \nabla \cdot (\alpha_\alpha \rho_\alpha \mathbf{u}_\alpha \mathbf{u}_\alpha) = -\alpha_\alpha \nabla p_\alpha + \nabla \cdot \boldsymbol{\tau}_\alpha + \alpha_\alpha \rho_\alpha \mathbf{g} + \mathbf{M}_\alpha$$
+
+#### **3. พลังงาน (Energy):**
+$$\frac{\partial}{\partial t}(\alpha_\alpha \rho_\alpha h_\alpha) + \nabla \cdot (\alpha_\alpha \rho_\alpha \mathbf{u}_\alpha h_\alpha) = \alpha_\alpha \frac{\mathrm{d}p_\alpha}{\mathrm{d}t} + \nabla \cdot (\alpha_\alpha k_\alpha \nabla T_\alpha) + Q_\alpha$$
+
+[Diagram: การแสดงภาพสมการอนุรักษ์สำหรับแต่ละเฟสในระบบหลายเฟส]
+
+---
+
+### 🔧 ข้อกำหนดสำหรับการปิด (Closure Requirements)
+
+กระบวนการเฉลี่ยจะทำให้เกิดเทอมเพิ่มเติมที่ต้องการแบบจำลองปิด (closure models) เพื่อให้ระบบสามารถแก้ปัญหาได้ ความสัมพันธ์แบบปิดเหล่านี้มีความสำคัญอย่างยิ่งต่อการจำลองการไหลแบบหลายเฟสที่แม่นยำ
+
+#### **1. การถ่ายโอนโมเมนตัมระหว่างเฟส (Interphase Momentum Transfer)**
+
+เทอมการถ่ายโอนโมเมนตัมระหว่างเฟส $\mathbf{M}_\alpha$ แทนแรงทั้งหมดที่กระทำโดยเฟสอื่นทั้งหมดต่อเฟส $\alpha$:
+
+$$\mathbf{M}_\alpha = \sum_{\beta \neq \alpha} \mathbf{M}_{\alpha\beta}$$
+
+โดยที่ $\mathbf{M}_{\alpha\beta} = -\mathbf{M}_{\beta\alpha}$ เป็นไปตามกฎข้อที่สามของนิวตัน
+
+**แบบจำลองแรงฉุด (Drag Models) ทั่วไป:**
+
+| แบบจำลอง | สมการ | เงื่อนไขการใช้งาน |
+|-----------|---------|------------------|
+| **Schiller-Naumann** | $C_D = \frac{24}{Re_p}(1 + 0.15 Re_p^{0.687})$ | $Re_p < 1000$ |
+| **Ishii-Zuber** | ความสัมพันธ์เชิงประจักษ์ | ฟองอากาศที่บิดเบี้ยว (distorted bubbles) |
+| **Tomiyama** | พิจารณาผลกระทบจากผนังและการเสียรูปของฟอง | ฟองอากาศที่มีผลกระทบจากผนัง |
+
+[Diagram: การแสดงภาพแรงฉุดระหว่างเฟสและการเคลื่อนที่ของฟองอากาศ]
+
+#### **2. การสร้างแบบจำลองความเค้นเนื่องจากความปั่นป่วน (Turbulent Stress Modeling)**
+
+เทนเซอร์ความเค้นเนื่องจากความปั่นป่วน (turbulent stress tensor) $\boldsymbol{\tau}_\alpha$ ต้องการการปิดผ่านแบบจำลองความปั่นป่วน (turbulence models):
+
+**แบบจำลองความหนืดแบบ eddy (Eddy Viscosity Models):**
+$$\boldsymbol{\tau}_\alpha^{\text{turb}} = \mu_{t,\alpha} \left[\nabla \mathbf{u}_\alpha + (\nabla \mathbf{u}_\alpha)^T\right] - \frac{2}{3}\rho_\alpha k_\alpha \mathbf{I}$$
+
+**แบบจำลอง k-ε สำหรับแต่ละเฟส (k-ε Model for Each Phase):**
+$$\frac{\partial}{\partial t}(\alpha_\alpha \rho_\alpha k_\alpha) + \nabla \cdot (\alpha_\alpha \rho_\alpha \mathbf{u}_\alpha k_\alpha) = P_{k,\alpha} - \alpha_\alpha \rho_\alpha \varepsilon_\alpha + \nabla \cdot \left[\alpha_\alpha \frac{\mu_{t,\alpha}}{\sigma_k} \nabla k_\alpha\right]$$
+
+#### **3. การถ่ายโอนความร้อน/มวลระหว่างเฟส (Interphase Heat/Mass Transfer)**
+
+การถ่ายโอนความร้อนและมวลระหว่างเฟสจะถูกสร้างแบบจำลองโดยใช้ความสัมพันธ์เชิงประจักษ์ (empirical correlations):
+
+**ความสัมพันธ์ของเลข Nusselt (Nusselt Number Correlations):**
+$$Nu_\alpha = 2 + 0.6 Re_\alpha^{1/2} Pr_\alpha^{1/3}$$
+
+**อัตราการถ่ายโอนความร้อน (Heat Transfer Rate):**
+$$Q_\alpha = h_{\alpha\beta} A_{\alpha\beta} (T_\beta - T_\alpha)$$
+
+**โดยที่:**
+- $h_{\alpha\beta}$ คือสัมประสิทธิ์การถ่ายโอนความร้อน (heat transfer coefficient)
+- $A_{\alpha\beta}$ คือความหนาแน่นของพื้นที่ผิวสัมผัส (interfacial area density)
+
+[Diagram: การแสดงภาพการถ่ายโอนความร้อนและมวลระหว่างเฟส]
+
+---
+
+### 📊 การนำไปใช้ใน OpenFOAM
+
+**OpenFOAM Code Implementation** สำหรับแบบจำลองการไหลแบบหลายเฟสใช้กรอบแนวคิดทางคณิตศาสตร์นี้ผ่านคลาสและโครงสร้างต่อไปนี้:
+
+```cpp
+// สมการความต่อเนื่องสำหรับแต่ละเฟส
+fvScalarMatrix alphaEqn
+(
+    fvm::ddt(alpha, rho)
+  + fvm::div(alphaPhi, rho)
+ ==
+    fvOptions(alpha, rho)
+);
+
+// สมการโมเมนตัมสำหรับแต่ละเฟส
+fvVectorMatrix UEqn
+(
+    fvm::ddt(alpha, rho, U)
+  + fvm::div(alphaPhi, rho, U)
+ ==
+    -alpha*fvc::grad(p)
+  + fvc::div(alpha*tau)
+  + alpha*rho*g
+  + interfacialMomentumTransfer
+);
+
+// การจัดการการถ่ายโอนโมเมนตัมระหว่างเฟส
+tmp<volVectorField> UMean = fluid.phases()[0].U();
+forAll(fluid.phases(), phasei)
+{
+    UMean = 
+        (UMean*fluid.phases()[phasei].d() 
+       + fluid.phases()[phasei].U()*fluid.phases()[phasei].d())
+      /fluid.phases()[phasei].d();
+}
+```
+
+---
+
+### 🔢 ข้อพิจารณาเชิงตัวเลข (Numerical Considerations)
+
+กรอบแนวคิดทางคณิตศาสตร์กำหนดข้อกำหนดเชิงตัวเลขที่เฉพาะเจาะจง:
+
+| คุณสมบัติ | ข้อกำหนด | ความสำคัญ |
+|------------|------------|------------|
+| **ความเป็นขอบเขต (Boundedness)** | $0 \leq \alpha_\alpha \leq 1$ และ $\sum \alpha_\alpha = 1$ | รักษาสัดส่วนเฟสให้อยู่ในช่วงที่ถูกต้อง |
+| **ความเป็นไฮเพอร์โบลิก (Hyperbolicity)** | ความเร็วลักษณะเฉพาะกำหนดขีดจำกัดขั้นเวลา | ความเสถียรของการคำนวณ |
+| **เสถียรภาพ (Stability)** | การรักษาเทอมระหว่างเฟสแบบอิมพลิซิต | การบรรจบกันของการแก้ปัญหา |
+| **การอนุรักษ์ (Conservation)** | สกีมเชิงการแยกรักษาการอนุรักษ์ | ความแม่นยำของผลลัพธ์ |
+
+[Diagram: การแสดงภาพข้อจำกัดเชิงตัวเลขในการจำลองการไหลแบบหลายเฟส]
+
+---
+
+### 📝 บทสรุป
+
+กรอบแนวคิดทางคณิตศาสตร์นี้เป็นพื้นฐานสำหรับการนำ Solver การไหลแบบหลายเฟสมาใช้ใน OpenFOAM โดยมีการเลือกความสัมพันธ์แบบปิดและสกีมเชิงตัวเลขที่เฉพาะเจาะจงตามข้อกำหนดของแอปพลิเคชัน
+
+**ขั้นตอนสำคัญในการจำลอง:**
+
+1. **เลือกแบบจำลองการเฉลี่ย** ที่เหมาะสมกับปัญหา
+2. **กำหนดความสัมพันธ์แบบปิด** สำหรับการถ่ายโอนระหว่างเฟส  
+3. **เลือกสกีมเชิงตัวเลข** ที่รักษาความเป็นขอบเขตและการอนุรักษ์
+4. **ตรวจสอบความเสถียร** และการบรรจบกันของการคำนวณ
+5. **ทำการตรวจสอบ** ผลลัพธ์กับข้อมูลทดลองหรือกรณีศึกษาอ้างอิง

@@ -1,0 +1,444 @@
+# **Incompressible Flow Solvers ใน OpenFOAM**
+
+Incompressible flow solvers เป็นรากฐานของการจำลองพลศาสตร์ของไหลเชิงคำนวณ (CFD) ที่ความหนาแน่นของไหลมีการเปลี่ยนแปลงน้อยมาก โมดูลนี้จะสำรวจพื้นฐานทางทฤษฎี วิธีการเชิงตัวเลข และการนำไปใช้งานจริงของ Incompressible flow solvers ใน OpenFOAM
+
+[Diagram: Incompressible flow simulation showing velocity field and pressure contours]
+
+## **สมการพื้นฐาน**
+
+### **สมการควบคุม**
+
+Incompressible flow ถูกควบคุมด้วยสมการ Navier-Stokes โดยมีข้อจำกัดเรื่องความหนาแน่นคงที่:
+
+**สมการความต่อเนื่อง (ข้อจำกัด Incompressibility):**
+$$\nabla \cdot \mathbf{u} = 0$$
+
+**สมการโมเมนตัม:**
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
+
+**การนิยามตัวแปร:**
+- $\mathbf{u}$ คือ เวกเตอร์ความเร็ว
+- $p$ คือ ความดัน
+- $\rho$ คือ ความหนาแน่น (คงที่)
+- $\mu$ คือ ความหนืดพลวัต
+- $\mathbf{f}$ แทน แรงกระทำจากภายนอก
+
+### **การทำให้ไร้มิติ**
+
+สำหรับการวิเคราะห์ Incompressible flow เรามักใช้ Reynolds number:
+$$\Re = \frac{\rho U L}{\mu} = \frac{U L}{\nu}$$
+
+โดยที่ $\nu = \mu/\rho$ คือ ความหนืดจลนศาสตร์
+
+[Diagram: Flow visualization showing different Reynolds number regimes]
+
+## **อัลกอริทึมเชิงตัวเลข**
+
+### **การเชื่อมโยงความดัน-ความเร็ว**
+
+ความท้าทายใน Incompressible flow คือการเชื่อมโยงระหว่างความดันและความเร็ว OpenFOAM ได้นำอัลกอริทึมหลายตัวมาใช้:
+
+#### **SIMPLE Algorithm (Steady-state)**
+
+Semi-Implicit Method for Pressure-Linked Equations:
+
+**ขั้นตอนการทำงาน:**
+1. **การทำนายโมเมนตัม**: แก้สมการโมเมนตัมโดยใช้ความดันจากการวนซ้ำครั้งก่อน
+2. **การแก้ไขความดัน**: แก้สมการการแก้ไขความดัน
+3. **การแก้ไขความเร็ว**: อัปเดตสนามความเร็วโดยใช้การแก้ไขความดัน
+4. **การตรวจสอบการลู่เข้า**: ทำซ้ำจนกว่าจะลู่เข้า
+
+#### **PISO Algorithm (Transient)**
+
+Pressure-Implicit with Splitting of Operators algorithm:
+
+**ขั้นตอนการทำงาน:**
+1. **การทำนายโมเมนตัม**: คล้ายกับ SIMPLE
+2. **การแก้ไขความดัน**: มีการแก้ไขความดันหลายครั้งต่อหนึ่ง Time step
+3. **การแก้ไขความเร็ว**: อัปเดตความเร็วหลังจากการแก้ไขความดันแต่ละครั้ง
+4. **การแก้ไขแบบ Explicit**: ใช้การแก้ไขแบบ Explicit เพื่อความแม่นยำที่ดีขึ้น
+
+#### **PIMPLE Algorithm**
+
+การรวมกันแบบไฮบริดของ SIMPLE และ PISO:
+
+**คุณสมบัติ:**
+- ใช้ Under-relaxation แบบ SIMPLE เพื่อความเสถียร
+- อนุญาตให้มีการแก้ไขความดันหลายครั้งเหมือน PISO
+- เหมาะสำหรับการจำลอง Transient ที่มี Time step ขนาดใหญ่
+
+[Diagram: Flowchart showing SIMPLE, PISO, and PIMPLE algorithm comparison]
+
+### **Discretization Schemes**
+
+OpenFOAM ใช้ Finite volume method พร้อมตัวเลือก Discretization ที่หลากหลาย:
+
+#### **Temporal Discretization**
+
+| Scheme | Accuracy | Type | Best Use Case |
+|--------|----------|------|---------------|
+| Euler | First order | Explicit/Implicit | Simple transient problems |
+| Backward | Second order | Implicit | Moderate accuracy requirements |
+| CrankNicolson | Second order | Semi-implicit | High accuracy transient simulations |
+
+#### **Spatial Discretization**
+
+| Scheme | Order | Stability | Application |
+|--------|-------|-----------|-------------|
+| Gauss Linear | Second | Stable | Gradients in structured meshes |
+| Gauss Upwind | First | Very stable | Convection-dominated flows |
+| Limited schemes | Variable | High | TVD limiters for stability |
+| QUICK | Third | Conditional | High accuracy convection |
+
+## **Core Solvers**
+
+### **icoFoam**
+
+**วัตถุประสงค์**: Solver สำหรับ Transient incompressible laminar flow
+
+**คุณสมบัติหลัก:**
+- ใช้อัลกอริทึม PISO สำหรับการเชื่อมโยงความดัน-ความเร็ว
+- การกำหนด Time step แบบคงที่
+- เหมาะสำหรับ Low Reynolds number flows
+- ไม่มีการจำลอง Turbulence
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Simplified algorithm structure
+while (runTime.loop())
+{
+    // Momentum equation solve
+    fvVectorMatrix UEqn
+    (
+        fvm::ddt(U) + fvm::div(phi, U)
+      - fvm::laplacian(nu, U)
+    );
+    
+    solve(UEqn == -fvc::grad(p));
+    
+    // PISO loop for pressure-velocity coupling
+    for (int corr = 0; corr < nCorr; corr++)
+    {
+        // Pressure correction
+        // Velocity correction
+    }
+}
+```
+
+### **simpleFoam**
+
+**วัตถุประสงค์**: Solver สำหรับ Steady-state incompressible turbulent flow
+
+**คุณสมบัติหลัก:**
+- ใช้อัลกอริทึม SIMPLE
+- มี Turbulence models
+- Under-relaxation เพื่อความเสถียร
+- การตรวจสอบการลู่เข้า
+
+**OpenFOAM Code Implementation:**
+```cpp
+// Simplified SIMPLE loop
+while (simple.loop())
+{
+    // Momentum equation with under-relaxation
+    tmp<fvVectorMatrix> UEqn
+    (
+        fvm::div(phi, U) + turbulence->divDevRhoReff(U)
+    );
+    
+    UEqn().relax();
+    solve(UEqn() == -fvc::grad(p));
+    
+    // Simple pressure correction
+    pEqn = fvm::laplacian(UEqn().A(), p) == fvc::div(UEqn().flux());
+    pEqn.setReference(pRefCell, pRefValue);
+    pEqn.solve();
+    
+    // Velocity correction
+    U -= UEqn().H()/UEqn().A()*fvc::grad(p);
+    U.correctBoundaryConditions();
+}
+```
+
+### **pimpleFoam**
+
+**วัตถุประสงค์**: Solver สำหรับ Transient incompressible turbulent flow ที่มี Time step ขนาดใหญ่
+
+**คุณสมบัติหลัก:**
+- อัลกอริทึม PIMPLE (SIMPLE + PISO)
+- การปรับ Time step ได้
+- Multiple outer correctors
+- รองรับ Turbulence modeling
+
+### **laminarFoam (deprecated)**
+
+**หมายเหตุ**: Solver นี้ถูกยกเลิกการใช้งานแล้ว โดยใช้ icoFoam และ Specialized laminar solvers แทน
+
+## **รายละเอียดการนำไปใช้งาน**
+
+### **การจัดการ Field**
+
+OpenFOAM ใช้ Field types เฉพาะสำหรับ Incompressible flow:
+
+```cpp
+// Volume fields defined at cell centers
+volVectorField U  // Velocity field
+volScalarField p  // Pressure field
+volScalarField phi // Surface flux field
+
+// Surface interpolation
+surfaceScalarField phi("phi", fvc::interpolate(U) & mesh.Sf());
+```
+
+### **Boundary Conditions**
+
+ประเภทของ Boundary condition ทั่วไปสำหรับ Incompressible flow:
+
+```cpp
+// Velocity boundary conditions
+fixedValue        // กำหนดความเร็ว
+fixedValue        // ผนัง No-slip
+zeroGradient      // การไหลที่พัฒนาเต็มที่
+inletOutlet       // Inlet/Outlet ที่ขึ้นอยู่กับทิศทาง
+
+// Pressure boundary conditions
+fixedValue        // กำหนดความดัน
+zeroGradient      // Zero pressure gradient
+calculated        // คำนวณจากความเร็ว
+```
+
+### **การควบคุม Solver**
+
+พารามิเตอร์ใน `fvSolution` dictionary:
+
+```cpp
+solvers
+{
+    p
+    {
+        solver          GAMG;
+        tolerance       1e-06;
+        relTol          0.05;
+        smoother        GaussSeidel;
+        nPreSweeps      0;
+        nPostSweeps     2;
+        cacheAgglomerator true;
+    }
+    
+    U
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-05;
+        relTol          0;
+    }
+}
+```
+
+### **Relaxation Factors**
+
+สำหรับการจำลอง Steady-state:
+
+```cpp
+relaxationFactors
+{
+    fields
+    {
+        p               0.3;
+    }
+    equations
+    {
+        U               0.7;
+    }
+}
+```
+
+[Diagram: Convergence behavior with different relaxation factors]
+
+## **การตั้งค่า Case**
+
+### **โครงสร้าง Directory**
+
+```
+case/
+├── 0/                 // เงื่อนไขเริ่มต้น
+│   ├── U             // สนามความเร็ว
+│   └── p             // สนามความดัน
+├── constant/         // ข้อมูลที่ไม่ขึ้นกับเวลา
+│   ├── transportProperties // คุณสมบัติของไหล
+│   └── polyMesh/     // การนิยาม Mesh
+├── system/           // การตั้งค่าการจำลอง
+│   ├── controlDict   // การควบคุมเวลาและเอาต์พุต
+│   ├── fvSchemes     // Discretization schemes
+│   └── fvSolution    // การตั้งค่า Solver
+└── Allrun           // สคริปต์การรัน
+```
+
+### **Transport Properties**
+
+การนิยามคุณสมบัติของไหล:
+
+```cpp
+transportModel  Newtonian;
+nu              [0 2 -1 0 0 0 0] 1e-6;  // ความหนืดจลนศาสตร์
+```
+
+### **Control Parameters**
+
+```cpp
+application     icoFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         10.0;
+deltaT          0.01;
+writeControl    timeStep;
+writeInterval   100;
+```
+
+## **การเพิ่มประสิทธิภาพ**
+
+### **การเลือก Linear Solver**
+
+การเลือก Solvers ที่เหมาะสมตามลักษณะของปัญหา:
+
+- **GAMG**: ดีที่สุดสำหรับ Pressure equation (Elliptic)
+- **PBiCG/PBiCGStab**: ดีสำหรับ Momentum equations
+- **SmoothSolver**: ยอดเยี่ยมสำหรับระบบที่มีเงื่อนไขไม่ดี
+- **Diagonal**: สำหรับ Diagonal systems เท่านั้น
+
+### **Preconditioners**
+
+| Preconditioner | Characteristics | Memory Usage | Best For |
+|----------------|----------------|--------------|----------|
+| Diagonal | Simple, fast | Low | Well-conditioned systems |
+| DILU | Diagonal incomplete LU | Medium | General purpose |
+| FDIC | Faster diagonal incomplete Cholesky | Medium-High | Symmetric systems |
+| GaussSeidel | Classic iterative | Low | Preprocessing |
+
+### **ประสิทธิภาพแบบขนาน**
+
+OpenFOAM ใช้ Domain decomposition สำหรับการคำนวณแบบขนาน:
+
+```bash
+# Decompose case
+decomposePar
+
+# Run parallel simulation
+mpirun -np 4 icoFoam -case case
+
+# Reconstruct results
+reconstructPar
+```
+
+### **การจัดการหน่วยความจำ**
+
+- ใช้ `tmp` objects สำหรับ Temporary fields
+- ล้าง Fields ที่ไม่ได้ใช้จากหน่วยความจำ
+- เพิ่มประสิทธิภาพ Mesh quality เพื่อประสิทธิภาพ Solver ที่ดีขึ้น
+- ใช้ Cache settings ที่เหมาะสมสำหรับ GAMG
+
+## **หัวข้อขั้นสูง**
+
+### **การรวม Turbulence Modeling**
+
+ในขณะที่ Incompressible solvers พื้นฐานจัดการ Laminar flow ได้ แต่ Turbulent flows ต้องการ Models เพิ่มเติม:
+
+```cpp
+// RANS models
+kEpsilon        // Standard k-ε model
+kOmegaSST       // Shear Stress Transport
+SpalartAllmaras // One-equation model
+
+// LES models
+Smagorinsky     // Standard LES
+DynamicSmagorinsky // Dynamic LES
+```
+
+**Turbulence Model Comparison:**
+
+| Model | Equations | Complexity | Best Application |
+|-------|-----------|------------|------------------|
+| k-ε | 2 equations | Medium | Free shear flows |
+| k-ω SST | 2 equations | Medium-High | Wall-bounded flows |
+| Spalart-Allmaras | 1 equation | Low | Aerodynamic flows |
+| LES | Filtered Navier-Stokes | High | Detailed turbulence |
+
+### **ข้อควรพิจารณาเกี่ยวกับ Mesh Quality**
+
+สำหรับ Incompressible flow solvers:
+
+**Guidelines:**
+- หลีกเลี่ยงเซลล์ที่มีการบิดเบี้ยวสูง (highly skewed cells)
+- รักษาสัดส่วน Aspect ratios ที่เหมาะสม (< 1000)
+- ตรวจสอบให้แน่ใจว่ามีการแก้ไข Boundary layer ที่เหมาะสมสำหรับ Turbulent flows
+- ใช้ Cell grading ที่เหมาะสมใกล้ผนัง
+
+[Diagram: Mesh quality visualization showing good vs bad cell shapes]
+
+### **เกณฑ์การลู่เข้า**
+
+การตรวจสอบการลู่เข้าสำหรับการจำลอง Steady-state:
+
+**Criteria:**
+- การลดลงของ Residual (โดยทั่วไป 10^-6 ถึง 10^-8)
+- การคงที่ของปริมาณทางกายภาพ
+- Global balances (มวล, โมเมนตัม)
+- การลู่เข้าของ Wall shear stress
+
+### **การเลือก Time Step**
+
+สำหรับการจำลอง Transient:
+
+**CFL Condition:**
+$$\text{CFL} = \frac{|\mathbf{u}| \Delta t}{\Delta x} < 1$$
+
+**Best Practices:**
+- Adaptive time stepping เพื่อประสิทธิภาพ
+- Time steps ที่เล็กลงสำหรับปรากฏการณ์ความถี่สูง
+- Monitor maximum Courant number during simulation
+
+## **การแก้ไขปัญหา**
+
+### **ปัญหาทั่วไป**
+
+1. **การลู่ออก (Divergence)**
+   - ตรวจสอบ Mesh quality
+   - ตรวจสอบ Boundary conditions
+   - ตรวจสอบ Relaxation factors
+
+2. **การลู่เข้าช้า**
+   - ปรับการตั้งค่า Solver
+   - ปรับปรุง Mesh quality
+   - ตรวจสอบ Initial conditions
+
+3. **ปัญหาการเชื่อมโยงความดัน-ความเร็ว**
+   - ตรวจสอบการเลือกอัลกอริทึม
+   - ตรวจสอบพารามิเตอร์
+
+4. **ปัญหาหน่วยความจำ**
+   - ลด Mesh resolution
+   - ปรับการตั้งค่า Solver
+
+### **เทคนิคการ Debugging**
+
+**Step-by-step debugging:**
+- ตรวจสอบ Residuals ระหว่างการแก้ปัญหา
+- ตรวจสอบการอนุรักษ์มวล
+- ตรวจสอบ Boundary conditions
+- ใช้ ParaFoam สำหรับการแสดงผล
+- เปิดใช้งาน Debugging output เพิ่มเติม
+
+### **การวิเคราะห์ประสิทธิภาพ**
+
+**Performance Analysis:**
+- วิเคราะห์ประสิทธิภาพ Solver
+- วิเคราะห์ประสิทธิภาพแบบขนาน
+- ตรวจสอบ Load balancing ในการรันแบบขนาน
+- ตรวจสอบรูปแบบการใช้หน่วยความจำ
+
+[Diagram: Performance monitoring dashboard showing CPU usage, memory, and solver efficiency]
+
+---
+
+ความเข้าใจที่ครอบคลุมเกี่ยวกับ Incompressible flow solvers นี้เป็นรากฐานสำหรับการจำลอง CFD ขั้นสูง และเป็นข้อกำหนดเบื้องต้นสำหรับการสำรวจปรากฏการณ์ Multiphase และ Heat transfer ที่ซับซ้อนยิ่งขึ้น

@@ -1,0 +1,89 @@
+## 3.4 การจัดการฟิลด์ในรูปแบบปฏิบัติ
+
+### การเข้าถึงฟิลด์ของภูมิภาคในโค้ดผู้ใช้
+
+เมื่อทำงานกับ OpenFOAM solvers แบบหลายภูมิภาค การเข้าถึงฟิลด์ต้องการความระมัดระวังในการแยกภูมิภาค 
+
+**หลักการสำคัญ:**
+- แต่ละภูมิภาคจะรักษา **object registry** ของตนเอง
+- ป้องกันความขัดแย้งของชื่อฟิลด์
+- รับประกันการจัดการข้อมูลที่เหมาะสม
+
+[Diagram: โครงสร้าง Object Registry ที่แยกกันตามภูมิภาค]
+
+```cpp
+// วิธีที่ถูกต้อง: ใช้การค้นหา object registry
+const fvMesh& fluidMesh = fluidRegions[0];
+const fvMesh& solidMesh = solidRegions[0];
+
+// ค้นหาฟิลด์ตามชื่อ registry
+const volScalarField& fluidT = fluidMesh.thisDb().lookupObject<volScalarField>("T");
+const volScalarField& solidT = solidMesh.thisDb().lookupObject<volScalarField>("T");
+
+// หมายเหตุ: ทั้งสองชื่อ "T" ใน registry ของตนเอง
+// การแยกภูมิภาคเกิดขึ้นผ่าน object registry ที่แยกกัน
+
+// สำหรับ boundary conditions ที่เชื่อมโยงกัน ต้องการชื่อแบบเต็ม
+const word fluidTname = "fluid::T";
+const word solidTname = "solid::T";
+```
+
+**ข้อสังเกต:**
+- ชื่อฟิลด์อาจเหมือนกัน (เช่น "T" สำหรับอุณหภูมิ)
+- OpenFOAM จะแยกความแตกต่างผ่าน object registry ของภูมิภาคที่บรรจุอยู่
+- ชื่อแบบเต็มที่มีคำนำหน้าภูมิภาคจำเป็นสำหรับ boundary conditions ที่เชื่อมโยงกัน
+
+### การสร้าง Utilities แบบกำหนดเองที่รับรู้ภูมิภาค
+
+การพัฒนา utilities ที่ทำงานข้ามภูมิภาคหลายแห่งต้องการ:
+- **แนวทางที่ใช้ template**
+- **การตรวจสอบการมีอยู่ของฟิลด์อย่างระมัดระวัง**
+
+```cpp
+template<class FieldType>
+void printRegionFieldInfo
+(
+    const fvMesh& mesh,
+    const word& fieldName
+)
+{
+    // ตรวจสอบว่าฟิลด์มีอยู่ในภูมิภาคนี้หรือไม่
+    if (mesh.thisDb().foundObject<FieldType>(fieldName))
+    {
+        const FieldType& fld = mesh.thisDb().lookupObject<FieldType>(fieldName);
+        Info<< "Region: " << mesh.name()
+            << " Field: " << fieldName
+            << " Min: " << min(fld)
+            << " Max: " << max(fld) << nl;
+    }
+}
+
+// การใช้งานข้ามภูมิภาค
+forAll(fluidRegions, i)
+{
+    printRegionFieldInfo<volScalarField>(fluidRegions[i], "T");
+}
+forAll(solidRegions, i)
+{
+    printRegionFieldInfo<volScalarField>(solidRegions[i], "T");
+}
+```
+
+#### รูปแบบการออกแบบที่สำคัญ
+
+| ลักษณะ | คำอธิบาย | ประโยชน์ |
+|---------|----------|----------|
+| **การออกแบบแบบ template** | พารามิเตอร์ `<class FieldType>` | อนุญาตให้ฟังก์ชันเดียวทำงานกับประเภทฟิลด์ต่างกันโดยไม่ต้องซ้ำโค้ด |
+| **การตรวจสอบความปลอดภัย** | เรียก `foundObject<FieldType>()` | ป้องกันข้อผิดพลาดรันไทม์ ตรวจสอบว่าฟิลด์มีอยู่ก่อนเข้าถึง |
+| **การรับรู้ภูมิภาค** | รับพารามิเตอร์ `const fvMesh&` | ทำงานบน mesh ของภูมิภาคใดก็ได้ ไม่ขึ้นกับภูมิภาคจริงๆ |
+| **การดำเนินการฟิลด์ขั้นต่ำ** | ใช้ฟังก์ชัน `min()` และ `max()` | สถิติฟิลด์อย่างรวดเร็วโดยไม่แก้ไขข้อมูลพื้นฐาน |
+
+#### การขยายความสามารถ
+
+สำหรับการจัดการฟิลด์ที่ซับซ้อนข้ามภูมิภาค ให้พิจารณาขยายรูปแบบนี้ด้วย:
+
+- **Template specializations** เพิ่มเติม
+- การเข้าถึง **boundary field**
+- การดำเนินการ **interpolation**
+- ฟังก์ชันการถ่ายโอนข้อมูล **ระหว่างภูมิภาค**
+```

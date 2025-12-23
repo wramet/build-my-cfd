@@ -1,0 +1,217 @@
+# แบบฝึกหัด OpenFOAM: การ Discretization และการคำนวณฟลักซ์
+
+## แบบฝึกหัดที่ 1: การประกอบเมทริกซ์
+
+### รูปแบบปัญหา
+- **Mesh**: 1 มิติ ที่มี 3 เซลล์
+- **สมการ**: Diffusion $\frac{d^2\phi}{dx^2}=0$
+- **วัตถุประสงค์**: เขียนเมทริกซ์ $[A]$ แบบเต็ม
+
+
+```mermaid
+graph LR
+    subgraph "1D Mesh Configuration"
+        W1["Node W₁<br/>(Cell 1 West)"] --> P2["Node P₂<br/>(Cell 1 East<br/>Cell 2 West)"]
+        P2 --> P3["Node P₃<br/>(Cell 2 East<br/>Cell 3 West)"]
+        P3 --> E4["Node E₄<br/>(Cell 3 East)"]
+    end
+    
+    subgraph "Cell Representation"
+        C1["Cell 1"]
+        C2["Cell 2"]
+        C3["Cell 3"]
+    end
+    
+    subgraph "Matrix Coefficients"
+        AW["a_W"]
+        AP["a_P"]
+        AE["a_E"]
+    end
+    
+    %% Styling Definitions
+    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    
+    class W1,P3,E4 process;
+    class P2 decision;
+    class C1,C2,C3 storage;
+    class AW,AP,AE terminator;
+```
+
+
+### การพัฒนาสมการ
+
+**Step 1: การอินทิเกรตบน Control Volume**
+$$\int_V \frac{d^2\phi}{dx^2} \, \mathrm{d}V = \left[\frac{d\phi}{dx}\right]_W^E = 0$$
+
+**Step 2: การใช้ Finite Volume Discretization กับ Central Differencing**
+$$\frac{\phi_E - \phi_P}{\Delta x_{PE}} - \frac{\phi_P - \phi_W}{\Delta x_{PW}} = 0$$
+
+### โครงสร้างเมทริกซ์
+
+**Mesh Configuration**:
+- 1 มิติสม่ำเสมอ
+- 3 เซลล์ และ 4 โหนด (W₁, P₂, P₃, E₄)
+
+**สมการสำหรับแต่ละเซลล์**:
+- **Cell 2**: $a_P \phi_2 = a_E \phi_3 + a_W \phi_1$
+- **Cell 3**: $a_P \phi_3 = a_E \phi_4 + a_W \phi_2$
+
+**สัมประสิทธิ์เมทริกซ์** (สำหรับระยะห่างสม่ำเสมอ $\Delta x$):
+$$a_E = a_W = \frac{1}{\Delta x}, \quad a_P = \frac{2}{\Delta x}$$
+
+### รูปแบบเมทริกซ์แบบเต็ม
+
+**รูปแบบทั่วไป**: $[A]\{\vec{\phi}\} = \{\vec{b}\}$
+
+$$\begin{bmatrix}
+a_P & -a_E & 0 \\
+-a_W & a_P & -a_E \\
+0 & -a_W & a_P
+\end{bmatrix}
+\begin{bmatrix}
+\phi_2 \\
+\phi_3 \\
+\phi_4
+\end{bmatrix}
+=
+\begin{bmatrix}
+a_W \phi_1 \\
+0 \\
+0
+\end{bmatrix}$$
+
+**กรณีเฉพาะ**: $\Delta x = 1$ และ $\phi_1$ เป็นค่าจาก Boundary Condition
+$$[A] = \begin{bmatrix}
+2 & -1 & 0 \\
+-1 & 2 & -1 \\
+0 & -1 & 2
+\end{bmatrix}$$
+
+### คุณสมบัติของเมทริกซ์
+
+**Tridiagonal Structure** นี้เป็นลักษณะเฉพาะของ Finite Volume Discretization:
+
+| คุณสมบัติ | คำอธิบาย |
+|-----------|------------|
+| **Sparse Matrix** | มีค่าไม่เท่ากับศูนย์เฉพาะบน Diagonal และใกล้ Diagonal |
+| **Symmetric** | สมมาตรเมื่อ Diffusion Coefficient คงที่ |
+| **Diagonally Dominant** | ค่าบน Diagonal > ผลรวมของค่าในแถวเดียวกัน (absolute value) |
+
+---
+
+## แบบฝึกหัดที่ 2: การคำนวณฟลักซ์
+
+### รูปแบบปัญหา
+**ข้อมูลที่กำหนด**:
+- $\phi_P = 10, \phi_N = 20$
+- ความเร็วการไหล $u = 1$ m/s จาก P ไป N
+- ความหนาแน่น $\rho = 1$ kg/m³
+- พื้นที่ Face $A_f = 1$ m²
+
+**วัตถุประสงค์**: คำนวณ **Face Flux** โดยใช้:
+- a) Central Differencing
+- b) Upwind Differencing
+
+
+```mermaid
+graph LR
+    subgraph Control Volume P
+        P["Cell P<br/>&phi; = 10"]
+    end
+    
+    subgraph Control Volume N
+        N["Cell N<br/>&phi; = 20"]
+    end
+    
+    F["Face f<br/>A = 1 m²"]
+    
+    P -->|u = 1 m/s| F
+    F --> N
+    
+    style P fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    style N fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+    style F fill:#fff9c4,stroke:#fbc02d,stroke-width:3px,color:#000
+    
+    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+```
+
+
+### ทฤษฎีพื้นฐาน
+
+**Convective Flux** ที่ข้าม Face ระหว่าง Control Volume P และ N:
+$$F_f = \rho u_f \phi_f$$
+
+**นิยามตัวแปร**:
+- $F_f$ = Convective Flux (kg/s)
+- $\rho$ = ความหนาแน่น (kg/m³)
+- $u_f$ = ความเร็วที่ Face (m/s)
+- $\phi_f$ = ค่าของตัวแปรที่ Face
+
+### a) Central Differencing
+
+**หลักการ**: ประมาณค่า Face โดยใช้ Linear Interpolation ระหว่างจุดศูนย์กลางเซลล์ที่อยู่ติดกัน
+
+**สมการ**:
+$$\phi_f^{CD} = \frac{\phi_P + \phi_N}{2}$$
+
+**การคำนวณ**:
+$$\phi_f^{CD} = \frac{10 + 20}{2} = 15$$
+
+**ผลลัพธ์**:
+$$F_f^{CD} = 1 \times 1 \times 15 = 15 \, \text{kg/s}$$
+
+### b) Upwind Differencing
+
+**หลักการ**: ใช้ค่าเซลล์ Upwind ตามทิศทางการไหล
+
+**เงื่อนไข**: ความเร็ว $u = 1$ m/s เป็นบวก (ไหลจาก P ไป N) → **Upwind cell = P**
+
+**สมการ**:
+$$\phi_f^{UD} = \phi_P$$
+
+**การคำนวณ**:
+$$\phi_f^{UD} = 10$$
+
+**ผลลัพธ์**:
+$$F_f^{UD} = 1 \times 1 \times 10 = 10 \, \text{kg/s}$$
+
+### การเปรียบเทียบ Scheme
+
+| Scheme | ผลลัพธ์ Flux | ความแม่นยำ | ความเสถียร | ข้อดี |
+|--------|---------------|-------------|-------------|--------|
+| **Central Differencing** | 15 kg/s | Order 2 | Unstable for $Pe > 2$ | แม่นยำสูง |
+| **Upwind Differencing** | 10 kg/s | Order 1 | Unconditionally stable | เสถียรเสมอ |
+
+### การวิเคราะห์ Peclet Number
+
+**Peclet Number** สำหรับ Interface:
+$$Pe = \frac{\rho u \Delta x}{\Gamma} = \frac{1 \times 1 \times \Delta x}{\Gamma}$$
+
+**นิยามตัวแปร**:
+- $Pe$ = Peclet Number (อัตราส่วน Convection ต่อ Diffusion)
+- $\Gamma$ = Diffusion Coefficient
+- $\Delta x$ = ระยะห่างระหว่างจุดศูนย์กลางเซลล์
+
+### ข้อสรุปทางกายภาพ
+
+**ความแตกต่าง**: 33% ระหว่าง Scheme ทั้งสอง (15 เทียบกับ 10)
+
+**การเลือกใช้ Scheme**:
+- **Central Differencing**: เหมาะสำหรับ Diffusion-dominated flows ($Pe < 2$)
+- **Upwind Differencing**: จำเป็นสำหรับ Convection-dominated flows ($Pe > 2$)
+
+### OpenFOAM Code Implementation
+
+```cpp
+// Central differencing (linear)
+fvScalarMatrix phiEqn(fvm::div(phi, phi));
+
+// Upwind differencing  
+fvScalarMatrix phiEqn(fvm::div(phi, phi, "div(phi,phi)"));
+```

@@ -1,0 +1,124 @@
+## บทนับ
+
+**การกระจายตัวแบบปั่นป่วน (Turbulent dispersion)** ในการไหลแบบหลายเฟส (multiphase flow) หมายถึง การแพร่กระจายของอนุภาคหรือละอองของเหลวที่เกิดจากการผันผวนของความเร็วแบบปั่นป่วนในเฟสต่อเนื่อง (continuous phase)
+
+ปรากฏการณ์นี้มีความสำคัญอย่างยิ่งต่อ:
+- **การทำนายการกระจายตัวของเฟส (phase distribution)**
+- **การผสม (mixing)**
+- **การขนส่ง (transport)** ในระบบหลายเฟสแบบปั่นป่วน
+
+ส่วนนี้จะอธิบายการพัฒนาแบบจำลองการกระจายตัวแบบปั่นป่วนจากกลศาสตร์สถิติ (statistical mechanics) และทฤษฎีความปั่นป่วน (turbulence theory)
+
+---
+
+## กลไกการกระจายตัวแบบปั่นป่วน
+
+ในการจำลองการไหลแบบหลายเฟสแบบออยเลอร์-ออยเลอร์ (Eulerian-Eulerian multiphase flow modeling) การกระจายตัวแบบปั่นป่วนเกิดขึ้นจาก:
+
+1. **ความสัมพันธ์ระหว่างการผันผวน**:
+   - การผันผวนของปริมาตรเฟส (phase volume fluctuations)
+   - การผันผวนของความเร็ว (velocity fluctuations)
+
+2. **กลไกพื้นฐาน**:
+   - กระแสหมุนวนแบบปั่นป่วน (turbulent eddies) ในเฟสต่อเนื่อง
+   - การพัดพาและกระจายเฟสที่ถูกกระจาย (dispersed phase)
+
+[Diagram: Turbulent eddies transporting dispersed phase particles]
+
+### ผลกระทบที่เกิดขึ้น
+- **เพิ่มประสิทธิภาพกระบวนการผสมและการขนส่ง**
+- **ค่าสัมประสิทธิ์การกระจายตัว (dispersion coefficient)**: วัดอัตราที่อนุภาคกระจายตัวออกไปเนื่องจากการผันผวนแบบปั่นป่วน
+
+### การประยุกต์ใช้ทางอุตสาหกรรม
+- **คอลัมน์ฟองอากาศ (bubble columns)**
+- **เตียงของไหล (fluidized beds)**
+- **การสร้างละออง (sprays)**
+
+---
+
+## กรอบการทำงานทางคณิตศาสตร์
+
+**กรอบการทำงานทางคณิตศาสตร์** สำหรับการกระจายตัวแบบปั่นป่วนสร้างขึ้นบนสมการ Navier-Stokes แบบเฉลี่ยแบบเรย์โนลด์ส (Reynolds-averaged Navier-Stokes - RANS)
+
+### สมการโมเมนตัมของเฟสที่ถูกกระจาย
+สมการโมเมนตัมของเฟสที่ถูกกระจายจะมีเทอมแรงจากการกระจายตัวแบบปั่นป่วน (turbulent dispersion force term)
+
+**แรงนี้แสดงถึง**:
+- การถ่ายโอนโมเมนตัมเพิ่มเติมระหว่างเฟส
+- การเกิดจากการผันผวนแบบปั่นป่วน
+
+### วิธีการจำลอง
+แรงกระจายตัวแบบปั่นป่วนมักจะถูกจำลองโดยใช้:
+
+| วิธีการ | คำอธิบาย | ความซับซ้อน |
+|---------|-----------|-----------|
+| **Gradient diffusion approximations** | ใช้การประมาณค่าแบบการแพร่แบบเกรเดียนต์ | ต่ำ |
+| **Two-point correlation functions** | อิงตามฟังก์ชันสหสัมพันธ์แบบสองจุด | สูง |
+
+---
+
+## สมการรากฐาน
+
+สมการ Navier-Stokes แบบเฉลี่ยแบบเรย์โนลด์ส (RANS) สำหรับการไหลแบบหลายเฟส:
+
+$$\rho_k \frac{\partial \mathbf{u}_k}{\partial t} + \rho_k (\mathbf{u}_k \cdot \nabla) \mathbf{u}_k = -\nabla p_k + \mu_k \nabla^2 \mathbf{u}_k + \mathbf{F}_{\text{disp},k} + \mathbf{F}_{\text{other},k}$$
+
+### นิยามตัวแปร:
+- $\rho_k$ = ความหนาแน่นของเฟส $k$
+- $\mathbf{u}_k$ = เวกเตอร์ความเร็วของเฟส $k$
+- $p_k$ = ความดันของเฟส $k$
+- $\mu_k$ = ความหนืดของเฟส $k$
+- $\mathbf{F}_{\text{disp},k}$ = เทอมแรงกระจายตัวแบบปั่นป่วน
+- $\mathbf{F}_{\text{other},k}$ = เทอมแรงอื่นๆ (การลอยตัว, ความตึงผิว, ฯลฯ)
+
+### OpenFOAM Code Implementation
+```cpp
+// ในไฟล์ turbulentDispersionModel.H
+virtual tmp<volVectorField> Fi
+(
+    const volScalarField& alpha1,
+    const volScalarField& alpha2,
+    const volVectorField& U1,
+    const volVectorField& U2
+) const = 0;
+```
+
+---
+
+## อัลกอริทึมการคำนวณ
+
+### ขั้นตอนการคำนวณแรงกระจายตัวแบบปั่นป่วน:
+
+1. **คำนวณค่าความปั่นป่วน** (turbulence quantities)
+   ```cpp
+   // คำนวณ k และ epsilon สำหรับแต่ละเฟส
+   turbModel1->correct();
+   turbModel2->correct();
+   ```
+
+2. **ประเมิน gradient ของปริมาตรเฟส**
+   ```cpp
+   // คำนวณ gradient ของ alpha1
+   volVectorField gradAlpha1 = fvc::grad(alpha1);
+   ```
+
+3. **คำนวณสัมประสิทธิ์การกระจายตัว**
+   ```cpp
+   // สัมประสิทธิ์การกระจายตัว D_disp
+   D_disp = C_td * sqrt(k1 + k2) * characteristicLength;
+   ```
+
+4. **คำนวณแรงกระจายตัว**
+   ```cpp
+   // แรงกระจายตัวแบบปั่นป่วน
+   F_disp = -D_disp * gradAlpha1 * rho_mixture;
+   ```
+
+5. **บวกเทอมแรงในสมการโมเมนตัม**
+   ```cpp
+   // เพิ่มแรงในสมการโมเมนตัมของแต่ละเฟส
+   U1Eqn += F_disp;
+   U2Eqn -= F_disp;  // Newton's third law
+   ```
+
+[Diagram: Flow chart of turbulent dispersion force calculation algorithm]

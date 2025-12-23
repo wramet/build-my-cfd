@@ -1,0 +1,105 @@
+## 2. แบบแปลน: ลำดับชั้นประเภทข้อมูลของ OpenFOAM
+
+OpenFOAM จัดระเบียบข้อมูลฟิลด์ผ่านลำดับชั้นเทมเพลตที่ซับซ้อน ซึ่งช่วยให้สามารถจัดเก็บ จัดการ และดำเนินการทางคณิตศาสตร์กับข้อมูล CFD ได้อย่างมีประสิทธิภาพ
+
+### สถาปัตยกรรมลำดับชั้นคลาส
+
+ลำดับชั้นประเภทฟิลด์ใน OpenFOAM ทำตามโครงสร้างการสืบทอดแบบเป็นระบบ ซึ่งสร้างจากคอนเทนเนอร์ข้อมูลธรรมดาไปจนถึงฟิลด์เรขาคณิตที่ซับซ้อน:
+
+[Diagram: แผนภูมิแสดงลำดับชั้นคลาสของฟิลด์ OpenFOAM]
+
+```mermaid
+graph TD
+    A[GeometricField&lt;Type, PatchField, GeoMesh&gt;] --> B[DimensionedField&lt;Type, GeoMesh&gt;]
+    B --> C[Field&lt;Type&gt;]
+    C --> D[List&lt;Type&gt;]
+    B --> E[regIOobject]
+
+    A --> F[GeometricBoundaryField]
+    F --> G[FieldField&lt;PatchField&gt;]
+
+    H[volScalarField] -- typedef --> A
+    I[volVectorField] -- typedef --> A
+    J[volTensorField] -- typedef --> A
+    K[surfaceScalarField] -- typedef --> A
+```
+
+**ในระดับพื้นฐาน:**
+- `List<Type>` ให้คอนเทนเนอร์อาร์เรย์แบบไดนามิกสำหรับข้อมูลประเภทใดๆ
+- `Field<Type>` ขยายด้วยการดำเนินการทางคณิตศาสตร์เฉพาะสำหรับการคำนวณ CFD
+- รองรับการคำนวณเวกเตอร์ การดำเนินการเทนเซอร์ และการจัดการพีชคณิตทั่วทั้งฟิลด์
+
+### องค์ประกอบหลักของฟิลด์
+
+#### **`GeometricField<Type, PatchField, GeoMesh>`**
+คลาสฟิลด์ที่สมบูรณ์ซึ่งรวมทั้งค่าฟิลด์ภายในและเงื่อนไขขอบเขต
+
+**พารามิเตอร์เทมเพลต:**
+- `Type`: ประเภททางคณิตศาสตร์ (scalar, vector, tensor, เป็นต้น)
+- `PatchField`: ประเภทฟิลด์ขอบเขตสำหรับจัดการเงื่อนไขขอบเขต
+- `GeoMesh`: ประเภทเมช (volMesh สำหรับฟิลด์ศูนย์กลางเซลล์, surfaceMesh สำหรับฟิลด์ศูนย์กลางหน้า)
+
+#### **`DimensionedField<Type, GeoMesh>`**
+ขยายฟิลด์พื้นฐานด้วย:
+- ข้อมูลมิติ
+- การเชื่อมโยงกับเมช
+- สืบทอดจาก `Field<Type>` (จัดเก็บข้อมูล) และ `regIOobject` (I/O ของไฟล์)
+- สามารถอ่านและเขียนข้อมูลฟิลด์ได้อัตโนมัติ
+
+#### **`GeometricBoundaryField`**
+คอนเทนเนอร์เฉพาะที่จัดการ:
+- patches ขอบเขตทั้งหมดสำหรับฟิลด์เรขาคณิต
+- คอลเลกชันของวัตถุเงื่อนไขขอบเขต
+- การเข้าถึงค่าและไล่ระดับขอบเขตอย่างเป็นเอกภาพ
+
+### คำนิยามประเภททั่วไป
+
+ประเภทฟิลด์ที่ใช้บ่อยที่สุดใน OpenFOAM ถูกกำหนดเป็น template specializations ใน `volFieldsFwd.H`:
+
+| ประเภทฟิลด์ | Template Specialization | การใช้งานทั่วไป |
+|---|---|---|
+| `volScalarField` | `GeometricField<scalar, fvPatchField, volMesh>` | ความดัน, อุณหภูมิ |
+| `volVectorField` | `GeometricField<vector, fvPatchField, volMesh>` | ความเร็ว, การกระจัด |
+| `volTensorField` | `GeometricField<tensor, fvPatchField, volMesh>` | ความเครียด, อัตราการยืดหยุ่น |
+| `surfaceScalarField` | `GeometricField<scalar, fvsPatchField, surfaceMesh>` | fluxes, อัตราการถ่ายเทความร้อน |
+
+**การเลือกประเภทฟิลด์:**
+- **Volume fields (`vol*`)**: ปริมาณที่กำหนดตามธรรมชาติที่ศูนย์กลางเซลล์
+- **Surface fields (`surface*`)**: ปริมาณที่กำหนดตามธรรมชาติที่หน้าเซลล์
+
+### เฟรมเวิร์กการดำเนินการทางคณิตศาสตร์
+
+ลำดับชั้นฟิลด์ช่วยให้สามารถแสดงนิพจน์ทางคณิตศาสตร์ได้อย่างสวยงามผ่าน operator overloading
+
+**ตัวอย่าง: สมการโมเมนตัม**
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
+
+**OpenFOAM Code Implementation:**
+```cpp
+fvVectorMatrix UEqn
+(
+    fvm::ddt(rho, U)
+  + fvm::div(rhoPhi, U)
+ ==
+  - fvc::grad(p)
+  + fvc::laplacian(mu, U)
+  + rho*g
+);
+```
+
+**ความสามารถของ `GeometricField`:**
+- ตัวดำเนินการพื้นฐาน: บวก (`+`), ลบ (`-`), คูณ (`*`), หาร (`/`)
+- ทำงานแบบ element-wise ทั่วทั้งฟิลด์
+- เคารพการวิเคราะห์มิติ ทำให้แน่ใจว่าการคำนวณมีความหมายทางกายภาพ
+
+### การจัดการหน่วยความจำและประสิทธิภาพ
+
+**การจัดการหน่วยความจำ:**
+- ใช้การจัดการหน่วยความจำอย่างมีประสิทธิภาพผ่านการนับการอ้างอิง
+- คลาส `tmp` ให้การจัดการหน่วยความจำอัตโนมัติสำหรับวัตถุฟิลด์ชั่วคราว
+- ป้องกันการคัดลอกที่ไม่จำเป็นและทำความสะอาดอย่างเหมาะสม
+
+**ประสิทธิภาพการคำนวณ:**
+- เค้าโครงการจัดเก็บแบบต่อเนื่องของ `Field<Type>` ช่วยให้สามารถทำ vectorization อย่างมีประสิทธิภาพ
+- การจัดระเบียบเรขาคณิตช่วยอำนวยความสะดวกในรูปแบบการเข้าถึงแบบ cache-friendly
+- สำคัญสำหรับประสิทธิภาพในการจำลอง CFD ขนาดใหญ่

@@ -1,0 +1,253 @@
+# การประกอบเมทริกซ์ (Matrix Assembly)
+
+## จากสมการสู่เมทริกซ์
+
+สำหรับแต่ละเซลล์ เราจะได้สมการที่เชื่อมโยง $\phi_P$ กับเซลล์เพื่อนบ้าน $\phi_N$:
+$$a_P \phi_P + \sum_N a_N \phi_N = b$$
+
+เมื่อเราเขียนสมการนี้สำหรับ *ทุก* เซลล์ เราจะได้ระบบสมการเชิงเส้นขนาดใหญ่:
+$$[A][x] = [b]$$
+
+*   **[A]**: Sparse matrix ที่ประกอบด้วยสัมประสิทธิ์ ($a_P, a_N$) ซึ่งได้มาจากรูปทรงเรขาคณิตและฟลักซ์ (fluxes)
+*   **[x]**: Vector of unknowns (เช่น Pressure ที่ทุกเซลล์)
+*   **[b]**: Source vector ที่ประกอบด้วยเทอมที่ชัดเจน (explicit terms) และค่า Boundary values
+
+OpenFOAM solvers (PCG, PBiCG) จะแก้สมการเมทริกซ์นี้ด้วยวิธีวนซ้ำ (iteratively)
+
+### ตัวอย่างสัมประสิทธิ์เมทริกซ์ (Matrix Coefficients Example)
+
+สำหรับการแพร่กระจายแบบบริสุทธิ์ ($\nabla^2 \phi = 0$):
+*   $a_N = -\frac{\Gamma A_f}{d_{PN}}$ (สัมประสิทธิ์เพื่อนบ้าน)
+*   $a_P = -\sum a_N$ (สัมประสิทธิ์แนวทแยง)
+
+
+```mermaid
+graph LR
+    A[Cell P] --> B[Cell N1]
+    A --> C[Cell N2]
+    A --> D[Cell N3]
+    A --> E[Cell N4]
+    F[Face 1] --> A
+    F --> B
+    G[Face 2] --> A
+    G --> C
+    H[Face 3] --> A
+    H --> D
+    I[Face 4] --> A
+    I --> E
+    J[a_P coefficient] --> A
+    K[a_N1 coefficient] --> B
+    L[a_N2 coefficient] --> C
+    M[a_N3 coefficient] --> D
+    N[a_N4 coefficient] --> E
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    style E fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    style F fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    style G fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    style H fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    style I fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    style J fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    style K fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    style L fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    style M fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    style N fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+```
+
+
+## กรอบการทำงาน Finite Volume Discretization
+
+รากฐานของการประกอบเมทริกซ์ใน OpenFOAM อยู่บน **Finite Volume Discretization** ของสมการอนุรักษ์ (conservation equations)
+
+พิจารณาสมการ Scalar Transport ทั่วไป:
+
+$$\frac{\partial (\rho \phi)}{\partial t} + \nabla \cdot (\rho \mathbf{u} \phi) = \nabla \cdot (\Gamma \nabla \phi) + S_\phi$$
+
+การอินทิเกรตเหนือ Control Volume $V$ และการประยุกต์ใช้ Divergence Theorem:
+
+$$\int_V \frac{\partial (\rho \phi)}{\partial t} \, \mathrm{d}V + \int_{\partial V} (\rho \mathbf{u} \phi) \cdot \mathbf{n} \, \mathrm{d}S = \int_{\partial V} (\Gamma \nabla \phi) \cdot \mathbf{n} \, \mathrm{d}S + \int_V S_\phi \, \mathrm{d}V$$
+
+รูปแบบอินทิกรัลนี้จะถูกประมาณค่าโดยใช้ Face values และข้อมูลทางเรขาคณิตเพื่อสร้างสมการ Discrete สำหรับแต่ละเซลล์ $P$:
+
+$$a_P \phi_P + \sum_{f} a_f \phi_{N_f} = b_P$$
+
+โดยที่ผลรวมเกิดขึ้นเหนือทุก Face ของเซลล์ และ $N_f$ แสดงถึงเซลล์เพื่อนบ้านที่อยู่ตรงข้าม Face $f$
+
+
+```mermaid
+graph LR
+    VP["Cell Center P<br/>(Control Volume V)"] --> |Normal Vector n| VF["Face f<br/>Surface Area Sf"]
+    VP --> |Face Area| VF
+    VP --> |Adjacent Cell| VN["Neighbor N<br/>Face value φN"]
+    VF --> |Flux Direction| VN
+    VVol["Volume V<br/>Integral over cell<br/>∫V dV"] --> VP
+    SSurf["Surface ∂V<br/>Surface integral<br/>∫∂V dS"] --> VF
+    
+    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    class VP,VF,VN,VVol,SSurf process
+```
+
+
+## กระบวนการสร้างเมทริกซ์โดยละเอียด
+
+กระบวนการสร้างระบบเมทริกซ์ใน OpenFOAM เกี่ยวข้องกับ:
+
+1. **Discretization** สมการควบคุมอย่างเป็นระบบโดยใช้วิธี Finite Volume Method
+2. **การแปลง** รูปแบบอินทิกรัลของสมการการขนส่งเป็นรูปแบบพีชคณิต
+3. **การประมาณค่า** อินทิกรัลพื้นผิวและปริมาตรอย่างระมัดระวัง
+4. **การใช้** Gauss divergence theorem เพื่อแปลง Volume Integrals เป็น Surface Integrals
+
+ในทางปฏิบัติ การประกอบเมทริกซ์ใน OpenFOAM จะถูกจัดการผ่าน **`fvMatrix` template class** ซึ่งจัดการโครงสร้าง Sparse Matrix ได้อย่างมีประสิทธิภาพ
+
+### อัลกอริทึมการประกอบเมทริกซ์ (Matrix Assembly Algorithm)
+
+การสร้างเมทริกซ์จริงใน OpenFOAM เป็นไปตามอัลกอริทึมที่เป็นระบบ:
+
+```cpp
+for (label cell = 0; cell < nCells; cell++)
+{
+    // Initialize diagonal coefficient
+    a_P = 0.0;
+    
+    // Loop through all faces of this cell
+    forAll(mesh.cells()[cell], faceI)
+    {
+        label face = mesh.cells()[cell][faceI];
+        
+        if (face < nInternalFaces)
+        {
+            // Internal face - contributes to both diagonal and off-diagonal
+            label neighbor = mesh.owner()[face] == cell ? 
+                           mesh.neighbour()[face] : mesh.owner()[face];
+            
+            // Calculate face flux and coefficients
+            scalar faceCoeff = calculateFaceCoefficient(face, cell, neighbor);
+            
+            // Off-diagonal contribution
+            a_f[face] = -faceCoeff;
+            
+            // Diagonal contribution
+            a_P += faceCoeff;
+        }
+        else
+        {
+            // Boundary face - contributes only to diagonal and source term
+            scalar boundaryCoeff = calculateBoundaryContribution(face, cell);
+            a_P += boundaryCoeff;
+            b_P += boundaryCoeff * boundaryValue[face];
+        }
+    }
+    
+    // Add source terms
+    b_P += sourceTerm[cell] * mesh.V()[cell];
+    
+    // Store in matrix structure
+    matrix.setDiagonal(cell, a_P);
+    for (label faceI = 0; faceI < nFacesPerCell; faceI++)
+    {
+        if (isInternalFace[faceI])
+        {
+            matrix.setOffDiagonal(cell, neighborCell[faceI], a_f[faceI]);
+        }
+    }
+    matrix.setSource(cell, b_P);
+}
+```
+
+## ความเบาบางและการจัดเก็บเมทริกซ์ (Matrix Sparsity and Storage)
+
+Coefficient matrix `[A]` ใน OpenFOAM แสดงโครงสร้างที่เบาบางมาก (highly sparse structure)
+
+### คุณสมบัติความเบาบาง
+*   สำหรับ Mesh แบบ 3D Unstructured ทั่วไปที่มีเซลล์ Polyhedral
+*   จำนวน Non-zero Entries ต่อแถวโดยเฉลี่ยประมาณ 12-20
+*   แสดงถึงเซลล์เพื่อนบ้านโดยตรงของแต่ละเซลล์
+
+### รูปแบบการจัดเก็บ
+
+| รูปแบบการจัดเก็บ | คำอธิบาย | การใช้งาน |
+|---|---|---|
+| **Compressed Sparse Row (CSR)** | รูปแบบการจัดเก็บเริ่มต้นที่แถวถูกจัดเก็บต่อเนื่องกัน | ค่าเริ่มต้นทั่วไป |
+| **Diagonal storage** | สำหรับอัลกอริทึม Solver ที่ต้องการการเข้าถึง Diagonal บ่อยครั้ง | การปรับปรุงประสิทธิภาพ |
+| **Symmetric storage** | เมื่อ Discretization ส่งผลให้เกิด Symmetric Coefficient Matrices | ปัญหา Symmetric |
+
+
+[Diagram: Sparse Matrix Pattern ที่แสดง Non-zero Elements เฉพาะบน Diagonal และ Positions เพื่อนบ้าน. Perspective: Isometric. Style: Engineering illustration, 8k, white background.]
+> **Prompt:** Technical 3D isometric schematic of sparse matrix pattern [A] showing non-zero coefficients. Primary: Velocity field (u) as blue streamlines. Annotations: Sharp professional arrowheads (n = Red, u = Blue). Clear labels in sans-serif font using single letters or LaTeX. Ray-traced studio lighting on semi-transparent materials. Style: Engineering illustration, high-contrast, white background, 8k resolution.
+
+
+## ตัวอย่างการคำนวณสัมประสิทธิ์ (Coefficient Calculation Examples)
+
+### เทอมการแพร่ (Diffusion Terms)
+
+สำหรับกระบวนการที่เน้นการแพร่ (diffusion-dominated processes):
+
+$$a_f = \frac{\Gamma_f A_f}{\delta_f}$$
+
+โดยที่:
+*   $\Gamma_f = \frac{2\Gamma_P \Gamma_N}{\Gamma_P + \Gamma_N}$ (Harmonic Mean)
+*   $A_f$ คือพื้นที่ Face
+*   $\delta_f$ คือระยะห่างระหว่างจุดศูนย์กลางเซลล์
+
+### เทอมการพา (Convection Terms)
+
+สำหรับปัญหา Convection-Diffusion ที่ใช้ Upwind Differencing:
+
+$$a_f = \rho_f \mathbf{u}_f \cdot \mathbf{S}_f + \frac{\Gamma_f A_f}{\delta_f}$$
+
+โดยที่เครื่องหมายของเทอม Convective ขึ้นอยู่กับ:
+*   ทิศทางการไหล
+*   Upwind Scheme ที่ใช้
+
+
+[Diagram: Face ระหว่าง Cell P และ Cell N ที่แสดง Velocity Vector, Face Area Vector และ Distance. Perspective: Isometric. Style: Engineering illustration, 8k, white background.]
+> **Prompt:** Technical 3D isometric schematic of finite volume cell interface between Cell P and Cell N. Primary: Velocity field (u) as blue streamlines. Secondary: Pressure scalar field as a surface color gradient. Annotations: Sharp professional arrowheads (n = Red, u = Blue). Clear labels in sans-serif font using single letters or LaTeX. Ray-traced studio lighting on semi-transparent materials. Style: Engineering illustration, high-contrast, white background, 8k resolution.
+
+
+## การนำ Boundary Condition ไปใช้
+
+Boundary Conditions จะปรับเปลี่ยนสัมประสิทธิ์เมทริกซ์และ Source Terms ผ่าน:
+
+| ประเภท Boundary Condition | วิธีการใช้งาน | ผลกระทบ |
+|---|---|---|
+| **Dirichlet (Fixed Value)** | วิธี Penalty ขนาดใหญ่ หรือการปรับเปลี่ยนโดยตรง | แก้ไข Diagonal และ Source |
+| **Neumann (Gradient)** | Zero-gradient หรือ Specified Gradient | ปรับเฉพาะ Source Terms |
+| **Mixed (Robin)** | การรวมกันของข้อจำกัดด้านค่าและ Gradient | แก้ไขทั้ง Diagonal และ Source |
+| **Calculated** | คำนวณจากตัวแปรอื่น ๆ ระหว่างการวนซ้ำ | Dependent ตามตัวแปรอื่น |
+
+กรอบการทำงานของ Boundary Condition จะจัดการการปรับเปลี่ยนเมทริกซ์ที่เหมาะสมโดยอัตโนมัติ ในขณะที่ยังคงรักษาเสถียรภาพเชิงตัวเลขและคุณสมบัติการลู่เข้า (convergence properties)
+
+## การเพิ่มประสิทธิภาพการประกอบเมทริกซ์ (Matrix Assembly Optimization)
+
+OpenFOAM ใช้กลยุทธ์การเพิ่มประสิทธิภาพหลายอย่าง:
+
+| กลยุทธ์ | คำอธิบาย | ประโยชน์ |
+|---|---|---|
+| **Cache-friendly memory access** | การจัดลำดับ Loop เพื่อเพิ่มการใช้ Cache ให้สูงสุด | ลด Memory Latency |
+| **Vectorized operations** | คำสั่ง SIMD สำหรับการคำนวณสัมประสิทธิ์ | เพิ่ม Parallel Processing |
+| **Parallel assembly** | Domain Decomposition และการสร้างเมทริกซ์แบบ Thread-safe | รองรับ Multi-core |
+| **Lazy evaluation** | การคำนวณสัมประสิทธิ์ Face ที่มีค่าใช้จ่ายสูงแบบ Deferred | ลดการคำนวณซ้ำ |
+| **Matrix reuse** | การอัปเดตแบบ Incremental สำหรับ Steady-state หรือ Pseudo-transient | เพิ่มความเร็วใน Convergence |
+
+## การรวม Solver (Solver Integration)
+
+ระบบเมทริกซ์ที่ประกอบขึ้นจะถูกแก้โดยใช้วิธี Iterative ที่ใช้ประโยชน์จากโครงสร้างเมทริกซ์:
+
+### ประเภทของ Solver
+
+| ประเภท Solver | วิธีการ | ปัญหาที่เหมาะสม |
+|---|---|---|
+| **Krylov subspace methods** | PCG, PBiCG, GMRES | ปัญหาทั่วไป |
+| **Multigrid methods** | GAMG สำหรับ Geometric Algebraic Multigrid | ปัญหาขนาดใหญ่ |
+| **Preconditioning** | Diagonal, ILU, AMG, PETSc Preconditioners | การเร่ง Convergence |
+| **Convergence acceleration** | Relaxation Techniques และ Residual Smoothing | ปัญหาที่ยากต่อการลู่เข้า |
+
+### การเลือก Solver และ Preconditioner
+
+การเลือกขึ้นอยู่กับ:
+*   ลักษณะของปัญหา
+*   คุณสมบัติของเมทริกซ์ (Symmetry, Positive Definiteness)
+*   ทรัพยากรการคำนวณที่มีอยู่

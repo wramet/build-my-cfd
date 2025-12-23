@@ -1,0 +1,141 @@
+## 🔗 การเชื่อมโยงไปยังไฟล์อื่น ๆ
+
+### **ข้อกำหนดเบื้องต้น**
+
+**MODULE_01_CFD_FUNDAMENTALS (สมการควบคุม)**
+- โมดูลนี้สร้างขึ้นโดยตรงจากสมการ CFD พื้นฐานที่แนะนำในโมดูลที่ 1
+- สมการ Navier-Stokes, สมการความต่อเนื่อง (continuity equation) และสมการพลังงาน (energy equation) เป็นรากฐานทางคณิตศาสตร์ที่ Solver ทั้งหมดของ OpenFOAM นำไปใช้:
+
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
+
+$$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$$
+
+**คำจำกัดความตัวแปร:**
+- $\rho$ = ความหนาแน่นของของไหล (fluid density)
+- $\mathbf{u}$ = ฟิลด์ความเร็ว (velocity field)
+- $t$ = เวลา (time)
+- $p$ = ความดัน (pressure)
+- $\mu$ = ความหนืดแบบไดนามิก (dynamic viscosity)
+- $\mathbf{f}$ = แรงภายนอกต่อหน่วยปริมาตร (external force per unit volume)
+
+[Diagram: แสดงสมการ Navier-Stokes และความหมายของแต่ละเทอม]
+
+**สำคัญ**: การทำความเข้าใจสมการควบคุมเหล่านี้เป็นสิ่งสำคัญก่อนที่จะพิจารณาการนำ Solver ไปใช้งาน เนื่องจาก Solver แต่ละตัวแสดงถึงแนวทางเชิงตัวเลขเฉพาะในการแก้สมการเหล่านี้
+
+---
+
+**MODULE_02_OPENFOAM_BASICS (โครงสร้าง Case)**
+- **ความรู้เกี่ยวกับการจัดระเบียบ OpenFOAM Case** เป็นสิ่งสำคัญอย่างยิ่งสำหรับการทำความเข้าใจว่า Solver มีปฏิสัมพันธ์กับข้อมูลอินพุตอย่างไร
+
+**โครงสร้างไดเรกทอรี OpenFOAM:**
+| ไดเรกทอรี | วัตถุประสงค์ | ประเภทข้อมูล |
+|-------------|---------------|----------------|
+| `0/` | เงื่อนไขเริ่มต้น | Initial conditions, boundary conditions |
+| `constant/` | ข้อมูลคงที่ | Mesh, physical properties |
+| `system/` | พารามิเตอร์เชิงตัวเลข | Control dictionaries, numerical schemes |
+
+[Diagram: แสดงโครงสร้างไดเรกทอรี OpenFOAM และการไหลของข้อมูล]
+
+**ทักษะที่จำเป็นสำหรับนักพัฒนา Solver:**
+- การเข้าใจหลักการของรูปแบบไฟล์ (file format conventions)
+- ความเข้าใจไวยากรณ์ Dictionary
+- ความรู้เรื่องรูปแบบการสืบทอดพารามิเตอร์ (parameter inheritance patterns)
+
+---
+
+### **นำไปสู่**
+
+**02_PRESSURE_VELOCITY_COUPLING.md (รายละเอียด Algorithm)**
+หลังจากทำความเข้าใจสถาปัตยกรรม Solver พื้นฐานแล้ว ขั้นตอนเชิงตรรกะถัดไปคือการตรวจสอบ Algorithm การเชื่อมโยงความดัน-ความเร็ว
+
+**Algorithm หลักที่ใช้ใน OpenFOAM:**
+| Algorithm | ประเภทการจำลอง | Solver ตัวอย่าง | คุณสมบัติ |
+|-----------|------------------|------------------|------------|
+| **SIMPLE** | Steady-state | `simpleFoam` | แก้สมการความดัน 1 ครั้งต่อ time step |
+| **PISO** | Transient | `icoFoam`, `pimpleFoam` | แก้สมการความดันหลายครั้งเพื่อความถูกต้อง |
+| **PIMPLE** | Transient (large time step) | `pimpleFoam` | ผสม SIMPLE และ PISO สำหรับความเสถียร |
+
+**สูตรทางคณิตศาสตร์ของ Algorithm** สร้างขึ้นโดยตรงจากรูปแบบ Solver ที่กำหนดไว้ในโมดูลนี้:
+
+$$\mathbf{H}(\mathbf{u}) = \mathbf{A} \mathbf{u} - \mathbf{H}_u \mathbf{u}_b$$
+
+โดยที่สมการความดันจะกลายเป็น:
+
+$$\nabla \cdot \left( \frac{\mathbf{H}}{\mathbf{A}} \cdot \nabla p \right) = \nabla \cdot \mathbf{u}$$
+
+**การดำเนินการ PISO Algorithm (ตัวอย่าง):**
+1. **Predictor Step**: แก้สมการโมเมนตัมโดยใช้ความดันจาก time step ก่อนหน้า
+2. **Pressure Correction**: แก้สมการ Poisson สำหรับความดันที่ถูกต้อง
+3. **Velocity Correction**: ปรับเทียบความเร็วให้สอดคล้องกับความดันใหม่
+4. **Repeat**: ทำซ้ำขั้นตอน 2-3 เพื่อความแม่นยำ
+
+---
+
+### **ที่เกี่ยวข้องกับ**
+
+**03_TURBULENCE_MODELING.md (การรวม Solver+Turbulence)**
+การทำความเข้าใจ Turbulence Modeling ต้องอาศัยความรู้ว่า Solver ผสานรวมกับ Turbulence Model อย่างไร
+
+**ความสัมพันธ์ Solver-Model:**
+
+1. **Solver-Model Interface**
+   - Solver แต่ละตัวต้องสร้างอินสแตนซ์ (instantiate) และเรียกใช้เมธอด (method) ของ Turbulence Model
+   - การคำนวณค่าความหนืดแบบปั่นป่วน (turbulent viscosity)
+   - การคำนวณค่าการนำความร้อนแบบปั่นป่วน (turbulent thermal conductivity)
+   - การคำนวณเทอมการผลิต/การสลายตัวของความปั่นป่วน (turbulence production/dissipation terms)
+
+2. **Mathematical Coupling**
+   - สมการ Reynolds-Averaged Navier-Stokes (RANS) ขยายสมการ Solver พื้นฐาน:
+
+    $$\rho \frac{\partial \overline{\mathbf{u}}}{\partial t} + \rho (\overline{\mathbf{u}} \cdot \nabla) \overline{\mathbf{u}} = -\nabla \overline{p} + \mu \nabla^2 \overline{\mathbf{u}} + \nabla \cdot \boldsymbol{\tau}_t + \mathbf{f}$$
+
+   **คำจำกัดความตัวแปรเพิ่มเติม:**
+   - $\overline{\mathbf{u}}$ = ความเร็วเฉลี่ยตามเวลา (time-averaged velocity)
+   - $\overline{p}$ = ความดันเฉลี่ยตามเวลา (time-averaged pressure)
+   - $\boldsymbol{\tau}_t$ = Reynolds stresses ที่จำลองโดยใช้ทฤษฎีความปั่นป่วน
+
+3. **Computational Overhead**
+   - Turbulence Model ส่งผลกระทบอย่างมากต่อประสิทธิภาพของ Solver
+   - การใช้หน่วยความจำเพิ่มขึ้นอย่างมีนัยสำคัญ
+   - การทำความเข้าใจสถาปัตยกรรม Solver พื้นฐามช่วยเพิ่มประสิทธิภาพการรวม Solver-Model
+
+**Turbulence Model ทั่วไปใน OpenFOAM:**
+| Model | ประเภท | ความเร็วในการคำนวณ | ความแม่นยำ | การใช้งานที่เหมาะสม |
+|-------|--------|-------------------|------------|------------------|
+| $k$-$\varepsilon$ | Eddy viscosity | สูง | ปานกลาง | General purpose |
+| $k$-$\omega$ | Eddy viscosity | สูง | ปานกลาง | Near-wall treatment |
+| SST | Eddy viscosity | ปานกลาง | สูง | Aerodynamics |
+| LES | Large Eddy | ต่ำมาก | สูงมาก | High-fidelity |
+
+**รูปแบบการรวมที่สอดคล้องกัน:**
+- Turbulence Model ทั่วไปเป็นไปตามรูปแบบการรวมที่สอดคล้องกันใน Solver ที่แตกต่างกัน
+- ความรู้ด้านสถาปัตยกรรม Solver สามารถถ่ายทอดได้ระหว่าง Model ต่างๆ
+
+---
+
+### **การอ้างอิงโยงเพิ่มเติม**
+
+**Programming Integration**
+- Solver เชื่อมต่อกับระบบการจัดการ Field ของ OpenFOAM
+- **Field Types**: `volScalarField`, `volVectorField`, `volTensorField`
+- **Linear Algebra Solver**: การแก้ระบบสมการเชิงเส้น
+- ความสำคัญ: สำหรับการใช้งาน Solver และการพัฒนาแบบกำหนดเอง
+
+[Diagram: แสดงการเชื่อมต่อระหว่าง Solver และระบบ Field ของ OpenFOAM]
+
+**Mesh Dependency**
+- ประสิทธิภาพและความแม่นยำของ Solver ได้รับอิทธิพลอย่างมากจากคุณภาพและโครงสร้างของ Mesh
+- **Mesh Quality Metrics**: Non-orthogonality, skewness, aspect ratio
+- การเชื่อมโยงไปยังหัวข้อการสร้างและเพิ่มประสิทธิภาพ Mesh
+
+**Boundary Conditions**
+- พฤติกรรมของ Solver ที่ขอบเขตโดเมน (domain boundaries)
+- ต้องอาศัยการนำ Boundary Condition Scheme ไปใช้อย่างระมัดระวัง
+- การเชื่อมโยงกับการสร้างแบบจำลองและการนำ Boundary Condition ขั้นสูงไปใช้งาน
+
+**Boundary Condition ที่ใช้บ่อย:**
+| Type | การใช้งาน | ความเสถียร | ตัวอย่าง |
+|------|-------------|-------------|-----------|
+| fixedValue | ค่าคงที่ | สูง | Inlet velocity |
+| zeroGradient | อนุพันธ์ศูนย์ | ปานกลาง | Outlet pressure |
+| symmetryPlane | ความสมมาตร | สูง | Symmetry boundaries |

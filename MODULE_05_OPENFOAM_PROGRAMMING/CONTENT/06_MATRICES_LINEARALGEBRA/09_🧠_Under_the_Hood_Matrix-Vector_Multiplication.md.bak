@@ -1,0 +1,269 @@
+# 🧠 **ภายใต้ฮูด: การคูณเมทริกซ์-เวกเตอร์ใน OpenFOAM**
+
+## **การดำเนินการ Amul - ผลคูณเมทริกซ์-เวกเตอร์แบบเบาบาง**
+
+การดำเนินการ `Amul` แทนการคูณเมทริกซ์-เวกเตอร์แบบเบาบางหลักของ OpenFOAM ซึ่งแสดงเป็น $\mathbf{y} = \mathbf{A}\mathbf{x}$ โดยที่ $\mathbf{A}$ เป็นเมทริกซ์แบบเบาบาง และ $\mathbf{x}$, $\mathbf{y}$ เป็นเวกเตอร์ การดำเนินการนี้เป็นพื้นฐานสำหรับ Solver เชิงเส้นทั้งหมดในการจำลอง CFD
+
+[Diagram: เมทริกซ์ LDU แสดงโครงสร้างแถวเส้นทแยงและคอลัมน์บน]
+
+### **โครงสร้างอัลกอริทึม**
+
+```cpp
+// 🔧 กลไก: การคำนวณ A·x สำหรับเมทริกซ์แบบเบาบาง
+void lduMatrix::Amul
+(
+    scalarField& result,           // Output: A·x
+    const tmp<scalarField>& tx,   // Input vector x
+    const FieldField<Field, scalar>& interfaceBouCoeffs,
+    const lduInterfaceFieldPtrsList& interfaces,
+    const direction cmpt
+) const
+{
+    const scalarField& x = tx();
+    const lduAddressing& addr = lduAddr();
+
+    // Initialize result with diagonal contribution
+    result = diag() * x;
+
+    // Add lower triangle contributions
+    const labelList& lowerAddr = addr.lowerAddr();
+    const labelList& upperAddr = addr.upperAddr();
+    const scalarField& lower = lower();
+
+    forAll(lowerAddr, facei)
+    {
+        label own = lowerAddr[facei];
+        label nei = upperAddr[facei];
+
+        // Lower triangle: A[nei][own] contributes to result[nei]
+        result[nei] += lower[facei] * x[own];
+    }
+
+    // Add upper triangle contributions
+    const scalarField& upper = upper();
+    forAll(upperAddr, facei)
+    {
+        label own = lowerAddr[facei];
+        label nei = upperAddr[facei];
+
+        // Upper triangle: A[own][nei] contributes to result[own]
+        result[own] += upper[facei] * x[nei];
+    }
+
+    // 🔍 PERFORMANCE: O(n) operations instead of O(n²)
+    // Only visits actual connections (internal faces)
+}
+```
+
+### **พื้นฐานทางคณิตศาสตร์**
+
+เมทริกซ์แบบเบาบาง $\mathbf{A}$ ใน OpenFOAM ตามรูปแบบ **Lower-Diagonal-Upper (LDU)**:
+
+$$\mathbf{A} = \mathbf{L} + \mathbf{D} + \mathbf{U}$$
+
+โดยที่:
+- $\mathbf{D}$ = เมทริกซ์เส้นทแยงมุมที่มีสมาชิกเส้นทแยงมุม $\mathbf{d}$
+- $\mathbf{L}$ = เมทริกซ์รูปสามเหลี่ยมล่างที่มีสมาชิกล่าง $\mathbf{l}$
+- $\mathbf{U}$ = เมทริกซ์รูปสามเหลี่ยมบนที่มีสมาชิกบน $\mathbf{u}$
+
+ผลคูณเมทริกซ์-เวกเตอร์จะกลายเป็น:
+
+$$\mathbf{y} = \mathbf{A}\mathbf{x} = \mathbf{L}\mathbf{x} + \mathbf{D}\mathbf{x} + \mathbf{U}\mathbf{x}$$
+
+สำหรับแต่ละสมาชิก $y_i$:
+$$y_i = \sum_{j \in \mathcal{N}_i} A_{ij}x_j + A_{ii}x_i$$
+
+โดยที่ $\mathcal{N}_i$ แทนชุดของเพื่อนบ้านของเซลล์ $i$
+
+### **รูปแบบการเข้าถึงหน่วยความจำ**
+
+อัลกอริทึมใช้ **coefficient-based addressing** แทนการทำดัชนี $(i,j)$ แบบดั้งเดิม:
+
+[Diagram: แผนภาพแสดงการเข้าถึงข้อมูลแบบ coefficient-based พร้อมการจับคู่ owner-neighbor faces]
+
+**ขั้นตอนการประมวลผล:**
+1. **Diagonal contribution**: การคูณโดยตรงโดยใช้ `diag() * x`
+2. **Lower triangle**: ใบหน้าที่เชื่อมต่อ owner → neighbor มีส่วนกับเซลล์เพื่อนบ้าน
+3. **Upper triangle**: ใบหน้าที่เชื่อมต่อ neighbor → owner มีส่วนกับเซลล์ owner
+
+### **การวิเคราะห์ประสิทธิภาพ**
+
+| ประสิทธิภาพ | Sparse Multiplication | Dense Multiplication |
+|--------------|---------------------|-------------------|
+| **ความซับซ้อนเวลา** | $\mathcal{O}(n + n_f)$ | $\mathcal{O}(n^2)$ |
+| **ความซับซ้อนหน่วยความจำ** | $\mathcal{O}(n + n_f)$ | $\mathcal{O}(n^2)$ |
+| **Speedup factor** | - | 6-12x สำหรับ mesh แบบ CFD ทั่วไป |
+| **Memory savings** | 85-95% สำหรับปัญหา CFD จริง | - |
+
+โดยที่ $n_f$ = จำนวนใบหน้า
+
+**ประสิทธิภาพ Cache**:
+- การเข้าถึงอาร์เรย์ใบหน้าตามลำดับปรับปรุม spatial locality
+- ลดความต้องการหน่วยความจำเมมโมรีบวนด์วิดท์เมื่อเทียบกับการดำเนินการแบบ dense
+
+---
+
+## **การผสานรวมเงื่อนไขขอบเขต**
+
+### **การอัปเดตเมทริกซ์อินเทอร์เฟซ**
+
+เงื่อนไขขอบเขตได้รับการจัดการผ่าน interface fields ที่เชี่ยวชาญซึ่งแก้ไขระบบเมทริกซ์เพื่อบังคับใช้ข้อจำกัดอย่างเหมาะสม
+
+[Diagram: แสดงการแพร่กระจายค่าจากเซลล์ขอบเขตไปยังเซลล์ภายในผ่าน interface coefficients]
+
+```cpp
+// 🔧 กลไก: การมีส่วนกับขอบเขตผ่าน interface fields
+void lduMatrix::updateMatrixInterfaces
+(
+    const FieldField<Field, scalar>& interfaceCoeffs,
+    const lduInterfaceFieldPtrsList& interfaces,
+    const scalarField& psiif,
+    scalarField& result,
+    const direction cmpt
+) const
+{
+    // For each boundary patch
+    forAll(interfaces, patchi)
+    {
+        if (interfaces.set(patchi))
+        {
+            // Get interface field for this patch
+            const lduInterfaceField& interface = interfaces[patchi];
+
+            // Update result with boundary contributions
+            interface.updateInterfaceMatrix
+            (
+                result,
+                interfaceCoeffs[patchi],
+                psiif,
+                cmpt
+            );
+        }
+    }
+
+    // 🔍 BOUNDARY TYPES:
+    // - Fixed value: modifies diagonal and source
+    // - Fixed gradient: adds to source only
+    // - Zero gradient: no matrix modification
+}
+```
+
+### **คณิตศาสตร์ของเงื่อนไขขอบเขต**
+
+#### **Fixed Value (Dirichlet)**: $\phi = \phi_{\text{specified}}$
+- **การแก้ไขสมาชิกเส้นทแยงมุม**: $A_{ii}^{\text{new}} = A_{ii}^{\text{old}} + \sum_{j \in \mathcal{B}} \alpha_{ij}$
+- **การแก้ไข source**: $b_i^{\text{new}} = b_i^{\text{old}} + \sum_{j \in \mathcal{B}} \alpha_{ij}\phi_{\text{boundary}}$
+
+#### **Fixed Gradient (Neumann)**: $\frac{\partial \phi}{\partial n} = \left(\frac{\partial \phi}{\partial n}\right)_{\text{specified}}$
+- **เพิ่มเฉพาะ source**: $b_i^{\text{new}} = b_i^{\text{old}} + \sum_{j \in \mathcal{B}} \alpha_{ij}\phi_j$
+- **ไม่มีการแก้ไข diagonal**
+
+#### **Zero Gradient**: $\frac{\partial \phi}{\partial n} = 0$
+- ถือว่าเซลล์ขอบเขตเป็นเซลล์ภายใน
+- ไม่จำเป็นต้องแก้ไขเมทริกซ์
+
+[Diagram: แสดงผลของประเภทเงื่อนไขขอบเขตต่างๆ ต่อเมทริกซ์ระบบ]
+
+### **การผสานรวมการประมวลผลแบบขนาน**
+
+สำหรับการสลายตัวโดเมน, กลไกอินเทอร์เฟซจัดการ **processor-to-processor communication**:
+
+```cpp
+// Parallel interface handling
+template<class Type>
+void processorLduInterfaceField<Type>::updateInterfaceMatrix
+(
+    Field<Type>& result,
+    const Field<Type>& interfaceCoeffs,
+    const Field<Type>& psiif,
+    const direction cmpt
+) const
+{
+    // Send/receive boundary data with neighboring processor
+    this->procPatch().compressedSendReceive
+    (
+        this->procPatch().neighbProcNo(),
+        psiif,
+        this->procPatch().neighbProcNo()
+    );
+    
+    // Apply received contributions to result
+    forAll(this->procPatch().faceCells(), facei)
+    {
+        label cellI = this->procPatch().faceCells()[facei];
+        result[cellI] += interfaceCoeffs[facei] * receivedData[facei];
+    }
+}
+```
+
+---
+
+## **การปรับปรุงอัลกอริทึม**
+
+### **โอกาสในการเวกเตอร์ไอเซชัน**
+
+คอมไพเลอร์สมัยใหม่สามารถเวกเตอร์ไอซ์โครงสร้างลูปโดยอัตโนมัติ:
+
+```cpp
+// Vectorizable loop pattern
+forAll(lowerAddr, facei)
+{
+    result[upperAddr[facei]] += lower[facei] * x[lowerAddr[facei]];
+}
+```
+
+**กลยุทธ์การปรับปรุง**:
+- **Loop unrolling**: ประมวลผลใบหน้าหลายใบต่อการทำซ้ำ
+- **SIMD instructions**: ใช้ AVX/SSE สำหรับการคูณแบบขนาน
+- **Memory alignment**: ทำให้แน่ใจว่ามีการจัดแนว 16/32-ไบต์สำหรับการดำเนินการเวกเตอร์
+
+### **Cache Blocking**
+
+สำหรับ mesh ขนาดใหญ่ที่เกินความจุ cache:
+- ประมวลผลใบหน้าเป็นบล็อกที่พอดีใน L2/L3 cache
+- ลดอัตรา cache miss โดยการปรับปรุม temporal locality
+
+### **การขนาน Thread**
+
+กลยุทธ์การขนาน OpenMP:
+```cpp
+#pragma omp parallel for schedule(static)
+forAll(lowerAddr, facei)
+{
+    result[upperAddr[facei]] += lower[facei] * x[lowerAddr[facei]];
+}
+```
+
+**การจัดสรรภาระงาน**:
+- Static scheduling สำหรับ mesh แบบสม่ำเสมอ
+- Dynamic scheduling สำหรับ mesh ที่ไม่สม่ำเสมออย่างสูง
+- พิจารณาผลกระทบ NUMA บนระบบ multi-socket
+
+---
+
+## **การแก้จุดบกพร่องและการตรวจสอบ**
+
+### **ปัญหาทั่วไป**
+
+| ประเภทปัญหา | อาการ | สาเหตุที่เป็นไปได้ |
+|--------------|--------|-----------------|
+| **การประกอบเมทริกซ์** | ผลลัพธ์ไม่ถูกต้อง | การทำดัชนีใบหน้าที่ไม่ถูกต้อง, มองข้าดการมีส่วนกับขอบเขต |
+| **ความแม่นยำทางตัวเลข** | การไม่บรรจบกัน, ข้อผิดพลาดสะสม | ข้อผิดพลาด floating-point, เมทริกซ์ที่ไม่ดี, underflow/overflow |
+| **ประสิทธิภาพ** | ช้า, การใช้ CPU สูง | Cache misses, การจัดสรรภาระงานไม่สมดุล, ใช้หน่วยความจำมากเกินไป |
+
+### **เทคนิคการตรวจสอบ**
+
+**ขั้นตอนการตรวจสอบ:**
+
+1. **การตรวจสอบการอนุรักษ์**:
+   $$\sum_{i=1}^n (\mathbf{A}\mathbf{x})_i = \sum_{i,j=1}^n A_{ij}x_j$$
+
+2. **การทดสอบความสมมาตร** (สำหรับเมทริกซ์สมมาตร):
+   $$\mathbf{x}^T\mathbf{A}\mathbf{y} = \mathbf{y}^T\mathbf{A}\mathbf{x}$$
+
+3. **การตรวจสอบการบรรจบกัน**:
+   - การลดขนาดของค่าเหลือของ residual norm
+   - การวิเคราะห์จำนวนการทำซ้ำ
+   - การประมาณค่า condition number
+
+กรอบการทำงานของการคูณเมทริกซ์-เวกเตอร์แบบเบาบางนี้เป็นกระดูกสันหลังการคำนวณของ Solver เชิงเส้นทั้งหมดใน OpenFOAM ช่วยให้การจำลอง CFD มีประสิทธิภาพด้วยองศาอิสระหลายล้านองศาขณะที่ยังคงรักษาความแม่นยำทางตัวเลขและความสามารถในการขยายขนาน

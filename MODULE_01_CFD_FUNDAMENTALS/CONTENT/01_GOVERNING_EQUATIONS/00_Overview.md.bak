@@ -1,0 +1,252 @@
+# 1.1 สมการควบคุม
+
+## 1.1.1 การอนุรักษ์มวล
+
+**สมการความต่อเนื่อง** (continuity equation) แสดงหลักการอนุรักษ์มวลในระบบของไหล  
+
+
+```mermaid
+graph LR
+    In["Mass In Flux<br/>(ρu·n dA)_in"] --> CV["Control Volume<br/>V"]
+    CV --> Out["Mass Out Flux<br/>(ρu·n dA)_out"]
+    CV --> Acc["Accumulation<br/>∂ρ/∂t"]
+    
+    subgraph Balance
+    In
+    Out
+    Acc
+    end
+    
+    Balance --> Cons["Conservation Law<br/>Rate of Accumulation = Net Flux"]
+    Cons --> Eq["∂ρ/∂t + ∇·(ρu) = 0"]
+    Eq --> Incomp["Incompressible Flow<br/>∇·u = 0"]
+
+    style CV fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Cons fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+    style Eq fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+```
+
+
+สำหรับปริมาตรควบคุม (control volume) $V$ ที่มีพื้นที่ผิว $S$ อัตราการสะสมมวลภายในปริมาตรจะเท่ากับอัตราการไหลสุทธิของมวล (net mass flux) ผ่านพื้นผิว
+
+**รูปแบบทั่วไป:**
+$$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$$
+
+โดยที่:
+* $\rho$ = ความหนาแน่นของของไหล (fluid density)
+* $\mathbf{u}$ = เวกเตอร์ความเร็ว (velocity vector)
+
+**สำหรับการไหลแบบอัดตัวไม่ได้** ($\rho = \text{constant}$):
+$$\nabla \cdot \mathbf{u} = 0$$
+
+เงื่อนไข **divergence-free condition** นี้ทำให้มั่นใจได้ว่าอัตราการไหลเชิงปริมาตร (volumetric flow rate) ที่ไหลเข้าสู่ปริมาตรควบคุมขนาดเล็กมาก ๆ จะเท่ากับอัตราการไหลเชิงปริมาตรที่ไหลออก ซึ่งเป็นการรักษาสภาพการอนุรักฮมวลตลอดทั่วทั้งโดเมน (domain)
+
+## 1.1.2 การอนุรักษ์โมเมนตัม
+
+**สมการโมเมนตัม** (momentum equation) ซึ่งได้มาจากกฎข้อที่สองของนิวตัน ควบคุมการเคลื่อนที่ของอนุภาคของไหล  
+
+
+```mermaid
+graph TD
+    subgraph Forces["Forces Acting on Fluid Element"]
+        P["Pressure Forces<br/>-∇p"]
+        V["Viscous Forces<br/>μ∇²u"]
+        B["Body Forces<br/>f (e.g., Gravity)"]
+    end
+
+    subgraph Inertia["Inertial Response"]
+        LA["Local Acceleration<br/>∂(ρu)/∂t"]
+        CA["Convective Acceleration<br/>∇·(ρuu)"]
+    end
+
+    P --> Sum["Sum of Forces<br/>ΣF"]
+    V --> Sum
+    B --> Sum
+
+    Sum -->|Newton's 2nd Law| Change["Rate of Change of Momentum"]
+    Change --> LA
+    Change --> CA
+
+    style Forces fill:#e3f2fd,stroke:#1565c0
+    style Inertia fill:#fff9c4,stroke:#fbc02d
+    style Sum fill:#e8f5e9,stroke:#2e7d32
+```
+
+
+สมการนี้ปรับสมดุลระหว่างแรงเฉื่อย (inertial forces) กับแรงที่กระทำต่อปริมาตร (body forces) และแรงที่กระทำต่อพื้นผิว (surface forces) ที่กระทำต่อองค์ประกอบของไหล
+
+**รูปแบบทั่วไป:**
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
+
+โดยที่:
+* $p$ = ความดันสถิต (static pressure)
+* $\mu$ = ความหนืดจลน์ (dynamic viscosity)
+* $\mathbf{f}$ = แรงที่กระทำต่อปริมาตร (body forces) เช่น แรงโน้มถ่วง ($\rho \mathbf{g}$)
+
+### การวิเคราะห์แต่ละพจน์:
+
+**ด้านซ้ายมือ (Local + Convective Acceleration):**
+* $\rho \frac{\partial \mathbf{u}}{\partial t}$ = ความเร่งเฉพาะที่ (local acceleration)
+* $\rho (\mathbf{u} \cdot \nabla) \mathbf{u}$ = ความเร่งแบบพา (convective acceleration)
+
+**ด้านขวามือ (Surface + Body Forces):**
+* $-\nabla p$ = แรงดัน (pressure forces)
+* $\mu \nabla^2 \mathbf{u}$ = แรงหนืด (viscous forces)
+* $\mathbf{f}$ = แรงภายนอก (external body forces)
+
+ระบบสมการเชิงอนุพันธ์ย่อยแบบไม่เชิงเส้น (nonlinear system of partial differential equations) นี้เป็นรากฐานของการวิเคราะห์พลศาสตร์ของไหล (fluid dynamics analysis) ใน OpenFOAM
+
+## 1.1.3 การอนุรักฮพลังงาน
+
+**สมการพลังงาน** (energy equation) ควบคุมการถ่ายเทพลังงานความร้อน (thermal energy) ภายในระบบของไหล
+
+
+```mermaid
+graph LR
+    Input["Energy In<br/>(Convection + Conduction)"] --> CV["Control Volume<br/>(Internal Energy + Kinetic)"]
+    CV --> Output["Energy Out<br/>(Convection + Conduction)"]
+    Source["Heat Source<br/>Q"] --> CV
+    Work["Work Done<br/>On/By Fluid"] --> CV
+    
+    CV --> Change["Rate of Change<br/>∂(ρE)/∂t"]
+    
+    style CV fill:#e3f2fd,stroke:#1565c0
+    style Input fill:#e8f5e9,stroke:#2e7d32
+    style Output fill:#ffebee,stroke:#c62828
+    style Source fill:#fff9c4,stroke:#fbc02d
+```
+
+
+สำหรับของไหลที่มีอุณหภูมิ $T$ สมการพลังงานในรูปของอุณหภูมิคือ:
+
+$$\rho c_p \frac{\partial T}{\partial t} + \rho c_p \mathbf{u} \cdot \nabla T = k \nabla^2 T + Q$$
+
+โดยที่:
+* $c_p$ = ความจุความร้อนจำเพาะที่ความดันคงที่ (specific heat capacity at constant pressure)
+* $k$ = สภาพนำความร้อน (thermal conductivity)
+* $Q$ = แหล่งกำเนิดความร้อน (heat sources) หรือตัวรับความร้อน (sinks) ภายในโดเมน (domain)
+
+### การวิเคราะห์แต่ละพจน์:
+
+**ด้านซ้ายมือ (Temporal + Convective Energy Transport):**
+* $\rho c_p \frac{\partial T}{\partial t}$ = การเปลี่ยนแปลงพลังงานความร้อนตามเวลา
+* $\rho c_p \mathbf{u} \cdot \nabla T$ = การลำเลียงพลังงานความร้อนแบบพา
+
+**ด้านขวามือ (Diffusion + Generation):**
+* $k \nabla^2 T$ = การถ่ายเทความร้อนแบบนำ (conductive heat transfer) ตามกฎของฟูเรียร์ (Fourier's law)
+* $Q$ = พจน์การเกิดความร้อนเชิงปริมาตร (volumetric heat generation)
+
+**การใช้งานใน OpenFOAM:**
+ใน OpenFOAM implementations สมการนี้อาจถูกแก้ในรูปของ:
+* **เอนทาลปี** (enthalpy) $h$
+* **พลังงานภายใน** (internal energy) $e$  
+* **อุณหภูมิสัมผัส** (sensible temperature)
+
+ขึ้นอยู่กับ Thermophysical Model ที่ใช้
+
+## 1.1.4 การถ่ายเทชนิดสาร
+
+สำหรับการไหลแบบหลายองค์ประกอบ (multicomponent flows) ที่มีการถ่ายเทชนิดสารเคมี (chemical species transport) จะต้องแก้สมการอนุรักฮสำหรับชนิดสาร $i$ แต่ละชนิด:
+
+
+```mermaid
+graph LR
+    A["Control Volume<br/>Domain"] --> B["Mass Fraction Yi<br/>Field"]
+    B --> C["Transport Mechanisms"]
+    C --> D["Convection<br/>ρu · ∇Yi"]
+    C --> E["Diffusion<br/>∇ · Ji"]
+    D --> F["Transport Out"]
+    E --> F
+    B --> G["Generation<br/>ω̇i"]
+    G --> H["Species Source/Sink"]
+    F --> I["Net Change<br/>∂(ρYi)/∂t"]
+    H --> I
+    I --> J["Updated Species<br/>Concentration"]
+    J --> B
+    
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    style D fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    style E fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    style G fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    style I fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+```
+
+
+$$\frac{\partial (\rho Y_i)}{\partial t} + \nabla \cdot (\rho \mathbf{u} Y_i) = -\nabla \cdot \mathbf{J}_i + \dot{\omega}_i$$
+
+โดยที่:
+* $Y_i$ = สัดส่วนมวล (mass fraction) ของชนิดสาร $i$
+* $\mathbf{J}_i$ = เวกเตอร์ฟลักซ์การแพร่ (diffusive flux vector) สำหรับชนิดสาร $i$
+* $\dot{\omega}_i$ = อัตราการผลิต/การทำลายสุทธิ (net rate of production/destruction) อันเนื่องมาจากปฏิกิริยาเคมี
+
+### กฎของฟิค (Fick's Law):
+
+ฟลักซ์การแพร่ (diffusive flux) $\mathbf{J}_i$ โดยทั่วไปจะจำลองโดยใช้กฎของฟิคสำหรับการแพร่แบบไบนารี (binary diffusion):
+
+$$\mathbf{J}_i = -\rho D_i \nabla Y_i$$
+
+โดยที่:
+* $D_i$ = สัมประสิทธิ์การแพร่ (diffusion coefficient) ของชนิดสาร $i$ ในสารผสม
+
+### เงื่อนไขการอนุรักฮ:
+* สมการเหล่านี้รับรองการอนุรักฮชนิดสารแต่ละชนิด
+* ยังคงรักษาการอนุรักฮมวลโดยรวมผ่านสมการความต่อเนื่อง
+* ผลรวมของสัดส่วนมวลของชนิดสารทั้งหมดจะต้องเป็นไปตาม $\sum_i Y_i = 1$ ณ ทุกจุดในโดเมน (domain)
+
+## 1.1.5 สมการสภาวะ
+
+**สมการสภาวะ** (equation of state) ให้ความสัมพันธ์ทางอุณหพลศาสตร์ระหว่างความดัน ความหนาแน่น และอุณหภูมิ ซึ่งเป็นการปิดระบบสมการควบคุม (governing equations)
+
+
+```mermaid
+graph TD
+    P["Pressure: p<br/>Pascal (Pa)"] --> E["Equation of State<br/>Relates P, ρ, T"]
+    RHO["Density: ρ<br/>kg/m³"] --> E
+    T["Temperature: T<br/>Kelvin (K)"] --> E
+    E --> IDEAL["Ideal Gas Law<br/>p = ρRT"]
+    IDEAL --> VARIABLES["Variables:<br/>R = Specific gas constant<br/>T = Absolute temperature<br/>ρ = Density<br/>p = Pressure"]
+    E --> THERMO["Thermodynamic<br/>Consistency"]
+
+%% Styling Definitions
+classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+
+class P,RHO,T process
+class E decision
+class IDEAL,VARIABLES storage
+class THERMO terminator
+```
+
+
+### ก๊าซในอุดมคติ (Ideal Gas):
+
+สำหรับก๊าซในอุดมคติ ความสัมพันธ์แสดงได้ดังนี้:
+
+$$p = \rho R T$$
+
+โดยที่:
+* $R$ = ค่าคงที่ของก๊าซจำเพาะ (specific gas constant)
+
+### การใช้งานใน OpenFOAM:
+
+ใน OpenFOAM สิ่งนี้ถูกนำไปใช้ผ่านคลาส Thermophysical Model เช่น:
+
+| Model | Description | Use Case |
+|-------|-------------|----------|
+| `perfectGas` | ก๊าซในอุดมคติ | ก๊าซที่มีอุณหภูมิสูงและความดันต่ำ |
+| `icoPolynomial` | พหุนามความหนาแน่นคงที่ | ของไหลอัดตัวไม่ได้ที่มีคุณสมบัติแปรผันตามอุณหภูมิ |
+| `hPolynomial` | พหุนามเอนทาลปี | ของไหลที่มีความสัมพันธ์อุณหภูมิ-เอนทาลปีซับซ้อน |
+
+### ผลกระทบของการเลือกโมเดล:
+
+การเลือกโมเดลสมการสภาวะ (equation of state model) ที่เหมาะสมส่งผลกระทบอย่างมากต่อ:
+
+* **การเชื่อมโยงระหว่างสมการโมเมนตัมและพลังงาน**
+* **การจำลองการไหลแบบอัดตัวได้** (compressible flow simulations)
+* **บทบาทของการเปลี่ยนแปลงความหนาแน่นในพลศาสตร์ของการไหล**
+
+**สำหรับการไหลแบบอัดตัวไม่ได้** (incompressible flows) ความหนาแน่นจะถือว่าคงที่ ทำให้ไม่จำเป็นต้องใช้ความสัมพันธ์ของสมการสภาวะที่ชัดเจน

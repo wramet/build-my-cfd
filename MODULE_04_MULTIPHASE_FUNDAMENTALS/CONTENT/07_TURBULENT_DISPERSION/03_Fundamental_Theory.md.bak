@@ -1,0 +1,94 @@
+## ทฤษฎีพื้นฐาน
+
+### สมการ Reynolds-Averaged
+
+สำหรับ **Multiphase flow** ที่มีการผันผวนของความปั่นป่วน (turbulent fluctuations) สมการโมเมนตัมจะมีรูปแบบดังนี้:
+
+$$\frac{\partial}{\partial t}(\overline{\alpha_k \rho_k \mathbf{u}_k}) + \nabla \cdot (\overline{\alpha_k \rho_k \mathbf{u}_k \mathbf{u}_k}) = -\overline{\alpha_k \nabla p} + \nabla \cdot \overline{\boldsymbol{\tau}_k} + \overline{\mathbf{M}_k} - \nabla \cdot \overline{\alpha_k \rho_k \mathbf{u}'_k \mathbf{u}'_k}$$
+
+**คำจำกัดความของตัวแปร:**
+- $\overline{\alpha_k \rho_k \mathbf{u}_k}$: โมเมนตัมเฉลี่ยตามเวลาของเฟส $k$
+- $\overline{\alpha_k \nabla p}$: แรงดันเฉลี่ยตามเวลา
+- $\overline{\boldsymbol{\tau}_k}$: ความเค้นเชื่อมโยงเฉลี่ยตามเวลา
+- $\overline{\mathbf{M}_k}$: การแลกเปลี่ยนโมเมนตัมระหว่างเฟสเฉลี่ยตามเวลา
+- **$\overline{\alpha_k \rho_k \mathbf{u}'_k \mathbf{u}'_k}$**: Turbulent stress สำหรับเฟส $k$
+
+[Diagram: การแบ่งเฟสในระบบ multiphase แบบ Eulerian พร้อมแสดงการไหลแบบ turbulent]
+
+**คำอธิบาย:**
+สมการนี้แสดงถึงการอนุรักษ์โมเมนตัมที่เฉลี่ยตามเวลาสำหรับแต่ละเฟส $k$ ในระบบ multiphase
+- **ขีดเส้นใต้ (overbar)**: ปริมาณที่เฉลี่ยตามเวลา (time-averaged quantities)
+- **เครื่องหมายไพรม์ (prime)**: การผันผวนของความปั่นป่วน (turbulent fluctuations)
+
+เทอม turbulent stress เกิดจากเทอมการพา (convection term) ที่ไม่เป็นเชิงเส้น และแสดงถึงการถ่ายโอนโมเมนตัมเพิ่มเติมอันเนื่องมาจากการผันผวนของความเร็ว
+
+#### OpenFOAM Code Implementation
+```cpp
+// Turbulent stress calculation using Boussinesq approximation
+volSymmTensorField Rk
+(
+    -rho_k_*turbulence_k_->muEff()*dev(twoSymm(fvc::grad(U_k_)))
+    + (2.0/3.0)*rho_k_*turbulence_k_->k()*I
+);
+```
+
+**ใน OpenFOAM:** เทอมนี้จะถูกจำลองโดยใช้ **turbulence closures** เช่น **Boussinesq approximation** ร่วมกับ **eddy viscosity models**
+
+---
+
+### การอนุมานแรงการกระจายตัวเนื่องจากความปั่นป่วน (Turbulent Dispersion Force Derivation)
+
+[Diagram: การกระจายตัวของอนุภาคเนื่องจาก turbulent eddies]
+
+#### ขั้นตอนการอนุมานแรงฉุด
+
+**ขั้นที่ 1:** จากการแยก Reynolds ของแรงฉุด (drag force):
+$$\mathbf{F}_D = \mathbf{K} (\mathbf{u}_c - \mathbf{u}_d)$$
+
+**ขั้นที่ 2:** เมื่อแทนค่า $\mathbf{u}_i = \overline{\mathbf{u}}_i + \mathbf{u}'_i$:
+$$\mathbf{F}_D = \mathbf{K} (\overline{\mathbf{u}}_c - \overline{\mathbf{u}}_d) + \mathbf{K} (\mathbf{u}'_c - \mathbf{u}'_d)$$
+
+**ขั้นที่ 3:** แรงฉุดที่เฉลี่ยตามเวลาคือ:
+$$\overline{\mathbf{F}_D} = \overline{\mathbf{K}} (\overline{\mathbf{u}}_c - \overline{\mathbf{u}}_d) + \overline{\mathbf{K} (\mathbf{u}'_c - \mathbf{u}'_d)}$$
+
+**คำอธิบาย:** เทอมที่สอง $\overline{\mathbf{K} (\mathbf{u}'_c - \mathbf{u}'_d)}$ แสดงถึง**ผลของการกระจายตัวเนื่องจากความปั่นป่วน** (turbulent dispersion effect)
+
+#### หลักการทางกายภาพ
+
+**แรงการกระจายตัวเนื่องจากความปั่นป่วน (turbulent dispersion force)** เกิดจากการสัมพันธ์กันระหว่าง:
+- ส่วนที่ผันผวนของความเร็ว ($\mathbf{u}'_c - \mathbf{u}'_d$)
+- สัมประสิทธิ์การแลกเปลี่ยนโมเมนตัมระหว่างเฟส (interphase momentum exchange coefficient) $\mathbf{K}$
+
+**ผลของแรง:**
+- กระจายอนุภาคหรือหยดน้ำออกจากบริเวณที่มีความเข้มของความปั่นป่วนสูง
+- ส่งเสริมการกระจายตัวของเฟสให้สม่ำเสมอมากขึ้น
+
+#### รูปแบบทางคณิตศาสตร์
+
+$$\mathbf{F}_{td} = C_{td} \rho_c k \nabla \alpha_d$$
+
+**คำจำกัดความของตัวแปร:**
+- $C_{td}$: สัมประสิทธิ์การกระจายตัวเนื่องจากความปั่นป่วน (turbulent dispersion coefficient)
+- $\rho_c$: ความหนาแน่นของเฟสต่อเนื่อง (continuous phase density)
+- $k$: พลังงานจลน์จากความปั่นป่วน (turbulent kinetic energy)
+- $\alpha_d$: สัดส่วนปริมาตรของเฟสที่ถูกกระจาย (dispersed phase volume fraction)
+
+#### OpenFOAM Code Implementation
+```cpp
+// Turbulent dispersion force calculation (Burns model)
+const dimensionedScalar Ctd("Ctd", dimless, phasePair_.dispersed()*Ctd0_);
+const volScalarField k(mixingTurbulence().k());
+const volScalarField D(Ctd*rhoContinuous()*k);
+
+tmp<volVectorField> tFtd = D*fvc::grad(dispersed().fraction());
+```
+
+#### โมเดลที่ใช้ใน OpenFOAM
+
+| โมเดล | สมการ | ลักษณะเฉพาะ |
+|--------|---------|-------------|
+| **Lopez de Bertodano** | $\mathbf{F}_{td} = -C_{td} \rho_c \nu_t \nabla \alpha_d$ | ใช้ค่า turbulent viscosity $\nu_t$ |
+| **Burns** | $\mathbf{F}_{td} = -C_{td} \rho_c k \nabla \alpha_d$ | ใช้ค่า turbulent kinetic energy $k$ |
+| **Frank et al.** | $\mathbf{F}_{td} = -C_{td} \rho_c \sqrt{k} \nabla \alpha_d$ | ใช้ค่า $\sqrt{k}$ |
+
+**คำอธิบาย:** รูปแบบนี้ทำให้มั่นใจได้ว่าแรงจะกระทำในทิศทางที่ความเข้มข้นของเฟสที่ถูกกระจายลดลง ช่วยเพิ่มการผสมและป้องกันการแยกเฟส

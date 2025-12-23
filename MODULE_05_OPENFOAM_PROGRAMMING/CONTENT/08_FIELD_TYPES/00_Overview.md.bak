@@ -1,0 +1,884 @@
+# Section 6.1: Foundation - Field Types and Dimensions
+
+## พื้นฐานประเภทฟิลด์
+
+กรอบการคำนวณของ OpenFOAM สร้างขึ้นบนระบบประเภทฟิลด์ที่ซับซ้อน ซึ่งเป็นพื้นฐานสำหรับการแก้สมการเชิงอนุพันธ์ย่อย (PDEs) โดยใช้วิธีการปริมาตรจำกัด ประเภทฟิลด์ใน OpenFOAM เป็นคลาสเทมเพลตที่แสดงถึงปริมาณทางกายภาพที่กระจายอยู่ทั่วทั้งโดเมนการคำนวณ ทำให้สามารถแทนค่าความต่อเนื่องของฟังก์ชันตามช่องว่างและเวลาได้
+
+ในแง่หลัก ฟิลด์ OpenFOAM เป็นออบเจกต์ทางคณิตศาสตร์ที่จัดเก็บค่าที่จุดที่แยกจากกันในเมช (โดยทั่วไปคือจุดศูนย์กลางเซลล์สำหรับฟิลด์ปริมาตรและจุดศูนย์กลางหน้าสำหรับฟิลด์ผิว) ฟิลด์เหล่านี้ไม่ใช่เพียงคอนเทนเนอร์ข้อมูล แต่เป็นเอนทิตีการคำนวณที่ซับซ้อนซึ่งเข้าใจความหมายทางกายภาพ คุณสมบัติทางคณิตศาสตร์ และพฤติกรรมพีชคณิตของตัวเอง แต่ละประเภทฟิลด์ห่อหุ้มไม่เพียงแค่ค่าตัวเลข แต่ยังรวมถึงข้อมูลเมตาเกี่ยวกับปริมาณทางกายภาพที่แสดงถึง รวมถึงหน่วย มิติ และเงื่อนไขขอบเขต
+
+### ฟิลด์ปริมาตรเทียบกับฟิลด์ผิว
+
+ความแตกต่างพื้นฐานในระบบฟิลด์ของ OpenFOAM คือระหว่างฟิลด์ปริมาตรและฟิลด์ผิว ฟิลด์ปริมาตร (`vol*Field`) จัดเก็บค่าที่จุดศูนย์กลางเซลล์และแสดงถึงปริมาณที่ผสมผสานในปริมาตรควบคุม ในขณะที่ฟิลด์ผิว (`surface*Field`) จัดเก็บค่าที่จุดศูนย์กลางหน้าและแสดงถึงการไหลหรือปริมาณที่ผสมผสานในพื้นที่ผิวควบคุม
+
+[Diagram: เปรียบเทียบฟิลด์ปริมาตร (จุดศูนย์กลางเซลล์) กับฟิลด์ผิว (จุดศูนย์กลางหน้า)]
+
+สำหรับฟิลด์ปริมาตร $\phi$ การแทนค่าที่แยกจากกันประมาณค่าฟิลด์ต่อเนื่อง $\phi(\mathbf{x})$ ดังนี้:
+$$\phi(\mathbf{x}) \approx \phi_P \quad \text{for } \mathbf{x} \in V_P$$
+
+โดยที่:
+- $\phi_P$ เป็นค่าที่จัดเก็บที่จุดศูนย์กลางเซลล์ $P$
+- $V_P$ เป็นปริมาตรควบคุมรอบเซลล์นั้น
+
+ฟิลด์ผิวมีความสำคัญเป็นพิเศษสำหรับปริมาณการไหล โดยที่อินทิกรัลผิวบนหน้าประมาณได้ดังนี้:
+$$\int_{S_f} \mathbf{F} \cdot \mathbf{n}_f \, \mathrm{d}S \approx \mathbf{F}_f \cdot \mathbf{S}_f$$
+
+โดยที่:
+- $\mathbf{F}_f$ เป็นค่าฟิลด์ผิวที่จุดศูนย์กลางหน้า
+- $\mathbf{S}_f = \mathbf{n}_f A_f$ เป็นเวกเตอร์พื้นที่หน้า
+
+### ลำดับเทนเซอร์ทางคณิตศาสตร์
+
+ฟิลด์ OpenFOAM จัดระเบียบตามลำดับเทนเซอร์ทางคณิตศาสตร์ ซึ่งกำหนดคุณสมบัติการแปลงภายใต้การหมุนพิกัดและพฤติกรรมพีชคณิต:
+
+**ฟิลด์สเกลาร์ (ลำดับ 0)**
+แสดงถึงปริมาณที่มีเพียงขนาดเท่านั้น ไม่มีทิศทาง ทางคณิตศาสตร์ พวกมันไม่เปลี่ยนแปลงภายใต้การแปลงพิกัด ฟิลด์สเกลาร์ทั่วไป ได้แก่:
+- ความดัน: $p(\mathbf{x},t)$
+- อุณหภูมิ: $T(\mathbf{x},t)$ 
+- ปริมาตรส่วน: $\alpha(\mathbf{x},t)$
+- พลังงานจลน์ความปั่นป่วน: $k(\mathbf{x},t)$
+
+**ฟิลด์เวกเตอร์ (ลำดับ 1)**
+แสดงถึงปริมาณที่มีทั้งขนาดและทิศทาง พวกมันแปลงเป็นเทนเซอร์ลำดับแรกภายใต้การหมุนพิกัด ฟิลด์เวกเตอร์หลัก ได้แก่:
+- ความเร็ว: $\mathbf{u}(\mathbf{x},t) = [u_x, u_y, u_z]$
+- โมเมนตัม: $\rho\mathbf{u}(\mathbf{x},t)$
+- ความหนาแน่นของแรง: $\mathbf{f}(\mathbf{x},t)$
+- การไหลของความร้อน: $\mathbf{q}(\mathbf{x},t)$
+
+**ฟิลด์เทนเซอร์ (ลำดับ 2)**
+แสดงถึงตัวดำเนินการเชิงเส้นที่แปลงเวกเตอร์เป็นเวกเตอร์ พวกมันแปลงเป็นเทนเซอร์ลำดับสองภายใต้การหมุนพิกัด เทนเซอร์ฟิลด์ที่สำคัญ ได้แก่:
+- เทนเซอร์ไล่ระดับความเร็ว: $\nabla\mathbf{u} = \frac{\partial u_i}{\partial x_j}$
+- เทนเซอร์อัตราการบิดเบี้ยว: $\mathbf{S} = \frac{1}{2}(\nabla\mathbf{u} + (\nabla\mathbf{u})^T)$
+- เทนเซอร์ความเครียด: $\boldsymbol{\tau}$
+- เทนเซอร์ความหนืด: $\boldsymbol{\mu}$
+
+**ฟิลด์เทนเซอร์สมมาตร**
+เทนเซอร์ลำดับสองเฉพาะที่สมมาตร ซึ่งหมายความว่า $\mathbf{A}_{ij} = \mathbf{A}_{ji}$ พวกนี้ปรากฏบ่อยในกลศาสตร์ของไหล:
+- เทนเซอร์ความเครียด Reynolds: $\mathbf{R} = \overline{\mathbf{u}'\mathbf{u}'}$
+- เทนเซอร์ความหนืดเกลียว: $\boldsymbol{\mu}_t$
+- เทนเซอร์อัตราการบิดเบี้ยว: $\mathbf{S}$ (เสมอสมมาตร)
+
+**ฟิลด์เทนเซอร์ทรงกลม**
+เทนเซอร์แนวทแยงที่มีส่วนประกอบแนวทแยงเท่ากัน แสดงถึงปริมาณไอโซทรอปิก:
+- เทนเซอร์เอกลักษณ์: $\mathbf{I}$ (ส่วนประกอบแนวทแยง = 1)
+- การสนับสนุนความดันต่อความเครียด: $p\mathbf{I}$
+- ความเครียดความปั่นป่วนไอโซทรอปิก: $\frac{2}{3}k\mathbf{I}$
+
+## ระบบการวิเคราะห์มิติ
+
+### โครงสร้างคลาส DimensionSet
+
+OpenFOAM ใช้ระบบการวิเคราะห์มิติที่ครอบคลุมผ่านคลาส `DimensionSet` ซึ่งเข้ารหัสมิติทางกายภาพพื้นฐานของปริมาณตามระบบ SI ระบบนี้ช่วยให้มั่นใจได้ถึงความสม่ำเสมอของมิติตลอดกระบวนการคำนวณและให้การตรวจสอบข้อผิดพลาดอัตโนมัติสำหรับการจัดตั้งทางกายภาพ
+
+ระบบมิติอิงตามมิติพื้นฐานเจ็ดประการ:
+- **มวล** $[M]$
+- **ความยาว** $[L]$ 
+- **เวลา** $[T]$
+- **อุณหภูมิ** $[\Theta]$
+- **ปริมาณของสาร** $[N]$
+- **กระแสไฟฟ้า** $[I]$
+- **ความเข้มแสง** $[J]$
+
+แต่ละออบเจกต์ `DimensionSet` จัดเก็บมิติเหล่านี้เป็นกำลังจำนวนเต็ม:
+
+```cpp
+// ตัวอย่าง: ความเร็วมีมิติ [L][T]^-1
+DimensionSet velocityDim(0, 1, -1, 0, 0, 0, 0);
+
+// ตัวอย่าง: แรงมีมิติ [M][L][T]^-2  
+DimensionSet forceDim(1, 1, -2, 0, 0, 0, 0);
+```
+
+### ปริมาณทางกายภาพทั่วไป
+
+**ปริมาณกลศาสตร์**
+
+| ปริมาททางกายภาพ | สัญลักษณ์มิติ | หน่วย SI |
+|-------------------|----------------|-----------|
+| ความเร็ว | $[L][T]^{-1}$ | เมตรต่อวินาที |
+| ความเร่ง | $[L][T]^{-2}$ | เมตรต่อวินาทีกำลังสอง |
+| แรง | $[M][L][T]^{-2}$ | นิวตัน |
+| ความดัน | $[M][L]^{-1}[T]^{-2}$ | ปาสคาล |
+| ความหนาแน่น | $[M][L]^{-3}$ | กิโลกรัมต่อลูกบาศก์เมตร |
+| ความหนืดพลวัต | $[M][L]^{-1}[T]^{-1}$ | ปาสคาล-วินาที |
+| ความหนืดจลน์ | $[L]^2[T]^{-1}$ | ตารางเมตรต่อวินาที |
+
+**ปริมาณความร้อน**
+
+| ปริมาททางกายภาพ | สัญลักษณ์มิติ | หน่วย SI |
+|-------------------|----------------|-----------|
+| อุณหภูมิ | $[\Theta]$ | เคลวิน |
+| การไหลของความร้อน | $[M][T]^{-3}$ | วัตต์ต่อตารางเมตร |
+| ความนำความร้อน | $[M][L][T]^{-3}[\Theta]^{-1}$ | วัตต์ต่อเมตร-เคลวิน |
+| ความร้อนจำเพาะ | $[L]^2[T]^{-2}[\Theta]^{-1}$ | จูลต่อกิโลกรัม-เคลวิน |
+
+**ปริมาณหลายเฟส**
+
+| ปริมาททางกายภาพ | สัญลักษณ์มิติ | ช่วง |
+|-------------------|----------------|------|
+| ปริมาตรส่วน | ไร้มิติ | 0 ถึง 1 |
+| มวลส่วน | ไร้มิติ | 0 ถึง 1 |
+| ความตึงผิว | $[M][T]^{-2}$ | นิวตันต่อเมตร |
+| ความหนาแน่นพื้นที่อินเตอร์เฟซ | $[L]^{-1}$ | ตารางเมตรต่อลูกบาศก์เมตร |
+
+### การตรวจสอบความสม่ำเสมอของมิติ
+
+ระบบมิติให้การตรวจสอบอัตโนมัติว่าการดำเนินการทางคณิตศาสตร์มีความหมายทางกายภาพ:
+
+**การบวก/ลบ**: ตัวถูกดำเนินการทั้งสองต้องมีมิติเหมือนกัน:
+
+```cpp
+// ถูกต้อง: ความดัน + ความดัน (ทั้งสองมีมิติ [M][L]^-1[T]^-2)
+volScalarField totalPressure = staticPressure + dynamicPressure;
+
+// ไม่ถูกต้อง: ความเร็ว + อุณหภูมิ (ความไม่ตรงกันของมิติจะถูกจับในเวลาคอมไพล์)
+// volVectorField invalidField = velocityField + temperatureField; // ข้อผิดพลาดคอมไพเลอร์
+```
+
+**การคูณ/หาร**: มิติรวมกันทางพีชคณิต:
+
+```cpp
+// โมเมนตัม = ความหนาแน่น × ความเร็ว
+// [M][L]^-3 × [L][T]^-1 = [M][L]^-2[T]^-1 ✓
+volVectorField momentum = density * velocity;
+
+// พลังงานจลน์ต่อหน่วยมวล = 0.5 × ความเร็ว²
+// [L]²[T]^-2 = [L]²[T]^-2 ✓  
+volScalarField kineticEnergy = 0.5 * magSqr(velocity);
+```
+
+**เลขชี้กำลัง/ลอการิทึม**: อาร์กิวเมนต์ต้องไร้มิติ:
+
+```cpp
+// ถูกต้อง: exp(dimensionlessQuantity)
+volScalarField result = exp(volumeFraction);
+
+// ไม่ถูกต้อง: log(pressure) - ความดันมีมิติ ต้องใช้อัตราส่วนไร้มิติ
+// volScalarField invalid = log(pressure); // ข้อผิดพลาดรันไทม์
+volScalarField valid = log(pressure/referencePressure); // ✓
+```
+
+## ลำดับชั้นคลาสฟิลด์
+
+### โครงสร้างเทมเพลต GeometricField
+
+คลาส `GeometricField` เป็นเทมเพลตพื้นฐานสำหรับฟิลด์ OpenFOAM ทั้งหมด มันถูกกำหนดพารามิเตอร์โดยอาร์กิวเมนต์เทมเพลตสามตัว:
+
+```cpp
+template<class Type, class PatchField, class GeoMesh>
+class GeometricField
+{
+    // Type: Scalar, Vector, Tensor, ฯลฯ
+    // PatchField: การจัดการเงื่อนไขขอบเขต
+    // GeoMesh: ประเภทเมช (fvMesh สำหรับปริมาตรจำกัด)
+};
+```
+
+**พารามิเตอร์ Type**: กำหนดลักษณะทางคณิตศาสตร์ของฟิลด์:
+- `scalar`: ประเภทตัวเลขพื้นฐาน (ความแม่นยำสองเท่า)
+- `vector`: เวกเตอร์ 3 มิติที่มีส่วนประกอบ $(x, y, z)$
+- `tensor`: เมทริกซ์ 3×3 ที่มี 9 ส่วนประกอบ
+- `symmTensor`: เทนเซอร์สมมาตร 3×3 ที่มี 6 ส่วนประกอบอิสระ
+- `sphericalTensor`: เทนเซอร์ทรงกลม (ส่วนประกอบแนวทแยงเท่ากัน)
+
+**พารามิเตอร์ PatchField**: กำหนดพฤติกรรมเงื่อนไขขอบเขต:
+- `calculatedFvPatchField`: คำนวณจากค่าข้างเคียง
+- `fixedValueFvPatchField`: ค่าคงที่ที่ผู้ใช้ระบุ
+- `zeroGradientFvPatchField`: เงื่อนไขไล่ระดับปกติศูนย์
+- `mixedFvPatchField`: เงื่อนไขขอบเขต Robin (ค่า + ไล่ระดับ)
+- `directionMixedFvPatchField`: เงื่อนไขผสมทิศทาง
+
+**พารามิเตอร์ GeoMesh**: ระบุวิธีการแยกส่วน:
+- `fvPatch`: แพตช์ปริมาตรจำกัด (พบบ่อยที่สุด)
+- `pointPatch`: การแยกส่วนแบบจุด
+- `facePatch`: การแยกส่วนแบบหน้า
+
+### ตัวอย่างการประกาศฟิลด์
+
+**ฟิลด์ปริมาตร** (ค่าที่จุดศูนย์กลางเซลล์):
+
+```cpp
+// ฟิลด์ความดันที่จุดศูนย์กลางเซลล์
+volScalarField p
+(
+    IOobject
+    (
+        "p",           // ชื่อฟิลด์
+        runTime.timeName(),  // ไดเรกทอรีเวลา
+        mesh,          // อ้างอิงเมช
+        IOobject::MUST_READ,  // อ่านจากไฟล์
+        IOobject::AUTO_WRITE  // เขียนไปยังไฟล์
+    ),
+    mesh            // การสร้างเมช
+);
+
+// ฟิลด์ความเร็วที่จุดศูนย์กลางเซลล์  
+volVectorField U
+(
+    IOobject("U", runTime.timeName(), mesh, IOobject::MUST_READ),
+    mesh
+);
+
+// ฟิลด์ความหนืดความปั่นป่วนที่จุดศูนย์กลางเซลล์
+volScalarField nut
+(
+    IOobject("nut", runTime.timeName(), mesh, IOobject::NO_READ),
+    autoCreateNut(mesh, U)  // ฟังก์ชันสร้างฟิลด์
+);
+```
+
+**ฟิลด์ผิว** (ค่าที่จุดศูนย์กลางหน้า):
+
+```cpp
+// การไหลของความเร็วผ่านหน้า (การแทนค่าเชิงเส้นของ U ไปยังหน้า)
+surfaceScalarField phi
+(
+    IOobject("phi", runTime.timeName(), mesh, IOobject::READ_IF_PRESENT),
+    fvc::interpolate(U) & mesh.Sf()  // แทนค่าและ dot กับพื้นที่ผิว
+);
+
+// ไล่ระดับความดันที่จุดศูนย์กลางหน้า
+surfaceVectorField gradPf
+(
+    IOobject("gradPf", runTime.timeName(), mesh),
+    fvc::interpolate(fvc::grad(p))  // แทนค่าไล่ระดับเซลล์ไปยังหน้า
+);
+
+// ฟิลด์สเกลาร์ผิวสำหรับปริมาณแบบจำลองความปั่นป่วน
+surfaceScalarField mut
+(
+    IOobject("mut", runTime.timeName(), mesh),
+    mesh,
+    calculatedFvPatchScalarField::typeName
+);
+```
+
+### ประเภทฟิลด์เฉพาะ
+
+**ฟิลด์ชั่วคราว** (`tmp` class): wrapper พอยน์เตอร์อัจฉริยะสำหรับการจัดการหน่วยความจำอัตโนมัติ:
+
+```cpp
+// สร้างฟิลด์ไล่ระดับชั่วคราว
+tmp<volVectorField> gradU = fvc::grad(U);
+
+// ใช้ฟิลด์ชั่วคราว (การนับอ้างอิงอัตโนมัติ)
+volScalarField divU = fvc::div(gradU());
+
+// ไม่ต้องการการจัดการหน่วยความจำด้วยตนเอง - tmp จัดการการทำความสะอาด
+```
+
+**ฟิลด์มิติ**: ฟิลด์ที่มีข้อมูลมิติที่ชัดเจน:
+
+```cpp
+// สเกลาร์มิติสำหรับค่าอ้างอิง
+dimensionedScalar pRef
+(
+    "pRef",                    // ชื่อ
+    dimPressure,              // มิติ
+    101325.0                  // ค่า (ปาสคาล)
+);
+
+// เวกเตอร์มิติสำหรับความโน้มถ่วง
+dimensionedVector g
+(
+    "g",                       // ชื่อ
+    dimAcceleration,          // มิติ [L][T]^-2
+    vector(0, -9.81, 0)       // ค่า
+);
+```
+
+## การดำเนินการฟิลด์และการแทนค่า
+
+### ตัวดำเนินการปริมาตรจำกัด
+
+OpenFOAM ให้ชุดตัวดำเนินการปริมาตรจำกัดที่ครอบคลุมซึ่งทำงานร่วมกับระบบฟิลด์ได้อย่างราบรื่น ตัวดำเนินการเหล่านี้ใช้รูปแบบที่แยกส่วนของตัวดำเนินการทางคณิตศาสตร์ที่ต่อเนื่อง:
+
+**ตัวดำเนินการไล่ระดับ** (`fvc::grad`): คำนวณไล่ระดับเชิงพื้นที่โดยใช้ทฤษฎีบทของ Gauss:
+$$\nabla\phi \approx \frac{1}{V_P} \sum_f \phi_f \mathbf{S}_f$$
+
+```cpp
+// เทนเซอร์ไล่ระดับความเร็ว
+volTensorField gradU = fvc::grad(U);
+
+// เวกเตอร์ไล่ระดับความดัน
+volVectorField gradP = fvc::grad(p);
+
+// ไล่ระดับอุณหภูมิ (สเกลาร์)
+volVectorField gradT = fvc::grad(T);
+```
+
+**ตัวดำเนินการไดเวอร์เจนซ์** (`fvc::div`): คำนวณไดเวอร์เจนซ์ของฟิลด์เวกเตอร์และเทนเซอร์:
+$$\nabla \cdot \mathbf{F} \approx \frac{1}{V_P} \sum_f \mathbf{F}_f \cdot \mathbf{S}_f$$
+
+```cpp
+// ไดเวอร์เจนซ์ความเร็ว (ส่วนที่เหลือของสมการต่อเนื่อง)
+volScalarField divU = fvc::div(U);
+
+// เทอมไดเวอร์เจนซ์สมการโมเมนตัม
+volVectorField divRhoUU = fvc::div(rho*U*U);
+
+// ไดเวอร์เจนซ์เทนเซอร์ความเครียด
+volVectorField divTau = fvc::div(tau);
+```
+
+**ตัวดำเนินการลาปลาซีเอียน** (`fvc::laplacian`): ใช้เทอมการแพร่:
+$$\nabla^2\phi \approx \frac{1}{V_P} \sum_f \Gamma_f \nabla\phi_f \cdot \mathbf{S}_f$$
+
+```cpp
+// ลาปลาซีเอียนสมการความดัน Poisson
+fvScalarMatrix pEqn(fvm::laplacian(1/rho, p));
+
+// การแพร่ของอุณหภูมิ
+fvScalarMatrix TEqn(fvm::laplacian(k/(rho*cp), T));
+
+// เทอมความหนืดในสมการโมเมนตัม
+fvVectorMatrix UEqn(fvm::laplacian(nu, U));
+```
+
+### สกีมการแทนค่า
+
+**การแทนค่าเชิงเส้น**: สกีมที่พบบ่อยที่สุดสำหรับการคำนวณค่าหน้า:
+$$\phi_f = f_x \phi_P + (1-f_x)\phi_N$$
+
+โดยที่ $f_x$ เป็นปัจจัยการแทนค่าที่ขึ้นอยู่กับน้ำหนักเรขาคณิต
+
+```cpp
+// แทนค่าความเร็วไปยังจุดศูนย์กลางหน้าสำหรับการคำนวณการไหล
+surfaceVectorField Uf = fvc::interpolate(U);
+
+// แทนค่าคุณสมบัติสเกลาร์สำหรับการไหลของหน้า
+surfaceScalarField kappaf = fvc::interpolate(kappa);
+
+// การแทนค่าเชิงเส้นขึ้นสำหรับเทอมนำพา
+surfaceScalarField phiU = fvc::interpolate(U, "linearUpwind") & mesh.Sf();
+```
+
+**สกีมลำดับสูงกว่า**: การแทนค่าที่แม่นยำยิ่งขึ้นสำหรับการไหลที่ซับซ้อน:
+
+```cpp
+// การแทนค่าเชิงกำลังสองขึ้น (QUICK)
+surfaceScalarField phiQuick = fvc::interpolate(U, "QUICK") & mesh.Sf();
+
+// สกีมความแตกต่าง Gamma (ผสม linear/QUICK)
+surfaceScalarField phiGamma = fvc::interpolate(U, "Gamma") & mesh.Sf();
+
+// สกีมความแตกต่างกลาง (ความแม่นยำลำดับสอง)
+surfaceScalarField phiCentral = fvc::interpolate(U, "central") & mesh.Sf();
+```
+
+**การแทนค่าจำกัด**: สกีม TVD (การลดการแปรผันรวม) สำหรับเสถียรภาพ:
+
+```cpp
+// ตัวจำกัด Minmod (แพร่มากที่สุด)
+surfaceScalarField phiMinmod = fvc::interpolate(U, "Minmod") & mesh.Sf();
+
+// ตัวจำกัด Van Leer (สมดุลความแม่นยำ/เสถียรภาพ)
+surfaceScalarField phiVanLeer = fvc::interpolate(U, "vanLeer") & mesh.Sf();
+
+// ตัวจำกัด Superbee (บีบอัดมากที่สุด)
+surfaceScalarField phiSuperbee = fvc::interpolate(U, "Superbee") & mesh.Sf();
+```
+
+### การดำเนินการพีชคณิตฟิลด์
+
+ฟิลด์ OpenFOAM รองรับการดำเนินการพีชคณิตที่ครอบคลุมตามกฎพีชคณิตเทนเซอร์:
+
+**การดำเนินการตามส่วนประกอบ**:
+
+```cpp
+// การคูณสเกลาร์
+volVectorField scaledU = 2.5 * U;
+
+// การบวกเวกเตอร์
+volVectorField sumVectors = U + V;
+
+// การคูณเทนเซอร์-เวกเตอร์
+volVectorField tauDotU = tau & U;  // เทนเซอร์ความเครียด dot ความเร็ว
+
+// ขนาดและขนาดกำลังสอง
+volScalarField speed = mag(U);
+volScalarField speedSquared = magSqr(U);
+```
+
+**การดำเนินการเทนเซอร์**:
+
+```cpp
+// ทรานสโพสเทนเซอร์
+volTensorField gradUT = gradU.T();
+
+// ส่วนสมมาตรของเทนเซอร์
+volSymmTensorField symmGradU = symm(gradU);
+
+// ส่วนไม่สมมาตรของเทนเซอร์ (เทนเซอร์เวอร์ติซิตี)
+volTensorField skewGradU = skew(gradU);
+
+// ร่องของเทนเซอร์
+volScalarField traceGradU = tr(gradU);
+
+// ส่วนเบี่ยงเบน
+volTensorField devGradU = dev(gradU);
+```
+
+**พีชคณิตเทนเซอร์ขั้นสูง**:
+
+```cpp
+// ผลคูณดับเบิล (การหดตัวเทนเซอร์)
+volScalarField tauColonS = tau && S;  // พลังความเครียด
+
+// ผลคูณเทนเซอร์ (ผลคูณภายนอก)
+volTensorField UU = U * U;  // ผลคูณ dyadic
+
+// เทนเซอร์ cofactor
+volTensorField cofactorGradU = cofactor(gradU);
+
+// ดีเทอร์มิแนนต์ของเทนเซอร์
+volScalarField detGradU = det(gradU);
+```
+
+## ฟิลด์ที่ขึ้นอยู่กับเวลา
+
+### การแยกส่วนเชิงเวลา
+
+ระบบฟิลด์ของ OpenFOAM จัดการปริมาณที่ขึ้นอยู่กับเวลาผ่านประเภทฟิลด์เฉพาะและตัวดำเนินการเชิงเวลา สกีมการผสานเวลาใช้กับฟิลด์เพื่อขั้นการแก้ปัญหาจากช่วงเวลาหนึ่งไปยังช่วงเวลาถัดไป
+
+**ประเภทฟิลด์เชิงเวลา**:
+
+```cpp
+// ฟิลด์ระดับเวลาเก่า (n-1)
+volScalarField p_old = p.oldTime();
+
+// ฟิลด์ระดับเวลาเก่า-เก่า (n-2) สำหรับสกีมลำดับสอง  
+volScalarField p_oldOld = p.oldTime().oldTime();
+
+// ฟิลด์อัตราการเปลี่ยนแปลง
+volScalarField dU_dt = fvc::ddt(U);
+
+// อนุพันธ์เวลาที่มีการรักษาโดยนัย
+fvScalarMatrix pDDT = fvm::ddt(p);
+```
+
+**สกีมการผสานเวลา**
+
+**Euler ชัดแจ้ง** (ลำดับแรก):
+$$\frac{\partial \phi}{\partial t} \approx \frac{\phi^{n+1} - \phi^n}{\Delta t}$$
+
+```cpp
+// อนุพันธ์เวลา Euler ชัดแจ้ง
+volScalarField dPhi_dt = fvc::ddt(phi);
+```
+
+**Euler โดยนัย** (ลำดับแรก, เสถียรโดยไม่มีเงื่อนไข):
+$$\frac{\partial \phi}{\partial t} \approx \frac{\phi^{n+1} - \phi^n}{\Delta t}$$
+
+```cpp
+// อนุพันธ์เวลา Euler โดยนัย (มีส่วนช่วยในเมทริกซ์)
+fvScalarMatrix phiEqn = fvm::ddt(phi);
+```
+
+**Crank-Nicolson** (ลำดับสอง):
+$$\frac{\partial \phi}{\partial t} \approx \frac{2\phi^{n+1} - \phi^n - \phi^{n-1}}{\Delta t}$$
+
+```cpp
+// สกีม Crank-Nicolson ลำดับสอง
+fvScalarMatrix phiEqn = fvm::ddt(phi) == 0.5 * (source_old + source_new);
+```
+
+**Backward Differencing** (ลำดับสอง):
+$$\frac{\partial \phi}{\partial t} \approx \frac{3\phi^{n+1} - 4\phi^n + \phi^{n-1}}{2\Delta t}$$
+
+```cpp
+// การความแตกต่างถอยหลังลำดับสอง
+fvScalarMatrix phiEqn = fvm::ddt(phi);
+```
+
+### การเดินเวลาและการลู่เข้า
+
+**เงื่อนไข Courant-Friedrichs-Lewy (CFL)**:
+$$\text{CFL} = \frac{|\mathbf{u}| \Delta t}{\Delta x} \leq \text{CFL}_{\max}$$
+
+```cpp
+// คำนวณตัวเลข Courant ในพื้นที่
+volScalarField Co
+(
+    0.5 * fvc::ddt(rho) / (rho * mag(U) / mesh.deltaCoeffs())
+);
+
+// ตัวเลข Courant สูงสุดสำหรับการควบคุมช่วงเวลา
+scalar maxCo = max(Co).value();
+```
+
+**การปรับขนาดช่วงเวลาแบบปรับได้**:
+
+```cpp
+// ปรับช่วงเวลาตามตัวเลข Courant
+scalar targetCo = 0.5;
+scalar maxDeltaT = runTime.deltaTValue() * targetCo / maxCo;
+
+if (maxDeltaT > runTime.deltaTValue())
+{
+    runTime.setDeltaT(min(maxDeltaT, 2.0 * runTime.deltaTValue()));
+}
+```
+
+[Diagram: แสดงการปรับขนาดช่วงเวลาแบบปรับได้ตามค่า CFL สูงสุด]
+
+## เงื่อนไขขอบเขตฟิลด์
+
+### ลำดับชั้นเงื่อนไขขอบเขต
+
+OpenFOAM ใช้ระบบเงื่อนไขขอบเขตที่ซับซ้อนซึ่ง treats ขอบเขตฟิลด์เป็นแพตช์ฟิลด์เฉพาะ แต่ละเงื่อนไขขอบเขตสืบทอดจากคลาสฐานร่วมและใช้พฤติกรรมเฉพาะสำหรับการคำนวณค่าฟิลด์ที่ขอบเขตโดเมน
+
+**คลาสฐานแพตช์ฟิลด์**:
+
+```cpp
+template<class Type>
+class fvPatchField
+{
+protected:
+    const fvPatch& patch_;        // ข้อมูลเรขาคณิตแพตช์
+    const DimensionedField<Type, volMesh>& internalField_;
+    
+public:
+    // วิธีอินเตอร์เฟซ
+    virtual void updateCoeffs();  // อัพเดตค่าขอบเขต
+    virtual tmp<Field<Type>> snGrad() const;  // ไล่ระดับปกติ
+    virtual tmp<Field<Type>> gradientInternalCoeffs() const;
+    virtual tmp<Field<Type>> gradientBoundaryCoeffs() const;
+};
+```
+
+**เงื่อนไขขอบเขตค่าคงที่**:
+
+```cpp
+template<class Type>
+class fixedValueFvPatchField : public fvPatchField<Type>
+{
+private:
+    Field<Type> value_;  // ค่าขอบเขตคงที่
+    
+public:
+    // ไล่ระดับปกติคงที่ (ศูนย์)
+    virtual tmp<Field<Type>> snGrad() const
+    {
+        return *this - this->patchInternalField();
+    }
+    
+    // การกำหนดค่าโดยตรง
+    virtual void updateCoeffs()
+    {
+        fvPatchField<Type>::operator==(value_);
+    }
+};
+```
+
+### เงื่อนไขขอบเขตทั่วไป
+
+**Dirichlet (ค่าคงที่)**:
+
+```cpp
+// ความดันคงที่ที่ทางเข้า
+patches
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 101325;  // Pa
+    }
+}
+
+// อุณหภูมิคงที่ที่ผนังที่ทำความร้อน
+walls
+{
+    type            fixedValue;  
+    value           uniform 293;      // K
+}
+```
+
+**Neumann (ไล่ระดับคงที่)**:
+
+```cpp
+// ทางออกไล่ระดับศูนย์ (การไหลที่พัฒนาเต็ม)
+outlet
+{
+    type            zeroGradient;  // ∂φ/∂n = 0
+}
+
+// ผนังการไหลของความร้อนคงที่
+heatedWall  
+{
+    type            fixedGradient;
+    gradient        uniform 1000;  // W/m²
+}
+```
+
+**เงื่อนไขขอบเขตผสม (Robin)**:
+$$\phi + \alpha \frac{\partial \phi}{\partial n} = \phi_{\infty}$$
+
+```cpp
+mixedBoundary
+{
+    type            mixed;
+    refValue        uniform 293;      // φ∞
+    refGradient     uniform 0;        // ไล่ระดับเริ่มต้น
+    valueFraction   uniform 0.8;      // ปัจจัยถ่วงน้ำหนัก
+}
+```
+
+**ฟังก์ชันผนัง** (การจำลองความปั่นป่วน):
+
+```cpp
+// ฟังก์ชันผนังมาตรฐานสำหรับความปั่นป่วน
+walls
+{
+    type            wallFunction;
+    K               uniform 0;
+    epsilon         uniform 0;
+    nut             wallFunction;
+}
+
+// การรักษาผนังที่ปรับปรุง
+walls
+{
+    type            omegaWallFunction;
+    value           uniform 0;
+}
+```
+
+### เงื่อนไขขอบเขตแบบไดนามิก
+
+**เงื่อนไขขอบเขตที่ขึ้นอยู่กับเวลา**:
+
+```cpp
+// ความเร็วทางเข้าที่ขึ้นอยู่กับเวลา
+inlet
+{
+    type            uniformFixedValue;
+    uniformValue    table
+    (
+        (0     (10 0 0))
+        (1     (15 0 0))
+        (2     (20 0 0))
+        (3     (15 0 0))
+        (4     (10 0 0))
+    );
+}
+
+// เงื่อนไขขอบเขตความดันที่สั่น
+outlet
+{
+    type            uniformFixedValue;
+    uniformValue    sine;
+    amplitude       1000;    // Pa
+    frequency       0.1;     // Hz
+    level           101325;  // Pa offset
+}
+```
+
+**เงื่อนไขขอบเขตที่เชื่อมโยง** (หลายเฟส):
+
+```cpp
+// อินเตอร์เฟซระหว่างสองเฟส
+interface
+{
+    type            interfaceCompression;
+    phase           water;
+    compressibility 0.3;
+}
+
+// การเชื่อมโยงสื่อทรุบตัว
+porousRegion
+{
+    type            porousBafflePressure;
+    patchType       wall;
+    D               (5e7 -1000 0);
+    I               1000;
+    length          0.1;
+}
+```
+
+[Diagram: แสดงเงื่อนไขขอบเขตประเภทต่างๆ บนโดเมนการคำนวณ]
+
+## การนำไปปฏิบัติจริง
+
+### การสร้างฟิลด์แบบกำหนดเอง
+
+**การอ่านฟิลด์จากไฟล์**:
+
+```cpp
+// อ่านฟิลด์ความดันจากดิสก์
+volScalarField p
+(
+    IOobject
+    (
+        "p",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,     // ต้องมีอยู่บนดิสก์
+        IOobject::AUTO_WRITE     // เขียนอัตโนมัติ
+    ),
+    mesh
+);
+
+// อ่านด้วยการย้อนกลับไปยังที่คำนวณหากไม่มี
+volVectorField U
+(
+    IOobject
+    (
+        "U",
+        runTime.timeName(),
+        mesh,
+        IOobject::READ_IF_PRESENT,  // การอ่านเลือก
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+```
+
+**การสร้างฟิลด์โดยทางโปรแกรม**:
+
+```cpp
+// เริ่มต้นฟิลด์อุณหภูมิด้วยโปรไฟล์เชิงเส้น
+volScalarField T
+(
+    IOobject
+    (
+        "T",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("Tinit", dimTemperature, 293.0),
+    calculatedFvPatchField<scalar>::typeName
+);
+
+// กำหนดการแปรผันอุณหภูมิเชิงเส้นในทิศทาง x
+const vectorField& C = mesh.C();  // จุดศูนย์กลางเซลล์
+forAll(T, cellI)
+{
+    T[cellI] = 293.0 + 10.0 * C[cellI].x();  // T = T₀ + ΔT·x
+}
+
+// สร้างฟิลด์ที่ได้มาจากฟิลด์ที่มีอยู่
+volScalarField kineticEnergy
+(
+    IOobject
+    (
+        "k",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    0.5 * magSqr(U)  // k = ½|U|²
+);
+```
+
+### การตรวจสอบและแก้จุดบกพร่องฟิลด์
+
+**การตรวจสอบความสม่ำเสมอของมิติ**:
+
+```cpp
+// ตรวจสอบว่าความดันมีมิติที่ถูกต้อง
+if (p.dimensions() != dimPressure)
+{
+    FatalErrorIn("main()")
+        << "ฟิลด์ความดันมีมิติที่ไม่ถูกต้อง: " 
+        << p.dimensions() << nl
+        << "คาดหวัง: " << dimPressure << abort(FatalError);
+}
+
+// ตรวจสอบมิติฟิลด์ขนาดความเร็ว
+volScalarField speed = mag(U);
+if (speed.dimensions() != dimVelocity)
+{
+    Info << "คำเตือน: ฟิลด์ความเร็วมีมิติที่ไม่คาดคิด: "
+         << speed.dimensions() << endl;
+}
+```
+
+**การตรวจสอบช่วงฟิลด์**:
+
+```cpp
+// ตรวจสอบขอบเขตทางกายภาพสำหรับปริมาตรส่วน
+const volScalarField& alpha = mixture.phase1();
+forAll(alpha, cellI)
+{
+    if (alpha[cellI] < 0.0 || alpha[cellI] > 1.0)
+    {
+        WarningIn("main()")
+            << "ปริมาตรส่วนนอกขอบเขตที่เซลล์ " << cellI
+            << ": alpha = " << alpha[cellI] << endl;
+    }
+}
+
+// ตรวจสอบว่าอุณหภูมิอยู่ในช่วงที่สมเหตุสมผล
+scalar Tmin = min(T).value();
+scalar Tmax = max(T).value();
+if (Tmin < 100.0 || Tmax > 2000.0)
+{
+    Info << "การตรวจสอบช่วงอุณหภูมิ: [" << Tmin << ", " << Tmax << "]" << endl;
+}
+```
+
+**การตรวจสอบเงื่อนไขขอบเขต**:
+
+```cpp
+// ตรวจสอบขนาดฟิลด์ขอบเขตตรงกับขนาดแพตช์
+const fvPatchList& patches = mesh.boundary();
+forAll(patches, patchI)
+{
+    const fvPatch& patch = patches[patchI];
+    if (p.boundaryField()[patchI].size() != patch.size())
+    {
+        FatalErrorIn("validateFields()")
+            << "ขนาดฟิลด์ขอบเขตไม่ตรงกันบนแพตช์ " << patch.name()
+            << abort(FatalError);
+    }
+}
+
+// ตรวจสอบการคำนวณไล่ระดับ
+volVectorField gradP = fvc::grad(p);
+scalar maxGradP = max(mag(gradP)).value();
+Info << "ไล่ระดับความดันสูงสุด: " << maxGradP << " Pa/m" << endl;
+```
+
+### การปรับให้เหมาะสมสำหรับประสิทธิภาพ
+
+**กลยุทธ์การจัดการหน่วยความจำ**:
+
+```cpp
+// ใช้ tmp สำหรับการจัดการหน่วยความจำอัตโนมัติ
+tmp<volVectorField> gradU = fvc::grad(U);
+tmp<volScalarField> divU = fvc::div(gradU());
+
+// เก็บผลลัพธ์ชั่วคราวในรีจิสเตอร์เมื่อเป็นไปได้
+surfaceScalarField phi = fvc::interpolate(U) & mesh.Sf();
+
+// นำกลับมาใช้หน่วยความจำที่จัดสรรใหม่ด้วยฟิลด์อ้างอิง
+volScalarField& pRef = p;  // การอ้างอิงหลีกเลี่ยงการคัดลอก
+pRef += 0.5 * rho * magSqr(U);  // ความดัน Bernoulli
+```
+
+**การดำเนินการฟิลด์แบบขนาน**:
+
+```cpp
+// การดำเนินการลดระดับทั่วโลกสำหรับสถิติฟิลด์
+scalar totalMass = gSum(rho * mesh.V());
+scalar maxVelocity = gMax(mag(U));
+scalar averageTemperature = gAverage(T);
+
+// การสื่อสารขนานสำหรับค่าขอบเขต
+p.correctBoundaryConditions();  // ซิงโครไนซ์ข้ามโปรเซสเซอร์
+
+// การรายงานสถิติฟิลด์ทั่วโลก
+if (Pstream::master())
+{
+    Info << "สถิติฟิลด์:" << nl
+         << "  มวลรวม: " << totalMass << nl
+         << "  ความเร็วสูงสุด: " << maxVelocity << nl
+         << "  อุณหภูมิเฉลี่ย: " << averageTemperature << nl;
+}
+```
+
+พื้นฐานของความสามารถการคำนวณของ OpenFOAM พักอยู่บนระบบประเภทฟิลด์ที่ซับซ้อนนี้ โดยการให้การวิเคราะห์มิติที่ครอบคลุม พีชคณิตเทนเซอร์ที่แข็งแกร่ง และการจัดการเงื่อนไขขอบเขตที่ยืดหยุ่น ประเภทฟิลด์ทำให้สามารถแก้ปัญหาหลายฟิสิกส์ที่ซับซ้อนได้อย่างแม่นยำและมีประสิทธิภาพในช่วงกว้างของการประยุกต์ใช้ทางวิศวกรรม

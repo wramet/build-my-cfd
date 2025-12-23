@@ -1,0 +1,170 @@
+# 1.4 กลไก: การนำไปใช้เงื่อนไขขอบเขต `mappedWall`
+
+## เครื่องมือ Mapping: `mappedPatchBase`
+
+แกนกลางของการเชื่อมโยงระหว่าง region คือ `mappedPatchBase`—ซึ่งเป็นเครื่องมือ mapping เชิงเรขาคณิตที่สร้างความสัมพันธ์ระหว่าง source และ target faces/cells
+
+[Diagram: แสดงการทำงานของ mappedPatchBase ระหว่าง source region และ target region]
+
+ระบบ mapping ขั้นสูงนี้ช่วยให้สามารถถ่ายโอนข้อมูลระหว่าง mesh region ต่างๆ ได้อย่างมีประสิทธิภาพ ในขณะเดียวกันก็รักษาความแม่นยำทางตัวเลขและประสิทธิภาพในการคำนวณ
+
+คลาส `mappedPatchBase` ใช้งานกรอบการทำงาน mapping ที่ครอบคลุมซึ่งจัดการกับความสัมพันธ์เชิงเรขาคณิตที่หลากหลายระหว่าง mesh region รองรับ sampling strategy หลายแบบเพื่อสมดุลระหว่างต้นทุนการคำนวณและความต้องการความแม่นยำ
+
+```cpp
+// src/meshTools/mappedPatches/mappedPolyPatch/mappedWallPolyPatch.H
+class mappedWallPolyPatch
+:
+    public wallPolyPatch,
+    public mappedPatchBase  // ← Inheritance จาก mapping engine
+{
+    TypeName("mappedWall");
+
+    // Constructors ระบุพารามิเตอร์ sampling:
+    // - sampleRegion: region ที่จะทำการ sampling
+    // - sampleMode: nearestCell, nearestFace, nearestPatchFace, เป็นต้น
+    // - samplePatch: patch ที่จะทำการ sampling
+    // - offset: การเลื่อนตำแหน่งเชิงเรขาคณิตระหว่าง region
+};
+```
+
+โครงสร้างการสืบทอดสาธิตวิธีที่ OpenFOAM รวมฟังก์ชันการทำงานของโมดูลต่างๆ `mappedWallPolyPatch` สืบทอดมาจากทั้ง `wallPolyPatch` (ซึ่งให้พฤติกรรมเงื่อนไขขอบเขตแบบผนัง) และ `mappedPatchBase` (ซึ่งให้ mapping engine)
+
+### โหมด Sampling ที่รองรับ
+
+| โหมด | คำอธิบาย | ความแม่นยำ | ประสิทธิภาพ |
+|-------|------------|-------------|--------------|
+| **`nearestCell`** | Map ไปยัง center ของ cell ที่ใกล้ที่สุด | First-order | เร็วที่สุด |
+| **`nearestFace`** | Map ไปยัง center ของ face ที่ใกล้ที่สุด | Medium | เร็ว |
+| **`nearestPatchFace`** | Map ไปยัง face ที่ใกล้ที่สุดบน patch ที่ระบุ | Medium-High | เร็ว |
+| **`interpolation`** | ใช้ interpolation scheme ขั้นสูง | Second-order+ | ช้าที่สุด |
+
+#### รายละเอียดโหมด Sampling
+
+- **`nearestCell`**: ให้ประสิทธิภาพการคำนวณสูงสำหรับการประยุกต์ใช้ทางวิศวกรรม อัลกอริทึมคำนวณระยะทางเชิงเรขาคณิตอย่างง่ายระหว่าง target face centers และ source cell centers
+
+- **`nearestFace`**: ให้ความแม่นยำดีขึ้นสำหรับปริมาณที่มีศูนย์กลางที่ face เช่น fluxes และ gradients โดยการรับประกันว่า mapping เคารพลักษณะเรขาคณิตของ face
+
+- **`nearestPatchFace`**: มีประโยชน์อย่างยิ่งเมื่อ coupling ของ boundary patch ที่ระบุ ทำให้มั่นใจได้ว่าการถ่ายโอนข้อมูลเกิดขึ้นระหว่าง interface region ที่กำหนดเท่านั้น
+
+- **`interpolation`**: ใช้อัลกอริทึม interpolation ขั้นสูงที่พิจารณาจุดข้างเคียงหลายจุด ให้ความแม่นยำระดับ second-order หรือสูงกว่า โดยแลกกับต้นทุนการคำนวณที่เพิ่มขึ้น
+
+[Diagram: แสดงความแตกต่างระหว่างโหมด sampling ต่างๆ]
+
+## Field Mapping: `mappedFixedValueFvPatchField`
+
+การ coupling ของ field จริงถูกนำไปใช้ผ่านเงื่อนไขขอบเขตเฉพาะที่จัดการกับกระบวนการถ่ายโอนข้อมูลระหว่างการทำงานของ solver
+
+```cpp
+// src/finiteVolume/fields/fvPatchFields/derived/mappedFixedValue/mappedFixedValueFvPatchField.H
+template<class Type>
+class mappedFixedValueFvPatchField
+:
+    public fixedValueFvPatchField<Type>,
+    public mappedPatchFieldBase<Type>
+{
+    TypeName("mapped");  // Dictionary type: "mapped"
+
+protected:
+    // ส่งคืน reference ไปยัง mapper
+    const mappedPatchBase& mapper
+    (
+        const fvPatch& p,
+        const DimensionedField<Type, volMesh>& iF
+    );
+
+public:
+    // อัพเดทค่าขอบเขตจาก source ที่ map
+    virtual void updateCoeffs();
+};
+```
+
+การออกแแบบแบบ templated อนุญาตให้เงื่อนไขขอบเขตนี้จัดการกับ field types ต่างๆ (scalar, vector, tensor) อย่างสม่ำเสมอ
+
+### ตัวอย่างการระบุเงื่อนไขขอบเขต
+
+```cpp
+// 0/fluid/T boundary field สำหรับ interface patch
+interface_to_solid
+{
+    type            mapped;               // ใช้ mappedFixedValue
+    fieldName       T;                    // Field ที่จะ map (ค่าเริ่มต้นคือ field เดียวกัน)
+    setAverage      no;                   // ไม่บังคับค่าเฉลี่ย
+    average         0;                    // ค่าเฉลี่ยถ้า setAverage=yes
+    interpolationScheme cell;             // Sampling: cell, point, face
+    value           uniform 300;          // ค่าเริ่มต้น (จะถูกเขียนทับ)
+}
+```
+
+### พารามิเตอร์การควบคุม
+
+| พารามิเตอร์ | คำอธิบาย | ค่าเริ่มต้น |
+|-------------|------------|-------------|
+| **`type`** | ระบุประเภทเงื่อนไขขอบเขตเป็น "mapped" | - |
+| **`fieldName`** | อนุญาต map จากชื่อ field ที่แตกต่าง | field เดียวกัน |
+| **`setAverage`** | บังคับใช้ conservation โดยปรับค่า | no |
+| **`interpolationScheme`** | ควบคุมอัลกอริทึมการ sampling | cell |
+| **`value`** | ค่าเริ่มต้นที่จะถูกเขียนทับ | - |
+
+## อัลกอริทึมการถ่ายโอนข้อมูล
+
+### ขั้นตอนการทำงาน
+
+**1. Geometry Mapping**
+```
+ระหว่างการสร้าง mesh:
+mappedPatchBase สร้าง interpolation weights
+↓
+คำนวณความสัมพันธ์เชิงเรขาคณิต
+↓
+เก็บ distance metrics และ interpolation coefficients
+```
+
+**2. Field Sampling**
+```
+ระหว่างการทำงาน solver:
+updateCoeffs() ถูกเรียกโดยอัตโนมัติ
+↓
+ใช้ weights ที่เก็บไว้ทำ sampling source field
+↓
+ค่าขอบเขตยังคง同步กับค่าของ source field
+```
+
+**3. Boundary Update**
+```
+ค่าที่ทำ sampling แทนที่ค่าของ boundary field
+↓
+ค่าที่ map กลายเป็นเงื่อนไขขอบเขตปัจจุบัน
+↓
+พฤติกรรมทางฟิสิกส์สม่ำเสมอข้าม region interfaces
+```
+
+**4. Conservation**
+```
+บังคับใช้ความต่อเนื่องของ heat flux
+↓
+รักษา energy conservation:
+    heat flux ออกจาก region หนึ่ง = heat flux เข้าสู่ region ข้างเคียง
+↓
+ต้องการ sub-iterations ภายในแต่ละ time step สำหรับการลู่เข้า
+```
+
+[Diagram: แสดงขั้นตอนการทำงานของระบบ mapping จาก preprocessing ถึง runtime]
+
+## ข้อดีของสถาปัตยกรรม
+
+สถาปัตยกรรมนี้ทำให้สามารถคำนวณ conjugate heat transfer ขั้นสูงได้ในขณะที่รักษาคุณสมบัติดังต่อไปนี้:
+
+### ✅ **Modularity**
+- การแยก geometric mapping (`mappedPatchBase`) จาก field transfer (`mappedFixedValueFvPatchField`)
+- ทำให้สามารถใช้ coupling strategy ที่ยืดหยุ่น
+- ช่วยให้ง่ายต่อการนำอัลกอริทึม mapping และประเภทเงื่อนไขขอบเขตใหม่ๆ ไปใช้
+
+### ✅ **Extensibility**
+- รองรับ sampling strategy หลายแบบ
+- ปรับเปลี่ยนได้ตามความต้องการของ application
+- เหมาะสำหรับ coupling scenario ที่แตกต่างกันตั้งแต่ conjugate heat transfer ธรรมดาไปจนถึงการปฏิสัมพันธ์ multiphysics ที่ซับซ้อน
+
+### ✅ **Performance**
+- Preprocessing step ลดต้นทุนการคำนวณระหว่าง runtime
+- Interpolation weights ถูกคำนวณครั้งเดียวและนำกลับมาใช้ซ้ำ
+- หลากหลายโหมด sampling สำหรับการปรับสมดุลระหว่างความแม่นยำและประสิทธิภาพ

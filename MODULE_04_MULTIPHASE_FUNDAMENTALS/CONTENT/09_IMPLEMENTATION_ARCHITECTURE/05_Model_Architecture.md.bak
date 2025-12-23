@@ -1,0 +1,197 @@
+# สถาปัตยกรรมโมเดล
+
+## ลำดับชั้นโมเดลการลากตัว
+
+ลำดับชั้นโมเดลการลากตัวใน OpenFOAM ให้กรอบการทำงานที่ยืดหยุ่นสำหรับการคำนวณการถ่ายเทโมเมนตัมระหว่างเฟสในการไหลแบบหลายเฟส
+
+### โครงสร้างหลัก
+
+- **คลาสฐาน `dragModel`** ทำหน้าที่เป็นอินเตอร์เฟซนามธรรม
+- **ออกแบบให้ยืดหยุ่น** สามารถเลือก correlations การลากตัวที่แตกต่างกันได้ในขณะทำงาน
+- **ใช้รูปแบบเมธอด factory** สำหรับการสร้างโมเดลแบบไดนามิก
+
+### ส่วนประกอบของคลาส dragModel
+
+**virtual destructor** และ **เมธอดเสมือนสองประการ:**
+
+1. **เมธอดเสมือนบริสุทธิ์ `F()`**: คำนวณแรงลากตัวระหว่างสองเฟส
+2. **เมธอด factory แบบสแตติก `New()`**: สร้างอินสแตนซ์โมเดลการลากตัวเฉพาะโดยยึดตามรายการ dictionary
+
+[Diagram: ลำดับชั้นโมเดลการลากตัวใน OpenFOAM แสดงความสัมพันธ์ระหว่าง dragModel ฐานและคลาสย่อยต่างๆ]
+
+```cpp
+// โมเดลการลากตัวฐาน
+class dragModel
+{
+public:
+    // Virtual destructor
+    virtual ~dragModel() {}
+
+    // คำนวณแรงลากตัว
+    virtual tmp<volVectorField> F
+    (
+        const phaseModel& phase1,
+        const phaseModel& phase2
+    ) const = 0;
+
+    // เมธอด factory สำหรับการสร้างโมเดล
+    static autoPtr<dragModel> New
+    (
+        const dictionary& dict,
+        const phasePair& pair
+    );
+};
+```
+
+### โมเดลเฉพาะ: Schiller-Naumann Drag
+
+**คุณสมบัติ:**
+- **สืบทอดจากคลาส dragModel**
+- **เหมาะสำหรับการไหลของฟองกระจาย** (dispersed bubble flow)
+- **ใช้งานได้ดีกับจำนวน Reynolds ต่ำถึงปานกลาง**
+
+**สมการความสัมพันธ์ของสัมประสิทธิ์การลากตัว:**
+$$C_D = \begin{cases} 24(1 + 0.15 Re^{0.687}) / Re & \text{if } Re < 1000 \\ 0.44 & \text{if } Re \geq 1000 \end{cases}$$
+
+**ตัวแปรในสมการ:**
+- $C_D$ = สัมประสิทธิ์การลากตัว (drag coefficient)
+- $Re$ = จำนวน Reynolds สัมพัทธ์ระหว่างเฟส
+- $Re = \rho_p |\mathbf{u}_p - \mathbf{u}_c| d_p / \mu_c$
+  - $\rho_p$ = ความหนาแน่นของอนุภาค
+  - $\mathbf{u}_p, \mathbf{u}_c$ = เวกเตอร์ความเร็วของเฟสและเฟสต่อเนื่อง
+  - $d_p$ = เส้นผ่านศูนย์กลางอนุภาค
+  - $\mu_c$ = ความหนืดของเฟสต่อเนื่อง
+
+```cpp
+// โมเดลการลากตัว Schiller-Naumann
+class SchillerNaumannDrag
+:
+    public dragModel
+{
+private:
+    const phasePair& pair_;
+
+public:
+    // Constructor
+    SchillerNaumannDrag
+    (
+        const dictionary& dict,
+        const phasePair& pair
+    );
+
+    // คำนวณแรงลากตัว
+    virtual tmp<volVectorField> F
+    (
+        const phaseModel& phase1,
+        const phaseModel& phase2
+    ) const;
+};
+```
+
+## การผสมผสานโมเดลความปั่นป่วน
+
+กรอบการทำงานโมเดลความปั่นป่วนแบบหลายเฟสขยายแนวทางการจำลองความปั่นป่วนแบบเฟสเดียวเพื่อจัดการกับหลายเฟสที่โต้ตอบกัน
+
+### สถาปัตยกรรมหลัก
+
+**คลาส `phaseCompressibleTurbulenceModel`:**
+- **สืบทอดจาก** `compressible::turbulenceModel` ฐาน
+- **เพิ่มฟังก์ชันการทำงานเฉพาะเฟส** ผ่านการอ้างอิงถึงโมเดลเฟสแต่ละตัว
+- **รักษาการ coupling** ที่เหมาะสมระหว่างเฟส
+
+### คุณสมบัติที่สำคัญ
+
+- **แต่ละเฟสมีลักษณะความปั่นป่วนของตัวเอง**
+- **ให้การเข้าถึงฟิลด์เฉพาะเฟส:** ความหนาแน่น, ความเร็ว, สัดส่วนปริมาตร
+- **รักษาเสถียรภาพเชิงตัวเลข** และความสอดคล้องทางฟิสิกส์ข้ามอินเตอร์เฟซเฟส
+
+[Diagram: การเชื่อมโยงระหว่างโมเดลความปั่นป่วนแต่ละเฟสในระบบหลายเฟส]
+
+```cpp
+// โมเดลความปั่นป่วนแบบหลายเฟส
+class phaseCompressibleTurbulenceModel
+:
+    public compressible::turbulenceModel
+{
+protected:
+    const phaseModel& phase_;
+    const phaseSystem& phaseSystem_;
+
+public:
+    // Constructor
+    phaseCompressibleTurbulenceModel
+    (
+        const volScalarField& rho,
+        const volVectorField& U,
+        const surfaceScalarField& phi,
+        const phaseModel& phase
+    );
+
+    // คำนวณความเค้น Reynolds
+    virtual tmp<volSymmTensorField> R() const;
+
+    // คำนวณความหนืดความปั่นป่วน
+    virtual tmp<volScalarField> mut() const;
+
+    // ขั้นตอนการแก้ไข
+    virtual void correct();
+};
+```
+
+### เมธอดสำคัญสำหรับการคำนวณแบบหลายเฟส
+
+#### 1. การคำนวณความเค้น Reynolds (`R()`)
+
+**ส่งคืนเทนเซอร์ความเค้น Reynolds สำหรับเฟส** ซึ่งคำนึงถึงการถ่ายเทโมเมนตัมแบบปั่นป่วน:
+
+$$\mathbf{R}_k = -\rho_k \overline{\mathbf{u}'_k \mathbf{u}'_k}$$
+
+**ตัวแปร:**
+- $\mathbf{R}_k$ = เทนเซอร์ความเค้น Reynolds สำหรับเฟส $k$
+- $\rho_k$ = ความหนาแน่นของเฟส $k$
+- $\overline{\mathbf{u}'_k \mathbf{u}'_k}$ = การเฉลี่ยของผลคูณความเร็วความปั่นป่วน
+
+#### 2. ความหนืดความปั่นป่วน (`mut()`)
+
+**คำนวณความหนืดความปั่นป่วนสำหรับเฟส** โดยทั่วไปจำลองโดยใช้โมเดลความหนืด eddy:
+
+$$\mu_{t,k} = \rho_k C_\mu \frac{k_k^2}{\epsilon_k}$$
+
+**ตัวแปร:**
+- $\mu_{t,k}$ = ความหนืดความปั่นป่วนของเฟส $k$
+- $C_\mu$ = ค่าคงที่จากโมเดลความปั่นป่วน
+- $k_k$ = พลังงานจลน์ความปั่นป่วนของเฟส $k$
+- $\epsilon_k$ = อัตราการสลายของพลังงานจลน์ความปั่นป่วนของเฟส $k$
+
+#### 3. ขั้นตอนการแก้ไข (`correct()`)
+
+**อัปเดตปริมาณความปั่นป่วนในแต่ละช่วงเวลา:**
+
+- **แก้สมการการถ่ายเท** สำหรับพลังงานจลน์ความปั่นป่วน $k$
+- **แก้สมการการถ่ายเท** สำหรับอัตราการสลาย $\epsilon$
+- **รวมผลของสัดส่วนปริมาตรเฟส** และการโต้ตอบระหว่างเฟส
+
+### ขั้นตอนการทำงานของระบบ
+
+```
+START: Time loop
+├── 1. Update phase fractions
+├── 2. Solve momentum equations with drag forces
+├── 3. Call turbulenceModel.correct() for each phase
+│   ├── Update k-equation: ∂(ρk)/∂t + ∇·(ρU k) = ∇·[(μ+μt/σk)∇k] + Pk - ρε
+│   └── Update ε-equation: ∂(ρε)/∂t + ∇·(ρU ε) = ∇·[(μ+μt/σε)∇ε] + C1 Pk ε/k - C2 ρ ε²/k
+├── 4. Update turbulent viscosity μt
+├── 5. Update Reynolds stress tensor R
+└── 6. Check convergence
+```
+
+**โมเดลความปั่นป่วนที่รองรับ:**
+
+| โมเดล | ชื่อใน OpenFOAM | คุณสมบัติ |
+|--------|-------------------|------------|
+| k-ε Standard | `kEpsilon` | แบบดั้งเดิม, เหมาะกับการไหลที่พัฒนาเต็มที่ |
+| k-ω Standard | `kOmega` | ดีกับชั้นขอบเขตและความดันแปรผันต่ำ |
+| k-ω SST | `kOmegaSST` | ผสมผสาน k-ε และ k-ω, ความแม่นยำสูง |
+| Spalart-Allmaras | `SpalartAllmaras` | โมเดลสมการเดียว, ประหยัดค่าใช้จ่าย |
+
+กรอบการทำงานความปั่นป่วนแบบหลายเฟสช่วยให้แน่ใจว่าการสั่นคลอนแบบปั่นป่วนและผลกระทบต่อโมเมนตัม มวล และการถ่ายเทความร้อนได้รับการจำลองอย่างเหมาะสม

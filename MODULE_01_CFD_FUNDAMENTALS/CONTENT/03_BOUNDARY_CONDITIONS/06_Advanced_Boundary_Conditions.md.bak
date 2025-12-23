@@ -1,0 +1,197 @@
+# เงื่อนไขขอบเขตขั้นสูง (Advanced Boundary Conditions)
+
+## Inlet/Outlet
+
+### `inletOutlet` Boundary Condition
+
+เป็นเงื่อนไขแบบไฮบริดที่ซับซ้อน ซึ่งจะเปลี่ยนพฤติกรรมโดยอัตโนมัติตามทิศทางการไหลเฉพาะที่ ณ แต่ละหน้าของ Boundary Patch
+
+**คุณค่าหลัก**:
+- ใช้ได้ดีที่ท้าย Bluff Body
+- เหมาะสำหรับโซนการไหลย้อนกลับ (recirculation zones)
+- เหมาะสำหรับทางออกที่มีการหลุดของกระแสวน (vortex shedding) อย่างรุนแรง
+
+
+```mermaid
+graph LR
+    A["Local Mass Flux<br/>φf = ρ u ⋅ n"] --> B{"φf > 0 ?"}
+    B -->|Yes (Inflow)| C["Fixed Value<br/>Inlet Condition"]
+    B -->|No (Outflow)| D["Zero Gradient<br/>Outlet Condition"]
+    
+    E["Boundary Patch"] --> F["Calculate Local
+Mass Flux"]
+    F --> A
+    
+    C --> G["u = u_fixed"]
+    D --> H["∂u/∂n = 0"]
+    
+    G --> I["Flow Entering
+Domain"]
+    H --> J["Flow Leaving
+Domain"]
+    
+    K["Recirculation
+Zone"] --> L["Mixed Behavior
+on Same Patch"]
+    L --> M["Automatic
+Switching"]
+    M --> B
+    
+    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    
+    class A,E,F,I,J process;
+    class B,L,M decision;
+    class C,D,G,H terminator;
+    class K storage;
+```
+
+
+#### หลักการทางคณิตศาสตร์
+
+Boundary Condition นี้ทำงานโดยพิจารณาจากเครื่องหมายของ **Local Mass Flux**:
+$$\phi_f = \rho \mathbf{u} \cdot \mathbf{n}_f$$
+
+โดยที่:
+- $\phi_f$ = Local mass flux
+- $\rho$ = ความหนาแน่นของไหล
+- $\mathbf{u}$ = เวกเตอร์ความเร็ว
+- $\mathbf{n}_f$ = เวกเตอร์แนวฉากที่ชี้ออกด้านนอกที่หน้า $f$
+
+ตรรกะการสลับ:
+$$
+\mathbf{u}_b = \begin{cases}
+\mathbf{u}_{\text{fixed}} & \text{if } \phi_f > 0 \text{ (inflow)} \\
+\mathbf{u}_{\text{zero-grad}} & \text{if } \phi_f \leq 0 \text{ (outflow)}
+\end{cases}
+$$
+
+#### OpenFOAM Code Implementation
+
+```cpp
+outlet
+{
+    type            inletOutlet;
+    inletValue      uniform (0 0 0);
+    value           uniform (0 0 0);
+}
+```
+
+**รายละเอียดการนำไปใช้งาน**:
+- ใช้ **Template Metaprogramming** พร้อมการสลับการทำงานขณะรันไทม์ (runtime switching)
+- ประเมิน **Face Flux** สำหรับแต่ละ Boundary Face
+- ใช้การจัดการแบบ **Face-by-Face**
+- `inletValue` ระบุค่าคงที่ที่ใช้ในสภาวะ Inflow
+- Outflow จะมีการบังคับใช้ **Zero Gradient Condition**
+
+#### การประยุกต์ใช้งานจริง
+
+| สถานการณ์ | ประโยชน์ของ inletOutlet |
+|------------|-------------------------|
+| **การไหลรอบ Bluff Body** | จัดการกับ vortex shedding ที่ทางออก |
+| **การไหลแบบหลายเฟส** | รองรับการแกว่งของรอยต่อใกล้ Boundary |
+| **การไหลแบบหมุนเวียน** | ป้องกันการไหลย้อนกลับ (Backflow Prevention) |
+| **การจำลองแบบชั่วคราว** | รองรับการกลับทิศทางการไหลเป็นคาบ |
+
+**ข้อได้เปรียบหลัก**: **ความเสถียรเชิงตัวเลข** (numerical stability) โดยการป้องกันการไหลย้อนกลับที่ไม่เป็นไปตามหลักฟิสิกส์ซึ่งอาจทำให้เกิดการลู่ออก (divergence)
+
+---
+
+## Cyclic (เป็นคาบ)
+
+### `cyclic` Boundary Condition
+
+ใช้ **Periodic Boundary Conditions** โดยการสร้างการเชื่อมต่อเชิงทอพอโลยี (topological connection) ระหว่าง Boundary Patch สองอัน
+
+
+```mermaid
+graph TD
+    A["Patch A<br/>Left Boundary"] --> B["Physical<br/>Continuity"]
+    B --> C["Field Transfer<br/>(Velocity, Pressure, etc.)"]
+    C --> D["Patch B<br/>Right Boundary"]
+    D --> A
+    
+    subgraph "Cyclic Pair Properties"
+        E["Identical Mesh<br/>Topology"]
+        F["Same Number of<br/>Faces"]
+        G["Transformation<br/>Mapping"]
+    end
+    
+    B -.-> E
+    C -.-> F
+    D -.-> G
+    
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+    style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    style D fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:#000;
+    style F fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:#000;
+    style G fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:#000;
+```
+
+
+**หลักการทำงาน**:
+- ถือว่า Patch ที่ระบุมีความต่อเนื่องทางกายภาพ
+- ทำให้ของไหล, โมเมนตัม, และปริมาณอื่นๆ ที่ถูกขนส่งสามารถไหลผ่านได้อย่างราบรื่น
+- บังคับใช้ความเท่าเทียมกันของ Field และความต่อเนื่องของ Flux
+- สร้างโครงสร้างโดเมนแบบอนันต์หรือแบบซ้ำกันอย่างมีประสิทธิภาพ
+
+#### กรอบแนวคิดเชิงทอพอโลยี
+
+เมื่อ Patch สองอันถูกกำหนดให้เป็น Cyclic, OpenFOAM จะทำการ:
+
+1. **จับคู่ทางเรขาคณิต** (geometric matching) เพื่อความสอดคล้องกันแบบ Face-by-Face
+2. **ปรับเปลี่ยน Mesh Topology** ให้:
+   - จุดศูนย์กลางของ Face สอดคล้องกัน
+   - พื้นที่ของ Face เท่ากัน
+   - เวกเตอร์แนวฉากจัดเรียงตามการแปลงที่ระบุ
+
+**การแปลงที่เป็นไปได้**:
+- **การเลื่อน** (translation)
+- **การหมุน** (rotation)
+- **การสะท้อน** (reflection)
+
+#### การนำไปใช้งานทางคณิตศาสตร์
+
+สำหรับ Field $\phi$ ที่ใช้กับ Cyclic Boundary Conditions:
+$$\phi_{\text{patch A}}(\mathbf{x}) = \phi_{\text{patch B}}(\mathbf{T}(\mathbf{x}))$$
+
+โดยที่:
+- $\mathbf{T}$ = การแปลงทางเรขาคณิตที่แมปพิกัดจาก Patch A ไปยัง Patch B
+- $\phi$ = Field ที่ถูกบังคับใช้เงื่อนไข
+
+ความต่อเนื่องของ Flux:
+$$\mathbf{n}_A \cdot \nabla \phi_A = -\mathbf{n}_B \cdot \nabla \phi_B$$
+
+เพื่อให้มั่นใจในการอนุรักษ์ปริมาณที่ถูกขนส่งข้ามรอยต่อที่เป็นคาบ
+
+#### OpenFOAM Code Implementation
+
+```cpp
+left
+{
+    type            cyclic;
+    neighbourPatch  right;
+}
+```
+
+**การนำไปใช้งานในระบบ**:
+- ใช้คลาส `cyclicPolyPatch` ภายใน Mesh Topology
+- ระหว่างการสร้าง Mesh: สร้างการสอดคล้องกันของ Face และเมทริกซ์การแปลงทางเรขาคณิต
+- สำหรับการคำนวณแบบขนาน: จัดการการสื่อสารระหว่างโปรเซสเซอร์เพื่อรักษาความเป็นคาบ
+
+#### การประยุกต์ใช้งานและรูปแบบต่างๆ
+
+| การประยุกต์ใช้งาน | คำอธิบาย |
+|------------------|------------|
+| **โดเมนที่เป็นคาบ** | Turbomachinery Cascades, Heat Exchangers |
+| **การประมาณค่ากระบอก/ทรงกลมอนันต์** | ใช้รูปทรงลิ่ม (wedge geometries) |
+| **เครื่องจักรหมุน** | กรอบอ้างอิงแบบหมุน (rotating reference frames) |
+| **การจำลองการไหลในช่อง** | การวิจัย Turbulence (Channel Flow) |
+
+**รูปแบบเฉพาะทางใน OpenFOAM**:
+- `cyclicAMI`: สำหรับการเชื่อมต่อ Arbitrary Mesh Interface
+- `turbulentDFSEMInlet`: สำหรับการสร้าง Synthetic Turbulent Inflow โดยใช้วิธี Digital Filter

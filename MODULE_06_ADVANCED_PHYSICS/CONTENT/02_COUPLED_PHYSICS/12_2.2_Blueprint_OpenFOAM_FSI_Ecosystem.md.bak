@@ -1,0 +1,235 @@
+## 2.2 Blueprint: OpenFOAM FSI Ecosystem
+
+OpenFOAM รองรับ FSI ผ่านหลายวิธี:
+
+---
+
+## 🔧 1. solids4foam (ชุดเครื่องมือเฉพาะทาง)
+
+**ข้อมูลเบื้องต้น**
+- **วัตถุประสงค์**: FSI แบบ coupling แบบเต็มกับของแข็ง finite element
+- **สถาปัตยกรรม**: Monolithic solver พร้อมตัวเลือก partitioned coupling
+- **จุดแข็ง**: การเสียรูปขนาดใหญ่ วัสดุไม่เชิงเส้น การสัมผัส
+- **ข้อจำกัด**: ความชันที่สูงขึ้น ความต้องการ mesh เฉพาะทาง
+
+ส่วนขยาย **solids4foam** แสดงถึงโซลูชัน FSI ที่ครอบคลุมที่สุดของ OpenFOAM โดยใช้แนวทาง monolithic solver ซึ่งสมการของไหลและของแข็งถูกแก้พร้อมกันในกรอบการคำนวณเดียว ชุดเครื่องมือนี้ผสานกลศาสตร์ของแข็ง finite element เข้ากับสถาปัตยกรรม finite volume ของ OpenFOAM โดยตรง ช่วยให้สามารถทำ two-way coupling ที่ซับซ้อนระหว่างการไหลของไหลและการเสียรูปของโครงสร้างได้
+
+### พื้นฐานทางคณิตศาสตร์
+
+แนวทาง monolithic แก้ระบบ coupled fluid-structure:
+$$\begin{bmatrix}
+\mathbf{A}_f & \mathbf{C}_{fs} \\
+\mathbf{C}_{sf} & \mathbf{A}_s
+\end{bmatrix}
+\begin{bmatrix}
+\Delta \mathbf{x}_f \\
+\Delta \mathbf{x}_s
+\end{bmatrix}
+=
+\begin{bmatrix}
+\mathbf{b}_f \\
+\mathbf{b}_s
+\end{bmatrix}$$
+
+โดยที่:
+- $\mathbf{A}_f$ เมทริกซ์ระบบของไหล
+- $\mathbf{A}_s$ เมทริกซ์ระบบของแข็ง
+- $\mathbf{C}_{fs}$, $\mathbf{C}_{sf}$ เมทริกซ์ coupling ที่ interface ระหว่างไหลและโครงสร้าง
+- $\Delta \mathbf{x}_f$, $\Delta \mathbf{x}_s$ การเปลี่ยนแปลงของตัวแปรไหลและของแข็ง
+- $\mathbf{b}_f$, $\mathbf{b}_s$ เวกเตอร์ของขวาของระบบไหลและของแข็ง
+
+### แบบจำลองวัสดุ
+
+solids4foam รองรับแบบจำลองเชิงสร้างขั้นสูง ได้แก่:
+
+**Neo-Hookean hyperelasticity**:
+$$\boldsymbol{\sigma} = \frac{\mu}{J}(\mathbf{B} - \mathbf{I}) + \frac{\lambda}{J}\ln(J)\mathbf{I}$$
+
+**Mooney-Rivlin**:
+$$W = C_1(I_1 - 3) + C_2(I_2 - 3) + \frac{K}{2}(J - 1)^2$$
+
+**Viscoelastic พร้อมอนุกรม Prony**:
+$$G(t) = G_{\infty} + \sum_{i=1}^N G_i e^{-t/\tau_i}$$
+
+โดยที่:
+- $\boldsymbol{\sigma}$ เทนเซอร์ความเค้น
+- $\mu$, $\lambda$ พารามิเตอร์วัสดุ Lamé
+- $J$ determinant ของเทนเซอร์การเสียรูป
+- $\mathbf{B}$ เทนเซอร์ Cauchy-Green ซ้าย
+- $W$ พลังงานนิ่งวัสดุ
+- $C_1$, $C_2$ ค่าคงที่ Mooney-Rivlin
+- $K$ มอดุลัสปริมาตร
+- $I_1$, $I_2$ invariant ของเทนเซอร์
+- $G(t)$ มอดุลััสเฉือนตามเวลา
+- $G_i$, $\tau_i$ ค่าคงที่ Prony
+
+[Diagram: Coupled fluid-structure system with monolithic solver showing simultaneous solution of fluid and solid equations]
+
+**การประยุกต์ใช้**:
+ชุดเครื่องมือนี้โดดเด่นในการประยุกต์ใช้ที่เกี่ยวข้องกับ:
+- การเสียรูปของโครงสร้างขนาดใหญ่
+- พฤติกรรมวัสดุไม่เชิงเส้น
+- กลศาสตร์การสัมผัส
+
+ทำให้เหมาะเป็นพิเศษสำหรับการประยุกต์ใช้ทาง:
+- การแพทย์
+- หุ่นยนต์เนื้ออ่อน
+- โครงสร้างอวกาศ
+
+---
+
+## 🔌 2. preCICE (External Coupling Library)
+
+**ข้อมูลเบื้องต้น**
+- **วัตถุประสงค์**: Multi-physics coupling ระหว่าง solvers อิสระ
+- **สถาปัตยกรรม**: Black-box coupling พร้อม data mapping และ convergence acceleration
+- **จุดแข็ง**: ความเป็นอิสระของ solver อัลกอริทึม coupling ที่ซับซ้อน
+- **ข้อจำกัด**: การพึ่งพาเพิ่มเติม ค่าใช้จ่ายในการสื่อสาร
+
+**preCICE** จัดเตรียม coupling library แบบ black-box ที่เปิดใช้งาน co-simulation ระหว่าง OpenFOAM และ solvers เฉพาะทางอื่น ๆ ผ่าน API มาตรฐาน แนวทางนี้รักษาความเป็นอิสระของ solver ในขณะที่นำเสนออัลกอริทึม coupling ที่ซับซ้อนสำหรับจำลอง multi-physics
+
+### สถาปัตยกรรม Coupling
+
+อินเทอร์เฟซ preCICE ใช้สถาปัตยกรรม client-server:
+
+```cpp
+// OpenFOAM solver configuration
+precice::SolverInterface interface("OpenFOAM", 0, 1);
+
+// Define coupling mesh
+interface.setMeshVertex("FluidMesh", coordinates);
+interface.initialize();
+```
+
+[Diagram: preCICE coupling architecture showing OpenFOAM and solid solver communicating through preCICE interface]
+
+### กลไกการถ่ายโอนข้อมูล
+
+preCICE จัดการการแลกเปลี่ยนข้อมูลผ่านฟังก์ชัน interpolation:
+
+**Nearest-neighbor projection**:
+$$u_{solid} = \sum_{i \in \mathcal{N}} w_i u_{fluid,i}$$
+
+**Radial basis function interpolation**:
+$$u(\mathbf{x}) = \sum_{j=1}^N \alpha_j \phi(||\mathbf{x} - \mathbf{x}_j||)$$
+
+โดยที่:
+- $u_{solid}$ ความเร็วบนพื้นผิวของแข็ง
+- $w_i$ น้ำหนัก interpolation
+- $u_{fluid,i}$ ความเร็วของไหลที่จุดติดต่อ
+- $\phi$ ฟังก์ชัน radial basis
+- $\alpha_j$ สัมประสิทธิ์ interpolation
+- $\mathbf{x}$, $\mathbf{x}_j$ ตำแหน่งจุด interpolation
+
+### Convergence Acceleration
+
+ไลบรารีนี้จัดเตรียมวิธีการเร่งความเร็วขั้นสูง:
+
+**Aitken relaxation**:
+$$\omega^{n+1} = \omega^n \frac{(\mathbf{r}^{n-1})^T(\mathbf{r}^{n-1} - \mathbf{r}^n)}{(\mathbf{r}^{n-1} - \mathbf{r}^n)^T(\mathbf{r}^{n-1} - \mathbf{r}^n)}$$
+
+**Quasi-Newton methods**:
+$$Q^{n+1} = Q^n + \frac{(\Delta r^n - Q^n \Delta x^n)(\Delta x^n)^T}{(\Delta x^n)^T \Delta x^n}$$
+
+โดยที่:
+- $\omega$ ตัวปรับ relaxation
+- $\mathbf{r}$ เวกเตอร์ residual
+- $Q$ เมทริกซ์ Jacobian ประมาณ
+- $\Delta x$, $\Delta r$ การเปลี่ยนแปลงระหว่างขั้นตอน
+
+[Diagram: Convergence acceleration methods showing iterative process with relaxation]
+
+แนวทางนี้มีประโยชน์โดยเฉพาะเมื่อต้องผสานรวม solvers ที่ได้รับการตรวจสอบแล้วโดยไม่ต้องแก้ไข ช่วยให้สามารถทำ multi-physics coupling ระหว่าง OpenFOAM และรหัสเชิงพาณิชย์หรือวิจัยเฉพาะทางได้
+
+---
+
+## 🗺️ 3. Custom Mapped Coupling
+
+**ข้อมูลเบื้องต้น**
+- **วัตถุประสงค์**: FSI ขนาดเล็กสำหรับการเสียรูปเล็กน้อย
+- **สถาปัตยกรรม**: เขตแดน `mapped` พร้อม mesh motion
+- **จุดแข็ง**: ง่าย ใช้ความสามารถเนทีฟของ OpenFOAM
+- **ข้อจำกัด**: เสียรูปเล็กน้อยเท่านั้น explicit coupling
+
+แนวทาง **mapped coupling** ใช้ประโยชน์จากความสามารถเนทีฟของ OpenFOAM เพื่อใช้งานจำลอง FSI ขนาดเบาที่เหมาะสำหรับปัญหาการเสียรูปเล็กน้อยซึ่ง explicit coupling ให้ความแม่นยำเพียงพอ
+
+### การใช้งาน Mesh Motion
+
+แกนกลางของ mapped coupling ใช้ mesh motion solver ของ OpenFOAM:
+
+```cpp
+// Dynamic mesh motion
+dynamicFvMesh dynamicMesh(mesh);
+dynamicMesh.update();
+```
+
+### การถ่ายโอน Interface
+
+การถ่ายโอนข้อมูลเกิดขึ้นผ่าน mapped patch interpolation:
+
+```cpp
+// Boundary condition setup
+mappedVelocityFluxFixedValue U inlet
+{
+    value uniform (0 0 0);
+    neighbourPatch solidOutlet;
+    interpolationScheme linear;
+}
+```
+
+### อัลกอริทึม Explicit Coupling
+
+**Explicit coupling ตามแนวทาง staggered**:
+
+1. **Fluid solve**:
+   $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u}$$
+
+2. **Force calculation**:
+   $$\mathbf{F}_{fs} = \oint_{\Gamma} \boldsymbol{\sigma} \cdot \mathbf{n} \, \mathrm{d}S$$
+
+3. **Solid deformation**:
+   $$\rho_s \frac{\partial^2 \mathbf{d}}{\partial t^2} = \nabla \cdot \boldsymbol{\sigma}_s + \mathbf{F}_{fs}$$
+
+4. **Mesh update**:
+   $$\mathbf{x}^{n+1} = \mathbf{x}^n + \Delta \mathbf{d}$$
+
+โดยที่:
+- $\rho$ ความหนาแน่นของไหล
+- $\mathbf{u}$ ความเร็วของไหล
+- $p$ ความดัน
+- $\mu$ ความหนืดของไหล
+- $\mathbf{F}_{fs}$ แรง fluid-structure interaction
+- $\boldsymbol{\sigma}$ เทนเซอร์ความเค้น
+- $\mathbf{n}$ เวกเตอร์หน่วยตั้งฉาก
+- $\Gamma$ พื้นที่ผิว interface
+- $\rho_s$ ความหนาแน่นของแข็ง
+- $\mathbf{d}$ การเคลื่อนที่ของแข็ง
+- $\boldsymbol{\sigma}_s$ เทนเซอร์ความเค้นของแข็ง
+- $\mathbf{x}$ ตำแหน่ง mesh point
+- $\Delta t$ ช่วงเวลา
+
+[Diagram: Staggered explicit coupling algorithm showing sequential fluid and solid solves]
+
+**การประยุกต์ใช้**:
+แนวทาง mapped coupling เหมาะสำหรับ:
+- โครงสร้างสั่นสะเทือนในการไหลของไหล
+- การโต้ตอบของเมมเบรนที่เสียรูปเล็กน้อย
+- ปัญหา aeroelastic flutter
+- การถ่ายเทความร้อนระหว่างไหลและโครงสร้าง
+
+วิธีนี้ให้จุดเริ่มต้นที่เข้าถึงง่ายสำหรับจำลอง FSI โดยใช้เฉพาะความสามารถเนทีฟของ OpenFOAM แม้ว่าจะต้องให้ความสำคัญกับเสถียรภาพเชิงตัวเลขอย่างระมัดระวังเนื่องจากลักษณะของ explicit coupling
+
+---
+
+## 📊 การวิเคราะห์เปรียบเทียบ
+
+| แนวทาง | ประเภท Coupling | ความซับซ้อนในการใช้งาน | ต้นทุนการคำนวณ | ความเหมาะสม |
+|----------|---------------|---------------------------|-------------------|----------------|
+| **solids4foam** | Monolithic | สูง | สูง | การเสียรูปขนาดใหญ่ วัสดุไม่เชิงเส้น |
+| **preCICE** | Black-box | ปานกลาง | ปานกลาง-สูง | การประยุกต์หลาย solver รหัสที่มีอยู่แล้ว |
+| **Mapped** | Explicit | ต่ำ | ต่ำ-ปานกลาง | การเสียรูปเล็กน้อย การสร้างต้นแบบอย่างรวดเร็ว |
+
+**การเลือกแนวทาง FSI** ขึ้นอยู่กับ:
+- ความต้องการเฉพาะของการประยุกต์ใช้
+- ทรัพยากรการคำนวณที่มีอยู่
+- ความซับซ้อนของปฏิสัมพันธ์ระหว่างไหลและโครงสร้าง

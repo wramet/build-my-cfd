@@ -1,0 +1,203 @@
+## 🎯 ภาพรวมบท
+
+ยินดีต้อนรับสู่ **เดอะ เมช คลาส** - หัวใจของสถาปัตยกรรมระบบเรขาคณิตการคำนวณของ OpenFOAM บทนี้จะสำรวจลำดับชั้นคลาสที่ซับซ้อนซึ่งแปลงข้อมูลเรขาคณิตดิบเป็น computational mesh ที่มีประสิทธิภาพสูงสำหรับการจำลอง finite volume
+
+### 🔍 **แนวคิดระดับสูง: อนุลักษณ์ "การวางแผนเมือง & โครงสร้างพื้นฐาน"**
+
+จินตนาการการออกแบบ **เมืองทันสมัย**:
+
+- **ผู้สำรวจที่ดิน (Points)**: วัดพิกัดที่แน่นอนของทุกสถานที่
+- **ผู้วางแผนที่ดิน (Faces)**: กำหนดเขตที่ดินระหว่างแปลง
+- **สถาปนิกเขต (Cells)**: ออกแบบบล็อกสามมิติ (แปลงหลายเหลี่ยม)
+- **วิศวกรจราจร (Connectivity)**: สร้างความสัมพันธ์เจ้าของ/ข้างเคียง (ถนน)
+- **รัฐบาลเมือง (Boundaries)**: จัดตั้งเขตที่มีกฎต่างกัน (patches)
+
+คลาส mesh ของ OpenFOAM ทำงานเหมือน **ระบบวางแผนเมืองแบบบูรณาการ**นี้ - คลาสละหนึ่งมีความรับผิดชอบเฉพาะ และร่วมกันสร้าง computational domain ที่ทำงานได้ซึ่งสมการ CFD "อยู่และไหล"
+
+**อนุลักษณ์โลกจริง**: คิดคลาส mesh เหมือน **แบบแปลนก่อสร้าง**:
+- **Points**: การวัดของผู้สำรวจ (ละติจูด/ลองจิจูด/ความสูง)
+- **Faces**: เครื่องหมายเขตที่ดิน (รั้ว, กำแพง)
+- **Cells**: ปริมาตรสามมิติ (ห้อง, อพาร์ตเมนต์, สำนักงาน)
+- **Boundaries**: ขอบเขตเมืองที่มีข้อบังคับต่างกัน (ที่อยู่อาศัย, พาณิชย์, อุตสาหกรรม)
+
+[Diagram: Hierarchy of mesh classes showing inheritance relationships from primitiveMesh down to specific mesh types]
+
+### 🏗️ **ลำดับชั้นคลาส Mesh**
+
+สถาปัตยกรรม mesh ของ OpenFOAM สร้างขึ้นบนลำดับชั้นการสืบทอดที่ออกแบบมาอย่างระมัดระวังซึ่งให้ทั้งความยืดหยุ่นและประสิทธิภาพ:
+
+```cpp
+// Core mesh hierarchy (simplified)
+primitiveMesh          // Abstract base class - pure topology
+    ├── polyMesh       // Polygonal mesh with boundary information
+    │   ├── fvMesh     // Finite volume mesh with field storage
+    │   └── dynamicFvMesh // Mesh with motion capabilities
+    └── extendedMesh   // Extended mesh with additional features
+```
+
+ที่ฐานมี **primitiveMesh** - abstract base class ที่กำหนดความสัมพันธ์ทางโทโพโลยีระหว่าง mesh entities คลาสนี้รู้จัก:
+- **Point-face connectivity**: จุดใดบ้างที่เกิดแต่ละหน้า
+- **Face-cell connectivity**: หน้าใดบ้างที่ล้อมรอบแต่ละเซลล์
+- **Cell-point connectivity**: จุดใดบ้างที่อยู่ในแต่ละเซลล์
+- **Face-edge connectivity**: ขอบใดบ้างที่เกิดแต่ละหน้า (สำหรับคุณสมบัติขั้นสูง)
+
+### 📊 **พื้นฐานคณิตศาสตร์: วิธี Finite Volume**
+
+วิธี finite volume (FVM) พื้นฐานอาศัยการแบ่ง computational domain เป็น discrete control volumes (cells) สำหรับแต่ละเซลล์ $V_i$ เราหาอินทิกรัลของสมการที่ควบคุม:
+
+$$\int_{V_i} \frac{\partial \phi}{\partial t} \, \mathrm{d}V + \oint_{\partial V_i} \phi \mathbf{u} \cdot \mathbf{n} \, \mathrm{d}S = \int_{V_i} S_\phi \, \mathrm{d}V$$
+
+โดยที่:
+- $\phi$ = field variable (ความเร็ว, ความดัน, อุณหภูมิ, เป็นต้น)
+- $\mathbf{u}$ = velocity field  
+- $\mathbf{n}$ = outward unit normal vector ที่พื้นผิว
+- $S_\phi$ = source term
+
+คลาส mesh ให้ข้อมูลเรขาคณิตที่จำเป็นในการประเมิน surface integrals และการคำนวณ control volume เหล่านี้ด้วยความแม่นยำสูง
+
+### 🔧 **ส่วนประกอบหลักคลาส Mesh**
+
+#### 1. **คลาส Points**
+
+จัดเก็บพิกัดเรขาคณิตของ vertices ของ mesh:
+
+```cpp
+class pointField : public Field<point>
+{
+    // Inherits from Field<point> for efficient storage
+    // Provides access to coordinates via pointField[i]
+};
+```
+
+จุดละหนึ่ง $p_i = (x_i, y_i, z_i)$ แทน vertex ในปริภูมิ 3 มิติ คลาส pointField ให้การเข้าถึงสุ่มถึงพิกัดเหล่านี้และรองรับ vector operations สำหรับการคำนวณเรขาคณิต
+
+#### 2. **คลาส Faces**
+
+กำหนดเขตพรหมแบบหลายเหลี่ยมระหว่างเซลล์:
+
+```cpp
+class face
+{
+private:
+    List<label> points_;  // List of point indices forming the face
+    
+public:
+    // Calculate face normal vector
+    vector normal(const pointField&) const;
+    
+    // Calculate face centroid
+    point centre(const pointField&) const;
+    
+    // Calculate face area
+    scalar area(const pointField&) const;
+};
+```
+
+หน้าเชื่อมต่อหลายจุดเพื่อสร้างหลายเหลี่ยม แต่ละหน้ามี:
+
+- **Normal vector**: $\mathbf{n} = \frac{1}{2A}\sum_{i=1}^{n} (\mathbf{r}_i \times \mathbf{r}_{i+1})$
+- **Centroid**: ค่าเฉลี่ยถ่วงของพิกัดจุด  
+- **Area**: คำนวณโดยใช้สูตรพื้นที่หลายเหลี่ยม
+
+[Diagram: Face geometry showing points, normal vector, centroid, and area calculation]
+
+#### 3. **คลาส Cells**
+
+แทน control volumes หลายหลี่ยมสามมิติ:
+
+```cpp
+class cell
+{
+private:
+    List<label> faces_;  // List of face indices bounding the cell
+    
+public:
+    // Calculate cell volume
+    scalar mag(const pointField&, const faceList&) const;
+    
+    // Calculate cell centroid
+    point centre(const pointField&, const faceList&) const;
+};
+```
+
+แต่ละเซลล์ถูกกำหนดโดย bounding faces การคำนวณปริมาตรเซลล์ใช้ divergence theorem:
+
+$$V = \frac{1}{6} \sum_{f \in \text{faces}} (\mathbf{c}_f \cdot \mathbf{n}_f) A_f$$
+
+โดยที่ $\mathbf{c}_f$ คือ face centroid, $\mathbf{n}_f$ คือ face normal และ $A_f$ คือ face area
+
+[Diagram: Cell geometry showing bounding faces, centroid, and volume calculation method]
+
+#### 4. **Boundary Conditions (Patches)**
+
+คอลเลกชันหน้าที่มีพฤติกรรมเฉพาะทางฟิสิกส์:
+
+```cpp
+class polyPatch
+{
+public:
+    virtual void updateMesh(PolyTopoChange&) = 0;
+    
+    // Access to patch-specific fields
+    const word& name() const;
+    const labelList& meshPoints() const;
+    const labelList& meshFaces() const;
+};
+```
+
+### 🚀 **การเพิ่มประสิทธิภาพด้านประสิทธิภาพ**
+
+คลาส mesh ของ OpenFOAM รวมถึงการเพิ่มประสิทธิภาพหลายอย่างที่สำคัญ:
+
+| การเพิ่มประสิทธิภาพ | วัตถุประสงค์ | ผลกระทบ |
+|---|---|---|
+| **Compact Storage** | Contiguous memory layouts | การใช้ cache อย่างมีประสิทธิภาพ |
+| **Lazy Evaluation** | ปริมาณทางเรขาคณิต | คำนวณตามความต้องการและจัดเก็บไว้ |
+| **Reference Counting** | Smart pointers | ป้องกัน memory leaks ขณะที่รักษาประสิทธิภาพ |
+| **Cache-Friendly Algorithms** | Iteration patterns | การเพิ่มประสิทธิภาพสำหรับสถาปัตยกรรม CPU สมัยใหม่ |
+
+### 🔗 **ความสัมพันธ์ระหว่างคลาส**
+
+คลาส mesh ทำงานร่วมกันผ่านอินเตอร์เฟซที่กำหนดไว้:
+
+```cpp
+// Example: Accessing geometric information
+const fvMesh& mesh = ...;  // Reference to the finite volume mesh
+
+// Access points
+const pointField& points = mesh.points();
+
+// Access faces and their properties
+const faceList& faces = mesh.faces();
+vector faceNormal = faces[faceID].normal(points);
+
+// Access cells and their properties  
+const cellList& cells = mesh.cells();
+scalar cellVolume = cells[cellID].mag(points, faces);
+
+// Access boundary information
+const polyPatchList& patches = mesh.boundaryMesh();
+const fvPatch& wallPatch = patches[wallPatchID];
+```
+
+### 📈 **การประยุกต์ใช้ใน CFD**
+
+สถาปัตยกรรม mesh นี้ทำให้สามารถ:
+
+- **Flux Calculations**: Face areas และ normals สำหรับ convection terms
+- **Gradient Computations**: Cell centers และ volumes สำหรับ diffusion terms  
+- **Boundary Conditions**: Patch-specific physics และ constraints
+- **Adaptive Meshing**: การปรับเปลี่ยน dynamic ของ mesh topology
+- **Parallel Computation**: Domain decomposition และ load balancing
+
+การออกแบบที่สวยงามของคลาส mesh ของ OpenFOAM ให้รากฐานที่มั่นคงสำหรับการจำลอง CFD ที่มีประสิทธิภาพสูง ทำให้เป็นหนึ่งในระบบเรขาคณิตการคำนวณที่ซับซ้อนที่สุดใน scientific computing
+
+### 🎯 **วัตถุประสงค์การเรียนรู้ของบท**
+
+หลังจากเสร็จสิ้นบทนี้ คุณจะเข้าใจ:
+
+1. **ข้อมูลเรขาคณิตถูกจัดระเบียบอย่างไร** ในคลาส mesh แบบลำดับชั้นของ OpenFOAM
+2. **พื้นฐานคณิตศาสตร์** ของเรขาคณิต mesh finite volume
+3. **กลยุทธ์การเพิ่มประสิทธิภาพ** สำหรับเรขาคณิตการคำนวณ
+4. **วิธีการเข้าถึงและจัดการ** ข้อมูล mesh สำหรับแอปพลิเคชันที่กำหนดเอง
+5. **ความสัมพันธ์ระหว่างโทโพโลยีและเรขาคณิต** ใน mesh CFD

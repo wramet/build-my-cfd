@@ -1,0 +1,278 @@
+# ⚙️ **กลไกหลัก: ห่วงโซ่การสืบทอด**
+
+## **ขั้นที่ 1: รากฐาน - List<Type> (พื้นที่จัดเก็บข้อมูลดิบ)**
+
+ที่รากฐานการคำนวณของสถาปัตยกรรมฟิลด์ของ OpenFOAM มีคลาส `List<Type>` ซึ่งให้การจัดการหน่วยความจำที่ปรับให้เหมาะสมสำหรับแอปพลิเคชัน CFD ไม่เหมือนกับแนวทางแบบดั้งเดิมที่ใช้ raw arrays หรือ standard library containers, `List<Type>` ใช้กลไกการจัดเก็บข้อมูลที่ซับซ้อนซึ่งถูกออกแบบมาโดยเฉพาะสำหรับการจัดการค่าฟิลด์หลายล้านค่าที่พบได้ทั่วไปในการจำลอง CFD
+
+**จุดเด่นทางเทคนิค:**
+- **ปรับให้เหมาะสมกับประสิทธิภาพ**: แก้ไขปัญหาคอขวองด้วย pre-allocated memory blocks ที่เข้ากันได้กับ mesh topology
+- **Cache-friendly access patterns**: ลดการกระโดดของหน่วยความจำในการทำงานแบบ dynamic
+- **Data structure ที่มีประสิทธิภาพ**: รักษาข้อมูลสำคัญ 3 ประการ:
+  - `v_` (raw data pointer) - การเข้าถึงหน่วยความจําโดยตรง
+  - `size_` (tracking) - ติดตามจำนวนองค์ประกอบ
+  - `capacity_` (management) - จัดการ memory pool
+
+[Diagram: Memory Layout of List<Type> showing contiguous storage blocks]
+
+```cpp
+template<class Type>
+class List : public UList<Type>
+{
+    // Memory-optimized storage for CFD data
+    // - Pre-allocated blocks for mesh-sized data
+    // - Custom allocator for cache-friendly access
+    // - Mesh topology-aware memory layout
+
+private:
+    Type* v_;           // Raw data pointer
+    label size_;        // Number of elements
+    label capacity_;    // Allocated capacity
+
+public:
+    // CFD-specific constructors
+    List(const label meshSize);      // Mesh-sized allocation
+    List(const fvMesh& mesh);        // Direct mesh reference
+    
+    // Direct access methods
+    Type& operator[](const label i) { return v_[i]; }
+    const Type& operator[](const label i) const { return v_[i]; }
+};
+```
+
+**ผลลัพธ์**: กำจัดค่าใช้จ่ายในการจัดการหน่วยความจำด้วยตนเอง ในขณะที่ยังคงประสิทธิภาพการคำนวณดิบที่จำเป็นสำหรับ CFD ขนาดใหญ่
+
+---
+
+## **ขั้นที่ 2: การดำเนินการทางคณิตศาสตร์ - Field<Type> (เครื่องคิดเลข)**
+
+คลาส `Field<Type>` สร้างบนรากฐานการจัดเก็บข้อมูลโดยการแนะนำ **การดำเนินการทางคณิตศาสตร์ที่ครอบคลุม** และ **กลไกการนับการอ้างอิง** ชั้นนี้แปลงการจัดเก็บข้อมูลดิบให้เป็นเครื่องยนต์คำนวณที่สามารถดำเนินการทางคณิตศาสตร์ที่จำเป็นต่ออัลกอริทึม CFD ได้
+
+**คุณสมบัติหลัก:**
+- **Operator Overloads**: รองรับ field arithmetic พร้อม compile-time type checking
+- **Functional Programming Patterns**: คืนค่า field objects ใหม่แทนการแก้ไข objects ที่มีอยู่
+- **Reference Counting System**: จัดการหน่วยความจำอัตโนมัติผ่าน `tmp<Field<Type>>::refCount`
+
+[Diagram: Field<Type> arithmetic operations showing immutable operations]
+
+```cpp
+template<class Type>
+class Field : public tmp<Field<Type>>::refCount, public List<Type>
+{
+    // Inherits List storage and adds mathematical operations
+
+public:
+    // Mathematical operators with compile-time type checking
+    Field<Type> operator+(const Field<Type>&) const;    // Field addition
+    Field<Type> operator-(const Field<Type>&) const;    // Field subtraction
+    Field<Type> operator*(const scalar&) const;         // Scalar multiplication
+    Field<Type> operator/(const scalar&) const;         // Scalar division
+
+    // CFD-specific reduction operations
+    Type sum() const {                                   // Sum all elements
+        Type result = Zero;
+        for (const Type& val : *this) {
+            result += val;
+        }
+        return result;
+    }
+    
+    Type average() const {                               // Arithmetic mean
+        return sum() / static_cast<scalar>(size());
+    }
+    
+    Type weightedAverage(const scalarField& weights) const {     // Weighted average
+        Type weightedSum = Zero;
+        scalar weightSum = 0;
+        
+        forAll(*this, i) {
+            weightedSum += (*this)[i] * weights[i];
+            weightSum += weights[i];
+        }
+        return weightedSum / weightSum;
+    }
+};
+```
+
+**ประโยชน์**: กลไกการนับการอ้างอิงทำให้การแชร์หน่วยความจำระหว่าง temporary field objects เป็นไปอย่างมีประสิทธิภาพ ป้องกันการคัดลอกหน่วยความจำที่ไม่จำเป็นระหว่างการคำนวณที่ซับซ้อน
+
+---
+
+## **ขั้นที่ 3: หน่วยทางกายภาพ - DimensionedField (ผู้ตรวจสอบความปลอดภัย)**
+
+คลาส `DimensionedField` แนะนำ **กลไกความปลอดภัยที่สำคัญ** ผ่าน:
+- **การวิเคราะห์มิติ (Dimensional Analysis)**
+- **การเชื่อมโยงกับ mesh (Mesh Association)**
+
+ชั้นนี้แปลง mathematical fields ให้เป็นปริมาณทางกายภาพที่มีความหมายโดยการติดตามหน่วยวัดและรับประกันความสม่ำเสมอของการคำนวณ
+
+**ระบบการติดตามมิติ:**
+- **Standard SI Units**: [Mass, Length, Time, Temperature, Moles, Current]
+- **ตัวอย่าง Velocity Fields**: [0,1,-1,0,0,0] (เมตรต่อวินาที)
+- **Compile-time & Runtime Safety**: ป้องกันการดำเนินการที่ไม่มีความหมายทางกายภาพ
+
+[Diagram: Dimensional analysis showing how units combine in arithmetic operations]
+
+```cpp
+template<class Type, class GeoMesh>
+class DimensionedField : public regIOobject, public Field<Type>
+{
+private:
+    // Physical unit tracking for dimensional analysis
+    dimensionSet dimensions_;  // e.g., [0,1,-1,0,0,0] for velocity (m/s)
+    
+    // Mesh association for spatial context
+    const GeoMesh& mesh_;      // Reference to mesh topology
+
+public:
+    // Dimensional safety enforcement in arithmetic operations
+    DimensionedField operator+(const DimensionedField& other) const
+    {
+        // Compile-time dimensional consistency check
+        if (dimensions_ != other.dimensions_) {
+            FatalError << "Cannot add fields with different dimensions: "
+                      << dimensions_ << " + " << other.dimensions_
+                      << abort(FatalError);
+        }
+        
+        // Create result field with same dimensions
+        DimensionedField result(*this);
+        Field<Type>::operator=(Field<Type>::operator+(other));
+        return result;
+    }
+
+    // Dimensional arithmetic: units follow mathematical rules
+    auto operator*(const DimensionedField& other) const
+    {
+        // Units multiply: (m/s) × (s) = (m)
+        auto newDims = dimensions_ + other.dimensions_;  // Dimensional addition
+        using ResultType = decltype(Type() * Type());
+        
+        return DimensionedField<ResultType, GeoMesh>
+            (*this * other, newDims, mesh_);
+    }
+};
+```
+
+**การป้องกันข้อผิดพลาด**: ป้องกันความผิดพลาดทั่วไปใน CFD เช่น การบวก pressure fields กับ velocity fields
+
+---
+
+## **ขั้นที่ 4: ฟิลด์ CFD ที่สมบูรณ์ - GeometricField (อุปกรณ์ห้องปฏิบัติการ)**
+
+คลาส `GeometricField` แสดงถึงจุดสิ้นสุดของห่วงโซ่การสืบทอด โดยให้ **ฟังก์ชันการทำงานของฟิลด์ CFD ที่สมบูรณ์** ผ่าน:
+- **การจัดการเวลา (Time Management)**
+- **การจัดการ Boundary Condition**
+
+**Time Advancement System:**
+- **`timeIndex_`**: ติดตามเวลาการจำลองปัจจุบัน
+- **`field0Ptr_`**: รักษาการอ้างอิงถึงค่าเวลาก่อนหน้า
+- **`fieldPrevIterPtr_`**: รักษาการอ้างอิงถึงค่าการวนซ้ำก่อนหน้า
+
+[Diagram: Time advancement showing field history management]
+
+```cpp
+template<class Type, template<class> class PatchField, class GeoMesh>
+class GeometricField : public DimensionedField<Type, GeoMesh>
+{
+private:
+    // Time management for transient simulations
+    mutable label timeIndex_;                 // Current time index
+    mutable GeometricField* field0Ptr_;       // Old-time field pointer
+    mutable GeometricField* fieldPrevIterPtr_; // Previous iteration field
+    
+    // Boundary condition management
+    Boundary boundaryField_;                  // Container of PatchField objects
+
+public:
+    // Time advancement methods for transient calculations
+    const GeometricField& oldTime() const {
+        if (!field0Ptr_) {
+            field0Ptr_ = new GeometricField(*this);
+        }
+        return *field0Ptr_;
+    }
+    
+    void storeOldTimes() const {
+        if (field0Ptr_) {
+            field0Ptr_->storeOldTimes();
+        }
+        field0Ptr_ = new GeometricField(*this);
+    }
+    
+    void clearOldTimes() const {
+        delete field0Ptr_;
+        field0Ptr_ = nullptr;
+    }
+
+    // Boundary condition management
+    void correctBoundaryConditions() {
+        forAll(boundaryField_, patchi) {
+            boundaryField_[patchi].correct();
+        }
+    }
+    
+    const Boundary& boundaryField() const { return boundaryField_; }
+    Boundary& boundaryFieldRef() { return boundaryField_; }
+
+    // Internal field access methods
+    const Field<Type>& internalField() const { return *this; }
+    Field<Type>& ref() { return *this; }
+};
+```
+
+**Boundary Condition System:**
+- **Modular Design**: Container ของ `PatchField` objects
+- **Complete Support**: รองรับ Dirichlet (fixed value), Neumann (fixed gradient), และ mixed conditions
+- **Physical Realism**: รักษา boundary conditions ที่สมจริงทางกายภาพ
+
+---
+
+## **ขั้นที่ 5: ประเภทฟิลด์เฉพาะ - volScalarField, surfaceVectorField, เป็นต้น**
+
+ขั้นสุดท้ายให้ **type aliases ที่เชี่ยวชาญ** สำหรับแอปพลิเคชัน CFD ทั่วไป:
+
+| Field Type | Template Definition | Physical Location | Common Use |
+|------------|-------------------|------------------|------------|
+| **volScalarField** | `GeometricField<scalar, fvPatchField, volMesh>` | Cell centers | Pressure, temperature |
+| **volVectorField** | `GeometricField<vector, fvPatchField, volMesh>` | Cell centers | Velocity, displacement |
+| **surfaceScalarField** | `GeometricField<scalar, fvsPatchField, surfaceMesh>` | Face centers | Fluxes, heat transfer |
+| **surfaceVectorField** | `GeometricField<vector, fvsPatchField, surfaceMesh>` | Face centers | Face fluxes, gradients |
+| **pointScalarField** | `GeometricField<scalar, pointPatchField, pointMesh>` | Vertices | Interpolation values |
+
+[Diagram: Spatial distribution of field types on a mesh cell]
+
+```cpp
+namespace Foam
+{
+    // Volume fields: cell-centered values in control volumes
+    typedef GeometricField<scalar, fvPatchField, volMesh> volScalarField;
+    typedef GeometricField<vector, fvPatchField, volMesh> volVectorField;
+    typedef GeometricField<tensor, fvPatchField, volMesh> volTensorField;
+    
+    // Surface fields: face-centered values for flux calculations
+    typedef GeometricField<scalar, fvsPatchField, surfaceMesh> surfaceScalarField;
+    typedef GeometricField<vector, fvsPatchField, surfaceMesh> surfaceVectorField;
+    
+    // Point fields: vertex-centered values for interpolation
+    typedef GeometricField<scalar, pointPatchField, pointMesh> pointScalarField;
+}
+```
+
+**Spatial Consistency Enforcement:**
+- **Compile-time Safety**: ป้องกันการดำเนินการระหว่างฟิลด์ที่นิยามไว้ที่ตำแหน่งต่างกัน
+- **Type System**: บังคับใช้การใช้ interpolation methods ที่เหมาะสม
+- **Physical Meaning**: ป้องกันการดำเนินการที่ไม่มีความหมายทางกายภาพ
+
+---
+
+## 🔄 **สรุปห่วงโซี่การสืบทอด**
+
+**จากพื้นฐานถึงความสมบูรณ์:**
+
+1. **List<Type>** → การจัดการหน่วยความจำที่เหมาะสมสำหรับ CFD
+2. **Field<Type>** → การดำเนินการทางคณิตศาสตร์และ reference counting  
+3. **DimensionedField** → ความปลอดภัยด้านมิติและการเชื่อมโยงกับ mesh
+4. **GeometricField** → การจัดการเวลาและ boundary conditions
+5. **Specialized Types** → Type safety สำหรับบริบททางกายภาพเฉพาะ
+
+**ผลลัพธ์สุดท้าย**: เฟรมเวิร์กที่แข็งแกร่ง, ปลอดภัยต่อ type, และมีประสิทธิภาพในการคำนวณสำหรับการจัดการฟิลด์ CFD จากการจัดเก็บข้อมูลหน่วยความจำดิบไปจนถึงการดำเนินการฟิลด์ที่ซับซ้อนและตระหนักถึงฟิสิกส์

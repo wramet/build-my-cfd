@@ -1,0 +1,515 @@
+# 5. Fields และ GeometricFields ใน OpenFOAM
+
+## 5.1 ประเภท Field และลำดับชั้น
+
+**ระบบการจัดการ field ของ OpenFOAM** เป็นพื้นฐานของการคำนวณ CFD โดยให้โครงสร้างลำดับชั้นสำหรับการจัดการข้อมูลการคำนวณข้ามแบบจำลองการกระจายต่างๆ และประเภท entity ฟิลด์
+
+**สถาปัตยกรรมนี้** สร้างขึ้นบนระบบเทมเพลตที่ซับซ้อนซึ่งช่วยให้ดำเนินการประเภทที่ปลอดภัยได้ในขณะที่รักษาประสิทธิภาพการคำนวณ
+
+[Diagram: แสดงลำดับชั้นของ Field ใน OpenFOAM]
+
+### 5.1.1 Fundamental Field Classes
+
+**ลำดับชั้น field หลัก** ใน OpenFOAM ทำตามสถาปัตยกรรมแบบเลเยอร์:
+
+```cpp
+// Base field template classes
+template<class Type>
+class Field : public List<Type>
+{
+    // Stores field data as a list of values
+    // Provides basic field operations and access
+};
+
+template<class Type, class GeoMesh>
+class GeometricField : public DimensionedField<Type, GeoMesh>
+{
+    // Geometric field with spatial discretization information
+    // Contains boundary conditions and interpolation functions
+};
+```
+
+**ความแตกต่างที่สำคัญ** ระหว่าง `Field<Type>` และ `GeometricField<Type, GeoMesh>` อยู่ในบริบทการคำนวณ:
+
+- **`Field<Type>`**: เป็นคอนเทนเนอร์ข้อมูลบริสุทธิ์โดยไม่มีบริบททางเรขาคณิต
+- **`GeometricField<Type, GeoMesh>`**: คอนเทนเนอร์ข้อมูลที่มีข้อมูลการกระจายทางเรขาคณิต
+
+### 5.1.2 Volume Fields
+
+**Volume fields** แทนปริมาณที่นิยามที่จุดศูนย์กลางของเซลล์และเป็นประเภท field ที่ใช้บ่อยที่สุดใน CFD:
+
+```cpp
+// Volume field specializations
+typedef GeometricField<scalar, fvPatchField, volMesh> volScalarField;
+typedef GeometricField<vector, fvPatchField, volMesh> volVectorField;
+typedef GeometricField<tensor, fvPatchField, volMesh> volTensorField;
+typedef GeometricField<symmTensor, fvPatchField, volMesh> volSymmTensorField;
+typedef GeometricField<sphericalTensor, fvPatchField, volMesh> volSphericalTensorField;
+```
+
+**Volume fields** เก็บค่าไว้ที่จุดศูนย์กลางของเซลล์และรวมข้อมูลเงื่อนไขขอบเขตสำหรับแต่ละขอบเขตของ mesh พวกมันเป็น fields หลักสำหรับแก้สมการการอนุรักษ์แบบกระจาย
+
+[Diagram: แสดงความสัมพันธ์ระหว่าง Volume Fields และ Surface Fields]
+
+### 5.1.3 Surface Fields
+
+**Surface fields** แทนปริมาณที่นิยามบนพื้นผิวของเซลล์และเป็นสิ่งสำคัญสำหรับการคำนวณ flux:
+
+```cpp
+// Surface field specializations
+typedef GeometricField<scalar, fvsPatchField, surfaceMesh> surfaceScalarField;
+typedef GeometricField<vector, fvsPatchField, surfaceMesh> surfaceVectorField;
+```
+
+**Surface fields** ถูกคำนวณโดยอัตโนมัติจาก volume fields โดยใช้ interpolation schemes และเป็นสิ่งจำเป็นสำหรับเทอม convection และการคำนวณ flux ในวิธี finite volume
+
+## 5.2 Field Operations และกรอบงานคณิตศาสตร์
+
+**OpenFOAM fields** รองรับชุดของการดำเนินการทางคณิตศาสตร์อย่างครบถ้วนซึ่งสะท้อนการดำเนินการ calculus แบบเวกเตอร์ต่อเนื่องในขณะที่รักษาความสม่ำเสมอแบบกระจาย
+
+### 5.2.1 Gradient Operations
+
+**Gradient operator** แปลง volume fields เป็น surface fields:
+
+$$\nabla \phi = \frac{\partial \phi}{\partial x_i} \mathbf{e}_i$$
+
+ใน OpenFOAM นี้ถูก implement เป็น:
+
+```cpp
+// Gradient of a scalar field
+volVectorField gradPhi = fvc::grad(phi);
+
+// For general tensor fields
+template<class Type>
+GeometricField<typename outerProduct<vector, Type>::type, fvPatchField, volMesh>
+grad(const GeometricField<Type, fvPatchField, volMesh>& vf);
+```
+
+**การดำเนินการ gradient** ใช้ทฤษฎีบทของ Gauss:
+
+$$\int_V \nabla \phi \, \mathrm{d}V = \oint_S \phi \mathbf{n} \, \mathrm{d}S$$
+
+ซึ่งกระจายเป็น:
+
+$$\nabla \phi|_P = \frac{1}{V_P} \sum_f \phi_f \mathbf{S}_f$$
+
+**ตัวแปร:**
+- $\phi$: scalar field
+- $\nabla$: gradient operator
+- $V_P$: volume of cell P
+- $\mathbf{S}_f$: surface vector at face f
+- $\phi_f$: face value of phi
+
+### 5.2.2 Divergence Operations
+
+**Divergence operator** แปลง surface fields เป็น volume fields:
+
+$$\nabla \cdot \mathbf{F} = \frac{\partial F_i}{\partial x_i}$$
+
+การ implement ใน OpenFOAM:
+
+```cpp
+// Divergence of a vector field (surfaceScalarField flux)
+volScalarField divF = fvc::div(F);
+
+// General divergence operator
+template<class Type>
+GeometricField<typename innerProduct<vector, Type>::type, fvPatchField, volMesh>
+div(const GeometricField<Type, fvsPatchField, surfaceMesh>& ssf);
+```
+
+ใช้ทฤษฎีบทของ Gauss:
+
+$$\int_V \nabla \cdot \mathbf{F} \, \mathrm{d}V = \oint_S \mathbf{F} \cdot \mathbf{n} \, \mathrm{d}S$$
+
+รูปแบบกระจาย:
+
+$$\nabla \cdot \mathbf{F}|_P = \frac{1}{V_P} \sum_f \mathbf{F}_f \cdot \mathbf{S}_f$$
+
+**ตัวแปร:**
+- $\mathbf{F}$: vector field
+- $\nabla \cdot$: divergence operator
+- $\mathbf{F}_f$: face value of vector F
+- $\mathbf{S}_f$: surface area vector
+
+### 5.2.3 Laplacian Operations
+
+**Laplacian operator** เป็นพื้นฐานสำหรับเทอมการแพร่:
+
+$$\nabla^2 \phi = \nabla \cdot (\nabla \phi)$$
+
+การ implement ใน OpenFOAM:
+
+```cpp
+// Laplacian with constant diffusivity
+volScalarField lapPhi = fvc::laplacian(D, phi);
+
+// Laplacian with variable diffusivity
+volScalarField lapPhi = fvc::laplacian(Dphi, phi);
+```
+
+กระจายโดยใช้ finite volume:
+
+$$\nabla \cdot (\Gamma \nabla \phi)|_P = \sum_f \Gamma_f \frac{\phi_N - \phi_P}{d_{PN}} \frac{S_f}{d_{PN}}$$
+
+**ตัวแปร:**
+- $\Gamma$: diffusivity coefficient
+- $d_{PN}$: distance between cell centers P and N
+- $S_f$: face area
+
+### 5.2.4 Temporal Derivatives
+
+**Temporal derivatives** implement the $\frac{\partial}{\partial t}$ operator:
+
+$$\frac{\partial \phi}{\partial t} = \lim_{\Delta t \to 0} \frac{\phi^{n+1} - \phi^n}{\Delta t}$$
+
+OpenFOAM ให้หลาย temporal discretization schemes:
+
+```cpp
+// First-order Euler scheme
+ddtScheme<Type>::fvcDdt(phi)
+
+// Second-order backward scheme
+backwardDdtScheme<Type>::fvcDdt(phi)
+
+// Crank-Nicolson scheme
+CrankNicolsonDdtScheme<Type>::fvcDdt(phi)
+```
+
+**ตัวแปร:**
+- $\phi^n$: field value at time step n
+- $\phi^{n+1}$: field value at time step n+1
+- $\Delta t$: time step size
+
+## 5.3 Interpolation Schemes และ Field Transformations
+
+**การ interpolation** ระหว่างประเภท field ที่แตกต่างกันเป็นสิ่งจำเป็นสำหรับการคำนวณ finite volume ที่แม่นยำ
+
+### 5.3.1 Linear Interpolation
+
+**Linear interpolation** สมมติว่ามีการเปลี่ยนแปลงเชิงเส้นระหว่างจุดศูนย์กลางของเซลล์:
+
+$$\phi_f = f_P \phi_P + f_N \phi_N$$
+
+โดยที่ $f_P = \frac{d_{fN}}{d_{PN}}$ และ $f_N = \frac{d_{fP}}{d_{PN}}$
+
+การ implement ใน OpenFOAM:
+
+```cpp
+// Linear interpolation scheme
+linearInterpolation<Type> lin_interp(mesh);
+surfaceField phi_f = lin_interp.interpolate(phi_volume);
+```
+
+**ตัวแปร:**
+- $\phi_f$: interpolated face value
+- $\phi_P$, $\phi_N$: cell center values
+- $f_P$, $f_N$: interpolation weights
+- $d_{fP}$, $d_{fN}$: distances from face to cell centers
+
+### 5.3.2 Higher-Order Interpolation
+
+**สำหรับความแม่นยำที่ดีขึ้น**, มี higher-order schemes ที่ใช้ได้:
+
+```cpp
+// Quadratic interpolation
+quadraticInterpolation<Type> quad_interp(mesh);
+
+// QUICK scheme
+QUICKInterpolation<Type> quick_interp(mesh);
+
+// TVD schemes with limiters
+MUSCLInterpolation<Type> muscl_interp(mesh);
+```
+
+**Schemes เหล่านี้** ให้ความแม่นยำที่ดีขึ้นสำหรับการไหลแบบ convection-dominant ในขณะที่รักษาเสถียรภาพทางตัวเลข
+
+### 5.3.3 Interpolation Scheme Comparison
+
+| Scheme | Order | Stability | Accuracy | Use Case |
+|--------|-------|-----------|----------|----------|
+| Linear | 1st | Stable | Moderate | General purpose |
+| Quadratic | 2nd | Moderate | High | Smooth flows |
+| QUICK | 3rd | Conditional | Very High | Convection-dominated |
+| MUSCL | 2nd | High | High | Shock-capturing |
+
+## 5.4 Boundary Conditions และ Field Coupling
+
+**Boundary conditions** เป็นส่วนประกอบที่สำคัญของการจัดการ field โดยนิยามว่า fields โต้ตอบกับขอบเขตของโดเมนอย่างไร
+
+### 5.4.1 Boundary Condition Architecture
+
+**แต่ละ geometric field** รักษาข้อมูลเงื่อนไขขอบเขต:
+
+```cpp
+template<class Type, class PatchField, class GeoMesh>
+class GeometricField : public DimensionedField<Type, GeoMesh>
+{
+    // Boundary field container
+    GeometricBoundaryField<PatchField, GeoMesh> boundaryField_;
+    
+    // Individual boundary patches
+    const Field<Type>& boundaryField(const label patchi) const;
+    Field<Type>& boundaryField(const label patchi);
+};
+```
+
+[Diagram: แสดงโครงสร้าง Boundary Condition ใน GeometricField]
+
+### 5.4.2 Common Boundary Condition Types
+
+**Fixed Value:**
+```cpp
+fixedValueFvPatchField<Type> 
+{
+    this->refValue() = specified_value;
+}
+```
+
+**Fixed Gradient:**
+```cpp
+fixedGradientFvPatchField<Type>
+{
+    this->refGrad() = specified_gradient;
+}
+```
+
+**Mixed Boundary Conditions:**
+```cpp
+mixedFvPatchField<Type>
+{
+    valueFraction_ * fixedValue + (1 - valueFraction_) * fixedGradient
+}
+```
+
+**Calculated Boundary Conditions:**
+```cpp
+calculatedFvPatchField<Type>
+{
+    // Value computed from other fields
+}
+```
+
+### 5.4.3 Boundary Condition Types Summary
+
+| Type | Formula | Parameters | Use Case |
+|------|---------|------------|----------|
+| fixedValue | $\phi = \phi_{specified}$ | Value | Inlet, specified temperature |
+| fixedGradient | $\nabla \phi \cdot \mathbf{n} = g_{specified}$ | Gradient | Wall heat flux |
+| zeroGradient | $\nabla \phi \cdot \mathbf{n} = 0$ | None | Outlet, symmetry |
+| mixed | $\phi = \alpha \phi_{value} + (1-\alpha) \phi_{gradient}$ | valueFraction | Robin conditions |
+
+## 5.5 Field Algebra และ Matrix Assembly
+
+**Fields** รองรับการดำเนินการทางพีชคณิตอย่างครบถ้วนซึ่งทำให้การ assembly matrix อัตโนมัติสำหรับระบบเชิงเส้นเป็นไปได้
+
+### 5.5.1 Implicit vs Explicit Operations
+
+**Explicit Operations:** ค่าถูกคำนวณโดยตรงโดยใช้ค่า field ปัจจุบัน
+
+```cpp
+// Explicit convection term
+surfaceScalarField phi_f = linearInterpolate<vector>(U) & mesh.Sf();
+volScalarField convection = fvc::div(phi_f);
+```
+
+**Implicit Operations:** เทอมที่ส่งผลต่อเมทริกซ์สัมประสิทธิ์
+
+```cpp
+// Implicit diffusion term
+fvScalarMatrix TEqn
+(
+    fvm::laplacian(DT, T)  // Implicit treatment
+  - fvc::ddt(T)           // Explicit source term
+);
+```
+
+### 5.5.2 Matrix Assembly Process
+
+**การกระจาย finite volume** จะ assembly ระบบเชิงเส้นโดยอัตโนมัติ:
+
+$$\mathbf{A} \mathbf{x} = \mathbf{b}$$
+
+โดยที่:
+- $\mathbf{A}$: เมทริกซ์สัมประสิทธิ์จากเทอมโดยนัย
+- $\mathbf{x}$: เวกเตอร์คำตอบ (ค่า field)
+- $\mathbf{b}$: เวกเตอร์ต้นทางจากเทอมชัดแจ้ง
+
+**การจัดการสัมประสิทธิ์อัตโนมัติ:**
+```cpp
+// Matrix assembly example
+fvVectorMatrix UEqn
+(
+    fvm::ddt(U)                           // Time derivative
+  + fvm::div(phi, U)                      // Convection (implicit)
+  - fvm::laplacian(nu, U)                 // Diffusion (implicit)
+ ==
+    - fvc::grad(p)                        // Pressure gradient (explicit)
+  + sources                               // Source terms
+);
+```
+
+## 5.6 Performance Optimization และ Memory Management
+
+### 5.6.1 Reference Counting และ Memory Efficiency
+
+**OpenFOAM** ใช้การจัดการหน่วยความจำที่ซับซ้อนเพื่อเพิ่มประสิทธิภาพ:
+
+```cpp
+// Reference-counted field types
+typedef tmp<GeometricField<Type, PatchField, GeoMesh>> tmpGeometricField;
+
+// Automatic memory management
+tmp<volScalarField> divU = fvc::div(U);
+// tmp object automatically deleted when scope ends
+```
+
+### 5.6.2 Field Caching และ Reuse
+
+**การคำนวณ field ทั่วไป** จะถูก cached เพื่อหลีกเลี่ยงการคำนวณซ้ำซ้อน:
+
+```cpp
+// Gradient caching mechanism
+const volVectorField& gradU = gradCache.lookup(U);
+if (!gradU.valid())
+{
+    gradU = new volVectorField(fvc::grad(U));
+    gradCache.store(U, gradU);
+}
+```
+
+## 5.7 Advanced Field Operations
+
+### 5.7.1 Tensor Field Operations
+
+**Tensor fields** รองรับการดำเนินการเฉพาะสำหรับการคำนวณความเครียดและการยืดหยุ่น:
+
+```cpp
+// Tensor deformation rate
+volTensorField D = symm(fvc::grad(U));
+
+// Vorticity tensor
+volTensorField W = skew(fvc::grad(U));
+
+// Stress tensor for Newtonian fluid
+volSymmTensorField tau = 2 * nu * D;
+```
+
+**Key Operations:**
+- **`symm()`**: Symmetric part of tensor
+- **`skew()`**: Anti-symmetric part of tensor
+- **`dev()`**: Deviatoric part
+- **`tr()`**: Trace operation
+
+### 5.7.2 Field Projections และ Transformations
+
+**Projection operations** ทำให้การสลายตัวของ tensor fields เป็นไปได้:
+
+```cpp
+// Vector projection onto tensor
+volVectorField projected = tau & U;
+
+// Trace of tensor field
+volScalarField traceTau = tr(tau);
+
+// Deviatoric part
+volSymmTensorField devTau = dev(tau);
+```
+
+**Tensor Operation Equations:**
+- **Deformation rate**: $\mathbf{D} = \frac{1}{2}(\nabla \mathbf{u} + \nabla \mathbf{u}^T)$
+- **Vorticity tensor**: $\mathbf{W} = \frac{1}{2}(\nabla \mathbf{u} - \nabla \mathbf{u}^T)$
+- **Stress tensor**: $\boldsymbol{\tau} = 2\mu \mathbf{D}$
+
+## 5.8 Field I/O และ Data Persistence
+
+### 5.8.1 Field Serialization
+
+**Fields** สามารถเขียนและอ่านจากดิสก์ในรูปแบบต่างๆ:
+
+```cpp
+// Write field to disk
+phi.write();
+
+// Read field from disk
+volScalarField phi
+(
+    IOobject
+    (
+        "phi",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+```
+
+### 5.8.2 Time-Dependent Field Management
+
+**การจัดการข้อมูลที่ขึ้นอยู่กับเวลา** โดยอัตโนมัติ:
+
+```cpp
+// Time directory management
+runTime.setTime(time_value, time_index);
+
+// Field evolution storage
+phi.writeOpt() = IOobject::AUTO_WRITE;
+```
+
+### 5.8.3 Field I/O Workflow
+
+**Step-by-Step Field Storage Process:**
+
+1. **Field Initialization**: `IOobject` creation with metadata
+2. **Automatic Detection**: Time-based directory structure
+3. **Binary Format**: Native OpenFOAM format for efficiency
+4. **Parallel Support**: Domain decomposition handling
+5. **Compression**: Optional compression for large datasets
+
+## 5.9 Debugging และ Field Diagnostics
+
+### 5.9.1 Field Validation
+
+**เครื่องมือตรวจสอบ field** อย่างครบถ้วน:
+
+```cpp
+// Check field bounds
+scalar minVal = min(phi);
+scalar maxVal = max(phi);
+
+// Check for NaN or inf values
+if (hasNaN(phi))
+{
+    FatalErrorIn("field computation") << "NaN detected" << exit(FatalError);
+}
+```
+
+### 5.9.2 Field Statistics และ Analysis
+
+**ความสามารถในการวิเคราะห์ทางสถิติ** ในตัว:
+
+```cpp
+// Field statistics
+scalar meanVal = average(phi);
+scalar rmsVal = sqrt(sum(phi*phi)/phi.size());
+
+// Field normalization
+volScalarField normalizedPhi = phi / max(phi);
+```
+
+### 5.9.3 Diagnostic Functions Summary
+
+| Function | Purpose | Return Type |
+|----------|---------|-------------|
+| `min(field)` | Find minimum value | scalar |
+| `max(field)` | Find maximum value | scalar |
+| `average(field)` | Calculate mean | scalar |
+| `sum(field)` | Sum all values | Type-dependent |
+| `hasNaN(field)` | Check for invalid values | bool |
+| `mag(field)` | Magnitude calculation | New field |
+
+**ระบบ field ของ OpenFOAM** ให้กรอบงานที่ครบถ้วนสำหรับการคำนวณ CFD โดยผสมผสานความเข้มงวดทางคณิตศาสตร์กับประสิทธิภาพการคำนวณ 
+
+**สถาปัตยกรรมที่ใช้เทมเพลต** ทำให้การดำเนินการประเภทที่ปลอดภัยได้ในขณะที่รักษาประสิทธิภาพผ่านการจัดการหน่วยความจำที่เพิ่มประสิทธิภาพและการ assembly สัมประสิทธิ์อัตโนมัติสำหรับระบบเชิงเส้น

@@ -1,0 +1,514 @@
+# 06 Numerical Methods and VOF in OpenFOAM
+
+## 1. Overview
+
+ความถูกต้องและเสถียรภาพของการจำลองการไหลแบบหลายเฟสใน OpenFOAM ขึ้นอยู่กับวิธีการเชิงตัวเลขที่ใช้ในการติดตามอินเตอร์เฟซ (Interface Tracking/Capturing) และการจัดการการกระโดดของคุณสมบัติ (Property Jumps) ข้ามขอบเขตระหว่างเฟส
+
+![[vof_method_overview.png]]
+
+---
+
+## 2. Volume of Fluid (VOF) Method
+
+วิธี VOF เป็นวิธี Capture อินเตอร์เฟซที่นิยมที่สุดใน OpenFOAM (ใช้ใน `interFoam`, `multiphaseInterFoam`)
+
+### 2.1 Basic Principle
+
+ใช้นามสเกลาร์ตัวเดียวคือสัดส่วนปริมาตร $\alpha$ เพื่อระบุเฟสในแต่ละเซลล์:
+
+$$\alpha(\mathbf{x}, t) = \begin{cases}
+1 & \text{if phase 1 occupies cell } \mathbf{x} \\
+0 & \text{if phase 2 occupies cell } \mathbf{x} \\
+0 < \alpha < 1 & \text{at the interface}
+\end{cases}$$
+
+**คุณสมบัติหลัก:**
+- $\alpha = 1$: เฟส 1 (เช่น ของเหลว)
+- $\alpha = 0$: เฟส 2 (เช่น ก๊าซ)
+- $0 < \alpha < 1$: เซลล์ที่มีอินเตอร์เฟซ
+
+### 2.2 Transport Equation
+
+สมการการขนส่งพื้นฐานสำหรับสัดส่วนปริมาตร:
+
+$$\frac{\partial \alpha}{\partial t} + \nabla \cdot (\alpha \mathbf{u}) + \nabla \cdot (\mathbf{u}_r \alpha (1-\alpha)) = 0$$
+
+**เทอมสำคัญ:**
+- **เทอมการแพร่**: $\frac{\partial \alpha}{\partial t} + \nabla \cdot (\alpha \mathbf{u})$ - การขนส่งปกติ
+- **เทอมการบีบอัด**: $\nabla \cdot (\mathbf{u}_r \alpha (1-\alpha))$ - ต่อต้านการแพร่ตัวเชิงตัวเลข
+
+**ตัวแปร:**
+- $\mathbf{u}$: ความเร็วของไหล
+- $\mathbf{u}_r$: ความเร็วการบีบอัด (Compression Velocity)
+
+### 2.3 Interface Compression
+
+เทอมการบีบอัดทำงานเฉพาะในบริเวณอินเตอร์เฟซ ($0 < \alpha < 1$) และหายไปในเฟสบริสุทธิ์:
+
+$$\mathbf{u}_r = c_\alpha|\mathbf{u}| \frac{\nabla\alpha}{|\nabla\alpha|}$$
+
+**ตัวแปร:**
+- $c_\alpha$: ตัวปรับการบีบอัด (คีย์เวิร์ด `cAlpha` ใน `transportProperties`)
+
+> [!TIP] เลือกค่า cAlpha
+> - $c_\alpha = 0$: ไม่มีการบีบอัด (อินเตอร์เฟซจะเลอะเทอะ)
+> - $c_\alpha = 1$: การบีบอัดมาตรฐาน (แนะนำ)
+> - $c_\alpha > 1$: การบีบอัดที่รุนแรงขึ้น (อาจทำให้เกิดความไม่เสถียร)
+
+![[calpha_compression_comparison.png]]
+
+---
+
+## 3. MULES Algorithm
+
+**Multidimensional Universal Limiter with Explicit Solution (MULES)** เป็นอัลกอริทึมเฉพาะของ OpenFOAM เพื่อรับประกันว่าค่า $\alpha$ จะอยู่ในช่วง $[0, 1]$ เสมอ
+
+```mermaid
+flowchart TD
+    A[Calculate Unbounded Fluxes] --> B[Estimate alpha at next step]
+    B --> C[Identify cells exceeding 0 or 1]
+    C --> D[Calculate Limiter lambda for each face]
+    D --> E[Adjust Fluxes: Flux_limited = lambda * Flux_high + 1-lambda * Flux_low]
+    E --> F[Solve alpha equation with limited fluxes]
+    F --> G[Ensure Boundedness alpha in 0,1]
+
+    style D fill:#f8bbd0,stroke:#880e4f
+    style E fill:#f8bbd0,stroke:#880e4f
+```
+
+### 3.1 Functionality
+
+- ใช้เทคนิค Flux Corrected Transport (FCT)
+- จำกัด Flux ของ $\alpha$ เพื่อป้องกันการเกิดค่าที่ต่ำกว่า 0 หรือสูงกว่า 1 (Overshoots/Undershoots)
+- มีทั้งแบบ Explicit และ Semi-implicit
+
+### 3.2 MULES Implementation
+
+**การคำนวณการไหลที่จำกัด:**
+
+$$F_f^{\mathrm{MULES}} = F_f^{\mathrm{low}} + \phi_f^{\mathrm{lim}} (F_f^{\mathrm{high}} - F_f^{\mathrm{low}})$$
+
+**ตัวแปร:**
+- $F_f$: การไหลของสเกลาร์ผ่านหน้า $f$
+- $\phi_f^{\mathrm{lim}}$: ตัวจำกัด ($0 \leq \phi_f^{\mathrm{lim}} \leq 1$)
+
+**OpenFOAM Code:**
+
+```cpp
+MULES::explicitSolve
+(
+    geometricOneField(),   // density (unity for incompressible)
+    alpha1,                // volume fraction field
+    phi,                   // volumetric face flux
+    phiAlpha,              // compression flux (will be limited)
+    zeroField(),           // implicit source (Sp)
+    zeroField(),           // explicit source (Su)
+    1,                     // psiMax
+    0                      // psiMin
+);
+```
+
+---
+
+## 4. Surface Tension and Curvature
+
+OpenFOAM ใช้แบบจำลอง **Continuum Surface Force (CSF)** ของ Brackbill:
+
+### 4.1 CSF Model
+
+$$\mathbf{f}_\sigma = \sigma \kappa \nabla \alpha$$
+
+**ตัวแปร:**
+- $\sigma$: สัมประสิทธิ์แรงตึงผิว
+- $\kappa$: ความโค้ง (Curvature)
+
+### 4.2 Curvature Calculation
+
+ความโค้งคำนวณจากสนามสัดส่วนปริมาตร:
+
+$$\kappa = -\nabla \cdot \left(\frac{\nabla \alpha}{|\nabla \alpha|}\right)$$
+
+**OpenFOAM Implementation:**
+
+```cpp
+volScalarField kappa
+(
+    -fvc::div(fvc::grad(alpha1_)/mag(fvc::grad(alpha1_) + dimensionedScalar("small", dimless, SMALL)))
+);
+
+tmp<volVectorField> surfaceTensionForce()
+{
+    return sigma_ * kappa * fvc::grad(alpha1_);
+}
+```
+
+### 4.3 Parasitic Currents
+
+ปัญหาทั่วไปใน VOF คือการเกิดความเร็วปลอมๆ (Spurious Currents) บริเวณอินเตอร์เฟซเนื่องจากข้อผิดพลาดในการคำนวณความโค้ง
+
+**วิธีแก้ไข:**
+- ใช้ Mesh ที่มีคุณภาพสูง
+- ใช้เครื่องมือกรอง (Filtering/Smoothing)
+- ใช้สกีมความละเอียดสูงสำหรับความโค้ง
+
+---
+
+## 5. Numerical Stability and Time Stepping
+
+เสถียรภาพของการจำลอง multiphase มักถูกจำกัดโดย:
+
+### 5.1 Courant Number Constraints
+
+$$Co = \frac{u \Delta t}{\Delta x} < 1$$
+
+**คำแนะนำ:**
+- ปกติแนะนำ $Co < 0.5$ สำหรับ VOF
+- ใช้ `maxCo` ใน `controlDict` เพื่อควบคุม
+
+### 5.2 Interface Courant Number
+
+การจำกัดเวลาโดยอิงจากความเร็วรอบๆ อินเตอร์เฟซ:
+
+$$Co_\alpha = \frac{|\mathbf{u}| \Delta t}{\Delta x}$$
+
+ใช้ `maxAlphaCo` สำหรับการควบคุมเฉพาะบริเวณอินเตอร์เฟซ
+
+### 5.3 Capillary Number Constraint
+
+ข้อจำกัดเวลาโดยอิงจากแรงตึงผิวและการหน่วง (Viscous Damping):
+
+$$\Delta t < \frac{\rho \Delta x^2}{2\pi \sigma}$$
+
+**ตัวแปร:**
+- $\rho$: ความหนาแน่น
+- $\Delta x$: ขนาดเซลล์
+- $\sigma$: สัมประสิทธิ์แรงตึงผิว
+
+---
+
+## 6. Configuration in OpenFOAM
+
+### 6.1 fvSchemes Configuration
+
+**ตัวอย่าง `fvSchemes` สำหรับ VOF:**
+
+```foam
+ddtSchemes
+{
+    default         Euler;
+}
+
+gradSchemes
+{
+    default         Gauss linear;
+    grad(alpha)     Gauss linear;
+}
+
+divSchemes
+{
+    div(rho*phi,U)  Gauss limitedLinearV 1;
+    div(phi,alpha)  Gauss vanLeer;
+    div(phir,alpha) Gauss interfaceCompression vanLeer 1;
+}
+
+laplacianSchemes
+{
+    default         Gauss linear corrected;
+}
+
+interpolationSchemes
+{
+    default         linear;
+}
+
+snGradSchemes
+{
+    default         corrected;
+}
+```
+
+**คำอธิบาย:**
+- `div(phi,alpha)`: สกีมการขนส่งสำหรับสัดส่วนปริมาตร
+- `div(phir,alpha)`: สกีมการบีบอัดอินเตอร์เฟซ
+- `vanLeer`: สกีมที่ถูกจำกัด (bounded scheme)
+
+### 6.2 fvSolution Configuration
+
+**ตัวอย่าง `fvSolution` สำหรับ MULES:**
+
+```foam
+solvers
+{
+    "alpha.water.*"
+    {
+        nAlphaCorr      2;
+        nAlphaSubCycles 2;
+        cAlpha          1;
+
+        MULES
+        {
+            nIter       2;
+        }
+    }
+
+    pcorr
+    {
+        solver          PCG;
+        preconditioner  DIC;
+        tolerance       1e-5;
+        relTol          0;
+    }
+
+    p_rgh
+    {
+        solver          PCG;
+        preconditioner  DIC;
+        tolerance       1e-07;
+        relTol          0.05;
+    }
+
+    U
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-06;
+        relTol          0.1;
+    }
+}
+
+PIMPLE
+{
+    momentumPredictor no;
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 0;
+    nAlphaCorr      1;
+    nAlphaSubCycles 2;
+}
+```
+
+**พารามิเตอร์สำคัญ:**
+- `nAlphaCorr`: จำนวนรอยการแก้ไขสมการ alpha
+- `nAlphaSubCycles`: จำนวนรอยย่อยเพื่อเพิ่มเสถียรภาพ
+- `cAlpha`: ตัวปรับการบีบอัด
+
+### 6.3 transportProperties Configuration
+
+```foam
+phases (water air);
+
+water
+{
+    transportModel  Newtonian;
+    nu              [0 2 -1 0 0 0 0] 1e-06;
+    rho             [1 -3 0 0 0 0 0] 1000;
+}
+
+air
+{
+    transportModel  Newtonian;
+    nu              [0 2 -1 0 0 0 0] 1.48e-05;
+    rho             [1 -3 0 0 0 0 0] 1;
+}
+
+sigma           [1 0 -2 0 0 0 0] 0.07;
+
+// Surface tension force models
+surfaceTension
+{
+    type            constant;
+}
+```
+
+---
+
+## 7. Comparison of Interface Capturing Methods
+
+| วิธี | ตัวแปรหลัก | ข้อดี | ข้อเสีย | แอปพลิเคชันที่เหมาะสม |
+|------|-------------|----------|----------|-------------------|
+| **VOF** | $\alpha$ (สัดส่วนปริมาตร) | อนุรักษ์มวลอย่างเคร่งครัด | ความละเอียดของอินเตอร์เฟซจำกัด | การไหลของหยดครั้งใหญ่ |
+| **Level Set** | $\phi$ (ฟังก์ชันระยะทาง) | ความละเอียดสูงของอินเตอร์เฟซ | ไม่อนุรักษ์มวล | ฟิสิกส์ของอินเตอร์เฟซ |
+| **Phase Field** | $\psi$ (ฟังก์ชันเฟส) | จัดการ topology changes ได้ดี | ค่าใช้จ่ายคำนวณสูง | การหลอมรวมและการแยกตัว |
+
+### 7.1 Level Set Method
+
+วิธี Level Set แสดงอินเตอร์เฟซเป็นระดับศูนย์ของฟังก์ชันระยะทางที่มีเครื่องหมาย $\phi$:
+
+$$\phi(\mathbf{x}, t) = \begin{cases}
+-d(\mathbf{x}, \Gamma) & \text{inside phase 1} \\
+0 & \text{at the interface } \Gamma \\
++d(\mathbf{x}, \Gamma) & \text{inside phase 2}
+\end{cases}$$
+
+สมการวิวัฒนาการ:
+
+$$\frac{\partial \phi}{\partial t} + \mathbf{u} \cdot \nabla \phi = 0$$
+
+**ข้อดี:**
+- การคำนวณเวกเตอร์ปกติของอินเตอร์เฟซได้ง่าย: $\mathbf{n} = \frac{\nabla \phi}{|\nabla \phi|}$
+- การคำนวณความโค้งโดยตรง: $\kappa = \nabla \cdot \mathbf{n}$
+- การจัดการการเปลี่ยนแปลงโครงสร้างแบบธรรมชาติ
+
+### 7.2 Phase Field Method
+
+สมการ Phase Field:
+
+$$\frac{\partial \psi}{\partial t} + \mathbf{u} \cdot \nabla \psi = M \nabla^2 \mu_\psi$$
+
+**ข้อดี:**
+- จัดการ topology changes ได้ดี
+- ไม่ต้องการการติดตามอินเตอร์เฟซโดยตรง
+- เหมาะสำหรับการหลอมรวมและการแยกตัว
+
+---
+
+## 8. Advanced Numerical Techniques
+
+### 8.1 Interface Reconstruction
+
+**Geometric VOF (PLIC):**
+
+วิธี Piecewise Linear Interface Calculation สร้างอินเตอร์เฟซใหม่ในแต่ละเซลล์โดยใช้ระนาบเชิงเส้น:
+
+```cpp
+void reconstructInterface()
+{
+    // Calculate interface normal
+    volVectorField n = fvc::grad(alpha_);
+
+    // Reconstruct interface position
+    forAll(alpha_, cellI)
+    {
+        if (alpha_[cellI] > 0 && alpha_[cellI] < 1)
+        {
+            // PLIC reconstruction
+            reconstructCell(cellI, n[cellI]);
+        }
+    }
+}
+```
+
+### 8.2 Adaptive Mesh Refinement
+
+การปรับปรุง Mesh แบบปรับตัวโดยอิงจากตำแหน่งอินเตอร์เฟซ:
+
+```foam
+// In dynamicMeshDict
+dynamicFvMesh   dynamicRefineFvMesh;
+
+// Refinement based on alpha gradient
+refinementRegions
+{
+    interface
+    {
+        mode            distance;
+        levels          ((0.001 2)(0.01 1));
+    }
+}
+```
+
+### 8.3 Parallel Computing
+
+กลยุทธ์การแบ่งโดเมนสำหรับการจำลอง VOF:
+
+```bash
+# Decompose case
+decomposePar
+
+# Run in parallel
+mpirun -np 4 interFoam -parallel
+
+# Reconstruct
+reconstructPar
+```
+
+---
+
+## 9. Best Practices and Troubleshooting
+
+### 9.1 Summary of Best Practices
+
+| แนวปฏิบัติที่ดี | ผลกระทบ |
+|-----------------|----------|
+| ใช้ **nAlphaSubCycles** เพื่อเพิ่มเสถียรภาพของสมการ $\alpha$ | เพิ่มเสถียรภาพโดยไม่ต้องลด Time Step ทั้งระบบ |
+| ตรวจสอบให้แน่ใจว่า Mesh ในบริเวณอินเตอร์เฟซมีความสม่ำเสมอ (Uniform) | ลดข้อผิดพลาดเชิงตัวเลข |
+| ใช้แผนการแยกส่วน (Discretization Schemes) ที่เป็นแบบ Bounded (เช่น vanLeer) | รับประกันการจำกัดขอบเขต |
+| ใช้ mesh quality metrics ที่เหมาะสม | ความถูกต้องเชิงตัวเลข |
+
+### 9.2 Common Problems and Solutions
+
+| ปัญหา | สาเหตุ | การแก้ไข |
+|--------|---------|------------|
+| การไม่ลู่เข้าของการจำลอง | เงื่อนไขเริ่มต้นไม่ดี | ใช้การค่อยๆ ปรับค่า |
+| การสั่นของความดัน | การจับอินเตอร์เฟซที่ไม่ดี | เพิ่ม compression factor |
+| ปัญหาความเร็วสูงเกินไป | การเสียดสีมากเกินไป | ปรับความหนืดของอินเตอร์เฟซ |
+| อินเตอร์เฟซเลอะเทอะ | ค่า cAlpha ต่ำเกินไป | เพิ่ม cAlpha หรือใช้ mesh ละเอียดขึ้น |
+
+### 9.3 Performance Optimization
+
+1. **การปรับแต่ง Mesh**
+   - ใช้ mesh ละเอียดใกล้อินเตอร์เฟซ
+   - ใช้ adaptive mesh refinement
+
+2. **การเลือกโมเดลทางกายภาพที่เหมาะสม**
+   - พิจารณาความเร็วสัมพัทธ์ระหว่างเฟส
+   - เลือกโมเดลความหนืดตามรีโนลด์ส์
+
+3. **การปรับแต่ง Solver**
+   - ใช้รูปแบบการจัดลำดับที่เหมาะสม
+   - ปรับค่า under-relaxation
+
+4. **การตรวจสอบความถูกต้อง**
+   - ทำการตรวจสอบความสมดุลมวล
+   - ตรวจสอบสมการพลังงานรวม
+
+---
+
+## 10. Validation and Verification
+
+### 10.1 Benchmark Cases
+
+| กรณีเบนช์มาร์ก | ปรากฏการณ์ | เป้าหมายการตรวจสอบ |
+|-------------------|-------------|---------------------|
+| การเดือดในท่อตรง | การเปลี่ยนสถานะแบบนิวเคลียร์ | อัตราการเดือด |
+| การไหลของฟองในคอลัมน์ | การไหลแบบบับเบิล | การกระจายขนาดฟอง |
+| การแควิเทชันในไฮดรอลิก | การเกิดและการสลายตัวของฟอง | ความดันแควิเทชัน |
+
+### 10.2 Error Metrics
+
+**1. L2 Norm Error:**
+
+$$E_{L2} = \sqrt{\frac{1}{N} \sum_{i=1}^{N} (y_{sim,i} - y_{exp,i})^2}$$
+
+**2. Relative Error:**
+
+$$E_{rel} = \frac{|y_{sim} - y_{exp}|}{|y_{exp}|}$$
+
+**3. Coefficient of Determination:**
+
+$$R^2 = 1 - \frac{\sum (y_{exp} - y_{sim})^2}{\sum (y_{exp} - \bar{y}_{exp})^2}$$
+
+---
+
+## 11. Summary
+
+วิธีการเชิงตัวเลขที่ครอบคลุมในหมวดนี้เป็นพื้นฐานสำคัญสำหรับการจำลองการไหลแบบหลายเฟสใน OpenFOAM การเลือกวิธีการที่เหมาะสม การกำหนดค่าพารามิเตอร์อย่างระมัดระวัง และการออกแบบเมชที่เหมาะสมเป็นสิ่งสำคัญสำหรับการจำลองที่ประสบความสำเร็จ
+
+**จุดสำคัญที่ต้องจำ:**
+- VOF Method พร้อม MULES algorithm เป็นวิธีที่นิยมสำหรับการจับอินเตอร์เฟซ
+- Interface compression term จำเป็นสำหรับรักษาความคมของอินเตอร์เฟซ
+- Courant number constraints สำคัญสำหรับเสถียรภาพ
+- การเลือก discretization schemes ที่เหมาะสมมีผลกระทบอย่างมากต่อความแม่นยำ
+
+---
+
+## References
+
+1. Hirt, C. W., & Nichols, B. D. (1981). Volume of fluid (VOF) method for the dynamics of free boundaries. *Journal of Computational Physics*, 39(1), 201-225.
+
+2. Brackbill, J. U., Kothe, D. B., & Zemach, C. (1992). A continuum method for modeling surface tension. *Journal of Computational Physics*, 100(2), 335-354.
+
+3. Ubbink, O., & Issa, R. I. (1999). A method for capturing sharp fluid interfaces on arbitrary meshes. *Journal of Computational Physics*, 153(1), 26-50.
+
+4. OpenFOAM Foundation. (2023). *OpenFOAM User Guide*. https://www.openfoam.com
+
+5. Deshpande, S. S., Anumolu, L., & Trujillo, M. F. (2012). Evaluating the performance of the mass-preserving level-set method for two-phase interface flows. *International Journal for Numerical Methods in Fluids*, 69(5), 939-962.
