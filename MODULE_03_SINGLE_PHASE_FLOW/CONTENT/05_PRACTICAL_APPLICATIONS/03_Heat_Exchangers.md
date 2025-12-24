@@ -81,34 +81,37 @@ $$\Delta T_{LMTD} = \frac{\Delta T_1 - \Delta T_2}{\ln(\Delta T_1/\Delta T_2)}$$
 #### โครงสร้างภูมิภาค (Region Structure):
 
 ```cpp
+// Directory structure for multi-region CHT simulation
 constant/
-├── polyMesh/                    # Mesh ภูมิภาครวม (สำหรับ decomposePar)
-├── regionProperties            # รายชื่อภูมิภาคทั้งหมด
-├── hotFluid/                    # ภูมิภาคของไหลร้อน
+├── polyMesh/                    # Global mesh (for decomposePar)
+├── regionProperties            # List of all regions
+├── hotFluid/                    # Hot fluid region
 │   ├── polyMesh/
 │   ├── thermophysicalProperties
 │   └── turbulenceProperties
-├── coldFluid/                   # ภูมิภาคของไหลเย็น
+├── coldFluid/                   # Cold fluid region
 │   ├── polyMesh/
 │   ├── thermophysicalProperties
 │   └── turbulenceProperties
-└── solidWall/                   # ภูมิภาคของแข็ง (ผนังท่อ)
+└── solidWall/                   # Solid region (pipe wall)
     ├── polyMesh/
     └── thermophysicalProperties
 ```
 
+> **📂 Source:** โครงสร้างไดเรกทอรีมาตรฐานสำหรับการจำลอง CHT แบบหลายภูมิภาค อ้างอิงจากการตั้งค่าใน `chtMultiRegionFoam` และเครื่องมือ `foamSetupCHT`
+
 #### การกำหนดค่า thermophysicalProperties:
 
 ```cpp
-// สำหรับภูมิภาคของไหล (Fluid Region)
+// For fluid region
 thermoType
 {
     type            heRhoThermo;
-    mixture         pureMixture;  // สำหรับของไหลเฟสเดียว
-    transport       constAnIso;  // การนำความร้อนคงที่
-    thermo          hConst;      // ความร้อนจำเพาะคงที่
-    equationOfState perfectGas; // หรือ incompressiblePerfectGas
-    specie          specie;      // สำหรับของไหลเดี่ยว
+    mixture         pureMixture;  // For single-phase fluid
+    transport       constAnIso;  // Constant thermal conductivity
+    thermo          hConst;      // Constant specific heat
+    equationOfState perfectGas; // Or incompressiblePerfectGas
+    specie          specie;      // For single fluid
     energy          sensibleEnthalpy;
 }
 
@@ -116,29 +119,29 @@ mixture
 {
     specie
     {
-        molWeight       28.9;    // น้ำหนักโมเลกุล [g/mol] สำหรับอากาศ
+        molWeight       28.9;    // Molecular weight [g/mol] for air
     }
     thermodynamics
     {
-        Cp              1005;    // ความร้อนจำเพาะ [J/(kg·K)]
-        Hf              0;       // เอนทาลปีการก่อตัว [J/kg]
+        Cp              1005;    // Specific heat [J/(kg·K)]
+        Hf              0;       // Formation enthalpy [J/kg]
     }
     transport
     {
-        mu              1.8e-5;  // ความหนืด [Pa·s]
+        mu              1.8e-5;  // Dynamic viscosity [Pa·s]
         Pr              0.71;    // Prandtl number
-        kappa           0.026;   // ความนำความร้อน [W/(m·K)]
+        kappa           0.026;   // Thermal conductivity [W/(m·K)]
     }
 }
 
-// สำหรับภูมิภาคของแข็ง (Solid Region)
+// For solid region
 thermoType
 {
     type            heSolidThermo;
     mixture         pureMixture;
-    transport       constIso;    // การนำความร้อนไอโซทรอปิก
-    thermo          hConst;      // เอนทาลปีขึ้นกับอุณหภูมิ
-    equationOfState rhoConst;    // ความหนาแน่นคงที่
+    transport       constIso;    // Isotropic thermal conductivity
+    thermo          hConst;      // Enthalpy as function of temperature
+    equationOfState rhoConst;    // Constant density
     specie          specie;
     energy          sensibleEnthalpy;
 }
@@ -147,7 +150,7 @@ mixture
 {
     specie
     {
-        molWeight       26.98;   // อลูมิเนียม
+        molWeight       26.98;   // Aluminum
     }
     thermodynamics
     {
@@ -156,32 +159,62 @@ mixture
     }
     transport
     {
-        kappa           237;     // [W/(m·K)] อลูมิเนียม
+        kappa           237;     // [W/(m·K)] Aluminum
     }
     equationOfState
     {
-        R               287;     // ค่าคงที่ของก๊าซเฉพาะ
-        rho             2700;    // ความหนาแน่น [kg/m³]
+        R               287;     // Specific gas constant
+        rho             2700;    // Density [kg/m³]
     }
 }
 ```
 
+> **📂 Source:** การตั้งค่าคุณสมบัติเทอร์โมฟิสิกส์ อ้างอิงจากโครงสร้างข้อมูลใน `.applications/test/liquid/Make/options` ซึ่งใช้ไลบรารี `thermophysicalProperties`
+
+**คำอธิบาย:**
+- **thermoType**: กำหนดประเภทของโมเดลเทอร์โมฟิสิกส์
+  - `heRhoThermo`: สำหรับของไหลที่มีความหนาแน่นแปรผัน
+  - `heSolidThermo`: สำหรับของแข็ง
+- **transport**: สมบัติการลำเลียงความร้อน
+  - `constAnIso`: ความนำความร้อนแบบ anisotropic คงที่
+  - `constIso`: ความนำความร้อนแบบ isotropic คงที่
+- **equationOfState**: สมการของสภาพ
+  - `perfectGas`: ก๊าซอุดมคติ
+  - `rhoConst`: ความหนาแน่นคงที่ (สำหรับของแข็ง)
+
+**แนวคิดสำคัญ:**
+1. **Thermophysical Properties Library**: OpenFOAM ใช้ไลบรารี `thermophysicalModels` และ `specie` ในการจัดการคุณสมบัติทางเทอร์โมไดนามิกส์
+2. **Pure Mixture**: ใช้สำหรับของไหลเฟสเดียวที่ไม่มีการผสมกับของไหลอื่น
+3. **Sensible Enthalpy**: พลังงานในรูปแบบเอนทาลปีที่เปลี่ยนแปลงตามอุณหภูมิ
+
 #### เงื่อนไขขอบเขตระหว่างภูมิภาค:
 
 ```cpp
-// 0/T สำหรับแต่ละภูมิภาค
+// 0/T for each region
 regions
 {
     hotFluid_to_solidWall
     {
         type            compressible::turbulentTemperatureCoupledBaffleMixed;
-        value           uniform 300;          // อุณหภูมิเริ่มต้น
-        Tnbr            300;                   // อุณหภูมิของภูมิภาคข้างเคียง
-        kappa           none;                  // จะถูกคำนวณจาก thermophysicalProperties
-        K               none;                  // ค่าการนำความร้อนรวม
+        value           uniform 300;          // Initial temperature
+        Tnbr            300;                   // Neighbor region temperature
+        kappa           none;                  // Calculated from thermophysicalProperties
+        K               none;                  // Combined thermal conductivity
     }
 }
 ```
+
+> **📂 Source:** เงื่อนไขขอบเขตแบบ coupled thermal ใช้โมเดลการถ่ายเทความร้อนผ่านผนังแบบ turbulent จาก `.applications/solvers/compressible/rhoCentralFoam/BCs/T/`
+
+**คำอธิบาย:**
+- **turbulentTemperatureCoupledBaffleMixed**: เงื่อนไขขอบเขตสำหรับการถ่ายเทความร้อนระหว่างภูมิภาคที่มีความปั่นป่วน
+  - `Tnbr`: อุณหภูมิของภูมิภาคข้างเคียง
+  - `kappa`: ความนำความร้อน (ถ้าไม่ระบุจะใช้ค่าจาก thermophysicalProperties)
+
+**แนวคิดสำคัญ:**
+1. **Conjugate Heat Transfer**: การถ่ายเทความร้อนร่วมกันระหว่างของไหลและของแข็ง
+2. **Coupled Boundary**: อุณหภูมิและฟลักซ์ความร้อนต้องต่อเนื่องกันที่ interface
+3. **Turbulent Contribution**: ในการไหลแบบ turbulent ความนำความร้อนจะมีส่วนเพิ่มจากความปั่นป่วน
 
 ### 2.2 แบบจำลองสื่อพรุน (Porous Media Simplification)
 
@@ -201,6 +234,11 @@ $$\nabla p = -\left(\frac{\mu}{K} + \beta \rho |\mathbf{u}|\right) \mathbf{u}$$
 
 > [!TIP] การใช้แบบจำลองพรุนช่วยลดจำนวนเซลล์ mesh ได้อย่างมาก แต่ต้องการการปรับเทียบ (calibration) กับข้อมูลการทดลอง
 
+**แนวคิดสำคัญ:**
+1. **Darcy Term** ($\mu/K$): การสูญเสียดันเนื่องจากความหนืด สำคัญที่ Reynolds number ต่ำ
+2. **Forchheimer Term** ($\beta \rho |u|$): การสูญเสียดันเนื่องจากความเฉื่อย สำคัญที่ Reynolds number สูง
+3. **Homogenization**: การแทนที่โครงสร้างที่ซับซ้อนด้วยตัวกลางเทียบเท่า
+
 ---
 
 ## 💻 3. OpenFOAM Implementation
@@ -210,7 +248,7 @@ $$\nabla p = -\left(\frac{\mu}{K} + \beta \rho |\mathbf{u}|\right) \mathbf{u}$$
 ใช้ `fvOptions` ใน `system/fvOptions` เพื่อจำลองเครื่องแลกเปลี่ยนความร้อนแบบพรุน:
 
 ```cpp
-// system/fvOptions
+// Porous zone configuration
 porousHeatExchanger
 {
     type            explicitPorositySource;
@@ -224,16 +262,17 @@ porousHeatExchanger
 
         DarcyForchheimerCoeffs
         {
-            // ทิศทางที่ 1 (x) - ทิศทางการไหลหลัก
-            d   (1e5 1e5 1e5);    // สัมประสิทธิ์ Darcy [1/m²]
-            f   (10 10 10);       // สัมประสิทธิ์ Forchheimer [1/m]
+            // Direction 1 (x) - Main flow direction
+            d   (1e5 1e5 1e5);    // Darcy coefficient [1/m²]
+            f   (10 10 10);       // Forchheimer coefficient [1/m]
 
-            // d = μ/K, f = β√(ความยาวลักษณะ)
-            // ค่าจะถูกปรับเทียบจากข้อมูลการทดลอง
+            // d = μ/K, f = β√(characteristic length)
+            // Values calibrated from experimental data
         }
     }
 }
 
+// Heat source in porous zone
 heatSource
 {
     type            scalarSemiImplicitSource;
@@ -245,25 +284,40 @@ heatSource
     {
         T
         {
-            // แหล่งความร้อนแบบคงที่ [W/m³]
+            // Constant heat source [W/m³]
             Su      10000;
 
-            // เทอม implicit (ถ้าต้องการให้ขึ้นกับ T)
+            // Implicit term (if dependent on T)
             Sp      0;
         }
     }
 }
 ```
 
+> **📂 Source:** การใช้ `fvOptions` สำหรับการจำลองแหล่งศักย์ เป็นฟีเจอร์มาตรฐานใน OpenFOAM สำหรับการเพิ่มแหล่งกำเนิดในสมการ
+
+**คำอธิบาย:**
+- **explicitPorositySource**: แหล่งกำเนิดความพรุนแบบ explicit
+  - `d`: สัมประสิทธิ์ Darcy = $\mu/K$
+  - `f`: สัมประสิทธิ์ Forchheimer = $\beta$
+- **scalarSemiImplicitSource**: แหล่งกำเนิดสเกลาร์แบบ semi-implicit
+  - `Su`: เทอม explicit (source term)
+  - `Sp`: เทอม implicit (coefficient for linearization)
+
+**แนวคิดสำคัญ:**
+1. **Porous Media Model**: ใช้ Darcy-Forchheimer law เพื่อจำลองการสูญเสียดันในตัวกลางพรุน
+2. **Cell Zone Selection**: กำหนดบริเวณที่จะใช้แบบจำลองพรุนโดยใช้ cellZone
+3. **Heat Source**: สามารถเพิ่มแหล่งความร้อนเพื่อจำลองการถ่ายเทความร้อน
+
 ### 3.2 การติดตามประสิทธิภาพ (Performance Tracking)
 
 เพิ่ม function objects ใน `system/controlDict` เพื่อติดตามตัวชี้วัดประสิทธิภาพ:
 
 ```cpp
-// system/controlDict
+// Performance tracking function objects
 functions
 {
-    // คำนวณอุณหภูมิเฉลี่ยที่ inlet/outlet
+    // Calculate average temperature at inlet/outlet
     tempInlet
     {
         type            surfaceFieldValue;
@@ -304,7 +358,7 @@ functions
         writeLocation   false;
     }
 
-    // คำนวณความดันตกคร่อม
+    // Calculate pressure drop
     pressureDrop
     {
         type            pressureDrop;
@@ -318,7 +372,7 @@ functions
         log             true;
     }
 
-    // คำนวณอัตราการถ่ายเทความร้อน
+    // Calculate heat transfer rate
     heatTransferRate
     {
         type            surfaceHeatTransferRate;
@@ -334,12 +388,26 @@ functions
 }
 ```
 
+> **📂 Source:** Function objects สำหรับการวิเคราะห์ผลลัพธ์ ใช้ไลบรารี `libfieldFunctionObjects.so` มาตรฐานของ OpenFOAM
+
+**คำอธิบาย:**
+- **surfaceFieldValue**: คำนวณค่าเฉลี่ยบนพื้นผิว
+  - `weightedAverage`: ค่าเฉลี่ยถ่วงน้ำหนักด้วยฟลักซ์
+  - `phi`: ฟลักซ์ปริมาตรสำหรับการถ่วงน้ำหนัก
+- **pressureDrop**: คำนวณความดันตกคร่อมระหว่าง patches สองแห่ง
+- **surfaceHeatTransferRate**: คำนวณอัตราการถ่ายเทความร้อนผ่านผนัง
+
+**แนวคิดสำคัญ:**
+1. **Function Objects**: เครื่องมือสำหรับคำนวณปริมาณที่สนใจระหว่างการจำลอง
+2. **Weighted Average**: ใช้ฟลักซ์เป็นน้ำหนักเพื่อให้ได้ค่าอุณหภูมิเฉลี่ยที่ถูกต้อง
+3. **Real-time Monitoring**: ติดตามตัวชี้วัดประสิทธิภาพได้ทันทีขณะจำลอง
+
 ### 3.3 การคำนวณประสิทธิภาพหลังการจำลอง (Post-Processing Effectiveness)
 
 ใช้ `postProcess` หรือสคริปต์ Python เพื่อคำนวณประสิทธิภาพ:
 
 ```bash
-# ดึงค่าอุณหภูมิเฉลี่ยจากผลลัพธ์
+# Extract average temperature values from results
 postProcess -func "surfaceFieldValue(name=inlet,operation=weightedAverage,weightField=phi,field=T)" -latestTime
 postProcess -func "surfaceFieldValue(name=outlet,operation=weightedAverage,weightField=phi,field=T)" -latestTime
 ```
@@ -349,6 +417,11 @@ postProcess -func "surfaceFieldValue(name=outlet,operation=weightedAverage,weigh
 $$\varepsilon = \frac{\dot{m}_c c_{p,c} (T_{c,out} - T_{c,in})}{\dot{m}_h c_{p,h} (T_{h,in} - T_{c,in})}$$
 
 สำหรับกรณีที่ $C_{min} = C_c$ (ของไหลเย็นมีความจุความร้อนน้อยกว่า)
+
+**แนวคิดสำคัญ:**
+1. **Post-Processing Utilities**: OpenFOAM มีเครื่องมือ `postProcess` สำหรับดึงข้อมูลจากผลลัพธ์
+2. **Effectiveness Calculation**: ใช้อุณหภูมิที่ inlet/outlet ในการคำนวณ
+3. **Energy Balance**: ตรวจสอบสมดุลพลังงานระหว่างสองกระแส
 
 ---
 
@@ -394,6 +467,11 @@ $$Nu_{CFD} = \frac{h D}{k} = \frac{q'' D}{k (T_w - T_b)}$$
 | Gnielinski | $Nu = \frac{(f/8)(Re-1000)Pr}{1+12.7\sqrt{f/8}(Pr^{2/3}-1)}$ | ความแม่นยำสูงกว่า |
 | Sieder-Tate | $Nu = 0.027 Re^{0.8} Pr^{1/3} (\mu/\mu_w)^{0.14}$ | มีผลจากความหนืดที่ผนัง |
 
+**แนวคิดสำคัญ:**
+1. **Nusselt Number**: วัดประสิทธิภาพการถ่ายเทความร้อนแบบ convection
+2. **Empirical Correlations**: สมการที่ได้จากการทดลอง ใช้สำหรับ validation
+3. **Heat Transfer Coefficient**: คำนวณจาก gradient อุณหภูมิที่ผนัง
+
 ---
 
 ## 📚 5. กรณีศึกษา (Case Studies)
@@ -421,14 +499,14 @@ $$Nu_{CFD} = \frac{h D}{k} = \frac{q'' D}{k (T_w - T_b)}$$
 #### พารามิเตอร์การจำลอง:
 
 ```cpp
-// constant/turbulenceProperties (สำหรับ shell side)
+// Turbulence model configuration for shell side
 simulationType RAS;
 RAS
 {
     RASModel        kEpsilon;
     turbulence      on;
 
-    // ค่าคงที่มาตรฐาน
+    // Standard constants
     kEpsilonCoeffs
     {
         Cmu             0.09;
@@ -438,7 +516,7 @@ RAS
     }
 }
 
-// system/fvSchemes
+// Numerical schemes
 ddtSchemes
 {
     default         steadyState;
@@ -452,7 +530,7 @@ gradSchemes
 divSchemes
 {
     default         none;
-    div(phi,U)      Gauss upwind;  // สำหรับความเสถียร
+    div(phi,U)      Gauss upwind;  // For stability
     div(phi,k)      Gauss upwind;
     div(phi,epsilon) Gauss upwind;
 }
@@ -461,6 +539,21 @@ laplacianSchemes
     default         Gauss linear corrected;
 }
 ```
+
+> **📂 Source:** การตั้งค่า numerical schemes และ solver parameters อ้างอิงจากรูปแบบมาตรฐานในไฟล์ `.applications/test/fieldMapping/pipe1D/system/fvSolution`
+
+**คำอธิบาย:**
+- **kEpsilon**: โมเดลความปั่นป่วนแบบ RANS สำหรับการไหลแบบ turbulent
+  - `Cmu`, `C1`, `C2`: ค่าคงที่มาตรฐานของโมเดล k-ε
+  - `sigmaEps`: ค่าคงที่ Prandtl number สำหรับสมการ dissipation
+- **Numerical Schemes**: รูปแบบการ discretization
+  - `steadyState`: การจำลอง steady-state
+  - `Gauss upwind`: รูปแบบ upwind สำหรับความเสถียร
+
+**แนวคิดสำคัญ:**
+1. **RANS Modeling**: ใช้ Reynolds-Averaged Navier-Stokes สำหรับการไหล turbulent
+2. **Standard k-ε Model**: โมเดลความปั่นป่วนที่นิยมใช้ในงานวิศวกรรม
+3. **Upwind Differencing**: รูปแบบการ discretization ที่มีความเสถียรสูง
 
 #### ผลลัพธ์ที่คาดหวัง:
 
@@ -479,7 +572,7 @@ laplacianSchemes
 #### การตั้งค่า Mesh:
 
 ```cpp
-// system/snappyHexMeshDict
+// Mesh generation with snappyHexMesh
 castellatedMesh true;
 snap            true;
 addLayers       true;
@@ -497,7 +590,7 @@ refinementSurfaces
 {
     plates
     {
-        level (4 4);  // ความละเอียดสูงบริเวณรอยหยัก
+        level (4 4);  // High resolution near corrugations
     }
 }
 
@@ -516,6 +609,19 @@ addLayersCoeffs
     minThickness 0.05;
 }
 ```
+
+> **📂 Source:** การใช้ `snappyHexMesh` สำหรับการสร้าง mesh ที่ซับซ้อน เป็นเครื่องมือมาตรฐานของ OpenFOAM
+
+**คำอธิบาย:**
+- **refinementSurfaces**: กำหนดระดับความละเอียดของ mesh บนพื้นผิว
+- **addLayersCoeffs**: การเพิ่มชั้น boundary layer
+  - `nSurfaceLayers`: จำนวนชั้นของ boundary layer
+  - `expansionRatio`: อัตราส่วนการขยายตัวของความหนาชั้น
+
+**แนวคิดสำคัญ:**
+1. **Boundary Layer Mesh**: สำคัญสำหรับการคำนวณ heat transfer ที่แม่นยำ
+2. **Mesh Refinement**: ความละเอียดสูงบริเวณรอยหยักเพื่อจับ gradient อุณหภูมิ
+3. **Quality Control**: ตรวจสอบคุณภาพ mesh เช่น non-orthogonality และ aspect ratio
 
 ---
 
@@ -536,17 +642,29 @@ $$R_f = \frac{1}{U_{fouled}} - \frac{1}{U_{clean}}$$
 ใน OpenFOAM สามารถจำลองเป็นชั้นความต้านทานความร้อนเพิ่มเติม:
 
 ```cpp
-// 0/T (boundary condition)
+// Boundary condition with fouling resistance
 wallWithFouling
 {
     type            externalWallHeatFluxTemperature;
     mode            coefficient;
-    Ta              constant 300;     // อุณหภูมิภายนอก
-    h               uniform 500;      // สัมประสิทธิ์การถ่ายเทความร้อนรวม (รวม fouling)
-    kappa           none;            // ใช้ค่าจาก thermophysicalProperties
-    value           uniform 300;     // อุณหภูมิเริ่มต้น
+    Ta              constant 300;     // External temperature
+    h               uniform 500;      // Overall heat transfer coefficient (including fouling)
+    kappa           none;            // Use value from thermophysicalProperties
+    value           uniform 300;     // Initial temperature
 }
 ```
+
+> **📂 Source:** เงื่อนไขขอบเขตแบบ externalWallHeatFluxTemperature ใช้โมเดลการถ่ายเทความร้อนผ่านผนังโดยรวม
+
+**คำอธิบาย:**
+- **externalWallHeatFluxTemperature**: เงื่อนไขขอบเขตสำหรับการถ่ายเทความร้อนผ่านผนังภายนอก
+  - `Ta`: อุณหภูมิภายนอก
+  - `h`: สัมประสิทธิ์การถ่ายเทความร้อนรวม (รวม fouling resistance)
+
+**แนวคิดสำคัญ:**
+1. **Fouling Resistance**: ความต้านทานความร้อนเพิ่มเติมจากการสะสมคราบ
+2. **Overall Heat Transfer Coefficient**: ค่าสัมประสิทธิ์รวมที่รวมทุกความต้านทาน
+3. **Time-Dependent Effect**: Fouling เพิ่มขึ้นตามเวลาการใช้งาน
 
 ### 6.2 ข้อจำกัดของแบบจำลอง
 
@@ -555,6 +673,11 @@ wallWithFouling
 | **Multi-Region CHT** | แม่นยำสูง รายละเอียดดี | ใช้เวลาคำนวณนาน | การออกแบบรายละเอียด การวิจัย |
 | **Porous Media** | เร็ว ประหยัด | ต้อง calibration ไม่มีรายละเอียดโฟลว์ในท่อ | การวิเคราะห์ระบบขนาดใหญ่ |
 | **Periodic Unit Cell** | สมดุลระหว่างความแม่นยำและเวลา | ไม่จับผลขอบ | การศึกษาการไหลในท่อแต่ละท่อ |
+
+**แนวคิดสำคัญ:**
+1. **Trade-offs**: การเลือกแบบจำลองต้องพิจารณาความแม่นยำ เวลา และทรัพยากร
+2. **Calibration**: แบบจำลองพรุนต้องมีการปรับเทียบกับข้อมูลการทดลอง
+3. **Validation**: ทุกแบบจำลองควรได้รับการตรวจสอบกับข้อมูลจริง
 
 ---
 
@@ -571,13 +694,19 @@ flowchart TD
     E --> F[Check Quality]
     F --> G[Run Simulation]
 ```
-> **Figure 1:** ขั้นตอนมาตรฐานในการเตรียมรูปทรงเรขาคณิตสำหรับการจำลองเครื่องแลกเปลี่ยนความร้อน เริ่มต้นจากการจัดการโมเดล CAD การลดความซับซ้อนของรูปทรงที่ไม่มีผลต่อฟิสิกส์ การสร้างโดเมนของของไหล การกำหนดอินเทอร์เฟซระหว่างบริเวณที่แตกต่างกัน (เช่น ของไหลกับของแข็ง) การสร้างเมช และการตรวจสอบคุณภาพก่อนเริ่มการจำลองความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+
+> **Figure 1:** ขั้นตอนมาตรฐานในการเตรียมรูปทรงเรขาคณิตสำหรับการจำลองเครื่องแลกเปลี่ยนความร้อน เริ่มต้นจากการจัดการโมเดล CAD การลดความซับซ้อนของรูปทรงที่ไม่มีผลต่อฟิสิกส์ การสร้างโดเมนของของไหล การกำหนดอินเทอร์เฟซระหว่างบริเวณที่แตกต่างกัน (เช่น ของไหลกับของแข็ง) การสร้างเมช และการตรวจสอบคุณภาพก่อนเริ่มการจำลอง
 
 **เคล็ดลับ:**
 
 - ลดรายละเอียดขนาดเล็กที่ไม่สำคัญ (fillets < 1 mm)
 - สร้าง **separate bodies** สำหรับแต่ละ region (hot fluid, cold fluid, solid)
 - ตรวจสอบให้แน่ใจว่า **interfaces** ตรงกันระหว่าง regions
+
+**แนวคิดสำคัญ:**
+1. **Geometry Simplification**: ลดความซับซ้อนเพื่อลดจำนวนเซลล์ mesh โดยไม่กระทบฟิสิกส์
+2. **Clean Topology**: โครงสร้าง CAD ที่สะอาดช่วยให้การสร้าง mesh เป็นไปอย่างราบรื่น
+3. **Interface Matching**: interfaces ต้องตรงกันทั้งด้าน geometry และ mesh
 
 ### 7.2 การสร้าง Mesh สำหรับ CHT
 
@@ -588,6 +717,11 @@ flowchart TD
 | **Non-orthogonality** | < 65° | ความแม่นยำของ gradient |
 | **Layers บน interface** | 3-5 layers | การถ่ายเทความร้อนที่ถูกต้อง |
 
+**แนวคิดสำคัญ:**
+1. **$y^+$ Criteria**: ค่า $y^+$ ≈ 1 สำหรับ wall-resolved LES/DNS หรือ 30-300 สำหรับ wall-function
+2. **Boundary Layer Resolution**: ชั้น boundary layer สำคัญสำหรับการถ่ายเทความร้อน
+3. **Mesh Quality**: คุณภาพ mesh ส่งผลต่อความแม่นยำและความเสถียรของการจำลอง
+
 ### 7.3 การเลือก Solver
 
 | สถานการณ์ | Solver | เหตุผล |
@@ -596,10 +730,15 @@ flowchart TD
 | **Transient CHT** | `chtMultiRegionFoam` | การวิเคราะห์เชิงเวลา |
 | **Porous media** | `porousSimpleFoam` | การไหลในตัวกลางพรุน |
 
+**แนวคิดสำคัญ:**
+1. **chtMultiRegionFoam**: Solver สำหรับ CHT แบบหลายภูมิภาค ทั้ง steady-state และ transient
+2. **Solver Selection**: เลือก solver ตามประเภทของปัญหาและความซับซ้อน
+3. **Computational Cost**: พิจารณาเวลาและทรัพยากรที่ต้องการ
+
 ### 7.4 การตรวจสอบการลู่เข้า (Convergence Monitoring)
 
 ```cpp
-// system/fvSolution
+// Solver settings and convergence criteria
 SOLVERS
 {
     p
@@ -639,6 +778,18 @@ SIMPLE
     }
 }
 ```
+
+> **📂 Source:** การตั้งค่า solver และ convergence criteria อ้างอิงจากรูปแบบมาตรฐานใน `.applications/test/fieldMapping/pipe1D/system/fvSolution`
+
+**คำอธิบาย:**
+- **GAMG**: Geometric-Algebraic Multi-Grid solver สำหรับสมการ Poisson (ความดัน)
+- **smoothSolver**: Solver แบบ iterative สำหรับความเร็วและอุณหภูมิ
+- **residualControl**: เกณฑ์การลู่เข้าสำหรับแต่ละตัวแปร
+
+**แนวคิดสำคัญ:**
+1. **Residual Monitoring**: ติดตาม residuals ของสมการแต่ละตัวแปร
+2. **Convergence Criteria**: กำหนดเกณฑ์การลู่เข้าที่เหมาะสม
+3. **Integral Quantities**: ตรวจสอบปริมาณรวมเช่น อัตราการถ่ายเทความร้อน
 
 **ตรวจสอบ:**
 

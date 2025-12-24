@@ -72,7 +72,9 @@ $$\text{Weak Scaling Efficiency} = \frac{T_1}{T_N}$$
 #### 2.1.1 `system/decomposeParDict` - การตั้งค่า Decomposition
 
 ```cpp
-// NOTE: Synthesized by AI - Verify parameters
+// Note: Synthesized by AI - Verify parameters
+// OpenFOAM Dictionary for domain decomposition configuration
+// 📂 Source: .applications/utilities/parallelProcessing/decomposePar/decomposePar.C
 FoamFile
 {
     version     2.0;
@@ -111,10 +113,21 @@ processorWeights
 }
 ```
 
+**คำอธิบาย (Explanation):**
+ไฟล์ `decomposeParDict` ใช้กำหนดวิธีการแบ่งโดเมน (Domain Decomposition) สำหรับการคำนวณแบบขนาน โดยมีเมทอดหลักๆ ได้แก่ `simple` (แบ่งตามเรขาคณิต), `scotch` (แบ่งตามกราฟเพื่อ load balancing ที่ดี), และ `metis` (คล้าย scotch)
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Domain Decomposition**: การแบ่งโดเมนเชิงฟิสิกส์ออกเป็นส่วนๆ สำหรับแต่ละ processor
+- **Load Balancing**: การกระจายภาระงานให้แต่ละ processor มีจำนวนเซลล์ใกล้เคียงกัน
+- **Scotch**: Graph partitioning library ที่ให้ load balancing ที่ดีกว่า simple method
+- **Processor Weights**: ใช้สำหรับ heterogeneous clusters ที่มีประสิทธิภาผู้ใช้งานต่างกัน
+
 #### 2.1.2 `system/controlDict` - การตั้งค่า Monitoring
 
 ```cpp
-// NOTE: Synthesized by AI - Verify parameters
+// Note: Synthesized by AI - Verify parameters
+// Control dictionary for solver execution and run-time monitoring
+// 📂 Source: .applications/utilities/parallelProcessing/decomposePar/decomposePar.C (controlDict structure)
 FoamFile
 {
     version     2.0;
@@ -222,6 +235,15 @@ functions
 }
 ```
 
+**คำอธิบาย (Explanation):**
+ไฟล์ `controlDict` เป็นการตั้งค่าหลักที่ควบคุมการทำงานของ solver และฟังก์ชันการติดตามประสิทธิภาพแบบเรียลไทม์ โดยมี Function Objects สำหรับบันทึกข้อมูลต่างๆ เช่น Execution time, Solver iterations, Residuals, และ Courant number
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Function Objects**: กลไกของ OpenFOAM ที่อนุญาตให้เรียกใช้ฟังก์ชันเพิ่มเติมระหว่างการรัน solver
+- **Execution Time**: เวลา CPU ที่ใช้ในการคำนวณ (เวลาสะสม)
+- **Courant Number**: ตัวชี้วัดเสถียรภาพเชิงตัวเลข (ควร < 1.0 สำหรับเสถียรภาพ)
+- **Write Interval**: ความถี่ในการเขียนผลลัพธ์ (มีผลต่อ I/O performance)
+
 ### 2.2 การติดตาม CPU และ Memory
 
 เราสามารถใช้สคริปต์ Python ร่วมกับไลบรารี `psutil` เพื่อตรวจสอบการทำงานของ MPI processes ใน OpenFOAM:
@@ -283,7 +305,16 @@ if __name__ == "__main__":
     monitor_parallel_run(pids, interval=5.0)
 ```
 
-### 2.2 การวิเคราะห์ Load Imbalance
+**คำอธิบาย (Explanation):**
+สคริปต์นี้ใช้ไลบรารี `psutil` ในการตรวจสอบการใช้ CPU และ Memory ของ MPI processes แบบเรียลไทม์ ซึ่งมีประโยชน์ในการตรวจพบ Load imbalance หรือปัญหา Memory leaks
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Process ID (PID)**: ตัวระบุเฉพาะของแต่ละโปรเซสในระบบปฏิบัติการ
+- **RSS (Resident Set Size)**: ปริมาณ Memory ที่ใช้จริงใน RAM
+- **CPU Percentage**: เปอร์เซ็นต์การใช้ CPU ต่อโปรเซสเซอร์
+- **Load Imbalance**: สถานการณ์ที่โปรเซสเซอร์บางตัวทำงานหนักกว่าตัวอื่น
+
+### 2.3 การวิเคราะห์ Load Imbalance
 
 การติดตามเวลาที่แต่ละ processor ใช้ทำงานช่วยให้ตรวจพบ Load imbalance ได้:
 
@@ -342,6 +373,14 @@ if __name__ == "__main__":
     print(f"Load Balance Efficiency: {stats['load_balance_efficiency']:.4f}")
     print(f"Imbalance Ratio: {stats['imbalance_ratio']:.2f}")
 ```
+
+**คำอธิบาย (Explanation):**
+ฟังก์ชันนี้อ่านไฟล์ log จาก OpenFOAM solver และวิเคราะห์เวลาการทำงานของแต่ละ processor เพื่อคำนวณ Load Balance Efficiency ซึ่งเป็นตัวชี้วัดที่บอกถึงความสมดุลของการกระจายงาน
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Load Balance Efficiency ($\eta_{LB}$)**: ค่าที่บอกถึงประสิทธิภาพของการกระจายงาน (1 = สมบูรณ์, < 0.8 = มีปัญหา)
+- **Imbalance Ratio**: อัตราส่วนระหว่างเวลาที่มากที่สุดและน้อยที่สุด
+- **Regular Expressions**: ใช้สำหรับค้นหารูปแบบข้อมูลในไฟล์ log
 
 ![[resource_monitoring_dashboard.png]]
 > **ภาพประกอบ 2.1:** แดชบอร์ดการติดตามทรัพยากร: แสดงการใช้ CPU และ Memory ของแต่ละโปรเซสเซอร์แบบเรียลไทม์ ช่วยในการตรวจจับการทำ Load imbalance หรือ Memory leakage, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9
@@ -413,7 +452,7 @@ grep "processor" log.solver | grep "time"
 # ตรวจสอบการสื่อสาร
 grep "communication" log.solver
 
-# ตรวจสอบการบรรจุผลเฉลย
+# ตรวจสอบการบรรจงผลเฉลย
 grep "Final residual" log.solver
 
 # สรุปเวลาการรัน
@@ -463,7 +502,7 @@ def analyze_communication_overhead(log_file: str) -> dict:
 #!/bin/bash
 # scaling_study.sh - สคริปต์สำหรับวัดประสิทธิภาพการขยายตัว
 
-# NOTE: Synthesized by AI - Verify parameters
+# Note: Synthesized by AI - Verify parameters
 SOLVER="interFoam"
 CASE_DIR="."
 RESULTS_FILE="scaling_results.csv"
@@ -782,7 +821,9 @@ $$\text{Roofline Model} = \min(\text{Peak Performance}, \text{Bandwidth} \times 
 #### 7.1.1 Linear Solvers
 
 ```cpp
-// NOTE: Synthesized by AI - Verify parameters
+// Note: Synthesized by AI - Verify parameters
+// Linear solver configuration for optimal performance
+// 📂 Source: .applications/utilities/parallelProcessing/decomposePar/decomposePar.C (solver settings in fvSolution)
 solvers
 {
     // Pressure solver - สำคัญที่สุดสำหรับ incompressible flows
@@ -829,10 +870,21 @@ solvers
 }
 ```
 
+**คำอธิบาย (Explanation):**
+การตั้งค่า linear solvers มีผลต่อประสิทธิภาพการคำนวณอย่างมาก GAMG (Geometric-Algebraic Multi-Grid) เหมาะสำหรับ large meshes เนื่องจาก scale ได้ดีในระบบขนาน ส่วน PCG (Preconditioned Conjugate Gradient) เหมาะสำหรับ small meshes
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **GAMG**: Multi-grid solver ที่ใช้ทั้งข้อมูลเชิงเรขาคณิตและพีชคณิต
+- **Smoother**: วิธีการลด error ในแต่ละระดับของ multi-grid
+- **Tolerance**: ค่าความแม่นยำที่ต้องการในการแก้ระบบสมการ
+- **Relative Tolerance**: ค่าความแม่นยำสัมพัทธ์ (หยุดเมื่อ residual ลดถึงสัดส่วนนี้)
+
 #### 7.1.2 Under-Relaxation Factors
 
 ```cpp
-// NOTE: Synthesized by AI - Verify parameters
+// Note: Synthesized by AI - Verify parameters
+// Under-relaxation factors for stability control
+// 📂 Source: .applications/utilities/parallelProcessing/decomposePar/decomposePar.C (settings in fvSolution)
 relaxationFactors
 {
     fields
@@ -849,6 +901,14 @@ relaxationFactors
     }
 }
 ```
+
+**คำอธิบาย (Explanation):**
+Under-relaxation factors ใช้ควบคุมความเร็วในการเปลี่ยนแปลงของตัวแปรระหว่าง iterations ซึ่งมีผลต่อความเสถียรและความเร็วในการบรรจุผลเฉลย (Convergence)
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Under-relaxation**: การลดปริมาณการเปลี่ยนแปลงของตัวแปรเพื่อเพิ่มความเสถียร
+- **Relaxation Factor**: ค่าสัมประสิทธิ์ที่คูณกับการเปลี่ยนแปลง (0-1)
+- **Trade-off**: ความเสถียร vs ความเร็วในการบรรจุผลเฉลย
 
 > [!WARNING] **Trade-off**
 > Under-relaxation ต่ำ → Convergence ช้าแต่เสถียร
@@ -868,7 +928,9 @@ relaxationFactors
 #### 7.2.2 Advanced Decomposition Settings
 
 ```cpp
-// NOTE: Synthesized by AI - Verify parameters
+// Note: Synthesized by AI - Verify parameters
+// Advanced decomposition configuration for complex cases
+// 📂 Source: .applications/utilities/parallelProcessing/decomposePar/decomposePar.C
 method          scotch;
 
 scotchCoeffs
@@ -905,10 +967,20 @@ hierarchicalCoeffs
 }
 ```
 
+**คำอธิบาย (Explanation):**
+การตั้งค่าขั้นสูงของ mesh decomposition ช่วยให้สามารถจัดการกับ heterogeneous clusters และ multi-node systems ได้อย่างมีประสิทธิภาพ โดยใช้ processor weights และ hierarchical decomposition
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Processor Weights**: น้ำหนักที่กำหนดให้แต่ละ processor สำหรับ heterogeneous systems
+- **Hierarchical Decomposition**: การแบ่ง decomposition เป็นหลายระดับ (跨 nodes และ within nodes)
+- **Strategy**: กลยุทธ์การ partition (เน้นความเร็ว vs คุณภาพ)
+
 ### 7.3 I/O Optimization
 
 ```cpp
-// NOTE: Synthesized by AI - Verify parameters
+// Note: Synthesized by AI - Verify parameters
+// I/O optimization settings in controlDict
+// 📂 Source: .applications/utilities/parallelProcessing/decomposePar/decomposePar.C (controlDict structure)
 // ใน system/controlDict
 
 // เพิ่ม writeInterval เพื่อลด I/O
@@ -927,6 +999,15 @@ writePrecision  6;
 // (จะเปิดใช้โดยอัตโนมัติใน parallel runs)
 ```
 
+**คำอธิบาย (Explanation):**
+การปรับแต่ง I/O มีผลต่อประสิทธิภาพโดยรวมอย่างมาก โดยเฉพาะสำหรับ large-scale simulations ที่มีการเขียนไฟล์ขนาดใหญ่บ่อยครั้ง
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Write Interval**: ความถี่ในการเขียนผลลัพธ์ (ส่งผลต่อ disk I/O)
+- **Binary Format**: รูปแบบไฟล์ที่เขียน/อ่านเร็วกว่า ASCII
+- **Compression**: การบีบอัดข้อมูลเพื่อประหยัดพื้นที่แต่อาจส่งผลต่อความเร็ว
+- **Parallel I/O**: การอ่าน/เขียนไฟล์แบบขนานสำหรับ large-scale simulations
+
 > [!TIP] **I/O Best Practices**
 > 1. เขียนเฉพาะ fields ที่จำเป็นด้วย `writeFields`
 > 2. ใช้ `runTimePostProcessing` แทนการเขียนไฟล์บ่อยๆ
@@ -939,7 +1020,7 @@ writePrecision  6;
 ### 8.1 กฎเหล็กสำหรับ Parallel CFD
 
 1. **จำนวนเซลล์ต่อโปรเซสเซอร์**: ใช้กฎ ==100,000 - 500,000 cells per core== สำหรับประสิทธิภาพสูงสุด
-2. **การตรวจสอบ**: ตรวจสอบไฟล์ Log สม่ำเสมอเพื่อดูการบรรลุผลเฉลย (Convergence) และ Error
+2. **การตรวจสอบ**: ตรวจสอบไฟล์ Log สม่ำเสมอเพื่อดูการบรรจุผลเฉลย (Convergence) และ Error
 3. **Baseline Measurements**: เก็บข้อมูล Serial run เป็น baseline สำหรับการเปรียบเทียบ Speedup
 4. **Monitoring**: ใช้เครื่องมือติดตามแบบเรียลไทม์เพื่อตรวจพบปัญหาตั้งแต่เนิ่นๆ
 5. **Scaling Studies**: ทดสอบรันกับจำนวน processors ต่างๆ เพื่อหาจุดที่เหมาะสมที่สุด

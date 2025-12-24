@@ -79,75 +79,161 @@ $$0.9 < \frac{\text{GCI}_{\text{coarse}}}{r^p \cdot \text{GCI}_{\text{fine}}} < 
 เราสามารถทำให้การตรวจสอบนี้เป็นอัตโนมัติได้ผ่าน Function Objects เพื่อดึงค่าที่สนใจออกมาวิเคราะห์:
 
 ```cpp
-// ตัวอย่างการดึงค่าแรงต้าน (Cd) มาศึกษาความลู่เข้า
+// Example configuration for extracting drag coefficient (Cd)
+// to study mesh convergence in OpenFOAM
+// This function object setup monitors forces and calculates
+// force coefficients during the simulation
+
 functions
 {
+    // Force calculation function object
     forces
     {
+        // Type identifier for force computation
         type            forces;
+        
+        // Load required library for field function objects
         libs            (fieldFunctionObjects);
+        
+        // Apply to specified surface patches
         patches         (object_surface);
+        
+        // Output frequency control
         writeControl    timeStep;
         writeInterval   1;
 
-        // Density for incompressible flow
+        // Density field name for incompressible flow
+        // Uses constant density for force calculations
         rho             rhoInf;
+        
+        // Enable logging to output file
         log             true;
     }
 
+    // Force coefficients calculation function object
     forceCoeffs
     {
+        // Type identifier for force coefficient computation
         type            forceCoeffs;
+        
+        // Load required library for field function objects
         libs            (fieldFunctionObjects);
+        
+        // Apply to specified surface patches
         patches         (object_surface);
+        
+        // Output frequency control
         writeControl    timeStep;
         writeInterval   1;
 
-        // Lift and drag direction
+        // Lift direction vector (y-direction in this case)
         liftDir         (0 1 0);
+        
+        // Drag direction vector (x-direction in this case)
         dragDir         (1 0 0);
+        
+        // Pitch axis for moment calculations (z-direction)
         pitchAxis       (0 0 1);
 
-        // Reference dimensions
+        // Freestream velocity magnitude [m/s]
         magUInf         10.0;
+        
+        // Reference length for non-dimensionalization [m]
         lRef            1.0;
+        
+        // Reference area for force coefficients [m²]
         Aref            1.0;
 
-        // Fluid properties
+        // Freestream fluid density [kg/m³]
         rhoInf          1.0;
     }
 }
 ```
 
+📂 **Source:** `.applications/solvers/multiphase/driftFluxFoam/incompressibleTwoPhaseInteractingMixture/incompressibleTwoPhaseInteractingMixture.C` (ดัดแปลงจากโครงสร้าง Function Objects)
+
+#### คำอธิบายโค้ด (Code Explanation)
+
+**การดึงค่าปริมาณที่สนใจด้วย Function Objects**
+
+โค้ดนี้แสดงการตั้งค่า Function Objects ใน OpenFOAM เพื่อตรวจสอบค่าแรงและสัมประสิทธิ์แรง (Force Coefficients) ซึ่งเป็นปริมาณที่นิยมใช้ในการศึกษาความเป็นอิสระของ Mesh โดยมีรายละเอียดดังนี้:
+
+1. **Function Object แรก (`forces`)**:
+   - ใช้คำนวณแรงที่กระทำต่อพื้นผิว (`object_surface`)
+   - อ่านความหนาแน่น (`rhoInf`) เพื่อใช้ในการคำนวณแรง
+   - บันทึกค่าแรงทุก time step ด้วย `writeInterval: 1`
+
+2. **Function Object ที่สอง (`forceCoeffs`)**:
+   - แปลงค่าแรงเป็นสัมประสิทธิ์ไม่มีมิติ (Non-dimensional coefficients)
+   - ต้องระบุทิศทางของแรงยก (`liftDir`) และแรงต้าน (`dragDir`)
+   - กำหนดความเร็วกระแสอิสระ (`magUInf`), ความยาวอ้างอิง (`lRef`), และพื้นที่อ้างอิง (`Aref`)
+
+#### หลักการสำคัญ (Key Concepts)
+
+- **Function Objects**: กลไกอัตโนมัติใน OpenFOAM สำหรับคำนวณและบันทึกปริมาณที่สนใจระหว่างการจำลอง
+- **Force Coefficients**: สัมประสิทธิ์แรงที่ไม่มีมิติ เช่น $C_D$ (Drag Coefficient) และ $C_L$ (Lift Coefficient) ซึ่งเป็นปริมาณที่ใช้กันทั่วไปในการศึกษาความลู่เข้าของ Mesh
+- **Reference Values**: ค่าอ้างอิงเช่น `magUInf`, `lRef`, `Aref` จำเป็นสำหรับการทำให้แรงเป็นปริมาณไร้มิติ ซึ่งทำให้สามารถเปรียบเทียบผลลัพธ์จาก Mesh ระดับต่างๆ ได้
+
 ### 2.2 การสร้าง Mesh หลายระดับอัตโนมัติ
 
 ```bash
 #!/bin/bash
-# สคริปต์สร้าง Mesh สามระดับสำหรับการศึกษาความเป็นอิสระ
+# Script to generate three mesh levels for mesh independence study
+# This script creates coarse, medium, and fine meshes with refinement ratio > 1.3
 
-# สร้างไดเรกทอรีสำหรับแต่ละระดับ Mesh
+# Create directories for each mesh level
 mkdir -p cases/{coarse,medium,fine}
 
-# สร้าง Mesh หยาบ (r = 1.3)
+# Generate coarse mesh (r = 1.3)
+# Modify blockMeshDict to reduce cell count by factor of 2 in each direction
 sed 's/cells (100 100 1);/cells (50 50 1);/' system/blockMeshDict > system/blockMeshDict_coarse
 cp system/blockMeshDict_coarse cases/coarse/system/blockMeshDict
 blockMesh -case cases/coarse
 
-# สร้าง Mesh ปานกลาง
+# Generate medium mesh
+# Increase cell count from coarse level
 sed 's/cells (100 100 1);/cells (65 65 1);/' system/blockMeshDict > system/blockMeshDict_medium
 cp system/blockMeshDict_medium cases/medium/system/blockMeshDict
 blockMesh -case cases/medium
 
-# สร้าง Mesh ละเอียด
+# Generate fine mesh
+# Use the original (finest) mesh configuration
 cp system/blockMeshDict cases/fine/system/blockMeshDict
 blockMesh -case cases/fine
 ```
+
+#### คำอธิบายโค้ด (Code Explanation)
+
+**การสร้าง Mesh หลายระดับอัตโนมัติด้วย Bash Script**
+
+สคริปต์นี้ใช้สร้าง Mesh 3 ระดับ (Coarse, Medium, Fine) เพื่อใช้ในการศึกษาความเป็นอิสระของ Mesh โดยมีขั้นตอนดังนี้:
+
+1. **การสร้างไดเรกทอรี**: ใช้ `mkdir -p` สร้างโฟลเดอร์ `cases/coarse`, `cases/medium`, และ `cases/fine` สำหรับเก็บ Mesh แต่ละระดับ
+
+2. **การปรับเปลี่ยน blockMeshDict**:
+   - ใช้ `sed` แก้ไขจำนวนเซลล์ใน `system/blockMeshDict`
+   - Mesh หยาบ: ลดจำนวนเซลล์เหลือ 50 × 50
+   - Mesh ปานกลาง: ปรับเป็น 65 × 65
+   - Mesh ละเอียด: ใช้ค่าเดิม 100 × 100
+
+3. **การสร้าง Mesh**: ใช้คำสั่ง `blockMesh` สร้าง Mesh ในแต่ละไดเรกทอรี
+
+#### หลักการสำคัญ (Key Concepts)
+
+- **Refinement Ratio (r)**: อัตราส่วนของขนาดเซลล์ระหว่าง Mesh ระดับต่างๆ ค่าที่แนะนำคือ $r > 1.3$ เพื่อให้เห็นความแตกต่างของผลลัพธ์อย่างชัดเจน
+- **Mesh Hierarchy**: การสร้างลำดับชั้นของ Mesh ตั้งแต่หยาบไปละเอียดช่วยให้สามารถวิเคราะห์แนวโน้มของการลู่เข้าได้อย่างมีประสิทธิภาพ
+- **Automation**: การใช้สคริปต์ช่วยลดข้อผิดพลาดจากการแก้ไขด้วยมือ และทำให้กระบวนการทำซ้ำได้อย่างสม่ำเสมอ
 
 ### 2.3 การวิเคราะห์ GCI ด้วย Python
 
 ```python
 #!/usr/bin/env python3
-# gci_analysis.py - คำนวณ Grid Convergence Index จากผลลัพธ์ OpenFOAM
+"""
+Grid Convergence Index (GCI) Analysis Tool for OpenFOAM Results
+This script calculates discretization uncertainty using Richardson extrapolation
+following ASME V&V 20 standard
+"""
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -155,7 +241,7 @@ import matplotlib.pyplot as plt
 def calculate_gci(f_values, h_values, Fs=1.25):
     """
     Calculate Grid Convergence Index using Richardson extrapolation.
-
+    
     Parameters
     ----------
     f_values : list[float]
@@ -164,55 +250,65 @@ def calculate_gci(f_values, h_values, Fs=1.25):
         Characteristic cell sizes [h_coarse, h_medium, h_fine]
     Fs : float
         Safety factor (1.25 for three grids, 3.0 for two grids)
-
+    
     Returns
     -------
     dict : Dictionary with convergence metrics
     """
+    # Extract values from input arrays
     f1, f2, f3 = f_values  # coarse, medium, fine
     h1, h2, h3 = h_values
 
-    # Refinement ratios
-    r12 = h1 / h2
-    r23 = h2 / h3
+    # Calculate refinement ratios
+    r12 = h1 / h2  # Refinement ratio between coarse and medium
+    r23 = h2 / h3  # Refinement ratio between medium and fine
 
-    # Observed order of convergence
+    # Calculate observed order of convergence
+    # This represents the actual convergence rate observed in the simulation
     p = np.log(abs((f3 - f2) / (f2 - f1))) / np.log(r23)
 
-    # Richardson extrapolated value
+    # Perform Richardson extrapolation to estimate exact value
+    # This estimates the value at zero grid spacing (h → 0)
     f_exact = f1 + (f1 - f2) / (r12**p - 1)
 
-    # Relative errors
-    epsilon_a12 = abs(f1 - f2) / abs(f1)
-    epsilon_a23 = abs(f2 - f3) / abs(f2)
+    # Calculate relative errors between grid levels
+    epsilon_a12 = abs(f1 - f2) / abs(f1)  # Relative error coarse-medium
+    epsilon_a23 = abs(f2 - f3) / abs(f2)  # Relative error medium-fine
 
-    # GCI values
-    GCI12 = Fs * epsilon_a12 / (r12**p - 1)
-    GCI23 = Fs * epsilon_a23 / (r23**p - 1)
+    # Calculate Grid Convergence Index for both grid pairs
+    GCI12 = Fs * epsilon_a12 / (r12**p - 1)  # GCI for coarse grid
+    GCI23 = Fs * epsilon_a23 / (r23**p - 1)  # GCI for fine grid
 
-    # Asymptotic range check
+    # Check asymptotic range condition
+    # This verifies that the solution is in the asymptotic convergence range
     asymptotic_ratio = GCI12 / (r12**p * GCI23)
 
     return {
         'order_of_convergence': p,
         'extrapolated_value': f_exact,
-        'GCI_coarse': GCI12 * 100,
-        'GCI_fine': GCI23 * 100,
+        'GCI_coarse': GCI12 * 100,  # Convert to percentage
+        'GCI_fine': GCI23 * 100,    # Convert to percentage
         'asymptotic_ratio': asymptotic_ratio,
         'is_asymptotic': 0.9 < asymptotic_ratio < 1.1
     }
 
-# ตัวอย่างการใช้งาน
-if __name__ == "__main__":
-    # อ่านค่าจากผลลัพธ์ OpenFOAM
-    mesh_sizes = ['coarse', 'medium', 'fine']
-    cell_sizes = [0.02, 0.0154, 0.0118]  # h values
-    drag_coefficients = [1.245, 1.198, 1.187]  # Cd values
 
-    # คำนวณ GCI
+# Example usage
+if __name__ == "__main__":
+    # Define mesh configurations
+    mesh_sizes = ['coarse', 'medium', 'fine']
+    
+    # Characteristic cell sizes (h values)
+    # These can be calculated as h = 1/sqrt(N) for 2D or 1/N^(1/3) for 3D
+    cell_sizes = [0.02, 0.0154, 0.0118]
+    
+    # Drag coefficient values from OpenFOAM simulations
+    drag_coefficients = [1.245, 1.198, 1.187]
+
+    # Perform GCI analysis
     results = calculate_gci(drag_coefficients, cell_sizes)
 
-    # แสดงผลลัพธ์
+    # Display results
     print("=== Grid Convergence Analysis ===")
     print(f"Order of convergence: p = {results['order_of_convergence']:.3f}")
     print(f"Richardson extrapolation: Cd = {results['extrapolated_value']:.6f}")
@@ -222,32 +318,82 @@ if __name__ == "__main__":
     print(f"Asymptotic range: {'Yes' if results['is_asymptotic'] else 'No'}")
 ```
 
+#### คำอธิบายโค้ด (Code Explanation)
+
+**การวิเคราะห์ Grid Convergence Index (GCI) ด้วย Python**
+
+โค้ดนี้เป็นเครื่องมือสำหรับคำนวณความไม่แน่นอนเชิงตัวเลขจากการแบ่งส่วน (Discretization Uncertainty) ตามมาตรฐาน ASME V&V 20 โดยมีองค์ประกอบสำคัญดังนี้:
+
+1. **ฟังก์ชัน `calculate_gci`**:
+   - รับค่าปริมาณที่สนใจจาก 3 ระดับ Mesh และขนาดเซลล์เฉลี่ย ($h$)
+   - คำนวณอัตราส่วนการปรับปรุง ($r_{12}, r_{23}$) และอันดับการลู่เข้าที่สังเกตได้ ($p$)
+   - ใช้ Richardson Extrapolation ประมาณค่าแท้จริง ($f_{exact}$)
+   - คำนวณ GCI สำหรับ Mesh หยาบและละเอียด
+   - ตรวจสอบว่าผลเฉลยอยู่ใน Asymptotic Range หรือไม่
+
+2. **ตัวอย่างการใช้งาน**:
+   - กำหนดขนาดเซลล์และค่า Drag Coefficient จากการจำลอง
+   - เรียกใช้ฟังก์ชัน `calculate_gci` และแสดงผลลัพธ์
+
+#### หลักการสำคัญ (Key Concepts)
+
+- **Richardson Extrapolation**: วิธีการประมาณค่าแท้จริงเมื่อ $h \to 0$ โดยใช้ข้อมูลจาก Mesh 2 ระดับขึ้นไป ใช้หลักการที่ว่าความคลาดเคลื่อนลดลงตามกฎอำนาจ $\varepsilon \propto h^p$
+- **Grid Convergence Index (GCI)**: ตัวชี้วัดความไม่แน่นอนเชิงตัวเลขที่เกิดจากการลู่เข้าของ Grid คำนวณจากความคลาดเคลื่อนสัมพัทธ์และอัตราส่วนการปรับปรุง
+- **Observed Order of Accuracy ($p$)**: อัตราการลู่เข้าจริงที่สังเกตได้จากการจำลอง ควรมีค่าใกล้เคียงกับค่าทางทฤษฎี (เช่น $p \approx 2$ สำหรับสคีมกำลังสอง)
+- **Asymptotic Range**: สภาวะที่ความคลาดเคลื่อนลดลงอย่างเป็นระบบตามกฎอำนาจ ตรวจสอบได้จากเงื่อนไข $0.9 < \text{ratio} < 1.1$
+
 ### 2.4 การรวมเข้ากับ Workflow อัตโนมัติ
 
 ```python
+#!/usr/bin/env python3
+"""
+Automated Mesh Convergence Study Workflow for OpenFOAM
+This class automates the process of running simulations at multiple
+mesh levels and analyzing convergence using GCI method
+"""
+
+import subprocess
+from pathlib import Path
+import pandas as pd
+
 class MeshConvergenceStudy:
     """
-    เครื่องมือศึกษาการลู่เข้าของ Mesh สำหรับ OpenFOAM
+    Tool for studying mesh convergence in OpenFOAM simulations.
+    Automates mesh generation, running solver, and extracting results.
     """
 
     def __init__(self, base_case_dir):
+        """Initialize with base case directory path"""
         self.base_case = Path(base_case_dir)
         self.results = []
 
     def run_simulation(self, mesh_level, n_cells):
-        """รันการจำลองสำหรับระดับ Mesh ที่กำหนด"""
+        """
+        Run simulation for specified mesh level.
+        
+        Parameters
+        ----------
+        mesh_level : str
+            Identifier for mesh level (e.g., 'coarse', 'medium', 'fine')
+        n_cells : int
+            Number of cells in each direction for blockMesh
+        
+        Returns
+        -------
+        dict : Simulation results including mesh level, cell count, and Cd value
+        """
         case_dir = self.base_case / f"{mesh_level}_mesh"
 
-        # อัปเดต blockMeshDict
+        # Update blockMeshDict with specified cell count
         self._update_mesh_size(case_dir, n_cells)
 
-        # สร้าง Mesh
+        # Generate mesh using blockMesh
         subprocess.run(["blockMesh", "-case", str(case_dir)], check=True)
 
-        # รัน Solver
+        # Run OpenFOAM solver (simpleFoam in this example)
         subprocess.run(["simpleFoam", "-case", str(case_dir)], check=True)
 
-        # ดึงค่าปริมาณที่สนใจ
+        # Extract quantity of interest (drag coefficient)
         cd_value = self._extract_drag_coefficient(case_dir)
 
         return {
@@ -257,18 +403,54 @@ class MeshConvergenceStudy:
         }
 
     def analyze_convergence(self):
-        """วิเคราะห์การลู่เข้าและคำนวณ GCI"""
+        """
+        Analyze convergence and calculate GCI from stored results.
+        
+        Returns
+        -------
+        dict : GCI analysis results if at least 3 mesh levels available
+        """
         df = pd.DataFrame(self.results)
 
         if len(df) >= 3:
             f_values = df['Cd'].tolist()
-            h_values = (1.0 / df['n_cells']).tolist()  # h ~ 1/sqrt(N)
+            
+            # Characteristic cell size h ~ 1/sqrt(N) for 2D
+            h_values = (1.0 / df['n_cells']).tolist()
 
             gci_results = calculate_gci(f_values, h_values)
             return gci_results
 
         return None
 ```
+
+#### คำอธิบายโค้ด (Code Explanation)
+
+**การรวมเข้ากับ Workflow อัตโนมัติสำหรับ Mesh Convergence Study**
+
+โค้ดนี้แสดงการสร้างคลาส `MeshConvergenceStudy` เพื่ออัตโนมัติกระบวนการศึกษาความเป็นอิสระของ Mesh โดยมีความสามารถดังนี้:
+
+1. **การเริ่มต้น (`__init__`)**:
+   - รับพาธของ Base Case Directory
+   - เตรียม List สำหรับเก็บผลลัพธ์จากแต่ละระดับ Mesh
+
+2. **การรันการจำลอง (`run_simulation`)**:
+   - อัปเดต `blockMeshDict` ด้วยจำนวนเซลล์ที่กำหนด
+   - สร้าง Mesh ด้วยคำสั่ง `blockMesh`
+   - รัน Solver (เช่น `simpleFoam`)
+   - ดึงค่าปริมาณที่สนใจ (Drag Coefficient)
+   - คืนค่า Dictionary ที่บรรจุผลลัพธ์
+
+3. **การวิเคราะห์การลู่เข้า (`analyze_convergence`)**:
+   - แปลงผลลัพธ์เป็น DataFrame
+   - คำนวณขนาดเซลล์เฉลี่ย ($h \approx 1/\sqrt{N}$)
+   - เรียกใช้ฟังก์ชัน `calculate_gci` ถ้ามีข้อมูลอย่างน้อย 3 ระดับ
+
+#### หลักการสำคัญ (Key Concepts)
+
+- **Workflow Automation**: การอัตโนมัติทั้งกระบวนการช่วยลดความผิดพลาดจากการทำงานซ้ำด้วยมือ และทำให้สามารถทำซ้ำได้อย่างสม่ำเสมอ
+- **Python-OpenFOAM Integration**: การใช้ Python เรียกใช้คำสั่ง OpenFOAM ผ่าน `subprocess` ช่วยให้สามารถควบคุมการจำลองและวิเคราะห์ผลลัพธ์ได้อย่างยืดหยุ่น
+- **Batch Processing**: การรันการจำลองหลายระดับพร้อมกันหรือต่อเนื่องกันช่วยประหยัดเวลาและทำให้สามารถวิเคราะห์แนวโน้มได้ทันที
 
 ---
 
@@ -302,103 +484,213 @@ $$y^+ = \frac{y u_{\tau}}{\nu} = \frac{y \sqrt{\tau_w/\rho}}{\nu}$$
 ### 3.3 คำสั่งตรวจสอบใน OpenFOAM
 
 ```bash
-# คำนวณ yPlus สำหรับทุก patch ที่เป็นผนัง
+# Calculate yPlus for all wall patches
 postProcess -func yPlus
 
-# คำนวณความเค้นเฉือนที่ผนัง
+# Calculate wall shear stress
 postProcess -func wallShearStress
 
-# เขียนสนาม yPlus สำหรับการแสดงผลด้วยภาพ
+# Write yPlus field for visualization
 yPlus
 
-# ตรวจสอบค่าสถิติ
+# Check statistics from post-processing directory
 foamDictionary postProcessing/yPlus/0/yPlus.dat
 ```
+
+#### คำอธิบายโค้ด (Code Explanation)
+
+**การตรวจสอบค่า $y^+$ ใน OpenFOAM**
+
+คำสั่งเหล่านี้ใช้ตรวจสอบและวิเคราะห์ค่า $y^+$ ซึ่งเป็นตัวชี้วัดความละเอียดของ Mesh ใกล้ผนัง:
+
+1. **`postProcess -func yPlus`**: คำนวณค่า $y^+$ สำหรับทุก Patch ที่เป็นผนังในการจำลอง และบันทึกค่าสถิติ
+
+2. **`postProcess -func wallShearStress`**: คำนวณความเค้นเฉือนที่ผนัง ($\tau_w$) ซึ่งเป็นค่าที่ใช้ในการคำนวณ $y^+$
+
+3. **`yPlus`**: เขียนสนาม $y^+$ เป็นไฟล์สำหรับการแสดงผลด้วยภาพ (Visualization)
+
+4. **`foamDictionary`**: แสดงค่าสถิติ $y^+$ จากไฟล์ที่บันทึกไว้
+
+#### หลักการสำคัญ (Key Concepts)
+
+- **$y^+$ Value**: ค่าไร้มิติที่แสดงระยะห่างจากผนังในหน่วยกำแพง (Wall Units) ใช้ประเมินความละเอียดของ Mesh ใกล้ผนัง
+- **Post-processing Functions**: OpenFOAM มี Function Objects สำเร็จรูปสำหรับคำนวณค่า $y^+$ และ Wall Shear Stress โดยอัตโนมัติ
+- **Visualization**: การเขียนสนาม $y^+$ ช่วยให้เห็นการกระจายตัวของค่า $y^+$ บนพื้นผิวผนัง ซึ่งช่วยในการปรับปรุง Mesh
 
 ### 3.4 การกำหนดค่า Function Object สำหรับ $y^+$
 
 ```cpp
-// system/controlDict
+// Function object configuration for yPlus calculation
+// Place this in system/controlDict to automatically calculate
+// yPlus values during the simulation
+
 functions
 {
+    // yPlus calculation function object
     yPlus
     {
+        // Function object type identifier
         type            yPlus;
+        
+        // Load required utility library
         functionObjectLibs ("libutilityFunctionObjects.so");
+        
+        // Region to apply calculation (default: region0)
         region          region0;
+        
+        // Enable/disable this function object
         enabled         true;
+        
+        // Output control settings
         outputControl   outputTime;
+        
+        // Enable logging to output file
         log             true;
+        
+        // Write yPlus field for visualization
         writeFields     true;
 
-        // Optional: write cell values
+        // Optional: write cell-level values (not just patch values)
         writeCellValues yes;
     }
 
+    // Wall shear stress calculation function object
     wallShearStress
     {
+        // Function object type identifier
         type            wallShearStress;
+        
+        // Load required field library
         functionObjectLibs ("libfieldFunctionObjects.so");
+        
+        // Enable/disable this function object
         enabled         true;
+        
+        // Output control settings
         outputControl   outputTime;
+        
+        // Enable logging to output file
         log             true;
+        
+        // Write wall shear stress field for visualization
         writeFields     true;
     }
 }
 ```
 
+#### คำอธิบายโค้ด (Code Explanation)
+
+**การกำหนดค่า Function Objects สำหรับคำนวณ $y^+$ และ Wall Shear Stress**
+
+โค้ดนี้แสดงการตั้งค่า Function Objects ใน `system/controlDict` เพื่อคำนวณค่า $y^+$ และ Wall Shear Stress โดยอัตโนมัติระหว่างการจำลอง:
+
+1. **Function Object `yPlus`**:
+   - คำนวณค่า $y^+$ สำหรับทุก Patch ที่เป็นผนัง
+   - เขียนค่า $y^+$ ลงไฟล์ Log และสนามสำหรับ Visualization
+   - ตัวเลือก `writeCellValues: yes` ให้เขียนค่า $y^+$ ระดับเซลล์ (ไม่ใช่เฉพาะ Patch)
+
+2. **Function Object `wallShearStress`**:
+   - คำนวณความเค้นเฉือนที่ผนัง ($\tau_w$) ซึ่งจำเป็นสำหรับการคำนวณ $y^+$
+   - เขียนสนาม Wall Shear Stress สำหรับ Visualization
+
+#### หลักการสำคัญ (Key Concepts)
+
+- **Automatic Monitoring**: การตั้งค่า Function Objects ทำให้สามารถตรวจสอบค่า $y^+$ อัตโนมัติระหว่างการจำลองโดยไม่ต้องรันคำสั่งแยก
+- **Patch vs Cell Values**: ค่า $y^+$ ปกติคำนวณที่ระดับ Patch (ผนัง) แต่สามารถเขียนค่าระดับเซลล์ได้ด้วย `writeCellValues: yes`
+- **Field Visualization**: การเขียนสนาม $y^+$ และ Wall Shear Stress ช่วยให้เห็นการกระจายตัวของค่าเหล่านี้บนพื้นผิว ซึ่งมีประโยชน์ในการวิเคราะห์
+
 ### 3.5 การคำนวณความสูงของเซลล์แรก
 
-สำหรับเป้าหมาย $y^+$ ที่ต้องการ สามารถคำนวณความสูงของเซลล์แรก:
-
 ```python
+#!/usr/bin/env python3
+"""
+First Cell Height Calculator for Target yPlus Values
+This script calculates the required first cell height to achieve
+a target y+ value for turbulence modeling
+"""
+
+import numpy as np
+
 def calculate_first_cell_height(target_y_plus, Re_L, U_inf, L):
     """
-    คำนวณความสูงของเซลล์แรกสำหรับเป้าหมาย y+ ที่ต้องการ
-
+    Calculate first cell height for target y+ value.
+    
     Parameters
     ----------
     target_y_plus : float
-        ค่า y+ เป้าหมาย (เช่น 1 สำหรับ low-Re, 30-300 สำหรับ wall functions)
+        Target y+ value (e.g., 1 for low-Re, 30-300 for wall functions)
     Re_L : float
-        Reynolds number ตามความยาวลักษณะเฉพาะ
+        Reynolds number based on characteristic length
     U_inf : float
-        ความเร็วกระแสอิสระ
+        Freestream velocity [m/s]
     L : float
-        ความยาวลักษณะเฉพาะ
-
+        Characteristic length [m]
+    
     Returns
     -------
-    float : ความสูงของเซลล์แรก (เมตร)
+    float : First cell height [m]
     """
-    # สำหรับกรณีทั่วไป ใช้ skin friction coefficient โดยประมาณ
-    Cf = 0.075 / (np.log(Re_L) - 2)**2  # สูตร Schoenherr สำหรับ turbulent flat plate
+    # Estimate skin friction coefficient using Schoenherr formula
+    # for turbulent flow over a flat plate
+    Cf = 0.075 / (np.log(Re_L) - 2)**2
+    
+    # Calculate friction velocity: u_tau = sqrt(tau_w / rho)
+    # Wall shear stress: tau_w = 0.5 * Cf * rho * U_inf^2
+    rho = 1.225  # Air density at sea level [kg/m³]
+    tau_w = 0.5 * Cf * rho * U_inf**2
+    u_tau = np.sqrt(tau_w / rho)
 
-    # คำนวณ friction velocity
-    tau_w = 0.5 * Cf * 1.225 * U_inf**2  # สมมติ rho = 1.225 kg/m³
-    u_tau = np.sqrt(tau_w / 1.225)
-
-    # ความหนืดจลนศาสตร์
+    # Calculate kinematic viscosity
+    # Re_L = U_inf * L / nu  =>  nu = U_inf * L / Re_L
     nu = U_inf * L / Re_L
 
-    # ความสูงของเซลล์แรก
+    # Calculate first cell height from y+ definition
+    # y+ = y * u_tau / nu  =>  y = y+ * nu / u_tau
     y_first = target_y_plus * nu / u_tau
 
     return y_first
 
-# ตัวอย่างการใช้งาน
-Re = 1e6
-U_inf = 10.0
-L = 1.0
 
-# สำหรับ low-Re model (y+ = 1)
-y_low_re = calculate_first_cell_height(1.0, Re, U_inf, L)
-print(f"First cell height (low-Re): {y_low_re:.6e} m")
+# Example usage
+if __name__ == "__main__":
+    # Flow conditions
+    Re = 1e6      # Reynolds number
+    U_inf = 10.0  # Freestream velocity [m/s]
+    L = 1.0       # Characteristic length [m]
 
-# สำหรับ wall function (y+ = 50)
-y_wall_func = calculate_first_cell_height(50.0, Re, U_inf, L)
-print(f"First cell height (wall function): {y_wall_func:.6e} m")
+    # Calculate first cell height for low-Re model (y+ = 1)
+    y_low_re = calculate_first_cell_height(1.0, Re, U_inf, L)
+    print(f"First cell height (low-Re, y+ = 1): {y_low_re:.6e} m")
+
+    # Calculate first cell height for wall function (y+ = 50)
+    y_wall_func = calculate_first_cell_height(50.0, Re, U_inf, L)
+    print(f"First cell height (wall function, y+ = 50): {y_wall_func:.6e} m")
 ```
+
+#### คำอธิบายโค้ด (Code Explanation)
+
+**การคำนวณความสูงของเซลล์แรกเพื่อให้ได้ค่า $y^+$ ที่ต้องการ**
+
+โค้ดนี้ใช้คำนวณความสูงของเซลล์แรกจากผนัง เพื่อให้ได้ค่า $y^+$ ตามเป้าหมายที่กำหนด (เช่น $y^+ = 1$ สำหรับ Low-Re Model หรือ $y^+ = 50$ สำหรับ Wall Functions):
+
+1. **ฟังก์ชัน `calculate_first_cell_height`**:
+   - รับค่า $y^+$ เป้าหมาย, Reynolds Number, ความเร็วกระแสอิสระ, และความยาวลักษณะเฉพาะ
+   - ประมาณ Skin Friction Coefficient ($C_f$) ด้วยสูตร Schoenherr สำหรับ Turbulent Flat Plate
+   - คำนวณ Friction Velocity ($u_\tau$) จาก Wall Shear Stress
+   - คำนวณความหนืดจลนศาสตร์ ($\nu$) จาก Reynolds Number
+   - ใช้นิยาม $y^+$ คำนวณความสูงของเซลล์แรก: $y = y^+ \cdot \nu / u_\tau$
+
+2. **ตัวอย่างการใช้งาน**:
+   - กำหนดเงื่อนไขการไหล (Reynolds Number, ความเร็ว, ความยาว)
+   - คำนวณความสูงเซลล์แรกสำหรับ Low-Re Model ($y^+ = 1$)
+   - คำนวณความสูงเซลล์แรกสำหรับ Wall Function ($y^+ = 50$)
+
+#### หลักการสำคัญ (Key Concepts)
+
+- **$y^+$ Definition**: $y^+ = y u_\tau / \nu$ เป็นค่าไร้มิติที่แสดงระยะห่างจากผนังในหน่วยกำแพง (Wall Units)
+- **Friction Velocity**: $u_\tau = \sqrt{\tau_w/\rho}$ เป็นความเร็วที่ใช้ทำให้ไร้มิติในบริเวณใกล้ผนัง
+- **Skin Friction Coefficient**: $C_f$ แสดงสัดส่วนของความเค้นเฉือนที่ผนังต่อความดันพลวัต ใช้ประมาณค่าสำหรับ Turbulent Flow
+- **Mesh Design**: การคำนวณนี้ช่วยกำหนดขนาดเซลล์แรกที่เหมาะสมสำหรับ Turbulence Model ที่เลือกใช้
 
 ### 3.6 Mesh Quality Metrics สำหรับผนัง
 
@@ -407,7 +699,7 @@ print(f"First cell height (wall function): {y_wall_func:.6e} m")
 | เมตริก | นิยาม | เป้าหมาย | ความสำคัญ |
 |---------|---------|------------|------------|
 | **Expansion Ratio** | อัตราส่วนขนาดเซลล์ในทิศทางตั้งฉากผนัง | < 1.2 | การควบคุมความละเอียด |
-| **Aspect Ratio** | อัตราส่วนมิติเซลล์ที่ยาวที่สุดต่อสั้นที่สุด | < 1000 (ใกล้ผนัง) | ความเสถียรของการคำนวณ |
+| **Aspect Ratio** | อัตราส่วนมิติเซลล์ที่ยาวที่สุดต่อสั้นที่สุด | < 1000 (ใกล้ผนัง) | ความเสถียรของการคำนาณ |
 | **Non-orthogonality** | ค่าเบี่ยงเบนจากรูปทรงเซลล์ตั้งฉาก | < 70° | ความแม่นยำของการคำนาณ |
 | **Skewness** | การวัดการบิดเบี้ยวของรูปทรงเซลล์ | < 0.5 | คุณภาพของผลเฉลย |
 
@@ -436,10 +728,25 @@ print(f"First cell height (wall function): {y_wall_func:.6e} m")
 ### 4.3 การบันทึกผลการศึกษา
 
 ```python
+#!/usr/bin/env python3
+"""
+Mesh Independence Report Generator
+This script creates a comprehensive markdown report
+summarizing mesh independence study results
+"""
+
 def generate_mesh_independence_report(results, output_file="mesh_independence_report.md"):
     """
-    สร้างรายงานสรุปผลการศึกษาความเป็นอิสระของ Mesh
+    Generate summary report for mesh independence study.
+    
+    Parameters
+    ----------
+    results : dict
+        Dictionary containing GCI analysis results
+    output_file : str
+        Output markdown filename
     """
+    # Create report header and summary table
     report = f"""# รายงานการศึกษาความเป็นอิสระของ Mesh
 
 ## สรุปผลการศึกษา
@@ -448,6 +755,7 @@ def generate_mesh_independence_report(results, output_file="mesh_independence_re
 |------------|-------------|--------|----------------------|
 """
 
+    # Populate results table
     for i, result in enumerate(results):
         if i == 0:
             report += f"| {result['level']} | {result['cells']} | {result['Cd']:.6f} | - |\n"
@@ -455,6 +763,7 @@ def generate_mesh_independence_report(results, output_file="mesh_independence_re
             error = abs(result['Cd'] - results[0]['Cd']) / results[0]['Cd'] * 100
             report += f"| {result['level']} | {result['cells']} | {result['Cd']:.6f} | {error:.2f}% |\n"
 
+    # Add convergence analysis section
     report += f"""
 ## การวิเคราะห์การลู่เข้า
 
@@ -469,11 +778,35 @@ def generate_mesh_independence_report(results, output_file="mesh_independence_re
 เนื่องจาก GCI = {results['GCI_fine']:.2f}% ซึ่งต่ำกว่าเกณฑ์ที่กำหนด
 """
 
+    # Write report to file
     with open(output_file, 'w') as f:
         f.write(report)
 
     print(f"รายงานถูกบันทึกที่: {output_file}")
 ```
+
+#### คำอธิบายโค้ด (Code Explanation)
+
+**การสร้างรายงานสรุปผลการศึกษาความเป็นอิสระของ Mesh**
+
+โค้ดนี้ใช้สร้างรายงานแบบ Markdown ที่สรุปผลการศึกษาความเป็นอิสระของ Mesh โดยมีรายละเอียดดังนี้:
+
+1. **ฟังก์ชัน `generate_mesh_independence_report`**:
+   - สร้างตารางสรุปผลลัพธ์จาก Mesh แต่ละระดับ
+   - แสดงความคลาดเคลื่อนสัมพัทธ์ระหว่าง Mesh ระดับต่างๆ
+   - บันทึกผลการวิเคราะห์การลู่เข้า (Order of Convergence, Richardson Extrapolation, GCI)
+   - สรุปข้อเสนอแนะเกี่ยวกับ Mesh ที่เหมาะสม
+
+2. **รูปแบบรายงาน**:
+   - ใช้ Markdown Format ซึ่งอ่านง่ายและแปลงเป็น PDF/HTML ได้
+   - แสดงข้อมูลในตารางที่เป็นระบบ
+   - ใช้สมการ LaTeX สำหรับปริมาณทางคณิตศาสตร์
+
+#### หลักการสำคัญ (Key Concepts)
+
+- **Documentation**: การบันทึกผลการศึกษาอย่างเป็นระบบสำคัญมากสำหรับงานวิจัยและงานวิศวกรรม
+- **Report Structure**: รายงานที่ดีควรประกอบด้วย (1) สรุปผลลัพธ์, (2) การวิเคราะห์การลู่เข้า, (3) ข้อสรุปและข้อเสนอแนะ
+- **Reproducibility**: รายงานที่ชัดเจนช่วยให้ผู้อื่นสามารถทำซ้ำและตรวจสอบผลการศึกษาได้
 
 ---
 

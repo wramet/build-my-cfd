@@ -49,7 +49,7 @@ flowchart TD
         F --> G[Global Solution]
     end
 ```
-> **Figure 1:** การเปรียบเทียบระหว่างการประมวลผลแบบลำดับ (Serial) และแบบขนาน (Parallel) ซึ่งแสดงให้เห็นถึงความจำเป็นในการสื่อสารระหว่างโปรเซสเซอร์ผ่านกลไก Halo Exchangeความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** Comparison between serial and parallel processing, demonstrating the necessity of inter-processor communication through the Halo Exchange mechanism.
 
 ---
 
@@ -194,6 +194,16 @@ public:
 };
 ```
 
+> **📂 Source:** `src/decompositionMethods/decompositionMethods/decompositionMethod/decompositionMethod.C`
+>
+> **💡 Explanation:** Domain decomposition converts mesh topology into a graph representation where cells become vertices and faces become edges. The `decomposeMesh()` method selects the appropriate partitioning algorithm (METIS, SCOTCH, or Simple) and validates the resulting partition to ensure load balance and minimal interface area.
+>
+> **🔑 Key Concepts:**
+> - **Graph Partitioning:** Transforming mesh connectivity into mathematical graph for optimal division
+> - **Load Balance:** Ensuring each processor receives approximately equal computational workload
+> - **Interface Minimization:** Reducing communication surface area between processors
+> - **Quality Validation:** Post-processing checks for imbalance and interface ratios
+
 **Partitioning Quality Metrics:**
 
 1. **Load Balance**:
@@ -237,7 +247,7 @@ flowchart LR
     A1 -->|Local Operations| A1
     A2 -->|Local Operations| A2
 ```
-> **Figure 2:** กลไกของเซลล์ผี (Ghost Cells) หรือพื้นที่ Halo ที่ช่วยให้แต่ละโปรเซสเซอร์สามารถคำนวณข้อมูลในโดเมนของตนเองได้อย่างอิสระก่อนที่จะแลกเปลี่ยนข้อมูลขอบเขตกับโปรเซสเซอร์ข้างเคียงความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 2:** Ghost cell mechanism enabling each processor to compute its domain independently before exchanging boundary information with neighboring processors.
 
 **Mathematical Foundation** relies on **domain decomposition theory**, where:
 - Local computational domain of processor $p$: $\Omega_p$
@@ -441,6 +451,16 @@ public:
 };
 ```
 
+> **📂 Source:** `src/lduMatrix/lduProcessorInterfaces/lduProcessorInterface/lduProcessorInterface.H`
+>
+> **💡 Explanation:** The `processorLduInterface` class manages communication between processor boundaries through ghost cells. Non-blocking MPI operations (`MPI_Isend`/`MPI_Irecv`) allow computation and communication to overlap, significantly improving parallel efficiency by hiding latency.
+>
+> **🔑 Key Concepts:**
+> - **Ghost Cells:** Replicated data from neighboring processors enabling independent local computation
+> - **Non-blocking Communication:** Asynchronous MPI operations that don't block computation
+> - **Halo Exchange:** Synchronization mechanism for updating boundary values between processors
+> - **Computation-Communication Overlap:** Hiding communication latency behind useful work
+
 **Ghost Cell Management** uses mathematical domain decomposition:
 
 - **Owned cells**: $\Omega_p^{\text{owned}} = \{i \in \Omega_p : i \text{ assigned to processor } p\}$
@@ -477,7 +497,7 @@ flowchart TD
     E --> F[Interface Communication]
     F --> G[Global Linear System]
 ```
-> **Figure 3:** ขั้นตอนการประกอบเมทริกซ์แบบขนาน (Parallel Matrix Assembly) ซึ่งเริ่มจากการประกอบหน้าผิวภายในโปรเซสเซอร์ไปจนถึงการตรวจสอบความสอดคล้องระดับโลก (Global Consistency)ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 3:** Parallel matrix assembly process, from internal processor face assembly to global consistency verification.
 
 **Assembly Process follows a face-by-face approach** where each mesh face contributes to the matrix of exactly one processor.
 
@@ -697,6 +717,16 @@ public:
 };
 ```
 
+> **📂 Source:** `src/finiteVolume/fields/fvPatchFields/processor/processorFvPatchField.C`
+>
+> **💡 Explanation:** Parallel matrix assembly distributes the construction of linear systems across processors. Each processor assembles only its local portion (internal faces and owner-side processor boundaries), then validates global consistency through reduction operations ensuring each face is counted exactly once.
+>
+> **🔑 Key Concepts:**
+> - **Face Ownership:** Each processor face belongs to exactly one processor (lower rank)
+> - **Global Indexing:** Mapping between global and local indices preserves mathematical structure
+> - **Interface Coefficients:** Boundary contributions stored for ghost cell communication
+> - **Assembly Validation:** Global reduction verifies consistency across distributed data
+
 **Parallel Consistency** maintained through several mechanisms:
 
 1. **Face Ownership**:
@@ -757,7 +787,7 @@ sequenceDiagram
     P2->>P2: Apply boundary contributions
     P3->>P3: Apply boundary contributions
 ```
-> **Figure 4:** ลำดับขั้นตอนการคูณเมทริกซ์กับเวกเตอร์แบบขนาน ซึ่งมีการซ้อนทับกันระหว่างการสื่อสารข้อมูลขอบเขตและการคำนวณภายในโปรเซสเซอร์เพื่อลดโอเวอร์เฮดความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 4:** Parallel matrix-vector multiplication sequence, demonstrating overlap between boundary data communication and intra-processor computation to reduce overhead.
 
 **Function Parameters:**
 - `result field`: field storing the result
@@ -855,7 +885,7 @@ flowchart TD
         B1 -.->|Jacobi-like| B2
     end
 ```
-> **Figure 5:** ความท้าทายในการทำ Preconditioning แบบขนานที่ต้องรักษาสมดุลระหว่างความแม่นยำทางคณิตศาสตร์ระดับโลกกับประสิทธิภาพในการคำนวณระดับโปรเซสเซอร์ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 5:** Challenges in parallel preconditioning, demonstrating the balance between global mathematical accuracy and processor-level computational efficiency.
 
 **Challenge in Forward Sweep:**
 

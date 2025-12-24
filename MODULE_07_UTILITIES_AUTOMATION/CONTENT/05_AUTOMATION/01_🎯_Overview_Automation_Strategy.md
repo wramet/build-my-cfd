@@ -118,68 +118,110 @@ $$
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
+// Application solver type specification
 application     simpleFoam;
 
+// Start simulation from latest time directory
 startFrom       latestTime;
 
+// Initial simulation time
 startTime       0;
 
+// Final simulation time parameter - will be replaced by template
 stopTime        {{ end_time }};
 
+// Time step size parameter - will be replaced by template
 deltaT          {{ delta_t }};
 
+// Write control based on time steps
 writeControl    timeStep;
 
+// Writing frequency parameter - will be replaced by template
 writeInterval   {{ write_interval }};
 
+// Keep all time step results (0 = don't delete any)
 purgeWrite      0;
 
+// Function objects for force and coefficient calculations
 functions
 {
+    // Force calculation function object
     forces
     {
+        // Type of function object
         type        forces;
+        // Library to load for forces calculation
         libs        ("libforces.so");
 
+        // Write control for forces
         writeControl    timeStep;
         writeInterval   1;
 
+        // Patch(es) to calculate forces on - template variable
         patches    ("{{ patch_name }}");
 
+        // Density specification (incompressible)
         rho         rhoInf;
+        // Reference density value - template variable
         rhoInf      {{ rho_inf }};
 
+        // Enable logging
         log         true;
     }
 
+    // Force coefficients calculation function object
     forceCoeffs
     {
+        // Type of function object
         type        forceCoeffs;
+        // Library to load for force coefficients
         libs        ("libforces.so");
 
+        // Write control for coefficients
         writeControl    timeStep;
         writeInterval   1;
 
+        // Patch(es) for coefficient calculation - template variable
         patches    ("{{ patch_name }}");
 
+        // Density specification
         rho         rhoInf;
+        // Reference density - template variable
         rhoInf      {{ rho_inf }};
 
+        // Center of rotation coordinates - template variables
         CofR        ( {{ cofr_x }} {{ cofr_y }} {{ cofr_z }} );
 
+        // Lift direction (z-axis)
         liftDir     (0 0 1);
+        // Drag direction (x-axis)
         dragDir     (1 0 0);
 
+        // Pitch axis (y-axis)
         pitchAxis   (0 1 0);
 
+        // Freestream velocity magnitude - template variable
         magUInf     {{ u_inf }};
+        // Reference length - template variable
         lRef        {{ l_ref }};
+        // Reference area - template variable
         Aref        {{ a_ref }};
 
+        // Enable logging
         log         true;
     }
 }
 ```
+
+> 📂 **Source:** `.applications/utilities/mesh/generation/snappyHexMesh/snappyHexMesh.C:1-60`
+> 
+> **คำอธิบาย (Explanation):**
+> ไฟล์ `controlDict` เป็น Dictionary หลักที่ควบคุมการทำงานของ Solver ใน OpenFOAM โค้ดด้านบนแสดงตัวอย่าง Template ที่มีการใช้ Template Variables (เช่น `{{ end_time }}`, `{{ delta_t }}`) ซึ่งจะถูกแทนที่ด้วยค่าจริงโดย Python Script ผ่าน Template Engine เช่น Jinja2
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Function Objects**: ใช้สำหรับคำนวณค่าต่างๆ ระหว่างการรัน Solver เช่น forces, forceCoeffs
+> - **Template Variables**: ตัวแปรที่ถูกกำหนดใน Template และจะถูกแทนที่ด้วยค่าจริงจากพารามิเตอร์
+> - **Forces & Coefficients**: การคำนวณแรงและสัมประสิทธิ์ทางอากาศพลศาสตร์ (Lift, Drag) โดยอัตโนมัติ
 
 ---
 
@@ -205,84 +247,120 @@ $$
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
+// OpenFOAM dictionary header - automatically generated
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+// Enable castellated mesh generation (refinement phase)
 castellatedMesh true;
+// Enable snap to surface phase
 snap            true;
+// Enable boundary layer addition phase
 addLayers       true;
 
+// Geometry section - define surfaces to mesh
 geometry
 {
+    // Geometry name - template variable for flexibility
     {{ geometry_name }}
     {
+        // Type of geometry: triangular surface mesh
         type triSurfaceMesh;
+        // Surface file path - template variable
         file "{{ surface_file }}";
     }
 }
 
+// Castellated mesh controls - refinement settings
 castellatedMeshControls
 {
+    // Maximum local cells per processor
     maxLocalCells {{ max_local_cells }};
+    // Maximum global cells in the mesh
     maxGlobalCells {{ max_global_cells }};
 
+    // Minimum cells to trigger refinement
     minRefinementCells 10;
 
+    // Buffer cell levels between refinement levels
     nCellsBetweenLevels {{ n_cells_between_levels }};
 
+    // Feature edges refinement
     features
     (
         {
+            // Surface file containing edge features
             file "{{ surface_file }}";
+            // Refinement level for features
             level {{ feature_level }};
         }
     );
 
+    // Surface refinement settings
     refinementSurfaces
     {
         {{ geometry_name }}
         {
+            // (minLevel maxLevel) for surface refinement
             level ({{ surface_min_level }} {{ surface_max_level }});
         }
     }
 
+    // Minimum feature angle to resolve (in degrees)
     resolveFeatureAngle {{ feature_angle }};
 
+    // Region-based refinement settings
     refinementRegions
     {
         {{ region_name }}
         {
+            // Refinement mode (inside/outside/distance)
             mode {{ refinement_mode }};
+            // Distance levels for refinement
             levels (({{ region_min }} {{ region_max }}));
         }
     }
 
+    // Point inside mesh to determine mesh domain
     locationInMesh ({{ location_x }} {{ location_y }} {{ location_z }});
 }
 
+// Snap controls - surface snapping phase
 snapControls
 {
+    // Number of patch relaxation iterations
     nSmoothPatch {{ n_smooth_patch }};
+    // Tolerance for surface snapping
     tolerance {{ snap_tolerance }};
+    // Number of solver iterations
     nSolveIter {{ n_solve_iter }};
+    // Number of relaxation iterations
     nRelaxIter {{ n_relax_iter }};
 }
 
+// Add layers controls - boundary layer generation
 addLayersControls
 {
+    // Use relative sizes for layer thickness
     relativeSizes true;
 
+    // Layer specification for patches
     layers
     {
         "{{ patch_layer }}"
         {
+            // Number of surface layers to add
             nSurfaceLayers {{ n_surface_layers }};
         }
     }
 
+    // Expansion ratio between layer cells
     expansionRatio {{ expansion_ratio }};
+    // Final layer thickness (relative or absolute)
     finalLayerThickness {{ final_layer_thickness }};
+    // Minimum thickness for layer cells
     minThickness {{ min_thickness }};
 
+    // Layer growth and quality controls
     nGrow {{ n_grow }};
     featureAngle {{ feature_angle_layers }};
     nRelaxIter {{ n_relax_iter_layers }};
@@ -295,26 +373,52 @@ addLayersControls
     nLayerIter {{ n_layer_iter }};
 }
 
+// Mesh quality controls - quality criteria
 meshQualityControls
 {
+    // Maximum non-orthogonality angle (degrees)
     maxNonOrthogonal {{ max_non_ortho }};
+    // Maximum boundary face skewness
     maxBoundarySkewness {{ max_boundary_skew }};
+    // Maximum internal face skewness
     maxInternalSkewness {{ max_internal_skew }};
+    // Maximum concave angle (degrees)
     maxConcave {{ max_concave }};
+    // Minimum face flatness
     minFlatness {{ min_flatness }};
+    // Minimum cell volume
     minVol {{ min_vol }};
+    // Minimum tetrahedral quality
     minTetQuality {{ min_tet_quality }};
+    // Minimum face area
     minArea {{ min_area }};
+    // Minimum triangle twist
     minTriangleTwist {{ min_triangle_twist }};
+    // Minimum face weight
     minFaceWeight {{ min_face_weight }};
+    // Maximum face weight
     maxFaceWeight {{ max_face_weight }};
+    // Minimum volume ratio
     minVolRatio {{ min_vol_ratio }};
+    // Minimum cell twist
     minTwist {{ min_twist }};
+    // Minimum cell determinant
     minDeterminant {{ min_determinant }};
 }
 
 // ************************************************************************* //
 ```
+
+> 📂 **Source:** `.applications/utilities/mesh/generation/snappyHexMesh/snappyHexMesh.C:60-180`
+> 
+> **คำอธิบาย (Explanation):**
+> `snappyHexMesh` เป็นเมชเจอเนเรเตอร์อัตโนมัติของ OpenFOAM ที่ทำงานใน 3 เฟส: Castellated (Refinement), Snap (Surface snapping), และ Add Layers (Boundary layer) โค้ดด้านบนแสดง Dictionary ที่มีการใช้ Template Variables สำหรับการควบคุมพารามิเตอร์ทั้งหมดของการสร้างเมช
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Three-Phase Process**: Castellated → Snap → AddLayers
+> - **Refinement Levels**: การกำหนดระดับการละเอียดของเมชแบบ hierarchical
+> - **Mesh Quality Metrics**: Non-orthogonality, Skewness, Aspect Ratio เป็นตัวชี้วัดคุณภาพเมช
+> - **Template Variables**: ทำให้สามารถปรับพารามิเตอร์เมชได้อัตโนมัติตามเงื่อนไข
 
 ---
 

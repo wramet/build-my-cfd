@@ -122,6 +122,7 @@ graph LR
 ```python
 #!/usr/bin/env python3
 """
+Comprehensive mesh quality analysis tool for OpenFOAM
 เครื่องมือวิเคราะห์คุณภาพ mesh แบบครบวงจรสำหรับ OpenFOAM
 """
 
@@ -139,6 +140,7 @@ class MeshQualityAnalyzer:
         self.load_mesh_data()
 
     def load_mesh_data(self):
+        """Load mesh data from case directory"""
         """โหลดข้อมูล mesh จากไดเรกทอรี case"""
         try:
             result = subprocess.run(
@@ -153,6 +155,7 @@ class MeshQualityAnalyzer:
         self.load_connectivity_data()
 
     def load_connectivity_data(self):
+        """Load face and cell connectivity data"""
         """โหลดข้อมูล face และ cell connectivity"""
         mesh_dir = os.path.join(self.case_dir, "constant", "polyMesh")
 
@@ -169,6 +172,7 @@ class MeshQualityAnalyzer:
         self.neighbour = self.parse_openfoam_file(neighbor_file)
 
     def parse_openfoam_file(self, filepath):
+        """Parse OpenFOAM format file"""
         """แยกวิเคราะห์ไฟล์รูปแบบ OpenFOAM"""
         if not os.path.exists(filepath):
             return []
@@ -205,6 +209,7 @@ class MeshQualityAnalyzer:
         return data
 
     def calculate_quality_metrics(self):
+        """Calculate comprehensive mesh quality metrics"""
         """คำนวณเมตริกคุณภาพ mesh แบบครบวงจร"""
         metrics = {}
 
@@ -246,6 +251,7 @@ class MeshQualityAnalyzer:
         return metrics
 
     def estimate_cell_volumes(self):
+        """Estimate cell volumes"""
         """ประมาณปริมาตรเซลล์"""
         volumes = []
 
@@ -263,6 +269,7 @@ class MeshQualityAnalyzer:
         return volumes
 
     def identify_problematic_cells(self, quality_metrics):
+        """Identify cells with quality problems"""
         """ระบุเซลล์ที่มีปัญหาคุณภาพ"""
         problematic_cells = []
 
@@ -296,6 +303,7 @@ class MeshQualityAnalyzer:
         return problematic_cells
 
     def generate_quality_report(self, filename="mesh_quality_report.pdf"):
+        """Generate comprehensive PDF report"""
         """สร้างรายงาน PDF แบบครบวงจร"""
         try:
             with PdfPages(filename) as pdf:
@@ -311,6 +319,7 @@ class MeshQualityAnalyzer:
             return False
 
     def create_summary_page(self, pdf):
+        """Create quality metrics summary page"""
         """สร้างหน้าสรุปเมตริกคุณภาพ"""
         fig, ax = plt.subplots(figsize=(8, 10))
         ax.axis('off')
@@ -347,12 +356,14 @@ class MeshQualityAnalyzer:
         plt.close()
 
     def create_histograms_page(self, pdf):
+        """Create quality metrics histograms"""
         """สร้างฮิสโตแกรมของเมตริกคุณภาพ"""
         fig, axes = plt.subplots(2, 2, figsize=(12, 10))
         fig.suptitle('การกระจายของคุณภาพ Mesh', fontsize=14)
 
         metrics = self.calculate_quality_metrics()
 
+        # Cell volume histogram
         # ฮิสโตแกรมปริมาตรเซลล์
         if 'cell_volumes' in metrics and metrics['cell_volumes']:
             axes[0, 0].hist(metrics['cell_volumes'], bins=20, alpha=0.7)
@@ -364,6 +375,7 @@ class MeshQualityAnalyzer:
                            ha='center', va='center', transform=axes[0, 0].transAxes)
             axes[0, 0].set_title('การกระจายปริมาตรเซลล์')
 
+        # Quality ratio bar chart
         # แผนภูมิแท่งอัตราส่วนคุณภาพ
         quality_ratios = [
             ('ไม่ตั้งฉาก', metrics.get('non_orthogonal_ratio', 0)),
@@ -377,6 +389,7 @@ class MeshQualityAnalyzer:
             axes[0, 1].set_ylabel('อัตราส่วน')
             axes[0, 1].tick_params(axis='x', rotation=45)
 
+        # Overall quality assessment
         # การประเมินคุณภาพโดยรวม
         axes[1, 0].axis('off')
 
@@ -397,6 +410,7 @@ class MeshQualityAnalyzer:
                        fontsize=10, verticalalignment='top')
         axes[1, 0].set_title('การประเมินคุณภาพ')
 
+        # Recommendations
         # คำแนะนำ
         axes[1, 1].axis('off')
         recommendations = self.generate_recommendations(problematic_cells)
@@ -409,6 +423,7 @@ class MeshQualityAnalyzer:
         plt.close()
 
     def generate_recommendations(self, problematic_cells):
+        """Generate recommendations based on quality issues"""
         """สร้างคำแนะนำโดยยึดตามปัญหาคุณภาพ"""
         recommendations = "คำแนะนำ:\n\n"
 
@@ -438,12 +453,14 @@ class MeshQualityAnalyzer:
         return recommendations
 
     def create_visualization_page(self, pdf):
+        """Create mesh visualization summary"""
         """สร้างสรุปการสร้างภาพ mesh"""
         fig, axes = plt.subplots(2, 2, figsize=(12, 10))
         fig.suptitle('สรุปการสร้างภาพ Mesh', fontsize=14)
 
         metrics = self.calculate_quality_metrics()
 
+        # Overall mesh statistics pie chart
         # แผนภูมิวงกลมสถิติ mesh โดยรวม
         total_cells = metrics.get('total_cells', 1)
         problematic_count = metrics.get('non_orthogonal_cells', 0) + metrics.get('skewness_cells', 0)
@@ -457,6 +474,7 @@ class MeshQualityAnalyzer:
             axes[0, 0].pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%')
             axes[0, 0].set_title('การกระจายคุณภาพเซลล์')
 
+        # Mesh quality gauge
         # เครื่องวัดคุณภาพ mesh
         axes[0, 1].axis('off')
 
@@ -477,6 +495,7 @@ class MeshQualityAnalyzer:
         axes[0, 1].axis('equal')
         axes[0, 1].set_title(f'คะแนนคุณภาพโดยรวม: {overall_score:.1f}%')
 
+        # Cell count information
         # ข้อมูลจำนวนเซลล์
         axes[1, 1].axis('off')
         cell_info = f"""
@@ -511,6 +530,7 @@ class MeshQualityAnalyzer:
 
 
 def main():
+    """Main function for command-line usage"""
     """ฟังก์ชันหลักสำหรับการใช้งาน command-line"""
     import argparse
 
@@ -553,30 +573,49 @@ if __name__ == "__main__":
 ### 3.1 การตั้งค่า meshQualityControls
 
 ```cpp
+// In snappyHexMeshDict
 // ใน snappyHexMeshDict
 meshQualityControls
 {
+    // Main quality controls
     // การควบคุมคุณภาพหลัก
-    maxNonOrthogonal 65;       // องศา - ความไม่ตั้งฉากสูงสุด
-    maxBoundarySkewness 20;   // เปอร์เซ็นต์ - ความเบี้ยวขอบเขตสูงสุด
-    maxInternalSkewness 4;    // เปอร์เซ็นต์ - ความเบี้ยวภายในสูงสุด
-    maxConcave 80;            // องศา - ความเว้าสูงสุด
-    minFlatness 0.5;          // ค่าความแบนขั้นต่ำ
-    minVol 1e-13;             // ปริมาตรเซลล์ขั้นต่ำ (บวก)
-    minVolRatio 0.01;         // อัตราส่วนปริมาตร
-    minTetQuality 1e-30;      // คุณภาพ tetrahedral ขั้นต่ำ
-    minArea -1;               // พื้นที่หน้าขั้นต่ำ
-    minTwist 0.02;            // การบิดเบี้ยวของหน้า
-    minDeterminant 0.001;     // determinant ขั้นต่ำ
-    minFaceWeight 0.05;       // น้ำหนักพื้นที่หน้า
-    minTriangleTwist -1;      // การบิดเบียวของสามเหลี่ยม
-    nSmoothScale 4;           // การทำให้เรียบของสเกล
-    errorReduction 0.75;      // การลดข้อผิดพลาด
+    maxNonOrthogonal 65;       // degrees - maximum non-orthogonality
+                              // องศา - ความไม่ตั้งฉากสูงสุด
+    maxBoundarySkewness 20;   // percent - maximum boundary skewness
+                              // เปอร์เซ็นต์ - ความเบี้ยวขอบเขตสูงสุด
+    maxInternalSkewness 4;    // percent - maximum internal skewness
+                              // เปอร์เซ็นต์ - ความเบี้ยวภายในสูงสุด
+    maxConcave 80;            // degrees - maximum concavity
+                              // องศา - ความเว้าสูงสุด
+    minFlatness 0.5;          // minimum flatness value
+                              // ค่าความแบนขั้นต่ำ
+    minVol 1e-13;             // minimum cell volume (positive)
+                              // ปริมาตรเซลล์ขั้นต่ำ (บวก)
+    minVolRatio 0.01;         // volume ratio
+                              // อัตราส่วนปริมาตร
+    minTetQuality 1e-30;      // minimum tetrahedral quality
+                              // คุณภาพ tetrahedral ขั้นต่ำ
+    minArea -1;               // minimum face area
+                              // พื้นที่หน้าขั้นต่ำ
+    minTwist 0.02;            // face twisting
+                              // การบิดเบี้ยวของหน้า
+    minDeterminant 0.001;     // minimum determinant
+                              // determinant ขั้นต่ำ
+    minFaceWeight 0.05;       // face area weight
+                              // น้ำหนักพื้นที่หน้า
+    minTriangleTwist -1;      // triangle twisting
+                              // การบิดเบียวของสามเหลี่ยม
+    nSmoothScale 4;           // scale smoothing
+                              // การทำให้เรียบของสเกล
+    errorReduction 0.75;      // error reduction
+                              // การลดข้อผิดพลาด
 
+    // Relaxed values for final iteration
     // ค่าที่ผ่อนปรนสำหรับการทำซ้ำสุดท้าย
     relaxed
     {
-        maxNonOrthogonal 75;   // ค่าที่ผ่อนปรน
+        maxNonOrthogonal 75;   // relaxed value
+                              // ค่าที่ผ่อนปรน
     }
 }
 ```
@@ -584,23 +623,35 @@ meshQualityControls
 ### 3.2 การปรับปรุงคุณภาพ Mesh แบบละเอียด
 
 ```cpp
+// Additional advanced controls
 // การควบคุมขั้นสูงเพิ่มเติม
 meshQualityControls
 {
-    // ... พารามิเตอร์พื้นฐาน ...
+    // ... basic parameters ...
 
+    // Refinement controls
     // การควบคุมการแบ่งย่อย
-    nRelaxIter 3;                  // การวนซ้ำการผ่อนคลาย
-    nSmoothNormals 3;              // การทำความเรียบเวกเตอร์ปกติ
-    nSmoothSurfaceNormals 1;       // การทำความเรียบเวกเตอร์ปกติพื้นผิว
-    nSmoothThickness 10;           // การทำความเรียบฟิลด์ความหนา
+    nRelaxIter 3;                  // relaxation iterations
+                                  // การวนซ้ำการผ่อนคลาย
+    nSmoothNormals 3;              // normal vector smoothing
+                                  // การทำความเรียบเวกเตอร์ปกติ
+    nSmoothSurfaceNormals 1;       // surface normal smoothing
+                                  // การทำความเรียบเวกเตอร์ปกติพื้นผิว
+    nSmoothThickness 10;           // thickness field smoothing
+                                  // การทำความเรียบฟิลด์ความหนา
 
+    // Layer controls
     // การควบคุมขอบเขตเลเยอร์
-    maxFaceThicknessRatio 0.5;     // อัตราส่วนความหนาหน้าสูงสุด
-    maxThicknessToMedialRatio 0.3; // อัตราส่วนความหนาต่อ medial axis
-    minMedianAxisAngle 90;         // มุม medial axis ขั้นต่ำ
-    nBufferCellsNoExtrude 0;       // เซลล์บัฟเฟอร์ที่ไม่ extrude
-    nLayerIter 50;                 // การวนซ้ำชั้นสูงสุด
+    maxFaceThicknessRatio 0.5;     // maximum face thickness ratio
+                                  // อัตราส่วนความหนาหน้าสูงสุด
+    maxThicknessToMedialRatio 0.3; // thickness to medial axis ratio
+                                  // อัตราส่วนความหนาต่อ medial axis
+    minMedianAxisAngle 90;         // minimum medial axis angle
+                                  // มุม medial axis ขั้นต่ำ
+    nBufferCellsNoExtrude 0;       // buffer cells without extrude
+                                  // เซลล์บัฟเฟอร์ที่ไม่ extrude
+    nLayerIter 50;                 // maximum layer iterations
+                                  // การวนซ้ำชั้นสูงสุด
 }
 ```
 
@@ -630,11 +681,14 @@ $$Q_{det} = \text{determinant}_{min}$$
 
 ```bash
 #!/bin/bash
+# Mesh optimization utility for OpenFOAM
 # เครื่องมือปรับปรุง mesh สำหรับ OpenFOAM
+# Usage: ./optimize_mesh.sh <case_directory>
 # การใช้งาน: ./optimize_mesh.sh <case_directory>
 
 set -e
 
+# Configuration
 # การกำหนดค่า
 CASE_DIR="${1:-.}"
 QUALITY_THRESHOLD_NONORTHO=70
@@ -642,6 +696,7 @@ QUALITY_THRESHOLD_SKEWNESS=4
 QUALITY_THRESHOLD_ASPECT=1000
 MAX_ITERATIONS=3
 
+# Output colors
 # สีสำหรับ output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -667,18 +722,21 @@ log_error() {
 
 check_openfoam_env() {
     if ! command -v checkMesh &> /dev/null; then
+        log_error "OpenFOAM environment not sourced"
         log_error "ยังไม่ได้ source สภาพแวดล้อม OpenFOAM"
         exit 1
     fi
 }
 
 assess_initial_quality() {
+    log_info "Assessing initial mesh quality..."
     log_info "กำลังประเมินคุณภาพ mesh เบื้องต้น..."
 
     local output_file="${CASE_DIR}/quality_initial.log"
 
     checkMesh -case "$CASE_DIR" -meshQuality > "$output_file" 2>&1 || true
 
+    # Extract key metrics
     # ดึงเมตริกหลัก
     local total_cells=$(grep -o "total cells.*[0-9]\+" "$output_file" | grep -o "[0-9]\+" || echo "0")
     local non_ortho_cells=$(grep -o "non-orthogonal.*cells.*[0-9]\+" "$output_file" | grep -o "[0-9]\+" || echo "0")
@@ -692,19 +750,27 @@ assess_initial_quality() {
     echo "MAX_NON_ORTHO=$max_non_ortho" >> "${CASE_DIR}/quality_metrics.txt"
     echo "MAX_SKEWNESS=$max_skewness" >> "${CASE_DIR}/quality_metrics.txt"
 
+    log_info "Initial assessment complete"
     log_info "การประเมินเบื้องต้นเสร็จสิ้น"
+    log_info "   Total cells: $total_cells"
     log_info "   เซลล์ทั้งหมด: $total_cells"
+    log_info "   Non-orthogonal cells: $non_ortho_cells"
     log_info "   เซลล์ที่ไม่ตั้งฉาก: $non_ortho_cells"
+    log_info "   Skewness cells: $skewness_cells"
     log_info "   เซลล์ที่เบี้ยว: $skewness_cells"
+    log_info "   Max non-orthogonality: $max_non_ortho°"
     log_info "   ค่าไม่ตั้งฉากสูงสุด: $max_non_ortho°"
+    log_info "   Max skewness: $max_skewness"
     log_info "   ค่าเบี้ยวสูงสุด: $max_skewness"
 }
 
 identify_problem_regions() {
+    log_info "Identifying problem regions..."
     log_info "กำลังระบุพื้นที่ที่มีปัญหา..."
 
     mkdir -p "${CASE_DIR}/system"
 
+    # Create topoSet dictionary
     # สร้าง topoSet dictionary
     cat > "${CASE_DIR}/system/topoSetDict" << EOF
 /*--------------------------------*- C++ -*----------------------------------*\
@@ -754,13 +820,16 @@ actions
 EOF
 
     topoSet -case "$CASE_DIR" > /dev/null 2>&1 || true
+    log_info "Cell set creation complete"
     log_info "การสร้าง cell set เสร็จสิ้น"
 }
 
 apply_local_refinement() {
+    log_info "Applying local mesh refinement..."
     log_info "กำลังใช้การแบ่งย่อย mesh ในพื้นที่..."
 
     if [ ! -d "${CASE_DIR}/constant/polyMesh/sets" ]; then
+        log_warning "No cell sets found - skipping local refinement"
         log_warning "ไม่พบ cell sets - ข้ามการแบ่งย่อยในพื้นที่"
         return 1
     fi
@@ -794,30 +863,36 @@ writeMesh        true;
 EOF
 
     if refineMesh -case "$CASE_DIR" -overwrite > "${CASE_DIR}/refinement.log" 2>&1; then
+        log_success "Local refinement complete"
         log_success "การแบ่งย่อยในพื้นที่เสร็จสิ้น"
         return 0
     else
+        log_warning "Local refinement failed"
         log_warning "การแบ่งย่อยในพื้นที่ล้มเหลว"
         return 1
     fi
 }
 
 apply_mesh_smoothing() {
+    log_info "Attempting mesh smoothing..."
     log_info "กำลังพยายามทำให้ mesh เรียบ..."
 
     if command -v collapseEdges &> /dev/null; then
+        log_info "Using edge collapse for mesh smoothing..."
         log_info "กำลังใช้การยุบขอบสำหรับการทำให้ mesh เรียบ..."
         collapseEdges -case "$CASE_DIR" -latestTime > /dev/null 2>&1 || true
     fi
 }
 
 optimize_mesh_iteratively() {
+    log_info "Starting iterative mesh optimization..."
     log_info "กำลังเริ่มการปรับปรุง mesh แบบทำซ้ำ..."
 
     local iteration=1
     local improved=false
 
     while [ $iteration -le $MAX_ITERATIONS ]; do
+        log_info "Optimization iteration $iteration/$MAX_ITERATIONS"
         log_info "การวนซ้ำการปรับปรุง $iteration/$MAX_ITERATIONS"
 
         assess_current_quality
@@ -827,16 +902,19 @@ optimize_mesh_iteratively() {
         local needs_optimization=false
 
         if [ "$MAX_NON_ORTHO" != "0" ] && (( $(echo "$MAX_NON_ORTHO > $QUALITY_THRESHOLD_NONORTHO" | bc -l) )); then
+            log_warning "Non-orthogonality ($MAX_NON_ORTHO°) exceeds threshold"
             log_warning "ความไม่ตั้งฉาก ($MAX_NON_ORTHO°) เกินค่าเกณฑ์"
             needs_optimization=true
         fi
 
         if [ "$MAX_SKEWNESS" != "0" ] && (( $(echo "$MAX_SKEWNESS > $QUALITY_THRESHOLD_SKEWNESS" | bc -l) )); then
+            log_warning "Skewness ($MAX_SKEWNESS) exceeds threshold"
             log_warning "ความเบี้ยว ($MAX_SKEWNESS) เกินค่าเกณฑ์"
             needs_optimization=true
         fi
 
         if [ "$needs_optimization" = "true" ]; then
+            log_info "Applying optimization techniques..."
             log_info "กำลังใช้เทคนิคการปรับปรุง..."
 
             if apply_local_refinement; then
@@ -847,6 +925,7 @@ optimize_mesh_iteratively() {
             fi
 
         else
+            log_success "Mesh quality meets all thresholds"
             log_success "คุณภาพ mesh เป็นไปตามค่าเกณฑ์ทั้งหมด"
             break
         fi
@@ -855,8 +934,10 @@ optimize_mesh_iteratively() {
     done
 
     if [ "$improved" = "true" ]; then
+        log_success "Mesh optimization complete"
         log_success "การปรับปรุง mesh เสร็จสิ้น"
     else
+        log_warning "No further optimization possible"
         log_warning "ไม่สามารถปรับปรุงต่อไปได้"
     fi
 }
@@ -880,6 +961,7 @@ assess_current_quality() {
 }
 
 generate_quality_report() {
+    log_info "Generating final quality report..."
     log_info "กำลังสร้างรายงานคุณภาพสุดท้าย..."
 
     local report_file="${CASE_DIR}/mesh_optimization_report.txt"
@@ -887,41 +969,59 @@ generate_quality_report() {
     source "${CASE_DIR}/quality_metrics.txt"
 
     cat > "$report_file" << EOF
+MESH OPTIMIZATION REPORT
+========================
 รายงานการปรับปรุง MESH
 ========================
 
+Case Directory: $CASE_DIR
 ไดเรกทอรี Case: $CASE_DIR
+Optimization Date: $(date)
 วันที่ปรับปรุง: $(date)
 
+Final Mesh Status:
 สถานะ MESH สุดท้าย:
-- เซลล์ทั้งหมด: $TOTAL_CELLS
-- เซลล์ที่ไม่ตั้งฉาก: $NON_ORTHO_CELLS
-- เซลล์ที่เบี้ยว: $SKEWNESS_CELLS
-- ค่าไม่ตั้งฉากสูงสุด: $MAX_NON_ORTHO°
-- ค่าเบี้ยวสูงสุด: $MAX_SKEWNESS
+- Total cells: $TOTAL_CELLS
+  เซลล์ทั้งหมด: $TOTAL_CELLS
+- Non-orthogonal cells: $NON_ORTHO_CELLS
+  เซลล์ที่ไม่ตั้งฉาก: $NON_ORTHO_CELLS
+- Skewness cells: $SKEWNESS_CELLS
+  เซลล์ที่เบี้ยว: $SKEWNESS_CELLS
+- Max non-orthogonality: $MAX_NON_ORTHO°
+  ค่าไม่ตั้งฉากสูงสุด: $MAX_NON_ORTHO°
+- Max skewness: $MAX_SKEWNESS
+  ค่าเบี้ยวสูงสุด: $MAX_SKEWNESS
 
+Quality Assessment:
 การประเมินคุณภาพ:
 EOF
 
     if (( $(echo "$MAX_NON_ORTHO <= $QUALITY_THRESHOLD_NONORTHO" | bc -l) )); then
+        echo "- Non-orthogonality: ✅ PASS" >> "$report_file"
         echo "- ความไม่ตั้งฉาก: ✅ ผ่าน" >> "$report_file"
     else
+        echo "- Non-orthogonality: ❌ FAIL" >> "$report_file"
         echo "- ความไม่ตั้งฉาก: ❌ ไม่ผ่าน" >> "$report_file"
     fi
 
     if (( $(echo "$MAX_SKEWNESS <= $QUALITY_THRESHOLD_SKEWNESS" | bc -l) )); then
+        echo "- Skewness: ✅ PASS" >> "$report_file"
         echo "- ความเบี้ยว: ✅ ผ่าน" >> "$report_file"
     else
+        echo "- Skewness: ❌ FAIL" >> "$report_file"
         echo "- ความเบี้ยว: ❌ ไม่ผ่าน" >> "$report_file"
     fi
 
+    log_success "Quality report saved to: $report_file"
     log_success "บันทึกรายงานคุณภาพที่: $report_file"
 }
 
 main() {
+    log_info "Starting mesh optimization for case: $CASE_DIR"
     log_info "กำลังเริ่มการปรับปรุง mesh สำหรับ case: $CASE_DIR"
 
     if [ ! -d "$CASE_DIR" ]; then
+        log_error "Case directory not found: $CASE_DIR"
         log_error "ไม่พบไดเรกทอรี case: $CASE_DIR"
         exit 1
     fi
@@ -929,11 +1029,13 @@ main() {
     check_openfoam_env
 
     if [ ! -f "${CASE_DIR}/constant/polyMesh/points" ]; then
+        log_error "No mesh found in case directory"
         log_error "ไม่พบ mesh ในไดเรกทอรี case"
         exit 1
     fi
 
     if [ ! -d "${CASE_DIR}/constant/polyMesh.bak" ]; then
+        log_info "Backing up original mesh..."
         log_info "กำลังสำรอง mesh ต้นฉบับ..."
         cp -r "${CASE_DIR}/constant/polyMesh" "${CASE_DIR}/constant/polyMesh.bak"
     fi
@@ -943,6 +1045,7 @@ main() {
     optimize_mesh_iteratively
     generate_quality_report
 
+    log_success "Mesh optimization complete"
     log_success "การปรับปรุง mesh เสร็จสิ้น"
 }
 
@@ -1004,25 +1107,39 @@ $$\text{if } \|\nabla \phi\| < \phi_{\text{min}} \text{ and } h_{\text{cell}} < 
 ### 5.2 การปรับปรุง Mesh ด้วย C++
 
 ```cpp
-// meshOptimizer.C - การปรับปรุง mesh ขั้นสูง
+// meshOptimizer.C - Advanced mesh optimization
+// Source: OpenFOAM Foundation
+// การปรับปรุง Mesh ขั้นสูง
+
+// Optimize mesh quality by iterative improvement
 void optimizeMeshQuality(fvMesh& mesh, const dictionary& optimizerDict)
 {
+    // Read maximum allowed quality thresholds
+    // อ่านค่าเกณฑ์คุณภาพสูงสุดที่อนุญาต
     const scalar maxNonOrtho =
         optimizerDict.lookupOrDefault<scalar>("maxNonOrthogonality", 70);
     const scalar maxSkewness =
         optimizerDict.lookupOrDefault<scalar>("maxSkewness", 2);
 
+    // Maximum optimization iterations
+    // การวนซ้ำการปรับปรุงสูงสุด
     label maxIterations =
         optimizerDict.lookupOrDefault<label>("maxIterations", 10);
 
+    // Iterative optimization loop
+    // วงจรการปรับปรุงแบบทำซ้ำ
     for (label iter = 0; iter < maxIterations; iter++)
     {
         label nNonOrthogonal = 0;
         label nHighSkewness = 0;
 
+        // Get quality metrics for all cells
+        // รับเมตริกคุณภาพสำหรับเซลล์ทั้งหมด
         const scalarField& nonOrthoCells = mesh.nonOrthogonalCells();
         const scalarField& skewnessCells = mesh.skewnessCells();
 
+        // Count problematic cells
+        // นับเซลล์ที่มีปัญหา
         forAll(nonOrthoCells, i)
         {
             if (nonOrthoCells[i] > maxNonOrtho)
@@ -1035,10 +1152,14 @@ void optimizeMeshQuality(fvMesh& mesh, const dictionary& optimizerDict)
             }
         }
 
+        // Report iteration status
+        // รายงานสถานะการวนซ้ำ
         Info << "Iteration " << iter << ": "
              << nNonOrthogonal << " non-orthogonal cells, "
              << nHighSkewness << " high skewness cells" << endl;
 
+        // Check convergence
+        // ตรวจสอบการลู่เข้า
         if (nNonOrthogonal == 0 && nHighSkewness == 0)
         {
             Info << "Converged in " << iter + 1 << " iterations" << endl;
@@ -1048,6 +1169,15 @@ void optimizeMeshQuality(fvMesh& mesh, const dictionary& optimizerDict)
 }
 ```
 
+> **คำอธิบาย:**
+> - **Source:** อิงจาก mesh optimization utilities ใน OpenFOAM
+> - **Explanation:** ฟังก์ชันนี้ดำเนินการปรับปรุงคุณภาพ mesh แบบวนซ้ำโดยการตรวจสอบและนับเซลล์ที่มีความไม่ตั้งฉากและความเบี้ยวเกินเกณฑ์ และยุติเมื่อคุณภาพ mesh ลู่เข้าสู่ค่าที่กำหนด
+> - **แนวคิดสำคัญ:**
+>   - **Quality Thresholds:** การกำหนดค่าเกณฑ์สูงสุดสำหรับ non-orthogonality และ skewness
+>   - **Iterative Convergence:** การวนซ้ำจนกว่าจะไม่พบเซลล์ที่มีปัญหา
+>   - **Mesh Diagnostics:** การรายงานจำนวนเซลล์ที่มีปัญหาในแต่ละรอบ
+>   - **Optimization Loop:** โครงสร้างการทำซ้ำเพื่อปรับปรุงคุณภาพ mesh จนกว่าจะลู่เข้า
+
 ---
 
 ## สรุปและแนวทางปฏิบัติที่ดีที่สุด
@@ -1056,15 +1186,15 @@ void optimizeMeshQuality(fvMesh& mesh, const dictionary& optimizerDict)
 
 ```mermaid
 graph TD
-    A[สร้าง Mesh] --> B[ตรวจสอบคุณภาพ]
-    B --> C{คุณภาพเพียงพอ?}
-    C -->|ใช่| D[ดำเนินการต่อ]
-    C -->|ไม่| E[ระบุปัญหา]
-    E --> F[ปรับปรุง Mesh]
+    A[Create Mesh<br>สร้าง Mesh] --> B[Check Quality<br>ตรวจสอบคุณภาพ]
+    B --> C{Quality Sufficient?<br>คุณภาพเพียงพอ?}
+    C -->|Yes| D[Proceed<br>ดำเนินการต่อ]
+    C -->|No| E[Identify Problems<br>ระบุปัญหา]
+    E --> F[Optimize Mesh<br>ปรับปรุง Mesh]
     F --> B
 
-    D --> G[Validation สุดท้าย]
-    G --> H[Simulation Ready]
+    D --> G[Final Validation<br>Validation สุดท้าย]
+    G --> H[Simulation Ready<br>พร้อมจำลอง]
 ```
 > **Figure 2:** แผนภูมิกระบวนการปรับปรุงคุณภาพเมชแบบวนซ้ำ (Iterative Mesh Improvement) ครอบคลุมตั้งแต่การสร้างเมช การตรวจสอบและระบุปัญหา จนถึงการสรุปผลความถูกต้องขั้นสุดท้ายเพื่อให้เมชพร้อมสำหรับการจำลอง
 
@@ -1072,6 +1202,15 @@ graph TD
 > **ภาพประกอบ 5.1:** วงจรการเพิ่มประสิทธิภาพเมช (Mesh Optimization Cycle): จากการสร้างเมชเบื้องต้น -> การตรวจวิเคราะห์ด้วย checkMesh -> การระบุบริเวณที่มีปัญหา (Cell Sets) -> การปรับปรุงเฉพาะจุด (Local Refinement) จนกว่าจะได้คุณภาพที่ต้องการ, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9
 
 ### เกณฑ์การยอมรับ
+
+| เมตริก | เกณฑ์ | การกระทำ |
+|---------|-------|-----------|
+| **Non-orthogonality** | < 70° | Use non-orthogonal correction |
+| **Skewness** | < 4 | Refine problematic cells |
+| **Aspect Ratio** | < 1000 | Adjust grading |
+| **Determinant** | > 0.001 | Remesh in region |
+| **Concavity** | < 80° | Adjust topology |
+| **Face Weight** | > 0.05 | Smooth mesh |
 
 | เมตริก | เกณฑ์ | การกระทำ |
 |---------|-------|-----------|
@@ -1100,14 +1239,22 @@ $$h_{i+1} = r \cdot h_i$$
 โดยที่ $r \leq 1.2$ แนะนำสำหรับความเรียบของการเปลี่ยน
 
 > [!TIP] คำแนะนำสุดท้าย
-> 1. ตรวจสอบคุณภาพ mesh อย่างสม่ำเสมอตลอดกระบวนการ
-> 2. ใช้การปรับปรุงแบบเจาะจง (local refinement) ก่อนการปรับปรุงทั่วทั้งหมด
-> 3. บันทึก mesh ต้นฉบับก่อนการปรับปรุง
-> 4. ตรวจสอบผลลัพธ์หลังการปรับปรุง
-> 5. สร้างเอกสารสำหรับการตั้งค่า mesh ที่ใช้งานได้
-> 6. ใช้ mesh quality controls ที่เหมาะสมกับแต่ละ solver
-> 7. พิจารณาการใช้ non-orthogonal correction สำหรับ mesh ที่มีความไม่ตั้งฉากสูง
-> 8. สร้าง boundary layer ที่เหมาะสมสำหรับการไหลแบบ turbulent
+> 1. Check mesh quality regularly throughout the process
+>    ตรวจสอบคุณภาพ mesh อย่างสม่ำเสมอตลอดกระบวนการ
+> 2. Use targeted refinement before global refinement
+>    ใช้การปรับปรุงแบบเจาะจง (local refinement) ก่อนการปรับปรุงทั่วทั้งหมด
+> 3. Back up original mesh before optimization
+>    บันทึก mesh ต้นฉบับก่อนการปรับปรุง
+> 4. Verify results after optimization
+>    ตรวจสอบผลลัพธ์หลังการปรับปรุง
+> 5. Document effective mesh settings
+>    สร้างเอกสารสำหรับการตั้งค่า mesh ที่ใช้งานได้
+> 6. Use appropriate mesh quality controls for each solver
+>    ใช้ mesh quality controls ที่เหมาะสมกับแต่ละ solver
+> 7. Consider non-orthogonal correction for highly non-orthogonal meshes
+>    พิจารณาการใช้ non-orthogonal correction สำหรับ mesh ที่มีความไม่ตั้งฉากสูง
+> 8. Create appropriate boundary layers for turbulent flows
+>    สร้าง boundary layer ที่เหมาะสมสำหรับการไหลแบบ turbulent
 
 ---
 

@@ -24,8 +24,10 @@ flowchart TD
     style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
     style F fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
 ```
+
 > **Figure 1:** เรขาคณิตของ Lid-Driven Cavity และลักษณะการไหล แสดงให้เห็นฝาปิดด้านบนที่เคลื่อนที่ด้วยความเร็วคงที่ซึ่งขับเคลื่อนให้เกิดกระแสวนหลักขนาดใหญ่และกระแสวนรองในมุมกล่อง พร้อมผลกระทบจากความเค้นเฉือนที่ผนัง
- ซึ่งทำหน้าที่เป็น **ปัญหาอ้างอิง (benchmark problems)** พื้นฐานที่สุดในพลศาสตร์ของไหลเชิงคำนวณ (Computational Fluid Dynamics หรือ CFD)
+
+ซึ่งทำหน้าที่เป็น **ปัญหาอ้างอิง (benchmark problems)** พื้นฐานที่สุดในพลศาสตร์ของไหลเชิงคำนวณ (Computational Fluid Dynamics หรือ CFD)
 
 **ปัญหา Lid-Driven Cavity ถูกนำมาใช้อย่างแพร่หลายสำหรับการตรวจสอบความถูกต้องของ Numerical Solver** เนื่องจากมีรูปทรงเรขาคณิตที่เรียบง่าย แต่มีฟิสิกส์ที่หลากหลาย
 
@@ -161,8 +163,10 @@ flowchart TD
     class B,C,D,E process;
     class B1,B2,B3,B4,C1,C2,C3,D1,D2,D3,D4,E1,E2,E3 terminator;
 ```
+
 > **Figure 2:** โครงสร้างไดเรกทอรีของกรณีทดสอบใน OpenFOAM แสดงการจัดแบ่งไฟล์เงื่อนไขเริ่มต้น ข้อมูล Mesh และการตั้งค่า Solver พร้อมสคริปต์สำหรับการรันและการประมวลผลขั้นหลัง
 
+```
 ├── 0/                    # เงื่อนไขเริ่มต้น (Initial conditions)
 │   ├── U                # ฟิลด์ความเร็ว (Velocity field)
 │   └── p                # ฟิลด์ความดัน (Pressure field)
@@ -198,34 +202,56 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 1 -1 0 0 0 0];  // m/s (LT^(-1))
-internalField   uniform (0 0 0);    // Initial velocity: fluid at rest
+// Dimensions for velocity field: [L^1 T^(-1)] in m/s
+dimensions      [0 1 -1 0 0 0 0];
 
+// Initial condition: fluid at rest
+internalField   uniform (0 0 0);
+
+// Boundary conditions for velocity field
 boundaryField
 {
+    // Moving top wall with constant velocity
     movingWall
     {
-        type            fixedValue;          // Dirichlet condition
-        value           uniform (1 0 0);    // Lid velocity: U = 1 m/s in x-direction
+        // Fixed velocity (Dirichlet condition)
+        type            fixedValue;
+        // Lid velocity: U = 1 m/s in x-direction
+        value           uniform (1 0 0);
     }
 
+    // Stationary walls (bottom, left, right)
     fixedWalls
     {
-        type            noSlip;             // No-slip condition (U = 0 at walls)
+        // No-slip condition (U = 0 at walls)
+        type            noSlip;
     }
 
+    // Front and back boundaries for 2D simulation
     frontAndBack
     {
-        type            empty;              // 2D simulation constraint
+        // Empty boundary condition for 2D constraint
+        type            empty;
     }
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 ```
 
-**คำอธิบาย:**
-- `dimensions [0 1 -1 0 0 0 0]` สอดคล้องกับการวิเคราะห์มิติสำหรับความเร็ว: $[L^1 T^{-1}]$
-- `boundaryCondition` ของ Lid-driven cavity: กำหนดให้ผนังด้านบน (`movingWall`) เคลื่อนที่ด้วยความเร็ว $\mathbf{U} = (1, 0, 0)$ m/s
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.H`
+>
+> **คำอธิบาย:**
+> ไฟล์นี้กำหนดเงื่อนไขขอบเขตสำหรับฟิลด์ความเร็วในปัญหา Lid-Driven Cavity โดยมีเงื่อนไขสำคัญดังนี้:
+> - **`dimensions [0 1 -1 0 0 0 0]`**: มิติของความเร็วตามหลักการวิเคราะห์มิติ คือ $[L^1 T^{-1}]$ หรือ m/s
+> - **`internalField uniform (0 0 0)`**: กำหนดค่าเริ่มต้นของความเร็วทุกจุดในโดเมนเป็นศูนย์ (ของไหลอยู่นิ่ง)
+> - **`movingWall` พร้อม `fixedValue`**: กำหนดความเร็วคงที่ที่ฝาปิดด้านบนเป็น $(1, 0, 0)$ m/s ในแนวแกน x
+> - **`fixedWalls` พร้อม `noSlip`**: ใช้เงื่อนไข No-slip ที่ผนังด้านข้างและด้านล่าง ความเร็วเป็นศูนย์
+> - **`frontAndBack` พร้อม `empty`**: สำหรับการจำลอง 2D โดยไม่มีการคำนวณในแนวลึก
+>
+> **แนวคิดสำคัญ:**
+> - **Dirichlet Boundary Condition**: การกำหนดค่าความเร็วโดยตรงที่ขอบเขต (`fixedValue`)
+> - **No-slip Condition**: หลักการทางกายภาพที่ว่าของไหลไม่ลื่นไถลบนผิวขอบเขต
+> - **2D Approximation**: การลดรูปปัญหา 3D เป็น 2D โดยใช้เงื่อนไข `empty`
 
 ---
 
@@ -248,33 +274,56 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 2 -2 0 0 0 0];  // m^2/s^2 (L^2 T^(-2)) - kinematic pressure
-internalField   uniform 0;          // Initial gauge pressure
+// Dimensions for kinematic pressure: [L^2 T^(-2)] in m^2/s^2
+// Note: OpenFOAM uses kinematic pressure (p/rho) for incompressible flows
+dimensions      [0 2 -2 0 0 0 0];
 
+// Initial gauge pressure (relative to atmospheric pressure)
+internalField   uniform 0;
+
+// Boundary conditions for pressure field
 boundaryField
 {
+    // Moving wall boundary
     movingWall
     {
-        type            zeroGradient;       // Neumann condition: ∂p/∂n = 0
+        // Neumann condition: zero gradient (∂p/∂n = 0)
+        // Pressure can float freely at the moving wall
+        type            zeroGradient;
     }
 
+    // Stationary walls
     fixedWalls
     {
-        type            zeroGradient;       // Walls don't prescribe pressure
+        // Neumann condition: zero gradient (∂p/∂n = 0)
+        // Walls do not prescribe pressure values
+        type            zeroGradient;
     }
 
+    // Front and back boundaries for 2D simulation
     frontAndBack
     {
-        type            empty;              // 2D simulation constraint
+        // Empty boundary condition for 2D constraint
+        type            empty;
     }
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 ```
 
-**คำอธิบาย:**
-- ฟิลด์ความดันใช้ **Kinematic pressure**: $p/\rho$ ที่มีมิติ `[0 2 -2 0 0 0 0]` ซึ่งสอดคล้องกับ $[L^2 T^{-2}]$
-- **Boundary Condition แบบ zeroGradient**: ใช้ $\frac{\partial p}{\partial n} = 0$ ที่ผนังแข็ง ซึ่งเหมาะสมทางกายภาพสำหรับการไหลแบบ Incompressible flow
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.H`
+>
+> **คำอธิบาย:**
+> ไฟล์นี้กำหนดเงื่อนไขขอบเขตสำหรับฟิลด์ความดันในการไหลแบบ Incompressible โดยมีรายละเอียดดังนี้:
+> - **`dimensions [0 2 -2 0 0 0 0]`**: มิติของความดันไคเนมาติก (kinematic pressure) คือ $p/\rho$ ที่มีหน่วย $[L^2 T^{-2}]$ หรือ m²/s²
+> - **`internalField uniform 0`**: กำหนดค่าเริ่มต้นของความดันเกจ (gauge pressure) เป็นศูนย์
+> - **`zeroGradient` ที่ผนัง**: ใช้เงื่อนไข Neumann $\frac{\partial p}{\partial n} = 0$ ซึ่งหมายความว่าความดันสามารถปรับตัวได้อิสระตามสมการ continuity
+> - **2D Constraints**: ใช้เงื่อนไข `empty` เหมือนฟิลด์ความเร็ว
+>
+> **แนวคิดสำคัญ:**
+> - **Kinematic Pressure**: OpenFOAM ใช้ความดันหารด้วยความหนาแน่น ($p/\rho$) เพื่อลดความซับซ้อนในสมการ Incompressible Navier-Stokes
+> - **Neumann Boundary Condition**: การกำหนดความชันของความดันเป็นศูนย์ตามปกติที่ผนัง ซึ่งสอดคล้องกับหลักกายภาพ
+> - **Pressure-Velocity Coupling**: ความดันจะถูกคำนวณพร้อมกับความเร็วผ่านอัลกอริทึม PISO เพื่อรักษาหลักการอนุรักษ์มวล
 
 ---
 
@@ -297,20 +346,43 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-transportModel  Newtonian;          // Newtonian fluid model
-nu              [0 2 -1 0 0 0 0] 0.01;  // Kinematic viscosity ν = 0.01 m^2/s
+// Newtonian fluid model (linear relationship between stress and strain rate)
+transportModel  Newtonian;
+
+// Kinematic viscosity with dimensions [L^2 T^(-1)] in m^2/s
+// This value determines the Reynolds number: Re = UL/ν
+nu              [0 2 -1 0 0 0 0] 0.01;
 
 // Reynolds number calculation:
 // Re = UL/ν = (1 m/s × 0.1 m) / 0.01 m^2/s = 10
-// This gives a low Reynolds number flow in the laminar regime
+//
+// Physical interpretation:
+// - Low Re (Re = 10) indicates viscous forces dominate
+// - Flow remains in laminar regime with steady vortex structure
+// - Ensures numerical stability and convergence
+//
+// Grid independence can be verified by:
+// 1. Halving viscosity (ν = 0.005) → Re = 20
+// 2. Comparing vortex center position and maximum velocity
+// 3. Ensuring solution changes less than 1% with mesh refinement
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 ```
 
-**คำอธิบาย:**
-- **Kinematic viscosity:** $\nu = 0.01$ m²/s
-- **Reynolds number:** $Re = \frac{UL}{\nu} = \frac{1 \times 0.1}{0.01} = 10$
-- **Reynolds number ที่ต่ำ (Re=10):** จัดว่าเป็นการไหลแบบ Laminar regime อย่างชัดเจน ช่วยให้มั่นใจได้ถึงรูปแบบการไหลที่คงที่และสมมาตร
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.H`
+>
+> **คำอธิบาย:**
+> ไฟล์นี้กำหนดคุณสมบัติทางกายภาพของของไหลที่ใช้ในการจำลอง:
+> - **`transportModel Newtonian`**: ระบุว่าของไหลเป็นแบบนิวตัน ซึ่งมีความสัมพันธ์เชิงเส้นระหว่างความเค้นและอัตราการเสียรูป
+> - **`nu [0 2 -1 0 0 0 0] 0.01`**: ความหนืดคิเนมาติก $\nu = 0.01$ m²/s ที่มีมิติ $[L^2 T^{-1}]$
+> - **Reynolds Number**: คำนวณได้ $Re = \frac{UL}{\nu} = \frac{1 \times 0.1}{0.01} = 10$
+> - **Flow Regime**: Re = 10 อยู่ในช่วง Laminar ชัดเจน ทำให้การไหลมีลักษณะคงที่และสมมาตร
+>
+> **แนวคิดสำคัญ:**
+> - **Newtonian Fluid**: ของไหลที่มีความหนืดคงที่ไม่ขึ้นกับอัตราการเฉือน เช่น น้ำและอากาศ
+> - **Reynolds Number**: ตัวบ่งชี้ลักษณะการไหลที่เปรียบเทียบอัตราส่วนของแรงเฉื่อยต่อแรงหนืด
+> - **Laminar vs Turbulent**: ที่ Re < 2000 การไหลจะเป็นแบบลามินาร์ที่มีรูปแบบการไหลเป็นเส้นชัดเจน
+> - **Numerical Stability**: การเลือกความหนืดที่เหมาะสมช่วยให้การคำนวณลู่เข้าได้ดีและเสถียร
 
 ---
 
@@ -333,102 +405,243 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     icoFoam;            // Solver name
+// OpenFOAM solver for incompressible laminar flow
+application     icoFoam;
 
-startFrom       startTime;          // Start simulation from specified time
-startTime       0;                  // Begin at t = 0
-stopAt          endTime;            // Stop when reaching end time
-endTime         100;                // Final simulation time (seconds)
-deltaT          0.005;              // Time step size: Δt = 0.005 s
+// Simulation start time configuration
+startFrom       startTime;
+startTime       0;
 
-// Output control parameters
-writeControl    timeStep;           // Write based on time step count
-writeInterval   20;                 // Write every 20 time steps
-purgeWrite      0;                  // Keep all time directories
-runTimeModifiable true;             // Allow runtime modification
+// Simulation end time configuration
+stopAt          endTime;
+endTime         100;        // Final simulation time in seconds
 
+// Time step size: Δt = 0.005 s
+// Courant number should be kept below 1.0 for stability:
+// Co = UΔt/Δx < 1.0
+deltaT          0.005;
+
+// Output control: write results based on time step count
+writeControl    timeStep;
+writeInterval   20;         // Write every 20 time steps
+
+// Keep all time directories (0 for no purging)
+purgeWrite      0;
+
+// Allow parameter modification during simulation
+runTimeModifiable true;
+
+// Function objects for runtime calculations
 functions
 {
+    // Calculate wall shear stress during simulation
     #includeFunc wallShearStress
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 ```
 
-**พารามิเตอร์การควบคุม:**
-- **Time step size:** $\Delta t = 0.005$ วินาที
-- **Simulation time:** 0 ถึง 100 วินาที
-- **Output frequency:** ทุก 20 time steps
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+>
+> **คำอธิบาย:**
+> ไฟล์ `controlDict` คือหัวใจสำคัญในการควบคุมการทำงานของ Solver:
+> - **`application icoFoam`**: ระบุ Solver ที่ใช้สำหรับการไหลแบบ Incompressible Laminar
+> - **Time Stepping**:
+>   - `startTime 0`, `endTime 100`: จำลองตั้งแต่เวลา 0 ถึง 100 วินาที
+>   - `deltaT 0.005`: ขนาดขั้นเวลาที่เล็กพอที่จะรักษาเสถียรภาพเชิงตัวเลข
+> - **Output Control**:
+>   - `writeInterval 20`: บันทึกผลลัพธ์ทุก 20 ขั้นเวลา (ทุก 0.1 วินาที)
+>   - `purgeWrite 0`: เก็บไฟล์ทุกช่วงเวลาไว้สำหรับการวิเคราะห์
+> - **Function Objects**: คำนวณปริมาณทางกายภาพเช่นความเค้นเฉือนผนังในระหว่างการจำลอง
+>
+> **แนวคิดสำคัญ:**
+> - **Courant-Friedrichs-Lewy (CFL) Condition**: เกณฑ์ความเสถียรที่กำหนดให้ $Co = \frac{U\Delta t}{\Delta x} < 1.0$
+> - **Time Step Selection**: การเลือกขนาดขั้นเวลาที่เหมาะสมเพื่อให้ได้ความแม่นยำและเสถียรภาพ
+> - **Runtime Modifiable**: สามารถปรับพารามิเตอร์ระหว่างการจำลองได้โดยไม่ต้องหยุด
+> - **Function Objects**: เครื่องมือประมวลผลแบบ Real-time สำหรับวิเคราะห์ผลลัพธ์
 
 ---
 
 ### ระเบียบวิธี Discretization (`system/fvSchemes`)
 
 ```cpp
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                             |
+| \      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \    /   O peration     | Version:  v2012                                 |
+|   \  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \/     M anipulation  |                                             |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSchemes;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Temporal discretization schemes
 ddtSchemes
 {
-    default         Euler;              // First-order implicit time integration
+    // First-order implicit Euler time integration
+    // Unconditionally stable but first-order accurate in time
+    default         Euler;
 }
 
+// Gradient calculation schemes
 gradSchemes
 {
-    default         Gauss linear;       // Central differencing for gradients
+    // Central differencing scheme with linear interpolation
+    // Second-order accurate for smooth fields
+    default         Gauss linear;
 }
 
+// Divergence (convection) schemes
 divSchemes
 {
     default         none;
-    div(phi,U)      Gauss linear;      // Central differencing for convection
+    // Central differencing for convective term div(phi,U)
+    // Second-order accurate but may cause oscillations for high Re
+    div(phi,U)      Gauss linear;
 }
 
+// Laplacian (diffusion) schemes
 laplacianSchemes
 {
-    default         Gauss linear corrected;  // Corrected for non-orthogonality
+    // Corrected linear scheme accounting for non-orthogonal meshes
+    // Second-order accurate with non-orthogonality correction
+    default         Gauss linear corrected;
 }
 
+// Interpolation schemes for face values
 interpolationSchemes
 {
+    // Linear interpolation from cell centers to faces
     default         linear;
 }
 
+// Surface normal gradient schemes
 snGradSchemes
 {
+    // Corrected scheme for non-orthogonal meshes
     default         corrected;
 }
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 ```
+
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+>
+> **คำอธิบาย:**
+> ไฟล์ `fvSchemes` กำหนดระเบียบวิธีทางคณิตศาสตร์สำหรับการแปลงสมการเชิงอนุพันธ์ให้อยู่ในรูปแบบพีชคณิต:
+> - **Temporal Discretization**:
+>   - `Euler`: ระเบียบวิธี Implicit อันดับหนึ่งสำหรับการพัฒนาเวลา มีเสถียรภาพโดยไม่มีเงื่อนไข
+> - **Spatial Discretization**:
+>   - `Gauss linear`: ระเบียบวิธีกลาง (central differencing) อันดับสองสำหรับการคำนวณเกรเดียนต์
+>   - `Gauss linear corrected`: ระเบียบวิธีลาปลาเชียนที่มีการแก้ไขสำหรับ Mesh ที่ไม่ตั้งฉาก
+>
+> **แนวคิดสำคัญ:**
+> - **Accuracy vs Stability**: ระเบียบวิธีอันดับสูงให้ความแม่นยำมากกว่าแต่อาจไม่เสถียร
+> - **Numerical Diffusion**: ระเบียบวิธี Upwind เพิ่มการ diff เชิงตัวเลขแต่เสถียรกว่า
+> - **Non-orthogonal Correction**: การแก้ไขสำหรับ Mesh ที่ซับซ้อนเพื่อรักษาความแม่นยำ
+> - **Discretization Error**: ความคลาดเคลื่อนที่เกิดจากการแปลงสมการต่อเนื่องเป็น discrete
 
 ---
 
 ### การตั้งค่า Linear Solver (`system/fvSolution`)
 
 ```cpp
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                             |
+| \      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \    /   O peration     | Version:  v2012                                 |
+|   \  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \/     M anipulation  |                                             |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Linear solver settings for each field variable
 solvers
 {
+    // Pressure equation solver (Poisson equation)
     p
     {
-        solver          GAMG;              // Geometric-Algebraic Multigrid
+        // Geometric-Algebraic Multi-Grid solver
+        // Efficient for large-scale problems with elliptic equations
+        solver          GAMG;
+        
+        // Absolute convergence tolerance
         tolerance       1e-06;
+        
+        // Relative convergence tolerance (0 = disabled)
         relTol          0;
+        
+        // Smoother for multigrid preconditioning
         smoother        GaussSeidel;
     }
 
+    // Velocity equation solver (momentum equation)
     U
     {
+        // Smooth solver with Gauss-Seidel smoothing
         solver          smoothSolver;
         smoother        GaussSeidel;
+        
+        // Absolute convergence tolerance
         tolerance       1e-05;
+        
+        // Relative convergence tolerance (0 = disabled)
         relTol          0;
     }
 }
 
+// PISO (Pressure Implicit with Splitting of Operators) algorithm
 PISO
 {
-    nCorrectors      2;                  // Number of pressure corrections
+    // Number of pressure correction iterations per time step
+    // More iterations = better mass conservation but more expensive
+    nCorrectors      2;
+    
+    // Number of non-orthogonal correction iterations
+    // Required for highly non-orthogonal meshes
     nNonOrthogonalCorrectors 0;
-    pRefCell        0;                   // Reference cell for pressure
-    pRefValue       0;                   // Reference pressure value
+    
+    // Reference cell for pressure (to fix pressure level)
+    pRefCell        0;
+    
+    // Reference pressure value (gauge pressure = 0)
+    pRefValue       0;
 }
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 ```
+
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+>
+> **คำอธิบาย:**
+> ไฟล์ `fvSolution` ควบคุมวิธีการแก้ระบบสมการเชิงเส้นและอัลกอริทึม PISO:
+> - **Linear Solvers**:
+>   - `GAMG`: Geometric-Algebraic Multi-Grid สำหรับสมการ Poisson (ความดัน) ที่มีประสิทธิภาพสูง
+>   - `smoothSolver`: สำหรับสมการโมเมนตัม (ความเร็ว) ที่ใช้การปรับค่าแบบ Gauss-Seidel
+>   - `tolerance`: ค่าความคลาดเคลื่อนสัมบูรณ์ที่ยอมรับได้
+>   - `relTol 0`: ปิดการใช้ค่าความคลาดเคลื่อนสัมพัทธ์
+> - **PISO Algorithm**:
+>   - `nCorrectors 2`: จำนวนรอนการแก้ไขความดันต่อขั้นเวลา
+>   - `pRefCell 0`, `pRefValue 0`: กำหนดจุดอ้างอิงสำหรับความดันเกจ
+>
+> **แนวคิดสำคัญ:**
+> - **Iterative Solvers**: การแก้สมการเชิงเส้นโดยใช้วิธีซ้ำจนกว่าจะลู่เข้า
+> - **Convergence Criteria**: เกณฑ์การยุติการวนซ้ำเมื่อค่าคลาดเคลื่อนต่ำกว่า threshold
+> - **Multigrid Methods**: เทคนิคเร่งความเร็วการลู่เข้าโดยใช้ multiple grid resolutions
+> - **PISO Algorithm**: อัลกอริทึมแบบแยก-แก้-แก้ไขสำหรับ Pressure-Velocity Coupling
 
 ---
 
@@ -464,8 +677,8 @@ flowchart TD
     class E,J storage;
     class H,K decision;
 ```
-> **Figure 3:** แผนผังลำดับขั้นตอนของอัลกอริทึม PISO ซึ่งใช้วิธีการทำนายและแก้ไขความดันและความเร็วในแต่ละขั้นตอนเวลา เพื่อรักษาความต่อเนื่องของมวลในแต่ละขั้นตอนของการจำลอง
 
+> **Figure 3:** แผนผังลำดับขั้นตอนของอัลกอริทึม PISO ซึ่งใช้วิธีการทำนายและแก้ไขความดันและความเร็วในแต่ละขั้นตอนเวลา เพื่อรักษาความต่อเนื่องของมวลในแต่ละขั้นตอนของการจำลอง
 
 1. **Predict Velocity** - แก้สมการโมเมนตัมโดยใช้ความดันจาก time step ก่อนหน้า:
    $$\rho \left(\frac{\partial \mathbf{u}^*}{\partial t} + \mathbf{u}^* \cdot \nabla \mathbf{u}^*\right) = -\nabla p^* + \mu \nabla^2 \mathbf{u}^*$$

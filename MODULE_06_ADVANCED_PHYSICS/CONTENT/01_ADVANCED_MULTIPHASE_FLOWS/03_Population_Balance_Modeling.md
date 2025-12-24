@@ -142,25 +142,40 @@ $$\int_0^\infty f(L) n(L) dL \approx \sum_{i=1}^{N_q} w_i f(L_i) \tag{7}$$
 - สูญเสียข้อมูลรายละเอียดของรูปร่างการแจกแจง
 - ไม่สามารถกู้คืนการแจกแจงขนาดที่สมบูรณ์ได้
 
-**การ Implement ใน OpenFOAM:**
+<details>
+<summary>📂 <b>Source: .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.H</b></summary>
+
+**คำอธิบาย (Explanation):**
+โค้ดตัวอย่างด้านล่างนี้แสดงโครงสร้างพื้นฐานของการ Implement QMOM ใน OpenFOAM ซึ่งประกอบด้วย:
+1. การคำนวณโมเมนต์จากฟังก์ชันการแจกแจงขนาด
+2. การจัดเก็บ weights และ abscissae สำหรับ quadrature
+3. การอัปเดตค่า quadrature จากโมเมนต์ที่คำนวณได้
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Moment Calculation**: การคำนวณโมเมนต์ $m_k$ จากการอินทิเกรตคูณกับ $L^k$
+- **Quadrature Weights ($w_i$)**: น้ำหนักที่ใช้ในการประมาณค่าอินทิกรัล
+- **Abscissae ($L_i$)**: จุดตัวอย่างขนาดที่ใช้ในการคำนวณ
+- **Moment Inversion**: กระบวนการแปลงจากโมเมนต์ไปเป็น weights และ abscissae
 
 ```cpp
-// การคำนวณโมเมนต์ที่ k
+// Calculate k-th moment from size distribution
+// Domain integral of (size^k * number density)
 Mk[k] = fvc::domainIntegrate(pow(L, k)*n).value();
 
-// Quadrature Method of Moments
+// Quadrature Method of Moments implementation
 class QMOM
 {
 private:
-    // น้ำหนักและจุด quadrature
+    // Quadrature weights and abscissae (size points)
     scalarField weights_;
     scalarField abscissae_;
 
-    // จำนวน moments
+    // Number of moments to track
     label nMoments_;
 
 public:
-    // คำนวณ moments จาก weights และ abscissae
+    // Calculate moments from weights and abscissae
+    // m_k = sum(w_i * L_i^k) for all quadrature points
     void calculateMoments()
     {
         for (label k = 0; k < nMoments_; k++)
@@ -173,10 +188,13 @@ public:
         }
     }
 
-    // อัปเดต quadrature จาก moments
+    // Update quadrature points and weights from calculated moments
+    // This involves solving the moment inversion problem
     void updateQuadrature();
 };
 ```
+
+</details>
 
 ### 3.2 Class Method (Discrete Method) / Method of Classes (MOC)
 
@@ -220,30 +238,43 @@ $$N_i = \int_{R_i}^{R_{i+1}} n(R) dR \tag{9}$$
 - ซับซ้อนในการใช้งาน
 - ต้องการความเข้าใจทางทฤษฎีที่ลึกซึ้ง
 
-**การ Implement ใน OpenFOAM:**
+<details>
+<summary>📂 <b>Source: .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.H</b></summary>
+
+**คำอธิบาย (Explanation):**
+โค้ดนี้แสดงการ Implement DQMOM ใน OpenFOAM ซึ่งแตกต่างจาก QMOM ตรงที่:
+1. แก้สมการการขนส่งโดยตรงสำหรับ weights และ abscissae
+2. คำนวณ source terms จากการรวมตัวและแตกตัวโดยตรง
+3. สามารถจัดการกับการกระจายขนาดที่ซับซ้อนและเปลี่ยนแปลงเร็ว
+
+**แนวคิดสำคิดสำคัญ (Key Concepts):**
+- **Transport Equations for Weights/Abscissae**: การแก้สมการโดยตรงสำหรับตัวแปร quadrature
+- **Source Term Calculation**: การคำนวณเทอมต้นทางจาก kernel functions
+- **Coalescence Kernel**: ฟังก์ชันที่อธิบายอัตราการรวมตัวของฟอง
+- **Quadrature Points**: จุดที่ใช้ในการประมาณค่าการกระจายขนาด
 
 ```cpp
-// DQMOM implementation
+// DQMOM implementation template
 template<class CloudType>
 class DQMOM
     : public PopulationBalanceModel<CloudType>
 {
 private:
-    // Quadrature points and weights
+    // Quadrature points (abscissae) and weights
     scalarField weights_;
     scalarField abscissae_;
 
-    // Moments calculation
+    // Calculate moments from quadrature
     void calculateMoments();
 
-    // Update quadrature
+    // Update quadrature from moments
     void updateQuadrature();
 
 public:
-    // Calculate source terms
+    // Calculate source terms for coalescence and breakup
     void calculateSourceTerms()
     {
-        // คำนวณเทอมต้นทางการรวมตัว
+        // Calculate coalescence source term
         forAll(weights_, i)
         {
             scalar source = 0;
@@ -260,6 +291,8 @@ public:
     void solve();
 };
 ```
+
+</details>
 
 ### 3.4 การเปรียบเทียบวิธีการ
 
@@ -296,14 +329,28 @@ $$\beta(V_i, V_j) = h(V_i, V_j) \lambda(V_i, V_j) \tag{10}$$
 - $d_i, d_j$ = เส้นผ่านศูนย์กลางของฟอง
 - $u_{ij}$ = ความเร็วในการชน
 
-**การ Implement ใน OpenFOAM:**
+<details>
+<summary>📂 <b>Source: .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/coalescenceModel/coalescenceModel.H</b></summary>
+
+**คำอธิบาย (Explanation):**
+โค้ดนี้แสดงโครงสร้างของ Coalescence Model ใน OpenFOAM:
+1. **coalescenceModel**: Base class สำหรับทุกแบบจำลองการรวมตัว
+2. **LuoCoalescence**: Implementation ของแบบจำลอง Luo ที่คำนวณค่า kernel จากความเร็วการชนและคุณสมบัติทางกายภาพ
+3. การคำนวณคำนึงถึงความตึงผิว ความหนาแน่น และอัตราการสลายตัวของพลังงาน
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Collision Frequency**: อัตราการชนของฟองซึ่งขึ้นกับขนาดและความเร็ว
+- **Coalescence Efficiency**: ความน่าจะเป็นที่ฟองจะรวมตัวเมื่อชนกัน
+- **Weber Number**: จำนวนไร้มิติที่เปรียบเทียบแรงเฉื่อยกับแรงความตึงผิว
+- **Turbulent Dissipation**: อัตราการสลายตัวของพลังงานทัวร์บูลเลนท์
 
 ```cpp
-// Coalescence model base class
+// Base class for coalescence models
 class coalescenceModel
 {
 public:
-    // Calculate coalescence kernel
+    // Calculate coalescence kernel between two bubble sizes
+    // Returns the rate of coalescence between bubbles of diameters d1 and d2
     virtual tmp<volScalarField> calculateKernel
     (
         const volScalarField& d1,
@@ -311,10 +358,19 @@ public:
     ) const = 0;
 };
 
-// Luo coalescence model
+// Luo coalescence model implementation
 class LuoCoalescence
     : public coalescenceModel
 {
+private:
+    // Model coefficients
+    dimensionedScalar C_;      // Coalescence constant
+    volScalarField rho_;        // Density field
+    volScalarField sigma_;      // Surface tension
+    volScalarField epsilon_;    // Turbulent dissipation rate
+    volVectorField U1_;         // Velocity field 1
+    volVectorField U2_;         // Velocity field 2
+
 public:
     tmp<volScalarField> calculateKernel
     (
@@ -322,7 +378,7 @@ public:
         const volScalarField& d2
     ) const override
     {
-        // คำนวณ collision frequency
+        // Calculate collision velocity magnitude
         volScalarField uCollision
         (
             sqrt
@@ -332,7 +388,8 @@ public:
             )
         );
 
-        // คำนวณ kernel
+        // Calculate Luo coalescence kernel
+        // beta = (pi/4) * (d1 + d2)^2 * u_collision * exp(-C * We^0.5)
         return constant::mathematical::pi/4.0
              * sqr(d1 + d2)
              * uCollision
@@ -340,6 +397,8 @@ public:
     }
 };
 ```
+
+</details>
 
 ### 4.2 Breakup (การแตกตัว)
 
@@ -365,20 +424,34 @@ $$S_i = \int_V^\infty f(V, V') g(V') n(V') dV' - g(V) n(V) \tag{11}$$
 - $\rho$ = ความหนาแน่น ($kg/m^3$)
 - $C_1, C_2, K$ = สัมประสิทธิ์ประจำแบบจำลอง
 
-**การ Implement ใน OpenFOAM:**
+<details>
+<summary>📂 <b>Source: .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/breakupModel/breakupModel.H</b></summary>
+
+**คำอธิบาย (Explanation):**
+โค้ดนี้แสดงโครงสร้างของ Breakup Model ใน OpenFOAM:
+1. **breakupModel**: Base class สำหรับทุกแบบจำลองการแตกตัว
+2. **LuoBreakup**: Implementation ที่คำนวณอัตราการแตกตัวจาก Weber number
+3. แบบจำลองพิจารณาสมดุลระหว่างแรงทัวร์บูลเลนท์ (ทำให้แตก) และแรงความตึงผิว (ต้านการแตก)
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Breakup Rate**: อัตราที่ฟองแตกตัวต่อหน่วยเวลา
+- **Daughter Size Distribution**: การกระจายขนาดของฟองลูกหลังจากการแตกตัว
+- **Weber Number (We)**: จำนวนไร้มิติ $\frac{\rho d \epsilon^{2/3}}{\sigma}$ ที่วัดอัตราสัมพัทธ์ของแรงเฉื่อยต่อแรงความตึงผิว
+- **Critical Weber Number**: ค่า We ที่เกินกว่านั้นฟองจะแตกตัว
 
 ```cpp
-// Breakup model base class
+// Base class for breakup models
 class breakupModel
 {
 public:
-    // Calculate breakup rate
+    // Calculate breakup rate for bubbles of diameter d
     virtual tmp<volScalarField> calculateRate
     (
         const volScalarField& d
     ) const = 0;
 
-    // Daughter size distribution
+    // Daughter size distribution function
+    // Returns probability of parent breaking into daughter of size dDaughter
     virtual tmp<volScalarField> daughterDistribution
     (
         const scalar dParent,
@@ -386,13 +459,16 @@ public:
     ) const = 0;
 };
 
-// Luo breakup model
+// Luo breakup model implementation
 class LuoBreakup
     : public breakupModel
 {
 private:
-    dimensionedScalar C1_;
-    dimensionedScalar C2_;
+    dimensionedScalar C1_;     // Breakup frequency coefficient
+    dimensionedScalar C2_;     // Breakup exponential coefficient
+    volScalarField rho_;       // Density field
+    volScalarField sigma_;     // Surface tension field
+    volScalarField epsilon_;   // Turbulent dissipation rate
 
 public:
     tmp<volScalarField> calculateRate
@@ -400,16 +476,19 @@ public:
         const volScalarField& d
     ) const override
     {
-        // คำนวณ Weber number
+        // Calculate Weber number: We = rho * d^2/3 * epsilon^2/3 / sigma
         volScalarField We(rho_*sqr(d)*epsilon_/(sigma_));
 
-        // คำนวณ breakup rate
+        // Calculate Luo breakup rate
+        // g(d) = C1 * epsilon^1/3 * d^2/3 * exp(-C2/We)
         return C1_ * pow(epsilon_, 1.0/3.0)
              * pow(d, 2.0/3.0)
              * exp(-C2_ / We);
     }
 };
 ```
+
+</details>
 
 ## 5. Implementation in OpenFOAM (การใช้งานใน OpenFOAM)
 
@@ -499,37 +578,58 @@ src/phaseSystemModels/
         └── LuoCoalescence.C
 ```
 
-**ตัวอย่างการใช้งานใน solver:**
+<details>
+<summary>📂 <b>Source: .applications/solvers/multiphase/multiphaseEulerFoam/createFields.H</b></summary>
+
+**คำอธิบาย (Explanation):**
+โค้ดนี้แสดงการใช้งาน Population Balance Model ใน Solver loop:
+1. สร้าง populationBalance model instance ใน createFields.H
+2. ใน main loop แก้สมการ Navier-Stokes และ phase fractions ก่อน
+3. แก้สมการ population balance หลังจากได้ flow field
+4. อัปเดตขนาดฟองเฉลี่ย (d32) จากโมเมนต์
+5. คำนวณ interfacial forces โดยใช้ขนาดฟองใหม่
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Solution Strategy**: การแก้สมการ PBM แยกจากสมการโมเมนตัม
+- **Sauter Mean Diameter (d32)**: เส้นผ่านศูนย์กลางเฉลี่ยที่คำนวณจากโมเมนต์
+- **Interfacial Forces**: แรงที่ interface (drag, lift, virtual mass) ซึ่งขึ้นกับขนาดฟอง
+- **Two-Way Coupling**: ขนาดฟองส่งผลต่อการไหล และการไหลส่งผลต่อขนาดฟอง
 
 ```cpp
-// ใน createFields.H
-// สร้าง population balance model
+// In createFields.H
+// Create population balance model instance
+// Reads configuration from constant/populationBalanceProperties
 autoPtr<populationBalanceModel> populationBalance
 (
     populationBalanceModel::New(mesh)
 );
 
-// ในวงซ้ำเวลาหลัก (main time loop)
+// In main time loop
 while (runTime.run())
 {
-    // 1. แก้สมการ Navier-Stokes และสัดส่วนเฟส
+    // 1. Solve Navier-Stokes and phase fraction equations
     #include "UEqn.H"
 
-    // 2. คำนวณความเร็วและความดัน
+    // 2. Solve pressure equation and update velocities
     #include "pEqn.H"
 
-    // 3. แก้ population balance equations
+    // 3. Solve population balance equations
+    // This updates the moments/size distribution
     populationBalance->solve();
 
-    // 4. อัปเดตขนาดฟองเฉลี่ย
+    // 4. Update mean bubble diameter (Sauter mean diameter)
+    // d32 = m3/m2 for volume-based moments
     d32_ = populationBalance->d32();
 
-    // 5. อัปเดตแรงอินเตอร์เฟซ
+    // 5. Update interfacial forces using new size information
+    // Drag force depends on bubble diameter
     #include "interfacialForces.H"
 
     runTime++;
 }
 ```
+
+</details>
 
 ### 5.3 การเชื่อมโยงกับ CFD
 
@@ -545,10 +645,24 @@ $$\frac{\partial \alpha_i}{\partial t} + \nabla \cdot (\alpha_i \mathbf{u}_i) = 
 
 $$\frac{\partial (\alpha_i \rho_i h_i)}{\partial t} + \nabla \cdot (\alpha_i \rho_i h_i \mathbf{u}_i) = Q_{PBM,i} \tag{14}$$
 
-**การ Implement ใน OpenFOAM:**
+<details>
+<summary>📂 <b>Source: .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C</b></summary>
+
+**คำอธิบาย (Explanation):**
+โค้ดนี้แสดงการคำนวณ Interfacial Forces จาก Population Balance Model:
+1. วนลูปผ่านทุก size class ของฟอง
+2. คำนวณ drag coefficient สำหรับแต่ละขนาด
+3. รวม drag force จากทุก class เพื่อใช้ในสมการโมเมนตัม
+4. แรงลากแตกต่างตามขนาดฟองแต่ละ class
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Size-Dependent Drag**: Drag coefficient ขึ้นกับขนาดฟอง
+- **Momentum Coupling**: การถ่ายโอนโมเมนตัมระหว่างก๊าซและของเหลว
+- **Multi-Size Class**: การพิจารณาฟองหลายขนาดพร้อมกัน
+- **Interfacial Area**: พื้นที่ผิวรวมที่ขึ้นกับการกระจายขนาด
 
 ```cpp
-// การเชื่อมโยงกับ interfacial forces
+// Calculate interfacial momentum transfer
 virtual tmp<volVectorField> Fi() const
 {
     tmp<volVectorField> tFi
@@ -570,13 +684,16 @@ virtual tmp<volVectorField> Fi() const
 
     volVectorField& Fi = tFi.ref();
 
-    // คำนวณ drag force สำหรับแต่ละ size class
+    // Calculate drag force for each size class
+    // Sum contributions from all bubble size classes
     forAll(sizeClasses_, i)
     {
-        // คำนวณ drag coefficient
+        // Calculate drag coefficient for this size class
+        // Cd depends on Reynolds number which depends on bubble diameter
         volScalarField Cd(dragModel_->Cd(sizeClasses_[i]));
 
-        // คำนวณ drag force
+        // Calculate drag force: Fd = 0.75 * Cd * rho * |U_rel| * U_rel / d
+        // Force is proportional to projected area (d^2) and relative velocity squared
         Fi += 0.75 * Cd * rhoContinuous_
             * mag(Uc_ - Ui_[i]) * (Uc_ - Ui_[i])
             / sizeClasses_[i] * alpha_[i];
@@ -585,6 +702,8 @@ virtual tmp<volVectorField> Fi() const
     return tFi;
 }
 ```
+
+</details>
 
 ## 6. Applications (การประยุกต์ใช้งาน)
 
@@ -686,23 +805,42 @@ DQMOMCoeffs
 - ใช้ฟิลเตอร์เชิงตัวเลขสำหรับโมเมนต์
 - จำกัดช่วงของโมเมนต์เพื่อป้องกันค่าที่ไม่สามารถยอมรับได้
 
+<details>
+<summary>📂 <b>Source: .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C</b></summary>
+
+**คำอธิบาย (Explanation):**
+โค้ดนี้แสดงเทคนิคการจำกัดโมเมนต์เพื่อรักษาเสถียรภาพเชิงตัวเลข:
+1. ใช้ฟังก์ชัน `max()` และ `min()` เพื่อจำกัดค่าโมเมนต์
+2. ตรวจสอบความสม่ำเสมอของโมเมนต์เพื่อป้องกันค่าที่ไม่เป็นไปได้ทางกายภาพ
+3. ป้องกันโมเมนต์จากการเป็นลบหรือเกินค่าสูงสุดที่กำหนด
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Moment Bounding**: การจำกัดค่าโมเมนต์ให้อยู่ในช่วงที่ยอมรับได้
+- **Numerical Stability**: การป้องกันการเกิดความไม่เสถียรจากค่าเชิงตัวเลข
+- **Moment Consistency**: การตรวจสอบว่าชุดโมเมนต์สอดคล้องกับการกระจายขนาดที่เป็นไปได้
+- **Hankel Determinant**: Determinant ที่ใช้ตรวจสอบความถูกต้องของโมเมนต์
+
 ```cpp
-// ตัวอย่างการจำกัดโมเมนต์
+// Limit moments to maintain numerical stability
+// Prevents unphysical moment values that can cause solver divergence
 void limitMoments()
 {
     forAll(m_, i)
     {
-        // จำกัดค่าต่ำ
+        // Apply lower bound to prevent negative moments
         m_[i] = max(m_[i], momentMinLimits_[i]);
 
-        // จำกัดค่าสูง
+        // Apply upper bound to prevent unrealistic values
         m_[i] = min(m_[i], momentMaxLimits_[i]);
     }
 
-    // ตรวจสอบความเป็นบวกของ determinant
+    // Check consistency of moments (Hankel determinants must be positive)
+    // This ensures the moments correspond to a valid size distribution
     checkMomentConsistency();
 }
 ```
+
+</details>
 
 ### 7.2 Mesh Resolution
 
@@ -752,20 +890,34 @@ refinementRegions
    - เสถียรแต่ใช้ทรัพยากรมาก
    - เหมาะสำหรับกรณีที่มีการเชื่อมโยงที่แข็งแกร่ง
 
-**การ Implement ใน OpenFOAM:**
+<details>
+<summary>📂 <b>Source: .applications/solvers/multiphase/multiphaseEulerFoam/multiphaseEulerFoam.C</b></summary>
+
+**คำอธิบาย (Explanation):**
+โค้ดนี้แสดงสองกลยุทธ์ในการเชื่อมโยง PBM กับสมการโมเมนตัม:
+1. **Explicit Coupling**: แก้สมการแยกกันและอัปเดตข้อมูลระหว่าง iteration
+2. **Implicit Coupling**: สร้างระบบสมการรวมที่แก้พร้อมกัน
+3. การเลือกขึ้นกับความแรงของการเชื่อมโยงระหว่างขนาดฟองและการไหล
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Coupling Strength**: ระดับการพึ่งพาระหว่าง PBM และ CFD
+- **Explicit vs Implicit**: การเลือกวิธีการแก้สมการที่สมดุลระหว่างเสถียรภาพและประสิทธิภาพ
+- **Segregated Solution**: การแก้สมการแยกกัน
+- **Coupled Solution**: การแก้สมการรวมกันในระบบเดียว
 
 ```cpp
 // Explicit coupling example
+// Solve flow and population balance separately
 void solve()
 {
-    // 1. Solve flow field
+    // 1. Solve flow field (Navier-Stokes)
     #include "UEqn.H"
     #include "pEqn.H"
 
-    // 2. Update population balance
+    // 2. Update population balance using previous flow field
     populationBalance->solve();
 
-    // 3. Update interfacial forces
+    // 3. Update interfacial forces with new size information
     #include "interfacialForces.H"
 
     // 4. Check convergence
@@ -776,9 +928,10 @@ void solve()
 }
 
 // Implicit coupling example
+// Solve coupled system of equations
 void solveImplicit()
 {
-    // สร้างระบบสมการรวม
+    // Build coupled system including momentum and PBM sources
     fvVectorMatrix UEqn
     (
         fvm::ddt(rho, U)
@@ -789,13 +942,16 @@ void solveImplicit()
       + dragCoefficient * Ub
     );
 
-    // Include PBM source terms
+    // Include PBM source terms directly in momentum equation
+    // This creates stronger coupling at the cost of complexity
     populationBalance->addSources(UEqn);
 
     // Solve coupled system
     UEqn.solve();
 }
 ```
+
+</details>
 
 ## 8. Summary (สรุป)
 

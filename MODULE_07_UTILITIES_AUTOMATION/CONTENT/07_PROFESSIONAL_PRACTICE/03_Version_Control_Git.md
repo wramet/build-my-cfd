@@ -115,7 +115,6 @@ size 1234567890
 ### 2.2 การติดตั้งและตั้งค่า Git LFS
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # Git LFS Setup for OpenFOAM Projects
 # ==========================================
@@ -145,7 +144,6 @@ git lfs migrate import --include="*.stl,*.step,*.pdf" --everything
 ### 2.3 ไฟล์ `.gitattributes` สำหรับ OpenFOAM
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # Git LFS Attributes for OpenFOAM
 # ==========================================
@@ -216,7 +214,6 @@ flowchart TD
 ### 3.2 ตัวอย่างการตั้งชื่อกิ่ง (Branch Naming Convention)
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # Branch Naming Convention Examples
 # ==========================================
@@ -279,7 +276,6 @@ git commit -m "wip"
 **✅ แนะนำ (ระบุสิ่งที่เปลี่ยนและผลกระทบ):**
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # Commit Message Examples
 # ==========================================
@@ -317,7 +313,6 @@ git commit -m "docs(notes): add convergence history analysis"
 ### 4.2 โครงสร้าง Commit Message แบบละเอียด
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # Detailed Commit Message Format
 # ==========================================
@@ -430,7 +425,6 @@ sequenceDiagram
 ### 6.1 การติดตั้ง Git
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # Git Installation for Different Systems
 # ==========================================
@@ -455,7 +449,6 @@ git --version
 ### 6.2 การตั้งค่าเริ่มต้น (Initial Configuration)
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # Git Initial Configuration
 # ==========================================
@@ -483,7 +476,6 @@ git config --list
 ### 6.3 การสร้าง Repository ใหม่
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # Creating a New Git Repository
 # ==========================================
@@ -520,56 +512,55 @@ git push -u origin main
 ### 6.4 คำสั่ง Git พื้นฐานที่ใช้บ่อย
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # Common Git Commands Reference
 # ==========================================
 
 # --- Checking Status ---
-git status                  # ดูสถานะไฟล์ที่เปลี่ยนแปลง
-git status -s               # แบบย่อ (short format)
+git status                  # Check status of changed files
+git status -s               # Short format
 
 # --- Adding Files ---
-git add <file>              # เพิ่มไฟล์เดี่ยว
-git add .                   # เพิ่มทุกไฟล์ในโฟลเดอร์ปัจจุบัน
-git add -A                  # เพิ่มทุกไฟล์ (รวมถูกลบ)
-git add -p                  # เพิ่มแบบ interactive (เลือกส่วนที่จะ add)
+git add <file>              # Add single file
+git add .                   # Add all files in current folder
+git add -A                  # Add all files (including deletions)
+git add -p                  # Interactive add (select parts to add)
 
 # --- Committing ---
-git commit -m "message"     # Commit พร้อมข้อความ
-git commit -am "message"    # Add + Commit (สำหรับไฟล์ที่ tracked แล้ว)
-git commit --amend          # แก้ไข Commit ล่าสุด
+git commit -m "message"     # Commit with message
+git commit -am "message"    # Add + Commit (for already tracked files)
+git commit --amend          # Edit latest commit
 
 # --- Viewing History ---
-git log                     # ดูประวัติทั้งหมด
-git log --oneline           # แบบย่อ 1 บรรทัด
-git log --graph --oneline   # แบบกราฟิก
-git log -n 5                # ดู 5 อันล่าสุด
+git log                     # View all history
+git log --oneline           # Short format (1 line)
+git log --graph --oneline   # Graphical format
+git log -n 5                # View last 5 commits
 
 # --- Branching ---
-git branch                  # ดูกิ่งทั้งหมด
-git branch <name>           # สร้างกิ่งใหม่
-git checkout <name>         # สลับกิ่ง
-git checkout -b <name>      # สร้าง + สลับกิ่ง
-git branch -d <name>        # ลบกิ่ง (ต้อง merge แล้ว)
-git branch -D <name>        # ลบกิ่งบังคับ (force)
+git branch                  # List all branches
+git branch <name>           # Create new branch
+git checkout <name>         # Switch branch
+git checkout -b <name>      # Create + Switch branch
+git branch -d <name>        # Delete branch (must be merged)
+git branch -D <name>        # Force delete branch
 
 # --- Merging ---
-git merge <branch>          # ผสานกิ่งเข้ากิ่งปัจจุบัน
-git merge --no-ff <branch>  # ผสานโดยสร้าง merge commit
+git merge <branch>          # Merge branch into current
+git merge --no-ff <branch>  # Merge with merge commit
 
 # --- Remote Operations ---
-git remote -v               # ดู remote repository
-git fetch                   # ดึงข้อมูลล่าสุด (ไม่ merge)
+git remote -v               # View remote repository
+git fetch                   # Fetch latest (no merge)
 git pull                    # fetch + merge
-git push                    # ส่งขึ้น remote
-git push -u origin <branch> # ส่งและตั้งค่า upstream
+git push                    # Push to remote
+git push -u origin <branch> # Push and set upstream
 
 # --- Undoing Changes ---
-git checkout -- <file>      # ยกเลิกการเปลี่ยนแปลงใน working directory
-git reset HEAD <file>       # ยกเลิก staging (unstage)
-git reset --soft HEAD~1     # ยกเลิก commit ล่าสุด (เก็บ changes)
-git reset --hard HEAD~1     # ยกเลิก commit ล่าสุด + discard changes
+git checkout -- <file>      # Revert working directory changes
+git reset HEAD <file>       # Unstage file
+git reset --soft HEAD~1     # Undo last commit (keep changes)
+git reset --hard HEAD~1     # Undo last commit + discard changes
 ```
 
 ---
@@ -579,7 +570,6 @@ git reset --hard HEAD~1     # ยกเลิก commit ล่าสุด + dis
 ### 7.1 โครงสร้าง Conventional Commits
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # Conventional Commits Specification
 # ==========================================
@@ -619,7 +609,6 @@ git reset --hard HEAD~1     # ยกเลิก commit ล่าสุด + dis
 ### 7.3 ตัวอย่าง Commit Message ที่ดี
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # Real-World Commit Message Examples
 # ==========================================
@@ -714,15 +703,14 @@ Part of documentation improvement initiative (#82)"
 Git Hooks คือสคริปต์ที่ทำงานอัตโนมัติเมื่อเกิดเหตุการณ์ต่างๆ ใน Git:
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # Git Hooks for OpenFOAM Projects
 # ==========================================
 
 # --- Hook Locations ---
-# .git/hooks/pre-commit       : ก่อน commit
-# .git/hooks/pre-push         : ก่อน push
-# .git/hooks/post-merge       : หลังจาก merge
+# .git/hooks/pre-commit       : Before commit
+# .git/hooks/pre-push         : Before push
+# .git/hooks/post-merge       : After merge
 
 # --- Example: pre-commit hook to check mesh quality ---
 cat > .git/hooks/pre-commit << 'EOF'
@@ -798,13 +786,12 @@ flowchart TD
 **โครงสร้าง Monorepo สำหรับ OpenFOAM:**
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # OpenFOAM Monorepo Structure
 # ==========================================
 
 openfoam-monorepo/
-├── Cases/                          # แต่ละ Case แยกกัน
+├── Cases/                          # Separate cases
 │   ├── Airfoil_NACA0012/
 │   │   ├── 0/
 │   │   ├── constant/
@@ -816,7 +803,7 @@ openfoam-monorepo/
 │   │   └── ...
 │   └── Backward_Step/
 │       └── ...
-├── Scripts/                        # สคริปต์ใช้ร่วมกัน
+├── Scripts/                        # Shared scripts
 │   ├── mesh/
 │   │   ├── generate_blockmesh.sh
 │   │   └── quality_check.sh
@@ -826,11 +813,11 @@ openfoam-monorepo/
 │   └── utilities/
 │       ├── param_sweep.sh
 │       └── run_parallel.sh
-├── Templates/                      # Template Dictionary
+├── Templates/                      # Template dictionaries
 │   ├── controlDict_template
 │   ├── fvSchemes_template
 │   └── fvSolution_template
-├── Docs/                           # เอกสารร่วม
+├── Docs/                           # Shared documentation
 │   ├── Meshing_Guide.md
 │   ├── Solver_Settings.md
 │   └── Validation_Results.md
@@ -842,7 +829,6 @@ openfoam-monorepo/
 ### 8.3 การใช้ Git Tags สำหรับ Versioning
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # Git Tagging for Simulation Versions
 # ==========================================
@@ -905,7 +891,6 @@ v2.0.0    # Changed turbulence model (major change)
 ### 8.4 การใช้ `.gitattributes` สำหรับ OpenFOAM
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # Advanced .gitattributes for OpenFOAM
 # ==========================================
@@ -937,7 +922,6 @@ v2.0.0    # Changed turbulence model (major change)
 ### 8.5 การใช้ Git Submodules สำหรับ Shared Resources
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # Git Submodules for Shared Resources
 # ==========================================
@@ -985,7 +969,6 @@ git commit -m "chore: update shared scripts to v1.2.0"
 ### 9.2 Cheat Sheet คำสั่ง Git
 
 ```bash
-# NOTE: Synthesized by AI - Verify parameters
 # ==========================================
 # Git Command Cheat Sheet
 # ==========================================

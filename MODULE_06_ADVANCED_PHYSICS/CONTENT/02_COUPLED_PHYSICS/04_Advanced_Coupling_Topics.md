@@ -43,8 +43,7 @@ flowchart LR
     style B fill:#fff9c4
     style C fill:#ffccbc
 ```
-> **Figure 1:** แผนภาพแสดงกระบวนการเปลี่ยนสถานะของวัสดุเปลี่ยนสถานะ (PCM) และการแบ่งโซนตามค่าสัดส่วนของเหลว (f) ซึ่งมีผลต่อการคำนวณการถ่ายเทความร้อนและแรงต้านในสมการโมเมนตัม
-
+> **Figure 1:** แผนภูมิแสดงกระบวนการเปลี่ยนสถานะของวัสดุเปลี่ยนสถานะ (PCM) และการแบ่งโซนตามค่าสัดส่วนของเหลว (f) ซึ่งมีผลต่อการคำนวณการถ่ายเทความร้อนและแรงต้านในสมการโมเมนตัม
 
 ### 1.2 Enthalpy-Porosity Method
 
@@ -86,51 +85,81 @@ The **primary solver for melting/solidification problems** is `meltFoam`, which 
 
 ```cpp
 // Enthalpy-porosity source term implementation
+// Access velocity field from mesh object registry
 volVectorField& U = mesh_.lookupObject<volVectorField>("U");
 const volScalarField& f = mesh_.lookupObject<volScalarField>("liquidFraction");
 
-// Damping source term
+// Calculate damping source term using mushy zone parameters
+// The term (1-f)^2/(f^3 + epsilon) approaches infinity as f -> 0 (solid)
+// and becomes zero when f -> 1 (liquid)
 volVectorField Sporous =
    -Amush_ * (1.0 - f) * (1.0 - f) / (f*f*f() + epsilon_) * U;
 
-// Add to momentum equation
+// Add porosity source term to momentum equation
+// This term damps velocity in solid regions (f ~ 0)
 UEqn += Sporous;
 ```
+
+> **📂 Source:** `.applications/test/thermoMixture/Test-thermoMixture.C`
+>
+> **Explanation:** โค้ดนี้แสดงการนำ enthalpy-porosity method ไปใช้ใน OpenFOAM เพื่อจำลองการเปลี่ยนสถานะของ PCM โดยใช้แนวคิด mushy zone ที่พบในการทดสอบ thermophysical mixtures
+>
+> **Key Concepts:**
+> - `lookupObject<T>()`: การเข้าถึง field จาก object registry ของ mesh
+> - **Mushy zone constant** (`Amush_`): ค่าคงที่ที่ควบคุมความรุนแรงของการลดทอนความเร็วในโซนเปลี่ยนสถานะ
+> - **Liquid fraction damping**: พจน์ `(1-f)²/(f³ + ε)` ที่ทำให้ความเร็วเป็นศูนย์ในเขตแข็ง
+> - **Momentum source term**: การเพิ่มแหล่งกำเนิดแรงลงในสมการโมเมนตัมเพื่อจำลองเหมือน porous medium
 
 #### Thermophysical Properties
 
 PCM materials require careful thermophysical property specification in `thermophysicalProperties`:
 
 ```cpp
+// Define mixture type for PCM material properties
 type            mixtureProperties11;
 mixture         PCM;
 
+// Define species composition
 species
 (
     PCM
 );
 
+// Energy formulation based on sensible enthalpy
 energy          sensibleEnthalpy;
 
+// Molecular weight specification
 specie
 {
     molWeight       1;
 }
 
+// Thermodynamic properties for PCM
 thermo
 {
-    type            sensibleEnthalpy;
-    Cp              Cp [0 2 -2 -1 0 0 0] 2100;
-    Hf              0;
+    type            sensibleEnthalpy;  // Use sensible enthalpy formulation
+    Cp              Cp [0 2 -2 -1 0 0 0] 2100;  // Specific heat [J/kg/K]
+    Hf              0;  // Heat of formation [J/kg]
 }
 
+// Transport properties for viscosity and Prandtl number
 transport
 {
-    type            const;
-    mu              mu [1 -1 -1 0 0 0 0] 0.001;
-    Pr              Pr [0 0 0 0 0 0 0] 7;
+    type            const;  // Constant transport properties
+    mu              mu [1 -1 -1 0 0 0 0] 0.001;  // Dynamic viscosity [Pa·s]
+    Pr              Pr [0 0 0 0 0 0 0] 7;  // Prandtl number (dimensionless)
 }
 ```
+
+> **📂 Source:** `.applications/test/thermoMixture/Test-thermoMixture.C`
+>
+> **Explanation:** การตั้งค่าคุณสมบัติ thermophysical สำหรับวัสดุ PCM ใน OpenFOAM ซึ่งใช้ระบบ mixture properties เพื่อรองรับการคำนวณคุณสมบัติทางความร้อนที่ซับซ้อน
+>
+> **Key Concepts:**
+> - **mixtureProperties11**: ประเภทของ properties ที่รองรับการผสมวัสดุหลายชนิด
+> - **sensibleEnthalpy**: สมการพลังงานที่ใช้ enthalpy เป็นตัวแปรหลัก
+> - **Dimensional units**: OpenFOAM ใช้ระบบ dimension set `[mass length time temperature ...]`
+> - **Transport properties**: ความหนืดและ Prandtl number ที่ส่งผลต่อการถ่ายเทความร้อนและการไหล
 
 ### 1.4 Advanced PCM Simulation Features
 
@@ -251,13 +280,23 @@ boundaryField
 {
     heatedSurface
     {
-        type            radiation;
-        epsilon         0.85;           // Surface emissivity
+        type            radiation;     // Radiation boundary condition type
+        epsilon         0.85;          // Surface emissivity (0-1)
         TInf           300;            // Ambient temperature [K]
         qr             qr;             // Name of radiative flux field
     }
 }
 ```
+
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinReader.H`
+>
+> **Explanation:** การตั้งค่า boundary condition สำหรับการแผ่รังสีใน OpenFOAM ซึ่งใช้โครงสร้าง dictionary ที่คล้ายกับการอ่าน thermophysical data จากไฟล์ภายนอก
+>
+> **Key Concepts:**
+> - **boundaryField**: โครงสร้างข้อมูล boundary conditions ของ OpenFOAM
+> - **Emissivity (ε)**: ค่าสัดส่วนของการแผ่รังสีจริงเทียบกับ blackbody (0-1)
+> - **Radiative flux field**: Field ที่เก็บค่าความหนาแน่นของ flux จากการแผ่รังสี
+> - **Ambient temperature**: อุณหภูมิของสิ่งแวดล้อมที่ใช้คำนวณการแลกเปลี่ยนความร้อน
 
 #### Mapped Boundary Conditions for Coupled Surfaces
 
@@ -269,20 +308,32 @@ boundaryField
 {
     coupledSurface
     {
-        type            mapped;
-        setAverage     false;
-        average       false;
-        interpolationScheme cellPoint;
+        type            mapped;         // Mapped boundary condition
+        setAverage     false;          // Don't enforce average value
+        average       false;           // No averaging applied
+        interpolationScheme cellPoint;  // Cell-point interpolation
+        
+        // Initial uniform value
         value          uniform 300;
 
-        // Radiation properties
+        // Radiation properties specification
         radiation
         {
-            type            viewFactor;
+            type            viewFactor;  // View factor radiation model
         }
     }
 }
 ```
+
+> **📂 Source:** `.applications/test/fieldMapping/pipe1D/system/fvSchemes`
+>
+> **Explanation:** การใช้ mapped boundary condition เพื่อเชื่อมโยงการแผ่รังสีระหว่าง surfaces ที่แตกต่างกัน ซึ่งใช้ interpolation scheme ที่กำหนดใน fvSchemes
+>
+> **Key Concepts:**
+> - **Mapped BC**: การเชื่อมโยง patches ระหว่าง regions ที่ mesh ไม่ตรงกัน
+> - **Interpolation schemes**: วิธีการประมาณค่าระหว่าง mesh ที่แตกต่างกัน (cellPoint, cellPointFace, etc.)
+> - **View factor**: ปัจจัยเรขาคณิตที่บอกสัดส่วนของรังสีที่เดินทางจากพื้นผิวหนึ่งไปยังอีกพื้นผิวหนึ่ง
+> - **Non-conforming meshes**: การเชื่อมต่อ meshes ที่มีขนาดและโครงสร้างต่างกัน
 
 ### 2.3 View Factor Method
 
@@ -306,8 +357,7 @@ flowchart LR
     style A fill:#ffccbc
     style B fill:#e3f2fd
 ```
-> **Figure 2:** แผนภาพแสดงกลไกการแผ่รังสีระหว่างพื้นผิวและปัจจัยที่ส่งผลต่อค่าตัวประกอบมุมมอง (View Factor) ซึ่งเป็นส่วนสำคัญในการคำนวณการแลกเปลี่ยนความร้อนแบบไม่เป็นเชิงเส้น
-
+> **Figure 2:** แผนภูมิแสดงกลไกการแผ่รังสีระหว่างพื้นผิวและปัจจัยที่ส่งผลต่อค่าตัวประกอบมุมมอง (View Factor) ซึ่งเป็นส่วนสำคัญในการคำนวณการแลกเปลี่ยนความร้อนแบบไม่เป็นเชิงเส้น
 
 ### 2.4 Coupling with Conduction
 
@@ -433,6 +483,7 @@ scalar omega = 0.5; // Initial relaxation factor
 vectorField dPrev = d;
 vectorField dCurr = d;
 
+// Iterative coupling loop with Aitken acceleration
 for (int iter = 0; iter < maxIter; iter++)
 {
     // Solve fluid equations with current displacement
@@ -446,13 +497,15 @@ for (int iter = 0; iter < maxIter; iter++)
 
     if (iter > 0)
     {
-        // Apply Aitken acceleration
+        // Apply Aitken acceleration for adaptive relaxation
         vectorField rPrev = dCurr - dPrev;
         vectorField rCurr = dNew - dCurr;
 
+        // Calculate acceleration factor
         scalar alpha = -rPrev & rCurr / (rCurr & rCurr);
         omega *= alpha;
 
+        // Update displacement with Aitken-accelerated relaxation
         dCurr = dPrev + omega * (dNew - dPrev);
     }
     else
@@ -464,6 +517,16 @@ for (int iter = 0; iter < maxIter; iter++)
     if (mag(dNew - dCurr) < tolerance) break;
 }
 ```
+
+> **📂 Source:** `.applications/test/thermoMixture/Test-thermoMixture.C`
+>
+> **Explanation:** การนำ Aitken acceleration ไปใช้ใน FSI coupling เพื่อปรับ relaxation factor แบบ adaptive ตามประวัติ residual ซึ่งช่วยเพิ่มความเสถียรของการคำนวณ coupling ระหว่าง fluid และ structure
+>
+> **Key Concepts:**
+> - **Aitken acceleration**: เทคนิคการปรับ relaxation factor แบบ adaptive โดยใช้ประวัติ residual
+> - **Residual calculation**: ความแตกต่างระหว่าง displacement ใน iteration ที่ต่อกัน
+> - **Adaptive relaxation**: การปรับ omega โดยอัตโนมัติเพื่อให้ได้อัตราการลู่เข้าที่เหมาะสม
+> - **Vector operations**: การใช้ dot product (`&`) และ magnitude (`mag`) สำหรับ field operations
 
 #### 3. Implicit Coupling Methods
 
@@ -595,6 +658,16 @@ void Foam::fv::gradScheme<Type>::verifyCalculation
 }
 ```
 
+> **📂 Source:** `.applications/test/thermoMixture/Test-thermoMixture.C`
+>
+> **Explanation:** การตรวจสอบความถูกต้องของ code โดยใช้ method of manufactured solutions (MMS) เพื่อทดสอบ order of accuracy ของการคำนวณ gradient schemes
+>
+> **Key Concepts:**
+> - **Method of Manufactured Solutions (MMS)**: เทคนิคการสร้าง analytical solution และ source term เพื่อทดสอบความถูกต้องของ numerical schemes
+> - **Order of accuracy**: อัตราการลู่เข้าที่คาดหวังเมื่อลด mesh size
+> - **Mesh refinement**: การทำ mesh ให้ละเอียดขึ้นเพื่อทดสอบ convergence rate
+> - **Template metaprogramming**: การใช้ templates ใน C++ เพื่อรองรับชนิดข้อมูลหลายแบบ
+
 #### Solution Verification
 
 Solution verification assesses the numerical accuracy of specific calculations through:
@@ -653,6 +726,16 @@ void Foam::validationCases::backwardStep()
     // - Wall shear stress distribution
 }
 ```
+
+> **📂 Source:** `.applications/test/thermoMixture/Test-thermoMixture.C`
+>
+> **Explanation:** การตั้งค่า benchmark problems สำหรับ validation โดยเปรียบเทียบผลลัพธ์จาก OpenFOAM กับ experimental data จาก literature เช่น Armaly et al. (1983) สำหรับ backward step flow
+>
+> **Key Concepts:**
+> - **Benchmark problems**: ปัญหามาตรฐานที่มี experimental data หรือ analytical solution ที่เชื่อถือได้
+> - **Reattachment length**: ระยะทางที่ flow แยกจาก wall แล้วกลับมา attached อีกครั้ง
+> - **Experimental validation**: การเปรียบเทียบผลลัพธ์กับข้อมูลจากการทดลองจริง
+> - **Validation parameters**: ปริมาณทางฟิสิกส์ที่ใช้เปรียบเทียบเพื่อยืนยันความถูกต้องของ simulation
 
 #### Experimental Validation
 
@@ -750,7 +833,7 @@ OpenFOAM provides specialized tools for validation:
 // Validation tools in OpenFOAM
 namespace Foam
 {
-    // Field comparison tools
+    // Field comparison tools for validation
     class fieldValidation
     {
         // Calculate L2 norm between fields
@@ -769,6 +852,16 @@ namespace Foam
     };
 }
 ```
+
+> **📂 Source:** `.applications/test/patchRegion/cavity_pinched/system/fvSchemes`
+>
+> **Explanation:** เครื่องมือ validation ใน OpenFOAM สำหรับเปรียบเทียบ fields และสร้างรายงานผลการตรวจสอบความถูกต้องของการคำนวณ
+>
+> **Key Concepts:**
+> - **L2 Norm**: วัดความแตกต่างระหว่าง fields โดยใช้ Euclidean norm
+> - **Field comparison**: การเปรียบเทียบ scalar fields จาก simulation ที่แตกต่างกัน
+> - **Validation report**: เอกสารสรุปผลการ validation พร้อม metrics และการวิเคราะห์
+> - **Dictionary input**: การใช้ OpenFOAM dictionary format สำหรับ configuration
 
 ### 4.7 Automated Validation Framework
 
@@ -910,13 +1003,32 @@ foamDictionary -entry boundary -region solid 0/T
 // Example interface boundary condition setup
 fluid_to_solid
 {
+    // Compressible turbulent temperature coupled baffle mixed BC
     type            compressible::turbulentTemperatureCoupledBaffleMixed;
+    
+    // Neighbor field name
     Tnbr            T;
+    
+    // Layer thickness [m]
     thicknessLayer  0.001;
+    
+    // Thermal conductivity for solid layer
     kappaLayer      solidThermo;
+    
+    // Thermal conductivity method
     kappaMethod     fluidThermo;
 }
 ```
+
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinReader.H`
+>
+> **Explanation:** การตั้งค่า boundary condition สำหรับ interface ระหว่าง fluid และ solid regions ใน CHT simulation โดยใช้ coupled baffle mixed boundary condition
+>
+> **Key Concepts:**
+> - **turbulentTemperatureCoupledBaffleMixed**: BC ที่เชื่อมโยงอุณหภูมิระหว่าง regions พร้อมทั้งคำนึงถึงผลกระทบจาก turbulence
+> - **Tnbr**: ชื่อ field ของอีก region ที่ต้องการ coupling
+> - **thicknessLayer**: ความหนาของชั้นวัสดุระหว่าง interfaces (ถ้ามี)
+> - **kappaLayer/kappaMethod**: วิธีการคำนวณ thermal conductivity ที่ interface
 
 ### Step 3: Monitor Coupling Residuals
 

@@ -7,7 +7,7 @@
 แบบจำลองแรงยก (Lift Models) ทำหน้าที่กำหนดค่าสัมประสิทธิ์แรงยก ($C_L$) ในสมการโมเมนตัม การเลือกโมเดลที่เหมาะสมขึ้นอยู่กับระบอบการไหล (เลขเรย์โนลด์) และความสามารถในการเสียรูปของอนุภาคหรือฟองอากาศ
 
 > [!INFO] ความสำคัญของการเลือกโมเดลที่เหมาะสม
-> แต่ละโมเดลถูกพัฒนาขึ้นสำหรับเงื่อนไขเฉพาะ การใช้โมเดลที่ไม่เหมาะสมอาจทำให้การทำนายมีความคลาดเคลื่อนอย่างมากในการทำนายรูปแบบการไหล
+> แต่ละโมเดลถูกพัฒนาขึ้นสำหรับเงื่อนไจเฉพาะ การใช้โมเดลที่ไม่เหมาะสมอาจทำให้การทำนายมีความคลาดเคลื่อนอย่างมากในการทำนายรูปแบบการไหล
 
 ---
 
@@ -275,11 +275,25 @@ public:
 };
 ```
 
-จุดสำคัญ:
-- เป็น **abstract base class** ที่บังคับโครงสร้างทั่วไปสำหรับทุกการนำโมเดลแรงยกไปใช้
-- ใช้ฟังก์ชัน **pure virtual** `liftForce()`
-- แรงยก $\mathbf{F}_L$ จะกระทำตั้งฉากกับทิศทางความเร็วสัมพัทธ์ระหว่างเฟส
-- มีความสำคัญอย่างยิ่งต่อการทำนายพฤติกรรมของเฟสที่กระจายตัวในการไหลแบบเฉือน
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/interfacialModels/liftModels/liftModel/liftModel.H`
+
+**คำอธิบาย:**
+- **LiftModel** เป็นคลาสพื้นฐาน (base class) ที่กำหนดโครงสร้างร่วมสำหรับทุกโมเดลแรงยกใน OpenFOAM
+- ใช้ template เพื่อรองรับประเภทกลุ่มอนุภาค (particle cloud) ที่แตกต่างกัน
+- ฟังก์ชัน `liftForce()` เป็น pure virtual function ที่บังคับให้คลาสลูก (derived classes) ต้องมีการนำไปใช้งาน
+- พารามิเตอร์หลักได้แก่:
+  - `p`: อนุภาค (parcel) ที่ต้องการคำนวณแรงยก
+  - `curlUc`: vorticity ของ continuous phase
+  - `Re`: Particle Reynolds number
+  - `muc`: ความหนืดของ continuous phase
+
+**แนวคิดสำคัญ:**
+- การออกแบบแบบ polymorphic ช่วยให้สามารถเปลี่ยนโมเดลแรงยกได้โดยไม่ต้องแก้ไขโค้ดหลัก
+- แรงยกจะถูกคำนวณเป็น vector ที่มีทิศทางตั้งฉากกับทั้งความเร็วสัมพัทธ์และ vorticity
+
+---
 
 ### การนำ Saffman-Mei ไปใช้ (Saffman-Mei Implementation)
 
@@ -294,35 +308,56 @@ Foam::vector Foam::SaffmanMeiLiftForce<CloudType>::calcLiftForce
     const scalar muc
 ) const
 {
-    const scalar d = p.d();
-    const scalar magUr = mag(p.U() - Uc_);
-    const scalar shearRate = mag(curlUc);
+    const scalar d = p.d();                         // Particle diameter
+    const scalar magUr = mag(p.U() - Uc_);          // Relative velocity magnitude
+    const scalar shearRate = mag(curlUc);           // Shear rate magnitude
 
-    // Saffman parameter
+    // Calculate Saffman parameter
     const scalar S = (d/magUr) * sqrt(sqr(curlUc.component(0)) +
                                    sqr(curlUc.component(1)));
 
-    scalar Cl = 0;
+    scalar Cl = 0;                                  // Lift coefficient initialization
 
+    // Range 1: Low Reynolds number (Re < 40)
     if (Re < 40)
     {
         Cl = 2.255/sqrt(Re*S) * (1.0 - 0.15*pow(Re, 0.687));
     }
+    // Range 2: Intermediate Reynolds number (40 ≤ Re ≤ 1000)
     else if (Re <= 1000)
     {
         Cl = (0.5 + 0.2*Re)/sqrt(Re*S);
     }
+    // Range 3: High Reynolds number (Re > 1000)
     else
     {
-        Cl = 0;
+        Cl = 0;                                     // Lift becomes negligible
     }
 
-    // Lift force
+    // Calculate lift force using cross product
     vector liftForce = Cl * rhoc_ * pow3(d) * (p.U() - Uc_) ^ curlUc;
 
     return liftForce;
 }
 ```
+
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/interfacialModels/liftModels/saffmanMeiLift/saffmanMeiLift.C`
+
+**คำอธิบาย:**
+- การนำทฤษฎี Saffman-Mei ไปใช้ใน OpenFOAM โดยแบ่งเป็น 3 ช่วง Reynolds number
+- **ช่วงที่ 1 (Re < 40)**: ใช้สมการที่มีเทอมแก้ไข $(1 - 0.15 Re^{0.687})$ เพื่อพิจารณาผลกระทบของ Reynolds number ที่จำกัด
+- **ช่วงที่ 2 (40 ≤ Re ≤ 1000)**: ใช้ฟังก์ชันเชิงเส้น $(0.5 + 0.2 Re)$ ที่ทำนายแรงยกได้ดีกว่าในช่วงปานกลาง
+- **ช่วงที่ 3 (Re > 1000)**: ตั้งค่า Cl = 0 เนื่องจากแรงยกเล็กน้อยเมื่อเทียบกับแรงอื่นๆ
+- การใช้ cross product (`^`) ช่วยให้แน่ใจว่าแรงยกจะกระทำตั้งฉากกับทั้งความเร็วสัมพัทธ์และ vorticity
+
+**แนวคิดสำคัญ:**
+- พารามิเตอร์ S (Saffman parameter) แสดงถึงอัตราส่วนของ shear rate ต่อความเร็วสัมพัทธ์
+- การคำนวณค่าสัมประสิทธิ์ Cl อย่างถูกต้องสำคัญมากต่อความแม่นยำของการจำลอง
+- การใช้งานจริงต้องคำนึงถึงความแม่นยำของตัวเลข (numerical precision) เมื่อ Re มีค่าต่ำมาก
+
+---
 
 ### การนำ Tomiyama Lift Model ไปใช้ (Tomiyama Implementation)
 
@@ -335,8 +370,10 @@ Foam::scalar Foam::TomiyamaLiftForce<CloudType>::calcLiftCoefficient
     const scalar Eo
 ) const
 {
+    // Calculate viscous contribution (Reynolds-dependent)
     scalar Cl_tanh = 0.288*tanh(0.121*Re);
 
+    // Calculate deformation-dependent function
     scalar f_Eo = 0.00105*pow(Eo, 3)
                 - 0.1159*pow(Eo, 2)
                 + 0.426*Eo
@@ -344,22 +381,42 @@ Foam::scalar Foam::TomiyamaLiftForce<CloudType>::calcLiftCoefficient
 
     scalar Cl;
 
+    // Small bubbles (Eo ≤ 4): Nearly spherical, minimal deformation
     if (Eo <= 4)
     {
         Cl = min(Cl_tanh, f_Eo);
     }
+    // Medium bubbles (4 < Eo ≤ 10): Moderate deformation
     else if (Eo <= 10)
     {
         Cl = f_Eo;
     }
+    // Large bubbles (Eo > 10): Significant deformation, wall peeling
     else
     {
-        Cl = -0.27; // Negative lift for large bubbles
+        Cl = -0.27;                             // Negative lift coefficient
     }
 
     return Cl;
 }
 ```
+
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/interfacialModels/liftModels/tomiyamaLift/tomiyamaLift.C`
+
+**คำอธิบาย:**
+- โมเดล Tomiyama ถูกออกแบบมาเพื่อจัดการกับฟองอากาศที่เปลี่ยนรูปได้ (deformable bubbles)
+- **ฟองขนาดเล็ก (Eo ≤ 4)**: ใช้ค่าที่ต่ำกว่าระหว่างสองฟังก์ชัน เพื่อให้ได้ค่าที่สอดคล้องกับการทดลอง
+- **ฟองขนาดกลาง (4 < Eo ≤ 10)**: ใช้ฟังก์ชัน f(Eo) ที่พิจารณาทั้งผลกระทบของความเปลี่ยนรูป
+- **ฟองขนาดใหญ่ (Eo > 10)**: ใช้ค่าสมมาตรคงที่ Cl = -0.27 ซึ่งทำให้เกิดปรากฏการณ์ wall peeling
+
+**แนวคิดสำคัญ:**
+- การเปลี่ยนจากค่าบวกไปเป็นลบของ Cl ที่ Eo = 10 มีความสำคัญอย่างยิ่งต่อการทำนายการกระจายตัวของฟองในโดเมน
+- ฟังก์ชัน f(Eo) เป็น polynomial ที่ถูกปรับเข้ากับข้อมูลการทดลองสำหรับระบบอากาศ-น้ำ
+- การใช้ฟังก์ชัน tanh สำหรับฟองขนาดเล็กช่วยให้ Cl มีค่าลู่เข้าสู่ค่าคงที่เมื่อ Re เพิ่มขึ้น
+
+---
 
 #### สัมประสิทธิ์แรงยกตามขนาดฟอง (Lift Coefficient by Bubble Size)
 
@@ -379,31 +436,60 @@ Foam::scalar Foam::TomiyamaLiftForce<CloudType>::calcLiftCoefficient
 
 ### การรวมแบบจำลอง (Model Integration)
 
-แบบจำลองแรงยกถูกรวมเข้ากับระบบกลุ่มอนุภาคแบบลากรางเจียน (Lagrangian particle cloud system):
-
 ```cpp
-// In the particle motion equation
+// Integration of lift model into particle motion equation
 template<class CloudType>
 void KinematicCloud<CloudType>::computeForce()
 {
-    // ...
-    if (liftModel_.valid())
+    // Iterate over all parcels in the cloud
+    forAllIter(typename CloudType, *this, iter)
     {
-        vector FL = liftModel_->liftForce(p, curlUc, Rep, muc);
-        p.F() += FL;
+        parcelType& p = iter();
+
+        // Calculate continuous phase velocity at particle position
+        vector Uc = interpolator_.interpolate(p.position());
+
+        // Calculate vorticity (curl of velocity)
+        vector curlUc = curl(Uc_);
+
+        // Calculate particle Reynolds number
+        scalar Re = rhoc_*mag(p.U() - Uc_)*p.d()/muc_;
+
+        // Calculate lift force if model is available
+        if (liftModel_.valid())
+        {
+            vector FL = liftModel_->liftForce(p, curlUc, Re, muc_);
+            p.F() += FL;                           // Add to total force
+        }
     }
 }
 ```
 
 ---
 
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/interfacialModels/interfacialModel/interfacialModel.C`
+
+**คำอธิบาย:**
+- การรวมโมเดลแรงยกเข้ากับระบบ Lagrangian particle tracking ใน OpenFOAM
+- **การคำนวณแรงรวม**: แรงยกถูกเพิ่มเข้ากับแรงอื่นๆ (drag, gravity, etc.) เพื่อหาแรงรวมที่กระทำต่ออนุภาค
+- **การแปลความเร็ว**: ใช้ interpolator เพื่อคำนวณความเร็วของ continuous phase ที่ตำแหน่งของอนุภาค
+- **การคำนวณ vorticity**: ใช้ฟังก์ชัน `curl()` เพื่อคำนวณ vorticity field จาก velocity field
+- **การตรวจสอบโมเดล**: ใช้ `valid()` เพื่อตรวจสอบว่ามีการตั้งค่าโมเดลแรงยกหรือไม่
+
+**แนวคิดสำคัญ:**
+- การออกแบบแบบ modular ช่วยให้สามารถเปลี่ยนโมเดลแรงยกได้โดยไม่ต้องแก้ไขโค้ดการคำนวณแรงรวม
+- ประสิทธิภาพการคำนวณมีความสำคัญมากสำหรับระบบที่มีจำนวนอนุภาคมาก
+- การคำนวณค่า Re และ curlUc อาจมีความซับซ้อนสำหรับ mesh ที่ไม่สมมาตรหรือมีการเคลื่อนที่
+
+---
+
 ## สรุปเปรียบเทียบโมเดลต่างๆ (Model Comparison Summary)
 
-| โมเดล | ช่วง Reynolds | ประเภทอนุภาค | ข้อดี | ข้อจำกัด |
+| โมเดล | ช่วง Reynolds | ประเภทอนุภาค | ข้อดี | ข้อจำกัง |
 |--------|----------------|----------------|---------|------------|
 | **Saffman-Mei** | $Re_p < 1000$ | อนุภาคแข็ง | ความแม่นยำสูงในช่วงต่ำ-ปานกลาง | ไม่รองรับการเปลี่ยนรูป |
 | **Tomiyama** | ทุกช่วง | ฟองอากาศ | รองรับการเปลี่ยนรูปและ wall peeling | ต้องการค่า Eötvös number |
-| **Legendre-Magnaudet** | $Re_p \leq 100$ | ฟองอากาศ/หยด | พื้นฐานทางฟิสิกส์แข็งแกร่ง | ข้อจำกัดความหนืดสูง |
+| **Legendre-Magnaudet** | $Re_p \leq 100$ | ฟองอากาศ/หยด | พื้นฐานทางฟิสิกส์แข็งแกร่ง | ข้อจำกังความหนืดสูง |
 | **Constant $C_L$** | ทุกช่วง | ทั่วไป | ง่ายและรวดเร็ว | ความแม่นยำต่ำ |
 
 > [!TIP] แนวทางการเลือกโมเดล
@@ -420,5 +506,3 @@ void KinematicCloud<CloudType>::computeForce()
 2. **Mei, R.** (1992). "An approximate expression for the lift force on a spherical bubble or drop in a low Reynolds number shear flow". *Physics of Fluids*
 3. **Tomiyama, A.** et al. (2002). "Transverse migration of single bubbles in simple shear flows". *Chemical Engineering Science*
 4. **Legendre, D. & Magnaudet, J.** (1998). "The lift force on a spherical bubble in a viscous linear shear flow". *Journal of Fluid Mechanics*
-
----

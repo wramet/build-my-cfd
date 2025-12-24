@@ -67,7 +67,7 @@ graph LR
 
     style F fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
 ```
-> **Figure 1:** กระบวนการแทรกสอด (Interpolation) ข้อมูลจากจุดศูนย์กลางเซลล์ (Cell Centers) ไปยังจุดศูนย์กลางหน้า (Face Centers) เพื่อสร้างฟิลด์ผิวสเกลาร์ (surfaceScalarField) สำหรับการคำนวณฟลักซ์ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** กระบวนการแทรกสอด (Interpolation) ข้อมูลจากจุดศูนย์กลางเซลล์ (Cell Centers) ไปยังจุดศูนย์กลางหน้า (Face Centers) เพื่อสร้างฟิลด์ผิวสเกลาร์ (surfaceScalarField) สำหรับการคำนวณฟลักซ์
 
 ![[of_face_interpolation_concept.png]]
 `A diagram showing how cell-centered data (U1, U2) are interpolated to a shared face to compute a surface-centered value (Uf), scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
@@ -75,15 +75,30 @@ graph LR
 ### การเขียนโค้ด Interpolation
 
 ```cpp
+// Convert velocity from cell centers to faces to compute flux
 // แปลงความเร็วจากเซลล์ไปที่หน้า เพื่อคำนวณ Flux
 surfaceScalarField phi = fvc::flux(U);
 
+// Or use general linear interpolation
 // หรือใช้การ Interpolation แบบ Linear ทั่วไป
 surfaceVectorField Uf = fvc::interpolate(U);
 
+// Compute flux directly from velocity
 // คำนวณ flux โดยตรงจากความเร็ว
 surfaceScalarField phi = fvc::interpolate(U) & mesh.Sf();
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+- **fvc::flux(U)**: ฟังก์ชันที่คำนวณ volumetric flux ($\phi = \mathbf{U} \cdot \mathbf{S}_f$) โดยตรงจากฟิลด์ความเร็ว
+- **fvc::interpolate(U)**: ฟังก์ชัน interpolation ทั่วไปสำหรับแปลงค่าจาก cell centers ไปยัง face centers
+- **mesh.Sf()**: เวกเตอร์พื้นที่หน้า (face area vector) ที่ใช้คำนวณ flux
+
+**แนวคิดสำคัญ:**
+- **Flux Calculation**: การคำนวณ flux เป็นพื้นฐานของ finite volume method
+- **Face Interpolation**: ข้อมูลที่หน้าเซลล์ได้จากการ interpolation จาก cell centers ข้างเคียง
+- **Operator Overloading**: ตัวดำเนินการ `&` ใช้สำหรับ dot product ของเวกเตอร์
 
 ---
 
@@ -107,45 +122,90 @@ $$\phi_f = f_x \phi_P + (1-f_x)\phi_N$$
 โดยที่ $f_x$ เป็นปัจจัยการแทรกสอดที่ขึ้นอยู่กับน้ำหนักเรขาคณิต
 
 ```cpp
+// Interpolate velocity to face centers for flux calculation
 // แทรกสอดความเร็วไปยังจุดศูนย์กลางหน้าสำหรับการคำนวณการไหล
 surfaceVectorField Uf = fvc::interpolate(U);
 
+// Interpolate scalar properties for face fluxes
 // แทรกสอดคุณสมบัติสเกลาร์สำหรับการไหลของหน้า
 surfaceScalarField kappaf = fvc::interpolate(kappa);
 
+// Linear upwind interpolation for convection terms
 // การแทรกสอดเชิงเส้นขึ้นสำหรับเทอมนำพา
 surfaceScalarField phiU = fvc::interpolate(U, "linearUpwind") & mesh.Sf();
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+**คำอธิบาย:**
+- **Linear Interpolation**: การแทรกสอดเชิงเส้นเป็นวิธีมาตรฐานที่ให้ความแม่นยำลำดับสอง
+- **Scheme Selection**: การเลือกสกีม interpolation ส่งผลต่อความเสถียรและความแม่นยำของการคำนวณ
+- **Convection Terms**: เทอมนำพา (convection) ต้องการ interpolation scheme ที่เหมาะสมเพื่อหลีกเลี่ยงปัญหา numerical oscillation
+
+**แนวคิดสำคัญ:**
+- **Geometric Weighting**: น้ำหนักการแทรกสอดขึ้นอยู่กับตำแหน่งเรขาคณิตของ face ระหว่าง cell centers
+- **Numerical Diffusion**: สกีมลำดับต่ำ (เช่น upwind) ให้ความเสถียรสูงแต่เกิด numerical diffusion
+- **Accuracy vs Stability**: การแลกเปลี่ยนระหว่างความแม่นยำและความเสถียร
 
 ### สกีมลำดับสูงกว่า
 
 การแทรกสอดที่แม่นยำยิ่งขึ้นสำหรับการไหลที่ซับซ้อน:
 
 ```cpp
+// Quadratic upwind interpolation (QUICK)
 // การแทรกสอดเชิงกำลังสองขึ้น (QUICK)
 surfaceScalarField phiQuick = fvc::interpolate(U, "QUICK") & mesh.Sf();
 
+// Gamma differencing scheme (blends linear/QUICK)
 // สกีมความแตกต่าง Gamma (ผสม linear/QUICK)
 surfaceScalarField phiGamma = fvc::interpolate(U, "Gamma") & mesh.Sf();
 
+// Central differencing scheme (second-order accuracy)
 // สกีมความแตกต่างกลาง (ความแม่นยำลำดับสอง)
 surfaceScalarField phiCentral = fvc::interpolate(U, "central") & mesh.Sf();
 ```
+
+📂 **Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+**คำอธิบาย:**
+- **QUICK Scheme**: Quadratic Upwind Interpolation for Convective Kinematics ให้ความแม่นยำลำดับสาม
+- **Gamma Scheme**: สกีมผสมที่ปรับสมดุลระหว่าง linear และ QUICK interpolation
+- **Central Differencing**: สกีมความแม่นยำลำดับสองที่เหมาะกับ flow ที่มี diffusion โดดเด่น
+
+**แนวคิดสำคัญ:**
+- **High-Order Schemes**: สกีมลำดับสูงให้ความแม่นยำดีกว่าแต่อาจมีปัญหาความเสถียร
+- **Blended Schemes**: สกีมผสมรวมเพื่อให้ได้สมดุลระหว่างความแม่นยำและความเสถียร
+- **Flow Regime Dependent**: การเลือกสกีมขึ้นอยู่กับลักษณะของ flow (convection-dominated vs diffusion-dominated)
 
 ### การแทรกสอดจำกัด (TVD Schemes)
 
 สกีม TVD (การลดการแปรผันรวม) สำหรับเสถียรภาพ:
 
 ```cpp
+// Minmod limiter (most diffusive)
 // ตัวจำกัด Minmod (แพร่มากที่สุด)
 surfaceScalarField phiMinmod = fvc::interpolate(U, "Minmod") & mesh.Sf();
 
+// Van Leer limiter (balanced accuracy/stability)
 // ตัวจำกัด Van Leer (สมดุลความแม่นยำ/เสถียรภาพ)
 surfaceScalarField phiVanLeer = fvc::interpolate(U, "vanLeer") & mesh.Sf();
 
+// Superbee limiter (most compressive)
 // ตัวจำกัด Superbee (บีบอัดมากที่สุด)
 surfaceScalarField phiSuperbee = fvc::interpolate(U, "Superbee") & mesh.Sf();
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/BlendedInterfacialModel/BlendedInterfacialModel.C`
+
+**คำอธิบาย:**
+- **TVD Principle**: Total Variation Diminishing ช่วยป้องกัน oscillation ใน solution
+- **Flux Limiters**: ตัวจำกัด flux ที่ควบคุมระดับการแทรกสอดเพื่อรักษาความเสถียร
+- **Accuracy-Stability Trade-off**: Minmod (สุดโต่งด้านเสถียร) vs Superbee (สุดโต่งด้านความแม่นยำ)
+
+**แนวคิดสำคัญ:**
+- **Oscillation Prevention**: TVD schemes ป้องกันการเกิด oscillation ใกล้ discontinuities
+- **Shock Capturing**: สำคัญสำหรับ compressible flow ที่มี shock waves
+- **Limiter Function**: ฟังก์ชัน limiter ควบคุมระดับการแทรกสอดตาม local gradient
 
 ---
 
@@ -156,22 +216,38 @@ surfaceScalarField phiSuperbee = fvc::interpolate(U, "Superbee") & mesh.Sf();
 คลาส `GeometricField` ของ OpenFOAM ใช้ **โครงสร้างข้อมูลแบบคู่** ที่ซับซ้อน:
 
 ```cpp
+// Simplified view of GeometricField data members
 // มุมมองที่เรียบง่ายของสมาชิกข้อมูล GeometricField
 class GeometricField
 {
 private:
+    // Internal field (cell values)
     // ฟิลด์ภายใน (ค่าของเซลล์)
     DimensionedField<Type, GeoMesh> internalField_;
 
+    // Boundary field (patch values)
     // ฟิลด์ขอบเขต (ค่าของแพตช์)
     GeometricBoundaryField<Type, PatchField, GeoMesh> boundaryField_;
 
+    // Time tracking
     // การติดตามเวลา
     mutable label timeIndex_;
-    mutable GeometricField* field0Ptr_;          // ฟิลด์เวลาเก่า
-    mutable GeometricField* fieldPrevIterPtr_;   // การวนซ้ำก่อนหน้า
+    mutable GeometricField* field0Ptr_;          // Old time field
+    mutable GeometricField* fieldPrevIterPtr_;   // Previous iteration
 };
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+- **Internal Field**: เก็บค่าฟิลด์ที่ cell centers สำหรับทุก cell ใน mesh
+- **Boundary Field**: เก็บค่าฟิลด์ที่ boundary faces แยกเป็น patches
+- **Time Tracking**: รักษาค่าฟิลด์จาก time steps และ iterations ก่อนหน้า
+
+**แนวคิดสำคัญ:**
+- **Dual Storage Architecture**: การแยก storage ระหว่าง internal และ boundary fields
+- **Patch-Based Organization**: Boundary conditions จัดระเบียบเป็น patches ตามเรขาคณิต
+- **Temporal Management**: การจัดการ temporal data สำหรับ unsteady simulations
 
 ### สถาปัตยกรรมหน่วยความจำ
 
@@ -204,7 +280,7 @@ private:
 **ฟิลด์ขอบเขต**:
 - **ประเภท**: `FieldField<PatchField, Type>`
 - **โครงสร้าง**: คอนเทนเนอร์ลำดับชั้นที่จัดการเงื่อนไขขอบเขตต่อแพตช์
-- **การทำงาน**: แต่ละแพตช์สอดคล้องกับภูมิภาคทางเรขาคณิตที่แตกต่างกันของขอบเขตเมชและสามารถรักษาประเภทเงื่อนไขขอบเขตที่เป็นอิสระได้
+- **การทำงาน**: แต่ละแพตช์สอดค้องกับภูมิภาคทางเรขาคณิตที่แตกต่างกันของขอบเขตเมชและสามารถรักษาประเภทเงื่อนไขขอบเขตที่เป็นอิสระได้
 
 ![[of_internal_vs_boundary_storage.png]]
 `A memory structure diagram showing the contiguous internal field array and the separate, per-patch boundary field lists, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
@@ -226,20 +302,23 @@ private:
 ### การประกาศ Surface Fields
 
 ```cpp
+// Velocity flux through faces (linear interpolation of U to faces)
 // การไหลของความเร็วผ่านหน้า (การแทนค่าเชิงเส้นของ U ไปยังหน้า)
 surfaceScalarField phi
 (
     IOobject("phi", runTime.timeName(), mesh, IOobject::READ_IF_PRESENT),
-    fvc::interpolate(U) & mesh.Sf()  // แทนค่าและ dot กับพื้นที่ผิว
+    fvc::interpolate(U) & mesh.Sf()  // Interpolate and dot with surface area
 );
 
+// Pressure gradient at face centers
 // ไล่ระดับความดันที่จุดศูนย์กลางหน้า
 surfaceVectorField gradPf
 (
     IOobject("gradPf", runTime.timeName(), mesh),
-    fvc::interpolate(fvc::grad(p))  // แทนค่าไล่ระดับเซลล์ไปยังหน้า
+    fvc::interpolate(fvc::grad(p))  // Interpolate cell gradient to faces
 );
 
+// Surface scalar field for turbulence modeling quantities
 // ฟิลด์สเกลาร์ผิวสำหรับปริมาณแบบจำลองความปั่นป่วน
 surfaceScalarField mut
 (
@@ -249,12 +328,26 @@ surfaceScalarField mut
 );
 ```
 
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
+
+**คำอธิบาย:**
+- **IOobject**: ใช้กำหนดชื่อ, path, และโหมดการอ่าน/เขียนของฟิลด์
+- **READ_IF_PRESENT**: อ่านฟิลด์จาก disk ถ้ามีอยู่, มิฉะนั้นสร้างใหม่
+- **Calculated Patch Field**: ประเภท boundary condition ที่คำนวณค่าจาก internal field
+
+**แนวคิดสำคัญ:**
+- **Field Registration**: การลงทะเบียนฟิลด์กับ object registry เพื่อการจัดการอัตโนมัติ
+- **Automatic I/O**: การอ่านและเขียนฟิลด์อัตโนมัติตามเวลาที่กำหนด
+- **Type Safety**: Template system ช่วยให้มั่นใจว่า field types ถูกต้องที่ compile-time
+
 ### การใช้งาน Surface Fields ใน Solver
 
 ```cpp
+// Calculate divergence using surface flux
 // คำนวณ divergence โดยใช้ surface flux
 volScalarField divU = fvc::div(phi);
 
+// Calculate convection term
 // คำนวณ convection term
 surfaceScalarField phiU = fvc::interpolate(U) & mesh.Sf();
 fvScalarMatrix TEqn
@@ -264,9 +357,22 @@ fvScalarMatrix TEqn
   - fvm::laplacian(DT, T)
 );
 
+// Use surface field for flux calculations
 // การใช้ surface field ในการคำนวณ flux
 surfaceScalarField rhoPhi = fvc::interpolate(rho) * phi;
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+**คำอธิบาย:**
+- **Divergence Calculation**: fvc::div ใช้ surface flux เพื่อคำนวณ divergence ของฟิลด์
+- **Convection Term**: fvm::div สร้าง implicit convection term สำหรับ matrix equation
+- **Mass Flux**: rhoPhi เป็น mass flux ที่ใช้ใน compressible flow solvers
+
+**แนวคิดสำคัญ:**
+- **Flux-Based Discretization**: การ discretize ผ่าน flux ที่หน้าเซลล์
+- **Implicit vs Explicit**: fvm (implicit) vs fvc (explicit) สำหรับ terms ต่างๆ
+- **Conservation Properties**: Surface-based discretization รับประกัน conservation อัตโนมัติ
 
 ---
 
@@ -275,16 +381,31 @@ surfaceScalarField rhoPhi = fvc::interpolate(rho) * phi;
 ### รูปแบบการเข้าถึงหน่วยความจำ
 
 ```cpp
+// Cell-cell operations: O(1)
 // การดำเนินการเซลล์-เซลล์: O(1)
 field[i] = value;
 
+// Face-cell interpolation: compute on demand
 // การ interpolation หน้า-เซลล์: คำนวณตามความต้องการ
 surfaceValue = interpolate(cellValue);
 
+// Parallel operations: non-blocking communication pattern
 // การดำเนินการขนาน: รูปแบบการสื่อสารแบบไม่บล็อก
 #pragma omp parallel for
 for (int i=0; i<nCells; i++) { /* operation */ }
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+- **Memory Access Pattern**: การเข้าถึง memory แบบ contiguous ให้ประสิทธิภาพสูง
+- **Lazy Evaluation**: การคำนวณ interpolation เฉพาะเมื่อจำเป็น
+- **Parallel Communication**: การสื่อสารแบบ non-blocking สำหรับ parallel efficiency
+
+**แนวคิดสำคัญ:**
+- **Cache Optimization**: Contiguous memory access ปรับปรุง cache utilization
+- **Compute-On-Demand**: ลดการคำนวณที่ไม่จำเป็นด้วย lazy evaluation
+- **Scalability**: การออกแบบสำหรับ parallel computing ที่มีประสิทธิภาพ
 
 ### พิจารณาประสิทธิภาพ
 

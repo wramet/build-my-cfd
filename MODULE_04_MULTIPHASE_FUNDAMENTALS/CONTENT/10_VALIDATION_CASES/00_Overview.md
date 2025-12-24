@@ -130,20 +130,20 @@ $$u_t = \sqrt{\frac{2 g d_b (\rho_l - \rho_g)}{C_D \rho_l}}$$
 #### การใช้งานใน OpenFOAM
 
 ```cpp
-// 0/alpha.gas - สัดส่วนเฟสเริ่มต้น
+// 0/alpha.gas - Initial gas phase fraction field
 dimensions      [0 0 0 0 0 0 0];
 internalField   uniform 0;
 
-// สร้างการเริ่มต้นฟองทรงกลม
+// Create spherical bubble initialization
 const Vector<double> bubbleCenter(0.05, 0.05, 0.05);
-const scalar bubbleRadius = 0.004;  // 4 มม.
+const scalar bubbleRadius = 0.004;  // 4 mm
 
 forAll(alphaGas, celli)
 {
     const Vector<double>& cellCenter = mesh.C()[celli];
     scalar r = mag(cellCenter - bubbleCenter);
 
-    // การเริ่มต้นที่ราบรื่นโดยใช้ hyperbolic tangent
+    // Smooth initialization using hyperbolic tangent profile
     scalar alpha = 0.5 * (1 - tanh((r - bubbleRadius) / (0.5 * mesh.V()[celli]^(1.0/3.0))));
     alphaGas[celli] = alpha;
 }
@@ -167,13 +167,25 @@ liquid
 }
 ```
 
+> **Source:** `interFoam` solver in OpenFOAM
+> 
+> **Explanation:** โค้ดนี้สำหรับกำหนดค่าเริ่มต้นของการจำลองการลอยตัวของฟองใน OpenFOAM:
+> - **ส่วนประกอบหลัก**: กำหนดสนามสัดส่วนเฟสก๊าซ (alpha.gas), ตำแหน่งเริ่มต้นของฟองแบบทรงกลม และคุณสมบัติการขนส่ง
+> - **การเริ่มต้นแบบราบรื่น**: ใช้ฟังก์ชัน hyperbolic tangent เพื่อสร้างค่า alpha ที่เปลี่ยนแปลงอย่างนุ่มนวลรอบๆ ผิวฟอง ช่วยลดปัญหาความไม่เสถียรของตัวเลข
+> - **คุณสมบัติของไหล**: น้ำมีความหนาแน่น 1000 kg/m³, ความหนืด 1.0e-6 m²/s และความตึงผิว 0.072 N/m; อากาศมีความหนาแน่น 1.2 kg/m³ และความหนืด 1.5e-5 m²/s
+> 
+> **Key Concepts:**
+> - **Volume of Fluid (VOF)**: การติดตามผิวสัมผัสระหว่างเฟสด้วยสนามสัดส่วนเฟส α
+> - **Hyperbolic tangent smoothing**: ลดความชันของการเปลี่ยนเฟสเพื่อเพิ่มเสถียรภาพของการคำนวณ
+> - **Surface tension**: ความตึงผิวระหว่างน้ำและอากาศสำคัญมากในการจำลองฟอง
+
 #### ฟังก์ชันตรวจสอบความถูกต้อง
 
 ```cpp
-// ฟังก์ชันสำหรับดึงคุณสมบัติฟอง
+// Function to extract bubble properties for validation
 void extractBubbleProperties()
 {
-    // คำนวณจุดศูนย์กลางมวลฟอง
+    // Calculate bubble center of mass
     scalar V_bubble = 0.0;
     Vector<double> r_centroid(0, 0, 0);
 
@@ -188,10 +200,10 @@ void extractBubbleProperties()
 
     r_centroid /= V_bubble;
 
-    // คำนวณความเร็วการขึ้น
+    // Calculate bubble rise velocity
     scalar z_velocity = U_gas.component(2).weightedAverage(alphaGas);
 
-    // คำนวณพารามิเตอร์รูปร่างฟอง
+    // Calculate bubble shape parameters
     scalar aspectRatio = calculateAspectRatio(alphaGas);
 
     Info << "คุณสมบัติฟอง:" << nl
@@ -201,6 +213,18 @@ void extractBubbleProperties()
          << "  อัตราส่วนภาพ: " << aspectRatio << endl;
 }
 ```
+
+> **Source:** Custom post-processing function for bubble column simulations
+> 
+> **Explanation:** ฟังก์ชันนี้ใช้สำหรับดึงคุณสมบัติทางฟิสิกส์ของฟองจากผลการจำลอง CFD เพื่อนำไปเปรียบเทียบกับข้อมูลทดลอง:
+> - **การคำนวณจุดศูนย์กลางมวล**: รวมเอาเซลล์ที่มีค่า alpha > 0.5 เพื่อคำนวณจุดศูนย์กลางมวลของฟอง สำคัญสำหรับติดตามการเคลื่อนที่ของฟอง
+> - **ความเร็วการลอยตัว**: ใช้ค่าเฉลี่ยถ่วงน้ำหนักของสัดส่วนเฟสก๊าซเพื่อให้ได้ความเร็วที่แท้จริงของฟอง
+> - **อัตราส่วนรูปร่าง**: ใช้ประเมินการเปลี่ยนรูปของฟองจากทรงกลมเป็นวงรีหรือรูปร่างที่ซับซ้อนกว่า
+> 
+> **Key Concepts:**
+> - **Center of mass calculation**: ใช้ weighted average เพื่อหาตำแหน่งแท้จริงของฟอง
+> - **Phase-weighted averaging**: คำนวณค่าเฉลี่ยโดยถ่วงน้ำหนักด้วยสัดส่วนเฟสเพื่อลดผลกระทบจากเซลล์ที่ไม่ใช่ฟอง
+> - **Aspect ratio**: ตัวชี้วัดการเปลี่ยนรูปของฟอง สำคัญในการตรวจสอบความถูกต้องของแรง surface tension
 
 #### เกณฑ์การยอมรับ
 
@@ -258,7 +282,7 @@ $$U_{sg,crit} = \sqrt{\frac{(\rho_l - \rho_g) g \cos \beta \, h_l}{\rho_g}}$$
 
 | พารามิเตอร์ | ค่า | หน่วย |
 |---|---|---|
-| มิติเตียง | 0.3 × 0.025 × 1.0 | ม. |
+| มิติเตียง | 0.3 × 0.25 × 1.0 | ม. |
 | ความสูงเตียงเริ่มต้น | 0.5 | ม. |
 | เส้นผ่านศูนย์กลางอนุภาค | 500 | ไมโครเมตร |
 | ความหนาแน่นอนุภาค | 2500 | กก./ลบ.ม. |
@@ -274,20 +298,20 @@ $$\frac{\Delta P}{L} = \frac{150(1-\alpha_s)^2 \mu_g U_{mf}}{\alpha_s^3 d_p^2} +
 #### การใช้งานใน OpenFOAM
 
 ```cpp
-// constant/phaseProperties - คุณสมบัติเฟสของแข็ง
+// constant/phaseProperties - Solid phase properties
 phaseModel solid
 {
     type            incompressible;
     diameterModel   constant;
-    d               5e-4;         // 500 ไมโครเมตร
+    d               5e-4;         // 500 microns
     residualAlpha   1e-6;
-    rho             2500;         // กก./ลบ.ม.
+    rho             2500;         // kg/m³
 
-    // คุณสมบัติอนุภาค
-    maxAlpha        0.64;         // การบรรจงสูงสุด
-    e               0.9;          // สัมประสิทธิ์การชน
+    // Particle properties
+    maxAlpha        0.64;         // Maximum packing
+    e               0.9;          // Collision coefficient
 
-    // แบบจำลองแรงลากสำหรับเตียงไหลฟลูอิดไดซ์
+    // Drag model for fluidized beds
     drag
     {
         type            SyamlalOBrien;
@@ -296,6 +320,18 @@ phaseModel solid
     }
 }
 ```
+
+> **Source:** `twoPhaseEulerFoam` solver configuration in OpenFOAM
+> 
+> **Explanation:** การกำหนดค่าเฟสของแข็งสำหรับการจำลองเตียงไหลฟลูอิดไดซ์ใน OpenFOAM:
+> - **แบบจำลองแรงลาก Syamlal-O'Brien**: เหมาะสำหรับระบบแก๊ส-ของแข็งที่มีการเคลื่อนที่ของอนุภาคสูง เช่น เตียงไหลฟลูอิดไดซ์
+> - **คุณสมบัติอนุภาค**: เส้นผ่านศูนย์กลาง 500 ไมครอน ความหนาแน่น 2500 kg/m³ และสัมประสิทธิ์การชน 0.9
+> - **การบรรจงสูงสุด**: 0.64 เป็นค่าทางทฤษฎีสำหรับการจัดเรียงอนุภาคแบบสุ่ม (random close packing)
+> 
+> **Key Concepts:**
+> - **Syamlal-O'Brien drag model**: พัฒนาขึ้นสำหรับระบบแก๊ส-ของแข็ง พิจารณาทั้งผลกระทบจากความหนืดและเฉื่อยของการไหลที่ผ่านเม็ด
+> - **Maximum packing (α_max)**: ค่าสัดส่วนเฟสของแข็งสูงสุดที่เป็นไปได้ก่อนเกิดการต่อสู้กันของเม็ด
+> - **Collision coefficient (e)**: สัมประสิทธิ์การชน ค่า 0.9 แทนการชนแบบยืดหยุ่นเกือบสมบูรณ์
 
 #### เกณฑ์การยอมรับ
 
@@ -332,7 +368,7 @@ $$\text{Var}(Y) = \sum_{i} V_i + \sum_{i<j} V_{ij} + \cdots + V_{12...k}$$
 #### การ Implement ใน OpenFOAM
 
 ```cpp
-// Monte Carlo uncertainty analysis
+// Monte Carlo uncertainty analysis framework
 class monteCarloAnalysis
 {
 private:
@@ -368,6 +404,18 @@ public:
 };
 ```
 
+> **Source:** Custom uncertainty quantification framework for OpenFOAM
+> 
+> **Explanation:** เฟรมเวิร์กสำหรับวิเคราะห์ความไม่แน่นอนด้วยวิธี Monte Carlo ใน OpenFOAM:
+> - **การสุ่มพารามิเตอร์**: สร้างชุดพารามิเตอร์สุ่มหลายชุดเพื่อคำนวณความแปรปรวนของผลลัพธ์จากความไม่แน่นอนของ input
+> - **การวิ่งแบบขนาน**: แต่ละการจำลองสามารถวิ่งแบบขนานได้ เหมาะสำหรับ HPC cluster
+> - **การคำนวณสถิติ**: คำนวณค่าเฉลี่ย ส่วนเบี่ยงเบนมาตรฐาน และช่วงความเชื่อมั่น 95%
+> 
+> **Key Concepts:**
+> - **Monte Carlo sampling**: ใช้การสุ่มแบบสุ่มเพื่อสำรวจพื้นที่พารามิเตอร์
+> - **Central Limit Theorem**: ความคลาดเคลื่อนลดลงตาม √N
+> - **Confidence interval**: ช่วงที่มีโอกาส 95% ที่ค่าจริงจะอยู่ภายใน
+
 ---
 
 ## เกณฑ์การยอมรับ (Acceptance Criteria)
@@ -388,7 +436,7 @@ public:
 #### การตรวจสอบคุณภาพ Mesh
 
 ```cpp
-// การประเมินคุณภาพกริด
+// Grid quality assessment function
 void assessMeshQuality()
 {
     scalar maxAspectRatio = max(mesh.aspectRatio());
@@ -402,7 +450,7 @@ void assessMeshQuality()
          << "  ความไม่ตั้งฉากสูงสุด: " << maxNonOrthogonality << nl
          << "  ความเบ้สูงสุด: " << maxSkewness << nl;
 
-    // เกณฑ์คุณภาพ
+    // Quality criteria
     bool meshOK = true;
     if (maxAspectRatio > 1000)
     {
@@ -425,6 +473,19 @@ void assessMeshQuality()
     Info << "คุณภาพกริด: " << (meshOK ? "ผ่าน" : "ไม่ผ่าน") << endl;
 }
 ```
+
+> **Source:** OpenFOAM mesh quality utilities (`checkMesh`)
+> 
+> **Explanation:** ฟังก์ชันสำหรับประเมินคุณภาพของกริดก่อนเริ่มการจำลอง:
+> - **Aspect Ratio**: อัตราส่วนระหว่างมิติที่ยาวที่สุดและสั้นที่สุดของเซลล์ ค่าสูงเกินไปอาจทำให้เกิดปัญหาความแม่นยำ
+> - **Orthogonality**: วัดความตั้งฉากของเวกเตอร์ปกติต่อหน้าเซลล์ ค่าต่ำแสดงถึงเมชที่มีคุณภาพดี
+> - **Non-orthogonality**: ค่าสูงแสดงถึงเซลล์ที่บิดเบี้ยว อาจทำให้การคำนวณ diffusion ไม่แม่นยำ
+> - **Skewness**: วัดความบิดเบี้ยวของเซลล์จากรูปร่างอุดมคติ
+> 
+> **Key Concepts:**
+> - **Mesh quality metrics**: ตัวชี้วัดที่สำคัญในการประเมินว่าเมชมีคุณภาพเพียงพอสำหรับการจำลองหรือไม่
+> - **Convergence issues**: เมชที่มีคุณภาพต่ำอาจทำให้การแก้สมการไม่ลู่เข้า
+> - **Numerical diffusion**: เซลล์ที่ไม่ตั้งฉากอาจเพิ่มการ diffusive errors
 
 ### เกณฑ์การยอมรับการตรวจสอบความถูกต้องสุดท้าย
 

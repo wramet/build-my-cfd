@@ -217,27 +217,56 @@ $$\mathbf{M}_{kj}^{vm} = C_{vm} \rho_c \alpha_k \alpha_j \left(\frac{\mathrm{D}\
 
 ```cpp
 // Momentum equation assembly for phase k
+// Temporal term: ∂/∂t(αₖρₖuₖ) + Convective term: ∇·(αₖρₖuₖuₖ)
 fvVectorMatrix UEqn
 (
-    fvm::ddt(alpha, rho, U) + fvm::div(alphaRhoPhi, U)
-  - fvm::Sp(fvc::ddt(alpha, rho) + fvc::div(alphaRhoPhi), U)
-  + turbulence->divDevReff(RhoEff)
+    // Time derivative of momentum for phase k
+    fvm::ddt(alpha, rho, U) 
+    
+    // Convective flux divergence
+    + fvm::div(alphaRhoPhi, U)
+    
+    // Source term correction for mass conservation
+    - fvm::Sp(fvc::ddt(alpha, rho) + fvc::div(alphaRhoPhi), U)
+    
+    // Viscous stress divergence: ∇·(αₖτₖ)
+    + turbulence->divDevReff(RhoEff)
+    
+    // Right-hand side terms
  ==
+    // Pressure gradient force: -αₖ∇p
     - alpha*fvc::grad(p)
+    
+    // Gravitational body force: αₖρₖg
     + alpha*rho*g
-    + phase.Kd()*(U.otherPhase() - U) // Drag coupling
-    + interfacialForces // Lift, virtual mass, etc.
+    
+    // Interphase drag force coupling
+    + phase.Kd()*(U.otherPhase() - U)
+    
+    // Additional interfacial forces (lift, virtual mass, etc.)
+    + interfacialForces
 );
 ```
 
-**การแปลงความหมาย:**
-- `fvm::ddt(alpha, rho, U)` แทน $\frac{\partial}{\partial t}(\alpha_k \rho_k \mathbf{u}_k)$
-- `fvm::div(alphaRhoPhi, U)` แทน $\nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \mathbf{u}_k)$
-- `fvc::grad(p)` แทน $\nabla p$
-- `turbulence->divDevReff(RhoEff)` แทน $\nabla \cdot (\alpha_k \boldsymbol{\tau}_k)$
-- `alpha*rho*g` แทน $\alpha_k \rho_k \mathbf{g}$
-- `phase.Kd()*(U.otherPhase() - U)` แทน $\mathbf{M}_{kj}^{drag}$
-- `interfacialForces` แทนแรงระหว่างเฟสอื่นๆ
+**แหล่งที่มา:**
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+- **ไฟล์นี้เป็นส่วนหลักในการจัดการการถ่ายเทโมเมนตัมระหว่างเฟส** ใน OpenFOAM
+- **MomentumTransferPhaseSystem** เป็นคลาสที่ควบคุมการคำนวณแรงระหว่างเฟสทั้งหมด (drag, lift, virtual mass, etc.)
+- การแปลงความหมายระหว่างสมการทางคณิตศาสตร์และโค้ด C++:
+  - `fvm::ddt(alpha, rho, U)` → $\frac{\partial}{\partial t}(\alpha_k \rho_k \mathbf{u}_k)$
+  - `fvm::div(alphaRhoPhi, U)` → $\nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \mathbf{u}_k)$
+  - `fvc::grad(p)` → $\nabla p$
+  - `turbulence->divDevReff(RhoEff)` → $\nabla \cdot (\alpha_k \boldsymbol{\tau}_k)$
+  - `alpha*rho*g` → $\alpha_k \rho_k \mathbf{g}$
+  - `phase.Kd()*(U.otherPhase() - U)` → $\mathbf{M}_{kj}^{drag}$
+  - `interfacialForces` → แรงระหว่างเฟสอื่นๆ
+
+**แนวคิดสำคัญ:**
+- **fvm** (finite volume method) ใช้สำหรับเทอมที่ต้องการ implicit treatment
+- **fvc** (finite volume calculus) ใช้สำหรับเทอม explicit
+- **alphaRhoPhi** คือ surface flux field ที่ถูกสร้างจากการรวม $\alpha$, $\rho$, และ flux $\phi$
 
 ### การเชื่อมโยงความดัน-ความเร็ว
 
@@ -247,29 +276,235 @@ OpenFOAM ใช้เทคนิค **Partial Elimination Algorithm (PEA)** เ
 
 ```cpp
 // OpenFOAM interfacial momentum transfer implementation
+// Template class for two-phase momentum exchange
 template<class Phase1, class Phase2>
 tmp<volVectorField> Phase1Phase2Model<Phase1, Phase2>::K() const
 {
-    // Drag force
+    // Calculate drag coefficient from drag model
+    // Kd represents the drag exchange coefficient
     volScalarField Kd = dragModel_->K();
 
-    // Lift force
+    // Calculate lift force vector field
+    // Accounts for shear-induced lateral forces
     volVectorField Flift = liftModel_->F();
 
-    // Virtual mass
+    // Virtual mass coefficient
+    // Cvm = 0.5 for spherical particles (added mass effect)
     volScalarField Cvm = virtualMassModel_->Cvm();
 
-    // Total interfacial momentum transfer
-    return Kd * (phase2_.U() - phase1_.U())
-         + Flift
-         + Cvm * rho1_ * (DDt(phase2_.U()) - DDt(phase1_.U()));
+    // Total interfacial momentum transfer combining all forces
+    // Returns the net momentum exchange between phases
+    return Kd * (phase2_.U() - phase1_.U())          // Drag contribution
+         + Flift                                     // Lift contribution
+         + Cvm * rho1_ * (DDt(phase2_.U()) - DDt(phase1_.U()));  // Virtual mass
 }
 ```
 
-**การแปลงความหมาย:**
-- `Kd * (phase2_.U() - phase1_.U())` แทน $\mathbf{M}_{kj}^{drag}$
-- `Flift` แทน $\mathbf{M}_{kj}^{lift}$
-- `Cvm * rho1_ * (DDt(phase2_.U()) - DDt(phase1_.U()))` แทน $\mathbf{M}_{kj}^{vm}$
+**แหล่งที่มา:**
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
+
+**คำอธิบาย:**
+- **phaseSystem.H** เป็นไฟล์หลักที่กำหนดโครงสร้างของระบบเฟสใน OpenFOAM
+- **คลาสแม่แบบ (template class)** นี้อนุญาตให้จัดการกับคู่เฟสใดๆ ได้อย่างยืดหยุ่น
+- การแปลงความหมาย:
+  - `Kd * (phase2_.U() - phase1_.U())` → $\mathbf{M}_{kj}^{drag} = K_{kj}(\mathbf{u}_j - \mathbf{u}_k)$
+  - `Flift` → $\mathbf{M}_{kj}^{lift} = C_L \rho_c \alpha_k \alpha_j (\mathbf{u}_j - \mathbf{u}_k) \times (\nabla \times \mathbf{u}_c)$
+  - `Cvm * rho1_ * (DDt(phase2_.U()) - DDt(phase1_.U()))` → $\mathbf{M}_{kj}^{vm}$
+
+**แนวคิดสำคัญ:**
+- **DDt()** คือ material derivative $\frac{\mathrm{D}\mathbf{u}}{\mathrm{D}t} = \frac{\partial \mathbf{u}}{\partial t} + \mathbf{u} \cdot \nabla \mathbf{u}$
+- **dragModel_**, **liftModel_**, **virtualMassModel_** คือ pointer ไปยัง model ที่ถูกเลือกจาก dictionary
+- **การคืนค่าแบบ tmp<volVectorField>** เป็นเทคนิค memory management ใน OpenFOAM
+
+### การจัดการ Moving Phase Model
+
+```cpp
+// Moving phase model implementation
+// Handles phase motion and momentum transport
+class MovingPhaseModel : public phaseModel
+{
+    // Phase velocity field
+    volVectorField U_;
+
+    // Volumetric flux field (surface scalar field)
+    surfaceScalarField phi_;
+
+    // Mass flux field
+    surfaceScalarField alphaPhi_;
+
+    // Density field
+    volScalarField rho_;
+
+public:
+    // Constructor
+    MovingPhaseModel
+    (
+        const fvMesh& mesh,
+        const word& phaseName
+    )
+    :
+        phaseModel(mesh, phaseName),
+        U_
+        (
+            IOobject
+            (
+                IOobject::groupName("U", phaseName),
+                mesh.time().timeName(),
+                mesh,
+                IOobject::MUST_READ,
+                IOobject::AUTO_WRITE
+            ),
+            mesh
+        ),
+        phi_
+        (
+            IOobject
+            (
+                IOobject::groupName("phi", phaseName),
+                mesh.time().timeName(),
+                mesh,
+                IOobject::READ_IF_PRESENT,
+                IOobject::AUTO_WRITE
+            ),
+            linearInterpolate(U_) & mesh.Sf()
+        ),
+        // ... additional initialization
+    {}
+
+    // Access methods
+    const volVectorField& U() const { return U_; }
+    volVectorField& U() { return U_; }
+    
+    const surfaceScalarField& phi() const { return phi_; }
+    surfaceScalarField& phi() { return phi_; }
+};
+```
+
+**แหล่งที่มา:**
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+
+**คำอธิบาย:**
+- **MovingPhaseModel** เป็นคลาสที่แทนเฟสที่เคลื่อนที่ได้ (เช่น ของไหล ไม่ใช่ของแข็ง)
+- **Fields หลัก:**
+  - **U_**: Velocity field ($\mathbf{u}_k$)
+  - **phi_**: Volumetric flux field ($\phi = \mathbf{u} \cdot \mathbf{S}_f$)
+  - **alphaPhi_**: Volume fraction flux ($\alpha \phi$)
+  - **rho_**: Density field ($\rho_k$)
+
+**แนวคิดสำคัญ:**
+- **IOobject** กำหนดวิธีการอ่าน/เขียน fields จาก disk
+- **MUST_READ** ต้องมีไฟล์ input
+- **AUTO_WRITE** เขียนผลลัพธ์อัตโนมัติเมื่อ save
+- **linearInterpolate(U_) & mesh.Sf()** คำนวณ flux ที่ face centers
+
+### การจัดการ Turbulence ใน Multiphase Flow
+
+```cpp
+// Kinetic theory model for granular flows
+// Calculates viscosity and other transport properties
+class kineticTheoryModel
+{
+    // Granular temperature field
+    volScalarField Theta_;
+
+    // Granular viscosity
+    volScalarField nu_;
+
+public:
+    // Calculate deviatoric stress divergence
+    // Returns: ∇·(αₖτₖ) for momentum equation
+    tmp<volVectorField> divDevReff(const volScalarField& alphaEff) const
+    {
+        // Calculate symmetric gradient of velocity
+        // ∇uₖ + (∇uₖ)ᵀ
+        tmp<volSymmTensorField> tgradU = fvc::grad(U_);
+        
+        // Deviatoric part of stress tensor
+        // τₖ = μₖ(∇uₖ + ∇uₖᵀ) - (2/3)μₖ(∇·uₖ)I
+        volSymmTensorField gradU = tgradU();
+        volSymmTensorField devTau =
+            alphaEff
+           *(
+                gradU + gradU.T()
+              - (2.0/3.0)*tr(gradU)*I
+            );
+        
+        // Return divergence of deviatoric stress
+        return fvc::div(devTau);
+    }
+};
+```
+
+**แหล่งที่มา:**
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**คำอธิบาย:**
+- **kineticTheoryModel** ใช้สำหรับ granular flows (เช่น ทราย อนุภาคของแข็ง)
+- **Granular temperature (Theta_)**: วัดพลังงานจลน์ของการเคลื่อนที่แบบสุ่มของอนุภาค
+- **devTau** คือ deviatoric stress tensor:
+  $$\boldsymbol{\tau}_k = \mu_k \left(\nabla \mathbf{u}_k + \nabla \mathbf{u}_k^T\right) - \frac{2}{3}\mu_k (\nabla \cdot \mathbf{u}_k)\mathbf{I}$$
+
+**แนวคิดสำคัญ:**
+- **fvc::grad(U_)**: คำนวณ velocity gradient tensor
+- **gradU.T()**: transpose ของ gradient tensor
+- **tr(gradU)**: trace (ค่าเชิงเส้น) ของ gradient tensor = $\nabla \cdot \mathbf{u}$
+- **I**: Identity tensor
+
+### ตัวอย่างการอ่าน Properties จาก Dictionary
+
+```cpp
+// Read phase properties from transport dictionary
+// Similar to solidDisplacementThermo implementation
+void readPhaseProperties(volScalarField& property) const
+{
+    // Get sub-dictionary for this property
+    const dictionary& propDict(transportDict.subDict(property.name()));
+    
+    // Read property type
+    const word propType(propDict.lookup("type"));
+
+    if (propType == "uniform")
+    {
+        // Constant value across entire domain
+        property == dimensionedScalar
+        (
+            property.name(),
+            property.dimensions(),
+            propDict.lookup<scalar>("value")
+        );
+    }
+    else if (propType == "field")
+    {
+        // Spatially varying field from file
+        const volScalarField propField
+        (
+            IOobject
+            (
+                property.name(),
+                mesh.time().timeName(0),
+                mesh,
+                IOobject::MUST_READ,
+                IOobject::NO_WRITE
+            ),
+            mesh
+        );
+        property == propField;
+    }
+}
+```
+
+**แหล่งที่มา:**
+📂 **Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C` (adapted pattern)
+
+**คำอธิบาย:**
+- **รูปแบบนี้ถูกนำมาประยุกต์ใช้** ใน multiphase solvers สำหรับอ่านคุณสมบัติเฟส
+- **ประเภท uniform**: ค่าคงที่ทั่วทั้ง domain (เช่น ความหนาแน่นคงที่)
+- **ประเภท field**: ค่าที่เปลี่ยนตามตำแหน่งจากไฟล์
+
+**แนวคิดสำคัญ:**
+- **dictionary lookup**: อ่านค่าจาก input files
+- **dimensionedScalar**: ค่าที่มีหน่วยกำกับ
+- **IOobject::MUST_READ**: ต้องมีไฟล์ field ใน time directory
 
 ---
 

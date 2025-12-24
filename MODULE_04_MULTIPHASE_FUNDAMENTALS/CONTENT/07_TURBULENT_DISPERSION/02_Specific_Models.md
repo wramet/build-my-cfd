@@ -58,7 +58,8 @@ $$D_{TD,k} = \frac{\mu_{t,c}}{\sigma_{TD}} \frac{\alpha_k \alpha_l}{\alpha_{max}
 ### OpenFOAM Implementation
 
 ```cpp
-// Gradient Diffusion Model ใน OpenFOAM
+// Gradient Diffusion Model in OpenFOAM
+// Calculate turbulent dispersion force using gradient diffusion approach
 template<class PhaseType>
 Foam::tmp<Foam::volVectorField>
 Foam::TurbulentDispersionModel<PhaseType>::F_TD() const
@@ -66,12 +67,14 @@ Foam::TurbulentDispersionModel<PhaseType>::F_TD() const
     const PhaseType& phase = this->phase();
     const PhaseType& otherPhase = this->otherPhase();
 
+    // Get turbulent dispersion coefficient
     volScalarField DTD = this->DTD();
 
+    // Return turbulent dispersion force: -D_TD * grad(alpha)
     return -DTD*fvc::grad(phase);
 }
 
-// การคำนวณ DTD สำหรับโมเดลของ Burns et al.
+// Calculate DTD for Burns et al. model
 template<class PhaseType>
 Foam::tmp<Foam::volScalarField>
 Foam::BurnsDispersionModel<PhaseType>::DTD() const
@@ -79,11 +82,27 @@ Foam::BurnsDispersionModel<PhaseType>::DTD() const
     const PhaseType& phase = this->phase();
     const PhaseType& otherPhase = this->otherPhase();
 
+    // D_TD = (mu_t,c / sigma_TD) * (alpha_k * alpha_l / alpha_max)
     return
         (this->turbulence().nut()/sigmaTD_)
        *(phase*otherPhase/alphaMax_);
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/interfacialModels/turbulentDispersionModels/turbulentDispersionModel/turbulentDispersionModel.H`
+
+**คำอธิบาย (Explanation):**
+
+โค้ดด้านบนแสดงการนำโมเดลของ Burns et al. ไปใช้ใน OpenFOAM ซึ่งประกอบด้วยสองฟังก์ชันหลัก:
+
+1. **`F_TD()`**: ฟังก์ชันคำนวณแรงกระจายตัวจากความปั่นป่วน (turbulent dispersion force) โดยใช้สูตร $\mathbf{F}_{TD} = -D_{TD} \nabla \alpha$
+2. **`DTD()`**: ฟังก์ชันคำนวณสัมประสิทธิ์การกระจายตัว $D_{TD}$ ตามสมการของ Burns et al.
+
+**แนวคิดสำคัญ (Key Concepts):**
+
+- การใช้ `fvc::grad(phase)` สำหรับคำนวณเกรเดียนต์ของสัดส่วนปริมาตร
+- การคำนวณ $D_{TD}$ ใช้ความหนืดของความปั่นป่วน (`nut()`) และสัดส่วนปริมาตรของทั้งสองเฟส
+- ค่า `sigmaTD_` และ `alphaMax_` เป็นพารามิเตอร์ที่กำหนดใน dictionary
 
 ```mermaid
 flowchart LR
@@ -164,15 +183,19 @@ $$l_c = C_\mu^{3/4} \frac{k_c^{3/2}}{\epsilon_c} \tag{4.2}$$
 ### OpenFOAM Implementation
 
 ```cpp
+// Simonin Turbulent Dispersion Model Implementation
+// Based on kinetic theory of granular flows
 class SimoninTurbulentDispersion
 :
     public turbulentDispersionModel
 {
 private:
-    // สัมประสิทธิ์การกระจายตัวของความปั่นป่วน
+    // Turbulent dispersion coefficient (C_TD)
     dimensionedScalar CTD_;
 
 public:
+    // Calculate turbulent dispersion coefficient D
+    // D = C_TD * sqrt(k_c) * l_c
     virtual tmp<volScalarField> D() const
     {
         const phaseModel& continuous = pair_.continuous();
@@ -180,12 +203,14 @@ public:
         const volScalarField& k = continuous.turbulence().k();
         const volScalarField& epsilon = continuous.turbulence().epsilon();
 
-        // มาตราส่วนความยาวความปั่นป่วน
+        // Calculate turbulent length scale: l_T = k^(3/2) / epsilon
         volScalarField lT = pow(k, 1.5)/epsilon;
 
+        // Return dispersion coefficient
         return CTD_*sqrt(k)*lT;
     }
 
+    // Calculate turbulent dispersion force Fi
     virtual tmp<volVectorField> Fi() const
     {
         const phaseModel& dispersed = pair_.dispersed();
@@ -197,10 +222,26 @@ public:
 
         const volScalarField Dtd = this->D();
 
+        // F_i = -rho_c * D_TD * alpha_d * alpha_c * grad(alpha_d) / max(alpha_c, small)
         return -rhoC*Dtd*alphaD*alphaC*fvc::grad(alphaD)/max(alphaC, small);
     }
 };
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/interfacialModels/turbulentDispersionModels/SimininTurbulentDispersion/SimininTurbulentDispersion.H`
+
+**คำอธิบาย (Explanation):**
+
+โค้ดนี้แสดงการนำโมเดลของ Simonin ไปใช้ใน OpenFOAM ซึ่งอิงตามทฤษฎีจลนศาสตร์:
+
+1. **`D()`**: คำนวณสัมประสิทธิ์การกระจายตัวโดยใช้สมการ $D_{TD} = C_{TD} \sqrt{k_c} l_c$
+2. **`Fi()`**: คำนวณแรงกระจายตัวโดยพิจารณาความหนาแน่นและสัดส่วนปริมาตรของทั้งสองเฟส
+
+**แนวคิดสำคัญ (Key Concepts):**
+
+- การใช้ `pow(k, 1.5)/epsilon` สำหรับคำนวณมาตราส่วนความยาวของความปั่นป่วน
+- การใช้ `max(alphaC, small)` เพื่อป้องกันการหารด้วยศูนย์
+- โมเดลนี้เหมาะสำหรับระบบที่มีความหนาแน่นสูง เช่น fluidized beds
 
 โมเดลนี้เหมาะสำหรับระบบ **Fluidized Bed** หรือสารแขวนลอยที่มีความเข้มข้นสูง
 
@@ -282,7 +323,7 @@ $$St = \frac{\tau_p}{\tau_t} = \frac{\rho_k d_k^2}{18 \mu_c} \sqrt{\frac{\epsilo
 **นิยามตัวแปรเพิ่มเติม:**
 - $\tau_p$: เวลาผ่อนคลายของอนุภาค (particle relaxation time)
 - $\tau_t$: ช่วงเวลาของความปั่นป่วน (turbulent timescale)
-- $d_k$: เส้นผ่านศูนย์กลางลักษณะเฉพาะของอนุภาค/หยด
+- $d_k$: เส้นผ่านศูนย์กลางลักษณะเฉพาุของอนุภาค/หยด
 - $\mu_c$: ความหนืดจลนศาสตร์ของเฟสต่อเนื่อง
 - $\epsilon$: อัตราการสลายตัวของความปั่นป่วน
 - $\nu$: ความหนืดจลน์ (kinematic viscosity)
@@ -440,9 +481,12 @@ $$\langle \boldsymbol{\xi}(t) \cdot \boldsymbol{\xi}(t') \rangle = \delta(t-t') 
 ### OpenFOAM Code: การเชื่อมโยงกับรุ่นการลาก
 
 ```cpp
-// แรงลากและแรงการกระจายตัวของความปั่นป่วนรวมกัน
+// Interfacial momentum transfer: combining all force models
+// Total interfacial force F = F_drag + F_turbulentDispersion + F_lift + F_virtualMass
+template<class BasePhaseSystem>
 tmp<volVectorField> PhasePair::F() const
 {
+    // Create a temporary force field initialized to zero
     tmp<volVectorField> tF
     (
         new volVectorField
@@ -462,21 +506,25 @@ tmp<volVectorField> PhasePair::F() const
 
     volVectorField& F = tF.ref();
 
+    // Add drag force contribution if valid
     if (drag_.valid())
     {
         F += drag_->F();
     }
 
+    // Add turbulent dispersion force contribution if valid
     if (turbulentDispersion_.valid())
     {
         F += turbulentDispersion_->F();
     }
 
+    // Add lift force contribution if valid
     if (lift_.valid())
     {
         F += lift_->F();
     }
 
+    // Add virtual mass force contribution if valid
     if (virtualMass_.valid())
     {
         F += virtualMass_->F();
@@ -485,6 +533,22 @@ tmp<volVectorField> PhasePair::F() const
     return tF;
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย (Explanation):**
+
+โค้ดนี้แสดงวิธีการรวมแรงทั้งหมดที่กระทำต่ออินเทอร์เฟสระหว่างเฟสใน OpenFOAM:
+
+1. **การสร้างฟิลด์แรง**: สร้างฟิลด์เวกเตอร์สำหรับเก็บแรงรวมที่มิติเป็น [kg/(m²·s²)]
+2. **การเพิ่มแรงแต่ละชนิด**: ตรวจสอบว่าโมเดลแรงแต่ละชนิดมีความถูกต้องหรือไม่ และเพิ่มผลกระทบของแรงนั้นๆ ลงในฟิลด์แรงรวม
+3. **แรงที่รวมเข้าด้วยกัน**: แรงลาก (drag), การกระจายตัวจากความปั่นป่วน (turbulent dispersion), แรงยก (lift), และแรงมวลเสมือน (virtual mass)
+
+**แนวคิดสำคัญ (Key Concepts):**
+
+- การใช้ `.valid()` สำหรับตรวจสอบว่ามีการกำหนดโมเดลแรงหรือไม่
+- การใช้ `dimensionSet(1, -2, -2, 0, 0, 0, 0)` สำหรับกำหนดมิติของแรงต่อหน่วยปริมาตร
+- การเพิ่มแรงทั้งหมดเข้าด้วยกันในสมการโมเมนตัมของแต่ละเฟส
 
 ```mermaid
 flowchart TD

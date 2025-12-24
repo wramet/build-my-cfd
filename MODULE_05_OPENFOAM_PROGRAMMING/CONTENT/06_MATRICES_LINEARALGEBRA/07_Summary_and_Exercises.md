@@ -58,17 +58,36 @@ public:
 };
 ```
 
+> **📂 Source:** OpenFOAM source code: `src/OpenFOAM/matrices/Matrix/Matrix.H`
+
+> **📖 Explanation:** เมทริกซ์แบบหนาแน่น (Dense Matrix) ใน OpenFOAM ใช้การจัดเรียงข้อมูลแบบ Row-major ซึ่งเหมาะกับประสิทธิภาพของ Cache เนื่องจากข้อมูลในแถวเดียวกันจะถูกเก็บอย่างต่อเนื่องในหน่วยความจำ ทำให้การเข้าถึงข้อมูลตามลำดับเป็นไปอย่างรวดเร็ว
+
+> **🔑 Key Concepts:**
+> - **Contiguous Memory**: การจัดเก็บข้อมูลอย่างต่อเนื่องเพื่อประสิทธิภาพของ Cache
+> - **Row-major Layout**: การจัดเรียงข้อมูลทีละแถวเพื่อให้การอ้างอิงตำแหน่งในแถวเดียวกันมีประสิทธิภาพสูง
+> - **Template Parameters**: การใช้ Template ใน C++ เพื่อสร้างเมทริกซ์หลายขนาดโดยไม่ต้องเขียน Code ซ้ำ
+
 **Sparse Matrix LDU Format:**
 ```cpp
+// LDU storage format for sparse matrices
 class lduMatrix
 {
-    scalarField diag_;   // Diagonal coefficients
-    scalarField upper_;  // Upper triangular coefficients
-    scalarField lower_;  // Lower triangular coefficients
-    labelList upperAddr_; // Addressing for upper triangle
-    labelList lowerAddr_; // Addressing for lower triangle
+    scalarField diag_;        // Diagonal coefficients
+    scalarField upper_;       // Upper triangular coefficients
+    scalarField lower_;       // Lower triangular coefficients
+    labelList upperAddr_;     // Addressing for upper triangle
+    labelList lowerAddr_;     // Addressing for lower triangle
 };
 ```
+
+> **📂 Source:** OpenFOAM source code: `src/OpenFOAM/matrices/lduMatrix/lduMatrix.H`
+
+> **📖 Explanation:** รูปแบบ LDU (Lower-Diagonal-Upper) เป็นวิธีการจัดเก็บเมทริกซ์เบาบาง (Sparse Matrix) ที่ใช้ประโยชน์จากโครงสร้างของระบบสมการในการแบ่งพื้นที่ (Finite Volume) ซึ่งมีเฉพาะสมาชิกที่ไม่เป็นศูนย์เท่านั้น ทำให้ประหยัดหน่วยความจำอย่างมาก
+
+> **🔑 Key Concepts:**
+> - **Sparse Storage**: การจัดเก็บเฉพาะค่าที่ไม่เป็นศูนย์เพื่อประหยัดหน่วยความจำ
+> - **LDU Format**: การแยกเก็บส่วน Lower, Diagonal, และ Upper ของเมทริกซ์
+> - **Addressing Arrays**: การใช้ Array ช่วยในการอ้างอิงตำแหน่งของสมาชิกแต่ละตัวในเมทริกซ์
 
 **Memory Comparison:**
 | Matrix Type | Storage Complexity | 10⁶ Cell Problem |
@@ -102,40 +121,54 @@ flowchart TD
 **Solver Configuration Examples:**
 
 ```cpp
-// Pressure equation (symmetric, positive definite)
-p
+// Pressure equation solver configuration
+solvers
 {
-    solver          PCG;
-    preconditioner  DIC;
-    tolerance       1e-06;
-    relTol          0.01;
-}
+    p
+    {
+        solver          PCG;              // Preconditioned Conjugate Gradient
+        preconditioner  DIC;              // Diagonal Incomplete Cholesky
+        tolerance       1e-06;            // Absolute tolerance
+        relTol          0.01;             // Relative tolerance
+    }
 
-// Momentum equation (asymmetric, convection-dominated)
-U
-{
-    solver          PBiCGStab;
-    preconditioner  DILU;
-    tolerance       1e-05;
-    relTol          0.1;
-}
+    // Momentum equation solver configuration
+    U
+    {
+        solver          PBiCGStab;        // Preconditioned BiCGStab
+        preconditioner  DILU;             // Diagonal Incomplete LU
+        tolerance       1e-05;            // Absolute tolerance
+        relTol          0.1;              // Relative tolerance
+    }
 
-// Large systems (> 10⁶ cells)
-p
-{
-    solver          GAMG;
-    preconditioner  DIC;
-    tolerance       1e-06;
-    relTol          0.01;
+    // Large systems solver configuration
+    p
+    {
+        solver          GAMG;             // Geometric Algebraic Multigrid
+        preconditioner  DIC;
+        tolerance       1e-06;
+        relTol          0.01;
 
-    // GAMG-specific settings
-    nCellsInCoarsestLevel  100;
-    agglomerator           faceAreaPair;
-    mergeLevels            1;
-    nPreSweeps             0;
-    nPostSweeps            2;
+        // GAMG-specific settings
+        nCellsInCoarsestLevel  100;       // Coarsest grid size
+        agglomerator           faceAreaPair;  // Agglomeration method
+        mergeLevels            1;         // Level merging
+        nPreSweeps             0;         // Pre-smoothing sweeps
+        nPostSweeps            2;         // Post-smoothing sweeps
+    }
 }
 ```
+
+> **📂 Source:** OpenFOAM application example: `.applications/test/patchRegion/cavity_pinched/system/fvSolution`
+
+> **📖 Explanation:** การตั้งค่าตัวแก้ปัญหาใน OpenFOAM ทำผ่านไฟล์ `fvSolution` ซึ่งอนุญาตให้กำหนด Solver และ Preconditioner ที่แตกต่างกันสำหรับแต่ละตัวแปร ตัวแก้ปัญหา PCG เหมาะกับระบบสมมาตรเชิงบวกแน่นอน (เช่น Pressure Poisson) ส่วน PBiCGStab เหมาะกับระบบไม่สมมาตร (เช่น Momentum) และ GAMG เหมาะกับปัญหาขนาดใหญ่
+
+> **🔑 Key Concepts:**
+> - **PCG (Preconditioned Conjugate Gradient)**: ตัวแก้ปัญหาแบบ Krylov สำหรับระบบสมมาตรเชิงบวกแน่นอน
+> - **PBiCGStab (Preconditioned Bi-Conjugate Gradient Stabilized)**: ตัวแก้ปัญหาสำหรับระบบไม่สมมาตร
+> - **GAMG (Geometric-Algebraic Multigrid)**: ตัวแก้ปัญหาแบบ Multigrid สำหรับปัญหาขนาดใหญ่
+> - **Tolerance Controls**: การควบคุมความแม่นยำของการแก้ปัญหาด้วยค่าสัมบูรณ์และสัมพัทธ์
+> - **Preconditioner**: เทคนิคการปรับปรุงเงื่อนไขของเมทริกซ์เพื่อเร่งการลู่เข้า
 
 ### 3. Dimensional Consistency
 
@@ -150,6 +183,15 @@ volVectorField U(mesh, dimensionSet(0, 1, -1, 0, 0, 0, 0));  // [m/s]
 // ρ ∂u/∂t + ρ(u·∇)u = -∇p + μ∇²u + f
 // Each term has dimensions [kg/(m²·s²)] (force per volume)
 ```
+
+> **📂 Source:** OpenFOAM source code: `src/OpenFOAM/fields/DimensionedField/DimensionedField.H`
+
+> **📖 Explanation:** ระบบชนิดข้อมูลของ OpenFOAM มีการตรวจสอบความสอดคล้องทางมิติ (Dimensional Consistency) ตั้งแต่เวลาคอมไพล์ ซึ่งป้องกันข้อผิดพลาดทางฟิสิกส์ที่อาจเกิดจากการใช้หน่วยวัดที่ไม่ถูกต้อง
+
+> **🔑 Key Concepts:**
+> - **dimensionSet**: ชนิดข้อมูลแทนมิติทางฟิสิกส์ (Mass, Length, Time, etc.)
+> - **Compile-time Checking**: การตรวจสอบความถูกต้องของมิติตั้งแต่เวลาคอมไพล์
+> - **Physical Consistency**: การรักษาความสอดคล้องของสมการทางฟิสิกส์
 
 **Dimension Analysis Table:**
 | Term | Mathematical Form | Dimensions |
@@ -175,19 +217,39 @@ volVectorField U(mesh, dimensionSet(0, 1, -1, 0, 0, 0, 0));  // [m/s]
 // Dirichlet condition implementation
 forAll(patch, facei)
 {
+    // Get cell index for this face
     label celli = patch.faceCells()[facei];
+    
+    // Apply large penalty to diagonal
     matrix.diag()[celli] += GREAT;  // Large penalty
+    
+    // Modify source term with boundary value
     source[celli] += GREAT * boundaryValue[facei];
 }
 
 // Neumann condition implementation
 forAll(patch, facei)
 {
+    // Get cell index for this face
     label celli = patch.faceCells()[facei];
+    
+    // Add flux contribution to source
     source[celli] += patchFlux[facei] * patchArea[facei];
-    // Diagonal unchanged
+    
+    // Diagonal remains unchanged for Neumann BC
 }
 ```
+
+> **📂 Source:** OpenFOAM source code: `src/finiteVolume/fields/fvPatchFields/`
+
+> **📖 Explanation:** การนำเงื่อนไขขอบเขต (Boundary Conditions) ไปใช้ในระบบสมการเชิงเส้นมีผลต่อโครงสร้างของเมทริกซ์ เงื่อนไข Dirichlet ปรับค่าทแยงและ Source term ในขณะที่ Neumann เพิ่มเฉพาะ Source term
+
+> **🔑 Key Concepts:**
+> - **Dirichlet BC**: เงื่อนไขขอบเขตแบบกำหนดค่า (Fixed Value)
+> - **Neumann BC**: เงื่อนไขขอบเขตแบบกำหนดกราเดียนต์ (Fixed Gradient)
+> - **Robin BC**: เงื่อนไขขอบเขตแบบผสม (Mixed)
+> - **Penalty Method**: วิธีการใช้ค่าใหญ่มาก (GREAT) เพื่อบังคับเงื่อนไข Dirichlet
+> - **Matrix Assembly**: การประกอบเมทริกซ์จากเงื่อนไขขอบเขต
 
 ---
 
@@ -224,6 +286,16 @@ Info << "Matrix diagonal sum: " << sum(matrix.diag()) << nl
      << "Number of non-zeros: " << matrix.lduAddr().upperAddr().size() << endl;
 ```
 
+> **📂 Source:** OpenFOAM source code: `src/finiteVolume/fields/fvPatchFields/`
+
+> **📖 Explanation:** การประกอบเมทริกซ์ (Matrix Assembly) สำหรับสมการความร้อนใช้ฟังก์ชัน `fvm::laplacian` ซึ่งสร้างระบบสมการเชิงเส้นอัตโนมัติพร้อมเงื่อนไขขอบเขต
+
+> **🔑 Key Concepts:**
+> - **fvScalarMatrix**: ชนิดเมทริกซ์สำหรับสมการสเกลาร์
+> - **laplacian operator**: ตัวดำเนินการ Laplacian สำหรับการนำความร้อน
+> - **lduMatrix**: เมทริกซ์เบาบางรูปแบบ LDU
+> - **Matrix Statistics**: การวิเคราะห์สถิติของเมทริกซ์
+
 2. **Solver Configuration:**
 ```cpp
 // TODO: Configure the appropriate solver
@@ -239,6 +311,15 @@ if (!solverPerf.converged())
         << "  Final residual: " << solverPerf.finalResidual() << endl;
 }
 ```
+
+> **📂 Source:** OpenFOAM source code: `src/OpenFOAM/matrices/lduMatrix/solvers/`
+
+> **📖 Explanation:** การเลือกตัวแก้ปัญหาที่เหมาะสมขึ้นอยู่กับคุณสมบัติของเมทริกซ์ สำหรับสมการความร้อนเชิงอนุพันธ์ เมทริกซ์จะเป็นสมมาตรและเชิงบวกแน่นอน ทำให้ PCG เป็นตัวเลือกที่ดี
+
+> **🔑 Key Concepts:**
+> - **Solver Selection**: การเลือกตัวแก้ปัญหาตามคุณสมบัติของเมทริกซ์
+> - **Convergence Checking**: การตรวจสอบการลู่เข้าของผลเฉลย
+> - **Residual Analysis**: การวิเคราะห์ค่า Residual
 
 3. **Analysis Questions:**
    - Why is the Conjugate Gradient method appropriate for this problem?
@@ -309,6 +390,16 @@ public:
 };
 ```
 
+> **📂 Source:** OpenFOAM source code: `src/OpenFOAM/matrices/lduMatrix/preconditioners/`
+
+> **📖 Explanation:** Preconditioner แบบ Jacobi เป็นวิธีที่เรียบง่ายที่สุดในการปรับปรุงเงื่อนไขของเมทริกซ์ โดยใช้เฉพาะค่าทแยงของเมทริกซ์ แม้จะไม่ซับซ้อนแต่ก็สามารถช่วยเร่งการลู่เข้าได้
+
+> **🔑 Key Concepts:**
+> - **Jacobi Preconditioner**: Preconditioner แบบ Diagonal
+> - **Reciprocal Diagonal**: ค่าผกผันของค่าทแยง
+> - **Preconditioning Operation**: การดำเนินการปรับปรุงเงื่อนไข
+> - **Numerical Stability**: ความเสถียรทางตัวเลข
+
 **Requirements:**
 1. Complete the constructor to compute reciprocal diagonal
 2. Implement the preconditioning operation
@@ -353,6 +444,15 @@ virtual void precondition
     w = rD_ * r;
 }
 ```
+
+> **📂 Source:** OpenFOAM source code: `src/OpenFOAM/matrices/lduMatrix/preconditioners/DIC/DICPreconditioner.C`
+
+> **📖 Explanation:** การใช้งาน Preconditioner แบบ Jacobi ต้องมีการตรวจสอบความเสถียรทางตัวเลขเพื่อป้องกันการหารด้วยศูนย์ โดยการใช้ค่า SMALL เพื่อ Regularization
+
+> **🔑 Key Concepts:**
+> - **Regularization**: การปรับค่าเพื่อป้องกันปัญหาทางตัวเลข
+> - **Element-wise Operation**: การดำเนินการทีละสมาชิก
+> - **Numerical Safety**: มาตรการความปลอดภัยทางตัวเลข
 
 **Testing:**
 ```cpp
@@ -399,6 +499,15 @@ void matVec_naive(const scalarList& values,
     }
 }
 ```
+
+> **📂 Source:** OpenFOAM source code: `src/OpenFOAM/matrices/lduMatrix/lduMatrixOperations.C`
+
+> **📖 Explanation:** การคูณเมทริกซ์กับเวกเตอร์แบบ Naive มีปัญหาเรื่องประสิทธิภาพของ Cache เนื่องจากการเข้าถึงข้อมูลแบบสุ่ม (Random Access) ทำให้เกิด Cache Miss บ่อยครั้ง
+
+> **🔑 Key Concepts:**
+> - **Cache Efficiency**: ประสิทธิภาพของ Cache Memory
+> - **Memory Access Pattern**: รูปแบบการเข้าถึงหน่วยความจำ
+> - **CSR Format**: รูปแบบจัดเก็บ Compressed Sparse Row
 
 **Tasks:**
 
@@ -498,6 +607,16 @@ void matVec_optimized(const scalarList& values,
 }
 ```
 
+> **📂 Source:** OpenFOAM source code: `src/OpenFOAM/matrices/lduMatrix/lduMatrixOperations.C`
+
+> **📖 Explanation:** การปรับปรุงประสิทธิภาพใช้หลายเทคนิคร่วมกัน ได้แก่ Loop Blocking เพื่อให้ใช้ Cache ได้ดีขึ้น, Loop Unrolling เพื่อลด Overhead ของ Loop, และ SIMD Vectorization เพื่อประมวลผลข้อมูลหลายค่าพร้อมกัน
+
+> **🔑 Key Concepts:**
+> - **Loop Blocking**: การแบ่ง Loop เป็น Block เพื่อใช้ Cache ได้ดีขึ้น
+> - **Loop Unrolling**: การขยาย Loop เพื่อลด Overhead
+> - **SIMD Vectorization**: การประมวลผลข้อมูลหลายค่าพร้อมกัน
+> - **Cache Line**: หน่วยข้อมูลที่ถูกโหลดจากหน่วยความจำไปยัง Cache
+
 ---
 
 ### Exercise 4: Parallel Performance Analysis
@@ -524,6 +643,15 @@ for method in simple hierarchical scotch; do
     ./scripts/analyzeLoadBalance.sh
 done
 ```
+
+> **📂 Source:** OpenFOAM application: `.applications/test/patchRegion/cavity_pinched/`
+
+> **📖 Explanation:** การแบ่งโดเมน (Domain Decomposition) มีผลต่อประสิทธิภาพของการคำนวณแบบขนานอย่างมาก การเลือกวิธีการแบ่งที่เหมาะสมช่วยให้ Load Balance ดีขึ้น
+
+> **🔑 Key Concepts:**
+> - **Domain Decomposition**: การแบ่งโดเมนคำนวณเพื่อการประมวลผลแบบขนาน
+> - **Load Balancing**: การกระจายงานให้สมดุลระหว่าง Processor
+> - **Decomposition Methods**: วิธีการแบ่งโดเมน (simple, hierarchical, scotch)
 
 2. **Load Balance Script:**
 ```bash
@@ -555,6 +683,15 @@ else
     echo "✓ Load balance is acceptable"
 fi
 ```
+
+> **📂 Source:** OpenFOAM utilities: `applications/utilities/parallelProcessing/decomposePar/`
+
+> **📖 Explanation:** การวิเคราะห์ Load Balance ทำได้โดยการตรวจสอบจำนวน Cell ในแต่ละ Processor และคำนวณค่า Imbalance ซึ่งควรจะต่ำกว่า 10%
+
+> **🔑 Key Concepts:**
+> - **Load Imbalance**: ความไม่สมดุลของงานระหว่าง Processor
+> - **Cell Distribution**: การกระจาย Cell ระหว่าง Processor
+> - **Performance Threshold**: ค่ามาตรฐานสำหรับประสิทธิภาพ
 
 3. **Performance Benchmarking:**
 ```bash
@@ -588,6 +725,15 @@ for cores in "${coreCounts[@]}"; do
 done
 ```
 
+> **📂 Source:** OpenFOAM application example: `.applications/test/patchRegion/cavity_pinched/`
+
+> **📖 Explanation:** การวัด Scaling Performance ทำได้โดยการรันสูตรด้วยจำนวน Core ที่แตกต่างกันและวัดเวลาการทำงาน จากนั้นคำนวณ Speedup และ Efficiency
+
+> **🔑 Key Concepts:**
+> - **Speedup**: อัตราเร่งของเวลาการทำงานเมื่อเพิ่ม Core
+> - **Efficiency**: ประสิทธิภาพของการใช้งานหลาย Core
+> - **Scaling Analysis**: การวิเคราะห์ประสิทธิภาพการปรับขนาด
+
 4. **Solver Optimization for Parallel:**
 ```cpp
 // Optimized solver settings for parallel runs
@@ -619,6 +765,15 @@ solvers
     }
 }
 ```
+
+> **📂 Source:** OpenFOAM application: `.applications/test/patchRegion/cavity_pinched/system/fvSolution`
+
+> **📖 Explanation:** การตั้งค่า Solver สำหรับการคำนวณแบบขนานมีการตั้งค่าพิเศษ เช่น processorAgglomerator สำหรับการรวมข้อมูลระหว่าง Processor และการลด Synchronization
+
+> **🔑 Key Concepts:**
+> - **Parallel Solver Optimization**: การปรับแต่ง Solver สำหรับการคำนวณแบบขนาน
+> - **Processor Agglomeration**: การรวมข้อมูลระหว่าง Processor
+> - **Synchronization Reduction**: การลดการ Sync ระหว่าง Processor
 
 5. **Communication Analysis:**
 ```cpp
@@ -654,6 +809,15 @@ public:
     }
 };
 ```
+
+> **📂 Source:** OpenFOAM source code: `src/Pstream/mpi/`
+
+> **📖 Explanation:** การวิเคราะห์ Communication Overhead ทำได้โดยการวัดเวลาในช่วง Compute และ Communication แยกกัน เพื่อหาสัดส่วนของเวลาที่ใช้ในการสื่อสาร
+
+> **🔑 Key Concepts:**
+> - **Communication Overhead**: เวลาที่เสียไปกับการสื่อสารระหว่าง Processor
+> - **MPI Timing**: การวัดเวลา MPI Operations
+> - **Compute/Communication Ratio**: สัดส่วนระหว่างเวลาคำนวณและการสื่อสาร
 
 **Expected Results:**
 
@@ -691,6 +855,16 @@ TEqn.solve();
 // BUGGY: Use wrong solver type
 // (PBiCGStab for symmetric matrix)
 ```
+
+> **📂 Source:** OpenFOAM source code: `src/finiteVolume/fields/fvPatchFields/`
+
+> **📖 Explanation:** ข้อผิดพลาดทั่วไปในการใช้ Linear Solver ได้แก่ การไม่ตรวจสอบการลู่เข้า, การเลือก Solver ที่ไม่เหมาะสม, และการไม่จัดการเงื่อนไขขอบเขตอย่างถูกต้อง
+
+> **🔑 Key Concepts:**
+> - **Convergence Checking**: การตรวจสอบการลู่เข้าของ Solver
+> - **Solver Selection**: การเลือก Solver ที่เหมาะสมกับปัญหา
+> - **Boundary Condition Handling**: การจัดการเงื่อนไขขอบเขต
+> - **Error Detection**: การตรวจจับข้อผิดพลาด
 
 **Tasks:**
 
@@ -787,6 +961,16 @@ if (minT < 0 || maxT > 500)
         << "Expected range: 0-500 K" << endl;
 }
 ```
+
+> **📂 Source:** OpenFOAM source code: `src/OpenFOAM/matrices/lduMatrix/solvers/`
+
+> **📖 Explanation:** การแก้ไข Code ให้ถูกต้องต้องมีการตรวจสอบหลายระดับ ได้แก่ การตรวจสอบความสอดคล้องทางมิติ, การเลือก Solver ที่เหมาะสม, การตรวจสอบการลู่เข้า, และการตรวจสอบคุณภาพของผลเฉลย
+
+> **🔑 Key Concepts:**
+> - **Defensive Programming**: การเขียนโปรแกรมที่มีการตรวจสอบข้อผิดพลาด
+> - **Solver Property Analysis**: การวิเคราะห์คุณสมบัติของเมทริกซ์
+> - **Convergence Validation**: การตรวจสอบการลู่เข้า
+> - **Solution Quality Check**: การตรวจสอบคุณภาพของผลเฉลย
 
 ---
 

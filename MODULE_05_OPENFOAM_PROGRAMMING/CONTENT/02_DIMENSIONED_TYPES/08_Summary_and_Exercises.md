@@ -10,7 +10,7 @@
 |-----------|------------|-----------|
 | **ความปลอดภัยทางฟิสิกส์** | ป้องกันความไม่สอดคล้องกันของมิติก่อนการทำงานโปรแกรม | จับข้อผิดพลาดในขณะคอมไพล์ |
 | **ประสิทธิภาพสูง** | โอเวอร์เฮดรันไทม์เป็นศูนย์ใน build ที่ optimize | ไม่กระทบประสิทธิภาพการจำลอง |
-| **ความสามารถในการแสดงออก** | ไวยากรณ์ตามธรรมชาติสำหรับปริมาณทางกายภาพที่ซับซ้อน | โค้ดอ่านง่ายและบำรุงรักษาได้ |
+| **ความสามารถในการแสดงออก** | ไวยากรณ์ตามธรรมชาติสำหหน้าสำหรับปริมาณทางกายภาพที่ซับซ้อน | โค้ดอ่านง่ายและบำรุงรักษาได้ |
 | **ความสามารถในการขยาย** | สถาปัตยกรรม template ที่ยืดหยุ่น | รองรับฟิสิกส์เฉพาะทางและหลายฟิสิกส์ |
 | **การบำรุงรักษาที่ดีขึ้น** | การตรวจจับข้อผิดพลาดในช่วงแรก | ลดเวลา debugging อย่างมาก |
 
@@ -25,16 +25,16 @@
 #### CRTP (Curiously Recurring Template Pattern)
 
 ```cpp
-// Base template ที่ใช้ CRTP
+// Base template using CRTP pattern for static polymorphism
 template<class Derived>
 class DimensionedBase
 {
 public:
-    // CRTP helper สำหรับเข้าถึงคลาส derived
+    // CRTP helper to access derived class methods
     Derived& derived() { return static_cast<Derived&>(*this); }
     const Derived& derived() const { return static_cast<const Derived&>(*this); }
 
-    // Operations ที่นิยามในรูปของ derived class
+    // Operations defined in terms of derived class
     auto operator+(const Derived& other) const
     {
         return Derived::add(derived(), other);
@@ -47,7 +47,7 @@ public:
     }
 };
 
-// Concrete dimensioned type ที่ใช้ CRTP
+// Concrete dimensioned type using CRTP
 template<class Type>
 class dimensioned : public DimensionedBase<dimensioned<Type>>
 {
@@ -57,9 +57,10 @@ private:
     Type value_;
 
 public:
-    // Operations ที่เปิดใช้งาน CRTP
+    // Enable CRTP operations
     friend class DimensionedBase<dimensioned<Type>>;
 
+    // Add two dimensioned quantities with dimension checking
     static dimensioned add(const dimensioned& a, const dimensioned& b)
     {
         if (a.dimensions() != b.dimensions())
@@ -77,6 +78,7 @@ public:
         );
     }
 
+    // Multiply two dimensioned quantities (dimensions multiply)
     static dimensioned multiply(const dimensioned& a, const dimensioned& b)
     {
         return dimensioned(
@@ -88,10 +90,25 @@ public:
 };
 ```
 
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 OpenFOAM/src/OpenFOAM/dimensionedTypes/dimensionedType/dimensionedType.H
+>
+> **คำอธิบาย (Explanation):** CRTP (Curiously Recurring Template Pattern) เป็นเทคนิค template metaprogramming ที่ทำให้ derived class สามารถเรียกใช้ method ของตัวเองผ่าน base class pointer ได้ ใน OpenFOAM ใช้ CRTP เพื่อ:
+> - สร้าง static polymorphism โดยไม่มี overhead ของ virtual functions
+> - กำหนด arithmetic operations ที่มีการตรวจสอบมิติอัตโนมัติ
+> - ลดการทำซ้ำโค้ดด้วยการกำหนด operations ใน base class ครั้งเดียว
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Static Polymorphism:** Compiler resolves function calls at compile-time
+> - **Zero Overhead:** No virtual function table lookup
+> - **Type Safety:** Dimensions checked during compilation
+> - **Code Reuse:** Base class provides common interface
+
 #### Expression Templates
 
 ```cpp
-// Expression template สำหรับ dimensioned addition
+// Expression template for dimensioned addition
 template<class E1, class E2>
 class DimensionedAddExpr
 {
@@ -103,6 +120,7 @@ public:
     typedef typename E1::value_type value_type;
     typedef typename E1::dimension_type dimension_type;
 
+    // Constructor with compile-time dimension verification
     DimensionedAddExpr(const E1& e1, const E2& e2)
     : e1_(e1), e2_(e2)
     {
@@ -116,6 +134,7 @@ public:
         );
     }
 
+    // Evaluate the expression
     value_type value() const { return e1_.value() + e2_.value(); }
     dimension_type dimensions() const { return e1_.dimensions(); }
 
@@ -127,6 +146,21 @@ public:
     }
 };
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 OpenFOAM/src/OpenFOAM/fields/DimensionedField/DimensionedField.H
+>
+> **คำอธิบาย (Explanation):** Expression Templates เป็นเทคนิคที่ช่วย:
+> - ลดการสร้าง temporary objects ใน chain operations ของ fields
+> - เพิ่มประสิทธิภาพโดยการประเมินนิพจน์ทั้งหมดใน loop เดียว
+> - ตรวจสอบมิติในเวลา compile-time ด้วย static_assert
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Lazy Evaluation:** Expressions built but not evaluated immediately
+> - **Loop Fusion:** Multiple operations combined into single loop
+> - **Memory Efficiency:** Reduced temporary allocations
+> - **Compile-Time Checking:** Dimension mismatches caught early
 
 ### 2. ระบบ DimensionSet
 
@@ -143,19 +177,21 @@ struct StaticDimension
     static const int current = I;
     static const int luminous_intensity = J;
 
-    // Compile-time operations
+    // Compile-time multiplication operation
     template<int M2, int L2, int T2, int Theta2, int N2, int I2, int J2>
     using multiply = StaticDimension<
         M + M2, L + L2, T + T2,
         Theta + Theta2, N + N2, I + I2, J + J2
     >;
 
+    // Compile-time division operation
     template<int M2, int L2, int T2, int Theta2, int N2, int I2, int J2>
     using divide = StaticDimension<
         M - M2, L - L2, T - T2,
         Theta - Theta2, N - N2, I - I2, J - J2
     >;
 
+    // Compile-time power operation
     template<int Power>
     using power = StaticDimension<
         M * Power, L * Power, T * Power,
@@ -163,6 +199,21 @@ struct StaticDimension
     >;
 };
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 OpenFOAM/src/OpenFOAM/dimensionSet/dimensionSet.H
+>
+> **คำอธิบาย (Explanation):** StaticDimension ใช้ template parameters เพื่อเก็บค่า exponents ของมิติต่างๆ ในเวลา compile-time:
+> - แต่ละพารามิเตอร์ (M, L, T, ... ) แทนเลขยกกำลังของมิติพื้นฐาน SI
+> - operations เช่น multiply, divide, power คำนวณ exponents ใหม่ที่ compile-time
+> - เป็นพื้นฐานของการตรวจสอบมิติอัตโนมัติ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **7 Base SI Dimensions:** Mass, Length, Time, Temperature, Moles, Current, Luminous Intensity
+> - **Compile-Time Arithmetic:** Dimension operations resolved during compilation
+> - **Type Safety:** Wrong dimensions result in compilation errors
+> - **Zero Runtime Cost:** All dimension checking done at compile-time
 
 ### 3. มิติพื้นฐานและมิติที่ได้มา
 
@@ -181,14 +232,14 @@ struct StaticDimension
 #### มิติที่ได้มาที่ใช้บ่อย
 
 ```cpp
-// มิติพื้นฐาน
+// Base dimensions (มิติพื้นฐาน)
 const dimensionSet dimless(0, 0, 0, 0, 0, 0, 0);
 const dimensionSet dimMass(1, 0, 0, 0, 0, 0, 0);
 const dimensionSet dimLength(0, 1, 0, 0, 0, 0, 0);
 const dimensionSet dimTime(0, 0, 1, 0, 0, 0, 0);
 const dimensionSet dimTemperature(0, 0, 0, 1, 0, 0, 0);
 
-// มิติที่ได้มา
+// Derived dimensions (มิติที่ได้มา)
 const dimensionSet dimPressure(1, -1, -2, 0, 0, 0, 0);
 const dimensionSet dimDensity(1, -3, 0, 0, 0, 0, 0);
 const dimensionSet dimVelocity(0, 1, -1, 0, 0, 0, 0);
@@ -196,6 +247,22 @@ const dimensionSet dimAcceleration(0, 1, -2, 0, 0, 0, 0);
 const dimensionSet dimViscosity(1, -1, -1, 0, 0, 0, 0);
 const dimensionSet dimEnergy(1, 2, -2, 0, 0, 0, 0);
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 OpenFOAM/src/OpenFOAM/dimensionSet/dimensionSetConstants.H
+>
+> **คำอธิบาย (Explanation):** ตารางนี้แสดงมิติที่ใช้บ่อยใน CFD:
+> - **dimPressure** = Mass × Length⁻¹ × Time⁻² = [M L⁻¹ T⁻²]
+> - **dimDensity** = Mass × Length⁻³ = [M L⁻³]
+> - **dimVelocity** = Length × Time⁻¹ = [L T⁻¹]
+> - **dimViscosity** = Mass × Length⁻¹ × Time⁻¹ = [M L⁻¹ T⁻¹]
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Dimensional Homogeneity:** All terms in equation must have same dimensions
+> - **Dimensionless Numbers:** Ratios that eliminate all dimensions (e.g., Reynolds)
+> - **SI Base Units:** Foundation of all derived quantities
+> - **Dimensional Analysis:** Tool for validating equations and scaling
 
 ---
 
@@ -207,10 +274,11 @@ const dimensionSet dimEnergy(1, 2, -2, 0, 0, 0, 0);
 > การตรวจสอบมิติในเวลาคอมไพล์ใช้เทคนิค SFINAE, static_assert, และ expression templates เพื่อจับข้อผิดพลาดก่อนการรันโปรแกรม
 
 ```cpp
-// Template metaprogramming เพื่อการตรวจสอบมิติ
+// Template metaprogramming for dimension checking
 template<class Dim1, class Dim2>
 struct DimensionalAnalysis<Dim1, Dim2, AddOp>
 {
+    // Addition requires identical dimensions
     static_assert(
         std::is_same<Dim1, Dim2>::value,
         "Dimensions must match for addition"
@@ -221,12 +289,28 @@ struct DimensionalAnalysis<Dim1, Dim2, AddOp>
 template<class Dim1, class Dim2>
 struct DimensionalAnalysis<Dim1, Dim2, MultiplyOp>
 {
+    // Multiplication combines dimension exponents
     using result_dimension = typename Dim1::template multiply<
         Dim2::mass, Dim2::length, Dim2::time, Dim2::temperature,
         Dim2::moles, Dim2::current, Dim2::luminous_intensity
     >;
 };
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 OpenFOAM/src/OpenFOAM/dimensionSet/dimensionSet.C
+>
+> **คำอธิบาย (Explanation):** Template metaprogramming ทำให้:
+> - Compiler ตรวจสอบความถูกต้องของมิติก่อนสร้าง executable
+> - ข้อผิดพลาดแสดงเป็น compile-time errors ที่ชัดเจน
+> - operations ที่ซับซ้อนถูก resolve ที่ compile-time
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **SFINAE:** Substitution Failure Is Not An Error - enables conditional compilation
+> - **Static Assertion:** Compile-time checks with error messages
+> - **Type Traits:** Compile-time type introspection
+> - **Zero Runtime Overhead:** No cost in production builds
 
 ### 2. การตรวจสอบในเวลารันไทม์
 
@@ -315,6 +399,21 @@ private:
 };
 ```
 
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 OpenFOAM/src/finiteVolume/cfdTools/general/adjustPressure/adjustPressure.C
+>
+> **คำอธิบาย (Explanation):** Runtime dimension checking จำเป็นเมื่อ:
+> - อ่านค่าจาก dictionary files ที่มิติไม่รู้จักจนกว่าจะถูกอ่าน
+> - ตรวจสอบ field dimensions ก่อนดำเนินการ solver
+> - validate ว่าสมการมีความสมดุลทางมิติ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Input Validation:** Catch user errors before computation
+> - **Equation Balance:** Verify dimensional homogeneity
+> - **Debugging Aid:** Clear error messages identify dimension issues
+> - **Safety Net:** Catches issues compile-time checking might miss
+
 ---
 
 ## ทฤษฎีและหลักการทางคณิตศาสตร์
@@ -329,6 +428,21 @@ $$[Q_i] = \prod_{j=1}^k D_j^{a_{ij}}$$
 
 ทฤษฎีบทนี้มองหาการรวมกันของปริมาณไร้มิติ `$\Pi_m$` ที่เกิดจาก:
 $$\Pi_m = \prod_{i=1}^n Q_i^{b_{im}} \quad \text{โดยที่} \quad \sum_{i=1}^n a_{ij} b_{im} = 0 \quad \forall j$$
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 Fluid Mechanics Fundamentals
+>
+> **คำอธิบาย (Explanation):** ทฤษฎีบท Buckingham π:
+> - ลดจำนวนตัวแปรในปัญหาโดยการรวมกลุ่มเป็นจำนวนไร้มิติ
+> - `n` = จำนวนตัวแปร, `k` = จำนวนมิติพื้นฐาน (7 มิติ SI)
+> - ได้ `n - k` จำนวน π groups ที่เป็นอิสระกัน
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Dimensional Homogeneity:** Physical laws must be dimensionally consistent
+> - **Scale Invariance:** Physics doesn't depend on units
+> - **Similarity:** Same π groups → dynamically similar systems
+> - **Experimental Design:** Reduce number of experiments needed
 
 ### 2. การวิเคราะห์มิติของสมการ Navier-Stokes
 
@@ -345,6 +459,25 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \
 | การแพร่ | `$\mu \nabla^2 \mathbf{u}$` | `$ML^{-2}T^{-2}$` |
 | แรงภายนอก | `$\mathbf{f}$` | `$ML^{-2}T^{-2}$` |
 
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS
+>
+> **คำอธิบาย (Explanation):** สมการ Navier-Stokes แสดงหลักการสมดุลของแรง:
+> - **Unsteady Term:** การเปลี่ยนแปลงความเร็วตามเวลา
+> - **Convection:** การเคลื่อนที่ของของไหลเอง
+> - **Pressure Gradient:** แรงผลักดันจากความดัน
+> - **Viscous Diffusion:** แรงเหนียวที่ลดความเร็ว
+> - **External Forces:** แรงภายนอกเช่นแรงโน้มถ่วง
+>
+> ทุกพจน์ต้องมีมิติเดียวกัน = แรงต่อปริมาตร [M L⁻² T⁻²]
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Force Balance:** Momentum conservation
+> - **Dimensional Consistency:** All terms must match
+> - **Physical Meaning:** Each term represents different physical process
+> - **Scaling:** Dimensionless numbers relate term magnitudes
+
 ### 3. การทำให้ไร้มิติและจำนวนไร้มิติ
 
 #### จำนวน Reynolds
@@ -352,19 +485,35 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \
 $$\mathrm{Re} = \frac{\rho U L}{\mu} = \frac{\text{แรงเฉื่อย}}{\text{แรงเหนียว}}$$
 
 ```cpp
-dimensionedScalar L("L", dimLength, 1.0);           // ความยาวลักษณะ
-dimensionedScalar U("U", dimVelocity, 10.0);        // ความเร็ว
-dimensionedScalar nu("nu", dimViscosity, 1e-6);     // ความหนืดจลน์
+dimensionedScalar L("L", dimLength, 1.0);           // Characteristic length
+dimensionedScalar U("U", dimVelocity, 10.0);        // Characteristic velocity
+dimensionedScalar nu("nu", dimViscosity, 1e-6);     // Kinematic viscosity
 
-// จำนวนเรย์โนลด์: Re = U*L/nu (ไม่มีมิติ)
+// Reynolds number: Re = U*L/nu (dimensionless)
 dimensionedScalar Re = U*L/nu;
 
-// Re จะไม่มีมิติโดยอัตโนมัติสำหรับการตรวจสอบมิติ
+// Re is automatically dimensionless for dimension checking
 if (Re.value() > 2300)
 {
-    Info << "การไหลเป็นแบบปั่นป่วน" << endl;
+    Info << "Flow is turbulent" << endl;
 }
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 OpenFOAM/src/OpenFOAM/dimensionedTypes/dimensionedScalar/dimensionedScalar.C
+>
+> **คำอธิบาย (Explanation):** จำนวน Reynolds:
+> - เป็นอัตราส่วนระหว่างแรงเฉื่อยและแรงเหนียว
+> - Re < 2300: การไหลแบบ laminar (เรียบ)
+> - Re > 4000: การไหลแบบ turbulent (ปั่นป่วน)
+> - 2300 < Re < 4000: บริเวณ transition
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Flow Regimes:** Reynolds number determines flow type
+> - **Similarity:** Same Re → dynamically similar flows
+> - **Scale Independence:** Re independent of absolute scale
+> - **Physical Insight:** Ratio of forces
 
 #### จำนวนไร้มิติที่สำคัญอื่นๆ
 
@@ -376,6 +525,22 @@ if (Re.value() > 2300)
 | **Prandtl** | `$\mathrm{Pr} = \frac{\mu c_p}{k}$` | การแพร่โมเมนตัม/ความร้อน |
 | **Peclet** | `$\mathrm{Pe} = \frac{\rho c_p U L}{k}$` | การนำความร้อน convection/conduction |
 | **Nusselt** | `$\mathrm{Nu} = \frac{h L}{k}$` | การถ่ายเทความร้อน convection/conduction |
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/04_Dimensionless_Numbers.md
+>
+> **คำอธิบาย (Explanation):** จำนวนไร้มิติแต่ละตัวแทนอัตราส่วนของแรงหรือกระบวนการ:
+> - **Froude:** สำคัญในปัญหา free surface (คลื่นน้ำ)
+> - **Mach:** สำคัญในการไหลแบบ compressible (เครื่องบิน)
+> - **Prandtl:** สำคัญในปัญหาความร้อน
+> - **Nusselt:** ใช้วัดประสิทธิภาพการถ่ายเทความร้อน
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Physical Insight:** Numbers reveal dominant physics
+> - **Similarity:** Enable scaling and model testing
+> - **Regime Classification:** Define flow/heat transfer regimes
+> - **Correlation Parameters:** Used in empirical correlations
 
 ---
 
@@ -393,20 +558,20 @@ public:
         const volVectorField& fluidForce,    // [N/m³]
         volVectorField& structuralDisplacement)  // [m]
     {
-        // การตรวจสอบและแปลงมิติอัตโนมัติ
+        // Automatic dimension checking and conversion
         dimensionSet forceDims = fluidForce.dimensions();
         dimensionSet displacementDims = structuralDisplacement.dimensions();
 
-        // ตรวจสอบความสอดคล้องทางฟิสิกส์
+        // Verify physical consistency
         if (forceDims != dimForce/dimVolume)
         {
             FatalErrorInFunction << "Fluid force has wrong dimensions" << abort(FatalError);
         }
 
-        // การคำนวณพร้อมความปลอดภัยด้านมิติ
+        // Calculate displacement with dimension safety
         structuralDisplacement = complianceTensor_ & fluidForce;
 
-        // ตรวจสอบมิติของผลลัพธ์
+        // Verify result dimensions
         if (structuralDisplacement.dimensions() != dimLength)
         {
             FatalErrorInFunction << "Displacement dimension error" << abort(FatalError);
@@ -422,6 +587,22 @@ private:
 };
 ```
 
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 MODULE_03_SINGLE_PHASE_FLOW/CONTENT/05_PRACTICAL_APPLICATIONS
+>
+> **คำอธิบาย (Explanation):** Fluid-Structure Interaction (FSI):
+> - **Fluid Force:** แรงที่ของไหลกระทำต่อโครงสร้าง [N/m³]
+> - **Compliance Tensor:** ค่าสัมประสิทธิ์ที่เชื่อมโยงแรงและการกระจัด [m/N]
+> - **Displacement:** การเคลื่อนที่ของโครงสร้าง [m]
+> - ระบบ dimensioned ช่วยตรวจสอบความถูกต้องของมิติอัตโนมัติ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Multiphysics Coupling:** Different physics share consistent dimensions
+> - **Boundary Conditions:** Force/displacement transfer at interface
+> - **Safety Net:** Prevents dimensional errors in coupling
+> - **Code Verification:** Ensures physical consistency
+
 #### ปัญหาความร้อน-ของไหล
 
 ```cpp
@@ -429,23 +610,23 @@ class ThermoFluidDimensions
 {
 public:
     static void verifyEnergyEquation(
-        const dimensionedScalar& rho,      // ความหนาแน่น [M L⁻³]
-        const dimensionedScalar& cp,       // ความจุความร้อนจำเพาะ [L² T⁻² Θ⁻¹]
-        const dimensionedScalar& T,        // อุณหภูมิ [Θ]
-        const dimensionedScalar& k,        // สภาพนำความร้อน [M L T⁻³ Θ⁻¹]
-        const dimensionedScalar& source)   // แหล่งพลังงาน [M L⁻¹ T⁻³]
+        const dimensionedScalar& rho,      // Density [M L⁻³]
+        const dimensionedScalar& cp,       // Specific heat [L² T⁻² Θ⁻¹]
+        const dimensionedScalar& T,        // Temperature [Θ]
+        const dimensionedScalar& k,        // Thermal conductivity [M L T⁻³ Θ⁻¹]
+        const dimensionedScalar& source)   // Energy source [M L⁻¹ T⁻³]
     {
-        // มิติของพจน์ convection: ρ·cp·U·∇T
+        // Convection term dimensions: ρ·cp·U·∇T
         dimensionSet convectionDims =
             rho.dimensions() * cp.dimensions() * dimVelocity * dimTemperature / dimLength;
         // = [M L⁻³]·[L² T⁻² Θ⁻¹]·[L T⁻¹]·[Θ]·[L⁻¹] = [M L⁻¹ T⁻³]
 
-        // มิติของพจน์ diffusion: ∇·(k·∇T)
+        // Diffusion term dimensions: ∇·(k·∇T)
         dimensionSet diffusionDims =
             k.dimensions() * dimTemperature / (dimLength * dimLength);
         // = [M L T⁻³ Θ⁻¹]·[Θ]·[L⁻²] = [M L⁻¹ T⁻³]
 
-        // ตรวจสอบว่าพจน์ทั้งหมดมีมิติเหมือนกัน
+        // Verify all terms have matching dimensions
         if (convectionDims != diffusionDims || convectionDims != source.dimensions())
         {
             FatalErrorInFunction
@@ -459,28 +640,44 @@ public:
 };
 ```
 
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 MODULE_03_SINGLE_PHASE_FLOW/CONTENT/04_HEAT_TRANSFER
+>
+> **คำอธิบาย (Explanation):** สมการพลังงานในปัญหาความร้อน-ของไหล:
+> - **Convection:** การถ่ายเทความร้อนโดยการเคลื่อนที่ของของไหล (ρcpU·∇T)
+> - **Diffusion:** การนำความร้อน (∇·(k∇T))
+> - **Source:** แหล่งกำเนิดหรือดูดซับความร้อน
+> - ทุกพจน์ต้องมีมิติเท่ากัน: [M L⁻¹ T⁻³] = พลังงานต่อปริมาตรต่อเวลา
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Energy Balance:** Conservation of thermal energy
+> - **Heat Transfer Mechanisms:** Convection and conduction
+> - **Dimensional Consistency:** All terms must match
+> - **Thermodynamics:** Coupled with fluid dynamics
+
 ### 2. การวิเคราะห์มิติของเทนเซอร์
 
 ```cpp
 class TensorDimensionalAnalysis
 {
 public:
-    // ตรวจสอบมิติของสมการร่วม Newtonian
+    // Verify Newtonian constitutive equation dimensions
     static void verifyNewtonianConstitutive(
-        const dimensionedTensor& tau,      // เทนเซอร์ความเค้น
-        const dimensionedTensor& gammaDot, // เทนเซอร์อัตราการยืดหยุ่น
-        const dimensionedScalar& mu)       // ความหนืด
+        const dimensionedTensor& tau,      // Stress tensor
+        const dimensionedTensor& gammaDot, // Strain rate tensor
+        const dimensionedScalar& mu)       // Viscosity
     {
-        // มิติของความเค้น: [M L⁻¹ T⁻²]
+        // Stress dimensions: [M L⁻¹ T⁻²]
         dimensionSet stressDims = dimPressure;
 
-        // มิติของอัตราการยืดหยุ่น: [T⁻¹]
+        // Strain rate dimensions: [T⁻¹]
         dimensionSet strainRateDims(0, 0, -1, 0, 0, 0, 0);
 
-        // มิติของความหนืด: [M L⁻¹ T⁻¹]
+        // Viscosity dimensions: [M L⁻¹ T⁻¹]
         dimensionSet viscosityDims = dimDynamicViscosity;
 
-        // ตรวจสอบความสัมพันธ์ Newtonian: τ = μ·γ̇
+        // Verify Newtonian relation: τ = μ·γ̇
         dimensionSet expectedTauDims = mu.dimensions() * gammaDot.dimensions();
         if (tau.dimensions() != expectedTauDims)
         {
@@ -494,6 +691,22 @@ public:
 };
 ```
 
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 OpenFOAM/src/OpenFOAM/fields/TensorField/TensorField.H
+>
+> **คำอธิบาย (Explanation):** สมการรัฐธรรมนูญของไหลนิวตัน (Newtonian Constitutive Equation):
+> - **Stress Tensor (τ):** เทนเซอร์ความเค้น [M L⁻¹ T⁻²]
+> - **Strain Rate (γ̇):** เทนเซอร์อัตราการเสียรูป [T⁻¹]
+> - **Viscosity (μ):** ความหนืด [M L⁻¹ T⁻¹]
+> - สมการ: τ = μ·γ̇ (ความเค้นเป็นสัดส่วนโดยตรงกับอัตราการเสียรูป)
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Newtonian Fluids:** Linear stress-strain rate relationship
+> - **Tensor Fields:** Multi-dimensional physical quantities
+> - **Constitutive Equations:** Material properties relate flux to gradient
+> - **Non-Newtonian:** More complex relationships possible
+
 ---
 
 ## แบบฝึกหัด
@@ -505,21 +718,35 @@ public:
 **โจทย์:** สร้าง dimensionedScalar สำหรับความเร็ว ความดัน และความหนาแน่น จากนั้นตรวจสอบว่าการดำเนินการทางคณิตศาสตร์ถูกต้อง
 
 ```cpp
-// สร้าง dimensionedScalar
+// Create dimensionedScalar quantities
 dimensionedScalar velocity("U", dimVelocity, 10.0);      // m/s
 dimensionedScalar pressure("p", dimPressure, 101325.0);  // Pa
 dimensionedScalar density("rho", dimDensity, 1.2);        // kg/m³
 
-// แบบฝึกหัด: ตรวจสอบการดำเนินการเหล่านี้
-// auto result1 = velocity + pressure;    // ควรจะเกิดข้อผิดพลาด
-// auto result2 = pressure / density;     // ควรจะถูกต้อง
-// auto result3 = velocity * velocity;    // ควรจะถูกต้อง
+// Exercise: Check these operations
+// auto result1 = velocity + pressure;    // Should error
+// auto result2 = pressure / density;     // Should be valid
+// auto result3 = velocity * velocity;    // Should be valid
 
-// คำถาม:
-// 1. result1 จะเกิดข้อผิดพลาดหรือไม่? ทำไม?
-// 2. result2 มีมิติเป็นอะไร?
-// 3. result3 มีมิติเป็นอะไร?
+// Questions:
+// 1. Will result1 produce an error? Why?
+// 2. What are the dimensions of result2?
+// 3. What are the dimensions of result3?
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 OpenFOAM/src/OpenFOAM/dimensionedTypes/dimensionedScalar
+>
+> **คำอธิบาย (Explanation):** แบบฝึกหัดนี้ฝึก:
+> - การสร้าง dimensioned quantities ที่มีมิติถูกต้อง
+> - การตรวจสอบ operations ที่ถูกต้องและผิดพลาด
+> - การเข้าใจว่า operations ต่างๆ ส่งผลต่อมิติอย่างไร
+>
+> **คำตอบ:**
+> 1. result1: **เกิด error** - ไม่สามารถบวกความเร็วกับความดันได้ (มิติไม่ตรงกัน)
+> 2. result2: **[L² T⁻²]** = pressure/density = (M L⁻¹ T⁻²)/(M L⁻³) = L² T⁻²
+> 3. result3: **[L² T⁻²]** = velocity² = (L T⁻¹)² = L² T⁻²
 
 #### แบบฝึกหัดที่ 2: การคำนวณจำนวน Reynolds
 
@@ -532,17 +759,38 @@ dimensionedScalar calculateReynoldsNumber(
     const dimensionedScalar& L,
     const dimensionedScalar& mu)
 {
-    // แบบฝึกหัด: เติมโค้ดที่ขาดหาย
+    // Exercise: Fill in missing code
 
-    // คำถาม:
-    // 1. จำนวน Reynolds ควรคำนวณอย่างไร?
-    // 2. จะตรวจสอบว่าผลลัพธ์เป็นปริมาณไร้มิติหรือไม่?
-    // 3. ถ้าอินพุตมีมิติไม่ถูกต้องจะเกิดอะไรขึ้น?
+    // Questions:
+    // 1. How should Reynolds number be calculated?
+    // 2. How to verify the result is dimensionless?
+    // 3. What happens if inputs have wrong dimensions?
 
-    dimensionedScalar Re;  // ให้เติมโค้ด
+    dimensionedScalar Re;  // Fill in code
     return Re;
 }
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS
+>
+> **คำอธิบาย (Explanation):** การคำนวณจำนวน Reynolds:
+> - **สูตร:** Re = ρUL/μ
+> - ρ = density [M L⁻³], U = velocity [L T⁻¹]
+> - L = length [L], μ = dynamic viscosity [M L⁻¹ T⁻¹]
+> - ผลลัพธ์ต้องไม่มีมิติ: [M⁰ L⁰ T⁰]
+>
+> **โค้ด:**
+> ```cpp
+> dimensionedScalar Re("Re", dimless, rho.value() * U.value() * L.value() / mu.value());
+> 
+> // Verify dimensionless
+> if (Re.dimensions() != dimless)
+> {
+>     FatalErrorInFunction << "Re is not dimensionless!" << abort(FatalError);
+> }
+> ```
 
 ---
 
@@ -556,24 +804,48 @@ $$\rho c_p \frac{\partial T}{\partial t} = k \nabla^2 T + \dot{q}$$
 
 ```cpp
 void verifyEnergyEquationDimensions(
-    const dimensionedScalar& rho,      // ความหนาแน่น
-    const dimensionedScalar& cp,       // ความจุความร้อนจำเพาะ
-    const dimensionedScalar& T,        // อุณหภูมิ
-    const dimensionedScalar& k,        // สภาพนำความร้อน
-    const dimensionedScalar& q_dot)    // แหล่งพลังงาน
+    const dimensionedScalar& rho,      // Density
+    const dimensionedScalar& cp,       // Specific heat
+    const dimensionedScalar& T,        // Temperature
+    const dimensionedScalar& k,        // Thermal conductivity
+    const dimensionedScalar& q_dot)    // Energy source
 {
-    // แบบฝึกหัด:
-    // 1. หามิติของพจน์ซ้ายมือ (LHS)
-    // 2. หามิติของพจน์ขวามือ (RHS)
-    // 3. ตรวจสอบว่าทั้งสองมีมิติตรงกันหรือไม่
-    // 4. เขียนข้อความแสดงข้อผิดพลาดที่ชัดเจน
+    // Exercise:
+    // 1. Find LHS dimensions
+    // 2. Find RHS dimensions
+    // 3. Verify both sides match
+    // 4. Write clear error messages
 
     dimensionSet lhsDims;
     dimensionSet rhsDims;
 
-    // ให้เติมโค้ด
+    // Fill in code
 }
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 MODULE_03_SINGLE_PHASE_FLOW/CONTENT/04_HEAT_TRANSFER
+>
+> **คำอธิบาย (Explanation):** การตรวจสอบสมการพลังงาน:
+> - **LHS:** ρ cp ∂T/∂t = [M L⁻³]·[L² T⁻² Θ⁻¹]·[Θ]·[T⁻¹] = [M L⁻¹ T⁻³]
+> - **RHS:** k ∇²T + q̇ = [M L T⁻³ Θ⁻¹]·[Θ]·[L⁻²] + [M L⁻¹ T⁻³] = [M L⁻¹ T⁻³]
+> - ทั้งสองฝั่งต้องมีมิติเท่ากัน
+>
+> **โค้ด:**
+> ```cpp
+> // LHS: ρ·cp·∂T/∂t
+> dimensionSet lhsDims = rho.dimensions() * cp.dimensions() * T.dimensions() / dimTime;
+> 
+> // RHS: k·∇²T + q̇
+> dimensionSet diffusionTerm = k.dimensions() * T.dimensions() / (dimLength * dimLength);
+> 
+> // Check consistency
+> if (lhsDims != diffusionTerm || lhsDims != q_dot.dimensions())
+> {
+>     FatalErrorInFunction << "Dimension mismatch!" << abort(FatalError);
+> }
+> ```
 
 #### แบบฝึกหัดที่ 4: การทำให้ไร้มิติ
 
@@ -596,16 +868,39 @@ public:
         volScalarField& p,
         const ReferenceScales& scales)
     {
-        // แบบฝึกหัด:
-        // 1. ทำให้ฟิลด์ความเร็วเป็นไร้มิติ
-        // 2. ทำให้ฟิลด์ความดันเป็นไร้มิติ
-        // 3. ตรวจสอบว่าผลลัพธ์เป็นปริมาณไร้มิติ
-        // 4. คำนวณจำนวน Reynolds และ Froude
+        // Exercise:
+        // 1. Non-dimensionalize velocity field
+        // 2. Non-dimensionalize pressure field
+        // 3. Verify results are dimensionless
+        // 4. Calculate Reynolds and Froude numbers
 
-        // ให้เติมโค้ด
+        // Fill in code
     }
 };
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION
+>
+> **คำอธิบาย (Explanation):** การทำให้สมการไร้มิติ:
+> - **Velocity:** U* = U/U_ref
+> - **Pressure:** p* = p/(ρ U²)
+> - **Length:** x* = x/L_ref
+> - **Time:** t* = t U/L
+>
+> **โค้ด:**
+> ```cpp
+> // Non-dimensionalize velocity
+> U /= scales.velocity.value();
+> 
+> // Non-dimensionalize pressure
+> p /= (scales.density.value() * scales.velocity.value() * scales.velocity.value());
+> 
+> // Calculate dimensionless numbers
+> dimensionedScalar Re = (scales.density * scales.velocity * scales.length) / scales.viscosity;
+> dimensionedScalar Fr = scales.velocity / sqrt(dimAcceleration * scales.length);
+> ```
 
 ---
 
@@ -626,14 +921,35 @@ public:
         nExtendedDimensions
     };
 
-    // แบบฝึกหัด:
-    // 1. ขยายคลาสเพื่อรองรับมิติเพิ่มเติม
-    // 2. implement การดำเนินการพื้นฐาน (+, -, *, /)
-    // 3. เขียนตัวอย่างการใช้งาน
+    // Exercise:
+    // 1. Extend class to support additional dimensions
+    // 2. Implement basic operations (+, -, *, /)
+    // 3. Write usage examples
 
-    // ให้เติมโค้ด
+    // Fill in code
 };
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 OpenFOAM Programming Extensions
+>
+> **คำอธิบาย (Explanation):** การขยายระบบมิติ:
+> - เพิ่มมิติพิเศษเช่น **Currency** (เงิน) หรือ **Information** (ข้อมูล)
+> - ต้อง implement:
+>   - Constructor สำหรับมิติใหม่
+>   - Arithmetic operations
+>   - Comparison operators
+>   - Output formatting
+>
+> **ตัวอย่าง:**
+> ```cpp
+> extendedDimensionSet moneyPerGB(0, 0, 0, 0, 0, 0, 0);
+> moneyPerGB[CURRENCY] = 1;      // $
+> moneyPerGB[INFORMATION] = -1;  // /GB
+> 
+> dimensionedScalar cloudCost("cost", moneyPerGB, 0.05);  // $0.05 per GB
+> ```
 
 #### แบบฝึกหัดที่ 6: การใช้งาน Expression Templates
 
@@ -648,15 +964,38 @@ private:
     const E2& e2_;
 
 public:
-    // แบบฝึกหัด:
-    // 1. กำหนด value_type และ dimension_type
-    // 2. Implement constructor ที่ตรวจสอบมิติ
-    // 3. Implement value() และ dimensions() methods
-    // 4. เปิดใช้งาน chaining ของ expression
+    // Exercise:
+    // 1. Define value_type and dimension_type
+    // 2. Implement constructor with dimension checking
+    // 3. Implement value() and dimensions() methods
+    // 4. Enable expression chaining
 
-    // ให้เติมโค้ด
+    // Fill in code
 };
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 OpenFOAM/src/OpenFOAM/fields/DimensionedField
+>
+> **คำอธิบาย (Explanation):** Expression Templates สำหรับ dimensioned operations:
+> - **Lazy Evaluation:** สร้าง expression tree แทนการคำนวณทันที
+> - **Type Safety:** ตรวจสอบมิติที่ compile-time
+> - **Performance:** ลด temporary objects
+>
+> **โค้ด:**
+> ```cpp
+> template<class E1, class E2>
+> class DimensionedMultiplyExpr
+> {
+> public:
+>     typedef decltype(E1::value() * E2::value()) value_type;
+>     typedef decltype(E1::dimensions() * E2::dimensions()) dimension_type;
+> 
+>     value_type value() const { return e1_.value() * e2_.value(); }
+>     dimension_type dimensions() const { return e1_.dimensions() * e2_.dimensions(); }
+> };
+> ```
 
 #### แบบฝึกหัดที่ 7: การวิเคราะห์มิติ FSI
 
@@ -666,17 +1005,17 @@ public:
 class AdvancedFSIDimensions
 {
 public:
-    // แบบฝึกหัด:
-    // 1. Implement การตรวจสอบความเข้ากันได้ของแรง
-    // 2. Implement การตรวจสอบความเข้ากันได้ของพลังงาน
-    // 3. คำนวณพารามิเตอร์ไร้มิติสำหรับ FSI
-    // 4. เขียนรายงานความเข้ากันได้ของมิติ
+    // Exercise:
+    // 1. Implement force transfer compatibility check
+    // 2. Implement energy transfer compatibility check
+    // 3. Calculate dimensionless FSI parameters
+    // 4. Write dimension compatibility report
 
     static void verifyForceTransfer(
         const volVectorField& fluidTraction,
         const volVectorField& structuralForce)
     {
-        // ให้เติมโค้ด
+        // Fill in code
     }
 
     static dimensionedScalar computeAddedMassCoefficient(
@@ -685,10 +1024,55 @@ public:
         const dimensionedScalar& rho_s,
         const dimensionedScalar& V_s)
     {
-        // ให้เติมโค้ด
+        // Fill in code
     }
 };
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 MODULE_03_SINGLE_PHASE_FLOW/CONTENT/05_PRACTICAL_APPLICATIONS
+>
+> **คำอธิบาย (Explanation):** Fluid-Structure Interaction (FSI) Dimension Analysis:
+> - **Force Transfer:** Fluid traction [M L⁻² T⁻²] ↔ Structural force [M L T⁻²]
+> - **Added Mass Coefficient:** C_a = ρ_f V_f / (ρ_s V_s) (dimensionless)
+> - **Compatibility:** Interface quantities must have consistent dimensions
+>
+> **โค้ด:**
+> ```cpp
+> static void verifyForceTransfer(
+>     const volVectorField& fluidTraction,
+>     const volVectorField& structuralForce)
+> {
+>     // Fluid traction: [M L⁻² T⁻²]
+>     // Structural force per unit area: [M L⁻¹ T⁻²]
+>     
+>     if (fluidTraction.dimensions() != dimPressure)
+>     {
+>         FatalErrorInFunction << "Wrong fluid traction dimensions" << abort(FatalError);
+>     }
+>     
+>     // Verify compatibility at interface
+>     dimensionSet tractionDims = fluidTraction.dimensions() * dimLength;
+>     if (tractionDims != structuralForce.dimensions())
+>     {
+>         FatalErrorInFunction << "Force transfer dimension mismatch" << abort(FatalError);
+>     }
+> }
+> 
+> static dimensionedScalar computeAddedMassCoefficient(
+>     const dimensionedScalar& rho_f,
+>     const dimensionedScalar& V_f,
+>     const dimensionedScalar& rho_s,
+>     const dimensionedScalar& V_s)
+> {
+>     // Added mass coefficient: C_a = ρ_f V_f / (ρ_s V_s)
+>     dimensionedScalar Ca("Ca", dimless,
+>         (rho_f * V_f).value() / (rho_s * V_s).value());
+>     
+>     return Ca;
+> }
+> ```
 
 ---
 
@@ -698,7 +1082,7 @@ public:
 
 1. **ระบุตำแหน่งข้อผิดพลาด**:
    ```cpp
-   // เปิดการตรวจสอบมิติแบบละเอียด
+   // Enable detailed dimension checking
    #ifdef FULLDEBUG
        Info << "Variable dimensions: " << var.dimensions() << endl;
    #endif
@@ -706,7 +1090,7 @@ public:
 
 2. **ตรวจสอบความสอดคล้องของมิติ**:
    ```cpp
-   // ตรวจสอบทีละคู่
+   // Check dimensions pairwise
    if (dim1 != dim2)
    {
        Info << "Dimension mismatch:" << endl;
@@ -723,6 +1107,22 @@ public:
    );
    ```
 
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 OpenFOAM Debugging Best Practices
+>
+> **คำอธิบาย (Explanation):** เทคนิค debugging ปัญหามิติ:
+> - **FULLDEBUG Mode:** แสดงข้อมูลมิติอย่างละเอียด
+> - **Pairwise Checking:** เปรียบเทียบมิติทีละคู่
+> - **Static Assertions:** ตรวจสอบในเวลา compile
+> - **Clear Messages:** แสดงข้อความ error ที่ชัดเจน
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Early Detection:** จับ error ให้เร็วที่สุด
+> - **Clear Diagnostics:** ข้อความ error ต้องชัดเจน
+> - **Systematic Approach:** ตรวจสอบทีละขั้นตอน
+> - **Development Aids:** Tools สำหรับ debug mode
+
 ### กลยุทธ์การเพิ่มประสิทธิภาพ
 
 1. **ใช้ expression templates** เพื่อกำจัด temporary objects
@@ -735,6 +1135,22 @@ public:
        #define CHECK_DIMENSIONS(expr) dimensionCheck(expr)
    #endif
    ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 OpenFOAM Performance Optimization
+>
+> **คำอธิบาย (Explanation):** การเพิ่มประสิทธิภาพ:
+> - **Expression Templates:** ลด temporary allocations
+> - **Dimension Caching:** เก็บ dimension sets ที่ใช้ซ้ำ
+> - **Conditional Checking:** ปิดตรวจสอบใน production builds
+> - **Zero Overhead Goal:** ไม่กระทบ performance ใน optimized builds
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Compile-Time Resolution:** ตรวจสอบในเวลา compile
+> - **Runtime Efficiency:** ไม่มี overhead ใน production
+> - **Debug vs Release:** Different behavior in different builds
+> - **Profiling:** วัดผลกระทบของ dimension checking
 
 ---
 
@@ -749,6 +1165,22 @@ public:
 | `dimensionedScalar.H` | การเชี่ยวชาญสเกลาร์สำหรับค่าสเกลาร์ |
 | `dimensionedConstants.H` | ค่าคงที่ไร้มิติที่กำหนดไว้ล่วงหน้า |
 
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 OpenFOAM/src/OpenFOAM/dimensionedTypes
+>
+> **คำอธิบาย (Explanation):** ไฟล์ส่วนหัวหลักของระบบ dimensioned:
+> - **dimensionedType.H:** Base template สำหรับทุกประเภท dimensioned
+> - **dimensionSet.H:** Class สำหรับเก็บและดำเนินการกับมิติ
+> - **dimensionedScalar.H:** Specialization สำหรับ scalar values
+> - **dimensionedConstants.H:** ค่าคงที่ที่ใช้บ่อย
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Template Design:** Generic programming pattern
+> - **Type Specialization:** Specific implementations for scalar/vector/tensor
+> - **Header Organization:** Clear separation of concerns
+> - **Code Reusability:** Shared functionality in base classes
+
 ### หัวข้อที่เกี่ยวข้อง
 
 1. **หัวข้อที่ 1**: Foundation Primitives - การใช้งานพื้นฐาน `dimensionedType`
@@ -756,6 +1188,23 @@ public:
 3. **บทที่ 6**: Advanced Applications - Engineering Benefits
 4. **บทที่ 7**: Physics Connection - Advanced Mathematical Formulations
 5. **บทที่ 8**: Solver Development - แอปพลิเคชันจริงใน solver CFD
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 MODULE_05_OPENFOAM_PROGRAMMING
+>
+> **คำอธิบาย (Explanation):** ความเชื่อมโยงกับหัวข้ออื่นๆ:
+> - **Foundation Primitives:** พื้นฐานของระบบประเภท OpenFOAM
+> - **Under the Hood:** เทคนิค template metaprogramming ขั้นสูง
+> - **Advanced Applications:** การใช้งานจริงใน multiphysics
+> - **Physics Connection:** คณิตศาสตร์และฟิสิกส์ขั้นสูง
+> - **Solver Development:** การนำไปใช้ใน solver development
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Progressive Learning:** จากพื้นฐานไปขั้นสูง
+> - **Integrated Knowledge:** การเชื่อมโยงแนวคิด
+> - **Practical Application:** การนำไปใช้จริง
+> - **Best Practices:** แนวทางการพัฒนา
 
 ### แผนภาพความสัมพันธ์คลาส
 
@@ -805,7 +1254,22 @@ classDiagram
     note for dimensioned~Type~ "Primary template for all dimensioned types"
     note for dimensionSet "Stores exponents for 7 base SI dimensions"
 ```
-> **Figure 1:** แผนผังความสัมพันธ์คลาส (Class Relationship Diagram) ของระบบประเภทข้อมูลที่มีมิติใน OpenFOAM แสดงให้เห็นโครงสร้างเทมเพลตหลักและการสืบทอดไปยังประเภทข้อมูลพื้นฐานอย่างสเกลาร์ เวกเตอร์ และเทนเซอร์พร้อมมิติทางกายภาพที่เกี่ยวข้องตามมาตรฐาน SI 7 มิติหลัก
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 OpenFOAM Class Architecture Documentation
+>
+> **คำอธิบาย (Explanation):** แผนภาพความสัมพันธ์คลาส:
+> - **dimensioned<Type>:** Template base class สำหรับทุกประเภท dimensioned
+> - **dimensionedScalar/Vector/Tensor:** Specializations สำหรับประเภทเฉพาะ
+> - **dimensionSet:** Class สำหรับเก็บและดำเนินการกับมิติ SI 7 มิติ
+> - **Composition:** dimensioned<Type> มี dimensionSet เป็นสมาชิก
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Template Pattern:** Generic base with specific implementations
+> - **Inheritance:** Type specialization through inheritance
+> - **Composition:** Dimension checking through dimensionSet
+> - **Polymorphism:** Unified interface for all dimensioned types
 
 ---
 
@@ -820,3 +1284,21 @@ classDiagram
 - ✅ **การบำรุงรักษาที่ดีขึ้น** ผ่านการตรวจจับข้อผิดพลาดในช่วงแรก
 
 การผสมผสานของ **ความปลอดภัยด้านมิติ** และ **ประสิทธิภาพการคำนวณ** ทำให้กรอบการทำงานการวิเคราะห์มิติของ OpenFOAM เหมาะสำหรับทั้งแอปพลิเคชันการวิจัยและการจำลองระดับอุตสาหกรรม
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** 📂 MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/02_DIMENSIONED_TYPES
+>
+> **คำอธิบาย (Explanation):** บทสรุปแสดงให้เห็นว่า:
+> - ระบบ dimensioned เป็น **innovation** ที่สำคัญของ OpenFOAM
+> - ใช้ **advanced C++ techniques** (templates, metaprogramming) เพื่อความปลอดภัย
+> - ให้ **compile-time guarantees** โดยไม่กระทบ performance
+> - เหมาะสำหรับ **scientific computing** ที่ต้องการความแม่นยำ
+> - เป็น **best practice** สำหรับการพัฒนา solvers และ libraries
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Type Safety:** Dimensions enforced by type system
+> - **Zero-Cost Abstraction:** No runtime overhead
+> - **Expressiveness:** Natural syntax for physical equations
+> - **Correctness:** Compile-time error detection
+> - **Maintainability:** Self-documenting code

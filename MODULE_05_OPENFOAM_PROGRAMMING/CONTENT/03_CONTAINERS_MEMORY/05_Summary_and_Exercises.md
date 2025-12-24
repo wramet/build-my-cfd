@@ -39,6 +39,7 @@ flowchart TD
     style Containers fill:#fff3e0
     style Algorithms fill:#f3e5f5
 ```
+
 > **Figure 1:** แผนภาพแนวคิดการทำงานร่วมกันระหว่างระบบจัดการหน่วยความจำ คอนเทนเนอร์ และอัลกอริทึม CFD ซึ่งเป็นหัวใจสำคัญที่ทำให้ OpenFOAM มีประสิทธิภาพสูง
 
 ---
@@ -103,6 +104,7 @@ graph TD
     style B fill:#2196f3,color:#fff
     style C fill:#ff9800,color:#fff
 ```
+
 > **Figure 2:** ลำดับความสำคัญในการออกแบบสถาปัตยกรรมของ OpenFOAM โดยมุ่งเน้นที่ประสิทธิภาพการคำนวณสูงสุดควบคู่ไปกับความปลอดภัยและการใช้งานที่สะดวกสำหรับวิศวกร
 
 1. **ประสิทธิภาพก่อน**: การตัดสินใจออกแบบทุกอย่างถูกประเมินผลกระทบต่อความเร็วในการคำนวณ CFD
@@ -144,19 +146,34 @@ graph TD
 > - **เลือกคอนเทนเนอร์ OpenFOAM** มากกว่า STL สำหรับงาน CFD เฉพาะทาง
 
 ```cpp
-// ตัวอย่างการใช้งานที่ถูกต้อง
+// Correct usage example: create temporary field with automatic reference counting
 tmp<volScalarField> calculatePressure(const fvMesh& mesh) {
     tmp<volScalarField> p(new volScalarField(mesh, pDict));
-    // ... การคำนวณ
-    return p;  // tmp จัดการการนับรีเฟอเรนส์อัตโนมัติ
+    // ... calculations
+    return p;  // tmp manages reference counting automatically
 }
 
 void solve() {
     autoPtr<fvMesh> mesh = createMesh();
     tmp<volScalarField> p = calculatePressure(*mesh);
-    // ไม่ต้องทำความสะอาดด้วยตนเอง
+    // No manual cleanup required
 }
 ```
+
+---
+
+📂 **Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+**Explanation:**
+โค้ดตัวอย่างนี้แสดงให้เห็นถึงการใช้งาน `tmp<T>` และ `autoPtr<T>` ตามหลักการของ OpenFOAM ฟังก์ชัน `calculatePressure` สร้างฟิลด์ชั่วคราวและส่งคืนด้วย `tmp` เพื่อให้ระบบจัดการการนับรีเฟอเรนส์อัตโนมัติ ในขณะที่ `autoPtr` ใช้สำหรับการถ่ายโอนความเป็นเจ้าของของ mesh object
+
+**Key Concepts:**
+- **tmp\<T\>**: ตัวชี้อัจฉริยะที่มีการนับรีเฟอเรนส์ (reference counting) สำหรับวัตถุชั่วคราว
+- **autoPtr\<T\>**: ตัวชี้อัจฉริยะสำหรับการถ่ายโอนความเป็นเจ้าของแบบเฉพาะ (exclusive ownership)
+- **RAII**: Resource Acquisition Is Initialization - ทรัพยากรถูกจัดสรรเมื่อสร้างวัตถุและปล่อยเมื่อวัตถุถูกทำลาย
+- **Zero-Copy**: การส่งผ่านวัตถุโดยไม่คัดลอกข้อมูลจริง แต่ใช้การนับรีเฟอเรนส์แทน
+
+---
 
 ### เมื่อขยาย OpenFOAM
 
@@ -219,7 +236,8 @@ graph LR
     style Modular fill:#9e9e9e,color:#fff
     style Performance fill:#ff9800,color:#fff
 ```
-> **Figure 3:** การเปรียบเทียบประสิทธิภาพระหว่างแนวทางแบบบูรณาการ (Integrated) และแนวทางแบบแยกส่วน (Modular) ซึ่งแสดงให้เห็นว่าการออกแบบระบบให้ทำงานสอดประสานกันช่วยเพิ่มความเร็วในการคำนวณได้มหาศาลความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+
+> **Figure 3:** การเปรียบเทียบประสิทธิภาพระหว่างแนวทางแบบบูรณาการ (Integrated) และแนวทางแบบแยกส่วน (Modular) ซึ่งแสดงให้เห็นว่าการออกแบบระบบให้ทำงานสอดประสานกันช่วยเพิ่มความเร็วในการคำนวณได้มหาศาล ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ---
 
@@ -245,17 +263,31 @@ graph LR
 
 **แบบ A:**
 ```cpp
+// Deep copy approach - inefficient for large data
 List<scalar> fieldA(1000000);
-List<scalar> fieldB = fieldA; // (1)
+List<scalar> fieldB = fieldA; // (1) Deep copy operation
 ```
 
 **แบบ B:**
 ```cpp
+// Reference counting approach - zero-copy optimization
 tmp<List<scalar>> fieldA(new List<scalar>(1000000));
-tmp<List<scalar>> fieldB = fieldA; // (2)
+tmp<List<scalar>> fieldB = fieldA; // (2) Reference counting
 ```
 
 **คำถาม**: บรรทัดที่ (1) และ (2) แตกต่างกันอย่างไรในแง่ของการใช้หน่วยความจำและเวลาประมวลผล?
+
+---
+
+📂 **Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+**Explanation:**
+ตัวอย่างโค้ดนี้แสดงความแตกต่างระหว่างการคัดลอกแบบลึก (deep copy) และการนับรีเฟอเรนส์ (reference counting) ใน OpenFOAM แบบ A ใช้ `List` ธรรมดาซึ่งทำสำเนาข้อมูลทั้งหมดเมื่อกำหนดค่า ในขณะที่แบบ B ใช้ `tmp` wrapper ซึ่งเพิ่มค่ารีเฟอเรนส์คัดต์โดยไม่คัดลอกข้อมูลจริง
+
+**Key Concepts:**
+- **Deep Copy**: การคัดลอกข้อมูลทั้งหมดไปยังหน่วยความจำใหม่ มีค่าใช้จ่าย O(N)
+- **Reference Counting**: การนับจำนวนการอ้างอิงถึงวัตถุเดียวกัน มีค่าใช้จ่าย O(1)
+- **Zero-Copy**: เทคนิคการส่งผ่านข้อมูลโดยไม่คัดลอก เพิ่มประสิทธิภาพอย่างมาก
 
 ---
 
@@ -270,11 +302,11 @@ tmp<List<scalar>> fieldB = fieldA; // (2)
 จงแก้ไขโค้ดต่อไปนี้ให้มีประสิทธิภาพและปลอดภัยต่อหน่วยความจำ:
 
 ```cpp
-// โค้ดที่มีปัญหา
+// Problematic code with manual memory management
 void problematicFunction() {
     double* data = new double[1000000];
     std::vector<double> temp(1000000);
-    // ... การประมวลผล
+    // ... processing
     delete[] data;
 }
 ```
@@ -283,6 +315,18 @@ void problematicFunction() {
 - `List<double>` แทน raw pointer
 - `tmp<List<double>>` สำหรับข้อมูลชั่วคราว
 - RAII pattern เพื่อหลีกเลี่ยงการจัดการหน่วยความจำด้วยตนเอง
+
+---
+
+📂 **Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+**Explanation:**
+โค้ดต้นฉบับมีปัญหาเรื่องการจัดการหน่วยความจำด้วยตนเองผ่าน raw pointer ซึ่งอาจก่อให้เกิด memory leak หากเกิด exception ก่อนถึงคำสั่ง delete[] การแก้ไขโดยใช้ `List` และ `tmp` ของ OpenFOAM จะใช้หลักการ RAII เพื่อให้มั่นใจว่าทรัพยากรถูกปล่อยอัตโนมัติเมื่อออกจาก scope
+
+**Key Concepts:**
+- **RAII (Resource Acquisition Is Initialization)**: หลักการที่ทรัพยากรถูกผูกกับ lifecycle ของวัตถุ
+- **Exception Safety**: การรับประกันว่าทรัพยากรจะถูกปล่อยเมื่อเกิด exception
+- **Smart Pointers**: ตัวชี้อัจฉริยะที่จัดการ lifecycle ของวัตถุอัตโนมัติ
 
 ---
 
@@ -347,17 +391,17 @@ $$
 ### ส่วนที่ 4: การแก้ปัญหา
 
 ```cpp
-// โค้ดที่แก้ไขแล้ว
+// Optimized code using OpenFOAM memory management
 void optimizedFunction() {
-    // ใช้ List แทน raw pointer - RAII จัดการการทำความสะอาด
+    // Use List instead of raw pointer - RAII manages cleanup
     List<double> data(1000000);
 
-    // ใช้ tmp สำหรับข้อมูลชั่วคราว - reference counting
+    // Use tmp for temporary data - reference counting
     tmp<List<double>> temp(new List<double>(1000000));
 
-    // ... การประมวลผล
+    // ... processing
 
-    // ไม่ต้อง delete ด้วยตนเอง - RAII จัดการอัตโนมัติ
+    // No manual delete required - RAII handles automatically
 }
 ```
 
@@ -366,6 +410,18 @@ void optimizedFunction() {
 - ✅ Exception-safe ทำงานได้แม้เกิดข้อผิดพลาด
 - ✅ ประสิทธิภาพดีขึ้นด้วย reference counting
 - ✅ โค้ดสะอาดและอ่านง่ายขึ้น
+
+---
+
+📂 **Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+**Explanation:**
+โค้ดที่ปรับปรุงแล้วใช้ประโยชน์จากระบบจัดการหน่วยความจำของ OpenFOAM โดยเต็มที่ `List<double>` จัดการหน่วยความจำผ่าน RAII โดยอัตโนมัติ และ `tmp<List<double>>` ใช้ reference counting เพื่อหลีกเลี่ยงการคัดลอกข้อมูลโดยไม่จำเป็น
+
+**Key Concepts:**
+- **List\<T\>**: คอนเทนเนอร์อาร์เรย์ติดต่อกันของ OpenFOAM พร้อม RAII
+- **tmp\<T\>**: Wrapper สำหรับ reference counting และ lazy evaluation
+- **Memory Safety**: การรับประกันว่าไม่มี memory leak ผ่านระบบ type
 
 ---
 

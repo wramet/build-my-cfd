@@ -99,6 +99,21 @@ boundary
 );
 ```
 
+> **📂 Source:** `.applications/utilities/mesh/generation/blockMesh/`
+> 
+> **คำอธิบาย (Explanation):**
+> ไฟล์นี้เป็นการตั้งค่า Dictionary สำหรับ `blockMesh` utility ใน OpenFOAM ซึ่งใช้สร้าง Structured Hexahedral Mesh สำหรับพื้นที่ทดสอบแบบ Channel Flow ไฟล์ประกอบด้วย 3 ส่วนหลัก:
+> 
+> 1. **vertices**: นิยามจุดยอด (Vertices) ทั้ง 8 จุดของบล็อกสามมิติในระบบพิกัด (x, y, z)
+> 2. **blocks**: นิยามการแบ่งส่วนเซลล์ภายในบล็อกโดยระบุจำนวนเซลล์ในแต่ละทิศทาง (100 ใน x, 50 ใน y, 10 ใน z) พร้อม Grading ratio
+> 3. **boundary**: นิยาม Boundary Conditions สำหรับแต่ละพื้นผิว (inlet, outlet, walls) พร้อมระบุประเภทและหน้า (Faces) ที่เกี่ยวข้อง
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Vertex Ordering**: การจัดลำดับ Vertex ต้องทำตามมาตรฐาน OpenFOAM (Right-handed rule) เพื่อให้บล็อกถูกสร้างได้ถูกต้อง
+> - **Cell Grading**: `simpleGrading (1 1 1)` หมายถึงการกระจายเซลล์แบบสม่ำเสมอ หากต้องการความละเอียดเฉพาะบริเวณ สามารถปรับค่าได้
+> - **Patch Definition**: แต่ละ Patch ต้องระบุ Faces ที่เป็นส่วนประกอบ โดย Face จะถูกนิยามด้วย Vertex indices ในลำดับที่ถูกต้อง
+> - **Unit Conversion**: `convertToMeters` ใช้แปลงหน่วยของพิกัดจากหน่วยที่ระบุใน vertices เป็นเมตร
+
 #### เวิร์กโฟลว์ SnappyHexMesh
 
 ```mermaid
@@ -262,12 +277,28 @@ boundaryField
 """
 ```
 
+> **📂 Source:** Custom Python utility script for OpenFOAM automation
+> 
+> **คำอธิบาย (Explanation):**
+> โค้ดนี้เป็นส่วนหนึ่งของระบบอัตโนมัติสำหรับสร้างไฟล์ Boundary Condition ใน OpenFOAM โดยอ่านการตั้งค่าจากไฟล์ YAML และสร้างไฟล์ Field Dictionary (เช่น `U` สำหรับความเร็ว) โดยอัตโนมัติ คลาส `BoundaryConditionGenerator` ทำหน้าที่:
+> 
+> 1. **Configuration Loading**: โหลดการตั้งค่า Boundary Conditions จากไฟล์ YAML
+> 2. **Field Generation**: สร้างเนื้อหาไฟล์ Field โดยระบุ FoamFile header, dimensions, internalField และ boundaryField
+> 3. **Boundary Block Creation**: สร้างส่วนประกอบของแต่ละ Boundary Patch ตามประเภท (fixedValue, zeroGradient, ฯลฯ)
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **YAML Configuration**: การใช้ YAML สำหรับเก็บการตั้งค่าทำให้ง่ายต่อการแก้ไขและบำรุงรักษา โดยไม่ต้องแก้ไฟล์ Dictionary โดยตรง
+> - **Template Generation**: การใช้ f-string ใน Python ช่วยให้สร้างไฟล์ OpenFOAM Dictionary ได้อย่างยืดหยุ่น
+> - **Field Dictionary Structure**: ไฟล์ Field ใน OpenFOAM ประกอบด้วย FoamFile (metadata), dimensions (หน่วย SI), internalField (ค่าเริ่มต้น) และ boundaryField (ค่าบน Boundary)
+> - **Boundary Condition Types**: โค้ดรองรับ `fixedValue` (กำหนดค่าคงที่) และ `zeroGradient` (ค่ากระจายเป็นศูนย์) ซึ่งเป็น BC ที่ใช้บ่อยใน OpenFOAM
+> - **Extensibility**: โครงสร้างนี้สามารถขยายเพื่อรองรับ Boundary Condition ประเภทอื่นๆ (เช่น `fixedFluxPressure`, `inletOutlet`) ได้อย่างง่ายดาย
+
 ---
 
 ### ส่วนที่ 4: Parallel Computing & Optimization (สัปดาห์ที่ 2)
 
 ![[parallel_computing_load_balancing.png]]
-> **รูปที่ 4.1:** เวิร์กโฟลว์การคำนวณแบบขนานแสดงการย่อยโดเมน (Domain Decomposition) และการปรับสมดุลภาระ (Load Balancing)
+> **รูปที่ 4.1:** เวิร์กโฟลว์การคำนาณแบบขนานแสดงการย่อยโดเมน (Domain Decomposition) และการปรับสมดุลภาระ (Load Balancing)
 
 ส่วนนี้ครอบคลุมเทคนิคการคำนวณประสิทธิภาพสูง (High-Performance Computing - HPC)
 
@@ -335,7 +366,7 @@ $$\text{Speedup} = \frac{T_1}{T_p} = \frac{p}{1 + (p-1)\alpha}$$
 
 - **Automated Workflows**: ไปป์ไลน์การจำลองแบบ End-to-End สำหรับการทำซ้ำการออกแบบ (Design Iterations)
 - **High-Performance Processing**: การจัดการการจำลองขนาดใหญ่และการเพิ่มประสิทธิภาพคลัสเตอร์
-- **Data Integration**: การบูรณาการระบบ CAD/PLM และการพัฒนา Digital Twin
+- **Data Integration**: การบูรณาระบบ CAD/PLM และการพัฒนา Digital Twin
 - **Regulatory Compliance**: กระบวนการ Verification สำหรับการรับรองและการวิเคราะห์ความปลอดภัย
 
 ---
@@ -407,7 +438,7 @@ $$\text{Speedup} = \frac{T_1}{T_p} = \frac{p}{1 + (p-1)\alpha}$$
 
 - [ ] การใช้งาน OpenFOAM Utilities หลักทั้งหมดได้อย่างเชี่ยวชาญ
 - [ ] การพัฒนากรอบงานอัตโนมัติที่แข็งแกร่งสำหรับเวิร์กโฟลว์ที่ซับซ้อน
-- [ ] การใช้งานกลยุทธ์การคำนวณแบบขนานที่มีประสิทธิภาพ
+- [ ] การใช้งานกลยุทธ์การคำนาณแบบขนานที่มีประสิทธิภาพ
 - [ ] การสร้างเครื่องมือ Post-processing และการสร้างภาพข้อมูลที่ซับซ้อน
 
 ### แนวปฏิบัติระดับมืออาชีพ
@@ -431,7 +462,7 @@ $$\text{Speedup} = \frac{T_1}{T_p} = \frac{p}{1 + (p-1)\alpha}$$
 - [[01_Preprocessing_Utilities]] - รายละเอียดการสร้าง Mesh และการเตรียม Case
 - [[02_Postprocessing_Tools]] - เทคนิคการวิเคราะห์ข้อมูลและการสร้างภาพ
 - [[03_Automation_Frameworks]] - สคริปต์และเวิร์กโฟลว์อัตโนมัติ
-- [[04_Parallel_Computing]] - กลยุทธ์การคำนวณประสิทธิภาพสูง (HPC)
+- [[04_Parallel_Computing]] - กลยุทธ์การคำนาณประสิทธิภาพสูง (HPC)
 - [[05_Professional_Practice]] - การสร้างเอกสาร, การควบคุมเวอร์ชัน และการประกันคุณภาพ
 
 ---

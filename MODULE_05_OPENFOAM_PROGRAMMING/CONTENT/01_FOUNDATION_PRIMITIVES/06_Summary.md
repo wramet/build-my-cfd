@@ -32,56 +32,92 @@ int main(int argc, char *argv[])
     #include "createMesh.H"
 
     // 1. Basic Primitives
+    // Portable integer for mesh operations
     label nCells = mesh.nCells();           // Portable integer
+    
+    // Configurable precision floating-point value
     scalar pRef = 101325.0;                 // Configurable precision
+    
+    // Optimized string for dictionary operations
     word fieldName = "U";                   // Optimized string
 
     // 2. Dimensioned Types
+    // Density with dimensional information (kg/m^3)
     dimensionedScalar rho
     (
-        "rho",
-        dimDensity,
-        1.225
+        "rho",                              // Name
+        dimDensity,                         // Dimensions [M][L^-3]
+        1.225                               // Value (air density at sea level)
     );
+    
+    // Gravitational acceleration with dimensions
     dimensionedScalar g
     (
-        "g",
-        dimAcceleration,
-        9.81
+        "g",                                // Name
+        dimAcceleration,                    // Dimensions [L][T^-2]
+        9.81                                // Value (m/s^2)
     );
 
     // 3. Smart Pointers
+    // autoPtr manages exclusive ownership of a field
     autoPtr<volScalarField> pPtr
     (
         new volScalarField
         (
             IOobject
             (
-                "p",
-                runTime.timeName(),
-                mesh,
-                IOobject::MUST_READ,
-                IOobject::AUTO_WRITE
+                "p",                        // Field name
+                runTime.timeName(),         // Time directory
+                mesh,                       // Mesh reference
+                IOobject::MUST_READ,        // Must read from file
+                IOobject::AUTO_WRITE        // Auto-write to file
             ),
-            mesh
+            mesh                            // Mesh reference for field creation
         )
     );
 
+    // tmp provides reference-counted temporary field
     tmp<volScalarField> tT = thermo.T();    // Temporary temperature
 
     // 4. Containers
+    // Dynamic list for pressure values
     List<scalar> pressureList(nCells);
+    
+    // Iterate over all cells using OpenFOAM macro
     forAll(pressureList, cellI)
-        pressureList[cellI] = pRef - rho.value() * g.value() * mesh.C()[cellI].z();
+    {
+        // Hydrostatic pressure calculation
+        pressureList[cellI] = pRef 
+            - rho.value()                   // Density value
+            * g.value()                     // Gravity value
+            * mesh.C()[cellI].z();          // Cell center z-coordinate
+    }
 
-    // Physical calculations
-    dimensionedScalar totalForce = rho * g * sum(mesh.V()) * average(pressureList);
+    // Physical calculations with dimensional consistency
+    dimensionedScalar totalForce = rho 
+        * g 
+        * sum(mesh.V())                     // Total volume
+        * average(pressureList);            // Average pressure
 
     Info << "Total force: " << totalForce << endl;
 
     return 0;
 }
 ```
+
+> **Source:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+> 
+> **Explanation:** ตัวอย่างนี้สาธิตการใช้งาน OpenFOAM primitives ทั้ง 7 ประเภทในบริบทของการคำนวณ CFD จริง:
+> - **Basic Types** (`label`, `scalar`, `word`) ใช้สำหรับการจัดเก็บข้อมูลพื้นฐาน
+> - **Dimensioned Types** บังคับใช้ความสอดคล้องของหน่วยในการคำนวณ
+> - **Smart Pointers** (`autoPtr`, `tmp`) จัดการหน่วยความจำอัตโนมัติ
+> - **Containers** (`List`) เก็บข้อมูลอาร์เรย์แบบไดนามิก
+>
+> **Key Concepts:**
+> - **Portability**: `label` และ `scalar` รับประกันผลลัพธ์เหมือนกันทุกแพลตฟอร์ม
+> - **Dimensional Safety**: ระบบตรวจสอบหน่วยป้องกันข้อผิดพลาดทางฟิสิกส์
+> - **Memory Management**: Smart pointers ป้องกัน memory leaks
+> - **Performance**: Container classes ออกแบบมาสำหรับ numerical efficiency
 
 ---
 

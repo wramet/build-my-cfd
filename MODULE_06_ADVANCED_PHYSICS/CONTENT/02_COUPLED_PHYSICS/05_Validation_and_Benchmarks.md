@@ -100,6 +100,23 @@ volScalarField heatFlux
 );
 ```
 
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** โค้ดนี้เป็นการใช้งานมาตรฐานใน OpenFOAM สำหรับการคำนวณค่าอุณหภูมิและอัตราการไหลของความร้อน (heat flux) ที่ขอบเขตระหว่างไหล (fluid-solid interface) โดยใช้ class `volScalarField` และเทคนิคการดำเนินการเชิงประจักษ์ (finite volume calculus)
+>
+> **คำอธิบาย (Explanation):**
+> - **บรรทัดที่ 1-9:** สร้าง field ใหม่ชื่อ `wallTemperature` เพื่อเก็บค่าอุณหภูมิที่ขอบเขต interface โดยอ่านค่าจาก field อุณหภูมิหลัก (`T`) ที่ patch ที่ระบุด้วย `fluidInterfaceID`
+> - **บรรทัดที่ 12-20:** สร้าง field ชื่อ `heatFlux` เพื่อคำนวณหาอัตราการไหลของความร้อน โดยใช้สมการ Fourier's law: $q = -k \nabla T$ โดย:
+>   - `kappaFluid` คีอ thermal conductivity ของ fluid
+>   - `fvc::snGrad(T)` คำนวณ normal gradient ของอุณหภูมิที่ผิว
+>   - `mesh.Sf().boundaryField[]` ดึงค่า surface area vector ที่ patch
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **IOobject:** กำหนด properties ของ field ชื่อ, เวลา, mesh, การอ่าน/เขียน
+> - **Boundary Field Extraction:** เข้าถึงค่าที่ boundary patch ผ่าน `.boundaryField()[patchID]`
+> - **Surface Normal Gradient:** `fvc::snGrad()` คำนวณ gradient ในทิศทางปกติของ surface
+> - **Heat Flux Calculation:** ใช้ dot product (&) ระหว่าง gradient และ surface normal
+
 **Verification Criteria**
 
 Numerical solutions from OpenFOAM must satisfy the following accuracy requirement:
@@ -173,6 +190,25 @@ scalar L2Error = sqrt
 );
 ```
 
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** โค้ดนี้แสดงการคำนวณความคลาดเคลื่อนแบบ L2 norm (root-mean-square error) ซึ่งเป็นมาตรฐานในการเปรียบเทียบค่าทางตัวเลขระหว่าง OpenFOAM และ StarCCM+ โดยใช้ฟังก์ชัน `gSum` และ `mag` จาก OpenFOAM field operations
+>
+> **คำอธิบาย (Explanation):**
+> - **บรรทัดที่ 1-9:** สร้าง field `heatFlux` เหมือนในตัวอย่างก่อนหน้า
+> - **บรรทัดที่ 12-20:** คำนวณ L2 error:
+>   - `heatFlux - heatFluxStarCCM`: หาค่าความแตกต่างระหว่างผลลัพธ์ทั้งสอง solver
+>   - `mag(...)`: หาค่า absolute magnitude ของ error
+>   - `* mag(mesh.Sf()...)`: คูณด้วยพื้นที่ผิวเพื่อ weighted integration
+>   - `gSum(...)`: รวมค่าทั้งหมดเหนือทุก cell/processor (global sum)
+>   - `sqrt(...) / ...`: คำนวณ RMS (root-mean-square) error
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **L2 Norm Error:** ตัวชี้วัดความคลาดเคลื่อนแบบ integral ซึ่งคิด weighted average ตามพื้นที่ผิว
+> - **Field Algebra:** การลบ/คูณ field โดยตรงใช้ operator overloading
+> - **Global Reduction:** `gSum` รวมค่าจากทุก processor ใน parallel computation
+> - **Surface Area Weighting:** คูณด้วย `mesh.Sf()` เพื่อให้ error ถูกต้องในเชิงปริมาตร
+
 **Expected Verification Results**
 
 | Metric | Criterion | Significance |
@@ -244,6 +280,27 @@ scalar divError = fvc::domainIntegrate
 
 Info << "Global divergence error: " << divError << endl;
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** โค้ดนี้ใช้หลักการจาก phase system implementation ใน `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/HeatTransferPhaseSystem/` โดยเฉพาะการเข้าถึง phase properties และการใช้ `domainIntegrate` สำหรับ volume integration
+>
+> **คำอธิบาย (Explanation):**
+> - **Loop 1 (forAll):** วนลูปผ่านทุก phase ในระบบหลายเฟส:
+>   - `const volScalarField& alpha = phase`: ดึง volume fraction field ของ phase
+>   - `fvc::domainIntegrate(alpha * rho)`: คำนวณ integral ของ $\alpha \rho$ เหนือทั้ง domain เพื่อหา total mass
+>   - **Mass History Tracking:** เก็บค่า mass เริ่มต้นไว้เปรียบเทียบ
+>   - **Relative Error Calculation:** คำนวณ error เป็นอัตราส่วนเทียบกับ mass เริ่มต้น
+> - **Global Continuity (บรรทัดที่ 27-32):** ตรวจสอบความต่อเนื่องของการไหลโดยรวม:
+>   - `fvc::div(phaseSystem.phi())`: คำนวณ divergence ของ volumetric flux
+>   - หารด้วย `deltaT()` เพื่อ normalize ต่อเวลา
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Phase Iteration:** `forAll(phases, phasei)` วนลูปผ่านทุก phase ในระบบ Eulerian multiphase
+> - **Domain Integration:** `fvc::domainIntegrate()` คำนวณ volume integral โดยอัตโนมัติ
+> - **Mass Balance:** $M = \int_V \alpha \rho \, dV$ สำหรับแต่ละ phase
+> - **Continuity Equation:** Divergence of flux ควรเป็นศูนย์สำหรับ incompressible flow
+> - **Hash Table Storage:** `massHistory.found()`/`massHistory.set()` ใช้ HashTable สำหรับ tracking
 
 **Mass Conservation Tracking:**
 - **Individual phase masses**: To verify phase conservation
@@ -320,6 +377,33 @@ void momentumBalanceCheck::execute()
     }
 }
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** โค้ดนี้ใช้ pattern จาก `.applications/solvers/lagrangian/particleFoam/createNonInertialFrameFields.H` สำหรับการ lookup และใช้งาน `uniformDimensionedVectorField` objects รวมถึงการใช้ `lookupObject` template สำหรับ accessing fields จาก object registry
+>
+> **คำอธิบาย (Explanation):**
+> - **Lookup Objects (บรรทัดที่ 5-6):** ดึง fields จาก mesh object registry:
+>   - `mesh_.lookupObject<volVectorField>("U")`: ดึง velocity field
+>   - `mesh_.lookupObject<surfaceScalarField>("phi")`: ดึง volumetric flux field
+> - **Boundary Loop (บรรทัดที่ 11-26):** วนลูปผ่านทุก boundary patch:
+>   - `phi.boundaryField()[patchi]`: เข้าถึง flux ที่ patch นั้น
+>   - `U.boundaryField()[patchi]`: เข้าถึง velocity ที่ patch นั้น
+>   - `sum(phiP * UP)`: คำนวณ momentum flux ผ่าน patch
+>   - แยก influx/outflux ตามเครื่องหมายของ `phi`
+> - **Body Force (บรรทัดที่ 29-37):** คำนวณแรงภายนอก:
+>   - ใช้ `foundObject()` เพื่อ check ว่ามี gravity field หรือไม่
+>   - `uniformDimensionedVectorField`: เก็บค่า g เป็น uniform vector
+> - **Balance Check (บรรทัดที่ 40-47):**
+>   - `momentumError = influx + outflux - bodyForce`: สมการถ่วงคุณโมเมนตัม
+>   - ใช้ `SMALL` เพื่อป้องกันการหารด้วยศูนย์
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Object Registry:** OpenFOAM เก็บ fields ไว้ใน registry สามารถ lookup ด้วยชื่อ
+> - **Template Lookup:** `lookupObject<Type>("name")` ดึง object ตาม type
+> - **Boundary Field Access:** `.boundaryField()[patchi]` เข้าถึงค่าที่ patch
+> - **Momentum Flux:** $\dot{m}U = \phi U$ โดยที่ $\phi$ คือ volumetric flux
+> - **Force Balance:** $\sum F = \frac{d}{dt}(momentum)$ สำหรับ steady-state ต้อง balance
 
 ```mermaid
 flowchart LR
@@ -464,6 +548,39 @@ class energyBalanceCheck
 };
 ```
 
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** โค้ดนี้ใช้แนวคิดจาก `heatTransferPhaseSystem` ใน `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/HeatTransferPhaseSystem/heatTransferPhaseSystem.C` ซึ่งจัดการ interfacial heat transfer models และ phase thermodynamics
+>
+> **คำอธิบาย (Explanation):**
+> - **Class Structure (บรรทัดที่ 1-22):** สร้าง class สำหรับ energy balance checking:
+>   - เก็บ references ไปยัง mesh และ phaseSystem
+>   - Constructor รับ tolerance parameter
+> - **Convection Calculation (บรรทัดที่ 31-43):**
+>   - `sum(phiP * hP)`: คำนวณ enthalpy flux ผ่าน boundary
+>   - Enthalpy $h$ ใช้แทน internal energy เพื่อรวม flow work
+> - **Conduction Calculation (บรรทัดที่ 46-50):**
+>   - `fvc::grad(k * fvc::grad(h))`: คำนวณ divergence ของ conductive flux
+>   - ใช้ Fourier's law: $q = -k \nabla T$
+> - **Heat Sources (บรรทัดที่ 53-59):**
+>   - ใช้ `foundObject()` เพื่อ check ว่ามี source term หรือไม่
+>   - Field ชื่อ `Q_phaseName` สำหรับแต่ละ phase
+> - **Interfacial Transfer (บรรทัดที่ 62-70):**
+>   - `dynamic_cast`: แปลง phaseSystem เป็น heatTransferPhaseSystem
+>   - `htModel.Ti()`: ดึง interfacial heat transfer term
+> - **Error Calculation (บรรทัดที่ 73-88):**
+>   - คำนวณ total energy change จากทุก mechanism
+>   - หา reference energy จาก $\int \alpha \rho h \, dV$
+>   - คำนวณ relative error และ compare กับ tolerance
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Phase Thermodynamics:** `.thermo().he()` ให้ enthalpy/eigen energy field
+> - **First Law of Thermodynamics:** Energy balance = convection + conduction + interfacial + sources
+> - **Enthalpy vs Internal Energy:** ใช้ enthalpy $h = e + p/\rho$ สำหรับ open systems
+> - **Interfacial Models:** Heat transfer coefficient models ระหว่าง phases
+> - **Dynamic Casting:** `dynamic_cast` ใช้เมื่อ inheritance hierarchy มีหลาย types
+> - **Energy Conservation:** $\frac{d}{dt}(\rho h) + \nabla \cdot (\rho Uh) = \nabla \cdot (k \nabla T) + S$
+
 ---
 
 ### 2.4 Phase Fraction Conservation
@@ -523,6 +640,35 @@ void checkPhaseFractionSum()
     }
 }
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** โค้ดนี้ใช้ pattern จาก phase system implementation ใน `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/` โดยเฉพาะการใช้ `PtrList<volScalarField>` สำหรับเก็บ phase fraction fields และการเข้าถึง internal field data
+>
+> **คำอธิบาย (Explanation):**
+> - **Phase List Access (บรรทัดที่ 3):**
+>   - `phaseSystem_.phases()`: ส่งคืน `PtrList<volScalarField>` ของ phase fractions
+>   - `PtrList` คือ pointer list ของ OpenFOAM สำหรับ dynamic arrays
+> - **Field Initialization (บรรทัดที่ 4-13):**
+>   - สร้าง field ใหม่ชื่อ `alphaSum` เริ่มต้นที่ 0
+>   - `dimensionedScalar("zero", dimless, 0.0)`: สร้าง scalar ไร้มิติ
+> - **Summation (บรรทัดที่ 16-19):**
+>   - `alphaSum += alphas[phasei]`: ใช้ operator overloading บวก field เข้าด้วยกัน
+>   - Operator `+=` ถูก overload ให้ทำงานกับ `volScalarField`
+> - **Error Calculation (บรรทัดที่ 22-24):**
+>   - `mag(alphaSum - 1.0)`: หา absolute deviation จาก unity
+>   - `max()`/`average()`: Global reduction operations
+> - **Cell-level Check (บรรทัดที่ 31-40):**
+>   - `.ref()`: เข้าถึง internal field (cell-centered values)
+>   - Loop ผ่านทุก cell เพื่อหา cell ที่ violate constraint
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Volume Fraction Constraint:** $\sum_{i=1}^N \alpha_i = 1$ เป็น constraint พื้นฐาน
+> - **PtrList:** Container ของ OpenFOAM สำหรับ list of pointers
+> - **Field Algebra:** Operators ระหว่าง fields ทำงาน element-wise
+> - **Internal Field Access:** `.ref()` ให้ access ไปยัง cell-centered values
+> - **Global Reductions:** `max()`, `average()` คำนวณ statistics ทั่วทั้ง domain
+> - **Geometric Field Dimension:** `dimless` สำหรับ dimensionless quantities
 
 ---
 
@@ -624,6 +770,39 @@ class conservationMonitor
 };
 ```
 
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** โค้ดนี้ใช้ architecture ของ OpenFOAM function objects ซึ่งสืบทอดจาก `fvMeshFunctionObject` และใช้ dictionary lookup สำหรับ configuration ตาม pattern ที่พบใน solver implementations
+>
+> **คำอธิบาย (Explanation):**
+> - **Class Hierarchy (บรรทัดที่ 1-10):**
+>   - `: public fvMeshFunctionObject`: สืบทอดจาก base class สำหรับ function objects
+>   - `TypeName("conservationMonitor")`: ลงทะเบียนชื่อ type สำหรับ runtime selection
+> - **Member Variables (บรรทัดที่ 4-9):**
+>   - `dimensionedScalar`: Tolerances ที่มี units
+>   - `scalar/vector`: Previous time step values สำหรับ rate calculations
+> - **Constructor (บรรทัดที่ 17-27):**
+>   - รับ parameters: name, runTime, dictionary
+>   - `dict.lookupOrDefault<Type>(key, defaultValue)`: อ่านจาก dictionary หรือใช้ default
+>   - Initialize base class ด้วย initializer list
+> - **Execute Method (บรรทัดที่ 30-37):**
+>   - `timeIndex() % writeInterval_`: Modulo check สำหรับ output frequency control
+>   - เรียก methods ตรวจสอบทุกประเภท
+> - **Write Method (บรรทัดที่ 40-45):**
+>   - `OFstream`: Output file stream ของ OpenFOAM
+>   - `timePath()`: ไดเร็กทอรีของ time step ปัจจุบัน
+> - **Private Methods (บรรทัดที่ 48-71):**
+>   - Implementations ของแต่ละ conservation check
+>   - `writeConservationReport()`: สร้าง report file
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Function Object Architecture:** Runtime-executable objects สำหรับ monitoring/processing
+> - **Runtime Selection:** `TypeName` macro ช่วยให้ instantiate จาก dictionary
+> - **Dictionary Lookup:** `lookupOrDefault` อ่าน configuration อย่างยืดหยุ่น
+> - **Virtual Methods:** `execute()`, `write()` เป็น virtual functions ที่ override
+> - **Output Control:** Modulo operator ควบคุม frequency ของ output
+> - **File Output:** `OFstream` สร้าง formatted output files
+
 ---
 
 ### 2.6 Application in Simulation Control
@@ -651,6 +830,33 @@ functions
     }
 }
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** นี่คือ OpenFOAM dictionary format มาตรฐานสำหรับ function object configuration ซึ่งใช้ใน `controlDict` ของทุก case เพื่อ enable runtime monitoring
+>
+> **คำอธิบาย (Explanation):**
+> - **Functions Dictionary (บรรทัดที่ 1):**
+>   - `functions`: Top-level keyword ใน `controlDict` สำหรับ function objects
+> - **Object Declaration (บรรทัดที่ 2-4):**
+>   - `conservationMonitor`: User-defined name ของ function object
+>   - `type conservationMonitor`: ชื่อ type ที่ต้อง match กับ `TypeName` ใน C++ code
+> - **Tolerance Settings (บรรทัดที่ 6-9):**
+>   - ระบุ tolerances สำหรับแต่ละ conservation check
+>   - ค่าต่างกันตามความเข้มงวดของแต่ละ quantity
+> - **Output Control (บรรทัดที่ 11-12):**
+>   - `writeInterval 1`: Execute ทุก time step
+>   - สามารถเพิ่มเป็น 10, 100 เพื่อ reduce output frequency
+> - **Verbose Mode (บรรทัดที่ 14-15):**
+>   - `verbose true`: Enable detailed output
+>   - สามารถเพิ่ม parameters อื่นๆ ตามที่ function object รองรับ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Dictionary Syntax:** OpenFOAM ใช้ keyword-value pairs ใน braces
+> - **Type-based Instantiation:** `type` keyword ระบุ class ที่จะ instantiate
+> - **Runtime Configuration:** Function objects สามารถ config โดยไม่ต้อง recompile
+> - **Parameter Passing:** Dictionary values ถูก pass ไปยัง constructor
+> - **Output Management:** `writeInterval` ควบคุม disk I/O frequency
 
 ```mermaid
 flowchart TD
@@ -706,6 +912,29 @@ Info << "Interface heat flux balance error: "
      << mag(qFluid + qSolid) << endl;
 ```
 
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** โค้ดนี้ใช้ `fvc::domainIntegrate` สำหรับ surface integration ซึ่งเป็น standard operation ใน OpenFOAM สำหรับคำนวณ integral ของ fields ที่ boundary patches
+>
+> **คำอธิบาย (Explanation):**
+> - **Fluid Heat Flux (บรรทัดที่ 1-4):**
+>   - `fluidInterfaceHeatFlux`: Field ที่เก็บ heat flux ที่ interface (fluid side)
+>   - `fvc::domainIntegrate()`: คำนวณ integral ผ่านทั้ง interface surface
+>   - `.value()`: แปลง `dimensionedScalar` เป็น `scalar` ธรรมดา
+> - **Solid Heat Flux (บรรทัดที่ 6-9):**
+>   - เหมือนกันแต่เป็น solid side
+>   - Convection: qFluid = ความร้อนที่ไหลออกจาก fluid
+>   - Conduction: qSolid = ความร้อนที่ไหลเข้า solid
+> - **Balance Check (บรรทัดที่ 11-13):**
+>   - `qFluid + qSolid`: ควรเป็นศูนย์สำหรับ conservation
+>   - `mag()`: หา absolute value ของ error
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Interface Coupling:** Heat flux ต้องต่อเนื่องกันที่ interface
+> - **Surface Integration:** `domainIntegrate` คำนวณ $\int_\Gamma q \, dA$
+> - **Sign Convention:** qFluid = -qSolid ถ้า conservation สมบูรณ์
+> - **Energy Conservation:** Net flux = 0 สำหรับ steady-state
+
 ---
 
 ### 3.2 Momentum Balance (FSI)
@@ -726,6 +955,33 @@ forces
     CofR            (0 0 0);
 }
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** นี่คือ configuration สำหรับ `forces` function object ซึ่งเป็น built-in function ของ OpenFOAM สำหรับคำนวณ forces และ moments บน boundary patches
+>
+> **คำอธิบาย (Explanation):**
+> - **Type Declaration (บรรทัดที่ 2):**
+>   - `type forces`: ระบุว่าเป็น forces function object
+> - **Library Loading (บรรทัดที่ 3):**
+>   - `libs ("libforces.so")`: โหลด shared library ที่มี implementation
+>   - `.so` = shared object (Linux), `.dll` (Windows)
+> - **Patch Selection (บรรทัดที่ 4):**
+>   - `patches ("interface_patch")`: ระบุ patch ที่จะคำนวณ force
+>   - สามารถระบุหลาย patches: `("patch1" "patch2")`
+> - **Density Specification (บรรทัดที่ 5):**
+>   - `rho rhoInf`: ใช้ density field ชื่อ `rhoInf`
+>   - สำหรับ incompressible: ใช้ constant density
+> - **Center of Rotation (บรรทัดที่ 6):**
+>   - `CofR (0 0 0)`: Center of Rotation สำหรับ moment calculations
+>   - Moments คำนวณ relative to this point
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Force Calculation:** $\mathbf{F} = \int_\Gamma (-p\mathbf{n} + \boldsymbol{\tau} \cdot \mathbf{n}) \, dA$
+> - **Pressure + Viscous:** Forces ประกอบด้วย pressure และ viscous components
+> - **Moment Calculation:** $\mathbf{M} = \int_\Gamma \mathbf{r} \times d\mathbf{F}$
+> - **Dynamic Library Loading:** `libs` โหลด code ที่ runtime
+> - **Coordinate System:** `CofR` ระบุ origin สำหรับ moment calculations
 
 **Troubleshooting Force Imbalance:**
 

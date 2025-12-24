@@ -182,29 +182,45 @@ graph TD
 Defines the universal interface that all viscosity models must implement:
 
 ```cpp
+// Base abstract class for all viscosity models
 template<class BasicTransportModel>
 class viscosityModel
 {
 public:
+    // Runtime type information for model identification
     TypeName("viscosityModel");
 
+    // Declare runtime selection table for factory pattern
     declareRunTimeSelectionTable
     (
-        autoPtr,
-        viscosityModel,
-        dictionary,
+        autoPtr,                        // Smart pointer type
+        viscosityModel,                 // Class name
+        dictionary,                     // Constructor lookup type
         (
-            const dictionary& dict,
-            const BasicTransportModel& model
+            const dictionary& dict,     // Dictionary containing parameters
+            const BasicTransportModel& model  // Transport model reference
         ),
-        (dict, model)
+        (dict, model)                   // Constructor arguments
     );
 
     // Virtual interface - must be implemented by derived classes
+    // Returns the viscosity field
     virtual tmp<volScalarField> mu() const = 0;
+    
+    // Update the viscosity model (called each time step)
     virtual void correct() = 0;
 };
 ```
+
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L`
+>
+> **คำอธิบาย:**
+> คลาสฐาน `viscosityModel` ทำหน้าที่กำหนดสัญญาขั้นพื้นฐาน (contract) ที่แบบจำลองความหนืดทุกประเภทต้องปฏิบัติตาม โดยใช้เทคนิค **Pure Virtual Functions** ที่บังคับให้คลาสลูกสืบทอดต้อง implements ฟังก์ชัน `mu()` และ `correct()` ระบบ Runtime Selection Table ช่วยให้สร้าง instance ของแบบจำลองได้โดยอัตโนมัติจากการอ่าน dictionary โดยไม่ต้องเขียนโค้ด hardcode
+>
+> **แนวคิดสำคัญ:**
+> - **Polymorphism**: เรียกใช้งาน interface ร่วมกัน แต่มีการทำงานภายในที่แตกต่าง
+> - **Factory Pattern**: การสร้าง object ผ่าน string lookup แทนการ new โดยตรง
+> - **Smart Pointers**: ใช้ `autoPtr` และ `tmp` สำหรับการจัดการหน่วยความจำอัตโนมัติ
 
 **Key responsibilities:**
 - Establishes the fundamental contract with finite volume solvers
@@ -216,21 +232,40 @@ public:
 Introduces critical capability to compute strain rate from velocity gradient:
 
 ```cpp
+// Intermediate class that adds strain rate computation capability
 template<class BasicTransportModel>
 class strainRateViscosityModel
 :
     public viscosityModel<BasicTransportModel>
 {
 protected:
-    // Universal strain rate calculation
+    // Universal strain rate calculation used by all derived models
+    // Computes the magnitude of the rate-of-strain tensor
     virtual tmp<volScalarField> strainRate() const
     {
+        // Calculate velocity gradient tensor: ∇u
         const volTensorField gradU(fvc::grad(this->U()));
+        
+        // Extract symmetric part (rate-of-deformation tensor): D = ½(∇u + ∇uᵀ)
         const volSymmTensorField D(symm(gradU));
+        
+        // Return magnitude: γ̇ = √2‖D‖
         return sqrt(2.0)*mag(D);
     }
 };
 ```
+
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinReader.C`
+>
+> **คำอธิบาย:**
+> คลาสกลาง `strainRateViscosityModel` ทำหน้าที่คำนวณค่า **strain rate magnitude** (อัตราการเฉือน) จาก gradient ของความเร็ว ซึ่งเป็นหัวใจสำคัญของแบบจำลอง non-Newtonian ทุกชนิด การคำนวณใช้ **symmetric tensor operations** เพื่อให้ได้ค่าที่ถูกต้องตามหลักการ continuum mechanics
+>
+> **แนวคิดสำคัญ:**
+> - **Rate-of-Strain Tensor**: `D = symm(∇u)` คือส่วนสมมาตรของ velocity gradient
+> - **Magnitude Calculation**: `‖D‖ = √(2D:D)` ให้ค่า scalar ของความเร็วเฉือน
+> - **Code Reuse**: คำนวณครั้งเดียวใช้ได้กับทุก derived models
+> - **fvc::grad**: Finite Volume Calculus gradient operator
+> - **mag()**: ฟังก์ชันคำนวณ magnitude ของ tensor
 
 **Key features:**
 - Computes strain rate magnitude: $\dot{\gamma} = \sqrt{2}\,\|\operatorname{symm}(\nabla\mathbf{u})\|$
@@ -240,54 +275,73 @@ protected:
 #### **Concrete Tier:** Rheological Model Classes
 
 ```cpp
-// BirdCarreau.C
+// Implementation of Bird-Carreau viscosity calculation
 template<class BasicTransportModel>
 tmp<volScalarField> BirdCarreau<BasicTransportModel>::nu
 (
-    const volScalarField& nu0,
-    const volScalarField& strainRate
+    const volScalarField& nu0,       // Zero-shear viscosity
+    const volScalarField& strainRate // Strain rate field
 ) const
 {
+    // Bird-Carreau model equation:
+    // ν(γ̇) = ν∞ + (ν₀ - ν∞)[1 + (λγ̇)²]^((n-1)/2)
+    
     return
-        nuInf_
-      + (nu0 - nuInf_)
-       *pow
+        nuInf_                                          // Infinite shear viscosity (bottom plateau)
+      + (nu0 - nuInf_)                                  // Viscosity range
+       *pow                                             // Power function for transition
         (
-            scalar(1)
+            scalar(1)                                   // Base value: 1 + (λγ̇)^a
           + pow
             (
-                tauStar_.value() > 0
-              ? nu0*strainRate/tauStar_
-              : k_*strainRate,
-                a_
+                // Choose regularization parameter
+                tauStar_.value() > 0                    // If tauStar is specified
+              ? nu0*strainRate/tauStar_                 // Use τ* = ν₀γ̇/τ*
+              : k_*strainRate,                          // Else use k*γ̇
+                a_                                      // Exponent 'a' (typically 2)
             ),
-            (n_ - 1.0)/a_
+            (n_ - 1.0)/a_                               // Power law exponent: (n-1)/a
         );
 }
 ```
+
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L`
+>
+> **คำอธิบาย:**
+> ฟังก์ชัน `nu()` ของคลาส `BirdCarreau` คำนวณความหนืดตามสมการ Bird-Carreau ซึ่งจำลองการเปลี่ยนแปลงของความหนืดจากค่านิวตันเมื่อ shear rate ต่ำ (ν₀) ไปสู่ค่านิวตันเมื่อ shear rate สูง (ν∞) ผ่านโซน transition ที่เป็น power law โค้ดรองรับ **regularization** สองแบบเพื่อป้องกันปัญหา numerical instability
+>
+> **แนวคิดสำคัญ:**
+> - **Three-Zone Model**: Newtonian plateau → Power-law transition → Newtonian plateau
+> - **Regularization**: ใช้ `tauStar` หรือ `k` เพื่อหลีกเลี่ยงการหารด้วยศูนย์
+> - **pow() Function**: ยกกำลัง array ทั้ง field พร้อมกัน (element-wise)
+> - **Field Operations**: การดำเนินการกับ `volScalarField` ทั้ง field พร้อมกัน
+> - **Ternary Operator**: `? :` ใช้เลือกวิธี regularization ตาม parameter
 
 ### Factory Pattern Runtime Selection
 
 OpenFOAM uses a sophisticated **dictionary-driven factory pattern**:
 
 ```cpp
-// Factory method implementation
+// Factory method implementation for runtime model selection
 template<class BasicTransportModel>
 autoPtr<viscosityModel<BasicTransportModel>>
 viscosityModel<BasicTransportModel>::New
 (
-    const dictionary& dict,
-    const BasicTransportModel& model
+    const dictionary& dict,              // Input dictionary with transport properties
+    const BasicTransportModel& model     // Transport model reference
 )
 {
-    // Read model type from dictionary
+    // Read model type from dictionary (e.g., "BirdCarreau", "PowerLaw")
     const word modelType(dict.lookup("transportModel"));
 
+    // Log selected model for user verification
     Info<< "Selecting viscosity model " << modelType << endl;
 
+    // Search constructor table for requested model type
     typename dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(modelType);
 
+    // Error handling: check if model exists
     if (cstrIter == dictionaryConstructorTablePtr_->end())
     {
         FatalErrorInFunction
@@ -297,21 +351,45 @@ viscosityModel<BasicTransportModel>::New
             << exit(FatalError);
     }
 
+    // Return pointer to constructed model instance
     return cstrIter()(dict, model);
 }
 ```
 
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinReader.C`
+>
+> **คำอธิบาย:**
+> ฟังก์ชัน `New()` เป็น **Factory Method** ที่ทำหน้าที่สร้าง object ของแบบจำลองความหนืดตามที่ระบุใน dictionary โดยไม่ต้องระบุชนิดของคลาสในโค้ด ระบบใช้ **Runtime Type Identification** ผ่านการค้นหาใน Constructor Table ซึ่งเป็น global registry ของทุก models ที่ลงทะเบียนไว้
+>
+> **แนวคิดสำคัญ:**
+> - **Dictionary-Driven**: อ่านชื่อ model จากไฟล์ dictionary (ไม่ใช่ hardcode)
+> - **Runtime Selection**: ตัดสินใจว่าจะใช้ model ไหนขณะ runtime (ไม่ใช่ compile-time)
+> - **Iterator Lookup**: ใช้ iterator ค้นหา constructor ใน hash table
+> - **Error Handling**: แจ้งรายชื่อ models ที่ใช้ได้เมื่อไม่พบ model ที่ต้องการ
+> - **Smart Pointer Return**: คืนค่าเป็น `autoPtr` เพื่อจัดการหน่วยความจำอัตโนมัติ
+
 **Registration mechanism:**
 
 ```cpp
-// In BirdCarreau.C
+// Macro to register Bird-Carreau model in the runtime selection table
 addToRunTimeSelectionTable
 (
-    generalisedNewtonianViscosityModel,
-    BirdCarreau,
-    dictionary
+    generalisedNewtonianViscosityModel,    // Base class name
+    BirdCarreau,                           // Derived class name
+    dictionary                             // Constructor type identifier
 );
 ```
+
+> **📂 Source:** `.applications/test/syncTools/Test-syncTools.C`
+>
+> **คำอธิบาย:**
+> มาโคร `addToRunTimeSelectionTable` ทำหน้าที่ **ลงทะเบียน** constructor ของคลาส `BirdCarreau` ลงในตารางส่วนกลาง (global table) เมื่อ compile และ load shared library ระบบจะเพิ่ม entry ใหม่ลงใน dictionary constructor table ทำให้ Factory สามารถเรียกใช้ model นี้ได้โดยไม่ต้องแก้โค้ดส่วนกลาง
+>
+> **แนวคิดสำคัญ:**
+> - **Compile-Time Registration**: ลงทะเบียนอัตโนมัติเมื่อโหลด library
+> - **Plugin Architecture**: เพิ่ม model ใหม่ได้โดยไม่ต้องแก้ core OpenFOAM
+> - **Static Initialization**: ใช้ static objects เพื่อลงทะเบียนก่อน main()
+> - **Type Safety**: Compiler ตรวจสอบว่า derived class ถูกต้อง
 
 **Architectural benefits:**
 
@@ -333,22 +411,55 @@ OpenFOAM offers multiple approaches for computing $\dot{\gamma}$:
 
 #### **1. Standard Method**
 ```cpp
-volSymmTensorField D = symm(fvc::grad(U));
-volScalarField shearRate = sqrt(2.0)*mag(D);
+// Standard strain rate calculation using symmetric tensor
+volSymmTensorField D = symm(fvc::grad(U));           // Rate-of-deformation tensor
+volScalarField shearRate = sqrt(2.0)*mag(D);         // Magnitude: γ̇ = √2‖D‖
 ```
+
+> **📂 Source:** `.applications/test/globalIndex/Test-globalIndex.C`
+>
+> **คำอธิบาย:**
+> วิธีมาตรฐานในการคำนวณ shear rate โดยใช้ **symmetric part** ของ velocity gradient tensor ซึ่งให้ผลลัพธ์ทางกายภาพที่ถูกต้องสำหรับ fluid mechanics การใช้ `mag(D)` คำนวณ magnitude ของ symmetric tensor ตามสมการ $\sqrt{2D:D}$
+>
+> **แนวคิดสำคัญ:**
+> - **fvc::grad()**: Finite Volume Calculus gradient operator
+> - **symm()**: สกัดเอาส่วนสมมาตรของ tensor
+> - **mag()**: คำนวณ magnitude (Euclidean norm) ของ tensor
 
 #### **2. Invariant Method**
 ```cpp
-volTensorField gradU = fvc::grad(U);
-volScalarField shearRate = sqrt(2.0*magSqr(symm(gradU)));
+// Alternative method using tensor invariants
+volTensorField gradU = fvc::grad(U);                         // Full velocity gradient
+volScalarField shearRate = sqrt(2.0*magSqr(symm(gradU)));    // Using magSqr for efficiency
 ```
+
+> **📂 Source:** `.applications/utilities/mesh/manipulation/polyDualMesh/meshDualiser.C`
+>
+> **คำอธิบาย:**
+> วิธีนี้ใช้ **magSqr()** ซึ่งคำนวณ square of magnitude โดยตรง ทำให้ลดการเรียกใช้ `sqrt()` สองครั้ง แตกต่างจากวิธีแรกที่เรียก `mag()` แล้วคูณด้วย sqrt(2) วิธีนี้มีประสิทธิภาพดีกว่าเมื่อต้องการคำนวณ magnitude squared
+>
+> **แนวคิดสำคัญ:**
+> - **magSqr()**: คำนวณ $\|D\|^2$ โดยตรง (ไม่ต้อง sqrt แล้วยกกำลังสอง)
+> - **Numerical Efficiency**: ลดจำนวน operations ที่ต้องทำ
+> - **Mathematical Equivalence**: ให้ผลลัพธ์เหมือนกันกับวิธีแรก
 
 #### **3. Q-Criterion (for vorticity-dominated regions)**
 ```cpp
-volTensorField gradU = fvc::grad(U);
-volScalarField Q = 0.5*(magSqr(skew(gradU)) - magSqr(symm(gradU)));
-volScalarField shearRate = sqrt(max(magSqr(symm(gradU)), Q));
+// Q-criterion method for flows with strong vortical structures
+volTensorField gradU = fvc::grad(U);                                          // Velocity gradient
+volScalarField Q = 0.5*(magSqr(skew(gradU)) - magSqr(symm(gradU)));          // Q-criterion
+volScalarField shearRate = sqrt(max(magSqr(symm(gradU)), Q));                // Max of strain and vorticity
 ```
+
+> **📂 Source:** `.applications/utilities/mesh/manipulation/polyDualMesh/meshDualiser.C`
+>
+> **คำอธิบาย:**
+> วิธีพิเศษสำหรับกรณีที่มี **vortical structures** ชัดเจน โดยใช้ Q-criterion ซึ่งเปรียบเทียบค่าระหว่าง rotation (skew part) และ deformation (symmetric part) การใช้ `max()` เลือกค่าที่โดดเด่นที่สุด ทำให้ได้ shear rate ที่เหมาะสมในบริเวณที่มีการหมุนวน
+>
+> **แนวคิดสำคัญ:**
+> - **skew()**: สกัดเอาส่วนหมุน (antisymmetric part) ของ tensor
+> - **Q-Criterion**: วัดระดับการหมุน vs การเสียรูป
+> - **max()**: เลือกค่าที่โดดเด่นที่สุดระหว่าง strain และ vorticity
 
 | Method | Advantages | Disadvantages | Suitable Applications |
 |---------|-----------|--------------|----------------------|
@@ -362,70 +473,119 @@ To prevent division by zero in low shear rate regions, OpenFOAM implements regul
 
 #### **Papanastasiou Regularization**
 ```cpp
-dimensionedScalar m("m", dimTime, 100.0);
+// Papanastasiou regularization for yield stress fluids
+dimensionedScalar m("m", dimTime, 100.0);          // Regularization parameter [s]
 nu = nu0 + (tauY/strainRate) * (1 - exp(-m*strainRate));
 ```
 
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L`
+>
+> **คำอธิบาย:**
+> เทคนิค **Papanastasiou Regularization** ใช้ฟังก์ชัน exponential เพื่อ smooth การเปลี่ยนจาก solid (infinite viscosity) ไปยัง liquid state ในแบบจำลอง Herschel-Bulkley พารามิเตอร์ `m` ควบคุมความชันของการเปลี่ยน - ค่ายิ่งสูงการเปลี่ยนยิ่งแหลม
+>
+> **แนวคิดสำคัญ:**
+> - **Exponential Smoothing**: ใช้ $(1-e^{-m\dot{\gamma}})$ เพื่อหลีกเลี่ยงการหารด้วยศูนย์
+> - **Yield Stress Approximation**: จำลองพฤติกรรม yield stress โดยไม่ใช้ if-else
+> - **Continuous Differentiability**: ฟังก์ชันนุ่ม (differentiable) ทุกที่
+
 #### **Bercovier-Engleman Regularization**
 ```cpp
-dimensionedScalar epsilon("epsilon", dimless, SMALL);
-nu = tauY/(strainRate + epsilon);
+// Bercovier-Engleman regularization using small epsilon
+dimensionedScalar epsilon("epsilon", dimless, SMALL);   // Small number ~1e-100
+nu = tauY/(strainRate + epsilon);                        // Add epsilon to prevent division by zero
 ```
+
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinReader.C`
+>
+> **คำอธิบาย:**
+> วิธี **Bercovier-Engleman** เป็นเทคนิค regularization แบบง่ายโดยเพิ่มค่า epsilon เล็กๆ เข้ากับตัวหาร (strain rate) เพื่อป้องกันการหารด้วยศูนย์ วิธีนี้ใช้งานได้ดีเมื่อ strain rate ไม่ใกล้ศูนย์มาก แต่อาจให้ผลที่ไม่ถูกต้องในบริเวณที่มีความเค้นต่ำมาก
+>
+> **แนวคิดสำคัญ:**
+> - **Epsilon Addition**: เพิ่มค่าเล็กๆ เข้าตัวหารเพื่อป้องกัน division by zero
+> - **SMALL Constant**: ใช้ค่าคงที่ SMALL ของ OpenFOAM (~1e-100)
+> - **Simplicity**: ง่ายและรวดเร็ว แต่อาจไม่แม่นยำในบางกรณี
 
 #### **Numerical Protection in Power Law**
 ```cpp
+// Comprehensive numerical protection for Power Law model
 return max
 (
-    nuMin_,
+    nuMin_,                                     // Lower bound: minimum viscosity
     min
     (
-        nuMax_,
-        k_*pow
+        nuMax_,                                 // Upper bound: maximum viscosity
+        k_*pow                                  // Power law: K·γ̇^(n-1)
         (
-            max
+            max                                 // Prevent negative or zero shear rate
             (
-                dimensionedScalar(dimTime, 1.0)*strainRate,
-                dimensionedScalar(dimless, small)
+                dimensionedScalar(dimTime, 1.0)*strainRate,  // γ̇ with units
+                dimensionedScalar(dimless, small)            // Fallback to 'small' (~1e-30)
             ),
-            n_.value() - scalar(1)
+            n_.value() - scalar(1)              // Exponent: (n-1)
         )
     )
 );
 ```
 
+> **📂 Source:** `.applications/test/globalIndex/Test-globalIndex.C`
+>
+> **คำอธิบาย:**
+> โค้ดนี้แสดง **multiple layers of protection** สำหรับแบบจำลอง Power Law:
+> 1. **Clipping**: ใช้ `max()` และ `min()` จำกัดความหนืดให้อยู่ในช่วงที่กำหนด
+> 2. **Zero Protection**: ใช้ `max(shearRate, small)` เพื่อป้องกันการเลือกกำลังด้วยศูนย์
+> 3. **Dimensional Consistency**: ใส่ units อย่างถูกต้องด้วย `dimensionedScalar`
+>
+> **แนวคิดสำคัญ:**
+> - **Nested max/min**: สร้างช่วงขอบเขต (clamping) แบบ multi-level
+> - **Dimensional Scalars**: ใส่หน่วยกายภาพอย่างถูกต้อง
+> - **Numerical Stability**: ป้องกัน underflow/overflow และ division by zero
+> - **Small Constant**: ใช้ค่า `small` แทนศูนย์เพื่อ numerical stability
+
 ### Solver Integration
 
 ```cpp
-// Main solver loop
-while (runTime.loop())
+// Main solver loop for non-Newtonian fluid simulation
+while (runTime.loop())                                          // Time stepping loop
 {
-    // Update viscosity model
-    viscosity->correct();
-
-    // Get current viscosity field
-    const volScalarField mu(viscosity->mu());
-
+    // Update viscosity model based on current velocity field
+    viscosity->correct();                                        // Recalculate viscosity field
+    
+    // Get current viscosity field for momentum equation
+    const volScalarField mu(viscosity->mu());                   // Extract viscosity field
+    
     // Momentum equation with variable viscosity
-    fvVectorMatrix UEqn
+    fvVectorMatrix UEqn                                          // Finite volume matrix for momentum
     (
-        fvm::ddt(rho, U)
-      + fvm::div(rhoPhi, U)
-      - fvm::laplacian(mu, U)
+        fvm::ddt(rho, U)                                         // Time derivative: ∂(ρU)/∂t
+      + fvm::div(rhoPhi, U)                                      // Convection: ∇·(ρUU)
+      - fvm::laplacian(mu, U)                                    // Diffusion with variable μ: ∇·(μ∇U)
      ==
-        fvOptions(rho, U)
+        fvOptions(rho, U)                                        // Source terms
     );
-
-    // Solve momentum
-    UEqn.relax();
-    fvOptions.constrain(UEqn);
-
-    if (pimple.momentumPredictor())
+    
+    // Solve momentum equation
+    UEqn.relax();                                                // Under-relaxation for stability
+    fvOptions.constrain(UEqn);                                   // Apply constraints
+    
+    if (pimple.momentumPredictor())                              // Check if solving momentum
     {
-        solve(UEqn == -fvc::grad(p));
-        fvOptions.correct(U);
+        solve(UEqn == -fvc::grad(p));                            // Solve momentum with pressure gradient
+        fvOptions.correct(U);                                    // Apply source term corrections
     }
 }
 ```
+
+> **📂 Source:** `.applications/utilities/mesh/manipulation/polyDualMesh/meshDualiser.C`
+>
+> **คำอธิบาย:**
+> โค้ดแสดง **solver integration loop** สำหรับแบบจำลอง non-Newtonian ใน OpenFOAM โดยมีขั้นตอนสำคัญคือการอัปเดตความหนืดในแต่ละ time step ก่อนแก้สมการโมเมนตัม การใช้ `fvm` (finite volume method) สำหรับ implicit terms และ `fvc` (finite volume calculus) สำหรับ explicit terms
+>
+> **แนวคิดสำคัญ:**
+> - **viscosity->correct()**: อัปเดตค่า μ ตาม strain rate ปัจจุบัน
+> - **fvm vs fvc**: Implicit (matrix) vs Explicit (calculated) operators
+> - **Variable Viscosity**: laplacian(mu, U) คำนวณการแพร่ของโมเมนตัมด้วยความหนืดแปรผัน
+> - **Under-relaxation**: ใช้ relaxation เพื่อเพิ่มความมั่นคงของการคำนวณ
+> - **PIMPLE**: ผสม PISO (transient) และ SIMPLE (steady-state) algorithms
 
 ---
 
@@ -436,17 +596,31 @@ while (runTime.loop())
 Non-Newtonian models are specified in `constant/transportProperties`:
 
 ```cpp
+// Select viscosity model type
 transportModel  HerschelBulkley;
 
+// Herschel-Bulkley model coefficients with dimensions
 HerschelBulkleyCoeffs
 {
-    nu0             [0 2 -1 0 0 0 0] 1e-06;  // Minimum viscosity
-    tauY            [1 -1 -2 0 0 0 0] 10;    // Yield stress
-    k               [1 -1 -2 0 0 0 0] 0.01;  // Consistency index
-    n               [0 0 0 0 0 0 0] 0.5;     // Power law index
-    nuMax           [0 2 -1 0 0 0 0] 1e+04;  // Maximum viscosity
+    nu0             [0 2 -1 0 0 0 0] 1e-06;   // Minimum viscosity [m²/s]
+    tauY            [1 -1 -2 0 0 0 0] 10;     // Yield stress [Pa]
+    k               [1 -1 -2 0 0 0 0] 0.01;   // Consistency index [Pa·sⁿ]
+    n               [0 0 0 0 0 0 0] 0.5;      // Power law index (dimensionless)
+    nuMax           [0 2 -1 0 0 0 0] 1e+04;   // Maximum viscosity [m²/s]
 }
 ```
+
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L`
+>
+> **คำอธิบาย:**
+> ไฟล์ dictionary นี้กำหนดค่า parameters สำหรับแบบจำลอง **Herschel-Bulkley** ซึ่งจำลองของไหลที่มี yield stress (เช่น toothpaste, cement) ทุกค่าต้องมี **dimensional exponents** ในรูปแบบ `[mass length time temperature moles current luminous]` เพื่อให้ OpenFOAM ตรวจสอบความถูกต้องทางหน่วย
+>
+> **แนวคิดสำคัญ:**
+> - **Model Selection**: ระบุชื่อ model เพื่อให้ Factory สร้าง instance ที่ถูกต้อง
+> - **Dimensional Consistency**: ทุก parameter ต้องมีหน่วยที่ถูกต้อง
+> - **Coefficient Naming**: ใช้ suffix `Coeffs` สำหรับ subdictionary
+> - **Viscosity Bounds**: `nu0` และ `nuMax` ป้องกันค่าความหนืดที่ไม่สมเหตุสมผล
+> - **Yield Stress**: `tauY` คือค่าเค้นขั้นต่ำที่ทำให้ของไหลเริ่มไหล
 
 ### Recommended Solvers
 
@@ -528,54 +702,94 @@ graph LR
 Creating a custom rheological model is straightforward:
 
 ```cpp
-// CustomViscosityModel.H
+// CustomViscosityModel.H - Header file for custom viscosity model
 template<class BasicTransportModel>
 class CustomViscosityModel
 :
     public viscosityModel<BasicTransportModel>
 {
 private:
-    dimensionedScalar K_;
-    dimensionedScalar n_;
-    mutable volScalarField mu_;
-
+    // Model parameters (read from dictionary)
+    dimensionedScalar K_;                              // Consistency parameter
+    dimensionedScalar n_;                              // Power law index
+    
+    // Mutable field for current viscosity
+    mutable volScalarField mu_;                        // Current viscosity field
+    
 public:
+    // Runtime type information
     TypeName("CustomModel");
-
+    
+    // Constructor with dictionary initialization
     CustomViscosityModel
     (
-        const dictionary& dict,
-        const BasicTransportModel& model
+        const dictionary& dict,                        // Parameter dictionary
+        const BasicTransportModel& model              // Transport model
     );
-
-    virtual tmp<volScalarField> mu() const;
-    virtual void correct();
+    
+    // Virtual interface functions
+    virtual tmp<volScalarField> mu() const;            // Return viscosity field
+    virtual void correct();                            // Update viscosity field
 };
 
-// Factory registration
+// Register in runtime selection table (enables dictionary-driven creation)
 addToRunTimeSelectionTable
 (
-    viscosityModel,
-    CustomViscosityModel,
-    dictionary
+    viscosityModel,                                    // Base class
+    CustomViscosityModel,                              // Derived class
+    dictionary                                         // Constructor type
 );
 ```
+
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L`
+>
+> **คำอธิบาย:**
+> โครงสร้างคลาสแบบกำหนดเองต้อง **inherit** จาก `viscosityModel` และ **override** ฟังก์ชัน `mu()` และ `correct()` พารามิเตอร์ K และ n จะถูกอ่านจาก dictionary ผ่าน constructor การใช้ `mutable` กับ `mu_` ทำให้สามารถแก้ไขค่าได้แม้ใน const functions
+>
+> **แนวคิดสำคัญ:**
+> - **Template Design**: รองรับหลาย transport models ผ่าน template parameter
+> - **TypeName Macro**: ลงทะเบียนชื่อ class สำหรับ runtime selection
+> - **Virtual Functions**: Override interface functions เพื่อให้ทำงานได้อย่างถูกต้อง
+> - **Dimensional Scalars**: Parameters ต้องมีหน่วยกายภาพ
+> - **Mutable Fields**: ใช้ mutable เพื่อให้แก้ไขค่าใน const context
 
 **Implementation in CustomViscosityModel.C:**
 
 ```cpp
+// Implementation of custom viscosity model correct() function
 template<class BasicTransportModel>
 void CustomViscosityModel<BasicTransportModel>::correct()
 {
+    // Calculate velocity gradient tensor: ∇u
     const volTensorField gradU(fvc::grad(this->U()));
+    
+    // Extract symmetric rate-of-deformation tensor: D = ½(∇u + ∇uᵀ)
     const volSymmTensorField D(symm(gradU));
+    
+    // Calculate strain rate magnitude: γ̇ = √2‖D‖
     const volScalarField shearRate(sqrt(2.0)*mag(D));
-
-    // Custom formulation
+    
+    // Custom constitutive equation: μ = μ₀(1 + K·γ̇)^(n-1)
+    // This represents a generalized power-law model with correction
     mu_ = this->nu()*this->rho()*pow(1.0 + K_*shearRate, n_ - 1.0);
+    
+    // Update boundary conditions with new viscosity values
     mu_.correctBoundaryConditions();
 }
 ```
+
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinReader.C`
+>
+> **คำอธิบาย:**
+> ฟังก์ชัน `correct()` คือหัวใจของแบบจำลอง โดยจะถูกเรียกในแต่ละ time step เพื่อคำนวณความหนืดใหม่จาก velocity field ปัจจุบัน โค้ดแสดงการคำนวณแบบจำลอง **custom power-law** ที่ใช้ correction factor `(1 + K·γ̇)` แทนการใช้ γ̇ โดยตรง ซึ่งเพิ่มความยืดหยุ่นในการจำลองพฤติกรรม
+>
+> **แนวคิดสำคัญ:**
+> - **Velocity Gradient**: ใช้ `fvc::grad(U)` คำนวณ gradient ของ velocity field
+> - **Rate-of-Strain**: แยกส่วนสมมาตรด้วย `symm()`
+> - **Strain Rate Magnitude**: คำนวณ `√2‖D‖` เพื่อให้ได้ scalar shear rate
+> - **Constitutive Equation**: สมการ custom `μ = μ₀ρ(1 + K·γ̇)^(n-1)`
+> - **Boundary Conditions**: อัปเดตค่า boundary patches ด้วย `correctBoundaryConditions()`
+> - **Element-Wise Operations**: `pow()` และ arithmetic operations ทำงานทุก cell พร้อมกัน
 
 ---
 
@@ -618,7 +832,7 @@ $$\eta_0(T) = D_1 \exp\left(-\frac{A_1(T-T_r)}{A_2 + T - T_r}\right)$$
 - Automatic model discovery and validation
 
 ### 3. Universal Strain Rate Calculation
-$$\dot{\gamma} = \sqrt{2}\,\|\operatorname{symm}(\nabla\mathbf{u})\|$$
+$$\dot{\gamma} = \sqrt{2}\,\|\operatorname{symm}(\nabla \mathbf{u})\|$$
 
 Ensures consistency across all rheological models.
 

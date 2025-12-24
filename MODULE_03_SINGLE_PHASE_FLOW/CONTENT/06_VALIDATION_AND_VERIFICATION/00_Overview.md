@@ -46,15 +46,32 @@ $$\epsilon_{\text{numerical}} = |f_{\text{numerical}} - f_{\text{exact}}|$$
 
 ```cpp
 // Finite volume discretization of momentum equation
+// Construct the matrix for the momentum equation using finite volume method
+// fvm: implicit discretization, fvc: explicit calculation
 fvVectorMatrix UEqn
 (
-    fvm::ddt(rho, U)
-  + fvm::div(phi, U)
-  ==
-    fvc::div(-p*I)
-  + fvc::div(tau)
+    fvm::ddt(rho, U)                // Time derivative term (implicit)
+  + fvm::div(phi, U)                // Convection term (implicit)
+    ==                                // Equals operator
+    fvc::div(-p*I)                   // Pressure gradient term (explicit)
+  + fvc::div(tau)                    // Viscous stress divergence (explicit)
 );
 ```
+
+> **📖 คำอธิบายภาษาไทย**
+>
+> **แหล่งที่มา**: Finite Volume Discretization Framework
+>
+> **การอธิบาย**: โค้ดนี้แสดงการจัดทำเมตริกซ์สมการโมเมนตัมใน OpenFOAM โดยใช้วิธี Finite Volume Method (FVM)
+> - `fvm::ddt(rho, U)` - เทอมอนุพันธ์เชิงเวลาของความหนาแน่นและความเร็ว (แบบ implicit)
+> - `fvm::div(phi, U)` - เทอมการพาความร้อน/convective term (แบบ implicit)
+> - `fvc::div(-p*I)` - เทอมความดัน/pressure gradient (แบบ explicit)
+> - `fvc::div(tau)` - เทอมความเค้นเฉือน/viscous stress (แบบ explicit)
+>
+> **แนวคิดสำคัญ**:
+> - **Implicit (fvm)**: ค่าที่ตำแหน่ง cell center ถูกคำนวณพร้อมกันในระบบสมการเชิงเส้น
+> - **Explicit (fvc)**: ค่าที่คำนวณจาก time step ก่อนหน้า
+> - การผสมผสานระหว่าง implicit และ explicit เป็นหัวใจของความเสถียรและประสิทธิภาพในการคำนวณ CFD
 
 #### ข้อผิดพลาดในการสร้างแบบจำลอง (Modeling Errors)
 
@@ -127,34 +144,51 @@ $$L_{\infty} = \max_{\Omega} | \phi - \phi_{\text{ref}} |$$
 
 ```cpp
 // OpenFOAM implementation of error norms
+// Calculate quantitative error metrics for validation studies
 void calculateErrorNorms(
-    const volScalarField& field,
-    const volScalarField& reference,
-    const fvMesh& mesh
+    const volScalarField& field,          // Field to validate
+    const volScalarField& reference,      // Reference/analytical solution
+    const fvMesh& mesh                    // Mesh containing volume data
 )
 {
+    // Get cell volumes from mesh
     const scalarField& V = mesh.V();
     scalar totalVolume = sum(V);
 
-    // Absolute error field
+    // Absolute error field - calculate magnitude of difference
     volScalarField error = mag(field - reference);
 
-    // L1 norm
+    // L1 norm - average absolute error over entire domain
     scalar L1 = sum(error * V) / totalVolume;
 
-    // L2 norm
+    // L2 norm - root mean square error
     volScalarField errorSqr = sqr(field - reference);
     scalar L2 = sqrt(sum(errorSqr * V) / totalVolume);
 
-    // L∞ norm
+    // L∞ norm - maximum absolute error in domain
     scalar Linf = max(error).value();
 
+    // Output all error norms to console/log
     Info << "Error norms:" << nl
          << "  L1  = " << L1 << nl
          << "  L2  = " << L2 << nl
          << "  L∞ = " << Linf << endl;
 }
 ```
+
+> **📖 คำอธิบายภาษาไทย**
+>
+> **แหล่งที่มา**: Field Error Analysis Utilities
+>
+> **การอธิบาย**: ฟังก์ชันนี้คำนวณตัวชี้วัดความคลาดเคลื่อน 3 ชนิดสำหรับการตรวจสอบความถูกต้อง:
+> - **$L_1$ Norm**: ค่าเฉลี่ยของความคลาดเคลื่อนสัมบูรณ์ → ใช้ประเมินความแม่นยำโดยรวม
+> - **$L_2$ Norm**: รากที่สองของค่าเฉลี่ยความคลาดเคลื่อนกำลังสอง → ให้น้ำหนักมากกับความคลาดเคลื่อนขนาดใหญ่
+> - **$L_\infty$ Norm**: ค่าความคลาดเคลื่อนสูงสุด → สำคัญสำหรับจุดที่มีความละเอียดสูง
+>
+> **แนวคิดสำคัญ**:
+> - **Weighted Integration**: การคูณด้วยปริมาตรเซลล์ (V) เพื่อถ่วงน้ำหนักตามขนาดเซลล์
+> - **Mesh Independence**: ใช้ error norms เพื่อตรวจสอบว่า mesh ละเอียดพอหรือยัง
+> - **Validation Metric**: เปรียบเทียบผล CFD กับ analytical solution หรือ experimental data
 
 ### 2.4 การวิเคราะห์ความละเอียดผนัง (Wall Resolution Analysis)
 
@@ -172,14 +206,30 @@ $$y^+ = \frac{y u_{\tau}}{\nu} = \frac{y \sqrt{\tau_w/\rho}}{\nu}$$
 
 ```bash
 # คำนวณ yPlus สำหรับทุก patch ที่เป็นผนัง
+# Calculate dimensionless wall distance for all wall patches
 postProcess -func yPlus
 
 # คำนวณความเค้นเฉือนที่ผนัง
+# Calculate wall shear stress on wall boundaries
 postProcess -func wallShearStress
 
 # เขียนสนาม yPlus สำหรับการแสดงผลด้วยภาพ
+# Write yPlus field for visualization in ParaView
 yPlus
 ```
+
+> **📖 คำอธิบายภาษาไทย**
+>
+> **แหล่งที่มา**: Post-Processing Utilities for Turbulence Modeling
+>
+> **การอธิบาย**: คำสั่ง postProcess ใช้คำนวณปริมาณที่สำคัญสำหรับ turbulence modeling:
+> - **yPlus**: ระยะห่างไร้มิติ $y^+$ จากผนัง → บอกความละเอียดของ mesh ใกล้ผนัง
+> - **wallShearStress**: ความเค้นเฉือน $\tau_w$ → ใช้คำนวณ $u_\tau$ และ $y^+$
+>
+> **แนวคิดสำคัญ**:
+> - **Viscous Sublayer**: ถ้า $y^+ < 1$ → mesh ละเอียดพอสำหรับ low-Re models
+> - **Wall Functions**: ถ้า $30 < y^+ < 300$ → เหมาะกับ high-Re models ที่ใช้ wall functions
+> - **Mesh Quality**: ต้องตรวจสอบ $y^+$ ทุก patch เพื่อให้แน่ใจว่า mesh มีคุณภาพสม่ำเสมอ
 
 **ข้อกำหนดของ Mesh ตาม Turbulence Model**:
 
@@ -188,7 +238,7 @@ yPlus
 | **Low-Re $k$-$ε$** | $y^+ < 1$ | การแยก viscous sublayer โดยตรง |
 | **Low-Re $k$-$ω$ SST** | $y^+ < 1$ | การผสมผสานระหว่าง $k$-$ω$ ใกล้ผนังและ $k$-$ε$ ในกระแสอิสระ |
 | **Standard $k$-$ε$** | $30 < y^+ < 300$ | Wall functions ประมาณค่าฟิสิกส์ใกล้ผนัง |
-| **Spalart-Allmaras** | $y^+ < 1$ | โมเดลสมการเดียวต้องการการแยกการกระจายความหนืดใกล้ผนัง |
+| **Spalart-Allmaras** | $y^+ < 1$ | โมเดลสมการเดียวต้องการการแยกการกระจายความหนืวใกล้ผนัง |
 
 **การประมาณความสูงเซลล์แรก**:
 
@@ -228,7 +278,7 @@ $$u(r) = \frac{\Delta p}{4\mu L} (R^2 - r^2)$$
 
 โดยที่:
 - $\Delta p$ = ความแตกต่างของความดัน
-- $\mu$ = ความหนืดจลนศาสตร์ (dynamic viscosity)
+- $\mu$ = ความหนืวจลนศาสตร์ (dynamic viscosity)
 - $L$ = ความยาวท่อ
 - $R$ = รัศมีท่อ
 - $r$ = พิกัดในแนวรัศมี
@@ -252,32 +302,52 @@ testCase/
 
 ```cpp
 // system/controlDict
-application     simpleFoam;
-startFrom       startTime;
-startTime       0;
-stopAt          endTime;
-endTime         1000;
-deltaT          1;
-adjustTimeStep  no;
+// Solver and time control settings for validation studies
+application     simpleFoam;              // Steady-state incompressible solver
+startFrom       startTime;               // Start from latest time
+startTime       0;                        // Initial time value
+stopAt          endTime;                  // Stop condition type
+endTime         1000;                     // Final time value
+deltaT          1;                        // Time step size
+adjustTimeStep  no;                       // Fixed time step
 
-// เกณฑ์การลู่เข้า (Convergence criteria)
+// Convergence criteria for residuals
+// Lower values ensure higher accuracy for validation
 residualControl
 {
-    p               1e-6;
-    U               1e-6;
+    p               1e-6;                 // Pressure residual tolerance
+    U               1e-6;                 // Velocity residual tolerance
 }
 ```
+
+> **📖 คำอธิบายภาษาไทย**
+>
+> **แหล่งที่มา**: Solver Control Dictionary (system/controlDict)
+>
+> **การอธิบาย**: ไฟล์นี้ควบคุมการทำงานของ solver และเกณฑ์การลู่เข้า:
+> - **residualControl**: กำหนดค่าความคลาดเคลื่อนที่ยอมรับได้ (tolerance)
+>   - ถ้า residual < 1e-6 → ผลลัพธ์มีความแม่นยำสูง (เหมาะกับ validation)
+>   - ถ้า residual = 1e-4 → ความแม่นยำปานกลาง (เหมาะกับ engineering design)
+>
+> **แนวคิดสำคัญ**:
+> - **Convergence**: การลู่เข้าของ iterative solver สำคัญต่อความแม่นยำ
+> - **Residual Monitoring**: ต้องตรวจสอบ residuals ของทุกตัวแปร (p, U, k, epsilon, etc.)
+> - **Validation Requirement**: ใช้ tolerance ที่เข้มงวด (1e-6 หรือต่ำกว่า)
 
 ### 4.3 การทดสอบการถดถอย (Regression Testing)
 
 OpenFOAM ใช้การทดสอบการถดถอยเพื่อตรวจจับการเปลี่ยนแปลงโค้ด:
 
 ```cpp
-// โครงสร้างการทดสอบการถดถอยตัวอย่าง
+// Sample regression test structure
+// Automated testing framework to detect code changes
 Foam::Info << "Running regression test for " << solverName << nl;
 
-// เปรียบเทียบกับผลเฉลยอ้างอิง
+// Compare current solution with reference solution
+// Calculate maximum absolute difference across domain
 scalar error = max(mag(phi - phiRef));
+
+// Check if error exceeds tolerance threshold
 if (error > tolerance)
 {
     FatalErrorIn("regressionTest")
@@ -286,6 +356,20 @@ if (error > tolerance)
         << abort(FatalError);
 }
 ```
+
+> **📖 คำอธิบายภาษาไทย**
+>
+> **แหล่งที่มา**: Test Framework Utilities
+>
+> **การอธิบาย**: การทดสอบการถดถอย (regression testing) ใช้ตรวจจับการเปลี่ยนแปลงที่ไม่คาดคิด:
+> - **Reference Solution (phiRef)**: ผลลัพธ์ที่ได้รับการตรวจสอบแล้ว ใช้เป็นเกณฑ์
+> - **Current Solution (phi)**: ผลลัพธ์จากการรันโค้ดปัจจุบัน
+> - **Tolerance Check**: ถ้า error > tolerance → อาจมี bug หรือการเปลี่ยนแปลงโค้ดที่ไม่ถูกต้อง
+>
+> **แนวคิดสำคัญ**:
+> - **Automated Testing**: ใช้ใน CI/CD pipeline เพื่อตรวจสอบความถูกต้องของโค้ด
+> - **Version Control**: เก็บ reference solutions ใน repository พร้อมกับโค้ด
+> - **Verification Tool**: ช่วยตรวจสอบว่าการอัปเดตโค้ดไม่ทำให้ผลลัพธ์เปลี่ยนแปลง
 
 ---
 

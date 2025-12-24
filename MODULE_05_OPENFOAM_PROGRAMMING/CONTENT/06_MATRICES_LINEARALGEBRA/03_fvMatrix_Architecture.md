@@ -20,7 +20,9 @@ flowchart TD
     B --> G[Linear System Assembly]
     B --> H[Solver Operations]
 ```
-> **Figure 1:** ลำดับชั้นความสัมพันธ์ของคลาส `fvMatrix` ที่ขยายความสามารถจากเมทริกซ์เบาบางพื้นฐานไปสู่การเป็นออบเจ็กต์ที่รับรู้ถึงฟิลด์ข้อมูลและมิติทางฟิสิกส์ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** ลำดับชั้นความสัมพันธ์ของคลาส `fvMatrix` ที่ขยายความสามารถจากเมทริกซ์เบาบางพื้นฐานไปสู่การเป็นออบเจ็กต์ที่รับรู้ถึงฟิลด์ข้อมูลและมิติทางฟิสิกส์
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ### Core Design Philosophy
 
@@ -63,6 +65,16 @@ private:
 };
 ```
 
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** ไฟล์นี้เป็นส่วนหนึ่งของระบบจำลองกระแสไหลหลายเฟส (multiphase flow) ใน OpenFOAM
+> - **Explanation (คำอธิบาย):** คลาส `fvMatrix` ทำหน้าที่เป็นตัวกลางในการแปลงสมการเชิงอนุพันธ์ย่อย (PDE) ให้อยู่ในรูปแบบระบบเชิงเส้นเชิงกระจาย (sparse linear system) โดยมีการติดตามความสอดคล้องของมิติ (dimensional consistency) และจัดการเงื่อนไขขอบเขต (boundary conditions) อย่างแยกส่วน
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - `psi_`: อ้างอิงถึงฟิลด์ที่ต้องการแก้ (solution field)
+>   - `source_`: เวกเตอร์ด้านขวามือ (right-hand side) ในระบบสมการเชิงเส้น
+>   - `internalCoeffs_/boundaryCoeffs_`: แยกเก็บสัมประสิทธิ์ขอบเขตเพื่อประสิทธิภาพในการประกอบชุดคำสั่ง (assembly efficiency)
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
 ### Key Components
 
 | **Component** | **Type** | **Purpose** |
@@ -95,6 +107,17 @@ fvScalarMatrix TEqn
 );
 ```
 
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** การจัดทำโครงสร้างสมการขนส่ง (transport equation) ใน OpenFOAM
+> - **Explanation (คำอธิบาย):** โค้ดนี้สาธิตวิธีการสร้างเมทริกซ์สมการพลังงาน (energy equation matrix) โดยใช้ตัวดำเนินการโดยนัย (implicit operators) `fvm` ซึ่งจะสร้างโครงสร้าง LDU ของ `fvMatrix` โดยอัตโนมัติ
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - `fvm::ddt`: เทอมอนุพันธ์เชิงเวลา (temporal derivative)
+>   - `fvm::div`: เทอมการพาความร้อน (convection)
+>   - `fvm::laplacian`: เทอมการนำความร้อน (diffusion)
+>   - `fvOptions`: เทอมแหล่งกำเนิด (source terms)
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
 Each operator contributes to the LDU matrix components:
 
 ```mermaid
@@ -109,7 +132,9 @@ flowchart LR
         All
     end
 ```
-> **Figure 2:** แผนภาพแสดงการกระจายตัวของเทอมต่างๆ ในสมการ Navier-Stokes เข้าสู่โครงสร้าง LDU ของ `fvMatrix` ทั้งในส่วนแนวทแยง (Diagonal) และส่วนนอกแนวทแยง (Upper/Lower)ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 2:** แผนภาพแสดงการกระจายตัวของเทอมต่างๆ ในสมการ Navier-Stokes เข้าสู่โครงสร้าง LDU ของ `fvMatrix` ทั้งในส่วนแนวทแยง (Diagonal) และส่วนนอกแนวทแยง (Upper/Lower)
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ### Term Contributions
 
@@ -150,6 +175,16 @@ void fvMatrix<Type>::operator+=(const fvMatrix<Type>& fm)
 }
 ```
 
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** ระบบตรวจสอบความสอดคล้องของมิติใน OpenFOAM
+> - **Explanation (คำอธิบาย):** ฟังก์ชันนี้แสดงให้เห็นว่า OpenFOAM ตรวจสอบความสอดคล้องของมิติ (dimensional consistency) ทั้งที่ระดับรันไทม์ หากมิติไม่ตรงกันจะเกิดข้อผิดพลาดร้ายแรง (FatalError)
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - `dimensions_`: เก็บข้อมูลมิติของเมทริกซ์
+>   - `lduMatrix::operator+=`: การบวกเมทริกซ์ผ่าน interface ของ lduMatrix
+>   - Runtime validation: การตรวจสอบความถูกต้องขณะโปรแกรมทำงาน
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
 ### Dimension Propagation
 
 ```cpp
@@ -164,6 +199,16 @@ void fvMatrix<Type>::operator*=(const dimensioned<scalar>& ds)
     dimensions_ *= ds.dimensions();
 }
 ```
+
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** การคูณเมทริกซ์ด้วยค่าที่มีมิติ (dimensioned scalar)
+> - **Explanation (คำอธิบาย):** การคูณ `fvMatrix` ด้วยค่าที่มีมิติจะทำให้เกิดการแปลงมิติทั้งในเชิงตัวเลขและเชิงฟิสิกส์ เช่น การคูณสมการโมเมนตัมด้วยความหนืด (viscosity)
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - `ds.value()`: ค่าตัวเลขของตัวคูณ
+>   - `ds.dimensions()`: มิติของตัวคูณ
+>   - Dimension propagation: การเผยแพร่มิติผ่านการดำเนินการทางคณิตศาสตร์
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 > [!TIP] Example: Multiplying Momentum Equation
 > Multiplying momentum equation by dynamic viscosity $\mu$ with dimensions $[kg \cdot m^{-1} \cdot s^{-1}]$:
@@ -198,6 +243,16 @@ void fvMatrix<Type>::addBoundarySource
     }
 }
 ```
+
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** การจัดการเงื่อนไขขอบเขตใน `fvMatrix`
+> - **Explanation (คำอธิบาย):** ฟังก์ชันนี้แสดงการแยกสัมประสิทธิ์ขอบเขต (coefficient separation) ซึ่งช่วยให้สามารถใช้งานเงื่อนไขขอบเขตได้อย่างมีประสิทธิภาพ โดยเก็บ internal และ boundary coefficients แยกกัน
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - `internalCoeffs_`: สัมประสิทธิ์ภายในโดเมน
+>   - `boundaryCoeffs_`: สัมประสิทธิ์ที่ขอบเขต
+>   - `addBoundarySource`: การเพิ่มส่วนประกอบขอบเขตเข้าสู่เวกเตอร์ด้านขวามือ
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ### Boundary Condition Strategies
 
@@ -239,6 +294,16 @@ Field<Type> Ax = TEqn & phi;   // A * φ
 Field<Type> b = TEqn.source(); // Right-hand side vector
 ```
 
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** เมธอดสำคัญของคลาส `fvMatrix`
+> - **Explanation (คำอธิบาย):** โค้ดนี้แสดงการใช้งานเมธอดหลักของ `fvMatrix` ในการแก้ระบบสมการเชิงเส้น การปรับค่า under-relaxation และการเข้าถึงส่วนประกอบต่างๆ ของเมทริกซ์
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - `solve()`: แก้ระบบสมการเชิงเส้น
+>   - `relax()`: ใช้ under-relaxation เพื่อเสถียรภาพ
+>   - `A()`, `H()`, `source()`: การเข้าถึงส่วนประกอบเมทริกซ์
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
 ### Operator Overloading
 
 ```cpp
@@ -257,6 +322,16 @@ fvMatrix<scalar> negatedEqn = -TEqn;
 // Access residual
 scalar residual = TEqn.residual();
 ```
+
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** การโอเวอร์โหลดตัวดำเนินการใน `fvMatrix`
+> - **Explanation (คำอธิบาย):** `fvMatrix` รองรับการดำเนินการทางคณิตศาสตร์ทั่วไปผ่านการโอเวอร์โหลดตัวดำเนินการ ทำให้สามารถเขียนสมการได้อย่างเป็นธรรมชาติ
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - Operator overloading: การกำหนดการทำงานของตัวดำเนินการใหม่
+>   - Mathematical syntax: ไวยากรณ์ทางคณิตศาสตร์ที่เป็นธรรมชาติ
+>   - Residual: ค่าความแตกต่างของสมการ
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ---
 
@@ -284,6 +359,16 @@ TEqn -= sources;
 // Solve the linear system
 TEqn.solve();
 ```
+
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** กลยุทธ์กึ่งโดยนัย (semi-implicit) ในการแก้สมการ
+> - **Explanation (คำอธิบาย):** กลยุทธ์นี้ผสมผสานการใช้ตัวดำเนินการโดยนัยและเชิงประจักษ์ เพื่อสมดุลระหว่างเสถียรภาพและประสิทธิภาพในการคำนวณ
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - Implicit operators: ตัวดำเนินการโดยนัย (เสถียรกว่า)
+>   - Explicit operators: ตัวดำเนินการเชิงประจักษ์ (เร็วกว่าแต่ต้องมีข้อจำกัด CFL)
+>   - Semi-implicit: กลยุทธ์ผสมผสาน
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ### Stability Considerations
 
@@ -313,6 +398,16 @@ class lduMatrix
     labelList lowerAddr_;       // Neighbor cell for each face
 };
 ```
+
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** รูปแบบการจัดเก็บเมทริกซ์เบาบาง LDU
+> - **Explanation (คำอธิบาย):** คลาส `lduMatrix` ใช้รูปแบบการจัดเก็บแบบเบาบาง โดยเก็บเฉพาะส่วนประกอบที่ไม่ใช่ศูนย์ ซึ่งเหมาะสำหรับปัญหา CFD ที่มีการเชื่อมต่อเฉลี่ยต่ำ
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - Sparse storage: การจัดเก็บแบบเบาบาง
+>   - LDU format: Lower-Diagonal-Upper format
+>   - Memory efficiency: ประสิทธิภาพการใช้หน่วยความจำ
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ### Memory Complexity
 
@@ -358,6 +453,16 @@ void lduMatrix::Amul
 }
 ```
 
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** การคูณเมทริกซ์-เวกเตอร์ที่เป็นมิตรกับแคช
+> - **Explanation (คำอธิบาย):** ฟังก์ชัน `Amul` แสดงการคูณเมทริกซ์-เวกเตอร์ที่เพิ่มประสิทธิภาพการใช้งานแคช โดยแยกการคำนวณส่วนแนวทแยงและนอกแนวทแยง
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - Cache-friendly: การจัดรูปแบบข้อมูลให้เข้ากับแคช
+>   - Contiguous memory: หน่วยความจำที่ติดกัน
+>   - Strided access: การเข้าถึงข้อมูลแบบกระโดด
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
 ### Loop Ordering for Vectorization
 
 ```cpp
@@ -368,6 +473,16 @@ for (label i = 0; i < n; i++)
     Ax[i] = diag[i] * x[i];
 }
 ```
+
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** การใช้ OpenMP SIMD directives สำหรับ vectorization
+> - **Explanation (คำอธิบาย):** การใช้ directive `#pragma omp simd` ช่วยให้คอมไพเลอร์สามารถ optimize ลูปด้วย SIMD instructions ได้ ซึ่งเพิ่มประสิทธิภาพการคำนวณ
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - SIMD: Single Instruction Multiple Data
+>   - Vectorization: การแปลงให้สามารถประมวลผลข้อมูลหลายค่าพร้อมกัน
+>   - Compiler optimization: การปรับแต่งโดยคอมไพเลอร์
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ---
 
@@ -400,6 +515,16 @@ class SolverPerformance
 };
 ```
 
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** ระบบติดตามประสิทธิภาพของ solver ใน OpenFOAM
+> - **Explanation (คำอธิบาย):** คลาส `SolverPerformance` ใช้เก็บข้อมูลเกี่ยวกับประสิทธิภาพของ solver เช่น ค่า residual, จำนวน iteration, และสถานะการลู่เข้า
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - Residual: ค่าความแตกต่างของสมการ
+>   - Convergence: การลู่เข้าของคำตอบ
+>   - Tolerance: ค่าที่ยอมรับได้
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
 ### Convergence Monitoring
 
 ```cpp
@@ -414,6 +539,16 @@ if (!solverPerf.converged())
         << "  No. iterations: " << solverPerf.nIterations() << endl;
 }
 ```
+
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** การติดตามการลู่เข้าของ solver
+> - **Explanation (คำอธิบาย):** โค้ดนี้แสดงวิธีการตรวจสอบว่า solver ลู่เข้าหรือไม่ และแสดงคำเตือนหากไม่ลู่เข้า
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - Solver performance: ประสิทธิภาพของ solver
+>   - Convergence monitoring: การติดตามการลู่เข้า
+>   - Warning message: ข้อความเตือน
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ---
 
@@ -434,6 +569,16 @@ fvScalarMatrix TEqn
 TEqn.relax();
 TEqn.solve();
 ```
+
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** การแก้สมการพลังงานสำหรับปัญหาการถ่ายเทความร้อน
+> - **Explanation (คำอธิบาย):** โค้ดนี้แสดงการสร้างและแก้สมการพลังงานสำหรับปัญหาการถ่ายเทความร้อน โดยมีเทอมเวลา การพา การนำ และแหล่งกำเนิด
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - Energy equation: สมการพลังงาน
+>   - Source terms: เทอมแหล่งกำเนิด
+>   - Under-relaxation: การผ่อนคลายเพื่อเสถียรภาพ
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ### 2. Fluid Flow (SIMPLE)
 
@@ -458,6 +603,16 @@ pEqn.setReference(pRefCell, pRefValue);
 pEqn.solve();
 ```
 
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** อัลกอริทึม SIMPLE สำหรับการแก้สมการกระแสไหล
+> - **Explanation (คำอธิบาย):** โค้ดนี้แสดงการใช้อัลกอริทึม SIMPLE ในการแก้สมการโมเมนตัมและความดันสำหรับปัญหากระแสไหล
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - SIMPLE algorithm: Semi-Implicit Method for Pressure-Linked Equations
+>   - Momentum equation: สมการโมเมนตัม
+>   - Pressure equation: สมการความดัน
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
 ### 3. Turbulence Modeling
 
 ```cpp
@@ -473,6 +628,16 @@ fvScalarMatrix kEqn
 kEqn.relax();
 kEqn.solve();
 ```
+
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** โมเดลความปั่นป่วน k-omega SST
+> - **Explanation (คำอธิบาย):** โค้ดนี้แสดงการแก้สมการ kinetic energy (k) ในโมเดลความปั่นป่วน k-omega SST ซึ่งเป็นโมเดลที่นิยมใช้ใน CFD
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - k-omega SST: โมเดลความปั่นป่วนแบบสองสมการ
+>   - Production term: เทอมการผลิต
+>   - Dissipation term: เทอมการสลายตัว
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ---
 
@@ -495,6 +660,16 @@ if (pEqn.dimensions() == UEqn.dimensions())
 }
 ```
 
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** ข้อผิดพลาดทั่วไปเกี่ยวกับความสอดคล้องของมิติ
+> - **Explanation (คำอธิบาย):** การบวกเมทริกซ์ที่มีมิติไม่ตรงกันจะเกิดข้อผิดพลาด ต้องตรวจสอบความสอดคล้องของมิติก่อนดำเนินการ
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - Dimensional consistency: ความสอดคล้องของมิติ
+>   - Type checking: การตรวจสอบชนิดข้อมูล
+>   - Runtime error: ข้อผิดพลาดขณะโปรแกรมทำงาน
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
 ### Pitfall 2: Inadequate Under-Relaxation
 
 ```cpp
@@ -507,6 +682,16 @@ TEqn.solve();  // May diverge
 TEqn.relax();  // Improves stability
 TEqn.solve();
 ```
+
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** ข้อผิดพลาดเกี่ยวกับ under-relaxation
+> - **Explanation (คำอธิบาย):** การไม่ใช้ under-relaxation สำหรับระบบที่ไม่เสถียรอาจทำให้การแก้สมการแตกต่าง (diverge)
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - Under-relaxation: การผ่อนคลายเพื่อเสถียรภาพ
+>   - Divergence: การแตกต่างของคำตอบ
+>   - Stability: เสถียรภาพของการแก้สมการ
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ### Pitfall 3: Ignoring Boundary Conditions
 
@@ -521,6 +706,16 @@ pEqn.solve();  // Singular matrix!
 pEqn.setReference(pRefCell, pRefValue);
 pEqn.solve();
 ```
+
+> **💡 คำอธิบาย (Thai Explanation):**
+> - **Source (แหล่งที่มา):** ข้อผิดพลาดเกี่ยวกับเงื่อนไขขอบเขต
+> - **Explanation (คำอธิบาย):** การไม่กำหนดค่าอ้างอิง (reference value) สำหรับความดันจะทำให้เมทริกซ์เอกฐาน (singular)
+> - **Key Concepts (แนวคิดสำคัญ):**
+>   - Reference value: ค่าอ้างอิง
+>   - Singular matrix: เมทริกซ์เอกฐาน
+>   - Boundary condition: เงื่อนไขขอบเขต
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ---
 

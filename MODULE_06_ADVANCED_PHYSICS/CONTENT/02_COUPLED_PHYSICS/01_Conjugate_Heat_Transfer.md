@@ -82,6 +82,7 @@ OpenFOAM's primary CHT solver, `chtMultiRegionFoam`, uses a **partitioned approa
 ### 2.2 Main Solver Loop
 
 ```cpp
+// Main entry point for chtMultiRegionFoam solver
 // applications/solvers/heatTransfer/chtMultiRegionFoam/chtMultiRegionFoam.C
 int main(int argc, char *argv[])
 {
@@ -89,20 +90,25 @@ int main(int argc, char *argv[])
     #include "createTime.H"
     #include "createMeshes.H"
 
-    // Multi-region PIMPLE control system
+    // Multi-region PIMPLE control system - orchestrates time-stepping
+    // across multiple fluid and solid regions simultaneously
     pimpleMultiRegionControl pimples(fluidRegions, solidRegions);
     #include "createFields.H"
 
+    // Main time loop - continues until specified end time
     while (pimples.run(runTime))
     {
         runTime++;
+        // Number of energy correctors per time step (outer iterations)
         const int nEcorr = pimples.dict().lookupOrDefault<int>("nEcorrectors", 1);
 
         while (pimples.loop())
         {
+            // Outer coupling iterations for fluid-solid thermal coupling
             for(int Ecorr=0; Ecorr<nEcorr; Ecorr++)
             {
                 // SOLID REGIONS SOLUTION
+                // Solve heat conduction in all solid regions
                 forAll(solidRegions, i)
                 {
                     #include "setRegionSolidFields.H"
@@ -110,6 +116,7 @@ int main(int argc, char *argv[])
                 }
 
                 // FLUID REGIONS SOLUTION
+                // Solve Navier-Stokes + energy equation in all fluid regions
                 forAll(fluidRegions, i)
                 {
                     #include "setRegionFluidFields.H"
@@ -122,6 +129,27 @@ int main(int argc, char *argv[])
     return 0;
 }
 ```
+
+📂 **Source:** `applications/solvers/heatTransfer/chtMultiRegionFoam/chtMultiRegionFoam.C`
+
+---
+
+**📋 คำอธิบายภาษาไทย (Thai Explanation)**
+
+**แหล่งที่มา (Source):**
+- ไฟล์: `applications/solvers/heatTransfer/chtMultiRegionFoam/chtMultiRegionFoam.C`
+- เป็น solver หลักสำหรับการจำลอง Conjugate Heat Transfer ใน OpenFOAM
+
+**คำอธิบาย (Explanation):**
+โค้ดนี้แสดงโครงสร้างหลักของ `chtMultiRegionFoam` solver ซึ่งใช้ **partitioned approach** ในการแก้สมการความร้อนร่วมกันระหว่างภูมิภาคของไหลและของแข็ง แต่ละภูมิภาคจะถูกแก้สมการแยกกัน แต่มีการแลกเปลี่ยนข้อมูลที่ขอบเขตต่อประสาน (interface) ในทุกรอบการวนซ้ำ (iteration)
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **pimpleMultiRegionControl**: คลาสควบคุมระบบ PIMPLE (PISO + SIMPLE) สำหรับหลายภูมิภาคพร้อมกัน
+2. **nEcorrectors**: จำนวน outer iterations สำหรับให้บรรลุเงื่อนไขการจับคู่ความร้อน (thermal coupling)
+3. **PtrList<fvMesh>**: โครงสร้างข้อมูลที่เก็บ meshes ของหลายภูมิภาค (fluid และ solid)
+4. **Macro-based design**: ใช้ `#include` เพื่อโหลดโค้ดเฉพาะภูมิภาค (`solveSolid.H`, `solveFluid.H`)
+
+---
 
 ### 2.3 Algorithm Flow
 
@@ -174,6 +202,7 @@ case/
 ### 2.6 Region Properties Definition
 
 ```cpp
+// Configuration file defining region types and names
 // constant/regionProperties
 regions
 (
@@ -181,6 +210,26 @@ regions
     solid (solidWall solidObstacle)   // Multiple solid regions supported
 );
 ```
+
+📂 **Source:** `applications/solvers/heatTransfer/chtMultiRegionFoam/createMeshes.H`
+
+---
+
+**📋 คำอธิบายภาษาไทย (Thai Explanation)**
+
+**แหล่งที่มา (Source):**
+- ไฟล์: `constant/regionProperties`
+- ใช้โดย `createMeshes.H` เพื่อสร้าง meshes สำหรับแต่ละภูมิภาค
+
+**คำอธิบาย (Explanation):**
+ไฟล์นี้กำหนดชื่อและจำนวนของภูมิภาค (regions) ที่จะใช้ในการจำลอง โดยแบ่งเป็น 2 กลุ่ม: `fluid` (สำหรับภูมิภาคของไหล) และ `solid` (สำหรับภูมิภาคของแข็ง) ซึ่ง solver จะสร้าง meshes และ field objects แยกกันสำหรับแต่ละภูมิภาค
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Region grouping**: แบ่งภูมิภาคเป็น `fluid` และ `solid` groups
+2. **Multiple regions**: รองรับหลายภูมิภาคในแต่ละกลุ่ม (เช่น หลาย fluid domains)
+3. **Mesh independence**: แต่ละภูมิภาคมี mesh และ boundary conditions แยกกัน
+
+---
 
 ---
 
@@ -195,19 +244,47 @@ $$\rho_s c_{p,s} \frac{\partial T_s}{\partial t} = \nabla \cdot (k_s \nabla T_s)
 **Implementation in `solveSolid.H`:**
 
 ```cpp
-// Solid energy equation
+// Solid energy equation - transient heat conduction
+// applications/solvers/heatTransfer/chtMultiRegionFoam/solveSolid.H
 fvScalarMatrix TEqn
 (
+    // Time derivative term: ρ * Cp * ∂T/∂t
     fvm::ddt(rho, Cpv, T)
-  + fvm::laplacian(K, T)
+  + // Laplacian term: ∇·(k * ∇T)
+    fvm::laplacian(K, T)
  ==
+    // Source terms (e.g., volumetric heat generation)
     fvOptions(rho, Cpv, T)
 );
 
+// Apply relaxation to improve stability
 TEqn.relax();
+// Apply constraint equations (if any)
 fvOptions.constrain(TEqn);
+// Solve the linear system
 TEqn.solve();
 ```
+
+📂 **Source:** `applications/solvers/heatTransfer/chtMultiRegionFoam/solveSolid.H`
+
+---
+
+**📋 คำอธิบายภาษาไทย (Thai Explanation)**
+
+**แหล่งที่มา (Source):**
+- ไฟล์: `applications/solvers/heatTransfer/chtMultiRegionFoam/solveSolid.H`
+- ถูกเรียกใช้โดย main solver loop ในทุก outer iteration
+
+**คำอธิบาย (Explanation):**
+โค้ดนี้แก้สมการการนำความร้อน (heat conduction equation) ในภูมิภาคของแข็ง โดยใช้ finite volume discretization ผ่าน `fvScalarMatrix` class ซึ่งเป็น standard matrix สำหรับ scalar fields ใน OpenFOAM
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **fvm::ddt()**: Time derivative term - ใช้ implicit scheme สำหรับเสถียรภาพเชิงตัวเลข
+2. **fvm::laplacian()**: Spatial diffusion term - แทน ∇·(k∇T)
+3. **fvOptions**: Framework สำหรับ source terms (เช่น ความร้อนจากปฏิกิริยาเคมี)
+4. **relax()**: Under-relaxation เพื่อป้องกันการ oscillate ของผลลัพธ์
+
+---
 
 ### 3.2 Fluid Domain Equations
 
@@ -241,6 +318,7 @@ The coupling is **explicit or semi-implicit** via boundary conditions. The solve
 The core of CHT coupling is the `mappedPatchBase` class—a geometric mapping tool that establishes relationships between source and target faces/cells across potentially non-conformal meshes.
 
 ```cpp
+// Mapped wall patch class definition
 // src/meshTools/mappedPatches/mappedPolyPatch/mappedWallPolyPatch.H
 class mappedWallPolyPatch
 :
@@ -257,6 +335,27 @@ class mappedWallPolyPatch
 };
 ```
 
+📂 **Source:** `src/meshTools/mappedPatches/mappedPolyPatch/mappedWallPolyPatch.H`
+
+---
+
+**📋 คำอธิบายภาษาไทย (Thai Explanation)**
+
+**แหล่งที่มา (Source):**
+- ไฟล์: `src/meshTools/mappedPatches/mappedPolyPatch/mappedWallPolyPatch.H`
+- เป็น base class สำหรับ mapped patches ใน OpenFOAM
+
+**คำอธิบาย (Explanation):**
+คลาสนี้ทำหน้าที่เป็น "geometric bridge" ระหว่างภูมิภาคที่แตกต่างกัน (เช่น fluid และ solid) โดยใช้ multiple inheritance จาก `wallPolyPatch` (สำหรับ wall boundary behavior) และ `mappedPatchBase` (สำหรับ mapping functionality)
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Multiple inheritance**: รับคุณลักษณะจากทั้ง wall patch และ mapping capability
+2. **Sample modes**: กลยุทธ์การหาคู่映射 (mapping) ที่หลากหลาย (nearestCell, nearestFace, etc.)
+3. **Non-conformal meshes**: รองรับ meshes ที่มี resolution/tolerance ต่างกัน
+4. **Region specification**: ระบุ source region และ patch ที่จะ map ข้อมูลมา
+
+---
+
 ### 4.2 Sampling Modes
 
 | Mode | Description | Accuracy | Performance |
@@ -271,7 +370,8 @@ class mappedWallPolyPatch
 The actual field coupling is implemented through boundary conditions:
 
 ```cpp
-// src/finiteVolume/fields/fvPatchFields/derived/mappedFixedValue/
+// Mapped fixed value boundary condition for field transfer
+// src/finiteVolume/fields/fvPatchFields/derived/mappedFixedValue/mappedFixedValueFvPatchField.H
 template<class Type>
 class mappedFixedValueFvPatchField
 :
@@ -280,9 +380,31 @@ class mappedFixedValueFvPatchField
 {
     TypeName("mapped");
 
+    // Virtual function called every iteration to update boundary values
     virtual void updateCoeffs();
 };
 ```
+
+📂 **Source:** `src/finiteVolume/fields/fvPatchFields/derived/mappedFixedValue/mappedFixedValueFvPatchField.H`
+
+---
+
+**📋 คำอธิบายภาษาไทย (Thai Explanation)**
+
+**แหล่งที่มา (Source):**
+- ไฟล์: `src/finiteVolume/fields/fvPatchFields/derived/mappedFixedValue/mappedFixedValueFvPatchField.H`
+- เป็น derived boundary condition สำหรับ field transfer ระหว่าง regions
+
+**คำอธิบาย (Explanation):**
+คลาสนี้เป็น template class ที่ทำหน้าที่ถ่ายโอนค่า fields (เช่น Temperature) จาก source patch ไปยัง target patch โดยใช้ `updateCoeffs()` function ที่ถูกเรียกในทุก time step/iteration
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Template-based**: รองรับทุก field types (scalar, vector, tensor)
+2. **updateCoeffs()**: Virtual function สำคัญที่ทำการอัปเดตค่าขอบเขตจาก source region
+3. **mappedPatchFieldBase**: ให้ฟังก์ชันการ mapping ข้าม regions
+4. **FixedValue enforcement**: บังคับค่าที่ boundary ให้เท่ากับค่าจาก source
+
+---
 
 ### 4.4 Configuration Examples
 
@@ -560,6 +682,27 @@ if (maxRelError < 1e-6)
     Info << "Heat flux continuity verified: " << maxRelError << endl;
 }
 ```
+
+📂 **Source:** Custom function object implementation pattern
+
+---
+
+**📋 คำอธิบายภาษาไทย (Thai Explanation)**
+
+**แหล่งที่มา (Source):**
+- Pattern จาก `src/functionObjects/field/` function objects
+- ใช้ `fvc::grad()` จาก `src/finiteVolume/fvc/fvcGrad.C`
+
+**คำอธิบาย (Explanation):**
+โค้ดนี้ตรวจสอบ **heat flux continuity** ซึ่งเป็นเงื่อนไขทางฟิสิกส์สำคัญที่สุดใน CHT simulations โดยคำนวณ heat flux ที่ interface จากทั้ง fluid และ solid sides แล้วตรวจสอบว่ามีค่าเท่ากัน (ตรงข้ามกันเนื่องจาก normal vectors ตรงข้าม)
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Heat flux formula**: $q = -k \nabla T$ (Fourier's Law)
+2. **Boundary field access**: ใช้ `.boundaryField()[patchID]` เพื่อเข้าถึงค่าที่ patch
+3. **Gradient calculation**: ใช้ `fvc::grad()` (finite volume calculus)
+4. **Continuity condition**: $q_{\text{fluid}} + q_{\text{solid}} \approx 0$ (หมายเหตุ: เครื่องหมายตรงข้ามเนื่องจาก normal vectors)
+
+---
 
 ### 7.3 Energy Balance Monitoring
 

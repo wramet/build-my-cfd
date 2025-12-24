@@ -43,6 +43,20 @@ boundaryField
 }
 ```
 
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatWallBoilingWallFunction/alphatWallBoilingWallFunctionFvPatchScalarField.C`
+> 
+> **คำอธิบาย:** 
+> - **Boundary Condition Types**: การกำหนดประเภทเงื่อนไขขอบเขตที่แตกต่างกันสำหรับแต่ละพื้นที่ชั้นข้อมูล (patch) ใน OpenFOAM
+> - **Fixed Value**: กำหนดค่าคงที่สำหรับ velocity ที่ inlet
+> - **Zero Gradient**: ไม่กำหนดค่าคงที่ ให้ค่าณ ขอบเขตมีการพัฒนาแบบอนุพันธ์ศูนย์
+> - **No-Slip**: เงื่อนไขไม่มีการลื่นไถลที่ผนัง
+> 
+> **แนวคิดสำคัญ:**
+> - Dirichlet boundary condition (fixedValue) สำหรับ velocity inlet
+> - Neumann boundary condition (zeroGradient) สำหรับ velocity outlet
+> - No-slip condition สำหรับ solid walls
+> - Pressure-velocity coupling ในระบบสมการ Navier-Stokes
+
 ### สนามความดัน (`0/p`)
 
 ```cpp
@@ -66,6 +80,19 @@ boundaryField
     }
 }
 ```
+
+> **📂 Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+> 
+> **คำอธิบาย:** 
+> - **Pressure Boundary Conditions**: การกำหนดเงื่อนไขขอบเขตความดันที่สอดคล้องกับเงื่อนไขความเร็ว
+> - **Zero Gradient at Inlet**: ความดันมีการพัฒนาแบบอนุพันธ์ศูนย์เมื่อเข้าสู่โดเมน
+> - **Fixed Value at Outlet**: กำหนดความดันอ้างอิง (gauge pressure = 0) ที่ outlet
+> - **Zero Gradient at Walls**: ไม่มี gradient ความดันในแนวตั้งฉากผนัง
+> 
+> **แนวคิดสำคัญ:**
+> - ความสัมพันธ์ระหว่าง velocity และ pressure boundary conditions
+> - การกำหนด reference pressure ที่ outlet
+> - การหลีกเลี่ยง over-specification ของระบบสมการ
 
 ### การตีความทางกายภาพ
 
@@ -191,6 +218,19 @@ boundaryField
 }
 ```
 
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatPhaseJayatillekeWallFunction/alphatPhaseJayatillekeWallFunctionFvPatchScalarField.C`
+> 
+> **คำอธิบาย:** 
+> - **Adiabatic Wall Condition**: เงื่อนไขขอบเขตสำหรับผนังฉนวนที่ไม่มีการถ่ายเทความร้อน
+> - **Zero Gradient for Temperature**: ไม่มี gradient ของอุณหภูมิในแนวตั้งฉากผนัง
+> - **Thermal Boundary Layer**: การไม่มีชั้นขอบเขตความร้อนเนื่องจากไม่มีการถ่ายเทความร้อน
+> 
+> **แนวคิดสำคัญ:**
+> - กฎการนำความร้อนของฟูเรียร์ (Fourier's Law)
+> - ความสัมพันธ์ระหว่าง gradient อุณหภูมิและฟลักซ์ความร้อน
+> - เงื่อนไข Neumann สำหรับปัญหาถ่ายเทความร้อน
+> - การอนุรักษ์พลังงานในระบบที่ไม่มีการสูญเสียความร้อน
+
 ### โจทย์เสริม
 
 1. **คำนวณ** อุณหภูมิเฉลี่ยที่ Outlet โดยใช้หลักการอนุรักษ์พลังงาน:
@@ -302,6 +342,18 @@ slipWall
 }
 ```
 
+> **📂 Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+> 
+> **คำอธิบาย:** 
+> - **Symmetry Condition**: สำหรับระนาบที่มีสมมาตรทางเรขาคณิตและฟิสิกส์
+> - **Slip Condition**: สำหรับผนังในอุดมคติที่ไม่มีแรงเสียดทาน
+> - **Zero Gradient for Pressure**: ความดันไม่มี gradient ในแนวตั้งฉากผนัง
+> 
+> **แนวคิดสำคัญ:**
+> - สมมาตรทางเรขาคณิตเปรียบเทียบกับการไหลแบบไม่มีแรงเสียดทาน
+> - การเลือกใช้ boundary condition ที่เหมาะสมกับปัญหา
+> - การลดขนาดโดเมนการคำนวณโดยใช้คุณสมบัติสมมาตร
+
 ```mermaid
 graph LR
     A["Symmetry Plane"] --> B["Physical Mirror"]
@@ -408,6 +460,18 @@ p
 }
 ```
 
+> **📂 Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+> 
+> **คำอธิบาย:** 
+> - **Velocity Inlet Condition**: การกำหนดความเร็วคงที่ที่ inlet
+> - **Pressure Outlet Condition**: เงื่อนไข zero gradient สำหรับความดัน
+> - **Boundary Condition Consistency**: ความสอดคล้องระหว่าง velocity และ pressure BCs
+> 
+> **แนวคิดสำคัญ:**
+> - การหลีกเลี่ยง over-specification ของ boundary conditions
+> - Pressure-velocity coupling ในระบบสมการ
+> - การเลือกชนิด boundary condition ที่เหมาะสม
+
 หรืออีกทางเลือกหนึ่ง:
 
 ```cpp
@@ -424,6 +488,16 @@ U
     value           uniform (0 0 0);   // ค่าเริ่มต้น
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatWallBoilingWallFunction/alphatWallBoilingWallFunctionFvPatchScalarField.C`
+> 
+> **คำอธิบาย:** 
+> - **Pressure Inlet Velocity**: การกำหนดความดันคงที่และปล่อยให้ความเร็วพัฒนาตามธรรมชาติ
+> - **Alternative Approach**: ทางเลือกอื่นในการกำหนด boundary conditions
+> 
+> **แนวคิดสำคัญ:**
+> - การเลือกใช้ pressure inlet เมื่อต้องการควบคุมความดัน
+> - ความยืดหยุ่นในการกำหนด boundary conditions
 
 #### Inflow ที่ Outlet
 
@@ -448,6 +522,16 @@ U
     value           uniform (0 0 0);      // ค่าเริ่มต้น
 }
 ```
+
+> **📂 Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+> 
+> **คำอธิบาย:** 
+> - **InletOutlet Condition**: เงื่อนไขขอบเขตแบบไดนามิกที่เปลี่ยนตามทิศทางการไหล
+> - **Backflow Prevention**: ป้องกันปัญหาการไหลย้อนกลับ
+> 
+> **แนวคิดสำคัญ:**
+> - การจัดการปัญหา backflow ที่ outlet
+> - การปรับเปลี่ยน boundary condition แบบ dynamic
 
 สิ่งนี้จะดำเนินการ:
 - `zeroGradient` เมื่อการไหลออก (normal flux > 0)
@@ -540,6 +624,17 @@ boundaryField
     }
 }
 ```
+
+> **📂 Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+> 
+> **คำอธิบาย:** 
+> - **Backward Facing Step Setup**: การตั้งค่า boundary condition สำหรับปัญหา backward facing step
+> - **InletOutlet for Velocity**: การใช้ inletOutlet เพื่อป้องกัน backflow
+> - **Fixed Pressure at Outlet**: การกำหนดความดันคงที่ที่ outlet
+> 
+> **แนวคิดสำคัญ:**
+> - การจัดการกับ recirculation zones
+> - การเลือก boundary conditions ที่เหมาะสมสำหรับ flow separation
 
 ```mermaid
 graph LR
@@ -641,6 +736,20 @@ walls
     E               9.8;
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatWallBoilingWallFunction/alphatWallBoilingWallFunctionFvPatchScalarField.C`
+> 
+> **คำอธิบาย:** 
+> - **Wall Functions**: ฟังก์ชันผนังสำหรับการจำลอง turbulent flow ใกล้ผนัง
+> - **kqRWallFunction**: ฟังก์ชันผนังสำหรับ turbulent kinetic energy
+> - **epsilonWallFunction**: ฟังก์ชันผนังสำหรับ dissipation rate
+> - **nutkWallFunction**: ฟังก์ชันผนังสำหรับ turbulent viscosity
+> 
+> **แนวคิดสำคัญ:**
+> - Logarithmic law of the wall
+> - y+ values และผลกระทบต่อความแม่นยำ
+> - Wall functions สำหรับ k-epsilon turbulence model
+> - การคำนวณ first cell height
 
 ```mermaid
 graph LR

@@ -84,34 +84,47 @@ $$\nu_t = (C_s \Delta)^2 |\bar{S}|$$
 OpenFOAM มีแบบจำลอง LES หลายแบบผ่านลำดับชั้นของคลาส `LESModel`:
 
 ```cpp
-// โครงสร้างไฟล์หลัก
+// Main file structure for LES models
+// Location: turbulenceModels/LES/LESModel
 src/TurbulenceModels/turbulenceModels/LES/LESModel/LESModel.H
 src/TurbulenceModels/turbulenceModels/LES/LESModel/LESModel.C
 
-// แบบจำลองเฉพาะ
+// Specific model implementations
 src/TurbulenceModels/turbulenceModels/LES/Smagorinsky/
 src/TurbulenceModels/turbulenceModels/LES/kEqn/
 src/TurbulenceModels/turbulenceModels/LES/dynamicKEqn/
 src/TurbulenceModels/turbulenceModels/LES/WALE/
 ```
 
+> **📂 Source:** `src/TurbulenceModels/turbulenceModels/LES/`
+> 
+> **💡 Explanation:** โครงสร้างไฟล์และไดเรกทอรีของ LES models ใน OpenFOAM ซึ่งจัดเก็บใน `src/TurbulenceModels/turbulenceModels/LES/` โดยมีคลาสพื้นฐาน `LESModel` และคลาสของแบบจำลองเฉพาะเช่น Smagorinsky, kEqn, dynamicKEqn และ WALE แต่ละแบบจำลองมีไฟล์ .H และ .C สำหรับการประกาศและการนำไปใช้
+> 
+> **🔑 Key Concepts:**
+> - **LESModel**: Base class สำหรับทุก LES models
+> - **Smagorinsky**: Standard SGS model ด้วยสัมประสิทธิ์คงที่
+> - **dynamicKEqn**: Dynamic SGS model ที่คำนวณค่าสัมประสิทธิ์แบบไดนามิก
+> - **WALE**: Wall-Adapting Local Eddy-viscosity model สำหรับการไหลติดผนัง
+
 #### การตั้งค่า LES ใน OpenFOAM
 
 ในการใช้ LES แบบจำลองความปั่นป่วนจะถูกระบุใน dictionary `turbulenceProperties`:
 
 ```cpp
+// Simulation type selection
 simulationType LES;
 
+// LES model configuration
 LES
 {
-    // แบบจำลอง Smagorinsky
+    // Smagorinsky model specification
     LESModel        Smagorinsky;
 
     turbulence      on;
     printCoeffs     on;
 
-    // ค่าสัมประสิทธิ์ของแบบจำลอง
-    delta           cubeRootVol;  // หรือ Prandtl, maxDeltaxyz, etc.
+    // Model coefficient settings
+    delta           cubeRootVol;  // or Prandtl, maxDeltaxyz, etc.
 
     SmagorinskyCoeffs
     {
@@ -120,12 +133,22 @@ LES
 }
 ```
 
+> **📂 Source:** `case/constant/turbulenceProperties`
+> 
+> **💡 Explanation:** การตั้งค่า LES model ผ่านไฟล์ `turbulenceProperties` ซึ่งระบุประเภทการจำลอง (simulationType) เป็น LES และกำหนดแบบจำลองย่อย (LESModel) เป็น Smagorinsky พร้อมค่าสัมประสิทธิ์ Cs และวิธีการคำนวณความกว้างของตัวกรอง (delta)
+> 
+> **🔑 Key Concepts:**
+> - **simulationType**: ระบุประเภทการจำลองความปั่นป่วน (LES, RAS, DES)
+> - **LESModel**: เลือกแบบจำลอง SGS (Smagorinsky, kEqn, dynamicKEqn, WALE)
+> - **delta**: วิธีการคำนวณความกว้างของตัวกรอง (cubeRootVol, Prandtl, maxDeltaxyz)
+> - **Cs**: Smagorinsky coefficient ค่าสัมประสิทธิ์การปรับความหนืด
+
 #### การนำแบบจำลอง Dynamic ไปใช้
 
 ```cpp
 LES
 {
-    LESModel        dynamicKEqn;  // หรือ dynamicSmagorinsky
+    LESModel        dynamicKEqn;  // or dynamicSmagorinsky
 
     turbulence      on;
     printCoeffs     on;
@@ -134,10 +157,19 @@ LES
 
     dynamicKEqnCoeffs
     {
-        filter       simple;      // หรือ anisotropic, laplacian
+        filter       simple;      // or anisotropic, laplacian
     }
 }
 ```
+
+> **📂 Source:** `case/constant/turbulenceProperties`
+> 
+> **💡 Explanation:** การตั้งค่า Dynamic k-equation LES model ซึ่งคำนวณค่าสัมประสิทธิ์ SGS แบบไดนามิกตามสนามการไหล โดยใช้ฟิลเตอร์ (filter) เพื่อกรองสนามความเร็วในหลายระดับ
+> 
+> **🔑 Key Concepts:**
+> - **dynamicKEqn**: Dynamic k-equation model ที่คำนวณค่าสัมประสิทธิ์แบบไดนามิก
+> - **filter**: วิธีการกรอง (simple, anisotropic, laplacian)
+> - **Dynamic procedure**: คำนวณค่าสัมประสิทธิ์ Cs แบบ local ตามตำแหน่งและเวลา
 
 ---
 
@@ -145,7 +177,7 @@ LES
 
 LES ต้องการ Mesh และการตั้งค่าเวลาที่เหมาะสม:
 
-#### ข้อกำหนด Mesh
+#### ข้อกำนด Mesh
 
 | พารามิเตอร์ | ข้อกำหนดสำหรับ LES |
 |-------------|-------------------|
@@ -167,10 +199,19 @@ $$\text{CFL} = \frac{|\mathbf{u}| \Delta t}{\Delta x} < 1$$
 ค่า CFL ทั่วไปสำหรับ LES อยู่ในช่วง **0.3 ถึง 0.7**:
 
 ```cpp
-// ใน controlDict
-maxCo           0.5;      // ค่า CFL สูงสุด
-maxAlphaCo      0.5;      // สำหรับการไหลแบบบีบอัดได้
+// In controlDict - Time step control for LES
+maxCo           0.5;      // Maximum CFL number
+maxAlphaCo      0.5;      // For compressible flows
 ```
+
+> **📂 Source:** `case/system/controlDict`
+> 
+> **💡 Explanation:** การควบคุม time step ผ่านค่า CFL number (Co) ในไฟล์ controlDict เพื่อให้แน่ใจว่าการจำลองมีเสถียรภาพและความแม่นยำสำหรับ LES
+> 
+> **🔑 Key Concepts:**
+> - **maxCo**: ค่า Courant number สูงสุดที่อนุญาต
+> - **CFL condition**: ข้อจำกัดความเสถียรสำหรับการแก้สมการเชิงอนุพันธ์
+> - **Temporal resolution**: ความละเอียดของเวลาที่จำเป็นสำหรับ LES
 
 ---
 
@@ -191,7 +232,7 @@ flowchart LR
     style B fill:#FFE4B5
     style C fill:#E6E6FA
 ```
-> **Figure 2:** แนวคิดของแบบจำลองผสม Hybrid RANS-LES หรือ Detached Eddy Simulation (DES) ซึ่งแสดงการแบ่งโซนการทำงาน โดยใช้ RANS ในบริเวณใกล้ผนังเพื่อลดต้นทุนการคำนวณ และสลับไปใช้ LES ในบริเวณที่เกิดการแยกตัวของการไหล (Separated Region) เพื่อจับโครงสร้างความปั่นป่วนที่ซับซ้อนความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 2:** แนวคิดของแบบจำลองผสม Hybrid RANS-LES หรือ Detached Eddy Simulation (DES) ซึ่งแสดงการแบ่งโซนการทำงาน โดยใช้ RANS ในบริเวณใกล้ผนังเพื่อลดต้นทุนการคำนวณ และสลับไปใช้ LES ในบริเวณที่เกิดการแยกตัวของการไหล (Separated Region) เพื่อจับโครงสร้างความปั่นป่วนที่ซับซ้อน
 
 แนวคิดพื้นฐานคือการใช้สเกลความยาวแบบ Hybrid:
 
@@ -225,19 +266,32 @@ $$f_d = 1 - \tanh\left([8 r_d]^3\right)$$
 แบบจำลอง DES ถูกนำไปใช้ในลำดับชั้นของคลาส `DESModel`:
 
 ```cpp
-// โครงสร้างหลัก
+// Main DES model structure
+// Location: turbulenceModels/LES/DES
 src/TurbulenceModels/turbulenceModels/LES/DES/DESModel/DESModel.H
 
-// แบบจำลองเฉพาะ
+// Specific DES model implementations
 src/TurbulenceModels/turbulenceModels/LES/SpalartAllmarasDES/
 src/TurbulenceModels/turbulenceModels/LES/kOmegaSSTDES/
 src/TurbulenceModels/turbulenceModels/LES/SpalartAllmarasDDES/
 src/TurbulenceModels/turbulenceModels/LES/SpalartAllmarasIDDES/
 ```
 
+> **📂 Source:** `src/TurbulenceModels/turbulenceModels/LES/DES/`
+> 
+> **💡 Explanation:** โครงสร้างไฟล์ของ DES models ใน OpenFOAM ซึ่งสืบทอดจาก LES models และเพิ่มฟังก์ชันการทำงานแบบ Hybrid RANS-LES โดยมีคลาสพื้นฐาน DESModel และคลาสของแบบจำลองเฉพาะเช่น SpalartAllmarasDES, kOmegaSSTDES, SpalartAllmarasDDES และ SpalartAllmarasIDDES
+> 
+> **🔑 Key Concepts:**
+> - **DESModel**: Base class สำหรับทุก DES models
+> - **SpalartAllmarasDES**: DES ที่ใช้ Spalart-Allmaras RANS model
+> - **kOmegaSSTDES**: DES ที่ใช้ k-ω SST RANS model
+> - **DDES**: Delayed Detached Eddy Simulation ที่มีฟังก์ชันป้องกัน
+> - **IDDES**: Improved DDES ที่มีการเปลี่ยนผ่านที่ราบรื่นกว่า
+
 #### การตั้งค่า DES
 
 ```cpp
+// Simulation type selection for DES
 simulationType DES;
 
 DES
@@ -247,10 +301,19 @@ DES
     turbulence      on;
     printCoeffs     on;
 
-    // ค่าสัมประสิทธิ์ของแบบจำลอง
+    // Model coefficient settings
     CDES            0.65;    // DES coefficient
 }
 ```
+
+> **📂 Source:** `case/constant/turbulenceProperties`
+> 
+> **💡 Explanation:** การตั้งค่า DES model ผ่านไฟล์ turbulenceProperties โดยระบุ simulationType เป็น DES และเลือกแบบจำลอง DESModel เป็น SpalartAllmarasIDDES พร้อมค่าสัมประสิทธิ์ CDES
+> 
+> **🔑 Key Concepts:**
+> - **simulationType DES**: ระบุว่าใช้แบบจำลอง Hybrid RANS-LES
+> - **SpalartAllmarasIDDES**: Improved Delayed Detached Eddy Simulation ที่ใช้ Spalart-Allmaras
+> - **CDES**: ค่าสัมประสิทธิ์ DES ที่ควบคุมจุดเปลี่ยนระหว่าง RANS และ LES
 
 #### การตั้งค่า k-ω SST DES
 
@@ -265,10 +328,19 @@ DES
     kOmegaSSTDESCoeffs
     {
         CDES         0.65;
-        // ค่าสัมประสิทธิ์ k-ω SST อื่นๆ
+        // Additional k-ω SST coefficients
     }
 }
 ```
+
+> **📂 Source:** `case/constant/turbulenceProperties`
+> 
+> **💡 Explanation:** การตั้งค่า k-ω SST DES model ซึ่งรวม k-ω SST RANS model เข้ากับสเกลความยาวแบบ Hybrid เหมาะสำหรับการไหลที่มีการแยกตัวและความดันตามผลัง
+> 
+> **🔑 Key Concepts:**
+> - **kOmegaSSTDES**: DES ที่ใช้ k-ω SST model ซึ่งแม่นยำสำหรับการไหลติดผนัง
+> - **Hybrid length scale**: สเกลความยาวที่เปลี่ยนระหว่าง RANS และ LES
+> - **CDES**: ค่าสัมประสิทธิ์ที่ควบคุมการเปลี่ยนโหมด
 
 ---
 
@@ -317,7 +389,7 @@ flowchart TD
     D --> F
     E --> F
 ```
-> **Figure 3:** กลไกการเปลี่ยนสภาพของการไหล (Transition Mechanisms) จากสภาวะ Laminar ไปสู่ Turbulent ซึ่งสามารถเกิดขึ้นได้ผ่านหลายรูปแบบ เช่น การเปลี่ยนสภาพตามธรรมชาติ (Natural Transition) การเปลี่ยนสภาพแบบ Bypass หรือการเปลี่ยนสภาพที่เกิดจากการแยกตัวของการไหล (Separation-Induced)ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 3:** กลไกการเปลี่ยนสภาพของการไหล (Transition Mechanisms) จากสภาวะ Laminar ไปสู่ Turbulent ซึ่งสามารถเกิดขึ้นได้ผ่านหลายรูปแบบ เช่น การเปลี่ยนสภาพตามธรรมชาติ (Natural Transition) การเปลี่ยนสภาพแบบ Bypass หรือการเปลี่ยนสภาพที่เกิดจากการแยกตัวของการไหล (Separation-Induced)
 
 #### ประเภทของการเปลี่ยนสภาพ
 
@@ -360,8 +432,18 @@ $$E_\gamma = c_{a2} \rho \Omega \gamma F_{turb}$$
 มี Transition models ใน OpenFOAM ผ่าน:
 
 ```cpp
+// Transition model location in OpenFOAM
 src/TurbulenceModels/turbulenceModels/RAS/transitionModels/
 ```
+
+> **📂 Source:** `src/TurbulenceModels/turbulenceModels/RAS/transitionModels/`
+> 
+> **💡 Explanation:** ตำแหน่งเก็บ Transition models ใน OpenFOAM ซึ่งใช้ร่วมกับ RAS models เพื่อจำลองการเปลี่ยนสภาพจาก Laminar ไปเป็น Turbulent
+> 
+> **🔑 Key Concepts:**
+> - **transitionModels**: Directory ที่เก็บ transition modeling implementations
+> - **gammaReTheta**: γ-Reθ transition model
+> - **kklOmega**: k-kl-ω transition model
 
 #### การตั้งค่า γ-Reθ Model
 
@@ -373,7 +455,7 @@ RAS
     RASModel        kOmegaSST;
 
     turbulence      on;
-    transition      on;      // เปิดใช้งาน transition modeling
+    transition      on;      // Enable transition modeling
 
     transitionModel   gammaReTheta;
 
@@ -382,7 +464,7 @@ RAS
         maxTransitionLength    50;
         criticalReThet         200;
 
-        // ค่าสัมประสิทธิ์อื่นๆ
+        // Additional coefficients
         ca1                     2.0;
         ca2                     0.06;
         ce1                     1.0;
@@ -392,6 +474,16 @@ RAS
     }
 }
 ```
+
+> **📂 Source:** `case/constant/turbulenceProperties`
+> 
+> **💡 Explanation:** การตั้งค่า γ-Reθ transition model ร่วมกับ k-ω SST RANS model โดยเปิดใช้งาน transition modeling ผ่านพารามิเตอร์ `transition on` และระบุ `transitionModel` เป็น `gammaReTheta` พร้อมค่าสัมประสิทธิ์ต่างๆ
+> 
+> **🔑 Key Concepts:**
+> - **transition on**: เปิดใช้งาน transition modeling
+> - **gammaReTheta**: γ-Reθ transition model ที่ใช้ intermittency และ Reynolds number
+> - **maxTransitionLength**: ความยาวสูงสุดของบริเวณ transition
+> - **criticalReThet**: ค่า Reynolds number วิกฤตที่เริ่มเปลี่ยนสภาพ
 
 #### การตั้งค่า k-kl-ω Model
 
@@ -405,10 +497,19 @@ RAS
 
     kklOmegaCoeffs
     {
-        // ค่าสัมประสิทธิ์สำหรับ k-kl-ω
+        // Coefficients for k-kl-ω model
     }
 }
 ```
+
+> **📂 Source:** `case/constant/turbulenceProperties`
+> 
+> **💡 Explanation:** การตั้งค่า k-kl-ω transition model ซึ่งเป็นอีกแบบจำลองหนึ่งที่ใช้สำหรับจำลองการเปลี่ยนสภาพ
+> 
+> **🔑 Key Concepts:**
+> - **kklOmega**: k-kl-ω transition model ที่ใช้สมการ 3 สมการ
+> - **Laminar kinetic energy**: พลังงานจลน์ของการไหลแบบ laminar
+> - **Turbulent kinetic energy**: พลังงานจลน์ของความปั่นป่วน
 
 ---
 
@@ -471,9 +572,19 @@ $$\frac{\partial R_{ij}}{\partial t} + u_k\frac{\partial R_{ij}}{\partial x_k} =
 RSM models ถูกนำไปใช้ใน:
 
 ```cpp
-src/TurbulenceModels/incompressible/RAS/LaunderGibsonRSTM/
-src/TurbulenceModels/compressible/RAS/LaunderSharmaKE/
+// RSM model locations in OpenFOAM
+src/TurbulenceModels/turbulenceModels/RAS/LaunderGibsonRSTM/
+src/TurbulenceModels/turbulenceModels/RAS/LaunderSharmaKE/
 ```
+
+> **📂 Source:** `src/TurbulenceModels/turbulenceModels/RAS/`
+> 
+> **💡 Explanation:** ตำแหน่งเก็บ Reynolds Stress Models (RSM) ใน OpenFOAM ซึ่งแก้ 6 สมการขนส่งสำหรับ Reynolds stress tensor
+> 
+> **🔑 Key Concepts:**
+> - **LaunderGibsonRSTM**: Reynolds Stress Transport Model ที่พัฒนาโดย Launder และ Gibson
+> - **Reynolds stress tensor**: 6 องค์ประกอบของความเค้นความปั่นป่วน
+> - **Anisotropic turbulence**: ความปั่นป่วนที่ไม่เท่ากันในทุกทิศทาง
 
 #### การตั้งค่า RSM
 
@@ -495,6 +606,15 @@ RAS
     }
 }
 ```
+
+> **📂 Source:** `case/constant/turbulenceProperties`
+> 
+> **💡 Explanation:** การตั้งค่า Launder-Gibson Reynolds Stress Transport Model ซึ่งแก้ 6 สมการขนส่งสำหรับทุกองค์ประกอบของ Reynolds stress tensor
+> 
+> **🔑 Key Concepts:**
+> - **LaunderGibsonRSTM**: RSM ที่ใช้กันอย่างแพร่หลาย
+> - **Cmu**: ค่าสัมประสิทธิ์ความหนืดความปั่นป่วน
+> - **Clrr1, Clrr2**: ค่าสัมประสิทธิ์สำหรับ pressure-strain correlation
 
 ---
 
@@ -567,6 +687,15 @@ RAS
 }
 ```
 
+> **📂 Source:** `case/constant/turbulenceProperties`
+> 
+> **💡 Explanation:** การตั้งค่า k-ω SST SAS model ซึ่งเป็น Scale-Adaptive Simulation ที่ปรับตัวตามสเกลของความปั่นป่วนในสนามการไหล
+> 
+> **🔑 Key Concepts:**
+> - **kOmegaSSTSAS**: k-ω SST model ที่มี SAS source term
+> - **von Kármán length scale**: สเกลความยาวที่ใช้ตรวจจับโครงสร้างความปั่นป่วน
+> - **Automatic scale adaptation**: ปรับตัวอัตโนมัติตามสภาวะการไหล
+
 ---
 
 ### 5.4 การประยุกต์ใช้ SAS
@@ -614,7 +743,7 @@ flowchart TD
     style G fill:#E6E6FA
     style J fill:#FFB6C1
 ```
-> **Figure 4:** แผนผังการตัดสินใจเลือกแบบจำลองความปั่นป่วน (Turbulence Model Selection Logic) โดยพิจารณาจากความละเอียดที่ต้องการ เลข Reynolds ลักษณะของการแยกตัวของการไหล และความไม่สมมาตรของความเค้น (Anisotropy) เพื่อให้ได้ผลลัพธ์ที่แม่นยำและคุ้มค่าที่สุดความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 4:** แผนผังการตัดสินใจเลือกแบบจำลองความปั่นป่วน (Turbulence Model Selection Logic) โดยพิจารณาจากความละเอียดที่ต้องการ เลข Reynolds ลักษณะของการแยกตัวของการไหล และความไม่สมมาตรของความเค้น (Anisotropy) เพื่อให้ได้ผลลัพธ์ที่แม่นยำและคุ้มค่าที่สุด
 
 ---
 
@@ -636,32 +765,68 @@ flowchart TD
 #### สำหรับการใช้งานทั่วไป
 
 ```cpp
-// เลือก k-ω SST สำหรับกรณีส่วนใหญ่
+// Choose k-ω SST for most cases
 RASModel        kOmegaSST;
 ```
+
+> **📂 Source:** `case/constant/turbulenceProperties`
+> 
+> **💡 Explanation:** k-ω SST model เป็นตัวเลือกที่ดีสำหรับกรณีส่วนใหญ่ เนื่องจากให้ความแม่นยำที่ดีสำหรับการไหลติดผนังและการไหลที่มีการแยกตัว
+> 
+> **🔑 Key Concepts:**
+> - **k-ω SST**: k-omega Shear Stress Transport model
+> - **General purpose**: เหมาะสำหรับกรณีส่วนใหญ่
+> - **Wall-bounded flows**: การไหลติดผนัง
 
 #### สำหรับการไหลที่มี Anisotropy สูง
 
 ```cpp
-// เลือก RSM สำหรับ swirling flows, rotating flows
+// Choose RSM for swirling flows, rotating flows
 RASModel        LaunderGibsonRSTM;
 ```
+
+> **📂 Source:** `case/constant/turbulenceProperties`
+> 
+> **💡 Explanation:** Reynolds Stress Model เหมาะสำหรับการไหลที่มีความไม่เป็นแบบ Isotropic สูง เช่น การไหลวน (swirling flows) หรือการไหลที่มีการหมุน
+> 
+> **🔑 Key Concepts:**
+> - **LaunderGibsonRSTM**: Reynolds Stress Transport Model
+> - **Anisotropic turbulence**: ความปั่นป่วนที่ไม่สมมาตร
+> - **Swirling/rotating flows**: การไหลวนหรือหมุน
 
 #### สำหรับการไหลที่มีการแยกตัวชัดเจน
 
 ```cpp
-// เลือก DES สำหรับ high Re separated flows
+// Choose DES for high Re separated flows
 simulationType DES;
 DESModel        SpalartAllmarasIDDES;
 ```
 
+> **📂 Source:** `case/constant/turbulenceProperties`
+> 
+> **💡 Explanation:** DES เหมาะสำหรับการไหลที่มีการแยกตัวชัดเจนที่ Reynolds number สูง ซึ่งรวมประสิทธิภาพของ RANS ใกล้ผนังและ LES ในบริเวณแยกตัว
+> 
+> **🔑 Key Concepts:**
+> - **DES**: Detached Eddy Simulation
+> - **High Re flows**: การไหลที่ Reynolds number สูง
+> - **Separated flows**: การไหลที่มีการแยกตัว
+
 #### สำหรับการไหล Re ต่ำที่มีการเปลี่ยนสภาพ
 
 ```cpp
-// เลือก γ-Reθ ร่วมกับ k-ω SST
+// Choose γ-Reθ with k-ω SST
 RASModel        kOmegaSST;
 transitionModel   gammaReTheta;
 ```
+
+> **📂 Source:** `case/constant/turbulenceProperties`
+> 
+> **💡 Explanation:** γ-Reθ transition model ร่วมกับ k-ω SST เหมาะสำหรับการไหลที่ Reynolds number ต่ำที่มีการเปลี่ยนสภาพจาก Laminar ไป Turbulent
+> 
+> **🔑 Key Concepts:**
+> - **gammaReTheta**: γ-Reθ transition model
+> - **Low Re flows**: การไหลที่ Reynolds number ต่ำ
+> - **Laminar-turbulent transition**: การเปลี่ยนสภาพ
 
 ---
 
@@ -717,19 +882,29 @@ transitionModel   gammaReTheta;
 #### ตัวอย่างการตั้งค่า Synthetic Turbulence
 
 ```cpp
-// ใน 0/U หรือ boundary conditions
+// In 0/U or boundary conditions
 inlet
 {
     type            turbulentDigitalFilterInlet;
-    UInf            10.0;      // ความเร็วกระแส
-    lInf            0.1;       // ความยาวอินทิกรัล
-    nu              1e-5;      // ความหนืดจลน์
+    UInf            10.0;      // Freestream velocity
+    lInf            0.1;       // Integral length scale
+    nu              1e-5;      // Kinematic viscosity
 
-    // ค่าความปั่นป่วน
-    k               0.1;       // พลังงานจลน์ความปั่นป่วน
-    epsilon         0.01;      // อัตราการสลายตัว
+    // Turbulence values
+    k               0.1;       // Turbulent kinetic energy
+    epsilon         0.01;      // Dissipation rate
 }
 ```
+
+> **📂 Source:** `case/0/U`
+> 
+> **💡 Explanation:** การตั้งค่า inlet boundary condition ด้วย turbulentDigitalFilterInlet ซึ่งสร้างความปั่นป่วนสังเคราะห์เพื่อใช้กับ LES/DES simulations
+> 
+> **🔑 Key Concepts:**
+> - **turbulentDigitalFilterInlet**: Boundary condition ที่สร้างความปั่นป่วนสังเคราะห์
+> - **UInf**: ความเร็วกระแสหลัก
+> - **lInf**: สเกลความยาวอินทิกรัลของความปั่นป่วน
+> - **k, epsilon**: พลังงานจลน์และอัตราการสลายตัว
 
 ---
 

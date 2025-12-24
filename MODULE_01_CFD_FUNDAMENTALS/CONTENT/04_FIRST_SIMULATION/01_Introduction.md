@@ -203,19 +203,51 @@ graph TD
 ### การนำไปใช้งานใน OpenFOAM
 
 **ตัวอย่างการ Discretization ใน OpenFOAM:**
+
 ```cpp
-// สมการโมเมนตัม
+// Momentum equation discretization in OpenFOAM
+// สมการโมเมนตัมใน OpenFOAM
 fvVectorMatrix UEqn
 (
+    // Transient term: ∂(ρU)/∂t
+    // เทอมชั่วคราว: อนุพันธ์เวกเตอร์ความเร็วเทียบกับเวลา
     fvm::ddt(rho, U)
+    
+    // Convection term: ∇·(ρUU)
+    // เทอมเคลื่อนที่: การพาความเร็วของของไหล
   + fvm::div(rhoPhi, U)
+    
+    // Divergence correction term
+    // เทอมแก้ไขการเบี่ยงเบน
   + fvm::SuSp(-fvc::div(rhoPhi), U)
+    
+    // Equality operator
  ==
+    // Pressure gradient term: -∇p
+    // เทอมการไหลของความดัน
     - fvc::grad(p)
+    
+    // Diffusion term: μ∇²U
+    // เทอมการแพร่กระจาย (viscous forces)
   + fvc::laplacian(mu, U)
+    
+    // Source terms (e.g., porous media, body forces)
+    // เทอมต้นกำเนิด (เช่น ตัวกลางพรุทึบ แรงภายนอก)
   + fvOptions(rho, U)
 );
 ```
+
+> **📂 Source:** .applications/solvers/multiphase/multiphaseInterFoam/multiphaseMixture/multiphaseMixture.c
+>
+> **คำอธิบาย:**
+> โค้ด C++ ข้างต้นแสดงให้เห็นวิธีการจัดรูปแบบสมการโมเมนตัมใน OpenFOAM โดยใช้ Finite Volume Method (FVM) โครงสร้าง `fvVectorMatrix` ใช้สำหรับรวบรวมเทรมต่าง ๆ ของสมการเชิงเวกเตอร์ ซึ่งประกอบด้วย:
+> - `fvm::` (Finite Volume Method) สำหรับ implicit terms ที่ถูกจัดวางในเมทริกซ์
+> - `fvc::` (Finite Volume Calculus) สำหรับ explicit terms ที่ถูกคำนวณโดยตรง
+>
+> **แนวคิดหลัก:**
+> - **Implicit vs Explicit:** Implicit terms ใช้สำหรับเทอมที่ต้องการความเสถียรในการคำนวณ (เช่น ddt, div) ส่วน explicit terms ใช้สำหรับเทอมที่คำนวณได้โดยตรง (เช่น grad, laplacian)
+> - **Linear System:** เมื่อรวบรวมเทรมทั้งหมดแล้ว จะได้ระบบสมการเชิงเส้น $A\mathbf{x} = \mathbf{b}$ ที่สามารถแก้ไขได้ด้วย linear solver
+> - **Operator Splitting:** แต่ละเทอมถูกแยกออกและจัดการแยกกันตามคุณสมบัติทางกายภาพและเชิงตัวเลข
 
 ---
 

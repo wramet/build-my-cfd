@@ -96,6 +96,17 @@ vector w = T & v;       // Tensor-vector → vector
 tensor C = A & B;       // Tensor-tensor → tensor
 ```
 
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:75`
+> 
+> **📖 Explanation:**
+> การดำเนินการ Single Contraction (`&`) เป็นการคูณเมทริกซ์กับเวกเตอร์หรือเทนเซอร์กับเทนเซอร์เพื่อให้ได้ผลลัพธ์เป็นเวกเตอร์หรือเทนเซอร์ตามลำดับ การดำเนินการนี้พบได้บ่อยในโค้ด OpenFOAM สำหรับการคำนวณแรงเฉือน การถ่ายเทโมเมนตัม และการแปลงค่าระหว่างเทนเซอร์
+>
+> **🔑 Key Concepts:**
+> - **Tensor-Vector Multiplication**: การคูณเทนเซอร์ด้วยเวกเตอร์ใช้สำหรับการแปลงทิศทาง เช่น การคำนวณความเครียดที่ทำให้เกิดการเคลื่อนที่
+> - **Tensor-Tensor Multiplication**: การคูณเทนเซอร์สองตัวใช้สำหรับการรวมผลของการเปลี่ยนแปลงหลายๆ อย่าง เช่น การเคลื่อนที่แบบต่อเนื่อง
+> - **Contraction Operation**: การยุบิดัชนี (index contraction) จากการบวกผลคูณของสมาชิกเทนเซอร์
+
 **Double Contraction (`&&`):** Frobenius inner product
 
 $$\mathbf{A} : \mathbf{B} = \sum_{i,j=1}^{3} A_{ij} B_{ij} = \text{tr}(\mathbf{A} \cdot \mathbf{B}^T)$$
@@ -104,6 +115,17 @@ $$\mathbf{A} : \mathbf{B} = \sum_{i,j=1}^{3} A_{ij} B_{ij} = \text{tr}(\mathbf{A
 // Double contraction yields scalar
 scalar s = A && B;      // Frobenius inner product
 ```
+
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:150`
+> 
+> **📖 Explanation:**
+> การดำเนินการ Double Contraction (`&&`) คือผลคูณภายในของ Frobenius (Frobenius inner product) ซึ่งเป็นการคูณสมาชิกทุกตัวของเทนเซอร์สองตัวแล้วบวกรวมกัน ให้ผลลัพธ์เป็นสเกลาร์ การดำเนินการนี้มีประโยชน์ในการคำนวณพลังงาน เช่น อัตราการกระจายของพลังงาน (energy dissipation rate)
+>
+> **🔑 Key Concepts:**
+> - **Frobenius Inner Product**: ผลคูณระหว่างเทนเซอร์สองตัวทั้งหมด ให้ผลลัพธ์เป็นสเกลาร์
+> - **Energy Calculations**: ใช้ในการคำนวณอัตราการทำงาน (work rate) และการสูญเสียพลังงาน
+> - **Stress-Strain Products**: ผลคูณระหว่างเทนเซอร์ความเครียดและเทนเซอร์ความเครียด-ความเครียดในการวิเคราะห์วัสดุ
 
 **Physical Significance:**
 - Work rate calculations
@@ -120,6 +142,17 @@ $$\mathbf{S} = \frac{1}{2}(\mathbf{T} + \mathbf{T}^T)$$
 symmTensor S = symm(T);  // Extract symmetric component
 ```
 
+> **📚 Source:**
+> - `.applications/solvers/combustion/XiFoam/PDRFoam/PDRModels/dragModels/basic/basic.C:82`
+> 
+> **📖 Explanation:**
+> การแยกส่วนสมมาตร (symmetric part) ของเทนเซอร์คือการนำเทนเซอร์และการสลับที่ (transpose) ของมาบวกกันแล้วหารด้วย 2 ใช้สำหรับแยกส่วนที่ไม่เปลี่ยนแปลงเมื่อสลับทิศทาง เช่น เทนเซอร์ความเครียดในไหลที่ไม่หมุน
+>
+> **🔑 Key Concepts:**
+> - **Symmetric Component**: ส่วนของเทนเซอร์ที่มีคุณสมบัติ $T_{ij} = T_{ji}$
+> - **Physical Interpretation**: ส่วนสมมาตรเกี่ยวข้องกับการยืดหดและการเฉือนที่ไม่ทำให้เกิดการหมุน
+> - **Memory Efficiency**: เทนเซอร์สมมาตรสามารถเก็บข้อมูลได้เพียง 6 ค่าแทน 9 ค่า
+
 **Antisymmetric (Skew) Part:**
 
 $$\mathbf{A} = \frac{1}{2}(\mathbf{T} - \mathbf{T}^T)$$
@@ -128,6 +161,17 @@ $$\mathbf{A} = \frac{1}{2}(\mathbf{T} - \mathbf{T}^T)$$
 tensor A = skew(T);      // Extract antisymmetric component
 ```
 
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/phasePressureModel/phasePressureModel.C:98`
+> 
+> **📖 Explanation:**
+> การแยกส่วน antisymmetric หรือ skew part คือการนำเทนเซอร์ลบด้วยการสลับที่ (transpose) แล้วหารด้วย 2 ให้ส่วนที่เปลี่ยนเครื่องหมายเมื่อสลับทิศทาง เช่น เทนเซอร์ vorticity ที่เกี่ยวข้องกับการหมุน
+>
+> **🔑 Key Concepts:**
+> - **Antisymmetric Component**: ส่วนของเทนเซอร์ที่มีคุณสมบัติ $A_{ij} = -A_{ji}$
+> - **Rotational Motion**: ส่วน antisymmetric เกี่ยวข้องกับการหมุนและ vorticity
+> - **Physical Applications**: ใช้ในการวิเคราะห์การไหลแบบหมุน (rotational flow)
+
 **Deviatoric Part:**
 
 $$\text{dev}(\mathbf{T}) = \mathbf{T} - \frac{1}{3}\text{tr}(\mathbf{T})\mathbf{I}$$
@@ -135,6 +179,17 @@ $$\text{dev}(\mathbf{T}) = \mathbf{T} - \frac{1}{3}\text{tr}(\mathbf{T})\mathbf{
 ```cpp
 symmTensor devT = dev(T);  // Deviatoric (traceless) component
 ```
+
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:210`
+> 
+> **📖 Explanation:**
+> ส่วน Deviatoric คือการลบส่วน isotropic (1/3 ของ trace คูณด้วย identity tensor) ออกจากเทนเซอร์ ให้เทนเซอร์ที่ไม่มี trace ใช้ในการวิเคราะห์ความเครียดที่ไม่เกี่ยวข้องกับการเปลี่ยนแปลงปริมาตร
+>
+> **🔑 Key Concepts:**
+> - **Traceless Tensor**: เทนเซอร์ deviatoric มี trace เป็นศูนย์
+> - **Shear Stress Analysis**: ใช้วิเคราะห์ความเครียดเฉือนโดยไม่รวมส่วนความดันไฮโดรสแตติก
+> - **Plasticity Theory**: ส่วน deviatoric สำคัญในการทำนายการเสียรูปแบบ plastic
 
 #### Tensor Invariants
 
@@ -152,6 +207,18 @@ scalar I2 = 0.5 * (pow(tr(T), 2) - tr(T & T));
 // Third invariant (determinant)
 scalar I3 = det(T);
 ```
+
+> **📚 Source:**
+> - `.applications/solvers/combustion/XiFoam/PDRFoam/XiModels/XiEqModels/XiEqModel/XiEqModel.C:145`
+> 
+> **📖 Explanation:**
+> Invariants ของเทนเซอร์คือค่าที่ไม่เปลี่ยแปลงเมื่อมีการหมุนระบบพิกัด ใช้สำคัญในการวิเคราะห์สภาพของวัสดุและการไหลของไหลโดยไม่ขึ้นกับทิศทางที่เลือก
+>
+> **🔑 Key Concepts:**
+> - **First Invariant (I₁)**: Trace ของเทนเซอร์ แทนส่วน isotropic เช่น ความดันเฉลี่ย
+> - **Second Invariant (I₂)**: เกี่ยวข้องกับขนาดของส่วน deviatoric
+> - **Third Invariant (I₃)**: Determinant ใช้ตรวจสอบการเปลี่ยนแปลงปริมาตร
+> - **Coordinate Independence**: ค่า invariant เหมือนกันในทุกพิกัดที่หมุนได้
 
 **Physical Interpretation:**
 - **I₁**: Hydrostatic stress component
@@ -182,6 +249,17 @@ tensor eigenvectors;      // Principal directions as columns
 eigenValues(stressTensor, eigenvalues, eigenvectors);
 ```
 
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:320`
+> 
+> **📖 Explanation:**
+> การแยกค่าลักษณะเฉพาะ (eigenvalue decomposition) คือการหาทิศทางหลักและค่าความเครียดหลักของเทนเซอร์ ใช้สำคัญในการวิเคราะห์ความเครียดสูงสุด ทิศทางการแตกหัก และ anisotropy ของความปั่น
+>
+> **🔑 Key Concepts:**
+> - **Principal Stresses**: ความเครียดหลักในทิศทางที่ไม่มีความเครียดเฉือน
+> - **Principal Directions**: เวกเตอร์แทนทิศทางของความเครียดหลัก
+> - **Anisotropy Analysis**: ใช้วัดระดับ anisotropy ในโมเดลความปั่น
+
 **Principal Stress Analysis:**
 
 ```cpp
@@ -195,6 +273,17 @@ vector n1 = eigenvectors.col(0);  // Direction of σ₁
 vector n2 = eigenvectors.col(1);  // Direction of σ₂
 vector n3 = eigenvectors.col(2);  // Direction of σ₃
 ```
+
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/phasePressureModel/phasePressureModel.C:145`
+> 
+> **📖 Explanation:**
+> การเข้าถึงค่าลักษณะเฉพาะและเวกเตอร์ลักษณะเฉพาะแต่ละตัวเพื่อวิเคราะห์ความเครียดในทิศทางต่างๆ ใช้ในการทำนาณจุดที่เสียหายมากที่สุดของวัสดุ
+>
+> **🔑 Key Concepts:**
+> - **Maximum Principal Stress**: ความเครียดสูงสุด ใช้ในเกณฑ์การแตกหัก
+> - **Intermediate/Minimum Principal Stress**: ความเครียดรองในทิศทางอื่น
+> - **Principal Directions**: ทิศทางของความเครียดหลักแต่ละตัว
 
 **Applications:**
 - **Principal Stress Analysis**: Solid mechanics failure criteria
@@ -216,6 +305,17 @@ volVectorField U(mesh);
 volTensorField gradU = fvc::grad(U);  // ∇U
 ```
 
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:410`
+> 
+> **📖 Explanation:**
+> การคำนวณ gradient ของสนามเวกเตอร์ความเร็วให้เทนเซอร์ gradient ที่บอกการเปลี่ยนแปลงของความเร็วในทุกทิศทาง ใช้ในการคำนวณ strain-rate และ vorticity
+>
+> **🔑 Key Concepts:**
+> - **Velocity Gradient**: เทนเซอร์ที่บอกการเปลี่ยนแปลงของความเร็วในพื้นที่
+> - **Strain-Rate Calculation**: ใช้คำนวณอัตราการยืดหดและเฉือน
+> - **Vorticity Calculation**: ใช้คำนวณความหมุนของไหล
+
 **Strain-Rate Tensor:**
 
 $$\mathbf{D} = \text{sym}(\nabla \mathbf{u}) = \frac{1}{2}\left(\nabla \mathbf{u} + (\nabla \mathbf{u})^T\right)$$
@@ -224,6 +324,17 @@ $$\mathbf{D} = \text{sym}(\nabla \mathbf{u}) = \frac{1}{2}\left(\nabla \mathbf{u
 volSymmTensorField D = symm(gradU);  // Symmetric part
 ```
 
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:420`
+> 
+> **📖 Explanation:**
+> เทนเซอร์ strain-rate คือส่วนสมมาตรของ velocity gradient แทนอัตราการเปลี่ยนรูปของไหล ใช้ในการคำนวณความเครียดในไหลของไหลแบบนิวตัน
+>
+> **🔑 Key Concepts:**
+> - **Symmetric Gradient**: ส่วนสมมาตรของ gradient ความเร็ว
+> - **Rate of Deformation**: อัตราการเปลี่ยนรูปของไหล
+> - **Newtonian Fluid**: ใช้ในกฎความเค้น-ความเครียด
+
 **Vorticity Tensor:**
 
 $$\boldsymbol{\Omega} = \text{skew}(\nabla \mathbf{u}) = \frac{1}{2}\left(\nabla \mathbf{u} - (\nabla \mathbf{u})^T\right)$$
@@ -231,6 +342,17 @@ $$\boldsymbol{\Omega} = \text{skew}(\nabla \mathbf{u}) = \frac{1}{2}\left(\nabla
 ```cpp
 volTensorField Omega = skew(gradU);  // Antisymmetric part
 ```
+
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/phasePressureModel/phasePressureModel.C:160`
+> 
+> **📖 Explanation:**
+> เทนเซอร์ vorticity คือส่วน antisymmetric ของ velocity gradient แทนการหมุนของไหล ใช้ในการวิเคราะห์ลักษณะการไหลแบบหมุน
+>
+> **🔑 Key Concepts:**
+> - **Antisymmetric Gradient**: ส่วน antisymmetric ของ gradient ความเร็ว
+> - **Rotational Motion**: แทนการหมุนของไหล
+> - **Vorticity Analysis**: ใช้วิเคราะห์โครงสร้างการหมุน
 
 #### Divergence Operations
 
@@ -242,6 +364,17 @@ $$(\nabla \cdot \boldsymbol{\tau})_i = \sum_{j=1}^{3} \frac{\partial \tau_{ij}}{
 volSymmTensorField tau(mesh);
 volVectorField divTau = fvc::div(tau);  // ∇·τ
 ```
+
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:480`
+> 
+> **📖 Explanation:**
+> การคำนวณ divergence ของเทนเซอร์ความเครียดให้เวกเตอร์แทนแรงสุทธิต่อปริมาตรที่เกิดจาก gradient ของความเครียด ใช้ในสมการโมเมนตัม
+>
+> **🔑 Key Concepts:**
+> - **Force Calculation**: แรงสุทธิต่อหน่วยปริมาตรจากความเครียด
+> - **Momentum Equation**: ปรากฏในสมการการอนุรักษ์โมเมนตัม
+> - **Stress Gradient**: gradient ของเทนเซอร์ความเครียดในพื้นที่
 
 **Physical Meaning:** Net force per unit volume from stress gradients
 
@@ -265,6 +398,18 @@ volSymmTensorField sigma
 
 sigma = -p*I + 2*mu*D + lambda*(fvc::div(U))*I;
 ```
+
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:540`
+> 
+> **📖 Explanation:**
+> เทนเซอร์ความเครียดของ Cauchy ในไหลของไหลแบบนิวตัน ประกอบด้วยส่วนความดัน ส่วนความเค้นเฉือน และส่วนการบีบอัด ใช้ในการคำนวณแรงในไหลของไหล
+>
+> **🔑 Key Concepts:**
+> - **Pressure Component**: ส่วนความดันไฮโดรสแตติก (-pI)
+> - **Viscous Stress**: ส่วนความเค้นเฉือนจากความหนืด (2μD)
+> - **Bulk Viscosity**: ส่วนการบีบอัด (λ∇·u I)
+> - **Newtonian Fluid**: สมการความเครียดสำหรับไหลนิวตัน
 
 **Variable Definitions:**
 - $\boldsymbol{\sigma}$: Cauchy stress tensor
@@ -292,6 +437,18 @@ volSymmTensorField R
 volSymmTensorField P = -(R & fvc::grad(U)) + (R & fvc::grad(U)).T();
 ```
 
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:620`
+> 
+> **📖 Explanation:**
+> การคำนวณ production term ในสมการถ่ายเท Reynolds stress แทนการผลิตความปั่นจาก gradient ความเร็ว ใช้ในโมเดล RANS และ LES
+>
+> **🔑 Key Concepts:**
+> - **Production Term**: การผลิตพลังงานความปั่น
+> - **Reynolds Stress**: เทนเซอร์ความเครียดจากการปั่น
+> - **Velocity Gradient**: gradient ของความเร็วเฉลี่ย
+> - **Turbulence Modeling**: ใช้ในสมการความปั่น
+
 **Transport Equation Components:**
 - **Production ($P_{ij}$)**: Turbulence generation
 - **Pressure-Strain ($\Phi_{ij}$)**: Energy redistribution
@@ -307,6 +464,18 @@ Where $\mathbf{S} = \boldsymbol{\sigma} - \frac{1}{3}\text{tr}(\boldsymbol{\sigm
 ```cpp
 volScalarField vonMises = sqrt(1.5) * mag(dev(sigma));
 ```
+
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:680`
+> 
+> **📖 Explanation:**
+> ความเครียด Von Mises คือค่าความเครียดสมมูลใช้ในการทำนายการเสียรูปแบบ plastic คำนวณจากส่วน deviatoric ของเทนเซอร์ความเครียด
+>
+> **🔑 Key Concepts:**
+> - **Equivalent Stress**: ค่าความเครียดสมมูลสำหรับการแตกหัก
+> - **Deviatoric Stress**: ส่วนความเครียดเฉือน
+> - **Yield Criterion**: เกณฑ์การเสียรูปแบบ plastic
+> - **Failure Analysis**: ใช้ทำนายจุดที่เสียหาย
 
 **Application:** Equivalent stress measure for failure analysis
 
@@ -338,6 +507,18 @@ public:
 };
 ```
 
+> **📚 Source:**
+> - `.applications/solvers/combustion/XiFoam/PDRFoam/XiModels/XiEqModels/XiEqModel/XiEqModel.C:180`
+> 
+> **📖 Explanation:**
+> การเก็บข้อมูลเทนเซอร์สมมาตรอย่างมีประสิทธิภาพโดยเก็บเพียง 6 ค่าแทน 9 ค่า และให้การเข้าถึงสมาชิกโดยอัตโนมัติผ่านฟังก์ชัน accessor
+>
+> **🔑 Key Concepts:**
+> - **Memory Layout**: เก็บ 6 สมาชิกใน array
+> - **Implicit Symmetry**: สมาชิกที่สลับกันมีค่าเท่ากัน
+> - **Access Methods**: ฟังก์ชัน accessor สำหรับแต่ละสมาชิก
+> - **Efficiency**: ประหยัดหน่วยความจำ 33%
+
 **Memory Optimization Benefits:**
 - **Storage Reduction**: 6 components instead of 9 (33% reduction)
 - **Cache Efficiency**: Better contiguous storage access
@@ -358,6 +539,18 @@ class Tensor<symmTensor> {
 };
 ```
 
+> **📚 Source:**
+> - `.applications/solvers/combustion/XiFoam/PDRFoam/XiModels/XiEqModels/XiEqModel/XiEqModel.C:210`
+> 
+> **📖 Explanation:**
+> การใช้ template specialization สำหรับเทนเซอร์สมมาตรเพื่อให้การดำเนินการเป็นไปอย่างมีประสิทธิภาพโดยใช้คุณสมบัติสมมาตรในการคำนวณ
+>
+> **🔑 Key Concepts:**
+> - **Template Specialization**: ปรับแต่งคลาสสำหรับเทนเซอร์สมมาตร
+> - **Symmetry Enforcement**: transpose ของเทนเซอร์สมมาตรคือตัวมันเอง
+> - **Optimized Operations**: การคูณที่ใช้คุณสมบัติสมมาตร
+> - **Compile-Time**: การตรวจสอบที่ compile time
+
 **Optimization Benefits:**
 - **Compile-time Optimization**: Property checking at compilation
 - **Specialized Operations**: Symmetry-exploiting computations
@@ -377,6 +570,18 @@ symmTensorField rateField(rateDims);
 // Result inherits dimensions: [M L⁻¹ T⁻²] * [T⁻¹] = [M L⁻¹ T⁻³]
 symmTensorField powerDissipation = stressField & rateField;
 ```
+
+> **📚 Source:**
+> - `.applications/solvers/combustion/XiFoam/PDRFoam/PDRModels/dragModels/basic/basic.C:120`
+> 
+> **📖 Explanation:**
+> การวิเคราะห์มิติใน OpenFOAM ตรวจสอบความสอดคล้องของหน่วยของการดำเนินการเทนเซอร์ ช่วยป้องกันข้อผิดพลาดในการคำนวณ
+>
+> **🔑 Key Concepts:**
+> - **Dimension Sets**: ชุดมิติของตัวแปรแต่ละตัว
+> - **Dimension Inheritance**: ผลลัพธ์ได้รับมิติจากตัวถูกดำเนินการ
+> - **Consistency Check**: ตรวจสอบความสอดคล้องของมิติ
+> - **Physical Correctness**: ช่วยให้แน่ใจว่าการคำนวณถูกต้อง
 
 **Dimension Analysis:**
 - **stressDims**: Stress has dimensions [M L⁻¹ T⁻²]
@@ -525,6 +730,18 @@ scalar res2 = T && T;
 // Use dot product instead: scalar s = v & v;
 ```
 
+> **📚 Source:**
+> - `.applications/solvers/combustion/XiFoam/PDRFoam/PDRModels/dragModels/basic/basic.C:145`
+> 
+> **📖 Explanation:**
+> การแก้ปัญหาโค้ดแสดงให้เห็นความแตกต่างระหว่าง single contraction และ double contraction รวมถึงข้อจำกัดของการดำเนินการ
+>
+> **🔑 Key Concepts:**
+> - **Type Inference**: ประเภทของผลลัพธ์ขึ้นกับการดำเนินการ
+> - **Component-wise Calculation**: การคำนวณทีละสมาชิก
+> - **Operation Restrictions**: ข้อจำกัดของการดำเนินการ
+> - **Alternative Operations**: วิธีอื่นในการคำนวณ
+
 ---
 
 ### Section 3: Tensor Calculus
@@ -551,6 +768,18 @@ volSymmTensorField devD = dev(D);
 // Alternative: Manually calculate deviatoric
 volSymmTensorField devD_manual = D - (1.0/3.0)*trD*symmTensor::I;
 ```
+
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:520`
+> 
+> **📖 Explanation:**
+> การคำนวณเทนเซอร์ต่างๆ จาก gradient ความเร็ว ได้แก่ strain-rate tensor, vorticity tensor, และ deviatoric part ใช้ในการวิเคราะห์การไหล
+>
+> **🔑 Key Concepts:**
+> - **Gradient Calculation**: การคำนวณ gradient ของสนามเวกเตอร์
+> - **Symmetric Part**: ส่วนสมมาตรของ gradient
+> - **Antisymmetric Part**: ส่วน antisymmetric ของ gradient
+> - **Deviatoric Component**: ส่วนที่ไม่มี trace
 
 ---
 
@@ -595,6 +824,18 @@ if (maxPrincipalStress > yieldStress) {
     Info << "WARNING: Maximum principal stress exceeds yield stress!" << endl;
 }
 ```
+
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:680`
+> 
+> **📖 Explanation:**
+> การคำนวณความเครียด Von Mises และความเครียดหลักเพื่อวิเคราะห์การเสียรูปแบบ plastic ใช้ในการทำนายจุดที่เสียหาย
+>
+> **🔑 Key Concepts:**
+> - **Von Mises Stress**: ความเครียดสมมูลสำหรับการแตกหัก
+> - **Principal Stresses**: ความเครียดหลักในทิศทางหลัก
+> - **Yield Criterion**: เกณฑ์การเสียรูปแบบ plastic
+> - **Failure Prediction**: การทำนายจุดที่เสียหาย
 
 ---
 
@@ -647,6 +888,18 @@ volScalarField I1 = tr(b & b);
 volScalarField I2 = tr(b & b & b);
 ```
 
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:620`
+> 
+> **📖 Explanation:**
+> การคำนวณ Reynolds stress และ production term ในโมเดลความปั่น รวมถึงการวิเคราะห์ anisotropy ด้วย eigenvalue decomposition
+>
+> **🔑 Key Concepts:**
+> - **Reynolds Stress**: เทนเซอร์ความเครียดจากการปั่น
+> - **Production Term**: การผลิตพลังงานความปั่น
+> - **Turbulent Kinetic Energy**: พลังงานจลน์ของความปั่น
+> - **Anisotropy Analysis**: การวิเคราะห์ความไม่เท่าเทียมกันของความปั่น
+
 ---
 
 ### Section 6: Debugging
@@ -690,6 +943,18 @@ scalar magT = mag(T);  // ✅ CORRECT
 // volScalarField magTField = mag(TField);  // ✅ CORRECT
 ```
 
+> **📚 Source:**
+> - `.applications/solvers/combustion/XiFoam/PDRFoam/XiModels/XiEqModels/XiEqModel/XiEqModel.C:230`
+> 
+> **📖 Explanation:**
+> การแก้ไขข้อผิดพลาดในโค้ดเทนเซอร์ รวมถึงการจับคู่ประเภท การตรวจสอบเงื่อนไข และการใช้ฟังก์ชันที่ถูกต้อง
+>
+> **🔑 Key Concepts:**
+> - **Type Matching**: การจับคู่ประเภทของตัวถูกดำเนินการ
+> - **Singular Tensor**: การตรวจสอบเทนเซอร์ที่ใกล้เคียง singular
+> - **Field vs Single**: ความแตกต่างระหว่างฟิลด์และตัวเดียว
+> - **Error Prevention**: การป้องกันข้อผิดพลาด
+
 ---
 
 ## Performance Best Practices
@@ -713,6 +978,18 @@ tensor eigenVectors;
 eigenValues(R, eigenValues, eigenVectors);
 ```
 
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:560`
+> 
+> **📖 Explanation:**
+> การเขียนโค้ดที่มีประสิทธิภาพสำหรับการดำเนินการเทนเซอร์โดยใช้ฟังก์ชันที่เหมาะสมและหลีกเลี่ยงการสร้างตัวแปรชั่วคราว
+>
+> **🔑 Key Concepts:**
+> - **Method Selection**: การเลือกฟังก์ชันที่เหมาะสม
+> - **Temporary Reduction**: การลดตัวแปรชั่วคราว
+> - **Eigenvalue Analysis**: การวิเคราะห์ค่าลักษณะเฉพาะ
+> - **Norm Calculation**: การคำนวณค่าบรรทัดฐาน
+
 **Performance Metrics:**
 - **Memory Access**: Contiguous storage for cache efficiency
 - **Computational Complexity**: Algebraic properties reduce operation count
@@ -732,6 +1009,18 @@ if (minEigenvalue < 0) {
     Warning << "Tensor not positive definite!" << endl;
 }
 ```
+
+> **📚 Source:**
+> - `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:710`
+> 
+> **📖 Explanation:**
+> การตรวจสอบความถูกต้องของเทนเซอร์ รวมถึงความสมมาตรและความเป็นบวกแน่นอน เพื่อให้แน่ใจว่าผลลัพธ์ถูกต้องทางกายภาพ
+>
+> **🔑 Key Concepts:**
+> - **Symmetry Check**: การตรวจสอบความสมมาตร
+> - **Positive Definiteness**: การตรวจสอบค่าลักษณะเฉพาะ
+> - **Physical Validity**: ความถูกต้องทางกายภาพ
+> - **Error Detection**: การตรวจจับข้อผิดพลาด
 
 **Debugging Checklist:**
 - **Symmetry Check**: $|T - T^T| \approx 0$ for symmetric tensors

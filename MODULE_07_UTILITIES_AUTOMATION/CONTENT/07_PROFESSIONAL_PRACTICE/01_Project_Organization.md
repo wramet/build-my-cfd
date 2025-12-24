@@ -411,6 +411,16 @@ if __name__ == "__main__":
     print(f"Reynolds Number: {Re:.2e}")
 ```
 
+> **Source:** 📂 MODULE_07_UTILITIES_AUTOMATION/CONTENT/05_AUTOMATION/02_🧩 Complete_CFD_Automation_Framework.md
+>
+> **คำอธิบาย (Thai):**
+> โค้ด Python นี้แสดงการใช้ `ConfigLoader` class สำหรับอ่านค่า configuration จากไฟล์ YAML ซึ่งเป็นส่วนสำคัญของระบบอัตโนมัติ เมธอด `get()` ช่วยให้สามารถเข้าถึงค่า config ได้อย่างยืดหยุ่นโดยใช้ dot notation การแยกส่วนพารามิเตอร์ออกเป็นส่วนๆ (mesh, solver, physics) ช่วยให้จัดการและบำรุงรักษาได้ง่าย
+>
+> **Key Concepts:**
+> - YAML parsing ด้วย `yaml.safe_load()`
+> - Dot notation access ผ่าน `get()` method
+> - Separation of concerns ระหว่าง configuration และ business logic
+
 ### 2.3 Git Version Control สำหรับ OpenFOAM
 
 #### 2.3.1 ไฟล์ .gitignore มาตรฐาน
@@ -770,6 +780,17 @@ log "Results are available in: ${CASE_DIR}"
 log "Logs are available in: ${LOG_DIR}"
 ```
 
+> **Source:** 📂 MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/02_BlockMesh_Strategies.md
+>
+> **คำอธิบาย (Thai):**
+> สคริปต์ Allrun เป็นหัวใจสำคัญของ one-command workflow ที่ออกแบบมาเพื่อให้สามารถรันทั้งกระบวนการ CFD ได้ด้วยคำสั่งเดียว สคริปต์นี้มีการจัดการ error handling (`set -e`), logging, และ modular functions ที่แยกส่วนกันชัดเจน การใช้ `decomposePar` และ `mpirun` สำหรับ parallel execution ถูกนำมาใช้เพื่อประสิทธิภาพสูงสุด
+>
+> **Key Concepts:**
+> - Strict error handling ด้วย `set -e` และ `set -u`
+> - Modular function design สำหรับ maintainability
+> - Parallel execution ด้วย domain decomposition
+> - Automated logging สำหรับ troubleshooting
+
 ### 3.4 Log Storage and Management
 
 #### 3.4.1 Log File Organization
@@ -1058,6 +1079,17 @@ if __name__ == "__main__":
     output_plot = f"{log_file}.png"
     analyzer.plot_residuals(output_plot)
 ```
+
+> **Source:** 📂 MODULE_07_UTILITIES_AUTOMATION/CONTENT/03_POST_PROCESSING/01_Field_Analysis.md
+>
+> **คำอธิบาย (Thai):**
+> LogAnalyzer class นี้ถูกออกแบบมาเพื่อวิเคราะห์ log files จาก OpenFOAM solvers อย่างอัตโนมัติ โดยใช้ Regular Expressions ในการดึงข้อมูล residuals, errors, และ warnings การมี method สำหรับ plot residuals และ generate report ทำให้สามารถตรวจสอบสถานะของ simulation ได้อย่างรวดเร็ว ซึ่งเป็นส่วนสำคัญของ post-processing workflow
+>
+> **Key Concepts:**
+> - Regular expressions สำหรับ log parsing
+> - Residual tracking และ convergence monitoring
+> - Error detection ด้วย pattern matching
+> - Automated visualization ด้วย matplotlib
 
 ---
 

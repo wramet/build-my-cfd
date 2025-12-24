@@ -92,12 +92,29 @@ The mesh classes provide the geometric data necessary to evaluate these surface 
 Stores geometric coordinates of mesh vertices:
 
 ```cpp
+// The pointField class stores an array of 3D points (vertices)
+// Inherits from Field<point> for efficient memory management
 class pointField : public Field<point>
 {
     // Inherits from Field<point> for efficient storage
     // Provides access to coordinates via pointField[i]
 };
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C:33`
+>
+> **การอธิบาย:**
+> - `pointField` เป็นคลาสที่ใช้เก็บพิกัดของจุด (vertices) ทั้งหมดใน mesh
+> - สืบทอดมาจาก `Field<point>` ซึ่งเป็น template class สำหรับจัดการข้อมูลแบบ array อย่างมีประสิทธิภาพ
+> - แต่ละ point เก็บพิกัด $(x, y, z)$ ในปริภูมิสามมิติ
+> - สามารถเข้าถึงข้อมูลได้โดยตรงผ่าน index: `pointField[i]`
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Geometric Coordinates:** ข้อมูลพิกัดเป็นพื้นฐานของการคำนวณเรขาคณิตทั้งหมด
+> - **Memory Efficiency:** การใช้ Field class ช่วยจัดการหน่วยความจำอย่างมีประสิทธิภาพ
+> - **Random Access:** สามารถเข้าถึงข้อมูลใดๆ ได้ทันทีผ่าน index
 
 Each point $p_i = (x_i, y_i, z_i)$ represents a vertex in 3D space. The `pointField` class provides random access to these coordinates and supports vector operations for geometric calculations.
 
@@ -106,22 +123,39 @@ Each point $p_i = (x_i, y_i, z_i)$ represents a vertex in 3D space. The `pointFi
 Defines polygonal boundaries between cells:
 
 ```cpp
+// The face class represents a polygonal boundary between cells
+// Defined by an ordered list of point indices
 class face
 {
 private:
+    // List of point indices that form the face polygon
     List<label> points_;  // List of point indices forming the face
 
 public:
-    // Calculate face normal vector
+    // Calculate the outward normal vector of the face
     vector normal(const pointField&) const;
 
-    // Calculate face centroid
+    // Calculate the geometric center (centroid) of the face
     point centre(const pointField&) const;
 
-    // Calculate face area
+    // Calculate the surface area of the face
     scalar area(const pointField&) const;
 };
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C:37`
+>
+> **การอธิบาย:**
+> - `face` คือคลาสที่แทนผิวที่มีขนาดเป็นรูปหลายเหลี่ยม (polygon) ซึ่งเป็นขอบระหว่าง cells
+> - เก็บ list ของ point indices ที่เรียงลำดับกันเพื่อสร้างรูปหลายเหลี่ยม
+> - มีฟังก์ชันสำหรับคำนวณคุณสมบัติเรขาคณิต: normal vector, centroid, และ area
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Polygon Definition:** Face ถูกกำหนดโดยจุดยอด (vertices) ที่เชื่อมต่อกันเป็นรูปปิด
+> - **Geometric Properties:** Normal vector บอกทิศทาง, centroid คือจุดศูนย์กลาง, area คือพื้นที่ผิว
+> - **Ordered List:** ลำดับของ points สำคัญเพื่อกำหนด orientation (ด้านใน/นอก) ของ face
 
 **Face Properties:**
 
@@ -137,19 +171,36 @@ public:
 Represents 3D polyhedral control volumes:
 
 ```cpp
+// The cell class represents a 3D control volume bounded by faces
 class cell
 {
 private:
+    // List of face indices that bound this cell
     List<label> faces_;  // List of face indices bounding the cell
 
 public:
-    // Calculate cell volume
+    // Calculate the volume of this cell using the divergence theorem
     scalar mag(const pointField&, const faceList&) const;
 
-    // Calculate cell centroid
+    // Calculate the geometric center (centroid) of this cell
     point centre(const pointField&, const faceList&) const;
 };
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:34`
+>
+> **การอธิบาย:**
+> - `cell` คือคลาสที่แทนปริมาตรควบคุม 3 มิติ (control volume) ซึ่งเป็นหน่วยพื้นฐานใน FVM
+> - ประกอบด้วย list ของ face indices ที่ล้อมรอบ cell
+> - ฟังก์ชัน `mag()` คำนวณปริมาตรโดยใช้ Divergence Theorem
+> - ฟังก์ชัน `centre()` คำนวณจุดศูนย์กลางเรขาคณิตของ cell
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Control Volume:** Cell เป็นปริมาตรที่ใช้ในการ integrate สมการการอนุรักษ์
+> - **Divergence Theorem:** วิธีคำนวณปริมาตรจาก surface integrals ของ bounding faces
+> - **Polyhedral Cells:** OpenFOAM รองรับ cell รูปทรงที่ซับซ้อน任意
 
 **Cell Volume Calculation:**
 
@@ -172,17 +223,36 @@ $$
 Collections of faces with specific physical behaviors:
 
 ```cpp
+// Base class for boundary patches
+// Each patch represents a collection of faces with specific boundary conditions
 class polyPatch
 {
 public:
+    // Pure virtual function to update mesh topology
+    // Must be implemented by derived patch classes
     virtual void updateMesh(PolyTopoChange&) = 0;
 
-    // Access to patch-specific fields
-    const word& name() const;
-    const labelList& meshPoints() const;
-    const labelList& meshFaces() const;
+    // Access to patch-specific fields and properties
+    const word& name() const;           // Return the name of this patch
+    const labelList& meshPoints() const; // Return list of point indices in this patch
+    const labelList& meshFaces() const;  // Return list of face indices in this patch
 };
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.H:39`
+>
+> **การอธิบาย:**
+> - `polyPatch` เป็น base class สำหรับ boundary patches ทั้งหมดใน mesh
+> - แต่ละ patch คือ collection ของ faces ที่มี boundary condition เหมือนกัน
+> - `updateMesh()` เป็น pure virtual function ที่ derived classes ต้อง implement
+> - ให้ access ไปยังชื่อ patch, points, และ faces ที่เกี่ยวข้อง
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Boundary Conditions:** Patch กำหนดเงื่อนไขขอบเขตทางฟิสิกส์ (wall, inlet, outlet, etc.)
+> - **Polymorphism:** แต่ละประเภทของ BC (fixedValue, zeroGradient, etc.) implement polyPatch ต่างกัน
+> - **Mesh Interface:** Patch ทำหน้าที่เป็น interface ระหว่าง interior domain และ exterior world
 
 ---
 
@@ -201,9 +271,30 @@ OpenFOAM's mesh classes incorporate several critical optimizations:
 
 ```cpp
 // Example: Surface area vectors computed only on first access
-const surfaceVectorField& Sf = mesh.Sf();  // Triggers computation if needed
-const volScalarField& V = mesh.V();        // Cell volumes computed on-demand
+// These geometric quantities are calculated on-demand and cached for reuse
+
+const surfaceVectorField& Sf = mesh.Sf();  // Surface area vectors (S_f)
+                                           // Triggers computation if not already cached
+
+const volScalarField& V = mesh.V();        // Cell volumes (V_i)
+                                           // Computed on-demand and stored
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C:44`
+>
+> **การอธิบาย:**
+> - **Lazy Evaluation** คือการเลื่อนการคำนวณจนกว่าจะถูกเรียกใช้จริง (compute on-demand)
+> - `mesh.Sf()` ส่งคืน surface area vectors $\mathbf{S}_f = A_f \mathbf{n}_f$ สำหรับทุก face
+> - `mesh.V()` ส่งคืน cell volumes $V_i$ สำหรับทุก cell
+> - ผลลัพธ์ถูก cache ไว้หลังจากคำนวณครั้งแรก เพื่อใช้ซ้ำในการเรียกครั้งต่อไป
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Performance:** ลดการคำนวณซ้ำที่ไม่จำเป็น
+> - **Memory Efficiency:** ใช้หน่วยความจำเฉพาะเมื่อจำเป็น
+> - **Caching Strategy:** Balance ระหว่าง computation time และ memory usage
+> - **Reference Return:** ส่งคืน const reference เพื่อป้องกันการแก้ไขโดยไม่ตั้งใจ
 
 **Benefits:**
 - Reduces redundant calculations
@@ -217,24 +308,40 @@ const volScalarField& V = mesh.V();        // Cell volumes computed on-demand
 Mesh classes work together through well-defined interfaces:
 
 ```cpp
-// Example: Accessing geometric information
+// Example: Accessing geometric information from the mesh hierarchy
 const fvMesh& mesh = ...;  // Reference to the finite volume mesh
 
-// Access points
+// Access points (vertices) from the mesh
 const pointField& points = mesh.points();
 
-// Access faces and their properties
+// Access faces and their geometric properties
 const faceList& faces = mesh.faces();
 vector faceNormal = faces[faceID].normal(points);
 
-// Access cells and their properties
+// Access cells and their geometric properties
 const cellList& cells = mesh.cells();
 scalar cellVolume = cells[cellID].mag(points, faces);
 
-// Access boundary information
+// Access boundary patch information
 const polyPatchList& patches = mesh.boundaryMesh();
 const fvPatch& wallPatch = patches[wallPatchID];
 ```
+
+> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+>
+> **Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.H:39`
+>
+> **การอธิบาย:**
+> - โค้ดตัวอย่างแสดงวิธีการเข้าถึงข้อมูลเรขาคณิตจาก mesh hierarchy
+> - `fvMesh` เป็น entry point หลักสำหรับการเข้าถึงข้อมูล mesh
+> - สามารถเข้าถึง points, faces, cells, และ patches ได้ผ่าน methods ที่เกี่ยวข้อง
+> - การคำนวณ geometric properties ต้องการ dependencies (เช่น normal ต้องการ points)
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Hierarchical Access:** เข้าถึงข้อมูลผ่าน layer architecture (fvMesh → polyMesh → primitiveMesh)
+> - **Dependencies:** การคำนวณบางอย่างต้องการข้อมูลจาก components อื่น
+> - **Reference Semantics:** ใช้ const references เพื่อ efficiency และ safety
+> - **Layered Design:** แต่ละ layer มี interface ที่ชัดเจนสำหรับการเข้าถึงข้อมูล
 
 ---
 

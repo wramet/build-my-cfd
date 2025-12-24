@@ -28,7 +28,7 @@
 
 ### ผลกระทบที่เกิดขึ้น
 - **เพิ่มประสิทธิภาพกระบวนการผสมและการขนส่ง**
-- **ค่าสัมประสิทธิ์การกระจายตัว (dispersion coefficient)**: วัดอัตราที่อนุภาคกระจายตัวออกไปเนื่องจากการผันผวนแบบปั่นป่วน
+- **ค่าสัมประสิทธิ์การกระจายตัว (dispersion coefficient)**: วัดอัตราที่อนุภาคกระจายตัวออกไปเนื่องจายการผันผวนแบบปั่นป่วน
 
 ### การประยุกต์ใช้ทางอุตสาหกรรม
 - **คอลัมน์ฟองอากาศ (bubble columns)**
@@ -88,7 +88,12 @@ volSymmTensorField Rk
 );
 ```
 
-**ใน OpenFOAM:** เทอมนี้จะถูกจำลองโดยใช้ **turbulence closures** เช่น **Boussinesq approximation** ร่วมกับ **eddy viscosity models**
+**คำอธิบายโค้ด:**
+- **volSymmTensorField Rk**: ประกาศเขตข้อมูลเทนเซอร์สมมาตรสำหรับเก็บค่า turbulent stress
+- **muEff()**: ฟังก์ชันที่คืนค่าความหนืดที่มีประสิทธิภาพ (effective viscosity) ซึ่งรวมทั้งความหนืดแบบโมเลกุลและความหนืดจากความปั่นป่วน
+- **dev(twoSymm(...))**: คำนวณส่วนที่หักออก (deviatoric part) ของเทนเซอร์อัตราการยืดตัว ซึ่งเป็นส่วนที่ไม่ใช่ isotropic
+- **turbulence_k_->k()**: คืนค่าพลังงานจลน์จากความปั่นป่วน (turbulent kinetic energy)
+- **I**: เทนเซอร์เอกลักษณ์ (identity tensor)
 
 ---
 
@@ -159,6 +164,13 @@ const volScalarField D(Ctd*rhoContinuous()*k);
 
 tmp<volVectorField> tFtd = D*fvc::grad(dispersed().fraction());
 ```
+
+**คำอธิบายโค้ด:**
+- **dimensionedScalar Ctd**: ประกาศค่าคงที่สัมประสิทธิ์การกระจายตัวแบบไม่มิติ
+- **mixingTurbulence().k()**: เรียกค่าพลังงานจลน์จากความปั่นป่วนจากโมเดลความปั่นป่วน
+- **rhoContinuous()**: คืนค่าความหนาแน่นของเฟสต่อเนื่อง
+- **fvc::grad(...)**: คำนวณเกรเดียนต์ของสัดส่วนปริมาตรเฟสกระจาย
+- **tmp<volVectorField>**: ใช้ temporary object เพื่อลดการใช้หน่วยความจำในการคำนวณ
 
 ---
 
@@ -306,35 +318,57 @@ flowchart TD
 
 1. **คำนวณค่าความปั่นป่วน** (turbulence quantities)
    ```cpp
-   // คำนวณ k และ epsilon สำหรับแต่ละเฟส
+   // Compute k and epsilon for each phase
    turbModel1->correct();
    turbModel2->correct();
    ```
 
+   **คำอธิบาย:**
+   - **correct()**: ฟังก์ชันสำหรับแก้สมการความปั่นป่วน คำนวณค่า k และ epsilon ใหม่
+   - **turbModel1, turbModel2**: โมเดลความปั่นป่วนสำหรับแต่ละเฟส
+
 2. **ประเมิน gradient ของปริมาตรเฟส**
    ```cpp
-   // คำนวณ gradient ของ alpha1
+   // Compute gradient of alpha1
    volVectorField gradAlpha1 = fvc::grad(alpha1);
    ```
 
+   **คำอธิบาย:**
+   - **fvc::grad()**: ฟังก์ชันคำนวณเกรเดียนต์ของสนามสเกลาร์โดยใช้ finite volume calculus
+   - **volVectorField**: เขตข้อมูลเวกเตอร์ที่เก็บค่าเกรเดียนต์
+
 3. **คำนวณสัมประสิทธิ์การกระจายตัว**
    ```cpp
-   // สัมประสิทธิ์การกระจายตัว D_disp
+   // Dispersion coefficient D_disp
    D_disp = C_td * sqrt(k1 + k2) * characteristicLength;
    ```
 
+   **คำอธิบาย:**
+   - **C_td**: สัมประสิทธิ์การกระจายตัวเนื่องจากความปั่นป่วน (turbulent dispersion coefficient)
+   - **sqrt(k1 + k2)**: รากที่สองของผลรวมพลังงานจลน์ของทั้งสองเฟส
+   - **characteristicLength**: ความยาวลักษณะเฉพาะของระบบ
+
 4. **คำนวณแรงกระจายตัว**
    ```cpp
-   // แรงกระจายตัวแบบปั่นป่วน
+   // Turbulent dispersion force
    F_disp = -D_disp * gradAlpha1 * rho_mixture;
    ```
 
+   **คำอธิบาย:**
+   - **F_disp**: เวกเตอร์แรงกระจายตัวต่อหน่วยปริมาตร
+   - **rho_mixture**: ความหนาแน่นของส่วนผสม
+   - เครื่องหมายลบแสดงทิศทางของแรงจากความเข้มข้นสูงไปต่ำ
+
 5. **บวกเทอมแรงในสมการโมเมนตัม**
    ```cpp
-   // เพิ่มแรงในสมการโมเมนตัมของแต่ละเฟส
+   // Add force to momentum equation of each phase
    U1Eqn += F_disp;
    U2Eqn -= F_disp;  // Newton's third law
    ```
+
+   **คำอธิบาย:**
+   - **U1Eqn, U2Eqn**: สมการโมเมนตัมของเฟสที่ 1 และ 2
+   - **+=, -=**: การบวกและลบแรงตามกฎข้อที่สามของนิวตัน (แรงที่มีต่อเฟสหนึ่งเท่ากับแรงตรงข้ามที่มีต่ออีกเฟสหนึ่ง)
 
 ---
 

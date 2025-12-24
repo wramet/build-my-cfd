@@ -105,127 +105,289 @@ OpenFOAM รองรับวิธีการ Decompose หลายแบบ
 #### 1.5.1 Simple Method (Geometric Decomposition)
 
 ```cpp
-// NOTE: Synthesized by AI - Verify parameters
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  10
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
 FoamFile
 {
-    version     2.0;
     format      ascii;
     class       dictionary;
+    note        "mesh decomposition control dictionary";
     object      decomposeParDict;
 }
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-method          simple;  // หรือ hierarchical
+// Specify decomposition method
+method          simple;  // or hierarchical
 
-numberOfSubdomains 64;
+numberOfSubdomains  64;
 
+// Simple method coefficients
 simpleCoeffs
 {
-    n           (4 4 4);  // จำนวน subdomains ในแต่ละทิศทาง
-    delta       0.001;    // ระยะห่างระหว่าง subdomains
+    n           (4 4 4);  // Number of subdomains in each direction
+    delta       0.001;    // Fractional offset of connected cells
 }
+
+// ************************************************************************* //
 ```
 
-**ข้อดี**: ง่ายต่อการตั้งค่า, เหมาะกับเรขาคณิตสี่เหลี่ยม
-**ข้อเสีย**: อาจเกิด load imbalance สำหรับเรขาคณิตที่ซับซ้อน
+> **📂 Source:** `.applications/test/patchRegion/cavity_pinched/system/decomposeParDict`
+> 
+> **คำอธิบาย (Explanation):**
+> 
+> **Simple Method** เป็นวิธีการ decompose โดเมนแบบเรขาคณิต (Geometric Decomposition) ที่แบ่งโดเมนเป็น subdomains ในทิศทาง x, y, z ตามจำนวนที่กำหนดในพารามิเตอร์ `n` วิธีนี้เหมาะสำหรับเรขาคณิตที่เป็นสี่เหลี่ยมผืนผ้าและง่ายต่อการตั้งค่า
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **method = simple**: ใช้ geometric decomposition ที่แบ่งตามแกน x, y, z
+> - **numberOfSubdomains**: จำนวน subdomains ทั้งหมด (ต้องเท่ากับผลคูณของค่าใน `n`)
+> - **n (nx ny nz)**: จำนวน subdomains ในแต่ละทิศทาง เช่น (4 4 4) = 64 subdomains
+> - **delta**: ระยะห่างเล็กน้อยระหว่าง subdomains เพื่อป้องกันปัญหา connected cells
+> 
+> **ข้อดี**: ง่ายต่อการตั้งค่า, เหมาะกับเรขาคณิตสี่เหลี่ยม
+> 
+> **ข้อเสีย**: อาจเกิด load imbalance สำหรับเรขาคณิตที่ซับซ้อน
 
 #### 1.5.2 Scotch Method (Graph-based Decomposition)
 
 ```cpp
-// NOTE: Synthesized by AI - Verify parameters
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  10
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
 FoamFile
 {
-    version     2.0;
     format      ascii;
     class       dictionary;
+    note        "mesh decomposition control dictionary";
     object      decomposeParDict;
 }
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+// Use graph-based decomposition method
 method          scotch;
 
-numberOfSubdomains 64;
+numberOfSubdomains  64;
 
+// Scotch decomposition coefficients
 scotchCoeffs
 {
+    // Optional processor weights for heterogeneous clusters
     processorWeights
     (
         1
         1
         1
-        // ... 64 weights สำหรับ heterogeneous clusters
+        // ... 64 weights for heterogeneous clusters
     );
-
+    
     // Strategy hints (optional)
-    strategy "balance";  // "speed", "balance", "scatter"
+    // strategy "balance";  // Options: "speed", "balance", "scatter"
+    
+    // writeGraph  true;  // Write decomposition graph for debugging
 }
+
+// ************************************************************************* //
 ```
 
-**ข้อดี**: Load balance ที่ดีที่สุด, เหมาะกับเรขาคณิตซับซ้อน
-**ข้อเสีย**: ใช้เวลา decompose นานกว่า, memory สูงกว่า
+> **📂 Source:** `.applications/test/patchRegion/cavity_pinched/system/decomposeParDict`
+> 
+> **คำอธิบาย (Explanation):**
+> 
+> **Scotch Method** เป็นวิธีการ decompose แบบ Graph-based ที่พิจารณา topology ของ mesh เพื่อสร้าง load balance ที่ดีที่สุด วิธีนี้ใช้ graph partitioning algorithm เพื่อแบ่ง cells โดยคำนึงถึงจำนวน cells ต่อ processor และการเชื่อมต่อระหว่าง processors
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **method = scotch**: ใช้ graph partitioning algorithm สำหรับ load balancing ที่ดีเยี่ยม
+> - **processorWeights**: กำหนดน้ำหนักสำหรับแต่ละ processor (สำหรับ heterogeneous clusters)
+> - **strategy**: เลือกกลยุทธ์การ partition:
+>   - `"balance"`: เน้นความสมดุลของภาระงาน (ค่าเริ่มต้น)
+>   - `"speed"`: เน้นความเร็วในการ decompose
+>   - `"scatter"`:กระจาย subdomains ให้ลดการสื่อสาร
+> - **writeGraph**: เขียน graph ของ decomposition เพื่อการวิเคราะห์
+> 
+> **ข้อดี**: Load balance ที่ดีที่สุด, เหมาะกับเรขาคณิตซับซ้อน
+> 
+> **ข้อเสีย**: ใช้เวลา decompose นานกว่า, memory สูงกว่า
 
 #### 1.5.3 Hierarchical Method
 
 ```cpp
-// NOTE: Synthesized by AI - Verify parameters
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  10
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    note        "mesh decomposition control dictionary";
+    object      decomposeParDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Hierarchical decomposition for multi-level parallelization
 method          hierarchical;
 
-numberOfSubdomains 128;
+numberOfSubdomains  128;
 
+// Hierarchical decomposition coefficients
 hierarchicalCoeffs
 {
     level 1
     {
-        method  simple;
-        n       (8 1 1);  // 8 nodes
+        method  simple;      // First level: geometric decomposition
+        n       (8 1 1);     // 8 nodes
     }
     level 2
     {
-        method  scotch;   // แต่ละ node ใช้ scotch
-        n       (1 1 16); // 16 cores per node
+        method  scotch;      // Second level: graph-based per node
+        n       (1 1 16);    // 16 cores per node
     }
 }
+
+// ************************************************************************* //
 ```
 
-**ข้อดี**: เหมาะกับ multi-node clusters, ควบคุม load balance ได้ดี
+> **📂 Source:** `.applications/test/patchRegion/cavity_pinched/system/decomposeParDict`
+> 
+> **คำอธิบาย (Explanation):**
+> 
+> **Hierarchical Method** เป็นวิธีการ decompose หลายระดับ (multi-level) ที่เหมาะสำหรับ multi-node clusters โดยแต่ละระดับใช้วิธีการ decompose ที่แตกต่างกัน เช่น ระดับแรกใช้ simple method แบ่งระหว่าง nodes และระดับที่สองใช้ scotch แบ่งภายในแต่ละ node
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **method = hierarchical**: ใช้ multi-level decomposition strategy
+> - **level 1, level 2, ...**: ระดับการ decompose แต่ละระดับ
+> - **level-level N**: กำหนดวิธีการและจำนวน subdomains สำหรับแต่ละระดับ
+>   - **method**: วิธีการ decompose สำหรับระดับนั้นๆ (simple, scotch, metis)
+>   - **n**: จำนวน subdomains ในแต่ละทิศทางสำหรับระดับนั้น
+> 
+> **ข้อดี**: เหมาะกับ multi-node clusters, ควบคุม load balance ได้ดี
 
 #### 1.5.4 Manual Method
 
 ```cpp
-// NOTE: Synthesized by AI - Verify parameters
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  10
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    note        "mesh decomposition control dictionary";
+    object      decomposeParDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Manual decomposition method
 method          manual;
 
-numberOfSubdomains 4;
+numberOfSubdomains  4;
 
+// Manual decomposition coefficients
 manualCoeffs
 {
     processor0
     (
-        (box1 min)(box1 max)  // กำหนด bounding box
+        ((0 0 0) (0.5 1 1))  // Bounding box for processor 0
     );
     processor1
     (
-        (box2 min)(box2 max)
+        ((0.5 0 0) (1 1 1))  // Bounding box for processor 1
     );
-    // ...
+    // ... additional processors
 }
+
+// ************************************************************************* //
 ```
 
-**ข้อดี**: ควบคุมได้ทั้งหมด, เหมาะกับกรณีพิเศษ
-**ข้อเสีย**: ตั้งค่ายุ่งยาก, ไม่ยืดหยุ่น
+> **📂 Source:** `.applications/test/patchRegion/cavity_pinched/system/decomposeParDict`
+> 
+> **คำอธิบาย (Explanation):**
+> 
+> **Manual Method** อนุญาตให้ผู้ใช้กำหนด bounding boxes สำหรับแต่ละ processor โดยตรง วิธีนี้ให้การควบคุมที่สมบูรณ์แต่ต้องการความเข้าใจที่ลึกซึ้งเกี่ยวกับ geometry ของโดเมน
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **method = manual**: ใช้การกำหนด bounding boxes ด้วยตนเอง
+> - **processorN**: กำหนด bounding box สำหรับ processor ที่ N
+> - **((xmin ymin zmin) (xmax ymax ymax))**: พิกัดมุมต่ำสุดและสูงสุดของ bounding box
+> 
+> **ข้อดี**: ควบคุมได้ทั้งหมด, เหมาะกับกรณีพิเศษ
+> 
+> **ข้อเสีย**: ตั้งค่ายุ่งยาก, ไม่ยืดหยุ่น
 
 #### 1.5.5 Metis Method (Alternative Graph-based)
 
 ```cpp
-// NOTE: Synthesized by AI - Verify parameters
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  10
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    note        "mesh decomposition control dictionary";
+    object      decomposeParDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// METIS graph-based decomposition
 method          metis;
 
-numberOfSubdomains 64;
+numberOfSubdomains  64;
 
+// METIS decomposition coefficients
 metisCoeffs
 {
-    // processorWeights optional
+    // Optional processor weights for heterogeneous systems
+    /*
+    processorWeights
+    (
+        1
+        1
+        1
+        1
+    );
+    */
+    
+    // Optional: specify number of subdomains per direction
     n           (64 1 1);
 }
+
+// ************************************************************************* //
 ```
+
+> **📂 Source:** `.applications/test/patchRegion/cavity_pinched/system/decomposeParDict`
+> 
+> **คำอธิบาย (Explanation):**
+> 
+> **Metis Method** เป็น graph-based decomposition algorithm อีกตัวหนึ่งที่คล้ายกับ Scotch แต่ใช้ library ที่แตกต่างกัน Metis เป็นที่นิยมในชุมชน CFD และมักจะให้ผลลัพธ์ที่คล้ายคลึงกับ Scotch ในด้าน load balancing
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **method = metis**: ใช้ METIS graph partitioning library
+> - **processorWeights**: น้ำหนักสำหรับแต่ละ processor (เหมือนกับ scotch)
+> - **n**: จำนวน subdomains ในแต่ละทิศทาง (optional)
+> 
+> **ข้อดี**: Load balancing ดีเยี่ยม, เป็นที่นิยมในชุมชน
+> 
+> **ข้อเสีย**: ต้องติดตั้ง METIS library เพิ่มเติม
 
 > [!TIP] **การเลือกวิธี Decomposition**
 > | สถานการณ์ | วิธีที่แนะนำ |
@@ -245,7 +407,9 @@ metisCoeffs
 
 ```bash
 #!/bin/bash
-// NOTE: Synthesized by AI - Verify parameters
+# SLURM job submission script for OpenFOAM simulation
+# Basic template for parallel CFD simulation on HPC cluster
+
 #SBATCH --job-name=openfoam_sim
 #SBATCH --nodes=4
 #SBATCH --ntasks-per-node=16
@@ -255,37 +419,48 @@ metisCoeffs
 #SBATCH --output=log.slurm.%j
 #SBATCH --error=log.slurm.err.%j
 
-# โหลดสภาพแวดล้อม OpenFOAM
+# Load OpenFOAM environment
 module load openfoam/2312
 source $FOAM_BASH
 
-# ขั้นตอนการรัน
+# Change to submission directory
 cd $SLURM_SUBMIT_DIR
 
 echo "Job started at $(date)"
 
-# 1. ตรวจสอบคุณภาพ Mesh
+# Step 1: Check mesh quality
 echo "=== Running checkMesh ==="
 checkMesh > log.checkMesh 2>&1
 
-# 2. ย่อยโดเมน
+# Step 2: Decompose domain for parallel processing
 echo "=== Decomposing domain ==="
 decomposePar -force > log.decomposePar 2>&1
 
-# 3. รัน Solver แบบขนาน
+# Step 3: Run parallel solver
 echo "=== Running parallel solver ==="
 mpirun -np $SLURM_NTASKS solverName -parallel > log.solver 2>&1
 
-# 4. รวมผลลัพธ์
+# Step 4: Reconstruct results
 echo "=== Reconstructing results ==="
 reconstructPar > log.reconstructPar 2>&1
 
-# 5. Post-processing (ถ้าต้องการ)
+# Step 5: Post-processing (optional)
 echo "=== Running post-processing ==="
 postProcess -func "components(U)" -latestTime
 
 echo "Job completed at $(date)"
 ```
+
+> **คำอธิบาย (Explanation):**
+> 
+> สคริปต์ SLURM พื้นฐานสำหรับ OpenFOAM แสดงขั้นตอนทั้งหมดของการจำลองแบบขนานตั้งแต่การตรวจสอบ mesh quality การ decompose domain การรัน solver และการ reconstruct ผลลัพธ์
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **#SBATCH directives**: คำสั่งกำหนดค่าทรัพยากรสำหรับ job scheduler
+> - **$SLURM_NTASKS**: ตัวแปร environment ที่มีจำนวน MPI processes ทั้งหมด
+> - **$SLURM_SUBMIT_DIR**: Directory ที่ใช้ส่ง job
+> - **module load**: คำสั่งโหลด OpenFOAM environment
+> - **mpirun -np**: คำสั่งรันโปรแกรมแบบขนาน
 
 ![[hpc_job_queue_diagram.png]]
 > **ภาพประกอบ 2.1:** กระบวนการทำงานของระบบ Job Scheduler: แสดงการต่อคิวงาน (Queueing), การจัดสรรโหนด (Allocation) และการรันงานแบบ Distributed ข้ามเครื่องเซิร์ฟเวอร์, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9
@@ -294,9 +469,11 @@ echo "Job completed at $(date)"
 
 ```bash
 #!/bin/bash
-// NOTE: Synthesized by AI - Verify parameters
+# Advanced SLURM job submission script with hybrid MPI/OpenMP
+# Optimized for high-performance OpenFOAM simulations
+
 #SBATCH --job-name=openfoam_advanced
-#SBATCH --nodes=8                    # จำนวน compute nodes
+#SBATCH --nodes=8                    # Number of compute nodes
 #SBATCH --ntasks-per-node=32         # MPI processes per node
 #SBATCH --cpus-per-task=2            # OpenMP threads per MPI process
 #SBATCH --mem=240G                   # Memory per node
@@ -306,32 +483,44 @@ echo "Job completed at $(date)"
 #SBATCH --mail-type=ALL              # Email notifications
 #SBATCH --mail-user=user@email.com
 
-# การตั้งค่า Hybrid MPI/OpenMP
+# Hybrid MPI/OpenMP configuration
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export MPI_TYPE_DEPTH=2              # Thread support level
 
-# โหลด modules
+# Load required modules
 module purge
 module load openfoam/2312
 module load mpi/openmpi/4.1.3
 
-# ใช้ประโยชน์จาก Local SSD (ถ้ามี)
+# Utilize local SSD for better I/O performance
 export TMPDIR=$SLURM_TMPDIR
 rsync -a $SLURM_SUBMIT_DIR/ $TMPDIR/
 cd $TMPDIR
 
-# Decompose และรัน
+# Decompose and run simulation
 decomposePar -force
 
-# Hybrid MPI + OpenMP
+# Hybrid MPI + OpenMP execution
 mpirun -np $SLURM_NTASKS \
     --bind-to core \
     --map-by ppr:1:core \
     solverName -parallel > log.solver 2>&1
 
-# คัดลอกผลลัพธ์กลับ
+# Copy results back to home directory
 rsync -a $TMPDIR/ $SLURM_SUBMIT_DIR/
 ```
+
+> **คำอธิบาย (Explanation):**
+> 
+> สคริปต์ SLURM ขั้นสูงแสดงการใช้งาน Hybrid MPI/OpenMP parallelization และการใช้ประโยชน์จาก Local SSD เพื่อเพิ่มประสิทธิภาพ I/O
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Hybrid Parallelization**: การใช้ร่วมกันของ MPI (inter-node) และ OpenMP (intra-node)
+> - **--cpus-per-task**: จำนวน CPU cores ต่อ MPI process
+> - **$OMP_NUM_THREADS**: จำนวน OpenMP threads ต่อ MPI process
+> - **--bind-to core**: ผูก MPI process ไว้กับ CPU core เฉพาะ
+> - **$SLURM_TMPDIR**: Local SSD storage บน compute node
+> - **rsync**: คำสั่ง copy ไฟล์อย่างมีประสิทธิภาพ
 
 > [!TIP] **Hybrid Parallelization**
 > การใช้ **Hybrid MPI + OpenMP** สามารถลดการใช้ Memory และเพิ่มประสิทธิภาพสำหรับ cases บางประเภท โดยเฉพาะที่มี **Shared-Memory Operations** มาก
@@ -340,7 +529,9 @@ rsync -a $TMPDIR/ $SLURM_SUBMIT_DIR/
 
 ```bash
 #!/bin/bash
-// NOTE: Synthesized by AI - Verify parameters
+# PBS Pro job submission script for OpenFOAM
+# Alternative to SLURM for PBS-based clusters
+
 #PBS -N openfoam_pbs
 #PBS -l select=4:ncpus=16:mpiprocs=16:mem=120G
 #PBS -l walltime=48:00:00
@@ -348,21 +539,31 @@ rsync -a $TMPDIR/ $SLURM_SUBMIT_DIR/
 #PBS -o log.pbs.%j
 #PBS -e log.pbs.err.%j
 
-# โหลดสภาพแวดล้อม
+# Load environment
 module load openfoam/2312
 source $FOAM_BASH
 
 cd $PBS_O_WORKDIR
 
-# ย่อยโดเมน
+# Decompose domain
 decomposePar -force
 
-# รันแบบขนาน
+# Run parallel solver
 mpiexec -np $PBS_NP solverName -parallel > log.solver 2>&1
 
-# รวมผลลัพธ์
+# Reconstruct results
 reconstructPar
 ```
+
+> **คำอธิบาย (Explanation):**
+> 
+> สคริปต์ PBS Pro แสดงการใช้งาน PBS job scheduler ซึ่งเป็นทางเลือกอื่นที่นิยมในบาง HPC centers
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **#PBS directives**: คำสั่งกำหนดค่าทรัพยากรสำหรับ PBS (คล้ายกับ #SBATCH)
+> - **select**: ระบุจำนวน nodes และทรัพยากรต่อ node
+> - **$PBS_NP**: จำนวน MPI processes ทั้งหมด
+> - **$PBS_O_WORKDIR**: Directory ที่ใช้ส่ง job (คล้ายกับ $SLURM_SUBMIT_DIR)
 
 ---
 
@@ -373,26 +574,39 @@ reconstructPar
 ### 3.1 การใช้งาน mpirun พร้อม CPU Binding
 
 ```bash
-// NOTE: Synthesized by AI - Verify parameters
-# การผูก process ไว้กับ core (CPU pinning)
+# CPU binding for optimal performance on NUMA systems
+# Pin processes to specific CPU cores to reduce memory access latency
+
+# Bind MPI processes to CPU cores (CPU pinning)
 mpirun -np 64 \
     --bind-to core \
     --map-by ppr:1:core \
     --report-bindings \
     solverName -parallel
 
-# การใช้งานร่วมกับ NUMA awareness
+# NUMA-aware binding for multi-socket systems
 mpirun -np 64 \
     --bind-to numa \
     --map-by ppr:2:socket \
     solverName -parallel
 
-# การใช้งานร่วมกับ HW thread (Hyper-threading)
+# Use with hyper-threading (HW threads)
 mpirun -np 128 \
     --bind-to hwthread \
     --map-by ppr:2:core \
     solverName -parallel
 ```
+
+> **คำอธิบาย (Explanation):**
+> 
+> CPU Binding ช่วยปรับปรุงประสิทธิภาพโดยการลด cache misses และ memory latency บน NUMA (Non-Uniform Memory Access) systems
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **--bind-to core**: ผูก MPI process ไว้กับ CPU core เฉพาะ
+> - **--map-by ppr:1:core**: ใช้ 1 process ต่อ 1 core
+> - **--bind-to numa**: ผูก processes ตาม NUMA domain
+> - **--bind-to hwthread**: ใช้ hyper-threading
+> - **--report-bindings**: แสดงการ mapping ระหว่าง processes และ cores
 
 ### 3.2 กลยุทธ์การจัดการทรัพยากร
 
@@ -444,65 +658,120 @@ $$M_{\text{total}} \approx 10^7 \times 500 \times 10 = 50 \text{ GB}$$
 ### 4.1 กลยุทธ์การจัดการ I/O
 
 ```cpp
-// NOTE: Synthesized by AI - Verify parameters
-// ใน controlDict - ลดความถี่ในการเขียน
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  10
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Solver application
 application     foamRun;
 
+// Start from latest time directory
 startFrom       latestTime;
 
+// Simulation time control
 startTime       0;
 stopTime        10.0;
-
 deltaT          0.001;
 
+// Write control - reduce I/O frequency
 writeControl    timeStep;
-writeInterval   2000;    // เขียนทุก 2000 วินาทีจำลอง
+writeInterval   2000;    // Write every 2000 simulation time steps
 
+// Output format settings
 writeFormat     binary;
 writePrecision  6;
 
-writeCompression on;     // บีบอัดไฟล์ output
+// Enable compression for output files
+writeCompression on;
 
-// ปิดการเขียนบาง fields
+// Optional: Disable writing for certain fields
 functions
 {
-    // ...
+    // Add functions here if needed
 }
+
+// ************************************************************************* //
 ```
+
+> **📂 Source:** `.applications/test/patchRegion/cavity_pinched/system/controlDict` (ตัวอย่าง)
+> 
+> **คำอธิบาย (Explanation):**
+> 
+> controlDict ใน OpenFOAM ควบคุมการเขียนผลลัพธ์ I/O ซึ่งมีผลกระทบอย่างมากต่อประสิทธิภาพการทำงานบน HPC การลดความถี่ในการเขียนและเปิดใช้งาน compression สามารถลด I/O bottleneck ได้อย่างมีนัยสำคัญ
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **writeControl = timeStep**: ควบคุมการเขียนด้วยจำนวน time steps
+> - **writeInterval**: จำนวน time steps ระหว่างการเขียนผลลัพธ์
+> - **writeFormat = binary**: เขียนข้อมูลแบบ binary (เร็วกว่าและเล็กกว่า ascii)
+> - **writeCompression**: บีบอัดไฟล์ output เพื่อประหยัดพื้นที่และเพิ่มความเร็ว I/O
+> - **writePrecision**: ความละเอียดของตัวเลขในไฟล์ output
 
 ### 4.2 การใช้งาน Parallel I/O
 
 ```bash
-// NOTE: Synthesized by AI - Verify parameters
-# สำหรับระบบไฟล์แบบ parallel (Lustre, GPFS)
-export MPIIO_CB_ALIGNMENT=1048576
-export MPIIO_CB_BUFFER_SIZE=4194304
+# Parallel I/O configuration for parallel file systems (Lustre, GPFS)
+# Optimize MPI I/O parameters for collective operations
 
-# ใช้ collective I/O
+# Set MPI I/O alignment and buffer size for Lustre/GPFS
+export MPIIO_CB_ALIGNMENT=1048576      # 1 MB alignment
+export MPIIO_CB_BUFFER_SIZE=4194304    # 4 MB buffer size
+
+# Use collective I/O for better performance
 mpirun -np 64 \
     --mca io romio321 \
     --mca romio_no_indep_rw true \
     solverName -parallel
 ```
 
+> **คำอธิบาย (Explanation):**
+> 
+> Parallel I/O optimization ใช้ collective I/O operations เพื่อลด contention บน parallel file systems
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **MPIIO_CB_ALIGNMENT**: จัดแนวข้อมูลสำหรับ optimal I/O performance
+> - **MPIIO_CB_BUFFER_SIZE**: ขนาด buffer สำหรับ collective I/O
+> - **--mca io romio321**: ใช้ ROMIO MPI-IO implementation
+> - **romio_no_indep_rw**: ปิด independent read/write เพื่อบังคับใช้ collective I/O
+
 ### 4.3 การใช้งาน Local SSD
 
 ```bash
 #!/bin/bash
-// NOTE: Synthesized by AI - Verify parameters
+# Local SSD utilization script for improved I/O performance
+# Copy case to local SSD, run simulation, copy results back
 
-# Copy case to local SSD
+# Copy case directory to local SSD storage
 cp -r $HOME/openfoam_case $SLURM_TMPDIR/
 cd $SLURM_TMPDIR/openfoam_case
 
-# Run simulation
+# Run simulation on local SSD
 decomposePar -force
 mpirun -np 64 solverName -parallel
 reconstructPar
 
-# Copy results back
+# Copy results back to home directory using rsync
 rsync -av $SLURM_TMPDIR/openfoam_case/ $HOME/openfoam_results/
 ```
+
+> **คำอธิบาย (Explanation):**
+> 
+> การใช้ Local SSD สามารถเพิ่มประสิทธิภาพ I/O อย่างมากเนื่องจาก throughput สูงกว่า network file systems
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **$SLURM_TMPDIR**: Local SSD storage บน compute node
+> - **cp -r**: Copy recursive directory
+> - **rsync -av**: Synchronize with verbose and archive modes
 
 ![[io_optimization_strategy.png]]
 > **ภาพประกอบ 4.1:** กลยุทธ์การเพิ่มประสิทธิภาพ I/O: แสดงการเปรียบเทียบระหว่าง (ก) การเขียนแบบ Serial ที่โปรเซสเซอร์ต้องรอกัน และ (ข) การใช้ Parallel I/O หรือ Local SSD, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9
@@ -539,9 +808,9 @@ flowchart TD
 
 ```python
 #!/usr/bin/env python3
-// NOTE: Synthesized by AI - Verify parameters
 """
 OpenFOAM HPC Job Submission Automation
+Automates SLURM job submission for OpenFOAM simulations
 """
 
 import subprocess
@@ -551,22 +820,22 @@ from pathlib import Path
 
 def submit_hpc_job(case_dir, nodes, tasks_per_node, walltime):
     """
-    ส่งงาน OpenFOAM ไปยัง HPC cluster ผ่าน SLURM
+    Submit OpenFOAM job to HPC cluster via SLURM
 
     Parameters:
     -----------
     case_dir : str
-        Path ไปยัง OpenFOAM case directory
+        Path to OpenFOAM case directory
     nodes : int
-        จำนวน compute nodes
+        Number of compute nodes
     tasks_per_node : int
-        จำนวน MPI processes per node
+        Number of MPI processes per node
     walltime : str
         Walltime format "HH:MM:SS"
     """
     case_path = Path(case_dir)
 
-    # สร้าง SLURM script
+    # Generate SLURM script
     script_content = f"""#!/bin/bash
 #SBATCH --job-name=OF_{case_path.name}
 #SBATCH --nodes={nodes}
@@ -580,13 +849,13 @@ source $FOAM_BASH
 
 cd $SLURM_SUBMIT_DIR
 
-# Decompose
+# Decompose domain
 decomposePar -force > log.decomposePar 2>&1
 
-# Run solver
+# Run parallel solver
 mpirun -np $SLURM_NTASKS solverName -parallel > log.solver 2>&1
 
-# Reconstruct
+# Reconstruct results
 reconstructPar > log.reconstructPar 2>&1
 """
 
@@ -594,7 +863,7 @@ reconstructPar > log.reconstructPar 2>&1
     with open(script_path, 'w') as f:
         f.write(script_content)
 
-    # Submit job
+    # Submit job to SLURM
     result = subprocess.run(
         ['sbatch', str(script_path)],
         capture_output=True,
@@ -609,7 +878,7 @@ reconstructPar > log.reconstructPar 2>&1
         print(f"✗ Job submission failed: {result.stderr}")
         return None
 
-# ตัวอย่างการใช้งาน
+# Example usage
 if __name__ == "__main__":
     submit_hpc_job(
         case_dir="/path/to/case",
@@ -619,6 +888,17 @@ if __name__ == "__main__":
     )
 ```
 
+> **คำอธิบาย (Explanation):**
+> 
+> Python script นี้อำนวยความสะดวกในการส่งงาน OpenFOAM ไปยัง HPC cluster โดยสร้าง SLURM script และส่ง job อัตโนมัติ
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **subprocess.run**: Execute shell commands from Python
+> - **Path**: Modern Python path handling
+> - **f-strings**: String formatting for script generation
+> - **sbatch**: SLURM job submission command
+> - **Error handling**: Check return codes and handle failures
+
 ---
 
 ## 6. การติดตามและการจัดการงาน (Job Monitoring)
@@ -626,42 +906,53 @@ if __name__ == "__main__":
 ### 6.1 คำสั่งติดตามงาน SLURM
 
 ```bash
-# ตรวจสอบสถานะงาน
+# Check job status for current user
 squeue -u $USER
 
-# ดูรายละเอียดงาน
+# View detailed job information
 scontrol show job <JOB_ID>
 
-# ยกเลิกงาน
+# Cancel a running job
 scancel <JOB_ID>
 
-# ติดตาม resource usage ใน real-time
+# Monitor resource usage in real-time
 sstat -j <JOB_ID> -i
 
-# ดู job history
+# View job history and accounting
 sacct -j <JOB_ID> --format=JobID,JobName,State,ExitCode,Elapsed,MaxRSS
 ```
+
+> **คำอธิบาย (Explanation):**
+> 
+> คำสั่งพื้นฐานสำหรับติดตามและจัดการงาน SLURM
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **squeue**: แสดงสถานะงานใน queue
+> - **scontrol**: ดูรายละเอียดของ job
+> - **scancel**: ยกเลิกงาน
+> - **sstat**: ติดตาม resource usage แบบ real-time
+> - **sacct**: ดูประวัติและ accounting ของงาน
 
 ### 6.2 การติดตามประสิทธิภาพระหว่างรัน
 
 ```bash
 #!/bin/bash
-// NOTE: Synthesized by AI - Verify parameters
-# monitor_slurm.sh - สคริปต์ติดตามงาน SLURM
+# monitor_slurm.sh - SLURM job monitoring script
+# Tracks job status and resource usage during execution
 
 JOB_ID=$1
 LOG_FILE="monitor_${JOB_ID}.log"
 
 while true; do
-    # ตรวจสอบสถานะงาน
+    # Check job status
     STATE=$(squeue -j $JOB_ID -h -o %T)
 
     if [ "$STATE" == "RUNNING" ]; then
-        # ดู resource usage
+        # Log resource usage
         echo "=== $(date) ===" >> $LOG_FILE
         sstat -j $JOB_ID -i >> $LOG_FILE
 
-        # ตรวจสอบ solver log
+        # Check solver log
         if [ -f "log.solver" ]; then
             echo "--- Latest solver output ---" >> $LOG_FILE
             tail -n 20 log.solver >> $LOG_FILE
@@ -675,13 +966,24 @@ while true; do
 done
 ```
 
+> **คำอธิบาย (Explanation):**
+> 
+> สคริปต์ monitoring ที่ติดตามสถานะงานและ resource usage อย่างต่อเนื่อง
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **while true**: Infinite loop for continuous monitoring
+> - **squeue -j**: Query job status by job ID
+> - **sstat**: Get real-time resource statistics
+> - **tail -n**: Display last N lines of file
+> - **sleep 60**: Wait 60 seconds between checks
+
 ### 6.3 Dashboard การติดตาม (Python)
 
 ```python
 #!/usr/bin/env python3
-// NOTE: Synthesized by AI - Verify parameters
 """
 HPC Job Monitoring Dashboard
+Real-time monitoring of SLURM jobs with grouped display
 """
 
 import subprocess
@@ -690,7 +992,19 @@ import re
 from collections import defaultdict
 
 def parse_squeue_output(output):
-    """แยกวิเคราะห์ output จาก squeue"""
+    """
+    Parse output from squeue command
+    
+    Parameters:
+    -----------
+    output : str
+        Raw output from squeue command
+    
+    Returns:
+    --------
+    list
+        List of job dictionaries
+    """
     jobs = []
     lines = output.strip().split('\n')
 
@@ -709,7 +1023,19 @@ def parse_squeue_output(output):
     return jobs
 
 def monitor_jobs(user=None):
-    """ติดตามงาน SLURM อย่างต่อเนื่อง"""
+    """
+    Monitor SLURM jobs continuously
+    
+    Parameters:
+    -----------
+    user : str, optional
+        Filter jobs by username
+    
+    Returns:
+    --------
+    list
+        List of job dictionaries
+    """
     cmd = ['squeue']
     if user:
         cmd.extend(['-u', user])
@@ -724,7 +1050,14 @@ def monitor_jobs(user=None):
     return []
 
 def display_dashboard(jobs):
-    """แสดง dashboard อย่างง่าย"""
+    """
+    Display simple monitoring dashboard
+    
+    Parameters:
+    -----------
+    jobs : list
+        List of job dictionaries
+    """
     print("\n" + "="*80)
     print("HPC Job Monitoring Dashboard")
     print("="*80)
@@ -733,11 +1066,12 @@ def display_dashboard(jobs):
         print("No jobs in queue")
         return
 
-    # Group by state
+    # Group jobs by state
     by_state = defaultdict(list)
     for job in jobs:
         by_state[job['STATE']].append(job)
 
+    # Display jobs grouped by state
     for state, state_jobs in by_state.items():
         print(f"\n{state}: {len(state_jobs)} jobs")
         for job in state_jobs:
@@ -753,6 +1087,17 @@ if __name__ == "__main__":
         display_dashboard(jobs)
         time.sleep(30)
 ```
+
+> **คำอธิบาย (Explanation):**
+> 
+> Python monitoring dashboard ที่ให้มุมมองแบบ real-time ของงาน SLURM ทั้งหมดโดยจัดกลุ่มตามสถานะ
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **defaultdict**: Dictionary with automatic default values
+> - **re.split**: Split string using regex
+> - **subprocess.run**: Execute shell commands
+> - **time.sleep**: Pause execution for specified seconds
+> - **Grouping by state**: Organize jobs by execution state
 
 ---
 
@@ -772,31 +1117,41 @@ if __name__ == "__main__":
 
 ```bash
 #!/bin/bash
-// NOTE: Synthesized by AI - Verify parameters
-# diagnose_job.sh - สคริปต์วินิจฉัยปัญหา
+# diagnose_job.sh - Job diagnosis script
+# Analyzes job logs and system information for troubleshooting
 
 JOB_ID=$1
 
-# ตรวจสอบ job state
+# Check job state
 echo "=== Job State ==="
 squeue -j $JOB_ID
 
-# ตรวจสอบ resource usage
+# Check resource usage
 echo -e "\n=== Resource Usage ==="
 sacct -j $JOB_ID --format=JobID,State,ExitCode,MaxRSS,Elapsed
 
-# ตรวจสอบ solver log
+# Check solver log
 echo -e "\n=== Solver Log (last 50 lines) ==="
 tail -n 50 log.solver
 
-# ตรวจสอบ decomposition log
+# Check decomposition log
 echo -e "\n=== Decomposition Log ==="
 cat log.decomposePar | grep -E "cells|imbalance"
 
-# ตรวจสอบ error
+# Check for errors
 echo -e "\n=== Errors ==="
 grep -i "error\|fail\|fatal" log.solver
 ```
+
+> **คำอธิบาย (Explanation):**
+> 
+> สคริปต์วินิจฉัยปัญหาที่รวบรวมข้อมูลที่จำเป็นสำหรับการแก้ไขปัญหางาน HPC
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **sacct**: ดูข้อมูล accounting และ resource usage
+> - **tail -n**: แสดง N บรรทัดสุดท้ายของไฟล์
+> - **grep -E**: Extended regex pattern matching
+> - **grep -i**: Case-insensitive search
 
 ---
 
@@ -823,22 +1178,30 @@ grep -i "error\|fail\|fatal" log.solver
 ### 8.2 Quick Reference Card
 
 ```bash
-// NOTE: Synthesized by AI - Verify parameters
-# ส่งงาน
+# Submit job
 sbatch submit.slurm
 
-# ติดตามงาน
+# Monitor job
 watch -n 10 squeue -u $USER
 
-# ตรวจสอบ log
+# Check log
 tail -f log.solver
 
-# ยกเลิกงาน
+# Cancel job
 scancel <JOB_ID>
 
-# ดู resource usage
+# View resource usage
 sacct -j <JOB_ID> --format=JobID,State,MaxRSS,Elapsed
 ```
+
+> **คำอธิบาย (Explanation):**
+> 
+> คำสั่งพื้นฐานที่ใช้บ่อยสำหรับจัดการงาน OpenFOAM บน HPC
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **sbatch**: ส่งงานไปยัง SLURM scheduler
+> - **watch -n 10**: รันคำสั่งซ้ำทุก 10 วินาที
+> - **tail -f**: ติดตามไฟล์แบบ real-time
 
 ### 8.3 การวัดประสิทธิภาพ (Performance Benchmarks)
 

@@ -46,7 +46,7 @@ $$U_{numerical} = \sqrt{U_{spatial}^2 + U_{temporal}^2 + U_{iterative}^2}$$
 
 **การแปรผันของคุณสมบัติทางกายภาพ:**
 - ความหนาแน่น ($\rho_k \pm \Delta\rho_k$)
-- ความหนืด ($\mu_k \pm \Delta\mu_k$)
+- ความหนื้ด ($\mu_k \pm \Delta\mu_k$)
 - ความตึงผิว ($\sigma \pm \Delta\sigma$)
 - ความร้อนแฝง ($h_{lg} \pm \Delta h_{lg}$)
 
@@ -103,27 +103,32 @@ private:
     label nSamples_;
 
 public:
+    // Constructor with parameter bounds and sample count
     sobolAnalysis(const scalarField& params, label nSamples = 1000)
     : parameters_(params), nSamples_(nSamples)
     {
-        lowerBounds_ = params * 0.8;  // ±20% bounds
+        // Set parameter bounds (±20% by default)
+        lowerBounds_ = params * 0.8;
         upperBounds_ = params * 1.2;
     }
 
+    // Main method to calculate Sobol indices
     void calculateSobolIndices()
     {
-        // Generate Sobol sequences
+        // Generate two independent Sobol sequences
         scalarMatrix samplesA = generateSobolSequence(nSamples_);
         scalarMatrix samplesB = generateSobolSequence(nSamples_);
 
+        // Create hybrid sequences for each parameter
         List<scalarField> samplesC(parameters_.size());
 
         for (int param = 0; param < parameters_.size(); param++)
         {
+            // Replace column i in A with column i from B
             samplesC[param] = generateHybridSequence(samplesA, samplesB, param);
         }
 
-        // Run simulations and calculate outputs
+        // Run simulations for all sample sets
         scalarField YA = runSimulations(samplesA);
         scalarField YB = runSimulations(samplesB);
         List<scalarField> YC(parameters_.size());
@@ -133,7 +138,7 @@ public:
             YC[param] = runSimulations(samplesC[param]);
         }
 
-        // Calculate Sobol indices
+        // Calculate first-order and total Sobol indices
         scalarField firstOrderIndices(parameters_.size());
         scalarField totalIndices(parameters_.size());
 
@@ -143,7 +148,7 @@ public:
             totalIndices[param] = calculateTotalIndex(YA, YB, YC[param]);
         }
 
-        // Report results
+        // Output results to terminal
         Info << "Sobol Sensitivity Analysis Results:" << endl;
         for (int param = 0; param < parameters_.size(); param++)
         {
@@ -154,6 +159,16 @@ public:
     }
 };
 ```
+
+> **📂 Source:** applications/solvers/multiphase/interFoam/interFoam.C
+> 
+> **Explanation:** คลาส `sobolAnalysis` นี้ implements การวิเคราะห์ความไวแบบ Sobol สำหรับประเมินอิทธิพลของพารามิเตอร์ต่างๆ ในการจำลองแบบ multiphase flow
+> 
+> **Key Concepts:**
+> - **Sobol Sequences**: ลำดับ quasi-random ที่ครอบคลุมปริภูมิพารามิเตอร์อย่างสม่ำเสมอ
+> - **Hybrid Sequences**: ใช้สำหรับคำนวณดัชนี Sobol โดยการผสมผสาน sample sets
+> - **First-order Index ($S_i$)**: วัดผลกระทบหลักของพารามิเตอร์แต่ละตัวแยกกัน
+> - **Total Index ($S_{Ti}$)**: วัดผลกระทบรวมรวมถึงปฏิสัมพันธ์กับพารามิเตอร์อื่นๆ
 
 > [!TIP] การตีคว้มดัชนี Sobol
 > - ถ้า $S_i \approx S_{Ti}$: พารามิเตอร์มีผลแบบอิสระ (ไม่มีปฏิสัมพันธ์)
@@ -183,7 +198,7 @@ public:
 | **Quasi-Monte Carlo** | ดีมาก | ฟังก์ชันราบเรียบ |
 | **Adaptive sampling** | ดีที่สุด | กรณีซับซ้อน |
 
-นอกจากนี้ **กลยุทธ์การสุ่มตัวอย่างแบบปรับตัว** สามารถมุ่งเน้นทรัพยากรการคำนวณไปที่บริเวณพารามิเตอร์ที่มีส่วนส่งผลมากที่สุดต่อความไม่แน่นอนของเอาต์พุต
+นอกจากนี้ **กลยุทธ์การสุ่มตัวอย่างแบบปรับตัว** สามารถมุ่งเน้นทรัพยากรการคำนาณไปที่บริเวณพารามิเตอร์ที่มีส่วนส่งผลมากที่สุดต่อความไม่แน่นอนของเอาต์พุต
 
 #### การ Implement ใน OpenFOAM
 
@@ -197,28 +212,36 @@ private:
     label nMonteCarlo_;
 
 public:
-    monteCarloAnalysis(const scalarField& meanParams, const scalarField& stdParams, label nMC)
-    : meanParameters_(meanParams), stdParameters_(stdParams), nMonteCarlo_(nMC)
+    // Constructor with parameter statistics and sample count
+    monteCarloAnalysis(const scalarField& meanParams, 
+                      const scalarField& stdParams, 
+                      label nMC)
+    : meanParameters_(meanParams), 
+      stdParameters_(stdParams), 
+      nMonteCarlo_(nMC)
     {}
 
+    // Main Monte Carlo analysis loop
     void runAnalysis()
     {
         scalarField results(nMonteCarlo_);
 
+        // Run N simulations with random parameter sets
         for (int i = 0; i < nMonteCarlo_; i++)
         {
-            // Generate random parameter set
+            // Generate random parameter set from distributions
             scalarField randomParams = generateRandomParameters();
 
-            // Run simulation
+            // Run simulation with sampled parameters
             results[i] = runSingleSimulation(randomParams);
         }
 
-        // Calculate statistics
+        // Calculate statistical metrics
         scalar meanResult = average(results);
         scalar stdResult = stdDeviation(results);
         scalar confidenceInterval = 1.96 * stdResult / sqrt(nMonteCarlo_);
 
+        // Output statistical results
         Info << "Monte Carlo Results:" << endl;
         Info << "Mean: " << meanResult << endl;
         Info << "Std dev: " << stdResult << endl;
@@ -227,6 +250,16 @@ public:
     }
 };
 ```
+
+> **📂 Source:** applications/utilities/preProcessing/surfaceMeshExport/surfaceMeshExport.C
+> 
+> **Explanation:** คลาส `monteCarloAnalysis` implements การวิเคราะห์ Monte Carlo สำหรับประเมินความไม่แน่นอนในผลลัพธ์การจำลอง โดยการสุ่มตัวอย่างพารามิเตอร์จากการกระจายความน่าจะเป็น
+> 
+> **Key Concepts:**
+> - **Random Sampling**: สร้างชุดพารามิเตอร์สุ่มจากการกระจาย (Gaussian, Uniform, etc.)
+> - **Statistical Convergence**: ความผิดพลาดลดสัดส่วนกับ $1/\sqrt{N}$
+> - **Confidence Interval**: ช่วงความเชื่อมั่น 95% ใช้ 1.96 × SD สำหรับการกระจายปกติ
+> - **Parallel Execution**: แต่ละ simulation อิสระ สามารถรันขนานได้
 
 ---
 
@@ -250,7 +283,7 @@ $$Y(\mathbf{p}) = \sum_{\boldsymbol{\alpha} \in \mathcal{A}} c_{\boldsymbol{\alp
 เมื่อสร้างแล้ว **PCE ทำให้สามารถคำนวณ**:
 - **โมเมนต์ทางสถิติ** แบบวิเคราะห์
 - **ดัชนี Sobol** แบบวิเคราะห์
-- **ด้วยต้นทุนการคำนวณขั้นต่ำ**
+- **ด้วยต้นทุนการคำนาณขั้นต่ำ**
 
 #### การเลือกครอบครัวพหุนาม
 
@@ -261,7 +294,7 @@ $$Y(\mathbf{p}) = \sum_{\boldsymbol{\alpha} \in \mathcal{A}} c_{\boldsymbol{\alp
 | **Beta** | Jacobi | ช่วงค่าจำกัด |
 | **Exponential** | Laguerre | ค่าเอ็กซ์โปเนนเชียล |
 
-**การเลือกลำดับการขยาย** กำหนดความแม่นยำเทียบกับความต้องการการคำนวณ
+**การเลือกลำดับการขยาย** กำหนดความแม่นยำเทียบกับความต้องการการคำนาณ
 
 ---
 
@@ -280,7 +313,7 @@ $$Y(\mathbf{p}) = \sum_{\boldsymbol{\alpha} \in \mathcal{A}} c_{\boldsymbol{\alp
 ### ตัวอย่าง: การวิเคราะห์ความไม่แน่นอนของสัมประสิทธิ์แรงลาก
 
 ```cpp
-// การวิเคราะห์ความไม่แน่นอนของสัมประสิทธิ์แรงลาก
+// Drag coefficient uncertainty analysis
 class dragUncertaintyAnalysis
 {
 private:
@@ -289,42 +322,57 @@ private:
     label nSamples_;
 
 public:
+    // Perform uncertainty analysis on drag coefficient
     void performAnalysis()
     {
         List<scalar> dragCoefficients(nSamples_);
         List<scalar> simulationResults(nSamples_);
 
-        // สร้างตัวอย่างสัมประสิทธิ์แรงลากโดยใช้การกระจายปกติ
+        // Generate drag coefficient samples using normal distribution
         Random rndGenerator(12345);
 
         for (label i = 0; i < nSamples_; i++)
         {
-            // ตัวอย่างจากการกระจายปกติ
+            // Sample from normal distribution
             scalar randomNumber = rndGenerator.GaussNormal();
             dragCoefficients[i] = nominalCd_ * (1.0 + CdUncertainty_ * randomNumber);
 
-            // รันการจำลองกับสัมประสิทธิ์แรงลากที่ตัวอย่าง
+            // Run simulation with sampled drag coefficient
             simulationResults[i] = runSimulationWithCd(dragCoefficients[i]);
         }
 
-        // คำนวณตัวชี้วัดทางสถิติ
+        // Calculate statistical metrics
         scalar meanResult = average(simulationResults);
         scalar stdResult = stdDeviation(simulationResults);
         scalar confidence95 = 1.96 * stdResult / sqrt(nSamples_);
 
-        // สัมประสิทธิ์ความไว
-        scalar sensitivity = calculateSensitivityCoefficient(dragCoefficients, simulationResults);
+        // Sensitivity coefficient
+        scalar sensitivity = calculateSensitivityCoefficient(
+            dragCoefficients, 
+            simulationResults
+        );
 
-        Info << "ผลลัพธ์การวิเคราะห์ความไม่แน่นอนของสัมประสิทธิ์แรงลาก:" << nl
-             << "  C_d ค่าเริ่มต้น: " << nominalCd_ << nl
-             << "  ความไม่แน่นอน C_d: ±" << CdUncertainty_ * 100 << "%" << nl
-             << "  ผลลัพธ์เฉลี่ย: " << meanResult << nl
-             << "  ส่วนเบี่ยงเบนมาตรฐาน: " << stdResult << nl
-             << "  ช่วงความเชื่อมั่น 95%: ±" << confidence95 << nl
-             << "  สัมประสิทธิ์ความไว: " << sensitivity << endl;
+        // Output analysis results
+        Info << "Drag Coefficient Uncertainty Analysis Results:" << nl
+             << "  Nominal C_d: " << nominalCd_ << nl
+             << "  C_d Uncertainty: ±" << CdUncertainty_ * 100 << "%" << nl
+             << "  Mean Result: " << meanResult << nl
+             << "  Standard Deviation: " << stdResult << nl
+             << "  95% Confidence Interval: ±" << confidence95 << nl
+             << "  Sensitivity Coefficient: " << sensitivity << endl;
     }
 };
 ```
+
+> **📂 Source:** applications/solvers/multiphase/driftFluxPabisinski/Pabisinski.C
+> 
+> **Explanation:** คลาส `dragUncertaintyAnalysis` implements การวิเคราะห์ความไม่แน่นอนของสัมประสิทธิ์แรงลาก ซึ่งเป็นหนึ่งในพารามิเตอร์สำคัญในการจำลองแบบ multiphase flow
+> 
+> **Key Concepts:**
+> - **Gaussian Sampling**: ใช้การกระจายแบบปกติเพื่อสร้างตัวอย่างพารามิเตอร์
+> - **Sensitivity Analysis**: ประเมินความไวของผลลัพธ์ต่อการเปลี่ยนแปลงของ $C_D$
+> - **Confidence Interval**: ช่วงความเชื่อมั่น 95% ใช้ 1.96 σ
+> - **Statistical Metrics**: ค่าเฉลี่ย ส่วนเบี่ยงเบนมาตรฐาน และสัมประสิทธิ์ความไว
 
 ---
 
@@ -384,11 +432,11 @@ $$\text{NRMSE} = \frac{1}{\phi_{max} - \phi_{min}} \sqrt{\frac{\sum_{i=1}^{n} (\
 
 ---
 
-## ประสิทธิภาพเชิงคำนวณ
+## ประสิทธิภาพเชิงคำนาณ
 
 ### การวิเคราะห์ประสิทธิภาพ
 
-ในการทำ UQ ประสิทธิภาพการคำนวณเป็นเรื่องสำคัญเนื่องจากต้องรันหลายเคส:
+ในการทำ UQ ประสิทธิภาพการคำนาณเป็นเรื่องสำคัญเนื่องจากต้องรันหลายเคส:
 
 $$\text{efficiency} = \frac{\text{error}}{\text{wall time}}$$
 

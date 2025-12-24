@@ -552,15 +552,17 @@ echo "Mesh optimization complete"
 // C++ code snippet for geometry validation
 bool validateGeometry(const fileName& stlFile)
 {
+    // Check if STL file exists
     if (!isFile(stlFile))
     {
         FatalErrorInFunction << "STL file not found: " << stlFile << exit(FatalError);
     }
 
+    // Load the triangulated surface from STL file
     triSurface surface(stlFile);
     Info << "Surface contains " << surface.size() << " triangles" << nl;
 
-    // Check for non-manifold edges
+    // Check for non-manifold edges (edges shared by more than 2 faces)
     labelHashSet nonManifoldEdges = surface.nonManifoldEdges();
     if (!nonManifoldEdges.empty())
     {
@@ -569,7 +571,7 @@ bool validateGeometry(const fileName& stlFile)
         return false;
     }
 
-    // Check surface orientation
+    // Check surface orientation (normal vectors pointing outward)
     if (!surface.checkNormals(true))
     {
         Warning << "Inconsistent surface normals detected" << endl;

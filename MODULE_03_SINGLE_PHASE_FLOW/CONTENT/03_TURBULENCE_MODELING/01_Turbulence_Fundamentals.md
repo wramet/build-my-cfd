@@ -30,7 +30,7 @@ flowchart TD
     style C fill:#ffe1e1
     style D fill:#e1ffe1
 ```
-> **Figure 1:** แผนผังกระบวนการถ่ายโอนพลังงานในความปั่นป่วน (Energy Cascade) ซึ่งแสดงการส่งผ่านพลังงานจลน์จากกระแสวนขนาดใหญ่ไปยังขนาดเล็ก จนกระทั่งสลายตัวกลายเป็นความร้อนที่สเกล Kolmogorov ผ่านแรงหนืดของของไหลความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** แผนผังกระบวนการถ่ายโอนพลังงานในความปั่นป่วน (Energy Cascade) ซึ่งแสดงการส่งผ่านพลังงานจลน์จากกระแสวนขนาดใหญ่ไปยังขนาดเล็ก จนกระทั่งสลายตัวกลายเป็นความร้อนที่สเกล Kolmogorov ผ่านแรงหนืดของของไหล
 
 ---
 
@@ -169,23 +169,36 @@ classDiagram
     RASModel <|-- eddyViscosity
     eddyViscosity <|-- kEpsilon
 ```
-> **Figure 2:** แผนภาพคลาส (Class Diagram) แสดงโครงสร้างการสืบทอดคุณสมบัติของแบบจำลองความปั่นป่วนใน OpenFOAM ตั้งแต่คลาสฐานระดับบนสุด (turbulenceModel) ไปจนถึงการนำไปใช้งานจริงในแบบจำลอง k-Epsilon ผ่านลำดับชั้นที่ช่วยจัดการความหนืดไหลวน (Eddy Viscosity) อย่างเป็นระบบความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 2:** แผนภาพคลาส (Class Diagram) แสดงโครงสร้างการสืบทอดคุณสมบัติของแบบจำลองความปั่นป่วนใน OpenFOAM ตั้งแต่คลาสฐานระดับบนสุด (turbulenceModel) ไปจนถึงการนำไปใช้งานจริงในแบบจำลอง k-Epsilon ผ่านลำดับชั้นที่ช่วยจัดการความหนืดไหลวน (Eddy Viscosity) อย่างเป็นระบบ
 
 ### 5.2 การใช้งานใน Solver
 
 ภายใน `UEqn.H` ของ solver:
 
 ```cpp
-// การสร้างสมการโมเมนตัม
+// Construct the momentum equation
+// สร้างสมการโมเมนตัมสำหรับการไหลแบบอัดตัวได้
 tmp<fvVectorMatrix> tUEqn
 (
-    fvm::ddt(rho, U)
-  + fvm::div(phi, U)
-  + turbulence->divDevRhoReff(U)  // เพิ่มผลของ Turbulence
+    fvm::ddt(rho, U)                    // Time derivative term (เทอมอนุพันธ์ตามเวลา)
+  + fvm::div(phi, U)                    // Convection term (เทอม convection)
+  + turbulence->divDevRhoReff(U)        // Turbulence divergence term (เทอมความปั่นป่วน)
  ==
-    fvOptions(rho, U)
+    fvOptions(rho, U)                   // Source terms (เทอมต้นกำเนิด)
 );
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**คำอธิบาย (Thai):**
+- โค้ดด้านบนแสดงการสร้างสมการโมเมนตัมใน OpenFOAM สำหรับการไหลแบบอัดตัวได้ (Compressible Flow)
+- `turbulence->divDevRhoReff(U)` เป็นฟังก์ชันสำคัญที่คำนวณการกระจายของ Reynolds Stress Tensor ผ่านสมมติฐาน Eddy Viscosity
+- ฟังก์ชันนี้จะคำนวณ: $\nabla \cdot \left[ (\mu + \mu_t) (\nabla \mathbf{u} + \nabla \mathbf{u}^T) \right]$
+
+**Key Concepts:**
+- **tmp<fvVectorMatrix>**: Smart pointer สำหรับจัดการหน่วยความจำใน OpenFOAM
+- **divDevRhoReff**: Divergence of deviatoric Reynolds stress tensor (effective)
+- **fvm:: และ fvc::**: Finite volume method/volume calculus operators
 
 ฟังก์ชัน `divDevRhoReff` จะคำนวณ:
 
@@ -196,7 +209,9 @@ $$\nabla \cdot \left[ (\mu + \mu_t) (\nabla \mathbf{u} + \nabla \mathbf{u}^T) \r
 สำหรับการไหลแบบ **Incompressible**:
 
 ```cpp
-// อยู่ใน: src/TurbulenceModels/incompressible/TurbulenceModel/TurbulenceModel.C
+// Location: src/TurbulenceModels/incompressible/TurbulenceModel/TurbulenceModel.C
+// Template function for incompressible turbulence models
+// ฟังก์ชัน Template สำหรับแบบจำลองความปั่นป่วนแบบอัดตัวไม่ได้
 template<class BasicTurbulenceModel>
 tmp<Foam::fvVectorMatrix>
 incompressible::TurbulenceModel<BasicTurbulenceModel>::divDevReff
@@ -206,16 +221,30 @@ incompressible::TurbulenceModel<BasicTurbulenceModel>::divDevReff
 {
     return
     (
-      - fvc::div(nuEff()*fvc::grad(U))
-      - fvc::div(nuEff()*dev2(fvc::grad(U)().T()))
+      - fvc::div(nuEff()*fvc::grad(U))                    // First term: diffusion (เทอม diffusion)
+      - fvc::div(nuEff()*dev2(fvc::grad(U)().T()))         // Second term: deviatoric part (ส่วน deviatoric)
     );
 }
 ```
 
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+**คำอธิบาย (Thai):**
+- ฟังก์ชัน `divDevReff` สำหรับการไหลแบบอัดตัวไม่ได้ (Incompressible Flow) แยกการคำนวณออกเป็น 2 เทอมเพื่อเสถียรภาพเชิงตัวเลข
+- เทอมแรก: การกระจายของ gradient คูณด้วย effective viscosity
+- เทอมที่สอง: ส่วน deviatoric (trace-free) ของเทนเซอร์ความเครียด
+
+**Key Concepts:**
+- **nuEff()**: คืนค่า $\nu_{\text{eff}} = \nu + \nu_t$
+- **dev2()**: คำนวณส่วน deviatoric ของเทนเซอร์ (trace-free symmetric part)
+- **fvc::div**: Finite volume calculus divergence operator
+
 สำหรับการไหลแบบ **Compressible**:
 
 ```cpp
-// อยู่ใน: src/TurbulenceModels/compressible/TurbulenceModel/TurbulenceModel.C
+// Location: src/TurbulenceModels/compressible/TurbulenceModel/TurbulenceModel.C
+// Template function for compressible turbulence models
+// ฟังก์ชัน Template สำหรับแบบจำลองความปั่นป่วนแบบอัดตัวได้
 template<class BasicTurbulenceModel>
 tmp<Foam::fvVectorMatrix>
 compressible::TurbulenceModel<BasicTurbulenceModel>::divDevRhoReff
@@ -225,11 +254,23 @@ compressible::TurbulenceModel<BasicTurbulenceModel>::divDevRhoReff
 {
     return
     (
-      - fvc::div(rho()*nuEff()*fvc::grad(U))
-      - fvc::div(rho()*nuEff()*dev2(fvc::grad(U)().T()))
+      - fvc::div(rho()*nuEff()*fvc::grad(U))              // First term with density (เทอมแรกรวมความหนาแน่น)
+      - fvc::div(rho()*nuEff()*dev2(fvc::grad(U)().T()))   // Second term with density (เทอมสองรวมความหนาแน่น)
     );
 }
 ```
+
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.H`
+
+**คำอธิบาย (Thai):**
+- ฟังก์ชัน `divDevRhoReff` สำหรับการไหลแบบอัดตัวได้ (Compressible Flow) มีการคูณด้วยความหนาแน่น ($\rho$) เพิ่มเติม
+- แตกต่างจากแบบ Incompressible ตรงที่ต้องมีการพิจารณาความหนาแน่นที่เปลี่ยนแปลงตามตำแหน่งและเวลา
+- การแยกสมการช่วยเพิ่มเสถียรภาพเชิงตัวเลข (Numerical Stability)
+
+**Key Concepts:**
+- **rho()**: คืนค่าความหนาแน่น ($\rho$)
+- **Compressible vs Incompressible**: ความแตกต่างหลักคือการรวมความหนาแน่นในการคำนวณ
+- **Numerical Stability**: การแยก implicit/explicit terms เพื่อความเสถียร
 
 > [!TIP] คำอธิบายโค้ด
 > - `dev2()`: คำนวณส่วน Deviatoric (trace-free part) ของเทนเซอร์
@@ -291,16 +332,39 @@ $$P_k = 2 \nu_t \overline{\mathbf{D}} : \overline{\mathbf{D}} = \nu_t \left(\fra
 **การนำไปใช้ใน OpenFOAM:**
 
 ```cpp
-// การคำนวณ Production term ใน kEpsilon.C
+// Compute the production term in kEpsilon turbulence model
+// คำนวณเทอมการผลิต (Production Term) ในแบบจำลอง k-Epsilon
 tmp<volScalarField> kEpsilon::epsilonGen() const
 {
+    // Get reference to turbulent kinetic energy field
+    // รับค่าอ้างอิงไปยังสนาม TKE
     const volScalarField& k = this->k_;
+    
+    // Get velocity gradient tensor
+    // คำนวณ gradient ของความเร็ว (เทนเซอร์)
     const volTensorField& gradU = this->U_.grad();
 
+    // Compute strain rate tensor (deviatoric part of symmetric gradient)
+    // คำนวณ strain rate tensor (ส่วน deviatoric ของ symmetric gradient)
     volSymmTensorField S = dev(symm(gradU));
+    
+    // Return production term: 2*nu_eff*|S|^2
+    // คืนค่าเทอมการผลิต: 2*nu_eff*|S|^2
     return 2.0*nuEff()*magSqr(S);
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**คำอธิบาย (Thai):**
+- ฟังก์ชัน `epsilonGen()` คำนวณเทอมการผลิต (Production Term) ในสมการ TKE
+- ใช้ strain rate tensor ($S$) ซึ่งคำนวณจาก velocity gradient
+- คืนค่า $P_k = 2\nu_t |\mathbf{S}|^2$ ซึ่งเป็นอัตราการผลิต TKE จากความเค้นเฉลี่ย
+
+**Key Concepts:**
+- **symm()**: สร้าง symmetric tensor จาก gradient
+- **dev()**: คำนวณส่วน deviatoric (trace-free)
+- **magSqr()**: คำนวณ magnitude squared ของ tensor
 
 ### 7.4 ค่าคงที่ของแบบจำลอง k-ε มาตรฐาน
 

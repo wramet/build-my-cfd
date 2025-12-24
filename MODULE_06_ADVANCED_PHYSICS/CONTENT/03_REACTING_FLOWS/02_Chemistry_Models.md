@@ -56,13 +56,16 @@ OpenFOAM provides several ODE solvers defined in `constant/chemistryProperties`:
 ### Configuration
 
 ```cpp
+// Chemistry solver configuration in OpenFOAM
 chemistryType
 {
-    solver          SEulex;
-    tolerance       1e-6;
-    relTol          0.01;
+    solver          SEulex;      // ODE solver selection: SEulex, Rosenbrock, or CVODE
+    tolerance       1e-6;        // Absolute tolerance for convergence
+    relTol          0.01;        // Relative tolerance (typically 0.01-0.1)
 }
 ```
+
+> **📂 Source:** `.applications/utilities/miscellaneous/foamDictionary/foamDictionary.c`
 
 **Parameters:**
 - `tolerance`: Absolute tolerance for convergence
@@ -95,7 +98,6 @@ classDiagram
 ```
 > **Figure 1:** แผนผังคลาสแสดงโครงสร้างลำดับชั้นของแบบจำลองเคมีใน OpenFOAM โดยแสดงความสัมพันธ์ระหว่างคลาสฐานเชิงนามธรรมและคลาสที่นำไปใช้งานจริงสำหรับการคำนวณปฏิกิริยาและอุณหพลศาสตร์
 
-
 ### Key Methods
 
 | Method | Purpose | Return |
@@ -124,27 +126,28 @@ graph TD
 ```
 > **Figure 2:** แผนภูมิแสดงกลยุทธ์การแยกตัวดำเนินการ (Operator Splitting) ซึ่งแบ่งขั้นตอนการคำนวณออกเป็นการแก้สมการเคมีและการแก้สมการขนส่งของไหลแยกจากกันในแต่ละขั้นตอนเวลา เพื่อจัดการกับความแตกต่างของมาตราส่วนเวลา (Time Scales)
 
-
 ### Algorithm
 
 ```cpp
-// Step 1: Chemistry integration (frozen flow)
+// Step 1: Chemistry integration with frozen flow field
 chemistry.solve(deltaT);
 
-// Extract source terms
+// Extract source terms from chemistry model
 const volScalarField& RR = chemistry.RR(speciesI);
 
-// Step 2: Fluid transport (frozen chemistry)
+// Step 2: Fluid transport with frozen chemistry
 fvScalarMatrix YiEqn
 (
-    fvm::ddt(rho, Yi)
-  + fvm::div(phi, Yi)
-  - fvm::laplacian(Di, Yi)
+    fvm::ddt(rho, Yi)      // Unsteady term
+  + fvm::div(phi, Yi)      // Convection term
+  - fvm::laplacian(Di, Yi) // Diffusion term
  ==
-    RR  // Chemistry source term
+    RR                     // Chemistry source term from Step 1
 );
-YiEqn.solve();
+YiEqn.solve();              // Solve transport equation
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
 
 ---
 
@@ -189,6 +192,7 @@ This $10^{28}$-fold variation creates the stiffness in combustion systems.
 **File: `constant/chemistryProperties`**
 
 ```cpp
+// OpenFOAM chemistry properties dictionary
 FoamFile
 {
     version     2.0;
@@ -200,16 +204,18 @@ FoamFile
 
 chemistryType
 {
-    solver          SEulex;        // ODE solver choice
-    tolerance       1e-6;
-    relTol          0.01;
+    solver          SEulex;             // ODE solver choice: SEulex, Rosenbrock, CVODE
+    tolerance       1e-6;               // Absolute tolerance for convergence
+    relTol          0.01;               // Relative tolerance (typically 0.01-0.1)
 
-    initialChemicalTimeStep  1e-8;    // Initial timestep [s]
-    maxChemicalTimeStep     1e-3;    // Maximum timestep [s]
+    initialChemicalTimeStep  1e-8;      // Initial timestep [s] for chemistry integration
+    maxChemicalTimeStep      1e-3;      // Maximum timestep [s] allowed
 }
 
-chemistry     on;
+chemistry     on;                        // Enable chemistry calculations
 ```
+
+> **📂 Source:** `.applications/utilities/miscellaneous/foamDictionary/foamDictionary.c`
 
 ### Solver Selection Guide
 
@@ -237,13 +243,16 @@ chemistry     on;
 OpenFOAM chemistry solvers use adaptive time stepping:
 
 ```cpp
+// Adaptive time stepping for chemistry integration
 scalar deltaTChem = min(deltaT, maxChemicalTimeStep);
 
 // Solver adjusts internally based on:
-// 1. Local reaction rates
-// 2. Convergence behavior
-// 3. Error estimates
+// 1. Local reaction rates - faster reactions require smaller steps
+// 2. Convergence behavior - non-converging steps trigger reduction
+// 3. Error estimates - step size adjusted based on error control
 ```
+
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
 
 ### Jacobian Evaluation
 
@@ -271,7 +280,6 @@ graph LR
     style F fill:#c8e6c9
 ```
 > **Figure 3:** แผนภาพแสดงกระบวนการคำนวณแบบขั้นตอนย่อย (Sub-cycling) ของเคมีภายในหนึ่งขั้นตอนเวลาของการไหลหลัก เพื่อรักษาความแม่นยำในการคำนวณปฏิกิริยาเคมีที่มีความเร็วสูง
-
 
 ---
 
@@ -313,26 +321,28 @@ $$\text{Memory} \propto N_s + N_r + N_s^2 \text{ (Jacobian)}$$
 ### OpenFOAM Implementation
 
 ```cpp
-// Main workflow
+// Main workflow for reacting flow simulations
 while (runTime.run())
 {
-    // 1. Solve chemistry (ODE integration)
+    // 1. Solve chemistry (ODE integration with operator splitting)
     chemistry.solve(deltaT);
 
-    // 2. Get reaction rates
+    // 2. Get reaction rates for each species
     const volScalarField& RR_CH4 = chemistry.RR(CH4_ID);
 
-    // 3. Solve transport with source terms
+    // 3. Solve transport equations with chemistry source terms
     solve
     (
-        fvm::ddt(rho, CH4)
-      + fvm::div(phi, CH4)
-      - fvm::laplacian(D_CH4, CH4)
+        fvm::ddt(rho, CH4)        // Unsteady term
+      + fvm::div(phi, CH4)        // Convection
+      - fvm::laplacian(D_CH4, CH4) // Diffusion
    ==
-        RR_CH4
+        RR_CH4                     // Chemistry source from operator splitting
     );
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
 
 ---
 

@@ -95,12 +95,40 @@ flowchart TD
 ```cpp
 PISO
 {
-    nCorrectors          2;    // จำนวนรอบการแก้ไขความดัน (แนะนำ 2-3)
-    nNonOrthogonalCorrectors 0; // รอบการแก้สำหรับ mesh ที่ไม่ตั้งฉาก
-    pRefCell             0;
-    pRefValue            0;
+    nCorrectors          2;    // Number of pressure correction loops (recommended 2-3)
+    nNonOrthogonalCorrectors 0; // Correction loops for non-orthogonal meshes
+    pRefCell             0;    // Reference cell for pressure
+    pRefValue            0;    // Reference pressure value
 }
 ```
+
+<details>
+<summary>📖 คำอธิบายเพิ่มเติม (Thai Explanation)</summary>
+
+**แหล่งที่มา (Source):** `.applications/solvers/incompressible/pisoFoam/pisoFoam.C`
+
+**คำอธิบาย:**
+การตั้งค่าอัลกอริทึม PISO ใน OpenFOAM กำหนดผ่าน dictionary `PISO` ในไฟล์ `system/fvSolution`:
+
+1. **nCorrectors**: จำนวนรอบการแก้ไขความดัน (pressure correction loops) ภายในแต่ละ time step
+   - ค่าแนะนำ: 2-3 รอบสำหรับการไหลแบบ transient ทั่วไป
+   - ค่ามากขึ้น (4+) ใช้สำหรับกรณีที่มีความไม่เป็นเชิงเส้นสูง
+   - การเพิ่มค่านี้จะเพิ่มความแม่นยำแต่ก็เพิ่มเวลาคำนวณ
+
+2. **nNonOrthogonalCorrectors**: จำนวนรอบการแก้ไขเพิ่มเติมสำหรับ mesh ที่ไม่ตั้งฉาก
+   - ค่าเริ่มต้น: 0 (สำหรับ mesh ที่มีคุณภาพดี)
+   - ใช้ค่า 1-2 สำหรับ mesh ที่มีความไม่ตั้งฉากสูง
+
+3. **pRefCell / pRefValue**: กำหนดจุดอ้างอิงและค่าความดันอ้างอิง
+   - จำเป็นสำหรับใช้ควบคุมระดับความดันสัมบูรณ์ในระบบ
+   - โดยทั่วไปเลือกเซลล์ที่ขอบเขตโดเมน (boundary cell)
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Pressure Correction Loop**: ลูปย่อยใน PISO ที่ทำการแก้ไขสมการความดันซ้ำๆ เพื่อให้สนามความเร็วสอดคล้องกับสมการความต่อเนื่อง
+- **Temporal Accuracy**: PISO ออกแบบมาเพื่อรักษาความแม่นยำเชิงเวลาโดยไม่ต้องพึ่งพา under-relaxation เหมือน SIMPLE
+- **Mass Conservation**: แต่ละรอบการแก้ไขจะช่วยบังคับใช้หลักการอนุรักษ์มวลให้แม่นยำยิ่งขึ้น
+
+</details>
 
 ### 1.6 ข้อพิจารณาด้านความเสถียร (Stability Considerations)
 
@@ -197,29 +225,88 @@ while (runTime.loop())
 ```cpp
 PIMPLE
 {
-    nOuterCorrectors    2;     // จำนวนรอบ SIMPLE (Outer loop)
-    nCorrectors         2;     // จำนวนรอบ PISO (Inner loop)
-    nNonOrthogonalCorrectors 0;
-    adjustTimeStep      yes;   // ปรับก้าวเวลาอัตโนมัติอิงตาม maxCo
-    maxCo               2.0;   // อนุญาตให้ Co > 1
+    nOuterCorrectors    2;     // Number of outer (SIMPLE-like) correctors
+    nCorrectors         2;     // Number of inner (PISO) correctors
+    nNonOrthogonalCorrectors 0; // Non-orthogonal correction loops
+    adjustTimeStep      yes;   // Enable automatic time step adjustment
+    maxCo               2.0;   // Allow Courant number > 1
 }
 ```
+
+<details>
+<summary>📖 คำอธิบายเพิ่มเติม (Thai Explanation)</summary>
+
+**แหล่งที่มา (Source):** `.applications/solvers/incompressible/pimpleFoam/pimpleFoam.C`
+
+**คำอธิบาย:**
+การตั้งค่าอัลกอริทึม PIMPLE ใน OpenFOAM กำหนดผ่าน dictionary `PIMPLE` ในไฟล์ `system/fvSolution`:
+
+1. **nOuterCorrectors**: จำนวนรอบการแก้ไขแบบ SIMPLE (outer corrector loops)
+   - ค่าเริ่มต้น: 1 (ทำงานเหมือน PISO ล้วนๆ)
+   - ค่าแนะนำ: 2-5 สำหรับปัญหาที่มีความไม่เป็นเชิงเส้นสูง
+   - การเพิ่มค่านี้จะเพิ่มความเสถียรแต่ก็เพิ่มเวลาคำนวณ
+
+2. **nCorrectors**: จำนวนรอบการแก้ไขแบบ PISO (inner corrector loops) ภายในแต่ละ outer loop
+   - ค่าแนะนำ: 2-4 รอบสำหรับความแม่นยำ
+   - ทำงานโดยไม่มี under-relaxation เพื่อรักษาความแม่นยำเชิงเวลา
+
+3. **adjustTimeStep / maxCo**: การควบคุมขนาด time step อัตโนมัติ
+   - `adjustTimeStep yes`: เปิดใช้งานการปรับ time step อัตโนมัติ
+   - `maxCo 2.0`: อนุญาตให้ Courant number สูงสุด 2.0 (สูงกว่า PISO ที่ต้อง < 1)
+   - ช่วยให้สามารถใช้ time step ขนาดใหญ่ขึ้นได้อย่างเสถียร
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Nested Loops**: PIMPLE ใช้ลูปซ้อนกัน 2 ชั้น (outer SIMPLE + inner PISO) เพื่อได้ทั้งความเสถียรและความแม่นยำ
+- **Outer Relaxation**: ลูปภายนอกใช้ under-relaxation เพื่อความเสถียรเมื่อใช้ time step ขนาดใหญ่
+- **Inner Corrections**: ลูปภายในทำงานแบบ PISO เพื่อรักษาความแม่นยำในการแก้สมการความดัน
+- **Robustness vs Efficiency**: การเพิ่ม outer correctors จะเพิ่มความเสถียรแต่ลดประสิทธิภาพ ต้องหา balance ที่เหมาะสม
+
+</details>
 
 **ตัวอย่างการตั้งค่าสำหรับ VOF:**
 ```cpp
 PIMPLE
 {
-    nOuterCorrectors    3;      // การผ่อนคลาย outer สำหรับความเสถียร
-    nCorrectors         2;      // การแก้ไข PISO ภายใน
-    nAlphaCorr          1;      // การแก้ไข phase fraction
-    nAlphaSubCycles     2;      // Sub-cycling สำหรับ interface
+    nOuterCorrectors    3;      // Outer relaxation for interface stability
+    nCorrectors         2;      // Inner PISO corrections
+    nAlphaCorr          1;      // Phase fraction correction loops
+    nAlphaSubCycles     2;      // Sub-cycling for interface tracking
 
     // Time step control
     adjustTimeStep      yes;
-    maxCo               1.0;    // ใหญ่กว่า PISO บริสุทธิ์
-    maxAlphaCo          0.5;    // จำกัด interface Courant number
+    maxCo               1.0;    // Larger than pure PISO
+    maxAlphaCo          0.5;    // Limit interface Courant number
 }
 ```
+
+<details>
+<summary>📖 คำอธิบายเพิ่มเติม (Thai Explanation)</summary>
+
+**แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseInterFoam/multiphaseMixture/multiphaseMixture.C`
+
+**คำอธิบาย:**
+การตั้งค่า PIMPLE สำหรับการไหลแบบ Multiphase VOF (Volume of Fluid) ต้องการพารามิเตอร์เพิ่มเติม:
+
+1. **nAlphaCorr**: จำนวนรอบการแก้ไขสำหรับสมการ phase fraction ($\alpha$)
+   - ค่าแนะนำ: 1-2 รอบ
+   - การแก้ไขเพิ่มเติมช่วยให้ interface ชัดเจนและคงที่
+
+2. **nAlphaSubCycles**: จำนวน sub-cycles สำหรับการแก้สมการ phase fraction
+   - ใช้เพื่อแยกการแก้สมการ interface ออกจากสมการโมเมนตัม
+   - ช่วยให้สามารถใช้ time step ขนาดใหญ่กว่าสำหรับสมการโมเมนตัม
+   - โดยทั่วไปใช้ค่า 2-4 sub-cycles
+
+3. **maxAlphaCo**: จำกัด Courant number สำหรับการเคลื่อนที่ของ interface
+   - ค่าแนะนำ: 0.3-0.5 เพื่อความแม่นยำของ interface
+   - interface มักต้องการความละเอียดเชิงเวลาสูงกว่าสนามความเร็ว
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Interface Capturing**: ใน VOF method การติดตาม interface ต้องการความแม่นยำสูง จึงมีการควบคุม Courant number แยกต่างหาก
+- **Sub-cycling**: การแก้สมการ phase fraction หลายครั้งภายใน time step เดียว เพื่อความเสถียรของ interface
+- **MULES Algorithm**: OpenFOAM ใช้ MULES (Multidimensional Universal Limiter with Explicit Solution) สำหรับการแก้สมการ VOF
+- **Sharp Interface**: การตั้งค่าที่เหมาะสมจะช่วยรักษาความคมชัดของ interface ระหว่าง phases
+
+</details>
 
 ### 2.6 เมื่อใดควรใช้ PIMPLE เทียบกับ PISO
 
@@ -279,7 +366,7 @@ quadrantChart
     quadrant-3 "SIMPLE steady"
     quadrant-4 "All stable"
 ```
-> **Figure 3:** กราฟเปรียบเทียบความสัมพันธ์ระหว่างความเสถียร (Stability) และขนาดของก้าวเวลา (Time Step Size) ของอัลกอริทึมต่างๆ แสดงให้เห็นว่า PISO เหมาะสมกับก้าวเวลาขนาดเล็ก (Co < 1) ในขณะที่ PIMPLE มีความแข็งแกร่ง (Robust) กว่าเมื่อต้องเผชิญกับก้าวเวลาขนาดใหญ่ และ SIMPLE เหมาะสำหรับการลู่เข้าสู่สภาวะคงที่ (Steady-state)ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 3:** กราฟเปรียบเทียบความสัมพันธ์ระหว่างความเสถียร (Stability) และขนาดของก้าวเวลา (Time Step Size) ของอัลกอริทึมต่างๆ แสดงให้เห็นว่า PISO เหมาะสมกับก้าวเวลาขนาดเล็ก (Co < 1) ในขณะที่ PIMPLE มีความแข็งแกร่ง (Robust) กว่าเมื่อต้องเผชิญกับก้าวเวลาขนาดใหญ่ และ SIMPLE เหมาะสำหรับการลู่เข้าสู่สภาวะคงที่ (Steady-state)
 
 **ข้อมูลเชิงลึกที่สำคัญ**:
 - **PISO**: เสถียรเฉพาะสำหรับ Time Step ขนาดเล็ก (Co < 1–2)
@@ -321,11 +408,42 @@ quadrantChart
 ```cpp
 residualControl
 {
-    p               1e-6;
-    U               1e-5;
-    '(k|epsilon|omega)' 1e-5;
+    p               1e-6;   // Pressure residual tolerance
+    U               1e-5;   // Velocity residual tolerance
+    '(k|epsilon|omega)' 1e-5; // Turbulence residual tolerance
 }
 ```
+
+<details>
+<summary>📖 คำอธิบายเพิ่มเติม (Thai Explanation)</summary>
+
+**แหล่งที่มา (Source):** `.applications/solvers/incompressible/pimpleFoam/pimpleFoam.C`
+
+**คำอธิบาย:**
+การควบคุมการลู่เข้า (Convergence Control) ใน PIMPLE สามารถทำได้โดยใช้ `residualControl`:
+
+1. **Residual Tolerances**: กำหนดค่าที่ยอมรับสำหรับ residual ของแต่ละตัวแปร
+   - **p (Pressure)**: 1e-6 - ค่า residual ที่เข้มงวดเนื่องจากความดันเป็นตัวแปรสำคัญ
+   - **U (Velocity)**: 1e-5 - ค่า residual สำหรับสนามความเร็ว
+   - **Turbulence variables (k, epsilon, omega)**: 1e-5 - ค่า residual สำหรับตัวแปรความปั่น
+
+2. **Convergence Criteria**: การลู่เข้าถือว่าบรรลุเมื่อ:
+   - Residual ของทุกตัวแปรต่ำกว่าค่าที่กำหนด
+   - หรือความเปลี่ยนแปลงของ solution ระหว่าง iterations ต่ำมาก
+   - หรือถึงจำนวน `nOuterCorrectors` สูงสุด
+
+3. **Benefits**: ช่วยประหยัดเวลาคำนวณโดย:
+   - หยุดการวนซ้ำเมื่อลู่เข้าแล้ว
+   - ไม่สูญเสียเวลาในการวนซ้ำที่ไม่จำเป็น
+   - ยังคงความแม่นยำของ solution
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Residual**: ค่าความผิดพลาดของสมการเมื่อนำ solution กลับไปแทนในสมการ
+- **Convergence**: สถานะที่ residual ลดลงจนถึงค่าที่ยอมรับได้
+- **Automatic Stopping**: ช่วยเพิ่มประสิทธิภาพการคำนวณโดยหลีกเลี่ยงการวนซ้ำที่ไม่จำเป็น
+- **Balanced Accuracy vs Cost**: ต้องหาค่า tolerance ที่เหมาะสมระหว่างความแม่นยำและเวลาคำนวณ
+
+</details>
 
 3. **Relaxation Factors**: สำหรับ PIMPLE ให้ใช้ค่า relaxation ที่ต่ำกว่า SIMPLE เล็กน้อย:
 
@@ -334,16 +452,49 @@ relaxationFactors
 {
     fields
     {
-        p           0.2;  // ต่ำกว่า SIMPLE (0.3)
+        p           0.2;  // Lower than SIMPLE (0.3)
     }
     equations
     {
-        U           0.5;  // ต่ำกว่า SIMPLE (0.7)
+        U           0.5;  // Lower than SIMPLE (0.7)
         k           0.5;
         epsilon     0.5;
     }
 }
 ```
+
+<details>
+<summary>📖 คำอธิบายเพิ่มเติม (Thai Explanation)</summary>
+
+**แหล่งที่มา (Source):** `.applications/solvers/incompressible/pimpleFoam/pimpleFoam.C`
+
+**คำอธิบาย:**
+การตั้งค่า Under-relaxation Factors ใน PIMPLE:
+
+1. **Field Relaxation (p)**:
+   - ค่าแนะนำ: 0.2 (ต่ำกว่า SIMPLE ที่ใช้ 0.3)
+   - ความดันมีความ sensitive สูงต่อการเปลี่ยนแปลง
+   - การใช้ค่าต่ำช่วยเพิ่มความเสถียร
+
+2. **Equation Relaxation (U, k, epsilon)**:
+   - **U (Velocity)**: 0.5 (ต่ำกว่า SIMPLE ที่ใช้ 0.7)
+   - **k (Turbulent kinetic energy)**: 0.5
+   - **epsilon (Dissipation rate)**: 0.5
+   - ค่าที่ต่ำกว่า SIMPLE เนื่องจาก PIMPLE ทำงานกับปัญหาที่ซับซ้อนกว่า
+
+3. **Relaxation Formula**:
+   ```
+   φ_new = α * φ_calculated + (1 - α) * φ_old
+   ```
+   โดยที่ α คือ relaxation factor
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Under-relaxation**: เทคนิคการลดการเปลี่ยนแปลงของ solution ระหว่าง iterations เพื่อเพิ่มความเสถียร
+- **Relaxation Factor**: ค่าสัมประสิทธิ์ที่ควบคุมปริมาณการผ่อนคลาย (ค่าน้อย = ผ่อนคลายมาก)
+- **Stability vs Convergence Speed**: ค่าต่ำเพิ่มความเสถียรแต่ทำให้ลู่เข้าช้ากว่า
+- **Field vs Equation**: Field relaxation ใช้กับค่าของตัวแปร, Equation relaxation ใช้กับค่าที่คำนวณได้จากการแก้สมการ
+
+</details>
 
 ### 4.5 การตรวจสอบการลู่เข้า (Convergence Monitoring)
 
@@ -351,12 +502,42 @@ relaxationFactors
 ```cpp
 residualControl
 {
-    p           1e-6;
-    U           1e-6;
-    k           1e-6;
-    epsilon     1e-6;
+    p           1e-6;   // Pressure residual
+    U           1e-6;   // Velocity residual
+    k           1e-6;   // Turbulent kinetic energy residual
+    epsilon     1e-6;   // Dissipation rate residual
 }
 ```
+
+<details>
+<summary>📖 คำอธิบายเพิ่มเติม (Thai Explanation)</summary>
+
+**แหล่งที่มา (Source):** `.applications/solvers/incompressible/pimpleFoam/pimpleFoam.C`
+
+**คำอธิบาย:**
+การติดตามการลู่เข้า (Convergence Monitoring) ผ่าน Residuals:
+
+1. **Purpose**: ติดตามความคลาดเคลื่อนของ solution ระหว่างการวนซ้ำ
+   - ช่วยให้ทราบว่า solution กำลังลู่เข้าหรือไม่
+   - ใช้เป็นเกณฑ์ในการหยุดการวนซ้ำ
+
+2. **Variable Monitoring**:
+   - **p (Pressure)**: ติดตามความดันซึ่งเป็นตัวแปรหลัก
+   - **U (Velocity)**: ติดตามสนามความเร็ว
+   - **k, epsilon**: ติดตามตัวแปรความปั่น
+
+3. **Interpretation**:
+   - Residual ลดลงต่อเนื่อง = solution ลู่เข้าดี
+   - Residual ไม่ลดลงหรือสั่น = อาจมีปัญหาความเสถียร
+   - Residual ต่ำคงที่ = ลู่เข้าแล้ว
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Residual**: ค่าความผิดพลาดที่เหลืออยู่หลังจากแก้สมการ
+- **Convergence Rate**: อัตราการลดลงของ residual
+- **Monitoring Strategy**: ติดตามทั้ง residual และปริมาณทางฟิสิกส์
+- **Troubleshooting**: ใช้ข้อมูล residual เพื่อวินิจฉัยปัญหา
+
+</details>
 
 **การติดตามเชิงฟิสิกส์:**
 - **Drag/Lift coefficients** สำหรับ external flow

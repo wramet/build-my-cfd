@@ -21,32 +21,32 @@
 ![[of_solver_hierarchy_factory.png]]
 
 ```cpp
-// 🔧 กลไก: Abstract base class สำหรับ solvers ทั้งหมด
+// 🔧 MECHANISM: Abstract base class for all linear solvers
 class lduMatrix::solver
 {
 protected:
-    // ข้อมูลกรณี
-    word fieldName_;           // Field ที่กำลังแก้
-    const lduMatrix& matrix_;  // เมทริกซ์ (ข้อมูลเบาะแส)
+    // Case information
+    word fieldName_;           // Field being solved
+    const lduMatrix& matrix_;  // Matrix (the clues)
 
-    // ข้อมูลขอบเขต
+    // Boundary information
     const FieldField<Field, scalar>& interfaceBouCoeffs_;
     const FieldField<Field, scalar>& interfaceIntCoeffs_;
     const lduInterfaceFieldPtrsList& interfaces_;
 
-    // การควบคุม solver
+    // Solver control
     dictionary controlDict_;
-    label maxIter_;     // ขั้นตอนการสอบสวนสูงสุด
-    scalar tolerance_;  // ความต้องการความแม่นยำ
-    scalar relTol_;    // ความแม่นยำสัมพันธ์
+    label maxIter_;     // Maximum investigation steps
+    scalar tolerance_;  // Accuracy requirement
+    scalar relTol_;    // Relative accuracy
 
 public:
-    // Pure virtual solve method - นักสืบแต่ละคนนำเสนอแนวทางของตน
+    // Pure virtual solve method - each detective presents their approach
     virtual solverPerformance solve
     (
-        scalarField& psi,        // ผลเฉลย (ที่ไม่ทราบค่า)
-        const scalarField& source, // ด้านขวา
-        const direction cmpt = 0   // Component สำหรับสมการเวกเตอร์
+        scalarField& psi,        // Solution (unknown values)
+        const scalarField& source, // Right-hand side
+        const direction cmpt = 0   // Component for vector equations
     ) const = 0;
 
     // Runtime type selection
@@ -54,7 +54,7 @@ public:
     (
         autoPtr,
         solver,
-        symMatrix,  // สำหรับเมทริกซ์สมมาตร
+        symMatrix,  // For symmetric matrices
         (/*...*/),
         (/*...*/)
     );
@@ -63,12 +63,26 @@ public:
     (
         autoPtr,
         solver,
-        asymMatrix, // สำหรับเมทริกซ์ไม่สมมาตร
+        asymMatrix, // For asymmetric matrices
         (/*...*/),
         (/*...*/)
     );
 };
 ```
+
+> **📖 คำอธิบาย (TH)**
+>
+> **แหล่งที่มา (Source):** `src/lduMatrix/lduMatrixSolver/lduMatrixSolver.H`
+>
+> **การอธิบาย (Explanation):**
+> - คลาส `lduMatrix::solver` เป็น **abstract base class** ที่กำหนดโครงสร้างพื้นฐานสำหรับ linear solvers ทั้งหมดใน OpenFOAM
+> - ใช้ **Runtime Type Selection (RTS)** mechanism เพื่อเลือก solver แบบไดนามิกจาก `fvSolution` dictionary โดยไม่ต้อง recompile
+> - `declareRunTimeSelectionTable` สร้างตารางไดนามิกสำหรับ symmetric และ asymmetric matrices
+>
+> **หลักการสำคัญ (Key Concepts):**
+> - **Factory Pattern**: สร้าง solver instance แบบ runtime ผ่าน `New()` selector
+> - **Pure Virtual Function**: `solve()` method ต้องถูก implement โดย derived classes
+> - **Interface Handling**: `interfaceBouCoeffs_` และ `interfaces_` รองรับ parallel computation ผ่าน MPI
 
 **🏗️ โครงสร้างหลัก:**
 - **Factory Pattern**: การสร้าง solver instance แบบไดนามิก
@@ -94,7 +108,7 @@ $$\|\mathbf{x} - \mathbf{x}^*\|_A = \sqrt{(\mathbf{x} - \mathbf{x}^*)^T \mathbf{
 ![[of_pcg_convergence_visual.png]]
 
 ```cpp
-// 🔧 กลไก: PCG สำหรับเมทริกซ์ symmetric positive definite
+// 🔧 MECHANISM: PCG solver for symmetric positive definite matrices
 class PCG : public lduMatrix::solver
 {
 public:
@@ -108,26 +122,26 @@ public:
         const direction cmpt
     ) const
     {
-        // Initialize
-        scalarField p(psi.size());      // ทิศทางการค้นหา
+        // Initialize search direction and residual
+        scalarField p(psi.size());      // Search direction
         scalarField r(psi.size());      // Residual
         scalarField wA(psi.size());     // Preconditioned residual
 
-        // r = b - A·x
+        // Compute initial residual: r = b - A·x
         matrix_.Amul(r, psi, interfaceBouCoeffs_, interfaces_, cmpt);
         r = source - r;
 
-        // Precondition: wA = M⁻¹·r
+        // Apply preconditioner: wA = M⁻¹·r
         precon_->precondition(wA, r, cmpt);
 
         // Main CG iteration
         for (label iter = 0; iter < maxIter_; iter++)
         {
-            // Matrix-vector: w = A·p
+            // Matrix-vector multiplication: w = A·p
             scalarField w(p.size());
             matrix_.Amul(w, p, interfaceBouCoeffs_, interfaces_, cmpt);
 
-            // α = (r·wA) / (p·w)
+            // Compute step size: α = (r·wA) / (p·w)
             scalar rDotwA = gSumProd(r, wA);
             scalar pDotw = gSumProd(p, w);
             scalar alpha = rDotwA / pDotw;
@@ -147,7 +161,7 @@ public:
             scalarField z(r.size());
             precon_->precondition(z, r, cmpt);
 
-            // β = (r·z) / (r_old·wA_old)
+            // Compute beta: β = (r·z) / (r_old·wA_old)
             scalar rDotz = gSumProd(r, z);
             scalar beta = rDotz / rDotwA;
 
@@ -158,6 +172,21 @@ public:
     }
 };
 ```
+
+> **📖 คำอธิบาย (TH)**
+>
+> **แหล่งที่มา (Source):** `src/lduMatrix/solvers/PCG/PCG.C`
+>
+> **การอธิบาย (Explanation):**
+> - PCG solver ใช้ **Conjugate Gradient** algorithm สำหรับ symmetric positive definite (SPD) matrices
+> - แต่ละ iteration สร้าง search direction ใหม่ที่ **A-conjugate** กับ directions ก่อนหน้า
+> - `gSumProd()` คือ global sum product สำหรับ parallel computation ผ่าน MPI
+>
+> **หลักการสำคัญ (Key Concepts):**
+> - **Energy Norm Minimization**: ลด error norm $\|e\|_A = \sqrt{e^T A e}$ ในแต่ละ iteration
+> - **Conjugate Directions**: $p_i^T A p_j = 0$ สำหรับ $i \neq j$ รับประกันการไม่ซ้ำซ้อน
+> - **Preconditioning**: `M⁻¹` ปรับปรุง condition number ของเมทริกซ์เพื่อเร่งการลู่เข้า
+> - **Guaranteed Convergence**: ลู่เข้าใน $n$ iterations สูงสุดสำหรับระบบ $n \times n$
 
 **🔄 ขั้นตอนอัลกอริทึม CG:**
 
@@ -194,7 +223,7 @@ public:
 ![[of_preconditioning_transform.png]]
 
 ```cpp
-// 🔧 กลไก: DIC (Diagonal Incomplete Cholesky) สำหรับเมทริกซ์สมมาตร
+// 🔧 MECHANISM: DIC (Diagonal Incomplete Cholesky) for symmetric matrices
 class DICPreconditioner : public lduMatrix::preconditioner
 {
 private:
@@ -236,6 +265,21 @@ public:
 };
 ```
 
+> **📖 คำอธิบาย (TH)**
+>
+> **แหล่งที่มา (Source):** `src/lduMatrix/preconditioners/DIC/DICPreconditioner.C`
+>
+> **การอธิบาย (Explanation):**
+> - DIC (Diagonal Incomplete Cholesky) เป็น preconditioner สำหรับ symmetric matrices
+> - ใช้ **incomplete factorization** เพื่อสร้าง approximation $M \approx LDL^T$ ของเมทริกซ์ $A$
+> - Forward sweep แก้ระบบล่าง และ backward sweep แก้ระบบบน
+>
+> **หลักการสำคัญ (Key Concepts):**
+> - **Incomplete Factorization**: เก็บเฉพาะ diagonal และ near-diagonal elements (sparse)
+> - **Forward/Backward Sweep**: แก้สมการสามเหลี่ยม lower/upper แยกกัน
+> - **Sparsity Preservation**: เหมาะสำหรับ CFD matrices ที่มีโครงสร้างเบาบาง
+> - **Condition Number Improvement**: ลด $\kappa(A)$ เพื่อเร่งการลู่เข้าของ CG
+
 **📐 หลักการทางคณิตศาสตร์:**
 
 DIC preconditioner ประมาณค่า **incomplete Cholesky factorization**:
@@ -266,13 +310,27 @@ $$\mathbf{M} \approx (\mathbf{D} + \mathbf{L})\mathbf{D}^{-1}(\mathbf{D} + \math
 - **No Preconditioner**: สำหรับปัญหาง่ายๆ
 
 ```cpp
-// 🔧 กลไก: DILU (Diagonal Incomplete LU) สำหรับเมทริกซ์ไม่สมมาตร
+// 🔧 MECHANISM: DILU (Diagonal Incomplete LU) for asymmetric matrices
 class DILUPreconditioner : public lduMatrix::preconditioner
 {
     // Similar to DIC but stores both L and U factors
     // Handles asymmetric convection terms
 };
 ```
+
+> **📖 คำอธิบาย (TH)**
+>
+> **แหล่งที่มา (Source):** `src/lduMatrix/preconditioners/DILU/DILUPreconditioner.C`
+>
+> **การอธิบาย (Explanation):**
+> - DILU (Diagonal Incomplete LU) เป็น preconditioner สำหรับ non-symmetric matrices
+> - เหมาะสำหรับ momentum equations ที่มี convection terms ทำให้เมทริกซ์ไม่สมมาตร
+> - เก็บทั้ง lower (L) และ upper (U) factors แยกกัน
+>
+> **หลักการสำคัญ (Key Concepts):**
+> - **Asymmetric Handling**: รองรับเมทริกซ์ที่มี convection dominance
+> - **Incomplete LU Factorization**: $M \approx L_{diag} U_{diag}$ approximation
+> - **CFD Applications**: ใช้กับ U, p equations ใน incompressible flows
 
 **💡 ข้อดีของ Preconditioners:**
 - **รักษา Sparsity**: เหมาะกับ CFD matrices
@@ -332,30 +390,30 @@ flowchart TD
 ### **สถาปัตยกรรมการนำไปใช้งาน**
 
 ```cpp
-// 🔧 MECHANISM: ลำดับชั้นของ GAMG solver
+// 🔧 MECHANISM: GAMG solver hierarchy
 class GAMGSolver : public lduMatrix::solver
 {
 private:
-    // ระดับกริดหยาบ
+    // Coarse grid levels
     PtrList<lduMatrix> coarseMatrices_;
     PtrList<FieldField<Field, scalar>> coarseBouCoeffs_;
     PtrList<FieldField<Field, scalar>> coarseIntCoeffs_;
     PtrList<lduInterfaceFieldPtrsList> coarseInterfaces_;
 
-    // ตัวดำเนินการ Restriction และ prolongation
+    // Restriction and prolongation operators
     PtrList<scalarField> restrictMatrices_;
     PtrList<scalarField> prolongMatrices_;
 
-    // พารามิเตอร์ของ solver
+    // Solver parameters
     label nLevels_;
     label nPreSweeps_;
     label nPostSweeps_;
     label nCoarseSweeps_;
 
-    // Smoother สำหรับกำจัดความผิดพลาดความถี่สูง
+    // Smoother for high-frequency error elimination
     autoPtr<lduMatrix::smoother> smoother_;
 
-    // Direct solver สำหรับระดับที่หยาบที่สุด
+    // Direct solver for coarsest level
     autoPtr<lduMatrix::solver> coarsestSolver_;
 
 public:
@@ -383,7 +441,7 @@ private:
             return coarsestSolver_->solve(psi, source, cmpt);
         }
 
-        // Pre-smoothing
+        // Pre-smoothing: eliminate high-frequency errors
         for (label sweep = 0; sweep < nPreSweeps_; sweep++)
         {
             smoother_->smooth(psi, source, cmpt);
@@ -394,20 +452,20 @@ private:
         matrix_.Amul(res, psi, interfaceBouCoeffs_, interfaces_, cmpt);
         res = source - res;
 
-        // Restrict residual
+        // Restrict residual to coarse grid
         scalarField coarseRes = restrict(level, res);
 
-        // Solve coarse grid problem
+        // Solve coarse grid problem recursively
         scalarField coarseCorr(coarseRes.size(), 0.0);
         Vcycle(level + 1, coarseCorr, coarseRes, cmpt);
 
-        // Prolong correction
+        // Prolong correction back to fine grid
         scalarField fineCorr = prolong(level, coarseCorr);
 
-        // Apply correction
+        // Apply correction to solution
         psi += fineCorr;
 
-        // Post-smoothing
+        // Post-smoothing: clean remaining errors
         for (label sweep = 0; sweep < nPostSweeps_; sweep++)
         {
             smoother_->smooth(psi, source, cmpt);
@@ -417,6 +475,22 @@ private:
     }
 };
 ```
+
+> **📖 คำอธิบาย (TH)**
+>
+> **แหล่งที่มา (Source):** `src/lduMatrix/solvers/GAMG/GAMGSolver.C`
+>
+> **การอธิบาย (Explanation):**
+> - GAMG (Geometric-Algebraic Multigrid) ใช้ **hierarchy of grids** ในการแก้ระบบเชิงเส้น
+> - V-cycle ประกอบด้วย pre-smoothing, restriction, coarse solve, prolongation, และ post-smoothing
+> - Smoother (เช่น Gauss-Seidel) กำจัด high-frequency errors; coarse grid จัดการ low-frequency errors
+>
+> **หลักการสำคัญ (Key Concepts):**
+> - **Multi-Resolution**: แตกต่าง error frequencies ถูกจัดการที่ grid resolutions ที่แตกต่างกัน
+> - **V-Cycle**: Descend to coarse grid → solve → ascend to fine grid
+> - **O(n) Complexity**: Linear complexity สำหรับ elliptic problems
+> - **Smoother**: Iterative method (Gauss-Seidel, Jacobi) สำหรับ high-frequency errors
+> - **Restriction/Prolongation**: Transfer operators ระหว่าง grid levels
 
 ### **Algebraic vs. Geometric Multigrid**
 
@@ -467,7 +541,7 @@ $$A_c = RAP$$
 ### **การตั้งค่าใน `fvSolution`**
 
 ```cpp
-// ตัวอย่างการตั้งค่า solver ใน system/fvSolution
+// Example solver settings in system/fvSolution
 solvers
 {
     p
@@ -496,6 +570,20 @@ solvers
 }
 ```
 
+> **📖 คำอธิบาย (TH)**
+>
+> **แหล่งที่มา (Source):** `etc/caseDicts/postProcessing/graphs/uniformSolverInfo/residuals`
+>
+> **การอธิบาย (Explanation):**
+> - Dictionary `fvSolution` ควบคุม solver algorithms สำหรับแต่ละ field
+> - `tolerance` คือ absolute tolerance; `relTol` คือ relative tolerance
+> - GAMG settings กำหนด coarse grid parameters
+>
+> **หลักการสำคัญ (Key Concepts):**
+> - **Solver Selection**: PCG/PBiCGStab สำหรับ small-medium problems; GAMG สำหรับ large systems
+> - **Tolerance**: Absolute tolerance 1e-06 typical สำหรับ pressure; 1e-05 สำหรับ velocity
+> - **Smoother**: GaussSeidel standard สำหรับ GAMG pre/post-smoothing
+
 ---
 
 ## ⚠️ **อันตรายและวิธีแก้ไข**
@@ -509,14 +597,14 @@ solvers
 
 **วิธีแก้ไข:**
 ```cpp
-// 1. เพิ่มความแม่นยำ
+// 1. Increase tolerance accuracy
 tolerance       1e-08;
 relTol          0.001;
 
-// 2. เปลี่ยน preconditioner
-preconditioner  GAMG;  // แทน Diagonal
+// 2. Change preconditioner
+preconditioner  GAMG;  // Instead of Diagonal
 
-// 3. เพิ่ม iterations
+// 3. Increase iterations
 maxIter         1000;
 ```
 
@@ -531,12 +619,26 @@ maxIter         1000;
 
 **วิธีแก้ไข:**
 ```cpp
-// ❌ ผิด: ใช้ dense matrix
+// ❌ WRONG: Using dense matrix
 SquareMatrix<scalar> pressureMatrix(1000000);  // 8 TB!
 
-// ✅ ถูก: ใช้ sparse matrix
+// ✅ CORRECT: Using sparse matrix
 lduMatrix pressureMatrix(mesh);  // 120 MB
 ```
+
+> **📖 คำอธิบาย (TH)**
+>
+> **แหล่งที่มา (Source):** `src/lduMatrix/lduMatrix/lduMatrix.H`
+>
+> **การอธิบาย (Explanation):**
+> - OpenFOAM ใช้ **LDU (Lower-Diagonal-Upper)** format สำหรับ sparse matrix storage
+> - CFD matrices มักมีเฉพาะ diagonal + off-diagonal neighbors (7-point สำหรับ hex meshes)
+> - Dense matrix storage เป็นไปไม่ได้สำหรับ large-scale CFD
+>
+> **หลักการสำคัญ (Key Concepts):**
+> - **Sparsity**: CFD matrices ประกอบด้วย <1% non-zero elements
+> - **LDU Storage**: เก็บเฉพาะ lower, diagonal, upper arrays
+> - **Memory Efficiency**: $O(nnz)$ แทน $O(n^2)$
 
 ### **ปัญหาที่ 3: ความไม่เสถียรทางตัวเลข**
 
@@ -551,17 +653,31 @@ lduMatrix pressureMatrix(mesh);  // 120 MB
 **เทคนิคการ Stabilization:**
 
 ```cpp
-// 1. การทำ Preconditioning
+// 1. Preconditioning
 GAMGPreconditioner precond(solverControls);
 
-// 2. วิธีการ Relaxation
-scalar alpha = 0.7;  // ตัวประกอบการผ่อนคลาย
+// 2. Relaxation method
+scalar alpha = 0.7;  // Under-relaxation factor
 fieldNew = (1-alpha)*fieldOld + alpha*fieldCorrection;
 
-// 3. การทำ Regularization
+// 3. Regularization
 scalar epsilon = 1e-12;
 matrix.diagonal() += epsilon;
 ```
+
+> **📖 คำอธิบาย (TH)**
+>
+> **แหล่งที่มา (Source):** `src/matrices/lduMatrix/solvers/`
+>
+> **การอธิบาย (Explanation):**
+> - Condition number $\kappa(A)$ วัดความไวต่อ perturbations ใน linear systems
+> - CFD problems มักมี high condition numbers เนื่องจาก mesh aspect ratio, convection dominance
+> - Preconditioning ลด $\kappa(A)$ โดย scaling matrix
+>
+> **หลักการสำคัญ (Key Concepts):**
+> - **Condition Number**: $\kappa(A) \gg 1$ บ่งชี้ ill-conditioned system
+> - **Preconditioning**: แปลง $Ax=b$ เป็น $M^{-1}Ax = M^{-1}b$ เพื่อปรับปรุง conditioning
+> - **Under-Relaxation**: ช่วย stabilise การลู่เข้าสำหรับ non-linear problems
 
 ---
 

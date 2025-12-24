@@ -3,7 +3,7 @@
 เอกสารนี้เป็นศูนย์รวมของสมการทางคณิตศาสตร์ที่สำคัญสำหรับการจำลองการไหลแบบหลายเฟสใน OpenFOAM ครอบคลุมตั้งแต่ทฤษฎีพื้นฐาน การอนุรักษ์ ปรากฏการณ์ระหว่างเฟส และการนำไปใช้ในการคำนวณ
 
 > [!INFO] **ขอบเขตและความครอบคลุม**
-> เอกสารอ้างอิงนี้ทำหน้าที่เป็นคู่มือทางเทคนิคที่ครบถ้วมสำหรับการจำลองการไหลแบบหลายเฟส โดยเชื่อมโยงระหว่างพื้นฐานทางทฤษฎีกับการนำไปปฏิบัติใน OpenFOAM เนื้อหาครอบคลุมตั้งแต่กฎการอนุรักษ์พื้นฐานไปจนถึงหัวข้อขั้นสูง เช่น การไหลแบบแกรนูลาร์และระบบหลายเฟสแบบอัดตัวได้
+> เอกสารอ้างอิงนี้ทำหน้าที่เป็นคู่มือทางเทคนิคที่ครบถ้วนสำหรับการจำลองการไหลแบบหลายเฟส โดยเชื่อมโยงระหว่างพื้นฐานทางทฤษฎีกับการนำไปปฏิบัติใน OpenFOAM เนื้อหาครอบคลุมตั้งแต่กฎการอนุรักษ์พื้นฐานไปจนถึงหัวข้อขัั้นสูง เช่น การไหลแบบแกรนูลาร์และระบบหลายเฟสแบบอัดตัวได้
 
 ---
 
@@ -315,30 +315,46 @@ $$k_{mix} = \sum_k \alpha_k k_k \tag{39}$$
 ### โครงสร้าง Solver หลัก (Main Solver Structure)
 
 ```cpp
-// ลูปเวลาหลัก (Main time loop)
+// Main time loop for multiphase flow simulation
 while (runTime.loop())
 {
-    // ปรับปรุงช่วงเวลา
+    // Update time step based on Courant number
     #include "CourantNo.H"
 
-    // การคาดคะเนโมเมนตัม
+    // Momentum prediction step
     #include "UEqn.H"
 
-    // การจับคู่ความดัน-ความเร็ว
+    // Pressure-velocity coupling loop
     for (int corr = 0; corr < nCorr; corr++)
     {
         #include "pEqn.H"
     }
 
-    // การแก้ไขสัดส่วนปริมาตร
+    // Volume fraction correction
     #include "alphaEqns.H"
 
-    // สมการความปั่นป่วน
+    // Turbulence model correction
     turbulence->correct();
 
+    // Write results
     runTime.write();
 }
 ```
+
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam`
+
+> **คำอธิบาย (Explanation):**
+> - โครงสร้างหลักของ solver การไหลแบบ Eulerian หลายเฟสใน OpenFOAM
+> - ลูปเวลาหลักควบคุมการวิวัฒนาการของการคำนวณ
+> - การคาดคะเนโมเมนตัมแยกจากการแก้สมการความดัน
+> - การจับคู่ความดัน-ความเร็วทำซ้ำจนกว่าจะลู่เข้า
+> - สัดส่วนปริมาตรถูกแก้ไขหลังจากการแก้สมการโมเมนตัม
+
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Fractional Step Method**: การแยกการแก้สมการโมเมนตัมและความดัน
+> - **Pressure-Velocity Coupling**: การจับคู่ความดันและความเร็วเพื่อรักษาความสอดคล้อง
+> - **Phase Fraction Transport**: การขนส่งสัดส่วนปริมาตรแต่ละเฟส
+> - **Turbulence Modeling**: การแก้ไขแบบจำลองความปั่นป่วนในแต่ละขั้นเวลา
 
 ### การเลือกแบบจำลอง (Model Selection)
 
@@ -356,6 +372,20 @@ dragModels
 }
 ```
 
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/interfacialModels/dragModels/SchillerNaumann`
+
+> **คำอธิบาย (Explanation):**
+> - การตั้งค่าแบบจำลองแรงฉุดสำหรับคู่เฟส phase1-phase2
+> - แบบจำลอง Schiller-Naumann เหมาะสำหรับฟองแก๊สและหยดของเหลว
+> - ค่า residuals และ maxIter ควบคุมความแม่นยำของการแก้ไข
+> - แบบจำลองแรงฉุดต่างๆ มีให้เลือกในไลบรารี `libeulerianInterfacialModels`
+
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Drag Coefficient**: สัมประสิทธิ์แรงต้านขึ้นกับเลขเรย์โนลด์ส
+> - **Schiller-Naumann Model**: เหมาะสำหรับฟองทรงกลมในช่วงเลขเรย์โนลด์สกว้าง
+> - **Interfacial Area**: พื้นที่ผิวสัมผัสระหว่างเฟสสำคัญต่อการคำนวณแรง
+> - **Convergence Criteria**: การกำหนดค่าความคลาดเคลื่อนที่ยอมรับได้
+
 #### การเลือกแบบจำลองความปั่นป่วน (Turbulence Model Selection)
 
 ```cpp
@@ -367,6 +397,20 @@ RAS
     printCoeffs     on;
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam`
+
+> **คำอธิบาย (Explanation):**
+> - การเลือกแบบจำลองความปั่นป่วนแบบ RANS (Reynolds-Averaged Navier-Stokes)
+> - แบบจำลอง k-ε เป็นแบบมาตรฐานสำหรับการไหลแบบปั่นป่วน
+> - การเปิดใช้งาน turbulence จะเพิ่มสมการ k และ ε
+> - ค่าสัมประสิทธิ์ของแบบจำลองจะถูกพิมพ์ออกมาเมื่อ printCoeffs เปิด
+
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **RANS Modeling**: การหาค่าเฉลี่ยสมการตามเวลาของ Reynolds
+> - **k-ε Model**: แบบจำลองสองสมการสำหรับพลังงานจลน์และอัตราการสลาย
+> - **Turbulence Modulation**: การปรับเปลี่ยนความปั่นป่วนโดยอนุภาคกระจาย
+> - **Model Coefficients**: ค่าคงที่ในแบบจำลองที่สามารถปรับเปลี่ยนได้
 
 ### Solver ที่เกี่ยวข้อง (Related Solvers)
 

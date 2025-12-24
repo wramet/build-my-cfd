@@ -178,6 +178,20 @@ public:
 };
 ```
 
+> **📚 คำอธิบาย (Explanation):**
+> - `dragModel` เป็นคลาสฐาน (base class) สำหรับแบบจำลองแรงลากทั้งหมดใน OpenFOAM
+> - ใช้ **Polymorphism** ผ่าน virtual functions เพื่อให้แต่ละแบบจำลองสามารถนำไปใช้ได้อย่างยืดหยุ่น
+> - `Cd()` เป็น pure virtual function ที่ต้องถูก override ใน derived classes
+> - `K()` คำนวณสัมประสิทธิ์การแลกเปลี่ยนโมเมนตัมระหว่างเฟส
+> - `F()` คำนวณแรงลากที่แท้จริงที่จะถูกนำไปใช้ในสมการโมเมนตัม
+> 
+> **แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/`
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Inheritance & Polymorphism:** อนุญาตให้เพิ่มแบบจำลองแรงลากใหม่ได้โดยไม่ต้องแก้ไขโค้ดหลัก
+> - **Template Method Pattern:** กำหนดโครงสร้างการคำนวณ แต่ละประเภทกำหนดรายละเอียดเฉพาะ
+> - **Separation of Concerns:** แยกการคำนวณค่าสัมประสิทธิ์ สัมประสิทธิ์การแลกเปลี่ยน และแรง
+
 ### การนำไปใช้ Schiller-Naumann (Schiller-Naumann Implementation)
 
 ```cpp
@@ -203,6 +217,22 @@ class SchillerNaumann
 };
 ```
 
+> **📚 คำอธิบาย (Explanation):**
+> - `SchillerNaumann` เป็น derived class ที่นำไปใช้แบบจำลอง Schiller-Naumann
+> - ใช้ **Template** บน `PhasePair` เพื่อสนับสนุนการผสมผสานเฟสที่แตกต่างกัน
+> - `Cd()` คำนวณสัมประสิทธิ์แรงลากโดยใช้ correlation ของ Schiller-Naumann
+>   - สำหรับ $Re < 1000$: $C_D = \frac{24}{Re}(1 + 0.15 Re^{0.687})$
+>   - สำหรับ $Re \geq 1000$: $C_D = 0.44$ (ค่าคงที่)
+> - ใช้ `max()` เพื่อให้แน่ใจว่าค่า $C_D$ ไม่ต่ำกว่า 0.44 เมื่อ Reynolds สูง
+> 
+> **แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/dragModels/SchillerNaumann/`
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Correlation Implementation:** แปลงสมการเชิงทฤษฎีเป็นโค้ด C++
+> - **Field-based Computation:** คำนวณค่า $C_D$ ทุกจุดในเมช (cell-based)
+> - **Numerical Stability:** ใช้ `max()` เพื่อป้องกันปัญหาค่าที่ไม่เหมาะสม
+> - **Generic Programming:** Template ช่วยให้ code ใช้งานได้กับหลายประเภทเฟส
+
 ### การคำนวณสัมประสิทธิ์การแลกเปลี่ยนโมเมนตัม (Momentum Exchange Calculation)
 
 ```cpp
@@ -218,6 +248,24 @@ tmp<volScalarField> dragModel::K() const
 }
 ```
 
+> **📚 คำอธิบาย (Explanation):**
+> - ฟังก์ชัน `K()` คำนวณสัมประสิทธิ์การแลกเปลี่ยนโมเมนตัมระหว่างเฟส
+> - ใช้สูตร: $K_{kl} = \frac{3}{4} C_D \frac{\alpha_k \alpha_l \rho_l}{d_k} |\mathbf{u}_l - \mathbf{u}_k|$
+> - **พารามิเตอร์ที่ใช้:**
+>   - `alpha1`, `alpha2`: สัดส่วนปริมาตรของเฟสทั้งสอง
+>   - `rho2`: ความหนาแน่นของเฟสต่อเนื่อง (continuous phase)
+>   - `d`: เส้นผ่านศูนย์กลางของเฟสกระจาย (dispersed phase)
+>   - `Ur`: ความเร็วสัมพัทธ์ระหว่างเฟส
+> - ผลลัพธ์คือ `volScalarField` ที่มีค่า $K$ ที่ทุกจุดในเมช
+> 
+> **แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/`
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Volume-Averaged Formulation:** ใช้ค่าเฉลี่ยเชิงปริมาตรสำหรับ Eulerian-Eulerian
+> - **Discrete vs. Continuous Phases:** รู้จักความแตกต่างระหว่างเฟสกระจายและเฟสต่อเนื่อง
+> - **Operator Overloading:** ใช้ operators (*, /) กับ fields โดยตรง
+> - **Chain of Responsibility:** `K()` เรียก `Cd()` ซึ่งถูก implement ใน derived classes
+
 ### การจัดการความเร็วสัมพัทธ์ (Relative Velocity Handling)
 
 ```cpp
@@ -231,6 +279,23 @@ tmp<volScalarField> PhasePair::Re() const
     return phase1().rho()*Ur()*dispersed().d()/phase1().mu();
 }
 ```
+
+> **📚 คำอธิบาย (Explanation):**
+> - `Ur()` คำนวณความเร็วสัมพัทธ์ (magnitude of relative velocity) ระหว่างสองเฟส
+>   - ใช้ `mag()` เพื่อคำนวณขนาดของเวกเตอร์ความเร็วสัมพัทธ์
+>   - สูตร: $|\mathbf{u}_l - \mathbf{u}_k|$
+> - `Re()` คำนวณจำนวน Reynolds ของอนุภาค (particle Reynolds number)
+>   - สูตร: $Re_p = \frac{\rho_c |\mathbf{u}_l - \mathbf{u}_k| d}{\mu_c}$
+>   - ใช้คุณสมบัติของเฟสต่อเนื่อง (continuous phase)
+> - ทั้งสองฟังก์ชันคืนค่า `volScalarField` สำหรับใช้ในการคำนวณต่อ
+> 
+> **แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem/`
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Phase Pair Abstraction:** encapsulate ความสัมพันธ์ระหว่างสองเฟส
+> - **Dimensionless Numbers:** คำนวณจำนวน Reynolds สำหรับการเลือก correlation
+> - **Vector Calculus:** ใช้ `mag()` สำหรับขนาดเวกเตอร์
+> - **Property Access:** เข้าถึงคุณสมบัติของเฟส (rho, mu, U, d) อย่างเป็นระบบ
 
 ---
 
@@ -326,6 +391,26 @@ relaxationFactors
 }
 ```
 
+> **📚 คำอธิบาย (Explanation):**
+> - การกำหนดค่า **Under-Relaxation** ใน OpenFOAM เพื่อปรับปรุงความเสถียรของการคำนวณ
+> - **relaxationFactors** มีสองส่วน:
+>   - `equations`: สำหรับสมการ (เช่น โมเมนตัม U, ความดัน p, ความปั่นป่วน k, epsilon)
+>   - `fields`: สำหรับ fields เช่น สัดส่วนปริมาตร alpha
+> - **ค่าที่แนะนำ:**
+>   - สมการโมเมนตัม (U): 0.7 - การผ่อนคลายปานกลาง
+>   - สมการความดัน (p): 0.3 - การผ่อนคลายมากเนื่องจากความไว
+>   - ความปั่นป่วน (k, epsilon): 0.5-0.6 - การผ่อนคลายปานกลาง
+>   - สัดส่วนปริมาตร (alpha.*): 0.4 - การผ่อนคลายสูงสำหรับความเข้มข้น
+> - **การทำงาน:** ค่าใหม่ = (1-λ) × ค่าเก่า + λ × ค่าที่คำนวณ
+> 
+> **แหล่งที่มา (Source):** ไฟล์การกำหนดค่า OpenFOAM (system/fvSolution)
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Numerical Stability:** การลดทอนช่วยป้องกันการ oscillate ของ solution
+> - **Convergence Control:** ค่า λ ต่ำทำให้ลู่เข้าช้าแต่มั่นคง
+> - **Equation-Field Separation:** การผ่อนคลายต่างกันระหว่างสมการและ fields
+> - **Regular Expressions:** ใช้ `alpha.*` เพื่อใช้กับทุก phase fractions
+
 ---
 
 ## ✅ การตรวจสอบความถูกต้องและการประยุกต์ใช้ (Validation and Applications)
@@ -419,7 +504,7 @@ relaxationFactors
 - Clift, R., Grace, J. R., & Weber, M. E. (2005). *Bubbles, Drops, and Particles*. Dover.
 
 **การนำไปใช้ใน OpenFOAM:**
-- ซอร์สโค้ด: `src/transportModels/interfaceProperties/dragModel/`
+- ซอร์สโค้ด: `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/`
 - บทช่วยสอน: `multiphase/multiphaseEulerFoam/`
 
 ---

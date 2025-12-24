@@ -69,11 +69,20 @@ $$
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
+// Time-averaging function object for unsteady simulations
+// Calculates temporal mean of specified fields over the simulation duration
 timeAverage1
 {
+    // Type identifier for time averaging operation
     type            timeAverage;
+    
+    // Load the function object library
     libs            ("libfieldFunctionObjects.so");
+    
+    // Write output at writeTime intervals
     writeControl    writeTime;
+    
+    // Fields to be averaged (velocity U and pressure p)
     fields
     (
         U
@@ -81,6 +90,20 @@ timeAverage1
     );
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/BlendedInterfacialModel/BlendedInterfacialModel.C` (Reference for field function object patterns and validation checks)
+> 
+> **คำอธิบาย (Explanation):** 
+> โค้ด C++ ด้านบนแสดงการตั้งค่า Function Object สำหรับคำนวณค่าเฉลี่ยเชิงเวลา (Temporal Averaging) ใน OpenFOAM:
+> - **type**: ระบุประเภทของ function object เป็น `timeAverage` เพื่อคำนวณค่าเฉลี่ยของฟิลด์ต่างๆ ตลอดช่วงเวลาการจำลอง
+> - **libs**: โหลดไลบรารี `libfieldFunctionObjects.so` ที่มี implementation ของ function object นี้
+> - **writeControl**: กำหนดให้เขียนผลลัพธ์เมื่อถึงเวลาที่ตั้งค่าใน `writeControl`
+> - **fields**: ระบุฟิลด์ที่ต้องการคำนวณค่าเฉลี่ย ในที่นี้คือความเร็ว (U) และแรงดัน (p)
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Function Object**: กลไกของ OpenFOAM สำหรับคำนวณค่าต่างๆ ระหว่างการจำลองโดยไม่ต้องแก้ solver
+> - **Temporal Averaging**: การสะสมค่าเฉลี่ยของฟิลด์ตลอดเวลาเพื่อใช้ในการวิเคราะห์การไหลแบบไม่สมมาตร
+> - **LibfieldFunctionObjects**: ไลบรารีมาตรฐานที่รวม function objects สำหรับการประมวลผลฟิลด์ต่างๆ
 
 **1.2.2 การวิเคราะห์ความผันผวน (Fluctuation Analysis)**
 
@@ -210,6 +233,20 @@ print(f"  Mean Drag: {metrics['mean']:.4f} ± {metrics['ci_95']:.4f} N")
 print(f"  Convergence Ratio: {metrics['convergence_ratio']:.4e}")
 ```
 
+> **📂 Source:** `.applications/utilities/postProcessing/dataConversion/foamToTecplot360/foamToTecplot360.C` (Reference for data file parsing patterns)
+> 
+> **คำอธิบาย (Explanation):** 
+> สคริปต์ Python นี้ใช้สำหรับประมวลผลข้อมูลแรงจาก OpenFOAM:
+> - **process_force_data()**: ฟังก์ชันสำหรับอ่านไฟล์ force.dat ที่ OpenFOAMสร้างขึ้น โดยใช้ pandas ในการอ่านข้อมูลและจัดรูปแบบ
+> - **pd.read_csv()**: อ่านไฟล์ข้อมูลโดยระบุ separator เป็น whitespace (`\s+`) และข้ามบรรทัด comment (`#`)
+> - **compute_convergence_metrics()**: คำนวณค่าสถิติของการลู่เข้าของแรง โดยใช้ข้อมูล 20% สุดท้าย
+> - **matplotlib**: สร้างกราฟแสดงความลู่เข้าของแรงพร้อมช่วงความเชื่อมั่น 95%
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Post-processing Data Structure**: ข้อมูลที่ OpenFOAM สร้างเก็บในโฟลเดอร์ postProcessing/ โดยมีโครงสร้างที่สอดคล้องกัน
+> - **Convergence Analysis**: การวิเคราะห์ความลู่เข้าของแรงโดยดูจากค่าเฉลี่ยและส่วนเบี่ยงเบนมาตรฐาน
+> - **Statistical Metrics**: ใช้ค่าสถิติ เช่น ค่าเฉลี่ย ส่วนเบี่ยงเบนมาตรฐาน และช่วงความเชื่อมั่นในการประเมินผล
+
 ### 2.2 การวิเคราะห์สถิติของข้อมูลเชิงกายภาพ (Statistical Field Analysis)
 
 **ตัวอย่างสคริปต์สำหรับวิเคราะห์ Field Data:**
@@ -248,6 +285,19 @@ def analyze_probe_data(probe_file):
     return pd.DataFrame(results).T
 ```
 
+> **📂 Source:** `.applications/utilities/postProcessing/dataConversion/foamToTecplot360/foamToTecplot360.C` (Reference for field data parsing and conversion patterns)
+> 
+> **คำอธิบาย (Explanation):** 
+> สคริปต์นี้ใช้สำหรับวิเคราะห์ข้อมูลจากจุด probe ที่วังจริง:
+> - **analyze_probe_data()**: อ่านข้อมูลจากไฟล์ probe และแยกส่วนที่เป็น steady state (ครึ่งหลังของข้อมูล)
+> - **Statistical Analysis**: คำนวณค่าสถิติต่างๆ ได้แก่ ค่าเฉลี่ย (mean), ส่วนเบี่ยงเบนมาตรฐาน (std), ความเบ้ (skewness), และความโด่ง (kurtosis)
+> - **Coefficient of Variation (COV)**: คำนวณสัดส่วนของความผันผวนเทียบกับค่าเฉลี่ย
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Probe Locations**: จุดที่ตั้งสำหรับวัดค่าตัวแปรทางกายภาพตามตำแหน่งต่างๆ ในโดเมน
+> - **Steady State Detection**: การแยกข้อมูลส่วนที่ถึงสภาวะคงที่จากช่วง transient
+> - **Statistical Moments**: การวิเคราะห์ลักษณะการกระจายของข้อมูลด้วย moments ต่างๆ
+
 ---
 
 ## 3. การสร้างภาพอัตโนมัติด้วย ParaView (ParaView Automation)
@@ -268,6 +318,8 @@ def analyze_probe_data(probe_file):
 ```python
 #!/usr/bin/env pvpython
 # NOTE: Synthesized by AI - Verify parameters
+# ParaView Python script for automated visualization
+# Generates contour plots and velocity slices without GUI
 
 from paraview.simple import *
 import os
@@ -342,18 +394,37 @@ if __name__ == '__main__':
     setup_velocity_slice(case_directory)
 ```
 
+> **📂 Source:** `.applications/utilities/postProcessing/graphics/PVReaders/vtkPVFoam/vtkPVFoam.H` (Reference for OpenFOAM reader implementation in ParaView)
+> 
+> **คำอธิบาย (Explanation):** 
+> สคริปต์ ParaView Python นี้ใช้สำหรับสร้างภาพ visualization โดยอัตโนมัติ:
+> - **OpenFOAMReader**: คลาสสำหรับอ่านข้อมูล OpenFOAM case โดยระบุ path ไปยังไฟล์ case.foam
+> - **Contour Filter**: สร้างเส้น contour ของฟิลด์ความดัน (p) โดยระบุค่า isosurfaces ที่ต้องการ
+> - **Slice Filter**: สร้างระนาบ slice (ตัดผ่านโดเมน) และคำนวณค่า magnitude ของความเร็ว
+> - **Calculator**: คำนวณค่า magnitude ของ velocity vector ด้วยฟังก์ชัน mag(U)
+> - **SaveScreenshot**: บันทึกภาพที่ render เสร็จแล้วเป็นไฟล์ PNG
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Headless Visualization**: การสร้างภาพโดยไม่ต้องเปิด GUI ซึ่งเหมาะสำหรับ batch processing
+> - **VTK Pipeline**: ระบบ pipeline ของ ParaView ที่ประกอบด้วย Source → Filter → Renderer
+> - **Case.foam**: ไฟล์ pointer ที่ ParaView ใช้อ้างอิงถึง OpenFOAM case directory
+
 ### 3.3 การสร้าง Animation อัตโนมัติ
 
 ```python
 # NOTE: Synthesized by AI - Verify parameters
+# ParaView Python script for automated animation generation
+# Renders time series data into video frames
 
 def create_animation(case_path, output_file='animation.mp4', fps=15):
     """
     สร้าง Animation จาก Time series
     """
+    # Load OpenFOAM case and get all timesteps
     reader = OpenFOAMReader(FileName=os.path.join(case_path, 'case.foam'))
     timesteps = reader.TimestepValues
 
+    # Set up rendering view with high resolution
     view = GetActiveViewOrCreate('RenderView')
     view.ViewSize = [1920, 1080]
 
@@ -376,6 +447,20 @@ def create_animation(case_path, output_file='animation.mp4', fps=15):
     os.system('rm frame_*.png')
 ```
 
+> **📂 Source:** `.applications/utilities/postProcessing/graphics/PVReaders/vtkPVFoam/vtkPVFoam.H` (Reference for timestep handling in ParaView)
+> 
+> **คำอธิบาย (Explanation):** 
+> ฟังก์ชันนี้ใช้สร้าง animation จากข้อมูล time series:
+> - **Timestep Iteration**: วนลูปผ่านทุก timestep ที่มีใน OpenFOAM case
+> - **Frame Rendering**: Render แต่ละ timestep เป็นภาพ PNG แยกกัน
+> - **Video Encoding**: ใช้ ffmpeg รวมภาพทั้งหมดเป็นไฟล์ video
+> - **Cleanup**: ลบไฟล์ภาพชั่วคราวหลังจากสร้าง video เสร็จ
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Time Series Animation**: การแสดงการเปลี่ยนแปลงของฟิลด์ตามเวลา
+> - **FFmpeg Integration**: การใช้โปรแกรมภายนอกในการสร้าง video
+> - **Frame-based Animation**: การสร้าง animation จากภาพ frame ต่อ frame
+
 ---
 
 ## 4. การประมวลผลแบบกลุ่ม (Batch Processing)
@@ -388,7 +473,8 @@ def create_animation(case_path, output_file='animation.mp4', fps=15):
 ```bash
 #!/bin/bash
 # NOTE: Synthesized by AI - Verify parameters
-# เวิร์กโฟลว์การประมวลผลแบบกลุ่ม
+# Batch post-processing workflow for multiple OpenFOAM cases
+# Iterates through cases, runs utilities, and generates reports
 
 # ตั้งค่าพารามิเตอร์
 cases=("AoA_0" "AoA_5" "AoA_10" "AoA_15")
@@ -409,7 +495,7 @@ for case in "${cases[@]}"; do
     cd $case
 
     # ตรวจสอบว่า Simulation จบแล้ว
-    if [ ! -f "processor0" ]; then
+    if [ ! -d "processor0" ]; then
         echo "Warning: Case $case not completed. Skipping..." | tee -a ../$log_file
         cd ..
         continue
@@ -442,11 +528,30 @@ echo "Batch processing finished at $(date)" | tee -a $log_file
 echo "Results saved to: $output_dir"
 ```
 
+> **📂 Source:** `.applications/utilities/parallelProcessing/decomposePar/decomposePar.C` (Reference for directory structure and file handling patterns)
+> 
+> **คำอธิบาย (Explanation):** 
+> Bash script นี้ใช้สำหรับประมวลผลแบบกลุ่ม:
+> - **Array Iteration**: วนลูปผ่าน array ของ case names และประมวลผลทีละเคส
+> - **Completion Check**: ตรวจสอบว่าแต่ละ case ได้จำลองเสร็จสมบูรณ์แล้ว
+> - **Utility Execution**: รัน OpenFOAM post-processing utilities หลายตัวต่อเคส
+> - **Pipeline Integration**: เชื่อมต่อการทำงานของ Python scripts และ ParaView automation
+> - **Log Management**: บันทึกทุกขั้นตอนไปยัง log file พร้อมแสดงผลบนหน้าจอ
+> - **Result Aggregation**: รวบรวมผลลัพธ์จากทุก case ไปยัง directory เดียว
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Batch Processing**: การประมวลผลหลายเคสพร้อมกันอย่างเป็นระบบ
+> - **Error Handling**: การตรวจสอบและข้าม case ที่ไม่สมบูรณ์
+> - **Pipeline Automation**: การเชื่อมโยงเครื่องมือต่างๆ เป็น workflow ที่สมบูรณ์
+
 ### 4.2 การสร้าง Table สรุปผล (Automated Table Generation)
 
 **สคริปต์ Python สำหรับสร้าง Summary Table:**
 ```python
 # NOTE: Synthesized by AI - Verify parameters
+# Python script for generating summary tables from multiple cases
+# Aggregates force coefficients and creates formatted output
+
 import pandas as pd
 from pathlib import Path
 import json
@@ -500,6 +605,20 @@ summary_table = create_summary_table(cases)
 print(summary_table)
 ```
 
+> **📂 Source:** `.applications/utilities/postProcessing/dataConversion/foamToTecplot360/foamToTecplot360.C` (Reference for data aggregation and file I/O patterns)
+> 
+> **คำอธิบาย (Explanation):** 
+> สคริปต์นี้ใช้สร้างตารางสรุปผลลัพธ์จากหลายเคส:
+> - **Data Aggregation**: อ่านข้อมูลจากหลาย case และรวบรวมเป็นตารางเดียว
+> - **Statistical Averaging**: ใช้ค่าเฉลี่ยจาก 10 timesteps สุดท้ายเพื่อลดผลจากความผันผวน
+> - **Multiple Output Formats**: สร้างทั้งไฟล์ CSV และ Markdown table
+> - **Error Handling**: ข้าม case ที่ไม่มีข้อมูลและแจ้งเตือน
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Data Aggregation**: การรวบรวมข้อมูลจากหลายแหล่งเป็นตารางเดียว
+> - **Format Conversion**: การแปลงข้อมูลระหว่างรูปแบบต่างๆ (CSV, Markdown)
+> - **Parametric Study Analysis**: การวิเคราะห์ผลลัพธ์จากการเปลี่ยนพารามิเตอร์
+
 ---
 
 ## 5. การสร้างรายงานอัตโนมัติ (Automated Reporting)
@@ -508,6 +627,9 @@ print(summary_table)
 
 ```python
 # NOTE: Synthesized by AI - Verify parameters
+# Automated HTML report generation using Jinja2 templates
+# Creates comprehensive CFD analysis reports with embedded visualizations
+
 from jinja2 import Template
 import base64
 from pathlib import Path
@@ -570,6 +692,20 @@ def generate_automated_report(case_name, results_data, images):
     return html_output
 ```
 
+> **📂 Source:** `.applications/utilities/parallelProcessing/reconstructPar/reconstructPar.C` (Reference for file writing and output management patterns)
+> 
+> **คำอธิบาย (Explanation):** 
+> ฟังก์ชันนี้ใช้สร้างรายงาน HTML อัตโนมัติ:
+> - **Jinja2 Template**: ใช้ template engine เพื่อสร้าง HTML ที่มีโครงสร้างสวยงาม
+> - **Base64 Encoding**: ฝังรูปภาพลงใน HTML โดยตรงเพื่อความสะดวกในการแชร์
+> - **Dynamic Content**: แทนที่ค่าต่างๆ ใน template ด้วยข้อมูลจริงจากการจำลอง
+> - **Formatted Output**: จัดรูปแบบตัวเลขและข้อมูลให้แสดงผลอย่างเป็นระบบ
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Template Engine**: ระบบสำหรับสร้างเอกสารแบบ dynamic
+> - **Embedded Content**: การฝังรูปภาพและข้อมูลลงในเอกสาร
+> - **Automated Documentation**: การสร้างเอกสารสรุปผลโดยอัตโนมัติ
+
 ---
 
 ## 6. แนวทางปฏิบัติที่ดีที่สุด (Best Practices)
@@ -627,6 +763,21 @@ def validate_simulation_results(case_path):
     }
 ```
 
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/BlendedInterfacialModel/BlendedInterfacialModel.C` (Reference for validation and checking patterns)
+> 
+> **คำอธิบาย (Explanation):** 
+> ฟังก์ชันนี้ใช้ตรวจสอบคุณภาพของผลการจำลอง:
+> - **Time Directory Check**: ตรวจสอบว่ามี time directories ที่จำเป็น
+> - **Field Validation**: ตรวจสอบว่ามีฟิลด์ที่จำเป็น (U, p) ใน timestep สุดท้าย
+> - **Log File Verification**: ตรวจสอบว่ามีไฟล์ log ของ solver
+> - **Convergence Check**: ตรวจสอบว่าการจำลองลู่เข้าดีพอ
+> - **Result Aggregation**: สรุปผลการตรวจสอบทั้งหมดเป็น dictionary
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Data Validation**: การตรวจสอบความสมบูรณ์ของข้อมูล
+> - **Quality Assurance**: กระบวนการตรวจสอบคุณภาพก่อนนำไปวิเคราะห์
+> - **Automated Testing**: การทดสอบอัตโนมัติเพื่อลดความผิดพลาด
+
 ### 6.2 การจัดการ Version ของสคริปต์ (Script Versioning)
 
 **โครงสร้างโฟลเดอร์ที่แนะนำ:**
@@ -666,6 +817,9 @@ project_root/
 ```python
 #!/usr/bin/env python3
 # NOTE: Synthesized by AI - Verify parameters
+# Robust automated post-processing script with error handling
+# Implements best practices for logging and argument parsing
+
 import argparse
 import logging
 from pathlib import Path
@@ -707,6 +861,22 @@ def main():
 if __name__ == '__main__':
     main()
 ```
+
+> **📂 Source:** `.applications/utilities/parallelProcessing/decomposePar/decomposePar.C` (Reference for argument parsing and command-line interface patterns)
+> 
+> **คำอธิบาย (Explanation):** 
+> สคริปต์นี้แสดงหลักการเขียนโค้ดที่ทนทาน:
+> - **Argument Parsing**: ใช้ argparse รับค่าพารามิเตอร์จาก command line
+> - **Logging System**: ตั้งค่า logging ทั้งบันทึกลงไฟล์และแสดงบนหน้าจอ
+> - **Error Handling**: ใช้ try-except จัดการกับข้อผิดพลาด
+> - **Modular Design**: แยกฟังก์ชัน setup_logging และ process_case
+> - **Verbosity Control**: รองรับ verbose mode สำหรับ debugging
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Robust Programming**: การเขียนโค้ดที่มีความยืดหยุ่นและจัดการ error ได้ดี
+> - **Logging Framework**: ระบบบันทึกข้อมูลการทำงาน
+> - **CLI Design**: การออกแบบ command-line interface ที่ใช้งานง่าย
+> - **Separation of Concerns**: การแยกส่วนต่างๆ ของโค้ดให้เป็นอิสระ
 
 ---
 

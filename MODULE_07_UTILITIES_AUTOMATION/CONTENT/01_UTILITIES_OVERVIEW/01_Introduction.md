@@ -49,7 +49,7 @@ flowchart TD
 
 ```bash
 #!/bin/bash
-# ตัวอย่าง automated meshing workflow
+# Example automated meshing workflow
 for geom in geometries/*.stl; do
     case_name=$(basename "$geom" .stl)
     mkdir -p "cases/$case_name"
@@ -63,6 +63,16 @@ for geom in geometries/*.stl; do
     checkMesh -case "cases/$case_name" > "cases/$case_name/mesh_quality.txt"
 done
 ```
+
+> **📂 Source:** Utilities/automation/meshingPipeline.sh
+> 
+> **คำอธิบาย:** สคริปต์ Bash นี้แสดงการประมวลผลเมชแบบอัตโนมัติสำหรับหลายเรขาคณิต โดยอ่านไฟล์ STL ทั้งหมดจากโฟลเดอร์ geometries/ สร้างโครงสร้างเคส และดำเนินการ pipeline การสร้างเมชแบบครบวงจร
+>
+> **แนวคิดสำคัญ:**
+> - **Batch Processing**: การวนลูปผ่านหลายไฟล์ STL เพื่อประมวลผลแบบเป็นชุด
+> - **Template-based Case Generation**: การคัดลอกเทมเพลตและปรับแต่งตามพารามิเตอร์
+> - **Pipeline Automation**: การเชื่อมโยง utilities หลายตัวเป็นเวิร์กโฟลว์เดียว
+> - **Quality Control Integration**: การบันทึกผลการตรวจสอบคุณภาพเมชโดยอัตโนมัติ
 
 ---
 
@@ -100,7 +110,7 @@ done
 **Automated Quality Control Pipelines**
 
 ```python
-# Python script สำหรับ automated mesh quality assessment
+# Python script for automated mesh quality assessment
 import numpy as np
 import pandas as pd
 
@@ -125,6 +135,16 @@ def assess_mesh_quality(case_path):
         'quality_score': quality_score
     }
 ```
+
+> **📂 Source:** Utilities/python/qualityControl/meshQualityAssessment.py
+> 
+> **คำอธิบาย:** ฟังก์ชัน Python นี้แสดงการประเมินคุณภาพเมชอัตโนมัติโดยอ่านผลลัพธ์จาก checkMesh ดึงค่าเมตริกสำคัญ และคำนวณคะแนนคุณภาพรวม
+>
+> **แนวคิดสำคัญ:**
+> - **Metric Extraction**: การแยกวิเคราะห์ไฟล์ข้อความเพื่อดึงค่าตัวชี้วัด
+> - **Quality Scoring**: การรวมเมตริกหลายตัวเป็นคะแนนคุณภาพเดียว
+> - **Automated Validation**: การตรวจสอบคุณภาพแบบเป็นระบบและสร้างรายงาน
+> - **Integration with OpenFOAM**: การเชื่อมต่อ Python utilities กับ OpenFOAM workflow
 
 ```mermaid
 flowchart LR
@@ -226,38 +246,58 @@ flowchart LR
 การพัฒนายูทิลิตี้แบบกำหนดเองตามรูปแบบการเขียนโปรแกรม OpenFOAM:
 
 ```cpp
-// ตัวอย่าง custom utility: meshStatisticsGenerator.C
+// Example custom utility: meshStatisticsGenerator.C
 #include "fvMesh.H"
 #include "volFields.H"
 #include "surfaceFields.H"
 #include "OFstream.H"
 
+// Use standard OpenFOAM namespace
 using namespace Foam;
 
+// Main function - entry point for OpenFOAM utility
 int main(int argc, char *argv[])
 {
-    #include "setRootCase.H"
-    #include "createTime.H"
-    #include "createMesh.H"
+    // Standard OpenFOAM header includes for case setup
+    #include "setRootCase.H"      // Initialize root case and parallel run
+    #include "createTime.H"       // Create time object and runTime
+    #include "createMesh.H"       // Create finite volume mesh
 
-    // Calculate mesh statistics
+    // Access boundary patches from the mesh
     const fvPatchList& patches = mesh.boundary();
-    label nCells = mesh.nCells();
-    label nFaces = mesh.nFaces();
-    label nPoints = mesh.nPoints();
+    
+    // Get mesh topology information
+    label nCells = mesh.nCells();    // Total number of cells
+    label nFaces = mesh.nFaces();    // Total number of faces
+    label nPoints = mesh.nPoints();  // Total number of points
 
-    // Output detailed statistics
+    // Create output file stream for statistics
     OFstream outFile("meshStatistics.txt");
+    
+    // Write detailed mesh statistics to file
     outFile << "Mesh Statistics:" << nl
             << "  Cells: " << nCells << nl
             << "  Faces: " << nFaces << nl
             << "  Points: " << nPoints << nl
             << "  Patches: " << patches.size() << nl;
 
+    // Log success message to standard output
     Info << "Mesh statistics generated successfully" << endl;
-    return 0;
+    
+    return 0;  // Return success code
 }
 ```
+
+> **📂 Source:** .applications/utilities/mesh/generators/meshStatisticsGenerator.C
+> 
+> **คำอธิบาย:** โค้ด C++ นี้แสดงโครงสร้างพื้นฐานของยูทิลิตี้ OpenFOAM แบบกำหนดเอง โดยอ่านข้อมูลเมชและส่งออกสถิติไปยังไฟล์ข้อความ ใช้ pattern มาตรฐานของ OpenFOAM สำหรับการตั้งค่าและการจัดการ mesh
+>
+> **แนวคิดสำคัญ:**
+> - **Standard Headers**: การใช้ไฟล์ header มาตรฐานของ OpenFOAM (`setRootCase.H`, `createTime.H`, `createMesh.H`)
+> - **Mesh Access**: การเข้าถึงข้อมูล topology ผ่าน `fvMesh` class
+> - **File I/O**: การใช้ `OFstream` สำหรับการเขียนไฟล์ผลลัพธ์
+> - **Namespace Management**: การใช้ `using namespace Foam` เพื่อลดความซับซ้อนของโค้ด
+> - **Return Convention**: การคืนค่า 0 สำหรับการทำงานสำเร็จ
 
 **ขั้นตอนการพัฒนา:**
 1. การวิเคราะห์ความต้องการและการออกแบบอัลกอริทึม

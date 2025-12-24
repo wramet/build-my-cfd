@@ -115,6 +115,18 @@ EOF
 }
 ```
 
+📂 **Source:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
+
+**Explanation:**
+สคริปต์นี้แสดงขั้นตอนการแปลงไฟล์ CAD ในรูปแบบต่างๆ (STEP, IGES, STL) ให้อยู่ในรูปแบบที่ OpenFOAM สามารถนำไปใช้งานได้ โดยเฉพาะอย่างยิ่งการแปลงเป็นไฟล์ STL ที่ใช้สำหรับการสร้าง mesh
+
+**Key Concepts:**
+- **Format Detection**: การตรวจจับประเภทไฟล์จากนามสกุลไฟล์อัตโนมัติ
+- **FreeCAD Integration**: การใช้ FreeCAD ผ่าน Python API เพื่อแปลงไฟล์ STEP เป็น STL พร้อมการปรับปรุงคุณภาพ mesh
+- **Mesh Quality Control**: การ harmonize normals, ลบจุดซ้ำ และลบ non-manifold geometry
+- **OpenFOAM Directory Structure**: การจัดเก็บไฟล์ใน `constant/triSurface/` ซึ่งเป็นตำแหน่งมาตรฐานของ OpenFOAM
+- **Validation Pipeline**: การใช้ `surfaceCheck` เพื่อตรวจสอบความถูกต้องของ geometry
+
 ### 1.3 Mathematical Representation Differences
 
 The fundamental difference between formats lies in geometry representation:
@@ -302,6 +314,19 @@ def generate_recommendations(defects):
     return recommendations
 ```
 
+📂 **Source:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
+
+**Explanation:**
+โค้ด Python นี้ใช้สำหรับตรวจจับและจัดประเภทข้อบกพร่องของ geometry ในไฟล์ STL ก่อนนำไปใช้ใน OpenFOAM โดยใช้ trimesh library ในการวิเคราะห์ mesh topology
+
+**Key Concepts:**
+- **Non-Manifold Detection**: การตรวจจับ edges ที่มีการเชื่อมต่อกับ faces มากกว่า 2 ซึ่งจะทำให้เกิดปัญหาในการสร้าง mesh
+- **Thickness Computation**: การคำนวณความหนาของผนังโดยใช้ ray-tracing technique เพื่อหาบริเวณที่มีความหนาน้อยเกินไป
+- **Normal Consistency**: การตรวจสอบทิศทางของ normal vectors ว่าชี้ออกด้านนอกทั้งหมดหรือไม่
+- **Small Features Detection**: การหา features ขนาดเล็กที่อาจก่อให้เกิดปัญหาในการสร้าง mesh
+- **Severity Scoring**: การให้คะแนนความรุนแรงของข้อบกพร่องเพื่อกำหนดลำดับความสำคัญในการแก้ไข
+- **Automated Recommendations**: การสร้างคำแนะนำในการแก้ไขโดยอัตโนมัติตามประเภทของข้อบกพร่องที่พบ
+
 ### 2.2 Minimum Feature Size Calculation
 
 For CFD applications, features smaller than the mesh resolution cause numerical instability:
@@ -458,6 +483,18 @@ validation = repair.validate_repair()
 print(f"Repair validation: {validation}")
 ```
 
+📂 **Source:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
+
+**Explanation:**
+คลาส Python นี้ใช้ FreeCAD API ในการสร้าง pipeline สำหรับซ่อมแซม CAD geometry โดยอัตโนมัติ ตั้งแต่การโหลดไฟล์ การทำความสะอาด shape การสร้าง mesh และการตรวจสอบคุณภาพ
+
+**Key Concepts:**
+- **Shape Cleaning Operations**: การ fixOrientation, removeSeams, harmonizeNormals และ simplifyFaces เพื่อแก้ไขปัญหาทั่วไปของ CAD geometry
+- **Mesh Generation Parameters**: linear_deflection และ angular_deflection ควบคุมความละเอียดของ tessellation
+- **Mesh Post-Processing**: การ harmonizeNormals, ลบจุดซ้ำ และลบ non-manifolds หลังจากสร้าง mesh
+- **Quality Validation**: การตรวจสอบจำนวน triangles, points และ non-manifold edges เพื่อให้แน่ใจว่า geometry พร้อมใช้งาน
+- **Pipeline Architecture**: การออกแบบเป็น class ที่มี methods ต่อเนื่องกัน (load → clean → mesh → export → validate)
+
 **Blender Batch Processing:**
 
 ```python
@@ -513,6 +550,19 @@ if __name__ == "__main__":
     output_stl = sys.argv[-1]
     repair_mesh(input_stl, output_stl)
 ```
+
+📂 **Source:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
+
+**Explanation:**
+สคริปต์ Blender Python นี้ใช้สำหรับ batch processing และซ่อมแซม mesh โดยใช้ bmesh API ของ Blender ซึ่งมีประสิทธิภาพในการจัดการ mesh topology
+
+**Key Concepts:**
+- **BMesh API**: การใช้ bmesh module ของ Blender ในการจัดการ mesh topology ระดับ low-level
+- **Duplicate Removal**: การลบ vertices ที่ซ้ำกันซึ่งเป็นปัญหาทั่วไปในไฟล์ STL
+- **Non-Manifold Fixing**: การ split edges ที่ไม่ใช่ manifold เพื่อให้ mesh topology ถูกต้อง
+- **Normal Recalculation**: การคำนวณ normals ใหม่ให้ชี้ออกด้านนอกทั้งหมด
+- **Hole Filling**: การเติมช่องว่างใน mesh โดยอัตโนมัติ
+- **Batch Processing**: การรับ arguments ผ่าน command line เพื่อประมวลผลไฟล์หลายไฟล์
 
 ### 3.2 Commercial Tools Comparison
 
@@ -783,6 +833,21 @@ report = analyzer.generate_quality_report()
 print(f"Quality Score: {report['overall_score']}/100 ({report['grade']})")
 ```
 
+📂 **Source:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
+
+**Explanation:**
+คลาส Python นี้ใช้สำหรับประเมินคุณภาพของ surface geometry อย่างครอบคลุม โดยวัดหลาย metrics เพื่อให้แน่ใจว่า geometry พร้อมสำหรับการสร้าง mesh ใน OpenFOAM
+
+**Key Concepts:**
+- **Aspect Ratio Analysis**: การคำนวณสัดส่วนของ triangles (longest edge / shortest altitude) ซึ่งค่าที่สูงเกินไปจะส่งผลต่อคุณภาพ mesh
+- **Angle Skewness**: การวัดความเบี้ยวของ triangles โดยเปรียบเทียบกับสามเหลี่ยมด้านเท่า (60°)
+- **Curvature Analysis**: การวิเคราะห์ความโค้งของ surface เพื่อระบุบริเวณที่ต้องการ mesh refinement
+- **Normal Consistency**: การตรวจสอบทิศทางของ normal vectors ทั้งหมดว่าสอดคล้องกันหรือไม่
+- **Gap Detection**: การหา boundary edges ซึ่งเป็น edges ที่ใช้โดย face เดียว แสดงถึงช่องว่างใน geometry
+- **Watertight Check**: การตรวจสอบว่า geometry เป็น closed surface หรือไม่
+- **Quality Scoring System**: การให้คะแน์รวม (0-100) โดยหักคะแนนตามความรุนแรงของปัญหา
+- **Automated Recommendations**: การสร้างคำแนะนำการแก้ไขโดยอัตโนมัติ
+
 ### 4.2 Integration with OpenFOAM
 
 ```bash
@@ -845,6 +910,20 @@ EOF
 }
 ```
 
+📂 **Source:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
+
+**Explanation:**
+สคริปต์ Bash นี้เป็น pipeline ที่บูรณาการกับ OpenFOAM utilities เพื่อตรวจสอบและวาง geometry ใน case directory อย่างสมบูรณ์
+
+**Key Concepts:**
+- **surfaceCheck Utility**: การใช้ OpenFOAM tool ในการตรวจสอบคุณภาพของ STL surface
+- **surfaceFeatureEdges**: การสกัด feature edges สำหรับ snappyHexMesh โดยกำหนด feature angle
+- **Watertight Verification**: การตรวจสอบว่า geometry เป็น closed surface ซึ่งจำเป็นสำหรับ CFD simulation
+- **Scale Verification**: การใช้ Python/trimesh ในการตรวจสอบขนาดของ geometry
+- **OpenFOAM Directory Structure**: การจัดวางไฟล์ใน `constant/triSurface/` ซึ่งเป็นตำแหน่งมาตรฐาน
+- **eMesh File**: การรวมไฟล์ feature edges (.eMesh) สำหรับการสร้าง mesh
+- **Log Management**: การเก็บ logs ไว้ตรวจสอบแยกต่างหาก
+
 ---
 
 ## Part 5: Advanced Topics
@@ -894,6 +973,18 @@ def prepare_multi_region_geometry(input_files, region_names):
     return merged_mesh
 ```
 
+📂 **Source:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
+
+**Explanation:**
+ฟังก์ชัน Python นี้ใช้สำหรับจัดการ geometry ที่มีหลาย regions (เช่น assembly ของ components) โดยรวม STL files หลายไฟล์เข้าด้วยกันและกำหนด region IDs
+
+**Key Concepts:**
+- **Multi-Region Meshing**: การรวม meshes หลายไฟล์เข้าด้วยกันสำหรับ assembly simulations
+- **Face Attributes**: การกำหนด region_id ให้กับแต่ละ face เพื่อแยก regions ใน snappyHexMesh
+- **Region Dictionary**: การสร้างไฟล์ `region_dict` เพื่อ map ระหว่าง region IDs และ names
+- **Mesh Merging**: การใช้ trimesh operations ในการรวม meshes
+- **Assembly Handling**: การจัดการ geometry ที่ซับซ้อนที่ประกอบด้วยหลาย components
+
 ### 5.3 Periodic Boundary Preparation
 
 For geometries with periodic boundaries:
@@ -937,6 +1028,19 @@ def create_periodic_geometry(stl_file, periodic_axis='x', periodic_length=None):
     # Create separate STL files for periodic patches
     # ... (implementation depends on downstream tool requirements)
 ```
+
+📂 **Source:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
+
+**Explanation:**
+ฟังก์ชัน Python นี้ใช้สำหรับเตรียม geometry ที่มี periodic boundaries ซึ่งพบบ่อยใน turbomachinery และ heat exchanger simulations
+
+**Key Concepts:**
+- **Periodic Boundary Detection**: การระบุ faces บน boundaries ที่เป็น periodic กัน
+- **Axis-Based Selection**: การเลือก axis (x, y, z) และหา faces บน boundaries ตรงข้าม
+- **Tolerance-Based Matching**: การใช้ tolerance เล็กน้อยในการระบุ boundary faces
+- **Boundary Pair Extraction**: การแยก faces บน periodic boundaries ออกเป็นคู่ๆ
+- **Periodic Length Calculation**: การคำนวณระยะห่าง periodic จาก geometry bounds
+- **Patch Separation**: การสร้าง STL files แยกสำหรับแต่ละ periodic patch
 
 ---
 

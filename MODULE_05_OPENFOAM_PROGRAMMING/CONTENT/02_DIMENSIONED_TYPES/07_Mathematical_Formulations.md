@@ -134,6 +134,24 @@ void analyzePipeFlow()
 }
 ```
 
+> 📚 **คำอธิบายประกอบ (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** `src/dimensionSet/dimensionSet.C`, `src/dimensionSet/dimensionSet.H`, `src/dimensionSet/dimensionedScalar.C`, `src/dimensionSet/dimensionedScalar.H`
+>
+> **คำอธิบาย (Explanation):**
+> โค้ดตัวอย่างนี้แสดงการนำทฤษฎีบท Buckingham π มาประยุกต์ใช้ใน OpenFOAM เพื่อค้นหากลุ่มพารามิเตอร์ไร้มิติ (Dimensionless Groups) จากตัวแปรทางฟิสิกส์ที่มีหน่วยต่างกัน โดยมีขั้นตอนหลักดังนี้:
+> 1. `findDimensionlessGroups()`: สร้างเมทริกซ์มิติ (Dimension Matrix) จากเลขชี้กำลังของแต่ละมิติพื้นฐาน (Mass, Length, Time, etc.) และคำนวณหา Null Space เพื่อหาชุดเลขชี้กำลังที่ทำให้ผลคูณของตัวแปรมีค่าไร้มิติ
+> 2. `createDimensionlessGroups()`: นำชุดเลขชี้กำลังที่ได้มาสร้างกลุ่มตัวแปรไร้มิติ และตรวจสอบว่าผลลัพธ์เป็นไร้มิติจริง
+> 3. `analyzePipeFlow()`: ตัวอย่างการประยุกต์ใช้กับการไหลในท่อ (Pipe Flow) เพื่อหา Reynolds number, Euler number และ Aspect ratio
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Dimension Matrix**: เมทริกซ์ที่เก็บเลขชี้กำลังของแต่ละมิติพื้นฐานในแต่ละตัวแปร ใช้สำหรับวิเคราะห์หากลุ่มไร้มิติ
+> - **Null Space**: ปริภูมิเวกเตอร์ที่เมื่อคูณเมทริกซ์มิติแล้วได้ผลลัพธ์เป็นศูนย์ แทนด้วยชุดเลขชี้กำลังที่ทำให้ตัวแปรไร้มิติ
+> - **Dimensionless Groups**: กลุ่มตัวแปรไร้มิติ เช่น Reynolds number, Euler number, ซึ่งควบคุมลักษณะการไหลของไหล
+> - **Eigen::MatrixXd**: ไลบรารี Eigen สำหรับการคำนวณเชิงเส้น (Linear Algebra) ในการหาค่า Null Space
+> - **dimensionSet/dimensionedScalar**: คลาสใน OpenFOAM ที่ใช้แทนมิติและตัวแปรที่มีมิติ พร้อมระบบตรวจสอบความสอดคล้องทางมิติอัตโนมัติ
+> - **Compile-time Dimension Checking**: การตรวจสอบความสอดคล้องทางมิติในขั้นตอนคอมไพล์ ช่วยป้องกันข้อผิดพลาดจากการใช้หน่วยที่ไม่ถูกต้อง
+
 ---
 
 ## 2. Dimensional Representation System
@@ -190,6 +208,21 @@ public:
     bool operator==(const dimensionSet& ds) const;
 };
 ```
+
+> 📚 **คำอธิบายประกอบ (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** `src/dimensionSet/dimensionSet.H`, `src/dimensionSet/dimensionSet.C`
+>
+> **คำอธิบาย (Explanation):**
+> คลาส `dimensionSet` เป็นหลักการพื้นฐานของระบบตรวจสอบมิติใน OpenFOAM โดยเก็บเลขชี้กำลังของ 7 มิติพื้นฐาน (Mass, Length, Time, Temperature, Current, Mole, Luminous Intensity) ในรูปแบบ array ขนาด 7 ช่อง คลาสนี้อนุญาตให้ดำเนินการทางคณิตศาสตร์กับมิติได้โดยอัตโนมัติ เช่น การบวก ลบ คูณ หาร และยกกำลัง พร้อมทั้งมีฟังก์ชันตรวจสอบว่าค่าที่ได้เป็นไร้มิติหรือไม่
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **SI Base Dimensions**: 7 มิติพื้นฐานตามระบบ SI ที่ใช้แทนทุกปริมาณทางฟิสิกส์
+> - **Exponent Storage**: เก็บเลขชี้กำลังของแต่ละมิติพื้นฐานเพื่อแทนมิติของปริมาณฟิสิกส์
+> - **Operator Overloading**: โหลด Operator ทางคณิตศาสตร์ให้ทำงานกับ dimensionSet ได้โดยอัตโนมัติ
+> - **Compile-time Dimension Checking**: การตรวจสอบความสอดคล้องทางมิติในขั้นตอนคอมไพล์
+> - **dimensionless()**: ฟังก์ชันตรวจสอบว่าปริมาณเป็นไร้มิติหรือไม่
+> - **Dimensional Homogeneity**: หลักการที่ว่าทุกพจน์ในสมการทางฟิสิกส์ต้องมีมิติเหมือนกัน
 
 ---
 
@@ -274,6 +307,28 @@ public:
 };
 ```
 
+> 📚 **คำอธิบายประกอบ (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** `src/dimensionedTypes/dimensionedScalar/dimensionedScalar.H`, `src/finiteVolume/fields/volFields/volFields.H`
+>
+> **คำอธิบาย (Explanation):**
+> คลาส `NonDimensionalizer` ใช้สำหรับแปลงสมการ Navier-Stokes ที่มีมิติให้อยู่ในรูปไร้มิติ (Non-dimensionalization) เพื่อปรับปรุงเสถียรภาพเชิงตัวเลขและการลู่เข้าของผลลัพธ์ โดยมีขั้นตอนหลักดังนี้:
+> 1. กำหนด Reference Scales (ค่าอ้างอิง) สำหรับ Length, Velocity, Density, และ Viscosity
+> 2. ปรับค่าตัวแปรให้เป็นไร้มิติโดยหารด้วยค่าอ้างอิงที่เหมาะสม เช่น `U_tilde = U / U_ref`
+> 3. ตรวจสอบว่าค่าที่ได้เป็นไร้มิติจริง หากไม่จะแจ้ง error
+> 4. คำนวณตัวเลขไร้มิติที่สำคัญ เช่น Reynolds number, Froude number, Mach number
+> 5. ตรวจสอบว่าตัวเลขไร้มิติทั้งหมดเป็นไร้มิติจริง
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Non-dimensionalization**: การแปลงตัวแปรที่มีมิติให้เป็นไร้มิติโดยการหารด้วยค่าอ้างอิงที่เหมาะสม
+> - **Reference Scales**: ค่าอ้างอิงที่ใช้ในการทำให้ไร้มิติ เช่น ความยาวลักษณะเด่น, ความเร็วอ้างอิง, ความหนาแน่นอ้างอิง
+> - **Reynolds Number (Re)**: ตัวเลขไร้มิติที่วัดสัดส่วนระหว่างแรงเฉื่อยและแรงหนืด
+> - **Froude Number (Fr)**: ตัวเลขไร้มิติที่วัดสัดส่วนระหว่างแรงเฉื่อยและแรงโน้มถ่วง
+> - **Mach Number (Ma)**: ตัวเลขไร้มิติที่วัดสัดส่วนระหว่างความเร็วไหลและความเร็วเสียง
+> - **Numerical Stability**: ความเสถียรภาพของการคำนวณเชิงตัวเลข ซึ่งการทำให้ไร้มิติช่วยปรับปรุงได้
+> - **Dimensionless Variables**: ตัวแปรไร้มิติที่แทนตัวแปรต้นฉบับ เช่น `U_tilde`, `p_tilde`, `rho_tilde`
+> - **Compile-time Dimension Verification**: การตรวจสอบความสอดคล้องทางมิติในขั้นตอนคอมไพล์
+
 The non-dimensionalization process transforms the dimensional Navier-Stokes equations:
 $$\frac{\partial (\rho \mathbf{u})}{\partial t} + \nabla \cdot (\rho \mathbf{u} \mathbf{u}) = -\nabla p + \nabla \cdot (\mu \nabla \mathbf{u}) + \rho \mathbf{g}$$
 
@@ -348,6 +403,26 @@ private:
 };
 ```
 
+> 📚 **คำอธิบายประกอบ (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** `src/finiteVolume/fields/volFields/volVectorField/volVectorField.H`, `src/thermophysicalModels/basic/thermo/thermo.H`
+>
+> **คำอธิบาย (Explanation):**
+> คลาส `ScaleDetector` ใช้สำหรับตรวจจับค่าอ้างอิง (Characteristic Scales) จากสนามการไหลโดยอัตโนมัติ โดยมีวิธีการดังนี้:
+> 1. **Length Scale**: ใช้ขนาดโดเมนจากตำแหน่งเซลล์ (Cell Centers) คำนวณจากช่วงระหว่างตำแหน่งสูงสุดและต่ำสุด
+> 2. **Velocity Scale**: ใช้ความเร็วสูงสุดจากสนามความเร็ว
+> 3. **Density Scale**: ใช้ค่าเฉลี่ยของความหนาแน่นจาก thermophysical model
+> 4. **Viscosity Scale**: ใช้ค่าเฉลี่ยของความหนืดจาก thermophysical model
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Characteristic Scales**: ค่าอ้างอิงที่แทนลักษณะเด่นของการไหล เช่น ความยาวลักษณะเด่น, ความเร็วลักษณะเด่น
+> - **Automatic Scale Detection**: การตรวจจับค่าอ้างอิงโดยอัตโนมัติจากสนามการไหล
+> - **Domain-based Scales**: ใช้ขนาดโดเมนเป็นค่าอ้างอิง
+> - **Physics-based Scales**: ใช้คุณสมบัติทางฟิสิกส์ของการไหลเป็นค่าอ้างอิง
+> - **volVectorField**: สนามเวกเตอร์บน volume mesh ใน finite volume method
+> - **fluidThermo**: คลาสสำหรับจัดการคุณสมบัติทางเทอร์โมไดนามิกส์ของไหล
+> - **Mesh Geometry**: ใช้ตำแหน่งเซลล์ (Cell Centers) ในการคำนวณขนาดโดเมน
+
 **Scale detection strategies:**
 - **Domain-based scales**: Use geometric features such as domain volume or bounding box dimensions
 - **Physics-based scales**: Derived from boundary layer thickness, vortex core radius, or other flow properties
@@ -421,6 +496,24 @@ public:
     }
 };
 ```
+
+> 📚 **คำอธิบายประกอบ (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** `src/dimensionSet/dimensionSet.H`, `src/dimensionedTypes/dimensionedScalar/dimensionedScalar.H`, `src/OpenFOAM/fields/Fields/Field/Field.H`
+>
+> **คำอธิบาย (Explanation):**
+> คลาส `ReynoldsSimilarity` ใช้สำหรับตรวจสอบและปรับสเกลผลลัพธ์ระหว่างโมเดลและต้นแบบโดยใช้หลักการความเหมือนของ Reynolds Number โดยมีฟังก์ชันหลักดังนี้:
+> 1. `checkSimilarity()`: ตรวจสอบว่า Reynolds number ของสองกรณีเหมือนกันภายในค่าความคลาดเคลื่อนที่กำหนด
+> 2. `scaleToPrototype()`: ปรับสเกลผลลัพธ์จากโมเดลไปเป็นของต้นแบบโดยใช้อัตราส่วนของ Reynolds number
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Reynolds Similarity**: หลักการที่ว่าถ้า Reynolds number เหมือนกัน การไหลจะมีลักษณะเหมือนกัน (โดยประมาณ)
+> - **Geometric Similarity**: รูปร่างเหมือนกันทุกประการ เป็นเงื่อนไขที่จำเป็นสำหรับความเหมือนแบบ
+> - **Scaling Factor**: อัตราส่วนที่ใช้ปรับสเกลตัวแปรจากโมเดลไปเป็นต้นแบบ
+> - **Dimensional Scaling**: การปรับสเกลโดยคำนึงถึงมิติของตัวแปร เช่น ความเร็ว scale แบบเส้นตรง ความดัน scale แบบกำลังสอง
+> - **Template Function**: ฟังก์ชันเทมเพลตที่ทำงานกับหลายประเภทข้อมูลได้
+> - **Compile-time Type Checking**: การตรวจสอบชนิดข้อมูลในขั้นตอนคอมไพล์
+> - **Dimensionless Verification**: การตรวจสอบว่าค่าไร้มิติเป็นไร้มิติจริง
 
 The mathematical foundation of Reynolds similarity stems from the dimensionless form of the Navier-Stokes equations, where the Reynolds number appears as the sole parameter controlling the balance of inertial and viscous forces. When two flows have the same Reynolds number and geometric similarity, their velocity fields are related by:
 $$\mathbf{u}_{\text{prototype}}(\mathbf{x},t) = \lambda \mathbf{u}_{\text{model}}\left(\frac{\mathbf{x}}{\lambda}, \frac{t}{\lambda}\right)$$
@@ -499,6 +592,27 @@ public:
     }
 };
 ```
+
+> 📚 **คำอธิบายประกอบ (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** `src/dimensionSet/dimensionSet.H`, `src/dimensionedTypes/dimensionedScalar/dimensionedScalar.H`
+>
+> **คำอธิบาย (Explanation):**
+> คลาส `DynamicSimilarity` ใช้สำหรับตรวจสอบความเหมือนแบบไดนามิกสำหรับปัญหาหลายฟิสิกส์ (Multi-physics) โดยมีฟังก์ชันหลักดังนี้:
+> 1. `SimilarityConditions`: โครงสร้างเก็บตัวเลขไร้มิติที่สำคัญ เช่น Re, Fr, We, Ca, St
+> 2. `checkCompleteSimilarity()`: ตรวจสอบว่าตัวเลขไร้มิติทั้งหมดเหมือนกันระหว่างโมเดลและต้นแบบ
+> 3. `findCompromiseScaling()`: หาค่าประนีประนอมเมื่อไม่สามารถทำให้เหมือนได้อย่างสมบูรณ์
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Dynamic Similarity**: ความเหมือนแบบที่ครอบคลุมหลายฟิสิกส์ ต้อง matching ตัวเลขไร้มิติทั้งหมด
+> - **Reynolds Number (Re)**: สัดส่วนระหว่างแรงเฉื่อยและแรงหนืด
+> - **Froude Number (Fr)**: สัดส่วนระหว่างแรงเฉื่อยและแรงโน้มถ่วง
+> - **Weber Number (We)**: สัดส่วนระหว่างแรงเฉื่อยและแรงตึงผิว
+> - **Capillary Number (Ca)**: สัดส่วนระหว่างแรงหนืดและแรงตึงผิว
+> - **Strouhal Number (St)**: ความถี่การสั่นไหวเป็นสัดส่วนของความเร็ว
+> - **Compromise Scaling**: การปรับเมื่อไม่สามารถทำให้เหมือนได้อย่างสมบูรณ์
+> - **Priority Order**: ลำดับความสำคัญของตัวเลขไร้มิติที่ต้องการให้เหมือนกัน
+> - **Multi-physics Coupling**: การเชื่อมโยงระหว่างฟิสิกส์หลายแขนง
 
 In multi-physics problems, achieving complete similarity often requires compromise scaling due to conflicting requirements of different dimensionless parameters.
 
@@ -611,6 +725,26 @@ public:
     }
 };
 ```
+
+> 📚 **คำอธิบายประกอบ (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** `src/dimensionedTypes/dimensionedTensor/dimensionedTensor.H`, `src/OpenFOAM/matrices/MatrixMatrix/MatrixMatrix.H`, `src/OpenFOAM/fields/Fields/SymmField/SymmField.H`
+>
+> **คำอธิบาย (Explanation):**
+> คลาส `TensorDimensionalAnalysis` ใช้สำหรับตรวจสอบความสอดคล้องทางมิติของสมการ constitutive และการดำเนินการเทนเซอร์ โดยมีฟังก์ชันหลักดังนี้:
+> 1. `verifyNewtonianConstitutive()`: ตรวจสอบว่าสมการ Newtonian $\tau = \mu \dot{\gamma}$ มีความสอดคล้องทางมิติ
+> 2. `secondInvariant()`: คำนวณค่า Invariant ที่สองของเทนเซอร์ และตรวจสอบความสอดคล้องทางมิติ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Stress Tensor ($\boldsymbol{\tau}$)**: เทนเซอร์ความเครียด มีมิติเดียวกับความดัน $[M L^{-1} T^{-2}]$
+> - **Strain Rate Tensor ($\dot{\boldsymbol{\gamma}}$)**: เทนเซอร์อัตราการเสียรูป มีมิติ $[T^{-1}]$
+> - **Dynamic Viscosity ($\mu$)**: ความหนืดพลศาสตร์ มีมิติ $[M L^{-1} T^{-1}]$
+> - **Constitutive Equation**: สมการที่เชื่อมความเครียดและอัตราการเสียรูป เช่น $\tau = \mu \dot{\gamma}$ สำหรับไหลแบบ Newtonian
+> - **Dimensional Homogeneity**: หลักการที่ว่าทุกพจน์ในสมการต้องมีมิติเหมือนกัน
+> - **Second Invariant**: ค่า Invariant ที่สองของเทนเซอร์ มีมิติเป็นกำลังสองของมิติเทนเซอร์
+> - **Trace Operation**: การดำเนินการหาผลรวมของสมาชิกในแนวทแยงของเทนเซอร์
+> - **Tensor Operations**: การดำเนินการเทนเซอร์ เช่น การคูณ, การหา Invariant
+> - **Compile-time Dimension Verification**: การตรวจสอบความสอดคล้องทางมิติในขั้นตอนคอมไพล์
 
 The **second invariant** $II_2$ of a stress or strain rate tensor plays a crucial role in turbulence modeling and non-Newtonian constitutive relations. For a symmetric tensor $\mathbf{A}$, the second invariant is:
 
@@ -739,6 +873,25 @@ public:
 };
 ```
 
+> 📚 **คำอธิบายประกอบ (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** `src/dimensionSet/dimensionSet.H`, `src/dimensionedTypes/dimensionedScalar/dimensionedScalar.H`
+>
+> **คำอธิบาย (Explanation):**
+> คลาส `FSIDimensions` ใช้สำหรับตรวจสอบความสอดคล้องทางมิติในปัญหา Fluid-Structure Interaction (FSI) โดยมีฟังก์ชันหลักดังนี้:
+> 1. `verifyForceCompatibility()`: ตรวจสอบว่าแรงจากไหลและโครงสร้างมีความเข้ากันได้ทางมิติ
+> 2. `computeCouplingNumber()`: คำนวณตัวเลขไร้มิติสำหรับการเชื่อมโยงระหว่างไหลและโครงสร้าง
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Fluid-Structure Interaction (FSI)**: ปัญหาที่เกี่ยวข้องกับการเชื่อมโยงระหว่างการไหลของไหลและการเสียรูปของโครงสร้าง
+> - **Force Compatibility**: ความเข้ากันได้ของแรงระหว่างไหลและโครงสร้าง
+> - **Coupling Number**: ตัวเลขไร้มิติที่วัดความเชื่อมโยงระหว่างไหลและโครงสร้าง
+> - **Fluid Force Density**: แรงต่อหน่วยปริมาตรจากไหล มีมิติ $[M L^{-2} T^{-2}]$
+> - **Structural Stiffness**: ความแข็งของโครงสร้าง มีมิติ $[M T^{-2}]$
+> - **Coupling Length**: ความยาวลักษณะเด่นของการเชื่อมโยง
+> - **Dimensional Consistency**: ความสอดคล้องทางมิติของสมการ FSI
+> - **Added Mass Effect**: ผลกระทบจากมวลเพิ่มขึ้นเนื่องจากไหลรอบโครงสร้าง
+
 **Dimensional compatibility in FSI** involves matching forces and stresses across the fluid-structure interface. **Key dimensionless parameters:**
 
 - **Added mass coefficient**: $C_a = \frac{\rho_f V_f}{\rho_s V_s}$
@@ -835,6 +988,27 @@ public:
 };
 ```
 
+> 📚 **คำอธิบายประกอบ (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** `src/dimensionSet/dimensionSet.H`, `src/dimensionedTypes/dimensionedScalar/dimensionedScalar.H`, `src/thermophysicalModels/basic/thermo/thermo.H`
+>
+> **คำอธิบาย (Explanation):**
+> คลาส `ThermoFluidDimensions` ใช้สำหรับตรวจสอบความสอดคล้องทางมิติของสมการพลังงานและคำนวณตัวเลขไร้มิติสำหรับการถ่ายเทความร้อน โดยมีฟังก์ชันหลักดังนี้:
+> 1. `verifyEnergyEquation()`: ตรวจสอบว่าทุกพจน์ในสมการพลังงานมีมิติเหมือนกัน
+> 2. `computeHeatTransferNumbers()`: คำนวณตัวเลขไร้มิติสำคัญสำหรับการถ่ายเทความร้อน เช่น Re, Pr, Pe, Nu
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Energy Equation**: สมการพลังงานที่อธิบายการถ่ายเทความร้อนในระบบเทอร์โมฟลูอิด
+> - **Convection Term**: พจน์การพาความร้อน $\rho c_p \mathbf{u} \cdot \nabla T$ มีมิติ $[M L^{-1} T^{-3}]$
+> - **Diffusion Term**: พจน์การนำความร้อน $\nabla \cdot (k \nabla T)$ มีมิติ $[M L^{-1} T^{-3}]$
+> - **Source Term**: พจน์แหล่งกำเนิดความร้อน $\dot{q}$ มีมิติ $[M L^{-1} T^{-3}]$
+> - **Reynolds Number (Re)**: ตัวเลขไร้มิติที่วัดสัดส่วนระหว่างแรงเฉื่อยและแรงหนืด
+> - **Prandtl Number (Pr)**: ตัวเลขไร้มิติที่วัดสัดส่วนระหว่างการนำโมเมนตัมและการนำความร้อน
+> - **Peclet Number (Pe)**: ตัวเลขไร้มิติที่วัดสัดส่วนระหว่างการพาและการนำความร้อน $Pe = Re \cdot Pr$
+> - **Nusselt Number (Nu)**: ตัวเลขไร้มิติที่วัดสัดส่วนระหว่างการพาความร้อนและการนำความร้อน
+> - **Thermal Conductivity ($k$)**: สภาพนำความร้อน มีมิติ $[M L T^{-3} \Theta^{-1}]$
+> - **Specific Heat ($c_p$)**: ความร้อนจำเพาะ มีมิติ $[L^2 T^{-2} \Theta^{-1}]$
+
 **Dimensional analysis of the energy equation** reveals fundamental relationships between heat transfer mechanisms:
 
 - **Convection term**: $\rho c_p \mathbf{u} \cdot \nabla T$ with dimensions $[\text{M L}^{-1} \text{T}^{-3}]$
@@ -919,6 +1093,27 @@ private:
     }
 };
 ```
+
+> 📚 **คำอธิบายประกอบ (Thai Explanation)**
+>
+> **แหล่งที่มา (Source):** `src/dimensionSet/dimensionSet.H`, `src/dimensionedTypes/dimensionedScalar/dimensionedScalar.H`, `src/finiteVolume/fields/volFields/volFields.H`, `src/OpenFOAM/fields/Fields/VectorField/VectorField.H`
+>
+> **คำอธิบาย (Explanation):**
+> คลาส `NavierStokesDimensionalCheck` ใช้สำหรับตรวจสอบความสอดคล้องทางมิติของสมการ Navier-Stokes โดยมีฟังก์ชันหลักดังนี้:
+> 1. `verifyMomentumEquation()`: ตรวจสอบว่าทุกพจน์ในสมการโมเมนตัมมีมิติเท่ากับแรงต่อหน่วยปริมาตร
+> 2. `verifyTermDimension()`: ตรวจสอบมิติของแต่ละพจน์และเปรียบเทียบกับที่คาดหวัง
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Navier-Stokes Equation**: สมการโมเมนตัมสำหรับการไหลของไหล
+> - **Dimensional Homogeneity**: หลักการที่ว่าทุกพจน์ในสมการต้องมีมิติเหมือนกัน
+> - **Unsteady Term**: พจน์ไม่คงที่ $\rho (\partial \mathbf{u} / \partial t)$ มีมิติ $[M L^{-2} T^{-2}]$
+> - **Convection Term**: พจน์การพา $\rho (\mathbf{u} \cdot \nabla) \mathbf{u}$ มีมิติ $[M L^{-2} T^{-2}]$
+> - **Pressure Gradient**: การไล่ระดับความดัน $\nabla p$ มีมิติ $[M L^{-2} T^{-2}]$
+> - **Viscous Term**: พจน์ความหนืด $\mu \nabla^2 \mathbf{u}$ มีมิติ $[M L^{-2} T^{-2}]$
+> - **Body Force**: แรงภายนอก $\mathbf{f}$ มีมิติ $[M L^{-2} T^{-2}]$
+> - **Force per Unit Volume**: หน่วยของแรงต่อหน่วยปริมาตร $[M L^{-2} T^{-2}]$
+> - **Compile-time Dimension Verification**: การตรวจสอบความสอดคล้องทางมิติในขั้นตอนคอมไพล์
+> - **FatalErrorInFunction**: แมโครสำหรับแจ้ง error และหยุดการทำงานของโปรแกรม
 
 ---
 

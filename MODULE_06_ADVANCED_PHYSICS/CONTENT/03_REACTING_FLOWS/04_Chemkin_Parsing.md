@@ -77,7 +77,173 @@ public:
 };
 ```
 
-### 3.2 Data Flow Pipeline
+> **Source:** `src/thermophysicalModels/chemistryModel/chemkinReader/chemkinReader.H`
+
+> **Explanation:** The `chemkinReader` class is templated on `ReactionThermo` to support different thermodynamic packages. It inherits from `chemistryReader` base class and provides virtual methods for reading Chemkin-format files. The class maintains three primary data structures: `speciesTable` (list of species names), `ReactionList` (all reactions with rate parameters), and `speciesThermo` (NASA polynomial coefficients).
+
+> **Key Concepts:**
+> - **Template-based design**: Allows integration with different thermo models (janaf, griMech, etc.)
+> - **Virtual interface**: Enables polymorphic behavior through base class pointers
+> - **Runtime parsing**: Files are read during solver initialization, not compilation
+
+### 3.2 Reaction Type Enumeration
+
+The reader supports multiple reaction types through enum definitions:
+
+```cpp
+// Reaction type classification
+enum reactionType
+{
+    irreversibleReactionType,
+    reversibleReactionType,
+    nonEquilibriumReversibleReactionType,
+    unknownReactionType
+};
+
+// Rate expression types
+enum reactionRateType
+{
+    ArrheniusReactionRateType,
+    thirdBodyArrheniusReactionRateType,
+    unimolecularFallOffReactionType,
+    chemicallyActivatedBimolecularReactionType,
+    LandauTellerReactionRateType,
+    JanevReactionRateType,
+    powerSeriesReactionRateType,
+    unknownReactionRateType
+};
+
+// Fall-off function types for pressure-dependent reactions
+enum fallOffFunctionType
+{
+    LindemannFallOffFunctionType,
+    TroeFallOffFunctionType,
+    SRIFallOffFunctionType,
+    unknownFallOffFunctionType
+};
+```
+
+> **Source:** `src/thermophysicalModels/chemistryModel/chemkinReader/chemkinReader.H`
+
+> **Explanation:** These enumerations classify the different types of chemical reactions and rate expressions supported by Chemkin format. Fall-off reactions (pressure-dependent) require special treatment with different functional forms (Lindemann, Troe, SRI) to bridge between low-pressure and high-pressure limits.
+
+> **Key Concepts:**
+> - **Irreversible reactions**: Proceed only in forward direction (A + B → C)
+> - **Reversible reactions**: Both directions considered (A + B ⇌ C)
+> - **Fall-off reactions**: Rate depends on pressure through third-body efficiency
+> - **Troe fall-off**: More accurate 3-parameter fit for complex molecules
+> - **SRI fall-off**: Simplified 3-parameter correlation
+
+### 3.3 Reaction Keyword Table
+
+Chemkin parser uses keyword table to identify reaction modifiers:
+
+```cpp
+void Foam::chemkinReader::initReactionKeywordTable()
+{
+    // Third-body reactions
+    reactionKeywordTable_.insert("M", thirdBodyReactionType);
+    
+    // Fall-off reaction types
+    reactionKeywordTable_.insert("LOW", unimolecularFallOffReactionType);
+    reactionKeywordTable_.insert("HIGH", chemicallyActivatedBimolecularReactionType);
+    
+    // Fall-off function modifiers
+    reactionKeywordTable_.insert("TROE", TroeReactionType);
+    reactionKeywordTable_.insert("SRI", SRIReactionType);
+    
+    // Specialized rate expressions
+    reactionKeywordTable_.insert("LT", LandauTellerReactionType);
+    reactionKeywordTable_.insert("RLT", reverseLandauTellerReactionType);
+    reactionKeywordTable_.insert("JAN", JanevReactionType);
+    reactionKeywordTable_.insert("FIT1", powerSeriesReactionRateType);
+    
+    // Additional modifiers
+    reactionKeywordTable_.insert("HV", radiationActivatedReactionType);
+    reactionKeywordTable_.insert("TDEP", speciesTempReactionType);
+    reactionKeywordTable_.insert("EXCI", energyLossReactionType);
+    reactionKeywordTable_.insert("MOME", plasmaMomentumTransfer);
+    reactionKeywordTable_.insert("XSMI", collisionCrossSection);
+    
+    // Reaction direction and order
+    reactionKeywordTable_.insert("REV", nonEquilibriumReversibleReactionType);
+    reactionKeywordTable_.insert("FORD", speciesOrderForward);
+    reactionKeywordTable_.insert("RORD", speciesOrderReverse);
+    
+    // Unit specification
+    reactionKeywordTable_.insert("UNITS", UnitsOfReaction);
+    
+    // Control keywords
+    reactionKeywordTable_.insert("DUPLICATE", duplicateReactionType);
+    reactionKeywordTable_.insert("DUP", duplicateReactionType);
+    reactionKeywordTable_.insert("END", end);
+}
+```
+
+> **Source:** `src/thermophysicalModels/chemistryModel/chemkinReader/chemkinReader.C`
+
+> **Explanation:** This initialization function builds a hash table that maps Chemkin keyword strings to enumeration values. The parser uses this table to efficiently identify reaction modifiers when reading each reaction line. Third-body reactions (M), fall-off reactions (LOW/HIGH), and specialized rate laws (LT for Landau-Teller, JAN for Janev) are all recognized through these keywords.
+
+> **Key Concepts:**
+> - **Hash table lookup**: O(1) keyword identification during parsing
+> - **Third-body efficiency**: M represents any species as collision partner
+> - **LOW/HIGH**: Low-pressure and high-pressure limit parameters for fall-off
+> - **TROE/SRI**: Specific parameterizations for pressure dependence
+> - **FORD/RORD**: Non-unity reaction orders for specific species
+
+### 3.4 Molecular Weight Calculation
+
+The reader computes molecular weights from elemental composition:
+
+```cpp
+Foam::scalar Foam::chemkinReader::molecularWeight
+(
+    const List<specieElement>& specieComposition
+) const
+{
+    scalar molWt = 0.0;
+
+    // Sum contribution from each element
+    forAll(specieComposition, i)
+    {
+        label nAtoms = specieComposition[i].nAtoms();
+        const word& elementName = specieComposition[i].name();
+
+        // Check for isotope-specific atomic weight first
+        if (isotopeAtomicWts_.found(elementName))
+        {
+            molWt += nAtoms * isotopeAtomicWts_[elementName];
+        }
+        // Fall back to standard atomic weight table
+        else if (atomicWeights.found(elementName))
+        {
+            molWt += nAtoms * atomicWeights[elementName];
+        }
+        else
+        {
+            FatalErrorInFunction
+                << "Unknown element " << elementName
+                << " on line " << lineNo_ - 1 << nl
+                << "    specieComposition: " << specieComposition
+                << exit(FatalError);
+        }
+    }
+
+    return molWt;
+}
+```
+
+> **Source:** `src/thermophysicalModels/chemistryModel/chemkinReader/chemkinReader.C`
+
+> **Explanation:** This function calculates the molecular weight of each species by summing the atomic weights of its constituent elements. It first checks for isotope-specific weights (e.g., D for deuterium, C13 for carbon-13) before falling back to standard atomic weights. The function throws a fatal error if an unknown element is encountered.
+
+> **Key Concepts:**
+> - **Isotope handling**: Supports deuterium, tritium, carbon-13, etc.
+> - **Atomic weight tables**: Built-in periodic table data
+> - **Error detection**: Immediate failure for invalid elements
+> - **specieElement**: Structure containing element name and atom count
+
+### 3.5 Data Flow Pipeline
 
 The parsing process follows a systematic pipeline:
 
@@ -99,7 +265,6 @@ flowchart LR
     style H fill:#f3e5f5,stroke:#6a1b9a
 ```
 > **Figure 2:** แผนผังแสดงขั้นตอนการประมวลผลข้อมูล (Parsing Pipeline) ของไฟล์ Chemkin ซึ่งครอบคลุมตั้งแต่การวิเคราะห์ทางภาษาและไวยากรณ์ การตรวจสอบความถูกต้อง ไปจนถึงการสร้างโครงสร้างออบเจกต์ใน OpenFOAM
-
 
 ---
 
@@ -140,7 +305,42 @@ The rate constant follows the **modified Arrhenius equation**:
 
 $$k(T) = A \cdot T^n \cdot \exp\left(-\frac{E_a}{R_u T}\right)$$
 
-### 4.3 Advanced Reaction Types
+### 4.3 Rate Coefficient Validation
+
+The parser validates the number of Arrhenius coefficients:
+
+```cpp
+void Foam::chemkinReader::checkCoeffs
+(
+    const scalarList& reactionCoeffs,
+    const char* reactionRateName,
+    const label nCoeffs
+) const
+{
+    // Verify correct number of coefficients
+    if (reactionCoeffs.size() != nCoeffs)
+    {
+        FatalErrorInFunction
+            << "Wrong number of coefficients for the " << reactionRateName
+            << " rate expression" << nl
+            << "Expected " << nCoeffs << " coefficients, but got "
+            << reactionCoeffs.size() << nl
+            << "Coefficients: " << reactionCoeffs
+            << exit(FatalError);
+    }
+}
+```
+
+> **Source:** `src/thermophysicalModels/chemistryModel/chemkinReader/chemkinReader.C`
+
+> **Explanation:** This validation function ensures that each reaction line provides the correct number of coefficients for its rate expression type. Standard Arrhenius requires 3 coefficients (A, n, E_a), while fall-off reactions require additional parameters for low/high pressure limits.
+
+> **Key Concepts:**
+> - **Input validation**: Immediate error detection during file parsing
+> - **Rate expression types**: Different coefficient counts for different rate laws
+> - **Error messaging**: Detailed diagnostic information for debugging
+
+### 4.4 Advanced Reaction Types
 
 OpenFOAM's parser supports various reaction types:
 
@@ -286,6 +486,17 @@ reactingMixture<ReactionThermo>::reactingMixture
     );
 }
 ```
+
+> **Source:** `src/thermophysicalModels/reactionThermo/reactingMixture/reactingMixture.C`
+
+> **Explanation:** The reacting mixture constructor initializes the base multiComponentMixture class, then creates a chemkinReader instance to parse the chemical mechanism. The reader is stored as an autoPtr (auto pointer to handle memory management automatically). The `read()` method is called immediately to parse the Chemkin files and populate the species and reaction data structures.
+
+> **Key Concepts:**
+> - **Constructor initialization list**: Efficient member initialization
+> - **Dictionary lookup**: OpenFOAM's configuration file access
+> - **autoPtr**: Automatic memory management for heap-allocated objects
+> - **Template inheritance**: Works with any ReactionThermo type
+> - **Sub-dictionary access**: nested parameter organization
 
 ---
 

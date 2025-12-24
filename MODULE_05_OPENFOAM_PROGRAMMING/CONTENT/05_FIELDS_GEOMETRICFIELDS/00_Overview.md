@@ -19,7 +19,10 @@ flowchart TD
     style A fill:#f9f,stroke:#333,stroke-width:2px
     style G fill:#00ff00,stroke:#333,stroke-width:2px
 ```
-> **Figure 1:** แผนผังลำดับการเรียนรู้ในโมดูลเรื่องฟิลด์และฟิลด์เรขาคณิต (GeometricField) ครอบคลุมตั้งแต่สถาปัตยกรรมพื้นฐานไปจนถึงทฤษฎีประเภททางคณิตศาสตร์และการแก้ปัญหาขั้นสูงความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+
+> **Figure 1:** แผนผังลำดับการเรียนรู้ในโมดูลเรื่องฟิลด์และฟิลด์เรขาคณิต (GeometricField) ครอบคลุมตั้งแต่สถาปัตยกรรมพื้นฐานไปจนถึงทฤษฎีประเภททางคณิตศาสตร์และการแก้ปัญหาขั้นสูง
+
+---
 
 ## วัตถุประสงค์การเรียนรู้
 
@@ -34,11 +37,11 @@ flowchart TD
 ## หัวข้อหลัก
 
 1. **ลำดับชั้นคลาส Field (Inheritance Hierarchy)**: การสืบทอดจาก `List` → `Field` → `GeometricField`
-2. **กรอบงานคณิตศาสตร์ (Mathematical Framework)**: การดำเนินการ Gradient, Divergence และ Laplacian บนฟิลด์
+2. **กรอบงานคณิตศาสตม์ (Mathematical Framework)**: การดำเนินการ Gradient, Divergence และ Laplacian บนฟิลด์
 3. **Interpolation Schemes**: การประมาณค่าระหว่างจุดศูนย์กลางเซลล์และหน้า
 4. **Boundary Conditions**: การจัดการเงื่อนไขขอบเขตที่ฝังตัวในฟิลด์
 5. **Field Algebra**: พีชคณิตของฟิลด์และการประกอบเมทริกซ์
-6. **ประสิทธิภาพและการจัดการหน่วยควาจำ**: การใช้ `tmp` และระบบ Reference Counting
+6. **ประสิทธิภาพและการจัดการหน่วยความำ**: การใช้ `tmp` และระบบ Reference Counting
 7. **สรุปและแบบฝึกหัด (Summary & Exercises)**
 
 ---
@@ -68,6 +71,14 @@ class GeometricField : public DimensionedField<Type, GeoMesh>
 };
 ```
 
+> **คำอธิบาย:**
+> - `Field<Type>`: คลาสพื้นฐานที่สืบทอดจาก `List<Type>` ใช้เก็บข้อมูลฟิลด์เป็นลิสต์ของค่า
+> - `GeometricField<Type, GeoMesh>`: คลาสที่เพิ่มข้อมูลเรขาคณิตและเงื่อนไขขอบเขต
+>
+> **แนวคิดสำคัญ:**
+> - Layered Architecture: การออกแบบแบบเลเยอร์ช่วยแยกความรับผิดชอบ
+> - Template-based Design: ใช้เทมเพลตเพื่อความยืดหยุ่นในประเภทข้อมูล
+
 **ความแตกต่างที่สำคัญ** ระหว่าง `Field<Type>` และ `GeometricField<Type, GeoMesh>` อยู่ในบริบทการคำนวณ:
 
 - **`Field<Type>`**: เป็นคอนเทนเนอร์ข้อมูลบริสุทธิ์โดยไม่มีบริบททางเรขาคณิต
@@ -85,6 +96,15 @@ typedef GeometricField<tensor, fvPatchField, volMesh> volTensorField;
 typedef GeometricField<symmTensor, fvPatchField, volMesh> volSymmTensorField;
 ```
 
+> **คำอธิบาย:**
+> - `volScalarField`: ฟิลด์สเกลาร์บนจุดศูนย์กลางเซลล์ (เช่น ความดัน, อุณหภูมิ)
+> - `volVectorField`: ฟิลด์เวกเตอร์บนจุดศูนย์กลางเซลล์ (เช่น ความเร็ว)
+> - `volTensorField`: ฟิลด์เทนเซอร์บนจุดศูนย์กลางเซลล์
+>
+> **แนวคิดสำคัญ:**
+> - Finite Volume Method: ข้อมูลถูกจัดเก็บที่จุดศูนย์กลางเซลล์
+> - Type Specialization: การกำหนดประเภทเฉพาะเพื่อความสะดวกในการใช้งาน
+
 ### 1.3 Surface Fields
 
 **Surface fields** แทนปริมาณที่นิยามบนพื้นผิวของเซลล์:
@@ -95,11 +115,19 @@ typedef GeometricField<scalar, fvsPatchField, surfaceMesh> surfaceScalarField;
 typedef GeometricField<vector, fvsPatchField, surfaceMesh> surfaceVectorField;
 ```
 
+> **คำอธิบาย:**
+> - `surfaceScalarField`: ฟิลด์สเกลาร์บนหน้าเซลล์ (เช่น flux)
+> - `surfaceVectorField`: ฟิลด์เวกเตอร์บนหน้าเซลล์
+>
+> **แนวคิดสำคัญ:**
+> - Face-centered Values: ข้อมูลบนหน้าเซลล์ใช้สำหรับการคำนวณ flux
+> - Interpolation: ค่าบนหน้าเซลล์ได้จากการประมาณค่าจากจุดศูนย์กลาง
+
 ---
 
-## 2. Field Operations และกรอบงานคณิตศาสตร์
+## 2. Field Operations และกรอบงานคณิตศาสตม์
 
-**OpenFOAM fields** รองรับชุดของการดำเนินการทางคณิตศาสตร์อย่างครบถ้วน
+**OpenFOAM fields** รองรับชุดของการดำเนินการทางคณิตศาสตม์อย่างครบถ้วน
 
 ### 2.1 Gradient Operations
 
@@ -118,6 +146,15 @@ template<class Type>
 GeometricField<typename outerProduct<vector, Type>::type, fvPatchField, volMesh>
 grad(const GeometricField<Type, fvPatchField, volMesh>& vf);
 ```
+
+> **คำอธิบาย:**
+> - `fvc::grad(phi)`: คำนวณ gradient ของฟิลด์สเกลาร์
+> - `fvc`: Finite Volume Calculus - การดำเนินการ explicit
+> - Template function: ฟังก์ชันเทมเพลตรองรับหลายประเภทข้อมูล
+>
+> **แนวคิดสำคัญ:**
+> - Gauss Theorem: ใช้ทฤษฎีบทของเกาส์ในการคำนวณ
+> - Type Traits: `outerProduct<vector, Type>::type` กำหนดประเภทผลลัพธ์
 
 **การดำเนินการ gradient** ใช้ทฤษฎีบทของ Gauss:
 
@@ -138,9 +175,17 @@ $$\nabla \cdot \mathbf{F} = \frac{\partial F_i}{\partial x_i}$$
 volScalarField divF = fvc::div(F);
 ```
 
+> **คำอธิบาย:**
+> - `fvc::div(F)`: คำนวณ divergence ของฟิลด์เวกเตอร์
+> - Flux Integration: การรวมค่า flux เข้า/ออกของเซลล์
+>
+> **แนวคิดสำคัญ:**
+> - Conservation Law: Divergence แสดงถึงกฎการอนุรักษ์มวล/โมเมนตัม
+> - Surface to Volume: แปลงจากค่าบนหน้าเซลล์ไปยังจุดศูนย์กลาง
+
 ### 2.3 Laplacian Operations
 
-**Laplacian operator** เป็นพื้นฐานสำหรับเทอมการแพร่:
+**Laplacian operator** เป็นพื้นฐานสำหรับเทอร์มการแพร่:
 
 $$\nabla^2 \phi = \nabla \cdot (\nabla \phi)$$
 
@@ -148,6 +193,14 @@ $$\nabla^2 \phi = \nabla \cdot (\nabla \phi)$$
 // Laplacian with constant diffusivity
 volScalarField lapPhi = fvc::laplacian(D, phi);
 ```
+
+> **คำอธิบาย:**
+> - `fvc::laplacian(D, phi)`: คำนวณ Laplacian ด้วยสัมประสิทธิ์การแพร่ D
+> - Diffusion Term: ใช้ในสมการการแพร่และสมการนาเวียร์-สโตกส์
+>
+> **แนวคิดสำคัญ:**
+> - Second Derivative: ลาปลาซียันเป็นอนุพันธ์อันดับสอง
+> - Diffusion Coefficient: D คือสัมประสิทธิ์การแพร่
 
 ---
 
@@ -191,6 +244,14 @@ class GeometricField : public DimensionedField<Type, GeoMesh>
 };
 ```
 
+> **คำอธิบาย:**
+> - `boundaryField_`: คอนเทนเนอร์ที่เก็บข้อมูลเงื่อนไขขอบเขตทั้งหมด
+> - `boundaryField(patchi)`: เข้าถึงข้อมูลขอบเขตของ patch ที่ระบุ
+>
+> **แนวคิดสำคัญ:**
+> - Embedded BCs: เงื่อนไขขอบเขตเป็นส่วนหนึ่งของฟิลด์
+> - Patch-based: แต่ละ patch มีเงื่อนไขขอบเขต独立
+
 ### 4.2 Common Boundary Condition Types
 
 | Type | Formula | Parameters | Use Case |
@@ -216,6 +277,15 @@ surfaceScalarField phi_f = linearInterpolate<vector>(U) & mesh.Sf();
 volScalarField convection = fvc::div(phi_f);
 ```
 
+> **คำอธิบาย:**
+> - `linearInterpolate(U)`: ประมาณค่าความเร็วไปยังหน้าเซลล์
+> - `mesh.Sf()`: เวกเตอร์พื้นที่หน้าเซลล์
+> - `&`: การคูณดอทโปรดักต์
+>
+> **แนวคิดสำคัญ:**
+> - Explicit Treatment: คำนวณโดยตรงจากค่าใน time step ปัจจุบัน
+> - Flux Calculation: คำนวณ flux ผ่านหน้าเซลล์
+
 **Implicit Operations:** เทอร์มที่ส่งผลต่อเมทริกซ์สัมประสิทธิ์
 
 ```cpp
@@ -227,13 +297,22 @@ fvScalarMatrix TEqn
 );
 ```
 
+> **คำอธิบาย:**
+> - `fvm::laplacian(DT, T)`: การปฏิบัติ implicit ของเทอร์มการแพร่
+> - `fvc::ddt(T)`: การปฏิบัติ explicit ของเทอร์มอนุพันธ์เวลา
+> - `fvScalarMatrix`: เมทริกซ์สัมประสิทธิ์สำหรับสมการสเกลาร์
+>
+> **แนวคิดสำคัญ:**
+> - fvm vs fvc: fvm = finite volume method (implicit), fvc = finite volume calculus (explicit)
+> - Matrix Assembly: เทอร์ม implicit ถูกแทรกลงในเมทริกซ์
+
 ---
 
 ## 6. Performance Optimization และ Memory Management
 
 ### 6.1 Reference Counting และ Memory Efficiency
 
-**OpenFOAM** ใช้การจัดการหน่วยควาจำที่ซับซ้อน:
+**OpenFOAM** ใช้การจัดการหน่วยความำที่ซับซ้อน:
 
 ```cpp
 // Reference-counted field types
@@ -243,6 +322,15 @@ typedef tmp<GeometricField<Type, PatchField, GeoMesh>> tmpGeometricField;
 tmp<volScalarField> divU = fvc::div(U);
 // tmp object automatically deleted when scope ends
 ```
+
+> **คำอธิบาย:**
+> - `tmp<T>`: เทมเพลตสำหรับการจัดการหน่วยความำอัตโนมัติ
+> - Reference Counting: นับจำนวนการอ้างอิงเพื่อลบวัตถุอัตโนมัติ
+> - RAII: Resource Acquisition Is Initialization - จัดการทรัพยากรผ่าน lifecycle ของวัตถุ
+>
+> **แนวคิดสำคัญ:**
+> - Memory Efficiency: หลีกเลี่ยงการคัดลอกข้อมูลโดยไม่จำเป็น
+> - Automatic Cleanup: ลบวัตถุอัตโนมัติเมื่อไม่มีการอ้างอิง
 
 ### 6.2 Field Caching และ Reuse
 
@@ -257,6 +345,15 @@ if (!gradU.valid())
     gradCache.store(U, gradU);
 }
 ```
+
+> **คำอธิบาย:**
+> - `gradCache.lookup(U)`: ค้นหา gradient ที่ถูก cached
+> - `gradU.valid()`: ตรวจสอบว่ามีค่าที่ถูกต้องหรือไม่
+> - `gradCache.store()`: เก็บค่า gradient ไว้ใน cache
+>
+> **แนวคิดสำคัญ:**
+> - Cache Hit: หลีกเลี่ยงการคำนวณซ้ำ
+> - Memory vs Speed Trade-off: แลกหน่วยความำเพื่อความเร็ว
 
 ---
 
@@ -276,6 +373,15 @@ volTensorField W = skew(fvc::grad(U));
 // Stress tensor for Newtonian fluid
 volSymmTensorField tau = 2 * nu * D;
 ```
+
+> **คำอธิบาย:**
+> - `symm()`: ส่วนสมมาตรของเทนเซอร์
+> - `skew()`: ส่วนไม่สมมาตรของเทนเซอร์
+> - `nu`: ความหมาน (kinematic viscosity)
+>
+> **แนวคิดสำคัญ:**
+> - Tensor Decomposition: แยกเทนเซอร์เป็นส่วนสมมาตรและไม่สมมาตร
+> - Constitutive Relations: ความสัมพันธ์เชิงโครงสร้างของไหล
 
 **Tensor Operation Equations:**
 - **Deformation rate**: $\mathbf{D} = \frac{1}{2}(\nabla \mathbf{u} + \nabla \mathbf{u}^T)$
@@ -309,6 +415,16 @@ volScalarField phi
 );
 ```
 
+> **คำอธิบาย:**
+> - `phi.write()`: เขียนฟิลด์ลงดิสก์
+> - `IOobject`: คลาสสำหรับจัดการ input/output
+> - `MUST_READ`: ต้องอ่านไฟล์
+> - `AUTO_WRITE`: เขียนอัตโนมัติเมื่อจำเป็น
+>
+> **แนวคิดสำคัญ:**
+> - Serialization: แปลงวัตถุเป็นรูปแบบที่เก็บได้
+> - Time Directories: แต่ละ time step มี directory ของตัวเอง
+
 ---
 
 ## 9. Debugging และ Field Diagnostics
@@ -329,6 +445,15 @@ if (hasNaN(phi))
 }
 ```
 
+> **คำอธิบาย:**
+> - `min()`/`max()`: หาค่าน้อย/มากสุดในฟิลด์
+> - `hasNaN()`: ตรวจสอบค่า NaN
+> - `FatalErrorIn`: ระบบจัดการข้อผิดพลาด
+>
+> **แนวคิดสำคัญ:**
+> - Numerical Stability: ตรวจสอบความมั่นคงทางตัวเลข
+> - Debugging Tools: เครื่องมือช่วยค้นหาข้อผิดพลาด
+
 ### 9.2 Field Statistics และ Analysis
 
 **ความสามารถในการวิเคราะห์ทางสถิติ**:
@@ -339,13 +464,22 @@ scalar meanVal = average(phi);
 scalar rmsVal = sqrt(sum(phi*phi)/phi.size());
 ```
 
+> **คำอธิบาย:**
+> - `average()`: ค่าเฉลี่ยของฟิลด์
+> - `sum()`: ผลรวมของค่าทั้งหมด
+> - `phi.size()`: จำนวน element ในฟิลด์
+>
+> **แนวคิดสำคัญ:**
+> - Statistical Analysis: การวิเคราะห์สถิติของฟิลด์
+> - RMS: Root Mean Square - ค่าเฉลี่ยกำลังสอง
+
 ---
 
 ## สรุป
 
 **ระบบ field ของ OpenFOAM** ให้กรอบงานที่ครอบคลุมสำหรับการคำนวณ CFD โดยผสานผสาน:
 
-- **ความเข้มงวดทางคณิตศาสตร์** ผ่านระบบประเภทและการวิเคราะห์มิติ
+- **ความเข้มงวดทางคณิตศาสตม์** ผ่านระบบประเภทและการวิเคราะห์มิติ
 - **ประสิทธิภาพการคำนวณ** ผ่าน expression templates และ reference counting
 - **ความสอดคล้องทางกายภาพ** ผ่านการจัดการ boundary conditions และ mesh-aware operations
 

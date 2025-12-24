@@ -147,8 +147,10 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-convertToMeters 0.1; // Scale factor: converts all dimensions to meters
+// Scale factor to convert all dimensions to meters
+convertToMeters 0.1;
 
+// Define the 8 vertices of the hexahedral block
 vertices
 (
     (0 0 0)   // 0 - Lower-left-back corner
@@ -161,17 +163,19 @@ vertices
     (0 1 0.1) // 7 - Upper-left-front corner
 );
 
+// Define the block with cell counts and grading
 blocks
 (
     // hex (vertex ordering) (cells_x cells_y cells_z) grading ratios
     hex (0 1 2 3 4 5 6 7) (20 20 1) simpleGrading (1 1 1)
 );
 
+// Optional curved edges - none needed for this simple geometry
 edges
 (
-    // Optional curved edges - none needed for this simple geometry
 );
 
+// Define boundary patches
 boundary
 (
     movingWall
@@ -203,13 +207,23 @@ boundary
     }
 );
 
+// Optional patch merging operations - none needed here
 mergePatchPairs
 (
-    // Optional patch merging operations - none needed here
 );
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 ```
+
+> 📂 **Source:** `blockMeshDict` เป็นส่วนประกอบมาตรฐานของ OpenFOAM ที่ใช้สร้าง computational mesh สำหรับการจำลอง CFD
+>
+> **Explanation:** blockMeshDict คือ dictionary file ที่กำหนดรูปทรงเรขาคณิตและคุณสมบัติของ mesh โดยใช้ block-based approach ซึ่งแบ่งโดเมนเป็น hexahedral blocks ที่เชื่อมต่อกัน
+>
+> **Key Concepts:**
+> - **Vertices**: จุดมุม 8 จุดที่กำหนดรูปทรงเรขาคณิตของ block
+> - **Blocks**: กำหนดจำนวนเซลล์ในแต่ละทิศทาง (20x20x1) และ grading ratios
+> - **Boundary patches**: กำหนด boundary conditions ที่ผนังต่าง ๆ (movingWall, fixedWalls, frontAndBack)
+> - **empty type**: ใช้สำหรับการจำลอง 2D โดยลดขนาดโดเมนในทิศทาง z
 
 ### การดำเนินการสร้าง Mesh
 
@@ -254,31 +268,52 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 1 -1 0 0 0 0];  // m/s (LT^(-1))
+// Dimensional analysis: [L^1 T^(-1)] - velocity dimensions
+dimensions      [0 1 -1 0 0 0 0];
 
-internalField   uniform (0 0 0);    // Initial velocity: fluid at rest
+// Initial velocity field: fluid starts from rest
+internalField   uniform (0 0 0);
 
+// Boundary conditions for velocity
 boundaryField
 {
+    // Moving lid boundary - top wall
     movingWall
     {
-        type            fixedValue;          // Dirichlet condition
-        value           uniform (1 0 0);    // Lid velocity: U = 1 m/s in x-direction
+        // Dirichlet condition: fixed value at boundary
+        type            fixedValue;
+        // Lid velocity: U = 1 m/s in x-direction
+        value           uniform (1 0 0);
     }
 
+    // Fixed walls - left, right, and bottom
     fixedWalls
     {
-        type            noSlip;             // No-slip condition (U = 0 at walls)
+        // No-slip condition: velocity is zero at walls
+        type            noSlip;
     }
 
+    // Front and back planes for 2D simulation
     frontAndBack
     {
-        type            empty;              // 2D simulation constraint
+        // Empty boundary condition for 2D reduction
+        type            empty;
     }
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 ```
+
+> 📂 **Source:** `0/U` เป็นไฟล์กำหนดค่าเริ่มต้นและเงื่อนไขขอบเขตสำหรับฟิลด์ความเร็วใน OpenFOAM ซึ่งเป็นส่วนสำคัญของการตั้งค่าเคส
+>
+> **Explanation:** ไฟล์นี้กำหนดค่าเริ่มต้นของความเร็ว (internalField) และเงื่อนไขขอบเขตทั้งหมด (boundaryField) สำหรับการจำลองการไหลในโพรง
+>
+> **Key Concepts:**
+> - **dimensions**: มิติของปริมาณทางกายภาพ [L^1 T^(-1)] สำหรับความเร็ว
+> - **internalField**: ค่าเริ่มต้นของความเร็วในโดเมน (ของไหลเริ่มจากสภาพนิ่ง)
+> - **fixedValue**: กำหนดค่าคงที่ที่ขอบเขต (Dirichlet condition)
+> - **noSlip**: เงื่อนไข no-slip ที่ผนัง (ความเร็วเป็นศูนย์)
+> - **empty**: ใช้สำหรับการจำลอง 2D โดยไม่มีการไหลในทิศทาง z
 
 ### ฟิลด์ความดัน (`0/p`)
 
@@ -305,30 +340,49 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 2 -2 0 0 0 0];  // m^2/s^2 (L^2 T^(-2)) - kinematic pressure
+// Dimensional analysis: [L^2 T^(-2)] - kinematic pressure (p/rho)
+dimensions      [0 2 -2 0 0 0 0];
 
-internalField   uniform 0;          // Initial gauge pressure
+// Initial pressure field: starts from zero gauge pressure
+internalField   uniform 0;
 
+// Boundary conditions for pressure
 boundaryField
 {
+    // Moving lid boundary
     movingWall
     {
-        type            zeroGradient;       // Neumann condition: ∂p/∂n = 0
+        // Neumann condition: zero normal gradient (∂p/∂n = 0)
+        type            zeroGradient;
     }
 
+    // Fixed walls
     fixedWalls
     {
-        type            zeroGradient;       // Walls don't prescribe pressure
+        // Walls don't prescribe pressure value
+        type            zeroGradient;
     }
 
+    // Front and back planes for 2D simulation
     frontAndBack
     {
-        type            empty;              // 2D simulation constraint
+        // Empty boundary condition for 2D reduction
+        type            empty;
     }
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 ```
+
+> 📂 **Source:** `0/p` เป็นไฟล์กำหนดค่าเริ่มต้นและเงื่อนไขขอบเขตสำหรับฟิลด์ความดันใน OpenFOAM ซึ่งเป็นส่วนสำคัญของการจำลองการไหลแบบ incompressible
+>
+> **Explanation:** ไฟล์นี้กำหนดค่าเริ่มต้นของความดันจลน์ (kinematic pressure = p/ρ) และเงื่อนไขขอบเขตทั้งหมด โดยใช้ kinematic pressure เพื่อลดความซับซ้อนในการคำนวณ
+>
+> **Key Concepts:**
+> - **dimensions**: มิติของ kinematic pressure [L^2 T^(-2)] ซึ่งเป็น pressure divided by density
+> - **internalField**: ค่าเริ่มต้นของความดัน (gauge pressure = 0)
+> - **zeroGradient**: เงื่อนไข Neumann (∂p/∂n = 0) ที่ผนัง ซึ่งเหมาะสมสำหรับ incompressible flow
+> - **empty**: ใช้สำหรับการจำลอง 2D
 
 ### ภาพรวม Boundary Conditions
 
@@ -370,6 +424,10 @@ graph LR
 > **Figure 3:** ภาพรวมของเงื่อนไขขอบเขตสำหรับปัญหาการไหลในโพรง แสดงการกำหนดความเร็วคงที่ที่ฝาปิดบน (movingWall), เงื่อนไข no-slip ที่ผนังด้านอื่น ๆ (fixedWalls) และเงื่อนไข empty สำหรับการจำลองแบบ 2 มิติ
 
 
+---
+
+## ขั้นตอนที่ 4: คุณสมบัติทางกายภาพของของไหล (`constant/transportProperties`)
+
 **Dictionary `constant/transportProperties`** กำหนดคุณสมบัติของของไหลที่ Solver ต้องการ สำหรับ `icoFoam` ซึ่งแก้สมการ Incompressible Navier-Stokes สำหรับของไหลแบบ Newtonian เราจำเป็นต้องระบุเพียง Kinematic viscosity เท่านั้น
 
 ### ค่าที่กำหนด
@@ -399,9 +457,12 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-transportModel  Newtonian;          // Newtonian fluid model
+// Transport model: Newtonian fluid assumes linear stress-strain relationship
+transportModel  Newtonian;
 
-nu              [0 2 -1 0 0 0 0] 0.01;  // Kinematic viscosity ν = 0.01 m^2/s
+// Kinematic viscosity ν = 0.01 m^2/s
+// Dimensions: [L^2 T^(-1)]
+nu              [0 2 -1 0 0 0 0] 0.01;
 
 // Reynolds number calculation:
 // Re = UL/ν = (1 m/s × 0.1 m) / 0.01 m^2/s = 10
@@ -409,6 +470,16 @@ nu              [0 2 -1 0 0 0 0] 0.01;  // Kinematic viscosity ν = 0.01 m^2/s
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 ```
+
+> 📂 **Source:** `constant/transportProperties` เป็นไฟล์กำหนดคุณสมบัติทางกายภาพของของไหลใน OpenFOAM ซึ่งเป็นส่วนสำคัญในการกำหนดลักษณะของของไหลที่จะจำลอง
+>
+> **Explanation:** ไฟล์นี้กำหนด transport model และคุณสมบัติทางกายภาพของของไหล โดยสำหรับการจำลองนี้ใช้ Newtonian fluid model ซึ่งเป็นแบบจำลองที่เรียบง่ายที่สุด
+>
+> **Key Concepts:**
+> - **transportModel**: ประเภทของของไหล (Newtonian, non-Newtonian)
+> - **nu (kinematic viscosity)**: ความหนืดจลน์ [L^2 T^(-1)] ซึ่งเป็น dynamic viscosity divided by density
+> - **Reynolds number**: ตัวบ่งชี้ลักษณะการไหล (Re = UL/ν)
+> - **Laminar regime**: การไหลแบบลามินาร์เกิดขึ้นเมื่อ Re < 2300 (สำหรับการไหลในท่อ)
 
 ---
 
@@ -445,8 +516,10 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     icoFoam;            // Solver name
+// Solver to use: incompressible transient Navier-Stokes solver
+application     icoFoam;
 
+// Time control
 startFrom       startTime;          // Start simulation from specified time
 startTime       0;                  // Begin at t = 0
 stopAt          endTime;            // Stop when reaching end time
@@ -461,6 +534,16 @@ runTimeModifiable true;             // Allow runtime modification
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 ```
+
+> 📂 **Source:** `system/controlDict` เป็นไฟล์ควบคุมการทำงานของ Solver ใน OpenFOAM ซึ่งกำหนดเวลาและความถี่ในการบันทึกผลลัพธ์
+>
+> **Explanation:** ไฟล์นี้ควบคุมทุกด้านของการจัดการเวลาในการจำลอง ตั้งแต่เวลาเริ่มต้นถึงเวลาสิ้นสุด รวมถึงความถี่ในการบันทึกผลลัพธ์
+>
+> **Key Concepts:**
+> - **application**: ชื่อของ Solver ที่จะใช้ (icoFoam สำหรับ incompressible flow)
+> - **startTime/endTime**: เวลาเริ่มต้นและสิ้นสุดของการจำลอง
+> - **deltaT**: ขนาดของ time step ซึ่งต้องเล็กพอสำหรับความเสถียร
+> - **writeInterval**: ความถี่ในการบันทึกผลลัพธ์ (ทุก 20 time steps)
 
 ### พารามิเตอร์การควบคุมเวลา
 
@@ -495,6 +578,8 @@ graph LR
 > **Figure 4:** ไทม์ไลน์การจำลองและความถี่ในการส่งออกข้อมูล แสดงขนาดขั้นตอนเวลา ($\Delta t$) และช่วงเวลาที่จะมีการบันทึกผลลัพธ์ลงในไดเรกทอรีเวลาตั้งแต่เริ่มต้นจนสิ้นสุดการจำลอง
 
 
+### `system/fvSchemes` - Spatial Discretization Schemes
+
 **Dictionary นี้กำหนดระเบียบวิธี Discretization** สำหรับพจน์ต่างๆ ในสมการควบคุม
 
 ### OpenFOAM Code: `system/fvSchemes`
@@ -516,32 +601,42 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+// Time discretization schemes
 ddtSchemes
 {
-    default         Euler;              // First-order implicit time integration
+    // First-order implicit Euler scheme for time derivatives
+    default         Euler;
 }
 
+// Gradient calculation schemes
 gradSchemes
 {
-    default         Gauss linear;       // Central difference for gradients
+    // Central difference scheme with linear interpolation
+    default         Gauss linear;
 }
 
+// Divergence (convection) schemes
 divSchemes
 {
     default         none;
-    div(phi,U)      Gauss linear;       // Central difference for convection
+    // Central difference for convective term
+    div(phi,U)      Gauss linear;
 }
 
+// Laplacian (diffusion) schemes
 laplacianSchemes
 {
-    default         Gauss linear corrected;  // Corrected for non-orthogonality
+    // Corrected scheme for non-orthogonal meshes
+    default         Gauss linear corrected;
 }
 
+// Interpolation schemes for face values
 interpolationSchemes
 {
     default         linear;
 }
 
+// Surface normal gradient schemes
 snGradSchemes
 {
     default         corrected;
@@ -549,6 +644,16 @@ snGradSchemes
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 ```
+
+> 📂 **Source:** `system/fvSchemes` เป็นไฟล์กำหนดระเบียบวิธี Discretization ใน OpenFOAM ซึ่งควบคุมความแม่นยำและความเสถียรของการแก้ปัญหาเชิงตัวเลข
+>
+> **Explanation:** ไฟล์นี้กำหนดระเบียบวิธีทางคณิตศาสตร์สำหรับการแปลงสมการเชิงอนุพันธ์ให้เป็นรูปแบบพีชคณิตที่สามารถแก้ได้ด้วยคอมพิวเตอร์
+>
+> **Key Concepts:**
+> - **ddtSchemes**: ระเบียบวิธีการประมาณค่าอนุพันธ์เชิงเวลา (Euler = อันดับหนึ่ง)
+> - **gradSchemes**: ระเบียบวิธีการคำนวณ gradient (Gauss linear = central difference)
+> - **divSchemes**: ระเบียบวิธีสำหรับพจน์ convection (Gauss linear = central difference)
+> - **laplacianSchemes**: ระเบียบวิธีสำหรับพจน์ diffusion (corrected = แก้ไขสำหรับ non-orthogonal mesh)
 
 ### `system/fvSolution` - Linear Solver Settings
 
@@ -560,7 +665,7 @@ snGradSchemes
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                             |
 | \      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \    /   O peration     | Version:  v2012                                 |
+|   \    /   O peration     | Version:  v2012                                 |
 |   \  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \/     M anipulation  |                                             |
 \*---------------------------------------------------------------------------*/
@@ -573,35 +678,61 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+// Linear solver settings for each variable
 solvers
 {
+    // Pressure equation solver
     p
     {
-        solver          GAMG;              // Geometric-Algebraic Multi-Grid
-        tolerance       1e-06;             // Absolute convergence tolerance
-        relTol          0.1;               // Relative tolerance (10%)
-        smoother        GaussSeidel;       // Smoother for multigrid
+        // Geometric-Algebraic Multi-Grid solver (fast for Poisson equations)
+        solver          GAMG;
+        // Absolute convergence tolerance
+        tolerance       1e-06;
+        // Relative tolerance (10% of initial residual)
+        relTol          0.1;
+        // Smoother for multigrid cycles
+        smoother        GaussSeidel;
     }
 
+    // Velocity equation solver
     U
     {
-        solver          smoothSolver;      // Iterative solver with smoothing
+        // Iterative solver with smoothing
+        solver          smoothSolver;
+        // Smoother algorithm
         smoother        GaussSeidel;
-        tolerance       1e-05;             // Absolute tolerance for velocity
-        relTol          0;                 // No relative tolerance
+        // Absolute convergence tolerance for velocity
+        tolerance       1e-05;
+        // No relative tolerance (must meet absolute tolerance)
+        relTol          0;
     }
 }
 
+// PISO algorithm parameters for pressure-velocity coupling
 PISO
 {
-    nCorrectors      2;                   // Number of pressure correctors
-    nNonOrthogonalCorrectors 0;           // Non-orthogonality corrections
-    pRefCell        0;                    // Reference cell for pressure
-    pRefValue       0;                    // Reference pressure value
+    // Number of pressure corrector iterations
+    nCorrectors      2;
+    // Non-orthogonality corrections (0 = mesh is orthogonal)
+    nNonOrthogonalCorrectors 0;
+    // Reference cell for pressure (to avoid floating pressure)
+    pRefCell        0;
+    // Reference pressure value
+    pRefValue       0;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 ```
+
+> 📂 **Source:** `system/fvSolution` เป็นไฟล์กำหนดการตั้งค่า Linear Solver และอัลกอริทึมการแก้ปัญหาใน OpenFOAM ซึ่งมีผลต่อความเร็วและความแม่นยำของการแก้ปัญหา
+>
+> **Explanation:** ไฟล์นี้กำหนดวิธีการแก้สมการเชิงเส้นสำหรับแต่ละตัวแปร (ความดันและความเร็ว) และพารามิเตอร์ของอัลกอริทึม PISO สำหรับการเชื่อมโยง pressure-velocity
+>
+> **Key Concepts:**
+> - **GAMG**: Geometric-Algebraic Multi-Grid solver ซึ่งเร็วสำหรับสมการ Poisson (ความดัน)
+> - **smoothSolver**: Iterative solver สำหรับสมการความเร็ว
+> - **tolerance/relTol**: เกณฑ์การลู่เข้าของ Solver
+> - **PISO**: Pressure Implicit with Splitting of Operators algorithm สำหรับ transient flow
 
 > [!INFO] อัลกอริทึม PISO
 > **PISO (Pressure Implicit with Splitting of Operators)** เป็นอัลกอริทึมสำหรับการจัดการ pressure-velocity coupling ในปัญหา transient:

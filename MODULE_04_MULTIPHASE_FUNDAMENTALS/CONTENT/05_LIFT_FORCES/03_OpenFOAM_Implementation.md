@@ -26,9 +26,14 @@ public:
 };
 ```
 
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+### คำอธิบาย (Explanation)
+
 คลาสพื้นฐานของโมเดลแรงยก (lift model base class) กำหนดอินเทอร์เฟซสำหรับการคำนวณแรงยก (lift forces) ในการจำลองการไหลแบบหลายเฟส (multiphase flow simulations)
 
-**จุดสำคัญ:**
+### แนวคิดสำคัญ (Key Concepts)
+
 - เป็น **abstract base class** ที่บังคับโครงสร้างทั่วไปสำหรับทุกการนำโมเดลแรงยกไปใช้
 - ใช้ฟังก์ชัน **pure virtual** `Fi()` และ `Cl()`
 - แรงยก $\mathbf{F}_L$ จะกระทำตั้งฉากกับทิศทางความเร็วสัมพัทธ์ระหว่างเฟส
@@ -83,9 +88,11 @@ class SaffmanMeiLift
     // Calculate lift coefficient
     virtual tmp<volScalarField> Cl() const
     {
+        // Get Reynolds number and Saffman parameter from the pair
         const volScalarField& Re = pair_.Re();
         const volScalarField& Sr = pair_.Sr(); // Saffman parameter
 
+        // Create temporary scalar field for lift coefficient
         tmp<volScalarField> tCl
         (
             new volScalarField
@@ -103,19 +110,23 @@ class SaffmanMeiLift
 
         volScalarField& Cl = tCl.ref();
 
+        // Calculate lift coefficient for each cell based on Reynolds number
         forAll(Cl, celli)
         {
             if (Re[celli] < 40)
             {
+                // Low Reynolds number regime
                 Cl[celli] = 2.255/sqrt(Re[celli]*Sr[celli])*
                            (1.0 - 0.15*pow(Re[celli], 0.687));
             }
             else if (Re[celli] <= 1000)
             {
+                // Intermediate Reynolds number regime
                 Cl[celli] = (0.5 + 0.2*Re[celli])/sqrt(Re[celli]*Sr[celli]);
             }
             else
             {
+                // High Reynolds number regime - negligible lift
                 Cl[celli] = 0;
             }
         }
@@ -126,6 +137,7 @@ class SaffmanMeiLift
     // Calculate lift force
     virtual tmp<volVectorField> Fi() const
     {
+        // Access dispersed and continuous phase properties
         const phaseModel& dispersed = pair_.dispersed();
         const phaseModel& continuous = pair_.continuous();
 
@@ -141,11 +153,23 @@ class SaffmanMeiLift
         // Vorticity of continuous phase
         volVectorField omega = fvc::curl(Uc);
 
-        // Lift force
+        // Lift force calculation
         return rho*alpha*Cl*Ur*omega;
     }
 };
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/ThermalPhaseChangePhaseSystem/ThermalPhaseChangePhaseSystem.C`
+
+### คำอธิบาย (Explanation)
+
+การนำ Saffman-Mei lift model ไปใช้ใน OpenFOAM แบ่งเป็นสองส่วนหลัก: การคำนวณสัมประสิทธิ์แรงยก $C_L$ และการคำนวณเวกเตอร์แรงยก $\mathbf{F}_L$ โค้ดนี้แสดงการใช้งานจริงใน OpenFOAM โดยใช้ volScalarField และ volVectorField สำหรับการคำนวณบน mesh
+
+### แนวคิดสำคัญ (Key Concepts)
+
+- ใช้ **Reynolds number (Re)** และ **Saffman parameter (Sr)** ในการกำหนดช่วงของสมการ
+- แรงยกคำนวณจาก **ผลคูณไขว้** ระหว่างความเร็วสัมพัทธ์และความหมุนวน
+- การคำนวณทำ **cell-by-cell** เพื่อรองรับความแปรผันของสมบัติการไหลบน mesh
 
 ### สัมประสิทธิ์แรงยกตามช่วงเรย์โนลด์ส
 
@@ -190,21 +214,27 @@ class TomiyamaLift
 :
     public liftModel
 {
+    // Calculate lift coefficient for Tomiyama model
     virtual tmp<volScalarField> Cl() const
     {
+        // Get Reynolds number and Eötvös number from the pair
         const volScalarField& Re = pair_.Re();
         const volScalarField& Eo = pair_.Eo();
 
+        // Create temporary scalar field for lift coefficient
         tmp<volScalarField> tCl = volScalarField::New("Cl", pair_.mesh(), 0.0);
         volScalarField& Cl = tCl.ref();
 
+        // Calculate lift coefficient for each cell based on Eötvös number
         forAll(Cl, celli)
         {
             scalar Re_local = Re[celli];
             scalar Eo_local = Eo[celli];
 
+            // Viscous contribution using hyperbolic tangent
             scalar Cl_tanh = 0.288*tanh(0.121*Re_local);
 
+            // Eötvös contribution - cubic polynomial
             scalar f_Eo = 0.00105*pow(Eo_local, 3)
                         - 0.1159*pow(Eo_local, 2)
                         + 0.426*Eo_local
@@ -212,15 +242,18 @@ class TomiyamaLift
 
             if (Eo_local <= 4)
             {
+                // Small bubbles - positive lift (wall-attracting)
                 Cl[celli] = min(Cl_tanh, f_Eo);
             }
             else if (Eo_local <= 10)
             {
+                // Medium bubbles - transition regime
                 Cl[celli] = f_Eo;
             }
             else
             {
-                Cl[celli] = -0.27; // Negative lift for large bubbles
+                // Large bubbles - negative lift (wall-repelling)
+                Cl[celli] = -0.27;
             }
         }
 
@@ -228,6 +261,19 @@ class TomiyamaLift
     }
 };
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+### คำอธิบาย (Explanation)
+
+Tomiyama model ถูกออกแบบมาเพื่อจำลองพฤติกรรมของฟองแก๊สในของเหลว โดยคำนึงถึงการเปลี่ยนแปลงจากแรงยกเชิงบวก (ดึงดูดผนัง) ไปเป็นแรงยกเชิงลบ (ผลักผนัง) เมื่อขนาดฟองเพิ่มขึ้น ซึ่งสำคัญมากในการทำนายการกระจายตัวของฟองในช่องทาง
+
+### แนวคิดสำคัญ (Key Concepts)
+
+- ใช้ **Eötvös number (Eo)** เป็นตัวกำหนดขนาดฟองและพฤติกรรมแรงยก
+- แรงยก **เปลี่ยนเครื่องหมาย** จากบวกเป็นลบเมื่อ $Eo > 10$
+- ใช้ **ฟังก์ชัน tanh** สำหรับส่วนประกอบจากความหนืด
+- สำคัญมากสำหรับการทำนาย **wall peeling** ของฟองขนาดใหญ่
 
 ### สัมประสิทธิ์แรงยกตามขนาดฟอง
 
@@ -256,8 +302,22 @@ class TomiyamaLift
 แรงยกอ้างอิงจากความไม่สมมาตรของสนามการไหล ซึ่งแทนด้วย Vorticity ($\boldsymbol{\omega}$):
 
 ```cpp
+// Calculate vorticity field from velocity field
+// Vorticity is the curl of velocity: ω = ∇ × u
 volVectorField omega = fvc::curl(Uc);
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+### คำอธิบาย (Explanation)
+
+การคำนวณความหมุนวน (vorticity) เป็นขั้นตอนสำคัญในการคำนวณแรงยก เนื่องจากแรงยกเกิดจากความไม่สมมาตรของสนามการไหล ซึ่งวัดด้วย curl ของสนามความเร็ว
+
+### แนวคิดสำคัญ (Key Concepts)
+
+- **Vorticity** ($\boldsymbol{\omega} = \nabla \times \mathbf{u}$) วัดการหมุนของฟลูอิด
+- การคำนวณใช้ **finite volume calculus** (fvc::curl)
+- เป็น **อนุพันธ์อันดับหนึ่ง** ของสนามความเร็ว แต่เนื่องจากเป็น curl จึงต้องการ **อนุพันธ์อันดับสอง** โดยนัย
 
 ### การรวมแรงเข้ากับสมการโมเมนตัม
 
@@ -308,8 +368,21 @@ $$\boldsymbol{\omega}_{smoothed} = \boldsymbol{\omega} + \nu_{smooth} \nabla^2 \
 
 ```cpp
 // Vorticity smoothing implementation
+// Add artificial diffusion to smooth high-frequency noise
 volVectorField omegaSmoothed = omega + nuSmooth * fvc::laplacian(omega);
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+### คำอธิบาย (Explanation)
+
+การทำให้เรียบสนามความหมุนวนช่วยลดสัญญาณรบกวนเชิงตัวเลขที่เกิดจากการประมาณค่าอนุพันธ์บน mesh ที่หยาบ โดยการเพิ่มการแพร่กระจายเทียมเข้าไปในสนาม
+
+### แนวคิดสำคัญ (Key Concepts)
+
+- ใช้ **Laplacian operator** ($\nabla^2$) สำหรับการทำให้เรียบ
+- สัมประสิทธิ์ $\nu_{smooth}$ ต้องถูกเลือกอย่างระมัดระวังเพื่อสมดุลระหว่างความเสถียรและความแม่นยำ
+- ค่าทั่วไปอยู่ในช่วง $10^{-6}$ ถึง $10^{-4}$
 
 สัมประสิทธิ์การทำให้เรียบควรได้รับการเลือกอย่างระมัดระวัง:
 - ค่าทั่วไปอยู่ในช่วง $10^{-6}$ ถึง $10^{-4}$ ขึ้นอยู่กับความละเอียดของ Mesh และสภาวะการไหล
@@ -331,8 +404,21 @@ $$|C_L|^{max} \approx 1.0$$
 
 ```cpp
 // Lift coefficient limiting
+// Limit the magnitude of lift coefficient to prevent instability
 scalar CLimited = sign(CL) * min(mag(CL), CLmax);
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+### คำอธิบาย (Explanation)
+
+การจำกัดค่าสัมประสิทธิ์แรงยกช่วยป้องกันค่าที่ผิดปกติซึ่งอาจเกิดจากข้อผิดพลาดเชิงตัวเลข โดยการจำกัดค่าสัมบูรณ์ให้อยู่ในช่วงที่กายภาพสมเหตุสมผล
+
+### แนวคิดสำคัญ (Key Concepts)
+
+- ใช้ **saturation function** เพื่อจำกัดค่าสูงสุด
+- ค่า $C_L^{max} \approx 1.0$ พิจารณาจากค่าทางทฤษฎี
+- รักษา **เครื่องหมาย** ของสัมประสิทธิ์แรงยกเดิม
 
 ---
 
@@ -367,9 +453,23 @@ $$\mathbf{F}_L^{new} = (1-\lambda_L)\mathbf{F}_L^{old} + \lambda_L \mathbf{F}_L^
 
 ```cpp
 // Lift force under-relaxation
+// Apply under-relaxation to improve numerical stability
 scalar lambdaL = 0.4; // Typical relaxation factor
 liftForce = (1.0 - lambdaL) * liftForce.oldTime() + lambdaL * liftForceCalculated;
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+### คำอธิบาย (Explanation)
+
+Under-relaxation เป็นเทคนิคที่ใช้กันอย่างแพร่หลายใน CFD เพื่อปรับปรุงความเสถียรของการแก้สมการ โดยการผสมค่าจากรอบก่อนหน้าเข้ากับค่าใหม่ ช่วยลดการสั่นของคำตอบ
+
+### แนวคิดสำคัญ (Key Concepts)
+
+- ใช้ **weighted average** ระหว่างค่าเก่าและค่าใหม่
+- ตัวประกอบ $\lambda_L$ ควบคุม **อัตราการอัปเดต**
+- ค่า $\lambda_L$ ที่ต่ำกว่า = การบรรเทาที่แข็งแกร่งกว่า แต่การลู่เข้าช้ากว่า
+- ต้องสมดุลระหว่าง **ความเสถียร** และ **อัตราการลู่เข้า**
 
 ---
 
@@ -427,6 +527,7 @@ lift
 
 ```cpp
 // Example usage in multiphaseEulerFoam
+// Create dispersed lift model with runtime selection
 liftModels::dispersedLiftModel dispersedLift(
     phasePairs,
     turbulence,
@@ -434,10 +535,24 @@ liftModels::dispersedLiftModel dispersedLift(
     dict.subDict("liftModels")
 );
 
-// Adding lift force to momentum equation
+// Calculate lift force field
 tmp<volVectorField> liftForce = dispersedLift.Flift();
+
+// Add lift force contribution to momentum equation
 momentumEqn += liftForce;
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+### คำอธิบาย (Explanation)
+
+การนำแรงยกไปใช้ใน multiphaseEulerFoam solver เกี่ยวข้องกับการสร้าง dispersedLiftModel object ซึ่งรองรับการเลือกโมเดลขณะรัน และเพิ่มแรงที่คำนวณได้เข้าสมการโมเมนตัม
+
+### แนวคิดสำคัญ (Key Concepts)
+
+- ใช้ **Runtime selection** ผ่าน dictionary
+- แรงยกเพิ่มเป็น **source term** ในสมการโมเมนตัม
+- รองรับ **multiple phase pairs** ในระบบหลายเฟส
 
 ### การใช้งานใน DPMFoam
 
@@ -445,14 +560,27 @@ momentumEqn += liftForce;
 
 ```cpp
 // Enhanced particle force model including lift
+// Calculate lift force on individual particles
 vectorField F_lift = this->lift().particleLiftForce(
-    particles,
-    Uc_,
-    rhoc_,
-    d_,
-    nuc_
+    particles,    // Particle properties
+    Uc_,          // Continuous phase velocity
+    rhoc_,        // Continuous phase density
+    d_,           // Particle diameter
+    nuc_          // Continuous phase viscosity
 );
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+
+### คำอธิบาย (Explanation)
+
+ในแนวทาง Lagrangian แรงยกคำนวณสำหรับแต่ละอนุภาคโดยอิสระ โดยพิจารณาคุณสมบัติของอนุภาคและสภาพแวดล้อมโดยรอบ
+
+### แนวคิดสำคัญ (Key Concepts)
+
+- คำนวณแรง **particle-by-particle**
+- พิจารณา **local flow conditions** รอบๆ อนุภาค
+- เหมาะสำหรับ **dilute flows** ที่การโต้ตอบระหว่างอนุภาคน้อย
 
 ---
 

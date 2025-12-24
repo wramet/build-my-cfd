@@ -142,6 +142,16 @@ simulationType   RAS;         // for Re > 4000
 simulationType   LES;         // for high Re with resolved turbulence
 ```
 
+> **📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C
+>
+> **คำอธิบาย (Explanation):** 
+> โค้ดตัวอย่างนี้แสดงวิธีการคำนวณ Reynolds number ใน OpenFOAM โดยใช้ `dimensionedScalar` เพื่อสร้างตัวแปรไร้มิติพร้อมหน่วยวัดที่ถูกต้อง ค่า Re คำนวณจากอัตราส่วนของแรงเฉื่อย ($\rho U L$) ต่อแรงหนืด ($\mu$) นอกจากนี้ยังแสดงการเลือกประเภทแบบจำลองความปั่นป่วนในไฟล์ `transportProperties` ตามค่า Reynolds number
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `dimensionedScalar`: ประเภทข้อมูลสเกลาร์พร้อมหน่วยวัดใน OpenFOAM
+> - `dimensionSet`: กำหนดมิติของตัวแปร (มวล, ความยาว, เวลา, ฯลฯ)
+> - `simulationType`: เลือกแบบจำลองที่เหมาะสมกับระดับ Reynolds
+
 ---
 
 ## **Froude Number ($Fr$)**
@@ -249,6 +259,16 @@ dimensionedVector g
     vector(0, 0, -9.81)
 );
 ```
+
+> **📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C
+>
+> **คำอธิบาย (Explanation):** 
+> โค้ดนี้แสดงการตั้งค่าความเร่งโน้มถ่วงใน OpenFOAM ซึ่งเป็นส่วนประกอบสำคัญในการคำนวณ Froude number `dimensionedVector` ใช้สำหรับปริมาณเวกเตอร์พร้อมหน่วยวัด โดยที่นี่คือความเร่งโน้มถ่วงที่มีทิศทางลงในแกน z ค่า `dimensionSet(0, 1, -2, 0, 0, 0, 0)` แทนมิติของความเร่ง [m/s²]
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `dimensionedVector`: ประเภทข้อมูลเวกเตอร์พร้อมหน่วยวัด
+> - การตั้งค่าความโน้มถ่วงจำเป็นสำหรับการไหลแบบ Free Surface
+> - `interFoam` และ `multiphaseEulerFoam`: Solvers สำหรับการไหลแบบ Multiphase
 
 ---
 
@@ -359,6 +379,17 @@ thermoType
     specie          specie;
 }
 ```
+
+> **📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C
+>
+> **คำอธิบาย (Explanation):** 
+> โค้ดนี้แสดงการตั้งค่า `thermoType` สำหรับการไหลแบบอัดตัวได้ใน OpenFOAM ซึ่งระบุคุณสมบัติทางเทอร์โมไดนามิกส์ของของไหล `heRhoThermo` ใช้สำหรับของไหลที่ความหนาแน่นเปลี่ยนแปลง ส่วน `equationOfState perfectGas` ระบุว่าใช้สมการของแก๊สอุดมคติ การตั้งค่าเหล่านี้จำเป็นสำหรับการจำลองการไหลแบบ Compressible เมื่อ Mach number > 0.3
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `heRhoThermo`: แบบจำลองเทอร์โมไดนามิกส์สำหรับของไหลแปรผัน
+> - `equationOfState`: สมการสถานะสำหรับเชื่อมโยงความดัน ความหนาแน่น และอุณหภูมิ
+> - `perfectGas`: สมการของแก๊สอุดมคติ (p = ρRT)
+> - `sensibleEnthalpy`: ใช้เอนทาลปีในการคำนวณพลังงาน
 
 ---
 
@@ -528,10 +559,21 @@ $$I = \frac{u'}{U_{avg}} = \frac{\text{RMS of velocity fluctuations}}{\text{Mean
 
 ```cpp
 // คำนวณเลขไร้มิติจากเงื่อนไขการทำงาน
+// Calculate dimensionless numbers from operating conditions
 scalar Re = rho * U * L / mu;
 scalar Ma = U / sqrt(gamma * R * T);
 scalar Fr = U / sqrt(g * L);
 ```
+
+> **📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C
+>
+> **คำอธิบาย (Explanation):** 
+> โค้ดนี้แสดงการคำนวณเลขไร้มิติพื้นฐานก่อนการจำลอง (Pre-Simulation Analysis) โดยใช้ตัวแปรสเกลาร์ (`scalar`) ใน OpenFOAM เพื่อเก็บค่า Reynolds (Re), Mach (Ma), และ Froude (Fr) numbers การคำนวณเหล่านี้ใช้ค่าคุณสมบัติของของไหลและเงื่อนไขขอบเขตเพื่อกำหนดระบอบการไหล
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `scalar`: ประเภทข้อมูลจำนวนจริงพื้นฐานใน OpenFOAM
+> - การคำนวณเลขไร้มิติเป็นขั้นตอนแรกก่อนเลือก Solver
+> - ใช้ค่าคุณสมบัติของไหล (rho, mu, gamma) และเงื่อนไขการไหล (U, L, T)
 
 ### **2. Solver Selection**
 
@@ -545,36 +587,87 @@ scalar Fr = U / sqrt(g * L);
 
 ```cpp
 // สำหรับ high Re flows: ตรวจสอบ y+ values
+// For high Re flows: Check y+ values
 // ใช้ utility: yPlusRAS หรือ yPlusLES
-yPlus < 5   // สำหรับ wall-resolved LES/DNS
-30 < yPlus < 300  // สำหรับ wall functions
+// Use utility: yPlusRAS or yPlusLES
+
+// Wall-resolved LES/DNS requirements
+yPlus < 1;   // for wall-resolved LES/DNS
+
+// Wall function requirements
+30 < yPlus < 300;  // for wall functions
 ```
+
+> **📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C
+>
+> **คำอธิบาย (Explanation):** 
+> โค้ดนี้แสดงเกณฑ์การออกแบบ Mesh ตามค่า y+ (Y-plus) ซึ่งเป็นพารามิเตอร์ไร้มิติที่ใช้วัดระยะห่างของเซลล์ Mesh จากผนังในหน่วยกำแพง (Wall Units) ค่า y+ < 1 ใช้สำหรับ Wall-resolved LES/DNS ที่ต้องการความละเอียดสูงมาก ในขณะที่ 30 < y+ < 300 ใช้สำหรับ Wall Functions ที่ลดความละเอียดใกล้ผนัง
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `y+`: ระยะไร้มิติจากผนัง (Wall-normal distance in wall units)
+> - Wall-resolved: แก้สมการการไหลใกล้ผนังโดยตรง
+> - Wall Function: ใช้สมการเชิงประจักษ์เพื่อลดความละเอียดใกล้ผนัง
+> - ค่า y+ ขึ้นอยู่กับ Reynolds number และความหนืดของของไหล
 
 ### **4. Boundary Condition Setup**
 
 ```cpp
 // ใช้ turbulence intensity สำหรับ inlet boundaries
+// Use turbulence intensity for inlet boundaries
 // ใน 0/k
-turbulence   kepsilon;  // หรือ kOmegaSST
+// In 0/k file
 
-k             uniform <I*U^2*3/2>;
-epsilon       uniform <C_mu^0.75*k^1.5/l>;
+simulationType   kepsilon;  // or kOmegaSST
+
+// Turbulent kinetic energy at inlet
+k               uniform <I*U^2*3/2>;
+
+// Turbulent dissipation rate at inlet
+epsilon         uniform <C_mu^0.75*k^1.5/l>;
 ```
+
+> **📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C
+>
+> **คำอธิบาย (Explanation):** 
+> โค้ดนี้แสดงการตั้งค่าเงื่อนไขขอบเขตสำหรับ Turbulence Model ที่ Inlet โดยใช้ Turbulence Intensity (I) เพื่อคำนวณค่าพลังงานจลน์ของความปั่นป่วน (k) และอัตราการสลายตัว (ε) ค่า k คำนวณจาก $1.5 \cdot I^2 \cdot U^2$ และ ε คำนวณจาก $C_\mu^{0.75} \cdot k^{1.5} / l$ โดยที่ $l$ คือความยาวลักษณะเฉพาะ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `kepsilon`, `kOmegaSST`: แบบจำลองความปั่นป่วนแบบ RANS
+> - Turbulence Intensity (I): อัตราส่วนของความเร็วกระเพื่อมต่อความเร็วเฉลี่ย
+> - `k` (Turbulent Kinetic Energy): พลังงานจลน์ของการกระเพื่อม
+> - `ε` (Dissipation Rate): อัตราการสลายตัวของความปั่นป่วน
 
 ### **5. Convergence Criteria**
 
 ```cpp
 // ใช้ knowledge ของ flow regime สำหรับการตั้งค่า tolerance
+// Use knowledge of flow regime for setting tolerance
 solvers
 {
     p
     {
+        // Generalized Geometric-Algebraic Multi-Grid solver
         solver          GAMG;
-        tolerance       1e-06;  // สำหรับ steady flows
+        
+        // Absolute tolerance for steady flows
+        tolerance       1e-06;  // for steady flows
+        
+        // Relative tolerance to prevent over-solving
         relTol          0.1;
     }
 }
 ```
+
+> **📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C
+>
+> **คำอธิบาย (Explanation):** 
+> โค้ดนี้แสดงการตั้งค่า Solver และ Convergence Criteria สำหรับสมการความดัน (p) ใน OpenFOAM โดยใช้ `GAMG` (Generalized Geometric-Algebraic Multi-Grid) solver ซึ่งเป็นวิธีการแก้สมการแบบ Multi-grid ที่มีประสิทธิภาพสำหรับระบบสมการเชิงเส้นขนาดใหญ่ `tolerance` คือความคลาดเคลื่อนสัมบูรณ์ และ `relTol` คือความคลาดเคลื่อนสัมพัทธ์
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `GAMG`: Solver แบบ Multi-grid สำหรับสมการ Pressure-Poisson
+> - `tolerance`: เกณฑ์การลู่เข้าสัมบูรณ์ (Absolute Convergence Criterion)
+> - `relTol`: เกณฑ์การลู่เข้าสัมพัทธ์ (Relative Convergence Criterion)
+> - ค่า tolerance ขึ้นอยู่กับ Flow Regime (Laminar/Turbulent)
 
 ---
 

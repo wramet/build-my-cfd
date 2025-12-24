@@ -73,35 +73,59 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \
 **Proper Implementation**:
 
 ```cpp
-// สำหรับ Velocity Inlet (แนะนำ)
+// Velocity inlet configuration (recommended)
+// U: Fixed value at inlet, p: Zero gradient
 U
 {
     type            fixedValue;
-    value           uniform (10 0 0);  // กำหนดค่า Velocity ที่ Inlet
+    value           uniform (10 0 0);  // Prescribed velocity at inlet
 }
 
 p
 {
-    type            zeroGradient;      // เงื่อนไขการไหลออกตามธรรมชาติ
+    type            zeroGradient;      // Natural outflow condition
 }
 ```
+
+> **📚 คำอธิบาย (Thai Explanation)**
+> 
+> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+> 
+> **คำอธิบาย:** การกำหนด Boundary Condition ที่เหมาะสมสำหรับ Velocity Inlet โดยใช้ `fixedValue` สำหรับ Velocity และ `zeroGradient` สำหรับ Pressure ช่วยป้องกันปัญหา Over-specification ในระบบสมการ Navier-Stokes
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **FixedValue Boundary Condition:** กำหนดค่าตายตัวที่ขอบเขต ใช้สำหรับ Inlet Velocity
+> - **ZeroGradient Boundary Condition:** การไหลออกแบบธรรมชาติ ไม่มีการเปลี่ยนแปลงค่าในทิศทางปกติของขอบเขต
+> - **Pressure-Velocity Coupling:** การเชื่อมโยงระหว่างความดันและความเร็วในระบบสมการของไหล
 
 หรืออีกทางเลือกหนึ่ง:
 
 ```cpp
-// สำหรับ Pressure Inlet
+// Pressure inlet configuration
+// p: Fixed value at inlet, U: Pressure-driven velocity
 p
 {
     type            fixedValue;
-    value           uniform 101325;    // กำหนดค่า Pressure ที่ Inlet
+    value           uniform 101325;    // Prescribed pressure at inlet
 }
 
 U
 {
     type            pressureInletVelocity;
-    value           uniform (0 0 0);   // ค่าเริ่มต้น
+    value           uniform (0 0 0);   // Initial value
 }
 ```
+
+> **📚 คำอธิบาย (Thai Explanation)**
+> 
+> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+> 
+> **คำอธิบาย:** การกำหนด Pressure Inlet โดยใช้ `fixedValue` สำหรับ Pressure และ `pressureInletVelocity` สำหรับ Velocity ซึ่งเหมาะสำหรับการไหลแบบ Pressure-driven
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Pressure-Driven Flow:** การไหลของไหลที่เกิดจากความแตกต่างของความดัน
+> - **PressureInletVelocity:** Boundary Condition ที่คำนวณความเร็วจากความดัน
+> - **Inlet Boundary:** ขอบเขตทางเข้าของโดเมนการคำนวณ
 
 **Validation Steps**:
 1. ตรวจสอบความสอดคล้องของ Boundary Condition โดยใช้ Utility `checkMesh`
@@ -139,10 +163,21 @@ U
 U
 {
     type            inletOutlet;
-    inletValue      uniform (0 0 0);      // Velocity หากมีการไหลย้อนกลับ
-    value           uniform (0 0 0);      // ค่าเริ่มต้น
+    inletValue      uniform (0 0 0);      // Velocity if backflow occurs
+    value           uniform (0 0 0);      // Initial value
 }
 ```
+
+> **📚 คำอธิบาย (Thai Explanation)**
+> 
+> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+> 
+> **คำอธิบาย:** Boundary Condition แบบ `inletOutlet` จะสลับระหว่าง `zeroGradient` เมื่อมีการไหลออก และ `fixedValue` เมื่อมีการไหลย้อนกลับ ช่วยป้องกันปัญหา Backflow ที่ Outlet
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **InletOutlet BC:** Boundary Condition แบบไดนามิกที่ปรับตามทิศทางการไหล
+> - **Backflow Prevention:** การป้องกันการไหลย้อนกลับเข้าสู่โดเมน
+> - **Direction-Dependent Condition:** เงื่อนไขที่ขึ้นกับทิศทางของ Flux
 
 สิ่งนี้จะดำเนินการ:
 - `zeroGradient` เมื่อการไหลออก (normal flux > 0)
@@ -198,11 +233,12 @@ graph LR
 สำหรับการไหลที่ซับซ้อน ให้พิจารณาทางเลือกเหล่านี้:
 
 ```cpp
-// Pressure Outlet พร้อมการจำกัด Velocity
+// Pressure outlet with velocity constraint
+// p: Fixed value at outlet, U: Pressure-driven with inlet-outlet behavior
 p
 {
     type            fixedValue;
-    value           uniform 0;           // ความดันเกจ (Gauge pressure)
+    value           uniform 0;           // Gauge pressure
 }
 
 U
@@ -212,6 +248,17 @@ U
     value           $internalField;
 }
 ```
+
+> **📚 คำอธิบาย (Thai Explanation)**
+> 
+> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+> 
+> **คำอธิบาย:** การกำหนด Pressure Outlet ร่วมกับ `pressureInletOutletVelocity` สำหรับ Velocity ช่วยควบคุมการไหลย้อนกลับในขณะที่ยังคงความยืดหยุ่นในการคำนวณ
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **PressureInletOutletVelocity:** Boundary Condition ที่ผสมผสานระหว่าง Pressure-driven และ Inlet-Outlet behavior
+> - **Gauge Pressure:** ความดันสัมพัทธ์ที่อ้างอิงต่อความดันบรรยากาศ
+> - **InternalField Reference:** การอ้างอิงค่าเริ่มต้นจากภายในโดเมน
 
 **Validation Approach**:
 ตรวจสอบค่า Flux โดยใช้ `postProcess -func "flowRatePatch(name=outlet)"` เพื่อยืนยันการไหลออกที่เป็นบวกตลอดการจำลอง
@@ -265,47 +312,60 @@ graph TD
 **Correct Wall Boundary Conditions**:
 
 ```cpp
-// No-slip Wall (Velocity)
+// No-slip wall (velocity)
+// Equivalent to fixedValue uniform (0 0 0)
 U
 {
-    type            noSlip;                     // เทียบเท่ากับ fixedValue (0 0 0)
+    type            noSlip;                     // Zero velocity at wall
 }
 
-// การกำหนดค่าแบบชัดเจนทางเลือก
+// Alternative explicit specification
 U
 {
     type            fixedValue;
-    value           uniform (0 0 0);            // Zero Velocity ที่ Wall
+    value           uniform (0 0 0);            // Zero velocity at wall
 }
 
-// สำหรับ Moving Walls
+// For moving walls
 U
 {
     type            fixedValue;
-    value           uniform (1 0 0);            // Wall Velocity
+    value           uniform (1 0 0);            // Wall velocity
 }
 ```
+
+> **📚 คำอธิบาย (Thai Explanation)**
+> 
+> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+> 
+> **คำอธิบาย:** การกำหนด No-Slip Wall Condition โดยใช้ `noSlip` หรือ `fixedValue uniform (0 0 0)` เพื่อให้ความเร็วเป็นศูนย์ที่ผนัง ซึ่งสอดคล้องกับหลักฟิสิกส์ของการไหลของไหลจริง
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **No-Slip Condition:** สภาวะที่ความเร็วของไหลเป็นศูนย์ที่ผนัง
+> - **Wall Boundary:** ขอบเขตผนังที่ไหลไม่สามารถทะลุผ่านได้
+> - **Moving Wall:** ผนังที่เคลื่อนที่ซึ่งกำหนดความเร็วของไหลตาม
 
 **สำหรับ Scalar Fields ที่ Walls**:
 
 ```cpp
-// Temperature - Adiabatic Wall
+// Temperature - adiabatic wall
+// No heat flux through wall
 T
 {
     type            zeroGradient;
 }
 
-// Temperature - Fixed Temperature
+// Temperature - fixed temperature
 T
 {
     type            fixedValue;
-    value           uniform 300;                // Wall Temperature ในหน่วย K
+    value           uniform 300;                // Wall temperature in K
 }
 
-// Turbulence Quantities
+// Turbulence quantities
 k
 {
-    type            kqRWallFunction;            // Wall Function
+    type            kqRWallFunction;            // Wall function
 }
 
 omega
@@ -313,6 +373,17 @@ omega
     type            omegaWallFunction;
 }
 ```
+
+> **📚 คำอธิบาย (Thai Explanation)**
+> 
+> **ที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatWallBoilingWallFunction/alphatWallBoilingWallFunctionFvPatchScalarField.C`
+> 
+> **คำอธิบาย:** การกำหนด Boundary Condition สำหรับ Scalar Fields (เช่น Temperature, Turbulence) ที่ผนัง โดยใช้ `zeroGradient` สำหรับ Adiabatic Wall และ `fixedValue` สำหรับ Fixed Temperature ส่วน Turbulence Quantities ใช้ Wall Functions
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Adiabatic Wall:** ผนังที่ไม่มีการถ่ายเทความร้อน (Zero Heat Flux)
+> - **Wall Function:** ฟังก์ชันที่ใช้ประมาณค่า Turbulence Quantities ใกล้ผนัง
+> - **Turbulence Boundary Conditions:** เงื่อนไขขอบเขตสำหรับ k, omega, epsilon ฯลฯ
 
 **Common Mistakes to Avoid**:
 1. การใช้ `zeroGradient` สำหรับ Velocity ที่ Walls (ทำให้เกิด Slip Condition)
@@ -365,26 +436,48 @@ graph LR
 
 **Option 1: Reference Pressure Point**
 ```cpp
-// ใน fvSolution
+// In fvSolution
 SIMPLE
 {
     nCorrectors      2;
     nNonOrthogonalCorrectors 0;
 
-    pRefPoint        (0.05 0.05 0);    // ตำแหน่งเซลล์อ้างอิง
-    pRefValue        0;                 // ค่า Pressure อ้างอิง
+    pRefPoint        (0.05 0.05 0);    // Reference cell location
+    pRefValue        0;                 // Reference pressure value
 }
 ```
 
+> **📚 คำอธิบาย (Thai Explanation)**
+> 
+> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+> 
+> **คำอธิบาย:** การกำหนด Reference Pressure Point ในไฟล์ `fvSolution` เพื่อแก้ปัญหา Pressure Drifting ในการไหลแบบ Incompressible โดยระบุตำแหน่งและค่าความดันอ้างอิง
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Reference Pressure Point:** จุดอ้างอิงสำหรับความดันในโดเมน
+> - **Pressure Drifting:** ปัญหาที่ความดันเพิ่มหรือลดต่อเนื่องโดยไม่มีจุดอ้างอิง
+> - **SIMPLE Algorithm:** อัลกอริทึมสำหรับแก้สมการ Pressure-Velocity Coupling
+
 **Option 2: Pressure Reference Patch**
 ```cpp
-// กำหนด Pressure ที่ Boundary หนึ่ง
+// Set pressure at one boundary
 p
 {
     type            fixedValue;
-    value           uniform 0;          // กำหนด Reference Pressure
+    value           uniform 0;          // Reference pressure
 }
 ```
+
+> **📚 คำอธิบาย (Thai Explanation)**
+> 
+> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+> 
+> **คำอธิบาย:** การกำหนด Pressure ที่ Boundary หนึ่งด้วย `fixedValue` เพื่อสร้าง Reference Pressure และป้องกันปัญหา Pressure Drifting
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Pressure Reference Patch:** พื้นที่ขอบเขตที่ใช้อ้างอิงความดัน
+> - **FixedValue BC:** การกำหนดค่าตายตัวที่ขอบเขต
+> - **Boundary Reference:** การใช้ขอบเขตเป็นจุดอ้างอิง
 
 **Option 3: Mean Pressure Constraint**
 สำหรับระบบปิด (closed systems):
@@ -393,9 +486,20 @@ p
 p
 {
     type            meanValueConstraint;
-    meanValue       0;                  // บังคับให้ Pressure เฉลี่ยเป็นศูนย์
+    meanValue       0;                  // Enforce zero mean pressure
 }
 ```
+
+> **📚 คำอธิบาย (Thai Explanation)**
+> 
+> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+> 
+> **คำอธิบาย:** การใช้ `meanValueConstraint` สำหรับระบบปิดเพื่อบังคับให้ค่าความดันเฉลี่ยในโดเมนมีค่าเป็นศูนย์ ช่วยป้องกันปัญหา Pressure Drifting
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **MeanValueConstraint:** การบังคับค่าเฉลี่ยของสนามในโดเมน
+> - **Closed System:** ระบบที่ไม่มีการไหลเข้าหรือออก
+> - **Global Constraint:** เงื่อนไขที่ใช้กับทั้งโดเมน
 
 **Implementation Best Practices**:
 1. ควรกำหนด Reference Pressure หนึ่งจุดเสมอสำหรับการไหลที่อัดตัวไม่ได้ (incompressible flows)
@@ -449,7 +553,7 @@ p
 - การใช้ Relaxation Factors
 
 ```cpp
-// ตัวอย่างการใช้ Table สำหรับ Ramping
+// Example of using table for ramping
 inlet
 {
     type            fixedValue;
@@ -463,6 +567,17 @@ inlet
 }
 ```
 
+> **📚 คำอธิบาย (Thai Explanation)**
+> 
+> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+> 
+> **คำอธิบาย:** การใช้ Table สำหรับ Ramping Boundary Condition ในการจำลองแบบ Transient เพื่อลดปัญหาการละเมิดทางกายภาพในช่วงเริ่มต้น
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Boundary Condition Ramping:** การปรับค่า Boundary Condition อย่างค่อยเป็นค่อยไป
+> - **Transient Simulation:** การจำลองแบบไม่ steady state
+> - **Time-Dependent BC:** เงื่อนไขขอบเขตที่เปลี่ยนตามเวลา
+
 ### Compressible Flow Extensions
 
 สำหรับการไหลที่อัดตัวได้ (compressible flows) มีข้อควรพิจารณาเพิ่มเติม:
@@ -471,15 +586,26 @@ inlet
 - การกำหนด Total Pressure และ Total Temperature ที่เหมาะสม
 
 ```cpp
-// Total Pressure Inlet สำหรับ Compressible Flow
+// Total pressure inlet for compressible flow
 p
 {
     type            totalPressure;
-    p0              uniform 101325;    // Total Pressure
-    T0              uniform 300;       // Total Temperature
+    p0              uniform 101325;    // Total pressure
+    T0              uniform 300;       // Total temperature
     gamma           1.4;                // Heat capacity ratio
 }
 ```
+
+> **📚 คำอธิบาย (Thai Explanation)**
+> 
+> **ที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatWallBoilingWallFunction/alphatWallBoilingWallFunctionFvPatchScalarField.C`
+> 
+> **คำอธิบาย:** การกำหนด Total Pressure Inlet สำหรับการไหลแบบ Compressible โดยใช้ `totalPressure` Boundary Condition พร้อมระบุค่า Total Pressure, Total Temperature และ Heat Capacity Ratio
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Total Pressure:** ความดันรวมที่รวม Static Pressure และ Dynamic Pressure
+> - **Compressible Flow:** การไหลที่มีความหนาแน่นเปลี่ยนแปลงตามความดัน
+> - **Heat Capacity Ratio:** อัตราส่วนความจุความร้อนที่คงที่และที่ความดันคงที่
 
 ### Multiphase Flow Complications
 
@@ -489,7 +615,7 @@ p
 - วิธีการจับรอยต่อ (Interface capturing schemes) ที่ Boundary
 
 ```cpp
-// Multiphase Flow BCs
+// Multiphase flow BCs
 alpha.water
 {
     inlet
@@ -509,6 +635,17 @@ alpha.water
     }
 }
 ```
+
+> **📚 คำอธิบาย (Thai Explanation)**
+> 
+> **ที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatWallBoilingWallFunction/alphatWallBoilingWallFunctionFvPatchScalarField.C`
+> 
+> **คำอธิบาย:** การกำหนด Boundary Condition สำหรับ Volume Fraction (alpha.water) ในการไหลแบบ Multiphase โดยใช้ `fixedValue` ที่ Inlet และ `zeroGradient` ที่ Outlet และ Walls
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Volume Fraction:** สัดส่วนปริมาตรของแต่ละเฟสในเซลล์
+> - **Multiphase Flow:** การไหลที่มีหลายเฟสของไหลผสมกัน
+> - **Interface Capturing:** วิธีการติดตามรอยต่อระหว่างเฟส
 
 ---
 
@@ -579,7 +716,7 @@ graph LR
 
 
 ```cpp
-// Outlet ที่อาจมีการไหลย้อนกลับ
+// Outlet with potential backflow
 U
 {
     type            inletOutlet;

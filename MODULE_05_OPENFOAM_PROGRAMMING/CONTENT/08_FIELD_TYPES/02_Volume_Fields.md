@@ -68,21 +68,32 @@ The **complete field class** that combines both internal field values and bounda
 - `GeoMesh`: Mesh type (volMesh for cell-centered fields, surfaceMesh for face-centered fields)
 
 ```cpp
+// GeometricField class definition from OpenFOAM source
 template<class Type, template<class> class PatchField, class GeoMesh>
 class GeometricField : public DimensionedField<Type, GeoMesh>
 {
-    // Internal field storage
+    // Internal field storage - stores values at cell centers
     DimensionedField<Type, GeoMesh> internalField_;
 
-    // Boundary field storage
+    // Boundary field storage - manages boundary conditions on each patch
     GeometricBoundaryField<Type, PatchField, GeoMesh> boundaryField_;
 
-    // Time tracking
-    mutable label timeIndex_;
-    mutable GeometricField* field0Ptr_;          // Old-time field
-    mutable GeometricField* fieldPrevIterPtr_;   // Previous iteration
+    // Time tracking for transient simulations
+    mutable label timeIndex_;                    // Current time index
+    mutable GeometricField* field0Ptr_;          // Pointer to old-time field (n-1)
+    mutable GeometricField* fieldPrevIterPtr_;   // Pointer to previous iteration
 };
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** โครงสร้าง `GeometricField` เป็นหัวใจสำคัญของระบบฟิลด์ใน OpenFOAM ซึ่งรวมเอาค่าภายในโดเมนและเงื่อนไขขอบเขตไว้ด้วยกัน คลาสนี้ใช้ Template Metaprogramming เพื่อให้สามารถรองรับประเภทข้อมูลทางคณิตศาสตร์ที่หลากหลาย (scalar, vector, tensor) ได้อย่างยืดหยุ่น พร้อมกับตรวจสอบความสอดคล้องทางมิติ (dimensional consistency) ในขั้นตอนการคอมไพล์
+
+> **🔑 Key Concepts:**
+> - **Template Metaprogramming:** เทคนิคการใช้ C++ templates เพื่อสร้างโค้ดที่ยืดหยุ่นและมีประสิทธิภาพสูง โดยตรวจสอบประเภทและมิติของข้อมูลขณะคอมไพล์
+> - **Internal Field:** ข้อมูลค่าฟิสิกส์ที่ศูนย์กลางของเซลล์ (cell centers) ซึ่งเป็นค่าหลักที่ใช้ในการแก้สมการ CFD
+> - **Boundary Field:** ค่าและเงื่อนไขขอบเขตที่ผินของโดเมน จัดการแยกจากค่าภายในเพื่อประสิทธิภาพในการคำนวณ
+> - **Time Tracking:** การจัดเก็บค่าฟิลด์ในช่วงเวลาต่างๆ เพื่อใช้ในรูปแบบการแบ่งส่วนเวลา (temporal discretization) สำหรับการจำลองแบบไม่คงที่ (transient simulations)
 
 #### `DimensionedField<Type, GeoMesh>`
 
@@ -110,7 +121,7 @@ The most commonly used field types in OpenFOAM are defined as template specializ
 | `volScalarField` | `GeometricField<scalar, fvPatchField, volMesh>` | Pressure, Temperature |
 | `volVectorField` | `GeometricField<vector, fvPatchField, volMesh>` | Velocity, Displacement |
 | `volTensorField` | `GeometricField<tensor, fvPatchField, volMesh>` | Stress, Strain Rate |
-| `surfaceScalarField` | `GeometricField<scalar, fvsPatchField, surfaceMesh>` | Fluxes, Heat Transfer Rates |
+| `surfaceScalarField` | `GeometricField<scalar, fvspatchField, surfaceMesh>` | Fluxes, Heat Transfer Rates |
 
 **Field Type Selection:**
 - **Volume fields (`vol*`)**: Quantities naturally defined at cell centers (e.g., pressure $p$, temperature $T$)
@@ -171,6 +182,7 @@ Every field in OpenFOAM carries **complete dimensional information** through the
 ### Basic Dimensions
 
 ```cpp
+// Dimension set constructor - defines physical dimensions for a quantity
 dimensionSet(mass, length, time, temperature, moles, current, luminous_intensity);
 ```
 
@@ -198,22 +210,25 @@ dimensionSet(mass, length, time, temperature, moles, current, luminous_intensity
 ### Automatic Dimensional Consistency
 
 ```cpp
+// Create pressure field with dimensional information
 volScalarField p(
     IOobject("p", runTime.timeName(), mesh, IOobject::MUST_READ),
     mesh,
-    dimensionSet(1, -1, -2, 0, 0, 0, 0)  // Pressure dimensions
+    dimensionSet(1, -1, -2, 0, 0, 0, 0)  // Pressure dimensions: [M L^-1 T^-2]
 );
 
+// Create velocity field
 volVectorField U(
     IOobject("U", runTime.timeName(), mesh, IOobject::MUST_READ),
     mesh,
-    dimensionSet(0, 1, -1, 0, 0, 0, 0)  // Velocity dimensions
+    dimensionSet(0, 1, -1, 0, 0, 0, 0)  // Velocity dimensions: [L T^-1]
 );
 
+// Create density field
 volScalarField rho(
     IOobject("rho", runTime.timeName(), mesh, IOobject::MUST_READ),
     mesh,
-    dimensionSet(1, -3, 0, 0, 0, 0, 0)  // Density dimensions
+    dimensionSet(1, -3, 0, 0, 0, 0, 0)  // Density dimensions: [M L^-3]
 );
 
 // Automatic dimensional checking in mathematical operations
@@ -223,6 +238,16 @@ volScalarField dynamicPressure = 0.5 * rho * magSqr(U);  // ✓ Dimensionally co
 // Dimensional error detection (compile-time or runtime)
 // volScalarField invalid = p * U;  // ✗ Error: [M L^-1 T^-2] * [L T^-1] = [M T^-3]
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** ระบบการวิเคราะห์มิติ (dimensional analysis) ใน OpenFOAM เป็นคุณสมบัติที่ทรงพลังและเป็นเอกลักษณ์เฉพาะตัว โดยทุกฟิลด์จะต้องมีข้อมูลเกี่ยวกับมิติทางฟิสิกส์แนบอยู่เสมอ ระบบจะตรวจสอบความสอดคล้องของมิติโดยอัตโนมัติเมื่อมีการดำเนินการทางคณิตศาสตร์ระหว่างฟิลด์ ซึ่งช่วยป้องกันข้อผิดพลาดที่พบบ่อยในการจำลอง CFD เช่น การบวกค่าที่มีหน่วยต่างกัน หรือการคำนวณสมการที่ไม่สมดุลทางมิติ การตรวจสอบนี้เกิดขึ้นได้ทั้งในขั้นตอนการคอมไพล์และขณะทำงาน (runtime)
+
+> **🔑 Key Concepts:**
+> - **dimensionSet:** คลาสที่ใช้เก็บข้อมูลมิติทางฟิสิกส์ 7 มิติหลักตามระบบ SI (mass, length, time, temperature, moles, current, luminous intensity)
+> - **Automatic Dimensional Checking:** การตรวจสอบความสอดคล้องของมิติโดยอัตโนมัติ ช่วยจับข้อผิดพลาดในการคำนวณทางฟิสิกส์
+> - **Compile-time Safety:** การตรวจสอบข้อผิดพลาดในขั้นตอนการคอมไพล์ ลดเวลาในการ debug และเพิ่มความมั่นใจในความถูกต้องของโค้ด
+> - **Physical Consistency:** การรับประกันว่าสมการที่เขียนมีความสมดุลทางมิติ ซึ่งเป็นหลักมูลพื้นฐานของการทำฟิสิกส์และวิศวกรรม
 
 > [!TIP] Dimensional Analysis Benefits
 > - **Prevents implementation errors** in complex CFD simulations
@@ -241,54 +266,84 @@ OpenFOAM fields support comprehensive algebraic operations following **tensor al
 #### Component-wise Operations
 
 ```cpp
-// Scalar multiplication
+// Scalar multiplication - multiplies all vector components by scalar
 volVectorField scaledU = 2.5 * U;
 
-// Vector addition
+// Vector addition - adds corresponding components
 volVectorField sumVectors = U + V;
 
-// Tensor-vector multiplication
+// Tensor-vector multiplication - dot product operation
 volVectorField tauDotU = tau & U;  // Stress tensor dot velocity
 
-// Magnitude and squared magnitude
-volScalarField speed = mag(U);
-volScalarField speedSquared = magSqr(U);
+// Magnitude and squared magnitude calculations
+volScalarField speed = mag(U);           // sqrt(U.x^2 + U.y^2 + U.z^2)
+volScalarField speedSquared = magSqr(U); // U.x^2 + U.y^2 + U.z^2
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** การดำเนินการทางคณิตศาสตร์บนฟิลด์ใน OpenFOAM ได้รับการออกแบบมาให้ใกล้เคียงกับสัญลักษณ์ทางคณิตศาสตร์มากที่สุด โดยใช้ operator overloading เพื่อให้สามารถเขียนสมการได้อย่างกระชับและอ่านง่าย การดำเนินการพื้นฐานเหล่านี้ถูกนำไปใช้อย่างแพร่หลายในสมการการเคลื่อนที่ สมการพลังงาน และสมการอื่นๆ ในระบบ CFD
+
+> **🔑 Key Concepts:**
+> - **Operator Overloading:** เทคนิค C++ ที่ทำให้สามารถใช้ตัวดำเนินการมาตรฐาน (+, -, *, /) กับวัตถุที่ซับซ้อนได้
+> - **Tensor Algebra:** แคลคูลัสเทนเซอร์ที่ใช้ในการอธิบายความเครียด (stress) และอัตราการไหล (strain rate) ในไหลของไหล
+> - **Component-wise Operations:** การดำเนินการที่คำนวณเฉพาะส่วนประกอบแต่ละตัวของเวกเตอร์หรือเทนเซอร์
+> - **Vector/Scalar Fields:** ฟิลด์ที่เก็บค่าเวกเตอร์หรือสเกลาร์ทุกจุดในโดเมน ใช้แทนปริมาณทางฟิสิกส์ เช่น ความเร็ว ความดัน อุณหภูมิ
 
 #### Tensor Operations
 
 ```cpp
-// Tensor transpose
+// Tensor transpose - flips rows and columns
 volTensorField gradUT = gradU.T();
 
-// Symmetric part of tensor
+// Symmetric part of tensor - (tensor + transpose) / 2
 volSymmTensorField symmGradU = symm(gradU);
 
-// Skew-symmetric part (vorticity tensor)
+// Skew-symmetric part (vorticity tensor) - (tensor - transpose) / 2
 volTensorField skewGradU = skew(gradU);
 
-// Trace of tensor
+// Trace of tensor - sum of diagonal elements
 volScalarField traceGradU = tr(gradU);
 
-// Deviatoric part
+// Deviatoric part - tensor minus (1/3)*trace*identity
 volTensorField devGradU = dev(gradU);
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** การดำเนินการเทนเซอร์เหล่านี้มีความสำคัญอย่างยิ่งในการจำลอง CFD โดยเฉพาะในการคำนวณความเครียดและอัตราการเสียดทาน เทนเซอร์สมมาตร (symmetric tensor) มักใช้แทนอัตรนการเสียดทาน (strain rate tensor) ในขณะที่เทนเซอร์ไม่สมมาตร (skew-symmetric tensor) ใช้แทนความปั่น (vorticity) การแยกส่วนเบี่ยงเบน (deviatoric part) มีประโยชน์ในการแยกส่วนของความเครียดที่ไม่ทำให้เกิดการเปลี่ยนปริมาตร (volume-preserving deformation)
+
+> **🔑 Key Concepts:**
+> - **Symmetric Tensor:** เทนเซอร์ที่เท่ากับการ transpose ของตัวเอง มักเกิดจาก gradient ของความเร็ว ใช้ในการคำนวณความเครียด
+> - **Skew-Symmetric Tensor:** เทนเซอร์ที่มีค่าเท่ากับลบการ transpose ของตัวเอง เกี่ยวข้องกับการหมุนและความปั่น
+> - **Trace:** ผลรวมของสมาชิกในแนวทแยง มีความสัมพันธ์กับการเปลี่ยนแปลงของปริมาตร
+> - **Deviatoric Part:** ส่วนของเทนเซอร์ที่ไม่ก่อให้เกิดการเปลี่ยนปริมาตร สำคัญในการจำลองของไหลที่ไม่สามารถอัดได้ (incompressible flow)
 
 #### Advanced Tensor Algebra
 
 ```cpp
-// Double dot product (tensor contraction)
-volScalarField tauColonS = tau && S;  // Stress power
+// Double dot product (tensor contraction) - sum over two indices
+volScalarField tauColonS = tau && S;  // Stress power: tau:epsilon
 
-// Tensor product (dyadic product)
-volTensorField UU = U * U;  // Dyadic product
+// Tensor product (dyadic product) - outer product of vectors
+volTensorField UU = U * U;  // Creates tensor U_i * U_j
 
-// Tensor cofactor
+// Tensor cofactor - matrix of minors
 volTensorField cofactorGradU = cofactor(gradU);
 
-// Tensor determinant
+// Tensor determinant - scalar measure of volume change
 volScalarField detGradU = det(gradU);
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** การดำเนินการเทนเซอร์ขั้นสูงเหล่านี้ใช้ในแอปพลิเคชัน CFD ขั้นสูง ดับเบิลดอทโปรดักต์ (double dot product) ใช้ในการคำนวณกำลังจากความเครียด (stress power) ในสมการพลังงาน ส่วนเทนเซอร์ดีเทอร์มิแนนต์มีความสำคัญในการติดตามการเปลี่ยนปริมาตรขององค์ประกอบของไหลในปัญหา Lagrangian และการแปลงพิกัด
+
+> **🔑 Key Concepts:**
+> - **Double Dot Product:** การคูณเทนเซอร์สองตัวโดยยุบตัวดัชนีสองตัว ให้ผลลัพธ์เป็นสเกลาร์
+> - **Dyadic Product:** ผลคูณภายนอกของเวกเตอร์สองตัว สร้างเทนเซอร์ลำดับสอง
+> - **Tensor Contraction:** การลดลำดับของเทนเซอร์โดยการรวมตัวดัชนี
+> - **Stress Power:** อัตราการทำงานของความเครียดต่อของไหล สำคัญในสมการพลังงานและการถ่ายเทความร้อน
 
 ### Finite Volume Operators
 
@@ -296,15 +351,25 @@ volScalarField detGradU = det(gradU);
 $$\nabla\phi \approx \frac{1}{V_P} \sum_f \phi_f \mathbf{S}_f$$
 
 ```cpp
-// Velocity gradient tensor
+// Velocity gradient tensor - gradient of each velocity component
 volTensorField gradU = fvc::grad(U);
 
-// Pressure gradient vector
+// Pressure gradient vector - driving force in momentum equation
 volVectorField gradP = fvc::grad(p);
 
-// Temperature gradient (scalar)
+// Temperature gradient (scalar) - used in heat transfer calculations
 volVectorField gradT = fvc::grad(T);
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** Gradient operator ใช้ทฤษฎีบทของเกาส์ (Gauss's theorem) ในการคำนวณ gradient ของฟิลด์โดยการรวมผลบนพื้นผิวควบคุม (control surface) วิธีนี้มีความแม่นยำเป็นอันดับสอง (second-order accurate) สำหรับเมชที่สม่ำเสมอ และเป็นวิธีที่ใช้อย่างแพร่หลายในระเบียบวิธีปริมาตรจำกัด
+
+> **🔑 Key Concepts:**
+> - **Gauss's Divergence Theorem:** ทฤษฎีบทที่เชื่อมโยงอินทิกรัลปริมาตรกับอินทิกรัลพื้นผิว
+> - **Surface Integration:** การรวมผลบนพื้นผิวควบคุมทั้งหมดของเซลล์
+> - **Face Interpolation:** การประมาณค่าฟิลด์ที่ใบหน้าจากค่าที่ศูนย์กลางเซลล์
+> - **Cell Volume:** ปริมาตรของเซลล์ควบคุม ใช้ในการทำให้ค่า gradient เป็นมิติที่ถูกต้อง
 
 **Divergence Operator** (`fvc::div`): Computes divergence of vector and tensor fields:
 $$\nabla \cdot \mathbf{F} \approx \frac{1}{V_P} \sum_f \mathbf{F}_f \cdot \mathbf{S}_f$$
@@ -313,12 +378,22 @@ $$\nabla \cdot \mathbf{F} \approx \frac{1}{V_P} \sum_f \mathbf{F}_f \cdot \mathb
 // Velocity divergence (continuity equation residual)
 volScalarField divU = fvc::div(U);
 
-// Momentum equation divergence term
+// Momentum equation divergence term - convective flux
 volVectorField divRhoUU = fvc::div(rho*U*U);
 
-// Stress tensor divergence
+// Stress tensor divergence - viscous forces
 volVectorField divTau = fvc::div(tau);
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** Divergence operator ใช้คำนวณค่าการไหลออก (flux) สุทธิจากเซลล์ควบคุม ซึ่งเป็นหัวใจสำคัญของระเบียบวิธีปริมาตรจำกัด ในสมการต่อเนื่อง (continuity equation) divergence ของความเร็วควรเป็นศูนย์สำหรับของไหลที่ไม่สามารถอัดได้ ในขณะที่ divergence ของปริมาณโมเมนตัมแสดงถึงแรงที่เกิดจากการพา (convective forces)
+
+> **🔑 Key Concepts:**
+> - **Mass Conservation:** การอนุรักษ์มวลที่แสดงด้วยสมการ divergence-free สำหรับของไหล incompressible
+> - **Flux Balance:** สมดุลของการไหลเข้าและออกจากเซลล์ควบคุม
+> - **Face Normal Vector:** เวกเตอร์ปกติของใบหน้าที่ใช้ในการคำนวณอินทิกรัลพื้นผิว
+> - **Convective Terms:** เงื่อนไขการพา (convection) ในสมการการเคลื่อนที่
 
 **Laplacian Operator** (`fvc::laplacian`): Applies diffusion terms:
 $$\nabla^2\phi \approx \frac{1}{V_P} \sum_f \Gamma_f \nabla\phi_f \cdot \mathbf{S}_f$$
@@ -327,12 +402,22 @@ $$\nabla^2\phi \approx \frac{1}{V_P} \sum_f \Gamma_f \nabla\phi_f \cdot \mathbf{
 // Pressure Poisson equation Laplacian
 fvScalarMatrix pEqn(fvm::laplacian(1/rho, p));
 
-// Heat diffusion
+// Heat diffusion - thermal conduction
 fvScalarMatrix TEqn(fvm::laplacian(k/(rho*cp), T));
 
 // Viscous term in momentum equation
 fvVectorMatrix UEqn(fvm::laplacian(nu, U));
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** Laplacian operator ใช้กับปัญหาการแพร่ (diffusion) เช่น การนำความร้อน ความหนืด (viscosity) และสมการ Poison สำหรับความดัน การคำนวณใช้ gradient ที่ใบหน้าคูณกับพื้นที่ใบหน้า แล้วรวมผลรอบเซลล์ สัมประสิทธิ์การแพร่ Γ_f อาจแปรเปลี่ยนตามตำแหน่ง เช่น ความหนืดของของไหลแบบ non-Newtonian
+
+> **🔑 Key Concepts:**
+> - **Diffusion Equation:** สมการที่ควบคุมการแพร่ของปริมาณ เช่น ความร้อน โมเมนตัม สาร
+> - **Diffusion Coefficient:** สัมประสิทธิ์การแพร่ (Γ) ที่กำหนดอัตราการแพร่
+> - **Finite Volume Discretization:** การแบ่งส่วนเชิงปริมาตรจำกัดของเงื่อนไขการแพร่
+> - **Poisson Equation:** สมการที่เกิดจาก Laplacian เท่ากับ source term ใช้ในปัญหามากมาย
 
 ---
 
@@ -345,18 +430,28 @@ OpenFOAM manages time-dependent quantities through specialized field types and t
 #### Time Field Types
 
 ```cpp
-// Old-time level field (n-1)
+// Old-time level field (n-1) - stores values from previous time step
 volScalarField p_old = p.oldTime();
 
 // Old-old-time level field (n-2) for second-order schemes
 volScalarField p_oldOld = p.oldTime().oldTime();
 
-// Rate of change field
+// Rate of change field - explicit time derivative
 volScalarField dU_dt = fvc::ddt(U);
 
-// Implicitly maintained time derivative
+// Implicitly maintained time derivative - contributes to matrix
 fvScalarMatrix pDDT = fvm::ddt(p);
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** ระบบการจัดการเวลาใน OpenFOAM ช่วยให้สามารถเข้าถึงค่าฟิลด์จากช่วงเวลาต่างๆ ได้อย่างสะดวก ซึ่งจำเป็นสำหรับรูปแบบการแบ่งส่วนเวลาที่มีความแม่นยำสูงกว่า (higher-order temporal schemes) การแยก explicit และ implicit time derivatives ทำให้สามารถเลือกวิธีการที่เหมาะสมกับแต่ละปัญหาได้
+
+> **🔑 Key Concepts:**
+> - **Temporal Discretization:** การแบ่งส่วนเชิงเวลาของสมการอนุพันธ์เชิงเวลา
+> - **Time Stepping:** ขั้นตอนการคำนวณที่ขยายผลลัพธ์ไปยังจุดเวลาถัดไป
+> - **Storage Management:** การจัดการหน่วยความจำสำหรับค่าฟิลด์ในหลายช่วงเวลา
+> - **Order of Accuracy:** ลำดับของความแม่นยำในการแบ่งส่วนเวลา
 
 #### Temporal Schemes
 
@@ -364,33 +459,73 @@ fvScalarMatrix pDDT = fvm::ddt(p);
 $$\frac{\partial \phi}{\partial t} \approx \frac{\phi^{n+1} - \phi^n}{\Delta t}$$
 
 ```cpp
-// Explicit Euler time derivative
+// Explicit Euler time derivative - simple but conditionally stable
 volScalarField dPhi_dt = fvc::ddt(phi);
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** วิธี Euler Explicit เป็นวิธีที่เรียบง่ายที่สุดในการแบ่งส่วนเวลา ใช้ค่าจากเวลาปัจจุบันเพื่อคำนวณค่าที่เวลาถัดไป อย่างไรก็ตาม วิธีนี้มีเงื่อนไขเสถียรภาพ (stability condition) ที่เข้มงวด ซึ่งจำกัดขนาด time step ที่สามารถใช้ได้
+
+> **🔑 Key Concepts:**
+> - **Forward Difference:** การประมาณค่าอนุพันธ์โดยใช้ผลต่างไปข้างหน้า
+> - **Stability Condition:** ข้อจำกัดเกี่ยวกับขนาด time step เพื่อให้การแก้สมการเสถียร
+> - **CFL Condition:** เกณฑ์ Courant-Friedrichs-Lewy ที่กำหนดความสัมพันธ์ระหว่าง time step และความละเอียดของเมช
+> - **First-order Accuracy:** ความแม่นยำระดับแรก มีค่าคลาดเคลื่อนเป็น O(Δt)
 
 **Euler Implicit** (First-order, unconditionally stable):
 $$\frac{\partial \phi}{\partial t} \approx \frac{\phi^{n+1} - \phi^n}{\Delta t}$$
 
 ```cpp
-// Implicit Euler time derivative (contributes to matrix)
+// Implicit Euler time derivative - unconditionally stable
 fvScalarMatrix phiEqn = fvm::ddt(phi);
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** วิธี Euler Implicit ใช้ค่าที่เวลาถัดไปในการคำนวณ ทำให้ได้ระบบที่เสถียรโดยไม่มีเงื่อนไข (unconditionally stable) แม้ว่าจะใช้ time step ขนาดใดก็ตาม อย่างไรก็ตาม วิธีนี้ต้องแก้ระบบสมการเชิงเส้นในแต่ละ time step ซึ่งมีค่าใช้จ่ายในการคำนวณสูงกว่า
+
+> **🔑 Key Concepts:**
+> - **Backward Difference:** การประมาณค่าอนุพันธ์โดยใช้ค่าที่เวลาถัดไป
+> - **Unconditional Stability:** คุณสมบัติที่ทำให้วิธีการเสถียรไม่ว่าจะใช้ time step ขนาดเท่าใด
+> - **Implicit System:** ระบบสมการที่ต้องแก้พร้อมกันทุกจุดในโดเมน
+> - **Matrix Assembly:** การประกอบรวมเมทริกซ์สำหรับการแก้ระบบสมการ
 
 **Crank-Nicolson** (Second-order):
 $$\frac{\partial \phi}{\partial t} \approx \frac{2\phi^{n+1} - \phi^n - \phi^{n-1}}{\Delta t}$$
 
 ```cpp
-// Second-order Crank-Nicolson scheme
+// Second-order Crank-Nicolson scheme - trapezoidal rule
 fvScalarMatrix phiEqn = fvm::ddt(phi) == 0.5 * (source_old + source_new);
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** วิธี Crank-Nicolson เป็นวิธีที่มีความแม่นยำระดับสอง ใช้ค่าเฉลี่ยของ source term จากเวลาปัจจุบันและเวลาถัดไป (trapezoidal rule) วิธีนี้ให้ความแม่นยำดีกว่า Euler schemes และยังคงคุณสมบัติเสถียรภาพที่ดี แต่อาจเกิดการสั่น (oscillations) สำหรับปัญหาที่มีความแหลมคม (sharp gradients)
+
+> **🔑 Key Concepts:**
+> - **Trapezoidal Rule:** กฎสามเหลี่ยมที่ใช้ค่าเฉลี่ยของฟังก์ชันที่ขอบเขต
+> - **Second-order Accuracy:** ความแม่นยำระดับสองที่ให้ค่าคลาดเคลื่อน O(Δt²)
+> - **Temporal averaging:** การเฉลี่ยค่าตามเวลาเพื่อเพิ่มความแม่นยำ
+> - **Numerical Oscillations:** การสั่นที่เกิดขึ้นได้กับวิธีการที่มีความแม่นยำสูง
 
 **Backward Differencing** (Second-order):
 $$\frac{\partial \phi}{\partial t} \approx \frac{3\phi^{n+1} - 4\phi^n + \phi^{n-1}}{2\Delta t}$$
 
 ```cpp
-// Second-order backward differencing
+// Second-order backward differencing - fully implicit
 fvScalarMatrix phiEqn = fvm::ddt(phi);
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** วิธี Backward Differencing ระดับสองใช้ค่าจากสองช่วงเวลาก่อนหน้าเพื่อเพิ่มความแม่นยำ วิธีนี้เป็นแบบ fully implicit ทำให้มีความเสถียรดีและไม่ค่อยเกิดการสั่น จึงเป็นที่นิยมในการจำลอง CFD แบบไม่คงที่ อย่างไรก็ตาม ต้องใช้หน่วยความจำมากขึ้นเพื่อจัดเก็บค่าจากหลายช่วงเวลา
+
+> **🔑 Key Concepts:**
+> - **Backward Difference Formula:** สูตรความแตกต่างย้อนหลังที่ใช้ค่าจากเวลาก่อนหน้า
+> - **Multi-step Method:** วิธีการที่ใช้ข้อมูลจากหลาย time step ก่อนหน้า
+> - **Memory Requirements:** ความต้องการหน่วยความจำเพิ่มขึ้นตามจำนวนช่วงเวลาที่เก็บ
+> - **Fully Implicit:** การที่ทุกเงื่อนไขในสมการถูกประเมินที่เวลาถัดไป
 
 ---
 
@@ -399,7 +534,7 @@ fvScalarMatrix phiEqn = fvm::ddt(phi);
 ### Reading Fields from Files
 
 ```cpp
-// Read pressure field from disk
+// Read pressure field from disk - MUST_READ requires file to exist
 volScalarField p
 (
     IOobject
@@ -407,13 +542,13 @@ volScalarField p
         "p",
         runTime.timeName(),
         mesh,
-        IOobject::MUST_READ,     // Must exist on disk
-        IOobject::AUTO_WRITE     // Auto-write
+        IOobject::MUST_READ,     // Field must exist on disk
+        IOobject::AUTO_WRITE     // Automatically write at output times
     ),
     mesh
 );
 
-// Read with fallback to calculated if missing
+// Read velocity field with fallback if file doesn't exist
 volVectorField U
 (
     IOobject
@@ -421,12 +556,22 @@ volVectorField U
         "U",
         runTime.timeName(),
         mesh,
-        IOobject::READ_IF_PRESENT,  // Optional reading
+        IOobject::READ_IF_PRESENT,  // Optional reading - creates field if missing
         IOobject::AUTO_WRITE
     ),
     mesh
 );
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** การสร้างฟิลด์ใน OpenFOAM ใช้คลาส IOobject เพื่อจัดการการอ่านและเขียนไฟล์ ตัวเลือก MUST_READ บังคับให้ไฟล์มีอยู่จริง ในขณะที่ READ_IF_PRESENT อนุญาตให้สร้างฟิลด์ใหม่หากไฟล์ไม่มี ระบบ AUTO_WRITE จะบันทึกฟิลด์โดยอัตโนมัติตามเวลาที่กำหนดใน controlDict
+
+> **🔑 Key Concepts:**
+> - **IOobject:** คลาสที่จัดการข้อมูลเมตาและการเข้าถึงไฟล์สำหรับฟิลด์
+> - **File I/O:** การอ่านและเขียนข้อมูลฟิลด์จาก/ไปยังดิสก์
+> - **Field Persistence:** การรักษาค่าฟิลด์ระหว่าง time steps
+> - **Automatic Management:** การจัดการไฟล์โดยอัตโนมัติตามการตั้งค่า
 
 ### Programmatic Field Creation
 
@@ -439,8 +584,8 @@ volScalarField T
         "T",
         runTime.timeName(),
         mesh,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_READ,      // Don't read from file
+        IOobject::AUTO_WRITE    // Auto-write at output times
     ),
     mesh,
     dimensionedScalar("Tinit", dimTemperature, 293.0),
@@ -448,13 +593,13 @@ volScalarField T
 );
 
 // Set linear temperature variation in x-direction
-const vectorField& C = mesh.C();  // Cell centers
+const vectorField& C = mesh.C();  // Get cell centers
 forAll(T, cellI)
 {
     T[cellI] = 293.0 + 10.0 * C[cellI].x();  // T = T₀ + ΔT·x
 }
 
-// Create field derived from existing fields
+// Create kinetic energy field derived from velocity
 volScalarField kineticEnergy
 (
     IOobject
@@ -469,6 +614,16 @@ volScalarField kineticEnergy
 );
 ```
 
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** การสร้างฟิลด์ด้วยโปรแกรมให้ความยืดหยุ่นในการกำหนดค่าเริ่มต้นที่ซับซ้อน สามารถสร้างโปรไฟล์เชิงเส้น หรือใช้นิพจน์ทางคณิตศาสตร์ที่เกี่ยวข้องกับฟิลด์อื่นๆ ได้ วิธีนี้มีประโยชน์สำหรับการสร้างเงื่อนไขเริ่มต้นที่เฉพาะเจาะจงหรือฟิลด์ที่ได้จากการคำนวณ
+
+> **🔑 Key Concepts:**
+> - **Initial Conditions:** ค่าเริ่มต้นของฟิลด์ที่ใช้ในการเริ่มการจำลอง
+> - **Field Calculations:** การคำนวณค่าฟิลด์จากฟิลด์อื่นๆ หรือนิพจน์ทางคณิตศาสตร์
+> - **Cell Centers:** ตำแหน่งเชิงเรขาคณิตของศูนย์กลางเซลล์
+> - **Derived Fields:** ฟิลด์ที่ได้จากการคำนวณจากฟิลด์พื้นฐาน เช่น พลังงานจลน์จากความเร็ว
+
 ---
 
 ## 🚀 Performance Considerations
@@ -478,7 +633,7 @@ volScalarField kineticEnergy
 **Efficient memory usage** through reference counting:
 
 ```cpp
-// Use tmp for automatic memory management
+// Use tmp for automatic memory management of temporary fields
 tmp<volVectorField> gradU = fvc::grad(U);
 tmp<volScalarField> divU = fvc::div(gradU());
 
@@ -490,18 +645,28 @@ volScalarField& pRef = p;  // Reference avoids copy
 pRef += 0.5 * rho * magSqr(U);  // Bernoulli pressure
 ```
 
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** ระบบการจัดการหน่วยความจำใน OpenFOAM ใช้ reference counting เพื่อหลีกเลี่ยงการคัดลอกข้อมูลโดยไม่จำเป็น คลาส tmp<T> จัดการ lifecycle ของฟิลด์ชั่วคราวอัตโนมัติ ทำให้ไม่ต้องกังวลเรื่องการจองจำและคืนหน่วยความจำ การใช้ reference ก็ช่วยลดการคัดลอกข้อมูลเมื่อต้องการแก้ไขฟิลด์ที่มีอยู่
+
+> **🔑 Key Concepts:**
+> - **Reference Counting:** กลไกที่ติดตามจำนวน references ถึงข้อมูลและคืนหน่วยความจำอัตโนมัติ
+> - **tmp<T>:** คลาส smart pointer สำหรับจัดการวัตถุชั่วคราว
+> - **Memory Optimization:** เทคนิคการลดการใช้หน่วยความจำและเพิ่มประสิทธิภาพ
+> - **Automatic Cleanup:** การคืนหน่วยความจำโดยอัตโนมัติเมื่อไม่มีการใช้งาน
+
 ### Parallel Field Operations
 
 ```cpp
 // Global reduction operations for field statistics
-scalar totalMass = gSum(rho * mesh.V());
-scalar maxVelocity = gMax(mag(U));
-scalar averageTemperature = gAverage(T);
+scalar totalMass = gSum(rho * mesh.V());           // Sum across all processors
+scalar maxVelocity = gMax(mag(U));                 // Maximum across all processors
+scalar averageTemperature = gAverage(T);           // Average across all processors
 
 // Parallel communication for boundary values
-p.correctBoundaryConditions();  // Sync across processors
+p.correctBoundaryConditions();  // Synchronize values across processors
 
-// Global field statistics reporting
+// Global field statistics reporting (only on master processor)
 if (Pstream::master())
 {
     Info << "Field statistics:" << nl
@@ -510,6 +675,16 @@ if (Pstream::master())
          << "  Average temperature: " << averageTemperature << nl;
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+> **📖 Explanation:** การประมวลผลแบบขนานใน OpenFOAM ใช้ domain decomposition เพื่อแบ่งโดเมนออกเป็นส่วนๆ ที่ประมวลผลโดย processor ต่างๆ ฟังก์ชัน global reduction (gSum, gMax, gAverage) รวบรวมข้อมูลจากทุก processor การซิงค์ค่าขอบเขตระหว่าง processors จำเป็นเพื่อให้แน่ใจว่าข้อมูลถูกต้องที่ processor boundaries
+
+> **🔑 Key Concepts:**
+> - **Domain Decomposition:** การแบ่งโดเมนเป็น sub-domains สำหรับการประมวลผลแบบขนาน
+> - **MPI Communication:** การสื่อสารระหว่าง processors ผ่าน Message Passing Interface
+> - **Global Reductions:** การรวบรวมข้อมูลจากทุก processor เป็นค่าเดียว
+> - **Boundary Synchronization:** การซิงค์ค่าที่ขอบเขตระหว่าง sub-domains
 
 ---
 

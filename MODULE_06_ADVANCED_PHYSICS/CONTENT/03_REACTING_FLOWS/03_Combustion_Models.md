@@ -119,34 +119,82 @@ flowchart TD
 ### OpenFOAM Implementation
 
 ```cpp
+// PaSR combustion model correction step
+// คำนวณสัดส่วนปฏิกิริยาและแก้ไขอัตราปฏิกิริยา
 void PaSR<ReactionThermo>::correct()
 {
-    // Calculate mixing time scale
+    // Calculate mixing time scale from turbulence model
+    // คำนวณมาตราส่วนเวลาการผสมจากแบบจำลองความปั่นป่วน
     tmp<volScalarField> ttmix = turbulenceTimeScale();
     const volScalarField& tmix = ttmix();
 
-    // Calculate chemical time scale
+    // Calculate chemical time scale from reaction kinetics
+    // คำนวณมาตราส่วนเวลาทางเคมีจากจลน์ของปฏิกิริยา
     volScalarField tchem = chemistryTimeScale();
 
-    // Calculate reacting fraction
+    // Calculate reacting fraction (kappa = χ)
+    // Determines what fraction of the cell volume is reacting
+    // คำนวณสัดส่วนของปริมาตรที่เกิดปฏิกิริยา
     volScalarField kappa = tchem / (tchem + tmix);
 
-    // Solve chemistry in fine structures only
+    // Solve chemistry ODEs only in the reacting fraction
+    // This represents the fine structures where mixing is intense
+    // แก้สมการเชิงอนุพันธ์ของเคมีเฉพาะในส่วนที่เกิดปฏิกิริยา
     chemistry_->solve(kappa * deltaT());
 }
 ```
 
+**Source:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
+
+> **คำอธิบาย (Explanation):**
+> โค้ดนี้แสดงการทำงานของแบบจำลอง PaSR ใน OpenFOAM ซึ่งแบ่งการทำงานออกเป็นสามขั้นตอนหลัก:
+> 1. **คำนวณมาตราส่วนเวลา**: ดึงค่าเวลาการผสม (tmix) จากแบบจำลองความปั่นป่วนและคำนวณเวลาทางเคมี (tchem) จากสมการจลน์
+> 2. **คำนวณสัดส่วนปฏิกิริยา**: ใช้สูตร kappa = tchem/(tchem+tmix) เพื่อหาส่วนของเซลล์ที่เกิดปฏิกิริยา
+> 3. **แก้สมการเคมี**: เรียก solver ให้ทำงานเฉพาะในส่วนที่เกิดปฏิกิริยาเท่านั้น (kappa * deltaT) เพื่อประหยัดเวลาคำนวณ
+>
+> **หลักการสำคัญ (Key Concepts):**
+> - **Two-environment approach**: แยกพื้นที่ออกเป็นส่วนที่เกิดปฏิกิริยา (fine structures) และส่วนที่ไม่เกิดปฏิกิริยา
+> - **Time scale competition**: อัตราปฏิกิริยาขึ้นอยู่กับการแข่งขันระหว่างมาตราส่วนเวลาทางเคมีและการผสม
+> - **Fractional stepping**: แก้สมการเคมีเฉพาะในส่วนย่อยของเซลล์เพื่อลดต้นทุนการคำนวณ
+
 **Configuration in `constant/combustionProperties`:**
 
 ```cpp
+// Select PaSR combustion model
+// เลือกแบบจำลองการเผาไหม้แบบ PaSR
 combustionModel PaSR;
 
+// PaSR model coefficients
+// ค่าสัมประสิทธิ์เฉพาะของแบบจำลอง PaSR
 PaSRCoeffs
 {
+    // Turbulence time scale calculation method
+    // Options: "integral" (k/ε) or "kolmogorov" (sub-grid mixing)
+    // วิธีคำนวณมาตราส่วนเวลาความปั่นป่วน
     turbulenceTimeScaleModel   integral;  // or "kolmogorov"
-    Cmix                       1.0;       // Mixing constant
+    
+    // Mixing constant - controls the mixing intensity
+    // Typical range: 0.5 - 2.0
+    // Higher value = more mixing, lower reaction rates
+    // ค่าคงที่การผสม - ควบคุมความเข้มของการผสม
+    Cmix                       1.0;       // Typically 0.5-2.0
 }
 ```
+
+**Source:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
+
+> **คำอธิบาย (Explanation):**
+> ไฟล์การตั้งค่านี้กำหนดพารามิเตอร์ที่ควบคุมการทำงานของแบบจำลอง PaSR:
+> - **combustionModel**: ระบุว่าใช้แบบจำลอง PaSR สำหรับการจำลองการเผาไหม้
+> - **turbulenceTimeScaleModel**: เลือกวิธีคำนวณมาตราส่วนเวลาการผสมจากแบบจำลองความปั่นป่วน
+>   * `integral`: ใช้มาตราส่วนเวลาแบบ integral (k/ε) เหมาะสำหรับกรณีทั่วไป
+>   * `kolmogorov`: ใช้มาตราส่วนเวลา Kolmogorov สำหรับการผสมในระดับ sub-grid
+> - **Cmix**: ค่าคงที่ปรับความเข้มของการผสม ซึ่งส่งผลต่ออัตราปฏิกิริยาโดยตรง
+>
+> **หลักการสำคัญ (Key Concepts):**
+> - **Time scale models**: เลือกวิธีคำนวณมาตราส่วนเวลาได้ตามลักษณะของปัญหา
+> - **Mixing constant**: Cmix ที่สูงกว่าจะเพิ่มการผสมและลดอัตราปฏิกิริยา
+> - **Parameter tuning**: ปรับค่าพารามิเตอร์ให้เหมาะกับเงื่อนไขของเปลวไฟ
 
 **Turbulence time scale options:**
 - `integral`: Uses integral time scale $k/\varepsilon$
@@ -209,30 +257,88 @@ flowchart TD
 ### OpenFOAM Implementation
 
 ```cpp
+// EDC combustion model correction step
+// คำนวณสัดส่วน fine structures และแก้ไขอัตราปฏิกิริยา
 void EDC<ReactionThermo>::correct()
 {
-    // Calculate fine structure volume fraction
+    // Calculate fine structure volume fraction (ξ*)
+    // Based on Kolmogorov scale turbulence theory
+    // ξ* represents the fraction of cell volume where reactions occur
+    // คำนวณสัดส่วนปริมาตรของ fine structures (ξ*)
+    // อิงตามทฤษฎีความปั่นป่วนระดับ Kolmogorov
     volScalarField xi = Cxi_ * pow(epsilon_/(k_*k_), 0.25);
 
-    // Calculate fine structure residence time
+    // Calculate fine structure residence time (τ*)
+    // Time fluid spends in the fine structures
+    // คำนวณเวลาที่ของไหลอยู่ใน fine structures (τ*)
     volScalarField tau = Ctau_ * sqrt(nu()/epsilon_);
 
-    // Solve chemistry in fine structures
+    // Solve chemistry ODEs only in fine structures
+    // Multiply time step by fine structure fraction
+    // แก้สมการเชิงอนุพันธ์ของเคมีเฉพาะใน fine structures
     chemistry_->solve(xi * deltaT());
 }
 ```
 
+**Source:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
+
+> **คำอธิบาย (Explanation):**
+> โค้ดนี้แสดงการทำงานของแบบจำลอง EDC ใน OpenFOAM ซึ่งใช้ทฤษฎีความปั่นป่วนระดับ Kolmogorov:
+> 1. **คำนวณสัดส่วน fine structures (ξ*)**: ใช้สูตร ξ* = Cξ·(ν·ε/k²)^0.25 ซึ่งอิงจากทฤษฎี Kolmogorov
+>    - ค่า ε/(k²) แสดงสเกลของการกระจายพลังงานความปั่นป่วน
+>    - ค่า Cξ = 2.1377 เป็นค่าคงที่จากการทดลอง
+> 2. **คำนวณเวลาอยู่ใน fine structures (τ*)**: ใช้สูตร τ* = Cτ·(ν/ε)^0.5
+>    - ค่า ν/ε แสดงสเกลเวลาของความปั่นป่วน
+>    - ค่า Cτ = 0.4082 เป็นค่าคงที่จากการทดลอง
+> 3. **แก้สมการเคมี**: เรียก solver ให้ทำงานในสัดส่วน fine structures เท่านั้น (xi * deltaT)
+>
+> **หลักการสำคัญ (Key Concepts):**
+> - **Kolmogorov scales**: ใช้สเกลความปั่นป่วนที่เล็กที่สุดในการกำหนดบริเวณเกิดปฏิกิริยา
+> - **Fine structures**: โครงสร้างขนาดเล็กที่มีการผสมแรงและเกิดปฏิกิริยาเคมี
+> - **Universal constants**: Cξ และ Cτ เป็นค่าคงที่สากลที่ไม่ต้องปรับแต่ง
+> - **Physics-based**: แบบจำลองนี้อิงตามหลักการฟิสิกส์ของความปั่นป่วนโดยตรง
+
 **Configuration in `constant/combustionProperties`:**
 
 ```cpp
+// Select EDC combustion model
+// เลือกแบบจำลองการเผาไหม้แบบ EDC
 combustionModel EDC;
 
+// EDC model coefficients
+// ค่าสัมประสิทธิ์เฉพาะของแบบจำลอง EDC
 EDCCoeffs
 {
-    Cxi                       2.1377;    // Volume fraction constant
-    Ctau                      0.4082;    // Residence time constant
+    // Fine structure volume fraction constant
+    // Standard value from Magnussen & Hjertager (1976)
+    // Controls the size of reacting regions
+    // ค่าคงที่สัดส่วนปริมาตรของ fine structures
+    Cxi                       2.1377;    // Standard value
+    
+    // Fine structure residence time constant
+    // Standard value from Magnussen & Hjertager (1976)
+    // Controls time spent in reacting regions
+    // ค่าคงที่เวลาอยู่ใน fine structures
+    Ctau                      0.4082;    // Standard value
 }
 ```
+
+**Source:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
+
+> **คำอธิบาย (Explanation):**
+> ไฟล์การตั้งค่านี้กำหนดพารามิเตอร์ของแบบจำลอง EDC ซึ่งต่างจาก PaSR ตรงที่:
+> - **ค่าคงที่สากล**: Cxi และ Ctau เป็นค่าคงที่จากการทดลองเดิมของ Magnussen & Hjertager (1976)
+>   * ไม่ควรเปลี่ยนแปลงค่าเหล่านี้ เว้นแต่มีเหตุพิเศษ
+> - **Cxi = 2.1377**: ค่าคงที่สำหรับคำนวณสัดส่วนปริมาตรของ fine structures
+>   * ค่าที่สูงกว่า = บริเวณเกิดปฏิกิริยาขนาดใหญ่ขึ้น
+> - **Ctau = 0.4082**: ค่าคงที่สำหรับคำนวณเวลาที่อยู่ใน fine structures
+>   * ค่าที่สูงกว่า = เวลาอยู่ในบริเวณเกิดปฏิกิริยานานขึ้น
+>
+> **หลักการสำคัญ (Key Concepts):**
+> - **Universal constants**: ค่าคงที่เหล่านี้มาจากการทดลองและใช้ได้กับทุกกรณี
+> - **No tuning required**: ไม่ต้องปรับค่าเหล่านี้สำหรับแต่ละกรณี (ต่างจาก PaSR)
+> - **Physics-based**: อิงตามทฤษฎีความปั่นป่วนโดยตรง
+> - **Validation**: ค่าเหล่านี้ได้รับการตรวจสอบจากการทดลองจำนวนมาก
 
 ---
 
@@ -324,28 +430,88 @@ combustionModel
 Both models interact with the ODE solver through the `chemistryModel` interface:
 
 ```cpp
-// Common interface
+// Common interface for chemistry solver integration
+// อินเทอร์เฟซสาธารณะสำหรับเชื่อมต่อกับตัวแก้สมการเคมี
 class chemistryModel
 {
 public:
     // Solve chemistry for given time step
+    // Returns updated species concentrations and temperature
+    // แก้สมการเคมีสำหรับช่วงเวลาที่กำหนด
     virtual void solve(const scalar deltaT);
 
-    // Return reaction rates
+    // Return reaction rates for each species
+    // Used by combustion models to calculate source terms
+    // คืนค่าอัตราปฏิกิริยาสำหรับแต่ละสปีชีส์
     virtual const volScalarField::Internal& RR(const label i) const;
 };
 ```
+
+**Source:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
+
+> **คำอธิบาย (Explanation):**
+> คลาส `chemistryModel` ทำหน้าที่เป็นอินเทอร์เฟซระหว่างแบบจำลองการเผาไหม้กับตัวแก้สมการเคมี:
+> - **solve(deltaT)**: ฟังก์ชันหลักที่แก้สมการเชิงอนุพันธ์ (ODE) ของเคมี
+>   * รับค่า deltaT (time step) เป็นพารามิเตอร์
+>   * ใน PaSR จะใช้ kappa * deltaT (เฉพาะส่วนที่เกิดปฏิกิริยา)
+>   * ใน EDC จะใช้ xi * deltaT (เฉพาะใน fine structures)
+>   * อัปเดตความเข้มของสปีชีส์ (Y_i) และอุณหภูมิ (T)
+> - **RR(i)**: คืนค่าอัตราปฏิกิริยาของสปีชีส์ i
+>   * ใช้สำหรับคำนวณ source terms ในสมการถอดแบบ
+>   * คืนค่าเป็น volScalarField::Internal (internal field only)
+>
+> **หลักการสำคัญ (Key Concepts):**
+> - **Polymorphism**: แบบจำลองต่างๆ สามารถใช้อินเทอร์เฟซเดียวกัน
+> - **Time step adjustment**: แต่ละแบบจำลองปรับ deltaT ตามทฤษฎีของตัวเอง
+> - **Stiff ODE solver**: ใช้ตัวแก้สมการเชิงอนุพันธ์ที่เหมาะกับปฏิกิริยาเคมีที่แข็ง
+> - **Operator splitting**: แยกการแก้สมการเคมีออกจากสมการถอดแบบและความปั่นป่วน
 
 ### Coupling with Turbulence Model
 
 The combustion models require turbulence quantities:
 
 ```cpp
-// Required turbulence quantities
-volScalarField& k_ = turbulence().k();      // Turbulent kinetic energy
-volScalarField& epsilon_ = turbulence().epsilon();  // Dissipation rate
-volScalarField& nu_ = turbulence().nu();    // Kinematic viscosity
+// Required turbulence quantities for combustion models
+// ปริมาณความปั่นป่วนที่จำเป็นสำหรับแบบจำลองการเผาไหม้
+
+// Turbulent kinetic energy [m²/s²]
+// Represents the energy contained in turbulent fluctuations
+// พลังงานจลน์ของความปั่นป่วน
+volScalarField& k_ = turbulence().k();      
+
+// Turbulence dissipation rate [m²/s³]
+// Rate at which turbulent kinetic energy dissipates to heat
+// อัตราการกระจายพลังงานความปั่นป่วน
+volScalarField& epsilon_ = turbulence().epsilon();  
+
+// Kinematic viscosity [m²/s]
+// Fluid's resistance to deformation
+// ความหนืดของของไหล
+volScalarField& nu_ = turbulence().nu();    
 ```
+
+**Source:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
+
+> **คำอธิบาย (Explanation):**
+> แบบจำลองการเผาไหม้ต้องการปริมาณความปั่นป่วนสามค่าหลักในการคำนวณ:
+> - **k (Turbulent kinetic energy)**: พลังงานจลน์ของความปั่นป่วน
+>   * หน่วย: m²/s²
+>   * ใช้คำนวณมาตราส่วนเวลา (τ ∼ k/ε)
+>   * ค่าที่สูง = การกระจายพลังงานเร็ว
+> - **ε (Dissipation rate)**: อัตราการกระจายพลังงาน
+>   * หน่วย: m²/s³
+>   * แสดงอัตราที่พลังงานความปั่นป่วนถูกเปลี่ยนเป็นพลังงานความร้อน
+>   * ใช้คำนวณขนาดของ fine structures
+> - **ν (Kinematic viscosity)**: ความหนืดของของไหล
+>   * หน่วย: m²/s
+>   * ใช้คำนวณสเกล Kolmogorov
+>   * สัมพันธ์กับการนำความร้อนและการ diffusive
+>
+> **หลักการสำคัญ (Key Concepts):**
+> - **Two-way coupling**: แบบจำลองการเผาไหม้และความปั่นป่วนผูกพันกัน
+> - **Time scale calculation**: τmix = k/ε (PaSR), τ* = (ν/ε)^0.5 (EDC)
+> - **Fine structure size**: ξ* ∝ (ν·ε/k²)^0.25 (EDC)
+> - **Turbulence-chemistry interaction**: ความปั่นป่วนส่งผลต่ออัตราปฏิกิริยาผ่านมาตราส่วนเวลา
 
 ---
 

@@ -33,8 +33,22 @@ $$Re = \frac{U_{\text{lid}} L}{\nu} = \frac{1 \times 0.1}{0.01} = \boxed{10}$$
 ```cpp
 transportModel  Newtonian;
 
-nu              [0 2 -1 0 0 0 0] 0.001;
+nu              [0 2 -1 0 0 0 0] 0.001;  // Kinematic viscosity in m²/s
+                                         // Lower value = higher Reynolds number
 ```
+
+> **📂 Source:** `constant/transportProperties`
+>
+> **คำอธิบาย:**
+> - **transportModel:** ระบุชนิดของโมเดลความหนืด (Newtonian สำหรับของไหลที่ความหนืดคงที่)
+> - **nu:** ความหนืดจลนศาสตร์ (Kinematic Viscosity) หน่วย m²/s
+> - **[0 2 -1 0 0 0 0]:** Dimension ของค่าความหนืด (L²T⁻¹)
+> - **0.001:** ค่าความหนืดใหม่ที่ต้องการเปลี่ยน (จาก 0.01 เป็น 0.001)
+>
+> **แนวคิดสำคัญ:**
+> - การลดค่าความหนืดจะทำให้ Reynolds Number เพิ่มขึ้น
+> - Reynolds Number สูงแสดงถึงแรงเฉื่อยมีอิทธิพลเหนือกว่าแรงหนืด
+> - จะทำให้เกิดกระแสวนรองในมุม cavity และจุดศูนย์กลางกระแสวนจะเคลื่อนที่
 
 **Reynolds Number ใหม่:**
 
@@ -105,16 +119,44 @@ graph LR
 ในไฟล์ `system/blockMeshDict`:
 
 ```cpp
-hex (0 1 2 3 4 5 6 7) (20 20 1) simpleGrading (1 1 1)
+hex (0 1 2 3 4 5 6 7) (20 20 1) simpleGrading (1 1 1);  // Define hexahedral block
+                                                        // (cells_x cells_y cells_z)
+                                                        // simpleGrading: uniform spacing
 ```
+
+> **📂 Source:** `system/blockMeshDict`
+>
+> **คำอธิบาย:**
+> - **hex (0 1 2 3 4 5 6 7):** ระบุ vertices 8 จุดที่กำหนดรูปทรง Hexahedral block
+> - **(20 20 1):** จำนวนเซลล์ในแต่ละทิศทาง (x, y, z)
+> - **simpleGrading (1 1 1):** การกระจายตัวของเซลล์ (1 = สม่ำเสมอ)
+>
+> **แนวคิดสำคัญ:**
+> - การเพิ่มจำนวนเซลล์จะเพิ่มความละเอียดของ Mesh
+> - เซลล์มากขึ้น = ความแม่นยำสูงขึ้น แต่เวลาคำนวณนานขึ้น
+> - การเปลี่ยนจาก 20 เป็น 40 เพิ่มเซลล์ 4 เท่า
 
 ### การดำเนินการ
 
 เปลี่ยนจำนวนเซลล์เป็น 40×40:
 
 ```cpp
-hex (0 1 2 3 4 5 6 7) (40 40 1) simpleGrading (1 1 1)
+hex (0 1 2 3 4 5 6 7) (40 40 1) simpleGrading (1 1 1);  // Increase mesh resolution
+                                                        // 40×40 cells in x-y plane
+                                                        // 1 cell in z-direction (2D case)
 ```
+
+> **📂 Source:** `system/blockMeshDict`
+>
+> **คำอธิบาย:**
+> - **(40 40 1):** เพิ่มความละเอียดเป็น 40×40 เซลล์
+> - จำนวนเซลล์รวม: 40 × 40 × 1 = 1,600 เซลล์
+> - ขนาดเซลล์: Δx = 0.1/40 = 0.0025 m
+>
+> **แนวคิดสำคัญ:**
+> - Grid Independence คือการตรวจสอบว่าผลลัพธ์ไม่เปลี่ยนแปลงเมื่อเพิ่มความละเอียด Mesh
+> - หากค่าต่างกันน้อยกว่า 2% ถือว่าได้รับ Grid Independence
+> - Mesh ละเอียดขึ้นจะแสดงรายละเอียดของกระแสวนรองได้ดีขึ้น
 
 ### การเปรียบเทียบ Mesh
 
@@ -180,7 +222,7 @@ graph LR
     class B,C,D decision;
     class B1,B2,B3,B4,C1,C2,C3,C4,F1,F2,F3,F4 storage;
 ```
-> **Figure 2:** การเปรียบเทียบระหว่าง Mesh แบบหยาบ (20×20) และ Mesh แบบละเอียด (40×40) เพื่อใช้ในการตรวจสอบ Grid Independence โดยวิเคราะห์ความแม่นยำของตำแหน่งกระแสวนและความเร็วสูงสุดที่เพิ่มขึ้นเมื่อลดขนาดของเซลล์ลง
+> **Figure 2:** การเปรียบเทียบระหว่าง Mesh แบบหยาบ (20×20) แับ Mesh แบบละเอียด (40×40) เพื่อใช้ในการตรวจสอบ Grid Independence โดยวิเคราะห์ความแม่นยำของตำแหน่งกระแสวนและความเร็วสูงสุดที่เพิ่มขึ้นเมื่อลดขนาดของเซลล์ลง
 
 > Mesh ที่ละเอียดขึ้นจะใช้เวลาในการคำนวณนานขึ้น ให้พิจารณา Balance ระหว่างความแม่นยำและเวลาในการคำนวณ
 
@@ -202,14 +244,26 @@ graph LR
 
 ```cpp
 // For simpleFoam (steady-state)
-application     simpleFoam;
-startFrom       startTime;
-startTime       0;
-stopAt          endTime;
-endTime         1000;
-deltaT          1;
-adjustTimeStep  no;
+application     simpleFoam;           // Use steady-state solver
+startFrom       startTime;            // Start from latestTime
+startTime       0;                    // Initial time value
+stopAt          endTime;              // Stop when endTime is reached
+endTime         1000;                 // Pseudo-time steps for convergence
+deltaT          1;                    // Time step size (not physical time)
+adjustTimeStep  no;                   // Fixed time step
 ```
+
+> **📂 Source:** `system/controlDict`
+>
+> **คำอธิบาย:**
+> - **simpleFoam:** Solver สำหรับ steady-state, incompressible, turbulent flow
+> - **endTime 1000:** จำนวน iterations สูงสุดสำหรับการลู่เข้า
+> - **deltaT 1:** ใน steady-state ไม่มีความหมายทางกายภาพของเวลา ใช้เป็น iteration counter
+>
+> **แนวคิดสำคัญ:**
+> - SIMPLE ใช้ under-relaxation เพื่อความเสถียรของการวนซ้ำ
+> - ไม่ต้องการ temporal discretization เพราะหาคำตอบ steady-state
+> - การลู่เข้าถูกตรวจสอบด้วย residuals ไม่ใช่เวลา
 
 ### การปรับ `system/fvSolution`
 
@@ -218,32 +272,32 @@ solvers
 {
     p
     {
-        solver          GAMG;
-        tolerance       1e-06;
-        relTol          0.1;
-        smoother        GaussSeidel;
-        nCellsInCoarsestLevel 10;
+        solver          GAMG;              // Geometric-Algebraic Multi-Grid solver
+        tolerance       1e-06;             // Absolute tolerance convergence
+        relTol          0.1;               // Relative tolerance (10% of initial residual)
+        smoother        GaussSeidel;       // Smoother for GAMG
+        nCellsInCoarsestLevel 10;          // Minimum cells in coarsest grid level
     }
 
     U
     {
-        solver          smoothSolver;
-        smoother        GaussSeidel;
-        tolerance       1e-05;
-        relTol          0;
+        solver          smoothSolver;      // Iterative solver for velocity
+        smoother        GaussSeidel;       // Smoother type
+        tolerance       1e-05;             // Absolute tolerance
+        relTol          0;                 // Tight convergence (0% relative tolerance)
     }
 }
 
 SIMPLE
 {
-    nCorrectors      2;
-    nNonOrthogonalCorrectors 0;
-    pRefCell        0;
-    pRefValue       0;
+    nCorrectors      2;                   // Number of pressure correction loops
+    nNonOrthogonalCorrectors 0;           // Non-orthogonal correction loops
+    pRefCell        0;                    // Reference cell for pressure
+    pRefValue       0;                    // Reference pressure value (Pa)
     residualControl
     {
-        p               1e-5;
-        U               1e-5;
+        p               1e-5;             // Convergence criterion for pressure
+        U               1e-5;             // Convergence criterion for velocity
     }
 }
 
@@ -251,14 +305,28 @@ relaxationFactors
 {
     fields
     {
-        p               0.3;
+        p               0.3;               // Pressure under-relaxation factor
     }
     equations
     {
-        U               0.7;
+        U               0.7;               // Momentum under-relaxation factor
     }
 }
 ```
+
+> **📂 Source:** `.applications/test/patchRegion/cavity_pinched/system/fvSolution`
+>
+> **คำอธิบาย:**
+> - **GAMG:** Generalized Geometric-Algebraic Multi-Grid solver สำหรับ pressure
+> - **smoothSolver:** Solver แบบ iterative สำหรับ velocity
+> - **SIMPLE:** Semi-Implicit Method for Pressure-Linked Equations algorithm
+> - **nCorrectors:** จำนวนรอบการแก้ไข pressure ในแต่ละ iteration
+> - **relaxationFactors:** ค่า under-relaxation สำหรับความเสถียร
+>
+> **แนวคิดสำคัญ:**
+> - Under-relaxation จำเป็นสำหรับ steady-state เพื่อป้องกันการ oscillate
+> - Pressure relaxation (0.3) ต่ำกว่า velocity (0.7) เพราะ pressure ไวต่อการเปลี่ยนแปลงมากกว่า
+> - residualControl ใช้ตรวจสอบว่า solution ลู่เข้าแล้ว
 
 ### ความแตกต่างสำคัญสำหรับ Steady-State
 
@@ -293,17 +361,30 @@ functions
 {
     forces
     {
-        type            forces;
-        functionObjectLibs ("libforces.so");
-        outputControl   timeStep;
-        outputInterval  1;
-        log             true;
-        patches         ("movingWall");
-        rho             rhoInf;
-        rhoInf          1;
+        type            forces;            // Function object type for force calculation
+        functionObjectLibs ("libforces.so");  // Library containing forces function
+        outputControl   timeStep;          // Output frequency control
+        outputInterval  1;                 // Output every time step
+        log             true;              // Write to log file
+        patches         ("movingWall");    // Patches to calculate forces on
+        rho             rhoInf;            // Density type
+        rhoInf          1;                 // Reference density (kg/m³)
     }
 }
 ```
+
+> **📂 Source:** `system/controlDict`
+>
+> **คำอธิบาย:**
+> - **forces:** Function object สำหรับคำนวณแรงและโมเมนต์ที่ผนัง
+> - **libforces.so:** Library ที่มี force calculation functions
+> - **movingWall:** Patch ที่ต้องการคำนวณแรง
+> - **rhoInf 1:** ความหนาแน่นของของไหลสำหรับ incompressible flow
+>
+> **แนวคิดสำคัญ:**
+> - การตรวจสอบแรงช่วย validate ว่าการจำลองถูกต้อง
+> - สามารถเปรียบเทียบกับข้อมูล benchmark ได้
+> - Drag และ Lift forces สำคัญสำหรับปัญหาพื้นฐาน
 
 ### กลยุทธ์การตรวจสอบความถูกต้อง (Validation Strategy)
 

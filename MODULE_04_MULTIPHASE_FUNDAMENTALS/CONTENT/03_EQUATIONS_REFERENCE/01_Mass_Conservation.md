@@ -276,16 +276,28 @@ $$\frac{\partial}{\partial t}(\alpha_k \rho_k) + \frac{\partial}{\partial x}(\al
 
 ```cpp
 // Phase continuity equation construction
+// การสร้างสมการความต่อเนื่องเฉพาะเฟส
 fvScalarMatrix alphaEqn
 (
-    fvm::ddt(alpha, rho)
-  + fvm::div(alphaRhoPhi, alpha)
+    fvm::ddt(alpha, rho)          // Temporal derivative term
+  + fvm::div(alphaRhoPhi, alpha)  // Convective flux term
  ==
-    massTransferSource // เทอมแหล่งกำเนิดจากการเปลี่ยนเฟส
+    massTransferSource            // Source term from phase change
 );
 
 alphaEqn.solve();
 ```
+
+> **💡 คำอธิบาย (Explanation)**
+> 
+> โค้ดนี้แสดงการสร้างสมการความต่อเนื่องใน OpenFOAM โดยใช้ finite volume method:
+> 
+> - **`fvm::ddt(alpha, rho)`**: เทอมอนุพันธ์เชิงเวลา (temporal derivative) ของความหนาแน่นมวลเฉพาะเฟส
+> - **`fvm::div(alphaRhoPhi, alpha)`**: เทอมการพา (convective flux) ของมวลเฟส
+> - **`massTransferSource`**: เทอมแหล่งกำเนิดจากการถ่ายเทมวลระหว่างเฟส
+> - **`fvm`** (finite volume method): ใช้สำหรับ implicit discretization เพื่อความเสถียรของการคำนวณ
+> 
+> **แหล่งที่มา (Source)**: `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/ThermalPhaseChangePhaseSystem/ThermalPhaseChangePhaseSystem.C`
 
 ### ความสอดคล้องระหว่างสมการและโค้ด
 
@@ -311,34 +323,63 @@ OpenFOAM ใช้ **MULES (Multidimensional Universal Limiter with Explicit Sol
 
 ```cpp
 // OpenFOAM pseudo-code for mass transfer
+// โค้ดจำลองสำหรับการคำนวณการถ่ายเทมวลใน OpenFOAM
 volScalarField massTransfer = massTransferCoeff * interfacialArea
                             * (rhoVapSat - rhoVapor);
 
+// Ensure net mass transfer is zero
 // ตรวจสอบให้แน่ใจว่าการถ่ายเทมวลสุทธิเป็นศูนย์
 forAll(massTransfer, i)
 {
     massTransfer[i] *= 0.5 * (sign(rhoVapSat - rhoVapor[i]) + 1.0);
 }
 
+// Add to continuity equations
 // เพิ่มเข้าไปในสมการความต่อเนื่อง
-alphaEqn += massTransfer;          // เฟสไอ (Vapor phase)
-liquidAlphaEqn -= massTransfer;    // เฟสของเหลว (Liquid phase) (เพื่อการอนุรักษ์มวล)
+alphaEqn += massTransfer;          // Vapor phase (เฟสไอ)
+liquidAlphaEqn -= massTransfer;    // Liquid phase (เฟสของเหลว) - for conservation
 ```
+
+> **💡 คำอธิบาย (Explanation)**
+> 
+> โค้ดนี้แสดงการคำนวณการถ่ายเทมวลระหว่างเฟส:
+> 
+> - **`massTransferCoeff`**: สัมประสิทธิ์การถ่ายเทมวล ($h_m$) ขึ้นอยู่กับคุณสมบัติทางกายภาพ
+> - **`interfacialArea`**: ความหนาแน่นของพื้นที่พื้นผิวรอยต่อ ($A_{lv}$)
+> - **`(rhoVapSat - rhoVapor)`**: แรงขับเคลื่อนความแตกต่างความหนาแน่น
+> - **การคูณด้วย 0.5**: ป้องกันการถ่ายเทมวลในทิศทางที่ผิดกายภาพ
+> - **เครื่องหมาย +/-**: รับประกันการอนุรักษ์มวล ($\dot{m}_{lv} = -\dot{m}_{vl}$)
+> 
+> **แหล่งที่มา (Source)**: `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/ThermalPhaseChangePhaseSystem/ThermalPhaseChangePhaseSystem.C`
 
 ### การบังคับใช้ข้อจำกัดสัดส่วนปริมาตร
 
 ```cpp
 // OpenFOAM implementation ensuring volume fraction constraint
+// การบังคับใช้ข้อจำกัดสัดส่วนปริมาตรใน OpenFOAM
 fvScalarMatrix alphaEqn
 (
-    fvm::ddt(alpha) + fvm::div(phi, alpha)
-    - fvm::Sp(divU, alpha)  // Constraint term
+    fvm::ddt(alpha)               // Temporal term
+  + fvm::div(phi, alpha)          // Convective flux
+  - fvm::Sp(divU, alpha)          // Constraint term for volume conservation
 );
 
 // Boundedness enforcement
+// การบังคับใช้ขอบเขตค่า
 alphaEqn.relax();
 alphaEqn.solve();
 ```
+
+> **💡 คำอธิบาย (Explanation)**
+> 
+> โค้ดนี้แสดงการบังคับใช้ข้อจำกัด $\sum \alpha_k = 1$:
+> 
+> - **`fvm::Sp(divU, alpha)`**: เทอมแก้ไขเพื่อรักษาความต่อเนื่องของปริมาตร
+> - **`divU`**: ไดเวอร์เจนซ์ของความเร็ว ใช้ปรับค่าสัดส่วนเฟส
+> - **`relax()`**: การผ่อนคลาย (under-relaxation) เพื่อความเสถียร
+> - **`solve()`**: แก้ระบบสมการเชิงเส้น
+> 
+> **แหล่งที่มา (Source)**: `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
 
 ---
 

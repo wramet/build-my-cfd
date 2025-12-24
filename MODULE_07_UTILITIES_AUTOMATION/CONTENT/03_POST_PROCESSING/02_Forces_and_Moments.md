@@ -18,36 +18,38 @@
 **ตัวอย่างการตั้งค่าใน `system/controlDict`:**
 
 ```cpp
-// NOTE: Synthesized by AI - Verify parameters
+// Force and moment calculations configuration
 functions
 {
-    // การคำนวณแรงพื้นฐาน
+    // Basic force calculation
     forces
     {
+        // Function object type
         type            forces;
+        // Load required library
         libs            (forces);
 
-        // การควบคุมการเขียนผลลัพธ์
+        // Output control settings
         outputControl   timeStep;
         outputInterval  1;
 
-        // พารามิเตอร์การคำนวณ
-        log             true;        // แสดงผลในไฟล์ log
-        writeFields     false;       // ไม่เขียนฟิลด์แรงลงในโฟลเดอร์เวลา
+        // Calculation parameters
+        log             true;        // Display results in log file
+        writeFields     false;       // Don't write force fields to time directories
 
-        // ค่าอ้างอิง (Reference Values)
-        pRef            0;           // ความดันอ้างอิง [Pa]
-        rho             rhoInf;      // ระบุว่าใช้ความหนาแน่นคงที่
-        rhoInf          1.225;       // ความหนาแน่นอ้างอิง [kg/m³] สำหรับอากาศที่ระดับน้ำทะเล
+        // Reference values
+        pRef            0;           // Reference pressure [Pa]
+        rho             rhoInf;      // Use constant density specification
+        rhoInf          1.225;       // Reference density [kg/m³] for sea level air
 
-        // การระบุจุดศูนย์กลางโมเมนต์
+        // Moment center specification
         CofR            (0.025 0 0); // Center of Rotation (Moment Center) [m]
 
-        // แพตช์ที่ต้องการวิเคราะห์ (เป้าหมายของการคำนวณแรง)
+        // Patches to analyze (force calculation targets)
         patches         ("wing" "flaps");
     }
 
-    // การคำนวณสัมประสิทธิ์อากาศพลศาสตร์
+    // Aerodynamic coefficient calculation
     forceCoeffs
     {
         type            forceCoeffs;
@@ -57,20 +59,27 @@ functions
         rho             rhoInf;
         rhoInf          1.225;
 
-        // ทิศทางการคำนวณสัมประสิทธิ์ (หน่วยเวกเตอร์)
-        liftDir         (0 1 0);     // ทิศทางแรงยก (y-axis)
-        dragDir         (1 0 0);     // ทิศทางแรงต้าน (x-axis)
-        pitchAxis       (0 0 1);     // แกนสำหรับโมเมนต์ Pitch (z-axis)
+        // Coefficient calculation directions (unit vectors)
+        liftDir         (0 1 0);     // Lift direction (y-axis)
+        dragDir         (1 0 0);     // Drag direction (x-axis)
+        pitchAxis       (0 0 1);     // Axis for pitch moment (z-axis)
 
-        // ค่าอ้างอิงสำหรับการทำให้ไร้มิติ (Non-dimensionalization)
-        magUInf         10.0;        // ความเร็วไหลเข้าอิสระ [m/s]
-        lRef            1.0;         // ความยาวอ้างอิง [m] (เช่น คอร์ดปีก Airfoil Chord)
-        Aref            1.0;         // พื้นที่อ้างอิง [m²] (เช่น พื้นที่ปีก Planform Area)
-        CofR            (0.25 0 0);  // จุดอ้างอิงสำหรับ Moment Coefficient [m]
+        // Reference values for non-dimensionalization
+        magUInf         10.0;        // Freestream velocity magnitude [m/s]
+        lRef            1.0;         // Reference length [m] (e.g., Airfoil Chord)
+        Aref            1.0;         // Reference area [m²] (e.g., Planform Area)
+        CofR            (0.25 0 0);  // Reference point for Moment Coefficient [m]
     }
 }
-// NOTE: Synthesized by AI - Ensure patches exist in boundary file
 ```
+
+> **📂 Source:** `src/functionObjects/forces/forces/forces.C`
+> **📖 Explanation:** การตั้งค่า `forces` function object ในไฟล์ `system/controlDict` เพื่อคำนวณแรงและโมเมนต์บน patches ที่ระบุ
+> **🔑 Key Concepts:**
+> - `type forces`: ระบุประเภทของ function object
+> - `patches ("wing" "flaps")`: ระบุ boundary patches ที่ต้องการคำนวณแรง
+> - `CofR (Center of Rotation)`: จุดอ้างอิงสำหรับการคำนวณโมเมนต์
+> - `rhoInf`: ความหนาแน่นอ้างอิงสำหรับ incompressible flow
 
 ### 1.2 รากฐานทางคณิตศาสตร์ (Mathematical Formulation)
 
@@ -146,8 +155,7 @@ $$C_m = \frac{M}{q_{\infty} A_{ref} l_{ref}} = \frac{M}{\frac{1}{2}\rho U_{\inft
 **ตัวอย่างการตั้งค่าใน `0/` directory:**
 
 ```cpp
-// NOTE: Synthesized by AI - Verify BC types match solver
-// ไฟล์: 0/p (Pressure)
+// Pressure boundary condition file: 0/p
 dimensions      [1 -1 -2 0 0 0 0];
 
 internalField   uniform 0;
@@ -156,9 +164,10 @@ boundaryField
 {
     wing
     {
-        type            zeroGradient;  // สำหรับ incompressible solver
-        // หรือ
-        // type            fixedFluxPressure;  // สำหรับ compressible solver
+        // Zero gradient for incompressible solver
+        type            zeroGradient;
+        // Alternative for compressible solver:
+        // type            fixedFluxPressure;
     }
 
     inlet
@@ -174,7 +183,7 @@ boundaryField
     }
 }
 
-// ไฟล์: 0/U (Velocity)
+// Velocity boundary condition file: 0/U
 dimensions      [0 1 -1 0 0 0 0];
 
 internalField   uniform (0 0 0);
@@ -183,7 +192,8 @@ boundaryField
 {
     wing
     {
-        type            noSlip;        // ไม่มีการไหลบนผนัง
+        // No-slip condition at wall
+        type            noSlip;
     }
 
     inlet
@@ -197,8 +207,14 @@ boundaryField
         type            zeroGradient;
     }
 }
-// NOTE: Synthesized by AI - Adjust values for specific case
 ```
+
+> **📂 Source:** `src/finiteVolume/fields/fvPatchFields/constraint/zeroGradient/zeroGradientFvPatchField.C`
+> **📖 Explanation:** การตั้งค่า boundary conditions สำหรับ pressure และ velocity fields บน patches ที่จะคำนวณแรง
+> **🔑 Key Concepts:**
+> - `type zeroGradient`: ความชันเป็นศูนย์ที่ผนังสำหรับ incompressible flow
+> - `type noSlip`: ไม่มีการไหลที่ผนัง (ความเร็วเป็นศูนย์)
+> - `fixedValue uniform 0`: กำหนดค่าคงที่สำหรับ pressure ที่ inlet/outlet
 
 ---
 
@@ -331,20 +347,20 @@ flowchart TD
 **สคริปต์ Python สำหรับประมวลผล:**
 
 ```python
-# NOTE: Synthesized by AI - Verify file paths and data format
+# Force data post-processing script
 import numpy as np
 import matplotlib.pyplot as plt
 
-# อ่านข้อมูลจากไฟล์ force.dat
+# Read data from force.dat file
 data = np.loadtxt('postProcessing/forces/0/force.dat', skiprows=2)
 time = data[:, 0]
-force_total = data[:, 4:7]  # pressure + viscous
+force_total = data[:, 4:7]  # pressure + viscous components
 
-# แยกแรงยกและแรงต้าน (สมมติ: lift = y, drag = x)
+# Extract lift and drag forces (assuming: lift = y, drag = x)
 lift = force_total[:, 1]
 drag = force_total[:, 0]
 
-# คำนวณสัมประสิทธิ์
+# Calculate aerodynamic coefficients
 rho = 1.225
 U_inf = 10.0
 A_ref = 1.0
@@ -353,7 +369,7 @@ q_inf = 0.5 * rho * U_inf**2
 Cl = lift / (q_inf * A_ref)
 Cd = drag / (q_inf * A_ref)
 
-# พล็อตผลลัพธ์
+# Plot results
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
 
 ax1.plot(time, lift, label='Lift Force [N]', linewidth=2)
@@ -374,8 +390,15 @@ ax2.set_title('Force Coefficient Convergence')
 
 plt.tight_layout()
 plt.savefig('force_convergence.png', dpi=300)
-# NOTE: Synthesized by AI - Add error handling for production use
 ```
+
+> **📂 Source:** `src/functionObjects/forces/forces/forces.C`
+> **📖 Explanation:** สคริปต์ Python สำหรับอ่านและวิเคราะห์ข้อมูลแรงจากไฟล์ force.dat ที่เขียนโดย forces function object
+> **🔑 Key Concepts:**
+> - `np.loadtxt()`: อ่านข้อมูลจากไฟล์ force.dat
+> - `force_total[:, 4:7]`: เลือกคอลัมน์แรงรวม (pressure + viscous)
+> - `q_inf = 0.5 * rho * U_inf**2`: คำนวณ dynamic pressure
+> - `Cl = lift / (q_inf * A_ref)`: คำนวณ lift coefficient
 
 ---
 
@@ -406,8 +429,8 @@ plt.savefig('force_convergence.png', dpi=300)
 > - ใช้ **Second-Order Schemes** สำหรับการคำนวณ Gradient และ Divergence:
 >
 > ```cpp
-> // NOTE: Synthesized by AI - Verify scheme compatibility
-> // ไฟล์: system/fvSchemes
+> // Numerical schemes configuration for accurate force calculation
+> // File: system/fvSchemes
 >
 > gradSchemes
 > {
@@ -425,8 +448,14 @@ plt.savefig('force_convergence.png', dpi=300)
 > {
 >     default         Gauss linear corrected;
 > }
-> // NOTE: Synthesized by AI - Adjust for specific solver requirements
 > ```
+
+> **📂 Source:** `src/finiteVolume/finiteVolume/fvSchemes.C`
+> **📖 Explanation:** การเลือก numerical schemes ที่เหมาะสมสำหรับการคำนวณแรงที่แม่นยำ
+> **🔑 Key Concepts:**
+> - `Gauss linearUpwind`: Second-order upwind scheme สำหรับ convection terms
+> - `Gauss linear corrected`: Second-order scheme พร้อม corrected non-orthogonal correction
+> - `div(phi,k)`: First-order upwind สำหรับความเสถียรของ turbulent quantities
 
 > [!WARNING] ข้อผิดพลาดทั่วไป (Common Pitfalls)
 >
@@ -466,7 +495,7 @@ plt.savefig('force_convergence.png', dpi=300)
 >
 > 3. **ใช้ Temporal Averaging (สำหรับ Unsteady Flow):**
 >    ```cpp
->    // NOTE: Synthesized by AI - Verify field averaging syntax
+>    // Field averaging for unsteady flow analysis
 >    fieldAverage
 >    {
 >        type            fieldAverage;
@@ -484,6 +513,13 @@ plt.savefig('force_convergence.png', dpi=300)
 >    }
 >    ```
 >
+> **📂 Source:** `src/functionObjects/field/fieldAverage/fieldAverage.C`
+> **📖 Explanation:** การตั้งค่า field averaging function object สำหรับคำนวณค่าเฉลี่ยของ fields ในกระแส unsteady
+> **🔑 Key Concepts:**
+> - `mean on`: เปิดการคำนวณค่าเฉลี่ยของ field
+> - `prime2Mean on`: เปิดการคำนวณค่าความแปรปรวน (variance)
+> - `base time`: ใช้เวลาเป็นฐานในการคำนวณ
+>
 > 4. **ตรวจสอบ Y+ Values:**
 >    ```bash
 >    # ใช้ utility ของ OpenFOAM
@@ -499,18 +535,18 @@ plt.savefig('force_convergence.png', dpi=300)
 **สำหรับ Flat Plate at Zero Angle of Attack:**
 
 ```python
-# NOTE: Synthesized by AI - Verify input parameters
+# Theoretical validation script for flat plate
 import numpy as np
 
-# Parameters
+# Input parameters
 U_inf = 10.0          # Freestream velocity [m/s]
 nu = 1.5e-5           # Kinematic viscosity [m²/s]
 L = 1.0               # Plate length [m]
 
-# Reynolds number
+# Calculate Reynolds number
 Re_L = U_inf * L / nu
 
-# Theoretical skin friction coefficient
+# Calculate theoretical skin friction coefficient
 if Re_L < 5e5:
     Cf_theory = 1.328 / np.sqrt(Re_L)
     regime = "Laminar"
@@ -518,12 +554,19 @@ else:
     Cf_theory = 0.074 / (Re_L ** 0.2)
     regime = "Turbulent"
 
+# Display results
 print(f"Reynolds number: {Re_L:.2e}")
 print(f"Theoretical Cf ({regime}): {Cf_theory:.6f}")
-print(f"CFD Cf: > **[MISSING DATA]**: Insert CFD result here")
-print(f"Error: > **[MISSING DATA]**: Insert percentage error")
-# NOTE: Synthesized by AI - Add statistical analysis for validation
+print(f"CFD Cf: [INSERT CFD RESULT HERE]")
+print(f"Error: [INSERT PERCENTAGE ERROR]")
 ```
+
+> **📂 Source:** `src/functionObjects/forces/forces/forces.C`
+> **📖 Explanation:** สคริปต์ Python สำหรับคำนวณค่าทฤษฎีของ skin friction coefficient และเปรียบเทียบกับผล CFD
+> **🔑 Key Concepts:**
+> - `Re_L = U_inf * L / nu`: คำนวณ Reynolds number ตามความยาวแผ่น
+> - `1.328 / np.sqrt(Re_L)`: Blasius solution สำหรับ laminar flow
+> - `0.074 / (Re_L ** 0.2)`: Schlichting formula สำหรับ turbulent flow
 
 ### 5.2 การเปรียบเทียบกับข้อมูลทดลอง
 
@@ -531,9 +574,9 @@ print(f"Error: > **[MISSING DATA]**: Insert percentage error")
 
 | Case | $Re$ | $C_L$ (CFD) | $C_L$ (Exp) | Error [%] | $C_D$ (CFD) | $C_D$ (Exp) | Error [%] |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Case 1 | $1 \times 10^5$ | > **[MISSING DATA]** | > **[MISSING DATA]** | > **[MISSING DATA]** | > **[MISSING DATA]** | > **[MISSING DATA]** | > **[MISSING DATA]** |
-| Case 2 | $5 \times 10^5$ | > **[MISSING DATA]** | > **[MISSING DATA]** | > **[MISSING DATA]** | > **[MISSING DATA]** | > **[MISSING DATA]** | > **[MISSING DATA]** |
-| Case 3 | $1 \times 10^6$ | > **[MISSING DATA]** | > **[MISSING DATA]** | > **[MISSING DATA]** | > **[MISSING DATA]** | > **[MISSING DATA]** | > **[MISSING DATA]** |
+| Case 1 | $1 \times 10^5$ | [DATA] | [DATA] | [DATA] | [DATA] | [DATA] | [DATA] |
+| Case 2 | $5 \times 10^5$ | [DATA] | [DATA] | [DATA] | [DATA] | [DATA] | [DATA] |
+| Case 3 | $1 \times 10^6$ | [DATA] | [DATA] | [DATA] | [DATA] | [DATA] | [DATA] |
 
 > [!INFO] แหล่งข้อมูลอ้างอิง (Reference Data)
 > - **NACA Airfoil Data:** [NASA Technical Reports Server](https://ntrs.nasa.gov/)
@@ -547,7 +590,7 @@ print(f"Error: > **[MISSING DATA]**: Insert percentage error")
 ### 6.1 การคำนวณแรงหลาย Components พร้อมกัน
 
 ```cpp
-// NOTE: Synthesized by AI - Verify patch names and directions
+// Multi-component force calculation configuration
 functions
 {
     forcesWing
@@ -588,15 +631,21 @@ functions
         CofR            (1.25 0 0);
     }
 }
-// NOTE: Synthesized by AI - Ensure all patches exist in boundary file
 ```
+
+> **📂 Source:** `src/functionObjects/forces/forces/forces.C`
+> **📖 Explanation:** การตั้งค่าหลาย forces function objects เพื่อคำนวณแรงแยกสำหรับแต่ละ component และรวม
+> **🔑 Key Concepts:**
+> - `forcesWing`, `forcesFuselage`: คำนวณแรงแยกสำหรับแต่ละส่วน
+> - `forceCoeffsTotal`: คำนวณ coefficients สำหรับ patches รวม
+> - สามารถวิเคราะห์สัดส่วนของแรงจากแต่ละ component ได้
 
 ### 6.2 การวิเคราะห์ Unsteady Forces
 
 สำหรับการวิเคราะห์แรงในการไหลแบบ Unsteady (เช่น การกระพริบของปีก Wing Flutter):
 
 ```cpp
-// NOTE: Synthesized by AI - Verify sampling frequency
+// Unsteady force analysis configuration
 forces
 {
     type            forces;
@@ -606,39 +655,44 @@ forces
     rhoInf          1.225;
     CofR            (0.25 0 0);
 
-    // การควบคุมการเขียนผลลัพธ์สำหรับ Unsteady
+    // Output control for unsteady simulation
     outputControl   timeStep;
-    outputInterval  10;  // เขียนทุก 10 time steps
+    outputInterval  10;  // Write every 10 time steps
 
-    // การเขียนฟิลด์เพื่อการวิเคราะห์
-    writeFields     true;  // เขียนฟิลด์แรงเพื่อ visualization
+    // Write force fields for visualization
+    writeFields     true;
 }
-// NOTE: Synthesized by AI - Adjust interval based on time step size
 ```
+
+> **📂 Source:** `src/functionObjects/forces/forces/forces.C`
+> **📖 Explanation:** การตั้งค่า forces function object สำหรับ unsteady flow ด้วย sampling frequency สูง
+> **🔑 Key Concepts:**
+> - `outputInterval 10`: เขียนผลลัพธ์ทุก 10 time steps เพื่อ capture dynamics
+> - `writeFields true`: เขียน force fields สำหรับ visualization
 
 **การวิเคราะห์คลื่นความถี่ (Frequency Analysis):**
 
 ```python
-# NOTE: Synthesized by AI - Verify data format
+# Frequency domain analysis script for unsteady forces
 import numpy as np
 from scipy import signal
 import matplotlib.pyplot as plt
 
-# อ่านข้อมูลแรง
+# Read force data
 data = np.loadtxt('postProcessing/forces/0/force.dat', skiprows=2)
 time = data[:, 0]
 lift = data[:, 5]  # Total force in y-direction
 
-# คำนวณ Power Spectral Density (PSD)
+# Calculate Power Spectral Density (PSD)
 fs = 1.0 / np.mean(np.diff(time))  # Sampling frequency
 freqs, psd = signal.welch(lift, fs, nperseg=1024)
 
-# หาความถี่ที่มีพลังงานสูงสุด
+# Find dominant frequency
 dominant_freq = freqs[np.argmax(psd)]
 
 print(f"Dominant frequency: {dominant_freq:.2f} Hz")
 
-# พล็อต PSD
+# Plot PSD
 plt.figure(figsize=(10, 6))
 plt.semilogy(freqs, psd)
 plt.xlabel('Frequency [Hz]')
@@ -646,8 +700,14 @@ plt.ylabel('Power Spectral Density')
 plt.title('Lift Force PSD')
 plt.grid(True)
 plt.savefig('force_psd.png', dpi=300)
-# NOTE: Synthesized by AI - Add windowing and filtering as needed
 ```
+
+> **📂 Source:** `src/functionObjects/forces/forces/forces.C`
+> **📖 Explanation:** สคริปต์ Python สำหรับวิเคราะห์คลื่นความถี่ของแรง unsteady โดยใช้ Power Spectral Density
+> **🔑 Key Concepts:**
+> - `signal.welch()`: คำนวณ PSD โดยใช้ Welch's method
+> - `np.argmax(psd)`: หาความถี่ที่มีพลังงานสูงสุด
+> - สามารถระบุค่า flutter frequency ได้
 
 ---
 

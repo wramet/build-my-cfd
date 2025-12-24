@@ -43,11 +43,25 @@ $$\mathbf{F}_{st} = \sigma \kappa \nabla \alpha \tag{4.3}$$
 
 > [!TIP] การคำนวณความโค้ง
 > เทอม `delta` ถูกเพิ่มเข้าไปเพื่อป้องกันการหารด้วยศูนย์ในบริเวณที่มีเกรเดียนต์ต่ำ:
+> 
 > ```cpp
+> // Compute interface normal from volume fraction gradient
 > volVectorField n = fvc::grad(alpha);
-> volVectorField nHat = n/(mag(n) + delta);
+> // Normalize with small delta to avoid division by zero
+> volVectorField nHat = n / (mag(n) + delta);
+> // Calculate curvature as divergence of unit normal
 > volScalarField kappa = -fvc::div(nHat);
 > ```
+> 
+> **📂 แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/BlendedInterfacialModel/BlendedInterfacialModel.C`
+> 
+> **คำอธิบาย (Explanation):** โค้ดนี้แสดงการคำนวณความโค้งของพื้นผิวรอยต่อจากเกรเดียนต์ของสัดส่วนปริมาตร (alpha) โดยมีการเพิ่มค่า delta เพื่อป้องกันปัญหาการหารด้วยศูนย์ ความโค้งคำนวณได้จาก divergente ของเวกเตอร์หน่วยที่ตั้งฉากกับพื้นผิวรอยต่อ
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Volume Fraction Gradient ($\nabla \alpha$):** เวกเตอร์ที่ชี้ไปยังทิศทางของการเปลี่ยนแปลงของสัดส่วนปริมาตร ใช้หาทิศทางปกติของพื้นผิวรอยต่อ
+> - **Unit Normal Vector ($\hat{\mathbf{n}}$):** เวกเตอร์หน่วยที่ตั้งฉากกับพื้นผิวรอยต่อ คำนวณโดยการ normalize เกรเดียนต์ของ alpha
+> - **Interface Curvature ($\kappa$):** ความโค้งของพื้นผิวรอยต่อ คำนวณจาก divergente ของเวกเตอร์หน่วยปกติ ค่านี้ใช้ในสมการ Young-Laplace เพื่อหาความดันข้ามรอยต่อ
+> - **Numerical Stability:** การเพิ่มค่า delta เล็กน้อยช่วยป้องกันปัญหาเชิงตัวเลขเมื่อเกรเดียนต์ของ alpha มีค่าต่ำหรือเป็นศูนย์
 
 ---
 
@@ -108,26 +122,49 @@ $$\theta_d^3 = \theta_e^3 + 9 \text{Ca} \ln\left(\frac{L}{L_{micro}}\right) \tag
 ```cpp
 wall
 {
+    // Type of boundary condition for contact angle
     type            constantAlphaContactAngle;
-    theta0          60; // มุมสัมผัสสมดุล (องศา)
+    // Equilibrium contact angle in degrees
+    theta0          60;
+    // Gradient limitation method
     limit           gradient;
+    // Initial uniform value
     value           uniform 0;
 }
 ```
 
+**📂 แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/BlendedInterfacialModel/BlendedInterfacialModel.C`
+
+**คำอธิบาย (Explanation):** การตั้งค่าเงื่อนไขขอบเขตสำหรับมุมสัมผัสใน OpenFOAM ใช้ `constantAlphaContactAngle` สำหรับมุมสัมผัสคงที่หรือ `dynamicAlphaContactAngle` สำหรับมุมสัมผัสแบบไดนามิก ค่า `theta0` ระบุมุมสัมผัสสมดุลในหน่วยองศา
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Contact Angle ($\theta$):** มุมที่วัดจากผิวของแข็งไปยังเส้นสัมผัสของของเหลว-ก๊าซ ใช้บอกลักษณะการเปียกของผิววัสดุ
+- **Hydrophilic ($\theta < 90°$):** พื้นผิวที่ชอบน้ำ ของเหลวกระจายตัวบนผิว
+- **Hydrophobic ($\theta > 90°$):** พื้นผิวที่ไม่ชอบน้ำ ของเหลวย่อขึ้นเป็นหยด
+- **Gradient Limitation:** วิธีการจำกัดเกรเดียนต์ของ alpha ที่ผนังเพื่อเพิ่มเสถียรภาพเชิงตัวเลข
+
 #### การคำนวณความโค้งใน Solver
 
 ```cpp
-// Interface normal
+// Calculate interface normal from volume fraction gradient
 volVectorField n = fvc::grad(alpha);
-volVectorField nHat = n/(mag(n) + deltaN);
-
-// Curvature
+// Normalize to get unit normal vector with numerical stability
+volVectorField nHat = n / (mag(n) + deltaN);
+// Compute interface curvature as divergence of unit normal
 volScalarField kappa = -fvc::div(nHat);
-
-// Surface tension force
+// Calculate surface tension force
 volVectorField Fst = sigma * kappa * nHat;
 ```
+
+**📂 แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/BlendedInterfacialModel/BlendedInterfacialModel.C`
+
+**คำอธิบาย (Explanation):** โค้ดนี้แสดงการคำนวณแรงตึงผิว (surface tension force) โดยใช้แบบจำลอง Continuum Surface Force (CSF) เริ่มจากการคำนวณเวกเตอร์หน่วยที่ตั้งฉากกับพื้นผิวรอยต่อ จากนั้นคำนวณความโค้ง และสุดท้ายคำนวณแรงตึงผิวจากผลคูณของสัมประสิทธิ์แรงตึงผิว ความโค้ง และเวกเตอร์หน่วยปกติ
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **CSF Model:** แบบจำลองที่แปลงแรงตึงผิวเป็นแรงต่อหน่วยปริมาตร ทำให้สามารถใส่ในสมการโมเมนตัมได้โดยตรง
+- **Interface Normal ($\mathbf{n}$):** เวกเตอร์ที่ตั้งฉากกับพื้นผิวรอยต่อ ชี้จากเฟสหนึ่งไปอีกเฟสหนึ่ง
+- **Curvature ($\kappa$):** ความโค้งของพื้นผิวรอยต่อ ส่งผลต่อความดันข้ามรอยต่อตามสมการ Young-Laplace
+- **Surface Tension Force ($\mathbf{F}_{st}$):** แรงที่เกิดจากแรงตึงผิว กระทำต่อพื้นผิวรอยต่อในทิศทางตั้งฉาก
 
 > [!TIP] เงื่อนไขขอบเขต
 > - สำหรับ **hydrophilic surface** ($\theta < 90°$): ของเหลวกระจายตัวบนผิว
@@ -202,21 +239,27 @@ $$\mathbf{F}_{vm} = C_{vm} \alpha_d \rho_c \left( \frac{D\mathbf{u}_c}{Dt} - \fr
 
 ```cpp
 // Interfacial momentum transfer in multiphaseEulerFoam
-
-// Drag force
+// Calculate drag coefficient from drag model
 volScalarField Kd = dragModel_->K();
-
-// Lift force
+// Calculate lift force from lift model
 volVectorField Flift = liftModel_->F();
-
-// Virtual mass
+// Get virtual mass coefficient
 volScalarField Cvm = virtualMassModel_->Cvm();
-
-// Total interfacial momentum transfer
+// Total interfacial momentum transfer combining all forces
 return Kd * (phase2_.U() - phase1_.U())
      + Flift
      + Cvm * rho1_ * (DDt(phase2_.U()) - DDt(phase1_.U()));
 ```
+
+**📂 แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/BlendedInterfacialModel/BlendedInterfacialModel.C`
+
+**คำอธิบาย (Explanation):** โค้ดนี้แสดงการคำนวณการถ่ายโอนโมเมนตัมระหว่างเฟส (interfacial momentum transfer) ใน solver multiphaseEulerFoam โดยรวมแรงลาก แรงยก และแรงมวลเสมือนเข้าด้วยกัน แต่ละแรงถูกคำนวณจากโมเดลที่เหมาะสมและรวมเข้าเป็นแรงระหว่างเฟสทั้งหมด
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Drag Force:** แรงต้านทานการเคลื่อนที่สัมพัทธ์ระหว่างเฟส ขึ้นกับความเร็วสัมพัทธ์และสัมประสิทธิ์แรงลาก
+- **Lift Force:** แรงในแนวข้างที่เกิดจากการไล่ระดับความเร็ว (shear) ในเฟสต่อเนื่อง
+- **Virtual Mass Force:** แรงเสมือนที่เกิดจากการเร่งของไหลรอบๆ อนุภาค สำคัญเมื่อความหนาแน่นของเฟสต่างกันมาก
+- **Blended Interfacial Model:** โมเดลที่ผสมผสานการคำนวณแรงระหว่างเฟสในสถานการณ์ต่างๆ (dispersed, segregated)
 
 ---
 
@@ -299,42 +342,71 @@ $$\dot{m}_{ij}(h_j - h_i) + \langle k_i \nabla T_i - k_j \nabla T_j \rangle \cdo
 ### การตั้งค่า Surface Tension ใน `constant/transportProperties`
 
 ```cpp
-// Surface tension coefficient
+// Surface tension coefficient [N/m]
 sigma   sigma [0 2 -2 0 0 0 0] 0.07;
-
-// Contact angle
+// Equilibrium contact angle [degrees]
 theta0  theta0 [0 0 0 0 0 0 0] 60;
-
-// Interface smoothing parameters
+// Interface smoothing parameter for numerical stability [m]
 deltaN  deltaN [0 0 1 0 0 0 0] 1e-6;
 ```
+
+**📂 แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/BlendedInterfacialModel/BlendedInterfacialModel.C`
+
+**คำอธิบาย (Explanation):** การตั้งค่าค่าคงที่ทางกายภาพที่เกี่ยวข้องกับแรงตึงผิวในไฟล์ `transportProperties` โดยมีค่าสัมประสิทธิ์แรงตึงผิว (sigma) มุมสัมผัสสมดุล (theta0) และพารามิเตอร์การทำให้เรียบของพื้นผิวรอยต่อ (deltaN) เพื่อเพิ่มเสถียรภาพเชิงตัวเลข
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Surface Tension Coefficient ($\sigma$):** ค่าแรงตึงผิวของของไหล หน่วย [N/m] ใช้ในสมการ Young-Laplace และการคำนวณแรงตึงผิว
+- **Contact Angle ($\theta_0$):** มุมสัมผัสสมดุลที่ผนัง ใช้กำหนดเงื่อนไขขอบเขตการเปียก
+- **Interface Smoothing ($\delta_N$):** พารามิเตอร์เล็กน้อยที่ใช้ป้องกันปัญหาการหารด้วยศูนย์เมื่อคำนวณเวกเตอร์หน่วยปกติ
 
 ### การคำนวณใน Solver
 
 ```cpp
-// Interface properties
+// Get interface properties from the fluid model
 volScalarField sigma = fluid.sigma();
 volScalarField kappa = fluid.kappa();
-
-// Surface tension force
+// Calculate surface tension force using CSF model
 volVectorField Fst = sigma * kappa * fvc::grad(alpha);
-
-// Add to momentum equation
+// Add surface tension force to momentum equation
 UEqn += Fst;
 ```
+
+**📂 แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/BlendedInterfacialModel/BlendedInterfacialModel.C`
+
+**คำอธิบาย (Explanation):** การคำนวณแรงตึงผิวใน solver โดยเริ่มจากการรับค่าสัมประสิทธิ์แรงตึงผิวและความโค้งจากโมเดลของไหล จากนั้นคำนวณแรงตึงผิวโดยใช้แบบจำลอง Continuum Surface Force (CSF) และเพิ่มแรงนี้ลงในสมการโมเมนตัม
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Fluid Properties:** การรับค่าคุณสมบัติของของไหลเช่นแรงตึงผิวและความโค้งจากโมเดล
+- **CSF Force Calculation:** การคำนวณแรงตึงผิวเป็นแรงต่อหน่วยปริมาตรเพื่อใส่ในสมการโมเมนตัม
+- **Momentum Equation:** สมการโมเมนตัมที่รวมแรงตึงผิวเข้าไปเป็น source term
 
 ### เงื่อนไขขอบเขตสำหรับ Contact Angle
 
 ```cpp
 wall
 {
+    // Type of boundary condition for dynamic contact angle
     type            dynamicAlphaContactAngle;
-    theta0          60;        // Static contact angle
-    uTheta          0.5;       // Dynamic contact angle parameter
+    // Static/equilibrium contact angle in degrees
+    theta0          60;
+    // Dynamic contact angle parameter
+    uTheta          0.5;
+    // Gradient limitation method for stability
     limit           gradient;
+    // Initial uniform value
     value           uniform 0;
 }
 ```
+
+**📂 แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/BlendedInterfacialModel/BlendedInterfacialModel.C`
+
+**คำอธิบาย (Explanation):** การตั้งค่าเงื่อนไขขอบเขตสำหรับมุมสัมผัสแบบไดนามิกที่ผนัง โดยใช้ `dynamicAlphaContactAngle` เพื่อให้มุมสัมผัสเปลี่ยนตามความเร็วของเส้นสัมผัส ค่า `theta0` คือมุมสัมผัสสมดุล และ `uTheta` คือพารามิเตอร์ที่ควบคุมการเปลี่ยนแปลงของมุมสัมผัสแบบไดนามิก
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Dynamic Contact Angle:** มุมสัมผัสที่เปลี่ยนตามความเร็วของเส้นสัมผัส ตามกฎ Hoffman-Voinov-Tanner
+- **Static Contact Angle ($\theta_0$):** มุมสัมผัสสมดุลเมื่อเส้นสัมผัสอยู่นิ่ง
+- **Dynamic Parameter ($u_\theta$):** พารามิเตอร์ที่ควบคุมอัตราการเปลี่ยนของมุมสัมผัสตามความเร็ว
+- **Numerical Stability:** การจำกัดเกรเดียนต์ช่วยเพิ่มเสถียรภาพเชิงตัวเลขในการจำลอง
 
 ---
 

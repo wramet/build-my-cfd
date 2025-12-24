@@ -129,6 +129,23 @@ forAll(fluidRegions, i)
 }
 ```
 
+#### 📂 Source: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+#### คำอธิบาย (Explanation):
+
+โค้ดนี้แสดงการใช้งาน **Multi-Region Framework** ของ OpenFOAM สำหรับการจำลอง CHT (Conjugate Heat Transfer) ซึ่งเป็นเทคนิคในการแก้ปัญหาการถ่ายเทความร้อนระหว่างของไหลและของแข็งพร้อมกัน โดยมีแนวคิดหลักดังนี้:
+
+1. **PtrList<fvMesh>**: ใช้ Pointer List ในการเก็บ mesh ของแต่ละ region (fluid/solid) แยกกัน ทำให้แต่ละ region มี mesh และ boundary conditions ของตัวเอง
+
+2. **Region-specific fields**: ฟิลด์อุณหภูมิ (T) ถูกสร้างแยกกันสำหรับแต่ละ region ชื่อฟิลด์สามารถซ้ำกันได้เนื่องจากอยู่คนละ registry
+
+3. **Interface coupling**: ใช้ mapped boundary conditions ในการส่งผ่านค่าอุณหภูมิและ flux ระหว่าง interfaces โดยตรง
+
+#### Key Concepts:
+- **Region-based mesh management**: แต่ละภูมิภาค (fluid/solid) มีเมชของตัวเอง
+- **Patch-to-patch mapping**: การส่งผ่านข้อมูลระหว่าง boundaries
+- **Coupled boundaries**: boundaries ที่เชื่อมต่อกันระหว่าง regions
+
 #### Key Features
 
 | Feature | Description | Benefit |
@@ -206,6 +223,21 @@ while (t < endTime)
 }
 ```
 
+#### คำอธิบาย (Explanation):
+
+โค้ดนี้แสดงอัลกอริทึม **Partitioned FSI Solver** ซึ่งเป็นวิธีการแก้ปัญหา Fluid-Structure Interaction โดยแยกการแก้ปัญหาของฟิสิกส์แต่ละชนิดออกจากกัน แล้วทำการวนลูปเพื่อให้บรรลุการจับคู่ (coupling) ที่ละเอียดถี่ถ้วน (converged):
+
+1. **Segregated solving**: แต่ละ physics ถูกแก้ปัญหาแยกกันโดยใช้ solvers เฉพาะทาง (fluidSolver/solidSolver) ทำให้สามารถใช้ solvers ที่มีอยู่แล้วได้
+
+2. **Interface data transfer**: การส่งผ่านข้อมูล (fluid stresses → solid loads, solid displacement → mesh deformation) เกิดขึ้นที่ interface boundaries
+
+3. **Convergence checking**: ต้องตรวจสอบว่า coupling ได้บรรลุการลู่เข้า (converged) ก่อนที่จะไปยัง time step ถัดไป
+
+#### Key Concepts:
+- **Partitioned approach**: การแยกการแก้ปัญหาของแต่ละ physics
+- **Interface boundary conditions**: เงื่อนไขขอบเขตที่ใช้ในการส่งผ่านข้อมูล
+- **Coupling convergence**: การตรวจสอบว่าได้บรรลุการลู่เข้าของการจับคู่
+
 #### Monolithic Approach
 
 Block coupled system assembly:
@@ -256,7 +288,6 @@ graph TD
 ```
 > **Figure 1:** แผนภาพแสดงสถาปัตยกรรมการจัดการฟิลด์แบบแยกภูมิภาค (Region-wise Field Management) ใน OpenFOAM ซึ่งช่วยให้สามารถบริหารจัดการเมชและข้อมูลทางฟิสิกส์ที่แตกต่างกันในหลายโดเมนคำนวณพร้อมกันได้อย่างมีประสิทธิภาพ
 
-
 ### Key Components
 
 #### Region-Specific Field Registration
@@ -277,6 +308,23 @@ volScalarField T_solid
 );
 ```
 
+#### 📂 Source: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+#### คำอธิบาย (Explanation):
+
+โค้ดนี้แสดงการสร้างฟิลด์แบบ **Region-Specific** ซึ่งเป็นแนวคิดสำคัญใน OpenFOAM สำหรับจัดการ fields ใน multi-physics simulations:
+
+1. **IOobject construction**: ใช้ IOobject ในการกำหนด properties ของ field รวมถึงการระบุ registry ที่จะใช้ (objectRegistry)
+
+2. **Independent registries**: แต่ละ region (solidMesh, fluidMesh) มี objectRegistry ของตัวเอง ทำให้สามารถมี fields ชื่อเดียวกันใน regions ต่างกันได้โดยไม่เกิดการชนกัน (naming conflicts)
+
+3. **Field lifecycle**: MUST_READ/AUTO_WRITE ระบุว่า field จะถูกอ่านจาก disk และเขียนกลับโดยอัตโนมัติเมื่อ save
+
+#### Key Concepts:
+- **Object Registry**: ระบบการจัดการ fields แบบแยกตาม regions
+- **Field naming**: สามารถใช้ชื่อเดียวกันใน regions ต่างกันได้
+- **IOobject flags**: การควบคุมการ read/write ของ fields
+
 #### Interface Communication
 
 ```cpp
@@ -296,6 +344,21 @@ AMI.interpolateToSource
     solidT
 );
 ```
+
+#### 📂 Source: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+#### คำอธิบาย (Explanation):
+
+โค้ดนี้แสดงสองวิธีในการสื่อสารข้อมูลระหว่าง interfaces ใน multi-region simulations:
+
+1. **Direct mapping (Conformal meshes)**: เมื่อ meshes ของทั้งสอง regions มี faces ที่ตรงกันพอดี (conformal) สามารถ copy ค่าโดยตรงจาก fluid patch ไปยัง solid patch โดยใช้ loop forAll ผ่านทุก face
+
+2. **AMI interpolation (Non-conformal meshes)**: เมื่อ meshes ไม่ตรงกัน ใช้ AMI (Arbitrary Mesh Interface) ในการ interpolate ค่าระหว่าง patches ที่มี geometries ต่างกัน
+
+#### Key Concepts:
+- **Conformal vs. Non-conformal meshes**: ความสัมพันธ์ของ meshes ระหว่าง regions
+- **Patch-to-patch mapping**: การส่งผ่านข้อมูลระหว่าง boundary patches
+- **AMI interpolation**: อัลกอริทึม interpolation สำหรับ meshes ที่ไม่ตรงกัน
 
 ### Benefits of Region-Wise Management
 
@@ -343,6 +406,23 @@ scalar relaxationFactor = 0.7;
 T_new = (1 - relaxationFactor) * T_old + relaxationFactor * T_calculated;
 ```
 
+#### 📂 Source: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+#### คำอธิบาย (Explanation):
+
+โค้ดนี้แสดงการใช้ **Under-Relaxation** เทคนิคที่สำคัญในการรับประกันเสถียรภาพของ coupled problems:
+
+1. **Relaxation formula**: สมการ $\phi^{n+1} = (1-\alpha) \phi^n + \alpha \phi^{*}$ ใช้ค่า weighted average ระหว่างค่าเก่า ($\phi^n$) และค่าใหม่ที่คำนวณได้ ($\phi^{*}$) เพื่อลดการเปลี่ยนแปลงขนาดใหญ่ระหว่าง iterations
+
+2. **Relaxation factor**: ค่า $\alpha$ ปกติอยู่ที่ 0.3-0.7 ค่าที่ต่ำกว่าทำให้ลู่เข้าช้าแต่มีเสถียรภาพมากขึ้น ค่าที่สูงกว่าทำให้ลู่เข้าเร็วแต่อาจไม่เสถียร
+
+3. **Implementation**: ใน OpenFOAM นิยมใช้ under-relaxation สำหรับ fields ที่มีการ coupling แรง เช่น อุณหภูมิใน CHT หรือ displacement ใน FSI
+
+#### Key Concepts:
+- **Under-relaxation**: เทคนิคการลดการเปลี่ยนแปลงระหว่าง iterations
+- **Relaxation factor**: ปัจจัยที่ควบคุมความเร็วในการลู่เข้า
+- **Numerical stability**: ความเสถียรของการแก้ปัญหาเชิงตัวเลข
+
 #### Aitken's Δ² Acceleration
 
 Dynamic relaxation factor adaptation:
@@ -365,6 +445,23 @@ if (residual < couplingTolerance)
     break;  // Coupling converged
 }
 ```
+
+#### 📂 Source: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+#### คำอธิบาย (Explanation):
+
+โค้ดนี้แสดงการตรวจสอบ **Coupling Convergence** ซึ่งเป็นสิ่งสำคัญใน iterative coupling algorithms:
+
+1. **Residual calculation**: คำนวณค่า residual จากค่าสัมบูรณ์ของความต่างระหว่างค่าปัจจุบันและค่าใน time step ก่อนหน้า (oldTime) ที่ interface
+
+2. **Convergence criterion**: เมื่อ residual ต่ำกว่า tolerance ที่กำหนด (couplingTolerance) ถือว่า coupling ได้บรรลุการลู่เข้าและสามารถหยุดการวนซ้ำได้
+
+3. **Max operator**: ใช้ค่าสูงสุดบนทั้ง interface เพื่อรับประกันว่าทุกจุดได้บรรลุการลู่เข้า
+
+#### Key Concepts:
+- **Coupling residual**: ความต่างระหว่าง iterations
+- **Convergence criterion**: เงื่อนไขในการหยุดการวนซ้ำ
+- **Interface checking**: การตรวจสอบที่ interface boundaries
 
 ---
 
@@ -405,6 +502,23 @@ if (maxRelError < 1e-6)
     Info << "Heat flux continuity verified: " << maxRelError << endl;
 }
 ```
+
+#### 📂 Source: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+#### คำอธิบาย (Explanation):
+
+โค้ดนี้แสดงการ **Verification ของ Interface Heat Flux Continuity** ซึ่งเป็นสิ่งสำคัญในการตรวจสอบความถูกต้องของ CHT simulations:
+
+1. **Heat flux calculation**: คำนวณ heat flux ที่ interface สำหรับทั้ง fluid ($q_f = -k_f \partial T_f/\partial n$) และ solid ($q_s = -k_s \partial T_s/\partial n$) โดยใช้ conductivity ($k$) และ temperature gradient ($\nabla T$)
+
+2. **Continuity check**: ตามหลักการ conservation of energy ที่ interface ความร้อนที่ไหลออกจาก fluid ต้องเท่ากับความร้อนที่ไหลเข้า solid ($q_f = -q_s$)
+
+3. **Relative error**: คำนวณค่า relative error ระหว่าง heat flux ทั้งสอง หากต่ำกว่า $10^{-6}$ ถือว่าผ่านการตรวจสอบ
+
+#### Key Concepts:
+- **Heat flux continuity**: ความต่อเนื่องของ heat flux ที่ interface
+- **Conservation verification**: การตรวจสอบหลักการ conservation
+- **Relative error**: ค่าความคลาดเคลื่อนสัมพัทธ์
 
 ### Analytical Benchmarks
 

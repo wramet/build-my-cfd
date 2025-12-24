@@ -26,7 +26,7 @@
 
 ## พื้นฐานทางคณิตศาสตร์ของ Boundary Conditions
 
-สำหรับตัวแปร Field ทั่วไป $\phi$, Boundary Condition สามารถแบ่งออกได้เป็นสามประเภททางคณิตศาสตร์หลักๆ
+สำหรับตัวแปร Field ทั่วไป $\phi$, Boundary Condition สามารถแบ่งออกได้เป็นสามประเภททางคณิตศาสตมหลักๆ
 
 ---
 
@@ -61,6 +61,20 @@ boundaryField
     }
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/fixedMultiPhaseHeatFlux/fixedMultiPhaseHeatFluxFvPatchScalarField.H`
+
+> **📖 คำอธิบาย:**
+> โค้ดด้านบนสาธิตการใช้งาน `fixedValue` boundary condition ในรูปแบบไฟล์ Dictionary ของ OpenFOAM ซึ่งเป็นวิธีการระบุค่าขอบเขตแบบ Dirichlet โดยตรง
+>
+> **รายละเอียด:**
+> - **Patch "inlet"**: กำหนดความเร็วคงที่ 10 m/s ในทิศทาง x สำหรับขาเข้าของไหล
+> - **Patch "wallTemperature"**: กำหนดอุณหภูมิคงที่ 300 K บนผนัง
+>
+> **แนวคิดสำคัญ:**
+> - `type` ระบุประเภทของ boundary condition
+> - `value` กำหนดค่าคงที่ที่ต้องการบังคับใช้
+> - `uniform` หมายถึงค่าเดียวกันบนพื้นที่ patch ทั้งหมด
 
 **เงื่อนไขเหล่านี้มักใช้สำหรับ:**
 
@@ -100,6 +114,20 @@ boundaryField
     }
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/fixedMultiPhaseHeatFlux/fixedMultiPhaseHeatFluxFvPatchScalarField.C`
+
+> **📖 คำอธิบาย:**
+> โค้ดนี้แสดงการใช้งาน `fixedGradient` boundary condition ซึ่งเป็นการนำ Neumann condition มาใช้ใน OpenFOAM
+>
+> **รายละเอียด:**
+> - **Patch "outlet"**: กำหนด gradient เป็นศูนย์ (0,0,0) สำหรับการไหลที่พัฒนาเต็มที่
+> - **Patch "heatFluxWall"**: กำหนด heat flux 1000 W/m² ผ่าน gradient ของอุณหภูมิ
+>
+> **แนวคิดสำคัญ:**
+> - `fixedGradient` คือการกำหนดความชันของตัวแปรในทิศทาง normal
+> - Gradient เป็นศูนย์หมายถึงไม่มีการเปลี่ยนแปลงของค่าตัวแปรขณะผ่านขอบเขต
+> - ในปัญหา heat transfer, gradient ของอุณหภูมิสัมพันธ์กับ heat flux ผ่านกฎของ Fourier
 
 **เงื่อนไข Zero Gradient (`zeroGradient`) มีความสำคัญอย่างยิ่งสำหรับ:**
 
@@ -144,6 +172,22 @@ boundaryField
     }
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatPhaseJayatillekeWallFunction/alphatPhaseJayatillekeWallFunctionFvPatchScalarField.C`
+
+> **📖 คำอธิบาย:**
+> โค้ดนี้แสดงการใช้งาน `mixed` boundary condition ซึ่งเป็นการนำ Robin condition มาประยุกต์ใช้ใน OpenFOAM
+>
+> **รายละเอียด:**
+> - **Patch "convectiveWall"**: จำลองการถ่ายเทความร้อนแบบ convection ผสมระหว่างการกำหนดค่าและ gradient
+> - `refGradient`: ค่า gradient อ้างอิง (เช่น สำหรับกรณี adiabatic)
+> - `refValue`: ค่า field อ้างอิง (เช่น อุณหภูมิผนัง)
+> - `valueFraction`: สัมประสิทธิ์การถ่วงน้ำหนัก (0-1)
+>
+> **แนวคิดสำคัญ:**
+> - `valueFraction = 1`: ลดรูปเป็น Dirichlet condition (fixedValue)
+> - `valueFraction = 0`: ลดรูปเป็น Neumann condition (fixedGradient)
+> - ค่าระหว่าง 0-1: ผสมสองเงื่อนไขเข้าด้วยกันแบบถ่วงน้ำหนัก
 
 พารามิเตอร์ `valueFraction` ควบคุลการถ่วงน้ำหนัก:
 
@@ -232,6 +276,22 @@ addToRunTimeSelectionTable
 );
 ```
 
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatWallBoilingWallFunction/alphatWallBoilingWallFunctionFvPatchScalarField.C`
+
+> **📖 คำอธิบาย:**
+> โค้ดนี้แสดงกลไก Runtime Selection Table ที่ทำให้ OpenFOAM สามารถเลือก boundary condition จากไฟล์ dictionary ได้โดยไม่ต้องคอมไพล์ใหม่
+>
+> **รายละเอียด:**
+> - `fvPatchScalarField`: คลาสฐานสำหรับ field ชนิด scalar ที่ขอบเขต
+> - `fixedValueFvPatchField`: คลาส derived ที่ลงทะเบียนเข้าสู่ระบบ
+> - `dictionary`: ระบุว่าสามารถเลือกผ่านไฟล์ dictionary ได้
+>
+> **แนวคิดสำคัญ:**
+> - **Runtime Selection**: เลือก BC ระหว่าง runtime ไม่ใช่ compile-time
+> - **Polymorphism**: ใช้คุณสมบัติ polymorphism ของ OOP
+> - **Extensibility**: ผู้ใช้สามารถเพิ่ม BC ใหม่ได้โดยไม่แก้ไข core code
+> - **Dictionary-driven**: การตั้งค่าผ่านไฟล์ข้อความที่อ่านง่าย
+
 รูปแบบการออกแบบนี้ช่วยให้สามารถ:
 
 *   **การเลือกแบบไดนามิก (Dynamic selection)**: Boundary Condition สามารถเปลี่ยนแปลงได้ขณะรันไทม์
@@ -276,6 +336,23 @@ boundaryField
 }
 ```
 
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/JohnsonJacksonParticleTheta/JohnsonJacksonParticleThetaFvPatchScalarField.C`
+
+> **📖 คำอธิบาย:**
+> โค้ดนี้แสดงการใช้งาน Wall Function สำหรับจำลอง turbulence บริเวณใกล้ผนังใน OpenFOAM
+>
+> **รายละเอียด:**
+> - `type = nutkWallFunction`: ใช้ k-epsilon wall function
+> - `Cmu = 0.09`: ค่าคงที่ในโมเดล k-epsilon turbulence
+> - `kappa = 0.41`: ค่าคงที่ von Kármán สำหรับ velocity profile
+> - `E = 9.8`: ค่าคงที่ใน logarithmic law of the wall
+>
+> **แนวคิดสำคัญ:**
+> - **Wall Function**: ลดข้อกำหนดความละเอียด mesh บริเวณใกล้ผนัง
+> - **y+ criteria**: ต้องคำนึงถึงค่า y+ ที่เหมาะสม (30 < y+ < 300)
+> - **Log-law region**: ใช้งานได้ดีในบริเวณ logarithmic layer
+> - **Computational efficiency**: ลดจำนวนเซลล์ที่ต้องการสำหรับ boundary layer
+
 #### Pressure Boundary Conditions
 
 เงื่อนไขความดันมักเกี่ยวข้องกับการคำนวณโดยอิงจาก Velocity Field หรือตัวแปรที่เชื่อมโยงอื่นๆ
@@ -297,6 +374,20 @@ boundaryField
     }
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/fixedMultiPhaseHeatFlux/fixedMultiPhaseHeatFluxFvPatchScalarField.H`
+
+> **📖 คำอธิบาย:**
+> การตั้งค่า boundary condition สำหรับความดันในกรณีการไหลแบบ incompressible
+>
+> **รายละเอียด:**
+> - **Inlet**: `zeroGradient` สำหรับ pressure เมื่อ velocity ถูกกำหนดด้วย fixedValue
+> - **Outlet**: `fixedValue` กำหนด reference pressure (โดยปกติเป็น 0 สำหรับ gauge pressure)
+>
+> **แนวคิดสำคัญ:**
+> - **Pressure-velocity coupling**: ความสัมพันธ์ระหว่าง pressure และ velocity BC
+> - **Gauge pressure**: ใช้ความดันสัมพัทธ์ไม่ใช่ absolute pressure
+> - **Reference pressure**: ต้องมีจุดอ้างอิงหนึ่งจุดเพื่อกำหนดระดับ pressure
 
 ---
 
@@ -322,6 +413,21 @@ boundaryField
 }
 ```
 
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatWallBoilingWallFunction/alphatWallBoilingWallFunctionFvPatchScalarField.C`
+
+> **📖 คำอธิบาย:**
+> การใช้งาน time-varying boundary condition ผ่าน table data
+>
+> **รายละเอียด:**
+> - `uniformFixedValue`: BC ที่เปลี่ยนแปลงตามเวลาแต่สม่ำเสมอใน space
+> - `table`: ระบุค่าที่ต่างเวลาต่างๆ (time, value)
+> - Interpolation ระหว่างค่าใน table จะถูกทำอัตโนมัติ
+>
+> **แนวคิดสำคัญ:**
+> - **Temporal variation**: ค่าขอบเขตเปลี่ยนตามเวลา
+> - **Linear interpolation**: ค่าระหว่าง data points จะถูก interploate
+> - **Experimental data**: สามารถใช้ข้อมูลจากการทดลองได้โดยตรง
+
 #### ฟังก์ชันทางคณิตศาสตร์ (Mathematical Functions)
 
 ```cpp
@@ -341,6 +447,22 @@ boundaryField
     }
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/JohnsonJacksonParticleTheta/JohnsonJacksonParticleThetaFvPatchScalarField.C`
+
+> **📖 คำอธิบาย:**
+> การใช้งาน `codedFixedValue` เพื่อสร้าง time-dependent BC ด้วยฟังก์ชันคณิตศาสตร์
+>
+> **รายละเอียด:**
+> - `codedFixedValue`: BC ที่ผู้ใช้เขียนโค้ด C++ กำหนดเอง
+> - `this->db().time().value()`: ดึงค่าเวลาปัจจุบันจาก solver
+> - สมการพัลเสต: velocity = (1.0 + 0.5*sin(2π*0.1*t), 0, 0)
+>
+> **แนวคิดสำคัญ:**
+> - **User-defined functions**: เขียนสมการได้ตามต้องการ
+> - **Just-in-time compilation**: โค้ดจะถูกคอมไพล์เมื่อเริ่ม simulation
+> - **Mathematical expressions**: ใช้ฟังก์ชันทางคณิตศาสตร์ได้ (sin, cos, exp, etc.)
+> - **Flexibility**: สามารถสร้าง BC ที่ซับซ้อนได้มาก
 
 ---
 
@@ -367,6 +489,21 @@ boundaryField
 }
 ```
 
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/fixedMultiPhaseHeatFlux/fixedMultiPhaseHeatFluxFvPatchScalarField.H`
+
+> **📖 คำอธิบาย:**
+> การตั้งค่า cyclic boundary condition สำหรับโดเมนที่มีความสมมาตร
+>
+> **รายละเอียด:**
+> - `cyclic1` และ `cyclic2`: patch คู่ที่เชื่อมต่อกัน
+> - Field values จะถูก copy จาก patch หนึ่งไปอีก patch หนึ่ง
+> - ใช้สำหรับ rotational symmetry หรือ periodic domains
+>
+> **แนวคิดสำคัญ:**
+> - **Periodic boundaries**: จำลองโดเมนที่ต่อเนื่องกันเป็นวง
+> - **Computational efficiency**: ลดขนาดโดเมนที่ต้องจำลอง
+> - **Geometric transformation**: รองรับการแปลง (rotation, translation) ระหว่าง patches
+
 สำหรับ Field $\phi$ ที่ใช้กับ Cyclic Boundary Conditions:
 $$\phi_{\text{patch A}}(\mathbf{x}) = \phi_{\text{patch B}}(\mathbf{T}(\mathbf{x}))$$
 
@@ -390,6 +527,23 @@ boundaryField
     }
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatWallBoilingWallFunction/alphatWallBoilingWallFunctionFvPatchScalarField.C`
+
+> **📖 คำอธิบาย:**
+> การตั้งค่า processor boundary condition สำหรับ parallel computing
+>
+> **รายละเอียด:**
+> - `processor`: BC สำหรับ decomposed domains
+> - `myProcessNo`: ID ของ processor ปัจจุบัน
+> - `neighbProcessNo`: ID ของ processor ข้างเคียง
+> - MPI ใช้สื่อสารข้อมูลระหว่าง processors
+>
+> **แนวคิดสำคัญ:**
+> - **Domain decomposition**: แบ่งโดเมนเป็นส่วนๆ สำหรับ parallel processing
+> - **MPI communication**: ใช้ MPI (Message Passing Interface) ในการส่งข้อมูล
+> - **Automatic handling**: OpenFOAM สร้าง processor BCs อัตโนมัติเมื่อ decompose
+> - **Load balancing**: แบ่ง workload ระหว่าง processors อย่างสมดุล
 
 ---
 
@@ -464,7 +618,7 @@ boundaryField
 
 1. **การเลือก Boundary Condition ที่เหมาะสม** สำคัญต่อความแม่นยำและความเสถียรของ CFD Simulations
 
-2. **การจำแนกเป็น Dirichlet, Neumann, และ Robin** เป็นกรอบทางคณิตศาสตร์ที่รับประกัน Well-Posed Problems
+2. **การจำแนกเป็น Dirichlet, Neumann, และ Robin** เป็นกรอบทางคณิตศาสตมที่รับประกัน Well-Posed Problems
 
 3. **การประยุกต์ใช้ใน OpenFOAM** ต้องคำนึงถึง Physical Meaning และ Numerical Stability
 

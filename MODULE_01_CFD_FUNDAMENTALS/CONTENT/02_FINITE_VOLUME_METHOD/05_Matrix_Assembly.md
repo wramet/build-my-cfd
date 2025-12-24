@@ -30,7 +30,7 @@ $$\frac{\partial (\rho \phi)}{\partial t} + \nabla \cdot (\rho \mathbf{u} \phi) 
 
 ### กระบวนการ Discretization
 
-เมื่ออินทิเกรตเหนือ Control Volume $V_P$ และประยุกต์ใช้ **Gauss Divergence Theorem**:
+เมื่ออินทิกรัลเหนือ Control Volume $V_P$ และประยุกต์ใช้ **Gauss Divergence Theorem**:
 
 $$\int_{V_P} \frac{\partial (\rho \phi)}{\partial t} \, \mathrm{d}V + \int_{\partial V_P} (\rho \mathbf{u} \phi) \cdot \mathbf{n} \, \mathrm{d}S = \int_{\partial V_P} (\Gamma \nabla \phi) \cdot \mathbf{n} \, \mathrm{d}S + \int_{V_P} S_\phi \, \mathrm{d}V$$
 
@@ -195,6 +195,7 @@ graph TD
 การสร้างเมทริกซ์จริงใน OpenFOAM เป็นไปตามอัลกอริทึมที่เป็นระบบ:
 
 ```cpp
+// Loop over all cells in the mesh
 for (label cell = 0; cell < nCells; cell++)
 {
     // Initialize diagonal coefficient
@@ -244,6 +245,18 @@ for (label cell = 0; cell < nCells; cell++)
     matrix.setSource(cell, b_P);
 }
 ```
+
+**คำอธิบาย:**
+- **ขั้นตอนการประกอบเมทริกซ์**: โค้ดแสดงกระบวนการวนซ้ำผ่านทุกเซลล์ใน Mesh เพื่อสร้างสัมประสิทธิ์เมทริกซ์
+- **การจัดการ Internal Face**: สำหรับหน้าภายใน (internal faces) จะมีการคำนวณสัมประสิทธิ์ที่เชื่อมโยงระหว่างเซลล์ปัจจุบันกับเซลล์เพื่อนบ้าน ทั้งในส่วนของสัมประสิทธิ์แนวทแยง (diagonal) และนอกแนวทแยง (off-diagonal)
+- **การจัดการ Boundary Face**: สำหรับหน้าขอบ (boundary faces) จะมีการเพิ่มเฉพาะสัมประสิทธิ์แนวทแยงและเวกเตอร์แหล่งกำเนิด (source vector) โดยใช้ค่าขอบเขต (boundary values)
+- **การเก็บข้อมูลเมทริกซ์**: หลังจากคำนวณสัมปราสิทธิ์ทั้งหมดแล้ว จะถูกเก็บในโครงสร้างเมทริกซ์แบบ Sparse เพื่อให้การแก้ปัญหามีประสิทธิภาพ
+
+**แนวคิดสำคัญ:**
+- **Sparse Matrix Structure**: เมทริกซ์ที่เกิดจาก Finite Volume Method มีโครงสร้างแบบ Sparse เนื่องจากแต่ละเซลล์เชื่อมโยงเฉพาะกับเซลล์เพื่อนบ้านโดยตรงเท่านั้น
+- **Face-based Assembly**: การประกอบเมทริกซ์พื้นฐานอยู่ที่การวนซ้ำผ่านทุกหน้า (faces) ของเซลล์ และคำนวณ Flux ที่ผ่านแต่ละหน้า
+- **Coefficient Calculation**: สัมประสิทธิ์ที่คำนวณได้จากแต่ละหน้าจะถูกแบ่งเป็นส่วนที่เพิ่มขึ้นกับ Diagonal และ Off-diagonal ของเมทริกซ์
+- **Source Terms Integration**: เทอมแหล่งกำเนิด (source terms) จะถูกคำนวณและเพิ่มเข้ากับ Source Vector โดยคูณด้วยปริมาตรเซลล์
 
 ---
 
@@ -367,7 +380,7 @@ $$a_f = \rho_f \mathbf{u}_f \cdot \mathbf{S}_f + \frac{\Gamma_f A_f}{\delta_f} \
 โดยที่เครื่องหมายของเทอม Convective ขึ้นอยู่กับ:
 - ทิศทางการไหล
 - Upwind Scheme ที่ใช้
-![[Pasted image 20251223201626.png]]
+
 ---
 
 ## การนำ Boundary Condition ไปใช้
@@ -488,18 +501,34 @@ $$\frac{\partial \rho \mathbf{U}}{\partial t} + \nabla \cdot (\phi \mathbf{U}) -
 ### OpenFOAM Code Implementation
 
 ```cpp
+// Construct the momentum equation matrix
 fvVectorMatrix UEqn
 (
-    fvm::ddt(rho, U)                    // อนุพันธ์เชิงเวลาแบบ Implicit
-  + fvm::div(phi, U)                    // เทอมการพาแบบ Implicit
-  - fvm::laplacian(mu, U)               // เทอมการแพร่แบบ Implicit
+    fvm::ddt(rho, U)                    // Implicit temporal derivative
+  + fvm::div(phi, U)                    // Implicit convection term
+  - fvm::laplacian(mu, U)               // Implicit diffusion term
  ==
-    -fvc::grad(p)                       // เทอมความดันแบบ Explicit
+    -fvc::grad(p)                       // Explicit pressure gradient
 );
 
-UEqn.relax();                          // Relaxation สำหรับความเสถียร
-solve(UEqn == -fvc::grad(p));          // แก้ระบบสมการ
+// Apply under-relaxation for stability
+UEqn.relax();
+
+// Solve the momentum equation
+solve(UEqn == -fvc::grad(p));
 ```
+
+**คำอธิบาย:**
+- **การสร้างเมทริกซ์โมเมนตัม**: โค้ดแสดงการสร้างเมทริกซ์สมการโมเมนตัมที่มีทั้งเทอม Implicit (เชิงเวลา, การพา, การแพร่) และเทอม Explicit (เกรเดียนต์ความดัน)
+- **การปรับเปลี่ยน Implicit Terms**: ใช้ `fvm::` (finite volume method) สำหรับเทอมที่ต้องการให้ถูกจัดการแบบ Implicit ซึ่งจะถูกเพิ่มเข้าไปในเมทริกซ์สัมประสิทธิ์
+- **การปรับเปลี่ยน Explicit Terms**: ใช้ `fvc::` (finite volume calculus) สำหรับเทอมที่ถูกคำนวณแบบ Explicit และถูกเพิ่มเข้าไปใน Source Vector
+- **การผ่อนคลาย (Relaxation)**: การใช้ `UEqn.relax()` เพื่อเพิ่มความเสถียรของการแก้ปัญหาแบบวนซ้ำ โดยลดการเปลี่ยนแปลงของค่าโซลูชันระหว่างการวนซ้ำ
+- **การแก้สมการ**: ฟังก์ชัน `solve()` จะเรียกใช้ Solver เชิงเส้นที่เหมาะสมเพื่อหาผลเฉลยของระบบสมการ
+
+**แนวคิดสำคัญ:**
+- **Implicit vs Explicit Discretization**: การแยกแยะระหว่างเทอมที่ถูกจัดการแบบ Implicit (เพิ่มลงในเมทริกซ์) และ Explicit (เพิ่มลงใน Source Vector) เป็นสิ่งสำคัญสำหรับความเสถียรและประสิทธิภาพของการแก้ปัญหา
+- **Matrix Assembly Process**: กระบวนการประกอบเมทริกซ์รวมถึงการวนซ้ำผ่านทุกเซลล์ใน Mesh, การคำนวณสัมประสิทธิ์จาก Flux ผ่านหน้า (faces), และการจัดการ Boundary Conditions
+- **Solver Integration**: หลังจากประกอบเมทริกซ์แล้ว Solver เชิงเส้นจะถูกเรียกใช้เพื่อหาผลเฉลยของระบบสมการ โดยใช้วิธีการแบบวนซ้ำเช่น PCG, PBiCG, หรือ GMRES
 
 ### คลาสการทำให้เป็นส่วนย่อยหลัก
 
@@ -514,39 +543,68 @@ solve(UEqn == -fvc::grad(p));          // แก้ระบบสมการ
 ### ตัวอย่างการสร้างสมการ Energy
 
 ```cpp
+// Construct the energy equation matrix
 fvScalarMatrix TEqn
 (
-    rho*cp*fvm::ddt(T)           // Temporal derivative
-  + rho*cp*fvm::div(phi, T)       // Convection term
-  - fvm::laplacian(k, T)          // Diffusion term
+    rho*cp*fvm::ddt(T)           // Temporal derivative (implicit)
+  + rho*cp*fvm::div(phi, T)       // Convection term (implicit)
+  - fvm::laplacian(k, T)          // Diffusion term (implicit)
  ==
-    Q                              // Source term
+    Q                              // Source term (explicit)
 );
 
-TEqn.relax();                     // Under-relaxation
-solve(TEqn);                      // Solve the system
+// Apply under-relaxation for stability
+TEqn.relax();
+
+// Solve the energy equation system
+solve(TEqn);
 ```
+
+**คำอธิบาย:**
+- **การสร้างสมการพลังงาน**: โค้ดแสดงการสร้างเมทริกซ์สมการพลังงานสำหรับการแก้ปัญหาการถ่ายเทความร้อน
+- **Implicit Terms**: เทอมเชิงเวลา, การพา, และการแพร่ถูกจัดการแบบ Implicit โดยใช้ `fvm::` เพื่อให้ถูกเพิ่มเข้าไปในเมทริกซ์สัมปราสิทธิ์
+- **Explicit Source Term**: เทอมแหล่งกำเนิด (Q) ถูกจัดการแบบ Explicit โดยถูกเพิ่มเข้าไปใน Source Vector
+- **การผ่อนคลาย (Relaxation)**: การใช้ `TEqn.relax()` เพื่อเพิ่มความเสถียรของการแก้ปัญหา โดยลดการเปลี่ยนแปลงของอุณหภูมิระหว่างการวนซ้ำ
+- **การแก้สมการ**: ฟังก์ชัน `solve()` จะเรียกใช้ Solver เชิงเส้นเพื่อหาผลเฉลยของสมการพลังงาน
+
+**แนวคิดสำคัญ:**
+- **Energy Conservation**: สมการพลังงานประกอบด้วยเทอมเชิงเวลา, การพา, การแพร่ และเทอมแหล่งกำเนิด ซึ่งเป็นการแสดงหลักการอนุรักษ์พลังงาน
+- **Coupling with Flow Field**: สมการพลังงานมีความสัมพันธ์กับสมการโมเมนตัมและความต่อเนื่องผ่านตัวแปรความเจาะจง (rho), ความจุความร้อน (cp), และสัมประสิทธิ์การนำความร้อน (k)
+- **Temperature-Dependent Properties**: ในปัญหาที่ซับซ้อน คุณสมบัติของของไหลอาจขึ้นอยู่กับอุณหภูมิ ซึ่งจะส่งผลให้เกิดการเชื่อมโยงที่ไม่เชิงเส้นระหว่างสมการ
+- **Under-Relaxation Factor**: การปรับค่าสัมประสิทธิ์การผ่อนคลายเป็นสิ่งสำคัญสำหรับการรักษาความเสถียรของการแก้ปัญหาแบบวนซ้ำ โดยเฉพาะสำหรับปัญหาที่มีการเชื่อมโยงที่ซับซ้อน
 
 ### การจัดการ Source Term
 
 ```cpp
-// Add source term
+// Add source term to the equation
 UEqn += SU;
 
 // Apply under-relaxation
 UEqn.relax();
 
-// Semi-implicit source term
+// Semi-implicit source term handling
 fvScalarMatrix TEqn
 (
     rho*cp*fvm::ddt(T)
   + rho*cp*fvm::div(phi, T)
   - fvm::laplacian(k, T)
  ==
-    Q_explicit                    // Explicit source
-  + fvm::Sp(S_implicit, T)        // Semi-implicit source
+    Q_explicit                    // Explicit source term
+  + fvm::Sp(S_implicit, T)        // Semi-implicit source term
 );
 ```
+
+**คำอธิบาย:**
+- **การเพิ่ม Source Term แบบ Explicit**: การใช้ `UEqn += SU` เพื่อเพิ่ม Source Term แบบ Explicit ให้กับเมทริกซ์ ซึ่งจะถูกเพิ่มเข้าไปใน Source Vector
+- **การจัดการ Source Term แบบ Semi-Implicit**: การใช้ `fvm::Sp(S_implicit, T)` เพื่อจัดการ Source Term แบบ Semi-Implicit โดยเทอมที่ขึ้นกับตัวแปร T จะถูกเพิ่มเข้าไปในเมทริกซ์สัมประสิทธิ์ ในขณะที่ส่วนที่ไม่ขึ้นกับ T จะถูกเพิ่มเข้าไปใน Source Vector
+- **การผ่อนคลาย (Relaxation)**: การใช้ `UEqn.relax()` หลังจากเพิ่ม Source Term เพื่อเพิ่มความเสถียรของการแก้ปัญหา
+- **ประสิทธิภาพการแก้ปัญหา**: การจัดการ Source Term แบบ Semi-Implicit สามารถเพิ่มประสิทธิภาพและความเสถียรของการแก้ปัญหาได้ โดยเฉพาะสำหรับ Source Term ที่มีค่าสัมประสิทธิ์ขนาดใหญ่
+
+**แนวคิดสำคัญ:**
+- **Explicit vs Semi-Implicit Source Treatment**: การแยกแยะระหว่าง Source Term แบบ Explicit (เพิ่มลงใน Source Vector) และ Semi-Implicit (แบ่งเป็นส่วนที่เพิ่มในเมทริกซ์และ Source Vector) เป็นสิ่งสำคัญสำหรับความเสถียรของการแก้ปัญหา
+- **Linearization of Nonlinear Source Terms**: สำหรับ Source Term ที่ไม่เชิงเส้น การแบ่งเป็นส่วน Implicit และ Explicit สามารถช่วยในการ Linearization และเพิ่มความเสถียรของการแก้ปัญหา
+- **Source Term Linearization**: เทคนิค `fvm::Sp()` ใช้สำหรับการจัดการ Source Term แบบ Linearized โดยที่: $S(\phi) \approx S_{explicit} + S_{implicit} \cdot \phi$
+- **Convergence Improvement**: การจัดการ Source Term อย่างเหมาะสมสามารถปรับปรุงความเร็วในการลู่เข้าของการแก้ปัญหาแบบวนซ้ำได้อย่างมีนัยสำคัญ
 
 ---
 

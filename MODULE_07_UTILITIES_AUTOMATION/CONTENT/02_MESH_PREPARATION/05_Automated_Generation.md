@@ -120,7 +120,7 @@ class CaseGenerator:
         if not os.path.isabs(self.config['base_directory']):
             self.config['base_directory'] = os.path.abspath(self.config['base_directory'])
 
-        logger.info(f"Base case directory: {self.config['base_directory'])
+        logger.info(f"Base case directory: {self.config['base_directory']}")
 
     def generate_case(self, case_name: str, params: Dict[str, Any]) -> str:
         """

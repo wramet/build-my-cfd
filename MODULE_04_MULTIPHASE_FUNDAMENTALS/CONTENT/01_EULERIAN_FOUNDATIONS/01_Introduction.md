@@ -258,47 +258,79 @@ graph LR
 Solver หลักใช้กรอบการทำงานแบบ Eulerian-Eulerian:
 
 ```cpp
-// Phase system
+// Phase system initialization
 phaseSystem phaseModels(mesh, g);
 
 // Momentum equations for each phase
 fvVectorMatrix UEqn
 (
+    // Time derivative term: d/dt(alpha*rho*U)
     fvm::ddt(alpha, rho, U)
+    // Convective term: div(alpha*rho*phi*U)
   + fvm::div(alphaRhoPhi, U)
+    // Source term correction for mass conservation
   - fvm::Sp(fvc::ddt(alpha, rho) + fvc::div(alphaRhoPhi), U)
+    // Viscous stress term: div(devreff)
   + turbulence->divDevReff(RhoEff)
+    // Equality with source terms (fvOptions)
  ==
     fvOptions(alpha, rho, U)
 );
 
-// Interfacial momentum transfer
+// Interfacial momentum transfer (drag force)
 phaseSystem.Kd()*(U.otherPhase() - U)
 ```
+
+<details>
+<summary>📖 คำอธิบายโค้ด (Thai Explanation)</summary>
+
+**แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+**คำอธิบาย:**
+โค้ดด้านบนแสดงโครงสร้างหลักของการแก้สมการโมเมนตัมใน `multiphaseEulerFoam`:
+
+1. **Phase System Initialization**: สร้างออบเจกต์ `phaseSystem` เพื่อจัดการข้อมูลของทุกเฟสในระบบ รวมถึสมบัติทางกายภาพและการโต้ตอบระหว่างเฟส
+
+2. **Momentum Equation Assembly**: ประกอบสมการโมเมนตัมสำหรับแต่ละเฟส โดย:
+   - `fvm::ddt()`: เทอมอนุพันธ์เชิงเวลา (Temporal derivative)
+   - `fvm::div()`: เทอมคอนเวกชัน (Convection term)
+   - `fvm::Sp()`: เทอมแหล่งกำเนิดเชิงเส้น (Linear source term)
+   - `turbulence->divDevReff()`: เทอมความเค้นหนืดจากโมเดลความปั่นป่วน
+
+3. **Interfacial Momentum Transfer**: คำนวณการถ่ายโอนโมเมนตัมระหว่างเฟสผ่านสัมประสิทธิ์แรงฉุด `Kd()` และความเร็วสัมพัทธ์
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Finite Volume Method (FVM)**: ใช้การแทนค่า implicit (`fvm`) สำหรับเทอมในสมการเชิงเส้นเพื่อเสถียรภาพเชิงตัวเลข
+- **Phase-Coupled Solution**: สมการโมเมนตัมของทุกเฟสถูกแก้พร้อมกัน (coupled) เนื่องจากเทอมการถ่ายโอนโมเมนตัมระหว่างเฟส
+- **Turbulence Modeling**: ใช้ความเค้นหนืดที่มีประสิทธิภาพ (`devReff`) จากโมเดลความปั่นป่วนเฉพาะเฟส
+
+</details>
+
+---
 
 ### ตัวแปรสนามเฉพาะเฟส (Phase-Specific Field Variables)
 
 ```cpp
-// สนามสัดส่วนเฟส (Phase fraction field)
+// Phase fraction field (สนามสัดส่วนเฟส)
 volScalarField alpha_k
 (
     IOobject
     (
-        "alpha." + phase.name(),
-        runTime.timeName(),
-        mesh,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        "alpha." + phase.name(),  // Field name: alpha.phaseName
+        runTime.timeName(),        // Time directory
+        mesh,                      // Mesh reference
+        IOobject::MUST_READ,       // Must read from file
+        IOobject::AUTO_WRITE       // Auto-write to file
     ),
     mesh
 );
 
-// สนามความเร็วเฟส (Phase velocity field)
+// Phase velocity field (สนามความเร็วเฟส)
 volVectorField U_k
 (
     IOobject
     (
-        "U." + phase.name(),
+        "U." + phase.name(),       // Field name: U.phaseName
         runTime.timeName(),
         mesh,
         IOobject::MUST_READ,
@@ -307,15 +339,38 @@ volVectorField U_k
     mesh
 );
 
-// ความหนาแน่นเฟส (Phase density)
+// Phase density (ความหนาแน่นเฟส)
 volScalarField rho_k = phase.rho();
 
-// ความหนืดเฟส (Phase viscosity)
+// Phase viscosity (ความหนืดเฟส)
 volScalarField mu_k = phase.mu();
 
-// การนำความร้อนของเฟส (Phase thermal conductivity)
+// Phase thermal conductivity (การนำความร้อนของเฟส)
 volScalarField k_k = phase.k();
 ```
+
+<details>
+<summary>📖 คำอธิบายโค้ด (Thai Explanation)</summary>
+
+**แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+**คำอธิบาย:**
+โค้ดนี้แสดงวิธีการประกาศและเริ่มต้นตัวแปรสนามเฉพาะเฟสใน OpenFOAM:
+
+1. **Volume Fraction Field (`alpha_k`)**: สนามสเกลาร์ที่เก็บค่าสัดส่วนปริมาตรของเฟส ตั้งชื่อว่า `alpha.phaseName` เช่น `alpha.water`, `alpha.air`
+
+2. **Velocity Field (`U_k`)**: สนามเวกเตอร์ความเร็วของเฟส ตั้งชื่อว่า `U.phaseName` เช่น `U.water`, `U.air`
+
+3. **Transport Properties**: คุณสมบัติทางกายภาพของเฟส (ความหนาแน่น ความหนืด การนำความร้อน) ถูกเข้าถึงผ่านเมธอดของคลาส `phaseModel`
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **IOobject**: คลาสสำหรับจัดการการอ่าน/เขียนข้อมูลจากไฟล์ ระบุชื่อไฟล์ เวลา และโหมดการเข้าถึง
+- **Geometric Fields**: OpenFOAM ใช้คลาส `volScalarField` (สเกลาร์) และ `volVectorField` (เวกเตอร์) สำหรับค่าที่ศูนย์กลางเซลล์ (cell-centered values)
+- **Phase Properties**: คุณสมบัติของเฟสถูกเก็บในคลาส `phaseModel` และสามารถเข้าถึงได้ผ่านเมธอด `rho()`, `mu()`, `k()`
+
+</details>
+
+---
 
 ### คลาสที่สำคัญใน OpenFOAM
 
@@ -326,6 +381,43 @@ volScalarField k_k = phase.k();
 | **`blendingMethod`** | ผสมคุณสมบัติของเฟส | blends phase properties |
 | **`dragModel`** | คำนวณ interfacial drag coefficients | การถ่ายโอนโมเมนตัม |
 | **`heatTransferPhaseSystem`** | จัดการการถ่ายเทความร้อนระหว่างเฟส | interfacial heat transfer |
+
+<details>
+<summary>📖 คำอธิบายคลาส (Thai Explanation)</summary>
+
+**แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+**คำอธิบาย:**
+ตารางนี้สรุปคลาสหลักที่ใช้ในระบบ Eulerian-Eulerian ของ OpenFOAM:
+
+1. **phaseModel**: เป็นคลาสพื้นฐาน (base class) ที่แทนเฟสเดียว มีหน้าที่:
+   - เก็บข้อมูลคุณสมบัติทางกายภาพ (ความหนาแน่น ความหนืด)
+   - เก็บสนามความเร็วและสัดส่วนปริมาตร
+   - ให้เมธอดสำหรับเข้าถึงคุณสมบัติต่างๆ
+
+2. **phaseSystem**: เป็นคลาสที่จัดการเฟสทั้งหมดในระบบ มีหน้าที่:
+   - เก็บรายชื่อของทุกเฟส (phaseList)
+   - คำนวณคุณสมบัติของส่วนผสม (mixture properties)
+   - จัดการการถ่ายโอนโมเมนตัมระหว่างเฟส
+
+3. **blendingMethod**: ใช้สำหรับ:
+   - คำนวณคุณสมบัติผสม (blended properties) เช่น ความหนืดผสม
+   - ใช้ฟังก์ชัน blending (เช่น linear) ขึ้นอยู่กับสัดส่วนเฟส
+
+4. **dragModel**: คำนวณ:
+   - สัมประสิทธิ์แรงฉุด $K_{kl}$ ระหว่างเฟส
+   - รองรับโมเดลต่างๆ เช่น Schiller-Naumann, Ishii-Zuber
+
+5. **heatTransferPhaseSystem**: จัดการ:
+   - การถ่ายเทความร้อนระหว่างเฟส
+   - สมการพลังงานสำหรับแต่ละเฟส
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Object-Oriented Design**: ใช้การสืบทอดคลาส (inheritance) และ polymorphism เพื่อรองรับโมเดลต่างๆ
+- **Runtime Selection**: สามารถเลือกโมเดล (drag, heat transfer) ผ่านไฟล์ dictionary โดยไม่ต้องคอมไพล์ใหม่
+- **Modular Architecture**: แต่ละคลาสมีหน้าที่ชัดเจนและแยกจากกัน ทำให้ขยายระบบได้ง่าย
+
+</details>
 
 ---
 

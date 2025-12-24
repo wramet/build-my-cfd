@@ -14,7 +14,20 @@
 **The most common error** in OpenFOAM development is attempting operations between incompatible field types:
 
 ```cpp
+// Attempting to add a scalar pressure field to a vector velocity field
 volScalarField wrong = p + U;  // ERROR: Cannot add scalar to vector
+```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:121-127`
+
+```cpp
+// Example of proper phase field access in momentum transfer
+// Note: Accessing phase velocity fields with proper type matching
+if (!phase1.stationary())
+{
+    *eqns[phase1.name()] +=
+        dmdtf21*phase2.U() + fvm::Sp(dmdtf12, phase1.URef());
+}
 ```
 
 **Root Cause**: OpenFOAM enforces ==strict compile-time dimensional checking==. The expression `p + U` attempts to add a pressure field (scalar) with a velocity field (vector), which is mathematically invalid.
@@ -39,6 +52,7 @@ volScalarField wrong = p + U;  // ERROR: Cannot add scalar to vector
 **Insufficient field initialization** leads to undefined behavior:
 
 ```cpp
+// Incomplete field initialization missing critical components
 volScalarField T(mesh);  // ERROR: No dimensions or IOobject
 ```
 
@@ -50,19 +64,41 @@ volScalarField T(mesh);  // ERROR: No dimensions or IOobject
 **Correct Implementation**:
 
 ```cpp
+// Complete field initialization with all required components
 volScalarField T
 (
     IOobject
     (
-        "T",
-        runTime.timeName(),
-        mesh,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        "T",                              // Field name
+        runTime.timeName(),               // Time directory
+        mesh,                             // Mesh reference
+        IOobject::MUST_READ,              // Read from file if exists
+        IOobject::AUTO_WRITE              // Write automatically
     ),
     mesh,
-    dimensionSet(0, 0, 0, 1, 0, 0, 0),  // [Θ] = K
-    TInit.value()  // Uniform initial value
+    dimensionSet(0, 0, 0, 1, 0, 0, 0),  // Temperature dimension [Θ] = K
+    TInit.value()                        // Uniform initial value
+);
+```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:156-172`
+
+```cpp
+// Example of proper drag coefficient field initialization
+Kds_.insert
+(
+    dragModelIter.key(),
+    new volScalarField
+    (
+        IOobject
+        (
+            IOobject::groupName("Kd", interface.name()),
+            this->mesh().time().timeName(),
+            this->mesh()
+        ),
+        this->mesh(),
+        dimensionedScalar(dragModel::dimK, 0)  // Proper dimension initialization
+    )
 );
 ```
 
@@ -79,11 +115,12 @@ volScalarField T
 ### Problem: Wrong Field Type for Surface vs. Volume Mesh
 
 ```cpp
+// Surface flux field with proper dimension specification
 surfaceScalarField phi
 (
     IOobject(...),
     mesh,
-    dimensionSet(0, 3, -1, 0, 0, 0, 0)  // [L³/T] = m³/s
+    dimensionSet(0, 3, -1, 0, 0, 0, 0)  // Volume flux [L³/T] = m³/s
 );
 // Must use fvsPatchField for surfaceMesh, not fvPatchField
 ```
@@ -98,13 +135,34 @@ surfaceScalarField phi
 **Correct Boundary Specification**:
 
 ```cpp
-// For volume fields
+// For volume fields - use fvPatchField derivative
 volScalarField::Boundary& Tbf = T.boundaryField();
 Tbf.set(0, fixedValueFvPatchField<scalar>(mesh.boundary()[0], T));
 
-// For surface fields
+// For surface fields - use fvsPatchField derivative
 surfaceScalarField::Boundary& phibf = phi.boundaryField();
 phibf.set(0, calculatedFvsPatchField<scalar>(mesh.boundary()[0], phi));
+```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:175-186`
+
+```cpp
+// Example of surface scalar field initialization for drag coefficient
+Kdfs_.insert
+(
+    dragModelIter.key(),
+    new surfaceScalarField
+    (
+        IOobject
+        (
+            IOobject::groupName("Kdf", interface.name()),
+            this->mesh().time().timeName(),
+            this->mesh()
+        ),
+        this->mesh(),
+        dimensionedScalar(dragModel::dimK, 0)
+    )
+);
 ```
 
 ---
@@ -116,6 +174,7 @@ phibf.set(0, calculatedFvsPatchField<scalar>(mesh.boundary()[0], phi));
 **Incorrect temporary management** leads to ==dangling references==:
 
 ```cpp
+// DANGEROUS: Creating non-const reference to temporary
 tmp<volScalarField> tTemp = p + q;
 volScalarField& ref = tTemp();  // Creates non-const reference
 // If tTemp leaves scope, ref becomes dangling!
@@ -128,6 +187,7 @@ volScalarField& ref = tTemp();  // Creates non-const reference
 #### Option 1: Const Reference (Recommended for temporary access)
 
 ```cpp
+// SAFE: Const reference extends temporary lifetime
 tmp<volScalarField> tTemp = p + q;
 const volScalarField& ref = tTemp();  // Safe const reference
 // Use ref only within current scope
@@ -136,6 +196,7 @@ const volScalarField& ref = tTemp();  // Safe const reference
 #### Option 2: Keep a Copy (For long-term storage)
 
 ```cpp
+// SAFE: Create independent copy
 tmp<volScalarField> tTemp = p + q;
 volScalarField permanentCopy = tTemp();  // Creates copy independent of tmp
 // permanentCopy persists after tTemp is destroyed
@@ -144,6 +205,7 @@ volScalarField permanentCopy = tTemp();  // Creates copy independent of tmp
 #### Option 3: Direct Assignment (For immediate use)
 
 ```cpp
+// SAFE: Automatic tmp handling by assignment operator
 volScalarField result = p + q;  // Automatic tmp handling
 ```
 
@@ -171,10 +233,28 @@ scalarField& badField = T.boundaryField()[badPatch];  // Segmentation fault
 **Safe Pattern**:
 
 ```cpp
+// SAFE: Always validate patch indices before access
 if (patchID < mesh.boundary().size())
 {
     scalarField& patchField = T.boundaryField()[patchID];
     // Safe operations
+}
+```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C:89-112`
+
+```cpp
+// Example of safe field access with iteration
+forAllConstIter(phaseSystem::dmdtfTable, dmdtfs, dmdtfIter)
+{
+    const phaseInterface interface(*this, dmdtfIter.key());
+    const volScalarField& dmdtf = *dmdtfIter();
+    const volScalarField dmdtf21(posPart(dmdtf));
+    const volScalarField dmdtf12(negPart(dmdtf));
+    
+    // Safe phase model access with validation
+    phaseModel& phase1 = this->phases()[interface.phase1().name()];
+    phaseModel& phase2 = this->phases()[interface.phase2().name()];
 }
 ```
 
@@ -185,6 +265,18 @@ if (patchID < mesh.boundary().size())
 volScalarField dTdt = fvc::ddt(T);  // Correct: [K/s]
 volScalarField wrong = dTdt * T;    // Wrong: [K²/s]
 volScalarField correct = dTdt * rho*T;  // Correct: [kg·K/(m³·s)]
+```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:33-52`
+
+```cpp
+// Example of dimensionally consistent momentum transfer calculation
+// Note: Mass transfer rate [kg/s] × velocity [m/s] = momentum source [kg·m/s²]
+if (!phase1.stationary())
+{
+    *eqns[phase1.name()] +=
+        dmdtf21*phase2.U() + fvm::Sp(dmdtf12, phase1.URef());
+}
 ```
 
 ### Ghost Cell Access Problem
@@ -201,7 +293,7 @@ forAll(T.internalField(), i)
 **Correct Ghost Cell Handling**:
 
 ```cpp
-// Proper cell value access
+// Proper cell value access using geometric field
 forAll(T, cellI)
 {
     scalar cellValue = T[cellI];  // Direct cell access
@@ -218,6 +310,7 @@ forAll(T, cellI)
 Use explicit dimension sets to catch errors early:
 
 ```cpp
+// Define explicit dimension sets for type safety
 dimensionSet velocityDim(0, 1, -1, 0, 0, 0, 0);  // [m/s]
 dimensionSet pressureDim(1, -1, -2, 0, 0, 0, 0); // [Pa]
 
@@ -225,11 +318,20 @@ dimensionSet pressureDim(1, -1, -2, 0, 0, 0, 0); // [Pa]
 volScalarField kineticEnergy = 0.5 * magSqr(U);  // [m²/s²]
 ```
 
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:163-172`
+
+```cpp
+// Example of dimensioned scalar initialization in OpenFOAM
+this->mesh(),
+dimensionedScalar(dragModel::dimK, 0)  // Uses predefined dimension
+```
+
 ### Runtime Validation
 
 Add boundary checks for robustness:
 
 ```cpp
+// Runtime validation function for field sanity checks
 void validateField(const volScalarField& field)
 {
     if (min(field).value() < 0 && field.name() == "T")
@@ -281,6 +383,19 @@ volScalarField result = p + 0.5 * rho * magSqr(U);
 // EFFICIENT: Reduce temporaries
 tmp<volScalarField> tKE = 0.5 * rho * magSqr(U);
 volScalarField result = p + tKE;
+```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H:52-60`
+
+```cpp
+// Example of efficient field table management
+typedef HashTable<
+    autoPtr<phaseModel>,
+    word,
+    word,
+    hashCombineWordWord
+> phaseModelTable;
+// Efficient lookup and storage for phase fields
 ```
 
 ---

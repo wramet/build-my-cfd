@@ -85,10 +85,27 @@ $$\mathbf{H}(\mathbf{u}) = \mathbf{b}_P - \sum_{N} a_N \mathbf{u}_N \tag{2.3}$$
 ในซอร์สโค้ดของ OpenFOAM มีการแทนค่าดังนี้:
 
 ```cpp
-// การแทนค่าใน OpenFOAM
+// Calculate reciprocal of diagonal coefficient (1/a_P)
+// คำนวณค่าผกผันของสัมประสิทธิ์แนวทแยง
 volScalarField rAU(1.0/UEqn.A());      // rAU = 1/a_P
+
+// Calculate H divided by A (H(u)/a_P) with constraint enforcement
+// คำนวณ H operator หารด้วย a_P พร้อมบังคับใช้ข้อจำกัด
 volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U, p));  // HbyA = H(u)/a_P
 ```
+
+> **📂 Source:** `.applications/solvers/incompressible/simpleFoam/UEqn.H`
+
+> **📖 คำอธิบาย (Explanation):**
+> - `UEqn.A()` คือเมทริกซ์สัมปราสิทธิ์แนวทแยง $a_P$ จากสมการโมเมนตัมที่ถูกดิสครีต
+> - `UEqn.H()` คือเทอม $\mathbf{H}(\mathbf{u}) = \mathbf{b}_P - \sum a_N \mathbf{u}_N$ ซึ่งเป็นส่วนประกอบของสมการโมเมนตัมที่ไม่รวมความดันและความเร็วที่จุดกำหนด
+> - `rAU` ถูกใช้แทน $\frac{1}{a_P}$ ในการคำนวณเพื่อลดจำนวนการดำเนินการหาร
+> - `constrainHbyA()` ฟังก์ชันที่ใช้บังคับใช้ข้อจำกัดเชิงกายภาพและเชิงตัวเลขตามที่จำเป็น
+>
+> **🔑 แนวคิดสำคัญ (Key Concepts):**
+> - **Diagonal Inverse:** การกลับค่าสัมประสิทธิ์แนวทแยงช่วยให้การคำนวณมีประสิทธิภาพยิ่งขึ้น
+> - **H-operator:** เป็นเวกเตอร์ที่รวมเอาเทอมการเลื่อนตำแหน่ง (advection), การแพร่ (diffusion), และแหล่งกำเนิด (source terms)
+> - **Constraint Enforcement:** การบังคับใช้ constraints ช่วยให้การแก้ปัญหามีความเสถียร
 
 **ความสัมพันธ์:**
 - `rAU` ใน OpenFOAM = $\frac{1}{a_P}$
@@ -135,12 +152,16 @@ $$\mathbf{A}_p \mathbf{p}' = \mathbf{r}_p$$
 // ========================================
 // 1. สร้าง HbyA และ rAU
 // ========================================
+// Calculate reciprocal of diagonal coefficient (1/a_P)
 volScalarField rAU(1.0/UEqn.A());
+
+// Calculate H/A and apply constraints
 volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U, p));
 
 // ========================================
 // 2. สร้าง Flux ที่หน้าเซลล์โดยไม่รวมผลของความดัน
 // ========================================
+// Calculate flux at cell faces without pressure contribution
 surfaceScalarField phiHbyA
 (
     "phiHbyA",
@@ -151,6 +172,7 @@ surfaceScalarField phiHbyA
 // ========================================
 // 3. แก้สมการ Poisson สำหรับความดัน
 // ========================================
+// Assemble and solve pressure Poisson equation
 fvScalarMatrix pEqn
 (
     fvm::laplacian(rAU, p) == fvc::div(phiHbyA)
@@ -160,13 +182,27 @@ pEqn.solve();
 // ========================================
 // 4. แก้ไขความเร็ว (Velocity Correction)
 // ========================================
+// Correct velocity field using pressure gradient
 U = HbyA - rAU*fvc::grad(p);
 U.correctBoundaryConditions();
 ```
 
+> **📂 Source:** `.applications/solvers/incompressible/simpleFoam/pEqn.H`
+
+> **📖 คำอธิบาย (Explanation):**
+> - **Step 1:** สร้าง `rAU` (ค่าผกผันของ $a_P$) และ `HbyA` (H operator หารด้วย $a_P$) จากสมการโมเมนตัม
+> - **Step 2:** คำนวณฟลักซ์ `phiHbyA` ซึ่งเป็น volumetric flux ที่หน้าเซลล์โดยไม่รวมผลของความดัน โดยใช้ `fvc::flux()` เพื่อแปลงเวกเตอร์ความเร็วให้เป็นฟลักซ์
+> - **Step 3:** สร้างและแก้สมการ Poisson สำหรับความดัน โดยใช้ `fvm::laplacian()` สำหรับด้านซ้าย (LHS) และ `fvc::div()` สำหรับด้านขวา (RHS)
+> - **Step 4:** แก้ไขสนามความเร็วโดยใช้ความดันที่ได้จากการแก้สมการ Poisson และแก้ไขเงื่อนไขขอบเขต
+>
+> **🔑 แนวคิดสำคัญ (Key Concepts):**
+> - **Flux Calculation:** การคำนวณฟลักซ์ที่หน้าเซลล์เป็นขั้นตอนสำคัญใน FVM เนื่องจาก conservation laws ถูกบังคับใช้ที่หน้าเซลล์
+> - **Implicit vs Explicit:** `fvm::` (finite volume method) ใช้สำหรับ implicit terms ที่จะถูกแก้โดยตรง ส่วน `fvc::` (finite volume calculus) ใช้สำหรับ explicit terms
+> - **Boundary Conditions:** การแก้ไขเงื่อนไขขอบเขตหลังจาก velocity correction เป็นสิ่งสำคัญเพื่อให้แน่ใจว่าความสม่ำเสมอ
+
 ### 4.2 การแปลงสมการเป็น Code
 
-| สมการคณิตศาสตร์ | OpenFOAM Code |
+| สมการคณิตศาสต์ | OpenFOAM Code |
 |:------------------:|:-------------|
 | $\nabla \cdot \mathbf{u}$ | `fvc::div(U)` |
 | $\nabla p$ | `fvc::grad(p)` |
@@ -188,7 +224,7 @@ flowchart LR
     B --> C[Checkerboard Pattern]
     C --> D[Unphysical Oscillations]
 ```
-> **Figure 2:** แผนภาพแสดงผลกระทบของการใช้การประมาณค่าแบบเชิงเส้น (Linear Interpolation) บนเมชแบบ Collocated ซึ่งนำไปสู่การแยกตัวของข้อมูลความดันและความเร็ว (Decoupling) ส่งผลให้เกิดรูปแบบความดันสลับฟันปลา (Checkerboard pattern) และการแกว่งทางตัวเลขที่ไม่มีความหมายทางกายภาพความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 2:** แผนภาพแสดงผลกระทบของการใช้การประมาณค่าแบบเชิงเส้น (Linear Interpolation) บนเมชแบบ Collocated ซึ่งนำไปสู่การแยกตัวของข้อมูลความดันและความเร็ว (Decoupling) ส่งผลให้เกิดรูปแบบความดันสลับฟันปลา (Checkerboard pattern) และการแกว่งทางตัวเลขที่ไม่มีความหมายทางกายภาพ
 
 ### 5.2 สูตร Rhie-Chow Interpolation
 
@@ -211,20 +247,42 @@ $$\mathbf{u}_f = \overline{\mathbf{u}}_f - \overline{\left(\frac{1}{a_P}\right)}
 ### 5.3 การนำไปใช้ใน OpenFOAM
 
 ```cpp
-// Rhie-Chow interpolation ใน OpenFOAM
+// ========================================
+// Rhie-Chow interpolation implementation
+// ========================================
+
+// Interpolate reciprocal diagonal coefficient to faces
+// ประมาณค่า 1/a_P จากจุดศูนย์กลางเซลล์ไปยังหน้าเซลล์
 surfaceScalarField rAUf
 (
     "rAUf",
     fvc::interpolate(rAU)
 );
 
+// Calculate flux with Rhie-Chow interpolation
+// คำนวณฟลักซ์ที่หน้าเซลล์ด้วยวิธี Rhie-Chow
 surfaceScalarField phiHbyA
 (
     "phiHbyA",
+    // Convective flux from interpolated HbyA
     (fvc::interpolate(HbyA) & mesh.Sf())
+  // Rhie-Chow correction term to prevent checkerboarding
   - rAUf*fvc::snGrad(p)*mesh.magSf()
 );
 ```
+
+> **📂 Source:** `.applications/solvers/incompressible/pimpleFoam/pEqn.H`
+
+> **📖 คำอธิบาย (Explanation):**
+> - **Line 4-8:** ประมาณค่า `rAU` (ค่าผกผันของสัมประสิทธิ์แนวทแยง) จากจุดศูนย์กลางเซลล์ไปยังหน้าเซลล์โดยใช้ `fvc::interpolate()`
+> - **Line 11-18:** คำนวณฟลักซ์ `phiHbyA` ที่หน้าเซลล์:
+>   - `(fvc::interpolate(HbyA) & mesh.Sf())` = ฟลักซ์จากการประมาณค่า HbyA ด้วย dot product กับเวกเตอร์พื้นที่หน้าเซลล์
+>   - `rAUf*fvc::snGrad(p)*mesh.magSf()` = เทอมแก้ไข Rhie-Chow ที่ใช้ normal gradient ของความดัน (`snGrad`) คูณกับขนาดพื้นที่หน้าเซลล์
+>
+> **🔑 แนวคิดสำคัญ (Key Concepts):**
+> - **Collocated Grid:** เมชที่เก็บตัวแปรทุกตัวที่จุดศูนย์กลางเซลล์เดียวกัน แตกต่างจาก staggered grid
+> - **Checkerboarding:** ปัญหาที่เกิดจากการที่ความดันที่เซลล์ข้างเคียงไม่ส่งผลต่อการคำนวณฟลักซ์ที่หน้าเซลล์ที่แบ่งระหว่างพวกมัน
+> - **Rhie-Chow Correction:** เทอมแก้ไขที่เพิ่มความสัมพันธ์ระหว่างความดันและความเร็วโดยใช้ความแตกต่างของเกรเดียนต์ความดัน
 
 ---
 
@@ -258,7 +316,7 @@ $$\mathbf{u}^{n+1,i+1} = \mathbf{u}^{n+1,i} - \frac{\Delta t}{a_P} \nabla p'^{(i
 
 ### 6.3 สูตรการ Under-Relaxation
 
-เพื่อความเสถียรของการคำนวณ มีการใช้ **Under-Relaxation**:
+เพื่อความเสถียรของการคำนาณ มีการใช้ **Under-Relaxation**:
 
 **สำหรับความเร็ว:**
 $$\mathbf{u}^{k+1} = \mathbf{u}^k + \alpha_u (\mathbf{u}^* - \mathbf{u}^k) \tag{6.5}$$
@@ -289,7 +347,7 @@ $$p^{k+1} = p^k + \alpha_p p' \tag{6.6}$$
 
 ### 7.2 การแมปกับ OpenFOAM Code
 
-| คณิตศาสตร์ | OpenFOAM |
+| คณิตศาสต์ | OpenFOAM |
 |:------------:|:--------:|
 | $\frac{1}{a_P}$ | `rAU` หรือ `1.0/UEqn.A()` |
 | $\frac{\mathbf{H}(\mathbf{u})}{a_P}$ | `HbyA` หรือ `UEqn.H()/UEqn.A()` |

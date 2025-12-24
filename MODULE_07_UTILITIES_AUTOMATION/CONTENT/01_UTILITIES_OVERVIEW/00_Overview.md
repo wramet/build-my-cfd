@@ -58,7 +58,7 @@ Upon completion, you will demonstrate expertise in:
 Edge grading enables variable mesh resolution through defined functions. The grading specification follows the format:
 
 ```cpp
-// Edge grading syntax
+// Edge grading syntax - Define curved edges using spline interpolation
 edges
 (
     spline 0 1
@@ -70,6 +70,16 @@ edges
 );
 ```
 
+> **📂 Source:** OpenFOAM `applications/utilities/mesh/generation/blockMesh`
+> 
+> **คำอธิบาย (Explanation):**
+> ไวยากรณ์นี้ใช้กำหนดเส้นโค้งระหว่างจุดยอด (vertices) สองจุด โดยใช้การประมาณค่าแบบ spline เพื่อสร้างความลาดชันที่ไม่สม่ำเสมอของขนาดเซลล์ตามแนวเส้นขอบ
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **spline**: ฟังก์ชันการประมาณค่าเส้นโค้งที่ลื่นไหล
+> - **0 1**: ดัชนีของจุดยอดเริ่มต้นและสิ้นสุดที่เชื่อมต่อกับเส้นโค้ง
+> - **Point coordinates**: พิกัดจุดควบคุม (control points) ที่กำหนดรูปร่างของ spline
+
 **Grading Functions**
 - **Linear grading**: Uniform cell size progression
 - **Exponential grading**: Cell size follows exponential growth/decay
@@ -78,7 +88,7 @@ edges
 **Mesh Topology Patterns**
 
 ```cpp
-// O-grid topology for circular geometries
+// O-grid topology for circular geometries - Define vertices for O-grid structure
 vertices
 (
     (0 0 0)           // Center point
@@ -87,6 +97,17 @@ vertices
     // ... additional vertices
 );
 ```
+
+> **📂 Source:** OpenFOAM `applications/utilities/mesh/generation/blockMesh`
+> 
+> **คำอธิบาย (Explanation):**
+> โครงสร้าง O-grid เป็นเทคนิคการสร้างเมชแบบโครงสร้างวงแหวนที่ล้อมรอบโดเมนหลัก ซึ่งเหมาะสำหรับเรขาคณิตแบบวงกลมหรือทรงกระบอก โดยจุดยอดแรกคือจุดศูนย์กลางและจุดถัดไปกำหนดรัศมีชั้นต่างๆ
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **O-grid topology**: โครงสร้างเมชวงแหวนที่ล้อมรอบโดเมนหลัก
+> - **vertices**: จุดยอดที่กำหนดตำแหน่งในพื้นที่สามมิติ
+> - **Center point**: จุดศูนย์กลางของโครงสร้าง O-grid
+> - **Inner/Outer radius**: รัศมีชั้นในและชั้นนอกของโครงสร้าง
 
 **Boundary Layer Considerations**
 
@@ -115,15 +136,26 @@ Quality surface meshes must satisfy:
 **Surface Repair Utilities**
 
 ```bash
-# Check surface quality
+# Check surface quality - Verify mesh integrity and topology
 surfaceCheck geometry.stl
 
-# Extract sharp features
+# Extract sharp features - Identify and extract geometric edges
 surfaceFeatureExtract -angle 30 geometry.stl
 
-# Smooth surface
+# Smooth surface - Reduce surface roughness and improve quality
 surfaceSmoothFeatures geometry.stl
 ```
+
+> **📂 Source:** OpenFOAM `applications/utilities/surfaceHandling/surfaceCheck`, `applications/utilities/mesh/generation/surfaceFeatureExtract`
+> 
+> **คำอธิบาย (Explanation):**
+> ชุดคำสั่งนี้ใช้ในกระบวนการเตรียมพื้นผิวก่อนการสร้างเมช โดยเริ่มจากการตรวจสอบคุณภาพ การดึงคุณลักษณะเชิงเรขาคณิต และการปรับปรุงความเรียบของพื้นผิว
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **surfaceCheck**: ตรวจสอบความสมบูรณ์ของพื้นผิว (watertightness)
+> - **surfaceFeatureExtract**: ระบุและดึงคุณลักษณะเชิงเรขาคณิต เช่น ขอบแหลม
+> - **-angle 30**: กำหนดมุมขั้นต่ำสำหรับการตรวจจับคุณลักษณะ (30 องศา)
+> - **surfaceSmoothFeatures**: ปรับปรุงความเรียบของพื้นผิวเพื่อลดปัญหาการสร้างเมช
 
 **Format Conversion Pipeline**
 
@@ -161,15 +193,27 @@ flowchart LR
 **Automated Quality Checks**
 
 ```bash
-# Comprehensive mesh analysis
+# Comprehensive mesh analysis - Check all geometry and topology
 checkMesh -allGeometry -allTopology -time 0
 
-# Quality metrics only
+# Quality metrics only - Focus on mesh quality parameters
 checkMesh -meshQuality
 
-# Detailed report with thresholds
+# Detailed report with thresholds - Generate detailed quality report
 checkMesh -allRegions -writeFields
 ```
+
+> **📂 Source:** OpenFOAM `applications/utilities/mesh/manipulation/checkMesh`
+> 
+> **คำอธิบาย (Explanation):**
+> เครื่องมือ checkMesh ใช้วิเคราะห์คุณภาพของเมชโดยตรวจสอบทั้งโครงสร้างเรขาคณิตและโทโพโลยี พร้อมทั้งสร้างรายงานคุณภาพและฟิลด์ข้อมูลสำหรับการวิเคราะห์เพิ่มเติม
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **-allGeometry**: ตรวจสอบคุณสมบัติเรขาคณิตทั้งหมดของเมช
+> - **-allTopology**: ตรวจสอบโครงสร้างโทโพโลยี เช่น การเชื่อมต่อของเซลล์
+> - **-time 0**: ตรวจสอบเมชที่เวลา t=0 (เมชเริ่มต้น)
+> - **-meshQuality**: แสดงเฉพาะตัวชี้วัดคุณภาพเมช
+> - **-writeFields**: เขียนฟิลด์คุณภาพลงไฟล์สำหรับการวิเคราะห์เชิงลึก
 
 ### 🏦 Intermediate: Advanced Meshing Workflows
 
@@ -190,15 +234,21 @@ flowchart TD
 
 ```cpp
 // snappyHexMeshDict - Castellation controls
+// Convert background mesh to castellated mesh with refinement
 castellatedMesh true;
 castellatedMeshControls
 {
+    // Maximum cells allowed in local and global domain
     maxLocalCells        1000000;
     maxGlobalCells       20000000;
+    
+    // Minimum cells to trigger refinement
     minRefinementCells   10;
 
+    // Cells between refinement levels
     nCellsBetweenLevels  3;
 
+    // Feature edges for geometry preservation
     features
     (
         {
@@ -207,10 +257,12 @@ castellatedMeshControls
         }
     );
 
+    // Surface refinement settings
     refinementSurfaces
     {
         geometry
         {
+            // Refinement level for surface and region
             level (2 2);
             patchInfo
             {
@@ -219,33 +271,69 @@ castellatedMeshControls
         }
     }
 
+    // Minimum angle for feature detection
     resolveFeatureAngle 30;
 }
 ```
 
+> **📂 Source:** OpenFOAM `.applications/utilities/mesh/generation/snappyHexMesh`
+> 
+> **คำอธิบาย (Explanation):**
+> ขั้นตอน Castellation เป็นการแปลงเมชพื้นหลังให้เป็นเมชแบบ castellated ที่มีการ refine ตามรูปทรงเรขาคณิต โดยใช้การควบคุมจำนวนเซลล์และระดับการ refine สำหรับพื้นผิวและคุณลักษณะเชิงเรขาคณิต
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **castellatedMesh**: เปิดใช้งานขั้นตอนการสร้างเมชแบบ castellated
+> - **maxLocalCells/maxGlobalCells**: จำกัดจำนวนเซลล์สูงสุดเพื่อควบคุมหน่วยความจำ
+> - **refinementSurfaces**: กำหนดระดับการ refine สำหรับแต่ละพื้นผิว
+> - **resolveFeatureAngle**: มุมขั้นต่ำสำหรับการตรวจจับคุณลักษณะเชิงเรขาคณิต
+
 **Snapping Stage**
 
 ```cpp
+// Snapping controls - Move mesh vertices to surface geometry
 snapControls
 {
+    // Number of patch smoothing iterations
     nSmoothPatch       3;
+    
+    // Tolerance for snapping to surface
     tolerance          2.0;
+    
+    // Solver iterations for relaxation
     nSolveIter         30;
     nRelaxIter         5;
 
+    // Feature snapping iterations
     nFeatureSnapIter   10;
+    
+    // Use implicit feature snapping
     implicitFeatureSnap false;
+    
+    // Enable multi-region feature snapping
     multiRegionFeatureSnap true;
 }
 ```
 
+> **📂 Source:** OpenFOAM `.applications/utilities/mesh/generation/snappyHexMesh`
+> 
+> **คำอธิบาย (Explanation):**
+> ขั้นตอน Snapping ทำหน้าที่ปรับจุดยอดของเมชให้แนบชิดกับพื้นผิวเรขาคณิต โดยใช้กระบวนการทางคณิตศาสตร์เพื่อให้ได้ความแม่นยำสูง
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **nSmoothPatch**: จำนวนรอบการปรับปรุงความเรียบของ patch
+> - **tolerance**: ค่าความอดทนในการย้ายจุดยอดไปยังพื้นผิว
+> - **implicitFeatureSnap**: การ snap แบบ implicit สำหรับคุณลักษณะเชิงเรขาคณิต
+
 **Layer Addition Stage**
 
 ```cpp
+// Layer addition controls - Add boundary layer cells
 addLayersControls
 {
+    // Use relative size calculations
     relativeSizes true;
 
+    // Define layers for specific patches
     layers
     {
         "geometry.*"
@@ -254,24 +342,41 @@ addLayersControls
         }
     }
 
+    // Layer expansion parameters
     expansionRatio      1.3;
     finalLayerThickness 0.3;
     minThickness        0.1;
+    
+    // Layer growth control
     nGrow               1;
 
+    // Feature angle for layer termination
     featureAngle        60;
+    
+    // Smoothing iterations
     nRelaxIter          3;
     nSmoothSurfaceNormals 3;
     nSmoothNormals      3;
 }
 ```
 
+> **📂 Source:** OpenFOAM `.applications/utilities/mesh/generation/snappyHexMesh`
+> 
+> **คำอธิบาย (Explanation):**
+> ขั้นตอน Layer Addition เพิ่มชั้นเซลล์บริเวณขอบเขตเพื่อให้ได้ความละเอียดที่เหมาะสมในบริเวณชั้นขอบเขต โดยควบคุมอัตราส่วนการขยายและความหนาของชั้น
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **nSurfaceLayers**: จำนวนชั้นเซลล์ที่เพิ่มบนพื้นผิว
+> - **expansionRatio**: อัตราส่วนการขยายของขนาดเซลล์ระหว่างชั้น
+> - **finalLayerThickness**: ความหนาสัมพัทธ์ของชั้นสุดท้าย
+> - **featureAngle**: มุมที่ชั้นเซลล์จะสิ้นสุด
+
 #### 2. Multi-Block Domain Assembly
 
 **Block Topology Planning**
 
 ```cpp
-// Multi-block configuration example
+// Multi-block configuration example - Assemble multiple mesh blocks
 blocks
 (
     // Block 1: Inlet region
@@ -284,7 +389,7 @@ blocks
     hex (16 17 18 19 20 21 22 23) (100 50 1) simpleGrading (1 1 1)
 );
 
-// Boundary connections
+// Boundary connections - Merge patches between blocks
 mergePatchPairs
 (
     (
@@ -298,6 +403,16 @@ mergePatchPairs
 );
 ```
 
+> **📂 Source:** OpenFOAM `applications/utilities/mesh/generation/blockMesh`
+> 
+> **คำอธิบาย (Explanation):**
+> การกำหนดค่าหลายบล็อกช่วยให้สามารถสร้างโดเมนที่ซับซ้อนได้โดยการแบ่งเป็นบล็อกย่อยที่เชื่อมต่อกัน พร้อมทั้งระบุจุดประสานระหว่างบล็อก
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **hex**: ประกาศบล็อก hexahedral พร้อมพิกัดจุดยอดและการแบ่งเซลล์
+> - **simpleGrading**: กำหนดอัตราส่วนการขยายของขนาดเซลล์
+> - **mergePatchPairs**: ระบุ patch ที่จะเชื่อมต่อระหว่างบล็อก
+
 #### 3. Adaptive Refinement Strategies
 
 **Solution-Adaptive Refinement**
@@ -308,15 +423,32 @@ dynamicFvMesh dynamicRefineFvMesh;
 
 refiner
 {
+    // Refinement interval in time steps
     refineInterval  5;
+    
+    // Field to monitor for refinement
     field           alpha.water;
+    
+    // Refinement thresholds
     lowerRefineLevel 0.3;
     upperRefineLevel 0.7;
     nRefineIterations 1;
+    
+    // Maximum refinement level and cells
     maxRefinement  4;
     maxCells       2000000;
 }
 ```
+
+> **📂 Source:** OpenFOAM `applications/solvers/multiphase/interDynFoam`
+> 
+> **คำอธิบาย (Explanation):**
+> การ refine แบบปรับตามผลเฉลย (solution-adaptive) ช่วยให้สามารถปรับความละเอียดของเมชตามค่าของฟิลด์ที่กำลังคำนวณในขณะทำงานจริง
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **dynamicFvMesh**: ประเภทของเมชแบบ dynamic
+> - **refineInterval**: รอบเวลาที่มีการ refine
+> - **lower/upperRefineLevel**: ช่วงค่าที่จะ trigger การ refine
 
 **Error Indicator-Based Refinement**
 
@@ -336,13 +468,22 @@ where $\phi$ is the field variable and $h$ is the local cell size.
 // O-grid topology for rotating machinery
 blocks
 (
-    // O-grid block
+    // O-grid block with curved grading
     hex (0 1 2 3 4 5 6 7) (200 80 1) edgeGrading (1 1 1 1 4 4 1 1 1 1 4 4)
 
     // H-grid blocks for inlet/outlet
     hex (8 9 10 11 12 13 14 15) (50 20 1) simpleGrading (1 1 1)
 );
 ```
+
+> **📂 Source:** OpenFOAM `applications/utilities/mesh/generation/blockMesh`
+> 
+> **คำอธิบาย (Explanation):**
+> โครงสร้าง O-grid สำหรับเครื่องจักรหมุนใช้ grading แบบโค้งเพื่อให้ได้ความละเอียดที่เหมาะสมในบริเวณใกล้ใบพัด
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **edgeGrading**: กำหนด grading แบบโค้งสำหรับขอบโค้ง
+> - **O-grid block**: บล็อกโครงสร้างวงแหวนสำหรับการหมุน
 
 **Boundary Layer $y^+$ Calculation**
 
@@ -360,7 +501,7 @@ $$
 **Motion Solver Configuration**
 
 ```cpp
-// dynamicMeshDict
+// dynamicMeshDict - Configure mesh motion solver
 dynamicFvMesh   dynamicMotionSolverFvMesh;
 
 motionSolverLibs ("libfvMotionSolvers.so");
@@ -372,6 +513,16 @@ displacementLaplacianCoeffs
     diffusivity uniform 1;
 }
 ```
+
+> **📂 Source:** OpenFOAM `applications/solvers/multiphase/interDyMFoam`
+> 
+> **คำอธิบาย (Explanation):**
+> การกำหนดค่า motion solver สำหรับเมชแบบ dynamic ที่สามารถเคลื่อนที่ได้ตามเวลา เช่น ในปัญหา FSI
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **dynamicMotionSolverFvMesh**: ประเภทของเมชที่รองรับการเคลื่อนไหว
+> - **displacementLaplacian**: วิธีการคำนวณการกระจายการเคลื่อนที่
+> - **diffusivity**: ค่าสัมประสิทธิ์การกระจาย
 
 #### 3. Multi-Phase Meshing
 
@@ -386,16 +537,29 @@ where $\sigma$ is surface tension, $\rho$ is density, and $U$ is characteristic 
 **Adaptive Interface Tracking**
 
 ```cpp
+// Interface refinement settings
 refinementSurfaces
 {
     interface
     {
+        // High resolution for interface
         level (4 4);
+        
+        // Define cell and face zones
         cellZone interface;
         faceZone interface;
     }
 }
 ```
+
+> **📂 Source:** OpenFOAM `.applications/utilities/mesh/generation/snappyHexMesh`
+> 
+> **คำอธิบาย (Explanation):**
+> การ refine แบบปรับตาม interface ช่วยให้ได้ความละเอียดสูงบริเวณพื้นผิวระหว่างเฟสในปัญหา multiphase
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **refinementSurfaces**: กำหนดระดับการ refine สำหรับพื้นผิว interface
+> - **cellZone/faceZone**: กำหนดโซนของเซลล์และหน้าผิวสำหรับ interface
 
 ---
 
@@ -423,7 +587,7 @@ refinementSurfaces
 
 ```bash
 #!/bin/bash
-# Automated meshing workflow
+# Automated meshing workflow - Process multiple geometries
 for geom in geometries/*.stl; do
     case_name=$(basename "$geom" .stl)
     mkdir -p "cases/$case_name"
@@ -440,6 +604,17 @@ for geom in geometries/*.stl; do
     checkMesh -case "cases/$case_name" > "cases/$case_name/mesh_quality.txt"
 done
 ```
+
+> **📂 Source:** OpenFOAM Workflow Automation
+> 
+> **คำอธิบาย (Explanation):**
+> สคริปต์นี้ทำให้สามารถประมวลผลหลาย geometry ได้อัตโนมัติ โดยสร้าง case แยกสำหรับแต่ละ geometry และดำเนินการตาม workflow ที่กำหนด
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **for loop**: วนลูปผ่านไฟล์ STL ทั้งหมด
+> - **surfaceFeatureExtract**: ดึงคุณลักษณะเชิงเรขาคณิตจากพื้นผิว
+> - **blockMesh/snappyHexMesh**: สร้างเมชตามลำดับ
+> - **checkMesh**: ตรวจสอบคุณภาพของเมช
 
 **Batch Processing for Parameter Studies**
 - Implement parameter sweeps with automated case generation
@@ -504,12 +679,23 @@ def assess_mesh_quality(case_path):
     }
 ```
 
+> **📂 Source:** OpenFOAM Python Integration
+> 
+> **คำอธิบาย (Explanation):**
+> สคริปต์ Python นี้ทำให้สามารถประเมินคุณภาพของเมชอัตโนมัติ โดยอ่านผลลัพธ์จาก checkMesh และคำนวณคะแนนคุณภาพแบบรวม
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **extract_metric**: ดึงค่าตัวชี้วัดจาก output ของ checkMesh
+> - **calculate_quality_score**: คำนวณคะแนนคุณภาพแบบถ่วงน้ำหนัก
+> - **assess_mesh_quality**: ฟังก์ชันหลักสำหรับประเมินคุณภาพ
+
 ### 4. Custom Utility Development
 
 **Custom OpenFOAM Utility Template**
 
 ```cpp
 // Custom utility: meshStatisticsGenerator.C
+// Generate comprehensive mesh statistics for quality assessment
 #include "fvMesh.H"
 #include "volFields.H"
 #include "surfaceFields.H"
@@ -519,6 +705,7 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
+    // Initialize OpenFOAM environment
     #include "setRootCase.H"
     #include "createTime.H"
     #include "createMesh.H"
@@ -556,6 +743,17 @@ int main(int argc, char *argv[])
     return 0;
 }
 ```
+
+> **📂 Source:** Custom OpenFOAM Utility Development
+> 
+> **คำอธิบาย (Explanation):**
+> อรรถานุทค์ custom utility นี้สร้างสถิติที่ครอบคลุมของเมชเพื่อการประเมินคุณภาพ โดยรวบรวมข้อมูลพื้นฐานและตัวชี้วัดคุณภาพ
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **fvMesh**: คลาสเมชที่ใช้ใน OpenFOAM
+> - **nCells/nFaces/nPoints**: จำนวนเซลล์ หน้า และจุดของเมช
+> - **maxNonOrthog/maxSkewness**: ค่าตัวชี้วัดคุณภาพสูงสุด
+> - **OFstream**: คลาสสำหรับเขียนไฟล์ output
 
 **Compilation and Usage**
 

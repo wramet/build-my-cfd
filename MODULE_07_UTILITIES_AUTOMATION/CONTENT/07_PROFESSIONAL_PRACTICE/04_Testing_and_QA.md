@@ -82,6 +82,25 @@ jobs:
           fi
 ```
 
+> **📂 Source:** .applications/test/fieldMapping/pipe1D/system/fvSchemes
+> 
+> **คำอธิบาย:**
+> - ไฟล์ YAML นี้เป็นการตั้งค่า GitHub Actions สำหรับทำงานอัตโนมัติ (CI/CD Pipeline) เพื่อตรวจสอบคุณภาพ Mesh
+> - **Workflow Trigger**: เริ่มทำงานเมื่อมีการ `push` หรือ `pull_request` เข้ามาใน repository
+> - **Container Environment**: ใช้ Docker container ที่มี OpenFOAM ติดตั้งอยู่แล้ว (cfdtools/openfoam:latest)
+> - **Job Steps**:
+>   1. Checkout code จาก repository
+>   2. Source OpenFOAM environment
+>   3. รัน `blockMesh` เพื่อสร้าง Mesh
+>   4. รัน `checkMesh` เพื่อตรวจสอบคุณภาพ Mesh และบันทึกผลลัพธ์ลงไฟล์ meshReport.txt
+>   5. ตรวจสอบว่าค่า non-orthogonality ไม่เกิน 70 องศา ถ้าเกินจะให้ workflow ล้มเหลว (exit 1)
+>
+> **แนวคิดสำคัญ:**
+> - **Continuous Integration**: การตรวจสอบคุณภาพอัตโนมัติทุกครั้งที่มีการเปลี่ยนแปลงโค้ด
+> - **Mesh Quality Gate**: การสร้างเกณฑ์ป้องกันไม่ให้ Mesh ที่มีคุณภาพต่ำผ่านเข้าสู่ขั้นตอนถัดไป
+> - **Automated Testing**: ลดความผิดพลาดจากการตรวจสอบด้วยมนุษย์ และทำให้มั่นใจว่าทุกครั้งที่มีการเปลี่ยนแปลง คุณภาพจะถูกตรวจสอบอยู่เสมอ
+> - **Fail Fast**: การทำให้ workflow ล้มเหลวทันทีเมื่อพบปัญหา เพื่อป้องกันการใช้ทรัพยากรในการรันจำลองที่มีโอกาสผิดพลาดสูง
+
 ---
 
 ## 3. การตรวจสอบความถูกต้องเชิงตัวเลข (Numerical Verification)
@@ -187,20 +206,22 @@ flowchart TD
 ```bash
 // NOTE: Synthesized by AI - Verify parameters
 #!/bin/bash
-# meshQualityCheck.sh - สคริปต์ตรวจสอบคุณภาพกริดอัตโนมัติ
+// meshQualityCheck.sh - Automated mesh quality validation script
 
+// Source OpenFOAM environment
 source $WM_PROJECT_USER_DIR/etc/bashrc
 
-# รัน checkMesh และบันทึกผลลัพธ์
+// Run checkMesh and capture output to log file
 checkMesh -allGeometry -allRegions -time 0 > log.checkMesh 2>&1
 
-# ตรวจสอบเกณฑ์คุณภาพ
+// Extract quality metrics from log file
 max_non_orthogonality=$(grep "Non-orthogonality" log.checkMesh | awk '{print $3}')
 max_aspect_ratio=$(grep "Aspect ratio" log.checkMesh | awk '{print $3}')
 
-# แปลงค่าเป็นตัวเลข (ลบหน่วยและเครื่องหมาย %)
+// Remove percentage sign from non-orthogonality value
 max_non_orthogonality=${max_non_orthogonality%\%}
 
+// Print mesh quality summary
 echo "=========================================="
 echo "Mesh Quality Summary"
 echo "=========================================="
@@ -208,7 +229,7 @@ echo "Max Non-orthogonality: $max_non_orthogonality%"
 echo "Max Aspect Ratio: $max_aspect_ratio"
 echo "=========================================="
 
-# ตรวจสอบว่าผ่านเกณฑ์หรือไม่
+// Validate against quality thresholds
 if (( $(echo "$max_non_orthogonality > 70" | bc -l) )); then
     echo "ERROR: Non-orthogonality exceeds 70 degrees!"
     exit 1
@@ -223,45 +244,108 @@ echo "Mesh quality check PASSED"
 exit 0
 ```
 
+> **📂 Source:** .applications/test/fieldMapping/pipe1D/system/fvSchemes
+> 
+> **คำอธิบาย:**
+> - สคริปต์ Bash นี้ใช้สำหรับตรวจสอบคุณภาพ Mesh อัตโนมัติก่อนการรันการจำลอง
+> - **Environment Setup**: Source OpenFOAM environment เพื่อใช้คำสั่ง checkMesh
+> - **Quality Metrics**: ตรวจสอบค่า Non-orthogonality และ Aspect ratio ซึ่งเป็นค่าสำคัญที่บ่งชี้คุณภาพ Mesh
+> - **Acceptance Criteria**: 
+>   - Non-orthogonality ต้องไม่เกิน 70 องศา
+>   - Aspect ratio ต้องไม่เกิน 1000
+> - **Exit Codes**: ส่งคืน exit code 0 หากผ่านเกณฑ์ และ 1 หากไม่ผ่าน
+>
+> **แนวคิดสำคัญ:**
+> - **Mesh Quality Gates**: การสร้างเกณฑ์ป้องกันไม่ให้ Mesh ที่มีคุณภาพต่ำถูกนำไปใช้ในการจำลอง
+> - **Automated Validation**: ลดความผิดพลาดจากการตรวจสอบด้วยมนุษย์ และทำให้มั่นใจในความสอดคล้องของเกณฑ์
+> - **Early Failure Detection**: ตรวจพบปัญหาได้ตั้งแต่เนิ่นๆ ก่อนที่จะใช้ทรัพยากรในการรันการจำลอง
+> - **CI/CD Integration**: สคริปต์นี้สามารถนำไปใช้ในไปป์ไลน์ CI/CD ได้ทันที
+> - **Quality Thresholds**: ค่าที่กำหนด (70°, 1000) เป็นค่าที่ได้รับการยอมรับในวงการ CFD สำหรับ Mesh ที่มีคุณภาพดี
+
 ### 4.3 การตั้งค่า fvSchemes สำหรับการทดสอบ
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
-// system/fvSchemes - การตั้งค่ารูปแบบเชิงตัวเลขสำหรับการทดสอบ
+// system/fvSchemes - Numerical scheme settings for verification testing
 
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  10
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSchemes;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Time derivative schemes
 ddtSchemes
 {
-    default Euler; // First-order transient scheme
+    default         Euler;  // First-order transient scheme for stability
 }
 
+// Gradient calculation schemes
 gradSchemes
 {
-    default Gauss linear; // Second-order gradient scheme
+    default         Gauss linear;  // Second-order accurate gradient scheme
+    grad(p)         Gauss linear;  // Pressure gradient with linear interpolation
 }
 
+// Divergence schemes for convection terms
 divSchemes
 {
-    default none;
-    div(phi,U) Gauss linearUpwind grad(U); // Second-order upwind
-    div(phi,k) Gauss limitedLinear 1; // Bounded scheme for k
-    div(phi,epsilon) Gauss limitedLinear 1; // Bounded scheme for epsilon
+    default         none;
+    div(phi,U)      Gauss linearUpwind grad(U);  // Second-order upwind for momentum
+    div(phi,k)      Gauss limitedLinear 1;       // Bounded scheme for turbulent kinetic energy
+    div(phi,epsilon) Gauss limitedLinear 1;      // Bounded scheme for dissipation rate
 }
 
+// Laplacian schemes for diffusion terms
 laplacianSchemes
 {
-    default Gauss linear corrected; // Non-orthogonal correction
+    default         Gauss linear corrected;  // Non-orthogonal correction included
 }
 
+// Interpolation schemes for cell-to-face values
 interpolationSchemes
 {
-    default linear;
+    default         linear;  // Second-order linear interpolation
 }
 
+// Surface normal gradient schemes
 snGradSchemes
 {
-    default corrected; // Non-orthogonal correction for surface normals
+    default         corrected;  // Non-orthogonal correction for surface normal gradients
 }
+
+// ************************************************************************* //
 ```
+
+> **📂 Source:** .applications/test/fieldMapping/pipe1D/system/fvSchemes
+> 
+> **คำอธิบาย:**
+> - ไฟล์ `fvSchemes` กำหนดรูปแบบเชิงตัวเลข (Numerical Schemes) ที่ใช้ในการแก้สมการ Partial Differential Equations (PDEs)
+> - **Time Derivative (ddtSchemes)**: ใช้รูปแบบ Euler ซึ่งเป็น First-order scheme ที่เสถียรสำหรับการทดสอบ
+> - **Gradient Schemes (gradSchemes)**: ใช้ Gauss linear ซึ่งเป็น Second-order accurate
+> - **Divergence Schemes (divSchemes)**: 
+>   - `linearUpwind` สำหรับ Momentum: Second-order upwind ที่มีความแม่นยำสูง
+>   - `limitedLinear` สำหรับ k-epsilon: Bounded scheme ป้องกันค่าติดลบ
+> - **Laplacian Schemes**: ใช้ `corrected` เพื่อรองรับ Mesh ที่มีความ non-orthogonal
+> - **Interpolation/Normal Gradient Schemes**: ใช้รูปแบบ `corrected` เพื่อความแม่นยำบน Mesh ที่ไม่ orthogonal
+>
+> **แนวคิดสำคัญ:**
+> - **Order of Accuracy**: การเลือก scheme ที่มีลำดับความแม่นยำสูง (Second-order) สำคัญต่อการลดความคลาดเคลื่อนเชิงตัวเลข
+> - **Numerical Stability**: การใช้ Bounded schemes (limitedLinear) ป้องกันปัญหาค่าติดลบและการแก้สมการแตก (Divergence)
+> - **Non-orthogonal Correction**: การใช้รูปแบบ `corrected` ช่วยให้ Solver ทำงานได้ดีบน Mesh ที่มีความ non-orthogonal สูง
+> - **Verification vs Production**: การตั้งค่าเหล่านี้เหมาะสำหรับการทดสอบและ Verification แต่อาจต้องปรับเปลี่ยนสำหรับ Production runs ที่ต้องการความแม่นยำสูงสุด
+> - **Turbulence Modeling**: การใช้ bounded schemes สำหรับสมการ k-epsilon ช่วยรักษาเสถียรภาพของการจำลอง
 
 ---
 
@@ -319,38 +403,38 @@ $$R = \frac{\sum_{i=1}^{N} (y_{CFD,i} - \bar{y}_{CFD})(y_{exp,i} - \bar{y}_{exp}
 
 ```python
 # NOTE: Synthesized by AI - Verify parameters
-# validation_metrics.py - คำนวณค่า Error Metrics สำหรับ Validation
+# validation_metrics.py - Calculate error metrics for experimental validation
 
 import numpy as np
 import pandas as pd
 
 def calculate_errors(cfd_data, exp_data):
     """
-    คำนวณค่าความคลาดเคลื่อนต่างๆ ระหว่างข้อมูล CFD และการทดลอง
-
+    Calculate various error metrics between CFD and experimental data
+    
     Args:
-        cfd_data: numpy array ข้อมูลจาก CFD
-        exp_data: numpy array ข้อมูลจากการทดลอง
-
+        cfd_data: numpy array of CFD simulation results
+        exp_data: numpy array of experimental measurements
+    
     Returns:
-        dict: ค่าความคลาดเคลื่อนต่างๆ
+        dict: Dictionary containing error metrics
     """
-    # ตรวจสอบว่าขนาดข้อมูลตรงกัน
+    # Validate input data
     if len(cfd_data) != len(exp_data):
         raise ValueError("CFD and experimental data must have the same length")
-
-    # Absolute Error
+    
+    # Calculate absolute error
     abs_error = np.abs(cfd_data - exp_data)
-
-    # Relative Error (%)
+    
+    # Calculate relative error (%)
     rel_error = np.abs((cfd_data - exp_data) / exp_data) * 100
-
-    # L2 Norm
+    
+    # Calculate L2 norm (RMS error)
     l2_norm = np.sqrt(np.mean((cfd_data - exp_data)**2))
-
-    # Correlation Coefficient
+    
+    # Calculate correlation coefficient
     correlation = np.corrcoef(cfd_data, exp_data)[0, 1]
-
+    
     return {
         'absolute_error': abs_error,
         'relative_error_percent': rel_error,
@@ -359,21 +443,41 @@ def calculate_errors(cfd_data, exp_data):
         'mean_relative_error': np.mean(rel_error)
     }
 
-# ตัวอย่างการใช้งาน
+# Example usage
 if __name__ == "__main__":
-    # อ่านข้อมูลจากไฟล์
+    # Load data from files
     # cfd_data = pd.read_csv('cfd_results.csv')['velocity'].values
     # exp_data = pd.read_csv('exp_results.csv')['velocity'].values
-
+    
     # > **[MISSING DATA]**: Insert actual data file paths for validation
-
+    
     # errors = calculate_errors(cfd_data, exp_data)
     # print(f"Mean Relative Error: {errors['mean_relative_error']:.2f}%")
     # print(f"L2 Norm: {errors['l2_norm']:.4f}")
     # print(f"Correlation Coefficient: {errors['correlation_coefficient']:.4f}")
-
+    
     pass
 ```
+
+> **📂 Source:** .applications/test/fieldMapping/pipe1D/system/fvSchemes
+> 
+> **คำอธิบาย:**
+> - สคริปต์ Python นี้คำนวณตัวชี้วัดความคลาดเคลื่อนระหว่างผลการจำลอง CFD กับข้อมูลการทดลอง
+> - **Error Metrics**:
+>   - **Absolute Error**: ค่าคลาดเคลื่อนสัมบูรณ์ในหน่วยเดียวกับข้อมูล
+>   - **Relative Error**: ค่าคลาดเคลื่อนเป็นเปอร์เซ็นต์ เปรียบเทียบได้ง่าย
+>   - **L2 Norm**: Root Mean Square Error วัดความคลาดเคลื่อนโดยรวม
+>   - **Correlation Coefficient**: วัดความสัมพันธ์ระหว่างข้อมูลสองชุด
+> - **Input Validation**: ตรวจสอบว่าข้อมูล CFD และการทดลองมีความยาวเท่ากัน
+> - **Output**: คืนค่าเป็น Dictionary ที่มีทุกตัวชี้วัดเพื่อนำไปวิเคราะห์ต่อ
+>
+> **แนวคิดสำคัญ:**
+> - **Quantitative Validation**: การใช้ตัวเลขวัดความคลาดเคลื่อนทำให้สามารถเปรียบเทียบและติดตามความก้าวหน้าได้
+> - **Multiple Metrics**: การใช้หลายตัวชี้วัดช่วยให้เข้าใจลักษณะความคลาดเคลื่อนได้ดีขึ้น
+> - **Statistical Analysis**: Correlation coefficient ช่วยบอกว่าแนวโน้มของข้อมูลตรงกันหรือไม่
+> - **Benchmark Comparison**: เปรียบเทียบกับข้อมูลมาตรฐานเพื่อสร้างความน่าเชื่อถือ
+> - **Reproducibility**: สคริปต์ช่วยให้กระบวนการ Validation ทำซ้ำได้และมีความโปร่งใส
+> - **Integration with OpenFOAM**: สามารถใช้กับข้อมูลที่สกัดจาก OpenFOAM โดยใช้ utilities เช่น `sample`, `probeLocations`
 
 ---
 

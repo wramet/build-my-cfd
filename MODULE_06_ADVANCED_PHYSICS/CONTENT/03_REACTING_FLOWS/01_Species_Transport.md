@@ -158,6 +158,20 @@ fvScalarMatrix YiEqn
 YiEqn.solve();
 ```
 
+> **📂 Source:** `.applications/solvers/combustion/reactingFoam/reactingFoam.C`
+>
+> **Explanation:** โค้ดนี้แสดงการสร้างสมการขนส่งสปีชีส์ใน OpenFOAM โดยใช้ `fvScalarMatrix` เพื่อการแยกตัวแปร (discretization) แต่ละเงื่อนไขของสมการถูกสร้างด้วยฟังก์ชันจาก `fvm` (finite volume method) ซึ่งจัดการการหาอนุพันธ์เชิงพื้นที่และเวลาอย่างเป็นระบบ
+>
+> **Key Concepts:**
+> - `fvm::ddt()` — การคำนวณเทอม unsteady (temporal derivative) ด้วยรูปแบบ implicit
+> - `fvm::div()` — การแยกเทอมการพา (convective flux) โดยใช้รูปแบบ implicit เพื่อเสถียรภาพเชิงตัวเลข
+> - `fvm::laplacian()` — การแยกเทอมการแพร่ (diffusive flux) ซึ่งรวมทั้ง turbulent diffusivity และ molecular diffusivity
+> - `Sct` — ค่า Schmidt number ทาง turbulence (โดยทั่วไป ≈ 0.7 สำหรับการไหลแบบ turbulent)
+> - `turbulence->mut()` — ค่าความหนืดทาง turbulence (turbulent viscosity) จาก turbulence model
+> - `chemistry->RR(i)` — อัตราการเกิดปฏิกิริยาเคมีสุทธิ (net reaction rate) สำหรับสปีชีส์ที่ i
+> - `fvOptions()` — ตัวเลือกสำหรับเพิ่ม source terms เพิ่มเติม (เช่น mass sources, porous media)
+> - `YiEqn.solve()` — การแก้ระบบสมการเชิงเส้นที่เกิดจากการแยกตัวแปร
+
 **Term Breakdown:**
 
 | Code Component | Physical Meaning | Typical Values |
@@ -182,6 +196,16 @@ transport
     SoretCoeffs     (H2 0.2);
 }
 ```
+
+> **📂 Source:** `.src/thermophysicalModels/chemistryModel/chemistryModel/chemistryModel.C`
+>
+> **Explanation:** การตั้งค่าชนิดของโมเดลการแพร่ (diffusion model) ใน OpenFOAM ซึ่งกำหนดผ่านไฟล์ `thermophysicalProperties` โมเดล `multiComponent` เป็นการเลือกใช้ Maxwell-Stefan approach แบบ mixture-averaged สำหรับระบบที่มีหลายสปีชีส์
+>
+> **Key Concepts:**
+> - `type` — ระบุชนิดของ transport model (multiComponent, soret, const)
+> - `D` — สัมประสิทธิ์การแพร่แบบ mixture-averaged สำหรับแต่ละสปีชีส์ [m²/s]
+> - `SoretCoeffs` — สัมประสิทธิ์ Soret สำหรับจำลอง thermal diffusion effect (สำคัญสำหรับ H₂)
+> - การเลือกชนิด transport model ส่งผลต่อความแม่นยำและค่าใช้จ่ายทางการคำนวณ
 
 ### Boundary Conditions: `0/` Fields
 
@@ -246,6 +270,15 @@ species
 );
 ```
 
+> **📂 Source:** `.src/thermophysicalModels/specie/thermo/thermo/thermo.C`
+>
+> **Explanation:** การนิยามรายชื่อสปีชีส์เคมีที่จะใช้ในการจำลอง ซึ่ง OpenFOAM จะใช้ข้อมูลนี้ในการสร้าง objects สำหรับแต่ละสปีชีส์และคำนวณคุณสมบัติทางเทอร์โมไดนามิกส์
+>
+> **Key Concepts:**
+> - `species` — รายการชื่อสปีชีส์ที่จะถูกจำลองในระบบ
+> - แต่ละสปีชีส์ต้องมีข้อมูล thermophysical properties ที่สมบูรณ์
+> - ลำดับของสปีชีส์มีความสำคัญสำหรับการคำนวณ reaction rates
+
 ### Step 2: Initialize Fields
 
 Create initial field files for each species in `0/`:
@@ -280,6 +313,17 @@ boundaryField
 }
 ```
 
+> **📂 Source:** `.src/finiteVolume/fields/fvPatchFields/basic/fixedValue/fixedValueFvPatchField.C`
+>
+> **Explanation:** การตั้งค่าเงื่อนไขขอบเขตสำหรับ field เศษส่วนมวลของสปีชีส์ ซึ่งควบคุมพฤติกรรมของสปีชีส์ที่พื้นผิวของโดเมนการคำนวณ
+>
+> **Key Concepts:**
+> - `dimensions` — มิติของตัวแปร (สำหรับ mass fraction เป็น dimensionless)
+> - `internalField` — ค่าเริ่มต้นของ field ในโดเมนภายใน
+> - `fixedValue` — กำหนดค่าคงที่ที่ขอบเขต (ใช้สำหรับ inlet)
+> - `zeroGradient` — ไม่มี gradient ตั้งฉากกับขอบเขต (ใช้สำหรับ outlet/walls)
+> - การเลือก boundary condition ส่งผลต่อความเสถียรและความแม่นยำของการคำนวณ
+
 ### Step 4: Configure Solver Settings
 
 In `system/fvSolution`:
@@ -296,6 +340,18 @@ solvers
     }
 }
 ```
+
+> **📂 Source:** `.src/finiteVolume/fvSolution/fvSolution.C`
+>
+> **Explanation:** การตั้งค่า linear solver สำหรับการแก้สมการขนส่งสปีชีส์ ซึ่งมีผลต่อประสิทธิภาพและความแม่นยำของการคำนวณ
+>
+> **Key Concepts:**
+> - `GAMG` — Geometric-Algebraic Multi-Grid solver (เหมาะสำหรับปัญหาที่มีความยากตาม hierarchy)
+> - `tolerance` — ค่าความอดทนสัมบูรณ์ (absolute tolerance) สำหรับการหายู่
+> - `relTol` — ค่าความอดทนสัมพัทธ์ (relative tolerance)
+> - `smoother` — วิธีการ smoothing ภายใน multigrid cycle
+> - การตั้งค่า `relTol = 0` หมายถึงการบังคับให้ถึง absolute tolerance เสมอ
+> - รูปแบบ `"\"Yi.*\""` เป็น regular expression ที่ match กับทุก species field (Y_CH4, Y_O2, etc.)
 
 ---
 

@@ -26,6 +26,16 @@ lduMatrix pressureMatrix(mesh);  // Stores only non-zeros
 // Memory: ~15 non-zeros per row × 1M × 8 bytes = 120MB
 ```
 
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **📖 คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** ไฟล์ `populationBalanceModel.C` ใน OpenFOAM ใช้ระบบ sparse matrix เพื่อจัดการกับระบบสมการขนาดใหญ่ที่เกิดจากการ discretize สมการ population balance ที่มีจำนวน size groups มาก
+> - **คำอธิบาย (Explanation):** Dense matrices ใช้หน่วยความจำมหาศาลสำหรับ CFD problems เพราะเก็บค่าศูนย์จำนวนมาก OpenFOAM ใช้ `lduMatrix` (Lower-Diagonal-Upper) storage format ที่เก็บเฉพาะค่า non-zero coefficients ซึ่งลดการใช้หน่วยความจำลงอย่างมาก
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Sparse Matrix Structure:** เก็บเฉพาะ connections ระหว่าง cells ข้างเคียง (typically 6-20 neighbors ใน 3D)
+>   - **Memory Efficiency:** ลดจาก O(n²) เป็น O(nnz) โดย nnz = number of non-zeros
+>   - **lduMatrix Storage:** ใช้ 3 scalar fields (upper, lower, diagonal) แทะ matrix เต็ม
+
 ### Technical Analysis
 
 **Memory Complexity by Storage Format:**
@@ -49,6 +59,17 @@ scalarField diag_;   // Diagonal coefficients
 labelList upperAddr_; // Upper addressing
 labelList lowerAddr_; // Lower addressing
 ```
+
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **📖 คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** lduMatrix implementation ถูกใช้อย่างแพร่หลายใน OpenFOAM solvers รวมถึง multiphaseEulerFoam สำหรับ discretized transport equations
+> - **คำอธิบาย (Explanation):** lduMatrix ใช้ compressed storage format โดยเก็บแค่ 3 components: lower, upper, diagonal พร้อม addressing arrays ที่ระบุว่า coefficient แต่ละตัวอยู่ระหว่าง cells ไหน
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Lower/Upper Arrays:** เก็บ off-diagonal coefficients สำหรับ connections ระหว่าง neighboring cells
+>   - **Addressing Arrays:** `upperAddr`/`lowerAddr` ระบุ cell indices สำหรับแต่ละ coefficient
+>   - **Diagonal Array:** เก็บ diagonal coefficients แยกจาก off-diagonal
+>   - **Memory Access Pattern:** Compressed storage ช่วยให้ efficient memory access ใน iterative solvers
 
 **Mathematical Representation:**
 
@@ -74,6 +95,16 @@ C = A * B;  // 1 billion operations (slow!)
 // For CFD: Use iterative solvers (O(n) per iteration)
 // For dense large matrices: Use BLAS/LAPACK (highly optimized)
 ```
+
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **📖 คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** OpenFOAM solvers ใช้ iterative linear solvers เช่น GAMG, PBiCGStab สำหรับ large sparse systems ที่เกิดจาก CFD discretization แทน direct methods
+> - **คำอธิบาย (Explanation):** Direct matrix operations มี complexity O(n³) ซึ่งไม่เหมาะกับ large CFD problems ที่มี millions of cells Iterative solvers ใช้ O(n) ต่อ iteration และ converge ภายใน 10-100 iterations สำหรับ well-conditioned systems
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Computational Complexity:** Direct multiplication = O(n³), Iterative = O(k·n) where k = iterations
+>   - **Algorithm Selection:** CFD ใช้ iterative solvers (GAMG, PCG, PBiCGStab) ที่ optimized สำหรับ sparse matrices
+>   - **Convergence Rate:** ขึ้นกับ matrix conditioning และ preconditioning quality
 
 ### Complexity Analysis
 
@@ -108,6 +139,17 @@ solver.solve(field, source);
 externalSolvers::eigenSolve(denseMatrix, eigenvalues, eigenvectors);
 ```
 
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **📖 คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** OpenFOAM มี built-in solvers หลากหลายสำหรับ different matrix types: GAMG สำหรับ elliptic equations, PCG สำหรับ symmetric positive definite, PBiCGStab สำหรับ asymmetric systems
+> - **คำอธิบาย (Explanation):** Solver selection ขึ้นกับ matrix properties (symmetry, conditioning, sparsity pattern) GAMG เป็น multigrid method ที่มี O(n) complexity และเหมาะกับ large CFD problems
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **GAMG (Geometric-Algebraic Multigrid):** ใช้ multiple grid levels ในการ accelerate convergence
+>   - **PCG (Preconditioned Conjugate Gradient):** สำหรับ symmetric positive definite matrices
+>   - **PBiCGStab:** Stabilized Bi-Conjugate Gradient สำหรับ non-symmetric systems
+>   - **Convergence Criteria:** ควบคุมด้วย tolerance และ relTol ใน fvSolution dictionary
+
 ---
 
 ## Pitfall #3: Numerical Instability
@@ -130,6 +172,17 @@ scalar epsilon = 1e-10;
 SquareMatrix<scalar> Areg = A + epsilon*Identity();
 SquareMatrix<scalar> Ainv = Areg.inv();  // More stable
 ```
+
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **📖 คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** Multiphase flows มี large property contrasts (density ratios, viscosity ratios) ที่ทำให้ matrices become ill-conditioned OpenFOAM ใช้ under-relaxation และ preconditioning เพื่อ maintain stability
+> - **คำอธิบาย (Explanation):** Ill-conditioned matrices มี condition number สูง ทำให้ small perturbations ใน input ส่งผลใหญ่ใน solution Regularization เพิ่ม small values บน diagonal เพื่อ improve conditioning
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Condition Number:** κ(A) = σ_max/σ_min วัด sensitivity ต่อ perturbations
+>   - **Regularization:** เพิ่ม ε·I ลงใน matrix เพื่อ improve conditioning
+>   - **Iterative Solvers:** ทนต่อ ill-conditioning มากกว่า direct methods
+>   - **Preconditioning:** ลด condition number ก่อน solve
 
 ### Condition Number Analysis
 
@@ -167,6 +220,17 @@ fieldNew = (1-alpha)*fieldOld + alpha*fieldCorrection;
 scalar epsilon = 1e-12;
 matrix.diagonal() += epsilon;  // Add to diagonal
 ```
+
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **📖 คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** OpenFOAM ใช้ multiple stabilization techniques: under-relaxation ใน PIMPLE algorithm, preconditioning ใน linear solvers, และ bounded schemes สำหรับ sharp interfaces
+> - **คำอธิบาย (Explanation):** Preconditioning แปลง linear system เพื่อ improve convergence Under-relaxation ลด oscillations ใน transient problems Regularization prevents division by near-zero values
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Preconditioning:** ปรับ matrix ให้มี condition number ดีขึ้น (DIC, DILU, GAMG)
+>   - **Under-Relaxation:** New = (1-α)·Old + α·Computed โดย 0 < α < 1
+>   - **Tikhonov Regularization:** เพิ่ม ε บน diagonal เพื่อ prevent singularities
+>   - **Stability vs Accuracy:** Trade-off ระหว่าง stability และ convergence rate
 
 ### Solver Performance Metrics
 
@@ -232,6 +296,17 @@ p
 }
 ```
 
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **📖 คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** OpenFOAM solvers ใช้ different linear solvers สำหรับ different equation types: PCG สำหรับ symmetric systems (เช่น pressure บน orthogonal meshes), PBiCGStab สำหรับ asymmetric systems (เช่น momentum หรือ pressure บน unstructured meshes)
+> - **คำอธิบาย (Explanation):** PCG (Preconditioned Conjugate Gradient) ทำงานได้เฉพาะกับ symmetric positive definite matrices ถ้าใช้กับ non-symmetric matrix จะ diverge หรือ converge ช้ามาก ต้องใช้ PBiCGStab หรือ PBiCG แทน
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Matrix Symmetry:** Pressure matrices มัก symmetric แต่ด้วย non-orthogonal corrections ทำให้ become asymmetric
+>   - **Solver Matching:** PCG → symmetric, PBiCGStab → asymmetric, GAMG → both (but optimal for symmetric)
+>   - **Mesh Effects:** Unstructured meshes และ non-orthogonality ทำให้ matrices become asymmetric
+>   - **Convergence Divergence:** ผิด solver type อาจทำให้ solver diverge หรือไม่ converge
+
 ### Matrix Property Analysis
 
 The pressure equation:
@@ -295,6 +370,17 @@ p
 }
 ```
 
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **📖 คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** OpenFOAM ใช้ preconditioning อย่างแพร่หลายใน linear solvers เพื่อ accelerate convergence DIC (Diagonal Incomplete Cholesky) สำหรับ symmetric matrices, DILU สำหรับ asymmetric matrices
+> - **คำอธิบาย (Explanation):** Preconditioning แปลง system $\mathbf{Ax}=\mathbf{b}$ เป็น $\mathbf{M}^{-1}\mathbf{Ax}=\mathbf{M}^{-1}\mathbf{b}$ โดยที่ $\mathbf{M}$ approximate $\mathbf{A}$ แต่ easy to invert ทำให้ condition number ดีขึ้น
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Preconditioning Goal:** ลด condition number κ(A) ให้ solver converge เร็วขึ้น
+>   - **DIC (Diagonal Incomplete Cholesky):** สำหรับ symmetric matrices, ทำ approximate factorization A ≈ LL^T
+>   - **DILU (Diagonal Incomplete LU):** สำหรับ asymmetric matrices, A ≈ LU
+>   - **GAMG Preconditioning:** Multigrid-based preconditioning สำหรับ large systems
+
 ### Preconditioner Recommendations
 
 | Matrix Type | Recommended Preconditioner | Speed | Notes |
@@ -351,6 +437,17 @@ p
     relTol          0.1;       // Relative convergence
 }
 ```
+
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **📖 คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** OpenFOAM ใช้ dual tolerance criteria (absolute + relative) สำหรับ linear solvers ซึ่ง balance ระหว่าง accuracy และ computational cost
+> - **คำอธิบาย (Explanation):** Tolerance จนเกินไป (เช่น 1e-12) waste computational time เพราะ discretization error มักมากกว่านั้น Practical tolerances (1e-6 ถึง 1e-8) สมดุลระหว่าง accuracy และ speed
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Absolute Tolerance:** `tolerance` = minimum residual norm ที่ยอมรับได้
+>   - **Relative Tolerance:** `relTol` = reduction ratio จาก initial residual
+>   - **Convergence Criterion:** ||r|| ≤ max(ε_abs, ε_rel·||r_0||)
+>   - **Error Balance:** Solver error ควรเป็น small fraction ของ discretization error
 
 ### Tolerance Hierarchy
 
@@ -429,6 +526,17 @@ dimensionedScalar alpha("alpha", dimensionSet(0,2,-1,0,0), 1e-5);
 TEqn == fvm::laplacian(alpha, T);  // [K/s] = [m²/s] * [K/m²] ✓
 ```
 
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **📖 คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** OpenFOAM ใช้ `dimensionSet` class เพื่อ enforce dimensional consistency ตั้งแต่ compile-time ซึ่ง catch physics errors ที่ common มาก
+> - **คำอธิบาย (Explanation):** OpenFOAM tracks dimensions ของทุก quantity (mass, length, time, temperature, etc.) ถ้า dimensions ไม่ match compiler จะ error ซึ่ง prevent physics mistakes ใน code
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **DimensionSet:** [mass, length, time, temperature, moles, current, luminous intensity]
+>   - **Compile-Time Checking:** Dimension mismatches caught ตั้งแต่ compile time
+>   - **Physical Consistency:** ทุก term ใน equation ต้องมี dimensions เหมือนกัน
+>   - **Common Mistake:** ใช้ conductivity แทน diffusivity, หรือลืม density
+
 **Key Insight:**
 - `fvm::laplacian(kappa, T)` computes $\nabla \cdot (\kappa \nabla T)$
 - This has units of heat flux per volume: $[\text{W/m}^3] = [\text{kg/s}^3]$
@@ -458,6 +566,17 @@ T.boundaryFieldRef()[patchi] = fixedValueFvPatchField<scalar>::typeName;
 // Prescribed temperature: fixedValue
 // Convection: mixed (Robin)
 ```
+
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **📖 คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** OpenFOAM boundary conditions ถูก implement ผ่าน `fvPatchField` classes ที่ map directly กับ physical boundary conditions (Dirichlet, Neumann, Robin)
+> - **คำอธิบาย (Explanation):** Boundary condition types ต้อง match กับ physics: fixedValue (Dirichlet) สำหรับ prescribed values, fixedGradient (Neumann) สำหรับ prescribed flux, mixed (Robin) สำหรับ convection
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Dirichlet BC:** `fixedValue` - specify value บน boundary
+>   - **Neumann BC:** `fixedGradient` - specify derivative/flux
+>   - **Robin BC:** `mixed` - linear combination ของ value และ gradient
+>   - **Physics Matching:** BC type ต้อง reflect จริงของ physical problem
 
 **Mathematical Context:** For the heat equation:
 $$\rho c_p \frac{\partial T}{\partial t} = \nabla \cdot (\kappa \nabla T) + Q$$
@@ -491,6 +610,17 @@ fvMatrix<scalar> TEqn = fvm::ddt(rhoCp, T)
                       - fvm::laplacian(kappa, T)
                       == radiationSource;  // Source term
 ```
+
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **📖 คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** OpenFOAM transport equations ต้อง include ทุก physical terms: transient, convection, diffusion, source terms ซึ่งจะถูก assembled เป็น `fvMatrix` ที่ complete
+> - **คำอธิบาย (Explanation):** General conservation equation มี 4 main components: transient term (fvm::ddt), convection (fvm::div), diffusion (fvm::laplacian), source terms Missing terms ทำให้ solution become unrealistic
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Equation Balance:** ทุก physical phenomenon ต้องมี representation ใน equation
+>   - **Implicit vs Explicit:** `fvm::` = implicit (in matrix), `fvc::` = explicit (source term)
+>   - **Source Terms:** อาจเป็น constant, field-dependent, หรือ function of other variables
+>   - **Matrix Assembly:** ทุก term ถูก add ลงใน fvMatrix ก่อน solve
 
 Remember the **general conservation equation form in OpenFOAM**:
 $$\underbrace{\frac{\partial (\rho \phi)}{\partial t}}_{\text{fvm::ddt}} + \underbrace{\nabla \cdot (\rho \mathbf{u} \phi)}_{\text{fvm::div}} = \underbrace{\nabla \cdot (\Gamma \nabla \phi)}_{\text{fvm::laplacian}} + \underbrace{S_{\phi}}_{\text{source}}$$
@@ -529,6 +659,17 @@ lduMatrix laplacianMatrix(mesh);
 lduMatrix::symmetricStorage = true;  // Store only upper triangle
 // Or use specialized symmetric solvers
 ```
+
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **📖 คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** OpenFOAM lduMatrix รองรับ symmetric storage สำหรับ operators ที่ symmetric (เช่น Laplacian) เพื่อ reduce memory usage และ improve solver performance
+> - **คำอธิบาย (Explanation):** Symmetric matrices (เช่น จาก Laplacian operator) มี lower = upper ดังนั้น store เฉพาะ upper triangle ก็พอ ลด memory 50% และใช้ specialized solvers (เช่น PCG) ที่ exploit symmetry
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Matrix Symmetry:** A = A^T เช่น จาก self-adjoint operators (Laplacian)
+>   - **Storage Optimization:** Symmetric matrices store เฉพาะ upper/lower triangle
+>   - **Solver Selection:** Symmetric solvers (PCG) เร็วกว่า general solvers
+>   - **Memory Savings:** ลดจาก 2×off-diagonal coefficients เป็น 1×
 
 **Memory Impact:**
 - **For 3D mesh** with $N$ cells:
@@ -586,6 +727,17 @@ forAll(mesh.boundary(), patchi)
 }
 ```
 
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **📖 คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** OpenFOAM matrix assembly ต้อง include boundary contributions ผ่าน boundary patches ซึ่ง modify diagonal และ source terms สำหรับ boundary conditions
+> - **คำอธิบาย (Explanation):** Boundary faces ต้องถูก include ใน matrix assembly Dirichlet BCs ใช้ penalty method โดยเพิ่ม large values ลง diagonal และ source Neumann BCs ผ่าน flux contributions
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Boundary Integration:** Boundary faces contribute ต่อ matrix coefficients
+>   - **Penalty Method:** Dirichlet BCs ใช้ large number (GREAT) บน diagonal
+>   - **Flux Conditions:** Neumann BCs modify matrix coefficients ผ่าน flux terms
+>   - **Matrix Structure:** Boundaries change sparsity pattern ของ matrix
+
 **Boundary Condition Implementation Steps:**
 1. Loop through all boundary patches
 2. Check each patch type
@@ -638,6 +790,17 @@ if (Pstream::parRun())
     );
 }
 ```
+
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **📖 คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** OpenFOAM parallel implementation ใช้ domain decomposition พร้อม `lduInterface` สำหรับ handle inter-processor coupling ใน matrix operations และ linear solvers
+> - **คำอธิบาย (Explanation):** Parallel runs ต้อง communicate ข้อมูลระหว่าง processors ผ่าน MPI boundaries `lduInterface` handle interface coefficients และ synchronize values ระหว่าง processor domains
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Domain Decomposition:** Mesh ถูก split เป็น subdomains สำหรับแต่ละ processor
+>   - **Processor Coupling:** Interface faces ระหว่าง processors ต้อง be communicated
+>   - **lduInterface:** Handle inter-processor boundary coefficients และ field values
+>   - **MPI Communication:** `updateMatrixInterfaces` ทำ communication ผ่าน MPI
 
 **How `lduInterface` Works:**
 

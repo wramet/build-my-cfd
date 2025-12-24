@@ -32,7 +32,7 @@ flowchart TD
     C --> E[Directly Solved<br/>Energy containing]
     D --> F[Modeled<br/>Isotropic & Universal]
 ```
-> **Figure 1:** แนวคิดการแยกสเกลใน Large Eddy Simulation (LES) ซึ่งใช้กระบวนการกรองเชิงพื้นที่ (Spatial Filtering) เพื่อแบ่งโครงสร้างความปั่นป่วนออกเป็นสเกลใหญ่ (Resolved Scales) ที่แก้ปัญหาโดยตรง และสเกลเล็ก (Subgrid-Scale) ที่ต้องใช้แบบจำลองทางสถิติในการประมาณค่าความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** แนวคิดการแยกสเกลใน Large Eddy Simulation (LES) ซึ่งใช้กระบวนการกรองเชิงพื้นที่ (Spatial Filtering) เพื่อแบ่งโครงสร้างความปั่นป่วนออกเป็นสเกลใหญ่ (Resolved Scales) ที่แก้ปัญหาโดยตรง และสเกลเล็ก (Subgrid-Scale) ที่ต้องใช้แบบจำลองทางสถิติในการประมาณค่า
 
 > [!INFO] **ความสำคัญของการแยกสเกล**
 > LES แก้สมการการไหลสำหรับ **large eddies** ซึ่งเป็นโครงสร้างที่กักเก็บพลังงานและขับเคลื่อนพลวัตของโฟลว์ ในขณะที่ **small eddies** ถูกสร้างแบบจำลองด้วยแบบจำลอง SGS เนื่องจากมีพฤติกรรมเป็นสากล (universal) มากกว่า
@@ -209,22 +209,31 @@ simulationType LES;
 
 LES
 {
-    // เลือกแบบจำลอง SGS
+    // Select the SGS model
     LESModel        Smagorinsky;
 
-    // เปิดการใช้งานความปั่นป่วน
+    // Enable turbulence
     turbulence      on;
 
-    // วิธีคำนวณ filter width
+    // Filter width calculation method
     delta           cubeRootVol;
 
-    // ค่าสัมประสิทธิ์ Smagorinsky
+    // Smagorinsky coefficient
     SmagorinskyCoeffs
     {
         Cs          0.15;
     }
 }
 ```
+
+> **📂 Source:** การตั้งค่าแบบจำลอง Smagorinsky ใน OpenFOAM ใช้โครงสร้าง dictionary ในไฟล์ `constant/turbulenceProperties` เพื่อกำหนดประเภทการจำลอง (LES) และพารามิเตอร์ของแบบจำลอง SGS
+>
+> **💡 คำอธิบาย:** บล็อกนี้กำหนดการตั้งค่าพื้นฐานสำหรับ LES โดยเลือกใช้แบบจำลอง Smagorinsky ซึ่งเป็นแบบจำลอง SGS ที่เรียบง่ายที่สุด ค่า Cs = 0.15 อยู่ในช่วงมาตรฐาน (0.1-0.2)
+>
+> **🔑 หลักการสำคัญ:**
+> - `LESModel`: ระบุแบบจำลอง SGS (Smagorinsky, dynamicSmagorinsky, WALE, etc.)
+> - `delta`: วิธีคำนวณความกว้างตัวกรอง (cubeRootVol, maxDeltaxyz, etc.)
+> - `SmagorinskyCoeffs`: พารามิเตอร์เฉพาะสำหรับแบบจำลอง Smagorinsky
 
 ### ตัวเลือกการคำนวณ Filter Width
 
@@ -240,10 +249,12 @@ LES
 ```cpp
 LES
 {
+    // Select WALE model for wall-adapting behavior
     LESModel        WALE;
     turbulence      on;
     delta           cubeRootVol;
 
+    // WALE model coefficient
     WALECoeffs
     {
         Cw          0.325;
@@ -251,18 +262,36 @@ LES
 }
 ```
 
+> **📂 Source:** การตั้งค่าแบบจำลอง WALE ใน OpenFOAM ซึ่งถูกออกแบบให้ทำงานได้ดีใกล้ผนังโดยอัตโนมัติ
+>
+> **💡 คำอธิบาย:** แบบจำลอง WALE ให้ความหนืด SGS ที่เป็นศูนย์ใกล้ผนังโดยอัตโนมัติ ทำให้เหมาะสำหรับ wall-bounded flows โดยไม่ต้องใช้ damping functions
+>
+> **🔑 หลักการสำคัญ:**
+> - `WALE`: เลือกแบบจำลอง WALE ที่เหมาะกับโฟลว์ใกล้ผนัง
+> - `Cw = 0.325`: ค่าสัมประสิทธิ์มาตรฐานสำหรับแบบจำลอง WALE
+
 ### การตั้งค่า Dynamic Model
 
 ```cpp
 LES
 {
+    // Dynamic model computes Cs automatically
     LESModel        dynamicSmagorinsky;
     turbulence      on;
     delta           cubeRootVol;
 
-    // ไม่ต้องระบุ Cs - คำนวณอัตโนมัติ
+    // No need to specify Cs - computed dynamically
 }
 ```
+
+> **📂 Source:** การตั้งค่าแบบจำลอง Dynamic Smagorinsky ใน OpenFOAM ซึ่งคำนวณค่าสัมประสิทธิ์ Cs อัตโนมัติตามเวลาและตำแหน่ง
+>
+> **💡 คำอธิบาย:** แบบจำลอง Dynamic Smagorinsky ใช้ test filtering เพื่อคำนวณค่า Cs แบบ local ทำให้สามารถ capture backscatter และปรับตัวตามสภาพโฟลว์ได้ดีกว่าแบบ standard
+>
+> **🔑 หลักการสำคัญ:**
+> - `dynamicSmagorinsky`: คำนวณ Cs อัตโนมัติโดยไม่ต้องกำหนดค่าคงที่
+> - ต้องการ computational cost สูงกว่าแบบ standard
+> - อาจมีปัญหาเรื่อง numerical stability ในบางกรณี
 
 ---
 
@@ -275,67 +304,110 @@ LES
 ```cpp
 U
 {
+    // Fixed velocity at inlet
     type            fixedValue;
     value           uniform (10 0 0);  // m/s
 }
 
 k
 {
+    // Fixed turbulent kinetic energy
     type            fixedValue;
     value           uniform 0.1;       // m²/s²
 }
 ```
+
+> **📂 Source:** การกำหนด boundary condition แบบ fixed value สำหรับ velocity และ turbulent kinetic energy ที่ inlet ใน OpenFOAM
+>
+> **💡 คำอธิบาย:** วิธีที่เรียบง่ายที่สุดในการกำหนด inlet condition โดยระบุค่าคงที่สำหรับ velocity และ turbulent kinetic energy
+>
+> **🔑 หลักการสำคัญ:**
+> - `fixedValue`: กำหนดค่าคงที่ที่ boundary
+> - เหมาะสำหรับการทดสอบเบื้องต้น แต่ไม่ realistic สำหรับ LES
+> - ควรใช้ turbulent inlet conditions สำหรับการจำลองที่แม่นยำ
 
 #### 2. Turbulent Inlet
 
 ```cpp
 U
 {
+    // Turbulent inlet with fluctuations
     type            turbulentInlet;
     mean            (10 0 0);
-    fluctuation     (0.5 0 0);         // ความเข้มของการผันผวน
+    fluctuation     (0.5 0 0);         // Fluctuation intensity
     referenceField  U;
 }
 
 k
 {
+    // Turbulent kinetic energy from intensity
     type            turbulentIntensityKineticEnergyInlet;
     intensity       0.05;              // 5% intensity
     value           uniform 0.1;
 }
 ```
 
+> **📂 Source:** การกำหนด turbulent inlet boundary condition ใน OpenFOAM ซึ่งสร้างการผันผวนที่ realistic สำหรับ LES
+>
+> **💡 คำอธิบาย:** สร้าง turbulent fluctuations ที่ inlet โดยระบุค่าเฉลี่ยและความเข้มของการผันผวน ทำให้ได้ turbulent inflow ที่ realistic มากขึ้น
+>
+> **🔑 หลักการสำคัญ:**
+> - `turbulentInlet`: สร้าง velocity fluctuations แบบ stochastic
+> - `intensity`: ระดับความรุนแรงของความปั่นป่วน (typical 1-10%)
+> - ควรใช้สำหรับ LES simulation ที่ต้องการ realistic inflow
+
 #### 3. Synthetic Eddy Method
 
 ```cpp
 U
 {
+    // Synthetic turbulence generation
     type            syntheticTurbulence;
     RField          R;                  // Reynolds stress field
     nEddy           100;
 }
 ```
 
+> **📂 Source:** การกำหนด synthetic turbulence boundary condition ใน OpenFOAM ซึ่งใช้ synthetic eddy method ในการสร้าง turbulent structures
+>
+> **💡 คำอธิบาย:** Synthetic Eddy Method สร้าง turbulent structures ที่มีสถิติตามที่กำหนด (Reynolds stress) โดยการ superposition ของ eddies สังเคราะห์
+>
+> **🔑 หลักการสำคัญ:**
+> - `syntheticTurbulence`: สร้าง turbulent inflow ที่มี spatial correlations
+> - `RField`: ระบุ Reynolds stress tensor ที่ต้องการ
+> - `nEddy`: จำนวน eddies ที่ใช้ในการสร้าง synthetic turbulence
+
 ### เงื่อนไข Outlet
 
 ```cpp
 U
 {
+    // Zero gradient for velocity
     type            zeroGradient;
 }
 
 k
 {
+    // Zero gradient for turbulent kinetic energy
     type            zeroGradient;
 }
 
 nut
 {
+    // InletOutlet for eddy viscosity
     type            inletOutlet;
     inletValue      uniform 0;
     value           uniform 0;
 }
 ```
+
+> **📂 Source:** การกำหนด outlet boundary conditions สำหรับ LES simulation ใน OpenFOAM
+>
+> **💡 คำอธิบาย:** Outlet conditions สำหรับ LES ใช้ zero gradient สำหรับ velocity และ k ในขณะที่ nut ใช้ inletOutlet เพื่อป้องกัน backflow issues
+>
+> **🔑 หลักการสำคัญ:**
+> - `zeroGradient`: อนุญาตให้ flow ออกจาก domain โดยไม่มีการกระทบ
+> - `inletOutlet`: ใช้ zeroGradient เมื่อ flow ออก และ fixedValue เมื่อมี backflow
 
 ### เงื่อนไขผนัง
 
@@ -344,41 +416,65 @@ nut
 ```cpp
 U
 {
+    // No-slip condition for velocity
     type            noSlip;
 }
 
 k
 {
+    // Zero turbulent kinetic energy at wall
     type            fixedValue;
     value           uniform 0;
 }
 
 nut
 {
+    // Zero gradient for eddy viscosity
     type            zeroGradient;
 }
 ```
+
+> **📂 Source:** การกำหนด wall boundary conditions สำหรับ wall-resolved LES ใน OpenFOAM
+>
+> **💡 คำอธิบาย:** Wall-resolved LES ต้องการ mesh resolution สูงมาก ($y^+ \approx 1$) เพื่อแก้ปัญหา viscous sublayer โดยตรง
+>
+> **🔑 หลักการสำคัญ:**
+> - `noSlip`: velocity เป็นศูนย์ที่ผนัง
+> - `fixedValue` สำหรับ k: turbulent kinetic energy เป็นศูนย์ที่ผนัง
+> - ต้องการ mesh resolution สูงมาก (expensive)
 
 #### Wall-modeled ($y^+ \approx 50-200$)
 
 ```cpp
 U
 {
+    // Wall function for velocity
     type            wallFunction;
 }
 
 k
 {
+    // Wall function for turbulent kinetic energy
     type            kqRWallFunction;
     value           uniform 0;
 }
 
 nut
 {
+    // Wall function for eddy viscosity
     type            nutWallFunction;
     value           uniform 0;
 }
 ```
+
+> **📂 Source:** การกำหนด wall function boundary conditions สำหรับ wall-modeled LES ใน OpenFOAM
+>
+> **💡 คำอธิบาย:** Wall-modeled LES ใช้ wall functions เพื่อลดความละเอียดของ mesh ที่จำเป็นใกล้ผนัง ทำให้คำนวณได้เร็วขึ้น
+>
+> **🔑 หลักการสำคัญ:**
+> - `wallFunction`: ใช้ wall functions เพื่อ model near-wall region
+> - `kqRWallFunction`: wall function สำหรับ k, q, หรือ R
+> - ลดค่าใช้จ่าย computational อย่างมาก แต่ลดความแม่นยำใกล้ผนัง
 
 ---
 
@@ -516,32 +612,65 @@ $$
 #### Smagorinsky (Standard)
 
 ```cpp
-✅ โฟลว์ shear อย่างเดียว (homogeneous shear flow)
-✅ การไหลแบบ isotropic
-✅ การวิเคราะห์เบื้องต้น
-❌ โฟลว์ใกล้ผนัง
-❌ โฟลว์ที่มีการไหลย้อน (backscatter)
+// ✅ Suitable for:
+// - Homogeneous shear flow
+// - Isotropic turbulence
+// - Preliminary analysis
+// ❌ Not suitable for:
+// - Wall-bounded flows
+// - Flows with backscatter
 ```
+
+> **📂 Source:** แนวทางการเลือกใช้แบบจำลอง Smagorinsky สำหรับการจำลองความปั่นป่วนใน OpenFOAM
+>
+> **💡 คำอธิบาย:** แบบจำลอง Smagorinsky เหมาะสำหรับโฟลว์ที่ไม่ซับซ้อนและอยู่ห่างจากผนัง แต่ไม่เหมาะกับ wall-bounded flows เนื่องจาก over-dissipation
+>
+> **🔑 หลักการสำคัญ:**
+> - เลือก Smagorinsky เมื่อต้องการความเรียบง่ายและเสถียร
+> - หลีกเลี่ยงการใช้สำหรับ flows ใกล้ผนัง
+> - เหมาะสำหรับการวิเคราะห์เบื้องต้น
 
 #### Dynamic Smagorinsky
 
 ```cpp
-✅ โฟลว์ที่ซับซ้อนและมีการเปลี่ยนแปลง
-✅ การจำลองที่ต้องการความแม่นยำสูง
-✅ โฟลว์ที่มี backscatter
-❌ กรณีที่ต้องการความเสถียรสูง
-❌ ทรัพยากรจำกัด
+// ✅ Suitable for:
+// - Complex, varying flows
+// - High-accuracy simulations
+// - Flows with backscatter
+// ❌ Not suitable for:
+// - Cases requiring high stability
+// - Limited computational resources
 ```
+
+> **📂 Source:** แนวทางการเลือกใช้แบบจำลอง Dynamic Smagorinsky ซึ่งปรับตัวตามสภาพโฟลว์
+>
+> **💡 คำอธิบาย:** แบบจำลอง Dynamic Smagorinsky เหมาะสำหรับโฟลว์ที่ซับซ้อนเนื่องจากสามารถปรับค่า Cs ตามเวลาและตำแหน่งได้
+>
+> **🔑 หลักการสำคัญ:**
+> - เลือก Dynamic เมื่อต้องการความแม่นยำสูง
+> - ต้องการ computational resources สูงกว่า
+> - อาจมีปัญหาเรื่อง numerical stability
 
 #### WALE
 
 ```cpp
-✅ โฟลว์ใกล้ผนัง (wall-bounded flows)
-✅ Geometries ที่ซับซ้อน
-✅ กรณีที่ต้องการ $y^+$ สูง
-✅ โฟลว์ที่มี transition regions
-❌ โฟลว์ isotropic อย่างเดียว
+// ✅ Suitable for:
+// - Wall-bounded flows
+// - Complex geometries
+// - Cases requiring high y+
+// - Flows with transition regions
+// ❌ Not suitable for:
+// - Purely isotropic flows
 ```
+
+> **📂 Source:** แนวทางการเลือกใช้แบบจำลอง WALE สำหรับ wall-bounded flows ใน OpenFOAM
+>
+> **💡 คำอธิบาย:** แบบจำลอง WALE ถูกออกแบบมาเพื่อให้ทำงานได้ดีใกล้ผนังโดยอัตโนมัติ ทำให้เหมาะสำหรับ wall-bounded flows
+>
+> **🔑 หลักการสำคัญ:**
+> - เลือก WALE สำหรับ wall-bounded flows
+> - เหมาะกับ complex geometries
+> - ไม่ต้องการ damping functions
 
 ---
 
@@ -607,22 +736,26 @@ LES
 // system/fvSchemes
 ddtSchemes
 {
+    // Second-order backward scheme for time accuracy
     default         backward;
 }
 
 gradSchemes
 {
+    // Central differencing for gradients
     default         Gauss linear;
 }
 
 divSchemes
 {
     default         none;
+    // Linear scheme for convection
     div(phi,U)      Gauss linear;
 }
 
 laplacianSchemes
 {
+    // Corrected scheme for diffusion
     default         Gauss linear corrected;
 }
 
@@ -631,6 +764,7 @@ solvers
 {
     p
     {
+        // GAMG solver for pressure
         solver          GAMG;
         tolerance       1e-06;
         relTol          0.01;
@@ -638,6 +772,7 @@ solvers
 
     U
     {
+        // Smooth solver for velocity
         solver          smoothSolver;
         smoother        GaussSeidel;
         tolerance       1e-05;
@@ -645,6 +780,16 @@ solvers
     }
 }
 ```
+
+> **📂 Source:** การตั้งค่า complete LES simulation สำหรับ channel flow ใน OpenFOAM
+>
+> **💡 คำอธิบาย:** ตัวอย่างนี้แสดงการตั้งค่า LES simulation ที่สมบูรณ์ รวมถึงการเลือก numerical schemes และ solvers ที่เหมาะสม
+>
+> **🔑 หลักการสำคัญ:**
+> - `backward`: Second-order time scheme สำหรับความแม่นยำ
+> - `GAMG`: Geometric-algebraic multigrid solver สำหรับ pressure
+> - `smoothSolver`: Iterative solver สำหรับ velocity
+> - Tolerances ที่เหมาะสมสำหรับ LES
 
 ### ตัวอย่าง 2: การติดตาม Statistics
 
@@ -688,7 +833,9 @@ functions
         (
             U
             {
+                // Calculate mean velocity
                 mean            on;
+                // Calculate Reynolds stresses
                 prime2Mean      on;
                 base            time;
             }
@@ -703,6 +850,16 @@ functions
     }
 }
 ```
+
+> **📂 Source:** การตั้งค่า function objects สำหรับการเก็บสถิติใน LES simulation ด้วย OpenFOAM
+>
+> **💡 คำอธิบาย:** Function objects ใช้สำหรับเก็บ turbulent statistics เช่น mean velocity และ Reynolds stresses ซึ่งจำเป็นสำหรับการวิเคราะห์ผลลัพธ์ LES
+>
+> **🔑 หลักการสำคัญ:**
+> - `sets`: 采样 ค่าที่จุดหรือเส้นที่กำหนด
+> - `fieldAverage`: คำนวณค่าเฉลี่ยและสถิติระดับสอง
+> - `prime2Mean`: คำนวณ Reynolds stresses ($\langle u_i' u_j' \rangle$)
+> - `timeStart`: เริ่มสะสมสถิติหลังจาก flow พัฒนาเรียบร้อย
 
 ---
 
@@ -724,11 +881,11 @@ flowchart TD
     B -->|ไม่| C[RANS]
     B -->|ใช่| D{ทรัพยากร<br/>เพียงพอ?}
     D -->|ไม่| E[Hybrid RANS-LES]
-    D -->|ใช้| F{ความซับซ้อน<br/>เรขาคณิต?}
+    D -->|ใช่| F{ความซับซ้อน<br/>เรขาคณิต?}
     F -->|ต่ำ| G[Smagorinsky]
     F -->|สูง| H[Dynamic/WALE]
 ```
-> **Figure 2:** แผนผังการตัดสินใจเลือกใช้แนวทางการจำลองความปั่นป่วน (LES selection logic) โดยพิจารณาจากความต้องการข้อมูลพลวัตที่ไม่คงที่ ทรัพยากรการคำนวณ และความซับซ้อนของรูปทรงเรขาคณิต เพื่อเลือกแบบจำลอง SGS ที่เหมาะสมที่สุดความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 2:** แผนผังการตัดสินใจเลือกใช้แนวทางการจำลองความปั่นป่วน (LES selection logic) โดยพิจารณาจากความต้องการข้อมูลพลวัตที่ไม่คงที่ ทรัพยากรการคำนวณ และความซับซ้อนของรูปทรงเรขาคณิต เพื่อเลือกแบบจำลอง SGS ที่เหมาะสมที่สุด
 
 ### เส้นทางการเรียนรู้ต่อ
 

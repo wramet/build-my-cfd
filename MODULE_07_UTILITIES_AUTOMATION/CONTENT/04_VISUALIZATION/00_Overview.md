@@ -112,22 +112,22 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       volVectorField;      // ชนิดของฟิลด์
-    location    "0.5";                // ตำแหน่งเวลา
-    object      U;                    // ชื่อฟิลด์
+    class       volVectorField;      // Field type
+    location    "0.5";                // Time location
+    object      U;                    // Field name
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 1 -1 0 0 0 0];    // หน่วย SI: m/s
+dimensions      [0 1 -1 0 0 0 0];    // SI units: m/s
 
-internalField   uniform (0 0 0);      // ค่าเริ่มต้นภายในโดเมน
+internalField   uniform (0 0 0);      // Initial value inside domain
 
 boundaryField
 {
     inlet
     {
         type            fixedValue;
-        value           uniform (10 0 0);  // ความเร็ว 10 m/s
+        value           uniform (10 0 0);  // Velocity 10 m/s
     }
 
     outlet
@@ -141,6 +141,16 @@ boundaryField
     }
 }
 ```
+
+> **📂 Source:** ไม่พบไฟล์ต้นฉบับที่ตรงกัน - เป็นตัวอย่างโครงสร้างไฟล์ฟิลด์มาตรฐานของ OpenFOAM
+
+> **คำอธิบายภาษาไทย:**
+> - **แหล่งที่มา (Source)**: ไฟล์ฟิลด์ใน OpenFOAM ถูกจัดเก็บในรูปแบบ ASCII ที่อ่านได้โดยมนุษย์ โดยแต่ละไฟล์มีส่วนหัว FoamFile และเนื้อหาฟิลด์
+> - **คำอธิบาย (Explanation)**: โครงสร้างนี้กำหนดประเภทฟิลด์ หน่วยวัด ค่าเริ่มต้น และเงื่อนไขขอบเขต (Boundary Conditions) ที่จำเป็นสำหรับการสร้างภาพ
+> - **แนวคิดสำคัญ (Key Concepts)**:
+>   - `volVectorField`: ฟิลด์เวกเตอร์บนปริมาตร (Volume Vector Field)
+>   - `internalField`: ค่าเริ่มต้นของฟิลด์ภายในโดเมน
+>   - `boundaryField`: เงื่อนไขขอบเขตที่แต่ละพื้นผิว
 
 > [!TIP] Class Types สำคัญ
 > - `volScalarField`: ฟิลด์ Scalar (เช่น ความดัน)
@@ -231,16 +241,16 @@ $$\phi_i = \frac{1}{V_i} \int_{V_i} \phi(\mathbf{x}) \, \mathrm{d}V$$
 
 ```bash
 # NOTE: Synthesized by AI - Verify parameters
-# แปลงข้อมูลทุก Time step
+# Convert all time steps
 foamToVTK
 
-# แปลงเฉพาะ Time step สุดท้าย
+# Convert only the last time step
 foamToVTK -latestTime
 
-# แปลงเฉพาะบางฟิลด์
+# Convert specific fields only
 foamToVTK -fields "(p U T)"
 
-# แปลงข้อมูล Surface อย่างเดียว
+# Convert surface data only
 foamToVTK -surface
 ```
 
@@ -248,10 +258,10 @@ foamToVTK -surface
 
 ```bash
 # NOTE: Synthesized by AI - Verify parameters
-# แปลงข้อมูลเป็น Ensight Gold format
+# Convert to Ensight Gold format
 foamToEnsight
 
-# แปลงพร้อมกำหนด Case name
+# Convert with custom case name
 foamToEnsight -case myCase
 ```
 
@@ -259,10 +269,10 @@ foamToEnsight -case myCase
 
 ```bash
 # NOTE: Synthesized by AI - Verify parameters
-# สกัดข้อมูลจาก Line/Surface
+# Extract data from Line/Surface
 sample -dict system/sampleDict
 
-# สร้างกราฟจาก History data
+# Create graphs from history data
 foamLog log
 ```
 
@@ -282,13 +292,13 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// ชนิดของการ interpolation
+// Interpolation scheme type
 interpolationScheme cellPoint;
 
-// รูปแบบการสกัดข้อมูล
+// Data extraction format
 samplingSurfaces
 {
-    // การสกัดตามเส้น
+    // Line sampling
     centreLine
     {
         type        cuttingPlane;
@@ -296,20 +306,30 @@ samplingSurfaces
         interpolate true;
     }
 
-    // การสกัดตามพื้นผิว
+    // Surface sampling
     surfaceProbe
     {
         type        uniform;
-        axis        x;                  // แกน X
-        nPoints     100;                // จำนวนจุด
+        axis        x;                  // X axis
+        nPoints     100;                // Number of points
         start       (0 0 0);
         end         (1 0 0);
     }
 }
 
-// รูปแบบผลลัพธ์
+// Output format
 setFormat       csv;
 ```
+
+> **📂 Source:** ไม่พบไฟล์ต้นฉบับที่ตรงกัน - เป็นตัวอย่างการกำหนดค่า sampleDict มาตรฐาน
+
+> **คำอธิบายภาษาไทย:**
+> - **แหล่งที่มา (Source)**: sampleDict เป็นไฟล์คำสั่งที่ควบคุมการสกัดข้อมูลจากฟิลด์ CFD ตามตำแหน่งเรขาคณิตที่กำหนด
+> - **คำอธิบาย (Explanation)**: ใช้สำหรับสร้างข้อมูลตัดขวาง (Cross-section data) หรือข้อมูลตามเส้น (Line data) เพื่อนำไปสร้างกราฟ 2D
+> - **แนวคิดสำคัญ (Key Concepts)**:
+>   - `cuttingPlane`: ระนาบตัดขวางสำหรับการสกัดข้อมูล
+>   - `interpolationScheme`: วิธีการประมาณค่าระหว่างเซลล์
+>   - `setFormat`: รูปแบบไฟล์ผลลัพธ์ (CSV, raw, etc.)
 
 ---
 
@@ -360,14 +380,14 @@ OpenFOAM มี Utilities สำหรับวิเคราะห์สถิ
 
 ```bash
 # NOTE: Synthesized by AI - Verify parameters
-# คำนวณค่าเฉลี่ย, ค่าสูงสุด/ต่ำสุด
-foamCalcFields mag U           # คำนวณ magnitude
-foamCalcFields components U    # แยก components
+# Calculate average, max/min values
+foamCalcFields mag U           # Calculate magnitude
+foamCalcFields components U    # Separate components
 
-# Monitor ค่าตามเวลา
+# Monitor values over time
 foamMonitor -l log.0.5 U
 
-# วิเคราะห์ Force
+# Analyze Force
 forces -dict system/forcesDict
 ```
 
@@ -387,10 +407,10 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// ฟิลด์ที่ต้องการ monitor
+// Fields to monitor
 fields (p U);
 
-// ตำแหน่ง Probes
+// Probe locations
 probeLocations
 (
     (0.1 0.0 0.0)     // Point 1
@@ -398,9 +418,19 @@ probeLocations
     (0.9 0.0 0.0)     // Point 3
 );
 
-// การ interpolation
+// Interpolation method
 interpolationScheme cellPoint;
 ```
+
+> **📂 Source:** ไม่พบไฟล์ต้นฉบับที่ตรงกัน - เป็นตัวอย่างการกำหนดค่า probesDict มาตรฐาน
+
+> **คำอธิบายภาษาไทย:**
+> - **แหล่งที่มา (Source)**: probesDict คือไฟล์คำสั่งสำหรับ monitoring ค่าฟิลด์ที่ตำแหน่งจุดเฉพาะใน space ระหว่างการ simulation
+> - **คำอธิบาย (Explanation)**: ใช้สำหรับติดตามค่าตัวแปรที่จุดสนใจ เช่น จุดวัดความดัน หรือจุดที่ต้องการตรวจสอบความเสถียร
+> - **แนวคิดสำคัญ (Key Concepts)**:
+>   - `probeLocations`: พิกัด XYZ ของจุดที่ต้องการ monitoring
+>   - `fields`: รายชื่อฟิลด์ที่ต้องการบันทึก
+>   - `cellPoint`: วิธี interpolation จาก center of cell ไปยังจุดที่ต้องการ
 
 ### 6.3 การวิเคราะห์ Force และ Moment
 
@@ -418,34 +448,44 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// แรงด้าน Pressure
+// Pressure force contribution
 pressure     on;
 
-// แรงด้าน Viscous
+// Viscous force contribution
 viscous      on;
 
-// ความหนาแน่นอ้างอิง
-rho          rhoInf;    // ใช้ rhoInf หรือใส่ค่า (เช่น 1.225)
+// Reference density
+rho          rhoInf;    // Use rhoInf or specify value (e.g. 1.225)
 rhoInf       1.225;     // kg/m³
 
-// ศูนย์กลางของ Moment
+// Center of rotation for moments
 CofR         (0 0 0);   // Center of Rotation
 
-// ทิศทาง Lift
+// Lift direction
 liftDir      (0 0 1);
 
-// ทิศทาง Drag
+// Drag direction
 dragDir      (1 0 0);
 
-// ทิศทาง Pitch
+// Pitch axis
 pitchAxis    (0 1 0);
 
-// พื้นที่คำนวณ
+// Patches to calculate on
 patches
 (
     "(wing|tail)"       // Regular expression
 );
 ```
+
+> **📂 Source:** ไม่พบไฟล์ต้นฉบับที่ตรงกัน - เป็นตัวอย่างการกำหนดค่า forcesDict มาตรฐาน
+
+> **คำอธิบายภาษาไทย:**
+> - **แหล่งที่มา (Source)**: forcesDict เป็นไฟล์คำสั่งสำหรับคำนวณแรงและโมเมนต์ที่กระทำต่อพื้นผิวในโดเมน
+> - **คำอธิบาย (Explanation)**: ใช้สำหรับคำนวณสัมประสิทธิ์ Drag (Cd), Lift (Cl) และ Moment สำหรับการวิเคราะห์อากาศพลศาสตร์
+> - **แนวคิดสำคัญ (Key Concepts)**:
+>   - `pressure/viscous`: ส่วนประกอบของแรงจากความดันและความหนืด
+>   - `CofR`: จุดศูนย์กลางการหมุนสำหรับคำนวณ Moment
+>   - `patches`: กลุ่มพื้นผิวที่ต้องการคำนวณแรง
 
 ผลลัพธ์จะถูกเขียนไปที่ `postProcessing/forces/0/forces.dat`
 
@@ -502,16 +542,16 @@ flowchart TD
 ```bash
 # NOTE: Synthesized by AI - Verify parameters
 
-# การปรับแต่ง Mesh Quality
-foamSurfaceVTK -scale 1000  # Convert หน่วย (ถ้าจำเป็น)
+# Adjust mesh quality
+foamSurfaceVTK -scale 1000  # Convert units (if necessary)
 
-# การสร้าง Iso-surfaces
+# Create iso-surfaces
 isoSurface -dict system/isoSurfaceDict
 
-# การสร้าง Video จาก Image sequence
+# Create video from image sequence
 ffmpeg -framerate 24 -i image_%04d.png -c:v libx264 -pix_fmt yuv420p output.mp4
 
-# การแปลง Video format
+# Convert video format
 ffmpeg -i output.mp4 -vf "scale=1920:1080" output_hd.mp4
 ```
 

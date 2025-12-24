@@ -50,10 +50,11 @@ FoamFile
     object      blockMeshDict;
 }
 
-// กำหนดความละเอียดของเมช
-convertToMeters 0.1;  // แปลงหน่วยเป็นเมตร
+// Specify mesh scaling factor (unit conversion)
+convertToMeters 0.1;  // Convert to meters
 
-vertices  // กำหนดจุดยุด (8 จุดต่อ block)
+// Define vertex coordinates (8 vertices per block)
+vertices
 (
     (0 0 0)        // 0
     (1 0 0)        // 1
@@ -65,12 +66,14 @@ vertices  // กำหนดจุดยุด (8 จุดต่อ block)
     (0 1 0.5)      // 7
 );
 
-blocks  // กำหนดการแบ่งเซลล์
+// Define cell division for each block
+blocks
 (
     hex (0 1 2 3 4 5 6 7) (20 20 10) simpleGrading (1 1 1)
 );
 
-boundary  // กำหนดเงื่อนไขขอบเขต
+// Define boundary conditions and face groupings
+boundary
 (
     inlet
     {
@@ -89,6 +92,19 @@ boundary  // กำหนดเงื่อนไขขอบเขต
     }
 );
 ```
+
+> **💡 คำอธิบาย (Thai Explanation)**
+> **แหล่งที่มา (Source):** `.applications/utilities/mesh/generation/blockMesh/`
+> 
+> **คำอธิบาย:** ไฟล์ blockMeshDict เป็นไฟล์คอนฟิกูเรชันหลักที่ควบคุมการสร้างเมชแบบ block-structured โดยมีส่วนสำคัญ 3 ส่วน:
+> 1. **vertices**: กำหนดพิกัด 8 จุดของ hexahedral block
+> 2. **blocks**: กำหนดจำนวนการแบ่งเซลล์ในแต่ละทิศทาง (x y z) และอัตราส่วนการขยาย (grading)
+> 3. **boundary**: กำหนดกลุ่มหน้าเซลล์ที่เป็นขอบเขตเดียวกัน
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **convertToMeters**: ตัวคูณสเกลสำหรับแปลงหน่วยจากพิกัดที่ระบุเป็นหน่วยเมตร
+> - **simpleGrading**: อัตราส่วนการขยายตัวของเซลล์ (1 คือ uniform, >1 คือเซลล์ใหญ่ขึ้นตามทิศทาง)
+> - **patch vs wall**: patch ใช้สำหรับขอบเขตทั่วไป, wall ใช้สำหรับขอบเขตที่มีผลต่อการไหลแบบ no-slip
 
 ---
 
@@ -123,16 +139,16 @@ FoamFile
     object      snappyHexMeshDict;
 }
 
-// ขั้นตอน Casting
+// Enable mesh casting step
 castellatedMesh true;
 
-// ขั้นตอน Snapping
+// Enable mesh snapping step
 snap true;
 
-// ขั้นตอน Layer Addition
+// Enable boundary layer addition step
 addLayers true;
 
-// เรขาคณิตพื้นผิว (STL)
+// Surface geometry definitions (STL files)
 geometry
 {
     wing.stl
@@ -142,13 +158,13 @@ geometry
     }
 }
 
-// การกำหนด Refinement
+// Castellation mesh controls
 castellatedMeshControls
 {
     maxLocalCells 1000000;
     maxGlobalCells 2000000;
 
-    // กำหนดระยะ Refinement ใกล้ผิว
+    // Define refinement levels near surfaces
     refinementSurfaces
     {
         wing
@@ -157,7 +173,7 @@ castellatedMeshControls
         }
     }
 
-    // กำหนด Refinement ภายในโดเมน
+    // Define refinement inside regions
     refinementRegions
     {
         wakeZone
@@ -168,27 +184,40 @@ castellatedMeshControls
     }
 }
 
-// การเพิ่ม Boundary Layers
+// Boundary layer addition controls
 addLayersControls
 {
     layers
     {
         "wing.*"
         {
-            nSurfaceLayers 5;  // จำนวนชั้น
+            nSurfaceLayers 5;  // Number of boundary layer cells
         }
     }
 
-    // ความหนาของชั้นแรก
+    // First layer thickness
     firstLayerThickness 0.001;
 
-    // อัตราการขยายตัวของชั้น
+    // Layer expansion ratio
     expansionRatio 1.2;
 
-    // ความหนารวม
+    // Total layer thickness
     finalLayerThickness 0.01;
 }
 ```
+
+> **💡 คำอธิบาย (Thai Explanation)**
+> **แหล่งที่มา (Source):** `.applications/utilities/mesh/generative/snappyHexMesh/`
+> 
+> **คำอธิบาย:** snappyHexMesh เป็นเครื่องมือสร้างเมชแบบอัตโนมัติที่ทำงาน 3 ขั้นตอน:
+> 1. **Castellation**: สร้างเมชพื้นฐานจาก blockMesh แล้วตัดส่วนที่อยู่นอก/ใน geometry
+> 2. **Snapping**: ดึงหน้าเซลล์ให้แนบกับพื้นผิว STL ให้แม่นยำยิ่งขึ้น
+> 3. **Layer Addition**: เพิ่ม prismatic layers บริเวณผนังสำหรับการจำลอง turbulent boundary layer
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **level (min max)**: ระดับการแบ่งเซลล์ (0 = ไม่แบ่ง, 1 = แบ่ง 2 เท่า, 2 = แบ่ง 4 เท่า)
+> - **expansionRatio**: อัตราส่วนของความหนาชั้นต่อเนื่อง (เช่น 1.2 หมายถึงชั้นถัดไปหนากว่า 1.2 เท่า)
+> - **refinementRegions**: กำหนดบริเวณที่ต้องการเมชละเอียดพิเศษ (เช่น wake region)
 
 > [!TIP] เคล็ดลับการใช้ snappyHexMesh
 > - เริ่มต้นด้วย `blockMesh` เพื่อสร้าง Background Mesh ที่ครอบคลุมพื้นที่
@@ -247,15 +276,28 @@ $$\text{Aspect Ratio} = \frac{\Delta_{\text{max}}}{\Delta_{\text{min}}}$$
 ==ตัวอย่างการรัน checkMesh==
 
 ```bash
-# รัน checkMesh แบบปกติ
+# Run basic mesh quality check
 checkMesh
 
-# รันพร้อมรายละเอียดคุณภาพเพิ่มเติม
+# Run with detailed geometry and topology checks
 checkMesh -allGeometry -allTopology
 
-# รันเพื่อตรวจสอบเฉพาะปัญหา Mesh Quality
+# Run specific mesh quality checks only
 checkMesh -checkMeshQuality
 ```
+
+> **💡 คำอธิบาย (Thai Explanation)**
+> **แหล่งที่มา (Source):** `.applications/utilities/mesh/manipulation/checkMesh/`
+> 
+> **คำอธิบาย:** checkMesh เป็นเครื่องมือตรวจสอบคุณภาพเมชที่สำคัญที่สุด โดยประเมินหลายเกณฑ์:
+> 1. **Non-orthogonality**: วัดมุมระหว่างหน้าเซลล์และเส้นเชื่อมศูนย์กลาง (ค่าสูง = การลู่เข้าที่ยาก)
+> 2. **Skewness**: วัดความบิดเบือนของเซลล์ (ค่าสูง = ความแม่นยำต่ำ)
+> 3. **Aspect Ratio**: วัดสัดส่วนความยาว/กว้างของเซลล์ (ค่าสูง = numerical diffusion สูง)
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Mesh quality thresholds แตกต่างกันในแต่ละ solver**: บาง solver ทนต่อ non-orthogonality สูงกว่า
+> - **Local vs Global errors**: checkMesh รายงานทั้งค่าเฉลี่ยและค่าสูงสุด (ค่าสูงสุดสำคัญกว่า)
+> - **Mesh quality vs Simulation stability**: เมชคุณภาพต่ำอาจทำให้ simulation diverge หรือให้ผลลัพธ์ไม่ถูกต้อง
 
 > [!WARNING] คำเตือนเรื่องคุณภาพเมช
 > หาก `checkMesh` พบปัญหาร้ายแรง เช่น:
@@ -278,7 +320,7 @@ checkMesh -checkMeshQuality
 ==รูปแบบไฟล์ VTK==
 
 ```cpp
-// ไฟล์ VTK ใช้โครงสร้าง ASCII/Binary ดังนี้:
+// VTK files use ASCII/Binary structure:
 # vtk DataFile Version 3.0
 OpenFOAM data
 ASCII
@@ -288,15 +330,28 @@ DATASET UNSTRUCTURED_GRID
 ==ตัวอย่างการรัน==
 
 ```bash
-# แปลงทุก Time Step
+# Convert all time steps
 foamToVTK
 
-# แปลงเฉพา่ย Time Step สุดท้าย
+# Convert only the latest time step
 foamToVTK -latestTime
 
-# แปลงแบบรวมพื้นที่ (รวม processor directories)
+# Convert with merged processor directories
 foamToVTK -parallel
 ```
+
+> **💡 คำอธิบาย (Thai Explanation)**
+> **แหล่งที่มา (Source):** `.applications/utilities/postProcessing/graphics/foamToVTK/`
+> 
+> **คำอธิบาย:** foamToVTK แปลงข้อมูล OpenFOAM (ฟิลด์, เมช, boundary conditions) เป็นรูปแบบ VTK:
+> 1. **Unstructured VTK**: ใช้สำหรับเมช polyhedral (OpenFOAM native)
+> 2. **Parallel conversion**: รวมข้อมูลจาก processor directories หลายตัว
+> 3. **Time series**: แปลงทุก time step หรือเฉพาะ time step ที่เลือก
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **VTK format**: รูปแบบมาตรฐานสำหรับ visualization software (ParaView, VisIt)
+> - **Internal mesh vs Boundary mesh**: foamToVTK แปลงทั้ง internal field และ boundary patches
+> - **Cell data vs Point data**: OpenFOAM เก็บข้อมูลที่ center of cells (cell data), VTK อาจ interpolate เป็น point data
 
 ---
 
@@ -326,28 +381,28 @@ FoamFile
     object      postProcess.dict;
 }
 
-// คำนวณแรง Drag/Lift
+// Calculate drag/lift forces
 forces
 {
     type forces;
     libs ("libforces.so");
 
-    // ชื่อ Patch ที่คำนวณ
+    // Target patches for force calculation
     patches ("wing" "walls");
 
-    // ทิศทางกระแส
-    rhoInf 1.225;      // ความหนาของอากาศ
-    CofR (0 0 0);      // จุดอ้างอิง
-    dragDir (1 0 0);   // ทิศทาง Drag
-    liftDir (0 1 0);   // ทิศทาง Lift
-    pitchAxis (0 0 1); // แกน Pitch
+    // Flow direction parameters
+    rhoInf 1.225;      // Freestream density (kg/m³)
+    CofR (0 0 0);      // Center of rotation
+    dragDir (1 0 0);   // Drag direction vector
+    liftDir (0 1 0);   // Lift direction vector
+    pitchAxis (0 0 1); // Pitch axis
 
-    // Log ไฟล์
+    // Output controls
     log         true;
     writeFields false;
 }
 
-// คำนวณค่าเฉลี่ยของฟิลด์
+// Calculate field averages
 fieldAverage1
 {
     type            fieldAverage;
@@ -359,47 +414,60 @@ fieldAverage1
         p
     );
 
-    // จำนวน Time Steps สำหรับ Average
+    // Time window for averaging
     window 10;
     mean on;
 }
 
-// สกัดข้อมูลตามเส้น
+// Extract data along lines
 sampleDict
 {
     type            sets;
     libs            ("libsampledSets.so");
 
-    // ชื่อ Set
+    // Define sampling sets
     sets
     (
         midPlane
         {
             type            uniform;
-            axis            y;  // สกัดตามแกน y
+            axis            y;  // Sample along y-axis
             start           (0.5 0 0);
             end             (0.5 1 0);
             nPoints         100;
         }
     );
 
-    // ฟิลด์ที่สกัด
+    // Fields to sample
     fields (U p);
 
     interpolationScheme cellPoint;
 }
 ```
 
+> **💡 คำอธิบาย (Thai Explanation)**
+> **แหล่งที่มา (Source):** `.applications/utilities/postProcessing/miscellaneous/postProcess/`
+> 
+> **คำอธิบาย:** postProcess เป็นเครื่องมืออเนกประสงค์ที่รัน function objects:
+> 1. **Forces**: คำนวณแรง drag/lift จากการอินทิเกรต pressure และ shear stress บน patches
+> 2. **Field Average**: คำนวณค่าเฉลี่ยของฟิลด์ (เช่น สำหรับ RANS statistics)
+> 3. **Sample**: สกัดข้อมูลตามเส้น/พื้นที่ (เช่น velocity profiles)
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Function objects vs Custom utilities**: Function objects เป็นวิธีที่ยืดหยุ่นกว่าการเขียน utilities เฉพาะ
+> - **libs loading**: function objects ถูกโหลดจาก shared libraries (.so files)
+> - **Real-time vs Post-processing**: function objects สามารถรันระหว่าง simulation หรือหลังจากเสร็จ
+
 ==ตัวอย่างการรัน postProcess==
 
 ```bash
-# รันด้วย Dictionary ที่กำหนดเอง
+# Run with custom dictionary
 postProcess -dict postProcess.dict
 
-# รัน Function Object เดี่ยว
+# Run single function object
 postProcess -func "forces"
 
-# รันหลัง Simulation เสร็จสิ้น
+# Run after simulation completes
 postProcess -latestTime -func "fieldAverage"
 ```
 
@@ -419,9 +487,22 @@ $$C_L = \frac{F_L}{\frac{1}{2} \rho U_\infty^2 A}$$
 
 โดยที่:
 - $F_D, F_L$ คือแรง Drag และ Lift
-- $\rho$ คือความหนาของไหล
+- $\rho$ คือความหนาแน่นของไหล
 - $U_\infty$ คือความเร็วกระแสอิสระ
 - $A$ คือพื้นที่อ้างอิง (Reference Area)
+
+> **💡 คำอธิบาย (Thai Explanation)**
+> **แหล่งที่มา (Source):** `.applications/utilities/postProcessing/forces/`
+> 
+> **คำอธิบาย:**การวิเคราะห์แรงใช้สมการมิติไม่มี (dimensionless coefficients):
+> 1. **Drag Coefficient ($C_D$)**: วัดความต้านทานของวัตถุต่อการไหล
+> 2. **Lift Coefficient ($C_L$)**: วัดแรงยกที่เกิดจากการไหล
+> 3. **Reference Area ($A$)**: พื้นที่ที่ใช้ทำให้เป็นมิติไม่มี (เช่น พื้นที่ frontal สำหรับ 3D, chord length สำหรับ 2D)
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Pressure forces vs Viscous forces**: Drag ประกอบด้วย pressure drag (form drag) และ skin friction drag
+> - **Force integration**: OpenFOAM อินทิเกรต pressure และ shear stress บน patch faces
+> - **Coefficient normalization**: ทำให้เปรียบเทียบระหว่าง test cases ที่ต่าง scales ได้
 
 > [!TIP] เคล็ดลับการวิเคราะห์ผล
 > - ใช้ `pyFoamPlotRunner.py` เพื่อพล็อตกราฟ Residuals แบบ Real-time
@@ -450,27 +531,27 @@ FoamFile
     object      setFieldsDict;
 }
 
-// กำหนดค่าเริ่มต้นทั่วไป (Default)
+// Default field values for all cells
 defaultFieldValues
 (
     volScalarFieldValue alpha.water 0
 );
 
-// กำหนดค่าในบริเวณที่เลือก
+// Region-specific field assignments
 regions
 (
-    // กล่องสี่เหลี่ยม (Box)
+    // Box region
     boxToCell
     {
-        box (0 0 0) (1 1 0.5);  // (x_min y_min z_min) (x_max y_max z_max)
+        box (0 0 0) (1 1 0.5);  // (min_point) (max_point)
 
         fieldValues
         (
-            volScalarFieldValue alpha.water 1  // ตั้งค่า alpha.water = 1
+            volScalarFieldValue alpha.water 1  // Set alpha.water = 1
         );
     }
 
-    // ทรงกลม (Sphere)
+    // Sphere region
     sphereToCell
     {
         centre (0.5 0.5 0.25);
@@ -478,21 +559,34 @@ regions
 
         fieldValues
         (
-            volScalarFieldValue T 300  // ตั้งค่าอุณหภูมิ = 300 K
+            volScalarFieldValue T 300  // Set temperature = 300 K
         );
     }
 
-    // รูปทรงที่กำหนดเอง (Custom Region)
+    // Custom region from surface file
     surfaceToCell
     {
         file "region.stl";
         fieldValues
         (
-            volScalarFieldValue p 101325  // ความดันบรรยากาศ
+            volScalarFieldValue p 101325  // Atmospheric pressure
         );
     }
 );
 ```
+
+> **💡 คำอธิบาย (Thai Explanation)**
+> **แหล่งที่มา (Source):** `.applications/utilities/preProcessing/setFields/`
+> 
+> **คำอธิบาย:** setFields กำหนดค่าเริ่มต้นของ fields (U, p, T, alpha, etc.) ตามพื้นที่:
+> 1. **Default values**: ค่าที่ใช้สำหรับเซลล์ทั้งหมดถ้าไม่อยู่ใน regions
+> 2. **Geometric regions**: กำหนด regions แบบ box, sphere, cylinder, etc.
+> 3. **Surface regions**: ใช้ไฟล์ STL/OBJ กำหนด custom geometry
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Cell selection**: topoSetSource selectors (boxToCell, sphereToCell, surfaceToCell) เลือกเซลล์ตามเกณฑ์
+> - **Field types**: volScalarFieldValue, volVectorFieldValue, etc. สำหรับ field types ต่างกัน
+> - **Initial conditions importance**: ค่าเริ่มต้นที่ดีช่วยลบ convergence time และป้องกัน instability
 
 ---
 
@@ -513,15 +607,28 @@ $$\phi_{\text{target}}(\mathbf{x}) = \sum_{i} w_i \phi_{\text{source}}(\mathbf{x
 ==ตัวอย่างการรัน mapFields==
 
 ```bash
-# แม็พจาก Source Case ไป Current Case
+# Map from source case to current case
 mapFields ../sourceCase
 
-# แม็พแบบ Parallel
+# Map in parallel mode
 mapFields -parallel ../sourceCase
 
-# แม็พแบบ Surface Consistent
+# Map with surface consistency
 mapFields ../sourceCase -consistent
 ```
+
+> **💡 คำอธิบาย (Thai Explanation)**
+> **แหล่งที่มา (Source):** `.applications/utilities/preProcessing/mapFields/`
+> 
+> **คำอธิบาย:** mapFields ถ่ายโอน solutions ระหว่างเมช:
+> 1. **Mesh-to-mesh interpolation**: ใช้ cell-to-cell interpolation (nearest cell, cellPoint, etc.)
+> 2. **Conservative mapping**: รักษา conservation properties (mass, momentum) สำหรับ certain methods
+> 3. **Parallel mapping**: รองรับ parallel decomposed meshes
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Source vs Target**: source case มี solution ต้นทาง, target case คือ case ปัจจุบัน
+> - **Interpolation methods**: cellPoint (ใช้ shape functions), nearestCell (nearest neighbor)
+> - **Mapping use cases**: grid convergence studies, mesh refinement, remeshing
 
 ---
 
@@ -541,27 +648,27 @@ FoamFile
     object      changeDictionaryDict;
 }
 
-// แก้ไข boundary ในไฟล์ U
+// Modify boundary field in U file
 boundary
 {
     inlet
     {
         type            fixedValue;
-        value           uniform (10 0 0);  // ความเร็ว 10 m/s
+        value           uniform (10 0 0);  // Velocity = 10 m/s
     }
 
     outlet
     {
-        type            zeroGradient;      // การไล่ระดับศูนย์
+        type            zeroGradient;      // Zero gradient condition
     }
 
     walls
     {
-        type            noSlip;             // ไม่มีการลื่น
+        type            noSlip;             // No-slip condition
     }
 }
 
-// แก้ไข boundary ในไฟล์ p
+// Modify boundary field in p file
 boundary
 {
     inlet
@@ -572,7 +679,7 @@ boundary
     outlet
     {
         type            fixedValue;
-        value           uniform 0;          // ความดันอ้างอิง = 0
+        value           uniform 0;          // Reference pressure = 0
     }
 
     walls
@@ -581,6 +688,19 @@ boundary
     }
 }
 ```
+
+> **💡 คำอธิบาย (Thai Explanation)**
+> **แหล่งที่มา (Source):** `.applications/utilities/preProcessing/changeDictionary/`
+> 
+> **คำอธิบาย:** changeDictionary แก้ไข dictionary entries หลายไฟล์พร้อมกัน:
+> 1. **Boundary conditions**: แก้ไข boundary conditions ใน `0/` directory
+> 2. **Field substitution**: แทนที่ field values (U, p, T, etc.)
+> 3. **Batch editing**: แก้ไข multiple dictionaries ใน operation เดียว
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Dictionary merging**: changeDictionary merge ค่าจาก changeDictionaryDict เข้ากับ target dictionaries
+> - **Keyword replacement**: แทนที่ entire sub-dictionaries (เช่น boundary)
+> - **Use cases**: parameter studies, boundary condition modifications, template case setup
 
 ---
 
@@ -613,42 +733,55 @@ FoamFile
     object      decomposeParDict;
 }
 
-// จำนวน Sub-domains
+// Number of sub-domains for parallel processing
 numberOfSubdomains 4;
 
-// Method: simple, hierarchical, scotch, metis
+// Decomposition method: simple, hierarchical, scotch, metis
 method hierarchical;
 
-// การกำหนดค่าสำหรับ hierarchical
+// Hierarchical decomposition coefficients
 hierarchicalCoeffs
 {
-    n (2 2 1);  // 2 ตาม X, 2 ตาม Y, 1 ตาม Z
+    n (2 2 1);  // 2 divisions in X, 2 in Y, 1 in Z
 
-    // ลำดับการแบ่ง
+    // Division order
     order xyz;
 
-    // แกนที่ใช้ Delta คำนวณ
+    // Delta for coefficient calculation
     delta 0.001;
 }
 
-// การกำหนดค่าสำหรับ scotch (แนะนำ)
+// Scotch coefficients (recommended)
 scotchCoeffs
 {
-    // ไม่ต้องกำหนดอะไรเพิ่ม
-    // scotch จะคำนวณ Load Balancing อัตโนมัติ
+    // No additional settings needed
+    // Scotch automatically calculates load balancing
 }
 ```
+
+> **💡 คำอธิบาย (Thai Explanation)**
+> **แหล่งที่มา (Source):** `.applications/utilities/parallelProcessing/decomposePar/`
+> 
+> **คำอธิบาย:** decomposePar ย่อยโดเมนเป็น sub-domains:
+> 1. **Domain decomposition**: แบ่ง mesh เป็น sub-domains สำหรับแต่ละ processor
+> 2. **Partitioning methods**: simple ( Cartesian), hierarchical (ordered), scotch/metis (graph-based)
+> 3. **Load balancing**: แบ่ง cells ให้เท่า ๆ กันระหว่าง processors
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Processor patches**: boundaries ระหว่าง sub-domains ที่ข้อมูลต้องถูกส่ง (MPI communication)
+> - **Graph partitioning**: scotch/metis ใช้ graph theory สำหรับ load balancing ที่ดี
+> - **Scalability**: decomposePar สำคัญสำหรับ parallel efficiency
 
 ==ตัวอย่างการรัน==
 
 ```bash
-# ย่อยโดเมน
+# Decompose domain
 decomposePar
 
-# รันแบบ Parallel (4 cores)
+# Run parallel simulation (4 cores)
 mpirun -np 4 solverName -parallel
 
-# รวบรวมผลลัพธ์
+# Reconstruct results
 reconstructPar
 ```
 
@@ -661,15 +794,28 @@ reconstructPar
 ==ตัวอย่างการรัน==
 
 ```bash
-# รวบรวมทุก Time Steps
+# Reconstruct all time steps
 reconstructPar
 
-# รวบรวมเฉพาะ Time Step ล่าสุด
+# Reconstruct only latest time step
 reconstructPar -latestTime
 
-# รวบรวมบาง Time Step
+# Reconstruct specific time steps
 reconstructPar -time 0.5
 ```
+
+> **💡 คำอธิบาย (Thai Explanation)**
+> **แหล่งที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/`
+> 
+> **คำอธิบาย:** reconstructPar รวม sub-domains กลับเป็น domain เดียว:
+> 1. **Processor merging**: รวม fields จาก processor* directories เข้าด้วยกัน
+> 2. **Time reconstruction**: รวมทุก time steps หรือเฉพาะ time steps ที่เลือก
+> 3. **Result directory**: สร้าง directories ใหม่ที่มี reconstructed results
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Processor directories**: processor0/, processor1/, etc. เก็บ sub-domain data
+> - **Cell renumbering**: renumber cells จาก sub-domain local IDs ไป global IDs
+> - **Post-processing**: reconstructed data สามารถใช้กับ post-processing utilities ได้เลย
 
 > [!INFO] ข้อควรระวังเรื่อง Parallel Processing
 > - ตรวจสอบว่า `numberOfSubdomains` ตรงกับจำนวน Cores ที่ใช้รัน
@@ -689,15 +835,28 @@ reconstructPar -time 0.5
 ==ตัวอย่างการรัน==
 
 ```bash
-# แปลง OBJ เป็น STL
+# Convert OBJ to STL
 surfaceConvert input.obj output.stl
 
-# แปลงพร้อมปรับสเกล
+# Convert with scaling
 surfaceConvert -scale 0.001 input.stl output.stl  # mm -> m
 
-# แปลงพร้อมหมุนพื้นผิว
+# Convert with rotation
 surfaceConvert -rotate "(1 0 0)" input.stl output.stl
 ```
+
+> **💡 คำอธิบาย (Thai Explanation)**
+> **แหล่งที่มา (Source):** `.applications/utilities/surface/surfaceConvert/`
+> 
+> **คำอธิบาย:** surfaceConvert แปลงไฟล์พื้นผิวระหว่าง formats:
+> 1. **Format support**: STL (ASCII/binary), OBJ, PLY, AC, etc.
+> 2. **Scaling**: ปรับ scale ของ geometry (เช่น จาก mm เป็น m)
+> 3. **Transformation**: หมุน, translate, หรือ transform geometry
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **CAD preprocessing**: แปลง files จาก CAD software ให้เป็น format ที่ OpenFOAM รองรับ
+> - **Unit consistency**: ตรวจสอบว่า scale ถูกต้อง (OpenFOAM ใช้ SI units: m, kg, s)
+> - **Surface quality**: conversion อาจสร้าง duplicate faces หรือ non-manifold edges
 
 ---
 
@@ -708,10 +867,10 @@ surfaceConvert -rotate "(1 0 0)" input.stl output.stl
 ==ตัวอย่างการรัน==
 
 ```bash
-# ตรวจสอบไฟล์ STL
+# Check STL file
 surfaceCheck wing.stl
 
-# รันพร้อมตรวจสอบปัญหาทั้งหมด
+# Run with all checks enabled
 surfaceCheck -checkAll wing.stl
 ```
 
@@ -721,6 +880,19 @@ surfaceCheck -checkAll wing.stl
 - **Non-manifold edges**: ขอบที่มีหน้ามากกว่า 2 หน้าเชื่อมต่อ
 - **Open edges**: ขอบที่ไม่ได้ถูกปิด
 - **Wrong orientation**: Normal ที่ชี้ผิดทิศทาง
+
+> **💡 คำอธิบาย (Thai Explanation)**
+> **แหล่งที่มา (Source):** `.applications/utilities/surface/surfaceCheck/`
+> 
+> **คำอธิบาย:** surfaceCheck ตรวจสอบความสมบูรณ์ของพื้นผิว:
+> 1. **Topology checks**: ตรวจสอบ connectivity ของ faces และ edges
+> 2. **Geometry checks**: ตรวจสอบ face orientations, normals, degenerate faces
+> 3. **Leak detection**: หารูรั่วที่อาจทำให้ snappyHexMesh fail
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Manifold surfaces**: พื้นผิวที่เหมาะสมควรมี 2 faces เชื่อมต่อที่ edge ภายใน
+> - **Closed surfaces**: พื้นผิวควรปิดสนิทสำหรับ volume meshing
+> - **Normal orientation**: normals ควรชี้ออกจาก volume สำหรับ external flows
 
 ---
 
@@ -749,23 +921,36 @@ FoamFile
     object      surfaceFeaturesDict;
 }
 
-// ไฟล์พื้นผิว
+// Input surface file
 surfaceFile "wing.stl";
 
-// เกณฑ์มุมสำหรับ Sharp Edges (องศา)
-includedAngle 150;  // มุมที่มากกว่า 150 องศาถือว่า Sharp
+// Sharp edge angle criterion (degrees)
+includedAngle 150;  // Edges with angle > 150° considered sharp
 
-// การ Export ผลลัพธ์
-writeObj no;  // ไม่ Export OBJ
+// Output options
+writeObj no;  // Do not export OBJ file
 ```
+
+> **💡 คำอธิบาย (Thai Explanation)**
+> **แหล่งที่มา (Source):** `.applications/utilities/surface/surfaceFeatures/`
+> 
+> **คำอธิบาย:** surfaceFeatures สกัด sharp edges สำหรับ meshing:
+> 1. **Edge detection**: หา edges ที่มี angle ระหว่าง faces > includedAngle
+> 2. **Feature edges**: edges เหล่านี้ถูกใช้โดย snappyHexMesh สำหรับ preserving geometry
+> 3. **Feature file**: สร้าง .eMesh file ที่เก็บ feature edge information
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Included angle**: มุมระหว่าง face normals (180° = flat surface, 0° = sharp crease)
+> - **Feature preservation**: snappyHexMesh ใช้ features สำหรับ snapping cells ให้แม่นยำ
+> - **Geometric fidelity**: sharp features สำคัญสำหรับ aerodynamics, heat transfer
 
 ==ตัวอย่างการรัน==
 
 ```bash
-# สกัด Sharp Edges
+# Extract sharp edges
 surfaceFeatures wing.stl
 
-# รันพร้อม Export เป็น OBJ
+# Run with OBJ export
 surfaceFeatures -writeObj yes wing.stl
 ```
 

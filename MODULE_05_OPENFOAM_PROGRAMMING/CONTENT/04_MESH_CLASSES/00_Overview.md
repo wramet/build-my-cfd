@@ -18,7 +18,7 @@
 
 ## 🏗️ ลำดับชั้นคลาส Mesh: สถาปัตยกรรมสามชั้น
 
-ระบบ mesh ของ OpenFOAM ทำตาม **รูปแบบสถาปัตยกรรมสามชั้น** ที่ให้รากฐานที่แข็งแกร่งสำหรับพลศาสตร์ของไหลเชิงคำนวณ ในขณะเดียวกันก็รักษาประสิทธิภาพและความยืดหยุ่น ลำดับชั้นนี้แยกการคำนวณทางเรขาคณิต การจัดการโทโพโลยี และการดำเนินการปริมาตรจำกัดออกเป็นชั้นต่างๆ ที่เฉพาะเจาะจง
+ระบบ mesh ของ OpenFOAM ทำตาม **รูปแบบสถาปัตยกรรมสามชั้น** ที่ให้รากฐานที่แข็งแกร่งสำหรับพลศาสตร์ของไหลเชิงคำนวณ ในขณะเดียวกันก็รักษาประสิทธิภาพและความยืดหยุ่น ลำดับชั้นนี้แยกการคำนาณทางเรขาคณิต การจัดการโทโพโลยี และการดำเนินการปริมาตรจำกัดออกเป็นชั้นต่างๆ ที่เฉพาะเจาะจง
 
 ### ภาพรวมสถาปัตยกรรม
 
@@ -39,6 +39,7 @@ flowchart TD
     FVM --> PM
     PM --> PSM
 ```
+
 > **Figure 1:** สถาปัตยกรรมสามชั้นของระบบเมชใน OpenFOAM ซึ่งแบ่งความรับผิดชอบออกเป็นระดับเรขาคณิต (primitiveMesh), ระดับโทโพโลยี (polyMesh) และระดับการคำนวณฟิสิกส์ (fvMesh) เพื่อประสิทธิภาพและความยืดหยุ่นสูงสุด
 
 สถาปัตยกรรมสามชั้นประกอบด้วย:
@@ -51,14 +52,22 @@ flowchart TD
 
 ```cpp
 // Core mesh hierarchy (simplified)
-primitiveMesh          // Abstract base class - pure topology
-    ├── polyMesh       // Polygonal mesh with boundary information
-    │   ├── fvMesh     // Finite volume mesh with field storage
-    │   └── dynamicFvMesh // Mesh with motion capabilities
+// Base abstract class defining pure topological relationships
+primitiveMesh          
+    ├── polyMesh       // Adds boundary information to polygonal mesh
+    │   ├── fvMesh     // Finite volume mesh with geometric field storage
+    │   └── dynamicFvMesh // Extends fvMesh with mesh motion capabilities
     └── extendedMesh   // Extended mesh with additional features
 ```
 
-ที่ฐานมี **primitiveMesh** - abstract base class ที่กำหนดความสัมพันธ์ทางโทโพโลย์ระหว่าง mesh entities คลาสนี้รู้จัก:
+> **📂 Source:** `.applications/utilities/mesh/manipulation/polyDualMesh/meshDualiser.C`
+
+**คำอธิบาย:**
+- **Source:** เป็นไฟล์ C++ ที่ใช้ในการจัดการ mesh manipulation โดยเฉพาะการสร้าง dual mesh
+- **Explanation:** โครงสร้างการสืบทอดแสดงให้เห็นว่า primitiveMesh เป็นฐานนามธรรม (abstract base) ที่กำหนดความสัมพันธ์ทางโทโพโลยี จากนั้น polyMesh เพิ่มข้อมูลเขต (boundary information) และ fvMesh เพิ่มความสามารถด้านการคำนวณ finite volume
+- **Key Concepts:** Inheritance hierarchy, topological relationships, boundary patches, finite volume discretization
+
+ที่ฐานมี **primitiveMesh** - abstract base class ที่กำหนดความสัมพันธ์ทางโทโพโลยีระหว่าง mesh entities คลาสนี้รู้จัก:
 - **Point-face connectivity**: จุดใดบ้างที่เกิดแต่ละหน้า
 - **Face-cell connectivity**: หน้าใดบ้างที่ล้อมรอบแต่ละเซลล์
 - **Cell-point connectivity**: จุดใดบ้างที่อยู่ในแต่ละเซลล์
@@ -68,7 +77,7 @@ primitiveMesh          // Abstract base class - pure topology
 
 | ชั้น | หน้าที่หลัก | ความรับผิดชอบ |
 |------|--------------|-----------------|
-| **primitiveMesh** | การคำนวณเรขาคณิตแบบบริสุทธิ์ | • การคำนวณ centers, volumes, normals<br>• เมตริกคุณภาพ mesh<br>• Lazy evaluation |
+| **primitiveMesh** | การคำนาณเรขาคณิตแบบบริสุทธิ์ | • การคำนวณ centers, volumes, normals<br>• เมตริกคุณภาพ mesh<br>• Lazy evaluation |
 | **polyMesh** | การจัดการโทโพโลยี | • จัดเก็บ points, faces, cells<br>• owner/neighbor relationships<br>• Boundary patches<br>• การสนับสนุนขนาน |
 | **fvMesh** | การแบ่งพื้นที่ปริมาตรจำกัด | • การจัดเก็บฟิลด์เรขาคณิต<br>• API สำหรับ solver<br>• การคำนวณเรขาคณิตตามความต้องการ |
 
@@ -138,9 +147,17 @@ $$
 class pointField : public Field<point>
 {
     // Inherits from Field<point> for efficient storage
-    // Provides access to coordinates via pointField[i]
+    // Provides random access to coordinates via pointField[i]
+    // Supports vector operations for geometric calculations
 };
 ```
+
+> **📂 Source:** OpenFOAM core mesh implementation (`src/OpenFOAM/meshes/primitiveMesh/primitiveMesh.H`)
+
+**คำอธิบาย:**
+- **Source:** เป็นส่วนหนึ่งของ core mesh implementation ใน OpenFOAM
+- **Explanation:** pointField สืบทอดจาก Field<point> เพื่อให้มีการจัดเก็บที่มีประสิทธิภาพ และให้การเข้าถึงแบบสุ่ม (random access) ผ่านตัวดำเนินการ [] รองรับ vector operations สำหรับการคำนวณเรขาคณิตต่างๆ
+- **Key Concepts:** Field inheritance, random access, vector operations, coordinate storage
 
 จุดละหนึ่ง $p_i = (x_i, y_i, z_i)$ แทน vertex ในปริภูมิ 3 มิติ คลาส pointField ให้การเข้าถึงสุ่มถึงพิกัดเหล่านี้และรองรับ vector operations สำหรับการคำนวณเรขาคณิต
 
@@ -155,16 +172,23 @@ private:
     List<label> points_;  // List of point indices forming the face
 
 public:
-    // Calculate face normal vector
+    // Calculate face normal vector using cross product
     vector normal(const pointField&) const;
 
-    // Calculate face centroid
+    // Calculate face centroid as weighted average of points
     point centre(const pointField&) const;
 
-    // Calculate face area
+    // Calculate face area using polygon area formula
     scalar area(const pointField&) const;
 };
 ```
+
+> **📂 Source:** OpenFOAM primitive mesh implementation (`src/OpenFOAM/meshes/primitiveMesh/primitiveMesh.H`)
+
+**คำอธิบาย:**
+- **Source:** เป็นส่วนหนึ่งของ primitive mesh implementation ใน OpenFOAM
+- **Explanation:** face class เก็บรายการดัชนีของจุด (point indices) ที่เป็นเขตของหน้า แต่ละหน้ามี normal vector, centroid และ area ซึ่งคำนวณจากพิกัดของจุดที่ประกอบเป็นหน้า
+- **Key Concepts:** Polygonal faces, point connectivity, normal vectors, centroid calculation, area computation
 
 หน้าเชื่อมต่อหลายจุดเพื่อสร้างหลายเหลี่ยม แต่ละหน้ามี:
 
@@ -183,13 +207,20 @@ private:
     List<label> faces_;  // List of face indices bounding the cell
 
 public:
-    // Calculate cell volume
+    // Calculate cell volume using divergence theorem
     scalar mag(const pointField&, const faceList&) const;
 
-    // Calculate cell centroid
+    // Calculate cell centroid from face centroids and volumes
     point centre(const pointField&, const faceList&) const;
 };
 ```
+
+> **📂 Source:** OpenFOAM primitive mesh implementation (`src/OpenFOAM/meshes/primitiveMesh/primitiveMesh.H`)
+
+**คำอธิบาย:**
+- **Source:** เป็นส่วนหนึ่งของ primitive mesh implementation ใน OpenFOAM
+- **Explanation:** cell class เก็บรายการดัชนีของหน้า (face indices) ที่ล้อมรอบเซลล์ ปริมาตรเซลล์คำนวณโดยใช้ divergence theorem ซึ่งรวมผลคุณสมบัติของหน้าทั้งหมดที่ล้อมรอบ
+- **Key Concepts:** Control volumes, face connectivity, divergence theorem, volume calculation, centroid computation
 
 แต่ละเซลล์ถูกกำหนดโดย bounding faces การคำนวณปริมาตรเซลล์ใช้ divergence theorem:
 
@@ -207,20 +238,28 @@ $$
 class polyPatch
 {
 public:
+    // Pure virtual function to update mesh topology
     virtual void updateMesh(PolyTopoChange&) = 0;
 
-    // Access to patch-specific fields
+    // Access to patch-specific fields and properties
     const word& name() const;
     const labelList& meshPoints() const;
     const labelList& meshFaces() const;
 };
 ```
 
+> **📂 Source:** OpenFOAM polyMesh implementation (`src/OpenFOAM/meshes/polyMesh/polyPatches/polyPatch/polyPatch.H`)
+
+**คำอธิบาย:**
+- **Source:** เป็นส่วนหนึ่งของ polyMesh implementation ที่จัดการ boundary patches
+- **Explanation:** polyPatch เป็น base class สำหรับ boundary patches ทั้งหมด มีฟังก์ชัน virtual สำหรับอัปเดต topology เมื่อ mesh เปลี่ยนแปลง และให้การเข้าถึงข้อมูลเฉพาะของแต่ละ patch เช่น ชื่อ, points, และ faces
+- **Key Concepts:** Boundary conditions, virtual functions, mesh topology, patch-specific properties
+
 ---
 
 ## ⚡ กลไก Lazy Evaluation: ประสิทธิภาพหน่วยความจำ
 
-OpenFOAM ใช้ระบบ **การคำนวณตามความต้องการ** ที่ซับซ้อน ซึ่งจะเลื่อนการคำนวณทางเรขาคณิตที่มีค่าใช้จ่ายสูงไปจนกว่าจะต้องการใช้จริง
+OpenFOAM ใช้ระบบ **การคำนวณตามความต้องการ** ที่ซับซ้อน ซึ่งจะเลื่อนการคำนาณทางเรขาคณิตที่มีค่าใช้จ่ายสูงไปจนกว่าจะต้องการใช้จริง
 
 ```cpp
 // 🔧 MECHANISM: Demand-driven geometric calculation
@@ -228,6 +267,7 @@ class primitiveMesh
 {
 private:
     // Storage for computed properties (initially empty)
+    // Uses mutable to allow modification in const methods
     mutable autoPtr<vectorField> cellCentresPtr_;
     mutable autoPtr<scalarField> cellVolumesPtr_;
     mutable autoPtr<vectorField> faceCentresPtr_;
@@ -239,7 +279,7 @@ public:
     {
         if (!cellCentresPtr_.valid())  // Not computed yet?
         {
-            // Compute on demand
+            // Compute on demand using calcCellCentres()
             cellCentresPtr_.reset(calcCellCentres());
         }
         return cellCentresPtr_();
@@ -256,6 +296,13 @@ public:
 };
 ```
 
+> **📂 Source:** OpenFOAM primitiveMesh implementation (`src/OpenFOAM/meshes/primitiveMesh/primitiveMesh.H`)
+
+**คำอธิบาย:**
+- **Source:** เป็นส่วนหนึ่งของ primitiveMesh implementation ที่ใช้ lazy evaluation strategy
+- **Explanation:** กลไก lazy evaluation ใช้ autoPtr ที่เป็น mutable เพื่อเก็บผลการคำนาณเรขาคณิต ฟังก์ชัน getter จะตรวจสอบว่ามีการคำนวณแล้วหรือยัง ถ้าไม่จึงจะคำนวณ และฟังก์ชัน clearGeom() จะล้าง cache เมื่อ mesh เปลี่ยนแปลง
+- **Key Concepts:** Lazy evaluation, demand-driven computation, caching, mutable members, autoPtr smart pointers, memory optimization
+
 ### ประสิทธิภาพหน่วยความจำ
 
 | แนวทาง | ความต้องการหน่วยความจำ (double precision) |
@@ -267,7 +314,7 @@ public:
 | - จุดศูนย์ถ่วง cell | $N_{\text{cells}} \times 24$ ไบต์ |
 | **ตามความต้องการ** | |
 | - โทโพโลยี | $O(N_{\text{cells}} + N_{\text{faces}} + N_{\text{points}})$ |
-| - ปริมาณที่คำนวณ | $O(1)$ ต่อการคำนวณที่ใช้งาน |
+| - ปริมาณที่คำนวณ | $O(1)$ ต่อการคำนาณที่ใช้งาน |
 | - หน่วยความจำสำหรับผลลัพธ์ | ถูกปล่อยทันทีหลังจากใช้ |
 
 **ประสิทธิภาพ**: สำหรับ mesh ที่มี 1 ล้าน cell การประหยัดหน่วยความจำอาจเกิน **100 MB** เมื่อต้องการเพียงส่วนย่อยของคุณสมบัติทางเรขาคณิตในช่วงเวลาใดๆ
@@ -330,23 +377,30 @@ $$
 
 **วิธีแก้ไขที่ถูกต้อง:**
 ```cpp
-// ✅ ดี: เก็บการอ้างอิงเมชเท่านั้น
+// ✅ GOOD: Store only mesh reference
 MeshProcessor(const primitiveMesh& mesh) : mesh_(mesh) {}
 
 void process()
 {
-    // ✅ ดึงข้อมูลเรขาคณิตใหม่เมื่อต้องการ
+    // ✅ Retrieve fresh geometry data when needed
     const vectorField& centres = mesh_.cellCentres();
     processCentres(centres);
 
-    // ถ้าเมชเปลี่ยนแปลง...
+    // If mesh changes...
     // mesh_.clearGeom();
 
-    // ✅ ดึงข้อมูลใหม่หลังจากการเปลี่ยนแปลง
+    // ✅ Retrieve new data after changes
     const vectorField& newCentres = mesh_.cellCentres();
     processCentres(newCentres);
 }
 ```
+
+> **📂 Source:** Best practice pattern from OpenFOAM mesh utilities
+
+**คำอธิบาย:**
+- **Source:** เป็น pattern ที่แนะนำจาก OpenFOAM mesh utilities
+- **Explanation:** การเก็บ reference ไปยัง geometric data ที่คำนวณแล้วอาจทำให้เกิดการใช้ข้อมูลที่ล้างแล้ว (stale data) วิธีที่ถูกต้องคือเก็บ reference ไปยัง mesh และดึงข้อมูลเรขาคณิตใหม่ทุกครั้งที่ต้องการ
+- **Key Concepts:** Reference validity, cache invalidation, demand-driven computation, memory safety
 
 ### ข้อผิดพลาดที่ 2: การละเลยคุณภาพเมช
 
@@ -373,7 +427,7 @@ void process()
 
 ## 💎 บทสรุป
 
-คลาส mesh เหล่านี้เป็น**รากฐาน**ที่การคำนวณ CFD ทั้งหมดถูกสร้างขึ้น โดยให้กรอบทางเรขาคณิตที่แปลงสมการเชิงอนุพันธ์ย่อยให้เป็นระบบพีชคณิตที่สามารถแก้ไขได้ผ่านวิธี Finite Volume
+คลาส mesh เหล่านี้เป็น**รากฐาน**ที่การคำนาณ CFD ทั้งหมดถูกสร้างขึ้น โดยให้กรอบทางเรขาคณิตที่แปลงสมการเชิงอนุพันธ์ย่อยให้เป็นระบบพีชคณิตที่สามารถแก้ไขได้ผ่านวิธี Finite Volume
 
 **การออกแบบสะท้อนถึง:**
 - ความต้องการของพลศาสตร์ของไหลเชิงคำนวณ
@@ -381,4 +435,4 @@ void process()
 - ประสิทธิภาพสำหรับการประมวลผลขนาดใหญ่
 - ความแม่นยำทางคณิตศาสตร์สำหรับผลลัพธ์ที่เชื่อถือได้
 
-การออกแบบที่สวยงามของคลาส mesh ของ OpenFOAM ให้รากฐานที่มั่นคงสำหรับการจำลอง CFD ที่มีประสิทธิภาพสูง ทำให้เป็นหนึ่งในระบบเรขาคณิตการคำนวณที่ซับซ้อนที่สุดใน scientific computing
+การออกแบบที่สวยงามของคลาส mesh ของ OpenFOAM ให้รากฐานที่มั่นคงสำหรับการจำลอง CFD ที่มีประสิทธิภาพสูง ทำให้เป็นหนึ่งในระบบเรขาคณิตการคำนาณที่ซับซ้อนที่สุดใน scientific computing

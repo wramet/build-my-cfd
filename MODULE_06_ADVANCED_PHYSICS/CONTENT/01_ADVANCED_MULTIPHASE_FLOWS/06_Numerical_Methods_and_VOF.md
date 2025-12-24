@@ -77,7 +77,6 @@ flowchart TD
 ```
 > **Figure 1:** แผนผังลำดับขั้นตอนการทำงานของอัลกอริทึม MULES ใน OpenFOAM ซึ่งใช้กลไกการจำกัดฟลักซ์ (Flux Limiting) เพื่อรักษาความเป็นบวกและการจำกัดช่วงของฟิลด์สัดส่วนปริมาตรให้อยู่ระหว่าง 0 และ 1
 
-
 ### 3.1 Functionality
 
 - ใช้เทคนิค Flux Corrected Transport (FCT)
@@ -97,18 +96,37 @@ $$F_f^{\mathrm{MULES}} = F_f^{\mathrm{low}} + \phi_f^{\mathrm{lim}} (F_f^{\mathr
 **OpenFOAM Code:**
 
 ```cpp
+// Explicitly solve the alpha transport equation using MULES algorithm
+// Parameters: geometricOneField (density), alpha1 (volume fraction),
+//             phi (volumetric flux), phiAlpha (compression flux),
+//             zeroField (source terms), bounds [0,1]
 MULES::explicitSolve
 (
-    geometricOneField(),   // density (unity for incompressible)
-    alpha1,                // volume fraction field
-    phi,                   // volumetric face flux
-    phiAlpha,              // compression flux (will be limited)
-    zeroField(),           // implicit source (Sp)
-    zeroField(),           // explicit source (Su)
-    1,                     // psiMax
-    0                      // psiMin
+    geometricOneField(),   // Density field (unity for incompressible flow)
+    alpha1,                // Volume fraction field to solve
+    phi,                   // Volumetric face flux field
+    phiAlpha,              // Compression flux (will be limited by MULES)
+    zeroField(),           // Implicit source term (Sp = 0)
+    zeroField(),           // Explicit source term (Su = 0)
+    1,                     // Maximum value (psiMax) for alpha
+    0                      // Minimum value (psiMin) for alpha
 );
 ```
+
+> **📍 แหล่งที่มา (Source):**  
+> `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **💡 คำอธิบาย (Explanation):**  
+> โค้ดนี้แสดงการเรียกใช้ MULES::explicitSolve ซึ่งเป็นอัลกอริทึมหลักใน OpenFOAM สำหรับแก้สมการการขนส่งของสัดส่วนปริมาตร (volume fraction) โดยมีการรับประกันว่าค่าจะอยู่ในช่วง [0,1] เสมอ ฟังก์ชันนี้ใช้การแก้ปัญหาแบบ explicit และรับพารามิเตอร์ต่างๆ เช่น ฟิลด์ความหนาแน่น (density), ฟิลด์สัดส่วนปริมาตร (alpha), ฟลักซ์ปริมาตร (phi), และฟลักซ์การบีบอัด (phiAlpha) รวมถึงเทอมต้นทาง (source terms) และขอบเขตบนและล่างของค่า alpha
+>
+> **🔑 แนวคิดสำคัญ (Key Concepts):**  
+> - **MULES Algorithm**: Multidimensional Universal Limiter with Explicit Solution - อัลกอริทึมจำกัดฟลักซ์เพื่อรักษา boundedness  
+> - **Flux Limiting**: การปรับฟลักซ์ให้อยู่ในช่วงที่เหมาะสมเพื่อป้องกันการเกิด overshoots/undershoots  
+> - **Explicit Solution**: การแก้ปัญหาแบบ explicit ซึ่งเร็วแต่ต้องเคร่งครัดเรื่องเสถียรภาพ  
+> - **Volume Fraction**: สัดส่วนปริมาตรของเฟสในแต่ละเซลล์ (ต้องอยู่ระหว่าง 0 ถึง 1)  
+> - **Compression Flux**: ฟลักซ์เพิ่มเติมสำหรับบีบอัดอินเตอร์เฟซให้คมขึ้น  
+> - **Source Terms**: เทอมต้นทางในสมการ (ในที่นี้เป็นศูนย์สำหรับสมการ alpha มาตรฐาน)  
+> - **Boundedness**: การรับประกันว่าค่าตัวแปรจะอยู่ในช่วงที่กำหนด
 
 ---
 
@@ -133,16 +151,35 @@ $$\kappa = -\nabla \cdot \left(\frac{\nabla \alpha}{|\nabla \alpha|}\right)$$
 **OpenFOAM Implementation:**
 
 ```cpp
+// Calculate interface curvature from volume fraction gradient
+// Add small value to denominator to prevent division by zero
 volScalarField kappa
 (
     -fvc::div(fvc::grad(alpha1_)/mag(fvc::grad(alpha1_) + dimensionedScalar("small", dimless, SMALL)))
 );
 
+// Calculate surface tension force using CSF model
+// Force = surface_tension_coefficient * curvature * gradient_of_alpha
 tmp<volVectorField> surfaceTensionForce()
 {
     return sigma_ * kappa * fvc::grad(alpha1_);
 }
 ```
+
+> **📍 แหล่งที่มา (Source):**  
+> `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **💡 คำอธิบาย (Explanation):**  
+> โค้ดนี้แสดงการคำนวณความโค้งของอินเตอร์เฟซ (interface curvature) และแรงตึงผิว (surface tension force) โดยใช้แบบจำลอง Continuum Surface Force (CSF) ความโค้งคำนวณจากการหา divergent ของ normal vector ซึ่งเป็นเวกเตอร์ gradient ของ alpha ที่ normalize แล้ว แรงตึงผิวคำนวณจากผลคูณของสัมประสิทธิ์แรงตึงผิว (sigma), ความโค้ง (kappa), และ gradient ของ alpha การเพิ่มค่า SMALL ในตัวส่วนมีไว้เพื่อป้องกันการหารด้วยศูนย์เมื่ออยู่ในบริเวณที่ไม่มีอินเตอร์เฟซ
+>
+> **🔑 แนวคิดสำคัญ (Key Concepts):**  
+> - **CSF Model**: Continuum Surface Force - แบบจำลองแรงตึงผิวแบบต่อเนื่อง  
+> - **Curvature Calculation**: การคำนวณความโค้งจาก gradient ของ volume fraction  
+> - **Normal Vector**: เวกเตอร์ปกติของอินเตอร์เฟซ (∇α/|∇α|)  
+> - **Surface Tension Force**: แรงที่เกิดจากแรงตึงผิว = σ·κ·∇α  
+> - **Gradient Operations**: การใช้ fvc::grad และ fvc::div สำหรับคำนวณเชิงอนุพันธ์  
+> - **Numerical Stability**: การเพิ่มค่า SMALL เพื่อป้องกันปัญหา division by zero  
+> - **Divergence**: การหา divergent ของ normal vector เพื่อคำนวณความโค้ง
 
 ### 4.3 Parasitic Currents
 
@@ -327,7 +364,7 @@ surfaceTension
 
 | วิธี | ตัวแปรหลัก | ข้อดี | ข้อเสีย | แอปพลิเคชันที่เหมาะสม |
 |------|-------------|----------|----------|-------------------|
-| **VOF** | $\alpha$ (สัดส่วนปริมาตร) | อนุรักษ์มวลอย่างเคร่งครัด | ความละเอียดของอินเตอร์เฟซจำกัด | การไหลของหยดครั้งใหญ่ |
+| **VOF** | $\alpha$ (สัดส่วนปริมาตร) | อนุรักษ์มวลอย่างเคร่งครัด | ความละเอียดของอินเตอร์เฟซจำกัง | การไหลของหยดครั้งใหญ่ |
 | **Level Set** | $\phi$ (ฟังก์ชันระยะทาง) | ความละเอียดสูงของอินเตอร์เฟซ | ไม่อนุรักษ์มวล | ฟิสิกส์ของอินเตอร์เฟซ |
 | **Phase Field** | $\psi$ (ฟังก์ชันเฟส) | จัดการ topology changes ได้ดี | ค่าใช้จ่ายคำนวณสูง | การหลอมรวมและการแยกตัว |
 
@@ -372,22 +409,41 @@ $$\frac{\partial \psi}{\partial t} + \mathbf{u} \cdot \nabla \psi = M \nabla^2 \
 วิธี Piecewise Linear Interface Calculation สร้างอินเตอร์เฟซใหม่ในแต่ละเซลล์โดยใช้ระนาบเชิงเส้น:
 
 ```cpp
+// Reconstruct interface in each cell using geometric VOF method
+// This function implements PLIC (Piecewise Linear Interface Calculation)
 void reconstructInterface()
 {
-    // Calculate interface normal
+    // Calculate interface normal from volume fraction gradient
     volVectorField n = fvc::grad(alpha_);
 
-    // Reconstruct interface position
+    // Reconstruct interface position for each cell
     forAll(alpha_, cellI)
     {
+        // Only process cells containing the interface
         if (alpha_[cellI] > 0 && alpha_[cellI] < 1)
         {
-            // PLIC reconstruction
+            // PLIC reconstruction: fit a plane to match volume fraction
             reconstructCell(cellI, n[cellI]);
         }
     }
 }
 ```
+
+> **📍 แหล่งที่มา (Source):**  
+> `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **💡 คำอธิบาย (Explanation):**  
+> โค้ดนี้แสดงการสร้างอินเตอร์เฟซใหม่ด้วยวิธี PLIC (Piecewise Linear Interface Calculation) ซึ่งเป็นเทคนิคที่แม่นยำกว่าการใช้ค่า alpha โดยตรง โดยเริ่มจากการคำนวณ normal vector ของอินเตอร์เฟซจาก gradient ของ volume fraction จากนั้นวนลูปผ่านทุกเซลล์และสร้างระนาบเชิงเส้นในเซลล์ที่มีอินเตอร์เฟซ (0 < alpha < 1) เพื่อให้ได้ตำแหน่งอินเตอร์เฟซที่แม่นยำยิ่งขึ้น วิธีนี้ช่วยลดความคลาดเคลื่อนของตำแหน่งอินเตอร์เฟซและทำให้การคำนวณ curvature แม่นยำขึ้น
+>
+> **🔑 แนวคิดสำคัญ (Key Concepts):**  
+> - **PLIC Method**: Piecewise Linear Interface Calculation - การสร้างอินเตอร์เฟซด้วยระนาบเชิงเส้น  
+> - **Interface Reconstruction**: การสร้างภาพอินเตอร์เฟซใหม่จากฟิลด์ volume fraction  
+> - **Normal Vector**: เวกเตอร์ปกติของอินเตอร์เฟซคำนวณจาก ∇α  
+> - **Geometric VOF**: วิธี VOG เชิงเรขาคณิตที่แม่นยำกว่าวิธี algebraic  
+> - **Interface Cells**: เซลล์ที่มี 0 < α < 1 ซึ่งบรรจุอินเตอร์เฟซ  
+> - **Gradient Calculation**: การใช้ fvc::grad สำหรับคำนวณ normal vector  
+> - **Cell-based Processing**: การประมวลผลทีละเซลล์สำหรับ reconstruction  
+> - **Geometric Accuracy**: ความแม่นยำทางเรขาคณิตสูงกว่าวิธีการพีชคณิต
 
 ### 8.2 Adaptive Mesh Refinement
 

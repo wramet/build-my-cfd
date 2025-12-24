@@ -44,7 +44,8 @@ classDiagram
     style polyMesh fill:#fff9c4,stroke:#fbc02d
     style fvMesh fill:#e3f2fd,stroke:#1565c0
 ```
-> **Figure 1:** แผนผังคลาสแสดงลำดับชั้นการสืบทอดของระบบเมช โดยมี `primitiveMesh` เป็นคลาสฐานเชิงนามธรรมที่จัดการเรขาคณิต และพัฒนาไปสู่ `fvMesh` ที่รองรับการจำลองฟิสิกส์เต็มรูปแบบความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+
+> **Figure 1:** แผนผังคลาสแสดงลำดับชั้นการสืบทอดของระบบเมช โดยมี `primitiveMesh` เป็นคลาสฐานเชิงนามธรรมที่จัดการเรขาคณิต และพัฒนาไปสู่ `fvMesh` ที่รองรับการจำลองฟิสิกส์เต็มรูปแบบ การออกแบบนี้ช่วยให้มั่นใจได้ว่าความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ---
 
@@ -78,6 +79,24 @@ OpenFOAM employs a sophisticated **demand-driven computation** system:
 const surfaceVectorField& Sf = mesh.Sf();  // Triggers calculation if needed
 const volScalarField& V = mesh.V();        // Cell volumes computed on demand
 ```
+
+---
+
+#### 📚 **คำอธิบายภาษาไทย (Thai Explanation)**
+
+**แหล่งที่มา (Source):**
+📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+
+**คำอธิบาย (Explanation):**
+Lazy Evaluation เป็นเทคนิคการปรับปรุงประสิทธิภาพที่สำคัญใน OpenFOAM โดยข้อมูลเรขาคณิต (geometry data) เช่น cell volumes และ face area vectors จะไม่ถูกคำนวณล่วงหน้า แต่จะถูกคำนวณเมื่อมีการร้องขอ (on-demand) เท่านั้น เมื่อข้อมูลถูกคำนวณแล้ว จะถูกเก็บไว้ใน cache เพื่อนำกลับมาใช้ใหม่โดยไม่ต้องคำนวณซ้ำ ทำให้ประหยัดเวลาและทรัพยากรการประมวลผล
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Demand-driven computation:** การคำนวณเมื่อจำเป็นเท่านั้น
+- **Caching mechanism:** การเก็บผลลัพธ์ที่คำนวณแล้วไว้ใช้ซ้ำ
+- **Performance optimization:** การเพิ่มประสิทธิภาพด้วยการลดการคำนวณซ้ำ
+- **Memory efficiency:** การใช้หน่วยความจำอย่างมีประสิทธิภาพ
+
+---
 
 **Lazy Evaluation Mechanism:**
 - **Workflow:**
@@ -172,6 +191,22 @@ int main() {
     // Solver doesn't need to worry about internal topology
 }
 ```
+
+---
+
+#### 📚 **คำอธิบายภาษาไทย (Thai Explanation)**
+
+**แหล่งที่มา (Source):**
+📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+
+**คำอธิบาย (Explanation):**
+ตัวอย่างโค้ดนี้แสดงให้เห็นว่า solvers ทั้งหมดใน OpenFOAM ทำงานกับ `fvMesh` interface ที่สร้างความสม่ำเสมอใน API โดยไม่คำนึงถึงประเภทของ mesh ที่ใช้งานอยู่ การเข้าถึงเรขาคณิต (geometry) เช่น cell centers และ face area vectors สามารถทำได้ผ่าน methods ที่เตรียมไว้ให้โดยตรง โดยไม่ต้องกังวลเกี่ยวกับ internal topology ที่ซับซ้อน
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Unified API:** อินเตอร์เฟซที่สม่ำเสมอสำหรับทุก solver
+- **Abstraction:** การนำเสนอความซับซ้อนของ topology ให้เรียบง่าย
+- **Solver independence:** solver ไม่ต้องรู้รายละเอียดภายในของ mesh
+- **Field access:** การเข้าถึง geometric fields ผ่าน methods ที่ง่ายต่อการใช้งาน
 
 ---
 
@@ -417,6 +452,22 @@ private:
 
 ---
 
+#### 📚 **คำอธิบายภาษาไทย (Thai Explanation)**
+
+**แหล่งที่มา (Source):**
+📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+
+**คำอธิบาย (Explanation):**
+ข้อผิดพลาดที่พบบ่อยที่สุดในการจัดการเรขาคณิตของ mesh คือการเก็บ references ของข้อมูลเรขาคณิตที่คำนวณแล้วไว้นานเกินไป เมื่อ mesh ถูกแก้ไข ข้อมูลเหล่านี้จะกลายเป็นข้อมูลที่ไม่ถูกต้อง วิธีที่ปลอดภัยคือเก็บเฉพาะ mesh reference และเรียกข้อมูลเรขาคณิตใหม่ทุกครั้งที่ต้องการ หรือใช้ `clearGeom()` เพื่อล้าง cache ก่อนที่จะดึงข้อมูลใหม่
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Reference-counted data:** ข้อมูลที่มีการนับจำนวน references อัตโนมัติ
+- **Cache invalidation:** การทำให้ข้อมูลใน cache ใช้ไม่ได้เมื่อมีการเปลี่ยนแปลง
+- **Safe memory management:** การจัดการหน่วยความจำอย่างปลอดภัย
+- **On-demand computation:** การคำนวณเมื่อจำเป็นเท่านั้น
+
+---
+
 ### **Pitfall 2: Inefficient Repeated Queries**
 
 Repeated geometry queries are resource-intensive. Use caching strategies:
@@ -477,6 +528,22 @@ private:
     }
 };
 ```
+
+---
+
+#### 📚 **คำอธิบายภาษาไทย (Thai Explanation)**
+
+**แหล่งที่มา (Source):**
+📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+
+**คำอธิบาย (Explanation):**
+การสืบค้นข้อมูลเรขาคณิตซ้ำๆ ใช้ทรัพยากรมาก และควรใช้กลยุทธ์ caching เพื่อลดภาระนี้ โดยสร้าง local cache สำหรับเก็บข้อมูลเรขาคณิตที่ใช้ภายใน scope การประมวลผล และคำนวณข้อมูลทั้งหมดที่จำเป็นเพียงครั้งเดียว จากนั้นใช้ข้อมูลที่ cached ไว้ตลอดกระบวนการ และล้าง cache เมื่อเสร็จสิ้น
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Local caching:** การเก็บข้อมูลไว้ใน cache ชั่วคราว
+- **Batch computation:** การคำนวณข้อมูลทั้งหมดพร้อมกัน
+- **Resource optimization:** การปรับปรุงการใช้ทรัพยากร
+- **Memory lifecycle:** การจัดการวงจรชีวิตของหน่วยความจำ
 
 ---
 
@@ -544,6 +611,22 @@ void robustProcessing(const primitiveMesh& mesh)
     // Geometry automatically cleaned when leaving scope
 }
 ```
+
+---
+
+#### 📚 **คำอธิบายภาษาไทย (Thai Explanation)**
+
+**แหล่งที่มา (Source):**
+📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+
+**คำอธิบาย (Explanation):**
+Scoped Geometry Management เป็นรูปแบบการออกแบบที่ช่วยจัดการหน่วยความจำอย่างปลอดภัยผ่าน RAII (Resource Acquisition Is Initialization) โดย destructor จะทำการล้างข้อมูลเรขาคณิตอัตโนมัติเมื่อ object ถูกทำลาย ช่วยป้องกันการรั่วไหลของหน่วยความจำและการใช้ข้อมูลที่ไม่ถูกต้องหลังจากที่ mesh ถูกแก้ไข
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **RAII pattern:** รูปแบบการจัดการทรัพยากรผ่าน constructor/destructor
+- **Automatic cleanup:** การทำความสะอาดอัตโนมัติ
+- **Exception safety:** ความปลอดภัยในกรณีเกิด exception
+- **Scope-based management:** การจัดการตาม scope ของตัวแปร
 
 ---
 

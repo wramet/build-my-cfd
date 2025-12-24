@@ -127,7 +127,9 @@ graph TD
 
 ```cpp
 // Pseudo-code for segregated thermal-fluid coupling
+// Iterate over each time step in the simulation
 for (int timeStep = 0; timeStep < nTimeSteps; timeStep++) {
+    // Inner coupling iteration loop for convergence
     for (int couplingIter = 0; couplingIter < maxCouplingIter; couplingIter++) {
         // Step 1: Solve momentum equation with current temperature field
         solve(UEqn == -fvc::grad(p) + buoyancyForce(T));
@@ -143,6 +145,23 @@ for (int timeStep = 0; timeStep < nTimeSteps; timeStep++) {
     }
 }
 ```
+
+> **📂 Source:** .applications/solvers/heatTransfer/chtMultiRegionFoam
+
+> **คำอธิบาย (Thai Explanation):**
+>
+> **สิ่งที่โค้ดทำ:** โค้ดนี้แสดงอัลกอริทึมการเชื่อมโยงแบบแบ่งส่วน (Segregated Coupling) สำหรับปัญหา Thermal-Fluid โดยการวนซ้ำระหว่างสมการโมเมนตัมและสมการพลังงานจนกว่าจะลู่เข้า
+>
+> **ขั้นตอนสำคัญ:**
+> 1. **Outer Loop:** วนซ้ำตามเวลา (time steps)
+> 2. **Inner Loop:** วนซ้ำเพื่อให้การเชื่อมโยงลู่เข้า (coupling convergence)
+> 3. **Sequential Solution:** แก้สมการแต่ละอย่างตามลำดับ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Coupling Iteration:** การวนซ้ำภายใน time step เดียวเพื่อให้ได้คำตอบที่สอดคล้องกัน
+> - **Buoyancy Force:** แรงลอยตนที่ขึ้นกับอุณหภูมิ (thermal coupling)
+> - **Under-Relaxation:** มักต้องใช้การผ่อนคลายเพื่อความเสถียร
+> - **Convergence Check:** ตรวจสอบว่าการเปลี่ยนแปลงระหว่าง iteration น้อยพอแล้ว
 
 **ข้อดี**:
 - ✅ การนำไปใช้งานแบบโมดูลาร์
@@ -180,6 +199,7 @@ delta T
 
 ```cpp
 // Block coupled solver approach in OpenFOAM
+// Create a block matrix for coupled system solving
 BlockLduMatrix<vector, scalar, scalar> blockMatrix(nCells);
 
 // Assemble coupled equations
@@ -194,6 +214,24 @@ blockMatrix.insertBlock(couplingTU, 2, 0);  // Momentum-temperature coupling
 // Solve coupled system
 BlockSolverPerformance<vector, scalar> solverPerf = blockSolver.solve(blockMatrix);
 ```
+
+> **📂 Source:** .applications/solvers/heatTransfer/chtMultiRegionFoam
+
+> **คำอธิบาย (Thai Explanation):**
+>
+> **สิ่งที่โค้ดทำ:** โค้ดนี้แสดงการนำไปใช้ Block Coupled Solver ซึ่งแก้ระบบสมการที่เชื่อมโยงกันพร้อมกันในรูปแบบเมทริกซ์บล็อก
+>
+> **ขั้นตอนสำคัญ:**
+> 1. **Block Matrix Creation:** สร้างเมทริกซ์บล็อกสำหรับหลายตัวแปร
+> 2. **Diagonal Assembly:** ประกอบสมการหลัก (momentum, pressure, energy)
+> 3. **Off-Diagonal Coupling:** เพิ่มเทอม coupling ระหว่างตัวแปร
+> 4. **Simultaneous Solution:** แก้ระบบทั้งหมดพร้อมกัน
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Block Matrix:** เมทริกซ์ที่มี submatrices เป็น block แทนค่าสเกลาร์
+> - **Coupling Terms:** เทอม off-diagonal แทนการโต้ตอบระหว่างสมการ
+> - **Monolithic Solution:** แก้ทุกสมการพร้อมกัน (ไม่แบ่ง sequential)
+> - **Computational Cost:** ใช้หน่วยความจำสูง แต่ลู่เข้าเร็วกว่าสำหรับปัญหา coupling แน่น
 
 ---
 
@@ -337,6 +375,26 @@ private:
 };
 ```
 
+> **📂 Source:** .applications/solvers/heatTransfer/chtMultiRegionFoam
+
+> **คำอธิบาย (Thai Explanation):**
+>
+> **สิ่งที่โค้ดทำ:** คลาส `myCoupledSolver` นี้แสดงสถาปัตยกรรมของ coupled solver ที่กำหนดเอง สำหรับการแก้ปัญหา thermal-fluid coupling ด้วยวิธี segregated approach
+>
+> **ขั้นตอนสำคัญ:**
+> 1. **Field Storage:** เก็บ references ถึง fields (velocity, pressure, temperature)
+> 2. **Physics Models:** ใช้ autoPtr สำหรับ turbulence และ thermophysical models
+> 3. **Coupling Loop:** วนซ้ำภายใน time step จนลู่เข้า
+> 4. **Sequential Solution:** แก้ momentum → pressure → energy ตามลำดับ
+> 5. **Relaxation:** ใช้ under-relaxation เพื่อความเสถียร
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **autoPtr:** Smart pointer สำหรับจัดการหน่วยความจำอัตโนมัติ
+> - **fvVectorMatrix:** Matrix class สำหรับ vector fields
+> - **divDevReff():** คำนวณ divergence of deviatoric stress tensor
+> - **Under-Relaxation:** ลดการเปลี่ยนแปลงระหว่าง iterations เพื่อป้องกัน oscillation
+> - **Coupling Convergence:** ตรวจสอบว่า solution ลู่เข้าแล้ว
+
 ---
 
 ## การตรวจสอบและการยืนยันความถูกต้อง
@@ -374,11 +432,28 @@ $$\|e\|_{L_2} = sqrt{frac{1}{V}int_{Omega} (u_{text{numerical}} - u_{text{refere
 
 **การแก้ไข**:
 ```cpp
-// ตรวจสอบชื่อ region ให้ตรงกัน
+// Check that region names match exactly
 type            mapped;
-sampleRegion    heaterRegion;  // ต้องตรงกับชื่อ region อย่างแน่นอน
-samplePatch     heaterOutlet;  // ต้องตรงกับชื่อ patch อย่างแน่นอน
+sampleRegion    heaterRegion;  // Must match region name exactly
+samplePatch     heaterOutlet;  // Must match patch name exactly
 ```
+
+> **📂 Source:** .applications/solvers/heatTransfer/chtMultiRegionFoam
+
+> **คำอธิบาย (Thai Explanation):**
+>
+> **สิ่งที่โค้ดทำ:** ตั้งค่า boundary condition แบบ mapped patch สำหรับการส่งข้อมูลระหว่าง regions ใน multi-region simulation
+>
+> **ขั้นตอนสำคัญ:**
+> 1. **Type Specification:** ระบุประเภท BC เป็น `mapped`
+> 2. **Region Matching:** ต้องระบุชื่อ region ให้ตรงกับใน `constant/regionProperties`
+> 3. **Patch Matching:** ต้องระบุชื่อ patch ปลายทางให้ถูกต้อง
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Mapped Patch:** BC ที่ดึงค่าจาก patch อื่น (อาจ cross-region)
+> - **Sample Region:** Region ต้นทางที่จะดึงค่า
+> - **Sample Patch:** Patch ต้นทางที่จะดึงค่า
+> - **Region Properties:** ไฟล์ที่ระบุ regions ทั้งหมดใน case
 
 ### ความไม่เสถียรทางตัวเลข (Numerical Instability)
 
@@ -386,15 +461,33 @@ samplePatch     heaterOutlet;  // ต้องตรงกับชื่อ pat
 
 **การควบคุม Relaxation**:
 ```cpp
+// Under-relaxation factors for coupled physics
 relaxationFactors
 {
-    equations     1;
-    U             0.7;
-    h             0.5;
-    k             0.7;
-    epsilon       0.7;
+    equations     1;    // Equation relaxation factor
+    U             0.7;  // Velocity field relaxation
+    h             0.5;  // Enthalpy/temperature relaxation
+    k             0.7;  // Turbulence kinetic energy
+    epsilon       0.7;  // Turbulence dissipation rate
 }
 ```
+
+> **📂 Source:** .applications/solvers/heatTransfer/chtMultiRegionFoam
+
+> **คำอธิบาย (Thai Explanation):**
+>
+> **สิ่งที่โค้ดทำ:** ตั้งค่า under-relaxation factors เพื่อควบคุมความเสถียรของการแก้ปัญหาแบบ coupled โดยลดการเปลี่ยนแปลงของตัวแปรระหว่าง iterations
+>
+> **ขั้นตอนสำคัญ:**
+> 1. **Equation Relaxation:** ผ่อนคลายสมการโดยรวม
+> 2. **Field Relaxation:** ผ่อนคลายแต่ละ field แยกกัน
+> 3. **Lower Values:** ค่าต่ำ = การเปลี่ยนแปลงช้ากว่า = มั่นคงกว่า
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Under-Relaxation:** เทคนิคเพื่อป้องกันการ oscillation และ divergence
+> - **Relaxation Factor:** ค่าระหว่าง 0-1 (1 = ไม่ผ่อนคลาย, 0 = ไม่เปลี่ยนค่า)
+> - **Coupled Physics:** การไหลความร้อนมักต้องการ factor ต่ำกว่าการไหลธรรมดา
+> - **Trade-off:** ค่าต่ำกว่า = เสถียรกว่า แต่ลู่เข้าช้ากว่า
 
 ### การ Convergence ช้า (Slow Convergence)
 
@@ -402,20 +495,38 @@ relaxationFactors
 
 **Aitken Acceleration**:
 ```cpp
+// Enable Aitken's delta-squared acceleration for faster convergence
 PIMPLE
 {
-    nOuterCorrectors  50;
-    nCorrectors      2;
-    nNonOrthogonalCorrectors 0;
-    aitkenAcceleration on;      // เปิดการเร่ง
+    nOuterCorrectors  50;       // Maximum outer iterations
+    nCorrectors      2;         // Pressure correctors
+    nNonOrthogonalCorrectors 0; // Non-orthogonal correction
+    aitkenAcceleration on;      // Enable Aitken acceleration
 }
 ```
+
+> **📂 Source:** .applications/solvers/heatTransfer/chtMultiRegionFoam
+
+> **คำอธิบาย (Thai Explanation):**
+>
+> **สิ่งที่โค้ดทำ:** ตั้งค่า PIMPLE algorithm พร้อมเปิดใช้ Aitken acceleration เพื่อเร่งการลู่เข้าของการวนซ้ำแบบ coupled
+>
+> **ขั้นตอนสำคัญ:**
+> 1. **Outer Correctors:** จำนวน iterations สูงสุดต่อ time step
+> 2. **Pressure Correctors:** จำนวน pressure correction loops
+> 3. **Aitken Switch:** เปิดใช้ Aitken's Δ² method
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Aitken Acceleration:** เทคนิค extrapolation เพื่อปรับ optimal relaxation factor อัตโนมัติ
+> - **Delta-Squared Method:** ใช้ผลต่างระหว่าง 3 iterations ล่าสุด
+> - **Dynamic Relaxation:** ปรับ factor อัตโนมัติตาม behavior ของ solution
+> - **Convergence Speed:** สามารถลด iterations ได้มากถ้า coupling แน่น
 
 ---
 
 ## แหล่งอ้างอิงและทรัพยากรเพิ่มเติม
 
-เนื้อหานี้เป็นส่วนหนึ่งของโมดูลการเรียนรู้ OpenFOAM ขั้นสูงเกี่ยวกับ Multi-Physics Coupling สำหรับข้อมูลเพิ่มเติม สามารถศึกษาได้ที่:
+เนื้อหานี้เป็นส่วนหนึ่งของโมดูลการเรียนรู้ OpenFOAM ขั้นสูงเกี่ยวกับ Multi-Physics Coupling สำหรับข้อมูลเพิ่มเติม สามารพศึกษาได้ที่:
 
 - **[[01_FILE_PURPOSE]]** - วัตถุประสงค์และขอบเขตของเอกสารนี้
 - **[[02_LEARNING_OBJECTIVES]]** - เป้าหมายการเรียนรู้โดยละเอียด

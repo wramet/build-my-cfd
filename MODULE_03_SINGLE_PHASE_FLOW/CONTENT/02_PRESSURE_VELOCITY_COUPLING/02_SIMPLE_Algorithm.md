@@ -129,7 +129,7 @@ flowchart TD
     G -->|No| A
     G -->|Yes| H["End: Converged Solution"]
 ```
-> **Figure 1:** แผนผังลำดับขั้นตอน (Algorithm Flowchart) ของกระบวนการวนซ้ำในอัลกอริทึม SIMPLE แสดงขั้นตอนตั้งแต่การทำนายโมเมนตัม (Momentum Prediction) การแก้สมการ Pressure Poisson เพื่อหาค่าแก้ไข และการปรับปรุงฟิลด์ความดันและความเร็ว พร้อมการประยุกต์ใช้ Under-Relaxation เพื่อให้เกิดความเสถียรในการคำนวณแบบ Steady-state
+
 > **Figure 1:** แผนผังลำดับขั้นตอน (Algorithm Flowchart) ของกระบวนการวนซ้ำในอัลกอริทึม SIMPLE แสดงขั้นตอนตั้งแต่การทำนายโมเมนตัม (Momentum Prediction) การแก้สมการ Pressure Poisson เพื่อหาค่าแก้ไข และการปรับปรุงฟิลด์ความดันและความเร็ว พร้อมการประยุกต์ใช้ Under-Relaxation เพื่อให้เกิดความเสถียรในการคำนวณแบบ Steady-state
 
 ---
@@ -146,11 +146,11 @@ flowchart TD
 #include "turbulentTransportModel.H"
 #include "simpleControl.H"
 
-// ... การเริ่มต้นฟิลด์ ...
-
+// Field initialization
+// ...
 while (simple.loop())
 {
-    // === ขั้นตอนที่ 1: Momentum Predictor ===
+    // === Step 1: Momentum Predictor ===
     tmp<fvVectorMatrix> tUEqn
     (
         fvm::div(phi, U)
@@ -163,7 +163,7 @@ while (simple.loop())
 
     solve(UEqn == -fvc::grad(p));
 
-    // === ขั้นตอนที่ 2-3: Pressure Correction ===
+    // === Steps 2-3: Pressure Correction ===
     volScalarField rAU(1.0/UEqn.A());
     volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U, p));
     surfaceScalarField phiHbyA
@@ -190,13 +190,30 @@ while (simple.loop())
         }
     }
 
-    // === ขั้นตอนที่ 4: Velocity Update with Relaxation ===
+    // === Step 4: Velocity Update with Relaxation ===
     #include "UEqn.H"
 
-    // === ขั้นตอนที่ 5: Turbulence Update ===
+    // === Step 5: Turbulence Update ===
     turbulence->correct();
 }
 ```
+
+> **📂 Source:** `applications/solvers/incompressible/simpleFoam/simpleFoam.C`
+> 
+> **คำอธิบาย (Thai):**
+> โค้ดต้นแบบ (template) ของ simpleFoam solver แสดงการนำอัลกอริทึม SIMPLE ไปใช้งาน ส่วนประกอบสำคัญ ได้แก่:
+> - **ขั้นตอนที่ 1:** การสร้างและแก้สมการโมเมนตัม (`UEqn`) ซึ่งรวมเทอมการพา (`fvm::div`) และการแพร่ของความปั่น (`turbulence->divDevReff`)
+> - **ขั้นตอนที่ 2:** การคำนวณ `rAU` (ส่วนกลับของสัมประสิทธิ์แนวทแยง) และ `HbyA` (เวกเตอร์ความเร็วโดยไม่รวมเกรเดียนต์ความดัน)
+> - **ขั้นตอนที่ 3:** การแก้สมการ Pressure Poisson (`pEqn`) ภายใน loop สำหรับ mesh ที่ไม่ตั้งฉาก
+> - **ขั้นตอนที่ 4:** การอัปเดตความเร็วผ่านไฟล์ `UEqn.H` ซึ่งทำให้เกิดการแก้ไขความเร็วตามความดันที่ถูกแก้ไขแล้ว
+> - **ขั้นตอนที่ 5:** การอัปเดตตัวแบบความปั่น (`turbulence->correct()`)
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **`UEqn.H()`** คือการคำนวณเทอม convection + diffusion โดยไม่รวมความดัน ตรงกับสัญลักษณ์ $\mathbf{H}(\mathbf{u})$ ในสมการทางคณิตศาสตร์
+> - **`UEqn.A()`** คือสัมประสิทธิ์แนวทแยง $a_P$ ของเมทริกซ์ ใช้ในการคำนวณการแก้ไขความเร็ว
+> - **`fvc::grad(p)`** คือการคำนวณเกรเดียนต์ความดันในรูปแบบ explicit
+> - **`fvm::laplacian(rAU, p)`** คือตัวดำเนินการ Laplacian แบบ implicit สำหรับสมการ Pressure Poisson
+> - **`constrainHbyA()`** คือฟังก์ชันที่ใช้บังคับเงื่อนไขขอบเขตให้กับเวกเตอร์ HbyA
 
 ### 3.2 การแมปสมการกับโค้ด
 
@@ -242,6 +259,21 @@ SIMPLE
 }
 ```
 
+> **📂 Source:** `etc/caseDicts/postProcessing/visualization/sampleDict` และไฟล์การตั้งค่า fvSolution ใน OpenFOAM tutorials
+> 
+> **คำอธิบาย (Thai):**
+> ไฟล์ `fvSolution` คือไฟล์การตั้งค่าสำคัญใน OpenFOAM ที่ใช้ควบคุมพฤติกรรมของ solver ในกรณีนี้คืออัลกอริทึม SIMPLE ส่วนประกอบสำคัญ ได้แก่:
+> - **`nNonOrthogonalCorrectors`** จำนวนครั้งที่แก้ไขสมการความดันสำหรับ mesh ที่ไม่ตั้งฉาก (non-orthogonal mesh) เพื่อเพิ่มความแม่นยำ
+> - **`pRefCell` และ `pRefValue`** การอ้างอิงความดัน เนื่องจากของไหลที่อัดตัวไม่ได้มีเพียง gradient ของความดันเท่านั้นที่สำคัญ จึงต้องมีการกำหนดจุดอ้างอิง
+> - **`residualControl`** กำหนดค่าเกณฑ์การลู่เข้า (convergence criteria) สำหรับตัวแปรต่าง ๆ
+> - **`relaxationFactors`** ปัจจัยการผ่อนคลาย (under-relaxation factors) เพื่อให้เกิดความเสถียรในการคำนวณ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Non-orthogonal correctors** ใช้เพื่อปรับปรุงความแม่นยำของการคำนวณเกรเดียนต์บน mesh ที่ไม่ตั้งฉาก
+> - **Pressure reference** จำเป็นเพื่อแก้ปัญหา singular matrix ที่เกิดจากการที่ความดันถูกกำหนดเฉพาะ gradient เท่านั้น
+> - **Under-relaxation** เป็นเทคนิคเพื่อป้องกันการลู่ออก (divergence) โดยจำกัดการเปลี่ยนแปลงของตัวแปรในแต่ละรอบ
+> - **Residual control** ใช้เพื่อตัดสินใจว่าการแก้สมการลู่เข้าแล้วหรือยัง
+
 **คำอธิบายพารามิเตอร์:**
 
 | พารามิเตอร์ | ความหมาย | ค่าที่แนะนำ |
@@ -282,6 +314,22 @@ solvers
 }
 ```
 
+> **📂 Source:** `etc/caseDicts/postProcessing/visualization/sampleDict` และไฟล์การตั้งค่า fvSolvers ใน OpenFOAM tutorials
+> 
+> **คำอธิบาย (Thai):**
+> ไฟล์ `fvSchemes` (และ `fvSolution`) มีส่วน `solvers` ที่ใช้กำหนดวิธีการแก้ระบบสมการเชิงเส้น (linear solvers) สำหรับแต่ละตัวแปร ส่วนประกอบสำคัญ ได้แก่:
+> - **`solver`** ประเภทของ solver เช่น `GAMG` (Geometric-Algebraic Multigrid) สำหรับสมการ elliptic อย่างสมการความดัน และ `smoothSolver` สำหรับสมการโมเมนตัม
+> - **`tolerance`** และ **`relTol`** ค่าความคลาดเคลื่อนสัมบูรณ์และสัมพัทธ์สำหรับการแก้ระบบสมการ
+> - **`smoother`** วิธีการ smoothing ภายใน multigrid เช่น `GaussSeidel`
+> - **`nPreSweeps`, `nPostSweeps`, `nFinestSweeps`** จำนวนรอบของการ smoothing ก่อนและหลังการคำนวณในระดับ coarse
+> - **`cacheAgglomeration`, `agglomerator`, `mergeLevels`** การตั้งค่าเฉพาะของ GAMG solver
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **GAMG (Geometric-Algebraic Multigrid)** เป็นเทคนิคการแก้สมการที่ใช้ hierarchy ของ meshes ที่คร่าว (coarser) เพื่อเร่งการลู่เข้า มีประสิทธิภาพสูงสำหรับสมการ elliptic อย่างสมการความดัน
+> - **smoothSolver** ใช้วิธีการ smoothing เช่น Gauss-Seidel ในการแก้สมการโดยตรง เหมาะสำหรับสมการที่มีความแข็งแรง (stiffness) น้อยกว่า
+> - **Tolerance** คือค่าความคลาดเคลื่อนที่อนุญาต ยิ่งต่ำยิ่งแม่นยำแต่ใช้เวลานานขึ้น
+> - **Relative tolerance** ใช้เพื่อหยุดการแก้สมการเมื่อความคลาดเคลื่อนสัมพัทธ์ต่ำกว่าค่าที่กำหนด
+
 **เหตุผลในการเลือก Solver:**
 
 | สมการ | Solver | เหตุผล |
@@ -310,35 +358,67 @@ $$\phi^{new} = \phi^{old} + \alpha (\phi^* - \phi^{old}) \tag{4.1}$$
 #### การผ่อนคลายสมการ (Equation Relaxation)
 
 ```cpp
-// ใน src/finiteVolume/fvMatrix/fvMatrix.C
+// In src/finiteVolume/fvMatrices/fvMatrix/fvMatrix.C
+// Function to apply under-relaxation to the finite volume matrix
 template<class Type>
 void Foam::fvMatrix<Type>::relax(const scalar alpha)
 {
+    // Check if relaxation factor is valid
     if (alpha <= 0)
     {
         return;
     }
 
-    // ปรับสัมประสิทธิ์แนวทแยง
+    // Apply relaxation to diagonal coefficients
     if (alpha < 1)
     {
+        // Get reference to diagonal coefficients
         Field<Type>& D = diag();
+        
+        // Scale diagonal by 1/alpha
+        // This is equivalent to under-relaxation
         D /= alpha;
     }
 }
 ```
+
+> **📂 Source:** `src/finiteVolume/fvMatrices/fvMatrix/fvMatrix.C`
+> 
+> **คำอธิบาย (Thai):**
+> ฟังก์ชัน `relax()` ในคลาส `fvMatrix` เป็นการนำ under-relaxation ไปใช้ในระดับสมการ (equation-level relaxation) แทนที่จะใช้กับตัวแปรโดยตรง:
+> - **การตรวจสอบค่า alpha** หากค่าน้อยกว่าหรือเท่ากับ 0 จะไม่มีการทำงาน
+> - **การปรับสัมประสิทธิ์แนวทแยง** โดยการหารด้วยค่า alpha ซึ่งเทียบเท่ากับการใช้ under-relaxation กับตัวแปร
+> - **ผลกระทบ** การเรียก `UEqn.relax(0.7)` จะปรับสัมประสิทธิ์แนวทแยง $a_P$ ให้เป็น $a_P / 0.7$ ซึ่งเทียบเท่ากับการใช้ under-relaxation
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Equation-level relaxation** เป็นการใช้ under-relaxation กับสมการโดยตรง ผ่านการปรับสัมประสิทธิ์ของเมทริกซ์
+> - **Diagonal scaling** การหารสัมประสิทธิ์แนวทแยงด้วยค่า alpha เทียบเท่ากับการใช้สูตร $\phi^{new} = \phi^{old} + \alpha (\phi^* - \phi^{old})$
+> - **Implicit vs Explicit relaxation** วิธีนี้เป็น implicit เพราะผลกระทบถูกรวมในตัวแปร $\mathbf{H}(\mathbf{u})$ และ $a_P$
 
 **ผลกระทบ:** การเรียก `UEqn.relax(0.7)` จะปรับสัมประสิทธิ์แนวทแยง $a_P$ ให้เป็น $a_P / 0.7$ ซึ่งเทียบเท่ากับการใช้ under-relaxation
 
 #### การผ่อนคลายฟิลด์ (Field Relaxation)
 
 ```cpp
-// การอัปเดตฟิลด์ความเร็วด้วย under-relaxation
+// Update velocity field with under-relaxation
 U = U.oldTime() + alphaU * (U - U.oldTime());
 
-// การอัปเดตฟิลด์ความดัน
+// Update pressure field with under-relaxation
 p = p.oldTime() + alphaP * (p - p.oldTime());
 ```
+
+> **📂 Source:** ส่วนประกอบของ OpenFOAM solvers ทั่วไป โดยเฉพาะในไฟล์ `createFields.H` และไฟล์ loop หลัก
+> 
+> **คำอธิบาย (Thai):**
+> การใช้ under-relaxation กับฟิลด์โดยตรง (field-level relaxation) เป็นวิธีที่ตรงไปตรงมากว่า:
+> - **การคำนวณค่าใหม่** โดยใช้ค่าจากรอบก่อนหน้า (`oldTime()`) และค่าจากรอบปัจจุบัน
+> - **สูตรการคำนวณ** คือ $\phi^{new} = \phi^{old} + \alpha (\phi^* - \phi^{old})$ ซึ่งเป็นสูตรมาตรฐานของ under-relaxation
+> - **การใช้งาน** ใน OpenFOAM มักใช้กับความดันและความเร็ว โดยมีค่า alpha ต่างกัน
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Field-level relaxation** เป็นการใช้ under-relaxation กับตัวแปรโดยตรง ผ่านสูตร $\phi^{new} = \phi^{old} + \alpha (\phi^* - \phi^{old})$
+> - **Old time values** คือค่าจากรอบก่อนหน้า ใช้เป็นฐานในการคำนวณค่าใหม่
+> - **Combined approach** ในทางปฏิบัติ OpenFOAM ใช้ทั้ง equation-level และ field-level relaxation เพื่อเพิ่มความเสถียร
 
 ### 4.3 แนวทางการเลือกค่า Under-Relaxation Factors
 
@@ -358,23 +438,41 @@ p = p.oldTime() + alphaP * (p - p.oldTime());
 ### 4.4 กลยุทธ์การปรับค่าแบบ Adaptive
 
 ```cpp
-// กลยุทธ์การปรับค่าแบบ渐进式
+// Adaptive relaxation strategy for improved stability and convergence
+// Gradually increase relaxation factors as simulation progresses
+
 if (iteration < 10)
 {
-    alphaP = 0.1;  // การผ่อนคลายสูงในช่วงต้น
+    // High relaxation in early iterations for stability
+    alphaP = 0.1;
     alphaU = 0.3;
 }
 else if (iteration < 50)
 {
-    alphaP = 0.3;  // ค่าปกติ
+    // Standard values for main convergence phase
+    alphaP = 0.3;
     alphaU = 0.7;
 }
 else
 {
-    alphaP = 0.5;  // เพิ่มค่าเพื่อเร่งการลู่เข้า
+    // Increase values to accelerate final convergence
+    alphaP = 0.5;
     alphaU = 0.8;
 }
 ```
+
+> **📂 Source:** แนวทางปฏิบัติที่ดีที่สุดใน OpenFOAM (Best Practices) และเอกสารทางเทคนิค
+> 
+> **คำอธิบาย (Thai):**
+> การปรับค่า under-relaxation แบบ adaptive เป็นกลยุทธ์ที่ใช้เพื่อปรับปรุงทั้งความเสถียรและอัตราการลู่เข้า:
+> - **รอบแรก (iterations 1-10)** ใช้ค่าต่ำเพื่อความเสถียร เนื่องจากฟิลด์ยังไม่ลู่เข้า
+> - **รอบกลาง (iterations 11-50)** ใช้ค่ามาตรฐานเพื่อสมดุลระหว่างความเสถียรและอัตราการลู่เข้า
+> - **รอบหลัง (iterations 51+)** ใช้ค่าสูงขึ้นเพื่อเร่งการลู่เข้า เมื่อฟิลด์ใกล้ลู่เข้าแล้ว
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Adaptive relaxation** เป็นการปรับค่า under-relaxation ตามความก้าวหน้าของการแก้สมการ
+> - **Stability vs Convergence** ค่าต่ำให้ความเสถียร แต่ค่าสูงเร่งการลู่เข้า
+> - **Implementation** สามารถทำได้ผ่าน custom function objects หรือการปรับโค้ด solver
 
 ---
 
@@ -406,6 +504,21 @@ SIMPLE
     }
 }
 ```
+
+> **📂 Source:** ไฟล์การตั้งค่า `system/fvSolution` ใน OpenFOAM tutorials
+> 
+> **คำอธิบาย (Thai):**
+> การตั้งค่า `residualControl` ใน `fvSolution` ใช้กำหนดเกณฑ์การลู่เข้าของ solver:
+> - **ตัวแปร p** (ความดัน) ต้องมีค่า residual ต่ำกว่า 1e-6
+> - **ตัวแปร U** (ความเร็ว) ต้องมีค่า residual ต่ำกว่า 1e-6
+> - **ตัวแปร k, epsilon** (ตัวแปรความปั่น) ต้องมีค่า residual ต่ำกว่า 1e-6
+> - **การตรวจสอบ** จะเกิดขึ้นทุกรอบการวนซ้ำของอัลกอริทึม SIMPLE
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Residual** คือความคลาดเคลื่อนจากการแก้สมการ ยิ่งต่ำแสดงว่ายิ่งลู่เข้า
+> - **Tolerance** คือค่าเกณฑ์ที่กำหนดว่าเมื่อไหร่จะถือว่าลู่เข้า
+> - **Absolute vs Relative** สามารถใช้ทั้งค่าสัมบูรณ์หรือสัมพัทธ์กับค่าเริ่มต้น
+> - **Multiple variables** ต้องตรวจสอบทุกตัวแปรที่สำคัญ
 
 ### 5.3 การติดตามเชิงฟิสิกส์
 
@@ -445,6 +558,20 @@ SIMPLE
 checkMesh -allGeometry -allTopology
 ```
 
+> **📂 Source:** OpenFOAM utility `applications/utilities/mesh/manipulation/checkMesh`
+> 
+> **คำอธิบาย (Thai):**
+> คำสั่ง `checkMesh` เป็นเครื่องมือสำคัญในการตรวจสอบคุณภาพของ mesh:
+> - **`-allGeometry`** ตรวจสอบคุณสมบัติเรขาคณิตทั้งหมดของ mesh เช่น skewness, aspect ratio
+> - **`-allTopology`** ตรวจสอบโทโพโลยีของ mesh เช่น connectivity, boundary definition
+> - **ผลลัพธ์** แสดงข้อมูลเกี่ยวกับคุณภาพของ mesh และปัญหาที่อาจเกิดขึ้น
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Mesh quality** คือคุณสมบัติของ mesh ที่มีผลต่อความแม่นยำและความเสถียรของการแก้สมการ
+> - **Skewness** คือความเบ้ของเซลล์ mesh ควรมีค่าน้อยกว่า 0.85
+> - **Non-orthogonality** คือมุมระหว่าง normal vectors ของ faces ที่ติดกัน ควรมีค่าน้อยกว่า 70 องศา
+> - **Checkerboarding** คือปัญหาที่เกิดจากการไม่มีการใช้ Rhie-Chow interpolation
+
 **แนวทางแก้ไข:**
 1. เพิ่ม `nNonOrthogonalCorrectors`:
    ```cpp
@@ -473,6 +600,19 @@ relaxationFactors
     }
 }
 ```
+
+> **📂 Source:** ไฟล์การตั้งค่า `system/fvSolution`
+> 
+> **คำอธิบาย (Thai):**
+> การลดค่า under-relaxation factors เป็นแนวทางแก้ไขปัญหา over-relaxation:
+> - **ความดัน (p)** ลดค่าจาก 0.3 เป็น 0.1 เพื่อเพิ่มความเสถียร
+> - **ความเร็ว (U)** ลดค่าจาก 0.7 เป็น 0.5 เพื่อลดการแกว่ง
+> - **การปรับค่า** ค่อยเป็นค่อยไปเพื่อหาค่าที่เหมาะสม
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Over-relaxation** คือการใช้ค่า under-relaxation ที่สูงเกินไป ทำให้เกิดการแกว่ง
+> - **Oscillatory divergence** คือการลู่ออกแบบแกว่ง ซึ่งเกิดจากการปรับค่าตัวแปรมากเกินไปในแต่ละรอบ
+> - **Trade-off** ค่าต่ำให้ความเสถียรแต่ลู่เข้าช้า ค่าสูงลู่เข้าเร็วแต่อาจไม่เสถียร
 
 #### 6.1.3 Under-Relaxation (Slow Convergence)
 
@@ -519,7 +659,7 @@ flowchart TD
     L -->|Yes| M[Problem solved]
     L -->|No| N[Advanced debugging]
 ```
-> **Figure 2:** แผนผังลำดับการวิเคราะห์และแก้ไขปัญหา (Troubleshooting Workflow) เมื่อการจำลองไม่ลู่เข้า โดยพิจารณาจากพฤติกรรมของค่า Residual เพื่อจำแนกสาเหตุระหว่างปัจจัยด้านความเสถียรเชิงตัวเลข (Numerical Stability) คุณภาพของเมช (Mesh Quality) หรือเกณฑ์การหยุดคำนวณ (Convergence Criteria) พร้อมแนวทางการปรับปรุงในแต่ละกรณีความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+
 > **Figure 2:** แผนผังลำดับการวิเคราะห์และแก้ไขปัญหา (Troubleshooting Workflow) เมื่อการจำลองไม่ลู่เข้า โดยพิจารณาจากพฤติกรรมของค่า Residual เพื่อจำแนกสาเหตุระหว่างปัจจัยด้านความเสถียรเชิงตัวเลข (Numerical Stability) คุณภาพของเมช (Mesh Quality) หรือเกณฑ์การหยุดคำนวณ (Convergence Criteria) พร้อมแนวทางการปรับปรุงในแต่ละกรณี
 
 ---
@@ -562,6 +702,21 @@ SIMPLE
 }
 ```
 
+> **📂 Source:** ไฟล์การตั้งค่า `system/fvSolution` จาก OpenFOAM tutorials สำหรับ airfoil simulations
+> 
+> **คำอธิบาย (Thai):**
+> การตั้งค่าสำหรับการจำลองการไหลรอบ airfoil ด้วยอัลกอริทึม SIMPLE:
+> - **`nNonOrthogonalCorrectors 1`** ใช้ 1 รอบการแก้ไขสำหรับ mesh ที่อาจไม่ตั้งฉากบางส่วน
+> - **`residualControl`** ตั้งค่าเกณฑ์การลู่เข้าที่เข้มงวด (1e-7) เนื่องจากต้องการความแม่นยำสูง
+> - **`relaxationFactors`** ใช้ค่าต่ำ (0.2 สำหรับความดัน, 0.5 สำหรับความเร็ว) เพื่อให้เกิดความเสถียร
+> - **`omega`** ใช้ turbulence model k-omega ซึ่งเหมาะสำหรับการไหลที่มี gradient สูง
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **High Reynolds number** ต้องการความละเอียดสูงใน boundary layer
+> - **Steady-state simulation** เหมาะสำหรับ aerodynamic analysis
+> - **Low relaxation** เพื่อให้เกิดความเสถียรในการคำนวณ
+> - **Turbulence modeling** k-omega หรือ k-omega SST เหมาะสำหรับ aerodynamic applications
+
 **ผลลัพธ์:** Convergence ภายใน 1000 iterations พร้อม drag coefficient ที่ตรงกับทดลอง
 
 ### 7.2 กรณีศึกษาที่ 2: การไหลในท่อ (Pipe Flow)
@@ -592,6 +747,20 @@ SIMPLE
     }
 }
 ```
+
+> **📂 Source:** ไฟล์การตั้งค่า `system/fvSolution` จาก OpenFOAM tutorials สำหรับ pipe flow
+> 
+> **คำอธิบาย (Thai):**
+> การตั้งค่าสำหรับการจำลองการไหลในท่อ:
+> - **`nNonOrthogonalCorrectors 0`** ไม่ต้องการรอบการแก้ไขเพิ่มเติมเนื่องจาก mesh มีคุณภาพสูง
+> - **`relaxationFactors`** ใช้ค่าสูงขึ้น (0.3 สำหรับความดัน, 0.7 สำหรับความเร็ว) เพื่อเร่งการลู่เข้า
+> - **`nuTilda`** ใช้ Spalart-Allmaras turbulence model ซึ่งเหมาะสำหรับการไหลแบบ turbulent ในท่อ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Fully developed flow** การไหลที่มีโปรไฟล์คงที่ตามแนวท่อ
+> - **High-quality mesh** ไม่ต้องการ non-orthogonal correctors
+> - **Higher relaxation** สามารถใช้ค่าสูงขึ้นได้เนื่องจาก mesh มีคุณภาพสูง
+> - **Turbulence modeling** Spalart-Allmaras หรือ k-epsilon เหมาะสำหรับ pipe flow
 
 ---
 

@@ -30,6 +30,15 @@ public:
 };
 ```
 
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:19`
+
+**📖 Explanation:** คลาสพื้นฐาน `virtualMassModel` กำหนด interface สำหรับการคำนวณแรง virtual mass ในระบบ multiphase โดยใช้รูปแบบ polymorphic design pattern ที่ช่วยให้สามารถสลับรุ่นของ virtual mass model ที่แตกต่างกันได้ในขณะทำงาน (runtime)
+
+**🔑 Key Concepts:**
+- **Pure Virtual Methods:** `Cvm()` และ `Fi()` เป็นเมธอดแบบ pure virtual ที่ต้องถูก implement ใน derived classes
+- **Runtime Selection:** ระบบ selection ของ OpenFOAM ช่วยให้เลือก model ผ่าน dictionary
+- **Return Types:** ใช้ `tmp<volScalarField>` และ `tmp<volVectorField>` เพื่อการจัดการหน่วยความจำที่มีประสิทธิภาพ
+
 **การออกแบบเชิง Polymorphic:**
 
 การออกแบบนี้ช่วยให้สามารถเลือกรุ่น Virtual Mass ที่แตกต่างกันได้ในขณะทำงาน (runtime) ผ่านกลไกการเลือกขณะทำงานของ OpenFOAM
@@ -45,13 +54,22 @@ public:
 class virtualMassModel
 {
 public:
-    // คำนวณสัมประสิทธิ์มวลเสมือน (Cvm)
+    // Calculate virtual mass coefficient
     virtual tmp<volScalarField> Cvm() const = 0;
 
-    // คำนวณแรงมวลเสมือนต่อหน่วยปริมาตร (Fi)
+    // Calculate virtual mass force
     virtual tmp<volVectorField> Fi() const = 0;
 };
 ```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:19`
+
+**📖 Explanation:** ส่วนประกอบหลักของคลาส virtualMassModel ที่กำหนด interface สำหรับการคำนวณค่าสัมประสิทธิ์และแรง virtual mass โดยใช้ template class `tmp` เพื่อ optimization ของการจัดการหน่วยความจำใน OpenFOAM
+
+**🔑 Key Concepts:**
+- **Template Management:** ใช้ `tmp<>` เพื่อลดการ copy ของ field objects
+- **Const Correctness:** ใช้ `const`  qualifier เพื่อรับประกันว่าเมธอดไม่แก้ไขสถานะของ object
+- **Field Types:** `volScalarField` และ `volVectorField` เป็น field types หลักใน OpenFOAM
 
 ---
 
@@ -71,7 +89,7 @@ private:
     dimensionedScalar Cvm_;
 
 public:
-    // Constructor
+    // Constructor from dictionary and phase pair
     constantVirtualMass
     (
         const dictionary& dict,
@@ -82,7 +100,7 @@ public:
         Cvm_("Cvm", dimless, dict)
     {}
 
-    // Calculate virtual mass coefficient
+    // Calculate virtual mass coefficient (returns constant value)
     virtual tmp<volScalarField> Cvm() const
     {
         return tmp<volScalarField>::New
@@ -97,30 +115,42 @@ public:
         );
     }
 
-    // Calculate virtual mass force
+    // Calculate virtual mass force per unit volume
     virtual tmp<volVectorField> Fi() const
     {
+        // Get phase references
         const phaseModel& phase1 = pair_.phase1();
         const phaseModel& phase2 = pair_.phase2();
 
+        // Get phase properties
         const volScalarField& alpha1 = phase1.alpha();
         const volScalarField& alpha2 = phase2.alpha();
         const volScalarField& rho1 = phase1.rho();
         const volVectorField& U1 = phase1.U();
         const volVectorField& U2 = phase2.U();
 
-        // Virtual mass coefficient
+        // Virtual mass coefficient field
         const volScalarField Cvm = this->Cvm();
 
-        // Material derivatives
+        // Material derivatives (acceleration terms)
         volVectorField DUDt1 = fvc::ddt(U1) + fvc::div(U1, U1);
         volVectorField DUDt2 = fvc::ddt(U2) + fvc::div(U2, U2);
 
-        // Virtual mass force
+        // Virtual mass force calculation
         return Cvm * rho1 * alpha1 * alpha2 * (DUDt2 - DUDt1);
     }
 };
 ```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:87-105`
+
+**📖 Explanation:** คลาส `constantVirtualMass` ใช้ค่าสัมประสิทธิ์คงที่ที่กำหนดใน dictionary และคำนวณแรง virtual mass จากความแตกต่างของ material derivative (acceleration) ระหว่างสองเฟส โดยใช้ finite volume calculus ของ OpenFOAM
+
+**🔑 Key Concepts:**
+- **Phase Pair Access:** `pair_.phase1()` และ `pair_.phase2()` ใช้เข้าถึง properties ของแต่ละเฟส
+- **Material Derivative:** คำนวณด้วย `fvc::ddt(U) + fvc::div(U, U)` สำหรับ local และ convective acceleration
+- **Field Operations:** ใช้ `fvc` (finite volume calculus) สำหรับ explicit operations
+- **Density Reference:** ใช้ความหนาแน่นของ phase1 เป็น reference density ในการคำนวณ
 
 ### 2.2 สูตรทางคณิตศาสตร์
 
@@ -152,7 +182,7 @@ class shapeVirtualMass
     public virtualMassModel
 {
 private:
-    // Particle shape
+    // Particle shape specification
     word shapeType_;
 
     // Aspect ratio for non-spherical particles
@@ -162,24 +192,29 @@ public:
     // Calculate shape-dependent coefficient
     virtual tmp<volScalarField> Cvm() const
     {
+        // Initialize with default spherical value
         tmp<volScalarField> tCvm = volScalarField::New("Cvm", pair_.mesh(), 0.5);
         volScalarField& Cvm = tCvm.ref();
 
+        // Apply shape-dependent corrections
         if (shapeType_ == "ellipsoid")
         {
             const volScalarField& beta = aspectRatio_();
 
+            // Cell-wise iteration for spatial variation
             forAll(Cvm, celli)
             {
                 scalar beta_local = beta[celli];
 
                 if (beta_local > 1.0) // Oblate spheroid
                 {
+                    // Disk-like particle formulation
                     Cvm[celli] = 2.0/(3.0*beta_local) /
                                 (beta_local/(beta_local - sqrt(beta_local*beta_local - 1.0)));
                 }
                 else // Prolate spheroid
                 {
+                    // Rod-like particle formulation
                     Cvm[celli] = (log(2.0/beta_local) - 0.5) /
                                 (log(2.0/beta_local) + 0.5);
                 }
@@ -190,6 +225,16 @@ public:
     }
 };
 ```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:87-105`
+
+**📖 Explanation:** คลาส `shapeVirtualMass` คำนวณค่าสัมประสิทธิ์ virtual mass ที่ขึ้นกับรูปร่างอนุภาค โดยใช้สูตรทางทฤษฎีสำหรับ ellipsoidal particles ที่พิจารณาอัตราส่วนภาพ (aspect ratio) และแยกการคำนวณระหว่าง oblate (disk-like) และ prolate (rod-like) spheroids
+
+**🔑 Key Concepts:**
+- **Spatial Variation:** ใช้ `forAll` loop เพื่อคำนวณค่า Cvm แบบ cell-by-cell
+- **AutoPtr Management:** ใช้ `autoPtr<volScalarField>` สำหรับ optional field ที่มีหรือไม่มีได้
+- **Aspect Ratio Definition:** β > 1 สำหรับ oblate, β < 1 สำหรับ prolate
+- **Theoretical Formulations:** ใช้สูตร analytical solutions สำหรับ potential flow รอบ ellipsoids
 
 ### 3.2 สูตรสำหรับอนุภาคทรงรี (Ellipsoidal Particle Formulations)
 
@@ -214,9 +259,20 @@ $$\frac{D\mathbf{u}}{Dt} = \frac{\partial \mathbf{u}}{\partial t} + \mathbf{u} \
 ในโค้ด OpenFOAM:
 
 ```cpp
+// Material derivative calculation using finite volume calculus
 volVectorField DUDt1 = fvc::ddt(U1) + fvc::div(U1, U1);
 volVectorField DUDt2 = fvc::ddt(U2) + fvc::div(U2, U2);
 ```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:87-105`
+
+**📖 Explanation:** การคำนวณ material derivative ใน OpenFOAM ใช้ finite volume calculus (fvc) สำหรับ explicit operations โดยแยก local acceleration term (`fvc::ddt`) และ convective acceleration term (`fvc::div`) ตาม Eulerian specification ของ material derivative
+
+**🔑 Key Concepts:**
+- **Local Acceleration:** `fvc::ddt(U)` คำนวณ ∂U/∂t
+- **Convective Acceleration:** `fvc::div(U, U)` คำนวณ (U·∇)U
+- **Explicit Evaluation:** ใช้ `fvc` namespace สำหรับ explicit field operations
+- **Vector Field:** ผลลัพธ์เป็น `volVectorField` ที่เก็บค่า acceleration ทุก cell
 
 ### 4.2 การรวมแรงเข้ากับสมการโมเมนตัม
 
@@ -257,8 +313,19 @@ $$\mathbf{M}_{ij} = \mathbf{F}_{drag,ij} + \mathbf{F}_{vm,ij} + \mathbf{F}_{lift
 เพื่อเพิ่มความเป็นแนวทแยง (Diagonal dominance) ของเมทริกซ์โมเมนตัม:
 
 ```cpp
+// Add implicit virtual mass contribution to diagonal
 U1Eqn += fvm::Sp(Cvm*rho1*alpha1*alpha2/dt, U1);
 ```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:87-105`
+
+**📖 Explanation:** การใช้ `fvm::Sp` (finite volume method - Source term with Positive diagonal) เพิ่ม contribution ของ virtual mass force ลงในเมทริกซ์สัมประสิทธิ์แบบ implicit ซึ่งช่วยเพิ่ม diagonal dominance และปรับปรุงความเสถียรของการแก้ระบบเชิงเส้น
+
+**🔑 Key Concepts:**
+- **Implicit Treatment:** ใช้ `fvm` namespace สำหรับ implicit discretization
+- **Diagonal Enhancement:** `Sp` เพิ่มค่าบน diagonal ของเมทริกซ์
+- **Time Step Scaling:** หารด้วย `dt` เพื่อ dimensional consistency
+- **Stability Improvement:** Implicit treatment ลดข้อจำกัดของ time step
 
 ### 6.2 ข้อจำกัดของ Time Step (CFL Constraint)
 
@@ -328,6 +395,17 @@ fvVectorMatrix U1Eqn
   - Cvm*rho1*alpha1*alpha2*(DUDt2/dt)      // Explicit part
 );
 ```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:87-105`
+
+**📖 Explanation:** การ implement implicit virtual mass ใน OpenFOAM ใช้ `fvm::Sp` เพื่อเพิ่ม contribution ลงใน diagonal ของเมทริกซ์ และลบส่วน explicit ที่มาจาก acceleration ของเฟสอื่น ซึ่งสร้างรูปแบบ semi-implicit treatment ที่สมดุลระหว่างเสถียรภาพและประสิทธิภาพ
+
+**🔑 Key Concepts:**
+- **Matrix Construction:** `fvVectorMatrix` เป็น container สำหรับสมการโมเมนตัม
+- **Implicit Diagonal:** `fvm::Sp` เพิ่มค่าลง diagonal แบบ implicit
+- **Explicit Source:** ส่วนที่เป็น negative คือ explicit source term
+- **Time Scaling:** การหารด้วย `dt` ช่วยให้ dimensional consistency
+- **Semi-Implicit Balance:** ผสมผสาน implicit/explicit treatment
 
 **รายละเอียดการนำไปใช้ (Implementation Details)**
 

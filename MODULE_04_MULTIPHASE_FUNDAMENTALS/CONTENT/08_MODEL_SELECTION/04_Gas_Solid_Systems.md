@@ -21,18 +21,32 @@
 #### แบบจำลองที่แนะนำสำหรับอนุภาคละเอียด
 
 ```cpp
-// แบบจำลองแรงลากสำหรับอนุภาคละเอียด
+// Drag model for fine particles
 dragModel    WenYu;
 
-// การจำลองความปั่นป่วน
+// Turbulence modeling
 turbulenceModel    dispersedPhase;
 
-// แรงระหว่างอนุภาค
+// Inter-particle forces
 solidContactModel    JohnsonJackson;
 
-// การกระจายขนาดอนุภาค
+// Particle size distribution
 diameterModel    RosinRammler;
 ```
+
+> **📂 Source:** Configuration example based on multiphaseEulerFoam solver structure
+>
+> **💡 คำอธิบาย (Explanation):**
+> บล็อกการตั้งค่านี้แสดงการกำหนดค่าแบบจำลองที่เหมาะสมสำหรับการจำลองอนุภาคละเอียดในระบบก๊าซ-ของแข็ง:
+> - `WenYu`: แบบจำลองแรงลากที่เหมาะสมสำหรับอนุภาคละเอียดที่มีจำนวนเรย์โนลด์ต่ำ
+> - `dispersedPhase`: แบบจำลองความปั่นป่วนสำหรับเฟสกระจายที่คำนึงถึงการเคลื่อนที่ของอนุภาค
+> - `JohnsonJackson`: แบบจำลองการสัมผัสของอนุภาคที่รวมแรงเสียดทานและสัมประสิทธิ์การกระดอน
+> - `RosinRammler`: แบบจำลองการกระจายขนาดอนุภาคแบบสมจริง
+>
+> **🔑 แนวคิดสำคัญ (Key Concepts):**
+> - **Dispersed Phase**: เฟสที่มีอนุภาคกระจายตัวในของไหลต่อเนื่อง
+> - **Solid Contact Model**: แบบจำลองที่อธิบายปฏิสัมพันธ์ระหว่างอนุภาคและผนัง
+> - **Particle Size Distribution**: การกระจายขนาดอนุภาคที่ส่งผลต่อพฤติกรรมการไหล
 
 #### การพิสูจน์ความถูกต้องของแบบจำลอง
 
@@ -61,18 +75,32 @@ diameterModel    RosinRammler;
 #### แบบจำลองที่แนะนำสำหรับอนุภาคหยาบ
 
 ```cpp
-// แบบจำลองแรงลากสำหรับอนุภาคหยาบ
+// Drag model for coarse particles
 dragModel    MorsiAlexander;
 
-// การจำลองความปั่นป่วน
+// Turbulence modeling
 turbulenceModel    mixture;
 
-// เอฟเฟกต์มวลเสมือน
+// Virtual mass effects
 virtualMassModel    negligible;
 
-// ขนาดอนุภาค
+// Particle diameter
 diameterModel    constant;
 ```
+
+> **📂 Source:** Configuration example based on multiphaseEulerFoam solver structure
+>
+> **💡 คำอธิบาย (Explanation):**
+> การตั้งค่านี้เหมาะสำหรับอนุภาคหยาบที่มีจำนวนเรย์โนลด์สูง:
+> - `MorsiAlexander`: แบบจำลองแรงลากที่ให้ความแม่นยำสูงในช่วงจำนวนเรย์โนลด์ที่กว้าง
+> - `mixture`: แบบจำลองความปั่นป่วนที่ถือว่าส่วนผสมเป็นของไหลเดียว
+> - `negligible`: มวลเสมือนถูกมองว่าเล็กน้อยเนื่องจากอัตราส่วนความหนาแน่นสูง
+> - `constant`: ขนาดอนุภาคคงที่เหมาะสำหรับระบบ monodisperse
+>
+> **🔑 แนวคิดสำคัญ (Key Concepts):**
+> - **Mixture Model**: แบบจำลองที่ปฏิบัติต่อส่วนผสมหลายเฟสเป็นของไหลเดียว
+> - **Virtual Mass**: เอฟเฟกต์มวลเสมือนเมื่ออนุภาคเร่งความเร็วในของไหล
+> - **Monodisperse**: ระบบที่อนุภาคมีขนาดเท่ากันหรือใกล้เคียงกัน
 
 #### การพิสูจน์ความถูกต้องของแบบจำลอง
 
@@ -213,18 +241,35 @@ $$\rho_sc_{p,s}\alpha_s\frac{DT_s}{Dt} = \nabla\cdot(\kappa_s\nabla T_s) + h_{gs
 #### การใช้งานทางตัวเลข
 
 ```cpp
-// พารามิเตอร์การชนผนัง
+// Wall collision parameters
 restitutionCoeff    0.8;
 frictionCoeff       0.3;
 
-// การปรับเปลี่ยนความปั่นป่วน
+// Turbulence modulation
 turbulenceDispersion    on;
 couplingFactor          0.5;
 
-// ตัวเลือกการติดตามอนุภาค
+// Particle tracking options
 trackingScheme          Euler;
 maxCo                  0.5;
 ```
+
+> **📂 Source:** Based on multiphaseEulerFoam phase interaction and kinetic theory coefficients
+>
+> **💡 คำอธิบาย (Explanation):**
+> การตั้งค่าสำหรับการขนส่งด้วยระบบสุญญากาศ:
+> - `restitutionCoeff`: สัมประสิทธิ์การกระดอน (0-1) ควบคุมปริมาณพลังงานที่สูญหายเมื่ออนุภาคชนผนัง
+> - `frictionCoeff`: สัมประสิทธิ์แรงเสียดทานระหว่างอนุภาคและผนัง
+> - `turbulenceDispersion`: เปิดใช้งานการกระจายของอนุภาคโดยความปั่นป่วน
+> - `couplingFactor`: ค่าสัมประสิทธิ์การเชื่อมโยงสองทิศทางระหว่างเฟส
+> - `trackingScheme`: วิธีการติดตามอนุภาค (Euler หรือ Lagrangian)
+> - `maxCo`: จำนวน Courant สูงสุดสำหรับเสถียรภาพเชิงตัวเลข
+>
+> **🔑 แนวคิดสำคัญ (Key Concepts):**
+> - **Restitution Coefficient**: ค่าที่บ่งชี้ความยืดหยุ่นของการชน (1 = การชนแบบสมบูรณ์)
+> - **Turbulence Dispersion**: การกระจายตัวของอนุภาคเนื่องจากปัญหาความปั่นป่วน
+> - **Two-way Coupling**: ปฏิสัมพันธ์ที่ก๊าซและอนุภาคส่งผลต่อกันและกัน
+> - **Courant Number**: ตัวชี้วัดความเสถียรของการแก้สมการเชิงตัวเลข
 
 #### แนวทางการตรวจสอบ
 
@@ -265,21 +310,46 @@ $$ \mu_s = \mu_{s,coll} + \mu_{s,kin} + \mu_{s,fric} \tag{5.1} $$
 ```openfoam
 solid
 {
+    // Phase type definition
     type            solidPhase;
+
+    // Kinetic theory model selection
     kineticTheoryModel Gidaspow;
 
+    // Kinetic theory coefficients
     kineticTheoryCoeffs
     {
+        // Particle-particle restitution coefficient (0-1)
         restitutionCoeff    0.9;
+
+        // Particle friction coefficient
         frictionCoeff       0.05;
     }
 }
 
+// Phase interaction properties
 phaseInteraction
 {
+    // Drag model for gas-solid interaction
     dragModel       Gidaspow;
 }
 ```
+
+> **📂 Source:** Based on multiphaseEulerFoam/src/phaseSystems/phaseInteraction and kinetic theory implementation
+>
+> **💡 คำอธิบาย (Explanation):**
+> การตั้งค่า OpenFOAM สำหรับเตียงไหลก๊าซ-ของแข็ง:
+> - `type`: ระบุประเภทของเฟส (solidPhase สำหรับเฟสของแข็ง)
+> - `kineticTheoryModel`: เลือกแบบจำลองทฤษฎีจลน์ของการไหลแบบเม็ด (Gidaspow)
+> - `restitutionCoeff`: สัมประสิทธิ์การกระดอนอนุภาค (0.9 = การกระดอนที่ยืดหยุ่นสูง)
+> - `frictionCoeff`: สัมประสิทธิ์แรงเสียดทานภายใน (0.05 = แรงเสียดทานต่ำ)
+> - `dragModel`: เลือกแบบจำลองแรงลากสำหรับปฏิสัมพันธ์ก๊าซ-ของแข็ง
+>
+> **🔑 แนวคิดสำคัญ (Key Concepts):**
+> - **Kinetic Theory of Granular Flow (KTGF)**: ทฤษฎีที่นำความรู้จากจลนศาสตร์ของก๊าซมาประยุกต์ใช้กับการไหลของเม็ด
+> - **Granular Temperature**: ตัวชี้วัดพลังงานจลน์ของการเคลื่อนที่แบบสุ่มของอนุภาค
+> - **Gidaspow Drag Model**: แบบจำลองแรงลากแบบผสมที่ใช้ Wen-Yu สำหรับบริเวณเจือจางและ Ergun สำหรับบริเวณหนาแน่น
+> - **Solid Phase**: เฟสของแข็งที่ถูกจำลองเป็นของไหลต่อเนื่องในแนวทาง Eulerian-Eulerian
 
 ### พารามิเตอร์วิกฤต:
 
@@ -320,7 +390,7 @@ phaseInteraction
 
 ## 9. ข้อควรพิจารณาด้านประสิทธิภาพ (Computational Considerations)
 
-### 9.1 การปรับขนาดต้นทุนการคำนวณ
+### 9.1 การปรับขนาดต้นทุนการคำนาณ
 
 | ประเภทแบบจำลอง | ต้นทุนสัมพัทธ์ | การใช้หน่วยความจำ | ประสิทธิภาพขนาน |
 |-------------------|------------------|-------------------|-------------------|
@@ -346,7 +416,7 @@ phaseInteraction
 1. **ขนาดอนุภาค**: ละเอียด (< 100 μm) หรือ หยาบ (> 1 mm)
 2. **ความเข้มข้น**: เจือจาง ($\alpha_s < 0.1$) หรือ หนาแน่น ($\alpha_s > 0.1$)
 3. **ขอบเขตการไหล**: เตียงบรรจุ, เตียงไหล, หรือการขนส่งด้วยระบบสุญญากาศ
-4. **ทรัพยากรการคำนวณ**: ความสมดุลระหว่างความแม่นยำและเวลาการคำนวณ
+4. **ทรัพยากรการคำนาณ**: ความสมดุลระหว่างความแม่นยำและเวลาการคำนวณ
 
 การใช้กรอบการตัดสินใจแบบลำดับชั้นเหล่านี้จะช่วยให้สามารถเลือกแบบจำลองที่เหมาะสมที่สุดสำหรับแอปพลิเคชันเฉพาะของคุณได้อย่างมีประสิทธิภาพ
 

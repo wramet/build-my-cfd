@@ -54,15 +54,42 @@ The `constant/thermophysicalProperties` file defines how thermodynamic and trans
 ```cpp
 thermoType
 {
+    // Main thermodynamics type selector
     type            hePsiThermo;
+    
+    // Mixture type for reacting flows
     mixture         reactingMixture;
+    
+    // Transport property calculation method
     transport       multiComponent;
+    
+    // Thermodynamic property format
     thermo          janaf;
+    
+    // Energy formulation type
     energy          sensibleEnthalpy;
+    
+    // Equation of state model
     equationOfState idealGas;
+    
+    // Individual species properties
     specie          specie;
 }
 ```
+
+#### 📂 Source: `.applications/test/thermoMixture/Test-thermoMixture.C`
+
+**Explanation:**
+ไฟล์นี้กำหนดชนิดของเทอร์โมไดนามิกส์และการคำนวณคุณสมบัติทางกายภาพสำหรับการไหลแบบมีปฏิกิริยาเคมี การกำหนดค่าเหล่านี้ส่งผลต่อความแม่นยำและประสิทธิภาพของการจำลองแบบ
+
+**Key Concepts:**
+- `hePsiThermo`: คำนวณเอนทาลปีจากค่าความอัดตัว (ψ) และอุณหภูมิ
+- `reactingMixture`: เปิดใช้งานการคำนวณสำหรับสารผสมหลายชนิดที่มีปฏิกิริยาเคมี
+- `multiComponent`: ใช้คุณสมบัติการขนส่งแบบผสมเฉลี่ย
+- `janaf`: รูปแบบพหุนาม NASA สำหรับคุณสมบัติเทอร์โมไดนามิกส์
+- `sensibleEnthalpy`: สมการพลังงานอิงบนเอนทาลปี
+- `idealGas`: สมการสถานะ: p = ρRₛT
+- `specie`: คุณสมบัติของสารแต่ละชนิด
 
 ### Configuration Breakdown
 
@@ -81,10 +108,17 @@ thermoType
 ```cpp
 mixture
 {
+    // Chemistry file format reader
     chemistryReader   chemkin;
+    
+    // Chemical reaction mechanism file
     chemkinFile       "chem.inp";
+    
+    // Thermodynamic data file
     thermoFile        "therm.dat";
-    // transportFile    "tran.dat";  // Uncomment if using tran.dat
+    
+    // Transport properties file (optional)
+    // transportFile    "tran.dat";
 }
 ```
 
@@ -114,10 +148,21 @@ combustionModel PaSR;
 
 PaSRCoeffs
 {
+    // Turbulence time scale calculation method
     turbulenceTimeScaleModel integral;
+    
+    // Mixing constant (0.5-2.0)
     Cmix                   1.0;
 }
 ```
+
+**Explanation:**
+โมเดล Partially Stirred Reactor (PaSR) ถือว่าเซลล์แต่ละเซลล์เป็นเครื่องปฏิกรณ์ที่คนละส่วนผสม โดยพิจารณาปฏิสัมพันธ์ระหว่างความปั่นและปฏิกิริยาเคมีในระดับย่อย
+
+**Key Concepts:**
+- `turbulenceTimeScaleModel`: วิธีการคำนวณมาตราส่วนเวลาความปั่น
+- `integral`: ใช้มาตราส่วนเวลาอินทิกรัลที่อิงกับพลังงานจลน์ของความปั่น
+- `Cmix`: ค่าคงที่การผสม (0.5-2.0) ควบคุมระดับการผสม
 
 ### EDC Model Configuration
 
@@ -126,11 +171,24 @@ combustionModel EDC;
 
 EDCCoeffs
 {
+    // Structure factor constant
     Cmix                   0.1;
+    
+    // Time scale constant
     Ctau                   0.5;
+    
+    // Volume fraction exponent
     exp                    2.0;
 }
 ```
+
+**Explanation:**
+โมเดล Eddy Dissipation Concept (EDC) พิจารณาปฏิสัมพันธ์ความปั่น-เคมีในระดับ sub-grid โดยใช้โครงสร้างโมเมนตัมแบบหมุนเวียน
+
+**Key Concepts:**
+- `Cmix`: ค่าคงที่โครงสร้าง (ค่าเริ่มต้น: 0.1)
+- `Ctau`: ค่าคงที่มาตราส่วนเวลา (ค่าเริ่มต้น: 0.5)
+- `exp`: เลขชี้กำลังสำหรับการคำนวณปริมาตรส่วน (ค่าเริ่มต้น: 2.0)
 
 ### Model Parameters
 
@@ -167,14 +225,35 @@ The chemistry solver controls how the stiff ODE system representing chemical rea
 ```cpp
 chemistry
 {
+    // Enable chemistry calculation
     chemistry       on;
+    
+    // ODE solver type
     solver          SEulex;
+    
+    // Initial chemistry time step [s]
     initialChemicalTimeStep 1e-8;
+    
+    // Maximum chemistry time step [s]
     maxChemicalTimeStep     1e-3;
+    
+    // Absolute convergence tolerance
     tolerance       1e-6;
+    
+    // Relative convergence tolerance
     relTol          0.01;
 }
 ```
+
+**Explanation:**
+ตัวแก้สมการเคมีควบคุมการรวมระบบ ODE ที่แข็งแรงซึ่งเป็นตัวแทนของปฏิกิริยาเคมีตลอดเวลา การเลือก solver และการตั้งค่าแต่ละอย่างมีผลต่อความเสถียรและประสิทธิภาพของการคำนวณ
+
+**Key Concepts:**
+- `SEulex`: Solver แบบ extrapolation-based สำหรับระบบที่มี stiffness ปานกลาง
+- `initialChemicalTimeStep`: ขั้นตอนเวลาเริ่มต้นสำหรับการรวมเคมี
+- `maxChemicalTimeStep`: ขั้นตอนเวลาสูงสุดที่อนุญาต
+- `tolerance`: ค่าความอดทนการบรรจบกันแบบสัมบูรณ์
+- `relTol`: ค่าความอดทนการบรรจบกันแบบสัมพัทธ์
 
 ### Solver Options
 
@@ -209,104 +288,156 @@ Proper specification of species mass fractions, temperature, and pressure is cri
 For each species in your mechanism, create field files in the `0/` directory:
 
 #### Example: `0/CH4` (Methane)
+
 ```cpp
 dimensions      [0 0 0 0 0 0 0];
 
-internalField   uniform 0.055;    // 5.5% methane by mass
+// Initial mass fraction of methane (5.5%)
+internalField   uniform 0.055;
 
 boundaryField
 {
     inlet
     {
+        // Fixed value at inlet
         type            fixedValue;
         value           uniform 0.055;
     }
     outlet
     {
+        // Zero gradient at outlet
         type            zeroGradient;
     }
     walls
     {
+        // Adiabatic walls
         type            zeroGradient;
     }
 }
 ```
 
+**Explanation:**
+ไฟล์นี้กำหนดเงื่อนไขขอบเขตสำหรับส่วนประกอบชนิดหนึ่ง (เมเทน) ในการจำลองแบบการไหลแบบมีปฏิกิริยาเคมี การตั้งค่าอย่างถูกต้องสำคัญต่อความแม่นยำของการทำนาย
+
+**Key Concepts:**
+- `dimensions`: มิติของตัวแปร (มวลเศษเป็น无量纲)
+- `internalField`: ค่าเริ่มต้นในโดเมน
+- `fixedValue`: กำหนดค่าคงที่ที่ขอบเขต
+- `zeroGradient`: การไล่ระดับเป็นศูนย์ (ไม่มีการเปลี่ยนแปลง)
+
 #### Example: `0/O2` (Oxygen)
+
 ```cpp
 dimensions      [0 0 0 0 0 0 0];
 
-internalField   uniform 0.233;    // 23.3% oxygen by mass
+// Initial mass fraction of oxygen (23.3%)
+internalField   uniform 0.233;
 
 boundaryField
 {
     inlet
     {
+        // Fixed value at inlet
         type            fixedValue;
         value           uniform 0.233;
     }
     outlet
     {
+        // Zero gradient at outlet
         type            zeroGradient;
     }
     walls
     {
+        // Adiabatic walls
         type            zeroGradient;
     }
 }
 ```
+
+**Explanation:**
+ไฟล์นี้กำหนดเงื่อนไขขอบเขตสำหรับออกซิเจนซึ่งเป็นส่วนประกอบสำคัญในปฏิกิริยาการเผาไหม้
+
+**Key Concepts:**
+- ค่า mass fraction ของ O₂ ในอากาศปกติคือ 23.3%
+- การใช้ zeroGradient ที่ผนังหมายถึงไม่มีการแพร่ผ่าน
 
 > [!TIP] Species Mass Fraction Sum
 > Ensure that $\sum Y_i = 1.0$ for all species. Common practice is to specify major species and calculate the last one (usually N₂) as $Y_{N_2} = 1 - \sum_{i \neq N_2} Y_i$.
 
 ### Temperature Field (`0/T`)
+
 ```cpp
 dimensions      [0 0 0 1 0 0 0];
 
-internalField   uniform 300;      // Initial temperature 300 K
+// Initial temperature field [K]
+internalField   uniform 300;
 
 boundaryField
 {
     inlet
     {
+        // Heated inlet temperature
         type            fixedValue;
-        value           uniform 600;      // Heated inlet 600 K
+        value           uniform 600;
     }
     outlet
     {
+        // Zero gradient at outlet
         type            zeroGradient;
     }
     walls
     {
+        // Hot wall temperature
         type            fixedValue;
-        value           uniform 1200;     // Hot walls 1200 K
+        value           uniform 1200;
     }
 }
 ```
 
+**Explanation:**
+ไฟล์นี้กำหนดการกระจายของอุณหภูมิในโดเมนการจำลองแบบ ซึ่งมีผลต่อความเร็วปฏิกิริยาเคมีและคุณสมบัติของของไหล
+
+**Key Concepts:**
+- อุณหภูมิมีหน่วยเป็นเคลวิน (K)
+- การใช้ fixedValue ที่ผนังสำหรับเงื่อนไขผนังร้อน
+- การตั้งค่าอุณหภูมิเริ่มต้นที่สมเหตุสมผลสำคัญต่อความเสถียรของการคำนวณ
+
 ### Pressure Field (`0/p`)
+
 ```cpp
 dimensions      [1 -1 -2 0 0 0 0];
 
-internalField   uniform 101325;   // Atmospheric pressure
+// Initial pressure field [Pa]
+internalField   uniform 101325;
 
 boundaryField
 {
     inlet
     {
+        // Zero gradient at inlet
         type            zeroGradient;
     }
     outlet
     {
+        // Fixed atmospheric pressure at outlet
         type            fixedValue;
         value           uniform 101325;
     }
     walls
     {
+        // Zero gradient at walls
         type            zeroGradient;
     }
 }
 ```
+
+**Explanation:**
+ไฟล์นี้กำหนดการกระจายของความดันในโดเมนการจำลองแบบ ซึ่งสำคัญต่อการคำนวณความเร็วและคุณสมบัติของของไหล
+
+**Key Concepts:**
+- ความดันมีหน่วยเป็นปาสกาล (Pa): [kg/(m·s²)]
+- การกำหนดความดันคงที่ที่ outlet เป็นเงื่อนไขขอบเขตทั่วไป
+- ความดันเริ่มต้นควรเป็นค่าทางกายภาพที่สมเหตุสมผล
 
 ### Boundary Condition Types
 
@@ -352,10 +483,23 @@ Key quantities to monitor during simulation:
 In `system/controlDict`, adjust time stepping as necessary:
 
 ```cpp
-maxCo           0.5;         // Courant number limit
-maxDeltaT       1e-3;        // Maximum time step
-adjustTimeStep  yes;         // Enable adaptive time stepping
+// Courant number limit for stability
+maxCo           0.5;
+
+// Maximum time step [s]
+maxDeltaT       1e-3;
+
+// Enable adaptive time stepping
+adjustTimeStep  yes;
 ```
+
+**Explanation:**
+การควบคุมขั้นตอนเวลาสำคัญต่อความเสถียรและประสิทธิภาพของการจำลองแบบ โดยเฉพาะสำหรับปัญหาการไหลแบบมีปฏิกิริยาเคมีที่มีหลายมาตราส่วนเวลา
+
+**Key Concepts:**
+- `maxCo`: จำกัดเลข Courant สำหรับเสถียรภาพเชิงตัวเลข
+- `maxDeltaT`: ขั้นตอนเวลาสูงสุดที่อนุญาต
+- `adjustTimeStep`: เปิดใช้งานการปรับขั้นตอนเวลาอัตโนมัติ
 
 ### Convergence Criteria
 
@@ -461,72 +605,129 @@ For `system/fvSchemes`:
 ```cpp
 ddtSchemes
 {
-    default         Euler;  // or backward for better accuracy
+    // First-order Euler scheme (implicit)
+    default         Euler;
+    
+    // Or use second-order for better accuracy
+    // default         backward;
 }
 
 gradSchemes
 {
+    // Linear interpolation for gradients
     default         Gauss linear;
 }
 
 divSchemes
 {
-    default         Gauss upwind;  // Stable for reacting flows
-    div(phi,Yi)     Gauss upwind;  // Species transport
+    // Upwind scheme for stability
+    default         Gauss upwind;
+    
+    // Species transport with upwind
+    div(phi,Yi)     Gauss upwind;
 }
 
 laplacianSchemes
 {
+    // Linear scheme with non-orthogonal correction
     default         Gauss linear corrected;
 }
 
 interpolationSchemes
 {
+    // Linear interpolation for face values
     default         linear;
 }
 
 snGradSchemes
 {
+    // Corrected surface normal gradient
     default         corrected;
 }
 ```
+
+#### 📂 Source: `.applications/test/fieldMapping/pipe1D/system/fvSchemes`
+
+**Explanation:**
+การเลือกแบบจำลองเชิงตัวเลข (numerical schemes) มีผลต่อความเสถียร ความแม่นยำ และประสิทธิภาพของการจำลองแบบ สำหรับปัญหาการไหลแบบมีปฏิกิริยาเคมี ความเสถียรมักมีความสำคัญมากกว่าความแม่นยำ
+
+**Key Concepts:**
+- `Euler`: แบบจำลองอันดับหนึ่งแบบ implicit สำหรับความเสถียร
+- `backward`: แบบจำลองอันดับสองสำหรับความแม่นยำที่ดีกว่า
+- `Gauss upwind`: แบบจำลอง upwind สำหรับเสถียรภาพ
+- `Gauss linear corrected`: แบบจำลองเชิงเส้นพร้อมการแก้ไข non-orthogonal
 
 For `system/fvSolution`:
 
 ```cpp
 solvers
 {
+    // Momentum and turbulence equation solvers
     "(U|k|epsilon)"
     {
+        // Preconditioned bi-conjugate gradient solver
         solver          PBiCGStab;
+        
+        // Diagonal incomplete LU preconditioner
         preconditioner  DILU;
+        
+        // Absolute convergence tolerance
         tolerance       1e-05;
+        
+        // Relative convergence tolerance
         relTol          0.1;
     }
 
+    // Energy and species equation solvers
     "(h|Yi.*)"
     {
+        // Preconditioned bi-conjugate gradient solver
         solver          PBiCGStab;
+        
+        // Diagonal incomplete LU preconditioner
         preconditioner  DILU;
+        
+        // Absolute convergence tolerance
         tolerance       1e-06;
+        
+        // Relative convergence tolerance
         relTol          0.01;
     }
 }
 
 PIMPLE
 {
+    // Number of outer correctors
     nOuterCorrectors  2;
+    
+    // Number of inner correctors
     nCorrectors       2;
+    
+    // Non-orthogonal correctors
     nNonOrthogonalCorrectors 0;
 }
 
 chemistry
 {
-    solver            SEulex;  // or Rosenbrock, CVODE
+    // Chemistry ODE solver
+    solver            SEulex;
+    
+    // Absolute tolerance
     tolerance         1e-06;
+    
+    // Relative tolerance
     relTol            0.01;
 }
 ```
+
+**Explanation:**
+การตั้งค่า solver ใน fvSolution กำหนดวิธีการแก้สมการเชิงเส้นและเกณฑ์การบรรจบกัน ซึ่งมีผลต่อความเร็วและความแม่นยำของการคำนวณ
+
+**Key Concepts:**
+- `PBiCGStab`: Solver gradient conjugate แบบ preconditioned สำหรับเมทริกซ์ไม่สมมาตร
+- `DILU`: Preconditioner แบบ incomplete LU สำหรับความเร็วในการบรรจบกัน
+- `nOuterCorrectors`: จำนวนรอบการแก้ไขภายนอกสำหรับ PIMPLE
+- `nCorrectors`: จำนวนรอบการแก้ไขภายในสำหรับ Pressure-Velocity coupling
 
 ---
 
@@ -546,7 +747,6 @@ flowchart TD
     H -->|Yes| J[Post-Processing &<br/>Analysis]
 ```
 > **Figure 1:** แผนผังลำดับขั้นตอนการปฏิบัติงานสำหรับการจำลองการไหลแบบมีปฏิกิริยาเคมีที่สมบูรณ์ ตั้งแต่การเตรียมข้อมูลกลไกปฏิกิริยาเคมี การตั้งค่าพารามิเตอร์ของ Solver ไปจนถึงกระบวนการวิเคราะห์ผลลัพธ์เชิงวิศวกรรมและการแก้ปัญหาความไม่ลู่เข้าของคำตอบ
-
 
 ---
 

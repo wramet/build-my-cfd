@@ -5,18 +5,19 @@
 
 ## ภาพรวมการดำเนินการ Tensor
 
-การดำเนินการ Tensor ของ OpenFOAM เป็นรากฐานของการคำนวณ CFD ทำให้สามารถจัดการทางคณิตศาสตร์กับ **เทนเซอร์อันดับสอง** ได้อย่างมีประสิทธิภาพซึ่งใช้ในการขนส่งโมเมนตั้ม การวิเคราะห์ความเครียด และการแปลงฟิลด์
+การดำเนินการ Tensor ของ OpenFOAM เป็นรากฐานของการคำนวณ CFD ทำให้สามารถจัดการทางคณิตศาสตร์กับ **เทนเซอร์อันดับสอง** ได้อย่างมีประสิทธิภาพซึ่งใช้ในการขนส่งโมเมนตั้ง การวิเคราะห์ความเครียด และการแปลงฟิลด์
 
 คลาส tensor ใช้ประโยชน์จาก **เทมเพลตนิพจน์** และ **เทมเพลตเมตาโปรแกรมมิ่ง** เพื่อให้ได้ประสิทธิภาพสูงในขณะเดียวกันก็รักษาความชัดเจนทางคณิตศาสตร์
 
 ```mermaid
 flowchart LR
-    T[เทนเซอร์ T] -- "&amp; dot" --> V[ผลลัพธ์เวกเตอร์]
-    T -- "&&amp; double dot" --> S[ผลลัพธ์สเกลาร์]
+    T[เทนเซอร์ T] -- "& dot" --> V[ผลลัพธ์เวกเตอร์]
+    T -- "&& double dot" --> S[ผลลัพธ์สเกลาร์]
     V1[เวกเตอร์ A] -- "* outer" --> T_Res[ผลลัพธ์เทนเซอร์]
     V2[เวกเตอร์ B] -- "* outer" --> T_Res
 ```
-> **Figure 1:** แผนภาพแสดงการทำงานของตัวดำเนินการเทนเซอร์ เช่น ผลคูณจุด (dot) ผลคูณจุดคู่ (double dot) และผลคูณภายนอก (outer product) ซึ่งใช้ในการเชื่อมโยงและแปลงข้อมูลระหว่างเวกเตอร์และเทนเซอร์ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+
+> **Figure 1:** แผนภาพแสดงการทำงานของตัวดำเนินการเทนเซอร์ เช่น ผลคูณจุด (dot) ผลคูณจุดคู่ (double dot) และผลคูณภายนอก (outer product) ซึ่งใช้ในการเชื่อมโยงและแปลงข้อมูลระหว่างเวกเตอร์และเทนเซอร์ ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ---
 
@@ -27,21 +28,32 @@ flowchart LR
 ### OpenFOAM Code Implementation
 
 ```cpp
-tensor A(1,2,3,4,5,6,7,8,9);  // Components: [xx, xy, xz, yx, yy, yz, zx, zy, zz]
-tensor B(9,8,7,6,5,4,3,2,1);
+// Create tensor objects with 9 components in order: xx, xy, xz, yx, yy, yz, zx, zy, zz
+tensor A(1, 2, 3, 4, 5, 6, 7, 8, 9);
+tensor B(9, 8, 7, 6, 5, 4, 3, 2, 1);
 
 // Component-wise addition: C_ij = A_ij + B_ij
-tensor C = A + B;   // Results in tensor(10,10,10,10,10,10,10,10,10)
+// Results: tensor(10, 10, 10, 10, 10, 10, 10, 10, 10)
+tensor C = A + B;
 
 // Component-wise subtraction: D_ij = A_ij - B_ij
-tensor D = A - B;   // Results in tensor(-8,-6,-4,-2,0,2,4,6,8)
+// Results: tensor(-8, -6, -4, -2, 0, 2, 4, 6, 8)
+tensor D = A - B;
 
 // Scalar multiplication: E_ij = α·A_ij
-tensor E = 2.5 * A; // Results in tensor(2.5,5,7.5,10,12.5,15,17.5,20,22.5)
+// Results: tensor(2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5)
+tensor E = 2.5 * A;
 ```
 
-> [!TIP] กลไกการทำงาน
-> การดำเนินการเหล่านี้ถูก implement โดยใช้ **เทมเพลตนิพจน์** ที่สร้าง lazy evaluation trees
+> **📂 Source:** `.applications/test/tensor/Test-tensor.C`
+>
+> **คำอธิบาย:**
+> - **การสร้างเทนเซอร์:** ใช้ constructor ที่รับค่า components 9 ค่าตามลำดับ (xx, xy, xz, yx, yy, yz, zx, zy, zz)
+> - **การบวกและลบ:** ดำเนินการแบบ component-wise ตรงตามนิยามพีชคณิตเชิงเส้น
+> - **การคูณสเกลาร์:** คูณค่าสเกลาร์เข้ากับทุก component ของเทนเซอร์
+>
+> **หลักการสำคัญ:**
+> - การดำเนินการเหล่านี้ถูก implement โดยใช้ **เทมเพลตนิพจน์** ที่สร้าง lazy evaluation trees
 > - `operator+` และ `operator-` ถูก overload เพื่อคืนค่า **proxy objects**
 > - การประเมินจริงเกิดขึ้นเมื่อกำหนดให้กับวัตถุ tensor ที่เป็นรูปธรรม
 > - คอมไพเลอร์สามารถทำการ optimize เช่น **loop fusion** และ **vectorization**
@@ -75,11 +87,14 @@ $$\mathbf{y} = \mathbf{T} \cdot \mathbf{v} \quad \text{where} \quad y_i = \sum_{
 #### OpenFOAM Code Implementation
 
 ```cpp
+// Create a unit vector in x-direction
 vector v(1, 0, 0);
-vector w = A & v;  // Matrix-vector multiplication
+
+// Single contraction: tensor-vector multiplication
 // Results: w_x = A_xx·1 + A_xy·0 + A_xz·0 = 1
 //          w_y = A_yx·1 + A_yy·0 + A_yz·0 = 4
 //          w_z = A_zx·1 + A_zy·0 + A_zz·0 = 7
+vector w = A & v;
 ```
 
 สำหรับ **tensor-tensor multiplication** ผลลัพธ์คือ tensor อีกตัว:
@@ -92,6 +107,18 @@ $$\mathbf{C} = \mathbf{A} \cdot \mathbf{B} \quad \text{where} \quad C_{ij} = \su
 - $C_{ij}$ = องค์ประกอบที่ $i,j$ ของเทนเซอร์ผลลัพธ์
 - $A_{ik}$, $B_{kj}$ = องค์ประกอบของเทนเซอร์อินพุต
 
+> **📂 Source:** `.applications/test/tensor/Test-tensor.C`
+>
+> **คำอธิบาย:**
+> - **Single Contraction (&):** ตัวดำเนินการ `&` ใช้สำหรับการคูณเมทริกซ์-เวกเตอร์ หรือเมทริกซ์-เมทริกซ์
+> - **Tensor × Vector:** ลด rank ลง 1 จาก tensor (rank-2) เป็น vector (rank-1)
+> - **Tensor × Tensor:** ยังคงเป็น tensor (rank-2) แต่ค่า components เปลี่ยนไป
+>
+> **หลักการสำคัญ:**
+> - การดำเนินการนี้เป็น **การหดตัวของดัชนี** (index contraction) 1 ครั้ง
+> - ใช้สูตรการคูณเมทริกซ์มาตรฐานของพีชคณิตเชิงเส้น
+> - สำคัญมากใน CFD สำหรับการแปลงความเค้น การขนส่งโมเมนตัม และการแปลงพิกัด
+
 ### 2.2 การหดตัวสองครั้ง (`&&`) - Double Contraction
 
 การหดตัวสองครั้ง (**scalar product**) คำนวณผลคูณภายในของ **Frobenius** ซึ่งให้ค่าสเกลาร์:
@@ -101,15 +128,23 @@ $$\mathbf{A} : \mathbf{B} = \sum_{i,j=1}^{3} A_{ij} B_{ij} = \text{tr}(\mathbf{A
 #### OpenFOAM Code Implementation
 
 ```cpp
-scalar s = A && B;  // Double inner product
+// Double inner product (Frobenius inner product)
 // For A=[1,2,3,4,5,6,7,8,9], B=[9,8,7,6,5,4,3,2,1]:
 // s = 1·9 + 2·8 + 3·7 + 4·6 + 5·5 + 6·4 + 7·3 + 8·2 + 9·1 = 165
+scalar s = A && B;
 ```
 
-> [!INFO] ความสำคัญใน CFD
-> - คำนวณ **work rates**
-> - คำนวณ **stress-strain products**
-> - คำนวณ **energy dissipation terms**
+> **📂 Source:** `.applications/test/tensor/Test-tensor.C`
+>
+> **คำอธิบาย:**
+> - **Double Contraction (&&):** ตัวดำเนินการ `&&` คำนวณผลคูณภายในของ Frobenius
+> - **ลด rank ลง 2:** จาก tensor (rank-2) สองตัว เป็น scalar (rank-0)
+> - **Frobenius Inner Product:** ผลรวมของผลคูณของทุก component ที่ตำแหน่งเดียวกัน
+>
+> **ความสำคัญใน CFD:**
+> - **Work Rates:** คำนวณอัตราการทำงานของแรงต่อพื้นที่
+> - **Stress-Strain Products:** ใช้ในแบบจำลองความเครียด-ความเครียดเครื่องแบบ
+> - **Energy Dissipation:** คำนวณการสลายตัวของพลังงานในกระแสพลศาสตร์
 
 ### 2.3 ผลคูณภายนอก (`*`) - Outer Product
 
@@ -126,15 +161,26 @@ $$\mathbf{T} = \mathbf{u} \otimes \mathbf{v} \quad \text{where} \quad T_{ij} = u
 #### OpenFOAM Code Implementation
 
 ```cpp
+// Create two vectors
 vector u(1, 2, 3);
 vector v(4, 5, 6);
-tensor T = u * v;  // Outer product
-// Results: tensor(4,5,6,8,10,12,12,15,18)
+
+// Outer product: T_ij = u_i * v_j
+// Results: tensor(4, 5, 6, 8, 10, 12, 12, 15, 18)
+tensor T = u * v;
 ```
 
-> [!TIP] การประยุกต์ใช้ใน CFD
-> - สร้าง **Reynolds stress tensors** จากองค์ประกอบความเร็วที่ไม่สม่ำเสมอ
-> - คำนวณ **momentum flux**
+> **📂 Source:** `.applications/test/tensor/Test-tensor.C`
+>
+> **คำอธิบาย:**
+> - **Outer Product (*):** ตัวดำเนินการ `*` ระหว่างเวกเตอร์สร้าง tensor ผ่าน dyadic multiplication
+> - **เพิ่ม rank:** จาก vector (rank-1) สองตัว เป็น tensor (rank-2) หนึ่งตัว
+> - **Dyadic Multiplication:** ทุก component ของ $\mathbf{u}$ คูณกับทุก component ของ $\mathbf{v}$
+>
+> **การประยุกต์ใช้ใน CFD:**
+> - **Reynolds Stress Tensors:** สร้างเทนเซอร์ความเค้น Reynolds จากความเร็วที่ไม่สม่ำเสมอ ($\tau_{ij} = -\rho \overline{u_i' u_j'}$)
+> - **Momentum Flux:** คำนวณการไหลของโมเมนตัมผ่านพื้นที่
+> - **Coordinate Transformations:** สร้างเมทริกซ์การแปลงจากเวกเตอร์ฐาน
 
 ---
 
@@ -154,20 +200,43 @@ tensor T = u * v;  // Outer product
 ### OpenFOAM Code Implementation
 
 ```cpp
-tensor A(1,2,3,4,5,6,7,8,9);
+// Create test tensor
+tensor A(1, 2, 3, 4, 5, 6, 7, 8, 9);
 
 // Transpose: A^T_ij = A_ji
-tensor AT = A.T();          // Results: tensor(1,4,7,2,5,8,3,6,9)
+// Results: tensor(1, 4, 7, 2, 5, 8, 3, 6, 9)
+tensor AT = A.T();
 
 // Trace: tr(A) = Σ_i A_ii (sum of diagonal elements)
-scalar trA = tr(A);         // Results: 1 + 5 + 9 = 15
+// Results: 1 + 5 + 9 = 15
+scalar trA = tr(A);
 
 // Determinant: det(A) = |A|
-scalar detA = det(A);       // For this specific tensor: 0
+// For this specific tensor: 0
+scalar detA = det(A);
 
 // Inverse: A⁻¹ where A·A⁻¹ = I (identity tensor)
-tensor invA = inv(A);       // Only if invertible (det(A) ≠ 0)
+// Only if invertible (det(A) ≠ 0)
+tensor invA = inv(A);
 ```
+
+> **📂 Source:** `.applications/test/tensor/Test-tensor.C`
+>
+> **คำอธิบาย:**
+> - **Transpose (.T()):** สลับ components ระหว่างตำแหน่ง (i,j) และ (j,i)
+> - **Trace (tr()):** ผลรวมของ components ในแนวทแยงมุม เป็น tensor invariant ที่สำคัญ
+> - **Determinant (det()):** ค่าที่บ่งชี้ปริมาณของการแปลง ถ้าเป็น 0 แสดงว่าไม่สามารถหา inverse ได้
+> - **Inverse (inv()):** หาเมทริกซ์ผกผันซึ่งเมื่อคูณกับเมทริกซ์ต้นทางได้เมทริกซ์เอกลักษณ์
+>
+> **Invariants ที่สำคัญ:**
+> - **First Invariant (I₁):** $\text{tr}(\mathbf{T})$ - ผลรวมของค่าลักษณะเฉพาะ
+> - **Second Invariant (I₂):** ผลรวมของ minors 2×2
+> - **Third Invariant (I₃):** $\det(\mathbf{T})$ - ผลคูณของค่าลักษณะเฉพาะ
+>
+> **ความสำคัญทางฟิสิกส์:**
+> - Invariants ไม่เปลี่ยนค่าเมื่อเปลี่ยนระบบพิกัด
+> - ใช้ในเกณฑ์การล้มเหลวของวัสดุ (von Mises stress)
+> - สำคัญในการวิเคราะห์ความเครียดหลัก (principal stress analysis)
 
 ### 3.2 รายละเอียดการ Implementation ทางคณิตศาสตร์
 
@@ -194,6 +263,7 @@ $$\mathbf{A}^{-1} = \frac{1}{\det(\mathbf{A})} \text{adj}(\mathbf{A})$$
 $$\text{dev}(\mathbf{T}) = \mathbf{T} - \frac{1}{3}\text{tr}(\mathbf{T})\mathbf{I}$$
 
 ```cpp
+// Extract deviatoric (shear) part by removing isotropic pressure
 symmTensor S = dev(T);  // Deviatoric part
 ```
 
@@ -206,20 +276,48 @@ symmTensor S = dev(T);  // Deviatoric part
 **Skew-symmetric:** $$\mathbf{A} = \frac{1}{2}(\mathbf{T} - \mathbf{T}^T)$$
 
 ```cpp
-symmTensor S = symm(T);  // Symmetric part
-tensor A = skew(T);      // Antisymmetric part
+// Symmetric part: S_ij = 0.5 * (T_ij + T_ji)
+symmTensor S = symm(T);
+
+// Antisymmetric (skew) part: A_ij = 0.5 * (T_ij - T_ji)
+tensor A = skew(T);
 ```
+
+> **📂 Source:** `.applications/test/tensor/Test-tensor.C`
+>
+> **คำอธิบาย:**
+> - **Deviatoric Part (dev()):** แยกส่วนที่เบี่ยงเบนจากค่าเฉลี่ยไอโซโทรปิก ใช้ในการวิเคราะห์ความเครียดเฉือน
+> - **Symmetric Part (symm()):** สร้าง symmTensor จากค่าเฉลี่ยของ components สมมาตร ใช้สำหรับ strain rate tensor
+> - **Skew Part (skew()):** สร้าง tensor แอนตี้สมมาตร ใช้สำหรับ vorticity tensor
+>
+> **หลักการสำคัญ:**
+> - ทุก tensor สามารถแยกเป็นส่วนสมมาตรและแอนตี้สมมาตรได้เสมอ: $\mathbf{T} = \mathbf{S} + \mathbf{A}$
+> - ส่วนสมมาตรเกี่ยวข้องกับการเปลี่ยนรูป (deformation)
+> - ส่วนแอนตี้สมมาตรเกี่ยวข้องกับการหมุน (rotation)
 
 ### 4.3 การประยุกต์ใช้งานจริง
 
 ```cpp
-// ตัวอย่างการหาเทนเซอร์อัตราการบิดเบี้ยว (Strain Rate Tensor)
+// Calculate strain rate tensor from velocity gradient
 volTensorField gradU = fvc::grad(U);
 volSymmTensorField S = symm(gradU);
 
-// คำนวณความเค้นจากความหนืด (Viscous Stress)
+// Calculate viscous stress from strain rate
+// Newtonian fluid: tau = 2*mu*S
 volSymmTensorField tau = 2.0 * mu * dev(S);
 ```
+
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidEquilibriumDisplacementFoam/calculateStress.H`
+>
+> **คำอธิบาย:**
+> - **Velocity Gradient:** `fvc::grad(U)` คำนวณ gradient ของฟิลด์ความเร็ว
+> - **Strain Rate Tensor:** `symm(gradU)` แยกเอาส่วนที่สมมาตรซึ่งเป็นอัตราการบิดเบี้ยน
+> - **Viscous Stress:** `2*mu*dev(S)` คำนวณความเครียดจากความหนืด
+>
+> **แนวคิดสำคัญ:**
+> - **Strain Rate ($\mathbf{S}$):** อัตราการเปลี่ยนรูปของของไหล สัมพันธ์กับการสร้างความเครียด
+> - **Vorticity ($\boldsymbol{\Omega}$):** ส่วนที่หมุนของการไหล ไม่เกี่ยวข้องกับความเครียดในของไหล Newtonian
+> - **Constitutive Relation:** ความสัมพันธ์ระหว่างความเครียดและอัตราการเปลี่ยนรูปขึ้นอยู่กับประเภทของของไหล
 
 > [!WARNING] ข้อผิดพลาดที่พบบ่อย
 > การสับสนระหว่าง single และ double contraction:
@@ -252,38 +350,68 @@ $$\mathbf{S} \cdot \mathbf{v}_k = \lambda_k \mathbf{v}_k, \quad k=1,2,3$$
 ### OpenFOAM Code Implementation
 
 ```cpp
+// Create symmetric stress tensor
 symmTensor stress(100, 50, 30, 80, 40, 60);
 
-// คำนวณค่าลักษณะเฉพาะ
+// Calculate eigenvalues (principal stresses)
+// Returns: vector(lambda1, lambda2, lambda3)
 vector eigenvalues = ::eigenValues(stress);
-scalar lambda1 = eigenvalues.x();  // ความเครียดหลักสูงสุด
-scalar lambda2 = eigenvalues.y();  // ความเครียดหลักปานกลาง
-scalar lambda3 = eigenvalues.z();  // ความเครียดหลักต่ำสุด
+scalar lambda1 = eigenvalues.x();  // Maximum principal stress
+scalar lambda2 = eigenvalues.y();  // Intermediate principal stress
+scalar lambda3 = eigenvalues.z();  // Minimum principal stress
 
-// คำนวณเวกเตอร์ลักษณะเฉพาะ
+// Calculate eigenvectors (principal directions)
+// Each column is an eigenvector
 tensor eigenvectors = ::eigenVectors(stress);
-vector e1 = eigenvectors.col(0);  // ทิศทางของ lambda1
-vector e2 = eigenvectors.col(1);  // ทิศทางของ lambda2
-vector e3 = eigenvectors.col(2);  // ทิศทางของ lambda3
+vector e1 = eigenvectors.col(0);  // Direction of lambda1
+vector e2 = eigenvectors.col(1);  // Direction of lambda2
+vector e3 = eigenvectors.col(2);  // Direction of lambda3
 ```
+
+> **📂 Source:** `.applications/test/tensor/Test-tensor.C`
+>
+> **คำอธิบาย:**
+> - **Eigenvalues (::eigenValues()):** คำนวณค่าลักษณะเฉพาะสามค่าของเทนเซอร์สมมาตร เป็นตัวแทนของค่าความเครียดหลัก
+> - **Eigenvectors (::eigenVectors()):** คำนวณเวกเตอร์ลักษณะเฉพาะที่สอดคล้องกับแต่ละค่าลักษณะเฉพาะ
+> - **Principal Stresses:** ค่าความเครียดสูงสุด/กลาง/ต่ำสุดที่กระทำต่อวัสดุ
+>
+> **หลักการสำคัญ:**
+> - เทนเซอร์สมมาตรมีค่าลักษณะเฉพาะจริงเสมอและเวกเตอร์ลักษณะเฉพาะตั้งฉากกัน
+> - Principal directions เป็นระบบพิกัดที่ค่าความเครียดอยู่ในรูปแบบที่เรียบง่ายที่สุด
+> - สำคัญมากในการวิเคราะห์ความแข็งแรงของวัสดุและเกณฑ์การล้มเหลว
 
 ### 5.2 การประยุกต์ใช้ Von Mises Stress
 
 ```cpp
-// คำนวณความเครียด Von Mises
-symmTensor S = dev(stress);  // Deviatoric stress
+// Calculate Von Mises stress (equivalent stress)
+// Deviatoric stress: S = sigma - 1/3*tr(sigma)*I
+symmTensor S = dev(stress);
+
+// Von Mises stress: sigma_vm = sqrt(3/2 * S:S)
 scalar sigma_vm = sqrt(1.5) * mag(S);
 
-// ตรวจสอบเกณฑ์การล้มเหลว
-scalar yieldStress = 250e6;  // Pa
+// Check failure criterion
+scalar yieldStress = 250e6;  // Pa (250 MPa)
 if (sigma_vm > yieldStress) {
     Info << "Material yielding detected!" << endl;
 }
 ```
 
-$$\sigma_{vm} = \sqrt{\frac{3}{2}\mathbf{S}:\mathbf{S}}$$
-
-โดยที่ $\mathbf{S} = \boldsymbol{\sigma} - \frac{1}{3}\text{tr}(\boldsymbol{\sigma})\mathbf{I}$ คือเทนเซอร์ความเครียดเบี่ยงเบน
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidEquilibriumDisplacementFoam/calculateStress.H`
+>
+> **คำอธิบาย:**
+> - **Deviatoric Stress:** `dev(stress)` แยกเอาส่วนที่เบี่ยงเบนจากค่าเฉลี่ยไอโซโทรปิก
+> - **Von Mises Stress:** เกณฑ์การล้มเหลวที่พิจารณาพลังงานการเปลี่ยนรูปเฉือน
+> - **Yield Criterion:** ถ้าค่า Von Mises เกิน yield stress วัสดุจะเริ่มเด้ง (plastic deformation)
+>
+> **สมการ Von Mises:**
+> $$\sigma_{vm} = \sqrt{\frac{3}{2}\mathbf{S}:\mathbf{S}}$$
+> โดยที่ $\mathbf{S} = \boldsymbol{\sigma} - \frac{1}{3}\text{tr}(\boldsymbol{\sigma})\mathbf{I}$ คือเทนเซอร์ความเครียดเบี่ยงเบน
+>
+> **ความสำคัญทางวิศวกรรม:**
+> - ใช้พยากรณ์การเริ่มเป็นพลาสติกของโลหะ
+> - เกณฑ์การล้มเหลวที่ใช้กันอย่างแพร่หลายในการออกแบบโครงสร้าง
+> - คำนึงถึงผลรวมของความเครียดทั้งหมด ไม่ใช่เฉพาะความเครียดสูงสุด
 
 ---
 
@@ -296,37 +424,72 @@ Tensor calculus operations ขยาย vector calculus ไปยัง second-o
 **สมการ:** $(\nabla \mathbf{T})_{ijk} = \frac{\partial T_{ij}}{\partial x_k}$
 
 ```cpp
+// Create tensor field
 volTensorField T(mesh);
+
+// Calculate gradient of tensor field
+// Result: volTensorTensorField (third-order tensor)
 volTensorTensorField gradT = fvc::grad(T);
 ```
 
-**ความหมายทางฟิสิกส์:**
-- แสดงถึงการเปลี่ยนแปลงเชิงพื้นที่ของ tensor field
-- สร้าง third-order tensor (27 components)
-- ใช้ในการวิเคราะห์ stress gradients และ material anisotropy
+> **📂 Source:** `.applications/utilities/postProcessing/dataConversion/foamToVTK/foamToVTK.C`
+>
+> **คำอธิบาย:**
+> - **Tensor Gradient:** `fvc::grad(T)` คำนวณ gradient ของฟิลด์เทนเซอร์
+> - **Third-Order Tensor:** ผลลัพธ์มี 27 components (3×3×3)
+> - **Spatial Variation:** แสดงถึงการเปลี่ยนแปลงเชิงพื้นที่ของ tensor field
+>
+> **ความหมายทางฟิสิกส์:**
+> - ใช้ในการวิเคราะห์ stress gradients
+> - สำคัญในการวิเคราะห์ material anisotropy
+> - ใช้ในแบบจำลองความเครียดที่ไม่สม่ำเสมอ
 
 ### 6.2 การไดเวอร์เจนซ์ของเทนเซอร์
 
 **สมการ:** $(\nabla \cdot \mathbf{T})_i = \frac{\partial T_{ij}}{\partial x_j}$
 
 ```cpp
+// Create tensor field
 volTensorField T(mesh);
+
+// Calculate divergence of tensor field
+// Result: volVectorField (force per unit volume)
 volVectorField divT = fvc::div(T);
 ```
+
+> **คำอธิบาย:**
+> - **Tensor Divergence:** `fvc::div(T)` คำนวณ divergence ของฟิลด์เทนเซอร์
+> - **Vector Result:** ลด rank ลง 1 จาก tensor (rank-2) เป็น vector (rank-1)
+> - **Physical Meaning:** แรงสุทธิที่กระทำต่อ control volume เนื่องจาก stress gradients
 
 **Physical Interpretations in Continuum Mechanics:**
 
 #### Stress Tensor Divergence ($\nabla \cdot \boldsymbol{\sigma}$)
+
 ```cpp
 // Body force per unit volume from stress
 volVectorField forceDensity = fvc::div(stressTensor);
 ```
-- **ความหมาย:** แรงสุทธิที่กระทำต่อ control volume เนื่องจาก stress gradients
-- **หน่วย:** N/m³ (force per unit volume)
+
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidEquilibriumDisplacementFoam/solidEquilibriumDisplacementFoam.C`
+>
+> **คำอธิบาย:**
+> - **Force Density:** แรงต่อหน่วยปริมาตรที่เกิดจาก stress gradients
+> - **Equilibrium Equation:** $\nabla \cdot \boldsymbol{\sigma} + \mathbf{f} = \rho \mathbf{a}$ (Cauchy's equation)
+> - **หน่วย:** N/m³ (force per unit volume)
+>
+> **ความหมายทางฟิสิกส์:**
+> - แสดงถึงการไหลของโมเมนตัมเข้า/ออกจาก control volume
+> - สำคัญในสมการสมดุลของโมเมนตัม
+> - ใช้ในการคำนวณแรงลม แรงแรงดัน ฯลฯ
 
 #### Velocity Gradient Tensor
+
 ```cpp
+// Velocity field
 volVectorField U(mesh);
+
+// Calculate velocity gradient tensor
 volTensorField gradU = fvc::grad(U);
 
 // Decompose into symmetric and antisymmetric parts
@@ -334,9 +497,21 @@ volSymmTensorField S = symm(gradU);       // Strain rate tensor
 volTensorField Omega = skew(gradU);       // Vorticity tensor
 ```
 
-**สมการแยกส่วน:**
-- **Strain Rate:** $\mathbf{S} = \frac{1}{2}(\nabla \mathbf{U} + (\nabla \mathbf{U})^T)$
-- **Vorticity Tensor:** $\boldsymbol{\Omega} = \frac{1}{2}(\nabla \mathbf{U} - (\nabla \mathbf{U})^T)$
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+>
+> **คำอธิบาย:**
+> - **Velocity Gradient:** `fvc::grad(U)` คำนวณ gradient ของฟิลด์ความเร็ว
+> - **Strain Rate Tensor:** `symm(gradU)` ส่วนสมมาตร เกี่ยวข้องกับการเปลี่ยนรูป
+> - **Vorticity Tensor:** `skew(gradU)` ส่วนแอนตี้สมมาตร เกี่ยวข้องกับการหมุน
+>
+> **สมการแยกส่วน:**
+> - **Strain Rate:** $\mathbf{S} = \frac{1}{2}(\nabla \mathbf{U} + (\nabla \mathbf{U})^T)$
+> - **Vorticity Tensor:** $\boldsymbol{\Omega} = \frac{1}{2}(\nabla \mathbf{U} - (\nabla \mathbf{U})^T)$
+>
+> **ความสำคัญใน CFD:**
+> - **Strain Rate:** ใช้คำนวณ viscous stress ในของไหล Newtonian
+> - **Vorticity:** วัดการหมุนของอนุภาคของไหล สำคัญในการวิเคราะห์ turbulence
+> - **Energy Dissipation:** คำนวณอัตราการสลายตัวของพลังงาน
 
 ---
 

@@ -128,21 +128,34 @@ $$\nabla \cdot (\rho \mathbf{u}) = 0$$
 สมการความต่อเนื่องใน OpenFOAM ถูกนำไปใช้ในหลาย Solver:
 
 ```cpp
-// การคำนวณ divergence ของ flux
+// Calculate divergence of flux field
 fvScalarMatrix divPhi
 (
-    fvc::div(phi)                     // คำนวณ divergence ของ flux
+    fvc::div(phi)                     // Calculate divergence of mass flux
 );
 
-// ใน simpleFoam สำหรับการไหลแบบอัดตัวไม่ได้
+// Momentum equation in simpleFoam for incompressible flow
 fvScalarMatrix UEqn
 (
-    fvm::div(phi, U)                  // convection term
-  + turbulence->divDevRhoReff(U)      // turbulent diffusion
+    fvm::div(phi, U)                  // Convection term
+  + turbulence->divDevRhoReff(U)      // Turbulent diffusion term
  ==
-    fvOptions(rho, U)                 // source terms
+    fvOptions(rho, U)                 // Source terms (body forces)
 );
 ```
+
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+>
+> **คำอธิบาย:**
+> โค้ดด้านบนแสดงให้เห็นวิธีการนำสมการความต่อเนื่องไปใช้ใน OpenFOAM ผ่านการคำนวณ divergence ของฟลักซ์มวล (`fvc::div(phi)`) ซึ่งเป็นการประยุกต์ใช้สมการ $\nabla \cdot (\rho \mathbf{u})$ ในรูปแบบ discrete สำหรับปริมาตรควบคุมแต่ละชิ้น (finite volume)
+>
+> **แนวคิดสำคัญ:**
+> - **fvc::div**: คำนวณ divergence แบบ explicit (finite volume calculus)
+> - **fvm::div**: สร้างเมทริกซ์ discretization แบบ implicit (finite volume method)
+> - **phi**: ฟลักซ์มวลผ่าน cell faces ($\rho \mathbf{u} \cdot \mathbf{S}_f$)
+> - **turbulence->divDevRhoReff()**: คำนวณ divergence ของความเค้นหนืดที่มีความปั่นป่วน
+>
+> **หมายเหตุ:** สำหรับการไหลแบบอัดตัวไม่ได้ (incompressible) สมการความต่อเนื่องจะถูกบังคับใช้ผ่าน pressure-velocity coupling (เช่น SIMPLE/PISO algorithms) ไม่ใช่การแก้สมการความต่อเนื่องโดยตรง
 
 ---
 
@@ -249,25 +262,42 @@ $$\rho \left(\frac{\partial \mathbf{u}}{\partial t} + \mathbf{u} \cdot \nabla \m
 การแก้สมการ Navier-Stokes ใน OpenFOAM:
 
 ```cpp
-// จาก UEqn.H ใน pimpleFoam
+// Momentum equation from UEqn.H in pimpleFoam solver
 fvVectorMatrix UEqn
 (
-    fvm::ddt(rho, U)              // เทอมความเร่งเฉพาะที่
-  + fvm::div(rhoPhi, U)           // เทอม convection (พา)
-  + turbulence->divDevRhoReff(U)  // เทอมความเค้นหนืด (รวมความปั่นป่วน)
+    fvm::ddt(rho, U)              // Local acceleration term: ∂(ρu)/∂t
+  + fvm::div(rhoPhi, U)           // Convective term: ∇·(ρu⊗u)
+  + turbulence->divDevRhoReff(U)  // Viscous stress term (includes turbulence)
  ==
-    fvOptions(rho, U)             // เทอมแรงภายนอก
+    fvOptions(rho, U)             // External body forces (e.g., gravity)
 );
 
-// การจัดการความดัน (pressure-velocity coupling)
+// Pressure-velocity coupling using PIMPLE algorithm
 while (pimple.correctNonOrthogonal())
 {
     fvScalarMatrix pEqn
     (
         fvm::laplacian(rho/AU, p) == fvc::div(rho*AU*HbyA)
     );
+    pEqn.solve();
 }
 ```
+
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+>
+> **คำอธิบาย:**
+> โค้ดนี้แสดงการนำสมการ Navier-Stokes ไปใช้ใน OpenFOAM ผ่าน finite volume discretization สมการโมเมนตัมถูกแก้โดยใช้เมทริกซ์ `fvVectorMatrix` ซึ่งประกอบด้วย:
+>
+> **แนวคิดสำคัญ:**
+> - **fvm::ddt(rho, U)**: เทอมความเร่งเฉพาะที่ (local acceleration) — การเปลี่ยนแปลงโมเมนตัมตามเวลา
+> - **fvm::div(rhoPhi, U)**: เทอม convection — การขนส่งโมเมนตัมโดยการไหลแบบพา
+> - **turbulence->divDevRhoReff(U)**: เทอมความเค้นหนืด — รวมทั้งความหนืดของโมเลกุลและความหนืดเชิงปั่นป่วน (eddy viscosity)
+> - **fvOptions(rho, U)**: เทอมแรงภายนอก เช่น แรงโน้มถ่วง แรงลม หรือแหล่งกำเนิดอื่นๆ
+>
+> **Pressure-Velocity Coupling:**
+> ในการไหลแบบอัดตัวไม่ได้ ความดันและความเร็วถูก coupling กันผ่านสมการความต่อเนื่อง ขั้นตอน `pimple.correctNonOrthogonal()` แก้สมการ pressure correction เพื่อให้ได้สนามความเร็วที่เป็นไปตามสมการ $\nabla \cdot \mathbf{u} = 0$
+>
+> **หมายเหตุ:** `rhoPhi` คือฟลักซ์มวลที่ถูก interpolate ไปยัง cell faces ในขณะที่ `AU` คือสัมประสิทธิ์จากเมทริกซ์โมเมนตัมที่ถูกใช้ใน pressure equation
 
 ---
 
@@ -363,17 +393,37 @@ $$\rho c_p \frac{DT}{Dt} = k \nabla^2 T + \frac{Dp}{Dt} + \Phi$$
 ### OpenFOAM Code Implementation
 
 ```cpp
-// จาก EEqn.H ใน buoyantBoussinesqSimpleFoam
+// Energy equation from EEqn.H in buoyantBoussinesqSimpleFoam solver
 fvScalarMatrix EEqn
 (
-    fvm::div(phi, h)                // การพาของเอนทาลปี
-  + fvm::Sp(divU, h)                // source term จากการอัดตัว
+    fvm::div(phi, h)                           // Convective enthalpy transport
+  + fvm::Sp(divU, h)                           // Compression source term
  ==
-    fvm::laplacian(turbulence->alphaEff(), h)  // การแพร่ของความร้อน
-  + fvc::div(phi, K)                // การพาของพลังงานจลน์
-  + radiation->Sh(thermo)           // แหล่งกำเนิดความร้อน
+    fvm::laplacian(turbulence->alphaEff(), h)  // Thermal diffusion (conduction)
+  + fvc::div(phi, K)                           // Kinetic energy convection
+  + radiation->Sh(thermo)                      // Radiation heat source
 );
 ```
+
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+>
+> **คำอธิบาย:**
+> โค้ดนี้แสดงการแก้สมการพลังงานใน OpenFOAM สำหรับการไหลที่มีการถ่ายเทความร้อนและแรงลอยตัว (buoyancy) สมการถูกเขียนในรูปแบบเอนทาลปี (enthalpy formulation) ซึ่งเป็นวิธีที่นิยมสำหรับการไหลแบบอัดตัวได้
+>
+> **แนวคิดสำคัญ:**
+> - **fvm::div(phi, h)**: เทอมการพาพลังงาน (convective energy transport) — การขนส่งเอนทาลปี $h$ โดยการไหล
+> - **fvm::Sp(divU, h)**: เทอม source จากการอัดตัวของของไหล (compressibility work)
+> - **fvm::laplacian(turbulence->alphaEff(), h)**: การแพร่ของความร้อน (heat diffusion) — รวมทั้งความนำความร้อนของโมเลกุลและความปั่นป่วน
+> - **fvc::div(phi, K)**: การพาของพลังงานจลน์ (kinetic energy transport)
+> - **radiation->Sh(thermo)**: เทอมแหล่งกำเนิดความร้อนจากรังสี (thermal radiation)
+>
+> **Enthalpy vs. Temperature:**
+> ใน OpenFOAM สำหรับการไหลแบบอัดตัวได้ มักใช้เอนทาลปี ($h$) แทนอุณหภูมิ ($T$) เพราะ:
+> - เอนทาลปีรวมพลังงานภายในและงานความดัน ($h = e + p/\rho$)
+> - การเปลี่ยนแปลงของเอนทาลปีจัดการกับงาน compression/expansion ได้ดีกว่า
+> - เหมาะสำหรับสมการพลังงานแบบ total energy formulation
+>
+> **หมายเหตุ:** `turbulence->alphaEff()` คือสัมประสิทธิ์การแพร่ของความร้อนที่มีประสิทธิภาพ (effective thermal diffusivity) ซึ่งรวมทั้ง thermal conductivity ของของไหลและ turbulent thermal diffusivity
 
 ### ขั้นตอนการแก้ปัญหาใน OpenFOAM (Solution Procedure)
 
@@ -388,34 +438,55 @@ fvScalarMatrix EEqn
 7. **Convergence check**: ตรวจสอบการลู่เข้า
 
 ```cpp
-// ตัวอย่างขั้นตอนการแก้ปัญหาแบบ PISO
+// Example of PISO solution procedure for compressible flow
 while (runTime.loop())
 {
-    // Momentum predictor
+    // Momentum predictor step
     tmp<fvVectorMatrix> UEqn
     (
-        fvm::ddt(rho, U)
-      + fvm::div(rhoPhi, U)
-      - fvm::Sp(fvc::ddt(rho) + fvc::div(rhoPhi), U)
+        fvm::ddt(rho, U)              // Time derivative: ∂(ρu)/∂t
+      + fvm::div(rhoPhi, U)           // Convection: ∇·(ρu⊗u)
+      - fvm::Sp(fvc::ddt(rho) + fvc::div(rhoPhi), U)  // Source term correction
     );
 
-    // Pressure correction loops
+    // Pressure-velocity coupling using PISO algorithm
     while (pimple.correct())
     {
         volScalarField rAU(1.0/UEqn.A());
-        // ... pressure-velocity coupling
+        // ... pressure-velocity coupling calculations
     }
 
-    // Energy equation
+    // Energy equation solve
     fvScalarMatrix EEqn
     (
-        fvm::ddt(rho, e) + fvm::div(phi, e)
-      - fvm::laplacian(turbulence->alphaEff(), e)
+        fvm::ddt(rho, e)              // Internal energy time derivative
+      + fvm::div(phi, e)              // Internal energy convection
+      - fvm::laplacian(turbulence->alphaEff(), e)  // Heat conduction
     );
 
-    EEqn.solve();
+    EEqn.solve();                     // Solve the linear system
 }
 ```
+
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+>
+> **คำอธิบาย:**
+> โค้ดนี้แสดงขั้นตอนการแก้ปัญหาแบบ coupled สำหรับระบบสมการการอนุรักษ์ที่มีทั้งโมเมนตัมและพลังงาน ใช้ PISO (Pressure Implicit with Splitting of Operators) algorithm สำหรับ pressure-velocity coupling
+>
+> **แนวคิดสำคัญ:**
+> - **runTime.loop()**: ลูปเวลาหลักที่ควบคุมการก้าวเดินของเวลา (time stepping)
+> - **Momentum predictor**: ทำนายความเร็วชั่วคราวโดยไม่รวม pressure term
+> - **pimple.correct()**: PISO loop สำหรับแก้ไขความดันและความเร็วให้สอดคล้องกับสมการความต่อเนื่อง
+> - **rAU = 1.0/UEqn.A()**: กลับด้านของเส้นทแยงมุมของเมทริกซ์โมเมนตัม ใช้ใน pressure equation
+> - **EEqn.solve()**: แก้สมการพลังงานสำหรับ internal energy ($e$) หรือ enthalpy ($h$)
+>
+> **Pressure-Velocity-Energy Coupling:**
+> ในการไหลแบบอัดตัวได้ สมการทั้งสาม (continuity, momentum, energy) ถูก coupled กันอย่างแน่นหนา:
+> 1. ความดันขึ้นกับความหนาแน่นและอุณหภูมิ (equation of state)
+> 2. ความหนาแน่นขึ้นกับความดันและอุณหภูมิ (equation of state)
+> 3. อุณหภูมิขึ้นกับพลังงานภายใน
+>
+> **หมายเหตุ:** สำหรับของไหลที่มีการเผาไหม้ (reacting flows) จะต้องมีการแก้สมการสำหรับ species concentrations ด้วย ซึ่งจะ coupled กับสมการพลังงานผ่าน heat of reaction
 
 ---
 

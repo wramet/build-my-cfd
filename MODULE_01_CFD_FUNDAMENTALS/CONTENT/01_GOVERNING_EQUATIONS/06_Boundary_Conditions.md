@@ -102,8 +102,12 @@ OpenFOAM Boundary conditions ถูกกำหนดผ่าน **Dictionary-b
 // Example: Velocity inlet with turbulent profile
 inlet
 {
+    // Fixed value boundary condition type
     type            fixedValue;
+    
+    // Uniform velocity of 10 m/s in x-direction
     value           uniform (10 0 0);  // m/s uniform velocity
+    
     // Alternative: time-varying inlet
     // type            timeVaryingMappedFixedValue;
     // setAverage      false;
@@ -113,7 +117,9 @@ inlet
 // Example: Pressure outlet with backflow prevention
 outlet
 {
+    // Zero gradient allows natural development
     type            zeroGradient;      // Natural development
+    
     // Alternative for backflow:
     // type            outletInlet;
     // outletValue     uniform 0;
@@ -122,12 +128,25 @@ outlet
 }
 ```
 
+> **📂 Source:** OpenFOAM Field File Dictionary (`0/` directory)
+> 
+> **คำอธิบาย:**
+> - `fixedValue`: กำหนดค่าคงที่ที่ขอบเขต (Dirichlet condition)
+> - `zeroGradient`: อนุญาตให้ค่าตัวแปรพัฒนาตามธรรมชาติ (Neumann condition)
+> - `outletInlet`: จัดการกับการไหลย้อนกลับอัตโนมัติ
+> 
+> **แนวคิดสำคัญ:**
+> - Boundary conditions ใน OpenFOAM ถูกกำหนดผ่าน dictionary entries ใน field files
+> - แต่ละ patch ต้องมี `type` ที่ระบุ boundary condition class
+> - `value` สามารถเป็น `uniform` (ค่าเดียวทั้ง patch) หรือ `nonuniform` (field data)
+
 ### Wall Boundary Conditions
 
 ```cpp
 // Example: No-slip wall with heat transfer
 walls
 {
+    // No-slip condition: velocity fixed to zero
     type            fixedValue;        // Fixed at zero for no-slip
     value           uniform (0 0 0);
 }
@@ -135,15 +154,18 @@ walls
 // Example: Wall temperature for thermal analysis
 walls
 {
+    // Fixed temperature boundary
     type            fixedValue;
     value           uniform 300;       // K
-    // Alternative: adiabatic wall
+    
+    // Alternative: adiabatic wall (no heat transfer)
     // type            zeroGradient;
 }
 
 // Example: Moving wall (rotating cylinder)
 rotatingWall
 {
+    // Rotating wall velocity boundary condition
     type            rotatingWallVelocity;
     origin          (0 0 0);          // Rotation axis origin
     axis            (0 0 1);          // Rotation axis direction
@@ -151,12 +173,25 @@ rotatingWall
 }
 ```
 
+> **📂 Source:** OpenFOAM Boundary Condition Classes (`fixedValueFvPatchField`, `rotatingWallVelocityFvPatchVectorField`)
+> 
+> **คำอธิบาย:**
+> - No-slip condition: ความเร็วของไหลเป็นศูนย์ที่ผนัง
+> - Fixed temperature: กำหนดอุณหภูมิผนังแบบคงที่
+> - Rotating wall: จำลองผนังที่หมุนด้วยความเร็วเชิงมุมที่กำหนด
+> 
+> **แนวคิดสำคัญ:**
+> - No-slip condition สำคัญสำหรับการไหลแบบ viscous
+> - Adiabatic wall ใช้ `zeroGradient` สำหรับอุณหภูมิ
+> - Moving wall ต้องระบุ origin, axis และ omega
+
 ### Special Boundary Conditions
 
 ```cpp
 // Example: Symmetry plane
 symmetryPlane
 {
+    // Symmetry condition type
     type            symmetry;
     // No additional parameters required
 }
@@ -164,11 +199,23 @@ symmetryPlane
 // Example: Periodic boundary
 periodic1
 {
+    // Cyclic boundary for periodic conditions
     type            cyclic;
     // Automatically paired with periodic2 through
     // mesh definition in constant/polyMesh/boundary
 }
 ```
+
+> **📂 Source:** OpenFOAM Boundary Condition Classes (`symmetryFvPatchField`, `cyclicFvPatchField`)
+> 
+> **คำอธิบาย:**
+> - `symmetry`: บังคับใช้เงื่อนไขสมมาตร ทำให้ gradient ปกติเป็นศูนย์
+> - `cyclic`: เชื่อมโยง patches คู่หนึ่งเพื่อการไหลแบบ periodic
+> 
+> **แนวคิดสำคัญ:**
+> - Symmetry ลดขนาดโดเมนการคำนวณโดยใช้ความสมมาตรทางกายภาพ
+> - Cyclic boundaries ต้องถูกกำหนดใน mesh definition ก่อน
+> - ทั้งสองประเภทนี้ไม่ต้องการพารามิเตอร์เพิ่มเติม
 
 การนำ Boundary condition ไปใช้ใน OpenFOAM เป็นไปตามแนวทาง **Finite Volume Method** โดยที่ค่าขอบเขตจะถูกรวมเข้าใน **Discretized Equations** ผ่านการคำนวณ **Face Value** และ **Gradient Computations**
 
@@ -187,6 +234,7 @@ OpenFOAM มี **Boundary Condition Classes** ที่ซับซ้อนส
 // Turbulence-specific inlet conditions
 inlet
 {
+    // Turbulent inlet with fluctuating velocity
     type            turbulentInlet;
     fluctuationScale 0.1;             // 10% velocity fluctuations
     referenceField uniform (10 0 0);  // Mean velocity
@@ -196,6 +244,7 @@ inlet
 // Atmospheric boundary layer
 atmInlet
 {
+    // Atmospheric boundary layer velocity profile
     type            atmBoundaryLayerInletVelocity;
     flowDir         (1 0 0);          // Flow direction
     zDir            (0 0 1);          // Vertical direction
@@ -206,20 +255,44 @@ atmInlet
 }
 ```
 
+> **📂 Source:** OpenFOAM Boundary Condition Classes (`turbulentInletFvPatchVectorField`, `atmBoundaryLayerInletVelocityFvPatchVectorField`)
+> 
+> **คำอธิบาย:**
+> - `turbulentInlet`: สร้างความปั่นป่วนเทียมที่ขอบเขตขาเข้า
+> - `atmBoundaryLayerInlet`: สร้างโปรไฟล์ความเร็วชั้นขอบเขตบรรยากาศ
+> 
+> **แนวคิดสำคัญ:**
+> - Turbulent inflow จำเป็นสำหรับการจำลองแบบ LES/DES
+> - Atmospheric boundary layer ใช้ log-law profile
+> - Parameters: z0 (roughness length), d (displacement height)
+
 ### Pressure-Dependent Outlets
 
 ```cpp
 // Pressure-dependent outlet
 outlet
 {
+    // Fixed value pressure outlet
     type            fixedValue;
     value           uniform 0;        // Gauge pressure
+    
     // For reverse flow:
     // type            outletInlet;
     // outletValue     uniform 0;
     // inletValue      uniform 0;
 }
 ```
+
+> **📂 Source:** OpenFOAM Boundary Condition Classes (`fixedValueFvPatchScalarField`, `outletInletFvPatchScalarField`)
+> 
+> **คำอธิบาย:**
+> - `fixedValue`: กำหนดค่าความดันคงที่ที่ outlet
+> - `outletInlet`: จัดการกับการไหลย้อนกลับโดยอัตโนมัติ
+> 
+> **แนวคิดสำคัญ:**
+> - Fixed pressure outlets ใช้ gauge pressure โดยทั่วไป
+> - OutletInlet สำคัญเมื่อมีโอกาสเกิด backflow
+> - ค่า pressure = 0 หมายถึง atmospheric pressure
 
 
 ```mermaid
@@ -262,8 +335,10 @@ Boundary conditions ขั้นสูงเหล่านี้ช่วยใ
 ```cpp
 walls
 {
+    // Wall function for turbulent eddy viscosity
     type            nutkWallFunction;
     value           uniform 0;        // Eddy viscosity at wall
+    
     // Optional: roughness specification
     // roughnessHeight 0.001;
     // roughnessType  sandGrain;
@@ -279,11 +354,25 @@ walls
 // Thermal wall functions
 walls
 {
+    // Compressible thermal wall function
     type            compressible::alphatWallFunction;
+    
     // Prandtl number specification
     Prt             0.9;              // Turbulent Prandtl number
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatPhaseChangeWallFunction/alphatPhaseChangeWallFunctionFvPatchScalarField.H`
+> 
+> **คำอธิบาย:**
+> - `nutkWallFunction`: คำนวณค่า eddy viscosity ใกล้ผนังโดยใช้ wall function
+> - `alphatWallFunction`: คำนวณ thermal conductivity แบบปั่นป่วนสำหรับ CHT
+> - Wall functions ใช้ log-law relationship เพื่อหลีกเลี่ยงการ discretize บริเวณ viscous sublayer
+> 
+> **แนวคิดสำคัญ:**
+> - Wall functions ช่วยลดจำนวน cell ที่จำเป็นใกล้ผนัง
+> - ต้องตรวจสอบค่า y+ เพื่อให้แน่ใจว่าอยู่ในช่วงที่เหมาะสม (30 < y+ < 300)
+> - Roughness parameters ใช้สำหรับผนังที่ไม่เรียบ
 
 แนวทาง Wall Function เชื่อมต่อ **Viscous Sublayer** และ **Log-Law Region** โดยใช้ Empirical Correlations:
 
@@ -344,8 +433,13 @@ graph TD
 ```cpp
 fluidSolidInterface
 {
+    // Coupled thermal boundary for CHT
     type            compressible::turbulentTemperatureCoupledBaffleMixed;
+    
+    // Name of temperature field in neighbor region
     Tnbr            T;                // Neighbor field name
+    
+    // Thermal conductivity method
     kappa           solidThermo;      // Thermal conductivity method
     kappaMethod     fluidThermo;      // Alternative method specification
 }
@@ -353,14 +447,30 @@ fluidSolidInterface
 // External wall with convection and radiation
 externalWall
 {
+    // External wall with heat transfer coefficient
     type            externalWallHeatFluxTemperature;
     mode            coefficient;      // Heat transfer coefficient mode
+    
+    // Convection parameters
     h               uniform 10;       // W/m²K heat transfer coefficient
     Ta              uniform 300;      // K ambient temperature
+    
+    // Multi-layer wall specification
     thicknessLayers (0.01 0.02);      // m wall layer thicknesses
     kappaLayers     (0.5 0.1);        // W/mK layer thermal conductivities
 }
 ```
+
+> **📂 Source:** OpenFOAM Boundary Condition Classes (`compressible::turbulentTemperatureCoupledBaffleMixedFvPatchScalarField`, `externalWallHeatFluxTemperatureFvPatchScalarField`)
+> 
+> **คำอธิบาย:**
+> - `turbulentTemperatureCoupledBaffleMixed`: เชื่อมโยงอุณหภูมิระหว่างโดเมนของไหลและของแข็ง
+> - `externalWallHeatFluxTemperature`: จำลองการถ่ายเทความร้อนด้วย convection และ radiation
+> 
+> **แนวคิดสำคัญ:**
+> - CHT ต้องการ coupled solver (เช่น `chtMultiRegionFoam`)
+> - Continuity of heat flux: $q_{fluid} = q_{solid}$
+> - Layered walls ใช้สำหรับจำลองการแพร่ความร้อนผ่านวัสดุหลายชั้น
 
 
 ```mermaid
@@ -403,6 +513,7 @@ OpenFOAM รองรับ **Time-Varying Boundary Conditions** ที่ซั
 // Time-varying velocity inlet
 inlet
 {
+    // Uniform fixed value with time table
     type            uniformFixedValue;
     uniformValue    table
     (
@@ -422,7 +533,10 @@ inlet
 // Oscillating boundary condition
 oscillatingWall
 {
+    // Oscillating fixed value boundary
     type            oscillatingFixedValue;
+    
+    // Oscillation parameters
     amplitude       (0 1 0);           // m/s oscillation amplitude
     frequency       2;                 // Hz oscillation frequency
     offset          (0 0 0);           // m/s mean velocity
@@ -437,14 +551,29 @@ oscillatingWall
 ```cpp
 inlet
 {
+    // Wave generation boundary for ocean applications
     type            waveAlpha;
     waveTheory      stokesFirst;       // Wave theory type
+    
+    // Wave parameters
     waveHeight      2;                 // m wave height
     wavePeriod      8;                 // s wave period
     waveDirection   (1 0 0);           // Wave propagation direction
     liquidLevel     0;                 // m mean water level
 }
 ```
+
+> **📂 Source:** OpenFOAM Boundary Condition Classes (`uniformFixedValueFvPatchField`, `oscillatingFixedValueFvPatchField`, `waveAlphaFvPatchScalarField`)
+> 
+> **คำอธิบาย:**
+> - `uniformFixedValue`: กำหนดค่าที่เปลี่ยนตามเวลาโดยใช้ table lookup
+> - `oscillatingFixedValue`: สร้างการสั่นแบบ sin wave ที่ขอบเขต
+> - `waveAlpha`: สร้างคลื่นน้ำสำหรับการวิเคราะห์ ocean engineering
+> 
+> **แนวคิดสำคัญ:**
+> - Time-varying BCs ใช้ table interpolation หรือ mathematical functions
+> - Oscillating BCs ใช้สำหรับ dynamic mesh หรือ pulsatile flow
+> - Wave theories: Stokes first, second, fifth order หรือ stream function
 
 
 ```mermaid
@@ -537,4 +666,4 @@ OpenFOAM มีความสามารถด้าน boundary condition ท
 - **Atmospheric boundaries**: `atmBoundaryLayerInlet` สำหรับ atmospheric boundary layer modeling
 - **Wave generation**: `waveAlpha` และ `waveSurfaceHeight` สำหรับ ocean engineering applications
 
-แต่ละ boundary condition type จะนำเสนอการกำหนดทางคณิตศาสตร์และการจัดการเชิงตัวเลขที่เหมาะสมสำหรับปรากฏการณ์ทางกายภาพที่กำลังถูกจำลอง ทำให้มั่นใจว่า computational solution ยังคงสอดคล้องทางกายภาพตลอดทั้ง simulation domain
+แต่ละ boundary condition type จะนำเสนอการกำหนดทางคณิตศาสตร์และการจัดการเชิงตัวเลขที่เหมาะสมสำหรับปรากฏการณ์ทางกายภาพที่กำหลังถูกจำลอง ทำให้มั่นใจว่า computational solution ยังคงสอดคล้องทางกายภาพตลอดทั้ง simulation domain

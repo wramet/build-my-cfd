@@ -220,57 +220,131 @@ $$S = \frac{Re_\gamma^{1/2}}{Re_p}$$
 
 ## 7. การนำไปใช้ใน OpenFOAM
 
-ใน OpenFOAM การคำนวณแรงยกมักใช้ความหมุนวน (Vorticity, $\boldsymbol{\omega} = \nabla \times \mathbf{u}_c$) เป็นตัวแทนของความไม่สมมาตร:
+ใน OpenFOAM การคำนวณแรงยกมักใช้ความหมุนวน (Vorticity, $\boldsymbol{\omega} = \nabla \times \mathbf{u}_c$) เป็นตัวแทนของความไม่สมมาตร
 
 ```cpp
-// การคำนวณความหมุนวนใน OpenFOAM
+// Calculate vorticity field from continuous phase velocity
+// คำนวณสนามความหมุนวนจากความเร็วเฟสต่อเนื่อง
 volVectorField omega = fvc::curl(Uc);
 
-// คำนวณแรงยกต่อหน่วยปริมาตร
+// Compute lift force per unit volume using classical formulation
+// คำนวณแรงยกต่อหน่วยปริมาตรโดยใช้สูตรแบบคลาสสิก
+// FLift = CL * rho_continuous * alpha_dispersed * (U_continuous - U_dispersed) × vorticity
 volVectorField FLift = CL * rhoc * alphad * (Uc - Ud) ^ omega;
 ```
 
 แรงนี้จะถูกรวมเข้าเป็นเทอมแหล่งกำเนิดในสมการโมเมนตัม เพื่อทำนายการเคลื่อนที่แนวขวางของเฟสกระจายได้อย่างแม่นยำ
 
-### การคำนวณ Dimensionless Parameters
-
 ```cpp
-// Dimensionless parameters calculation
+// Dimensionless parameters calculation for model selection
+// คำนวณพารามิเตอร์ไร้มิติสำหรับการเลือกโมเดลที่เหมาะสม
+
+// Calculate particle Reynolds number based on slip velocity
+// คำนวณ Particle Reynolds number จากความเร็วสัมพัทธ์
 scalar Re_p = rhoContinuous_ * slipVelocity * d_ / muContinuous_;
+
+// Calculate shear Reynolds number based on shear rate
+// คำนวณ Shear Reynolds number จากอัตราการเฉือน
 scalar Re_gamma = rhoContinuous_ * shearRate * sqr(d_) / muContinuous_;
+
+// Calculate Saffman parameter to determine appropriate lift model
+// คำนวณพารามิเตอร์ Saffman เพื่อกำหนดโมเดลแรงยกที่เหมาะสม
 scalar SaffmanParameter = sqrt(Re_gamma) / Re_p;
 
-// Check validity of Saffman theory
-if (SaffmanParameter > 10.0) // S >> 1
+// Check validity of Saffman theory based on Saffman parameter
+// ตรวจสอบความถูกต้องของทฤษฎี Saffman จากพารามิเตอร์
+if (SaffmanParameter > 10.0) // S >> 1: Strong shear dominates
 {
-    // Use Saffman lift model
+    // Use Saffman lift model for low Reynolds number shear flow
+    // ใช้โมเดลแรงยก Saffman สำหรับการไหลแบบเฉือนที่ Reynolds number ต่ำ
 }
 else
 {
-    // Use more complex lift model
+    // Use more complex lift model for general flow conditions
+    // ใช้โมเดลแรงยกที่ซับซ้อนกว่าสำหรับสภาวะการไหลทั่วไป
 }
 ```
 
-### Classical Lift Force Calculation
+<details>
+<summary>📖 คำอธิบายเพิ่มเติม (Thai Explanation)</summary>
+
+**ที่มาทางทฤษฎี (Theoretical Background):**
+โค้ดนี้แสดงการตรวจสอบเงื่อนไขการใช้งานทฤษฎี Saffman โดยใช้พารามิเตอร์ไร้มิติ การคำนวณเหล่านี้สำคัญในการกำหนดขอบเขตที่เหมาะสมของแต่ละโมเดลแรงยก
+
+**แหล่งที่มา (Source):**
+📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Particle Reynolds Number**: วัดความสำคัญของแรงเฉื่อยเทียบกับแรงหนืดสำหรับอนุภาค
+- **Shear Reynolds Number**: วัดความแรงของการเฉือนในสนามการไหล
+- **Saffman Parameter**: ตัวบ่งชี้ว่าทฤษฎี Saffman ใช้ได้หรือไม่ (S >> 1)
+- **Model Selection**: การเลือกโมเดลที่เหมาะสมขึ้นกับสภาวะการไหล
+
+</details>
 
 ```cpp
-// Classical lift force calculation in OpenFOAM
+// Classical lift force calculation using cross-product formulation
+// คำนวณแรงยกแบบคลาสสิกโดยใช้สูตร cross-product
+// F_lift = Cl * rho_continuous * V_particle * (U_continuous - U_particle) × vorticity
 vectorClassicalLiftForce =
     Cl_ * rhoContinuous_ * particleVolume_ *
     (Ucontinuous_ - Uparticle_) ^ curl(Ucontinuous_);
 ```
 
-### Saffman Lift Force Calculation
+<details>
+<summary>📖 คำอธิบายเพิ่มเติม (Thai Explanation)</summary>
+
+**ที่มาทางทฤษฎี (Theoretical Background):**
+สมการนี้คือสูตรแรงยกแบบคลาสสิกที่อิงจาก Magnus effect โดยแรงยกจะเกิดขึ้นในทิศทางที่ตั้งฉากกับทั้งความเร็วสัมพัทธ์และความหมุนวนของการไหล
+
+**แหล่งที่มา (Source):**
+📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Cross-product Operation**: รับประกันว่าแรงยกจะตั้งฉากกับระนาบของความเร็วสัมพัทธ์และความหมุนวน
+- **Vorticity**: ความหมุนวนของการไหลแทนความไม่สมมาตรของสนามการไหล
+- **Lift Coefficient (Cl)**: ค่าสัมประสิทธิ์แรงยกที่ขึ้นกับสภาวะการไหลและรูปทรงอนุภาค
+
+</details>
 
 ```cpp
-// Saffman lift force calculation in OpenFOAM
+// Saffman lift force calculation for low Reynolds number shear flow
+// คำนวณแรงยก Saffman สำหรับการไหลแบบเฉือนที่ Reynolds number ต่ำ
+// F_Saffman = 6.46 * rho * sqrt(nu) * d² * |U_slip| * sqrt(shear_rate) * direction
+
+// Calculate slip velocity magnitude
+// คำนวณขนาดของความเร็วสัมพัทธ์
 scalar slipVelocity = mag(Ucontinuous_ - Uparticle_);
+
+// Calculate shear rate magnitude
+// คำนวณขนาดของอัตราการเฉือน
 scalar shearRate = mag(dUcdy_);
 
+// Compute Saffman lift force with proper directional vector
+// คำนวณแรงยก Saffman พร้อมเวกเตอร์ทิศทางที่ถูกต้อง
+// The constant 6.46 = 2 * 1.615 * 2 for spherical particles
+// ค่าคงที่ 6.46 ได้มาจาก 2 * 1.615 * 2 สำหรับอนุภาคทรงกลม
 vectorSaffmanLiftForce =
     6.46 * rhoContinuous_ * sqrt(nuContinuous_) *
     sqr(diameter_) * slipVelocity * sqrt(shearRate) * nL_;
 ```
+
+<details>
+<summary>📖 คำอธิบายเพิ่มเติม (Thai Explanation)</summary>
+
+**ที่มาทางทฤษฎี (Theoretical Background):**
+สมการ Saffman ได้มาจากการวิเคราะห์เชิงทฤษฎีสำหรับทรงกลมในกระแสเฉือนเชิงเส้นที่ Reynolds number ต่ำ ค่าคงที่ 6.46 ได้มาจากการแก้สมการ Navier-Stokes แบบ asymptotic
+
+**แหล่งที่มา (Source):**
+📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Asymptotic Matching**: การเชื่อมผลเฉลยภายในและภายนอกแบบ asymptotic
+- **Viscous Effects**: แรงยกแปรผันตามรากที่สองของความหนืด (sqrt(ν))
+- **Shear Rate Dependence**: แรงยกแปรผันตามรากที่สองของอัตราการเฉือน
+- **Valid Range**: ใช้ได้เมื่อ Re_p << sqrt(Re_γ) หรือ S >> 1
+
+</details>
 
 ---
 

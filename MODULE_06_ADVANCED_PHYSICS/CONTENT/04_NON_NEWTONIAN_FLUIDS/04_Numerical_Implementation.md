@@ -33,12 +33,34 @@ $$
 The calculation appears in `strainRateViscosityModel::strainRate()`:
 
 ```cpp
-// src/.../strainRateViscosityModel/strainRateViscosityModel.C
+// 📂 Source: src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/strainRateViscosityModel/strainRateViscosityModel.C
+
+// Calculate the scalar strain-rate magnitude from velocity field
+// Returns: sqrt(2) * ||symmetric part of velocity gradient||
 tmp<volScalarField> strainRateViscosityModel::strainRate() const
 {
     return sqrt(2.0)*mag(symm(fvc::grad(U_)));
 }
 ```
+
+> **💡 คำอธิบาย (Explanation):**
+> ---
+> **แหล่งที่มา (Source):** 
+> - `src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/strainRateViscosityModel/strainRateViscosityModel.C`
+>
+> **การทำงาน (Functionality):**
+> - ฟังก์ชันนี้คำนวณค่าความเร็วการเสียรูป (strain-rate magnitude) $\dot{\gamma}$ จากสนามความเร็ว
+> - ใช้ `fvc::grad(U_)` เพื่อคำนวณ gradient tensor ของความเร็ว
+> - ใช้ `symm()` เพื่อดึงเอาส่วนสมมาตรของ tensor
+> - ใช้ `mag()` เพื่อคำนวณค่า norm ของ tensor
+> - คูณด้วย `sqrt(2.0)` เพื่อให้ได้ค่า strain-rate magnitude ตามสมการทางคณิตศาสตร์
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Strain-rate tensor**: เทนเซอร์ที่อธิบายอัตราการเสียรูปของของไหล
+> - **Symmetric part**: ส่วนสมมาตรของ gradient tensor ซึ่งเป็นตัวแทนของการเสียรูป
+> - **Frobenius norm**: ค่าขนาดของเทนเซอร์ที่คำนวณจากผลรวมของสมาชิกทุกตัว
+> - **tmp<volScalarField>**: ประเภทข้อมูลสำหรับการจัดการหน่วยความจำชั่วคราวอย่างมีประสิทธิภาพ
+> ---
 
 **Computation Breakdown:**
 
@@ -78,12 +100,34 @@ $$
 The template function `symm()` extracts the symmetric part:
 
 ```cpp
+// 📂 Source: src/OpenFOAM/primitives/transform/transformSymmTensor/symm/symm.C
+
+// Extract symmetric part of a tensor
+// Returns: 0.5*(t + transpose(t))
 template<class Type>
 inline Type symm(const Type& t)
 {
     return 0.5*(t + transpose(t));
 }
 ```
+
+> **💡 คำอธิบาย (Explanation):**
+> ---
+> **แหล่งที่มา (Source):** 
+> - `src/OpenFOAM/primitives/transform/transformSymmTensor/symm/symm.C`
+>
+> **การทำงาน (Functionality):**
+> - ฟังก์ชัน template ที่ดึงเอาเฉพาะส่วนสมมาตรของเทนเซอร์
+> - ใช้สูตรทางคณิตศาสตร์: $\frac{1}{2}(t + t^T)$
+> - ช่วยแยกส่วนปัจจัยการเสียรูป (deformation) ออกจากการหมุน (rotation)
+> - เป็นพื้นฐานสำคัญในการคำนวณ strain-rate tensor
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Symmetric tensor**: เทนเซอร์สมมาตรที่ $T_{ij} = T_{ji}$
+> - **Tensor decomposition**: การแยกเทนเซอร์ออกเป็นส่วนสมมาตรและส่วนปฏิสมมาตร
+> - **Deformation vs Rotation**: ส่วนสมมาตรแทนการเสียรูป ส่วนปฏิสมมาตรแทนการหมุน
+> - **Template function**: ฟังก์ชัน template ที่สามารถใช้กับหลายประเภทข้อมูลได้
+> ---
 
 #### Step 3: Norm Calculation
 
@@ -106,11 +150,31 @@ $$
 For anisotropic non-Newtonian models, the **full strain-rate tensor** may be required instead of just the magnitude:
 
 ```cpp
+// 📂 Source: src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/strainRateViscosityModel/strainRateViscosityModel.C
+
+// Calculate the full strain-rate tensor (not just magnitude)
+// Used for anisotropic models requiring directional information
 tmp<volTensorField> strainRateTensor() const
 {
     return symm(fvc::grad(U_));
 }
 ```
+
+> **💡 คำอธิบาย (Explanation):**
+> ---
+> **แหล่งที่มา (Source):** 
+> - `src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/strainRateViscosityModel/strainRateViscosityModel.C`
+>
+> **การทำงาน (Functionality):**
+> - คำนวณ strain-rate tensor เต็ม (ไม่ใช่แค่ magnitude)
+> - ใช้สำหรับแบบจำลอง anisotropic ที่ต้องการข้อมูลทิศทาง
+> - คืนค่าเป็น `volTensorField` แทนที่จะเป็น `volScalarField`
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Anisotropic viscosity**: ความหนืดที่ขึ้นกับทิศทาง
+> - **Direction-dependent behavior**: พฤติกรรมของของไหลที่แตกต่างกันไปตามทิศทาง
+> - **volTensorField**: สนามเทนเซอร์บนตำแหน่งกลางเซลล์
+> ---
 
 This enables models that account for **direction-dependent rheological behavior** such as:
 - Fiber stretching
@@ -151,6 +215,10 @@ $$
 OpenFOAM's implementation in `BirdCarreau.C` handles both parameter formulations seamlessly:
 
 ```cpp
+// 📂 Source: src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/BirdCarreau/BirdCarreau.C
+
+// Calculate viscosity using Bird-Carreau model
+// Supports both time constant (k) and critical stress (tauStar) formulations
 return
     nuInf_
   + (nu0 - nuInf_)
@@ -167,6 +235,24 @@ return
         (n_ - 1.0)/a_
     );
 ```
+
+> **💡 คำอธิบาย (Explanation):**
+> ---
+> **แหล่งที่มา (Source):** 
+> - `src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/BirdCarreau/BirdCarreau.C`
+>
+> **การทำงาน (Functionality):**
+> - คำนวณความหนืดตามแบบจำลอง Bird-Carreau
+> - รองรับทั้งการใช้ time constant (k) และ critical stress (tauStar)
+> - ใช้ ternary operator `? :` เพื่อเลือกสมการที่เหมาะสม
+> - คำนวณ power law ซ้อนกันสองชั้น
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Bird-Carreau model**: แบบจำลองที่อธิบายการเปลี่ยนแปลงความหนืดตามอัตราเฉือน
+> - **Shear-thinning**: ความหนืดลดลงเมื่ออัตราเฉือนเพิ่มขึ้น
+> - **Newtonian plateaus**: ความหนืดคงที่ที่อัตราเฉือนต่ำและสูง
+> - **Yasuda exponent**: พารามิเตอร์ที่ควบคุมความคมของการเปลี่ยนแปลง
+> ---
 
 **Key Implementation Details:**
 
@@ -217,9 +303,14 @@ $$
 OpenFOAM's implementation in `HerschelBulkley.C` demonstrates careful attention to numerical stability and dimensional consistency:
 
 ```cpp
+// 📂 Source: src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/HerschelBulkley/HerschelBulkley.C
+
+// Create dimensioned scalars for proper dimensional analysis
+// tone: time unit, rtone: 1/time unit
 dimensionedScalar tone("tone", dimTime, 1.0);
 dimensionedScalar rtone("rtone", dimless/dimTime, 1.0);
 
+// Calculate viscosity using Herschel-Bulkley model with yield stress
 return
 (
     min
@@ -234,6 +325,24 @@ return
     )
 );
 ```
+
+> **💡 คำอธิบาย (Explanation):**
+> ---
+> **แหล่งที่มา (Source):** 
+> - `src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/HerschelBulkley/HerschelBulkley.C`
+>
+> **การทำงาน (Functionality):**
+> - คำนวณความหนืดตามแบบจำลอง Herschel-Bulkley ที่มี yield stress
+> - ใช้ `tone` และ `rtone` เพื่อรักษาความถูกต้องของมิติ
+> - ใช้ `max(strainRate, vSmall)` เพื่อป้องกันการหารด้วยศูนย์
+> - ใช้ `min(nu0, ...)` เพื่อจำกัดค่าความหนืดไม่ให้เกินค่าสูงสุด
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Yield stress**: ค่าแรงเฉือนขั้นต่ำที่ต้องใช้เพื่อเริ่มให้ของไหลไหล
+> - **Dimensional consistency**: การรักษาความถูกต้องของมิติในการคำนวณ
+> - **Numerical stability**: เสถียรภาพทางตัวเลขเมื่อค่า strainRate ใกล้ศูนย์
+> - **Viscosity capping**: การจำกัดค่าความหนืดไม่ให้เกินค่าที่กำหนด
+> ---
 
 **Key Implementation Features:**
 
@@ -284,6 +393,10 @@ $$
 OpenFOAM's implementation in `powerLaw.C` includes important numerical safeguards:
 
 ```cpp
+// 📂 Source: src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/powerLaw/powerLaw.C
+
+// Calculate viscosity using Power-Law model with bounds checking
+// Viscosity is clipped between nuMin and nuMax for numerical stability
 return max
 (
     nuMin_,
@@ -302,6 +415,24 @@ return max
     )
 );
 ```
+
+> **💡 คำอธิบาย (Explanation):**
+> ---
+> **แหล่งที่มา (Source):** 
+> - `src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/powerLaw/powerLaw.C`
+>
+> **การทำงาน (Functionality):**
+> - คำนวณความหนืดตามแบบจำลอง Power-Law
+> - ใช้ nested max/min เพื่อจำกัดค่าความหนืดให้อยู่ในช่วงที่กำหนด
+> - ใช้ `max(strainRate, small)` เพื่อป้องกันค่าศูนย์หรือค่าลบ
+> - คำนวณ power law ด้วย exponent (n-1)
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Power-law fluid**: ของไหลที่ความหนืดแปรผันตาม power law ของอัตราเฉือน
+> - **Shear-thinning (n < 1)**: ความหนืดลดลงเมื่ออัตราเฉือนเพิ่มขึ้น
+> - **Shear-thickening (n > 1)**: ความหนืดเพิ่มขึ้นเมื่ออัตราเฉือนเพิ่มขึ้น
+> - **Viscosity bounds**: การจำกัดค่าความหนืดเพื่อเสถียรภาพทางตัวเลข
+> ---
 
 **Key Implementation Details:**
 
@@ -356,7 +487,6 @@ flowchart TD
 ```
 > **Figure 1:** แผนภาพแสดงรูปแบบการออกแบบโรงงาน (Factory Pattern) สำหรับการเลือกแบบจำลองความหนืดขณะรันโปรแกรม (Runtime Selection) ซึ่งช่วยให้ผู้ใช้สามารถสลับเปลี่ยนแบบจำลองผ่านไฟล์ Dictionary ได้โดยไม่ต้องทำการคอมไพล์โค้ดใหม่
 
-
 ### Runtime Selection Table Structure
 
 | Macro | Location Used | Primary Function | Result |
@@ -370,7 +500,10 @@ flowchart TD
 The main factory method in `viscosityModel` demonstrates the elegance of this approach:
 
 ```cpp
-// From src/physicalProperties/viscosityModels/viscosityModel/viscosityModelNew.C
+// 📂 Source: src/physicalProperties/viscosityModels/viscosityModel/viscosityModelNew.C
+
+// Factory method to create viscosity model from dictionary
+// Returns: autoPtr to the constructed model
 Foam::autoPtr<Foam::viscosityModel> Foam::viscosityModel::New
 (
     const fvMesh& mesh,
@@ -392,9 +525,11 @@ Foam::autoPtr<Foam::viscosityModel> Foam::viscosityModel::New
 
     Info<< "Selecting viscosity model " << modelType << endl;
 
+    // Lookup the model in the factory table
     typename viscosityModel::dictionaryConstructorTable::iterator cstrIter =
         viscosityModel::dictionaryConstructorTablePtr_->find(modelType);
 
+    // Handle error if model not found
     if (cstrIter == viscosityModel::dictionaryConstructorTablePtr_->end())
     {
         FatalErrorInFunction
@@ -404,9 +539,28 @@ Foam::autoPtr<Foam::viscosityModel> Foam::viscosityModel::New
             << exit(FatalError);
     }
 
+    // Return autoPtr to the created model
     return autoPtr<viscosityModel>(cstrIter()(mesh, group));
 }
 ```
+
+> **💡 คำอธิบาย (Explanation):**
+> ---
+> **แหล่งที่มา (Source):** 
+> - `src/physicalProperties/viscosityModels/viscosityModel/viscosityModelNew.C`
+>
+> **การทำงาน (Functionality):**
+> - ฟังก์ชัน Factory ที่สร้าง viscosity model จาก dictionary
+> - อ่านชนิดของแบบจำลองจากไฟล์ transportProperties
+> - ค้นหาแบบจำลองใน factory table
+> - สร้าง instance และคืนค่าเป็น autoPtr
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Factory pattern**: รูปแบบการออกแบบสำหรับสร้าง object โดยไม่ต้องระบุคลาสที่แน่นอน
+> - **Runtime selection**: การเลือกแบบจำลองขณะรันโปรแกรม
+> - **autoPtr**: Smart pointer สำหรับการจัดการหน่วยความจำอัตโนมัติ
+> - **Dictionary-driven**: การควบคุมผ่านไฟล์ dictionary
+> ---
 
 #### Algorithm: Factory Selection Process
 
@@ -435,7 +589,10 @@ Foam::autoPtr<Foam::viscosityModel> Foam::viscosityModel::New
 The registration process for a specific model like `BirdCarreau` demonstrates the power of this system:
 
 ```cpp
-// In BirdCarreau.C
+// 📂 Source: src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/BirdCarreau/BirdCarreau.C
+
+// Register BirdCarreau model in the runtime selection table
+// This enables the model to be selected from dictionary
 addToRunTimeSelectionTable
 (
     generalisedNewtonianViscosityModel,
@@ -443,6 +600,23 @@ addToRunTimeSelectionTable
     dictionary
 );
 ```
+
+> **💡 คำอธิบาย (Explanation):**
+> ---
+> **แหล่งที่มา (Source):** 
+> - `src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/BirdCarreau/BirdCarreau.C`
+>
+> **การทำงาน (Functionality):**
+> - ลงทะเบียน BirdCarreau model ใน runtime selection table
+> - ทำให้ model สามารถถูกเลือกจาก dictionary ได้
+> - ทำงานผ่าน static initialization ก่อน main()
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Static registration**: การลงทะเบียนอัตโนมัติผ่าน static initialization
+> - **Macro expansion**: การขยาย macro เพื่อสร้างโค้ดลงทะเบียน
+> - **Plugin architecture**: สถาปัตยกรรมแบบ plugin ที่ยืดหยุ่น
+> - **Compile-time binding**: การผูกมัดเมื่อคอมไพล์
+> ---
 
 This macro expands to create a static object that:
 - **Self-registers** during static initialization (before `main()` executes)
@@ -462,7 +636,6 @@ flowchart LR
     style D fill:#ffa726,stroke:#ef6c00
 ```
 > **Figure 2:** แผนภูมิแสดงกลไกการลงทะเบียนแบบสถิต (Static Registration) ซึ่งเป็นพื้นฐานของสถาปัตยกรรมแบบปลั๊กอินใน OpenFOAM ช่วยให้ระบบสามารถค้นพบและเรียกใช้งานแบบจำลองความหนืดใหม่ๆ ได้โดยอัตโนมัติ
-
 
 ### Architectural Benefits
 
@@ -521,8 +694,27 @@ $$
 
 **Implementation:**
 ```cpp
+// 📂 Source: src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/HerschelBulkley/HerschelBulkley.C
+
+// Cap viscosity at maximum value to prevent numerical issues
 return min(nu0_, calculated_viscosity);
 ```
+
+> **💡 คำอธิบาย (Explanation):**
+> ---
+> **แหล่งที่มา (Source):** 
+> - `src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/HerschelBulkley/HerschelBulkley.C`
+>
+> **การทำงาน (Functionality):**
+> - จำกัดค่าความหนืดไม่ให้เกินค่าสูงสุดที่กำหนด
+> - ป้องกันปัญหาค่าความหนืดที่สูงเกินไป
+> - ช่วยให้ solver มีเสถียรภาพมากขึ้น
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Viscosity capping**: การจำกัดค่าความหนืดสูงสุด
+> - **Numerical stability**: เสถียรภาพทางตัวเลข
+> - **Min operation**: การใช้ฟังก์ชัน min เพื่อจำกัดค่า
+> ---
 
 #### 2. Papanastasiou Regularization
 
@@ -547,6 +739,8 @@ $$
 OpenFOAM uses several numerical safeguards at the C++ code level:
 
 ```cpp
+// 📂 Source: src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/HerschelBulkley/HerschelBulkley.C
+
 // Prevent division by zero in Herschel-Bulkley
 volScalarField shearRate = max(strainRate,
     dimensionedScalar("vSmall", dimRate, 1e-6));
@@ -554,6 +748,23 @@ volScalarField shearRate = max(strainRate,
 // Viscosity bounding (Limiting)
 mu = max(muMin, min(muMax, mu_calculated));
 ```
+
+> **💡 คำอธิบาย (Explanation):**
+> ---
+> **แหล่งที่มา (Source):** 
+> - `src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/HerschelBulkley/HerschelBulkley.C`
+>
+> **การทำงาน (Functionality):**
+> - ป้องกันการหารด้วยศูนย์ด้วยการใช้ max(strainRate, vSmall)
+> - จำกัดค่าความหนืดให้อยู่ในช่วงที่กำหนด
+> - ใช้ vSmall ซึ่งเป็นค่าคงที่เล็กๆ ของ OpenFOAM
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Division by zero protection**: การป้องกันการหารด้วยศูนย์
+> - **Viscosity bounding**: การจำกัดค่าความหนืด
+> - **vSmall**: ค่าคงที่เล็กๆ สำหรับความถูกต้องทางตัวเลข
+> - **Numerical safeguards**: มาตรการคุ้มครองทางตัวเลข
+> ---
 
 ### Comparison of Regularization Methods
 
@@ -584,7 +795,6 @@ graph TD
 ```
 > **Figure 3:** แผนภาพสรุปกลยุทธ์การรักษาเสถียรภาพทางตัวเลข (Stabilization Strategies) สำหรับการจำลองของไหลที่ไม่ใช่แบบนิวตัน เพื่อป้องกันปัญหาการไม่ลู่เข้าของคำตอบที่เกิดจากการเปลี่ยนแปลงความหนืดอย่างรวดเร็ว
 
-
 | Strategy | Description | Effect |
 |----------|-------------|--------|
 | **Under-Relaxation** | Limit changes in `U` and `p` fields per iteration | Prevents calculation from jumping to divergence |
@@ -596,6 +806,9 @@ graph TD
 For non-Newtonian simulations, consider these relaxation factors in `fvSolution`:
 
 ```cpp
+// 📂 Source: system/fvSolution (User configuration file)
+
+// Solver settings for non-Newtonian simulations
 solvers
 {
     p
@@ -620,6 +833,7 @@ solvers
     }
 }
 
+// Relaxation factors to improve stability
 relaxationFactors
 {
     fields
@@ -629,6 +843,24 @@ relaxationFactors
     }
 }
 ```
+
+> **💡 คำอธิบาย (Explanation):**
+> ---
+> **แหล่งที่มา (Source):** 
+> - `system/fvSolution` (ไฟล์การตั้งค่าของผู้ใช้)
+>
+> **การทำงาน (Functionality):**
+> - กำหนดค่า solver settings สำหรับการจำลอง non-Newtonian
+> - ใช้ GAMG สำหรับสมการความดัน
+> - ใช้ smoothSolver สำหรับสมการความเร็ว
+> - กำหนด relaxation factors เพื่อเพิ่มเสถียรภาพ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **GAMG solver**: Geometric-algebraic multi-grid solver
+> - **Relaxation factors**: สัมประสิทธิ์การผ่อนคลายเพื่อเสถียรภาพ
+> - **Relative tolerance**: ความอดทนต่อความคลาดเคลื่อนสัมพัทธ์
+> - **Under-relaxation**: การจำกัดการเปลี่ยนแปลงของค่าต่อรอบ
+> ---
 
 ### Troubleshooting Guide
 
@@ -666,11 +898,31 @@ relaxationFactors
 OpenFOAM's use of `tmp<volScalarField>` provides several benefits:
 
 ```cpp
+// 📂 Source: src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/strainRateViscosityModel/strainRateViscosityModel.C
+
+// Efficient temporary field handling with automatic reference counting
 tmp<volScalarField> strainRate() const
 {
     return sqrt(2.0)*mag(symm(fvc::grad(U_)));
 }
 ```
+
+> **💡 คำอธิบาย (Explanation):**
+> ---
+> **แหล่งที่มา (Source):** 
+> - `src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModels/strainRateViscosityModel/strainRateViscosityModel.C`
+>
+> **การทำงาน (Functionality):**
+> - ใช้ tmp<volScalarField> สำหรับการจัดการหน่วยความจำที่มีประสิทธิภาพ
+> - มี automatic reference counting
+> - หลีกเลี่ยงการจองหน่วยความจำที่ไม่จำเป็น
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **tmp<T>**: Smart pointer สำหรับ field ชั่วคราว
+> - **Reference counting**: การนับจำนวนการอ้างอิง
+> - **Memory management**: การจัดการหน่วยความจำอัตโนมัติ
+> - **Return value optimization**: การปรับปรุงค่าที่คืนกลับ
+> ---
 
 **Advantages:**
 - Automatic reference counting
@@ -721,10 +973,29 @@ All strain-rate and viscosity calculations are:
 Non-Newtonian models integrate with solvers through the transport model interface:
 
 ```cpp
-// In solver main loop
+// 📂 Source: Applications (solver-specific implementation)
+
+// In solver main loop - get viscosity field and update transport
 const volScalarField& nu = transport.nu();  // Get viscosity field
 transport.correct();                          // Update viscosity
 ```
+
+> **💡 คำอธิบาย (Explanation):**
+> ---
+> **แหล่งที่มา (Source):** 
+> - `Applications` (การนำไปใช้ใน solver ที่เฉพาะเจาะจง)
+>
+> **การทำงาน (Functionality):**
+> - รับค่าความหนืดจาก transport model
+> - อัปเดตค่าความหนืดในแต่ละ time step
+> - ใช้ reference เพื่อหลีกเลี่ยงการ copy ข้อมูล
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Transport model interface**: อินเทอร์เฟซสำหรับจัดการคุณสมบัติการขนส่ง
+> - **Solver integration**: การเชื่อมต่อกับ solver
+> - **Reference passing**: การส่งค่าแบบ reference
+> - **Update mechanism**: กลไกการอัปเดตค่า
+> ---
 
 ### Recommended Workflow
 

@@ -240,35 +240,78 @@ GAMG: Solving for p, initial residual = 0.05, final residual = 2.1e-06, no itera
 
 **การตรวจสอบ:**
 ```cpp
-// ใน controlDict สามารถเพิ่ม function object
+// Add function object in controlDict for monitoring
 functions
 {
     vortexCenterProbe
     {
+        // Function object type: sample along sets/lines
         type            sets;
+        
+        // Output format for sampled data
         setFormat       raw;
+        
+        // Define sampling sets
         sets            (
             vortexCenter
             {
+                // Uniform sampling along specified axis
                 type    uniform;
+                
+                // Sample along y-axis
                 axis    y;
+                
+                // Start point of sampling line (x y z)
                 start   (0.5 0 0.005);
+                
+                // End point of sampling line (x y z)
                 end     (0.5 1 0.005);
+                
+                // Number of sampling points
                 nPoints 100;
             }
         );
+        
+        // Fields to sample: pressure and velocity
         fields          (p U);
     }
 }
 ```
 
+> [!NOTE] **คำอธิบาย**
+> **แหล่งที่มา (Source):** .applications/utilities/postProcessing/miscellaneous/probes/probes.C
+> 
+> **คำอธิบาย (Explanation):** โค้ดนี้กำหนด Function Object สำหรับสุ่มค่า (sampling) ข้อมูลฟิลด์ความดันและความเร็ว ตามเส้นที่ผ่านจุดศูนย์กลางของกระแสวน โดย:
+> - `type sets`: ระบุว่าเป็นการสุ่มค่าตามเส้น (sets/lines)
+> - `setFormat raw`: ระบุรูปแบบข้อมูลที่ต้องการบันทึก (raw = ข้อมูลดิบโดยไม่มีการแปลงเพิ่ม)
+> - `axis y`: ระบุแกนที่จะสุ่มค่า (แกน y ในที่นี้)
+> - `nPoints 100`: จำนวนจุดที่ใช้ในการสุ่มค่าตามเส้น
+> - `fields (p U)`: ระบุฟิลด์ที่ต้องการสุ่มค่า (ความดัน p และความเร็ว U)
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Function Objects**: กลไกใน OpenFOAM สำหรับคำนวณและบันทึกข้อมูลระหว่างการรัน
+> - **Sampling Sets**: การสุ่มค่าฟิลด์ตามเส้นหรือจุดที่กำหนด
+> - **Raw Format**: รูปแบบข้อมูลดิบที่ไม่ผ่านการประมวลผลเพิ่มเติม
+
 #### 3. Mass Conservation Check
 
 **วิธีการตรวจสอบ:**
 ```bash
-# ใช้ utility ของ OpenFOAM
+# Use OpenFOAM utility to calculate velocity divergence
 foamCalc magDivU
 ```
+
+> [!NOTE] **คำอธิบาย**
+> **แหล่งที่มา (Source):** .applications/utilities/postProcessing/miscellaneous/calc/calc.C
+> 
+> **คำอธิบาย (Explanation):** คำสั่ง `foamCalc magDivU` ใช้คำนวณค่าขนาดของการแตกต่างของความเร็ว (magnitude of velocity divergence) ซึ่งเป็นตัวชี้วัดความถูกต้องของการอนุรักษ์มวล โดย:
+> - `magDivU`: คำนวณค่าสัมบูรณ์ของ divergence ของความเร็ว $|\nabla \cdot \mathbf{u}|$
+> - สำหรับการไหลแบบ incompressible ค่านี้ควรมีค่าใกล้ศูนย์
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Mass Conservation**: กฎการอนุรักษ์มวลในพลศาสตร์ของไหล
+> - **Velocity Divergence**: ค่า divergence ของสนามความเร็ว เป็นตัวชี้วัดว่ามวลถูกอนุรักษ์หรือไม่
+> - **Incompressible Flow**: การไหลที่ความหนาแน่นคงที่ ทำให้ $\nabla \cdot \mathbf{u} = 0$
 
 **ผลลัพธ์ที่คาดหวัง:**
 - ค่าสูงสุดของ $|\nabla \cdot \mathbf{u}|$ ควร < $10^{-8}$ 1/s
@@ -284,8 +327,21 @@ foamCalc magDivU
 
 **ขั้นตอนการแสดงผล:**
 ```bash
+# Launch ParaView with built-in reader
 paraFoam -builtin
 ```
+
+> [!NOTE] **คำอธิบาย**
+> **แหล่งที่มา (Source):** .applications/utilities/postProcessing/graphics/paraFoam/paraFoam.C
+> 
+> **คำอธิบาย (Explanation):** คำสั่ง `paraFoam -builtin` เป็นการเปิด ParaView ด้วย built-in OpenFOAM reader ที่มาพร้อมกับ OpenFOAM โดย:
+> - `-builtin`: ใช้ built-in VTK reader แทนการใช้ external ParaView
+> - อ่านข้อมูล OpenFOAM โดยตรงโดยไม่ต้องแปลงเป็น VTK format
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **ParaView**: ซอฟต์แวร์โอเพนซอร์สสำหรับ visualization ข้อมูล CFD
+> - **VTK Format**: Visualization Toolkit format สำหรับแลกเปลี่ยนข้อมูลกราฟิก
+> - **Built-in Reader**: ตัวอ่านข้อมูลที่มีมากับ OpenFOAM เอง
 
 **การตั้งค่าใน ParaView:**
 1. **Streamlines:**
@@ -334,30 +390,68 @@ $$\omega_z = \frac{\partial v}{\partial x} - \frac{\partial u}{\partial y}$$
 
 **การสร้าง Line Probe ตามแนวแกน x:**
 ```cpp
-// ใน system/sampleDict
+// Sampling dictionary for extracting data along lines
 sets
 (
+    // Horizontal line probe along x-axis at y=0.5
     centerlineX
     {
+        // Uniform distribution of sampling points
         type    uniform;
+        
+        // Sample along x-direction
         axis    x;
+        
+        // Start point (x y z)
         start   (0 0.5 0.005);
+        
+        // End point (x y z)
         end     (1 0.5 0.005);
+        
+        // Number of sampling points
         nPoints 100;
     }
 
+    // Vertical line probe along y-axis at x=0.5
     centerlineY
     {
+        // Uniform distribution of sampling points
         type    uniform;
+        
+        // Sample along y-direction
         axis    y;
+        
+        // Start point (x y z)
         start   (0.5 0 0.005);
+        
+        // End point (x y z)
         end     (0.5 1 0.005);
+        
+        // Number of sampling points
         nPoints 100;
     }
 );
 
+// Fields to sample: pressure and velocity
 fields (p U);
 ```
+
+> [!NOTE] **คำอธิบาย**
+> **แหล่งที่มา (Source):** .applications/utilities/postProcessing/miscellaneous/sample/sample.C
+> 
+> **คำอธิบาย (Explanation):** ไฟล์ sampleDict กำหนดการสุ่มค่าข้อมูลฟิลด์ตามแนวเส้นที่กำหนด โดย:
+> - `sets`: ระบุการสุ่มค่าตามเส้น (sets/lines)
+> - `centerlineX` และ `centerlineY`: ชื่อของเส้นที่จะสุ่มค่า
+> - `type uniform`: แจกแจงจุดสุ่มค่าอย่างสม่ำเสมอ
+> - `axis x/y`: ระบุแกนที่จะสุ่มค่า
+> - `start/end`: จุดเริ่มต้นและจุดสิ้นสุดของเส้นสุ่มค่า
+> - `nPoints 100`: จำนวนจุดที่ใช้ในการสุ่มค่า
+> - `fields (p U)`: ฟิลด์ที่ต้องการสุ่มค่า (ความดันและความเร็ว)
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Line Probe**: เส้นสมมติสำหรับสุ่มค่าข้อมูลฟิลด์
+> - **Uniform Sampling**: การสุ่มค่าด้วยระยะห่างสม่ำเสมอ
+> - **Field Sampling**: การดึงค่าฟิลด์ (ความดัน, ความเร็ว) จากตำแหน่งที่กำหนด
 
 **ผลลัพธ์ที่คาดหวัง:**
 - **ตามแนวกลาง x (y = 0.5):**
@@ -374,8 +468,22 @@ fields (p U);
 
 **การคำนวณ:**
 ```bash
+# Calculate wall shear stress at specific time
 wallShearStress -time 0.5
 ```
+
+> [!NOTE] **คำอธิบาย**
+> **แหล่งที่มา (Source):** .applications/utilities/postProcessing/wall/wallShearStress/wallShearStress.C
+> 
+> **คำอธิบาย (Explanation):** คำสั่ง `wallShearStress` คำนวณค่าความเค้นเฉือนที่ผนัง (wall shear stress) จาก gradient ของความเร็วปกติต่อผนัง โดย:
+> - `-time 0.5`: ระบุเวลาที่ต้องการคำนวณ (time directory)
+> - คำนวณค่า $\tau_w = \mu (\partial u/\partial n)_{\text{wall}}$
+> - บันทึกผลลัพธ์ลงในไฟล์ `wallShearStress` ใน time directory
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Wall Shear Stress**: ความเค้นเฉือนที่เกิดที่ผนังจากการไหลของของไหล
+> - **Velocity Gradient**: การเปลี่ยนแปลงของความเร็วในทิศทางปกติต่อผนัง
+> - **No-slip Condition**: เงื่อนไขที่ความเร็วของของไหลที่ผนังเป็นศูนย์
 
 **ผลลัพธ์ที่คาดหวัง:**
 - Shear stress สูงสุดบน Lid (เนื่องจาก $U_{\text{lid}} = 1$ m/s)
@@ -433,31 +541,78 @@ Ghia, U., Ghia, K. N., & Shin, C. T. (1982). "High-Re solutions for incompressib
 **ขั้นตอน:**
 1. Export ข้อมูลจาก OpenFOAM:
 ```bash
+# Sample data according to sampleDict
 sample -dict system/sampleDict
 ```
+
+> [!NOTE] **คำอธิบาย**
+> **แหล่งที่มา (Source):** .applications/utilities/postProcessing/miscellaneous/sample/sample.C
+> 
+> **คำอธิบาย (Explanation):** คำสั่ง `sample` ใช้สุ่มค่าข้อมูลฟิลด์ตามที่กำหนดใน sampleDict โดย:
+> - `-dict system/sampleDict`: ระบุไฟล์ dictionary ที่มีการกำหนด sampling
+> - อ่านค่าฟิลด์ตามเส้นหรือจุดที่กำหนดใน sampleDict
+> - บันทึกผลลัพธ์ลงใน directory `sets/`
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Data Sampling**: การดึงข้อมูลฟิลด์จากตำแหน่งที่กำหนด
+> - **Dictionary Files**: ไฟล์กำหนดค่าของ OpenFOAM
+> - **Post-processing**: การประมวลผลภายหลังจากการจำลองเสร็จสิ้น
 
 2. สร้าง Plot ด้วย Python/Matplotlib:
 ```python
 import matplotlib.pyplot as plt
 import numpy as np
 
-# โหลดข้อมูลจาก OpenFOAM
+# Load data from OpenFOAM simulation
 x_foam, u_foam = np.loadtxt('sets/centerlineX_U.xy', unpack=True)
 
-# โหลดข้อมูลจาก Ghia et al.
+# Load benchmark data from Ghia et al. (1982)
 x_ghia, u_ghia = np.loadtxt('ghia_Re10_u.xy', unpack=True)
 
+# Create figure with specified size
 plt.figure(figsize=(8, 6))
+
+# Plot OpenFOAM results with blue circles and solid line
 plt.plot(x_foam, u_foam, 'b-o', label='OpenFOAM (20x20)', linewidth=2)
+
+# Plot Ghia et al. benchmark data with red dashed line
 plt.plot(x_ghia, u_ghia, 'r--', label='Ghia et al. (1982)', linewidth=2)
+
+# Set axis labels with specified font size
 plt.xlabel('x/L', fontsize=14)
 plt.ylabel('u/U_lid', fontsize=14)
+
+# Set plot title
 plt.title('Velocity Profile along Centerline (y=0.5, Re=10)', fontsize=16)
+
+# Display legend with specified font size
 plt.legend(fontsize=12)
+
+# Enable grid with transparency
 plt.grid(True, alpha=0.3)
+
+# Adjust layout to prevent label clipping
 plt.tight_layout()
+
+# Save figure to file with high resolution
 plt.savefig('validation_velocity_profile.png', dpi=300)
 ```
+
+> [!NOTE] **คำอธิบาย**
+> **แหล่งที่มา (Source):** เป็น Python script สำหรับ visualization และ validation
+> 
+> **คำอธิบาย (Explanation):** สคริปต์ Python นี้ใช้สร้างกราฟเปรียบเทียบระหว่างผลลัพธ์ OpenFOAM กับข้อมูลอ้างอิง Ghia et al. โดย:
+> - `np.loadtxt`: โหลดข้อมูลจากไฟล์ text
+> - `plt.plot`: สร้างกราฟเส้น
+> - `label`: ป้ายกำกับสำหรับ legend
+> - `figsize`: ขนาดของกราฟ (นิ้ว)
+> - `dpi`: ความละเอียดของภาพ (dots per inch)
+> - `linewidth`: ความหนาของเส้น
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Data Validation**: การตรวจสอบความถูกต้องของผลลัพธ์เทียบกับข้อมูลอ้างอิง
+> - **Visualization**: การแสดงผลข้อมูลในรูปแบบกราฟิก
+> - **Benchmark Data**: ข้อมูลอ้างอิงมาตรฐานจากวรรณกรรมทางวิชาการ
 
 **ผลลัพธ์ที่คาดหวัง:**
 - กราฟควรทับซ้อนกับข้อมูล Ghia et al. อย่างใกล้ชิด

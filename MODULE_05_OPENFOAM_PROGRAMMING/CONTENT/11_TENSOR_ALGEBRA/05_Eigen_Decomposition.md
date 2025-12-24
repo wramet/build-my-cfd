@@ -26,7 +26,7 @@ flowchart TD
     style V fill:#c8e6c9
     style D fill:#e1f5fe
 ```
-> **Figure 1:** ขั้นตอนการแยกส่วนค่าลักษณะเฉพาะ (Eigen Decomposition) เพื่อหาขนาดหลัก (Eigenvalues) และทิศทางหลัก (Eigenvectors) จากเมทริกซ์เทนเซอร์ที่ซับซ้อน ช่วยให้เห็นภาพรวมของความเค้นหรือความเครียดในระบบความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** ขั้นตอนการแยกส่วนค่าลักษณะเฉพาะ (Eigen Decomposition) เพื่อหาขนาดหลัก (Eigenvalues) และทิศทางหลัก (Eigenvectors) จากเมทริกซ์เทนเซอร์ที่ซับซ้อน ช่วยให้เห็นภาพรวมของความเค้นหรือความเครียดในระบบ
 
 ---
 
@@ -35,10 +35,26 @@ flowchart TD
 In OpenFOAM, computing eigenvalues and eigenvectors is straightforward:
 
 ```cpp
-symmTensor S(2,-1,0, -1,2,0, 0,0,1);  // Example symmetric tensor
-vector lambdas = eigenValues(S);      // Returns eigenvalues as vector
-tensor V = eigenVectors(S);           // Returns eigenvectors as tensor columns
+// Example: Symmetric tensor with six components (xx, xy, xz, yy, yz, zz)
+symmTensor S(2, -1, 0, -1, 2, 0, 0, 0, 1);  // Initialize symmetric tensor
+
+// Compute eigenvalues (principal magnitudes) - returns as vector sorted largest to smallest
+vector lambdas = eigenValues(S);
+
+// Compute eigenvectors (principal directions) - returns as tensor columns
+tensor V = eigenVectors(S);
 ```
+
+> **📂 Source:** `.applications/test/tensor/Test-tensor.C`
+>
+> **Source Finding:** The test file demonstrates eigenvalue/eigenvector computation with verification checks, including the line `vector e = eigenValues(t6);` and `tensor ev = eigenVectors(t6);`
+>
+> **Key Concepts:**
+> - `symmTensor`: Symmetric tensor type requiring only 6 components (xx, xy, xz, yy, yz, zz)
+> - `eigenValues()`: Returns eigenvalues sorted from largest to smallest as a `vector`
+> - `eigenVectors()`: Returns eigenvectors as columns of a `tensor` (each column is one eigenvector)
+> - For symmetric tensors, eigenvectors are always orthogonal and form a complete basis
+> - Thai: ฟังก์ชัน `eigenValues()` และ `eigenVectors()` ใช้สำหรับคำนวณค่าลักษณะเฉพาะและเวกเตอร์ลักษณะเฉพาะ โดยค่าลักษณะเฉพาะจะถูกเรียงลำดับจากมากไปน้อย
 
 **Key Behavior:**
 - The `eigenValues` function returns three eigenvalues sorted from largest to smallest

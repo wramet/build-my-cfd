@@ -29,7 +29,7 @@ mindmap
       Cache Efficiency
       Reference Semantics
 ```
-> **Figure 1:** แผนผังความคิดสรุปสถาปัตยกรรมของฟิลด์เรขาคณิต ครอบคลุมทั้งพารามิเตอร์เทมเพลต ลำดับชั้นการสืบทอด รูปแบบการออกแบบ และประสิทธิภาพการทำงานความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** แผนผังความคิดสรุปสถาปัตยกรรมของฟิลด์เรขาคณิต ครอบคลุมทั้งพารามิเตอร์เทมเพลต ลำดับชั้นการสืบทอด รูปแบบการออกแบบ และประสิทธิภาพการทำงาน
 
 ## 7.1 สรุปประเด็นสำคัญ
 
@@ -59,7 +59,7 @@ flowchart TD
     D --> D2[surfaceMesh - face centers]
     D --> D3[pointMesh - mesh points]
 ```
-> **Figure 2:** องค์ประกอบของเทมเพลต GeometricField ซึ่งประกอบด้วยพารามิเตอร์ 3 ชนิด (Type, PatchField, GeoMesh) ที่กำหนดลักษณะทางคณิตศาสตร์ พฤติกรรมขอบเขต และโดเมนเชิงพื้นที่ของข้อมูลความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 2:** องค์ประกอบของเทมเพลต GeometricField ซึ่งประกอบด้วยพารามิเตอร์ 3 ชนิด (Type, PatchField, GeoMesh) ที่กำหนดลักษณะทางคณิตศาสตร์ พฤติกรรมขอบเขต และโดเมนเชิงพื้นที่ของข้อมูล
 
 ระบบเทมเพลตสามพารามิเตอร์นี้ทำให้ OpenFOAM สามารถสร้างประเภทฟิลด์ที่เหมาะสมที่รวบรวมได้ในเวลาคอมไพล์ ในขณะที่ยังคงความปลอดภัยของประเภทตลอดทั้งกรอบงาน
 
@@ -78,6 +78,16 @@ DimensionedField<Type, GeoMesh> dimensionalField(data, dimensions);
 GeometricField<Type, PatchField, GeoMesh> geometricField(dimensionalField, mesh);
 ```
 
+> **📂 Source:** `src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H`
+
+> **คำอธิบาย:**
+> โค้ดนี้แสดงลำดับชั้นของการสร้างฟิลด์ใน OpenFOAM โดยเริ่มจาก `Field<Type>` ที่เก็บข้อมูลดิบ จากนั้นเพิ่มมิติทางฟิสิกส์ผ่าน `DimensionedField` และสุดท้ายเพิ่มบริบทเรขาคณิตและการจัดการขอบเขตผ่าน `GeometricField`
+>
+> **แนวคิดสำคัญ:**
+> - **Layered Architecture**: แต่ละชั้นมีความรับผิดชอบที่แตกต่างกัน
+> - **Incremental Enhancement**: เพิ่มความสามารถทีละขั้นตอน
+> - **Type Safety**: การตรวจสอบประเภทข้อมูลที่ขั้นตอนคอมไพล์
+
 ```mermaid
 flowchart TD
     A[Field&lt;Type&gt;<br/>Raw Data Storage] --> B[DimensionedField&lt;Type, GeoMesh&gt;<br/>Dimensions + Mesh Reference]
@@ -86,7 +96,7 @@ flowchart TD
     C --> E[volVectorField<br/>Velocity, Momentum]
     C --> F[surfaceScalarField<br/>Flux Calculations]
 ```
-> **Figure 3:** ลำดับชั้นการถ่ายทอดคุณสมบัติของฟิลด์ใน OpenFOAM โดยแต่ละชั้นจะเพิ่มความสามารถเฉพาะด้าน เช่น มิติทางฟิสิกส์ การเชื่อมโยงเมช และการจัดการขอบเขตความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 3:** ลำดับชั้นการถ่ายทอดคุณสมบัติของฟิลด์ใน OpenFOAM โดยแต่ละชั้นจะเพิ่มความสามารถเฉพาะด้าน เช่น มิติทางฟิสิกส์ การเชื่อมโยงเมช และการจัดการขอบเขต
 
 ความคืบหน้าของลำดับชั้นช่วยให้:
 - **ประสิทธิภาพหน่วยความจำ**: ฟังก์ชันการทำงานร่วมกันได้รับการถ่ายทอดมากกว่าซ้ำซ้อน
@@ -111,6 +121,16 @@ class GeometricField
 };
 ```
 
+> **📂 Source:** `src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H`
+
+> **คำอธิบาย:**
+> การออกแบบนี้แยกข้อมูลโทโพโลยีเมช (mesh_) ออกจากข้อมูลฟิลด์ (field_) โดยใช้การอ้างอิงแทนการเป็นเจ้าของโดยตรง ช่วยให้หลายฟิลด์สามารถแชร์เมชเดียวกันได้
+>
+> **แนวคิดสำคัญ:**
+> - **Reference Semantics**: ใช้ reference แทนการคัดลอก
+> - **Separation of Concerns**: แยกโทโพโลยีและข้อมูลฟิลด์
+> - **Memory Efficiency**: ลดการใช้หน่วยความจำ
+
 > [!INFO] Reference-Based Design
 > การออกแบบที่ใช้การอ้างอิงนี้ให้:
 > - **ประสิทธิภาพหน่วยความจำ**: ฟิลด์หลายฟิลด์แชร์การอ้างอิงเมชเดียวกัน
@@ -130,6 +150,16 @@ volScalarField nu("nu", dimKinematicViscosity, mesh);
 volScalarField p("p", dimPressure, mesh);
 // auto invalid = nu + p;  // Compilation error!
 ```
+
+> **📂 Source:** `src/OpenFOAM/dimensionSet/dimensionSet.H`
+
+> **คำอธิบาย:**
+> ระบบมิติของ OpenFOAM ติดตามหน่วยฐาน 7 หน่วย (Mass, Length, Time, Temperature, Moles, Current, Luminous intensity) การดำเนินการที่ไม่สอดคล้องทางมิติจะถูกตรวจพบที่ขั้นตอนคอมไพล์
+>
+> **แนวคิดสำคัญ:**
+> - **Compile-Time Checking**: ตรวจสอบมิติก่อนรันไทม์
+> - **Physical Consistency**: รับประกันความถูกต้องทางฟิสิกส์
+> - **Type Safety**: ใช้ระบบประเภท C++ เพื่อบังคับมิติ
 
 ระบบมิติติดตามหน่วยพื้นฐานเจ็ดหน่วย:
 
@@ -163,6 +193,16 @@ public:
 };
 ```
 
+> **📂 Source:** `src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricBoundaryField.H`
+
+> **คำอธิบาย:**
+> `GeometricBoundaryField` เป็นคอนเทนเนอร์ที่เก็บเงื่อนไขขอบเขตสำหรับทุกแพตช์บนเมช แต่ละแพตช์สามารถมีประเภทเงื่อนไขขอบเขตที่แตกต่างกัน (fixedValue, zeroGradient, เป็นต้น) แต่ยังคงอินเทอร์เฟซที่สม่ำเสมอ
+>
+> **แนวคิดสำคัญ:**
+> - **Polymorphic BCs**: เงื่อนไขขอบเขตหลายประเภทบนเมชเดียว
+> - **Uniform Interface**: operator[] เข้าถึงทุกประเภทแพตช์
+> - **Runtime Flexibility**: กำหนดเงื่อนไขขอบเขตผ่าน dictionary
+
 แพตช์ขอบเขตแต่ละแพตช์สามารถมีประเภทเงื่อนไขที่แตกต่างกัน (ค่าคงที่, การไล่ระดับ, ผสม, เป็นต้น) ในขณะที่ยังคงอินเทอร์เฟซที่สม่ำเสมอผ่านพารามิเตอร์เทมเพลต `PatchField`
 
 ## 7.2 รูปแบบการออกแบบในการใช้งาน
@@ -187,6 +227,16 @@ volScalarField p;      // pressure at cell centers
 surfaceScalarField phi; // flux at face centers
 pointVectorField U;    // velocity at mesh points
 ```
+
+> **📂 Source:** `src/OpenFOAM/fields/GeometricFields/GeometricField/geometricFieldFwd.H`
+
+> **คำอธิบาย:**
+> Template metaprogramming ของ OpenFOAM สร้างชุดประเภทฟิลด์ทั้งหมด (vol, surface, point) สำหรับแต่ละประเภทข้อมูล (scalar, vector, tensor) ในเวลาคอมไพล์ ทำให้ไม่มีค่าใช้จ่ายรันไทม์
+>
+> **แนวคิดสำคัญ:**
+> - **Zero-Overhead Abstraction**: การแก้ไขประเภททั้งหมดเวลาคอมไพล์
+> - **Type Matrix**: 3 mesh types × n data types = 3n field types
+> - **Code Reuse**: การใช้งานเดียวทำงานสำหรับทุกประเภทฟิลด์
 
 > [!TIP] ประโยชน์ของ Template Metaprogramming
 > - **ไม่มีค่าใช้จ่ายรันไทม์**: การแก้ไขประเภททั้งหมดเวลาคอมไพล์
@@ -222,6 +272,16 @@ class zeroGradientFvPatchField : public fvPatchField<Type>
     void updateCoeffs() override { /* No update needed */ }
 };
 ```
+
+> **📂 Source:** `src/OpenFOAM/fields/Fields/fvPatchFields/fvPatchField/fvPatchField.H`
+
+> **คำอธิบาย:**
+> Policy-based design ของเงื่อนไขขอบเขตใช้ interface พื้นฐาน `fvPatchField` พร้อมเมธอดเสมือน `updateCoeffs()` แต่ละนโยบาย (fixedValue, zeroGradient) ให้การนำไปใช้ที่แตกต่างกันของพฤติกรรมนี้
+>
+> **แนวคิดสำคัญ:**
+> - **Strategy Pattern**: แต่ละ BC เป็น strategy ที่แตกต่างกัน
+> - **Virtual Interface**: Polymorphism ผ่านฟังก์ชันเสมือน
+> - **Extensibility**: เพิ่ม BC ใหม่ได้โดยไม่แก้ไขโค้ดที่มีอยู่
 
 | ประโยชน์ | คำอธิบาย |
 |-----------|-----------|
@@ -263,6 +323,16 @@ public:
 }
 ```
 
+> **📂 Source:** `src/OpenFOAM/memory/tmp.H`
+
+> **คำอธิบาย:**
+> คลาส `tmp` ของ OpenFOAM เป็น smart pointer ที่ใช้หลักการ RAII (Resource Acquisition Is Initialization) เพื่อจัดการหน่วยความจำอัตโนมัติ เมื่อ scope สิ้นสุด destructor จะลบหน่วยความจำโดยอัตโนมัติ
+>
+> **แนวคิดสำคัญ:**
+> - **RAII**: จัดการทรัพยากรผ่านวงจรชีวิตของวัตถุ
+> - **Move Semantics**: ย้ายความเป็นเจ้าของแทนการคัดลอก
+> - **Exception Safety**: รับประกันการล้างข้อมูลแม้กรณีข้อยกเว้น
+
 > [!WARNING] ข้อดีของ RAII
 > - **ความปลอดภัยข้อยกเว้น**: ทรัพยากรถูกล้างข้อมูลแม้ว่าจะเกิดข้อยกเว้น
 > - **การเป็นเจ้าของที่ชัดเจน**: การโอนสถานะที่ชัดเจน
@@ -282,6 +352,16 @@ typedef GeometricField<tensor, fvPatchField, volMesh> volTensorField;
 volScalarField p(mesh, dimensionSet(1, -1, -2, 0, 0, 0, 0));
 volVectorField U(mesh, dimensionSet(0, 1, -1, 0, 0, 0, 0));
 ```
+
+> **📂 Source:** `src/OpenFOAM/fields/GeometricFields/GeometricField/geometricFieldFwd.H`
+
+> **คำอธิบาย:**
+> OpenFOAM ซ่อนความซับซ้อนของเทมเพลตด้วย typedef ที่สร้างชื่อประเภทที่เป็นมิตรกับผู้ใช้ ผู้ใช้ทำงานกับ `volScalarField` แทน `GeometricField<scalar, fvPatchField, volMesh>`
+>
+> **แนวคิดสำคัญ:**
+> - **Type Erasure**: ซ่อนรายละเอียดเทมเพลตจากผู้ใช้
+> - **Syntactic Sugar**: ชื่อประเภทที่สั้นและชัดเจน
+> - **Implementation Hiding**: เปลี่ยน implementation โดยไม่กระทบผู้ใช้
 
 **ประโยชน์ของการลบประเภท:**
 - **ไวยากรณ์ที่ง่ายขึ้น**: ผู้ใช้ไม่จำเป็นต้องระบุพารามิเตอร์เทมเพลต
@@ -320,6 +400,16 @@ volScalarField T(mesh, temperatureDimensions); // References mesh
 // Both fields share mesh data, no duplication
 ```
 
+> **📂 Source:** `src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.C`
+
+> **คำอธิบาย:**
+> Reference semantics ช่วยให้หลายฟิลด์แชร์เมชเดียวกันได้ ลดการใช้หน่วยความจำและเพิ่มประสิทธิภาพแคช เมื่อคัดลอกฟิลด์เฉพาะข้อมูลฟิลด์เท่านั้นที่ถูกทำซ้ำไม่ใช่โครงสร้างเมช
+>
+> **แนวคิดสำคัญ:**
+> - **Shared Mesh Topology**: หลายฟิลด์แชร์ mesh reference เดียว
+> - **Data Locality**: ข้อมูลฟิลด์เก็บแบบติดต่อกัน
+> - **Copy-on-Write**: คัดลอกเฉพาะเมื่อจำเป็น
+
 **ประโยชน์หน่วยความจำ:**
 - **การแชร์เมช**: ฟิลด์หลายฟิลด์อ้างอิงโครงสร้างเมชเดียวกัน
 - **ประสิทธิภาพแคช**: ข้อมูลฟิลด์ถูกเก็บในบล็อกหน่วยความจำติดต่อกัน
@@ -357,6 +447,16 @@ auto result = fieldA + fieldB * 2.0;  // Expression template constructed
 // Actual computation deferred until assignment or access
 ```
 
+> **📂 Source:** `src/OpenFOAM/fields/Fields/Field/FieldFunctions.H`
+
+> **คำอธิบาย:**
+> Expression templates ของ OpenFOAM สร้าง expression tree โดยไม่คำนวณทันที การคำนวณถูกเลื่อนไปจนกว่าจะมีการ assign หรือเข้าถึงข้อมูล ทำให้สามารถ fuse การดำเนินการหลายอย่างและลดตัวแปรชั่วคราว
+>
+> **แนวคิดสำคัญ:**
+> - **Lazy Evaluation**: คำนวณเมื่อจำเป็นเท่านั้น
+> - **Expression Tree**: เก็บโครงสร้างนิพจน์ไม่ใช่ผลลัพธ์
+> - **Operator Fusion**: รวมการดำเนินการหลายอย่างเป็น loop เดียว
+
 ```mermaid
 flowchart LR
     A[fieldA] --> C[+ Operator]
@@ -364,7 +464,7 @@ flowchart LR
     C --> D[No Temporary Allocation]
     D --> E[Direct Computation on Assignment]
 ```
-> **Figure 4:** การทำงานของตัวดำเนินการบวกผ่าน Expression Template ซึ่งช่วยหลีกเลี่ยงการสร้างตัวแปรชั่วคราวและประมวลผลข้อมูลได้ในขั้นตอนเดียวความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 4:** การทำงานของตัวดำเนินการบวกผ่าน Expression Template ซึ่งช่วยหลีกเลี่ยงการสร้างตัวแปรชั่วคราวและประมวลผลข้อมูลได้ในขั้นตอนเดียว
 
 **ประโยชน์ด้านประสิทธิภาพ:**
 - **ไม่มีตัวแปรชั่วคราว**: ผลลัพธ์ระดับกลางถูกคำนวณโดยตรง
@@ -396,6 +496,16 @@ public:
     Type* end() { return v_ + size_; }
 };
 ```
+
+> **📂 Source:** `src/OpenFOAM/fields/Fields/Field/Field.H`
+
+> **คำอธิบาย:**
+> ข้อมูลฟิลด์ OpenFOAM ถูกเก็บในหน่วยความจำแบบติดต่อกันเพื่อประสิทธิภาพแคชสูงสุด การเข้าถึงตามลำดับทำให้ hardware prefetcher ทำงานได้ดีขึ้นและลด cache misses
+>
+> **แนวคิดสำคัญ:**
+> - **Data Locality**: ข้อมูลที่เกี่ยวข้องอยู่ใกล้กันในหน่วยความจำ
+> - **Contiguous Storage**: เก็บข้อมูลใน array เดียวติดต่อกัน
+> - **Cache-Friendly**: รูปแบบการเข้าถึงที่คาดการณ์ได้
 
 **ประโยชน์ของแคช:**
 - **ความใกล้ชิดเชิงพื้นที่**: ข้อมูลที่เกี่ยวข้องถูกเก็บติดต่อกัน
@@ -446,6 +556,16 @@ Info << "Temperature stats - Min: " << TMin
      << " Max: " << TMax << " Avg: " << TAvg << endl;
 ```
 
+> **📂 Source:** Based on typical solver patterns in `applications/solvers/heatTransfer/`
+
+> **คำอธิบาย:**
+> แบบฝึกหัดนี้สาธิตการสร้างและจัดการฟิลด์อุณหภูมิใน OpenFOAM ฟิลด์ถูกสร้างด้วย IOobject ที่ระบุวิธีการอ่าน/เขียน มิติทางฟิสิกส์ และค่าเริ่มต้น จากนั้นตรวจสอบเงื่อนไขขอบเขตและคำนวณสถิติ
+>
+> **แนวคิดสำคัญ:**
+> - **Field Construction**: ใช้ IOobject สำหรับ I/O management
+> - **Boundary Iteration**: เข้าถึง BC แต่ละแพตช์ด้วย loop
+> - **Field Statistics**: ใช้ฟังก์ชัน global (min, max, sum)
+
 ### **แบบฝึกหัดที่ 2: การดำเนินการฟิลด์ที่ซับซ้อน**
 
 **วัตถุประสงค์**: ใช้ตัวดำเนินการเชิงอนุพันธ์และการคำนวณฟลักซ์
@@ -471,6 +591,16 @@ Info << "gradP dimensions: " << gradP.dimensions() << endl;
 Info << "phi dimensions: " << phi.dimensions() << endl;
 Info << "divPhi dimensions: " << divPhi.dimensions() << endl;
 ```
+
+> **📂 Source:** Based on FVC (Finite Volume Calculus) operations in `src/OpenFOAM/finiteVolume/fvc/`
+
+> **คำอธิบาย:**
+> แบบฝึกหัดนี้แสดงการใช้ตัวดำเนินการเชิงอนุพันธ์ของ OpenFOAM `fvc::grad` คำนวณ gradient, `fvc::flux` คำนวณ surface flux และ `fvc::div` คำนวณ divergence ระบบมิติตรวจสอบความถูกต้องโดยอัตโนมัติ
+>
+> **แนวคิดสำคัญ:**
+> - **FVC Operations**: ใช้ fvc namespace สำหรับการคำนวณ
+> - **Automatic Differentiation**: discretization เกิดขึ้นโดยอัตโนมัติ
+> - **Dimension Checking**: ตรวจสอบมิติผลลัพธ์
 
 ### **แบบฝึกหัดที่ 3: การพัฒนาเงื่อนไขขอบเขตแบบกำหนดเอง**
 
@@ -520,6 +650,16 @@ public:
 };
 ```
 
+> **📂 Source:** Based on BC patterns in `src/OpenFOAM/fields/fvPatchFields/derived/`
+
+> **คำอธิบาย:**
+> แบบฝึกหัดนี้แสดงวิธีสร้างเงื่อนไขขอบเขตแบบกำหนดเอง คลาสสืบทอดจาก `fvPatchField` และแทนที่เมธอด `updateCoeffs()` เพื่ออัปเดตค่า BC ตามเวลา
+>
+> **แนวคิดสำคัญ:**
+> - **BC Inheritance**: สืบทอดจาก fvPatchField
+> - **Runtime Update**: updateCoeffs() เรียกทุก time step
+> - **Dictionary Parameters**: อ่านค่าพารามิเตอร์จาก dictionary
+
 ### **แบบฝึกหัดที่ 4: การวิเคราะห์ประสิทธิภาพ**
 
 **วัตถุประสงค์**: เปรียบเทียบประสิทธิภาพของการดำเนินการฟิลด์
@@ -550,6 +690,16 @@ Info << "tmp time: " << gradTime2 << " s" << endl;
 Info << "Field size: " << p.size() * sizeof(scalar) / 1024.0
      << " KB" << endl;
 ```
+
+> **📂 Source:** Based on performance analysis patterns in OpenFOAM utilities
+
+> **คำอธิบาย:**
+> แบบฝึกหัดนี้แสดงการวัดประสิทธิภาพการดำเนินการฟิลด์ เปรียบเทียบการคัดลอกโดยตรงกับการใช้ smart pointer `tmp<>` และวิเคราะห์การใช้หน่วยความจำ
+>
+> **แนวคิดสำคัญ:**
+> - **Performance Measurement**: ใช้ clockTime สำหรับ benchmarking
+> - **tmp Optimization**: หลีกเลี่ยงการคัดลอกที่ไม่จำเป็น
+> - **Memory Profiling**: ติดตามการใช้หน่วยความจำ
 
 ## 7.5 เส้นทางการเรียนรู้ต่อยอด
 

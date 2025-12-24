@@ -430,6 +430,7 @@ $$\text{subject to } \boldsymbol{\phi}_i \cdot \boldsymbol{\phi}_j = \delta_{ij}
 ### แนวปฏิบัติที่ดีที่สุด (Best Practices)
 
 ```cpp
+// ✅ Good practice: Standard field creation
 // ✅ แนวปฏิบัติที่ดี: การสร้าง field แบบมาตรฐาน
 volScalarField p
 (
@@ -438,6 +439,7 @@ volScalarField p
     mesh
 );
 
+// Initialize with physically meaningful values
 // กำหนดค่าเริ่มต้นด้วยค่าทางกายภาพที่ถูกต้อง
 p == dimensionedScalar("p", p.dimensions(), 101325.0);
 ```
@@ -447,13 +449,33 @@ p == dimensionedScalar("p", p.dimensions(), 101325.0);
 - กำหนด **ค่าเริ่มต้น** ที่มีความหมายทางกายภาพ
 - ตรวจสอบ **units และ dimensions** ให้ถูกต้องเสมอ
 
+---
+
+<details>
+<summary>📖 คำอธิบายเพิ่มเติม (Thai Explanation)</summary>
+
+**ที่มาที่มา (Source):** ไฟล์นี้เป็นไฟล์ภาพรวมของโมดูลหัวข้อขั้นสูงใน OpenFOAM ซึ่งเป็นส่วนหนึ่งของเอกสารการเรียนการสอน CFD
+
+**คำอธิบาย (Explanation):** โค้ดตัวอย่างนี้แสดงให้เห็นถึงแนวปฏิบัติที่ดีที่สุดในการสร้าง field ใน OpenFOAM โดยเฉพาะอย่างยิ่ง:
+1. การใช้ `IOobject` เพื่อกำหนดการอ่านและเขียน field
+2. การใช้ `dimensionedScalar` เพื่อกำหนดค่าเริ่มต้นที่มีหน่วยที่ถูกต้อง
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Field Management:** การจัดการ field ใน OpenFOAM ใช้ `IOobject` เพื่อควบคุมการอ่าน/เขียน
+- **Dimensioned Scalars:** ค่าสเกลาร์ที่มีหน่วยกายภาพ (dimensions) เพื่อรักษาความถูกต้องทางฟิสิกส์
+- **Initialization:** การกำหนดค่าเริ่มต้นที่มีความหมายทางกายภาพเป็นสิ่งสำคัญสำหรับความเสถียรของการคำนวณ
+
+</details>
+
 ### การจัดการหน่วยความจำ (Memory Management)
 
 ```cpp
+// ✅ Efficient memory usage
 // ✅ การใช้หน่วยความจำอย่างมีประสิทธิภาพ
 tmp<volScalarField> tnuEff = turbulence().nuEff();
 const volScalarField& nuEff = tnuEff();  // Reference access
 
+// Avoid unnecessary copying
 // หลีกเลี่ยงการคัดลอกโดยไม่จำเป็น
 const fvPatchScalarField& nuEffp = nuEff.boundaryField()[patchi];
 ```
@@ -462,6 +484,25 @@ const fvPatchScalarField& nuEffp = nuEff.boundaryField()[patchi];
 - ใช้ **tmp<T>** สำหรับ objects ที่สร้างชั่วคราว
 - ใช้ **const reference** เพื่อหลีกเลี่ยงการคัดลอก
 - ใช้ **reference counting** ใน OpenFOAM อัตโนมัติ
+
+---
+
+<details>
+<summary>📖 คำอธิบายเพิ่มเติม (Thai Explanation)</summary>
+
+**ที่มาที่มา (Source):** แนวปฏิบัตินี้พบได้บ่อยในโค้ด OpenFOAM โดยเฉพาะใน solvers และ models ต่างๆ เช่นใน `.applications/solvers/multiphase/multiphaseEulerFoam/`
+
+**คำอธิบาย (Explanation):** โค้ดนี้แสดงเทคนิคการจัดการหน่วยความจำที่มีประสิทธิภาพใน OpenFOAM:
+1. `tmp<T>` เป็น template class ที่ใช้สำหรับ objects ชั่วคราว โดยจะใช้ reference counting เพื่อจัดการหน่วยความจำอัตโนมัติ
+2. การใช้ `const reference` ช่วยลดการคัดลอกข้อมูลโดยไม่จำเป็น
+3. การเข้าถึง boundary field โดยตรงช่วยประหยัดหน่วยความจำและเพิ่มประสิทธิภาพ
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Smart Pointers:** `tmp<T>` ทำงานเหมือน smart pointer ที่มี reference counting
+- **Memory Optimization:** การลดการคัดลองข้อมูลช่วยประหยัดหน่วยความจำและเวลาในการประมวลผล
+- **Const Correctness:** การใช้ `const` ช่วยป้องกันการแก้ไขข้อมูลโดยไม่ตั้งใจและช่วยให้ compiler ทำ optimization ได้ดีขึ้น
+
+</details>
 
 ---
 

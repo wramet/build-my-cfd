@@ -127,6 +127,23 @@ EOF
 blockMesh
 ```
 
+> **📂 Source:** N/A (Bash script)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+ขั้นตอนการสร้าง mesh สำหรับโดเมนของไหลในการจำลอง CHT (Conjugate Heat Transfer) โดยใช้ blockMeshDict เพื่อสร้างเมทริกซ์หกเหลี่ยมพร้อมส่วนต่อประสานประเภท mappedWall
+
+**คำอธิบาย (Explanation):**
+- `vertices`: กำหนดพิกัดมุมของโดเมนกระบอกลม 8 จุดสำหรับการสร้าง hex mesh
+- `blocks`: สร้าง block หลักจาก 8 vertices พร้อมการแบ่งเซลล์ 100x50x50
+- `boundary`: นิยาม boundary conditions ทั้ง 5 ด้าน โดย blockInterface ใช้ mappedWall เพื่อเชื่อมต่อกับ solid domain
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **mappedWall**: Boundary condition สำหรับการส่งผ่านข้อมูลระหว่าง regions ที่ไม่ใช่ conformal mesh
+2. **sampleMode nearestPatchFace**: การค้นหา cell ปลายทางโดยใช้ nearest face center ซึ่งเหมาะสำหรับ CHT
+3. **Hexahedral Mesh**: โครงสร้าง hex mesh ให้ความแม่นยำสูงกว่า tetrahedral mesh สำหรับปัญหาการไหลและการถ่ายเทความร้อน
+
 #### **Solid Domain (Aluminum Block):**
 
 ```bash
@@ -170,6 +187,23 @@ EOF
 
 blockMesh
 ```
+
+> **📂 Source:** N/A (Bash script)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+การสร้าง mesh สำหรับโดเมนของแข็ง (บล็อกอลูมิเนียม) ซึ่งมีความหนาแน่นของ mesh ต่ำกว่าโดเมนของไหลเนื่องจากไม่มีการไหลของ fluid
+
+**คำอธิบาย (Explanation):**
+- **ตำแหน่ง**: บล็อกอยู่ภายในโดเมนของไหลที่พิกัด (0.3, 0.2, 0.4) ถึง (0.7, 0.3, 0.6)
+- **Mesh Resolution**: 40x20x20 cells (เมื่อเทียบกับ 100x50x50 ใน fluid) เนื่องจาก heat conduction ใน solid ต้องการความละเอียดน้อยกว่า convection
+- **Bidirectional Mapping**: blockInterface ชี้ไปยัง `sampleRegion fluid` และฝั่ง fluid ชี้ไป `sampleRegion solid` ทำให้การแลกเปลี่ยนข้อมูลเป็นแบบสองทิศทาง
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Non-Conforming Meshes**: Fluid และ solid meshes ไม่ต้องมี face-to-face matching ที่ interface
+2. **Grid Independence**: Solid domain สามารถใช้ mesh resolution ที่ต่ำกว่าได้โดยไม่กระทบความแม่นยำของ CHT
+3. **Wall Boundary**: allOtherWalls เป็น adiabatic (เกรเดี้ยนต์ศูนย์) โดย default จาก boundary condition type `wall`
 
 ### **Step 2: Configure `mappedWall` Interface**
 
@@ -222,6 +256,23 @@ mixture
 }
 ```
 
+> **📂 Source:** N/A (OpenFOAM thermophysicalProperties dictionary format)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+OpenFOAM thermophysical model configuration สำหรับอากาศ (air) ในรูปแบบของ perfect gas
+
+**คำอธิบาย (Explanation):**
+- **hePsiThermo**: Thermodynamics model ที่ใช้ enthalpy-based energy equation พร้อม compressibility ผ่าน psi (compressibility)
+- **perfectGas**: Equation of state ที่อธิบายความสัมพันธ์ ρ = p/(R*T)
+- **Pr = 0.71**: Prandtl number ของอากาศ ซึ่งเป็นอัตราส่วนระหว่าง momentum diffusivity (ν) และ thermal diffusivity (α)
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Transport Properties**: μ (dynamic viscosity), κ (thermal conductivity), Pr (Prandtl number) เป็นพารามิเตอร์หลักที่ควบคุม heat transfer
+2. **Specific Heat**: Cp = 1005 J/kg/K สำหรับอากาศ สูงกว่า Cp ของ solid material ส่วนใหญ่
+3. **Thermodynamic Consistency**: κ สามารถคำนวณได้จาก μ*Cp/Pr หากต้องการ verify consistency
+
 #### **Solid Thermal Properties (`constant/solid/thermophysicalProperties`):**
 
 ```foam
@@ -255,6 +306,23 @@ mixture
 }
 ```
 
+> **📂 Source:** N/A (OpenFOAM solid thermophysicalProperties dictionary format)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+OpenFOAM solid thermophysical model configuration สำหรับอลูมิเนียม (aluminum)
+
+**คำอธิบาย (Explanation):**
+- **heSolidThermo**: Thermodynamics model สำหรับ solid ที่ไม่มีการไหลของ fluid
+- **rhoConst**: Constant density model ซึ่งเหมาะสำหรับ solid materials ที่ไม่มีการขยายตัวอย่างมีนัยสำคัญ
+- **kappa = 237 W/m/K**: อัลูมิเนียมมี thermal conductivity สูงมาก (เมื่อเทียบกับอากาศ 0.025 W/m/K) ทำให้เป็นวัสดุที่เหมาะสำหรับ heat sink
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Material Properties Ratio**: κ_solid/κ_fluid ≈ 10,000 ซึ่งส่งผลต่อ temperature gradient ratio ที่ interface
+2. **Heat Capacity**: ρ_s*Cp_s = 2700*900 = 2.43e6 J/(m³K) เมื่อเทียบกับ ρ_f*Cp_f ≈ 1.2*1005 = 1,206 J/(m³K)
+3. **Thermal Diffusivity**: α_s = κ_s/(ρ_s*Cp_s) ≈ 237/2.43e6 = 9.75e-5 m²/s (สูงกว่า α_f ประมาณ 3-4 เท่า)
+
 #### **Temperature Boundary Conditions (`0/fluid/T`):**
 
 ```foam
@@ -279,6 +347,23 @@ boundaryField
 }
 ```
 
+> **📂 Source:** N/A (OpenFOAM field boundary condition format)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+OpenFOAM temperature field boundary condition สำหรับ CHT simulation
+
+**คำอธิบาย (Explanation):**
+- **mapped type**: Boundary condition ที่อ่านค่าจาก solid domain ผ่าน interpolation ที่ interface
+- **inletOutlet**: Outlet condition ที่อนุญาตให้ backflow มาพร้อมกับ inletValue ในขณะที่ forward flow ใช้ zero gradient
+- **$internalField**: OpenFOAM macro ที่อ้างอิงค่าจาก `internalField` ด้านบน
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Thermal Coupling**: blockInterface ใช้ `mapped` type เพื่ออ่านค่า T จาก solid region อัตโนมัติทุก time step
+2. **Backflow Stability**: inletOutlet ป้องกัน numerical instability ที่ outlet เมื่อมี backflow
+3. **Initial Consistency**: Initial temperature = 293 K ทั้ง fluid และ solid เพื่อลด transient startup effects
+
 #### **Velocity Boundary Conditions (`0/fluid/U`):**
 
 ```foam
@@ -299,6 +384,23 @@ boundaryField
     }
 }
 ```
+
+> **📂 Source:** N/A (OpenFOAM velocity field boundary condition format)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+OpenFOAM velocity field boundary condition สำหรับ cross-flow CHT simulation
+
+**คำอธิบาย (Explanation):**
+- **noSlip**: Fluid velocity ที่ interface เป็นศูนย์เนื่องจาก solid wall ไม่มีการเคลื่อนที่
+- **Uniform Inflow**: Inlet velocity 2 m/s ในทิศทาง x-positive ซึ่งสร้าง forced convection บน block surface
+- **Zero Gradient Outlet**: Outflow boundary condition ที่ fully developed flow
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **No-Slip Condition**: u = 0 ที่ solid-fluid interface เป็น boundary condition มูลฐานของ Navier-Stokes
+2. **Reynolds Number**: Re = ρUL/μ = 1.2*2*0.4/1.8e-5 ≈ 53,333 (turbulent flow) ซึ่งอาจต้องใช้ turbulence model
+3. **Convective Heat Transfer**: Velocity field ส่งผลต่อ Nusselt number (Nu = hL/k) และ heat transfer coefficient (h)
 
 ### **Step 4: Run Simulation and Monitor**
 
@@ -346,6 +448,23 @@ functions
 }
 ```
 
+> **📂 Source:** `.applications/test/fieldMapping/pipe1D/system/fvSolution`
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+OpenFOAM control dictionary สำหรับ CHT multi-region solver พร้อม function objects สำหรับ monitoring
+
+**คำอธิบาย (Explanation):**
+- **chtMultiRegionFoam**: OpenFOAM solver สำหรับ conjugate heat transfer ที่แก้สมการ fluid flow และ solid conduction พร้อมกัน
+- **adjustTimeStep yes**: Adaptive time stepping ตาม Courant number เพื่อรักษาเสถียรภาพเชิงตัวเลข
+- **function objects**: Monitoring tools ที่บันทึก interface heat flux (phiH) และ energy balance ระหว่าง regions
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Multi-Region Execution**: chtMultiRegionFoam วน loop ผ่านทุก region ทำ outer iterations จนกว่า coupling convergence จะได้รับการตอบสนอง
+2. **Courant Number Control**: maxCo = 0.5 รักษา CFL condition สำหรับ explicit convection terms
+3. **Energy Conservation Monitoring**: phiH (heat flux field) ถูก integrate ที่ interface เพื่อ verify conservation
+
 #### **Running the Simulation:**
 
 ```bash
@@ -358,6 +477,23 @@ mpirun -np 4 chtMultiRegionFoam -parallel
 # Reconstruct for post-processing (if decomposed)
 reconstructPar -allRegions
 ```
+
+> **📂 Source:** N/A (Bash script for parallel OpenFOAM execution)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+OpenFOAM parallel execution workflow สำหรับ multi-region CHT simulations
+
+**คำอธิบาย (Explanation):**
+- **decomposePar -allRegions**: Domain decomposition ที่กระจาย mesh ของทุก region ผ่าน processor boundaries
+- **mpirun -np 4**: Execute parallel simulation ด้วย 4 MPI processes ซึ่ง scalable ได้ถึงหลายร้อย cores
+- **reconstructPar -allRegions**: Recombine decomposed fields จาก processors กลับเป็น single domain สำหรับ post-processing
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Load Balancing**: การแบ่ง mesh ต้องคำนึงถึง computational load ของแต่ละ region ซึ่งมี mesh resolutions ต่างกัน
+2. **Communication Overhead**: Inter-processor communication ที่ mapped boundaries สร้าง computational overhead ที่ต้อง optimization
+3. **Speedup Efficiency**: Parallel efficiency ขึ้นอยู่กับ mesh quality, inter-region coupling, และ network bandwidth
 
 ### **Step 5: Verify Energy Conservation**
 
@@ -484,6 +620,23 @@ boundary
 );
 ```
 
+> **📂 Source:** N/A (OpenFOAM blockMeshDict format)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+OpenFOAM blockMeshDict สำหรับสร้าง fluid domain สำหรับ FSI flag flutter simulation
+
+**คำอธิบาย (Explanation):**
+- **Domain Size**: 2m (length) × 0.5m (height) × 0.1m (depth) ซึ่งเหมาะสำหรับ flag length ≈ 0.4-0.6m
+- **Mesh Resolution**: 200×50×5 cells พร้อม high resolution ใน streamwise direction เพื่อ capture vortex shedding
+- **Boundary Types**: Inlet (velocity inlet), outlet (pressure outlet), walls (no-slip)
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Vortex Shedding**: Mesh resolution ใน x-direction ต้องเพียงพอที่จะ resolve Karman vortex street
+2. **Domain Aspect Ratio**: Length-to-height ratio = 4:1 เพื่อ minimize boundary effects
+3. **3D vs 2D**: Depth = 0.1m พร้อม 5 cells เพื่อจำลอง quasi-2D flow ที่มี slight 3D effects
+
 ### **Step 2: Create Solid Mesh for Flag Structure**
 
 #### **`extrudeMeshDict` Configuration:**
@@ -497,6 +650,23 @@ linearDirectionCoeffs
     nDivisions      3;
 }
 ```
+
+> **📂 Source:** N/A (OpenFOAM extrudeMeshDict format)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+OpenFOAM extrudeMeshDict สำหรับสร้าง solid mesh ของ flag จาก 2D surface
+
+**คำอธิบาย (Explanation):**
+- **linearDirectionExtrude**: Extrude 2D mesh ในทิศทาง z-axis เพื่อสร้าง 3D solid volume
+- **thickness = 0.001m (1mm)**: Flag thickness ที่บางมาก ซึ่งเหมาะสำหรับ flexible structure
+- **nDivisions = 3**: Through-thickness divisions สำหรับ capturing bending behavior
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Aspect Ratio**: Length/thickness ratio ≈ 500:1 ซึ่งเป็น high aspect ratio structure ที่ prone to flutter
+2. **Element Quality**: Hexahedral elements ที่ได้จาก extrusion ให้ bending accuracy สูงกว่า tetrahedral
+3. **Stiffness Tensor**: ความยืดหยุ่นของ flag ถูกกำหนดผ่าน Young's modulus (E) และ Poisson's ratio (ν)
 
 **Solid Mesh Properties:**
 
@@ -532,6 +702,23 @@ flag
 }
 ```
 
+> **📂 Source:** N/A (OpenFOAM mapped boundary condition format)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+OpenFOAM mapped boundary conditions สำหรับ velocity และ pressure ที่ fluid-structure interface
+
+**คำอธิบาย (Explanation):**
+- **mapped type**: Boundary condition ที่อ่านค่าจาก solid displacement field และแปลงเป็น fluid velocity
+- **interpolationScheme cell**: Interpolation จาก cell centers ของ solid mesh ไปยัง face centers ของ fluid mesh
+- **setAverage false**: ไม่มีการ enforce average value ที่ interface (เพื่อรักษา conservation)
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Kinematic Coupling**: Fluid velocity ที่ interface เท่ากับ structural velocity (∂u_s/∂t)
+2. **No-Slip Enforcement**: mapped boundary condition รักษา no-slip condition ผ่าน displacement transfer
+3. **Mesh Motion Interface**: Fluid boundary ถูก update ทุก time step ตาม solid displacement
+
 #### **Solid Side Boundary Conditions:**
 
 ```cpp
@@ -549,6 +736,22 @@ fluid
     value           uniform (0 0 0);
 }
 ```
+
+> **📂 Source:** N/A (OpenFOAM solid boundary condition format)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+OpenFOAM displacement boundary conditions สำหรับ structural solver
+
+**คำอธิบาย (Explanation):**
+- **fixedValue for D**: Zero displacement ที่ flag base (clamped boundary condition)
+- **solidDisplacement**: Custom boundary condition ที่รับ fluid forces และแปลงเป็น structural loads
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Clamped Boundary**: Flag base ถูก clamp ไว้ที่ x = 0 ซึ่งเป็นส่วนสำคัญของ flutter dynamics
+2. **Fluid Loading**: Fluid pressure และ viscous stresses ถูก integrate ที่ interface เพื่อสร้าง traction forces
+3. **Displacement-Pressure Coupling**: Solid displacement ส่งผลต่อ fluid pressure distribution ผ่าน geometry changes
 
 ### **Step 4: Implement Weak Coupling Algorithm**
 
@@ -623,6 +826,23 @@ done
 echo "FSI coupling complete. Post-processing with paraFoam..."
 paraFoam -case $fluidCase &
 ```
+
+> **📂 Source:** N/A (Bash script for FSI coupling)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+Bash script สำหรับ weak (partitioned) FSI coupling ระหว่าง fluid และ structural solvers
+
+**คำอธิบาย (Explanation):**
+- **Sequential Execution**: Fluid และ solid solvers ทำงานแยกกันใน staggered manner
+- **mapFields**: OpenFOAM utility สำหรับ mapping fields ระหว่าง meshes ที่ต่างกัน
+- **Relaxation**: Under-relaxation factor = 0.5 เพื่อ prevent divergence ใน weak coupling
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Partitioned Approach**: Fluid และ structure แก้สมการแยกกัน ซึ่ง modular แต่อาจ unstable สำหรับ high density ratios
+2. **Convergence Checking**: Monitoring displacement residual ระหว่าง coupling iterations
+3. **Computational Cost**: Multiple solver calls per time step เพิ่ม computational overhead
 
 ### **Flutter Analysis**
 
@@ -709,6 +929,23 @@ class CouplingSampler
 };
 ```
 
+> **📂 Source:** N/A (C++ class definition)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+C++ class definition สำหรับ sampling temperature fields ที่ fluid-solid interface ใน CHT simulations
+
+**คำอธิบาย (Explanation):**
+- **fvMesh References**: Store references ไปยัง fluid และ solid meshes สำหรับ access patch data
+- **sampleInterfaceFields()**: Method ที่ extract temperature values จาก patch faces ของทั้งสอง regions
+- **scalarField Outputs**: Store interface temperatures ใน 1D arrays สำหรับ residual computation
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Patch Access**: OpenFOAM's fvPatch class ให้ access ไปยัง boundary face values
+2. **Field References**: volScalarField references avoid data copying และ memory overhead
+3. **Interface Topology**: Fluid และ solid patches อาจมีจำนวน faces ต่างกัน (non-matching meshes)
+
 #### **Sampling Algorithm:**
 
 ```cpp
@@ -729,6 +966,23 @@ void CouplingSampler::sampleInterfaceFields
     solidInterface = solidPatch.patchInternalField();
 }
 ```
+
+> **📂 Source:** N/A (C++ method implementation)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+Implementation ของ interface field sampling algorithm ใน OpenFOAM
+
+**คำอธิบาย (Explanation):**
+- **boundaryRef()[patchID]**: Access reference ไปยัง boundary patch ด้วย patch ID
+- **patchInternalField()**: Return field values ที่ cell centers adjacent to patch (not face values)
+- **Direct Assignment**: scalarField assignment operator ใช้ memory-efficient copying
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Internal Field vs. Patch Field**: patchInternalField() อ่านค่าจาก cell centers ข้างใต้ boundary
+2. **Const Correctness**: const references ป้องกันการ modify input fields
+3. **Patch ID Mapping**: fluidPatchID_ และ solidPatchID_ เป็น label ที่ map ไปยัง patch indices
 
 ### **Residual Computation**
 
@@ -755,6 +1009,23 @@ scalar computeCouplingResidual
     return numerator/(denominator + SMALL);
 }
 ```
+
+> **📂 Source:** N/A (C++ function implementation)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+Implementation ของ L2-norm residual computation สำหรับ CHT interface convergence
+
+**คำอธิบาย (Explanation):**
+- **diff Array**: Temperature difference ระหว่าง fluid และ solid ที่ทุก interface face
+- **sum(diff*diff)**: Compute Σ(T_f - T_s)² ซึ่งเป็น squared L2 norm
+- **SMALL Constant**: OpenFOAM constant ป้องกัน division by zero
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **L2 Norm Residual**: Measures global temperature discontinuity across interface
+2. **Relative vs. Absolute**: Residual ถูก normalize ด้วย fluid temperature magnitude
+3. **Convergence Criteria**: Typical tolerance = 1e-6 to 1e-4 ขึ้นอยู่กับ application
 
 ### **Aitken Acceleration**
 
@@ -790,6 +1061,23 @@ scalar AitkenRelaxation::calculateRelaxationFactor
 }
 ```
 
+> **📂 Source:** N/A (C++ method implementation)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+Implementation ของ Aitken's dynamic relaxation algorithm สำหรับ accelerating CHT convergence
+
+**คำอธิบาย (Explanation):**
+- **First Iteration Handling**: Return initial relaxation factor (alpha_k) หากไม่มีประวัติ residuals
+- **Delta Residuals**: Δr = residual_k - residual_{k-1} เป็นการวัด rate of change
+- **Clamping**: relaxation factor ถูก clamp ไว้ที่ [0.1, 0.9] เพื่อ stability
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Adaptive Relaxation**: Aitken algorithm ปรับ relaxation factor ตาม convergence behavior
+2. **Acceleration Mechanism**: หาก residuals oscillate, alpha จะลดลงเพื่อ stabilize
+3. **Divergence Detection**: Negative relaxation factor ถูก clamp เพื่อ prevent divergence
+
 ### **Function Object Integration**
 
 ```cpp
@@ -810,6 +1098,23 @@ class CouplingConvergenceMonitor : public fvMeshFunctionObject
     virtual bool write();
 };
 ```
+
+> **📂 Source:** N/A (C++ class definition)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+OpenFOAM function object class definition สำหรับ monitoring CHT coupling convergence
+
+**คำอธิบาย (Explanation):**
+- **fvMeshFunctionObject**: Base class สำหรับ function objects ที่ operate บน fvMesh
+- **autoPtr Members**: Smart pointers สำหรับ dynamic allocation ของ sampler และ relaxation objects
+- **Virtual Interface**: execute(), read(), write() เป็น methods ที่ต้อง implement สำหรับ function objects
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Function Object Framework**: OpenFOAM's runtime-selectable mechanism สำหรับ custom operations
+2. **Memory Management**: autoPtr จัดการ memory lifetime automatically
+3. **Dictionary-Driven Configuration**: read() method โหลด parameters จาก dictionary files
 
 #### **Control Dictionary (`system/couplingDict`):**
 
@@ -844,6 +1149,23 @@ couplingMonitor
     outputInterval  1;
 }
 ```
+
+> **📂 Source:** `.applications/test/fieldMapping/pipe1D/system/fvSolution`
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+OpenFOAM dictionary configuration สำหรับ coupling convergence monitor function object
+
+**คำอธิบาย (Explanation):**
+- **type = couplingConvergence**: Runtime selection name ของ function object
+- **Patch Identification**: fluidPatch และ solidPatch ระบุ interface patches
+- **Convergence Criteria**: tolerance = 1e-6 คือ convergence threshold, maxIterations คือ iteration limit
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Runtime Selection**: OpenFOAM โหลด function objects ผ่าน type name ที่ run time
+2. **Dictionary-Driven Configuration**: ทุก parameters สามารถ adjust โดยไม่ต้อง recompile
+3. **Output Control**: writeResiduals และ outputInterval ควบคุม logging behavior
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -901,6 +1223,27 @@ void CouplingConvergenceMonitor::execute()
 }
 ```
 
+> **📂 Source:** N/A (C++ method implementation)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+Main execution loop ของ coupling convergence monitor function object
+
+**คำอธิบาย (Explanation):**
+- **Step 1 (Sampling)**: Extract fluid และ solid temperatures ที่ interface
+- **Step 2 (Residual)**: Compute L2-norm residual ระหว่าง temperatures
+- **Step 3 (History)**: Append residual ไปยัง history array สำหรับ Aitken algorithm
+- **Step 4 (Aitken)**: Calculate dynamic relaxation factor จาก residual history
+- **Step 5 (Apply)**: Apply relaxation กับ interface temperatures
+- **Step 6 (Check)**: Check if residual < tolerance
+- **Step 7 (Output)**: Log convergence status ถ้า converged
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Algorithmic Flow**: Sequential execution ของ sampling → residual → relaxation → convergence check
+2. **History Management**: residualHistory_ array จำเป็นสำหรับ Aitken acceleration
+3. **Convergence Detection**: Simple tolerance-based stopping criterion
+
 ### **Error Handling and Diagnostics**
 
 #### **Mesh Compatibility Verification:**
@@ -937,6 +1280,23 @@ bool CouplingSampler::verifyInterfaceCompatibility()
     return true;
 }
 ```
+
+> **📂 Source:** N/A (C++ method implementation)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+Mesh compatibility verification routine สำหรับ detecting interface geometry issues
+
+**คำอธิบาย (Explanation):**
+- **Patch Size Check**: Verify จำนวน faces ระหว่าง fluid และ solid patches ตรงกัน
+- **Face Correspondence**: Loop ผ่านทุก face เพื่อ check distance ระหว่าง face centers
+- **Tolerance-Based Warning**: Warn ถ้า interface gap > interfaceTolerance_
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Non-Conforming Mesh Handling**: OpenFOAM รองรับ meshes ที่ไม่ match ที่ interface
+2. **Geometric Tolerance**: interfaceTolerance_ คือ allowable distance ระหว่าง corresponding faces
+3. **Error Reporting**: WarningIn macro สร้าง consistent warning messages
 
 | Error Type | Condition | Handling |
 |------------|-----------|----------|
@@ -1031,6 +1391,23 @@ relaxationFactors
 }
 ```
 
+> **📂 Source:** `.applications/test/fieldMapping/pipe1D/system/fvSolution`
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+OpenFOAM fvSolution dictionary สำหรับ controlling under-relaxation factors ใน segregated solvers
+
+**คำอธิบาย (Explanation):**
+- **Field-Specific Relaxation**: U, h, k, epsilon fields มี relaxation factors ที่ต่างกัน
+- **Final Iteration**: equations = 1 หมายถึง no relaxation สำหรับ outer iteration สุดท้าย
+- **Temperature Field (h)**: ใช้ relaxation แรงกว่า (0.5) เนื่องจาก strong coupling ใน energy equation
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Segregated Solver Strategy**: Under-relaxation จำเป็นสำหรับ stability ของ pressure-velocity coupling
+2. **Field-Dependent Relaxation**: แต่ละ field ต้องการ relaxation ที่แตกต่างกันขึ้นอยู่กับ nonlinearity
+3. **Convergence Acceleration**: การเลือก relaxation factors ที่เหมาะสมสามารถ reduce iterations ได้อย่างมาก
+
 **Time Step Control:**
 
 ```cpp
@@ -1075,6 +1452,23 @@ divSchemes
     div(phi,k)      Gauss upwind;
 }
 ```
+
+> **📂 Source:** N/A (OpenFOAM discretization schemes)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+OpenFOAM discretization scheme definitions สำหรับ maintaining flux conservation ใน coupled simulations
+
+**คำอธิบาย (Explanation):**
+- **Gauss Scheme**: Finite volume discretization ที่ uses Gauss theorem
+- **Upwind Differencing**: First-order upwind scheme ที่ bounded และ conservative
+- **Consistent Schemes**: ทุก regions ต้องใช้ schemes ที่ consistent เพื่อ maintain flux continuity
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Conservative Discretization**: Gauss upwind รักษา flux conservation ระหว่าง neighboring cells
+2. **Scheme Consistency**: การใช้ schemes ที่ต่างกันระหว่าง regions อาจทำให้เกิด flux jumps
+3. **Energy Conservation**: div(phi,h) scheme จำเป็นต้อง conservative สำหรับ CHT accuracy
 
 **Conservation Checking:**
 
@@ -1125,6 +1519,23 @@ PIMPLE
     aitkenAcceleration on;      // Enable acceleration
 }
 ```
+
+> **📂 Source:** `.applications/test/fieldMapping/pipe1D/system/fvSolution`
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+OpenFOAM PIMPLE algorithm settings พร้อม Aitken acceleration enabled
+
+**คำอธิบาย (Explanation):**
+- **nOuterCorrectors**: Number of outer iterations สำหรับ pressure-velocity-mesh coupling
+- **Aitken Acceleration**: Dynamic relaxation algorithm ที่ accelerates coupling convergence
+- **correctPhi yes**: Correct fluxes หลังจาก mesh motion เพื่อ maintain mass conservation
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Outer Correctors**: Multiple PIMPLE loops ต่อ time step เพื่อ tighten coupling
+2. **Adaptive Relaxation**: Aitken algorithm ปรับ relaxation factors ตาม convergence behavior
+3. **Mesh Motion Conservation**: correctPhi รักษา mass conservation หลัง mesh deformation
 
 **Coupling Iteration Management:**
 
@@ -1193,6 +1604,23 @@ void mappedPatchBase::map() {
     }
 }
 ```
+
+> **📂 Source:** N/A (C++ pseudo-code)
+
+**คำอธิบายภาษาไทย:**
+
+**แหล่งที่มา (Source):**
+Pseudo-code แสดงการทำงานของ OpenFOAM's mappedPatchBase interpolation engine
+
+**คำอธิบาย (Explanation):**
+- **Sample Points**: จุดบน mapped patch ที่ต้องการหาค่า interpolated
+- **Target Search**: findInterpolationTarget() ค้นหา nearest cell/face ใน target region
+- **Weight Application**: interpolateField() ใช้ sampleWeights สำหรับ weighted interpolation
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Nearest-Neighbor Search**: Spatial searching algorithms (octree, kd-tree) สำหรับ efficient interpolation
+2. **Interpolation Weights**: Weights ถูกคำนวณจาก geometric distances หรือ overlap areas
+3. **Non-Conforming Meshes**: mappedPatchBase รองรับ meshes ที่ไม่ match ที่ interfaces
 
 **Supported Interpolation Modes:**
 

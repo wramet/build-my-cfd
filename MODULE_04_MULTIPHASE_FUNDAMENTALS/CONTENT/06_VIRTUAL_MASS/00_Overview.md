@@ -202,6 +202,18 @@ virtualMass
 );
 ```
 
+> **📚 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+>
+> **คำอธิบาย (Thai):**
+> - **Virtual Mass Configuration**: การตั้งค่าแรงมวลเสมือนใน `phaseProperties` กำหนดชนิดของสัมประสิทธิ์และค่าที่ใช้ในการคำนวณ
+> - **Coefficient Type**: `constantCoefficient` ใช้ค่า $C_{vm}$ คงที่ สามารถเปลี่ยนเป็นชนิดอื่นเช่น `tableCoefficient` ได้
+> - **Phase Pair**: การระบุ `(air in water)` หมายถึงแรงมวลเสมือนที่กระทำต่อฟองอากาศในน้ำ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Implicit Treatment**: การจัดการแบบโดยปริยายช่วยเพิ่มเสถียรภาพเชิงตัวเลข
+> 2. **Phase Pair Definition**: การกำหนดคู่เฟสที่มีปฏิสัมพันธ์กัน
+> 3. **Coefficient Selection**: การเลือกค่า $C_{vm}$ ขึ้นอยู่กับรูปร่างและสภาพการไหล
+
 ### การนำไปใช้ใน Solver
 
 แรงมวลเสมือนใน OpenFOAM จะถูกรวมเข้ากับสมการโมเมนตัมของเฟส:
@@ -216,16 +228,35 @@ $$\mathbf{M}_{vm,ij} = C_{vm} \rho_i \alpha_i \alpha_j \left(\frac{D\mathbf{u}_j
 
 ```cpp
 // Implicit virtual mass contribution to momentum equation
+// การนำแรงมวลเสมือนแบบโดยปริยายไปใช้กับสมการโมเมนตัม
+
 fvVectorMatrix U1Eqn
 (
+    // Time derivative term with virtual mass enhancement
+    // เทอมอนุพันธ์เวลาที่ได้รับการเพิ่มพูของมวลเสมือน
     fvm::ddt(alpha1, rho1, U1)
   + fvm::div(alphaPhi1, rho1, U1)
   ==
-    // Other terms...
-  + fvm::Sp(Cvm*rho1*alpha1*alpha2/dt, U1)  // Implicit virtual mass
-  - Cvm*rho1*alpha1*alpha2*(DUDt2/dt)      // Explicit part
+    // Other source and force terms...
+    // เทอมแหล่งที่มาและแรงอื่นๆ...
+  + fvm::Sp(Cvm*rho1*alpha1*alpha2/dt, U1)  // Implicit virtual mass term
+    // เทอมมวลเสมือนแบบโดยปริยาย - รวมในเมทริกซ์
+  - Cvm*rho1*alpha1*alpha2*(DUDt2/dt)      // Explicit part of relative acceleration
+    // เทอมชัดแจ้งของความเร่งสัมพัทธ์
 );
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+>
+> **คำอธิบาย (Thai):**
+> - **fvVectorMatrix**: เมทริกซ์เวกเตอร์สำหรับระบบสมการเชิงอนุพันธ์ย่อยที่แก้ไขปัญหาความเร็ว
+> - **Implicit Term (`fvm::Sp`)**: เทอมมวลเสมือนแบบโดยปริยายถูกรวมเข้ากับเมทริกซ์สัมประสิทธิ์ ทำให้ระบบสมการมีเสถียรภาพมากขึ้น
+> - **Explicit Part**: ส่วนที่เหลือของความเร่งสัมพัทธ์ถูกคำนวณแบบชัดแจ้งจากเวลาก่อนหน้า
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Matrix Assembly**: การประกอบเมทริกซ์สมการรวมเทอมโดยปริยายเพื่อเสถียรภาพ
+> 2. **Split Treatment**: การแยกการจัดการระหว่างส่วนโดยปริยายและชัดแจ้ง
+> 3. **Stability Enhancement**: การเพิ่มเสถียรภาพด้วยการจัดการโดยปริยายของเทอมความเร่ง
 
 ---
 
@@ -249,9 +280,29 @@ $$C_{VM}^{new} = (1-\lambda_{VM}) C_{VM}^{old} + \lambda_{VM} C_{VM}^{calculated
 
 ```cpp
 // Implicit treatment for numerical stability
+// การจัดการแบบโดยปริยายเพื่อเสถียรภาพเชิงตัวเลข
+
+// Calculate virtual mass force implicitly for stability
+// คำนวณแรงมวลเสมือนแบบโดยปริยายเพื่อเสถียรภาพ
 virtualMassForce = Cvm_ * rhoContinuous_ * alphaDispersed_ *
                    (fvc::ddt(Udash) - fvc::ddt(U));
+//    ^          ^                  ^                    ^
+//    |          |                  |                    |
+// Coefficient  Continuous Phase   Dispersed        Material Derivative
+// สัมประสิทธิ์   เฟสต่อเนื่อง        เฟสกระจาย        อนุพันธ์ตามวัสดุ
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+>
+> **คำอธิบาย (Thai):**
+> - **fvc::ddt**: คำนวณอนุพันธ์เวลาแบบชัดแจ้ง (Finite Volume Calculus) สำหรับความเร่ง
+> - **Udash**: ความเร็วสัมพัทธ์ระหว่างเฟส ($\mathbf{u}_d - \mathbf{u}_c$)
+> - **Implicit vs Explicit**: การใช้ `fvc` (explicit) ที่นี่แต่รวมเข้ากับ `fvm` (implicit) ในสมการหลัก
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Material Derivative**: การคำนวณอนุพันธ์ตามวัสดุ $\frac{D\mathbf{u}}{Dt}$
+> 2. **Relative Acceleration**: ความเร่งสัมพัทธ์คือความแตกต่างของอนุพันธ์ตามวัสดุระหว่างเฟส
+> 3. **Virtual Mass Force Construction**: แรงมวลเสมือนเป็นผลคูณของสัมประสิทธิ์ ความหนาแน่น สัดส่วนปริมาตร และความเร่งสัมพัทธ์
 
 **ข้อดีของการจัดการแบบ Implicit:**
 - เพิ่มเสถียรภาพเชิงตัวเลข

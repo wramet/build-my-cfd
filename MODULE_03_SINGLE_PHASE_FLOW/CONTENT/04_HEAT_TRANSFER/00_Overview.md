@@ -71,24 +71,24 @@ $$\rho c_p \frac{\partial T}{\partial t} + \rho c_p \mathbf{u} \cdot \nabla T = 
 ```cpp
 thermoType
 {
-    type            heRhoThermo;
-    mixture         pureMixture;
-    transport       sutherland;      // หรือ const, polynomial
-    thermo          hConst;          // หรือ janaf
-    equationOfState perfectGas;
-    specie          specie;
-    energy          sensibleEnthalpy;
+    type            heRhoThermo;    // Enthalpy-based thermodynamics for compressible flows
+    mixture         pureMixture;    // Single component fluid
+    transport       sutherland;     // Viscosity model: Sutherland's law
+    thermo          hConst;         // Constant specific heat capacity
+    equationOfState perfectGas;     // Equation of state for ideal gas
+    specie          specie;         // Species properties
+    energy          sensibleEnthalpy; // Energy variable: sensible enthalpy
 }
 
 specie
 {
-    molWeight       28.96;           // kg/kmol (อากาศ)
+    molWeight       28.96;           // kg/kmol (air)
 }
 
 thermo
 {
     Cp              1005;            // J/(kg·K)
-    Hf              0;               // ความร้อนของการก่อตัว
+    Hf              0;               // Heat of formation
 }
 
 transport
@@ -97,6 +97,16 @@ transport
     Ts              110.4;           // Sutherland temperature [K]
 }
 ```
+
+> **📖 คำอธิบาย (Explanation):**
+> ไฟล์นี้กำหนดคุณสมบัติทางเทอร์โมฟิสิกส์ของของไหลที่ใช้ในการจำลอง
+>
+> **แหล่งที่มา (Source):** ไฟล์ `constant/thermophysicalProperties`
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `heRhoThermo`: คำนวณสมบัติของของไหลจากความหนาแน่นและเอนทาลปี
+> - `sutherland`: กฎของ Sutherland สำหรับการพึ่งพาความหนืดต่ออุณหภูมิ
+> - `perfectGas`: สมการสถานะสำหรับก๊าซอุดมคติ
 
 ### 3. จัดการเงื่อนไขขอบเขตความร้อน (Apply Thermal Boundary Conditions)
 
@@ -107,43 +117,79 @@ transport
 ```cpp
 walls
 {
-    type            fixedValue;
-    value           uniform 300;     // K
+    type            fixedValue;      // Fixed value boundary condition
+    value           uniform 300;     // Temperature = 300 K
 }
 ```
+
+> **📖 คำอธิบาย (Explanation):**
+> กำหนดอุณหภูมิคงที่ที่ผนัง ใช้สำหรับกรณีที่รู้ค่าอุณหภูมิพื้นผิว
+>
+> **แหล่งที่มา (Source):** ไฟล์ `0/T`
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `fixedValue`: เงื่อนไขขอบเขตแบบ Dirichlet (กำหนดค่าโดยตรง)
+> - `uniform`: ค่าเดียวกันทั่วทั้งผนัง
 
 #### ฟลักซ์ความร้อนคงที่ (Fixed Heat Flux - Neumann)
 
 ```cpp
 heatedWall
 {
-    type            fixedGradient;
-    gradient        uniform 1000;    // W/m²
+    type            fixedGradient;   // Fixed gradient boundary condition
+    gradient        uniform 1000;    // Heat flux = 1000 W/m²
 }
 ```
+
+> **📖 คำอธิบาย (Explanation):**
+> กำหนดอัตราการไหลของความร้อนผ่านผนัง ใช้สำหรับกรณีที่รู้ค่าฟลักซ์ความร้อน
+>
+> **แหล่งที่มา (Source):** ไฟล์ `0/T`
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `fixedGradient`: เงื่อนไขขอบเขตแบบ Neumann (กำหนดความชัน)
+> - ฟลักซ์ความร้อน $q = -k \nabla T$
 
 #### การถ่ายเทความร้อนแบบพา (Convective Heat Transfer)
 
 ```cpp
 externalWall
 {
-    type            externalWallHeatFluxTemperature;
-    mode            coefficient;
-    h               uniform 25;      // W/m²K
-    Ta              uniform 293;     // K
-    thicknessLayers (0.001 0.002);   // ความหนาของชั้นผนัง
-    kappaLayers     (0.5 0.1);       // สภาพนำความร้อนของชั้น
+    type            externalWallHeatFluxTemperature; // Convective BC
+    mode            coefficient;     // Use heat transfer coefficient
+    h               uniform 25;      // W/m²K - heat transfer coefficient
+    Ta              uniform 293;     // K - ambient temperature
+    thicknessLayers (0.001 0.002);   // Wall layer thicknesses [m]
+    kappaLayers     (0.5 0.1);       // Thermal conductivity of layers [W/mK]
 }
 ```
+
+> **📖 คำอธิบาย (Explanation):**
+> จำลองการถ่ายเทความร้อนแบบพาระหว่างผนังและสภาพแวดล้อม รองรับผนังหลายชั้น
+>
+> **แหล่งที่มา (Source):** ไฟล์ `0/T`
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `externalWallHeatFluxTemperature`: เงื่อนไขขอบเขตการถ่ายเทความร้อนแบบพา
+> - สมการนิวตันสำหรับการอณู: $q = h(T_s - T_\infty)$
 
 #### ผนังแบบอะเดียแบติก (Adiabatic Wall)
 
 ```cpp
 adiabaticWalls
 {
-    type            zeroGradient;    // ∂T/∂n = 0
+    type            zeroGradient;    // Zero gradient condition (adiabatic)
 }
 ```
+
+> **📖 คำอธิบาย (Explanation):**
+> ผนังที่ไม่มีการถ่ายเทความร้อนผ่าน ใช้สำหรับผนังฉนวน
+>
+> **แหล่งที่มา (Source):** ไฟล์ `0/T`
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `zeroGradient`: อนุพันธ์ปกติเป็นศูนย์ ($\partial T/\partial n = 0$)
+> - ไม่มีฟลักซ์ความร้อนผ่านผนัง
 
 ### 4. จำลองแรงลอยตัว (Simulate Buoyancy Effects)
 
@@ -209,20 +255,40 @@ $$\frac{\partial (\rho h)}{\partial t} + \nabla \cdot (\rho \mathbf{u} h) = \nab
 #### การใช้งานใน OpenFOAM
 
 ```cpp
+// Energy/enthalpy equation solver implementation
 // สมการเอนทาลปี/พลังงาน
 fvScalarMatrix EEqn
 (
+    // Transient term: time derivative of enthalpy
     fvm::ddt(rho, he)
+    // Convection term: enthalpy transport by fluid motion
   + fvm::div(phi, he)
+    // Diffusion term: heat conduction (including turbulent effects)
   - fvm::laplacian(turbulence->alphaEff(), he)
  ==
+    // Buoyancy source term: work done by gravity
     rho*(U&g)
+    // Kinetic energy terms
   + fvc::ddt(rho, K) + fvc::div(phi, K)
+    // Additional heat sources/sinks
   + sources(rho, he)
 );
 
+// Calculate enthalpy from total energy
 he = (E - 0.5*magSqr(U)) - p/rho;
 ```
+
+> **📖 คำอธิบาย (Explanation):**
+> สมการพลังงาน/เอนทาลปีใน OpenFOAM ที่รวมเอาเอฟเฟกต์การถ่ายเทความร้อนและความปั่นป่วน
+>
+> **แหล่งที่มา (Source):** `.applications/solvers/heatTransfer/buoyantSimpleFoam/EEqn.H`
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `fvm::ddt`: เทอมข้างเวลา (transient term)
+> - `fvm::div`: เทอมการพา (convection term)
+> - `fvm::laplacian`: เทอมการแพร่ (diffusion term)
+> - `turbulence->alphaEff()`: การแพร่ความร้อนประสิทธิผลรวมความปั่นป่วน
+> - `U&g`: เทอมแหล่งกำเนิดจากแรงโน้มถ่วง (buoyancy source)
 
 ---
 
@@ -235,13 +301,13 @@ he = (E - 0.5*magSqr(U)) - p/rho;
 ```cpp
 thermoType
 {
-    type            hePsiThermo;
-    mixture         pureMixture;
-    transport       sutherland;
-    thermo          hConst;
-    equationOfState perfectGas;
-    specie          specie;
-    energy          sensibleEnthalpy;
+    type            hePsiThermo;     // Psi-based thermodynamics for compressible flows
+    mixture         pureMixture;     // Single component mixture
+    transport       sutherland;      // Temperature-dependent viscosity
+    thermo          hConst;          // Constant specific heat
+    equationOfState perfectGas;      // Ideal gas law: p = rho*R*T
+    specie          specie;          // Species properties
+    energy          sensibleEnthalpy; // Enthalpy as energy variable
 }
 
 specie
@@ -262,25 +328,35 @@ transport
 }
 ```
 
+> **📖 คำอธิบาย (Explanation):**
+> การตั้งค่าคุณสมบัติทางเทอร์โมฟิสิกส์สำหรับก๊าซอุดมคติเช่นอากาศ
+>
+> **แหล่งที่มา (Source):** ไฟล์ `constant/thermophysicalProperties`
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `hePsiThermo`: คำนวณคุณสมบัติจากค่า psi = 1/R*T (สำหรับก๊าศอัดได้)
+> - `perfectGas`: ใช้กฎ PV = nRT
+> - `sutherland`: ความหนืดตามกฎ Sutherland: $\mu = \mu_0 (T/T_0)^{3/2} (T_0+S)/(T+S)$
+
 ### แบบจำลองของเหลวอัดตัวไม่ได้ (Incompressible Liquid Model)
 
 ```cpp
 thermoType
 {
-    type            heRhoThermo;
-    mixture         pureMixture;
-    transport       const;
-    thermo          hConst;
-    equationOfState rhoConst;
-    specie          specie;
-    energy          sensibleEnthalpy;
+    type            heRhoThermo;     // Rho-based thermodynamics
+    mixture         pureMixture;     // Single component
+    transport       const;           // Constant viscosity
+    thermo          hConst;          // Constant specific heat
+    equationOfState rhoConst;        // Constant density
+    specie          specie;          // Species properties
+    energy          sensibleEnthalpy; // Sensible enthalpy
 }
 
 mixture
 {
     specie
     {
-        molWeight       18.01528;       // kg/kmol (น้ำ)
+        molWeight       18.01528;       // kg/kmol (water)
     }
     equationOfState
     {
@@ -293,12 +369,22 @@ mixture
     }
     transport
     {
-        mu              1.002e-3;       // Pa·s
-        Pr              7.0;
-        kappa           0.606;          // W/(m·K)
+        mu              1.002e-3;       // Pa·s - dynamic viscosity
+        Pr              7.0;            // Prandtl number
+        kappa           0.606;          // W/(m·K) - thermal conductivity
     }
 }
 ```
+
+> **📖 คำอธิบาย (Explanation):**
+> การตั้งค่าคุณสมบัติทางเทอร์โมฟิสิกส์สำหรับของเหลวอัดตัวไม่ได้เช่นน้ำ
+>
+> **แหล่งที่มา (Source):** ไฟล์ `constant/thermophysicalProperties`
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `heRhoThermo`: ใช้ความหนาแน่นโดยตรงในการคำนวณ
+> - `rhoConst`: ความหนาแน่นคงที่
+> - `Pr`: จำนวน Prandtl = $\mu c_p / k$
 
 ---
 
@@ -317,17 +403,34 @@ mixture
 
 **การเปลี่ยนแปลงความหนาแน่นแบบ Boussinesq**:
 ```cpp
+// Boussinesq approximation for density variations
+// Density depends linearly on temperature
 rho = rhoRef*(1.0 - beta*(T - TRef));
 
+// Momentum equation with buoyancy source term
 // สมการโมเมนตัมพร้อมแรงลอยตัว
 tmp<fvVectorMatrix> UEqn
 (
+    // Convection term
     fvm::div(phi, U)
+    // Viscous stress term (deviatoric part)
   + turbulence->divDevReff(U)
  ==
+    // Buoyancy force source term (Boussinesq approximation)
     rhoRef*(g - beta*(T - TRef)*g)
 );
 ```
+
+> **📖 คำอธิบาย (Explanation):**
+> การใช้การประมาณแบบ Boussinesq เพื่อจำลองแรงลอยตัวในของไหลอัดตัวไม่ได้
+>
+> **แหล่งที่มา (Source):** `.applications/solvers/heatTransfer/buoyantBoussinesqSimpleFoam/UEqn.H`
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `rhoRef`: ความหนาแน่นอ้างอิง (reference density)
+> - `beta`: สัมประสิทธิ์การขยายตัวทางความร้อน (thermal expansion coefficient)
+> - การประมาณแบบ Boussinesq ถือว่าความหนาแน่นแปรผันเฉพาะในเทอมแรงลอยตัวเท่านั้น
+> - `divDevReff`: แรงเฉือนมุมฉากที่มีประสิทธิภาพรวมความปั่นป่วน
 
 #### `buoyantSimpleFoam`
 
@@ -340,33 +443,47 @@ tmp<fvVectorMatrix> UEqn
 
 **โครงสร้างการทำงาน**:
 ```cpp
+// Main iteration loop for steady-state solver
 // ลูปหลัก
 while (simple.loop())
 {
+    // Momentum equation solver
     // สมการโมเมนตัม
     tmp<fvVectorMatrix> UEqn
     (
-        fvm::div(phi, U)
-      + turbulence->divDevReff(U)
+        fvm::div(phi, U)                    // Convection
+      + turbulence->divDevReff(U)           // Viscous stress
     );
 
-    UEqn.relax();
-    solve(UEqn == -fvc::grad(p));
+    UEqn.relax();                            // Under-relaxation
+    solve(UEqn == -fvc::grad(p));           // Solve with pressure gradient
 
+    // Energy equation solver
     // สมการพลังงาน
     fvScalarMatrix TEqn
     (
-        fvm::div(phi, h)
-      + fvm::SuSp(divPhidp, h)
-      - fvm::laplacian(kappaEff, h)
+        fvm::div(phi, h)                     // Enthalpy convection
+      + fvm::SuSp(divPhidp, h)               // Pressure work term
+      - fvm::laplacian(kappaEff, h)          // Heat diffusion
      ==
-        sources(h)
+        sources(h)                           // Heat sources/sinks
     );
 
-    TEqn.relax();
-    TEqn.solve();
+    TEqn.relax();                            // Under-relaxation
+    TEqn.solve();                            // Solve energy equation
 }
 ```
+
+> **📖 คำอธิบาย (Explanation):**
+> โครงสร้างหลักของ solver สภาวะคงที่สำหรับการไหลแบบอัดได้พร้อมการถ่ายเทความร้อน
+>
+> **แหล่งที่มา (Source):** `.applications/solvers/heatTransfer/buoyantSimpleFoam/buoyantSimpleFoam.C`
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `simple.loop()`: ลูปการวนซ้ำแบบ SIMPLE algorithm
+> - `relax()`: การผ่อนคลาย (under-relaxation) เพื่อความเสถียร
+> - `divPhidp`: เทอมงานของความดัน (pressure work)
+> - `kappaEff`: การนำความร้อนประสิทธิผล
 
 ### Solver การถ่ายเทความร้อนแบบอัดได้
 
@@ -387,20 +504,33 @@ while (simple.loop())
 
 **การถ่ายเทความร้อนแบบหลายภูมิภาค (Multi-region heat transfer)**:
 ```cpp
+// Region coupling definition
 regionCouplePolyPatch
 {
-    type            regionCouple;
-    neighbourRegion solidRegion;
-    neighbourPatch solidToFluidPatch;
+    type            regionCouple;     // Coupled patch type
+    neighbourRegion solidRegion;      // Name of neighbor region
+    neighbourPatch solidToFluidPatch; // Name of neighbor patch
 }
 
+// Coupled boundary condition for heat transfer
 // Coupled boundary condition
 {
     type            compressible::turbulentTemperatureCoupledBaffleMixed;
-    Tnbr            T;
-    kappaMethod     fluidThermo;      // หรือ solidThermo
+    Tnbr            T;                // Neighbor temperature field
+    kappaMethod     fluidThermo;      // Thermal conductivity method: fluidThermo or solidThermo
 }
 ```
+
+> **📖 คำอธิบาย (Explanation):**
+> การตั้งค่าการเชื่อมต่อความร้อนระหว่างภูมิภาคของไหลและของแข็ง
+>
+> **แหล่งที่มา (Source):** ไฟล์ `constant/polyMesh/boundary` และ `0/T`
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - `regionCouple`: การเชื่อมต่อระหว่างภูมิภาค (region coupling)
+> - `turbulentTemperatureCoupledBaffleMixed`: เงื่อนไขขอบเขตแบบผสมสำหรับการถ่ายเทความร้อนผ่านผนัง
+> - `kappaMethod`: วิธีการคำนวณสภาพนำความร้อน (จากของไหลหรือของแข็ง)
+> - `Tnbr`: อุณหภูมิของบริเวณข้างเคียง (neighbor temperature)
 
 ### การเลือก Solver ที่เหมาะสม
 

@@ -166,7 +166,7 @@ $$Pe = Re_p \cdot Pr = \frac{\rho_c c_{p,c} u_{rel} d_p}{k_c}$$
 
 #### **การเลือกแบบจำลอง Turbulence (Turbulence Model Selection)**
 
-| แบบจำลอง | ความแม่นยำ | ต้นทุนการคำนวณ | เหมาะสำหรับ |
+| แบบจำลอง | ความแม่นยำ | ต้นทุนการคำนาณ | เหมาะสำหรับ |
 |------------|-------------|-------------------|--------------|
 | **k-ε** | ปานกลาง | ต่ำ | การไหลจำนวนเรย์โนลด์สูง |
 | **k-ω** | สูง (ใกล้ผนัง) | ปานกลาง | การไหลชั้นขอบเขต |
@@ -183,150 +183,198 @@ $$Pe = Re_p \cdot Pr = \frac{\rho_c c_{p,c} u_{rel} d_p}{k_c}$$
 การเลือกทั้งหมดจะถูกระบุในไฟล์ `constant/phaseProperties`:
 
 ```cpp
+// Example model configuration for gas-liquid system
 // ตัวอย่างการกำหนดค่าแบบจำลองสำหรับระบบก๊าซ-ของเหลว
 phases
 {
+    // Define gas phase properties
     gas
     {
+        // Phase type: compressible gas
         type            gas;
+        // Equation of state for ideal gas behavior
         equationOfState perfectGas;
+        // Thermodynamics model: constant specific heat
         thermodynamics  hConst;
+        // Transport properties: Sutherland's law for viscosity
         transport       sutherland;
 
-        // คุณสมบัติก๊าซ
-        rho             rho [1 -3 0 0 0 0 0] 1.2;
-        mu              mu [1 -1 -1 0 0] 1.8e-5;
-        Cp              Cp [0 2 -2 -1 -1 0 0] 1005;
+        // Gas properties with SI units
+        rho             rho [1 -3 0 0 0 0 0] 1.2;         // Density [kg/m³]
+        mu              mu [1 -1 -1 0 0] 1.8e-5;          // Dynamic viscosity [Pa·s]
+        Cp              Cp [0 2 -2 -1 -1 0 0] 1005;       // Specific heat [J/kg·K]
     }
 
+    // Define liquid phase properties
     liquid
     {
+        // Phase type: incompressible liquid
         type            incompressible;
+        // Constant density equation of state
         equationOfState rhoConst;
+        // Constant specific heat thermodynamics
         thermodynamics  hConst;
+        // Constant transport properties
         transport       const;
 
-        // คุณสมบัติของเหลว
-        rho             rho [1 -3 0 0 0 0 0] 1000;
-        mu              mu [1 -1 -1 0 0] 0.001;
-        Cp              Cp [0 2 -2 -1 -1 0 0] 4180;
-        sigma           sigma [1 0 -2 0 0] 0.072;
+        // Liquid properties with SI units
+        rho             rho [1 -3 0 0 0 0 0] 1000;        // Density [kg/m³]
+        mu              mu [1 -1 -1 0 0] 0.001;           // Dynamic viscosity [Pa·s]
+        Cp              Cp [0 2 -2 -1 -1 0 0] 4180;       // Specific heat [J/kg·K]
+        sigma           sigma [1 0 -2 0 0] 0.072;         // Surface tension [N/m]
     }
 }
 
+// Define inter-phase interaction models
 phaseInteraction
 {
-    // Drag Model
+    // Drag Model: Schiller-Naumann for spherical bubbles/drops
     dragModel       SchillerNaumann;
 
     SchillerNaumannCoeffs
     {
-        switch1         1000;
-        Cd1             24.0;
-        Cd2             0.44;
+        switch1         1000;   // Reynolds number switch point
+        Cd1             24.0;   // Drag coefficient for Stokes regime
+        Cd2             0.44;   // Drag coefficient for Newton regime
     }
 
-    // Lift Model
+    // Lift Model: Tomiyama for deformable bubbles in pipes
     liftModel       Tomiyama;
 
     TomiyamaCoeffs
     {
-        C1              0.44;
-        C2              24.0;
-        C3              0.15;
-        C4              6.0;
+        C1              0.44;   // Newton regime coefficient
+        C2              24.0;   // Stokes regime coefficient
+        C3              0.15;   // Transition exponent
+        C4              6.0;    // Eötvös number coefficient
     }
 
-    // Virtual Mass Model
+    // Virtual Mass Model: Constant coefficient approach
     virtualMassModel    constant;
 
     constantVirtualMassCoeffs
     {
-        Cvm             0.5;
+        Cvm             0.5;    // Virtual mass coefficient (0.5 for spheres)
     }
 
-    // Turbulent Dispersion Model
+    // Turbulent Dispersion Model: Burns formulation
     turbulentDispersionModel Burns;
 
     BurnsCoeffs
     {
-        Ctd             1.0;
-        D               1.0;
+        Ctd             1.0;    // Turbulent dispersion coefficient
+        D               1.0;    // Diffusion coefficient
     }
 
-    // Wall Lubrication Model
+    // Wall Lubrication Model: Antal for wall-peaking prevention
     wallLubricationModel    Antal;
 
     AntalCoeffs
     {
-        Cw1             -0.01;
-        Cw2             0.1;
+        Cw1             -0.01;  // Wall lubrication coefficient 1
+        Cw2             0.1;    // Wall lubrication coefficient 2
     }
 
-    // Heat Transfer Model
+    // Heat Transfer Model: Ranz-Marshall correlation
     heatTransferModel   RanzMarshall;
 
     RanzMarshallCoeffs
     {
-        Pr              0.7;
+        Pr              0.7;    // Prandtl number
     }
 }
 
-// การกำหนดค่า Turbulence
+// Turbulence model configuration
 turbulence
 {
+    // Base turbulence model: standard k-epsilon
     type            kEpsilon;
 
     kEpsilonCoeffs
     {
-        Cmu             0.09;
-        C1              1.44;
-        C2              1.92;
-        sigmaEps        1.3;
-        sigmaK          1.0;
+        Cmu             0.09;   // Turbulence viscosity coefficient
+        C1              1.44;   // k-epsilon model constant C1
+        C2              1.92;   // k-epsilon model constant C2
+        sigmaEps        1.3;    // Turbulent Prandtl number for epsilon
+        sigmaK          1.0;    // Turbulent Prandtl number for k
     }
 
+    // Phase-specific turbulence modeling
     phaseModel
     {
-        continuous     liquid;
-        dispersed      gas;
+        continuous     liquid;  // Continuous phase
+        dispersed      gas;     // Dispersed phase
 
+        // Dispersed phase turbulence model
         dispersedMultiphaseTurbulence
         {
+            // Continuous gas Euler model for bubble turbulence
             type        continuousGasEuler;
 
-            sigma        1.0;
-            Cmu          0.09;
-            Prt          1.0;
+            sigma        1.0;    // Prandtl number
+            Cmu          0.09;   // Turbulence viscosity coefficient
+            Prt          1.0;    // Turbulent Prandtl number
         }
     }
 }
 ```
 
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย (Explanation):**
+ไฟล์นี้แสดงการกำหนดค่าแบบจำลอง Inter-phase ทั้งหมดใน OpenFOAM ซึ่งเป็นการนำกรอบการตัดสินใจที่อธิบายไปแล้วมาใช้จริง โครงสร้างนี้สอดคล้องกับ `MomentumTransferPhaseSystem.C` ที่จัดการ Drag, Virtual Mass, Lift, Wall Lubrication และ Turbulent Dispersion อย่างเป็นระบบ
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Phase Properties**: การกำหนดค่าทางกายภาพของแต่ละเฟส (ความหนาแน่น ความหนืด ความตึงผิว) ต้องสอดคล้องกับอัตราส่วนคุณสมบัติที่ใช้ในการตัดสินใจ
+- **Model Coefficients**: แต่ละแบบจำลองมีค่าสัมประสิทธิ์เฉพาะ (เช่น `Cvm = 0.5` สำหรับ Virtual Mass ของทรงกลม) ซึ่งได้มาจากการทดลองหรือทฤษฎี
+- **Turbulence Coupling**: ระบบ Eulerian ต้องการแบบจำลองความปั่นป่วนเฉพาะสำหรับแต่ละเฟส โดยเฉพาะในระบบที่มีส่วนปริมาตรเฟสกระจายสูง
+
+---
+
 ### การเลือก Solver ที่เหมาะสม (Solver Selection)
 
 ```cpp
+// Select solver based on flow regime and system characteristics
 // การเลือก Solver ตามรูปแบบการไหล
-simulationType  twoPhaseEulerFoam;  // สำหรับระบบก๊าซ-ของเหลว 2 เฟส
-// simulationType  multiphaseEulerFoam;  // สำหรับระบบหลายเฟส (> 2 เฟส)
-// simulationType  interFoam;  // สำหรับ VOF method
-// simulationType  reactingMultiphaseEulerFoam;  // สำหรับปฏิกิริยาเคมี
+simulationType  twoPhaseEulerFoam;  // For 2-phase gas-liquid systems / สำหรับระบบก๊าซ-ของเหลว 2 เฟส
+// simulationType  multiphaseEulerFoam;  // For multi-phase systems (>2 phases) / สำหรับระบบหลายเฟส (> 2 เฟส)
+// simulationType  interFoam;  // For VOF method with sharp interfaces / สำหรับ VOF method
+// simulationType  reactingMultiphaseEulerFoam;  // For reacting flows / สำหรับปฏิกิริยาเคมี
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam`
+
+**คำอธิบาย (Explanation):**
+การเลือก Solver เป็นขั้นตอนแรกในกระบวนการตัดสินใจ ซึ่งขึ้นอยู่กับการจำแนกระบบที่อธิบายในระดับที่ 1 Solver แต่ละตัวถูกออกแบบมาเพื่อรูปแบบการไหลและวิธีการจำลองที่แตกต่างกัน
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **VOF Solvers (`interFoam`)**: เหมาะสำหรับการไหลแยกชัดที่มีอินเตอร์เฟสชัดเจน ใช้ Volume of Fluid method
+- **Eulerian Solvers (`multiphaseEulerFoam`, `twoPhaseEulerFoam`)**: เหมาะสำหรับการไหลกระจายที่มีหลายเฟส ใช้ Eulerian-Eulerian approach
+- **Reacting Solvers**: สำหรับระบบที่มีปฏิกิริยาเคมีระหว่างเฟส ต้องการแบบจำลองเพิ่มเติมสำหรับ chemistry
+
+---
 
 ### การตั้งค่า Solver และ Relaxation (Solver and Relaxation Settings)
 
 ```cpp
+// Solver settings in system/fvSolution for stable convergence
 // การตั้งค่า Solver ใน system/fvSolution
 solvers
 {
+    // Pressure solver settings
     p
     {
+        // Generalized Geometric-Algebraic Multi-grid solver
         solver          GAMG;
+        // Absolute convergence tolerance
         tolerance       1e-6;
+        // Relative convergence tolerance
         relTol          0.01;
+        // Smoother for multi-grid method
         smoother        GaussSeidel;
     }
 
+    // Final pressure solver (stricter tolerance)
     pFinal
     {
         solver          GAMG;
@@ -335,14 +383,17 @@ solvers
         smoother        GaussSeidel;
     }
 
+    // Velocity solver settings
     U
     {
+        // Smooth solver for velocity
         solver          smoothSolver;
         smoother        GaussSeidel;
         tolerance       1e-6;
         relTol          0;
     }
 
+    // Phase fraction solver settings
     alpha
     {
         solver          smoothSolver;
@@ -352,23 +403,36 @@ solvers
     }
 }
 
+// Relaxation factors for under-relaxation to improve stability
 // การตั้งค่า Relaxation Factors
 relaxationFactors
 {
+    // Field variable relaxation
     fields
     {
-        p               0.3;
-        U               0.7;
-        alpha           0.7;
+        p               0.3;    // Pressure relaxation (conservative)
+        U               0.7;    // Velocity relaxation
+        alpha           0.7;    // Phase fraction relaxation
     }
+    // Equation relaxation
     equations
     {
-        p               1;
-        U               0.8;
-        alpha           0.8;
+        p               1;      // No relaxation for pressure equation
+        U               0.8;    // Momentum equation relaxation
+        alpha           0.8;    // Phase fraction equation relaxation
     }
 }
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam`
+
+**คำอธิบาย (Explanation):**
+การตั้งค่า Solver และ Relaxation เป็นสิ่งสำคัญอย่างยิ่งสำหรับความเสถียรของการจำลอง Multiphase โดยเฉพาะอย่างยิ่งในระบบที่มี coupling ที่รุนแรงระหว่างเฟส การใช้ Under-relaxation ช่วยป้องกันการสั่นของผลลัพธ์
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Pressure-Velocity Coupling**: ความเสถียรของการแก้สมการ pressure-velocity coupling เป็นสิ่งสำคัญ โดยเฉพาะสำหรับ PISO/PIMPLE algorithms
+- **Under-relaxation**: การใช้ค่า relaxation factors ต่ำ (0.3-0.7) ช่วยเพิ่มความเสถียร แต่อาจทำให้การบรรจบกันช้าลง
+- **Tolerance Hierarchy**: การใช้ tolerance ที่แตกต่างกันระหว่าง intermediate และ final iterations ช่วยประหยัดเวลาคำนวณ
 
 > [!WARNING] คำเตือนเรื่องความเสถียร
 > ควรเริ่มจากแบบจำลองที่ง่ายที่สุด (เช่น Schiller-Naumann Drag และ No Lift) เพื่อตรวจสอบเสถียรภาพเบื้องต้นก่อนเพิ่มความซับซ้อน เช่น:
@@ -464,16 +528,18 @@ flowchart TD
 ### การเริ่มต้นอย่างง่าย (Start Simple Strategy)
 
 ```cpp
+// STEP 1: Start with basic models only
 // STEP 1: เริ่มต้นด้วยโมเดลพื้นฐาน
 phaseInteraction
 {
     dragModel       SchillerNaumann;
-    // liftModel       none;  // เริ่มต้นไม่มี lift
-    // virtualMassModel    none;  // เริ่มต้นไม่มี virtual mass
-    // turbulentDispersionModel none;  // เริ่มต้นไม่มี dispersion
+    // liftModel       none;  // Start without lift / เริ่มต้นไม่มี lift
+    // virtualMassModel    none;  // Start without virtual mass / เริ่มต้นไม่มี virtual mass
+    // turbulentDispersionModel none;  // Start without dispersion / เริ่มต้นไม่มี dispersion
     heatTransferModel   RanzMarshall;
 }
 
+// STEP 2: Add Virtual Mass for light particles
 // STEP 2: เพิ่ม Virtual Mass สำหรับอนุภาคเบา
 phaseInteraction
 {
@@ -483,6 +549,7 @@ phaseInteraction
     heatTransferModel   RanzMarshall;
 }
 
+// STEP 3: Add Lift for shear flow
 // STEP 3: เพิ่ม Lift สำหรับ shear flow
 phaseInteraction
 {
@@ -492,6 +559,7 @@ phaseInteraction
     heatTransferModel   RanzMarshall;
 }
 
+// STEP 4: Add Turbulent Dispersion for high turbulence
 // STEP 4: เพิ่ม Turbulent Dispersion สำหรับความปั่นป่วนสูง
 phaseInteraction
 {
@@ -503,34 +571,63 @@ phaseInteraction
 }
 ```
 
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/interfacialModels`
+
+**คำอธิบาย (Explanation):**
+กลยุทธ์ "Start Simple" เป็นแนวทางปฏิบัติที่สำคัญที่สุดในการจำลอง Multiphase การเพิ่มความซับซ้อนทีละน้อยช่วยให้สามารถระบุปัญหาและแก้ไขได้ง่าย รวมถึงทำให้เข้าใจผลกระทบของแต่ละแบบจำลองต่อผลลัพธ์
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Incremental Complexity**: การเพิ่มแบบจำลองทีละตัวทำให้สามารถวิเคราะห์ผลกระทบแยกกันได้
+- **Baseline Validation**: การสร้าง baseline ที่เสถียรก่อนเป็นสิ่งจำเป็นสำหรับการเปรียบเทียบ
+- **Debugging Strategy**: หากเกิดปัญหา สามารถย้อนกลับไปยังขั้นตอนก่อนหน้าที่เสถียรได้
+
+---
+
 ### การปรับปรุงความเสถียร (Stability Improvements)
 
 #### **การใช้ Implicit Coupling**
 ```cpp
-couplingScheme    implicit;
-maxIter          10;
-residualTol      1e-6;
+// Implicit coupling scheme for improved stability
+couplingScheme    implicit;    // Use implicit coupling between phases
+maxIter          10;          // Maximum iterations per time step
+residualTol      1e-6;        // Residual tolerance for convergence
 ```
 
 #### **การปรับ Relaxation Factors**
 ```cpp
+// Relaxation factors for stability
+// การตั้งค่า Relaxation Factors
 relaxationFactors
 {
-    phases        0.7;   // สำหรับสัดส่วนปริมาตรเฟส
-    drag          0.5;   // สำหรับแรง drag
-    lift          0.5;   // สำหรับแรง lift
-    turbulence    0.8;   // สำหรับความปั่นป่วน
+    phases        0.7;   // For phase fractions / สำหรับสัดส่วนปริมาตรเฟส
+    drag          0.5;   // For drag forces / สำหรับแรง drag
+    lift          0.5;   // For lift forces / สำหรับแรง lift
+    turbulence    0.8;   // For turbulence / สำหรับความปั่นป่วน
 }
 ```
 
 #### **การใช้ Smoothing**
 ```cpp
+// Smoothing coefficients to reduce numerical oscillations
+// การใช้ Smoothing
 smoothingCoeffs
 {
-    diameter           0.3;   // สำหรับเส้นผ่านศูนย์กลาง
-    interfacialArea    0.2;   // สำหรับพื้นที่อินเตอร์เฟส
+    diameter           0.3;   // For particle diameter / สำหรับเส้นผ่านศูนย์กลาง
+    interfacialArea    0.2;   // For interfacial area / สำหรับพื้นที่อินเตอร์เฟส
 }
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam`
+
+**คำอธิบาย (Explanation):**
+เทคนิคความเสถียรเหล่านี้เป็นสิ่งจำเป็นสำหรับการจำลอง Multiphase ที่ซับซ้อน Implicit coupling ช่วยลดความไวต่อ time step ส่วน Smoothing ช่วยลดการสั่นของค่าฟิสิกส์ใกล้อินเตอร์เฟส
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Implicit vs Explicit**: Implicit coupling แม้จะใช้เวลาคำนวณนานกว่า แต่ให้ความเสถียรที่ดีกว่าสำหรับระบบที่มี coupling สูง
+- **Under-relaxation**: การลดค่า relaxation factors ช่วยป้องกันการสั่นและ divergence แต่ต้องแลกกับความเร็วในการบรรจบกัน
+- **Smoothing**: การ smooth ค่าฟิลด์ช่วยลด gradient ที่สูงเกินไปและป้องกัน numerical instability
+
+---
 
 ### การตรวจสอบความถูกต้อง (Validation)
 

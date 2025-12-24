@@ -49,18 +49,25 @@ flowchart LR
 
 ```bash
 # NOTE: Synthesized by AI - Verify parameters
-# สร้าง Environment สำหรับ CFD Visualization
+# Create environment for CFD Visualization
 conda create -n cfd-vis python=3.11
 
-# เปิดใช้งาน Environment
+# Activate environment
 conda activate cfd-vis
 
-# ติดตั้ง Libraries หลัก
+# Install main libraries
 conda install -c conda-forge matplotlib numpy pandas scipy
 
-# ติดตั้น Libraries เพิ่มเติมสำหรับ Visualization
+# Install additional libraries for visualization
 pip install seaborn plotly pyvista kaleido
 ```
+
+> **📂 Source:** OpenFOAM postProcessing directory structure  
+> **คำอธิบาย (Explanation):** คำสั่งนี้สร้าง environment เฉพาะสำหรับการทำ CFD visualization เพื่อหลีกเลี่ยงปัญหาความขัดแย้งของ dependencies การใช้ conda-forge channel ให้แพ็กเกจที่อัปเดตกว่า default channel  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Environment Isolation**: แยก dependencies ของแต่ละโปรเจกต์
+> - **Conda vs Pip**: conda สำหรับ binary packages, pip สำหรับ pure Python packages
+> - **CFD-Specific Libraries**: PyVista สำหรับ 3D mesh visualization, Kaleido สำหรับ static export จาก Plotly
 
 ### 2.2 การติดตั้ง PyFoam
 
@@ -69,9 +76,16 @@ PyFoam เป็น Python library สำหรับทำงานร่วม
 ```bash
 # NOTE: Synthesized by AI - Verify parameters
 pip install PyFoam
-# หรือใช้ conda
+# Or use conda
 conda install -c conda-forge pyfoam
 ```
+
+> **📂 Source:** PyFoam documentation  
+> **คำอธิบาย (Explanation):** PyFoam ให้ API สำหรับการจัดการ OpenFOAM cases อัตโนมัติ รวมถึงการอ่านเขียน OpenFOAM dictionary files และการ monitor solver execution  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Dictionary Parser**: แปลง OpenFOAM dict format เป็น Python objects
+> - **Solver Wrapper**: Run OpenFOAM solvers จาก Python scripts
+> - **Case Management**: Automate parameter studies and mesh generation
 
 ### 2.3 การตั้งค่า Matplotlib สำหรับการตีพิมพ์
 
@@ -82,9 +96,9 @@ conda install -c conda-forge pyfoam
 import matplotlib.pyplot as plt
 import numpy as np
 
-# การตั้งค่าระดับมืออาชีพสำหรับวารสารวิชาการ
+# Professional settings for academic journals
 plt.rcParams.update({
-    # ฟอนต์และขนาดตัวอักษร
+    # Fonts and text sizes
     "font.family": "serif",
     "font.serif": ["Times New Roman", "DejaVu Serif"],
     "font.size": 12,
@@ -94,13 +108,13 @@ plt.rcParams.update({
     "xtick.labelsize": 10,
     "ytick.labelsize": 10,
 
-    # คุณภาพของภาพ
+    # Figure quality
     "figure.dpi": 300,
     "savefig.dpi": 300,
     "savefig.format": "pdf",
     "savefig.bbox": "tight",
 
-    # เส้นและสี
+    # Lines and colors
     "lines.linewidth": 1.5,
     "lines.markersize": 6,
     "axes.linewidth": 1.0,
@@ -114,6 +128,14 @@ plt.rcParams.update({
     "grid.linestyle": "--",
 })
 ```
+
+> **📂 Source:** Matplotlib rcParams documentation  
+> **คำอธิบาย (Explanation):** การตั้งค่า rcParams ช่วยให้ทุกกราฟใน session มี style สม่ำเสมอ ค่า DPI 300 เป็นมาตรฐานสำหรับ printing และ PDF format รักษาคุณภาพเวกเตอร์  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Publication Standards**: Serif fonts (Times New Roman) สำหรับ journal articles
+> - **Vector Graphics**: PDF/SVG รักษาความคมชัดทุกขนาด
+> - **Consistent Styling**: rcParams ทำให้ style สม่ำเสมอทั้ง project
+> - **Color Accessibility**: viridis colormap สามารถพิมพ์ขาวด้ายได้
 
 ---
 
@@ -141,6 +163,13 @@ postProcessing/probes/0.5/U
 postProcessing/forces/0/forces.dat
 ```
 
+> **📂 Source:** OpenFOAM postProcessing directory  
+> **คำอธิบาย (Explanation):** OpenFOAM utilities เขียนข้อมูลไปยัง `postProcessing` subdirectory โครงสร้างคือ `postProcessing/<functionName>/<time>/<filename>`  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Time Directories**: แต่ละ time folder มีข้อมูลเฉพาะ time step นั้น
+> - **ASCII vs Binary**: สามารถเลือก format ใน `controlDict`
+> - **Output Frequency**: ควบคุมด้วย `writeControl` และ `writeInterval`
+
 ### 3.2 การอ่านข้อมูล CSV ด้วย Pandas
 
 ```python
@@ -150,27 +179,34 @@ import numpy as np
 
 def read_openfoam_csv(filepath):
     """
-    อ่านไฟล์ CSV จาก OpenFOAM sample utility
+    Read CSV file from OpenFOAM sample utility
 
     Parameters:
     -----------
     filepath : str
-        พาธไปยังไฟล์ CSV
+        Path to CSV file
 
     Returns:
     --------
     pandas.DataFrame
-        ข้อมูลที่อ่านได้
+        Loaded data
     """
-    # อ่านไฟล์ (ข้าม comment lines ที่ขึ้นต้นด้วย #)
+    # Read file (skip comment lines starting with #)
     df = pd.read_csv(filepath, comment='#', skipinitialspace=True)
 
     return df
 
-# ตัวอย่างการใช้งาน
+# Example usage
 velocity_data = read_openfoam_csv('postProcessing/surfaces/0.5/centreLine_U.csv')
 print(velocity_data.head())
 ```
+
+> **📂 Source:** OpenFOAM sampleDict output format  
+> **คำอธิบาย (Explanation):** Pandas `read_csv` พร้อม `comment='#'` จะข้าม header lines ของ OpenFOAM อัตโนมัติ ซึ่งเริ่มต้นด้วย `#`  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Comment Stripping**: OpenFOAM เขียน metadata เป็น comment lines
+> - **DataFrame Structure**: Pandas จัดเก็บข้อมูลเป็น tabular format
+> - **Vector Components**: OpenFOAM output เป็น `(Ux Uy Uz)` columns
 
 ### 3.3 การอ่านข้อมูลจาก probes
 
@@ -178,17 +214,17 @@ print(velocity_data.head())
 # NOTE: Synthesized by AI - Verify parameters
 def read_probes_data(filepath):
     """
-    อ่านข้อมูลจาก probes utility
+    Read data from probes utility
 
     Parameters:
     -----------
     filepath : str
-        พาธไปยังไฟล์ probes
+        Path to probes file
 
     Returns:
     --------
     dict
-        Dictionary ของ arrays สำหรับแต่ละ probe
+        Dictionary of arrays for each probe
     """
     data = {}
     current_probe = []
@@ -198,27 +234,34 @@ def read_probes_data(filepath):
         for line in f:
             line = line.strip()
 
-            # เริ่ม probe ใหม่
+            # Start new probe
             if line.startswith('# Probe'):
                 if current_probe:
                     data[f'probe_{probe_count}'] = np.array(current_probe)
                     current_probe = []
                     probe_count += 1
 
-            # อ่านข้อมูล (ข้าม comment และ empty lines)
+            # Read data (skip comments and empty lines)
             elif line and not line.startswith('#'):
                 values = [float(x) for x in line.split()]
                 current_probe.append(values)
 
-        # Probe สุดท้าย
+        # Last probe
         if current_probe:
             data[f'probe_{probe_count}'] = np.array(current_probe)
 
     return data
 
-# ตัวอย่างการใช้งาน
+# Example usage
 probes_data = read_probes_data('postProcessing/probes/0.5/U')
 ```
+
+> **📂 Source:** OpenFOAM probes function output  
+> **คำอธิบาย (Explanation):** Probes utility เขียนข้อมูลหลายจุดวัดในไฟล์เดียว โดยแบ่งด้วย comment headers แต่ละ probe มี time history  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Probe Locations**: กำหนดใน `probesDict` หรือ via `sampleDict`
+> - **Time Series**: แต่ละ probe เก็บ temporal data
+> - **Multi-Point Monitoring**: Monitor หลายจุดพร้อมกัน
 
 ### 3.4 การอ่านข้อมูล Forces
 
@@ -226,19 +269,19 @@ probes_data = read_probes_data('postProcessing/probes/0.5/U')
 # NOTE: Synthesized by AI - Verify parameters
 def read_forces_data(filepath):
     """
-    อ่านข้อมูล forces จาก forces utility
+    Read forces data from forces utility
 
     Parameters:
     -----------
     filepath : str
-        พาธไปยังไฟล์ forces.dat
+        Path to forces.dat file
 
     Returns:
     --------
     pandas.DataFrame
-        ข้อมูล forces พร้อม column names
+        Forces data with column names
     """
-    # อ่านไฟล์ (skip header ที่มี #)
+    # Read file (skip header with #)
     df = pd.read_csv(filepath,
                      sep='\t',
                      comment='#',
@@ -250,10 +293,10 @@ def read_forces_data(filepath):
 
     return df
 
-# ตัวอย่างการใช้งาน
+# Example usage
 forces_data = read_forces_data('postProcessing/forces/0/forces.dat')
 
-# คำนวณ Drag และ Lift Coefficients
+# Calculate Drag and Lift Coefficients
 rho = 1.225      # kg/m³
 U_inf = 10.0     # m/s
 A_ref = 1.0      # m² (reference area)
@@ -264,6 +307,14 @@ Cd = 2 * forces_data['Fx_total'] / (rho * U_inf**2 * A_ref)
 # Lift coefficient (assuming lift in y-direction)
 Cl = 2 * forces_data['Fy_total'] / (rho * U_inf**2 * A_ref)
 ```
+
+> **📂 Source:** OpenFOAM forces function  
+> **คำอธิบาย (Explanation):** Forces utility คำนวณ pressure และ viscous forces บน patches ต่างๆ สำหรับ aerodynamic/hydrodynamic analysis  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Force Decomposition**: Total = Pressure + Viscous components
+> - **Coefficient Normalization**: $C = F / (0.5 \rho U^2 A)$
+> - **Moment Calculation**: Torque around center of rotation
+> - **Reference Values**: ต้องระบุใน `forcesDict`
 
 ---
 
@@ -305,21 +356,21 @@ from scipy.integrate import simpson
 
 def calculate_boundary_layer_params(y, U, U_inf):
     """
-    คำนวณพารามิเตอร์ Boundary Layer
+    Calculate boundary layer parameters
 
     Parameters:
     -----------
     y : numpy.ndarray
-        ตำแหน่งตามแนวปกติจากผนัง [m]
+        Normal distance from wall [m]
     U : numpy.ndarray
-        ความเร็ว x-component ที่แต่ละตำแหน่ง y [m/s]
+        x-velocity at each y position [m/s]
     U_inf : float
-        ความเร็วกระแสอิสระ [m/s]
+        Freestream velocity [m/s]
 
     Returns:
     --------
     dict
-        Dictionary ของ boundary layer parameters:
+        Dictionary of boundary layer parameters:
         - delta_star: Displacement thickness
         - theta: Momentum thickness
         - H: Shape factor
@@ -329,16 +380,16 @@ def calculate_boundary_layer_params(y, U, U_inf):
     # Normalize velocity
     U_norm = U / U_inf
 
-    # คำนวณ Displacement thickness (Simpson's rule)
+    # Calculate displacement thickness (Simpson's rule)
     delta_star = simpson(1 - U_norm, y)
 
-    # คำนวณ Momentum thickness
+    # Calculate momentum thickness
     theta = simpson(U_norm * (1 - U_norm), y)
 
-    # คำนวณ Shape factor
+    # Calculate shape factor
     H = delta_star / theta
 
-    # คำนวณ Boundary layer thickness (99% criterion)
+    # Calculate boundary layer thickness (99% criterion)
     delta_99 = np.interp(0.99 * U_inf, U, y)
 
     return {
@@ -348,7 +399,7 @@ def calculate_boundary_layer_params(y, U, U_inf):
         'delta_99': delta_99
     }
 
-# ตัวอย่างการใช้งาน
+# Example usage
 y = np.array([0.0, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1])  # m
 U = np.array([0.0, 0.5, 1.2, 3.5, 6.0, 8.5, 9.8, 10.0])         # m/s
 U_inf = 10.0  # m/s
@@ -361,6 +412,14 @@ print(f"Shape Factor (H):           {bl_params['H']:.3f}")
 print(f"Boundary Layer Thickness (δ99): {bl_params['delta_99']:.4f} m")
 ```
 
+> **📂 Source:** Boundary layer theory fundamentals  
+> **คำอธิบาย (Explanation):** Simpson's rule ให้ความแม่นยำสูงกว่า trapezoidal rule สำหรับ numerical integration ของ velocity profiles  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Integral Parameters**: สรุป profile ทั้งหมดด้วยตัวเลขเดียว
+> - **Displacement Effect**: δ* แทนการเบี่ยงเบน streamlines
+> - **Momentum Loss**: θ แทนการสูญเสียโมเมนตัม
+> - **Flow Regime Indicator**: H บอกสถานะ laminar/turbulent/separated
+
 ### 4.4 การพล็อต Velocity Profile
 
 ```python
@@ -369,20 +428,20 @@ import matplotlib.pyplot as plt
 
 def plot_velocity_profile(y, U, U_inf, bl_params, ax=None):
     """
-    พล็อต Velocity profile พร้อม boundary layer parameters
+    Plot velocity profile with boundary layer parameters
 
     Parameters:
     -----------
     y : numpy.ndarray
-        ตำแหน่งตามแนวปกติจากผนัง [m]
+        Normal distance from wall [m]
     U : numpy.ndarray
-        ความเร็ว x-component [m/s]
+        x-velocity [m/s]
     U_inf : float
-        ความเร็วกระแสอิสระ [m/s]
+        Freestream velocity [m/s]
     bl_params : dict
-        Boundary layer parameters จาก calculate_boundary_layer_params()
+        Boundary layer parameters from calculate_boundary_layer_params()
     ax : matplotlib.axes.Axes, optional
-        Axes object สำหรับ plotting
+        Axes object for plotting
     """
 
     if ax is None:
@@ -419,13 +478,21 @@ def plot_velocity_profile(y, U, U_inf, bl_params, ax=None):
 
     return ax
 
-# ตัวอย่างการใช้งาน
+# Example usage
 fig, ax = plt.subplots(figsize=(10, 6))
 plot_velocity_profile(y, U, U_inf, bl_params, ax=ax)
 plt.tight_layout()
 plt.savefig('boundary_layer_profile.pdf', dpi=300)
 plt.show()
 ```
+
+> **📂 Source:** Velocity profile visualization standards  
+> **คำอธิบาย (Explanation):** การพล็อต $U$ บน x-axis และ $y$ บน y-axis เป็น convention มาตรฐานสำหรับ boundary layer profiles  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Profile Orientation**: Horizontal velocity กับ vertical distance
+> - **Annotation**: Mark U∞ และ δ99 สำหรับ context
+> - **Fill Between**: Visualize velocity deficit
+> - **Text Box**: แสดงค่าพารามิเตอร์สำคัญ
 
 ### 4.5 Law of the Wall Analysis
 
@@ -450,18 +517,18 @@ $$u^+ = \frac{1}{\kappa} \ln(y^+) + B \tag{7}$$
 # NOTE: Synthesized by AI - Verify parameters
 def plot_law_of_the_wall(y, U, nu, rho, tau_w, ax=None):
     """
-    พล็อต Law of the Wall
+    Plot Law of the Wall
 
     Parameters:
     -----------
     y : numpy.ndarray
-        ตำแหน่งจากผนัง [m]
+        Distance from wall [m]
     U : numpy.ndarray
-        ความเร็ว [m/s]
+        Velocity [m/s]
     nu : float
         Kinematic viscosity [m²/s]
     rho : float
-        ความหนาแน่น [kg/m³]
+        Density [kg/m³]
     tau_w : float
         Wall shear stress [Pa]
     ax : matplotlib.axes.Axes, optional
@@ -471,10 +538,10 @@ def plot_law_of_the_wall(y, U, nu, rho, tau_w, ax=None):
     if ax is None:
         fig, ax = plt.subplots(figsize=(10, 8))
 
-    # คำนวณ friction velocity
+    # Calculate friction velocity
     u_tau = np.sqrt(tau_w / rho)
 
-    # คำนวณ non-dimensional parameters
+    # Calculate non-dimensional parameters
     y_plus = y * u_tau / nu
     u_plus = U / u_tau
 
@@ -509,6 +576,14 @@ def plot_law_of_the_wall(y, U, nu, rho, tau_w, ax=None):
     return ax
 ```
 
+> **📂 Source:** Turbulent boundary layer theory  
+> **คำอธิบาย (Explanation):** Law of the wall เป็น universal profile สำหรับ turbulent boundary layers ใช้ validate turbulence models  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Wall Units**: y+ และ u+ ทำให้ profile non-dimensional
+> - **Three Layers**: Viscous sublayer, buffer layer, log-law region
+> - **Universal Constants**: κ และ B ค่าคงที่ทั่วไป
+> - **Model Validation**: เปรียบเทียบ CFD กับ theory/experiment
+
 ---
 
 ## 5. การระบุลักษณะกระแสตาม (Wake Characterization)
@@ -538,18 +613,18 @@ $$w_{0.5}(x) = y_2 - y_1 \quad \text{where} \quad U(y_i) = U_{\infty} - 0.5 \Del
 # NOTE: Synthesized by AI - Verify parameters
 def analyze_wake_profile(y_coords, U_data, U_inf, x_position):
     """
-    วิเคราะห์ Wake profile ที่ตำแหน่ง x ที่กำหนด
+    Analyze wake profile at specified x position
 
     Parameters:
     -----------
     y_coords : numpy.ndarray
-        พิกัด y ตามแนวตั้ง [m]
+        Vertical coordinates [m]
     U_data : numpy.ndarray
-        ความเร็ว x-component ที่ตำแหน่ง x ที่กำหนด [m/s]
+        x-velocity at specified x position [m/s]
     U_inf : float
-        ความเร็วกระแสอิสระ [m/s]
+        Freestream velocity [m/s]
     x_position : float
-        ตำแหน่ง x ที่วิเคราะห์ [m]
+        Analysis x position [m]
 
     Returns:
     --------
@@ -561,27 +636,27 @@ def analyze_wake_profile(y_coords, U_data, U_inf, x_position):
         - centerline_velocity: Velocity at wake centerline
     """
 
-    # คำนวณ velocity deficit
+    # Calculate velocity deficit
     deficit = U_inf - U_data
     deficit_max = np.max(deficit)
 
-    # หาตำแหน่ง centerline (maximum deficit)
+    # Find centerline position (maximum deficit)
     centerline_idx = np.argmax(deficit)
     centerline_velocity = U_data[centerline_idx]
     centerline_y = y_coords[centerline_idx]
 
-    # คำนวณ wake width (50% criterion)
+    # Calculate wake width (50% criterion)
     half_deficit = deficit_max / 2.0
 
-    # หาจุดที่ deficit = 0.5 * deficit_max
+    # Find points where deficit = 0.5 * deficit_max
     from scipy.interpolate import interp1d
 
-    # Interpolate เพื่อหาตำแหน่งที่แม่นยำ
+    # Interpolate for accurate positions
     f = interp1d(y_coords, deficit - half_deficit, kind='linear')
 
-    # หาจุดตัด (root finding)
+    # Find intersection points (root finding)
     try:
-        # ด้านซ้ายของ centerline
+        # Left of centerline
         y_left = y_coords[:centerline_idx]
         deficit_left = deficit[:centerline_idx] - half_deficit
         if np.any(deficit_left > 0) and np.any(deficit_left < 0):
@@ -589,7 +664,7 @@ def analyze_wake_profile(y_coords, U_data, U_inf, x_position):
         else:
             y1 = y_coords[0]
 
-        # ด้านขวาของ centerline
+        # Right of centerline
         y_right = y_coords[centerline_idx:]
         deficit_right = deficit[centerline_idx:] - half_deficit
         if np.any(deficit_right > 0) and np.any(deficit_right < 0):
@@ -611,7 +686,7 @@ def analyze_wake_profile(y_coords, U_data, U_inf, x_position):
         'centerline_y': centerline_y
     }
 
-# ตัวอย่างการใช้งาน
+# Example usage
 y_coords = np.linspace(-0.5, 0.5, 100)
 U_data = 10.0 - 3.0 * np.exp(-(y_coords / 0.15)**2)  # Gaussian wake profile
 U_inf = 10.0
@@ -624,24 +699,32 @@ print(f"Deficit Coefficient: {wake_params['deficit_max_coefficient']:.3f}")
 print(f"Wake Width (50%): {wake_params['wake_width']:.4f} m")
 ```
 
+> **📂 Source:** Wake analysis fundamentals  
+> **คำอธิบาย (Explanation):** Gaussian profile เป็น approximation ที่ดีสำหรับ wake ใน far-field region interpolation ใช้หา wake width ที่แม่นยำ  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Velocity Deficit**: ความแตกต่างจาก freestream
+> - **Wake Width**: ขนาดของ region ที่ได้รับอิทธิพล
+> - **Centerline**: เส้นกลางของ wake (maximum deficit)
+> - **Gaussian Approximation**: ใช้ได้ใน far wake
+
 ### 5.3 การพล็อต Wake Visualization
 
 ```python
 # NOTE: Synthesized by AI - Verify parameters
 def plot_wake_profile(y_coords, U_data, U_inf, wake_params, ax=None):
     """
-    พล็อต Wake profile พร้อม annotations
+    Plot wake profile with annotations
 
     Parameters:
     -----------
     y_coords : numpy.ndarray
-        พิกัด y [m]
+        y coordinates [m]
     U_data : numpy.ndarray
-        ความเร็ว [m/s]
+        Velocity [m/s]
     U_inf : float
-        ความเร็วกระแสอิสระ [m/s]
+        Freestream velocity [m/s]
     wake_params : dict
-        Wake parameters จาก analyze_wake_profile()
+        Wake parameters from analyze_wake_profile()
     ax : matplotlib.axes.Axes, optional
         Axes object
     """
@@ -689,13 +772,21 @@ def plot_wake_profile(y_coords, U_data, U_inf, wake_params, ax=None):
 
     return ax
 
-# ตัวอย่างการใช้งาน
+# Example usage
 fig, ax = plt.subplots(figsize=(10, 6))
 plot_wake_profile(y_coords, U_data, U_inf, wake_params, ax=ax)
 plt.tight_layout()
 plt.savefig('wake_profile.pdf', dpi=300)
 plt.show()
 ```
+
+> **📂 Source:** Wake visualization techniques  
+> **คำอธิบาย (Explanation):** การพล็อต velocity บน x-axis แสดงให้เห็น velocity deficit อย่างชัดเจน  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Profile Orientation**: Horizontal velocity vs vertical distance
+> - **Deficit Visualization**: Fill region ระหว่าง profile กับ U∞
+> - **Key Markers**: Centerline และ wake width
+> - **Parameter Display**: Text box สรุปค่าสำคัญ
 
 ---
 
@@ -710,19 +801,19 @@ import pandas as pd
 
 def analyze_field_statistics(field_data, field_name='U'):
     """
-    วิเคราะห์สถิติของฟิลด์ CFD
+    Analyze statistics of CFD field
 
     Parameters:
     -----------
     field_data : numpy.ndarray
-        ข้อมูลฟิลด์ (shape: [n_cells, 3] สำหรับ vector หรือ [n_cells] สำหรับ scalar)
+        Field data (shape: [n_cells, 3] for vector or [n_cells] for scalar)
     field_name : str
-        ชื่อของฟิลด์สำหรับรายงาน
+        Field name for reporting
 
     Returns:
     --------
     dict
-        สถิติของฟิลด์
+        Field statistics
     """
 
     stats = {}
@@ -776,7 +867,7 @@ def analyze_field_statistics(field_data, field_name='U'):
     return stats
 
 def print_field_statistics(stats):
-    """พิมพ์สถิติฟิลด์อย่างสวยงาม"""
+    """Print field statistics beautifully"""
     print(f"\n{'='*60}")
     print(f"Field Statistics: {stats['field_name']}")
     print(f"Type: {stats['type'].upper()}")
@@ -808,6 +899,14 @@ def print_field_statistics(stats):
         print(f"  Median: {val['median']:.6f}")
 ```
 
+> **📂 Source:** Statistical analysis for CFD fields  
+> **คำอธิบาย (Explanation):** ฟังก์ชันนี้จัดการทั้ง scalar และ vector fields โดยอัตโนมัติ คำนวณทั้ง magnitude และ components  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Vector vs Scalar**: จัดการทั้งสองประเภท
+> - **Magnitude Analysis**: ขนาดของ vector
+> - **Component Analysis**: แต่ละ directional component
+> - **Direction Angles**: Spherical coordinates (θ, φ)
+
 ### 6.2 การวิเคราะห์ Histogram และ PDF
 
 ```python
@@ -817,14 +916,14 @@ from scipy.stats import gaussian_kde
 
 def plot_field_distribution(field_data, field_name='U_mag', ax=None):
     """
-    พล็อตการกระจายของฟิลด์ (Histogram + PDF)
+    Plot field distribution (Histogram + PDF)
 
     Parameters:
     -----------
     field_data : numpy.ndarray
-        ข้อมูลฟิลด์ (1D array)
+        Field data (1D array)
     field_name : str
-        ชื่อฟิลด์สำหรับ label
+        Field name for label
     ax : matplotlib.axes.Axes, optional
         Axes object
     """
@@ -875,6 +974,14 @@ def plot_field_distribution(field_data, field_name='U_mag', ax=None):
     return ax
 ```
 
+> **📂 Source:** Probability density visualization  
+> **คำอธิบาย (Explanation):** KDE ให้ smooth PDF curve โดยไม่ต้องเลือก bin sizes อย่าง manual  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Histogram**: Discrete distribution
+> - **Kernel Density Estimation**: Continuous PDF approximation
+> - **Statistical Moments**: Mean, median, standard deviation
+> - **Distribution Shape**: Skewness, kurtosis (visual)
+
 ---
 
 ## 7. การวิเคราะห์ Time Series (Temporal Analysis)
@@ -889,20 +996,20 @@ import matplotlib.pyplot as plt
 def plot_time_series(time_data, variable_data, variable_name,
                      show_rolling_mean=False, window=10, ax=None):
     """
-    พล็อตข้อมูล Time Series
+    Plot time series data
 
     Parameters:
     -----------
     time_data : numpy.ndarray
-        ข้อมูลเวลา [s]
+        Time data [s]
     variable_data : numpy.ndarray
-        ข้อมูลตัวแปร
+        Variable data
     variable_name : str
-        ชื่อตัวแปรสำหรับ label
+        Variable name for label
     show_rolling_mean : bool
-        แสดงค่าเฉลี่ยเคลื่อนที่หรือไม่
+        Show rolling mean or not
     window : int
-        ขนาด window สำหรับ rolling mean
+        Window size for rolling mean
     ax : matplotlib.axes.Axes, optional
         Axes object
     """
@@ -932,12 +1039,12 @@ def plot_time_series(time_data, variable_data, variable_name,
 
 def plot_convergence_history(residuals_data, ax=None):
     """
-    พล็อตประวัติ Convergence ของ Solver
+    Plot solver convergence history
 
     Parameters:
     -----------
     residuals_data : dict
-        Dictionary ของ residuals เช่น {'U': [...], 'p': [...]}
+        Dictionary of residuals, e.g., {'U': [...], 'p': [...]}
     ax : matplotlib.axes.Axes, optional
         Axes object
     """
@@ -959,6 +1066,14 @@ def plot_convergence_history(residuals_data, ax=None):
     return ax
 ```
 
+> **📂 Source:** Time series analysis for CFD  
+> **คำอธิบาย (Explanation):** Rolling mean ช่วยลด noise ในข้อมูล temporal convergence history ใช้ log-scale เพื่อแสดง reduction หลาย orders  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Temporal Trends**: Monitor variables vs time
+> - **Noise Reduction**: Rolling mean smooths fluctuations
+> - **Convergence Monitoring**: Residuals drop over iterations
+> - **Log Scale**: Visualize orders of magnitude
+
 ### 7.2 การวิเคราะห์ FFT (Frequency Domain)
 
 สำหรับการวิเคราะห์ Unsteady Flow เช่น Vortex Shedding:
@@ -969,16 +1084,16 @@ from scipy.fft import fft, fftfreq
 
 def analyze_fft(time_data, signal_data, sampling_rate=None):
     """
-    วิเคราะห์ FFT ของสัญญาณ
+    Analyze FFT of signal
 
     Parameters:
     -----------
     time_data : numpy.ndarray
-        ข้อมูลเวลา [s]
+        Time data [s]
     signal_data : numpy.ndarray
-        สัญญาณ (เช่น Lift coefficient vs time)
+        Signal (e.g., Lift coefficient vs time)
     sampling_rate : float, optional
-        อัตรา sampling [Hz] (ถ้า None จะคำนวณจาก time_data)
+        Sampling rate [Hz] (if None, calculated from time_data)
 
     Returns:
     --------
@@ -987,12 +1102,12 @@ def analyze_fft(time_data, signal_data, sampling_rate=None):
         - frequencies: Frequency array [Hz]
         - amplitudes: Amplitude spectrum
         - dominant_freq: Dominant frequency [Hz]
-        - dominant_amplitude: Amplitude ที่ dominant frequency
+        - dominant_amplitude: Amplitude at dominant frequency
     """
 
     N = len(signal_data)
 
-    # คำนวณ sampling rate
+    # Calculate sampling rate
     if sampling_rate is None:
         dt = np.mean(np.diff(time_data))
         sampling_rate = 1.0 / dt
@@ -1002,7 +1117,7 @@ def analyze_fft(time_data, signal_data, sampling_rate=None):
     amplitudes = 2.0 / N * np.abs(fft_values[0:N//2])
     frequencies = fftfreq(N, 1.0/sampling_rate)[0:N//2]
 
-    # หา dominant frequency (skip DC component at index 0)
+    # Find dominant frequency (skip DC component at index 0)
     dominant_idx = np.argmax(amplitudes[1:]) + 1
     dominant_freq = frequencies[dominant_idx]
     dominant_amplitude = amplitudes[dominant_idx]
@@ -1016,7 +1131,7 @@ def analyze_fft(time_data, signal_data, sampling_rate=None):
 
 def plot_fft_spectrum(frequencies, amplitudes, dominant_freq, ax=None):
     """
-    พล็อต FFT Spectrum
+    Plot FFT spectrum
 
     Parameters:
     -----------
@@ -1053,6 +1168,14 @@ def plot_fft_spectrum(frequencies, amplitudes, dominant_freq, ax=None):
     return ax
 ```
 
+> **📂 Source:** Frequency domain analysis for CFD  
+> **คำอธิบาย (Explanation):** FFT แปลง temporal signal เป็น frequency spectrum ใช้วิเคราะห์ periodic phenomena  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Fourier Transform**: Time domain → Frequency domain
+> - **Sampling Rate**: กำหนด maximum frequency (Nyquist)
+> - **Dominant Frequency**: Peak in spectrum
+> - **Strouhal Number**: Characterize vortex shedding (St = fL/U)
+
 ---
 
 ## 8. การเปรียบเทียบกรณีศึกษา (Case Comparison)
@@ -1065,36 +1188,36 @@ def plot_multiple_cases(data_dict, x_key, y_key, ax=None,
                         xlabel=None, ylabel=None, title=None,
                         legend_location='best'):
     """
-    พล็อตเปรียบเทียบหลายกรณีศึกษา
+    Plot multiple case studies
 
     Parameters:
     -----------
     data_dict : dict
-        Dictionary ของ cases เช่น:
+        Dictionary of cases, e.g.:
         {
             'Case1': {'x': [...], 'y': [...]},
             'Case2': {'x': [...], 'y': [...]},
             ...
         }
     x_key : str
-        ชื่อ key สำหรับ x-axis data
+        Key name for x-axis data
     y_key : str
-        ชื่อ key สำหรับ y-axis data
+        Key name for y-axis data
     ax : matplotlib.axes.Axes, optional
         Axes object
     xlabel : str, optional
-        Label สำหรับ x-axis
+        Label for x-axis
     ylabel : str, optional
-        Label สำหรับ y-axis
+        Label for y-axis
     title : str, optional
         Plot title
     legend_location : str
-        ตำแหน่ง legend
+        Legend position
 
     Returns:
     --------
     matplotlib.axes.Axes
-        Axes object ที่พล็อตแล้ว
+        Plotted axes object
     """
 
     if ax is None:
@@ -1130,6 +1253,14 @@ def plot_multiple_cases(data_dict, x_key, y_key, ax=None,
     return ax
 ```
 
+> **📂 Source:** Multi-case visualization standards  
+> **คำอธิบาย (Explanation):** ใช้ color cycle และ marker variations เพื่อแยกแยะกรณีศึกษา  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Data Organization**: Dictionary ของ cases
+> - **Visual Distinction**: Colors และ markers
+> - **Legend Management**: Clear identification
+> - **Comparison Plots**: Side-by-side analysis
+
 ### 8.2 การพล็อต Convergence Study
 
 ```python
@@ -1137,16 +1268,16 @@ def plot_multiple_cases(data_dict, x_key, y_key, ax=None,
 def plot_mesh_convergence(mesh_sizes, error_values,
                           quantity_name='Error', ax=None):
     """
-    พล็อต Mesh Convergence Study
+    Plot mesh convergence study
 
     Parameters:
     -----------
     mesh_sizes : list or numpy.ndarray
-        ขนาด mesh (เช่น number of cells)
+        Mesh sizes (e.g., number of cells)
     error_values : list or numpy.ndarray
-        ค่า error ที่ corresponding
+        Corresponding error values
     quantity_name : str
-        ชื่อ quantity สำหรับ label
+        Quantity name for label
     ax : matplotlib.axes.Axes, optional
         Axes object
     """
@@ -1191,6 +1322,14 @@ def plot_mesh_convergence(mesh_sizes, error_values,
     return ax
 ```
 
+> **📂 Source:** Mesh convergence analysis  
+> **คำอธิบาย (Explanation):** Power law fit ให้ order of convergence ($p$) ซึ่งบอกว่า mesh refinement ลด error อย่างไร  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Grid Convergence**: Error ลดลงเมื่อ mesh ละเอียดขึ้น
+> - **Order of Convergence**: Exponent ใน power law
+> - **Log-Log Plot**: Linearize power law relationship
+> - **Richardson Extrapolation**: ประมาณค่าที่ mesh-independent
+
 ---
 
 ## 9. มาตรฐานการรายงานระดับมืออาชีพ (Professional Standards)
@@ -1222,15 +1361,15 @@ def plot_mesh_convergence(mesh_sizes, error_values,
 
 ```python
 # NOTE: Synthesized by AI - Verify parameters
-# ไฟล์: plot_config.py
+# File: plot_config.py
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-# การตั้งค่าระดับมืออาชีพ
+# Professional settings
 def setup_publication_style():
     """
-    ตั้งค่า Matplotlib สำหรับการตีพิมพ์
+    Setup Matplotlib for publication
     """
 
     plt.rcParams.update({
@@ -1256,7 +1395,7 @@ def setup_publication_style():
 
         # Axes settings
         'axes.linewidth': 1.0,
-        'axes.unicode_minus': False,  # ใช้ hyphen แทน minus sign
+        'axes.unicode_minus': False,  # Use hyphen instead of minus sign
 
         # Grid settings
         'axes.grid': True,
@@ -1269,24 +1408,24 @@ def setup_publication_style():
         'legend.framealpha': 0.8,
         'legend.edgecolor': 'gray',
 
-        # LaTeX settings (ถ้าติดตั้ง LaTeX)
-        'text.usetex': False,  # ตั้ง True ถ้ามี LaTeX
+        # LaTeX settings (if LaTeX is installed)
+        'text.usetex': False,  # Set True if LaTeX is available
     })
 
 def save_figure(fig, filename, formats=['pdf', 'png'], dpi=300):
     """
-    บันทึกภาพหลาย format
+    Save figure in multiple formats
 
     Parameters:
     -----------
     fig : matplotlib.figure.Figure
         Figure object
     filename : str
-        ชื่อไฟล์ (without extension)
+        Filename (without extension)
     formats : list
-        รายการ formats ที่ต้องการบันทึก
+        List of formats to save
     dpi : int
-        DPI สำหรับ raster formats
+        DPI for raster formats
     """
 
     for fmt in formats:
@@ -1300,7 +1439,7 @@ def save_figure(fig, filename, formats=['pdf', 'png'], dpi=300):
 
     print(f"Figure saved: {filename} ({', '.join(formats)})")
 
-# ตัวอย่างการใช้งาน
+# Example usage
 if __name__ == "__main__":
     setup_publication_style()
 
@@ -1319,6 +1458,14 @@ if __name__ == "__main__":
     save_figure(fig, 'example_plot', formats=['pdf', 'png'])
 ```
 
+> **📂 Source:** Publication-quality plotting standards  
+> **คำอธิบาย (Explanation):** การตั้งค่า rcParams ทั่วทั้ง script ทำให้ทุกกราฟมี style สม่ำเสมอ PDF format รักษา vector quality  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Journal Requirements**: Typography และ DPI standards
+> - **Vector Graphics**: PDF/SVG สำหรับ scalability
+> - **Style Consistency**: rcParams สำหรับ uniform appearance
+> - **Multi-format Export**: PDF สำหรับ printing, PNG สำหรับ presentations
+
 ### 9.3 Color Palettes สำหรับ CFD Visualization
 
 > [!WARNING) ข้อควรระวังในการเลือกสี
@@ -1330,12 +1477,12 @@ if __name__ == "__main__":
 # NOTE: Synthesized by AI - Verify parameters
 def get_cfd_colormap(cmap_type='sequential'):
     """
-    คืนค่า Colormap ที่เหมาะสมสำหรับ CFD
+    Return appropriate colormap for CFD
 
     Parameters:
     -----------
     cmap_type : str
-        ประเภทของ colormap: 'sequential', 'diverging', 'qualitative'
+        Colormap type: 'sequential', 'diverging', 'qualitative'
 
     Returns:
     --------
@@ -1353,6 +1500,14 @@ def get_cfd_colormap(cmap_type='sequential'):
         return plt.cm.viridis
 ```
 
+> **📂 Source:** Color theory for scientific visualization  
+> **คำอธิบาย (Explanation):** Perceptually uniform colormaps มีการเปลี่ยนสีที่สม่ำเสมอตาม perceived brightness ทำให้ตีความได้ถูกต้อง  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Perceptual Uniformity**: Equal steps in data = equal steps in perception
+> - **Color Blindness**: Viridis/cividis อ่านได้กับ color vision deficiencies
+> - **Sequential Data**: Single-direction changes (e.g., temperature)
+> - **Diverging Data**: Deviation from midpoint (e.g., pressure difference)
+
 ---
 
 ## 10. การสร้างรายงานอัตโนมัติ (Automated Reporting)
@@ -1363,19 +1518,19 @@ def get_cfd_colormap(cmap_type='sequential'):
 # NOTE: Synthesized by AI - Verify parameters
 def create_multipanel_figure(fig_size=(12, 10), nrows=2, ncols=2):
     """
-    สร้าง Multi-panel figure สำหรับรายงาน
+    Create multi-panel figure for reports
 
     Returns:
     --------
     tuple
-        (fig, axes) โดย axes เป็น array ของ Axes objects
+        (fig, axes) where axes is array of Axes objects
     """
 
     fig, axes = plt.subplots(nrows=nrows, ncols=ncols,
                             figsize=fig_size,
                             constrained_layout=True)
 
-    # Flatten axes array ถ้าจำเป็น
+    # Flatten axes array if needed
     if nrows == 1 or ncols == 1:
         axes = np.array(axes).flatten()
     else:
@@ -1389,7 +1544,7 @@ def create_multipanel_figure(fig_size=(12, 10), nrows=2, ncols=2):
 
     return fig, axes
 
-# ตัวอย่างการใช้งาน
+# Example usage
 fig, axes = create_multipanel_figure((14, 10), 2, 2)
 
 # Panel (a): Velocity Profile
@@ -1411,6 +1566,14 @@ fig.suptitle('CFD Analysis Summary', fontsize=18, fontweight='bold')
 save_figure(fig, 'cfd_analysis_summary', formats=['pdf', 'png'])
 ```
 
+> **📂 Source:** Multi-panel figure composition  
+> **คำอธิบาย (Explanation):** `constrained_layout` จัดการ spacing ระหว่าง panels อัตโนมัติ ป้ายกำกับ (a), (b), ... ช่วยอ้างอิงใน text  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Subplot Grid**: nrows x ncols arrangement
+> - **Constrained Layout**: Automatic spacing optimization
+> - **Panel Labels**: (a), (b), (c) references
+> - **Unified Style**: Consistent across all panels
+
 ### 10.2 การสร้าง PDF Report ด้วย Python
 
 ```python
@@ -1420,16 +1583,16 @@ import matplotlib.pyplot as plt
 
 def create_pdf_report(output_filename, case_name, metadata_dict):
     """
-    สร้าง PDF Report หลายหน้า
+    Create multi-page PDF report
 
     Parameters:
     -----------
     output_filename : str
-        ชื่อไฟล์ PDF output
+        PDF output filename
     case_name : str
-        ชื่อกรณีศึกษา
+        Case study name
     metadata_dict : dict
-        ข้อมูลเมตาดาตา เช่น solver, mesh, ฯลฯ
+        Metadata such as solver, mesh, etc.
     """
 
     with PdfPages(output_filename) as pdf:
@@ -1466,7 +1629,7 @@ def create_pdf_report(output_filename, case_name, metadata_dict):
 
     print(f"PDF Report created: {output_filename}")
 
-# ตัวอย่างการใช้งาน
+# Example usage
 metadata = {
     'Solver': 'simpleFoam',
     'Turbulence Model': 'k-omega SST',
@@ -1477,6 +1640,14 @@ metadata = {
 
 create_pdf_report('cfd_report.pdf', 'FlowAroundCylinder', metadata)
 ```
+
+> **📂 Source:** PDF generation with Matplotlib  
+> **คำอธิบาย (Explanation):** `PdfPages` context manager สร้าง multi-page PDF พร้อม metadata embeddings  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Multi-page Documents**: หลาย figures ใน PDF เดียว
+> - **PDF Metadata**: Title, author, keywords embedded
+> - **Automated Workflows**: สร้าง reports จาก scripts
+> - **Version Control**: Timestamps ใน reports
 
 ---
 
@@ -1497,37 +1668,37 @@ create_pdf_report('cfd_report.pdf', 'FlowAroundCylinder', metadata)
 # NOTE: Synthesized by AI - Verify parameters
 def analyze_cylinder_flow(forces_data, U_inf, diameter, rho):
     """
-    วิเคราะห์ Flow around cylinder
+    Analyze flow around cylinder
 
     Parameters:
     -----------
     forces_data : pandas.DataFrame
-        ข้อมูล forces vs time
+        Forces vs time data
     U_inf : float
-        ความเร็วกระแสอิสระ [m/s]
+        Freestream velocity [m/s]
     diameter : float
-        เส้นผ่านศูนย์กลางกระบอก [m]
+        Cylinder diameter [m]
     rho : float
-        ความหนาแน่น [kg/m³]
+        Density [kg/m³]
 
     Returns:
     --------
     dict
-        ผลลัพธ์การวิเคราะห์
+        Analysis results
     """
 
     results = {}
 
-    # คำนวณ Cd และ Cl
+    # Calculate Cd and Cl
     A_ref = diameter * 1.0  # Unit depth
     Cd = 2 * forces_data['Fx_total'] / (rho * U_inf**2 * A_ref)
     Cl = 2 * forces_data['Fy_total'] / (rho * U_inf**2 * A_ref)
 
-    # ค่าเฉลี่ย
+    # Mean values
     results['Cd_mean'] = np.mean(Cd[len(Cd)//2:])  # Second half only
     results['Cl_mean'] = np.mean(Cl[len(Cl)//2:])
 
-    # FFT analysis สำหรับ vortex shedding
+    # FFT analysis for vortex shedding
     time = forces_data['Time'].values
     cl_signal = Cl.values
 
@@ -1540,6 +1711,14 @@ def analyze_cylinder_flow(forces_data, U_inf, diameter, rho):
 
     return results
 ```
+
+> **📂 Source:** Flow around cylinder analysis  
+> **คำอธิบาย (Explanation):** วิเคราะห์ Cd, Cl และ Strouhal number เพื่อ validate กับ literature values (St ≈ 0.2 สำหรับ cylinder)  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Drag Coefficient**: Resistance force in flow direction
+> - **Lift Coefficient**: Oscillating force (vortex shedding)
+> - **Strouhal Number**: Dimensionless shedding frequency
+> - **Von Kármán Vortex Street**: Alternating vortex pattern
 
 ### 11.2 การวิเคราะห์ Turbulent Channel Flow
 
@@ -1609,7 +1788,7 @@ def analyze_cylinder_flow(forces_data, U_inf, diameter, rho):
 
 **Tools และ Libraries:**
 - [NumPy](https://numpy.org/) - Numerical computing
-- [SciPy](https://scipy.org/) - Scientific computing
+- [SciPy](https://www.scipy.org/) - Scientific computing
 - [Pandas](https://pandas.pydata.org/) - Data manipulation
 - [PyVista](https://pyvista.org/) - 3D visualization in Python
 
@@ -1682,11 +1861,19 @@ if __name__ == "__main__":
     main()
 ```
 
+> **📂 Source:** OpenFOAM Python automation workflow  
+> **คำอธิบาย (Explanation):** Template นี้ให้โครงสร้างพื้นฐานสำหรับ CFD analysis scripts สามารถดัดแปลงให้เหมาะกับ cases ต่างๆ  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Script Organization**: Clear sections for load/analyze/plot/report
+> - **Configuration**: Constants ที่จุดเดียว
+> - **Progress Indicators**: Print statements แสดง workflow
+> - **Error Handling**: Try-except blocks (สามารถเพิ่มได้)
+
 ### A.2 Jupyter Notebook Template
 
 ```python
 # NOTE: Synthesized by AI - Verify parameters
-# Jupyter Notebook สำหรับ CFD Analysis
+# Jupyter Notebook for CFD Analysis
 
 # Cell 1: Imports and Setup
 import numpy as np
@@ -1713,6 +1900,15 @@ forces.head()
 # Cell 3: Analysis & Visualization
 # Add your analysis code here...
 ```
+
+> **📂 Source:** Jupyter Notebook for CFD  
+> **คำอธิบาย (Explanation):** Jupyter notebooks เหมาะสำหรับ exploratory analysis และ documentation  
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Cell-based Execution**: Run code chunks independently
+> - **Inline Plotting**: ` %matplotlib inline` แสดงกราฟใน notebook
+> - **Interactive Exploration**: Rapid iteration
+> - **Documentation**: Markdown cells สำหรับ explanations
+> - **Export to PDF**: nbconvert สร้าง reports จาก notebooks
 
 ---
 

@@ -33,7 +33,7 @@ graph LR
     style Vector fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style Tensor fill:#fce4ec,stroke:#c2185b,stroke-width:2px
 ```
-> **Figure 1:** การแปลงประเภทข้อมูลผ่านตัวดำเนินการเกรเดียนต์ (Gradient) โดยฟิลด์สเกลาร์จะเปลี่ยนเป็นฟิลด์เวกเตอร์ และฟิลด์เวกเตอร์จะเปลี่ยนเป็นฟิลด์เทนเซอร์ตามลำดับความซับซ้อนทางคณิตศาสตร์ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** การแปลงประเภทข้อมูลผ่านตัวดำเนินการเกรเดียนต์ (Gradient) โดยฟิลด์สเกลาร์จะเปลี่ยนเป็นฟิลด์เวกเตอร์ และฟิลด์เวกเตอร์จะเปลี่ยนเป็นฟิลด์เทนเซอร์ตามลำดับความซับซ้อนทางคณิตศาสตร์
 
 ![[of_gradient_discretization_formula.png]]
 `A diagram showing the discretization of the gradient operator using face area vectors (Sf) and face values (phi_f) on a 2D control volume, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
@@ -50,14 +50,30 @@ graph LR
 ```cpp
 #include "fvc.H"
 
-// Gradient ของสนามสเกลาร์ → สนามเวกเตอร์
-volScalarField p(mesh);        // สนามความดัน
+// Gradient of scalar field → vector field
+volScalarField p(mesh);        // Pressure field
 volVectorField gradP = fvc::grad(p);
 
-// Gradient ของสนามเวกเตอร์ → สนามเทนเซอร์
-volVectorField U(mesh);        // สนามความเร็ว
+// Gradient of vector field → tensor field
+volVectorField U(mesh);        // Velocity field
 volTensorField gradU = fvc::grad(U);
 ```
+
+### 💡 คำอธิบาย
+
+**Source:** ไฟล์หัวข้อ `fvc.H` ใน OpenFOAM source code
+
+**การทำงาน:**
+- `fvc::grad()` เป็นฟังก์ชันใน finite volume calculus (fvc) namespace ที่คำนวณค่า gradient ของสนามข้อมูล
+- สำหรับสนามสเกลาร์ เช่น ความดัน (pressure) จะคืนค่าเป็นสนามเวกเตอร์
+- สำหรับสนามเวกเตอร์ เช่น ความเร็ว (velocity) จะคืนค่าเป็นสนามเทนเซอร์
+
+**แนวคิดสำคัญ:**
+1. **การแปลงประเภทข้อมูล** - Gradient เปลี่ยน rank ของ tensor:
+   - Scalar (rank 0) → Vector (rank 1)
+   - Vector (rank 1) → Tensor (rank 2)
+2. **การคำนวณ** - OpenFOAM ใช้ Gauss theorem เพื่อแปลง volume integral เป็น surface integral
+3. **การอินเตอร์โพลเลชัน** - ค่าที่พื้นผิว (face values) ถูกคำนวณจากค่าที่จุดศูนย์กลางเซลล์ (cell centers)
 
 ---
 
@@ -68,7 +84,7 @@ volTensorField gradU = fvc::grad(U);
 ### 3.1 การตั้งค่าใน `system/fvSchemes`
 
 ```cpp
-// ใน system/fvSchemes
+// In system/fvSchemes
 gradSchemes
 {
     default         Gauss linear;
@@ -76,6 +92,23 @@ gradSchemes
     grad(U)         Gauss fourth;
 }
 ```
+
+### 💡 คำอธิบาย
+
+**Source:** ไฟล์ dictionary ใน `system/fvSchemes` ของ OpenFOAM case directory
+
+**การทำงาน:**
+- `gradSchemes` กำหนดวิธีการคำนวณ gradient สำหรับแต่ละสนามข้อมูล
+- `default` ใช้สำหรับทุกสนามที่ไม่ได้ระบุเฉพาะ
+- สามารถระบุ scheme เฉพาะสำหรับ field ใด field หนึ่ง เช่น `grad(p)`, `grad(U)`
+
+**แนวคิดสำคัญ:**
+1. **Gauss Theorem** - ทุก scheme ใช้ Gauss theorem เป็นฐาน
+2. **Interpolation Schemes** - ความแตกต่างคือวิธีคำนวณค่าที่ face ($\phi_f$)
+3. **Trade-offs**:
+   - Linear: สมดุลระหว่างความแม่นยำและเสถียรภาพ
+   - LeastSquares: แม่นยำสูงกว่าบน mesh ที่ไม่สมมาตร
+   - Fourth: ความแม่นยำสูงมากแต่ต้องการ mesh คุณภาพสูง
 
 ### 3.2 รูปแบบที่มีให้ใช้
 
@@ -140,36 +173,92 @@ $$
 ### 5.1 เทอมต้นทางของสมการโมเมนตัม
 
 ```cpp
-// การคำนวณแรงลอยตัว
+// Calculate buoyancy force
 volVectorField g("g", dimensionedVector("g", dimAcceleration, vector(0, -9.81, 0)));
 volVectorField F_buoyancy = fvc::grad(rho) * g;
 
-// แรง gradient ความดัน
+// Pressure gradient force
 volVectorField F_pressure = -fvc::grad(p);
 ```
+
+### �� คำอธิบาย
+
+**Source:** การคำนวณแรงในสมการ Navier-Stokes ใน OpenFOAM solvers (เช่น `buoyantSimpleFoam`, `interFoam`)
+
+**การทำงาน:**
+1. **แรงลอยตัว (Buoyancy Force)**:
+   - ใช้ gradient ของความหนาแน่น ($\nabla \rho$) คูณกับความโน้มถ่วง ($g$)
+   - สำคัญในการจำลองการไหลที่มีความแตกต่างของความหนาแน่น (natural convection)
+   
+2. **แรงความดัน (Pressure Force)**:
+   - คือ negative gradient ของความดัน ($-\nabla p$)
+   - เป็นแรงขับเคลื่อนหลักของการไหลของไหล
+
+**แนวคิดสำคัญ:**
+- **ทฤษฎี:** แรงลอยตัวเกิดจากความแตกต่างของความหนาแน่นตามทิศทางของความโน้มถ่วง
+- **การประยุกต์ใช้:** ใช้ในปัญหา natural convection, การไหลของไหลผสม, และการแลกเปลี่ยนความร้อน
 
 ### 5.2 เทนเซอร์อัตราการ Strain
 
 ```cpp
-// เทนเซอร์ gradient ความเร็ว
+// Velocity gradient tensor
 volTensorField gradU = fvc::grad(U);
 
-// เทนเซอร์อัตราการ strain: S = 1/2(∇U + ∇U^T)
+// Strain rate tensor: S = 1/2(∇U + ∇U^T)
 volTensorField S = 0.5 * (gradU + gradU.T());
 
-// เทนเซอร์ Vorticity: Ω = 1/2(∇U - ∇U^T)
+// Vorticity tensor: Ω = 1/2(∇U - ∇U^T)
 volTensorField Omega = 0.5 * (gradU - gradU.T());
 ```
+
+### 💡 คำอธิบาย
+
+**Source:** การคำนวณคุณสมบัติของการไหลใน OpenFOAM turbulence models
+
+**การทำงาน:**
+1. **Velocity Gradient Tensor ($\nabla U$)**:
+   - เทนเซอร์อันดับสองที่มีอนุพันธ์ของความเร็วในทุกทิศทาง
+   - ใช้เพื่อหาคุณสมบัติต่างๆ ของการไหล
+
+2. **Strain Rate Tensor ($S$)**:
+   - ส่วนสมมาตรของ gradient tensor
+   - วัดอัตราการเสียรูปของฟลูอิด
+   - สำคัญในการคำนวณความเค้นเฉือก (viscous stress)
+
+3. **Vorticity Tensor ($\Omega$)**:
+   - ส่วนไม่สมมาตรของ gradient tensor
+   - เกี่ยวข้องกับการหมุนของฟลูอิด
+
+**แนวคิดสำคัญ:**
+- **การวิเคราะห์:** การแยก velocity gradient เป็น strain และ vorticity ช่วยให้เข้าใจลักษณะการไหล
+- **Turbulence Modeling:** Strain rate tensor ใช้ใน k-epsilon และ k-omega models
 
 ### 5.3 การประมวลผลหลัง
 
 ```cpp
-// สร้างสนามขนาดของ gradient
+// Create magnitude field of gradient
 volScalarField magGradP = mag(fvc::grad(p));
 
-// ความเค้นเฉือกผนัง
+// Wall shear stress
 volScalarField wallShearStress = mag(mu * fvc::grad(U));
 ```
+
+### 💡 คำอธิบาย
+
+**Source:** ฟังก์ชัน post-processing ใน OpenFOAM utilities และ custom function objects
+
+**การทำงาน:**
+1. **Magnitude of Gradient**:
+   - ใช้ฟังก์ชัน `mag()` เพื่อคำนวณขนาดของเวกเตอร์ gradient
+   - ใช้เพื่อแสดงผลการกระจายของ gradient
+
+2. **Wall Shear Stress**:
+   - คำนวณจากความหนืด ($\mu$) คูณกับ gradient ของความเร็ว
+   - สำคัญในการวิเคราะห์การไหลบริเวณผนัง
+
+**แนวคิดสำคัญ:**
+- **การประยุกต์ใช้:** ใช้ในการวิเคราะห์ boundary layer, drag force, และการถ่ายเทความร้อน
+- **Post-processing:** ช่วยให้เห็นภาพรวมของการไหลและจุดที่มี gradient สูง
 
 ---
 
@@ -178,30 +267,68 @@ volScalarField wallShearStress = mag(mu * fvc::grad(U));
 ### 6.1 ชนิดข้อมูลไม่ตรงกัน
 
 ```cpp
-// ERROR: ไม่สามารถแปลง volVectorField เป็น volScalarField ได้
-volScalarField wrong = fvc::grad(p);  // p คือ volScalarField
+// ERROR: Cannot convert volVectorField to volScalarField
+volScalarField wrong = fvc::grad(p);  // p is volScalarField
 
-// CORRECT: gradient ของสเกลาร์ส่งคืนเวกเตอร์
+// CORRECT: Gradient of a scalar returns a vector
 volVectorField correct = fvc::grad(p);
 ```
+
+### 💡 คำอธิบาย
+
+**Source:** ระบบชนิดข้อมูลของ OpenFOAM field types
+
+**การทำงาน:**
+- Gradient operator เปลี่ยน rank ของ tensor เสมอ:
+  - Scalar field → Vector field
+  - Vector field → Tensor field
+- Compiler จะตรวจพบความไม่ตรงกันของชนิดข้อมูล
+
+**แนวคิดสำคัญ:**
+- **Type Safety:** OpenFOAM มีระบบตรวจสอบชนิดข้อมูลที่เข้มงวด
+- **Dimensional Consistency:** ชนิดข้อมูลรวมถึง units ที่ถูกต้อง
 
 ### 6.2 ไม่มี Header
 
 ```cpp
-// ERROR: 'fvc' ยังไม่ถูกประกาศ
+// ERROR: 'fvc' has not been declared
 volVectorField gradP = fvc::grad(p);
 
-// SOLUTION: เพิ่ม include ที่ถูกต้อง
+// SOLUTION: Add the correct include
 #include "fvc.H"
 ```
+
+### 💡 คำอธิบาย
+
+**Source:** ระบบ include files ใน OpenFOAM C++ libraries
+
+**การทำงาน:**
+- `fvc.H` เป็น header file หลักที่รวมฟังก์ชัน finite volume calculus ทั้งหมด
+- ต้อง include ก่อนใช้งานฟังก์ชันใน fvc namespace
+
+**แนวคิดสำคัญ:**
+- **Header Organization:** OpenFOAM แบ่ง header files ตาม functional categories
+- **Compilation:** Missing includes ทำให้ compilation ล้มเหลว
 
 ### 6.3 ปัญหาเงื่อนไขขอบเขต
 
 ```cpp
-// ตรวจสอบค่าขอบเขตหลังจากการคำนวณ gradient
+// Check boundary values after gradient calculation
 volVectorField gradP = fvc::grad(p);
-Info << "ค่า gradient ขอบเขต: " << gradP.boundaryField() << endl;
+Info << "Boundary gradient values: " << gradP.boundaryField() << endl;
 ```
+
+### 💡 คำอธิบาย
+
+**Source:** Boundary field handling ใน OpenFOAM geometric field classes
+
+**การทำงาน:**
+- `boundaryField()` ให้เข้าถึงค่าขอบเขตของสนามข้อมูล
+- สำคัญในการตรวจสอบความถูกต้องของการคำนวณ
+
+**แนวคิดสำคัญ:**
+- **Boundary Conditions:** Gradient ที่ขอบเขตต้องสอดคล้องกับ boundary conditions
+- **Debugging:** การตรวจสอบค่าขอบเขตช่วยหาข้อผิดพลาด
 
 ---
 
@@ -224,12 +351,24 @@ Info << "ค่า gradient ขอบเขต: " << gradP.boundaryField() << en
 ### 7.3 การแลกเปลี่ยนระหว่างความแม่นยำและเสถียรภาพ
 
 ```cpp
-// ความแม่นยำสูงกว่าแต่อาจมีเสถียรภาพน้อยกว่า
+// Higher accuracy but potentially less stability
 gradSchemes { default Gauss leastSquares; }
 
-// ความแม่นยำต่ำกว่าแต่แข็งแกร่งกว่า
+// Lower accuracy but more robust
 gradSchemes { default Gauss linear; }
 ```
+
+### 💡 คำอธิบาย
+
+**Source:** การปรับสมดุล performance ใน OpenFOAM solver configurations
+
+**การทำงาน:**
+- **LeastSquares**: แม่นยำกว่าแต่ใช้หน่วยความจำและเวลามากกว่า
+- **Linear**: เร็วกว่าแต่อาจมีความแม่นยำน้อยกว่าบน mesh ที่ไม่สมมาตร
+
+**แนวคิดสำคัญ:**
+- **Trade-offs:** เลือก scheme ตามความต้องการของปัญหา
+- **Mesh Quality:** Mesh คุณภาพสูงทำให้ใช้ scheme ที่ซับซ้อนได้
 
 ---
 
@@ -238,25 +377,51 @@ gradSchemes { default Gauss linear; }
 ### 8.1 Gradient ที่ถูกจำกัดต่อเซลล์
 
 ```cpp
-// ใช้ตัวจำกัดเพื่อป้องกันค่าที่ไม่จำกัด
+// Use limiters to prevent unbounded values
 gradSchemes
 {
     default         cellLimited Gauss linear 1;
 }
 ```
 
+### 💡 คำอธิบาย
+
+**Source:** Limiter schemes ใน OpenFOAM discretization schemes
+
+**การทำงาน:**
+- `cellLimited` ใช้ limiter เพื่อจำกัดค่า gradient ในแต่ละเซลล์
+- ตัวเลข `1` คือ limiter coefficient (0-1)
+
+**แนวคิดสำคัญ:**
+- **Boundedness:** ป้องกันค่าที่เกินขอบเขตกากภาย
+- **Numerical Stability:** เพิ่มเสถียรภาพของการคำนวณ
+
 ### 8.2 Gradient ที่ถูกจำกัดต่อพื้นผิว
 
 ```cpp
-// การจำกัดตามพื้นผิวสำหรับเสถียรภาพที่ดีขึ้น
+// Face-based limiting for better stability
 gradSchemes
 {
     default         faceLimited Gauss linear 1;
 }
 ```
 
+### 💡 คำอธิบาย
+
+**Source:** Face-based limiters ใน OpenFOAM numerical schemes
+
+**การทำงาน:**
+- `faceLimited` ใช้ limiter บนพื้นผิวแต่ละพื้นผิว
+- ให้เสถียรภาพที่ดีกว่าสำหรับกรณีบางอย่าง
+
+**แนวคิดสำคัญ:**
+- **Comparison:** 
+  - `cellLimited`: ตรวจสอบต่อเซลล์
+  - `faceLimited`: ตรวจสอบต่อพื้นผิว
+- **Application:** เลือกตามลักษณะของปัญหา
+
 > [!WARNING] การจำกัด Gradient
-> การจำกัด gradient เป็นสิ่งจำเป็นสำหรับการจำลองที่มีความชันสูง (high gradient flows) เพื่อป้องกันการสั่นของค่าตัวเลข (numerical oscillations) และรักษาเสถียรภาพของการคำนวณ
+> การจำกัด gradient เป็นสิ่งจำเป็นสำหรับการจำลองที่มีความชันสูง (high gradient flows) เพื่อป้องกันการสั่นของค่าตัวเลข (numerical oscillations) และรักษาเสถียรภาพของการคำนาณ
 
 ---
 
@@ -275,6 +440,18 @@ $$
 volVectorField gradP = fvc::grad(p);
 ```
 
+### 💡 คำอธิบาย
+
+**Source:** Pressure-velocity coupling algorithms ใน OpenFOAM (PISO, PIMPLE, SIMPLE)
+
+**การทำงาน:**
+- Pressure gradient เป็นแรงขับเคลื่อนหลักของการไหล
+- คำนวณในทุก time step หรือ iteration
+
+**แนวคิดสำคัญ:**
+- **Momentum Equation:** $-\nabla p$ เป็นเทอมที่สำคัญที่สุด
+- **Coupling:** ความดันและความเร็วมีความสัมพันธ์กันอย่างใกล้ชิด
+
 ### 9.2 เทอมความเค้นเฉือก
 
 ```cpp
@@ -282,6 +459,18 @@ volVectorField gradP = fvc::grad(p);
 volTensorField gradU = fvc::grad(U);
 volSymmTensorField S = symm(gradU);
 ```
+
+### 💡 คำอธิบาย
+
+**Source:** Viscous stress calculation ใน Navier-Stokes solvers
+
+**การทำงาน:**
+- `symm()` สร้าง symmetric tensor จาก gradient tensor
+- Strain rate tensor ใช้คำนวณ viscous stress
+
+**แนวคิดสำคัญ:**
+- **Newtonian Fluid:** $\tau = \mu S$ (เทอมความเค้นเฉือบ)
+- **Non-Newtonian:** ความสัมพันธ์ที่ซับซ้อนกว่า
 
 ### 9.3 การใช้งานใน Pressure-Velocity Coupling
 
@@ -297,6 +486,23 @@ pEqn.solve();
 // Correct velocity using pressure gradient
 U -= rUA * fvc::grad(p);
 ```
+
+### 💡 คำอธิบาย
+
+**Source:** PISO algorithm implementation ใน OpenFOAM solvers (เช่น `icoFoam`, `pisoFoam`)
+
+**การทำงาน:**
+1. **Pressure Equation:**
+   - สร้างสมการความดันจาก continuity equation
+   - ใช้ `fvm::laplacian` (implicit) และ `fvc::div` (explicit)
+   
+2. **Velocity Correction:**
+   - แก้ไขความเร็วโดยใช้ pressure gradient
+   - `rAU` คือ inverse of diagonal coefficient of velocity matrix
+
+**แนวคิดสำคัญ:**
+- **PISO Algorithm:** ใช้ pressure correction เพื่อให้ได้ความดันและความเร็วที่สอดคล้องกัน
+- **Implicit vs Explicit:** `fvm` (implicit) สำหรับเทอมที่ต้องการเสถียรภาพ, `fvc` (explicit) สำหรับเทอมที่คำนวณโดยตรง
 
 ---
 

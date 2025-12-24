@@ -48,9 +48,233 @@ flowchart TD
     F --> G[การสร้างภาพใน ParaView<br/>ParaView Visualization]
     G --> H[การวิเคราะห์และส่งออก<br/>Analysis & Export]
 ```
-> **Figure 1:** ผังงานแสดงกระบวนการแปลงข้อมูลจาก OpenFOAM โดยใช้ `foamToVTK` เพื่อแยกประเภทข้อมูลเป็น Volume Fields, Surface Fields และ Lagrangian Data ให้อยู่ในรูปแบบไฟล์ VTK ที่พร้อมสำหรับการสร้างภาพและวิเคราะห์ผลใน ParaView
+> **Figure 1:** ผังงานแสดงกระบวนการแปลงข้อมูลจาก OpenFOAM โดยใช้ `foamToVTK` เพื่อแยกประเภทข้อมูลเป็น Volume Fields, SurfaceFields และ Lagrangian Data ให้อยู่ในรูปแบบไฟล์ VTK ที่พร้อมสำหรับการสร้างภาพและวิเคราะห์ผลใน ParaView
 
-### 1.4 สคริปต์การแปลงข้อมูลอัตโนมัติ (Automated Conversion Script)
+### 1.4 การใช้งาน foamDictionary สำหรับ VTK Configuration
+
+เครื่องมือ `foamDictionary` ช่วยให้สามารถตรวจสอบและแก้ไขการตั้งค่าในไฟล์ dictionary ได้อย่างรวดเร็ว รวมถึงการตั้งค่า `foamToVTKDict`:
+
+<details>
+<summary>📂 Source: .applications/utilities/miscellaneous/foamDictionary/foamDictionary.C</summary>
+
+```cpp
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Copyright (C) 2016-2021 OpenFOAM Foundation
+     \\/     M anipulation  |
+-------------------------------------------------------------------------------
+License
+    This file is part of OpenFOAM.
+
+    OpenFOAM is free software: you can redistribute it and/or modify it
+    under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+    for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
+Application
+    foamDictionary
+
+Description
+    Interrogates and manipulates dictionaries.
+
+    Supports parallel operation for decomposed dictionary files associated
+    with a case. These may be mesh or field files or any other decomposed
+    dictionaries.
+
+Usage
+    \b foamDictionary [OPTION] dictionary
+      - \par -parallel
+        Specify case as a parallel job
+
+      - \par -doc
+        Display the documentation in browser
+
+      - \par -srcDoc
+        Display the source documentation in browser
+
+      - \par -help
+        Print the usage
+
+      - \par -entry \<name\>
+        Selects an entry
+
+      - \par -keywords \<name\>
+        Prints the keywords (of the selected entry or of the top level if
+        no entry was selected
+
+      - \par -add \<value\>
+        Adds the entry (should not exist yet)
+
+      - \par -set \<value\>
+        Adds or replaces the entry selected by \c -entry
+
+      - \par -set \<substitutions\>
+        Applies the list of substitutions
+
+      - \par -merge \<value\>
+        Merges the entry
+
+      - \par -dict
+        Set, add or merge entry from a dictionary
+
+      - \par -remove
+        Remove the selected entry
+
+      - \par -diff \<dictionary\>
+        Write differences with respect to the specified dictionary
+        (or sub entry if -entry specified
+
+      - \par -expand
+        Read the specified dictionary file, expand the macros etc. and write
+        the resulting dictionary to standard output.
+
+      - \par -includes
+        List the \c #include and \c #includeIfPresent files to standard output
+
+    Example usage:
+      - Change simulation to run for one timestep only:
+        \verbatim
+          foamDictionary system/controlDict -entry stopAt -set writeNow
+        \endverbatim
+
+      - Change solver:
+        \verbatim
+           foamDictionary system/fvSolution -entry solvers/p/solver -set PCG
+        \endverbatim
+
+      - Print bc type:
+        \verbatim
+           foamDictionary 0/U -entry boundaryField/movingWall/type
+        \endverbatim
+
+      - Change bc parameter:
+        \verbatim
+           foamDictionary 0/U -entry boundaryField/movingWall/value \
+             -set "uniform (2 0 0)"
+        \endverbatim
+
+      - Change bc parameter in parallel:
+        \verbatim
+           mpirun -np 4 foamDictionary 0.5/U \
+             -entry boundaryField/movingWall/value \
+             -set "uniform (2 0 0)" -parallel
+        \endverbatim
+
+      - Change whole bc type:
+        \verbatim
+          foamDictionary 0/U -entry boundaryField/movingWall \
+            -set "{type uniformFixedValue; uniformValue (2 0 0);}"
+        \endverbatim
+
+      - Write the differences with respect to a template dictionary:
+        \verbatim
+          foamDictionary 0/U -diff $FOAM_ETC/templates/closedVolume/0/U
+        \endverbatim
+
+      - Write the differences in boundaryField with respect to a
+      template dictionary:
+        \verbatim
+          foamDictionary 0/U -diff $FOAM_ETC/templates/closedVolume/0/U \
+            -entry boundaryField
+        \endverbatim
+
+      - Change patch type:
+        \verbatim
+          foamDictionary constant/polyMesh/boundary \
+            -entry entry0/fixedWalls/type -set patch
+        \endverbatim
+        This uses special parsing of Lists which stores these in the
+        dictionary with keyword 'entryDDD' where DDD is the position
+        in the dictionary (after ignoring the FoamFile entry).
+
+      - Substitute multiple entries:
+        \verbatim
+          foamDictionary system/controlDict -set "startTime=2000, endTime=3000"
+        \endverbatim
+
+\*---------------------------------------------------------------------------*/
+
+#include "argList.H"        // Command line argument parsing
+#include "Time.H"           // Time information management
+#include "localIOdictionary.H"  // Local dictionary I/O operations
+#include "Pair.H"           // Pair template for two-element containers
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Main program entry point for foamDictionary utility
+int main(int argc, char *argv[])
+{
+    // Parse command line arguments and set up the OpenFOAM environment
+    argList::addNote
+    (
+        "Interrogates and manipulates dictionaries.\n"
+        "\n"
+        "Example usage:\n"
+        "  - Change simulation to run for one timestep only:\n"
+        "    foamDictionary system/controlDict -entry stopAt -set writeNow\n"
+        "  - Change solver:\n"
+        "    foamDictionary system/fvSolution -entry solvers/p/solver -set PCG\n"
+    );
+
+    // Enable parallel operation support
+    argList::addOption
+    (
+        "entry",
+        "name",
+        "Selects an entry"
+    );
+
+    // Add option for adding new entries
+    argList::addOption
+    (
+        "add",
+        "value",
+        "Adds the entry (should not exist yet)"
+    );
+
+    // Add option for setting entry values
+    argList::addOption
+    (
+        "set",
+        "value",
+        "Adds or replaces the entry selected by -entry"
+    );
+
+    // Add option for merging entries
+    argList::addOption
+    (
+        "merge",
+        "value",
+        "Merges the entry"
+    );
+
+    // ... (truncated for brevity)
+}
+```
+
+**คำอธิบาย:**
+- **Source:** `.applications/utilities/miscellaneous/foamDictionary/foamDictionary.C` - เครื่องมือสำหรับตรวจสอบและแก้ไขไฟล์ dictionary
+- **การทำงาน:** foamDictionary สามารถอ่าน เขียน และแก้ไขค่าในไฟล์ dictionary ได้โดยตรงโดยไม่ต้องเปิดไฟล์
+- **Key Concepts:**
+  - `-entry`: ระบุ entry ที่ต้องการแก้ไข
+  - `-set`: ตั้งค่าใหม่ให้กับ entry ที่เลือก
+  - `-add`: เพิ่ม entry ใหม่
+  - `-remove`: ลบ entry ที่ระบุ
+  - รองรับการทำงานแบบ parallel สำหรับ decomposed cases
+
+</details>
+
+### 1.5 สคริปต์การแปลงข้อมูลอัตโนมัติ (Automated Conversion Script)
 
 การใช้ Bash Script ช่วยให้กระบวนการแปลงข้อมูลจำนวนมากเป็นไปอย่างรวดเร็วและแม่นยำ:
 
@@ -88,7 +312,7 @@ mv "$CASE_DIR"/VTK/* "$OUTPUT_DIR/"
 echo "VTK conversion completed!"
 ```
 
-### 1.5 การตั้งค่าการแปลงข้อมูล (Conversion Configuration)
+### 1.6 การตั้งค่าการแปลงข้อมูล (Conversion Configuration)
 
 สำหรับการควบคุมรายละเอียดของการแปลงข้อมูลสามารถสร้างไฟล์ `foamToVTKDict`:
 

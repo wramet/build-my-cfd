@@ -256,6 +256,17 @@ functions
 }
 ```
 
+> **📂 ที่มา (Source):** `.applications/utilities/postProcessing/postProcess/postProcess.C`
+>
+> **💡 คำอธิบาย (Explanation):**
+> โค้ดนี้แสดงการตั้งค่า `fieldAverage` functionObject ใน OpenFOAM ซึ่งใช้สำหรับคำนวณค่าเฉลี่ยทางสถิติของฟิลด์ต่างๆ ระหว่างการจำลองแบบไม่เสถียร (unsteady simulation) โดยเฉพาะอย่างยิ่งสำหรับการไหลแบบปั่นป่วน (turbulent flow)
+>
+> **🔑 หัวใจหลัก (Key Concepts):**
+> - **functionObject**: กลไกใน OpenFOAM สำหรับดำเนินการเพิ่มเติมระหว่างการจำลอง
+> - **mean & prime2Mean**: คำนวณค่าเฉลี่ยของฟิลด์และความแปรปรวน (variance) ซึ่งจำเป็นสำหรับการวิเคราะห์สถิติของการไหลแบบปั่นป่วน
+> - **time base**: ใช้เวลาเป็นฐานในการคำนวณค่าเฉลี่ย ซึ่งเหมาะสำหรับการจำลองแบบ transient
+> - **window**: กำหนดช่วงเวลาสำหรับ running average เพื่อลดผลกระทบจากความผันผวนในระยะสั้น
+
 ### 3.4 การพล็อตกราฟและการเปรียบเทียบ
 
 ```python

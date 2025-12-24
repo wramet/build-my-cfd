@@ -57,10 +57,12 @@ flowchart TD
 ### ตัวอย่างในโซลเวอร์
 
 ```cpp
-// หาฟลักซ์ (phi) จากความเร็วปัจจุบัน (Explicit)
+// Calculate flux (phi) from current velocity (Explicit)
+// คำนวณฟลักซ์จากความเร็วปัจจุบันแบบชัดแจ้ง
 phi = fvc::flux(U);
 
-// สร้างสมการพลังงานเพื่อหา T ตัวใหม่ (Implicit)
+// Build energy equation to find new T (Implicit)
+// สร้างสมการพลังงานเพื่อหาค่า T ใหม่แบบโดยนัย
 fvScalarMatrix TEqn(
     fvm::ddt(T)
   + fvm::div(phi, T)
@@ -68,6 +70,19 @@ fvScalarMatrix TEqn(
 );
 TEqn.solve();
 ```
+
+**📖 คำอธิบาย (Thai Explanation):**
+
+**Source/Explanation:**
+- บรรทัดแรกใช้ `fvc::flux(U)` เพื่อคำนวณ face flux จาก velocity field ปัจจุบัน เนื่องจาก U เป็นค่าที่รู้แล้ว
+- ส่วนที่สองสร้างสมการพลังงานโดยใช้ `fvm::ddt()`, `fvm::div()`, และ `fvm::laplacian()` เพื่อสร้างเมทริกซ์สมการที่จะหาค่า T ใหม่
+
+**Key Concepts:**
+- **Explicit Calculation**: การคำนวณที่ให้ผลลัพธ์ทันทีจากค่าที่รู้แล้ว
+- **Implicit Formulation**: การสร้างระบบสมการเชิงเส้นเพื่อหาค่าที่ยังไม่รู้
+- **fvMatrix**: เมทริกซ์ระบบสมการ A·x = b ที่ต้องถูกแก้ด้วย linear solver
+
+**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C
 
 ---
 
@@ -89,45 +104,73 @@ TEqn.solve();
 
 ```cpp
 // === Gradient Operations ===
-// Pressure gradient (แรงขับเคลื่อนในสมการโมเมนตัม)
+// Pressure gradient (driving force in momentum equation)
+// กราดิเอนต์ของความดัน - แรงขับเคลื่อนในสมการโมเมนตัม
 volVectorField gradP = fvc::grad(p);
 
-// Temperature gradient (การคำนวณความร้อน flux)
+// Temperature gradient (for heat flux calculation)
+// กราดิเอนต์ของอุณหภูมิ - สำหรับคำนวณความร้อน
 volVectorField gradT = fvc::grad(T);
 
 // === Divergence Operations ===
-// Divergence ของ velocity field (สมการต่อเนื่อง)
+// Divergence of velocity field (continuity equation)
+// ไดเวอร์เจนซ์ของสนามความเร็ว - สมการต่อเนื่อง
 volScalarField divU = fvc::div(U);
 
-// Divergence ของ flux (source term ของสมการโมเมนตัม)
+// Divergence of flux (source term in momentum equation)
+// ไดเวอร์เจนซ์ของฟลักซ์ - เทอมต้นทางในสมการโมเมนตัม
 volScalarField divPhi = fvc::div(phi);
 
 // === Laplacian Operations ===
 // Thermal diffusion
+// การแพร่ของความร้อน
 volScalarField laplacianT = fvc::laplacian(DT, T);
 
 // Viscous diffusion
+// การแพร่ของความหนืด
 volVectorField laplacianU = fvc::laplacian(nu, U);
 
 // === Curl Operations ===
 // Vorticity field
+// สนามวอร์ติซิตี้ (การหมุนของไหล)
 volVectorField vorticity = fvc::curl(U);
 
 // === Flux Operations ===
 // Face flux field
+// สนามฟลักซ์ที่ผิวเซลล์
 surfaceScalarField phi = fvc::flux(U);
 
 // Mass flow rate
+// อัตราการไหลของมวล
 surfaceScalarField rhoPhi = fvc::flux(rho, U);
 
 // === Surface Normal Gradients ===
-// Normal gradient ที่ faces
+// Normal gradient at faces
+// กราดิเอนต์ตั้งฉากที่ผิวเซลล์
 surfaceScalarField snGradT = fvc::snGrad(T);
 
 // === Temporal Derivatives ===
-// อนุพันธ์เวลาโดยใช้ Euler scheme
+// Time derivative using Euler scheme
+// อนุพันธ์เวลาโดยใช้รูปแบบออยเลอร์
 volScalarField ddtT = fvc::ddt(T);
 ```
+
+**📖 คำอธิบาย (Thai Explanation):**
+
+**Source/Explanation:**
+- **Gradient Operations**: คำนวณอนุพันธ์เชิงพื้นที่ของสนามต่างๆ เช่น กราดิเอนต์ความดันใช้หาแรงขับเคลื่อน
+- **Divergence Operations**: คำนวณการไหลออก (outflow) จากแต่ละเซลล์ ใช้ตรวจสอบการอนุรักษ์มวล
+- **Laplacian Operations**: คำนวณเทอมการแพร่ (diffusion) เช่น ความร้อนและความหนืด
+- **Curl Operations**: คำนวณการหมุนของไหล (vorticity) สำคัญในการวิเคราะห์กระแส
+- **Flux Operations**: คำนวณอัตราการไหลผ่านผิวเซลล์ ใช้ในการคำนวณมวลและโมเมนตัม
+
+**Key Concepts:**
+- **Explicit Evaluation**: การคำนวณค่าทันทีจากข้อมูลปัจจุบัน
+- **Field Interpolation**: การแปลงค่าจาก cell center ไปยัง face centers
+- **Gauss Theorem**: ใช้ทฤษฎีบทของเกาส์ในการแปลงปริมาตรเป็นพื้นผิว
+- **Immediate Results**: ผลลัพธ์พร้อมใช้งานทันทีโดยไม่ต้องแก้สมการ
+
+**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
 
 ### ข้อดีและข้อเสีย
 
@@ -156,24 +199,30 @@ volScalarField ddtT = fvc::ddt(T);
 ```cpp
 // === Temporal Integration ===
 // Forward Euler (implicit)
+// อินทิเกรชันเวลาแบบออยเลอร์แบบโดยนัย
 fvScalarMatrix TEqn(fvm::ddt(T));
 
 // Backward scheme (second-order)
+// รูปแบบแบ็ควอร์ด อันดับสอง
 fvScalarMatrix TEqn(fvm::ddt(T, backward));
 
 // === Diffusion Terms ===
 // Thermal diffusion
+// การแพร่ของความร้อน
 fvScalarMatrix TEqn(fvm::laplacian(DT, T));
 
 // Viscous diffusion
+// การแพร่ของความหนืด
 fvVectorMatrix UEqn(fvm::laplacian(nu, U));
 
 // === Convective Terms ===
 // Upwind convection
+// การพาแบบอัปวินด์
 fvVectorMatrix UEqn(fvm::div(phi, U));
 
 // === Combined Terms ===
 // Energy equation
+// สมการพลังงาน
 fvScalarMatrix TEqn
 (
     fvm::ddt(T)
@@ -182,6 +231,7 @@ fvScalarMatrix TEqn
 );
 
 // Momentum equation
+// สมการโมเมนตัม
 fvVectorMatrix UEqn
 (
     fvm::ddt(U)
@@ -191,6 +241,23 @@ fvVectorMatrix UEqn
   -fvc::grad(p)
 );
 ```
+
+**📖 คำอธิบาย (Thai Explanation):**
+
+**Source/Explanation:**
+- **Temporal Integration**: `fvm::ddt()` สร้างเมทริกซ์สำหรับอนุพันธ์เวลาแบบโดยนัย ทำให้สามารถใช้ time step ที่ใหญ่ขึ้น
+- **Diffusion Terms**: `fvm::laplacian()` สร้างเมทริกซ์การแพร่แบบโดยนัย สำคัญมากสำหรับความเสถียร
+- **Convective Terms**: `fvm::div()` สร้างเมทริกซ์การพาแบบโดยนัย สร้าง coupling ระหว่างเซลล์ข้างเคียง
+- **Mixed Treatment**: สมการโมเมนตัมใช้ `fvm` สำหรับเทอมที่ต้องการคำตอบ (U) แต่ใช้ `fvc::grad(p)` เพราะความดันเป็นค่าที่รู้
+
+**Key Concepts:**
+- **Matrix Assembly**: การประกอบเมทริกซ์ระบบสมการ A·x = b
+- **Cell Coupling**: การเชื่อมโยงระหว่างเซลล์ข้างเคียงผ่าน off-diagonal coefficients
+- **Linear Solvers**: การแก้ระบบสมการโดยใช้ GAMG, PCG, หรือ BiCGStab
+- **Unconditional Stability**: ความเสถียรโดยไม่มีเงื่อนไขจำกัด time step
+- **fvMatrix Type**: ประเภทข้อมูลเมทริกซ์ใน OpenFOAM (fvScalarMatrix, fvVectorMatrix)
+
+**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
 
 ### ข้อดีและข้อเสีย
 
@@ -237,21 +304,50 @@ $$\nabla \cdot (\Gamma \nabla \psi) = \frac{1}{V} \sum_{faces} \Gamma_f (\nabla 
 
 ```cpp
 // Semi-implicit convection treatment
+// การรักษาการพาแบบกึ่ง-โดยนัย
 fvScalarMatrix TEqn
 (
     fvm::ddt(T)
-  + fvm::div(phi, T)           // Implicit part
-  - fvc::div(phi_implicit, T)  // Explicit correction
+  + fvm::div(phi, T)           // Implicit part (ส่วนโดยนัย)
+  - fvc::div(phi_implicit, T)  // Explicit correction (ส่วนชัดแจ้ง)
 );
 ```
+
+**📖 คำอธิบาย (Thai Explanation):**
+
+**Source/Explanation:**
+- ใช้ `fvm::div()` เพื่อสร้างเมทริกซ์ส่วนหลักที่เสถียร
+- ใช้ `fvc::div()` เพื่อเพิ่มการแก้ไขแบบ explicit เพื่อเพิ่มความแม่นยำ
+- เทคนิคนี้ใช้ในสถานการณ์ที่ต้องการทั้งความเสถียรและความแม่นยำ
+
+**Key Concepts:**
+- **Semi-Implicit Scheme**: รูปแบบกึ่งโดยนัยที่รวมข้อดีของทั้งสองแนวทาง
+- **Under-Relaxation**: การผ่อนคลายเพื่อเพิ่มความเสถียรของการวนซ้ำ
+- **Numerical Stability vs Accuracy**: การแลกเปลี่ยนระหว่างความเสถียรและความแม่นยำ
+
+**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
 
 ### การผ่อนคลายสำหรับความเสถียร
 
 ```cpp
 // Under-relaxation for stability
+// การผ่อนคลายเพื่อความเสถียร
 TEqn.relax(relaxationFactor);
 TEqn.solve();
 ```
+
+**📖 คำอธิบาย (Thai Explanation):**
+
+**Source/Explanation:**
+- `relax()` ผ่อนคลายเมทริกซ์เพื่อป้องกันการสั่นของการแก้ปัญหา
+- `relaxationFactor` ค่าระหว่าง 0 ถึง 1 ยิ่งต่ำยิ่งเสถียรแต่ช้ากว่า
+
+**Key Concepts:**
+- **Relaxation Factor**: ค่าปัจจัยการผ่อนคลาย ค่ามาตรฐานคือ 0.7-0.9
+- **Convergence Control**: การควบคุมการลู่เข้าของการวนซ้ำ
+- **Stability Enhancement**: การเพิ่มความเสถียรในการแก้ปัญหา
+
+**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
 
 ---
 
@@ -275,7 +371,8 @@ flowchart LR
 #### 1. Momentum Prediction (Implicit)
 
 ```cpp
-// การทำนายโมเมนตัมแบบ implicit
+// Momentum prediction (implicit)
+// การทำนายโมเมนตัมแบบโดยนัย
 fvVectorMatrix UEqn
 (
     fvm::ddt(U)
@@ -285,19 +382,50 @@ fvVectorMatrix UEqn
 UEqn.solve();
 ```
 
+**📖 คำอธิบาย (Thai Explanation):**
+
+**Source/Explanation:**
+- ใช้ `fvm` ทั้งหมดเพื่อสร้างเมทริกซ์โมเมนตัมแบบโดยนัย
+- เมทริกซ์นี้จะถูกแก้เพื่อหาค่า U ใหม่
+- ความเสถียรสูงเนื่องจากเป็นการรักษาแบบโดยนัย
+
+**Key Concepts:**
+- **Momentum Matrix**: เมทริกซ์สมการโมเมนตัม A·U = b
+- **Implicit Discretization**: การกระจายตัวแบบโดยนัยของเทอมต่างๆ
+- **Matrix Coefficients**: สัมประสิทธิ์เมทริกซ์ที่เชื่อมโยงเซลล์ข้างเคียง
+
+**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
+
 #### 2. Pressure-Velocity Coupling (Explicit)
 
 ```cpp
-// การแก้ไขความดันแบบ explicit
+// Pressure-velocity coupling (explicit)
+// การเชื่อมโยงความดันและความเร็วแบบชัดแจ้ง
 volScalarField rUA = 1.0/UEqn.A();
 surfaceScalarField rUAf = fvc::interpolate(rUA);
 surfaceScalarField phiHbyA = (UEqn.H() & UEqn.flux()) / UEqn.A();
 ```
 
+**📖 คำอธิบาย (Thai Explanation):**
+
+**Source/Explanation:**
+- `UEqn.A()` ดึง diagonal coefficients จากเมทริกซ์
+- `UEqn.H()` ดึง source terms จากเมทริกซ์
+- `fvc::interpolate()` แปลงค่าจาก cell center ไปยัง face centers
+
+**Key Concepts:**
+- **Matrix Diagonal**: ค่า diagonal ของเมทริกซ์ (A)
+- **Source Terms**: เทอมต้นทางจากเมทริกซ์ (H)
+- **Interpolation**: การแปลงค่าจากจุดกลางเซลล์ไปยังผิวเซลล์
+- **Rhie-Chow Interpolation**: เทคนิคการแปลงเพื่อป้องกัน pressure-velocity decoupling
+
+**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
+
 #### 3. Pressure Equation (Implicit)
 
 ```cpp
-// สมการความดันแบบ implicit
+// Pressure equation (implicit)
+// สมการความดันแบบโดยนัย
 fvScalarMatrix pEqn
 (
     fvm::laplacian(rUAf, p) == fvc::div(phiHbyA)
@@ -305,12 +433,41 @@ fvScalarMatrix pEqn
 pEqn.solve();
 ```
 
+**📖 คำอธิบาย (Thai Explanation):**
+
+**Source/Explanation:**
+- `fvm::laplacian()` สร้างเมทริกซ์ความดันแบบโดยนัย
+- `fvc::div()` คำนวณเทอมต้นทางจากฟลักซ์ที่ทำนายไว้
+- สมการนี้จะถูกแก้เพื่อหาค่าความดันใหม่
+
+**Key Concepts:**
+- **Pressure Poisson Equation**: สมการ Poisson สำหรับความดัน
+- **Mass Conservation**: การอนุรักษ์มวลผ่านสมการความดัน
+- **Pressure Correction**: การแก้ไขความดันเพื่อให้สอดคล้องกับความต่อเนื่อง
+
+**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
+
 #### 4. Velocity Correction (Explicit)
 
 ```cpp
-// การแก้ไขความเร็วแบบ explicit
+// Velocity correction (explicit)
+// การแก้ไขความเร็วแบบชัดแจ้ง
 U -= rUA * fvc::grad(p);
 ```
+
+**📖 คำอธิบาย (Thai Explanation):**
+
+**Source/Explanation:**
+- `fvc::grad(p)` คำนวณกราดิเอนต์ของความดัน
+- ความเร็วถูกแก้ไขโดยลบกราดิเอนต์ความดัน
+- เป็นการแก้ไขแบบ explicit จากความดันที่หาได้
+
+**Key Concepts:**
+- **Velocity Update**: การอัปเดตความเร็วจากความดัน
+- **Pressure Gradient Force**: แรงจากกราดิเอนต์ความดัน
+- **Mass Conservation Enforcement**: การบังคับให้สอดคล้องกับการอนุรักษ์มวล
+
+**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
 
 ---
 
@@ -346,37 +503,69 @@ U -= rUA * fvc::grad(p);
 
 ```cpp
 // Momentum equation with mixed explicit/implicit
+// สมการโมเมนตัมที่มีทั้งชัดแจ้งและโดยนัย
 fvVectorMatrix UEqn
 (
-    fvm::ddt(rho, U)              // Implicit time derivative
-  + fvm::div(rhoPhi, U)           // Implicit convection
+    fvm::ddt(rho, U)              // Implicit time derivative (อนุพันธ์เวลาโดยนัย)
+  + fvm::div(rhoPhi, U)           // Implicit convection (การพาโดยนัย)
  ==
-  - fvc::grad(p)                  // Explicit pressure gradient
-  + fvc::div(tau)                 // Explicit viscous stress
-  + fvOptions(rho, U)             // Source terms
+  - fvc::grad(p)                  // Explicit pressure gradient (กราดิเอนต์ความดันชัดแจ้ง)
+  + fvc::div(tau)                 // Explicit viscous stress (เครียงดันหนืดชัดแจ้ง)
+  + fvOptions(rho, U)             // Source terms (เทอมต้นทาง)
 );
 
 UEqn.relax();
 UEqn.solve();
 ```
 
+**📖 คำอธิบาย (Thai Explanation):**
+
+**Source/Explanation:**
+- เลือกใช้ `fvm` สำหรับเทอมที่เกี่ยวกับ U (ตัวแปรที่หา) เพื่อความเสถียร
+- ใช้ `fvc` สำหรับความดันและเครียงดันเพราะเป็นค่าที่รู้หรือคำนวณแยก
+- `fvOptions` ใช้เพิ่มเทอมต้นทางเช่นแรงโน้มถ่วงหรือแหล่งกำเนิด
+
+**Key Concepts:**
+- **Implicit-Explicit Split**: การแยกส่วนโดยนัยและชัดแจ้งของสมการ
+- **Coupled Variables**: ตัวแปรที่เชื่อมโยงกันในสมการ
+- **Source Terms**: เทอมต้นทางเช่นแรงภายนอกหรือแหล่งกำเนิด
+- **Under-Relaxation**: การผ่อนคลายเพื่อความเสถียร
+
+**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
+
 ### สมการพลังงาน
 
 ```cpp
 // Energy equation
+// สมการพลังงาน
 fvScalarMatrix TEqn
 (
-    fvm::ddt(rho, T)              // Implicit time
-  + fvm::div(rhoPhi, T)           // Implicit convection
+    fvm::ddt(rho, T)              // Implicit time (เวลาโดยนัย)
+  + fvm::div(rhoPhi, T)           // Implicit convection (การพาโดยนัย)
  ==
-  fvm::laplacian(alpha, T)        // Implicit diffusion
-  + fvc::div(q)                   // Explicit heat flux
-  + fvOptions(rho, T)             // Source terms
+  fvm::laplacian(alpha, T)        // Implicit diffusion (การแพร่โดยนัย)
+  + fvc::div(q)                   // Explicit heat flux (ฟลักซ์ความร้อนชัดแจ้ง)
+  + fvOptions(rho, T)             // Source terms (เทอมต้นทาง)
 );
 
 TEqn.relax();
 TEqn.solve();
 ```
+
+**📖 คำอธิบาย (Thai Explanation):**
+
+**Source/Explanation:**
+- ใช้ `fvm` สำหรับเทอมหลักทั้งหมดที่เกี่ยวกับ T เพื่อความเสถียร
+- ใช้ `fvc` สำหรับฟลักซ์ความร้อน q ที่คำนวณจากสมการอื่น
+- `fvOptions` ใช้เพิ่มเทอมต้นทางเช่นแหล่งความร้อน
+
+**Key Concepts:**
+- **Energy Conservation**: การอนุรักษ์พลังงานในระบบ
+- **Heat Transfer**: การถ่ายเทความร้อนผ่านการพาและการแพร่
+- **Thermal Diffusivity**: สัมประสิทธิ์การแพร่ความร้อน
+- **Coupled Physics**: ฟิสิกส์ที่เชื่อมโยงกันระหว่างความเร็วและอุณหภูมิ
+
+**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
 
 ---
 

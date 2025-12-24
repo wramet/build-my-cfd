@@ -135,33 +135,45 @@ $$\epsilon_{L1} = \frac{1}{N} \sum_{i=1}^{N} \left| \frac{\phi_i - \phi_{exact,i
 ### 5.1 คลาสสำหรับคำนวณการลู่เข้า
 
 ```cpp
-// คลาสสำหรับการศึกษาการลู่เข้าของกริด
+// Class for performing grid convergence studies
+// Computes Richardson extrapolation and GCI metrics
 class gridConvergenceStudy
 {
 private:
-    List<label> nCellsList_;      // จำนวนเซลล์ในแต่ละเมช
-    List<scalar> meshSizes_;     // ขนาดเมชลักษณะเฉพาะ
-    List<scalar> results_;       // ผลลัพธ์สำหรับปริมาณที่สนใจ
-    word quantityName_;          // ชื่อของปริมาณที่ตรวจสอบ
-    scalar observedOrder_;       // อันดับความแม่นยำที่สังเกตได้
+    // Store cell counts for each mesh level
+    List<label> nCellsList_;
+    
+    // Characteristic mesh sizes for refinement levels
+    List<scalar> meshSizes_;
+    
+    // Simulation results for quantity of interest
+    List<scalar> results_;
+    
+    // Name of quantity being monitored
+    word quantityName_;
+    
+    // Observed order of accuracy from convergence study
+    scalar observedOrder_;
 
 public:
-    // Constructor
+    // Constructor: Initialize with mesh cell counts and quantity name
     gridConvergenceStudy(const labelList& nCells, const word& quantityName)
-    : nCellsList_(nCells),
-      quantityName_(quantityName)
+    :
+        nCellsList_(nCells),
+        quantityName_(quantityName)
     {
+        // Allocate storage for mesh sizes and results
         meshSizes_.setSize(nCells_.size());
         results_.setSize(nCells_.size());
 
-        // คำนวณขนาดเมชลักษณะเฉพาะ (characteristic mesh size)
+        // Calculate characteristic mesh size as cube root of cell volume
         forAll(nCells_, i)
         {
             meshSizes_[i] = 1.0 / cbrt(scalar(nCells_[i]));
         }
     }
 
-    // รันการศึกษาการลู่เข้า
+    // Main execution: Run simulations on all mesh levels
     void runStudy()
     {
         forAll(nCells_, i)
@@ -169,20 +181,21 @@ public:
             Info << "Running simulation on mesh level " << i
                  << " with " << nCells_[i] << " cells..." << endl;
 
-            // สร้างเมช
+            // Generate mesh for this refinement level
             createMesh(nCells_[i]);
 
-            // รันการจำลอง
+            // Execute CFD simulation
             runSimulation();
 
-            // ดึงผลลัพธ์ (เช่น gas holdup, pressure drop, velocity)
+            // Extract quantity of interest (e.g., gas holdup, pressure drop)
             results_[i] = extractResult();
         }
 
+        // Analyze convergence behavior
         calculateConvergence();
     }
 
-    // คำนวณเมตริกการลู่เข้า
+    // Compute convergence metrics and perform Richardson extrapolation
     void calculateConvergence()
     {
         if (nCells_.size() < 3)
@@ -193,21 +206,21 @@ public:
             return;
         }
 
-        // คำนวณอัตราส่วนการละเอียด
+        // Calculate refinement ratio between successive meshes
         scalar r = meshSizes_[1] / meshSizes_[0];
 
-        // คำนวณอันดับความแม่นยำที่สังเกตได้
+        // Compute observed order of accuracy using three solutions
         observedOrder_ = log((results_[2] - results_[1]) / (results_[1] - results_[0])) /
                          log(r);
 
-        // Richardson extrapolation สำหรับค่าที่ไม่ขึ้นอยู่กับกริด
+        // Richardson extrapolation to estimate mesh-independent solution
         scalar phi_exact = results_[2] + (results_[2] - results_[1]) / (pow(r, observedOrder_) - 1);
 
-        // คำนวณ GCI สำหรับเมชละเอียด
+        // Calculate Grid Convergence Index for fine mesh
         scalar epsilon_12 = mag(results_[1] - results_[0]) / mag(results_[0]);
         scalar GCI_fine = 1.25 * epsilon_12 / (pow(r, observedOrder_) - 1);
 
-        // แสดงผลลัพธ์
+        // Display comprehensive convergence results
         Info << nl << "=== Grid Convergence Study Results ===" << nl
              << "Quantity: " << quantityName_ << nl
              << "Mesh refinements: " << nCells_.size() << nl
@@ -220,55 +233,99 @@ public:
 };
 ```
 
+#### 📂 ที่มาและคำอธิบาย (Source & Explanation)
+
+**📂 Source:** อ้างอิงโครงสร้างจาก `.applications/solvers/combustion/XiFoam/PDRFoam/PDRFoamAutoRefine.c:46-82` (Dynamic mesh refinement loop)
+
+**คำอธิบาย:**
+คลาสนี้ใช้สำหรับการศึกษาการลู่เข้าของกริดอย่างเป็นระบบ โดยอัตโนมัติ การทำงานหลักประกอบด้วย:
+1. เก็บข้อมูลจำนวนเซลล์และผลลัพธ์จากแต่ละระดับการละเอียดเมช
+2. คำนวณขนาดเมชลักษณะเฉพาะ (characteristic mesh size) จากจำนวนเซลล์
+3. รันการจำลองบนเมชหลายระดับและเก็บผลลัพธ์
+4. คำนวณอันดับความแม่นยำที่สังเกตได้ (observed order of accuracy)
+5. ใช้ Richardson extrapolation เพื่อประมาณค่าที่ไม่ขึ้นอยู่กับกริด
+6. คำนวณดัชนี GCI (Grid Convergence Index) เพื่อประเมินความไม่แน่นอน
+
+**แนวคิดสำคัญ:**
+- **Grid Convergence Study**: การศึกษาว่าผลลัพธ์ลู่เข้าสู่ค่าคงที่เมื่อละเอียดเมชมากขึ้น
+- **Richardson Extrapolation**: เทคนิคในการประมาณค่าที่ไม่ขึ้นกับขนาดกริด ($h \to 0$) จากผลลัพธ์บนเมชหลายระดับ
+- **GCI (Grid Convergence Index)**: ตัวชี้วัดความไม่แน่นอนเชิงตัวเลขในรูปเปอร์เซ็นต์
+- **Observed Order of Accuracy**: อันดับความแม่นยำที่แท้จริงจากการวัดบนเมช 3 ระดับ
+
+---
+
 ### 5.2 คลาสสำหรับวิเคราะห์ความคลาดเคลื่อน
 
 ```cpp
-// คลาสสำหรับคำนวณ error norms
+// Error analysis class for computing field-level error norms
+// Evaluates L1, L2, and maximum errors across computational domain
 class errorAnalysis
 {
 private:
-    scalar phiRef_;  // Reference magnitude for normalization
+    // Reference magnitude for error normalization
+    scalar phiRef_;
 
 public:
-    errorAnalysis(const scalar phiRef) : phiRef_(phiRef) {}
+    // Constructor: Initialize with reference value
+    errorAnalysis(const scalar phiRef)
+    :
+        phiRef_(phiRef)
+    {}
 
-    // คำนวณ L1 norm error (average error)
-    scalar calculateL1Error(const volScalarField& phi, const volScalarField& phiExact)
+    // Calculate L1 norm error (average absolute error)
+    // Sum of local errors divided by total number of cells
+    scalar calculateL1Error(
+        const volScalarField& phi,
+        const volScalarField& phiExact
+    )
     {
         scalar errorSum = 0.0;
         scalar phiRef = max(mag(phiExact));
 
+        // Accumulate normalized error across all cells
         forAll(phi, celli)
         {
             scalar localError = mag(phi[celli] - phiExact[celli]) / phiRef;
             errorSum += localError;
         }
 
+        // Return average error per cell
         return errorSum / phi.size();
     }
 
-    // คำนวณ L2 norm error (RMS error)
-    scalar calculateL2Error(const volScalarField& phi, const volScalarField& phiExact)
+    // Calculate L2 norm error (root-mean-square error)
+    // More sensitive to large local errors than L1 norm
+    scalar calculateL2Error(
+        const volScalarField& phi,
+        const volScalarField& phiExact
+    )
     {
         scalar errorSum = 0.0;
         scalar phiRef = max(mag(phiExact));
 
+        // Accumulate squared errors
         forAll(phi, celli)
         {
             scalar localError = mag(phi[celli] - phiExact[celli]) / phiRef;
             errorSum += localError * localError;
         }
 
+        // Return RMS error
         return sqrt(errorSum / phi.size());
     }
 
-    // คำนวณ maximum norm error
-    scalar calculateMaxError(const volScalarField& phi, const volScalarField& phiExact)
+    // Calculate maximum norm error (L-infinity norm)
+    // Identifies worst local error location
+    scalar calculateMaxError(
+        const volScalarField& phi,
+        const volScalarField& phiExact
+    )
     {
         scalar phiRef = max(mag(phiExact));
         scalar maxError = 0.0;
         label maxErrorCell = -1;
 
+        // Find cell with maximum normalized error
         forAll(phi, celli)
         {
             scalar localError = mag(phi[celli] - phiExact[celli]) / phiRef;
@@ -280,12 +337,14 @@ public:
             }
         }
 
+        // Report location of maximum error
         Info << "Maximum error location: cell " << maxErrorCell
              << " at coordinates " << mesh.C()[maxErrorCell] << endl;
         return maxError;
     }
 
-    // คำนวณ metrics การลู่เข้าตาม field
+    // Perform comprehensive convergence analysis for multiple fields
+    // Generates formatted report comparing all error norms
     void fieldConvergenceAnalysis(
         const List<volScalarField*>& fields,
         const List<volScalarField*>& referenceFields
@@ -297,6 +356,7 @@ public:
                 << "Field lists must have same size" << abort(FatalError);
         }
 
+        // Print formatted header
         Info << nl << "=== Field Convergence Analysis ===" << nl;
         Info << setw(20) << "Field Name"
              << setw(15) << "L1 Error"
@@ -307,6 +367,7 @@ public:
              << setw(15) << "--------"
              << setw(15) << "--------" << nl;
 
+        // Compute and display error metrics for each field
         forAll(fields, fieldi)
         {
             scalar l1Error = calculateL1Error(*fields[fieldi], *referenceFields[fieldi]);
@@ -322,47 +383,110 @@ public:
 };
 ```
 
+#### 📂 ที่มาและคำอธิบาย (Source & Explanation)
+
+**📂 Source:** อ้างอิงรูปแบบการวนลูปเหนือเซลล์จาก `.applications/solvers/combustion/XiFoam/PDRFoam/PDRFoamAutoRefine.c:46-82`
+
+**คำอธิบาย:**
+คลาสนี้ให้เครื่องมือสำหรับวิเคราะห์ความคลาดเคลื่อนระหว่างสนามที่คำนวณได้กับค่าอ้างอิง โดยใช้ Norm รูปแบบต่างๆ:
+
+1. **L1 Norm (ค่าเฉลี่ย)**: 
+   - คำนวณค่าเฉลี่ยของความคลาดเคลื่อนสัมบูรณ์
+   - เหมาะสำหรับประเมินความแม่นยำโดยรวม
+   - ไม่ไวต่อค่าผิดปกติ (outliers)
+
+2. **L2 Norm (RMS Error)**:
+   - Root Mean Square error ให้น้ำหนักมากกว่ากับความคลาดเคลื่อนขนาดใหญ่
+   - ใช้กันทั่วไปใน CFD สำหรับวัดความแม่นยำ
+   - ไวต่อค่าผิดปกติปานกลาง
+
+3. **L∞ Norm (Maximum Error)**:
+   - ระบุตำแหน่งที่มีความคลาดเคลื่อนสูงสุด
+   - มีประโยชน์สำหรับระบุบริเวณที่ต้องการเมชละเอียดขึ้น
+   - ไวต่อค่าผิดปกติสูงมาก
+
+**แนวคิดสำคัญ:**
+- **Error Norms**: ตัวชี้วัดความคลาดเคลื่อนระหว่างผลเฉลยเชิงตัวเลขกับค่าอ้างอิง
+- **Normalization**: การทำให้เป็นมิติเดียวด้วยค่าอ้างอิงเพื่อให้สามารถเปรียบเทียบกันได้
+- **Field-level Analysis**: การวิเคราะห์ความคลาดเคลื่อนทุกจุดในโดเมน ไม่ใช่เฉพาะค่ารวม
+
+---
+
 ### 5.3 ระบบอัตโนมัติสำหรับการศึกษาการลู่เข้า
 
 ```cpp
-// ระบบอัตโนมัติสำหรับการศึกษาการลู่เข้า
+// Automated convergence study system
+// Combines grid convergence and error analysis
 class automatedConvergenceStudy
 {
 private:
+    // Grid convergence analyzer
     gridConvergenceStudy convergenceAnalyzer_;
+    
+    // Error metrics calculator
     errorAnalysis errorAnalyzer_;
 
 public:
+    // Constructor: Initialize both analyzers
     automatedConvergenceStudy(const labelList& nCells, const word& quantityName)
-    : convergenceAnalyzer_(nCells, quantityName),
-      errorAnalyzer_(1.0)  // Normalize by unity
+    :
+        convergenceAnalyzer_(nCells, quantityName),
+        errorAnalyzer_(1.0)  // Normalize by unity
     {}
 
+    // Execute complete convergence study workflow
     void runCompleteStudy()
     {
-        // Phase 1: รันการศึกษาการลู่เข้า
+        // Phase 1: Run grid convergence study
+        // This executes simulations on all mesh refinement levels
         convergenceAnalyzer_.runStudy();
 
-        // Phase 2: วิเคราะห์ความคลาดเคลื่อนอย่างละเอียด
+        // Phase 2: Perform detailed error analysis
+        // Only if we have at least 3 mesh levels
         if (nCells_.size() >= 3)
         {
             performDetailedAnalysis();
         }
     }
 
+    // Detailed field-level error analysis
     void performDetailedAnalysis()
     {
-        // เปรียบเทียบ fields ระหว่างเมชสองระดับที่ละเอียดที่สุด
+        // Compare fields between two finest mesh levels
+        // This provides insight into spatial error distribution
         const volScalarField& phi_fine = getField("phi_fine");
         const volScalarField& phi_ref = getField("phi_reference");
 
+        // Create field lists for comparison
         List<volScalarField*> fields = {const_cast<volScalarField*>(&phi_fine)};
         List<volScalarField*> reference = {const_cast<volScalarField*>(&phi_ref)};
 
+        // Generate comprehensive error report
         errorAnalyzer_.fieldConvergenceAnalysis(fields, reference);
     }
 };
 ```
+
+#### 📂 ที่มาและคำอธิบาย (Source & Explanation)
+
+**📂 Source:** อ้างอิงรูปแบบการทำงานแบบ multi-phase จาก `.applications/solvers/combustion/XiFoam/PDRFoam/PDRFoamAutoRefine.c:46-82`
+
+**คำอธิบาย:**
+คลาสนี้เป็น wrapper ที่รวมเอากระบวนการศึกษาการลู่เข้าทั้งหมดมาไว้ด้วยกันอย่างเป็นระบบ:
+
+1. **การทำงานเป็น 2 เฟส**:
+   - Phase 1: รันการจำลองบนเมชหลายระดับ และคำนวณเมตริกการลู่เข้า (GCI, Richardson extrapolation)
+   - Phase 2: วิเคราะห์ความคลาดเคลื่อนระดับสนามอย่างละเอียด
+
+2. **การเปรียบเทียบสนาม**:
+   - เปรียบเทียบผลลัพธ์จากเมช 2 ระดับที่ละเอียดที่สุด
+   - ช่วยระบุบริเวณที่มีความคลาดเคลื่อนสูง
+   - สามารถใช้ข้อมูลนี้เพื่อ adaptive mesh refinement
+
+**แนวคิดสำคัญ:**
+- **Automated Workflow**: ระบบอัตโนมัติที่ลดความซับซ้อนในการศึกษาการลู่เข้า
+- **Two-phase Analysis**: การวิเคราะห์ทั้งในระดับค่าสเกลาร์ (GCI) และระดับสนาม (error norms)
+- **Mesh Independence**: การตรวจสอบว่าผลลัพธ์ไม่ขึ้นอยู่กับความละเอียดของเมช
 
 ---
 
@@ -382,52 +506,93 @@ public:
 ### 6.2 กลยุทธ์การละเอียดเมช
 
 ```cpp
-// กลยุทธ์การละเอียดเมชสำหรับ multiphase flow
-// ใช้ใน blockMeshDict หรือ snappyHexMeshDict
+// Mesh refinement strategy for multiphase flow
+// Used in blockMeshDict or snappyHexMeshDict
 
-// 1. การละเอียดรอบอินเตอร์เฟซ
+// 1. Refinement around interface region
+// Distance-based refinement levels
 refinementRegions
 {
     interfaceRegion
     {
         mode distance;
+        // Specify refinement levels at different distance ranges
+        // Format: (distance level)
         levels ((0.001 4)(0.01 3)(0.1 2));
     }
 }
 
-// 2. การละเอียดตาม gradient ของสัดส่วนเฟส
-// ใช้ dynamicRefineFvMesh สำหรับ AMR
+// 2. Gradient-based refinement using phase fraction
+// Use dynamicRefineFvMesh for adaptive mesh refinement (AMR)
 dynamicRefineFvMeshCoeffs
 {
-    // กำหนดเกณฑ์การละเอียดตาม alpha field
+    // Define refinement criteria based on alpha field
+    // Cells are refined when alpha is within specified range
     alphaField
     {
+        // Refine cells where alpha > lowerRefineLevel
         lowerRefineLevel 0.3;
+        
+        // Refine cells where alpha < upperRefineLevel
         upperRefineLevel 0.7;
+        
+        // Check refinement every this many time steps
         refineInterval 1;
     }
 }
 ```
 
+#### 📂 ที่มาและคำอธิบาย (Source & Explanation)
+
+**📂 Source:** อ้างอิงโครงสร้างการจัดการ dynamic mesh refinement จาก `.applications/solvers/combustion/XiFoam/PDRFoam/PDRFoamAutoRefine.c:46-82`
+
+**คำอธิบาย:**
+การละเอียดเมชสำหรับการไหลหลายเฟสต้องใช้กลยุทธ์พิเศษ เนื่องจาก:
+
+1. **Distance-based Refinement**: 
+   - ละเอียดเมชตามระยะห่างจากบริเวณที่สนใจ (เช่น อินเตอร์เฟซ)
+   - กำหนดระดับการละเอียดหลายระดับตามระยะทาง
+   - ใช้ใน snappyHexMesh เพื่อสร้างเมชคุณภาพสูงรอบอินเตอร์เฟซ
+
+2. **Gradient-based AMR**:
+   - ใช้ dynamicRefineFvMesh สำหรับ adaptive mesh refinement แบบ dynamic
+   - ละเอียด/คลายเมชตาม gradient ของสัดส่วนเฟส ($\alpha$)
+   - ช่วยลดจำนวนเซลล์ทั้งหมด ในขณะที่รักษาความละเอียดบริเวณสำคัญ
+
+**แนวคิดสำคัญ:**
+- **Adaptive Mesh Refinement (AMR)**: เทคนิคการปรับความละเอียดเมชแบบ dynamic ระหว่างการจำลอง
+- **Interface Capturing**: การติดตามอินเตอร์เฟซระหว่างเฟสด้วยความละเอียดเมชที่เหมาะสม
+- **Refinement Criteria**: เกณฑ์การตัดสินใจว่าควรละเอียดหรือคลายเมช
+
+---
+
 ### 6.3 การตรวจสอบการอนุรักษ์สำหรับ Multiphase
 
 ```cpp
-// ตรวจสอบการอนุรักษ์มวลสำหรับแต่ละเฟส
+// Check mass conservation for each phase
+// Ensures sum of all phase fractions equals unity
 void checkPhaseConservation(const PtrList<volScalarField>& alphas)
 {
+    // Accumulate total phase fraction across all phases
     scalar totalAlpha = 0.0;
 
+    // Sum volume fraction for each phase
     forAll(alphas, phasei)
     {
+        // Calculate volume-weighted phase fraction
         scalar phaseVolume = sum(alphas[phasei] * mesh.V());
         totalAlpha += phaseVolume;
 
+        // Report individual phase volume fraction
         Info << "Phase " << phasei << " volume fraction: "
              << phaseVolume / sum(mesh.V()) << endl;
     }
 
+    // Check if sum deviates from unity
+    // For boundedness, sum of all alphas should equal 1.0
     scalar unityError = mag(totalAlpha / sum(mesh.V()) - 1.0);
 
+    // Warn if conservation error exceeds tolerance
     if (unityError > 1e-6)
     {
         WarningIn("checkPhaseConservation")
@@ -435,6 +600,32 @@ void checkPhaseConservation(const PtrList<volScalarField>& alphas)
     }
 }
 ```
+
+#### 📂 ที่มาและคำอธิบาย (Source & Explanation)
+
+**📂 Source:** อ้างอิงรูปแบบการตรวจสอบ boundedness จาก `.applications/solvers/combustion/XiFoam/PDRFoam/PDRFoamAutoRefine.c:46-82`
+
+**คำอธิบาย:**
+การตรวจสอบการอนุรักษ์มวลเป็นสิ่งสำคัญอย่างยิ่งในการไหลหลายเฟส:
+
+1. **Unity Constraint**:
+   - ผลรวมของสัดส่วนปริมาตรทุกเฟสต้องเท่ากับ 1.0 ($\sum \alpha_k = 1$)
+   - ความคลาดเคลื่อนจากค่านี้บ่งชี้ถึงปัญหาในการคำนวณ
+
+2. **Volume-weighted Sum**:
+   - คำนวณปริมาตรของแต่ละเฟสโดยรวมกับปริมาตรเซลล์
+   - ตรวจสอบว่ามวลรวมถูกอนุรักษ์หรือไม่
+
+3. **Tolerance Check**:
+   - ความคลาดเคลื่อนควรอยู่ในระดับ machine precision ($< 10^{-6}$)
+   - ค่าที่สูงกว่านี้อาจบ่งชี้ถึงปัญหาใน solver
+
+**แนวคิดสำคัญ:**
+- **Boundedness**: สนามสัดส่วนเฟสต้องอยู่ในช่วง [0, 1] เสมอ
+- **Conservation Law**: กฎการอนุรักษ์มวลต้องถูกต้องทุกเฟส
+- **Machine Precision**: ความแม่นยำที่จำกัดของ floating-point arithmetic
+
+---
 
 ### 6.4 เกณฑ์การยอมรับ (Acceptance Criteria)
 

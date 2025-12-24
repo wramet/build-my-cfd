@@ -92,6 +92,22 @@ volVectorField gradT = fvc::grad(T);
 volTensorField gradU = fvc::grad(U);
 ```
 
+---
+
+**📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+**📖 Explanation:** ใน OpenFOAM gradient operator ใช้สำหรับคำนวณการเปลี่ยนแปลงของปริมาณทางฟิสิกส์ในปริภูมิ โดยมีการนำไปใช้ในโค้ดตัวอย่าง 3 แบบ:
+1. **gradP** - คำนวณความโน้มถ่วงของความดัน (pressure gradient) ซึ่งเป็นแรงขับเคลื่อนหลักในสมการโมเมนตัม
+2. **gradT** - คำนวณการไหลของความร้อน (heat flux) จาก gradient ของอุณหภูมิ
+3. **gradU** - คำนวณความเครียดและการหมุน (strain rate และ vorticity) จาก gradient ของความเร็ว
+
+**🔑 Key Concepts:**
+- `volVectorField`: ฟิลด์เวกเตอร์ที่จัดเก็บค่าตรงกลางเซลล์ (cell-centered) สำหรับปริมาณเชิงเวกเตอร์
+- `volTensorField`: ฟิลด์เทนเซอร์สำหรับค่า gradient ของฟิลด์เวกเตอร์
+- `fvc::grad()`: Explicit gradient operator ที่คำนวณค่า gradient จากฟิลด์ที่รู้ค่าในขณะนั้น
+
+---
+
 ### 2️⃣ **Divergence** (`∇·φ`)
 
 Measures the net flux out of a control volume. ==Critical for conservation laws==.
@@ -113,6 +129,22 @@ volVectorField divPhi = fvc::div(phi);
 // Convective term
 volScalarField convTerm = fvc::div(phi, T);
 ```
+
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+**📖 Explanation:** Divergence operator ใน OpenFOAM ใช้สำหรับตรวจสอบและบังคับใช้กฎการอนุรักษ์ (conservation laws):
+1. **divU** - ตรวจสอบการอนุรักษ์มวล (mass conservation) โดยในกระแสที่ไม่บีบอัด (incompressible) ค่านี้ควรเป็นศูนย์
+2. **divPhi** - คำนวณการไหลของโมเมนตัม (momentum flux) ผ่านหน้าเซลล์
+3. **convTerm** - คำนวณเทอม convection ในสมการขนส่ง (transport equation)
+
+**🔑 Key Concepts:**
+- `volScalarField`: ฟิลด์สเกลาร์ที่จัดเก็บค่าตรงกลางเซลล์
+- `fvc::div()`: Explicit divergence operator ที่ใช้ทฤษฎีบทของเกาส์ในการคำนวณ
+- **Conservation laws**: กฎการอนุรักษ์มวล โมเมนตัม และพลังงานถูกบังคับผ่าน divergence operator
+
+---
 
 ### 3️⃣ **Curl** (`∇×φ`)
 
@@ -137,6 +169,22 @@ volTensorField gradU = fvc::grad(U);
 volScalarField Q = 0.5*(magSqr(skew(gradU)) - magSqr(symm(gradU)));
 ```
 
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**📖 Explanation:** Curl operator ใช้วิเคราะห์การหมุน (rotation) ของกระแส:
+1. **vorticity** - คำนวณ vorticity (ω = ∇×U) ซึ่งเป็นเวกเตอร์ที่บอกทิศทางและความเร็วในการหมุนของฟลูอิด
+2. **vorticityMag** - คำนวณขนาด (magnitude) ของ vorticity สำหรับการ visualise โครงสร้างการไหล
+3. **Q-criterion** - ใช้ระบุโซนที่มีการพัด (vortex) โดยเปรียบเทียบส่วนประกอบการหมุน (skew) กับส่วนประกอบความเครียด (symm)
+
+**🔑 Key Concepts:**
+- `fvc::curl()`: Explicit curl operator ที่คำนวณองค์ประกอบการหมุนของสนามเวกเตอร์
+- `mag()`: ฟังก์ชันคำนวณขนาด (magnitude) ของเวกเตอร์
+- `skew()` / `symm()`: แยกส่วนประกอบ antisymmetric (การหมุน) และ symmetric (ความเครียด) ของเทนเซอร์
+
+---
+
 ### 4️⃣ **Laplacian** (`∇²φ`)
 
 Represents diffusion processes. Necessary for heat conduction, viscous flow, and mass diffusion.
@@ -159,6 +207,23 @@ volVectorField laplacianU = fvc::laplacian(nu, U);
 fvScalarMatrix pEqn(fvm::laplacian(1/rho, p) == fvc::div(U));
 ```
 
+---
+
+**📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.H`
+
+**📖 Explanation:** Laplacian operator ใช้จำลองกระบวนการ diffusion:
+1. **laplacianT** - คำนวณการนำความร้อน (heat conduction) ด้วยสัมประสิทธิ์ DT
+2. **laplacianU** - คำนวณความหนืด (viscous diffusion) ในสมการโมเมนตัมด้วยสัมประสิทธิ์ความหนืด ν
+3. **pEqn** - สร้างสมการ Pressure Poisson โดยใช้ implicit Laplacian (fvm) สำหรับแก้สมการความดัน
+
+**🔑 Key Concepts:**
+- `fvc::laplacian()`: Explicit Laplacian operator สำหรับ diffusion terms
+- `fvm::laplacian()`: Implicit Laplacian operator ที่สร้างเมทริกซ์สำหรับการแก้สมการ
+- `fvScalarMatrix`: เมทริกซ์สมการสเกลาร์ที่ต้องแก้ด้วย linear solver
+- **Diffusion processes**: การนำความร้อน, ความหนืด, การแพร่กระจายมวล ล้วนใช้ Laplacian operator
+
+---
+
 ## 🔧 Discretization Schemes
 
 The accuracy and stability of finite volume operations depend on the **interpolation schemes** specified in `system/fvSchemes`:
@@ -175,6 +240,7 @@ The accuracy and stability of finite volume operations depend on the **interpola
 
 **Example `system/fvSchemes`:**
 ```cpp
+// Define gradient schemes using Gauss theorem with different interpolation
 gradSchemes
 {
     default         Gauss linear;
@@ -182,6 +248,7 @@ gradSchemes
     grad(U)         Gauss fourth;        // Higher accuracy
 }
 
+// Define divergence schemes for convective terms
 divSchemes
 {
     default         Gauss linear;
@@ -189,11 +256,37 @@ divSchemes
     div(phi,T)      Gauss limitedLinearV 1;       // TVD scheme
 }
 
+// Define Laplacian schemes with non-orthogonal correction
 laplacianSchemes
 {
     default         Gauss linear corrected;  // Non-orthogonal correction
 }
 ```
+
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/ThermalPhaseChangePhaseSystem/ThermalPhaseChangePhaseSystem.C`
+
+**📖 Explanation:** Discretization schemes กำหนดความแม่นยำและเสถียรภาพของการคำนวณ:
+1. **gradSchemes** - กำหนดวิธีคำนวณ gradient โดยใช้ทฤษฎีบท Gauss กับ interpolation ต่างกัน:
+   - `linear`: 2nd order, เหมาะกับ laminar flow
+   - `leastSquares`: เหมาะกับ unstructured meshes
+   - `fourth`: ความแม่นยำสูงกว่า
+
+2. **divSchemes** - กำหนดวิธีคำนวณ divergence สำหรับ convection terms:
+   - `linearUpwindV`: ผสม scheme เพื่อสมดุลความแม่นยำและเสถียรภาพ
+   - `limitedLinearV`: TVD scheme ป้องกัน oscillations
+
+3. **laplacianSchemes** - กำหนดวิธีคำนวณ Laplacian:
+   - `corrected`: ใช้ non-orthogonal correction สำหรับ meshes ที่ไม่ orthogonal
+
+**🔑 Key Concepts:**
+- **Gauss theorem**: ฐานของทุก discretization scheme ใน FVM
+- **Interpolation**: การประมาณค่าที่ face centers จาก cell centers
+- **TVD (Total Variation Diminishing)**: Scheme ที่ป้องกัน oscillations ใน flows ที่มี shocks
+- **Non-orthogonal correction**: การแก้ไขสำหรับ meshes ที่ไม่ orthogonal เพื่อรักษาความแม่นยำ
+
+---
 
 ## 🎯 Why This Matters: The Developer's Perspective
 

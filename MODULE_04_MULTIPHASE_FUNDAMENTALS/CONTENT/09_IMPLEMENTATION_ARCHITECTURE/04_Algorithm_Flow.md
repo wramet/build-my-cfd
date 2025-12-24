@@ -14,8 +14,19 @@
 โปรแกรมแก้ปัญหาเริ่มต้นโดยการกำหนดค่าเริ่มต้นของ fields และโมเดลทางฟิสิกส์ทั้งหมดที่จำเป็นผ่านไฟล์ include `createFields.H`:
 
 ```cpp
+// Include file for field creation
 #include "createFields.H"
 ```
+
+**คำอธิบายภาษาไทย**
+> **แหล่งที่มา (Source)**: ไฟล์ `createFields.H` ใน solver directory
+>
+> **คำอธิบาย**: ไฟล์ include นี้เป็นจุดเริ่มต้นของการสร้างฟิลด์ทั้งหมดที่จำเป็นสำหรับการจำลอง โดย OpenFOAM จะเรียกใช้ไฟล์นี้ก่อนเริ่ม time loop หลัก เพื่อกำหนดค่าเริ่มต้นของฟิลด์ทั้งหมด เช่น phase fractions, velocities, pressure และ temperature
+>
+> **แนวคิดสำคัญ (Key Concepts)**:
+> - **Field Initialization**: การสร้างและกำหนดค่าเริ่มต้นของฟิลด์ต่างๆ
+> - **Memory Allocation**: การจองหน่วยความจำสำหรับข้อมูลการจำลอง
+> - **Model Instantiation**: การสร้าง instances ของโมเดลทางฟิสิกส์
 
 ### กระบวนการกำหนดค่าเริ่มต้น
 
@@ -37,6 +48,7 @@
 ### 3.1 Time Loop หลัก
 
 ```cpp
+// Main time loop - runs until end time is reached
 while (runTime.loop())
 {
     // 1. ปรับก้าวเวลา (Time step) ตามเลข Courant
@@ -69,6 +81,17 @@ while (runTime.loop())
     runTime.write();
 }
 ```
+
+**คำอธิบายภาษาไทย**
+> **แหล่งที่มา (Source)**: โครงสร้างนี้ถูกนำมาจาก solver file หลักของ `multiphaseEulerFoam.C` และ control parameters จาก `readTimeControls.H`
+>
+> **คำอธิบาย**: Time loop หลักนี้เป็นหัวใจของอัลกอริทึม โดยแต่ละ time step จะมีการแก้สมการทั้งหมดภายใน PIMPLE loop เพื่อให้ได้ค่าที่ลู่เข้า (converged solution) ก่อนที่จะไปยัง time step ถัดไป
+>
+> **แนวคิดสำคัญ (Key Concepts)**:
+> - **Time Stepping**: การคำนวณแบบ transient ที่มีการแบ่งเวลา
+> - **Outer Iterations**: การวนซ้ำภายนอกเพื่อความเสถียร
+> - **Sequential Solution**: การแก้สมการตามลำดับ
+> - **Convergence Check**: การตรวจสอบการลู่เข้าของผลลัพธ์
 
 ### 3.2 การคำนวณเลข Courant (Courant Number)
 
@@ -107,6 +130,7 @@ $$\frac{\partial (\alpha_k \rho_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k 
 ### 4.2 การนำไปใช้งานในโค้ด
 
 ```cpp
+// Solve phase fraction equations for all phases
 forAll(phases, phasei)
 {
     phaseModel& phase = phases[phasei];
@@ -117,18 +141,18 @@ forAll(phases, phasei)
     // Construct phase fraction equation
     fvScalarMatrix alphaEqn
     (
-        fvm::ddt(alpha, rho)
-      + fvm::div(alphaPhase*rho*U, alpha)
+        fvm::ddt(alpha, rho)                              // Time derivative
+      + fvm::div(alphaPhase*rho*U, alpha)                 // Convection term
      ==
-        phase.massTransferSource()  // Interphase mass transfer
+        phase.massTransferSource()                        // Interphase mass transfer
     );
 
     // Relax and solve
-    alphaEqn.relax();
-    alphaEqn.solve();
+    alphaEqn.relax();                                     // Apply under-relaxation
+    alphaEqn.solve();                                     // Solve the equation
 
     // Apply bounding
-    alpha.maxMin(1.0, 0.0); // บังคับให้อยู่ในช่วง [0, 1]
+    alpha.maxMin(1.0, 0.0);                               // Force to range [0, 1]
 }
 
 // Ensure phase fractions sum to unity
@@ -140,9 +164,21 @@ for (label phasei = 1; phasei < phases.size(); phasei++)
 
 forAll(phases, phasei)
 {
-    phases[phasei] /= sumAlpha;
+    phases[phasei] /= sumAlpha;                           // Normalize
 }
 ```
+
+**คำอธิบายภาษาไทย**
+> **แหล่งที่มา (Source)**: ไฟล์ `phaseSystemSolve.C` บรรทัดที่ 44-599 ใน `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystemSolve.C`
+>
+> **คำอธิบาย**: โค้ดนี้แสดงการแก้สมการ phase fraction โดยใช้วิธีการจำกัด (MULES: Multidimensional Universal Limiter with Explicit Solution) ซึ่งเป็นวิธีการขั้นสูงใน OpenFOAM สำหรับการจำกัดค่าของ phase fractions ให้ไม่เกินช่วง [0, 1] พร้อมทั้งรักษาผลรวมของทุกเฟสให้เท่ากับ 1
+>
+> **แนวคิดสำคัญ (Key Concepts)**:
+> - **MULES Algorithm**: อัลกอริทึมการจำกัดค่าที่แม่นยำ
+> - **Flux Limiting**: การจำกัด flux ของ phase fraction
+> - **Boundedness**: การรักษาค่าให้อยู่ในช่วงที่ถูกต้อง
+> - **Conservation**: การรักษากฎการอนุรักษ์มวล
+> - **Interface Compression**: การบีบอัด interface ระหว่างเฟส
 
 ### 4.3 การจับคู่โค้ดกับทฤษฎี
 
@@ -185,8 +221,10 @@ $$\boldsymbol{\tau}_k = \mu_k (\nabla \mathbf{u}_k + \nabla \mathbf{u}_k^T) - \f
 ### 5.2 การนำไปใช้งานใน OpenFOAM
 
 ```cpp
+// Create momentum equation matrices for all phases
 PtrList<fvVectorMatrix> UEqns(phases.size());
 
+// Loop through all phases to construct momentum equations
 forAll(phases, phasei)
 {
     phaseModel& phase = phases[phasei];
@@ -197,34 +235,46 @@ forAll(phases, phasei)
     // Momentum equation matrix
     fvVectorMatrix UEqn
     (
-        fvm::ddt(alpha, rho, U)
-      + fvm::div(alphaPhi, rho, U)
+        fvm::ddt(alpha, rho, U)                           // Unsteady term
+      + fvm::div(alphaPhi, rho, U)                        // Convection term
      ==
         // Pressure gradient term
-        - alpha*fvc::grad(p)
+        - alpha*fvc::grad(p)                              // Pressure gradient
 
         // Viscous stress term
-      + fvc::div(alpha*phase.R())
+      + fvc::div(alpha*phase.R())                         // Viscous stress
 
         // Gravity term
-      + alpha*rho*g
+      + alpha*rho*g                                       // Gravity/body force
 
         // Interphase momentum transfer
-      + phase.interfacialMomentumTransfer()
+      + phase.interfacialMomentumTransfer()              // Interphase forces
     );
 
     // Apply under-relaxation
-    UEqn.relax();
+    UEqn.relax();                                        // Relax for stability
 
     // Store for pressure equation
-    UEqns.set(phasei, new fvVectorMatrix(UEqn));
+    UEqns.set(phasei, new fvVectorMatrix(UEqn));         // Store matrix
 }
 ```
 
+**คำอธิบายภาษาไทย**
+> **แหล่งที่มา (Source)**: ไฟล์ `MovingPhaseModel.C` บรรทัดที่ 329-343 ใน `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+>
+> **คำอธิบาย**: โค้ดนี้สร้างสมการโมเมนตัมสำหรับแต่ละเฟสโดยแยกกัน (segregated approach) สมการโมเมนตัมประกอบด้วยพจน์ unsteady, convection, pressure gradient, viscous stress, gravity และ interphase momentum transfer ซึ่งรวมถึง drag, lift, virtual mass และ turbulent dispersion forces
+>
+> **แนวคิดสำคัญ (Key Concepts)**:
+> - **Segregated Approach**: การแก้สมการแต่ละเฟสแยกกัน
+> - **Matrix Assembly**: การประกอบเมทริกซ์สมการโมเมนตัม
+> - **Under-Relaxation**: การผ่อนคลายเพื่อความเสถียร
+> - **Interphase Coupling**: การเชื่อมโยงระหว่างเฟสผ่านแรงต่างๆ
+> - **Implicit Treatment**: การจัดการเทอม coupling โดยนัย
+
 ### 5.3 การจับคู่โค้ดกับทฤษฎี
 
-- `fvm::ddt(alpha, rho, U)` → $\frac{\partial (\alpha_k \rho_k \mathbf{u}_k)}{\partial t}$
-- `fvm::div(alphaPhi, rho, U)` → $\nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \mathbf{u}_k)$
+- `fvm::ddt(alpha, rho, U)` → $\frac{\partial (\alpha_k \rho_k \mathbf{u}_k)}{\partial t}$ (พจน์ไม่คงที่)
+- `fvm::div(alphaPhi, rho, U)` → $\nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \mathbf{u}_k)$ (พจน์นำพา)
 - `- alpha*fvc::grad(p)` → $-\alpha_k \nabla p$ (ไล่ระดับความดัน)
 - `fvc::div(alpha*phase.R())` → $\nabla \cdot \boldsymbol{\tau}_k$ (ความเครียดแบบเหนียว)
 - `alpha*rho*g` → $\alpha_k \rho_k \mathbf{g}$ (แรงโน้มถ่วง/แรงตามตัว)
@@ -237,7 +287,7 @@ forAll(phases, phasei)
 ### 6.1 การนำไปใช้งานใน OpenFOAM
 
 ```cpp
-// Interphase momentum transfer calculation
+// Calculate interphase momentum transfer
 tmp<volVectorField> phaseModel::interfacialMomentumTransfer() const
 {
     tmp<volVectorField> tF
@@ -293,6 +343,18 @@ tmp<volVectorField> phaseModel::interfacialMomentumTransfer() const
 }
 ```
 
+**คำอธิบายภาษาไทย**
+> **แหล่งที่มา (Source)**: ไฟล์ `MomentumTransferPhaseSystem.C` บรรทัดที่ 195-292 ใน `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+>
+> **คำอธิบาย**: โค้ดนี้แสดงการคำนวณ interphase momentum transfer โดยรวมทุกประเภทของแรงระหว่างเฟสเข้าด้วยกัน แรงเหล่านี้ถูกคำนวณจากโมเดลต่างๆ ที่กำหนดใน `constant/phaseProperties` และถูกเพิ่มลงในสมการโมเมนตัมของแต่ละเฟส
+>
+> **แนวคิดสำคัญ (Key Concepts)**:
+> - **Interphase Forces**: แรงที่กระทำระหว่างเฟสต่างๆ
+> - **Model Selection**: การเลือกโมเดลแรงที่เหมาะสม
+> - **Force Superposition**: การรวมแรงทุกประเภทเข้าด้วยกัน
+> - **Implicit Treatment**: การจัดการแรงโดยนัยสำหรับความเสถียร
+> - **Phase Interaction**: ปฏิสัมพันธ์ระหว่างเฟส
+
 ### 6.2 สมการการถ่ายโอนโมเมนตัมระหว่างเฟส
 
 $$\mathbf{M}_k = \sum_{l=1}^{N} (\mathbf{F}^{D}_{kl} + \mathbf{F}^{L}_{kl} + \mathbf{F}^{VM}_{kl} + \mathbf{F}^{TD}_{kl})$$
@@ -331,14 +393,14 @@ $$\sum_{k=1}^{N} \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k) = 0$$
 ### 7.3 การนำไปใช้งานใน OpenFOAM
 
 ```cpp
-// pEqn.H - Pressure correction equation
+// Pressure correction equation
 for (int corr = 0; corr < nCorr; corr++)
 {
-    // Calculate pressure fluxes
+    // Calculate pressure fluxes using Rhie-Chow interpolation
     surfaceScalarField rUAf
     (
         "rUAf",
-        fvc::interpolate(1.0/UEqn.A())
+        fvc::interpolate(1.0/UEqn.A())                   // Rhie-Chow interpolation
     );
 
     // Phase fluxes
@@ -354,7 +416,7 @@ for (int corr = 0; corr < nCorr; corr++)
             new surfaceScalarField
             (
                 "phi" + phase.name(),
-                fvc::interpolate(phase.U()) & mesh_.Sf()
+                fvc::interpolate(phase.U()) & mesh_.Sf()  // Face flux calculation
             )
         );
     }
@@ -362,20 +424,32 @@ for (int corr = 0; corr < nCorr; corr++)
     // Pressure equation matrix
     fvScalarMatrix pEqn
     (
-        fvm::laplacian(rUAf, p) ==
-        fvc::div(phiHbyA)
+        fvm::laplacian(rUAf, p) ==                       // Diffusion term
+        fvc::div(phiHbyA)                                // Source term
     );
 
     // Solve pressure equation
-    pEqn.solve();
+    pEqn.solve();                                        // Solve for pressure
 
     // Correct phase fluxes
     forAll(phases, phasei)
     {
-        phiPhis[phasei] -= rUAf*fvc::snGrad(p)*mesh_.magSf();
+        phiPhis[phasei] -= rUAf*fvc::snGrad(p)*mesh_.magSf(); // Flux correction
     }
 }
 ```
+
+**คำอธิบายภาษาไทย**
+> **แหล่งที่มา (Source)**: ไฟล์ `phaseSystem.H` บรรทัดที่ 566-581 ใน `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
+>
+> **คำอธิบาย**: โค้ดนี้แสดงการแก้สมการความดันโดยใช้อัลกอริทึม PISO ซึ่งประกอบด้วยการสร้างสมการ Poisson สำหรับความดัน แก้หาความดัน และปรับแก้ flux ของแต่ละเฟสโดยใช้ Rhie-Chow interpolation เพื่อป้องกันปัญหา checkerboard pressure-velocity decoupling
+>
+> **แนวคิดสำคัญ (Key Concepts)**:
+> - **PISO Algorithm**: อัลกอริทึมการแก้ความดัน-ความเร็ว
+> - **Rhie-Chow Interpolation**: การเชื่อมต่อความดัน-ความเร็วบนผิวหน้าเมช
+> - **Pressure Poisson Equation**: สมการ Poisson สำหรับความดัน
+> - **Flux Correction**: การปรับแก้ flux หลังจากแก้ความดัน
+> - **Mass Conservation**: การรักษากฎการอนุรักษ์มวล
 
 ### 7.4 รายละเอียดการนำไปใช้งานเชิงตัวเลข
 
@@ -406,31 +480,44 @@ $$\frac{\partial (\alpha_k \rho_k h_k)}{\partial t} + \nabla \cdot (\alpha_k \rh
 ### 8.2 การนำไปใช้งานใน OpenFOAM
 
 ```cpp
+// Solve energy equations for all phases
 forAll(phases, phasei)
 {
     const phaseModel& phase = phases[phasei];
-    const volScalarField& h = phase.thermo().h();
-    const volScalarField& T = phase.T();
-    const volScalarField& alpha = phase;
-    const volScalarField& rho = phase.rho();
+    const volScalarField& h = phase.thermo().h();        // Enthalpy
+    const volScalarField& T = phase.T();                   // Temperature
+    const volScalarField& alpha = phase;                   // Phase fraction
+    const volScalarField& rho = phase.rho();               // Density
 
     // Energy equation construction
     fvScalarMatrix EEqn
     (
-        fvm::ddt(alpha, rho, h)
-      + fvm::div(alphaRhoPhi, h)
+        fvm::ddt(alpha, rho, h)                            // Unsteady term
+      + fvm::div(alphaRhoPhi, h)                           // Convection term
      ==
-        alpha*dpdt
-      + fvc::div(alphaKappaEff*fvc::grad(T))
-      + interphaseHeatTransfer[phasei]
+        alpha*dpdt                                          // Pressure work term
+      + fvc::div(alphaKappaEff*fvc::grad(T))               // Heat conduction
+      + interphaseHeatTransfer[phasei]                     // Interphase transfer
     );
 
-    EEqn.relax().solve();
+    EEqn.relax().solve();                                  // Relax and solve
 
     // Update temperature from enthalpy
-    phase.T() = phase.thermo().THE(h, phase.T());
+    phase.T() = phase.thermo().THE(h, phase.T());          // Convert h -> T
 }
 ```
+
+**คำอธิบายภาษาไทย**
+> **แหล่งที่มา (Source)**: ไฟล์ `MovingPhaseModel.C` บรรทัดที่ 572-576 ใน `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+>
+> **คำอธิบาย**: โค้ดนี้แสดงการแก้สมการพลังงานสำหรับแต่ละเฟส โดยใช้ enthalpy ($h$) เป็นตัวแปรหลัก หลังจากแก้สมการแล้ว อุณหภูมิจะถูกคำนวณจาก enthality ผ่าน thermodynamic model การแลกเปลี่ยนความร้อนระหว่างเฟสถูกเพิ่มเป็น source term ในสมการ
+>
+> **แนวคิดสำคัญ (Key Concepts)**:
+> - **Enthalpy Formulation**: การใช้ enthalpy เป็นตัวแปรหลัก
+> - **Heat Transfer**: การถ่ายเทความร้อน
+> - **Interphase Heat Exchange**: การแลกเปลี่ยนความร้อนระหว่างเฟส
+> - **Thermodynamics**: สมการถดถอยเทอมอไดนามิกส์
+> - **Conduction**: การนำความร้อน
 
 ---
 
@@ -528,6 +615,18 @@ couplingOptions
 }
 ```
 
+**คำอธิบายภาษาไทย**
+> **แหล่งที่มา (Source)**: การกำหนดค่าใน `system/fvSolution` และ `phaseSystem.H`
+>
+> **คำอธิบาย**: ไฟล์กำหนดค่านี้ควบคุมพารามิเตอร์ของ coupling strategy โดยระบุการใช้ under-relaxation factors, convergence tolerances และ maximum iterations สำหรับแต่ละสมการ ค่าเหล่านี้สำคัญมากต่อความเสถียรและประสิทธิภาพของการแก้ปัญหา
+>
+> **แนวคิดสำคัญ (Key Concepts)**:
+> - **Coupling Strategy**: กลยุทธ์การเชื่อมโยงสมการ
+> - **Relaxation Factors**: ค่าสัมประสิทธิ์การผ่อนคลาย
+> - **Convergence Criteria**: เกณฑ์การลู่เข้า
+> - **Iteration Control**: การควบคุมจำนวน iterations
+> - **Solver Performance**: ประสิทธิภาพของ solver
+
 ### 10.3 Implicit Treatment of Interphase Terms
 
 ```cpp
@@ -539,15 +638,27 @@ forAll(phases, k)
         if (k != j)
         {
             scalarField Kd = dragCoefficient(phases[k], phases[j]);
-            KMatrix[k][j] = -Kd;
-            KMatrix[k][k] += Kd;
+            KMatrix[k][j] = -Kd;                           // Off-diagonal term
+            KMatrix[k][k] += Kd;                           // Diagonal term
         }
     }
 
     // Add to momentum matrix diagonal
-    UEqn += fvm::Sp(KMatrix[k][k], U[k]);
+    UEqn += fvm::Sp(KMatrix[k][k], U[k]);                 // Add implicit term
 }
 ```
+
+**คำอธิบายภาษาไทย**
+> **แหล่งที่มา (Source)**: ไฟล์ `MomentumTransferPhaseSystem.C` บรรทัดที่ 218-245 ใน `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+>
+> **คำอธิบาย**: โค้ดนี้แสดงการประกอบเมทริกซ์ drag แบบ implicit ซึ่งช่วยเพิ่มความเสถียรของการแก้ปัญหา โดยค่าสัมประสิทธิ์ drag ถูกเพิ่มลงในเมทริกซ์ diagonal ของสมการโมเมนตัม ทำให้สามารถแก้ปัญหาด้วย time step ที่ใหญ่ขึ้น
+>
+> **แนวคิดสำคัญ (Key Concepts)**:
+> - **Implicit Coupling**: การเชื่อมโยงโดยนัย
+> - **Drag Matrix**: เมทริกซ์สัมประสิทธิ์ drag
+> - **Matrix Assembly**: การประกอบเมทริกซ์
+> - **Numerical Stability**: ความเสถียรเชิงตัวเลข
+> - **Partial Elimination**: การกำจัดบางส่วน (partial elimination)
 
 ### 10.4 Pressure-Velocity Coupling Enhancement
 

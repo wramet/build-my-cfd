@@ -71,31 +71,103 @@ flowchart TD
 ### 2.4 OpenFOAM Implementation
 
 ```cpp
+// Main time loop - iterate through each time step
 while (runTime.loop())
 {
-    // Momentum predictor
+    Info<< "Time = " << runTime.userTimeName() << nl << endl;
+
+    // Calculate and display Courant number for stability monitoring
+    #include "CourantNo.H"
+
+    // Momentum predictor: Build and solve momentum equation
+    // Constructs the implicit momentum matrix with time derivative,
+    // convection, and diffusion terms
     fvVectorMatrix UEqn
     (
-        fvm::ddt(U) + fvm::div(phi, U) - fvm::laplacian(nu, U)
+        fvm::ddt(U)              // Time derivative term
+      + fvm::div(phi, U)         // Convection term (implicit)
+      - fvm::laplacian(nu, U)    // Diffusion term (viscous)
     );
-    solve(UEqn == -fvc::grad(p));
 
-    // PISO corrector loop
-    for (int corr=0; corr<nCorr; corr++)
+    // Solve momentum equation with pressure gradient as source term
+    if (piso.momentumPredictor())
     {
-        volScalarField rAU = 1.0/UEqn.A();
-        fvScalarMatrix pEqn
-        (
-            fvm::laplacian(rAU, p) == fvc::div(phi)
-        );
-        pEqn.solve();
+        solve(UEqn == -fvc::grad(p));
+    }
 
-        // Velocity correction
-        U -= rAU*fvc::grad(p);
+    // --- PISO loop: Pressure-velocity coupling correction
+    while (piso.correct())
+    {
+        // Calculate reciprocal of diagonal coefficients for pressure equation
+        volScalarField rAU(1.0/UEqn.A());
+        
+        // Compute HbyA = H(U)/A, where H contains off-diagonal terms
+        // This represents the velocity field excluding pressure gradient
+        volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U, p));
+        
+        // Calculate flux from HbyA and add time derivative correction
+        surfaceScalarField phiHbyA
+        (
+            "phiHbyA",
+            fvc::flux(HbyA)
+          + fvc::interpolate(rAU)*fvc::ddtCorr(U, phi)
+        );
+
+        // Adjust mass flux to ensure global mass conservation
+        adjustPhi(phiHbyA, U, p);
+
+        // Update pressure boundary conditions for flux consistency
+        constrainPressure(p, U, phiHbyA, rAU);
+
+        // Non-orthogonal pressure corrector loop
+        while (piso.correctNonOrthogonal())
+        {
+            // Pressure equation: Laplacian of pressure equals divergence of flux
+            fvScalarMatrix pEqn
+            (
+                fvm::laplacian(rAU, p) == fvc::div(phiHbyA)
+            );
+
+            // Set reference cell and value for pressure (fixes pressure level)
+            pEqn.setReference(pRefCell, pRefValue);
+
+            // Solve pressure equation
+            pEqn.solve();
+
+            // On final non-orthogonal iteration, correct the flux
+            if (piso.finalNonOrthogonalIter())
+            {
+                phi = phiHbyA - pEqn.flux();
+            }
+        }
+
+        // Check and report continuity error
+        #include "continuityErrs.H"
+
+        // Correct velocity field using updated pressure gradient
+        U = HbyA - rAU*fvc::grad(p);
         U.correctBoundaryConditions();
     }
+
+    // Write results to disk
+    runTime.write();
+
+    Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
+        << "  ClockTime = " << runTime.elapsedClockTime() << " s"
+        << nl << endl;
 }
 ```
+
+> **📂 Source:** `.applications/solvers/incompressible/icoFoam/icoFoam.C`
+>
+> **คำอธิบาย (Explanation):**
+> โค้ดด้านบนแสดงการนำอัลกอริทึม PISO ไปใช้ใน OpenFOAM โดยเริ่มจากการสร้างเมทริกซ์สมการโมเมนตัมที่ประกอบด้วยเทอมอนุพันธ์เวลา Convection และ Diffusion จากนั้นทำการวนซ้ำ PISO loop เพื่อแก้สมการความดันและปรับค่าความเร็วให้สอดคล้องกับเงื่อนไขการอนุรักษ์มวล ขั้นตอนนี้ใช้เทคนิค HbyA (H divided by A) ซึ่งเป็นวิธีการทางพีชคณิตเพื่อแยกส่วนประกอบของความเร็วที่ไม่ได้รับอิทธิพลจากความดันออกมาก่อน แล้วจึงเติมเทอมความดันกลับเข้าไปในภายหลัง
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **`fvm` vs `fvc`**: `fvm` (finite volume method) ใช้สำหรับ implicit terms ที่จะถูกนำไปประกอบเป็นเมทริกซ์ ส่วน `fvc` (finite volume calculus) ใช้สำหรับ explicit terms ที่คำนวณโดยตรง
+> - **`UEqn.A()` และ `UEqn.H()`**: `A()` คือสัมประสิทธิ์บนเส้นทแยงมุมของเมทริกซ์ และ `H()` คือเทอม off-diagonal ที่เก็บผลรวมของ convection และ diffusion
+> - **PISO loop**: วนซ้ำหลายครั้งภายใน time step เดียวเพื่อให้ความดันและความเร็วลู่เข้าสู่ค่าที่สอดคล้องกัน (coupling)
+> - **Mass flux correction**: `phi = phiHbyA - pEqn.flux()` เป็นการปรับ mass flux ให้สอดคล้องกับความดันใหม่
 
 **คำอธิบายโค้ด:**
 - `fvm::ddt(U)` = เทอมอนุพันธ์เวลาของความเร็ว
@@ -141,31 +213,48 @@ $$\phi^{n+1} = \phi^n + \alpha_{\phi} (\phi^{new} - \phi^n)$$
 ### 3.3 OpenFOAM Implementation
 
 ```cpp
-while (simple.loop())
+// Main SIMPLE iteration loop - runs until steady-state convergence
+while (simple.loop(runTime))
 {
-    // Momentum equation with under-relaxation
-    tmp<fvVectorMatrix> UEqn
-    (
-        fvm::div(phi, U) + turbulence->divDevReff(U)
-    );
-    UEqn().relax();
-    solve(UEqn() == -fvc::grad(p));
+    Info<< "Time = " << runTime.userTimeName() << nl << endl;
 
-    // Pressure correction
-    fvScalarMatrix pEqn
-    (
-        fvm::laplacian(UEqn().A(), p) == fvc::div(UEqn().flux())
-    );
-    pEqn.solve();
+    // Update any finite volume models (sources, constraints)
+    fvModels.correct();
 
-    // Velocity correction
-    U -= UEqn().H()/UEqn().A()*fvc::grad(p);
-    U.correctBoundaryConditions();
+    // --- Pressure-velocity SIMPLE corrector
+    {
+        // Include and execute UEqn.H (momentum equation)
+        // This file constructs the momentum equation matrix with turbulence
+        #include "UEqn.H"
+        
+        // Include and execute pEqn.H (pressure equation)
+        // This solves for pressure and corrects velocity
+        #include "pEqn.H"
+    }
 
-    // Turbulence update
+    // Update viscosity and turbulence models
+    viscosity->correct();
     turbulence->correct();
+
+    // Write results if convergence criteria met
+    runTime.write();
+
+    Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
+        << "  ClockTime = " << runTime.elapsedClockTime() << " s"
+        << nl << endl;
 }
 ```
+
+> **📂 Source:** `.applications/solvers/incompressible/simpleFoam/simpleFoam.C`
+>
+> **คำอธิบาย (Explanation):**
+> โค้ดด้านบนแสดงโครงสร้างหลักของ simpleFoam ซึ่งใช้อัลกอริทึม SIMPLE สำหรับปัญหาสภาวะคงที่ โดยสมการโมเมนตัมและสมการความดันถูกแยกออกเป็นไฟล์ `UEqn.H` และ `pEqn.H` ตามลำดับ การวนซ้ำแต่ละครั้งจะแก้สมการโมเมนตัมด้วยความดันปัจจุบัน จากนั้นแก้สมการความดัน และปรับค่าความเร็วจนกว่าจะลู่เข้าสู่สภาวะคงที่ ความแตกต่างจาก PISO คือ SIMPLE ใช้ under-relaxation เพื่อรักษาเสถียรภาพของการวนซ้ำ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **SIMPLE loop**: ทำงานจนกว่าจะถึงสภาวะคงที่ (steady-state) ไม่ใช่การเดินทางข้ามเวลาแบบ transient
+> - **UEqn.H และ pEqn.H**: แยกสมการออกเป็นไฟล์ Include เพื่อให้โค้ดเป็น modular และอ่านง่ายขึ้น
+> - **Under-relaxation**: ใช้ใน UEqn.H และ pEqn.H เพื่อค่อยๆ อัปเดตค่าตัวแปร ป้องกันการ diverge
+> - **Turbulence models**: `turbulence->correct()` อัปเดตค่าพารามิเตอร์ความปั่นไป เช่น k, epsilon, omega
 
 **คำอธิบายโค้ด:**
 - `turbulence->divDevReff(U)` = เทอม Reynolds stresses
@@ -262,39 +351,103 @@ flowchart TD
 ### 4.3 OpenFOAM Implementation
 
 ```cpp
-while (runTime.loop())
+// Main PIMPLE time loop - iterate through each time step
+while (pimple.run(runTime))
 {
-    // PIMPLE outer loop
+    // Read dynamic mesh controls if mesh motion is enabled
+    #include "readDyMControls.H"
+
+    // Use Local Time Stepping (LTS) if enabled for faster pseudo-transient
+    if (LTS)
+    {
+        #include "setRDeltaT.H"
+    }
+    else
+    {
+        // Calculate Courant number and adjust time step
+        #include "CourantNo.H"
+        #include "setDeltaT.H"
+    }
+
+    // Prepare mesh for possible motion
+    fvModels.preUpdateMesh();
+
+    // Update the mesh for topology change, mesh to mesh mapping
+    mesh.update();
+
+    // Increment time
+    runTime++;
+
+    Info<< "Time = " << runTime.userTimeName() << nl << endl;
+
+    // --- Pressure-velocity PIMPLE corrector loop
     while (pimple.loop())
     {
-        // Momentum predictor
-        tmp<fvVectorMatrix> UEqn
-        (
-            fvm::ddt(U) + fvm::div(phi, U)
-          + turbulence->divDevReff(U)
-        );
+        // Move mesh on first outer iteration or if configured
+        if (pimple.firstPimpleIter() || moveMeshOuterCorrectors)
+        {
+            // Move the mesh
+            mesh.move();
 
-        // Momentum equation
-        solve(UEqn == -fvc::grad(p));
+            if (mesh.changing())
+            {
+                // Update Multiple Reference Frame (MRF) zones
+                MRF.update();
 
-        // PISO corrector loop
+                // Correct fluxes after mesh motion
+                if (correctPhi)
+                {
+                    #include "correctPhi.H"
+                }
+
+                // Check mesh Courant number for moving mesh
+                if (checkMeshCourantNo)
+                {
+                    #include "meshCourantNo.H"
+                }
+            }
+        }
+
+        // Update any finite volume models
+        fvModels.correct();
+
+        // Include and execute momentum equation (UEqn.H)
+        #include "UEqn.H"
+
+        // --- Pressure corrector loop (PISO inner loop)
         while (pimple.correct())
         {
-            volScalarField rAU = 1.0/UEqn.A();
-            fvScalarMatrix pEqn
-            (
-                fvm::laplacian(rAU, p) == fvc::div(phi)
-            );
-            pEqn.solve();
+            // Include and execute pressure equation (pEqn.H)
+            #include "pEqn.H"
+        }
 
-            U -= rAU*fvc::grad(p);
-            U.correctBoundaryConditions();
+        // Update turbulence models on outer correction
+        if (pimple.turbCorr())
+        {
+            viscosity->correct();
+            turbulence->correct();
         }
     }
 
-    turbulence->correct();
+    // Write results to disk
+    runTime.write();
+
+    Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
+        << "  ClockTime = " << runTime.elapsedClockTime() << " s"
+        << nl << endl;
 }
 ```
+
+> **📂 Source:** `.applications/solvers/incompressible/pimpleFoam/pimpleFoam.C`
+>
+> **คำอธิบาย (Explanation):**
+> โค้ดด้านบนแสดงการนำอัลกอริทึม PIMPLE ไปใช้ซึ่งรวมความสามารถของทั้ง PISO และ SIMPLE โดยมี Outer loop (`pimple.loop()`) เพื่อทำซ้ำขั้นตอนทั้งหมดหลายครั้งภายใน time step เดียวเพื่อเสถียรภาพ และ Inner loop (`pimple.correct()`) เพื่อแก้สมการความดันด้วย PISO corrections โค้ดยังรองรับ mesh motion ผ่าน `mesh.move()` และ `correctPhi.H` ซึ่งปรับ fluxes หลังจาก mesh เคลื่อนที่ ทำให้เหมาะสำหรับปัญหา FSI (Fluid-Structure Interaction)
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Outer vs Inner loops**: Outer loop ทำหน้าที่เหมือน SIMPLE iteration ภายใน time step เดียว ส่วน Inner loop คือ PISO corrections
+> - **Mesh motion**: รองรับ moving mesh ผ่าน `mesh.move()` และ flux correction ผ่าน `correctPhi.H`
+> - **LTS (Local Time Stepping)**: ใช้ time step ที่แตกต่างกันในแต่ละ cell เพื่อเร่งการลู่เข้าสู่สภาวะคงที่
+> - **MRF (Multiple Reference Frame)**: รองรับโซนหมุนและโซนนิ่งใน computational domain เดียว
 
 ### 4.4 การตั้งค่า fvSolution
 
@@ -551,7 +704,7 @@ reconstructPar
 ### 10.2 เทคนิค Debugging
 
 ```cpp
-// เปิดใช้งาน debugging output
+// Enable debugging output for key variables
 Info<< "Max U = " << max(mag(U)).value() << endl;
 Info<< "Min p = " << min(p).value() << endl;
 Info<< "Continuity error = " << continuityError << endl;

@@ -75,36 +75,68 @@ flowchart TD
 **`autoPtr<T>`** - การเป็นเจ้าของแบบ exclusive:
 
 ```cpp
-// การสร้างและการใช้งาน
+// Field creation with IOobject for automatic I/O handling
+// Constructor uses RAII - memory automatically freed on scope exit
 autoPtr<volScalarField> Tfield
 (
     new volScalarField
     (
         IOobject
         (
-            "T",
-            runTime.timeName(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
+            "T",                      // Field name
+            runTime.timeName(),       // Time directory
+            mesh,                     // Mesh reference
+            IOobject::MUST_READ,      // Read from disk if exists
+            IOobject::AUTO_WRITE      // Auto-write on output
         ),
-        mesh
+        mesh                          // Mesh to create field on
     )
 );
 
-// การเข้าถึง
+// Access underlying object via operator()
+// Boundary conditions updated before solving
 Tfield()->correctBoundaryConditions();
 ```
+
+> **📚 คำอธิบาย:**
+> **ที่มา:** .applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C
+>
+> **การอธิบาย:**
+> - `autoPtr<T>` เป็น smart pointer ที่มีความเป็นเจ้าของแบบ exclusive (เจ้าของเดียว)
+> - ใช้ RAII pattern: เมื่อ scope สิ้นสุด memory จะถูกคืนโดยอัตโนมัติ
+> - `IOobject` กำหนดวิธีการจัดการ I/O (อ่าน/เขียนไฟล์)
+> - `operator()` ใช้เข้าถึง object ที่ pointer ชี้อยู่
+>
+> **แนวคิดสำคัญ:**
+> - **RAII**: Resource Acquisition Is Initialization - ทรัพยากรถูกจองเมื่อสร้าง object และคืนเมื่อทำลาย
+> - **Exclusive Ownership**: เจ้าของเดียว ไม่มีการแชร์ความเป็นเจ้าของ
+> - **Automatic Cleanup**: ไม่ต้องเรียก delete ด้วยตนเอง
 
 **`tmp<T>`** - การเป็นเจ้าของแบบ shared พร้อม reference counting:
 
 ```cpp
-// ฟิลด์ชั่วคราวที่มีการลบอัตโนมัติ
+// Temporary field with automatic lifetime management
+// Reference counting enables safe sharing without copies
 tmp<volScalarField> sourceTerm = calculateSourceTerm();
 
-// การแชร์ผ่าน reference counting
+// Share via reference counting - both point to same data
+// refCount increments to 2 - memory freed when both tmp destroyed
 tmp<volScalarField> sharedCopy = sourceTerm;  // refCount = 2
 ```
+
+> **📚 คำอธิบาย:**
+> **ที่มา:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C
+>
+> **การอธิบาย:**
+> - `tmp<T>` ใช้ reference counting เพื่อแชร์ข้อมูลระหว่างหลาย object
+> - เหมาะสำหรับ expression intermediate ที่มีการใช้งานหลายครั้ง
+> - ลดการ copy ข้อมูลขนาดใหญ่ ประหยัด memory
+> - memory ถูกคืนเมื่อ reference count กลายเป็น 0
+>
+> **แนวคิดสำคัญ:**
+> - **Reference Counting**: นับจำนวนผู้อ้างอิง คืน memory เมื่อไม่มีใครใช้
+> - **Shared Ownership**: หลาย object สามารถเข้าถึงข้อมูลเดียวกัน
+> - **Zero-Copy Sharing**: การแชร์ข้อมูลโดยไม่ต้อง copy
 
 ### 3. การคำนวณหน่วยควาจำสำหรับ CFD
 
@@ -150,53 +182,118 @@ IndirectList
 ### `List<T>` - คอนเทนเนอร์หลักสำหรับฟิลด์ CFD
 
 ```cpp
-// การสร้าง List พร้อม RAII
+// Allocate contiguous memory for CFD field data
+// RAII ensures proper cleanup on scope exit
 List<scalar> pressureField(1000000);  // 1 million elements
-List<vector> velocityField(1000000);  // 1 million vectors
+List<vector> velocityField(1000000);  // 1 million vectors (3 values each)
 
-// การเข้าถึงแบบ optimized (forAll macro)
+// Optimized access using forAll macro
+// Enables compiler optimizations (SIMD vectorization)
 forAll(pressureField, i) {
-    pressureField[i] *= 1.01;  // SIMD-vectorizable
+    pressureField[i] *= 1.01;  // In-place modification, SIMD-friendly
 }
 ```
+
+> **📚 คำอธิบาย:**
+> **ที่มา:** .applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C
+>
+> **การอธิบาย:**
+> - `List<T>` เป็น container หลักสำหรับเก็บข้อมูล CFD แบบ contiguous memory
+> - ใช้ heap allocation พร้อม RAII สำหรับ automatic cleanup
+> - `forAll` macro เป็น idiom มาตรฐาน OpenFOAM ที่ optimize สำหรับ SIMD
+> - Memory layout เป็นแบบ contiguous จึงเร็วกว่า `std::list`
+>
+> **แนวคิดสำคัญ:**
+> - **Contiguous Memory**: เก็บข้อมูลต่อเนื่องกันใน memory ช่วยเรื่อง cache locality
+> - **RAII**: จัดการ memory อัตโนมัติ ลดความเสี่ยง memory leak
+> - **SIMD Optimization**: compiler สามารถ vectorize การคำนวณได้
+> - **Zero Overhead Abstraction**: ไม่มี overhead เพิ่มเติมจาก C-style array
 
 ### `DynamicList<T>` - สำหรับการสร้างเมช
 
 ```cpp
-// การเติบโตแบบ dynamic พร้อมการจองแบบ batch
+// Dynamic growth with batch allocation strategy
+// Reduces reallocations during mesh generation
 DynamicList<face> faces;
-faces.reserve(10000);  // จองพื้นที่ล่วงหน้า
+faces.reserve(10000);  // Pre-allocate space for better performance
 
 for (int i = 0; i < 10000; ++i) {
-    faces.append(newFace);  // การเติบโตอัตโนมัติ
+    faces.append(newFace);  // Automatic growth with amortized O(1)
 }
 
-// แปลงเป็น List พร้อม move semantics
-faceList finalFaces = faces.shrink();  // ไม่มีการคัดลอก
+// Convert to List with move semantics - no copy performed
+// Ownership transferred, DynamicList becomes empty
+faceList finalFaces = faces.shrink();  // Zero-copy transfer
 ```
+
+> **📚 คำอธิบาย:**
+> **ที่มา:** ใช้กว้างขวางใน mesh generation utilities
+>
+> **การอธิบาย:**
+> - `DynamicList<T>` ออกแบบสำหรับการเติบโตแบบ dynamic ระหว่างสร้างเมช
+> - `reserve()` จองพื้นที่ล่วงหน้าลดการ reallocation
+> - `shrink()` ใช้ move semantics ไม่มีการ copy ข้อมูล
+> - เหมาะสำหรับขั้นตอน preprocessing ที่ไม่รู้ขนาดล่วงหน้า
+>
+> **แนวคิดสำคัญ:**
+> - **Amortized O(1)**: การเติบโตมีค่าใช้จ่ายเฉลี่ยคงที่
+> - **Move Semantics**: โอนความเป็นเจ้าของโดยไม่ copy
+> - **Batch Allocation**: จอง memory เป็นชุดลด overhead ของ allocation
 
 ### `FixedList<T, N>` - ข้อมูลขนาดเล็กคงที่
 
 ```cpp
-// ไม่มี overhead สำหรับข้อมูลขนาดเล็ก
-FixedList<scalar, 3> point = {0.0, 1.0, 2.0};     // พิกัด 3D
-FixedList<vector, 6> stressTensor;                 // เทนเซอร์ความเครียด
+// Zero-overhead container for small, fixed-size data
+// Stored entirely on stack for performance
+FixedList<scalar, 3> point = {0.0, 1.0, 0.0};     // 3D coordinate
+FixedList<vector, 6> stressTensor;                // Stress tensor components
 ```
+
+> **📚 คำอธิบาย:**
+> **ที่มา:** ใช้แพร่หลายใน geometry primitives และ tensor operations
+>
+> **การอธิบาย:**
+> - `FixedList<T, N>` เก็บข้อมูลบน stack ไม่มี heap allocation
+> - ขนาดรู้ที่ compile-time ช่วยให้ compiler optimize ได้ดี
+> - เหมาะสำหรับ small data เช่น points, vectors, tensors
+> - เป็น zero-overhead abstraction จาก C-style array
+>
+> **แนวคิดสำคัญ:**
+> - **Stack Allocation**: เร็วกว่า heap allocation มาก
+> - **Compile-Time Size**: compiler รู้ขนาดสามารถ unroll loops
+> - **Zero Overhead**: ไม่มี performance cost เทียบกับ raw array
 
 ### `PtrList<T>` - การจัดการออบเจกต์โพลิมอร์ฟิก
 
 ```cpp
-// สำหรับเงื่อนไขขอบที่มีประเภทต่างกัน
+// Container for polymorphic boundary condition objects
+// Each patch can have different boundary condition type
 PtrList<fvPatchField> boundaries(4);
 
-boundaries.set(0, new fixedValueFvPatchField(...));
-boundaries.set(1, new zeroGradientFvPatchField(...));
-boundaries.set(2, new symmetryPlaneFvPatchField(...));
-boundaries.set(3, new wallFvPatchField(...));
+// Set different boundary condition types using polymorphism
+boundaries.set(0, new fixedValueFvPatchField(...));      // Dirichlet
+boundaries.set(1, new zeroGradientFvPatchField(...));    // Neumann
+boundaries.set(2, new symmetryPlaneFvPatchField(...));   // Symmetry
+boundaries.set(3, new wallFvPatchField(...));            // Wall
 
-// การใช้งานแบบ polymorphic
-boundaries[0].evaluate();  // virtual function call
+// Polymorphic access via virtual function calls
+// Runtime dispatch to correct implementation
+boundaries[0].evaluate();  // Virtual call to fixedValue::evaluate()
 ```
+
+> **📚 คำอธิบาย:**
+> **ที่มา:** .applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C
+>
+> **การอธิบาย:**
+> - `PtrList<T>` เก็บ pointers ไปยัง polymorphic objects
+> - ใช้ virtual functions สำหรับ runtime polymorphism
+> - เหมาะสำหรับ boundary conditions ที่มีหลายประเภท
+> - RAII จัดการ lifetime ของ pointers อัตโนมัติ
+>
+> **แนวคิดสำคัญ:**
+> - **Runtime Polymorphism**: พฤติกรรมขึ้นกับ type จริงขณะรันไทม์
+> - **Virtual Dispatch**: function calls ถูกส่งไปยัง implementation ที่ถูกต้อง
+> - **Automatic Memory Management**: ไม่ต้อง delete ด้วยตนเอง
 
 ---
 
@@ -205,28 +302,50 @@ boundaries[0].evaluate();  // virtual function call
 ### รูปแบบการทำงานร่วมกัน
 
 ```cpp
-// ตัวอย่าง: การแก้สมการ Navier-Stokes อย่างง่าย
+// Example: Simplified Navier-Stokes solver workflow
+// Demonstrates integration of memory management and containers
 void solveNavierStokes() {
-    // 1. Memory Management: autoPtr สำหรับ mesh
+    // 1. Memory Management: autoPtr for exclusive mesh ownership
+    // Mesh is heavy object - use autoPtr for automatic cleanup
     autoPtr<fvMesh> mesh = createMesh();
 
-    // 2. Containers: tmp สำหรับฟิลด์ที่แชร์
+    // 2. Containers: tmp for shared field references
+    // Fields may be shared between multiple terms
     tmp<volScalarField> p = createPressureField(*mesh);
     tmp<volVectorField> U = createVelocityField(*mesh);
 
-    // 3. การดำเนินการ CFD
+    // 3. CFD Operations with proper RAII scoping
     {
-        // ฟิลด์ชั่วคราวพร้อมการทำความสะอาดอัตโนมัติ
+        // Temporary fields with automatic lifetime management
+        // These are expensive to compute, so use tmp for potential sharing
         tmp<volVectorField> convection = fvc::div(U, U);
         tmp<volVectorField> diffusion = fvc::laplacian(nu, U);
 
-        // การอัพเดทแบบ optimized
+        // Optimized in-place update using ref()
+        // ref() returns mutable reference to avoid unnecessary copies
         U.ref() = U() - dt * (convection() + diffusion());
 
-    } // convection, diffusion ถูกทำลายโดยอัตโนมัติ
+    } // Scope exit: convection, diffusion automatically destroyed here
+      // Reference counting ensures cleanup when no longer needed
 
-} // mesh, p, U ถูกทำลายโดยอัตโนมัติ
+} // Scope exit: mesh, p, U automatically destroyed
+  // All memory properly released - no leaks possible
 ```
+
+> **📚 คำอธิบาย:**
+> **ที่มา:** ผสานแนวคิดจาก .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/ThermalPhaseChangePhaseSystem/ThermalPhaseChangePhaseSystem.C
+>
+> **การอธิบาย:**
+> - แสดงการผสานรวมระหว่าง memory management (`autoPtr`, `tmp`) และ containers (`volScalarField`, `volVectorField`)
+> - Scope-based RAII ทำให้แน่ใจว่า memory ถูกคืนเมื่อไม่ใช้
+> - `ref()` ใช้สำหรับ in-place modification ประหยัด memory
+> - Reference counting ช่วยแชร์ข้อมูลระหว่าง intermediate calculations
+>
+> **แนวคิดสำคัญ:**
+> - **Scope-Based Resource Management**: resource ถูกคืนเมื่อออกจาก scope
+> - **Move Semantics**: โอนความเป็นเจ้าของโดยไม่ copy
+> - **Expression Templates**: การ optimize การคำนวณ expression ซับซ้อน
+> - **Zero-Copy Operations**: การดำเนินการโดยไม่สร้างสำเนาข้อมูล
 
 ---
 

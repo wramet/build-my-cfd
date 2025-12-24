@@ -1,566 +1,1040 @@
-# 📈 Surface Integration and Heat Transfer (การอินทิเกรตพื้นผิวและการถ่ายเทความร้อน)
+# แก้ไขการตั้งค่าและการออกแบบ CFD Case ที่มีอยู่ (Modifying Existing Case Setup and Design)
 
-**วัตถุประสงค์การเรียนรู้**: เชี่ยวชาญเทคนิคการอินทิเกรตพื้นผิวสำหรับการคำนวณอัตราการไหล (Flux), การวิเคราะห์การถ่ายเทความร้อน และการระบุคุณลักษณะการไหลบริเวณผนังใน OpenFOAM
+เมื่อเริ่มต้นใช้งาน OpenFOAM เพื่อแก้ไขปัญหาทางวิศวกรรม นักพัฒนามักเจอกับสถานการณ์ที่ต้องการปรับเปลี่ยน CFD case ที่มีอยู่แล้ว มากกว่าการเริ่มสร้างใหม่ทั้งหมด โมดูลนี้จะนำเสนอแนวทางและเทคนิคในการแก้ไขและปรับปรุง CFD case ที่มีอยู่อย่างเป็นระบบ
 
 ---
 
-## 1. พื้นฐานการอินทิเกรตฟิลด์บนพื้นผิว (Surface Field Integration Fundamentals)
+## 1. แนวคิดพื้นฐานของการแก้ไข CFD Case (Basic Concepts of Case Modification)
 
-### 1.1 รากฐานทางคณิตศาสตร์ (Mathematical Foundation)
+### 1.1 โครงสร้างและส่วนประกอบของ OpenFOAM Case
 
-การอินทิเกรตพื้นผิวใน OpenFOAM มอบข้อมูลเชิงปริมาณที่สำคัญสำหรับการวิเคราะห์ทางวิศวกรรม เช่น แรงลัพธ์, อัตราการไหลของมวล และอัตราการถ่ายเทความร้อนผ่านขอบเขตที่กำหนด
+ก่อนที่จะทำการแก้ไขใดๆ จำเป็นต้องเข้าใจโครงสร้างพื้นฐานของ OpenFOAM case ซึ่งประกอบด้วย:
 
-**การอินทิเกรตบนพื้นผิวใน CFD (Surface Integration in CFD):**
-
-การดำเนินการทางคณิตศาสตร์หลักบนหน้าเซลล์ (Faces) ที่ประกอบเป็นพื้นผิว $S$ ได้แก่:
-
-**อัตราการไหลของมวล (Mass Flow Rate):**
-$$\dot{m} = \int_S \rho \mathbf{u} \cdot \mathbf{n} \,\mathrm{d}S \approx \sum_i \rho_i \phi_i$$ 
-โดยที่ $\phi_i = \mathbf{u}_i \cdot \mathbf{A}_i$ คือฟลักซ์ปริมาตร (Volumetric Flux) ผ่านหน้าเซลล์ $i$
-
-**อัตราการถ่ายเทความร้อน (Heat Transfer Rate):**
-$$\dot{Q} = \int_S q'' \,\mathrm{d}S = \int_S -k \frac{\partial T}{\partial n} \,\mathrm{d}S$$ 
-
-![[surface_flux_integration.png]]
-> **รูปที่ 1.1:** การอินทิเกรตฟลักซ์บนพื้นผิว (Surface Flux Integration): แสดงการรวมปริมาณฟิลด์ผ่านหน้าเซลล์ โดยพิจารณาทิศทางของเวกเตอร์พื้นที่ $\mathbf{A}$ และความหนาแน่นของฟิลด์
-
-### 1.2 การใช้งานใน OpenFOAM (OpenFOAM Implementation)
-
-ฟังก์ชันออบเจกต์ `surfaceFieldValue` ช่วยให้สามารถคำนวณค่าอินทิเกรตเหล่านี้ได้ทั้งระหว่างการจำลอง (Runtime) และหลังการจำลอง (Post-processing)
-
-**การกำหนดค่าใน `system/controlDict`:**
+- **0/***: เก็บข้อมูลเริ่มต้นและเงื่อนไขขอบเขต (Initial and boundary conditions)
+- **constant/**: เก็บข้อมูลค่าคงที่ เช่น mesh, transport properties
+- **system/**: เก็บการตั้งค่าการจำลอง (Simulation control parameters)
 
 ```cpp
+// Source: OpenFOAM Case Structure
+// โครงสร้างไดเรกทอรีพื้นฐานของ OpenFOAM case
+// แต่ละไดเรกทอรีมีหน้าที่เฉพาะในการจัดเก็บข้อมูลการจำลอง
+
+myCase/
+├── 0/                  // เงื่อนไขเริ่มต้นและขอบเขต (Initial and boundary conditions)
+│   ├── U               // ความเร็ว (Velocity field)
+│   ├── p               // ความดัน (Pressure field)
+│   └── T               // อุณหภูมิ (Temperature field)
+├── constant/           // ค่าคงที่และคุณสมบัติของไหล (Constants and fluid properties)
+│   ├── polyMesh/       // ข้อมูลตาข่าย (Mesh data)
+│   └── transportProperties // คุณสมบัติการขนส่ง (Transport properties)
+└── system/             // การตั้งค่าการจำลอง (Simulation settings)
+    ├── controlDict     // การควบคุมเวลาและเอาต์พุต (Time and output control)
+    ├── fvSchemes       // รูปแบบการเปลี่ยนค่าเชิงปริมาณ (Discretization schemes)
+    └── fvSolution      // การตั้งค่า solver และค่าความแม่นยำ (Solver settings and tolerances)
+```
+
+**คำอธิบายภาษาไทย:**
+> **แหล่งที่มา (Source):** OpenFOAM Case Structure Documentation
+> 
+> **คำอธิบาย (Explanation):** โครงสร้างไดเรกทอรีมาตรฐานของ OpenFOAM case แบ่งเป็น 3 ส่วนหลัก:
+> - **0/**: เก็บเงื่อนไขขอบเขตและค่าเริ่มต้นของทุกฟิลด์
+> - **constant/**: เก็บ mesh และคุณสมบัติทางกายภาพที่ไม่เปลี่ยนแปลง
+> - **system/**: เก็บการตั้งค่าที่ควบคุมการทำงานของ solver
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Directory Organization**: การจัดระเบียบไฟล์แบบมาตรฐานช่วยให้ OpenFOAM ค้นหาและโหลดข้อมูลได้อัตโนมัติ
+> - **Field Files**: ไฟล์ใน 0/ ต้องมีชื่อตรงกับฟิลด์ที่ solver ต้องการ
+> - **Mesh Independence**: mesh ใน constant/polyMesh สามารถใช้ซ้ำได้กับ solver ต่างกัน
+> - **Solver Flexibility**: การเปลี่ยน solver มักต้องปรับเฉพาะไฟล์ใน system/
+
+### 1.2 ขั้นตอนในการทำความเข้าใจ Case ที่มีอยู่
+
+ก่อนทำการแก้ไข ควรทำความเข้าใจ case ที่มีอยู่ก่อน:
+
+```cpp
+// Source: OpenFOAM Case Analysis Workflow
+// ขั้นตอนในการวิเคราะห์และทำความเข้าใจ case ที่มีอยู่
+// การทำความเข้าใจที่ถูกต้องช่วยลดความเสี่ยงในการแก้ไขที่อาจทำให้ case ทำงานไม่ได้
+
+// 1. ตรวจสอบประเภทของ Solver
+//    - อ่านชื่อ solver จากไฟล์ system/controlDict
+//    - ตรวจสอบความเข้ากันได้กับปัญหาที่ต้องการแก้
+//    - ตรวจสอบความสามารถของ solver (compressible/incompressible, turbulent/laminar, etc.)
+
+// 2. วิเคราะห์ Mesh
+//    - ตรวจสอบคุณภาพ mesh ด้วย checkMesh
+//    - วิเคราะห์ความละเอียดของ mesh ใกล้ผนัง (y+ values)
+//    - ประเมินความเหมาะสมกับปัญหาที่ต้องการแก้
+
+// 3. ตรวจสอบ Boundary Conditions
+//    - วิเคราะห์ชนิดของ boundary conditions ที่ใช้
+//    - ตรวจสอบความเหมาะสมกับปัญหาทางกายภาพ
+//    - ระบุจุดที่ต้องการแก้ไข
+
+// 4. ทบทวน Discretization Schemes
+//    - ตรวจสอนรูปแบบการเปลี่ยนค่าใน system/fvSchemes
+//    - ประเมินความเหมาะสมกับระดับความแม่นยำที่ต้องการ
+//    - ตรวจสอบความเสถียรของการคำนวณ
+
+// 5. วิเคราะห์การตั้งค่า Solver
+//    - ตรวจสอบ tolerances และ criteria การบรรจบ
+//    - วิเคราะห์ algorithms ที่ใช้ (PISO, SIMPLE, PIMPLE)
+//    - ประเมินความเหมาะสมกับปัญหาที่ต้องการแก้
+```
+
+**คำอธิบายภาษาไทย:**
+> **แหล่งที่มา (Source):** OpenFOAM Case Analysis Best Practices
+> 
+> **คำอธิบาย (Explanation):** ขั้นตอนในการวิเคราะห์ case ที่มีอยู่ก่อนการแก้ไข:
+> 1. ตรวจสอบประเภท solver เพื่อให้แน่ใจว่าเหมาะสมกับปัญหา
+> 2. วิเคราะห์ mesh เพื่อประเมินความเหมาะสม
+> 3. ตรวจสอบ boundary conditions
+> 4. ทบทวน discretization schemes
+> 5. วิเคราะห์ solver settings
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Systematic Analysis**: การวิเคราะห์เป็นขั้นตอนช่วยลดโอกาสเกิดข้อผิดพลาด
+> - **Documentation**: การบันทึกสิ่งที่พบช่วยในการตัดสินใจแก้ไข
+> - **Compatibility Check**: การตรวจสอบความเข้ากันได้ช่วยป้องกันปัญหา runtime
+> - **Performance Optimization**: การทำความเข้าใจส่วนประกอบช่วยปรับปรุงประสิทธิภาพ
+
+---
+
+## 2. การแก้ไข Mesh และ Boundary Conditions (Modifying Mesh and Boundary Conditions)
+
+### 2.1 การปรับปรุง Mesh ที่มีอยู่
+
+เมื่อต้องการปรับปรุง mesh ที่มีอยู่ มีหลายแนวทางที่สามารถทำได้:
+
+```cpp
+// Source: OpenFOAM Mesh Manipulation Tools
+// เครื่�องมือในการปรับปรุง mesh ที่มีอยู่
+// การเลือกใช้เครื่องมือที่เหมาะสมขึ้นอยู่กับประเภทของการแก้ไขที่ต้องการ
+
+// 1. การปรับขนาด mesh (Mesh Refinement)
+//    ใช้ refineMesh หรือ refineHexMesh เพื่อเพิ่มความละเอียดในบริเวณที่สนใจ
+//    Example:
+//    refineMesh -overwrite  // แก้ไข mesh โดยตรง
+
+// 2. การเพิ่มความละเอียดบริเวณผนัง (Boundary Layer Refinement)
+//    ใช้ refineWallLayer เพื่อเพิ่ม layer ใกล้ผนัง
+//    Example:
+//    refineWallLayer '(wall1 wall2)' 1  // เพิ่ม 1 layer บน wall1 และ wall2
+
+// 3. การแก้ไข cellZones และ faceZones
+//    ใช้ setSet หรือ topoSet เพื่อสร้าง/แก้ไข zones
+//    Example:
+//    setSet  // เปิด interactive mode
+//    > cellSet c1 new boxToCell (0 0 0) (1 1 1)  // สร้าง cellSet ชื่อ c1
+
+// 4. การแก้ไข patches
+//    ใช้ createPatch หรือ modifyMesh เพื่อเปลี่ยนแปลง patches
+//    Example:
+//    createPatch -overwrite  // สร้าง patches ใหม่ตามการตั้งค่า
+```
+
+**คำอธิบายภาษาไทย:**
+> **แหล่งที่มา (Source):** OpenFOAM Mesh Manipulation Utilities
+> 
+> **คำอธิบาย (Explanation):** เครื่องมือหลักในการปรับปรุง mesh:
+> 1. **refineMesh**: เพิ่มความละเอียด mesh ทั้งหมดหรือบางส่วน
+> 2. **refineWallLayer**: เพิ่ม layer ใกล้ผนังเพื่อปรับปรุงความแม่นยำของ gradient
+> 3. **setSet/topoSet**: สร้างและแก้ไข zones สำหรับการตั้งค่าเฉพาะบริเวณ
+> 4. **createPatch**: แก้ไข patches และ boundary conditions
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Targeted Refinement**: เพิ่มความละเอียดเฉพาะที่สำคัญเพื่อประหยัด computational cost
+> - **Quality Preservation**: การแก้ไข mesh ต้องรักษาคุณภาพ mesh ไว้
+> - **Topology Consistency**: การเปลี่ยนแปลงต้องสอดคล้องกันทั่วทั้ง mesh
+> - **Backup Strategy**: ควรสำรอง mesh เดิมก่อนแก้ไข
+
+### 2.2 การแก้ไข Boundary Conditions
+
+การแก้ไข boundary conditions เป็นการปรับเปลี่ยนที่พบบ่อยที่สุด:
+
+```cpp
+// Source: OpenFOAM Boundary Condition Modification
+// การแก้ไข boundary conditions ในไฟล์ 0/U, 0/p, etc.
+// การแก้ไข BC ที่ถูกต้องสำคัญมากต่อความถูกต้องของผลลัพธ์
+
+dimensions      [0 1 -1 0 0 0 0];    // หน่วยของความเร็ว (m/s)
+
+internalField   uniform (0 0 0);    // ค่าเริ่มต้นภายในโดเมน
+
+boundaryField
+{
+    // 1. ปรับเปลี่ยน Inlet Type
+    inlet
+    {
+        // จาก fixedValue (ค่าคงที่) เป็น 
+        // ใช้สำหรับ profile ที่ซับซ้อน
+        type            fixedValue;
+        value           uniform (10 0 0);  // ความเร็ว 10 m/s ในทิศทาง x
+    }
+    
+    // 2. ปรับเปลี่ยน Outlet Type
+    outlet
+    {
+        // ใช้ zeroGradient สำหรับ flow ที่ fully developed
+        type            zeroGradient;
+    }
+    
+    // 3. แก้ไข Wall Condition
+    walls
+    {
+        // สำหรับ turbulent flow: ใช้ wall functions
+        type            noSlip;
+    }
+    
+    // 4. เพิ่ม Symmetry Plane
+    symmetry
+    {
+        type            symmetryPlane;
+    }
+}
+```
+
+**คำอธิบายภาษาไทย:**
+> **แหล่งที่มา (Source):** OpenFOAM Boundary Conditions Documentation
+> 
+> **คำอธิบาย (Explanation):** ประเภทของ boundary conditions ที่ใช้บ่อย:
+> 1. **fixedValue**: กำหนดค่าคงที่ที่ boundary (เช่น velocity inlet)
+> 2. **zeroGradient**: gradient เป็นศูนย์ (เช่น pressure outlet)
+> 3. **noSlip**: ไม่มีการลื่นที่ผนัง (velocity = 0)
+> 4. **symmetryPlane**: ระนาบสมมาตร
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Physical Consistency**: BC ต้องสอดคล้องกับฟิสิกส์ของปัญหา
+> - **Well-Posed Problem**: ต้องมี BC เพียงพอและไม่ขัดแย้งกัน
+> - **Numerical Stability**: BC บางประเภทอาจทำให้เกิดปัญหาความไม่เสถียร
+> - **Convergence**: BC ที่เหมาะสมช่วยให้บรรจบเร็วขึ้น
+
+### 2.3 การเพิ่ม Boundary Conditions ใหม่
+
+```cpp
+// Source: OpenFOAM Boundary Creation
+// การสร้าง patches และ boundary conditions ใหม่
+// ใช้ createPatch utility สำหรับสร้าง patches จาก faces ที่มีอยู่
+
+// ไฟล์: system/createPatchDict
+// การตั้งค่าสำหรับสร้าง patches ใหม่
+
+// 1. สร้าง patch จาก faceZone ที่มีอยู่
+patch1
+{
+    // ชื่อ patch ใหม่
+    name            newInlet;
+    
+    // ประเภทของ patch
+    patchType       patch;
+    
+    // ค่าที่จะใช้ (เฉพาะบางประเภท)
+    value           uniform (10 0 0);
+    
+    // ชื่อ faceZone ที่จะใช้
+    faceZone        newInletZone;
+    
+    // วิธีการสร้าง patch
+    constructFrom   faceZone;  // หรือ 'patches'
+}
+
+// 2. สร้าง patch จาก patches ที่มีอยู่
+patch2
+{
+    name            combinedOutlet;
+    patchType       patch;
+    
+    // รวม patches หลายอันเข้าด้วยกัน
+    constructFrom   patches;
+    patches         (outlet1 outlet2);
+}
+```
+
+**คำอธิบายภาษาไทย:**
+> **แหล่งที่มา (Source):** OpenFOAM createPatch Utility
+> 
+> **คำอธิบาย (Explanation):** ขั้นตอนการสร้าง patches ใหม่:
+> 1. สร้าง faceZones โดยใช้ setSet หรือ topoSet
+> 2. สร้างไฟล์ system/createPatchDict
+> 3. รัน createPatch utility
+> 4. ตั้งค่า boundary conditions ในไฟล์ 0/
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Face Selection**: การเลือก faces ที่เหมาะสมสำคัญมาก
+> - **Patch Type**: ต้องเลือกประเภทที่เหมาะสมกับ solver
+> - **Field Consistency**: ต้องอัปเดต boundary conditions ในทุกฟิลด์
+> - **Verification**: ตรวจสอบด้วย checkMesh หลังการสร้าง
+
+---
+
+## 3. การปรับเปลี่ยน Physical Properties และ Transport Properties
+
+### 3.1 การแก้ไข Transport Properties
+
+```cpp
+// Source: OpenFOAM Transport Properties
+// ไฟล์: constant/transportProperties
+// การตั้งค่าคุณสมบัติทางกายภาพของของไหล
+// ค่าเหล่านี้ส่งผลโดยตรงต่อผลลัพธ์การจำลอง
+
+transportModel  Newtonian;    // รุ่นของความหนืด (Viscosity model)
+
+// ความหนืดของไหล (Dynamic viscosity)
+nu              [0 2 -1 0 0 0 0] 1e-05;  // m²/s (Kinematic viscosity)
+// หรือใช้ dynamic viscosity:
+// mu              [1 -1 -1 0 0 0 0] 1e-03;  // kg/(m·s)
+
+// สำหรับ non-Newtonian fluids:
+// transportModel  NonNewtonian;
+// crossPowerLawCoeffs
+// {
+//     nu0             [0 2 -1 0 0 0 0] 1e-06;  // Viscosity at zero shear
+//     nuInf           [0 2 -1 0 0 0 0] 1e-04; // Viscosity at infinite shear
+//     m               0.8;                    // Power law index
+//     tau             [0 -2 0 0 0 0 0] 1.0;   // Critical shear stress
+// }
+```
+
+**คำอธิบายภาษาไทย:**
+> **แหล่งที่มา (Source):** OpenFOAM Transport Properties Documentation
+> 
+> **คำอธิบาย (Explanation):** การตั้งค่าคุณสมบัติของไหล:
+> - **Newtonian**: ไหลที่มีความหนืดคงที่ (เช่น น้ำ, อากาศ)
+> - **Non-Newtonian**: ไหลที่ความหนืดแปรตาม shear rate
+> - **nu vs mu**: nu = kinematic viscosity (m²/s), mu = dynamic viscosity (kg/(m·s))
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Temperature Dependence**: คุณสมบัติอาจขึ้นกับอุณหภูมิ
+> - **Reynolds Number**: ความหนืดส่งผลต่อ Reynolds number
+> - **Model Selection**: ต้องเลือกรุ่นที่เหมาะสมกับชนิดของไหล
+> - **Units Consistency**: ตรวจสอบหน่วยให้ถูกต้องเสมอ
+
+### 3.2 การแก้ไข Thermophysical Properties (สำหรับ Compressible Flow)
+
+```cpp
+// Source: OpenFOAM Thermophysical Properties
+// ไฟล์: constant/thermophysicalProperties
+// การตั้งค่าคุณสมบัติทางอุณหพลศาสตร์สำหรับ compressible flow
+
+thermoType
+{
+    type            heRhoThermo;      // ชนิดของ thermodynamic model
+    mixture         multiComponentMixture;  // ชนิดของส่วนผสม
+    transport       sutherland;       // รุ่นการขนส่ง (viscosity/conductivity)
+    thermo          janaf;            // รุ่น thermodynamic (Cp, H, etc.)
+    energy          sensibleEnthalpy; // รูปแบของพลังงาน
+    equationOfState perfectGas;       // สมการถึงสถานะ
+    specie          specie;           // ชนิดของสาร
+}
+
+// สำหรับ single component gas
+mixture
+{
+    specie
+    {
+        nMoles          1;            // จำนวนโมล
+        molWeight       28.9;         // น้ำหนักโมเลกุล [g/mol]
+    }
+    
+    thermodynamics
+    {
+        Cp              1007;         // ความร้อนจำเพาะ [J/(kg·K)]
+        Hf              0;            // Enthalpy of formation [J/kg]
+    }
+    
+    transport
+    {
+        mu              1.8e-05;     // ความหนืด [kg/(m·s)]
+        Pr              0.72;        // Prandtl number
+    }
+}
+```
+
+**คำอธิบายภาษาไทย:**
+> **แหล่งที่มา (Source):** OpenFOAM Thermophysical Models
+> 
+> **คำอธิบาย (Explanation):** การตั้งค่าคุณสมบัติอุณหพลศาสตร์:
+> - **thermoType**: กำหนดรุ่นทางอุณหพลศาสตร์ที่จะใช้
+> - **equationOfState**: สมการที่เชื่อมโยง p, ρ, T (เช่น perfectGas)
+> - **transport**: รุ่นการคำนวณ viscosity และ conductivity
+> - **thermodynamics**: คุณสมบัติ Cp, H, etc.
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Model Compatibility**: รุ่นต่างๆ ต้องสอดคล้องกัน
+> - **Temperature Range**: ค่าสมบัติมักขึ้นกับอุณหภูมิ
+> - **Compressibility**: จำเป็นสำหรับ flow ที่ความดันเปลี่ยนมาก
+> - **Chemical Reactions**: หากมีปฏิกิริยา ต้องใช้รุ่นที่ซับซ้อนกว่า
+
+---
+
+## 4. การปรับเปลี่ยน Numerical Schemes และ Solver Settings
+
+### 4.1 การแก้ไข Discretization Schemes
+
+```cpp
+// Source: OpenFOAM Discretization Schemes
+// ไฟล์: system/fvSchemes
+// การตั้งค่ารูปแบบการเปลี่ยนค่าเชิงปริมาณ
+// ส่งผลต่อความแม่นยำและความเสถียรของการคำนวณ
+
+// 1. Time discretization schemes
+ddtSchemes
+{
+    // Euler implicit: first-order, stable
+    default         Euler;
+    
+    // หรือใช้ backward: second-order, more accurate
+    // default         backward;
+}
+
+// 2. Gradient discretization schemes
+gradSchemes
+{
+    // Gauss linear: second-order central differencing
+    default         Gauss linear;
+    
+    // สำหรับ gradient ที่ผนัง:
+    // wallGrad       uncorrected;  // ไม่มีการแก้ไข non-orthogonality
+}
+
+// 3. Divergence discretization schemes
+divSchemes
+{
+    // การเปลี่ยนค่าพิเศษใช้ stabilized schemes
+    div(phi,U)      Gauss upwind;  // First-order, stable
+    
+    // สำหรับความแม่นยำสูง:
+    // div(phi,U)      Gauss linearUpwindV grad(U);  // Second-order
+    
+    div(phi,k)      Gauss upwind;
+    div(phi,epsilon) Gauss upwind;
+}
+
+// 4. Laplacian discretization schemes
+laplacianSchemes
+{
+    // Gauss linear corrected: พิจารณา non-orthogonality
+    default         Gauss linear corrected;
+}
+
+// 5. Interpolation schemes
+interpolationSchemes
+{
+    // Linear interpolation ระหว่าง cell centers
+    default         linear;
+}
+
+// 6. SnGrad schemes (surface normal gradient)
+snGradSchemes
+{
+    // พิจารณา non-orthogonality
+    default         corrected;
+}
+```
+
+**คำอธิบายภาษาไทย:**
+> **แหล่งที่มา (Source):** OpenFOAM Finite Volume Discretization
+> 
+> **คำอธิบาย (Explanation):** รูปแบบการเปลี่ยนค่าที่สำคัญ:
+> - **ddtSchemes**: การเปลี่ยนค่าเชิงเวลา (Euler, backward, CrankNicolson)
+> - **gradSchemes**: การคำนวณ gradient (Gauss linear, leastSquares)
+> - **divSchemes**: การเปลี่ยนค่าเชิงอนุพันธ์ (upwind, central, linearUpwind)
+> - **laplacianSchemes**: การเปลี่ยนค่าเชิงลาปลาซ์
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Accuracy vs Stability**: รูปแบบที่แม่นยำมักไม่เสถียรเท่า
+> - **Peclet Number**: เลือกรูปแบบตามค่า Peclet number
+> - **Non-orthogonality**: ต้องใช้รูปแบบที่พิจารณา non-orthogonality
+> - **Convergence**: รูปแบบบางอย่างช่วยให้บรรจบเร็วขึ้น
+
+### 4.2 การแก้ไข Solver Settings
+
+```cpp
+// Source: OpenFOAM Solver Control Parameters
+// ไฟล์: system/fvSolution
+// การตั้งค่า algorithms และ tolerances สำหรับ linear solvers
+
+// 1. Pressure-velocity coupling algorithms
+solvers
+{
+    // ตัวแก้สมการพีชคณิตเชิงเส้นสำหรับ pressure
+    p
+    {
+        solver          GAMG;              // Geometric-Algebraic Multi-Grid
+        tolerance       1e-06;             // ความคลาดเคลื่อนที่ยอมรับ
+        relTol          0.01;              // ความคลาดเคลื่อนสัมพัทธ์
+        smoother        GaussSeidel;       // วิธีการ smooth
+        
+        // การตั้งค่าเฉพาะของ GAMG
+        nPreSweeps      0;
+        nPostSweeps     2;
+        cacheAgglomeration on;
+        agglomerator    faceAreaPair;      // วิธีรวม cells
+        mergeLevels     1;
+    }
+    
+    // ตัวแก้สำหรับ velocity และ scalar fields
+    "(U|k|epsilon|omega)"
+    {
+        solver          smoothSolver;      // ใช้สำหรับ ill-conditioned systems
+        smoother        symGaussSeidel;
+        tolerance       1e-05;
+        relTol          0.1;
+    }
+}
+
+// 2. Pressure-velocity coupling algorithm
+SIMPLE
+{
+    // จำนวนรอบ non-orthogonal correctors
+    nNonOrthogonalCorrectors 0;
+    
+    // จำนวนรอบ corrections
+    nCorrectors     2;                // ปกติ 2-4 รอบ
+    
+    // การผ่อนคลาย pressure (Pressure relaxation)
+    pRefCell        0;
+    pRefValue       0;
+}
+
+// หรือสำหรับ transient flow:
+PISO
+{
+    nCorrectors     2;                // จำนวน PISO loops
+    nNonOrthogonalCorrectors 0;
+    
+    // การผ่อนคลาย
+    pRefCell        0;
+    pRefValue       0;
+}
+
+// หรือสำหรับ transient ที่ต้องการความเสถียร:
+PIMPLE
+{
+    // ผสม PISO และ SIMPLE
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 0;
+    
+    // การควบคุม time step
+    nAlphaCorr      1;
+    nAlphaSubCycles 2;
+}
+```
+
+**คำอธิบายภาษาไทย:**
+> **แหล่งที่มา (Source):** OpenFOAM Linear Solvers and Algorithms
+> 
+> **คำอธิบาย (Explanation):** การตั้งค่า solver ที่สำคัญ:
+> - **Solver Type**: GAMG (ใหญ่/เร็ว), smoothSolver (เล็ก/เสถียร)
+> - **Tolerance**: ความแม่นยำของการแก้สมการ
+> - **Algorithm**: SIMPLE (steady), PISO (transient), PIMPLE (hybrid)
+> - **Relaxation**: ช่วยให้บรรจบสำหรับกรณีที่ลำบาก
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Convergence Acceleration**: เลือก solver ที่เหมาะสมกับปัญหา
+> - **Memory vs Speed**: GAMG ใช้ memory มากแต่เร็ว
+> - **Stability**: การผ่อนคลายช่วยเพิ่มความเสถียร
+> - **Adaptive Control**: สามารถปรับ tolerances ระหว่างการจำลอง
+
+---
+
+## 5. การเปลี่ยน Solver หรือ Physical Model
+
+### 5.1 การเปลี่ยนจาก Laminar เป็น Turbulent Flow
+
+```cpp
+// Source: OpenFOAM Turbulence Models
+// ไฟล์: constant/turbulenceProperties
+// การเปลี่ยนจาก laminar เป็น turbulent model
+
+// 1. เลือก turbulence model
+simulationType  RAS;     // หรือ LES, DES, etc.
+
+// 2. สำหรับ RAS modeling
+RAS
+{
+    // เลือก model: kEpsilon, kOmegaSST, SpalartAllmaras, etc.
+    RASModel        kEpsilon;
+    
+    // ตัวเลือกเพิ่มเติม
+    turbulence      on;
+    printCoeffs     on;      // แสดงค่าสัมประสิทธิ์
+    
+    // ค่าสัมประสิทธิ์ (สำหรับ k-epsilon)
+    kEpsilonCoeffs
+    {
+        Cmu             0.09;
+        C1              1.44;
+        C2              1.92;
+        sigmaEps        1.11;
+        // ค่าอื่นๆ...
+    }
+}
+
+// 3. สำหรับ LES modeling
+LES
+{
+    LESModel        Smagorinsky;     // หรือ dynamicKEqn, WALE, etc.
+    
+    turbulence      on;
+    printCoeffs     on;
+    
+    SmagorinskyCoeffs
+    {
+        Ck              0.094;       // Smagorinsky constant
+        Ce              1.048;       // Kolmogorov constant
+    }
+}
+```
+
+**คำอธิบายภาษาไทย:**
+> **แหล่งที่มา (Source):** OpenFOAM Turbulence Modeling
+> 
+> **คำอธิบาย (Explanation):** การเลือก turbulence model:
+> - **RAS**: Reynolds-Averaged Simulation (เฉลี่ยเชิงเวลา)
+> - **LES**: Large Eddy Simulation (กรอง large eddies)
+> - **DES**: Detached Eddy Simulation (ผสม RAS/LES)
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Model Selection**: ขึ้นกับ flow regime และ computational resources
+> - **Near-Wall Treatment**: ต้องมี mesh ที่เหมาะสม
+> - **Initialization**: ต้องมีค่าเริ่มต้นที่เหมาะสมสำหรับ k, epsilon, omega
+> - **Validation**: ควรตรวจสอบกับ experimental data
+
+### 5.2 การเพิ่ม Heat Transfer
+
+```cpp
+// Source: OpenFOAM Heat Transfer Models
+// ไฟล์: 0/T (temperature field)
+// การเพิ่ม energy equation ในการจำลอง
+
+dimensions      [0 0 0 1 0 0 0];    // หน่วยของอุณหภูมิ (K)
+
+internalField   uniform 300;       // อุณหภูมิเริ่มต้น 300 K
+
+boundaryField
+{
+    // 1. Inlet: fixed temperature
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 300;
+    }
+    
+    // 2. Wall: fixed heat flux
+    hotWall
+    {
+        type            fixedGradient;      // กำหนด gradient
+        gradient        uniform -1000;      // [K/m] ความร้อนไหลออก
+    }
+    
+    // 3. Wall: fixed temperature
+    coldWall
+    {
+        type            fixedValue;
+        value           uniform 350;
+    }
+    
+    // 4. Wall: convective heat transfer
+    externalWall
+    {
+        type            externalWallHeatFlux;
+        mode            coefficient;        // ใช้ heat transfer coefficient
+        h               uniform 10;         // [W/(m²·K)]
+        Ta              uniform 300;        // [K] อุณหภูมิแวดล้อม
+    }
+    
+    // 5. Adiabatic wall (ไม่มีการถ่ายเทความร้อน)
+    adiabaticWall
+    {
+        type            zeroGradient;       // ไม่มี gradient
+    }
+}
+```
+
+**คำอธิบายภาษาไทย:**
+> **แหล่งที่มา (Source):** OpenFOAM Thermal Boundary Conditions
+> 
+> **คำอธิบาย (Explanation):** Boundary conditions สำหรับ heat transfer:
+> - **fixedValue**: กำหนดอุณหภูมิคงที่ (Dirichlet)
+> - **fixedGradient**: กำหนด heat flux คงที่ (Neumann)
+> - **externalWallHeatFlux**: การถ่ายเทความร้อนแบบพา (Robin)
+> - **zeroGradient**: ผนังแยกตัว (adiabatic)
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Fourier's Law**: q" = -k∇T
+> - **Convection Coefficient**: q" = h(T_wall - T_ambient)
+> - **Conjugate Heat Transfer**: การถ่ายเทความร้อนระหว่าง solid-fluid
+> - **Radiation**: สำหรับอุณหภูมิสูง (ต้องเพิ่ม radiation model)
+
+---
+
+## 6. การเพิ่ม Function Objects สำหรับ Monitoring และ Post-processing
+
+### 6.1 การเพิ่ม Monitoring ระหว่างการจำลอง
+
+```cpp
+// Source: OpenFOAM Function Objects
+// ไฟล์: system/controlDict
+// การเพิ่ม function objects สำหรับ monitoring ค่าสำคัญ
+
 functions
 {
-    // การคำนวณอัตราการไหลของมวลที่ทางเข้าและทางออก
-    flowRates
+    // 1. ตรวจสอบสมดุลมวล
+    massFlowRates
     {
         type            surfaceFieldValue;
         libs            (fieldFunctionObjects);
         
-        operation       sum;          // รวมค่าฟลักซ์ทั้งหมด
-        regionType      patch;        // ระบุประเภทพื้นที่เป็น patch
-        name            inlet_outlet_flow;
+        // การคำนวณ
+        operation       sum;             // รวมค่า flux
+        regionType      patch;           // บน patches
+        name            massFlow;
         
-        fields          (phi);        // ฟิลด์ที่จะอินทิเกรต (Mass/Volume Flux)
+        // ฟิลด์ที่ใช้
+        fields          (phi);           // Mass/volume flux
         patches         (inlet outlet);
         
+        // การบันทึก
         writeControl    timeStep;
         writeInterval   10;
-        log             true;         // แสดงผลในหน้าจอ Terminal
+        log             true;            // แสดงใน terminal
     }
-}
-```
-
----
-
-## 2. การวิเคราะห์การถ่ายเทความร้อนขั้นสูง (Advanced Heat Transfer)
-
-### 2.1 การถ่ายเทความร้อนแบบคอนจูเกต (Conjugate Heat Transfer - CHT)
-
-CHT เป็นการจำลองที่มีการแลกเปลี่ยนความร้อนระหว่างโดเมนของไหล (Fluid) และของแข็ง (Solid) โดยมีเงื่อนไขความต่อเนื่องที่ส่วนต่อประสาน (Interface):
-
-![[conjugate_heat_transfer_interface.png]]
-> **รูปที่ 2.1:** ส่วนต่อประสานการถ่ายเทความร้อนแบบคอนจูเกต (CHT Interface): แสดงความต่อเนื่องของอุณหภูมิและฟลักซ์ความร้อน
-
-**เงื่อนไขที่ส่วนต่อประสาน (Interface Conditions):**
-1. **ความต่อเนื่องของอุณหภูมิ:** $T_f = T_s$
-2. **ความต่อเนื่องของฟลักซ์ความร้อน:** $-k_f \left(\frac{\partial T_f}{\partial n}\right) = -k_s \left(\frac{\partial T_s}{\partial n}\right)$
-
-### 2.2 หมายเลข Nusselt (Nusselt Number Analysis)
-
-Nusselt number ($Nu$) คืออัตราส่วนระหว่างการพาความร้อน (Convection) ต่อการนำความร้อน (Conduction) ซึ่งเป็นค่าไร้มิติที่สำคัญในการวิเคราะห์ประสิทธิภาพการระบายความร้อน
-
-**Local Nusselt Number ($\text{Nu}_x$):**
-$$\text{Nu}_x = \frac{h_x L}{k_f} = \frac{q''_w L}{k_f (T_w - T_{ref})}$$
-
-**Average Nusselt Number ($\overline{\text{Nu}}_L$):**
-$$\overline{\text{Nu}}_L = \frac{\overline{h} L}{k_f} = \frac{1}{L} \int_0^L \text{Nu}_x \, \mathrm{d}x$$
-
-โดยที่:
-- $h_x$ = สัมประสิทธิ์การถ่ายเทความร้อนแบบพากำลัง (Local Convective Heat Transfer Coefficient)
-- $q''_w$ = ความหนาแน่นของฟลักซ์ความร้อนที่ผนัง (Wall Heat Flux)
-- $T_w$ = อุณหภูมิที่ผนัง (Wall Temperature)
-- $T_{ref}$ = อุณหภูมิอ้างอิง (Reference Temperature, เช่น Bulk/Free Stream)
-- $L$ = ความยาวคุณลักษณะ (Characteristic Length)
-- $k_f$ = ความนำความร้อนของของไหล (Fluid Thermal Conductivity)
-
-### 2.3 การคำนวณ Heat Flux Coefficient ใน OpenFOAM
-
-ใน OpenFOAM ค่า Heat Transfer Coefficient ($h$) สามารถคำนวณได้จากความสัมพันธ์:
-
-$$h = \frac{q''_w}{T_w - T_{ref}} = \frac{-k_f \left.\frac{\partial T}{\partial n}\right|_w}{T_w - T_{ref}}$$
-
-**การตั้งค่า FunctionObject สำหรับ Heat Transfer Analysis:**
-
-```cpp
-functions
-{
-    // NOTE: Synthesized by AI - Verify parameters
-    heatTransferAnalysis
-    {
-        type            surfaceFieldValue;
-        libs            (fieldFunctionObjects);
-
-        // การคำนวณอัตราการถ่ายเทความร้อนผ่านผนัง
-        operation       sum;
-        regionType      patch;
-        name            wallHeatFlux;
-
-        fields          (phiK);  // Conductive Heat Flux (phiK = -k*grad(T))
-        patches         (hotWall coldWall);
-
-        writeControl    timeStep;
-        writeInterval   50;
-        log             true;
-
-        // การคำนวณค่าเฉลี่ย
-        writeFields     true;
-    }
-
-    // การคำนวณ Nusselt Number โดยตรง
-    nusseltNumber
-    {
-        type            surfaceFieldValue;
-        libs            (fieldFunctionObjects);
-
-        operation       weightedAverage;
-        regionType      patch;
-        name            nusseltCalc;
-
-        fields          (T);      // Temperature field
-        patches         (heatedSurface);
-
-        weightField     none;
-
-        // การคำนวณค่า h และ Nu
-        // NOTE: ต้องมีการ post-process เพิ่มเติมเพื่อคำนวณ h และ Nu
-        writeControl    timeStep;
-        writeInterval   50;
-    }
-}
-```
-
-**สูตรคำนวณค่า h และ Nu จากข้อมูล OpenFOAM:**
-
-```cpp
-// NOTE: Synthesized by AI - Verify formulation
-// ในไฟล์ custom function object หรือ post-processing script:
-
-// อ่านค่าจาก surfaceFieldValue
-scalar q_wall = sum(phiK) / patchArea;  // [W/m²]
-scalar T_wall = average(T) @ patch;     // [K]
-scalar T_ref = average(T) @ inlet;      // [K] (bulk temperature)
-
-// คำนวณ h
-scalar h = q_wall / (T_wall - T_ref);   // [W/(m²·K)]
-
-// คำนวณ Nu
-dimensionedScalar L("L", dimLength, 0.1);  // Characteristic length [m]
-dimensionedScalar k_f("k_f", dimThermalConductivity, 0.025);  // [W/(m·K)]
-
-scalar Nu = h * L.value() / k_f.value();
-```
-
-### 2.4 Reynolds Analogy สำหรับ Turbulent Flow
-
-สำหรับการไหลแบบ Turbulent สามารถประมาณค่า Heat Transfer จาก Skin Friction ได้โดยใช้ Reynolds Analogy:
-
-**Reynolds Analogy (Classic):**
-$$\text{St} = \frac{\text{Nu}}{\text{Re} \cdot \text{Pr}} = \frac{C_f}{2}$$
-
-**Modified Reynolds Analogy (Chilton-Colburn):**
-$$j_H = \text{St} \cdot \text{Pr}^{2/3} = \frac{C_f}{2}$$
-
-โดยที่:
-- $\text{St} = \frac{\text{Nu}}{\text{Re} \cdot \text{Pr}}$ = Stanton Number
-- $C_f = \frac{\tau_w}{0.5 \rho U^2}$ = Skin Friction Coefficient
-- $\text{Pr} = \frac{\mu c_p}{k}$ = Prandtl Number
-
----
-
-## 3. Surface Forces Integration (การอินทิเกรตแรงบนพื้นผิว)
-
-### 3.1 รากฐานทางคณิตศาสตร์ของ Surface Forces
-
-แรงที่กระทำต่อพื้นผิวในการไหลของไหล (Fluid Forces) ประกอบด้วยสองส่วนหลัก:
-
-**แรงทั้งหมดบนพื้นผิว (Total Surface Force):**
-$$\mathbf{F} = \int_S \boldsymbol{\sigma} \cdot \mathbf{n} \, \mathrm{d}S = \int_S \left(-p\mathbf{I} + \boldsymbol{\tau}\right) \cdot \mathbf{n} \, \mathrm{d}S$$
-
-โดยแยกเป็น:
-1. **แรงดัน (Pressure Force):**
-   $$\mathbf{F}_p = -\int_S p \mathbf{n} \, \mathrm{d}S$$
-
-2. **แรงเฉือน (Viscous/Shear Force):**
-   $$\mathbf{F}_\tau = \int_S \boldsymbol{\tau} \cdot \mathbf{n} \, \mathrm{d}S$$
-
-โดยที่:
-- $\boldsymbol{\sigma} = -p\mathbf{I} + \boldsymbol{\tau}$ = Cauchy Stress Tensor
-- $p$ = ความดัน (Pressure)
-- $\mathbf{n}$ = เวกเตอร์หน่วยฉากตัดกับพื้นผิว (Unit Normal Vector)
-- $\boldsymbol{\tau} = \mu\left[\nabla\mathbf{u} + (\nabla\mathbf{u})^T\right]$ = Viscous Stress Tensor
-- $\mu$ = ความหนืดของไหล (Dynamic Viscosity)
-
-### 3.2 การคำนวณ Lift และ Drag Forces
-
-สำหรับการวิเคราะห์อากาศพลศาสตร์ (Aerodynamics) แรงที่ได้มักถูกฉายลงบนทิศทางสำคัญ:
-
-**Drag Force ($F_D$):**
-$$F_D = \int_S \left(-p \mathbf{n} + \boldsymbol{\tau} \cdot \mathbf{n}\right) \cdot \mathbf{e}_D \, \mathrm{d}S = F_{D,p} + F_{D,\tau}$$
-
-**Lift Force ($F_L$):**
-$$F_L = \int_S \left(-p \mathbf{n} + \boldsymbol{\tau} \cdot \mathbf{n}\right) \cdot \mathbf{e}_L \, \mathrm{d}S = F_{L,p} + F_{L,\tau}$$
-
-**Coefficients (สัมประสิทธิ์):**
-$$C_D = \frac{F_D}{0.5 \rho U_\infty^2 A_{ref}}, \quad C_L = \frac{F_L}{0.5 \rho U_\infty^2 A_{ref}}$$
-
-### 3.3 การตั้งค่า FunctionObject สำหรับ Surface Forces
-
-```cpp
-functions
-{
-    // NOTE: Synthesized by AI - Verify parameters
-    surfaceForces
-    {
-        type            forces;
-        libs            (forces);
-
-        // การเลือก patch ที่จะคำนวณแรง
-        patches         (airfoilSurface wingBody);
-
-        // ทิศทางของ Lift และ Drag
-        // Drag: ทิศทางการไหล (Flow Direction)
-        dragDirection   (1 0 0);
-
-        // Lift: ทิศทางตั้งฉากกับการไหล
-        liftDirection   (0 1 0);
-
-        // ค่าอ้างอิงสำหรับการคำนวณ Coefficients
-        rho             rhoInf;        // ความหนาแน่นอ้างอิง
-        pRef            0;             // ความดันอ้างอิง [Pa]
-        CofR            (0 0 0);       // Center of Rotation
-        magUInf         10.0;          // ความเร็วอ้างอิง [m/s]
-        lRef            0.1;           // ความยาวอ้างอิง [m]
-        Aref            0.01;          // พื้นที่อ้างอิง [m²]
-
-        // การบันทึกข้อมูล
-        writeControl    timeStep;
-        writeInterval   10;
-        log             true;
-
-        // การเขียนฟิลด์กำลัง (Force Field) เพื่อ Visualization
-        writeFields     true;
-    }
-
-    // การคำนวณ Force Coefficients โดยตรง
+    
+    // 2. ตรวจสอบ forces บน object
     forceCoeffs
     {
         type            forceCoeffs;
         libs            (forces);
-
-        patches         (airfoilSurface);
-
+        
+        patches         (airfoil);       // Patch ที่คำนวณ
+        
         // ทิศทาง
-        dragDir         (1 0 0);
-        liftDir         (0 1 0);
-        pitchAxis       (0 0 1);
-
+        dragDir         (1 0 0);         // ทิศทาง drag
+        liftDir         (0 1 0);         // ทิศทาง lift
+        pitchAxis       (0 0 1);         // แกน pitch
+        
         // ค่าอ้างอิง
-        rhoInf          1.225;        // [kg/m³] (Standard Air)
-        pRef            0;            // [Pa]
-        CofR            (0 0 0);
-        magUInf         10.0;         // [m/s]
-        lRef            0.1;          // [m]
-        Aref            0.01;         // [m²]
-
+        rhoInf          1.225;           // [kg/m³]
+        UInf            10.0;            // [m/s]
+        lRef            0.1;             // [m]
+        Aref            0.01;            // [m²]
+        
         writeControl    timeStep;
         writeInterval   10;
-        log             true;
+    }
+    
+    // 3. Probe ค่าที่จุดที่สนใจ
+    probeLocations
+    {
+        type            probes;
+        libs            (sampling);
+        
+        probeLocations
+        (
+            (0.1 0.0 0.0)               // จุดที่ 1
+            (0.2 0.0 0.0)               // จุดที่ 2
+        );
+        
+        fields          (p U T);         // ฟิลด์ที่บันทึก
+        
+        writeControl    timeStep;
+        writeInterval   1;
     }
 }
 ```
 
-### 3.4 การวิเคราะห์ Moment และ Center of Pressure
-
-**Moment รอบจุดอ้างอิง:**
-$$\mathbf{M}_{O} = \int_S \left(\mathbf{r} \times \boldsymbol{\sigma} \cdot \mathbf{n}\right) \, \mathrm{d}S$$
-
-**Center of Pressure ($x_{cp}$):**
-$$x_{cp} = \frac{\int_S x \left(-p \mathbf{n} + \boldsymbol{\tau} \cdot \mathbf{n}\right) \cdot \mathbf{e}_L \, \mathrm{d}S}{F_L}$$
+**คำอธิบายภาษาไทย:**
+> **แหล่งที่มา (Source):** OpenFOAM Function Objects Guide
+> 
+> **คำอธิบาย (Explanation):** Function objects สำหรับ monitoring:
+> - **surfaceFieldValue**: คำนวณค่ารวมบน patches (flow rate, forces)
+> - **forceCoeffs**: คำนวณ lift/drag coefficients
+> - **probes**: บันทึกค่าที่จุดเฉพาะ
+> - **sets**: บันทึกค่าตามเส้นทาง
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Real-time Monitoring**: ติดตามค่าระหว่างการจำลอง
+> - **Convergence Check**: ดูว่าบรรจบหรือยัง
+> - **Data Reduction**: ลดปริมาณข้อมูลที่ต้องเก็บ
+> - **Automated Analysis**: คำนวณค่าสำคัญอัตโนมัติ
 
 ---
 
-## 4. ขั้นตอนการทำงาน (Workflow)
+## 7. ขั้นตอนการทำงานและ Best Practices
+
+### 7.1 แนวทางปฏิบัติที่ดีในการแก้ไข Case
 
 ```mermaid
 flowchart TD
-    A[CFD Simulation] --> B{Surface Integration<br/>FunctionObjects}
-    B --> C[Mass Flow Balancing]
-    B --> D[Surface Force Integration]
-    B --> E[Heat Transfer Rate]
-    C --> F[Engineering Metrics]
-    D --> F
-    E --> F
-    F --> G[Comparison with<br/>Analytical Solutions]
-    G --> H[Verification & Validation]
-
+    A[Existing Case<br/>Case ที่มีอยู่] --> B{วิเคราะห์<br/>Analyze}
+    B --> C[Backup<br/>สำรองข้อมูล]
+    C --> D{เลือกแนวทาง<br/>Choose Strategy}
+    D --> E[Minor Changes<br/>ปรับค่าเล็กน้อย]
+    D --> F[Major Changes<br/>ปรับค่ามาก]
+    E --> G[แก้ไขทีละอย่าง<br/>Modify Incrementally]
+    F --> H[ทดสอบ Component<br/>Test Components]
+    G --> I[รันทดสอบ<br/>Test Run]
+    H --> I
+    I --> J{ตรวจสอบ<br/>Verify}
+    J -->|Pass| K[บันทึกและใช้<br/>Document & Deploy]
+    J -->|Fail| L[วิเคราะห์ปัญหา<br/>Debug]
+    L --> G
+    
     style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    style H fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-```
-> **Figure 1:** แผนภูมิแสดงกระบวนการทำงานสำหรับการอินทิเกรตบนพื้นผิว (Surface Integration) โดยใช้ FunctionObjects เพื่อคำนวณมาตรวัดทางวิศวกรรมที่สำคัญ เช่น สมดุลมวล แรงลัพธ์ และอัตราการถ่ายเทความร้อน เพื่อใช้ในการตรวจสอบความถูกต้องของผลการจำลอง
-
----
-
-## 5. การคำนวณอัตราการไหลขั้นสูง (Advanced Flow Rate Calculations)
-
-### 5.1 การวิเคราะห์ Mass Balance
-
-การตรวจสอบสมดุลมวล (Mass Balance Check) เป็นสิ่งสำคัญในการยืนยันความถูกต้องของการจำลอง:
-
-**Mass Balance Equation:**
-$$\sum_{\text{inlets}} \dot{m}_{\text{in}} - \sum_{\text{outlets}} \dot{m}_{\text{out}} - \frac{\mathrm{d}}{\mathrm{d}t}\int_V \rho \, \mathrm{d}V = 0$$
-
-สำหรับ Steady-state:
-$$\sum \dot{m}_{\text{in}} = \sum \dot{m}_{\text{out}}$$
-
-### 5.2 การตั้งค่า FunctionObject สำหรับ Flow Analysis
-
-```cpp
-functions
-{
-    // NOTE: Synthesized by AI - Verify parameters
-    massBalanceCheck
-    {
-        type            surfaceFieldValue;
-        libs            (fieldFunctionObjects);
-
-        // คำนวณ Mass Flow Rate: โดยตรงจาก phi
-        operation       sum;
-        regionType      patch;
-        name            massFlowRate;
-
-        fields          (phi);
-        patches         (inlet outlet1 outlet2);
-
-        writeControl    timeStep;
-        writeInterval   1;
-        log             true;
-    }
-
-    // การคำนวณ Average Velocity และ Flow Properties
-    velocityStats
-    {
-        type            surfaceFieldValue;
-        libs            (fieldFunctionObjects);
-
-        operation       weightedAverage;
-        regionType      patch;
-        name            avgVelocity;
-
-        fields          (U);
-        patches         (inlet);
-
-        weightField     phi;  // Weight by mass/volume flux
-
-        writeControl    timeStep;
-        writeInterval   10;
-        log             true;
-    }
-}
+    style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+    style I fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style K fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
 ```
 
----
+**คำอธิบาย:**
+> แผนภูมิแสดงขั้นตอนการแก้ไข case ที่มีอยู่:
+> 1. เริ่มจากการวิเคราะห์ case เดิม
+> 2. สำรองข้อมูลเสมอก่อนแก้ไข
+> 3. เลือกแนวทางการแก้ไข (minor vs major)
+> 4. แก้ไขทีละอย่างและทดสอบ
+> 5. ตรวจสอบผลลัพธ์
+> 6. บันทึกและใช้งานเมื่อถูกต้อง
 
-## 6. แนวทางปฏิบัติที่ดีที่สุด (Best Practices)
-
-> [!WARNING] ความละเอียดของ Mesh ที่ผนัง
-> การคำนวณ Heat Flux และ Surface Forces มีความอ่อนไหวสูงมากต่อเกรเดียนต์ใกล้ผนัง ควรตรวจสอบให้แน่ใจว่าค่า $y^+$ และความหนาของชั้น Mesh บริเวณผนังมีความละเอียดเพียงพอที่จะจับภาพ Physical Gradients ได้อย่างแม่นยำ
-
-> [!TIP] การสมดุลมวล (Mass Balance)
-> ควรใช้ `surfaceFieldValue` เพื่อตรวจสอบผลรวมของ `phi` (Flux) ระหว่าง Inlet และ Outlet เสมอ หากค่าผลรวมไม่ใกล้เคียงศูนย์ แสดงว่าการจำลองยังไม่บรรจบทางตัวเลข (Numerical Convergence Issues) หรือมีปัญหาที่ Mesh
-
-> [!INFO] การเลือก Operation ที่เหมาะสม
-> OpenFOAM มีหลาย operations สำหรับ surface integration:
-> - `sum`: ผลรวมของค่าทั้งหมด (เหมาะสำหรับ Mass Flow, Heat Transfer Rate)
-> - `weightedAverage`: ค่าเฉลี่ยถ่วงน้ำหนัก (เหมาะสำหรับ Average Velocity)
-> - `areaAverage`: ค่าเฉลี่ยบนพื้นที่ (เหมาะสำหรับ Average Pressure)
-> - `min`/`max`: ค่าต่ำสุด/สูงสุด (เหมาะสำหรับ Extreme Values)
-> - `magnitude`: ขนาดของเวกเตอร์ (เหมาะสำหรับ Force Magnitude)
-
-> [!WARNING] การตีความผลลัพธ์ของ Forces
-> ค่า Forces ที่คำนวณได้จาก `forces` functionObject เป็นค่า **Instantaneous** สำหรับการไหลแบบ Turbulent ควรใช้ **Time-Averaging** เพื่อให้ได้ค่าที่มีความหมายทางสถิติ สามารถทำได้โดย:
-> 1. รันการจำลองจนถึง Steady-state ในเชิงสถิติ (Statistical Steady-State)
-> 2. ใช้ `probeLocation` หรือ `sampledSurface` เพื่อบันทึกข้อมูล Time History
-> 3. คำนวณค่าเฉลี่ยเชิงเวลา (Time Average) จากข้อมูลที่บันทึก
-
-### 6.1 การตรวจสอบความถูกต้อง (Verification Checklist)
+### 7.2 รายการตรวจสอบ (Verification Checklist)
 
 | ขั้นตอน | รายการตรวจสอบ | วิธีการ |
 |---------|-----------------|---------|
-| 1 | Mass Balance | ตรวจสอบ $\sum \dot{m}_{in} \approx \sum \dot{m}_{out}$ |
-| 2 | Mesh Independence | ทดสอบ sensitivity ของค่า Nu และ Forces ต่อความละเอียด Mesh |
-| 3 | y+ Check | ตรวจสอบว่า $y^+$ อยู่ในช่วงที่เหมาะสมกับ Turbulence Model |
-| 4 | Time Convergence | ตรวจสอบว่าค่า Forces/Heat Flux บรรจบแล้ว |
-| 5 | Validation | เปรียบเทียบกับ Experimental Data หรือ Empirical Correlations |
+| 1 | Backup case ที่มีอยู่ | `cp -r myCase myCase_backup` |
+| 2 | ตรวจสอบ mesh | `checkMesh` |
+| 3 | ตรวจสอบ boundary conditions | อ่านไฟล์ใน 0/ |
+| 4 | ตรวจสอบ solver settings | อ่าน system/controlDict, fvSolution |
+| 5 | ทดสอบรันสั้นๆ | รัน 10-20 time steps หรือ iterations |
+| 6 | ตรวจสอบความถูกต้อง | เปรียบเทียบกับ case เดิม หรือ theory |
+| 7 | บันทึกการเปลี่ยนแปลง | เขียนใน CHANGELOG หรือ notes |
+| 8 | ทดสอบความไวของผล | รันจนบรรจบ เปรียบเทียบเวลา |
 
-### 6.2 ตัวอย่างการใช้งานร่วมกับ Solver ที่แตกต่างกัน
+### 7.3 เทคนิคการ Debug
 
-**สำหรับ Incompressible Flow (simpleFoam, pimpleFoam):**
 ```cpp
-// NOTE: Synthesized by AI - Verify solver compatibility
-functions
-{
-    incompressibleForces
-    {
-        type            forces;
-        libs            (forces);
+// Source: OpenFOAM Debugging Techniques
+// เทคนิคการติดตามและแก้ไขปัญหาใน OpenFOAM
 
-        patches         (obstacle);
-        rho             rhoInf;      // ใช้ค่าคงที่
-        rhoInf          1000;        // [kg/m³] สำหรับ water
-        // ... การตั้งค่าอื่นๆ
-    }
+// 1. การเพิ่มระดับการแสดงผล (Debug Output)
+// ใน system/controlDict:
+DebugSwitches
+{
+    // เพิ่มการแสดงผลสำหรับ solver เฉพาะ
+    simpleFoam       1;    // 0=off, 1=on, 2=verbose
+    GAMG             1;
 }
-```
 
-**สำหรับ Compressible Flow (rhoSimpleFoam, rhoPimpleFoam):**
-```cpp
-// NOTE: Synthesized by AI - Verify solver compatibility
+// 2. การเขียนฟิลด์ทุกรอบ
+// ใน system/controlDict:
+application     simpleFoam;
+startFrom       latestTime;
+
 functions
 {
-    compressibleForces
+    // เขียฟิลด์ทุกรอบเพื่อดู evolution
+    writeFields
     {
-        type            forces;
-        libs            (forces);
-
-        patches         (airfoil);
-        rho             rho;         // ใช้ฟิลด์ความหนาแน่น
-        // ... การตั้งค่าอื่นๆ
-    }
-}
-```
-
-**สำหรับ Heat Transfer (buoyantSimpleFoam, buoyantPimpleFoam):**
-```cpp
-// NOTE: Synthesized by AI - Verify solver compatibility
-functions
-{
-    heatFluxCalc
-    {
-        type            surfaceFieldValue;
-        libs            (fieldFunctionObjects);
-
-        operation       sum;
-        regionType      patch;
-        name            wallHeatTransfer;
-
-        fields          (phiK);       // Conductive heat flux
-        patches         (heatedWall);
-
+        type            writeObjects;
+        objects         (p U);
         writeControl    timeStep;
-        writeInterval   50;
+        writeInterval   1;
     }
+}
 
-    temperatureGradient
+// 3. การใช้ runTimePost-processing
+// สร้างกราฟิกและ plots โดยอัตโนมัติ
+functions
+{
+    // Plot pressure drop
+    pressureDrop
     {
-        type            surfaceFieldValue;
-        libs            (fieldFunctionObjects);
-
-        operation       weightedAverage;
-        regionType      patch;
-        name            wallGradT;
-
-        fields          (wallHeatFlux);  // ต้องถูกคำนวณก่อนหน้านี้
-        patches         (heatedWall);
-
+        type            sets;
+        libs            (sampling);
+        
+        // กำหนดเส้นที่จะ plot
+        sets
+        (
+            line
+            {
+                type            uniform;
+                axis            distance;
+                start           (0 0 0);
+                end             (1 0 0);
+                nPoints         100;
+            }
+        );
+        
+        fields          (p);
         writeControl    timeStep;
-        writeInterval   50;
+        writeInterval   10;
     }
 }
 ```
 
-### 6.3 การสร้าง Custom FunctionObject สำหรับ Nusselt Number
-
-หากต้องการคำนวณ Nusselt Number โดยตรง สามารถสร้าง Custom FunctionObject ได้:
-
-```cpp
-// NOTE: Synthesized by AI - Requires compilation
-// ไฟล์: customNuFunctionObject.C
-
-class customNuFunctionObject
-:
-    public fv::functionObject
-{
-    // รายละเอียดการ implement...
-    // การคำนวณ:
-    // 1. อ่านค่า T จาก patch
-    // 2. คำนวณ grad(T) ที่ผนัง
-    // 3. คำนวณ q" = -k * grad(T)
-    // 4. คำนวณ h = q" / (T_wall - T_ref)
-    // 5. คำนวณ Nu = h * L / k
-    // 6. เขียนผลลัพธ์ลงไฟล์
-};
-```
+**คำอธิบายภาษาไทย:**
+> **แหล่งที่มา (Source):** OpenFOAM Debugging and Monitoring
+> 
+> **คำอธิบาย (Explanation):** เทคนิคการ debug:
+> - **Debug Switches**: แสดงข้อมูลภายในของ solver
+> - **Frequent Output**: เขียนฟิลด์บ่อยๆ เพื่อดู evolution
+> - **RunTime Post-processing**: สร้างกราฟิกโดยอัตโนมัติ
+> - **Log Files**: ตรวจสอบ log.* ไฟล์อย่างละเอียด
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Incremental Testing**: ทดสอบทีละส่วน
+> - **Baseline Comparison**: เปรียบเทียบกับ case ที่รู้ผล
+> - **Visual Inspection**: ใช้ paraView ดูผลลัพธ์
+> - **Convergence Monitoring**: ติดตาม residuals และ forces
 
 ---
 
-## 7. สรุป (Summary)
+## 8. ตัวอย่างการปรับปรุง Case: จาก Laminar เป็น Turbulent
 
-การอินทิเกรตพื้นผิว (Surface Integration) เป็นเครื่องมือสำคัญในการแปลงผลลัพธ์ CFD ที่เป็นฟิลด์ให้กลายเป็นตัวเลขเชิงปริมาณที่ใช้ในการออกแบบทางวิศวกรรม โดยครอบคลุม:
+### 8.1 สถานการณ์ตั้งต้น
 
-### หัวข้อสำคัญที่ครอบคลุมในโมดูลนี้:
+มี CFD case สำหรับ flow ในท่อ (pipe flow) ที่ถูกตั้งค่าสำหรับ laminar flow แต่เมื่อคำนวณ Reynolds number พบว่า flow จริงเป็น turbulent
 
-1. **พื้นฐานการอินทิเกรตฟิลด์บนพื้นผิว**
-   - Mass Flow Rate: $\dot{m} = \int_S \rho \mathbf{u} \cdot \mathbf{n} \, \mathrm{d}S$
-   - Heat Transfer Rate: $\dot{Q} = \int_S -k \frac{\partial T}{\partial n} \, \mathrm{d}S$
+### 8.2 ขั้นตอนการปรับปรุง
 
-2. **การวิเคราะห์การถ่ายเทความร้อน**
-   - Conjugate Heat Transfer (CHT)
-   - Nusselt Number: $\text{Nu} = \frac{h L}{k_f}$
-   - Reynolds Analogy สำหรับ Turbulent Flow
+1. **ตรวจสอบ Reynolds Number:**
+   ```bash
+   # คำนวณ Re = ρUD/μ
+   # ถ้า Re > 4000 (pipe flow) → turbulent
+   ```
 
-3. **Surface Forces Integration**
-   - Pressure Force และ Viscous Force
-   - Lift และ Drag Coefficients
-   - Moment และ Center of Pressure
+2. **Backup Case:**
+   ```bash
+   cp -r pipeFlow_laminar pipeFlow_turbulent
+   ```
 
-4. **การคำนวณอัตราการไหลขั้นสูง**
-   - Mass Balance Check
-   - Average Velocity และ Flow Properties
+3. **แก้ไข Transport Properties:**
+   ```cpp
+   // constant/transportProperties
+   // เพิ่มความหนืดเพื่อให้เหมาะสมกับ flow
+   nu              [0 2 -1 0 0 0 0] 1e-06;
+   ```
+
+4. **เพิ่ม Turbulence Model:**
+   ```cpp
+   // constant/turbulenceProperties
+   simulationType  RAS;
+   RAS
+   {
+       RASModel        kEpsilon;
+       turbulence      on;
+       printCoeffs     on;
+   }
+   ```
+
+5. **แก้ไข Initial Conditions:**
+   ```cpp
+   // 0/k: Turbulent kinetic energy
+   // 0/epsilon: Dissipation rate
+   // ตั้งค่าเริ่มต้นจาก empirical correlations
+   ```
+
+6. **ตรวจสอบ Mesh (ถ้าจำเป็น):**
+   ```bash
+   checkMesh
+   # ตรวจสอบค่า y+:
+   # ถ้าใช้ wall functions: 30 < y+ < 300
+   # ถ้า resolve viscous sublayer: y+ < 1
+   ```
+
+7. **ทดสอบรัน:**
+   ```bash
+   simpleFoam > log &  # สำหรับ steady-state
+   # หรือ
+   pimpleFoam > log &  # สำหรับ transient
+   ```
+
+8. **ตรวจสอบผลลัพธ์:**
+   ```bash
+   # Monitor convergence
+   tail -f log | grep "Solving for"
+   
+   # เปรียบเทียบกับ laminar solution
+   # หรือ experimental data
+   ```
+
+---
+
+## 9. สรุป
+
+การแก้ไข CFD case ที่มีอยู่เป็นทักษะสำคัญในการทำงานกับ OpenFOAM โดยมีหลักการสำคัญ:
+
+### หัวข้อสำคัญที่ครอบคลุม:
+
+1. **การทำความเข้าใจ Case ที่มีอยู่**
+   - โครงสร้างไดเรกทอรี
+   - ประเภท solver และ physical models
+   - Mesh และ boundary conditions
+
+2. **การแก้ไข Mesh และ Boundaries**
+   - Mesh refinement และ manipulation
+   - การเปลี่ยน boundary conditions
+   - การสร้าง patches ใหม่
+
+3. **การปรับปรุง Physical Properties**
+   - Transport properties (viscosity, etc.)
+   - Thermophysical properties (compressible flow)
+   - Turbulence models
+
+4. **การปรับเปลี่ยน Numerical Settings**
+   - Discretization schemes
+   - Solver tolerances และ algorithms
+   - Pressure-velocity coupling
+
+5. **การเพิ่ม Physical Models**
+   - การเพิ่ม heat transfer
+   - การเปลี่ยนจาก laminar → turbulent
+   - Multiphase flow
+
+6. **Monitoring และ Debugging**
+   - Function objects
+   - Convergence monitoring
+   - Debugging techniques
+
+### แนวทางปฏิบัติที่ดี:
+
+> [!TIP] Incremental Changes
+> แก้ไขทีละอย่างและทดสอบทุกครั้ง การเปลี่ยนแปลงหลายอย่างพร้อมกันทำให้ยากต่อการระบุปัญหา
+
+> [!WARNING] Backup Always
+> สำรอง case เสมอก่อนการแก้ไข โดยเฉพาะการแก้ไข mesh
+
+> [!INFO] Documentation
+> บันทึกการเปลี่ยนแปลงทั้งหมดในไฟล์ CHANGELOG หรือ notes
+
+> [!TIP] Verification
+> ตรวจสอบผลลัพธ์กับ case เดิม หรือ experimental/theoretical data
 
 ### การนำไปใช้ในงานวิศวกรรม:
 
-> [!TIP] การประยุกต์ใช้ใน Industry
-> - **Aerospace**: วิเคราะห์ Lift/Drag ของ Airfoil, ประสิทธิภาพของ Turbine
-> - **Automotive**: วิเคราะห์ Drag Coefficient, ระบบระบายความร้อนของ Engine
-> - **HVAC**: วิเคราะห์ Heat Transfer ใน Heat Exchangers, การไหลของ Air ใน Ducts
-> - **Chemical Process**: วิเคราะห์ Mass Balance, Flow Distribution ใน Reactors
-> - **Energy**: วิเคราะห์ Efficiency ของ Wind Turbines, Solar Thermal Systems
+- **R&D**: ปรับปรุง case ที่มีอยู่สำหรับปัญหาใหม่
+- **Industry**: ปรับปรุง process และ optimize design
+- **Validation**: ใช้ case ที่ผ่านการ validate เป็นพื้นฐาน
+- **Education**: เรียนรู้จาก case ที่มีอยู่และปรับปรุง
 
 ---
 
-**โมดูลนี้เน้นการเปลี่ยนผลลัพธ์ที่เป็นฟิลด์ให้กลายเป็นตัวเลขเชิงปริมาณที่ใช้ในการออกแบบทางวิศวกรรม** โดยครอบคลุมทั้งเรื่องของพลศาสตร์ของไหลและความร้อน
+**โมดูลนี้เน้นการปรับปรุง CFD case ที่มีอยู่** โดยครอบคลุมทั้งแนวคิดพื้นฐานและเทคนิคขั้นสูง พร้อมตัวอย่างการประยุกต์ใช้ในงานวิศวกรรม
 
 ---
 
-## 8. แหล่งอ้างอิงเพิ่มเติม (Further References)
+## 10. แหล่งอ้างอิงเพิ่มเติม
 
 ### OpenFOAM Documentation:
-- [[OpenFOAM User Guide - Function Objects]]
-- [[OpenFOAM Programmer's Guide - Surface Integration]]
+- [[OpenFOAM User Guide]]
+- [[OpenFOAM Programmer's Guide]]
+- [[OpenFOAM Case Setup Documentation]]
 
 ### Standard Textbooks:
-1. **Fox, R.W., McDonald, A.T., Pritchard, P.J.** - *Introduction to Fluid Mechanics*
-2. **Incropera, F.P., DeWitt, D.P.** - *Fundamentals of Heat and Mass Transfer*
-3. **White, F.M.** - *Viscous Fluid Flow*
+1. **Moukalled, F., Mangani, L., Darwish, M.** - *The Finite Volume Method in Computational Fluid Dynamics*
+2. **Ferziger, J.H., Peric, M.** - *Computational Methods for Fluid Dynamics*
+3. **Tu, J., Yeoh, G.H., Liu, C.** - *Computational Fluid Dynamics: A Practical Approach*
 
-### Empirical Correlations for Nusselt Number:
-- **Dittus-Boelter Equation** (Turbulent Flow in Tubes):
-  $$\text{Nu} = 0.023 \text{Re}^{0.8} \text{Pr}^{n}$$
-  (n = 0.4 สำหรับ heating, n = 0.3 สำหรับ cooling)
-
-- **Sieder-Tate Equation** (Turbulent Flow with Large Property Variations):
-  $$\text{Nu} = 0.027 \text{Re}^{0.8} \text{Pr}^{1/3} \left(\frac{\mu}{\mu_w}\right)^{0.14}$$
+### Online Resources:
+- [OpenFOAM Wiki](https://openfoamwiki.net/)
+- [CFD Online](https://www.cfd-online.com/)
+- [OpenFOAM Foundation](https://openfoam.org/)

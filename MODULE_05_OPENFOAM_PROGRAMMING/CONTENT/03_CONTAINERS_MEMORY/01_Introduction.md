@@ -175,7 +175,7 @@ graph LR
 OpenFOAM ใช้ระบบการจัดการหน่วยความจำที่ซับซ้อน:
 
 ```cpp
-// 1. autoPtr: การถือครองเฉพาะ (Single Ownership)
+// 1. autoPtr: Single ownership smart pointer
 autoPtr<volScalarField> Tfield
 (
     new volScalarField
@@ -192,18 +192,19 @@ autoPtr<volScalarField> Tfield
     )
 );
 
-// 2. tmp: ฟิลด์ชั่วคราวที่มีการลบอัตโนมัติ
+// 2. tmp: Temporary field with automatic deletion
 tmp<volScalarField> sourceTerm = calculateSourceTerm();
 
-// 3. การนับการอ้างอิง (Reference Counting)
+// 3. Reference counting implementation
 template<class T>
 class tmp
 {
 private:
-    mutable T* ptr_;
-    mutable bool isTmp_;
+    mutable T* ptr_;           // Pointer to the managed object
+    mutable bool isTmp_;       // Flag indicating if this is a temporary object
 
 public:
+    // Destructor automatically deletes the object if it's a temporary
     ~tmp()
     {
         if (isTmp_ && ptr_)
@@ -214,48 +215,99 @@ public:
 };
 ```
 
+**📖 คำอธิบาย (Thai Explanation):**
+
+> **แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/BlendedInterfacialModel/BlendedInterfacialModel.C`
+
+> **คำอธิบาย:** 
+> โค้ดตัวอย่างนี้แสดงให้เห็นสามระบบหลักของการจัดการหน่วยความจำใน OpenFOAM:
+> 
+> 1. **autoPtr**: เป็น smart pointer ที่ถือครองความเป็นเจ้าของวัตถุแบบเฉพาะเจาะจง (exclusive ownership) ใช้สำหรับจัดการวัตถุที่มีเจ้าของคนเดียวชัดเจน
+> 
+> 2. **tmp**: เป็น smart pointer สำหรับวัตถุชั่วคราวที่มีการจัดการหน่วยความจำอัตโนมัติ มีประโยชน์อย่างมากในการคำนวณ CFD ที่ต้องสร้างวัตถุระหว่างการคำนวณและต้องการล้างข้อมูลโดยอัตโนมัติเมื่อไม่ใช้งาน
+> 
+> 3. **Reference Counting**: ระบบนับการอ้างอิงช่วยให้สามารถแชร์วัตถุระหว่างหลายส่วนของโปรแกรมได้อย่างปลอดภัย และทำลายวัตถุโดยอัตโนมัติเมื่อไม่มีการอ้างอิงเหลืออยู่
+> 
+> การออกแบบเหล่านี้ช่วยลดความซับซ้อนในการจัดการหน่วยความจำด้วยตนเองและป้องกัน memory leaks ที่อาจเกิดขึ้น
+
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **RAII (Resource Acquisition Is Initialization)**: การจัดการทรัพยากรผ่านวงจรชีวิตของวัตถุ
+> - **Smart Pointers**: ตัวชี้อัจฉริยะที่จัดการหน่วยความจำอัตโนมัติ
+> - **Automatic Memory Management**: การล้างข้อมูลอัตโนมัติเมื่อวัตถุไม่ถูกใช้งาน
+> - **Ownership Semantics**: ความชัดเจนในความเป็นเจ้าของวัตถุ
+
 ### ส่วนประกอบคอนเทนเนอร์
 
 คอนเทนเนอร์หลักของ OpenFOAM:
 
 ```cpp
-// 1. List<T>: อาร์เรย์ไดนามิกพื้นฐาน
+// 1. List<T>: Basic dynamic array
 template<class T>
 class List
 {
 private:
-    T* v_;
-    label size_;
+    T* v_;                     // Pointer to contiguous memory block
+    label size_;               // Number of elements in the list
 
 public:
+    // Constructor with specified size
     List(label size);
+    
+    // Element access operator
     T& operator[](label i);
+    
+    // Transfer ownership without copying
     void transfer(List<T>& list);
 };
 
-// 2. DynamicList<T>: อาร์เรย์ที่เติบโตได้
+// 2. DynamicList<T>: Growable array with efficient resizing
 template<class T, label SizeInc = 0, label SizeMult = 2, label SizeDiv = 1>
 class DynamicList : public List<T>
 {
 public:
+    // Append element to the end, automatically resizing if needed
     void append(const T& element);
+    
+    // Reserve capacity for future elements
     void reserve(label capacity);
+    
+    // Free unused memory
     void shrink();
 };
 
-// 3. GeometricField: คอนเทนเนอร์ฟิลด์ CFD
+// 3. GeometricField: CFD field container with boundary handling
 template<class Type, class PatchField, class GeoMesh>
 class GeometricField
 {
 private:
-    PtrList<PatchField<Type>> boundaryField_;
-    GeometricField<Type, PatchField, GeoMesh>* oldTime_;
+    PtrList<PatchField<Type>> boundaryField_;    // Boundary condition fields
+    GeometricField<Type, PatchField, GeoMesh>* oldTime_;  // Previous time step
 
 public:
+    // Field algebra operations returning temporary fields
     tmp<GeometricField<Type, PatchField, GeoMesh>>
     operator+(const GeometricField<Type, PatchField, GeoMesh>&) const;
 };
 ```
+
+**📖 คำอธิบาย (Thai Explanation):**
+
+> **แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/BlendedInterfacialModel/BlendedInterfacialModel.C`
+
+> **คำอธิบาย:**
+> โครงสร้างคอนเทนเนอร์ของ OpenFOAM ได้รับการออกแบบมาเพื่อให้มีประสิทธิภาพสูงสุดสำหรับงาน CFD:
+>
+> 1. **List\<T\>**: เป็นอาร์เรย์ไดนามิกพื้นฐานที่เก็บข้อมูลแบบต่อเนื่อง (contiguous memory) ซึ่งเหมาะสำหรับการเข้าถึงแบบสุ่มและการดำเนินการ SIMD
+>
+> 2. **DynamicList\<T\>**: เป็นอาร์เรย์ที่สามารถขยายขนาดได้ โดยมีกลยุทธ์ในการจัดสรรหน่วยความจำที่มีประสิทธิภาพ (เช่น การคูณขนาดเป็น 2 เท่า) เพื่อลดการจัดสรรซ้ำ
+>
+> 3. **GeometricField**: เป็นคอนเทนเนอร์พิเศษสำหรับฟิลด์ CFD ที่รวมเอาข้อมูลภายในเซลล์และเงื่อนไขขอบเขตไว้ด้วยกัน และรองรับการดำเนินการทางคณิตศาสตร์ที่ส่งคืนค่าชั่วคราวเพื่อประสิทธิภาพสูงสุด
+
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Contiguous Memory Layout**: เพื่อประสิทธิภาพในการเข้าถึงและการดำเนินการ SIMD
+> - **Automatic Resizing**: การจัดการขนาดอัตโนมัติที่มีประสิทธิภาพ
+> - **Field Algebra**: การดำเนินการคณิตศาสตร์บนฟิลด์ที่รวมเอาการจัดการหน่วยความจำชั่วคราวไว้ด้วยกัน
+> - **Boundary Condition Integration**: การจัดการเงื่อนไขขอบเขตที่เป็นส่วนหนึ่งของคอนเทนเนอร์
 
 ---
 
@@ -266,15 +318,36 @@ public:
 พิจารณาการเชื่อมโยงความดัน-ความเร็วในอัลกอริทึม SIMPLE:
 
 ```cpp
-// สร้างสนามความเร็วชั่วคราวสำหรับสมการโมเมนตัม
+// Create a temporary velocity field for momentum equation
 tmp<volVectorField> tU = new volVectorField(U);
 
-// แก้สมการโมเมนตัมโดยใช้สนามชั่วคราว
+// Solve momentum equation using temporary field
 solve(fvm::ddt(U) + fvm::div(phi, U) - fvm::laplacian(nu, U) == -fvc::grad(p));
 
-// สนามชั่วคราวจะถูกทำลายโดยอัตโนมัติเมื่อ tU ออกจากขอบเขต
-// ไม่ต้องการการจัดการหน่วยความจำด้วยตนเอง
+// The temporary field will be automatically destroyed when tU goes out of scope
+// No manual memory management required
 ```
+
+**📖 คำอธิบาย (Thai Explanation):**
+
+> **แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/BlendedInterfacialModel/BlendedInterfacialModel.C`
+
+> **คำอธิบาย:**
+> ตัวอย่างนี้แสดงให้เห็นว่าระบบการจัดการหน่วยความจำของ OpenFOAM ทำงานอย่างไรในอัลกอริทึม SIMPLE ซึ่งเป็นอัลกอริทึมที่ใช้กันทั่วไปในการแก้สมการ Navier-Stokes:
+>
+> 1. **การสร้างฟิลด์ชั่วคราว**: `tmp<volVectorField>` ถูกสร้างขึ้นเพื่อเก็บสำเนาของฟิลด์ความเร็วที่จะถูกใช้ในการแก้สมการโมเมนตัม
+>
+> 2. **การแก้สมการ**: ฟังก์ชัน `solve()` ใช้ฟิลด์ชั่วคราวนี้ในการคำนวณ โดยไม่ต้องกังวลเกี่ยวกับการจัดการหน่วยความจำ
+>
+> 3. **การทำลายอัตโนมัติ**: เมื่อ `tU` ออกจากขอบเขต (scope) หน่วยความจำจะถูกปล่อยโดยอัตโนมัติ เนื่องจากกลไก RAII ที่มีอยู่ในคลาส `tmp`
+>
+> วิธีนี้ช่วยให้โค้ดสะอาดและปลอดภัย โดยไม่ต้องมีการจัดการหน่วยความจำด้วยตนเองซึ่งอาจก่อให้เกิดข้อผิดพลาดได้
+
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Automatic Resource Management**: การจัดการทรัพยากรอัตโนมัติผ่านกลไก RAII
+> - **Temporary Field Optimization**: การเพิ่มประสิทธิภาพโดยใช้ฟิลด์ชั่วคราว
+> - **Exception Safety**: ความปลอดภัยจากข้อยกเว้นในการจัดการหน่วยความจำ
+> - **Clean Code**: โค้ดที่สะอาดและอ่านง่ายขึ้นเมื่อไม่ต้องจัดการหน่วยความจำด้วยตนเอง
 
 ### วิเคราะห์ตัวอย่าง
 

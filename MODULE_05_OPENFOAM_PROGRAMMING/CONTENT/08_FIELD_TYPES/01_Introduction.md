@@ -40,6 +40,20 @@ volScalarField p
 );
 ```
 
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:56`
+
+> 📖 **Explanation:** 
+> - `volScalarField`: ประเภทฟิลด์สเกลาร์ที่เก็บค่าที่จุดศูนย์กลางเซลล์ (volume field)
+> - `IOobject`: อ็อบเจ็กต์ที่กำหนดวิธีการจัดการไฟล์ I/O สำหรับฟิลด์
+> - `MUST_READ`: บังคับให้อ่านค่าจากไฟล์เริ่มต้น
+> - `AUTO_WRITE`: เขียนฟิลด์ลงไฟล์โดยอัตโนมัติเมื่อสิ้นสุดการคำนวณ
+> 
+> **Key Concepts:**
+> - **vol**: volume (at cell centers)
+> - **Scalar**: tensor rank 0 (magnitude only)
+> - **IOobject**: manages input/output operations
+> - **MUST_READ/AUTO_WRITE**: I/O control flags
+
 This single declaration creates:
 
 - **Internal field values**: Pressure at each cell center
@@ -65,7 +79,7 @@ graph TD
     style F fill:#fff9c4,stroke:#fbc02d
     style P fill:#e8f5e9,stroke:#2e7d32
 ```
-> **Figure 1:** ตำแหน่งหลักในการจัดเก็บข้อมูลภายในเมชคำนวณ ได้แก่ จุดศูนย์กลางเซลล์ (volField), จุดศูนย์กลางหน้า (surfaceField) และจุดยอด (pointField) ซึ่งแต่ละตำแหน่งทำหน้าที่ต่างกันในการจำลอง CFDความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** ตำแหน่งหลักในการจัดเก็บข้อมูลภายในเมชคำนวณ ได้แก่ จุดศูนย์กลางเซลล์ (volField), จุดศูนย์กลางหน้า (surfaceField) และจุดยอด (pointField) ซึ่งแต่ละตำแหน่งทำหน้าที่ต่างกันในการจำลอง CFD
 
 ### Field Type Naming Convention
 
@@ -207,6 +221,19 @@ dimensionedScalar rho("rho", dimDensity, 1.2);        // [kg/m³]
 volScalarField dynamicPressure = 0.5 * rho * magSqr(U);  // [Pa]
 ```
 
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:92`
+
+> 📖 **Explanation:**
+> - `dimensionedScalar`: สเกลาร์ที่มีหน่วยกำกับ (dimension-aware scalar)
+> - `dimDensity`: ชนิดมิติสำหรับความหนาแน่น [M][L]⁻³
+> - `magSqr(U)`: กำลังสองของขนาดเวกเตอร์ความเร็ว |U|²
+> 
+> **Key Concepts:**
+> - **dimensionedScalar**: scalar with attached dimensions
+> - **dimDensity**: dimension set for density [kg/m³]
+> - **magSqr()**: magnitude squared operation
+> - **Compile-time checking**: dimensions verified during compilation
+
 > [!WARNING] Dimensional Safety
 > Unlike Excel where you might add pressure to temperature without warning, OpenFOAM fields **enforce dimensional correctness**, preventing physically meaningless operations.
 
@@ -242,6 +269,19 @@ volVectorField gradT = fvc::grad(temperature);
 volScalarField divHeatFlux = fvc::div(-kappa * gradT);
 ```
 
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:145`
+
+> 📖 **Explanation:**
+> - `fvc::grad()`: คำนวณ gradient ของฟิลด์แบบ explicit (finite volume calculus)
+> - `fvc::div()`: คำนวณ divergence ของฟิลด์
+> - `runTime.timeOutputValue()`: ค่าเวลาปัจจุบันสำหรับ output
+> 
+> **Key Concepts:**
+> - **fvc**: finite volume calculus (explicit operations)
+> - **fvm**: finite volume method (implicit operations)
+> - **Vectorized**: parallel processing on multiple data elements
+> - **SIMD**: Single Instruction, Multiple Data
+
 **Performance Benefits:**
 
 - **SIMD Processing**: Single instruction, multiple data
@@ -261,6 +301,18 @@ forAll(T.internalField(), i)
     T_internal[i] += dt*source[i];
 }
 ```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H:78`
+
+> 📖 **Explanation:**
+> - `forAll()`: macro สำหรับวนลูปผ่านฟิลด์ทุก element
+> - `internalField()`: เข้าถึงค่าภายในเซลล์ (ไม่รวม boundary)
+> - `T_internal[i]`: การเข้าถึง memory แบบ sequential
+> 
+> **Key Concepts:**
+> - **Contiguous memory**: เก็บข้อมูลติดกันใน memory
+> - **Cache prefetching**: CPU ทำนายและดึงข้อมูลล่วงหน้า
+> - **Spatial locality**: การเข้าถึงข้อมูลใกล้เคียงกัน
 
 This layout provides:
 - **Prefetching benefits** from predictable access patterns
@@ -289,6 +341,20 @@ fvVectorMatrix UEqn
 );
 ```
 
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:168`
+
+> 📖 **Explanation:**
+> - `fvVectorMatrix`: เมทริกซ์สมการสำหรับฟิลด์เวกเตอร์ (finite volume matrix)
+> - `fvm::ddt()`: implicit time derivative (ใช้ในการแก้สมการ)
+> - `fvm::div()`: implicit divergence (ใช้ในเมทริกซ์)
+> - `fvc::grad()`: explicit gradient (คำนวณโดยตรง)
+> 
+> **Key Concepts:**
+> - **fvm**: implicit operators (contribute to matrix)
+> - **fvc**: explicit operators (evaluated directly)
+> - **fvVectorMatrix**: matrix equation for vector field
+> - **Natural notation**: code mirrors mathematical equations
+
 **Key Operators:**
 
 - `fvm::ddt`: Implicit time derivative
@@ -312,6 +378,19 @@ pointScalarField p_points = linearInterpolate(p);
 surfaceVectorField Uf = linearInterpolate(U);
 ```
 
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C:56`
+
+> 📖 **Explanation:**
+> - `linearInterpolate()`: การ interpolat แบบเชิงเส้นจาก cell centers ไป faces
+> - `mesh.Sf()`: face area vectors (เวกเตอร์พื้นที่หน้า)
+> - `&`: dot product operation ระหว่างเวกเตอร์
+> - `phi`: volume flux [m³/s]
+> 
+> **Key Concepts:**
+> - **Interpolation**: การประมาณค่าระหว่างตำแหน่งต่าง ๆ
+> - **Cell-to-face**: การแปลงค่าจาก cell center ไปยัง face center
+> - **Flux**: ปริมาณที่ไหลผ่านหน้าต่อหน่วยเวลา
+
 ### Interpolation Schemes
 
 | Method | Accuracy | Stability | Speed |
@@ -334,6 +413,19 @@ surfaceScalarField phiGamma = fvc::interpolate(U, "Gamma") & mesh.Sf();
 surfaceScalarField phiCentral = fvc::interpolate(U, "central") & mesh.Sf();
 ```
 
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseInterFoam/multiphaseMixture/multiphaseMixture.C:45`
+
+> 📖 **Explanation:**
+> - `"QUICK"`: Quadratic Upstream Interpolation for Convective Kinematics
+> - `"Gamma"`: สูตรผสมระหว่าง linear และ QUICK
+> - `"central"`: Central differencing scheme
+> 
+> **Key Concepts:**
+> - **QUICK**: 3rd order upwind scheme
+> - **Gamma**: blended scheme with controlled accuracy
+> - **Central**: 2nd order accurate but less stable
+> - **Numerical diffusion**: error introduced by first-order schemes
+
 ### TVD Limiters for Stability
 
 ```cpp
@@ -347,6 +439,20 @@ surfaceScalarField phiVanLeer = fvc::interpolate(U, "vanLeer") & mesh.Sf();
 surfaceScalarField phiSuperbee = fvc::interpolate(U, "Superbee") & mesh.Sf();
 ```
 
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C:67`
+
+> 📖 **Explanation:**
+> - TVD (Total Variation Diminishing): ลด oscillation ใกล้ shock/discontinuity
+> - `Minmod`: limiter ที่ diffusive ที่สุด (มั่นคงที่สุด)
+> - `vanLeer`: สมดุลระหว่างความแม่นยำและเสถียรภาพ
+> - `Superbee`: limiter ที่ compressive ที่สุด (คมชัดที่สุด)
+> 
+> **Key Concepts:**
+> - **TVD**: prevent non-physical oscillations
+> - **Flux limiter**: ฟังก์ชันที่จำกัดการเปลี่ยนแปลงของ gradient
+> - **Compressive**: รักษาความคมของ interface
+> - **Diffusive**: ทำให้ interface กระจาย (เพื่อเสถียรภาพ)
+
 ---
 
 ## ⏰ Time Evolution: Time-Aware Data Structures
@@ -359,6 +465,19 @@ volScalarField T_old = T;                           // Store previous time
 volScalarField dTdt = fvc::ddt(T);                  // Calculate time derivative
 volScalarField T_new = T_old + runTime.deltaT() * dTdt;  // Explicit Euler
 ```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:201`
+
+> 📖 **Explanation:**
+> - `runTime.deltaT()`: ขนาด time step ปัจจุบัน (Δt)
+> - `fvc::ddt(T)`: time derivative แบบ explicit ∂T/∂t
+> - `T_old`: เก็บค่าฟิลด์จาก time step ก่อนหน้า
+> 
+> **Key Concepts:**
+> - **Temporal discretization**: การแบ่งเวลาเป็น time steps
+> - **Explicit**: คำนวณค่าใหม่จากค่าเก่า (เร็ว แต่เสถียรภาพจำกัด)
+> - **Implicit**: คำนวณค่าใหม่จากค่าใหม่ (ช้า แต่เสถียรกว่า)
+> - **Time step**: ช่วงเวลา Δt ในการจำลอง
 
 ### Time Integration Schemes
 
@@ -383,6 +502,20 @@ fvScalarMatrix phiEqn = fvm::ddt(phi) == 0.5 * (source_old + source_new);
 fvScalarMatrix phiEqn = fvm::ddt(phi);
 ```
 
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:223`
+
+> 📖 **Explanation:**
+> - `fvc::ddt()`: explicit time derivative (คำนวณโดยตรง)
+> - `fvm::ddt()`: implicit time derivative (ใส่ในเมทริกซ์)
+> - `phiEqn`: สมการเชิงเส้นที่ต้องแก้
+> - `Crank-Nicolson`: สูตรผสมระหว่าง explicit และ implicit
+> 
+> **Key Concepts:**
+> - **1st/2nd order**: ความแม่นยำของสูตรเชิงตัวเลข
+> - **Unconditionally stable**: เสถียรไม่ว่า time step จะใหญ่แค่ไหน
+> - **Matrix equation**: ระบบสมการเชิงเส้นที่ต้องแก้
+> - **Time accuracy**: ความแม่นยำของการจำลองเชิงเวลา
+
 ### Time Step Control
 
 **Courant-Friedrichs-Lewy (CFL) Condition:**
@@ -400,6 +533,21 @@ scalar maxCo = max(Co).value();
 scalar targetCo = 0.5;
 scalar maxDeltaT = runTime.deltaTValue() * targetCo / maxCo;
 ```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:245`
+
+> 📖 **Explanation:**
+> - `Co`: Courant number (ตัวชี้วัดเสถียรภาพเชิงเวลา)
+> - `mag(U)`: ขนาดความเร็ว |U|
+> - `deltaCoeffs()`: สัมประสิทธิ์ 1/Δx (inverse cell spacing)
+> - `maxCo`: ค่า CFL สูงสุดในโดเมน
+> - `adaptive time stepping`: ปรับ Δt อัตโนมัติเพื่อรักษาเสถียรภาพ
+> 
+> **Key Concepts:**
+> - **CFL number**: ต้อง < 1 สำหรับ explicit schemes
+> - **Stability criterion**: เงื่อนไขความเสถียรของการคำนวณ
+> - **Adaptive time step**: ปรับขนาด time step อัตโนมัติ
+> - **maxCo.value()**: ค่าสูงสุดของฟิลด์สเกลาร์
 
 ---
 
@@ -431,6 +579,20 @@ tmp<volVectorField> gradU = fvc::grad(U);
 volScalarField& pRef = p;  // Reference avoids copy
 pRef += 0.5 * rho * magSqr(U);  // Bernoulli pressure
 ```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:267`
+
+> 📖 **Explanation:**
+> - `tmp<volVectorField>`: temporary field ที่จะถูกลบอัตโนมัติเมื่อไม่ใช้
+> - `volScalarField&`: reference ที่ไม่สร้างสำเนา (avoid copy)
+> - `magSqr(U)`: |U|² คำนวณกำลังสองของความเร็ว
+> - `Bernoulli pressure`: แรงดันจลน์ (dynamic pressure)
+> 
+> **Key Concepts:**
+> - **tmp**: smart pointer สำหรับ temporary objects
+> - **Reference**: อ้างอิงตำแหน่งเดียวกัน (ไม่คัดลอก)
+> - **Memory efficiency**: ลดการใช้ memory ผ่านการแชร์ข้อมูล
+> - **Automatic cleanup**: ลบ temporary objects อัตโนมัติ
 
 ---
 
@@ -468,6 +630,21 @@ boundaryField
     }
 }
 ```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:289`
+
+> 📖 **Explanation:**
+> - `dimensions`: มิติของฟิลด์ [L][T]⁻¹ (velocity)
+> - `internalField`: ค่าเริ่มต้นภายในโดเมน
+> - `fixedValue`: กำหนดค่าคงที่ที่ boundary
+> - `zeroGradient`: gradient ศูนย์ในทิศทานปกติ ∂φ/∂n = 0
+> - `noSlip`: ความเร็วศูนย์ที่ผนัง
+> 
+> **Key Concepts:**
+> - **Dirichlet BC**: กำหนดค่า (fixed value)
+> - **Neumann BC**: กำหนด gradient (zero gradient)
+> - **Wall BC**: ไม่มีการลื่นไถล (no-slip)
+> - **Patch**: ส่วนของ boundary ที่มีเงื่อนไขเดียวกัน
 
 ### Major Boundary Condition Types
 
@@ -507,6 +684,22 @@ outlet
 }
 ```
 
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:312`
+
+> 📖 **Explanation:**
+> - `uniformFixedValue`: ค่าคงที่ที่เปลี่ยนตามเวลา
+> - `table`: ชุดข้อมูล (time, value) สำหรับ interpolation
+> - `sine`: ฟังก์ชัน sine wave
+> - `amplitude`: ความสูงของคลื่น
+> - `frequency`: ความถี่ของการ oscillate [Hz]
+> - `level`: ค่าพื้นฐาน (offset)
+> 
+> **Key Concepts:**
+> - **Time-varying BC**: เงื่อนไขขอบที่เปลี่ยนตามเวลา
+> - **Table lookup**: interpolation จากข้อมูล discrete
+> - **Periodic BC**: เงื่อนไขที่ซ้ำไปซ้ำมา
+> - **Transient simulation**: การจำลองที่ไม่ steady state
+
 ---
 
 ## 📊 Mathematical Representation
@@ -544,6 +737,20 @@ volVectorField gradT = fvc::grad(T);
 volTensorField gradU = fvc::grad(U);
 ```
 
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:335`
+
+> 📖 **Explanation:**
+> - `fvc::grad(T)`: คำนวณ gradient ของฟิลด์สเกลาร์ (→ เวกเตอร์)
+> - `fvc::grad(U)`: คำนวณ gradient ของฟิลด์เวกเตอร์ (→ เทนเซอร์)
+> - `volVectorField`: เวกเตอร์ที่ cell centers
+> - `volTensorField`: เทนเซอร์ rank-2 ที่ cell centers
+> 
+> **Key Concepts:**
+> - **Gauss theorem**: แปลง integral เป็น sum ที่ faces
+> - **Face values**: ค่าที่ face centers (ต้อง interpolat)
+> - **Cell-centered**: ค่าเก็บที่ cell centers
+> - **Gradient**: การเปลี่ยนแปลงของฟิลด์ต่อตำแหน่ง
+
 **Divergence Operator** (`fvc::div`):
 $$\nabla \cdot \mathbf{F} \approx \frac{1}{V_P} \sum_f \mathbf{F}_f \cdot \mathbf{S}_f$$
 
@@ -555,6 +762,20 @@ volScalarField divU = fvc::div(U);
 volVectorField divRhoUU = fvc::div(rho*U*U);
 ```
 
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:352`
+
+> 📖 **Explanation:**
+> - `fvc::div(U)`: divergence ของเวกเตอร์ (→ scalar)
+> - `divU`: ส่วนประกอบของสมการต่อเนื่อง
+> - `rho*U*U`: การไหลของโมเมนตัม (momentum flux)
+> - `divRhoUU`: divergence ของ momentum flux tensor
+> 
+> **Key Concepts:**
+> - **Divergence**: การแพร่ออกของเวกเตอร์ (∇·F)
+> - **Flux**: ปริมาณที่ไหลผ่านหน้าต่อหน่วยเวลา
+> - **Momentum flux**: การไหลของโมเมนตัม ρU⊗U
+> - **Continuity**: สมการการอนุรักษ์มวล
+
 **Laplacian Operator** (`fvc::laplacian`):
 $$\nabla^2\phi \approx \frac{1}{V_P} \sum_f \Gamma_f \nabla\phi_f \cdot \mathbf{S}_f$$
 
@@ -565,6 +786,20 @@ fvScalarMatrix pEqn(fvm::laplacian(1/rho, p));
 // Heat diffusion
 fvScalarMatrix TEqn(fvm::laplacian(kappa/(rho*Cp), T));
 ```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:369`
+
+> 📖 **Explanation:**
+> - `fvm::laplacian()`: Laplacian operator แบบ implicit
+> - `1/rho`: สัมประสิทธิ์ diffusion สำหรับ pressure Poisson
+> - `kappa/(rho*Cp)`: thermal diffusivity α = k/(ρcp)
+> - `pEqn`, `TEqn`: เมทริกซ์สมการที่ต้องแก้
+> 
+> **Key Concepts:**
+> - **Laplacian**: ∇² = divergence of gradient
+> - **Poisson equation**: ∇²φ = S (สมการเชิงอนุพันธ์ย่อย)
+> - **Diffusion**: การแพร่ของความร้อน/โมเมนตัม
+> - **Thermal diffusivity**: ค่าสัมประสิทธิ์การแพร่ความร้อน
 
 ---
 

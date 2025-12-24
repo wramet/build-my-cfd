@@ -47,6 +47,24 @@ tmp<volScalarField> strainRateViscosityModel::strainRate() const
 }
 ```
 
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C` (Reference implementation pattern for field calculations)
+>
+> **คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** ฟังก์ชัน `strainRate()` ใน `strainRateViscosityModel` ซึ่งเป็นคลาสฐานสำหรับคำนวณอัตราการเฉือน (strain-rate) สำหรับของไหลแบบ Non-Newtonian ทุกชนิด
+> - **การทำงาน (Explanation):** 
+>   1. คำนวณเทนเซอร์ไล่ระดับความเร็ว `gradU = ∇u` โดยใช้ `fvc::grad(U_)`
+>   2. สร้างเทนเซอร์อัตราการเฉือน `D = 0.5*(∇u + ∇u^T)` ซึ่งเป็นส่วนสมมาตรของเทนเซอร์ไล่ระดับความเร็ว
+>   3. คำนวณขนาดของอัตราการเฉือน `strainRate = √(2*D:D)` โดยใช้ `magSqr()` และ `sqrt()`
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Symmetric Part of Velocity Gradient:** เทนเซอร์ D เป็นส่วนสมมาตรของการไล่ระดับความเร็ว ซึ่งแทนการเสียดทานและการยืดหยุ่นของของไหล
+>   - **Double Dot Product:** `2*D:D` คือการคูณเทนเซอร์สองตัวและย่อย (double dot product) ซึ่งให้ค่าสเกลาร์ของอัตราการเฉือน
+>   - **MagSqr Function:** ฟังก์ชัน `magSqr()` ใน OpenFOAM คำนวณ `|tensor|^2` โดยไม่ต้องทำการ `sqrt()` ซ้ำ
+>
+> **Key Concepts Summary:**
+> - **Rate-of-Strain Tensor (D):** คือความเร็วของการเสียรูป (deformation rate) ของอนุภาคของไหล
+> - **Strain-Rate Magnitude (γ̇):** คือค่าสเกลาร์ของอัตราการเฉือนที่ใช้ในแบบจำลองความหนืด
+> - **Symmetry Operation:** `gradU.T()` หมุนเทนเซอร์ (transpose) เพื่อหาส่วนสมมาตร
+
 ---
 
 ## 1. Power-Law Model (Ostwald-de Waele)
@@ -88,6 +106,25 @@ return max
     )
 );
 ```
+
+> 📂 **Source:** `src/transportModels/viscosityModels/powerLaw/powerLaw.C`
+>
+> **คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** ไฟล์ `powerLaw.C` ซึ่งเป็นการนำแบบจำลอง Power-Law ไปใช้งานจริงใน OpenFOAM
+> - **การทำงาน (Explanation):**
+>   1. `nuMin_` และ `nuMax_` เป็นการจำกัดความหนืดให้อยู่ในช่วงที่กำหนด (viscosity clamping)
+>   2. `k_*pow(strainRate, n_ - 1.0)` คำนวณความหนืดตามสมการ Power-Law
+>   3. `max(strainRate, small)` ป้องกันการคำนวณที่ strainRate เป็นศูนย์
+>   4. ผลลัพธ์ถูกคลิปปิ้ง (clipping) ให้อยู่ระหว่าง `nuMin_` และ `nuMax_`
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Nested min/max:** ใช้ฟังก์ชัน `max` และ `min` ซ้อนกันเพื่อให้ค่าความหนืดอยู่ในช่วงที่ปลอดภัย
+>   - **DimensionedScalar:** ทุกค่าต้องมีมิติ (dimension) ที่ถูกต้องเพื่อการตรวจสอบความถูกต้อง
+>   - **Power Law Exponent:** เลขชี้กำลังคือ `n_ - 1.0` เนื่องจากความสัมพันธ์ระหว่างความหนืดและอัตราการเฉือน
+>
+> **Key Concepts Summary:**
+> - **Viscosity Clamping:** การจำกัดความหนืดไม่ให้สูงหรือต่ำเกินไปเพื่อเสถียรภาพเชิงตัวเลข
+> - **Strain-Rate Protection:** การป้องกันการหารด้วยศูนย์หรือค่าที่ไม่ถูกต้อง
+> - **Power-Law Behavior:** พฤติกรรมการเปลี่ยนแปลงของความหนืดตามอัตราการเฉือน
 
 ### Implementation Details
 
@@ -153,6 +190,25 @@ return
         (n_ - 1.0)/a_
     );
 ```
+
+> 📂 **Source:** `src/transportModels/viscosityModels/BirdCarreau/BirdCarreau.C`
+>
+> **คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** ไฟล์ `BirdCarreau.C` ซึ่งเป็นการนำแบบจำลอง Bird-Carreau ไปใช้งานจริง
+> - **การทำงาน (Explanation):**
+>   1. ตรวจสอบว่าผู้ใช้ระบุ `tauStar_` หรือ `k_` โดยใช้ ternary operator
+>   2. คำนวณ term `[1 + (k*γ̇)^a]` โดยใช้ `pow()` function
+>   3. ยกกำลังด้วย `(n_ - 1.0)/a_` เพื่อให้ได้ความหนืดสุดท้าย
+>   4. บวกกับ `nuInf_` เพื่อให้ได้ความหนืดขั้นสุดท้าย
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Newtonian Plateaus:** แบบจำลองนี้สามารถจำลองพฤติกรรม Newtonian ที่อัตราการเฉือนต่ำและสูง
+>   - **Yasuda Exponent:** ค่า `a_` ควบคุมความกว้างของบริเวณเปลี่ยนผ่าน
+>   - **Conditional Parameter Selection:** ผู้ใช้สามารถเลือกใช้ `tauStar_` หรือ `k_` ได้
+>
+> **Key Concepts Summary:**
+> - **Zero-Shear Viscosity (ν₀):** ความหนืดสูงสุดเมื่ออัตราการเฉือนเข้าใกล้ศูนย์
+> - **Infinite-Shear Viscosity (ν∞):** ความหนืดต่ำสุดเมื่ออัตราการเฉือนสูงมาก
+> - **Transition Region:** บริเวณที่ความหนืดเปลี่ยนจาก ν₀ ไปเป็น ν∞
 
 ### Implementation Details
 
@@ -223,6 +279,26 @@ return
 );
 ```
 
+> 📂 **Source:** `src/transportModels/viscosityModels/HerschelBulkley/HerschelBulkley.C`
+>
+> **คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** ไฟล์ `HerschelBulkley.C` ซึ่งเป็นการนำแบบจำลอง Herschel-Bulkley ไปใช้งานจริง
+> - **การทำงาน (Explanation):**
+>   1. สร้าง `tone` และ `rtone` เพื่อให้แน่ใจว่ามิติถูกต้อง (dimensional consistency)
+>   2. คำนวณเทอมกำลัง `pow(tone*strainRate, n_)` ซึ่งเป็นส่วนของ power-law
+>   3. บวกกับ `tau0_` เพื่อให้ได้เทอม yield stress
+>   4. หารด้วย `strainRate` ที่มีการป้องกันค่าต่ำสุดด้วย `vSmall`
+>   5. ใช้ `min(nu0, ...)` เพื่อจำกัดความหนืดไม่ให้เกินค่าที่กำหนด
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Yield Stress:** ค่า `tau0_` เป็นเค้นขั้นต่ำที่ต้องใช้เพื่อให้วัสดุไหล
+>   - **Regularization:** การป้องกันการหารด้วยศูนย์และการจำกัดค่าสูงสุด
+>   - **Dimensional Consistency:** การใช้ `tone` และ `rtone` เพื่อให้มิติถูกต้อง
+>
+> **Key Concepts Summary:**
+> - **Yield Stress (τ₀):** เค้นขั้นต่ำที่ต้องใช้เพื่อเริ่มการไหลของวัสดุ
+> - **Viscosity Capping:** การจำกัดความหนืดสูงสุดด้วย `nu0`
+> - **Numerical Stability:** การใช้ `vSmall` เพื่อป้องกันการหารด้วยศูนย์
+
 ### Implementation Details
 
 1. **Dimensional Consistency**: Auxiliary variables `tone` and `rtone` ensure correct dimensional analysis for power-law terms
@@ -266,7 +342,6 @@ graph TD
     style PL fill:#9f9,stroke:#333
 ```
 > **Figure 1:** แผนผังขั้นตอนการตัดสินใจเลือกแบบจำลองความหนืดที่เหมาะสมตามสมบัติทางรีโอโลยีของวัสดุ โดยพิจารณาจากพฤติกรรมความเค้นยอมและความคงที่ของความหนืดที่ช่วงอัตราการเฉือนต่างๆ
-
 
 ### Comparison Table
 
@@ -362,6 +437,25 @@ while (runTime.loop())
 }
 ```
 
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C` (Reference pattern for momentum equation assembly with variable properties)
+>
+> **คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** รูปแบบการประกอบสมการโมเมนตัมใน OpenFOAM solvers สำหรับของไหลที่มีความหนืดแปรผัน
+> - **การทำงาน (Explanation):**
+>   1. `viscosity->correct()` อัปเดตค่าความหนืดตามสนามความเร็วปัจจุบัน
+>   2. `viscosity->mu()` ดึงค่าความหนืดมาใช้ในสมการโมเมนตัม
+>   3. `fvm::laplacian(mu, U)` สร้างเทอมการแพร่กระจายด้วยความหนืดแปรผัน
+>   4. `UEqn.relax()` และ `solve()` แก้สมการโมเมนตัม
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Variable Viscosity:** ความหนืดแปรผันตามตำแหน่งและเวลา
+>   - **Under-Relaxation:** การผ่อนคลายเพื่อเสถียรภาพการคำนวณ
+>   - **Momentum Predictor:** การทำนายโมเมนตัมก่อนแก้สมการความดัน
+>
+> **Key Concepts Summary:**
+> - **Viscosity Update:** การอัปเดตความหนืดในทุก time step
+> - **Matrix Assembly:** การประกอบเมทริกซ์สมการโมเมนตัม
+> - **Iterative Solution:** การแก้สมการซ้ำจนกว่าจะลู่เข้า
+
 ---
 
 ## Architecture Integration
@@ -379,12 +473,12 @@ graph TD
 ```
 > **Figure 2:** แผนภูมิแสดงลำดับชั้นของคลาส (Class Hierarchy) สำหรับแบบจำลองความหนืดใน OpenFOAM โดยแยกส่วนอินเทอร์เฟซมาตรฐานและการคำนวณอัตราความเครียดออกจากพฤติกรรมทางจลนศาสตร์ของของไหลแต่ละประเภท
 
-
 ### Runtime Selection
 
 Models are registered using OpenFOAM's runtime selection mechanism:
 
 ```cpp
+// Register Bird-Carreau model in runtime selection table
 addToRunTimeSelectionTable
 (
     viscosityModel,
@@ -392,6 +486,7 @@ addToRunTimeSelectionTable
     dictionary
 );
 
+// Register Herschel-Bulkley model in runtime selection table
 addToRunTimeSelectionTable
 (
     viscosityModel,
@@ -400,22 +495,62 @@ addToRunTimeSelectionTable
 );
 ```
 
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C` (Reference pattern for runtime selection table registration)
+>
+> **คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** ไฟล์การลงทะเบียนคลาสในตาราง runtime selection ของ OpenFOAM
+> - **การทำงาน (Explanation):**
+>   1. `addToRunTimeSelectionTable` เป็น macro ที่ลงทะเบียนคลาสลงในตาราง
+>   2. `viscosityModel` เป็นคลาสฐาน (base class)
+>   3. `BirdCarreau`/`HerschelBulkley` เป็นคลาสลูก (derived class)
+>   4. `dictionary` ระบุว่าคลาสนี้ถูกสร้างจาก dictionary
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Runtime Selection:** กลไกที่อนุญาตให้เลือกคลาสตอน runtime
+>   - **Virtual Constructor Pattern:** รูปแบบการสร้าง object แบบเสมือน
+>   - **Factory Pattern:** รูปแบบ factory สำหรับสร้าง object
+>
+> **Key Concepts Summary:**
+> - **Runtime Selection:** การเลือกแบบจำลองผ่านไฟล์ dictionary
+> - **Virtual Constructor:** การสร้าง object ผ่าน virtual function
+> - **Plugin Architecture:** สถาปัตยกรรมที่อนุญาตให้เพิ่ม model ใหม่ได้
+
 ### Dictionary Configuration
 
 **Example: `constant/transportProperties`**
 
 ```cpp
+// Select Herschel-Bulkley viscosity model
 transportModel  HerschelBulkley;
 
+// Herschel-Bulkley model coefficients
 HerschelBulkleyCoeffs
 {
-    nu0             [0 2 -1 0 0 0 0] 1e-06;  // Maximum viscosity
-    tau0            [1 -1 -2 0 0 0 0] 10;    // Yield stress
-    k               [1 -1 -2 0 0 0 0] 0.01;  // Consistency index
-    n               [0 0 0 0 0 0 0] 0.5;     // Power-law index
-    nuMax           [0 2 -1 0 0 0 0] 1e+04;  // Minimum viscosity
+    nu0             [0 2 -1 0 0 0 0] 1e-06;  // Maximum viscosity [m²/s]
+    tau0            [1 -1 -2 0 0 0 0] 10;    // Yield stress [Pa]
+    k               [1 -1 -2 0 0 0 0] 0.01;  // Consistency index [Pa·s^n]
+    n               [0 0 0 0 0 0 0] 0.5;     // Power-law index [-]
+    nuMax           [0 2 -1 0 0 0 0] 1e+04;  // Minimum viscosity [m²/s]
 }
 ```
+
+> 📂 **Source:** รูปแบบไฟล์ `constant/transportProperties` ใน OpenFOAM cases
+>
+> **คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** ไฟล์ `transportProperties` ซึ่งเป็นไฟล์ปรับแต่งค่าความหนืดใน OpenFOAM
+> - **การทำงาน (Explanation):**
+>   1. `transportModel` เลือกแบบจำลองความหนืดที่ต้องการใช้
+>   2. `HerschelBulkleyCoeffs` เป็น block ที่ระบุพารามิเตอร์ของแบบจำลอง
+>   3. แต่ละพารามิเตอร์มีมิติ (dimension) ในวงเล็บเหลี่ยม
+>   4. ค่าตัวเลขคือค่าของพารามิเตอร์
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Dimension Checking:** OpenFOAM ตรวจสอบมิติของทุกพารามิเตอร์
+>   - **Model Coefficients:** พารามิเตอร์เฉพาะสำหรับแต่ละแบบจำลอง
+>   - **Runtime Selection:** เลือกแบบจำลองได้โดยไม่ต้องคอมไพล์ใหม่
+>
+> **Key Concepts Summary:**
+> - **Transport Properties:** คุณสมบัติการขนส่งของของไหล
+> - **Dimension Set:** ชุดมิติ [M L T I J N]
+> - **Model Parameters:** พารามิเตอร์ที่กำหนดพฤติกรรมของแบบจำลอง
 
 ---
 
@@ -428,16 +563,19 @@ To add a new viscosity model (e.g., Cross model):
 **Step 1: Define class**
 
 ```cpp
+// Cross model viscosity model class definition
 class CrossModel
 :
     public strainRateViscosityModel
 {
-    const dimensionedScalar lambda_;  // Time constant
-    const dimensionedScalar n_;       // Power index
-    const dimensionedScalar nu0_;     // Zero shear viscosity
-    const dimensionedScalar nuInf_;   // Infinite shear viscosity
+    // Model coefficients
+    const dimensionedScalar lambda_;  // Time constant [s]
+    const dimensionedScalar n_;       // Power index [-]
+    const dimensionedScalar nu0_;     // Zero shear viscosity [m²/s]
+    const dimensionedScalar nuInf_;   // Infinite shear viscosity [m²/s]
 
 protected:
+    // Calculate viscosity based on strain rate
     virtual tmp<volScalarField> nu
     (
         const volScalarField& nu0,
@@ -449,8 +587,10 @@ protected:
     }
 
 public:
+    // Runtime type information
     TypeName("CrossModel");
 
+    // Constructor
     CrossModel
     (
         const volVectorField& U,
@@ -459,9 +599,29 @@ public:
 };
 ```
 
+> 📂 **Source:** รูปแบบการนิยามคลาสแบบจำลองความหนืดใน OpenFOAM (ตาม `src/transportModels/viscosityModels/`)
+>
+> **คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** โครงสร้างคลาสสำหรับแบบจำลองความหนืดแบบกำหนดเอง
+> - **การทำงาน (Explanation):**
+>   1. `CrossModel` สืบทอดจาก `strainRateViscosityModel`
+>   2. กำหนดพารามิเตอร์ของแบบจำลอง (lambda, n, nu0, nuInf)
+>   3. ทับฟังก์ชัน `nu()` เพื่อคำนวณความหนืด
+>   4. ใช้ `TypeName` macro เพื่อลงทะเบียนชื่อคลาส
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Inheritance:** การสืบทอดจากคลาสฐาน
+>   - **Virtual Function:** ฟังก์ชันเสมือนที่ต้องถูกทับ
+>   - **DimensionedScalar:** ตัวแปรที่มีมิติแนบอยู่
+>
+> **Key Concepts Summary:**
+> - **Class Inheritance:** การสืบทอดจากคลาสฐานเพื่อใช้งานฟีเจอร์ที่มีอยู่
+> - **Polymorphism:** การทำงานแบบ polymorphic ผ่าน virtual function
+> - **Dimensioned Types:** ประเภทข้อมูลที่มีการตรวจสอบมิติ
+
 **Step 2: Register with runtime selection**
 
 ```cpp
+// Register Cross model in runtime selection table
 addToRunTimeSelectionTable
 (
     viscosityModel,
@@ -470,19 +630,57 @@ addToRunTimeSelectionTable
 );
 ```
 
+> 📂 **Source:** ไฟล์ `.C` สำหรับการลงทะเบียนคลาส (ตามรูปแบบใน `populationBalanceModel.C`)
+>
+> **คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** การลงทะเบียนคลาสลงใน runtime selection table
+> - **การทำงาน (Explanation):**
+>   1. Macro นี้สร้าง code สำหรับลงทะเบียนคลาส
+>   2. ช่วยให้สามารถสร้าง object จาก dictionary ได้
+>   3. ต้องถูกเรียกในไฟล์ `.C` ของคลาส
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Runtime Selection:** กลไกการเลือกคลาสตอน runtime
+>   - **Macro Expansion:** Macro ขยายเป็น code จริง
+>   - **Static Registration:** การลงทะเบียนแบบ static
+>
+> **Key Concepts Summary:**
+> - **Runtime Type Information:** ข้อมูลชนิดของคลาสที่ใช้ใน runtime
+> - **Factory Pattern:** รูปแบบการสร้าง object
+> - **Plugin Architecture:** สถาปัตยกรรมที่รองรับการเพิ่มคลาสใหม่
+
 **Step 3: Use in dictionary**
 
 ```cpp
+// Select Cross model in transportProperties
 transportModel  CrossModel;
 
+// Cross model coefficients
 CrossModelCoeffs
 {
-    nu0     0.1;
-    nuInf   0.001;
-    lambda  1.0;
-    n       0.5;
+    nu0     0.1;      // Zero shear viscosity [m²/s]
+    nuInf   0.001;    // Infinite shear viscosity [m²/s]
+    lambda  1.0;      // Time constant [s]
+    n       0.5;      // Power index [-]
 }
 ```
+
+> 📂 **Source:** ไฟล์ `constant/transportProperties` สำหรับการใช้งานแบบจำลอง
+>
+> **คำอธิบาย (Thai Explanation):**
+> - **ที่มา (Source):** ไฟล์ dictionary สำหรับระบุแบบจำลองและพารามิเตอร์
+> - **การทำงาน (Explanation):**
+>   1. ระบุชื่อแบบจำลองที่ต้องการใช้
+>   2. กำหนดค่าพารามิเตอร์ใน block ที่มีชื่อเดียวกับคลาส
+>   3. OpenFOAM จะอ่านค่าเหล่านี้เพื่อสร้าง object
+> - **แนวคิดสำคัญ (Key Concepts):**
+>   - **Dictionary-Based Configuration:** การปรับแต่งผ่านไฟล์ dictionary
+>   - **Automatic Object Creation:** การสร้าง object อัตโนมัติ
+>   - **Parameter Validation:** การตรวจสอบพารามิเตอร์
+>
+> **Key Concepts Summary:**
+> - **Model Configuration:** การปรับแต่งแบบจำลอง
+> - **Parameter Input:** การใส่ค่าพารามิเตอร์
+> - **Runtime Loading:** การโหลดคลาสตอน runtime
 
 ---
 

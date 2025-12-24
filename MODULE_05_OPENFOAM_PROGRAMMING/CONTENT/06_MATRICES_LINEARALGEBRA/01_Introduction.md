@@ -53,7 +53,7 @@ flowchart TD
     F --> H[Krylov Methods<br/>CG, BiCGStab, GMRES]
     F --> I[Multigrid<br/>GAMG, AMG]
 ```
-> **Figure 1:** สถาปัตยกรรมลำดับชั้นของประเภทเมทริกซ์ใน OpenFOAM ซึ่งถูกออกแบบมาให้เหมาะสมกับการใช้งานแต่ละระดับ ตั้งแต่ระบบขนาดเล็กที่ใช้เมทริกซ์แบบหนาแน่น ไปจนถึงระบบขนาดใหญ่ที่ใช้เมทริกซ์แบบเบาบางความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** สถาปัตยกรรมลำดับชั้นของประเภทเมทริกซ์ใน OpenFOAM ซึ่งถูกออกแบบมาให้เหมาะสมกับการใช้งานแต่ละระดับ ตั้งแต่ระบบขนาดเล็กที่ใช้เมทริกซ์แบบหนาแน่น ไปจนถึงระบบขนาดใหญ่ที่ใช้เมทริกซ์แบบเบาบาง ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ---
 
@@ -107,6 +107,17 @@ public:
 };
 ```
 
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L` (Lexical analysis pattern reference)
+> 
+> **คำอธิบาย (Explanation):**
+> คลาส `SquareMatrix` เป็นเมทริกซ์แบบหนาแน่น (dense matrix) ที่จัดเก็บข้อมูลในหน่วยความจำแบบต่อเนื่อง (contiguous memory) โดยใช้รูปแบบ row-major order ซึ่งเหมาะสำหรับการเข้าถึงข้อมูลแบบ sequential และการปรับปรุงประสิทธิภาพของ cache ตัวดำเนินการ `operator()` ทำให้สามารถเข้าถึง element ได้โดยตรงเหมือนกับ array แบบ 2 มิติ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Row-major order**: การจัดเก็บข้อมูลทีละแถว เช่น `[row1_col1, row1_col2, ..., row2_col1, row2_col2, ...]`
+> - **Contiguous memory**: ข้อมูลอยู่ติดกันในหน่วยความจำ ช่วยให้ CPU cache ทำงานได้มีประสิทธิภาพ
+> - **Template metaprogramming**: ใช้ template เพื่อรองรับหลายประเภทข้อมูล (scalar, vector, tensor)
+> - **Bounds checking**: การตรวจสอบขอบเขตอาร์เรย์ในโหมด debug เพื่อป้องกัน segmentation fault
+
 ### Core Operations
 
 **Matrix Addition:**
@@ -125,6 +136,17 @@ SquareMatrix<scalar> D = A & B;  // Matrix multiplication (& operator)
 scalar detA = det(A);             // Compute determinant
 SquareMatrix<scalar> Ainv = inv(A);  // Matrix inversion
 ```
+
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L` (Operator overloading pattern reference)
+> 
+> **คำอธิบาย (Explanation):**
+> OpenFOAM ใช้ operator overloading เพื่อทำให้การดำเนินการกับเมทริกซ์มีความกระชับและอ่านง่าย ตัวดำเนินการ `+` สำหรับการบวก element-wise และ `&` สำหรับการคูณเมทริกซ์ ฟังก์ชัน `det()` และ `inv()` ใช้ LU decomposition สำหรับเมทริกซ์ขนาดใหญ่ แต่ใช้สูตรโดยตรงสำหรับเมทริกซ์ขนาดเล็ก (2×2, 3×3) เพื่อประสิทธิภาพ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Element-wise operations**: การดำเนินการทีละ element ไม่ใช่การคูณเมทริกซ์
+> - **LU decomposition**: การแยกเมทริกซ์เป็น Lower และ Upper triangular สำหรับการแก้สมการ
+> - **Operator overloading**: การกำหนดความหมายของตัวดำเนินการใหม่ให้เหมาะกับงาน
+> - **Numerical stability**: ความเสถียรทางตัวเลขในการคำนวณ determinant และ inverse
 
 ---
 
@@ -155,6 +177,17 @@ class LduMatrix
     Field<Type> source_;
 };
 ```
+
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L` (Template class pattern reference)
+> 
+> **คำอธิบาย (Explanation):**
+> คลาส `LduMatrix` ใช้ template parameters 3 ตัวเพื่อรองรับความยืดหยุ่นในการจัดเก็บข้อมูล: `Type` สำหรับประเภทข้อมูลหลัก (เช่น scalar, vector), `DType` สำหรับสมมาตรบนเส้นทแยงมุม และ `LUType` สำหรับ off-diagonal elements โครงสร้างนี้จัดเก็บเฉพาะ elements ที่ไม่เป็นศูนย์เท่านั้น ทำให้ประหยัดหน่วยความจำอย่างมากสำหรับปัญหา CFD ที่มี connectivity ต่ำ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Sparsity pattern**: รูปแบบการกระจายตัวของ elements ที่ไม่เป็นศูนย์ในเมทริกซ์
+> - **LDU format**: การจัดเก็บแยกเป็น Lower, Diagonal, Upper สำหรับสมการเชิงอนุพันธ์
+> - **Template parameters**: การใช้ template เพื่อความยืดหยุ่นในประเภทข้อมูล
+> - **Memory efficiency**: การประหยัดหน่วยความจำโดยไม่จัดเก็บ zeros
 
 ### Diagonal Coefficients (`diag_`)
 
@@ -210,6 +243,17 @@ private:
 };
 ```
 
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L` (Multiple inheritance pattern reference)
+> 
+> **คำอธิบาย (Explanation):**
+> `fvMatrix` ใช้ multiple inheritance เพื่อรับคุณสมบัติจากทั้ง reference counting (`refCount`) และ sparse matrix operations (`lduMatrix`) คลาสนี้เก็บ reference ไปยัง field ที่จะถูกแก้ (`psi_`) เพื่อให้แน่ใจว่า matrix และ field มีความสอดคล้องกันเสมอ นอกจากนี้ยังมีระบบติดตามหน่วย (dimensional consistency) เพื่อป้องกันการคำนวณทางฟิสิกส์ที่ผิดพลาด
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Multiple inheritance**: การรับคุณสมบัติจากหลาย base class พร้อมกัน
+> - **Reference counting**: การจัดการหน่วยความจำอัตโนมัติผ่านการนับ references
+> - **Dimensional analysis**: การตรวจสอบความสอดคล้องของหน่วยฟิสิกส์
+> - **Boundary conditions**: การจัดการเงื่อนไขขอบเขตอย่างเป็นระบบ
+
 ### Dimensional Awareness
 
 OpenFOAM's dimensional analysis system extends to matrix operations, providing **physical consistency checking** at both compile-time and runtime:
@@ -235,9 +279,16 @@ void fvMatrix<Type>::operator+=(const fvMatrix<Type>& fm)
 }
 ```
 
-This mechanism prevents fundamental physics errors such as attempting to add:
-- Momentum equation (dimension: $kg \cdot m \cdot s^{-2}$)
-- Energy equation (dimension: $kg \cdot m^2 \cdot s^{-3}$)
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L` (Error handling pattern reference)
+> 
+> **คำอธิบาย (Explanation):**
+> การตรวจสอบ dimensional consistency เป็นหัวใจสำคัญของ OpenFOAM ที่ทำให้แตกต่างจาก CFD codes อื่นๆ ก่อนที่จะบวก fvMatrix สองตัวเข้าด้วยกัน จะตรวจสอบก่อนว่ามีหน่วยเหมือนกันหรือไม่ ถ้าไม่เหมือนจะเกิด error ทันที ซึ่งช่วยป้องกันข้อผิดพลาดทางฟิสิกส์ที่ร้ายแรง เช่น การบวกสมการโมเมนตัมกับสมการพลังงาน
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Dimensional consistency**: ความสอดคล้องของหน่วยฟิสิกส์ในสมการ
+> - **Runtime checking**: การตรวจสอบขณะโปรแกรมทำงาน
+> - **Compile-time safety**: ความปลอดภัยในระดับการคอมไพล์
+> - **Physical units**: หน่วยฟิสิกส์ เช่น $[kg \cdot m \cdot s^{-2}]$ สำหรับแรง
 
 ---
 
@@ -276,6 +327,17 @@ public:
 };
 ```
 
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L` (Abstract base class pattern reference)
+> 
+> **คำอธิบาย (Explanation):**
+> ระบบ solver ของ OpenFOAM ใช้ abstract base class pattern เพื่อให้สามารถเลือก solver ได้ขณะ runtime โดยไม่ต้อง recompile โปรแกรม method `solve()` เป็น pure virtual function ที่บังคับให้ทุก derived class ต้อง implement วิธีการแก้สมการเชิงเส้นของตัวเอง ระบบนี้ยังรองรับ parallel computing ผ่าน interface boundaries
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Polymorphism**: ความสามารถในการใช้ interface เดียวกันกับ implementations ต่างกัน
+> - **Runtime selection**: การเลือก solver ขณะโปรแกรมทำงานผ่าน dictionary
+> - **Pure virtual function**: function ที่ไม่มี implementation ใน base class
+> - **Convergence criteria**: เกณฑ์การหยุดการวนซ้ำ เช่น tolerance, max iterations
+
 ### Conjugate Gradient (CG) Method
 
 **Optimal for symmetric positive definite systems**, CG is the workhorse for pressure equations in incompressible flow simulations:
@@ -307,6 +369,17 @@ public:
 };
 ```
 
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L` (Derived class pattern reference)
+> 
+> **คำอธิบาย (Explanation):**
+> คลาส `PCG` (Preconditioned Conjugate Gradient) inherit จาก `lduMatrix::solver` และ implement method `solve()` สำหรับระบบ symmetric positive definite โดยเฉพาะสมการ pressure Poisson ใน incompressible flow TypeName macro ใช้สำหรับ runtime selection ผ่าน dictionary file
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Krylov subspace methods**: วิธีการแก้สมการเชิงเส้นแบบ iterative ที่ใช้ subspace
+> - **Preconditioning**: การปรับปรุง convergence ด้วย transformation matrix
+> - **Symmetric positive definite**: เมทริกซ์ที่มีสมมาตรและ eigen values บวก
+> - **Pressure Poisson equation**: สมการแก้ pressure ใน incompressible flow
+
 ### Preconditioners
 
 Preconditioners transform the original linear system into one with **better convergence properties**:
@@ -337,6 +410,17 @@ public:
     ) const;
 };
 ```
+
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L` (Preconditioner class pattern reference)
+> 
+> **คำอธิบาย (Explanation):**
+> DIC (Diagonal Incomplete Cholesky) เป็น preconditioner สำหรับเมทริกซ์ symmetric ที่คำนวณรวดเร็วและใช้หน่วยความจำน้อย โดยจัดเก็บเฉพาะ reciprocal of diagonal (`rD_`) และใช้ในการคูณกับ residual vector เพื่อปรับปรุง convergence rate method `precondition()` รับ residual vector และคืนค่า preconditioned vector
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Preconditioning**: การแปลงระบบให้ converge เร็วขึ้น
+> - **Incomplete factorization**: การแยกตัวประกอบแบบไม่สมบูรณ์
+> - **Diagonal approximation**: การประมาณด้วยค่าบนเส้นทแยงมุมเท่านั้น
+> - **Convergence rate**: อัตราการลดของ error ต่อ iteration
 
 ---
 
@@ -379,6 +463,17 @@ tmp<GeometricField<typename outerProduct<vector, Type>::type, fvPatchField, volM
 grad(const GeometricField<Type, fvPatchField, volMesh>& vf);
 ```
 
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L` (Template function pattern reference)
+> 
+> **คำอธิบาย (Explanation):**
+> namespace `fvc` มีฟังก์ชันสำหรับ operations ที่ไม่ได้สร้าง matrix แต่คำนวณค่าโดยตรง เช่น gradient, divergence, Laplacian ฟังก์ชัน `grad()` ใช้ `outerProduct` metafunction เพื่อกำหนดประเภทผลลัพธ์โดยอัตโนมัติ (เช่น gradient ของ scalar เป็น vector, gradient ของ vector เป็น tensor) `tmp` class ใช้สำหรับ automatic memory management
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Explicit vs Implicit**: Explicit คำนวณค่าโดยตรง, Implicit สร้าง matrix
+> - **Gauss theorem**: ทฤษฎีบทของเกาส์สำหรับการแปลง volume integral เป็น surface integral
+> - **Type traits**: การกำหนดประเภทข้อมูลอัตโนมัติขณะคอมไพล์
+> - **Memory management**: การจัดการหน่วยความจำอัตโนมัติด้วย tmp
+
 **Divergence Calculation:**
 
 $$\nabla \cdot \mathbf{U}|_P = \frac{1}{V_P} \sum_f \mathbf{U}_f \cdot \mathbf{S}_f$$
@@ -411,6 +506,17 @@ Field<scalar> epsilon(6);
 Field<scalar> sigma = C * epsilon;
 ```
 
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L` (Tensor operations pattern reference)
+> 
+> **คำอธิบาย (Explanation):**
+> ใน FEA และ solid mechanics ความสัมพันธ์ระหว่าง stress และ strain แสดงด้วย stiffness matrix ขนาด 6×6 (สำหรับ 3D) เนื่องจาก symmetry ของ stress/strain tensors OpenFOAM ใช้ `SymmetricSquareMatrix` เพื่อประหยัดหน่วยความจำและเพิ่มประสิทธิภาพการคำนวณ stiffness matrix มี independent components 21 ตัวสำหรับ material แบบ anisotropic ทั่วไป
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Constitutive relations**: ความสัมพันธ์ระหว่าง stress และ strain
+> - **Stiffness matrix**: เมทริกซ์ความแข็งของวัสดุ
+> - **Voigt notation**: การแทน tensors ด้วย vectors
+> - **Material anisotropy**: คุณสมบัติของวัสดุที่แตกต่างตามทิศทาง
+
 ### 2. Coordinate Transformations
 
 **Rotation matrices** for rotating machinery and MRF systems:
@@ -432,6 +538,17 @@ R(2,0) = 0;         R(2,1) = 0;          R(2,2) = 1;
 vector v_local(10, 0, 0);     // Velocity in local coordinates
 vector v_global = R & v_local; // Matrix-vector multiplication
 ```
+
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L` (Coordinate transformation pattern reference)
+> 
+> **คำอธิบาย (Explanation):**
+> Rotation matrix ใช้แปลง coordinates ระหว่าง reference frames ที่หมุนเทียบกับกัน ใน OpenFOAM ใช้ใน MRF (Multiple Reference Frame) และ SRF (Single Reference Frame) simulations สำหรับ turbomachinery ตัวดำเนินการ `&` ใช้สำหรับ matrix-vector multiplication
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Rotation matrix**: เมทริกซ์หมุนสำหรับแปลงพิกัด
+> - **Reference frames**: ระบบพิกัดที่ใช้ในการคำนวณ
+> - **MRF/ SRF**: เทคนิคการจำลองการไหลในเครื่องจักรหมุน
+> - **Matrix-vector multiplication**: การคูณเมทริกซ์กับเวกเตอร์
 
 ### 3. Least-Squares Gradient Reconstruction
 
@@ -465,6 +582,17 @@ forAll(mesh.cellCells(celli), ni)
 SquareMatrix<scalar> Minv = M.inv();
 vector gradPhi = Minv & b;  // Gradient ∇φ at cell center
 ```
+
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L` (Least-squares pattern reference)
+> 
+> **คำอธิบาย (Explanation):**
+> Least-squares gradient method สร้าง moment matrix ขนาด 3×3 จาก positions ของ neighbor cells และแก้ระบบเชิงเส้นเพื่อหา gradient วิธีนี้ให้ accuracy สูงกว่า Green-Gauss บน unstructured meshes โดยเฉพาะบน non-orthogonal cells weight function ใช้ inverse distance squared เพื่อให้ neighbors ที่ใกล้มีผลมากกว่า
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Least-squares method**: วิธีการประมาณค่าที่ลด error แบบกำลังสองน้อยสุด
+> - **Gradient reconstruction**: การสร้าง gradient จาก values ที่离散 points
+> - **Unstructured meshes**: mesh ที่ไม่มีรูปแบบตายตัว
+> - **Non-orthogonality**: ความไม่ตั้งฉากของ mesh cells
 
 ---
 
@@ -502,6 +630,17 @@ for (label i = 0; i < n; i++)
     }
 }
 ```
+
+> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L` (Loop optimization pattern reference)
+> 
+> **คำอธิบาย (Explanation):**
+> Compiler สามารถใช้ SIMD (Single Instruction Multiple Data) instructions เพื่อประมวลผล element หลายตัวพร้อมกัน โดยเฉพาะใน innermost loop ที่เข้าถึง memory แบบ sequential การจัดเรียง loops ให้ถูกต้อง (loop ordering) สำคัญมากต่อ cache efficiency
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Cache locality**: การเข้าถึง memory ที่อยู่ใกล้กัน
+> - **SIMD vectorization**: การประมวลผลข้อมูลหลายตัวพร้อมกัน
+> - **Loop tiling**: การแบ่ง loops เป็น blocks เพื่อปรับปรุง cache usage
+> - **Memory alignment**: การจัดวางข้อมูลใน memory ที่ align กับ boundary
 
 ---
 

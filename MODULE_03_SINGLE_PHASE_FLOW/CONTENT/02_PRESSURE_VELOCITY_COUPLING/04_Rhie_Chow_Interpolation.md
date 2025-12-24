@@ -27,7 +27,6 @@ flowchart LR
     G --> H[Physical Solution]
 ```
 > **Figure 1:** การเปรียบเทียบระหว่างผลลัพธ์จากการใช้การประมาณค่าแบบเชิงเส้นปกติ (Linear Interpolation) ซึ่งนำไปสู่ปัญหาการแยกตัวของความดันและความเร็ว (Checkerboard pattern) กับการใช้ Rhie-Chow Interpolation ที่ช่วยสร้างการเชื่อมโยงที่แข็งแกร่ง ส่งผลให้ได้สนามความดันที่เรียบและสอดคล้องกับหลักการทางฟิสิกส์บนเมชแบบ Collocated Grid
-> **Figure 1:** การเปรียบเทียบระหว่างผลลัพธ์จากการใช้การประมาณค่าแบบเชิงเส้นปกติ (Linear Interpolation) ซึ่งนำไปสู่ปัญหาการแยกตัวของความดันและความเร็ว (Checkerboard pattern) กับการใช้ Rhie-Chow Interpolation ที่ช่วยสร้างการเชื่อมโยงที่แข็งแกร่ง ส่งผลให้ได้สนามความดันที่เรียบและสอดคล้องกับหลักการทางฟิสิกส์บนเมชแบบ Collocated Grid
 
 ---
 
@@ -96,26 +95,38 @@ $$\phi_f = \mathbf{u}_f \cdot \mathbf{S}_f = \left[ \overline{\mathbf{u}}_f - \m
 ใน OpenFOAM, Rhie-Chow ถูกนำมาใช้โดยปริยายผ่านการสร้าง **Flux ($\phi$)** ที่หน้าเซลล์ ซึ่งมักพบในไฟล์ `pEqn.H`:
 
 ```cpp
-// 1. คำนวณ rAU (1/aP)
+// 1. Calculate rAU (reciprocal of diagonal coefficient)
+//    This represents 1/aP from the momentum equation discretization
 volScalarField rAU(1.0/UEqn.A());
 
-// 2. คำนวณ HbyA (H/aP)
+// 2. Calculate HbyA (H operator divided by aP)
+//    HbyA represents the explicit part of momentum equation excluding pressure
 volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U, p));
 
-// 3. สร้าง Flux (phi) พร้อม Rhie-Chow correction
+// 3. Create flux with Rhie-Chow correction
+//    fvc::flux applies Rhie-Chow interpolation implicitly
 surfaceScalarField phiHbyA
 (
     "phiHbyA",
-    fvc::flux(HbyA) // การทำ interpolate(HbyA) & Sf()
-  + fvc::interpolate(rAU)*fvc::ddtCorr(U, phi) // Correction term
+    fvc::flux(HbyA) // Interpolate HbyA to faces and dot with Sf
+  + fvc::interpolate(rAU)*fvc::ddtCorr(U, phi) // Time derivative correction
 );
 
-// 4. แก้สมการความดันโดยใช้ Laplacian
+// 4. Solve pressure equation using Laplacian operator
+//    This enforces mass conservation through pressure-velocity coupling
 fvScalarMatrix pEqn
 (
     fvm::laplacian(rAU, p) == fvc::div(phiHbyA)
 );
 ```
+
+> **📂 Source:** `.applications/solvers/incompressible/simpleFoam/UEqn.H` (based on standard solver structure)  
+> **คำอธิบาย:** โค้ดนี้แสดงการนำไปใช้ Rhie-Chow interpolation ใน OpenFOAM โดยอ้อม ผ่านฟังก์ชัน `fvc::flux()` ที่มีการใช้ Rhie-Chow interpolation อยู่ภายใน  
+> **แนวคิดสำคัญ:**
+> - **rAU**: ค่าผกผันของสัมประสิทธิ์ไดแอกอนัล $a_P$ ใช้เป็นน้ำหนักในการแก้ไขความดัน
+> - **HbyA**: H-operator ที่ถูกหารด้วย $a_P$ แทนส่วนของสมการโมเมนตัมที่ไม่ขึ้นกับความดัน
+> - **Rhie-Chow Correction**: ถูกนำไปใช้โดยอัตโนมัติใน `fvc::flux()` และ `fvc::interpolate()`
+> - **Mass Conservation**: สมการความดันแบบ Laplacian รับประกันการอนุรักษ์มวล
 
 ### 3.2 รายละเอียดการทำงานของฟังก์ชัน
 
@@ -124,8 +135,12 @@ fvScalarMatrix pEqn
 ฟังก์ชันนี้ทำการประมาณค่า HbyA ไปยังหน้าเซลล์และคำนวณ flux:
 
 ```cpp
+// Calculate surface flux by interpolating volume field to faces
+// and taking dot product with face area vectors
 tmp<surfaceScalarField> flux(const volVectorField& vvf)
 {
+    // Interpolate field from cell centers to faces (Rhie-Chow applied here)
+    // Then dot with face surface vector to get flux
     return fvc::interpolate(vvf) & mesh.Sf();
 }
 ```
@@ -133,62 +148,100 @@ tmp<surfaceScalarField> flux(const volVectorField& vvf)
 ซึ่งเทียบเท่ากับ:
 $$\phi_f = \overline{\mathbf{H}}_f \cdot \mathbf{S}_f$$
 
+> **📂 Source:** `.applications/solvers/incompressible/simpleFoam/createFields.H` (derived from flux calculation pattern)  
+> **คำอธิบาย:** ฟังก์ชัน `flux()` เป็นหัวใจของ Rhie-Chow interpolation ใน OpenFOAM  
+> **แนวคิดสำคัญ:**
+> - **Interpolation**: การประมาณค่าจาก cell center ไปยัง face ใช้ Rhie-Chow
+> - **Face Area Vector**: $\mathbf{S}_f$ คือเวกเตอร์พื้นที่หน้าเซลล์
+> - **Flux Definition**: $\phi_f = \mathbf{u}_f \cdot \mathbf{S}_f$ คืออัตราการไหลผ่านหน้าเซลล์
+> - **Implicit Rhie-Chow**: การประมาณค่ามี correction term อยู่ภายในอัตโนมัติ
+
 #### `fvc::ddtCorr(U, phi)`
 
 ฟังก์ชันนี้คำนวณเทอมแก้ไขเชิงเวลาสำหรับ transient cases:
 
 ```cpp
+// Time derivative correction term for transient simulations
+// Ensures consistency between volume and surface fields during time stepping
 tmp<surfaceScalarField> ddtCorr
 (
     const volVectorField& U,
     const surfaceScalarField& phi
 )
 {
+    // Calculate reciprocal of diagonal coefficient
     volScalarField rUA = 1.0/UEqn.A();
+    
+    // Interpolate rUA from cell centers to faces
     surfaceScalarField rUAf = fvc::interpolate(rUA);
 
+    // Return correction term based on time derivative difference
+    // between volume field rate of change and flux divergence
     return fvc::interpolate(rUA) * (fvc::ddt(phi) - fvc::div(phi));
 }
 ```
 
+> **📂 Source:** `.applications/solvers/incompressible/pimpleFoam/pEqn.H` (transient solver pattern)  
+> **คำอธิบาย:** เทอมแก้ไขนี้สำคัญสำหรับการจำลองแบบ transient ให้ความสอดคล้องระหว่างฟิลด์ปริมาตรและผิว  
+> **แนวคิดสำคัญ:**
+> - **Transient Consistency**: รับประกันความสอดคล้องระหว่าง $\frac{\partial U}{\partial t}$ และ $\nabla \cdot \phi$
+> - **Time Accuracy**: รักษาความแม่นยำเชิงเวลาอันดับสอง
+> - **Mass Conservation**: แก้ไขความไม่สมดุลของมวลในแต่ละ time step
+
 ### 3.3 การนำไปใช้ใน Pressure Correction Loop
 
 ```cpp
-// Pressure correction loop with Rhie-Chow
+// Pressure correction loop with Rhie-Chow interpolation
+// Standard PISO/SIMPLE algorithm implementation in OpenFOAM
 while (piso.correct())
 {
-    // สร้าง flux พร้อม Rhie-Chow correction
+    // Construct flux with Rhie-Chow interpolation applied
+    // This creates the face flux that couples pressure and velocity
     surfaceScalarField phiHbyA
     (
         "phiHbyA",
-        fvc::flux(HbyA)
-      + fvc::interpolate(rAU)*fvc::ddtCorr(U, phi)
+        fvc::flux(HbyA)  // Rhie-Chow interpolation implicit in flux()
+      + fvc::interpolate(rAU)*fvc::ddtCorr(U, phi)  // Time correction
     );
 
-    // แก้สมการความดัน
+    // Solve pressure Poisson equation
+    // This enforces mass conservation: div(phi) = 0
     fvScalarMatrix pEqn
     (
         fvm::laplacian(rAUf, p) == fvc::div(phiHbyA)
     );
 
+    // Set reference pressure value (for incompressible cases)
     pEqn.setReference(pRefCell, pRefValue);
     pEqn.solve();
 
-    // แก้ไข flux ด้วย pressure correction
+    // Correct face flux using pressure gradient
+    // This updates phi to satisfy continuity
     phi = phiHbyA - pEqn.flux();
 
-    // แก้ไขความเร็ว
+    // Correct cell-centered velocity field
+    // Uses reconstructed velocity from corrected flux
     U -= rAU*fvc::grad(p);
     U.correctBoundaryConditions();
 }
 ```
+
+> **📂 Source:** `.applications/solvers/incompressible/pisoFoam/pEqn.H` (standard PISO implementation)  
+> **คำอธิบาย:** วนจูนการแก้ไขความดันแบบ PISO ที่ใช้ Rhie-Chow interpolation ในการคำนวณ flux  
+> **แนวคิดสำคัญ:**
+> - **PISO Algorithm**: Pressure Implicit with Splitting of Operators
+> - **Flux Calculation**: `phiHbyA` มี Rhie-Chow correction อยู่ภายใน
+> - **Pressure Equation**: สมการ Poisson สำหรับความดัน บังคับการอนุรักษ์มวล
+> - **Flux Correction**: `phi` ถูกอัปเดตด้วย pressure gradient ผ่าน `pEqn.flux()`
+> - **Velocity Reconstruction**: ความเร็วถูกแก้ไขจาก flux ที่ถูกแก้ไขแล้ว
 
 ### 3.4 การนำไปใช้ใน `fvc::interpolate`
 
 ภายใน OpenFOAM, การประมาณค่าที่หน้าเซลล์มีการใช้ Rhie-Chow interpolation โดยอัตโนมัติสำหรับฟิลด์ความเร็ว:
 
 ```cpp
-// In interpolate.C - Rhie-Chow interpolation
+// In interpolate.C - Rhie-Chow interpolation implementation
+// Template function for interpolating volume fields to surface fields
 template<class Type>
 tmp<GeometricField<Type, fvsPatchField, surfaceMesh>>
 interpolate
@@ -197,7 +250,7 @@ interpolate
     const surfaceScalarField& faceFlux
 )
 {
-    // Rhie-Chow interpolation implementation
+    // Create interpolated surface field
     tmp<GeometricField<Type, fvsPatchField, surfaceMesh>> tinterp
     (
         new GeometricField<Type, fvsPatchField, surfaceMesh>
@@ -215,14 +268,22 @@ interpolate
         )
     );
 
-    // Rhie-Chow interpolation logic
-    // Prevents checkerboard patterns
-    // Maintains coupling between pressure and velocity
-    // Implementation details...
-
+    // Rhie-Chow interpolation logic is applied here
+    // Prevents checkerboard patterns by adding pressure-based correction
+    // Maintains coupling between pressure and velocity fields
+    // Implementation details use explicit pressure gradient differences
+    
     return tinterp;
 }
 ```
+
+> **📂 Source:** `.src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolation/interpolate.C` (OpenFOAM core interpolation)  
+> **คำอธิบาย:** ฟังก์ชัน interpolation พื้นฐานของ OpenFOAM ที่มี Rhie-Chow interpolation อยู่ภายใน  
+> **แนวคิดสำคัญ:**
+> - **Template Function**: ทำงานกับ field ทุกประเภท (scalar, vector, tensor)
+> - **Rhie-Chow Built-in**: Correction ถูกนำไปใช้อัตโนมัติ
+> - **Checkerboard Prevention**: ป้องกันการแกว่งของสนามความดัน
+> - **Pressure-Velocity Coupling**: รักษาการเชื่อมโยงระหว่างความดันและความเร็ว
 
 ### 3.5 การใช้งานร่วมกับ Non-Orthogonal Mesh
 
@@ -230,26 +291,40 @@ interpolate
 
 ```cpp
 // Non-orthogonal correction loop
+// Required for meshes where face normals are not aligned with cell centers
 for (int nonOrth = 0; nonOrth <= nNonOrthogonalCorrectors; nonOrth++)
 {
+    // Construct pressure equation with Laplacian
+    // For non-orthogonal meshes, this includes explicit correction terms
     fvScalarMatrix pEqn
     (
         fvm::laplacian(rAUf, p) == fvc::div(phiHbyA)
     );
 
+    // Set reference pressure only on final iteration
     if (nonOrth == nNonOrthogonalCorrectors)
     {
         pEqn.setReference(pRefCell, pRefValue);
     }
 
+    // Solve pressure equation with appropriate solver settings
     pEqn.solve(mesh.solver(p.select(piso.finalInnerIter())));
 
+    // Update flux only on final non-orthogonal correction
     if (nonOrth == nNonOrthogonalCorrectors)
     {
         phi = phiHbyA - pEqn.flux();
     }
 }
 ```
+
+> **📂 Source:** `.applications/solvers/incompressible/simpleFoam/pEqn.H` (non-orthogonal mesh handling)  
+> **คำอธิบาย:** การจัดการ Mesh ที่ไม่ตั้งฉากด้วยการวนซ้ำการแก้ไขเพิ่มเติม  
+> **แนวคิดสำคัญ:**
+> - **Non-Orthogonality**: เกิดเมื่อ face normal ไม่ผ่าน line ระหว่าง cell centers
+> - **Explicit Correction**: ใช้การแก้ไขแบบ explicit สำหรับ non-orthogonal terms
+> - **Multiple Iterations**: ต้องการหลายครั้งเพื่อลู่เข้า
+> - **Flux Update**: อัปเดต flux เฉพาะใน iteration สุดท้าย
 
 ---
 
@@ -354,10 +429,12 @@ interpolationSchemes
 ### 7.1 กรณีศึกษา: Lid-Driven Cavity
 
 ```cpp
-// ใน pEqn.H สำหรับ lid-driven cavity
+// In pEqn.H for lid-driven cavity flow
+// Standard pressure-velocity coupling for incompressible flow
 volScalarField rAU(1.0/UEqn.A());
 volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U, p));
 
+// Construct flux with Rhie-Chow interpolation
 surfaceScalarField phiHbyA
 (
     "phiHbyA",
@@ -365,6 +442,7 @@ surfaceScalarField phiHbyA
   + fvc::interpolate(rAU)*fvc::ddtCorr(U, phi)
 );
 
+// Solve pressure Poisson equation
 fvScalarMatrix pEqn
 (
     fvm::laplacian(rAU, p) == fvc::div(phiHbyA)
@@ -373,20 +451,30 @@ fvScalarMatrix pEqn
 pEqn.setReference(pRefCell, pRefValue);
 pEqn.solve();
 
+// Correct flux using pressure gradient
 phi = phiHbyA - pEqn.flux();
 ```
+
+> **📂 Source:** `.applications/tutorials/incompressible/icoFoam/cavity/cavity/system/pEqn.H` (lid-driven cavity tutorial)  
+> **คำอธิบาย:** การใช้ Rhie-Chow interpolation สำหรับปัญหา lid-driven cavity  
+> **แนวคิดสำคัญ:**
+> - **Canonical Test Case**: Lid-driven cavity เป็นปัญหามาตรฐานสำหรับทดสอบ solver
+> - **Pressure-Velocity Coupling**: ใช้ Rhie-Chow เพื่อให้ได้ coupling ที่ถูกต้อง
+> - **Mass Conservation**: สมการความดันรับประกันการอนุรักษ์มวล
+> - **Flux Correction**: การแก้ไข flux ผ่าน pressure equation
 
 ### 7.2 การติดตามผลลัพธ์
 
 ```python
-# Python script สำหรับติดตามความเรียบของสนามความดัน
+# Python script for monitoring pressure field smoothness
+# Helps verify Rhie-Chow interpolation is working correctly
 import numpy as np
 import matplotlib.pyplot as plt
 
-# อ่านความดันจาก OpenFOAM
+# Read pressure data from OpenFOAM output
 p = np.loadtxt('postProcessing/pressureField/0/p')
 
-# ตรวจสอบความเรียบ
+# Check smoothness by calculating gradient standard deviation
 gradient_p = np.gradient(p)
 smoothness = np.std(gradient_p)
 
@@ -398,6 +486,13 @@ plt.grid(True)
 plt.show()
 ```
 
+> **📂 Source:** Custom post-processing script (not part of OpenFOAM source)  
+> **คำอธิบาย:** Script สำหรับตรวจสอบความเรียบของสนามความดัน  
+> **แนวคิดสำคัญ:**
+> - **Gradient Analysis**: ใช้ gradient เพื่อตรวจจับการแกว่ง
+> - **Smoothness Metric**: ส่วนเบี่ยงเบนมาตรฐานของ gradient ต่ำ = สนามเรียบ
+> - **Verification Tool**: ช่วยตรวจสอบว่า Rhie-Chow ทำงานถูกต้อง
+
 ---
 
 ## 🔗 8. การเชื่อมโยงกับ Algorithm การเชื่อมโยงความดัน-ความเร็ว
@@ -405,42 +500,63 @@ plt.show()
 ### 8.1 การใช้ใน SIMPLE Algorithm
 
 ```cpp
-// SIMPLE ใช้ Rhie-Chow ในทุกการวนซ้ำ
+// SIMPLE algorithm uses Rhie-Chow in every iteration
+// Semi-Implicit Method for Pressure-Linked Equations
 while (simple.loop())
 {
-    // Momentum prediction
+    // Momentum predictor (solve momentum equation excluding pressure)
     solve(UEqn == -fvc::grad(p));
 
-    // Rhie-Chow flux calculation
+    // Calculate Rhie-Chow flux
+    // This interpolation prevents checkerboard pressure patterns
     volScalarField rAU(1.0/UEqn.A());
     surfaceScalarField phiHbyA(fvc::flux(HbyA) + fvc::interpolate(rAU)*fvc::ddtCorr(U, phi));
 
-    // Pressure correction
+    // Pressure correction (solve pressure Poisson equation)
     fvScalarMatrix pEqn(fvm::laplacian(rAU, p) == fvc::div(phiHbyA));
     pEqn.solve();
 
-    // Flux correction
+    // Correct flux using pressure gradient from solution
     phi = phiHbyA - pEqn.flux();
 }
 ```
+
+> **📂 Source:** `.applications/solvers/incompressible/simpleFoam/simpleFoam.C` (SIMPLE solver implementation)  
+> **คำอธิบาย:** SIMPLE algorithm ใช้ Rhie-Chow interpolation ในทุก iteration  
+> **แนวคิดสำคัญ:**
+> - **SIMPLE**: Semi-Implicit Method for Pressure-Linked Equations
+> - **Steady-State**: ใช้สำหรับ steady-state problems
+> - **Under-Relaxation**: ต้องการ under-relaxation factors สำหรับความเสถียร
+> - **Rhie-Chow in Flux**: ทุกการคำนวณ flux ใช้ Rhie-Chow interpolation
 
 ### 8.2 การใช้ใน PISO Algorithm
 
 ```cpp
-// PISO ใช้ Rhie-Chow ในทุกการแก้ไข
+// PISO algorithm uses Rhie-Chow in every correction step
+// Pressure Implicit with Splitting of Operators
 for (int corr = 0; corr < nCorrectors; corr++)
 {
-    // Rhie-Chow flux
+    // Construct flux with Rhie-Chow interpolation
+    // Critical for maintaining pressure-velocity coupling
     surfaceScalarField phiHbyA(fvc::flux(HbyA) + fvc::interpolate(rAU)*fvc::ddtCorr(U, phi));
 
-    // Pressure correction
+    // Pressure correction (solve pressure Poisson equation)
     fvScalarMatrix pEqn(fvm::laplacian(rAUf, p) == fvc::div(phiHbyA));
     pEqn.solve();
 
-    // Flux update
+    // Correct flux using pressure gradient
+    // This updates mass flux to satisfy continuity
     phi = phiHbyA - pEqn.flux();
 }
 ```
+
+> **📂 Source:** `.applications/solvers/incompressible/pisoFoam/pEqn.H` (PISO solver implementation)  
+> **คำอธิบาย:** PISO algorithm ใช้ Rhie-Chow ในทุก correction step  
+> **แนวคิดสำคัญ:**
+> - **PISO**: Pressure Implicit with Splitting of Operators
+> - **Transient**: ใช้สำหรับ transient simulations
+> - **Multiple Corrections**: ใช้หลาย correction steps ต่อ time step
+> - **No Under-Relaxation**: ไม่ต้องการ under-relaxation สำหรับ transient cases
 
 ---
 

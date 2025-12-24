@@ -42,8 +42,9 @@ graph TD
     FS1 --> |reports| OR
     FS2 --> |reports| OR
     FS3 --> |reports| OR
+end
 ```
-> **Figure 1:** อุปมาเปรียบเทียบระบบการจัดการข้อมูลของ OpenFOAM กับเครือข่ายสถานีตรวจอากาศระดับชาติ ซึ่งแสดงให้เห็นถึงการประสานงานระหว่างส่วนควบคุมกลาง สำนักงานภูมิภาค และสถานีตรวจวัดในพื้นที่ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** อุปมาเปรียบเทียบระบบการจัดการข้อมูลของ OpenFOAM กับเครือข่ายสถานีตรวจอากาศระดับชาติ ซึ่งแสดงให้เห็นถึงการประสานงานระหว่างส่วนควบคุมกลาง สำนักงานภูมิภาค และสถานีตรวจวัดในพื้นที่
 
 ## 📊 Mapping to OpenFOAM Architecture
 
@@ -74,17 +75,36 @@ Field<scalar> temperatureAtStation;
 
 // Calibrated station with unit tracking = DimensionedField<scalar>
 DimensionedField<scalar, volMesh> calibratedTemperature(
-    "T",
-    dimensionSet(0, 0, 0, 1, 0, 0, 0),  // Temperature dimensions [K]
-    temperatureValues
+    "T",                                                                  // Field name
+    dimensionSet(0, 0, 0, 1, 0, 0, 0),                                   // Temperature dimensions [K]
+    temperatureValues                                                   // Field values
 );
 
 // Complete weather network = GeometricField
 GeometricField<scalar, fvPatchField, volMesh> temperatureField(
-    IOobject("T", runTime.timeName(), mesh, IOobject::MUST_READ),
-    mesh
+    IOobject("T", runTime.timeName(), mesh, IOobject::MUST_READ),       // I/O object with time directory
+    mesh                                                                // Mesh reference
 );
 ```
+
+> **📂 Source:** OpenFOAM implementation reference for field construction patterns can be found in:
+> `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatWallBoilingWallFunction/alphatWallBoilingWallFunctionFvPatchScalarField.C:70-94`
+
+> **คำอธิบายภาษาไทย (Thai Explanation):**
+>
+> **แหล่งที่มา (Source):**
+> โค้ดตัวอย่างนี้แสดงลาย签名้นของการสร้างฟิลด์ใน OpenFOAM ซึ่งสามารถพบได้ในไฟล์การ implement boundary condition ของ multiphaseEulerFoam solver
+>
+> **คำอธิบาย (Explanation):**
+> - `Field<scalar>`: เป็นคลาสพื้นฐานสำหรับเก็บข้อมูลสเกลาร์ในหน่วยความจำ ไม่มีข้อมูลเกี่ยวกับตำแหน่งเชิงเรขาคณิต หรือหน่วยของฟิสิกส์
+> - `DimensionedField<scalar, volMesh>`: เพิ่มความสามารถในการติดตามหน่วยฟิสิกส์ (dimensionSet) ซึ่งช่วยป้องกันความผิดพลาดในการคำนวณที่เกี่ยวข้องกับหน่วย
+> - `GeometricField<scalar, fvPatchField, volMesh>`: ฟิลด์สมบูรณ์ที่มีทั้งค่าขอบเขต (boundary conditions) และข้อมูลเชิงเรขาคณิตบน mesh
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **IOobject**: ใช้ในการกำหนดวิธีการอ่าน/เขียนข้อมูล และเชื่อมโยงฟิลด์กับเวลาปัจจุบันของจำลอง
+> - **runTime.timeName()**: สร้างชื่อไดเรกทอรีตามเวลา (เช่น "0", "0.01", "0.02") สำหรับการบันทึกผลลัพธ์
+> - **mesh**: อ้างอิงถึงโครงสร้างเชิงเรขาคณิตที่ฟิลด์ถูกกำหนด
+> - **Template parameters**: `<scalar, fvPatchField, volMesh>` ระบุประเภทข้อมูล ประเภท boundary field และประเภท mesh
 
 ## 🧮 Mathematical Foundation
 
@@ -102,13 +122,15 @@ $$\mathbf{u}(\mathbf{x},t) = \sum_{i=1}^{N} \mathbf{u}_i(t) \phi_i(\mathbf{x})$$
 Just as weather regional offices manage geographic boundaries with different conditions:
 
 ```cpp
+// Set inlet boundary condition - fixed temperature
 temperatureField.boundaryField()[0] == fixedValueFvPatchField<scalar>(
-    temperatureField.boundaryField()[0],
-    300.0  // Constant temperature at inlet (Celsius)
+    temperatureField.boundaryField()[0],    // Reference to boundary patch
+    300.0                                    // Constant temperature (K)
 );
 
+// Set outlet boundary condition - zero gradient
 temperatureField.boundaryField()[1] == zeroGradientFvPatchField<scalar>(
-    temperatureField.boundaryField()[1]  // No temperature change at outlet
+    temperatureField.boundaryField()[1]     // Zero gradient means no change
 );
 ```
 
@@ -127,20 +149,42 @@ graph LR
     BC1 --> |Fixed: 300K| IF
     BC2 --> |Zero Gradient| IF
     BC3 --> |Adiabatic| IF
+end
 ```
-> **Figure 2:** การจัดการเงื่อนไขขอบเขตเสมือนสำนักงานภูมิภาคที่ควบคุมพฤติกรรมของข้อมูลในแต่ละโซนของโดเมนการคำนวณความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 2:** การจัดการเงื่อนไขขอบเขตเสมือนสำนักงานภูมิภาคที่ควบคุมพฤติกรรมของข้อมูลในแต่ละโซนของโดเมนการคำนวณ
+
+> **📂 Source:** Boundary condition implementation patterns reference:
+> `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatWallBoilingWallFunction/alphatWallBoilingWallFunctionFvPatchScalarField.C:294-674`
+
+> **คำอธิบายภาษาไทย (Thai Explanation):**
+>
+> **แหล่งที่มา (Source):**
+> โค้ดนี้แสดงรูปแบบการตั้งค่า boundary condition ซึ่งเป็นรูปแบบมาตรฐานที่พบได้ในการ implement derived boundary conditions ใน OpenFOAM
+>
+> **คำอธิบาย (Explanation):**
+> - **boundaryField()**: คืนค่ารายการของ boundary patches ทั้งหมดที่มีอยู่ในฟิลด์
+> - **fixedValueFvPatchField**: boundary condition ที่กำหนดค่าคงที่ที่ขอบเขต (เช่น อุณหภูมินำเข้า)
+> - **zeroGradientFvPatchField**: boundary condition ที่ไม่มีการเปลี่ยนแปลงของค่าในทิศทางปกติ (normal direction)
+> - **Patch indexing**: [0], [1] คือ index ของ boundary patches ที่กำหนดใน mesh (เช็คได้จาก boundary file)
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Boundary Conditions (เงื่อนไขขอบเขต)**: คือการระบุพฤติกรรมของฟิลด์ที่ผิวขอบเขตของโดเมนการคำนวณ
+> - **Patch Selection**: แต่ละ patch สามารถมี boundary condition ที่แตกต่างกันได้
+> - **Virtual Constructor Pattern**: การใช้ `==` operator เป็นวิธีการ assign boundary condition แบบ polymorphic
+> - **Runtime Selection**: boundary conditions ถูกสร้างจาก dictionary ใน time directory
 
 ## 🔗 Mesh Integration
 
 The `fvMesh` provides the geometric framework:
 
 ```cpp
+// Create mesh object from case directory
 fvMesh mesh(
     IOobject(
-        "region0",
-        runTime.timeName(),
-        runTime,
-        IOobject::MUST_READ
+        "region0",                    // Region name
+        runTime.timeName(),           // Current time directory
+        runTime,                      // Time object reference
+        IOobject::MUST_READ           // Read from disk
     )
 );
 ```
@@ -149,6 +193,26 @@ fvMesh mesh(
 - **Station positions** (cell centers)
 - **Communication paths** (face connections)
 - **Regional boundaries** (patch definitions)
+
+> **📂 Source:** Mesh construction pattern reference:
+> `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructor.C:56-93`
+
+> **คำอธิบายภาษาไทย (Thai Explanation):**
+>
+> **แหล่งที่มา (Source):**
+> รูปแบบการสร้าง mesh object นี้พบได้ใน utilities ที่ทำงานกับ mesh ใน OpenFOAM
+>
+> **คำอธิบาย (Explanation):**
+> - **IOobject**: เป็นคลาสที่ใช้จัดการการอ่าน/เขียนไฟล์ โดยระบุชื่อไฟล์, ตำแหน่ง, และวิธีการเข้าถึงข้อมูล
+> - **MUST_READ**: flag ที่ระบุว่า mesh จะต้องถูกอ่านจาก disk (จาก polyMesh directory)
+> - **region0**: ชื่อของ mesh region (สำหรับ multi-region cases)
+> - **runTime.timeName()**: ชี้ไปยัง time directory ปัจจุบัน
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Mesh Structure**: mesh ประกอบด้วย cells, faces, points และ patches
+> - **Time Coordination**: mesh object ถูกเชื่อมโยงกับ time database
+> - **Automatic I/O**: IOobject จัดการการค้นหาและอ่านไฟล์ mesh อัตโนมัติ
+> - **Multi-region Support**: สามารถมีหลาย mesh regions ใน case เดียว
 
 ## 🔄 Data Flow Architecture
 
@@ -160,20 +224,27 @@ The weather station analogy extends to data flow:
 3. **National coordination**: Global field operations and solver integration
 
 ```cpp
-// Local measurements
+// Stage 1: Local measurements - access internal field values
 scalarField& T = temperatureField.primitiveFieldRef();
 
-// Regional boundary conditions
+// Stage 2: Regional boundary conditions - update patch values
 forAll(temperatureField.boundaryField(), patchI)
 {
+    // Get reference to boundary patch
     fvPatchScalarField& patchT = temperatureField.boundaryFieldRef()[patchI];
+    
+    // Update boundary condition coefficients
     patchT.updateCoeffs();
 }
 
-// National coordination
+// Stage 3: National coordination - global field operations
 fvScalarMatrix TEqn(
-    fvm::ddt(T) + fvm::div(phi, T) - fvm::laplacian(DT, T) == source
+    fvm::ddt(T) +           // Time derivative
+    fvm::div(phi, T) -      // Convection term
+    fvm::laplacian(DT, T) == source  // Diffusion term with source
 );
+
+// Solve the equation system
 TEqn.solve();
 ```
 
@@ -200,8 +271,31 @@ flowchart TD
     B2 --> C1
     C1 --> C2
     C1 --> C3
+end
 ```
-> **Figure 3:** สถาปัตยกรรมการไหลของข้อมูลสามระดับ ตั้งแต่การวัดค่าในพื้นที่ การประมวลผลระดับภูมิภาค ไปจนถึงการประสานงานระดับชาติผ่านตัวแก้ปัญหาความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 3:** สถาปัตยกรรมการไหลของข้อมูลสามระดับ ตั้งแต่การวัดค่าในพื้นที่ การประมวลผลระดับภูมิภาค ไปจนถึงการประสานงานระดับชาติผ่านตัวแก้ปัญหา
+
+> **📂 Source:** Field solver integration pattern reference:
+> `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/fixedMultiPhaseHeatFlux/fixedMultiPhaseHeatFluxFvPatchScalarField.H`
+
+> **คำอธิบายภาษาไทย (Thai Explanation):**
+>
+> **แหล่งที่มา (Source):**
+> รูปแบบการสร้างและแก้สมการ solver equations นี้เป็นมาตรฐานใน OpenFOAM solvers
+>
+> **คำอธิบาย (Explanation):**
+> - **primitiveFieldRef()**: คืนค่า reference ถึงค่าฟิลด์ภายใน (internal field values)
+> - **boundaryFieldRef()**: คืนค่า reference ถึง boundary field ที่สามารถแก้ไขได้
+> - **updateCoeffs()**: อัปเดตค่าสัมประสิทธิ์ของ boundary condition สำหรับเวลาปัจจุบัน
+> - **fvScalarMatrix**: matrix equation สำหรับ scalar field (ระบบ linear equations)
+> - **fvm::ddt(), fvm::div(), fvm::laplacian()**: finite volume method discretization operators
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Three-stage Architecture**: การแยกส่วนประมวลผลออกเป็น local, regional, และ global ช่วยเพิ่มประสิทธิภาพ
+> - **Implicit Discretization**: fvm (finite volume method) ใช้สำหรับ implicit terms ในสมการ
+> - **Matrix Assembly**: operators ต่างๆ จะถูก assemble รวมกันเป็น system of linear equations
+> - **Solver Integration**: matrix จะถูกส่งไปยัง linear solver เพื่อหาคำตอบ
+> - **Boundary-Interior Coupling**: ข้อมูลระหว่าง internal field และ boundaries ถูก synchronize อัตโนมัติ
 
 This hierarchical structure enables OpenFOAM to efficiently handle complex CFD calculations while maintaining data consistency and proper physical units throughout the computational domain.
 
@@ -216,10 +310,11 @@ At the programming level, we encounter the following key classes:
 Manages information about the past, present, and future of the simulation:
 
 ```cpp
+// Create Time object for simulation control
 Time runTime
 (
-    "root",         // Case root directory
-    "caseName",     // Case name
+    "root",         // Case root directory path
+    "caseName",     // Name of the case
     "system",       // System dictionary folder
     "constant"      // Constant dictionary folder
 );
@@ -230,16 +325,39 @@ Time runTime
 - Time directory management: `timeName()`, `timePath()`
 - Simulation loop control: `runTime.loop()`, `runTime.write()`
 
+> **📂 Source:** Time class initialization reference:
+> `.applications/utilities/preProcessing/setWaves/setWaves.C`
+
+> **คำอธิบายภาษาไทย (Thai Explanation):**
+>
+> **แหล่งที่มา (Source):**
+> การใช้ Time class เป็นมาตรฐานในทุก OpenFOAM application
+>
+> **คำอธิบาย (Explanation):**
+> - **Time object**: เป็นตัวควบคุมหลักของ temporal evolution ใน simulation
+> - **Root directory**: ตำแหน่งที่ตั้งของ case folder
+> - **Case name**: ชื่อของ case ที่ใช้สร้าง time directories
+> - **System/constant folders**: directories ที่เก็บ configuration และ mesh data
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Temporal Database**: Time class จัดการ time directories และ checkpointing
+> - **Simulation Loop**: ควบคุมการวนซ้ำของ simulation time steps
+> - **Time Stepping Control**: จัดการ deltaT, start time, end time
+> - **Output Control**: กำหนดเวลาที่จะบันทึกผลลัพธ์ (writeInterval)
+
 ### **2. `objectRegistry`**
 
 Acts as a "phone book" or "database" storing entries for all objects created in the run:
 
 ```cpp
-// The registry stores objects by name
+// Get reference to object registry from mesh
 const objectRegistry& db = mesh.db();
 
-// Lookup objects by name
+// Lookup objects by name from registry
 const volScalarField& p = db.lookupObject<volScalarField>("p");
+
+// Store object in registry
+regIOobject::store(pressureField);
 ```
 
 **Key operations:**
@@ -247,23 +365,67 @@ const volScalarField& p = db.lookupObject<volScalarField>("p");
 - Object lookup: `objectRegistry::lookupObject()`
 - Name-based access: Enables flexible data sharing
 
+> **📂 Source:** Object registry usage pattern reference:
+> `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatWallBoilingWallFunction/alphatWallBoilingWallFunctionFvPatchScalarField.C:302-303`
+
+> **คำอธิบายภาษาไทย (Thai Explanation):**
+>
+> **แหล่งที่มา (Source):**
+> การใช้ objectRegistry พบได้ทั่วไปใน OpenFOAM boundary conditions และ function objects
+>
+> **คำอธิบาย (Explanation):**
+> - **objectRegistry**: เป็น container แบบ centralized ที่เก็บ references ถึง objects ทั้งหมด
+> - **mesh.db()**: mesh object เป็นส่วนหนึ่งของ registry hierarchy
+> - **lookupObject<T>()**: template method สำหรับค้นหา objects ตามชื่อและประเภท
+> - **Type Safety**: template parameter ช่วย verify ประเภทของ object ที่ค้นหา
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Centralized Storage**: objects ทั้งหมดถูกลงทะเบียนใน registry เดียว
+> - **Name-based Lookup**: ใช้ชื่อ (string) ในการค้นหา objects
+> - **Hierarchical Registry**: มีหลายระดับของ registry (mesh, runTime, etc.)
+> - **Inter-object Communication**: objects ต่างๆ สามารถค้นหาและเข้าถึงกันได้ผ่าน registry
+> - **Memory Management**: registry ช่วยจัดการ lifetime ของ objects
+
 ### **3. `regIOobject`**
 
 Base class for objects requiring storage in the Registry and disk I/O capabilities:
 
 ```cpp
+// Base class definition for registered I/O objects
 class regIOobject : public IOobject
 {
-    // Automatic file I/O
+    // Pure virtual method for automatic file writing
     virtual bool writeData(Ostream&) const = 0;
 
-    // Registry management
-    bool checkOut();
-    bool store();
+    // Registry management methods
+    bool checkOut();    // Remove from registry
+    bool store();       // Register in registry
 };
 ```
 
 **Examples:** `fvMesh`, `volScalarField`, `volVectorField`
+
+> **📂 Source:** regIOobject implementation reference:
+> `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructor.C`
+
+> **คำอธิบายภาษาไทย (Thai Explanation):**
+>
+> **แหล่งที่มา (Source):**
+> regIOobject เป็น base class สำคัญที่ใช้กันทั่วไปใน OpenFOAM
+>
+> **คำอธิบาย (Explanation):**
+> - **regIOobject**: คือ "Registered I/O Object" - รวมความสามารถ registry และ I/O
+> - **Inherits from IOobject**: ได้ความสามารถในการอ่าน/เขียนไฟล์มาจาก IOobject
+> - **writeData()**: pure virtual method ที่ derived classes ต้อง implement
+> - **checkOut()**: ลบ object ออกจาก registry (เมื่อไม่ใช้งานแล้ว)
+> - **store()**: ลงทะเบียน object ใน registry (เมื่อสร้างใหม่)
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Automatic Registration**: objects ถูกลงทะเบียนอัตโนมัติเมื่อสร้าง
+> - **Automatic I/O**: สามารถเขียน/อ่านไฟล์อัตโนมัติผ่าน time database
+> - **Polymorphic Base**: หลายประเภทของ objects สืบทอดจากคลาสนี้
+> - **Lifetime Management**: registry จัดการ memory ผ่าน reference counting
+> - **Time Coordination**: objects ถูกเขียนเมื่อ runTime.write() ถูกเรียก
 
 These systems give OpenFOAM extremely high flexibility, as each code component can work together through "deposit and retrieve" data access from the central Registry.
 

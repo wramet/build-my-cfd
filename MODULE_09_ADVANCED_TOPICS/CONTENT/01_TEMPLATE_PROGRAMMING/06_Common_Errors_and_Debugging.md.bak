@@ -1,0 +1,168 @@
+# 06 ตัวอย่างการใช้งานและข้อผิดพลาด: การเรียนรู้จากข้อความของคอมไพเลอร์
+
+**การอ่านข้อความแจ้งเตือนข้อผิดพลาดของเทมเพลต (Template Error Messages)** อาจเป็นเรื่องน่ากลัวสำหรับมือใหม่ แต่หากคุณเข้าใจโครงสร้างของมัน คุณจะพบว่ามันเป็นเครื่องมือในการดีบักที่ทรงพลัง:
+
+### 6.1 การใช้งานที่ถูกต้อง: การดำเนินการที่สอดคล้องกับฟิสิกส์
+
+ระบบวิเคราะห์มิติของ OpenFOAM จะตรวจสอบความถูกต้องทางคณิตศาสตร์ในขณะ compile เมื่อเขียนโค้ดที่มีมิติสอดคล้องกัน compiler จะตรวจสอบฟิสิกส์ของคุณ:
+
+```cpp
+// CORRECT: การดำเนินการที่มีมิติสอดคล้องกัน
+volScalarField p("p", dimensionSet(1, -1, -2, 0, 0, 0, 0));  // ความดัน [Pa]
+volScalarField rho("rho", dimensionSet(1, -3, 0, 0, 0, 0, 0)); // ความหนาแน่น [kg/m³]
+volVectorField U("U", dimensionSet(0, 1, -1, 0, 0, 0, 0));     // ความเร็ว [m/s]
+
+// การบวกปริมาณทางฟิสิกส์เดียวกัน (ทั้งสองเป็นความดัน)
+volScalarField totalPressure = p + p;  // ✓ [Pa] + [Pa] = [Pa]
+
+// การคูณปริมาณที่เข้ากันได้
+volScalarField kineticEnergy = 0.5 * rho * magSqr(U);  // ✓ [kg/m³] * [m²/s²] = [J/m³]
+
+// การหา gradient ของ scalar (ความดัน gradient)
+volVectorField gradP = fvc::grad(p);  // ✓ ∇[Pa] = [Pa/m] (เวกเตอร์)
+```
+
+การวิเคราะห์มิติจะทำตามหลักการของความเป็นเอกภาพของมิติ:
+$$[p] = \text{ML}^{-1}\text{T}^{-2} \quad \text{(ความดัน)}$$
+$$[\rho] = \text{ML}^{-3} \quad \text{(ความหนาแน่น)}$$
+$$[U] = \text{LT}^{-1} \quad \text{(ความเร็ว)}$$
+
+เมื่อคำนวณความหนาแน่นของพลังงานจลน์:
+$$\frac{1}{2}\rho|\mathbf{U}|^2 : \text{ML}^{-3} \times (\text{LT}^{-1})^2 = \text{ML}^{-1}\text{T}^{-2} = \text{[พลังงาน/ปริมาตร]}$$
+
+### 6.2 ข้อผิดพลาดขณะ Compile: ความไม่สอดคล้องของมิติ
+
+OpenFOAM จะตรวจจับความไม่สอดคล้องของมิติในขณะ compile ป้องกันการดำเนินการที่ไร้ความหมายทางฟิสิกส์:
+
+```cpp
+// ERROR: การบวกปริมาณทางฟิสิกส์ที่ไม่เข้ากัน
+volScalarField nonsense = p + U;
+// ❌ ข้อผิดพลาดของ compiler: "Cannot add field p [Pa] to field U [m/s]"
+// ❌ ข้อผิดพลาดทางคณิตศาสตร์: ความดัน + ความเร็ว ไร้ความหมายทางฟิสิกส์
+
+// ERROR: การใช้ gradient ไม่ถูกต้อง
+volScalarField wrongGrad = fvc::grad(p);
+// ❌ ข้อผิดพลาดของ compiler: "Cannot assign volVectorField to volScalarField"
+// ❌ ข้อผิดพลาดทางคณิตศาสตร์: ∇p เป็นเวกเตอร์ ไม่ใช่ scalar!
+
+// ERROR: ค่า template ไม่ตรงกัน
+GeometricField pField;  // ❌ ไม่มีค่า template
+// ถูกต้อง: GeometricField<scalar, fvPatchField, volMesh> pField;
+```
+
+**ข้อผิดพลาดจากความไม่สอดคล้องของมิติที่พบบ่อย:**
+
+1. **การบวกปริมาณทางฟิสิกส์ต่างกัน:**
+   - ข้อผิดพลาด: `p + U` (ความดัน + ความเร็ว)
+   - ปัญหาทางคณิตศาสตร์: ละเมิดหลักการของความเป็นเอกภาพของมิติ
+   - การแก้ไข: ให้แน่ใจว่าพจน์ทั้งหมดมีมิติเหมือนกัน
+
+2. **การกำหนดค่า Gradient ไม่ถูกต้อง:**
+   - ข้อผิดพลาด: `volScalarField gradP = fvc::grad(p)`
+   - ปัญหาทางคณิตศาสตร์: $\nabla p$ สร้างเวกเตอร์ฟิลด์
+   - การแก้ไข: `volVectorField gradP = fvc::grad(p)` หรือ `volScalarField gradPmag = mag(fvc::grad(p))`
+
+3. **ข้อผิดพลาดการระบุ Template:**
+   - ข้อผิดพลาด: ไม่มีค่า template สำหรับ `GeometricField`
+   - การแก้ไข: ระบุ template ให้ครบ `GeometricField<Type, PatchField, GeoMesh>`
+
+### 6.3 ข้อผิดพลาดขณะ Runtime: ความไม่สอดคล้องของ Mesh
+
+แม้ว่ามิติจะตรงกัน แต่ฟิลด์ต้องเป็นของ mesh เดียวกัน:
+
+```cpp
+// ERROR: การดำเนินการบนฟิลด์จาก mesh ต่างกัน
+fvMesh mesh1, mesh2;
+volScalarField p1(IOobject("p", mesh1), mesh1, dimensionedScalar("p", dimPressure, 0));
+volScalarField p2(IOobject("p", mesh2), mesh2, dimensionedScalar("p", dimPressure, 0));
+
+auto sum = p1 + p2;  // ❌ ข้อผิดพลาดขณะ runtime: "Fields on different meshes"
+```
+
+**ข้อกำหนดความสอดคล้องของ Mesh:**
+
+1. **โทโพโลยีเดียวกัน:** ฟิลด์ต้องใช้ cell, faces, points และ connectivity เหมือนกัน
+2. **เงื่อนไขขอบเขตเดียวกัน:** Patches ต้องสอดคล้องกันระหว่าง meshes
+3. **การแบ่งส่วนเดียวกัน:** ในการประมวลผลขนาน ฟิลด์ทั้งสองต้องมีการกระจาย processor เหมือนกัน
+
+**วิธีแก้ไขสำหรับการดำเนินการหลาย Mesh:**
+```cpp
+// วิธีที่ 1: การ Interpolation ระหว่าง meshes
+volScalarField p2_on_mesh1 = interpolation.interpolate(p2);
+volScalarField sum = p1 + p2_on_mesh1;
+
+// วิธีที่ 2: การ Map ฟิลด์ระหว่าง meshes ที่เข้ากันได้
+volScalarField p2_mapped = mapField(p2, mesh2, mesh1);
+```
+
+### 6.4 ข้อความผิดพลาด Template: การถอดรหัส Compiler
+
+ข้อความผิดพลาดของ template ใน OpenFOAM อาจยาว แต่มีข้อมูลวินิจฉัยที่สำคัญ:
+
+```cpp
+// เมื่อคุณเห็นข้อผิดพลาดนี้:
+error: no matching function for call to 'grad(const volScalarField&)'
+note: candidate: template<class Type>
+      tmp<GeometricField<typename gradientType<Type>::type, fvPatchField, volMesh>>
+      fvc::grad(const GeometricField<Type, fvPatchField, volMesh>&)
+note: template argument deduction/substitution failed:
+```
+
+**คู่มือการแปล:**
+
+1. **Template Argument Deduction Failed:**
+   - **ความหมาย:** Compiler ไม่สามารถจับคู่ประเภทฟิลด์ของคุณกับ template ได้
+   - **การตรวจสอบ:** ตรวจสอบว่าประเภทฟิลด์ของคุณตรงกับ template parameter ที่คาดหวัง
+
+2. **No Matching Function Call:**
+   - **ความหมาย:** มี function อยู่แต่ arguments ของคุณไม่ตรงกับ overload ใดๆ
+   - **การตรวจสอบ:** Function signature, argument types และ const-correctness
+
+**Checklist สำหรับ Debugging:**
+
+1. **Headers ที่รวมอยู่:**
+   ```cpp
+   #include "fvc.H"        // สำหรับ fvc::grad
+   #include "fvMesh.H"     // สำหรับ mesh operations
+   #include "volFields.H"  // สำหรับ volScalarField, volVectorField
+   ```
+
+2. **การใช้ Namespace:**
+   ```cpp
+   using namespace Foam;  // จำเป็นสำหรับสัญลักษณ์ OpenFOAM
+   ```
+
+3. **การกำหนดค่าเริ่มต้นของฟิลด์:**
+   ```cpp
+   // ให้แน่ใจว่ามีการสร้างที่ถูกต้อง
+   volScalarField p
+   (
+       IOobject("p", runTime.timeName(), mesh, IOobject::MUST_READ, IOobject::AUTO_WRITE),
+       mesh
+   );
+   ```
+
+4. **การจับคู่ Template Parameter:**
+   ```cpp
+   // ตรวจสอบว่า Type ตรงกับฟิลด์ของคุณ
+   template<class Type>
+   void someFunction(const GeometricField<Type, fvPatchField, volMesh>& field)
+   {
+       // Type ต้องเป็น scalar, vector, tensor, เป็นต้น
+   }
+   ```
+
+**รูปแบบการแก้ไขทั่วไป:**
+
+```cpp
+// รูปแบบที่ 1: การระบุ template อย่างชัดเจน
+auto result = fvc::grad<scalar>(pField);  // บังคับ template scalar
+
+// รูปแบบที่ 2: การแปลงประเภท
+volScalarField pScalar = p;  // ให้แน่ใจว่าประเภทถูกต้องก่อนการดำเนินการ
+
+// รูปแบบที่ 3: Const-correctness
+void someFunction(const volScalarField& p)  // ใช้ const reference
+```
+
+ระบบความปลอดภัยทางมิตินี้เป็นหนึ่งในจุดแข็งของ OpenFOAM ซึ่งตรวจจับข้อผิดพลาดทางคณิตศาสตร์ก่อน runtime และรับประกันการคำนวณที่มีความหมายทางฟิสิกส์

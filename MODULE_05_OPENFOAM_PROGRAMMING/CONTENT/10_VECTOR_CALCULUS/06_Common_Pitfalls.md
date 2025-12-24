@@ -36,20 +36,33 @@ $$\Delta t \leq \frac{\Delta x^2}{2\Gamma}$$
 
 ```cpp
 // ❌ ผิด: ใช้ fvc สำหรับสมการที่ต้องการแก้
+// Using fvc for diffusion term creates explicit scheme - very unstable!
 fvScalarMatrix TEqn
 (
     fvm::ddt(T) + fvc::laplacian(DT, T) == source  // เสถียรมาก!
 );
 
 // ✅ ถูก: ใช้ fvm สำหรับ diffusion terms
+// Implicit treatment of diffusion for unconditional stability
 fvScalarMatrix TEqn
 (
     fvm::ddt(T) + fvm::laplacian(DT, T) == source  // เสถียร
 );
 
 // ✅ ถูก: ใช้ fvc สำหรับ source terms หรือ post-processing
+// Explicit evaluation is acceptable for known fields
 volScalarField diffusionSource = fvc::laplacian(DT, T);  // ถูกต้อง
 ```
+
+**Source:** 📂 `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+**คำอธิบาย (Thai):**
+- **Source**: โค้ดตัวอย่างแสดงการใช้งาน `fvm::laplacian` ในไฟล์ `solidDisplacementThermo.C` ซึ่งเป็นส่วนประกอบของโซลเวอร์การวิเคราะห์ความเค้น (stress analysis solver)
+- **Explanation**: การเลือกระหว่าง `fvc` (explicit) และ `fvm` (implicit) มีผลกระทบอย่างมากต่อความเสถียรของโซลเวอร์ เทอมการแพร่ (diffusion) ที่เป็นส่วนของ unknown variable ควรใช้ `fvm` เพื่อให้ได้ scheme แบบ implicit ซึ่งไม่มีข้อจำกัดด้านเวลา
+- **Key Concepts**: 
+  - **Explicit (fvc)**: คำนวณค่าจาก time step ก่อนหน้า มีเงื่อนไขความเสถียรที่เข้มงวด
+  - **Implicit (fvm)**: คำนวณค่าจาก time step ปัจจุบัน ไร้ขีดจำกัดเวลาแต่ต้องแก้ระบบสมการ
+  - **CFL Condition**: เงื่อนไขความเสถียรสำหรับ explicit schemes
 
 ### กฎพื้นฐาน
 
@@ -77,13 +90,25 @@ volVectorField acc = -fvc::grad(p);
 volVectorField acc = -fvc::grad(p/rho);
 
 // ✅ ถูก: หรือใช้รูปแบบอื่นที่เทียบเท่า
+// Alternative form with same dimensional correctness
 volVectorField acc = -fvc::grad(p) / rho;
 ```
+
+**Source:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+**คำอธิบาย (Thai):**
+- **Source**: ไฟล์ `phaseSystem.C` จากโซลเวอร์ multiphaseEulerFoam แสดงการจัดการ dimensional consistency ในระบบ multiphase
+- **Explanation**: OpenFOAM มีระบบตรวจสอบหน่วย (dimension checking) ที่เข้มงวด การคำนวณความเร่งจาก gradient ของความดันต้องมีการหารด้วยความหนาแน่นเพื่อให้ได้หน่วยที่ถูกต้อง
+- **Key Concepts**:
+  - **Dimensioned Types**: OpenFOAM tracks dimensions through set {mass, length, time, temperature, ...}
+  - **Pressure Gradient**: $\nabla p$ มีหน่วย $[M L^{-2} T^{-2}]$ (Force per volume)
+  - **Acceleration**: มีหน่วย $[L T^{-2}]$ ต้อง divide pressure ด้วย density
 
 ### การตรวจสอบหน่วย
 
 ```cpp
 // ตรวจสอบหน่วยของฟิลด์
+// Debugging dimensions by printing to console
 Info << "Gradient dimensions: " << fvc::grad(p).dimensions() << endl;
 Info << "Acceleration dimensions: " << acc.dimensions() << endl;
 ```
@@ -111,6 +136,7 @@ Info << "Acceleration dimensions: " << acc.dimensions() << endl;
 
 ```cpp
 // ตรวจสอบคุณภาพเมช
+// Check mesh quality metrics
 const polyMesh& mesh = ...;
 
 scalar maxNonOrtho = 0.0;
@@ -119,10 +145,12 @@ scalar maxSkewness = 0.0;
 forAll(mesh.faceAreas(), faceI)
 {
     // ตรวจสอบ non-orthogonality
+    // Calculate angle between face normal and cell-center vector
     scalar nonOrtho = ...;
     maxNonOrtho = max(maxNonOrtho, nonOrtho);
 
     // ตรวจสอบ skewness
+    // Measure how skewed the face is relative to cell centers
     scalar skew = ...;
     maxSkewness = max(maxSkewness, skew);
 }
@@ -131,23 +159,38 @@ Info << "Max non-orthogonality: " << maxNonOrtho << endl;
 Info << "Max skewness: " << maxSkewness << endl;
 ```
 
+**Source:** 📂 `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+**คำอธิบาย (Thai):**
+- **Source**: ไฟล์ `solidDisplacementThermo.C` ใช้งานกับ mesh ผ่าน `fvMesh` class และตรวจสอบ mesh quality เพื่อความเสถียรของการคำนวณ
+- **Explanation**: Mesh quality มีผลต่อความแม่นยำของการคำนวณ discretized operators Non-orthogonality สูงหมายถึง face ไม่ตั้งฉากกับเส้นเชื่อมระหว่าง cell centers ซึ่งทำให้เกิด error ในการคำนวณ gradient
+- **Key Concepts**:
+  - **Non-orthogonality**: มุมระหว่าง face normal และ cell-center vector
+  - **Skewness**: ความไม่สมมาตรของ face position ที่ส่งผลต่อ interpolation accuracy
+  - **Mesh quality limits**: Non-ortho < 70°, Skewness < 0.8 สำหรับความเสถียร
+
 ### วิธีแก้ไข: เลือก Scheme ที่เหมาะสม
 
 เลือกใช้ Scheme ที่มีการแก้ค่าความไม่ตั้งฉากใน `system/fvSchemes`:
 
 ```cpp
+// การเลือก Laplacian Scheme ที่เหมาะสมกับคุณภาพเมช
 laplacianSchemes
 {
-    // แบบพื้นฐาน (เหมาะกับเมชคุณภาพสูง)
+    // แบบพื้นฐาน (เหมาะกับเมชคุณภามสูง)
+    // Basic scheme - only for orthogonal meshes
     default         Gauss linear;
 
     // แก้ไข non-orthogonality (แนะนำ)
+    // Adds correction term for non-orthogonal faces
     default         Gauss linear corrected;
 
     // แก้ไข non-orthogonality ที่รุนแรง
+    // Limited correction for highly non-orthogonal meshes
     default         Gauss linear limited 0.5;
 
     // สำหรับ skewness สูง
+    // Special handling for skewed faces
     default         Gauss linear skewCorrected;
 }
 ```
@@ -189,39 +232,59 @@ checkMesh -allGeometry -allTopology
 
 ```cpp
 // ❌ ERROR: Divergence ของสเกลาร์ไม่ถูกต้อง
+// Divergence requires vector/tensor field input
 // volScalarField wrong = fvc::div(T);
 
 // ✅ CORRECT: Divergence ของเวกเตอร์
+// Correct: divergence of velocity vector field
 volVectorField U(mesh);
 volScalarField divU = fvc::div(U);
 
 // ❌ ERROR: พยายามแปลง fvMatrix เป็น Field
+// fvm returns matrix, not field - cannot directly assign
 // volScalarField wrong = fvm::laplacian(DT, T);
 
 // ✅ CORRECT: ใช้ fvc หากต้องการค่าทันที
+// For immediate evaluation, use fvc (explicit)
 volScalarField laplacianT = fvc::laplacian(DT, T);
 
 // ✅ CORRECT: ใช้ fvm สำหรับการแก้สมการ
+// fvm creates matrix for solving - must call solve()
 fvScalarMatrix TEqn(fvm::laplacian(DT, T));
 TEqn.solve();
 
 // ❌ ERROR: Curl ของสเกลาร์
+// Curl operator only defined for vector fields
 // volVectorField wrong = fvc::curl(p);
 
 // ✅ CORRECT: Curl ของเวกเตอร์
+// Correct: curl of velocity gives vorticity
 volVectorField vorticity = fvc::curl(U);
 ```
+
+**Source:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/ThermalPhaseChangePhaseSystem/ThermalPhaseChangePhaseSystem.C`
+
+**คำอธิบาย (Thai):**
+- **Source**: ไฟล์ `ThermalPhaseChangePhaseSystem.C` แสดงการใช้งาน field operations ที่หลากหลายในระบบ multiphase ที่ซับซ้อน
+- **Explanation**: OpenFOAM มี type system ที่เข้มงวด ตัวดำเนินการแต่ละตัวมีความต้องการเฉพาะเกี่ยวกับประเภทฟิลด์ (Scalar, Vector, Tensor) การผิดพลาดจะถูกจับได้ตั้งแต่ compile-time
+- **Key Concepts**:
+  - **Type Safety**: Compile-time checking prevents invalid operations
+  - **Field Types**: `volScalarField`, `volVectorField`, `volTensorField`
+  - **Operators**: Divergence reduces tensor rank by 1 (vector→scalar)
+  - **fvm vs fvc Return Types**: `fvm` returns `fvMatrix`, `fvc` returns `GeometricField`
 
 ### การตรวจสอบประเภทขณะ compile-time
 
 ```cpp
 // ตรวจสอบประเภทด้วย static_assert (C++11)
+// Compile-time type checking for safety
 static_assert(
     std::is_same<decltype(fvc::grad(p)), volVectorField>::value,
     "Gradient of scalar must be vector field"
 );
 
 // ใช้ decltype สำหรับการอนุมานประเภทอัตโนมัติ
+// Type deduction for automatic variable typing
 auto gradP = fvc::grad(p);  // gradP มีประเภท volVectorField
 ```
 
@@ -250,6 +313,7 @@ auto gradP = fvc::grad(p);  // gradP มีประเภท volVectorField
 
 ```cpp
 // ตรวจสอบสมดุลมวลสำหรับการไหลแบบอินคอมเพรสซิเบิล
+// Continuity error check for incompressible flow
 volScalarField continuityError = fvc::div(U);
 
 scalar maxContinuityError = max(mag(continuityError));
@@ -259,12 +323,24 @@ Info << "Max continuity error: " << maxContinuityError << endl;
 Info << "Sum continuity error: " << sumContinuityError << endl;
 
 // ค่าควรอยู่ในช่วงความแม่นยำของเครื่อง (~1e-10)
+// Should be near machine precision for incompressible flow
 ```
+
+**Source:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+**คำอธิบาย (Thai):**
+- **Source**: ไฟล์ `phaseSystem.C` จาก multiphaseEulerFoam มีการตรวจสอบ mass conservation สำหรับ multiphase flows
+- **Explanation**: การตรวจสอบ conservation laws เป็นเครื่องมือสำคัญในการ valid ผลลัพธ์ CFD สำหรับ incompressible flow divergence ของ velocity ควรเป็นศูนย์ (continuity equation)
+- **Key Concepts**:
+  - **Continuity Equation**: $\nabla \cdot \mathbf{U} = 0$ สำหรับ incompressible flow
+  - **Conservation Check**: ตรวจสอบว่า solver คงรักษา conservation laws หรือไม่
+  - **Machine Precision**: ค่า error ควรอยู่ในช่วง $10^{-10}$ ถึง $10^{-15}$
 
 ### การตรวจสอบ Boundaries
 
 ```cpp
 // ตรวจสอบค่าขอบเขตหลังจากการคำนวณ gradient
+// Debug boundary field values after gradient calculation
 volVectorField gradP = fvc::grad(p);
 
 forAll(gradP.boundaryField(), patchi)
@@ -278,6 +354,7 @@ forAll(gradP.boundaryField(), patchi)
 
 ```cpp
 // สำหรับปัญหาการนำความร้อน
+// Energy balance check for heat conduction
 volScalarField heatGen = fvc::laplacian(kappa, T);  // [W/m³]
 scalar totalHeatGen = sum(heatGen * mesh.V());
 
@@ -302,6 +379,7 @@ Info << "Total heat generation: " << totalHeatGen << " W" << endl;
 
 ```cpp
 // ใน system/fvSchemes
+// Numerical scheme configuration
 
 gradSchemes
 {
@@ -358,16 +436,29 @@ foamListTimes
 
 ```cpp
 // ใช้ fvm:: สำหรับ:
-fvm::ddt(T)           // Temporal derivatives
-fvm::div(phi, T)      // Convection terms
-fvm::laplacian(DT, T) // Diffusion terms
+// Use fvm for implicit discretization of main equation terms
+fvm::ddt(T)           // Temporal derivatives - always implicit
+fvm::div(phi, T)      // Convection terms - implicit for stability
+fvm::laplacian(DT, T) // Diffusion terms - implicit required
 
 // ใช้ fvc:: สำหรับ:
-fvc::grad(p)          // Pressure gradients
-fvc::div(U)           // Divergence checks
-fvc::curl(U)          // Vorticity calculations
-fvc::interpolate(U)   // Face interpolations
+// Use fvc for explicit evaluation of known quantities
+fvc::grad(p)          // Pressure gradients - explicit evaluation
+fvc::div(U)           // Divergence checks - post-processing
+fvc::curl(U)          // Vorticity calculations - derived quantity
+fvc::interpolate(U)   // Face interpolations - geometric operation
 ```
+
+**Source:** 📂 `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+**คำอธิบาย (Thai):**
+- **Source**: ไฟล์ `solidDisplacementThermo.C` แสดงการใช้งานทั้ง `fvm` (ในการแก้สมการ) และ `fvc` (สำหรับการคำนวณค่าต่างๆ)
+- **Explanation**: การเลือกระหว่าง explicit และ implicit discretization เป็นการ trade-off ระหว่างความเสถียร ความแม่นยำ และต้นทุนการคำนวณ Implicit schemes สร้างเมทริกซ์ที่ต้องแก้ แต่ไม่มีข้อจำกัดเวลา
+- **Key Concepts**:
+  - **Explicit (fvc)**: คำนวณโดยตรงจากค่าที่รู้ ไม่ต้องแก้เมทริกซ์
+  - **Implicit (fvm)**: สร้างระบบสมการเชิงเส้น ต้องแก้ด้วย linear solver
+  - **Matrix Assembly**: fvm operations build coefficient matrix
+  - **CFL Condition**: Explicit schemes มีขีดจำกัดความเร็บ wave
 
 ---
 
@@ -379,6 +470,7 @@ fvc::interpolate(U)   // Face interpolations
 
 ```cpp
 // ❌ PROBLEMATIC
+// Explicit treatment of both convection and diffusion - unstable!
 fvScalarMatrix TEqn
 (
     fvm::ddt(T) + fvc::div(phi, T) - fvc::laplacian(DT, T) == source
@@ -393,6 +485,7 @@ fvScalarMatrix TEqn
 
 ```cpp
 // ✅ CORRECT
+// Fully implicit treatment for unconditional stability
 fvScalarMatrix TEqn
 (
     fvm::ddt(T) + fvm::div(phi, T) - fvm::laplacian(DT, T) == source
@@ -405,9 +498,11 @@ fvScalarMatrix TEqn
 
 ```cpp
 // ❌ ERROR
+// Type mismatch: curl returns vector, not scalar
 volScalarField vorticity = fvc::curl(U);  // Type mismatch!
 
 // ✅ CORRECT
+// First calculate vorticity vector, then magnitude
 volVectorField vorticityVec = fvc::curl(U);
 volScalarField vorticityMag = mag(vorticityVec);
 ```
@@ -418,11 +513,23 @@ volScalarField vorticityMag = mag(vorticityVec);
 
 ```cpp
 // ❌ WRONG UNITS
+// Dimensional inconsistency in buoyancy force calculation
 volVectorField F_buoyancy = fvc::grad(p) * g;  // [Force/Volume] * [Acceleration]
 
 // ✅ CORRECT
+// Buoyancy force based on density difference
 volVectorField F_buoyancy = (rho - rhoRef) * g;  // [Mass/Volume] * [Acceleration]
 ```
+
+**Source:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**คำอธิบาย (Thai):**
+- **Source**: ไฟล์ `kineticTheoryModel.C` จาก multiphaseEulerFoam แสดงการคำนวณ forces และ phase interactions ที่ซับซ้อน
+- **Explanation**: กรณีศึกษาเหล่านี้แสดงข้อผิดพลาดที่พบบ่อยในการพัฒนา solver OpenFOAM การเข้าใจ dimensional analysis และ type system เป็นสิ่งสำคัญ
+- **Key Concepts**:
+  - **Vorticity**: $\boldsymbol{\omega} = \nabla \times \mathbf{U}$ เป็น vector field
+  - **Buoyancy Force**: $F_b = (\rho - \rho_{ref})\mathbf{g}$ ขึ้นกับความต่างความหนาแน่น
+  - **Dimensional Consistency**: ทุก term ในสมการต้องมีหน่วยเดียวกัน
 
 ---
 

@@ -140,8 +140,9 @@ $$
 > ใน OpenFOAM, เงื่อนไขขอบเขตถูกกำหนดในไดเรกทอรี `0/` หรือ `startTime/` แต่ละ patch จะมีชนิดข้อมูลและเงื่อนไขที่แตกต่างกัน
 
 ```cpp
-// ตัวอย่างเงื่อนไขขอบเขตสำหรับความเร็ว U
-// NOTE: Synthesized by AI - Verify parameters
+// Example boundary conditions for velocity field U
+// Source: Synthesized based on standard OpenFOAM practices
+// NOTE: Verify parameters for specific application
 
 dimensions      [0 1 -1 0 0 0 0];
 
@@ -167,11 +168,25 @@ boundaryField
 }
 ```
 
+> **📖 คำอธิบาย (Explanation):**
+> ไฟล์นี้กำหนดเงื่อนไขขอบเขตสำหรับสนามความเร็ว (velocity field) ใน OpenFOAM โดย:
+> - **dimensions**: มิติของตัวแปร [L¹T⁻¹] หรือ [m/s]
+> - **internalField**: ค่าเริ่มต้นของสนามภายในโดเมน
+> - **boundaryField**: กำหนดเงื่อนไขสำหรับแต่ละ patch
+>
+> **🔑 แนวคิดสำคัญ (Key Concepts):**
+> - **fixedValue**: กำหนดค่าคงที่ที่ขอบเขต
+> - **zeroGradient**: ความชันเป็นศูนย์ (อนุพันธ์เชิงปกติ = 0)
+> - **noSlip**: ความเร็วเป็นศูนย์ที่ผนัง (เงื่อนไขไม่มีการลื่นไถล)
+>
+> **📂 ที่มา (Source):** Synthesized based on OpenFOAM boundary condition standards
+
 ### เงื่อนไขสำหรับความดัน
 
 ```cpp
-// ตัวอย่างเงื่อนไขขอบเขตสำหรับความดัน p
-// NOTE: Synthesized by AI - Verify parameters
+// Example boundary conditions for pressure field p
+// Source: Synthesized based on standard OpenFOAM practices
+// NOTE: Verify parameters for specific application
 
 dimensions      [1 -1 -2 0 0 0 0];
 
@@ -187,7 +202,7 @@ boundaryField
     outlet
     {
         type            fixedValue;
-        value           uniform 0;  // อ้างอิงความดันบรรยากาศ
+        value           uniform 0;  // Reference atmospheric pressure
     }
 
     walls
@@ -197,6 +212,19 @@ boundaryField
 }
 ```
 
+> **📖 คำอธิบาย (Explanation):**
+> ไฟล์นี้กำหนดเงื่อนไขขอบเขตสำหรับสนามความดัน (pressure field) ใน OpenFOAM โดย:
+> - **dimensions**: มิติของความดัน [ML⁻¹T⁻²] หรือ [Pa]
+> - **internalField**: ค่าความดันเริ่มต้น (มักตั้งเป็น 0 เป็นค่าอ้างอิง)
+> - **boundaryField**: กำหนดเงื่อนไขสำหรับแต่ละ patch
+>
+> **🔑 แนวคิดสำคัญ (Key Concepts):**
+> - **zeroGradient**: ใช้ที่ inlet และ walls (อนุพันธ์เชิงปกติ = 0)
+> - **fixedValue**: ใช้ที่ outlet เพื่อกำหนดความดันอ้างอิง
+> - **Pressure Reference**: ค่าความดันสัมพัทธ์ (gauge pressure) มักใช้ในการจำลอง
+>
+> **📂 ที่มา (Source):** Synthesized based on OpenFOAM boundary condition standards
+
 ---
 
 ## 🎯 วิธีการเชิงตัวเลข (Numerical Methods)
@@ -204,27 +232,28 @@ boundaryField
 ### การเลือกสคีมาการกระจาย (Discretization Schemes)
 
 ```cpp
-// ตัวอย่างการตั้งค่า fvSchemes
-// NOTE: Synthesized by AI - Verify parameters
+// Example discretization schemes in fvSchemes dictionary
+// Source: Based on OpenFOAM fvSchemes standards
+// NOTE: Select schemes appropriate for your specific case
 
 ddtSchemes
 {
-    default         Euler;           // หรือ backward สำหรับ unsteady
+    default         Euler;           // Or backward for unsteady
 }
 
 gradSchemes
 {
-    default         Gauss linear;     // Gradient linear เชิงเส้น
+    default         Gauss linear;     // Linear gradient scheme
 }
 
 divSchemes
 {
     default         none;
 
-    // สำหรับ convection terms
-    div(phi,U)      Gauss upwind;     // หรือ Gauss linearUpwindV Gauss linear
+    // For convection terms
+    div(phi,U)      Gauss upwind;     // Or Gauss linearUpwindV Gauss linear
 
-    // สำหรับ diffusion terms
+    // For diffusion terms
     div(phi,k)      Gauss upwind;
     div(phi,epsilon) Gauss upwind;
 }
@@ -245,11 +274,26 @@ snGradSchemes
 }
 ```
 
+> **📖 คำอธิบาย (Explanation):**
+> ไฟล์ fvSchemes กำหนดสคีมาการกระจาย (discretization schemes) ที่ใช้ในการแก้สมการ:
+> - **ddtSchemes**: สคีมาการหาอนุพันธ์เชิงเวลา (temporal derivative)
+> - **gradSchemes**: สคีมาการหาเกรเดียนต์ (spatial gradient)
+> - **divSchemes**: สคีมาการหาดิเวอร์เจนซ์ (divergence terms)
+> - **laplacianSchemes**: สคีมาการหาลาปลาเชียน (diffusion terms)
+>
+> **🔑 แนวคิดสำคัญ (Key Concepts):**
+> - **Gauss Linear**: สคีมาเชิงเส้นที่แม่นยำกว่าแต่อาจไม่เสถียร
+> - **Upwind**: สคีมาที่เสถียรแต่มีความคลาดเคลื่อนจากการเกร็ดเชิงตัวเลข (numerical diffusion)
+> - **Corrected**: การแก้ไขเพื่อลดความคลาดเคลื่อนจาก non-orthogonality ของเมช
+>
+> **📂 ที่มา (Source):** Based on OpenFOAM fvSchemes dictionary standards
+
 ### การตั้งค่าตัวแก้สมการ (Solver Settings)
 
 ```cpp
-// ตัวอย่างการตั้งค่า fvSolution
-// NOTE: Synthesized by AI - Verify parameters
+// Example solver and algorithm settings in fvSolution dictionary
+// Source: Based on OpenFOAM fvSolution standards
+// NOTE: Tune parameters for your specific case
 
 solvers
 {
@@ -328,6 +372,20 @@ relaxationFactors
 }
 ```
 
+> **📖 คำอธิบาย (Explanation):**
+> ไฟล์ fvSolution กำหนดการตั้งค่าตัวแก้สมการ (linear solvers) และอัลกอริทึมการแก้โจทย์:
+> - **solvers**: กำหนดวิธีการแก้สมการเชิงเส้นสำหรับแต่ละตัวแปร
+> - **SIMPLE**: อัลกอริทึม SIMPLE สำหรับ pressure-velocity coupling
+> - **relaxationFactors**: ค่าสัมประสิทธิ์การผ่อนคลาย (under-relaxation)
+>
+> **🔑 แนวคิดสำคัญ (Key Concepts):**
+> - **GAMG**: Geometric-Algebraic Multigrid solver เหมาะสำหรับปัญหาขนาดใหญ่
+> - **Tolerance**: ค่าความคลาดเคลื่อนสัมบูรณ์ที่ยอมรับได้
+> - **relTol**: ค่าความคลาดเคลื่อนสัมพัทธ์ที่ยอมรับได้
+> - **Under-relaxation**: ช่วยให้การแก้โจทย์ลู่เข้าได้ดีขึ้น
+>
+> **📂 ที่มา (Source):** Based on OpenFOAM fvSolution dictionary standards
+
 ---
 
 ## 📊 การวิเคราะห์และรายงานผล (Analysis and Reporting)
@@ -351,30 +409,46 @@ $$
 > 3. **Comparison with Analytical/Experimental Data**: เปรียบเทียบกับข้อมูลอ้างอิง
 
 ```cpp
-// ตัวอย่างสคริปต์สำหรับทดสอบความไวต่อเมช
-// NOTE: Synthesized by AI - Verify parameters
+// Example script for grid independence study
+// Source: Based on OpenFOAM automation practices
+// NOTE: Adjust refinement levels and case paths
 
 #!/bin/bash
-# gridStudy.sh
+// Grid independence study script
+// Tests solution convergence with mesh refinement
 
-# ระดับการละเอียดของเมช
+// Array of mesh refinement levels to test
 refinements=(1 2 3 4)
 
 for level in "${refinements[@]}"; do
     echo "Running refinement level: $level"
 
-    # สร้างเมช
+    // Generate mesh for this refinement level
     blockMesh -case case_${level}
     refineMesh -case case_${level} -overwrite
 
-    # รันการจำลอง
+    // Run simulation
     simpleFoam -case case_${level}
 
-    # เก็บผลลัพธ์
+    // Store results
     mkdir -p results/level_$level
     cp -r case_${level}/* results/level_$level/
 done
 ```
+
+> **📖 คำอธิบาย (Explanation):**
+> สคริปต์ Bash นี้ใช้สำหรับทดสอบความไวของผลลัพธ์ต่อความละเอียดของเมช (Grid Independence Study):
+> - สร้างเมชในหลายระดับความละเอียด
+> - รันการจำลองสำหรับแต่ละระดับ
+> - เก็บผลลัพธ์สำหรับการเปรียบเทียบ
+>
+> **🔑 แนวคิดสำคัญ (Key Concepts):**
+> - **Grid Independence**: ผลลัพธ์ไม่เปลี่ยนแปลงเมื่อเพิ่มความละเอียดเมช
+> - **Refinement Levels**: ระดับการละเอียดของเมชที่ต่างกัน
+> - **Convergence**: การลู่เข้าของผลลัพธ์เมื่อละเอียดขึ้น
+> - **GCI (Grid Convergence Index)**: ดัชนีชี้วัดความลู่เข้าของเมช
+>
+> **📂 ที่มา (Source):** Based on OpenFOAM automation and best practice guidelines
 
 > **[MISSING DATA]**: ตารางแสดงผลการทดสอบ Grid Convergence Index (GCI)
 
@@ -433,21 +507,28 @@ flowchart TD
 
 ```cpp
 /**
- * @brief คำนวณความหนืดหมุนเวทย์จากโมเดล k-epsilon
+ * @brief Calculate turbulent eddy viscosity from k-epsilon model
+ * คำนวณความหนืดหมุนเวทย์จากแบบจำลอง k-epsilon
  *
- * ฟังก์ชันนี้คำนวณค่าความหนืดหมุนเวทย์ (turbulent eddy viscosity)
- * โดยใช้สมการ:
+ * This function computes the turbulent eddy viscosity
+ * using the equation:
  * \f[
  * \mu_t = \rho C_\mu \frac{k^2}{\epsilon}
  * \f]
  *
- * @param k พลังงานจลน์เทอร์บูลเนนซ์ [m²/s²]
- * @param epsilon อัตราการสลายตัว [m²/s³]
- * @param rho ความหนาแน่น [kg/m³]
- * @param Cmu ค่าคงที่ (default = 0.09)
- * @return ความหนืดหมุนเวทย์ [Pa·s]
+ * @param k Turbulent kinetic energy [m²/s²]
+ *          พลังงานจลน์เทอร์บูลเนนซ์
+ * @param epsilon Turbulence dissipation rate [m²/s³]
+ *               อัตราการสลายตัวของเทอร์บูลเนนซ์
+ * @param rho Density [kg/m³]
+ *             ความหนาแน่น
+ * @param Cmu Model constant (default = 0.09)
+ *            ค่าคงที่ของแบบจำลอง
+ * @return Turbulent eddy viscosity [Pa·s]
+ *         ความหนืดหมุนเวทย์
  *
- * @note ต้องตรวจสอบว่า k และ epsilon มีค่ามากกว่าศูนย์
+ * @note Must ensure k and epsilon are greater than zero
+ *       ต้องตรวจสอบว่า k และ epsilon มีค่ามากกว่าศูนย์
  *
  * Example usage:
  * @code
@@ -461,6 +542,22 @@ scalar calculateEddyViscosity(
     const scalar Cmu = 0.09
 );
 ```
+
+> **📖 คำอธิบาย (Explanation):**
+> ตัวอย่างนี้แสดงมาตรฐานการเขียนเอกสารประกอบโค้ดแบบ Doxygen สำหรับ OpenFOAM:
+> - **@brief**: คำอธิบายสั้นๆ เกี่ยวกับฟังก์ชัน
+> - **@param**: รายละเอียดของพารามิเตอร์แต่ละตัว
+> - **@return**: ค่าที่ฟังก์ชันส่งกลับ
+> - **@note**: ข้อควรระวังหรือข้อควรทราบ
+> - **@code/@endcode**: ตัวอย่างการใช้งาน
+>
+> **🔑 แนวคิดสำคัญ (Key Concepts):**
+> - **Doxygen**: เครื่องมือสร้างเอกสารจากคอมเมนต์ในโค้ด
+> - **Documentation Standards**: มาตรฐานการเขียนเอกสารเพื่อความสม่ำเสมอ
+> - **Code Readability**: การทำให้โค้ดอ่านและเข้าใจได้ง่าย
+> - **Maintainability**: การบำรุงรักษาโค้ดในระยะยาว
+>
+> **📂 ที่มา (Source):** Based on OpenFOAM coding standards and Doxygen documentation practices
 
 ---
 

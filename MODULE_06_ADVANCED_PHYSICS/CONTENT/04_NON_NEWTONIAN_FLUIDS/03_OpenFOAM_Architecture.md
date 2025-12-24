@@ -63,6 +63,19 @@ virtual void correct() = 0;
 virtual bool read(const dictionary& viscosityProperties) = 0;
 ```
 
+> **📂 Source:** `src/physicalProperties/viscosityModels/viscosityModel/viscosityModel.H`
+>
+> **คำอธิบาย:**
+> โค้ดนี้นิยาม **อินเทอร์เฟซพื้นฐาน** (Base Interface) ที่ทุกโมเดลความหนืดต้อง Implement:
+> - `nu()` - คืนค่าสนามความหนืดลามาร์กเป็น `volScalarField`
+> - `correct()` - อัปเดตค่าความหนืดตามเงื่อนไขปัจจุบัน
+> - `read()` - อ่านค่าพารามิเตอร์จาก Dictionary
+>
+> **แนวคิดสำคัญ:**
+> - **Pure Virtual Methods** (= 0) บังคับให้ Derived Classes ต้อง Implement
+> - **Interface Segregation** - แยกส่วนนิยามอินเทอร์เฟซออกจากการทำงานจริง
+> - **Runtime Polymorphism** - เรียกใช้ผ่าน Pointer ของ Base Class
+
 คลาสนี้สร้างสัญญาที่โมเดลความหนืดทั้งหมดต้องเติมเต็ม ขณะที่ยังคงไม่แสดงความเห็นเกี่ยวกับความสัมพันธ์จลนศาสตร์เฉพาะ
 
 ### `generalisedNewtonianViscosityModel`
@@ -92,6 +105,19 @@ public:
     const volScalarField& strainRate() const;
 };
 ```
+
+> **📂 Source:** `src/physicalProperties/viscosityModels/generalisedNewtonianViscosityModel/generalisedNewtonianViscosityModel.H`
+>
+> **คำอธิบาย:**
+> คลาสนี้เป็น **Abstract Intermediate Class** ที่เพิ่มฟังก์ชันการทำงานสำหรับของไหลนิวตันทั่วไป:
+> - เก็บ Reference ไปยังสนามความเร็ว `U_`
+> - เก็บสนามอัตราการเฉือน `strainRate_`
+> - มีสมาชิกที่มีการป้องกัน (protected members) สำหรับใช้โดย Derived Classes
+>
+> **แนวคิดสำคัญ:**
+> - **Template Method Pattern** - ให้โครงสร้างพื้นฐานสำหรับ Derived Classes
+> - **Protected Members** - ให้การเข้าถึงแก่ Derived Classes แต่ไม่ให้ภายนอก
+> - **Reference Semantics** - ใช้ Reference เพื่อหลีกเลี่ยงการคัดลอกข้อมูลขนาดใหญ่
 
 ### `strainRateViscosityModel`
 
@@ -124,6 +150,19 @@ public:
     virtual tmp<volScalarField> nu() const;
 };
 ```
+
+> **📂 Source:** `src/physicalProperties/viscosityModels/strainRateViscosityModel/strainRateViscosityModel.H`
+>
+> **คำอธิบาย:**
+> คลาสนี้เป็น **Core Implementation** ที่มีการคำนวณทางคณิตศาสตร์ทั้งหมด:
+> - `strainRate()` - คำนวณอัตราการเฉือนจากเกรเดียนต์ความเร็ว
+> - `nu(nu0, strainRate)` - เมธอด Virtual Pure ที่ Derived Classes ต้อง Implement ด้วยสมการจลนศาสตร์เฉพาะ
+> - `correct()` - อัปเดตความหนืดโดยเรียก `strainRate()` และ `nu()`
+>
+> **แนวคิดสำคัญ:**
+> - **Separation of Concerns** - แยกการคำนวณเทนเซอร์ (Tensor Calculus) ออกจากสมการจลนศาสตร์ (Rheology)
+> - **Template Method** - เฟรมเวิร์กทำงานหนัก ส่วน Derived Classes เพียง Implement สมการ
+> - **Temporary Field Management** - ใช้ `tmp<>` สำหรับการจัดการหน่วยความจำอัตโนมัติ
 
 ---
 
@@ -196,6 +235,21 @@ Foam::autoPtr<Foam::viscosityModel> Foam::viscosityModel::New
 }
 ```
 
+> **📂 Source:** `src/physicalProperties/viscosityModels/viscosityModel/viscosityModelNew.C`
+>
+> **คำอธิบาย:**
+> นี่คือ **Factory Method Implementation** ที่สำคัญที่สุดในระบบ Run-Time Selection:
+> 1. **Dictionary Lookup** - อ่าน `transportProperties` จาก `constant/` directory
+> 2. **Model Identification** - ดึงค่า `viscosityModel` entry (default = "Newtonian")
+> 3. **Factory Lookup** - ค้นหาใน `dictionaryConstructorTable`
+> 4. **Error Handling** - แสดงรายการโมเดลที่ใช้ได้ถ้าไม่พบ
+> 5. **Instantiation** - เรียก Constructor และคืนค่า `autoPtr`
+>
+> **แนวคิดสำคัญ:**
+> - **Factory Pattern** - สร้างออบเจกต์โดยไม่ต้องระบุคลาสที่แน่นอน
+> - **AutoPtr Management** - การจัดการหน่วยความจำอัตโนมัติ
+> - **Reflection-Like Behavior** - การค้นหาและเรียก Constructor ผ่าน String
+
 **กระบวนการทำงาน:**
 
 1. **Dictionary Lookup**
@@ -229,6 +283,19 @@ addToRunTimeSelectionTable
 );
 ```
 
+> **📂 Source:** `src/physicalProperties/viscosityModels/BirdCarreau/BirdCarreau.C`
+>
+> **คำอธิบาย:**
+> แมโครนี้สร้าง **Static Registration Object** ที่ทำงานอัตโนมัติ:
+> - **Self-Registration** - ลงทะเบียนเองก่อน `main()` ทำงาน
+> - **Compile-Time Binding** - Compiler สร้างโค้ดลงทะเบียนอัตโนมัติ
+> - **Zero Overhead** - ไม่มีค่าใช้จ่ายรันไทม์หลังจากลงทะเบียน
+>
+> **แนวคิดสำคัญ:**
+> - **Static Initialization** - ใช้ Global Static Constructors สำหรับการลงทะเบียน
+> - **Macro Metaprogramming** - แมโครสร้างโค้ดซ้ำๆ อัตโนมัติ
+> - **Open-Closed Principle** - เปิดสำหรับการขยาย ปิดสำหรับการแก้ไข
+
 แมโครนี้ขยายออกเพื่อสร้างออบเจกต์แบบคงที่ที่:
 - **Self-registers** ระหว่างการเริ่มต้นแบบคงที่ (ก่อนที่ `main()` จะทำงาน)
 - **Inserts** `BirdCarreau::New` ลงใน factory table
@@ -257,6 +324,21 @@ tmp<volScalarField> strainRateViscosityModel::strainRate() const
     return sqrt(2.0)*mag(symm(fvc::grad(U_)));
 }
 ```
+
+> **📂 Source:** `src/physicalProperties/viscosityModels/strainRateViscosityModel/strainRateViscosityModel.C`
+>
+> **คำอธิบาย:**
+> นี่คือ **Core Tensor Calculus Implementation** ที่แปลงสมการทางคณิตศาสตร์เป็นโค้ด:
+> - `fvc::grad(U_)` - คำนวณ $\nabla\mathbf{u}$ เป็น `volTensorField`
+> - `symm(...)` - ดึงส่วนสมมาตร: $\frac{1}{2}(\nabla\mathbf{u} + (\nabla\mathbf{u})^T)$
+> - `mag(...)` - คำนวณ Frobenius norm: $\|\mathbf{D}\| = \sqrt{D_{ij}D_{ij}}$
+> - `sqrt(2.0)` - ปรับสเกลาให้ได้ $\dot{\gamma} = \sqrt{2\mathbf{D}:\mathbf{D}}$
+>
+> **แนวคิดสำคัญ:**
+> - **Finite Volume Calculus** - ใช้ `fvc` (Finite Volume Calculus) สำหรับการดำเนินการสนาม
+> - **Tensor Algebra** - Operations บนเทนเซอร์ถูก Abstract ออกมาเป็นฟังก์ชัน
+> - **Expression Templates** - การประเมินนิพจน์อัจฉริยะที่หลีกเลี่ยงการคัดลอกชั่วคราว
+> - **Temporary Management** - `tmp<>` จัดการวัตถุชั่วคราวอัตโนมัติ
 
 **การแยกส่วนการคำนวณ:**
 
@@ -318,6 +400,20 @@ return
     );
 ```
 
+> **📂 Source:** `src/physicalProperties/viscosityModels/BirdCarreau/BirdCarreau.C`
+>
+> **คำอธิบาย:**
+> โค้ดนี้แปลง **Bird-Carreau Rheological Model** เป็น C++:
+> - **Conditional Branch** - ใช้ `tauStar_ > 0` เพื่อเลือกระหว่างรูปแบบพารามิเตอร์
+> - **Power Law Scaling** - `pow(..., a_)` และ `pow(..., (n_-1.0)/a_)` สร้างพฤติกรรม Power Law
+> - **Viscosity Bounds** - ค่าจะถูกคลอกระหว่าง `nuInf_` และ `nu0` โดยอัตโนมัติ
+> - **Numerical Stability** - การตรวจสอบเงื่อนไขป้องกันค่าที่ไม่ถูกต้อง
+>
+> **แนวคิดสำคัญ:**
+> - **Direct Translation** - สมการทางคณิตศาสตร์ถูกแปลงเป็นโค้ดโดยตรง
+> - **Parameter Flexibility** - รองรับทั้งรูปแบบ `k` และ `tauStar`
+> - **Type Safety** - ใช้ `scalar(1)` แทน `1` เพื่อความชัดเจน
+
 ### Herschel‑Bulkley
 
 **สมการ Herschel-Bulkley:**
@@ -351,6 +447,20 @@ return
 );
 ```
 
+> **📂 Source:** `src/physicalProperties/viscosityModels/HerschelBulkley/HerschelBulkley.C`
+>
+> **คำอธิบาย:**
+> การ Implement ที่ซับซ้อนซึ่งมี **Numerical Safeguards** หลายระดับ:
+> - **Yield Stress Handling** - บวก `tau0_` เข้ากับเทอม Power Law
+> - **Division Protection** - `max(strainRate, vSmall)` ป้องกันการหารด้วยศูนย์
+> - **Viscosity Capping** - `min(nu0, ...)` จำกัดไม่ให้ความหนืดเกิน `nu0`
+> - **Dimensional Consistency** - `tone` และ `rtone` ปรับมิติอย่างถูกต้อง
+>
+> **แนวคิดสำคัญ:**
+> - **Yield Stress Fluids** - ของไหลที่ต้องการความเค้นขั้นต่ำก่อนไหล
+> - **Regularization** - หลีกเลี่ยงความไม่ต่อเนื่องที่ $\dot{\gamma} \to 0$
+> - **Bounded Computation** - รับประกันว่าค่าอยู่ในช่วงที่กายภาพ
+
 ### Power‑Law (Ostwald–de Waele)
 
 **สมการกฎกำลัง:**
@@ -378,6 +488,20 @@ return max
     )
 );
 ```
+
+> **📂 Source:** `src/physicalProperties/viscosityModels/powerLaw/powerLaw.C`
+>
+> **คำอธิบาย:**
+> การ Implement ที่เรียบง่ายแต่มี **Bounds Enforcement** ที่แข็งแกร่ง:
+> - **Double Clipping** - `max(nuMin_, min(nuMax_, ...))` บังคับช่วง `[nuMin_, nuMax_]`
+> - **Power Law Core** - `pow(strainRate, n-1)` สร้างพฤติกรรม Power Law
+> - **Zero Protection** - `max(strainRate, small)` ป้องกันค่า `strainRate = 0`
+> - **Dimensional Construction** - `dimensionedScalar(dimTime, 1.0)` สร้างค่าที่มีมิติถูกต้อง
+>
+> **แนวคิดสำคัญ:**
+> - **Shear-Thinning/Thickening** - `n < 1` (shear-thinning), `n > 1` (shear-thickening)
+> - **Physical Bounds** - ความหนืดต้องอยู่ในช่วงที่กายภาพ
+> - **Numerical Robustness** - การป้องกันค่าสุดโต่ง
 
 ---
 
@@ -410,6 +534,20 @@ class customViscosityModel : public strainRateViscosityModel
 };
 ```
 
+> **📂 Source:** ตัวอย่างโค้ดสำหรับ Custom Model Implementation
+>
+> **คำอธิบาย:**
+> นี่คือ **Blueprint สำหรับการสร้าง Custom Viscosity Model**:
+> - **Inheritance** - สืบทอดจาก `strainRateViscosityModel` เพื่อรับโครงสร้างพื้นฐาน
+> - **Runtime Registration** - แมโคร `addToRunTimeSelectionTable` ลงทะเบียนโมเดลอัตโนมัติ
+> - **Interface Implementation** - Override เมธอด `nu()` เพื่อใส่สมการจลนศาสตร์
+> - **Dictionary-Based** - อ่านพารามิเตอร์จากไฟล์ Dictionary ผ่าน Constructor
+>
+> **แนวคิดสำคัญ:**
+> - **Open-Closed Principle** - เปิดสำหรับการขยาย (เพิ่มโมเดล) แต่ปิดสำหรับการแก้ไข (ไม่ต้องแก้ Core)
+> - **Plugin Architecture** - โมเดลใหม่ทำงานเหมือน Plugin
+> - **Zero Core Modification** - ไม่ต้อง Recompile OpenFOAM Library
+
 ### การนามธรรมทางคณิตศาสตร์และการแยกความกังวล
 
 สถาปัตยกรรมนี้แยกการดำเนินการแคลคูลัสเทนเซอร์ออกจากความสัมพันธ์ rheology สเกลาร์อย่างชัดเจน:
@@ -433,6 +571,20 @@ dimensionedScalar k("k", dimensionSet(1, -1, -2, 0, 0, 0, 0), 0.1);
 // ทำให้แน่ใจว่า k มีหน่วย [Pa·s^n] เพื่อความสอดคล้องกับโมเดล
 ```
 
+> **📂 Source:** ตัวอย่าง Dimensioned Type Usage
+>
+> **คำอธิบาย:**
+> OpenFOAM มี **Dimension-Aware Type System** ที่เข้มงวด:
+> - **dimensionSet** - นิยามมิติ [M, L, T, θ, I, J, N] (Mass, Length, Time, Temperature, etc.)
+> - **Compile-Time Checking** - Compiler ตรวจสอบความสอดคล้องของมิติ
+> - **Runtime Validation** - การดำเนินการที่ไม่ถูกต้องจะเกิด Runtime Error
+> - **Self-Documenting** - หน่วยถูกฝังใน Type เอง
+>
+> **แนวคิดสำคัญ:**
+> - **Dimensional Homogeneity** - สมการต้องมีมิติสอดคล้องกัน
+> - **Type Safety** - ป้องกันการผสมหน่วยที่ไม่ถูกต้อง
+> - **Physical Correctness** - ตรวจสอบความถูกต้องทางกายภาพ
+
 ### กลยุทธ์ความแข็งแกร่งทางตัวเลข
 
 การใช้งานแต่ละอย่างรวมการป้องกันทางตัวเลขเฉพาะเพื่อให้แน่ใจว่าการจำลองแบบเสถียร:
@@ -450,6 +602,20 @@ const dimensionedScalar nuMin("nuMin", dimViscosity, 1e-6);
 const dimensionedScalar nuMax("nuMax", dimViscosity, 1e-6);
 nu = max(nuMin, min(nu, nuMax));
 ```
+
+> **📂 Source:** ตัวอย่าง Numerical Safeguards
+>
+> **คำอธิบาย:**
+> **Numerical Robustness Strategies** ที่ใช้ในโมเดลต่างๆ:
+> - **Zero Division Protection** - ใช้ `max(strainRate, epsilon)` เพื่อหลีกเลี่ยง NaN
+> - **Value Clipping** - บังคับค่าให้อยู่ในช่วงที่กายภาพ
+> - **Regularization** - แก้ปัญหาความไม่ต่อเนื่องที่จุดวิกฤต
+> - **Gradual Transitions** - หลีกเลี่ยงการเปลี่ยนแบบขั้นบันได
+>
+> **แนวคิดสำคัญ:**
+> - **Numerical Stability** - ป้องกัน Simulation ล้มเหลว
+> - **Physical Realism** - ค่าต้องสอดคล้องกับความเป็นจริง
+> - **Robustness** - ทำงานได้ดีในทุกเงื่อนไข
 
 ---
 
@@ -475,6 +641,20 @@ HerschelBulkleyCoeffs
     n           0.2;         // ดัชนีกฎกำลัง
 }
 ```
+
+> **📂 Source:** ไฟล์ตัวอย่าง Case: `constant/transportProperties`
+>
+> **คำอธิบาย:**
+> ไฟล์ **Dictionary Configuration** สำหรับการตั้งค่าโมเดลความหนืด:
+> - **Model Selection** - ระบุ `viscosityModel HerschelBulkley` เพื่อเลือกโมเดล
+> - **Coefficient Dictionary** - `HerschelBulkleyCoeffs` เก็บพารามิเตอร์เฉพาะโมเดล
+> - **Dimension Specification** - `[0 2 -1 0 0 0 0]` นิยามหน่วย [L²/T] สำหรับความหนืด
+> - **Runtime Switching** - เปลี่ยนโมเดลได้โดยไม่ต้อง Recompile
+>
+> **แนวคิดสำคัญ:**
+> - **Dictionary-Driven** - การตั้งค่าผ่านไฟล์ Text
+> - **Hierarchical Structure** - จัดระเบียบพารามิเตอร์แบบลำดับชั้น
+> - **Self-Documenting** - ชื่อพารามิเตอร์บอกความหมาย
 
 ### พารามิเตอร์ของโมเดล Herschel-Bulkley
 
@@ -521,6 +701,20 @@ while (runTime.loop())
     // 3. แก้สมการ U และ p ต่อไป...
 }
 ```
+
+> **📂 Source:** ตัวอย่างจาก Solver Loop (เช่น `simpleFoam.C`)
+>
+> **คำอธิบาย:**
+> **Time Integration Loop** ที่ใช้โมเดลความหนืด:
+> - **Viscosity Update** - `transport->correct()` คำนวณความหนืดใหม่จากความเร็วปัจจุบัน
+> - **Field Access** - `transport->nu()` คืนค่าสนามความหนืดสำหรับสมการโมเมนตัม
+> - **Decoupling** - Solver ไม่จำเป็นต้องรู้โมเดลที่แน่นอน
+> - **Iterative Coupling** - ความหนืดและความเร็ว Update จนถึง Convergence
+>
+> **แนวคิดสำคัญ:**
+> - **Segregated Solution** - แก้สมการแยกกันแล้ว Coupling
+> - **Non-Linear Iteration** - ความหนืดเปลี่ยนตามความเร็วในแต่ละ Iteration
+> - **Interface-Based Design** - Solver ทำงานกับ Base Class Pointer
 
 โครงสร้างแบบนี้ช่วยให้ Solver หลักไม่จำเป็นต้องรู้ว่าของไหลเป็นนิวตันหรือนอนนิวตัน—มันแค่ขอค่า `nu` ล่าสุดมาใช้งานเท่านั้น
 

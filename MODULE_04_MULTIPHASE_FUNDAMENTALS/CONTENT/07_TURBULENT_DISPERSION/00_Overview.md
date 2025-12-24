@@ -136,18 +136,44 @@ $$\mathbf{F}_{TD} = \sum_{k \neq q} C_{TD} \rho_k \alpha_k \frac{\mu_{t,k}}{\sig
 โมเดลการกระจายตัวเนื่องจากความปั่นป่วนใน OpenFOAM ปฏิบัติตามรูปแบบการออกแบบเชิงวัตถุแบบคลาสสิก โดยมีคลาสฐานแบบนามธรรมที่กำหนดอินเทอร์เฟซ
 
 ```cpp
-// คลาสฐานของโมเดลการกระจายตัวเนื่องจากความปั่นป่วน
+// Base class for turbulent dispersion models
+// คลาสฐานสำหรับโมเดลการกระจายตัวเนื่องจากความปั่นป่วน
 template<class PhasePair>
 class turbulentDispersionModel
 {
 protected:
+    // Reference to the phase pair
+    // อ้างอิงถึงคู่เฟส
     const PhasePair& pair_;
 
 public:
+    // Virtual destructor for proper cleanup
+    // ตัวทำลายแบบเสมือนสำหรับการทำความสะอาดที่เหมาะสม
+    virtual ~turbulentDispersionModel() {}
+
+    // Calculate and return the turbulent dispersion force
+    // คำนวณและส่งคืนแรงกระจายตัวเนื่องจากความปั่นป่วน
     virtual tmp<volVectorField> Fd() const = 0;
+
+    // Read model parameters from dictionary
+    // อ่านพารามิเตอร์โมเดลจากพจนานุกรม
     virtual bool read() = 0;
 };
 ```
+
+**📂 Source:** `src/transportModels/multiphase/derivedInterfacialModels/turbulentDispersionModel/turbulentDispersionModel.H`
+
+**คำอธิบายเพิ่มเติม:**
+
+โครงสร้างคลาสแบบนามธรรม (abstract class) นี้เป็นพื้นฐานของการออกแบบโมเดลการกระจายตัวเนื่องจากความปั่นป่วนใน OpenFOAM โดยมีหลักการสำคัญดังนี้:
+
+- **Template Design:** การใช้ `template<class PhasePair>` ทำให้คลาสสามารถทำงานกับคู่เฟสใดก็ได้ ไม่ว่าจะเป็นของไหล-ของแข็ง ของไหล-ฟอง หรือคู่เฟสอื่นๆ
+
+- **Protected Member:** ตัวแปร `pair_` ถูกประกาศเป็น protected เพื่อให้คลาสลูก (derived classes) สามารถเข้าถึงข้อมูลเกี่ยวกับคู่เฟสได้โดยตรง
+
+- **Pure Virtual Functions:** ฟังก์ชัน `Fd()` และ `read()` เป็น pure virtual functions (= 0) ซึ่งบังคับให้ทุกคลาสลูกต้องมีการ implement ฟังก์ชันเหล่านี้
+
+- **RTTI Support:** การใช้ virtual functions ช่วยให้ระบบ RTTI (Run-Time Type Identification) ของ OpenFOAM สามารถจัดการคลาสต่างๆ ได้อย่างถูกต้อง
 
 ### โมเดลที่มีให้ใช้งานใน OpenFOAM
 
@@ -162,16 +188,40 @@ public:
 ใน OpenFOAM แรงกระจายตัวเนื่องจากความปั่นป่วนถูกกำหนดใน `constant/phaseProperties`:
 
 ```cpp
+// Turbulent dispersion model configuration
+// การกำหนดค่าโมเดลการกระจายตัวเนื่องจากความปั่นป่วน
 turbulentDispersion
 (
     (air in water)
     {
+        // Model type: Burns, NoDispersion, or ConstantDispersion
+        // ประเภทโมเดล: Burns, NoDispersion หรือ ConstantDispersion
         type            Burns;
+        
+        // Turbulent Schmidt number (typically 0.6-1.0)
+        // จำนวน Schmidt ของความปั่นป่วน (โดยทั่วไป 0.6-1.0)
         sigma           0.9;
+        
+        // Turbulent dispersion coefficient (typically 1.0)
+        // สัมประสิทธิ์การกระจายตัวเนื่องจากความปั่นป่วน (โดยทั่วไป 1.0)
         Ctd             1.0;
     }
 );
 ```
+
+**📂 Source:** `tutorials/multiphase/multiphaseEulerFoam/bubbleColumn/constant/phaseProperties`
+
+**คำอธิบายเพิ่มเติม:**
+
+ไฟล์ `phaseProperties` เป็นจุดศูนย์รวมการกำหนดค่าทั้งหมดสำหรับโมเดล Eulerian-Eulerian multiphase flow ใน OpenFOAM:
+
+- **Model Selection:** พารามิเตอร์ `type` ระบุโมเดลที่จะใช้ โดยโมเดล Burns เป็นที่นิยมสำหรับกรณีทั่วไป
+
+- **Parameter Tuning:** `sigma` (Schmidt number) ควบคุมอัตราส่วนระหว่างความหนืดของความปั่นป่วนกับสัมประสิทธิ์การกระจายตัว ส่วน `Ctd` เป็นสัมประสิทธิ์ปรับค่าที่ใช้ในการปรับความเข้มของแรงกระจายตัว
+
+- **Phase Pair Syntax:** ไวยากรณ์ `(air in water)` ระบุว่าเฟสกระจายตัว (air) อยู่ภายในเฟสต่อเนื่อง (water)
+
+- **Multiple Phase Pairs:** สามารถกำหนดหลายคู่เฟสในรูปแบบลิสต์ถ้ามีมากกว่า 2 เฟสในระบบ
 
 ### การรวมเข้ากับระบบเฟส (Integration with Phase Systems)
 
@@ -186,6 +236,41 @@ turbulentDispersion
 3. **การรวมเข้ากับโมเดลความปั่นป่วน (Turbulence Model Integration)**
    - ความหนืดเนื่องจากความปั่นป่วนจากโมเดลความปั่นป่วนของเฟสต่อเนื่องจะถูกนำมาใช้ในการคำนวณสัมประสิทธิ์การกระจายตัว
 
+```cpp
+// Integration of turbulent dispersion into momentum equation
+// การผนวกแรงกระจายตัวเนื่องจากความปั่นป่วนเข้ากับสมการโมเมนตัม
+template<class PhaseType>
+void PhaseSystem<PhaseType>::solve()
+{
+    // Calculate interfacial momentum transfer
+    // คำนวณการถ่ายโอนโมเมนตัมระหว่างรอยต่อ
+    tmp<volVectorField> tFtd = turbulentDispersion_->Fd();
+    const volVectorField& Ftd = tFtd();
+    
+    // Add to momentum equation for each phase
+    // เพิ่มเข้ากับสมการโมเมนตัมสำหรับแต่ละเฟส
+    forAll(phases_, phasei)
+    {
+        fvVectorMatrix& UEqn = UEqns_[phasei];
+        UEqn += Ftd;
+    }
+}
+```
+
+**📂 Source:** `src/transportModels/multiphase/PhaseSystem/PhaseSystem.C`
+
+**คำอธิบายเพิ่มเติม:**
+
+การผนวกโมเดลการกระจายตัวเนื่องจากความปั่นป่วนเข้ากับระบบสมการโมเมนตัมมีขั้นตอนสำคัญดังนี้:
+
+- **Force Calculation:** ฟังก์ชัน `Fd()` คำนวณแรงกระจายตัวเนื่องจากความปั่นป่วนโดยใช้สถานะปัจจุบันของเฟส (เศษส่วนปริมาตร, ความเร็ว, ความหนืดของความปั่นป่วน)
+
+- **tmp<> Smart Pointer:** การใช้ `tmp<volVectorField>` เป็นกลไกจัดการหน่วยความจำอัตโนมัติของ OpenFOAM เพื่อป้องกันการรั่วซึมของหน่วยความจำ
+
+- **ForAll Loop:** `forAll(phases_, phasei)` เป็นวิธีการวนซ้ำที่ปลอดภัยและมีประสิทธิภาพสำหรับการจัดการรายการเฟสทั้งหมด
+
+- **UEqn Addition:** การเพิ่มแรงกระจายตัวเข้ากับสมการโมเมนตัมด้วยตัวดำเนินการ `+=` เป็นวิธีที่ตรงไปตรงมาและชัดเจน
+
 ### การเชื่อมโยงกับโมเดลความปั่นป่วน (Connection to Turbulence Modeling)
 
 การจำลองการกระจายแบบปั่นป่วนในการไหลแบบหลายเฟสมีความสัมพันธ์โดยตรงกับ **โมเดลความปั่นป่วนพื้นฐาน** ที่เลือกใช้:
@@ -195,6 +280,39 @@ turbulentDispersion
 | **$k$-$\epsilon$** | $\rho_c C_\mu \frac{k_c^2}{\varepsilon_c}$ | การไหลเลข Reynolds สูง, ไกลผนัง |
 | **$k$-$\omega$** | $\rho_c \frac{k_c}{\omega_c}$ | การไหลใกล้ผนัง, การไหลแยก |
 | **LES** | $\rho_c (C_s \Delta)^2 \|\mathbf{S}\|$ | การจำลองรายละเอียดสูง |
+
+```cpp
+// Turbulent viscosity calculation for k-epsilon model
+// การคำนวณความหนืดของความปั่นป่วนสำหรับโมเดล k-epsilon
+tmp<volScalarField> kEpsilon::muEff() const
+{
+    // Calculate turbulent viscosity
+    // คำนวณความหนืดของความปั่นป่วน
+    return tmp<volScalarField>
+    (
+        new volScalarField
+        (
+            "muEff",
+            // mu_t = rho * Cmu * k^2 / epsilon
+            mu_ + rho_ * Cmu_ * sqr(k_) / epsilon_
+        )
+    );
+}
+```
+
+**📂 Source:** `src/turbulenceModels/compressible/kEpsilon/kEpsilon.C`
+
+**คำอธิบายเพิ่มเติม:**
+
+ความสัมพันธ์ระหว่างโมเดลความปั่นป่วนและแรงกระจายตัวเนื่องจากความปั่นป่วนมีความสำคัญอย่างยิ่ง:
+
+- **Turbulent Viscosity:** ความหนืดของความปั่นป่วน ($\mu_t$) ถูกคำนวณจากพลังงานจลน์ของความปั่นป่วน ($k$) และอัตราการสลาย ($\epsilon$)
+
+- **Cmu Constant:** $C_\mu$ เป็นค่าคงที่ประจักษ์ที่มีค่าโดยทั่วไปคือ 0.09 สำหรับโมเดล $k$-$\epsilon$
+
+- **Coupling Mechanism:** ความหนืดของความปั่นป่วนจากเฟสต่อเนื่องถูกส่งผ่านไปยังโมเดลการกระจายตัวเพื่อคำนวณสัมประสิทธิ์การกระจาย
+
+- **Model Hierarchy:** โครงสร้างแบบ Layered ทำให้สามารถเปลี่ยนโมเดลความปั่นป่วนโดยไม่กระทบต่อโมเดลการกระจายตัว
 
 ---
 
@@ -243,6 +361,49 @@ $$\nabla \alpha_{k,limited} = \min\left(|\nabla \alpha_k|, \nabla \alpha_{max}\r
 $$\mathbf{F}_{TD}^{new} = (1-\lambda_{TD})\mathbf{F}_{TD}^{old} + \lambda_{TD}\mathbf{F}_{TD}^{calculated}$$
 
 โดยที่ $\lambda_{TD}$ คือตัวปรับการผ่อนคลาย (โดยทั่วไป 0.5-0.8)
+
+```cpp
+// Implementation of gradient limiting for numerical stability
+// การนำไปใช้งานของการจำกัดเกรเดียนต์เพื่อความเสถียรทางตัวเลข
+tmp<volVectorField> turbulentDispersionModel::limitGradient
+(
+    const volScalarField& alpha
+) const
+{
+    // Calculate gradient
+    // คำนวณเกรเดียนต์
+    tmp<volVectorField> tgradAlpha = fvc::grad(alpha);
+    const volVectorField& gradAlpha = tgradAlpha();
+    
+    // Calculate magnitude
+    // คำนวณขนาด
+    volScalarField magGradAlpha = mag(gradAlpha);
+    
+    // Apply limiting
+    // ใช้การจำกัด
+    volScalarField limiter = min(magGradAlpha, maxGrad_);
+    
+    // Return limited gradient
+    // ส่งคืนเกรเดียนต์ที่ถูกจำกัดแล้ว
+    return limiter * gradAlpha / (magGradAlpha + SMALL);
+}
+```
+
+**📂 Source:** `src/transportModels/multiphase/derivedInterfacialModels/turbulentDispersionModels/gradAlphaDispersionModel/gradAlphaDispersionModel.C`
+
+**คำอธิบายเพิ่มเติม:**
+
+เทคนิคการจำกัดเกรเดียนต์มีความสำคัญอย่างยิ่งสำหรับความเสถียรของการคำนวณ:
+
+- **Gradient Calculation:** `fvc::grad(alpha)` ใช้ finite volume method ในการคำนวณเกรเดียนต์ของเศษส่วนปริมาตร
+
+- **Magnitude Computation:** ฟังก์ชัน `mag()` คำนวณขนาดของเวกเตอร์เกรเดียนต์
+
+- **MIN Operation:** การใช้ `min()` กับ `maxGrad_` ช่วยป้องกันไม่ให้เกรเดียนต์มีค่าเกินกว่าที่กำหนด
+
+- **SMALL Constant:** การเพิ่มค่าคงที่ `SMALL` ในตัวหารเป็นเทคนิคมาตรฐานในการป้องกันการหารด้วยศูนย์
+
+- **Vector Normalization:** การหารด้วย `magGradAlpha + SMALL` ทำให้ได้เวกเตอร์หน่วย (unit vector) ในทิศทางเดิม
 
 ### ข้อกำหนดของเมช (Mesh Requirements)
 

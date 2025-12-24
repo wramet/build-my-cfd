@@ -152,7 +152,7 @@ flowchart TD
     I -->|No| B
     I -->|Yes| J[Next time step]
 ```
-> **Figure 2:** แผนผังโครงสร้างของอัลกอริทึม PIMPLE ซึ่งเป็นการผสมผสานระหว่างลูปภายนอกแบบ SIMPLE (Outer loop) และลูปภายในแบบ PISO (Inner loop) เพื่อเพิ่มความเสถียรในการคำนวณสภาวะไม่คงที่ที่มีช่วงเวลาขนาดใหญ่ (Large time steps) โดยอนุญาตให้ค่า Courant number สูงกว่า 1 ได้โดยไม่สูญเสียความแม่นยำทางฟิสิกส์ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 2:** แผนผังโครงสร้างของอัลกอริทึม PIMPLE ซึ่งเป็นการผสมผสานระหว่างลูปภายนอกแบบ SIMPLE (Outer loop) และลูปภายในแบบ PISO (Inner loop) เพื่อเพิ่มความเสถียรในการคำนวณสภาวะไม่คงที่ที่มีช่วงเวลาขนาดใหญ่ (Large time steps) โดยอนุญาตให้ค่า Courant number สูงกว่า 1 ได้โดยไม่สูญเสียความแม่นยำทางฟิสิกส์
 
 **ประโยชน์ของ PIMPLE:**
 - ความเสถียรสำหรับ time step ขนาดใหญ่
@@ -180,20 +180,41 @@ $$\mathbf{u}_f = \overline{\mathbf{u}}_f - \mathbf{D}_f (\nabla p_f - \overline{
 **OpenFOAM Code Implementation:**
 ```cpp
 // Rhie-Chow interpolation implementation
+// Interpolate velocity field to cell faces using linear interpolation
 surfaceScalarField phiU
 (
     fvc::interpolate(U, "interpolate(U)") & mesh.Sf()
 );
 
-// Pressure gradient correction
+// Pressure gradient correction term
+// Calculate pressure gradient contribution at cell faces
 surfaceScalarField gradpByA
 (
     (fvc::interpolate(rAU)*fvc::snGrad(p))*mesh.magSf()
 );
 
-// Final flux calculation
+// Final flux calculation combining velocity and pressure correction
 phi = phiU - gradpByA;
 ```
+
+<details>
+<summary>📖 คำอธิบายเชิงลึก (Thai Deep Dive)</summary>
+
+**แหล่งที่มา (Source):** เทคนิค Rhie-Chow Interpolation ถูกนำไปใช้ใน OpenFOAM solvers หลายตัว โดยเฉพาะใน `applications/solvers/multiphase/multiphaseEulerFoam` ซึ่งต้องการความแม่นยำสูงในการคำนวณ Face Flux สำหรับระบบหลายเฟส
+
+**คำอธิบาย (Explanation):**
+- **`fvc::interpolate(U)`**: ฟังก์ชันสำหรับ interpolate ความเร็วจากจุดศูนย์กลางเซลล์ไปยังหน้าเซลล์ โดยใช้ linear interpolation เป็นค่าเริ่มต้น
+- **`mesh.Sf()`**: เวกเตอร์พื้นที่หน้าเซลล์ (face area vector) ใช้ในการคำนวณ flux
+- **`rAU`**: Reciprocal of diagonal coefficient ($1/a_P$) จากการแก้สมการโมเมนตัม
+- **`fvc::snGrad(p)`**: Surface normal gradient ของความดัน คำนวณที่หน้าเซลล์โดยตรง
+- **`mesh.magSf()`**: ขนาด (magnitude) ของเวกเตอร์พื้นที่หน้าเซลล์
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Prevention of Checkerboard Oscillations**: การเพิ่ม pressure gradient correction term ช่วยกำจัดปัญหาการสั่นของสนามความดันแบบ checkerboard ซึ่งเกิดจากการใช้ collocated grid arrangement
+2. **Mass Conservation**: การคำนวณผ่าน Rhie-Chow ช่วยให้การอนุรักษ์มวลเป็นไปอย่างถูกต้องที่หน้าเซลล์
+3. **Coupling Strength**: เทอม correction ทำหน้าที่เชื่อมโยงความดันระหว่างเซลล์ข้างเคียง ทำให้การแก้สมการความดันมีความเสถียรมากขึ้น
+
+</details>
 
 ### 3.2 Non-Orthogonal Correction
 
@@ -204,8 +225,12 @@ $$\nabla \phi_f \cdot \mathbf{S}_f = \underbrace{\frac{\phi_N - \phi_P}{d_{PN}} 
 
 **OpenFOAM Code Implementation:**
 ```cpp
+// Non-orthogonal correction loop
+// Iteratively correct for mesh non-orthogonality errors
 while (pimple.correctNonOrthogonal())
 {
+    // Solve pressure equation with Laplacian operator
+    // The operator automatically handles non-orthogonal correction
     fvScalarMatrix pEqn
     (
         fvm::laplacian(rAU, p) == fvc::div(phiHbyA)
@@ -213,6 +238,25 @@ while (pimple.correctNonOrthogonal())
     pEqn.solve();
 }
 ```
+
+<details>
+<summary>📖 คำอธิบายเชิงลึก (Thai Deep Dive)</summary>
+
+**แหล่งที่มา (Source):** การจัดการ Mesh non-orthogonality เป็นเทคนิคพื้นฐานใน OpenFOAM ที่ใช้ใน solvers เกือบทุกตัว โดยเฉพาะใน `applications/solvers/multiphase/multiphaseEulerFoam` ซึ่งมักต้องจัดการกับ Mesh ที่ซับซ้อน
+
+**คำอธิบาย (Explanation):**
+- **`pimple.correctNonOrthogonal()`**: ฟังก์ชันที่ตรวจสอบว่าจำเป็นต้องทำ non-orthogonal correction อีกครั้งหรือไม่ โดยอิงจาก `nNonOrthogonalCorrectors` ใน `fvSolution`
+- **`fvm::laplacian(rAU, p)`**: Finite Volume Method Laplacian operator ซึ่งรวมถึง:
+  - **Orthogonal part**: เกรเดียนต์แบบตั้งฉากกับหน้าเซลล์ (direct neighbor contribution)
+  - **Non-orthogonal part**: เกรเดียนต์จากการแก้ไขเมื่อ Mesh ไม่ตั้งฉาก (explicit correction term)
+- **`fvc::div(phiHbyA)`**: Divergence ของ flux ที่คำนวณจากความเร็วที่แก้ไขแล้ว (H-by-A)
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Mesh Quality Dependency**: Mesh ที่ไม่ตั้งฉาก ($\theta > 70^\circ$) จะต้องการจำนวน correction loops มากขึ้น ซึ่งเพิ่มเวลาคำนวณ
+2. **Explicit Correction**: เทอม non-orthogonal correction ถูกจัดการแบบ explicit ทำให้อาจต้องการ under-relaxation สำหรับ Mesh ที่มีคุณภาพต่ำ
+3. **Convergence Acceleration**: การวนซ้ำแก้ไขช่วยให้ pressure equation ลู่เข้าได้ดีขึ้นแม้บน Mesh ที่ไม่สมบูรณ์
+
+</details>
 
 **แนวทางปฏิบัติที่แนะนำ:**
 
@@ -239,10 +283,14 @@ while (pimple.correctNonOrthogonal())
 ```cpp
 SIMPLE
 {
+    // Number of non-orthogonal correctors
     nNonOrthogonalCorrectors 0;
+    
+    // Reference cell for pressure level fixing
     pRefCell        0;
     pRefValue       0;
 
+    // Under-relaxation factors for stability
     relaxationFactors
     {
         fields
@@ -259,27 +307,75 @@ SIMPLE
 }
 ```
 
+<details>
+<summary>📖 คำอธิบายเชิงลึก (Thai Deep Dive)</summary>
+
+**แหล่งที่มา (Source):** การตั้งค่า SIMPLE algorithm ใน OpenFOAM ถูกใช้ใน `applications/solvers/incompressible/simpleFoam` และ solvers อื่นๆ สำหรับ steady-state simulations
+
+**คำอธิบาย (Explanation):**
+- **`nNonOrthogonalCorrectors`**: จำนวนรอบการแก้ไขสำหรับ Mesh ที่ไม่ตั้งฉาก ค่า 0 หมายถึงไม่มีการแก้ไข
+- **`pRefCell` / `pRefValue`**: ใช้กำหนดระดับความดันอ้างอิง เนื่องจากความดันในสมการ incompressible ถูกกำหนดได้เฉพาะค่าสัมพัทธ์เท่านั้น
+- **`relaxationFactors`**: Under-relaxation factors สำหรับเสถียรภาพเชิงตัวเลข
+  - **Fields**: ใช้กับสนามตัวแปรโดยตรง (เช่น pressure)
+  - **Equations**: ใช้กับสมการ (เช่น momentum equation)
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Pressure Reference Problem**: สำหรับการไหลแบบ incompressible ความดันถูกกำหนดได้เฉพาะค่าสัมพัทธ์ ดังนั้นต้องมีการ fix ค่าความดันที่เซลล์หนึ่งเพื่อกำจัด singular matrix
+2. **Under-relaxation Necessity**: อัลกอริทึม SIMPLE จำเป็นต้องใช้ under-relaxation เพื่อให้แน่ใจว่าการวนซ้ำจะลู่เข้า เนื่องจาก nonlinear coupling ที่แข็งแกร่ง
+3. **Field vs Equation Relaxation**: Field relaxation ถูกใช้ก่อนการแก้สมการ ในขณะที่ equation relaxation ถูกใช้ระหว่างการแก้สมการ
+
+</details>
+
 **PISO:**
 ```cpp
 PISO
 {
+    // Number of pressure-velocity correction loops
     nCorrectors          2;
+    
+    // Non-orthogonal correction iterations
     nNonOrthogonalCorrectors 0;
+    
+    // Pressure reference cell and value
     pRefCell             0;
     pRefValue            0;
 }
 ```
 
+<details>
+<summary>📖 คำอธิบายเชิงลึก (Thai Deep Dive)</summary>
+
+**แหล่งที่มา (Source):** การตั้งค่า PISO algorithm ใช้ใน `applications/solvers/incompressible/pisoFoam` และ solvers อื่นๆ สำหรับ transient simulations
+
+**คำอธิบาย (Explanation):**
+- **`nCorrectors`**: จำนวนรอบการแก้ไขความดัน-ความเร็วภายในหนึ่ง time step โดยทั่วไปใช้ 2-3 รอบสำหรับความแม่นยำเชิงเวลาที่ดี
+- **ไม่มี relaxation factors**: อัลกอริทึม PISO ไม่ต้องการ under-relaxation เนื่องจากใช้ correction steps หลายครั้งแทน
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Temporal Accuracy**: จำนวน correctors ส่งผลต่อความแม่นยำเชิงเวลา มากเกินไปอาจทำให้การคำนวณไม่มีประสิทธิภาพ
+2. **Mass Conservation Enforcement**: แต่ละ correction loop ช่วยบังคับใช้เงื่อนไขความต่อเนื่อง (divergence-free condition) ให้แม่นยำขึ้น
+3. **Courant Number Limitation**: PISO โดยทั่วไปต้องการ Co < 1 สำหรับความเสถียร ยกเว้นกรณีที่มีการปรับปรุงพิเศษ
+
+</details>
+
 **PIMPLE:**
 ```cpp
 PIMPLE
 {
+    // Number of outer correctors (SIMPLE-like loops)
     nOuterCorrectors    2;
+    
+    // Number of inner correctors (PISO-like loops)
     nCorrectors         2;
+    
+    // Non-orthogonal correction iterations
     nNonOrthogonalCorrectors 0;
+    
+    // Pressure reference cell and value
     pRefCell            0;
     pRefValue           0;
 
+    // Relaxation factors for outer loops
     relaxationFactors
     {
         fields
@@ -293,6 +389,23 @@ PIMPLE
     }
 }
 ```
+
+<details>
+<summary>📖 คำอธิบายเชิงลึก (Thai Deep Dive)</summary>
+
+**แหล่งที่มา (Source):** การตั้งค่า PIMPLE algorithm ใช้ใน `applications/solvers/incompressible/pimpleFoam` และ solvers ขั้นสูง เช่น `multiphaseEulerFoam`
+
+**คำอธิบาย (Explanation):**
+- **`nOuterCorrectors`**: จำนวนลูปภายนอกแบบ SIMPLE ที่ทำให้สามารถใช้ time step ขนาดใหญ่ได้
+- **`nCorrectors`**: จำนวนลูปภายในแบบ PISO ภายในแต่ละ outer loop
+- **`relaxationFactors`**: ใช้เฉพาะกับ outer loops เท่านั้น เพื่อเสถียรภาพ
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Large Time Step Capability**: Outer loops ช่วยให้สามารถใช้ time step ขนาดใหญ่ (Co > 1) ได้โดยยังคงความแม่นยำ
+2. **Hybrid Approach**: การผสมผสาน SIMPLE และ PISO ช่วยให้ได้ทั้งความเสถียรและความแม่นยำเชิงเวลา
+3. **Computational Cost**: การเพิ่ม outer correctors จะเพิ่มเวลาคำนวณ แต่ช่วยลดจำนวน time steps ที่ต้องการ
+
+</details>
 
 ---
 
@@ -338,40 +451,96 @@ solvers
 {
     p
     {
+        // Generalized Geometric-Algebraic Multi-grid solver
         solver          GAMG;
+        
+        // Absolute and relative convergence tolerances
         tolerance       1e-7;
         relTol          0.01;
+        
+        // Smoother for multi-grid levels
         smoother        GaussSeidel;
+        
+        // Number of pre and post smoothing sweeps
         nPreSweeps      0;
         nPostSweeps     2;
+        
+        // Cache agglomeration for efficiency
         cacheAgglomeration on;
     }
 
     U
     {
+        // Smooth solver for velocity
         solver          smoothSolver;
+        
+        // Gauss-Seidel smoother
         smoother        GaussSeidel;
+        
+        // Absolute tolerance only (no relative tolerance)
         tolerance       1e-8;
         relTol          0;
+        
+        // Number of smoothing sweeps
         nSweeps         1;
     }
 }
 ```
+
+<details>
+<summary>📖 คำอธิบายเชิงลึก (Thai Deep Dive)</summary>
+
+**แหล่งที่มา (Source):** การตั้งค่า linear solvers ใน OpenFOAM ถูกใช้ในทุก solver ที่ใช้ Finite Volume Method
+
+**คำอธิบาย (Explanation):**
+- **`GAMG` (Generalized Algebraic Multi-Grid)**: Solver ประเภท multi-grid ที่มีประสิทธิภาพสูงสำหรับสมการ elliptic เช่น pressure equation
+- **`smoothSolver`**: Solver ที่ใช้ iterative smoothing เหมาะสำหรับ hyperbolic/parabolic equations เช่น momentum equation
+- **`tolerance` / `relTol`**: เกณฑ์การหยุดคำนวณ
+  - **Absolute tolerance**: ค่าความคลาดเคลื่อนสัมบูรณ์
+  - **Relative tolerance**: ค่าความคลาดเคลื่อนสัมพัทธ์จาก initial residual
+- **`smoother`**: วิธีการ smooth สำหรับ multi-grid (Gauss-Seidel, DIC, etc.)
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Solver Selection**: GAMG เหมาะสำหรับ pressure equation เนื่องจากเป็น elliptic equation ที่มี global coupling สูง
+2. **Convergence Criteria**: การตั้งค่า `relTol` ต่ำ (0.01) ช่วยให้การแก้สมการมีความแม่นยำสูงในแต่ละ time step
+3. **Efficiency vs Accuracy**: การเพิ่ม `nPostSweeps` ช่วยเพิ่มความแม่นยำ แต่เพิ่มเวลาคำนวณ
+
+</details>
 
 ### การตรวจสอบการลู่เข้าโดยรวม
 
 ```cpp
 SIMPLE
 {
+    // Convergence flag for overall algorithm
     converged       false;
+    
+    // Residual-based convergence criteria
     residualControl
     {
         p               1e-6;
         U               1e-5;
-        '(k|epsilon|omega)' 1e-5;
+        '(k|epsilon|omega)'  1e-5;
     }
 }
 ```
+
+<details>
+<summary>📖 คำอธิบายเชิงลึก (Thai Deep Dive)</summary>
+
+**แหล่งที่มา (Source):** การตรวจสอบการลู่เข้าของอัลกอริทึม SIMPLE ใน OpenFOAM
+
+**คำอธิบาย (Explanation):**
+- **`converged`**: Flag สำหรับบอกว่าอัลกอริทึมลู่เข้าแล้วหรือไม่
+- **`residualControl`**: กำหนดค่า residual สูงสุดที่ยอมรับได้สำหรับแต่ละตัวแปร
+- **Regex Pattern**: `'(k|epsilon|omega)'` ใช้ regular expression เพื่อใช้ค่าเดียวกันกับ turbulence quantities หลายตัว
+
+**แนวคิดสำคัญ (Key Concepts):**
+1. **Residual Definition**: Initial residual เป็นความแตกต่างระหว่าง solution ปัจจุบันกับ solution ก่อนหน้า
+2. **Convergence Hierarchy**: Pressure ต้องการ residual ต่ำกว่า velocity เนื่องจาก sensitivity ต่อ mass conservation
+3. **Physical Convergence**: นอกเหนือจาก numerical residuals ควรตรวจสอบ physical quantities ด้วย
+
+</details>
 
 ### ตัวบ่งชี้การลู่เข้าทางกายภาพ
 

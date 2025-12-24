@@ -9,7 +9,7 @@
 > [!INFO] ความสำคัญในโลกแห่งความเป็นจริง
 > การไหลแบบหลายเฟสพบได้ทั่วไปในธรรมชาติและอุตสาหกรรม:
 > - **การไหลของเลือด** ในหลอดเลือด
-> - **การขนส่งน้ำมัน** ในท่อข้ามทวีป
+> - **การขนส่งน้ำมัน** ในท่อข้างทวีป
 > - **เครื่องปฏิกรณ์นิวเคลียร์** ที่มีการเดือดของน้ำหรม
 > - **การผลิตทางเคมี** ที่มีปฏิกิริยาระหว่างเฟส
 > - **ระบบระบายความร้อน** ในอาคาร
@@ -157,15 +157,20 @@ multiphaseEulerFoam/
 ```cpp
 class phaseModel
 {
-    // ฟิลด์หลัก
-    volScalarField alpha_;      // สัดส่วนเฟส
-    volScalarField rho_;        // ความหนาแน่น
-    volVectorField U_;          // ความเร็ว
+    // Main fields for the phase
+    volScalarField alpha_;      // Volume fraction
+    volScalarField rho_;        // Density
+    volVectorField U_;          // Velocity
 
-    // ฟังก์ชันเสมือน
+    // Virtual function for correction
     virtual void correct() = 0;
 };
 ```
+
+**คำอธิบาย:**
+- **Source:** โครงสร้างคลาส phaseModel ถูกนิยามในไฟล์ฐานของ OpenFOAM
+- **คำอธิบาย:** คลาส phaseModel เป็นคลาสพื้นฐานสำหรับเฟสแต่ละประเภท โดยเก็บฟิลด์หลัก (alpha, rho, U) และฟังก์ชัน correct() สำหรับอัปเดตค่า
+- **แนวคิดสำคัญ:** การใช้ virtual function ช่วยให้สามารถสร้าง derived class สำหรับเฟสประเภทต่างๆ ได้อย่างยืดหยุ่น
 
 #### Drag Model
 
@@ -173,13 +178,18 @@ class phaseModel
 class dragModel
 {
 public:
-    // คำนวณสัมประสิทธิ์แรงฉุด
+    // Calculate drag coefficient
     virtual tmp<volScalarField> K() const = 0;
 
-    // Runtime selection
+    // Runtime selection mechanism
     declareRunTimeSelectionTable(...);
 };
 ```
+
+**คำอธิบาย:**
+- **Source:** ไฟล์ dragModel.H ในไดเรกทอรี phaseSystems
+- **คำอธิบาย:** คลาส dragModel ให้ interface สำหรับคำนวณสัมประสิทธิ์แรงฉุด K โดยใช้ runtime selection เพื่อเลือกแบบจำลองที่เหมาะสม (เช่น SchillerNaumann, IshiiZuber)
+- **แนวคิดสำคัญ:** Runtime selection table ช่วยให้ผู้ใช้สามารถระบุประเภทของแบบจำลองในไฟล์ dictionary ได้โดยตรง
 
 ### 4.3 อัลกอริทึมการแก้ปัญหา
 
@@ -233,13 +243,18 @@ air
     rho             [1 -3 0 0 0 0 0] 1;
 }
 
-// Drag model
+// Drag model configuration
 dragModel
 {
     type        SchillerNaumann;
-    d           [0 1 0 0 0 0 0] 0.001; // Particle diameter
+    d           [0 1 0 0 0 0 0] 0.001; // Particle diameter [m]
 }
 ```
+
+**คำอธิบาย:**
+- **Source:** ไฟล์ phaseProperties ในไดเรกทอรี constant/
+- **คำอธิบาย:** ไฟล์นี้ระบุคุณสมบัติของแต่ละเฟส (viscosity, density) และแบบจำลองแรงฉุดที่ใช้ รวมถึงพารามิเตอร์ที่จำเป็น (เช่น เส้นผ่านศูนย์กลางอนุภาค)
+- **แนวคิดสำคัญ:** การใช้ dimension specification ใน OpenFOAM ช่วยตรวจสอบความถูกต้องของหน่วยในแต่ละพารามิเตอร์
 
 **system/fvSolution:**
 
@@ -274,6 +289,11 @@ PIMPLE
     }
 }
 ```
+
+**คำอธิบาย:**
+- **Source:** ไฟล์ fvSolution ในไดเรกทอรี system/
+- **คำอธิบาย:** ตั้งค่า numerical solvers และพารามิเตอร์ของอัลกอริทึม PIMPLE รวมถึงเกณฑ์การหยุดซ้ำ (residual control)
+- **แนวคิดสำคัญ:** nCorrectors คือจำนวนรอบ PISO loop, residualControl ใช้ตรวจสอบความเข้าใกล้สภาวะคงตัวของการแก้ปัญหา
 
 ---
 

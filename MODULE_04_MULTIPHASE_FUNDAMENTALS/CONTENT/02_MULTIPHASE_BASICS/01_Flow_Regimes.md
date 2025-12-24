@@ -192,29 +192,51 @@ flowchart TD
 ในกรณีที่รูปแบบการไหลมีการเปลี่ยนแปลง OpenFOAM ใช้ `BlendedInterfacialModel` เพื่อเปลี่ยนผ่านระหว่างโมเดลอย่างราบรื่น
 
 ```cpp
-// โครงสร้างของ Blended Interfacial Model
-// เปลี่ยนจากโมเดลสำหรับ Bubbly ไปเป็น Separated ตามสัดส่วนเฟส
+// Structure of Blended Interfacial Model
+// Smoothly transition from bubbly to separated model based on phase fraction
 tmp<volScalarField> K() const
 {
+    // Calculate blended drag coefficient using weighted combination
+    // blendingFactor() varies between 0 (separated) and 1 (bubbly)
     return blendingFactor()*modelBubbly->K()
          + (1 - blendingFactor())*modelSeparated->K();
 }
 ```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/BlendedInterfacialModel/BlendedInterfacialModel.C`
+
+**คำอธิบาย (Explanation):**
+โค้ดนี้แสดงการทำงานของ Blended Interfacial Model ใน OpenFOAM ซึ่งเป็นกลไกสำคัญในการจำลองรูปแบบการไหลที่เปลี่ยนผ่านระหว่างสภาวะต่างๆ เช่น จาก Bubbly flow ไปเป็น Separated flow โดยใช้ฟังก์ชันการผสม (blending function) เพื่อคำนวณสัมประสิทธิ์แรงระหว่างเฟส (เช่น drag coefficient) ที่เปลี่ยนไปตามเศษส่วนของเฟส (phase fraction)
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Blending Factor:** ตัวเลขระหว่าง 0-1 ที่กำหนดสัดส่วนของแต่ละโมเดล โดย 1 หมายถึงใช้โมเดล Bubbly flow เต็มที่ และ 0 หมายถึงใช้โมเดล Separated flow เต็มที่
+- **Model Bubbly vs. Model Separated:** โมเดลสำหรับรูปแบบการไหลที่แตกต่างกัน โดย Bubbly model ใช้สำหรับฟองกระจายตัว ส่วน Separated model ใช้สำหรับรอยต่อขนาดใหญ่
+- **Smooth Transition:** การเปลี่ยนผ่านแบบต่อเนื่องช่วยหลีกเลี่ยงปัญหาความไม่เสถียรเชิงตัวเลขที่อาจเกิดจากการเปลี่ยนโมเดลแบบกระทันหัน
 
 ### การตรวจจับรูปแบบการไหล (Flow Regime Detection)
 
 OpenFOAM มีกลไกในการตรวจจับรูปแบบการไหลเฉพาะที่:
 
 ```cpp
-// การตรวจจับรอยต่อผ่านความชันของเศษส่วนของช่องว่าง
+// Detect interface through void fraction gradient
 volVectorField voidFractionGrad = fvc::grad(alpha1);
 
-// การคำนวณความโค้งสำหรับแรงตึงผิว
+// Calculate curvature for surface tension forces
 surfaceScalarField curvature = fvc::div(nHat);
 
-// ตัวบ่งชี้โทโพโลยีเฟสสำหรับการจำแนกรูปแบบการไหล
+// Phase topology indicator for flow regime classification
 volScalarField regimeIndicator = calculateRegime(alpha1, U1, U2);
 ```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+**คำอธิบาย (Explanation):**
+โค้ดนี้แสดงเทคนิคการตรวจจับและจำแนกรูปแบบการไหลใน OpenFOAM โดยใช้ค่าความชันของเศษส่วนของช่องว่าง (void fraction gradient) เพื่อระบุตำแหน่งของรอยต่อ และคำนวณความโค้ง (curvature) สำหรับแรงตึงผิว ส่วน `regimeIndicator` เป็นตัวแปรที่คำนวณจากหลายพารามิเตอร์เพื่อจำแนกประเภทของรูปแบบการไหล
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Void Fraction Gradient:** ความชันของเศษส่วนปริมาตรของเฟสบอกตำแหน่งและความหนาของรอยต่อ ซึ่งช่วยแยกแยะระหว่าง dispersed flow (มี gradient สูงหลายจุด) กับ separated flow (มี gradient สูงเพียงชั้นเดียว)
+- **Curvature Calculation:** ความโค้งของรอยต่อใช้ในการคำนวณแรงตึงผิว (surface tension force) ซึ่งมีความสำคัญในรูปแบบการไหลที่มีฟองหรือหยด
+- **Regime Indicator:** ตัวบ่งชี้ที่คำนวณจาก phase fraction, velocity และคุณสมบัติอื่นๆ เพื่อจำแนกประเภทของรูปแบบการไหลโดยอัตโนมัติ
 
 ### การเลือก Solver ตามรูปแบบการไหล
 
@@ -228,16 +250,26 @@ volScalarField regimeIndicator = calculateRegime(alpha1, U1, U2);
 ### ตัวอย่างการตั้งค่าใน OpenFOAM
 
 ```cpp
-// ตัวอย่างการกำหนด multiphase model ใน OpenFOAM
+// Example: Define multiphase model in OpenFOAM
 phases (water air);
 
-// การกำหนด blending function สำหรับ regime-dependent models
+// Define blending function for regime-dependent models
 blending
 {
     type    table;
     values  (0 0.1 0.5 0.9 1);
 }
 ```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย (Explanation):**
+โค้ดนี้แสดงตัวอย่างการตั้งค่าระบบหลายเฟสใน OpenFOAM โดยระบุเฟสที่เกี่ยวข้อง (water และ air) และกำหนดฟังก์ชันการผสม (blending function) สำหรับโมเดลที่ขึ้นกับรูปแบบการไหล (regime-dependent models) ค่าในตาราง `values` กำหนดจุดข้อมูลสำหรับการปรับเปลี่ยนสัดส่วนของโมเดลต่างๆ ตามสภาวะการไหล
+
+**แนวคิดสำคัญ (Key Concepts):**
+- **Phase Definition:** การระบุเฟสที่เข้าร่วมในระบบเป็นขั้นตอนแรกในการตั้งค่าปัญหาหลายเฟส
+- **Blending Function:** ฟังก์ชันที่กำหนดวิธีการผสมโมเดลต่างๆ โดยปกติใช้ค่า phase fraction หรือตัวแปรอื่นเป็นพารามิเตอร์
+- **Table Interpolation:** ค่าในตารางใช้สำหรับการประเมินค่า blending factor ผ่านการ interpolation ซึ่งช่วยให้สามารถปรับแต่งการเปลี่ยนผ่านระหว่างโมเดลได้อย่างละเอียด
 
 ---
 

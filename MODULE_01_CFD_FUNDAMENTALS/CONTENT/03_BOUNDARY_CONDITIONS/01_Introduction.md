@@ -112,7 +112,7 @@ graph LR
 
 ### **Dirichlet (Fixed Value)**
 
-**การนิยามทางคณิตศาสตร์:**
+**การนิยามทางคณิตศาสต์:**
 $$\phi = \phi_0 \quad \text{บน Boundary} \quad \Gamma_D$$
 
 โดยที่:
@@ -126,17 +126,28 @@ $$\phi = \phi_0 \quad \text{บน Boundary} \quad \Gamma_D$$
 
 **การนำไปใช้ใน OpenFOAM:**
 ```cpp
-// การใช้งาน Dirichlet Condition ใน OpenFOAM
-fixedValue;           // กำหนดค่าคงที่
-timeVaryingFixedValue; // ค่าที่ขึ้นกับเวลา
-uniformFixedValue;    // นิพจน์ทางคณิตศาสตร์
+// Dirichlet Condition usage in OpenFOAM
+fixedValue;           // Set constant value
+timeVaryingFixedValue; // Time-dependent value
+uniformFixedValue;    // Mathematical expression
 ```
+
+> **📂 Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> **Dirichlet Boundary Condition** หรือ Fixed Value Condition เป็นเงื่อนไขขอบเขตแบบกำหนดค่าโดยตรงที่พื้นผิวขอบเขต ใน OpenFOAM ใช้คลาส `fixedValueFvPatchField` เป็นฐานคลาสสำหรับเงื่อนไขประเภทนี้
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **การกำหนดค่าโดยตรง**: ค่าของตัวแปร (เช่น ความเร็ว ความดัน อุณหภูมิ) ถูกระบุเป็นค่าคงที่หรือฟังก์ชันที่ขอบเขต
+> - **การใช้งาน**: เหมาะสำหรับ inlet conditions ที่ทราบค่าความเร็ว หรือผนังที่มีอุณหภูมิคงที่
+> - **timeVaryingFixedValue**: ใช้เมื่อค่าที่ขอบเขตเปลี่ยนแปลงตามเวลา เช่น ความเร็จ inlet แปรผันตามเวลา
+> - **uniformFixedValue**: ใช้นิพจน์ทางคณิตศาสตร์เพื่อกำหนดค่าที่ซับซ้อน เช่น ฟังก์ชันของตำแหน่งหรือเวลา
 
 ---
 
 ### **Neumann (Fixed Gradient)**
 
-**การนิยามทางคณิตศาสตร์:**
+**การนิยามทางคณิตศาสต์:**
 $$\frac{\partial \phi}{\partial n} = g_0 \quad \text{บน Boundary} \quad \Gamma_N$$
 
 โดยที่:
@@ -154,15 +165,27 @@ $$\frac{\partial T}{\partial n} = 0$$
 
 **การนำไปใช้ใน OpenFOAM:**
 ```cpp
-fixedGradient;        // กำหนดค่า Gradient คงที่
-zeroGradient;         // Gradient เป็นศูนย์ (กรณีพิเศษ)
+// Neumann Condition usage in OpenFOAM
+fixedGradient;        // Set constant gradient value
+zeroGradient;         // Zero gradient (special case)
 ```
+
+> **📂 Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> **Neumann Boundary Condition** หรือ Fixed Gradient Condition เป็นเงื่อนไขขอบเขตที่กำหนดค่าอนุพันธ์เชิงทิศทาง (gradient) ของตัวแปรในแนวปกติของพื้นผิวขอบเขต ใน OpenFOAM ใช้คลาส `fixedGradientFvPatchField` สำหรับเงื่อนไขประเภทนี้
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **การกำหนด Gradient**: ค่าอนุพันธ์เชิงทิศทาง ∂φ/∂n ถูกระบุแทนค่าของตัวแปรโดยตรง
+> - **ผนัง Adiabatic**: zeroGradient แทนการไม่มีการถ่ายเทความร้อนผ่านผนัง
+> - **Symmetry Plane**: ใช้ zeroGradient เพื่อให้แน่ใจว่าไม่มี flux ผ่านระนาบสมมาตร
+> - **Outlet Boundaries**: มักใช้ zeroGradient สำหรับความเร็วที่ outlet สมมติว่าการไหลเต็มพัฒนาแล้ว
 
 ---
 
 ### **Robin (Mixed)**
 
-**การนิยามทางคณิตศาสตร์:**
+**การนิยามทางคณิตศาสต์:**
 $$a\phi + b\frac{\partial \phi}{\partial n} = c \quad \text{บน Boundary} \quad \Gamma_R$$
 
 โดยที่:
@@ -183,9 +206,21 @@ $$hT + k\frac{\partial T}{\partial n} = hT_\infty$$
 
 **การนำไปใช้ใน OpenFOAM:**
 ```cpp
-mixed;                         // การใช้งานทั่วไป
-convectiveHeatTransfer;        // การถ่ายเทความร้อนโดย Convection
+// Robin Condition usage in OpenFOAM
+mixed;                         // General usage
+convectiveHeatTransfer;        // Convective heat transfer
 ```
+
+> **📂 Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> **Robin Boundary Condition** หรือ Mixed Condition เป็นเงื่อนไขขอบเขตแบบผสมผสานระหว่าง Dirichlet และ Neumann โดยระบุค่าตัวแปรและ gradient พร้อมกัน ใน OpenFOAM ใช้คลาส `mixedFvPatchField` สำหรับเงื่อนไขประเภทนี้
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **สมการผสม**: aφ + b(∂φ/∂n) = c เป็นการรวมค่าและ gradient ในสมการเดียว
+> - **Newton's Cooling Law**: ใช้สำหรับการถ่ายเทความร้อนโดย convection ระหว่างผนังและของไหลโดยรอบ
+> - **พารามิเตอร์**: ค่าสัมประสิทธิ์การถ่ายเทความร้อน h และความนำความร้อน k ถูกใช้ในการคำนวณ
+> - **convectiveHeatTransfer**: เงื่อนไขเฉพาะสำหรับปัญหาการถ่ายเทความร้อนแบบ convection
 
 ---
 
@@ -227,17 +262,28 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \
 ลำดับชั้นคลาส `fvPatchField` เป็นรากฐานสำหรับการนำ Boundary Condition ประเภทต่างๆ ไปใช้งาน:
 
 ```cpp
-// โครงสร้างพื้นฐานของ boundary condition ใน OpenFOAM
+// Basic boundary condition structure in OpenFOAM
 class fvPatchField
 {
-    // ฐานคลาสสำหรับ boundary condition ทั้งหมด
+    // Base class for all boundary conditions
 };
 
-// ประเภทต่างๆ ที่สืบทอดจาก fvPatchField
+// Types inherited from fvPatchField
 class fixedValueFvPatchField;      // Dirichlet conditions
 class fixedGradientFvPatchField;   // Neumann conditions
 class mixedFvPatchField;           // Mixed conditions
 ```
+
+> **📂 Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> **คลาส fvPatchField** เป็นคลาสพื้นฐาน (base class) สำหรับ boundary conditions ทั้งหมดใน OpenFOAM ทำหน้าที่เป็น interface ระหว่าง mesh patches และ field data
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Inheritance Hierarchy**: คลาสทั้งหมดสืบทอดจาก `fvPatchField` ซึ่งให้ฟังก์ชันพื้นฐานสำหรับการจัดการข้อมูลที่ patch
+> - **Polymorphism**: ช่วยให้สามารถใช้ pointer ของคลาสฐานเพื่อเข้าถึงคลาสลูกได้อย่างยืดหยุ่น
+> - **Template-based**: ใช้ template parameters เพื่อรองรับชนิดข้อมูลต่าง ๆ (scalar, vector, tensor)
+> - **Virtual Functions**: ใช้ฟังก์ชันเสมือนสำหรับการคำนวณค่าที่ patch และการ update coefficients
 
 ```mermaid
 graph TD
@@ -291,9 +337,9 @@ graph TD
 #### ตัวอย่าง Velocity Inlet
 
 ```cpp
-// 0/U file
-dimensions      [0 1 -1 0 0 0 0];
-internalField   uniform 0;
+// 0/U file - Velocity field boundary conditions
+dimensions      [0 1 -1 0 0 0 0];  // Velocity dimensions: [L/T]
+internalField   uniform 0;        // Initial internal field value
 
 boundaryField
 {
@@ -305,42 +351,66 @@ boundaryField
 
     outlet
     {
-        type            zeroGradient;
+        type            zeroGradient;      // Zero gradient at outlet
     }
 
     walls
     {
-        type            noSlip;
+        type            noSlip;            // No-slip condition at walls
     }
 }
 ```
 
+> **📂 Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> **ไฟล์ 0/U** ใช้กำหนด boundary conditions สำหรับสนามความเร็วใน OpenFOAM ซึ่งเป็นส่วนสำคัญของการตั้งค่าเริ่มต้นของการจำลอง
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **dimensions**: ระบุหน่วยของค่าความเร็วเป็น [L T^-1] หรือ [m/s]
+> - **internalField**: ค่าเริ่มต้นของความเร็วในโดเมนภายใน
+> - **fixedValue**: กำหนดค่าคงที่ที่ inlet ในที่นี้คือ (10 0 0) m/s
+> - **zeroGradient**: ใช้ที่ outlet สมมติว่าการไหลเต็มพัฒนา (fully developed)
+> - **noSlip**: เงื่อนไขไม่ลื่นที่ผนัง ความเร็วเป็นศูนย์
+
 #### ตัวอย่าง Pressure Outlet
 
 ```cpp
-// 0/p file
-dimensions      [1 -1 -2 0 0 0 0];
-internalField   uniform 0;
+// 0/p file - Pressure field boundary conditions
+dimensions      [1 -1 -2 0 0 0 0];  // Pressure dimensions: [M/LT²]
+internalField   uniform 0;         // Initial internal field value
 
 boundaryField
 {
     inlet
     {
-        type            zeroGradient;
+        type            zeroGradient;      // Zero gradient at inlet
     }
 
     outlet
     {
         type            fixedValue;
-        value           uniform 0;  // Gauge pressure (relative to atmospheric)
+        value           uniform 0;         // Gauge pressure (relative to atmospheric)
     }
 
     walls
     {
-        type            zeroGradient;
+        type            zeroGradient;      // Zero gradient at walls
     }
 }
 ```
+
+> **📂 Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> **ไฟล์ 0/p** ใช้กำหนด boundary conditions สำหรับสนามความดันใน OpenFOAM ซึ่งมักใช้ความดันเกจ (gauge pressure) เป็นค่าอ้างอิง
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **dimensions**: ระบุหน่วยของความดันเป็น [M L^-1 T^-2] หรือ [Pa]
+> - **Gauge Pressure**: ค่าความดันที่อ้างอิงกับความดันบรรยากาศ (0 = atmospheric pressure)
+> - **zeroGradient at inlet**: ความดันไม่มีการเปลี่ยนแปลงในแนวปกติที่ inlet
+> - **fixedValue at outlet**: กำหนดความดันคงที่ที่ outlet ซึ่งเป็นเงื่อนไขขอบเขตทั่วไป
+> - **P-U Coupling**: ความสัมพันธ์ระหว่างความดันและความเร็วผ่านสมการ continuity
 
 ---
 

@@ -165,12 +165,14 @@ SchnerrSauerCoeffs
 }
 
 // Key code snippet from SchnerrSauer.C
+// Calculate bubble radius from vapor fraction
 volScalarField Rb
 (
     pow
     (
         max
         (
+            // Radius calculation from bubble number density
             (3*alphaV_)/(4*constant::mathematical::pi*nBubbles_),
             dimensionedScalar("minR", dimLength, 1e-6)
         ),
@@ -178,14 +180,39 @@ volScalarField Rb
     )
 );
 
-// Mass transfer calculation
+// Calculate pressure coefficient for mass transfer
 volScalarField pCoeff
 (
     coeff1_*sqrt(max(pSat_ - p, dimensionedScalar("zero", pSat_.dimensions(), 0)))
 );
 
+// Compute mass transfer rate per unit liquid volume
 mDotAlphal_ = coeff2_ * pCoeff * Rb;
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C` (Reference for bubble dynamics implementation)
+
+> **คำอธิบายภาษาไทย:**
+> 
+> **แหล่งที่มา (Source):**
+> โค้ดนี้มาจากไฟล์ `populationBalanceModel.C` ซึ่งเป็นส่วนหนึ่งของระบบจำลองปรากฏการณ์ multiphase flow ใน OpenFOAM
+>
+> **คำอธิบาย (Explanation):**
+> 1. `volScalarField Rb`: สร้างฟิลด์สเกลาร์สำหรับเก็บค่ารัศมีฟอง (bubble radius) แต่ละเซลล์ในเมช
+> 2. `pow()`: คำนวณรัศมีฟองจากสมการ $\alpha_v = \frac{n_b \frac{4}{3}\pi R_b^3}{1 + n_b \frac{4}{3}\pi R_b^3}$ โดยสลับมาหา $R_b$
+> 3. `max()`: ใช้เพื่อป้องกันค่ารัศมีต่ำเกินไปที่อาจก่อให้เกิดปัญหาทางคณิตศาสตร์
+> 4. `constant::mathematical::pi`: ค่าคงที่ π จากไลบรารีมาตรฐานของ OpenFOAM
+> 5. `nBubbles_`: ความหนาแน่นของจำนวนฟอง (bubble number density) ที่ตั้งค่าไว้ใน dictionary
+> 6. `coeff1_`, `coeff2_`: สัมประสิทธิ์ที่คำนวณล่วงหน้าจากค่า density ของเฟสก๊าซและของเหลว
+> 7. `pSat_`: ความดันไอสะเก็น (saturation vapor pressure) ที่อุณหภูมิทำงาน
+> 8. `mDotAlphal_`: อัตราการถ่ายเทมวล (mass transfer rate) ต่อปริมาตรของเหลว
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Bubble Number Density ($n_b$)**: จำนวนฟองต่อหน่วยปริมาตร มีผลต่อความเร็วในการเปลี่ยนสถานะเฟส
+> - **Mean Bubble Radius ($R_b$)**: รัศมีเฉลี่ยของฟอง คำนวณจาก volume fraction และ bubble number density
+> - **Mass Transfer Rate ($\dot{m}$)**: อัตราการเปลี่ยนสถานะระหว่างเฟสของเหลวและก๊าซ ขึ้นกับความแตกต่างของความดัน
+> - **Pressure-Driven Phase Change**: การเปลี่ยนสถานะถูกควบคุมโดยฟังก์ชันของ ($p_{sat} - p$)
+> - **Dimensionally Consistent Calculation**: การคำนวณทั้งหมดต้องเป็นไปตามหลัก dimension checking ของ OpenFOAM
 
 ### 4.2 Kunz Model
 
@@ -213,6 +240,7 @@ $$\dot{m} = \dot{m}^+ + \dot{m}^- \tag{4.6}$$
 #### 4.2.2 OpenFOAM Implementation
 
 ```cpp
+// Kunz model configuration
 KunzCoeffs
 {
     UInf        20;       // Characteristic velocity [m/s]
@@ -222,6 +250,26 @@ KunzCoeffs
     pSat        2300;     // Saturation pressure [Pa]
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/ThermalPhaseChangePhaseSystem/ThermalPhaseChangePhaseSystem.C` (Reference for phase change model implementation)
+
+> **คำอธิบายภาษาไทย:**
+> 
+> **แหล่งที่มา (Source):**
+> โค้ดนี้อ้างอิงจากไฟล์ `ThermalPhaseChangePhaseSystem.C` ซึ่งเป็น base class สำหรับระบบจำลองการเปลี่ยนสถานะเฟสพร้อมผลกระทบจากความร้อน
+>
+> **คำอธิบาย (Explanation):**
+> 1. `UInf`: ความเร็วลักษณะเฉพาะ (characteristic velocity) ใช้ในการปรับมาตราส่วน (scaling) อัตราการเปลี่ยนสถานะ
+> 2. `tInf`: เวลาลักษณะเฉพาะ (characteristic time) ใช้กำหนดเวลา characteristic ของกระบวนการแควิเทชัน
+> 3. `CProd`: สัมประสิทธิ์การผลิต (production coefficient) ควบคุมอัตราการระเหย (evaporation)
+> 4. `CDest`: สัมประสิทธิ์การทำลาย (destruction coefficient) ควบคุมอัตราการควบแน่น (condensation)
+> 5. `pSat`: ความดันไอสะเก็นที่อุณหภูมิทำงาน
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Empirical Coefficients**: ค่า $C_{prod}$ และ $C_{dest}$ เป็นค่าประสบการณ์ (empirical) ที่ต้องปรับแต่งตามแต่ละกรณี
+> - **Time Scale Separation**: การแยกเวลา characteristic สำหรับกระบวนการระเหยและควบแน่น
+> - **Non-Uniform Mass Transfer**: อัตราการเปลี่ยนสถานะอาจต่างกันระหว่างการระเหยและการควบแน่น
+> - **Stability-Oriented Design**: โมเดล Kunz ถูกออกแบบให้มีเสถียรภาพทางตัวเลขสูง
 
 ### 4.3 Merkle Model
 
@@ -435,6 +483,24 @@ maxAlphaCo     0.3;      // Maximum Courant for alpha
 adjustTimeStep yes;
 ```
 
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C` (Reference for time step control in multiphase systems)
+
+> **คำอธิบายภาษาไทย:**
+> 
+> **แหล่งที่มา (Source):**
+> โค้ดนี้อ้างอิงจากไฟล์ `phaseSystem.C` ซึ่งเป็น base class ที่จัดการคุณสมบัติของระบบ multiphase และการควบคุมเวลาในการคำนวณ
+>
+> **คำอธิบาย (Explanation):**
+> 1. `maxCo`: ค่า Courant number สูงสุดที่อนุญาต คืออัตราส่วนระหว่างระยะทางที่ของไหลเดินทางในหนึ่ง time step กับขนาดเซลล์เมช
+> 2. `maxAlphaCo`: Courant number เฉพาะสำหรับ volume fraction field ($\alpha$) เพื่อความเสถียรของ interface
+> 3. `adjustTimeStep`: สั่งให้ solver ปรับขนาด time step อัตโนมัติเพื่อรักษาค่า Co ให้อยู่ในขอบเขตที่กำหนด
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Courant-Friedrichs-Lewy (CFL) Condition**: เงื่อนไขเสถียรภาพของการคำนวณแบบ explicit ในแบบจำลอง CFD
+> - **Adaptive Time Stepping**: การปรับขนาด time step แบบ dynamic เพื่อสมดุลระหว่างความแม่นยำและประสิทธิภาพ
+> - **Interface Stability**: การควบคุมความเสถียรของ interface ระหว่างเฟสของเหลวและก๊าซ
+> - **Numerical Diffusion vs. Stability**: การทำงานระหว่างการลดการแพร่กระจายเชิงตัวเลขกับความเสถียรของการคำนวณ
+
 ### 6.3 Mesh Requirements
 
 **Resolution Guidelines:**
@@ -630,6 +696,25 @@ coeffs
 }
 ```
 
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C` (Reference for parallel implementation in multiphase solvers)
+
+> **คำอธิบายภาษาไทย:**
+> 
+> **แหล่งที่มา (Source):**
+> โค้ดนี้อ้างอิงจากไฟล์ `kineticTheoryModel.C` ซึ่งเป็นส่วนหนึ่งของ multiphase solver ที่รองรับการประมวลผลแบบขนาน
+>
+> **คำอธิบาย (Explanation):**
+> 1. `method`: วิธีการ decompose domain เป็น subdomains สำหรับการประมวลผลแบบขนาน
+> 2. `scotch`: อัลกอริทึมการแบ่ง partition ที่ให้ประสิทธิภาพสูงสำหรับ unstructured meshes
+> 3. `numberOfSubdomains`: จำนวน subdomains ที่ต้องการแบ่ง ควรเท่ากับจำนวน cores ที่มี
+> 4. `coeffs`: พารามิเตอร์เฉพาะสำหรับแต่ละวิธี decompose
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Domain Decomposition**: การแบ่ง computational domain เป็น subdomains สำหรับ parallel processing
+> - **Load Balancing**: การกระจาย workload ให้สมดุลระหว่าง processors
+> - **Scotch Algorithm**: อัลกอริทึม graph partitioning ที่ให้ประสิทธิภาพสูง
+> - **Parallel Scaling**: การเพิ่มประสิทธิภาพโดยการใช้ processors หลายตัวพร้อมกัน
+
 **Memory Management:**
 
 ```foam
@@ -744,6 +829,25 @@ RAS
     cavitationModel SchnerrSauer;
 }
 ```
+
+> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C` (Reference for turbulence model configuration)
+
+> **คำอธิบายภาษาไทย:**
+> 
+> **แหล่งที่มา (Source):**
+> โค้ดนี้อ้างอิงจากไฟล์ `solidDisplacementThermo.C` ซึ่งแสดงโครงสร้างการตั้งค่า turbulence model ใน OpenFOAM
+>
+> **คำอธิบาย (Explanation):**
+> 1. `simulationType`: ประเภทของการจำลองความปั่น (RAS, LES, DES)
+> 2. `RASModel`: โมเดล RANS ที่เลือกใช้ (kEpsilon, kOmegaSST, etc.)
+> 3. `cavitation`: สวิตช์เปิด/ปิดการใช้ cavitation correction สำหรับ turbulence model
+> 4. `cavitationModel`: ระบุแบบจำลองแควิเทชันที่ต้องการใช้ในการแก้ไข turbulence
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Turbulence-Cavitation Interaction**: ปฏิสัมพันธ์ระหว่างความปั่นและปรากฏการณ์แควิเทชัน
+> - **Two-Way Coupling**: แควิเทชันส่งผลต่อ turbulence และ turbulence ก็ส่งผลต่อแควิเทชัน
+> - **Modified Eddy Viscosity**: การปรับค่า eddy viscosity ในบริเวณที่มีการเปลี่ยนสถานะเฟส
+> - **Bubble-Induced Turbulence**: ความปั่นที่เกิดจากการเคลื่อนที่ของฟอง
 
 ### 10.3 Scale Effects
 

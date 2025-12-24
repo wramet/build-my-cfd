@@ -84,29 +84,40 @@ OpenFOAM ใช้การออกแบบเชิงวัตถุ (Object
 ### การสร้างสนามใน Source Code
 
 ```cpp
-// สนามสัดส่วนเฟส (Phase fraction field)
+// Phase fraction field - สนามสำหรับเก็บสัดส่วนปริมาตรของแต่ละเฟส
 volScalarField alpha_k
 (
     IOobject("alpha." + phase.name(), runTime.timeName(), mesh, ...),
     mesh
 );
 
-// สนามความเร็ว (Phase velocity field)
+// Phase velocity field - สนามความเร็วของแต่ละเฟส
 volVectorField U_k
 (
     IOobject("U." + phase.name(), runTime.timeName(), mesh, ...),
     mesh
 );
 
-// ความหนาแน่นเฟสเป็นฟังก์ชันของอุณหภูมิและความดัน
+// Phase density as function of temperature and pressure - ความหนาแน่นของเฟสเป็นฟังก์ชันของ T และ p
 volScalarField rho_alpha = phase.rho();
 
-// ความหนืดเฟสเป็นฟังก์ชันของสภาวะเฉพาะที่
+// Phase viscosity as function of local conditions - ความหนืดของเฟสเป็นฟังก์ชันของสภาวะเฉพาะที่
 volScalarField mu_alpha = phase.mu();
 
-// การนำความร้อนของเฟส
+// Thermal conductivity of the phase - การนำความร้อนของเฟส
 volScalarField k_alpha = phase.k();
 ```
+
+**📖 คำอธิบาย:**
+- **volScalarField**: ประเภทข้อมูลสนามสเกลาร์บนตำแหน่งกลางเซลล์ (cell-centered scalar field) ใช้เก็บค่าต่างๆ เช่น สัดส่วนเฟส (alpha), ความหนาแน่น (rho), ความหนืด (mu)
+- **volVectorField**: ประเภทข้อมูลสนามเวกเตอร์บนตำแหน่งกลางเซลล์ ใช้เก็บค่าความเร็ว (U)
+- **IOobject**: คลาสสำหรับกำหนดคุณสมบัติของไฟล์ I/O เช่น ชื่อ, เวลา, mesh, โหมดการอ่าน/เขียน
+- **phase.name()**: ฟังก์ชันที่คืนค่าชื่อของเฟส เช่น "air", "water"
+
+**🔑 แนวคิดสำคัญ:**
+1. แต่ละเฟสมีสนาม (field) ของตัวเองเพื่อเก็บค่าต่างๆ
+2. คุณสมบัติทางกายภาพ (เช่น density, viscosity) ถูกคำนวณจากฟังก์ชันสมาชิกของคลาส phase
+3. สนามเหล่านี้ถูกอัปเดตในแต่ละ time step ระหว่างการแก้สมการ
 
 ---
 
@@ -136,34 +147,49 @@ graph TD
 ใช้สกีม **MULES** (Multidimensional Universal Limiter with Explicit Solution) เพื่อรักษาขอบเขต $0 \leq \alpha_k \leq 1$
 
 ```cpp
-// สมการความต่อเนื่องสำหรับแต่ละเฟส
+// Continuity equation for each phase - สมการความต่อเนื่องสำหรับแต่ละเฟส
+// MULES scheme ensures boundedness of phase fraction
 fvScalarMatrix alphaEqn
 (
-    fvm::ddt(alpha, rho)
-  + fvm::div(alphaPhi, rho)
+    fvm::ddt(alpha, rho)              // Time derivative term
+  + fvm::div(alphaPhi, rho)           // Convection term
  ==
-    fvOptions(alpha, rho)
+    fvOptions(alpha, rho)             // Source terms from fvOptions
 );
+
+// Solve the phase fraction equation
+alphaEqn.solve();
 ```
+
+**📖 คำอธิบาย:**
+- **fvm::ddt**: อนุพันธ์เชิงเวลาแบบ implicit finite volume (implicit time derivative)
+- **fvm::div**: อนุพันธ์เชิงอนุพันธ์ (divergence) แบบ implicit สำหรับเทอม convection
+- **alphaPhi**: การไหลของสัดส่วนเฟส (flux of phase fraction)
+- **fvOptions**: framework สำหรับเพิ่ม source terms เพิ่มเติม เช่น แรงลอยตัว, แหล่งกำเนิดมวล
+
+**🔑 แนวคิดสำคัญ:**
+1. MULES ใช้เทคนิค flux limiter เพื่อป้องกันค่า alpha เกินขอบเขต [0, 1]
+2. สมการนี้ถูกแก้ก่อนสมการโมเมนตัมและความดัน
+3. ผลรวมของ alpha ทุกเฟสต้องเท่ากับ 1 (conservation of volume)
 
 #### 2. สมการโมเมนตัม (`UEqn.H`)
 
 มีการนำเทอมแรงระหว่างเฟสมาใช้อย่างเข้มงวด:
 
 ```cpp
-// สมการโมเมนตัมสำหรับแต่ละเฟส
+// Momentum equation for each phase - สมการโมเมนตัมสำหรับแต่ละเฟส
 fvVectorMatrix UEqn
 (
-    fvm::ddt(alpha, rho, U)
-  + fvm::div(alphaRhoPhi, U)
-  - fvm::Sp(fvc::ddt(alpha, rho) + fvc::div(alphaRhoPhi), U)
-  + turbulence->divDevReff(RhoEff)
+    fvm::ddt(alpha, rho, U)                     // Unsteady term
+  + fvm::div(alphaRhoPhi, U)                    // Convection term
+  - fvm::Sp(fvc::ddt(alpha, rho) + fvc::div(alphaRhoPhi), U)  // Mass continuity correction
+  + turbulence->divDevReff(RhoEff)             // Viscous/diffusion term
  ==
-    fvOptions(alpha, rho, U)
-  + phase.Kd()*U.otherPhase() // Drag coupling
+    fvOptions(alpha, rho, U)                    // Source terms from fvOptions
+  + phase.Kd()*U.otherPhase()                   // Interphase drag coupling
 );
 
-// การจัดการการถ่ายโอนโมเมนตัมระหว่างเฟส
+// Calculate mean mixture velocity - คำนวณความเร็วผสมเฉลี่ย
 tmp<volVectorField> UMean = fluid.phases()[0].U();
 forAll(fluid.phases(), phasei)
 {
@@ -173,6 +199,18 @@ forAll(fluid.phases(), phasei)
       /fluid.phases()[phasei].d();
 }
 ```
+
+**📖 คำอธิบาย:**
+- **fvm::Sp**: ตัวดำเนินการ source term แบบ implicit (implicit source operator)
+- **fvc::ddt, fvc::div**: อนุพันธ์เชิงเวลาและ divergence แบบ explicit (สำหรับการคำนวณค่าสัมประสิทธิ์)
+- **divDevReff**: การกระจายของ stress tensor ที่มีผลจากความปั่นป่วน (divergence of deviatoric stress)
+- **Kd()**: สัมประสิทธิ์การถ่ายโอนโมเมนตัมระหว่างเฟส (drag coefficient)
+- **otherPhase()**: ฟังก์ชันที่อ้างอิงถึงเฟสอื่นในระบบ
+
+**🔑 แนวคิดสำคัญ:**
+1. เทอม drag coupling ทำให้สมการโมเมนตัมของทุกเฟสเชื่อมโยงกัน
+2. การแก้สมการโมเมนตัมต้องใช้ iterative method (เช่น PIMPLE) เนื่องจากความเป็น non-linear
+3. ความเร็วผสม (mixture velocity) ถูกคำนวณจากค่าถ่วงน้ำหนักของแต่ละเฟส
 
 ---
 
@@ -186,7 +224,7 @@ forAll(fluid.phases(), phasei)
 |--------|---------------------|-------------|
 | **Schiller-Naumann** | $Re_p < 1000$ | กระบวนการทั่วไป |
 | **Ishii-Zuber** | หลากหลาย | ของเหลว-ก๊าซ |
-| **Tomiyama** | $Eo < 4$ | ฟองก๊าซ |
+| **Tomiyama** | $Eo < 4$ | ฟองก๊าศ |
 | **Grace** | หลากหลาย | อนุภาคของแข็ง |
 
 #### สมการ Drag Coefficient
@@ -216,14 +254,25 @@ $$C_D = \begin{cases}
 การไหลแบบหลายเฟสไวต่อคุณภาพ Mesh มาก ควรหลีกเลี่ยงเซลล์ที่มี Aspect Ratio สูง
 
 ```cpp
-// การตั้งค่า checkMesh
+// Mesh quality check using checkMesh utility
 checkMesh -allRegions -allGeometry
 
-// ข้อกำหนดคุณภาพ Mesh
-// - Non-orthogonality < 70°
-// - Aspect ratio < 5
-// - Skewness < 2
+// Mesh quality requirements for multiphase flows
+// - Non-orthogonality < 70° (for accurate gradient calculation)
+// - Aspect ratio < 5 (to avoid numerical diffusion)
+// - Skewness < 2 (for stable solution)
 ```
+
+**📖 คำอธิบาย:**
+- **checkMesh**: utility ใน OpenFOAM สำหรับตรวจสอบคุณภาพของ mesh
+- **Non-orthogonality**: มุมระหว่าง normal vector ของเซลล์ที่ติดกัน ค่าที่สูงแสดงถึงความไม่สมมาตรของ mesh
+- **Aspect ratio**: อัตราส่วนระหว่างความยาวและความกว้างของเซลล์
+- **Skewness**: ความเบี้ยวเบนของรูปทรงเซลล์จากรูปสี่เหลี่ยมมุมฉากที่สมบูรณ์
+
+**🔑 แนวคิดสำคัญ:**
+1. Mesh quality ส่งผลต่อความแม่นยำและความเสถียรของการคำนวณ
+2. ในบริเวณที่มี gradient สูง (เช่น interface) ควรใช้ mesh ที่ละเอียด
+3. การใช้ snappyHexMesh หรือ cfMesh สามารถสร้าง mesh คุณภาพสูงได้
 
 ### 2. Time Stepping
 
@@ -249,9 +298,19 @@ maxCo           0.5;
 maxAlphaCo      0.5;
 ```
 
+**📖 คำอธิบาย:**
+- **adjustTimeStep**: คำสั่งให้ solver ปรับค่า deltaT อัตโนมัติตามเงื่อนไขที่กำหนด
+- **maxCo**: ค่า Courant Number สูงสุดที่อนุญาต คำนวณจาก Co = U*dt/dx
+- **maxAlphaCo**: Courant Number สำหรับการแก้สมการสัดส่วนเฟสโดยเฉพาะ
+
+**🔑 แนวคิดสำคัญ:**
+1. Courant number คือตัวชี้วัดความเสถียรของการคำนวณ (CFL condition)
+2. ค่า Co ที่สูงเกินไปอาจทำให้การคำนวณ diverge
+3. สำหรับการไหลแบบหลายเฟส ควรใช้ค่า Co ต่ำกว่าการไหลแบบเฟสเดียว
+
 ### 3. Relaxation Factors
 
-สำหรับเคสที่ลู่เข้ายาก (Stiff systems) ควรเริ่มด้วยค่า Under-relaxation ที่ต่ำ
+สำหหรับเคสที่ลู่เข้ายาก (Stiff systems) ควรเริ่มด้วยค่า Under-relaxation ที่ต่ำ
 
 | ตัวแปร | ค่าเริ่มต้นที่แนะนำ | ค่าที่ใช้เมื่อลู่เข้าแล้ว |
 |---------|---------------------|---------------------------|
@@ -270,7 +329,7 @@ PIMPLE
     pRefCell         0;
     pRefValue        0;
 
-    // Under-relaxation factors
+    // Under-relaxation factors for stability
     relaxationFactors
     {
         fields
@@ -287,6 +346,17 @@ PIMPLE
 }
 ```
 
+**📖 คำอธิบาย:**
+- **nCorrectors**: จำนวนรอบการแก้สมการความดันในแต่ละ time step
+- **nAlphaSubCycles**: จำนวนรอบย่อยสำหรับการแก้สมการสัดส่วนเฟส (เพื่อเพิ่มความเสถียร)
+- **relaxationFactors**: ค่า under-relaxation สำหรับลดการเปลี่ยนแปลงของตัวแปรระหว่างรอบการคำนวณ
+- **pRefCell, pRefValue**: การอ้างอิงความดัน (pressure reference) เพื่อแก้ปัญหาความกำกวมของสมการ
+
+**🔑 แนวคิดสำคัญ:**
+1. Under-relaxation ช่วยให้การคำนวณลู่เข้าได้ง่ายขึ้นโดยลดการเปลี่ยนแปลงของตัวแปร
+2. เมื่อการคำนวณเริ่มลู่เข้าแล้ว สามารถเพิ่มค่า relaxation factors ได้
+3. การใช้ sub-cycling สำหรับ alpha equation ช่วยเพิ่มความเสถียรของการคำนวณ
+
 ### 4. Boundary Conditions
 
 การตั้งค่า Boundary Condition ที่เหมาะสมมีความสำคัญอย่างยิ่ง
@@ -297,17 +367,27 @@ PIMPLE
 inlet
 {
     type            fixedValue;
-    value           uniform 1;  // สำหรับ alpha
+    value           uniform 1;  // Fixed value for alpha at inlet
 }
 
-// หรือใช้ flowRateInletVelocity
+// Alternative: flowRateInletVelocity for mass flow specification
 inlet
 {
     type            flowRateInletVelocity;
-    volumetricFlowRate  0.01;
+    volumetricFlowRate  0.01;  // m³/s
     value           uniform (0 0 0);
 }
 ```
+
+**📖 คำอธิบาย:**
+- **fixedValue**: boundary condition ที่กำหนดค่าคงที่ที่ inlet
+- **flowRateInletVelocity**: boundary condition ที่กำหนดอัตราการไหล (flow rate) และคำนวณความเร็วโดยอัตโนมัติ
+- **uniform**: ค่าที่เหมือนกันทั่วทั้ง boundary
+
+**🔑 แนวคิดสำคัญ:**
+1. การเลือก BC ขึ้นกับข้อมูลที่มี (เช่น ทราบความเร็ว หรือทราบ flow rate)
+2. สำหรับ multiphase flow ต้องกำหนด BC สำหรับทุกเฟส
+3. ค่า alpha ที่ inlet ต้องสอดคล้องกับสมการ $\sum \alpha = 1$
 
 #### Outlet Boundary
 
@@ -315,17 +395,26 @@ inlet
 outlet
 {
     type            inletOutlet;
-    inletValue      uniform 0;
+    inletValue      uniform 0;  // Value when flow reverses
     value           uniform 0;
 }
 
-// สำหรับความดัน
+// Alternative for pressure: fixedMean
 outlet
 {
     type            fixedMean;
-    meanValue       0;
+    meanValue       0;  // Mean pressure value
 }
 ```
+
+**📖 คำอธิบาย:**
+- **inletOutlet**: boundary condition แบบ zero-gradient เมื่อไหลออก และใช้ inletValue เมื่อไหลย้อนกลับ
+- **fixedMean**: boundary condition ที่รักษาค่าเฉลี่ยของความดันที่ outlet
+
+**🔑 แนวคิดสำคัญ:**
+1. inletOutlet ช่วยป้องกันปัญหาเมื่อเกิด backflow
+2. สำหรับ pressure BC ควรใช้ fixedMean หรือ fixedFluxPressure
+3. การเลือก BC ที่ outlet ส่งผลต่อความเสถียรของการคำนวณ
 
 ---
 
@@ -334,7 +423,7 @@ outlet
 ### ตัวอย่างการตั้งค่า Bubble Column
 
 ```cpp
-// ตัวอย่างการตั้งค่า bubble column ใน OpenFOAM
+// Example bubble column setup in OpenFOAM
 phases
 (
     { type            water; }
@@ -343,18 +432,27 @@ phases
 
 bubbleColumn
 {
-    sigma             0.07;      // แรงตึงผิว
-    g                 (0 0 -9.81); // ความโน้มถ่วง
+    sigma             0.07;      // Surface tension [N/m]
+    g                 (0 0 -9.81); // Gravity vector [m/s²]
 }
 ```
+
+**📖 คำอธิบาย:**
+- **sigma**: ค่าแรงตึงผิวระหว่างของเหลวและก๊าซ ส่งผลต่อขนาดฟองและพฤติกรรมการรวมตัว
+- **g**: เวกเตอร์ความโน้มถ่วง กำหนดทิศทางและขนาดของแรงโน้มถ่วง
+
+**🔑 แนวคิดสำคัญ:**
+1. Bubble column simulation ใช้ศึกษาพฤติกรรมการไหลแบบ gas-liquid
+2. แรงตึงผิวมีผลต่อ drag coefficient และ lift force
+3. ความโน้มถ่วงเป็นแรง驱動หลักใน bubble column
 
 ### ตัวอย่างการตั้งค่า Multiphase Pipeline
 
 ```cpp
-// การตั้งค่า multiphase pipeline
+// Multiphase pipeline setup
 multiphaseEulerFoam
 
-// รูปแบบการไหลแบบหลายเฟส
+// Multiphase flow pattern in pipeline
 phases
 (
     { type            oil; }
@@ -363,23 +461,43 @@ phases
 );
 ```
 
+**📖 คำอธิบาย:**
+- การตั้งค่าสำหรับ pipeline flow ที่มี 3 เฟส: น้ำมัน, น้ำ, และก๊าศ
+- แต่ละเฟสมีคุณสมบัติทางกายภาพที่แตกต่างกัน (density, viscosity, etc.)
+
+**🔑 แนวคิดสำคัญ:**
+1. Pipeline flow มี flow pattern ที่ซับซ้อน (stratified, slug, annular, etc.)
+2. การเลือก turbulence model และ interfacial force models มีความสำคัญ
+3. การตั้งค่า BC ที่ inlet ต้องสอดคล้องกับ flow regime
+
 ### ตัวอย่างการตั้งค่า Reactor Safety
 
 ```cpp
-// การตั้งค่า reactor safety
+// Reactor safety setup
 heatTransfer
 {
     type            twoPhaseHeatTransfer;
-    CHFCorrelation  biasi;        // ความสัมพันธ์ CHF
-    boilingModel    RPI;          // แบบจำลองการเดือด
+    CHFCorrelation  biasi;        // Critical Heat Flux correlation
+    boilingModel    RPI;          // Boiling model (Rensselaer Polytechnic Institute)
 }
 
 driftFlux
 {
-    C0              1.2;          // พารามิเตอร์การกระจายตัว
-    Vgj             0.1;          // ความเร็วการดริฟท์
+    C0              1.2;          // Distribution parameter
+    Vgj             0.1;          // Drift velocity [m/s]
 }
 ```
+
+**📖 คำอธิบาย:**
+- **CHFCorrelation**: สมการคำนวณ Critical Heat Flux (CHF) ซึ่งเป็นค่าความร้อนสูงสุดที่สามารถถ่ายเทได้ก่อนเกิด boiling crisis
+- **boilingModel**: โมเดลการเดือด โดย RPI model เป็นหนึ่งในโมเดลที่ใช้กันอย่างแพร่หลาย
+- **C0**: พารามิเตอร์การกระจายตัวใน drift-flux model
+- **Vgj**: ความเร็ว drift ของก๊าซเทียบกับของเหลว
+
+**🔑 แนวคิดสำคัญ:**
+1. Reactor safety simulation ต้องการความแม่นยำสูงในการทำนาย CHF
+2. Drift-flux model ใช้แทน two-fluid model ในบางกรณีเพื่อลดความซับซ้อน
+3. การตรวจสอบกับ experimental data จำเป็นอย่างยิ่ง
 
 ---
 
@@ -390,7 +508,7 @@ driftFlux
 | คุณสมบัติ | ข้อกำหนด | ความสำคัญ |
 |------------|------------|------------|
 | **ความเป็นขอบเขต (Boundedness)** | $0 \leq \alpha_k \leq 1$ และ $\sum \alpha_k = 1$ | รักษาสัดส่วนเฟสให้อยู่ในช่วงที่ถูกต้อง |
-| **ความเป็นไฮเพอร์โบลิก (Hyperbolicity)** | ความเร็วลักษณะเฉพาะกำหนดขีดจำกัดขั้นเวลา | ความเสถียรของการคำนวณ |
+| **ความเป็นไฮเปอร์โบลิก (Hyperbolicity)** | ความเร็วลักษณะเฉพาะกำหนดขีดจำกัดขั้นเวลา | ความเสถียรของการคำนาณ |
 | **เสถียรภาพ (Stability)** | การรักษาเทอมระหว่างเฟสแบบอิมพลิซิต | การบรรจบกันของการแก้ปัญหา |
 | **การอนุรักษ์ (Conservation)** | สกีมเชิงการแยกรักษาการอนุรักษ์ | ความแม่นยำของผลลัพธ์ |
 

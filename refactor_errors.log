@@ -1,0 +1,57 @@
+[2025-12-24 01:55:30] Failed: /Users/woramet/Documents/th_new/MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/08_MODEL_SELECTION/01_Decision_Framework.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 02:05:45] Failed: /Users/woramet/Documents/th_new/MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/09_IMPLEMENTATION_ARCHITECTURE/00_Overview.md
+Error: New content too short (14604/21395)
+--------------------------------------------------
+[2025-12-24 02:34:32] Failed: /Users/woramet/Documents/th_new/MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/01_FOUNDATION_PRIMITIVES/04_Smart_Pointers.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 02:56:21] Failed: /Users/woramet/Documents/th_new/MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/02_DIMENSIONED_TYPES/07_Mathematical_Formulations.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 03:18:08] Failed: /Users/woramet/Documents/th_new/MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/04_MESH_CLASSES/03_primitiveMesh.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 03:40:42] Failed: /Users/woramet/Documents/th_new/MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/06_MATRICES_LINEARALGEBRA/00_Overview.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 04:05:54] Failed: /Users/woramet/Documents/th_new/MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/08_FIELD_TYPES/00_Overview.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 05:08:05] Failed: /Users/woramet/Documents/th_new/MODULE_06_ADVANCED_PHYSICS/CONTENT/01_ADVANCED_MULTIPHASE_FLOWS/00_Overview.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 05:54:37] Failed: /Users/woramet/Documents/th_new/MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/03_SnappyHexMesh_Configuration.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 06:03:51] Failed: /Users/woramet/Documents/th_new/MODULE_07_UTILITIES_AUTOMATION/CONTENT/03_POST_PROCESSING/02_Forces_and_Moments.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 06:18:23] Failed: /Users/woramet/Documents/th_new/MODULE_07_UTILITIES_AUTOMATION/CONTENT/06_PARALLEL_COMPUTING/00_Overview.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 06:23:03] Failed: /Users/woramet/Documents/th_new/MODULE_07_UTILITIES_AUTOMATION/CONTENT/06_PARALLEL_COMPUTING/02_Performance_Monitoring.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 16:50:12] Failed: /Users/woramet/Documents/th_new/MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/04_MESH_CLASSES/03_primitiveMesh.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 16:58:21] Failed: /Users/woramet/Documents/th_new/MODULE_06_ADVANCED_PHYSICS/CONTENT/01_ADVANCED_MULTIPHASE_FLOWS/00_Overview.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 17:03:56] Failed: /Users/woramet/Documents/th_new/MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/03_SnappyHexMesh_Configuration.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 17:10:23] Failed: /Users/woramet/Documents/th_new/MODULE_07_UTILITIES_AUTOMATION/CONTENT/06_PARALLEL_COMPUTING/00_Overview.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 18:08:43] Failed: /Users/woramet/Documents/th_new/MODULE_09_ADVANCED_TOPICS/CONTENT/04_MEMORY_MANAGEMENT/01_Introduction.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 18:26:56] Failed: /Users/woramet/Documents/th_new/MODULE_09_ADVANCED_TOPICS/CONTENT/05_PERFORMANCE_OPTIMIZATION/01_Introduction.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------
+[2025-12-24 18:45:25] Failed: /Users/woramet/Documents/th_new/MODULE_09_ADVANCED_TOPICS/CONTENT/06_ARCHITECTURE_EXTENSIBILITY/02_Runtime_Selection_Tables.md
+Error: Extraction failed (Tags missing)
+--------------------------------------------------

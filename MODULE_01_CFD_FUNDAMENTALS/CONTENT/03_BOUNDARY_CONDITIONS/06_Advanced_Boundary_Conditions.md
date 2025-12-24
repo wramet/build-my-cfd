@@ -100,29 +100,28 @@ $$
 ```cpp
 outlet
 {
+    // Type of boundary condition: switches between fixed value and zero gradient
     type            inletOutlet;
+    // Fixed value to use when flow enters the domain (inflow condition)
     inletValue      uniform (0 0 0);
+    // Initial field value (used for initialization and as fallback)
     value           uniform (0 0 0);
 }
 ```
 
-**รายละเอียดการนำไปใช้งาน**:
-- ใช้ **Template Metaprogramming** พร้อมการสลับการทำงานขณะรันไทม์ (runtime switching)
-- ประเมิน **Face Flux** สำหรับแต่ละ Boundary Face
-- ใช้การจัดการแบบ **Face-by-Face**
-- `inletValue` ระบุค่าคงที่ที่ใช้ในสภาวะ Inflow
-- Outflow จะมีการบังคับใช้ **Zero Gradient Condition**
+**Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
 
-#### การประยุกต์ใช้งานจริง
+**คำอธิบาย:**
+- **type**: ระบุประเภทของเงื่อนไขขอบเขตเป็น `inletOutlet` ซึ่งเป็น boundary condition แบบไฮบริดที่สลับระหว่าง fixed value และ zero gradient โดยอัตโนมัติ
+- **inletValue**: ค่าคงที่ที่จะใช้เมื่อการไหลไหลเข้าสู่โดเมน (inflow condition) โดยปกติจะตั้งเป็นศูนย์หรือค่าที่เหมาะสมกับปัญหา
+- **value**: ค่าเริ่มต้นของฟิลด์ที่ใช้สำหรับการเริ่มต้นคำนวณและเป็นค่าสำรองเมื่อไม่สามารถกำหนดค่าได้
 
-| สถานการณ์ | ประโยชน์ของ inletOutlet |
-|------------|-------------------------|
-| **การไหลรอบ Bluff Body** | จัดการกับ vortex shedding ที่ทางออก |
-| **การไหลแบบหลายเฟส** | รองรับการแกว่งของรอยต่อใกล้ Boundary |
-| **การไหลแบบหมุนเวียน** | ป้องกันการไหลย้อนกลับ (Backflow Prevention) |
-| **การจำลองแบบชั่วคราว** | รองรับการกลับทิศทางการไหลเป็นคาบ |
+**แนวคิดสำคัญ:**
+1. **Runtime Switching**: การสลับพฤติกรรมของ boundary condition เกิดขึ้นระหว่างการคำนวณ (runtime) โดยไม่ต้องรีสตาร์ทเคส
+2. **Face-by-Face Evaluation**: การตรวจสอบทิศทางการไหลทำงานที่ละหน้า (face) บน boundary patch ทำให้สามารถรองรับการไหลแบบไม่สม่ำเสมอ
+3. **Numerical Stability**: ป้องกันปัญหาการแพร่กระจายของความผิดพลาด (divergence) ที่อาจเกิดจากการไหลย้อนกลับที่ outlet
 
-**ข้อได้เปรียบหลัก**: **ความเสถียรเชิงตัวเลข** (numerical stability) โดยการป้องกันการไหลย้อนกลับที่ไม่เป็นไปตามหลักฟิสิกส์ซึ่งอาจทำให้เกิดการลู่ออก (divergence)
+**ข้อดีหลัก**: **ความเสถียรเชิงตัวเลข** (numerical stability) โดยการป้องกันการไหลย้อนกลับที่ไม่เป็นไปตามหลักฟิสิกส์ซึ่งอาจทำให้เกิดการลู่ออก (divergence)
 
 > [!TIP] **Tip:** เมื่อใช้ `inletOutlet` ควรตรวจสอบ Mass Balance โดยใช้ `postProcess -func "flowRatePatch(name=outlet)"` เพื่อยืนยันว่าไม่มี Backflow ที่เกิดขึ้นอย่างต่อเนื่อง
 
@@ -142,10 +141,23 @@ outlet
 ```cpp
 outlet
 {
+    // Velocity boundary condition that switches based on flux direction
     type            pressureInletOutletVelocity;
-    value           uniform (0 0 0); // Initial guess value
+    // Initial guess value for velocity field
+    value           uniform (0 0 0);
 }
 ```
+
+**Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+
+**คำอธิบาย:**
+- **type**: ระบุประเภทของเงื่อนไขขอบเขตเป็น `pressureInletOutletVelocity` ซึ่งคำนวณความเร็วจากฟลักซ์ความดันและสลับโหมดตามทิศทางการไหล
+- **value**: ค่าเริ่มต้นของฟิลด์ความเร็วที่ใช้สำหรับการเริ่มต้นคำนวณและเป็นค่าเดาเบื้องต้น
+
+**แนวคิดสำคัญ:**
+1. **Flux-Based Calculation**: ความเร็วถูกคำนวณจากฟลักซ์มวลที่ผ่านหน้า (face) แต่ละหน้า โดยคำนึงถึงทิศทางการไหล
+2. **Pressure-Velocity Coupling**: เงื่อนไขขอบเขตนี้ทำงานร่วมกับ solver ที่ใช้ pressure-velocity coupling เช่น SIMPLE, PISO เพื่อให้แน่ใจว่าการอนุรักษ์มวลได้รับการรักษา
+3. **Automatic Direction Switching**: สลับระหว่าง inlet condition (fixed value) และ outlet condition (zero gradient) โดยอัตโนมัติตามเครื่องหมายของฟลักซ์
 
 **Velocity คำนวณจาก Flux:**
 $$\mathbf{u} = \frac{\dot{m}}{\rho A} \mathbf{n}$$
@@ -214,7 +226,7 @@ graph TD
 #### การนำไปใช้งานทางคณิตศาสตร์
 
 สำหรับ Field $\phi$ ที่ใช้กับ Cyclic Boundary Conditions:
-$$\phi_{\text{patch A}}(\mathbf{x}) = \phi_{\text{patch B}}(\mathbf{T}(\mathbf{x}))$$
+$$\phi_{\text{patch A}}(\mathbf{x}) = \phi_{\text{patch B}}(\mathbf{T}(\mathbf{x}))}$$
 
 โดยที่:
 - $\mathbf{T}$ = การแปลงทางเรขาคณิตที่แมปพิกัดจาก Patch A ไปยัง Patch B
@@ -230,10 +242,23 @@ $$\mathbf{n}_A \cdot \nabla \phi_A = -\mathbf{n}_B \cdot \nabla \phi_B$$
 ```cpp
 left
 {
+    // Type of boundary condition: connects two patches topologically
     type            cyclic;
+    // Name of the neighbouring patch that forms the cyclic pair
     neighbourPatch  right;
 }
 ```
+
+**Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+
+**คำอธิบาย:**
+- **type**: ระบุประเภทของเงื่อนไขขอบเขตเป็น `cyclic` ซึ่งสร้างการเชื่อมต่อเชิงทอพอโลยีระหว่าง patch คู่หนึ่ง
+- **neighbourPatch**: ชื่อของ patch ที่เป็นคู่กับ patch นี้ในการเชื่อมต่อแบบ cyclic ซึ่งต้องมี topology ที่สอดคล้องกัน
+
+**แนวคิดสำคัญ:**
+1. **Topological Connection**: การเชื่อมต่อระหว่าง patch สองอันเป็นการเชื่อมต่อเชิงทอพอโลยี ไม่ใช่เพียงการเชื่อมต่อทางกายภาพเท่านั้น
+2. **Face Matching**: ต้องมีการจับคู่ face ระหว่าง patch ทั้งสองอย่างถูกต้อง โดยต้องมีจำนวน face เท่ากันและตำแหน่งเรขาคณิตที่สอดคล้องกัน
+3. **Geometric Transformation**: สามารถมีการแปลงทางเรขาคณิต (เช่น การหมุน การเลื่อน) ระหว่าง patch คู่ cyclic ได้
 
 **การนำไปใช้งานในระบบ**:
 - ใช้คลาส `cyclicPolyPatch` ภายใน Mesh Topology
@@ -296,26 +321,54 @@ graph LR
 ```cpp
 walls
 {
-    type            kqRWallFunction; // For turbulent kinetic energy k
+    // Wall function for turbulent kinetic energy (k)
+    type            kqRWallFunction;
+    // Initial value for turbulent kinetic energy at the wall
     value           uniform 0.1;
 }
 
 walls
 {
-    type            epsilonWallFunction; // For turbulent dissipation epsilon
+    // Wall function for turbulent dissipation rate (epsilon)
+    type            epsilonWallFunction;
+    // Initial value for turbulent dissipation at the wall
     value           uniform 0.01;
 }
 ```
+
+**Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+
+**คำอธิบาย:**
+- **type**: ระบุประเภทของเงื่อนไขขอบเขตเป็น `kqRWallFunction` สำหรับ turbulent kinetic energy (k) หรือ `epsilonWallFunction` สำหรับ turbulent dissipation rate (epsilon)
+- **value**: ค่าเริ่มต้นของฟิลด์ที่ใช้สำหรับการเริ่มต้นคำนวณ
+
+**แนวคิดสำคัญ:**
+1. **Wall Modeling**: ใช้ empirical correlation เพื่อจำลอง turbulent boundary layer โดยไม่ต้องใช้ mesh ที่ละเอียดมากใกล้ผนัง
+2. **y+ Consideration**: ค่า y+ ควรอยู่ในช่วงที่เหมาะสม (30-300 สำหรับ k-ε model) เพื่อให้ wall function ทำงานได้อย่างถูกต้อง
+3. **Computational Efficiency**: ลดจำนวนเซลล์ที่ต้องการใกล้ผนัง ทำให้ประหยัดเวลาและทรัพยากรในการคำนวณ
 
 #### Wall Function สำหรับ k-omega Model
 
 ```cpp
 walls
 {
-    type            omegaWallFunction; // For specific dissipation rate omega
+    // Wall function for specific dissipation rate (omega)
+    type            omegaWallFunction;
+    // Initial value for omega at the wall
     value           uniform 1000;
 }
 ```
+
+**Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+
+**คำอธิบาย:**
+- **type**: ระบุประเภทของเงื่อนไขขอบเขตเป็น `omegaWallFunction` สำหรับ specific dissipation rate (omega) ใน k-ω turbulence model
+- **value**: ค่าเริ่มต้นของฟิลด์ omega ที่ใช้สำหรับการเริ่มต้นคำนวณ
+
+**แนวคิดสำคัญ:**
+1. **k-ω Model Compatibility**: wall function นี้ออกแบบมาเพื่อทำงานร่วมกับ k-ω turbulence model ซึ่งมีคุณสมบัติแตกต่างจาก k-ε model
+2. **Near-Wall Treatment**: ให้การจัดการพิเศษสำหรับบริเวณใกล้ผนังโดยคำนึงถึงคุณสมบัติของ k-ω model
+3. **Low-Reynolds Correction**: สามารถใช้งานได้ทั้งในโหมด high-Reynolds (กับ wall function) และ low-Reynolds (โดยไม่มี wall function)
 
 **Wall Function มาตรฐานสำหรับ Turbulent Kinetic Energy:**
 $$k_w = \frac{u_\tau^2}{\sqrt{C_\mu}}$$
@@ -447,7 +500,9 @@ boundaryField
 {
     inlet
     {
+        // Fixed value boundary condition with time-varying data from a table
         type            uniformFixedValue;
+        // Table of (time value) pairs for temporal variation
         uniformValue    table
         (
             (0     (1 0 0))    // Time = 0s, velocity = (1,0,0) m/s
@@ -457,6 +512,17 @@ boundaryField
     }
 }
 ```
+
+**Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+
+**คำอธิบาย:**
+- **type**: ระบุประเภทของเงื่อนไขขอบเขตเป็น `uniformFixedValue` ซึ่งใช้ค่าที่กำหนดและสามารถเปลี่ยนแปลงตามเวลา
+- **uniformValue**: ค่าที่ใช้สำหรับ boundary condition ซึ่งสามารถเป็นค่าคงที่หรือค่าที่เปลี่ยนแปลงตามเวลาจากตาราง
+
+**แนวคิดสำคัญ:**
+1. **Temporal Interpolation**: OpenFOAM จะทำการ interpolate ค่าระหว่างจุดเวลาที่ระบุในตารางโดยอัตโนมัติ
+2. **Extrapolation**: สำหรับเวลาที่อยู่นอกช่วงที่ระบุในตาราง OpenFOAM จะใช้ค่าที่จุดปลายสุด
+3. **Time Accuracy**: ความแม่นยำของการแทนค่าขึ้นอยู่กับความละเอียดของเวลาในตาราง
 
 
 ```mermaid
@@ -492,18 +558,35 @@ boundaryField
 {
     pulsatingInlet
     {
+        // User-coded boundary condition for complex time-varying behavior
         type            codedFixedValue;
+        // Initial field value
         value           uniform (0 0 0);
+        // Code block to calculate boundary value dynamically
         code
         #{
-            // Sinusoidal velocity variation
+            // Get current simulation time
             scalar t = this->db().time().value();
+            // Get reference to the boundary field
             vectorField& field = *this;
+            // Apply sinusoidal velocity variation in x-direction
             field = vector(1.0 + 0.5*sin(2*pi*0.1*t), 0, 0);
         #};
     }
 }
 ```
+
+**Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+
+**คำอธิบาย:**
+- **type**: ระบุประเภทของเงื่อนไขขอบเขตเป็น `codedFixedValue` ซึ่งอนุญาตให้ผู้ใช้เขียนโค้ด C++ เพื่อกำหนดค่า boundary condition แบบไดนามิก
+- **value**: ค่าเริ่มต้นของฟิลด์ที่ใช้สำหรับการเริ่มต้นคำนวณ
+- **code**: บล็อกโค้ด C++ ที่ใช้คำนวณค่า boundary condition แบบไดนามิกตามเวลาหรือเงื่อนไขอื่นๆ
+
+**แนวคิดสำคัญ:**
+1. **Runtime Compilation**: โค้ดที่เขียนในส่วน `code` จะถูกคอมไพล์ขณะ runtime ทำให้มีความยืดหยุ่นสูงในการกำหนด boundary condition
+2. **Field Access**: สามารถเข้าถึงฟิลด์อื่นๆ, เวลา, และข้อมูลของ mesh ได้โดยตรงภายในบล็อกโค้ด
+3. **Mathematical Functions**: สามารถใช้ฟังก์ชันทางคณิตศาสตร์ที่ซับซ้อน (เช่น sinusoidal, exponential) เพื่อสร้าง boundary condition ที่เปลี่ยนแปลงตามเวลา
 
 ---
 
@@ -518,15 +601,15 @@ class customBoundaryCondition
     public fvPatchField<Type>
 {
 private:
-    // Private member variables
+    // Private member variables for custom parameters
     scalar coefficient_;
     word coupledFieldName_;
 
 public:
-    // Runtime type information
+    // Runtime type information for dynamic object creation
     TypeName("customBoundaryCondition");
 
-    // Constructors
+    // Constructors for object initialization
     customBoundaryCondition
     (
         const fvPatch&,
@@ -534,12 +617,27 @@ public:
         const dictionary&
     );
 
-    // Virtual function overrides
+    // Virtual function overrides for boundary condition behavior
     virtual void updateCoeffs();
     virtual tmp<Field<Type>> snGrad() const;
     virtual void evaluate(const Pstream::commsTypes commsType);
 };
 ```
+
+**Source:** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
+
+**คำอธิบาย:**
+- **template<class Type>**: ใช้ template เพื่อให้ boundary condition สามารถทำงานกับ type ต่างๆ ของ field (scalar, vector, tensor)
+- **fvPatchField<Type>**: คลาสฐานสำหรับ finite volume boundary condition ซึ่งมีฟังก์ชันพื้นฐานสำหรับการจัดการ boundary
+- **TypeName**: แมโครสำหรับลงทะเบียนประเภทของคลาสเพื่อให้สามารถสร้าง object ได้แบบ dynamic ตาม runtime
+- **updateCoeffs()**: ฟังก์ชันสำหรับอัปเดตค่าสัมประสิทธิ์ของ boundary condition
+- **snGrad()**: ฟังก์ชันสำหรับคำนวณ surface normal gradient
+- **evaluate()**: ฟังก์ชันสำหรับประเมินค่าของ boundary field
+
+**แนวคิดสำคัญ:**
+1. **Object-Oriented Design**: ใช้หลักการของ OOP ผ่านการสืบทอด (inheritance) และ virtual functions เพื่อสร้าง boundary condition ที่ยืดหยุ่น
+2. **Runtime Selection**: ระบบ type ของ OpenFOAM อนุญาตให้สร้างและใช้งาน boundary condition แบบ dynamic ตามข้อมูลใน dictionary
+3. **Polymorphic Behavior**: ฟังก์ชัน virtual ทำให้สามารถกำหนดพฤติกรรมเฉพาะสำหรับ boundary condition ที่กำหนดเองได้
 
 ---
 
@@ -548,7 +646,7 @@ public:
 | Boundary Condition | Type | Mathematical Form | Common Applications |
 |-------------------|------|-------------------|-------------------|
 | **inletOutlet** | Hybrid | $\mathbf{u}_b = \begin{cases} \mathbf{u}_{\text{fixed}} & \phi_f > 0 \\ \mathbf{u}_{\text{zero-grad}} & \phi_f \leq 0 \end{cases}$ | Outlet with possible backflow |
-| **cyclic** | Periodic | $\phi_{\text{patch A}}(\mathbf{x}) = \phi_{\text{patch B}}(\mathbf{T}(\mathbf{x}))$ | Periodic domains, rotating machinery |
+| **cyclic** | Periodic | $\phi_{\text{patch A}}(\mathbf{x}) = \phi_{\text{patch B}}(\mathbf{T}(\mathbf{x}))}$ | Periodic domains, rotating machinery |
 | **wallFunction** | Calculated | $u^+ = \frac{1}{\kappa} \ln(y^+) + B$ | Turbulent boundary layers |
 | **regionCoupled** | Coupled | $T_1 = T_2, q_1 = -q_2$ | Conjugate heat transfer |
 | **codedFixedValue** | User-defined | $\phi = f(\mathbf{x}, t, \text{other fields})$ | Complex transient BCs |

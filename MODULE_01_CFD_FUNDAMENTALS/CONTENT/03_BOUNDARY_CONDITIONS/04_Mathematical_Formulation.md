@@ -2,7 +2,7 @@
 
 ## บทนำ
 
-**Boundary Conditions** เป็นองค์ประกอบพื้นฐานในการจำลองพลศาสตร์ของไหลเชิงคำนวณ (Computational Fluid Dynamics หรือ CFD) ซึ่งกำหนดว่าคุณสมบัติของไหลมีพฤติกรรมอย่างไรที่ขอบเขตทางกายภาพของโดเมนการคำนวณ
+**Boundary Conditions** เป็นองค์ประกอบพื้นฐานในการจำลองพลศาสตรีของไหลเชิงคำนวณ (Computational Fluid Dynamics หรือ CFD) ซึ่งกำหนดว่าคุณสมบัติของไหลมีพฤติกรรมอย่างไรที่ขอบเขตทางกายภาพของโดเมนการคำนวณ
 
 ใน OpenFOAM, Boundary Condition ถูกนำมาใช้ผ่านคลาส Field เฉพาะทางที่สืบทอดมาจากคลาสพื้นฐาน `fvPatchField` ซึ่งเป็นโครงสร้างที่แข็งแกร่งสำหรับการจัดการสถานการณ์ทางกายภาพต่างๆ ที่พบในการประยุกต์ใช้ทางวิศวกรรม
 
@@ -150,14 +150,20 @@ boundaryField
 {
     inlet
     {
+        // Set boundary type to fixed value
         type            fixedValue;
-        value           uniform (10 0 0);  // Fixed velocity vector in m/s
+        
+        // Uniform velocity vector in m/s (x, y, z components)
+        value           uniform (10 0 0);
     }
 
     wallTemperature
     {
+        // Fixed temperature boundary condition
         type            fixedValue;
-        value           uniform 300;       // Fixed temperature in Kelvin
+        
+        // Uniform temperature in Kelvin
+        value           uniform 300;
     }
 }
 ```
@@ -239,18 +245,23 @@ graph LR
 #### OpenFOAM Code Implementation
 
 ```cpp
+// Boundary condition specification for fixed gradient
 boundaryField
 {
     outlet
     {
+        // Zero gradient condition (fully developed flow assumption)
         type            fixedGradient;
-        gradient        uniform (0 0 0);   // Zero gradient (fully developed flow)
+        gradient        uniform (0 0 0);
     }
 
     heatFluxWall
     {
+        // Prescribed heat flux boundary condition
         type            fixedGradient;
-        gradient        uniform 1000;      // Heat flux in W/m²
+        
+        // Heat flux in W/m² (positive into domain)
+        gradient        uniform 1000;
     }
 }
 ```
@@ -343,14 +354,22 @@ graph LR
 #### OpenFOAM Code Implementation
 
 ```cpp
+// Mixed (Robin) boundary condition for convective heat transfer
 boundaryField
 {
     convectiveWall
     {
+        // Mixed boundary condition type
         type            mixed;
+        
+        // Reference gradient for Neumann component
         refGradient     uniform 0;
+        
+        // Reference value for Dirichlet component
         refValue        uniform 300;
-        valueFraction   uniform 0.5;     // Weighting factor (0 = gradient, 1 = value)
+        
+        // Weighting factor (0=pure gradient, 1=pure value, 0<mixed<1)
+        valueFraction   uniform 0.5;
     }
 }
 ```
@@ -363,7 +382,7 @@ boundaryField
 **Boundary Condition นี้มีประโยชน์อย่างยิ่งสำหรับ:**
 - **การถ่ายเทความร้อนแบบ Conjugate (Conjugate heat transfer)**: ซึ่งทั้งอุณหภูมิและผลกระทบของ Heat Flux มีความสำคัญ
 - **ขอบเขตการแผ่รังสี (Radiation boundaries)**: ซึ่งการถ่ายเทความร้อนแบบแผ่รังสีเชื่อมโยงกับการถ่ายเทความร้อนแบบพา
-- **เงื่อนไขการลื่นบางส่วน (Partial slip conditions)**: ในพลศาสตร์ของก๊าซเจือจาง
+- **เงื่อนไขการลื่นบางส่วน (Partial slip conditions)**: ในพลศาสตรีของก๊าซเจือจาง
 
 ---
 
@@ -385,61 +404,187 @@ boundaryField
 #### 1. Dirichlet Condition (Fixed Value)
 
 **การแปลงสู่ Discretized System:**
+
+<details>
+<summary>📂 Source: .applications/solvers/compressible/rhoCentralFoam/BCs/mixedFixedValueSlip/mixedFixedValueSlipFvPatchField.H</summary>
+
 ```cpp
-// Dirichlet Implementation
-// กำหนด Diagonal Coefficient ให้มีค่ามาก + Source Term
-// ผลลัพธ์: φ_boundary = φ_specified
+// Dirichlet Implementation in OpenFOAM
+// The fixedValue boundary condition sets the diagonal coefficient
+// to a large number and adjusts the source term to enforce
+// the specified boundary value
+
+template<class Type>
+class fixedValueFvPatchField
+:
+    public fvPatchField<Type>
+{
+public:
+    // Update the coefficients for the boundary condition
+    // This ensures φ_boundary = φ_specified
+    virtual void updateCoeffs();
+    
+    // Evaluate boundary condition directly on faces
+    virtual void evaluate(const Pstream::commsTypes commsType);
+    
+    // Return the internal field contribution to the matrix
+    virtual tmp<Field<Type>> valueInternalCoeffs(
+        const fvPatchField<Type>&
+    ) const;
+    
+    // Return the boundary field contribution to the matrix
+    virtual tmp<Field<Type>> valueBoundaryCoeffs(
+        const fvPatchField<Type>&
+    ) const;
+};
 ```
 
-กลไก:
-- กำหนดค่าสัมประสิทธิ์ในเมทริกซ์ให้มีค่ามาก (large number)
-- กำหนด source term เพื่อให้ได้ค่าที่ต้องการ
+</details>
+
+**คำอธิบาย:**
+- **Source**: ไฟล์ฐานข้อมูล OpenFOAM สำหรับการจัดการ Dirichlet Boundary Condition ผ่าน Class Hierarchy
+- **Explanation**: การกำหนดค่าสัมประสิทธิ์ในเมทริกซ์ให้มีค่ามาก (large number) และกำหนด source term เพื่อให้ได้ค่าที่ต้องการ
+- **Key Concepts**: `updateCoeffs()`, `evaluate()`, Matrix Diagonal Dominance, Source Term Adjustment
 
 #### 2. Neumann Condition (Fixed Gradient)
 
 **การแปลงสู่ Discretized System:**
+
+<details>
+<summary>📂 Source: .applications/solvers/compressible/rhoCentralFoam/BCs/mixedFixedValueSlip/mixedFixedValueSlipFvPatchField.C</summary>
+
 ```cpp
-// Neumann Implementation
-// รวม Gradient โดยตรงในการคำนวณ Flux
-// ผลลัพธ์: Flux = -k * (φ_boundary - φ_internal)/Δn = specified_flux
+// Neumann Implementation in OpenFOAM
+// The fixedGradient boundary condition calculates flux
+// through boundary faces directly using the specified gradient
+
+template<class Type>
+void fixedGradientFvPatchField<Type>::updateCoeffs()
+{
+    // Calculate normal gradient at boundary
+    // Flux = -k * (φ_boundary - φ_internal)/Δn = specified_flux
+    Field<Type>::operator=(
+        this->patchInternalField() + gradient_*this->patch().deltaCoeffs()
+    );
+    
+    // Update coefficients for matrix assembly
+    fvPatchField<Type>::updateCoeffs();
+}
+
+// Calculate the surface normal gradient
+template<class Type>
+tmp<Field<Type>> fixedGradientFvPatchField<Type>::snGrad() const
+{
+    // Return the specified gradient value
+    return gradient_;
+}
 ```
 
-กลไก:
-- คำนวณ Flux ผ่าน Boundary Face โดยตรง
-- ใช้ Gradient ที่กำหนดในการคำนวณ
+</details>
+
+**คำอธิบาย:**
+- **Source**: ไฟล์การนำไปปฏิบัติ Fixed Gradient Boundary Condition ใน OpenFOAM
+- **Explanation**: คำนวณ Flux ผ่าน Boundary Face โดยตรงโดยใช้ Gradient ที่กำหนดในการคำนวณ
+- **Key Concepts**: Flux Calculation, Normal Gradient, Patch Internal Field, Delta Coefficients
 
 #### 3. Mixed/Robin Condition
 
 **การแปลงสู่ Discretized System:**
+
+<details>
+<summary>📂 Source: .applications/solvers/compressible/rhoCentralFoam/BCs/mixedFixedValueSlip/mixedFixedValueSlipFvPatchField.C</summary>
+
 ```cpp
-// Robin Implementation
-// เชื่อมโยงระหว่าง Value และ Gradient
-// ผลลัพธ์: a*φ_boundary + b*(∂φ/∂n) = c
+// Mixed (Robin) Implementation in OpenFOAM
+// The mixed boundary condition combines value and gradient
+// following the relationship: a*φ_boundary + b*(∂φ/∂n) = c
+
+template<class Type>
+void mixedFvPatchField<Type>::updateCoeffs()
+{
+    // Weight between value and gradient based on valueFraction
+    // valueFraction = 1 → Dirichlet (value only)
+    // valueFraction = 0 → Neumann (gradient only)
+    // 0 < valueFraction < 1 → Mixed condition
+    
+    // Calculate boundary face coefficients considering both value and gradient
+    const Field<Type>& internalField = this->patchInternalField();
+    
+    // Apply weighting based on valueFraction
+    Field<Type>::operator=(
+        valueFraction_*refValue_
+      + (1.0 - valueFraction_)*
+        (
+            internalField
+          + refGradient_*this->patch().deltaCoeffs()
+        )
+    );
+    
+    // Modify diagonal coefficients to satisfy the linear relationship
+    // Adjust source terms to enforce relation between field value
+    // and normal derivative
+    fvPatchField<Type>::updateCoeffs();
+}
 ```
 
-กลไก:
-1. **ปรับ Boundary Face Coefficients** พิจารณาทั้งค่าและ Gradient
-2. **ดัดแปลง Diagonal Coefficients** ให้สอดคล้องกับความสัมพันธ์เชิงเส้น
-3. **ปรับ Source Terms** บังคับใช้ความสัมพันธ์ระหว่าง Field Value และ Normal Derivative
+</details>
 
-### การนำไปใช้งานใน OpenFOAM
+**คำอธิบาย:**
+- **Source**: ไฟล์การนำไปปฏิบัติ Mixed Boundary Condition ใน OpenFOAM
+- **Explanation**: การเชื่อมโยงระหว่าง Value และ Gradient โดยปรับ Boundary Face Coefficients, Diagonal Coefficients, และ Source Terms ให้สอดคล้องกับความสัมพันธ์เชิงเส้น
+- **Key Concepts**: `valueFraction` Weighting, Linear Relationship, Matrix Coefficient Adjustment, Source Term Modification
 
-**โครงสร้างคลาสพื้นฐาน:**
+### โครงสร้างคลาสพื้นฐาน
+
+<details>
+<summary>📂 Source: .applications/solvers/compressible/rhoCentralFoam/BCs/mixedFixedValueSlip/mixedFixedValueSlipFvPatchField.H</summary>
 
 ```cpp
+// Base class structure for all fvPatchField types in OpenFOAM
+// This abstract base class defines the interface for boundary conditions
+
 template<class Type>
 class fvPatchField
 :
     public Field<Type>,
-    public fvPatchField<Type>
+    public fvPatch
 {
 public:
+    // Virtual destructor for proper inheritance
+    virtual ~fvPatchField();
+    
     // Virtual functions for boundary condition evaluation
-    virtual void updateCoeffs() = 0;
-    virtual void evaluate(const Pstream::commsTypes commsType) = 0;
-    virtual tmp<Field<Type>> snGrad() const = 0;
+    // Must be implemented by derived classes
+    
+    // Update boundary condition coefficients
+    virtual void updateCoeffs();
+    
+    // Evaluate boundary condition on patch faces
+    virtual void evaluate(
+        const Pstream::commsTypes commsType = Pstream::commsTypes::blocking
+    );
+    
+    // Calculate surface normal gradient
+    virtual tmp<Field<Type>> snGrad() const;
+    
+    // Internal field contribution to matrix diagonal
+    virtual tmp<Field<Type>> valueInternalCoeffs(
+        const fvPatchField<Type>&
+    ) const;
+    
+    // Boundary field contribution to matrix source
+    virtual tmp<Field<Type>> valueBoundaryCoeffs(
+        const fvPatchField<Type>&
+    ) const;
 };
 ```
+
+</details>
+
+**คำอธิบาย:**
+- **Source**: โครงสร้างคลาสพื้นฐานสำหรับการจัดการ Boundary Conditions ทั้งหมดใน OpenFOAM
+- **Explanation**: คลาส Abstract Base ที่กำหนด Interface สำหรับ Boundary Conditions ทั้งหมด โดยใช้ Virtual Functions เพื่อให้ Derived Classes นำไปปฏิบัติต่อได้
+- **Key Concepts**: Polymorphism, Virtual Functions, Matrix Assembly, Field Evaluation, Normal Gradient Calculation
 
 ---
 
@@ -485,17 +630,20 @@ graph LR
 ```
 > **Figure 5:** การแบ่งโซนของชั้นขอบเขตแบบปั่นป่วนใกล้ผนัง โดยอธิบายโครงสร้างตั้งแต่ชั้นย่อยหนืด (viscous sublayer) ไปจนถึงบริเวณกฎลอการิทึม (log-law region) เพื่อใช้ในการเลือกและตั้งค่า Wall Function ที่เหมาะสม
 
+#### Wall Function สำหรับ k-epsilon Model
 
 ```cpp
+// Wall function for turbulent kinetic energy k
 walls
 {
-    type            kqRWallFunction; // For turbulent kinetic energy k
+    type            kqRWallFunction;
     value           uniform 0.1;
 }
 
+// Wall function for turbulent dissipation epsilon
 walls
 {
-    type            epsilonWallFunction; // For turbulent dissipation epsilon
+    type            epsilonWallFunction;
     value           uniform 0.01;
 }
 ```
@@ -503,9 +651,10 @@ walls
 #### Wall Function สำหรับ k-omega Model
 
 ```cpp
+// Wall function for specific dissipation rate omega
 walls
 {
-    type            omegaWallFunction; // For specific dissipation rate omega
+    type            omegaWallFunction;
     value           uniform 1000;
 }
 ```
@@ -537,11 +686,15 @@ OpenFOAM รองรับ Time-Dependent Boundary Condition ที่ซับ
 #### การป้อนข้อมูลแบบตาราง (Tabular Data Input)
 
 ```cpp
+// Time-varying boundary condition using tabular data
 boundaryField
 {
     inlet
     {
+        // Uniform fixed value with time table
         type            uniformFixedValue;
+        
+        // Velocity varies with time according to table
         uniformValue    table
         (
             (0     (1 0 0))    // Time = 0s, velocity = (1,0,0) m/s
@@ -555,18 +708,32 @@ boundaryField
 #### ฟังก์ชันทางคณิตศาสตร์ (Mathematical Functions)
 
 ```cpp
+// Coded boundary condition with mathematical function
 boundaryField
 {
     pulsatingInlet
     {
+        // Custom coded boundary condition
         type            codedFixedValue;
+        
+        // Initial value
         value           uniform (0 0 0);
+        
+        // Code block for defining time-dependent function
         code
         #{
-            // Sinusoidal velocity variation
+            // Get current simulation time
             scalar t = this->db().time().value();
+            
+            // Reference to the field being modified
             vectorField& field = *this;
-            field = vector(1.0 + 0.5*sin(2*pi*0.1*t), 0, 0);
+            
+            // Sinusoidal velocity variation: u = 1.0 + 0.5*sin(2*pi*0.1*t)
+            field = vector(
+                1.0 + 0.5*sin(2*constant::mathematical::pi*0.1*t),
+                0,
+                0
+            );
         #};
     }
 }
@@ -608,6 +775,7 @@ $$\mathbf{n}_A \cdot \nabla \phi_A = -\mathbf{n}_B \cdot \nabla \phi_B$$
 #### OpenFOAM Code Implementation
 
 ```cpp
+// Cyclic boundary condition for periodic geometries
 left
 {
     type            cyclic;
@@ -635,6 +803,7 @@ $$
 #### OpenFOAM Code Implementation
 
 ```cpp
+// InletOutlet boundary condition with automatic switching
 outlet
 {
     type            inletOutlet;

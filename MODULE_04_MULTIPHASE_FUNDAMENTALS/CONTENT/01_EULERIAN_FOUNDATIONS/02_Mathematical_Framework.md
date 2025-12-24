@@ -1,6 +1,6 @@
 # Mathematical Framework for Eulerian-Eulerian Multiphase Flow
 
-**กรอบแนวคิดทางคณิตศาสตร์สำหรับการไหลแบบหลายเฟส (multiphase flows)** ใน OpenFOAM เป็นรากฐานสำหรับแนวทางการคำนวณแบบ Eulerian-Eulerian ผ่านกระบวนการเฉลี่ยที่เป็นระบบและความสัมพันธ์แบบปิด (closure relationships) เพื่อเปลี่ยนจากฟิสิกส์ระดับจุลภาคที่มีรอยต่อไม่ต่อเนื่อง ไปสู่สนามต่อเนื่องระดับมหภาคที่สามารถคำนวณได้
+**กรอบแนวคิดทางคณิตศาสต์สำหรับการไหลแบบหลายเฟส (multiphase flows)** ใน OpenFOAM เป็นรากฐานสำหรับแนวทางการคำนวณแบบ Eulerian-Eulerian ผ่านกระบวนการเฉลี่ยที่เป็นระบบและความสัมพันธ์แบบปิด (closure relationships) เพื่อเปลี่ยนจากฟิสิกส์ระดับจุลภาคที่มีรอยต่อไม่ต่อเนื่อง ไปสู่สนามต่อเนื่องระดับมหภาคที่สามารถคำนวณได้
 
 > [!INFO] แนวคิดหลัก
 > แนวทางแบบ Eulerian-Eulerian ถือว่าแต่ละเฟสเป็น **continuum ที่แทรกซึมซึ่งกันและกัน** โดยแต่ละเฟสจะครอบครองปริมาตรควบคุม (control volume) เดียวกันและมีชุดสมการอนุรักษ์ของตัวเอง
@@ -267,6 +267,18 @@ fvVectorMatrix UEqn
 );
 ```
 
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
+>
+> **คำอธิบาย:**
+> - **การเริ่มต้น Phase System**: สร้างออบเจกต์ `phaseSystem` ที่จัดการข้อมูลของทุกเฟส รวมถึงสมบัติทางฟิสิกส์และเงื่อนไขขอบเขต
+> - **สมการต่อเนื่องของเฟส (alphaEqn)**: อธิบายการเปลี่ยนแปลงของสัดส่วนปริมาตร `alpha` ตามเวลาและการพาความร้อน พร้อมเทอมต้นทางจากแหล่งภายนอก
+> - **สมการโมเมนตัม (UEqn)**: ประกอบด้วยเทอมการเปลี่ยนแปลงตามเวลา การพา แรงดัน ความเค้นหนืด แรงโน้มถ่วง และการถ่ายโอนโมเมนตัมระหว่างเฟส
+>
+> **แนวคิดสำคัญ:**
+> - `fvm::ddt`, `fvm::div` คือ Implicit discretization สำหรับความเสถียรเชิงตัวเลข
+> - `fvc::grad`, `fvc::div` คือ Explicit calculation สำหรับเทอมที่ไม่ได้ถูกแก้โดยตรง
+> - `interfacialMomentumTransfer` รวมแรงฉุด, แรงยก, แรงมวลเสมือน และแรงกระจายความปั่นป่วน
+
 ### Interfacial Momentum Transfer
 
 ```cpp
@@ -292,6 +304,18 @@ volVectorField F_vm
 );
 ```
 
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+>
+> **คำอธิบาย:**
+> - **Drag Force**: คำนวณจากสัมประสิทธิ์การแลกเปลี่ยนโมเมนตัม `KDrag` คูณกับความเร็วสัมพัทธ์ระหว่างเฟส
+> - **Lift Force**: ขึ้นอยู่กับสัมประสิทธิ์ `CL` ความหนาแน่นของเฟสต่อเนื่อง และ vorticity ของเฟสต่อเนื่อง (curl of velocity)
+> - **Virtual Mass Force**: คำนวณจากความแตกต่างของการเร่งความเร็วระหว่างเฟส ถ่วงน้ำหนักด้วยสัมประสิทธิ์ `Cvm`
+>
+> **แนวคิดสำคัญ:**
+> - ทุกแรงที่คำนวณได้จะถูกบวกเข้าไปในสมการโมเมนตัมของแต่ละเฟส
+> - การใช้ `fvc::ddt` ชี้ให้เห็นว่าเป็นการคำนวณเชิง Explicit ของอนุพันธ์เวลา
+> - `fvc::curl` ใช้คำนวณ vorticity ซึ่งเป็นหมุนเวกเตอร์ของความเร็ว
+
 ### Phase System Architecture
 
 ```cpp
@@ -314,6 +338,19 @@ class MultiphasePhaseSystem
     virtual tmp<volScalarField> Kdf() const = 0;
 };
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
+>
+> **คำอธิบาย:**
+> - **Template Class**: ใช้ Template pattern เพื่อรองรับประเภทฐาน (Base) ที่แตกต่างกันของระบบเฟส
+> - **PtrList<phaseModel>**: เก็บรายการโมเดลเฟสทั้งหมดในรูปแบบ Pointer List เพื่อประสิทธิภาพหน่วยความจำ
+> - **HashTable<blendingMethod>**: เก็บวิธีการผสมผสาน (blending) สำหรับแบบจำลองระหว่างเฟสโดยใช้ HashTable สำหรับการเข้าถึงแบบ O(1)
+> - **sigma_**: คือ interfacial tension หรือความตึงผิวระหว่างเฟส
+>
+> **แนวคิดสำคัญ:**
+> - **Virtual Functions**: `Kd()` และ `Kdf()` เป็นฟังก์ชันเสมือนที่ต้องถูก override โดย derived class
+> - **surfaceScalarField vs volScalarField**: `Kd` สำหรับ surface (flux) และ `Kdf` สำหรับ volume (field)
+> - **Polymorphism**: ระบบออกแบบให้รองรับหลายประเภทของ interfacial models ผ่าน inheritance
 
 ### การจัดการ Volume Fraction
 
@@ -338,6 +375,19 @@ for (int acorr = 0; acorr < nAlphaCorr; acorr++)
     alpha1Eqn.solve();
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystemSolve.C`
+>
+> **คำอธิบาย:**
+> - **MULES (Multidimensional Universal Limiter with Explicit Solution)**: อัลกอริทึมพิเศษของ OpenFOAM สำหรับรักษา boundedness ของ `alpha` (0 ≤ α ≤ 1)
+> - **Sub-cycling**: แก้สมการ alpha หลายครั้งต่อ time step เพื่อความเสถียร
+> - **spiceregion**: กำหนดบริเวณที่มีการแพร่กระจาย (diffusion limit)
+> - **Matrix Assembly**: สร้างเมทริกซ์สมการที่ประกอบด้วยเทอมเวลา การพา และเทอมแหล่งที่มา
+>
+> **แนวคิดสำคัญ:**
+> - `fvm::Sp` ใช้สำหรับเทอมแหล่งที่มาแบบ Implicit ซึ่งช่วยเพิ่มความเสถียร
+> - `internalField()` เข้าถึงค่าภายใน cell โดยไม่รวม boundary conditions
+> - การทำ sub-cycling (nAlphaCorr) ช่วยป้องกันปัญหา CFL condition ที่เข้มงวด
 
 ### Time Loop Structure
 
@@ -373,6 +423,20 @@ int main(int argc, char *argv[])
     return 0;
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystemSolve.C`
+>
+> **คำอธิบาย:**
+> - **Header Inclusions (`#include`)**: ไฟล์ `.H` ที่รวมถูก preprocess ใน compile-time เพื่อตั้งค่าเริ่มต้น mesh, time, fields
+> - **Time Loop**: `runTime.loop()` วนซ้ำจนกว่าจะถึงเวลาสิ้นสุดที่กำหนด
+> - **alphaEqnSubCycle**: แก้สมการ volume fraction ด้วย MULES
+> - **momentumPredictor()**: ทำนายค่าโมเมนตัมก่อนแก้ pressure equation
+> - **UEqn & pEqn**: แก้สมการโมเมนตัมและความดันแบบ coupled (PISO/PIMPLE)
+>
+> **แนวคิดสำคัญ:**
+> - **Run-time selection**: OpenFOAM ใช้ run-time selection table สำหรับการเลือก solver และ discretization schemes
+> - **PIMPLE Algorithm**: ผสมผสาน PISO (Pressure-Implicit with Splitting of Operators) และ SIMPLE (Semi-Implicit Method for Pressure-Linked Equations)
+> - **Implicit Coupling**: การแก้สมการ pressure-velocity แบบ coupled เพื่อความเสถียรในระบบหลายเฟส
 
 ---
 

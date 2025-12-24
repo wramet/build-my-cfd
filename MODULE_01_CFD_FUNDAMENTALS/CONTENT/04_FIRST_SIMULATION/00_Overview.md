@@ -127,7 +127,7 @@ graph TD
     E --> F["Correct Velocity<br/>U = U* - Δt/ρ ∇p'"]
     F --> G["Update Pressure<br/>p = p* + p'"]
     G --> H{"PISO Corrections<br/>Complete?"}
-    H -->|No| I["Additional Correction<br/>nCorrectors = 2"]
+    H -->|No| I["Additional correction<br/>nCorrectors = 2"]
     I --> E
     H -->|Yes| J["Advance to Next Time Step"]
     J --> K{"Simulation End?"}
@@ -216,26 +216,44 @@ graph TD
 ```cpp
 ddtSchemes
 {
-    default         Euler;
+    // Time derivative discretization scheme
+    default         Euler;  // First-order implicit Euler scheme
 }
 
 gradSchemes
 {
-    default         Gauss linear;
-    grad(p)         Gauss linear;
+    // Gradient discretization schemes
+    default         Gauss linear;  // Linear interpolation using Gauss theorem
+    grad(p)         Gauss linear;  // Pressure gradient scheme
 }
 
 divSchemes
 {
-    default         none;
-    div(phi,U)      Gauss upwind;
+    // Divergence (convection) schemes
+    default         none;  // No default scheme specified
+    div(phi,U)      Gauss upwind;  // Upwind scheme for convection term
 }
 
 laplacianSchemes
 {
-    default         Gauss linear corrected;
+    // Laplacian (diffusion) schemes
+    default         Gauss linear corrected;  // Linear with non-orthogonal correction
 }
 ```
+
+> **แหล่งที่มา:** เนื้อหานี้อ้างอิงจากเอกสาร OpenFOAM Programmer's Guide และ User Guide ซึ่งอธิบายรูปแบบการตั้งค่า discretization schemes สำหรับการแก้สมการเชิงตัวเลขใน OpenFOAM
+> 
+> **คำอธิบาย:** ไฟล์ `fvSchemes` กำหนดวิธีการ discretization ที่ใช้ในการแปลงสมการเชิงอนุพันธ์ให้อยู่ในรูปแบบพีชคณิต โดย:
+> - **ddtSchemes**: ควบคุมการ discretization ของพจน์อนุพันธ์เชิงเวลา
+> - **gradSchemes**: กำหนดวิธีการคำนวณ gradient ของตัวแปรสนาม
+> - **divSchemes**: ควบคุมการ discretization ของพจน์ divergence (convection)
+> - **laplacianSchemes**: กำหนดวิธีการจัดการพจน์ diffusion
+> 
+> **แนวคิดสำคัญ:**
+> - **Gauss Theorem**: ใช้ทฤษฎีบทของเกาส์ในการแปลง integral เป็น surface integral
+> - **Upwind Scheme**: ใช้ข้อมูลจากจุด upstream เพื่อความมั่นคงทางตัวเลข
+> - **Linear Interpolation**: ใช้ค่าเฉลี่ยถ่วงน้ำหนักจากเซลล์ข้างเคียง
+> - **Non-orthogonal Correction**: แก้ไขค่าสำหรับ mesh ที่มีความไม่ตั้งฉาก
 
 ### 5.2 การตั้งค่า fvSolution
 
@@ -245,93 +263,162 @@ solvers
 {
     p
     {
-        solver          GAMG;
-        tolerance       1e-06;
-        relTol          0.05;
-        smoother        GaussSeidel;
+        // Pressure equation solver settings
+        solver          GAMG;  // Geometric-Algebraic Multi-Grid solver
+        tolerance       1e-06;  // Absolute tolerance for convergence
+        relTol          0.05;  // Relative tolerance (5%)
+        smoother        GaussSeidel;  // Smoother for GAMG algorithm
     }
 
     U
     {
-        solver          smoothSolver;
-        smoother        GaussSeidel;
-        tolerance       1e-05;
-        relTol          0;
+        // Velocity equation solver settings
+        solver          smoothSolver;  // Iterative solver with smoothing
+        smoother        GaussSeidel;  // Gauss-Seidel smoothing method
+        tolerance       1e-05;  // Absolute tolerance
+        relTol          0;  // Solve to full tolerance (no relative stopping)
     }
 }
 
 PISO
 {
-    nCorrectors      2;
-    nNonOrthogonalCorrectors 0;
-    pRefCell        0;
-    pRefValue       0;
+    // PISO algorithm controls
+    nCorrectors      2;  // Number of pressure-velocity correction cycles
+    nNonOrthogonalCorrectors 0;  // Non-orthogonal correction iterations
+    pRefCell        0;  // Reference cell index for pressure
+    pRefValue       0;  // Reference pressure value (Pascal)
 }
 ```
+
+> **แหล่งที่มา:** อ้างอิงจาก `applications/solvers/basic/icoFoam/` และเอกสาร OpenFOAM Programmer's Guide ที่อธิบายการตั้งค่า linear solvers และ algorithms สำหรับปัญหา incompressible flow
+> 
+> **คำอธิบาย:** ไฟล์ `fvSolution` กำหนดการตั้งค่าสำหรับการแก้สมการเชิงเส้นและอัลกอริทึมการเชื่อมโยง pressure-velocity:
+> - **GAMG Solver**: เหมาะสำหรับปัญหาที่มีคุณสมบัติ elliptic อย่าง pressure equation ใช้ multi-grid approach เพื่อเร่งความเร็วในการลู่เข้า
+> - **smoothSolver**: ใช้สำหรับ velocity equations ซึ่งมีลักษณะเป็น convection-diffusion
+> - **PISO Controls**: กำหนดจำนวนรอบการแก้ไข pressure-velocity coupling
+> 
+> **แนวคิดสำคัญ:**
+> - **Absolute vs Relative Tolerance**: ควบคุมเกณฑ์การหยุดการทำซ้ำของ solver
+> - **Gauss-Seidel Method**: วิธีการ iterative ที่ใช้การอัปเดตค่าทีละจุด
+> - **Multi-Grid Method**: ใช้ hierarchy ของ grids ในการเร่งการลู่เข้า
+> - **Reference Pressure**: กำหนดค่าอ้างอิงเนื่องจาก pressure ถูกกำหนดเฉพาะถึงค่าคงที่ในกรณี incompressible
 
 ### 5.3 ไฟล์การตั้งค่าหลัก
 
 **0/U (ฟิลด์ความเร็ว):**
 ```cpp
-dimensions      [0 1 -1 0 0 0 0];
-internalField   uniform 0;
+dimensions      [0 1 -1 0 0 0 0];  // Velocity dimensions: L/T
+internalField   uniform 0;  // Initial velocity field (zero everywhere)
 boundaryField
 {
     movingWall
     {
-        type            fixedValue;
-        value           uniform (1 0 0);
+        // Moving lid boundary condition
+        type            fixedValue;  // Fixed value BC type
+        value           uniform (1 0 0);  // Velocity vector (Ux, Uy, Uz) in m/s
     }
     fixedWalls
     {
-        type            fixedValue;
-        value           uniform (0 0 0);
+        // Stationary walls boundary condition
+        type            fixedValue;  // Fixed value BC type
+        value           uniform (0 0 0);  // No-slip condition (zero velocity)
     }
     frontAndBack
     {
-        type            empty;
+        // Empty boundary for 2D case
+        type            empty;  // Empty boundary condition (no flow in z-direction)
     }
 }
 ```
+
+> **แหล่งที่มา:** อ้างอิงจาก `applications/solvers/basic/icoFoam/createFields.H` และเอกสาร OpenFOAM User Guide ที่อธิบายการกำหนด boundary conditions สำหรับ velocity fields
+> 
+> **คำอธิบาย:** ไฟล์นี้กำหนดค่าเริ่มต้นและเงื่อนไขขอบเขตสำหรับฟิลด์ความเร็ว:
+> - **dimensions**: กำหนดมิติของตัวแปรตามระบบหน่วย SI [Mass Length Time Temperature ...]
+> - **internalField**: ค่าเริ่มต้นของฟิลด์ภายในโดเมน
+> - **boundaryField**: กำหนดเงื่อนไขขอบเขตสำหรับแต่ละ boundary patch
+> 
+> **แนวคิดสำคัญ:**
+> - **FixedValue BC**: กำหนดค่าคงที่ที่ boundary ใช้สำหรับ no-slip walls
+> - **No-Slip Condition**: ความเร็วของของไหลเป็นศูนย์ที่ผนัง (relative velocity)
+> - **Empty BC**: ใช้สำหรับ 2D simulations ใน 3D solver
+> - **Boundary Patches**: กำหนดชื่อใน `blockMeshDict` และใช้งานใน field files
 
 **0/p (ฟิลด์ความดัน):**
 ```cpp
-dimensions      [0 2 -2 0 0 0 0];
-internalField   uniform 0;
+dimensions      [0 2 -2 0 0 0 0];  // Pressure dimensions: M/(L·T²)
+internalField   uniform 0;  // Initial pressure field (zero reference)
 boundaryField
 {
     movingWall
     {
-        type            zeroGradient;
+        // Moving wall pressure boundary condition
+        type            zeroGradient;  // Zero gradient (Neumann) BC
     }
     fixedWalls
     {
-        type            zeroGradient;
+        // Fixed walls pressure boundary condition
+        type            zeroGradient;  // Zero gradient (Neumann) BC
     }
     frontAndBack
     {
-        type            empty;
+        // Empty boundary for 2D case
+        type            empty;  // Empty boundary condition
     }
 }
 ```
 
+> **แหล่งที่มา:** อ้างอิงจาก `applications/solvers/basic/potentialFoam/createFields.H` และเอกสาร OpenFOAM User Guide ที่อธิบายการกำหนด boundary conditions สำหรับ pressure fields ในปัญหา incompressible flow
+> 
+> **คำอธิบาย:** ไฟล์นี้กำหนดค่าเริ่มต้นและเงื่อนไขขอบเขตสำหรับฟิลด์ความดัน:
+> - **Zero Gradient BC**: อนุพันธ์ปกติของความดันเป็นศูนย์ที่ผนัง (∂p/∂n = 0)
+> - **Neumann Condition**: กำหนดค่าอนุพันธ์ ไม่ใช่ค่าตัวแปรโดยตรง
+> 
+> **แนวคิดสำคัญ:**
+> - **Pressure-Velocity Coupling**: ใน incompressible flow pressure ถูกกำหนดเฉพาะถึงค่าคงที่ จึงต้องมี reference pressure
+> - **Wall BC for Pressure**: สำหรับ steady walls ใช้ zero gradient เนื่องจากไม่มีการไหลผ่านผนัง
+> - **Reference Cell**: กำหนดใน `fvSolution` เพื่อ fix ค่า pressure ที่จุดหนึ่ง
+
 **constant/transportProperties:**
 ```cpp
-transportModel  Newtonian;
-nu              [0 2 -1 0 0 0 0] 0.01;
+transportModel  Newtonian;  // Newtonian fluid model
+nu              [0 2 -1 0 0 0 0] 0.01;  // Kinematic viscosity (m²/s)
 ```
+
+> **แหล่งที่มา:** อ้างอิงจาก `src/transportModels/` และเอกสาร OpenFOAM User Guide ที่อธิบายการตั้งค่าคุณสมบัติทางกายภาพของของไหล
+> 
+> **คำอธิบาย:** ไฟล์นี้กำหนดคุณสมบัติทางกายภาพของของไหล:
+> - **Newtonian Model**: ความหนืดคงที่ไม่ขึ้นกับอัตราการเคลื่อนที่ (shear rate)
+> - **Kinematic Viscosity (ν)**: ความหนืดหารด้วยความหนาแน่น (ν = μ/ρ)
+> 
+> **แนวคิดสำคัญ:**
+> - **Transport Properties**: คุณสมบัติที่ส่งผลต่อการเคลื่อนที่ของของไหล
+> - **Reynolds Number**: Re = UL/ν ค่า ν สูงทำให้ Re ต่ำ (การไหลลามินาร์)
+> - **Fluid Models**: OpenFOAM รองรับหลายแบบ (Newtonian, Power-law, Cross, etc.)
 
 **system/controlDict:**
 ```cpp
-application     icoFoam;
-startFrom       startTime;
-startTime       0;
-stopAt          endTime;
-endTime         0.5;
-deltaT          0.005;
-writeControl    timeStep;
-writeInterval   20;
+application     icoFoam;  // Solver application name
+startFrom       startTime;  // Start simulation from latestTime
+startTime       0;  // Initial time value (seconds)
+stopAt          endTime;  // Stop simulation at specified endTime
+endTime         0.5;  // Final simulation time (seconds)
+deltaT          0.005;  // Time step size (seconds)
+writeControl    timeStep;  // Control output writing by time step
+writeInterval   20;  // Write output every 20 time steps
 ```
+
+> **แหล่งที่มา:** อ้างอิงจาก `src/OpenFOAM/db/Time/Time.C` และเอกสาร OpenFOAM User Guide ที่อธิบายการควบคุมเวลาและการเขียนผลลัพธ์ของการจำลอง
+> 
+> **คำอธิบาย:** ไฟล์นี้ควบคุมการทำงานของการจำลอง:
+> - **Application**: กำหนด solver ที่จะใช้ (icoFoam สำหรับ incompressible laminar flow)
+> - **Time Control**: กำหนดช่วงเวลาและขนาด time step
+> - **Output Control**: กำหนดความถี่ในการบันทึกผลลัพธ์
+> 
+> **แนวคิดสำคัญ:**
+> - **CFL Condition**: deltaT ต้องเล็กพอสำหรับความมั่นคงทางตัวเลข
+> - **Time Integration**: icoFoam ใช้ implicit Euler scheme
+> - **Output Frequency**: ควรสมดุลระหว่างการบันทึกข้อมูลและพื้นที่จัดเก็บ
 
 ---
 
@@ -419,12 +506,25 @@ $$\nabla \cdot \mathbf{u} = 0$$
 ```cpp
 probes
 {
-    type            probes;
-    fields          (p U k epsilon);
-    probeLocations  ((0 0.1 0) (0.5 0.1 0));
-    writeFields     true;
+    // Probes function object for sampling field data at specified locations
+    type            probes;  // Function object type
+    fields          (p U k epsilon);  // Fields to sample (pressure, velocity, turbulence)
+    probeLocations  ((0 0.1 0) (0.5 0.1 0));  // Coordinates of probe points (x y z)
+    writeFields     true;  // Enable/disable field output
 }
 ```
+
+> **แหล่งที่มา:** อ้างอิงจาก `src/OpenFOAM/db/functionObjects/` และเอกสาร OpenFOAM User Guide ที่อธิบายการใช้ function objects สำหรับการเก็บข้อมูลจากจุดตำแหน่งเฉพาะในโดเมน
+> 
+> **คำอธิบาย:** Function object `probes` ใช้สำหรับ sampling ค่าตัวแปรสนามที่ตำแหน่งที่กำหนด:
+> - **probeLocations**: กำหนดพิกัด (x, y, z) ของจุดที่ต้องการเก็บข้อมูล
+> - **fields**: ระบุ field ที่ต้องการ monitor (pressure, velocity, turbulence quantities)
+> 
+> **แนวคิดสำคัญ:**
+> - **Data Sampling**: การเก็บข้อมูลเชิงปริมาณสำหรับการวิเคราะห์และ validation
+> - **Time Series**: ข้อมูลถูกเก็บตลอดเวลา simulation สำหรับการวิเคราะห์เชิง temporal
+> - **Validation**: ใช้เปรียบเทียบกับข้อมูล experimental หรือ numerical solutions
+> - **Post-processing**: ข้อมูลสามารถนำไปใช้ใน MATLAB, Python หรือ tools อื่นๆ
 
 ---
 
@@ -466,7 +566,7 @@ probes
 ### 8.1 Non-orthogonality Angle
 
 **Non-orthogonality Angle:**
-$$\theta_{\text{max}} = \cos^{-1}\left(\frac{\mathbf{n} \cdot \mathbf{d}}{|\mathbf{n}||\mathbf{d}|}\right)$$
+$$\theta_{\text{max}} = \cos^{-1}\left(\frac{\mathbf{n} \cdot \mathbf{d}}{|\mathbf{n}||\mathbf{d}|}\right)}$$
 
 **การนิยามตัวแปร:**
 - $\mathbf{n}$ = Normal vector ของ face

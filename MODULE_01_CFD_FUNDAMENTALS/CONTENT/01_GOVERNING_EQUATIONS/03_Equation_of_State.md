@@ -85,24 +85,38 @@ $$R = \frac{R_{universal}}{M}$$
 ### OpenFOAM Code Implementation
 
 ```cpp
-// โมเดลทางอุณหพลศาสตร์สำหรับแก๊สอุดมคติ
+// Thermodynamic model for ideal gas
 thermoType
 {
-    type            hePsiThermo;
-    mixture         pureMixture;
-    transport       const;
-    thermo          hConst;
-    equationOfState perfectGas;    // สิ่งที่ Implement: p = ρRT
-    specie          specie;
-    energy          sensibleEnthalpy;
+    type            hePsiThermo;      // Enthalpy-based thermodynamics with compressibility
+    mixture         pureMixture;      // Single species fluid
+    transport       const;            // Constant transport properties
+    thermo          hConst;           // Constant specific heat capacity
+    equationOfState perfectGas;       // Implementation: p = ρRT
+    specie          specie;           // Species properties
+    energy          sensibleEnthalpy; // Sensible enthalpy as energy variable
 }
 
-// การกำหนดค่าคงที่แก๊สจำเพาะ
+// Definition of specific gas constant
 specie
 {
-    molWeight       28.9;           // มวลโมเลกุล [g/mol] สำหรับอากาศ
+    molWeight       28.9;             // Molecular weight [g/mol] for air
 }
 ```
+
+> **📚 Source:** `src/thermophysicalModels/specie/equationOfState/perfectGas/perfectGas.H`
+>
+> **คำอธิบาย:**
+> โค้ดด้านบนแสดงการตั้งค่าโมเดลทางอุณหพลศาสตร์สำหรับแก๊สอุดมคติใน OpenFOAM โดยมีคอมโพเนนต์หลักดังนี้:
+>
+> - **`equationOfState perfectGas`**: ระบุใช้สมการสถานะแก๊สอุดมคติที่ implement ความสัมพันธ์ $p = \rho R T$
+> - **`type hePsiThermo`**: ใช้การคำนวณอุณหพลศาสตร์แบบ enthalpy-based ซึ่งเหมาะสำหรับการไหลแบบอัดตัวได้
+> - **`specie molWeight`**: กำหนดมวลโมเลกุลเพื่อคำนวณค่าคงที่แก๊สจำเพาะ $R$ โดยอัตโนมัติ
+>
+> **แนวคิดสำคัญ:**
+> 1. OpenFOAM คำนวณความหนาแน่นจากสมการ $\rho = p/(RT)$ ในแต่ละ time step
+> 2. ความดันและอุณหภูมิเป็นตัวแปรอิสระที่ถูกคำนวณจากสมการโมเมนตัมและพลังงาน
+> 3. การเปลี่ยนแปลงความหนาแน่นส่งผลต่อสมการความต่อเนื่องและโมเมนตัม
 
 > [!TIP] การเลือก Solver สำหรับแก๊สอุดมคติ
 > สำหรับการไหลแบบอัดตัวได้ที่ใช้กฎแก๊สอุดมคติ ให้ใช้ Solver:
@@ -171,25 +185,39 @@ graph LR
 ### OpenFOAM Code Implementation
 
 ```cpp
-// โมเดลทางอุณหพลศาสตร์สำหรับของไหลที่อัดตัวไม่ได้
+// Thermodynamic model for incompressible fluid
 thermoType
 {
-    type            hePsiThermo;
-    mixture         pureMixture;
-    transport       const;
-    thermo          hConst;
-    equationOfState incompressible;  // สิ่งที่ Implement: ρ = constant
-    specie          specie;
-    energy          sensibleEnthalpy;
+    type            hePsiThermo;      // Enthalpy-based thermodynamics
+    mixture         pureMixture;      // Single species fluid
+    transport       const;            // Constant transport properties
+    thermo          hConst;           // Constant specific heat capacity
+    equationOfState incompressible;   // Implementation: ρ = constant
+    specie          specie;           // Species properties
+    energy          sensibleEnthalpy; // Sensible enthalpy as energy variable
 }
 
-// การกำหนดความหนาแน่น
+// Definition of fluid density
 specie
 {
-    molWeight       18.0;           // มวลโมเลกุล [g/mol] สำหรับน้ำ
-    rho             1000;           // ความหนาแน่น [kg/m³]
+    molWeight       18.0;             // Molecular weight [g/mol] for water
+    rho             1000;             // Density [kg/m³]
 }
 ```
+
+> **📚 Source:** `src/thermophysicalModels/specie/equationOfState/incompressible/incompressible.H`
+>
+> **คำอธิบาย:**
+> โค้ดด้านบนแสดงการตั้งค่าโมเดลทางอุณหพลศาสตร์สำหรับของไหลแบบอัดตัวไม่ได้:
+>
+> - **`equationOfState incompressible`**: ระบุใช้สมการสถานะแบบความหนาแน่นคงที่
+> - **`specie rho`**: กำหนดค่าความหนาแน่นที่คงที่ตลอดการจำลอง
+> - **`type hePsiThermo`**: ยังคงใช้ enthalpy-based thermodynamics แต่ความหนาแน่นไม่เปลี่ยนแปลง
+>
+> **แนวคิดสำคัญ:**
+> 1. ความหนาแน่นเป็นค่าคงที่ที่กำหนดจากไฟล์ `thermophysicalProperties`
+> 2. สมการความต่อเนื่องลดรูปเป็น $\nabla \cdot \mathbf{u} = 0$
+> 3. สมการโมเมนตัมและพลังงานสามารถแก้แยกกันได้ (uncoupled)
 
 ---
 
@@ -200,7 +228,7 @@ specie
 **ไฟล์ `thermophysicalProperties`** เป็นที่ที่ EOS จะถูกระบุในแอปพลิเคชัน OpenFOAM ไฟล์นี้ปกติอยู่ในโฟลเดอร์ `constant/` ของ case ของคุณ
 
 ```cpp
-// ไฟล์: constant/thermophysicalProperties
+// File: constant/thermophysicalProperties
 
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
@@ -211,45 +239,60 @@ specie
 \*---------------------------------------------------------------------------*/
 FoamFile
 {
-    version     2.0;
-    format      ascii;
-    class       dictionary;
-    location    "constant";
-    object      thermophysicalProperties;
+    version     2.0;               // File format version
+    format      ascii;             // ASCII text format
+    class       dictionary;        // Dictionary class type
+    location    "constant";        // Directory location
+    object      thermophysicalProperties;  // Object name
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 thermoType
 {
-    type            hePsiThermo;
-    mixture         pureMixture;
-    transport       sutherland;
-    thermo          hConst;
-    equationOfState perfectGas;
-    specie          specie;
-    energy          sensibleEnthalpy;
+    type            hePsiThermo;      // Thermodynamics type
+    mixture         pureMixture;      // Pure fluid mixture
+    transport       sutherland;       // Sutherland viscosity law
+    thermo          hConst;           // Constant specific heat
+    equationOfState perfectGas;       // Ideal gas equation of state
+    specie          specie;           // Species definition
+    energy          sensibleEnthalpy; // Energy formulation
 }
 
 mixture
 {
     specie
     {
-        molWeight       28.9;
+        molWeight       28.9;         // Molecular weight [g/mol]
     }
     thermodynamics
     {
-        Cp              1007;          // ความจุความร้อนจำเพาะ [J/kg·K]
-        Hf              0;             // เอนทาลปีของการก่อตัว [J/kg]
+        Cp              1007;        // Specific heat capacity [J/kg·K]
+        Hf              0;           // Formation enthalpy [J/kg]
     }
     transport
     {
-        mu              1.8e-05;       // ความหนืดจลน์ [Pa·s]
-        Pr              0.7;           // เลข Prandtl
+        mu              1.8e-05;     // Dynamic viscosity [Pa·s]
+        Pr              0.7;         // Prandtl number
     }
 }
 
 // ************************************************************************* //
 ```
+
+> **📚 Source:** `tutorials/compressible/rhoSimpleFoam/airFoil2D/constant/thermophysicalProperties`
+>
+> **คำอธิบาย:**
+> ไฟล์ `thermophysicalProperties` เป็นไฟล์หลักที่ใช้กำหนดคุณสมบัติทางอุณหพลศาสตร์ของของไหลใน OpenFOAM:
+>
+> - **`thermoType`**: ระบุชุดของโมเดลทางอุณหพลศาสตร์ที่จะใช้รวมกัน
+> - **`equationOfState perfectGas`**: ส่วนที่กำหนดสมการสถานะ
+> - **`transport sutherland`**: กำหนดโมเดลความหนืดแบบ Sutherland ที่ขึ้นกับอุณหภูมิ
+> - **`Cp`**: ความจุความร้อนจำเพาะที่คงที่
+>
+> **แนวคิดสำคัญ:**
+> 1. การเลือก `equationOfState` ต้องสอดคล้องกับประเภทของของไหลและเงื่อนไขการไหล
+> 2. ค่าคงที่ต่างๆ เช่น `molWeight`, `Cp`, `mu` ต้องได้มาจากข้อมูลอ้างอิงที่เชื่อถือได้
+> 3. ไฟล์นี้ถูกอ่านเมื่อเริ่มการจำลองและใช้ตลอดการคำนวณ
 
 ### ผลกระทบต่อสมการควบคุม
 

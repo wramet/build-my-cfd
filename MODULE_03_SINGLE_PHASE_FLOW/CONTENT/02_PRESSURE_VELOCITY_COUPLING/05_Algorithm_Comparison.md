@@ -4,7 +4,7 @@
 
 ---
 
-## 📋 สารบัซ
+## 📋 สารบัญ
 
 1. [ภาพรวมอัลกอริทึม](#-ภาพรวมอัลกอริทึม)
 2. [ตารางเปรียบเทียบครอบคลุม](#-ตารางเปรียบเทียบครอบคลุม)
@@ -145,6 +145,15 @@ SIMPLE
 }
 ```
 
+**คำอธิบาย:**
+*   **ที่มา (Source):** การตั้งค่าอัลกอริทึม SIMPLE ในไฟล์ `fvSolution`
+*   **คำอธิบาย (Explanation):** บล็อกคำสั่งนี้กำหนดพารามิเตอร์ควบคุมหลักสำหรับอัลกอริทึม SIMPLE โดยมีการกำหนดจำนวนการแก้ไขสำหรับเมชที่ไม่ใช่ orthgonal, ค่าอ้างอิงความดัน, เกณฑ์การลู่เข้าของ residual สำหรับสนามต่างๆ และส่วนสำคัญคือตัวประกอบการผ่อนคลาย (relaxation factors) ที่ใช้เพื่อรับประกันความเสถียรของการคำนวณ
+*   **แนวคิดสำคัญ (Key Concepts):**
+    *   `nNonOrthogonalCorrectors`: จำนวนการแก้ไขเพิ่มเติมสำหรับเมชที่ไม่เป็น orthgonal
+    *   `pRefCell` / `pRefValue`: การกำหนดจุดอ้างอิงและค่าอ้างอิงสำหรับสนามความดันเพื่อแก้ปัญหาความกำกวม
+    *   `residualControl`: การกำหนดเกณฑ์การลู่เข้าของค่า residual สำหรับแต่ละตัวแปร
+    *   `relaxationFactors`: ตัวประกอบการผ่อนคลาย (α < 1) ที่ใช้กับความดันและสมการอื่นๆ เพื่อป้องกันการ oscillate และช่วยให้การวนซ้ำลู่เข้า
+
 #### ข้อดีและข้อจำกัด
 
 **ข้อดี:**
@@ -192,6 +201,14 @@ PISO
     pRefValue       0;
 }
 ```
+
+**คำอธิบาย:**
+*   **ที่มา (Source):** การตั้งค่าอัลกอริทึม PISO ในไฟล์ `fvSolution`
+*   **คำอธิบาย (Explanation):** บล็อกนี้กำหนดพารามิเตอร์สำหรับอัลกอริทึม PISO โดยเฉพาะ `nCorrectors` ซึ่งควบคุมจำนวนรอบการแก้ไขความดันในแต่ละ time step และพารามิเตอร์อื่นๆ สำหรับการจัดการ surface flux ของ phase fraction
+*   **แนวคิดสำคัญ (Key Concepts):**
+    *   `nCorrectors`: จำนวนรอบการแก้ไขความดันในแต่ละ time step (โดยทั่วไป 2-3 รอบ) ซึ่งช่วยเพิ่มความแม่นยำในการบังคับใช้สมการ continuity
+    *   `nAlphaCorr`: จำนวนรอบการแก้ไขสำหรับ phase fraction (สำคัญสำหรับ multiphase flow)
+    *   `nAlphaSubCycles`: จำนวนรอบย่อยในการคำนวณ phase fraction เพื่อเพิ่มเสถียรภาพของ interface
 
 #### ข้อดีและข้อจำกัด
 
@@ -271,6 +288,16 @@ PIMPLE
 }
 ```
 
+**คำอธิบาย:**
+*   **ที่มา (Source):** การตั้งค่าอัลกอริทึม PIMPLE ในไฟล์ `fvSolution`
+*   **คำอธิบาย (Explanation):** บล็อกนี้รวมพารามิเตอร์ของทั้ง SIMPLE และ PISO เข้าด้วยกัน โดยมี outer correctors สำหรับการวนซ้ำแบบ SIMPLE และ inner correctors สำหรับการแก้ไขแบบ PISO พร้อมทั้งมีระบบควบคุมการลู่เข้าของ outer loop และการปรับ time step แบบ adaptive
+*   **แนวคิดสำคัญ (Key Concepts):**
+    *   `nOuterCorrectors`: จำนวนรอบการวนซ้ำภายนอกแบบ SIMPLE ซึ่งใช้ under-relaxation เพื่อเพิ่มความเสถียรสำหรับ large time steps
+    *   `nCorrectors`: จำนวนรอบการแก้ไขความดันในแต่ละ outer loop (PISO correctors)
+    *   `residualControl`: การกำหนดเกณฑ์การลู่เข้าสำหรับ outer loop ซึ่งช่วยลดจำนวน outer iterations เมื่อ solution ใกล้ลู่เข้า
+    *   `relaxationFactors`: ตัวประกอบการผ่อนคลายสำหรับ outer loop
+    *   `maxCo` / `maxAlphaCo`: การควบคุมขนาด time step ผ่าน Courant number ทั้งสำหรับ velocity field และ phase fraction
+
 #### ข้อดีและข้อจำกัง
 
 **ข้อดี:**
@@ -281,7 +308,7 @@ PIMPLE
 
 **ข้อจำกัง:**
 - ❌ ต้นทุนการคำนวณสูงที่สุดต่อ time step
-- �o ต้องการการปรับแต่งพารามิเตอร์ที่ซับซ้อน
+- ❌ ต้องการการปรับแต่งพารามิเตอร์ที่ซับซ้อน
 - ❌ ใช้หน่วยความจำสูง
 - ❌ อาจเกิดการหยุดนิ่ง (stagnation) หากตั้งค่าไม่เหมาะสม
 
@@ -323,7 +350,7 @@ flowchart TD
     K -->|ใช่| P
     L -->|ใช่| P
 ```
-> **Figure 1:** แผนผังการตัดสินใจเลือกใช้อัลกอริทึม (Decision Flowchart) สำหรับการแก้ปัญหาการเชื่อมโยงความดันและความเร็ว โดยพิจารณาจากลักษณะของปัญหา (Steady vs Transient) ความต้องการความแม่นยำเชิงเวลา เลข Courant และความซับซ้อนของฟิสิกส์ เพื่อเลือก Solver ที่เหมาะสมที่สุดระหว่าง SIMPLE, PISO และ PIMPLE พร้อมแนวทางการแก้ไขเบื้องต้นเมื่อพบปัญหาการลู่เข้าความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+
 > **Figure 1:** แผนผังการตัดสินใจเลือกใช้อัลกอริทึม (Decision Flowchart) สำหรับการแก้ปัญหาการเชื่อมโยงความดันและความเร็ว โดยพิจารณาจากลักษณะของปัญหา (Steady vs Transient) ความต้องการความแม่นยำเชิงเวลา เลข Courant และความซับซ้อนของฟิสิกส์ เพื่อเลือก Solver ที่เหมาะสมที่สุดระหว่าง SIMPLE, PISO และ PIMPLE พร้อมแนวทางการแก้ไขเบื้องต้นเมื่อพบปัญหาการลู่เข้า
 
 ### ตารางการเลือกอัลกอริทึมตามประเภทปัญหา
@@ -375,6 +402,14 @@ relaxationFactors
 }
 ```
 
+**คำอธิบาย:**
+*   **ที่มา (Source):** การตั้งค่า relaxation factors ในไฟล์ `fvSolution`
+*   **คำอธิบาย (Explanation):** ตัวประกอบการผ่อนคลายเป็นพารามิเตอร์ที่สำคัญที่สุดของอัลกอริทึม SIMPLE โดยค่าที่ต่ำกว่า 1 จะช่วยให้การวนซ้ำเสถียรขึ้น แต่จะทำให้การลู่เข้าช้าลง ค่าที่เหมาะสมขึ้นอยู่กับความซับซ้อนของปัญหาและระยะการวนซ้ำ
+*   **แนวคิดสำคัญ (Key Concepts):**
+    *   `p` (Pressure relaxation): ค่าที่ต่ำ (0.2-0.3) ช่วยเพิ่มความเสถียรแต่ทำให้ลู่เข้าช้า
+    *   `U` (Velocity relaxation): ค่าปานกลาง (0.5-0.7) ให้สมดุลระหว่างความเร็วและความเสถียร
+    *   Turbulence variables (k, epsilon, omega): ค่าปานกลางถึงสูง (0.6-0.8) เนื่องจาก turbulence models มีความ nonlinearity สูง
+
 **กลยุทธ์การปรับค่า:**
 
 | สถานการณ์ | Pressure ($\alpha_p$) | Velocity ($\alpha_u$) | Turbulence | เหตุผล |
@@ -398,6 +433,14 @@ SIMPLE
 }
 ```
 
+**คำอธิบาย:**
+*   **ที่มา (Source):** การตั้งค่า residual control ในไฟล์ `fvSolution`
+*   **คำอธิบาย (Explanation):** การกำหนดเกณฑ์การลู่เข้าของค่า residual ซึ่งเป็นตัวชี้วัดความถูกต้องของการแก้สมการ ค่าที่ต่ำกว่าหมายถึงต้องการความแม่นยำสูงกว่า แต่จะใช้เวลาคำนวณนานขึ้น
+*   **แนวคิดสำคัญ (Key Concepts):**
+    *   `p` (Pressure tolerance): ค่า residual สูงสุดที่ยอมรับได้สำหรับสมการความดัน
+    *   `U` (Velocity tolerance): ค่า residual สูงสุดที่ยอมรับได้สำหรับสมการโมเมนตัม
+    *   Turbulence tolerances: ค่าที่เข้มงวดกว่าเนื่องจาก turbulence models มีความ sensitve ต่อความแม่นยำ
+
 ### 2. สำหรับ PISO Algorithm
 
 #### การตั้งค่าจำนวน Correctors
@@ -410,11 +453,18 @@ PISO
 }
 ```
 
+**คำอธิบาย:**
+*   **ที่มา (Source):** การตั้งค่า PISO parameters ในไฟล์ `fvSolution`
+*   **คำอธิบาย (Explanation):** `nCorrectors` คือจำนวนรอบการแก้ไขความดันในแต่ละ time step ซึ่งมีผลต่อความแม่นยำและความเสถียรของการคำนวณ โดยค่าที่สูงกว่าจะให้ความแม่นยำมากขึ้นแต่ใช้เวลานานขึ้น
+*   **แนวคิดสำคัญ (Key Concepts):**
+    *   `nCorrectors`: จำนวนรอบการแก้ไขความดันในแต่ละ time step (โดยทั่วไป 2-3 รอบ)
+    *   `nNonOrthogonalCorrectors`: จำนวนรอบการแก้ไขเพิ่มเติมสำหรับเมชที่ไม่เป็น orthogonal
+
 **คำแนะนำ:**
 
 | ค่า nCorrectors | ความเหมาะสม | เหตุผล |
 |-----------------|---------------|---------|
-| 1 | เร็วแต่อาจไม่เสถียร | เหมือน SIMPLE แต่ไม่มี relaxation |
+| 1 | เร็วแต่อาจไม่เสถียร | เหมือน SIMPLE แล้วไม่มี relaxation |
 | 2-3 | ทั่วไปสำหรับการไหลแบบชั่วคราว | สมดุลระหว่างความเร็วและความแม่นยำ |
 | 4+ | สำหรับ Courant number สูง | ค่าใช้จ่ายสูงแต่เสถียร |
 
@@ -426,6 +476,14 @@ adjustTimeStep  yes;
 maxCo           0.4;    // Maximum Courant number
 maxDeltaT       1.0;    // Maximum time step (s)
 ```
+
+**คำอธิบาย:**
+*   **ที่มา (Source):** การตั้งค่า time stepping ในไฟล์ `controlDict`
+*   **คำอธิบาย (Explanation):** การควบคุมขนาด time step แบบ adaptive โดยใช้ Courant number เป็นเกณฑ์ ซึ่งช่วยให้การคำนวณมีความเสถียรและมีประสิทธิภาพ
+*   **แนวคิดสำคัญ (Key Concepts):**
+    *   `adjustTimeStep`: การเปิดใช้งานการปรับขนาด time step แบบ automatic
+    *   `maxCo`: ค่า Courant number สูงสุดที่ยอมรับได้ (โดยทั่วไป 0.4-0.5 สำหรับ PISO)
+    *   `maxDeltaT`: ขนาด time step สูงสุดที่จะใช้
 
 ### 3. สำหรับ PIMPLE Algorithm
 
@@ -447,6 +505,14 @@ PIMPLE
     }
 }
 ```
+
+**คำอธิบาย:**
+*   **ที่มา (Source):** การตั้งค่า PIMPLE parameters ในไฟล์ `fvSolution`
+*   **คำอธิบาย (Explanation):** PIMPLE ใช้ nested iteration loops โดยมี outer loops แบบ SIMPLE และ inner correctors แบบ PISO ซึ่งทำงานร่วมกันเพื่อให้ได้ทั้งความเสถียรและความแม่นยำ
+*   **แนวคิดสำคัญ (Key Concepts):**
+    *   `nOuterCorrectors`: จำนวนรอบการวนซ้ำภายนอก (SIMPLE-like) ซึ่งใช้ under-relaxation
+    *   `nCorrectors`: จำนวนรอบการแก้ไขความดันในแต่ละ outer loop (PISO-like)
+    *   `residualControl`: การกำหนดเกณฑ์การลู่เข้าสำหรับ outer loop
 
 **ตารางคำแนะนำ:**
 
@@ -472,6 +538,14 @@ PIMPLE
     minDeltaT           1e-4;
 }
 ```
+
+**คำอธิบาย:**
+*   **ที่มา (Source):** การตั้งค่า adaptive time stepping ในไฟล์ `controlDict`
+*   **คำอธิบาย (Explanation):** การควบคุมขนาด time step แบบ adaptive ที่คำนึงถึงทั้ง velocity field และ interface motion สำหรับ multiphase flow
+*   **แนวคิดสำคัญ (Key Concepts):**
+    *   `maxCo`: ค่า Courant number สูงสุดสำหรับ velocity field
+    *   `maxAlphaCo`: ค่า Courant number สูงสุดสำหรับ phase fraction interface
+    *   `maxDeltaT` / `minDeltaT`: ขอบเขตขนาด time step
 
 ---
 
@@ -505,7 +579,7 @@ SIMPLE
     {
         fields
         {
-            p           0.2;  // ค่าผ่อนคลายต่ำสำหรับความเสถียร
+            p           0.2;  // Low relaxation for stability
         }
         equations
         {
@@ -516,6 +590,14 @@ SIMPLE
     }
 }
 ```
+
+**คำอธิบาย:**
+*   **ที่มา (Source):** การตั้งค่า SIMPLE algorithm สำหรับ steady aerodynamics simulation
+*   **คำอธิบาย (Explanation):** การตั้งค่าที่เหมาะสมสำหรับการไหลแบบ steady รอบ airfoil โดยใช้ค่า relaxation ต่ำเพื่อความเสถียรและเกณฑ์การลู่เข้าที่เข้มงวดสำหรับความแม่นยำสูง
+*   **แนวคิดสำคัญ (Key Concepts):**
+    *   Tight residual tolerances (1e-7) สำหรับความแม่นยำสูงของ lift/drag coefficients
+    *   Low relaxation factors สำหรับความเสถียรของการคำนวณ
+    *   `nNonOrthogonalCorrectors = 1` สำหรับเมชที่มีความ non-orthogonality เล็กน้อย
 
 **ผลลัพธ์:** Convergence ภายใน 1000 การวนซ้ำ พร้อม drag coefficient ที่ตรงกับทดลอง
 
@@ -537,7 +619,7 @@ SIMPLE
 ```cpp
 PISO
 {
-    nCorrectors          3;      // การแก้ไขสูงสำหรับความแม่นยำ
+    nCorrectors          3;      // High corrections for accuracy
     nNonOrthogonalCorrectors 1;
     pRefCell             0;
     pRefValue            0;
@@ -545,8 +627,16 @@ PISO
 
 // Time stepping
 adjustTimeStep          yes;
-maxCo                   0.4;    // เล็กสำหรับความเสถียร
+maxCo                   0.4;    // Small for stability
 ```
+
+**คำอธิบาย:**
+*   **ที่มา (Source):** การตั้งค่า PISO algorithm สำหรับ transient vortex shedding simulation
+*   **คำอธิบาย (Explanation):** การตั้งค่าที่เหมาะสมสำหรับการจับภาพ vortex shedding dynamics โดยใช้จำนวน correctors ที่สูงขึ้นเพื่อความแม่นยำและ Courant number ต่ำเพื่อความเสถียร
+*   **แนวคิดสำคัญ (Key Concepts):**
+    *   `nCorrectors = 3` สำหรับความแม่นยำสูงในการจับภาพ vortex dynamics
+    *   `maxCo = 0.4` สำหรับความเสถียรของการคำนวณ
+    *   Adaptive time stepping สำหรับรักษา Courant number ให้อยู่ในช่วงที่เหมาะสม
 
 **ผลลัพธ์:** จับภาพ vortex shedding ที่ St ≈ 0.21 ซึ่งตรงกับทฤษฎี
 
@@ -566,15 +656,15 @@ maxCo                   0.4;    // เล็กสำหรับความเ
 ```cpp
 PIMPLE
 {
-    nOuterCorrectors    3;      // การผ่อนคลาย outer สำหรับความเสถียร
-    nCorrectors         2;      // การแก้ไข PISO ภายใน
-    nAlphaCorr          1;      // การแก้ไข phase fraction
-    nAlphaSubCycles     2;      // Sub-cycling สำหรับ interface
+    nOuterCorrectors    3;      // Outer relaxation for stability
+    nCorrectors         2;      // Inner PISO corrections
+    nAlphaCorr          1;      // Phase fraction corrections
+    nAlphaSubCycles     2;      // Sub-cycling for interface
 
     // Time step control
     adjustTimeStep      yes;
-    maxCo               1.0;    // ใหญ่กว่า PISO บริสุทธิ์
-    maxAlphaCo          0.5;    // จำกัด interface Courant number
+    maxCo               1.0;    // Higher than pure PISO
+    maxAlphaCo          0.5;    // Limit interface Courant number
 }
 
 // Multiphase-specific settings
@@ -582,17 +672,26 @@ relaxationFactors
 {
     fields
     {
-        p           0.2;  // ค่าผ่อนคลายต่ำสำหรับความเสถียร
+        p           0.2;  // Low relaxation for stability
     }
     equations
     {
         U           0.5;
-        alpha.water 0.2; // การผ่อนคลาย interface
+        alpha.water 0.2; // Interface relaxation
     }
 }
 ```
 
-**ผลลัพธ์:** Interface motion ที่เสถียรแมะมี large density ratio
+**คำอธิบาย:**
+*   **ที่มา (Source):** การตั้งค่า PIMPLE algorithm สำหรับ multiphase VOF simulation
+*   **คำอธิบาย (Explanation):** การตั้งค่าที่เหมาะสมสำหรับการจำลอง multiphase flow ด้วย VOF method โดยเน้นความเสถียรของ interface motion และการจัดการ large density ratio
+*   **แนวคิดสำคัญ (Key Concepts):**
+    *   `nOuterCorrectors = 3` สำหรับความเสถียรของ interface motion
+    *   `nAlphaCorr` และ `nAlphaSubCycles` สำหรับการจัดการ phase fraction transport
+    *   `maxAlphaCo` สำหรับควบคุม interface Courant number แยกจาก flow Courant number
+    *   Interface relaxation (`alpha.water`) สำหรับความเสถียรของ interface
+
+**ผลลัพธ์:** Interface motion ที่เสถียรแม้มี large density ratio
 
 ---
 
@@ -610,11 +709,18 @@ relaxationFactors
 ```cpp
 PIMPLE
 {
-    nOuterCorrectors    4;      // สูงสำหรับ coupling ที่แข็งแกร่ง
+    nOuterCorrectors    4;      // High for strong coupling
     nCorrectors         2;
     nNonOrthogonalCorrectors 2;
 }
 ```
+
+**คำอธิบาย:**
+*   **ที่มา (Source):** การตั้งค่า PIMPLE algorithm สำหรับ buoyancy-driven flow simulation
+*   **คำอธิบาย (Explanation):** การตั้งค่าที่เหมาะสมสำหรับการไหลที่ขับเคลื่อนด้วยแรงลอยตัว โดยใช้จำนวน outer correctors ที่สูงเพื่อจัดการ strong coupling ระหว่างความดันและความหนาแน่น
+*   **แนวคิดสำคัญ (Key Concepts):**
+    *   `nOuterCorrectors = 4` สำหรับจัดการ strong pressure-density coupling
+    *   `nNonOrthogonalCorrectors = 2` สำหรับเมชที่อาจมีความ non-orthogonal สูง
 
 **Boussinesq approximation ในสมการโมเมนตัม:**
 
@@ -629,7 +735,19 @@ fvVectorMatrix UEqn
 );
 ```
 
-**ผลลัพธ์:** Flow patterns ที่เสถียรแมะมี high Rayleigh numbers
+**คำอธิบาย:**
+*   **ที่มา (Source):** การสร้างสมการโมเมนตัมสำหรับ buoyancy-driven flow
+*   **คำอธิบาย (Explanation):** สมการโมเมนตัมที่มีเทอมแรงลอยตัว (buoyancy term) ตาม Boussinesq approximation ซึ่งจำลองผลของความแตกต่างของความหนาแน่นเนื่องจากการเปลี่ยนแปลงของอุณหภูมิ
+*   **แนวคิดสำคัญ (Key Concepts):**
+    *   `fvm::ddt(rho, U)`: Temporal derivative term
+    *   `fvm::div(rhoPhi, U)`: Convection term
+    *   `fvm::laplacian(mu, U)`: Diffusion term
+    *   `rho * (g - beta * (T - TRef) * g)`: Buoyancy term ตาม Boussinesq approximation
+    *   `beta`: Thermal expansion coefficient
+    *   `TRef`: Reference temperature
+    *   `g`: Gravitational acceleration vector
+
+**ผลลัพธ์:** Flow patterns ที่เสถียรแม้มี high Rayleigh numbers
 
 ---
 

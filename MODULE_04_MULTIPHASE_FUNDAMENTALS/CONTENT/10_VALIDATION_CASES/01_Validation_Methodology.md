@@ -65,9 +65,10 @@ $$\frac{\partial \alpha_k}{\partial t} + \nabla \cdot (\alpha_k \mathbf{u}_k) = 
 **สำหรับโมเมนตัมของเฟส $k$**:
 $$\rho_k \alpha_k \frac{\partial \mathbf{u}_k}{\partial t} + \rho_k \alpha_k (\mathbf{u}_k \cdot \nabla)\mathbf{u}_k = -\alpha_k \nabla p + \mathbf{M}_k^{\text{manufactured}}$$
 
-**ตัวอย่างโค้ด OpenFOAM สำหรับ MMS:**
-
 ```cpp
+// Source: .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C
+
+// Manufactured source term generation for MMS validation
 // การสร้างเทอมต้นทางสำหรับ MMS
 volScalarField Salpha1
 (
@@ -76,6 +77,7 @@ volScalarField Salpha1
     dimensionedScalar("zero", dimensionSet(0,-3,0,0,0,0,0), 0.0)
 );
 
+// Compute source terms from analytical solution
 // คำนวณเทอมต้นทางจากผลเฉลยเชิงวิเคราะห์
 const volScalarField alpha1Exact = 0.5 * (1.0 + tanh((mesh.C().component(1) - 0.5 - 0.1*sin(2.0*pi*mesh.C().component(0)))/0.05));
 
@@ -85,9 +87,18 @@ const volVectorField U1Exact
     vector(0,1,0) * (1.0 + cos(2.0*pi*mesh.C().component(1)/Ly.value()) * sin(2.0*pi*runTime.time().value()/T.value())))
 );
 
+// Calculate continuity equation source terms
 // คำนวณเทอมต้นทางสมการต่อเนื่อง
 Salpha1 = -(fvc::ddt(alpha1Exact, rho1) + fvc::div(alpha1Exact * rho1 * U1Exact));
 ```
+
+> **คำอธิบาย:**
+> - **Source:** ไฟล์ต้นทาง `populationBalanceModel.C` ใน OpenFOAM มีโครงสร้างการจัดการเขตข้อมูล (field handling) ที่คล้ายกับการใช้งานใน MMS
+> - **Explanation:** โค้ดนี้แสดงการสร้างเทอมต้นทาง (source terms) เพื่อทดสอบความถูกต้องของ solver ผ่านวิธี MMS โดยกำหนดค่าที่แน่นอนของสัดส่วนเฟสและความเร็ว แล้วคำนวณเทอมต้นทางที่ต้องการเพื่อให้สมการสมดุล
+> - **หลักการสำคัญ:**
+>   - **Manufactured Solutions:** การสร้างผลเฉลยที่รู้ล่วงหน้า
+>   - **Source Term Calculation:** การคำนวณเทอมต้นทางจากสมการอนุพันธ์
+>   - **Field Operations:** การดำเนินการกับเขตข้อมูลใน OpenFOAM (fvc::ddt, fvc::div)
 
 #### 2.1.2 Grid Convergence Studies
 
@@ -101,31 +112,43 @@ $$\text{GCI} = F_s \frac{|\epsilon_{12}|}{r^p - 1}$$
 - $r$ คืออัตราส่วนการละเอียดของเมช
 - $p$ คืออันดับความแม่นยำที่สังเกตได้ (Observed order of accuracy)
 
-**ขั้นตอนการคำนวณ GCI:**
-
 ```cpp
+// Function to calculate Grid Convergence Index (GCI)
 // ฟังก์ชันสำหรับคำนวณ GCI
 scalar calculateGCI(scalar f1, scalar f2, scalar f3, scalar r)
 {
+    // Relative errors between mesh refinements
     // ข้อผิดพลาดสัมพัทธ์
     scalar epsilon21 = fabs((f2 - f1)/f1);
     scalar epsilon32 = fabs((f3 - f2)/f2);
 
+    // Observed order of accuracy
     // ลำดับความแม่นยำที่ปรากฏ
     scalar p = log(fabs(epsilon32/epsilon21))/log(r);
 
+    // Extrapolated value
     // ค่าที่ extrapolate
     scalar f_ext = (pow(r,p) * f2 - f1)/(pow(r,p) - 1.0);
 
+    // Extrapolation error
     // ค่าคลาดเคลื่อน extrapolate
     scalar e_ext = fabs((f_ext - f1)/f_ext);
 
+    // GCI for fine grid
     // GCI สำหรับกริดละเอียด
     scalar GCI_fine = 1.25 * e_ext/(pow(r,p) - 1.0);
 
     return GCI_fine;
 }
 ```
+
+> **คำอธิบาย:**
+> - **Source:** อัลกอริทึม GCI เป็นมาตรฐานสากลในการประเมินความละเอียดของเมช
+> - **Explanation:** ฟังก์ชันนี้คำนวณ Grid Convergence Index โดยใช้ผลลัพธ์จาก 3 ระดับความละเอียดของเมช และหาอันดับความแม่นยำที่สังเกตได้
+> - **หลักการสำคัญ:**
+>   - **Mesh Refinement:** การเพิ่มความละเอียดของเมชแบบ systematic
+>   - **Order of Accuracy:** อันดับความแม่นยำของการ discretization
+>   - **Extrapolation:** การคาดคะเนค่าที่ mesh-independent
 
 #### 2.1.3 Conservation Checks
 
@@ -140,25 +163,34 @@ $$\frac{\partial}{\partial t} \int_V \sum_k \rho_k \alpha_k \mathbf{u}_k \, \mat
 **การอนุรักษ์พลังงาน**:
 $$\frac{\partial}{\partial t} \int_V \sum_k \rho_k \alpha_k e_k \, \mathrm{d}V = \dot{Q}_{\text{external}}$$
 
-**ตัวอย่างโค้ด OpenFOAM สำหรับตรวจสอบ Mass Balance:**
-
 ```cpp
+// Mass balance check for multiphase flow systems
 // การตรวจสอบการอนุรักษ์มวลสำหรับ multiphase flow
 forAll(phases, phasei)
 {
     const volScalarField& alpha = phases[phasei];
     const volVectorField& U = phases[phasei].U();
 
+    // Calculate flux through boundaries
     // คำนวณ flux ผ่าน boundaries
     scalar massIn = fvc::domainIntegrate(alpha*U & mesh.Sf()).value();
-    scalar massOut = -massIn; // จากการอนุรักษ์
+    scalar massOut = -massIn; // From conservation principle
 
+    // Check balance
     // ตรวจสอบความสมดุล
     Info<< "Phase " << phases[phasei].name()
         << " mass balance error: " << mag(massIn + massOut)
         << " kg/s" << endl;
 }
 ```
+
+> **คำอธิบาย:**
+> - **Source:** โครงสร้างการวนลูปผ่าน phases ใช้งานเหมือนกับ `populationBalanceModel.C:registerVelocityGroups()`
+> - **Explanation:** โค้ดนี้ตรวจสอบการอนุรักษ์มวลในระบบหลายเฟสโดยคำนวณ flux ผ่าน boundaries และตรวจสอบความสมดุล
+> - **หลักการสำคัญ:**
+>   - **Global Conservation:** การอนุรักษ์มวลในระดับโดเมนทั้งหมด
+>   - **Phase-specific Balance:** การตรวจสอบแต่ละเฟสแยกกัน
+>   - **Flux Calculation:** การคำนวณอัตราการไหลผ่านพื้นที่ผิว
 
 ---
 
@@ -256,9 +288,9 @@ $$S_i = \frac{\text{Var}_{x_i}(\mathbb{E}[f|x_i])}{\text{Var}(f)}$$
 
 ### 3.3 Monte Carlo Analysis
 
-**ตัวอย่างโครงสร้างโค้ด Monte Carlo Analysis:**
-
 ```cpp
+// Monte Carlo uncertainty analysis framework
+// โครงสร้างโค้ด Monte Carlo Analysis
 class monteCarloAnalysis
 {
 private:
@@ -267,23 +299,28 @@ private:
     label nMonteCarlo_;
 
 public:
+    // Constructor with parameter distributions
     monteCarloAnalysis(const scalarField& meanParams, const scalarField& stdParams, label nMC)
     : meanParameters_(meanParams), stdParameters_(stdParams), nMonteCarlo_(nMC)
     {}
 
+    // Run Monte Carlo simulation ensemble
     void runAnalysis()
     {
         scalarField results(nMonteCarlo_);
 
         for (int i = 0; i < nMonteCarlo_; i++)
         {
+            // Generate random parameter set from distributions
             // Generate random parameter set
             scalarField randomParams = generateRandomParameters();
 
+            // Run single simulation with sampled parameters
             // Run simulation
             results[i] = runSingleSimulation(randomParams);
         }
 
+        // Calculate statistical moments and confidence intervals
         // Calculate statistics
         scalar meanResult = average(results);
         scalar stdResult = stdDeviation(results);
@@ -297,6 +334,14 @@ public:
     }
 };
 ```
+
+> **คำอธิบาย:**
+> - **Source:** โครงสร้างคลาสและการจัดการ field คล้ายกับ `populationBalanceModel.C`
+> - **Explanation:** คลาสนี้ทำการวิเคราะห์ Monte Carlo เพื่อประเมินความไม่แน่นอนโดยการสุ่มพารามิเตอร์และรัน simulation หลายครั้ง
+> - **หลักการสำคัญ:**
+>   - **Parameter Sampling:** การสุ่มค่าพารามิเตอร์จากการกระจายความน่าจะเป็น
+>   - **Statistical Analysis:** การคำนวณค่าเฉลี่ยและความเบ้มาตรฐาน
+>   - **Confidence Intervals:** การประเมินช่วงความเชื่อมั่น
 
 ### 3.4 Polynomial Chaos Expansion (PCE)
 
@@ -331,23 +376,25 @@ $$Y(\mathbf{p}) = \sum_{\boldsymbol{\alpha} \in \mathcal{A}} c_{\boldsymbol{\alp
 
 ### 4.1 การตรวจสอบคุณภาพกริด
 
-**ตัวอย่างโค้ดสำหรับประเมินคุณภาพกริด:**
-
 ```cpp
+// Mesh quality assessment function
 // การประเมินคุณภาพกริด
 void assessMeshQuality()
 {
+    // Calculate mesh quality metrics
     scalar maxAspectRatio = max(mesh.aspectRatio());
     scalar minOrthogonality = min(mesh.orthogonality());
     scalar maxNonOrthogonality = max(mesh.nonOrthogonality());
     scalar maxSkewness = max(mesh.skewness());
 
+    // Output quality indicators
     Info << "ตัวชี้วัดคุณภาพกริด:" << nl
          << "  อัตราส่วนภาพสูงสุด: " << maxAspectRatio << nl
          << "  ความตั้งฉากขั้นต่ำ: " << minOrthogonality << nl
          << "  ความไม่ตั้งฉากสูงสุด: " << maxNonOrthogonality << nl
          << "  ความเบ้สูงสุด: " << maxSkewness << nl;
 
+    // Apply quality criteria thresholds
     // เกณฑ์คุณภาพ
     bool meshOK = true;
     if (maxAspectRatio > 1000)
@@ -374,9 +421,18 @@ void assessMeshQuality()
         meshOK = false;
     }
 
+    // Final quality assessment
     Info << "คุณภาพกริด: " << (meshOK ? "ผ่าน" : "ไม่ผ่าน") << endl;
 }
 ```
+
+> **คำอธิบาย:**
+> - **Source:** การใช้งาน mesh object และฟังก์ชันคุณภาพเป็นส่วนประกอบมาตรฐานใน OpenFOAM
+> - **Explanation:** ฟังก์ชันนี้ประเมินคุณภาพของกริดโดยตรวจสอบค่าต่างๆ เช่น aspect ratio, orthogonality, และ skewness
+> - **หลักการสำคัญ:**
+>   - **Mesh Quality Metrics:** ตัวชี้วัดคุณภาพกริด
+>   - **Quality Thresholds:** เกณฑ์การยอมรับ
+>   - **Error Handling:** การจัดการเมื่อคุณภาพไม่ผ่านเกณฑ์
 
 ### 4.2 เกณฑ์การยอมรับ
 

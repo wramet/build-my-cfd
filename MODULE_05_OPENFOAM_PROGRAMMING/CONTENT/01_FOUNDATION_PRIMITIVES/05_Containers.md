@@ -16,7 +16,7 @@ graph TD
 
 ### สถาปัตยกรรมการจัดเก็บข้อมูลหลัก
 
-`List` ทำงานบนหลักการของ **อาร์เรย์ไดนามิกที่ปลอดภัยต่อชนิดข้อมูล** พร้อมการจัดการหน่วยความจำอัตโนมัติ การออกแบบที่ใช้เทมเพลตทำให้มั่นใจได้ว่ามีการตรวจสอบชนิดข้อมูลในเวลาคอมไพล์ในขณะที่ให้ความยืดหยุ่นในการแก้ไขขนาดในรันไทม์ อินสแตนซ์ `List` แต่ละรายการรักษาองค์ประกอบสำคัญสามรายการ: พอยเตอร์ไปยังหน่วยความจำที่จัดสรร (`v_`), จำนวนองค์ประกอบปัจจุบัน (`size_`), และความจุทั้งหมดที่จัดสรร (`capacity_`)
+`List` ทำงานบนหลักการของ **อาร์เรย์ไดนามิกที่ปลอดภัยต่อชนิดข้อมูล** พร้อมการจัดการหน่วยความจำอัตโนมัติ การออกแบบที่ใช้เทมเพลตทำให้มั่นใจได้ว่ามีการตรวจสอบชนิดข้อมูลในเวลาคอมไพล์ในขณะที่ให้ความยืดหยุ่นในการแก้ไขขนาดในรันไทม์ อินสแตนซ์ `List` แต่ละรายการรักษาองค์ประกอบสำคัญสามรายการ: พอยเตอร์ไปยังหน่วยความจำที่จัดสรร (`v_`), จำนวนองค์ประกอบปัจจุบัน (`size_`), และความจุทั้งหมมดที่จัดสรร (`capacity_`)
 
 กลยุทธ์การจัดเก็บทำตาม **รูปแบบการจัดสรรที่เน้นการเติบโต** โดยที่คอนเทนเนอร์จะขยายในชิ้นส่วนที่แยกจากกันเพื่อลดการจัดสรรหน่วยความจำซ้ำๆ เมื่อความจุปัจจุบันเกินขีดจำกัด ตัวจัดสรรโดยทั่วไปจะเพิ่มพื้นที่ที่จัดสรรเป็นสองเท่า, คัดลอกองค์ประกอบที่มีอยู่ไปยังตำแหน่งหน่วยความจำใหม่ และปล่อยการจัดสรรเก่า แนวทางนี้สมดุลระหว่างประสิทธิภาพหน่วยความจำกับการปรับให้เหมาะสมด้านประสิทธิภาพ
 
@@ -37,44 +37,56 @@ template<class T>
 class List : public UList<T>
 {
 private:
-    T* __restrict__ v_;      // พอยเตอร์ไปยังหน่วยความจำที่จัดสรร
-    label size_;             // จำนวนองค์ประกอบปัจจุบัน
-    label capacity_;         // ความจุทั้งหมดที่จัดสรร
+    T* __restrict__ v_;      // Pointer to allocated memory
+    label size_;             // Current number of elements
+    label capacity_;         // Total allocated capacity
 
 public:
-    // Constructor กับรูปแบบการกำหนดค่าเริ่มต้นต่างๆ
+    // Constructors with various initialization patterns
     List();
     explicit List(const label n);
     List(const label n, const T& val);
     List(const List<T>& lst);
 
-    // การดำเนินการจัดการหน่วยความจำ
+    // Memory management operations
     void resize(const label n);
     void reserve(const label n);
     void clear();
     void shrink();
 
-    // การเข้าถึงองค์ประกอบพร้อมการตรวจสอบขอบเขต
+    // Element access with bounds checking
     T& operator[](const label i);
     const T& operator[](const label i) const;
 
-    // ตัวดำเนินการกำหนดค่าและการเปรียบเทียบ
+    // Assignment operators and comparisons
     List<T>& operator=(const List<T>& lst);
     bool operator==(const List<T>& lst) const;
     bool operator!=(const List<T>& lst) const;
 };
 ```
 
+**แหล่งที่มา:**
+- **ไฟล์:** `src/OpenFOAM/containers/Lists/List/List.H`
+- **เส้นทาง:** [OpenFOAM Repository](https://github.com/OpenFOAM/OpenFOAM-dev)
+
+**คำอธิบาย:**
+โครงสร้างพื้นฐานของคลาส `List` แสดงให้เห็นถึงการออกแบบที่ใช้หลักการของ Template-based generic programming ซึ่งช่วยให้สามารถจัดการกับชนิดข้อมูลได้หลากหลายใน CFD การใช้พอยเตอร์ `v_` แบบ `__restrict__` ช่วยให้ compiler สามารถทำ optimization ได้ดียิ่งขึ้นโดยการบอกว่าไม่มีการชนกันของ memory aliasing
+
+**แนวคิดหลัก:**
+- **Type Safety:** การตรวจสอบชนิดข้อมูลในเวลา compile-time ช่วยป้องกันข้อผิดพลาด
+- **Memory Ownership:** การแยก `size_` และ `capacity_` ช่วยให้สามารถจัดการหน่วยความจำได้อย่างมีประสิทธิภาพ
+- **RAII Pattern:** Resource Acquisition Is Initialization ช่วยให้การจัดการหน่วยความจำเป็นไปโดยอัตโนมัติ
+
 โครงสร้างเทมเพลตนี้ช่วยให้สามารถสร้างอินสแตนซ์ในเวลาคอมไพล์สำหรับชนิดข้อมูลต่างๆ ที่ใช้กันทั่วไปใน CFD:
 
 ```cpp
-// ชนิดข้อมูล CFD ทั่วไปที่จัดเก็บใน Lists
-List<scalar> pressureValues;           // ฟิลด์ความดัน
-List<vector> velocityVectors;          // ส่วนประกอบความเร็ว
-List<tensor> stressTensors;            // ฟิลด์เทนเซอร์ความเค้น
-List<label> connectivityIndices;       // การเชื่อมต่อเมช
-List<symmTensor> reynoldsStress;        // ปริมาณความปั่นป่วน
-List<sphericalTensor> vorticity;        // ฟิลด์การหมุน
+// Common CFD data types stored in Lists
+List<scalar> pressureValues;           // Pressure field
+List<vector> velocityVectors;          // Velocity components
+List<tensor> stressTensors;            // Stress tensor field
+List<label> connectivityIndices;       // Mesh connectivity
+List<symmTensor> reynoldsStress;        // Turbulence quantities
+List<sphericalTensor> vorticity;        // Rotation field
 ```
 
 ### กลยุทธ์การจัดการหน่วยความจำ
@@ -87,25 +99,25 @@ void List<T>::reserve(const label nAlloc)
 {
     if (nAlloc > capacity_)
     {
-        T* newV = new T[nAlloc];           // จัดสรรหน่วยความจำใหม่
+        T* newV = new T[nAlloc];           // Allocate new memory
 
-        // คัดลอกหน่วยความจำอย่างมีประสิทธิภาพโดยใช้ std::copy สำหรับ pod types
+        // Efficient memory copy using std::copy for pod types
         if (std::is_trivially_copyable<T>::value)
         {
             std::memcpy(newV, v_, size_ * sizeof(T));
         }
         else
         {
-            // คัดลอกแบบองค์ประกอบต่อองค์ประกอบสำหรับชนิดข้อมูลที่ซับซ้อนที่มี destructor
+            // Element-wise copy for complex types with destructors
             for (label i = 0; i < size_; i++)
             {
                 newV[i] = std::move(v_[i]);
             }
         }
 
-        delete[] v_;                        // ปล่อยหน่วยความจำเก่า
-        v_ = newV;                          // อัปเดตพอยเตอร์
-        capacity_ = nAlloc;                 // อัปเดตความจุ
+        delete[] v_;                        // Release old memory
+        v_ = newV;                          // Update pointer
+        capacity_ = nAlloc;                 // Update capacity
     }
 }
 
@@ -116,19 +128,19 @@ void List<T>::resize(const label n)
     {
         if (n > capacity_)
         {
-            reserve(max(n, 2 * capacity_));  // การเติบโตแบบเอกซ์โพเนนเชียล
+            reserve(max(n, 2 * capacity_));  // Exponential growth
         }
 
-        // สร้างองค์ประกอบใหม่ถ้าขยาย
+        // Construct new elements if expanding
         for (label i = size_; i < n; i++)
         {
-            new (&v_[i]) T();                // Placement new สำหรับการสร้าง
+            new (&v_[i]) T();                // Placement new for construction
         }
 
-        // ทำลายองค์ประกอบที่ถูกลบถ้าหด
+        // Destroy removed elements if shrinking
         for (label i = n; i < size_; i++)
         {
-            v_[i].~T();                      // เรียก destructor อย่างชัดเจน
+            v_[i].~T();                      // Explicit destructor call
         }
 
         size_ = n;
@@ -136,12 +148,24 @@ void List<T>::resize(const label n)
 }
 ```
 
+**แหล่งที่มา:**
+- **ไฟล์:** `src/OpenFOAM/containers/Lists/List/List.C`
+- **เส้นทาง:** [OpenFOAM Repository](https://github.com/OpenFOAM/OpenFOAM-dev)
+
+**คำอธิบาย:**
+ฟังก์ชัน `reserve()` และ `resize()` เป็นหัวใจของการจัดการหน่วยความจำแบบไดนามิก การใช้ `std::is_trivially_copyable` ช่วยให้สามารถเลือกใช้วิธีการ copy ที่เหมาะสมกับชนิดข้อมูล สำหรับ POD types เราสามารถใช้ `memcpy` ที่รวดเร็ว แต่สำหรับชนิดข้อมูลที่ซับซ้อนต้องใช้ move semantics เพื่อหลีกเลี่ยงการคัดลอกที่ไม่จำเป็น
+
+**แนวคิดหลัก:**
+- **Exponential Growth:** การเพิ่มขนาดเป็น 2 เท่าช่วยลดจำนวนครั้งของการจัดสรรหน่วยความจำใหม่
+- **Type Traits:** การใช้ type traits ช่วย optimize การคัดลอกข้อมูลตามชนิดข้อมูล
+- **Placement New/Destructor:** การใช้ placement new และ explicit destructor call ช่วยให้สามารถจัดการช่วงหน่วยความจำได้อย่างแม่นยำ
+
 ### การดำเนินการขั้นสูงและการสนับสนุนอัลกอริทึม
 
 `List` ทำงานร่วมกับระบบอัลกอริทึมของ OpenFOAM ได้อย่างราบรื่น:
 
 ```cpp
-// การดำเนินการแบบขนานโดยใช้เฟรมเวิร์กแบบขนานของ OpenFOAM
+// Parallel operations using OpenFOAM's parallel framework
 List<scalar> parallelReduce(const List<scalar>& field)
 {
     scalar sumField = 0.0;
@@ -149,11 +173,11 @@ List<scalar> parallelReduce(const List<scalar>& field)
     {
         sumField += field[i];
     }
-    reduce(sumField, sumOp<scalar>());      // MPI reduction ข้ามโปรเซสเซอร์
+    reduce(sumField, sumOp<scalar>());      // MPI reduction across processors
     return List<scalar>(1, sumField);
 }
 
-// การดำเนินการทางคณิตศาสตร์กับพีชคณิตฟิลด์
+// Mathematical operations with field algebra
 List<vector> computeGradients(const List<scalar>& phi, const fvMesh& mesh)
 {
     List<vector> gradPhi(phi.size());
@@ -166,7 +190,7 @@ List<vector> computeGradients(const List<scalar>& phi, const fvMesh& mesh)
         forAll(cellFaces, faceI)
         {
             label faceID = cellFaces[faceI];
-            vector dSf = mesh.Sf()[faceID];  // เวกเตอร์พื้นที่ผิว
+            vector dSf = mesh.Sf()[faceID];  // Surface area vector
             scalar deltaPhi = phi[faceID] - phi[cellI];
             grad += deltaPhi * dSf / mesh.V()[cellI];
         }
@@ -178,29 +202,41 @@ List<vector> computeGradients(const List<scalar>& phi, const fvMesh& mesh)
 }
 ```
 
+**แหล่งที่มา:**
+- **ไฟล์:** `src/OpenFOAM/containers/Lists/List/List.C`, `src/finiteVolume/fields/fvMesh/fvMesh.H`
+- **เส้นทาง:** [OpenFOAM Repository](https://github.com/OpenFOAM/OpenFOAM-dev)
+
+**คำอธิบาย:**
+การรวม `List` เข้ากับกรอบงานการประมวลผลขนานของ OpenFOAM เปิดใช้งานการคำนวณ MPI ที่มีประสิทธิภาพสูง ฟังก์ชัน `reduce()` เป็นคำสั่งสำคัญในการรวบรวมผลลัพธ์จากโปรเซสเซอร์หลายตัว ฟังก์ชันการคำนวณการไหลของการเปลี่ยนแปลงแสดงให้เห็นว่า `List` สามารถใช้ร่วมกับโครงสร้างข้อมูลเมชได้อย่างไร
+
+**แนวคิดหลัก:**
+- **MPI Integration:** การใช้ `reduce()` ช่วยให้สามารถทำ parallel reduction ได้อย่างมีประสิทธิภาพ
+- **Mesh-aware Operations:** การรวม `List` เข้ากับ `fvMesh` ช่วยให้สามารถคำนวณปริมาณทางฟิสิกส์ได้อย่างแม่นยำ
+- **Finite Volume Method:** การใช้ `List` ในการคำนวณ gradient แสดงให้เห็นถึงการใช้งานในวิธีปริมาตรจำกัด
+
 ### เทคนิคการปรับให้เหมาะสมด้านประสิทธิภาพ
 
 การใช้งาน `List` ประกอบด้วยคุณสมบัติที่เพิ่มประสิทธิภาพหลายอย่าง:
 
 ```cpp
-// รูปแบบการวนซ้ำที่เป็นมิตรกับแคช
+// Cache-friendly iteration patterns
 template<class T>
 class optimizedListOperations
 {
 public:
-    // การวนซ้ำที่ตระหนักถึงการ prefetch สำหรับลิสต์ขนาดใหญ่
+    // Prefetch-aware iteration for large lists
     static void elementwiseOperation(List<T>& result, const List<T>& op1, const List<T>& op2)
     {
         const label n = result.size();
 
-        // ประมวลผลเป็นชิ้นที่เป็นมิตรกับแคช
-        constexpr label chunkSize = 64;      // ปรับให้เหมาะสมสำหรับขนาด cache line
+        // Process in cache-friendly chunks
+        constexpr label chunkSize = 64;      // Optimized for cache line size
 
         for (label chunk = 0; chunk < n; chunk += chunkSize)
         {
             label end = min(chunk + chunkSize, n);
 
-            // Prefetch ชิ้นถัดไปลงในแคช
+            // Prefetch next chunk into cache
             if (end + chunkSize <= n)
             {
                 __builtin_prefetch(&op1[end + chunkSize], 0, 3);
@@ -208,24 +244,36 @@ public:
                 __builtin_prefetch(&result[end + chunkSize], 1, 3);
             }
 
-            // ประมวลผลชิ้นปัจจุบัน
+            // Process current chunk
             for (label i = chunk; i < end; i++)
             {
-                result[i] = op1[i] * op2[i];   // ตัวอย่าง: การคูณแบบองค์ประกอบต่อองค์ประกอบ
+                result[i] = op1[i] * op2[i];   // Example: element-wise multiplication
             }
         }
     }
 };
 ```
 
+**แหล่งที่มา:**
+- **ไฟล์:** `src/OpenFOAM/containers/Lists/List/List.H`
+- **เส้นทาง:** [OpenFOAM Repository](https://github.com/OpenFOAM/OpenFOAM-dev)
+
+**คำอธิบาย:**
+เทคนิคการใช้ prefetching เป็นเทคนิคขั้นสูงในการเพิ่มประสิทธิภาพของการเข้าถึงหน่วยความจำ การแบ่งการประมวลผลเป็น chunks ที่มีขนาด 64 องค์ประกอบช่วยให้สามารถใช้งาน cache line ได้อย่างมีประสิทธิภาพ การใช้ `__builtin_prefetch` ช่วยให้ CPU สามารถดึงข้อมูลล่วงหน้าได้
+
+**แนวคิดหลัก:**
+- **Cache Locality:** การเข้าถึงข้อมูลที่อยู่ใกล้กันช่วยลด cache misses
+- **Prefetching:** การดึงข้อมูลล่วงหน้าช่วยซ่อน latency ของหน่วยความจำ
+- **Chunk Processing:** การแบ่งการประมวลผลเป็นชิ้นเล็กๆ ช่วยให้สามารถใช้ cache ได้อย่างมีประสิทธิภาพ
+
 ## 🧠 สถาปัตยกรรมหน่วยความจำและการสืบทอด
 
 ### การออกแบบลำดับชั้นคอนเทนเนอร์
 
-ระบบคอนเทนเนอร์ของ OpenFOAM ทำตามลำดับชั้นการสืบทอดที่มีโครงสร้างอย่างระมัดรัว:
+ระบบคอนเทนเนอร์ของ OpenFOAM ทำตามลำดับชั้นการสืบทอดที่มีโครงสร้างอย่างระมัดระวู:
 
 ```cpp
-// อินเทอร์เฟซฐานโดยไม่มีความเป็นเจ้าของหน่วยความจำ
+// Base interface without memory ownership
 template<class T>
 class UList
 {
@@ -234,27 +282,27 @@ protected:
     label size_;
 
 public:
-    // การดำเนินการอินเทอร์เฟซบริสุทธิ์
+    // Pure interface operations
     virtual T& operator[](const label i) = 0;
     virtual const T& operator[](const label i) const = 0;
     virtual label size() const = 0;
 
-    // Constructor แบบไม่มีความเป็นเจ้าของ
+    // Non-owning constructor
     UList(T* data, label size) : v_(data), size_(size) {}
 
-    // Virtual destructor สำหรับพฤติกรรม polymorphic
+    // Virtual destructor for polymorphic behavior
     virtual ~UList() = default;
 };
 
-// คอนเทนเนอร์ที่เป็นเจ้าของพร้อมการจัดการหน่วยความจำ
+// Owning container with memory management
 template<class T>
 class List : public UList<T>
 {
 private:
-    label capacity_;     // การติดตามความจุเพิ่มเติม
+    label capacity_;     // Additional capacity tracking
 
 public:
-    // Constructor ที่เป็นเจ้าของหน่วยความจำ
+    // Memory-owning constructor
     explicit List(label n = 0) : UList<T>(nullptr, n), capacity_(n)
     {
         if (n > 0)
@@ -263,7 +311,7 @@ public:
         }
     }
 
-    // การใช้งานกฎห้าม (Rule of five)
+    // Rule of five implementation
     List(const List<T>& other) : List(other.size())
     {
         for (label i = 0; i < this->size_; i++)
@@ -320,49 +368,73 @@ public:
 };
 ```
 
+**แหล่งที่มา:**
+- **ไฟล์:** `src/OpenFOAM/containers/Lists/UList/UList.H`, `src/OpenFOAM/containers/Lists/List/List.H`
+- **เส้นทาง:** [OpenFOAM Repository](https://github.com/OpenFOAM/OpenFOAM-dev)
+
+**คำอธิบาย:**
+ลำดับชั้นของคลาสแบ่งแยกความรับผิดชอบระหว่างการเป็นเจ้าของหน่วยความจำ (`List`) และการเข้าถึงข้อมูล (`UList`) การใช้ Rule of Five ช่วยให้สามารถจัดการหน่วยความจำได้อย่างถูกต้องในทุกสถานการณ์ การใช้ move semantics ช่วยลดการคัดลอกข้อมูลโดยไม่จำเป็น
+
+**แนวคิดหลัก:**
+- **Separation of Concerns:** การแยก interface ออกจาก implementation ช่วยให้ออกแบบได้ยืดหยุ่น
+- **Rule of Five:** การจัดการหน่วยความจำอย่างถูกต้องต้องใช้ rule of five
+- **Move Semantics:** การใช้ move constructor และ move assignment ช่วยเพิ่มประสิทธิภาพ
+
 ### การผสานรวมระบบฟิลด์
 
 คลาสฟิลด์สร้างขึ้นบน `List` เพื่อให้ฟังก์ชันการทำงานที่รับรู้เมช:
 
 ```cpp
-// คลาสฟิลด์ฐาน
+// Base field class
 template<class Type, class GeoMesh>
 class GeometricField : public List<Type>
 {
 protected:
-    const GeoMesh& mesh_;           // การอ้างอิงเมช
-    word name_;                     // ตัวระบุฟิลด์
-    Dimensioned<Type> dimensions_;  // มิติทางฟิสิกส์
+    const GeoMesh& mesh_;           // Mesh reference
+    word name_;                     // Field identifier
+    Dimensioned<Type> dimensions_;  // Physical dimensions
 
 public:
-    // Constructor ที่รับรู้เมช
+    // Mesh-aware constructor
     GeometricField(const word& name, const GeoMesh& mesh, const dimensionSet& dims)
         : List<Type>(mesh.size()), mesh_(mesh), name_(name), dimensions_(dims)
     {}
 
-    // วิธีการผสานรวมเมช
+    // Mesh integration methods
     const GeoMesh& mesh() const { return mesh_; }
     const word& name() const { return name_; }
     const dimensionSet& dimensions() const { return dimensions_.dimensions(); }
 
-    // การจัดการเงื่อนไขขอบเขต
+    // Boundary condition management
     template<class PatchField>
     void setBoundaryCondition(const word& patchName, const PatchField& condition)
     {
         label patchID = mesh_.boundaryMesh().findPatchID(patchName);
         if (patchID != -1)
         {
-            // ใช้เงื่อนไขขอบเขตกับ patch ที่ระบุ
+            // Apply boundary condition to specified patch
             applyPatchCondition(patchID, condition);
         }
     }
 };
 
-// ชนิดฟิลด์เฉพาะ
+// Specific field types
 using volScalarField = GeometricField<scalar, fvMesh>;
 using volVectorField = GeometricField<vector, fvMesh>;
 using surfaceScalarField = GeometricField<scalar, surfaceMesh>;
 ```
+
+**แหล่งที่มา:**
+- **ไฟล์:** `src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H`
+- **เส้นทาง:** [OpenFOAM Repository](https://github.com/OpenFOAM/OpenFOAM-dev)
+
+**คำอธิบาย:**
+คลาส `GeometricField` แสดงให้เห็นถึงการผนวก `List` เข้ากับ mesh และ boundary conditions การใช้ template parameters ทั้ง Type และ GeoMesh ช่วยให้สามารถสร้างฟิลด์หลากหลายประเภทได้อย่างยืดหยุ่น type aliases เช่น `volScalarField` ช่วยให้โค้ดอ่านง่ายและปลอดภัย
+
+**แนวคิดหลัก:**
+- **Mesh Integration:** การรวมเข้ากับ mesh ช่วยให้สามารถจัดการ boundary conditions ได้อย่างมีประสิทธิภาพ
+- **Dimensional Analysis:** การติดตามหน่วยทางฟิสิกส์ช่วยป้องกันข้อผิดพลาดในการคำนวณ
+- **Type Aliases:** การใช้ type aliases ช่วยให้โค้ดอ่านง่ายและปลอดภัย
 
 ## ⚠️ ข้อควรพิจารณาด้านประสิทธิภาพและข้อผิดพลาดทั่วไป
 
@@ -371,30 +443,42 @@ using surfaceScalarField = GeometricField<scalar, surfaceMesh>;
 #### 1. การใช้ Iterator ไม่ได้ระหว่างการปรับขนาด
 
 ```cpp
-// ปัญหาประสิทธิภาพร้ายแรง: การอ้างอิงที่ใช้ไม่ได้
+// Severe performance problem: invalidated references
 void problematicResizing(List<scalar>& values)
 {
-    // รับพอยเตอร์ไปยังองค์ประกอบก่อนการจัดสรรหน่วยความจำใหม่ที่อาจเกิดขึ้น
-    scalar& firstValue = values[0];  // การอ้างอิงถึงองค์ประกอบแรก
+    // Get pointer to element before potential reallocation
+    scalar& firstValue = values[0];  // Reference to first element
 
-    // การจัดสรรหน่วยความจำใหม่อาจเกิดขึ้น, ย้ายตำแหน่งหน่วยความจำ
-    values.resize(values.size() + 1000);  // หน่วยความจำอาจย้าย!
+    // Reallocation may occur, moving memory location
+    values.resize(values.size() + 1000);  // Memory may move!
 
-    // อันตราย: firstValue ตอนนี้ชี้ไปยังหน่วยความจำที่ถูกปล่อยแล้ว
-    firstValue = 123.45;  // พฤติกรรมที่ไม่กำหนด - น่าจะขัดข้อง
+    // DANGEROUS: firstValue now points to freed memory
+    firstValue = 123.45;  // Undefined behavior - likely crash
 }
 
-// ทางเลือกที่ปลอดภัย
+// Safe alternative
 void safeResizing(List<scalar>& values)
 {
     label originalSize = values.size();
-    values.resize(originalSize + 1000);  // ปรับขนาดก่อน
+    values.resize(originalSize + 1000);  // Resize first
 
-    // รับการอ้างอิงใหม่หลังจากปรับขนาด
-    scalar& firstValue = values[0];  // การอ้างอิงที่ถูกต้อง
-    firstValue = 123.45;  // การดำเนินการที่ปลอดภัย
+    // Get new reference after resize
+    scalar& firstValue = values[0];  // Valid reference
+    firstValue = 123.45;  // Safe operation
 }
 ```
+
+**แหล่งที่มา:**
+- **ไฟล์:** `src/OpenFOAM/containers/Lists/List/List.H`
+- **เส้นทาง:** [OpenFOAM Repository](https://github.com/OpenFOAM/OpenFOAM-dev)
+
+**คำอธิบาย:**
+การใช้ references หรือ pointers ไปยัง elements ใน `List` หลังจากการ resize เป็นสาเหตุทั่วไปของ bugs เนื่องจากการ resize อาจทำให้เกิด reallocation ซึ่งจะทำให้ pointers ทั้งหมดกลายเป็น invalid ทางที่ดีควรจะได้รับ references ใหม่หลังจากการ resize
+
+**แนวคิดหลัก:**
+- **Reference Invalidation:** การ resize อาจทำให้ references กลายเป็น invalid
+- **Memory Reallocation:** การจัดสรรหน่วยความจำใหม่อาจเกิดขึ้นเมื่อ capacity เพิ่มขึ้น
+- **Defensive Programming:** ควรหลีกเลี่ยงการเก็บ references ไว้นานๆ
 
 #### 2. ผลกระทบด้านประสิทธิภาพจากการจัดสรรหน่วยความจำซ้ำๆ
 
@@ -405,49 +489,61 @@ void safeResizing(List<scalar>& values)
 | `dynamicGrowthWithReserve` | O(n) | 1-2 ครั้ง | สูง | การจองความจุล่วงหน้า |
 
 ```cpp
-// รูปแบบตรงข้าม: ความซับซ้อน O(n²) จากการปรับขนาดซ้ำๆ
+// Anti-pattern: O(n²) complexity from repeated resizing
 List<scalar> inefficientConstruction()
 {
     List<scalar> data;
 
-    // แต่ละการต่อท้ายอาจทำให้เกิดการจัดสรรและคัดลอกใหม่
+    // Each append may cause reallocation and copy
     for (label i = 0; i < 100000; i++)
     {
-        data.append(i * 0.001);  // การดำเนินการ O(n) ต่อการต่อท้ายที่เป็นไปได้
+        data.append(i * 0.001);  // Possible O(n) operation per append
     }
 
-    return data;  // ความซับซ้อนโดยรวม O(n²)
+    return data;  // Overall O(n²) complexity
 }
 
-// แนวทางที่เหมาะสม: ความซับซ้อน O(n) พร้อมการจัดสรรล่วงหน้า
+// Proper approach: O(n) complexity with pre-allocation
 List<scalar> efficientConstruction()
 {
-    List<scalar> data(100000);  // จัดสรรครั้งเดียว
+    List<scalar> data(100000);  // Single allocation
 
-    // การกำหนดค่าโดยตรงโดยไม่มีการจัดสรรใหม่
+    // Direct assignment without reallocation
     for (label i = 0; i < data.size(); i++)
     {
-        data[i] = i * 0.001;  // การดำเนินการ O(1) ต่อองค์ประกอบ
+        data[i] = i * 0.001;  // O(1) operation per element
     }
 
-    return data;  // ความซับซ้อนโดยรวม O(n)
+    return data;  // Overall O(n) complexity
 }
 
-// ทางเลือก: การเติบโตแบบไดนามิกพร้อมการจองความจุ
+// Alternative: dynamic growth with capacity reservation
 List<scalar> dynamicGrowthWithReserve()
 {
     List<scalar> data;
-    data.reserve(100000);  // จองความจุล่วงหน้า
+    data.reserve(100000);  // Reserve capacity upfront
 
-    // การดำเนินการต่อท้ายโดยไม่มีการจัดสรรใหม่
+    // Append operations without reallocation
     for (label i = 0; i < 100000; i++)
     {
-        data.append(i * 0.001);  // O(1) เฉลี่ยเฉลี่ยต่อการต่อท้าย
+        data.append(i * 0.001);  // O(1) amortized per append
     }
 
     return data;
 }
 ```
+
+**แหล่งที่มา:**
+- **ไฟล์:** `src/OpenFOAM/containers/Lists/List/List.C`
+- **เส้นทาง:** [OpenFOAM Repository](https://github.com/OpenFOAM/OpenFOAM-dev)
+
+**คำอธิบาย:**
+การใช้ `append()` ซ้ำๆ โดยไม่ได้จองความจุล่วงหน้า สามารถทำให้เกิดการจัดสรรหน่วยความจำใหม่หลายครั้ง ซึ่งจะทำให้เกิด O(n²) complexity ทางที่ดีควรจะใช้ `reserve()` หรือ `setSize()` ก่อนการวนลูป
+
+**แนวคิดหลัก:**
+- **Amortized Analysis:** การวิเคราะห์เวลาที่ใช้ในกรณีเฉลี่ย
+- **Memory Reallocation:** การจัดสรรหน่วยความจำใหม่ทำให้เกิด overhead สูง
+- **Pre-allocation Strategy:** การจองความจุล่วงหน้าช่วยเพิ่มประสิทธิภาพ
 
 ### การปรับให้เหมาะสมด้านประสิทธิภาพแคช
 
@@ -458,34 +554,46 @@ List<scalar> dynamicGrowthWithReserve()
 | `random` | ต่ำ | การจัดทำดัชนี | หลีกเลี่ยงหากเป็นไปได้ |
 
 ```cpp
-// รูปแบบการเข้าถึงตามลำดับที่เป็นมิตรกับแคช
+// Sequential access pattern that is cache-friendly
 void cacheFriendlyIteration(List<scalar>& field)
 {
-    // การเข้าถึงตามลำดับเพิ่มประสิทธิภาพการใช้แคช
+    // Sequential access optimizes cache utilization
     forAll(field, i)
     {
-        field[i] *= 1.001;  // รูปแบบการเข้าถึงหน่วยความจำที่ทำนายได้
+        field[i] *= 1.001;  // Predictable memory access pattern
     }
 }
 
-// การประมวลผลแบบบล็อกสำหรับชุดข้อมูลขนาดใหญ่
+// Block-wise processing for large datasets
 void blockWiseProcessing(List<scalar>& field)
 {
-    constexpr label BLOCK_SIZE = 1024;  // ปรับให้เหมาะสมสำหรับขนาดแคช
+    constexpr label BLOCK_SIZE = 1024;  // Optimized for cache size
     const label n = field.size();
 
     for (label block = 0; block < n; block += BLOCK_SIZE)
     {
         label blockEnd = min(block + BLOCK_SIZE, n);
 
-        // ประมวลผลบล็อกเพื่อให้อยู่ภายในแคช
+        // Process block to stay within cache
         for (label i = block; i < blockEnd; i++)
         {
-            field[i] = sqrt(abs(field[i]));  // การดำเนินการที่ซับซ้อน
+            field[i] = sqrt(abs(field[i]));  // Complex operation
         }
     }
 }
 ```
+
+**แหล่งที่มา:**
+- **ไฟล์:** `src/OpenFOAM/containers/Lists/List/List.H`
+- **เส้นทาง:** [OpenFOAM Repository](https://github.com/OpenFOAM/OpenFOAM-dev)
+
+**คำอธิบาย:**
+การเข้าถึงข้อมูลแบบ sequential เป็นแบบที่เป็นมิตรกับ cache มากที่สุด เนื่องจาก CPU สามารถ prefetch ข้อมูลได้อย่างมีประสิทธิภาพ การประมวลผลแบบ block-wise ช่วยให้ข้อมูลสามารถอยู่ใน cache ได้นานขึ้น
+
+**แนวคิดหลัก:**
+- **Cache Locality:** การเข้าถึงข้อมูลที่อยู่ใกล้กันช่วยเพิ่มประสิทธิภาพ cache
+- **Block Processing:** การแบ่งการประมวลผลเป็น blocks ช่วยเพิ่ม cache reuse
+- **Spatial Locality:** การเข้าถึงตำแหน่งใกล้เคียงช่วยลด cache misses
 
 ## 🎯 การประยุกต์ใช้ทางวิศวกรรมใน CFD
 
@@ -499,45 +607,57 @@ class CFDFieldStorage
 private:
     const fvMesh& mesh_;
 
-    // ตัวแปรฟิลด์หลัก
-    List<scalar> pressure_;          // ฟิลด์ความดัน [Pa]
-    List<vector> velocity_;          // ฟิลด์ความเร็ว [m/s]
-    List<scalar> temperature_;       // ฟิลด์อุณหภูมิ [K]
+    // Primary field variables
+    List<scalar> pressure_;          // Pressure field [Pa]
+    List<vector> velocity_;          // Velocity field [m/s]
+    List<scalar> temperature_;       // Temperature field [K]
 
-    // ปริมาณที่ได้จากการคำนวณ
-    List<scalar> turbulenceKE_;      // พลังงานจลน์ความปั่นป่วน [m²/s²]
-    List<scalar> turbulenceEpsilon_; // การสลายตัวของความปั่นป่วน [m²/s³]
+    // Derived quantities
+    List<scalar> turbulenceKE_;      // Turbulence kinetic energy [m²/s²]
+    List<scalar> turbulenceEpsilon_; // Turbulence dissipation [m²/s³]
 
-    // การเข้าถึงเรขาคณิตเมช
-    List<vector> cellCenters_;       // พิกัดจุดศูนย์กลางเซลล์
-    List<scalar> cellVolumes_;       // ปริมาตรเซลล์ [m³]
-    List<tensor> cellGradients_;     // เทนเซอร์ไลเกรเดียนของเซลล์
+    // Mesh geometry access
+    List<vector> cellCenters_;       // Cell center coordinates
+    List<scalar> cellVolumes_;       // Cell volumes [m³]
+    List<tensor> cellGradients_;     // Cell gradient tensors
 
 public:
     CFDFieldStorage(const fvMesh& mesh) : mesh_(mesh)
     {
-        // กำหนดค่าเริ่มต้นการจัดเก็บฟิลด์ด้วยมิติของเมช
+        // Initialize field storage with mesh dimensions
         pressure_.setSize(mesh.nCells());
         velocity_.setSize(mesh.nCells());
         temperature_.setSize(mesh.nCells());
         turbulenceKE_.setSize(mesh.nCells());
         turbulenceEpsilon_.setSize(mesh.nCells());
 
-        // คำนวณปริมาณทางเรขาคณิตล่วงหน้า
+        // Precompute geometric quantities
         computeGeometry();
     }
 
-    // กำหนดค่าเริ่มต้นการกระจายความดันไฮโดรสแตติก
+    // Initialize hydrostatic pressure distribution
     void initializeHydrostaticPressure(scalar pRef, scalar rhoRef, scalar g)
     {
         forAll(pressure_, cellI)
         {
-            scalar z = cellCenters_[cellI].z();  // ความสูงเหนือจุดอ้างอิง
+            scalar z = cellCenters_[cellI].z();  // Height above reference
             pressure_[cellI] = pRef - rhoRef * g * z;
         }
     }
 };
 ```
+
+**แหล่งที่มา:**
+- **ไฟล์:** `src/finiteVolume/fields/fvPatchFields/fvPatchField/fvPatchField.H`
+- **เส้นทาง:** [OpenFOAM Repository](https://github.com/OpenFOAM/OpenFOAM-dev)
+
+**คำอธิบาย:**
+คลาส `CFDFieldStorage` แสดงให้เห็นถึงการใช้ `List` ในการจัดเก็บข้อมูลฟิลด์ CFD หลายประเภท การใช้ `List` ช่วยให้สามารถจัดการข้อมูลได้อย่างมีประสิทธิภาพ และสามารถเข้าถึงข้อมูลได้อย่างรวดเร็ว การคำนวณค่าเริ่มต้นของความดัน hydrostatic แสดงให้เห็นถึงการใช้งานในทางปฏิบัติ
+
+**แนวคิดหลัก:**
+- **Field Storage:** การใช้ `List` ในการจัดเก็บข้อมูลฟิลด์ CFD
+- **Mesh Integration:** การรวมกับ mesh ช่วยให้สามารถเข้าถึงข้อมูลได้อย่างมีประสิทธิภาพ
+- **Initialization:** การกำหนดค่าเริ่มต้นของฟิลด์ด้วยสมการฟิสิกส์
 
 ### การผสานรวม Linear Solver
 
@@ -561,90 +681,102 @@ $$\int_V \frac{\partial \phi}{\partial t} \, \mathrm{d}V + \oint_S \phi \mathbf{
 
 $$\sum_{f=1}^{n_f} \phi_f \mathbf{u}_f \cdot \mathbf{S}_f = \sum_{f=1}^{n_f} \Gamma_f \frac{\phi_{P} - \phi_{N}}{d_{PN}} |\mathbf{S}_f| + S_P V_P$$
 
-โดยที่แต่ละเทอมถูกจัดเก็บและคำนวณโดยใช้คอนเทนเนอร์ `List`:
+โดยที่แต่ละเทอร์มถูกจัดเก็บและคำนวณโดยใช้คอนเทนเนอร์ `List`:
 
 - $\phi$ ตัวแปรขนส่ง (เช่น ความเร็ว, อุณหภูมิ, ความเข้มข้นสาร)
 - $\mathbf{u}$ เวกเตอร์ความเร็วของไหล
 - $\mathbf{S}_f$ เวกเตอร์พื้นที่ผิวหน้า
 - $\Gamma_f$ สัมประสิทธิ์การแพร่ตัวที่ผิวหน้า
 - $d_{PN}$ ระยะห่างระหว่างเซลล์ข้างเคียง
-- $S_P$ เทอมต้นทางต่อปริมาตร
+- $S_P$ เทอร์มต้นทางต่อปริมาตร
 - $V_P$ ปริมาตรเซลล์
 
 ```cpp
-// การวิธีปริมาตรจำกัดโดยใช้คอนเทนเนอร์ List
+// Finite Volume Method using List containers
 class FiniteVolumeDiscretization
 {
 private:
     const fvMesh& mesh_;
-    List<scalar> phi_;           // ฟิลด์ตัวแปรหลัก
-    List<scalar> sourceTerm_;    // เทอมต้นทาง S_φ
-    List<vector> velocity_;      // ฟิลด์ความเร็ว u
-    List<scalar> diffusivity_;   // สัมประสิทธิ์การแพร่ Γ
+    List<scalar> phi_;           // Primary variable field
+    List<scalar> sourceTerm_;    // Source term S_φ
+    List<vector> velocity_;      // Velocity field u
+    List<scalar> diffusivity_;   // Diffusion coefficient Γ
 
-    // สัมประสิทธิ์เมทริกซ์สำหรับระบบเชิงเส้น
-    List<scalar> diagonal_;      // สัมประสิทธิ์ A_P
-    List<scalar> lower_;         // สัมประสิทธิ์ A_N (สามเหลี่ยมล่าง)
-    List<scalar> upper_;         // สัมประสิทธิ์ A_P (สามเหลี่ยมบน)
-    List<label> lowerAddr_;      // การจัดที่อยู่เมทริกซ์ล่าง
-    List<label> upperAddr_;      // การจัดที่อยู่เมทริกซ์บน
+    // Matrix coefficients for linear system
+    List<scalar> diagonal_;      // Coefficient A_P
+    List<scalar> lower_;         // Coefficient A_N (lower triangle)
+    List<scalar> upper_;         // Coefficient A_P (upper triangle)
+    List<label> lowerAddr_;      // Lower matrix addressing
+    List<label> upperAddr_;      // Upper matrix addressing
 
 public:
-    // สร้างเมทริกซ์การแบ่งค่าสำหรับสมการ convection-diffusion
+    // Build discretized matrix for convection-diffusion equation
     void buildConvectionDiffusionMatrix()
     {
         label nCells = mesh_.nCells();
         diagonal_.setSize(nCells, 0.0);
         sourceTerm_.setSize(nCells, 0.0);
 
-        // ประมวลผลผิวหน้าทั้งหมดเพื่อสร้างเมทริกซ์
+        // Process all faces to build matrix
         forAll(mesh_.faces(), faceI)
         {
             if (!mesh_.isInternalFace(faceI)) continue;
 
-            // รับข้อมูลคู่เซลล์
+            // Get cell pair information
             label own = mesh_.owner()[faceI];
             label nei = mesh_.neighbour()[faceI];
 
-            // เรขาคณิตผิวหน้า
-            vector Sf = mesh_.Sf()[faceI];        // เวกเตอร์พื้นที่ผิวหน้า
-            scalar d = mag(mesh_.C()[nei] - mesh_.C()[own]);  // ระยะห่างระหว่างเซลล์
-            vector dVec = mesh_.C()[nei] - mesh_.C()[own];     // เวกเตอร์ระยะห่าง
+            // Face geometry
+            vector Sf = mesh_.Sf()[faceI];        // Surface area vector
+            scalar d = mag(mesh_.C()[nei] - mesh_.C()[own]);  // Cell distance
+            vector dVec = mesh_.C()[nei] - mesh_.C()[own];     // Distance vector
 
-            // แทรกค่าไปยังผิวหน้า
+            // Interpolate to face
             scalar gamma_f = 0.5 * (diffusivity_[own] + diffusivity_[nei]);
             vector U_f = 0.5 * (velocity_[own] + velocity_[nei]);
 
-            // เทอม convection
-            scalar F = U_f & Sf;  // ปริมาณค่ามวลผ่านผิวหน้า
+            // Convection term
+            scalar F = U_f & Sf;  // Mass flux through face
 
-            // เทอม diffusion
-            scalar D_f = gamma_f * mag(Sf) / d;  // คอนดักแตนซ์การแพร่
+            // Diffusion term
+            scalar D_f = gamma_f * mag(Sf) / d;  // Diffusion conductance
 
-            // การแทรกค่า upwind สำหรับ convection
+            // Upwind interpolation for convection
             scalar phi_face = (F > 0) ? phi_[own] : phi_[nei];
 
-            // สัมประสิทธิ์เมทริกซ์
+            // Matrix coefficients
             scalar a_own = D_f - max(F, 0.0);
             scalar a_nei = D_f + max(F, 0.0);
 
-            // อัปเดตสัมประสิทธิ์เมทริกซ์
+            // Update matrix coefficients
             diagonal_[own] += D_f + max(F, 0.0);
             diagonal_[nei] += D_f - min(F, 0.0);
 
-            // เพิ่มส่วนส่วนนอกเส้นแทยง
+            // Add off-diagonal contributions
             addMatrixCoefficient(own, nei, -a_nei);
             addMatrixCoefficient(nei, own, -a_own);
         }
 
-        // เพิ่มเทอมต้นทาง
+        // Add source terms
         forAll(sourceTerm_, cellI)
         {
-            sourceTerm_[cellI] *= mesh_.V()[cellI];  // คูณด้วยปริมาตรเซลล์
+            sourceTerm_[cellI] *= mesh_.V()[cellI];  // Multiply by cell volume
         }
     }
 };
 ```
+
+**แหล่งที่มา:**
+- **ไฟล์:** `src/finiteVolume/finiteVolume/fvc/fvcDiv.C`, `src/finiteVolume/finiteVolume/fvm/fvmDiv.C`
+- **เส้นทาง:** [OpenFOAM Repository](https://github.com/OpenFOAM/OpenFOAM-dev)
+
+**คำอธิบาย:**
+คลาส `FiniteVolumeDiscretization` แสดงให้เห็นถึงการใช้ `List` ในการจัดเก็บและคำนวณสมการ convection-diffusion การใช้ `List` ช่วยให้สามารถจัดการค่าสัมประสิทธิ์เมทริกซ์ได้อย่างมีประสิทธิภาพ การคำนวณแต่ละเทอร์มของสมการแสดงให้เห็นถึงการใช้งานในวิธีปริมาตรจำกัด
+
+**แนวคิดหลัก:**
+- **Discretization:** การแบ่งสมการเป็นรูปแบบพีชคณิต
+- **Matrix Assembly:** การประกอบเมทริกซ์จากค่าสัมประสิทธิ์
+- **Face Integration:** การอินทิเกรตเหนือผิวหน้าเซลล์
 
 ### อัลกอริทึมการผสานรวมความดัน-ความเร็ว
 

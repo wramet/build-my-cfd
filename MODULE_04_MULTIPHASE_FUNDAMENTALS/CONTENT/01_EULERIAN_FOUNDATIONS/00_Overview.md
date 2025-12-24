@@ -10,7 +10,7 @@ graph TB
     B --> C[สมการควบคุม]
     C --> D[โมเดล Closure]
     D --> E[การนำไปปฏิบัติใน OpenFOAM]
-    E --> F[การประยุกต์ใช้]
+    E --> F[การปรยกต์ใช้]
 
     style A fill:#e3f2fd
     style B fill:#bbdefb
@@ -226,22 +226,43 @@ $$\frac{\partial}{\partial t}(\alpha_k \rho_k \epsilon_k) + \nabla \cdot (\alpha
 Solver หลักใช้กรอบการทำงานแบบ Eulerian-Eulerian
 
 ```cpp
-// Phase system
+// Phase system - manages all phases and their interactions
 phaseSystem phaseModels(mesh, g);
 
-// Momentum equations
+// Momentum equations - main solver equation for each phase
 fvVectorMatrix UEqn
 (
-    fvm::ddt(alpha, rho, U) + fvm::div(alphaRhoPhi, U)
+    // Time derivative term: ddt(alpha*rho*U)
+    fvm::ddt(alpha, rho, U)
+    // Convection term: div(alpha*rho*phi*U)
+  + fvm::div(alphaRhoPhi, U)
+    // Source term correction for conservative form
   - fvm::Sp(fvc::ddt(alpha, rho) + fvc::div(alphaRhoPhi), U)
+    // Viscous stress term (divergence of deviatoric stress)
   + turbulence->divDevReff(RhoEff)
  ==
+    // Additional source terms from fvOptions (e.g., porosity, momentum sources)
     fvOptions(alpha, rho, U)
 );
 
-// Interfacial momentum transfer
+// Interfacial momentum transfer - drag between phases
+// This term couples the momentum equations of different phases
 phaseSystem.Kd()*(U.otherPhase() - U)
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+> **🔍 คำอธิบาย (Explanation):**
+> โค้ดด้านบนแสดงการใช้งานจริงของสมการโมเมนตัมใน OpenFOAM โดย:
+> - `phaseSystem` เป็นคลาสหลักที่จัดการข้อมูลและการโต้ตอบของทุกเฟส
+> - `fvVectorMatrix` เป็นเมตริกซ์สมการเชิงเส้นสำหรับความเร็ว
+> - แต่ละเทอมในสมการถูกเขียนด้วย `fvm::` (implicit discretization) หรือ `fvc::` (explicit calculation)
+>
+> **🎯 แนวคิดสำคัญ (Key Concepts):**
+> - **fvm::ddt** - Time derivative ใช้รูปแบบ implicit เพื่อเสถียรภาพเชิงตัวเลข
+> - **fvm::div** - Divergence term ใช้รูปแบบ implicit สำหรับ convection
+> - **divDevReff** - คำนวณ divergence ของ effective viscous stress tensor
+> - **Kd()** - Drag coefficient ที่เชื่อมโยงโมเมนตัมระหว่างเฟส
 
 ### คลาสที่สำคัญ
 

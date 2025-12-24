@@ -88,6 +88,7 @@ case/
 
 ```cpp
 // constant/regionProperties
+// Define regions in the multi-region simulation
 FoamFile
 {
     version     2.0;
@@ -96,56 +97,95 @@ FoamFile
     object      regionProperties;
 }
 
+// List of all regions in the simulation
 regions
 (
-    fluid
-    solid
+    fluid    // Fluid region name
+    solid    // Solid region name
 );
 ```
+
+> **📂 Source:** ไฟล์การตั้งค่าภูมิภาค (regionProperties) ใน OpenFOAM สำหรับการจำลองแบบ multi-region  
+> **คำอธิบาย:** ไฟล์นี้มีหน้าที่กำหนดว่าโดเมนการจำลองประกอบด้วยภูมิภาคใดบ้าง โดยแต่ละภูมิภาคจะมีไดเรกทอรี 0/, constant/, และ system/ ของตัวเองเพื่อเก็บการตั้งค่าเฉพาะสำหรับภูมิภาคนั้นๆ  
+> **แนวคิดสำคัญ:**
+> - **Region-based approach**: แต่ละภูมิภาคทำงานแบบอิสระ แต่เชื่อมโยงกันที่ interface ผ่าน boundary conditions
+> - **Parallel computing**: แต่ละ region สามารถคำนวณแบบขนานได้
+> - **Flexibility**: รองรับหลายชนิดของไหลและวัสดุแข็งในการจำลองครั้งเดียว
 
 ### 3.3 ตัวอย่าง Boundary Condition ที่ Interface
 
 #### 3.3.1 สำหรับโดเมนของไหล (Fluid Side)
 
 ```cpp
-// 0/fluid/T
-dimensions      [0 0 0 1 0 0 0];
-internalField   uniform 300;
+// 0/fluid/T - Temperature boundary condition for fluid region
+dimensions      [0 0 0 1 0 0 0];    // Temperature dimensions [K]
+internalField   uniform 300;        // Initial temperature field [K]
 
 boundaryField
 {
-    // เงื่อนไขขอบเขตอื่นๆ
+    // Other boundary conditions...
 
+    // Interface between fluid and solid regions
     fluid_to_solid_interface
     {
+        // Coupled boundary condition for CHT
         type            compressible::turbulentTemperatureCoupledBaffleMixed;
+        
+        // Name of temperature field in neighboring region
         Tnbr            T;
+        
+        // Method to calculate thermal conductivity
         kappaMethod     fluidThermo;
+        
+        // Initial value (will be overwritten during solving)
         value           $internalField;
     }
 }
 ```
+
+> **📂 Source:** ไฟล์เงื่อนไขขอบเขตอุณหภูมิ (0/fluid/T) สำหรับโดเมนของไหลใน OpenFOAM  
+> **คำอธิบาย:** Boundary Condition นี้ใช้สำหรับเชื่อมโยงการถ่ายเทความร้อนระหว่างโดเมนของไหลและของแข็ง โดยรักษาความต่อเนื่องของทั้งอุณหภูมิและฟลักซ์ความร้อนอัตโนมัติ  
+> **แนวคิดสำคัญ:**
+> - **Coupled BC**: Boundary condition แบบคู่ (coupled) ที่ทำงานร่วมกับ region อื่น
+> - **Tnbr**: ชื่อฟิลด์อุณหภูมิใน region เพื่อนบ้าน (neighbor) ที่ต้องการเชื่อมโยง
+> - **kappaMethod**: วิธีการคำนวณสัมประสิทธิ์การนำความร้อน (fluidThermo/solidThermo/lookup)
+> - **Automatic enforcement**: BC นี้บังคับใช้ continuity ของ temperature และ heat flux โดยอัตโนมัติ
 
 #### 3.3.2 สำหรับโดเมนของแข็ง (Solid Side)
 
 ```cpp
-// 0/solid/T
-dimensions      [0 0 0 1 0 0 0];
-internalField   uniform 300;
+// 0/solid/T - Temperature boundary condition for solid region
+dimensions      [0 0 0 1 0 0 0];    // Temperature dimensions [K]
+internalField   uniform 300;        // Initial temperature field [K]
 
 boundaryField
 {
-    // เงื่อนไขขอบเขตอื่นๆ
+    // Other boundary conditions...
 
+    // Interface between solid and fluid regions
     solid_to_fluid_interface
     {
+        // Coupled boundary condition for CHT (must match fluid side)
         type            compressible::turbulentTemperatureCoupledBaffleMixed;
+        
+        // Name of temperature field in neighboring region
         Tnbr            T;
+        
+        // Method to calculate thermal conductivity
         kappaMethod     solidThermo;
+        
+        // Initial value (will be overwritten during solving)
         value           $internalField;
     }
 }
 ```
+
+> **📂 Source:** ไฟล์เงื่อนไขขอบเขตอุณหภูมิ (0/solid/T) สำหรับโดเมนของแข็งใน OpenFOAM  
+> **คำอธิบาย:** Boundary Condition ฝั่งของแข็งที่ต้องสัมพันธ์กับฝั่งของไหล โดยค่าของ `type`, `Tnbr` และ `kappaMethod` ต้องกำหนดให้สอดคล้องกัน  
+> **แนวคิดสำคัญ:**
+> - **Symmetry**: การตั้งค่า BC ทั้งสองฝั่งต้องสอดคล้องกัน (consistent)
+> - **Solid thermo**: ใช้ `solidThermo` เพื่อคำนวณ thermal conductivity จากคุณสมบัติของวัสดุแข็ง
+> - **Heat balance**: ฟลักซ์ความร้อนที่ interface จะสมดุลกันโดยอัตโนมัติ
 
 > [!TIP] การทำความเข้าใจ Boundary Condition
 > - `Tnbr`: ชื่อฟิลด์อุณหภูมิใน region ที่เชื่อมโยง (neighbor)
@@ -158,68 +198,86 @@ boundaryField
 
 ```cpp
 // constant/fluid/thermophysicalProperties
+// Thermophysical properties for fluid region
 thermoType
 {
-    type            heRhoThermo;
-    mixture         pureMixture;
-    transport       const;
-    thermo          hConst;
-    equationOfState perfectGas;
-    specie          specie;
-    energy          sensibleEnthalpy;
+    type            heRhoThermo;           // Thermodynamics type for compressible fluid
+    mixture         pureMixture;           // Single component fluid
+    transport       const;                 // Constant transport properties
+    thermo          hConst;                // Constant specific heat
+    equationOfState perfectGas;            // Perfect gas equation of state
+    specie          specie;                // Species properties
+    energy          sensibleEnthalpy;      // Use sensible enthalpy for energy
 }
 
 mixture
 {
     specie
     {
-        molWeight       28.96;
+        molWeight       28.96;             // Molecular weight [kg/kmol] for air
     }
     thermodynamics
     {
-        Cp              1005;
-        Hf              0;
+        Cp              1005;              // Specific heat at constant pressure [J/(kg·K)]
+        Hf              0;                 // Heat of formation [J/kg]
     }
     transport
     {
-        mu              1.8e-5;
-        Pr              0.71;
+        mu              1.8e-5;            // Dynamic viscosity [Pa·s]
+        Pr              0.71;              // Prandtl number
     }
 }
 ```
+
+> **📂 Source:** ไฟล์คุณสมบัติทางเทอร์โมไดนามิกส์ (constant/fluid/thermophysicalProperties)  
+> **คำอธิบาย:** กำหนดคุณสมบัติทางเคมีและฟิสิกส์ของของไหลที่ใช้ในการจำลอง ซึ่งมีผลต่อการคำนวณสมการการถ่ายเทความร้อนและการไหล  
+> **แนวคิดสำคัญ:**
+> - **heRhoThermo**: คำนวณคุณสมบัติจากความหนาแน่นและเอนทาลปี
+> - **Perfect gas**: ใช้สมการสถานะของก๊าซอุดมคติ (p = ρRT)
+> - **Prandtl number**: ใช้ในการคำนวณสัมประสิทธิ์การนำความร้อนจากความหนืด (k = μCp/Pr)
+> - **Sensible enthalpy**: พิจารณาเฉพาะพลังงานที่เกี่ยวข้องกับการเปลี่ยนแปลงอุณหภูมิ
 
 #### 3.4.2 สำหรับของแข็ง (Solid)
 
 ```cpp
 // constant/solid/thermophysicalProperties
+// Thermophysical properties for solid region
 thermoType
 {
-    type            heSolidThermo;
-    mixture         pureMixture;
-    transport       const;
-    thermo          hConst;
-    equationOfState rhoConst;
-    specie          specie;
-    energy          sensibleEnthalpy;
+    type            heSolidThermo;         // Thermodynamics type for solid
+    mixture         pureMixture;           // Single component material
+    transport       const;                 // Constant transport properties
+    thermo          hConst;                // Constant specific heat
+    equationOfState rhoConst;              // Constant density equation of state
+    specie          specie;                // Species properties
+    energy          sensibleEnthalpy;      // Use sensible enthalpy for energy
 }
 
 mixture
 {
     specie
     {
-        molWeight       28.96;
+        molWeight       28.96;             // Molecular weight [kg/kmol]
     }
     thermodynamics
     {
-        Cp              450;    // J/(kg·K) สำหรับโลหะ
-        Hf              0;
+        Cp              450;               // Specific heat [J/(kg·K)] for metal (e.g., steel)
+        Hf              0;                 // Heat of formation [J/kg]
     }
     transport
     {
-        kappa           50;     // W/(m·K) สภาพนำความร้อน
+        kappa           50;                // Thermal conductivity [W/(m·K)] for metal
     }
 }
 ```
+
+> **📂 Source:** ไฟล์คุณสมบัติทางเทอร์โมไดนามิกส์ (constant/solid/thermophysicalProperties)  
+> **คำอธิบาย:** กำหนดคุณสมบัติทางเทอร์มอลของวัสดุแข็ง ซึ่งส่วนใหญ่เป็นค่าคงที่ไม่แปรผันตามเวลาหรืออุณหภูมิ  
+> **แนวคิดสำคัญ:**
+> - **heSolidThermo**: คำนวณเฉพาะ conduction ในของแข็ง (ไม่มี convection)
+> - **rhoConst**: ความหนาแน่นของแข็งเป็นค่าคงที่
+> - **kappa**: สัมประสิทธิ์การนำความร้อนเป็นค่าสำคัญที่สุดในการกำหนดอัตราการนำความร้อน
+> - **Heat capacity**: Cp ใช้ในการคำนวณ thermal inertia (ความสามารถในการเก็บพลังงานความร้อน)
 
 ---
 
@@ -251,18 +309,29 @@ $$\varepsilon = \frac{Q_{\text{actual}}}{Q_{\text{max}}}$$
 ### 4.3 การคำนวณใน OpenFOAM
 
 ```cpp
-// การคำนวณสัมประสิทธิ์การถ่ายเทความร้อน
+// Calculate local heat transfer coefficient [W/(m²·K)]
+// at the wall boundary using Fourier's law: q = -k∇T
 volScalarField hLocal
 (
-    -k*fvc::snGrad(T) / (T_wall - T_ref)
+    // Heat flux divided by temperature difference
+    -k * fvc::snGrad(T) / (T_wall - T_ref)
 );
 
-// ค่าเฉลี่ยบนพื้นผิว
+// Average heat transfer coefficient over the wall surface
 scalar hAvg = average(hLocal.boundaryField()[wallPatchID]);
 
-// Overall heat transfer coefficient
+// Calculate overall heat transfer coefficient
+// considering both fluid and solid sides with wall resistance
 scalar U = 1.0 / (1.0/h_h + thickness/k_w + 1.0/h_c);
 ```
+
+> **📂 Source:** โค้ดการคำนวณสัมประสิทธิ์การถ่ายเทความร้อนใน OpenFOAM  
+> **คำอธิบาย:** การคำนวณค่าสัมประสิทธิ์การถ่ายเทความร้อน (Heat Transfer Coefficient) จากผลการจำลอง CHT โดยใช้กฎของ Fourier ในการคำนวณฟลักซ์ความร้อน  
+> **แนวคิดสำคัญ:**
+> - **snGrad(T)**: คำนวณ gradient ของอุณหภูมิในแนวตั้งฉากกับผิว (surface normal gradient)
+> - **Local vs Average**: hLocal ให้ค่าทุกจุดบนผิว ส่วน hAvg ให้ค่าเฉลี่ยทั้งผิว
+> - **Reference temperature**: T_ref คืออุณหภูมิอ้างอิง (เช่น bulk temperature ของของไหล)
+> - **Overall U**: คำนวณจากความต้านทานความร้อนรวมของทั้งระบบ (thermal resistance network)
 
 ---
 
@@ -297,25 +366,42 @@ $$\tau_{\text{thermal}} = \frac{\rho c_p L^2}{k}$$
 
 ```cpp
 // system/fluid/fvSolution
+// Solver settings for temperature equation in fluid region
 solvers
 {
     T
     {
+        // Use Geometric-Algebraic Multi-Grid solver for efficiency
         solver          GAMG;
+        
+        // Absolute convergence tolerance
         tolerance       1e-6;
+        
+        // Relative convergence tolerance (1% of initial residual)
         relTol          0.01;
+        
+        // Smoother for pre- and post-smoothing in GAMG
         smoother        GaussSeidel;
     }
 }
 
+// Under-relaxation factors to improve stability
 relaxationFactors
 {
     fields
     {
-        T               0.7;    // ผ่อนคลายสำหรับอุณหภูมิ
+        // Reduce temperature update to 70% of calculated value
+        T               0.7;
     }
 }
 ```
+
+> **📂 Source:** ไฟล์การตั้งค่า solver (system/fluid/fvSolution) สำหรับการแก้สมการอุณหภูมิ  
+> **คำอธิบาย:** ตั้งค่าพารามิเตอร์ solver และ under-relaxation เพื่อให้การแก้สมการอุณหภูมิมีความเสถียรและลู่เข้าได้ดี  
+> **แนวคิดสำคัญ:**
+> - **GAMG**: Geometric-Algebraic Multi-Grid solver เหมาะกับปัญหาที่มี mesh จำนวนมาก
+> - **Tolerance**: ค่ายอมรับที่ 1e-6 และ relative tolerance ที่ 1% ให้ความสมดุลระหว่างความแม่นยำและเวลาคำนวณ
+> - **Under-relaxation**: ลดการอัปเดตค่า T เพื่อป้องกันการ oscillate ในการแก้สมการที่มี coupling แบบ strong (fluid-structure interaction)
 
 ### 5.4 การตรวจสอบความถูกต้อง
 
@@ -348,7 +434,7 @@ flowchart TD
     C --> F[Heat Transfer]
     F --> G[Temperature Distribution]
 ```
-> **Figure 2:** กลไกการถ่ายเทความร้อนในเครื่องแลกเปลี่ยนความร้อนแบบ Shell-and-Tube ซึ่งแสดงกระบวนการพาความร้อนของของไหลฝั่งร้อน การนำความร้อนผ่านผนังท่อ และการรับความร้อนของของไหลฝั่งเย็น นำไปสู่การกระจายอุณหภูมิที่สอดคล้องกันทั่วทั้งระบบความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 2:** กลไกการถ่ายเทความร้อนในเครื่องแลกเปลี่ยนความร้อนแบบ Shell-and-Tube ซึ่งแสดงกระบวนการพาความร้อนของของไหลฝั่งร้อน การนำความร้อนผ่านผนังท่อ และการรับความร้อนของของไหลฝั่งเย็น นำไปสู่การกระจายอุณหภูมิที่สอดคล้องกันทั่วทั้งระบบ
 
 ### 6.2 Electronic Cooling
 
@@ -375,42 +461,68 @@ flowchart TD
 สำหรับวัสดุที่มีสภาพนำความร้อนแตกต่างกันในแต่ละทิศทาง:
 
 ```cpp
-// สภาพนำความร้อนแบบ anisotropic
+// Anisotropic thermal conductivity tensor [W/(m·K)]
+// Different conductivity values in x, y, z directions
 volTensorField kappa
 (
     IOobject
     (
-        "kappa",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
+        "kappa",                    // Field name
+        runTime.timeName(),         // Time directory
+        mesh,                       // Mesh reference
+        IOobject::NO_READ,          // Do not read from file
+        IOobject::AUTO_WRITE        // Auto-write to file
     ),
     mesh,
     dimensionedTensor
     (
-        "kappa",
-        dimensionSet(1 1 -3 -1 0 0 0),
-        tensor(1, 0, 0, 0, 0.1, 0, 0, 0, 0.1)  // k_x, k_y, k_z
+        "kappa",                    // Name
+        dimensionSet(1 1 -3 -1 0 0 0),  // Dimensions [W/(m·K)]
+        // Tensor components: xx, xy, xz, yx, yy, yz, zx, zy, zz
+        // High conductivity in x-direction, low in y and z
+        tensor(1, 0, 0, 0, 0.1, 0, 0, 0, 0.1)
     )
 );
 ```
+
+> **📂 Source:** การกำหนดสัมประสิทธิ์การนำความร้อนแบบ anisotropic ใน OpenFOAM  
+> **คำอธิบาย:** สำหรับวัสดุที่มีสภาพนำความร้อนแตกต่างกันในแต่ละทิศทาง (เช่น composite materials, crystals) จำเป็นต้องใช้ tensor แทน scalar  
+> **แนวคิดสำคัญ:**
+> - **Tensor notation**: ค่าทแยงมุม (xx, yy, zz) เป็นค่าหลัก ค่านอกทแยงมุม (xy, xz, ...) เป็นค่า cross-coupling
+> - **Orthotropic materials**: กรณีที่ค่านอกทแยงมุมเป็นศูนย์ (เช่นในตัวอย่าง)
+> - **Heat flux direction**: ฟลักซ์ความร้อนไม่จำเป็นต้องตั้งฉากกับความชันอุณหภูมิในกรณี anisotropic
+> - **Applications**: ใช้ในวัสดุคอมโพสิต ผลึก และวัสดุที่มีโครงสร้าง directional
 
 ### 7.2 Temperature-Dependent Properties
 
 สำหรับคุณสมบัติที่แปรผันตามอุณหภูมิ:
 
 ```cpp
-// สภาพนำความร้อนที่ขึ้นกับอุณหภูมิ
+// Temperature-dependent thermal conductivity model
+// Linear variation: kappa(T) = k0 * (1 + beta*(T - T0))
+scalar k0 = 50.0;           // Reference thermal conductivity at T0 [W/(m·K)]
+scalar beta = 0.001;        // Temperature coefficient [1/K]
+scalar T0 = 300.0;          // Reference temperature [K]
+
+// Calculate thermal conductivity as function of temperature
 kappa = k0 * (1.0 + beta*(T - T0));
 ```
+
+> **📂 Source:** การจำลองสมบัติวัสดุที่ขึ้นกับอุณหภูมิใน OpenFOAM  
+> **คำอธิบาย:** ในทางปฏิบัติ สัมประสิทธิ์การนำความร้อนของวัสดุส่วนใหญ่จะแปรผันตามอุณหภูมิ ซึ่งส่งผลต่อความแม่นยำของการจำลอง  
+> **แนวคิดสำคัญ:**
+> - **Linear approximation**: แบบจำลองเชิงเส้นเหมาะสำหรับช่วงอุณหภูมิที่ไม่กว้างนัก
+> - **Non-linear behavior**: สำหรับช่วงอุณหภูมิกว้าง อาจต้องใช้ polynomial หรือ table lookup
+> - **Iterative coupling**: คุณสมบัติที่แปรผันตาม T ทำให้เกิด non-linearity ในสมการ
+> - **Material database**: ควรดึงค่าสัมประสิทธิ์จากแหล่งข้อมูลวัสดุที่เชื่อถือได้
 
 ### 7.3 Phase Change Materials
 
 การจำลองวัสดุที่มีการเปลี่ยนสถานะ:
 
 ```cpp
-// แบบจำลอง enthalpy-porosity
+// Enthalpy-porosity method for phase change modeling
+// Calculate liquid fraction based on temperature
 volScalarField liquidFraction
 (
     IOobject("liquidFraction", runTime.timeName(), mesh),
@@ -418,22 +530,38 @@ volScalarField liquidFraction
     dimensionedScalar("liquidFraction", dimless, 0)
 );
 
+// Define phase change temperatures
+scalar Tsolidus = 600.0;    // Solidus temperature [K] - start of melting
+scalar Tliquidus = 650.0;   // Liquidus temperature [K] - end of melting
+
+// Calculate liquid fraction for each cell
 forAll(liquidFraction, i)
 {
     if (T[i] < Tsolidus)
     {
+        // Below solidus: completely solid
         liquidFraction[i] = 0;
     }
     else if (T[i] > Tliquidus)
     {
+        // Above liquidus: completely liquid
         liquidFraction[i] = 1;
     }
     else
     {
+        // In mushy zone: linear interpolation
         liquidFraction[i] = (T[i] - Tsolidus)/(Tliquidus - Tsolidus);
     }
 }
 ```
+
+> **📂 Source:** การจำลองการเปลี่ยนสถานะของวัสดุ (Phase Change) ใน OpenFOAM  
+> **คำอธิบาย:** แบบจำลอง Enthalpy-Porosity ใช้สำหรับจำลองกระบวนการหลอมละลายและเกิดผลึก โดยพิจารณาบริเวณ Mushy Zone ที่มีทั้งของแข็งและของไหลปนกัน  
+> **แนวคิดสำคัญ:**
+> - **Mushy zone**: ช่วงอุณหภูมิระหว่าง solidus และ liquidus ที่วัสดุอยู่ในสถานะผสม
+> - **Latent heat**: พลังงานที่ใช้ในการเปลี่ยนสถานะจะถูกพิจารณาผ่าน enthalpy
+> - **Porosity**: ในแบบจำลอง เหมือง (porous media) ถูกจำลองในบริเวณ mushy zone เพื่อจำลองความต้านทานต่อการไหล
+> - **Applications**: ใช้ในการจำลองการหลอมโลหะ, การเก็บพลังงานความร้อน (PCM), และการเย็นแข็ง
 
 ---
 

@@ -47,35 +47,45 @@ mindmap
 class LargeMeshSimulation
 {
 private:
-    // ความต้องการหน่วยความจำสำหรับ mesh 10 ล้านเซลล์:
-    // - พิกัดจุดดิบ: 10M × 3 × 8 bytes = 240 MB (ต้องการเสมอ)
-    // - พิกัดจุดศูนย์กลางเซลล์: 240 MB (คำนวณเมื่อจำเป็น)
-    // - ปริมาตรเซลล์: 80 MB (คำนวณเมื่อจำเป็น)
-    // - เวกเตอร์พื้นที่ผิว: ~500 MB (คำนวณเมื่อจำเป็น)
+    // Memory requirements for 10M cell mesh:
+    // - Raw point coordinates: 10M × 3 × 8 bytes = 240 MB (always required)
+    // - Cell centre coordinates: 240 MB (computed when needed)
+    // - Cell volumes: 80 MB (computed when needed)
+    // - Face area vectors: ~500 MB (computed when needed)
 
-    // เปรียบเทียบกลยุทธ์หน่วยความจำ:
-    // ไม่มี lazy evaluation: ~1 GB จองเสมอ
-    // มี lazy evaluation: ~240 MB พื้นฐาน + คำนวณเมื่อจำเป็น
+    // Memory strategy comparison:
+    // No lazy evaluation: ~1 GB allocated constantly
+    // With lazy evaluation: ~240 MB base + compute on demand
 
 public:
     void solveTransientProblem()
     {
-        // ระยะที่ 1: ระยะการตั้งค่าเริ่มต้น
-        const auto& centres = mesh_.cellCentres();  // +240 MB ชั่วคราว
+        // Stage 1: Initial setup phase
+        const auto& centres = mesh_.cellCentres();  // +240 MB temporary
 
-        // ระยะที่ 2: การแก้สมการโมเมนตัม
-        const auto& Sf = mesh_.faceAreas();        // +500 MB ชั่วคราว
+        // Stage 2: Momentum equation solution
+        const auto& Sf = mesh_.faceAreas();        // +500 MB temporary
 
-        // ระยะที่ 3: การตรวจสอบและวินิจฉัยผลเฉลย
-        const auto& vols = mesh_.cellVolumes();    // +80 MB ชั่วคราว
+        // Stage 3: Post-processing and diagnostics
+        const auto& vols = mesh_.cellVolumes();    // +80 MB temporary
 
-        // โปรไฟล์การใช้หน่วยความจำ:
-        // หน่วยความจำสูงสุด: 240 + 500 + 80 = 820 MB
-        // หน่วยความจำพื้นฐาน: 240 MB
-        // การประหยัดหน่วยความจำ: 18% เมื่อเทียบกับการจอง 1 GB คงที่
+        // Memory usage profile:
+        // Peak memory: 240 + 500 + 80 = 820 MB
+        // Base memory: 240 MB
+        // Memory savings: 18% compared to constant 1 GB allocation
     }
 };
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+> 
+> **คำอธิบาย:** ตัวอย่างโค้ดนี้แสดงให้เห็นถึงการใช้งาน Lazy Evaluation ในสถาปัตยกรรมเมชของ OpenFOAM ในไฟล์ต้นฉบับ MomentumTransferPhaseSystem.C จะเห็นว่ามีการจัดการค่าสเกลาร์และเวกเตอร์ฟิลด์แบบไดนามิกเช่นเดียวกับแนวคิดในตัวอย่าง โดยมีการใช้ `IOobject` และ `dimensionedScalar` ในการสร้างฟิลด์เมื่อจำเป็น ซึ่งสอดคล้องกับหลักการของ Lazy Evaluation ที่ช่วยประหยัดหน่วยความจำ
+>
+> **แนวคิดสำคัญ:**
+> - **Lazy Evaluation Pattern**: คำนวณค่าเรขาคณิต (cellCentres, faceAreas, cellVolumes) เมื่อถูกเรียกใช้เท่านั้น
+> - **Temporary Storage**: ข้อมูลที่คำนวณแล้วถูกเก็บในตัวแปร `const auto&` เพื่อใช้ชั่วคราว
+> - **Automatic Caching**: primitiveMesh จะเก็บค่าที่คำนวณแล้วจนกว่าจะมีการเปลี่ยนแปลงเรขาคณิต
+> - **Memory Efficiency**: ลดการใช้หน่วยความจำสูงสุดโดยไม่จองพื้นที่คงที่สำหรับทุกค่าเรขาคณิต
 
 ### **ประโยชน์ทางวิศวกรรม 2: ความแข็งแกร่งต่อการเปลี่ยนแปลง Mesh**
 
@@ -90,31 +100,41 @@ private:
 public:
     void solveTimeStep()
     {
-        // ขั้นที่ 1: อัปเดตรูปทรงเรขาคณิต mesh สำหรับ time step ปัจจุบัน
+        // Step 1: Update mesh geometry for current time step
         mesh_.movePoints(newPoints);
 
-        // ✅ การยกเลิก cache รูปทรงเรขาคณิตอัตโนมัติ
-        // เมื่อเรียก movePoints() primitiveMesh::movePoints()
-        // จะทำให้ clearGeom() ทำงานอัตโนมัติ ยกเลิกข้อมูล cache ทั้งหมด:
-        // - cache cellCentres_ ถูกลบ
-        // - cache cellVolumes_ ถูกลบ
-        // - cache faceAreas_ ถูกลบ
-        // - ข้อมูลรูปทรงเรขาคณิตที่ได้จากการคำนวณทั้งหมดถูกทำเครื่องหมายว่า "ต้องการการอัปเดต"
+        // ✅ Automatic geometry cache invalidation
+        // When movePoints() is called, primitiveMesh::movePoints()
+        // automatically triggers clearGeom(), invalidating all caches:
+        // - cellCentres_ cache is cleared
+        // - cellVolumes_ cache is cleared
+        // - faceAreas_ cache is cleared
+        // - All computed geometry data marked as "needs update"
 
-        // ขั้นที่ 2: การเข้าถึงรูปทรงเรขาคณิตถัดไปจะทำให้เกิดการคำนวณใหม่
-        const auto& newCentres = mesh_.cellCentres();  // คำนวณใหม่ด้วยรูปทรงเรขาคณิตใหม่
-        const auto& newVolumes = mesh_.cellVolumes();  // คำนวณใหม่ด้วยรูปทรงเรขาคณิตใหม่
+        // Step 2: Next geometry access triggers recomputation
+        const auto& newCentres = mesh_.cellCentres();  // Recomputed with new geometry
+        const auto& newVolumes = mesh_.cellVolumes();  // Recomputed with new geometry
 
-        // ขั้นที่ 3: Solver ใช้รูปทรงเรขาคณิตที่อัปเดตแล้วโดยอัตโนมัติ
+        // Step 3: Solver automatically uses updated geometry
         solveWithUpdatedGeometry(newCentres, newVolumes);
 
-        // ประโยชน์:
-        // - กำจัดข้อผิดพลาดจากการใช้รูปทรงเรขาคณิตเก่า
-        // - รับประกันการอนุรักษ์มวลและโมเมนตัม
-        // - จัดการการเปลี่ยนรูป mesh โดยพลการโดยอัตโนมัติ
+        // Benefits:
+        // - Eliminates errors from stale geometry usage
+        // - Guarantees mass and momentum conservation
+        // - Handles arbitrary mesh deformations automatically
     }
 };
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
+>
+> **คำอธิบาย:** ในไฟล์ phaseSystem.H จะเห็นรูปแบบการจัดการ mesh ที่เป็นพื้นฐานของการทำงานกับ dynamic mesh โดยมีการส่งอ้างอิงถึง `const fvMesh&` ซึ่งเป็นแบบ pattern เดียวกับที่แสดงในตัวอย่าง การเรียก `movePoints()` จะทำให้เกิดการล้าง cache อัตโนมัติ ซึ่งเป็นกลไกสำคัญในการรับประกันความถูกต้องของการคำนวณเมื่อมีการเปลี่ยนแปลงรูปทรงเรขาคณิตของ mesh
+>
+> **แนวคิดสำคัญ:**
+> - **Cache Invalidation**: การเรียก `movePoints()` จะล้าง cache เรขาคณิตทั้งหมดอัตโนมัติ
+> - **Automatic Recomputation**: การเข้าถึงค่าเรขาคณิตหลังจากการเปลี่ยนแปลงจะทำให้เกิดการคำนวณใหม่
+> - **Conservation Guarantee**: รับประกันการอนุรักษ์มวลและโมเมนตัมโดยอัตโนมัติ
+> - **Robustness**: จัดการการเปลี่ยนแปลง mesh ได้อย่างราบรื่นโดยไม่ต้องแทรกแซงด้วยตนเอง
 
 ### **ประโยชน์ทางวิศวกรรม 3: การ Discretization ที่ขับเคลื่อนด้วยคุณภาพ**
 
@@ -129,30 +149,40 @@ private:
 public:
     void discretizeFlux(const volScalarField& phi, label faceI)
     {
-        // ขั้นที่ 1: วิเคราะห์ตัวชี้วัดคุณภาพ mesh ในพื้นที่
-        scalar orthogonality = mesh_.nonOrthogonality(faceI);    // ความเบี่ยงเบนมุมผิว
-        scalar skewness = mesh_.skewness(faceI);                 // คุณภาพการแทรกสอด
-        scalar aspectRatio = mesh_.aspectRatio(faceI);           // ความยาวของเซลล์
+        // Step 1: Analyze local mesh quality metrics
+        scalar orthogonality = mesh_.nonOrthogonality(faceI);    // Face angular deviation
+        scalar skewness = mesh_.skewness(faceI);                 // Insertion quality
+        scalar aspectRatio = mesh_.aspectRatio(faceI);           // Cell elongation
 
-        // ขั้นที่ 2: เลือกกลยุทธ์ discretization ที่เหมาะสมที่สุด
+        // Step 2: Select optimal discretization strategy
         if (orthogonality < 20.0 && skewness < 0.5 && aspectRatio < 5.0)
         {
-            // ✅ บริเวณคุณภาพสูง: ใช้ schemes ที่มีความแม่นยำลำดับที่สอง
+            // ✅ High quality region: Use second-order accurate schemes
             return centralDifferenceScheme(phi, faceI);
         }
         else if (orthogonality < 70.0 && skewness < 1.0)
         {
-            // ✅ บริเวณคุณภาพปานกลาง: ใช้ schemes ลำดับสูงที่มีการแก้ไข
+            // ✅ Medium quality region: Use higher-order schemes with correction
             return correctedScheme(phi, faceI);
         }
         else
         {
-            // ✅ บริเวณคุณภาพต่ำ: ใช้ schemes ลำดับที่หนึ่งที่แข็งแกร่ง
+            // ✅ Low quality region: Use robust first-order schemes
             return upwindScheme(phi, faceI);
         }
     }
 };
 ```
+
+> **📂 Source:** `.applications/solvers/compressible/rhoCentralFoam/rhoCentralFoam.C`
+>
+> **คำอธิบาย:** ในไฟล์ rhoCentralFoam.C จะเห็นการใช้งาน mesh-based schemes ที่มีการปรับเปลี่ยนตามคุณภาพของ mesh แม้ว่าจะไม่แสดงการตรวจสอบคุณภาพโดยตรง แต่แนวคิดของการเลือก scheme ที่เหมาะสมกับสภาพของ mesh ถูกนำไปใช้ในการพัฒนา solvers ขั้นสูง โดยเฉพาะในกรณีที่มีความไม่ตั้งฉากสูงหรือ mesh ที่มีความซับซ้อน
+>
+> **แนวคิดสำคัญ:**
+> - **Adaptive Discretization**: เลือก scheme ที่เหมาะสมกับคุณภาพ mesh ในพื้นที่นั้นๆ
+> - **Quality Metrics**: ใช้ non-orthogonality, skewness, และ aspect ratio เป็นตัวชี้วัด
+> - **Stability vs Accuracy**: แลกเปลี่ยนระหว่างความแม่นยำและเสถียรภาพของการคำนวณ
+> - **Local Adaptation**: ปรับ scheme แยกกันในแต่ละบริเวณของ mesh
 
 | เมตริก | ค่าที่ยอมรับได้ | ผลกระทบ |
 |---------|----------------|----------|
@@ -211,6 +241,16 @@ public:
 };
 ```
 
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseInterFoam/multiphaseMixture/multiphaseMixture.C`
+>
+> **คำอธิบาย:** ในไฟล์ multiphaseMixture.C จะเห็นรูปแบบการใช้งาน mutable pointers และ autoPtr สำหรับการจัดการค่าที่คำนวณแบบ lazy evaluation ซึ่งเป็น pattern ที่ใช้ทั่วไปใน OpenFOAM สำหรับการจัดการข้อมูลที่มีค่าใช้จ่ายสูงในการคำนวณ
+>
+> **แนวคิดสำคัญ:**
+> - **Mutable Storage**: ใช้ `mutable` เพื่อให้สามารถคำนวณค่าในฟังก์ชัน const ได้
+> - **Lazy Computation**: คำนวณเมื่อถูกเรียกใช้ครั้งแรกเท่านั้น
+> - **Cache Management**: เก็บค่าที่คำนวณแล้วจนกว่าจะมีการเปลี่ยนแปลง
+> - **Automatic Invalidation**: มีกลไกสำหรับล้าง cache เมื่อมีการเปลี่ยนแปลง mesh
+
 **สมการพื้นฐาน:**
 
 จุดศูนย์กลางเซลล์ถ่วงน้ำหนักตามพื้นที่หน้า:
@@ -227,31 +267,41 @@ $$V = \frac{1}{3} \sum_{f \in \partial cell} \mathbf{c}_f \cdot \mathbf{S}_f$$
 class polyMesh
 {
 private:
-    // การจัดเก็บโทโพโลยีดั้งเดิม (ไม่เปลี่ยนแปลงหลังการสร้าง mesh)
-    const pointField& points_;           // พิกัด 3D ของจุด mesh ทั้งหมด
-    const faceList& faces_;              // รายการดัชนีจุดที่กำหนดแต่ละผิว
-    const cellList& cells_;              // รายการดัชนีผิวที่กำหนดแต่ละเซลล์
-    const labelList& owner_;             // ดัชนีเซลล์เจ้าของสำหรับแต่ละผิว
-    const labelList& neighbour_;         // ดัชนีเซลล์ข้างเคียงสำหรับแต่ละผิว (ผิวขอบเขต = -1)
+    // Original topology storage (immutable after mesh creation)
+    const pointField& points_;           // 3D coordinates of all mesh points
+    const faceList& faces_;              // List of point indices defining each face
+    const cellList& cells_;              // List of face indices defining each cell
+    const labelList& owner_;             // Owner cell index for each face
+    const labelList& neighbour_;         // Neighbor cell index for each face (boundary faces = -1)
 
-    // การจัดการขอบเขต
-    const polyBoundaryMesh& boundary_;   // คอลเลกชันของ patch ขอบเขต
+    // Boundary management
+    const polyBoundaryMesh& boundary_;   // Collection of boundary patches
 
 public:
-    // วิธีการเข้าถึงโดยตรง
+    // Direct access methods
     const pointField& points() const { return points_; }
     const faceList& faces() const { return faces_; }
     const cellList& cells() const { return cells_; }
 
-    // การตรวจสอบความสอดคล้องของ mesh
+    // Mesh consistency validation
     bool checkMesh(const bool report) const {
-        // ตรวจสอบการเชื่อมต่อของ face
-        // ตรวจสอบการปิดของ cell
-        // ตรวจสอบความสอดคล้องของ boundary
+        // Check face connectivity
+        // Check cell closure
+        // Check boundary consistency
         return isTopologicallyCorrect();
     }
 };
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+>
+> **คำอธิบาย:** ในไฟล์ MovingPhaseModel.C จะเห็นการใช้งาน mesh topology ผ่านการอ้างอิงถึง `const pointField&` และ structure ที่คล้ายคลึงกับ polyMesh ซึ่งแสดงให้เห็นถึงการใช้งาน topology ของ mesh ในการคำนวณ transport phenomena และการเคลื่อนที่ของ phase
+>
+> **แนวคิดสำคัญ:**
+> - **Topology Storage**: เก็บข้อมูล connectivity (points, faces, cells) แยกจากเรขาคณิต
+> - **Owner-Neighbor System**: กำหนดความสัมพันธ์ระหว่าง cell และ face อย่างชัดเจน
+> - **Immutable Topology**: topology ไม่เปลี่ยนแปลงหลังจากสร้าง mesh (ยกเว้น dynamic mesh)
+> - **Boundary Management**: จัดการ boundary patches แยกจาก internal faces
 
 **กฎ Owner-Neighbor:**
 
@@ -261,59 +311,69 @@ public:
 const labelList& owner = mesh.faceOwner();
 const labelList& neighbour = mesh.faceNeighbour();
 
-// Face normal ชี้จาก owner ไปยัง neighbor เสมอ
-// สำหรับ internal face ระหว่าง cell 5 และ 10:
+// Face normal always points from owner to neighbor
+// For internal face between cell 5 and 10:
 //   owner_[faceI] = 5
 //   neighbour_[faceI] = 10
-//   Face normal vector ชี้จาก cell 5 ไปยัง cell 10
+//   Face normal vector points from cell 5 to cell 10
 ```
 
 ### **ชั้นที่ 3: fvMesh - ชั้นการแบ่งพื้นที่ปริมาตรจำกัด**
 
 ```cpp
 class fvMesh
-    : public polyMesh          // สืบทอด topology/geometry ทั้งหมด
-    , public lduMesh          // อินเทอร์เฟซ linear algebra
+    : public polyMesh          // Inherits all topology/geometry
+    , public lduMesh          // Linear algebra interface
 {
 private:
-    // ข้อมูลเฉพาะของ finite volume
-    fvBoundaryMesh boundary_;  // เงื่อนไขขอบเขตเฉพาะ FV
+    // Finite volume specific data
+    fvBoundaryMesh boundary_;  // FV-specific boundary conditions
 
     // Discretization schemes
-    surfaceInterpolation interpolation_;  // น้ำหนักการ interpolate ของ face
-    fvSchemes schemes_;                   // Schemes ตัวเลข
-    fvSolution solution_;                 // การตั้งค่า solver
+    surfaceInterpolation interpolation_;  // Face interpolation weights
+    fvSchemes schemes_;                   // Numerical schemes
+    fvSolution solution_;                 // Solver settings
 
-    // Finite volume geometry ที่คำนวณตามความต้องการ
-    mutable autoPtr<volScalarField> Vptr_;      // ปริมาตร cell
-    mutable autoPtr<surfaceScalarField> magSfPtr_; // พื้นที่ face
-    mutable autoPtr<surfaceVectorField> SfPtr_;   // เวกเตอร์พื้นที่ face
-    mutable autoPtr<surfaceVectorField> CfPtr_;   // จุดศูนย์กลาง face
+    // Computed finite volume geometry (on demand)
+    mutable autoPtr<volScalarField> Vptr_;      // Cell volumes
+    mutable autoPtr<surfaceScalarField> magSfPtr_; // Face areas
+    mutable autoPtr<surfaceVectorField> SfPtr_;   // Face area vectors
+    mutable autoPtr<surfaceVectorField> CfPtr_;   // Face centres
 
 public:
-    // ✅ FV-SPECIFIC ACCESS: ปริมาตรเซลล์เป็น field
+    // ✅ FV-SPECIFIC ACCESS: Cell volumes as field
     const volScalarField& V() const
     {
         if (!Vptr_.valid())
         {
             Vptr_.reset(new volScalarField("V", *this, dimVolume));
-            Vptr_() = primitiveMesh::cellVolumes();  // คำนวณจากฐาน
+            Vptr_() = primitiveMesh::cellVolumes();  // Compute from base
         }
         return Vptr_();
     }
 
-    // ✅ FACE GEOMETRY: เวกเตอร์พื้นที่เป็น surface field
+    // ✅ FACE GEOMETRY: Face area vectors as surface field
     const surfaceVectorField& Sf() const
     {
         if (!SfPtr_.valid())
         {
             SfPtr_.reset(new surfaceVectorField("Sf", *this, dimArea));
-            SfPtr_() = primitiveMesh::faceAreas();  // คำนวณจากฐาน
+            SfPtr_() = primitiveMesh::faceAreas();  // Compute from base
         }
         return SfPtr_();
     }
 };
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+>
+> **คำอธิบาย:** ในไฟล์ MomentumTransferPhaseSystem.C จะเห็นการใช้งาน `volScalarField` และ `surfaceScalarField` ซึ่งเป็น field types พื้นฐานใน finite volume method การสร้าง fields ด้วย `IOobject` และการใช้ `dimensionedScalar` เป็น pattern ที่ใช้กันอย่างแพร่หลายในการสร้าง geometric fields ใน OpenFOAM
+>
+> **แนวคิดสำคัญ:**
+> - **Field-Based Storage**: เก็บข้อมูลเรขาคณิตเป็น GeometricFields ไม่ใช่ arrays
+> - **Multiple Inheritance**: สืบทอดจาก polyMesh (topology) และ lduMesh (linear algebra)
+> - **Scheme Integration**: เชื่อมต่อกับ numerical schemes และ interpolation
+> - **Dimension Awareness**: รักษา units ของแต่ละปริมาณอย่างอัตโนมัติ
 
 **พื้นฐาน Finite Volume:**
 
@@ -401,7 +461,7 @@ void analyzeMeshQuality(const fvMesh& mesh)
     const labelList& owner = mesh.owner();
     const labelList& neighbour = mesh.neighbour();
 
-    // ตรวจสอบ non-orthogonality และ skewness
+    // Check non-orthogonality and skewness for all internal faces
     forAll(owner, faceI)
     {
         if (mesh.isInternalFace(faceI))
@@ -409,19 +469,20 @@ void analyzeMeshQuality(const fvMesh& mesh)
             label own = owner[faceI];
             label nei = neighbour[faceI];
 
+            // Vector connecting cell centers
             vector d = C[nei] - C[own];
             scalar magD = mag(d);
             scalar magSf = mag(Sf[faceI]);
 
             if (magD > SMALL && magSf > SMALL)
             {
-                // Non-orthogonality
+                // Non-orthogonality calculation
                 scalar cosAngle = (Sf[faceI] & d) / (magSf * magD);
                 cosAngle = max(min(cosAngle, 1.0), -1.0);
                 scalar nonOrtho = radToDeg(acos(cosAngle));
                 maxNonOrtho = max(maxNonOrtho, nonOrtho);
 
-                // Skewness
+                // Skewness calculation
                 vector proj = C[own] + ((Cf[faceI] - C[own]) & d) * d / (magD * magD);
                 scalar skewness = mag(Cf[faceI] - proj) / (magD + VSMALL);
                 maxSkewness = max(maxSkewness, skewness);
@@ -433,6 +494,17 @@ void analyzeMeshQuality(const fvMesh& mesh)
     Info << "Maximum skewness: " << maxSkewness << endl;
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+>
+> **คำอธิบาย:** ฟังก์ชันนี้ใช้ pattern ที่คล้ายกับที่พบใน MomentumTransferPhaseSystem.C โดยมีการวนลูปผ่าน faces และใช้ mesh geometry data (faceCentres, faceAreas, cellCentres) ในการคำนวณคุณภาพของ mesh การใช้ `forAll` loop และการเข้าถึง mesh data เป็นรูปแบบมาตรฐานใน OpenFOAM programming
+>
+> **แนวคิดสำคัญ:**
+> - **Geometry Access**: ใช้ mesh.geometry fields ในการคำนวณ metrics
+> - **Internal Face Loop**: วนลูปเฉพาะ internal faces สำหรับ non-orthogonality
+> - **Vector Operations**: ใช้ dot product และ cross product ในการคำนวณ
+> - **Numerical Stability**: ใช้ `SMALL` และ `VSMALL` เพื่อป้องกัน division by zero
+> - **Metric Calculation**: คำนวณ non-orthogonality และ skewness ตามสมการที่กำหนด
 
 ---
 

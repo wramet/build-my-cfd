@@ -126,7 +126,6 @@ graph TD
 ```
 > **Figure 1:** แผนผังลำดับขั้นตอนการคำนวณแบบแบ่งส่วน (Partitioned Approach) สำหรับการจำลอง FSI โดยใช้การวนซ้ำระหว่างตัวแก้สมการของไหลและโครงสร้างเพื่อรักษาความต่อเนื่องของความเร็วและแรงที่บริเวณส่วนต่อประสาน
 
-
 **Algorithm Steps:**
 
 1.  **Fluid Step (Dirichlet):** Solve fluid using structure velocity as BC
@@ -175,11 +174,33 @@ For a simple "Flag Flutter" case using native OpenFOAM tools:
 In `constant/dynamicMeshDict`:
 
 ```cpp
-dynamicFvMesh   dynamicMotionSolverFvMesh;
-motionSolverLibs (fvMotionSolvers);
-solver          displacementLaplacian;
-diffusivity     quadratic inverseDistance (flag_wall);
+dynamicFvMesh   dynamicMotionSolverFvMesh; // Set dynamic mesh type
+motionSolverLibs (fvMotionSolvers);        // Load motion solver libraries
+solver          displacementLaplacian;     // Use Laplacian displacement solver
+diffusivity     quadratic inverseDistance (flag_wall); // Quadratic diffusivity based on distance to flag_wall
 ```
+
+> **📚 คำอธิบาย (Thai Explanation):**
+> 
+> **แหล่งที่มา (Source):** `.applications/solvers/combustion/XiFoam/ignition/Make/options`
+> 
+> **การตั้งค่าการเคลื่อนที่ของเมช:**
+> - **dynamicFvMesh**: ระบุชนิดของเมชพลวัตที่ใช้สำหรับจัดการการเคลื่อนที่ของเมช
+> - **motionSolverLibs**: ไลบรารีที่จำเป็นสำหรับการแก้สมการการเคลื่อนที่
+> - **solver**: ใช้ตัวแก้สมการ Laplacian สำหรับการกระจายการกระจัด (displacement) ผ่านโดเมนของไหล
+> - **diffusivity**: ค่าสัมประสิทธิ์การแพร่ (diffusivity) แบบ quadratic inverse distance ใช้ควบคุมความเรียบของการเคลื่อนที่ของเมช โดยค่านี้จะลดลงเมื่อห่างจากผนัง flag_wall ช่วยรักษาคุณภาพเมชบริเวณชั้นขอบ (boundary layer)
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Laplacian Smoothing**: กระจายการเคลื่อนที่จากผนังไปยังภายในโดเมนอย่างราบรื่น
+> - **Inverse Distance**: ค่าน้ำหนักที่ลดลงตามระยะทาง ช่วยรักษาความละเอียดบริเวณใกล้ผนัง
+> - **Quadratic Diffusivity**: ค่าสัมประสิทธิ์แพร่แบบกำลังสอง ให้การควบคุมที่ละเอียดกว่าแบบเชิงเส้น
+> 
+> **สมการ Laplacian Smoothing:**
+> $$\nabla \cdot (\gamma \nabla \mathbf{d}) = 0$$
+> 
+> โดยที่:
+> - $\gamma$ คือ ฟิลด์ความแพร่ (diffusivity field) ที่มีค่าสูงบริเวณใกล้ผนังเพื่อรักษาความละเอียดของ boundary layer
+> - $\mathbf{d}$ คือ เวกเตอร์การกระจัด (displacement vector)
 
 The `displacementLaplacian` solver smooths mesh motion according to:
 
@@ -194,10 +215,23 @@ Where $\gamma$ is the diffusivity field (higher near walls to preserve boundary 
 ```cpp
 flag_wall
 {
-    type            fixedValue;
-    value           uniform (0 0 0);
+    type            fixedValue;  // Set fixed value boundary condition type
+    value           uniform (0 0 0);  // Zero displacement (clamped condition)
 }
 ```
+
+> **📚 คำอธิบาย (Thai Explanation):**
+> 
+> **แหล่งที่มา (Source):** การตั้งค่าเงื่อนไขขอบเขตสำหรับปัญหา FSI ใน OpenFOAM
+> 
+> **การตั้งค่าเงื่อนไขขอบเขต (Boundary Condition Setup):**
+> - **type**: ชนิดของเงื่อนไขขอบเขตเป็นแบบ fixedValue ซึ่งกำหนดค่าคงที่ที่ผนัง
+> - **value**: ค่าการกระจัดเป็นศูนย์ (0 0 0) แทนการยึดติด (clamped condition) ที่ฐานของธง
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Clamped Boundary**: เงื่อนไขขอบเขตที่ยึดโครงสร้างไว้นิ่งไม่ให้เคลื่อนที่ ใช้สำหรับจุดยึดของโครงสร้าง
+> - **pointDisplacement**: ฟิลด์ที่เก็บการกระจัดของจุดยอดเมช (mesh vertex displacement)
+> - **Zero Displacement**: การกระจัดเป็นศูนย์หมายถึงจุดที่ไม่มีการเคลื่อนที่ (fixed point)
 
 ### 3. Stability Settings
 
@@ -208,11 +242,32 @@ relaxationFactors
 {
     fields
     {
-        p               0.3;
-        U               0.5;
+        p               0.3;  // Pressure relaxation factor
+        U               0.5;  // Velocity relaxation factor
     }
 }
 ```
+
+> **📚 คำอธิบาย (Thai Explanation):**
+> 
+> **แหล่งที่มา (Source):** การตั้งค่าตัวแก้สมการใน OpenFOAM (system/fvSolution)
+> 
+> **การตั้งค่าปัจจัยผ่อนคลาย (Relaxation Factors Setup):**
+> - **p**: ปัจจัยผ่อนคลายสำหรับความดัน (pressure) ค่า 0.3 ช่วยป้องกันการแกว่งของความดันในแต่ละขั้นตอนการวนซ้ำ
+> - **U**: ปัจจัยผ่อนคลายสำหรับความเร็ว (velocity) ค่า 0.5 ควบคุมการอัปเดตความเร็วระหว่างการวนซ้ำ
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Under-Relaxation**: เทคนิคการลดความรุนแรงของการอัปเดตค่าตัวแปร ช่วยเพิ่มเสถียรภาพของการคำนวณ
+> - **Pressure-Velocity Coupling**: ความสัมพันธ์ระหว่างความดันและความเร็วในสมการ Navier-Stokes ต้องใช้การผ่อนคลายเพื่อความเสถียร
+> - **Convergence Acceleration**: การใช้ปัจจัยผ่อนคลายที่เหมาะสมช่วยให้การคำนวณลู่เข้าสู่คำตอบได้เร็วขึ้น
+> 
+> **สมการ Under-Relaxation:**
+> $$\phi^{n+1} = \phi^n + \omega (\phi^* - \phi^n)$$
+> 
+> โดยที่:
+> - $\phi$ คือ ตัวแปร (ความดันหรือความเร็ว)
+> - $\omega$ คือ ปัจจัยผ่อนคลาย (0 < ω ≤ 1)
+> - $\phi^*$ คือ ค่าใหม่ที่คำนวณได้
 
 ### 4. Running
 
@@ -304,7 +359,9 @@ $$\mu_{\text{art}} = C_{\text{art}} \rho_f h |\mathbf{v}_f - \mathbf{v}_m|$$
 *   **Convergence Monitoring:** Track both interface residuals and energy balance:
 
     ```cpp
+    // Calculate residual force between fluid and solid domains
     scalar residualForce = mag(fluidForce - solidForce);
+    // Calculate energy change error for verification
     scalar energyError = mag(totalEnergyChange - expectedEnergyChange);
     ```
 
@@ -329,19 +386,50 @@ Where:
 ### Implementation in OpenFOAM
 
 ```cpp
-// Force balance verification
+// Calculate heat flux at fluid side of interface
 scalarField qFluid = -kFluid.boundaryField()[fluidPatchID] *
                      gradTFluid.boundaryField()[fluidPatchID];
+
+// Calculate heat flux at solid side of interface
 scalarField qSolid = -kSolid.boundaryField()[solidPatchID] *
                      gradTSolid.boundaryField()[solidPatchID];
 
+// Calculate maximum relative error between fluid and solid fluxes
 scalar maxRelError = max(mag(qFluid + qSolid)/mag(qFluid));
 
+// Verify force balance at the interface
 if (maxRelError < 1e-6)
 {
     Info << "Interface force balance verified: " << maxRelError << endl;
 }
 ```
+
+> **📚 คำอธิบาย (Thai Explanation):**
+> 
+> **แหล่งที่มา (Source):** การตรวจสอบความสมดุลของแรงและการอนุรักษ์พลังงานในการจำลอง FSI ด้วย OpenFOAM
+> 
+> **การตรวจสอบความสมดุล (Balance Verification):**
+> - **Heat Flux Calculation**: คำนวณอัตราการไหลของความร้อน (heat flux) ที่ส่วนต่อประสานระหว่างของไหลและของแข็ง
+> - **kFluid, kSolid**: สัมประสิทธิ์ความนำความร้อนของของไหลและของแข็ง
+> - **gradTFluid, gradTSolid**: ไล่ระดับอุณหภูมิของของไหลและของแข็งที่ผินสัมผัส
+> - **fluidPatchID, solidPatchID**: ระบุตัวระบุของพื้นที่ผิวสัมผัสของของไหลและของแข็ง
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Force Balance**: หลักการอนุรักษ์โมเมนตัมที่ส่วนต่อประสาน แรงจากของไหลต้องสมดุลกับแรงที่กระทำต่อโครงสร้าง
+> - **Energy Conservation**: หลักการอนุรักษ์พลังงานในระบบ FSI พลังงานรวมของระบบต้องคงที่
+> - **Interface Continuity**: ความต่อเนื่องของการถ่ายเทแรงและพลังงานที่ส่วนต่อประสาน
+> 
+> **สมการความสมดุลแรง:**
+> $$\boldsymbol{\sigma}_f \cdot \mathbf{n}_f + \boldsymbol{\sigma}_s \cdot \mathbf{n}_s = \mathbf{0}$$
+> 
+> **สมการการอนุรักษ์พลังงาน:**
+> $$\frac{\mathrm{d}}{\mathrm{d}t} (E_f + E_s) = P_f - D_s + Q_{\text{boundary}}$$
+> 
+> โดยที่:
+> - $E_f, E_s$: พลังงานของของไหลและของแข็ง
+> - $P_f$: กำลังงานที่ได้รับจากของไหล
+> - $D_s$: การสูญเสียพลังงานจากการระบายความรุนแรง (structural damping)
+> - $Q_{\text{boundary}}$: การไหลของพลังงานผ่านขอบเขต
 
 ---
 

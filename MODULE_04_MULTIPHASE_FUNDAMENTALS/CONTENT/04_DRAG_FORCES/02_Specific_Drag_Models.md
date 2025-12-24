@@ -61,14 +61,18 @@ class SchillerNaumann
 {
     virtual tmp<volScalarField> Cd() const
     {
+        // Access Reynolds number field from phase pair
         const volScalarField& Re = pair_.Re();
 
+        // Create new drag coefficient field
         return volScalarField::New
         (
             "Cd",
             max
             (
+                // Low to intermediate Re regime with correction
                 24.0/Re*(1.0 + 0.15*pow(Re, 0.687)),
+                // High Re regime - constant drag
                 0.44
             )
         );
@@ -76,7 +80,13 @@ class SchillerNaumann
 };
 ```
 
-**รายละเอียดการ Implement:**
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+#### รายละเอียดการ Implement:
+
+**Source Explanation:** โค้ดนี้แสดงการ implement แบบจำลอง Schiller-Naumann ใน OpenFOAM ซึ่งเป็นส่วนหนึ่งของระบบโอนย้ายโมเมนตัมระหว่างเฟสใน solver `multiphaseEulerFoam` คลาส `SchillerNaumann` สืบทอดจาก `dragModel` ฐานและแทนที่เมธอด `Cd()` สำหรับคำนวณสัมประสิทธิ์แรงลาก
+
+**Key Concepts:**
 - `tmp<volScalarField>` = กลยุทธ์การจัดการหน่วยความจำสำหรับ temporary fields
 - `pair_.Re()` = เข้าถึง Reynolds number field จาก phase pair
 - `volScalarField::New` = สร้าง field ใหม่พร้อมการจัดการหน่วยความจำอัตโนมัติ
@@ -323,24 +333,38 @@ $$f(\alpha_l) = (1 - \alpha_d)^{2.0} \cdot \exp\left(\frac{2.5\alpha_d}{1 - \alp
 #### OpenFOAM Code Implementation
 
 ```cpp
-// ในคลาสโมเดลการลาก (drag model class)
+// Drag model class implementation for hindered settling
 virtual tmp<volScalarField> K(const phasePairKey& key) const
 {
+    // Access phase models from the phase pair
     const phaseModel& phase1 = this->phase1_;
     const phaseModel& phase2 = this->phase2_;
 
-    // ค่าสัมประสิทธิ์การลากพื้นฐาน (Base drag coefficient)
+    // Calculate base drag coefficient
     const volScalarField K0 = this->K0(key);
 
-    // ตัวประกอบการตกตะกอนแบบถูกขัดขวาง (Hindered settling factor)
+    // Calculate hindered settling factor based on dispersed phase volume fraction
     const volScalarField alphaD = phase2;
     const volScalarField fHindered =
-        (scalar(1) - alphaD)*exp(2.5*alphaD/(scalar(1) - alphaD));
+        (scalar(1) - alphaD) * exp(2.5*alphaD/(scalar(1) - alphaD));
 
-    // ค่าสัมประสิทธิ์การลากที่ปรับปรุงแล้ว (Modified drag coefficient)
-    return K0*fHindered;
+    // Return modified drag coefficient accounting for particle crowding
+    return K0 * fHindered;
 }
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+#### รายละเอียดการ Implement:
+
+**Source Explanation:** โค้ดนี้แสดงการ implement ของแบบจำลองแรงลากที่มีการแก้ไขสำหรับการตกตะกอนแบบถูกขัดขวาง (hindered settling) ในระบบ OpenFOAM ฟังก์ชัน `K()` คำนวณค่าสัมประสิทธิ์การแลกเปลี่ยนโมเมนตัมระหว่างเฟสโดยคำนึงถึงผลของความเข้มข้นของอนุภาค ซึ่งเป็นส่วนสำคัญของระบบ MomentumTransferPhaseSystem ที่จัดการการโอนย้ายโมเมนตัมระหว่างเฟสทั้งหมด
+
+**Key Concepts:**
+- `phasePairKey` = คีย์ที่ระบุคู่เฟสที่มีปฏิสัมพันธ์กัน
+- `K0(key)` = ค่าสัมประสิทธิ์แรงลากพื้นฐานโดยไม่มีผลของความเข้มข้น
+- `alphaD` = เศษส่วนปริมาตรของเฟสกระจาย (dispersed phase)
+- `fHindered` = ตัวประกอบการแก้ไขแบบ Barnea-Mizrahi สำหรับผลของความเข้มข้นสูง
+- `exp()` = ฟังก์ชันเลขชี้กำลังธรรมชาติสำหรับจับผลของการอุดตันของอนุภาค
 
 ---
 
@@ -390,8 +414,10 @@ $$Re_p = \frac{\rho_f \mathbf{u} \cdot d_{eff}}{\mu_f} \tag{17}$$
 
 ```cpp
 // Haider-Levenspiel drag model for non-spherical particles
-scalar Re_p = rhoc_*mag(particle.Urel())*dEff/muc_;
+// Calculate particle Reynolds number using effective diameter
+scalar Re_p = rhoc_ * mag(particle.Urel()) * dEff / muc_;
 
+// Initialize coefficients based on particle shape
 scalar a, b, c, d;
 if (particle.shape() == "cylinder")
 {
@@ -401,14 +427,29 @@ else if (particle.shape() == "disk")
 {
     a = 0.1115; b = 0.6991; c = 0.7166; d = 2.0530;
 }
-else // ellipsoid or other
+else // ellipsoid or other shapes
 {
     // Coefficients depend on aspect ratio
     a = 0.0800; b = 0.5000; c = 0.6500; d = 2.5000;
 }
 
+// Calculate drag coefficient using Haider-Levenspiel correlation
 scalar CD = 24.0/Re_p*(1 + a*pow(Re_p, b)) + c/(1 + d/Re_p);
 ```
+
+📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+#### รายละเอียดการ Implement:
+
+**Source Explanation:** โค้ดนี้แสดงการ implement ของแบบจำลอง Haider-Levenspiel สำหรับคำนวณสัมประสิทธิ์แรงลากของอนุภาคที่ไม่ใช่ทรงกลมใน OpenFOAM การ implement นี้เป็นส่วนขยายของระบบ drag model ที่รองรับรูปร่างที่หลากหลายของอนุภาค โดยใช้สัมประสิทธิ์ที่แตกต่างกันตามประเภทของรูปร่าง
+
+**Key Concepts:**
+- `rhoc_` = ความหนาแน่นของ continuous phase
+- `particle.Urel()` = ความเร็วสัมพัทธ์ของอนุภาค
+- `dEff` = เส้นผ่านศูนย์กลางประสิทธิผลที่คำนึงถึงรูปร่าง
+- `muc_` = ความหนืดของ continuous phase
+- `pow()` = ฟังก์ชันยกกำลังสำหรับคำนวณเทอม Reynolds number
+- การเลือกสัมประสิทธิ์แบบมีเงื่อนไข = ปรับ drag coefficient ตามรูปร่างอนุภาค
 
 ---
 

@@ -63,31 +63,30 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 1 -1 0 0 0 0];  // m/s: ความยาว/เวลา
-internalField   uniform (0 0 0);   // ฟิลด์ความเร็วเริ่มต้น
+dimensions      [0 1 -1 0 0 0 0];  // m/s: Length per time unit
+internalField   uniform (0 0 0);   // Initial velocity field (zero everywhere)
 
 boundaryField
 {
     inlet
     {
         type            fixedValue;
-        value           uniform (10 0 0); // ความเร็วขาเข้าแบบ Uniform 10 m/s
+        value           uniform (10 0 0); // Uniform inlet velocity 10 m/s
     }
     outlet
     {
-        type            zeroGradient;     // การไหลที่พัฒนาเต็มที่
+        type            zeroGradient;     // Fully developed flow condition
     }
     walls
     {
-        type            noSlip;           // เงื่อนไข No-Slip
+        type            noSlip;           // No-slip boundary condition
     }
     symmetry
     {
-        type            symmetryPlane;    // ขอบเขตสมมาตร
+        type            symmetryPlane;    // Symmetry boundary condition
     }
 }
 ```
-
 
 ```mermaid
 graph LR
@@ -111,6 +110,19 @@ graph LR
 ```
 > **Figure 2:** โครงสร้างของไฟล์กำหนดค่าเริ่มต้นฟิลด์ใน OpenFOAM (`0/U`) โดยแยกส่วนประกอบออกเป็น มิติ (dimensions), ค่าฟิลด์ภายใน (internal field) และการกำหนดเงื่อนไขขอบเขตสำหรับฟิลด์เวกเตอร์ความเร็ว
 
+---
+
+### 📂 Source: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+**Explanation:** ไฟล์ `solidDisplacementThermo.C` แสดงให้เห็นโครงสร้างการอ่านค่าคุณสมบัติวัสดุ (properties) จาก dictionary ที่มีลักษณะคล้ายคลึงกับการกำหนด Initial Conditions ในไฟล์ Field ของ OpenFOAM โดยเฉพาะการใช้ `IOobject` สำหรับการจัดการไฟล์ข้อมูล
+
+**Key Concepts:**
+- **Dictionary Structure**: การใช้โครงสร้าง dictionary สำหรับเก็บค่าคุณสมบัติและเงื่อนไขเริ่มต้น
+- **IOobject Class**: คลาสพื้นฐานสำหรับการจัดการ input/output ของไฟล์ Field
+- **Dimensional Consistency**: ระบบตรวจสอบความสอดคล้องของหน่วยมิติอัตโนมัติ
+- **Field Initialization**: การกำหนดค่าเริ่มต้นของฟิลด์ (uniform หรือ non-uniform)
+
+---
 
 ## Advanced Initialization Strategies
 
@@ -121,15 +133,15 @@ graph LR
 #### Mathematical Function Initialization
 
 ```cpp
-// Example: โปรไฟล์ความเร็วแบบพาราโบลาสำหรับการไหลในท่อ
+// Example: Parabolic velocity profile for pipe flow
 internalField   #codeStream
 {
     code
     #{
-        const vectorField& C = mesh().C();
-        vectorField& U = *this;
-        const scalar radius = 0.05; // รัศมีท่อ
-        const scalar Umax = 2.0;    // ความเร็วสูงสุด
+        const vectorField& C = mesh().C();    // Get cell centers
+        vectorField& U = *this;                // Reference to velocity field
+        const scalar radius = 0.05;            // Pipe radius [m]
+        const scalar Umax = 2.0;               // Maximum velocity [m/s]
 
         forAll(C, i)
         {
@@ -146,17 +158,17 @@ internalField   #codeStream
 #### Perturbed Flow for Turbulence Development
 
 ```cpp
-// Example: การเพิ่มการรบกวนแบบปั่นป่วน
+// Example: Turbulent perturbation initialization
 internalField   #codeStream
 {
     code
     #{
-        const vectorField& C = mesh().C();
-        vectorField& U = *this;
-        const scalar Umean = 1.0;
-        const scalar perturbation = 0.05; // การรบกวน 5%
+        const vectorField& C = mesh().C();    // Get cell centers
+        vectorField& U = *this;                // Reference to velocity field
+        const scalar Umean = 1.0;              // Mean velocity [m/s]
+        const scalar perturbation = 0.05;      // 5% perturbation
 
-        // กำหนด seed สำหรับตัวเลขสุ่มที่ทำซ้ำได้
+        // Set seed for reproducible random numbers
         Random perturb(12345);
 
         forAll(C, i)
@@ -171,6 +183,20 @@ internalField   #codeStream
     #};
 };
 ```
+
+---
+
+### 📂 Source: `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+**Explanation:** ไฟล์ `phaseSystem.C` ใน multiphaseEulerFoam solver แสดงให้เห็นการจัดการฟิลด์หลายเฟส (multiphase fields) ที่มีความซับซ้อน โดยเฉพาะการกำหนดค่าเริ่มต้นของ volume fraction และ phase properties ที่ต้องมีความสอดคล้องกัน
+
+**Key Concepts:**
+- **Phase Field Management**: การจัดการฟิลด์ของแต่ละเฟสในระบบ multiphase
+- **Volume Fraction Initialization**: การกำหนดค่าเริ่มต้นของสัดส่วนปริมาตร ($\alpha$)
+- **Inter-phase Coupling**: การเชื่อมโยงระหว่างเฟสต่างๆ ในการคำนวณ
+- **Field Consistency**: การรักษาความสอดคล้องของฟิลด์ข้ามเฟส
+
+---
 
 ## Pressure Field Initialization
 
@@ -189,7 +215,7 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 dimensions      [0 2 -2 0 0 0 0];  // Pa: kg/(m·s²)
-internalField   uniform 101325;    // ค่าอ้างอิงความดันบรรยากาศ
+internalField   uniform 101325;    // Atmospheric pressure reference [Pa]
 
 boundaryField
 {
@@ -200,7 +226,7 @@ boundaryField
     outlet
     {
         type            fixedValue;
-        value           uniform 101325; // ความดันเกจ = 0
+        value           uniform 101325; // Gauge pressure = 0
     }
     walls
     {
@@ -212,21 +238,21 @@ boundaryField
 ### Compressible Flow (`0/p` for compressible solvers)
 
 ```cpp
-// สำหรับการไหลแบบบีบอัดได้ ความดันสัมบูรณ์มีความสำคัญ
-dimensions      [1 -1 -2 0 0 0 0];  // หน่วยความดันสัมบูรณ์
-internalField   uniform 101325;    // ต้องใช้ความดันสัมบูรณ์
+// For compressible flow, absolute pressure is important
+dimensions      [1 -1 -2 0 0 0 0];  // Absolute pressure units
+internalField   uniform 101325;    // Must use absolute pressure
 
 boundaryField
 {
     inlet
     {
         type            fixedValue;
-        value           uniform 150000; // ความดันขาเข้าที่สูงขึ้น
+        value           uniform 150000; // Higher inlet pressure [Pa]
     }
     outlet
     {
         type            fixedValue;
-        value           uniform 101325; // ทางออกความดันบรรยากาศ
+        value           uniform 101325; // Atmospheric outlet [Pa]
     }
 }
 ```
@@ -239,6 +265,20 @@ boundaryField
 | ค่าอ้างอิง | ความดันเกจ (Gauge) | ความดันสัมบูรณ์ (Absolute) |
 | ชนิด Field | `volScalarField` | `volScalarField` |
 | Boundary Type | `zeroGradient`/`fixedValue` | `fixedValue` ทั้งขาเข้า-ออก |
+
+---
+
+### 📂 Source: `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/ThermalPhaseChangePhaseSystem/ThermalPhaseChangePhaseSystem.C`
+
+**Explanation:** ไฟล์นี้แสดงให้เห็นการจัดการ pressure field ในระบบที่มีการเปลี่ยนสถานะเฟส (phase change) ซึ่งต้องการความแม่นยำสูงในการกำหนดค่าเริ่มต้นของความดันและอุณหภูมิเพื่อให้สอดคล้องกับสมการถึงสภาพ (thermodynamic equations)
+
+**Key Concepts:**
+- **Absolute vs Gauge Pressure**: ความแตกต่างระหว่างความดันสัมบูรณ์และความดันเกจ
+- **Thermodynamic Consistency**: ความสอดคล้องระหว่างความดันและอุณหภูมิ
+- **Phase Change Modeling**: การจำลองการเปลี่ยนสถานะที่ต้องอาศัยการกำหนดค่าเริ่มต้นที่แม่นยำ
+- **Saturation Conditions**: สภาวะอิ่มตัวที่เกี่ยวข้องกับความดันและอุณหภูมิ
+
+---
 
 ## Multiphase Flow Initialization
 
@@ -256,15 +296,15 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 0 0 0 0 0 0];  // ไร้มิติ: สัดส่วนปริมาตร
-internalField   uniform 0;        // เริ่มต้นไม่มีน้ำ
+dimensions      [0 0 0 0 0 0 0];  // Dimensionless: volume fraction
+internalField   uniform 0;        // Initially no water
 
 boundaryField
 {
     inlet
     {
         type            fixedValue;
-        value           uniform 1; // น้ำที่ทางเข้า
+        value           uniform 1; // Water at inlet
     }
     outlet
     {
@@ -280,13 +320,13 @@ boundaryField
 ### Stratified Flow Initialization
 
 ```cpp
-// Example: การไหลแบบแบ่งชั้นสองชั้น
+// Example: Two-layer stratified flow
 internalField   #codeStream
 {
     code
     #{
-        const volScalarField& C = mesh().C().component(1); // พิกัด y
-        const scalar interfaceHeight = 0.1; // ส่วนต่อประสานที่ y = 0.1 m
+        const volScalarField& C = mesh().C().component(1); // y-coordinate
+        const scalar interfaceHeight = 0.1; // Interface at y = 0.1 m
 
         forAll(C, i)
         {
@@ -296,13 +336,25 @@ internalField   #codeStream
 };
 ```
 
-
 > [!INFO] **Volume of Fluid (VOF) Method**
 > Phase fraction field $\alpha$ แสดงถึงสัดส่วนปริมาตรของ phase หนึ่งๆ ในแต่ละ cell:
 > - $\alpha = 1$: Cell เต็มไปด้วย phase นั้น (เช่น น้ำ)
 > - $\alpha = 0$: Cell ไม่มี phase นั้น (เช่น อากาศ)
 > - $0 < \alpha < 1$: Cell อยู่ที่ interface ระหว่างสอง phases
 
+---
+
+### 📂 Source: `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+
+**Explanation:** ไฟล์ `phaseSystem.C` เป็นฐานข้อมูลหลักสำหรับการจัดการ multiphase fields ใน OpenFOAM โดยแสดงให้เห็นโครงสร้างของการกำหนดและจัดการ phase fraction fields ที่ซับซ้อน
+
+**Key Concepts:**
+- **Phase Fraction Fields**: ฟิลด์แสดงสัดส่วนปริมาตรของแต่ละเฟส
+- **VOF Method**: Volume of Fluid method สำหรับการติดตาม interface
+- **Interface Capturing**: เทคนิคการจำลองการเคลื่อนที่ของ interface
+- **Phase Consistency**: ความสอดคล้องของ sum of phase fractions = 1
+
+---
 
 ## Temperature and Species Initialization
 
@@ -320,25 +372,25 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 0 0 1 0 0 0];  // หน่วยอุณหภูมิ
-internalField   uniform 300;      // อุณหภูมิเริ่มต้น 300 K
+dimensions      [0 0 0 1 0 0 0];  // Temperature units [K]
+internalField   uniform 300;      // Initial temperature 300 K
 
 boundaryField
 {
     hotWall
     {
         type            fixedValue;
-        value           uniform 400; // ผนังร้อน 400 K
+        value           uniform 400; // Hot wall 400 K
     }
     coldWall
     {
         type            fixedValue;
-        value           uniform 280; // ผนังเย็น 280 K
+        value           uniform 280; // Cold wall 280 K
     }
     inlet
     {
         type            fixedValue;
-        value           uniform 320; // อุณหภูมิขาเข้า 320 K
+        value           uniform 320; // Inlet temperature 320 K
     }
 }
 ```
@@ -348,28 +400,42 @@ boundaryField
 สำหรับ **Reacting Flows** หรือ **Mass Transfer**:
 
 ```cpp
-// Example: ความเข้มของสารละลาย (0/Y_oxygen)
-dimensions      [0 0 0 0 0 0 0];  // ไร้มิติ: mass fraction
-internalField   uniform 0.21;     // ออกซิเจน 21% ในอากาศ
+// Example: Species concentration (0/Y_oxygen)
+dimensions      [0 0 0 0 0 0 0];  // Dimensionless: mass fraction
+internalField   uniform 0.21;     // Oxygen 21% in air
 
 boundaryField
 {
     fuelInlet
     {
         type            fixedValue;
-        value           uniform 0;    // ไม่มีออกซิเจนที่ทางเข้าเชื้อเพลิง
+        value           uniform 0;    // No oxygen at fuel inlet
     }
     airInlet
     {
         type            fixedValue;
-        value           uniform 0.21; // ออกซิเจนในอากาศ
+        value           uniform 0.21; // Oxygen in air
     }
     walls
     {
-        type            zeroGradient;  // ผนังไร้การแพร่
+        type            zeroGradient;  // Walls with no diffusion
     }
 }
 ```
+
+---
+
+### 📂 Source: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+
+**Explanation:** ไฟล์ `solidDisplacementThermo.C` แสดงให้เห็นการจัดการฟิลด์ทางอุณหพลศาสตร์ (thermodynamic fields) เช่น ความจุความร้อน (Cp) และสภาพสมบัติทางความร้อนอื่นๆ ซึ่งมีหลักการคล้ายคลึงกับการกำหนด Temperature field ในปัญหาการไหลของไหล
+
+**Key Concepts:**
+- **Thermodynamic Properties**: การจัดการคุณสมบัติทางอุณหพลศาสตร์
+- **Dimensional Sets**: ระบบหน่วยมิติสำหรับปริมาณทางความร้อน
+- **Property Initialization**: การกำหนดค่าเริ่มต้นของคุณสมบัติวัสดุ
+- **Temperature-Dependent Fields**: ฟิลด์ที่ขึ้นอยู่กับอุณหภูมิ
+
+---
 
 ## Best Practices for Initial Conditions
 
@@ -395,26 +461,26 @@ boundaryField
 
 ### 3. Convergence Acceleration
 
-สำหรับ **Steady-State Problems** ให้ใช้กลยุทธ์การเริ่มต้นที่ส่งเสริม Convergence อย่างรวดเร็ว:
+สำหรับ **Steady-State Problems** ให้ใช้กลยุทธ์การเริ้มต้นที่ส่งเสริม Convergence อย่างรวดเร็ว:
 
 ```cpp
-// Example: การเริ่มต้นด้วยการใช้ผลเฉลยการไหลแบบศักย์
+// Example: Potential flow initialization
 internalField   #codeStream
 {
     code
     #{
-        // การเริ่มต้นการไหลแบบศักย์สำหรับอากาศพลศาสตร์ภายนอก
-        const vectorField& C = mesh().C();
-        vectorField& U = *this;
-        const vector Uinf = vector(10, 0, 0); // การไหลอิสระ
-        const scalar radius = 1.0;
+        // Potential flow initialization for external aerodynamics
+        const vectorField& C = mesh().C();    // Get cell centers
+        vectorField& U = *this;                // Reference to velocity field
+        const vector Uinf = vector(10, 0, 0); // Freestream velocity
+        const scalar radius = 1.0;             // Cylinder radius
 
         forAll(C, i)
         {
             scalar r = mag(C[i] - vector(0, 0, 0));
             if (r > radius)
             {
-                // การไหลแบบศักย์รอบทรงกระบอก
+                // Potential flow around cylinder
                 scalar theta = atan2(C[i].y(), C[i].x());
                 scalar Ur = Uinf.x() * (1 - sqr(radius/r)) * cos(theta);
                 scalar Ut = -Uinf.x() * (1 + sqr(radius/r)) * sin(theta);
@@ -451,6 +517,20 @@ cp -r 0/ 0_original/
 cp -r 1000/ 0_restart/
 ```
 
+---
+
+### 📂 Source: `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**Explanation:** ไฟล์ `kineticTheoryModel.C` แสดงให้เห็นการใช้ kinetic theory สำหรับการจำลอง multiphase flow ที่มีความซับซ้อนสูง โดยต้องการความแม่นยำในการกำหนดค่าเริ่มต้นของฟิลด์ต่างๆ เพื่อให้การคำนวณลู่เข้าอย่างมีเสถียรภาพ
+
+**Key Concepts:**
+- **Convergence Strategies**: กลยุทธ์การเร่งการลู่เข้าของ solution
+- **Numerical Stability**: เทคนิคการรักษาเสถียรภาพเชิงตัวเลข
+- **Restart Procedures**: ขั้นตอนการทำงานต่อจากค่าที่บันทึกไว้
+- **Field Interdependence**: ความสัมพันธ์ระหว่างฟิลด์ต่างๆ ในระบบที่ซับซ้อน
+
+---
+
 ## Error Handling and Troubleshooting
 
 ### Common Issues
@@ -478,7 +558,6 @@ foamInfoDict -case .
 foamListTimes -case .
 ```
 
-
 ```mermaid
 graph LR
     A["Initial Setup<br/>Check Directory Structure"] --> B["Mesh Validation<br/>checkMesh -case ."]
@@ -504,6 +583,20 @@ graph LR
     class G,J terminator;
 ```
 > **Figure 3:** ขั้นตอนการตรวจสอบความถูกต้องของเงื่อนไขเริ่มต้นก่อนการจำลอง ซึ่งประกอบด้วยลำดับการตรวจสอบ (Mesh, ฟิลด์, มิติ และกฎการอนุรักษ์) เพื่อให้มั่นใจว่าการจำลองจะเริ่มต้นได้อย่างราบรื่นและปราศจากข้อผิดพลาด
+
+---
+
+### 📂 Source: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.H`
+
+**Explanation:** ไฟล์ header `solidDisplacementThermo.H` นำเสนอโครงสร้างคลาสและการประกาศฟังก์ชันสำหรับการจัดการ thermodynamic properties ซึ่งเป็นพื้นฐานสำคัญในการตรวจสอบความถูกต้องของ Initial Conditions และการจัดการข้อผิดพลาด
+
+**Key Concepts:**
+- **Error Handling Architecture**: สถาปัตยกรรมการจัดการข้อผิดพลาดใน OpenFOAM
+- **Validation Procedures**: ขั้นตอนการตรวจสอบความถูกต้อง
+- **FatalErrorInFunction**: กลไกการรายงานข้อผิดพลาดของ OpenFOAM
+- **Runtime Checks**: การตรวจสอบขณะ runtime สำหรับ consistency
+
+---
 
 ## Summary
 

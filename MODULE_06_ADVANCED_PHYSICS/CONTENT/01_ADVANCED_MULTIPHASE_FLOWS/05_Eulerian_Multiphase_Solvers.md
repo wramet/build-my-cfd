@@ -134,8 +134,8 @@ graph TD
     style B fill:#e1f5fe,stroke:#01579b
     style E fill:#e1f5fe,stroke:#01579b
 ```
-> **Figure 1:** แผนผังลำดับขั้นตอนการคำนวณของตัวแก้สมการการไหลหลายเฟสแบบยูเลอเรียน (Eulerian Multiphase Solver) แสดงการทำงานร่วมกันระหว่างการแก้สมการสัดส่วนปริมาตร (Alpha Equation) และการวนซ้ำของสมการความดันเพื่อรักษาความต่อเนื่องของมวลและพลังงานในทุกเฟส
 
+> **Figure 1:** แผนผังลำดับขั้นตอนการคำนวณของตัวแก้สมการการไหลหลายเฟสแบบยูเลอเรียน (Eulerian Multiphase Solver) แสดงการทำงานร่วมกันระหว่างการแก้สมการสัดส่วนปริมาตร (Alpha Equation) และการวนซ้ำของสมการความดันเพื่อรักษาความต่อเนื่องของมวลและพลังงานในทุกเฟส
 
 **ขั้นตอนหลัก:**
 
@@ -153,11 +153,13 @@ graph TD
 
 กำหนดความสัมพันธ์ระหว่างเฟสและแรงปฏิสัมพันธ์:
 
-```foam
+```cpp
+// Phase definition and interaction model
 phases (gas liquid);
 
 gas
 {
+    // Transport model specification
     transportModel  Newtonian;
     nu              1.5e-05;
     rho             1.2;
@@ -165,11 +167,13 @@ gas
 
 liquid
 {
+    // Transport model specification
     transportModel  Newtonian;
     nu              1e-06;
     rho             1000;
 }
 
+// Interfacial forces configuration
 phaseInteraction
 {
     (gas in liquid)
@@ -183,11 +187,23 @@ phaseInteraction
 }
 ```
 
+> **Source:** 📂 `constant/phaseProperties`
+> 
+> **Explanation:** ไฟล์นี้กำหนดคุณสมบัติของแต่ละเฟส (gas/liquid) และโมเดลแรงปฏิสัมพันธ์ระหว่างเฟส รวมถึงแบบจำลองแรงลาก แรงยก แรงมวลเสมือน และอื่นๆ
+>
+> **Key Concepts:**
+> - `transportModel`: รุ่นของการขนส่ง (Newtonian/Non-Newtonian)
+> - `dragModel`: แบบจำลองแรงลาก (Gidaspow, Schiller-Naumann, etc.)
+> - `liftModel`: แบบจำลองแรงยก (Tomiyama, Legendre-Magnaudet)
+> - `virtualMassModel`: แบบจำลองแรงมวลเสมือน
+> - `wallLubricationModel`: แบบจำลองแรงหล่อลื่นผนัง
+
 ### 5.2 `thermophysicalProperties`
 
 ต้องกำหนดแยกสำหรับแต่ละเฟสในโฟลเดอร์ `constant/phaseName/`:
 
-```foam
+```cpp
+// Thermophysical properties for each phase
 thermoType
 {
     type            heRhoThermo;
@@ -198,12 +214,14 @@ thermoType
     equationOfState perfectGas;
 }
 
+// Species definition
 species
 (
     O2
     N2
 );
 
+// Oxygen properties
 O2
 {
     molWeight       32;
@@ -211,6 +229,7 @@ O2
     Hf              0;
 }
 
+// Nitrogen properties
 N2
 {
     molWeight       28.0134;
@@ -219,11 +238,23 @@ N2
 }
 ```
 
+> **Source:** 📂 `constant/gas/thermophysicalProperties` และ `constant/liquid/thermophysicalProperties`
+> 
+> **Explanation:** กำหนดคุณสมบัติเทอร์โมฟิสิกส์ของแต่ละเฟส รวมถึงชนิดของสมการถดถอย คุณสมบัติการขนส่ง และคุณสมบัติของสปีชีส์แต่ละชนิด
+>
+> **Key Concepts:**
+> - `heRhoThermo`: Enthalpy-based thermodynamics with density calculation
+> - `multiComponentMixture`: ส่วนผสมหลายสปีชีส์
+> - `sutherland`: รุ่นการขนส่งแบบ Sutherland
+> - `hConst`: ความร้อนจำเพาะคงที่
+> - `sensibleEnthalpy`: ใช้เอนทาลปีในการคำนวณพลังงาน
+
 ### 5.3 Solver Control Parameters
 
 ใน `fvSolution`:
 
-```foam
+```cpp
+// PIMPLE algorithm control parameters
 PIMPLE
 {
     nCorrectors        3;
@@ -239,6 +270,7 @@ PIMPLE
     rDeltaTSmoothingCoeff 0.1;
 }
 
+// Linear solver settings
 solvers
 {
     p
@@ -267,19 +299,32 @@ solvers
 }
 ```
 
+> **Source:** 📂 `system/fvSolution`
+> 
+> **Explanation:** ตั้งค่าพารามิเตอร์การควบคุมอัลกอริทึม PIMPLE และตัวแก้สมการเชิงเส้น รวมถึงการตั้งค่าความอดทนและวิธีการแก้ปัญหา
+>
+> **Key Concepts:**
+> - `nCorrectors`: จำนวนรอบการแก้ไขความดัน
+> - `nAlphaCorr`: จำนวนรอบการแก้ไขสัดส่วนปริมาตร
+> - `GAMG`: Geometric-Algebraic Multi-Grid solver
+> - `smoothSolver`: Solver แบบ smoothing สำหรับเมชที่ไม่ได้โครงสร้าง
+
 ใน `fvSchemes`:
 
-```foam
+```cpp
+// Temporal discretization scheme
 ddtSchemes
 {
     default         Euler;
 }
 
+// Gradient calculation schemes
 gradSchemes
 {
     default         Gauss linear;
 }
 
+// Divergence schemes
 divSchemes
 {
     default         none;
@@ -296,21 +341,34 @@ divSchemes
     div(phi,K)      Gauss limitedLinear 1;
 }
 
+// Laplacian schemes
 laplacianSchemes
 {
     default         Gauss linear corrected;
 }
 
+// Interpolation schemes
 interpolationSchemes
 {
     default         linear;
 }
 
+// Surface normal gradient schemes
 snGradSchemes
 {
     default         corrected;
 }
 ```
+
+> **Source:** 📂 `system/fvSchemes`
+> 
+> **Explanation:** กำหนดรูปแบบการจำแนกตัวเลข (discretization schemes) สำหรับสมการต่างๆ รวมถึงการประมาณค่า gradient, divergence, และ laplacian
+>
+> **Key Concepts:**
+> - `Euler`: รูปแบบการจำแนกเวลาแบบ Euler อันดับหนึ่ง
+> - `limitedLinearV`: รูปแบบ divergence แบบ limited linear พร้อมการจำกัดความผันผวน
+> - `vanLeer`: รูปแบบ flux limiter แบบ Van Leer สำหรับสัดส่วนปริมาตร
+> - `corrected`: การแก้ไข non-orthogonality ของเมช
 
 ## 6. Closure Relations (ความสัมพันธ์การปิด)
 
@@ -410,18 +468,29 @@ $$\alpha_v = \frac{4}{3}\pi n_b R_b^3$$
 - **ใช้การปรับ Time Step อัตโนมัติ** (Adjustable Time Step)
 - จำกัด Max Co และ Max Alpha Co:
 
-```foam
+```cpp
+// Adaptive time step control
 adjustTimeStep yes;
 
 maxCo           0.5;
 maxAlphaCo      0.5;
 ```
 
+> **Source:** 📂 `system/controlDict`
+> 
+> **Explanation:** ตั้งค่าการปรับค่าเวลาอัตโนมัติตามค่า Courant number และ volume fraction flux number
+>
+> **Key Concepts:**
+> - `adjustTimeStep`: เปิดใช้งานการปรับ time step อัตโนมัติ
+> - `maxCo`: ค่า Courant number สูงสุดที่อนุญาต
+> - `maxAlphaCo`: ค่า alpha Courant number สูงสุดสำหรับสัดส่วนปริมาตร
+
 ### 8.3 Convergence (การลู่เข้า)
 
 - **การใช้ Relaxation Factors ที่เหมาะสม**:
 
-```foam
+```cpp
+// Under-relaxation factors for stability
 relaxationFactors
 {
     fields
@@ -437,13 +506,22 @@ relaxationFactors
 }
 ```
 
+> **Source:** 📂 `system/fvSolution`
+> 
+> **Explanation:** ตั้งค่า under-relaxation factors เพื่อเพิ่มความเสถียรของการแก้สมการ
+>
+> **Key Concepts:**
+> - `p`: Under-relaxation factor สำหรับความดัน (ค่าต่ำช่วยเสถียร)
+> - `U`: Under-relaxation factor สำหรับความเร็ว
+> - `(k|epsilon|omega)`: Under-relaxation สำหรับตัวแปรความปั่นป่วน
+
 ### 8.4 Mesh Quality (คุณภาพเมช)
 
 | พารามิเตอร์ | ข้อกำหนด | วัตถุประสงค์ |
 |-------------|-----------|-------------|
 | **การปรับปรุง** | 10-15 cells ต่อเส้นผ่านศูนย์กลางของฟอง | แก้ปัญหาความโค้งของอินเตอร์เฟซ |
 | **ตัวชี้วัดคุณภาพ** | ความตั้งฉาก < 45°, อัตราส่วนภาพ < 5, ความเบ้ < 0.8 | ความถูกต้องเชิงตัวเลข |
-| **การรักษาชั้นขอบเขต** | ความหนา 1-3 cells ใกล้ผนัง | การทำนายความเค้นแรงเฉืองที่แม่นยำ |
+| **การรักษาชั้นขอบเขต** | ความหนา 1-3 cells ใกล้ผนัง | การทำนายความเค้นแรงเฉือนที่แม่นยำ |
 
 ### 8.5 Post-Processing
 

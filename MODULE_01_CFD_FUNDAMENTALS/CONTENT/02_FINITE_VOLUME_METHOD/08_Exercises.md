@@ -170,21 +170,37 @@ $$\begin{bmatrix}
 ### OpenFOAM Code Implementation
 
 ```cpp
+// Matrix assembly for diffusion equation
 // การประกอบเมทริกซ์สำหรับสมการ Diffusion
 fvScalarMatrix phiEqn
 (
     -fvm::laplacian(D, phi)  // D = diffusion coefficient
 );
 
+// Solve the linear system
 // การแก้ระบบสมการ
 phiEqn.solve();
 
+// Or use specific solver
 // หรือใช้ solver เฉพาะ
 solve
 (
     fvm::laplacian(D, phi) == sourceTerm
 );
 ```
+
+> **คำอธิบาย (Explanation):**
+> - **`fvScalarMatrix`**: Finite Volume matrix for scalar field transport (เมทริกซ์ Finite Volume สำหรับการถ่ายเท scalar field)
+> - **`fvm::laplacian(D, phi)`**: Implicit discretization of diffusion term (การ discretization แบบ implicit ของเทอม diffusion)
+> - **`solve()`**: Direct solver call (การเรียก solver โดยตรง)
+> - **`D`**: Diffusion coefficient (สัมประสิทธิ์การแพร่)
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Implicit Discretization**: Coefficient matrix built with diagonal dominance (การสร้างเมทริกซ์สัมประสิทธิ์แบบ implicit)
+> 2. **Laplacian Operator**: Second-order spatial derivative (ตัวดำเนินการอนุพันธ์อันดับสอง)
+> 3. **Linear System Solver**: Iterative or direct methods (วิธีการแก้ระบบสมการเชิงเส้น)
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ---
 
@@ -356,16 +372,20 @@ $$Pe = \frac{\rho u \Delta x}{\Gamma} = \frac{\text{Convective Transport}}{\text
 
 ```cpp
 // Central differencing (linear scheme)
+// การแทรกค่าด้วยแบบ Central differencing (linear scheme)
 surfaceScalarField phiCDS
 (
     linearInterpolate(phi)  // Interpolates to face centers
 );
 
+// Build convection matrix using specified scheme
+// การสร้างเมทริกซ์การพาโดยใช้ scheme ที่กำหนด
 fvScalarMatrix phiEqn
 (
     fvm::div(phi, phi)  // Uses scheme specified in fvSchemes
 );
 
+// Define scheme in fvSchemes dictionary
 // การกำหนด scheme ใน fvSchemes
 divSchemes
 {
@@ -373,12 +393,28 @@ divSchemes
     div(phi,U)        Gauss upwind;      // Upwind differencing
 }
 
+// Calculate flux directly
 // การคำนวณ flux โดยตรง
 surfaceScalarField fluxPhi = fvc::flux(phi) * phiCDS;
 
+// Check output values
 // การตรวจสอบค่า
 Info << "Face flux (CDS): " << sum(fluxPhi) << endl;
 ```
+
+> **คำอธิบาย (Explanation):**
+> - **`surfaceScalarField`**: Field defined on mesh faces (ฟิลด์ที่นิยามบนหน้าเซลล์)
+> - **`linearInterpolate(phi)`**: Linear interpolation from cell centers to faces (การแทรกค่าเชิงเส้นจากจุดศูนย์กลางเซลล์ไปยังหน้าเซลล์)
+> - **`fvm::div(phi, phi)`**: Implicit convection discretization (การ discretization การพาแบบ implicit)
+> - **`fvc::flux(phi)`**: Explicit flux calculation (การคำนวณ flux แบบ explicit)
+> - **`Gauss`**: Finite volume theorem integration (การอินทิเกรตด้วยทฤษฎีบทของ Gauss)
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Interpolation Schemes**: Converting cell-centered values to face values (การแปลงค่าจากจุดศูนย์กลางเซลล์ไปยังหน้าเซลล์)
+> 2. **Divergence Theorem**: Surface integral of fluxes (การอินทิเกรตพื้นผิวของฟลักซ์)
+> 3. **Numerical Stability**: Peclet number considerations (พิจารณาความเสถียรของ Peclet number)
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
 
 ---
 
@@ -646,12 +682,25 @@ $$\phi_f = \phi_U + \psi(r) \cdot \frac{1}{2}(\phi_D - \phi_U)$$
 **การนำไปใช้ใน OpenFOAM**:
 
 ```cpp
+// High-resolution schemes with flux limiters
 divSchemes
 {
     div(phi,phi)    Gauss vanLeer;       // Van Leer limiter
     div(phi,U)      Gauss limitedLinearV 1;  // Limited linear
 }
 ```
+
+> **คำอธิบาย (Explanation):**
+> - **`Gauss vanLeer`**: Van Leer flux limiter scheme (รูปแบบ flux limiter ของ Van Leer)
+> - **`limitedLinearV`**: Limited linear scheme with Venkatatsh limiter (รูปแบบเชิงเส้นจำกัดด้วย limiter ของ Venkatatsh)
+> - **`1`**: Limiter coefficient (ค่าสัมประสิทธิ์ limiter)
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **TVD Schemes**: Total Variation Diminishing for monotonic solutions (รูปแบบ TVD สำหรับการแก้สมการแบบ monotonic)
+> 2. **Flux Limiters**: Non-linear functions to prevent oscillations (ฟังก์ชันไม่เชิงเส้นเพื่อป้องกันการสั่น)
+> 3. **High-Order Accuracy**: Second-order with boundedness (ความแม่นยำอันดับสองพร้อมการจำกัดขอบเขต)
+
+> **📂 Source:** `.applications/solvers/compressible/rhoCentralFoam/rhoCentralFoam.C`
 
 ---
 

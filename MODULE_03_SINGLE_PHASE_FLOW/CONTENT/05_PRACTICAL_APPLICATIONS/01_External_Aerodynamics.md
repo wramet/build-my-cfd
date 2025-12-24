@@ -120,66 +120,78 @@ $$\Delta y = \frac{y^+ \mu}{\rho u_\tau} \tag{2.2}$$
 
 ```cpp
 // system/snappyHexMeshDict
-castellatedMesh true;
-snap            true;
-addLayers       true;
+// Enable meshing stages
+castellatedMesh true;    // Generate castellated mesh
+snap            true;    // Snap mesh to surface
+addLayers       true;    // Add boundary layer cells
 
+// Define geometry input files
 geometry
 {
     vehicle.stl
     {
-        type triSurfaceMesh;
-        name vehicle;
+        type triSurfaceMesh;    // STL surface format
+        name vehicle;           // Geometry name
     }
 }
 
+// Surface refinement settings
 refinementSurfaces
 {
     vehicle
     {
-        level (2 2);  // Surface refinement level
+        level (2 2);            // Minimum and maximum refinement levels
         patchInfo
         {
-            type wall;
-            inGroups (vehicleGroup);
+            type wall;          // Boundary type
+            inGroups (vehicleGroup);  // Group for patch management
         }
     }
 }
 
+// Region-based refinement
 refinementRegions
 {
     wakeBox
     {
-        mode inside;
-        levels ((10 2) (20 3));  // Gradual wake refinement
+        mode inside;                    // Refine inside this region
+        levels ((10 2) (20 3));         // Distance-based refinement levels
     }
 
     nearVehicleBox
     {
-        mode distance;
-        levels ((0.1 4) (0.5 3) (1.0 2));
+        mode distance;                  // Distance-based refinement
+        levels ((0.1 4) (0.5 3) (1.0 2));  // (distance level)
     }
 }
 
+// Boundary layer meshing controls
 addLayersControls
 {
-    relativeSizes true;
+    relativeSizes true;         // Use relative sizing
 
     layers
     {
         vehicle
         {
-            nSurfaceLayers 15;  // Number of prism layers
+            nSurfaceLayers 15;          // Number of prism layers
 
-            expansionRatio 1.2;  // Growth ratio
+            expansionRatio 1.2;         // Layer expansion ratio
 
-            finalLayerThickness 0.5;  // Target y+ ~ 30-50
+            finalLayerThickness 0.5;    // Target thickness for y+ ~ 30-50
 
-            minThickness 0.001;  // Minimum layer thickness
+            minThickness 0.001;         // Minimum allowable layer thickness
         }
     }
 }
 ```
+
+> **📂 Source:** `.applications/utilities/mesh/generation/snappyHexMesh/snappyHexMesh.C`  
+> **คำอธิบาย:** การตั้งค่า SnappyHexMesh สำหรับสร้าง mesh พลศาสตร์อากาศภายนอก โดยมี 3 ขั้นตอนหลัก: castellated mesh (สร้างโครงหลัก), snap (ปรับตามพื้นผิว), และ addLayers (เพิ่มชั้น boundary layer)  
+> **แนวคิดสำคัญ:**
+> - **refinementSurfaces**: กำหนดระดับความละเอียดบนพื้นผิววัตถุ (level คือระดับการแบ่งเซลล์)
+> - **refinementRegions**: สร้างบริเวณที่ต้องการความละเอียดพิเศษ เช่น wake region
+> - **addLayersControls**: สร้าง prism layers สำหรับจับ boundary layer ด้วยการกำหนดจำนวนชั้นและอัตราการขยาย (expansionRatio)
 
 ---
 
@@ -195,130 +207,165 @@ functions
 {
     forcesCoeffs
     {
+        // Function object type for force calculation
         type            forces;
-        libs            (fieldFunctionObjects);
+        libs            (fieldFunctionObjects);  // Required library
+        
+        // Output control
         writeControl    timeStep;
-        writeInterval   1;
-        timeStart       0;
+        writeInterval   1;          // Write every time step
+        timeStart       0;          // Start at time 0
 
+        // Patch to calculate forces on
         patches         (vehicleBody);
 
         // Density specification
-        rho             rhoInf;      // ใช้ความหนาแน่นคงที่
-        rhoInf          1.225;       // ความหนาแน่นอากาศ [kg/m³]
+        rho             rhoInf;      // Use constant density
+        rhoInf          1.225;       // Air density at sea level [kg/m³]
 
-        // Center of rotation
-        CofR            (0 0 0);     // จุดศูนย์กลางการหมุน
+        // Center of rotation for moment calculations
+        CofR            (0 0 0);     // Coordinate origin
 
-        // Coordinate system
+        // Coordinate system definition
         coordinateSystem
         {
-            type    cartesian;
-            origin  (0 0 0);
-            e1      (1 0 0);  // X-axis = drag direction
-            e3      (0 0 1);  // Z-axis = vertical
+            type    cartesian;      // Cartesian coordinate system
+            origin  (0 0 0);        // System origin
+            e1      (1 0 0);        // X-axis direction (drag)
+            e3      (0 0 1);        // Z-axis direction (lift/vertical)
         }
 
-        // Force directions
-        dragDir         (1 0 0);    // ทิศทางแรงต้าน (แกน X)
-        liftDir         (0 0 1);    // ทิศทางแรงยก (แกน Z)
-        pitchAxis       (0 1 0);    // แกนการหมุนควง (แกน Y)
+        // Force and moment directions
+        dragDir         (1 0 0);    // Drag direction (X-axis)
+        liftDir         (0 0 1);    // Lift direction (Z-axis)
+        pitchAxis       (0 1 0);    // Pitch moment axis (Y-axis)
 
-        // Reference quantities
-        magUInf         30.0;       // ความเร็วอ้างอิง [m/s]
-        lRef            4.5;        // ความยาวอ้างอิง [m]
-        Aref            2.2;        // พื้นที่อ้างอิง [m²]
+        // Reference quantities for coefficient calculation
+        magUInf         30.0;       // Freestream velocity magnitude [m/s]
+        lRef            4.5;        // Reference length [m]
+        Aref            2.2;        // Reference area [m²]
 
-        // Output settings
-        log             true;
-        writeFields     false;
+        // Output format options
+        log             true;       // Write to log file
+        writeFields     false;      // Don't write force fields
     }
 }
 ```
+
+> **📂 Source:** `.applications/utilities/postProcessing/forces/forces/forces.C`  
+> **คำอธิบาย:** Function object `forces` ใช้คำนวณแรงและโมเมนต์ที่กระทำต่อพื้นผิว โดยรวมความดันและแรงเฉือน (pressure + viscous forces) และทำให้เป็นไร้มิติ (non-dimensional) เพื่อหาค่าสัมประสิทธิ์  
+> **แนวคิดสำคัญ:**
+> - **rho rhoInf**: ใช้ความหนาแน่นคงที่เหมาะสำหรับการไหลแบบไม่อัดตัว (incompressible)
+> - **coordinateSystem**: กำหนดระบบพิกัดสำหรับการคำนวณทิศทางแรง สำคัญมากสำหรับวัตถุที่มีการหมุนหรือทิศทางไม่ซ้ำกัน
+> - **Reference quantities**: magUInf, lRef, Aref ใช้คำนวณสัมประสิทธิ์ $C_D, C_L$ ผ่านสมการ (1.1) และ (1.2)
 
 ### 3.2 การติดตามความดัน (Pressure Monitoring)
 
 ```cpp
 functions
 {
+    // Surface-averaged pressure coefficient
     surfacePressureCoeff
     {
-        type            surfaceRegion;
+        type            surfaceRegion;          // Surface-based calculation
         libs            (fieldFunctionObjects);
         writeControl    timeStep;
         writeInterval   1;
 
-        operation       average;
-        surfaceFormat   none;
+        operation       average;                // Average operation
+        surfaceFormat   none;                   // No surface output
 
-        regionType      patch;
-        name            vehicleBody;
+        regionType      patch;                  // Patch type region
+        name            vehicleBody;            // Patch name
 
         fields
         (
-            Cp  // Pressure coefficient
+            Cp                                  // Pressure coefficient field
         );
     }
 
+    // Point probes for pressure monitoring
     pressureProbes
     {
-        type            probes;
-        libs            (sampling);
+        type            probes;                 // Point probe type
+        libs            (sampling);             // Sampling library
         writeControl    timeStep;
         writeInterval   1;
 
+        // Probe locations in format (x y z)
         probeLocations
         (
-            (0.5  0.0  0.0)   // หน้ารถ
-            (1.5  0.0  0.0)   // บนหลังคา
-            (2.5  0.0  0.0)   // ท้ายรถ
-            (3.0  0.0  0.0)   // ใน wake
+            (0.5  0.0  0.0)   // Front of vehicle
+            (1.5  0.0  0.0)   // On roof
+            (2.5  0.0  0.0)   // Rear of vehicle
+            (3.0  0.0  0.0)   // In wake region
         );
 
-        fields          (p U Cp);
+        // Fields to sample
+        fields          (p U Cp);               // Pressure, velocity, Cp
     }
 }
 ```
+
+> **📂 Source:** `.applications/functionObjects/field/surfaceRegion/surfaceRegion.C`  
+> **คำอธิบาย:** Function objects สำหรับติดตามค่าความดันและสัมประสิทธิ์ความดัน ทั้งแบบเฉลี่ยบนพื้นผิว (surfaceRegion) และแบบจุดวัดเฉพาะจุด (probes)  
+> **แนวคิดสำคัญ:**
+> - **surfaceRegion**: คำนวณค่าเฉลี่ยบน patch ทั้งหมด เหมาะสำหรับติดตามแนวโน้มโดยรวม
+> - **probes**: ติดตามค่าที่ตำแหน่งเฉพาะจุด เหมาะสำหรับเปรียบเทียบกับข้อมูลทดลอง
+> - **Cp field**: คำนวณอัตโนมัติจากสมการ (1.3) เมื่อมีการคำนวณความดัน
 
 ### 3.3 การวิเคราะห์ Wake
 
 ```cpp
 functions
 {
+    // Line sampling in wake region
     wakeAnalysis
     {
-        type            sets;
+        type            sets;                   // Sample along lines/sets
         libs            (fieldFunctionObjects);
         writeControl    timeStep;
-        writeInterval   10;
+        writeInterval   10;                     // Write every 10 steps
 
-        setFormat       raw;
+        setFormat       raw;                    // Raw data format
 
+        // Define sampling lines
         sets
         (
+            // Streamwise line behind vehicle
             wakeLineX
             {
-                type        uniform;
-                axis        x;
-                start       (3.0  0.0  0.0);
-                end         (10.0 0.0  0.0);
-                nPoints     100;
+                type        uniform;            // Uniform point distribution
+                axis        x;                  // Line along X-axis
+                start       (3.0  0.0  0.0);    // Start point
+                end         (10.0 0.0  0.0);    // End point
+                nPoints     100;                // Number of points
             }
 
+            // Vertical line through wake
             wakeLineZ
             {
-                type        uniform;
-                axis        z;
-                start       (3.0  0.0 -1.0);
-                end         (3.0  0.0  1.0);
-                nPoints     50;
+                type        uniform;            // Uniform point distribution
+                axis        z;                  // Line along Z-axis
+                start       (3.0  0.0 -1.0);    // Start point
+                end         (3.0  0.0  1.0);    // End point
+                nPoints     50;                 // Number of points
             }
         );
 
-        fields          (p U k omega);
+        // Fields to sample
+        fields          (p U k omega);          // Pressure, velocity, TKE, omega
     }
 }
 ```
+
+> **📂 Source:** `.applications/sampling/sets/sets/sets.C`  
+> **คำอธิบาย:** Function object `sets` ใช้สร้างเส้นตัดอย่างง่าย (sampling lines) ผ่านโดเมนการไหลเพื่อวิเคราะห์โครงสร้างของ wake  
+> **แนวคิดสำคัญ:**
+> - **uniform distribution**: กระจายจุดตัวอย่างอย่างสม่ำเสมอตามเส้น ให้ความละเอียดที่ดี
+> - **streamwise line (wakeLineX)**: ติดตามการฟื้นตัวของ velocity deficit และการขยายตัวของ wake
+> - **vertical line (wakeLineZ)**: วิเคราะห์โปรไฟล์ความเร็วในทิศทางตั้งฉาก
+> - **TKE (k)**: แสดงความรุนแรงของความปั่นป่วนใน wake
 
 ---
 
@@ -340,89 +387,126 @@ functions
 // system/fvSolution
 SIMPLE
 {
+    // Number of non-orthogonal correctors
     nNonOrthogonalCorrectors 2;
 
+    // Convergence criteria for steady-state
     residualControl
     {
-        p           1e-6;
-        U           1e-6;
-        k           1e-6;
-        omega       1e-6;
+        p           1e-6;       // Pressure residual
+        U           1e-6;       // Velocity residual
+        k           1e-6;       // TKE residual
+        omega       1e-6;       // Specific dissipation residual
     }
 }
 
+// Under-relaxation factors for stability
 relaxationFactors
 {
     fields
     {
-        p       0.3;
+        p       0.3;           // Pressure relaxation
     }
     equations
     {
-        U       0.7;
-        k       0.7;
-        omega   0.7;
+        U       0.7;           // Momentum equation relaxation
+        k       0.7;           // TKE equation relaxation
+        omega   0.7;           // Omega equation relaxation
     }
 }
 ```
+
+> **📂 Source:** `.applications/solvers/incompressible/simpleFoam/simpleFoam.C`  
+> **คำอธิบาย:** SIMPLE algorithm สำหรับการไหล steady-state ใช้ under-relaxation เพื่อความเสถียรในการแก้สมการ coupled ระหว่างความดันและความเร็ว  
+> **แนวคิดสำคัญ:**
+> - **nNonOrthogonalCorrectors**: แก้ปัญหาเมื่อ mesh มีความ non-orthogonal สูง
+> - **relaxationFactors**: ค่าน้อยกว่า 1 เพื่อป้องกันการ oscillate แต่จะทำให้ converge ช้าลง
+> - **residualControl**: กำหนดเกณฑ์การหยุด (convergence) เมื่อ residual ต่ำพอ
 
 **Transient (pimpleFoam):**
 ```cpp
 PIMPLE
 {
-    nCorrectors     2;      // Outer correctors
+    // Number of outer correctors per time step
+    nCorrectors     2;          // Outer correctors for PISO loop
+    
+    // Non-orthogonal correctors
     nNonOrthogonalCorrectors 2;
+    
+    // Interface tracking (for multiphase)
     nAlphaCorr      1;
     nAlphaSubCycles 2;
 
+    // Residual control (optional for PIMPLE)
     residualControl
     {
-        p           1e-5;
-        U           1e-5;
-        k           1e-5;
-        omega       1e-5;
+        p           1e-5;       // Pressure residual
+        U           1e-5;       // Velocity residual
+        k           1e-5;       // TKE residual
+        omega       1e-5;       // Omega residual
     }
 }
 
-// Time step control
-adjustTimeStep  yes;
-maxCo          0.8;  // Courant number < 1
-maxDeltaT      1e-3;
+// Adaptive time step control
+adjustTimeStep  yes;            // Enable adaptive time stepping
+maxCo          0.8;            // Maximum Courant number (< 1 for stability)
+maxDeltaT      1e-3;           // Maximum time step size [s]
 ```
+
+> **📂 Source:** `.applications/solvers/incompressible/pimpleFoam/pimpleFoam.C`  
+> **คำอธิบาย:** PIMPLE algorithm ผสมระหว่าง PISO (transient) และ SIMPLE (under-relaxation) เหมาะสำหรับการไหล unsteady ที่มี large time steps  
+> **แนวคิดสำคัญ:**
+> - **PISO loop (nCorrectors)**: แก้ coupled pressure-velocity หลายครั้งต่อ time step เพื่อความแม่นยำ
+> - **maxCo < 1**: Courant-Friedrichs-Lewy condition ความเสถียรเชิงตัวเลข (fluid ไม่เดินทางเกิน 1 เซลล์/step)
+> - **adjustTimeStep**: ปรับความยาว time step อัตโนมัติตามค่า Co เพื่อสมดุลระหว่างความเร็วและความแม่นยำ
 
 ### 4.3 การตั้งค่า Turbulence Model
 
 **k-ω SST Model (แนะนำสำหรับพลศาสตร์อากาศ):**
 ```cpp
 // constant/turbulenceProperties
-simulationType  RAS;
+simulationType  RAS;           // Reynolds-Averaged Simulation
 RAS
 {
-    RASModel        kOmegaSST;
+    RASModel        kOmegaSST;  // k-omega SST model
 
-    turbulence      on;
+    turbulence      on;         // Enable turbulence modeling
 
-    printCoeffs     on;
+    printCoeffs     on;         // Print model coefficients
 
-    // k-ω SST coefficients
+    // k-ω SST model coefficients
     kOmegaSSTCoeffs
     {
-        alphaK1     0.85;
-        alphaK2     1.0;
-        alphaOmega1 0.5;
-        alphaOmega2 0.856;
-        gamma1      0.5532;
-        gamma2      0.4403;
-        beta1       0.075;
-        beta2       0.0828;
-        betaStar    0.09;
-        a1          0.31;
-        b1          1.0;
-        c1          10.0;
-        F3          no;
+        // Diffusion coefficient closures
+        alphaK1     0.85;       // Diffusion coefficient for k (inner region)
+        alphaK2     1.0;        // Diffusion coefficient for k (outer region)
+        alphaOmega1 0.5;        // Diffusion coefficient for omega (inner)
+        alphaOmega2 0.856;      // Diffusion coefficient for omega (outer)
+        
+        // Production coefficient closures
+        gamma1      0.5532;     // Production coefficient for omega (inner)
+        gamma2      0.4403;     // Production coefficient for omega (outer)
+        
+        // Destruction coefficient closures
+        beta1       0.075;      // Destruction coefficient for omega (inner)
+        beta2       0.0828;     // Destruction coefficient for omega (outer)
+        betaStar    0.09;       // Dissipation coefficient for k
+        
+        // Cross-diffusion and blending
+        a1          0.31;       // Constant for turbulent viscosity
+        b1          1.0;        // Constant for cross-diffusion
+        c1          10.0;       // Constant for blending function
+        F3          no;         // Disable F3 blending function
     }
 }
 ```
+
+> **📂 Source:** `.applications/turbulenceModels/turbulenceModels/RAS/kOmegaSST/kOmegaSST.C`  
+> **คำอธิบาย:** k-ω SST (Shear Stress Transport) ผสม k-ε (far-field) กับ k-ω (near-wall) โดยใช้ blending function ให้ความแม่นยำสูงสำหรับการไหลที่มี pressure gradient เชิงลบ  
+> **แนวคิดสำคัญ:**
+> - **Blending functions (F1, F2)**: สลับระหว่าง k-ω (ใกล้ผนัง) และ k-ε (ไกลผนัง) อัตโนมัติ
+> - **Shear stress limiter (a1)**: จำกัด turbulent viscosity ในบริเวณที่มี shear สูง ช่วยทำนาย flow separation ได้ดี
+> - **Cross-diffusion term (b1)**: แก้ไขปัญหาการกระจายของ ω ใน free stream
 
 ### 4.4 การกำหนด Boundary Conditions
 
@@ -431,45 +515,52 @@ RAS
 // 0/U
 inlet
 {
-    type            freestreamVelocity;
-    freestreamValue uniform (30 0 0);  // U_inf
+    type            freestreamVelocity;         // Freestream condition
+    freestreamValue uniform (30 0 0);          // U_inf [m/s]
 }
 
 // 0/k
 inlet
 {
-    type            fixedValue;
-    value           uniform 0.24;  // k = 1.5*(U*I)^2, I=0.5%
+    type            fixedValue;                 // Fixed TKE at inlet
+    value           uniform 0.24;               // k = 1.5*(U*I)^2, I=0.5%
 }
 
 // 0/omega
 inlet
 {
-    type            fixedValue;
-    value           uniform 2.5;   // ω = k^0.5/(0.09*L)
+    type            fixedValue;                 // Fixed omega at inlet
+    value           uniform 2.5;                // ω = k^0.5/(0.09*L) [1/s]
 }
 
 // 0/p
 inlet
 {
-    type            freestreamPressure;
-    freestreamValue uniform 0;
+    type            freestreamPressure;         // Freestream pressure
+    freestreamValue uniform 0;                  // Reference pressure = 0 [Pa]
 }
 ```
+
+> **📂 Source:** `.applications/boundaryConditions/freestream/freestreamFvPatchField.C`  
+> **คำอธิบาย:** Freestream boundary conditions อนุญาตให้มีการไหลออก (outflow) เมื่อจำเป็น เหมาะสำหรับ external aerodynamics  
+> **แนวคิดสำคัญ:**
+> - **freestreamVelocity**: ใช้ inlet velocity เมื่อ flow เข้า แต่ใช้ zeroGradient เมื่อ flow ออก
+> - **k inlet**: ปกติใช้ turbulence intensity I = 0.5-5% สำหรับ aerodynamics
+> - **ω inlet**: คำนวณจาก k และ length scale L (เช่น L = 0.07 * characteristic length)
 
 **Outlet Boundary Condition:**
 ```cpp
 // 0/U
 outlet
 {
-    type            zeroGradient;
+    type            zeroGradient;               // Convective outflow
 }
 
 // 0/p
 outlet
 {
-    type            fixedValue;
-    value           uniform 0;
+    type            fixedValue;                 // Fixed pressure outlet
+    value           uniform 0;                  // Reference pressure [Pa]
 }
 ```
 
@@ -478,23 +569,30 @@ outlet
 // 0/U
 vehicleBody
 {
-    type            noSlip;
+    type            noSlip;                     // No-slip condition
 }
 
 // 0/k
 vehicleBody
 {
-    type            kLowReWallFunction;
-    value           uniform 0;
+    type            kLowReWallFunction;         // Low-Re wall function
+    value           uniform 0;                  // k = 0 at wall
 }
 
 // 0/omega
 vehicleBody
 {
-    type            omegaWallFunction;
-    value           uniform 0;
+    type            omegaWallFunction;          // Omega wall function
+    value           uniform 0;                  // Modeled value near wall
 }
 ```
+
+> **📂 Source:** `.applications/boundaryConditions/wall/wallFvPatchField.C`  
+> **คำอธิบาย:** Wall boundary conditions สำหรับ RANS models ใช้ wall functions เพื่อลดความละเอียดที่จำเป็นใกล้ผนัง  
+> **แนวคิดสำคัญ:**
+> - **noSlip**: ความเร็ว = 0 บนผิว (สภาพไม่ลื่นไถล)
+> - **kLowReWallFunction**: k = 0 ที่ผนัง และใช้ wall function สำหรับ y+ > 30
+> - **omegaWallFunction**: คำนวณ ω ใกล้ผนังจาก friction velocity และ y+
 
 ---
 
@@ -535,16 +633,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load CFD results
+# File: postProcessing/forcesCoeffs/0/forceCoeffs.dat
 cfd_data = np.loadtxt('postProcessing/forcesCoeffs/0/forceCoeffs.dat')
-time_cfd = cfd_data[:, 0]
-Cd_cfd = cfd_data[:, 1]
+time_cfd = cfd_data[:, 0]      # Time column
+Cd_cfd = cfd_data[:, 1]        # Drag coefficient column
 
 # Load experimental data
 exp_data = np.loadtxt('experimental_data.csv')
 time_exp = exp_data[:, 0]
 Cd_exp = exp_data[:, 1]
 
-# Calculate error
+# Calculate error percentage
 error = np.abs(Cd_cfd[-1] - Cd_exp[-1]) / Cd_exp[-1] * 100
 print(f"Drag coefficient error: {error:.2f}%")
 
@@ -560,6 +659,13 @@ plt.title('Drag Coefficient Comparison')
 plt.savefig('validation.png', dpi=300)
 ```
 
+> **📂 Source:** Custom Python post-processing script  
+> **คำอธิบาย:** ใช้ Python เปรียบเทียบผลลัพธ์ CFD กับข้อมูลทดลอง และคำนวณเปอร์เซ็นต์ความคลาดเคลื่อน (error percentage)  
+> **แนวคิดสำคัญ:**
+> - **forceCoeffs.dat**: ไฟล์ output จาก function object `forces` มีคอลัมน์: time, Cd, Cl, Cl(facing), CmRoll, CmPitch, CmYaw
+> - **Error metric**: คำนวณจากค่าสัมประสิทธิ์ที่ converge (ค่าสุดท้าย) เทียบกับค่าทดลอง
+> - **Visualization**: พล็อตเปรียบเทียบแนวโน้มของค่าสัมประสิทธิ์ตามเวลา เพื่อดูการ converge
+
 ---
 
 ## 🚗 6. กรณีศึกษา: พลศาสตร์อากาศยานยนต์
@@ -570,10 +676,18 @@ plt.savefig('validation.png', dpi=300)
 
 **รูปทรงเรขาคณิต:**
 ```cpp
-// constant/transportModel
-transportModel  Newtonian;
-nu              [0 2 -1 0 0 0 0] 1.5e-05;  // อากาศที่ 25°C
+// constant/transportProperties
+transportModel  Newtonian;        // Newtonian fluid model
+nu              [0 2 -1 0 0 0 0] 1.5e-05;  // Kinematic viscosity [m²/s]
+                                            // Air at 25°C
 ```
+
+> **📂 Source:** `.applications/transportModels/Newtonian/Newtonian.C`  
+> **คำอธิบาย:** Transport properties สำหรับของไหลแบบ Newtonian (ความหนืดคงที่ไม่ขึ้นกับอัตราการเฉือน)  
+> **แนวคิดสำคัญ:**
+> - **Kinematic viscosity (ν)**: อากาศที่ 25°C มีค่า ≈ 1.5×10⁻⁵ m²/s
+> - **[0 2 -1 0 0 0 0]**: Dimension ของ kinematic viscosity = L²/T
+> - **ใช้ค่า ν แทน μ** เพราะของไหลแบบ incompressible ใช้ kinematic viscosity สะดวกกว่า
 
 **เงื่อนไขการทดลอง:**
 - ความยาว $L = 1.044$ m

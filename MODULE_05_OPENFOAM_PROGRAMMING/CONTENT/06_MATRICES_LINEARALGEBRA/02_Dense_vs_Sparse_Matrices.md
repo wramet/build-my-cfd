@@ -67,7 +67,7 @@ graph LR
     style L fill:#fff9c4,stroke:#fbc02d
     style U fill:#e8f5e9,stroke:#2e7d32
 ```
-> **Figure 1:** โครงสร้างการจัดเก็บเมทริกซ์สัมประสิทธิ์ A ในรูปแบบ LDU ซึ่งแบ่งออกเป็นอาร์เรย์แนวทแยง (Diagonal) และอาร์เรย์ส่วนบน/ส่วนล่าง (Upper/Lower) เพื่อประสิทธิภาพด้านหน่วยความจำสูงสุดความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** โครงสร้างการจัดเก็บเมทริกซ์สัมประสิทธิ์ A ในรูปแบบ LDU ซึ่งแบ่งออกเป็นอาร์เรย์แนวทแยง (Diagonal) และอาร์เรย์ส่วนบน/ส่วนล่าง (Upper/Lower) เพื่อประสิทธิภาพด้านหน่วยความจำสูงสุด
 
 **Variable Definitions**:
 - $\mathbf{A} \in \mathbb{R}^{N \times N}$ = coefficient matrix
@@ -105,6 +105,18 @@ public:
 };
 ```
 
+**Source**: `.applications/test/Matrix/Test-Matrix.C`
+
+**คำอธิบาย (Explanation)**:
+- คลาส `SquareMatrix` เป็นเมทริกซ์หนาแน่น (dense matrix) ที่จัดเก็บข้อมูลทุก element ในหน่วยความจำ
+- ใช้ row-major order แปลว่า element ใน row เดียวกันจะถูกเก็บในตำแหน่งหน่วยความจำที่ต่อเนื่องกัน
+- `operator()` ใช้ formula `i * n_ + j` ในการคำนวณตำแหน่งของ element เพื่อการเข้าถึงแบบ O(1)
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Row-major order**: การจัดเก็บข้อมูลแบบ row-major เป็นมาตรฐานใน C/C++
+- **Direct indexing**: การเข้าถึง element โดยตรงผ่าน pointer arithmetic
+- **Memory layout**: การจัดวางหน่วยความจำส่งผลต่อ performance ผ่าน cache locality
+
 **Memory Efficiency**:
 - **Memory Complexity**: $\mathcal{O}(n^2)$ for $n \times n$ matrix
 - **Access Complexity**: $\mathcal{O}(1)$ for direct element access
@@ -136,6 +148,16 @@ public:
 };
 ```
 
+**คำอธิบาย (Explanation)**:
+- `SymmetricSquareMatrix` ใช้ประโยชน์จากสมมาตรของเมทริกซ์ (A_ij = A_ji)
+- เก็บเฉพาะส่วน upper triangular เพื่อประหยัดหน่วยความจำ 50%
+- Formula `i*n_ + j - i*(i+1)/2` ใช้ในการคำนวณ index ใน 1D array
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Symmetry optimization**: การใช้ประโยชน์จากคุณสมบัติสมมาตรของเมทริกซ์
+- **Triangular storage**: การจัดเก็บแบบ triangular เพื่อลดหน่วยความจำ
+- **Index mapping**: การแปลง 2D index เป็น 1D index ใน compressed storage
+
 **Memory Comparison**:
 - **Full square matrix**: $n^2$ elements
 - **Symmetric matrix**: $\frac{n(n+1)}{2}$ elements
@@ -163,6 +185,16 @@ public:
     }
 };
 ```
+
+**คำอธิบาย (Explanation)**:
+- `DiagonalMatrix` เก็บเฉพาะค่าบนเส้นทแยงมุม เป็นการบีบอัดสุดโต่ง
+- Matrix-vector multiplication ลดลงจาก O(n²) เป็น O(n) เนื่องจากไม่ต้องคูณกับ off-diagonal elements
+- Loop `forAll(x, i)` ทำการคูณ element-wise ระหว่าง diagonal กับ vector
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Diagonal storage**: การจัดเก็บเฉพาะ diagonal elements เพื่อประหยัดหน่วยความจำ
+- **Computational reduction**: การลดจำนวน operations จาก O(n²) เป็น O(n)
+- **Element-wise operation**: การดำเนินการระดับ element แทน matrix operations
 
 **Performance Comparison**:
 
@@ -211,6 +243,18 @@ public:
 };
 ```
 
+**คำอธิบาย (Explanation)**:
+- `lduMatrix` ใช้หลักการ LDU (Lower-Diagonal-Upper) ในการจัดเก็บเมทริกซ์แบบ sparse
+- `lowerPtr_`, `diagPtr_`, `upperPtr_` เป็น pointers ไปยัง scalar fields ที่เก็บ coefficients เฉพาะ non-zero values
+- `lduMesh_` เก็บ reference ของ mesh เพื่อใช้ในการเข้าถึงข้อมูล connectivity
+- `lduAddr()` ให้ access ไปยัง cell-to-cell connectivity information
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **LDU decomposition**: การแยกเมทริกซ์ออกเป็นสามส่วน (Lower, Diagonal, Upper)
+- **Sparse storage**: การจัดเก็บเฉพาะ non-zero elements
+- **Mesh connectivity**: การเชื่อมต่อกับ mesh structure เพื่อการเข้าถึงข้อมูล neighbor
+- **Pointer-based design**: การใช้ pointers ในการจัดการ memory อย่างมีประสิทธิภาพ
+
 ### **Storage Efficiency**
 
 For a mesh with $n$ cells and $m$ internal faces:
@@ -251,6 +295,19 @@ public:
     const labelList& upperAddr() const { return neighbour_; }  // Upper addressing
 };
 ```
+
+**คำอธิบาย (Explanation)**:
+- `owner_` เป็น label list ที่เก็บ cell index ของ "owner" สำหรับแต่ละ face
+- `neighbour_` เป็น label list ที่เก็บ cell index ของ "neighbour" สำหรับ internal faces
+- Convention: owner มี index ต่ำกว่า neighbour สำหรับ internal faces
+- `lowerAddr()` และ `upperAddr()` ให้ access ไปยัง connectivity information
+- `nInternalFaces()` คืนค่าจำนวน internal faces (non-boundary connections)
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Owner-neighbour scheme**: ระบบการจัดเก็บความสัมพันธ์ระหว่าง cell ผ่าน face
+- **Lower/upper addressing**: การแยกการเข้าถึงระหว่าง lower และ upper triangles
+- **Face-based connectivity**: การใช้ faces เป็นหลักในการกำหนด connectivity
+- **Internal vs boundary faces**: การแยกประเภทของ faces (internal มี owner+neighbour, boundary มีเฉพาะ owner)
 
 **Orientation Convention**:
 
@@ -293,6 +350,19 @@ void assembleLaplacian(lduMatrix& matrix, const scalar gamma)
     }
 }
 ```
+
+**คำอธิบาย (Explanation)**:
+- `assembleLaplacian` ทำการประกอบเมทริกซ์ Laplacian แบบ face-by-face
+- `addr.lowerAddr()[facei]` และ `addr.upperAddr()[facei]` ให้ cell indices ของ owner และ neighbour
+- `coeff` คำนวณจาก geometric factor: diffusion coefficient × face area / distance
+- `diag[own]` และ `diag[nei]` ถูกเพิ่มค่าด้วย `coeff` สำหรับ diagonal terms
+- `upper[facei]` และ `lower[facei]` ถูกตั้งค่าเป็น `-coeff` สำหรับ off-diagonal terms
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Face-based assembly**: การประกอบเมทริกซ์แบบ face-by-face เป็นหลักการพื้นฐาน
+- **Flux conservation**: การรักษา equilibrium ระหว่าง owner และ neighbour contributions
+- **Geometric factors**: การใช้ข้อมูล geometric ของ mesh (face area, distance)
+- **LDU structure**: การแยก coefficients เป็น lower, diagonal, และ upper
 
 **Laplacian Discretization**:
 
@@ -389,6 +459,22 @@ void lduMatrix::Amul
 }
 ```
 
+**คำอธิบาย (Explanation)**:
+- `Amul` ทำการคูณเมทริกซ์-เวกเตอร์แบบ sparse: y = A·x
+- `result = diag() * x` เริ่มต้นด้วย diagonal contributions
+- Loop `forAll(lowerAddr, facei)` เพิ่ม lower triangle contributions ให้กับ neighbour cells
+- Loop `forAll(upperAddr, facei)` เพิ่ม upper triangle contributions ให้กับ owner cells
+- Lower triangle: `result[nei] += lower[facei] * x[own]`
+- Upper triangle: `result[own] += upper[facei] * x[nei]`
+- Complexity ลดลงจาก O(n²) เป็น O(n + n_faces) เนื่องจากเข้าถึงเฉพาะ non-zero elements
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Sparse matrix-vector multiplication**: การคูณเมทริกซ์-เวกเตอร์แบบ sparse
+- **LDU traversal**: การเดินทางผ่าน lower, diagonal, และ upper แยกกัน
+- **Face-based iteration**: การวนลูปผ่าน faces แทน matrix elements
+- **Owner-neighbour scheme**: การใช้โครงสร้าง owner-neighbour ในการเข้าถึงข้อมูล
+- **Computational efficiency**: การลด complexity ผ่าน sparsity
+
 ### **Mathematical Foundation**
 
 The sparse matrix $\mathbf{A}$ in OpenFOAM follows the **Lower-Diagonal-Upper (LDU)** format:
@@ -458,6 +544,18 @@ void matrixMultiply(const SquareMatrix<Type>& A,
 }
 ```
 
+**คำอธิบาย (Explanation)**:
+- **BAD approach**: การเข้าถึงแบบ column-major `B(k,j)` ทำให้เกิด cache thrashing
+- **GOOD approach**: การ cache `A(i,k)` และเข้าถึง `B(k,j)` แบบ sequential improves cache locality
+- Row-major order ใน C++ ทำให้การเข้าถึงแบบ row-wise มีประสิทธิภาพมากกว่า
+- Performance improvement: 2-3× speedup จาก cache-friendly ordering
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Cache locality**: การออกแบบ algorithm ให้เข้าถึง memory แบบ sequential
+- **Row-major vs column-major**: ผลกระทบของ memory layout ต่อ performance
+- **Cache thrashing**: ปัญหาที่เกิดจากการเข้าถึง memory แบบ non-sequential
+- **Loop reordering**: เทคนิคการจัดลำดับ loop เพื่อปรับปรุง cache performance
+
 OpenFOAM's cache optimization strategy uses **locality of reference**:
 
 **Theoretical Principles**:
@@ -503,6 +601,20 @@ FixedMatrix<scalar, 3, 3> rotationMatrix;
 // No dynamic memory allocation, maximum performance
 ```
 
+**คำอธิบาย (Explanation)**:
+- `FixedMatrix` ใช้ template parameters `nRows` และ `nCols` สำหรับ compile-time size
+- `data_[nRows * nCols]` เป็น stack allocation ไม่มี heap overhead
+- Compiler สามารถ unroll loops ได้อย่างสมบูรณ์เนื่องจาก size เป็นค่าคงที่
+- ไม่มี dynamic memory allocation ทำให้ได้ maximum performance
+- ใช้สำหรับ small matrices เช่น 3×3 transformation matrices
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Stack allocation**: การจัดสรรหน่วยความจำบน stack แทน heap
+- **Compile-time optimization**: การใช้ template parameters เพื่อ compile-time optimizations
+- **Loop unrolling**: เทคนิคการ unroll loops เพื่อลด overhead
+- **Template metaprogramming**: การใช้ templates ในการสร้าง compile-time code
+- **Zero-overhead abstraction**: การสร้าง abstractions ที่ไม่มี runtime overhead
+
 **Problem Solved**:
 - **Memory allocation overhead** for small matrices
 - Costs from heap management, fragmentation, and cache pollution
@@ -545,6 +657,19 @@ stressMatrix(1,0) = sigma_yx;  stressMatrix(1,1) = sigma_yy;
 vector principalStress = stressMatrix.inv() * stressVector;
 ```
 
+**คำอธิบาย (Explanation)**:
+- `SquareMatrix<scalar>` สร้างเมทริกซ์ 6×6 สำหรับ stress tensor calculations
+- Element access `stressMatrix(i,j)` ใช้ในการกำหนดค่า stress components
+- `stressMatrix.inv()` ทำการคำนวณ inverse ของเมทริกซ์
+- Matrix-vector multiplication `stressMatrix.inv() * stressVector` หา principal stresses
+- ใช้ใน solid mechanics solvers สำหรับ stress analysis
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Stress tensor**: เมทริกซ์ 3×3 (หรือ 6×6 ใน Voigt notation) สำหรับ stress state
+- **Principal stresses**: ค่า eigenvalues ของ stress tensor
+- **Matrix inversion**: การหา inverse เพื่อแก้ linear systems
+- **Small dense systems**: การใช้ dense matrices สำหรับ small problems
+
 ### **2. Transformation Matrices**
 
 Geometric transformations for coordinate system changes:
@@ -573,6 +698,18 @@ SquareMatrix<vector> rotationMatrix =
 vector rotatedPoint = rotationMatrix & originalPoint;
 ```
 
+**คำอธิบาย (Explanation)**:
+- `tensor::rotation(axis, angle)` สร้าง rotation matrix จาก axis และ angle
+- `rotationMatrix & originalPoint` ใช้ operator `&` สำหรับ matrix-vector multiplication
+- Rotation matrices ใช้ใน coordinate transformations สำหรับ rotating reference frames
+- Scaling matrices ใช้ใน mesh scaling และ coordinate transformations
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Rotation matrices**: เมทริกซ์ orthogonal ที่ใช้ในการหมุน coordinate systems
+- **Scaling matrices**: เมทริกซ์ diagonal สำหรับ scaling operations
+- **Coordinate transformations**: การแปลงระหว่าง coordinate systems
+- **Matrix-vector multiplication**: การใช้ operators พิเศษ (`&`) สำหรับ transformations
+
 ### **3. Eigenvalue Problems in Turbulence Modeling**
 
 Required for Reynolds stress decomposition:
@@ -594,6 +731,19 @@ vector eigenValues = eigenValues(R);
 scalar l_max = sqrt(eigenValues.x());
 scalar l_int = sqrt((eigenValues.x() + eigenValues.y() + eigenValues.z())/3.0);
 ```
+
+**คำอธิบาย (Explanation)**:
+- `symmTensor R` เป็น Reynolds stress tensor (symmetric)
+- `dev(rho*U*U)` คำนวณ deviatoric part ของ Reynolds stress
+- `eigenVectors(R)` และ `eigenValues(R)` คำนวณ eigen decomposition
+- `l_max` และ `l_int` คำนวณ turbulence length scales จาก eigenvalues
+- ใช้ใน turbulence modeling สำหรับ characterizing flow structures
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Eigenvalue decomposition**: การแยกเมทริกซ์ออกเป็น eigenvalues และ eigenvectors
+- **Reynolds stress tensor**: Stress tensor จาก turbulent fluctuations
+- **Turbulence length scales**: Characteristic lengths ของ turbulent structures
+- **Symmetric tensors**: เมทริกซ์ symmetric ที่มี real eigenvalues
 
 ### **4. Least-Squares Gradient Reconstruction**
 
@@ -624,6 +774,19 @@ forAll(cellNeighbours, i)
 // Solve gradient using pseudo-inverse
 vector gradPhi = (A.T() & A).inv() & (A.T() & b);
 ```
+
+**คำอธิบาย (Explanation)**:
+- `RectangularMatrix<scalar> A(nCells, 3)` สร้าง rectangular matrix สำหรับ least-squares
+- Loop `forAll(cellNeighbours, i)` สร้าง system of equations จาก neighbor values
+- `d.x()`, `d.y()`, `d.z()` เป็น distance components ระหว่าง cells
+- `A.T() & A` คำนวณ normal equations (A^T * A)
+- `.inv() & (A.T() & b)` แก้ linear system สำหรับ gradient
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Least-squares method**: การหา solution ที่ minimize squared errors
+- **Overdetermined systems**: Systems ที่มี equations มากกว่า unknowns
+- **Pseudo-inverse**: การใช้ (A^T * A)^(-1) * A^T สำหรับ rectangular matrices
+- **Gradient reconstruction**: การคำนวณ gradients จาก scattered data
 
 ---
 
@@ -659,6 +822,18 @@ lduMatrix pressureMatrix(mesh);  // Store only non-zeros
 // Memory: ~15 non-zeros per row × 1M × 8 bytes = 120MB
 ```
 
+**คำอธิบาย (Explanation)**:
+- **PROBLEM**: `SquareMatrix<scalar>` จัดเก็บทุก elements แม้จะเป็น zero ทำให้ใช้หน่วยความจำมหาศาล
+- **SOLUTION**: `lduMatrix` จัดเก็บเฉพาะ non-zero elements ผ่าน LDU format
+- Memory reduction: จาก 8TB (dense) เป็น 120MB (sparse)
+- Sparsity: CFD matrices มักมี 99%+ zeros เนื่องจาก local connectivity
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Sparsity pattern**: โครงสร้างของ non-zero elements ในเมทริกซ์
+- **Memory efficiency**: การลดหน่วยความจำผ่าน sparse storage
+- **CFD discretization**: การ discretize PDEs สร้าง sparse matrices เนื่องจาก local interactions
+- **LDU format**: การจัดเก็บแบบ sparse ที่เหมาะกับ finite volume method
+
 **Technical Analysis**:
 
 **Memory Requirements by Sparsity Pattern**:
@@ -684,6 +859,18 @@ C = A * B;  // 1 billion operations (slow!)
 // For CFD: Use iterative solvers (O(n) per iteration)
 // For large dense: Use BLAS/LAPACK (highly optimized)
 ```
+
+**คำอธิบาย (Explanation)**:
+- **PROBLEM**: Direct matrix multiplication `A * B` มี complexity O(n³) ซึ่งไม่เหมาะกับ large matrices
+- **SOLUTION**: CFD ใช้ iterative solvers ที่มี complexity O(n) per iteration
+- Iterative methods: Conjugate Gradient, GMRES, BiCGStab สำหรับ sparse systems
+- BLAS/LAPACK: Optimized libraries สำหรับ dense matrix operations
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Algorithmic complexity**: การวิเคราะห์ computational complexity ของ algorithms
+- **Iterative methods**: การแก้ linear systems แบบ iterative แทน direct methods
+- **Sparse solvers**: Algorithms ที่ optimized สำหรับ sparse matrices
+- **Direct vs iterative**: Direct methods (LU, QR) vs iterative methods (CG, GMRES)
 
 **Complexity Analysis**:
 
@@ -735,6 +922,18 @@ scalar epsilon = 1e-10;
 SquareMatrix<scalar> Areg = A + epsilon*Identity();
 SquareMatrix<scalar> Ainv = Areg.inv();  // More stable
 ```
+
+**คำอธิบาย (Explanation)**:
+- **PROBLEM**: Ill-conditioned matrices ทำให้ direct inversion ผิดพลาดจาก numerical errors
+- **SOLUTION**: Regularization ด้วยการเพิ่ม epsilon บน diagonal เพื่อปรับปรุง conditioning
+- Condition number: อัตราส่วนระหว่าง largest และ smallest singular values
+- CFD problems: มักมี condition numbers สูงมาก (>10^12)
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Condition number**: ตัวชี้วัดความไวต่อ numerical errors ของเมทริกซ์
+- **Numerical stability**: ความมั่นคงของ algorithm ต่อ round-off errors
+- **Regularization**: การเพิ่ม small values บน diagonal เพื่อปรับปรุง conditioning
+- **Iterative refinement**: การปรับปรุง solution ผ่าน repeated iterations
 
 **Condition Number Analysis**:
 
@@ -822,6 +1021,22 @@ Field<scalar> sigma = C * epsilon;
 // Application: solid mechanics solver (solidDisplacementFoam)
 ```
 
+**Source**: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementFoam.C`
+
+**คำอธิบาย (Explanation)**:
+- `SymmetricSquareMatrix<scalar> C(6)` สร้าง stiffness matrix 6×6 สำหรับ constitutive relations
+- Voigt notation: แปลง fourth-order tensor เป็น 6×6 matrix ผ่าน symmetry
+- `C(0,0)` เก็บ elastic moduli ที่คำนวณจาก Young's modulus (E) และ Poisson's ratio (ν)
+- `sigma = C * epsilon` คำนวณ stress จาก strain ผ่าน matrix-vector multiplication
+- ใช้ใน `solidDisplacementFoam` สำหรับ structural mechanics simulations
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Constitutive equations**: สมการ connecting stress กับ strain
+- **Voigt notation**: การแทน fourth-order tensors เป็น matrices
+- **Elasticity tensor**: Tensor อันดับสี่ที่อธิบาย material properties
+- **Hooke's Law**: Linear relationship ระหว่าง stress และ strain
+- **Isotropic materials**: Materials ที่มี properties เหมือนกันทุกทิศทาง (2 independent constants)
+
 ### **Engineering Application 2: Coordinate Transformations**
 
 **Rotating reference frame transformations** are necessary for turbomachinery and MRF systems.
@@ -856,6 +1071,20 @@ vector v_global = R & v_local;  // Matrix-vector multiplication
 
 // Application: MRF (Moving Reference Frame) in rotating domains
 ```
+
+**คำอธิบาย (Explanation)**:
+- `SquareMatrix<scalar> R(3)` สร้าง rotation matrix 3×3 สำหรับ coordinate transformations
+- `theta = 30*M_PI/180` กำหนด rotation angle เป็น radians
+- Element access `R(i,j)` ใช้ในการกำหนด matrix elements จาก trigonometric functions
+- `R & v_local` ใช้ operator `&` สำหรับ matrix-vector multiplication
+- MRF: Moving Reference Frame ใช้ใน turbomachinery simulations
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Rotation matrices**: Orthogonal matrices สำหรับ rotating coordinate systems
+- **Orthogonal transformations**: Transformations ที่รักษา lengths และ angles
+- **MRF method**: Moving Reference Frame สำหรับ rotating machinery
+- **Turbomachinery**: Applications ใน pumps, turbines, compressors
+- **Coordinate systems**: การแปลงระหว่าง local และ global coordinates
 
 ### **Engineering Application 3: Least-Squares Gradient Reconstruction**
 
@@ -902,6 +1131,22 @@ vector gradPhi = Minv & b;  // Gradient ∇φ at cell center
 
 // Application: Green-Gauss and least-squares gradient schemes
 ```
+
+**คำอธิบาย (Explanation)**:
+- `SquareMatrix<scalar> M(3)` สร้าง moment matrix 3×3 สำหรับ least-squares
+- Loop `forAll(mesh.cellCells(celli), ni)` สะสม contributions จาก neighbor cells
+- `d * d` คำนวณ outer product ของ distance vector (tensor product)
+- `weight = 1.0/magSqr(d)` ให้น้ำหนัก inverse distance squared
+- `M += weight * (d * d)` สะสม weighted geometric moments
+- `b += weight * (phi[neighbor] - phi[celli]) * d` สะสม weighted value differences
+- `Minv & b` แก้ linear system 3×3 สำหรับ gradient
+
+**แนวคิดสำคัญ (Key Concepts)**:
+- **Least-squares gradient**: การหา gradient ที่ minimize squared errors
+- **Overdetermined systems**: การใช้ข้อมูลเกินจำนวน unknowns
+- **Moment matrix**: เมทริกซ์ geometric ที่เกิดจาก position vectors
+- **Weighted least squares**: การให้น้ำหนักตาม distance
+- **Gradient schemes**: วิธีการคำนวณ gradients บน unstructured meshes
 
 ---
 

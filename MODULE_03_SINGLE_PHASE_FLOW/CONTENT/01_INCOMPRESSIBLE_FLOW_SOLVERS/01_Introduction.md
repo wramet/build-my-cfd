@@ -53,7 +53,8 @@ flowchart TD
     E --> I[PISO Algorithm]
     G --> J[PIMPLE Algorithm]
 ```
-> **Figure 1:** แผนผังการเลือกใช้ตัวแก้ปัญหา (Solver Selection Flowchart) สำหรับการไหลแบบอัดตัวไม่ได้ใน OpenFOAM โดยพิจารณาจากปัจจัยด้านเวลา (Steady vs Transient) ลักษณะการไหล (Laminar vs Turbulent) และขนาดของก้าวเวลา เพื่อเลือกอัลกอริทึมที่เหมาะสมที่สุดระหว่าง SIMPLE, PISO และ PIMPLEความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+
+> **Figure 1:** แผนผังการเลือกใช้ตัวแก้ปัญหา (Solver Selection Flowchart) สำหรับการไหลแบบอัดตัวไม่ได้ใน OpenFOAM โดยพิจารณาจากปัจจัยด้านเวลา (Steady vs Transient) ลักษณะการไหล (Laminar vs Turbulent) และขนาดของก้าวเวลา เพื่อเลือกอัลกอริทึมที่เหมาะสมที่สุดระหว่าง SIMPLE, PISO และ PIMPLE
 
 ---
 
@@ -161,23 +162,24 @@ for each iteration:
     7. Check convergence
 ```
 
-**OpenFOAM Code Implementation:**
 ```cpp
 // SIMPLE loop in simpleFoam
+// Main iteration loop for steady-state incompressible flow
 while (simple.loop())
 {
-    // Momentum predictor
+    // Momentum predictor - solve momentum equation
     tmp<fvVectorMatrix> tUEqn
     (
-        fvm::div(phi, U)
-      + turbulence->divDevReff(U)
+        fvm::div(phi, U)                    // Convective term
+      + turbulence->divDevReff(U)           // Turbulent diffusion term
      ==
-        fvOptions(U)
+        fvOptions(U)                         // Source terms
     );
 
-    // Pressure-velocity coupling
+    // Pressure-velocity coupling using non-orthogonal correctors
     while (pimple.correctNonOrthogonal())
     {
+        // Pressure Poisson equation
         fvScalarMatrix pEqn
         (
             fvm::laplacian(rAU, p) == fvc::div(phiHbyA)
@@ -185,17 +187,27 @@ while (simple.loop())
 
         pEqn.solve();
 
+        // Update flux on final non-orthogonal iteration
         if (pimple.finalNonOrthogonalIter())
         {
             phi -= pEqn.flux();
         }
     }
 
-    // Correct velocity
+    // Correct velocity field using pressure gradient
     U -= rAU*fvc::grad(p);
     U.correctBoundaryConditions();
 }
 ```
+
+**📂 Source:** `.applications/solvers/incompressible/adjointShapeOptimisationFoam/adjointShapeOptimisationFoam.C`
+
+**คำอธิบาย:** อัลกอริทึม SIMPLE ใช้สำหรับการแก้ปัญหาการไหลแบบ Steady-state โดยใช้การปรับค่าความดันและความเร็วแบบซ้ำ (Iterative) จนกว่าจะถึงการลู่เข้า (Convergence)
+
+**แนวคิดสำคัญ:**
+- **Momentum Predictor**: คาดการณ์สนามความเร็วจากสมการโมเมนตัม
+- **Pressure Correction**: แก้ไขสนามความดันเพื่อให้เป็นไปตามสมการความต่อเนื่อง
+- **Under-relaxation**: ใช้ค่าสัมประสิทธิ์การผ่อนคลายเพื่อความเสถียรของการคำนวณ
 
 **คุณสมบัติ:**
 - ✅ เหมาะสำหรับ **steady-state problems**
@@ -218,24 +230,25 @@ for each time step:
         4. Optional: solve additional equations
 ```
 
-**OpenFOAM Code Implementation:**
 ```cpp
 // PISO loop in icoFoam
+// Main time loop for transient incompressible laminar flow
 while (pimple.loop())
 {
-    // Momentum equation
+    // Momentum equation with transient term
     fvVectorMatrix UEqn
     (
-        fvm::ddt(U) + fvm::div(phi, U)
-      - fvm::laplacian(nu, U)
+        fvm::ddt(U)                    // Time derivative
+      + fvm::div(phi, U)               // Convective term
+      - fvm::laplacian(nu, U)          // Diffusive term
      ==
-        fvc::ddt(phi, U) - fvc::div(phi, U)
+        fvc::ddt(phi, U) - fvc::div(phi, U)  // Explicit terms
     );
 
-    // PISO corrections
+    // PISO corrections for pressure-velocity coupling
     while (pimple.correct())
     {
-        // Pressure equation
+        // Pressure equation derived from continuity
         fvScalarMatrix pEqn
         (
             fvm::laplacian(rAU, p) == fvc::div(phi)
@@ -243,7 +256,7 @@ while (pimple.loop())
 
         pEqn.solve();
 
-        // Correct velocity flux
+        // Correct velocity flux using pressure gradient
         phi -= pEqn.flux();
     }
 
@@ -252,6 +265,15 @@ while (pimple.loop())
     U.correctBoundaryConditions();
 }
 ```
+
+**📂 Source:** `.applications/solvers/multiphase/compressibleInterFoam/pEqn.H`
+
+**คำอธิบาย:** อัลกอริทึม PISO ออกแบบมาสำหรับการจำลองแบบ Transient โดยทำการแก้ไขความดันหลายครั้งในแต่ละ Time step เพื่อให้ได้ความแม่นยำตามเวลา
+
+**แนวคิดสำคัญ:**
+- **Split Operator**: แยกสมการโมเมนตัมและความดันออกจากกัน
+- **Multiple Corrections**: ทำการแก้ไขความดันหลายรอบเพื่อความถูกต้อง
+- **Temporal Accuracy**: รักษาความแม่นยำของการคำนวณเชิงเวลา
 
 **คุณสมบัติ:**
 - ✅ เหมาะสำหรับ **transient simulations**

@@ -235,7 +235,7 @@ $$C_{VM}^{disk} \approx \frac{\pi}{4\beta} = \frac{\pi a}{4b} \tag{5.2}$$
 
 $$C_{VM}^{needle} \approx \frac{\ln(2/\beta) - 0.5}{\ln(2/\beta) + 0.5} \tag{5.3}$$
 
-### 5.4 สรุปค่าสัมประสิทธิ์มวลเสมือนตามรูปร่าง
+### 5.4 สรุปค่าสัมปราสิทธิ์มวลเสมือนตามรูปร่าง
 
 | รูปทรง | $C_{vm}$ | ทิศทางความเร่ง |
 |--------|----------|--------------|
@@ -317,26 +317,44 @@ public:
 };
 ```
 
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+> 
+> **คำอธิบาย (Thai):** โค้ดนี้แสดงสถาปัตยกรรมพื้นฐานของ Virtual Mass Model ใน OpenFOAM ซึ่งออกแบบตามรูปแบบ Polymorphic โดยมีคลาสพื้นฐาน `virtualMassModel` ที่มีฟังก์ชันสมาชิกแบบ virtual pure สองฟังก์ชันหลัก ได้แก่ `Cvm()` สำหรับคำนวณสัมประสิทธิ์มวลเสมือน และ `Fi()` สำหรับคำนวณแรงมวลเสมือน การออกแบบนี้ช่วยให้สามารถสร้างคลาสลูก (derived classes) ที่ใช้งานได้หลากหลายสำหรับแบบจำลองมวลเสมือนที่แตกต่างกัน
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Polymorphic Design:** อนุญาตให้มีการนำไปใช้งานแบบจำลองที่หลากหลายผ่านฟังก์ชัน virtual
+> - **Virtual Destructor:** ช่วยให้การทำลายวัตถุเกิดขึ้นอย่างถูกต้องเมื่อใช้คลาสลูก
+> - **tmp<volScalarField>:** ใช้ชนิดข้อมูล tmp ของ OpenFOAM เพื่อจัดการหน่วยความจำอย่างมีประสิทธิภาพ
+
 ### 7.2 การคำนวณแรงมวลเสมือน
 
 ```cpp
-// ตัวอย่างการคำนวณแรงมวลเสมือนใน OpenFOAM
+// Example calculation of virtual mass force in OpenFOAM
 template<class PhaseType>
 void Foam::VirtualMassForce<PhaseType>::correct()
 {
     const volVectorField& U = phase_.U();
     const volScalarField& rho = phase_.rho();
 
-    // คำนวณอนุพันธ์เวลาของความเร็ว
+    // Calculate time derivative of velocity
     volVectorField dUdt = fvc::ddt(U);
 
-    // คำนวณแรงมวลเสมือน
+    // Calculate virtual mass force
     virtualMassForce_ = Cvm_*rho*V_*(dUdt_fluid_ - dUdt);
 
-    // เพิ่มลงในสมการโมเมนตัม
+    // Add to momentum equation
     phase_.momentumSource() += virtualMassForce_;
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+> 
+> **คำอธิบาย (Thai):** ฟังก์ชันนี้แสดงการคำนวณแรงมวลเสมือนใน OpenFOAM โดยเริ่มจากการรับค่าความเร็วและความหนาแน่นของเฟสปัจจุบัน จากนั้นคำนวณอนุพันธ์เวลาของความเร็ว (dUdt) โดยใช้ fvc::ddt และนำไปคำนวณแรงมวลเสมือนจากผลต่างของความเร่งระหว่างเฟสต่อเนื่องและเฟสกระจาย สุดท้ายจึงเพิ่มแรงนี้เข้าไปในสมการโมเมนตัมของเฟสผ่าน momentumSource()
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Material Derivative:** การคำนวณ dUdt ใช้ fvc::ddt() ซึ่งคำนวณอนุพันธ์เวลาของความเร็ว
+> - **Relative Acceleration:** แรงมวลเสมือนขึ้นกับผลต่างของความเร่งระหว่างเฟสต่อเนื่องและเฟสกระจาย
+> - **Source Term:** แรงมวลเสมือนถูกเพิ่มเป็นเทอมแหล่งกำเนิดในสมการโมเมนตัม
 
 ### 7.3 การรวมเข้ากับแบบจำลองเฟส (Phase Model Integration)
 
@@ -385,18 +403,27 @@ phases
     phase1
     {
         phaseModel    incompressible;
-        // ... ค่าอื่นๆ ...
-        virtualMassCoeff   0.5;  // ค่า Cvm สำหรับทรงกลม
+        // ... other values ...
+        virtualMassCoeff   0.5;  // Cvm value for spheres
     }
 
     phase2
     {
         phaseModel    incompressible;
-        // ... ค่าอื่นๆ ...
+        // ... other values ...
         virtualMassCoeff   0.5;
     }
 }
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+> 
+> **คำอธิบาย (Thai):** ไฟล์คอนฟิกูเรชันนี้แสดงวิธีการตั้งค่าสัมประสิทธิ์มวลเสมือน (virtualMassCoeff) สำหรับแต่ละเฟสในระบบหลายเฟสของ OpenFOAM ค่าเริ่มต้นของ 0.5 เหมาะสำหรับอนุภาคทรงกลม แต่สามารถปรับเปลี่ยนได้ตามรูปร่างและสภาพการไหล การตั้งค่านี้จะถูกอ่านโดยคลาส MomentumTransferPhaseSystem และใช้ในการคำนวณแรงมวลเสมือน
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Phase Properties:** แต่ละเฟสมีคุณสมบัติของตัวเองรวมถึงสัมประสิทธิ์มวลเสมือน
+> - **Configuration File:** ไฟล์ phaseProperties อยู่ในไดเรกทอรี constant/
+> - **Coefficient Value:** ค่า Cvm = 0.5 เป็นค่ามาตรฐานสำหรับอนุภาคทรงกลม
 
 ### 7.7 การเลือกและปรับเทียบแบบจำลอง
 

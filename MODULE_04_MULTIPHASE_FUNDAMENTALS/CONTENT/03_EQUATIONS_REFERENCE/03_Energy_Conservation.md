@@ -144,6 +144,29 @@ fvScalarMatrix hEqn
 );
 ```
 
+📂 **Source:** `.applications/solvers/multiphase/multiphaseInterFoam/multiphaseMixture/multiphaseMixture.C`
+
+<details>
+<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
+
+**การอธิบายแต่ละบรรทัดในสมการพลังงาน:**
+
+1. `fvm::ddt(alpha, rho, h)` → พจน์ชั่วขณะ: อนุพันธ์เวลาของเอนทัลปี เป็น implicit discretization
+2. `fvm::div(alphaRhoPhi, h)` → พจน์การพา: การขนส่งเอนทัลปีด้วยการเคลื่อนที่ของเฟส
+3. `alpha*rho*(dpdt)` → งานจากความดัน: งานที่เกิดจากการเปลี่ยนแปลงความดันตามเวลา
+4. `fvc::div(alpha*kappa*grad(T))` → การนำความร้อน: การแพร่ความร้อนตามกฎของฟูเรียร์
+5. `viscousDissipation` → การกระจายความหนืด: การแปลงพลังงานกลเป็นความร้อน
+6. `interfacialHeatTransfer` → การถ่ายเทความร้อนระหว่างเฟส ใช้ Nusselt correlations
+7. `massTransfer*InterfaceEnthalpy` → ผลของการเปลี่ยนเฟส: ความร้อนแฝง
+8. `interfacialMomentumTransfer & U` → งานจากแรงระหว่างเฟส: drag, lift, virtual mass
+
+**แนวคิดสำคัญ:**
+- `fvm` (Finite Volume Method) → ใช้สำหรับ implicit terms (มีส่วนร่วมในเมทริกซ์)
+- `fvc` (Finite Volume Calculus) → ใช้สำหรับ explicit terms (คำนวณตรง ๆ)
+- สมการนี้จะถูกแก้ด้วย linear solver เช่น `PBiCGStab` หรือ `GAMG`
+
+</details>
+
 ### การตั้งค่าเทอร์โมฟิสิกส์
 
 OpenFOAM ต้องการไฟล์ `constant/thermophysicalProperties.phaseName` เพื่อกำหนดโมเดลพลังงาน
@@ -196,6 +219,25 @@ mixture
 }
 ```
 
+<details>
+<summary>📖 คำอธิบายการตั้งค่าเทอร์โมฟิสิกส์</summary>
+
+**อธิบายแต่ละพารามิเตอร์:**
+
+1. **`heRhoThermo`** → โมเดลเทอร์โมฟิสิกส์แบบใช้เอนทัลปีและความหนาแน่น
+2. **`multiComponentMixture`** → รองรับส่วนผสมหลายส่วนประกอบ
+3. **`hPolynomial`** → เอนทัลปีเป็นฟังก์ชันพหุนามของอุณหภูมิ
+4. **`sensibleEnthalpy`** → ใช้เอนทัลปีที่วัตถุรู้สึกได้ (ไม่รวม enthalpy of formation)
+5. **`equationOfState`** → สมการสถานะ: `perfectGas` สำหรับแก๊ส, `icoPolynomial` สำหรับของเหลว
+6. **`transport`** → คุณสมบัติการขนส่ง: ความหนืด (mu), Prandtl number (Pr), สภาพนำความร้อน (kappa)
+
+**แนวคิดสำคัญ:**
+- `Hf` = Enthalpy of formation (พลังงานที่ต้องใช้ในการสร้างสาร)
+- `Cp` = ความร้อนจำเพาะที่ความดันคงที่
+- `Pr` = Prandtl number = μ*Cp/k (อัตราส่วนของการแพร่ตัวของโมเมนตัมต่อความร้อน)
+
+</details>
+
 ### การคำนวณคุณสมบัติของส่วนผสม
 
 ```cpp
@@ -213,6 +255,26 @@ multiphaseMixture<ThermoType>::cellThermoMixture
 // Effective thermal conductivity
 k_eff = sum_k(alpha_k * k_k);
 ```
+
+<details>
+<summary>📖 คำอธิบายการคำนวณคุณสมบัติส่วนผสม</summary>
+
+**การอธิบายการคำนวณ:**
+
+1. **`cellThermoMixture`** → ฟังก์ชันที่คืนค่าคุณสมบัติเทอร์โมฟิสิกส์ของส่วนผสมในแต่ละเซลล์
+   - ใช้ `template` เพื่อรองรับประเภท `ThermoType` ที่แตกต่างกัน
+   - `inline` → คอมไพเลอร์จะพยายามแทนที่การเรียกฟังก์ชันด้วยโค้ดโดยตรง (เพื่อประสิทธิภาพ)
+
+2. **`k_eff`** → ความนำความร้อนประสิทธิผลของส่วนผสม
+   - คำนวณจากผลรวมของความนำความร้อนแต่ละเฟสถ่วงน้ำหนักด้วยสัดส่วนปริมาตร
+   - นิพจน์: $k_{eff} = \sum_k \alpha_k k_k$
+
+**แนวคิดสำคัญ:**
+- การคำนวณคุณสมบัติส่วนผสมเป็นแบบ cell-by-cell
+- OpenFOAM ใช้ weighted averaging ตามสัดส่วนเฟส (phase fraction)
+- คุณสมบัติที่คำนวณได้จะถูกใช้ในสมการพลังงานและการแก้สมการ
+
+</details>
 
 ---
 
@@ -314,6 +376,35 @@ volVectorField marangoniStress = gradSigma - n*(n & gradSigma);
 // Volume force for CSF
 volVectorField Fmarangoni = marangoniStress * mag(fvc::grad(alpha));
 ```
+
+<details>
+<summary>📖 คำอธิบายการคำนวณแรง Marangoni</summary>
+
+**การอธิบายแต่ละขั้นตอน:**
+
+1. **`gradT = fvc::grad(T)`** → คำนวณเกรเดียนต์ของอุณหภูมิ
+   - ใช้ `fvc` (Finite Volume Calculus) เพราะเป็น explicit calculation
+
+2. **`n = fvc::grad(alpha)/mag(fvc::grad(alpha))`** → หาเวกเตอร์หน้าปกติของพื้นผิวรอยต่อ
+   - เกรเดียนต์ของสัดส่วนเฟส (`alpha`) ชี้ไปยังทิศทางที่เฟสเปลี่ยน
+   - หารด้วยขนาด (`mag`) เพื่อทำให้เป็นเวกเตอร์หน้าปกติหน่วย
+
+3. **`gradSigma = dSigma_dT * gradT`** → คำนวณเกรเดียนต์ของแรงตึงผิว
+   - `dSigma_dT` = อนุพันธ์ของแรงตึงผิวเทียบกับอุณหภูมิ (ค่าคงที่ของวัสดุ)
+
+4. **`marangoniStress = gradSigma - n*(n & gradSigma)`** → แยกส่วนประกอบสัมผัสของความเค้น
+   - `n & gradSigma` → ส่วนประกอบปกติ (dot product)
+   - ลบส่วนประกอบปกติออก เพื่อให้เหลือเฉพาะส่วนสัมผัส
+
+5. **`Fmarangoni = marangoniStress * mag(fvc::grad(alpha))`** → คำนวณแรงปริมาตรสำหรับ CSF (Continuum Surface Force)
+   - คูณด้วยขนาดของเกรเดียนต์เฟส เพื่อกระจายแรงไปยังพื้นที่รอบ ๆ พื้นผิว
+
+**แนวคิดสำคัญ:**
+- ใช้ระเบียบวิธี CSF (Continuum Surface Force) ในการจำลองผลของแรงตึงผิว
+- แรง Marangoni ทำงานในทิศทางสัมผัสกับพื้นผิว (ไม่ใช่ทิศทางปกติ)
+- แรงนี้ขับเคลื่อนการไหลจากพื้นที่ที่มีแรงตึงผิวน้อยไปหามาก (ตามอุณหภูมิ)
+
+</details>
 
 > [!WARNING] ความสำคัญ
 > ผลของ Marangoni มักมีอิทธิพลมากในระบบที่มีความแตกต่างของอุณหภูมิสูง เช่น การเชื่อม (welding) และการเติบโตของผลึก (crystal growth)

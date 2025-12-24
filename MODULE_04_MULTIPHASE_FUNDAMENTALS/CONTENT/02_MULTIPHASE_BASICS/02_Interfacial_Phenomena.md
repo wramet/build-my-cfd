@@ -118,7 +118,7 @@ $$\mathbf{F}_{d,ij} = K_{ij}(\mathbf{U}_j - \mathbf{U}_i) \tag{2.1}$$
 - $\mathbf{U}_i, \mathbf{U}_j$: เวกเตอร์ความเร็วของเฟส [m/s]
 
 > [!INFO] หมายเหตุ
-> สูตรนี้ทำให้มั่นใจได้ว่าแรงฉุดจะต้านทานการเคลื่อนที่สัมพัทธ์ระหว่างเฟส ซึ่งสอดคล้องกับธรรมชาติทางกายภาพของแรงต้านหนืด
+> สูตรนี้ทำให้มั่นใจได้ว่าแรงฉุดจะต้านทานการเคลื่อนที่สัมพัทธ์ระหว่างเฟส ซึ่งสอดคล้องกับธรรมชาติทางกายภาพของแรงต้านหนืว
 
 ### 2.2 แบบจำลองแรงฉุด Schiller-Naumann
 
@@ -381,27 +381,40 @@ flowchart TD
 การตรวจจับรอยต่อและการคำนวณความโค้ง:
 
 ```cpp
-// การตรวจจับรอยต่อผ่านความชันของเศษส่วนของช่องว่าง
+// Detect interface through void fraction gradient
 volVectorField voidFractionGrad = fvc::grad(alpha1);
 
-// การคำนวณความโค้งสำหรับแรงตึงผิว
+// Calculate curvature for surface tension
 surfaceScalarField curvature = fvc::div(nHat);
 
-// ตัวบ่งชี้โทโพโลยีเฟสสำหรับการจำแนกรูปแบบการไหล
+// Phase topology indicator for flow pattern classification
 volScalarField regimeIndicator = calculateRegime(alpha1, U1, U2);
 ```
+
+> **📂 Source:** ไม่พบไฟล์ที่ตรงกันในฐานข้อมูล
+> 
+> **คำอธิบาย:**
+> - **voidFractionGrad**: เวกเตอร์ความชันของเศษส่วนปริมาตร (void fraction) ใช้ในการระบุตำแหน่งของรอยต่อระหว่างเฟส ค่าความชันสูงบ่งชี้ถึงรอยต่อที่ชัดเจน
+> - **curvature**: ค่าความโค้งของรอยต่อใช้ในการคำนวณแรงตึงผิวตามสมการ Young-Laplace
+> - **regimeIndicator**: ตัวบ่งชี้โทโพโลยีของการไหลสำหรับการจำแนกรูปแบบการไหลที่แตกต่างกัน (เช่น bubbly flow, slug flow, churn flow)
+>
+> **หลักการสำคัญ:**
+> - การตรวจจับรอยต่อใช้ความชันของเศษส่วนปริมาตรเนื่องจากการเปลี่ยนแปลงอย่างรวดเร็วระหว่างค่า α=0 และ α=1
+> - ความโค้งคำนวณจากการ divergent ของเวกเตอร์หน่วยปกติของรอยต่อ
+> - การจำแนกรูปแบบการไหลช่วยให้เลือกแบบจำลองที่เหมาะสมกับสภาวะการไหล
 
 ### 6.3 โครงสร้างคลาสแรงฉุด
 
 #### คลาสพื้นฐานของแบบจำลองแรงฉุด
 
 ```cpp
+// Base class for drag models
 class dragModel
 {
-    // คำนวณและคืนค่าสัมประสิทธิ์แรงฉุด
+    // Calculate and return drag coefficient
     virtual tmp<volScalarField> K(const UDictionary&) = 0;
 
-    // กลไกการเลือกขณะรัน
+    // Runtime selection mechanism
     declareRunTimeSelectionTable
     (
         autoPtr,
@@ -417,22 +430,33 @@ class dragModel
 };
 ```
 
+> **📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/interfacialModels/dragModels/dragModel/dragModel.H
+> 
+> **คำอธิบาย:**
+> - **tmp\<volScalarField\> K()**: ฟังก์ชันเสมือน (virtual function) ที่คำนวณและคืนค่าสัมประสิทธิ์แรงฉุด K ซึ่งเป็นค่าเชิงปริมาตร (volScalarField) ที่คำนวณที่แต่ละเซลล์ใน mesh
+> - **declareRunTimeSelectionTable**: มาโครของ OpenFOAM สำหรับการเลือกแบบจำลองขณะ runtime ผ่านไฟล์ dictionary ทำให้สามารถเปลี่ยนแบบจำลองโดยไม่ต้องคอมไพล์โค้ดใหม่
+>
+> **หลักการสำคัญ:**
+> - การใช้ polymorphism ผ่านฟังก์ชัน virtual ทำให้สามารถเพิ่มแบบจำลองใหม่ได้โดยไม่ต้องแก้ไขโค้ดหลัก
+> - Runtime selection table เป็นเทคนิคที่ช่วยให้ OpenFOAM สามารถโหลดแบบจำลองที่กำหนดในไฟล์ case dictionary ได้อย่างยืดหยุ่น
+> - แต่ละแบบจำลองแรงฉุดต้องสืบทอดจาก dragModel และ implement ฟังก์ชัน K()
+
 #### การนำ Schiller-Naumann ไปใช้
 
 ```cpp
 class SchillerNaumann : public dragModel
 {
 private:
-    // เส้นผ่านศูนย์กลางขององค์ประกอบเฟสที่กระจายตัว
+    // Diameter of dispersed phase elements
     dimensionedScalar d_;
 
-    // คำนวณ Reynolds number
+    // Calculate Reynolds number
     tmp<volScalarField> Re() const
     {
         return mag(this->U2_ - this->U1_) * d_ / this->nu1_;
     }
 
-    // คำนวณสัมประสิทธิ์แรงฉุด
+    // Calculate drag coefficient
     tmp<volScalarField> Cd(const volScalarField& Re) const
     {
         return pos(Re - 1000)*0.44 + neg(Re - 1000)*
@@ -441,6 +465,21 @@ private:
 };
 ```
 
+> **📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/interfacialModels/dragModels/SchillerNaumann/SchillerNaumann.C
+> 
+> **คำอธิบาย:**
+> - **d_**: เส้นผ่านศูนย์กลางของฟอง/หยด/อนุภาคในเฟสที่กระจายตัว ซึ่งเป็นค่าคงที่ (dimensionedScalar) ที่กำหนดในไฟล์ dictionary
+> - **Re()**: ฟังก์ชันสมาชิกที่คำนวณ Particle Reynolds number จากความเร็วสัมพัทธ์ เส้นผ่านศูนย์กลาง และความหนืวของเฟสต่อเนื่อง
+> - **Cd()**: ฟังก์ชันสมาชิกที่คำนวณสัมประสิทธิ์แรงฉุด โดยใช้สมการสหสัมพันธ์ Schiller-Naumann ที่มี 2 โหมด:
+>   - โหมด laminar (Re < 1000): ใช้สมการที่มี correction factor
+>   - โหมด turbulent (Re ≥ 1000): ใช้ค่าคงที่ 0.44
+> - **pos() และ neg()**: ฟังก์ชันของ OpenFOAM ที่คืนค่า 1 เมื่อเงื่อนไขเป็นจริง และ 0 เมื่อเป็นเท็จ
+>
+> **หลักการสำคัญ:**
+> - แบบจำลอง Schiller-Naumann เป็นแบบจำลองที่ได้รับความนิยมสูงสำหรับฟองและหยดทรงกลม
+> - การใช้ pos() และ neg() ช่วยให้สลับโหมดได้อย่างราบรื่นโดยไม่มีการกระโดก (discontinuity) ที่ Re=1000
+> - ความแม่นยำของแบบจำลองลดลงเมื่ออนุภาคมีการเสียรูปมาก
+
 ### 6.4 ระบบเฟสการถ่ายเทความร้อน
 
 ```cpp
@@ -448,22 +487,36 @@ template<class BasePhaseSystem>
 class HeatTransferPhaseSystem : public BasePhaseSystem
 {
 private:
-    // แบบจำลองการถ่ายเทความร้อนระหว่างคู่เฟส
+    // Heat transfer models for each phase pair
     HashTable<autoPtr<heatTransferModel>, phasePairKey> heatTransferModels_;
 
-    // สนามอุณหภูมิพื้นผิวสัมผัส
+    // Interface temperature fields
     HashTable<volScalarField, phasePairKey> Tinterfaces_;
 
-    // พจน์แหล่งความร้อน/อ่างความร้อน
+    // Heat source/sink terms
     volScalarField Q_;
 
-    // คำนวณการถ่ายเทความร้อนระหว่างคู่เฟสทั้งหมด
+    // Calculate heat transfer between all phase pairs
     void calculateHeatTransfer();
 
-    // ปรับปรุงอุณหภูมิพื้นผิวสัมผัส
+    // Update interface temperatures
     void updateTinterfaces();
 };
 ```
+
+> **📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/HeatTransferPhaseSystem/HeatTransferPhaseSystem.H
+> 
+> **คำอธิบาย:**
+> - **heatTransferModels_**: HashTable ที่เก็บแบบจำลองการถ่ายเทความร้อนสำหรับแต่ละคู่เฟส (phase pair) ใช้ phasePairKey เป็นคีย์และ autoPtr\<heatTransferModel\> เป็นค่า
+> - **Tinterfaces_**: HashTable ที่เก็บสนามอุณหภูมิของพื้นผิวสัมผัสสำหรับแต่ละคู่เฟส ใช้ในแบบจำลองสองแรงต้าน
+> - **Q_**: สนามสเกลาร์ที่เก็บพจน์แหล่งความร้อน/อ่างความร้อน (heat source/sink) ในสมการอนุรักษ์พลังงาน
+> - **calculateHeatTransfer()**: ฟังก์ชันสมาชิกที่คำนวณอัตราการถ่ายเทความร้อนระหว่างทุกคู่เฟส
+> - **updateTinterfaces()**: ฟังก์ชันสมาชิกที่ปรับปรุงอุณหภูมิของพื้นผิวสัมผัส
+>
+> **หลักการสำคัญ:**
+> - การใช้ HashTable ช่วยให้จัดการระบบหลายเฟสได้อย่างยืดหยุ่น โดยแต่ละคู่เฟสมีแบบจำลองและสนามอุณหภูมิของตัวเอง
+> - Template class ช่วยให้สามารถสืบทอดจาก BasePhaseSystem ประเภทใดก็ได้ ทำให้สถาปัตยกรรมมีความยืดหยุ่นสูง
+> - การถ่ายเทความร้อนถูกคำนวณในแต่ละ time step และผลลัพธ์ถูกนำไปใช้ในสมการพลังงาน
 
 ### 6.5 ระบบเฟสการถ่ายเทมวลและการเปลี่ยนแปลงเฟส
 
@@ -474,19 +527,65 @@ class InterfaceCompositionPhaseChangePhaseSystem
     public HeatTransferPhaseSystem<BasePhaseSystem>
 {
 private:
-    // แบบจำลองการเปลี่ยนแปลงเฟส
+    // Phase change models
     HashTable<autoPtr<phaseChangeModel>, phasePairKey> phaseChangeModels_;
 
-    // องค์ประกอบพื้นผิวสัมผัส
+    // Interface composition
     interfaceCompositionModel interfaceComposition_;
 
-    // อัตราการถ่ายเทมวล
+    // Mass transfer rates
     HashTable<volScalarField, phasePairKey> dmdt_;
 
-    // ผลกระทบจากความร้อนแฝง
+    // Latent heat effects
     volScalarField HLatent_;
 };
 ```
+
+> **📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/InterfaceCompositionPhaseChangePhaseSystem/InterfaceCompositionPhaseChangePhaseSystem.H
+> 
+> **คำอธิบาย:**
+> - **phaseChangeModels_**: HashTable ที่เก็บแบบจำลองการเปลี่ยนแปลงเฟสสำหรับแต่ละคู่เฟส รวมถึง evaporation, condensation, boiling
+> - **interfaceComposition_**: แบบจำลององค์ประกอบของพื้นผิวสัมผัส ซึ่งติดตามความเข้มข้นของสสารต่างๆ ที่รอยต่อ
+> - **dmdt_**: HashTable ที่เก็บอัตราการถ่ายเทมวล (dm/dt) สำหรับแต่ละคู่เฟส ซึ่งเป็นค่าที่มีหน่วย kg/(m³·s)
+> - **HLatent_**: สนามสเกลาร์ที่เก็บผลกระทบจากความร้อนแฝง (latent heat) ในสมการการถ่ายเทความร้อน
+>
+> **หลักการสำคัญ:**
+> - การเปลี่ยนแปลงเฟสถูกจำลองผ่านการถ่ายเทมวลระหว่างเฟสซึ่งขับเคลื่อนโดยความแตกต่างของความเข้มข้น อุณหภูมิ หรือความดัน
+> - ความร้อนแฝงถูกนำมาพิจารณาเพื่อให้แน่ใจว่าพลังงานถูกอนุรักษ์เมื่อเกิดการเปลี่ยนแปลงเฟส
+> - การสืบทอดจาก HeatTransferPhaseSystem ทำให้สามารถใช้ฟังก์ชันการถ่ายเทความร้อนที่มีอยู่แล้วได้
+>
+> **สำหรับข้อมูลเพิ่มเติมเกี่ยวกับการคำนวณการถ่ายเทมวล:**
+> ```cpp
+> // Correct mass transfer rates based on interface composition
+> void correctDmdtfs()
+> {
+>     forAllConstIter(interfaceCompositionModelTable, interfaceCompositionModels_, iter)
+>     {
+>         const phaseInterface& interface = iter().interface();
+>         *dmdtfs_[interface] = Zero;
+>         
+>         // Calculate mass transfer for each specie
+>         forAll(interface, interfaceIter)
+>         {
+>             const phaseModel& phase = interfaceIter();
+>             if (!iter().haveModelInThe(phase)) continue;
+>             
+>             forAllConstIter(hashedWordList, iter().modelInThe(phase).species(), specieIter)
+>             {
+>                 *dmdtfs_[interface] += (interfaceIter.index() == 0 ? +1 : -1) *
+>                     (*(*dmidtfSus_[interface])[*specieIter] + 
+>                      *(*dmidtfSps_[interface])[*specieIter]*phase.Y(*specieIter));
+>             }
+>         }
+>     }
+> }
+> ```
+>
+> **คำอธิบาย:**
+> - **correctDmdtfs()**: ฟังก์ชันที่คำนวณและปรับปรุงอัตราการถ่ายเทมวลโดยคำนึงถึงองค์ประกอบของพื้นผิวสัมผัส
+> - **interfaceCompositionModels_**: ตาราง hash ที่เก็บแบบจำลององค์ประกอบของพื้นผิวสัมผัส
+> - **dmdtfs_**: ตาราง hash ที่เก็บอัตราการถ่ายเทมวลรวม (total mass transfer rates) สำหรับแต่ละอินเทอร์เฟส
+> - การวนซ้ำผ่านแต่ละ phase pair และแต่ละสสารเพื่อคำนวณอัตราการถ่ายเทมวลทั้งแบบ explicit (dmidtfSus) และ implicit (dmidtfSps)
 
 ### 6.6 ระบบแรงรวม (Comprehensive Force System)
 
@@ -499,32 +598,48 @@ class MomentumTransferPhaseSystem
     public BasePhaseSystem
 {
 private:
-    // แบบจำลองแรงฉุด
+    // Drag models
     HashTable<autoPtr<dragModel>, phasePairKey> dragModels_;
 
-    // แบบจำลองแรงยก
+    // Lift models
     HashTable<autoPtr<liftModel>, phasePairKey> liftModels_;
 
-    // แบบจำลองมวลเสมือน
+    // Virtual mass models
     HashTable<autoPtr<virtualMassModel>, phasePairKey> virtualMassModels_;
 
-    // แบบจำลองแรงหล่อลื่นผนัง
+    // Wall lubrication models
     HashTable<autoPtr<wallLubricationModel>, phasePairKey> wallLubricationModels_;
 
-    // แบบจำลองแรงกระจายตัวจากความปั่นป่วน
+    // Turbulent dispersion models
     HashTable<autoPtr<turbulentDispersionModel>, phasePairKey> turbulentDispersionModels_;
 
-    // คำนวณแรงระหว่างเฟสทั้งหมด
+    // Calculate all interfacial forces
     virtual tmp<surfaceScalarField> calculateKd
     (
         const phaseModel& phase1,
         const phaseModel& phase2
     ) const;
 
-    // คำนวณพจน์การถ่ายเทโมเมนตัม
+    // Calculate momentum transfer terms
     virtual void correctMomentumTransfer();
 };
 ```
+
+> **📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.H
+> 
+> **คำอธิบาย:**
+> - **dragModels_**: HashTable ที่เก็บแบบจำลองแรงฉุดสำหรับแต่ละคู่เฟส
+> - **liftModels_**: HashTable ที่เก็บแบบจำลองแรงยกสำหรับแต่ละคู่เฟส
+> - **virtualMassModels_**: HashTable ที่เก็บแบบจำลองแรงมวลเสมือนสำหรับแต่ละคู่เฟส
+> - **wallLubricationModels_**: HashTable ที่เก็บแบบจำลองแรงหล่อลื่นผนังสำหรับแต่ละคู่เฟส
+> - **turbulentDispersionModels_**: HashTable ที่เก็บแบบจำลองแรงกระจายจากความปั่นป่วนสำหรับแต่ละคู่เฟส
+> - **calculateKd()**: ฟังก์ชันเสมือนที่คำนวณสัมประสิทธิ์การถ่ายเทโมเมนตัมระหว่างเฟส
+> - **correctMomentumTransfer()**: ฟังก์ชันเสมือนที่คำนวณพจน์การถ่ายเทโมเมนตัมในสมการโมเมนตัม
+>
+> **หลักการสำคัญ:**
+> - การใช้ HashTable ทำให้สามารถจัดการแรงที่แตกต่างกันสำหรับแต่ละคู่เฟสได้อย่างยืดหยุ่น
+> - แต่ละประเภทของแรงเป็น optional สามารถเปิด/ปิดการใช้งานได้ตามความต้องการ
+> - Template class design ช่วยให้สามารถสืบทอดจาก BasePhaseSystem ประเภทใดก็ได้
 
 #### สถาปัตยกรรมแบบจำลองแรง (Force Model Architecture)
 
@@ -534,10 +649,10 @@ private:
 class interfacialMomentumTransferModel
 {
 public:
-    // คำนวณส่วนประกอบของแรง
+    // Calculate force component
     virtual tmp<volVectorField> Fi() const = 0;
 
-    // กลไกการเลือกขณะรัน
+    // Runtime selection mechanism
     declareRunTimeSelectionTable
     (
         autoPtr,
@@ -556,10 +671,10 @@ class liftModel
     public interfacialMomentumTransferModel
 {
 protected:
-    // คำนวณสัมประสิทธิ์แรงยก
+    // Calculate lift coefficient
     virtual tmp<volScalarField> Cl() const = 0;
 
-    // การนำการคำนวณแรงไปใช้
+    // Force calculation implementation
     virtual tmp<volVectorField> Fi() const
     {
         return Cl()*rhoC()*alphaD()*
@@ -567,6 +682,21 @@ protected:
     }
 };
 ```
+
+> **📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/interfacialModels/liftModels/liftModel/liftModel.H
+> 
+> **คำอธิบาย:**
+> - **interfacialMomentumTransferModel**: คลาสพื้นฐานสำหรับแบบจำลองการถ่ายเทโมเมนตัมระหว่างเฟสทั้งหมด กำหนด interface ทั่วไป
+> - **Fi()**: ฟังก์ชันเสมือนบริสุทธิ์ (pure virtual) ที่ต้องถูก implement โดยแต่ละแบบจำลองเพื่อคำนวณแรง
+> - **declareRunTimeSelectionTable**: มาโครสำหรับ runtime selection ทำให้สามารถเลือกแบบจำลองผ่าน dictionary ได้
+> - **liftModel**: คลาสที่สืบทอดจาก interfacialMomentumTransferModel เฉพาะสำหรับแรงยก
+> - **Cl()**: ฟังก์ชันเสมือนที่คำนวณสัมประสิทธิ์แรงยก
+> - **Fi()**: การ implement ของแรงยก ซึ่งคำนวณจากสัมประสิทธิ์แรงยก ความหนาแน่น เศษส่วนปริมาตร ความเร็วสัมพัทธ์ และ vorticity
+>
+> **หลักการสำคัญ:**
+> - การใช้ inheritance และ polymorphism ทำให้สามารถเพิ่มประเภทของแรงใหม่ได้อย่างยืดหยุ่น
+> - แต่ละแรงมีการคำนวณที่เฉพาะเจาะจง แต่ใช้ interface ที่สอดคล้องกัน
+> - Runtime selection ช่วยให้สามารถเปลี่ยนแบบจำลองโดยไม่ต้องคอมไพล์โค้ดใหม่
 
 #### กลยุทธ์การผสมแรง (Force Blending Strategies)
 
@@ -576,12 +706,12 @@ protected:
 class forceBlendingModel
 {
 public:
-    // คำนวณฟังก์ชันการผสม
+    // Calculate blending functions
     virtual tmp<volScalarField> dragBlending() const = 0;
     virtual tmp<volScalarField> liftBlending() const = 0;
     virtual tmp<volScalarField> wallBlending() const = 0;
 
-    // ใช้แรงที่ผสมแล้ว
+    // Apply blended forces
     virtual tmp<volVectorField> blendedForce() const
     {
         return dragBlending()*dragForce() +
@@ -590,6 +720,21 @@ public:
     }
 };
 ```
+
+> **📂 Source:** ไม่พบไฟล์ที่ตรงกันในฐานข้อมูล
+> 
+> **คำอธิบาย:**
+> - **dragBlending()**: ฟังก์ชันที่คำนวณฟังก์ชันการผสมสำหรับแรงฉุด ซึ่งขึ้นอยู่กับสภาวการไหลและเศษส่วนเฟส
+> - **liftBlending()**: ฟังก์ชันที่คำนวณฟังก์ชันการผสมสำหรับแรงยก
+> - **wallBlending()**: ฟังก์ชันที่คำนวณฟังก์ชันการผสมสำหรับแรงหล่อลื่นผนัง
+> - **blendedForce()**: ฟังก์ชันที่นำแรงทั้งหมดมารวมกันโดยใช้ฟังก์ชันการผสมที่เหมาะสม
+>
+> **หลักการสำคัญ:**
+> - การผสมแรงช่วยให้แน่ใจว่าแรงที่แตกต่างกันถูกนำไปใช้ในสภาวการณ์ที่เหมาะสม
+> - ฟังก์ชันการผสมขึ้นอยู่กับตำแหน่ง (เช่น ระยะห่างจากผนังสำหรับ wall lubrication)
+> - การเปลี่ยนผ่านที่ราบรื่นช่วยป้องกันปัญหาความไม่เสถียรเชิงตัวเลข
+> - การใช้ฟังก์ชันการผสมที่แตกต่างกันสำหรับแรงที่แตกต่างกันทำให้สามารถปรับแต่งพฤติกรรมของแต่ละแรงได้อย่างอิสระ
+> - แรงฉุดมักถูกนำไปใช้ทั่วทั้งโดเมน ในขณะที่แรงยกและแรงหล่อลื่นผนังมีความสำคัญเฉพาะใกล้ผนังหรือในบริเวณที่มีความเฉือนสูง
 
 ---
 

@@ -212,6 +212,16 @@ functions
 }
 ```
 
+> 📂 **Source**: `applications/solvers/multiphase/driftFluxFoam/incompressibleTwoPhaseInteractingMixture/incompressibleTwoPhaseInteractingMixture.C` (Reference for field access patterns)
+
+> 💡 **คำอธิบาย (Explanation)**: 
+> การตั้งค่า Runtime Post-processing ใน `controlDict` เป็นวิธีที่มีประสิทธิภาพที่สุดในการตรวจสอบผลลัพธ์ระหว่างการคำนวณ โครงสร้างนี้ใช้ Function Objects ซึ่งเป็นกลไกที่ออกแบบมาให้ทำงานแบบ Modular โดยแต่ละ Function Object จะถูกเรียกใช้ตามช่วงเวลาที่กำหนด (outputInterval)
+
+> 🔑 **แนวคิดสำคัญ (Key Concepts)**:
+> - **functionObjects**: เป็นคลาส C++ ที่ออกแบบมาเพื่อดำเนินการบน Field ข้อมูลในขณะที่ Solver กำลังทำงาน โดยสืบทอดมาจาก `functionObject` base class
+> - **Interpolation Scheme**: `cellPoint` เป็นวิธีการประมาณค่าจากจุดศูนย์กลางเซลล์ไปยังจุดที่ต้องการสกัด โดยใช้ Linear Interpolation
+> - **Coordinate System**: การกำหนดระบบพิกัดช่วยให้สามารถแยกส่วนประกอบแรงตามทิศทางที่ต้องการ (Lift/Drag) ได้อย่างแม่นยำ
+
 แนวทางนี้ช่วยให้สามารถตรวจสอบผลลัพธ์ได้แบบเรียลไทม์โดยไม่ต้องหยุด Solver
 
 > [!INFO] ข้อดีของ Runtime Post-processing
@@ -250,6 +260,16 @@ foamToEnsight -latestTime
 # Sample along a predefined line (using sampleDict)
 postProcess -func sampleDict
 ```
+
+> 📂 **Source**: `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C` (Reference for post-processing integration)
+
+> 💡 **คำอธิบาย (Explanation)**: 
+> Batch Processing คือการดำเนินการ Post-processing หลังจากการจำลองเสร็จสมบูรณ์ โดยใช้ Utility `postProcess` ซึ่งเป็นเครื่องมือสแตนด์อะลูนที่สามารถเรียกใช้ Function Objects ต่างๆ ได้โดยไม่ต้องรัน Solver ซ้ำ วิธีนี้เหมาะสำหรับการวิเคราะห์ที่ต้องการประมวลผลหลาย Time Steps หรือต้องการคำนวณปริมาณที่ซับซ้อน
+
+> 🔑 **แนวคิดสำคัญ (Key Concepts)**:
+> - **postProcess Utility**: เป็น Utility หลักของ OpenFOAM ที่ใช้สำหรับ Batch Processing โดยสามารถรับ Function Objects ผ่าน `-func` flag
+> - **latestTime Flag**: ระบุให้ประมวลผลเฉพาะ Time Directory ล่าสุด ช่วยประหยัดเวลาและทรัพยากร
+> - **Format Conversion**: `foamToVTK` และ `foamToEnsight` เป็น Utilities สำหรับแปลงข้อมูล OpenFOAM ไปเป็นรูปแบบมาตรฐานที่เครื่องมือภายนอกอ่านได้
 
 ### 2.3 การกำหนดค่า Sampling (Sampling Configuration)
 
@@ -309,6 +329,16 @@ fields
 );
 ```
 
+> 📂 **Source**: `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/coalescenceModels/LiaoCoalescence/LiaoCoalescence.C` (Reference for sampling methodology)
+
+> 💡 **คำอธิบาย (Explanation)**: 
+> ไฟล์ `sampleDict` เป็นการตั้งค่าขั้นสูงสำหรับการสุ่มตัวอย่างข้อมูลที่ซับซ้อน ซึ่งอนุญาตให้ผู้ใช้กำหนด Geometry การสุ่มตัวอย่างได้อย่างยืดหยุ่น ไม่ว่าจะเป็นเส้น (Line), ระนาบ (Plane), หรือพื้นผิว (Surface) ที่กำหนดเอง การตั้งค่านี้เป็นพื้นฐานสำหรับการสกัดข้อมูลโปรไฟล์ทางกายภาพเช่น Boundary Layer Profiles หรือ Wake Characteristics
+
+> 🔑 **แนวคิดสำคัญ (Key Concepts)**:
+> - **Sampling Sets**: คือ Collection ของจุดที่ต้องการสกัดข้อมูล โดยแต่ละ Set สามารถมี Type และ Parameter ต่างกัน
+> - **Interpolation Scheme**: `cellPoint` เป็นการประมาณค่าจาก Cell Centers ไปยังจุดที่ต้องการ โดยใช้ Linear Interpolation based on Cell Shape Functions
+> - **Uniform vs Non-uniform**: `uniform` type สร้างจุดสุ่มตัวอย่างที่กระจายตัวสม่ำเสมอตามพิกัดที่กำหนด ในขณะที่ `non-uniform` อนุญาตให้ระบุพิกัดแต่ละจุดโดยตรง
+
 ---
 
 ## 3. เครื่องมือหลักสำหรับการสกัดและวิเคราะห์ Field (Core Field Extraction Utilities)
@@ -352,6 +382,16 @@ postProcess -func "Co" -latestTime
 postProcess -func "Re" -latestTime
 ```
 
+> 📂 **Source**: `applications/solvers/multiphase/driftFluxFoam/incompressibleTwoPhaseInteractingMixture/incompressibleTwoPhaseInteractingMixture.H` (Reference for field type definitions)
+
+> 💡 **คำอธิบาย (Explanation)**: 
+> การคำนวณทางคณิตศาสตร์บน Fields ใน OpenFOAM ใช้ระบบ Function Objects ที่ออกแบบมาให้รองรับ Operations ทั่วไป เช่น Gradients, Divergences, และ Vector Magnitudes โดยแต่ละ Function จะถูกนำไปใช้กับทุก Cell ใน Mesh ผ่าน Finite Volume Discretization
+
+> 🔑 **แนวคิดสำคัญ (Key Concepts)**:
+> - **Field Algebra**: OpenFOAM รองรับการดำเนินการทางคณิตศาสตร์บน Fields โดยตรงผ่าน Operator Overloading
+> - **Derivative Operations**: `grad()`, `div()`, `curl()` เป็น Functions ที่ใช้ Finite Volume Schemes ในการคำนวณ
+> - **Automatic Differentiation**: การคำนวณ Gradients และ Divergences ใช้ Schemes ที่กำหนดใน `fvSchemes`
+
 ### 3.2 การคำนวณ Derived Field
 
 การวิเคราะห์ขั้นสูงมักต้องใช้การคำนวณปริมาณที่ได้มาจาก Field หลัก ความสามารถในการหาอนุพันธ์ (Derivative) ช่วยให้สามารถคำนวณ Gradients, Divergences และ Curl ซึ่งจำเป็นสำหรับการวิเคราะห์เชิงวิศวกรรม
@@ -370,7 +410,7 @@ $$\nabla\mathbf{u} = \begin{bmatrix} \frac{\partial u}{\partial x} & \frac{\part
 
 Vorticity $\boldsymbol{\omega}$ ถูกนิยามเป็น Curl ของสนามความเร็ว:
 
-$$\boldsymbol{\omega} = \nabla \times \mathbf{u} = \begin{vmatrix} \mathbf{i} & \mathbf{j} & \mathbf{k} \\[4pt] \frac{\partial}{\partial x} & \frac{\partial}{\partial y} & \frac{\partial}{\partial z} \\[4pt] u & v & w \end{vmatrix} = \left( \frac{\partial w}{\partial y} - \frac{\partial v}{\partial z}, \frac{\partial u}{\partial z} - \frac{\partial w}{\partial x}, \frac{\partial v}{\partial x} - \frac{\partial u}{\partial y} \right)$$
+$$\boldsymbol{\omega} = \nabla \times \mathbf{u} = \begin{vmatrix} \mathbf{i} & \mathbf{j} & \mathbf{k} \\[4pt] \frac{\partial}{\partial x} & \frac{\partial}{\partial y} & \frac{\partial}{\partial z} \\[4pt] u & v & w \end{vmatrix} = \left( \frac{\partial w}{\partial y} - \frac{\partial v}{\partial z},\frac{\partial u}{\partial z} - \frac{\partial w}{\partial x},\frac{\partial v}{\partial x} - \frac{\partial u}{\partial y} \right)$$
 
 ```bash
 # Calculate velocity gradient tensor
@@ -385,6 +425,16 @@ postProcess -func "mag(vorticity)" -latestTime
 # Calculate Q-criterion (vortex identification)
 postProcess -func "Q" -latestTime
 ```
+
+> 📂 **Source**: `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/binaryBreakupModels/Liao/LiaoBase.C` (Reference for tensor field operations)
+
+> 💡 **คำอธิบาย (Explanation)**: 
+> Vorticity คือปริมาณที่วัดการหมุนของ Fluid Element โดยเป็น Vector ที่มีทิศทางเป็นแกนการหมุน และขนาดเป็นความเร็วเชิงมุม การคำนวณ Vorticity ใช้ Curl Operation ซึ่งเป็น Vector Calculus Operator ที่สำคัญในการวิเคราะห์ Turbulent Flows และ Vortex Structures
+
+> 🔑 **แนวคิดสำคัญ (Key Concepts)**:
+> - **Vorticity Tensor**: ส่วน Skew-Symmetric ของ Velocity Gradient Tensor ซึ่งแทนการหมุนโดยไม่มีการเสียรูป
+> - **Q-Criterion**: เป็น Vortex Identification Method ที่ใช้ Difference ระหว่าง Rotation แล� Strain Rates
+> - **Curl Operation**: ใน OpenFOAM ใช้ Finite Volume Method ผ่าน Gauss's Theorem ในการคำนวณ
 
 #### 3.2.3 Strain Rate Magnitude (ขนาดอัตราการเสียรูป)
 
@@ -423,6 +473,16 @@ postProcess -func "wallShearStress" -latestTime
 
 # Output creates: wallShearStress file in time directory
 ```
+
+> 📂 **Source**: `applications/solvers/multiphase/driftFluxFoam/incompressibleTwoPhaseInteractingMixture/incompressibleTwoPhaseInteractingMixture.C` (Reference for wall boundary calculations)
+
+> 💡 **คำอธิบาย (Explanation)**: 
+> Wall Shear Stress คือ Stress ที่เกิดจากความหนืดของ Fluid ที่พื้นผิวผนัง ซึ่งเป็นผลมาจาก Velocity Gradient ใกล้ผนัง ใน OpenFOAM การคำนวณใช้ Viscosity Model ที่กำหนดใน Transport Properties และคำนวณ Gradient ที่ Wall Faces ผ่าน Finite Volume Scheme
+
+> 🔑 **แนวคิดสำคัญ (Key Concepts)**:
+> - **No-Slip Condition**: ที่ผนัง ความเร็ว Fluid เป็นศูนย์ ทำให้เกิด Velocity Gradient สูง
+> - **Viscous Sublayer**: เป็นบริเวณใกล้ผนังที่ Viscous Forces มีอิทธิพลมากกว่า Inertial Forces
+> - **Skin Friction Coefficient**: $C_f = \tau_w / (0.5 \rho U_{\infty}^2)$ ใช้ในการ Non-dimensionalize
 
 #### 3.3.2 y+ (Dimensionless Wall Distance)
 
@@ -506,6 +566,16 @@ forces
 }
 ```
 
+> 📂 **Source**: `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C` (Reference for force integration)
+
+> 💡 **คำอธิบาย (Explanation)**: 
+> Forces Function Object ใน OpenFOAM ใช้ Surface Integration ผ่าน Gauss's Theorem ในการคำนวณแรงรวมที่กระทำต่อ Boundary Patches การคำนวณแยกแรงเป็นสองส่วนคือ Pressure Force (จาก Pressure Field) และ Viscous Force (จาก Viscous Stress Tensor) ซึ่งช่วยให้เข้าใจกลไกการสร้างแรงได้ดีขึ้น
+
+> 🔑 **แนวคิดสำคัญ (Key Concepts)**:
+> - **Surface Integration**: ใช้ Finite Volume Method โดยรวม Fluxes ผ่าน Boundary Faces
+> - **Pressure vs Viscous Forces**: Pressure Force เกิดจาก Pressure Distribution ในขณะที่ Viscous Force เกิดจาก Velocity Gradients
+> - **Center of Rotation (CoR)**: ใช้ในการคำนวณ Moments โดยเป็นจุดที่ใช้อ้างอิงสำหรับ Moment Arm
+
 > **[MISSING DATA]**: แทรกแผนภูมิ Evolution of Force Components vs. Time
 
 ### 4.2 การวิเคราะห์สัมประสิทธิ์ Drag และ Lift (Drag and Lift Coefficient Analysis)
@@ -569,7 +639,17 @@ forceCoeffs
 }
 ```
 
-> [!WARNING) ข้อควรระวังในการตีความ Coefficients
+> 📂 **Source**: `applications/solvers/multiphase/driftFluxFoam/incompressibleTwoPhaseInteractingMixture/incompressibleTwoPhaseInteractingMixture.C` (Reference for coefficient calculations)
+
+> 💡 **คำอธิบาย (Explanation)**: 
+> Force Coefficients เป็นการ Non-dimensionalize แรงเพื่อให้สามารถเปรียบเทียบผลลัพธ์ระหว่าง Geometry ต่างๆ หรือ Flow Conditions ต่างๆ ได้ การแยก Coefficients เป็น Pressure และ Viscous Components ช่วยให้เข้าใจแหล่งที่มาของ Drag และ Lift ได้ดีขึ้น
+
+> 🔑 **แนวคิดสำคัญ (Key Concepts)**:
+> - **Reference Area**: สำหรับ 2D ใช้ Chord Length, สำหรับ 3D ใช้ Projected Area ตั้งฉากกับ Flow
+> - **Dynamic Pressure**: $q_{\infty} = 0.5 \rho_{\infty} U_{\infty}^2$ ใช้ในการ Normalize
+> - **Force Decomposition**: ช่วยระบุว่า Pressure Drag หรือ Skin Friction Drag มีอิทธิพลมากกว่า
+
+> [!WARNING] ข้อควรระวังในการตีความ Coefficients
 > - **Reynolds Number Effect**: $C_D$ และ $C_L$ ขึ้นกับ $Re$ อย่างมาก
 > - **3D Effects**: ในการจำลอง 3D ต้องพิจารณา Tip Vortices และ Induced Drag
 > - **Transition Effects**: จุดเปลี่ยน Laminar-to-Turbulent มีผลต่อ $C_{D,p}$
@@ -607,6 +687,16 @@ foamToEnsight -latestTime
 foamListTimes
 ```
 
+> 📂 **Source**: `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/binaryBreakupModels/Liao/LiaoBase.C` (Reference for data export)
+
+> 💡 **คำอธิบาย (Explanation)**: 
+> ParaView เป็น Visualization Tool หลักที่ใช้กับ OpenFOAM โดย `paraFoam` เป็น Wrapper Script ที่สร้าง Case File และเปิด ParaView พร้อมโหลด OpenFOAM Reader การ Export ไปยัง VTK หรือ Ensight ทำให้สามารถใช้ Tools อื่นๆ ในการวิเคราะห์ต่อได้
+
+> 🔑 **แนวคิดสำคัญ (Key Concepts)**:
+> - **OpenFOAM Reader**: เป็น ParaView Plugin ที่อ่าน OpenFOAM Format โดยตรง
+> - **Batch Rendering**: สามารถใช้ Python Scripts เพื่อสร้างภาพอัตโนมัติ
+> - **VTK Format**: Visualization Toolkit ที่เป็น Standard ใน CFD Visualization
+
 #### 5.1.1 Python Scripting for ParaView
 
 การสร้างภาพอัตโนมัติด้วย Python:
@@ -641,6 +731,16 @@ ColorBy(contourDisplay, 'POINTS', 'p')
 # Save screenshot
 SaveScreenshot('pressure_contour.png', renderView1, ImageResolution=[1920, 1080])
 ```
+
+> 📂 **Source**: `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C` (Reference for automation patterns)
+
+> 💡 **คำอธิบาย (Explanation)**: 
+> ParaView Python API ช่วยให้สามารถ Automate การสร้างภาพได้อย่างมีประสิทธิภาพ โดยใช้ `paraview.simple` Module ซึ่งเป็น High-Level Interface ที่อนุญาตให้สร้าง Pipeline ได้ง่าย การใช้ Python Scripts เหมาะสำหรับ Batch Processing และ Regression Testing
+
+> 🔑 **แนวคิดสำคัญ (Key Concepts)**:
+> - **Pipeline Concept**: ParaView ใช้ Pipeline Architecture โดยแต่ละ Filter รับ Input จาก Filter ก่อนหน้า
+> - **Representation**: คือการแสดงผลข้อมูล เช่น Surface, Volume, หรือ Wireframe
+> - **Color Mapping**: การแสดงค่า Field ผ่าน Color Maps ที่กำหนดได้
 
 ### 5.2 การส่งออกข้อมูลเชิงปริมาณ (Quantitative Data Export)
 
@@ -681,6 +781,16 @@ graphs
     );
 }
 ```
+
+> 📂 **Source**: `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/coalescenceModels/LiaoCoalescence/LiaoCoalescence.C` (Reference for graph configuration)
+
+> 💡 **คำอธิบาย (Explanation)**: 
+> Graph Function Objects ใช้ในการสร้าง Line/Plane Data สำหรับการ Plot กราฟ โดยสามารถระบุ Sampling Points แบบ Uniform หรือ Non-uniform และ Export เป็นรูปแบบต่างๆ เช่น CSV, RAW หรือ Graph Formats
+
+> 🔑 **แนวคิดสำคัญ (Key Concepts)**:
+> - **Uniform vs Non-uniform**: Uniform สร้างจุดที่เว้นระยะเท่าๆ กัน ในขณะที่ Non-uniform อนุญาต Custom Points
+> - **Interpolation Scheme**: กำหนดวิธีการประมาณค่าจาก Cell Centers ไปยัง Sampling Points
+> - **Multi-field Output**: สามารถ Export หลาย Fields พร้อมกันใน Single Configuration
 
 #### 5.2.2 CSV Export (การส่งออกไฟล์ CSV)
 
@@ -784,6 +894,16 @@ wallHeatFlux
 }
 ```
 
+> 📂 **Source**: `applications/solvers/multiphase/driftFluxFoam/incompressibleTwoPhaseInteractingMixture/incompressibleTwoPhaseInteractingMixture.C` (Reference for thermal field handling)
+
+> 💡 **คำอธิบาย (Explanation)**: 
+> Wall Heat Flux คำนวณอัตราการถ่ายเทความร้อนผ่านผนังโดยใช้ Fourier's Law ซึ่งขึ้นกับ Temperature Gradient และ Thermal Conductivity ใน Turbulent Flows ใช้ Effective Conductivity ที่รวมทั้ง Molecular และ Turbulent Contributions
+
+> 🔑 **แนวคิดสำคัญ (Key Concepts)**:
+> - **Fourier's Law**: $q'' = -k \nabla T$ เป็นพื้นฐานของ Heat Conduction
+> - **Turbulent Prandtl Number**: ใช้ในการเชื่อม Turbulent Viscosity กับ Turbulent Thermal Diffusivity
+> - **Nusselt Number**: คือ Ratio ระหว่าง Convective ถึง Conductive Heat Transfer
+
 > **[MISSING DATA]**: แทรก Heat Flux Contour Plot และ Local Nu Distribution
 
 ### 6.2 การจำแนกคุณลักษณะการไหลแบบปั่นป่วน (Turbulent Flow Characterization)
@@ -868,6 +988,16 @@ Q
 }
 ```
 
+> 📂 **Source**: `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/binaryBreakupModels/Liao/LiaoBase.C` (Reference for tensor field operations)
+
+> 💡 **คำอธิบาย (Explanation)**: 
+> Vortex Identification Methods ใช้ในการตรวจหา Vortex Structures ใน Turbulent Flows Q-Criterion เป็น Method ที่นิยมใช้ซึ่งอิงจาก Difference ระหว่าง Rotation และ Strain Rates ในขณะที่ Lambda-2 ใช้ Eigenvalue Analysis ของ Velocity Gradient Tensor
+
+> 🔑 **แนวคิดสำคัญ (Key Concepts)**:
+> - **Vortex Core**: คือบริเวณที่ Rotation มีอิทธิพลมากกว่า Deformation
+> - **Q-Criterion**: $Q > 0$ บ่งชี้ Vortex Cores โดย Threshold ปกติอยู่ที่ $Q = 0.01-0.1 U_{\infty}^2/L^2$
+> - **Coded Function Object**: อนุญาตให้เขียน Custom C++ Code ใน Dictionary Files
+
 ### 6.3 การวิเคราะห์สมดุลมวลและพลังงาน (Mass and Energy Balance Analysis)
 
 #### 6.3.1 Mass Balance (สมดุลมวล)
@@ -921,7 +1051,7 @@ graph TD
 
 ### 7.2 รายการตรวจสอบก่อนการจำลอง (Pre-Simulation Checklist)
 
-> [!CHECKLIST) รายการตรวจสอบการเตรียม Post-processing
+> [!CHECKLIST] รายการตรวจสอบการเตรียม Post-processing
 > - [ ] กำหนด patches ที่ต้องการวิเคราะห์ (Target Patches Identified)
 > - [ ] คำนวณค่า $A_{\text{ref}}$, $L_{\text{ref}}$ สำหรับ Coefficients
 > - [ ] ตั้งค่า `probes` สำหรับตำแหน่งที่สนใจ
@@ -962,6 +1092,16 @@ massBalance
 }
 ```
 
+> 📂 **Source**: `applications/solvers/multiphase/driftFluxFoam/incompressibleTwoPhaseInteractingMixture/incompressibleTwoPhaseInteractingMixture.H` (Reference for field integration)
+
+> 💡 **คำอธิบาย (Explanation)**: 
+> Mass Balance Checking คือการตรวจสอบว่า Mass Flux ที่เข้าและออกจากโดเมนสมดุลกัน ใน Incompressible Flows นี่คือการตรวจสอบ Continuity Equation โดยรวม Mass Fluxes ผ่านทุก Boundary Patch
+
+> 🔑 **แนวคิดสำคัญ (Key Concepts)**:
+> - **Face Flux**: `phi` คือ Mass Flux Field ใน OpenFOAM (สำหรับ Incompressible คือ Volume Flux × Density)
+> - **Surface Integration**: รวม Fluxes ผ่าน Boundary Faces โดยใช้ Gauss's Theorem
+> - **Conservation Error**: ควรอยู่ภายใต้ Machine Precision สำหรับ Steady-State
+
 #### 7.3.2 Mesh Quality Checks (การตรวจสอบคุณภาพ Mesh)
 
 ```bash
@@ -983,6 +1123,16 @@ postProcess -func "writeFaceAreas" -latestTime
 postProcess -func "yPlus" -latestTime
 # Then plot histogram using Python/ParaView
 ```
+
+> 📂 **Source**: `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C` (Reference for mesh operations)
+
+> 💡 **คำอธิบาย (Explanation)**: 
+> Mesh Quality มีผลต่อความแม่นยำของ Post-processing โดยเฉพาะ Gradient Calculations และ Surface Integrations การตรวจสอบ Mesh Quality ช่วยรับประกันว่าผลลัพธ์ที่ได้เชื่อถือได้
+
+> 🔑 **แนวคิดสำคัญ (Key Concepts)**:
+> - **Non-orthogonality**: มีผลต่อความแม่นยำของ Gradient Calculations
+> - **Aspect Ratio**: สูงเกินไปอาจทำให้เกิด Numerical Diffusion
+> - **y+ Distribution**: สำคัญสำหรับ Turbulence Models ที่ใช้ Wall Functions
 
 ### 7.4 เทคนิคการปรับปรุงประสิทธิภาพ (Performance Optimization Techniques)
 
@@ -1028,7 +1178,7 @@ postProcess -func "yPlus" -latestTime
 
 ---
 
-> [!TIP) เวิร์กโฟลว์การประมวลผลหลังการจำลอง
+> [!TIP] เวิร์กโฟลว์การประมวลผลหลังการจำลอง
 > เริ่มต้นด้วย **functionObjects** สำหรับการตรวจสอบระหว่างรัน (Runtime Monitoring) เพื่อให้ได้ข้อมูลป้อนกลับที่รวดเร็วเกี่ยวกับความบรรจบ (Convergence) และตรวจพบปัญหาแต่เนิ่นๆ หลังจากจำลองเสร็จสิ้น ให้ใช้ **Batch Processing** Utilities สำหรับการวิเคราะห์เชิงลึกที่ครอบคลุม
 
 ---

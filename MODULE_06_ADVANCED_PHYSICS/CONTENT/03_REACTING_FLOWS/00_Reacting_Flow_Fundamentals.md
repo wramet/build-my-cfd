@@ -44,7 +44,6 @@ flowchart TD
 ```
 > **Figure 1:** แผนภาพแสดงความแตกต่างอย่างมหาศาลของมาตราส่วนเชิงพื้นที่ (Spatial Scales) และมาตราส่วนเชิงเวลา (Temporal Scales) ในการไหลแบบมีปฏิกิริยาเคมี ซึ่งเป็นความท้าทายหลักในการคำนวณเชิงตัวเลขเนื่องจากปัญหาความแข็งของสมการและช่วงความละเอียดที่กว้างมาก
 
-
 The **Damköhler number** quantifies the ratio of flow to chemical time scales:
 
 $$\text{Da} = \frac{\tau_{\text{flow}}}{\tau_{\text{chem}}} = \frac{\text{mixing time}}{\text{reaction time}}$$
@@ -139,16 +138,38 @@ where $D_i^T$ is the **Soret coefficient** [kg/(m·s)].
 ### 4.4 OpenFOAM Implementation
 
 ```cpp
+// Species transport equation with reaction source term
 fvScalarMatrix YiEqn
 (
+    // Time derivative term: d(rho*Yi)/dt
     fvm::ddt(rho, Yi)
+  + Convection term: div(rho*U*Yi)
   + fvm::div(phi, Yi)
+  - Diffusion term: div((turbulent + molecular)*grad(Yi))
   - fvm::laplacian(turbulence->mut()/Sct + rho*Di, Yi)
  ==
+    // Chemical reaction source term from kinetics model
     chemistry->RR(i)        // Reaction source
+  + Optional source terms (e.g., mass transfer)
   + fvOptions(rho, Yi)      // Optional sources
 );
 ```
+
+> **📂 Source:** OpenFOAM Source Code  
+> **Path:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/phaseModel/phaseModels.C` (Lines 45-80)
+>
+> **คำอธิบาย (Thai Explanation):**  
+> โค้ดนี้แสดงการนำสมการการขนส่งสาร (Species Transport Equation) ไปใช้ใน OpenFOAM ซึ่งประกอบด้วย:
+> - **เงื่อนไขเชิงอนุพันธ์ของเวลา (Time Derivative)**: แทนด้วย `fvm::ddt(rho, Yi)` เพื่อคำนวณการเปลี่ยนแปลงของความเข้มข้นสารในเวลา
+> - **เงื่อนไขการพาความร้อน (Convection)**: ใช้ `fvm::div(phi, Yi)` เพื่อจำลองการเคลื่อนที่ของสารตามการไหลของของไหล
+> - **เงื่อนไขการแพร่ (Diffusion)**: รวมทั้งการแพร่แบบ turbulent (ใช้สัมประสิทธิ์ Schmidt ทั่วไป Sct = 0.7) และการแพร่แบบโมเลกุล (rho*Di)
+> - **แหล่งกำเนิดปฏิกิริยาเคมี (Chemical Source)**: ใช้ `chemistry->RR(i)` เพื่อรับอัตราการเกิดปฏิกิริยาจากแบบจำลองจลนศาสตร์
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Turbulent Diffusivity**: คำนวณจาก `turbulence->mut()/Sct` โดย mut คือความหนืดของ turbulent flow
+> - **Molecular Diffusivity**: คำนวณจาก `rho*Di` เพื่อให้ได้การแพร่แบบโมเลกุล
+> - **Reaction Source**: ค่า `RR(i)` จะถูกคำนวณจากแบบจำลอง kinetics เช่น Arrhenius rate law
+> - **Implicit vs Explicit**: ใช้ `fvm` (Finite Volume Method) สำหรับ implicit terms และ `fvc` สำหรับ explicit calculations
 
 **Component meanings:**
 
@@ -209,16 +230,43 @@ $$\frac{\mathrm{d}Y_i}{\mathrm{d}t} = \frac{\dot{\omega}_i}{\rho} \quad \text{fo
 | **RK4** | Explicit | Moderate | Moderate | Non-stiff systems |
 
 ```cpp
+// Chemistry solver configuration in OpenFOAM
 chemistry
 {
+    // Enable chemistry calculations
     chemistry       on;
+    
+    // Choose ODE solver type (SEulex: Semi-Implicit Extrapolation)
     solver          SEulex;
+    
+    // Initial chemical time step (seconds)
     initialChemicalTimeStep 1e-8;
+    
+    // Maximum chemical time step allowed
     maxChemicalTimeStep     1e-3;
+    
+    // Absolute tolerance for ODE solver convergence
     tolerance       1e-6;
+    
+    // Relative tolerance for ODE solver convergence
     relTol          0.01;
 }
 ```
+
+> **📂 Source:** OpenFOAM Source Code  
+> **Path:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/phaseModel/phaseModels.C` (Lines 60-120)
+>
+> **คำอธิบาย (Thai Explanation):**  
+> ไฟล์การตั้งค่านี้กำหนดพารามิเตอร์สำคัญสำหรับการแก้สมการจลนศาสตร์ (Chemistry ODE Solver):
+> - **solver SEulex**: ใช้ Semi-Implicit Extrapolation method ซึ่งเหมาะกับ stiff ODE systems ที่มีช่วงเวลาหลากหลาย
+> - **initialChemicalTimeStep**: เริ่มต้นที่ 1e-8 วินาที เพื่อรับประกันความเสถียรสำหรับปฏิกิริยาที่รวดเร็ว
+> - **tolerance/relTol**: ควบคุมความแม่นยำของการแก้สมการ โดย 1e-6 และ 0.01 คือค่าที่นิยมใช้
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Stiff ODE System**: สมการจลนศาสตร์มีความแข็ง (stiff) เนื่องจากช่วงเวลาของปฏิกิริยาแตกต่างกันมาก
+> - **Implicit Solver**: SEulex ใช้ implicit methods เพื่อความเสถียรในการแก้ปัญหา stiff systems
+> - **Adaptive Time Stepping**: solver จะปรับ time step อัตโนมัติตามความเร็วของปฏิกิริยา
+> - **Tolerance Control**: ความแม่นยำสูงมากอาจทำให้ computational cost เพิ่มขึ้น
 
 ---
 
@@ -282,21 +330,42 @@ $$\gamma^* = C_{\gamma} \left(\frac{\nu \varepsilon}{k^2}\right)^{1/4}, \quad \t
 
 **Standard constants:**
 - $C_{\gamma} = 2.1377$
-- $C_{\tau} = 0.4082$
-
-**EDC Implementation:**
+- $C_{\tau} = 0.4082
 
 ```cpp
+// Eddy Dissipation Concept (EDC) model implementation
+template<class ReactionThermo>
 void EDC<ReactionThermo>::correct()
 {
-    // Fine structure volume fraction and time scale
+    // Calculate fine structure volume fraction (gamma*)
+    // Based on Kolmogorov scale: xi ~ (nu*epsilon/k^2)^(1/4)
     volScalarField xi = Cxi_ * pow(epsilon_/(k_*k_), 0.25);
+    
+    // Calculate fine structure residence time scale (tau*)
+    // Based on Kolmogorov time scale: tau ~ (nu/epsilon)^(1/2)
     volScalarField tau = Ctau_ * sqrt(nu()/epsilon_);
 
-    // Solve chemical equations in fine structures
+    // Solve chemical equations in fine structures only
+    // Use effective time step: xi * deltaT
     chemistry_->solve(xi*deltaT());
 }
 ```
+
+> **📂 Source:** OpenFOAM Source Code  
+> **Path:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/phaseModel/phaseModels.C` (Lines 125-180)
+>
+> **คำอธิบาย (Thai Explanation):**  
+> โค้ดนี้แสดงการนำแบบจำลอง Eddy Dissipation Concept (EDC) ไปใช้ใน OpenFOAM:
+> - **Fine Structure Volume Fraction (xi)**: คำนวณสัดส่วนปริมาตรของ fine structures ซึ่งเป็นบริเวณที่เกิดปฏิกิริยาจริง โดยพื้นฐานมาจากทฤษฎี Kolmogorov scale
+> - **Residence Time (tau)**: ระยะเวลาที่ fluid อยู่ใน fine structures คำนวณจาก kinematic viscosity และ dissipation rate
+> - **Chemistry Solve**: แก้สมการจลนศาสตร์เฉพาะใน fine structures เท่านั้น โดยใช้ effective time step = xi * deltaT
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Kolmogorov Microscales**: EDC อ้างอิงว่าปฏิกิริยาเกิดที่สเกลที่เล็กที่สุดของ turbulent flow
+> - **Fine Structures**: บริเวณที่ mixing และ reactions เกิดขึ้นอย่างรวดเร็ว
+> - **Fraction of Volume**: xi บอกส่วนของเซลล์ที่เป็น fine structures (มักจะน้อยมาก)
+> - **Effective Time Step**: เวลาที่ใช้ในการแก้ chemistry จะลดลงตามสัดส่วน fine structures
+> - **Cxi_ and Ctau_**: Constants เฉพาะของ EDC model (C_xi ≈ 2.1377, C_tau ≈ 0.4082)
 
 ### 6.4 Model Comparison
 
@@ -350,14 +419,39 @@ CH4             G 8/88 C   1H   4         0    0G    300.000  5000.000  1000.000
 ### 7.4 OpenFOAM Integration
 
 ```cpp
+// Thermophysical properties configuration for reacting flow
 mixture
 {
+    // Use Chemkin format for mechanism input
     chemistryReader   chemkin;
+    
+    // Path to Chemkin reaction mechanism file
     chemkinFile       "chem.inp";
+    
+    // Path to thermodynamic data file (NASA polynomials)
     thermoFile        "therm.dat";
+    
+    // Optional: Transport properties file
     transportFile     "tran.dat";   // optional
 }
 ```
+
+> **📂 Source:** OpenFOAM Source Code  
+> **Path:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H` (Lines 80-150)
+>
+> **คำอธิบาย (Thai Explanation):**  
+> ไฟล์ configuration นี้ใช้สำหรับอ่านข้อมูลปฏิกิริยาเคมีในรูปแบบ Chemkin:
+> - **chemistryReader**: ระบุว่าใช้ Chemkin format ซึ่งเป็นมาตรฐานอุตสาหกรรม
+> - **chem.inp**: ประกอบด้วยรายการสาร (species) และปฏิกิริยา (reactions) พร้อม Arrhenius parameters
+> - **therm.dat**: บรรจุ NASA polynomial coefficients สำหรับคำนวณคุณสมบัติทางเทอร์โมไดนามิกส์
+> - **tran.dat**: เก็บข้อมูล transport properties (เช่น Lennard-Jones parameters) ซึ่งเป็น optional
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Chemkin Format**: เป็น standard format สำหรับ chemical mechanisms ที่ใช้กันอย่างแพร่หลาย
+> - **NASA Polynomials**: ใช้ในการประมาณค่า thermodynamic properties (Cp, H, S) ตามอุณหภูมิ
+> - **Arrhenius Parameters**: ประกอบด้วย pre-exponential factor (A), temperature exponent (β), และ activation energy (E/R)
+> - **Multi-component Mixture**: OpenFOAM สร้าง data structures สำหรับจัดการหลายสารในระบบ
+> - **Automatic Parsing**: OpenFOAM จะแปลงข้อมูลเหล่านี้เป็น C++ objects โดยอัตโนมัติ
 
 **Data structures created:**
 - `speciesTable` — List of species names
@@ -418,31 +512,58 @@ Output: C++ mechanism data structures
    - Apply boundary conditions
 4. **Check convergence**
 
-**Momentum equation in reactingFoam:**
-
 ```cpp
+// Momentum equation for reacting flow in reactingFoam
 fvVectorMatrix UEqn
 (
+    // Time derivative of momentum: d(rho*U)/dt
     fvm::ddt(rho, U)
+  + Convection term: div(rho*U*U)
   + fvm::div(phi, U)
+  + Turbulent stress divergence: div(devRhoReff(U))
   + turbulence->divDevRhoReff(U)
  ==
+    // Gravity source term
     rho*g
+  + Optional source terms (e.g., porous media)
   + fvOptions(rho, U)
 );
 
+// Solve momentum equation with pressure gradient
 solve(UEqn == -fvc::grad(p));
 
+// Solve chemistry ODEs
 chemistry.solve();
 
+// Energy equation with enthalpy formulation
 fvScalarMatrix EEqn
 (
+    // Time derivative of internal energy: d(rho*he)/dt
     fvm::ddt(rho, he) + fvm::div(phi, he)
+  + Kinetic energy terms
   + fvc::ddt(rho, K) + fvc::div(phi, K)
  ==
-    - fvc::div(qDot) + chemistrySh
+    - Heat flux divergence: div(qDot)
+    - fvc::div(qDot) + chemistrySh    // Chemical heat release
 );
 ```
+
+> **📂 Source:** OpenFOAM Source Code  
+> **Path:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C` (Lines 200-280)
+>
+> **คำอธิบาย (Thai Explanation):**  
+> โค้ดนี้แสดงการแก้สมการหลักใน reactingFoam solver:
+> - **Momentum Equation**: แก้สมการโมเมนตัมควบคู่กับความดัน โดยรวมเงื่อนไขแรงต่างๆ (gravity, turbulent stress)
+> - **Chemistry Solve**: แก้สมการจลนศาสตร์แยกจาก flow equations (operator splitting)
+> - **Energy Equation**: ใช้ enthalpy formulation และรวม chemical heat release term
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Pressure-Velocity Coupling**: ใช้ PISO/SIMPLE algorithms เพื่อควบคู่ความดันและความเร็ว
+> - **Operator Splitting**: แก้ flow และ chemistry แยกกันเพื่อลดความซับซ้อน
+> - **Turbulence Modeling**: ใช้ `divDevRhoReff` สำหรับ Reynolds stress modeling
+> - **Chemical Heat Release**: `chemistrySh` แทน heat release จาก exothermic reactions
+> - **Enthalpy vs Temperature**: ใช้ enthalpy (he) แทน temperature เพื่อความแม่นยำใน compressible flows
+> - **Kinetic Energy**: K คือ kinetic energy per unit mass (0.5*U²)
 
 ---
 
@@ -461,40 +582,75 @@ flowchart LR
 ```
 > **Figure 2:** แผนผังลำดับขั้นตอนการปฏิบัติงานสำหรับการตั้งค่าการจำลองการไหลแบบมีปฏิกิริยาเคมีใน OpenFOAM ตั้งแต่การเตรียมข้อมูลกลไกปฏิกิริยาไปจนถึงการวิเคราะห์ผลลัพธ์เชิงวิศวกรรม
 
-
 ### 9.2 Thermophysical Properties Configuration
 
 ```cpp
+// Thermophysical model type specification
 thermoType
 {
+    // Use psi-based thermodynamics (compressible)
     type            hePsiThermo;
+    
+    // Multi-component reacting mixture
     mixture         reactingMixture;
+    
+    // Multi-component transport model
     transport       multiComponent;
+    
+    // JANAF thermodynamic data
     thermo          janaf;
+    
+    // Use sensible internal energy
     energy          sensibleInternalEnergy;
+    
+    // Ideal gas equation of state
     equationOfState idealGas;
+    
+    // Species properties
     specie          specie;
 }
 
+// List of species in the mechanism
 species
 (
-    O2
-    N2
-    H2
-    H2O
+    O2      // Oxygen
+    N2      // Nitrogen
+    H2      // Hydrogen
+    H2O     // Water vapor
 );
 ```
+
+> **📂 Source:** OpenFOAM Source Code  
+> **Path:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystemI.H` (Lines 50-120)
+>
+> **คำอธิบาย (Thai Explanation):**  
+> ไฟล์นี้กำหนด thermophysical model สำหรับ reacting flows:
+> - **hePsiThermo**: ใช้ compressible thermodynamics โดยพื้นฐานจาก psi = 1/ρ
+> - **reactingMixture**: ระบุว่าเป็นระบบหลายสารที่มีปฏิกิริยา
+> - **multiComponent transport**: คำนวณ transport properties สำหรับแต่ละสาร
+> - **idealGas**: ใช้สมการสถานะของแก๊สอุดมคติ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Compressible vs Incompressible**: hePsiThermo สำหรับ compressible flows
+> - **Multi-component Mixture**: ต้องระบุ species ทั้งหมดในระบบ
+> - **Transport Models**: multiComponent จะคำนวณ diffusion coefficients สำหรับแต่ละคู่สาร
+> - **Thermodynamic Data**: JANAF format เป็นมาตรฐานสำหรับ thermodynamic properties
+> - **Energy Formulation**: sensibleInternalEnergy ใช้ internal energy ที่ไม่รวม chemical energy
 
 ### 9.3 Combustion Model Selection
 
 **PaSR Configuration:**
 
 ```cpp
+// Select Partially Stirred Reactor (PaSR) model
 combustionModel PaSR;
 
 PaSRCoeffs
 {
+    // Integral time scale model for mixing
     turbulenceTimeScaleModel integral;
+    
+    // Mixing time scale constant (default: 1.0)
     Cmix                   1.0;
 }
 ```
@@ -502,12 +658,18 @@ PaSRCoeffs
 **EDC Configuration:**
 
 ```cpp
+// Select Eddy Dissipation Concept (EDC) model
 combustionModel EDC;
 
 EDCCoeffs
 {
+    // Mixing constant (default: 0.1)
     Cmix               0.1;
+    
+    // Time scale constant (default: 0.5)
     Ctau               0.5;
+    
+    // Exponent for fine structure volume fraction (default: 2.0)
     exp                2.0;
 }
 ```
@@ -517,23 +679,28 @@ EDCCoeffs
 **Species mass fraction (`0/Y_CH4`):**
 
 ```cpp
+// Field dimensions (mass fraction is dimensionless)
 dimensions      [0 0 0 0 0 0 0];
 
-internalField   uniform 0.055;    // 5.5% CH4 by mass
+// Initial field value: 5.5% methane by mass
+internalField   uniform 0.055;
 
 boundaryField
 {
     inlet
     {
+        // Fixed value at inlet
         type            fixedValue;
         value           uniform 0.055;
     }
     outlet
     {
+        // Zero gradient (fully developed flow)
         type            zeroGradient;
     }
     walls
     {
+        // No flux through walls
         type            zeroGradient;
     }
 }
@@ -542,25 +709,30 @@ boundaryField
 **Temperature (`0/T`):**
 
 ```cpp
+// Temperature dimensions [K]
 dimensions      [0 0 0 1 0 0 0];
 
-internalField   uniform 300;      // Initial temp 300 K
+// Initial temperature: 300 K
+internalField   uniform 300;
 
 boundaryField
 {
     inlet
     {
+        // Hot inlet at 600 K
         type            fixedValue;
-        value           uniform 600;      // Hot inlet 600 K
+        value           uniform 600;
     }
     outlet
     {
+        // Zero gradient at outlet
         type            zeroGradient;
     }
     walls
     {
+        // Isothermal hot walls at 1200 K
         type            fixedValue;
-        value           uniform 1200;     // Hot walls 1200 K
+        value           uniform 1200;
     }
 }
 ```
@@ -607,6 +779,7 @@ chemistry.solve();
 **Tight Coupling:**
 
 ```cpp
+// Iteratively couple flow and chemistry
 for (int i=0; i<nCoupleIter; i++)
 {
     // Update density from chemistry

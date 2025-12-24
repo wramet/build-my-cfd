@@ -45,7 +45,28 @@ flowchart LR
 
 2. **ความยืดหยุ่นในความแม่นยำ**: `scalar` สามารถกำหนดค่าเป็น `float` (single precision) หรือ `double` (double precision) ได้ที่เวลาคอมไพล์
 
-3. **การพกพาโค้ด**: โค้ดเดียวกันสามารถคอมไพล์และทำงานได้บนแพลตฟอร์มต่างโ โดยไม่ต้องแก้ไข
+3. **การพกพาโค้ด**: โค้ดเดียวกันสามารถคอมไพล์และทำงานได้บนแพลตฟอร์มต่างๆ โดยไม่ต้องแก้ไข
+
+```cpp
+// Example: Platform-specific type definitions in OpenFOAM
+// Conditionally define label based on compile-time flag
+#if WM_LABEL_SIZE == 32
+    typedef int32_t label;
+#elif WM_LABEL_SIZE == 64
+    typedef int64_t label;
+#endif
+
+// Conditionally define scalar based on precision option
+#ifdef WM_SP
+    typedef float scalar;
+#elif defined(WM_DP)
+    typedef double scalar;
+#endif
+```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`  
+> **Explanation:** OpenFOAM uses conditional compilation to define primitive types. The `WM_LABEL_SIZE` flag controls whether `label` is 32-bit or 64-bit, while `WM_SP` (single precision) or `WM_DP` (double precision) determines the scalar type. This ensures consistent numerical behavior across different platforms while allowing optimization for specific hardware.  
+> **Key Concepts:** `typedef`, conditional compilation (`#if`, `#ifdef`), platform-independent types, compile-time configuration
 
 ---
 
@@ -75,6 +96,10 @@ dimensionedScalar wrong = velocity + pressure;
 //     Argument dimensions [m s^-1] do not match
 //     function argument dimensions [kg m^-1 s^-2]
 ```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`  
+> **Explanation:** OpenFOAM's dimensional consistency checking prevents physically meaningless operations. When adding quantities with different dimensions, the compiler or runtime system detects the mismatch and reports the specific dimensions that don't align, helping catch errors early in development.  
+> **Key Concepts:** `dimensionSet`, dimensional analysis, runtime error checking, type safety
 
 **แนวทางการตอบ** - ให้กล่าวถึง:
 
@@ -129,6 +154,10 @@ const volScalarField& T1 = t1();       // Const access, no copy
 t2.ref() = 300.0;                      // Triggers copy-on-write
 ```
 
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`  
+> **Explanation:** The `autoPtr` class implements exclusive ownership semantics - when copied, ownership is transferred and the source pointer becomes null. The `tmp` class uses reference counting for shared access with copy-on-write semantics. This design pattern is common in OpenFOAM for managing field objects efficiently.  
+> **Key Concepts:** `autoPtr`, `tmp`, ownership transfer, reference counting, copy-on-write, smart pointers
+
 ---
 
 ### 4. Memory Layout ของ `List`
@@ -178,6 +207,10 @@ forAll(indices, i)
     result[idx] = list[idx] * 2.0;  // Poor locality
 }
 ```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystemSolve.C`  
+> **Explanation:** Contiguous memory layout is crucial for CFD performance because it maximizes CPU cache utilization. Modern CPUs load data in cache lines (typically 64 bytes), so sequential access patterns minimize cache misses. This layout also enables SIMD vectorization, where multiple operations are performed in parallel on adjacent data.  
+> **Key Concepts:** `List`, memory layout, cache locality, SIMD vectorization, spatial locality, cache lines
 
 ---
 
@@ -278,15 +311,15 @@ $$[\nu] = \frac{[\mu]}{[\rho]} = \frac{[M L^{-1} T^{-1}]}{[M L^{-3}]} = [L^2 T^{
 #include "dimensionedScalar.H"
 #include "dimensionSet.H"
 
-// วิธีที่ 1: ใช้ dimensionSet โดยตรง
+// Method 1: Direct dimensionSet constructor
 dimensionedScalar nu
 (
-    "nu",                              // ชื่อ
+    "nu",                              // Name
     dimensionSet(0, 2, -1, 0, 0, 0, 0), // [L^2 T^-1]
-    1.5e-5                             // ค่า: 1.5 × 10⁻⁵ m²/s
+    1.5e-5                             // Value: 1.5 × 10⁻⁵ m²/s
 );
 
-// วิธีที่ 2: ใช้ predefined dimension constants
+// Method 2: Using predefined dimension constants
 dimensionedScalar nu
 (
     "nu",
@@ -294,10 +327,14 @@ dimensionedScalar nu
     1.5e-5
 );
 
-// ตรวจสอบหน่วย
+// Verify units
 Info << "Kinematic viscosity: " << nu << endl;
 // Output: nu [0 2 -1 0 0 0 0] 1.5e-5
 ```
+
+> 📂 **Source:** `.applications/solvers/compressible/rhoCentralFoam/rhoCentralFoam.C`  
+> **Explanation:** Kinematic viscosity dimensions are derived from dynamic viscosity divided by density. OpenFOAM provides predefined dimension constants like `dimKinematicViscosity` for convenience. The `dimensionSet` constructor takes 7 parameters representing mass, length, time, temperature, current, amount of substance, and luminous intensity.  
+> **Key Concepts:** `dimensionedScalar`, `dimensionSet`, dimensional analysis, kinematic viscosity, SI units, predefined dimension constants
 
 ---
 
@@ -318,13 +355,13 @@ Info << "Kinematic viscosity: " << nu << endl;
 #include "List.H"
 #include "volScalarField.H"
 
-// สมมติ: p คือ volScalarField ของความดัน
-scalar pRef = 101325.0;  // ค่าความดันอ้างอิง [Pa]
+// Assume: p is a volScalarField of pressure
+scalar pRef = 101325.0;  // Reference pressure value [Pa]
 
-// สร้าง list สำหรับเก็บ indices
+// Create list to store indices
 List<label> highPressureCells;
 
-// วิธีที่ 1: ใช้ append() (dynamic sizing)
+// Method 1: Using append() (dynamic sizing)
 forAll(p, cellI)
 {
     if (p[cellI] > pRef)
@@ -333,10 +370,10 @@ forAll(p, cellI)
     }
 }
 
-// วิธีที่ 2: ใช้ setSize() หากทราบจำนวนสูงสุดล่วงหน้า
-label maxHighPressureCells = p.size() / 2;  // ประมาณการ
+// Method 2: Using setSize() if maximum size is known
+label maxHighPressureCells = p.size() / 2;  // Estimate
 List<label> highPressureCells;
-highPressureCells.setSize(0);  // เริ่มต้นว่าง
+highPressureCells.setSize(0);  // Start empty
 
 label count = 0;
 forAll(p, cellI)
@@ -354,12 +391,16 @@ forAll(p, cellI)
         count++;
     }
 }
-highPressureCells.setSize(count);  // ปรับขนาดให้ตรง
+highPressureCells.setSize(count);  // Trim to actual size
 
-// แสดงผล
+// Display result
 Info << "Found " << highPressureCells.size()
      << " cells with pressure > " << pRef << " Pa" << endl;
 ```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`  
+> **Explanation:** The `List<label>` is OpenFOAM's native container for integer arrays. The `append()` method dynamically grows the list, while `setSize()` allows pre-allocation for better performance. The `forAll` macro iterates over all cells in the field, providing the cell index for each iteration.  
+> **Key Concepts:** `List<label>`, dynamic containers, `forAll` macro, cell indexing, pressure thresholding, memory management
 
 ---
 
@@ -379,11 +420,11 @@ Info << "Found " << highPressureCells.size()
 ```cpp
 #include "scalar.H"
 
-// สร้างตัวแปรสำหรับสะสมค่า
+// Create accumulator variables
 scalar pSum = 0.0;
 scalar pAvg = 0.0;
 
-// วิธีที่ 1: ใช้ forAll แบบมาตรฐาน
+// Method 1: Standard forAll loop
 forAll(highPressureCells, i)
 {
     label cellI = highPressureCells[i];
@@ -398,7 +439,7 @@ if (highPressureCells.size() > 0)
 Info << "Average pressure of high-pressure cells: "
      << pAvg << " Pa" << endl;
 
-// วิธีที่ 2: ใช้ range-based for (C++11 style, ถ้ารองรับ)
+// Method 2: Range-based for (C++11 style, if supported)
 scalar pSum2 = 0.0;
 for (const label cellI : highPressureCells)
 {
@@ -407,17 +448,21 @@ for (const label cellI : highPressureCells)
 scalar pAvg2 = highPressureCells.size() > 0 ?
                pSum2 / scalar(highPressureCells.size()) : 0.0;
 
-// วิธีที่ 3: ใช้ std::accumulate (STL algorithm, ถ้าต้องการ)
+// Method 3: Using std::accumulate (STL algorithm, if desired)
 #include "accumulations.H"
 scalar pSum3 = sum(p, highPressureCells);  // OpenFOAM helper function
 scalar pAvg3 = highPressureCells.size() > 0 ?
                pSum3 / scalar(highPressureCells.size()) : 0.0;
 
-// แสดงผลเปรียบเทียบ
+// Display comparison
 Info << "Method 1 - Average: " << pAvg << endl;
 Info << "Method 2 - Average: " << pAvg2 << endl;
 Info << "Method 3 - Average: " << pAvg3 << endl;
 ```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`  
+> **Explanation:** The `forAll` macro is OpenFOAM's standard iteration construct that expands to a for loop with bounds checking. When computing averages, always check for division by zero. The `scalar` type ensures consistent precision across platforms. OpenFOAM also provides helper functions like `sum()` for common operations.  
+> **Key Concepts:** `forAll` macro, `scalar` type, accumulation, average calculation, division safety, OpenFOAM helper functions
 
 ---
 
@@ -425,7 +470,7 @@ Info << "Method 3 - Average: " << pAvg3 << endl;
 
 ### โจทย์ที่ 4: Memory Management และ Resource Cleanup
 
-**โจทย์**: จงเขียนโค้ดที่สาธิตการใช้ `autoPtr` และ `tmp` ร่วมกันเพื่อจัดการฟิลด์ชั่วคราวในการคำนวณที่ซับซ้อน
+**โจทย์**: จงเขียนโค้ดที่สาธิตการใช้ `autoPtr` และ `tmp` ร่วมกันเพื่อจัดการฟิลด์ชั่วคราวในการคำนาณที่ซับซ้อน
 
 **Solution**:
 
@@ -435,31 +480,31 @@ Info << "Method 3 - Average: " << pAvg3 << endl;
 #include "volScalarField.H"
 #include "volVectorField.H"
 
-// ตัวอย่าง: การคำนวณ convection term อย่างมีประสิทธิภาพ
+// Example: Efficient convection term calculation
 tmp<volVectorField> calculateConvectionTerm
 (
     const volVectorField& U,
     const surfaceScalarField& phi
 )
 {
-    // สร้าง tmp<volVectorField> สำหรับ gradient
+    // Create tmp<volVectorField> for gradient
     tmp<volVectorField> tGradU = fvc::grad(U);
 
-    // สร้าง tmp อีกตัวสำหรับ convection term
-    // ไม่มีการคัดลอกข้อมูลจนกว่าจะต้องแก้ไข
+    // Create another tmp for convection term
+    // No data copy occurs until modification is needed
     tmp<volVectorField> tConvection
     (
-        U & tGradU()  // operator() ให้ const access, ไม่คัดลอก
+        U & tGradU()  // operator() gives const access, no copy
     );
 
-    // ส่งคืน tmp (reference counting จัดการอัตโนมัติ)
+    // Return tmp (reference counting manages automatically)
     return tConvection;
 }
 
-// การใช้งาน
+// Usage example
 void complexCalculation()
 {
-    // autoPtr สำหรับ field ที่ต้องการความเป็นเจ้าของชัดเจน
+    // autoPtr for fields requiring clear ownership
     autoPtr<volScalarField> pPtr
     (
         new volScalarField
@@ -479,18 +524,22 @@ void complexCalculation()
 
     volScalarField& p = pPtr();  // Dereference
 
-    // ใช้ tmp สำหรับ intermediate calculations
+    // Use tmp for intermediate calculations
     tmp<volVectorField> tUgradU = calculateConvectionTerm(U, phi);
 
-    // การดำเนินการกับ tmp ไม่คัดลอกข้อมูล
+    // Operations on tmp don't copy data
     tmp<volScalarField> tWork = U & tUgradU();
 
-    // แก้ไข field หลัก
-    p += tWork();  // การคัดลอกเกิดขึ้นเฉพาะเมื่อจำเป็น
+    // Modify main field
+    p += tWork();  // Copy occurs only when necessary
 
-    // ทุกอย่าง clean up อัตโนมัติเมื่อออกจาก scope
+    // Everything cleans up automatically when leaving scope
 }
 ```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`  
+> **Explanation:** This example demonstrates the complementary use of `autoPtr` and `tmp` in OpenFOAM. `autoPtr` manages the lifetime of the main pressure field with exclusive ownership. `tmp` is used for intermediate calculations like convection terms, where reference counting avoids unnecessary data copies. The `&` operator performs tensor operations efficiently.  
+> **Key Concepts:** `autoPtr`, `tmp`, memory management, resource cleanup, reference counting, exclusive ownership, copy-on-write, `IOobject`, field operations
 
 ---
 
@@ -515,37 +564,41 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \
 **Solution**:
 
 ```cpp
-// กำหนดปริมาณทางฟิสิกส์พร้อมมิติ
+// Define physical quantities with dimensions
 dimensionedScalar rho("rho", dimDensity, 1.225);              // [kg/m³]
 dimensionedScalar mu("mu", dimDynamicViscosity, 1.8e-5);       // [Pa·s]
 dimensionedVector U("U", dimVelocity, vector(10, 0, 0));       // [m/s]
 dimensionedScalar p("p", dimPressure, 101325.0);               // [Pa]
 dimensionedVector f("f", dimForce/dimVol, vector(0, 0, -9.81)); // [N/m³]
 
-// เทอม temporal: ρ(∂u/∂t)
+// Temporal term: ρ(∂u/∂t)
 // [kg/m³]·[m/s]/[s] = [kg/(m²·s²)] = [N/m³] ✓
 dimensionedVector temporalTerm = rho * dimensionedVector("dudt", dimVelocity/dimTime, vector(0.1, 0, 0));
 
-// เทอม convection: ρ(u·∇)u
+// Convection term: ρ(u·∇)u
 // [kg/m³]·[m/s]·[m/s]/[m] = [kg/(m²·s²)] = [N/m³] ✓
 dimensionedVector convectionTerm = rho * (U & dimensionedVector("gradU", dimVelocity/dimLength, vector(0.01, 0, 0)));
 
-// เทอม pressure gradient: -∇p
+// Pressure gradient term: -∇p
 // [Pa]/[m] = [N/m³] ✓
 dimensionedVector pressureGradTerm = dimensionedVector("gradP", dimPressure/dimLength, vector(-100, 0, 0));
 
-// เทอม viscous: μ∇²u
+// Viscous term: μ∇²u
 // [Pa·s]·[m/s]/[m²] = [N/m³] ✓
 dimensionedVector viscousTerm = mu * dimensionedVector("laplacianU", dimVelocity/dimArea, vector(0.001, 0, 0));
 
-// ตรวจสอบความสอดคล้องทางมิติโดยการบวกทุกเทอม
+// Verify dimensional consistency by adding all terms
 dimensionedVector lhs = temporalTerm + convectionTerm;
 dimensionedVector rhs = pressureGradTerm + viscousTerm + f;
 
-// ถ้ามิติไม่ตรงกัน จะเกิด error ตอน compile หรือ runtime
+// If dimensions don't match, error occurs at compile or runtime
 Info << "LHS dimensions: " << lhs.dimensions() << endl;
 Info << "RHS dimensions: " << rhs.dimensions() << endl;
 ```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`  
+> **Explanation:** This code demonstrates dimensional analysis of the Navier-Stokes momentum equation. Each term is constructed with proper dimensions, and OpenFOAM's type system verifies dimensional consistency. All terms must have dimensions of force per unit volume [M L⁻² T⁻²] for the equation to be physically meaningful.  
+> **Key Concepts:** `dimensionedScalar`, `dimensionedVector`, dimensional analysis, Navier-Stokes equation, momentum conservation, dimensional consistency, SI units
 
 ---
 
@@ -569,7 +622,7 @@ Info << "RHS dimensions: " << rhs.dimensions() << endl;
 #include "List.H"
 #include "scalar.H"
 
-// ฟังก์ชันคำนวณค่าเฉลี่ย
+// Function to calculate mean
 scalar calculateMean(const List<scalar>& data)
 {
     if (data.size() == 0)
@@ -586,7 +639,7 @@ scalar calculateMean(const List<scalar>& data)
     return sum / scalar(data.size());
 }
 
-// ฟังก์ชันคำนวณ variance
+// Function to calculate variance
 scalar calculateVariance(const List<scalar>& data, scalar mean)
 {
     if (data.size() <= 1)
@@ -604,13 +657,13 @@ scalar calculateVariance(const List<scalar>& data, scalar mean)
     return sumSquaredDiff / scalar(data.size() - 1);
 }
 
-// ฟังก์ชันคำนวณ standard deviation
+// Function to calculate standard deviation
 scalar calculateStdDev(const List<scalar>& data, scalar mean)
 {
     return sqrt(calculateVariance(data, mean));
 }
 
-// ฟังก์ชันหาค่าสูงสุดและต่ำสุด
+// Function to find min and max values
 void findMinMax(const List<scalar>& data, scalar& minVal, scalar& maxVal)
 {
     if (data.size() == 0)
@@ -630,7 +683,7 @@ void findMinMax(const List<scalar>& data, scalar& minVal, scalar& maxVal)
     }
 }
 
-// ฟังก์ชันคำนวณ median
+// Function to calculate median
 scalar calculateMedian(List<scalar> data)
 {
     if (data.size() == 0)
@@ -638,23 +691,23 @@ scalar calculateMedian(List<scalar> data)
         return 0.0;
     }
 
-    // Sort ข้อมูล (ใช้ OpenFOAM sort)
+    // Sort data (using OpenFOAM sort)
     std::sort(data.begin(), data.end());
 
     label n = data.size();
     if (n % 2 == 0)
     {
-        // จำนวนคู่: ค่าเฉลี่ยของค่าตรงกลาง 2 ค่า
+        // Even count: average of two middle values
         return (data[n/2 - 1] + data[n/2]) / 2.0;
     }
     else
     {
-        // จำนวนคี่: ค่าตรงกลาง
+        // Odd count: middle value
         return data[n/2];
     }
 }
 
-// ฟังก์ชันสรุป statistics
+// Function to summarize statistics
 struct Statistics
 {
     scalar mean;
@@ -680,7 +733,7 @@ Statistics calculateStatistics(const List<scalar>& data)
         return stats;
     }
 
-    // คำนวณค่าต่างๆ
+    // Calculate various statistics
     stats.mean = calculateMean(data);
     stats.variance = calculateVariance(data, stats.mean);
     stats.stdDev = calculateStdDev(data, stats.mean);
@@ -690,20 +743,20 @@ Statistics calculateStatistics(const List<scalar>& data)
     return stats;
 }
 
-// การใช้งาน
+// Usage example
 void exampleUsage()
 {
-    // สร้างข้อมูลตัวอย่าง
+    // Create sample data
     List<scalar> pressureData(100);
     forAll(pressureData, i)
     {
         pressureData[i] = 101325.0 + i * 10.0 + (i % 7) * 5.0;
     }
 
-    // คำนวณ statistics
+    // Calculate statistics
     Statistics stats = calculateStatistics(pressureData);
 
-    // แสดงผล
+    // Display results
     Info << "Pressure Statistics:" << endl;
     Info << "  Mean: " << stats.mean << " Pa" << endl;
     Info << "  Std Dev: " << stats.stdDev << " Pa" << endl;
@@ -713,6 +766,10 @@ void exampleUsage()
     Info << "  Variance: " << stats.variance << " Pa²" << endl;
 }
 ```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`  
+> **Explanation:** This implementation demonstrates common statistical calculations on OpenFOAM `List<scalar>` containers. The code follows OpenFOAM conventions with `forAll` macros and `scalar` types. The `Statistics` struct aggregates results, and functions handle edge cases like empty lists. The median calculation requires sorting a copy of the data.  
+> **Key Concepts:** `List<scalar>`, statistical algorithms, `forAll` macro, `scalar` type, variance, standard deviation, median, sorting, min/max finding
 
 ---
 
@@ -731,19 +788,25 @@ OpenFOAM กำหนด `label` และ `scalar` เพื่อ:
 3. **Cross-Platform Code**: โค้ดเดียวกันสามารถคอมไพล์บน laptop และ supercomputer ได้โดยไม่ต้องแก้ไข
 
 ```cpp
-// ตัวอย่างการกำหนดค่า compile-time
+// Example: Platform-specific type definitions in OpenFOAM
+// Conditionally define label based on compile-time flag
 #if WM_LABEL_SIZE == 32
     typedef int32_t label;
 #elif WM_LABEL_SIZE == 64
     typedef int64_t label;
 #endif
 
+// Conditionally define scalar based on precision option
 #ifdef WM_SP
     typedef float scalar;
 #elif defined(WM_DP)
     typedef double scalar;
 #endif
 ```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`  
+> **Explanation:** OpenFOAM achieves cross-platform portability through conditional compilation. The `WM_LABEL_SIZE` environment variable controls integer size, while `WM_SP`/`WM_DP` selects floating-point precision. This abstraction layer allows the same source code to run on different architectures without modification.  
+> **Key Concepts:** `label`, `scalar`, `typedef`, conditional compilation, cross-platform compatibility, compile-time configuration
 
 ---
 
@@ -758,7 +821,7 @@ OpenFOAM กำหนด `label` และ `scalar` เพื่อ:
 3. **Runtime Error Messages**: Error messages ที่ชัดเจนแสดงถึงความไม่สอดคล้อง
 
 ```cpp
-// ตัวอย่าง Error Message
+// Example: Dimensional consistency error message
 --> FOAM FATAL ERROR:
     Argument dimensions [0 1 -1 0 0 0 0] do not match
     function argument dimensions [1 -1 -2 0 0 0 0]
@@ -766,6 +829,10 @@ OpenFOAM กำหนด `label` และ `scalar` เพื่อ:
     From function operator+(const dimensioned<Type>&, const dimensioned<Type>&)
     in file dimensionedType.H at line 234
 ```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`  
+> **Explanation:** The `dimensionSet` class tracks physical dimensions as powers of the seven SI base units. When operations are performed on `dimensioned` types, OpenFOAM verifies dimensional consistency at both compile-time and runtime. This prevents physically meaningless calculations like adding velocity to pressure.  
+> **Key Concepts:** `dimensionSet`, dimensional consistency, SI base units, compile-time checking, runtime error messages, physical dimensions
 
 ---
 
@@ -784,6 +851,10 @@ OpenFOAM กำหนด `label` และ `scalar` เพื่อ:
 **การเลือกใช้**:
 - ใช้ `autoPtr` เมื่อต้องการความชัดเจนในความเป็นเจ้าของ (mesh, fields หลัก)
 - ใช้ `tmp` เมื่อต้องการแชร์ข้อมูลชั่วคราว (intermediate calculations)
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`  
+> **Explanation:** `autoPtr` and `tmp` are OpenFOAM's smart pointer classes for memory management. `autoPtr` transfers ownership on copy (move semantics), while `tmp` uses reference counting for shared access with copy-on-write optimization. This design pattern prevents memory leaks and enables efficient field operations in CFD simulations.  
+> **Key Concepts:** `autoPtr`, `tmp`, smart pointers, ownership transfer, reference counting, copy-on-write, memory management, resource acquisition is initialization (RAII)
 
 ---
 
@@ -810,6 +881,10 @@ forAll(indices, i)
     result[indices[i]] = list[indices[i]] * 2.0;
 }
 ```
+
+> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystemSolve.C`  
+> **Explanation:** Memory layout significantly impacts CFD solver performance. Contiguous storage maximizes CPU cache utilization by loading sequential data into cache lines (typically 64 bytes). This layout enables SIMD vectorization for parallel operations on multiple data elements and allows hardware prefetchers to predict and load future memory accesses, reducing latency.  
+> **Key Concepts:** memory layout, cache performance, cache lines, SIMD vectorization, spatial locality, hardware prefetching, memory bandwidth
 
 ---
 

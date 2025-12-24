@@ -72,11 +72,21 @@ $$\phi|_{\partial \Omega} = \phi_0(\mathbf{x}, t)$$
 ### การนำไปใช้ใน OpenFOAM
 
 ```cpp
-// การใช้งาน Dirichlet Condition ใน OpenFOAM
-fixedValue;           // กำหนดค่าคงที่
-timeVaryingFixedValue; // ค่าที่ขึ้นกับเวลา
-uniformFixedValue;    // นิพจน์ทางคณิตศาสตร์
+// Usage of Dirichlet Condition in OpenFOAM
+// fixedValue;           // Set constant value
+// timeVaryingFixedValue; // Time-dependent value
+// uniformFixedValue;    // Mathematical expression
 ```
+
+> **📘 คำอธิบาย (Thai Explanation):**
+> **แหล่งที่มา (Source):** Boundary Condition ใน OpenFOAM ถูกนำมาใช้ผ่านคลาส `fixedValueFvPatchField` ซึ่งเป็นส่วนประกอบหลักในการจัดการเงื่อนไขขอบเขตแบบกำหนดค่าตายตัว
+> 
+> **คำอธิบาย (Explanation):** โค้ดด้านบนแสดงรายการประเภท Boundary Condition แบบ Dirichlet ที่พบได้บ่อยใน OpenFOAM โดยมีการใช้ `//` เพื่อแสดงหมายเหตุว่าแต่ละประเภทมีหน้าที่อย่างไร ซึ่งช่วยให้ผู้ใช้เข้าใจการทำงานของแต่ละประเภท
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **fixedValue**: ใช้สำหรับกำหนดค่าคงที่ที่ขอบเขต เช่น ความเร็วคงที่ที่ inlet
+> - **timeVaryingFixedValue**: ใช้สำหรับค่าที่เปลี่ยนแปลงตามเวลา เช่น โปรไฟล์ความเร็วที่แปรผันตามเวลา
+> - **uniformFixedValue**: ใช้สำหรับนิพจน์ทางคณิตศาสตร์ที่ซับซ้อนกว่าการกำหนดค่าคงที่
 
 **ตัวอย่างโค้ด:**
 
@@ -117,6 +127,19 @@ boundaryField
     }
 }
 ```
+
+> **📘 คำอธิบาย (Thai Explanation):**
+> **แหล่งที่มา (Source):** ตัวอย่างโค้ดนี้แสดงการใช้งาน `fixedValueFvPatchField` ในสถานการณ์ต่าง ๆ ที่พบได้ทั่วไปในการจำลอง CFD
+> 
+> **คำอธิบาย (Explanation):** 
+> - **Example 1**: แสดงการกำหนดความเร็วคงที่ 10 m/s ในทิศทาง x ที่ขอบเขต inlet โดยใช้ `uniform (10 0 0)` ซึ่งแทนเวกเตอร์ความเร็วในสามมิติ
+> - **Example 2**: แสดงการกำหนดความเร็วที่เปลี่ยนแปลงตามเวลาผ่านตาราง (table) โดยระบุค่าที่เวลาต่าง ๆ ซึ่ง OpenFOAM จะทำการ interpolation ระหว่างจุดข้อมูล
+> - **Example 3**: แสดงการกำหนดอุณหภูมิคงที่ 373.15 K (100°C) ที่พื้นผิวผนังร้อน
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **uniform keyword**: ใช้สำหรับระบุค่าที่เหมือนกันทุกพื้นที่บน patch นั้น ๆ
+> - **table format**: รองรับการกำหนดค่าที่เปลี่ยนแปลงตามเวลาผ่าน linear interpolation
+> - **vector notation**: ใช้รูปแบบ `(x y z)` สำหรับค่าเวกเตอร์ และค่าเดียวสำหรับ scalar fields
 
 ### ตัวอย่างการประยุกต์ใช้
 
@@ -189,10 +212,20 @@ $$\frac{\partial T}{\partial n} = 0$$
 ### การนำไปใช้ใน OpenFOAM
 
 ```cpp
-// การใช้งาน Neumann Condition ใน OpenFOAM
-fixedGradient;        // กำหนดค่า Gradient คงที่
-zeroGradient;         // Gradient เป็นศูนย์ (กรณีพิเศษ)
+// Usage of Neumann Condition in OpenFOAM
+// fixedGradient;        // Set constant gradient value
+// zeroGradient;         // Zero gradient (special case)
 ```
+
+> **📘 คำอธิบาย (Thai Explanation):**
+> **แหล่งที่มา (Source):** Neumann Boundary Condition ใน OpenFOAM ถูกนำมาใช้ผ่านคลาส `fixedGradientFvPatchField` และ `zeroGradientFvPatchField` ซึ่งเป็นคลาสหลักในการจัดการเงื่อนไขขอบเขตแบบกำหนด Gradient
+> 
+> **คำอธิบาย (Explanation):** โค้ดด้านบนแสดงประเภท Boundary Condition แบบ Neumann ที่ใช้บ่อยใน OpenFOAM โดย `fixedGradient` ใช้สำหรับกำหนดค่า Gradient ที่ไม่เป็นศูนย์ และ `zeroGradient` เป็นกรณีพิเศษที่ Gradient เป็นศูนย์ ซึ่งแสดงถึงการไม่มี Flux ผ่านขอบเขต
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **fixedGradient**: ใช้เมื่อทราบค่า Flux ที่ผ่านขอบเขต เช่น Heat Flux ที่ผนัง
+> - **zeroGradient**: ใช้เมื่อไม่มี Flux ผ่านขอบเขต เช่น ผนัง Adiabatic หรือ Flow ที่พัฒนาเต็มที่
+> - **Flux conservation**: Neumann condition รักษาความต่อเนื่องของ Flux ที่ขอบเขต
 
 **ตัวอย่างโค้ด:**
 
@@ -226,6 +259,19 @@ boundaryField
     }
 }
 ```
+
+> **📘 คำอธิบาย (Thai Explanation):**
+> **แหล่งที่มา (Source):** ตัวอย่างโค้ดนี้แสดงการใช้งาน `fixedGradientFvPatchField` และ `zeroGradientFvPatchField` ในสถานการณ์จริงที่พบได้บ่อยในการจำลอง CFD และ Heat Transfer
+> 
+> **คำอธิบาย (Explanation):** 
+> - **Example 1**: แสดงการใช้ `zeroGradient` ที่ outlet ซึ่งเป็นเงื่อนไขทั่วไปสำหรับ flow ที่พัฒนาเต็มที่ (fully developed flow) โดยไม่ต้องระบุค่าใด ๆ เพิ่มเติม
+> - **Example 2**: แสดงการกำหนด Heat Flux คงที่ -1000 W/m² ที่ผนังที่ถ่ายความร้อน โดยค่าลบแสดงว่าความร้อนไหลเข้าสู่โดเมน
+> - **Example 3**: แสดงการกำหนดผนัง Adiabatic (ฉนวนความร้อน) โดยกำหนด Gradient เป็น 0 ซึ่งหมายถึงไม่มี Heat Flux ผ่านผนัง
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Gradient sign convention**: ค่าลบหมายถึง Flux ไหลเข้าสู่โดเมน ค่าบวกหมายถึง Flux ไหลออกจากโดเมน
+> - **Zero gradient assumption**: สมมติฐานว่า field variable มีค่าคงที่ในทิศทาง normal ที่ขอบเขต
+> - **Units consistency**: ต้องระวังหน่วยของ gradient ซึ่งขึ้นอยู่กับประเภทของ field (เช่น K/m สำหรับ temperature, m/s² สำหรับ velocity)
 
 ### ตัวอย่างการประยุกต์ใช้
 
@@ -306,10 +352,20 @@ $$hT + k\frac{\partial T}{\partial n} = hT_\infty$$
 ### การนำไปใช้ใน OpenFOAM
 
 ```cpp
-// การใช้งาน Mixed Condition ใน OpenFOAM
-mixed;                         // การใช้งานทั่วไป
-convectiveHeatTransfer;        // การถ่ายเทความร้อนโดย Convection
+// Usage of Mixed Condition in OpenFOAM
+// mixed;                         // General usage
+// convectiveHeatTransfer;        // Convective heat transfer
 ```
+
+> **📘 คำอธิบาย (Thai Explanation):**
+> **แหล่งที่มา (Source):** Mixed (Robin) Boundary Condition ใน OpenFOAM ถูกนำมาใช้ผ่านคลาส `mixedFvPatchField` ซึ่งเป็นคลาสหลักในการจัดการเงื่อนไขขอบเขตแบบผสมระหว่าง Dirichlet และ Neumann
+> 
+> **คำอธิบาย (Explanation):** โค้ดด้านบนแสดงประเภท Boundary Condition แบบ Mixed ที่ใช้ใน OpenFOAM โดย `mixed` เป็นการใช้งานทั่วไปที่ต้องกำหนดค่าน้ำหนัก (weighting factor) ระหว่างค่าและ gradient และ `convectiveHeatTransfer` เป็นกรณีเฉพาะสำหรับการถ่ายเทความร้อนแบบพา
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Linear combination**: Mixed condition เป็นการรวมกันเชิงเส้นของ Dirichlet และ Neumann conditions
+> - **Weighting factor**: ค่า `valueFraction` ควบคุมน้ำหนักระหว่างค่าและ gradient (0 = pure Neumann, 1 = pure Dirichlet)
+> - **Physical realism**: ให้การแสดงปรากฏการณ์ทางกายภาพที่สมจริงยิ่งขึ้น เช่น การถ่ายเทความร้อนแบบพา
 
 **ตัวอย่างโค้ด:**
 
@@ -352,6 +408,20 @@ boundaryField
     }
 }
 ```
+
+> **📘 คำอธิบาย (Thai Explanation):**
+> **แหล่งที่มา (Source):** ตัวอย่างโค้ดนี้แสดงการใช้งาน `mixedFvPatchField` และ `externalWallHeatFlux` ในสถานการณ์จริงของการถ่ายเทความร้อนแบบพาและเงื่อนไขแบบผสม
+> 
+> **คำอธิบาย (Explanation):** 
+> - **Example 1**: แสดงการใช้ `mixed` condition ทั่วไป โดยกำหนด `valueFraction = 0.5` ซึ่งหมายถึงการถ่วงน้ำหนักเท่า ๆ กันระหว่างค่า (`refValue = 300`) และ gradient (`refGradient = 0`)
+> - **Example 2**: แสดงการใช้ `externalWallHeatFlux` สำหรับการถ่ายเทความร้อนแบบพา โดยระบุค่าสัมประสิทธิ์การถ่ายเทความร้อน `h = 10.0 W/(m²·K)` และอุณหภูมิแวดล้อม `Ta = 293.15 K`
+> - **Example 3**: แสดงการใช้ `mixedValueFvPatchField` ซึ่งเป็น template class สำหรับ scalar fields โดยกำหนดค่าเริ่มต้น ค่าอ้างอิง และ gradient อ้างอิง
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **valueFraction parameter**: ควบคุมน้ำหนักระหว่าง Dirichlet (1) และ Neumann (0) components
+> - **refGradient**: Gradient อ้างอิงที่ใช้เมื่อ valueFraction < 1
+> - **refValue**: ค่าอ้างอิงที่ใช้เมื่อ valueFraction > 0
+> - **Convective heat transfer**: ใช้สมการ Newton's Law of Cooling: q = h(T_s - T_∞)
 
 **พารามิเตอร์ `valueFraction` ควบคุมการถ่วงน้ำหนัก:**
 - `valueFraction = 1`: Dirichlet Condition บริสุทธิ์
@@ -456,6 +526,19 @@ boundaryField
     }
 }
 ```
+
+> **📘 คำอธิบาย (Thai Explanation):**
+> **แหล่งที่มา (Source):** Wall Functions ใน OpenFOAM ถูกนำมาใช้ผ่านคลาส `kqRWallFunction`, `epsilonWallFunction`, `omegaWallFunction` และ `nutkWallFunction` ซึ่งเป็นคลาสหลักในการจัดการเงื่อนไขขอบเขตสำหรับ Turbulence Modeling ใกล้ผนัง
+> 
+> **คำอธิบาย (Explanation):** โค้ดด้านบนแสดงการใช้ Wall Functions สำหรับ Turbulence Models ที่แตกต่างกัน:
+> - **k-epsilon model**: ใช้ `kqRWallFunction` สำหรับ turbulent kinetic energy (k) และ `epsilonWallFunction` สำหรับ turbulent dissipation (ε)
+> - **k-omega model**: ใช้ `omegaWallFunction` สำหรับ specific dissipation rate (ω)
+> - **Turbulent viscosity**: ใช้ `nutkWallFunction` สำหรับ turbulent viscosity (ν_t) โดยระบุค่าคงที่ Cμ, κ, และ E
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **y+ requirement**: Wall functions ต้องการ y+ ระหว่าง 30-300 สำหรับ k-ε และ 11-300 สำหรับ k-ω
+> - **Log-law region**: สมมติว่า cell แรกอยู่ใน log-law region ไม่ใช่ viscous sublayer
+> - **Model constants**: ค่า Cμ = 0.09, κ = 0.41 (von Kármán), E = 9.8 คือค่ามาตรฐานสำหรับ equilibrium boundary layers
 
 **Wall Function มาตรฐานสำหรับ Turbulent Kinetic Energy:**
 $$k_w = \frac{u_\tau^2}{\sqrt{C_\mu}}$$
@@ -580,17 +663,30 @@ graph LR
 
 ```cpp
 // Dirichlet Implementation
-// กำหนด Diagonal Coefficient ให้มีค่ามาก + Source Term
+// Set Diagonal Coefficient to large value + Source Term
 // a_P → ∞ (large value), S_U → φ_boundary × a_P
 
 // Neumann Implementation
-// รวม Gradient โดยตรงในการคำนวณ Flux
+// Incorporate Gradient directly into Flux calculation
 // Flux_b = -Γ × (∂φ/∂n)_b × A_b
 
 // Robin Implementation
-// เชื่อมโยงระหว่าง Value และ Gradient
+// Link between Value and Gradient
 // a φ_b + b (∂φ/∂n)_b = c
 ```
+
+> **📘 คำอธิบาย (Thai Explanation):**
+> **แหล่งที่มา (Source):** การแปลง Boundary Conditions เป็น Discretized System ใน OpenFOAM ถูกจัดการผ่านคลาส `fvPatchField` ซึ่งเป็นคลาสพื้นฐานสำหรับ Finite Volume Method
+> 
+> **คำอธิบาย (Explanation):** โค้ดด้านบนแสดงหลักการแปลง Boundary Conditions แต่ละประเภทเป็นรูปแบบ Discretized:
+> - **Dirichlet**: กำหนดค่าสัมประสิทธิ์ในเมตริกซ์ให้มีค่ามาก ๆ และเพิ่ม Source Term เพื่อบังคับค่าที่ขอบเขต
+> - **Neumann**: รวม Gradient เข้าไปในการคำนวณ Flux โดยตรง โดยไม่ต้องแก้ไขเมตริกซ์
+> - **Robin**: เชื่อมโยงระหว่างค่าและ Gradient ผ่านสมการเชิงเส้น
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Matrix assembly**: Boundary conditions ถูกรวมเข้าในระบบสมการเชิงเส้น Ax = b
+> - **Flux calculation**: สำหรับ Neumann conditions คำนวณ Flux โดยตรงจาก Gradient
+> - **Large penalty method**: สำหรับ Dirichlet conditions ใช้ค่าสัมประสิทธิ์มาก ๆ เพื่อบังคับค่า
 
 #### โครงสร้างคลาส
 
@@ -612,6 +708,22 @@ public:
         const tmp<scalarField>&) const = 0;
 };
 ```
+
+> **📘 คำอธิบาย (Thai Explanation):**
+> **แหล่งที่มา (Source):** โครงสร้างคลาส `fvPatchField` ใน OpenFOAM ถูกนิยามในไฟล์ `fvPatchField.H` ซึ่งเป็นคลาสพื้นฐานสำหรับ Finite Volume Patch Fields
+> 
+> **คำอธิบาย (Explanation):** โค้ดด้านบนแสดงโครงสร้างของคลาส `fvPatchField` ซึ่งเป็น abstract base class สำหรับ boundary conditions ใน OpenFOAM:
+> - **Inheritance**: สืบทอดจาก `Field<Type>` และ `fvPatch` เพื่อให้มีความสามารถทั้งในการจัดการ field data และ patch information
+> - **Virtual functions**: ฟังก์ชันเสมือนทั้งหมดต้องถูก implement ใน derived classes
+> - **updateCoeffs()**: อัปเดตสัมประสิทธิ์สำหรับ boundary condition
+> - **evaluate()**: คำนวณค่าที่ boundary faces
+> - **snGrad()**: คำนวณ surface normal gradient
+> - **valueInternalCoeffs/valueBoundaryCoeffs**: คำนวณสัมประสิทธิ์สำหรับการประกอบเมตริกซ์
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Template class**: รองรับทั้ง scalar, vector, และ tensor fields
+> - **Pure virtual functions**: บังคับให้ทุก derived class ต้อง implement ฟังก์ชันเหล่านี้
+> - **Polymorphism**: ช่วยให้สามารถใช้ boundary conditions ที่แตกต่างกันผ่าน interface เดียวกัน
 
 ```mermaid
 graph TD
@@ -654,6 +766,20 @@ addToRunTimeSelectionTable
     dictionary
 );
 ```
+
+> **📘 คำอธิบาย (Thai Explanation):**
+> **แหล่งที่มา (Source):** กลไก Runtime Selection ใน OpenFOAM ถูกนำมาใช้ผ่าน macro `addToRunTimeSelectionTable` ซึ่งเป็นส่วนสำคัญของระบบ plugin ของ OpenFOAM
+> 
+> **คำอธิบาย (Explanation):** โค้ดด้านบนแสดงการลงทะเบียนคลาส `fixedValueFvPatchField` ใน Runtime Selection Table:
+> - **Macro registration**: ใช้ macro `addToRunTimeSelectionTable` เพื่อลงทะเบียนคลาสในตารางการเลือกขณะรันไทม์
+> - **Base class**: ระบุคลาสฐาน `fvPatchScalarField` ที่เป็นประเภทของ field
+> - **Derived class**: ระบุคลาสที่จะลงทะเบียน `fixedValueFvPatchField`
+> - **Constructor type**: ระบุประเภทของ constructor ที่รองรับ (ในที่นี้คือ `dictionary`)
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Runtime selection**: ช่วยให้สามารถเลือก boundary condition ผ่านไฟล์ dictionary โดยไม่ต้องคอมไพล์ใหม่
+> - **Factory pattern**: ใช้ design pattern แบบ Factory ในการสร้าง object
+> - **Type safety**: รองรับทั้ง scalar, vector, และ tensor fields ผ่าน template classes
 
 ```mermaid
 graph LR
@@ -727,13 +853,13 @@ graph LR
 **โค้ดตัวอย่าง:**
 
 ```cpp
-// การใช้งาน Time-Varying Boundary Condition
+// Usage of Time-Varying Boundary Condition
 boundaryField
 {
     inlet
     {
         type            timeVaryingUniformFixedValue;
-        outOfBounds     clamp;        // การจัดการค่านอกช่วง
+        outOfBounds     clamp;        // Handle values out of range
         fileName        "velocityProfile.txt";
         fieldTable      (<field>);
     }
@@ -771,6 +897,19 @@ boundaryField
     }
 }
 ```
+
+> **📘 คำอธิบาย (Thai Explanation):**
+> **แหล่งที่มา (Source):** Time-Varying Boundary Conditions ใน OpenFOAM ถูกนำมาใช้ผ่านคลาส `timeVaryingUniformFixedValueFvPatchField`, `uniformFixedValueFvPatchField` และ `codedFixedValueFvPatchField`
+> 
+> **คำอธิบาย (Explanation):** โค้ดด้านบนแสดงสามวิธีในการกำหนด Boundary Conditions ที่เปลี่ยนแปลงตามเวลา:
+> - **Example 1**: ใช้ `timeVaryingUniformFixedValue` โดยอ่านค่าจากไฟล์ภายนอก `velocityProfile.txt` และใช้ `outOfBounds` เพื่อจัดการค่าที่อยู่นอกช่วง
+> - **Example 2**: ใช้ `uniformFixedValue` กับตารางค่า (table) โดยระบุค่า velocity ที่เวลาต่าง ๆ ซึ่ง OpenFOAM จะทำ linear interpolation
+> - **Example 3**: ใช้ `codedFixedValue` เพื่อเขียน C++ code โดยตรง ในที่นี้สร้าง sinusoidal velocity variation ด้วยสมการ: u = 1.0 + 0.5*sin(2π·0.1·t)
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Interpolation**: OpenFOAM ใช้ linear interpolation ระหว่างจุดข้อมูลในตาราง
+> - **Coded boundaries**: อนุญาตให้ผู้ใช้เขียน C++ code โดยตรงสำหรับความต้องการเฉพาะทาง
+> - **outOfBounds handling**: รองรับ clamp, repeat, warn และ error modes
 
 ```mermaid
 graph LR
@@ -826,6 +965,22 @@ boundaryField
     }
 }
 ```
+
+> **📘 คำอธิบาย (Thai Explanation):**
+> **แหล่งที่มา (Source):** Region-Coupled Boundary Conditions ใน OpenFOAM ถูกนำมาใช้ผ่านคลาส `turbulentTemperatureCoupledBaffleMixedFvPatchScalarField` และ `regionCoupledAMIFVPatchField` ซึ่งเป็นคลาสหลักสำหรับการจำลอง Multiphysics
+> 
+> **คำอธิบาย (Explanation):** โค้ดด้านบนแสดงการใช้ Region-Coupled Boundary Conditions สำหรับปัญหา Conjugate Heat Transfer:
+> - **Example 1**: ใช้ `turbulentTemperatureCoupledBaffleMixed` สำหรับ interface ระหว่าง fluid และ solid regions
+>   - `Tnbr T`: ระบุชื่อ field ของ temperature ใน neighbour region
+>   - `kappa none`: ใช้ thermal conductivity จาก field ที่คำนวณได้ใน region นั้น ๆ
+>   - `kappaNbr none`: ใช้ thermal conductivity จาก neighbour region
+> - **Example 2**: ใช้ `regionCoupledAMIFVPatchField` สำหรับ AMI (Arbitrary Mesh Interface) ที่เชื่อมต่อ meshes ที่ไม่ตรงกัน (non-conformal)
+>   - `neighbourPatch AMI2`: ระบุชื่อ patch ที่เป็นคู่ใน neighbour region
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Conjugate heat transfer**: การเชื่อมโยง energy conservation ระหว่าง fluid และ solid regions
+> - **Thermal continuity**: อุณหภูมิและ heat flux ต้องต่อเนื่องกันที่ interface
+> - **AMI interpolation**: ใช้ interpolation เพื่อเชื่อมต่อ meshes ที่มี resolution ต่างกัน
 
 ```mermaid
 graph TD
@@ -953,3 +1108,9 @@ graph LR
 5. **ความเข้าใจใน PDE Types** (Elliptic, Parabolic, Hyperbolic) เป็นพื้นฐานสำคัญในการเลือก Boundary Condition ที่เหมาะสมกับปัญหาทางกายภาพ
 
 การเข้าใจและการนำ Boundary Conditions ไปใช้งานอย่างถูกต้องเป็นพื้นฐานสำคัญสำหรับการสร้าง CFD Simulations ที่แม่นยำและเชื่อถือได้ใน OpenFOAM
+
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/copiedFixedValue/copiedFixedValueFvPatchScalarField.H`
+
+**อ้างอิงจาก:** OpenFOAM Foundation Documentation (2015-2020)

@@ -34,7 +34,7 @@
 
 ---
 
-## พื้นฐานทางคณิตศาสตร์ของความปั่นป่วน
+## พื้นฐานทางคณิตศาสต์ของความปั่นป่วน
 
 ### สมการควบคุม
 
@@ -69,6 +69,7 @@ $$\rho \frac{\partial \overline{u_i}}{\partial t} + \rho \overline{u_j} \frac{\p
 > [!INFO] **OpenFOAM Code Implementation - Reynolds Stress Tensor**
 > ```cpp
 > // Reynolds stress tensor calculation
+> // การคำนวณเทนเซอร์ความเค้น Reynolds
 > volSymmTensorField R
 > (
 >     IOobject
@@ -79,9 +80,22 @@ $$\rho \frac{\partial \overline{u_i}}{\partial t} + \rho \overline{u_j} \frac{\p
 >         IOobject::NO_READ,
 >         IOobject::AUTO_WRITE
 >     ),
+>     // Calculate Reynolds stress from velocity fluctuations
+>     // คำนวณความเค้น Reynolds จากความเร็วที่ผันผวน
 >     twoSymm(U*U) - sqr(U)
 > );
 > ```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+
+**คำอธิบาย:**
+- **volSymmTensorField**: ประเภทฟิลด์เทนเซอร์สมมาตรใน OpenFOAM สำหรับเก็บค่าความเค้น Reynolds
+- **twoSymm(U*U) - sqr(U)**: สูตรทางคณิตศาสต์สำหรับคำนวณ Reynolds stress tensor จากสนามความเร็ว
+
+**แนวคิดสำคัญ:**
+- **Reynolds Stress Tensor**: เทนเซอร์ที่แสดงถึงการถ่ายโอนโมเมนตัมจากความปั่นป่วน
+- **IOobject**: วัตถุที่ใช้จัดการข้อมูลเข้า/ออกใน OpenFOAM
+- **AUTO_WRITE**: สั่งให้เขียนผลลัพธ์โดยอัตโนมัติเมื่อจบการคำนวณ
 
 ---
 
@@ -105,7 +119,7 @@ flowchart TD
     C --> C1[Smagorinsky]
     C --> C2[WALE]
 ```
-> **Figure 1:** แผนผังลำดับชั้นของแนวทางการสร้างแบบจำลองความปั่นป่วน (Turbulence Modeling Hierarchy) ใน OpenFOAM ซึ่งแบ่งออกเป็น 3 ระดับหลักตามความละเอียดในการแก้ปัญหาทางฟิสิกส์ ได้แก่ RANS ที่เน้นค่าเฉลี่ยทางสถิติ LES ที่ใช้การกรองเชิงพื้นที่ และ DNS ที่แก้ปัญหาทุกสเกลโดยตรง พร้อมตัวอย่างแบบจำลองย่อยในแต่ละกลุ่มความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** แผนผังลำดับชั้นของแนวทางการสร้างแบบจำลองความปั่นป่วน (Turbulence Modeling Hierarchy) ใน OpenFOAM ซึ่งแบ่งออกเป็น 3 ระดับหลักตามความละเอียดในการแก้ปัญหาทางฟิสิกส์ ได้แก่ RANS ที่เน้นค่าเฉลี่ยทางสถิติ LES ที่ใช้การกรองเชิงพื้นที่ และ DNS ที่แก้ปัญหาทุกสเกลโดยตรง พร้อมตัวอย่างแบบจำลองย่อยในแต่ละกลุ่ม ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
 ---
 
@@ -170,19 +184,35 @@ $$\tau^{SGS}_{ij} - \frac{1}{3}\tau^{SGS}_{kk}\delta_{ij} = -2 (C_s \Delta)^2 |\
 >     :
 >     public LESeddyViscosity<BasicTurbulenceModel>
 > {
->     // Smagorinsky coefficient
+>     // Smagorinsky coefficient - ค่าคงที่ Smagorinsky
 >     dimensionedScalar Cs_;
 >
->     // Filter width calculation
+>     // Filter width calculation - การคำนวณความกว้างของฟิลเตอร์
 >     tmp<volScalarField> delta() const;
 >
 > public:
+>     // Type name for runtime selection - ชื่อประเภทสำหรับการเลือกขณะ runtime
 >     TypeName("Smagorinsky");
 >
+>     // Virtual method for turbulent kinetic energy - เมธอดเสมือนสำหรับพลังงานจลน์ความปั่นป่วน
 >     virtual tmp<volScalarField> k() const;
+>     
+>     // Virtual correction method - เมธอดเสมือนสำหรับการแก้ไข
 >     virtual void correct();
 > };
 > ```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+
+**คำอธิบาย:**
+- **Template metaprogramming**: ใช้ template class เพื่อสร้างความยืดหยุ่นในการนำไปใช้กับ turbulence model ต่างๆ
+- **dimensionedScalar**: ประเภทข้อมูลสเกลาร์ที่มีหน่วยใน OpenFOAM
+- **TypeName**: มาโครสำหรับลงทะเบียนคลาสเพื่อ runtime selection
+
+**แนวคิดสำคัญ:**
+- **Subgrid-Scale Modeling**: การจำลองความปั่นป่วนในสเกลที่เล็กกว่าขนาดเซลล์เมช
+- **Eddy Viscosity**: ความหนืดที่เกิดจากการเคลื่อนที่ของโมเมนตัมในโฟลว์ปั่นป่วน
+- **Filter Width**: ความกว้างของฟิลเตอร์ที่ใช้แยกโครงสร้างขนาดใหญ่และเล็ก
 
 ---
 
@@ -254,6 +284,7 @@ RAS
 
 ```cpp
 // 0/k - Turbulent Kinetic Energy
+// 0/k - พลังงานจลน์ความปั่นป่วน
 dimensions      [0 2 -2 0 0 0 0];
 internalField   uniform 0.01;
 
@@ -262,7 +293,7 @@ boundaryField
     inlet
     {
         type            turbulentIntensityKineticEnergyInlet;
-        intensity       0.05;     // 5% turbulence intensity
+        intensity       0.05;     // 5% turbulence intensity - ความเข้มความปั่นป่วน 5%
         value           uniform 0.01;
     }
 
@@ -279,6 +310,7 @@ boundaryField
 }
 
 // 0/epsilon - Dissipation Rate
+// 0/epsilon - อัตราการสลายตัว
 dimensions      [0 2 -3 0 0 0 0];
 internalField   uniform 0.001;
 
@@ -287,7 +319,7 @@ boundaryField
     inlet
     {
         type            turbulentMixingLengthDissipationRateInlet;
-        mixingLength    0.01;
+        mixingLength    0.01;     // ความยาวการผสม
         value           uniform 0.001;
     }
 
@@ -304,6 +336,18 @@ boundaryField
 }
 ```
 
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+
+**คำอธิบาย:**
+- **turbulenceProperties**: ไฟล์การตั้งค่าหลักสำหรับการเลือก turbulence model
+- **boundaryField**: การกำหนดเงื่อนไขขอบเขตสำหรับปริมาณความปั่นป่วน
+- **Wall Functions**: ฟังก์ชันที่ใช้ประมาณค่าใกล้ผนังโดยไม่ต้องใช้ mesh ละเอียดมาก
+
+**แนวคิดสำคัญ:**
+- **Turbulent Intensity**: อัตราส่วนระหว่างความเร็วผันผวนกับความเร็วเฉลี่ย
+- **Mixing Length**: สเกลความยาวที่ใช้แทนขนาดของโมเมนตัมที่ผสมกัน
+- **Dissipation Rate**: อัตราที่พลังงานความปั่นป่วนสลายตัวเป็นความร้อน
+
 ---
 
 ## สถาปัตยกรรมการนำไปใช้ใน OpenFOAM
@@ -319,6 +363,7 @@ class TurbulenceModel
     public BasicTurbulenceModel
 {
     // Base interface for all turbulence models
+    // อินเทอร์เฟซพื้นฐานสำหรับ turbulence model ทั้งหมด
     virtual tmp<volScalarField> mu() const = 0;
     virtual tmp<volScalarField> mut() const = 0;
     virtual tmp<volScalarField> alphat() const = 0;
@@ -335,24 +380,37 @@ class EddyViscosity
     public TurbulenceModel<BasicTurbulenceModel>
 {
 protected:
-    // Eddy viscosity field
+    // Eddy viscosity field - ฟิลด์ความหนืดแบบ eddy
     volScalarField mut_;
 
-    // Turbulent kinetic energy field
+    // Turbulent kinetic energy field - ฟิลด์พลังงานจลน์ความปั่นป่วน
     volScalarField k_;
 
-    // Turbulent dissipation rate
+    // Turbulent dissipation rate - อัตราการสลายตัวของความปั่นป่วน
     volScalarField epsilon_;
 
 public:
-    // Virtual correction method
+    // Virtual correction method - เมธอดเสมือนสำหรับการแก้ไข
     virtual void correct();
 
     // Access methods for turbulent properties
+    // เมธอดเข้าถึงคุณสมบัติความปั่นป่วน
     virtual tmp<volScalarField> mu() const;
     virtual tmp<volScalarField> mut() const;
 };
 ```
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+
+**คำอธิบาย:**
+- **Template Inheritance**: การใช้ template เพื่อสร้างความยืดหยุ่นในการสืบทอดคลาส
+- **Virtual Functions**: ฟังก์ชันเสมือนสำหรับ polymorphism ในการเลือกโมเดล
+- **Protected Members**: สมาชิกที่ได้รับการคุ้มครองสำหรับการใช้งานภายในคลาสลูก
+
+**แนวคิดสำคัญ:**
+- **Polymorphism**: คุณสมบัติของ OOP ที่ให้คลาสลูกสามารถ override ฟังก์ชันได้
+- **RTS (Runtime Selection)**: กลไกในการเลือก turbulence model ขณะ runtime ผ่านไฟล์ dictionary
+- **Field Management**: การจัดการฟิลด์ต่างๆ ใน OpenFOAM ด้วย volScalarField
 
 ---
 

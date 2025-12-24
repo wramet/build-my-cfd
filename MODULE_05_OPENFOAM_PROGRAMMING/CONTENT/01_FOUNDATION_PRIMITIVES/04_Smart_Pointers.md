@@ -33,6 +33,7 @@ sequenceDiagram
     Note over P2,Obj: B now owns Object
     Note over P2,Obj: When B goes out of scope, Object is deleted
 ```
+
 > **Figure 1:** ลำดับการโอนความเป็นเจ้าของของ `autoPtr` ซึ่งแสดงให้เห็นว่าข้อมูลจะมีเจ้าของเพียงหนึ่งเดียวในแต่ละขณะ และจะถูกทำลายโดยอัตโนมัติเมื่อเจ้าของสิ้นสุดขอบเขตการทำงาน (Scope)
 
 ### ระบบสมุดร่วม (`tmp`)
@@ -54,6 +55,7 @@ graph LR
     Obj
     end
 ```
+
 > **Figure 2:** แผนผังการทำงานของ `tmp` ที่ใช้ระบบนับจำนวนการอ้างอิง (Reference Counting) เพื่อแชร์ข้อมูลขนาดใหญ่ระหว่างหลายส่วนของโปรแกรมอย่างมีประสิทธิภาพ โดยไม่ต้องคัดลอกข้อมูลซ้ำซ้อน
 
 **ผลลัพธ์**: ระบบ smart pointers เหล่านี้ทำให้การจัดการอายุการใช้งานของวัตถุเป็นแบบอัตโนมัติ กำจัด memory leaks ที่รบกวนการจัดสรรหน่วยความจำแบบแมนนวลในขณะเดียวกันก็เพิ่มประสิทธิภาพผ่านรูปแบบการแชร์ข้อมูลอัจฉริยะ
@@ -98,6 +100,18 @@ autoPtr<volScalarField> anotherPtr = pPtr;
 // Now: pPtr is nullptr, anotherPtr owns the object
 ```
 
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+โค้ดตัวอย่างนี้แสดงการใช้งาน `autoPtr` ในการจัดการวัตถุ `volScalarField` ซึ่งเป็น field ปริมาณสเกลาร์บนเครือข่ายคำนวณ การสร้าง `autoPtr` ทำให้เราเป็นเจ้าของ field นี้อย่างเฉพาะเจาะจง และสามารถเข้าถึงได้โดยการใช้ `operator()` การกำหนดค่า `autoPtr` จะโอนความเป็นเจ้าของไปยังตัวแปรใหม่ ทำให้ตัวแปรเดิมกลายเป็นค่าว่าง
+
+**แนวคิดสำคัญ:**
+- **Exclusive Ownership**: `autoPtr` มีเจ้าของเพียงคนเดียวตลอดเวลา
+- **Automatic Cleanup**: วัตถุจะถูกทำลายโดยอัตโนมัติเมื่อ `autoPtr` ออกนอก scope
+- **Ownership Transfer**: การกำหนดค่าจะโอนความเป็นเจ้าของ ไม่ใช่การคัดลอก
+
 **คุณสมบัติหลัก**:
 
 | คุณสมบัติ | คำอธิบาย |
@@ -128,6 +142,18 @@ volScalarField& Tmod = tT.ref(); // Non-const reference, may trigger copy
 tmp<volScalarField> tTemp = tT;     // No copy yet, just refCount++
 tTemp.ref() = 300.0;                // Now creates copy for modification
 ```
+
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+โค้ดนี้แสดงการใช้งาน `tmp` สำหรับจัดการ field ชั่วคราวอย่างมีประสิทธิภาพ โดยใช้ระบบ reference counting เพื่อหลีกเลี่ยงการคัดลอกข้อมูลโดยไม่จำเป็น การเข้าถึงแบบ const (`operator()`) ไม่ทำให้เกิดการคัดลอก แต่การเข้าถึงแบบ non-const (`ref()`) จะกระตุ้น copy-on-write หากมีผู้ใช้งานร่วมกันหลายราย
+
+**แนวคิดสำคัญ:**
+- **Reference Counting**: ติดตามจำนวน `tmp` objects ที่อ้างอิงข้อมูลเดียวกัน
+- **Copy-on-Write**: คัดลอกข้อมูลเมื่อจำเป็นต้องการแก้ไขเท่านั้น
+- **Efficient Sharing**: หลายส่วนของโปรแกรมสามารถแชร์ข้อมูลเดียวกันได้โดยไม่สูญเสียประสิทธิภาพ
 
 **กลไก copy-on-write**:
 
@@ -203,6 +229,18 @@ public:
     }
 };
 ```
+
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+นี่คือโครงสร้างภายในของคลาส `autoPtr` ที่ใช้หลักการ RAII (Resource Acquisition Is Initialization) คอนสตรักเตอร์รับความเป็นเจ้าของของ raw pointer และ destructor จะลบวัตถุโดยอัตโนมัติ คอนสตรักเตอร์การคัดลอกถูกลบเพื่อป้องกันการลบสองครั้ง (double deletion) ในขณะที่ move constructor และ move assignment operator ช่วยให้การโอนความเป็นเจ้าของทำงานได้อย่างปลอดภัย
+
+**แนวคิดสำคัญ:**
+- **RAII Pattern**: ทรัพยากรถูกจัดสรรเมื่อสร้างและปลดปล่อยโดยอัตโนมัติเมื่อทำลาย
+- **Move Semantics**: อนุญาตให้โอนความเป็นเจ้าของโดยไม่ต้องคัดลอก
+- **Deleted Copy Constructor**: ป้องกันการคัดลอกที่อาจทำให้เกิด double deletion
 
 ### การใช้งาน `tmp` Reference Counting
 
@@ -288,6 +326,18 @@ public:
 };
 ```
 
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+นี่คือโครงสร้างภายในของคลาส `tmp` ที่ใช้ระบบ reference counting เพื่อจัดการวัตถุที่ใช้ร่วมกัน เมื่อมีหลาย `tmp` objects อ้างอิงข้อมูลเดียวกัน refCount จะเพิ่มขึ้น เมื่อต้องการแก้ไข (`ref()`) และมีผู้ใช้งานร่วมกันหลายราย ระบบจะสร้างสำเนาใหม่ (copy-on-write) ทำให้แต่ละ `tmp` มีข้อมูลส่วนตัวของตัวเอง
+
+**แนวคิดสำคัญ:**
+- **Reference Counting**: ติดตามจำนวน objects ที่ใช้ข้อมูลร่วมกัน
+- **Copy-on-Write**: สร้างสำเนาเมื่อจำเป็นต้องการแก้ไขเท่านั้น
+- **Mutable Reference Count**: อนุญาตให้อัปเดต refCount แม้ใน const context
+
 ## ⚠️ ข้อผิดพลาดที่พบบ่อยและวิธีแก้ไข
 
 ### 1. Dangling Pointers หลังการโอนความเป็นเจ้าของ
@@ -313,6 +363,18 @@ else
     volScalarField& field = ptr2();  // Use the valid pointer
 }
 ```
+
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+ข้อผิดพลาดนี้เกิดขึ้นเมื่อพยายามใช้งาน `autoPtr` หลังจากที่ความเป็นเจ้าของถูกโอนไปยัง `autoPtr` อื่นแล้ว การเรียก `operator()` บน `autoPtr` ที่ว่างเปล่าจะทำให้เกิดการ dereference nullptr ซึ่งนำไปสู่การ crash การแก้ไขคือต้องตรวจสอบความถูกต้องของ pointer ด้วย `valid()` ก่อนใช้งาน
+
+**แนวคิดสำคัญ:**
+- **Ownership Transfer**: การโอนความเป็นเจ้าของทำให้ source pointer กลายเป็น null
+- **Null Pointer Dereference**: การ dereference nullptr เป็นพฤติกรรมที่ไม่ได้กำหนด
+- **Validation Check**: ใช้ `valid()` เพื่อตรวจสอบว่า pointer ถูกต้องก่อนใช้งาน
 
 > [!WARNING] เช็คความถูกต้องเสมอ
 > ตรวจสอบเสมอว่า `autoPtr` ถูกต้องก่อนใช้งาน หรือ restructure code เพื่อหลีกเลี่ยงสถานการณ์ดังกล่าว
@@ -343,6 +405,18 @@ if (t1() > 300.0)  // Use operator() for const access, no copy
     t2.ref() = 300.0;  // Copy happens once here
 }
 ```
+
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+การเข้าถึง `tmp` ผ่าน `ref()` จะกระตุ้น copy-on-write หากมีหลาย objects ใช้ข้อมูลร่วมกัน ซึ่งอาจทำให้เกิดการคัดลอกข้อมูลขนาดใหญ่โดยไม่จำเป็น การใช้ const access ผ่าน `operator()` จะหลีกเลี่ยงการคัดลอกและให้ประสิทธิภาพที่ดีกว่า
+
+**แนวคิดสำคัญ:**
+- **Copy-on-Write Trigger**: `ref()` สร้างสำเนาถ้ามีผู้ใช้งานร่วมกันหลายราย
+- **Const Access Optimization**: `operator()` ไม่ทำให้เกิดการคัดลอก
+- **Performance Impact**: การคัดลอกข้อมูลขนาดใหญ่ส่งผลต่อประสิทธิภาพอย่างมีนัยสำคัญ
 
 > [!TIP] ใช้ const access เมื่อเป็นไปได้
 > ใช้ const access (`operator()`) เมื่อเป็นไปได้ และขอ write access (`ref()`) เมื่อจำเป็นต้องการแก้ไขเท่านั้น
@@ -375,6 +449,18 @@ struct Node
 };
 ```
 
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+Circular references เกิดขึ้นเมื่อวัตถุสองตัวหรือมากกว่านั้นถือครอง smart pointers ที่อ้างอิงถึงกันและกันในวงจร ทำให้ reference count ไม่เคยถึงศูนย์และวัตถุไม่ถูกทำลาย การแก้ไขคือใช้ raw pointers สำหรับความสัมพันธ์ที่ไม่ใช่การเป็นเจ้าของเพื่อสร้างทิศทางความเป็นเจ้าของที่ชัดเจน
+
+**แนวคิดสำคัญ:**
+- **Circular Ownership**: การถือครองซึ่งกันและกันป้องกันการทำลายวัตถุ
+- **Reference Count Trap**: refCount ไม่ถึงศูนย์เนื่องจากวงจรอ้างอิง
+- **Ownership Direction**: ใช้ raw pointers สำหรับ non-owning relationships
+
 > [!INFO] ออกแบบลำดับชั้นความเป็นเจ้าของอย่างระมัดระวัง
 > ออกแบบลำดับชั้นความเป็นเจ้าของอย่างระมัดระวังและใช้ raw pointers สำหรับความสัมพันธ์ที่ไม่ใช่การเป็นเจ้าของ
 
@@ -402,6 +488,18 @@ void modernFunction()
 }
 ```
 
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+Smart pointers ให้ความปลอดภัยด้านหน่วยความจำโดยอัตโนมัติ ในรูปแบบดั้งเดิม หากเกิด exception ก่อนที่จะถึงคำสั่ง `delete` หน่วยความจำจะรั่ว ในขณะที่ smart pointers จะเรียก destructor โดยอัตโนมัติเมื่อออกจาก scope ไม่ว่าจะเกิด exception หรือไม่ก็ตาม
+
+**แนวคิดสำคัญ:**
+- **Automatic Cleanup**: Destructor ถูกเรียกโดยอัตโนมัติเมื่อออกจาก scope
+- **Exception Safety**: หน่วยความจำถูกปลดปล่อยแม้เมื่อเกิด exception
+- **RAII Benefits**: Resource management เชื่อมโยงกับ object lifetime
+
 ### 2. Performance Optimization
 
 **ระบบ `tmp` ให้ประสิทธิภาพที่ดีขึ้น** อย่างมีนัยสำคัญโดยหลีกเลี่ยงการคัดลอกที่ไม่จำเป็น:
@@ -427,6 +525,18 @@ void optimized()
     // Only final result exists, intermediate temporaries managed efficiently
 }
 ```
+
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+`tmp` ช่วยปรับปรุงประสิทธิภาพโดยหลีกเลี่ยงการคัดลอกข้อมูลขนาดใหญ่ซ้ำซ้อน ในรูปแบบดั้งเดิม แต่ละ operation สร้างสำเนาใหม่ของ field ทั้งหมด ในขณะที่ `tmp` ใช้ reference counting เพื่อแชร์ข้อมูลและสร้างสำเนาเมื่อจำเป็นเท่านั้น ทำให้ลดการใช้หน่วยความจำและเวลาประมวลผลอย่างมีนัยสำคัญ
+
+**แนวคิดสำคัญ:**
+- **Lazy Copying**: คัดลอกเมื่อจำเป็นเท่านั้น (copy-on-write)
+- **Reference Sharing**: หลาย objects แชร์ข้อมูลเดียวกันได้
+- **Memory Efficiency**: ลดการใช้หน่วยความจำสำหรับ intermediate results
 
 **การเปรียบเทียบประสิทธิภาพ**:
 
@@ -455,6 +565,18 @@ autoPtr<fvMesh> myMesh = createMesh("myCase");
 // Clear ownership: myMesh owns the mesh, will clean it up
 ```
 
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+`autoPtr` ทำให้ความเป็นเจ้าของชัดเจนโดยการอนุญาตให้โอนความเป็นเจ้าของระหว่าง functions ได้อย่างชัดเจน เมื่อ function คืนค่า `autoPtr` ผู้เรียกจะกลายเป็นเจ้าของและรับผิดชอบการทำความสะอาด ทำให้ไม่มีความคลุมเครือว่าใครเป็นผู้รับผิดชอบการลบวัตถุ
+
+**แนวคิดสำคัญ:**
+- **Transfer Semantics**: การคืนค่าโอนความเป็นเจ้าของไปยังผู้เรียก
+- **Clear Responsibility**: ผู้รับครอบครองเป็นผู้รับผิดชอบการ cleanup
+- **No Ambiguity**: ไม่มีความสงสัยเกี่ยวกับใครควรลบวัตถุ
+
 ### 4. Exception Safety
 
 **Smart pointers ทำให้มั่นใจได้ว่าทรัพยากรถูกทำความสะอาด** อย่างเหมาะสมแม้เมื่อเกิด exceptions:
@@ -481,6 +603,18 @@ void robustFunction()
     // Automatic cleanup happens at function end
 }
 ```
+
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+Smart pointers ให้ exception safety โดยการรับประกันว่า destructors จะถูกเรียกเมื่อออกจาก scope ไม่ว่าจะเกิด exception หรือไม่ ใน block try-catch หากเกิด exception จาก `performComplexOperations` destructors ของ `field1` และ `field2` จะถูกเรียกโดยอัตโนมัติก่อนที่ exception จะถูก propagate ต่อ
+
+**แนวคิดสำคัญ:**
+- **Stack Unwinding**: Destructors ถูกเรียกเมื่อ stack unwinding เกิดขึ้น
+- **Exception Guarantee**: ทรัพยากรถูกปลดปล่อยแม้เมื่อเกิด exception
+- **No Manual Cleanup**: ไม่ต้องใช้ `delete` แบบแมนนวลใน catch blocks
 
 ## การเชื่อมต่อฟิสิกส์: แอปพลิเคชันเฉพาะทาง CFD
 
@@ -536,6 +670,18 @@ tmp<fvVectorMatrix> tUEqn
 );
 ```
 
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+ในการจำลอง CFD ขนาดใหญ่ smart pointers มีบทบาทสำคัญในการจัดการหน่วยความจำ `autoPtr` ใช้สำหรับ objects หลัก เช่น mesh และ turbulence model ที่มีความเป็นเจ้าของชัดเจน ในขณะที่ `tmp` ใช้สำหรับ temporary field operations ที่เกิดขึ้นระหว่างการแก้สมการ เช่น gradient calculation และ matrix assembly ซึ่งช่วยลดการใช้หน่วยความจำอย่างมีนัยสำคัญ
+
+**แนวคิดสำคัญ:**
+- **Large-Scale Memory Management**: จัดการ fields ขนาดหลายร้อย MB ถึง GB
+- **Temporary Operations**: `tmp` สำหรับ intermediate calculations
+- **Exclusive Ownership**: `autoPtr` สำหรับ solver objects หลัก
+
 ### การจัดการหน่วยความจำในการจำลอง Transient
 
 **ในการจำลอง transient ระบบ smart pointer มีค่ามากยิ่งขึ้น**:
@@ -566,6 +712,18 @@ while (runTime.loop())
     // Memory freed for next time step
 }
 ```
+
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+ในการจำลอง transient `tmp` objects จะถูกสร้างและทำลายในแต่ละ time step ทำให้หน่วยความจำถูกปลดปล่อยโดยอัตโนมัติสำหรับ time step ถัดไป การนี้เป็นสิ่งสำคัญอย่างยิ่งเนื่องจาก transient simulations มีขั้นเวลาหลายร้อยถึงหลายพันขั้น และหาก temporaries ไม่ถูกปลดปล่อยอย่างถูกต้อง หน่วยความจำจะรั่วอย่างรวดเร็ว
+
+**แนวคิดสำคัญ:**
+- **Automatic Cleanup**: Temporaries ถูกทำลายเมื่อสิ้นสุดแต่ละ time step
+- **Memory Recycling**: หน่วยความจำถูกปลดปล่อยสำหรับ time step ถัดไป
+- **Long-Running Simulations**: สำคัญสำหรับ simulations ที่มีขั้นเวลาหลายร้อยถึงหลายพันขั้น
 
 ### แอปพลิเคชันการไหลแบบหลายเฟส
 
@@ -605,6 +763,18 @@ tmp<volVectorField> tUMixture = U1*alpha1 + U2*alpha2;
 
 // These temporaries automatically cleaned up after use
 ```
+
+---
+
+**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+**คำอธิบาย:**
+ใน multiphase flows จำนวน fields เพิ่มขึ้นเป็นหลายเท่าตามจำนวน phases (เช่น 5 phases หมายถึง 5 phase fraction fields, 15 velocity fields, ฯลฯ) `tmp` ช่วยให้การคำนวณ mixture properties มีประสิทธิภาพโดยการแชร์ข้อมูลระหว่าง calculations และสร้างสำเนาเมื่อจำเป็นเท่านั้น ซึ่งสำคัญอย่างยิ่งเนื่องจากปริมาณหน่วยความจำที่ต้องการสำหรับ multiphase simulations
+
+**แนวคิดสำคัญ:**
+- **Multiple Fields Management**: จัดการ fields หลายตัวสำหรับแต่ละ phase
+- **Mixture Properties**: คำนวณ properties ของ mixture อย่างมีประสิทธิภาพ
+- **Memory Optimization**: ลดการใช้หน่วยความจำในระบบหลายเฟส
 
 **ประสิทธิภาพหน่วยความจำสำหรับ Multiphase**:
 

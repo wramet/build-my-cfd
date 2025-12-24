@@ -88,7 +88,8 @@ $$\cos(\theta) = \frac{\mathbf{n}_f \cdot \mathbf{d}_{PN}}{|\mathbf{n}_f| |\math
 
 **การควบคุม:**
 ```cpp
-// ใน fvSolution dictionary
+// Pressure solver settings in fvSchemes dictionary
+// Non-orthogonal correction iterations improve accuracy for non-orthogonal meshes
 solvers
 {
     p
@@ -97,10 +98,22 @@ solvers
         tolerance       1e-6;
         relTol          0.1;
         smoother        GaussSeidel;
-        nNonOrthogonalCorrectors 2;  // จำนวน correction iterations
+        nNonOrthogonalCorrectors 2;  // Number of correction iterations
     }
 }
 ```
+
+> **📂 Source:** `.applications/test/patchRegion/cavity_pinched/system/fvSolution`
+>
+> **คำอธิบาย:** 
+> - **Non-orthogonal correctors** ใช้สำหรับปรับปรุงความแม่นยำของการคำนวณ Gradient ใน Mesh ที่ไม่ตั้งฉาก (Non-orthogonal meshes)
+> - การทำ correction iterations หลายครั้งช่วยลด error จากการที่ Face normal ไม่ตั้งฉากกับเส้นเชื่อมระหว่าง Cell centers
+> - ค่าที่แนะนำ: 0 สำหรับ orthogonal meshes, 1-3 สำหรับ meshes ที่มี non-orthogonality ปานกลาง, 4+ สำหรับกรณีวิกฤต
+>
+> **แนวคิดสำคัญ:**
+> - **Gauss Theorem**: ใช้ในการคำนวณ Gradient บน Mesh surfaces
+> - **Non-orthogonal correction**: เทอมที่แก้ไข error จากเรขาคณิต Mesh ที่ไม่สมบูรณ์
+> - **Convergence**: การเพิ่ม correctors อาจช่วยให้ลู่เข้าได้ดีขึ้น แต่ใช้เวลาคำนวณมากขึ้น
 
 
 ```mermaid
@@ -151,10 +164,10 @@ $$\text{Skewness} = \frac{|\mathbf{d}_{Pf} + \mathbf{d}_{fN}|}{|\mathbf{d}_{PN}|
 
 **เครื่องมือวินิจฉัย:**
 ```bash
-# ตรวจสอบคุณภาพ Mesh
+# Check mesh quality
 checkMesh
 
-# ตรวจสอบเฉพาะ skewness
+# Check only skewness
 checkMesh -skew
 ```
 
@@ -193,7 +206,8 @@ $$r = |A\phi - b|$$
 
 **การตรวจสอบ Residuals:**
 ```cpp
-// ใน controlDict
+// Residual monitoring function in controlDict
+// Tracks how well the current solution satisfies the discretized equations
 functions
 {
     residuals
@@ -205,6 +219,19 @@ functions
     }
 }
 ```
+
+> **📂 Source:** `.applications/test/patchRegion/cavity_pinched/system/fvSolution` (for solver configuration context)
+>
+> **คำอธิบาย:**
+> - **Residuals** วัดความผิดพลาดระหว่าง Solution ปัจจุบันกับสมการ Discretized
+> - การลดลง 3-6 ระดับขนาด (orders of magnitude) โดยทั่วไปบ่งชี้การลู่เข้าที่ดี
+> - Residual target โดยทั่วไป: < 1e-5 สำหรับ solvers ส่วนใหญ่
+>
+> **แนวคิดสำคัญ:**
+> - **Discretized equations**: สมการที่แปลงเป็นรูปแบบพีชคณิตเชิงเส้น
+> - **Coefficient matrix**: เมทริกซ์ที่เก็บสัมประสิทธิ์จากการ Discretization
+> - **Convergence criteria**: ค่าที่ยอมรับได้สำหรับ residuals เพื่อหยุดการคำนวณ
+
 
 **เกณฑ์การลู่เข้า:**
 - **การลดลงที่ต้องการ**: 3-6 ระดับขนาด (orders of magnitude)
@@ -226,21 +253,36 @@ $$\phi^{new} = \phi^{old} + \alpha (\phi^{calc} - \phi^{old})$$
 
 **การตั้งค่าใน `fvSolution`:**
 ```cpp
+// Under-relaxation factors stabilize iterative solution process
+// Controls how much of the newly calculated solution is accepted
 relaxationFactors
 {
     fields
     {
-        p               0.3;    // Pressure: การผ่อนปรนสูง
-        U               0.5;    // Velocity: การผ่อนปรนปานกลาง
-        T               0.5;    // Temperature: การผ่อนปรนปานกลาง
+        p               0.3;    // Pressure: higher relaxation
+        U               0.5;    // Velocity: moderate relaxation
+        T               0.5;    // Temperature: moderate relaxation
     }
     equations
     {
-        k               0.7;    // TKE: การผ่อนปรนต่ำ
-        epsilon         0.7;    // Dissipation: การผ่อนปรนต่ำ
+        k               0.7;    // TKE: lower relaxation
+        epsilon         0.7;    // Dissipation: lower relaxation
     }
 }
 ```
+
+> **📂 Source:** `.applications/test/fieldMapping/pipe1D/system/fvSolution` (for similar structure context)
+>
+> **คำอธิบาย:**
+> - **Under-relaxation factors** ควบคุมอัตราการเปลี่ยนแปลงของ Solution ระหว่าง Iterations
+> - ค่าต่ำ (0.2-0.4): เสถียรกว่า แต่ลู่เข้าช้ากว่า - เหมาะสำหรับ Pressure
+> - ค่าสูง (0.6-0.9): ลู่เข้าเร็วกว่า แต่เสี่ยงต่อ Oscillations - เหมาะสำหรับ Turbulence quantities
+>
+> **แนวคิดสำคัญ:**
+> - **Iterative solution**: การแก้สมการซ้ำๆ จนกว่าจะลู่เข้า
+> - **Numerical stability**: การป้องกันการเกิด Oscillations หรือ Divergence
+> - **Convergence acceleration**: การปรับค่า Alpha ขณะลู่เข้าเพื่อเร่งการคำนวณ
+
 
 **คำแนะนำการตั้งค่า:**
 - **Steady-state problems**: ใช้การผ่อนปรนสูงกว่า (0.3-0.5)
@@ -272,11 +314,27 @@ relaxationFactors
 
 **การตั้งค่าใน `fvSchemes`:**
 ```cpp
+// Time discretization scheme selection
+// Controls temporal accuracy and stability characteristics
 ddtSchemes
 {
-    default         backward;  // หรือ Euler, CrankNicolson
+    default         backward;  // Options: Euler, backward, CrankNicolson
 }
 ```
+
+> **📂 Source:** Standard OpenFOAM `fvSchemes` dictionary structure
+>
+> **คำอธิบาย:**
+> - **Temporal schemes** กำหนดวิธีการ Discretize อนุพันธ์เชิงเวลา (∂/∂t)
+> - **Euler explicit**: ง่ายแต่ต้องการ Time step เล็กมาก (CFL < 1)
+> - **Backward implicit**: เสถียรกว่า สามารถใช้ Time step ใหญ่กว่าได้
+> - **CrankNicolson**: สมดุลระหว่างความแม่นยำและเสถียรภาพ (Second-order)
+>
+> **แนวคิดสำคัญ:**
+> - **CFL condition**: เกณฑ์ความเสถียรสำหรับ Explicit schemes
+> - **Implicit vs Explicit**: การแก้สมการที่ใช้ค่าจาก Time step ถัดไปหรือปัจจุบัน
+> - **Order of accuracy**: ลำดับของความแม่นยำตามการขยาย Taylor series
+
 
 **คำแนะนำ:**
 - **Explicit Euler**: เฉพาะการทดสอบเบื้องต้น เนื่องจากต้องการ time step เล็กมาก
@@ -292,11 +350,12 @@ ddtSchemes
 | **Gauss upwind** | $\phi_f = \phi_P$ if $\Phi_f > 0$ | Order 1 | Stability สูงมาก | Numerical diffusion สูง | High convection, Coarse meshes |
 | **Gauss limitedLinear** | $\phi_f = \phi_P + \psi(r) \cdot \frac{1}{2}(\phi_N - \phi_P)$ | Order 2 | สมดุลระหว่าง accuracy และ stability | Complex implementation | General CFD applications |
 | **Gauss vanLeer** | Van Leer limiter | Order 2 | สมดุลดี | Computational cost สูง | Compressible flows, Shocks |
-| **Gauss QUICK** | $\phi_f = \frac{6}{8}\phi_P + \frac{3}{8}\phi_N - \frac{1}{8}\phi_{NN}$ | Order 3 | Excellent accuracy | Can be unstable | Structured grids, Smooth flows |
+| **Gauss QUICK** | $\frac{6}{8}\phi_P + \frac{3}{8}\phi_N - \frac{1}{8}\phi_{NN}$ | Order 3 | Excellent accuracy | Can be unstable | Structured grids, Smooth flows |
 
 **OpenFOAM Code Implementation:**
 ```cpp
-// ใน fvSchemes dictionary
+// Convection scheme selection in fvSchemes
+// Uses TVD (Total Variation Diminishing) limiters for stability
 divSchemes
 {
     div(phi,U)      Gauss limitedLinearV 1;    // Velocity: TVD
@@ -305,6 +364,19 @@ divSchemes
     div(phi,T)      Gauss linear;              // Temperature: Central
 }
 ```
+
+> **📂 Source:** Standard OpenFOAM `fvSchemes` dictionary
+>
+> **คำอธิบาย:**
+> - **Gauss theorem** ใช้ในการแปลง Divergence เป็น Surface integral
+> - **limitedLinearV**: TVD limiter ที่ป้องกัน Oscillations ใกล้ Discontinuities
+> - **Upwind**: ใช้ค่าจาก Upstream cell - เสถียรแต่มี Numerical diffusion
+>
+> **แนวคิดสำคัญ:**
+> - **Peclet number (Pe)**: อัตราส่วนระหว่าง Convection และ Diffusion
+> - **Numerical diffusion**: Error ที่เกิดจากการใช้ Scheme ลำดับต่ำ
+> - **TVD limiters**: ฟังก์ชันที่จำกัด Gradient เพื่อป้องกัน Oscillations
+
 
 **คำแนะนำการเลือก Scheme:**
 
@@ -353,13 +425,28 @@ graph TD
 
 **การตั้งค่าใน `fvSchemes`:**
 ```cpp
+// Gradient calculation method selection
+// Determines how cell-to-face gradients are computed
 gradSchemes
 {
-    default         Gauss linear;  // Standard scheme
-    // หรือสำหรับความแม่นยำสูงกว่า
-    // default         leastSquares;  // สำหรับ complex meshes
+    default         Gauss linear;  // Standard scheme with correction
+    // Or for higher accuracy on complex meshes:
+    // default         leastSquares;
 }
 ```
+
+> **📂 Source:** Standard OpenFOAM `fvSchemes` dictionary
+>
+> **คำอธิบาย:**
+> - **Gauss linear**: ใช้ Gauss theorem พร้อม Linear interpolation correction
+> - **leastSquares**: ใช้ Least squares method เพื่อหา Gradient บน Complex meshes
+> - **Non-orthogonal correction**: เทอมเพิ่มเติมสำหรับ Meshes ที่ไม่ตั้งฉาก
+>
+> **แนวคิดสำคัญ:**
+> - **Gauss theorem**: แปลง Volume integral เป็น Surface integral
+> - **Gradient reconstruction**: การคำนวณ Gradient จาก Cell values
+> - **Mesh sensitivity**: ความแม่นยำขึ้นกับคุณภาพ Mesh และ Orthogonality
+
 
 **Non-Orthogonal Correction:**
 สำหรับ meshes ที่ไม่ orthogonal อย่างสิ้นเชิง:
@@ -368,12 +455,12 @@ $$(\nabla \phi)_f \cdot \mathbf{S}_f = |\mathbf{S}_f| \frac{\phi_N - \phi_P}{|\m
 
 การควบคุมจำนวน correction iterations:
 ```cpp
-// ใน fvSolution
+// Increase corrections for high non-orthogonality
 solvers
 {
     p
     {
-        nNonOrthogonalCorrectors 2;  // เพิ่มสำหรับ high non-orthogonality
+        nNonOrthogonalCorrectors 2;  // Add for high non-orthogonality
     }
 }
 ```
@@ -390,10 +477,12 @@ solvers
 | **PCG** | Symmetric positive definite matrices | Efficient สำหรับ Diffusion equations, Robust | จำกัดกับ symmetric systems | DIC, Cholesky |
 | **PBiCGStab** | Non-symmetric systems | Flexible สำหรับ Convection-diffusion, Good stability | อาจต้องการ precondioners | DILU, FDILU |
 | **GMRES** | Highly Non-Symmetric, Ill-conditioned | Excellent for difficult systems | Memory usage increases with iterations | DILU, ILU |
-| **smoothSolver** | Simple problems | Memory usage ต่ำ, Simple | Convergence ช้าสำหรับ Complex systems | GaussSeidel, DIC |
+| **smoothSolver** | Simple problems | Memory usage ต่ำ, Simple | Convergence ช้าสำร้าง Complex systems | GaussSeidel, DIC |
 
 **การตั้งค่า Tolerance:**
 ```cpp
+// Linear solver configuration for different field variables
+// Pressure uses GAMG for efficiency, velocity uses PBiCGStab for stability
 solvers
 {
     p
@@ -437,6 +526,19 @@ solvers
     }
 }
 ```
+
+> **📂 Source:** `.applications/test/patchRegion/cavity_pinched/system/fvSolution`
+>
+> **คำอธิบาย:**
+> - **GAMG** (Geometric-Algebraic Multi-Grid): เหมาะสำหรับ Pressure equation ที่เป็น Elliptic
+> - **PBiCGStab** (Stabilized Bi-Conjugate Gradient): สำหรับ Non-symmetric systems เช่น Velocity
+> - **Tolerance**: Absolute tolerance คือค่า target, Relative tolerance คือ % การลดลงต่อ iteration
+>
+> **แนวคิดสำคัญ:**
+> - **Preconditioner**: Matrix transformation เพื่อเร่งการลู่เข้า
+> - **Multi-grid methods**: ใช้ Multiple grid resolutions สำหรับการแก้ปัญหา
+> - **Convergence criteria**: เกณฑ์ที่ตัดสินใจว่า Solution ลู่เข้าแล้ว
+
 
 **คำแนะนำการตั้งค่า:**
 - **Pressure (p)**: ใช้ GAMG สำหรับ meshes ใหญ่, PCG สำหรับ meshes เล็ก
@@ -485,30 +587,36 @@ solvers
 
 **ตัวอย่างการตั้งค่า:**
 ```cpp
+// Wall boundary conditions for velocity field
+// No-slip condition: velocity is zero at stationary walls
 // 0/U
 wall
 {
-    type            noSlip;  // หรือ fixedValue
+    type            noSlip;  // Or fixedValue
     value           uniform (0 0 0);
 }
 
+// Wall thermal conditions
+// Supports fixed temperature, fixed flux, or convective conditions
 // 0/T
 wall
 {
     type            fixedValue;     // Fixed temperature
     value           uniform 300;
 
-    // หรือ
+    // Or
     type            fixedGradient;   // Fixed heat flux
     gradient        uniform 100;
 
-    // หรือ
+    // Or
     type            externalWallHeatFlux;
     mode            coefficient;
     hCoefficient    uniform 10;
     Ta              uniform 300;
 }
 
+// Turbulence kinetic energy at wall
+// Wall function handles near-wall turbulence behavior
 // 0/k
 wall
 {
@@ -516,13 +624,28 @@ wall
     value           uniform 0;
 }
 
-// 0/epsilon หรือ 0/omega
+// Dissipation rate or specific dissipation at wall
+// Wall function controls near-wall dissipation
+// 0/epsilon or 0/omega
 wall
 {
-    type            epsilonWallFunction;  // หรือ omegaWallFunction
+    type            epsilonWallFunction;  // Or omegaWallFunction
     value           uniform 0;
 }
 ```
+
+> **📂 Source:** Standard OpenFOAM boundary condition setup
+>
+> **คำอธิบาย:**
+> - **No-slip condition**: Fluid velocity เป็นศูนย์ที่ผนัง (วาสคิวลาร์ฟลูว์)
+> - **Wall functions**: ใช้สำหรับจำลอง Turbulent boundary layer โดยไม่ต้อง Mesh ละเอียดมาก
+> - **$y^+$**: Dimensionless wall distance - 30-300 สำหรับ Standard wall functions
+>
+> **แนวคิดสำคัญ:**
+> - **Boundary layer**: ชั้นของ Fluid ที่ผนังที่ Viscosity effects สำคัญ
+> - **Logarithmic law of the wall**: ความสัมพันธ์ระหว่าง Velocity และ Distance from wall
+> - **Near-wall meshing**: ความละเอียดของ Mesh ใกล้ผนังสำคัญมาก
+
 
 ### **Inlet Boundaries**
 
@@ -536,14 +659,16 @@ wall
 
 **ตัวอย่าง Velocity Inlet:**
 ```cpp
+// Simple uniform velocity inlet
 // 0/U
 inlet
 {
     type            fixedValue;
-    value           uniform (10 0 0);  // m/s ในทิศทาง x
+    value           uniform (10 0 0);  // m/s in x-direction
 }
 
-// หรือด้วย profile
+// Or with a parabolic profile using coded boundary condition
+// 0/U
 inlet
 {
     type            codedFixedValue;
@@ -565,6 +690,19 @@ inlet
 }
 ```
 
+> **📂 Source:** Standard OpenFOAM inlet boundary conditions
+>
+> **คำอธิบาย:**
+> - **fixedValue**: กำหนดค่าคงที่ที่ Inlet - เหมาะสำหรับ Uniform inflow
+> - **codedFixedValue**: ใช้ C++ code เพื่อสร้าง Profile ที่ซับซ้อน
+> - **Parabolic profile**: Velocity profile แบบ Fully developed flow
+>
+> **แนวคิดสำคัญ:**
+> - **Boundary layer development**: การพัฒนาของ Boundary layer จาก Inlet
+> - **Velocity profile**: การกระจาย Velocity ผ่าน Cross-section
+> - **Turbulence specification**: การกำหนด Turbulence quantities ที่ Inlet
+
+
 ### **Outlet Boundaries**
 
 | Boundary Condition | คำอธิบาย | เหมาะสำหรับ | ตัวอย่าง |
@@ -576,6 +714,7 @@ inlet
 
 **ตัวอย่าง Pressure Outlet:**
 ```cpp
+// Pressure outlet with zero gauge pressure
 // 0/p
 outlet
 {
@@ -583,6 +722,8 @@ outlet
     value           uniform 0;  // Gauge pressure = 0
 }
 
+// Velocity outlet that handles backflow
+// Switches to inlet condition if flow reverses
 // 0/U
 outlet
 {
@@ -590,6 +731,7 @@ outlet
     value           uniform (0 0 0);
 }
 
+// Scalar outlet with backflow handling
 // 0/T
 outlet
 {
@@ -598,6 +740,19 @@ outlet
     value           uniform 300;
 }
 ```
+
+> **📂 Source:** Standard OpenFOAM outlet boundary conditions
+>
+> **คำอธิบาย:**
+> - **zeroGradient**: สมมติว่า Flow พัฒนาเต็มที่ (Fully developed) ที่ Outlet
+> - **pressureInletOutletVelocity**: จัดการ Backflow โดยการสลับเป็น Inlet condition
+> - **Backflow**: การไหลย้อนกลับที่อาจเกิดขึ้นใน Transient simulations
+>
+> **แนวคิดสำคัญ:**
+> - **Fully developed flow**: Flow ที่ไม่เปลี่ยนแปลงในทิศทางการไหล
+> - **Convective outlet**: อนุญาตให้ Fluid ไหลออกโดยไม่มี Reflections
+> - **Wave reflection**: ปัญหาที่เกิดจาก Boundary conditions ที่ไม่เหมาะสม
+
 
 ---
 
@@ -608,16 +763,16 @@ outlet
 **ขั้นตอนการดำเนินการ:**
 
 ```bash
-# 1. Decompose case for parallel execution
+# Decompose case for parallel execution
 decomposePar -force
 
-# 2. Run parallel simulation
+# Run parallel simulation
 mpirun -np 4 solver -case . -parallel
 
-# 3. Reconstruct results
+# Reconstruct results
 reconstructPar
 
-# 4. หรือ reconstruct บาง time directories
+# Or reconstruct only latest time directory
 reconstructPar -latestTime
 ```
 
@@ -655,14 +810,15 @@ graph LR
 
 
 ```cpp
-// system/decomposeParDict
-method          scotch;  // หรือ hierarchical, simple, manual
+// Domain decomposition configuration
+// Controls how the computational domain is split among processors
+method          scotch;  // Options: scotch, hierarchical, simple, manual
 
 numberOfSubdomains 4;
 
 scotchCoeffs
 {
-    // Processor weights
+    // Optional processor weights for load balancing
     processorWeights
     (
         1
@@ -672,14 +828,27 @@ scotchCoeffs
     );
 }
 
-// สำหรับ hierarchical method
+// Hierarchical method for structured decompositions
 hierarchicalCoeffs
 {
-    n           (4 1 1);  // 4 ใน x, 1 ใน y, 1 ใน z
+    n           (4 1 1);  // 4 in x, 1 in y, 1 in z
     delta       0.001;
     order       xyz;
 }
 ```
+
+> **📂 Source:** `.applications/test/patchRegion/cavity_pinched/system/decomposeParDict`
+>
+> **คำอธิบาย:**
+> - **Scotch**: Graph-based decomposition algorithm ที่ให้ Load balancing ที่ดี
+> - **Hierarchical**: แบ่งตามทิศทาง (x, y, z) - เหมาะสำหรับ Structured meshes
+> - **Processor weights**: กำหนด Load ต่อ Processor สำหรับ Heterogeneous systems
+>
+> **แนวคิดสำคัญ:**
+> - **Domain decomposition**: การแบ่ง Mesh เป็น Subdomains สำหรับ Parallel processing
+> - **Load balancing**: การกระจาย Workload ให้สม่ำเสมอทุก Processor
+> - **MPI communication**: การแลกเปลี่ยนข้อมูลระหว่าง Processors ที่ Interface boundaries
+
 
 **คำแนะนำ Parallelization:**
 - **Load balancing**: ใช้ `scotch` หรือ `metis` สำหรับ automatic balancing
@@ -692,18 +861,35 @@ hierarchicalCoeffs
 **เทคนิคการจัดการ Memory:**
 
 ```cpp
-// 1. การใช้ Field types ที่เหมาะสม
+// Efficient field declaration and temporary usage
+// Proper memory management reduces computational overhead
+
+// 1. Appropriate field type selection
 volScalarField p(mesh);      // Correct: Scalar field
 volVectorField U(mesh);      // Correct: Vector field
 
-// 2. การใช้ autoPtr และ tmp
+// 2. Smart pointers for large objects
 autoPtr<volScalarField> pPtr(new volScalarField(mesh));
 tmp<volScalarField> tGradP = fvc::grad(p);
 
-// 3. การลดการจัดเก็บที่ไม่จำเป็น
-// ไม่ store ค่า intermediate ที่ไม่จำเป็น
-// ใช้ expression templates สำหรับ operations
+// 3. Avoid unnecessary storage
+// Do not store intermediate values unnecessarily
+// Use expression templates for operations
 ```
+
+> **📂 Source:** Standard OpenFOAM coding practices
+>
+> **คำอธิบาย:**
+> - **volScalarField**: Field สำหรับ Scalar quantities (Pressure, Temperature)
+> - **volVectorField**: Field สำหรับ Vector quantities (Velocity)
+> - **autoPtr**: Smart pointer สำหรับ Dynamic memory management
+> - **tmp<T>()**: Temporary field ที่ Auto-delete เมื่อไม่ใช้
+>
+> **แนวคิดสำคัญ:**
+> - **Memory allocation**: การจอง Memory สำหรับ Fields และ Matrices
+> - **Memory leaks**: การไม่คืน Memory ที่ไม่ได้ใช้ - สำคัญมากใน Long simulations
+> - **Expression templates**: Compile-time optimization สำหรับ Field operations
+
 
 **Best Practices:**
 - ใช้ `tmp<T>` สำหรับ intermediate fields
@@ -725,7 +911,8 @@ tmp<volScalarField> tGradP = fvc::grad(p);
 **การตั้งค่า AMR:**
 
 ```cpp
-// system/dynamicMeshDict
+// Adaptive mesh refinement configuration
+// Dynamically refines mesh based on field gradients or other criteria
 dynamicFvMesh   dynamicRefineFvMesh;
 
 refinementLevel 2;  // Maximum refinement levels
@@ -749,6 +936,19 @@ fields
     p
 );
 ```
+
+> **📂 Source:** Standard OpenFOAM dynamic mesh configuration
+>
+> **คำอธิบาย:**
+> - **dynamicRefineFvMesh**: แก้ Mesh แบบ Dynamic ตาม Criteria ที่กำหนด
+> - **Refinement criteria**: เงื่อนไขที่ใช้ตัดสินใจ Refine/Derefine cells
+> - **Max refinement levels**: จำกัดระดับการแบ่งเซลล์เพื่อป้องกัน Over-refinement
+>
+> **แนวคิดสำคัญ:**
+> - **Adaptive refinement**: การปรับ Mesh ตาม Solution characteristics
+> - **Gradient-based refinement**: การแบ่งเซลล์ที่มี Gradient สูง
+> - **Load balancing**: การกระจาย Workload ใน Parallel AMR
+
 
 **Refinement Criteria:**
 $$\text{Refine if } |\nabla \phi| > \phi_{ref} \quad \text{and} \quad \Delta x > \Delta x_{min}$$
@@ -783,31 +983,32 @@ AMR มีคุณค่าสำหรับปัญหาที่มี Loc
 
 **1. checkMesh:**
 ```bash
-# Full mesh check
+# Full mesh quality check
 checkMesh
 
-# Specific checks
+# Specific geometry and topology checks
 checkMesh -allGeometry -allTopology
 
-# Mesh quality report
+# Write all field files for analysis
 checkMesh -writeAllFields
 ```
 
 **2. foamDebugSwitches:**
 ```bash
-# Enable debug output
+# Enable debug output for troubleshooting
 foamDebugSwitches
 
-# ตรวจสอบ specific switches
+# Check specific debug switches
 foamDebugSwitches | grep -i solver
 
-# Set debug level
+# Set global debug level
 export FOAM_DEBUG=1
 ```
 
 **3. Debug Functions:**
 ```cpp
-// ใน controlDict
+// Monitoring and sampling functions for debugging
+// Provides field data at specific locations and times
 functions
 {
     convergence
@@ -835,15 +1036,28 @@ functions
 }
 ```
 
+> **📂 Source:** Standard OpenFOAM function objects
+>
+> **คำอธิบาย:**
+> - **sets**: Sample fields ตาม Lines/planes ที่กำหนด
+> - **probes**: Monitor fields ที่จุดเฉพาะ (Points) ตลอดเวลา
+> - **Function objects**: Tools สำหรับ Monitoring และ Analysis ระหว่าง Simulation
+>
+> **แนวคิดสำคัญ:**
+> - **Field sampling**: การเก็บข้อมูล Fields ที่ตำแหน่งที่สนใจ
+> - **In-situ visualization**: การมองเห็นผลลัพธ์ระหว่าง Simulation
+> - **Debugging output**: ข้อมูลเพิ่มเติมสำหรับ Diagnostics
+
+
 **4. Performance Monitoring:**
 ```bash
-# Timing information
+# Get timing information from solver
 mpirun -np 4 solver -parallel -parallel
 
-# Profiling
+# Profile code execution
 foamProfiler
 
-# Memory usage
+# List time directories to check storage
 foamListTimes
 ```
 
@@ -903,10 +1117,10 @@ graph TD
 ### **Version Control ด้วย Git**
 
 ```bash
-# Initialize repository
+# Initialize git repository
 git init
 
-# Create .gitignore
+# Create .gitignore for OpenFOAM files
 cat > .gitignore << EOF
 # OpenFOAM outputs
 *.bak
@@ -927,10 +1141,23 @@ core
 .idea/
 EOF
 
-# Add and commit
+# Add and commit initial setup
 git add .
 git commit -m "Initial case setup"
 ```
+
+> **📂 Source:** Standard version control practices for CFD
+>
+> **คำอธิบาย:**
+> - **.gitignore**: ไฟล์ที่ระบุว่าไม่ต้อง Track ด้วย Git
+> - **processor***: Subdomain files จาก Decomposition
+> - **Time directories**: Directories ที่ชื่อเป็นตัวเลข (0, 0.1, 1, etc.)
+>
+> **แนวคิดสำคัญ:**
+> - **Version control**: การติดตามการเปลี่ยนแปลงของ Source code และ Configuration
+> - **Commit history**: บันทึกการแก้ไขทั้งหมด - สามารถย้อนกลับได้
+> - **Collaboration**: การทำงานร่วมกันใน Team
+
 
 ### **กลยุทธ์การสำรองข้อมูล**
 
@@ -952,7 +1179,7 @@ cp -r 0/* MESH_BACKUP/
 **3. Automated Backup Scripts:**
 ```bash
 #!/bin/bash
-# backupScript.sh
+# Automated backup script for critical simulation data
 
 CASE_DIR=$1
 BACKUP_DIR=$2
@@ -971,6 +1198,19 @@ cp -r $CASE_DIR/$LATEST_TIME $BACKUP_DIR/$TIMESTAMP/
 
 echo "Backup completed: $BACKUP_DIR/$TIMESTAMP"
 ```
+
+> **📂 Source:** Standard backup strategies for CFD simulations
+>
+> **คำอธิบาย:**
+> - **Critical files**: Mesh, BCs, System settings - สิ่งที่จำเป็นต้อง Backup
+> - **Time snapshots**: Backup ที่จุดเวลาสำคัญ (เช่น หลังจาก Convergence)
+> - **Automated scripts**: การ Backup อัตโนมัติเพื่อป้องกัน Data loss
+>
+> **แนวคิดสำคัญ:**
+> - **Data integrity**: การรักษาความสมบูรณ์ของข้อมูล
+> - **Recovery**: การกู้คืนข้อมูลหากเกิด Error หรือ Corruption
+> - **Storage management**: การจัดการ Disk space สำหรับ Large simulations
+
 
 ### **เอกสารประกอบที่ควรรวม**
 
@@ -1014,6 +1254,19 @@ echo "Backup completed: $BACKUP_DIR/$TIMESTAMP"
 - [Any special notes or issues]
 ```
 
+> **📂 Source:** Standard documentation practices
+>
+> **คำอธิบาย:**
+> - **README**: เอกสารที่อธิบาย Case และวิธีการ Run
+> - **Reproducibility**: สามารถ Run ซ้ำได้โดยคนอื่น
+> - **Documentation**: บันทึก Settings และ Results สำคัญ
+>
+> **แนวคิดสำคัญ:**
+> - **Case metadata**: ข้อมูลเกี่ยวกับ Simulation problem
+> - **Configuration tracking**: การบันทึก Settings ทั้งหมด
+> - **Results documentation**: การบันทึก Key findings
+
+
 ---
 
 ## การเชื่อมโยง Multi-Physics (Multi-Physics Coupling)
@@ -1033,7 +1286,8 @@ echo "Backup completed: $BACKUP_DIR/$TIMESTAMP"
 - ต้องการ Coupled solvers
 
 ```cpp
-// ตัวอย่าง coupled solver (thermophysical)
+// Example of coupled solver for thermophysical problems
+// Solves momentum and energy equations simultaneously
 solve
 (
     fvm::ddt(rho, U) + fvm::div(phi, U) - fvm::laplacian(mu, U)
@@ -1050,6 +1304,20 @@ solve
 
 p.ref() = rho*psi()*e.ref();  // Equation of state coupling
 ```
+
+> **📂 Source:** Standard OpenFOAM coupled solver implementations
+>
+> **คำอธิบาย:**
+> - **fvm::ddt**: Discretize time derivative แบบ Implicit
+> - **fvm::div**: Discretize divergence term
+> - **fvm::laplacian**: Discretize Laplacian operator
+> - **Coupling**: การเชื่อมโยงระหว่าง Pressure, Density และ Energy
+>
+> **แนวคิดสำคัญ:**
+> - **Multi-physics**: ปัญหาที่มี Physical phenomena หลายแบบ
+> - **Two-way coupling**: Physics ต่างๆ มีผลต่อกันและกัน
+> - **Convergence**: การลู่เข้าของ Coupled system ยากกว่า Single physics
+
 
 ### **การตรวจสอบความสอดคล้อง**
 
@@ -1115,6 +1383,7 @@ graph TD
 ```
 > **Figure 6:** ขั้นตอนการศึกษาความอิสระของ Mesh (Grid convergence study) เพื่อการยืนยันผลเลขนัยสำคัญเชิงตัวเลข โดยการเปรียบเทียบผลลัพธ์จาก Mesh หลายขนาดเพื่อหาผลเฉลยที่แม่นยำที่สุด
 
+
 1. สร้าง Mesh หลายขนาด (coarse, medium, fine)
 2. ทำการจำลองบนแต่ละ Mesh
 3. วิเคราะห์ Order of accuracy: $p = \frac{\ln|\phi_2 - \phi_1|}{\ln|\phi_3 - \phi_2|}$
@@ -1126,8 +1395,8 @@ graph TD
 - หา Time step ที่ Converged
 
 ```cpp
-// ตัวอย่าง time step study
-// controlDict
+// Example time step study configuration
+// Test temporal independence with different time steps
 application     simpleFoam;
 
 startFrom       startTime;
@@ -1138,6 +1407,19 @@ endTime         1.0;
 
 deltaT          0.001;  // Try: 0.001, 0.0005, 0.00025
 ```
+
+> **📂 Source:** Standard OpenFOAM `controlDict` configuration
+>
+> **คำอธิบาย:**
+> - **Grid convergence**: การตรวจสอบว่า Solution ไม่เปลี่ยนเมื่อ Mesh ละเอียดขึ้น
+> - **Richardson extrapolation**: วิธีการประมาณ Solution ที่ mesh-independent
+> - **Temporal independence**: การตรวจสอบว่า Solution ไม่เปลี่ยนเมื่อ Time step เล็กลง
+>
+> **แนวคิดสำคัญ:**
+> - **Order of accuracy**: อัตราที่ Error ลดลงตาม Mesh refinement
+> - **Asymptotic range**: ช่วงที่ Solution ลู่เข้าสู่ค่า grid-independent
+> - **Uncertainty quantification**: การประเมิน Numerical uncertainty
+
 
 ### **Validation**
 
@@ -1189,20 +1471,33 @@ deltaT          0.001;  // Try: 0.001, 0.0005, 0.00025
 - Evaluate sensitivity to uncertainties
 
 ```cpp
-// Sensitivity study example
-// Run multiple cases with different parameters
+// Sensitivity study example - convection schemes
+// Compare different numerical schemes for the same problem
 
-// Case 1: Standard
+// Case 1: Central differencing
 divSchemes { div(phi,U) Gauss linear; }
 
-// Case 2: Upwind
+// Case 2: First-order upwind
 divSchemes { div(phi,U) Gauss upwind; }
 
-// Case 3: Limited linear
+// Case 3: TVD scheme
 divSchemes { div(phi,U) Gauss limitedLinear 1; }
 
-// Compare results
+// Compare results from all cases
 ```
+
+> **📂 Source:** Standard OpenFOAM `fvSchemes` dictionary
+>
+> **คำอธิบาย:**
+> - **Sensitivity analysis**: การวิเคราะห์ผลกระทบของ Parameter choices
+> - **Numerical diffusion**: ข้อผิดพลาดจากการใช้ Scheme ลำดับต่ำ
+> - **TVD schemes**: Total Variation Diminishing - สมดุลระหว่างความแม่นยำและเสถียรภาพ
+>
+> **แนวคิดสำคัญ:**
+> - **Uncertainty**: ช่วงของค่าที่เป็นไปได้จาก Parameter variations
+> - **Robustness**: ความทนทานของ Solution ต่อการเปลี่ยนแปลง
+> - **Best practices**: การเลือก Settings ที่ให้ Results ที่น่าเชื่อถือ
+
 
 ---
 

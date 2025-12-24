@@ -89,7 +89,7 @@ flowchart TD
     style C fill:#90EE90
     style E fill:#FFB6C1
 ```
-> **Figure 1:** แผนผังการจำแนกระบอบการไหลในท่อ (Flow Regimes) ตามค่า Reynolds Number ซึ่งกำหนดลักษณะของโปรไฟล์ความเร็ว (Velocity Profile) และวิธีการคำนวณสัมประสิทธิ์ความเสียดทาน (Friction Factor) ที่แตกต่างกันระหว่างการไหลแบบ Laminar และ Turbulentความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** แผนผังการจำแนกระบอบการไหลในท่อ (Flow Regimes) ตามค่า Reynolds Number ซึ่งกำหนดลักษณะของโปรไฟล์ความเร็ว (Velocity Profile) และวิธีการคำนวณสัมประสิทธิ์ความเสียดทาน (Friction Factor) ที่แตกต่างกันระหว่างการไหลแบบ Laminar และ Turbulent
 
 ---
 
@@ -150,128 +150,185 @@ $$E(t) = \frac{c(t)}{\int_0^\infty c(t) \, \mathrm{d}t}$$
 #### ความเร็ว (Velocity)
 
 ```cpp
-dimensions      [0 1 -1 0 0 0 0];
-internalField   uniform (0 0 0);
+// 0/U - Velocity field boundary conditions
+dimensions      [0 1 -1 0 0 0 0];           // Dimensions: [length/time]
+internalField   uniform (0 0 0);            // Initial velocity field (zero everywhere)
+
 boundaryField
 {
     inlet
     {
-        type            fixedValue;
-        value           uniform (1.0 0 0);
+        type            fixedValue;         // Fixed value at inlet
+        value           uniform (1.0 0 0);  // Inlet velocity: 1 m/s in x-direction
     }
     outlet
     {
-        type            zeroGradient;
+        type            zeroGradient;       // Zero gradient (Neumann BC)
     }
     walls
     {
-        type            noSlip;
+        type            noSlip;             // No-slip condition at walls
     }
 }
 ```
+
+**คำอธิบาย:**
+- **แหล่งที่มา (Source):** `0/U` - Velocity boundary condition file
+- **ความหมาย (Explanation):** ไฟล์นี้กำหนดเงื่อนไขขอบเขตสำหรับสนามความเร็ว ซึ่งเป็นส่วนสำคัญในการจำลองการไหลภายในท่อ
+- **แนวคิดสำคัญ (Key Concepts):**
+  - `fixedValue`: กำหนดค่าคงที่ที่ขอบเขต (ใช้ที่ inlet)
+  - `zeroGradient`: ความชันเป็นศูนย์ตั้งฉากกับขอบเขต (ใช้ที่ outlet สำหรับการไหลออกแบบ fully developed)
+  - `noSlip`: ความเร็วเป็นศูนย์ที่ผนัง (เงื่อนไขไม่มีการไหล)
 
 #### ความดัน (Pressure)
 
 ```cpp
-dimensions      [0 2 -2 0 0 0 0];
-internalField   uniform 0;
+// 0/p - Pressure field boundary conditions
+dimensions      [0 2 -2 0 0 0 0];           // Dimensions: [mass/(length·time²)]
+internalField   uniform 0;                  // Initial pressure field (gauge pressure = 0)
+
 boundaryField
 {
     inlet
     {
-        type            zeroGradient;
+        type            zeroGradient;       // Zero gradient at inlet
     }
     outlet
     {
-        type            fixedValue;
-        value           uniform 0;
+        type            fixedValue;         // Fixed value at outlet
+        value           uniform 0;          // Reference pressure (gauge pressure = 0)
     }
     walls
     {
-        type            zeroGradient;
+        type            zeroGradient;       // Zero gradient at walls
     }
 }
 ```
+
+**คำอธิบาย:**
+- **แหล่งที่มา (Source):** `0/p` - Pressure boundary condition file
+- **ความหมาย (Explanation):** ไฟล์กำหนดเงื่อนไขขอบเขตความดัน โดยมักตั้งค่าเป็น 0 ที่ outlet เพื่อใช้เป็นค่าอ้างอิง (gauge pressure)
+- **แนวคิดสำคัญ (Key Concepts):**
+  - ใน OpenFOAM สำหรับการไหลแบบ incompressible ความดันที่คำนวณได้คือความดันเกจ (p/rho)
+  - การตั้งค่าความดันเป็น 0 ที่ outlet เป็นเงื่อนไขมาตรฐานเพื่อให้ solver สามารถคำนวณความดันสัมพัทธ์ได้
+  - `zeroGradient` ที่ inlet หมายถึงความดันไม่เปลี่ยนแปลงในทิศทางการไหลเข้า
 
 ### 3.3 การคำนวณความดันตกคร่อม
 
 ตัวอย่างการใช้ `surfaceFieldValue` เพื่อหาค่าความดันเฉลี่ยที่ทางเข้าและทางออก:
 
 ```cpp
+// system/controlDict - Function objects for pressure drop calculation
 functions
 {
+    // Calculate average pressure at inlet
     pInlet
     {
-        type            surfaceFieldValue;
-        libs            (fieldFunctionObjects);
-        operation       weightedAverage;
-        weightField     phi;
-        region          region0;
-        surfaceFormat   none;
-        fields          (p);
-        patches         (inlet);
+        type            surfaceFieldValue;  // Surface field value calculation
+        libs            (fieldFunctionObjects);  // Library containing the function object
+        operation       weightedAverage;    // Weighted average operation
+        weightField     phi;                // Weight by flux (mass flow rate)
+        region          region0;            // Region to process
+        surfaceFormat   none;               // No surface output
+        fields          (p);                // Fields to process (pressure)
+        patches         (inlet);            // Patches to process
     }
 
+    // Calculate average pressure at outlet
     pOutlet
     {
-        type            surfaceFieldValue;
-        libs            (fieldFunctionObjects);
-        operation       weightedAverage;
-        weightField     phi;
-        region          region0;
-        surfaceFormat   none;
-        fields          (p);
-        patches         (outlet);
+        type            surfaceFieldValue;  // Surface field value calculation
+        libs            (fieldFunctionObjects);  // Library containing the function object
+        operation       weightedAverage;    // Weighted average operation
+        weightField     phi;                // Weight by flux (mass flow rate)
+        region          region0;            // Region to process
+        surfaceFormat   none;               // No surface output
+        fields          (p);                // Fields to process (pressure)
+        patches         (outlet);           // Patches to process
     }
 
+    // Calculate and report pressure drop
     pressureDrop
     {
-        type            coded;
-        libs            (libutilityFunctionObjects.so);
+        type            coded;              // Custom coded function object
+        libs            (libutilityFunctionObjects.so);  // Library for coded functions
         code
         #{
+            // Get pressure values from previous function objects
             const scalar pIn = pInlet->getValue();
             const scalar pOut = pOutlet->getValue();
+            
+            // Calculate pressure drop
             const scalar deltaP = pIn - pOut;
 
+            // Output result to log
             Info << "Pressure drop: " << deltaP << " Pa" << endl;
         #};
     }
 }
 ```
 
+**คำอธิบาย:**
+- **แหล่งที่มา (Source):** `system/controlDict` - Function objects configuration
+- **ความหมาย (Explanation):** การใช้ function objects เพื่อคำนวณความดันตกคร่อมโดยอัตโนมัติระหว่างการจำลอง
+- **แนวคิดสำคัญ (Key Concepts):**
+  - `surfaceFieldValue`: ใช้คำนวณค่าเฉลี่ยของสนามบนพื้นผิวขอบเขต
+  - `weightedAverage`: คำนวณค่าเฉลี่ยถ่วงน้ำหนักด้วยอัตราการไหล (phi) เพื่อให้ได้ค่าที่แม่นยำ
+  - `coded`: อนุญาตให้เขียน C++ code แบบ inline สำหรับการคำนวณแบบกำหนดเอง
+  - ความดันตกคร่อมจะถูกคำนวณและแสดงผลในไฟล์ log ทุก time step
+
 ### 3.4 การติดตามแรง (Forces)
 
 ```cpp
+// system/controlDict - Force calculation function object
 functions
 {
     forces
     {
-        type            forces;
-        functionObjectLibs ("libforces.so");
-        patches         (walls);
-        rho             rhoInf;
-        log             true;
+        type            forces;                    // Force calculation function object
+        functionObjectLibs ("libforces.so");       // Library containing forces function
+        patches         (walls);                   // Patches to calculate forces on
+        rho             rhoInf;                    // Density type
+        log             true;                      // Enable logging
 
-        rhoInf          1.225;
-        CofR            (0 0 0);
+        rhoInf          1.225;                     // Reference density (kg/m³) for incompressible
+        CofR            (0 0 0);                   // Center of rotation for moment calculation
 
-        writeControl    timeStep;
-        writeInterval   1;
+        writeControl    timeStep;                  // Output control
+        writeInterval   1;                         // Write every time step
     }
 }
 ```
 
+**คำอธิบาย:**
+- **แหล่งที่มา (Source):** `system/controlDict` - Forces function object
+- **ความหมาย (Explanation):** คำนวณแรงและโมเมนต์ที่กระทำต่อผนังท่อ ซึ่งมีประโยชน์สำหรับการวิเคราะห์โหลดโครงสร้าง
+- **แนวคิดสำคัญ (Key Concepts):**
+  - `forces`: คำนวณแรงผลรวม (pressure + viscous forces) บน patches ที่ระบุ
+  - `rhoInf`: ความหนาแน่นอ้างอิงสำหรับการไหลแบบ incompressible
+  - `CofR` (Center of Rotation): จุดอ้างอิงสำหรับการคำนวณโมเมนต์
+  - ผลลัพธ์จะถูกเก็บในไฟล์ `forces/0/forces.dat` และ `forces/0/moments.dat`
+
 ### 3.5 การคำนวณ Wall Shear Stress
 
 ```cpp
+// system/controlDict - Wall shear stress calculation
 wallShearStress
 {
-    type            wallShearStress;
-    libs            ("libfieldFunctionObjects.so");
-    writeFields     true;
+    type            wallShearStress;            // Wall shear stress function object
+    libs            ("libfieldFunctionObjects.so");  // Library containing field function objects
+    writeFields     true;                       // Write wall shear stress fields
 }
 ```
+
+**คำอธิบาย:**
+- **แหล่งที่มา (Source):** `system/controlDict` - Wall shear stress function object
+- **ความหมาย (Explanation):** คำนวณและบันทึกสนามความเค้นเฉือนผนัง (wall shear stress) ซึ่งเป็นตัวชี้วัดสำคัญในการไหลภายใน
+- **แนวคิดสำคัญ (Key Concepts):**
+  - Wall shear stress ($\tau_w$) คือแรงเฉือนต่อหน่วยพื้นที่ที่ผนัง
+  - สำคัญสำหรับการคำนวณ friction factor: $f = \frac{2\tau_w}{\rho U^2}$
+  - สามารถใช้ประเมินความเสียหายจากการกร่อน (erosion) ในระบบท่อ
+  - ผลลัพธ์จะถูกบันทึกเป็นฟิลด์ `wallShearStress` ใน time directories
 
 ---
 
@@ -310,19 +367,28 @@ wallShearStress
 - สำหรับ wall functions: $30 < y^+ < 300$
 
 ```cpp
-// snappyHexMeshDict
+// system/snappyHexMeshDict - Boundary layer mesh settings
 addLayers
 {
     walls
     {
-        nSurfaceLayers 10;
+        nSurfaceLayers 10;                // Number of boundary layers
 
-        expansionRatio 1.2;
-        finalLayerThickness 0.001;
-        minThickness 1e-5;
+        expansionRatio 1.2;               // Expansion ratio between layers
+        finalLayerThickness 0.001;        // Thickness of outermost layer (m)
+        minThickness 1e-5;                // Minimum layer thickness (m)
     }
 }
 ```
+
+**คำอธิบาย:**
+- **แหล่งที่มา (Source):** `system/snappyHexMeshDict` - Boundary layer meshing parameters
+- **ความหมาย (Explanation):** การตั้งค่าการสร้างชั้นชั้นเขตอาณาเขต (boundary layer) เพื่อจับภาพการไหลใกล้ผนังได้อย่างแม่นยำ
+- **แนวคิดสำคัญ (Key Concepts):**
+  - `nSurfaceLayers`: จำนวนชั้นของ prism layers ที่ผนัง
+  - `expansionRatio`: อัตราส่วนการขยายตัวของความหนาชั้นระหว่างชั้นถัดไป
+  - การเลือกค่า $y^+$ ที่เหมาะสมขึ้นอยู่กับโมเดลความปั่นป่วนที่ใช้
+  - ชั้นเขตอาณาเขตที่ดีช่วยให้คำนวณ wall shear stress และ friction factor ได้แม่นยำ
 
 เพื่อจับภาพกระแสวนทุติยภูมิ (Dean vortices) ที่เกิดในท่อโค้ง
 
@@ -360,7 +426,7 @@ flowchart LR
     style C fill:#FFE4B5
     style E fill:#90EE90
 ```
-> **Figure 2:** กระบวนการทำงานของเครื่องผสมแบบสถิต (Static Mixer) ซึ่งอาศัยโครงสร้างภายในในการสร้างกระแสวน (Dean Vortices) และการแบ่งส่วนกระแสการไหลเพื่อเหนี่ยวนำให้เกิดการผสมที่มีประสิทธิภาพสูงผ่านกลไกการพาแบบโกลาหล (Chaotic Advection)ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 2:** กระบวนการทำงานของเครื่องผสมแบบสถิต (Static Mixer) ซึ่งอาศัยโครงสร้างภายในในการสร้างกระแสวน (Dean Vortices) และการแบ่งส่วนกระแสการไหลเพื่อเหนี่ยวนำให้เกิดการผสมที่มีประสิทธิภาพสูงผ่านกลไกการพาแบบโกลาหล (Chaotic Advection)
 
 ### 5.2 เครื่องแลกเปลี่ยนความร้อน (Heat Exchangers)
 
@@ -376,25 +442,34 @@ flowchart LR
 - สำหรับเปลือกด้านนอกที่เป็นพรุน ใช้ `fvOptions` พร้อมสัมประสิทธิ์ Darcy-Forchheimer
 
 ```cpp
-// constant/fvOptions - การจำลองโซนพรุน (Porous Zone)
+// constant/fvOptions - Porous media modeling for shell side
 porosity
 {
-    type            explicitPorositySource;
-    active          true;
-    selectionMode   cellZone;
-    cellZone        radiator;
+    type            explicitPorositySource;     // Explicit porosity source term
+    active          true;                       // Activate this source
+    selectionMode   cellZone;                   // Selection by cell zone
+    cellZone        radiator;                   // Name of cell zone
 
     explicitPorositySourceCoeffs
     {
-        type            DarcyForchheimer;
+        type            DarcyForchheimer;       // Darcy-Forchheimer model
         DarcyForchheimerCoeffs
         {
-            d   (1e5 1e5 1e5);   // สัมประสิทธิ์ Darcy
-            f   (10 10 10);      // สัมประสิทธิ์ Forchheimer
+            d   (1e5 1e5 1e5);                 // Darcy coefficient (viscous resistance)
+            f   (10 10 10);                     // Forchheimer coefficient (inertial resistance)
         }
     }
 }
 ```
+
+**คำอธิบาย:**
+- **แหล่งที่มา (Source):** `constant/fvOptions` - Finite volume options for source terms
+- **ความหมาย (Explanation):** การจำลองพื้นที่พรุน (porous media) เช่น เปลือกด้านนอกของเครื่องแลกเปลี่ยนความร้อน ด้วยโมเดล Darcy-Forchheimer
+- **แนวคิดสำคัญ (Key Concepts):**
+  - `explicitPorositySource`: เพิ่ม source term ในสมการโมเมนตัมเพื่อจำลองความต้านทานของพื้นที่พรุน
+  - **Darcy coefficient (d)**: ความต้านทานที่เกี่ยวข้องกับความเร็ว (viscous resistance) - สำคัญในกรณี Re ต่ำ
+  - **Forchheimer coefficient (f)**: ความต้านทานที่เกี่ยวข้องกับกำลังสองของความเร็ว (inertial resistance) - สำคัญในกรณี Re สูง
+  - โมเดลนี้อธิบายความดันตกคร่อมใน porous media: $\Delta p = \mu d U + \rho f U^2$
 
 ### 5.3 ปั๊มและกังหัน (Pumps and Turbines)
 

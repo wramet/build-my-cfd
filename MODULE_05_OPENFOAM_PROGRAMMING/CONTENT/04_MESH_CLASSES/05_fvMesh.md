@@ -36,7 +36,7 @@ flowchart TD
     fvMesh --> polyMesh
     polyMesh --> primitiveMesh
 ```
-> **Figure 1:** ลำดับชั้นความสัมพันธ์ของ `fvMesh` ที่เชื่อมโยงข้อมูลโทโพโลยีเข้ากับกลไกการคำนวณปริมาตรจำกัด (Finite Volume Discretization) และระบบการจัดเก็บฟิลด์ข้อมูลความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** ลำดับชั้นความสัมพันธ์ของ `fvMesh` ที่เชื่อมโยงข้อมูลโทโพโลยีเข้ากับกลไกการคำนวณปริมาตรจำกัด (Finite Volume Discretization) และระบบการจัดเก็บฟิลด์ข้อมูล
 
 **Key Responsibilities:**
 
@@ -130,15 +130,11 @@ $$
 
 **The `fvMesh` class** represents the primary computational infrastructure for finite volume discretization in OpenFOAM.
 
-- Inherits from `polyMesh` (topology/geometry data)
-- Inherits from `lduMesh` (linear algebra interface)
-- Creates a comprehensive meshing system specifically designed for CFD computations
-
 ```cpp
 // 🔧 MECHANISM: Mesh data ready for discretization
 class fvMesh
     : public polyMesh          // Inherit all topology/geometry
-    , public lduMesh          // Linear algebra interface
+    , public lduMesh           // Linear algebra interface
 {
 private:
     // Finite volume specific data
@@ -150,11 +146,17 @@ private:
     fvSolution solution_;                 // Solver settings
 
     // Finite volume geometry (computed on demand)
-    mutable autoPtr<volScalarField> Vptr_;      // Cell volumes
+    mutable autoPtr<volScalarField> Vptr_;         // Cell volumes
     mutable autoPtr<surfaceScalarField> magSfPtr_; // Face areas
-    mutable autoPtr<surfaceVectorField> SfPtr_;   // Face area vectors
-    mutable autoPtr<surfaceVectorField> CfPtr_;   // Face centers
+    mutable autoPtr<surfaceVectorField> SfPtr_;    // Face area vectors
+    mutable autoPtr<surfaceVectorField> CfPtr_;    // Face centers
+};
 ```
+
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C`
+> - **Explanation:** ไฟล์นี้แสดงตัวอย่างการใช้งาน `fvMesh` ในการสร้างฟิลด์ต่างๆ เช่น `p_`, `T_`, `rho_` ผ่าน `U.mesh()` ซึ่งเป็นการเข้าถึง `fvMesh` จาก `volVectorField`
+> - **Key Concepts:** Multiple inheritance pattern, demand-driven data, mesh-field association
 
 **Key Features:**
 - Uses **demand-driven calculation** via smart pointer `autoPtr`
@@ -174,9 +176,16 @@ template<class Type>
 GeometricField<Type, fvPatchField, volMesh>&
 lookupObjectRef(const word& name) const
 {
-    return objectRegistry::lookupObjectRef<GeometricField<Type, fvPatchField, volMesh>>(name);
+    return objectRegistry::lookupObjectRef<
+        GeometricField<Type, fvPatchField, volMesh>
+    >(name);
 }
 ```
+
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
+> - **Explanation:** การสร้างฟิลด์ความดัน `p_` และอุณหภูมิ `T_` โดยใช้ `U.mesh()` เพื่อรับ reference ถึง `fvMesh` และสร้างฟิลด์ที่เชื่อมโยงกับเมช
+> - **Key Concepts:** Template-based field lookup, object registry pattern, mesh-field association
 
 **Volume fields** store quantities at cell centers $\phi_i$ for each cell $i$ in the mesh:
 
@@ -197,7 +206,7 @@ graph TD
 
     style M fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
 ```
-> **Figure 2:** ระบบการจัดการฟิลด์ข้อมูล (Field Management System) ที่ทำหน้าที่จัดเก็บและสืบค้นตัวแปรทางฟิสิกส์ต่างๆ อย่างเป็นระเบียบผ่าน Object Registry ของเมชความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 2:** ระบบการจัดการฟิลด์ข้อมูล (Field Management System) ที่ทำหน้าที่จัดเก็บและสืบค้นตัวแปรทางฟิสิกส์ต่างๆ อย่างเป็นระเบียบผ่าน Object Registry ของเมช
 
 #### **Dynamic Field Creation**
 
@@ -216,6 +225,11 @@ newField(const word& name, const dimensionSet& dims) const
     );
 }
 ```
+
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:88-103`
+> - **Explanation:** การสร้างฟิลด์ `T1` และ `T2` โดยใช้ constructor ของ `volScalarField` ที่รับ `IOobject`, mesh, และ boundary field type
+> - **Key Concepts:** Temporary field management, calculatedFvPatchField, dimension-aware field creation
 
 **Field creation mechanism:**
 - Ensures proper mesh-field association
@@ -239,6 +253,11 @@ newSurfaceField(const word& name, const dimensionSet& dims) const
     );
 }
 ```
+
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
+> - **Explanation:** การสร้าง `calculatedFvPatchScalarField` สำหรับฟิลด์อุณหภูมิของแต่ละเฟส ซึ่งเป็นตัวอย่างของการใช้งาน patch field types ใน `fvMesh`
+> - **Key Concepts:** Surface mesh fields, face-centered data, interpolation schemes
 
 **Surface fields** store quantities $\phi_f$ at face centers:
 
@@ -279,6 +298,11 @@ grad(const GeometricField<Type, fvPatchField, volMesh>& vf) const
     return fv::gaussGrad<Type>(*this).grad(vf);
 }
 ```
+
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
+> - **Explanation:** ใน solver นี้ ฟิลด์ต่างๆ เช่น `p_`, `T_`, `rho_` ถูกสร้างขึ้นและใช้ในการคำนวณ discretization schemes ผ่าน `fvMesh`
+> - **Key Concepts:** Scheme selection pattern, Green-Gauss theorem, slope limiting
 
 **Gradient operation** calculates $\nabla \phi$ using various schemes:
 
@@ -334,6 +358,11 @@ div(const GeometricField<Type, fvsPatchField, surfaceMesh>& sf) const
 }
 ```
 
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
+> - **Explanation:** การใช้งาน `surfaceScalarField phi` ใน multiphase solvers เป็นตัวอย่างของการคำนวณ divergence จาก face fluxes
+> - **Key Concepts:** Divergence theorem, owner-neighbor relationships, face flux summation
+
 **Divergence operation** uses the divergence theorem:
 
 $$\int_V \nabla \cdot \mathbf{F} \, \mathrm{d}V = \oint_{\partial V} \mathbf{F} \cdot \mathrm{d}\mathbf{S}$$
@@ -358,6 +387,11 @@ laplacian
     return fv::gaussLaplacianScheme<Type>(*this).laplacian(vf);
 }
 ```
+
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
+> - **Explanation:** ฟิลด์ thermophysical properties เช่น `thermo1_` และ `thermo2_` ถูกสร้างจาก `fvMesh` และใช้ในการคำนวณ diffusion terms
+> - **Key Concepts:** Gauss theorem twice application, diffusion discretization, interpolation schemes
 
 **Laplacian operator** discretizes the diffusion term $\nabla \cdot (\Gamma \nabla \phi)$.
 
@@ -396,13 +430,18 @@ public:
         const auto& centres = mesh_.cellCentres();  // +240 MB temporarily
 
         // Phase 2: Momentum equation solving
-        const auto& Sf = mesh_.faceAreas();        // +500 MB temporarily
+        const auto& Sf = mesh_.faceAreas();         // +500 MB temporarily
 
         // Phase 3: Validation and diagnostics
-        const auto& vols = mesh_.cellVolumes();    // +80 MB temporarily
+        const auto& vols = mesh_.cellVolumes();     // +80 MB temporarily
     }
 };
 ```
+
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
+> - **Explanation:** การสร้างและใช้งานฟิลด์ต่างๆ เช่น `p_`, `T_`, `rho_` แสดงให้เห็นการจัดการหน่วยความจำอย่างมีประสิทธิภาพผ่าน `fvMesh` object registry
+> - **Key Concepts:** Memory management, demand-driven computation, temporary fields
 
 **Impact:**
 - **Cost reduction**: Fewer compute nodes needed for large simulations
@@ -435,13 +474,18 @@ public:
 
         // Step 2: Next geometry access triggers recomputation
         const auto& newCentres = mesh_.cellCentres();  // Recomputed with new geometry
-        const auto& newVolumes = mesh_.cellVolumes();  // Recomputed with new geometry
+        const auto& newVolumes = mesh_.cellVolumes();   // Recomputed with new geometry
 
         // Step 3: Solver uses updated geometry automatically
         solveWithUpdatedGeometry(newCentres, newVolumes);
     }
 };
 ```
+
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
+> - **Explanation:** การที่ฟิลด์ต่างๆ เช่น `p_`, `T_`, `rho_` ถูกสร้างและเชื่อมโยงกับ `fvMesh` ทำให้เมื่อมีการเปลี่ยนแปลงเมส ฟิลด์เหล่านี้สามารถอัปเดตได้อัตโนมัติ
+> - **Key Concepts:** Cache invalidation, mesh motion, dynamic mesh handling
 
 **Critical for:**
 - **Fluid-Structure Interaction (FSI)**: Moving boundaries and deforming domains
@@ -487,6 +531,11 @@ public:
 };
 ```
 
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
+> - **Explanation:** การใช้ `fvSchemes` และ `fvSolution` ในการเลือก numerical schemes ที่เหมาะสมกับคุณภาพของเมส
+> - **Key Concepts:** Mesh quality metrics, adaptive discretization, scheme selection
+
 **Benefits:**
 1. **Local accuracy**: Use higher-order schemes where mesh supports accurate discretization
 2. **Global stability**: Automatically switch to more robust schemes in problematic regions
@@ -526,6 +575,11 @@ public:
 };
 ```
 
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
+> - **Explanation:** การเก็บ references ถึงฟิลด์ที่อาจกลายเป็น invalid เมื่อมีการเปลี่ยนแปลงเมส ซึ่งเป็นปัญหาที่ต้องหลีกเลี่ยง
+> - **Key Concepts:** Reference lifetime, cache invalidation, mesh modification
+
 #### ✅ **Solution: Fresh Access Pattern**
 
 ```cpp
@@ -552,6 +606,11 @@ public:
 };
 ```
 
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
+> - **Explanation:** การเข้าถึงฟิลด์สดใหม่ทุกครั้งที่ต้องการใช้งาน เพื่อหลีกเลี่ยงปัญหา stale references
+> - **Key Concepts:** Fresh access pattern, reference scope, safe mesh access
+
 ### **Pitfall 2: Inefficient Repeated Queries**
 
 Repeated geometry queries are resource-intensive:
@@ -564,6 +623,11 @@ for (int iter = 0; iter < 1000; ++iter)
     processIteration(centres, iter);
 }
 ```
+
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
+> - **Explanation:** การเรียกใช้งาน `cellCentres()` ซ้ำๆ ทำให้เกิดการคำนวณซ้ำที่ไม่จำเป็น
+> - **Key Concepts:** Cache efficiency, repeated computation, performance optimization
 
 #### ✅ **Solution: Local Caching**
 
@@ -600,6 +664,11 @@ public:
 };
 ```
 
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
+> - **Explanation:** การใช้ local caching เพื่อลดการคำนวณซ้ำและปรับปรุงประสิทธิภาพ
+> - **Key Concepts:** Local caching, cache lifecycle, performance patterns
+
 ### **Pitfall 3: Dimensional Inconsistency**
 
 Improper field dimension specification is a critical source of errors in OpenFOAM development.
@@ -614,6 +683,11 @@ void dimensionallyUnsafe(const fvMesh& mesh)
     auto force = p + U;  // ❌ Scalar + Vector = meaningless!
 }
 ```
+
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:88-103`
+> - **Explanation:** ตัวอย่างการสร้างฟิลด์ที่มีการระบุ dimensions อย่างถูกต้องในไฟล์ `compressibleTwoPhaseMixture.C`
+> - **Key Concepts:** Dimensional analysis, type safety, dimensionSet
 
 #### ✅ **Solution: Proper Dimensional Specification**
 
@@ -643,6 +717,11 @@ void dimensionallySafe(const fvMesh& mesh)
 }
 ```
 
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:88-103`
+> - **Explanation:** การใช้ `dimensionSet` ในการระบุหน่วยของฟิลด์อย่างถูกต้อง เช่น ความดัน [M L⁻¹ T⁻²] และความเร็ว [L T⁻¹]
+> - **Key Concepts:** Dimension consistency, pressure dimensions, velocity dimensions, compile-time checking
+
 ## 📚 **Integration with OpenFOAM Ecosystem**
 
 ### **Solver Integration**
@@ -663,6 +742,11 @@ int main() {
     // Solver doesn't need to worry about internal topology
 }
 ```
+
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
+> - **Explanation:** ตัวอย่างการใช้งาน `fvMesh` API ใน solver จริง เช่น `compressibleTwoPhaseMixture` ซึ่งใช้ `U.mesh()` ในการเข้าถึง mesh
+> - **Key Concepts:** Solver API, unified interface, mesh abstraction
 
 ### **Parallel Support**
 
@@ -699,6 +783,11 @@ public:
     }
 };
 ```
+
+> **📚 แหล่งอ้างอิง:** 
+> - 📂 **Source:** `.applications/utilities/parallelProcessing/decomposePar/fvFieldDecomposerDecomposeFields.C`
+> - **Explanation:** การ decompose fields สำหรับ parallel computation แสดงให้เห็นว่า `fvMesh` รองรับการกระจายข้อมูลอัตโนมัติ
+> - **Key Concepts:** Domain decomposition, MPI communication, ghost cells, parallel reductions
 
 ## 🎓 **Summary**
 

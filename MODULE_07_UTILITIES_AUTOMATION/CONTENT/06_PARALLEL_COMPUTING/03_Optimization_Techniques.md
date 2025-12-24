@@ -24,12 +24,12 @@ $$ \nabla \cdot \left( \frac{1}{A_p} \nabla p \right) = \frac{\partial}{\partial
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
-// ตัวอย่างการเพิ่มประสิทธิภาพใน fvSolution สำหรับ incompressible flow
+// Optimized fvSolution settings for incompressible flow
 solvers
 {
     p
     {
-        solver          GAMG;  // แนะนำสำหรับความดัน (Multigrid)
+        solver          GAMG;  // Recommended for pressure (Multigrid)
         tolerance       1e-06;
         relTol          0.01;
         smoother        GaussSeidel;
@@ -67,6 +67,19 @@ solvers
 }
 ```
 
+> 📂 **Source:** `.applications/utilities/parallelProcessing/decomposePar/decomposePar.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> การตั้งค่า Solver ใน `fvSolution` สำหรับการไหลแบบอัดตัวไม่ได้ (Incompressible Flow) โดยเน้นการเพิ่มประสิทธิภาพดังนี้:
+> - **GAMG (Geometric-Algebraic Multi-Grid)**: Solver สำหรับความดันที่ใช้เทคนิค Multigrid ซึ่งมีประสิทธิภาพสูงสำหรับระบบขนาน
+> - **cacheAgglomeration**: เก็บข้อมูลการรวมเซลล์ไว้ใน cache เพื่อเร่งความเร็ว
+> - **nCellsInCoarsestLevel**: จำนวนเซลล์ในระดับหยาบที่สุดของ Multigrid (ค่าน้อย = ระดับมากขึ้น = ลู่เข้าเร็วขึ้นแต่ใช้หน่วยความจำมากขึ้น)
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Multigrid Acceleration**: GAMG ใช้การแก้สมการในหลายระดับความละเอียด เพื่อลดความถี่ของ Error modes
+> 2. **Sweeps**: รอบการคำนวณในแต่ละระดับ - nPreSweeps ก่อนลงระดับ, nPostSweeps หลังขึ้นระดับ
+> 3. **pFinal**: การตั้งค่าพิเศษสำหรับ iteration สุดท้ายโดยใช้ relTol = 0 (converge สุด)
+
 > [!TIP] **GAMG Solver Performance**
 > อัลกอริทึม Geometric-Algebraic Multi-Grid (GAMG) มีประสิทธิภาพสูงมากสำหรับการแก้สมการความดันในระบบขนาน เนื่องจากช่วยลดจำนวนรอบการวนซ้ำ (Iterations) ลงได้มาก โดยเฉพาะสำหรับ Mesh ที่มีจำนวนเซลล์มากกว่า 1 ล้านเซลล์ ความซับซ้อนของการคำนวณของ GAMG คือ $O(N \log N)$ เมื่อเทียบกับ $O(N^2)$ สำหรับ iterative solvers แบบดั้งเดิม
 
@@ -76,7 +89,7 @@ solvers
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
-// การตั้งค่าสำหรับ compressible solvers (rhoPimpleFoam, rhoSimpleFoam)
+// Solver settings for compressible flows (rhoPimpleFoam, rhoSimpleFoam)
 solvers
 {
     p
@@ -121,11 +134,25 @@ solvers
 }
 ```
 
+> 📂 **Source:** `.applications/solvers/compressible/rhoSimpleFoam/rhoSimpleFoam.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> การตั้งค่า Solver สำหรับการไหลแบบอัดตัวได้ (Compressible Flow) มีความแตกต่างจาก Incompressible ดังนี้:
+> - **symGaussSeidel**: Symmetric Gauss-Seidel smoother สำหรับการลู่เข้าที่ดีกว่าในระบบ compressible
+> - **rho**: Solver สำหรับความหนาแน่น ซึ่งมีความสำคัญมากใน compressible flow
+> - **h (Enthalpy)**: การแก้สมการเอนทาลปีซึ่งจำเป็นสำหรับ compressible flow
+> - **nSweeps = 2**: จำนวนรอบการวนซ้ำที่มากขึ้นสำหรับ stability ที่ดีขึ้น
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Coupled System**: ใน compressible flow, pressure, density และ enthalpy เชื่อมโยงกันอย่างใกล้ชิด
+> 2. **Tighter Tolerance**: pressure tolerance ที่ 1e-07 เพื่อความแม่นยำในการคำนวณความหนาแน่น
+> 3. **Smoother Selection**: symGaussSeidel ให้ convergence ที่ดีกว่าสำหรับ non-symmetric systems
+
 #### 1.1.3 Algorithm Settings
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
-// การตั้งค่า Algorithm ใน fvSolution
+// Algorithm settings in fvSolution
 algorithms
 {
     p
@@ -136,21 +163,35 @@ algorithms
     }
 }
 
-// สำหรับ PIMPLE algorithm (transient)
+// Settings for PIMPLE algorithm (transient)
 PIMPLE
 {
-    nCorrectors      2;        // จำนวน pressure correctors
-    nNonOrthogonalCorrectors 0;  // สำหรับ non-orthogonal mesh
-    nAlphaCorr      1;        // สำหรับ VOF (interFoam)
+    nCorrectors      2;        // Number of pressure correctors
+    nNonOrthogonalCorrectors 0;  // For non-orthogonal mesh
+    nAlphaCorr      1;        // For VOF (interFoam)
     nAlphaSubCycles 2;        // Sub-cycles for volume fraction
 
-    momentumPredictor yes;     // ทำนาย momentum ก่อน pressure equation
+    momentumPredictor yes;     // Predict momentum before pressure equation
 
-    // การปรับแต่ง relaxation factors
-    nOuterCorrectors  50;      // สูงสุด iterations ต่อ time step
-    relTol           0.01;     // Relative tolerance สำหรับ outer loop
+    // Tuning relaxation factors
+    nOuterCorrectors  50;      // Maximum iterations per time step
+    relTol           0.01;     // Relative tolerance for outer loop
 }
 ```
+
+> 📂 **Source:** `.applications/solvers/incompressible/pimpleFoam/PIMPLE.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> การตั้งค่า PIMPLE Algorithm ซึ่งเป็นการรวมกันของ PISO (Pressure Implicit with Splitting of Operators) และ SIMPLE (Semi-Implicit Method for Pressure-Linked Equations):
+> - **nCorrectors**: จำนวนรอบการแก้ไข pressure ในแต่ละ time step (PISO part)
+> - **nOuterCorrectors**: จำนวนรอบภายนอกสูงสุด (SIMPLE part) สำหรับ transient simulations
+> - **momentumPredictor**: ทำนายความเร็วก่อนแก้สมการ pressure เพื่อเพิ่มความเสถียร
+> - **nAlphaCorr**: จำนวนรอบการแก้ไข volume fraction สำหรับ VOF methods
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **PIMPLE Hybrid**: ผสมผสาน PISO (transient, 2-3 corrections) กับ SIMPLE (steady-state, multiple outer iterations)
+> 2. **Outer Loop**: วนซ้ำจนกว่าจะ converge หรือถึง nOuterCorrectors
+> 3. **Sub-cycling**: ใช้ time steps ย่อยสำหรับ terms ที่มีความเร็วสูง (เช่น VOF)
 
 ### 1.2 การปรับสมดุล Tolerance
 
@@ -186,7 +227,7 @@ $$ \mathbf{M}^{-1} \mathbf{A} \mathbf{x} = \mathbf{M}^{-1} \mathbf{b} $$
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
-// การใช้ Preconditioning สำหรับ difficult cases
+// Preconditioning for difficult cases
 solvers
 {
     p
@@ -199,7 +240,7 @@ solvers
 
     U
     {
-        solver          PBiCGStab;  // สำหรับ non-symmetric systems
+        solver          PBiCGStab;  // For non-symmetric systems
         preconditioner  DILU;       // Diagonal Incomplete LU
         tolerance       1e-05;
         relTol          0.1;
@@ -208,6 +249,19 @@ solvers
     }
 }
 ```
+
+> 📂 **Source:** `.src/OpenFOAM/matrices/solvers/Preconditioners`
+
+> **คำอธิบาย (Thai Explanation):**
+> การใช้ Preconditioning เพื่อเร่งอัตราการลู่เข้าของ iterative solvers:
+> - **DIC (Diagonal Incomplete Cholesky)**: Preconditioner สำหรับ symmetric positive definite matrices (เช่น pressure equation)
+> - **DILU (Diagonal Incomplete LU)**: Preconditioner สำหรับ non-symmetric matrices (เช่น momentum equation)
+> - **PBiCGStab**: Stabilized Bi-Conjugate Gradient solver สำหรับ systems ที่ไม่สมมาตร
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Preconditioning Matrix**: $\mathbf{M}$ เป็น approximation ของ $\mathbf{A}$ ที่ง่ายต่อการ invert
+> 2. **Incomplete Factorization**: LU/Cholesky แบบไม่สมบูรณ์เพื่อประหยัดหน่วยความจำ
+> 3. **Krylov Subspace**: PBiCGStab ทำงานใน Krylov subspace เพื่อลดจำนวน iterations
 
 ---
 
@@ -231,7 +285,7 @@ $$ \text{Memory Requirement} \approx N_{\text{cells}} \times N_{\text{fields}} \
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
-// ใน controlDict - การจัดการหน่วยความจำและการบีบอัด
+// Memory management and compression in controlDict
 application     simpleFoam;
 
 startFrom       latestTime;
@@ -248,15 +302,28 @@ writeControl    timeStep;
 
 writeInterval   100;
 
-// เปิดใช้งานการบีบอัดข้อมูล
-writeCompression    on;   // ใช้ gzip compression
-// หรือระบุระดับการบีบอัด
+// Enable data compression
+writeCompression    on;   // Use gzip compression
+// Or specify compression level
 writeCompression    true;
 compressionLevel    6;    // 0-9 (default: 6)
 
-// ปิดการเขียนฟิelds บางตัวเพื่อประหยัดพื้นที่
-// (ต้องระบุในส่วน fields)
+// Disable writing of some fields to save space
+// (Must be specified in fields section)
 ```
+
+> 📂 **Source:** `.src/OpenFOAM/db/IOobject/IOobject.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> การจัดการหน่วยความจำและการบีบอัดข้อมูลใน OpenFOAM:
+> - **writeCompression**: เปิดใช้งาน gzip compression สำหรับไฟล์ output ซึ่งลดขนาดไฟล์ลง 70-90%
+> - **compressionLevel**: ระดับการบีบอัด 0 (ไม่บีบอัด) ถึง 9 (บีบอัดสูงสุด, ใช้เวลานาน)
+> - **Trade-off**: การบีบอัดสูงลด disk space แต่เพิ่มเวลา I/O
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Lossless Compression**: gzip ใช้ lossless compression ดังนั้นข้อมูลจะไม่สูญหาย
+> 2. **Binary vs ASCII**: Binary files มักจะเล็กกว่าและเร็วกว่า ASCII
+> 3. **Sparse Fields**: Fields ที่มีค่าสม่ำเสมอ (smooth) บีบอัดได้ดีกว่า
 
 > [!INFO] **การประหยัดพื้นที่ดิสก์**
 > `writeCompression on;` ใน `controlDict` ช่วยลดขนาดไฟล์ลงได้ถึง 70-90% สำหรับฟิลด์ที่มีความสม่ำเสมอ (smooth fields) สำหรับ cases ขนาดใหญ่ compression level 6-9 แนะนำ แต่จะใช้เวลาในการเขียนมากขึ้น
@@ -265,32 +332,45 @@ compressionLevel    6;    // 0-9 (default: 6)
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
-// กลยุทธ์การเขียนข้อมูลที่เหมาะสม
-writeControl    runTime;      // เขียนตามเวลาจริง
-writeInterval   10;           // เขียนทุก 10 วินาทีของ simulation time
+// Optimal data writing strategies
+writeControl    runTime;      // Write based on simulation time
+writeInterval   10;           // Write every 10 simulation seconds
 
-// หรือใช้ adjustedRunTime สำหรับ transient cases
+// Or use adjustedRunTime for transient cases
 writeControl    adjustedRunTime;
 writeInterval   10;
 timeFormat      general;
 timePrecision   6;
 
-// หรือใช้ cpuTime สำหรับ monitoring
+// Or use cpuTime for monitoring
 writeControl    cpuTime;
-writeInterval   3600;         // เขียนทุก 1 ชั่วโมงของ CPU time
+writeInterval   3600;         // Write every 1 CPU hour
 
-// การเขียนเฉพาะบาง time steps
+// Writing only certain time steps
 writeControl    timeStep;
 writeInterval   100;
-purgeWrite      5;            // เก็บเฉพาะ 5 time directories ล่าสุด
+purgeWrite      5;            // Keep only last 5 time directories
 ```
+
+> 📂 **Source:** `.src/OpenFOAM/db/Time/Time.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> กลยุทธ์การเขียนข้อมูลที่เหมาะสมเพื่อการจัดการดิสก์และ I/O:
+> - **writeControl**: กำหนดเงื่อนไขการเขียน (timeStep, runTime, adjustedRunTime, cpuTime)
+> - **purgeWrite**: ลบ time directories เก่าๆ โดยเก็บเฉพาะจำนวนที่ระบุ
+> - **adjustedRunTime**: ปรับเวลา output ให้สอดคล้องกับ writeInterval
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **I/O Bottleneck**: การเขียนข้อมูลบ่อยๆ ลดประสิทธิภาพของ simulation
+> 2. **Storage Management**: purgeWrite ช่วยจัดการ disk space อัตโนมัติ
+> 3. **Monitoring**: cpuTime control ช่วยในการ estimate ระยะเวลา simulation
 
 #### 2.1.4 Selective Field Writing
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
-// ใน controlDict - เลือกเขียนเฉพาะฟิลด์ที่จำเป็น
-// ต้องใช้ function objects
+// In controlDict - write only necessary fields
+// Must use function objects
 functions
 {
     writeSelectedFields
@@ -324,6 +404,19 @@ functions
 }
 ```
 
+> 📂 **Source:** `.src/sampling/sampledSet/sampledSet.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> การเขียนเฉพาะฟิลด์ที่จำเป็นโดยใช้ function objects:
+> - **sets**: Function object สำหรับ sampling fields บน lines/planes
+> - **monitorLine**: กำหนดเส้นที่ต้องการ sample ข้อมูล
+> - **fields**: ระบุเฉพาะ fields ที่ต้องการเก็บ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Selective Output**: ลด I/O โดยการเขียนเฉพาะข้อมูลที่สำคัญ
+> 2. **Sampling Points**: กำหนดจุดหรือเส้นที่ต้องการติดตามค่า
+> 3. **Function Objects**: กลไกของ OpenFOAM ในการทำ post-processing ระหว่าง simulation
+
 ### 2.2 การเพิ่มประสิทธิภาพ I/O (I/O Optimization)
 
 การเขียนข้อมูลลงดิสก์พร้อมกันจากหลายโปรเซสเซอร์มักเกิดปัญหาคอขวด
@@ -352,7 +445,7 @@ flowchart TD
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
-// ใน decomposeParDict - การตั้งค่าเพื่อลด I/O bottleneck
+// In decomposeParDict - settings to reduce I/O bottleneck
 FoamFile
 {
     version     2.0;
@@ -361,18 +454,18 @@ FoamFile
     object      decomposeParDict;
 }
 
-// ใช้ Scotch สำหรับ load balancing ที่ดีที่สุด
+// Use Scotch for best load balancing
 method          scotch;
-// หรือหากต้องการควบคุม manually
+// Or if you want manual control
 // method          hierarchical;
 
-// การตั้งค่าสำหรับ hierarchical
+// Settings for hierarchical
 coeffs
 {
     n           (4 2 1);     // Decompose along x-direction first
 }
 
-// หรือการตั้งค่าสำหรับ scotch
+// Or settings for scotch
 coeffs
 {
     // Scotch-specific options
@@ -380,12 +473,26 @@ coeffs
     strategy "edge";              // "edge", "vertex", "band"
 }
 
-// จำนวน subdomains
+// Number of subdomains
 numberOfSubdomains  16;
 
-// ไม่เขียน decomposition visualization
+// Don't write decomposition visualization
 writeDecomposition    no;
 ```
+
+> 📂 **Source:** `.applications/utilities/parallelProcessing/decomposePar/decomposePar.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> การตั้งค่า decomposition เพื่อลดปัญหา I/O bottleneck:
+> - **scotch**: Graph-based decomposition method ที่ให้ load balancing ที่ดีที่สุด
+> - **strategy "edge"**: ลด edge cuts ซึ่งช่วยลด communication ระหว่าง processors
+> - **processorWeights**: ระบุน้ำหนักสำหรับ heterogeneous systems
+> - **writeDecomposition**: ปิดการเขียนไฟล์ visualization เพื่อประหยัด I/O
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Domain Decomposition**: แบ่ง mesh เป็น subdomains สำหรับ parallel processing
+> 2. **Graph Partitioning**: Scotch ใช้ graph theory ในการ minimize communication
+> 3. **Edge Cuts**: จำนวน faces ระหว่าง subdomains ซึ่งส่งผลต่อ communication overhead
 
 > [!TIP] **I/O Optimization Tips**
 > - **Parallel I/O**: ใช้เครื่องมือ I/O แบบขนานหากระบบไฟล์รองรับ (Lustre, GPFS, BeeGFS)
@@ -398,17 +505,31 @@ writeDecomposition    no;
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
-// ใน controlDict - ใช้ Collated I/O สำหรับ performance ที่ดีขึ้น
-// OpenFOAM v1612+ หรือ v+
+// In controlDict - use Collated I/O for better performance
+// OpenFOAM v1612+ or v+
 
-// การใช้ collated file format
+// Using collated file format
 writeFormat      binary;
 writePrecision   6;
 
 // Collated I/O settings (OpenFOAM v1806+)
-ioRanks          4;        // จำนวน I/O aggregators
-writeJobMode     collective; // หรือ "masterOnly" หรือ "distributed"
+ioRanks          4;        // Number of I/O aggregators
+writeJobMode     collective; // Or "masterOnly" or "distributed"
 ```
+
+> 📂 **Source:** `.src/OpenFOAM/db/IOstreams/collated`
+
+> **คำอธิบาย (Thai Explanation):**
+> Collated I/O เป็นวิธีการรวบรวม I/O operations จากหลาย processors:
+> - **ioRanks**: จำนวน processors ที่ทำหน้าที่เป็น I/O aggregators
+> - **collective**: รูปแบบ I/O แบบรวมกลุ่มที่เหมาะสำหรับ parallel file systems
+> - **masterOnly**: เขียนผ่าน master process เท่านั้น (ใช้เมื่อ file system ไม่รองรับ parallel I/O)
+> - **distributed**: แต่ละ processor เขียนข้อมูลเอง (ใช้เมื่อมี disk แยกสำหรับแต่ละ node)
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **I/O Aggregation**: รวมหลาย small writes เป็น fewer large writes
+> 2. **Two-Phase I/O**: Phase 1 - gather data, Phase 2 - write to disk
+> 3. **File System Compatibility**: ต้องเลือกโหมดที่เหมาะกับ file system
 
 ---
 
@@ -468,8 +589,8 @@ fi
 
 # 4. Decompose domain
 echo "Decomposing domain for parallel processing..."
-NPROCS=4  # จำนวน processors
-decomposePar -cellDist -decomposeParDict system/decomposeParDict > log.decomposePar 2>&1
+NPROCS=4  # Number of processors
+decomposePar -celldist -decomposeParDict system/decomposeParDict > log.decomposePar 2>&1
 
 # 5. Run solver in parallel
 echo "Running solver in parallel on $NPROCS processors..."
@@ -485,6 +606,22 @@ paraFoam -builtin &
 
 echo "Simulation complete!"
 ```
+
+> 📂 **Source:** `.applications/utilities/parallelProcessing/decomposePar`
+
+> **คำอธิบาย (Thai Explanation):**
+> สคริปต์สำหรับ workflow การจำลองแบบขนานแบบครบวงจร:
+> - **foamCleanTutorials**: ลบข้อมูลเก่าจากการรันครั้งก่อน
+> - **blockMesh**: สร้าง mesh จาก blockMeshDict
+> - **checkMesh**: ตรวจสอบคุณภาพของ mesh
+> - **decomposePar**: แบ่ง domain เป็น subdomains สำหรับ parallel processing
+> - **mpirun**: รัน solver แบบขนานด้วย MPI
+> - **reconstructPar**: รวมผลลัพธ์จาก processors กลับเป็น single domain
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Pipeline**: ทุกขั้นตอนต้องเสร็จสิ้นก่อนดำเนินการต่อ
+> 2. **Error Checking**: ตรวจสอบผลลัพธ์จากแต่ละขั้นตอน
+> 3. **Log Files**: เก็บ log ไว้ตรวจสอบและ debug
 
 ### 3.3 Advanced Workflow with Error Handling
 
@@ -521,7 +658,7 @@ checkMesh -allGeometry -allTopology 2>&1 | tee $LOG_DIR/log.checkMesh
 
 # Step 3: Decomposition
 echo "=== Step 3: Domain Decomposition ==="
-decomposePar -cellDist 2>&1 | tee $LOG_DIR/log.decomposePar
+decomposePar -celldist 2>&1 | tee $LOG_DIR/log.decomposePar
 check_error "decomposePar"
 
 # Step 4: Check decomposition balance
@@ -547,6 +684,21 @@ grep "ExecutionTime" $LOG_DIR/log.$SOLVER | tail -1
 
 echo "Simulation completed successfully!"
 ```
+
+> 📂 **Source:** `.applications/utilities/parallelProcessing/decomposePar/decomposePar.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> สคริปต์ขั้นสูงที่มีการจัดการ error และ monitoring:
+> - **check_error Function**: ตรวจสอบ return code จากแต่ละคำสั่ง
+> - **Log Directory**: แยก log files ไว้ใน directory เฉพาะ
+> - **tee Command**: แสดงผลทั้งบนหน้าจอและบันทึกลงไฟล์
+> - **Performance Summary**: สรุปเวลา execution ในตอนท้าย
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Error Handling**: หยุดการทำงานทันทีหากมีขั้นตอนล้มเหลว
+> 2. **Logging**: เก็บ logs ทุกขั้นตอนสำหรับ debugging
+> 3. **Load Balance Check**: ตรวจสอบความสมดุลของ workload
+> 4. **Real-time Monitoring**: สามารถติดตาม residuals ได้แบบ real-time
 
 ---
 
@@ -574,7 +726,7 @@ $$ \alpha_{\text{optimal}} \approx \frac{2}{2 - \lambda_{\text{min}} - \lambda_{
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
-// การตั้งค่า Under-Relaxation Factors ใน fvSolution
+// Under-Relaxation Factors settings in fvSolution
 relaxationFactors
 {
     fields
@@ -591,13 +743,26 @@ relaxationFactors
     }
 }
 
-// สำหรับ PIMPLE algorithm
+// For PIMPLE algorithm
 PIMPLE
 {
-    // ปรับ relaxation factors แบบ dynamic
-    consistent      yes;     // ใช้ consistent formulation
+    // Dynamic relaxation factors
+    consistent      yes;     // Use consistent formulation
 }
 ```
+
+> 📂 **Source:** `.applications/solvers/incompressible/simpleFoam/simpleFoam.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> Under-Relaxation Factors ใช้เพื่อเพิ่มความเสถียรของการแก้สมการ non-linear:
+> - **fields**: Relaxation factors สำหรับ fields (pressure, density)
+> - **equations**: Relaxation factors สำหรับ equations (momentum, turbulence)
+> - **consistent**: ใช้ consistent formulation สำหรับ PIMPLE เพื่อความเสถียรที่ดีขึ้น
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Relaxation**: ลดการเปลี่ยนแปลงของ solution ระหว่าง iterations
+> 2. **Stability vs Convergence**: Factor ต่ำ = เสถียรกว่า แต่ลู่เข้าช้ากว่า
+> 3. **Pressure Coupling**: Pressure มักต้องการ factor ต่ำกว่า velocity
 
 > [!INFO] **Under-Relaxation Best Practices**
 > - **Steady-state**: $\alpha_p = 0.3$, $\alpha_U = 0.7$ เป็นค่าเริ่มต้นที่ดี
@@ -611,11 +776,11 @@ PIMPLE
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
-// การใช้ High-Resolution Schemes ใน fvSchemes
+// High-Resolution Schemes in fvSchemes
 ddtSchemes
 {
-    default         Euler;  // สำหรับ steady-state
-    // หรือ backward สำหรับ transient accuracy
+    default         Euler;  // For steady-state
+    // Or backward for transient accuracy
 }
 
 gradSchemes
@@ -635,10 +800,10 @@ divSchemes
     div(phi,epsilon) Gauss limitedLinear 1;
     div(phi,omega)  Gauss limitedLinear 1;
 
-    // สำหรับ compressible flow
+    // For compressible flow
     div(phi,U)      Gauss upwind;  // More robust for compressible
 
-    // สำหรับ VOF (interFoam)
+    // For VOF (interFoam)
     div(phi,alpha)  Gauss vanLeer;   // Compressive scheme
     div(phirb,alpha) Gauss interfaceCompression 1;
 }
@@ -661,6 +826,20 @@ snGradSchemes
 }
 ```
 
+> 📂 **Source:** `.src/finiteVolume/interpolation/schemes`
+
+> **คำอธิบาย (Thai Explanation):**
+> Numerical Schemes สำหรับการ discretize สมการ:
+> - **limitedLinearV**: TVD (Total Variation Diminishing) scheme สำหรับ convection
+> - **vanLeer**: Flux limiter scheme สำหรับ VOF methods
+> - **interfaceCompression**: Scheme พิเศษสำหรับรักษาความชัดเจนของ interface
+> - **corrected**: การแก้ไข non-orthogonality ใน laplacian schemes
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Numerical Diffusion**: Upwind schemes มี diffusion สูง, linear schemes มี oscillations
+> 2. **TVD Schemes**: ลด diffusion และป้องกัน oscillations
+> 3. **Flux Limiters**: จำกัด flux เพื่อป้องกัน non-physical overshoots
+
 #### 4.1.3 Non-Orthogonal Correction
 
 สำหรับ mesh ที่มี non-orthogonality สูง:
@@ -673,22 +852,36 @@ $$ \nabla \phi_f = \mathbf{g} + (\mathbf{n} \cdot \nabla \phi_f - \mathbf{n} \cd
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
-// การตั้งค่าสำหรับ non-orthogonal mesh
+// Settings for non-orthogonal mesh
 laplacianSchemes
 {
-    default         Gauss linear uncorrected;  // ถ้า non-orthogonality < 70°
-    // หรือ
-    default         Gauss linear corrected;    // ถ้า non-orthogonality < 80°
-    // หรือ
-    default         Gauss linear limited 0.5;  // ถ้า non-orthogonality สูงมาก
+    default         Gauss linear uncorrected;  // If non-orthogonality < 70°
+    // Or
+    default         Gauss linear corrected;    // If non-orthogonality < 80°
+    // Or
+    default         Gauss linear limited 0.5;  // If non-orthogonality very high
 }
 
-// ใน fvSolution - non-orthogonal correctors
+// In fvSolution - non-orthogonal correctors
 simple
 {
-    nNonOrthogonalCorrectors 3;  // เพิ่มถ้า mesh มี non-orthogonality สูง
+    nNonOrthogonalCorrectors 3;  // Increase if mesh has high non-orthogonality
 }
 ```
+
+> 📂 **Source:** `.src/finiteVolume/finiteVolume/lnInclude`
+
+> **คำอธิบาย (Thai Explanation):**
+> การจัดการกับ non-orthogonal meshes:
+> - **uncorrected**: ไม่มีการแก้ไข non-orthogonality (เร็วแต่ไม่แม่นยำ)
+> - **corrected**: มีการแก้ไข non-orthogonality (แม่นยำแต่ช้ากว่า)
+> - **limited**: จำกัดการแก้ไขเพื่อความเสถียร
+> - **nNonOrthogonalCorrectors**: จำนวนรอบการแก้ไขแต่ละ time step
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Non-Orthogonality**: มุมระหว่าง face normal และ line connecting cell centers
+> 2. **Explicit Correction**: คำนวณ correction term แยกจาก implicit term
+> 3. **Iterative Solution**: ต้องการ multiple correctors สำหรับ high non-orthogonality
 
 ### 4.2 การปรับแต่ง Mesh Decomposition
 
@@ -717,7 +910,7 @@ $$ \text{Parallel Efficiency} \approx \frac{1}{\text{Load Balance Ratio}} $$
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
-// การตั้งค่า Scotch สำหรับ Load Balancing ที่ดีที่สุด
+// Scotch settings for optimal Load Balancing
 decomposeParDict
 {
     method          scotch;
@@ -748,6 +941,20 @@ decomposeParDict
 }
 ```
 
+> 📂 **Source:** `.applications/utilities/parallelProcessing/decomposePar/decomposePar.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> การตั้งค่า Scotch decomposition method:
+> - **strategy "edge"**: ลด edge cuts ซึ่งลด communication ระหว่าง processors
+> - **weight**: น้ำหนักที่ให้กับ load balancing เทียบกับ communication minimization
+> - **numberOfSubdomains**: จำนวน subdomains ที่ต้องการ (ควรเท่ากับจำนวน cores)
+> - **processorWeights**: ใช้สำหรับ heterogeneous systems ที่มี cores ที่ต่างกัน
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Graph Partitioning**: แทน mesh ด้วย graph แล้วแบ่งเป็น subgraphs
+> 2. **Load Balance**: แต่ละ processor ควรมีจำนวนเซลล์ใกล้เคียงกัน
+> 3. **Communication Minimization**: ลด interface ระหว่าง subdomains
+
 > [!TIP] **Load Balancing Metrics**
 > ตรวจสอบความสมดุลของการโหลดงานโดยใช้:
 > ```bash
@@ -763,7 +970,7 @@ decomposeParDict
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
-// การตั้งค่าเพื่อลด communication
+// Settings to minimize communication
 method          hierarchical;
 
 coeffs
@@ -771,11 +978,11 @@ coeffs
     n   (4 2 2);  // 4x2x2 = 16 processors
 
     // Decomposition order: x, y, z
-    // เลือกทิศทางที่มีความยาวมากที่สุดก่อน
-    // เพื่อลด surface-to-volume ratio
+    // Choose direction with longest dimension first
+    // To reduce surface-to-volume ratio
 }
 
-// หรือใช้ manual decomposition
+// Or use manual decomposition
 method          manual;
 
 manualCoeffs
@@ -792,13 +999,27 @@ manualCoeffs
 }
 ```
 
+> 📂 **Source:** `.src/OpenFOAM/db/decomposition/decompositionMethod`
+
+> **คำอธิบาย (Thai Explanation):**
+> การลด communication โดยการเลือก decomposition order:
+> - **hierarchical**: แบ่ง domain ตามลำดับชั้น (recursive)
+> - **n (4 2 2)**: แบ่งตาม x-direction เป็น 4 ส่วน, y-direction เป็น 2 ส่วน, z-direction เป็น 2 ส่วน
+> - **manual**: ผู้ใช้ระบุ bounding box สำหรับแต่ละ processor
+> - **Surface-to-Volume Ratio**: ค่าน้อย = ลด communication
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Decomposition Order**: เริ่มจากทิศทางที่ยาวที่สุด
+> 2. **Aspect Ratio**: Subdomains ควรมี aspect ratio ใกล้เคียง 1
+> 3. **Interface Area**: ลดพื้นที่ผิวระหว่าง subdomains
+
 ### 4.3 Profiling and Performance Analysis
 
 #### 4.3.1 Built-in Profiling
 
 ```cpp
 // NOTE: Synthesized by AI - Verify parameters
-// ใน controlDict - เปิดใช้งาน Profiling
+// In controlDict - enable Profiling
 libs
 (
     "libprofilingSo.so"
@@ -820,28 +1041,57 @@ profiling
 }
 ```
 
+> 📂 **Source:** `.src/OSspecific/POSIX/profiling`
+
+> **คำอธิบาย (Thai Explanation):**
+> การเปิดใช้งาน profiling ในตัวของ OpenFOAM:
+> - **libs**: Load profiling library
+> - **profileSolvers**: บันทึกเวลาที่ solvers ใช้
+> - **profileCourant**: บันทึกค่า Courant number
+> - **writeInterval**: ความถี่ในการเขียน profiling data
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Function Profiling**: วัดเวลาที่ใช้ในแต่ละ function
+> 2. **Solver Analysis**: เปรียบเทียบเวลาของ pressure vs momentum solvers
+> 3. **Performance Bottlenecks**: ระบุส่วนที่ใช้เวลานานที่สุด
+
 #### 4.3.2 System Profiling Tools
 
 ```bash
 # NOTE: Synthesized by AI - Verify commands for your system
-# ใช้ time command เพื่อวัด performance
+# Use time command to measure performance
 /usr/bin/time -v mpirun -np 16 simpleFoam -parallel
 
-# หรือใช้ perf (Linux)
+# Or use perf (Linux)
 perf stat -e cache-references,cache-misses,instructions,cycles mpirun -np 16 simpleFoam -parallel
 
-# หรือ Intel VTune (ถ้ามี)
+# Or Intel VTune (if available)
 vtune -collect hotspots -result-dir vtune_results mpirun -np 16 simpleFoam -parallel
 
-# หรือ Scalasca (จำลองแบบ MPI profiling)
+# Or Scalasca (MPI profiling)
 scan -s mpirun -np 16 simpleFoam -parallel
 export SCAN_REPORT=profiling_report
 sqpost -f profiling_report
 
-# หรือ Score-P
+# Or Score-P
 scorep --nocompiler --thread=pthread --mpp=mpi mpirun -np 16 simpleFoam -parallel
 scorep-score -r profile.cubex
 ```
+
+> 📂 **Source:** `.doc/compilation/ThirdParty`
+
+> **คำอธิบาย (Thai Explanation):**
+> เครื่องมือวิเคราะห์ประสิทธิภาพภายนอก OpenFOAM:
+> - **time**: Built-in Linux command สำหรับวัด execution time
+> - **perf**: Linux performance analysis tool สำหรับ hardware counters
+> - **VTune**: Intel's tool สำหรับ hotspot analysis
+> - **Scalasca**: Tool สำหรับ MPI profiling
+> - **Score-P**: มาตรฐาน profiling tool สำหรับ HPC applications
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Hardware Counters**: Cache misses, instructions, cycles
+> 2. **MPI Tracing**: วิเคราะห์ communication patterns
+> 3. **Hotspots**: ระบุ code sections ที่ใช้เวลานานที่สุด
 
 #### 4.3.3 Performance Metrics
 
@@ -872,18 +1122,32 @@ $$ S_p = p - f_s (p - 1) $$
 #### 4.3.4 Communication Analysis
 
 ```bash
-# ใช้ mpiP สำหรับ MPI profiling
+# Use mpiP for MPI profiling
 mpirun -np 16 mpiP -mpip mpirun -np 16 simpleFoam -parallel
 
-# หรือ Intel Trace Analyzer
+# Or Intel Trace Analyzer
 mpirun -np 16 -trace simpleFoam -parallel
 mpi2prv -f simpleFoam.prv -o simpleFoam.prv
 
-# วิเคราะห์สิ่งที่ได้:
-# - MPI_Send, MPI_Recv จำนวนครั้งและเวลา
-# - MPI_Barrier เวลาที่รอ
-# - Load imbalance ระหว่าง processors
+# Analyze what you get:
+# - MPI_Send, MPI_Recv number of times and time
+# - MPI_Barrier waiting time
+# - Load imbalance between processors
 ```
+
+> 📂 **Source:** `.src/Pstream/mpi`
+
+> **คำอธิบาย (Thai Explanation):**
+> เครื่องมือสำหรับวิเคราะห์ MPI communication:
+> - **mpiP**: Lightweight MPI profiling library
+> - **Intel Trace Analyzer**: Tool สำหรับ visualization ของ MPI communication
+> - **MPI_Send/Recv**: วัดปริมาณและเวลาของ message passing
+> - **MPI_Barrier**: วัดเวลาที่ processors รอกัน
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Communication Patterns**: Point-to-point vs Collective communication
+> 2. **Synchronization**: Barriers ทำให้ processors รอกัน
+> 3. **Load Imbalance**: Processors บางตัวทำงานนานกว่า
 
 ---
 
@@ -901,13 +1165,26 @@ mpi2prv -f simpleFoam.prv -o simpleFoam.prv
 
 **Memory Profiling:**
 ```bash
-# ตรวจสอบ memory usage ระหว่าง simulation
+# Check memory usage during simulation
 /usr/bin/time -v mpirun -np 16 simpleFoam -parallel 2>&1 | grep "Maximum resident"
 
-# หรือใช้ valgrind
+# Or use valgrind
 mpirun -np 16 valgrind --tool=massif --massif-out-file=massif.out simpleFoam -parallel
 ms_print massif.out | less
 ```
+
+> 📂 **Source:** `.src/OpenFOAM/db/IOobject`
+
+> **คำอธิบาย (Thai Explanation):**
+> การวินิจฉัยและแก้ไขปัญหาหน่วยความจำ:
+> - **Maximum resident**: หน่วยความจำสูงสุดที่ใช้
+> - **valgrind massif**: Tool สำหรับ heap profiling
+> - **ms_print**: แสดงผล memory usage เป็น graph
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Memory per Core**: จำกัดของ RAM ต่อ CPU core
+> 2. **Memory Leaks**: การจองหน่วยความจำโดยไม่คืน
+> 3. **Peak Memory**: ช่วงเวลาที่ใช้หน่วยความจำมากที่สุด
 
 ### 5.2 Convergence Issues
 
@@ -921,12 +1198,25 @@ ms_print massif.out | less
 
 **Convergence Monitoring:**
 ```bash
-# ตรวจสอบ residuals แบบ real-time
+# Check residuals real-time
 tail -f log.simpleFoam | grep "Solve for p"
 
-# หรือใช้ pyFoam
+# Or use pyFoam
 pyFoamPlotRunner.py log.simpleFoam
 ```
+
+> 📂 **Source:** `.applications/solvers/incompressible/simpleFoam`
+
+> **คำอธิบาย (Thai Explanation):**
+> การวินิจฉัยและแก้ไขปัญหาการลู่เข้า:
+> - **Residuals**: ค่า error ของสมการแต่ละ iteration
+> - **Relaxation**: ลดการเปลี่ยนแปลงเพื่อเพิ่มความเสถียร
+> - **Mesh Quality**: Mesh ที่ไม่ดีทำให้ไม่ลู่เข้า
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Divergence**: Residuals เพิ่มขึ้นแทนที่จะลดลง
+> 2. **Oscillation**: Residuals สั่นไปมา
+> 3. **Stagnation**: Residuals ไม่ลดลงต่ำ
 
 ### 5.3 Speedup Issues
 
@@ -942,14 +1232,28 @@ pyFoamPlotRunner.py log.simpleFoam
 
 **Diagnostic Commands:**
 ```bash
-# ตรวจสอบ load balance
-decomposePar -cellDist
+# Check load balance
+decomposePar -celldist
 grep "cells" log.decomposePar
 
-# ตรวจสอบ scaling
-# รันบน 1, 2, 4, 8, 16 processors
-# เปรียบเทียบ ExecutionTime ใน log files
+# Check scaling
+# Run on 1, 2, 4, 8, 16 processors
+# Compare ExecutionTime in log files
 ```
+
+> 📂 **Source:** `.applications/utilities/parallelProcessing/decomposePar`
+
+> **คำอธิบาย (Thai Explanation):**
+> การวินิจฉัยปัญหา scaling:
+> - **Serial Bottleneck**: ส่วนที่ไม่สามารถ parallelize ได้
+> - **Load Imbalance**: Processors บางตัวมีงานมากกว่า
+> - **Communication Overhead**: เวลาที่เสียไปกับการส่งข้อมูล
+> - **Cache Effects**: การแบ่งข้อมูลทำให้ cache ไม่มีประสิทธิภาพ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Amdahl's Law**: ขีดจำกัดของ speedup ขึ้นกับ serial fraction
+> 2. **Strong Scaling**: ขนาดปัญหาคงที่, เพิ่ม processors
+> 3. **Weak Scaling**: เพิ่มทั้งปัญหาและ processors ตามสัดส่วน
 
 ### 5.4 I/O Bottlenecks
 
@@ -971,14 +1275,27 @@ grep "cells" log.decomposePar
 
 **Solution:**
 ```bash
-# ลอง decomposition methods ต่างๆ
+# Try different decomposition methods
 # 1. scotch (recommended)
 # 2. metis
 # 3. hierarchical
 
-# ตรวจสอบ decomposition quality
-decomposePar -cellDist -decomposeParDict system/decomposeParDict.scotch
+# Check decomposition quality
+decomposePar -celldist -decomposeParDict system/decomposeParDict.scotch
 ```
+
+> 📂 **Source:** `.applications/utilities/parallelProcessing/decomposePar/decomposePar.C`
+
+> **คำอธิบาย (Thai Explanation):**
+> การวินิจฉัยและแก้ไขปัญหา decomposition:
+> - **Load Balance Ratio**: อัตราส่วนของ cells สูงสุดต่อเฉลี่ย
+> - **Method Comparison**: ทดลองใช้ methods ต่างกัน
+> - **Visualization**: ใช้ -celldist เพื่อดู distribution
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> 1. **Graph Partitioning**: แบ่ง graph เป็น subgraphs ที่ balance
+> 2. **Edge Cuts**: ลด communication ระหว่าง subdomains
+> 3. **Geometric vs Graph**: Geometric methods เร็วแต่ quality ต่ำ
 
 ---
 
@@ -1109,7 +1426,7 @@ decomposePar -cellDist -decomposeParDict system/decomposeParDict.scotch
 ```bash
 # Decomposition
 decomposePar                      # Standard decomposition
-decomposePar -cellDist            # With cell distribution
+decomposePar -celldist            # With cell distribution
 decomposePar -force               # Overwrite existing
 
 # Parallel Execution
@@ -1138,6 +1455,6 @@ mpirun -np 4 -verbose <solver>    # Verbose output
 ---
 
 **Document Version:** 1.0
-**Last Updated:** 2025-12-23
+**Last Updated:** 2025-12-24
 **OpenFOAM Version:** 9+ (compatible with v2112+, v10+)
 **Maintainer:** [Your Name]

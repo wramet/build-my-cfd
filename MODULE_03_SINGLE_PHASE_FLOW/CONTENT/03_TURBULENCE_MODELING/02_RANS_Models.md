@@ -55,6 +55,7 @@ $$\tau_{ij} = 2 \mu_t S_{ij} - \frac{2}{3} \rho k \delta_{ij}$$
 **OpenFOAM Code Implementation:**
 ```cpp
 // Reynolds stress tensor calculation
+// คำนวณเทนเซอร์ความเค้น Reynolds จากค่า k และ velocity gradient
 volSymmTensorField R
 (
     IOobject
@@ -65,9 +66,22 @@ volSymmTensorField R
         IOobject::NO_READ,
         IOobject::AUTO_WRITE
     ),
+    // สมการ Boussinesq: R = 2/3*k*I - nut*(grad(U) + grad(U)^T)
     2.0/3.0*k*I - nut*twoSymm(fvc::grad(U))
 );
 ```
+
+**Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**คำอธิบาย:**
+- **volSymmTensorField R**: ประกาศฟิลด์เทนเซอร์สมมาตรสำหรับเก็บค่า Reynolds stress
+- **IOobject**: กำหนดคุณสมบัติการอ่าน/เขียนไฟล์ โดยตั้งชื่อเป็น "R" และให้เขียนอัตโนมัติ (AUTO_WRITE)
+- **2.0/3.0*k*I**: เทอมแรกคือส่วนประกอบ isotropic (k เป็นพลังงานจลน์ของความปั่นป่วน)
+- **nut*twoSymm(fvc::grad(U))**: เทอมที่สองคือส่วนประกอบ anisotropic จากความหนืดปั่นป่วน (nut) และ gradient ของความเร็ว
+
+**แนวคิดสำคัญ:**
+- **Hypothesis ของ Boussinesq**: เชื่อมโยง Reynolds stress กับ mean strain rate ผ่าน eddy viscosity
+- **การประยุกต์ใช้**: ลดความซับซ้อนของสมการ RANS โดยไม่ต้องคำนวณ Reynolds stress โดยตรง
 
 > [!INFO] ความสำคัญของ Eddy Viscosity
 > แนวคิด eddy viscosity เปลี่ยนความเค้น Reynolds ที่ไม่ทราบค่าให้เป็นความสัมพันธ์ที่สามารถคำนวณได้จากปริมาณการไหลที่ถูกแก้ไข (resolved flow quantities)
@@ -101,42 +115,83 @@ $$G = \nu_t \left(\nabla \mathbf{u} + \nabla \mathbf{u}^\mathrm{T}\right) : \nab
 **OpenFOAM Code Implementation:**
 ```cpp
 // Production term calculation in kEpsilon.C
+// คำนวณเทอมการผลิตพลังงานจลน์ความปั่นป่วน (Production Term)
 volScalarField::Internal G
 (
     this->GName(),
     nut()*(dev(twoSymm(tgradU().v())) && tgradU().v())
 );
 
-// หรือในรูปแบบฟังก์ชัน:
+// Alternative function format:
+// ฟังก์ชันทางเลือกสำหรับคำนวณค่า G
 tmp<volScalarField> kEpsilon::G() const
 {
+    // G = nut * (dev(twoSymm(grad(U))) && grad(U))
     return nut() * (dev(twoSymm(fvc::grad(U))) && fvc::grad(U));
 }
 ```
+
+**Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**คำอธิบาย:**
+- **volScalarField::Internal G**: ประกาศฟิลด์สเกลาร์ภายในเซลล์ (internal field) สำหรับเก็บค่าเทอมการผลิต
+- **nut()**: คืนค่าความหนืดปั่นป่วน (turbulent viscosity)
+- **twoSymm(fvc::grad(U))**: สร้าง symmetric tensor จาก gradient ของความเร็ว
+- **dev()**: ดึงเอา deviatoric part (ส่วนที่ไม่ใช่ isotropic) ของ tensor
+- **&&**: ตัวดำเนินการ double contraction สำหรับ tensor multiplication
+
+**แนวคิดสำคัญ:**
+- **การคำนวณเทอม G**: เป็นการหาอัตราการเปลี่ยนแปลงของพลังงานจลน์จากการเฉือนของการไหล
+- **Deviation Tensor**: ใช้ dev() เพื่อตัดส่วน isotropic ออก ให้เหลือเฉพาะส่วนที่เกี่ยวข้องกับการเฉือน
 
 ### 1.3 สมการการขนส่งใน OpenFOAM
 
 **สมการ $\varepsilon$** (`kEpsilon.C:256‑274`):
 ```cpp
-fvm::ddt(alpha, rho, epsilon_)
-+ fvm::div(alphaRhoPhi, epsilon_)
-- fvm::laplacian(alpha*rho*DepsilonEff(), epsilon_)
+// Epsilon transport equation in OpenFOAM
+// สมการขนส่งค่าอัตราการสลายตัว (epsilon)
+fvm::ddt(alpha, rho, epsilon_)                           // Unsteady term: ∂ε/∂t
++ fvm::div(alphaRhoPhi, epsilon_)                         // Convection: ∇·(ρUε)
+- fvm::laplacian(alpha*rho*DepsilonEff(), epsilon_)      // Diffusion: ∇·[(ν+νt/σε)∇ε]
 ==
-C1_*alpha()*rho()*G*epsilon_()/k_()
-- fvm::SuSp(((2.0/3.0)*C1_ - C3_)*alpha()*rho()*divU, epsilon_)
-- fvm::Sp(C2_*alpha()*rho()*epsilon_()/k_(), epsilon_)
+C1_*alpha()*rho()*G*epsilon_()/k_()                       // Production: C₁(ε/k)G
+- fvm::SuSp(((2.0/3.0)*C1_ - C3_)*alpha()*rho()*divU, epsilon_)  // Compressibility correction
+- fvm::Sp(C2_*alpha()*rho()*epsilon_()/k_(), epsilon_);  // Destruction: C₂(ε²/k)
 ```
+
+**Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**คำอธิบาย:**
+- **fvm::ddt()**: Unsteady term (เทอมอนุพันธ์เวลา)
+- **fvm::div()**: Convection term (เทอมการพา)
+- **fvm::laplacian()**: Diffusion term (เทอมการแพร่)
+- **C1_*...*G*epsilon_()/k_()**: Production term (เทอมการผลิต)
+- **fvm::SuSp()**: Implicit/explicit source term treatment
+- **fvm::Sp()**: Destruction term (เทอมการทำลาย)
+
+**แนวคิดสำคัญ:**
+- **Finite Volume Method**: ใช้ fvm (finite volume method) สำหรับการ discretize สมการ
+- **Implicit Treatment**: เทอม production และ destruction ถูกจัดการแบบ implicit เพื่อเสถียรภาพเชิงตัวเลข
 
 **สมการ $k$** (`kEpsilon.C:277‑294`):
 ```cpp
-fvm::ddt(alpha, rho, k_)
-+ fvm::div(alphaRhoPhi, k_)
-- fvm::laplacian(alpha*rho*DkEff(), k_)
+// k transport equation in OpenFOAM
+// สมการขนส่งพลังงานจลน์ความปั่นป่วน (k)
+fvm::ddt(alpha, rho, k_)                           // Unsteady term: ∂k/∂t
++ fvm::div(alphaRhoPhi, k_)                         // Convection: ∇·(ρUk)
+- fvm::laplacian(alpha*rho*DkEff(), k_)            // Diffusion: ∇·[(ν+νt/σk)∇k]
 ==
-alpha()*rho()*G
-- fvm::SuSp((2.0/3.0)*alpha()*rho()*divU, k_)
-- fvm::Sp(alpha()*rho()*epsilon_()/k_(), k_)
+alpha()*rho()*G                                     // Production: G
+- fvm::SuSp((2.0/3.0)*alpha()*rho()*divU, k_)       // Compressibility correction
+- fvm::Sp(alpha()*rho()*epsilon_()/k_(), k_);      // Destruction: ε
 ```
+
+**Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**คำอธิบาย:**
+- **โครงสร้างคล้ายสมการ epsilon**: มี unsteady, convection, diffusion, production และ destruction
+- **Production**: เป็นเทอม G โดยตรง (ไม่มีสัดส่วน epsilon/k เหมือนในสมการ epsilon)
+- **Destruction**: เป็นค่า epsilon โดยตรง
 
 ### 1.4 ความหนืดปั่นป่วน
 
@@ -152,13 +207,33 @@ $$\nu_t = C_\mu \frac{k^2}{\varepsilon} \tag{1.1}$$
 
 **OpenFOAM Code Implementation:**
 ```cpp
+// Update turbulent viscosity (eddy viscosity) in OpenFOAM
+// อัปเดตค่าความหนืดปั่นป่วนจากค่า k และ epsilon
 void kEpsilon<BasicMomentumTransportModel>::correctNut()
 {
+    // Calculate turbulent viscosity: νt = Cμ * k² / ε
     this->nut_ = Cmu_*sqr(k_)/epsilon_;
+    
+    // Correct boundary conditions for nut
     this->nut_.correctBoundaryConditions();
+    
+    // Apply constraints (e.g., minimum/maximum values)
     fvConstraints::New(this->mesh_).constrain(this->nut_);
 }
 ```
+
+**Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**คำอธิบาย:**
+- **correctNut()**: ฟังก์ชันสำคัญในการอัปเดตค่าความหนืดปั่นป่วน
+- **Cmu_**: ค่าคงที่ Cμ = 0.09 (default value)
+- **sqr(k_)**: ค่า k² (k squared)
+- **epsilon_**: ค่าอัตราการสลายตัว
+- **correctBoundaryConditions()**: อัปเดตค่าความหนืดบนผนังตาม wall functions
+
+**แนวคิดสำคัญ:**
+- **การคำนวณ νt**: ใช้ค่า k และ ε ที่ถูกแก้สมการแล้วในแต่ละ time step
+- **Dimensional Consistency**: ตรวจสอบหน่วยว่าสอดคล้องกัน (k²/ε มีหน่วย [m²/s²]²/[m²/s³] = [m²/s])
 
 ### 1.5 ข้อดีและข้อเสีย
 
@@ -212,20 +287,23 @@ $$\mu_t = \frac{a_1 \rho k}{\max(a_1 \omega, S F_2)}$$
 ### 2.4 OpenFOAM Code Implementation
 
 ```cpp
-// การตั้งค่า k-omega SST model ใน OpenFOAM
+// k-omega SST model configuration in OpenFOAM
+// การตั้งค่าแบบจำลอง k-omega SST ใน OpenFOAM
 turbulence
 {
-    type            kOmegaSST;
+    type            kOmegaSST;      // SST turbulence model
     turbulence      on;
     printCoeffs     on;
 
-    k               k [0 2 -2 0 0 0 0] 0.01;
-    omega           omega [0 0 -1 0 0 0 0] 0.1;
+    // Initial and boundary conditions
+    k               k [0 2 -2 0 0 0 0] 0.01;     // TKE [m²/s²]
+    omega           omega [0 0 -1 0 0 0 0] 0.1;  // Specific dissipation [1/s]
 
-    // SST blending functions จะถูกคำนวณโดยอัตโนมัติ
+    // SST blending functions calculated automatically
+    // ฟังก์ชัน blending จะถูกคำนวณอัตโนมัติ
 }
 
-// ใน turbulenceProperties:
+// In turbulenceProperties file:
 RAS
 {
     RASModel        kOmegaSST;
@@ -233,21 +311,40 @@ RAS
 
     kOmegaSSTCoeffs
     {
-        alphaK1         0.85;
-        alphaK2         1.0;
-        alphaOmega1     0.5;
-        alphaOmega2     0.856;
-        beta1           0.075;
-        beta2           0.0828;
-        betaStar        0.09;
-        gamma1          0.5532;
-        gamma2          0.4403;
-        a1              0.31;
-        b1              1.0;
-        c1              10.0;
+        // k-omega SST model coefficients
+        alphaK1         0.85;      // Prandtl number for k (inner)
+        alphaK2         1.0;       // Prandtl number for k (outer)
+        alphaOmega1     0.5;       // Prandtl number for ω (inner)
+        alphaOmega2     0.856;     // Prandtl number for ω (outer)
+        beta1           0.075;     // Destruction coefficient (inner)
+        beta2           0.0828;    // Destruction coefficient (outer)
+        betaStar        0.09;      // Destruction coefficient for k
+        gamma1          0.5532;    // Production coefficient (inner)
+        gamma2          0.4403;    // Production coefficient (outer)
+        a1              0.31;      // Shear stress limiter
+        b1              1.0;       // Blending function coefficient
+        c1              10.0;      // Blending function coefficient
     }
 }
 ```
+
+**Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**คำอธิบาย:**
+- **type kOmegaSST**: ระบุประเภทของแบบจำลองความปั่นป่วน
+- **k [0 2 -2 0 0 0 0]**: หน่วยวัดของ TKE (Turbulent Kinetic Energy) = m²/s²
+- **omega [0 0 -1 0 0 0 0]**: หน่วยวัดของ specific dissipation rate = 1/s
+- **alphaK1/alphaK2**: ค่า Prandtl number สำหรับการแพร่ของ k (inner/outer zones)
+- **alphaOmega1/alphaOmega2**: ค่า Prandtl number สำหรับการแพร่ของ ω
+- **beta1/beta2**: ค่าสัมประสิทธิ์ destruction สำหรับสมการ ω
+- **betaStar**: ค่าสัมประสิทธิ์ destruction สำหรับสมการ k
+- **gamma1/gamma2**: ค่าสัมประสิทธิ์ production ที่แตกต่างกันระหว่าง inner/outer zones
+- **a1**: ค่าคงที่สำหรับ shear stress limiter
+
+**แนวคิดสำคัญ:**
+- **Blending Functions**: ใช้ค่าสัมประสิทธิ์สองชุด (inner/outer) สำหรับการเปลี่ยนระหว่าง k-ω และ k-ε
+- **Shear Stress Limiter**: ค่า a1 ใช้ในการจำกัดค่าความหนืดปั่นป่วนในบริเวณที่มีการเฉือนสูง
+- **Near-Wall Treatment**: แบบจำลอง k-ω SST ให้ผลดีใกล้ผนังโดยไม่ต้องใช้ wall functions
 
 ---
 
@@ -258,7 +355,8 @@ OpenFOAM ใช้ Template Metaprogramming เพื่อจัดการโ
 ### 3.1 ลำดับชั้นการสืบทอด
 
 ```cpp
-// ลำดับชั้นของคลาส turbulence model
+// Class hierarchy for turbulence models in OpenFOAM
+// ลำดับชั้นการสืบทอดของคลาสแบบจำลองความปั่นป่วน
 turbulenceModel
     └── RASModel
         └── eddyViscosity
@@ -268,69 +366,139 @@ turbulenceModel
             └── ...
 ```
 
+**Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**คำอธิบาย:**
+- **turbulenceModel**: คลาสฐาน (base class) สำหรับแบบจำลองความปั่นป่วนทั้งหมด
+- **RASModel**: คลาสสำหรับ Reynolds-Averaged Simulation models
+- **eddyViscosity**: คลาสพื้นฐานสำหรับแบบจำลองที่ใช้ eddy viscosity hypothesis
+- **kEpsilon, kOmega, kOmegaSST**: คลาสโมเดลเฉพาะ (concrete models)
+
+**แนวคิดสำคัญ:**
+- **Object-Oriented Design**: ใช้การสืบทอดเพื่อแชร์ฟังก์ชันการทำงานทั่วไป
+- **Polymorphism**: สามารถสลับแบบจำลองได้โดยไม่ต้องเปลี่ยน solver code
+- **Template Metaprogramming**: ใช้ C++ templates เพื่อรองรับทั้ง incompressible และ compressible flows
+
 ### 3.2 โครงสร้างคลาส kEpsilon
 
 ```cpp
+// kEpsilon class structure in OpenFOAM
+// โครงสร้างคลาส kEpsilon ใน OpenFOAM
 template<class BasicTurbulenceModel>
 class kEpsilon
 :
     public EddyViscosity<BasicTurbulenceModel>
 {
-    // Model coefficients
-    dimensionedScalar Cmu_;
-    dimensionedScalar C1_;
-    dimensionedScalar C2_;
-    dimensionedScalar sigmaEpsilon_;
+    // Model coefficients (private data members)
+    dimensionedScalar Cmu_;          // Cμ coefficient for νt calculation
+    dimensionedScalar C1_;           // C₁ coefficient in ε equation
+    dimensionedScalar C2_;           // C₂ coefficient in ε equation
+    dimensionedScalar sigmaEpsilon_; // σₜ turbulent Prandtl number
 
-    // Fields
-    volScalarField k_;
-    volScalarField epsilon_;
+    // Turbulence fields
+    volScalarField k_;               // Turbulent kinetic energy field
+    volScalarField epsilon_;         // Dissipation rate field
 
-    // Wall functions
-    wallFunctionList wallFunction_;
+    // Wall functions for near-wall treatment
+    wallFunctionList wallFunction_;  // List of wall functions
 
-    // Model equations
-    tmp<fvScalarMatrix> kSource() const;
-    tmp<fvScalarMatrix> epsilonSource() const;
+    // Model equation source terms
+    tmp<fvScalarMatrix> kSource() const;      // k equation source
+    tmp<fvScalarMatrix> epsilonSource() const; // ε equation source
 
 public:
-    TypeName("kEpsilon");
+    TypeName("kEpsilon");  // Runtime type identification
 
-    virtual void correct();
+    virtual void correct(); // Main correction function
 };
 ```
+
+**Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**คำอธิบาย:**
+- **template<class BasicTurbulenceModel>**: ใช้ C++ templates เพื่อรองรับหลายประเภทของการไหล
+- **public EddyViscosity<BasicTurbulenceModel>**: สืบทอดจากคลาสฐาน EddyViscosity
+- **dimensionedScalar**: ตัวแปรที่มีหน่วยวัด (dimensional values)
+- **volScalarField**: ฟิลด์สเกลาร์บนเซลล์ทั้งหมด (cell-centered field)
+- **tmp<fvScalarMatrix>**: Matrix สำหรับการแก้สมการแบบ implicit
+- **TypeName()**: Macro สำหรับ runtime type identification (RTTI)
+- **virtual void correct()**: ฟังก์ชันหลักที่ถูกเรียกในแต่ละ time step
+
+**แนวคิดสำคัญ:**
+- **Encapsulation**: รวมข้อมูล (coefficients, fields) และฟังก์ชัน (correct) ไว้ด้วยกัน
+- **Inheritance**: แชร์ฟังก์ชันการทำงานผ่านคลาสฐาน EddyViscosity
+- **Polymorphism**: ฟังก์ชัน correct() ถูก override ในแต่ละโมเดล
 
 ### 3.3 การใช้งานใน Solver
 
 ```cpp
-// การประกาศใน solver
+// Turbulence model usage in OpenFOAM solver
+// การใช้งานแบบจำลองความปั่นป่วนใน solver
+// Declaration: Create turbulence model object
+// การประกาศ: สร้างออบเจกต์แบบจำลองความปั่นป่วน
 autoPtr<incompressible::momentumTransportModel> turbulence
 (
     incompressible::momentumTransportModel::New(U, phi, transport)
 );
 
-// การเรียกใช้ใน time loop
-turbulence->correct();  // แก้สมการความปั่นป่วน
+// Usage in time loop: Correct turbulence model
+// การใช้งานในวงรอบเวลา: แก้ไขแบบจำลองความปั่นป่วน
+turbulence->correct();  // Solve turbulence transport equations
 
-// การใช้ในสมการโมเมนตัม
-UEqn += turbulence->divDevTau(U);  // ใช้ค่า nut ที่อัปเดตแล้ว
+// Usage in momentum equation: Apply turbulent viscosity
+// การใช้งานในสมการโมเมนตัม: ใช้ความหนืดปั่นป่วน
+UEqn += turbulence->divDevTau(U);  // Add divergence of deviatoric stress
 ```
+
+**Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**คำอธิบาย:**
+- **autoPtr**: Smart pointer สำหรับจัดการหน่วยความจำอัตโนมัติ
+- **incompressible::momentumTransportModel**: ประเภทของแบบจำลองสำหรับการไหลแบบอัดตัวไม่ได้
+- **New(U, phi, transport)**: Factory method สำหรับสร้าง turbulence model ตามที่ระบุใน dictionary
+- **correct()**: ฟังก์ชันหลักที่แก้สมการขนส่ง k และ ε/ω
+- **divDevTau(U)**: คำนวณ divergence ของ deviatoric stress tensor
+
+**แนวคิดสำคัญ:**
+- **Runtime Selection**: สามารถเลือกแบบจำลองได้ผ่านไฟล์ dictionary โดยไม่ต้อง compile ใหม่
+- **Separation of Concerns**: Solver ไม่ต้องรู้รายละเอียดของ turbulence model
+- **Modular Design**: สามารถเปลี่ยน turbulence model โดยการแก้ไขไฟล์ dictionary เท่านั้น
 
 ### 3.4 Wall Functions
 
 Wall functions ถูกนำไปใช้ผ่าน **boundary conditions** บน $k$, $\varepsilon$ และ $\nu_t$
 
-**OpenFOAM Code Implementation:**
 ```cpp
+// Wall function implementation in OpenFOAM
+// การนำ wall functions ไปใช้ใน OpenFOAM
 // Update wall function coefficients before solving
+// อัปเดตค่าสัมประสิทธิ์ของ wall functions ก่อนแก้สมการ
 forAll(epsilon_.boundaryField(), patchi)
 {
+    // Check if this patch uses epsilonWallFunction
+    // ตรวจสอบว่า patch นี้ใช้ epsilonWallFunction หรือไม่
     if (isA<epsilonWallFunction>(epsilon_.boundaryField()[patchi]))
     {
+        // Update wall function coefficients
+        // อัปเดตค่าสัมประสิทธิ์ของ wall function
         epsilon_.boundaryFieldRef()[patchi].updateCoeffs();
     }
 }
 ```
+
+**Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**คำอธิบาย:**
+- **forAll()**: Loop ผ่านทุก boundary patch
+- **epsilon_.boundaryField()**: เข้าถึง boundary field ของ epsilon
+- **isA<epsilonWallFunction>()**: ตรวจสอบประเภทของ boundary condition (type checking)
+- **boundaryFieldRef()**: คืนค่า reference เพื่อให้สามารถแก้ไขได้
+- **updateCoeffs()**: อัปเดตค่าสัมประสิทธิ์ตามสมการ log-law
+
+**แนวคิดสำคัญ:**
+- **Wall Functions**: ใช้ logarithmic law ในบริเวณใกล้ผนังเพื่อลดความละเอียดเมชที่ต้องการ
+- **Boundary Conditions**: กำหนดค่าที่ผนังผ่าน boundary condition classes
+- **Automatic Update**: ค่าสัมประสิทธิ์ถูกคำนวณใหม่ทุก time step
 
 **Algorithm Flow:**
 1. **Update Coefficients:** `epsilon_.boundaryFieldRef().updateCoeffs()` อัปเดตค่าสัมประสิทธิ์
@@ -347,6 +515,11 @@ $$u^+ = \frac{1}{\kappa} \ln y^+ + B$$
 - $\kappa \approx 0.41$: von Kármán constant
 - $B \approx 5.2$: ค่าตัดแกน Log-law
 - $u_\tau = \sqrt{\tau_w/\rho}$: ความเร็วเสียดทาน
+
+**คำอธิบาย:**
+- **Logarithmic Region**: ในบริเวณที่ y+ > 30, ความเร็วมีความสัมพันธ์แบบ log
+- **Wall Function Approach**: ใช้สมการ log-law เพื่อหลีกเลี่ยงการแก้ไข viscous sublayer โดยตรง
+- **Mesh Requirements**: y+ ควรอยู่ในช่วง 30-300 สำหรับ standard wall functions
 
 ---
 
@@ -424,39 +597,58 @@ $$\omega = \frac{k^{1/2}}{C_\mu^{1/4} \cdot L_t}$$
 ### 5.3 OpenFOAM Implementation
 
 ```cpp
-// ตัวอย่างการระบุค่า k ที่ inlet ในไฟล์ 0/k
-dimensions      [0 2 -2 0 0 0 0];
-internalField   uniform 0.01;  // ค่า k เริ่มต้น
+// Turbulence boundary condition specification at inlet
+// การระบุค่าความปั่นป่วนที่ inlet ใน OpenFOAM
+// k field specification in 0/k
+dimensions      [0 2 -2 0 0 0 0];  // Units: m²/s²
+internalField   uniform 0.01;       // Initial k value
 
 boundaryField
 {
     inlet
     {
+        // Boundary condition type for turbulent inlet
         type            turbulentIntensityKineticEnergyInlet;
         intensity       0.05;           // 5% turbulent intensity
-        value           uniform 0.01;   // ค่าเริ่มต้น
+        value           uniform 0.01;   // Initial value
     }
 }
 
-// สำหรับ epsilon ใน 0/epsilon
+// epsilon field specification in 0/epsilon
 epsilon
 {
     type            turbulentMixingLengthDissipationRateInlet;
-    mixingLength    0.01;
-    value           uniform 0.009;  // ค่า epsilon เริ่มต้น
+    mixingLength    0.01;           // Mixing length [m]
+    value           uniform 0.009;  // Initial epsilon value
 }
 
-// สำหรับ omega ใน 0/omega
+// omega field specification in 0/omega
 omega
 {
     type            calculated;
     inlet
     {
         type            omegaWallFunction;
-        value           uniform 0.3;    // ค่า omega เริ่มต้น
+        value           uniform 0.3;    // Initial omega value
     }
 }
 ```
+
+**Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+
+**คำอธิบาย:**
+- **dimensions [0 2 -2 0 0 0 0]**: หน่วยวัดของ k (m²/s²) ในรูปแบบ dimensional exponents
+- **internalField uniform 0.01**: ค่าเริ่มต้นของ k ในโดเมนภายใน
+- **turbulentIntensityKineticEnergyInlet**: BC type สำหรับระบุ k จาก turbulent intensity
+- **intensity 0.05**: ค่า turbulent intensity (5%)
+- **turbulentMixingLengthDissipationRateInlet**: BC type สำหรับระบุ ε จาก mixing length
+- **mixingLength 0.01**: ค่าความยาวผสม (mixing length) ในหน่วยเมตร
+- **omegaWallFunction**: BC type สำหรับ ω ที่ใช้ wall function
+
+**แนวคิดสำคัญ:**
+- **Turbulence Specification**: กำหนดค่าความปั่นป่วนที่ inlet ผ่าน intensity และ length scale
+- **Boundary Condition Types**: OpenFOAM มี BC types หลากหลายสำหรับ turbulence
+- **Physical Realism**: ค่า intensity และ length scale ควรสอดคล้องกับสภาพการไหลจริง
 
 ---
 

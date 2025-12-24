@@ -32,7 +32,7 @@ flowchart TD
     F --> G[การอ้างอิงเดิมไม่ถูกต้อง]
     G --> H[⚠️ Undefined Behavior]
 ```
-> **Figure 1:** ขั้นตอนการเกิดข้อผิดพลาดจากการเก็บการอ้างอิงเรขาคณิตที่ล้าสมัย ซึ่งเกิดขึ้นเมื่อเมชมีการเปลี่ยนแปลงแต่โปรแกรมยังคงใช้ข้อมูลเก่าที่ถูกล้างออกจากแคชไปแล้วความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** ขั้นตอนการเกิดข้อผิดพลาดจากการเก็บการอ้างอิงเรขาคณิตที่ล้าสมัย ซึ่งเกิดขึ้นเมื่อเมชมีการเปลี่ยนแปลงแต่โปรแกรมยังคงใช้ข้อมูลเก่าที่ถูกล้างออกจากแคชไปแล้ว
 
 ### **OpenFOAM Code Implementation**
 
@@ -43,22 +43,22 @@ private:
     const primitiveMesh& mesh_;
 
 public:
-    // ❌ ไม่ดี: เก็บการอ้างอิงเรขาคณิต
+    // ❌ Bad: Store geometry references
     // const vectorField& storedCentres_;
 
-    // ✅ ดี: เก็บการอ้างอิงเมชเท่านั้น
+    // ✅ Good: Store only mesh reference
     MeshProcessor(const primitiveMesh& mesh) : mesh_(mesh) {}
 
     void process()
     {
-        // ✅ ดึงข้อมูลเรขาคณิตใหม่เมื่อต้องการ
+        // ✅ Retrieve fresh geometry data when needed
         const vectorField& centres = mesh_.cellCentres();
         processCentres(centres);
 
-        // ถ้าเมชเปลี่ยนแปลง...
+        // If mesh changes...
         // mesh_.clearGeom();
 
-        // ✅ ดึงข้อมูลใหม่หลังจากการเปลี่ยนแปลง
+        // ✅ Retrieve fresh data after modifications
         const vectorField& newCentres = mesh_.cellCentres();
         processCentres(newCentres);
     }
@@ -66,7 +66,7 @@ public:
 private:
     void processCentres(const vectorField& centres)
     {
-        // ประมวลผลทันที ไม่เก็บการอ้างอิงไว้
+        // Process immediately, don't store references
         forAll(centres, cellI)
         {
             centreOperations(centres[cellI], cellI);
@@ -74,6 +74,18 @@ private:
     }
 };
 ```
+
+#### **📖 คำอธิบายเพิ่มเติม**
+
+**แหล่งที่มา:** 📂 OpenFOAM Foundation Documentation / Mesh Processing Best Practices
+
+**คำอธิบาย:**
+โค้ดตัวอย่างนี้แสดงแนวทางปฏิบัติที่ดีในการจัดการการอ้างอิงเรขาคณิตเมช คลาส `MeshProcessor` เก็บการอ้างอิงไปยังเมชเท่านั้น ไม่ใช่ข้อมูลเรขาคณิตที่คำนวณแล้ว และดึงข้อมูลเรขาคณิตสดใหม่ทุกครั้งที่ต้องการ วิธีนี้ป้องกันการใช้ข้อมูลที่ล้าสมัยและหลีกเลี่ยงพฤติกรรมที่ไม่กำหนด
+
+**แนวคิดสำคัญ:**
+- **การอ้างอิงชั่วคราว:** ดึงเรขาคณิตใหม่เมื่อต้องการ ไม่เก็บไว้ในสมาชิกคลาส
+- **การประมวลผลทันที:** ประมวลผลข้อมูลเรขาคณิตทันทีที่ได้รับ ไม่เก็บการอ้างอิงระยะยาว
+- **ความปลอดภัยของหน่วยความจำ:** หลีกเลี่ยงการอ้างอิงถึงข้อมูลที่อาจถูกล้างออกจากแคช
 
 ---
 
@@ -97,27 +109,27 @@ flowchart LR
     F -->|Normal →| N[Neighbor Cell]
     N -.->|Flux ลบ| F
 ```
-> **Figure 2:** ข้อตกลงเรื่องทิศทางของหน้าผิว (Face Orientation) ใน OpenFOAM โดยเวกเตอร์ปกติจะชี้จากเซลล์เจ้าของ (Owner) ไปยังเซลล์ข้างเคียง (Neighbor) เสมอเพื่อความสม่ำเสมอในการคำนวณฟลักซ์ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 2:** ข้อตกลงเรื่องทิศทางของหน้าผิว (Face Orientation) ใน OpenFOAM โดยเวกเตอร์ปกติจะชี้จากเซลล์เจ้าของ (Owner) ไปยังเซลล์ข้างเคียง (Neighbor) เสมอเพื่อความสม่ำเสมอในการคำนวณฟลักซ์
 
 ### **OpenFOAM Code Implementation**
 
 ```cpp
-// ❌ ปัญหา: สมมติว่าทิศทาง face normal
+// ❌ Problem: Assuming face normal direction
 void wrongFluxCalculation(const polyMesh& mesh)
 {
     const vectorField& Sf = mesh.faceAreas();
 
     forAll(mesh.owner(), faceI)
     {
-        // ❌ ผิด: ไม่คำนึงถึงทิศทาง owner/neighbor
-        scalar flux = U[faceI] & Sf[faceI];  // เครื่องหมายอาจผิด!
+        // ❌ Wrong: Not considering owner/neighbor direction
+        scalar flux = U[faceI] & Sf[faceI];  // Sign might be wrong!
 
-        // สำหรับ boundary faces นี่อาจถูกต้องหรือกลับด้าน
-        // ขึ้นอยู่กับว่า face ถูกกำหนดไว้อย่างไร
+        // For boundary faces this might be correct or reversed
+        // depending on how the face was defined
     }
 }
 
-// ✅ วิธีแก้ไข: ใช้ข้อตกลงเครื่องหมายตาม owner
+// ✅ Solution: Follow owner-based sign convention
 void correctFluxCalculation(const polyMesh& mesh)
 {
     const vectorField& Sf = mesh.faceAreas();
@@ -129,25 +141,38 @@ void correctFluxCalculation(const polyMesh& mesh)
         label own = owner[faceI];
         label nei = neighbour[faceI];
 
-        // Face normal ชี้จาก owner ไปยัง neighbor
-        // ดังนั้น flux จากมุมมองของ owner:
-        scalar flux = U[faceI] & Sf[faceI];  // บวก = ออกจาก owner
+        // Face normal points from owner to neighbor
+        // So flux from owner's perspective:
+        scalar flux = U[faceI] & Sf[faceI];  // Positive = out of owner
 
         if (nei != -1)  // Internal face
         {
-            // Owner เห็น positive flux เป็น outflow
-            // Neighbor เห็น flux เดียวกันเป็น inflow (negative)
+            // Owner sees positive flux as outflow
+            // Neighbor sees same flux as inflow (negative)
             phi[own] += flux;
-            phi[nei] -= flux;  // Negative สำหรับ neighbor
+            phi[nei] -= flux;  // Negative for neighbor
         }
         else  // Boundary face
         {
-            // มีเฉพาะฝั่ง owner เท่านั้น
+            // Only owner side exists
             phi[own] += flux;
         }
     }
 }
 ```
+
+#### **📖 คำอธิบายเพิ่มเติม**
+
+**แหล่งที่มา:** 📂 OpenFOAM Programmer's Guide / Face Orientation Convention
+
+**คำอธิบาย:**
+โค้ดนี้แสดงความสำคัญของข้อตกลงทิศทาง face ใน OpenFOAM ฟังก์ชัน `wrongFluxCalculation` แสดงปัญหาที่เกิดจากการไม่คำนึงถึงทิศทาง owner/neighbor ในขณะที่ `correctFluxCalculation` แสดงวิธีที่ถูกต้องในการคำนวณ flux โดยใช้ข้อตกลงเครื่องหมายตาม owner
+
+**แนวคิดสำคัญ:**
+- **ข้อตกลง Owner:** Face normal ชี้จาก owner ไปยัง neighbor เสมอ
+- **Dual Perspective:** Owner และ neighbor เห็น flux เดียวกันแต่มีเครื่องหมายตรงกันข้าม
+- **การอนุรักษ์:** ผลรวมของ flux ต้องเป็นศูนย์เพื่อรักษาความสมดุลของมวล
+- **Boundary Faces:** มีเฉพาะ owner side เท่านั้น ไม่มี neighbor
 
 ---
 
@@ -211,62 +236,62 @@ public:
 
     void reportQuality(const QualityMetrics& metrics) const
     {
-        Info << "=== รายงานคุณภาพเมช ===" << nl;
-        Info << "Non-orthogonality สูงสุด: " << metrics.maxNonOrtho << "°" << nl;
-        Info << "Skewness สูงสุด: " << metrics.maxSkewness << nl;
-        Info << "ปริมาตรเซลล์ต่ำสุด: " << metrics.minVolume << nl;
-        Info << "อัตราส่วนภาพสูงสุด: " << metrics.maxAspectRatio << nl;
-        Info << "เซลล์ไม่ถูกต้อง: " << metrics.nInvalidCells << nl;
+        Info << "=== Mesh Quality Report ===" << nl;
+        Info << "Max Non-orthogonality: " << metrics.maxNonOrtho << "°" << nl;
+        Info << "Max Skewness: " << metrics.maxSkewness << nl;
+        Info << "Min Cell Volume: " << metrics.minVolume << nl;
+        Info << "Max Aspect Ratio: " << metrics.maxAspectRatio << nl;
+        Info << "Invalid cells: " << metrics.nInvalidCells << nl;
 
-        // ✅ ให้คำแนะนำเฉพาะเจาะจง
+        // ✅ Provide specific recommendations
         if (metrics.maxNonOrtho > 70.0)
         {
-            Info << "⚠️ ตรวจพบ Non-orthogonality สูง!" << nl
-                 << "   ควรพิจารณา:" << nl
-                 << "   - ปรับปรุงเมชด้วย blockMesh/snappyHexMesh" << nl
-                 << "   - ใช้ schemes ที่แก้ไขแล้วใน fvSchemes" << nl
-                 << "   - ลดตัวปรับค่าผ่อนคลาย" << nl;
+            Info << "⚠️ High non-orthogonality detected!" << nl
+                 << "   Consider:" << nl
+                 << "   - Improving mesh with blockMesh/snappyHexMesh" << nl
+                 << "   - Using corrected schemes in fvSchemes" << nl
+                 << "   - Reducing relaxation factors" << nl;
         }
 
         if (metrics.maxSkewness > 4.0)
         {
-            Info << "⚠️ ตรวจพบ Skewness สูง!" << nl
-                 << "   ควรพิจารณา:" << nl
-                 << "   - ลด skewness ระหว่างการสร้างเมช" << nl
-                 << "   - ใช้การแทรกสอดที่แก้ไข skewness" << nl;
+            Info << "⚠️ High skewness detected!" << nl
+                 << "   Consider:" << nl
+                 << "   - Reducing skewness during mesh generation" << nl
+                 << "   - Using skewness-corrected interpolation" << nl;
         }
 
         if (metrics.minVolume < 1e-13)
         {
-            Info << "⚠️ ตรวจพบเซลล์ขนาดเล็กมาก!" << nl
-                 << "   ควรพิจารณา:" << nl
-                 << "   - ตรวจสอบเซลล์ที่ซ้อนทับกัน" << nl
-                 << "   - การปรับสเกลหรือการแบ่งเมช" << nl;
+            Info << "⚠️ Very small cells detected!" << nl
+                 << "   Consider:" << nl
+                 << "   - Checking for overlapping cells" << nl
+                 << "   - Mesh scaling or refinement adjustment" << nl;
         }
     }
 
     void selectDiscretizationSchemes(QualityMetrics& metrics) const
     {
-        // ✅ การเลือก scheme อัตโนมัติตามคุณภาพ
+        // ✅ Automatic scheme selection based on quality
         if (metrics.maxNonOrtho < 30.0)
         {
-            Info << "ใช้ standard Gauss linear schemes" << nl;
+            Info << "Using standard Gauss linear schemes" << nl;
             useStandardSchemes();
         }
         else if (metrics.maxNonOrtho < 70.0)
         {
-            Info << "ใช้ corrected schemes สำหรับ non-orthogonality ปานกลาง" << nl;
+            Info << "Using corrected schemes for moderate non-orthogonality" << nl;
             useCorrectedSchemes();
         }
         else
         {
-            Info << "ใช้ limited schemes สำหรับ non-orthogonality สูง" << nl;
+            Info << "Using limited schemes for high non-orthogonality" << nl;
             useLimitedSchemes();
         }
 
         if (metrics.maxSkewness > 2.0)
         {
-            Info << "เปิดใช้งานการแก้ไข skewness" << nl;
+            Info << "Enabling skewness correction" << nl;
             enableSkewnessCorrection();
         }
     }
@@ -319,7 +344,7 @@ private:
                 scalar maxEdge = 0;
                 scalar minEdge = GREAT;
 
-                // การคำนวณอัตราส่วนภาพที่ทำให้ง่ายขึ้น
+                // Simplified aspect ratio calculation
                 forAll(c, faceI)
                 {
                     const face& f = mesh_.faces()[c[faceI]];
@@ -342,6 +367,19 @@ private:
     }
 };
 ```
+
+#### **📖 คำอธิบายเพิ่มเติม**
+
+**แหล่งที่มา:** 📂 OpenFOAM User Guide / Mesh Quality Assessment
+
+**คำอธิบาย:**
+คลาส `MeshQualityAnalyzer` ให้เครื่องมืออันทรงพลังสำหรับการประเมินคุณภาพเมชอย่างครอบคลุม โดยวัดตัวชี้วัดสำคัญ 4 ประการ: non-orthogonality, skewness, cell volume และ aspect ratio และให้คำแนะนำเฉพาะเจาะจงสำหรับการปรับปรุงเมช รวมถึงการเลือก discretization schemes ที่เหมาะสมโดยอัตโนมัติตามคุณภาพของเมช
+
+**แนวคิดสำคัญ:**
+- **Non-orthogonality:** มุมระหว่าง face normal กับเส้นเชื่อมระหว่าง cell centers
+- **Skewness:** ความไม่สมมาตรของ face center เทียบกับเส้นเชื่อม cell centers
+- **Aspect Ratio:** อัตราส่วนระหว่าง edge ยาวสุดและสั้นสุดใน cell
+- **Automatic Scheme Selection:** เลือก discretization schemes ตามคุณภาพเมช
 
 ---
 
@@ -367,7 +405,7 @@ class OptimizedMeshProcessor
 private:
     const primitiveMesh& mesh_;
 
-    // ✅ แคชในเครื่องสำหรับเรขาคณิตที่ใช้ภายในขอบเขตการประมวลผล
+    // ✅ Local caching for geometry used within processing scope
     mutable struct GeometryCache
     {
         vectorField cellCentres;
@@ -381,16 +419,16 @@ private:
 public:
     void processWithCaching()
     {
-        // ✅ คำนวณเรขาคณิตที่จำเป็นทั้งหมดล่วงหน้า
+        // ✅ Precompute all necessary geometry
         updateGeometryCache();
 
-        // ใช้ข้อมูลที่แคชไว้ตลอดการประมวลผล
+        // Use cached data throughout processing
         for (int iter = 0; iter < 1000; ++iter)
         {
             processIteration(cache_.cellCentres, iter);
         }
 
-        // ล้างแคชเมื่อเสร็จสิ้น
+        // Clear cache when done
         clearCache();
     }
 
@@ -416,18 +454,30 @@ private:
 
     void processIteration(const vectorField& centres, int iter)
     {
-        // ✅ ใช้เรขาคณิตที่แคชไว้อย่างมีประสิทธิภาพ
+        // ✅ Use cached geometry efficiently
         scalar totalDistance = 0;
         forAll(centres, cellI)
         {
             totalDistance += mag(centres[cellI] - vector(iter*0.001, 0, 0));
         }
 
-        // ดำเนินการเฉพาะรอบ
-        Info << "รอบที่ " << iter << ", ระยะทางรวม: " << totalDistance << nl;
+        // Perform iteration-specific operations
+        Info << "Iteration " << iter << ", Total distance: " << totalDistance << nl;
     }
 };
 ```
+
+#### **📖 คำอธิบายเพิ่มเติม (กลยุทธ์ที่ 1)**
+
+**แหล่งที่มา:** 📂 OpenFOAM Performance Optimization Guide
+
+**คำอธิบาย:**
+คลาส `OptimizedMeshProcessor` ใช้กลยุทธ์การแคชในเครื่องเพื่อลดการสอบถามเรขาคณิตซ้ำ โดยเก็บข้อมูลเรขาคณิตไว้ในโครงสร้าง `GeometryCache` และใช้งานซ้ำหลายครั้งโดยไม่ต้องคำนวณใหม่ วิธีนี้เหมาะสำหรับการวนซ้ำหลายรอบที่ต้องการข้อมูลเรขาคณิตเดียวกัน
+
+**แนวคิดสำคัญ:**
+- **Precomputation:** คำนวณเรขาคณิตทั้งหมดล่วงหน้าก่อนการวนซ้ำ
+- **Cache Validity:** ติดตามความถูกต้องของแคชด้วยฟิลด์ `valid`
+- **Scope-limited Caching:** แคชเฉพาะภายในขอบเขตการประมวลผล ล้างเมื่อเสร็จสิ้น
 
 #### **กลยุทธ์ที่ 2: การประมวลผลเป็นชุด**
 
@@ -440,13 +490,13 @@ private:
 public:
     void processBatchOperations()
     {
-        // ✅ จัดกลุ่มการดำเนินการเรขาคณิตทั้งหมดไว้ด้วยกัน
+        // ✅ Group all geometry operations together
         const vectorField& cellCentres = mesh_.cellCentres();
         const vectorField& faceCentres = mesh_.faceCentres();
         const scalarField& cellVolumes = mesh_.cellVolumes();
         const vectorField& faceAreas = mesh_.faceAreas();
 
-        // ประมวลผลการดำเนินการทั้งหมดในครั้งเดียว
+        // Process all operations in one pass
         processVolumeDistribution(cellVolumes);
         processCenterOfMass(cellCentres, cellVolumes);
         processFluxCalculation(faceAreas, faceCentres);
@@ -459,11 +509,11 @@ private:
         scalar totalVolume = sum(V);
         scalar meanVolume = totalVolume / V.size();
 
-        Info << "สถิติปริมาตร:" << nl
-             << "  รวม: " << totalVolume << nl
-             << "  เฉลี่ย: " << meanVolume << nl
-             << "  ต่ำสุด: " << min(V) << nl
-             << "  สูงสุด: " << max(V) << nl;
+        Info << "Volume statistics:" << nl
+             << "  Total: " << totalVolume << nl
+             << "  Mean: " << meanVolume << nl
+             << "  Min: " << min(V) << nl
+             << "  Max: " << max(V) << nl;
     }
 
     void processCenterOfMass(
@@ -483,7 +533,7 @@ private:
         if (totalVolume > SMALL)
         {
             vector centerOfMass = weightedSum / totalVolume;
-            Info << "จุดศูนย์กลางมวล: " << centerOfMass << nl;
+            Info << "Center of mass: " << centerOfMass << nl;
         }
     }
 
@@ -492,19 +542,19 @@ private:
         const vectorField& faceCentres
     ) const
     {
-        // ตัวอย่าง: คำนวณขนาด flux ออกทั้งหมด
+        // Example: Calculate total outward flux magnitude
         scalar totalOutwardFlux = 0;
 
         forAll(areas, faceI)
         {
             if (!mesh_.isInternalFace(faceI))
             {
-                // หน้าขอบเขต - ประมาณ flux ออก
+                // Boundary face - approximate outward flux
                 totalOutwardFlux += mag(areas[faceI]);
             }
         }
 
-        Info << "พื้นที่ขอบเขตทั้งหมด: " << totalOutwardFlux << nl;
+        Info << "Total boundary area: " << totalOutwardFlux << nl;
     }
 
     void processQualityMetrics(
@@ -512,17 +562,29 @@ private:
         const vectorField& faceAreas
     ) const
     {
-        // การตรวจสอบคุณภาพแบบง่าย
+        // Simple quality check
         scalar meanFaceArea = sum(mag(faceAreas)) / faceAreas.size();
         scalar maxFaceArea = max(mag(faceAreas));
         scalar minFaceArea = min(mag(faceAreas));
 
-        Info << "สถิติพื้นที่หน้า:" << nl
-             << "  เฉลี่ย: " << meanFaceArea << nl
-             << "  อัตราส่วนสูงสุด/ต่ำสุด: " << maxFaceArea/max(minFaceArea, SMALL) << nl;
+        Info << "Face area statistics:" << nl
+             << "  Mean: " << meanFaceArea << nl
+             << "  Max/min ratio: " << maxFaceArea/max(minFaceArea, SMALL) << nl;
     }
 };
 ```
+
+#### **📖 คำอธิบายเพิ่มเติม (กลยุทธ์ที่ 2)**
+
+**แหล่งที่มา:** 📂 OpenFOAM Programming Best Practices
+
+**คำอธิบาย:**
+คลาส `BatchGeometryProcessor` ใช้กลยุทธ์การประมวลผลเป็นชุด โดยดึงข้อมูลเรขาคณิตทั้งหมดมาครั้งเดียว แล้วประมวลผลการดำเนินการทั้งหมดในครั้งเดียว วิธีนี้ลดการเข้าถึงเมชซ้ำและเพิ่มประสิทธิภาพของแคช CPU
+
+**แนวคิดสำคัญ:**
+- **Batch Processing:** รวบรวมการดำเนินการทั้งหมดและประมวลผลพร้อมกัน
+- **Single-pass Computation:** คำนวณข้อมูลเรขาคณิตครั้งเดียว ใช้ซ้ำหลายครั้ง
+- **Memory Efficiency:** ลดการจองหน่วยความจำซ้ำและการเข้าถึงแคชที่ไม่จำเป็น
 
 ### **ประสิทธิภาพของกลยุทธ์แคช**
 
@@ -551,28 +613,28 @@ private:
 ### **OpenFOAM Code Implementation**
 
 ```cpp
-// ❌ ปัญหา: สมมติว่าการเรียงลำดับ patch คงที่
+// ❌ Problem: Assuming constant patch ordering
 void fragileBoundaryCode(const polyMesh& mesh)
 {
-    // ❌ ผิด: Patch indices อาจเปลี่ยนแปลง!
-    label inletPatch = 0;   // อาจไม่เป็นเช่นนั้นเสมอไป
-    label outletPatch = 1;  // อาจไม่เป็นเช่นนั้นเสมอไป
-    label wallPatch = 2;    // อาจไม่เป็นเช่นนั้นเสมอไป
+    // ❌ Wrong: Patch indices may change!
+    label inletPatch = 0;   // Might not always be true
+    label outletPatch = 1;  // Might not always be true
+    label wallPatch = 2;    // Might not always be true
 
-    processPatch(mesh.boundaryMesh()[inletPatch]);   // เสี่ยง!
-    processPatch(mesh.boundaryMesh()[outletPatch]);  // เสี่ยง!
-    processPatch(mesh.boundaryMesh()[wallPatch]);    // เสี่ยง!
+    processPatch(mesh.boundaryMesh()[inletPatch]);   // Risky!
+    processPatch(mesh.boundaryMesh()[outletPatch]);  // Risky!
+    processPatch(mesh.boundaryMesh()[wallPatch]);    // Risky!
 }
 
-// ✅ วิธีแก้ไข: ค้นหา patches ตามชื่อ
+// ✅ Solution: Find patches by name
 void robustBoundaryCode(const polyMesh& mesh)
 {
-    // ✅ ค้นหา patches ตามชื่อ (จาก case files)
+    // ✅ Search for patches by name (from case files)
     label inletPatch = mesh.boundaryMesh().findPatchID("inlet");
     label outletPatch = mesh.boundaryMesh().findPatchID("outlet");
     label wallPatch = mesh.boundaryMesh().findPatchID("walls");
 
-    // ✅ ตรวจสอบว่า patches มีอยู่จริง
+    // ✅ Verify patches exist
     if (inletPatch == -1)
     {
         FatalErrorInFunction
@@ -580,17 +642,30 @@ void robustBoundaryCode(const polyMesh& mesh)
             << abort(FatalError);
     }
 
-    // ✅ ประมวลผลด้วยความมั่นใจ
-    processPatch(mesh.boundaryMesh()[inletPatch]);   // ปลอดภัย!
-    processPatch(mesh.boundaryMesh()[outletPatch]);  // ปลอดภัย!
+    // ✅ Process with confidence
+    processPatch(mesh.boundaryMesh()[inletPatch]);   // Safe!
+    processPatch(mesh.boundaryMesh()[outletPatch]);  // Safe!
 
-    // ✅ จัดการ optional patches
+    // ✅ Handle optional patches
     if (wallPatch != -1)
     {
-        processPatch(mesh.boundaryMesh()[wallPatch]);  // มีเงื่อนไข
+        processPatch(mesh.boundaryMesh()[wallPatch]);  // Conditional
     }
 }
 ```
+
+#### **📖 คำอธิบายเพิ่มเติม**
+
+**แหล่งที่มา:** 📂 OpenFOAM Boundary Handling Documentation
+
+**คำอธิบาย:**
+โค้ดนี้แสดงความแตกต่างระหว่างการ hardcode patch indices ซึ่งเปราะบาง และการใช้ `findPatchID()` เพื่อค้นหา patches ตามชื่อซึ่งแข็งแกร่งกว่า วิธีหลังช่วยให้โค้ดทำงานได้ถูกต้องไม่ว่าการเรียงลำดับของ patches จะเปลี่ยนแปลงอย่างไร และยังรองรับ patches ที่เป็นทางเลือก (optional) ได้อีกด้วย
+
+**แนวคิดสำคัญ:**
+- **Dynamic Patch Lookup:** ใช้ `findPatchID()` แทนการ hardcode indices
+- **Error Handling:** ตรวจสอบว่า patches ที่จำเป็นมีอยู่จริง
+- **Optional Boundaries:** จัดการ patches ที่อาจไม่มีในทุก cases
+- **Maintainability:** โค้ดยืดหยุ่นและบำรุงรักษาง่ายขึ้น
 
 ### **การเปรียบเทียบวิธีการค้นหา Patches**
 
@@ -617,8 +692,9 @@ flowchart LR
     C --> D{ต้องการทำซ้ำ?}
     D -->|ใช่| A
     D -->|ไม่| E[เสร็จสิ้น]
+]
 ```
-> **Figure 3:** รูปแบบการจัดการหน่วยความจำอย่างปลอดภัย (Safe Memory Management Pattern) ซึ่งเน้นการประมวลผลข้อมูลทันทีหลังจากสร้างการอ้างอิงและทำความสะอาดทรัพยากรอย่างเป็นระบบเพื่อป้องกันปัญหาหน่วยความจำความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 3:** รูปแบบการจัดการหน่วยความจำอย่างปลอดภัย (Safe Memory Management Pattern) ซึ่งเน้นการประมวลผลข้อมูลทันทีหลังจากสร้างการอ้างอิงและทำความสะอาดทรัพยากรอย่างเป็นระบบเพื่อป้องกันปัญหาหน่วยความจำ
 
 ### **OpenFOAM Code Implementation**
 
@@ -636,7 +712,7 @@ public:
 
     ~ScopedGeometry()
     {
-        // ✅ การทำความสะอาดอัตโนมัติ
+        // ✅ Automatic cleanup
         if (geometryValid_)
         {
             mesh_.clearGeom();
@@ -647,12 +723,12 @@ public:
     {
         if (!geometryValid_)
         {
-            // สิ่งนี้ทำให้เกิดการคำนวณและแคช
+            // This triggers computation and caching
             const vectorField& centres = mesh_.cellCentres();
             geometryValid_ = true;
             return centres;
         }
-        // ส่งคืนเวอร์ชันที่แคชไว้
+        // Return cached version
         return mesh_.cellCentres();
     }
 
@@ -663,23 +739,36 @@ public:
     }
 };
 
-// ตัวอย่างการใช้งาน:
+// Usage example:
 void robustProcessing(const primitiveMesh& mesh)
 {
     ScopedGeometry geometryScope(mesh);
 
-    // เรขาคณิตถูกคำนวณครั้งเดียวและจัดการโดยอัตโนมัติ
+    // Geometry is computed once and managed automatically
     const vectorField& centres = geometryScope.getCellCentres();
 
-    // ประมวลผลด้วยเรขาคณิต
+    // Process with geometry
     forAll(centres, cellI)
     {
-        // การดำเนินการที่ปลอดภัย
+        // Safe operations
     }
 
-    // เรขาคณิตถูกทำความสะอาดโดยอัตโนมัติเมื่อออกจากขอบเขต
+    // Geometry is automatically cleaned up when out of scope
 }
 ```
+
+#### **📖 คำอธิบายเพิ่มเติม**
+
+**แหล่งที่มา:** 📂 OpenFOAM Memory Management Patterns
+
+**คำอธิบาย:**
+คลาส `ScopedGeometry` ใช้รูปแบบ RAII (Resource Acquisition Is Initialization) เพื่อจัดการหน่วยความจำอย่างปลอดภัย โดยอัตโนมัติทำความสะอาดเรขาคณิตเมื่อออกจากขอบเขต วิธีนี้ช่วยป้องกันการรั่วไหลของหน่วยความจำและการใช้ข้อมูลที่ล้าสมัย
+
+**แนวคิดสำคัญ:**
+- **RAII Pattern:** ทำความสะอาดอัตโนมัติเมื่อออกจาก scope
+- **Exception Safety:** รับประกันการทำความสะอาดแม้ในกรณีข้อผิดพลาด
+- **Scope Management:** จัดการอายุการใช้งานของทรัพยากรอย่างชัดเจน
+- **Cache Invalidation:** ติดตามและล้างแคชเมื่อจำเป็น
 
 ### **ตัวอย่างการปรับใช้ในกรณีจริง**
 
@@ -690,35 +779,48 @@ void iterativeMeshRefinement(primitiveMesh& mesh, int nIterations)
 {
     for (int iter = 0; iter < nIterations; ++iter)
     {
-        // ✅ สร้างขอบเขตใหม่สำหรับการทำซ้ำแต่ละครั้ง
+        // ✅ Create new scope for each iteration
         {
             ScopedGeometry geoScope(mesh);
             const vectorField& centres = geoScope.getCellCentres();
 
-            // ประมวลผลด้วยเรขาคณิตปัจจุบัน
+            // Process with current geometry
             performRefinementStep(mesh, centres);
 
-            // เรขาคณิตถูกทำความสะอาดโดยอัตโนมัติ
+            // Geometry is automatically cleaned up
         }
 
-        // ปรับเปลี่ยนเมช
+        // Modify mesh geometry
         modifyMeshGeometry(mesh);
 
-        // การทำซ้ำถัดไปจะมีเรขาคณิตใหม่
+        // Next iteration will have fresh geometry
     }
 }
 ```
+
+#### **📖 คำอธิบายเพิ่มเติม (กรณีที่ 1)**
+
+**แหล่งที่มา:** 📂 OpenFOAM Mesh Refinement Patterns
+
+**คำอธิบาย:**
+ฟังก์ชัน `iterativeMeshRefinement` แสดงการใช้ `ScopedGeometry` ในการวนซ้ำแบบปรับปรุงเมช โดยสร้าง scope ใหม่สำหรับแต่ละรอบ ทำให้มั่นใจได้ว่าเรขาคณิตจะถูกทำความสะอาดหลังจากแต่ละรอบ และรอบถัดไปจะได้รับข้อมูลเรขาคณิตที่สดใหม่
+
+**แนวคิดสำคัญ:**
+- **Per-iteration Scoping:** สร้าง scope ใหม่สำหรับแต่ละรอบ
+- **Automatic Cleanup:** เรขาคณิตถูกล้างโดยอัตโนมัติหลังการประมวลผล
+- **Fresh Data:** รอบถัดไปเริ่มต้นด้วยข้อมูลเรขาคณิตใหม่
+- **Memory Efficiency:** ป้องกันการสะสมของข้อมูลที่ไม่จำเป็น
 
 #### **กรณีที่ 2: การวิเคราะห์แบบขนาน**
 
 ```cpp
 void parallelMeshAnalysis(const primitiveMesh& mesh)
 {
-    // ✅ แคชเรขาคณิตครั้งเดียวสำหรับการใช้งานขนาน
+    // ✅ Cache geometry once for parallel usage
     const vectorField& centres = mesh.cellCentres();
     const scalarField& volumes = mesh.cellVolumes();
 
-    // ประมวลผลขนานโดยใช้เรขาคณิตที่แคชไว้
+    // Process in parallel using cached geometry
     #pragma omp parallel for
     for (int cellI = 0; cellI < centres.size(); ++cellI)
     {
@@ -726,6 +828,19 @@ void parallelMeshAnalysis(const primitiveMesh& mesh)
     }
 }
 ```
+
+#### **📖 คำอธิบายเพิ่มเติม (กรณีที่ 2)**
+
+**แหล่งที่มา:** 📂 OpenFOAM Parallel Processing Guide
+
+**คำอธิบาย:**
+ฟังก์ชัน `parallelMeshAnalysis` แสดงการใช้งานแบบขนานโดยการแคชเรขาคณิตครั้งเดียว แล้วประมวลผลขนานโดยใช้ OpenMP วิธีนี้เหมาะสำหรับการวิเคราะห์จำนวนมากที่ต้องการเรขาคณิตเดียวกัน และช่วยเพิ่มประสิทธิภาพอย่างมีนัยสำคัญ
+
+**แนวคิดสำคัญ:**
+- **Single-pass Caching:** แคชเรขาคณิตครั้งเดียว ใช้ซ้ำหลายครั้ง
+- **Parallel Processing:** ใช้ OpenMP สำหรับการประมวลผลแบบขนาน
+- **Data Consistency:** ทุก threads ใช้ข้อมูลเรขาคณิตเดียวกัน
+- **Performance:** ลดการคำนวณซ้ำและเพิ่มประสิทธิภาพโดยรวม
 
 ---
 

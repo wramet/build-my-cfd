@@ -78,7 +78,6 @@ flowchart LR
 ```
 > **Figure 1:** แผนภาพแสดงกระบวนการเกิดการเดือดตั้งแต่การรับความร้อนที่ผนังจนถึงการเคลื่อนที่ของส่วนต่อประสานระหว่างเฟสเนื่องจากการถ่ายโอนมวล
 
-
 ---
 
 ## 3. Mass Transfer Models
@@ -218,6 +217,8 @@ $$\frac{\partial n}{\partial t} + \nabla \cdot (n\mathbf{u}) + \frac{\partial}{\
 OpenFOAM implements phase change through the `phaseChangeModel` class hierarchy:
 
 ```cpp
+// Base class for phase change models
+// Provides interface for mass transfer calculations
 class phaseChangeModel
 {
     // Calculate interfacial temperature
@@ -229,11 +230,24 @@ class phaseChangeModel
     // Update source terms for energy equation
     virtual void correctMassTransfer
     (
-        volScalarField& Su,
-        volScalarField& Sp
+        volScalarField& Su,  // Explicit source term
+        volScalarField& Sp   // Implicit source term
     );
 };
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
+>
+> **คำอธิบาย (Thai Explanation):**
+> คลาส `phaseChangeModel` เป็นคลาสฐาน (base class) ที่กำหนดส่วนติดต่อ (interface) สำหรับแบบจำลองการเปลี่ยนสถานะเฟสทั้งหมดใน OpenFOAM:
+> - **Tintfc()**: คำนวณอุณหภูมิที่ส่วนต่อประสานระหว่างเฟส ซึ่งเป็นค่าสำคัญในการกำหนดเงื่อนไขการเปลี่ยนสถานะ
+> - **dmdt()**: คำนวณอัตราการถ่ายโอนมวล (mass transfer rate) หน่วย kg/(m³·s) ซึ่งเป็นค่าหลักที่ใช้ในสมการพลังงานและสมการสมดุลมวล
+> - **correctMassTransfer()**: อัปเดตเทอมแหล่งกำเนิด (source terms) สำหรับสมการพลังงาน โดยแบ่งเป็นส่วนชัดแจ้ง (explicit, Su) และส่วนประกอบโดยปริยาย (implicit, Sp) เพื่อเพิ่มเสถียรภาพของการคำนวณ
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Virtual Function Pattern**: ฟังก์ชัน `virtual` ทำให้คลาสลูกหลาน (derived classes) สามารถ implement แบบจำลองที่แตกต่างกัน (Lee, Schrage, Schnerr-Sauer, ฯลฯ) ได้
+> - **tmp<volScalarField>**: ใช้ smart pointer เพื่อจัดการหน่วยความจำอัตโนมัติและหลีกเลี่ยงการคัดลอกข้อมูลโดยไม่จำเป็น
+> - **Source Terms**: เทอมแหล่งกำเนิด Su และ Sp ใช้ใน fvMatrix สำหรับแก้สมการพลังงานและสมการอื่นๆ ที่เกี่ยวข้องกับการถ่ายโอนมวล
 
 ### 5.2 Solver Integration
 
@@ -260,7 +274,6 @@ graph TD
     style D fill:#f96,stroke:#333,stroke-width:2px
 ```
 > **Figure 2:** แผนผังลำดับขั้นตอนการคำนวณของ Solver สำหรับแบบจำลองการเปลี่ยนสถานะเฟส โดยแสดงการเชื่อมโยงระหว่างการคำนวณอัตราการถ่ายโอนมวลและสมการพลังงานในแต่ละขั้นตอนการวนซ้ำ
-
 
 ### 5.3 Configuration in `phaseProperties`
 
@@ -327,15 +340,18 @@ where bubble radius $R_b$ relates to vapor volume fraction:
 
 $$\alpha_v = \frac{4}{3}\pi n_b R_b^3 \tag{6.3}$$
 
-**Implementation:**
-
 ```cpp
+// Schnerr-Sauer cavitation model implementation
+// Based on bubble dynamics theory with spherical bubble assumption
 class SchnerrSauerPhaseChange : public phaseChangeModel
 {
+    // Cavitation and condensation coefficients
     dimensionedScalar Cc_;      // Cavitation coefficient
     dimensionedScalar Cv_;      // Condensation coefficient
     dimensionedScalar pSat_;    // Saturation pressure
 
+    // Calculate mass transfer rate [kg/(m³·s)]
+    // Uses pressure difference between local and saturation pressure
     virtual tmp<volScalarField> dmdt() const override
     {
         return (rhoLiquid_*rhoVapor_/rho_) * Cc_ *
@@ -344,6 +360,19 @@ class SchnerrSauerPhaseChange : public phaseChangeModel
     }
 };
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+>
+> **คำอธิบาย (Thai Explanation):**
+> คลาส `SchnerrSauerPhaseChange` เป็นการ implement แบบจำลอง Schnerr-Sauer สำหรับการ voilup (cavitation) ใน OpenFOAM:
+> - **Cc_ และ Cv_**: สัมประสิทธิ์ (coefficients) สำหรับกระบวนการ cavitation และ condensation ซึ่งสามารถปรับแต่งได้ตามเงื่อนไขการไหล
+> - **pSat_**: ความดันไอน้ำ/ความดันอิ่มตัว (saturation pressure) ที่ใช้เป็นเกณฑ์ในการกำหนดจุดเริ่มต้นของ cavitation
+> - **dmdt()**: คำนวณอัตราการถ่ายโอนมวลจากความแตกต่างของความดัน (pressure difference) โดยใช้รูปแบบสมการที่พิจารณาจลน์ (inertia) ของของไหล
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Pressure-Driven Mass Transfer**: แบบจำลองนี้ใช้ความแตกต่างของความดัน (p - pSat) เป็นตัวขับเคลื่อนหลักในการคำนวณอัตราการถ่ายโอนมวล ซึ่งแตกต่างจากแบบจำลอง Lee ที่ใช้ความแตกต่างของอุณหภูมิ
+> - **Bubble Dynamics Theory**: พื้นฐานทางทฤษฎีมาจากสมการ Rayleigh-Plesset ที่อธิบายการเติบโตและยุบตัวของฟองในสนามความดัน
+> - **Sign Function**: ฟังก์ชัน `sign()` ใช้ในการกำหนดทิศทางของการถ่ายโอนมวล (evaporation หรือ condensation) ตามเครื่องหมายของความแตกต่างความดัน
 
 ### 6.3 Kunz Model
 
@@ -398,17 +427,32 @@ $$\dot{m}'' = \frac{C_{prod}\rho_v \min(0, p - p_{sat})}{t_{\infty}} - \frac{C_{
 - **Adaptive mesh refinement** near interface
 
 ```cpp
-// Interface compression in VOF
+// Interface compression in VOF method
+// Compresses the interface to maintain sharpness
 surfaceScalarField phiAlpha
 (
     fvc::flux
     (
+        // Compressive flux based on interface normal gradient
         -fvc::snGrad(alpha1_)*mesh.magSf(),
         alpha1_,
         "div(phi,alpha1)"
     )
 );
 ```
+
+> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+>
+> **คำอธิบาย (Thai Explanation):**
+> โค้ดนี้แสดงการใช้งาน **Interface Compression Scheme** ในวิธี VOF (Volume of Fluid) เพื่อรักษาความคมชัดของส่วนต่อประสานระหว่างเฟส:
+> - **phiAlpha**: เป็น surface flux ที่ใช้ในการ compress interface โดยใช้ gradient ของปริมาตรส่วน (volume fraction) ในแนวปกติของส่วนต่อประสาน
+> - **fvc::snGrad(alpha1_)**: คำนวณ surface normal gradient ของ volume fraction ซึ่งใช้ในการสร้าง compressive flux
+> - **mesh.magSf()**: คืนค่าขนาดของพื้นที่ผิวเซลล์ (surface area magnitude) สำหรับการคำนวณ flux
+>
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **Compressive Flux**: Flux นี้ทำหน้าที่ "บีบอัด" interface ให้คมขึ้น โดยการสร้างการไหลเทียม (artificial flux) ที่ต้านการแพร่กระจายเชิงตัวเลข (numerical diffusion)
+> - **MULES (Multidimensional Universal Limiter with Explicit Solution)**: เป็นอัลกอริทึมมาตรฐานใน OpenFOAM สำหรับรักษาความมั่นคงของ volume fraction และป้องกันค่าที่ออกนอกช่วง [0, 1]
+> - **Numerical Diffusion**: การแพร่กระจายเชิงตัวเลขเกิดจากการประมาณค่าในช่องว่างจำกัด (finite discretization) ทำให้ interface กระจายและไม่คมชัด
 
 ### 7.3 Conservation Issues
 

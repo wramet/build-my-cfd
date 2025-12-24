@@ -96,16 +96,19 @@ $$u_t = \frac{\mu_l}{\rho_l d_b} m^{m-1} Re_b$$
 
 ```cpp
 // 0/U (ความเร็วเริ่มต้น - ฟองหยุดนิ่ง)
+// Initial velocity field - bubble at rest
 dimensions      [0 1 -1 0 0 0 0];
 internalField   uniform 0;
 
 // 0/alpha.gas (ส่วนของเฟสเริ่มต้น)
+// Initial phase fraction field
 dimensions      [0 0 0 0 0 0 0];
 internalField   uniform 0;
 
 // เพิ่มการกำหนดค่าเริ่มต้นฟองทรงกลม
+// Add spherical bubble initialization
 const Vector<double> bubbleCenter(0.05, 0.05, 0.05);
-const scalar bubbleRadius = 0.005;  // 5 มม.
+const scalar bubbleRadius = 0.005;  // 5 mm
 
 forAll(alphaGas, celli)
 {
@@ -119,10 +122,20 @@ forAll(alphaGas, celli)
 }
 ```
 
+**Source**: 📂 `MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/09_IMPLEMENTATION_ARCHITECTURE/02_Code_Architecture.md`
+
+**Explanation**: โค้ดนี้สาธิตการตั้งค่าเงื่อนไขเริ่มต้นสำหรับปัญหาฟองลอยตัวใน OpenFOAM โดยการกำหนดฟองทรงกลมในโดเมนการคำนวณ ฟิลด์ความเร็วเริ่มต้นถูกตั้งค่าเป็นศูนย์ (ฟองหยุดนิ่ง) และฟองถูกสร้างขึ้นโดยการกำหนดค่า alpha.gas = 1 ภายในรัศมีฟองและ 0 ภายนอก
+
+**Key Concepts**:
+- **Phase Fraction Field (alpha)**: ฟิลด์สเกลาร์ที่ระบุส่วนของแต่ละเฟสในเซลล์ (0 = ของเหลว, 1 = แก๊ส)
+- **Spherical Initialization**: การสร้างฟองทรงกลมโดยการตรวจสอนระยะห่างจากจุดศูนย์กลาง
+- **Cell-Centered Mesh**: การเข้าถึงตำแหน่งเซลล์ผ่าน `mesh.C()[celli]` สำหรับการคำนวณเรขาคณิต
+
 สำหรับการเริ่มต้นที่ราบรื่นยิ่งขึ้น (smooth initialization) ใช้ฟังก์ชัน hyperbolic tangent:
 
 ```cpp
 // Smooth initialization โดยใช้ tanh
+// Smooth interface initialization using hyperbolic tangent
 forAll(alphaGas, celli)
 {
     const Vector<double>& cellCenter = mesh.C()[celli];
@@ -130,9 +143,20 @@ forAll(alphaGas, celli)
     scalar cellSize = pow(mesh.V()[celli], 1.0/3.0);
 
     // Smooth initialization โดยใช้ tanh
+    // Hyperbolic tangent profile for smooth interface transition
     alphaGas[celli] = 0.5 * (1 - tanh((r - bubbleRadius) / (0.5 * cellSize)));
 }
 ```
+
+**Source**: 📂 `MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/02_MULTIPHASE_BASICS/02_Interfacial_Phenomena.md`
+
+**Explanation**: โค้ดนี้ใช้ฟังก์ชัน hyperbolic tangent (tanh) ในการสร้างอินเทอร์เฟซที่ราบรื่นระหว่างเฟสแก๊สและของเหลว แทนที่จะใช้การก้าวกระโดดแบบ step function (0 หรือ 1) การใช้ tanh ทำให้เกิดการเปลี่ยนแบบต่อเนื่องผ่านบริเวณอินเทอร์เฟซ ซึ่งช่วยลดปัญหาการสั่นของค่าตัวเลข (numerical oscillations) และเพิ่มเสถียรภาพของการคำนวณ
+
+**Key Concepts**:
+- **Smooth Interface**: อินเทอร์เฟซที่มีการเปลี่ยนแบบต่อเนื่องแทนการกระโดดก้าว
+- **Tanh Profile**: ฟังก์ชันที่ให้การเปลี่ยนแบบ S-curve ระหว่างค่า 0 และ 1
+- **Interface Thickness**: ความหนาของอินเทอร์เฟซขึ้นกับขนาดเซลล์ (0.5 * cellSize ในที่นี้)
+- **Numerical Stability**: การราบรื่นของอินเทอร์เฟซช่วยลดการสั่นของความเร็วและความดัน
 
 #### 1.4.2 การกำหนดค่า Solver
 
@@ -147,32 +171,45 @@ forAll(alphaGas, celli)
 
 ```cpp
 // constant/transportProperties
+// Transport properties for multiphase flow simulation
 phases (gas liquid);
 
 gas
 {
     transportModel  Newtonian;
-    nu              [0 2 -1 0 0 0 0] 1.5e-5;
-    rho             [1 -3 0 0 0 0 0] 1.2;
+    nu              [0 2 -1 0 0 0 0] 1.5e-5;  // Kinematic viscosity [m²/s]
+    rho             [1 -3 0 0 0 0 0] 1.2;     // Density [kg/m³]
 }
 
 liquid
 {
     transportModel  Newtonian;
-    nu              [0 2 -1 0 0 0 0] 1.0e-6;
-    rho             [1 -3 0 0 0 0 0] 1000;
-    sigma           [1 0 -2 0 0 0 0] 0.072;
+    nu              [0 2 -1 0 0 0 0] 1.0e-6;  // Kinematic viscosity [m²/s]
+    rho             [1 -3 0 0 0 0 0] 1000;    // Density [kg/m³]
+    sigma           [1 0 -2 0 0 0 0] 0.072;   // Surface tension [N/m]
 }
 
 // constant/phaseProperties
+// Phase model configuration for Eulerian-Eulerian approach
 phaseModel gas
 {
     type            incompressible;
     diameterModel   constant;
-    d               0.004;
-    residualAlpha   1e-6;
+    d               0.004;                      // Bubble diameter [m]
+    residualAlpha   1e-6;                       // Residual phase fraction
 }
 ```
+
+**Source**: 📂 `MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/09_IMPLEMENTATION_ARCHITECTURE/02_Code_Architecture.md`
+
+**Explanation**: ไฟล์การตั้งค่านี้กำหนดคุณสมบัติการขนส่ง (transport properties) และคุณสมบัติเฟส (phase properties) สำหรับการจำลองการไหลแบบหลายเฟส โครงสร้างนี้แบ่งเป็น 2 ส่วนหลัก: transportProperties สำหรับคุณสมบัติทางกายภาพของแต่ละเฟส (ความหนืด ความหนาแน่น และความตึงผิว) และ phaseProperties สำหรับการตั้งค่าโมเดลเฟสแบบ Eulerian
+
+**Key Concepts**:
+- **Transport Model**: โมเดลความหนืดแบบ Newtonian สำหรับของไหลที่ความหนืดคงที่
+- **Kinematic vs Dynamic Viscosity**: OpenFOAM ใช้ความหนืดจลน์ (nu) ใน transportProperties
+- **Surface Tension (sigma)**: คุณสมบัติของอินเทอร์เฟซที่สำคัญสำหรับปัญหาฟองลอย
+- **Diameter Model**: โมเดลขนาดฟองแบบค่าคงที่สำหรับแนวทาง Eulerian
+- **Residual Alpha**: ค่าต่ำสุดของส่วนเฟสเพื่อป้องกันการหารด้วยศูนย์
 
 ### 1.5 เมตริกการตรวจสอบความถูกต้องและการประมวลผลหลัง
 
@@ -180,35 +217,53 @@ phaseModel gas
 
 ```cpp
 // คำนวณการติดตามความเร็วลอยของฟอง
-scalar bubbleVelocity = average(U_gas.component(2));  // คอมโพเนนต์ z
+// Calculate bubble rising velocity tracking
+scalar bubbleVelocity = average(U_gas.component(2));  // z-component
 
 // คำนวณพารามิเตอร์ไร้มิติสำหรับสหสัมพันธ์
+// Calculate dimensionless parameters for correlation
 scalar Eo = (rho_liquid - rho_gas) * 9.81 * pow(bubbleRadius*2, 2) / sigma;
 scalar Mo = 9.81 * pow(mu_liquid, 4) * (rho_liquid - rho_gas) /
           (pow(rho_liquid, 2) * pow(sigma, 3));
 
 // คำนวณความเร็วลอยขั้นสุดท้ายเชิงทฤษฎีโดยใช้สหสัมพันธ์ของ Grace
+// Calculate theoretical terminal velocity using Grace correlation
 scalar u_t_corr = calculateGraceCorrelation(Eo, Mo, bubbleRadius*2);
 
 // คำนวณเมตริกการตรวจสอบความถูกต้อง
+// Calculate validation metrics
 scalar velocityError = mag(bubbleVelocity - u_t_corr) / u_t_corr;
 Info << "Bubble velocity error: " << velocityError * 100 << "%" << endl;
 Info << "Simulated velocity: " << bubbleVelocity << " m/s" << endl;
 Info << "Theoretical velocity: " << u_t_corr << " m/s" << endl;
 
 // เมตริกรูปทรงฟองเพิ่มเติม
+// Additional bubble shape metrics
 scalar bubbleVolume = sum(alphaGas * mesh.V());
 scalar equivalentDiameter = pow(6 * bubbleVolume / constant::mathematical::pi, 1.0/3.0);
 scalar aspectRatio = calculateBubbleAspectRatio(alphaGas);
 ```
 
+**Source**: 📂 `MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/10_VALIDATION_CASES/01_Validation_Methodology.md`
+
+**Explanation**: โค้ดนี้สาธิตกระบวนการตรวจสอบความถูกต้อง (validation) สำหรับปัญหาฟองลอยตัว โดยการคำนวณพารามิเตอร์ไร้มิติ (Eötvös และ Morton numbers) และเปรียบเทียบความเร็วลอยที่ได้จากการจำลองกับสหสัมพันธ์เชิงทฤษฎีของ Grace et al. (1976) นอกจากนี้ยังมีการคำนวณเมตริกเพิ่มเติมสำหรับประเมินรูปทรงฟอง
+
+**Key Concepts**:
+- **Validation Metrics**: ตัวชี้วัดความคลาดเคลื่อนระหว่างการจำลองและทฤษฎี/การทดลอง
+- **Grace Correlation**: สหสัมพันธ์เชิงทดลองที่ได้รับการยอมรับอย่างกว้างขวางสำหรับฟองลอย
+- **Dimensionless Numbers**: พารามิเตอร์ที่ใช้จัดกลุ่มกรณีทดสอบและเปรียบเทียบผลลัพธ์
+- **Equivalent Diameter**: เส้นผ่านศูนย์กลางของทรงกลมที่มีปริมาตรเท่ากับฟอง
+- **Aspect Ratio**: อัตราส่วนระหว่างแกนแนวตั้งและแนวนอนของฟอง (บ่งชี้รูปทรง)
+
 #### 1.5.2 การสกัดคุณสมบัติฟอง
 
 ```cpp
 // ฟังก์ชันสำหรับดึงคุณสมบัติฟอง
+// Function to extract bubble properties
 void extractBubbleProperties()
 {
     // คำนวณจุดศูนย์กลางมวลฟอง
+    // Calculate bubble center of mass
     scalar V_bubble = 0.0;
     Vector<double> r_centroid(0, 0, 0);
 
@@ -224,9 +279,11 @@ void extractBubbleProperties()
     r_centroid /= V_bubble;
 
     // คำนวณความเร็วการขึ้น
+    // Calculate rise velocity
     scalar z_velocity = U_gas.component(2).weightedAverage(alphaGas);
 
     // คำนวณพารามิเตอร์รูปร่างฟอง
+    // Calculate bubble shape parameters
     scalar aspectRatio = calculateAspectRatio(alphaGas);
 
     Info << "คุณสมบัติฟอง:" << nl
@@ -236,6 +293,17 @@ void extractBubbleProperties()
          << "  อัตราส่วนภาพ: " << aspectRatio << endl;
 }
 ```
+
+**Source**: 📂 `MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/10_VALIDATION_CASES/01_Validation_Methodology.md`
+
+**Explanation**: ฟังก์ชันนี้ใช้สำหรับสกัดและวิเคราะห์คุณสมบัติของฟองจากผลลัพธ์การจำลอง โดยคำนวณจุดศูนย์กลางมวล (centroid) ของฟอง ความเร็วการลอยขึ้น และพารามิเตอร์รูปร่าง การใช้ threshold alpha > 0.5 ช่วยแยกเซลล์ที่เป็นส่วนหนึ่งของฟอง การใช้ weightedAverage ช่วยให้ได้ความเร็วเฉลี่ยที่ถูกต้องโดยคำนึงถึงส่วนเฟส
+
+**Key Concepts**:
+- **Center of Mass Calculation**: การคำนวณจุดศูนย์กลางมวลโดยใช้ weighted sum ของตำแหน่งเซลล์
+- **Phase Fraction Threshold**: การใช้ alpha > 0.5 เพื่อระบุเซลล์ที่เป็นส่วนหนึ่งของฟอง
+- **Weighted Average**: การคำนวณค่าเฉลี่ยที่คำนึงถึงน้ำหนัก (phase fraction) ของแต่ละเซลล์
+- **Post-Processing**: การวิเคราะห์ผลลัพธ์หลังการจำลองเพื่อตรวจสอบความถูกต้อง
+- **Shape Characterization**: การประเมินรูปทรงฟองผ่าน aspect ratio และพารามิเตอร์อื่นๆ
 
 ### 1.6 เกณฑ์การยอมรับ
 
@@ -318,15 +386,27 @@ $$\frac{dP}{dx} = \Phi_g^2 \left(\frac{dP}{dx}\right)_g$$
 
 ```cpp
 // การละเอียดของ mesh ใกล้ส่วนติดต่อสำหรับการจับภาพที่แม่นยำ
+// Mesh refinement near interface for accurate capture
 // การละเอียดชั้นขอบเขตใกล้ผนัง
-aspectRatio 1.0;  // รักษาคุณภาพของ mesh
+aspectRatio 1.0;  // Maintain mesh quality
 ```
+
+**Source**: 📂 `MODULE_01_CFD_FUNDAMENTALS/CONTENT/02_FINITE_VOLUME_METHOD/03_Spatial_Discretization.md`
+
+**Explanation**: การสร้าง mesh ที่เหมาะสมเป็นสิ่งสำคัญสำหรับการจำลองการไหลแบบ stratified โดยเฉพาะอย่างยิ่งการละเอียดของ mesh ใกล้บริเวณอินเทอร์เฟซและใกล้ผนังท่อ การรักษา aspect ratio ให้ใกล้เคียง 1.0 ช่วยให้มั่นใจในคุณภาพของ mesh และความแม่นยำของผลลัพธ์
+
+**Key Concepts**:
+- **Interface Resolution**: การละเอียดของ mesh ที่เพียงพอสำหรับจับภาพอินเทอร์เฟซ
+- **Boundary Layer Mesh**: การละเอียดของ mesh ใกล้ผนังสำหรับกราเดียนต์ความเร็ว
+- **Mesh Quality**: aspect ratio ที่เหมาะสมช่วยลดความผิดพลาดของตัวเลข
+- **Local Refinement**: การละเอียดเฉพาะที่ในบริเวณที่สำคัญ
 
 #### 2.4.2 เงื่อนไขเริ่มต้น
 
 ```cpp
 // กำหนดค่าเริ่มต้นการกำหนดค่าแบบ stratified
-scalar gasHeightFraction = 0.7;  // การประเมินเริ่มต้น
+// Initialize stratified flow configuration
+scalar gasHeightFraction = 0.7;  // Initial estimate
 
 forAll(alphaLiquid, celli)
 {
@@ -335,14 +415,24 @@ forAll(alphaLiquid, celli)
 
     if (yCoord < gasHeightFraction * pipeRadius)
     {
-        alphaLiquid[celli] = 0.0;  // โซนแก๊ส
+        alphaLiquid[celli] = 0.0;  // Gas zone
     }
     else
     {
-        alphaLiquid[celli] = 1.0;  // โซนของเหลว
+        alphaLiquid[celli] = 1.0;  // Liquid zone
     }
 }
 ```
+
+**Source**: 📂 `MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/09_IMPLEMENTATION_ARCHITECTURE/02_Code_Architecture.md`
+
+**Explanation**: โค้ดนี้สาธิตการตั้งค่าเริ่มต้นสำหรับปัญหาการไหลแบบ stratified ในท่อแนวนอน โดยการกำหนดบริเวณแก๊ส (alphaLiquid = 0) และบริเวณของเหลว (alphaLiquid = 1) ตามตำแหน่ง y-coordinate การใช้ gasHeightFraction ช่วยให้สามารถปรับค่าความสูงเริ่มต้นของชั้นของเหลวได้อย่างยืดหยุ่น
+
+**Key Concepts**:
+- **Stratified Initialization**: การแบ่งโดเมนเป็นชั้นๆ ตามทิศทางแรงโน้มถ่วง
+- **Phase Distribution**: การกระจายเฟสเริ่มต้นที่สะท้อนสภาพการไหลจริง
+- **Geometric Configuration**: การใช้ตำแหน่งเชิงเรขาคณิตในการกำหนดเฟส
+- **Initial Condition Strategy**: การเลือกเงื่อนไขเริ่มต้นที่ใกล้เคียงสภาพสมดุล
 
 ### 2.5 เมตริกการตรวจสอบความถูกต้องและการประมวลผลหลัง
 
@@ -350,27 +440,33 @@ forAll(alphaLiquid, celli)
 
 ```cpp
 // คำนวณพารามิเตอร์การไหลแบบ stratified
-scalar D = 0.05;  // เส้นผ่านศูนย์กลางท่อ
-scalar g = 9.81;  // ความเร่งโน้มถ่วง
-scalar U_gas = 5.0;   // ความเร็วแก๊สต่อผิว
-scalar U_liquid = 0.5; // ความเร็วของเหลวต่อผิว
+// Calculate stratified flow parameters
+scalar D = 0.05;  // Pipe diameter [m]
+scalar g = 9.81;  // Gravitational acceleration [m/s²]
+scalar U_gas = 5.0;   // Gas superficial velocity [m/s]
+scalar U_liquid = 0.5; // Liquid superficial velocity [m/s]
 
 // คำนวณพารามิเตอร์ไร้มิติ
+// Calculate dimensionless parameters
 scalar Fr_gas = U_gas / sqrt(g * D);
 scalar Fr_liquid = U_liquid / sqrt(g * D);
 
 // คำนวณความสูงของเหลวเชิงทฤษฎีโดยใช้โมเดล Taitel-Dukler
+// Calculate theoretical liquid height using Taitel-Dukler model
 scalar hl_D_theory = calculateTaitelDuklerHeight(Fr_gas, Fr_liquid);
 
 // ดึงความสูงของเหลวจากการจำลอง
+// Extract liquid height from simulation
 scalar liquidHeight = calculateLiquidHeight(alpha_liquid);
 scalar liquidHeightFraction = liquidHeight / D;
 
 // ความคลาดเคลื่อนในการทำนายความสูง
+// Error in height prediction
 scalar heightError = mag(liquidHeightFraction - hl_D_theory) / hl_D_theory;
 Info << "Liquid height error: " << heightError * 100 << "%" << endl;
 
 // การตรวจสอบความดันการไล่ระดับ
+// Pressure gradient validation
 scalar dp_dx_sim = calculatePressureGradient(p);
 scalar dp_dx_theory = calculateTheoreticalPressureDrop(U_gas, U_liquid, D);
 
@@ -378,14 +474,27 @@ scalar pressureDropError = mag(dp_dx_sim - dp_dx_theory) / dp_dx_theory;
 Info << "Pressure drop error: " << pressureDropError * 100 << "%" << endl;
 
 // การวิเคราะห์ความคลื่นของส่วนติดต่อ
+// Interface waviness analysis
 scalar interfaceWaviness = calculateInterfaceWaviness(alpha_liquid);
 Info << "Interface waviness parameter: " << interfaceWaviness << endl;
 ```
+
+**Source**: 📂 `MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/10_VALIDATION_CASES/01_Validation_Methodology.md`
+
+**Explanation**: โค้ดนี้สาธิตกระบวนการตรวจสอบความถูกต้องสำหรับปัญหาการไหลแบบ stratified โดยการคำนวณพารามิเตอร์ไร้มิติ (Froude numbers) และเปรียบเทียบความสูงของเหลวและการลดความดันจากการจำลองกับโมเดลเชิงทฤษฎีของ Taitel-Dukler นอกจากนี้ยังมีการวิเคราะห์ความคลื่นของอินเทอร์เฟซซึ่งเป็นตัวบ่งชี้สำคัญของระบบการไหล
+
+**Key Concepts**:
+- **Taitel-Dukler Model**: โมเดลเชิงทฤษฎีสำหรับทำนายความสูงของเหลวในการไหลแบบ stratified
+- **Froude Number**: พารามิเตอร์ไร้มิติที่เปรียบเทียบแรงเฉื่อยกับแรงโน้มถ่วง
+- **Pressure Gradient**: การเปลี่ยนแปลงของความดันตามความยาวท่อ
+- **Interface Waviness**: ตัวชี้วัดระดับความผิดปกติของอินเทอร์เฟซ
+- **Validation Metrics**: ตัวชี้วัดความคลาดเคลื่อนระหว่างการจำลองและทฤษฎี
 
 #### 2.5.2 การวิเคราะห์ความสูงของเหลว
 
 ```cpp
 // ฟังก์ชันสำหรับคำนวณความสูงของเหลว
+// Function to calculate liquid height
 class stratifiedFlowAnalyzer
 {
 private:
@@ -398,26 +507,38 @@ public:
     scalar calculateLiquidHeight()
     {
         scalar liquidHeight = 0.0;
-        scalar D = 0.05;  // เส้นผ่านศูนย์กลางท่อ
+        scalar D = 0.05;  // Pipe diameter [m]
 
         // ผสานสัดส่วนปริมาตรของเหลวในครึ่งล่าง
+        // Integrate liquid volume fraction in lower half
         forAll(alphaGas_, celli)
         {
             const Vector<double>& cellCenter = mesh_.C()[celli];
             scalar y = cellCenter.y();
 
-            if (y < D/2)  // ครึ่งล่างของท่อ
+            if (y < D/2)  // Lower half of pipe
             {
                 liquidHeight += (1.0 - alphaGas_[celli]) * mesh_.V()[celli];
             }
         }
 
-        liquidHeight /= (0.05 * 0.05 * 10.0);  // ทำให้เป็นมาตรฐานตามหน้าตัดท่อ
+        liquidHeight /= (0.05 * 0.05 * 10.0);  // Normalize by pipe cross-section
 
         return liquidHeight;
     }
 };
 ```
+
+**Source**: 📂 `MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/10_VALIDATION_CASES/01_Validation_Methodology.md`
+
+**Explanation**: คลาส stratifiedFlowAnalyzer นี้ให้เมธอดสำหรับคำนวณความสูงของเหลวในท่อแนวนอน โดยการรวมปริมาตรของเหลวในครึ่งล่างของท่อและทำให้เป็นมาตรฐานตามพื้นที่หน้าตัดท่อ การใช้ (1.0 - alphaGas) ให้ส่วนของเหลวโดยตรง และการทำให้เป็นมาตรฐานด้วยพื้นที่หน้าตัดทำให้ได้ค่าที่เป็นสัดส่วนของเส้นผ่านศูนย์กลางท่อ
+
+**Key Concepts**:
+- **Volume Integration**: การรวมปริมาตรของเหลวเพื่อหาความสูงเฉลี่ย
+- **Geometric Analysis**: การใช้ตำแหน่งเชิงเรขาคณิตในการแยกโซน
+- **Phase Fraction Conversion**: การแปลง alpha gas เป็นส่วนของเหลว
+- **Normalization**: การทำให้เป็นมาตรฐานเพื่อให้ได้ค่าไร้มิติ
+- **Object-Oriented Design**: การใช้คลาสสำหรับจัดระเบียบฟังก์ชันการวิเคราะห์
 
 ### 2.6 เกณฑ์การยอมรับ
 
@@ -452,7 +573,7 @@ benchmark นี้ท้าทายความสามารถของ sol
 **คุณสมบัติแก๊ส**:
 - **ของไหล**: อากาศในสภาวะบรรยากาศ
 - **อุณหภูมิ**: 293 K (20°C)
-- **ความดัน**: 1 แอตมอสเฟียร์ (สภาวะมาตรฐาน)
+- **ความดัน**: 1 แอตมอสเฟียร์ (สภาวงมาตรฐาน)
 
 ### 3.2 จุดดำเนินงานและระบบที่สำคัญ
 
@@ -492,34 +613,49 @@ $$\Delta P = (\rho_s - \rho_g)(1-\alpha_{mf})gL$$
 
 ```cpp
 // constant/phaseProperties
+// Phase properties for gas-solid fluidized bed simulation
 phases (solid gas);
 
 // คุณสมบัติเฟสของแข็ง
+// Solid phase properties
 solid
 {
-    rho             2500;     // ความหนาแน่นอนุภาค [kg/m³]
-    d               5e-4;     // เส้นผ่านศูนย์กลางอนุภาค [m]
-    maxAlpha        0.64;     // ขีดจำกัดการบรรจุสูงสุด
-    e               0.9;      // ค่าสัมประสิทธิ์การกระเด้งของอนุภาค
-    alpha0          0.6;      // ปริมาตรของแข็งเริ่มต้น
+    rho             2500;     // Particle density [kg/m³]
+    d               5e-4;     // Particle diameter [m]
+    maxAlpha        0.64;     // Maximum packing limit
+    e               0.9;      // Particle restitution coefficient
+    alpha0          0.6;      // Initial solid volume fraction
 }
 
 // คุณสมบัติเฟสแก๊ส
+// Gas phase properties
 gas
 {
-    rho             1.2;      // ความหนาแน่นอากาศ [kg/m³]
-    mu              1.8e-5;   // ความหนืดไดนามิกของอากาศ [Pa·s]
-    Cp              1005;     // ความจุความร้อนจำเพาะ [J/kg·K]
-    kappa           0.025;    // สภาพนำความร้อน [W/m·K]
+    rho             1.2;      // Air density [kg/m³]
+    mu              1.8e-5;   // Air dynamic viscosity [Pa·s]
+    Cp              1005;     // Specific heat capacity [J/kg·K]
+    kappa           0.025;    // Thermal conductivity [W/m·K]
 }
 
 // การกำหนดค่าโมเดลแรงลาก
+// Drag model configuration
 dragModel
 {
     type            GidaspowErgunWenYu;
-    alphap          0.6;      // ขีดจำกัดการบรรจุ
+    alphap          0.6;      // Packing limit transition
 }
 ```
+
+**Source**: 📂 `MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/04_DRAG_FORCES/03_OpenFOAM_Implementation.md`
+
+**Explanation**: ไฟล์ phaseProperties นี้กำหนดการตั้งค่าสำหรับการจำลองเตียง fluidized แบบ Eulerian-Eulerian โดยมีเฟสของแข็ง (solid) และเฟสแก๊ส (gas) โมเดลแรงลากแบบ GidaspowErgunWenYu เป็นการรวมกันของโมเดล Ergun (สำหรับ packed bed) และ Wen & Yu (สำหรับ dilute regime) ซึ่งเหมาะสำหรับการจำลองเตียง fluidized
+
+**Key Concepts**:
+- **Eulerian-Eulerian Approach**: ทั้งสองเฟสถูกจัดการเป็นเฟสต่อเนื่องที่มีการแทรกตัวกัน
+- **Particle Properties**: คุณสมบัติทางกายภาพของอนุภาค (ขนาด ความหนาแน่น การกระเด้ง)
+- **Packing Limit (maxAlpha)**: สัดส่วนปริมาตรสูงสุดของอนุภาคที่เป็นไปได้
+- **Gidaspow Drag Model**: โมเดลแรงลากแบบไฮบริดที่เหมาะกับทุกระดับความเข้มของเฟส
+- **Restitution Coefficient (e)**: ค่าสัมประสิทธิ์การกระเด้งของอนุภาคในการชน
 
 #### 3.4.2 เงื่อนไขขอบเขต
 
@@ -531,24 +667,38 @@ dragModel
 
 ```cpp
 // คำนวณความเร็ว fluidization ขั้นต่ำโดยใช้วิธีการแก้ปัญหาวนซ้ำ
+// Calculate minimum fluidization velocity using iterative solution
 scalar rho_solid = 2500;  // kg/m³
 scalar rho_gas = 1.2;     // kg/m³
-scalar dp = 5e-4;         // เส้นผ่านศูนย์กลางอนุภาค [m]
-scalar mu_gas = 1.8e-5;   // ความหนืดไดนามิกของแก๊ส [Pa·s]
-scalar g = 9.81;          // ความเร่งโน้มถ่วง [m/s²]
-scalar alpha_mf = 0.4;    // Void fraction ที่จุด fluidization ขั้นต่ำ
+scalar dp = 5e-4;         // Particle diameter [m]
+scalar mu_gas = 1.8e-5;   // Gas dynamic viscosity [Pa·s]
+scalar g = 9.81;          // Gravitational acceleration [m/s²]
+scalar alpha_mf = 0.4;    // Void fraction at minimum fluidization
 
 // การคำนวณแบบวนซ้ำของ U_mf
+// Iterative calculation of U_mf
 scalar Umf = calculateMinimumFluidizationVelocity(rho_solid, rho_gas,
                                                dp, mu_gas, alpha_mf);
 
 // ตั้งค่าเงื่อนไขการดำเนินงาน
-scalar Uop = 2.0 * Umf;  // การดำเนินงานที่ 2x fluidization ขั้นต่ำ
+// Set operating conditions
+scalar Uop = 2.0 * Umf;  // Operating at 2x minimum fluidization
 
 Info << "Minimum fluidization velocity: " << Umf << " m/s" << endl;
 Info << "Operating velocity: " << Uop << " m/s" << endl;
 Info << "Operating ratio (Uop/Umf): " << Uop/Umf << endl;
 ```
+
+**Source**: 📂 `MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/04_DRAG_FORCES/03_OpenFOAM_Implementation.md`
+
+**Explanation**: โค้ดนี้สาธิตการคำนวณความเร็ว fluidization ขั้นต่ำ (Umf) โดยการแก้สมการ Ergun แบบวนซ้ำจนกว่าจะถึงเงื่อนไขสมดุลแรง จากนั้นตั้งค่าความเร็วการดำเนินงาน (Uop) เป็นจำนวนเท่าของ Umf ซึ่งเป็นแนวทางทั่วไปในการออกแบบเตียง fluidized
+
+**Key Concepts**:
+- **Minimum Fluidization Velocity (Umf)**: ความเร็วแก๊สขั้นต่ำที่อนุภาคเริ่มลอยตัว
+- **Force Balance**: สมดุลระหว่างแรงลาก แรงลอยตัว และน้ำหนัก
+- **Ergun Equation**: สมการที่อธิบายการลดความดันใน packed bed
+- **Iterative Solution**: การแก้สมการที่ไม่เชิงเส้นด้วยวิธีวนซ้ำ
+- **Operating Ratio**: อัตราส่วนระหว่างความเร็วจริงและความเร็วขั้นต่ำ
 
 ### 3.6 เมตริกการตรวจสอบความถูกต้องอย่างครอบคลุม
 
@@ -556,29 +706,35 @@ Info << "Operating ratio (Uop/Umf): " << Uop/Umf << endl;
 
 ```cpp
 // การคำนวณอัตราส่วนการขยายตัวของเตียง
-scalar initialBedHeight = 1.0;  // ความสูงเตียงแบบแบ่งเริ่มต้น [m]
+// Calculate bed expansion ratio
+scalar initialBedHeight = 1.0;  // Initial packed bed height [m]
 scalar finalBedHeight = calculateBedHeight(alpha_solid);
 scalar expansionRatio = finalBedHeight / initialBedHeight;
 
 // การตรวจสอบความถูกต้องของความดัน
+// Pressure drop validation
 scalar inletPressure = average(p.boundaryField()[inletID]);
 scalar outletPressure = average(p.boundaryField()[outletID]);
 scalar deltaP = inletPressure - outletPressure;
 
 // การลดความดันเชิงทฤษฎีที่จุด fluidization ขั้นต่ำ
+// Theoretical pressure drop at minimum fluidization
 scalar theoreticalDeltaP = (rho_solid - rho_gas) * (1 - alpha_mf) *
                           9.81 * finalBedHeight;
 
 // การวิเคราะห์การกระจายตัวของ voidage เตียง
+// Bed voidage distribution analysis
 scalar averageVoidage = 1.0 - average(alpha_solid);
 scalar maxVoidage = max(alpha_solid);
 scalar minVoidage = min(alpha_solid);
 
 // รูปแบบการผสมและการไหลเวียนของของแข็ง
+// Solid mixing and circulation patterns
 scalar circulationIntensity = calculateSolidCirculation(U_solid, alpha_solid);
 scalar mixingIndex = calculateMixingIndex(alpha_solid);
 
 // ผลลัพธ์การตรวจสอบความถูกต้อง
+// Validation results
 scalar pressureDropError = mag(deltaP - theoreticalDeltaP) / theoreticalDeltaP;
 Info << "Pressure drop error: " << pressureDropError * 100 << "%" << endl;
 Info << "Bed expansion ratio: " << expansionRatio << endl;
@@ -586,6 +742,7 @@ Info << "Average voidage: " << averageVoidage << endl;
 Info << "Solid circulation intensity: " << circulationIntensity << endl;
 
 // ปริมาณเฉลี่ยตามเวลาสำหรับ fluidization แบบฟอง
+// Time-averaged quantities for bubbling fluidization
 if (runTime.timeIndex() > averagingStartTime)
 {
     scalar voidageFluctuation = calculateVoidageFluctuation(alpha_solid);
@@ -596,10 +753,23 @@ if (runTime.timeIndex() > averagingStartTime)
 }
 ```
 
+**Source**: 📂 `MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/10_VALIDATION_CASES/01_Validation_Methodology.md`
+
+**Explanation**: โค้ดนี้ให้ชุดเมตริกที่ครอบคลุมสำหรับตรวจสอบความถูกต้องของการจำลองเตียง fluidized โดยครอบคลุมการขยายตัวของเตียง การลดความดัน การกระจายตัวของ voidage และรูปแบบการไหลเวียน การคำนวณค่าเฉลี่ยตามเวลาสำหรับ fluidization แบบฟองช่วยวิเคราะห์พฤติกรรมแบบสั่นไหว
+
+**Key Concepts**:
+- **Bed Expansion Ratio**: อัตราส่วนระหว่างความสูงเตียงขยายและเตียงแบบแบ็ก
+- **Pressure Drop Validation**: การตรวจสอบการลดความดันกับทฤษฎี Ergun
+- **Voidage Distribution**: การกระจายตัวของช่องว่างในเตียง
+- **Solid Circulation**: รูปแบบการไหลเวียนของอนุภาคในเตียง
+- **Time-Averaged Statistics**: สถิติเฉลี่ยตามเวลาสำหรับระบบแบบสั่นไหว
+- **Bubble Dynamics**: การวิเคราะห์ความถี่และความรุนแรงของฟอง
+
 #### 3.6.2 การคำนวณอัตราส่วนการขยายตัวของเตียง
 
 ```cpp
 // คำนวณอัตราส่วนการขยายเตียง
+// Calculate bed expansion ratio
 scalar calculateBedExpansion()
 {
     scalar bedTop = 0.0;
@@ -621,16 +791,27 @@ scalar calculateBedExpansion()
 
         localSolidFraction /= nCells;
 
-        if (localSolidFraction < 0.01)  // ยอดเตียงที่สัดส่วนของแข็ง < 1%
+        if (localSolidFraction < 0.01)  // Bed top where solid fraction < 1%
         {
             bedTop = z;
             break;
         }
     }
 
-    return bedTop / 0.5;  // หารด้วยความสูงเตียงเริ่มต้น
+    return bedTop / 0.5;  // Divide by initial bed height
 }
 ```
+
+**Source**: 📂 `MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/10_VALIDATION_CASES/01_Validation_Methodology.md`
+
+**Explanation**: ฟังก์ชันนี้คำนวณอัตราส่วนการขยายตัวของเตียงโดยการสแกนจากด้านล่างขึ้นด้านบนและหาตำแหน่งที่ส่วนของอนุภาคต่ำกว่า 1% (ซึ่งบ่งชี้ยอดเตียง) การคำนวณค่าเฉลี่ยของส่วนอนุภาคในระดับความสูงแต่ละระดับช่วยให้ได้ตำแหน่งที่แม่นยำของผิวเตียง
+
+**Key Concepts**:
+- **Bed Height Detection**: การตรวจจับตำแหน่งยอดเตียงโดยใช้ threshold
+- **Horizontal Averaging**: การคำนวณค่าเฉลี่ยในแนวนอนที่แต่ละระดับความสูง
+- **Threshold Criterion**: การใช้ส่วนอนุภาค < 1% เพื่อระบุยอดเตียง
+- **Spatial Resolution**: ความละเอียดของการสแกน (0.001 m ในที่นี้)
+- **Expansion Ratio**: อัตราส่วนที่บ่งชี้ระดับการขยายตัวของเตียง
 
 ### 3.7 เกณฑ์การยอมรับการตรวจสอบความถูกต้อง
 
@@ -652,7 +833,7 @@ scalar calculateBedExpansion()
 ความไม่เสถียรแบบ Rayleigh-Taylor เกิดขึ้นเมื่อของไหลที่หนักกว่าวางอยู่เหนือของไหลที่เบากว่าในสนามความโน้มถ่วง
 
 - **โดเมนการคำนวณ**: $L_x \times L_y = 1.0 \text{ m} \times 2.0 \text{ m}$
-- **การรบกวนอินเตอร์เฟสเริ่มต้น**: $\eta(x, t=0) = a_0 \cos(2\pi x/\lambda)$
+- **การรบกวนอินเตอร์เฟซเริ่มต้น**: $\eta(x, t=0) = a_0 \cos(2\pi x/\lambda)$
 - **แอมพลิจูดการรบกวน**: $a_0 = 0.01 \text{ m}$
 - **ความยาวคลื่น**: $\lambda = 0.25 \text{ m}$
 - **อัตราส่วนความหนาแน่น**: $\rho_2/\rho_1 = 3.0$
@@ -677,10 +858,12 @@ $$\omega = \sqrt{A g k - \sigma k^3/\rho_m}$$
 
 ```cpp
 // การตั้งค่าเริ่มต้นสำหรับความไม่เสถียร Rayleigh-Taylor
+// Initial conditions for Rayleigh-Taylor instability
 dimensionedScalar a0("a0", dimLength, 0.01);
 dimensionedScalar lambda("lambda", dimLength, 0.25);
 
-// การรบกวนอินเตอร์เฟสเริ่มต้น
+// การรบกวนอินเตอร์เฟซเริ่มต้น
+// Initial interface perturbation
 volScalarField alpha1
 (
     IOobject
@@ -695,14 +878,27 @@ volScalarField alpha1
 );
 
 // การคำนวณความเร็วเชิงเส้นจากทฤษฎี
+// Calculate theoretical linear growth rate
 dimensionedScalar Atwood("Atwood", dimless, (rho2.value() - rho1.value())/(rho2.value() + rho1.value()));
 dimensionedScalar k("k", dimless, 2.0*pi/lambda.value());
 dimensionedScalar omega = sqrt(Atwood*9.81*k - sigma.value()*pow(k,3)/rho1.value());
 ```
 
+**Source**: 📂 `MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/02_MULTIPHASE_BASICS/02_Interfacial_Phenomena.md`
+
+**Explanation**: โค้ดนี้สาธิตการตั้งค่าเริ่มต้นสำหรับปัญหาความไม่เสถียร Rayleigh-Taylor ซึ่งเป็นกรณีทดสอบคลาสสิกสำหรับการตรวจสอบความถูกต้องของโมเดลความตึงผิวและการจับภาพอินเทอร์เฟซ อินเทอร์เฟซเริ่มต้นมีการรบกวนแบบ cosinusoidal และความเร็วเชิงเส้นถูกคำนวณจากทฤษฎีการไหลศักย์เพื่อการตรวจสอบความถูกต้อง
+
+**Key Concepts**:
+- **Rayleigh-Taylor Instability**: ความไม่เสถียรที่เกิดขึ้นเมื่อของหนักอยู่เหนือของเบา
+- **Interface Perturbation**: การรบกวนเริ่มต้นที่ทำให้เกิดความไม่เสถียร
+- **Atwood Number**: พารามิเตอร์ไร้มิติที่วัดอัตราส่วนความหนาแน่น
+- **Linear Growth Rate**: อัตราการเติบโตเชิงเส้นในช่วงเริ่มต้น
+- **Tanh Interface**: การใช้ฟังก์ชัน tanh สำหรับอินเทอร์เฟซที่ราบรื่น
+- **Theoretical Validation**: การเปรียบเทียบกับผลเฉลยเชิงวิเคราะห์
+
 ### 4.5 ปริมาณการตรวจสอบความถูกต้อง
 
-- **การวิวัฒนาการของตำแหน่งอินเตอร์เฟส**: $\eta(x,t)$
+- **การวิวัฒนาการของตำแหน่งอินเตอร์เฟซ**: $\eta(x,t)$
 - **อัตราการเติบโตของโซนการผสม**: $\frac{\mathrm{d}h}{\mathrm{d}t} \propto t^\theta$
 - **การกระจายของพลังงานจลน์ความปั่นป่วน**
 - **การวิวัฒนาการของ enstrophy**: $\langle \omega^2 \rangle(t)$
