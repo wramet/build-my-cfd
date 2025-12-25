@@ -1,381 +1,363 @@
-# 🏗️ Introduction to OpenFOAM Mesh Classes
+# 🏗️ บทนำสู่คลาสเมชใน OpenFOAM (Introduction to OpenFOAM Mesh Classes)
 
 ![[polyhedral_mesh_types.png]]
 `A high-quality 3D scientific illustration of different cell types in an unstructured polyhedral mesh. It shows a Hexahedron, a Tetrahedron, a Prism, and a complex Polyhedron with many flat faces, all connected seamlessly. Each cell is semi-transparent, showing the internal connections. Clear labels point to "Face", "Cell", and "Point", scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
 
 ---
 
-## Overview: The Mesh System Architecture
+## ภาพรวม: สถาปัตยกรรมระบบเมช (Overview: The Mesh System Architecture)
 
-Welcome to **The Mesh Classes** — the heart of OpenFOAM's computational geometry architecture. This chapter explores the sophisticated class hierarchy that transforms raw geometric data into high-performance computational meshes for finite volume simulations.
+ยินดีต้อนรับสู่ **คลาสเมช (The Mesh Classes)** ซึ่งเป็นหัวใจสำคัญของสถาปัตยกรรมเรขาคณิตเชิงคำนวณใน OpenFOAM บทนี้จะสำรวจลำดับชั้นของคลาสที่ซับซ้อน ซึ่งเปลี่ยนข้อมูลเรขาคณิตดิบให้เป็นเมชเชิงคำนวณประสิทธิภาพสูงสำหรับการจำลองด้วยวิธีไฟไนต์วอลุ่ม (Finite Volume Method)
 
-### What is a Mesh?
+### เมชคืออะไร?
 
-In OpenFOAM, we use an **Unstructured Polyhedral Mesh** system with exceptional flexibility, supporting cells of any shape:
-- **Hexahedra** (structured grids)
-- **Tetrahedra** (unstructured grids)
-- **Prisms** (boundary layer cells)
-- **Polyhedra** (arbitrary cell types)
+ใน OpenFOAM เราใช้ระบบ **เมชรูปทรงหลายเหลี่ยมแบบไม่มีโครงสร้าง (Unstructured Polyhedral Mesh)** ที่มีความยืดหยุ่นสูง โดยรองรับเซลล์ได้ทุกรูปทรง:
+- **Hexahedra** (กริดแบบมีโครงสร้าง)
+- **Tetrahedra** (กริดแบบไม่มีโครงสร้าง)
+- **Prisms** (เซลล์บริเวณชั้นขอบเขต - Boundary layer cells)
+- **Polyhedra** (เซลล์รูปทรงหลายเหลี่ยมใดๆ)
 
-This flexibility enables accurate geometry representation while maintaining computational efficiency.
+ความยืดหยุ่นนี้ช่วยให้สามารถแสดงรูปทรงเรขาคณิตที่แม่นยำในขณะที่ยังคงประสิทธิภาพในการคำนวณไว้ได้
 
 ---
 
-## 🔍 High-Level Concept: The "City Planning" Analogy
+## 🔍 แนวคิดระดับสูง: การเปรียบเทียบกับการผังเมือง (High-Level Concept: The "City Planning" Analogy)
 
-Imagine designing a **modern city** — the mesh classes work together like an integrated urban planning system:
+ลองจินตนาการถึงการออกแบบ **เมืองสมัยใหม่** — คลาสเมชทำงานร่วมกันเหมือนระบบการวางผังเมืองแบบบูรณาการ:
 
-| Component | Role | Analogy |
+| ส่วนประกอบ | บทบาท | การเปรียบเทียบ |
 |-----------|------|----------|
-| **Points** | Precise coordinates | Surveyor's GPS measurements (latitude/longitude/elevation) |
-| **Faces** | Boundary definitions | Property boundaries (fences, walls) |
-| **Cells** | 3D control volumes | Building blocks (rooms, apartments, offices) |
-| **Connectivity** | Topological relationships | Road networks linking properties |
-| **Boundaries** | Domain constraints | Municipal zones with different regulations |
+| **จุด (Points)** | พิกัดที่แม่นยำ | การวัดค่า GPS ของช่างสำรวจ (ละติจูด/ลองจิจูด/ระดับความสูง) |
+| **หน้า (Faces)** | การกำหนดขอบเขต | ขอบเขตทรัพย์สิน (รั้ว, กำแพง) |
+| **เซลล์ (Cells)** | ปริมาตรควบคุม 3 มิติ | บล็อกอาคาร (ห้อง, อพาร์ตเมนต์, สำนักงาน) |
+| **การเชื่อมต่อ (Connectivity)** | ความสัมพันธ์เชิงโทโพโลยี | เครือข่ายถนนที่เชื่อมโยงทรัพย์สินเข้าด้วยกัน |
+| **ขอบเขต (Boundaries)** | ข้อจำกัดของโดเมน | เขตเทศบาลที่มีกฎระเบียบต่างกัน |
 
 ![[city_planning_mesh_analogy.png]]
 `A city planning analogy for mesh classes: Points as GPS survey marks, Faces as property boundaries, Cells as 3D zoning blocks, and Patches as municipal districts with different regulations, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
 
-**Key Insight:** Just as urban planning requires coordination between surveyors, architects, and city administrators — OpenFOAM's mesh architecture coordinates multiple specialized classes, each with distinct responsibilities, working together to create a functional computational domain where CFD equations "live and flow."
+**ข้อมูลเชิงลึกที่สำคัญ:** เช่นเดียวกับการวางผังเมืองที่ต้องมีการประสานงานระหว่างช่างสำรวจ สถาปนิก และผู้บริหารเมือง — สถาปัตยกรรมเมชของ OpenFOAM ประสานงานระหว่างคลาสเฉพาะทางหลายคลาส ซึ่งแต่ละคลาสมีหน้าที่แตกต่างกัน แต่ทำงานร่วมกันเพื่อสร้างโดเมนเชิงคำนวณที่สมบูรณ์ซึ่งสมการ CFD "อาศัยและไหลเวียน" อยู่
 
 ---
 
-## 🏗️ The Three-Layer Architecture
+## 🏗️ สถาปัตยกรรมสามชั้น (The Three-Layer Architecture)
 
-OpenFOAM's mesh system follows a **three-layer architectural pattern** designed for both flexibility and performance:
+ระบบเมชของ OpenFOAM เป็นไปตาม **รูปแบบสถาปัตยกรรมสามชั้น** ที่ออกแบบมาเพื่อทั้งความยืดหยุ่นและประสิทธิภาพ:
 
 ```mermaid
 flowchart TD
-    A[fvMesh<br/>Finite Volume Layer] --> B[polyMesh<br/>Topology Layer]
-    B --> C[primitiveMesh<br/>Geometry Engine]
+    A[fvMesh<br/>ชั้นไฟไนต์วอลุ่ม] --> B[polyMesh<br/>ชั้นโทโพโลยี]
+    B --> C[primitiveMesh<br/>เครื่องยนต์เรขาคณิต]
 
     style A fill:#e1f5ff
     style B fill:#fff3e0
     style C fill:#f3e5f5
 ```
-> **Figure 1:** รูปแบบสถาปัตยกรรมสามชั้นที่ออกแบบมาเพื่อแยกหน้าที่การทำงานอย่างชัดเจน ช่วยให้นักพัฒนาสามารถปรับปรุงประสิทธิภาพในแต่ละระดับได้อย่างอิสระความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **รูปที่ 1:** รูปแบบสถาปัตยกรรมสามชั้นที่ออกแบบมาเพื่อแยกหน้าที่การทำงานอย่างชัดเจน ช่วยให้นักพัฒนาสามารถปรับปรุงประสิทธิภาพในแต่ละระดับได้อย่างอิสระ ผ่านการแยกความรับผิดชอบที่ชัดเจนระหว่างระดับเรขาคณิตพื้นฐาน โทโพโลยี และการดิสครีตแบบไฟไนต์วอลุ่ม
 
-### Layer Comparison
+### การเปรียบเทียบแต่ละชั้น (Layer Comparison)
 
-| Layer | Primary Function | Key Responsibilities |
+| ชั้น | หน้าที่หลัก | ความรับผิดชอบสำคัญ |
 |-------|------------------|----------------------|
-| **primitiveMesh** | Pure geometric computation | • Calculate centers, volumes, normals<br>• Mesh quality metrics<br>• Lazy evaluation mechanisms |
-| **polyMesh** | Topology management | • Store points, faces, cells<br>• Owner/neighbor relationships<br>• Boundary patches<br>• Parallel decomposition support |
-| **fvMesh** | Finite volume discretization | • Geometric field storage<br>• Solver API<br>• On-demand geometry calculations |
+| **primitiveMesh** | การคำนวณทางเรขาคณิตบริสุทธิ์ | • คำนวณจุดศูนย์กลาง, ปริมาตร, เวกเตอร์แนวฉาก<br>• ตัวชี้วัดคุณภาพเมช<br>• กลไกการคำนวณเมื่อต้องการ (Lazy evaluation) |
+| **polyMesh** | การจัดการโทโพโลยี | • จัดเก็บจุด, หน้า, เซลล์<br>• ความสัมพันธ์ระหว่างเจ้าของและเพื่อนบ้าน (Owner/neighbor)<br>• แพตช์ขอบเขต (Boundary patches)<br>• การรองรับการสลายตัวแบบขนาน (Parallel decomposition) |
+| **fvMesh** | การดิสครีตแบบไฟไนต์วอลุ่ม | • การจัดเก็บสนามทางเรขาคณิต (Geometric field storage)<br>• Solver API<br>• การคำนวณเรขาคณิตตามความต้องการ |
 
-**Design Principle:** Each layer has a clear, focused responsibility, enabling independent optimization and easier maintenance.
+**หลักการออกแบบ:** แต่ละชั้นมีความรับผิดชอบที่ชัดเจนและมุ่งเน้น ช่วยให้สามารถปรับปรุงประสิทธิภาพได้อย่างอิสระและบำรุงรักษาได้ง่ายขึ้น
 
 ---
 
-## 📊 Mathematical Foundation: The Finite Volume Method
+## 📊 พื้นฐานทางคณิตศาสตร์: วิธีไฟไนต์วอลุ่ม (Mathematical Foundation: The Finite Volume Method)
 
-The finite volume method (FVM) fundamentally relies on dividing the computational domain into discrete control volumes (cells). For each cell $V_i$, we integrate the governing conservation equation:
+วิธีไฟไนต์วอลุ่ม (FVM) อาศัยการแบ่งโดเมนเชิงคำนวณออกเป็นปริมาตรควบคุมแบบไม่ต่อเนื่อง (เซลล์) สำหรับแต่ละเซลล์ $V_i$ เราจะทำการอินทิเกรตสมการการอนุรักษ์ที่ควบคุมระบบ:
 
-$$
+$$ 
 \int_{V_i} \frac{\partial \phi}{\partial t} \, \mathrm{d}V + \oint_{\partial V_i} \phi \mathbf{u} \cdot \mathbf{n} \, \mathrm{d}S = \int_{V_i} S_\phi \, \mathrm{d}V \tag{1}
-$$
+$$ 
 
-**Variables:**
-- $\phi$ = field variable (velocity, pressure, temperature, etc.)
-- $\mathbf{u}$ = velocity field
-- $\mathbf{n}$ = outward unit normal vector at the surface
-- $S_\phi$ = source term
+**ตัวแปร:**
+- $\phi$ = ตัวแปรสนาม (ความเร็ว, ความดัน, อุณหภูมิ ฯลฯ)
+- $\mathbf{u}$ = สนามความเร็ว
+- $\mathbf{n}$ = เวกเตอร์แนวฉากหนึ่งหน่วยที่พุ่งออกจากผิว
+- $S_\phi$ = เทอมแหล่งกำเนิด (Source term)
 
-The mesh classes provide the geometric data necessary to evaluate these surface integrals and control volume calculations with high precision.
+คลาสเมชให้ข้อมูลทางเรขาคณิตที่จำเป็นในการประเมินการอินทิเกรตตามผิวและการคำนวณปริมาตรควบคุมเหล่านี้ด้วยความแม่นยำสูง
 
 ---
 
-## 🔧 Core Mesh Components
+## 🔧 ส่วนประกอบหลักของเมช (Core Mesh Components)
 
-### 1. The Point Class
+### 1. คลาสจุด (The Point Class)
 
-Stores geometric coordinates of mesh vertices:
+จัดเก็บพิกัดทางเรขาคณิตของจุดยอดเมช (Mesh vertices):
 
 ```cpp
-// The pointField class stores an array of 3D points (vertices)
-// Inherits from Field<point> for efficient memory management
+// pointField จัดเก็บอาร์เรย์ของจุด 3 มิติ (จุดยอด)
+// สืบทอดมาจาก Field<point> เพื่อการจัดการหน่วยความจำที่มีประสิทธิภาพ
 class pointField : public Field<point>
 {
-    // Inherits from Field<point> for efficient storage
-    // Provides access to coordinates via pointField[i]
+    // สืบทอดมาจาก Field<point> เพื่อการจัดเก็บที่มีประสิทธิภาพ
+    // ให้การเข้าถึงพิกัดผ่าน pointField[i]
 };
 ```
 
-> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C:33`
+> - `pointField` เป็นคลาสที่ใช้เก็บพิกัดของจุด (vertices) ทั้งหมดในเมช
+> - สืบทอดมาจาก `Field<point>` ซึ่งเป็นคลาสเทมเพลตสำหรับจัดการข้อมูลแบบอาร์เรย์อย่างมีประสิทธิภาพ
+> - แต่ละจุดเก็บพิกัด $(x, y, z)$ ในพื้นที่สามมิติ
+> - สามารถเข้าถึงข้อมูลได้โดยตรงผ่านดัชนี: `pointField[i]`
 >
-> **การอธิบาย:**
-> - `pointField` เป็นคลาสที่ใช้เก็บพิกัดของจุด (vertices) ทั้งหมดใน mesh
-> - สืบทอดมาจาก `Field<point>` ซึ่งเป็น template class สำหรับจัดการข้อมูลแบบ array อย่างมีประสิทธิภาพ
-> - แต่ละ point เก็บพิกัด $(x, y, z)$ ในปริภูมิสามมิติ
-> - สามารถเข้าถึงข้อมูลได้โดยตรงผ่าน index: `pointField[i]`
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Geometric Coordinates:** ข้อมูลพิกัดเป็นพื้นฐานของการคำนวณเรขาคณิตทั้งหมด
-> - **Memory Efficiency:** การใช้ Field class ช่วยจัดการหน่วยความจำอย่างมีประสิทธิภาพ
-> - **Random Access:** สามารถเข้าถึงข้อมูลใดๆ ได้ทันทีผ่าน index
+> **แนวคิดสำคัญ:**
+> - **พิกัดทางเรขาคณิต:** ข้อมูลพิกัดเป็นพื้นฐานของการคำนวณเรขาคณิตทั้งหมด
+> - **ประสิทธิภาพหน่วยความจำ:** การใช้คลาส Field ช่วยจัดการหน่วยความจำได้อย่างเหมาะสม
+> - **การเข้าถึงแบบสุ่ม:** สามารถเข้าถึงข้อมูลใดๆ ได้ทันทีผ่านดัชนี
 
-Each point $p_i = (x_i, y_i, z_i)$ represents a vertex in 3D space. The `pointField` class provides random access to these coordinates and supports vector operations for geometric calculations.
+แต่ละจุด $p_i = (x_i, y_i, z_i)$ แทนจุดยอดในพื้นที่ 3 มิติ คลาส `pointField` ให้การเข้าถึงพิกัดเหล่านี้แบบสุ่มและรองรับการดำเนินการทางเวกเตอร์สำหรับการคำนวณทางเรขาคณิต
 
-### 2. The Face Class
+### 2. คลาสหน้า (The Face Class)
 
-Defines polygonal boundaries between cells:
+กำหนดขอบเขตที่เป็นรูปหลายเหลี่ยมระหว่างเซลล์:
 
 ```cpp
-// The face class represents a polygonal boundary between cells
-// Defined by an ordered list of point indices
+// คลาส face แทนขอบเขตที่เป็นรูปหลายเหลี่ยมระหว่างเซลล์
+// กำหนดโดยรายการดัชนีของจุดที่เรียงลำดับกัน
 class face
 {
 private:
-    // List of point indices that form the face polygon
-    List<label> points_;  // List of point indices forming the face
+    // รายการดัชนีของจุดที่รวมกันเป็นรูปหลายเหลี่ยมของหน้า
+    List<label> points_;  // รายการดัชนีจุดที่สร้างเป็นหน้า
 
 public:
-    // Calculate the outward normal vector of the face
+    // คำนวณเวกเตอร์แนวฉากที่พุ่งออกจากหน้า
     vector normal(const pointField&) const;
 
-    // Calculate the geometric center (centroid) of the face
+    // คำนวณจุดศูนย์กลางทางเรขาคณิต (centroid) ของหน้า
     point centre(const pointField&) const;
 
-    // Calculate the surface area of the face
+    // คำนวณพื้นที่ผิวของหน้า
     scalar area(const pointField&) const;
 };
 ```
 
-> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C:37`
+> - `face` คือคลาสที่แทนผิวรูปหลายเหลี่ยม (polygon) ซึ่งเป็นรอยต่อระหว่างเซลล์
+> - เก็บรายการดัชนีของจุด (point indices) ที่เรียงลำดับกันเพื่อสร้างรูปหลายเหลี่ยม
+> - มีฟังก์ชันสำหรับคำนวณคุณสมบัติทางเรขาคณิต: เวกเตอร์แนวฉาก (normal vector), จุดศูนย์กลาง (centroid), และพื้นที่ (area)
 >
-> **การอธิบาย:**
-> - `face` คือคลาสที่แทนผิวที่มีขนาดเป็นรูปหลายเหลี่ยม (polygon) ซึ่งเป็นขอบระหว่าง cells
-> - เก็บ list ของ point indices ที่เรียงลำดับกันเพื่อสร้างรูปหลายเหลี่ยม
-> - มีฟังก์ชันสำหรับคำนวณคุณสมบัติเรขาคณิต: normal vector, centroid, และ area
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Polygon Definition:** Face ถูกกำหนดโดยจุดยอด (vertices) ที่เชื่อมต่อกันเป็นรูปปิด
-> - **Geometric Properties:** Normal vector บอกทิศทาง, centroid คือจุดศูนย์กลาง, area คือพื้นที่ผิว
-> - **Ordered List:** ลำดับของ points สำคัญเพื่อกำหนด orientation (ด้านใน/นอก) ของ face
+> **แนวคิดสำคัญ:**
+> - **การนิยามรูปหลายเหลี่ยม:** หน้าถูกกำหนดโดยจุดยอดที่เชื่อมต่อกันเป็นรูปปิด
+> - **คุณสมบัติทางเรขาคณิต:** เวกเตอร์แนวฉากบอกทิศทาง, จุดศูนย์กลางคือจุดกึ่งกลาง, และพื้นที่คือขนาดของผิว
+> - **รายการที่เรียงลำดับ:** ลำดับของจุดมีความสำคัญต่อการกำหนดทิศทาง (orientation) ของหน้า
 
-**Face Properties:**
+**คุณสมบัติของหน้า:**
 
-- **Normal vector:** $\mathbf{n} = \frac{1}{2A}\sum_{i=1}^{n} (\mathbf{r}_i \times \mathbf{r}_{i+1})$
-- **Centroid:** Weighted average of point coordinates
-- **Area:** Calculated using polygon area formulas
+- **เวกเตอร์แนวฉาก (Normal vector):** $\mathbf{n} = \frac{1}{2A}\sum_{i=1}^{n} (\mathbf{r}_i \times \mathbf{r}_{i+1})$
+- **จุดศูนย์กลาง (Centroid):** ค่าเฉลี่ยถ่วงน้ำหนักของพิกัดจุด
+- **พื้นที่ (Area):** คำนวณโดยใช้สูตรพื้นที่รูปหลายเหลี่ยม
 
 ![[face_geometry_discretization.png]]
 `A diagram showing face geometry discretization: point indices, normal vector calculation via cross products, centroid position, and area calculation for a non-planar polygonal face, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
 
-### 3. The Cell Class
+### 3. คลาสเซลล์ (The Cell Class)
 
-Represents 3D polyhedral control volumes:
+แทนปริมาตรควบคุมรูปทรงหลายเหลี่ยม 3 มิติ:
 
 ```cpp
-// The cell class represents a 3D control volume bounded by faces
+// คลาส cell แทนปริมาตรควบคุม 3 มิติที่ล้อมรอบด้วยหน้าต่างๆ
 class cell
 {
 private:
-    // List of face indices that bound this cell
-    List<label> faces_;  // List of face indices bounding the cell
+    // รายการดัชนีของหน้าที่ล้อมรอบเซลล์นี้
+    List<label> faces_;  // รายการดัชนีของหน้าที่เป็นขอบเขตของเซลล์
 
 public:
-    // Calculate the volume of this cell using the divergence theorem
+    // คำนวณปริมาตรของเซลล์นี้โดยใช้ทฤษฎีบทการลู่ออก (Divergence theorem)
     scalar mag(const pointField&, const faceList&) const;
 
-    // Calculate the geometric center (centroid) of this cell
+    // คำนวณจุดศูนย์กลางทางเรขาคณิต (centroid) ของเซลล์นี้
     point centre(const pointField&, const faceList&) const;
 };
 ```
 
-> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C:34`
->
-> **การอธิบาย:**
 > - `cell` คือคลาสที่แทนปริมาตรควบคุม 3 มิติ (control volume) ซึ่งเป็นหน่วยพื้นฐานใน FVM
-> - ประกอบด้วย list ของ face indices ที่ล้อมรอบ cell
-> - ฟังก์ชัน `mag()` คำนวณปริมาตรโดยใช้ Divergence Theorem
-> - ฟังก์ชัน `centre()` คำนวณจุดศูนย์กลางเรขาคณิตของ cell
+> - ประกอบด้วยรายการดัชนีของหน้าที่ล้อมรอบเซลล์
+> - ฟังก์ชัน `mag()` คำนวณปริมาตรโดยใช้ทฤษฎีบทการลู่ออก (Divergence Theorem)
+> - ฟังก์ชัน `centre()` คำนวณจุดศูนย์กลางทางเรขาคณิตของเซลล์
 >
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Control Volume:** Cell เป็นปริมาตรที่ใช้ในการ integrate สมการการอนุรักษ์
-> - **Divergence Theorem:** วิธีคำนวณปริมาตรจาก surface integrals ของ bounding faces
-> - **Polyhedral Cells:** OpenFOAM รองรับ cell รูปทรงที่ซับซ้อน任意
+> **แนวคิดสำคัญ:**
+> - **ปริมาตรควบคุม:** เซลล์เป็นปริมาตรที่ใช้ในการอินทิเกรตสมการการอนุรักษ์
+> - **ทฤษฎีบทการลู่ออก:** วิธีคำนวณปริมาตรจากการอินทิเกรตตามผิวของหน้าที่ล้อมรอบ
+> - **เซลล์รูปทรงหลายเหลี่ยม:** OpenFOAM รองรับเซลล์รูปทรงที่ซับซ้อนใดๆ
 
-**Cell Volume Calculation:**
+**การคำนวณปริมาตรเซลล์:**
 
-Each cell is defined by its bounding faces. The cell volume calculation uses the divergence theorem:
+แต่ละเซลล์ถูกกำหนดโดยหน้าที่ล้อมรอบ การคำนวณปริมาตรเซลล์ใช้ทฤษฎีบทการลู่ออก:
 
-$$
+$$ 
 V = \frac{1}{6} \sum_{f \in \text{faces}} (\mathbf{c}_f \cdot \mathbf{n}_f) A_f \tag{2}
-$$
+$$ 
 
-**Variables:**
-- $\mathbf{c}_f$ = face centroid
-- $\mathbf{n}_f$ = face normal
-- $A_f$ = face area
+**ตัวแปร:**
+- $\mathbf{c}_f$ = จุดศูนย์กลางของหน้า
+- $\mathbf{n}_f$ = เวกเตอร์แนวฉากของหน้า
+- $A_f$ = พื้นที่หน้า
 
 ![[cell_volume_divergence_theorem.png]]
 `A 3D cell bounded by multiple faces, illustrating the use of the divergence theorem to calculate its volume by summing (centroid · normal) over all faces, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
 
-### 4. Boundary Conditions (Patches)
+### 4. เงื่อนไขขอบเขต (Patches)
 
-Collections of faces with specific physical behaviors:
+กลุ่มของหน้าที่พฤติกรรมทางกายภาพเฉพาะเจาะจง:
 
 ```cpp
-// Base class for boundary patches
-// Each patch represents a collection of faces with specific boundary conditions
+// คลาสพื้นฐานสำหรับแพตช์ขอบเขต (Boundary patches)
+// แต่ละแพตช์แทนกลุ่มของหน้าที่มีเงื่อนไขขอบเขตเฉพาะ
 class polyPatch
 {
 public:
-    // Pure virtual function to update mesh topology
-    // Must be implemented by derived patch classes
+    // ฟังก์ชันเสมือนบริสุทธิ์เพื่ออัปเดตโทโพโลยีของเมช
+    // ต้องถูกสร้างการทำงานในคลาสแพตช์ที่สืบทอดไป
     virtual void updateMesh(PolyTopoChange&) = 0;
 
-    // Access to patch-specific fields and properties
-    const word& name() const;           // Return the name of this patch
-    const labelList& meshPoints() const; // Return list of point indices in this patch
-    const labelList& meshFaces() const;  // Return list of face indices in this patch
+    // การเข้าถึงสนามและคุณสมบัติเฉพาะของแพตช์
+    const word& name() const;           // ส่งคืนชื่อของแพตช์นี้
+    const labelList& meshPoints() const; // ส่งคืนรายการดัชนีจุดในแพตช์นี้
+    const labelList& meshFaces() const;  // ส่งคืนรายการดัชนีหน้าในแพตช์นี้
 };
 ```
 
-> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.H:39`
+> - `polyPatch` เป็นคลาสพื้นฐาน (base class) สำหรับแพตช์ขอบเขตทั้งหมดในเมช
+> - แต่ละแพตช์คือกลุ่มของหน้าที่มีเงื่อนไขขอบเขตทางกายภาพเหมือนกัน
+> - `updateMesh()` เป็นฟังก์ชันเสมือนบริสุทธิ์ที่คลาสลูกต้องนำไปสร้างการทำงาน
+> - ช่วยให้เข้าถึงข้อมูลชื่อแพตช์, จุด, และหน้าที่เกี่ยวข้อง
 >
-> **การอธิบาย:**
-> - `polyPatch` เป็น base class สำหรับ boundary patches ทั้งหมดใน mesh
-> - แต่ละ patch คือ collection ของ faces ที่มี boundary condition เหมือนกัน
-> - `updateMesh()` เป็น pure virtual function ที่ derived classes ต้อง implement
-> - ให้ access ไปยังชื่อ patch, points, และ faces ที่เกี่ยวข้อง
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Boundary Conditions:** Patch กำหนดเงื่อนไขขอบเขตทางฟิสิกส์ (wall, inlet, outlet, etc.)
-> - **Polymorphism:** แต่ละประเภทของ BC (fixedValue, zeroGradient, etc.) implement polyPatch ต่างกัน
-> - **Mesh Interface:** Patch ทำหน้าที่เป็น interface ระหว่าง interior domain และ exterior world
+> **แนวคิดสำคัญ:**
+> - **เงื่อนไขขอบเขต:** แพตช์กำหนดเงื่อนไขขอบเขตทางฟิสิกส์ (เช่น ผนัง, ทางเข้า, ทางออก ฯลฯ)
+> - **พหุสัณฐาน (Polymorphism):** ประเภทของเงื่อนไขขอบเขตที่ต่างกัน (fixedValue, zeroGradient) จะมีการทำงานของ polyPatch ที่ต่างกัน
+> - **ส่วนต่อประสานของเมช:** แพตช์ทำหน้าที่เป็นส่วนต่อประสานระหว่างโดเมนภายในและโลกภายนอก
 
 ---
 
-## ⚙️ Key Optimization Strategies
+## ⚙️ กลยุทธ์การปรับปรุงประสิทธิภาพที่สำคัญ (Key Optimization Strategies)
 
-OpenFOAM's mesh classes incorporate several critical optimizations:
+คลาสเมชของ OpenFOAM รวมกลยุทธ์การปรับปรุงประสิทธิภาพที่สำคัญหลายประการ:
 
-| Optimization | Purpose | Impact |
+| การปรับปรุงประสิทธิภาพ | วัตถุประสงค์ | ผลกระทบ |
 |--------------|---------|--------|
-| **Compact Storage** | Contiguous memory layouts | Efficient cache utilization |
-| **Lazy Evaluation** | Geometric quantities | Computed on-demand and cached |
-| **Reference Counting** | Smart pointers | Prevents memory leaks while maintaining efficiency |
-| **Cache-Friendly Algorithms** | Iteration patterns | Optimized for modern CPU architectures |
+| **การจัดเก็บแบบกะทัดรัด (Compact Storage)** | การจัดวางหน่วยความจำแบบต่อเนื่อง | การใช้งานแคชที่มีประสิทธิภาพ |
+| **การคำนวณเมื่อต้องการ (Lazy Evaluation)** | ปริมาณทางเรขาคณิต | คำนวณเฉพาะเมื่อมีการเรียกใช้และเก็บแคชไว้ |
+| **การนับการอ้างอิง (Reference Counting)** | สมาร์ทพอยน์เตอร์ (Smart pointers) | ป้องกันหน่วยความจำรั่วไหลในขณะที่ยังคงประสิทธิภาพ |
+| **อัลกอริทึมที่เป็นมิตรกับแคช** | รูปแบบการวนซ้ำ | ปรับให้เหมาะสมกับสถาปัตยกรรม CPU สมัยใหม่ |
 
-### Lazy Evaluation Mechanism
+### กลไกการคำนวณเมื่อต้องการ (Lazy Evaluation Mechanism)
 
 ```cpp
-// Example: Surface area vectors computed only on first access
-// These geometric quantities are calculated on-demand and cached for reuse
+// ตัวอย่าง: เวกเตอร์พื้นที่ผิวจะถูกคำนวณเมื่อมีการเข้าถึงครั้งแรกเท่านั้น
+// ปริมาณทางเรขาคณิตเหล่านี้จะถูกคำนวณตามความต้องการและเก็บแคชไว้เพื่อใช้ซ้ำ
 
-const surfaceVectorField& Sf = mesh.Sf();  // Surface area vectors (S_f)
-                                           // Triggers computation if not already cached
+const surfaceVectorField& Sf = mesh.Sf();  // เวกเตอร์พื้นที่ผิว (S_f)
+                                           // เริ่มการคำนวณหากยังไม่ได้เก็บแคชไว้
 
-const volScalarField& V = mesh.V();        // Cell volumes (V_i)
-                                           // Computed on-demand and stored
+const volScalarField& V = mesh.V();        // ปริมาตรเซลล์ (V_i)
+                                           // คำนวณตามความต้องการและจัดเก็บไว้
 ```
 
-> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C:44`
+> - **Lazy Evaluation** คือการเลื่อนการคำนวณออกไปจนกว่าจะมีความจำเป็นต้องใช้ข้อมูลจริง
+> - `mesh.Sf()` ส่งคืนเวกเตอร์พื้นที่ผิว $\mathbf{S}_f = A_f \mathbf{n}_f$ สำหรับทุกหน้า
+> - `mesh.V()` ส่งคืนปริมาตรเซลล์ $V_i$ สำหรับทุกเซลล์
+> - ผลลัพธ์จะถูกเก็บแคช (cached) ไว้หลังจากคำนวณครั้งแรก เพื่อให้การเรียกใช้ครั้งต่อไปทำได้อย่างรวดเร็ว
 >
-> **การอธิบาย:**
-> - **Lazy Evaluation** คือการเลื่อนการคำนวณจนกว่าจะถูกเรียกใช้จริง (compute on-demand)
-> - `mesh.Sf()` ส่งคืน surface area vectors $\mathbf{S}_f = A_f \mathbf{n}_f$ สำหรับทุก face
-> - `mesh.V()` ส่งคืน cell volumes $V_i$ สำหรับทุก cell
-> - ผลลัพธ์ถูก cache ไว้หลังจากคำนวณครั้งแรก เพื่อใช้ซ้ำในการเรียกครั้งต่อไป
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Performance:** ลดการคำนวณซ้ำที่ไม่จำเป็น
-> - **Memory Efficiency:** ใช้หน่วยความจำเฉพาะเมื่อจำเป็น
-> - **Caching Strategy:** Balance ระหว่าง computation time และ memory usage
-> - **Reference Return:** ส่งคืน const reference เพื่อป้องกันการแก้ไขโดยไม่ตั้งใจ
+> **แนวคิดสำคัญ:**
+> - **ประสิทธิภาพ:** ลดการคำนวณที่ซ้ำซ้อน
+> - **ประสิทธิภาพหน่วยความจำ:** ใช้หน่วยความจำเฉพาะเมื่อจำเป็นเท่านั้น
+> - **กลยุทธ์การเก็บแคช:** รักษาสมดุลระหว่างเวลาในการคำนวณและการใช้หน่วยความจำ
+> - **การส่งคืนการอ้างอิง:** ส่งคืนข้อมูลในรูปแบบการอ้างอิงคงที่ (const reference) เพื่อความปลอดภัย
 
-**Benefits:**
-- Reduces redundant calculations
-- Saves memory
-- Improves overall performance
+**ประโยชน์:**
+- ลดการคำนวณที่ซ้ำซ้อน
+- ประหยัดหน่วยความจำ
+- ปรับปรุงประสิทธิภาพโดยรวม
 
 ---
 
-## 🔗 Class Interactions
+## 🔗 การปฏิสัมพันธ์ระหว่างคลาส (Class Interactions)
 
-Mesh classes work together through well-defined interfaces:
+คลาสเมชทำงานร่วมกันผ่านส่วนต่อประสานที่กำหนดไว้อย่างดี:
 
 ```cpp
-// Example: Accessing geometric information from the mesh hierarchy
-const fvMesh& mesh = ...;  // Reference to the finite volume mesh
+// ตัวอย่าง: การเข้าถึงข้อมูลทางเรขาคณิตจากลำดับชั้นของเมช
+const fvMesh& mesh = ...;  // การอ้างอิงไปยังเมชไฟไนต์วอลุ่ม
 
-// Access points (vertices) from the mesh
+// เข้าถึงจุด (จุดยอด) จากเมช
 const pointField& points = mesh.points();
 
-// Access faces and their geometric properties
+// เข้าถึงหน้าและคุณสมบัติทางเรขาคณิตของหน้า
 const faceList& faces = mesh.faces();
 vector faceNormal = faces[faceID].normal(points);
 
-// Access cells and their geometric properties
+// เข้าถึงเซลล์และคุณสมบัติทางเรขาคณิตของเซลล์
 const cellList& cells = mesh.cells();
 scalar cellVolume = cells[cellID].mag(points, faces);
 
-// Access boundary patch information
+// เข้าถึงข้อมูลแพตช์ขอบเขต
 const polyPatchList& patches = mesh.boundaryMesh();
 const fvPatch& wallPatch = patches[wallPatchID];
 ```
 
-> **📚 คำอธิบายภาษาไทย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.H:39`
+> - โค้ดตัวอย่างแสดงวิธีการดึงข้อมูลเรขาคณิตจากลำดับชั้นของเมช
+> - `fvMesh` เป็นจุดเข้าถึงหลักสำหรับการดึงข้อมูลเมชทั้งหมด
+> - สามารถเข้าถึงจุด, หน้า, เซลล์ และแพตช์ได้ผ่านวิธีการที่เกี่ยวข้อง
+> - การคำนวณคุณสมบัติบางอย่างต้องอาศัยข้อมูลจากส่วนประกอบอื่น (เช่น การคำนวณแนวฉากต้องใช้ข้อมูลจุด)
 >
-> **การอธิบาย:**
-> - โค้ดตัวอย่างแสดงวิธีการเข้าถึงข้อมูลเรขาคณิตจาก mesh hierarchy
-> - `fvMesh` เป็น entry point หลักสำหรับการเข้าถึงข้อมูล mesh
-> - สามารถเข้าถึง points, faces, cells, และ patches ได้ผ่าน methods ที่เกี่ยวข้อง
-> - การคำนวณ geometric properties ต้องการ dependencies (เช่น normal ต้องการ points)
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Hierarchical Access:** เข้าถึงข้อมูลผ่าน layer architecture (fvMesh → polyMesh → primitiveMesh)
-> - **Dependencies:** การคำนวณบางอย่างต้องการข้อมูลจาก components อื่น
-> - **Reference Semantics:** ใช้ const references เพื่อ efficiency และ safety
-> - **Layered Design:** แต่ละ layer มี interface ที่ชัดเจนสำหรับการเข้าถึงข้อมูล
+> **แนวคิดสำคัญ:**
+> - **การเข้าถึงแบบลำดับชั้น:** เข้าถึงข้อมูลผ่านสถาปัตยกรรมชั้น (fvMesh → polyMesh → primitiveMesh)
+> - **ความสัมพันธ์ระหว่างข้อมูล:** การคำนวณบางอย่างต้องการข้อมูลอ้างอิงจากส่วนประกอบอื่นๆ
+> - **ความหมายของการอ้างอิง:** ใช้การอ้างอิงคงที่เพื่อประสิทธิภาพและความปลอดภัย
+> - **การออกแบบเชิงชั้น:** แต่ละชั้นมีหน้าที่ชัดเจนในการจัดการข้อมูล
 
 ---
 
-## 📈 Applications in CFD
+## 📈 การประยุกต์ใช้ใน CFD (Applications in CFD)
 
-This mesh architecture enables:
+สถาปัตยกรรมเมชนี้ช่วยให้:
 
-- **Flux Calculations:** Face areas and normals for convection terms
-- **Gradient Computations:** Cell centers and volumes for diffusion terms
-- **Boundary Conditions:** Patch-specific physics and constraints
-- **Adaptive Meshing:** Dynamic mesh topology modifications
-- **Parallel Computation:** Domain decomposition and load balancing
-
----
-
-## 🎯 Learning Objectives
-
-After completing this chapter, you will understand:
-
-1. **How geometric data is organized** in OpenFOAM's hierarchical mesh class structure
-2. **The mathematical foundations** of finite volume mesh geometry
-3. **Optimization strategies** for computational geometry
-4. **How to access and manipulate** mesh data for custom applications
-5. **The relationship between topology and geometry** in CFD meshes
+- **การคำนวณฟลักซ์ (Flux Calculations):** ใช้พื้นที่และแนวฉากของหน้าสำหรับเทอมการพา (Convection terms)
+- **การคำนวณเกรเดียนต์ (Gradient Computations):** ใช้จุดศูนย์กลางและปริมาตรเซลล์สำหรับเทอมการแพร่ (Diffusion terms)
+- **เงื่อนไขขอบเขต (Boundary Conditions):** กำหนดฟิสิกส์และข้อจำกัดเฉพาะของแต่ละแพตช์
+- **เมชแบบปรับตัว (Adaptive Meshing):** การปรับเปลี่ยนโทโพโลยีของเมชแบบไดนามิก
+- **การคำนวณแบบขนาน (Parallel Computation):** การย่อยสลายโดเมนและการปรับสมดุลภาระงาน
 
 ---
 
-> [!INFO] Next Steps
+## 🎯 วัตถุประสงค์การเรียนรู้ (Learning Objectives)
+
+หลังจากจบบทนี้ คุณจะเข้าใจ:
+
+1. **วิธีการจัดระเบียบข้อมูลเรขาคณิต** ในลำดับชั้นของคลาสเมชของ OpenFOAM
+2. **พื้นฐานทางคณิตศาสตร์** ของเรขาคณิตเมชไฟไนต์วอลุ่ม
+3. **กลยุทธ์การปรับปรุงประสิทธิภาพ** สำหรับเรขาคณิตเชิงคำนวณ
+4. **วิธีการเข้าถึงและจัดการ** ข้อมูลเมชสำหรับการประยุกต์ใช้งานเฉพาะด้าน
+5. **ความสัมพันธ์ระหว่างโทโพโลยีและเรขาคณิต** ในเมช CFD
+
+---
+
+> [!INFO] ขั้นตอนถัดไป
 >
-> This introduction provides the foundation for understanding OpenFOAM's mesh architecture. In the following sections, we will explore:
-> - The detailed three-layer class hierarchy
-> - Primitive mesh geometry calculations
-> - Topology management in polyMesh
-> - Finite volume discretization in fvMesh
-> - Practical applications and best practices
+> บทนำนี้เป็นพื้นฐานสำหรับการทำความเข้าใจสถาปัตยกรรมเมชของ OpenFOAM ในส่วนถัดไป เราจะสำรวจ:
+> - รายละเอียดลำดับชั้นของคลาสสามชั้น
+> - การคำนวณเรขาคณิตของเมชพื้นฐาน (Primitive mesh)
+> - การจัดการโทโพโลยีใน polyMesh
+> - การดิสครีตแบบไฟไนต์วอลุ่มใน fvMesh
+> - การประยุกต์ใช้งานจริงและแนวทางปฏิบัติที่ดีที่สุด
 >
-> Continue to [[02_🏗️_The_Mesh_Class_Hierarchy_A_Three-Layer_Architecture]] for a deeper dive into the architectural design.
+> อ่านต่อที่ [[02_🏗️_The_Mesh_Class_Hierarchy_A_Three-Layer_Architecture]] เพื่อเจาะลึกการออกแบบเชิงสถาปัตยกรรม

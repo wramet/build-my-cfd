@@ -471,8 +471,8 @@ OpenFOAM uses template metaprogramming for compile-time type-safe access to regi
 ```cpp
 // Simplified region field lookup with compile-time type checking
 template<class RegionMesh, class FieldType>
-const GeometricField<FieldType, RegionMesh>&
-lookupRegionField
+const GeometricField<FieldType, RegionMesh>& 
+lokupRegionField
 (
     const word& regionName,
     const word& fieldName,
@@ -484,7 +484,7 @@ lookupRegionField
 
     // Look up from object registry with type checking
     // Type mismatch causes COMPILE-TIME error (not runtime)
-    return mesh.thisDb().lookupObject<GeometricField<FieldType, RegionMesh>>
+    return mesh.thisDb().lookupObject<GeometricField<FieldType, RegionMesh>> 
         (regIOkey);
 }
 
@@ -563,7 +563,7 @@ flowchart TD
     style FM fill:#e3f2fd,stroke:#1565c0
     style SM fill:#e8f5e9,stroke:#2e7d32
 ```
-> **Figure 2:** แผนภูมิแสดงโครงสร้างลำดับชั้นของระบบการจดทะเบียนวัตถุ (Registry Hierarchy) ในการจำลองแบบหลายภูมิภาค ซึ่งช่วยให้สามารถแยกแยะฟิลด์ที่มีชื่อซ้ำกันได้ภายใต้ภูมิภาคที่แตกต่างกัน ( fluidMesh vs solidMesh )
+> **Figure 2:** แผนผังแสดงโครงสร้างลำดับชั้นของระบบการจดทะเบียนวัตถุ (Registry Hierarchy) ในการจำลองแบบหลายภูมิภาค ซึ่งช่วยให้สามารถแยกแยะฟิลด์ที่มีชื่อซ้ำกันได้ภายใต้ภูมิภาคที่แตกต่างกัน ( fluidMesh vs solidMesh )
 
 ### 6.2 Structure Overview
 
@@ -848,13 +848,13 @@ void regIOobject::release() const
 Reference counting mechanism ให้ automatic memory management:
 
 **วิธีการทำงาน (How it Works):**
-1. **Reference Counting Track**:
+1. **Reference Counting Track**: 
    - `refCount_` track จำนวน references ที่ชี้ไปยัง object
    - เริ่มต้นที่ 1 เมื่อถูกสร้าง
    - เพิ่มขึ้นเมื่อมีการ copy reference
    - ลดลงเมื่อ reference ถูกทำลาย
 
-2. **Automatic Cleanup**:
+2. **Automatic Cleanup**: 
    - Destructor ทำการ checkOut จาก registry อัตโนมัติ
    - เมื่อ `refCount_ == 0` → object ถูก delete
    - ไม่ต้อง `delete` ด้วยตนเอง
@@ -920,7 +920,7 @@ public:
         if (!cachedFields_.found(fieldName))
         {
             // Cache miss - perform registry lookup and cache result
-            const FieldType& field =
+            const FieldType& field = 
                 registry_.lookupObject<FieldType>(fieldName);
             cachedFields_.insert(fieldName, &field);
         }
@@ -1040,13 +1040,13 @@ public:
 Thread safety สำคัญสำหรับ parallel simulations ที่ใช้ multi-threading:
 
 **Thread Safety Challenges:**
-1. **Race Conditions**:
+1. **Race Conditions**: 
    - Thread A และ Thread B พยายาม checkIn object พร้อมกัน
    - อาจทำให้ hash table corrupt ถ้าไม่มี synchronization
-2. **Data Races**:
+2. **Data Races**: 
    - Thread A อ่าน field ขณะที่ Thread B แก้ไข
    - สามารถสร้าง undefined behavior ได้
-3. **Iterator Invalidation**:
+3. **Iterator Invalidation**: 
    - Thread A iterate objects ขณะที่ Thread B checkOut object
    - สามารถทำให้ iterator กลายเป็น invalid
 
@@ -1106,7 +1106,7 @@ void printRegionFieldInfo
     // Check if field exists in this region
     if (mesh.thisDb().foundObject<FieldType>(fieldName))
     {
-        const FieldType& fld = mesh.thisDb().lookupObject<FieldType>(fieldName);
+        const FieldType& fld = mesh.thisDb().lookupObject<FieldType>(fieldName); 
         
         // Print field statistics with region context
         Info<< "Region: " << mesh.name()
@@ -1144,16 +1144,16 @@ forAll(solidRegions, i)
 Region-aware utilities แสดง best practices สำหรับ multi-region code:
 
 **Design Principles (หลักการออกแบบ):**
-1. **Template-based**:
+1. **Template-based**: 
    - `template<class FieldType>` ทำให้ function ใช้ได้กับ types หลายชนิด
    - `volScalarField`, `volVectorField`, `volTensorField` ใช้ function เดียวกัน
-2. **Safety Checking**:
+2. **Safety Checking**: 
    - `foundObject<FieldType>()` check ก่อน access
    - ป้องกัน crashes จาก missing fields
-3. **Region-Aware**:
+3. **Region-Aware**: 
    - Accept `const fvMesh&` ซึ่ง represent region
    - สามารถใช้กับ region ใดๆ ไม่จำเป็นต้อง hardcode
-4. **Minimal Operations**:
+4. **Minimal Operations**: 
    - ใช้ `min()`, `max()`, `average()` สำหรับ statistics
    - ไม่แก้ไข field data → read-only operation
 

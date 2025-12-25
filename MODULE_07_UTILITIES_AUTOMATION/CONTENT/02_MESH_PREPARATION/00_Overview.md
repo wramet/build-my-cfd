@@ -16,85 +16,92 @@ The mesh generation process typically begins with a CAD model or geometry defini
 
 ```mermaid
 flowchart TD
-    A["CAD/เรขาคณิต"] --> B{"กลยุทธ์การสร้าง Mesh"}
-    B --> C[blockMesh]
-    B --> D[snappyHexMesh]
-    B --> E["External Meshers"]
-    B --> F["cgMesh - ทางเลือก"]
+    A["CAD/Geometry"]
+    B{"Mesh Strategy"}
+    C[blockMesh]
+    D[snappyHexMesh]
+    E["External Meshers"]
+    F["cgMesh - Alternative"]
 
-    C --> G["การสร้าง Mesh แบบโครงสร้าง"]
-    D --> H["การสร้าง Mesh พื้นผิว"]
-    E --> I["แนวทางแบบผสม"]
-    F --> J["คุณสมบัติขั้นสูง"]
+    A --> B
+    B --> C
+    B --> D
+    B --> E
+    B --> F
 
-    G --> K["การประเมินคุณภาพ"]
-    H --> L["การนิยามเขตแดน"]
-    I --> M["การเพิ่มประสิทธิภาพ"]
-    J --> N["Mesh เฉพาะทาง"]
-    K --> O["การทำงานอัตโนมัติ"]
+    C --> G["Structured Mesh Generation"]
+    D --> H["Surface Meshing"]
+    E --> I["Hybrid Approach"]
+    F --> J["Advanced Features"]
+
+    G --> K["Quality Assessment"]
+    H --> L["Boundary Definition"]
+    I --> M["Optimization"]
+    J --> N["Specialized Meshes"]
+    K --> O["Automation"]
 ```
-> **Figure 1:** แผนภูมิขั้นตอนการตัดสินใจเลือกกลยุทธ์การสร้างเมช (Mesh Strategy Workflow) โดยเริ่มจากการนำเข้าเรขาคณิต CAD และเลือกใช้เครื่องมือที่เหมาะสม เช่น `blockMesh` สำหรับโครงสร้างที่เรียบง่าย หรือ `snappyHexMesh` สำหรับเรขาคณิตที่ซับซ้อน เพื่อนำไปสู่การประเมินคุณภาพและการทำงานอัตโนมัติ
+> **Figure 1:** Mesh Strategy Decision Flowchart, starting from CAD geometry import and selecting appropriate tools like `blockMesh` for simple structures or `snappyHexMesh` for complex geometries, leading to quality assessment and automation.
 
-**ปัจจัยการตัดสินใจหลัก:**
-- **ความซับซ้อนของเรขาคณิต**: รูปร่างง่ายเทียบกับรูปร่างออร์แกนิกที่ซับซ้อน
-- **ทรัพยากรการคำนวณ**: หน่วยความจำและกำลังประมวลผลที่มีอยู่
-- **ความต้องการความแม่นยำ**: ความละเอียดใกล้ผนังเทียบกับความแม่นยำของการไหลแบบจุลภาค
-- **ข้อจำกัดด้านเวลา**: การสร้าง mesh ด้วยมือเทียบกับแนวทางอัตโนมัติ
-- **พิจารณาทางฟิสิกส์**: ความต้องการของชั้นขอบเขต ความละเอียดของส่วนต่อประสาน
+**Key Decision Factors:**
+- **Geometric Complexity**: Simple shapes vs. complex organic shapes
+- **Computational Resources**: Available memory and processing power
+- **Accuracy Requirements**: Near-wall resolution vs. micro-flow accuracy
+- **Time Constraints**: Manual meshing vs. automated approaches
+- **Physics Considerations**: Boundary layer needs, interface resolution
 
 ### Mesh Strategy Decision Matrix
 
-| ประเภทเรขาคณิต | เครื่องมือที่แนะนำ | ความซับซ้อน | จำนวนเซลล์โดยทั่วไป | Use Case |
-|:---:|:---:|:---:|:---:|:---|
-| **กล่องง่ายๆ** | blockMesh | ต่ำ | 100-10,000 | ท่อ ช่องทางพื้นฐาน |
-| **ค่อนข้างซับซ้อน** | blockMesh | กลาง | 10,000-100,000 | ส่วนประกอบเครื่องยนต์ ภายในอาคาร |
-| **ซับซ้อนมาก** | snappyHexMesh | สูง | 100,000-1,000,000 | กังหัน เครื่องยนต์ยานยนต์ |
-| **การแพทย์ชีววิทยา** | snappyHexMesh | สูงมาก | 1,000,000+ | เส้นเลือด อุปกรณ์ปลูกถ่าย |
-| **นำเข้า CAD** | snappyHexMesh/cgMesh | สูงมาก | 500,000-10,000,000 | ชิ้นส่วนประกอบที่ซับซ้อน |
+| Geometry Type       | Recommended Tool   | Complexity | Typical Cell Count | Use Case                     |
+|:--------------------|:-------------------|:-----------|:-------------------|:-----------------------------|
+| **Simple Boxes**    | blockMesh          | Low        | 100-10,000         | Basic pipes, channels        |
+| **Moderately Complex**| blockMesh          | Medium     | 10,000-100,000     | Engine components, interiors |
+| **Highly Complex**  | snappyHexMesh      | High       | 100,000-1,000,000  | Turbines, automotive engines |
+| **Biomedical**      | snappyHexMesh      | Very High  | 1,000,000+         | Blood vessels, implants      |
+| **CAD Import**      | snappyHexMesh/cgMesh| Very High  | 500,000-10,000,000 | Complex assemblies           |
 
-### ข้อควรพิจารณาในการสร้าง Mesh ที่สำคัญ
+### Critical Mesh Generation Considerations
 
-**1. เมทริกซ์คุณภาพ Mesh**
+**1. Mesh Quality Metrics**
 
-เมทริกซ์คุณภาพ mesh ส่งผลโดยตรงต่อความเสถียรของ solver และความแม่นยำของผลลัพธ์:
+Mesh quality metrics directly influence solver stability and result accuracy:
 
-- **ออร์โธกอนัลลิตี**: มุมระหว่างเวกเตอร์เชื่อมจุดศูนย์กลางเซลล์ ($d$) และปกติของใบหน้า ($n$). เป้าหมาย: 0° (ขนาน)
-- **ความเบ้**: ความเบี่ยงเบนของจุดตัดของ $d$ และใบหน้าจากจุดศูนย์กลางใบหน้าจริง
-- **อัตราส่วนภาพ**: อัตราส่วนระหว่างมิติเซลล์ที่ยาวที่สุดและสั้นที่สุด ควรเข้าใกล้ 1 สำหรับการไหลแบบหมุน
+- **Orthogonality**: Angle between cell center-to-center vector ($d$) and face normal ($n$). Target: 0° (parallel)
+- **Skewness**: Deviation of the intersection of $d$ and the face from the true face centroid.
+- **Aspect Ratio**: Ratio between the longest and shortest cell dimensions. Should be close to 1 for rotational flows.
 
-**2. การพิจารณาชั้นขอบเขต**
+**2. Boundary Layer Considerations**
 
-สำหรับการไหลที่ถูกจำกัดด้วยผนัง การจับความเปลี่ยนแปลงความเร็วใกล้ผนังเป็นสิ่งสำคัญ:
+For wall-bounded flows, resolving near-wall velocity gradients is crucial:
 
 $$y^+ = \frac{u_\tau y}{\nu}$$
 
-โดยที่ $u_\tau = \sqrt{\tau_w/\rho}$ คือความเร็วแรงเสียดทาน
+where $u_\tau = \sqrt{\tau_w/\rho}$ is the friction velocity.
 
-**3. การวิเคราะห์ต้นทุนการคำนวณ**
+**3. Computational Cost Analysis**
 
 $$N_{cells} \cdot \text{cost}_{cell} \approx \text{total cost}$$
 
-จำนวนเซลล์ส่งผลโดยตรงต่อ:
-- ความต้องการหน่วยความจำ: $\mathcal{O}(N_{cells})$
-- เวลา CPU ต่อขั้นเวลา: $\mathcal{O}(N_{cells}^{\alpha})$ โดย $\alpha \approx 1.1-1.3$
-- ความสามารถในการทำงานขนาน: ผลตอบแทนที่ลดลงหลังจาก $10^6$ เซลล์ต่อคอร์
+Cell count directly impacts:
+- Memory requirements: $\mathcal{O}(N_{cells})$
+- CPU time per time step: $\mathcal{O}(N_{cells}^{\alpha})$ where $\alpha \approx 1.1-1.3$
+- Parallel scalability: Diminishing returns beyond $10^6$ cells per core
 
-### การเลือกแนวทางเชิงกลยุทธ์
+### Strategic Approach Selection
 
-**การสร้าง Mesh แบบโครงสร้าง (blockMesh)**
-- **ข้อดี**: คุณภาพสูง พฤติกรรมที่คาดการณ์ได้ การกระจายตัวเชิงตัวเลขน้อย
-- **ข้อจำกัด**: ต้องการแรงงานสูงสำหรับเรขาคณิตที่ซับซ้อน ความยืดหยุ่นจำกุม
-- **แนวทางปฏิบัติที่ดีที่สุด**: แนวทางหลายบล็อก การปรับปรุงความละเอียดจากขอบเขตอย่างก้าวหน้า
+**Structured Mesh Generation (blockMesh)**
+- **Pros**: High quality, predictable behavior, low numerical diffusion
+- **Cons**: Labor-intensive for complex geometries, limited flexibility
+- **Best Practices**: Multi-block approach, progressive refinement from boundaries
 
-**การสร้าง Mesh กึ่งโครงสร้าง (snappyHexMesh)**
-- **ข้อดี**: สมดุลที่ดีระหว่างการทำงานอัตโนมัติและการควบคุม รองรับการปรับปรุงความละเอียดเฉพาะที่
-- **ข้อจำกัด**: ต้องการการเตรียมพื้นผิวที่ดี ศักยภาพสำหรับเซลล์คุณภาพต่ำ
-- **แนวทางปฏิบัติที่ดีที่สุด**: การตรวจจับขอบคุณสมบัติที่เหมาะสม ระดับการปรับปรุงความละเอียดที่เพียงพอ
+**Unstructured/Hybrid Mesh Generation (snappyHexMesh)**
+- **Pros**: Good balance of automation and control, supports local refinement
+- **Cons**: Requires good surface preparation, potential for low-quality cells
+- **Best Practices**: Appropriate feature detection, sufficient refinement levels
 
-**แนวทางแบบผสม**
-- **กลยุทธ์**: ใช้ blockMesh สำหรับพื้นหลังและ snappyHexMesh สำหรับบริเวณที่ซับซ้อน
-- **ประโยชน์**: รวมข้อดีของทั้งสองแนวทาง
-- **การนำไปใช้งาน**: สร้าง mesh แกนกลางแบบโครงสร้างพร้อมการปรับปรุงความละเอียดแบบไม่มีโครงสร้างเฉพาะที่
+**Hybrid Approach**
+- **Strategy**: Use blockMesh for background mesh and snappyHexMesh for complex regions.
+- **Benefits**: Combines advantages of both approaches.
+- **Implementation**: Create a structured core mesh with localized unstructured refinement.
 
 ---
 
@@ -104,39 +111,39 @@ $$N_{cells} \cdot \text{cost}_{cell} \approx \text{total cost}$$
 
 #### 1.1 File Format Standards
 
-**รูปแบบ CAD ที่แนะนำ:**
+**Recommended CAD Formats:**
 ```bash
-# รูปแบบที่เหมาะสำหรับ OpenFOAM
+# Formats suitable for OpenFOAM
 STEP (.stp, .step)     # STEP Exchange Protocol
 IGES (.igs, .iges)     # Initial Graphics Exchange Specification
-STL (.stl)           # StereoLithography (แบบสามเหลี่ยม)
-VTK (.vtk)           # Visualization Toolkit (สำหรับอ้างอิง)
+STL (.stl)           # StereoLithography (triangulated)
+VTK (.vtk)           # Visualization Toolkit (for reference)
 ```
 
-เวิร์กโฟลว์จาก CAD ไปสู่ CFD เริ่มต้นด้วยการพิจารณารูปแบบไฟล์อย่างรอบคอบ **รูปแบบ STEP** ถูกแนะนำเป็นรูปแบบหลักสำหรับการแลกเปลี่ยนเรขาคณิตเนื่องจากรักษาข้อมูลพาราเมตริกและรักษาความต่อเนื่องของพื้นผิว **IGES** ให้ทางเลือกสำหรับระบบเดิมแต่อาจแนะนำความไม่สม่ำเสมอของพื้นผิว **ไฟล์ STL** เป็นพื้นผิวแบบสามเหลี่ยมที่เหมาะสำหรับการสร้าง mesh โดยตรงแต่ต้องให้ความสนใจกับคุณภาพและความหนาแน่นของสามเหลี่ยมเพื่อให้มั่นใจว่าการแสดงผลเรขาคณิตถูกต้อง
+The CAD-to-CFD workflow begins with careful consideration of file formats. **STEP format** is recommended as the primary geometry exchange format due to its preservation of parametric data and surface continuity. **IGES** offers an alternative for legacy systems but may introduce surface inconsistencies. **STL files** are triangulated surfaces suitable for direct meshing but require attention to triangle quality and density to ensure accurate geometric representation.
 
-การเลือกรูปแบบไฟล์ส่งผลโดยตรงต่อกระบวนการสร้าง mesh ในภายหลัง Surface mesh คุณภาพสูงเริ่มต้นจากเรขาคณิต CAD ที่เตรียมไว้อย่างดีซึ่งรักษาความโค้งงำ รักษาความเชื่อมต่อพื้นผิวที่เหมาะสม และกำจัดความผิดปกติทางเรขาคณิตที่จะนำไปสู่ความล้มเหลวในการสร้าง mesh หรือความถูกต้องเชิงตัวเลขที่ต่ำ
+File format selection directly impacts the subsequent meshing process. A high-quality surface mesh starts from well-prepared CAD geometry that preserves curvature, maintains proper surface connectivity, and eliminates geometric anomalies that would lead to meshing failures or low numerical accuracy.
 
-#### 1.2 การทำความสะอาดและซ่อมแซมแบบจำลอง CAD
+#### 1.2 CAD Model Cleaning and Repair
 
 ```bash
-# ปัญหา CAD ทั่วไปที่ต้องแก้ไข:
-# 1. เรขาคณิต Non-manifold
-# 2. พื้นผิวความหนาศูนย์
-# 3. ปกติที่กลับด้าน
-# 4. คุณสมบัติเล็กๆ (รู, ขอบ)
-# 5. ช่องว่างแอสเซมบลี
-# 6. หน่วยวัดที่ไม่สม่ำเสมอ
-# 7. พื้นผิวที่ซ้อนทับกัน
+# Common CAD issues to address:
+# 1. Non-manifold geometry
+# 2. Zero-thickness surfaces
+# 3. Inverted normals
+# 4. Small features (holes, slivers)
+# 5. Assembly gaps
+# 6. Inconsistent units
+# 7. Overlapping surfaces
 ```
 
-การเตรียมแบบจำลอง CAD ต้องการการระบุและแก้ไขข้อบกพร่องทางเรขาคณิตอย่างเป็นระบบซึ่งกระทบต่อคุณภาพของ mesh **เรขาคณิต Non-manifold** เกิดขึ้นเมื่อขอบถูกใช้ร่วมกันโดยหน้ามากกว่าสองด้าน สร้างโทโพโลยีที่คลุมเครือซึ่งขัดขวางการนิยามปริมาตรที่เหมาะสม **พื้นผิวความหนาศูนย์** แสดงถึงคุณสมบัติทางเรขาคณิตโดยไม่มีปริมาตรทางกายภาพซึ่งต้องถูกลบออกหรือกำหนดความหนาที่เหมาะสมตามฟิสิกส์ที่กำลังจำลอง
+CAD model preparation requires systematic identification and correction of geometric defects that impact mesh quality. **Non-manifold geometry** arises when an edge is shared by more than two faces, creating ambiguous topology that hinders proper volume definition. **Zero-thickness surfaces** represent geometric features without physical volume, requiring removal or appropriate thickness assignment based on the simulated physics.
 
-ปกติของพื้นผิวต้องมีการวางแนวที่สม่ำเสมอไปด้านนอกเพื่อให้มั่นใจในการระบุเขตแดนและการคำนวณ flux ที่เหมาะสม **คุณสมบัติเล็กๆ** เช่น รู ขอบแหลม และฟิลเล็ตที่เล็กกว่าความละเอียด mesh ที่ตั้งใจควรถูกลบออกหรือทำให้ง่ายขึ้นเพื่อหลีกเลี่ยงการปรับปรุง mesh มากเกินไป **ช่องว่างแอสเซมบลี** ระหว่างส่วนประกอบที่เชื่อมต่อกันต้องถูกปิดด้วยเรขาคณิตที่เหมาะสมหรือจำลองอย่างตั้งใจเป็นส่วนติดต่อทางกายภาพ ความสม่ำเสมอของหน่วยทั่วทั้งแบบจำลองป้องกันข้อผิดพลาดในการปรับขนาดระหว่างการนำเข้าเรขาคณิต
+Surface normals must have consistent outward orientation to ensure correct boundary identification and flux calculations. **Small features** like holes, sliver surfaces, and fillets smaller than the intended mesh resolution should be removed or simplified to avoid excessive mesh refinement. **Assembly gaps** between connected components must be closed with appropriate geometry or intentionally modeled as physical interfaces. Unit consistency across the model prevents scaling errors during geometry import.
 
-#### 1.3 เครื่องมือซ่อมแซม CAD
+#### 1.3 CAD Repair Tools
 
-**ตัวเลือกโอเพนซอร์ส:**
+**Open-Source Options:**
 ```bash
 # FreeCAD
 python -c "
@@ -148,209 +155,209 @@ import Mesh
 import Part
 import Import
 
-# โหลดและซ่อมแซมแบบจำลอง CAD
+# Load and repair CAD model
 App.ActiveDocument = FreeCADGui.Application
 FreeCADGui.ActiveDocument = FreeCADGui.getDocument('model.step')
 
-# แก้ไขปัญหาเรขาคณิต
+# Fix geometry issues
 doc = FreeCADGui.ActiveDocument.Objects[0]
 doc.Shape = Part.Shape(doc)
 cleaned_shape = Shape.cleanShape(doc.Shape)
 
-# ส่งออกเป็น STL
+# Export to STL
 import Mesh
 mesh = Mesh.exportShape(cleaned_shape, 'stl')
 Mesh.export(cleaned_shape, 'model.stl')
 "
 
-# Blender (สคริปต์ Python)
+# Blender (Python scripting)
 blender --background --python mesh_repair.py
 
-# MeshLab (สำหรับประมวลผล point cloud)
+# MeshLab (for point cloud processing)
 meshlabserver -i input.ply -o output.stl -x filter
 ```
 
-FreeCAD ให้ความสามารถในการสคริปต์ Python อย่างครอบคลุมสำหรับการทำงานซ่อมแซม CAD อัตโนมัติ เมธอด `Shape.cleanShape()` ซ่อมแซมปัญหาเรขาคณิตทั่วไปโดยอัตโนมัติรวมถึงความไม่ต่อเนื่องของพื้นผิวและการจัดแนวขอบที่ผิดปกติ กระบวนการซ่อมแซมเกี่ยวข้องกับการวิเคราะห์ความต่อเนื่องทางเรขาคณิต การระบุคุณสมบัติที่มีปัญหา และการใช้การดำเนินการฟื้นฟูที่เหมาะสมในขณะที่รักษาเจตนาการออกแบบโดยรวม
+FreeCAD offers comprehensive Python scripting capabilities for automated CAD repair tasks. The `Shape.cleanShape()` method automatically fixes common geometric issues, including surface discontinuities and incorrect edge alignments. The repair process involves analyzing geometric continuity, identifying problematic features, and applying appropriate healing operations while preserving the overall design intent.
 
-Blender มีความสามารถในการซ่อมแซม mesh อันทรงพลังผ่านการดำเนินการแก้ไข mesh จุดยอด non-manifold สามารถระบุและแก้ไขได้โดยใช้การดำเนินการ "Edge Split" และ "Vertex Merge" ฟังก์ชัน "Remove Doubles" กำจัดจุดยอดซ้ำซึ่งมักปรากฏระหว่างการดำเนินการนำเข้าเรขาคณิต
+Blender provides powerful mesh repair capabilities through its mesh editing operations. Non-manifold vertices can be identified and fixed using "Edge Split" and "Vertex Merge" operations. The "Remove Doubles" function eliminates duplicate vertices often encountered during geometry import.
 
-**ตัวเลือกเชิงพาณิชย์:**
+**Commercial Options:**
 ```bash
-# ANSYS SpaceClaim (ระดับมืออาชีพ)
-# - เครื่องมือซ่อมแซม CAD ยอดเยี่ยม
-# - การเติมช่องว่างอัตโนมัติ
-# - การทำให้พื้นผิวเรียบและการปรับให้เหมาะสม
-# - การส่งออก OpenFOAM โดยตรง
+# ANSYS SpaceClaim (Professional)
+# - Excellent CAD repair tools
+# - Automatic gap filling
+# - Surface smoothing and optimization
+# - Direct OpenFOAM export
 
-# Siemens NX/UG (ระดับมืออาชีพ)
-# - การซ่อมแซม CAD อย่างครอบคลุม
-# - การเตรียมพื้นผิวขั้นสูง
-# - การส่งออก OpenFOAM โดยตรงพร้อมการควบคุมคุณภาพ
+# Siemens NX/UG (Professional)
+# - Comprehensive CAD repair
+# - Advanced surface preparation
+# - Direct OpenFOAM export with quality control
 
-# SOLIDWORKS (ระดับมืออาชีพ)
-# - การซ่อมแซมเรขาคณิตอัตโนมัติ
-# - การยับยั้งคุณสมบัติสำหรับ CFD
-# - เครื่องมือเตรียมพื้นผิว mesh
+# SOLIDWORKS (Professional)
+# - Automatic geometry repair
+# - Feature suppression for CFD
+# - Mesh preparation tools
 ```
 
-เครื่องมือซ่อมแซม CAD เชิงพาณิชย์ให้ความสามารถในการวิเคราะห์และซ่อมแซมอัตโนมัติที่ซับซ้อนซึ่งลดความพยายามด้วยตนเองอย่างมีนัยสำคัญ อัลกอริทึมการเติมช่องว่างอัตโนมัติของ SpaceClaim สามารถปิดค่าความอดทนถึงขีดจำกัดที่ผู้ใช้ระบุในขณะที่รักษาความต่อเนื่องของพื้นผิว เครื่องมือเตรียมพื้นผิวของ NX รวมถึงการสร้าง mesh แบบปรับตามสภาพซึ่งเคารพความโค้งงำและคุณสมบัติทางเรขาคณิตในขณะที่ปรับจำนวนสามเหลี่ยมเพื่อประสิทธิภาพการคำนวณ
+Commercial CAD repair tools offer sophisticated automated analysis and repair capabilities, significantly reducing manual effort. SpaceClaim's automatic gap-filling algorithms can close tolerances up to user-defined limits while maintaining surface continuity. NX's surface preparation tools include adaptive meshing that respects curvature and geometric features while optimizing triangle count for computational efficiency.
 
-### Step 2: การตรวจสอบความถูกต้องของเรขาคณิต
+### Step 2: Geometry Validation
 
-#### 2.1 การประเมินคุณภาพพื้นผิว
+#### 2.1 Surface Quality Assessment
 
 ```bash
-# เครื่องมือสำหรับตรวจสอบคุณภาพพื้นผิว:
-# 1. ParaView (การวิเคราะห์ทางสถิติ)
-# 2. MeshLab (การวิเคราะห์ทางเรขาคณิต)
-# 3. Blender (การตรวจสอบด้วยตนเอง)
-# 4. FreeCAD (เครื่องมือวัด)
+# Tools for surface quality assessment:
+# 1. ParaView (Statistical analysis)
+# 2. MeshLab (Geometric analysis)
+# 3. Blender (Manual inspection)
+# 4. FreeCAD (Measurement tools)
 ```
 
 ```python
-# สคริปต์ Python ของ ParaView สำหรับการวิเคราะห์เรขาคณิต
+# ParaView Python script for geometric analysis
 import paraview.simple as pv
 import numpy as np
 
-# โหลดพื้นผิว CAD
+# Load CAD surface
 surface = pv.OpenDataFile('model.stl')
 
-# สถิติพื้นที่ผิว
+# Surface area statistics
 stats = surface.ComputeSurfaceArea()
-print(f"พื้นที่ผิว: {stats[0]} หน่วย²")
+print(f"Surface Area: {stats[0]} units²")
 
-# การวิเคราะห์ปกติ
+# Normal vector analysis
 normals = surface.ComputeSurfaceNormals()
 avg_normal_magnitude = np.mean(np.linalg.norm(normals, axis=1))
-print(f"ค่าเบี่ยงเบนปกติเฉลี่ย: {avg_normal_magnitude}")
+print(f"Average Normal Deviation: {avg_normal_magnitude}")
 
-# การวิเคราะห์ขอบ
+# Edge analysis
 edges = surface.ComputeSurfaceEdges()
 sharp_edges = edges.FindSharpEdges(angle_threshold=30)
-print(f"ตรวจพบขอบแหลม: {len(sharp_edges)}")
+print(f"Sharp Edges Detected: {len(sharp_edges)}")
 ```
 
-การประเมินคุณภาพพื้นผิวใช้เมตริกเชิงปริมาณเพื่อประเมินความเหมาะสมทางเรขาคณิตสำหรับการสร้าง mesh CFD **ความสม่ำเสมอของพื้นที่ผิว** ระหว่างการแสดงผล CAD และ mesh บ่งชี้ถึงการรักษาเรขาคณิตที่สำเร็จ **การวิเคราะห์เวกเตอร์ปกติ** ระบุภูมิภาคที่มีการวางแนวที่ไม่สม่ำเสมอซึ่งจะนำไปสู่การใช้เงื่อนไขขอบเขตที่ไม่เหมาะสม **การตรวจจับขอบแหลม** เผยให้เห็นความไม่ต่อเนื่องทางเรขาคณิตซึ่งอาจต้องการการปรับปรุง mesh ในท้องที่หรือการทำให้เรียบ
+Surface quality assessment uses quantitative metrics to evaluate geometric suitability for CFD meshing. **Surface area consistency** between CAD representation and mesh indicates successful geometric preservation. **Normal vector analysis** identifies regions with inconsistent orientation that could lead to improper boundary condition application. **Sharp edge detection** reveals geometric discontinuities that may require localized mesh refinement or smoothing.
 
-การวิเคราะห์ทางสถิติของ ParaView ให้เมตริกคุณภาพพื้นผิวอย่างครอบคลุมรวมถึงอัตราส่วนด้านสามเหลี่ยม ความเบ้ และความแปรผันของขนาด ฮิสโทแกรมของมุมสามเหลี่ยมควรแสดงการกระจายที่มีศูนย์กลางรอบ 60° สำหรับสามเหลี่ยมด้านเท่า โดยมีการเกิดขึ้นขององค์ประกอบที่บิดเบือนอย่างรุนแรงน้อยที่สุดซึ่งอาจกระทบต่อความถูกต้องเชิงตัวเลข
+ParaView's statistical analysis provides comprehensive surface quality metrics, including triangle aspect ratios, skewness, and size variation. Histograms of triangle angles should show a distribution centered around 60° for equilateral triangles, with minimal occurrence of severely distorted elements that could impact numerical accuracy.
 
-#### 2.2 การตรวจสอบความหนา
+#### 2.2 Thickness Verification
 
 ```bash
-# ขนาดคุณสมบัติขั้นต่ำสำหรับ CFD (กฎเกณฑ์ทั่วไป)
+# Minimum feature size for CFD (general rule of thumb)
 min_thickness = max(0.001 * domain_length, 3 * smallest_cell_size)
 
-# ตรวจสอบคุณสมบัติบาง
+# Check for thin features
 thin_features = thin_features_analysis(model.stl, min_thickness)
 if thin_features:
-    print("คำเตือน: ตรวจพบคุณสมบัติบาง - พิจารณาการเพิ่มความหนาผนัง")
+    print("Warning: Thin features detected - consider wall thickness inflation")
 ```
 
-**เกณฑ์ขนาดคุณสมบัติขั้นต่ำ** ทำให้มั่นใจว่าคุณสมบัติทางเรขาคณิตถูกแก้ไขอย่างเหมาะสมโดย computational mesh เกณฑ์นี้สมดุลระหว่างความซื่อตรงทางเรขาคณิตกับประสิทธิภาพการคำนวณโดยกำจัดคุณสมบัติที่เล็กกว่าความละเอียด mesh แต่ใหญ่กว่าความต้องการความถูกต้องเชิงตัวเลข
+**Minimum feature size criteria** ensure that geometric features are adequately resolved by the computational mesh. This criterion balances geometric fidelity with computational efficiency by eliminating features smaller than the mesh resolution but larger than numerical accuracy requirements.
 
-การตรวจจับคุณสมบัติบางเกี่ยวข้องกับการคำนวณความหนาผนังในท้องที่โดยใช้วิธี ray-tracing หรือ distance field ภูมิภาคที่ละเมิดเกณฑ์ความหนาขั้นต่ำควรถูกทำให้หนาขึ้นเพื่อสร้างปริมาตรที่เหมาะสมสำหรับการสร้าง mesh หรือทำให้ง่ายขึ้นผ่านการลบคุณสมบัติเพื่อหลีกเลี่ยงการปรับปรุง mesh ในท้องที่ที่ไม่จำเป็น
+Thin feature detection involves calculating local wall thickness using ray-tracing or distance field methods. Regions violating the minimum thickness criterion should be thickened to provide adequate volume for meshing or simplified via feature removal to avoid unnecessary local mesh refinement.
 
-สำหรับการไหลของผนังขอบเขต เกณฑ์ความหนายังพิจารณาความต้องการ mesh ใกล้ผนังสำหรับการแก้ไขชั้นขอบเขต ความสูงของเซลล์แรก $\Delta y$ ถูกคำนวณตามค่า $y^+$ ที่ต้องการ:
+For wall-bounded flows, the thickness criterion also considers near-wall meshing requirements for boundary layer resolution. The first cell height $\Delta y$ is calculated based on the desired $y^+$ value:
 
 $$\Delta y = \frac{y^+ \mu}{\rho u_\tau}$$
 
-โดยที่ $u_\tau$ คือความเร็วแรงเสียดทานและ $\mu$ คือความหนืดแบบไดนามิก สิ่งนี้ทำให้มั่นใจว่าคุณสมบัติผนังบางถูกแก้ไขอย่างเหมาะสมสำหรับการแสดงผลฟิสิกส์ใกล้ผนังที่ถูกต้อง
+where $u_\tau$ is the friction velocity and $\mu$ is the dynamic viscosity. This ensures thin wall features are adequately resolved for accurate near-wall physics representation.
 
-#### 2.3 การตรวจสอบความสมบูรณ์
+#### 2.3 Integrity Verification
 
 ```bash
-# ตรวจสอบการรั่วในเรขาคณิตปิด
+# Check for leaks in closed volumes
 if [ "$geometry_type" = "closed_volume" ]; then
-    # ใช้คำสั่ง blockMesh checkMesh
+    # Use blockMesh and checkMesh commands
     blockMesh -case case
 
-    # ตรวจสอบขอบ non-manifold
+    # Check for non-manifold edges
     checkMesh -allTopology -case case
 fi
 ```
 
-**การตรวจสอบความสมบูรณ์** เป็นสิ่งสำคัญสำหรับการจำลองปริมาตรปิดซึ่งโดเมนการคำนวณต้องถูกปิดล้อมอย่างสมบูรณ์โดยเขตแดนพื้นผิว กระบวนการตรวจสอบตรวจสอบช่องว่าง รู หรือความไม่ต่อเนื่องซึ่งจะอนุญาตให้มีการไหลของมวลที่ไม่เป็นธรรมชาติข้ามเขตแดน
+**Integrity verification** is crucial for closed-volume simulations where the computational domain must be completely enclosed by surface boundaries. The verification process checks for gaps, holes, or discontinuities that would allow unnatural mass flow across boundaries.
 
-ยูทิลิตี `checkMesh` ให้การวิเคราะห์โทโพโลยีอย่างครอบคลุมรวมถึง:
-- **ความสม่ำเสมอของ mesh เขตแดน**: ยืนยันว่าหน้าเขตแดนทั้งหมดถูกนิยามและวางแนวอย่างเหมาะสม
-- **จำนวนโซน**: ยืนยันการมีอยู่ของแพตช์เขตแดนและภูมิภาคภายในที่ถูกต้อง
-- **การตรวจสอบจำนวนเซลล์**: ทำให้มั่นใจว่ามีปริมาตรบวกสำหรับเซลล์การคำนวณทั้งหมด
-- **การวางแนวหน้า**: ยืนยันเวกเตอร์ปกติที่สม่ำเสมอสำหรับการคำนวณ flux ที่เหมาะสม
+The `checkMesh` utility provides a comprehensive topological analysis, including:
+- **Boundary mesh consistency**: Confirms all boundary faces are properly defined and oriented.
+- **Zone counts**: Verifies the correct presence of boundary patches and internal regions.
+- **Cell volume checks**: Ensures positive volume for all computational cells.
+- **Face orientation**: Confirms consistent normal vectors for proper flux calculations.
 
-สำหรับการจำลองการไหลภายนอกรอบร่างปิด การตรวจสอบเพิ่มเติมยืนยันว่าเขตแดนระยะไกลสร้างการล้อมรอบที่สมบูรณ์และว่าโดเมนการคำนวณขยายออกไปได้ไกลพอจากร่างเพื่อหลีกเลี่ยงการรบกวนเงื่อนไขขอบเขต ขนาดโดเมนโดยทั่วไปควรขยายออกไปอย่างน้อย 10-15 ความยาวลักษณะจากร่างเพื่อลดผลขอบเขตเทียม
+For external flow simulations around closed bodies, additional checks confirm that far-field boundaries form a complete enclosure and that the computational domain extends sufficiently far from the body to avoid boundary condition interference. Domain size typically should extend at least 10-15 characteristic lengths from the body to minimize artificial boundary effects.
 
 ---
 
 ## 🎯 BlockMesh Enhancement Workflow
 
-### Step 1: เทคนิคขั้นสูงของ blockMesh
+### Step 1: Advanced blockMesh Techniques
 
-#### 1.1 เรขาคณิตที่ซับซ้อนด้วย blockMesh
+#### 1.1 Complex Geometries with blockMesh
 
-ยูทิลิตี้ `blockMesh` ใน OpenFOAM ให้ความสามารถที่ทรงพลังในการสร้าง mesh หกเหลี่ยมที่มีโครงสร้างสำหรับเรขาคณิตที่ซับซ้อน แม้ว่าแบบดั้งเดิมจะใช้สำหรับโดเมนสี่เหลี่ยมผืนผ้าที่เรียบง่าย แต่เทคนิคขั้นสูงช่วยให้สามารถสร้างโทโพโลยี mesh ที่ซับซ้อนได้ รวมถึงจุดต่อของท่อ, จุดต่อแบบ T, และเรขาคณิตที่โค้งงอ
+The `blockMesh` utility in OpenFOAM provides powerful capabilities for generating structured hexahedral meshes for complex geometries. While traditionally used for simple rectangular domains, advanced techniques allow for the creation of intricate mesh topologies, including pipe junctions, T-junctions, and curved geometries.
 
-#### กลยุทธ์โดเมนหลายบล็อก
+#### Multi-Block Domain Strategy
 
-สำหรับเรขาคณิตที่ซับซ้อน จำเป็นต้องแบ่งโดเมนออกเป็นบล็อกหกเหลี่ยมหลายบล็อกที่เชื่อมต่อกันอย่างราบรื่น หลักการสำคัญคือแต่ละบล็อกต้องรักษาความสม่ำเสมอของโทโพโลยีด้วยการจัดลำดับจุดยอดและการเชื่อมต่อใบหน้าที่เหมาะสม
+For complex geometries, it is necessary to decompose the domain into multiple hexahedral blocks that connect seamlessly. The key principle is that each block must maintain topological consistency with proper vertex ordering and face connectivity.
 
-**ข้อตกลงการจัดลำดับจุดยอด:**
-OpenFOAM ติดตามข้อตกลงการจัดลำดับจุดยอดเฉพาะสำหรับบล็อกหกเหลี่ยม:
-- ใบหน้าล่าง: จุดยอด 0-3 (ทวนเข็มนาฬิกาเมื่อมองจากด้านบน)
-- ใบหน้าบน: จุดยอด 4-7 (ทวนเข็มนาฬิกาเมื่อมองจากด้านบน)
-- ขอบดิ่งเชื่อมต่อจุดยอดล่างและบนที่สอดคล้องกัน
+**Vertex Ordering Convention:**
+OpenFOAM follows a specific vertex ordering convention for hexahedral blocks:
+- Bottom face: Vertices 0-3 (counter-clockwise when viewed from above)
+- Top face: Vertices 4-7 (counter-clockwise when viewed from above)
+- Vertical edges connect corresponding bottom and top vertices.
 
-#### ตัวอย่างจุดต่อท่อ 3 มิติ
+#### 3D Pipe Junction Example
 
-พิจารณาจุดต่อท่อที่ท่อด้านเข้าแตกแขนงออกเป็นท่อด้านออกหลายท่อ เรขาคณิตนี้ต้องการการแบ่งบล็อกอย่างระมัดระวังเพื่อรักษาคุณภาพของ mesh ในขณะที่จับลักษณะเรขาคณิต
+Consider a pipe junction where an inlet pipe branches into multiple outlet pipes. This geometry requires careful block decomposition to maintain mesh quality while capturing geometric features.
 
-ความท้าทายทางคณิตศาสตร์อยู่ที่การรักษาความตั้งฉากของ mesh ที่จุดต่อในขณะที่确保การเปลี่ยนขนาดเซลล์ที่ราบรื่น สมการควบคุมสำหรับการกระจายขนาดเซลล์ในทิศทางการไหลสามารถแสดงเป็น:
+The mathematical challenge lies in preserving mesh orthogonality at the junction while ensuring smooth cell size transitions. Governing equations for cell size distribution in the flow direction can be expressed as:
 
 $$\Delta x_i = \Delta x_0 \cdot r^{i-1}$$
 
-โดยที่ $\Delta x_i$ คือขนาดเซลล์ที่ตำแหน่ง $i$, $\Delta x_0$ คือขนาดเซลล์เริ่มต้น, และ $r$ คืออัตราส่วนการเติบโต
+where $\Delta x_i$ is the cell size at position $i$, $\Delta x_0$ is the initial cell size, and $r$ is the growth ratio.
 
-สำหรับความละเอียดชั้นขอบเขตใกล้ผนัง ความสูงของเซลล์แรก $\Delta y^+$ ควรเป็นไปตาม:
+For near-wall boundary layer resolution, the first cell height $\Delta y^+$ should adhere to:
 
 $$\Delta y^+ = \frac{y_1 u_\tau}{\nu} \approx 1$$
 
-โดยที่ $y_1$ คือความสูงของเซลล์แรก, $u_\tau$ คือความเร็วแรงเสียดทาน, และ $\nu$ คือความหนืดจลน์
+where $y_1$ is the first cell height, $u_\tau$ is the friction velocity, and $\nu$ is the kinematic viscosity.
 
-### Step 2: กลยุทธ์การจัดอันดับขั้นสูง
+### Step 2: Advanced Grading Strategies
 
-OpenFOAM ให้ฟังก์ชันการจัดอันดับหลายรูปแบบเพื่อควบคุมการกระจายขนาดเซลล์ภายในบล็อก:
+OpenFOAM provides multiple grading functions to control cell size distribution within blocks:
 
-#### ฟังก์ชันการจัดอันดับทางคณิตศาสตร์
+#### Mathematical Grading Functions
 
 1. **Simple Grading**: `simpleGrading (x_ratio y_ratio z_ratio)`
-   - การแทรกเชิงเส้นจากใบหน้าหนึ่งไปยังใบหน้าตรงข้าม
-   - การก้าวหน้าขนาดเซลล์: $\Delta x_i = \Delta x_{min} + (\Delta x_{max} - \Delta x_{min}) \cdot \frac{i}{n}$
+   - Linear interpolation from one face to the opposite.
+   - Cell size progression: $\Delta x_i = \Delta x_{min} + (\Delta x_{max} - \Delta x_{min}) \cdot \frac{i}{n}$
 
 2. **Exponential Grading**: `expandingGrading (x_ratio y_ratio z_ratio)`
-   - การเติบโตของขนาดเซลล์แบบเลขชี้กำลัง
-   - การก้าวหน้าขนาดเซลล์: $\Delta x_i = \Delta x_0 \cdot r^i$
+   - Exponential growth of cell sizes.
+   - Cell size progression: $\Delta x_i = \Delta x_0 \cdot r^i$
 
 3. **Geometric Grading**: `geometricGrading (x_ratio y_ratio z_ratio)`
-   - การก้าวหน้าทางเรขาคณิตที่确保ความยาวรวมเฉพาะ
-   - ปัจจัยการเติบโต: $r = \left(\frac{L_{final}}{L_{initial}}\right)^{1/n}$
+   - Geometric progression ensuring a specific total length.
+   - Growth factor: $r = \left(\frac{L_{final}}{L_{initial}}\right)^{1/n}$
 
-#### การเพิ่มประสิทธิภาพชั้นขอบเขต
+#### Boundary Layer Optimization
 
-สำหรับการไหลที่ถูกจำกัดด้วยผนัง การแก้ไขชั้นขอบเขตที่เหมาะสมมีความสำคัญ กลยุทธ์การจัดอันดับควร确保:
-- ความสูงของเซลล์แรก: $y^+ \approx 1$ สำหรับการแก้ไขชั้นใต้ชั้นขอบเขตความหนืด
-- อัตราส่วนการเติบโต: $r \leq 1.2$ สำหรับการเปลี่ยนที่ราบรื่น
-- ความหนาชั้นขอบเขตรวม: $\delta_{BL} \approx 0.15 \cdot L$ สำหรับการไหลแบบปั่นป่วน
+For wall-bounded flows, resolving boundary layers accurately is critical. Grading strategies should ensure:
+- First cell height: $y^+ \approx 1$ for viscous sublayer resolution.
+- Growth ratio: $r \leq 1.2$ for smooth transitions.
+- Total boundary layer thickness: $\delta_{BL} \approx 0.15 \cdot L$ for turbulent flows.
 
-ฟังก์ชันผนังของ Reichardt ให้คำแนะนำสำหรับการ mesh ชั้นขอบเขต:
+Reichardt's wall function provides guidance for boundary layer meshing:
 
 $$u^+ = \frac{1}{\kappa} \ln(1 + \kappa y^+) + C \left(1 - e^{-y^+/A} - \frac{y^+}{A} e^{-b y^+}\right)$$
 
-โดยที่ $\kappa \approx 0.41$ คือค่าคงที่ von Kármán
+where $\kappa \approx 0.41$ is the von Kármán constant.
 
-### Step 3: การทำงานอัตโนมัติกับ blockMesh
+### Step 3: Automation with blockMesh
 
-#### สถาปัตยกรรมคลาส Generator หลัก
+#### Core Generator Class Architecture
 
-คลาส `BlockMeshGenerator` ครอบคลุม workflow การสร้าง mesh ทั้งหมด:
+The `BlockMeshGenerator` class encapsulates the entire meshing workflow:
 
 ```python
 class BlockMeshGenerator:
@@ -375,9 +382,9 @@ class BlockMeshGenerator:
         self.origin = np.array(config.get('origin', [0, 0, 0]))
 ```
 
-#### อัลกอริทึมการสร้างจุดต่อท่อ
+#### Pipe Junction Generation Algorithm
 
-เครื่องสร้างจุดต่อท่อใช้อัลกอริทึมที่ซับซ้อนสำหรับการสร้างการเปลี่ยนที่ราบรื่นระหว่างท่อ:
+The pipe junction generator employs a complex algorithm for creating smooth transitions between pipes:
 
 ```python
 def generate_pipe_junction(self, pipe_diameter, junction_size):
@@ -428,69 +435,69 @@ def generate_pipe_junction(self, pipe_diameter, junction_size):
 
 ## 🎯 snappyHexMesh Workflow: Surface Meshing Excellence
 
-### Step 1: การเตรียมผิว
+### Step 1: Surface Preparation
 
-#### 1.1 การแปลงรูปแบบผิว
+#### 1.1 Surface Format Conversion
 
 ```bash
-# แปลงรูปแบบ CAD ต่างๆ เป็น OpenFOAM STL
-# 1. STEP เป็น STL
+# Convert various CAD formats to OpenFOAM STL
+# 1. STEP to STL
 python3 convert_step_to_stl.py model.step model.stl
 
-# 2. IGES เป็น STL
+# 2. IGES to STL
 python3 convert_iges_to_stl.py model.iges model.stl
 
-# 3. หลายรูปแบบเป็น STL (การแปลงเป็นชุด)
+# 3. Batch conversion to STL
 python3 batch_convert_to_stl.py *.step *.iges
 ```
 
-ขั้นตอนการแปลงรูปแบบผิวเป็นสิ่งสำคัญสำหรับการรับประกันว่าเรขาคณิต CAD ที่ซับซ้อนสามารถประมวลผลได้อย่างถูกต้องโดยเครื่องมือสร้าง mesh ของ OpenFOAM กระบวนการแปลงต้องรักษาความเที่ยงตรงทางเรขาคณิตขณะเดียวกันกับการเพิ่มประสิทธิภาพการคำนวณความหนาแน่นของการ triangulation
+Surface format conversion is crucial for ensuring that complex CAD geometries can be accurately processed by OpenFOAM's meshing tools. The conversion process must maintain geometric fidelity while optimizing triangulation density.
 
-#### 1.2 การทำความสะอาดและซ่อมแซมผิว
+#### 1.2 Surface Cleaning and Repair
 
 ```bash
-# เวิร์กโฟลว์การทำความสะอาดผิว
-# 1. ลบ vertices และ faces ที่ซ้ำกัน
+# Surface cleaning workflow
+# 1. Remove duplicate vertices and faces
 surfaceCleanFeatures -case "$CASE_DIR" -featureAngle 120
 
-# 2. เติมรูเล็กๆ
+# 2. Fill small holes
 surfaceFeatureEdges -case "$CASE_DIR" -minFeatureSize 0.001
 
-# 3. ทำให้ผิวเรียบ
+# 3. Smooth surface
 surfaceSmooth -case "$CASE_DIR" -nIterations 10 -tolerance 0.001
 
-# 4. ตรวจสอบคุณภาพผิว
+# 4. Check surface quality
 checkSurface -case "$CASE_DIR" | tee surface_quality.log
 ```
 
-การทำความสะอาดและซ่อมแซมผิวเป็นสิ่งจำเป็นสำหรับการลบสิ่งประดิษฐ์จากกระบวนการแปลง CAD vertices และ faces ที่ซ้ำกันอาจทำให้การสร้าง mesh ล้มเหลว ในขณะที่รูเล็กๆ และความไม่สม่ำเสมอจำเป็นต้องได้รับการแก้ไขก่อนดำเนินการต่อไปยังขั้นตอนการสร้าง mesh การตรวจสอบคุณภาพให้ตัวชี้วัดเชิงปริมาณสำหรับการประเมินความพร้อมของผิว
+Surface cleaning and repair are essential for removing artifacts from the CAD conversion process. Duplicate vertices and faces can cause meshing failures, while small holes and inconsistencies need to be addressed before proceeding to the meshing stage. Quality checks provide quantitative metrics for assessing surface readiness.
 
-#### 1.3 การสกัดลักษณะเด่น
+#### 1.3 Feature Extraction
 
 ```bash
-# การสกัดขอบ feature สำหรับประเภทผิวต่างๆ
+# Feature edge extraction for different surface types
 if [ "$SURFACE_TYPE" = "mechanical" ]; then
-    # สกัดขอบจากลักษณะเด่นทางกลศาสตร์
+    # Extract edges from mechanical features
     surfaceFeatureEdges -case "$CASE_DIR" -angle 30 -includedAngle 30
 
 elif [ "$SURFACE_TYPE" = "organic" ]; then
-    # สกัดขอบจากผิวอินทรีย์/ซับซ้อน
+    # Extract edges from organic/complex surfaces
     surfaceFeatureEdges -case "$CASE_DIR" -angle 15 -includedAngle 60
 
 elif [ "$SURFACE_TYPE" = "terrain" ]; then
-    # สกัดลักษณะเด่นภูมิประเทศ (สันเขา หุบเขา)
+    # Extract terrain features (ridges, valleys)
     surfaceFeatureEdges -case "$CASE_DIR" -angle 45 -featureSet "ridges,valleys"
 fi
 ```
 
-การสกัดลักษณะเด่นขึ้นอยู่กับเรขาคณิต โดยต้องการพารามิเตอร์ต่างกันสำหรับประเภทผิวต่างๆ ชิ้นส่วนทางกลศาสตร์มักมีขอบคมที่กำหนดได้ดี ในขณะที่ผิวอินทรีย์ต้องการ threshold ของมุมที่อนุรักษ์มากขึ้น การจำลองภูมิประเทศมุ่งเน้นไปที่ลักษณะเด่นทางภูมิศาสตร์ เช่น สันเขาและหุบเขา
+Feature extraction is geometry-dependent, requiring different parameters for various surface types. Mechanical parts typically have well-defined sharp edges, while organic surfaces necessitate more lenient angle thresholds. Terrain meshing focuses on topographical features like ridges and valleys.
 
-### Step 2: การกำหนดค่า snappyHexMesh
+### Step 2: snappyHexMesh Configuration
 
-#### 2.1 snappyHexMeshDict พื้นฐาน
+#### 2.1 Basic snappyHexMeshDict
 
 ```cpp
-// Complete snappyHexMeshDict พร้อมคุณสมบัติทั้งหมด
+// Complete snappyHexMeshDict with all features
 FoamFile
 {
     version     2.0;
@@ -516,13 +523,13 @@ refinementSurfaces
 {
     model_surface
     {
-        level (2 1);  // 2 ระดับการละเอียดทุกที่
+        level (2 1);  // 2 levels of refinement everywhere
         patches
         {
             patch
             {
                 name "model";
-                level (1);    // การเพิ่มความละเอียดเพิ่มเติมบนผิวโมเดล
+                level (1);    // Additional refinement on model surface
             }
         }
     }
@@ -537,7 +544,7 @@ features
         {
             patch
             {
-                name "sharp_edges";  // ใช้การเพิ่มความละเอียดกับขอบคม
+                name "sharp_edges";  // Refine sharp edges
             }
         }
     }
@@ -562,22 +569,22 @@ edgeSnapControls
 
 meshQualityControls
 {
-    maxNonOrthogonal 65;    // ความไม่ orthogonal สูงสุดที่อนุญาต
-    maxBoundarySkewness 20;   // ความเบี้ยวขอบเขตสูงสุด
-    maxInternalSkewness 4.5;    // ความเบี้ยวภายในสูงสุด
-    minFaceWeight 0.05;       // น้ำหนักพื้นผิวขั้นต่ำ (checkMesh quality)
-    minVol 1e-15;             // ปริมาตรเซลล์ขั้นต่ำ (บวก)
-    minTetQuality 0.005;     // คุณภาพ tetrahedral ขั้นต่ำ
-    minDeterminant 0.001;    // determinant ขั้นต่ำ
+    maxNonOrthogonal 65;    // Max allowed non-orthogonality
+    maxBoundarySkewness 20;   // Max boundary skewness
+    maxInternalSkewness 4.5;    // Max internal skewness
+    minFaceWeight 0.05;       // Min face weight (checkMesh quality)
+    minVol 1e-15;             // Min cell volume (positive)
+    minTetQuality 0.005;     // Min tetrahedral quality
+    minDeterminant 0.001;    // Min determinant
 }
 ```
 
-snappyHexMeshDict พื้นฐานให้การกำหนดค่าที่ครอบคลุมสำหรับงานสร้าง mesh มาตรฐาน พารามิเตอร์หลักควบคุมขั้นตอนการสร้าง mesh: การสร้าง castellated mesh, การเพิ่ม boundary layer, และการ snap ผิว การควบคุมคุณภาพรับประกันว่า mesh ที่ได้ตรงตามข้อกำหนดความเสถียรทางตัวเลข
+The basic `snappyHexMeshDict` provides comprehensive configuration for standard meshing tasks. Key parameters control the meshing stages: castellated mesh generation, boundary layer addition, and surface snapping. Quality controls ensure the resulting mesh meets numerical stability requirements.
 
-#### 2.2 snappyHexMeshDict ขั้นสูง
+#### 2.2 Advanced snappyHexMeshDict
 
 ```cpp
-// Multi-region snappyHexMesh สำหรับชุดประกอบที่ซับซ้อน
+// Multi-region snappyHexMesh for complex assemblies
 FoamFile
 {
     version     2.0;
@@ -593,18 +600,18 @@ addLayers true;
 geometry
 {
     type triSurfaceMesh;
-    name "assembly.stl";  // หลายไฟล์ STL
+    name "assembly.stl";  // Multiple STL files
 }
 
 refinementSurfaces
 {
     fluid_region
     {
-        level (2 3);      // 3 ระดับการละเอียดในของไหล
+        level (2 3);      // 3 refinement levels in fluid
         patches
         {
             type wall;
-            level (1);     // การเพิ่มความละเอียดเพิ่มเติม
+            level (1);     // Additional refinement
         }
     }
 
@@ -621,84 +628,83 @@ refinementSurfaces
 
 addLayersControls
 {
-    relativeSizes (1.0 1.0);  // ขนาดต่างกันสำหรับภูมิภาคต่างๆ
-    expansionRatio (1.2 1.5);  // อัตราส่วนการขยายต่างกัน
-    finalLayerThickness (0.001 0.002);  // ความหนาต่างกัน
+    relativeSizes (1.0 1.0);  // Different sizes for different regions
+    expansionRatio (1.2 1.5);  // Different expansion ratios
+    finalLayerThickness (0.001 0.002);  // Different thicknesses
     minThickness (0.0005 0.001);
     nGrow 1;
-    maxFaceThicknessRatio 0.5;  // ป้องกันเซลล์ขอบเขตที่บางเกินไป
-    featureAngle 120;              // การตรวจจับลักษณะเด่นสำหรับ layers
+    maxFaceThicknessRatio 0.5;  // Prevent overly thin boundary cells
+    featureAngle 120;              // Feature detection for layers
 }
 
-// คุณสมบัติขั้นสูง
 features
 (
-    includeAngle 45;         // รวมมุมตื้น
-    excludedAngle 25;        // ไม่รวมมุมที่คมมาก
-    nLayers 10;             // boundary layers สูงสุด
-    layerTermination angle 90;    // หยุดการสร้าง layer ที่ 90°
+    includeAngle 45;         // Include shallow angles
+    excludedAngle 25;        // Exclude very sharp angles
+    nLayers 10;             // Max boundary layers
+    layerTermination angle 90;    // Terminate layers at 90°
 );
 
-// การควบคุมพิเศษ
+// Special controls
 snapControls
 {
-    // ใช้การ snap ตามผิวสำหรับเรขาคณิตที่ซับซ้อน
-    useImplicitSnap true;     // แข็งแรงกว่าแต่ใช้ทรัพยากรมาก
-    additionalReporting true;  // การบันทึกรายละเอียดสำหรับการดีบัก
+    // Use surface snapping for complex geometries
+    useImplicitSnap true;     // More robust but resource-intensive
+    additionalReporting true;  // Detailed reporting for debugging
 }
 ```
 
-การกำหนดค่าขั้นสูงช่วยให้สามารถสร้าง mesh หลายภูมิภาคด้วยพารามิเตอร์เฉพาะภูมิภาค ซึ่งจำเป็นสำหรับชุดประกอบที่ซับซ้อนที่มีโดเมนทางฟิสิกส์ต่างกัน ความสามารถในการระบุระดับความละเอียด คุณสมบัติ boundary layer และการควบคุมการ snap ที่แตกต่างกันสำหรับแต่ละภูมิภาคให้การควบคุมรายละเอียดเกี่ยวกับคุณภาพ mesh และประสิทธิภาพการคำนวณ
+Advanced configurations enable multi-region meshing with region-specific parameters, essential for complex assemblies with distinct physical domains. The ability to specify different refinement levels, boundary layer controls, and snapping behavior for each region provides fine-grained control over mesh quality and computational efficiency.
 
-### Step 3: การดำเนินการ snappyHexMesh แบบขนาน
+### Step 3: Parallel snappyHexMesh Execution
 
 ```bash
 #!/bin/bash
-# การดำเนินการ snappyHexMesh แบบขนาน
+# Parallel snappyHexMesh execution
 NPROCS=4
 CASE_DIR="complex_assembly"
 
-echo "=== Parallel snappyHexMesh กับ $NPROCS โปรเซสเซอร์ ==="
+echo "=== Parallel snappyHexMesh with $NPROCS processors ==="
 
-# ย่อยโดเมน
-echo "[1] กำลังย่อยโดเมน..."
+# Decompose domain
+echo "[1] Decomposing domain..."
 decomposePar -case "$CASE_DIR" -force -nProcs $NPROCS
 
-# รัน snappyHexMesh แบบขนาน
-echo "[2] กำลังรัน snappyHexMesh แบบขนาน..."
+# Run snappyHexMesh in parallel
+echo "[2] Running snappyHexMesh in parallel..."
 mpirun -np $NPROCS snappyHexMesh -overwrite -case "$CASE_DIR" | tee snappy_parallel.log
 
-# รวมผลลัพธ์
-echo "[3] กำลังรวมผลลัพธ์แบบขนาน..."
+# Reconstruct domain
+echo "[3] Reconstructing domain..."
 reconstructPar -case "$CASE_DIR" -latestTime
 
-# ตรวจสอบผลลัพธ์
-echo "[4] กำลังตรวจสอบ mesh แบบขนาน..."
+# Check mesh
+echo "[4] Checking mesh quality..."
 checkMesh -case "$CASE_DIR" -allTopology -allGeometry | tee check_parallel.log
 ```
 
 > **📂 Source:** `.applications/utilities/mesh/generation/snappyHexMesh/snappyHexMesh.C`
 > 
-> **คำอธิบาย:** โค้ด C++ นี้เป็นส่วนหนึ่งของยูทิลิตี้ snappyHexMesh ซึ่งเป็น automatic split hex mesher หลักของ OpenFOAM ที่ใช้สำหรับการสร้าง mesh แบบ hexahedral ที่สามารถ refine และ snap เข้ากับพื้นผิวได้อัตโนมัติ
+> **Description:** This C++ code is part of the snappyHexMesh utility, OpenFOAM's automatic split hex mesher used for generating refined and surface-snapped hexahedral meshes.
 > 
-> **แนวคิดสำคัญ:**
-> - **Automatic split hex mesher**: เครื่องมือสร้าง mesh แบบหกเหลี่ยมอัตโนมัติ
-> - **Refinement**: การปรับปรุงความละเอียดของ mesh ในบริเวณที่ต้องการ
-> - **Snap to surface**: การปรับตำแหน่งเซลล์ mesh ให้สอดคล้องกับพื้นผิวเรขาคณิต
-> - **Multi-stage workflow**: กระบวนการทำงานแบบหลายขั้นตอน (castellated mesh → snap → add layers)
+> **Key Concepts:**
+> - **Automatic split hex mesher**: An automated tool for generating hexahedral meshes.
+> - **Refinement**: Increasing mesh resolution in specific areas.
+> - **Snap to surface**: Adjusting mesh cells to conform to geometric surfaces.
+> - **Multi-stage workflow**: A process involving castellated mesh generation, snapping, and layer addition.
 
 ---
 
 ## 🔧 Advanced Utilities and Automation
 
-### Step 1: เครื่องมือประเมินคุณภาพ Mesh
+### Step 1: Mesh Quality Assessment Tools
 
-OpenFOAM มีเครื่องมือตรวจสอบคุณภาพ mesh หลายตัวในตัว แต่การสร้างเวิร์กโฟลว์การวิเคราะห์แบบครอบคลุมต้องการการรวมกันของหลายเครื่องมือและสคริปต์ที่กำหนดเอง เครื่องมือวิเคราะห์คุณภาพ mesh แบบ Python ต่อไปนี้มีการประเมินอัตโนมัติของพารามิเตอร์ mesh ที่สำคัญ
+OpenFOAM includes several built-in mesh quality checking tools, but creating a comprehensive analysis workflow requires integrating multiple utilities and custom scripts. The following Python mesh quality assessment tool provides automated evaluation of critical mesh parameters.
 
 ```python
 #!/usr/bin/env python3
 """
-เครื่องมือวิเคราะห์คุณภาพ mesh แบบครอบคลุมสำหรับ OpenFOAM meshes
+Comprehensive mesh quality analysis tool for OpenFOAM meshes
 """
 
 import numpy as np
@@ -715,8 +721,8 @@ class MeshQualityAnalyzer:
         self.load_mesh_data()
 
     def load_mesh_data(self):
-        """โหลดข้อมูล mesh จากไดเรกทอรี case ของ OpenFOAM"""
-        # รัน checkMesh และจับผลลัพธ์
+        """Load mesh data from an OpenFOAM case directory"""
+        # Run checkMesh and capture output
         try:
             result = subprocess.run(
                 ['checkMesh', '-case', self.case_dir, '-writeAllSurfaces', '-latestTime'],
@@ -728,51 +734,51 @@ class MeshQualityAnalyzer:
             self.checkmesh_output = ""
 
     def calculate_quality_metrics(self):
-        """คำนวณเมตริกคุณภาพ mesh แบบครอบคลุม"""
+        """Calculate comprehensive mesh quality metrics"""
         metrics = {}
 
-        # แยกวิเคราะห์ผลลัพธ์ checkMesh สำหรับเมตริกคุณภาพ
+        # Parse checkMesh output for quality metrics
         lines = self.checkmesh_output.split('\n')
         for line in lines:
             line = line.strip()
 
-            # การวิเคราะห์ non-orthogonality
+            # Non-orthogonality analysis
             if 'non-orthogonal' in line:
                 if 'cells with non-orthogonality' in line:
                     metrics['non_orthogonal_cells'] = int(line.split()[0])
                 if 'maximum non-orthogonality' in line:
                     metrics['max_non_orthogonality'] = float(line.split()[-1])
 
-            # การวิเคราะห์ skewness
+            # Skewness analysis
             if 'skewness' in line:
                 if 'skewness cells' in line:
                     metrics['skewness_cells'] = int(line.split()[0])
                 if 'maximum skewness' in line:
                     metrics['max_skewness'] = float(line.split()[-1])
 
-            # การวิเคราะห์ aspect ratio
+            # Aspect ratio analysis
             if 'aspect ratio' in line:
                 if 'maximum aspect ratio' in line:
                     metrics['max_aspect_ratio'] = float(line.split()[-1])
 
-            # นับเซลล์และสถิติ mesh
+            # Cell count and mesh statistics
             if 'total cells' in line:
                 metrics['total_cells'] = int(line.split()[0])
 
         return metrics
 
     def identify_problematic_cells(self, quality_metrics):
-        """ระบุเซลล์ที่มีปัญหาคุณภาพ"""
+        """Identify cells with quality issues"""
         problematic_cells = []
 
-        # กำหนดค่าเกณฑ์คุณภาพ
+        # Define quality thresholds
         thresholds = {
-            'max_non_orthogonality': 70.0,  # องศา
+            'max_non_orthogonality': 70.0,  # degrees
             'max_skewness': 4.0,
             'max_aspect_ratio': 1000.0
         }
 
-        # ตรวจสอบแต่ละเกณฑ์
+        # Check each threshold
         if quality_metrics.get('max_non_orthogonality', 0) > thresholds['max_non_orthogonality']:
             problematic_cells.append({
                 'type': 'non_orthogonality',
@@ -797,14 +803,14 @@ class MeshQualityAnalyzer:
         return problematic_cells
 ```
 
-### Step 2: การสร้าง Case แบบอัตโนมัติ
+### Step 2: Automated Case Generation
 
-สำหรับการศึกษาพารามิเตอร์แบบเป็นระบบและการปรับแต่งการออกแบบ การสร้าง case แบบอัตโนมัติเป็นสิ่งจำเป็น เฟรมเวิร์ก Python ต่อไปนี้มีเครื่องมือครอบคลุมสำหรับการสร้างและจัดการหลาย cases ของ OpenFOAM:
+For systematic parameter studies and design optimization, automated case generation is essential. The following Python framework provides comprehensive tools for creating and managing multiple OpenFOAM cases:
 
 ```python
 #!/usr/bin/env python3
 """
-เครื่องมือสร้าง case ของ OpenFOAM แบบอัตโนมัติพร้อมการศึกษาพารามิเตอร์
+Automated OpenFOAM case generator with parameter studies
 """
 
 import yaml
@@ -819,47 +825,47 @@ from typing import Dict, List, Any, Optional
 class CaseGenerator:
     def __init__(self, config_file: str):
         """
-        กำหนดค่าเครื่องมือสร้าง case ด้วยไฟล์คอนฟิกูเรชัน
+        Initialize case generator with a configuration file
 
         Args:
-            config_file: พาธไปยังไฟล์คอนฟิกูเรชัน YAML
+            config_file: Path to the YAML configuration file
         """
         self.config_file = config_file
         self.config = self.load_config()
 
-        # ตรวจสอบคอนฟิกูเรชัน
+        # Validate configuration
         self.validate_config()
 
     def load_config(self) -> Dict[str, Any]:
-        """โหลดคอนฟิกูเรชันจากไฟล์ YAML"""
+        """Load configuration from YAML file"""
         try:
             with open(self.config_file, 'r') as f:
                 config = yaml.safe_load(f)
             return config
         except FileNotFoundError:
-            print(f"ไม่พบไฟล์คอนฟิกูเรชัน: {self.config_file}")
+            print(f"Configuration file not found: {self.config_file}")
             raise
         except yaml.YAMLError as e:
-            print(f"ข้อผิดพลาดในการแยกวิเคราะห์ YAML: {e}")
+            print(f"Error parsing YAML: {e}")
             raise
 
     def generate_case(self, case_name: str, params: Dict[str, Any]) -> str:
         """
-        สร้าง case ของ OpenFOAM แบบสมบูรณ์
+        Generate a complete OpenFOAM case.
 
         Args:
-            case_name: ชื่อของ case ที่จะสร้าง
-            params: พารามิเตอร์สำหรับคอนฟิกูเรชัน case
+            case_name: Name of the case to generate.
+            params: Parameters for case configuration.
 
         Returns:
-            พาธไปยังไดเรกทอรี case ที่สร้างแล้ว
+            Path to the generated case directory.
         """
         case_dir = os.path.join(self.config['base_directory'], case_name)
 
-        # สร้างโครงสร้างไดเรกทอรี
+        # Create directory structure
         self.create_directory_structure(case_dir)
 
-        # สร้างไฟล์ case ทั้งหมด
+        # Generate all case files
         self.generate_blockmesh_dict(case_dir, params.get('meshing', {}))
         self.generate_control_dict(case_dir, params.get('solver', {}))
         self.generate_fv_schemes(case_dir, params.get('numerics', {}))
@@ -872,33 +878,33 @@ class CaseGenerator:
 
 ```bash
 #!/bin/bash
-# เครื่องมือปรับปรุง mesh สำหรับ OpenFOAM
-# การใช้งาน: ./optimize_mesh.sh <case_directory>
+# Mesh optimization utility for OpenFOAM
+# Usage: ./optimize_mesh.sh <case_directory>
 
-set -e  # ออกเมื่อมีข้อผิดพลาดใดๆ
+set -e  # Exit on any error
 
-# การกำหนดค่า
+# Configuration
 CASE_DIR="${1:-.}"
 QUALITY_THRESHOLD_NONORTHO=70
 QUALITY_THRESHOLD_SKEWNESS=4
 MAX_ITERATIONS=3
 
-# การประเมินคุณภาพ mesh เบื้องต้น
+# Assess initial mesh quality
 assess_initial_quality() {
     local output_file="${CASE_DIR}/quality_initial.log"
 
     checkMesh -case "$CASE_DIR" -meshQuality > "$output_file" 2>&1 || true
 
-    # ดึงเมตริกหลัก
+    # Extract key metrics
     local max_non_ortho=$(grep -o "maximum non-orthogonality.*[0-9.]\+" "$output_file" | grep -o "[0-9.]\+" || echo "0")
     local max_skewness=$(grep -o "maximum skewness.*[0-9.]\+" "$output_file" | grep -o "[0-9.]\+" || echo "0")
 
     echo "MAX_NON_ORTHO=$max_non_ortho" > "${CASE_DIR}/quality_metrics.txt"
     echo "MAX_SKEWNESS=$max_skewness" >> "${CASE_DIR}/quality_metrics.txt"
 
-    echo "การประเมินเบื้องต้นเสร็จสิ้น"
-    echo "   ค่าไม่ตั้งฉากสูงสุด: $max_non_ortho°"
-    echo "   ค่าเบี้ยวสูงสุด: $max_skewness"
+    echo "Initial assessment complete."
+    echo "   Max non-orthogonality: $max_non_ortho°"
+    echo "   Max skewness: $max_skewness"
 }
 ```
 
@@ -906,23 +912,23 @@ assess_initial_quality() {
 
 ## 📋 Mesh Preparation Workflow Summary
 
-เวิร์กโฟลว์การเตรียม mesh แบบครอบคลุมนี้ให้พื้นฐานสำหรับการจำลอง CFD ที่แข็งแกร่ง ช่วยให้มั่นใจว่าคุณภาพ mesh สนับสนุนผลเชิงตัวเลขที่แม่นยำและเสถียร ในขณะเดียวกันยังคงรักษาประสิทธิภาพการคำนวณไว้
+This comprehensive mesh preparation workflow provides a robust foundation for CFD simulations, ensuring mesh quality supports accurate and stable numerical results while maintaining computational efficiency.
 
 ### Key Stages
 
-1. **การประมวลผล CAD**: การตรวจสอบความถูกต้องของเรขาคณิต การทำความสะอาด และการซ่อมแซม
-2. **การสร้าง Mesh**: พื้นหลัง blockMesh, การปรับปรุง snappyHexMesh
-3. **การประเมินคุณภาพ**: การวิเคราะห์เมตริกอย่างครอบคลุม
-4. **การเพิ่มประสิทธิภาพ**: กลยุทธ์การปรับปรุงแบบวนซ้ำ
-5. **การทำงานอัตโนมัติ**: การสร้างและดำเนินการ case แบบกลุ่ม
+1.  **CAD Processing**: Geometry validation, cleaning, and repair.
+2.  **Mesh Generation**: Background meshing with `blockMesh`, refinement with `snappyHexMesh`.
+3.  **Quality Assessment**: Thorough analysis of mesh metrics.
+4.  **Optimization**: Iterative refinement strategies.
+5.  **Automation**: Batch case generation and execution.
 
 ### Best Practices
 
-- **ตรวจสอบความถูกต้องของเรขาคณิตเสมอ** ก่อนการสร้าง mesh
-- **ใช้กลยุทธ์การสร้าง mesh ที่เหมาะสม** สำหรับประเภทเรขาคณิตของคุณ
-- **ติดตามเมตริกคุณภาพ** ตลอดกระบวนการ
-- **ทำงานอัตโนมัติงานซ้ำ** เพื่อความสม่ำเสมอ
-- **บันทึกพารามิเตอร์ mesh** เพื่อการทำซ้ำที่สามารถทำได้
+- **Always validate geometry** before meshing.
+- **Use appropriate meshing strategies** for your geometry type.
+- **Monitor quality metrics** throughout the workflow.
+- **Automate repetitive tasks** for consistency.
+- **Document mesh parameters** for reproducibility.
 
 > [!TIP] **Quality Gate Checklist**
 > - Max non-orthogonality < 70°
@@ -931,7 +937,7 @@ assess_initial_quality() {
 > - Boundary layer resolution: $y^+ \approx 1$
 > - Aspect ratio < 100
 
-แนวทางเชิงระบบในการเตรียม mesh ทำให้มั่นใจได้ถึงความเชื่อถือของการจำลองในขณะที่เปิดใช้งานการสำรวจพารามิเตอร์การออกแบบอย่างมีประสิทธิภาพผ่านเวิร์กโฟลว์อัตโนมัติ
+A systematic approach to mesh preparation ensures simulation reliability while enabling efficient exploration of design parameters through automated workflows.
 
 ---
 

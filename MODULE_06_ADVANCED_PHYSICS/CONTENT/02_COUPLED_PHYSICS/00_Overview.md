@@ -1,135 +1,133 @@
-# Multi-Physics Coupling: An Overview
+# ภาพรวมการคัปปลิงแบบหลายฟิสิกส์ (Multi-Physics Coupling: An Overview)
 
-## Introduction to Coupled Physics
+## บทนำสู่คัปปลิงแบบหลายฟิสิกส์ (Introduction to Coupled Physics)
 
-**Multi-physics coupling** in OpenFOAM represents the integration of multiple physical domains within a unified simulation framework. This advanced capability enables modeling of complex engineering systems where:
+**การคัปปลิงแบบหลายฟิสิกส์ (Multi-physics coupling)** ใน OpenFOAM หมายถึงการบูรณาการโดเมนทางฟิสิกส์ที่หลากหลายเข้าด้วยกันภายใต้กรอบงานการจำลองที่รวมเป็นหนึ่งเดียว ความสามารถขั้นสูงนี้ช่วยให้สามารถจำลองระบบวิศวกรรมที่ซับซ้อนซึ่งมีองค์ประกอบดังนี้:
 
-- **Fluid flow** (Navier-Stokes equations)
-- **Heat transfer** (Conduction, convection, radiation)
-- **Structural mechanics** (Elasticity, plasticity)
-- **Electromagnetic fields** (Maxwell's equations)
+- **การไหลของไหล (Fluid flow)** (สมการ Navier-Stokes)
+- **การถ่ายโอนความร้อน (Heat transfer)** (การนำ, การพา, การแผ่รังสี)
+- **กลศาสตร์โครงสร้าง (Structural mechanics)** (ความยืดหยุ่น, ความเหนียว)
+- **สนามแม่เหล็กไฟฟ้า (Electromagnetic fields)** (สมการของ Maxwell)
 
-interact simultaneously through shared boundaries or volumetrically throughout the computational domain.
+องค์ประกอบเหล่านี้จะมีปฏิสัมพันธ์กันพร้อมกันผ่านขอบเขตที่ใช้ร่วมกัน (shared boundaries) หรือตามปริมาตร (volumetrically) ตลอดโดเมนการคำนวณ
 
-### The Engineering Challenge
+### ความท้าทายทางวิศวกรรม
 
-Consider a **turbine blade cooling system**: hot combustion gases flow over the blade surface while internal cooling channels circulate cooler air. The blade material experiences:
+พิจารณา **ระบบหล่อเย็นใบพัดเทอร์ไบน์**: ก๊าซจากการเผาไหม้ที่ร้อนจัดไหลผ่านพื้นผิวใบพัด ในขณะที่ช่องหล่อเย็นภายในจะมีอากาศที่เย็นกว่าไหลเวียนอยู่ วัสดุของใบพัดจะเผชิญกับ:
 
-- **Extreme temperature gradients** (Thermal stress)
-- **Pressure loading** from the gas flow (Structural deformation)
-- **Cooling effectiveness** dependent on both flow and conduction (CHT)
+- **เกรเดียนต์อุณหภูมิที่รุนแรง (Extreme temperature gradients)** (ความเค้นจากความร้อน - Thermal stress)
+- **ภาระแรงดัน (Pressure loading)** จากการไหลของก๊าซ (การเสียรูปของโครงสร้าง - Structural deformation)
+- **ประสิทธิภาพการหล่อเย็น (Cooling effectiveness)** ที่ขึ้นอยู่ทั้งกับการไหลและการนำความร้อน (CHT)
 
-Traditional single-physics approaches fail to capture these interactions, leading to either **over-conservative designs** (reduced efficiency) or **catastrophic failures** (under-predicted temperatures).
+วิธีการแบบฟิสิกส์เดี่ยว (single-physics) แบบดั้งเดิมไม่สามารถจับภาพปฏิสัมพันธ์เหล่านี้ได้ นำไปสู่การ **ออกแบบที่เผื่อไว้มากเกินไป (over-conservative designs)** (ลดประสิทธิภาพ) หรือ **ความล้มเหลวที่รุนแรง (catastrophic failures)** (การคาดการณ์อุณหภูมิต่ำกว่าความเป็นจริง)
 
-### Mathematical Foundation
+### พื้นฐานทางคณิตศาสตร์
 
-Coupled problems require solving systems of partial differential equations (PDEs) where variables from different physics interact:
+ปัญหาแบบคัปปลิง (Coupled problems) จำเป็นต้องแก้ระบบสมการเชิงอนุพันธ์ย่อย (PDEs) ที่ตัวแปรจากฟิสิกส์ที่ต่างกันมีปฏิสัมพันธ์กัน:
 
-#### Fluid Domain Equations
+#### สมการในโดเมนของไหล (Fluid Domain Equations)
 
-**Momentum conservation:**
-$$\rho_f \left( \frac{\partial \mathbf{u}_f}{\partial t} + (\mathbf{u}_f \cdot \nabla) \mathbf{u}_f \right) = -\nabla p_f + \mu_f \nabla^2 \mathbf{u}_f + \mathbf{f}_{b,f} \tag{1}$$
+**การอนุรักษ์โมเมนตัม:**
+$$\rho_f \left( \frac{\partial \mathbf{u}_f}{\partial t} + (\mathbf{u}_f \cdot \nabla) \mathbf{u}_f \right) = -\nabla p_f + \mu_f \nabla^2 \mathbf{u}_f + \mathbf{f}_{b,f} \tag{1}$$ 
 
-**Energy conservation:**
-$$\rho_f c_{p,f} \frac{\partial T_f}{\partial t} + \rho_f c_{p,f} \mathbf{u}_f \cdot \nabla T_f = \nabla \cdot (k_f \nabla T_f) + Q_f \tag{2}$$
+**การอนุรักษ์พลังงาน:**
+$$\rho_f c_{p,f} \frac{\partial T_f}{\partial t} + \rho_f c_{p,f} \mathbf{u}_f \cdot \nabla T_f = \nabla \cdot (k_f \nabla T_f) + Q_f \tag{2}$$ 
 
-#### Solid Domain Equations
+#### สมการในโดเมนของแข็ง (Solid Domain Equations)
 
-**Heat conduction:**
-$$\rho_s c_{p,s} \frac{\partial T_s}{\partial t} = \nabla \cdot (k_s \nabla T_s) + Q_s \tag{3}$$
+**การนำความร้อน:**
+$$\rho_s c_{p,s} \frac{\partial T_s}{\partial t} = \nabla \cdot (k_s \nabla T_s) + Q_s \tag{3}$$ 
 
-**Structural dynamics:**
-$$\rho_s \frac{\partial^2 \mathbf{u}_s}{\partial t^2} = \nabla \cdot \boldsymbol{\sigma}_s + \mathbf{f}_{b,s} \tag{4}$$
+**พลวัตโครงสร้าง:**
+$$\rho_s \frac{\partial^2 \mathbf{u}_s}{\partial t^2} = \nabla \cdot \boldsymbol{\sigma}_s + \mathbf{f}_{b,s} \tag{4}$$ 
 
-### Interface Coupling Conditions
+### เงื่อนไขการคัปปลิงที่ส่วนต่อประสาน (Interface Coupling Conditions)
 
-The mathematical coupling occurs at interfaces $\Gamma$ between domains:
+การคัปปลิงทางคณิตศาสตร์เกิดขึ้นที่ส่วนต่อประสาน (interfaces) $\Gamma$ ระหว่างโดเมน:
 
-**Temperature continuity:**
-$$T_f|_{\Gamma} = T_s|_{\Gamma} \tag{5}$$
+**ความต่อเนื่องของอุณหภูมิ:**
+$$T_f|_{\Gamma} = T_s|_{\Gamma} \tag{5}$$ 
 
-**Heat flux conservation:**
-$$-k_f \frac{\partial T_f}{\partial n}\bigg|_{\Gamma} = -k_s \frac{\partial T_s}{\partial n}\bigg|_{\Gamma} \tag{6}$$
+**การอนุรักษ์ฟลักซ์ความร้อน:**
+$$-k_f \frac{\partial T_f}{\partial n}\bigg|_{\Gamma} = -k_s \frac{\partial T_s}{\partial n}\bigg|_{\Gamma} \tag{6}$$ 
 
-**Velocity/displacement continuity (FSI):**
-$$\mathbf{u}_{\text{fluid}}|_{\Gamma} = \frac{\partial \mathbf{d}_{\text{solid}}}{\partial t}\bigg|_{\Gamma} \tag{7}$$
+**ความต่อเนื่องของความเร็ว/การกระจัด (FSI):**
+$$\mathbf{u}_{\text{fluid}}|_{\Gamma} = \frac{\partial \mathbf{d}_{\text{solid}}}{\partial t}\bigg|_{\Gamma} \tag{7}$$ 
 
-**Traction equilibrium:**
-$$\boldsymbol{\sigma}_{\text{fluid}} \cdot \mathbf{n}|_{\Gamma} = \boldsymbol{\sigma}_{\text{solid}} \cdot \mathbf{n}|_{\Gamma} \tag{8}$$
+**สมดุลของแรงฉุด (Traction equilibrium):**
+$$\boldsymbol{\sigma}_{\text{fluid}} \cdot \mathbf{n}|_{\Gamma} = \boldsymbol{\sigma}_{\text{solid}} \cdot \mathbf{n}|_{\Gamma} \tag{8}$$ 
 
----
+---\n
+## การจำแนกประเภทของปัญหาแบบคัปปลิง (Classification of Coupled Problems)
 
-## Classification of Coupled Problems
+### แบ่งตามทิศทางการคัปปลิง
 
-### By Coupling Direction
-
-| Type | Description | Mathematical Form | Applications |
+| ประเภท | คำอธิบาย | รูปแบบทางคณิตศาสตร์ | การประยุกต์ใช้ |
 |------|-------------|-------------------|--------------|
-| **One-Way Coupling** | Physics A affects Physics B, but not vice versa | $\mathbf{F}_A \rightarrow \mathbf{u}_B$, $\mathbf{u}_B \nrightarrow \mathbf{v}_A$ | Wind loading, thermal stress analysis |
-| **Two-Way Coupling** | Bidirectional interaction between domains | $\mathbf{F}_A \leftrightarrow \mathbf{u}_B$, $\mathbf{v}_A \leftrightarrow \mathbf{u}_B$ | Flutter analysis, vortex-induced vibrations |
+| **การคัปปลิงทางเดียว (One-Way Coupling)** | ฟิสิกส์ A ส่งผลต่อฟิสิกส์ B แต่ B ไม่ส่งผลกลับหา A | $\mathbf{F}_A \rightarrow \mathbf{u}_B$, $\mathbf{u}_B \nrightarrow \mathbf{v}_A$ | ภาระจากแรงลม, การวิเคราะห์ความเค้นจากความร้อน |
+| **การคัปปลิงสองทาง (Two-Way Coupling)** | ปฏิสัมพันธ์แบบสองทิศทางระหว่างโดเมน | $\mathbf{F}_A \leftrightarrow \mathbf{u}_B$, $\mathbf{v}_A \leftrightarrow \mathbf{u}_B$ | การวิเคราะห์การกระพือ (Flutter), การสั่นสะเทือนจากน้ำวน (VIV) |
 
-### By Temporal Nature
+### แบ่งตามลักษณะทางเวลา
 
-| Type | Description | Stability Characteristics |
+| ประเภท | คำอธิบาย | ลักษณะความเสถียร |
 |------|-------------|---------------------------|
-| **Steady-State Coupling** | Time-invariant solutions | Easier convergence, no time step restrictions |
-| **Transient Coupling** | Time-dependent evolution | Requires careful time step selection, may need sub-iterations |
+| **การคัปปลิงสภาวะคงตัว (Steady-State Coupling)** | คำตอบที่ไม่เปลี่ยนแปลงตามเวลา | ลู่เข้าได้ง่ายกว่า, ไม่มีข้อจำกัดเรื่องช่วงเวลา (time step) |
+| **การคัปปลิงสภาวะไม่คงตัว (Transient Coupling)** | วิวัฒนาการที่ขึ้นกับเวลา | จำเป็นต้องเลือกช่วงเวลาอย่างระมัดระวัง, อาจต้องมีการวนซ้ำย่อย (sub-iterations) |
 
-### By Solution Strategy
+### แบ่งตามกลยุทธ์การหาคำตอบ
 
-| Strategy | Description | Advantages | Disadvantages |
+| กลยุทธ์ | คำอธิบาย | ข้อดี | ข้อเสีย |
 |----------|-------------|------------|----------------|
-| **Segregated (Partitioned)** | Solve each physics separately, iterate for coupling | Modular, memory efficient, flexible | May require many iterations, convergence issues for strong coupling |
-| **Monolithic (Coupled)** | Solve all physics simultaneously in one system | Robust convergence, better for stiff systems | High memory usage, complex implementation |
+| **แบบแยกส่วน (Segregated/Partitioned)** | แก้สมการแต่ละฟิสิกส์แยกกัน แล้ววนซ้ำเพื่อคัปปลิง | เป็นโมดูล, ประหยัดหน่วยความจำ, ยืดหยุ่น | อาจต้องวนซ้ำหลายรอบ, มีปัญหาการลู่เข้าสำหรับการคัปปลิงที่รุนแรง |
+| **แบบรวมศูนย์ (Monolithic/Coupled)** | แก้สมการทุกฟิสิกส์พร้อมกันในระบบเดียว | การลู่เข้าที่แข็งแกร่ง, ดีกว่าสำหรับระบบที่มีความฝืด (stiff systems) | ใช้หน่วยความจำสูง, การใช้งานซับซ้อน |
 
----
+---\n
+## การถ่ายโอนความร้อนแบบคอนจูเกต (Conjugate Heat Transfer - CHT)
 
-## Conjugate Heat Transfer (CHT)
+### ปัญหาการส่งต่อทางความร้อน (The Thermal Handshake Problem)
 
-### The Thermal Handshake Problem
+**การถ่ายโอนความร้อนแบบคอนจูเกต (CHT)** จัดการกับความท้าทายพื้นฐานที่ **การพาความร้อนในของไหล** และ **การนำความร้อนในของแข็ง** เกิดขึ้นพร้อมกัน:
 
-**Conjugate Heat Transfer** addresses the fundamental challenge where **fluid convection** and **solid conduction** occur simultaneously:
+> **"เราจะคาดการณ์การถ่ายโอนความร้อนได้อย่างแม่นยำอย่างไร เมื่อของไหลมองเห็นขอบเขตของแข็ง และของแข็งมองเห็นขอบเขตของไหล?"**
 
-> **"How do we accurately predict heat transfer when the fluid sees a solid boundary and the solid sees a fluid boundary?"**
+#### ผลกระทบในโลกแห่งความเป็นจริง
 
-#### Real-World Impact
+CHT ช่วยให้คาดการณ์สิ่งต่อไปนี้ได้อย่างแม่นยำ:
+- **การระบายความร้อนของอุปกรณ์อิเล็กทรอนิกส์** (แผ่นระบายความร้อนด้วยการพาความร้อนแบบบังคับ)
+- **ประสิทธิภาพของอาคาร** (ผนังฉนวนที่เผชิญกับลมภายนอก)
+- **ความปลอดภัยนิวเคลียร์** (การระบายความร้อนของแท่งเชื้อเพลิง)
+- **ระบบป้องกันความร้อน** (ยานยนต์ไฮเปอร์โซนิก)
 
-CHT enables accurate prediction of:
-- **Electronics cooling** (heat sinks with forced convection)
-- **Building efficiency** (insulated walls with external wind)
-- **Nuclear safety** (fuel rod cooling)
-- **Thermal protection systems** (hypersonic vehicles)
+### การใช้งานใน OpenFOAM: `chtMultiRegionFoam`
 
-### OpenFOAM Implementation: `chtMultiRegionFoam`
+โครงสร้างการทำงานแบบหลายภูมิภาค (multi-region framework) ของ OpenFOAM ช่วยให้ทำ CHT ได้ผ่าน:
 
-OpenFOAM's multi-region framework enables CHT through:
-
-#### Region-Based Architecture
+#### สถาปัตยกรรมแบบแยกภูมิภาค (Region-Based Architecture)
 
 ```cpp
-// Multi-region mesh management
+// การจัดการเมชแบบหลายภูมิภาค
 PtrList<fvMesh> fluidRegions;
 PtrList<fvMesh> solidRegions;
 
-// Region-specific temperature fields
+// ฟิลด์อุณหภูมิเฉพาะภูมิภาค
 PtrList<volScalarField> Tfluids;
 PtrList<volScalarField> Tsolids;
 
-// Interface coupling through mapped boundaries
+// การคัปปลิงส่วนต่อประสานผ่านขอบเขตที่แม็พไว้ (mapped boundaries)
 forAll(fluidRegions, i)
 {
     const volScalarField& Tfluid = Tfluids[i];
     const fvPatchScalarField& fluidPatch =
         Tfluid.boundaryField()[fluidInterfaceID];
 
-    // Map to solid interface
+    // แม็พไปยังส่วนต่อประสานของแข็ง
     fvPatchScalarField& solidPatch =
         Tsolids[i].boundaryFieldRef()[solidInterfaceID];
     solidPatch == fluidPatch;
 }
 ```
 
-#### 📂 Source: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+#### 📂 แหล่งที่มา: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
 
 #### คำอธิบาย (Explanation):
 
@@ -141,84 +139,83 @@ forAll(fluidRegions, i)
 
 3. **Interface coupling**: ใช้ mapped boundary conditions ในการส่งผ่านค่าอุณหภูมิและ flux ระหว่าง interfaces โดยตรง
 
-#### Key Concepts:
-- **Region-based mesh management**: แต่ละภูมิภาค (fluid/solid) มีเมชของตัวเอง
-- **Patch-to-patch mapping**: การส่งผ่านข้อมูลระหว่าง boundaries
-- **Coupled boundaries**: boundaries ที่เชื่อมต่อกันระหว่าง regions
+#### แนวคิดสำคัญ:
+- **การจัดการเมชตามภูมิภาค (Region-based mesh management)**: แต่ละภูมิภาค (fluid/solid) มีเมชของตัวเอง
+- **การแม็พจากแพตช์สู่แพตช์ (Patch-to-patch mapping)**: การส่งผ่านข้อมูลระหว่างขอบเขต (boundaries)
+- **ขอบเขตแบบคัปปลิง (Coupled boundaries)**: ขอบเขตที่เชื่อมต่อกันระหว่างภูมิภาค
 
-#### Key Features
+#### คุณสมบัติหลัก (Key Features)
 
-| Feature | Description | Benefit |
+| คุณสมบัติ | คำอธิบาย | ประโยชน์ |
 |---------|-------------|---------|
-| **Region-specific physics** | Different governing equations for each domain | Accurate physics representation |
-| **Interface coupling** | Direct mapping of temperature and heat flux | Physical consistency |
-| **Parallel processing** | Efficient distribution of regions | Scalable computation |
-| **Synchronized time integration** | Concurrent advancement of all regions | Temporal consistency |
+| **ฟิสิกส์เฉพาะภูมิภาค** | สมการควบคุมที่แตกต่างกันสำหรับแต่ละโดเมน | การแทนค่าทางฟิสิกส์ที่แม่นยำ |
+| **การคัปปลิงส่วนต่อประสาน** | การแม็พอุณหภูมิและฟลักซ์ความร้อนโดยตรง | ความสอดคล้องทางกายภาพ |
+| **การประมวลผลแบบขนาน** | การกระจายภูมิภาคอย่างมีประสิทธิภาพ | การคำนวณที่ขยายขนาดได้ (Scalable) |
+| **การบูรณาการเวลาแบบซิงโครไนซ์** | การก้าวไปข้างหน้าพร้อมกันของทุกภูมิภาค | ความสอดคล้องทางเวลา |
 
----
+---\n
+## ปฏิสัมพันธ์ระหว่างของไหลและโครงสร้าง (Fluid-Structure Interaction - FSI)
 
-## Fluid-Structure Interaction (FSI)
+### เมื่อของไหลทำให้ของแข็งโค้งงอ
 
-### When Fluids Bend Solids
+**ปฏิสัมพันธ์ระหว่างของไหลและโครงสร้าง (FSI)** เชื่อมโยง:
+- **พลศาสตร์ของไหล (Fluid dynamics)** (สมการ Navier-Stokes)
+- **กลศาสตร์โครงสร้าง (Structural mechanics)** (กลศาสตร์ความยืดหยุ่น - Elastodynamics)
 
-**Fluid-Structure Interaction** couples:
-- **Fluid dynamics** (Navier-Stokes equations)
-- **Structural mechanics** (Elastodynamics)
+ผ่าน:
+- **ความต่อเนื่องทางจลนศาสตร์ (Kinematic continuity)** (ความเร็วและการกระจัดต้องตรงกัน)
+- **ความต่อเนื่องทางพลศาสตร์ (Dynamic continuity)** (สมดุลของแรงฉุด - traction equilibrium)
 
-through:
-- **Kinematic continuity** (velocity/displacement matching)
-- **Dynamic continuity** (traction equilibrium)
+### ผลกระทบของมวลที่เพิ่มเข้ามา (The Added Mass Effect)
 
-### The Added Mass Effect
+ความท้าทายที่สำคัญในการทำ FSI แบบแยกส่วน (partitioned FSI) คือ **ผลกระทบของมวลที่เพิ่มเข้ามา (added mass effect)**:
 
-A critical challenge in partitioned FSI is the **added mass effect**:
+#### รูปแบบทางคณิตศาสตร์
 
-#### Mathematical Formulation
+**แรงมวลที่เพิ่มเข้ามา:**
+$$\mathbf{F}_{\text{added}} = \rho_f V_{\text{disp}} \frac{\mathrm{d}^2 \mathbf{x}}{\mathrm{d}t^2} \tag{9}$$ 
 
-**Added mass force:**
-$$\mathbf{F}_{\text{added}} = \rho_f V_{\text{disp}} \frac{\mathrm{d}^2 \mathbf{x}}{\mathrm{d}t^2} \tag{9}$$
+**สมการโครงสร้างที่ปรับปรุงแล้ว:**
+$$(m_s + m_{\text{added}}) \frac{\mathrm{d}^2 \mathbf{x}}{\mathrm{d}t^2} = \mathbf{F}_{\text{fluid}} + \mathbf{F}_{\text{structural}} \tag{10}$$ 
 
-**Modified structural equation:**
-$$(m_s + m_{\text{added}}) \frac{\mathrm{d}^2 \mathbf{x}}{\mathrm{d}t^2} = \mathbf{F}_{\text{fluid}} + \mathbf{F}_{\text{structural}} \tag{10}$$
+**โดยที่:**
+- $\rho_f$ = ความหนาแน่นของไหล
+- $V_{\text{disp}}$ = ปริมาตรของไหลที่ถูกแทนที่
+- $m_s$ = มวลของโครงสร้าง
+- $m_{\text{added}}$ = มวลที่เพิ่มเข้ามาที่เทียบเท่ากัน
 
-**where:**
-- $\rho_f$ = fluid density
-- $V_{\text{disp}}$ = displaced fluid volume
-- $m_s$ = structural mass
-- $m_{\text{added}}$ = equivalent added mass
+#### ผลกระทบต่อความเสถียร
 
-#### Stability Implications
-
-| Density Ratio | Recommended Strategy | Rationale |
+| อัตราส่วนความหนาแน่น | กลยุทธ์ที่แนะนำ | เหตุผล |
 |--------------|---------------------|-----------|
-| $\rho_f \ll \rho_s$ | **Weak coupling** | Sufficient accuracy with low cost |
-| $\rho_f \approx \rho_s$ | **Strong coupling** | Required for numerical stability |
-| $\rho_f > \rho_s$ | **Strong coupling** | Maintains physical accuracy |
+| $\rho_f \ll \rho_s$ | **การคัปปลิงแบบอ่อน (Weak coupling)** | ความแม่นยำเพียงพอด้วยต้นทุนที่ต่ำ |
+| $\rho_f \approx \rho_s$ | **การคัปปลิงแบบเข้มข้น (Strong coupling)** | จำเป็นต่อความเสถียรเชิงตัวเลข |
+| $\rho_f > \rho_s$ | **การคัปปลิงแบบเข้มข้น (Strong coupling)** | รักษาความแม่นยำทางกายภาพ |
 
-### Coupling Algorithms
+### อัลกอริทึมการคัปปลิง (Coupling Algorithms)
 
-#### Partitioned Approach
+#### วิธีแบบแยกส่วน (Partitioned Approach)
 
 ```cpp
-// Pseudo-code for partitioned FSI solver
+// โค้ดเทียมสำหรับตัวแก้ปัญหา FSI แบบแยกส่วน
 while (t < endTime)
 {
-    // Fluid solve on deformed mesh
+    // แก้ปัญหาของไหลบนเมชที่เสียรูป
     fluidSolver.solve();
 
-    // Extract fluid stresses on interface
+    // ดึงความเค้นของไหลที่ส่วนต่อประสาน
     InterfaceStresses = extractFluidStresses();
 
-    // Apply to solid as boundary conditions
+    // นำไปใช้กับของแข็งในฐานะเงื่อนไขขอบเขต
     solidSolver.setInterfaceLoads(InterfaceStresses);
 
-    // Solve structural mechanics
+    // แก้ปัญหาทางกลศาสตร์โครงสร้าง
     solidSolver.solve();
 
-    // Update mesh based on solid displacement
+    // อัปเดตเมชตามการกระจัดของของแข็ง
     meshDeformer.update(solidDisplacement);
 
-    // Check coupling convergence
+    // ตรวจสอบการลู่เข้าของการคัปปลิง
     if (couplingConverged) advanceTime();
 }
 ```
@@ -233,16 +230,16 @@ while (t < endTime)
 
 3. **Convergence checking**: ต้องตรวจสอบว่า coupling ได้บรรลุการลู่เข้า (converged) ก่อนที่จะไปยัง time step ถัดไป
 
-#### Key Concepts:
-- **Partitioned approach**: การแยกการแก้ปัญหาของแต่ละ physics
-- **Interface boundary conditions**: เงื่อนไขขอบเขตที่ใช้ในการส่งผ่านข้อมูล
-- **Coupling convergence**: การตรวจสอบว่าได้บรรลุการลู่เข้าของการจับคู่
+#### แนวคิดสำคัญ:
+- **วิธีแบบแยกส่วน (Partitioned approach)**: การแยกการแก้ปัญหาของแต่ละฟิสิกส์
+- **เงื่อนไขขอบเขตที่ส่วนต่อประสาน (Interface boundary conditions)**: เงื่อนไขขอบเขตที่ใช้ในการส่งผ่านข้อมูล
+- **การลู่เข้าของการคัปปลิง (Coupling convergence)**: การตรวจสอบว่าได้บรรลุการลู่เข้าของการจับคู่
 
-#### Monolithic Approach
+#### วิธีแบบรวมศูนย์ (Monolithic Approach)
 
-Block coupled system assembly:
+การประกอบระบบคัปปลิงแบบบล็อก (Block coupled system assembly):
 
-$$
+$$ 
 \begin{bmatrix}
 \mathbf{A}_f & \mathbf{B}_{fs} \\
 \mathbf{B}_{sf} & \mathbf{A}_s
@@ -251,35 +248,34 @@ $$
 \Delta \mathbf{x}_f \\
 \Delta \mathbf{x}_s
 \end{bmatrix}
-=
+= 
 \begin{bmatrix}
 \mathbf{r}_f \\
 \mathbf{r}_s
 \end{bmatrix}
-\tag{11}
-$$
+\tag{11} 
+$$ 
 
----
+---\n
+## การจัดการฟิลด์แบบแยกตามภูมิภาคของ OpenFOAM (OpenFOAM's Region-Wise Field Management)
 
-## OpenFOAM's Region-Wise Field Management
+### ภาพรวมสถาปัตยกรรม (Architecture Overview)
 
-### Architecture Overview
-
-OpenFOAM's region-wise system provides a framework for managing fields in separate computational domains:
+ระบบแยกตามภูมิภาคของ OpenFOAM ให้กรอบงานสำหรับการจัดการฟิลด์ในโดเมนการคำนวณที่แยกจากกัน:
 
 ```mermaid
 graph TD
-    A[Time Database] --> B[Region 1 Registry]
-    A --> C[Region 2 Registry]
-    A --> D[Region N Registry]
+    A[ฐานข้อมูลเวลา - Time Database] --> B[Registry ภูมิภาค 1]
+    A --> C[Registry ภูมิภาค 2]
+    A --> D[Registry ภูมิภาค N]
 
-    B --> B1[Mesh 1]
-    B --> B2[Field T1]
-    B --> B3[Field U1]
+    B --> B1[เมช 1]
+    B --> B2[ฟิลด์ T1]
+    B --> B3[ฟิลด์ U1]
 
-    C --> C1[Mesh 2]
-    C --> C2[Field T2]
-    C --> C3[Field sigma2]
+    C --> C1[เมช 2]
+    C --> C2[ฟิลด์ T2]
+    C --> C3[ฟิลด์ sigma2]
 
     style A fill:#f96,stroke:#333,stroke-width:3px
     style B fill:#9cf,stroke:#333
@@ -288,19 +284,19 @@ graph TD
 ```
 > **Figure 1:** แผนภาพแสดงสถาปัตยกรรมการจัดการฟิลด์แบบแยกภูมิภาค (Region-wise Field Management) ใน OpenFOAM ซึ่งช่วยให้สามารถบริหารจัดการเมชและข้อมูลทางฟิสิกส์ที่แตกต่างกันในหลายโดเมนคำนวณพร้อมกันได้อย่างมีประสิทธิภาพ
 
-### Key Components
+### ส่วนประกอบสำคัญ
 
-#### Region-Specific Field Registration
+#### การลงทะเบียนฟิลด์เฉพาะภูมิภาค (Region-Specific Field Registration)
 
 ```cpp
-// Region-specific field with independent registry
+// ฟิลด์เฉพาะภูมิภาคพร้อม registry ที่เป็นอิสระ
 volScalarField T_solid
 (
     IOobject
     (
-        "T",  // Same name, different registry
+        "T",  // ชื่อเดียวกัน แต่อยู่คนละ registry
         solidMesh.time().timeName(),
-        solidMesh.objectRegistry(),  // Separate registry
+        solidMesh.objectRegistry(),  // แยก registry ออกจากกัน
         IOobject::MUST_READ,
         IOobject::AUTO_WRITE
     ),
@@ -308,7 +304,7 @@ volScalarField T_solid
 );
 ```
 
-#### 📂 Source: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+#### 📂 แหล่งที่มา: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
 
 #### คำอธิบาย (Explanation):
 
@@ -320,22 +316,22 @@ volScalarField T_solid
 
 3. **Field lifecycle**: MUST_READ/AUTO_WRITE ระบุว่า field จะถูกอ่านจาก disk และเขียนกลับโดยอัตโนมัติเมื่อ save
 
-#### Key Concepts:
-- **Object Registry**: ระบบการจัดการ fields แบบแยกตาม regions
-- **Field naming**: สามารถใช้ชื่อเดียวกันใน regions ต่างกันได้
-- **IOobject flags**: การควบคุมการ read/write ของ fields
+#### แนวคิดสำคัญ:
+- **Registry ออบเจกต์ (Object Registry)**: ระบบการจัดการฟิลด์แบบแยกตามภูมิภาค
+- **การตั้งชื่อฟิลด์ (Field naming)**: สามารถใช้ชื่อเดียวกันในภูมิภาคที่ต่างกันได้
+- **แฟล็ก IOobject (IOobject flags)**: การควบคุมการอ่าน/เขียนฟิลด์
 
-#### Interface Communication
+#### การสื่อสารระหว่างส่วนต่อประสาน (Interface Communication)
 
 ```cpp
-// Direct interface mapping for conformal meshes
+// การแม็พส่วนต่อประสานโดยตรงสำหรับเมชที่สอดคล้องกัน (conformal meshes)
 forAll(fluidPatch, faceI)
 {
     Tsolid.boundaryField()[solidPatchID][faceI] =
         Tfluid.boundaryField()[fluidPatchID][faceI];
 }
 
-// AMI interpolation for non-conformal meshes
+// การทำ AMI interpolation สำหรับเมชที่ไม่สอดคล้องกัน (non-conformal meshes)
 const AMIPatchToPatchInterpolation& AMI = AMIPatches[interfaceID];
 scalarField solidT(fluidPatch.size(), 0.0);
 AMI.interpolateToSource
@@ -345,7 +341,7 @@ AMI.interpolateToSource
 );
 ```
 
-#### 📂 Source: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+#### 📂 แหล่งที่มา: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
 
 #### คำอธิบาย (Explanation):
 
@@ -355,58 +351,57 @@ AMI.interpolateToSource
 
 2. **AMI interpolation (Non-conformal meshes)**: เมื่อ meshes ไม่ตรงกัน ใช้ AMI (Arbitrary Mesh Interface) ในการ interpolate ค่าระหว่าง patches ที่มี geometries ต่างกัน
 
-#### Key Concepts:
-- **Conformal vs. Non-conformal meshes**: ความสัมพันธ์ของ meshes ระหว่าง regions
-- **Patch-to-patch mapping**: การส่งผ่านข้อมูลระหว่าง boundary patches
-- **AMI interpolation**: อัลกอริทึม interpolation สำหรับ meshes ที่ไม่ตรงกัน
+#### แนวคิดสำคัญ:
+- **เมชแบบสอดคล้อง vs ไม่สอดคล้อง (Conformal vs. Non-conformal meshes)**: ความสัมพันธ์ของเมชระหว่างภูมิภาค
+- **การแม็พจากแพตช์สู่แพตช์ (Patch-to-patch mapping)**: การส่งผ่านข้อมูลระหว่าง boundary patches
+- **AMI interpolation**: อัลกอริทึมการประมาณค่า (interpolation) สำหรับเมชที่ไม่ตรงกัน
 
-### Benefits of Region-Wise Management
+### ประโยชน์ของการจัดการแบบแยกตามภูมิภาค
 
-| Feature | Benefit | Impact |
+| คุณสมบัติ | ประโยชน์ | ผลกระทบ |
 |---------|---------|--------|
-| **Memory isolation** | Fields from different regions can have identical names | Prevents naming conflicts |
-| **Automatic cleanup** | Region destruction cascades data deletion | Prevents memory leaks |
-| **Parallel distribution** | Each region decomposes independently across MPI ranks | Improves parallel efficiency |
-| **Cache efficiency** | Related fields remain contiguous | Improves memory access |
+| **การแยกหน่วยความจำ** | ฟิลด์จากภูมิภาคที่ต่างกันสามารถมีชื่อเหมือนกันได้ | ป้องกันการชนกันของชื่อ |
+| **การล้างข้อมูลอัตโนมัติ** | การทำลายภูมิภาคจะส่งผลต่อการลบข้อมูลที่เกี่ยวข้องแบบเป็นลำดับ | ป้องกันปัญหาหน่วยความจำรั่วไหล (memory leaks) |
+| **การกระจายแบบขนาน** | แต่ละภูมิภาคสามารถแยกย่อย (decompose) ได้อย่างอิสระผ่าน MPI ranks | เพิ่มประสิทธิภาพการคำนวณแบบขนาน |
+| **ประสิทธิภาพแคช** | ฟิลด์ที่เกี่ยวข้องกันจะถูกเก็บไว้ต่อเนื่องกัน | ปรับปรุงการเข้าถึงหน่วยความจำ |
 
----
+---\n
+## ความเสถียรเชิงตัวเลขและการลู่เข้า (Numerical Stability and Convergence)
 
-## Numerical Stability and Convergence
+### ความท้าทายด้านความเสถียร
 
-### Stability Challenges
+ปัญหาแบบคัปปลิงนำมาซึ่งความท้าทายเชิงตัวเลขที่เป็นเอกลักษณ์:
 
-Coupled problems introduce unique numerical challenges:
+#### ความแตกต่างของคุณสมบัติ (Property Contrasts)
 
-#### Property Contrasts
+ความแตกต่างอย่างมากของสมบัติวัสดุข้ามส่วนต่อประสานอาจทำให้เกิดความไม่เสถียร:
 
-Large differences in material properties across interfaces can cause instability:
+$$\frac{k_f}{k_s} \gg 1 \quad \text{หรือ} \quad \frac{k_f}{k_s} \ll 1$$ 
 
-$$\frac{k_f}{k_s} \gg 1 \quad \text{or} \quad \frac{k_f}{k_s} \ll 1$$
+#### ความฝืด (Stiffness)
 
-#### Stiffness
+มาตราส่วนเวลาที่แตกต่างกันในฟิสิกส์ที่คัปปลิงกัน:
 
-Different time scales in coupled physics:
+$$\tau_{\text{fluid}} \ll \tau_{\text{solid}}$$ 
 
-$$\tau_{\text{fluid}} \ll \tau_{\text{solid}}$$
+### เทคนิคการทำให้เสถียร (Stabilization Techniques)
 
-### Stabilization Techniques
+#### การผ่อนคลาย (Under-Relaxation)
 
-#### Under-Relaxation
+$$\phi^{n+1} = (1-\alpha) \phi^n + \alpha \phi^{*} \tag{12}$$ 
 
-$$\phi^{n+1} = (1-\alpha) \phi^n + \alpha \phi^{*} \tag{12}$$
-
-**where:**
-- $\alpha$ = relaxation factor ($0 < \alpha \leq 1$)
-- $\phi^{*}$ = newly computed value
-- $\phi^n$ = previous iteration value
+**โดยที่:**
+- $\alpha$ = ปัจจัยการผ่อนคลาย (relaxation factor) ($0 < \alpha \leq 1$)
+- $\phi^{*}$ = ค่าที่คำนวณได้ใหม่
+- $\phi^n$ = ค่าจากการวนซ้ำครั้งก่อน
 
 ```cpp
-// Under-relaxation implementation
+// การใช้งาน Under-relaxation
 scalar relaxationFactor = 0.7;
 T_new = (1 - relaxationFactor) * T_old + relaxationFactor * T_calculated;
 ```
 
-#### 📂 Source: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+#### 📂 แหล่งที่มา: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
 
 #### คำอธิบาย (Explanation):
 
@@ -418,35 +413,35 @@ T_new = (1 - relaxationFactor) * T_old + relaxationFactor * T_calculated;
 
 3. **Implementation**: ใน OpenFOAM นิยมใช้ under-relaxation สำหรับ fields ที่มีการ coupling แรง เช่น อุณหภูมิใน CHT หรือ displacement ใน FSI
 
-#### Key Concepts:
-- **Under-relaxation**: เทคนิคการลดการเปลี่ยนแปลงระหว่าง iterations
-- **Relaxation factor**: ปัจจัยที่ควบคุมความเร็วในการลู่เข้า
-- **Numerical stability**: ความเสถียรของการแก้ปัญหาเชิงตัวเลข
+#### แนวคิดสำคัญ:
+- **การผ่อนคลาย (Under-relaxation)**: เทคนิคการลดการเปลี่ยนแปลงระหว่างรอบการวนซ้ำ
+- **ปัจจัยการผ่อนคลาย (Relaxation factor)**: ตัวแปรที่ควบคุมความเร็วในการลู่เข้า
+- **ความเสถียรเชิงตัวเลข (Numerical stability)**: ความเสถียรของการแก้ปัญหาเชิงตัวเลข
 
-#### Aitken's Δ² Acceleration
+#### การเร่งความเร็วแบบ Aitken's Δ² (Aitken's Δ² Acceleration)
 
-Dynamic relaxation factor adaptation:
+การปรับปัจจัยการผ่อนคลายแบบไดนามิก:
 
-$$\alpha^{k} = -\alpha^{k-1} \frac{(\mathbf{r}^k, \mathbf{r}^k - \mathbf{r}^{k-1})}{\|\mathbf{r}^k - \mathbf{r}^{k-1}\|^2} \tag{13}$$
+$$\alpha^{k} = -\alpha^{k-1} \frac{(\mathbf{r}^k, \mathbf{r}^k - \mathbf{r}^{k-1})}{\|\mathbf{r}^k - \mathbf{r}^{k-1}\|^2} \tag{13}$$ 
 
-$$\mathbf{x}^{k+1} = \mathbf{x}^k + \alpha^k \mathbf{r}^k \tag{14}$$
+$$\mathbf{x}^{k+1} = \mathbf{x}^k + \alpha^k \mathbf{r}^k \tag{14}$$ 
 
-**where:**
-- $\mathbf{r}^k = \mathbf{x}^{k+1} - \mathbf{x}^k$ = iteration residual
-- $\alpha^k$ = Aitken acceleration factor
+**โดยที่:**
+- $\mathbf{r}^k = \mathbf{x}^{k+1} - \mathbf{x}^k$ = ค่าตกค้างจากการวนซ้ำ (iteration residual)
+- $\alpha^k$ = ปัจจัยการเร่งความเร็วแบบ Aitken
 
-#### Convergence Criteria
+#### เกณฑ์การลู่เข้า (Convergence Criteria)
 
 ```cpp
-// Interface convergence checking
+// การตรวจสอบการลู่เข้าที่ส่วนต่อประสาน (Interface convergence checking)
 scalar residual = max(mag(TInterface - TInterface.oldTime()));
 if (residual < couplingTolerance)
 {
-    break;  // Coupling converged
+    break;  // การคัปปลิงลู่เข้าแล้ว
 }
 ```
 
-#### 📂 Source: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+#### 📂 แหล่งที่มา: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
 
 #### คำอธิบาย (Explanation):
 
@@ -458,37 +453,36 @@ if (residual < couplingTolerance)
 
 3. **Max operator**: ใช้ค่าสูงสุดบนทั้ง interface เพื่อรับประกันว่าทุกจุดได้บรรลุการลู่เข้า
 
-#### Key Concepts:
-- **Coupling residual**: ความต่างระหว่าง iterations
-- **Convergence criterion**: เงื่อนไขในการหยุดการวนซ้ำ
-- **Interface checking**: การตรวจสอบที่ interface boundaries
+#### แนวคิดสำคัญ:
+- **ค่าตกค้างการคัปปลิง (Coupling residual)**: ความต่างระหว่างรอบการวนซ้ำ
+- **เกณฑ์การลู่เข้า (Convergence criterion)**: เงื่อนไขในการหยุดการวนซ้ำ
+- **การตรวจสอบที่ส่วนต่อประสาน (Interface checking)**: การตรวจสอบที่ขอบเขตส่วนต่อประสาน
 
----
+---\n
+## การตรวจสอบและการรับรองความถูกต้อง (Verification and Validation)
 
-## Verification and Validation
+### การตรวจสอบการอนุรักษ์ (Conservation Checks)
 
-### Conservation Checks
+#### สมดุลพลังงาน (Energy Balance)
 
-#### Energy Balance
+$$\frac{\mathrm{d}}{\mathrm{d}t} \int_V (\rho e) \,\mathrm{d}V = -\int_{\partial V} q \cdot \mathbf{n} \,\mathrm{d}A + \int_V Q \,\mathrm{d}V \tag{15}$$ 
 
-$$\frac{\mathrm{d}}{\mathrm{d}t} \int_V (\rho e) \,\mathrm{d}V = -\int_{\partial V} q \cdot \mathbf{n} \,\mathrm{d}A + \int_V Q \,\mathrm{d}V \tag{15}$$
+#### สมดุลมวล (Mass Balance - สำหรับของไหลที่อัดตัวไม่ได้)
 
-#### Mass Balance (Incompressible)
+$$\int_{\partial V} \mathbf{u} \cdot \mathbf{n} \,\mathrm{d}A = 0 \tag{16}$$ 
 
-$$\int_{\partial V} \mathbf{u} \cdot \mathbf{n} \,\mathrm{d}A = 0 \tag{16}$$
+#### ความต่อเนื่องของฟลักซ์ความร้อนที่ส่วนต่อประสาน (Interface Heat Flux Continuity)
 
-#### Interface Heat Flux Continuity
+$$q_f = -k_f \frac{\partial T_f}{\partial n} = -k_s \frac{\partial T_s}{\partial n} = q_s \tag{17}$$ 
 
-$$q_f = -k_f \frac{\partial T_f}{\partial n} = -k_s \frac{\partial T_s}{\partial n} = q_s \tag{17}$$
+**เกณฑ์การตรวจสอบ:**
 
-**Verification criterion:**
+$$\frac{|q_f + q_s|}{|q_f|} < 10^{-6} \tag{18}$$ 
 
-$$\frac{|q_f + q_s|}{|q_f|} < 10^{-6} \tag{18}$$
-
-### Implementation in OpenFOAM
+### การใช้งานใน OpenFOAM
 
 ```cpp
-// Heat flux continuity verification
+// การตรวจสอบความต่อเนื่องของฟลักซ์ความร้อน (Heat flux continuity verification)
 scalarField qFluid = -kFluid.boundaryField()[fluidPatchID] *
                      gradTFluid.boundaryField()[fluidPatchID];
 
@@ -499,11 +493,11 @@ scalar maxRelError = max(mag(qFluid + qSolid)/mag(qFluid));
 
 if (maxRelError < 1e-6)
 {
-    Info << "Heat flux continuity verified: " << maxRelError << endl;
+    Info << "ผ่านการตรวจสอบความต่อเนื่องของฟลักซ์ความร้อน: " << maxRelError << endl;
 }
 ```
 
-#### 📂 Source: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+#### 📂 แหล่งที่มา: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
 
 #### คำอธิบาย (Explanation):
 
@@ -515,71 +509,71 @@ if (maxRelError < 1e-6)
 
 3. **Relative error**: คำนวณค่า relative error ระหว่าง heat flux ทั้งสอง หากต่ำกว่า $10^{-6}$ ถือว่าผ่านการตรวจสอบ
 
-#### Key Concepts:
-- **Heat flux continuity**: ความต่อเนื่องของ heat flux ที่ interface
-- **Conservation verification**: การตรวจสอบหลักการ conservation
-- **Relative error**: ค่าความคลาดเคลื่อนสัมพัทธ์
+#### แนวคิดสำคัญ:
+- **ความต่อเนื่องของฟลักซ์ความร้อน (Heat flux continuity)**: ความต่อเนื่องของฟลักซ์ความร้อนที่ส่วนต่อประสาน
+- **การตรวจสอบการอนุรักษ์ (Conservation verification)**: การตรวจสอบหลักการอนุรักษ์
+- **ความคลาดเคลื่อนสัมพัทธ์ (Relative error)**: ค่าความคลาดเคลื่อนเทียบกับค่าอ้างอิง
 
-### Analytical Benchmarks
+### เกณฑ์มาตรฐานเชิงวิเคราะห์ (Analytical Benchmarks)
 
-| Problem | Analytical Solution | Parameters |
+| ปัญหา | คำตอบเชิงวิเคราะห์ | พารามิเตอร์ |
 |---------|---------------------|------------|
-| **Steady-State CHT** | $\frac{T - T_{cold}}{T_{hot} - T_{cold}} = \frac{1 + Bi \cdot (x/L)}{1 + Bi}$ | $Bi = \frac{hL}{k}$ |
-| **Transient Diffusion** | $\frac{T(x,t) - T_{initial}}{T_{surface} - T_{initial}} = \text{erfc}\left(\frac{x}{2\sqrt{\alpha t}}\right)$ | $\alpha = \frac{k}{\rho c_p}$ |
+| **CHT สภาวะคงตัว** | $\frac{T - T_{cold}}{T_{hot} - T_{cold}} = \frac{1 + Bi \cdot (x/L)}{1 + Bi}$ | $Bi = \frac{hL}{k}$ |
+| **การแพร่สภาวะไม่คงตัว** | $\frac{T(x,t) - T_{initial}}{T_{surface} - T_{initial}} = \text{erfc}\left(\frac{x}{2\sqrt{\alpha t}}\right)$ | $\alpha = \frac{k}{\rho c_p}$ |
 
----
+---\n
+## โรดแมปของโมดูล (Module Roadmap)
 
-## Module Roadmap
+โมดูลนี้ครอบคลุมการจำลองแบบหลายฟิสิกส์ใน OpenFOAM อย่างละเอียด:
 
-This module provides comprehensive coverage of multi-physics simulation in OpenFOAM:
+### 1. **พื้นฐาน (Fundamentals)**
+- บทนำสู่ Multi-Physics (FSI, CHT, EMHD)
+- กลยุทธ์การคัปปลิง (แบบแยกส่วน vs แบบรวมศูนย์)
+- ความเสถียรเชิงตัวเลขและอัลกอริทึม
 
-### 1. **Fundamentals**
-- Introduction to Multi-Physics (FSI, CHT, EMHD)
-- Coupling Strategies (Segregated vs. Monolithic)
-- Numerical Stability and Algorithms
+### 2. **การถ่ายโอนความร้อนแบบคอนจูเกต (CHT)**
+- ปัญหา "การส่งต่อทางความร้อน" (Thermal Handshake)
+- สถาปัตยกรรมของ `chtMultiRegionFoam`
+- เงื่อนไขขอบเขตแบบ `mappedWall`
 
-### 2. **Conjugate Heat Transfer (CHT)**
-- The "Thermal Handshake" problem
-- `chtMultiRegionFoam` architecture
-- `mappedWall` boundary conditions
+### 3. **ปฏิสัมพันธ์ระหว่างของไหลและโครงสร้าง (FSI)**
+- เมื่อของไหลทำให้ของแข็งโค้งงอ
+- ความไม่เสถียรจากมวลที่เพิ่มเข้ามา (Added Mass Instability)
+- อัลกอริทึมการคัปปลิง (แบบอ่อน vs แบบเข้มข้น, การผ่อนคลายแบบ Aitken)
 
-### 3. **Fluid-Structure Interaction (FSI)**
-- When fluids bend solids
-- Added Mass Instability
-- Coupling algorithms (Weak vs. Strong, Aitken relaxation)
+### 4. **สถาปัตยกรรม Object Registry (Object Registry Architecture)**
+- วิธีที่ OpenFOAM จัดการฟิลด์ในหลายภูมิภาค
+- ปัญหา Name Space และการเข้าถึงข้อมูลแบบ Template
 
-### 4. **Object Registry Architecture**
-- How OpenFOAM manages fields across multiple regions
-- The Namespace problem and Template-based access
+### 5. **หัวข้อการคัปปลิงขั้นสูง (Advanced Coupling Topics)**
+- ความต้านทานความร้อนสัมผัส (Thermal Contact Resistance)
+- วัสดุเปลี่ยนสถานะ (Phase Change Materials - PCM)
+- การคัปปลิงการแผ่รังสี (Radiation Coupling)
 
-### 5. **Advanced Coupling Topics**
-- Thermal Contact Resistance
-- Phase Change Materials (PCM)
-- Radiation Coupling
+### 6. **การรับรองความถูกต้องและเกณฑ์มาตรฐาน (Validation and Benchmarks)**
+- คำตอบเชิงวิเคราะห์ (CHT 1 มิติ)
+- การตรวจสอบการอนุรักษ์ (มวล, พลังงาน, โมเมนตัม)
 
-### 6. **Validation and Benchmarks**
-- Analytical solutions (1D CHT)
-- Conservation checks (Mass, Energy, Momentum)
+### 7. **แบบฝึกหัด (Exercises)**
+- งานปฏิบัติเพื่อสร้างโมเดลแบบกำหนดเองและรันการจำลอง
 
-### 7. **Exercises**
-- Practical tasks to implement custom models and run simulations
+---\n
+## สรุปประเด็นสำคัญ (Key Takeaways)
 
----
+1. **การคัปปลิงแบบหลายฟิสิกส์** มีความสำคัญอย่างยิ่งต่อการจำลองระบบวิศวกรรมที่ซับซ้อนซึ่งโดเมนทางฟิสิกส์ที่ต่างกันมีปฏิสัมพันธ์กัน
 
-## Key Takeaways
+2. **สถาปัตยกรรมแบบแยกภูมิภาค** ใน OpenFOAM ช่วยให้สามารถจัดการปัญหาแบบคัปปลิงได้อย่างเป็นระบบและมีประสิทธิภาพ ผ่านการจัดการเมช, ฟิลด์ และตัวแก้ปัญหาที่แยกจากกัน
 
-1. **Multi-physics coupling** is essential for accurate simulation of complex engineering systems where different physical domains interact
+3. **เงื่อนไขที่ส่วนต่อประสาน** ช่วยรักษาความสอดคล้องทางกายภาพผ่านความต่อเนื่องของอุณหภูมิ, ฟลักซ์, ความเร็ว และแรงฉุดข้ามขอบเขตของโดเมน
 
-2. **Region-based architecture** in OpenFOAM enables modular, efficient handling of coupled problems through separate mesh, field, and solver management
+4. **ความเสถียรเชิงตัวเลข** ในปัญหาแบบคัปปลิงต้องอาศัยการใส่ใจในปัจจัยการผ่อนคลาย, เกณฑ์การลู่เข้า และการเลือกช่วงเวลาอย่างระมัดระวัง
 
-3. **Interface conditions** maintain physical consistency through continuity of temperature, flux, velocity, and traction across domain boundaries
+5. **การตรวจสอบและการรับรองความถูกต้อง** ผ่านการตรวจสอบการอนุรักษ์และเกณฑ์มาตรฐานเชิงวิเคราะห์เป็นสิ่งสำคัญในการรับประกันความแม่นยำของการจำลอง
 
-4. **Numerical stability** in coupled problems requires careful attention to relaxation factors, convergence criteria, and time step selection
+6. **ผลกระทบของมวลที่เพิ่มเข้ามา (Added mass effect)** ใน FSI สร้างความท้าทายเชิงตัวเลขที่สำคัญ ซึ่งมักต้องการกลยุทธ์การคัปปลิงแบบเข้มข้นเพื่อความเสถียร
 
-5. **Verification and validation** through conservation checks and analytical benchmarks is critical for ensuring simulation accuracy
+7. **Template metaprogramming** และสมาร์ทพอยน์เตอร์ (smart pointers) เป็นรากฐานของระบบการจัดการฟิลด์ที่มีประสิทธิภาพของ OpenFOAM
 
-6. **The added mass effect** in FSI creates significant numerical challenges that often require strong coupling strategies for stability
+การเข้าใจแนวคิดเหล่านี้จะช่วยให้คุณสามารถจัดการกับปัญหาทางวิศวกรรมในโลกแห่งความเป็นจริงที่ครอบคลุมหลายโดเมนทางฟิสิกส์ และก้าวข้ามขีดจำกัดของสิ่งที่เป็นไปได้ด้วยการจำลองทางคอมพิวเตอร์
 
-7. **Template metaprogramming** and smart pointers form the foundation of OpenFOAM's efficient field management system
-
-Mastering these concepts enables you to tackle real-world engineering problems that span multiple physical domains, pushing the boundaries of what's possible with computational simulation.
+---\n

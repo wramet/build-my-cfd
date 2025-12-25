@@ -5,8 +5,7 @@
 
 In this exercise, you will learn how to create a new model and register it with the RTS system so it can be selected through Dictionary configuration.
 
----
-
+---\n
 ## Overview: OpenFOAM's Plug-and-Play Architecture
 
 OpenFOAM's architecture is designed to allow **Physics Models** to be flexibly changed through Dictionary Configuration without modifying or recompiling the Solver code. This capability is achieved through the integration of powerful Design Patterns:
@@ -16,8 +15,7 @@ OpenFOAM's architecture is designed to allow **Physics Models** to be flexibly c
 - **Factory Pattern + RTS** → Creates **Dynamic Object Creation** from Dictionary entries
 - **Smart Pointers** → Manages **Memory Management** automatically with `autoPtr` and `tmp`
 
----
-
+---\n
 ## Part 1: Creating a Custom Phase Model
 
 ### 1.1 Understanding the Base Class: `phaseModel`
@@ -58,8 +56,7 @@ public:
 - `phaseModel` **inherits from `dictionary`** → Can store configuration parameters
 - **Protected Constructor** → Enforces creation through Factory Pattern (`New()` method) only
 
----
-
+---\n
 ### 1.2 Creating the Derived Class: `myCustomPhaseModel`
 
 #### **Step 1: Create Header File (`myCustomPhaseModel.H`)**
@@ -124,8 +121,7 @@ public:
 | `virtual tmp<volScalarField> rho() const override` | **Required** | Implement Pure Virtual Interface |
 | `virtual void correct() override` | **Optional** | Override to customize Algorithm Skeleton |
 
----
-
+---\n
 #### **Step 2: Create Implementation File (`myCustomPhaseModel.C`)**
 
 ```cpp
@@ -279,8 +275,7 @@ volScalarField& rho = trho();      // Alternative syntax
 // tmp will decrement reference count and deallocate memory when no references exist
 ```
 
----
-
+---\n
 #### **Step 3: Register with the RTS System (Very Important!)**
 
 Add the following lines at the **end of the `.C` file**:
@@ -331,8 +326,7 @@ namespace Foam
 - Uses C++ **Static Initialization Order Fiasco** workaround
 - If this line is missing → the model will **NOT appear** in the Runtime Selection Table
 
----
-
+---\n
 ### 1.3 Compiling with `wmake`
 
 #### **Create `Make/files` file:**
@@ -387,8 +381,7 @@ g++ -std=c++14 ... -shared -Xlinker --add-needed -Xlinker --no-as-needed
     -o /home/user/OpenFOAM/user-2.1/platforms/linux64GccDPInt32Opt/lib/libmyCustomPhaseModels.so
 ```
 
----
-
+---\n
 ### 1.4 Usage in Dictionary
 
 #### **File `constant/phaseProperties`:**
@@ -452,8 +445,7 @@ Registered phaseModel models:
   myCustomPhase    // ← Our model!
 ```
 
----
-
+---\n
 ## Part 2: Creating a Custom Interfacial Model
 
 ### 2.1 Base Class: `dragModel`
@@ -508,8 +500,7 @@ Where:
 - $K_{12}$ = Momentum exchange coefficient (calculated by Drag Model)
 - $\mathbf{u}_1, \mathbf{u}_2$ = Velocities of both phases
 
----
-
+---\n
 ### 2.2 Creating a Custom Drag Model
 
 #### **Header File (`myCustomDragModel.H`):**
@@ -672,8 +663,7 @@ surfaceScalarField surfRho = fvc::interpolate(rho);
 surfaceScalarField flux = K * (U1 - U2);
 ```
 
----
-
+---\n
 ### 2.3 Usage in Dictionary
 
 ```cpp
@@ -696,8 +686,7 @@ dragModels
 }
 ```
 
----
-
+---\n
 ## Part 3: Debugging and Troubleshooting
 
 ### 3.1 Common Problems
@@ -733,19 +722,19 @@ void processPhase(autoPtr<phaseModel> phase) {
 
 ```cpp
 // ❌ WRONG: Memory leak with derived classes
-class dragModel {
+class dragModel { 
 public:
     ~dragModel() {}  // Non-virtual
 };
 
-class SchillerNaumann : public dragModel {
+class SchillerNaumann : public dragModel { 
     volScalarField* customField_;
 public:
     ~SchillerNaumann() { delete customField_; }  // Never called!
 };
 
 // ✅ CORRECT: Virtual destructor
-class dragModel {
+class dragModel { 
 public:
     virtual ~dragModel() = default;  // Virtual
 };
@@ -802,8 +791,7 @@ autoPtr<phaseModel> phase = phaseModel::New(dict, mesh);
   - Dictionary-based selection
   - Runtime binding vs compile-time binding
 
----
-
+---\n
 ### 3.2 Debugging Tools
 
 #### **1. Check Runtime Selection Table:**
@@ -845,7 +833,7 @@ export FOAM_VERBOSE=1
 multiphaseEulerFoam
 
 # Output:
-# --> FOAM Warning :
+# --> FOAM Warning : 
 #     From function phaseModel::New(const dictionary&, const fvMesh&)
 #     in file phaseModel.C at line 123
 #     Reading phaseModel dictionary
@@ -863,8 +851,7 @@ valgrind --tool=callgrind ./multiphaseEulerFoam
 kcachegrind callgrind.out.*
 ```
 
----
-
+---\n
 ## Part 4: Advanced Topics
 
 ### 4.1 Template-Based Polymorphism (CRTP)
@@ -919,8 +906,7 @@ public:
 | **CRTP Templates** | Zero (compile-time) | Low (compile-time) | Field operations |
 | **Function Overloading** | Zero | Very Low | Type-specific algorithms |
 
----
-
+---\n
 ### 4.2 Multiple Inheritance in OpenFOAM
 
 OpenFOAM uses **Non-Virtual Multiple Inheritance** to combine unique capabilities:
@@ -952,8 +938,7 @@ class GeometricField
 3. **Memory Efficiency** → Smart pointers manage lifetime
 4. **Polymorphism** → Virtual functions give runtime flexibility
 
----
-
+---\n
 ### 4.3 Expression Templates
 
 OpenFOAM uses Expression Templates to eliminate temporaries in field operations:
@@ -981,8 +966,7 @@ volVectorField U = U_old + dt*f + dt*grad(p);  // No temporaries!
 - **Temporary Elimination** → Reduce memory allocation
 - **Compiler Optimization** → Better register allocation and instruction scheduling
 
----
-
+---\n
 ## Summary: Complete Workflow
 
 ```mermaid
@@ -1016,8 +1000,7 @@ flowchart TD
     S --> T[Run Simulation]
 ```
 
----
-
+---\n
 ## Best Practices Summary
 
 ### ✅ **DO:**
@@ -1036,8 +1019,7 @@ flowchart TD
 4. **Skip `addToRunTimeSelectionTable`** → model won't be found
 5. **Use raw pointers** → difficult memory management
 
----
-
+---\n
 ## References
 
 ### OpenFOAM Source Files

@@ -1,208 +1,208 @@
-# Overview: Field Types in OpenFOAM
+# ภาพรวม: ประเภทฟิลด์ใน OpenFOAM (Field Types in OpenFOAM)
 
-> [!INFO] Overview
-> This section provides a comprehensive introduction to OpenFOAM's field type system—the foundation for computational fluid dynamics (CFD) simulations.
-
----
-
-## 🎯 Learning Objectives
-
-By completing this section, you will be able to:
-
-- ✅ Understand the inheritance hierarchy of Field types in OpenFOAM
-- ✅ Master dimensional analysis with `dimensionSet`
-- ✅ Correctly create and initialize Fields
-- ✅ Understand Surface and Point Field types
-- ✅ Comprehend performance characteristics and memory structure
+> [!INFO] ภาพรวม
+> ส่วนนี้เป็นการแนะนำระบบประเภทฟิลด์ที่ซับซ้อนของ OpenFOAM ซึ่งเป็นรากฐานสำหรับการจำลองพลศาสตร์ของไหลเชิงคำนวณ (CFD)
 
 ---
 
-## 📋 Prerequisites
+## 🎯 วัตถุประสงค์การเรียนรู้
 
-### Essential Background Knowledge
+เมื่อเรียนจบส่วนนี้ คุณจะสามารถ:
 
-**Complete [Chapter 4: C++ Programming in OpenFOAM](../../Chapter_04_Cpp_Programming_in_OpenFOAM/README.md)** - This foundational chapter provides essential C++ programming concepts specific to OpenFOAM's architecture, including:
+- ✅ เข้าใจลำดับชั้นการสืบทอดของประเภทฟิลด์ใน OpenFOAM
+- ✅ เชี่ยวชาญการวิเคราะห์มิติด้วย `dimensionSet`
+- ✅ สร้างและเริ่มต้นฟิลด์ได้อย่างถูกต้อง
+- ✅ เข้าใจประเภทฟิลด์พื้นผิว (Surface) และฟิลด์จุด (Point)
+- ✅ เข้าใจลักษณะประสิทธิภาพและโครงสร้างหน่วยความจำ
 
-- **Coding conventions** and OpenFOAM style guidelines
-- **Memory management** using `autoPtr`, `tmp`, and reference counting
-- **Template metaprogramming** used throughout OpenFOAM
-- **Class hierarchies** for geometry and field classes
+---
 
-### Advanced C++ Concepts
+## 📋 ข้อกำหนดเบื้องต้น
 
-**Template Programming**
-Deep understanding of C++ templates is critical since OpenFOAM extensively uses templates for:
+### ความรู้พื้นฐานที่จำเป็น
 
-| Usage | Example |
+**ศึกษา [บทที่ 4: การเขียนโปรแกรม C++ ใน OpenFOAM](../../Chapter_04_Cpp_Programming_in_OpenFOAM/README.md) ให้ครบถ้วน** - บทพื้นฐานนี้ให้แนวคิดการเขียนโปรแกรม C++ ที่สำคัญซึ่งเฉพาะเจาะจงสำหรับสถาปัตยกรรมของ OpenFOAM ได้แก่:
+
+- **ข้อกำหนดการเขียนโค้ด (Coding conventions)** และแนวทางการจัดรูปแบบของ OpenFOAM
+- **การจัดการหน่วยความจำ** โดยใช้ `autoPtr`, `tmp` และการนับการอ้างอิง (Reference counting)
+- **การเขียนโปรแกรมเชิงเทมเพลต (Template metaprogramming)** ที่ใช้ทั่วทั้ง OpenFOAM
+- **ลำดับชั้นของคลาส** สำหรับคลาสเรขาคณิตและคลาสฟิลด์
+
+### แนวคิด C++ ขั้นสูง
+
+**การเขียนโปรแกรมเชิงเทมเพลต (Template Programming)**
+ความเข้าใจอย่างลึกซึ้งเกี่ยวกับเทมเพลต C++ เป็นสิ่งสำคัญเนื่องจาก OpenFOAM ใช้เทมเพลตอย่างแพร่หลายสำหรับ:
+
+| การใช้งาน | ตัวอย่าง |
 |-------|---------|
-| Field type definitions | `volScalarField`, `volVectorField`, `surfaceTensorField` |
-| Geometry classes | `Vector<T>`, `Tensor<T>`, `SymmTensor<T>` |
-| Mathematical operations | Dimension checking |
-| Compile-time polymorphism | Solver implementations |
+| การนิยามประเภทฟิลด์ | `volScalarField`, `volVectorField`, `surfaceTensorField` |
+| คลาสเรขาคณิต | `Vector<T>`, `Tensor<T>`, `SymmTensor<T>` |
+| การดำเนินการทางคณิตศาสตร์ | การตรวจสอบมิติ (Dimension checking) |
+| พหุสัณฐานเวลาคอมไพล์ (Compile-time polymorphism) | การสร้างตัวแก้สมการ (Solver implementations) |
 
-**Inheritance and Polymorphism**
-Mastery of C++ inheritance patterns enables you to:
+**การสืบทอดและพหุสัณฐาน (Inheritance and Polymorphism)**
+ความเชี่ยวชาญในรูปแบบการสืบทอดของ C++ จะช่วยให้คุณ:
 
-- Understand OpenFOAM's class hierarchy (e.g., `fvPatchField` implementations)
-- Extend base classes for custom boundary conditions
-- Work with abstract interfaces for turbulence models and thermodynamic properties
-- Implement custom physics models following established patterns
+- เข้าใจลำดับชั้นคลาสของ OpenFOAM (เช่น การสร้างคลาส `fvPatchField`)
+- ขยายคลาสฐานสำหรับเงื่อนไขขอบเขตที่กำหนดเอง
+- ทำงานกับอินเทอร์เฟซนามธรรม (Abstract interfaces) สำหรับโมเดลความปั่นป่วนและคุณสมบัติทางเทอร์โมไดนามิก
+- สร้างโมเดลทางฟิสิกส์ที่กำหนดเองตามรูปแบบที่กำหนดไว้
 
-### OpenFOAM Architecture Knowledge
+### ความรู้ด้านสถาปัตยกรรม OpenFOAM
 
-**Case Structure Knowledge**
-Comprehensive understanding of OpenFOAM case organization:
+**ความรู้เรื่องโครงสร้างเคส (Case Structure)**
+ความเข้าใจอย่างครอบคลุมเกี่ยวกับการจัดระเบียบเคสของ OpenFOAM:
 
-| Directory | Description |
+| ไดเรกทอรี | คำอธิบาย |
 |-----------|-------------|
-| `0/` | Initial conditions and boundary condition specifications |
-| `constant/` | Mesh data, physical properties, and simulation parameters |
-| `system/` | Solution control, numerical schemes, and solver settings |
+| `0/` | เงื่อนไขเริ่มต้นและการระบุเงื่อนไขขอบเขต |
+| `constant/` | ข้อมูลเมช, คุณสมบัติทางกายภาพ และพารามิเตอร์การจำลอง |
+| `system/` | การควบคุมผลเฉลย (Solution control), รูปแบบเชิงตัวเลข และการตั้งค่าตัวแก้สมการ |
 
-**Mesh Concepts**
-Precise understanding of computational mesh fundamentals:
+**แนวคิดเรื่องเมช (Mesh Concepts)**
+ความเข้าใจที่แม่นยำเกี่ยวกับพื้นฐานของเมชเชิงคำนวณ:
 
-- **Mesh topology** of finite volume discretization (`polyMesh`, `fvMesh`)
-- **Relationships** between cells, faces, and patches
-- **Boundary condition management** and patch identification
-- **Mesh quality requirements** for numerical stability
-- **Mesh generation procedures** (`blockMesh`, `snappyHexMesh`)
+- **โทโพโลยีของเมช** ของการดิสครีตแบบไฟไนต์วอลุ่ม (`polyMesh`, `fvMesh`)
+- **ความสัมพันธ์** ระหว่างเซลล์, หน้า และแพตช์ (Patches)
+- **การจัดการเงื่อนไขขอบเขต** และการระบุแพตช์
+- **ข้อกำหนดด้านคุณภาพเมช** สำหรับเสถียรภาพเชิงตัวเลข
+- **ขั้นตอนการสร้างเมช** (`blockMesh`, `snappyHexMesh`)
 
 ---
 
-## 1. "Hook": Excel Sheets vs. CFD Fields
+## 1. "จุดดึงดูด": ตาราง Excel เทียบกับฟิลด์ CFD
 
-Imagine having a massive Excel spreadsheet where each cell contains a physical quantity (pressure, velocity, temperature) at a specific location in your flow domain.
+ลองนึกภาพว่าคุณมีสเปรดชีต Excel ขนาดมหึมาที่แต่ละเซลล์บรรจุปริมาณทางกายภาพ (ความดัน, ความเร็ว, อุณหภูมิ) ณ ตำแหน่งเฉพาะในโดเมนการไหลของคุณ
 
-Now imagine needing to perform mathematical operations on millions of cells simultaneously while maintaining physical unit consistency.
+ตอนนี้ลองจินตนาการว่าคุณต้องดำเนินการทางคณิตศาสตร์กับเซลล์นับล้านเซลล์พร้อมกันในขณะที่ยังคงรักษาความสอดคล้องของหน่วยทางกายภาพไว้
 
-**This is what OpenFOAM's field system does**—it's a **type-safe, dimension-aware, high-performance spreadsheet for CFD**
+**นี่คือสิ่งที่ระบบฟิลด์ของ OpenFOAM ทำ**—มันคือ **สเปรดชีตประสิทธิภาพสูงที่คำนึงถึงมิติและมีความปลอดภัยของประเภทข้อมูลสำหรับ CFD**
 
 ```mermaid
 flowchart LR
-    A[Excel Spreadsheet] --> B[Manual Cell Operations]
-    A --> C[No Unit Checking]
-    A --> D[Sequential Processing]
+    A[สเปรดชีต Excel] --> B[การดำเนินการเซลล์แบบทำด้วยมือ]
+    A --> C[ไม่มีการตรวจสอบหน่วย]
+    A --> D[การประมวลผลตามลำดับ]
 
-    E[OpenFOAM Fields] --> F[Automatic Field Operations]
-    E --> G[Built-in Dimension Analysis]
-    E --> H[Parallel Vectorized Computation]
+    E[ฟิลด์ OpenFOAM] --> F[การดำเนินการฟิลด์อัตโนมัติ]
+    E --> G[การวิเคราะห์มิติในตัว]
+    E --> H[การคำนวณแบบขนานเวกเตอร์]
 ```
-> **Figure 1:** การเปรียบเทียบระหว่างสเปรดชีต Excel ทั่วไปกับระบบฟิลด์ของ OpenFOAM ซึ่งโดดเด่นด้วยการตรวจสอบมิติอัตโนมัติและการประมวลผลแบบขนานประสิทธิภาพสูงความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **รูปที่ 1:** การเปรียบเทียบระหว่างสเปรดชีต Excel ทั่วไปกับระบบฟิลด์ของ OpenFOAM ซึ่งโดดเด่นด้วยการตรวจสอบมิติอัตโนมัติและการประมวลผลแบบขนานประสิทธิภาพสูงความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
-### Field Architecture: Beyond Simple Arrays
+### สถาปัตยกรรมฟิลด์: เหนือกว่าอาร์เรย์ธรรมดา
 
-While Excel cells are simple value containers, OpenFOAM fields are sophisticated computational objects that reflect the mathematical and physical rigor required for CFD simulations.
+ในขณะที่เซลล์ Excel เป็นคอนเทนเนอร์เก็บค่าแบบง่าย ฟิลด์ OpenFOAM เป็นออบเจ็กต์การคำนวณที่ซับซ้อนซึ่งสะท้อนถึงความเข้มงวดทางคณิตศาสตร์และกายภาพที่จำเป็นสำหรับการจำลอง CFD
 
-An **OpenFOAM Field** such as `volScalarField p` represents more than just an array of pressure values:
+**ฟิลด์ OpenFOAM** เช่น `volScalarField p` เป็นมากกว่าแค่อาร์เรย์ของค่าความดัน:
 
 ```cpp
-// Example: Creating a pressure field in OpenFOAM
+// ตัวอย่าง: การสร้างฟิลด์ความดันใน OpenFOAM
 volScalarField p
 (
     IOobject
     (
-        "p",                           // Field name
-        runTime.timeName(),            // Time directory
-        mesh,                          // Mesh reference
-        IOobject::MUST_READ,           // Read from file if exists
-        IOobject::AUTO_WRITE           // Auto-write during simulation
+        "p",                           // ชื่อฟิลด์
+        runTime.timeName(),            // ไดเรกทอรีเวลา
+        mesh,                          // อ้างอิงเมช
+        IOobject::MUST_READ,           // อ่านจากไฟล์ถ้ามีอยู่
+        IOobject::AUTO_WRITE           // เขียนอัตโนมัติระหว่างการจำลอง
     ),
-    mesh                              // Mesh object to attach to
+    mesh                              // ออบเจ็กต์เมชที่จะเชื่อมโยง
 );
 ```
 
-> **📂 Source:** `.applications/solvers/basic/potentialFoam/potentialFoam.C`
+> **📂 แหล่งที่มา:** `.applications/solvers/basic/potentialFoam/potentialFoam.C`
 
-> **📖 Explanation:**
+> **📖 คำอธิบาย:**
 > โค้ดด้านบนสาธิตการสร้างฟิลด์ความดันใน OpenFOAM ซึ่งเป็นตัวอย่างที่ชัดเจนของการสร้างฟิลด์เรขาคณิตที่เชื่อมโยงกับเมช การสร้างฟิลด์ใน OpenFOAM ไม่ได้เป็นเพียงการประกาศตัวแปรแบบง่าย แต่เป็นการสร้างออบเจ็กต์ที่ซับซ้อนที่ประกอบด้วย:
 > - **IOobject**: จัดการการอ่าน/เขียนไฟล์และการลงทะเบียนกับระบบฐานข้อมูล
 > - **Mesh linkage**: การเชื่อมโยงกับโครงสร้างเมชคอมพิวเตชัน
 > - **Internal & Boundary fields**: ค่าภายในเซลล์และค่าบนขอบเขต
 > - **Dimensional information**: ข้อมูลมิติทางฟิสิกส์อัตโนมัติ
->
+> 
 > การออกแบบนี้ทำให้ฟิลด์ OpenFOAM มีความสามารถในการจัดการข้อมูลฟิสิกส์ที่สมบูรณ์แบบ พร้อมการตรวจสอบความถูกต้องของมิติและหน่วยอัตโนมัติ
 
-> **🔑 Key Concepts:**
+> **🔑 แนวคิดสำคัญ:**
 > - **IOobject management**: ระบบจัดการอินพุต/เอาต์พุตของ OpenFOAM
 > - **Field-mesh coupling**: การเชื่อมโยงฟิลด์กับโครงสร้างเมช
 > - **Automatic I/O**: การอ่านและเขียนข้อมูลอัตโนมัติ
 > - **Constructor initialization**: การเริ่มต้นฟิลด์ด้วยพารามิเตอร์ที่สมบูรณ์
 
-This single declaration creates:
+การประกาศเพียงครั้งเดียวนี้จะสร้าง:
 
-- **Internal field values**: Pressure at each cell center within control volumes
-- **Boundary field values**: Pressure values on boundary patches
-- **Dimensional consistency**: Guaranteed units of $\text{kg} \cdot \text{m}^{-1} \cdot \text{s}^{-2}$
-- **Mesh linkage**: Direct connection to computational mesh topology
-- **Time management**: Automatic read/write capability during simulations
+- **ค่าฟิลด์ภายใน (Internal field values)**: ความดันที่จุดศูนย์กลางของแต่ละเซลล์ภายในปริมาตรควบคุม
+- **ค่าฟิลด์ขอบเขต (Boundary field values)**: ค่าความดันบนแพตช์ขอบเขต (Boundary patches)
+- **ความสอดคล้องทางมิติ (Dimensional consistency)**: รับประกันหน่วยเป็น $\text{kg} \cdot \text{m}^{-1} \cdot \text{s}^{-2}$
+- **การเชื่อมโยงเมช (Mesh linkage)**: เชื่อมต่อโดยตรงกับโทโพโลยีของเมชเชิงคำนวณ
+- **การจัดการเวลา (Time management)**: ความสามารถในการอ่าน/เขียนอัตโนมัติระหว่างการจำลอง
 
 ```mermaid
 graph TD
-    A[volScalarField p] --> B[Internal Field]
-    A --> C[Boundary Field]
+    A[volScalarField p] --> B[ฟิลด์ภายใน]
+    A --> C[ฟิลด์ขอบเขต]
     A --> D[dimensionSet]
-    A --> E[mesh Reference]
+    A --> E[การอ้างอิงเมช]
     A --> F[IOobject]
 
-    B --> B1[Cell Center Values]
-    B --> B2[Contiguous Memory]
+    B --> B1[ค่าที่จุดศูนย์กลางเซลล์]
+    B --> B2[หน่วยความจำต่อเนื่อง]
 
-    C --> C1[Patch Values]
-    C --> C2[Boundary Conditions]
+    C --> C1[ค่าบนแพตช์]
+    C --> C2[เงื่อนไขขอบเขต]
 ```
-> **Figure 2:** องค์ประกอบภายในของฟิลด์ความดัน (`volScalarField p`) ซึ่งประกอบด้วยค่าภายในเซลล์ ค่าที่ขอบเขต มิติทางฟิสิกส์ และการเชื่อมโยงกับเมชคำนวณความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **รูปที่ 2:** องค์ประกอบภายในของฟิลด์ความดัน (`volScalarField p`) ซึ่งประกอบด้วยค่าภายในเซลล์ ค่าที่ขอบเขต มิติทางฟิสิกส์ และการเชื่อมโยงกับเมชคำนวณความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
-### Mathematical Operations: Natural Physics Notation
+### การดำเนินการทางคณิตศาสตร์: สัญกรณ์ฟิสิกส์ที่เป็นธรรมชาติ
 
-The **power of OpenFOAM's field system** lies in its ability to express complex mathematical expressions using natural notation while maintaining dimensional consistency:
+**พลังของระบบฟิลด์ใน OpenFOAM** อยู่ที่ความสามารถในการแสดงนิพจน์ทางคณิตศาสตร์ที่ซับซ้อนโดยใช้สัญกรณ์ที่เป็นธรรมชาติในขณะที่ยังคงความสอดคล้องทางมิติ:
 
 ```cpp
-// Momentum equation components in OpenFOAM
-volVectorField U = ...;                    // Velocity field
-volScalarField p = ...;                    // Pressure field
-dimensionedScalar rho("rho", dimDensity, 1.2);    // Density
+// ส่วนประกอบของสมการโมเมนตัมใน OpenFOAM
+volVectorField U = ...;                    // ฟิลด์ความเร็ว
+volScalarField p = ...;                    // ฟิลด์ความดัน
+dimensionedScalar rho("rho", dimDensity, 1.2);    // ความหนาแน่น
 
-// Natural mathematical expression
+// นิพจน์ทางคณิตศาสตร์ที่เป็นธรรมชาติ
 fvVectorMatrix UEqn
 (
-    fvm::ddt(rho, U)                     // Unsteady term: ∂(ρU)/∂t
-  + fvm::div(rho*U, U)                   // Convection: ∇·(ρUU)
+    fvm::ddt(rho, U)                     // เทอมไม่คงที่: ∂(ρU)/∂t
+  + fvm::div(rho*U, U)                   // เทอมการพา: ∇·(ρUU)
  ==
-  - fvc::grad(p)                         // Pressure gradient: -∇p
+  - fvc::grad(p)                         // เกรเดียนต์ความดัน: -∇p
 );
 ```
 
-> **📂 Source:** `.applications/solvers/incompressible/simpleFoam/UEqn.H`
+> **📂 แหล่งที่มา:** `.applications/solvers/incompressible/simpleFoam/UEqn.H`
 
-> **📖 Explanation:**
+> **📖 คำอธิบาย:**
 > โค้ดนี้สาธิตพลังของระบบฟิลด์ OpenFOAM ในการแสดงสมการ Navier-Stokes ด้วยสัญกรณ์ทางคณิตศาสตร์ที่เป็นธรรมชาติ โดยแต่ละเทอมในสมการถูกแทนด้วย operator ที่ออกแบบมาให้ใกล้เคียงกับสัญกรณ์ทางคณิตศาสตร์มากที่สุด:
-> - **`fvm::ddt(rho, U)`**: เทอมอนุพันธ์เวลาของโมเมนตัม (∂(ρU)/∂t) ใช้ fvm (finite volume method) สำหรับ implicit treatment
-> - **`fvm::div(rho*U, U)`**: เทอม convection (∇·(ρUU)) ใช้ fvm เพื่อให้สามารถแก้สมการแบบ implicit
-> - **`fvc::grad(p)`**: เทอม gradient ของความดัน (-∇p) ใช้ fvc (finite volume calculus) สำหรับ explicit treatment
->
+> - **`fvm::ddt(rho, U)`**: เทอมอนุพันธ์เวลาของโมเมนตัม (∂(ρU)/∂t) ใช้ fvm (finite volume method) สำหรับการจัดการแบบ implicit
+> - **`fvm::div(rho*U, U)`**: เทอมการพา (Convection) (∇·(ρUU)) ใช้ fvm เพื่อให้สามารถแก้สมการแบบ implicit
+> - **`fvc::grad(p)`**: เทอมเกรเดียนต์ของความดัน (-∇p) ใช้ fvc (finite volume calculus) สำหรับการจัดการแบบ explicit
+> 
 > ความสามารถพิเศษคือระบบจะตรวจสอบความสอดคล้องของมิติโดยอัตโนมัติ หากมิติของแต่ละเทอมไม่ตรงกัน คอมไพเลอร์จะแจ้งเตือนทันที
 
-> **🔑 Key Concepts:**
-> - **Implicit vs Explicit operators**: fvm (implicit) สำหรับเทอมใน matrix และ fvc (explicit) สำหรับเทอม source
+> **🔑 แนวคิดสำคัญ:**
+> - **Implicit vs Explicit operators**: fvm (implicit) สำหรับเทอมในเมทริกซ์ และ fvc (explicit) สำหรับเทอมแหล่งกำเนิด (Source)
 > - **Dimensional consistency checking**: การตรวจสอบความสอดคล้องของมิติอัตโนมัติ
-> - **Operator overloading**: การ overload operator ให้ทำงานกับฟิลด์ได้โดยตรง
+> - **Operator overloading**: การโอเวอร์โหลดตัวดำเนินการให้ทำงานกับฟิลด์ได้โดยตรง
 > - **Field algebra**: การดำเนินการทางคณิตศาสตร์บนฟิลด์ทั้งฟิลด์
 
-**Key Operators:**
-- `fvm::ddt`: Implicit temporal derivative
-- `fvm::div`: Implicit divergence
-- `fvc::grad`: Explicit gradient
+**ตัวดำเนินการหลัก (Key Operators):**
+- `fvm::ddt`: อนุพันธ์เวลาแบบ implicit
+- `fvm::div`: ไดเวอร์เจนซ์แบบ implicit
+- `fvc::grad`: เกรเดียนต์แบบ explicit
 
 ---
 
-## 2. Field Type Hierarchy: The Blueprint
+## 2. ลำดับชั้นประเภทฟิลด์: พิมพ์เขียว
 
-OpenFOAM organizes field data through a sophisticated template hierarchy that enables efficient storage, manipulation, and mathematical operations on CFD data.
+OpenFOAM จัดระเบียบข้อมูลฟิลด์ผ่านลำดับชั้นเทมเพลตที่ซับซ้อน ซึ่งช่วยให้สามารถจัดเก็บ จัดการ และดำเนินการทางคณิตศาสตร์กับข้อมูล CFD ได้อย่างมีประสิทธิภาพ
 
-### Class Hierarchy Architecture
+### สถาปัตยกรรมลำดับชั้นคลาส
 
-The field type hierarchy in OpenFOAM follows a systematic inheritance structure, building from simple data containers to complex geometric fields:
+ลำดับชั้นประเภทฟิลด์ใน OpenFOAM เป็นไปตามโครงสร้างการสืบทอดที่เป็นระบบ เริ่มต้นจากคอนเทนเนอร์ข้อมูลอย่างง่ายไปจนถึงฟิลด์เรขาคณิตที่ซับซ้อน:
 
 ```mermaid
 graph TD
@@ -219,270 +219,270 @@ graph TD
     J[volTensorField] --> A
     K[surfaceScalarField] --> A
 ```
-> **Figure 3:** ลำดับชั้นการสืบทอดของคลาสฟิลด์ใน OpenFOAM แสดงความสัมพันธ์ระหว่างคอนเทนเนอร์ข้อมูลพื้นฐานไปจนถึงฟิลด์เรขาคณิตที่ซับซ้อนความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **รูปที่ 3:** ลำดับชั้นการสืบทอดของคลาสฟิลด์ใน OpenFOAM แสดงความสัมพันธ์ระหว่างคอนเทนเนอร์ข้อมูลพื้นฐานไปจนถึงฟิลด์เรขาคณิตที่ซับซ้อนความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
-**At the base level:**
-- `List<Type>` provides a dynamic array container for any data type
-- `Field<Type>` extends this with mathematical operations specific to CFD calculations
-- Supports vector operations, tensor operations, and field-wide algebra
+**ที่ระดับพื้นฐาน:**
+- `List<Type>` ให้คอนเทนเนอร์อาร์เรย์แบบไดนามิกสำหรับประเภทข้อมูลใดๆ
+- `Field<Type>` ขยายส่วนนี้ด้วยการดำเนินการทางคณิตศาสตร์เฉพาะสำหรับการคำนวณ CFD
+- รองรับการดำเนินการเวกเตอร์, การดำเนินการเทนเซอร์ และพีชคณิตทั่วทั้งฟิลด์
 
-### Core Field Components
+### ส่วนประกอบฟิลด์หลัก
 
 #### **`GeometricField<Type, PatchField, GeoMesh>`**
-The complete field class that combines both internal field values and boundary conditions.
+คลาสฟิลด์ที่สมบูรณ์ซึ่งรวมทั้งค่าฟิลด์ภายในและเงื่อนไขขอบเขต
 
-**Template Parameters:**
-- `Type`: Mathematical entity (scalar, vector, tensor, etc.)
-- `PatchField`: Boundary field type for managing boundary conditions
-- `GeoMesh`: Mesh type (volMesh for cell-centered fields, surfaceMesh for face-centered fields)
+**พารามิเตอร์เทมเพลต:**
+- `Type`: เอนทิตีทางคณิตศาสตร์ (สเกลาร์, เวกเตอร์, เทนเซอร์ และอื่นๆ)
+- `PatchField`: ประเภทฟิลด์ขอบเขตสำหรับการจัดการเงื่อนไขขอบเขต
+- `GeoMesh`: ประเภทเมช (volMesh สำหรับฟิลด์ที่จุดศูนย์กลางเซลล์, surfaceMesh สำหรับฟิลด์ที่จุดศูนย์กลางหน้า)
 
 #### **`DimensionedField<Type, GeoMesh>`**
-Extends the base field with:
-- Dimensional information
-- Mesh linkage
-- Inherits from `Field<Type>` (data storage) and `regIOobject` (file I/O)
-- Can automatically read and write field data
+ขยายฟิลด์พื้นฐานด้วย:
+- ข้อมูลมิติ (Dimensional information)
+- การเชื่อมโยงเมช
+- สืบทอดมาจาก `Field<Type>` (การจัดเก็บข้อมูล) และ `regIOobject` (I/O ไฟล์)
+- สามารถอ่านและเขียนข้อมูลฟิลด์โดยอัตโนมัติ
 
 #### **`GeometricBoundaryField`**
-A specialized container that manages:
-- All boundary patches for a geometric field
-- Collection of boundary condition objects
-- Uniform access to boundary values and gradients
+คอนเทนเนอร์เฉพาะทางที่จัดการ:
+- แพตช์ขอบเขตทั้งหมดสำหรับฟิลด์เรขาคณิต
+- คอลเลกชันของออบเจ็กต์เงื่อนไขขอบเขต
+- การเข้าถึงค่าขอบเขตและเกรเดียนต์ที่สม่ำเสมอ
 
-### Common Type Definitions
+### นิยามประเภทข้อมูลทั่วไป
 
-The most commonly used field types in OpenFOAM are defined as template specializations:
+ประเภทฟิลด์ที่ใช้บ่อยที่สุดใน OpenFOAM ถูกกำหนดให้เป็น template specializations:
 
-| Field Type | Template Specialization | Common Usage |
+| ประเภทฟิลด์ | Template Specialization | การใช้งานทั่วไป |
 |------------|------------------------|--------------|
-| `volScalarField` | `GeometricField<scalar, fvPatchField, volMesh>` | Pressure, Temperature |
-| `volVectorField` | `GeometricField<vector, fvPatchField, volMesh>` | Velocity, Displacement |
-| `volTensorField` | `GeometricField<tensor, fvPatchField, volMesh>` | Stress, Strain Rate |
-| `surfaceScalarField` | `GeometricField<scalar, fvsPatchField, surfaceMesh>` | Fluxes, Heat Transfer Rates |
+| `volScalarField` | `GeometricField<scalar, fvPatchField, volMesh>` | ความดัน, อุณหภูมิ |
+| `volVectorField` | `GeometricField<vector, fvPatchField, volMesh>` | ความเร็ว, การกระจัด |
+| `volTensorField` | `GeometricField<tensor, fvPatchField, volMesh>` | ความเค้น, อัตราความเครียด |
+| `surfaceScalarField` | `GeometricField<scalar, fvsPatchField, surfaceMesh>` | ฟลักซ์, อัตราการถ่ายโอนความร้อน |
 
-**Field Type Selection:**
-- **Volume fields (`vol*`)**: Quantities naturally defined at cell centers
-- **Surface fields (`surface*`)**: Quantities naturally defined at cell faces
+**การเลือกประเภทฟิลด์:**
+- **ฟิลด์ปริมาตร (`vol*`)**: ปริมาณที่กำหนดโดยธรรมชาติที่จุดศูนย์กลางเซลล์
+- **ฟิลด์พื้นผิว (`surface*`)**: ปริมาณที่กำหนดโดยธรรมชาติที่หน้าเซลล์
 
 ---
 
-## 3. Internal Mechanics: Template Parameters Explained
+## 3. กลไกภายใน: คำอธิบายพารามิเตอร์เทมเพลต
 
-### Template Signature
+### ลายเซ็นเทมเพลต (Template Signature)
 ```cpp
 template<class Type, template<class> class PatchField, class GeoMesh>
 class GeometricField : public DimensionedField<Type, GeoMesh>
 {
-    // Inherits storage from DimensionedField
-    // Adds boundary field management through PatchField
-    // Links to mesh topology through GeoMesh
+    // สืบทอดการจัดเก็บจาก DimensionedField
+    // เพิ่มการจัดการฟิลด์ขอบเขตผ่าน PatchField
+    // เชื่อมโยงกับโทโพโลยีของเมชผ่าน GeoMesh
 };
 ```
 
-> **📂 Source:** `.src/OpenFOAM/fields/GeometricField/GeometricField.H`
+> **📂 แหล่งที่มา:** `.src/OpenFOAM/fields/GeometricField/GeometricField.H`
 
-> **📖 Explanation:**
-> นี่คือ signature หลักของคลาส `GeometricField` ซึ่งเป็น template class ที่มีความยืดหยุ่นสูงมาก การออกแบบ template นี้ใช้ template template parameter (PatchField) ซึ่งเป็นเทคนิคขั้นสูงใน C++:
->
-> - **Type parameter**: กำหนดชนิดข้อมูลทางคณิตศาสตร์ (scalar, vector, tensor) ที่เก็บในฟิลด์
-> - **PatchField parameter**: เป็น template template parameter ที่กำหนดนโยบายการจัดการขอบเขต ช่วยให้สามารถเปลี่ยนพฤติกรรมขอบเขตได้โดยไม่ต้องแก้ไขคลาสหลัก
-> - **GeoMesh parameter**: กำหนดโครงสร้างเมช (volMesh, surfaceMesh) ที่ฟิลด์จะเชื่อมโยงด้วย
->
-> การออกแบบนี้ทำให้สามารถสร้างฟิลด์ได้หลากหลายประเภทโดยไม่ต้องเขียนโค้ดซ้ำ และยังคงความปลอดภัยในด้าน type ที่ระดับ compile-time
+> **📖 คำอธิบาย:**
+> นี่คือลายเซ็นหลักของคลาส `GeometricField` ซึ่งเป็นคลาสเทมเพลตที่มีความยืดหยุ่นสูงมาก การออกแบบเทมเพลตนี้ใช้พารามิเตอร์เทมเพลตของเทมเพลต (PatchField) ซึ่งเป็นเทคนิคขั้นสูงใน C++:
+> 
+> - **พารามิเตอร์ Type**: กำหนดชนิดข้อมูลทางคณิตศาสตร์ (สเกลาร์, เวกเตอร์, เทนเซอร์) ที่เก็บในฟิลด์
+> - **พารามิเตอร์ PatchField**: เป็นพารามิเตอร์เทมเพลตของเทมเพลตที่กำหนดนโยบายการจัดการขอบเขต ช่วยให้สามารถเปลี่ยนพฤติกรรมขอบเขตได้โดยไม่ต้องแก้ไขคลาสหลัก
+> - **พารามิเตอร์ GeoMesh**: กำหนดโครงสร้างเมช (volMesh, surfaceMesh) ที่ฟิลด์จะเชื่อมโยงด้วย
+> 
+> การออกแบบนี้ทำให้สามารถสร้างฟิลด์ได้หลากหลายประเภทโดยไม่ต้องเขียนโค้ดซ้ำ และยังคงความปลอดภัยในด้านชนิดข้อมูลที่ระดับคอมไพล์ (Compile-time)
 
-> **🔑 Key Concepts:**
-> - **Template metaprogramming**: เทคนิคการใช้ template เพื่อสร้างโค้ดที่ยืดหยุ่น
-> - **Template template parameter**: พารามิเตอร์ template ที่รับ template class อื่นเป็นพารามิเตอร์
-> - **Compile-time polymorphism**: การกำหนดพฤติกรรมที่ระดับ compile time
+> **🔑 แนวคิดสำคัญ:**
+> - **Template metaprogramming**: เทคนิคการใช้เทมเพลตเพื่อสร้างโค้ดที่ยืดหยุ่น
+> - **Template template parameter**: พารามิเตอร์เทมเพลตที่รับคลาสเทมเพลตอื่นเป็นพารามิเตอร์
+> - **Compile-time polymorphism**: การกำหนดพฤติกรรมที่ระดับคอมไพล์
 > - **Type safety**: การรับประกันความถูกต้องของชนิดข้อมูล
 
-The `GeometricField` class is one of OpenFOAM's most fundamental template classes, providing a flexible framework for representing data fields of various types on different meshes.
+คลาส `GeometricField` เป็นหนึ่งในคลาสเทมเพลตพื้นฐานที่สุดของ OpenFOAM ซึ่งให้กรอบการทำงานที่ยืดหยุ่นสำหรับการแทนค่าฟิลด์ข้อมูลประเภทต่างๆ บนเมชที่แตกต่างกัน
 
-### Parameter 1: `Type` - What Data Do We Store?
+### พารามิเตอร์ที่ 1: `Type` - เราจัดเก็บข้อมูลอะไร?
 
-The `Type` parameter determines the mathematical nature of the data stored at each mesh location.
+พารามิเตอร์ `Type` กำหนดธรรมชาติทางคณิตศาสตร์ของข้อมูลที่จัดเก็บในแต่ละตำแหน่งของเมช
 
-| Type Parameter | Description | Usage Example | Resulting Field Class |
+| พารามิเตอร์ Type | คำอธิบาย | ตัวอย่างการใช้งาน | คลาสฟิลด์ที่เป็นผลลัพธ์ |
 |----------------|-------------|----------------|----------------------|
-| **`scalar`** | Single double-precision value | `volScalarField p` - Pressure<br>`volScalarField T` - Temperature | Volume Scalar Field |
-| **`vector`** | 3D vector (x, y, z) | `volVectorField U` - Velocity<br>`volVectorField F` - Force | Volume Vector Field |
-| **`tensor`** | 3×3 matrix (second-order quantity) | `volTensorField tau` - Stress<br>`volTensorField D` - Strain Rate | Volume Tensor Field |
+| **`scalar`** | ค่าทศนิยมความแม่นยำสองชั้นตัวเดียว | `volScalarField p` - ความดัน<br>`volScalarField T` - อุณหภูมิ | ฟิลด์สเกลาร์ตามปริมาตร |
+| **`vector`** | เวกเตอร์ 3 มิติ (x, y, z) | `volVectorField U` - ความเร็ว<br>`volVectorField F` - แรง | ฟิลด์เวกเตอร์ตามปริมาตร |
+| **`tensor`** | เมทริกซ์ 3×3 (ปริมาณอันดับสอง) | `volTensorField tau` - ความเค้น<br>`volTensorField D` - อัตราความเครียด | ฟิลด์เทนเซอร์ตามปริมาตร |
 
-### Parameter 2: `PatchField` - How Do We Handle Boundaries?
+### พารามิเตอร์ที่ 2: `PatchField` - เราจัดการขอบเขตอย่างไร?
 
-The `PatchField` parameter is a **template template parameter**—a template class that takes `Type` as a parameter, enabling compile-time polymorphism for boundary conditions.
+พารามิเตอร์ `PatchField` เป็น **พารามิเตอร์เทมเพลตของเทมเพลต**—คลาสเทมเพลตที่รับ `Type` เป็นพารามิเตอร์ ช่วยให้สามารถทำพหุสัณฐานเวลาคอมไพล์สำหรับเงื่อนไขขอบเขตได้
 
-| PatchField Type | Mesh Used | Management | Example |
+| ประเภท PatchField | เมชที่ใช้ | การจัดการ | ตัวอย่าง |
 |-----------------|-----------|------------|---------|
-| **`fvPatchField<Type>`** | `volMesh` | Cell-centered values | `fvPatchField<scalar>` |
-| **`fvsPatchField<Type>`** | `surfaceMesh` | Face-centered values | `fvsPatchField<scalar>` |
-| **`pointPatchField<Type>`** | `pointMesh` | Mesh vertex values | `pointPatchField<vector>` |
+| **`fvPatchField<Type>`** | `volMesh` | ค่าที่จุดศูนย์กลางเซลล์ | `fvPatchField<scalar>` |
+| **`fvsPatchField<Type>`** | `surfaceMesh` | ค่าที่จุดศูนย์กลางหน้า | `fvsPatchField<scalar>` |
+| **`pointPatchField<Type>`** | `pointMesh` | ค่าที่จุดยอดเมช | `pointPatchField<vector>` |
 
 ```mermaid
 graph TD
-    A[PatchField Parameter] --> B[Boundary Policy Selection]
-    B --> C[Compile-Time Polymorphism]
-    B --> D[Type Safety]
-    B --> E[Performance Optimization]
+    A[พารามิเตอร์ PatchField] --> B[การเลือกนโยบายขอบเขต]
+    B --> C[พหุสัณฐานเวลาคอมไพล์]
+    B --> D[ความปลอดภัยของชนิดข้อมูล]
+    B --> E[การเพิ่มประสิทธิภาพ]
 ```
-> **Figure 4:** แผนผังการเลือกนโยบายขอบเขต (PatchField Policy) ซึ่งช่วยให้ระบบสามารถจัดการเงื่อนไขขอบเขตที่หลากหลายได้ผ่านพหุสัณฑ์ในเวลาคอมไพล์ (Compile-time Polymorphism)ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **รูปที่ 4:** แผนผังการเลือกนโยบายขอบเขต (PatchField Policy) ซึ่งช่วยให้ระบบสามารถจัดการเงื่อนไขขอบเขตที่หลากหลายได้ผ่านพหุสัณฐานในเวลาคอมไพล์ (Compile-time Polymorphism)ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
-### Parameter 3: `GeoMesh` - Where Is the Data?
+### พารามิเตอร์ที่ 3: `GeoMesh` - ข้อมูลอยู่ที่ไหน?
 
-The `GeoMesh` parameter defines the discretization topology and provides geometric information.
+พารามิเตอร์ `GeoMesh` กำหนดโทโพโลยีการดิสครีตและให้ข้อมูลทางเรขาคณิต
 
-| GeoMesh Type | Data Location | Special Characteristics | Main Usage |
+| ประเภท GeoMesh | ตำแหน่งข้อมูล | ลักษณะพิเศษ | การใช้งานหลัก |
 |--------------|---------------|-------------------------|------------|
-| **`volMesh`** | Cell centers | Cell volumes, cell centers, connectivity | Finite Volume Method |
-| **`surfaceMesh`** | Face centers | Face areas, face centers, normals | Flux Calculations |
-| **`pointMesh`** | Mesh vertices | Point coordinates, point connectivity | Mesh Deformation |
+| **`volMesh`** | จุดศูนย์กลางเซลล์ | ปริมาตรเซลล์, จุดศูนย์กลางเซลล์, การเชื่อมต่อ | วิธีไฟไนต์วอลุ่ม |
+| **`surfaceMesh`** | จุดศูนย์กลางหน้า | พื้นที่หน้า, จุดศูนย์กลางหน้า, แนวฉาก | การคำนวณฟลักซ์ |
+| **`pointMesh`** | จุดยอดเมช | พิกัดจุด, การเชื่อมต่อจุด | การเปลี่ยนรูปเมช |
 
-### Template Instantiation Example
+### ตัวอย่างการสร้างอินสแตนซ์เทมเพลต (Template Instantiation Example)
 
 ```cpp
-// Volume-centered scalar field (pressure)
+// ฟิลด์สเกลาร์ที่จุดศูนย์กลางปริมาตร (ความดัน)
 typedef GeometricField<scalar, fvPatchField, volMesh> volScalarField;
 
-// Volume-centered vector field (velocity)
+// ฟิลด์เวกเตอร์ที่จุดศูนย์กลางปริมาตร (ความเร็ว)
 typedef GeometricField<vector, fvPatchField, volMesh> volVectorField;
 
-// Surface scalar field (mass flux)
+// ฟิลด์สเกลาร์ที่พื้นผิว (ฟลักซ์มวล)
 typedef GeometricField<scalar, fvsPatchField, surfaceMesh> surfaceScalarField;
 
-// Volume tensor field (stress)
+// ฟิลด์เทนเซอร์ที่จุดศูนย์กลางปริมาตร (ความเค้น)
 typedef GeometricField<tensor, fvPatchField, volMesh> volTensorField;
 ```
 
-> **📂 Source:** `.src/OpenFOAM/fields/GeometricField/GeometricField.H`
+> **📂 แหล่งที่มา:** `.src/OpenFOAM/fields/GeometricField/GeometricField.H`
 
-> **📖 Explanation:**
+> **📖 คำอธิบาย:**
 > โค้ดนี้แสดงการใช้ typedef ในการสร้างชื่อย่อสำหรับ template specialization ที่ใช้บ่อยใน OpenFOAM:
->
-> - **volScalarField**: ฟิลด์สเกลาร์บน volume mesh (เช่น ความดัน อุณหภูมิ) เก็บค่าที่จุดกลางเซลล์
-> - **volVectorField**: ฟิลด์เวกเตอร์บน volume mesh (เช่น ความเร็ว) เก็บค่าเวกเตอร์ 3 มิติที่จุดกลางเซลล์
-> - **surfaceScalarField**: ฟิลด์สเกลาร์บน surface mesh (เช่น flux) เก็บค่าที่จุดกลางหน้า
-> - **volTensorField**: ฟิลด์เทนเซอร์บน volume mesh (เช่น ความเครียด) เก็บค่าเทนเซอร์ 3×3 ที่จุดกลางเซลล์
->
-> การใช้ typedef ทำให้โค้ดอ่านง่ายขึ้นและลดความผิดพลาดจากการพิมพ์ template parameter ซ้ำๆ
+> 
+> - **volScalarField**: ฟิลด์สเกลาร์บนเมชปริมาตร (เช่น ความดัน อุณหภูมิ) เก็บค่าที่จุดศูนย์กลางเซลล์
+> - **volVectorField**: ฟิลด์เวกเตอร์บนเมชปริมาตร (เช่น ความเร็ว) เก็บค่าเวกเตอร์ 3 มิติที่จุดศูนย์กลางเซลล์
+> - **surfaceScalarField**: ฟิลด์สเกลาร์บนเมชพื้นผิว (เช่น ฟลักซ์) เก็บค่าที่จุดศูนย์กลางหน้า
+> - **volTensorField**: ฟิลด์เทนเซอร์บนเมชปริมาตร (เช่น ความเค้น) เก็บค่าเทนเซอร์ 3×3 ที่จุดศูนย์กลางเซลล์
+> 
+> การใช้ typedef ทำให้โค้ดอ่านง่ายขึ้นและลดความผิดพลาดจากการพิมพ์พารามิเตอร์เทมเพลตซ้ำๆ
 
-> **🔑 Key Concepts:**
-> - **Template specialization**: การสร้างรูปแบบเฉพาะของ template
-> - **Type aliases**: การสร้างชื่อย่อสำหรับชนิดข้อมูลซับซ้อน
+> **🔑 แนวคิดสำคัญ:**
+> - **Template specialization**: การสร้างรูปแบบเฉพาะของเทมเพลต
+> - **Type aliases**: การสร้างชื่อย่อสำหรับชนิดข้อมูลที่ซับซ้อน
 > - **Field classification**: การจัดประเภทฟิลด์ตามตำแหน่งและชนิดข้อมูล
 > - **Mesh association**: การเชื่อมโยงฟิลด์กับประเภทเมช
 
-### Design Benefits
+### ประโยชน์ของการออกแบบ
 
-This three-parameter template design provides significant advantages:
+การออกแบบเทมเพลตแบบสามพารามิเตอร์นี้ให้ประโยชน์ที่สำคัญ:
 
-1. **Type Safety**: Compile-time checking prevents mixing incompatible field types
-2. **Performance**: Template specialization optimizes operations
-3. **Flexibility**: New field types can be created by combining existing parameters
-4. **Extensibility**: New mesh types or boundary conditions can be added without modifying existing code
-5. **Mathematical Clarity**: Field operations respect the mathematical properties of each Type
+1. **ความปลอดภัยของชนิดข้อมูล (Type Safety)**: การตรวจสอบเวลาคอมไพล์ช่วยป้องกันการผสมประเภทฟิลด์ที่เข้ากันไม่ได้
+2. **ประสิทธิภาพ (Performance)**: Template specialization ช่วยเพิ่มประสิทธิภาพการดำเนินการ
+3. **ความยืดหยุ่น (Flexibility)**: สามารถสร้างประเภทฟิลด์ใหม่ๆ ได้โดยการรวมพารามิเตอร์ที่มีอยู่
+4. **ความสามารถในการขยาย (Extensibility)**: สามารถเพิ่มประเภทเมชหรือเงื่อนไขขอบเขตใหม่ๆ ได้โดยไม่ต้องแก้ไขคลาสฟิลด์หลัก
+5. **ความชัดเจนทางคณิตศาสตร์**: การดำเนินการฟิลด์เคารพคุณสมบัติทางคณิตศาสตร์ของแต่ละประเภทข้อมูล
 
 ---
 
-## 4. The Mechanism: How Fields Map to Mesh
+## 4. กลไก: วิธีที่ฟิลด์แมปเข้ากับเมช
 
-### Internal vs. Boundary Fields
+### ฟิลด์ภายในเทียบกับฟิลด์ขอบเขต
 
-OpenFOAM's `GeometricField` class uses a sophisticated **dual data structure** that manages the mapping of physical quantities onto a computer mesh. This design separates internal domain values from boundary conditions, enabling **optimized memory access** and **flexible boundary condition management**.
+คลาส `GeometricField` ของ OpenFOAM ใช้ **โครงสร้างข้อมูลแบบคู่ (Dual data structure)** ที่ซับซ้อน ซึ่งจัดการการจับคู่ปริมาณทางกายภาพเข้ากับเมชคอมพิวเตอร์ การออกแบบนี้แยกค่าโดเมนภายในออกจากเงื่อนไขขอบเขต ช่วยให้สามารถ **เข้าถึงหน่วยความจำได้อย่างเหมาะสม** และ **จัดการเงื่อนไขขอบเขตได้อย่างยืดหยุ่น**
 
 ```cpp
-// Simplified view of GeometricField data members
+// มุมมองอย่างง่ายของสมาชิกข้อมูล GeometricField
 class GeometricField
 {
 private:
-    // Internal field (cell values)
+    // ฟิลด์ภายใน (ค่าของเซลล์)
     DimensionedField<Type, GeoMesh> internalField_;
 
-    // Boundary field (patch values)
+    // ฟิลด์ขอบเขต (ค่าบนแพตช์)
     GeometricBoundaryField<Type, PatchField, GeoMesh> boundaryField_;
 
-    // Time tracking for transient simulations
+    // การติดตามเวลาสำหรับการจำลองแบบชั่วคราว (Transient)
     mutable label timeIndex_;
-    mutable GeometricField* field0Ptr_;          // Old-time field pointer
-    mutable GeometricField* fieldPrevIterPtr_;   // Previous iteration pointer
+    mutable GeometricField* field0Ptr_;          // ตัวชี้ไปยังฟิลด์เวลาเก่า (Old-time)
+    mutable GeometricField* fieldPrevIterPtr_;   // ตัวชี้ไปยังรอบการทำซ้ำก่อนหน้า
 };
 ```
 
-> **📂 Source:** `.src/OpenFOAM/fields/GeometricField/GeometricField.H`
+> **📂 แหล่งที่มา:** `.src/OpenFOAM/fields/GeometricField/GeometricField.H`
 
-> **📖 Explanation:**
-> โครงสร้างข้อมูลแบบ dual นี้เป็นหัวใจของระบบฟิลด์ OpenFOAM ซึ่งแยกเก็บค่าภายในและค่าขอบเขตอย่างชัดเจน:
->
-> - **internalField_**: เก็บค่าที่จุดกลางเซลล์ทั้งหมดใน memory ที่ต่อเนื่องกัน (contiguous memory) ทำให้การประมวลผลมีประสิทธิภาพสูง
-> - **boundaryField_**: เก็บค่าบนขอบเขตแต่ละ patch โดยแต่ละ patch สามารถมีเงื่อนไขขอบเขตที่แตกต่างกัน
-> - **Time tracking**: จัดการค่าในเวลาต่างๆ สำหรับการแก้สมการขั้นตอนเวลา (time-marching)
->
-> การแยกเก็บแบบนี้ทำให้สามารถใช้ memory layout ที่เหมาะสมกับลักษณะการใช้งาน และช่วยให้การประมวลผลแบบ parallel มีประสิทธิภาพ
+> **📖 คำอธิบาย:**
+> โครงสร้างข้อมูลแบบคู่นี้เป็นหัวใจของระบบฟิลด์ใน OpenFOAM ซึ่งแยกเก็บค่าภายในและค่าขอบเขตอย่างชัดเจน:
+> 
+> - **internalField_**: เก็บค่าที่จุดศูนย์กลางเซลล์ทั้งหมดในหน่วยความจำที่ต่อเนื่องกัน (Contiguous memory) ทำให้การประมวลผลมีประสิทธิภาพสูง
+> - **boundaryField_**: เก็บค่าบนขอบเขตของแต่ละแพตช์ (Patch) โดยแต่ละแพตช์สามารถมีเงื่อนไขขอบเขตที่แตกต่างกันได้
+> - **การติดตามเวลา (Time tracking)**: จัดการค่าในเวลาต่างๆ สำหรับการแก้สมการแบบขั้นตอนเวลา (Time-marching)
+> 
+> การแยกเก็บแบบนี้ทำให้สามารถจัดวางหน่วยความจำ (Memory layout) ได้เหมาะสมกับลักษณะการใช้งาน และช่วยให้การประมวลผลแบบขนาน (Parallel) มีประสิทธิภาพ
 
-> **🔑 Key Concepts:**
+> **🔑 แนวคิดสำคัญ:**
 > - **Dual data structure**: โครงสร้างข้อมูลสองส่วน (ภายในและขอบเขต)
-> - **Contiguous memory**: memory ที่ต่อเนื่องกันสำหรับ internal field
-> - **Patch management**: การจัดการขอบเขตแบ่งเป็น patch
-> - **Time level storage**: การเก็บค่าในหลายระดับเวลาสำหรับ transient schemes
+> - **Contiguous memory**: หน่วยความจำที่ต่อเนื่องกันสำหรับฟิลด์ภายใน
+> - **Patch management**: การจัดการขอบเขตที่แบ่งเป็นแพตช์
+> - **Time level storage**: การเก็บค่าในหลายระดับเวลาสำหรับรูปแบบที่เปลี่ยนตามเวลา
 
-### Memory Architecture
+### สถาปัตยกรรมหน่วยความจำ
 
-The internal storage architecture follows a carefully optimized layout that reflects the topology of the computer mesh:
+สถาปัตยกรรมการจัดเก็บข้อมูลภายในเป็นไปตามเลย์เอาต์ที่ได้รับการปรับแต่งอย่างระมัดระวัง ซึ่งสะท้อนถึงโทโพโลยีของเมชคอมพิวเตอร์:
 
 ```
 ┌─────────────────────────────────────────────┐
 │              GeometricField                 │
 ├─────────────────────┬───────────────────────┤
-│   Internal Field    │   Boundary Field      │
-│   (contiguous)      │   (per-patch)         │
+│     ฟิลด์ภายใน      │     ฟิลด์ขอบเขต       │
+│    (ต่อเนื่อง)       │    (ตามแพตช์)         │
 │                     │                       │
-│  [Cell 0]           │  Patch 0: [Face 0]    │
-│  [Cell 1]           │          [Face 1]     │
-│  ...                │          ...          │
-│  [Cell N-1]         │                       │
-│                     │  Patch 1: [Face 0]    │
-│                     │          ...          │
+│  [เซลล์ 0]          │  แพตช์ 0: [หน้า 0]    │
+│  [เซลล์ 1]          │           [หน้า 1]    │
+│  ...                │           ...         │
+│  [เซลล์ N-1]        │                       │
+│                     │  แพตช์ 1: [หน้า 0]    │
+│                     │           ...         │
 └─────────────────────┴───────────────────────┘
 ```
 
-**Internal Fields:**
-- **Type**: Single contiguous `List<Type>`
-- **Storage**: Values for all mesh cells
-- **Advantages**:
-  - Efficient vectorized operations
-  - Optimal cache utilization
-- **Usage**: Primary unknown quantities in CFD simulations typically stored at cell centers following a collocated grid arrangement
+**ฟิลด์ภายใน:**
+- **ประเภท**: `List<Type>` แบบต่อเนื่องตัวเดียว
+- **การจัดเก็บ**: ค่าสำหรับเซลล์เมชทั้งหมด
+- **ข้อดี**:
+  - การดำเนินการเวกเตอร์ที่มีประสิทธิภาพ
+  - การใช้แคชอย่างเหมาะสม
+- **การใช้งาน**: ตัวแปรไม่ทราบค่าหลักในการจำลอง CFD มักจะถูกเก็บไว้ที่จุดศูนย์กลางเซลล์ตามการจัดวางกริดแบบ collocated
 
-**Boundary Fields:**
-- **Type**: `FieldField<PatchField, Type>`
-- **Structure**: Hierarchical container managing boundary conditions per patch
-- **Operation**: Each patch corresponds to a distinct geometric region of the mesh boundary and can maintain independent boundary condition types
+**ฟิลด์ขอบเขต:**
+- **ประเภท**: `FieldField<PatchField, Type>`
+- **โครงสร้าง**: คอนเทนเนอร์แบบลำดับชั้นที่จัดการเงื่อนไขขอบเขตต่อแพตช์
+- **การทำงาน**: แต่ละแพตช์สอดคล้องกับพื้นที่ทางเรขาคณิตที่แตกต่างกันของขอบเขตเมช และสามารถรักษาประเภทเงื่อนไขขอบเขตที่แยกจากกันได้อย่างอิสระ
 
-### Boundary Field Architecture Benefits
+### ประโยชน์ของสถาปัตยกรรมฟิลด์ขอบเขต
 
-| Feature | Description |
+| คุณลักษณะ | คำอธิบาย |
 |---------|-------------|
-| **Flexible Boundary Conditions** | Different patches can simultaneously use fixedValue, zeroGradient, mixed, or custom boundary conditions |
-| **Memory Efficiency** | Requires storage for only boundary faces, avoiding allocation for interior faces |
-| **Polymorphic Behavior** | Each patch field can inherit from specific boundary condition classes employing unique update algorithms |
+| **เงื่อนไขขอบเขตที่ยืดหยุ่น** | แพตช์ที่ต่างกันสามารถใช้ fixedValue, zeroGradient, mixed หรือเงื่อนไขขอบเขตที่กำหนดเองพร้อมกันได้ |
+| **ประสิทธิภาพหน่วยความจำ** | ต้องการพื้นที่จัดเก็บสำหรับเฉพาะหน้าขอบเขตเท่านั้น หลีกเลี่ยงการจัดสรรสำหรับหน้าภายใน |
+| **พฤติกรรมพหุสัณฐาน** | ฟิลด์แพตช์แต่ละอันสามารถสืบทอดมาจากคลาสเงื่อนไขขอบเขตเฉพาะที่ใช้อัลกอริทึมอัปเดตที่เป็นเอกลักษณ์ |
 
 ---
 
-## 5. Dimensional Analysis: The Safety Net
+## 5. การวิเคราะห์มิติ: ตาข่ายนิรภัย
 
-OpenFOAM integrates dimensional analysis directly into field operations through the `dimensionSet` class, enabling consistency checking at both compile-time and runtime for all mathematical operations.
+OpenFOAM รวมการวิเคราะห์มิติเข้ากับการดำเนินการฟิลด์โดยตรงผ่านคลาส `dimensionSet` ช่วยให้สามารถตรวจสอบความสอดคล้องได้ทั้งในเวลาคอมไพล์และเวลาทำงานสำหรับการดำเนินการทางคณิตศาสตร์ทั้งหมด
 
-### The dimensionSet Class
+### คลาส dimensionSet
 
 ```cpp
-// dimensionSet stores seven base dimensions:
-// [MASS, LENGTH, TIME, TEMPERATURE, MOLES, CURRENT, LUMINOUS_INTENSITY]
+// dimensionSet จัดเก็บมิติพื้นฐานเจ็ดอย่าง:
+// [มวล, ความยาว, เวลา, อุณหภูมิ, โมล, กระแสไฟฟ้า, ความเข้มแสง]
 class dimensionSet
 {
 private:
-    scalar exponents_[7];  // Exponents for each base dimension
+    scalar exponents_[7];  // เลขชี้กำลังสำหรับแต่ละมิติพื้นฐาน
 
 public:
-    // Constructor from individual exponents
+    // คอนสตรัคเตอร์จากเลขชี้กำลังแต่ละตัว
     dimensionSet(
         scalar mass,
         scalar length,
@@ -493,7 +493,7 @@ public:
         scalar luminousIntensity
     );
 
-    // Dimensional arithmetic operations
+    // การดำเนินการทางคณิตศาสตร์ของมิติ
     dimensionSet operator+(const dimensionSet&) const;
     dimensionSet operator*(const dimensionSet&) const;
     dimensionSet operator/(const dimensionSet&) const;
@@ -501,549 +501,551 @@ public:
 };
 ```
 
-> **📂 Source:** `.src/OpenFOAM/dimensionSet/dimensionSet.H`
+> **📂 แหล่งที่มา:** `.src/OpenFOAM/dimensionSet/dimensionSet.H`
 
-> **📖 Explanation:**
-> คลาส `dimensionSet` เป็นหัวใจของระบบตรวจสอบมิติของ OpenFOAM ซึ่งใช้ 7 มิติพื้นฐานของ SI:
->
-> - **Mass (M)**: มิติมวล [kg]
-> - **Length (L)**: มิติความยาว [m]
-> - **Time (T)**: มิติเวลา [s]
-> - **Temperature (Θ)**: มิติอุณหภูมิ [K]
-> - **Moles (N)**: มิติปริมาณสาร [mol]
-> - **Current (I)**: มิติกระแสไฟฟ้า [A]
-> - **Luminous Intensity (J)**: มิติความเข้มแสง [cd]
->
-> ระบบจะเก็บเลขชี้กำลังของแต่ละมิติพื้นฐาน และตรวจสอบความสอดคล้องเมื่อมีการดำเนินการทางคณิตศาสตร์กับฟิลด์ หากมิติไม่ตรงกัน ระบบจะแจ้งเตือนทั้งที่ compile-time และ runtime
+> **📖 คำอธิบาย:**
+> คลาส `dimensionSet` เป็นหัวใจของระบบตรวจสอบมิติของ OpenFOAM ซึ่งใช้ 7 มิติพื้นฐานของระบบ SI:
+> 
+> - **มวล (Mass - M)**: มิติมวล [kg]
+> - **ความยาว (Length - L)**: มิติความยาว [m]
+> - **เวลา (Time - T)**: มิติเวลา [s]
+> - **อุณหภูมิ (Temperature - Θ)**: มิติอุณหภูมิ [K]
+> - **โมล (Moles - N)**: มิติปริมาณสาร [mol]
+> - **กระแสไฟฟ้า (Current - I)**: มิติกระแสไฟฟ้า [A]
+> - **ความเข้มแสง (Luminous Intensity - J)**: มิติความเข้มแสง [cd]
+> 
+> ระบบจะเก็บเลขชี้กำลังของแต่ละมิติพื้นฐาน และตรวจสอบความสอดคล้องเมื่อมีการดำเนินการทางคณิตศาสตร์กับฟิลด์ หากมิติไม่ตรงกัน ระบบจะแจ้งเตือนทั้งที่เวลาคอมไพล์และเวลาทำงาน
 
-> **🔑 Key Concepts:**
+> **🔑 แนวคิดสำคัญ:**
 > - **SI base dimensions**: 7 มิติพื้นฐานของระบบ SI
 > - **Dimensional homogeneity**: ความสอดคล้องของมิติในสมการ
-> - **Compile-time checking**: การตรวจสอบที่ขั้นตอนคอมไพล์
-> - **Physical unit safety**: ความปลอดภัยในด้านหน่วยฟิสิกส์
+> - **Compile-time checking**: การตรวจสอบในขั้นตอนคอมไพล์
+> - **Physical unit safety**: ความปลอดภัยในด้านหน่วยทางฟิสิกส์
 
-### Base Dimensions and Examples
+### มิติพื้นฐานและตัวอย่าง
 
-The dimensional system operates on seven SI base units, allowing complete representation of any physical quantity through exponent notation:
+ระบบมิติทำงานบนหน่วยฐาน SI เจ็ดหน่วย ช่วยให้สามารถแทนปริมาณทางกายภาพใดๆ ได้อย่างสมบูรณ์ผ่านสัญกรณ์เลขชี้กำลัง:
 
-**Base Dimensions:**
-- **Mass** $[M]$: kilogram (kg)
-- **Length** $[L]$: meter (m)
-- **Time** $[T]$: second (s)
-- **Temperature** $[\Theta]$: kelvin (K)
-- **Amount of Substance** $[N]$: mole (mol)
-- **Electric Current** $[I]$: ampere (A)
-- **Luminous Intensity** $[J]$: candela (cd)
+**มิติพื้นฐาน:**
+- **มวล** $[M]$: กิโลกรัม (kg)
+- **ความยาว** $[L]$: เมตร (m)
+- **เวลา** $[T]$: วินาที (s)
+- **อุณหภูมิ** $[
+The-ta]$: เคลวิน (K)
+- **ปริมาณสาร** $[N]$: โมล (mol)
+- **กระแสไฟฟ้า** $[I]$: แอมแปร์ (A)
+- **ความเข้มแสง** $[J]$: แคนเดลา (cd)
 
-**Dimension Examples:**
+**ตัวอย่างมิติ:**
 
-| Physical Quantity | Dimension Vector | Symbol | SI Unit |
-|-------------------|------------------|---------|---------|
-| **Velocity** | `[0 1 -1 0 0 0 0]` | $L^1 T^{-1}$ | m/s |
-| **Pressure** | `[1 -1 -2 0 0 0 0]` | $M L^{-1} T^{-2}$ | N/m² |
-| **Temperature** | `[0 0 0 1 0 0 0]` | $\Theta$ | K |
-| **Force** | `[1 1 -2 0 0 0 0]` | $M L T^{-2}$ | N |
-| **Energy** | `[1 2 -2 0 0 0 0]` | $M L^2 T^{-2}$ | J |
-| **Dynamic Viscosity** | `[1 -1 -1 0 0 0 0]` | $M L^{-1} T^{-1}$ | Pa·s |
+| ปริมาณทางกายภาพ | เวกเตอร์มิติ | สัญลักษณ์ | หน่วย SI |
+|-----------------|------------------|---------|---------|
+| **ความเร็ว** | `[0 1 -1 0 0 0 0]` | $L^1 T^{-1}$ | m/s |
+| **ความดัน** | `[1 -1 -2 0 0 0 0]` | $M L^{-1} T^{-2}$ | N/m² |
+| **อุณหภูมิ** | `[0 0 0 1 0 0 0]` | $
+The-ta$ | K |
+| **แรง** | `[1 1 -2 0 0 0 0]` | $M L T^{-2}$ | N |
+| **พลังงาน** | `[1 2 -2 0 0 0 0]` | $M L^2 T^{-2}$ | J |
+| **ความหนืดไดนามิก** | `[1 -1 -1 0 0 0 0]` | $M L^{-1} T^{-1}$ | Pa·s |
 
-### Automatic Dimension Checking
+### การตรวจสอบมิติอัตโนมัติ
 
-OpenFOAM's dimensional analysis system provides automatic consistency verification through template metaprogramming:
+ระบบวิเคราะห์มิติของ OpenFOAM ให้การตรวจสอบความสอดคล้องโดยอัตโนมัติผ่านการเขียนโปรแกรมเมตาเทมเพลต:
 
 ```cpp
-// Creating dimensioned fields with proper units
+// การสร้างฟิลด์ที่มีมิติพร้อมหน่วยที่ถูกต้อง
 volScalarField p(
     IOobject("p", runTime.timeName(), mesh, IOobject::MUST_READ),
     mesh,
-    dimensionSet(1, -1, -2, 0, 0, 0, 0)  // Pressure: [M L^-1 T^-2]
+    dimensionSet(1, -1, -2, 0, 0, 0, 0)  // มิติความดัน: [M L^-1 T^-2]
 );
 
 volVectorField U(
     IOobject("U", runTime.timeName(), mesh, IOobject::MUST_READ),
     mesh,
-    dimensionSet(0, 1, -1, 0, 0, 0, 0)  // Velocity: [L T^-1]
+    dimensionSet(0, 1, -1, 0, 0, 0, 0)  // มิติความเร็ว: [L T^-1]
 );
 
 volScalarField rho(
     IOobject("rho", runTime.timeName(), mesh, IOobject::MUST_READ),
     mesh,
-    dimensionSet(1, -3, 0, 0, 0, 0, 0)  // Density: [M L^-3]
+    dimensionSet(1, -3, 0, 0, 0, 0, 0)  // มิติความหนาแน่น: [M L^-3]
 );
 
-// Automatic dimensional checking in mathematical operations
-volScalarField dynamicPressure = 0.5 * rho * magSqr(U);  // ✓ Consistent
-// rho [M L^-3] * U^2 [L^2 T^-2] = [M L^-1 T^-2] = pressure dimensions
+// การตรวจสอบมิติโดยอัตโนมัติในการดำเนินการทางคณิตศาสตร์
+volScalarField dynamicPressure = 0.5 * rho * magSqr(U);  // ✓ สอดคล้อง
+// rho [M L^-3] * U^2 [L^2 T^-2] = [M L^-1 T^-2] = มิติความดัน
 
-// Dimension error detection (compile-time or runtime)
-// volScalarField invalid = p * U;  // ✗ Error: dimensions don't match
-// [M L^-1 T^-2] * [L T^-1] = [M L^0 T^-3] ≠ valid field dimension
+// การตรวจพบข้อผิดพลาดของมิติ (เวลาคอมไพล์หรือเวลาทำงาน)
+// volScalarField invalid = p * U;  // ✗ ข้อผิดพลาด: มิติไม่ตรงกัน
+// [M L^-1 T^-2] * [L T^-1] = [M L^0 T^-3] ≠ มิติฟิลด์ที่ถูกต้อง
 ```
 
-> **📂 Source:** `.applications/solvers/incompressible/simpleFoam/createFields.H`
+> **📂 แหล่งที่มา:** `.applications/solvers/incompressible/simpleFoam/createFields.H`
 
-> **📖 Explanation:**
+> **📖 คำอธิบาย:**
 > โค้ดนี้สาธิตพลังของระบบตรวจสอบมิติของ OpenFOAM:
->
-> - **Pressure field** `p`: มีมิติ $[M L^{-1} T^{-2}]$ (kg/(m·s²))
-> - **Velocity field** `U`: มีมิติ $[L T^{-1}]$ (m/s)
-> - **Density field** `rho`: มีมิติ $[M L^{-3}]$ (kg/m³)
->
+> 
+> - **ฟิลด์ความดัน** `p`: มีมิติ $[M L^{-1} T^{-2}]$ (kg/(m·s²))
+> - **ฟิลด์ความเร็ว** `U`: มีมิติ $[L T^{-1}]$ (m/s)
+> - **ฟิลด์ความหนาแน่น** `rho`: มีมิติ $[M L^{-3}]$ (kg/m³)
+> 
 > เมื่อคำนวณ dynamic pressure ($0.5 \rho U^2$):
 > - $\rho$ มีมิติ $[M L^{-3}]$
 > - $U^2$ มีมิติ $[L^2 T^{-2}]$
-> - ผลคูณมีมิติ $[M L^{-1} T^{-2}]$ ซึ่งตรงกับ pressure ✅
->
+> - ผลคูณมีมิติ $[M L^{-1} T^{-2}]$ ซึ่งตรงกับความดัน ✅
+> 
 > หากพยายามคำนวณ $p \times U$:
-> - ผลคูณจะมีมิติ $[M L^0 T^{-3}]$ ซึ่งไม่สอดคล้องกับฟิสิกส์
-> - คอมไพเลอร์จะแจ้ง error ทันที ✗
+> - ผลคูณจะมีมิติ $[M L^0 T^{-3}]$ ซึ่งไม่สอดคล้องกับหลักฟิสิกส์
+> - คอมไพเลอร์จะแจ้งข้อผิดพลาดทันที ✗
 
-> **🔑 Key Concepts:**
+> **🔑 แนวคิดสำคัญ:**
 > - **Dimension vectors**: เวกเตอร์มิติ 7 ค่าสำหรับแต่ละปริมาณ
 > - **Dimension arithmetic**: การคำนวณมิติเมื่อดำเนินการทางคณิตศาสตร์
-> - **Compile-time safety**: ความปลอดภัยที่ระดับ compile-time
+> - **Compile-time safety**: ความปลอดภัยที่ระดับคอมไพล์
 > - **Physical consistency**: ความสอดคล้องทางฟิสิกส์
 
-### Dimensional Analysis in Navier-Stokes Equations
+### การวิเคราะห์มิติในสมการ Navier-Stokes
 
-The dimensional analysis system extends to checking the consistency of entire equations, ensuring governing equations remain physically correct:
+ระบบวิเคราะห์มิติขยายไปถึงการตรวจสอบความสอดคล้องของสมการทั้งหมด เพื่อให้แน่ใจว่าสมการที่ควบคุมยังคงถูกต้องทางกายภาพ:
 
-**Navier-Stokes Momentum Equation:**
+**สมการโมเมนตัม Navier-Stokes:**
 $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
 
-**Dimensional Analysis of Each Term:**
-- **LHS** (Inertial terms): $[M L^{-3}][L T^{-2}] = [M L^{-2} T^{-2}]$
-- **RHS** (Pressure gradient): $[L^{-1}][M L^{-1} T^{-2}] = [M L^{-2} T^{-2}]$
-- **Viscous terms**: $[M L^{-1} T^{-1}][L^{-2}][L T^{-1}] = [M L^{-2} T^{-2}]$
-- **Body force**: $[M L^{-2} T^{-2}]$ (force per unit volume)
+**การวิเคราะห์มิติของแต่ละเทอม:**
+- **LHS** (เทอมความเฉื่อย): $[M L^{-3}][L T^{-2}] = [M L^{-2} T^{-2}]$
+- **RHS** (เกรเดียนต์ความดัน): $[L^{-1}][M L^{-1} T^{-2}] = [M L^{-2} T^{-2}]$
+- **เทอมความหนืด**: $[M L^{-1} T^{-1}][L^{-2}][L T^{-1}] = [M L^{-2} T^{-2}]$
+- **แรงภายนอก (Body force)**: $[M L^{-2} T^{-2}]$ (แรงต่อหน่วยปริมาตร)
 
-**Result**: All terms have consistent dimensions: $[M L^{-2} T^{-2}]$ ✅
+**ผลลัพธ์**: ทุกเทอมมีมิติที่สอดคล้องกัน: $[M L^{-2} T^{-2}]$ ✅
 
-### Benefits of Dimensional Analysis System
+### ประโยชน์ของระบบวิเคราะห์มิติ
 
-This rigorous dimensional consistency checking:
+การตรวจสอบความสอดคล้องของมิติที่เข้มงวดนี้ช่วย:
 
-- **Prevents implementation errors** in complex CFD simulations
-- **Ensures mathematical correctness** throughout simulations
-- **Validates multi-equation physics systems** that are coupled
-- **Aids in debugging and development** by catching dimensional errors early
+- **ป้องกันข้อผิดพลาดในการสร้างโค้ด** ในการจำลอง CFD ที่ซับซ้อน
+- **รับประกันความถูกต้องทางคณิตศาสตร์** ตลอดการจำลอง
+- **ตรวจสอบความถูกต้องของระบบฟิสิกส์หลายสมการ** ที่เชื่อมโยงกัน
+- **ช่วยในการดีบักและพัฒนา** โดยตรวจพบข้อผิดพลาดของมิติตั้งแต่เริ่มแรก
 
 ---
 
-## 6. Volume vs. Surface Fields
+## 6. ฟิลด์ปริมาตรเทียบกับฟิลด์พื้นผิว
 
-### The Fundamental Distinction
+### ความแตกต่างพื้นฐาน
 
-A fundamental distinction in OpenFOAM's field system is between **volume fields** and **surface fields**. Volume fields (`vol*Field`) store values at cell centers and represent quantities integrated over control volumes, while surface fields (`surface*Field`) store values at face centers and represent fluxes or quantities integrated over control surface areas.
+ความแตกต่างพื้นฐานในระบบฟิลด์ของ OpenFOAM คือระหว่าง **ฟิลด์ปริมาตร (Volume fields)** และ **ฟิลด์พื้นผิว (Surface fields)** ฟิลด์ปริมาตร (`vol*Field`) เก็บค่าที่จุดศูนย์กลางเซลล์และแทนปริมาณที่ถูกอินทิเกรตตามปริมาตรควบคุม ในขณะที่ฟิลด์พื้นผิว (`surface*Field`) เก็บค่าที่จุดศูนย์กลางหน้าและแทนฟลักซ์หรือปริมาณที่ถูกอินทิเกรตตามพื้นที่ผิวควบคุม
 
-For a volume field $\phi$, the discrete approximation of a continuous field $\phi(\mathbf{x})$ is:
+สำหรับฟิลด์ปริมาตร $\phi$ การประมาณค่าแบบไม่ต่อเนื่องของฟิลด์ต่อเนื่อง $\phi(\mathbf{x})$ คือ:
 
-$$\phi(\mathbf{x}) \approx \phi_P \quad \text{for } \mathbf{x} \in V_P$$
+$$\phi(\mathbf{x}) \approx \phi_P \quad \text{สำหรับ } \mathbf{x} \in V_P$$
 
-Where:
-- $\phi_P$ is the value stored at cell center $P$
-- $V_P$ is the control volume surrounding that cell
+โดยที่:
+- $\phi_P$ คือค่าที่เก็บไว้ที่จุดศูนย์กลางเซลล์ $P$
+- $V_P$ คือปริมาตรควบคุมรอบเซลล์นั้น
 
-Surface fields are particularly important for flux quantities, where the surface integral over a face is approximated as:
+ฟิลด์พื้นผิวมีความสำคัญอย่างยิ่งสำหรับปริมาณฟลักซ์ โดยการอินทิเกรตตามพื้นผิวของหน้าจะถูกประมาณค่าดังนี้:
 
 $$\int_{S_f} \mathbf{F} \cdot \mathbf{n}_f \, \mathrm{d}S \approx \mathbf{F}_f \cdot \mathbf{S}_f$$
 
-Where:
-- $\mathbf{F}_f$ is the surface field value at face center
-- $\mathbf{S}_f = \mathbf{n}_f A_f$ is the face area vector
+โดยที่:
+- $\mathbf{F}_f$ คือค่าฟิลด์พื้นผิวที่จุดศูนย์กลางหน้า
+- $\mathbf{S}_f = \mathbf{n}_f A_f$ คือเวกเตอร์พื้นที่หน้า
 
-### Field Type Comparison
+### การเปรียบเทียบประเภทฟิลด์
 
-| Type | Location | Usage | Example |
+| ประเภท | ตำแหน่ง | การใช้งาน | ตัวอย่าง |
 |------|----------|-------|---------|
-| **Volume Fields** (`vol*Field`) | Cell center values | Primary unknown fields | `volScalarField p` |
-| **Surface Fields** (`surface*Field`) | Face center values | Flux terms, gradients | `surfaceScalarField phi` |
-| **Point Fields** (`point*Field`) | Mesh vertices | Mesh deformation | `pointVectorField pointDisplacement` |
+| **ฟิลด์ปริมาตร** (`vol*Field`) | ค่าที่จุดศูนย์กลางเซลล์ | ฟิลด์ตัวแปรไม่ทราบค่าหลัก | `volScalarField p` |
+| **ฟิลด์พื้นผิว** (`surface*Field`) | ค่าที่จุดศูนย์กลางหน้า | เทอมฟลักซ์, เกรเดียนต์ | `surfaceScalarField phi` |
+| **ฟิลด์จุด** (`point*Field`) | จุดยอดเมช | การเปลี่ยนรูปเมช | `pointVectorField pointDisplacement` |
 
-### Mathematical Relationship
+### ความสัมพันธ์ทางคณิตศาสตร์
 
-The mathematical relationship between these fields:
+ความสัมพันธ์ทางคณิตศาสตร์ระหว่างฟิลด์เหล่านี้คือ:
 
 $$\phi_f = \int_{S_f} \mathbf{u} \cdot \mathbf{n}_f \, \mathrm{d}S_f$$
 
-Where:
-- $\phi_f$ = surface flux at face $f$
-- $\mathbf{u}$ = volume velocity field
-- $\mathbf{n}_f$ = unit vector normal to face $f$
-- $S_f$ = area of face $f$
+โดยที่:
+- $\phi_f$ = ฟลักซ์พื้นผิวที่หน้า $f$
+- $\mathbf{u}$ = ฟิลด์ความเร็วตามปริมาตร
+- $\mathbf{n}_f$ = เวกเตอร์หน่วยแนวฉากต่อหน้า $f$
+- $S_f$ = พื้นที่ของหน้า $f$
 
-### Usage Examples
+### ตัวอย่างการใช้งาน
 
 ```cpp
-// Volume Field - for cell-centered quantities
+// ฟิลด์ปริมาตร - สำหรับปริมาณที่จุดศูนย์กลางเซลล์
 volScalarField p(
     "p",
     mesh,
-    dimensionSet(1, -1, -2, 0, 0, 0, 0)  // Pressure dimensions
+    dimensionSet(1, -1, -2, 0, 0, 0, 0)  // มิติความดัน
 );
 
-// Surface Field - for fluxes (computed from velocity field)
+// ฟิลด์พื้นผิว - สำหรับฟลักซ์ (คำนวณจากฟิลด์ความเร็ว)
 surfaceScalarField phi(
     "phi",
-    linearInterpolate(U) & mesh.Sf()  // Flux through faces
+    linearInterpolate(U) & mesh.Sf()  // ฟลักซ์ผ่านหน้า
 );
 
-// Point Field - for mesh deformation
+// ฟิลด์จุด - สำหรับการเปลี่ยนรูปเมช
 pointVectorField pointDisplacement(
     "pointD",
     pointMesh::New(mesh)
 );
 ```
 
-> **📂 Source:** `.applications/solvers/incompressible/icoFoam/createFields.H`
+> **📂 แหล่งที่มา:** `.applications/solvers/incompressible/icoFoam/createFields.H`
 
-> **📖 Explanation:**
+> **📖 คำอธิบาย:**
 > โค้ดนี้แสดงการสร้างฟิลด์ 3 ประเภทหลักใน OpenFOAM:
->
-> - **volScalarField p**: ฟิลด์ความดันบน volume mesh เก็บค่าที่จุดกลางเซลล์ เป็น primary variable ที่ต้องแก้สมการ
-> - **surfaceScalarField phi**: ฟิลด์ flux บน surface mesh เก็บค่าที่จุดกลางหน้า คำนวณจาก velocity field ผ่านการ interpolate
-> - **pointVectorField pointDisplacement**: ฟิลด์การกระจัดของจุดเมช ใช้สำหรับ mesh deformation หรือ FSI
->
-> การแยกประเภทฟิลด์นี้ทำให้สามารถเลือกใช้ data structure ที่เหมาะสมกับลักษณะการใช้งาน และช่วยให้การคำนวณมีประสิทธิภาพ
+> 
+> - **volScalarField p**: ฟิลด์ความดันบนเมชปริมาตร เก็บค่าที่จุดศูนย์กลางเซลล์ เป็นตัวแปรหลัก (Primary variable) ที่ต้องแก้สมการ
+> - **surfaceScalarField phi**: ฟิลด์ฟลักซ์บนเมชพื้นผิว เก็บค่าที่จุดศูนย์กลางหน้า คำนวณจากฟิลด์ความเร็วผ่านการอินเทอร์โพลชัน (Interpolate)
+> - **pointVectorField pointDisplacement**: ฟิลด์การกระจัดของจุดเมช ใช้สำหรับการเปลี่ยนรูปเมชหรือ FSI
+> 
+> การแยกประเภทฟิลด์นี้ทำให้สามารถเลือกใช้โครงสร้างข้อมูล (Data structure) ที่เหมาะสมกับลักษณะการใช้งาน และช่วยให้การคำนวณมีประสิทธิภาพ
 
-> **🔑 Key Concepts:**
-> - **Field location**: ตำแหน่งการเก็บข้อมูล (cell, face, point)
-> - **Flux calculation**: การคำนวณ flux ผ่านหน้าเซลล์
+> **🔑 แนวคิดสำคัญ:**
+> - **Field location**: ตำแหน่งการเก็บข้อมูล (เซลล์, หน้า, จุด)
+> - **Flux calculation**: การคำนวณฟลักซ์ผ่านหน้าเซลล์
 > - **Field interpolation**: การแปลงค่าระหว่างตำแหน่งต่างๆ
 > - **Mesh deformation**: การเปลี่ยนรูปเมชสำหรับ FSI
 
 ---
 
-## 7. Mathematical Tensor Rank Hierarchy
+## 7. ลำดับชั้นอันดับเทนเซอร์ทางคณิตศาสตร์
 
-OpenFOAM fields are organized according to mathematical tensor rank, which determines transformation properties under coordinate rotations and algebraic behavior:
+ฟิลด์ใน OpenFOAM ถูกจัดระเบียบตามอันดับเทนเซอร์ทางคณิตศาสตร์ (Mathematical tensor rank) ซึ่งเป็นตัวกำหนดคุณสมบัติการแปลงภายใต้การหมุนพิกัดและพฤติกรรมทางพีชคณิต:
 
-### Scalar Fields (Rank 0)
+### ฟิลด์สเกลาร์ (อันดับ 0)
 
-Represent quantities having magnitude only, without direction. Mathematically, they remain unchanged under coordinate transformations. Common scalar fields include:
+แทนปริมาณที่มีเพียงขนาดโดยไม่มีทิศทาง ในทางคณิตศาสตร์ ปริมาณเหล่านี้จะไม่เปลี่ยนแปลงภายใต้การแปลงพิกัด ฟิลด์สเกลาร์ทั่วไป ได้แก่:
 
-- **Pressure**: $p(\mathbf{x},t)$
-- **Temperature**: $T(\mathbf{x},t)$
-- **Volume Fraction**: $\alpha(\mathbf{x},t)$
-- **Turbulent Kinetic Energy**: $k(\mathbf{x},t)$
+- **ความดัน (Pressure)**: $p(\mathbf{x},t)$
+- **อุณหภูมิ (Temperature)**: $T(\mathbf{x},t)$
+- **สัดส่วนปริมาตร (Volume Fraction)**: $\alpha(\mathbf{x},t)$
+- **พลังงานจลน์ความปั่นป่วน (Turbulent Kinetic Energy)**: $k(\mathbf{x},t)$
 
-### Vector Fields (Rank 1)
+### ฟิลด์เวกเตอร์ (อันดับ 1)
 
-Represent quantities having both magnitude and direction. They transform as first-order tensors under coordinate rotations. Key vector fields include:
+แทนปริมาณที่มีทั้งขนาดและทิศทาง ปริมาณเหล่านี้จะเปลี่ยนไปในฐานะเทนเซอร์อันดับหนึ่งภายใต้การหมุนพิกัด ฟิลด์เวกเตอร์หลัก ได้แก่:
 
-- **Velocity**: $\mathbf{u}(\mathbf{x},t) = [u_x, u_y, u_z]$
-- **Momentum**: $\rho\mathbf{u}(\mathbf{x},t)$
-- **Force Density**: $\mathbf{f}(\mathbf{x},t)$
-- **Heat Flux**: $\mathbf{q}(\mathbf{x},t)$
+- **ความเร็ว (Velocity)**: $\mathbf{u}(\mathbf{x},t) = [u_x, u_y, u_z]$
+- **โมเมนตัม (Momentum)**: $\rho\mathbf{u}(\mathbf{x},t)$
+- **ความหนาแน่นของแรง (Force Density)**: $\mathbf{f}(\mathbf{x},t)$
+- **ฟลักซ์ความร้อน (Heat Flux)**: $\mathbf{q}(\mathbf{x},t)$
 
-### Tensor Fields (Rank 2)
+### ฟิลด์เทนเซอร์ (อันดับ 2)
 
-Represent linear operators that transform vectors to vectors. They transform as second-order tensors under coordinate rotations. Important tensor fields include:
+แทนตัวดำเนินการเชิงเส้น (Linear operators) ที่แปลงเวกเตอร์เป็นเวกเตอร์ ปริมาณเหล่านี้จะเปลี่ยนไปในฐานะเทนเซอร์อันดับสองภายใต้การหมุนพิกัด ฟิลด์เทนเซอร์ที่สำคัญ ได้แก่:
 
-- **Velocity Gradient Tensor**: $\nabla\mathbf{u} = \frac{\partial u_i}{\partial x_j}$
-- **Strain Rate Tensor**: $\mathbf{S} = \frac{1}{2}(\nabla\mathbf{u} + (\nabla\mathbf{u})^T)$
-- **Stress Tensor**: $\boldsymbol{\tau}$
-- **Viscosity Tensor**: $\boldsymbol{\mu}$
+- **เทนเซอร์เกรเดียนต์ความเร็ว**: $\nabla\mathbf{u} = \frac{\partial u_i}{\partial x_j}$
+- **เทนเซอร์อัตราความเครียด**: $\mathbf{S} = \frac{1}{2}(\nabla\mathbf{u} + (\nabla\mathbf{u})^T)$
+- **เทนเซอร์ความเค้น (Stress Tensor)**: $\boldsymbol{\tau}$
+- **เทนเซอร์ความหนืด (Viscosity Tensor)**: $\boldsymbol{\mu}$
 
-### Symmetric Tensor Fields
+### ฟิลด์เทนเซอร์สมมาตร (Symmetric Tensor Fields)
 
-Second-order tensors that are symmetric, meaning $\mathbf{A}_{ij} = \mathbf{A}_{ji}$. These appear frequently in fluid mechanics:
+เทนเซอร์อันดับสองที่มีความสมมาตร หมายถึง $\mathbf{A}_{ij} = \mathbf{A}_{ji}$ ปริมาณเหล่านี้พบบ่อยในกลศาสตร์ของไหล:
 
-- **Reynolds Stress Tensor**: $\mathbf{R} = \overline{\mathbf{u}'\mathbf{u}'}$
-- **Eddy Viscosity Tensor**: $\boldsymbol{\mu}_t$
-- **Strain Rate Tensor**: $\mathbf{S}$ (always symmetric)
+- **เทนเซอร์ความเค้นเรย์โนลด์ (Reynolds Stress Tensor)**: $\mathbf{R} = \overline{\mathbf{u}'\mathbf{u}'}$
+- **เทนเซอร์ความหนืดเอ็ดดี้ (Eddy Viscosity Tensor)**: $\boldsymbol{\mu}_t$
+- **เทนเซอร์อัตราความเครียด**: $\mathbf{S}$ (สมมาตรเสมอ)
 
-### Spherical Tensor Fields
+### ฟิลด์เทนเซอร์ทรงกลม (Spherical Tensor Fields)
 
-Diagonal tensors with equal diagonal components, representing isotropic quantities:
+เทนเซอร์แนวทแยงที่มีองค์ประกอบแนวทแยงเท่ากัน แทนปริมาณที่มีสมบัติเหมือนกันทุกทิศทาง (Isotropic):
 
-- **Identity Tensor**: $\mathbf{I}$ (diagonal components = 1)
-- **Pressure Stress Support**: $p\mathbf{I}$
-- **Isotropic Turbulent Stress**: $\frac{2}{3}k\mathbf{I}$
+- **เทนเซอร์เอกลักษณ์ (Identity Tensor)**: $\mathbf{I}$ (องค์ประกอบแนวทแยง = 1)
+- **ส่วนสนับสนุนความเค้นความดัน (Pressure Stress Support)**: $p\mathbf{I}$
+- **ความเค้นความปั่นป่วนแบบไอโซโทรปิก**: $\frac{2}{3}k\mathbf{I}$
 
 ---
 
-## 8. Performance and Memory Architecture
+## 8. ประสิทธิภาพและสถาปัตยกรรมหน่วยความจำ
 
-### Memory Layout Considerations
+### ข้อพิจารณาเกี่ยวกับการวางเลย์เอาต์หน่วยความจำ
 
-**Contiguous Internal Storage** for optimal cache efficiency:
+**การจัดเก็บภายในแบบต่อเนื่อง (Contiguous Internal Storage)** เพื่อประสิทธิภาพแคชสูงสุด:
 
 ```cpp
-// Internal field storage structure
+// โครงสร้างการจัดเก็บฟิลด์ภายใน
 class GeometricField
 {
 private:
-    // Internal field - tightly packed for cache efficiency
-    Field<Type> field_;                        // Contiguous array
+    // ฟิลด์ภายใน - บรรจุแน่นเพื่อประสิทธิภาพแคช
+    Field<Type> field_;                        // อาร์เรย์แบบต่อเนื่อง
 
-    // Boundary fields - separate allocation, organized by patch
-    PtrList<PatchField<Type>> boundaryField_;  // Per-patch storage
+    // ฟิลด์ขอบเขต - การจัดสรรแยกต่างหาก จัดระเบียบตามแพตช์
+    PtrList<PatchField<Type>> boundaryField_;  // การจัดเก็บต่อแพตช์
 
 public:
-    // Access operators with cache-friendly behavior
+    // ตัวดำเนินการเข้าถึงที่มีพฤติกรรมเป็นมิตรกับแคช
     const Type& operator[](const label i) const
     {
-        return field_[i];  // Direct array access
+        return field_[i];  // เข้าถึงอาร์เรย์โดยตรง
     }
 
     Type& operator[](const label i)
     {
-        return field_[i];  // Direct array access
+        return field_[i];  // เข้าถึงอาร์เรย์โดยตรง
     }
 };
 ```
 
-> **📂 Source:** `.src/OpenFOAM/fields/GeometricField/GeometricField.C`
+> **📂 แหล่งที่มา:** `.src/OpenFOAM/fields/GeometricField/GeometricField.C`
 
-> **📖 Explanation:**
-> โครงสร้าง memory ของ `GeometricField` ถูกออกแบบมาเพื่อประสิทธิภาพสูงสุด:
->
-> - **field_**: internal field เก็บใน memory ที่ต่อเนื่องกัน (contiguous) ทำให้ CPU cache ทำงานได้มีประสิทธิภาพ
-> - **boundaryField_**: boundary fields เก็บแยกเป็น patch ลดการใช้ memory สำหรับ faces ภายใน
-> - **operator[]**: การเข้าถึงแบบ direct array access มี overhead ต่ำมาก
->
-> การออกแบบ memory layout แบบนี้สำคัญมากสำหรับประสิทธิภาพของ CFD simulation ที่มีการเข้าถึง memory จำนวนมาก
+> **📖 คำอธิบาย:**
+> โครงสร้างหน่วยความจำของ `GeometricField` ถูกออกแบบมาเพื่อประสิทธิภาพสูงสุด:
+> 
+> - **field_**: ฟิลด์ภายในเก็บในหน่วยความจำที่ต่อเนื่องกัน (Contiguous) ทำให้แคชของ CPU ทำงานได้มีประสิทธิภาพ
+> - **boundaryField_**: ฟิลด์ขอบเขตเก็บแยกเป็นแพตช์ ช่วยลดการใช้หน่วยความจำสำหรับหน้าที่อยู่ภายใน
+> - **operator[]**: การเข้าถึงแบบอาร์เรย์โดยตรงมีโอเวอร์เฮด (Overhead) ต่ำมาก
+> 
+> การออกแบบเลย์เอาต์หน่วยความจำแบบนี้สำคัญมากสำหรับประสิทธิภาพของการจำลอง CFD ที่มีการเข้าถึงหน่วยความจำปริมาณมหาศาล
 
-> **🔑 Key Concepts:**
-> - **Contiguous memory**: memory ที่ต่อเนื่องกันสำหรับ cache efficiency
-> - **Cache locality**: การจัดเรียงข้อมูลให้เข้ากับ CPU cache
-> - **Direct access**: การเข้าถึงแบบตรงไม่ผ่าน indirect
-> - **Memory alignment**: การจัดวาง memory ให้สอดคล้องกับ CPU architecture
+> **🔑 แนวคิดสำคัญ:**
+> - **Contiguous memory**: หน่วยความจำที่ต่อเนื่องกันเพื่อประสิทธิภาพแคช
+> - **Cache locality**: การจัดเรียงข้อมูลให้เข้ากับแคชของ CPU
+> - **Direct access**: การเข้าถึงแบบตรงไม่ผ่านการอ้างอิงทางอ้อม
+> - **Memory alignment**: การจัดวางหน่วยความจำให้สอดคล้องกับสถาปัตยกรรม CPU
 
-**Memory Access Patterns:**
-- **Internal field access**: $O(N)$ with excellent spatial locality
-- **Boundary field access**: $O(N_{boundary})$ with grouping by patch
-- **Typical ratio**: $N_{boundary} \approx 0.1 \times N$ for well-posed problems
+**รูปแบบการเข้าถึงหน่วยความจำ:**
+- **การเข้าถึงฟิลด์ภายใน**: $O(N)$ พร้อมความใกล้ชิดเชิงพื้นที่ (Spatial locality) ที่ดีเยี่ยม
+- **การเข้าถึงฟิลด์ขอบเขต**: $O(N_{boundary})$ พร้อมการจัดกลุ่มตามแพตช์
+- **อัตราส่วนทั่วไป**: $N_{boundary} \approx 0.1 \times N$ สำหรับปัญหาที่กำหนดขอบเขตมาอย่างดี
 
-### Expression Template Optimization
+### การเพิ่มประสิทธิภาพด้วยเทมเพลตนิพจน์ (Expression Template Optimization)
 
-The `tmp<T>` class implements **expression template-like optimization**:
+คลาส `tmp<T>` ใช้การเพิ่มประสิทธิภาพแบบ **เทมเพลตนิพจน์ (Expression template-like optimization)**:
 
 ```cpp
-// Without tmp<T> optimization - creates multiple temporaries
+// หากไม่มีการเพิ่มประสิทธิภาพด้วย tmp<T> - จะสร้างวัตถุชั่วคราวหลายตัว
 volScalarField a = b + c + d;  
-// Creates: tmp1 = b + c, tmp2 = tmp1 + d, a = tmp2
-// Total: 2 temporary allocations
+// สร้าง: tmp1 = b + c, tmp2 = tmp1 + d, a = tmp2
+// รวม: การจัดสรรหน่วยความจำชั่วคราว 2 ครั้ง
 
-// With tmp<T> optimization - single evaluation
+// เมื่อมีการเพิ่มประสิทธิภาพด้วย tmp<T> - จะประเมินค่าเพียงครั้งเดียว
 volScalarField a = b + c + d;
-// Expression tree: a = (b + c + d) evaluated once
-// Total: 0 temporary allocations (in-place operations)
+// ลำดับนิพจน์: a = (b + c + d) ประเมินค่าครั้งเดียว
+// รวม: ไม่มีการจัดสรรหน่วยความจำชั่วคราว (ดำเนินการในพื้นที่เดิม)
 
-// tmp<T> automatically manages temporary lifetime
+// tmp<T> จะจัดการอายุขัยของวัตถุชั่วคราวโดยอัตโนมัติ
 tmp<volScalarField> tsum = b + c + d;
-volScalarField a = tsum();  // Efficient transfer
+volScalarField a = tsum();  // การถ่ายโอนที่มีประสิทธิภาพ
 ```
 
-> **📂 Source:** `.src/OpenFOAM/fields/tmp/tmp.H`
+> **📂 แหล่งที่มา:** `.src/OpenFOAM/fields/tmp/tmp.H`
 
-> **📖 Explanation:**
-> คลาส `tmp<T>` เป็นหัวใจของการ optimization ใน OpenFOAM:
->
-> - **Expression templates**: สร้าง expression tree แทนการสร้าง temporary objects
-> - **Lazy evaluation**: การคำนวณเลื่อนไปจนกว่าจะจำเป็น
-> - **Reference counting**: การนับจำนวน reference เพื่อจัดการ lifetime
-> - **Move semantics**: การโอน ownership โดยไม่ต้อง copy
->
-> การใช้ `tmp<T>` ทำให้ลดจำนวน memory allocation ลงอย่างมาก และเพิ่มประสิทธิภาพของการคำนวณ
+> **📖 คำอธิบาย:**
+> คลาส `tmp<T>` เป็นหัวใจของการเพิ่มประสิทธิภาพใน OpenFOAM:
+> 
+> - **Expression templates**: สร้างแผนผังนิพจน์ (Expression tree) แทนการสร้างวัตถุชั่วคราว (Temporary objects)
+> - **Lazy evaluation**: เลื่อนการคำนวณออกไปจนกว่าจะจำเป็นต้องใช้จริงๆ
+> - **Reference counting**: การนับจำนวนการอ้างอิงเพื่อจัดการอายุขัยของวัตถุ
+> - **Move semantics**: การโอนย้ายความเป็นเจ้าของข้อมูลโดยไม่ต้องคัดลอก (Copy)
+> 
+> การใช้ `tmp<T>` ช่วยลดจำนวนการจัดสรรหน่วยความจำ (Memory allocation) ลงอย่างมาก และเพิ่มประสิทธิภาพของการคำนวณ
 
-> **🔑 Key Concepts:**
-> - **Expression templates**: เทคนิค optimization ด้วย lazy evaluation
-> - **Reference counting**: การนับ reference สำหรับ automatic cleanup
-> - **Memory efficiency**: การลดจำนวน temporary objects
-> - **Move semantics**: การโอน ownership โดยไม่ copy
+> **🔑 แนวคิดสำคัญ:**
+> - **Expression templates**: เทคนิคการเพิ่มประสิทธิภาพด้วยการคำนวณเมื่อต้องการ
+> - **Reference counting**: การนับการอ้างอิงเพื่อการล้างข้อมูลอัตโนมัติ
+> - **Memory efficiency**: การลดจำนวนวัตถุชั่วคราว
+> - **Move semantics**: การโอนย้ายข้อมูลโดยไม่คัดลอก
 
-### Performance Benefits
+### ประโยชน์ด้านประสิทธิภาพ
 
-| Feature | Optimization Method | Impact |
+| คุณลักษณะ | วิธีการเพิ่มประสิทธิภาพ | ผลกระทบ |
 |---------|---------------------|--------|
-| **Contiguous Memory** | Tightly packed internal field values | Better cache efficiency |
-| **Lazy Evaluation** | `tmp` class for expression templates | Reduced temporary objects |
-| **SIMD Optimization** | Vector operations | Uses processor vector instructions |
-| **Parallel Communication** | Non-blocking communication patterns | Reduced processor data transfer |
+| **หน่วยความจำต่อเนื่อง** | บรรจุค่าฟิลด์ภายในอย่างแน่นหนา | ประสิทธิภาพแคชดีขึ้น |
+| **การคำนวณเมื่อต้องการ** | คลาส `tmp` สำหรับเทมเพลตนิพจน์ | ลดจำนวนวัตถุชั่วคราว |
+| **การเพิ่มประสิทธิภาพ SIMD** | การดำเนินการเวกเตอร์ | ใช้คำสั่งเวกเตอร์ของโปรเซสเซอร์ |
+| **การสื่อสารแบบขนาน** | รูปแบบการสื่อสารแบบไม่ปิดกั้น (Non-blocking) | ลดการส่งข้อมูลระหว่างโปรเซสเซอร์ |
 
 ---
 
-## 9. Boundary Conditions: More Than Edge Cells
+## 9. เงื่อนไขขอบเขต: มากกว่าแค่เซลล์ที่ขอบ
 
-OpenFOAM field boundaries are sophisticated objects that can:
+ขอบเขตฟิลด์ของ OpenFOAM เป็นออบเจ็กต์ที่ซับซ้อนซึ่งสามารถ:
 
-- **Enforce physical constraints**: `fixedValue`, `zeroGradient`, `fixedFluxPressure`
-- **Handle complex geometries**: `wall`, `symmetry`, `cyclic`, `empty`
-- **Modify dynamically**: `timeVaryingMappedFixedValue`, `activePressureForceBaffleVelocity`
+- **บังคับใช้ข้อจำกัดทางกายภาพ**: `fixedValue`, `zeroGradient`, `fixedFluxPressure`
+- **จัดการเรขาคณิตที่ซับซ้อน**: `wall`, `symmetry`, `cyclic`, `empty`
+- **ปรับเปลี่ยนแบบไดนามิก**: `timeVaryingMappedFixedValue`, `activePressureForceBaffleVelocity`
 
-### Boundary Condition Example
+### ตัวอย่างเงื่อนไขขอบเขต
 
 ```cpp
-// Example boundary condition specification
-dimensions      [0 1 -1 0 0 0 0];                    // Velocity: [m/s]
-internalField   uniform (0 0 0);                   // Initial internal value
+// ตัวอย่างการระบุเงื่อนไขขอบเขต
+dimensions      [0 1 -1 0 0 0 0];                    // ความเร็ว: [m/s]
+internalField   uniform (0 0 0);                   // ค่าเริ่มต้นภายในโดเมน
 
 boundaryField
 {
     inlet
     {
-        type            fixedValue;                 // Specified velocity
-        value           uniform (10 0 0);           // 10 m/s in x-direction
+        type            fixedValue;                 // ระบุค่าความเร็ว
+        value           uniform (10 0 0);           // 10 m/s ในแนวแกน x
     }
 
     outlet
     {
-        type            zeroGradient;               // No normal variation at boundary
+        type            zeroGradient;               // ไม่มีการเปลี่ยนแปลงตามแนวฉากที่ขอบเขต
     }
 
     walls
     {
-        type            noSlip;                     // Zero velocity at walls
+        type            noSlip;                     // ความเร็วเป็นศูนย์ที่ผนัง
     }
 
     symmetryPlane
     {
-        type            symmetry;                   // Symmetry boundary condition
+        type            symmetry;                   // เงื่อนไขขอบเขตความสมมาตร
     }
 }
 ```
 
-> **📂 Source:** `.tutorials/incompressible/icoFoam/cavity/0/U`
+> **📂 แหล่งที่มา:** `.tutorials/incompressible/icoFoam/cavity/0/U`
 
-> **📖 Explanation:**
-> ไฟล์นี้แสดงการระบุเงื่อนไขขอบเขตสำหรับ velocity field ใน OpenFOAM:
->
-> - **dimensions**: ระบุมิติของ field [L T^-1] สำหรับ velocity
+> **📖 คำอธิบาย:**
+> ไฟล์นี้แสดงการระบุเงื่อนไขขอบเขตสำหรับฟิลด์ความเร็วใน OpenFOAM:
+> 
+> - **dimensions**: ระบุมิติของฟิลด์ [L T^-1] สำหรับความเร็ว
 > - **internalField**: ค่าเริ่มต้นภายในโดเมน (0 0 0)
-> - **boundaryField**: ระบุเงื่อนไขขอบเขตสำหรับแต่ละ patch
->   - **inlet**: ใช้ fixedValue กำหนดค่า velocity = (10 0 0) m/s
->   - **outlet**: ใช้ zeroGradient ไม่มีการเปลี่ยนแปลงตามปกติ
->   - **walls**: ใช้ noSlip velocity = 0 ที่ผนัง
->   - **symmetryPlane**: ใช้ symmetry condition
->
-> ระบบ boundary condition ของ OpenFOAM มีความยืดหยุ่นสูงและสามารถ custom ได้
+> - **boundaryField**: ระบุเงื่อนไขขอบเขตสำหรับแต่ละแพตช์ (Patch)
+>   - **inlet**: ใช้ fixedValue กำหนดค่าความเร็ว = (10 0 0) m/s
+>   - **outlet**: ใช้ zeroGradient หมายถึงไม่มีการเปลี่ยนแปลงในแนวตั้งฉาก
+>   - **walls**: ใช้ noSlip หมายถึงความเร็วเป็นศูนย์ที่ผนัง
+>   - **symmetryPlane**: ใช้เงื่อนไขความสมมาตร
+> 
+> ระบบเงื่อนไขขอบเขตของ OpenFOAM มีความยืดหยุ่นสูงและสามารถปรับแต่งได้ตามต้องการ
 
-> **🔑 Key Concepts:**
-> - **Patch types**: ประเภทของ patches ต่างๆ
+> **🔑 แนวคิดสำคัญ:**
+> - **Patch types**: ประเภทของแพตช์ต่างๆ
 > - **BC types**: ประเภทของเงื่อนไขขอบเขต
-> - **Fixed vs gradient**: การกำหนดค่า vs การกำหนด gradient
-> - **Physical constraints**: เงื่อนไขทางฟิสิกส์ต่างๆ
+> - **Fixed vs gradient**: การกำหนดค่าเทียบกับการกำหนดเกรเดียนต์
+> - **Physical constraints**: เงื่อนไขและข้อจำกัดทางฟิสิกส์ต่างๆ
 
-### Major Boundary Condition Types
+### ประเภทเงื่อนไขขอบเขตหลัก
 
-| Type | Usage | Equation |
+| ประเภท | การใช้งาน | สมการ |
 |------|-------|----------|
-| `fixedValue` | Specified value at boundary | $\phi = \phi_{\text{specified}}$ |
-| `zeroGradient` | Zero normal derivative | $\frac{\partial \phi}{\partial n} = 0$ |
-| `noSlip` | Zero velocity at walls | $\mathbf{U} = 0$ |
-| `symmetry` | Symmetry | $\frac{\partial \phi}{\partial n} = 0$, $\mathbf{U}_n = 0$ |
+| `fixedValue` | ระบุค่าที่ขอบเขต | $\phi = \phi_{\text{specified}}$ |
+| `zeroGradient` | อนุพันธ์แนวฉากเป็นศูนย์ | $\frac{\partial \phi}{\partial n} = 0$ |
+| `noSlip` | ความเร็วเป็นศูนย์ที่ผนัง | $\mathbf{U} = 0$ |
+| `symmetry` | ความสมมาตร | $\frac{\partial \phi}{\partial n} = 0$, $\mathbf{U}_n = 0$ |
 
 ---
 
-## 10. Time-Dependent Fields
+## 10. ฟิลด์ที่ขึ้นกับเวลา (Time-Dependent Fields)
 
-### Temporal Discretization
+### การดิสครีตเชิงเวลา
 
-OpenFOAM's field system manages time-dependent quantities through specialized field types and temporal operators. Time integration schemes are applied to fields to advance solutions from one time step to the next.
+ระบบฟิลด์ของ OpenFOAM จัดการปริมาณที่ขึ้นกับเวลาผ่านประเภทฟิลด์เฉพาะและตัวดำเนินการเชิงเวลา รูปแบบการหาปริพันธ์เวลา (Time integration schemes) ถูกนำมาใช้กับฟิลด์เพื่อเลื่อนผลเฉลยจากขั้นตอนเวลาหนึ่งไปยังขั้นตอนถัดไป
 
-**Time-Dependent Field Types:**
+**ประเภทฟิลด์ที่ขึ้นกับเวลา:**
 
 ```cpp
-// Access old-time level fields (n-1)
+// เข้าถึงฟิลด์ระดับเวลาเก่า (n-1)
 volScalarField p_old = p.oldTime();
 
-// Access old-old-time level fields (n-2) for second-order schemes
+// เข้าถึงฟิลด์ระดับเวลาเก่ามาก (n-2) สำหรับรูปแบบอันดับสอง
 volScalarField p_oldOld = p.oldTime().oldTime();
 
-// Calculate rate of change fields
+// คำนวณฟิลด์อัตราการเปลี่ยนแปลง
 volScalarField dU_dt = fvc::ddt(U);
 
-// Implicit time-derivative for matrix assembly
+// อนุพันธ์เวลาแบบ implicit สำหรับการประกอบเมทริกซ์
 fvScalarMatrix pDDT = fvm::ddt(p);
 ```
 
-> **📂 Source:** `.src/finiteVolume/finiteVolume/ddtSchemes/ddtScheme.C`
+> **📂 แหล่งที่มา:** `.src/finiteVolume/finiteVolume/ddtSchemes/ddtScheme.C`
 
-> **📖 Explanation:**
+> **📖 คำอธิบาย:**
 > ระบบจัดการฟิลด์ที่ขึ้นกับเวลาใน OpenFOAM:
->
-> - **oldTime()**: เข้าถึงค่าในเวลาก่อนหน้า (n-1) ใช้สำหรับ second-order schemes
-> - **fvc::ddt()**: คำนวณ derivative เวลาแบบ explicit สำหรับ source terms
-> - **fvm::ddt()**: สร้าง implicit terms สำหรับ matrix assembly
-> - **Time indexing**: ระบบจัดเก็บค่าหลายระดับเวลาอัตโนมัติ
->
-> ระบบนี้ทำให้สามารถใช้ time integration schemes ที่หลากหลายได้อย่างสะดวก
+> 
+> - **oldTime()**: เข้าถึงค่าในเวลาปัจจุบันลบหนึ่ง (n-1) ใช้สำหรับรูปแบบอันดับสอง
+> - **fvc::ddt()**: คำนวณอนุพันธ์เวลาแบบชัดเจน (Explicit) สำหรับเทอมแหล่งกำเนิด
+> - **fvm::ddt()**: สร้างเทอมไม่ชัดเจน (Implicit) สำหรับการประกอบเมทริกซ์
+> - **Time indexing**: ระบบจัดเก็บค่าหลายระดับเวลาโดยอัตโนมัติ
+> 
+> ระบบนี้ทำให้สามารถใช้รูปแบบการหาปริพันธ์เวลาที่หลากหลายได้อย่างสะดวก
 
-> **🔑 Key Concepts:**
+> **🔑 แนวคิดสำคัญ:**
 > - **Time levels**: ระดับเวลาต่างๆ (n, n-1, n-2)
-> - **Implicit vs explicit**: การแก้สมการ implicit vs explicit
-> - **Time schemes**: รูปแบบการ integration เวลาต่างๆ
-> - **Memory management**: การจัดการ memory สำหรับหลายระดับเวลา
+> - **Implicit vs explicit**: การแก้สมการแบบไม่ชัดเจนและแบบชัดเจน
+> - **Time schemes**: รูปแบบการหาปริพันธ์เวลาต่างๆ
+> - **Memory management**: การจัดการหน่วยความจำสำหรับหลายระดับเวลา
 
-### Time Integration Schemes
+### รูปแบบการหาปริพันธ์เวลา (Time Integration Schemes)
 
-**Euler Explicit** (First-order):
+**Euler Explicit** (อันดับหนึ่ง):
 $$\frac{\partial \phi}{\partial t} \approx \frac{\phi^{n+1} - \phi^n}{\Delta t}$$
 
-**Euler Implicit** (First-order, unconditionally stable):
+**Euler Implicit** (อันดับหนึ่ง, เสถียรอย่างไม่มีเงื่อนไข):
 $$\frac{\partial \phi}{\partial t} \approx \frac{\phi^{n+1} - \phi^n}{\Delta t}$$
 
-**Crank-Nicolson** (Second-order):
+**Crank-Nicolson** (อันดับสอง):
 $$\frac{\partial \phi}{\partial t} \approx \frac{2\phi^{n+1} - \phi^n - \phi^{n-1}}{\Delta t}$$
 
-**Backward Differencing** (Second-order):
+**Backward Differencing** (อันดับสอง):
 $$\frac{\partial \phi}{\partial t} \approx \frac{3\phi^{n+1} - 4\phi^n + \phi^{n-1}}{2\Delta t}$$
 
 ---
 
-## 11. Field Interpolation
+## 11. การอินเทอร์โพลชันฟิลด์ (Field Interpolation)
 
-OpenFOAM provides automatic interpolation for seamless field transformation:
+OpenFOAM ให้การอินเทอร์โพลชันอัตโนมัติสำหรับการแปลงฟิลด์ที่ไร้รอยต่อ:
 
 ```cpp
-// Interpolation from cell centers to faces
+// การอินเทอร์โพลชันจากจุดศูนย์กลางเซลล์ไปยังหน้าเซลล์
 surfaceScalarField phi = linearInterpolate(U) & mesh.Sf();
 
-// Interpolation from cells to points for visualization
+// การอินเทอร์โพลชันจากเซลล์ไปยังจุดเพื่อการสร้างภาพ
 pointScalarField p_points = linearInterpolate(p);
 
-// Converting volume fields to surface fields
+// การแปลงฟิลด์ปริมาตรเป็นฟิลด์พื้นผิว
 surfaceVectorField Uf = linearInterpolate(U);
 
-// Using specific interpolation schemes
+// การใช้รูปแบบการอินเทอร์โพลชันเฉพาะ
 surfaceScalarField phi_upwind = upwind<scalar>(mesh).interpolate(U) & mesh.Sf();
 ```
 
-> **📂 Source:** `.src/finiteVolume/interpolation/interpolation/interpolation.C`
+> **📂 แหล่งที่มา:** `.src/finiteVolume/interpolation/interpolation/interpolation.C`
 
-> **📖 Explanation:**
-> ระบบ interpolation ของ OpenFOAM ใช้แปลงค่าระหว่างตำแหน่งต่างๆ:
->
-> - **linearInterpolate()**: interpolation เชิงเส้นจาก cell centers ไป faces
-> - **mesh.Sf()**: face area vectors ใช้คำนวณ flux
-> - **upwind scheme**: interpolation แบบ upwind สำหรับความเสถียร
-> - **Various schemes**: รองรับ interpolation schemes หลายแบบ
->
-> การ interpolation สำคัญมากสำหรับ FVM method ที่ต้องคำนวณ flux ผ่าน faces
+> **📖 คำอธิบาย:**
+> ระบบการอินเทอร์โพลชัน (Interpolation) ของ OpenFOAM ใช้สำหรับแปลงค่าระหว่างตำแหน่งต่างๆ:
+> 
+> - **linearInterpolate()**: การอินเทอร์โพลชันเชิงเส้นจากจุดศูนย์กลางเซลล์ไปยังหน้าเซลล์
+> - **mesh.Sf()**: เวกเตอร์พื้นที่หน้าเซลล์ ใช้สำหรับคำนวณฟลักซ์ (Flux)
+> - **upwind scheme**: การอินเทอร์โพลชันแบบย้อนต้นลม (Upwind) เพื่อความเสถียร
+> - **รูปแบบต่างๆ**: รองรับรูปแบบการอินเทอร์โพลชันที่หลากหลาย
+> 
+> การอินเทอร์โพลชันมีความสำคัญมากสำหรับวิธีการ FVM ที่ต้องคำนวณฟลักซ์ผ่านหน้าเซลล์
 
-> **🔑 Key Concepts:**
-> - **Interpolation schemes**: รูปแบบการ interpolation ต่างๆ
-> - **Flux calculation**: การคำนวณ flux ผ่าน faces
-> - **Scheme selection**: การเลือก scheme ที่เหมาะสม
-> - **Numerical diffusion**: ความแม่นยำ vs ความเสถียร
+> **🔑 แนวคิดสำคัญ:**
+> - **Interpolation schemes**: รูปแบบการอินเทอร์โพลชันต่างๆ
+> - **Flux calculation**: การคำนวณฟลักซ์ผ่านหน้าเซลล์
+> - **Scheme selection**: การเลือกรูปแบบที่เหมาะสม
+> - **Numerical diffusion**: ความแม่นยำเทียบกับความเสถียร
 
-### Interpolation Types
+### ประเภทการอินเทอร์โพลชัน
 
-| Method | Accuracy | Stability | Speed |
+| วิธีการ | ความแม่นยำ | เสถียรภาพ | ความเร็ว |
 |--------|----------|-----------|-------|
-| Linear | Second-order | Good | Fast |
-| Upwind | First-order | Excellent | Very Fast |
-| Central | Second-order | Moderate | Moderate |
-| Quadratic | Higher-order | Moderate | Slow |
+| Linear | อันดับสอง | ดี | เร็ว |
+| Upwind | อันดับหนึ่ง | ดีเยี่ยม | เร็วมาก |
+| Central | อันดับสอง | ปานกลาง | ปานกลาง |
+| Quadratic | อันดับสูงกว่า | ปานกลาง | ช้า |
 
 ---
 
-## 12. Key Architectural Patterns
+## 12. รูปแบบสถาปัตยกรรมที่สำคัญ
 
-### Policy-Based Design: PatchField Parameter
+### การออกแบบตามนโยบาย (Policy-Based Design): พารามิเตอร์ PatchField
 
-The `PatchField` hierarchy exemplifies policy-based design, where boundary behavior is parameterized through template specialization:
+ลำดับชั้นของ `PatchField` เป็นตัวอย่างของการออกแบบตามนโยบาย โดยพฤติกรรมที่ขอบเขตจะถูกกำหนดพารามิเตอร์ผ่าน template specialization:
 
 ```cpp
 template<class Type>
@@ -1052,11 +1054,11 @@ class PatchField
     public Field<Type>,
     public refCount
 {
-    // Policy interface for boundary conditions
+    // อินเทอร์เฟซนโยบายสำหรับเงื่อนไขขอบเขต
     virtual void updateCoeffs() = 0;
     virtual void evaluate() = 0;
     
-    // Template method pattern
+    // รูปแบบเมธอดเทมเพลต (Template method pattern)
     void updateCoeffs()
     {
         if (needUpdate())
@@ -1068,39 +1070,39 @@ class PatchField
 };
 ```
 
-> **📂 Source:** `.src/finiteVolume/fields/fvPatchFields/fvPatchField/fvPatchField.H`
+> **📂 แหล่งที่มา:** `.src/finiteVolume/fields/fvPatchFields/fvPatchField/fvPatchField.H`
 
-> **📖 Explanation:**
-> รูปแบบ Policy-based design ใน `PatchField`:
->
-> - **Policy interface**: กำหนด interface สำหรับ boundary condition policies
-> - **Template method**: ใช้ template method pattern สำหรับ update logic
-> - **Virtual functions**: ใช้ virtual functions สำหรับ polymorphism
-> - **Compile-time + runtime**: ผสมผสาน compile-time และ runtime polymorphism
->
-> การออกแบบนี้ทำให้สามารถเพิ่ม boundary condition ใหม่ได้โดยไม่ต้องแก้ไขคลาสหลัก
+> **📖 คำอธิบาย:**
+> รูปแบบการออกแบบตามนโยบาย (Policy-based design) ใน `PatchField`:
+> 
+> - **อินเทอร์เฟซนโยบาย (Policy interface)**: กำหนดอินเทอร์เฟซสำหรับนโยบายเงื่อนไขขอบเขต
+> - **เทมเพลตเมธอด**: ใช้รูปแบบเมธอดเทมเพลตสำหรับตรรกะการอัปเดต
+> - **ฟังก์ชันเสมือน (Virtual functions)**: ใช้ฟังก์ชันเสมือนสำหรับพหุสัณฐาน
+> - **คอมไพล์ + รันไทม์**: ผสมผสานพหุสัณฐานทั้งในเวลาคอมไพล์และเวลาทำงาน
+> 
+> การออกแบบนี้ทำให้สามารถเพิ่มเงื่อนไขขอบเขตใหม่ๆ ได้โดยไม่ต้องแก้ไขคลาสหลัก
 
-> **🔑 Key Concepts:**
-> - **Policy-based design**: การออกแบบด้วย policies
-> - **Template method pattern**: รูปแบบ template method
-> - **Virtual interfaces**: interfaces แบบ virtual
-> - **Open-closed principle**: เปิดสำหรับ extension ปิดสำหรับ modification
+> **🔑 แนวคิดสำคัญ:**
+> - **Policy-based design**: การออกแบบโดยเน้นที่นโยบายการทำงาน
+> - **Template method pattern**: รูปแบบการทำงานผ่านเมธอดเทมเพลต
+> - **Virtual interfaces**: อินเทอร์เฟซแบบเสมือน
+> - **Open-closed principle**: เปิดสำหรับการขยาย (Extension) แต่ปิดสำหรับการแก้ไข (Modification)
 
-**This design enables:**
-- Compile-time customization of boundary condition behavior
-- Consistent interface maintenance
-- Addition of new boundary condition types without modifying main field classes
-- Support for Open-Closed Principle
+**การออกแบบนี้ช่วยให้:**
+- ปรับแต่งพฤติกรรมเงื่อนไขขอบเขตได้ในเวลาคอมไพล์
+- รักษาอินเทอร์เฟซให้สอดคล้องกัน
+- เพิ่มประเภทเงื่อนไขขอบเขตใหม่ได้โดยไม่ต้องแก้ไขคลาสฟิลด์หลัก
+- รองรับหลักการ Open-Closed Principle
 
-### Composite Pattern: GeometricField Structure
+### รูปแบบประกอบ (Composite Pattern): โครงสร้าง GeometricField
 
-The `GeometricField` class uses the composite pattern by combining multiple field components into a single interface:
+คลาส `GeometricField` ใช้รูปแบบประกอบโดยการรวมส่วนประกอบฟิลด์หลายส่วนเข้าเป็นอินเทอร์เฟซเดียว:
 
-$$\text{GeometricField<Type, PatchField, GeoMesh>} = \underbrace{\text{Field<Type>}}_{\text{Internal}} + \underbrace{\text{Field<PatchField<Type>>}}_{\text{Boundary}}$$
+$$\text{GeometricField<Type, PatchField, GeoMesh>} = \underbrace{\text{Field<Type>}}_{\text{ภายใน}} + \underbrace{\text{Field<PatchField<Type>>}}_{\text{ขอบเขต}}$$
 
-### RAII and Reference Counting: tmp<T> Management
+### RAII และการนับการอ้างอิง: การจัดการ tmp<T>
 
-The `tmp<T>` template class uses RAII (Resource Acquisition Is Initialization) combined with reference counting for efficient temporary field object management:
+คลาสเทมเพลต `tmp<T>` ใช้ RAII (Resource Acquisition Is Initialization) ร่วมกับการนับการอ้างอิงเพื่อการจัดการวัตถุฟิลด์ชั่วคราวที่มีประสิทธิภาพ:
 
 ```cpp
 template<class T>
@@ -1110,23 +1112,23 @@ class tmp
     mutable bool refPtr_;
 
 public:
-    // Constructor from pointer
+    // คอนสตรัคเตอร์จากตัวชี้ (Pointer)
     explicit tmp(T* t = nullptr)
     :
         ptr_(t),
         refPtr_(false)
     {}
 
-    // Destructor - automatic cleanup
+    // Destructor - การล้างข้อมูลอัตโนมัติ
     ~tmp()
     {
-        if (ptr_ && !refPtr_) 
+        if (ptr_ && !refPtr_)
         {
             delete ptr_;
         }
     }
 
-    // Move constructor for efficient transfer
+    // Move constructor เพื่อการถ่ายโอนที่มีประสิทธิภาพ
     tmp(tmp<T>&& t) noexcept
     :
         ptr_(t.ptr_),
@@ -1140,7 +1142,7 @@ public:
     {
         if (this != &t)
         {
-            if (ptr_ && !refPtr_) 
+            if (ptr_ && !refPtr_)
             {
                 delete ptr_;
             }
@@ -1151,7 +1153,7 @@ public:
         return *this;
     }
 
-    // Dereference operators
+    // ตัวดำเนินการถอดรหัสตัวชี้ (Dereference operators)
     T& operator()()
     {
         return *ptr_;
@@ -1164,59 +1166,59 @@ public:
 };
 ```
 
-> **📂 Source:** `.src/OpenFOAM/fields/tmp/tmp.H`
+> **📂 แหล่งที่มา:** `.src/OpenFOAM/fields/tmp/tmp.H`
 
-> **📖 Explanation:**
-> คลาส `tmp<T>` ใช้ RAII และ reference counting:
->
-> - **RAII**: จัดการ lifetime ของ resources อัตโนมัติ
-> - **Reference counting**: นับจำนวน references สำหรับ shared ownership
-> - **Move semantics**: โอน ownership โดยไม่ต้อง copy
-> - **Automatic cleanup**: คืน memory อัตโนมัติเมื่อไม่ใช้งาน
->
-> การออกแบบนี้ลด overhead ของ temporary objects อย่างมาก
+> **📖 คำอธิบาย:**
+> คลาส `tmp<T>` ใช้ RAII และการนับการอ้างอิง:
+> 
+> - **RAII**: จัดการอายุขัยของทรัพยากรโดยอัตโนมัติ
+> - **Reference counting**: นับจำนวนการอ้างอิงเพื่อการเป็นเจ้าของร่วมกัน (Shared ownership)
+> - **Move semantics**: ถ่ายโอนความเป็นเจ้าของโดยไม่ต้องคัดลอกข้อมูล
+> - **Automatic cleanup**: คืนหน่วยความจำโดยอัตโนมัติเมื่อไม่ใช้งาน
+> 
+> การออกแบบนี้ช่วยลดโอเวอร์เฮด (Overhead) ของวัตถุชั่วคราวลงได้อย่างมาก
 
-> **🔑 Key Concepts:**
-> - **RAII**: Resource Acquisition Is Initialization
-> - **Reference counting**: การนับ reference
-> - **Move semantics**: การโอน ownership
-> - **Smart pointers**: pointers ที่จัดการ memory อัตโนมัติ
-
----
-
-## 📚 Further Reading
-
-### Core Header Files
-
-1. **`GeometricField.H`**: Base field class for all OpenFOAM fields
-2. **`DimensionedField.H`**: Internal fields with dimensional consistency
-3. **`Field.H`**: Mathematical operations on lists
-4. **`dimensionSet.H`**: Dimensional analysis system
-5. **`tmp.H`**: Reference-counted temporary class
-
-### Key Concepts
-
-- **Type Safety**: Compile-time checking prevents mixing incompatible field types
-- **Dimensional Consistency**: Automatic verification of physical units
-- **Memory Efficiency**: Contiguous storage for optimal cache performance
-- **Parallel Computation**: Distributed operations across multiple processors
+> **🔑 แนวคิดสำคัญ:**
+> - **RAII**: การจัดการทรัพยากรตามอายุขัยของวัตถุ
+> - **Reference counting**: การนับการอ้างอิง
+> - **Move semantics**: การโอนย้ายความเป็นเจ้าของ
+> - **Smart pointers**: ตัวชี้อัจฉริยะที่จัดการหน่วยความจำอัตโนมัติ
 
 ---
 
-## 🔄 Next Steps
+## 📚 ข้อมูลเพิ่มเติม
 
-Proceed to [[Section 6.2: Basic Field Algebra]] to learn about mathematical operations on fields.
+### ไฟล์ส่วนหัวหลัก (Core Header Files)
 
-### What You'll Learn Next
+1. **`GeometricField.H`**: คลาสฟิลด์ฐานสำหรับฟิลด์ทั้งหมดใน OpenFOAM
+2. **`DimensionedField.H`**: ฟิลด์ภายในที่มีความสอดคล้องทางมิติ
+3. **`Field.H`**: การดำเนินการทางคณิตศาสตร์บนรายการ (Lists)
+4. **`dimensionSet.H`**: ระบบวิเคราะห์มิติ
+5. **`tmp.H`**: คลาสวัตถุชั่วคราวที่มีการนับการอ้างอิง
 
-**Field Operations**
-- **Scalar Field Operations**: Addition, subtraction, multiplication, and division of `volScalarField` objects
-- **Vector Field Mathematics**: Dot products, cross products, and calculus operations on `volVectorField` objects
-- **Tensor Field Manipulation**: Contractions, multiplications, and advanced tensor algebra for `volTensorField` objects
+### แนวคิดหลัก
 
-### Mathematical Foundations
+- **ความปลอดภัยของชนิดข้อมูล (Type Safety)**: การตรวจสอบเวลาคอมไพล์ช่วยป้องกันการผสมประเภทฟิลด์ที่เข้ากันไม่ได้
+- **ความสอดคล้องทางมิติ (Dimensional Consistency)**: การตรวจสอบหน่วยทางกายภาพโดยอัตโนมัติ
+- **ประสิทธิภาพหน่วยความจำ (Memory Efficiency)**: การจัดเก็บแบบต่อเนื่องเพื่อประสิทธิภาพแคชสูงสุด
+- **การคำนวณแบบขนาน (Parallel Computation)**: การดำเนินการแบบกระจายผ่านโปรเซสเซอร์หลายตัว
 
-Mathematical operations in OpenFOAM are built upon the finite volume discretization framework:
+---
+
+## 🔄 ขั้นตอนถัดไป
+
+ไปยัง [[Section 6.2: Basic Field Algebra]] เพื่อเรียนรู้เกี่ยวกับการดำเนินการทางคณิตศาสตร์บนฟิลด์
+
+### สิ่งที่คุณจะได้เรียนรู้ต่อไป
+
+**การดำเนินการฟิลด์ (Field Operations)**
+- **การดำเนินการฟิลด์สเกลาร์**: การบวก, การลบ, การคูณ และการหาร ออบเจ็กต์ `volScalarField`
+- **คณิตศาสตร์ฟิลด์เวกเตอร์**: ผลคูณแบบดอท (Dot products), ผลคูณแบบครอส (Cross products) และการดำเนินการแคลคูลัสบนออบเจ็กต์ `volVectorField`
+- **การจัดการฟิลด์เทนเซอร์**: การหดตัว (Contractions), การคูณ และพีชคณิตเทนเซอร์ขั้นสูงสำหรับออบเจ็กต์ `volTensorField`
+
+### รากฐานทางคณิตศาสตร์
+
+การดำเนินการทางคณิตศาสตร์ใน OpenFOAM ถูกสร้างขึ้นบนโครงสร้างการดิสครีตแบบไฟไนต์วอลุ่ม:
 
 $$\text{Field Operation: } (\phi \psi)_P = \phi_P \psi_P$$
 
@@ -1226,14 +1228,14 @@ $$\text{Divergence Operation: } \nabla \cdot \boldsymbol{\phi} = \frac{1}{V_P} \
 
 ---
 
-## 💡 Summary
+## 💡 สรุป
 
-OpenFOAM's sophisticated field type system transforms it from a simple numerical equation solver into a powerful computational physics framework that:
+ระบบประเภทฟิลด์ที่ซับซ้อนของ OpenFOAM เปลี่ยนจากเพียงตัวแก้สมการเชิงตัวเลขธรรมดาให้เป็นกรอบงานฟิสิกส์เชิงคำนวณที่ทรงพลัง ซึ่ง:
 
-- **Enables natural mathematical expression**
-- **Guarantees dimensional consistency**
-- **Maximizes computational efficiency**
-- **Handles complex boundary and time management**
-- **Provides automatic field interpolation and transformation**
+- **ช่วยให้แสดงนิพจน์ทางคณิตศาสตร์ได้อย่างเป็นธรรมชาติ**
+- **รับประกันความสอดคล้องทางมิติ**
+- **เพิ่มประสิทธิภาพการคำนวณสูงสุด**
+- **จัดการขอบเขตและเวลาที่ซับซ้อนได้**
+- **ให้การอินเทอร์โพลชันและการแปลงฟิลด์โดยอัตโนมัติ**
 
-This field system forms the robust foundation for reliable and complex CFD simulations in OpenFOAM.
+ระบบฟิลด์นี้เป็นรากฐานที่แข็งแกร่งสำหรับการจำลอง CFD ที่เชื่อถือได้และซับซ้อนใน OpenFOAM

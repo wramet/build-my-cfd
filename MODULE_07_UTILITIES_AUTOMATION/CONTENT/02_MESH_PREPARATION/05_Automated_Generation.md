@@ -1,69 +1,69 @@
-# ⚙️ Automated Case Generation & Mesh Optimization
+# ⚙️ การสร้างกรณีศึกษาแบบอัตโนมัติและการเพิ่มประสิทธิภาพเมช (Automated Case Generation & Mesh Optimization)
 
-**Learning Objectives**: Master automated case generation, mesh quality analysis, and batch processing workflows for OpenFOAM simulations
-**Prerequisites**: Module 03 (Mesh Generation), Module 04 (C++ Basics), familiarity with Python scripting
-**Target Skills**: Automated case setup, mesh quality assessment, batch processing, HPC integration
+**วัตถุประสงค์การเรียนรู้**: เชี่ยวชาญการสร้างกรณีศึกษาแบบอัตโนมัติ, การวิเคราะห์คุณภาพเมช และขั้นตอนการประมวลผลแบบกลุ่ม (batch processing) สำหรับการจำลอง OpenFOAM
+**เงื่อนไขเบื้องต้น**: โมดูล 03 (การสร้างเมช), โมดูล 04 (พื้นฐาน C++), ความคุ้นเคยกับการเขียนสคริปต์ Python
+**ทักษะเป้าหมาย**: การตั้งค่ากรณีศึกษาอัตโนมัติ, การประเมินคุณภาพเมช, การประมวลผลแบบกลุ่ม, การบูรณาการกับ HPC
 
 ---
 
-## Overview
+## ภาพรวม (Overview)
 
-This module provides a comprehensive automation framework for OpenFOAM case generation, mesh optimization, and batch processing. These tools enable systematic parameter studies, large-scale mesh generation, and automated quality assurance.
+โมดูลนี้จัดทำเฟรมเวิร์กการทำงานอัตโนมัติที่ครอบคลุมสำหรับการสร้างกรณีศึกษาของ OpenFOAM, การเพิ่มประสิทธิภาพเมช และการประมวลผลแบบกลุ่ม เครื่องมือเหล่านี้ช่วยให้สามารถศึกษาพารามิเตอร์อย่างเป็นระบบ, การสร้างเมชสเกลใหญ่ และการรับประกันคุณภาพแบบอัตโนมัติ
 
 ```mermaid
 flowchart TD
-    A[YAML Configuration] --> B[CaseGenerator Class]
-    B --> C[Create Directory Structure]
-    B --> D[Generate Dictionaries]
+    A[การกำหนดค่า YAML] --> B[คลาส CaseGenerator]
+    B --> C[สร้างโครงสร้างไดเรกทอรี]
+    B --> D[สร้างไฟล์พจนานุกรม (Dictionaries)]
     D --> D1[blockMeshDict]
     D --> D2[controlDict]
     D --> D3[fvSchemes/fvSolution]
-    B --> E[Execute Mesh Generation]
-    E --> F[Run Solver Batch]
-    F --> G[Quality Assessment]
-    G --> H[Validation Report]
+    B --> E[ดำเนินการสร้างเมช]
+    E --> F[รันตัวแก้ปัญหาแบบกลุ่ม]
+    F --> G[การประเมินคุณภาพ]
+    G --> H[รายงานการตรวจสอบความถูกต้อง]
 ```
-> **Figure 1:** ผังงานแสดงกระบวนการทำงานของระบบสร้างเคสอัตโนมัติ (Automated Case Generation) เริ่มจากการรับค่าพารามิเตอร์ผ่านไฟล์ YAML การสร้างโครงสร้างโฟลเดอร์และไฟล์ Dictionary ต่างๆ ไปจนถึงการรันเมชและ Solver แบบกลุ่ม พร้อมทั้งการประเมินคุณภาพและสรุปผลความถูกต้องอัตโนมัติ
+> **รูปที่ 1:** ผังงานแสดงกระบวนการทำงานของระบบสร้างเคสอัตโนมัติ (Automated Case Generation) เริ่มจากการรับค่าพารามิเตอร์ผ่านไฟล์ YAML การสร้างโครงสร้างโฟลเดอร์และไฟล์ Dictionary ต่างๆ ไปจนถึงการรันเมชและ Solver แบบกลุ่ม พร้อมทั้งการประเมินคุณภาพและสรุปผลความถูกต้องอัตโนมัติ
 
-> [!TIP] Automation Benefits
-> Automated workflows ensure consistency across parameter studies, reduce manual errors, and enable systematic exploration of design spaces.
+> [!TIP] ประโยชน์ของการทำงานอัตโนมัติ
+> ขั้นตอนการทำงานแบบอัตโนมัติช่วยรับประกันความสม่ำเสมอในการศึกษาพารามิเตอร์ ลดความผิดพลาดจากการทำด้วยมือ และช่วยให้สามารถสำรวจพื้นที่การออกแบบ (design spaces) ได้อย่างเป็นระบบ
 
 ---
 
-## Part 1: Python-Based Case Generation Framework
+## ส่วนที่ 1: เฟรมเวิร์กการสร้างกรณีศึกษาด้วย Python (Python-Based Case Generation Framework)
 
-### 1.1 Mathematical Foundation for Automated Meshing
+### 1.1 รากฐานทางคณิตศาสตร์สำหรับการสร้างเมชอัตโนมัติ
 
-Automated mesh generation incorporates physics-based calculations for optimal cell sizing and boundary layer resolution.
+การสร้างเมชแบบอัตโนมัติได้รวมการคำนวณตามหลักฟิสิกส์สำหรับการกำหนดขนาดเซลล์ที่เหมาะสมที่สุดและการวิเคราะห์ชั้นขอบเขต
 
-**Cell Size Distribution:**
+**การกระจายขนาดเซลล์ (Cell Size Distribution):**
 
-For graded meshing, cell size progression follows:
+สำหรับการสร้างเมชแบบปรับขนาด (graded meshing) การก้าวหน้าของขนาดเซลล์จะเป็นไปตามสมการ:
 
 $$\Delta x_i = \Delta x_0 \cdot r^{i-1}$$
 
-where $\Delta x_i$ is the cell size at position $i$, $\Delta x_0$ is the initial cell size, and $r$ is the growth ratio.
+โดยที่ $\Delta x_i$ คือขนาดเซลล์ที่ตำแหน่ง $i$, $\Delta x_0$ คือขนาดเซลล์เริ่มต้น และ $r$ คืออัตราส่วนการเติบโต
 
-**Boundary Layer Resolution:**
+**ความละเอียดของชั้นขอบเขต (Boundary Layer Resolution):**
 
-For wall-bounded flows, the first cell height should satisfy:
+สำหรับการไหลที่ถูกจำกัดด้วยผนัง ความสูงของเซลล์แรกควรเป็นไปตามเงื่อนไข:
 
 $$\Delta y^+ = \frac{y_1 u_\tau}{\nu} \approx 1$$
 
-where $y_1$ is the first cell height, $u_\tau$ is the friction velocity, and $\nu$ is the kinematic viscosity.
+โดยที่ $y_1$ คือความสูงของเซลล์แรก, $u_\tau$ คือความเร็วแรงเสียดทาน และ $\nu$ คือความหนืดจลน์
 
-**Optimal Cell Count Estimation:**
+**การประมาณจำนวนเซลล์ที่เหมาะสมที่สุด (Optimal Cell Count Estimation):**
 
 $$N_{cells} = \frac{V_{domain}}{V_{cell}^{avg}} \cdot f_{refinement}$$
 
-where $f_{refinement}$ accounts for local refinement regions.
+โดยที่ $f_{refinement}$ คือปัจจัยที่คำนึงถึงภูมิภาคที่มีการปรับละเอียดเฉพาะจุด
 
-### 1.2 Case Generator Implementation
+### 1.2 การสร้างคลาส Case Generator (Case Generator Implementation)
 
 ```python
 #!/usr/bin/env python3
 """
-OpenFOAM Case Generator with Parametric Studies
+เครื่องมือสร้างกรณีศึกษา OpenFOAM พร้อมการศึกษาพารามิเตอร์
 """
 
 import yaml
@@ -76,71 +76,71 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 import logging
 
-# Configure logging
+# กำหนดค่าการบันทึก log
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 class CaseGenerator:
     def __init__(self, config_file: str):
         """
-        Initialize case generator with configuration file
+        เริ่มต้นตัวสร้างกรณีศึกษาด้วยไฟล์กำหนดค่า
 
         Args:
-            config_file: Path to YAML configuration file
+            config_file: เส้นทางไปยังไฟล์กำหนดค่า YAML
         """
         self.config_file = config_file
         self.config = self.load_config()
 
-        # Validate configuration
+        # ตรวจสอบความถูกต้องของการกำหนดค่า
         self.validate_config()
 
     def load_config(self) -> Dict[str, Any]:
-        """Load configuration from YAML file"""
+        """โหลดการกำหนดค่าจากไฟล์ YAML"""
         try:
             with open(self.config_file, 'r') as f:
                 config = yaml.safe_load(f)
-            logger.info(f"Loaded configuration from: {self.config_file}")
+            logger.info(f"โหลดการกำหนดค่าจาก: {self.config_file}")
             return config
         except FileNotFoundError:
-            logger.error(f"Configuration file not found: {self.config_file}")
+            logger.error(f"ไม่พบไฟล์กำหนดค่า: {self.config_file}")
             raise
         except yaml.YAMLError as e:
-            logger.error(f"YAML parsing error: {e}")
+            logger.error(f"เกิดข้อผิดพลาดในการวิเคราะห์ YAML: {e}")
             raise
 
     def validate_config(self):
-        """Validate loaded configuration"""
+        """ตรวจสอบความถูกต้องของการกำหนดค่าที่โหลดมา"""
         required_sections = ['base_directory', 'cases']
 
         for section in required_sections:
             if section not in self.config:
-                raise ValueError(f"Missing required configuration section: {section}")
+                raise ValueError(f"ขาดส่วนการกำหนดค่าที่จำเป็น: {section}")
 
-        # Check base directory
+        # ตรวจสอบไดเรกทอรีหลัก
         if not os.path.isabs(self.config['base_directory']):
             self.config['base_directory'] = os.path.abspath(self.config['base_directory'])
 
-        logger.info(f"Base case directory: {self.config['base_directory']}")
+        logger.info(f"ไดเรกทอรีหลักของกรณีศึกษา: {self.config['base_directory']}")
 
     def generate_case(self, case_name: str, params: Dict[str, Any]) -> str:
         """
-        Generate complete OpenFOAM case
+        สร้างกรณีศึกษา OpenFOAM ที่สมบูรณ์
 
         Args:
-            case_name: Name of case to generate
-            params: Configuration parameters for the case
+            case_name: ชื่อของกรณีศึกษาที่จะสร้าง
+            params: พารามิเตอร์การกำหนดค่าสำหรับกรณีศึกษา
 
         Returns:
-            Path to generated case directory
+            เส้นทางไปยังไดเรกทอรีกรณีศึกษาที่สร้างขึ้น
         """
         case_dir = os.path.join(self.config['base_directory'], case_name)
 
-        logger.info(f"Generating case: {case_name}")
+        logger.info(f"กำลังสร้างกรณีศึกษา: {case_name}")
 
-        # Create directory structure
+        # สร้างโครงสร้างไดเรกทอรี
         self.create_directory_structure(case_dir)
 
-        # Generate all case files
+        # สร้างไฟล์กรณีศึกษาทั้งหมด
         self.generate_blockmesh_dict(case_dir, params.get('meshing', {}))
         self.generate_control_dict(case_dir, params.get('solver', {}))
         self.generate_fv_schemes(case_dir, params.get('numerics', {}))
@@ -150,31 +150,31 @@ class CaseGenerator:
         self.generate_boundary_conditions(case_dir, params.get('boundary', {}))
         self.generate_mesh_quality_controls(case_dir, params.get('meshing', {}))
 
-        # Copy additional files if specified
+        # คัดลอกไฟล์เพิ่มเติมหากมีการระบุ
         if 'copy_files' in params:
             self.copy_additional_files(case_dir, params['copy_files'])
 
-        # Generate README
+        # สร้างไฟล์ README
         self.generate_readme(case_dir, case_name, params)
 
-        logger.info(f"Case generation complete: {case_dir}")
+        logger.info(f"สร้างกรณีศึกษาเสร็จสิ้น: {case_dir}")
         return case_dir
 
     def create_directory_structure(self, case_dir: str):
-        """Create standard OpenFOAM case directory structure"""
+        """สร้างโครงสร้างไดเรกทอรีกรณีศึกษามาตรฐานของ OpenFOAM"""
         subdirs = ['0', 'constant', 'constant/polyMesh',
                    'system', 'constant/triSurface']
 
         for subdir in subdirs:
             dir_path = os.path.join(case_dir, subdir)
             os.makedirs(dir_path, exist_ok=True)
-            logger.debug(f"Created directory: {dir_path}")
+            logger.debug(f"สร้างไดเรกทอรี: {dir_path}")
 
     def generate_blockmesh_dict(self, case_dir: str, mesh_params: Dict[str, Any]):
-        """Generate blockMeshDict file"""
+        """สร้างไฟล์ blockMeshDict"""
         output_file = os.path.join(case_dir, 'system', 'blockMeshDict')
 
-        # Parameters with defaults
+        # พารามิเตอร์พร้อมค่าเริ่มต้น
         nx = mesh_params.get('nx', 50)
         ny = mesh_params.get('ny', 50)
         nz = mesh_params.get('nz', 20)
@@ -184,11 +184,11 @@ class CaseGenerator:
 
         blockmesh_content = f"""/*--------------------------------*- C++ -*----------------------------------*\\
 | =========                 |                                                 |
-| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\\\    /   O peration     | Version:  v2312                                 |
-|   \\\\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\\\/     M anipulation  |                                                 |
-\\*---------------------------------------------------------------------------*/
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2312                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
 FoamFile
 {{
     version     2.0;
@@ -257,10 +257,10 @@ boundary
         with open(output_file, 'w') as f:
             f.write(blockmesh_content)
 
-        logger.debug(f"Generated blockMeshDict: {output_file}")
+        logger.debug(f"สร้าง blockMeshDict สำเร็จ: {output_file}")
 
     def generate_control_dict(self, case_dir: str, solver_params: Dict[str, Any]):
-        """Generate controlDict file"""
+        """สร้างไฟล์ controlDict"""
         output_file = os.path.join(case_dir, 'system', 'controlDict')
 
         solver_type = solver_params.get('type', 'simpleFoam')
@@ -305,10 +305,10 @@ functions
         with open(output_file, 'w') as f:
             f.write(control_dict_content)
 
-        logger.debug(f"Generated controlDict: {output_file}")
+        logger.debug(f"สร้าง controlDict สำเร็จ: {output_file}")
 
     def generate_fv_schemes(self, case_dir: str, numerics_params: Dict[str, Any]):
-        """Generate fvSchemes file"""
+        """สร้างไฟล์ fvSchemes"""
         output_file = os.path.join(case_dir, 'system', 'fvSchemes')
 
         grad_scheme = numerics_params.get('grad_scheme', 'Gauss linear')
@@ -349,7 +349,7 @@ laplacianSchemes
             f.write(fv_schemes_content)
 
     def generate_fv_solution(self, case_dir: str, solver_params: Dict[str, Any]):
-        """Generate fvSolution file"""
+        """สร้างไฟล์ fvSolution"""
         output_file = os.path.join(case_dir, 'system', 'fvSolution')
 
         tolerance = solver_params.get('tolerance', 1e-6)
@@ -395,10 +395,10 @@ SIMPLE
             f.write(fv_solution_content)
 
     def generate_boundary_conditions(self, case_dir: str, boundary_params: Dict[str, Any]):
-        """Generate initial field files in 0/ directory"""
+        """สร้างไฟล์ฟิลด์เริ่มต้นในไดเรกทอรี 0/"""
         zero_dir = os.path.join(case_dir, '0')
 
-        # Velocity field
+        # ฟิลด์ความเร็ว (Velocity)
         inlet_velocity = boundary_params.get('inlet_velocity', 1.0)
 
         velocity_content = f"""FoamFile
@@ -437,7 +437,7 @@ boundaryField
         with open(os.path.join(zero_dir, 'U'), 'w') as f:
             f.write(velocity_content)
 
-        # Pressure field
+        # ฟิลด์ความดัน (Pressure)
         outlet_pressure = boundary_params.get('outlet_pressure', 0)
 
         pressure_content = f"""FoamFile
@@ -477,7 +477,7 @@ boundaryField
             f.write(pressure_content)
 
     def generate_turbulence_properties(self, case_dir: str, turb_params: Dict[str, Any]):
-        """Generate turbulence properties file"""
+        """สร้างไฟล์ Turbulence properties"""
         output_file = os.path.join(case_dir, 'constant', 'turbulenceProperties')
 
         model_type = turb_params.get('model', 'kEpsilon')
@@ -507,7 +507,7 @@ RAS
             f.write(turb_content)
 
     def generate_mesh_quality_controls(self, case_dir: str, mesh_params: Dict[str, Any]):
-        """Generate mesh quality control file"""
+        """สร้างไฟล์ควบคุมคุณภาพเมช"""
         quality_file = os.path.join(case_dir, 'system', 'meshQualityDict')
 
         max_non_ortho = mesh_params.get('max_non_orthogonal', 70)
@@ -530,97 +530,97 @@ maxSkewness     {max_skewness};
             f.write(quality_content)
 
     def copy_additional_files(self, case_dir: str, copy_files: List[str]):
-        """Copy additional files to case directory"""
+        """คัดลอกไฟล์เพิ่มเติมไปยังไดเรกทอรีกรณีศึกษา"""
         for file_spec in copy_files:
             src_file = file_spec
             dst_file = os.path.join(case_dir, os.path.basename(file_spec))
 
             try:
                 shutil.copy2(src_file, dst_file)
-                logger.debug(f"Copied file: {src_file} -> {dst_file}")
+                logger.debug(f"คัดลอกไฟล์: {src_file} -> {dst_file}")
             except Exception as e:
-                logger.error(f"Failed to copy file {src_file}: {e}")
+                logger.error(f"คัดลอกไฟล์ {src_file} ไม่สำเร็จ: {e}")
 
     def generate_readme(self, case_dir: str, case_name: str, params: Dict[str, Any]):
-        """Generate README file for case"""
+        """สร้างไฟล์ README สำหรับกรณีศึกษา"""
         readme_file = os.path.join(case_dir, 'README.md')
 
         readme_content = f"""# {case_name}
 
-## Case Description
-Automatically generated by OpenFOAM case generator
+## คำอธิบายกรณีศึกษา (Case Description)
+สร้างขึ้นโดยอัตโนมัติโดยเครื่องมือสร้างกรณีศึกษาของ OpenFOAM
 
-## Parameters
+## พารามิเตอร์ (Parameters)
 
-### Mesh Parameters
-- Grid: {params.get('meshing', {}).get('nx', 50)} × {params.get('meshing', {}).get('ny', 50)} × {params.get('meshing', {}).get('nz', 20)}
-- Domain: {params.get('meshing', {}).get('lx', 1.0)} × {params.get('meshing', {}).get('ly', 1.0)} × {params.get('meshing', {}).get('lz', 1.0)}
+### พารามิเตอร์เมช (Mesh Parameters)
+- กริต: {params.get('meshing', {}).get('nx', 50)} × {params.get('meshing', {}).get('ny', 50)} × {params.get('meshing', {}).get('nz', 20)}
+- โดเมน: {params.get('meshing', {}).get('lx', 1.0)} × {params.get('meshing', {}).get('ly', 1.0)} × {params.get('meshing', {}).get('lz', 1.0)}
 
-### Solver Parameters
-- Solver: {params.get('solver', {}).get('type', 'simpleFoam')}
-- End time: {params.get('solver', {}).get('end_time', 1000)}
+### พารามิเตอร์ตัวแก้ปัญหา (Solver Parameters)
+- ตัวแก้ปัญหา (Solver): {params.get('solver', {}).get('type', 'simpleFoam')}
+- เวลาสิ้นสุด: {params.get('solver', {}).get('end_time', 1000)}
 
-## Usage
+## การใช้งาน (Usage)
 
-1. Generate mesh:
+1. สร้างเมช:
 ```bash
 cd {case_name}
 blockMesh
 ```
 
-2. Run solver:
+2. รันตัวแก้ปัญหา:
 ```bash
 {params.get('solver', {}).get('type', 'simpleFoam')}
 ```
 
-## Notes
-This case was automatically generated. Verify all settings before running simulation.
+## หมายเหตุ (Notes)
+กรณีศึกษานี้ถูกสร้างขึ้นโดยอัตโนมัติ โปรดตรวจสอบการตั้งค่าทั้งหมดก่อนรันการจำลอง
 """
 
         with open(readme_file, 'w') as f:
             f.write(readme_content)
 
     def batch_generate(self) -> List[str]:
-        """Generate multiple cases from parameter scan"""
-        logger.info("Starting batch case generation...")
+        """สร้างกรณีศึกษาหลายกรณีจากการสแกนพารามิเตอร์"""
+        logger.info("กำลังเริ่มการสร้างกรณีศึกษาแบบกลุ่ม...")
 
         case_matrix = self.config['cases']
         generated_cases = []
 
         for i, case_config in enumerate(case_matrix):
             case_name = case_config['name']
-            logger.info(f"Generating case {i+1}/{len(case_matrix)}: {case_name}")
+            logger.info(f"กำลังสร้างกรณีศึกษา {i+1}/{len(case_matrix)}: {case_name}")
 
             try:
                 case_path = self.generate_case(case_name, case_config)
                 generated_cases.append(case_path)
-                logger.info(f"✓ Success: {case_name}")
+                logger.info(f"✓ สำเร็จ: {case_name}")
             except Exception as e:
-                logger.error(f"✗ Failed to generate case {case_name}: {e}")
+                logger.error(f"✗ สร้างกรณีศึกษา {case_name} ไม่สำเร็จ: {e}")
                 continue
 
-        logger.info(f"Batch generation complete: {len(generated_cases)}/{len(case_matrix)} cases generated")
+        logger.info(f"การสร้างแบบกลุ่มเสร็จสิ้น: สร้างกรณีศึกษาได้ {len(generated_cases)}/{len(case_matrix)} รายการ")
         return generated_cases
 
 
 def main():
-    """Main function for command-line usage"""
+    """ฟังก์ชันหลักสำหรับการใช้งานผ่านบรรทัดคำสั่ง"""
     import argparse
 
     parser = argparse.ArgumentParser(description='OpenFOAM automated case generator')
-    parser.add_argument('config', help='YAML configuration file')
+    parser.add_argument('config', help='ไฟล์กำหนดค่า YAML')
     parser.add_argument('--generate-only', action='store_true',
-                       help='Generate cases only without submission')
+                       help='สร้างกรณีศึกษาเท่านั้นโดยไม่ส่งงาน')
 
     args = parser.parse_args()
 
     try:
         generator = CaseGenerator(args.config)
         generated_cases = generator.batch_generate()
-        logger.info("Case generation complete!")
+        logger.info("สร้างกรณีศึกษาเสร็จสิ้น!")
         return 0
     except Exception as e:
-        logger.error(f"Case generation failed: {e}")
+        logger.error(f"สร้างกรณีศึกษาไม่สำเร็จ: {e}")
         return 1
 
 
@@ -628,19 +628,19 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-> [!INFO] Configuration File Format
-> The generator requires a YAML configuration file specifying base directory and case parameters. See backup file `05_🔧_Advanced_Utilities_and_Automation.md.bak` for complete examples.
+> [!INFO] รูปแบบไฟล์กำหนดค่า (Configuration File Format)
+> ตัวสร้างกรณีศึกษาต้องการไฟล์กำหนดค่า YAML ที่ระบุไดเรกทอรีหลักและพารามิเตอร์กรณีศึกษา ดูตัวอย่างที่สมบูรณ์ได้ในไฟล์สำรอง `05_🔧_Advanced_Utilities_and_Automation.md.bak`
 
 ---
 
-## Part 2: Mesh Quality Analysis Tools
+## ส่วนที่ 2: เครื่องมือวิเคราะห์คุณภาพเมช (Mesh Quality Analysis Tools)
 
-### 2.1 Comprehensive Mesh Quality Analyzer
+### 2.1 เครื่องมือวิเคราะห์คุณภาพเมชที่ครอบคลุม
 
 ```python
 #!/usr/bin/env python3
 """
-Comprehensive Mesh Quality Analyzer for OpenFOAM meshes
+เครื่องมือวิเคราะห์คุณภาพเมชที่ครอบคลุมสำหรับเมชของ OpenFOAM
 """
 
 import numpy as np
@@ -657,8 +657,8 @@ class MeshQualityAnalyzer:
         self.load_mesh_data()
 
     def load_mesh_data(self):
-        """Load mesh data from OpenFOAM case directory"""
-        # Run checkMesh and capture output
+        """โหลดข้อมูลเมชจากไดเรกทอรีกรณีศึกษาของ OpenFOAM"""
+        # รัน checkMesh และบันทึกผลลัพธ์
         try:
             result = subprocess.run(
                 ['checkMesh', '-case', self.case_dir, '-writeAllSurfaces', '-latestTime'],
@@ -666,38 +666,38 @@ class MeshQualityAnalyzer:
             )
             self.checkmesh_output = result.stdout
         except subprocess.CalledProcessError as e:
-            print(f"Error running checkMesh: {e}")
+            print(f"เกิดข้อผิดพลาดในการรัน checkMesh: {e}")
             self.checkmesh_output = ""
 
     def calculate_quality_metrics(self):
-        """Calculate comprehensive mesh quality metrics"""
+        """คำนวณตัวชี้วัดคุณภาพเมชที่ครอบคลุม"""
         metrics = {}
 
-        # Parse checkMesh output for quality metrics
+        # วิเคราะห์ผลลัพธ์จาก checkMesh สำหรับตัวชี้วัดคุณภาพ
         lines = self.checkmesh_output.split('\n')
         for line in lines:
             line = line.strip()
 
-            # Non-orthogonality analysis
+            # วิเคราะห์ความไม่ตั้งฉาก (Non-orthogonality)
             if 'non-orthogonal' in line:
                 if 'cells with non-orthogonality' in line:
                     metrics['non_orthogonal_cells'] = int(line.split()[0])
                 if 'maximum non-orthogonality' in line:
                     metrics['max_non_orthogonality'] = float(line.split()[-1])
 
-            # Skewness analysis
+            # วิเคราะห์ความเบ้ (Skewness)
             if 'skewness' in line:
                 if 'skewness cells' in line:
                     metrics['skewness_cells'] = int(line.split()[0])
                 if 'maximum skewness' in line:
                     metrics['max_skewness'] = float(line.split()[-1])
 
-            # Aspect ratio analysis
+            # วิเคราะห์อัตราส่วนรูปร่าง (Aspect ratio)
             if 'aspect ratio' in line:
                 if 'maximum aspect ratio' in line:
                     metrics['max_aspect_ratio'] = float(line.split()[-1])
 
-            # Cell and mesh statistics
+            # สถิติเซลล์และเมช
             if 'total cells' in line:
                 metrics['total_cells'] = int(line.split()[0])
             if 'total faces' in line:
@@ -708,17 +708,17 @@ class MeshQualityAnalyzer:
         return metrics
 
     def identify_problematic_cells(self, quality_metrics):
-        """Identify cells with quality issues"""
+        """ระบุเซลล์ที่มีปัญหาด้านคุณภาพ"""
         problematic_cells = []
 
-        # Define quality thresholds
+        # กำหนดเกณฑ์คุณภาพ
         thresholds = {
             'max_non_orthogonality': 70.0,
             'max_skewness': 4.0,
             'max_aspect_ratio': 1000.0
         }
 
-        # Check each threshold
+        # ตรวจสอบแต่ละเกณฑ์
         if quality_metrics.get('max_non_orthogonality', 0) > thresholds['max_non_orthogonality']:
             problematic_cells.append({
                 'type': 'non_orthogonality',
@@ -743,12 +743,12 @@ class MeshQualityAnalyzer:
         return problematic_cells
 ```
 
-### 2.2 Mesh Optimization Script
+### 2.2 สคริปต์การเพิ่มประสิทธิภาพเมช (Mesh Optimization Script)
 
 ```bash
 #!/bin/bash
-# Mesh optimization script for OpenFOAM
-# Usage: ./optimize_mesh.sh <case_directory>
+# สคริปต์การเพิ่มประสิทธิภาพเมชสำหรับ OpenFOAM
+# การใช้งาน: ./optimize_mesh.sh <case_directory>
 
 set -e
 
@@ -758,7 +758,7 @@ QUALITY_THRESHOLD_SKEWNESS=4
 QUALITY_THRESHOLD_ASPECT=1000
 MAX_ITERATIONS=3
 
-# Color output
+# สีสำหรับการแสดงผล
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -781,39 +781,39 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Check OpenFOAM environment
+# ตรวจสอบสภาพแวดล้อม OpenFOAM
 check_openfoam_env() {
     if ! command -v checkMesh &> /dev/null; then
-        log_error "OpenFOAM environment not sourced. Please source etc/bashrc first"
+        log_error "ยังไม่ได้ตั้งค่าสภาพแวดล้อม OpenFOAM โปรดทำการ source etc/bashrc ก่อน"
         exit 1
     fi
 }
 
-# Initial quality assessment
+# การประเมินคุณภาพเบื้องต้น
 assess_initial_quality() {
-    log_info "Assessing initial mesh quality..."
+    log_info "กำลังประเมินคุณภาพเมชเบื้องต้น..."
 
     local output_file="${CASE_DIR}/quality_initial.log"
 
     checkMesh -case "$CASE_DIR" -meshQuality > "$output_file" 2>&1 || true
 
-    # Extract key metrics
+    # สกัดตัวชี้วัดหลัก
     local max_non_ortho=$(grep -o "maximum non-orthogonality.*[0-9.]\+" "$output_file" | grep -o "[0-9.]\+" || echo "0")
     local max_skewness=$(grep -o "maximum skewness.*[0-9.]\+" "$output_file" | grep -o "[0-9.]\+" || echo "0")
 
     echo "MAX_NON_ORTHO=$max_non_ortho" > "${CASE_DIR}/quality_metrics.txt"
     echo "MAX_SKEWNESS=$max_skewness" >> "${CASE_DIR}/quality_metrics.txt"
 
-    log_info "Initial assessment complete"
-    log_info "   Max non-orthogonality: $max_non_ortho°"
-    log_info "   Max skewness: $max_skewness"
+    log_info "การประเมินเบื้องต้นเสร็จสิ้น"
+    log_info "   ความไม่ตั้งฉากสูงสุด: $max_non_ortho°"
+    log_info "   ความเบ้สูงสุด: $max_skewness"
 }
 
-# Identify problem regions
+# ระบุบริเวณที่มีปัญหา
 identify_problem_regions() {
-    log_info "Identifying problem regions..."
+    log_info "กำลังระบุบริเวณที่มีปัญหา..."
 
-    # Create refinement dictionary
+    # สร้างพจนานุกรมการปรับละเอียด
     mkdir -p "${CASE_DIR}/system"
 
     cat > "${CASE_DIR}/system/topoSetDict" << 'EOF'
@@ -846,15 +846,15 @@ EOF
 
     topoSet -case "$CASE_DIR" > /dev/null 2>&1 || true
 
-    log_info "Problem region identification complete"
+    log_info "ระบุบริเวณที่มีปัญหาเสร็จสิ้น"
 }
 
-# Apply local refinement
+# ประยุกต์ใช้การปรับละเอียดเฉพาะจุด
 apply_local_refinement() {
-    log_info "Applying local mesh refinement..."
+    log_info "กำลังประยุกต์ใช้การปรับละเอียดเมชเฉพาะจุด..."
 
     if [ ! -d "${CASE_DIR}/constant/polyMesh/sets" ]; then
-        log_warning "No cell sets found - skipping local refinement"
+        log_warning "ไม่พบชุดของเซลล์ (cell sets) - ข้ามการปรับละเอียดเฉพาะจุด"
         return 1
     fi
 
@@ -866,38 +866,38 @@ writeMesh        true;
 EOF
 
     if refineMesh -case "$CASE_DIR" -overwrite > "${CASE_DIR}/refinement.log" 2>&1; then
-        log_success "Local refinement complete"
+        log_success "การปรับละเอียดเฉพาะจุดเสร็จสิ้น"
         return 0
     else
-        log_warning "Local refinement failed"
+        log_warning "การปรับละเอียดเฉพาะจุดล้มเหลว"
         return 1
     fi
 }
 
-# Optimize mesh iteratively
+# เพิ่มประสิทธิภาพเมชแบบวนซ้ำ
 optimize_mesh_iteratively() {
-    log_info "Starting iterative mesh optimization..."
+    log_info "กำลังเริ่มการเพิ่มประสิทธิภาพเมชแบบวนซ้ำ..."
 
     local iteration=1
     local improved=false
 
     while [ $iteration -le $MAX_ITERATIONS ]; do
-        log_info "Optimization iteration $iteration/$MAX_ITERATIONS"
+        log_info "การวนซ้ำรอบการเพิ่มประสิทธิภาพ $iteration/$MAX_ITERATIONS"
 
         assess_current_quality
 
-        # Read current metrics
+        # อ่านตัวชี้วัดปัจจุบัน
         source "${CASE_DIR}/quality_metrics.txt"
 
         local needs_optimization=false
 
         if (( $(echo "$MAX_NON_ORTHO > $QUALITY_THRESHOLD_NONORTHO" | bc -l) )); then
-            log_warning "Non-orthogonality ($MAX_NON_ORTHO°) exceeds threshold ($QUALITY_THRESHOLD_NONORTHO°)"
+            log_warning "ความไม่ตั้งฉาก ($MAX_NON_ORTHO°) เกินเกณฑ์ ($QUALITY_THRESHOLD_NONORTHO°)"
             needs_optimization=true
         fi
 
         if (( $(echo "$MAX_SKEWNESS > $QUALITY_THRESHOLD_SKEWNESS" | bc -l) )); then
-            log_warning "Skewness ($MAX_SKEWNESS) exceeds threshold ($QUALITY_THRESHOLD_SKEWNESS)"
+            log_warning "ความเบ้ ($MAX_SKEWNESS) เกินเกณฑ์ ($QUALITY_THRESHOLD_SKEWNESS)"
             needs_optimization=true
         fi
 
@@ -906,7 +906,7 @@ optimize_mesh_iteratively() {
                 improved=true
             fi
         else
-            log_success "Mesh quality meets all thresholds"
+            log_success "คุณภาพเมชเป็นไปตามเกณฑ์ทั้งหมดแล้ว"
             break
         fi
 
@@ -914,11 +914,11 @@ optimize_mesh_iteratively() {
     done
 
     if [ "$improved" = "true" ]; then
-        log_success "Mesh optimization complete"
+        log_success "การเพิ่มประสิทธิภาพเมชเสร็จสิ้น"
     fi
 }
 
-# Assess current quality
+# ประเมินคุณภาพปัจจุบัน
 assess_current_quality() {
     local output_file="${CASE_DIR}/quality_current.log"
 
@@ -931,34 +931,34 @@ assess_current_quality() {
     echo "MAX_SKEWNESS=$max_skewness" >> "${CASE_DIR}/quality_metrics.txt"
 }
 
-# Main optimization function
+# ฟังก์ชันการเพิ่มประสิทธิภาพหลัก
 main() {
-    log_info "Starting mesh optimization for case: $CASE_DIR"
+    log_info "กำลังเริ่มการเพิ่มประสิทธิภาพเมชสำหรับกรณีศึกษา: $CASE_DIR"
 
     if [ ! -d "$CASE_DIR" ]; then
-        log_error "Case directory not found: $CASE_DIR"
+        log_error "ไม่พบไดเรกทอรีกรณีศึกษา: $CASE_DIR"
         exit 1
     fi
 
     check_openfoam_env
 
     if [ ! -f "${CASE_DIR}/constant/polyMesh/points" ]; then
-        log_error "No mesh found in case directory"
+        log_error "ไม่พบเมชในไดเรกทอรีกรณีศึกษา"
         exit 1
     fi
 
-    # Backup original mesh
+    # สำรองเมชต้นฉบับ
     if [ ! -d "${CASE_DIR}/constant/polyMesh.bak" ]; then
-        log_info "Backing up original mesh..."
+        log_info "กำลังสำรองเมชต้นฉบับ..."
         cp -r "${CASE_DIR}/constant/polyMesh" "${CASE_DIR}/constant/polyMesh.bak"
     fi
 
-    # Main workflow
+    # ขั้นตอนการทำงานหลัก
     assess_initial_quality
     identify_problem_regions
     optimize_mesh_iteratively
 
-    log_success "Mesh optimization completed successfully!"
+    log_success "การเพิ่มประสิทธิภาพเมชเสร็จสมบูรณ์!"
 }
 
 if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
@@ -968,11 +968,11 @@ fi
 
 ---
 
-## Part 3: Performance Optimization
+## ส่วนที่ 3: การเพิ่มประสิทธิภาพการทำงาน (Performance Optimization)
 
-### 3.1 Memory Optimization
+### 3.1 การเพิ่มประสิทธิภาพหน่วยความจำ
 
-Efficient memory management is crucial for large-scale mesh generation projects.
+การจัดการหน่วยความจำที่มีประสิทธิภาพเป็นสิ่งสำคัญสำหรับโครงการสร้างเมชขนาดใหญ่
 
 ```python
 #!/usr/bin/env python3
@@ -983,7 +983,7 @@ import time
 import sys
 
 def monitor_memory(interval=1.0, output_file="memory_monitor.log"):
-    """Monitor memory usage and log to file"""
+    """ติดตามการใช้หน่วยความจำและบันทึกลงไฟล์"""
     with open(output_file, 'w') as f:
         f.write("Time(s),Memory_GB,Memory_Percent\n")
 
@@ -998,13 +998,13 @@ def monitor_memory(interval=1.0, output_file="memory_monitor.log"):
 
                 time.sleep(interval)
         except KeyboardInterrupt:
-            print(f"Monitoring stopped, data saved to {output_file}")
+            print(f"หยุดการติดตาม บันทึกข้อมูลไปยัง {output_file}")
 
 if __name__ == "__main__":
     monitor_memory()
 ```
 
-### 3.2 Parallel Processing Optimization
+### 3.2 การเพิ่มประสิทธิภาพการประมวลผลแบบขนาน
 
 ```bash
 #!/bin/bash
@@ -1013,19 +1013,19 @@ if __name__ == "__main__":
 set -e
 
 CASE_DIR="${1:-.}"
-echo "Optimized meshing for case: $CASE_DIR"
+echo "กำลังรันเมชแบบเพิ่มประสิทธิภาพสำหรับกรณีศึกษา: $CASE_DIR"
 
-# Environment optimization
+# การเพิ่มประสิทธิภาพสภาพแวดล้อม
 export OMP_NUM_THREADS=8
 export FOAM_MAXTHREADS=8
 export WM_NCOMPPROCS=4
 
-# Calculate optimal decomposition
-N_PROCS=$(python3 -c "import min(8, math.ceil($TARGET_CELLS/50000))")
+# คำนวณการแบ่งโดเมนที่เหมาะสมที่สุด
+N_PROCS=$(python3 -c "import math; print(min(8, math.ceil($TARGET_CELLS/50000)))")
 
-echo "Using $N_PROCS processors for parallel operations"
+echo "กำลังใช้โปรเซสเซอร์จำนวน $N_PROCS ตัวสำหรับการทำงานแบบขนาน"
 
-# Generate decomposition dictionary
+# สร้างพจนานุกรมการแบ่งโดเมน (Decomposition dictionary)
 cat > system/decomposeParDict << EOF
 numberOfSubdomains $N_PROCS;
 
@@ -1038,25 +1038,25 @@ simpleCoeffs
 }
 EOF
 
-# Decompose and run in parallel
+# แบ่งโดเมนและรันแบบขนาน
 decomposePar -case "$CASE_DIR" -force > decompose.log 2>&1
 mpirun -np $N_PROCS snappyHexMesh -parallel -case "$CASE_DIR" -overwrite
 reconstructPar -case "$CASE_DIR" -latestTime
 
-echo "Parallel meshing complete!"
+echo "การสร้างเมชแบบขนานเสร็จสิ้น!"
 ```
 
 ---
 
-## Part 4: Batch Processing & Cluster Integration
+## ส่วนที่ 4: การประมวลผลแบบกลุ่มและการบูรณาการกับคลัสเตอร์ (Batch Processing & Cluster Integration)
 
-### 4.1 HPC Queue Integration
+### 4.1 การบูรณาการกับคิวงานบน HPC
 
-**SLURM Job Script:**
+**สคริปต์ส่งงาน SLURM:**
 
 ```bash
 #!/bin/bash
-# SLURM job submission script
+# สคริปต์ส่งงาน SLURM
 
 #SBATCH --job-name=openfoam_mesh
 #SBATCH --output=meshing_%j.out
@@ -1065,32 +1065,32 @@ echo "Parallel meshing complete!"
 #SBATCH --time=24:00:00
 #SBATCH --partition=normal
 
-# Load OpenFOAM environment
+# โหลดสภาพแวดล้อม OpenFOAM
 source /opt/openfoam/etc/bashrc
 
-# Change to case directory
+# เปลี่ยนไปยังไดเรกทอรีกรณีศึกษา
 cd $SLURM_SUBMIT_DIR
 
-# Generate mesh
-echo "Generating mesh..."
+# สร้างเมช
+echo "กำลังสร้างเมช..."
 blockMesh
 
-# Check mesh quality
-echo "Checking mesh quality..."
+# ตรวจสอบคุณภาพเมช
+echo "กำลังตรวจสอบคุณภาพเมช..."
 checkMesh
 
-# Run solver
-echo "Running solver..."
+# รันตัวแก้ปัญหา
+echo "กำลังรันตัวแก้ปัญหา..."
 simpleFoam
 
-echo "Simulation complete!"
+echo "การจำลองเสร็จสิ้น!"
 ```
 
-### 4.2 Batch Case Submission
+### 4.2 การส่งกรณีศึกษาแบบกลุ่ม
 
 ```python
 def submit_cases_to_cluster(self, cases: Optional[List[str]] = None) -> List[str]:
-    """Submit generated cases to HPC cluster"""
+    """ส่งกรณีศึกษาที่สร้างขึ้นไปยังคลัสเตอร์ HPC"""
     if cases is None:
         cases = []
         for case_name in os.listdir(self.config['base_directory']):
@@ -1103,52 +1103,52 @@ def submit_cases_to_cluster(self, cases: Optional[List[str]] = None) -> List[str
     for case_dir in cases:
         case_name = os.path.basename(case_dir)
 
-        # Check if already submitted
+        # ตรวจสอบว่าถูกส่งไปแล้วหรือยัง
         if os.path.exists(os.path.join(case_dir, '.submitted')):
-            logger.info(f"Case {case_name} already submitted - skipping")
+            logger.info(f"กรณีศึกษา {case_name} ถูกส่งไปแล้ว - ข้าม")
             continue
 
-        logger.info(f"Submitting case to cluster: {case_name}")
+        logger.info(f"กำลังส่งกรณีศึกษาไปยังคลัสเตอร์: {case_name}")
 
         try:
             job_id = self.submit_job(case_name, case_dir)
             if job_id:
                 submitted_jobs.append(job_id)
 
-                # Mark case as submitted
+                # บันทึกสถานะการส่ง
                 with open(os.path.join(case_dir, '.submitted'), 'w') as f:
-                    f.write(f"Submitted: {subprocess.check_output(['date'], text=True).strip()}\n")
-                    f.write(f"Job ID: {job_id}\n")
+                    f.write(f"ส่งเมื่อ: {subprocess.check_output(['date'], text=True).strip()}\n")
+                    f.write(f"รหัสงาน (Job ID): {job_id}\n")
 
         except Exception as e:
-            logger.error(f"Failed to submit case {case_name}: {e}")
+            logger.error(f"ส่งกรณีศึกษา {case_name} ไม่สำเร็จ: {e}")
             continue
 
-    logger.info(f"Cluster submission complete: {len(submitted_jobs)} jobs submitted")
+    logger.info(f"การส่งงานไปยังคลัสเตอร์เสร็จสิ้น: ส่งงานไปทั้งหมด {len(submitted_jobs)} รายการ")
     return submitted_jobs
 ```
 
 ---
 
-## Summary
+## สรุป (Summary)
 
-This comprehensive automation framework provides:
+เฟรมเวิร์กการทำงานอัตโนมัติที่ครอบคลุมนี้จัดเตรียม:
 
-1. **Automated Case Generation** with parameter studies
-2. **Mesh Quality Analysis** with detailed reporting
-3. **Performance Optimization** for memory and parallel processing
-4. **Batch Processing Capabilities** for HPC clusters
-5. **Quality Assurance** with automated validation gates
-6. **Advanced Meshing Pipeline** integrating multiple tools
+1. **การสร้างกรณีศึกษาอัตโนมัติ** พร้อมการศึกษาพารามิเตอร์
+2. **การวิเคราะห์คุณภาพเมช** พร้อมการรายงานผลโดยละเอียด
+3. **การเพิ่มประสิทธิภาพการทำงาน** สำหรับหน่วยความจำและการประมวลผลแบบขนาน
+4. **ความสามารถในการประมวลผลแบบกลุ่ม** สำหรับคลัสเตอร์ HPC
+5. **การรับรองคุณภาพ** พร้อมประตูการตรวจสอบความถูกต้องแบบอัตโนมัติ
+6. **ท่อส่งการสร้างเมชขั้นสูง** ที่บูรณาการเครื่องมือหลากหลายเข้าด้วยกัน
 
-These tools enable systematic CFD workflows for research and engineering applications, ensuring consistency and quality in large-scale parameter studies.
+เครื่องมือเหล่านี้ช่วยให้สามารถทำขั้นตอนการทำงาน CFD อย่างเป็นระบบสำหรับงานวิจัยและการประยุกต์ใช้งานทางวิศวกรรม รับประกันความสม่ำเสมอและคุณภาพในการศึกษาพารามิเตอร์สเกลใหญ่
 
 ---
 
-## References
+## เอกสารอ้างอิง (References)
 
-- OpenFOAM User Guide: Mesh Generation
-- OpenFOAM Programmer's Guide: Mesh Quality Assessment
-- HPC Best Practices for Computational Fluid Dynamics
-- Automated Mesh Generation Algorithms and Optimization Techniques
-- See also: [[03_🎯_BlockMesh_Enhancement_Workflow]], [[04_🎯_snappyHexMesh_Workflow_Surface_Meshing_Excellence]], [[02_🏗️_CAD_to_CFD_Workflow]]
+- คู่มือผู้ใช้ OpenFOAM: การสร้างเมช
+- คู่มือโปรแกรมเมอร์ OpenFOAM: การประเมินคุณภาพเมช
+- แนวทางปฏิบัติที่ดีที่สุดสำหรับ HPC ในด้านพลศาสตร์ของไหลเชิงคำนวณ
+- อัลกอริทึมการสร้างเมชอัตโนมัติและเทคนิคการเพิ่มประสิทธิภาพ
+- ดูเพิ่มเติม: [[03_🎯_BlockMesh_Enhancement_Workflow]], [[04_🎯_snappyHexMesh_Workflow_Surface_Meshing_Excellence]], [[02_🏗️_CAD_to_CFD_Workflow]]

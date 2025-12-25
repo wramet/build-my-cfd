@@ -1,76 +1,76 @@
-# 🏗️ CAD Preparation for CFD: From Geometry to Simulation
+# 🏗️ การเตรียม CAD สำหรับ CFD: จากเรขาคณิตสู่การจำลอง (CAD Preparation for CFD: From Geometry to Simulation)
 
-> [!INFO] **Learning Objectives**
-> - Master CAD geometry preparation workflows for OpenFOAM
-> - Understand file format requirements and conversions
-> - Implement automated geometry repair and validation
-> - Apply quality control metrics for mesh generation
+> [!INFO] **วัตถุประสงค์การเรียนรู้**
+> - เชี่ยวชาญขั้นตอนการเตรียมเรขาคณิต CAD สำหรับ OpenFOAM
+> - เข้าใจข้อกำหนดรูปแบบไฟล์และการแปลงรูปแบบ
+> - ใช้งานการซ่อมแซมและการตรวจสอบความถูกต้องของเรขาคณิตแบบอัตโนมัติ
+> - ประยุกต์ใช้ตัวชี้วัดการควบคุมคุณภาพสำหรับการสร้างเมช
 
 ---
 
-## Overview
+## ภาพรวม (Overview)
 
-The journey from CAD to CFD simulation begins with proper geometry preparation. This critical phase determines mesh quality, numerical stability, and ultimately, simulation accuracy. OpenFOAM supports multiple geometry formats, each with specific advantages and limitations that impact the downstream workflow.
+การเดินทางจาก CAD ไปสู่การจำลอง CFD เริ่มต้นด้วยการเตรียมเรขาคณิตที่เหมาะสม ระยะวิกฤตนี้จะเป็นตัวกำหนดคุณภาพของเมช, เสถียรภาพเชิงตัวเลข และความแม่นยำของการจำลองในที่สุด OpenFOAM รองรับรูปแบบเรขาคณิตหลายรูปแบบ ซึ่งแต่ละรูปแบบมีข้อดีและข้อจำกัดเฉพาะที่ส่งผลกระทบต่อขั้นตอนการทำงานในลำดับถัดไป
 
 ```mermaid
 flowchart TD
-    A[Original CAD] --> B{Format Selection}
+    A[CAD ต้นฉบับ] --> B{การเลือกรูปแบบ}
     B --> C[STEP]
     B --> D[IGES]
     B --> E[STL]
 
-    C --> F[Parametric Surfaces]
-    D --> G[Legacy Format]
-    E --> H[Triangulation]
+    C --> F[พื้นผิวพารามิเตอร์]
+    D --> G[รูปแบบเก่า]
+    E --> H[การสร้างรูปสามเหลี่ยม]
 
-    F --> I[Geometry Repair]
+    F --> I[การซ่อมแซมเรขาคณิต]
     G --> I
     H --> I
-    I --> J[Feature Extraction]
-    J --> K[Validation]
-    K --> L[Mesh Generation]
+    I --> J[การสกัดคุณลักษณะ]
+    J --> K[การตรวจสอบความถูกต้อง]
+    K --> L[การสร้างเมช]
 ```
-> **Figure 1:** แผนภูมิขั้นตอนการเตรียมข้อมูล CAD สำหรับงาน CFD โดยเริ่มจากการเลือกรูปแบบไฟล์ (STEP, IGES, STL) การซ่อมแซมเรขาคณิต การสกัดคุณลักษณะเด่น (Feature Extraction) และการตรวจสอบความถูกต้องก่อนเริ่มกระบวนการสร้างเมช
+> **รูปที่ 1:** แผนภูมิขั้นตอนการเตรียมข้อมูล CAD สำหรับงาน CFD โดยเริ่มจากการเลือกรูปแบบไฟล์ (STEP, IGES, STL) การซ่อมแซมเรขาคณิต การสกัดคุณลักษณะเด่น (Feature Extraction) และการตรวจสอบความถูกต้องก่อนเริ่มกระบวนการสร้างเมช
 
 ---
 
-## Part 1: File Format Standards
+## ส่วนที่ 1: มาตรฐานรูปแบบไฟล์ (File Format Standards)
 
-### 1.1 Supported CAD Formats
+### 1.1 รูปแบบ CAD ที่รองรับ
 
-OpenFOAM accepts multiple geometry formats with varying capabilities:
+OpenFOAM ยอมรับรูปแบบเรขาคณิตหลายรูปแบบที่มีความสามารถแตกต่างกัน:
 
-| Format | Extension | Topology | Precision | Use Case |
+| รูปแบบ | นามสกุล | โทโพโลยี | ความแม่นยำ | กรณีใช้งาน |
 |--------|-----------|----------|-----------|----------|
-| **STEP** | `.stp`, `.step` | NURBS Surfaces | High | **Recommended** - Parametric geometry preservation |
-| **IGES** | `.igs`, `.iges` | NURBS Surfaces | Medium | Legacy systems, surface inconsistencies possible |
-| **STL** | `.stl` | Triangulated | Low-Medium | Direct meshing, requires quality control |
-| **OBJ** | `.obj` | Triangulated | Medium | Visualization, simple geometries |
-| **VTK** | `.vtk` | Triangulated | High | Visualization reference only |
+| **STEP** | `.stp`, `.step` | พื้นผิว NURBS | สูง | **แนะนำ** - รักษาเรขาคณิตแบบพารามิเตอร์ |
+| **IGES** | `.igs`, `.iges` | พื้นผิว NURBS | ปานกลาง | ระบบเก่า, อาจมีความไม่สอดคล้องของพื้นผิว |
+| **STL** | `.stl` | แบบสามเหลี่ยม | ต่ำ-ปานกลาง | การสร้างเมชโดยตรง, ต้องการการควบคุมคุณภาพ |
+| **OBJ** | `.obj` | แบบสามเหลี่ยม | ปานกลาง | การสร้างภาพ, เรขาคณิตอย่างง่าย |
+| **VTK** | `.vtk` | แบบสามเหลี่ยม | สูง | ใช้สำหรับอ้างอิงการสร้างภาพเท่านั้น |
 
-> [!TIP] **Format Recommendation**
-> Always use **STEP format** when available. It preserves parametric curves and surface continuity, preventing artifacts during mesh generation. STL should only be used when source CAD is unavailable.
+> [!TIP] **คำแนะนำรูปแบบไฟล์**
+> ควรใช้ **รูปแบบ STEP** เสมอเมื่อมีให้เลือก เนื่องจากสามารถรักษาเส้นโค้งพารามิเตอร์และความต่อเนื่องของพื้นผิวได้ ซึ่งช่วยป้องกันสิ่งแปลกปลอม (artifacts) ระหว่างการสร้างเมช ควรใช้ STL เฉพาะเมื่อไม่สามารถหาไฟล์ CAD ต้นฉบับได้เท่านั้น
 
-### 1.2 Format Conversion Workflow
+### 1.2 ขั้นตอนการแปลงรูปแบบไฟล์ (Format Conversion Workflow)
 
 ```bash
 #!/bin/bash
-# Comprehensive CAD format conversion pipeline
+# ท่อส่งการแปลงรูปแบบ CAD ที่ครอบคลุม
 
 convert_cad_to_openfoam() {
     local input_file="$1"
     local output_dir="constant/triSurface"
 
-    # Create output directory
+    # สร้างไดเรกทอรีผลลัพธ์
     mkdir -p "$output_dir"
 
-    # Detect input format
+    # ตรวจจับรูปแบบอินพุต
     local extension="${input_file##*.}"
 
     case "$extension" in
         "stp"|"step")
-            echo "Converting STEP to STL..."
-            # Using FreeCAD for STEP to STL conversion
+            echo "กำลังแปลง STEP เป็น STL..."
+            # ใช้ FreeCAD สำหรับการแปลง STEP เป็น STL
             python3 << EOF
 import FreeCAD
 import Import
@@ -80,81 +80,81 @@ import sys
 doc = FreeCAD.openDocument("$input_file")
 shape = doc.findObjects()[0].Shape
 
-# Export with quality control
+# ส่งออกพร้อมการควบคุมคุณภาพ
 mesh = Mesh.exportShape([
     shape,
     "output.stl",
     Mesh.MeshProperty()
 ])
 
-# Set meshing parameters
+# ตั้งค่าพารามิเตอร์การสร้างเมช
 mesh.harmonizeNormals()
 mesh.removeDuplicatedPoints()
 mesh.removeNonManifolds()
 EOF
-            ;;
+            ;; 
 
         "igs"|"iges")
-            echo "Converting IGES to STL..."
+            echo "กำลังแปลง IGES เป็น STL..."
             python3 convert_iges_to_stl.py "$input_file" "$output_dir/geometry.stl"
-            ;;
+            ;; 
 
         "stl")
-            echo "Copying STL file..."
+            echo "กำลังคัดลอกไฟล์ STL..."
             cp "$input_file" "$output_dir/geometry.stl"
-            ;;
+            ;; 
 
         *)
-            echo "Error: Unsupported format $extension"
+            echo "ข้อผิดพลาด: ไม่รองรับรูปแบบ $extension"
             return 1
-            ;;
+            ;; 
     esac
 
-    # Validate output
+    # ตรวจสอบความถูกต้องของผลลัพธ์
     surfaceCheck "$output_dir/geometry.stl"
 }
 ```
 
-📂 **Source:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
+📂 **แหล่งที่มา:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
 
-**Explanation:**
+**คำอธิบาย:**
 สคริปต์นี้แสดงขั้นตอนการแปลงไฟล์ CAD ในรูปแบบต่างๆ (STEP, IGES, STL) ให้อยู่ในรูปแบบที่ OpenFOAM สามารถนำไปใช้งานได้ โดยเฉพาะอย่างยิ่งการแปลงเป็นไฟล์ STL ที่ใช้สำหรับการสร้าง mesh
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - **Format Detection**: การตรวจจับประเภทไฟล์จากนามสกุลไฟล์อัตโนมัติ
 - **FreeCAD Integration**: การใช้ FreeCAD ผ่าน Python API เพื่อแปลงไฟล์ STEP เป็น STL พร้อมการปรับปรุงคุณภาพ mesh
-- **Mesh Quality Control**: การ harmonize normals, ลบจุดซ้ำ และลบ non-manifold geometry
+- **Mesh Quality Control**: การทำให้เวกเตอร์ปกติสอดคล้องกัน (harmonize normals), ลบจุดซ้ำ และลบ non-manifold geometry
 - **OpenFOAM Directory Structure**: การจัดเก็บไฟล์ใน `constant/triSurface/` ซึ่งเป็นตำแหน่งมาตรฐานของ OpenFOAM
 - **Validation Pipeline**: การใช้ `surfaceCheck` เพื่อตรวจสอบความถูกต้องของ geometry
 
-### 1.3 Mathematical Representation Differences
+### 1.3 ความแตกต่างในการแสดงผลทางคณิตศาสตร์
 
-The fundamental difference between formats lies in geometry representation:
+ความแตกต่างพื้นฐานระหว่างรูปแบบต่างๆ อยู่ที่การแสดงผลเรขาคณิต:
 
-**Parametric Surfaces (STEP/IGES):**
+**พื้นผิวพารามิเตอร์ (Parametric Surfaces - STEP/IGES):**
 $$\mathbf{S}(u,v) = \sum_{i=0}^{n} \sum_{j=0}^{m} N_{i,p}(u) N_{j,q}(v) \mathbf{P}_{i,j}$$
 
-Where:
-- $\mathbf{S}(u,v)$ is the surface point at parameters $(u,v)$
-- $N_{i,p}$ and $N_{j,q}$ are B-spline basis functions
-- $\mathbf{P}_{i,j}$ are control points
-- $p, q$ are degrees in $u, v$ directions
+โดยที่:
+- $\mathbf{S}(u,v)$ คือจุดบนพื้นผิวที่พารามิเตอร์ $(u,v)$
+- $N_{i,p}$ และ $N_{j,q}$ คือฟังก์ชันฐาน B-spline
+- $\mathbf{P}_{i,j}$ คือจุดควบคุม (control points)
+- $p, q$ คือดีกรีในทิศทาง $u, v$
 
-**Triangulated Surfaces (STL):**
+**พื้นผิวแบบสามเหลี่ยม (Triangulated Surfaces - STL):**
 $$\mathbf{T} = \bigcup_{k=1}^{N_{\text{tri}}} \triangle_k$$
 
-Where each triangle $\triangle_k$ is defined by three vertices and a normal vector. The discretization error depends on triangle count and curvature approximation.
+โดยที่รูปสามเหลี่ยม $\triangle_k$ แต่ละรูปกำหนดโดยจุดยอดสามจุดและเวกเตอร์ปกติหนึ่งตัว ข้อผิดพลาดจากการแยกส่วน (discretization error) ขึ้นอยู่กับจำนวนรูปสามเหลี่ยมและการประมาณค่าความโค้ง
 
 ---
 
-## Part 2: Geometry Defects and Repair
+## ส่วนที่ 2: ข้อบกพร่องและการซ่อมแซมเรขาคณิต (Geometry Defects and Repair)
 
-### 2.1 Common CAD Defects
+### 2.1 ข้อบกพร่องของ CAD ที่พบบ่อย
 
 ```python
 #!/usr/bin/env python3
 """
-CAD geometry defect detection and classification
+การตรวจจับและจำแนกข้อบกพร่องของเรขาคณิต CAD
 """
 
 class GeometryDefect:
@@ -168,7 +168,7 @@ class GeometryDefect:
 
 def detect_defects(stl_file):
     """
-    Comprehensive defect detection using mesh analysis
+    การตรวจจับข้อบกพร่องอย่างครอบคลุมโดยใช้การวิเคราะห์เมช
     """
     import trimesh
     import numpy as np
@@ -176,14 +176,14 @@ def detect_defects(stl_file):
     mesh = trimesh.load_mesh(stl_file)
     defects = {}
 
-    # 1. Non-manifold edges detection
+    # 1. การตรวจจับขอบแบบ Non-manifold
     non_manifold_edges = mesh.non_manifold_edges()
     defects[GeometryDefect.NON_MANIFOLD] = {
         'count': len(non_manifold_edges),
         'edges': non_manifold_edges.tolist() if len(non_manifold_edges) > 0 else []
     }
 
-    # 2. Zero-thickness regions
+    # 2. บริเวณที่มีความหนาเป็นศูนย์
     thickness = compute_local_thickness(mesh)
     zero_thickness_regions = np.where(thickness < 1e-6)[0]
     defects[GeometryDefect.ZERO_THICKNESS] = {
@@ -191,19 +191,19 @@ def detect_defects(stl_file):
         'regions': zero_thickness_regions.tolist()
     }
 
-    # 3. Normal consistency check
+    # 3. การตรวจสอบความสอดคล้องของเวกเตอร์ปกติ
     face_normals = mesh.face_normals
     centroid = mesh.centroid
     vectors_to_centroid = centroid - mesh.triangles_center
     alignment = np.sum(face_normals * vectors_to_centroid, axis=1)
 
-    reversed_normals = np.where(alignment > 0)[0]  # Normals pointing inward
+    reversed_normals = np.where(alignment > 0)[0]  # เวกเตอร์ปกติชี้เข้าด้านใน
     defects[GeometryDefect.REVERSED_NORMALS] = {
         'count': len(reversed_normals),
         'faces': reversed_normals.tolist()
     }
 
-    # 4. Small features detection
+    # 4. การตรวจจับรายละเอียดขนาดเล็ก
     edge_lengths = mesh.edges_unique_length
     small_features_threshold = np.percentile(edge_lengths, 1)
     small_edges = np.where(edge_lengths < small_features_threshold)[0]
@@ -216,14 +216,14 @@ def detect_defects(stl_file):
 
 def compute_local_thickness(mesh, n_samples=1000):
     """
-    Compute local wall thickness using ray-tracing
+    คำนวณความหนาผนังเฉพาะจุดโดยใช้การยิงลำแสง (Ray-tracing)
     """
     import trimesh
 
-    # Sample points on surface
+    # สุ่มจุดตัวอย่างบนพื้นผิว
     points, face_indices = trimesh.sample.sample_surface(mesh, n_samples)
 
-    # For each point, cast ray in normal direction
+    # สำหรับแต่ละจุด ให้ยิงลำแสงในทิศทางปกติ
     normals = mesh.face_normals[face_indices]
     thickness = np.zeros(n_samples)
 
@@ -231,16 +231,16 @@ def compute_local_thickness(mesh, n_samples=1000):
         ray_origin = points[i]
         ray_direction = normals[i]
 
-        # Find intersection with mesh
+        # หาจุดตัดกับเมช
         locations, _, _ = mesh.ray.intersects_location(
             ray_origins=[ray_origin],
             ray_directions=[ray_direction]
         )
 
         if len(locations) > 1:
-            # Distance to closest intersection (excluding self)
+            # ระยะทางไปยังจุดตัดที่ใกล้ที่สุด (ไม่รวมตัวเอง)
             distances = np.linalg.norm(locations - ray_origin, axis=1)
-            distances = distances[distances > 1e-10]  # Remove self-intersection
+            distances = distances[distances > 1e-10]  # ลบจุดตัดกับตัวเองออก
             if len(distances) > 0:
                 thickness[i] = np.min(distances)
 
@@ -248,11 +248,11 @@ def compute_local_thickness(mesh, n_samples=1000):
 
 def generate_defect_report(defects, output_file="defect_report.json"):
     """
-    Generate detailed defect report with severity assessment
+    สร้างรายงานข้อบกพร่องโดยละเอียดพร้อมการประเมินความรุนแรง
     """
     import json
 
-    # Assess severity
+    # ประเมินความรุนแรง
     severity_scores = {
         GeometryDefect.NON_MANIFOLD: defects[GeometryDefect.NON_MANIFOLD]['count'] * 10,
         GeometryDefect.ZERO_THICKNESS: defects[GeometryDefect.ZERO_THICKNESS]['count'] * 50,
@@ -263,13 +263,13 @@ def generate_defect_report(defects, output_file="defect_report.json"):
     total_score = sum(severity_scores.values())
 
     if total_score == 0:
-        severity = "CLEAN"
+        severity = "สะอาด (CLEAN)"
     elif total_score < 50:
-        severity = "MINOR"
+        severity = "เล็กน้อย (MINOR)"
     elif total_score < 200:
-        severity = "MODERATE"
+        severity = "ปานกลาง (MODERATE)"
     else:
-        severity = "CRITICAL"
+        severity = "วิกฤต (CRITICAL)"
 
     report = {
         'severity': severity,
@@ -285,41 +285,41 @@ def generate_defect_report(defects, output_file="defect_report.json"):
 
 def generate_recommendations(defects):
     """
-    Generate specific repair recommendations based on detected defects
+    สร้างคำแนะนำการซ่อมแซมเฉพาะเจาะจงตามข้อบกพร่องที่ตรวจพบ
     """
     recommendations = []
 
     if defects[GeometryDefect.NON_MANIFOLD]['count'] > 0:
         recommendations.append({
-            'defect': 'Non-manifold edges',
-            'action': 'Split edges or merge faces',
-            'priority': 'HIGH' if defects[GeometryDefect.NON_MANIFOLD]['count'] > 10 else 'MEDIUM'
+            'defect': 'ขอบแบบ Non-manifold',
+            'action': 'แยกขอบหรือรวมหน้าผิว',
+            'priority': 'สูง (HIGH)' if defects[GeometryDefect.NON_MANIFOLD]['count'] > 10 else 'ปานกลาง (MEDIUM)'
         })
 
     if defects[GeometryDefect.ZERO_THICKNESS]['count'] > 0:
         recommendations.append({
-            'defect': 'Zero-thickness regions',
-            'action': 'Apply minimum thickness based on mesh resolution',
+            'defect': 'บริเวณที่มีความหนาเป็นศูนย์',
+            'action': 'ประยุกต์ใช้ความหนาขั้นต่ำตามความละเอียดของเมช',
             'formula': 't_min = max(0.001 × L_domain, 3 × Δx_min)',
-            'priority': 'CRITICAL'
+            'priority': 'วิกฤต (CRITICAL)'
         })
 
     if defects[GeometryDefect.REVERSED_NORMALS]['count'] > 0:
         recommendations.append({
-            'defect': 'Reversed surface normals',
-            'action': 'Orient all normals outward using consistency check',
-            'priority': 'HIGH'
+            'defect': 'เวกเตอร์ปกติพื้นผิวกลับด้าน',
+            'action': 'ปรับทิศทางเวกเตอร์ปกติทั้งหมดออกด้านนอกโดยใช้การตรวจสอบความสอดคล้อง',
+            'priority': 'สูง (HIGH)'
         })
 
     return recommendations
 ```
 
-📂 **Source:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
+📂 **แหล่งที่มา:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
 
-**Explanation:**
+**คำอธิบาย:**
 โค้ด Python นี้ใช้สำหรับตรวจจับและจัดประเภทข้อบกพร่องของ geometry ในไฟล์ STL ก่อนนำไปใช้ใน OpenFOAM โดยใช้ trimesh library ในการวิเคราะห์ mesh topology
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - **Non-Manifold Detection**: การตรวจจับ edges ที่มีการเชื่อมต่อกับ faces มากกว่า 2 ซึ่งจะทำให้เกิดปัญหาในการสร้าง mesh
 - **Thickness Computation**: การคำนวณความหนาของผนังโดยใช้ ray-tracing technique เพื่อหาบริเวณที่มีความหนาน้อยเกินไป
 - **Normal Consistency**: การตรวจสอบทิศทางของ normal vectors ว่าชี้ออกด้านนอกทั้งหมดหรือไม่
@@ -327,49 +327,49 @@ def generate_recommendations(defects):
 - **Severity Scoring**: การให้คะแนนความรุนแรงของข้อบกพร่องเพื่อกำหนดลำดับความสำคัญในการแก้ไข
 - **Automated Recommendations**: การสร้างคำแนะนำในการแก้ไขโดยอัตโนมัติตามประเภทของข้อบกพร่องที่พบ
 
-### 2.2 Minimum Feature Size Calculation
+### 2.2 การคำนวณขนาดรายละเอียดขั้นต่ำ (Minimum Feature Size Calculation)
 
-For CFD applications, features smaller than the mesh resolution cause numerical instability:
+สำหรับการประยุกต์ใช้งาน CFD รายละเอียดที่เล็กกว่าความละเอียดของเมชจะทำให้เกิดความไม่เสถียรเชิงตัวเลข:
 
 $$t_{\min} = \max\left(0.001 \times L_{\text{domain}}, 3 \times \Delta x_{\min}\right)$$
 
-Where:
-- $t_{\min}$ is the minimum feature thickness
-- $L_{\text{domain}}$ is the characteristic domain length
-- $\Delta x_{\min}$ is the smallest cell size in the mesh
+โดยที่:
+- $t_{\min}$ คือความหนารายละเอียดขั้นต่ำ
+- $L_{\text{domain}}$ คือความยาวลักษณะเฉพาะของโดเมน
+- $\Delta x_{\min}$ คือขนาดเซลล์ที่เล็กที่สุดในเมช
 
-**Boundary Layer Consideration:**
+**ข้อควรพิจารณาเรื่องชั้นขอบเขต:**
 
-For wall-bounded flows, the first cell height $\Delta y$ must satisfy $y^+$ requirements:
+สำหรับการไหลใกล้ผนัง ความสูงของเซลล์แรก $\Delta y$ จะต้องเป็นไปตามข้อกำหนด $y^+$:
 
-$$\Delta y = \frac{y^+ \mu}{\rho u_\tau}$$
+$$\Delta y = \frac{y^+ \mu}{\rho u_{\tau}}$$
 
-Where $u_\tau$ is the friction velocity:
+โดยที่ $u_{\tau}$ คือความเร็วแรงเสียดทาน:
 
-$$u_\tau = U_\infty \sqrt{\frac{C_f}{2}}$$
+$$u_{\tau} = U_{\infty} \sqrt{\frac{C_f}{2}}$$
 
-Using the Blasius correlation for skin friction coefficient:
+โดยใช้สหสัมพันธ์ของ Blasius สำหรับสัมประสิทธิ์แรงเสียดทานผิว:
 
 $$C_f = \frac{0.026}{Re^{0.139}}$$
 
-> [!WARNING] **Feature Removal Criteria**
-> Features satisfying $t < t_{\min}$ should be:
-> 1. **Removed** if they don't affect flow physics
-> 2. **Thickened** to $t_{\min}$ if they represent critical geometry
-> 3. **Kept** only if mesh resolution can be increased to resolve them
+> [!WARNING] **เกณฑ์การกำจัดรายละเอียด (Feature Removal Criteria)**
+> รายละเอียดที่เป็นไปตามเงื่อนไข $t < t_{\min}$ ควรเป็น:
+> 1. **ถูกกำจัดออก** หากไม่มีผลต่อฟิสิกส์การไหล
+> 2. **ทำให้หนาขึ้น** จนถึง $t_{\min}$ หากเป็นเรขาคณิตที่สำคัญ
+> 3. **คงไว้** เฉพาะในกรณีที่สามารถเพิ่มความละเอียดของเมชเพื่อรองรับได้เท่านั้น
 
 ---
 
-## Part 3: Geometry Repair Tools
+## ส่วนที่ 3: เครื่องมือซ่อมแซมเรขาคณิต (Geometry Repair Tools)
 
-### 3.1 Open-Source Solutions
+### 3.1 แนวทางแบบโอเพนซอร์ส
 
-**FreeCAD Python Scripting:**
+**การเขียนสคริปต์ Python ด้วย FreeCAD:**
 
 ```python
 #!/usr/bin/env python3
 """
-Automated CAD repair workflow using FreeCAD
+ขั้นตอนการซ่อมแซม CAD อัตโนมัติโดยใช้ FreeCAD
 """
 
 import FreeCAD
@@ -384,57 +384,57 @@ class CADRepairPipeline:
         self.mesh = None
 
     def load_geometry(self):
-        """Load CAD file and extract shape"""
+        """โหลดไฟล์ CAD และสกัดรูปทรง (Shape)"""
         try:
             doc = FreeCAD.openDocument(self.input_file)
             self.shape = doc.findObjects()[0].Shape
             return True
         except Exception as e:
-            print(f"Error loading geometry: {e}")
+            print(f"เกิดข้อผิดพลาดในการโหลดเรขาคณิต: {e}")
             return False
 
     def clean_shape(self):
         """
-        Apply shape cleaning operations
+        ประยุกต์ใช้การดำเนินการทำความสะอาดรูปทรง
         """
         if not self.shape:
             return False
 
-        # 1. Fix orientation
+        # 1. แก้ไขทิศทาง
         self.shape.fixOrientation()
 
-        # 2. Remove seams
+        # 2. ลบรอยต่อ
         self.shape.removeSeams()
 
-        # 3. Harmonize normals
+        # 3. ทำให้เวกเตอร์ปกติสอดคล้องกัน
         self.shape.harmonizeNormals()
 
-        # 4. Simplify shapes
+        # 4. ทำให้หน้าผิวเรียบง่ายขึ้น
         self.shape.simplifyFaces()
 
         return True
 
     def create_mesh(self, linear_deflection=0.1, angular_deflection=0.5):
         """
-        Create high-quality mesh from shape
+        สร้างเมชคุณภาพสูงจากรูปทรง
         """
         if not self.shape:
             return False
 
-        # Meshing parameters
+        # พารามิเตอร์การสร้างเมช
         params = Mesh.MeshProperty()
         params.LinearDeflection = linear_deflection
         params.AngularDeflection = angular_deflection
 
-        # Create mesh
+        # สร้างเมช
         self.mesh = Mesh.meshFromShape(
             self.shape,
             linearDeflection=linear_deflection,
-            angularDeflection=angular_deflection,
+            angular_deflection=angular_deflection,
             relative=False
         )
 
-        # Post-process mesh
+        # การประมวลผลเมชภายหลัง
         self.mesh.harmonizeNormals()
         self.mesh.removeDuplicatedPoints()
         self.mesh.removeNonManifolds()
@@ -442,7 +442,7 @@ class CADRepairPipeline:
         return True
 
     def export_stl(self, output_file):
-        """Export repaired geometry as STL"""
+        """ส่งออกเรขาคณิตที่ซ่อมแซมแล้วในรูปแบบ STL"""
         if not self.mesh:
             return False
 
@@ -451,95 +451,95 @@ class CADRepairPipeline:
 
     def validate_repair(self):
         """
-        Validate repaired geometry quality
+        ตรวจสอบคุณภาพเรขาคณิตที่ซ่อมแซมแล้ว
         """
         if not self.mesh:
             return False
 
-        # Compute quality metrics
+        # คำนวณตัวชี้วัดคุณภาพ
         n_triangles = len(self.mesh.Facets)
         n_points = len(self.mesh.Points)
 
-        # Check for non-manifold geometry
+        # ตรวจสอบเรขาคณิตแบบ non-manifold
         non_manifold = self.mesh.countNonManifolds()
 
-        # Report
+        # รายงาน
         report = {
             'triangles': n_triangles,
             'points': n_points,
             'non_manifold_edges': non_manifold,
-            'status': 'PASS' if non_manifold == 0 else 'FAIL'
+            'status': 'ผ่าน (PASS)' if non_manifold == 0 else 'ไม่ผ่าน (FAIL)'
         }
 
         return report
 
-# Usage example
+# ตัวอย่างการใช้งาน
 repair = CADRepairPipeline("geometry.step")
 repair.load_geometry()
 repair.clean_shape()
 repair.create_mesh(linear_deflection=0.05)
 repair.export_stl("geometry_repaired.stl")
 validation = repair.validate_repair()
-print(f"Repair validation: {validation}")
+print(f"ผลการตรวจสอบการซ่อมแซม: {validation}")
 ```
 
-📂 **Source:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
+📂 **แหล่งที่มา:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
 
-**Explanation:**
+**คำอธิบาย:**
 คลาส Python นี้ใช้ FreeCAD API ในการสร้าง pipeline สำหรับซ่อมแซม CAD geometry โดยอัตโนมัติ ตั้งแต่การโหลดไฟล์ การทำความสะอาด shape การสร้าง mesh และการตรวจสอบคุณภาพ
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - **Shape Cleaning Operations**: การ fixOrientation, removeSeams, harmonizeNormals และ simplifyFaces เพื่อแก้ไขปัญหาทั่วไปของ CAD geometry
 - **Mesh Generation Parameters**: linear_deflection และ angular_deflection ควบคุมความละเอียดของ tessellation
 - **Mesh Post-Processing**: การ harmonizeNormals, ลบจุดซ้ำ และลบ non-manifolds หลังจากสร้าง mesh
 - **Quality Validation**: การตรวจสอบจำนวน triangles, points และ non-manifold edges เพื่อให้แน่ใจว่า geometry พร้อมใช้งาน
 - **Pipeline Architecture**: การออกแบบเป็น class ที่มี methods ต่อเนื่องกัน (load → clean → mesh → export → validate)
 
-**Blender Batch Processing:**
+**การประมวลผลแบบกลุ่มด้วย Blender:**
 
 ```python
-# blender_repair.py - Batch CAD repair using Blender
+# blender_repair.py - การซ่อมแซม CAD แบบกลุ่มโดยใช้ Blender
 import bpy
 import bmesh
 import sys
 
 def repair_mesh(input_path, output_path):
     """
-    Comprehensive mesh repair workflow
+    ขั้นตอนการซ่อมแซมเมชที่ครอบคลุม
     """
-    # Import mesh
+    # นำเข้าเมช
     bpy.ops.import_scene.obj(filepath=input_path)
     obj = bpy.context.selected_objects[0]
 
-    # Enter edit mode
+    # เข้าสู่โหมดแก้ไข
     bpy.context.view_layer.objects.active = obj
     bpy.ops.object.mode_set(mode='EDIT')
 
-    # Create bmesh representation
+    # สร้างตัวแทน bmesh
     me = obj.data
     bm = bmesh.from_edit_mesh(me)
 
-    # 1. Remove duplicate vertices
+    # 1. ลบจุดยอดที่ซ้ำกัน
     bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.0001)
 
-    # 2. Fix non-manifold geometry
+    # 2. แก้ไขเรขาคณิตแบบ non-manifold
     non_manifold_edges = [e for e in bm.edges if not e.is_manifold]
     for edge in non_manifold_edges:
         bmesh.ops.split_edges(bm, edges=[edge])
 
-    # 3. Recalculate normals outward
+    # 3. คำนวณเวกเตอร์ปกติใหม่ให้ออกด้านนอก
     bpy.ops.mesh.normals_make_consistent(inside=False)
 
-    # 4. Fill holes
+    # 4. เติมรู
     bmesh.ops.holes_fill(bm, edges=bm.edges)
 
-    # 5. Smooth shading
+    # 5. การปรับให้ดูเรียบเนียน (Smooth shading)
     bpy.ops.mesh.shade_smooth()
 
-    # Update mesh
+    # อัปเดตเมช
     bmesh.update_edit_mesh(me)
 
-    # Exit edit mode and export
+    # ออกจากโหมดแก้ไขและส่งออก
     bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.export_mesh.stl(filepath=output_path)
 
@@ -551,12 +551,12 @@ if __name__ == "__main__":
     repair_mesh(input_stl, output_stl)
 ```
 
-📂 **Source:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
+📂 **แหล่งที่มา:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
 
-**Explanation:**
+**คำอธิบาย:**
 สคริปต์ Blender Python นี้ใช้สำหรับ batch processing และซ่อมแซม mesh โดยใช้ bmesh API ของ Blender ซึ่งมีประสิทธิภาพในการจัดการ mesh topology
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - **BMesh API**: การใช้ bmesh module ของ Blender ในการจัดการ mesh topology ระดับ low-level
 - **Duplicate Removal**: การลบ vertices ที่ซ้ำกันซึ่งเป็นปัญหาทั่วไปในไฟล์ STL
 - **Non-Manifold Fixing**: การ split edges ที่ไม่ใช่ manifold เพื่อให้ mesh topology ถูกต้อง
@@ -564,25 +564,25 @@ if __name__ == "__main__":
 - **Hole Filling**: การเติมช่องว่างใน mesh โดยอัตโนมัติ
 - **Batch Processing**: การรับ arguments ผ่าน command line เพื่อประมวลผลไฟล์หลายไฟล์
 
-### 3.2 Commercial Tools Comparison
+### 3.2 การเปรียบเทียบเครื่องมือเชิงพาณิชย์ (Commercial Tools Comparison)
 
-| Tool | Auto-Repair | Gap Filling | Batch Processing | OpenFOAM Export | Cost |
+| เครื่องมือ | ซ่อมแซมอัตโนมัติ | การเติมช่องว่าง | ประมวลผลแบบกลุ่ม | การส่งออก OpenFOAM | ต้นทุน |
 |------|-------------|-------------|------------------|-----------------|------|
-| **ANSYS SpaceClaim** | ★★★★★ | ★★★★★ | ★★★★☆ | Yes | High |
-| **Siemens NX/UG** | ★★★★☆ | ★★★★★ | ★★★★★ | Yes | Very High |
-| **SOLIDWORKS** | ★★★☆☆ | ★★★★☆ | ★★★☆☆ | Plugin | High |
-| **FreeCAD** | ★★★☆☆ | ★★☆☆☆ | ★★☆☆☆ | Native | Free |
+| **ANSYS SpaceClaim** | ★★★★★ | ★★★★★ | ★★★★☆ | ใช่ | สูง |
+| **Siemens NX/UG** | ★★★★☆ | ★★★★★ | ★★★★★ | ใช่ | สูงมาก |
+| **SOLIDWORKS** | ★★★☆☆ | ★★★★☆ | ★★★☆☆ | ปลั๊กอิน | สูง |
+| **FreeCAD** | ★★★☆☆ | ★★☆☆☆ | ★★☆☆☆ | พื้นฐาน (Native) | ฟรี |
 
 ---
 
-## Part 4: Geometry Validation
+## ส่วนที่ 4: การตรวจสอบความถูกต้องของเรขาคณิต (Geometry Validation)
 
-### 4.1 Surface Quality Metrics
+### 4.1 ตัวชี้วัดคุณภาพพื้นผิว (Surface Quality Metrics)
 
 ```python
 #!/usr/bin/env python3
 """
-Comprehensive geometry quality assessment for OpenFOAM
+การประเมินคุณภาพเรขาคณิตที่ครอบคลุมสำหรับ OpenFOAM
 """
 
 import numpy as np
@@ -595,7 +595,7 @@ class SurfaceQualityAnalyzer:
         self.metrics = {}
 
     def compute_all_metrics(self):
-        """Compute complete quality metric suite"""
+        """คำนวณชุดตัวชี้วัดคุณภาพทั้งหมด"""
         return {
             'triangle_quality': self.analyze_triangle_quality(),
             'curvature_analysis': self.analyze_curvature(),
@@ -607,19 +607,19 @@ class SurfaceQualityAnalyzer:
 
     def analyze_triangle_quality(self):
         """
-        Analyze triangle aspect ratios and skewness
+        วิเคราะห์อัตราส่วนรูปร่างและความเบ้ของรูปสามเหลี่ยม
         """
         triangles = self.mesh.triangles
         quality_metrics = {}
 
-        # Edge lengths
+        # ความยาวขอบ
         edge_lengths = self.mesh.edges_unique_length
 
-        # Triangle areas
+        # พื้นที่รูปสามเหลี่ยม
         face_areas = self.mesh.area_faces
 
-        # Aspect ratio calculation
-        # AR = (longest edge) / (shortest altitude)
+        # การคำนวณอัตราส่วนรูปร่าง
+        # AR = (ขอบยาวที่สุด) / (ส่วนสูงที่สั้นที่สุด)
         aspect_ratios = []
         for tri in triangles:
             edges = np.linalg.norm(np.diff(tri, axis=0), axis=1)
@@ -633,11 +633,11 @@ class SurfaceQualityAnalyzer:
         quality_metrics['aspect_ratio_max'] = np.max(aspect_ratios)
         quality_metrics['aspect_ratio_std'] = np.std(aspect_ratios)
 
-        # Skewness (deviation from equilateral)
-        # Perfect equilateral: all angles = 60°
+        # ความเบ้ (การเบี่ยงเบนจากสามเหลี่ยมด้านเท่า)
+        # สามเหลี่ยมด้านเท่าที่สมบูรณ์: ทุกมุม = 60°
         angles = []
         for tri in triangles:
-            # Compute angles using law of cosines
+            # คำนวณมุมโดยใช้กฎของโคไซน์
             a = np.linalg.norm(tri[1] - tri[0])
             b = np.linalg.norm(tri[2] - tri[1])
             c = np.linalg.norm(tri[0] - tri[2])
@@ -648,7 +648,7 @@ class SurfaceQualityAnalyzer:
 
             angles.extend([angle_a, angle_b, angle_c])
 
-        ideal_angle = np.pi / 3  # 60 degrees in radians
+        ideal_angle = np.pi / 3  # 60 องศาในหน่วยเรเดียน
         skewness = np.abs(np.array(angles) - ideal_angle)
         quality_metrics['angle_skewness_mean'] = np.mean(skewness)
         quality_metrics['angle_skewness_max'] = np.max(skewness)
@@ -657,13 +657,13 @@ class SurfaceQualityAnalyzer:
 
     def analyze_curvature(self):
         """
-        Compute discrete curvature analysis
+        คำนวณการวิเคราะห์ความโค้งแบบแยกส่วน (Discrete curvature)
         """
-        # Gaussian curvature at each vertex
+        # ความโค้งแบบเกาส์ที่แต่ละจุดยอด
         vertex_curvatures = self.mesh.vertex_attributes.get('gaussian_curvature', None)
 
         if vertex_curvatures is None:
-            # Approximate using dihedral angles
+            # ประมาณค่าโดยใช้มุมไดฮีดรัล
             vertex_curvatures = self.mesh.vertex_defects
 
         curvature_metrics = {
@@ -676,12 +676,12 @@ class SurfaceQualityAnalyzer:
 
     def check_normal_consistency(self):
         """
-        Verify normal vector orientation consistency
+        ตรวจสอบความสอดคล้องของการวางแนวเวกเตอร์ปกติ
         """
         face_normals = self.mesh.face_normals
         centroid = self.mesh.centroid
 
-        # Check orientation relative to centroid
+        # ตรวจสอบทิศทางเทียบกับจุดศูนย์กลางมวล
         face_centers = self.mesh.triangles_center
         vectors_to_centroid = centroid - face_centers
 
@@ -692,16 +692,16 @@ class SurfaceQualityAnalyzer:
             'total_faces': len(face_normals),
             'inward_facing_count': inward_facing,
             'consistency_ratio': 1.0 - (inward_facing / len(face_normals)),
-            'status': 'PASS' if inward_facing == 0 else 'FAIL'
+            'status': 'ผ่าน (PASS)' if inward_facing == 0 else 'ไม่ผ่าน (FAIL)'
         }
 
         return consistency_metrics
 
     def detect_gaps(self):
         """
-        Detect gaps in the surface mesh
+        ตรวจจับช่องว่างในเมชพื้นผิว
         """
-        # Find boundary edges (edges used by only one face)
+        # หาขอบเขต (ขอบที่ใช้โดยหน้าผิวเดียวเท่านั้น)
         boundary_edges = self.mesh.edges_unique[self.mesh.edges_unique_face_count == 1]
 
         gap_metrics = {
@@ -714,11 +714,11 @@ class SurfaceQualityAnalyzer:
 
     def compute_surface_area(self):
         """
-        Compute total surface area and compare to expected
+        คำนวณพื้นที่ผิวทั้งหมดและเปรียบเทียบกับค่าที่คาดหวัง
         """
         total_area = self.mesh.area
 
-        # Expected area (bounding box as reference)
+        # พื้นที่ที่คาดหวัง (ใช้กล่องขอบเขตเป็นค่าอ้างอิง)
         bbox = self.mesh.bounding_box
         bbox_area = 2 * (
             (bbox[1][0] - bbox[0][0]) * (bbox[1][1] - bbox[0][1]) +
@@ -736,13 +736,13 @@ class SurfaceQualityAnalyzer:
 
     def check_volume_integrity(self):
         """
-        Check if closed geometry encloses valid volume
+        ตรวจสอบว่าเรขาคณิตแบบปิดล้อมรอบปริมาตรที่ถูกต้องหรือไม่
         """
         if not self.mesh.is_watertight:
             return {
                 'is_closed': False,
                 'volume': None,
-                'status': 'FAIL - Not watertight'
+                'status': 'ไม่ผ่าน (FAIL) - ไม่เป็นระบบปิด'
             }
 
         volume = self.mesh.volume
@@ -750,19 +750,19 @@ class SurfaceQualityAnalyzer:
         return {
             'is_closed': True,
             'volume': volume,
-            'status': 'PASS' if volume > 0 else 'FAIL - Zero volume'
+            'status': 'ผ่าน (PASS)' if volume > 0 else 'ไม่ผ่าน (FAIL) - ปริมาตรเป็นศูนย์'
         }
 
     def generate_quality_report(self, output_file="quality_report.json"):
         """
-        Generate comprehensive quality assessment report
+        สร้างรายงานการประเมินคุณภาพที่ครอบคลุม
         """
         metrics = self.compute_all_metrics()
 
-        # Compute overall quality score (0-100)
+        # คำนวณคะแนนคุณภาพโดยรวม (0-100)
         score = 100
 
-        # Penalties
+        # บทลงโทษ
         if not metrics['gap_detection']['is_watertight']:
             score -= 30
 
@@ -772,7 +772,7 @@ class SurfaceQualityAnalyzer:
         if metrics['triangle_quality']['aspect_ratio_max'] > 10:
             score -= 15
 
-        if metrics['triangle_quality']['angle_skewness_max'] > np.pi/6:  # 30 degrees
+        if metrics['triangle_quality']['angle_skewness_max'] > np.pi/6:  # 30 องศา
             score -= 10
 
         if not metrics['volume_integrity']['is_closed']:
@@ -788,7 +788,7 @@ class SurfaceQualityAnalyzer:
         return report
 
     def _compute_grade(self, score):
-        """Convert score to letter grade"""
+        """แปลงคะแนนเป็นเกรดตัวอักษร"""
         if score >= 90:
             return 'A'
         elif score >= 80:
@@ -801,103 +801,103 @@ class SurfaceQualityAnalyzer:
             return 'F'
 
     def _generate_recommendations(self, metrics):
-        """Generate specific recommendations based on metrics"""
+        """สร้างคำแนะนำเฉพาะเจาะจงตามตัวชี้วัด"""
         recommendations = []
 
         if not metrics['gap_detection']['is_watertight']:
             recommendations.append(
-                "Close gaps in geometry. Found {} boundary edges.".format(
+                "ปิดช่องว่างในเรขาคณิต พบขอบขอบเขตจำนวน {}".format(
                     metrics['gap_detection']['boundary_edge_count']
                 )
             )
 
         if metrics['triangle_quality']['aspect_ratio_max'] > 10:
             recommendations.append(
-                "Remesh to reduce aspect ratio. Current max: {:.2f}".format(
+                "สร้างเมชใหม่เพื่อลดอัตราส่วนรูปร่าง ค่าสูงสุดปัจจุบัน: {:.2f}".format(
                     metrics['triangle_quality']['aspect_ratio_max']
                 )
             )
 
         if metrics['normal_consistency']['consistency_ratio'] < 0.95:
             recommendations.append(
-                "Fix {} inward-facing normals.".format(
+                "แก้ไขเวกเตอร์ปกติที่ชี้เข้าด้านในจำนวน {}".format(
                     metrics['normal_consistency']['inward_facing_count']
                 )
             )
 
         return recommendations
 
-# Usage
+# ตัวอย่างการใช้งาน
 analyzer = SurfaceQualityAnalyzer("geometry.stl")
 report = analyzer.generate_quality_report()
-print(f"Quality Score: {report['overall_score']}/100 ({report['grade']})")
+print(f"คะแนนคุณภาพ: {report['overall_score']}/100 (เกรด {report['grade']})")
 ```
 
-📂 **Source:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
+📂 **แหล่งที่มา:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
 
-**Explanation:**
+**คำอธิบาย:**
 คลาส Python นี้ใช้สำหรับประเมินคุณภาพของ surface geometry อย่างครอบคลุม โดยวัดหลาย metrics เพื่อให้แน่ใจว่า geometry พร้อมสำหรับการสร้าง mesh ใน OpenFOAM
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - **Aspect Ratio Analysis**: การคำนวณสัดส่วนของ triangles (longest edge / shortest altitude) ซึ่งค่าที่สูงเกินไปจะส่งผลต่อคุณภาพ mesh
 - **Angle Skewness**: การวัดความเบี้ยวของ triangles โดยเปรียบเทียบกับสามเหลี่ยมด้านเท่า (60°)
 - **Curvature Analysis**: การวิเคราะห์ความโค้งของ surface เพื่อระบุบริเวณที่ต้องการ mesh refinement
 - **Normal Consistency**: การตรวจสอบทิศทางของ normal vectors ทั้งหมดว่าสอดคล้องกันหรือไม่
 - **Gap Detection**: การหา boundary edges ซึ่งเป็น edges ที่ใช้โดย face เดียว แสดงถึงช่องว่างใน geometry
 - **Watertight Check**: การตรวจสอบว่า geometry เป็น closed surface หรือไม่
-- **Quality Scoring System**: การให้คะแน์รวม (0-100) โดยหักคะแนนตามความรุนแรงของปัญหา
+- **Quality Scoring System**: การให้คะแนนรวม (0-100) โดยหักคะแนนตามความรูนแรงของปัญหา
 - **Automated Recommendations**: การสร้างคำแนะนำการแก้ไขโดยอัตโนมัติ
 
-### 4.2 Integration with OpenFOAM
+### 4.2 การบูรณาการกับ OpenFOAM (Integration with OpenFOAM)
 
 ```bash
 #!/bin/bash
-# Complete validation pipeline integrating with OpenFOAM utilities
+# ท่อส่งการตรวจสอบความถูกต้องแบบสมบูรณ์ที่บูรณาการกับยูทิลิตี้ OpenFOAM
 
 validate_geometry_for_openfoam() {
     local stl_file="$1"
     local case_dir="$2"
 
-    echo "=== OpenFOAM Geometry Validation Pipeline ==="
+    echo "=== ขั้นตอนการตรวจสอบเรขาคณิตของ OpenFOAM ==="
 
-    # 1. Surface check using OpenFOAM
-    echo "[1/5] Running surfaceCheck..."
+    # 1. การตรวจสอบพื้นผิวโดยใช้ OpenFOAM
+    echo "[1/5] กำลังรัน surfaceCheck..."
     surfaceCheck "$stl_file" > surface_check.log 2>&1
 
-    # Extract metrics
+    # สกัดตัวชี้วัด
     local n_triangles=$(grep "Triangles" surface_check.log | awk '{print $2}')
     local n_points=$(grep "Points" surface_check.log | awk '{print $2}')
 
-    echo "  Triangles: $n_triangles"
-    echo "  Points: $n_points"
+    echo "  จำนวนรูปสามเหลี่ยม: $n_triangles"
+    echo "  จำนวนจุด: $n_points"
 
-    # 2. Feature edge extraction
-    echo "[2/5] Extracting feature edges..."
+    # 2. การสกัดขอบคุณลักษณะ
+    echo "[2/5] กำลังสกัดขอบคุณลักษณะ..."
     local feature_angle=30
     surfaceFeatureEdges "$stl_file" "${stl_file%.stl}.feat" \
         -angle $feature_angle > feature_extraction.log 2>&1
 
-    # 3. Check for watertightness
-    echo "[3/5] Checking watertightness..."
+    # 3. ตรวจสอบความเป็นระบบปิด (Watertightness)
+    echo "[3/5] กำลังตรวจสอบความเป็นระบบปิด..."
     if surfaceCheck "$stl_file" | grep -q "closed"; then
-        echo "  ✓ Geometry is watertight"
+        echo "  ✓ เรขาคณิตเป็นระบบปิด"
     else
-        echo "  ✗ WARNING: Geometry has gaps"
+        echo "  ✗ คำเตือน: เรขาคณิตมีช่องว่าง"
     fi
 
-    # 4. Scale check
-    echo "[4/5] Verifying scale..."
+    # 4. การตรวจสอบมาตราส่วน (Scale check)
+    echo "[4/5] กำลังยืนยันมาตราส่วน..."
     python3 << EOF
 import trimesh
 mesh = trimesh.load_mesh("$stl_file")
 bbox = mesh.bounding_box
 size = bbox[1] - bbox[0]
-print(f"  Bounding box size: {size}")
-print(f"  Max dimension: {max(size):.6f} m")
+print(f"  ขนาดของกล่องขอบเขต: {size}")
+print(f"  ขนาดสูงสุด: {max(size):.6f} ม.")
 EOF
 
-    # 5. Placement in case directory
-    echo "[5/5] Copying to case directory..."
+    # 5. การจัดวางในไดเรกทอรีกรณีศึกษา
+    echo "[5/5] กำลังคัดลอกไปยังไดเรกทอรีกรณีศึกษา..."
     mkdir -p "$case_dir/constant/triSurface"
     cp "$stl_file" "$case_dir/constant/triSurface/"
 
@@ -905,17 +905,17 @@ EOF
         cp "${stl_file%.stl}.eMesh" "$case_dir/constant/triSurface/"
     fi
 
-    echo "=== Validation Complete ==="
-    echo "Geometry ready for mesh generation in: $case_dir"
+    echo "=== การตรวจสอบความถูกต้องเสร็จสิ้น ==="
+    echo "เรขาคณิตพร้อมสำหรับการสร้างเมชใน: $case_dir"
 }
 ```
 
-📂 **Source:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
+📂 **แหล่งที่มา:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
 
-**Explanation:**
+**คำอธิบาย:**
 สคริปต์ Bash นี้เป็น pipeline ที่บูรณาการกับ OpenFOAM utilities เพื่อตรวจสอบและวาง geometry ใน case directory อย่างสมบูรณ์
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - **surfaceCheck Utility**: การใช้ OpenFOAM tool ในการตรวจสอบคุณภาพของ STL surface
 - **surfaceFeatureEdges**: การสกัด feature edges สำหรับ snappyHexMesh โดยกำหนด feature angle
 - **Watertight Verification**: การตรวจสอบว่า geometry เป็น closed surface ซึ่งจำเป็นสำหรับ CFD simulation
@@ -926,26 +926,26 @@ EOF
 
 ---
 
-## Part 5: Advanced Topics
+## ส่วนที่ 5: หัวข้อขั้นสูง (Advanced Topics)
 
-### 5.1 Parametric to Discrete Conversion
+### 5.1 การแปลงจากพารามิเตอร์เป็นดิจิทัล (Parametric to Discrete Conversion)
 
-When converting from parametric (STEP) to discrete (STL) surfaces, the tessellation parameters control accuracy:
+เมื่อแปลงจากพื้นผิวพารามิเตอร์ (STEP) เป็นพื้นผิวแบบดิจิทัล (STL) พารามิเตอร์การสร้างรูปสามเหลี่ยม (tessellation) จะควบคุมความแม่นยำ:
 
-**Linear Deflection:** Maximum distance between tessellated surface and true parametric surface
-$$\delta_{\max} \leq \frac{L_{\text{characteristic}}}{1000}$$
+**ระยะเบี่ยงเบนเชิงเส้น (Linear Deflection):** ระยะทางสูงสุดระหว่างพื้นผิวที่ถูก tessellated กับพื้นผิวพารามิเตอร์ที่แท้จริง
+$$\delta_{\max} \leq \frac{L_{\text{ลักษณะเฉพาะ}}}{1000}$$
 
-**Angular Deflection:** Maximum angle between adjacent triangle normals
+**ระยะเบี่ยงเบนเชิงมุม (Angular Deflection):** มุมสูงสุดระหว่างเวกเตอร์ปกติของรูปสามเหลี่ยมที่อยู่ติดกัน
 $$\theta_{\max} \leq 15°$$
 
-### 5.2 Multi-Region Geometry Handling
+### 5.2 การจัดการเรขาคณิตหลายภูมิภาค (Multi-Region Geometry Handling)
 
-For assemblies with multiple components:
+สำหรับชุดประกอบที่มีส่วนประกอบหลายชิ้น:
 
 ```python
 def prepare_multi_region_geometry(input_files, region_names):
     """
-    Prepare multi-region geometry for snappyHexMesh
+    เตรียมเรขาคณิตหลายภูมิภาคสำหรับ snappyHexMesh
     """
     import trimesh
     import numpy as np
@@ -955,17 +955,17 @@ def prepare_multi_region_geometry(input_files, region_names):
     for i, (stl_file, region_name) in enumerate(zip(input_files, region_names)):
         mesh = trimesh.load_mesh(stl_file)
 
-        # Assign region ID as face attribute
+        # กำหนด ID ภูมิภาคเป็นคุณสมบัติหน้าผิว
         region_ids = np.full(len(mesh.faces), i, dtype=int)
         mesh.face_attributes['region_id'] = region_ids
 
-        # Merge into combined mesh
+        # รวมเข้าเป็นเมชรวม
         merged_mesh = merged_mesh + mesh
 
-    # Export combined geometry
+    # ส่งออกเรขาคณิตรวม
     merged_mesh.export('combined_assembly.stl')
 
-    # Generate region specification file
+    # สร้างไฟล์ระบุภูมิภาค
     with open('region_dict', 'w') as f:
         for i, name in enumerate(region_names):
             f.write(f"{i} {name}\n")
@@ -973,26 +973,26 @@ def prepare_multi_region_geometry(input_files, region_names):
     return merged_mesh
 ```
 
-📂 **Source:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
+📂 **แหล่งที่มา:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
 
-**Explanation:**
+**คำอธิบาย:**
 ฟังก์ชัน Python นี้ใช้สำหรับจัดการ geometry ที่มีหลาย regions (เช่น assembly ของ components) โดยรวม STL files หลายไฟล์เข้าด้วยกันและกำหนด region IDs
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - **Multi-Region Meshing**: การรวม meshes หลายไฟล์เข้าด้วยกันสำหรับ assembly simulations
 - **Face Attributes**: การกำหนด region_id ให้กับแต่ละ face เพื่อแยก regions ใน snappyHexMesh
 - **Region Dictionary**: การสร้างไฟล์ `region_dict` เพื่อ map ระหว่าง region IDs และ names
 - **Mesh Merging**: การใช้ trimesh operations ในการรวม meshes
 - **Assembly Handling**: การจัดการ geometry ที่ซับซ้อนที่ประกอบด้วยหลาย components
 
-### 5.3 Periodic Boundary Preparation
+### 5.3 การเตรียมขอบเขตแบบคาบ (Periodic Boundary Preparation)
 
-For geometries with periodic boundaries:
+สำหรับเรขาคณิตที่มีขอบเขตแบบคาบ:
 
 ```python
 def create_periodic_geometry(stl_file, periodic_axis='x', periodic_length=None):
     """
-    Create periodic boundary pairs
+    สร้างคู่ขอบเขตแบบคาบ
     """
     import trimesh
 
@@ -1002,7 +1002,7 @@ def create_periodic_geometry(stl_file, periodic_axis='x', periodic_length=None):
     if periodic_length is None:
         periodic_length = bounds[1][0] - bounds[0][0]
 
-    # Identify faces on periodic boundaries
+    # ระบุหน้าผิวบนขอบเขตแบบคาบ
     axis_map = {'x': 0, 'y': 1, 'z': 2}
     axis = axis_map[periodic_axis]
 
@@ -1010,7 +1010,7 @@ def create_periodic_geometry(stl_file, periodic_axis='x', periodic_length=None):
     max_boundary = bounds[1][axis]
     tolerance = 1e-6
 
-    # Extract boundary faces
+    # สกัดหน้าผิวขอบเขต
     min_faces = []
     max_faces = []
 
@@ -1022,19 +1022,19 @@ def create_periodic_geometry(stl_file, periodic_axis='x', periodic_length=None):
         elif abs(face_center[axis] - max_boundary) < tolerance:
             max_faces.append(face)
 
-    print(f"Found {len(min_faces)} faces on minimum boundary")
-    print(f"Found {len(max_faces)} faces on maximum boundary")
+        print(f"พบหน้าผิวจำนวน {len(min_faces)} หน้าบนขอบเขตขั้นต่ำ")
+        print(f"พบหน้าผิวจำนวน {len(max_faces)} หน้าบนขอบเขตสูงสุด")
 
-    # Create separate STL files for periodic patches
-    # ... (implementation depends on downstream tool requirements)
+    # สร้างไฟล์ STL แยกสำหรับแพตช์แบบคาบ
+    # ... (การใช้งานขึ้นอยู่กับข้อกำหนดของเครื่องมือในลำดับถัดไป)
 ```
 
-📂 **Source:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
+📂 **แหล่งที่มา:** MODULE_07_UTILITIES_AUTOMATION/CONTENT/02_MESH_PREPARATION/
 
-**Explanation:**
+**คำอธิบาย:**
 ฟังก์ชัน Python นี้ใช้สำหรับเตรียม geometry ที่มี periodic boundaries ซึ่งพบบ่อยใน turbomachinery และ heat exchanger simulations
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - **Periodic Boundary Detection**: การระบุ faces บน boundaries ที่เป็น periodic กัน
 - **Axis-Based Selection**: การเลือก axis (x, y, z) และหา faces บน boundaries ตรงข้าม
 - **Tolerance-Based Matching**: การใช้ tolerance เล็กน้อยในการระบุ boundary faces
@@ -1044,27 +1044,27 @@ def create_periodic_geometry(stl_file, periodic_axis='x', periodic_length=None):
 
 ---
 
-## Summary and Best Practices
+## สรุปและแนวทางปฏิบัติที่ดีที่สุด (Summary and Best Practices)
 
-> [!INFO] **CAD Preparation Checklist**
-> - [ ] Export geometry in STEP format when available
-> - [ ] Apply minimum feature size filter: $t_{\min} = \max(0.001L, 3\Delta x)$
-> - [ ] Verify watertightness (zero gaps)
-> - [ ] Ensure all normals point outward
-> - [ ] Remove non-manifold topology
-> - [ ] Validate triangle quality (aspect ratio < 10, skewness < 30°)
-> - [ ] Compute curvature to identify refinement regions
-> - [ ] Place in `constant/triSurface/` directory
-> - [ ] Run `surfaceCheck` and `surfaceFeatureEdges`
+> [!INFO] **รายการตรวจสอบการเตรียม CAD (CAD Preparation Checklist)**
+> - [ ] ส่งออกเรขาคณิตในรูปแบบ STEP เมื่อมีให้เลือก
+> - [ ] ประยุกต์ใช้ตัวกรองขนาดรายละเอียดขั้นต่ำ: $t_{\min} = \max(0.001L, 3\Delta x)$
+> - [ ] ยืนยันความเป็นระบบปิด (ไม่มีช่องว่าง)
+> - [ ] รับประกันว่าเวกเตอร์ปกติทั้งหมดชี้ออกด้านนอก
+> - [ ] กำจัดโทโพโลยีแบบ non-manifold ออก
+> - [ ] ตรวจสอบคุณภาพรูปสามเหลี่ยม (อัตราส่วนรูปร่าง < 10, ความเบ้ < 30°)
+> - [ ] คำนวณความโค้งเพื่อระบุภูมิภาคที่ต้องการการปรับละเอียด
+> - [ ] จัดวางในไดเรกทอรี `constant/triSurface/`
+> - [ ] รัน `surfaceCheck` และ `surfaceFeatureEdges`
 
-**Quality Thresholds for OpenFOAM:**
+**เกณฑ์คุณภาพสำหรับ OpenFOAM (Quality Thresholds):**
 
-| Metric | Excellent | Good | Acceptable | Poor |
-|--------|-----------|------|------------|------|
-| **Triangle Count** | < 10K | 10K-100K | 100K-1M | > 1M |
-| **Aspect Ratio** | < 3 | 3-5 | 5-10 | > 10 |
-| **Normal Consistency** | 100% | > 99% | > 95% | < 95% |
-| **Watertight** | Yes | Yes | Minor gaps | Major gaps |
-| **Non-Manifold Edges** | 0 | 0 | < 10 | > 10 |
+| ตัวชี้วัด | ยอดเยี่ยม | ดี | ยอมรับได้ | แย่ |
+|------|-----------|------|------------|------|
+| **จำนวนสามเหลี่ยม** | < 1 หมื่น | 1 หมื่น-1 แสน | 1 แสน-1 ล้าน | > 1 ล้าน |
+| **อัตราส่วนรูปร่าง** | < 3 | 3-5 | 5-10 | > 10 |
+| **ความสอดคล้องปกติ** | 100% | > 99% | > 95% | < 95% |
+| **เป็นระบบปิด** | ใช่ | ใช่ | มีช่องว่างเล็กน้อย | มีช่องว่างขนาดใหญ่ |
+| **ขอบ Non-Manifold** | 0 | 0 | < 10 | > 10 |
 
-Following these guidelines ensures that your CAD geometry will produce high-quality meshes suitable for accurate and stable OpenFOAM simulations.
+การปฏิบัติตามแนวทางเหล่านี้ช่วยให้มั่นใจได้ว่าเรขาคณิต CAD ของคุณจะผลิตเมชคุณภาพสูงที่เหมาะสำหรับการจำลอง OpenFOAM ที่แม่นยำและเสถียร

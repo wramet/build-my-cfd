@@ -1,34 +1,34 @@
-# Parallel Linear Algebra
+# พีชคณิตเชิงเส้นแบบขนาน (Parallel Linear Algebra)
 
-> [!INFO] Overview
-> OpenFOAM's parallel linear algebra system enables large-scale CFD simulations through distributed memory computing, domain decomposition, and sophisticated communication patterns. This section covers the architectural foundations, implementation mechanisms, and practical considerations for parallel matrix operations.
+> [!INFO] ภาพรวม
+> ระบบพีชคณิตเชิงเส้นแบบขนานของ OpenFOAM ช่วยให้สามารถทำการจำลอง CFD ขนาดใหญ่ได้ผ่านการประมวลผลแบบหน่วยความจำกระจาย (distributed memory computing), การแบ่งโดเมน (domain decomposition) และรูปแบบการสื่อสารที่ซับซ้อน ส่วนนี้จะครอบคลุมรากฐานทางสถาปัตยกรรม กลไกการนำไปใช้ และข้อพิจารณาในทางปฏิบัติสำหรับการดำเนินการเมทริกซ์แบบขนาน
 
 ---
 
-## 🔍 High-Level Concepts
+## 🔍 แนวคิดระดับสูง (High-Level Concepts)
 
-### The Orchestra vs. Soloist Analogy
+### การเปรียบเทียบระหว่างวงออร์เคสตราและนักดนตรีเดี่ยว
 
-**Serial Computing** operates like a solo musician solving a jigsaw puzzle alone:
-- **Sequential Processing**: One piece at a time
-- **Linear Time Complexity**: $$T_{serial} \propto N$$
-- **Single-Memory Constraints**: Limited by individual workspace
-- **No Coordination Overhead**: No communication needed
+**การประมวลผลแบบอนุกรม (Serial Computing)** ทำงานเหมือนนักดนตรีเดี่ยวที่ต่อจิ๊กซอว์เพียงคนเดียว:
+- **การประมวลผลตามลำดับ**: ทำทีละชิ้น
+- **ความซับซ้อนของเวลาเชิงเส้น**: $$T_{serial} \propto N$$
+- **ข้อจำกัดของหน่วยความจำเดี่ยว**: ถูกจำกัดด้วยพื้นที่ทำงานของแต่ละบุคคล
+- **ไม่มีค่าใช้จ่ายในการประสานงาน**: ไม่จำเป็นต้องมีการสื่อสาร
 
-**Parallel Computing** functions like an orchestra of musicians collaborating:
-- **Task Distribution**: Puzzle pieces distributed among musicians
-- **Simultaneous Processing**: Multiple pieces placed concurrently
-- **Coordinated Effort**: Musicians communicate about shared edge pieces
-- **Synchronization Requirements**: All musicians must progress harmoniously
+**การประมวลผลแบบขนาน (Parallel Computing)** ทำงานเหมือนวงออร์เคสตราของนักดนตรีที่ร่วมมือกัน:
+- **การกระจายงาน**: ชิ้นส่วนจิ๊กซอว์ถูกแจกจ่ายให้กับนักดนตรีหลายคน
+- **การประมวลผลพร้อมกัน**: วางชิ้นส่วนหลายชิ้นพร้อมกัน
+- **ความพยายามที่ประสานกัน**: นักดนตรีสื่อสารกันเกี่ยวกับชิ้นส่วนขอบที่ใช้ร่วมกัน
+- **ความต้องการในการซิงโครไนซ์**: นักดนตรีทุกคนต้องก้าวหน้าไปอย่างสอดคล้องประสานกัน
 
-**Mathematical Representation:**
+**การแสดงทางคณิตศาสตร์:**
 $$T_{parallel} = \frac{T_{computation}}{p} + T_{communication} + T_{synchronization}$$
 
-where:
-- $p$ = number of processors (musicians)
-- $T_{computation}$ = total computation time
-- $T_{communication}$ = time for exchanging edge information
-- $T_{synchronization}$ = time for coordinating activities
+โดยที่:
+- $p$ = จำนวนหน่วยประมวลผล (นักดนตรี)
+- $T_{computation}$ = เวลาการคำนวณทั้งหมด
+- $T_{communication}$ = เวลาสำหรับการแลกเปลี่ยนข้อมูลขอบ
+- $T_{synchronization}$ = เวลาสำหรับการประสานกิจกรรม
 
 ```mermaid
 flowchart TD
@@ -49,32 +49,32 @@ flowchart TD
         F --> G[Global Solution]
     end
 ```
-> **Figure 1:** Comparison between serial and parallel processing, demonstrating the necessity of inter-processor communication through the Halo Exchange mechanism.
+> **รูปที่ 1:** การเปรียบเทียบระหว่างการประมวลผลแบบอนุกรมและแบบขนาน แสดงให้เห็นถึงความจำเป็นของการสื่อสารระหว่างหน่วยประมวลผลผ่านกลไก Halo Exchange
 
 ---
 
-## ⚙️ Key Mechanisms
+## ⚙️ กลไกสำคัญ (Key Mechanisms)
 
-### 1. Domain Decomposition
+### 1. การแบ่งโดเมน (Domain Decomposition)
 
-OpenFOAM's `decomposePar` utility uses sophisticated graph partitioning algorithms treating mesh connectivity as a mathematical graph:
-- **Cells** represent **vertices**
-- **Faces** represent **edges**
+ยูทิลิตี้ `decomposePar` ของ OpenFOAM ใช้อัลกอริทึมการแบ่งกราฟที่ซับซ้อน โดยปฏิบัติต่อการเชื่อมต่อของเมชเหมือนกราฟทางคณิตศาสตร์:
+- **เซลล์ (Cells)** แทน **จุดยอด (vertices)**
+- **หน้า (Faces)** แทน **ขอบ (edges)**
 
-**Partitioning Optimization Problem:**
+**ปัญหาการเพิ่มประสิทธิภาพการแบ่งส่วน:**
 $$\min_{P} \left[ \alpha \cdot \text{LoadImbalance}(P) + \beta \cdot \text{InterfaceArea}(P) \right]$$
 
-where:
-- $P$ = partitioning function
-- $\alpha$, $\beta$ = weighting factors
+โดยที่:
+- $P$ = ฟังก์ชันการแบ่งส่วน
+- $\alpha$, $\beta$ = ปัจจัยถ่วงน้ำหนัก
 
-**Partitioning Methods:**
+**วิธีการแบ่งส่วน:**
 
-| Method | Characteristics | Advantages | Disadvantages |
+| วิธีการ | ลักษณะเฉพาะ | ข้อดี | ข้อเสีย |
 |-----------|---------|--------|---------|
-| **METIS** | Multilevel graph partitioning | Minimizes edge cuts with load balancing | Requires external library |
-| **SCOTCH** | Recursive bipartitioning | High flexibility | More complex than METIS |
-| **Simple** | Geometric partitioning | Simple and fast | Unbalanced load for complex geometry |
+| **METIS** | การแบ่งกราฟหลายระดับ | ลดการตัดขอบให้น้อยที่สุดพร้อมสมดุลภาระงาน | ต้องการไลบรารีภายนอก |
+| **SCOTCH** | การแบ่งสองส่วนแบบเรียกซ้ำ | มีความยืดหยุ่นสูง | ซับซ้อนกว่า METIS |
+| **Simple** | การแบ่งทางเรขาคณิต | ง่ายและรวดเร็ว | ภาระงานไม่สมดุลสำหรับเรขาคณิตที่ซับซ้อน |
 
 ```cpp
 // 🔧 Mechanism: decomposePar splits mesh among processors
@@ -194,44 +194,44 @@ public:
 };
 ```
 
-> **📂 Source:** `src/decompositionMethods/decompositionMethods/decompositionMethod/decompositionMethod.C`
->
-> **💡 Explanation:** Domain decomposition converts mesh topology into a graph representation where cells become vertices and faces become edges. The `decomposeMesh()` method selects the appropriate partitioning algorithm (METIS, SCOTCH, or Simple) and validates the resulting partition to ensure load balance and minimal interface area.
->
-> **🔑 Key Concepts:**
-> - **Graph Partitioning:** Transforming mesh connectivity into mathematical graph for optimal division
-> - **Load Balance:** Ensuring each processor receives approximately equal computational workload
-> - **Interface Minimization:** Reducing communication surface area between processors
-> - **Quality Validation:** Post-processing checks for imbalance and interface ratios
+> **📂 แหล่งที่มา:** `src/decompositionMethods/decompositionMethods/decompositionMethod/decompositionMethod.C`
+> 
+> **💡 คำอธิบาย:** การแบ่งโดเมน (Domain decomposition) จะแปลงโทโพโลยีของเมชให้เป็นการแสดงผลแบบกราฟ โดยที่เซลล์กลายเป็นจุดยอดและหน้ากลายเป็นขอบ เมธอด `decomposeMesh()` จะเลือกอัลกอริทึมการแบ่งส่วนที่เหมาะสม (METIS, SCOTCH หรือ Simple) และตรวจสอบผลลัพธ์การแบ่งส่วนเพื่อให้แน่ใจว่าสมดุลภาระงานและมีพื้นที่รอยต่อ (Interface area) น้อยที่สุด
+> 
+> **🔑 แนวคิดสำคัญ:**
+> - **Graph Partitioning:** การแปลงการเชื่อมต่อของเมชเป็นกราฟทางคณิตศาสตร์เพื่อการแบ่งส่วนที่เหมาะสมที่สุด
+> - **Load Balance:** การรับประกันว่าหน่วยประมวลผลแต่ละตัวได้รับภาระงานการคำนวณที่ใกล้เคียงกัน
+> - **Interface Minimization:** การลดพื้นที่ผิวการสื่อสารระหว่างหน่วยประมวลผล
+> - **Quality Validation:** การตรวจสอบหลังการประมวลผลสำหรับความไม่สมดุลและอัตราส่วนรอยต่อ
 
-**Partitioning Quality Metrics:**
+**ตัววัดคุณภาพการแบ่งส่วน:**
 
-1. **Load Balance**:
+1. **สมดุลภาระงาน (Load Balance)**:
    $$\text{Imbalance} = \frac{\max_i(n_i)}{\bar{n}}$$
-   - $n_i$ = cells in partition $i$
-   - $\bar{n}$ = average cells per partition
+   - $n_i$ = เซลล์ในพาร์ติชัน $i$
+   - $\bar{n}$ = จำนวนเซลล์เฉลี่ยต่อพาร์ติชัน
 
-2. **Surface-to-Volume Ratio**:
+2. **อัตราส่วนพื้นผิวต่อปริมาตร (Surface-to-Volume Ratio)**:
    $$\text{SVR} = \frac{A_{interface}}{V_{domain}}$$
-   - Interface area represents communication overhead
+   - พื้นที่รอยต่อแสดงถึงค่าใช้จ่ายในการสื่อสาร (Communication overhead)
 
-3. **Graph Edge Cuts**:
-   - Number of mesh faces crossing different partitions
-   - Directly proportional to communication volume
+3. **การตัดขอบกราฟ (Graph Edge Cuts)**:
+   - จำนวนหน้าของเมชที่ข้ามพาร์ติชันที่แตกต่างกัน
+   - เป็นสัดส่วนโดยตรงกับปริมาณการสื่อสาร
 
-**Target Values for Good Parallel Scaling:**
+**ค่าเป้าหมายสำหรับการขยายขนาดแบบขนานที่ดี:**
 
-| Metric | Target | Description |
+| ตัววัด | เป้าหมาย | คำอธิบาย |
 |--------|--------|-----------|
-| **Load balance** | < 1.1 | Maximum 10% imbalance |
-| **Interface faces** | < 5% | Of total faces |
-| **Partition compactness** | Minimal | Minimize surface-to-volume ratio |
+| **Load balance** | < 1.1 | ความไม่สมดุลสูงสุด 10% |
+| **Interface faces** | < 5% | ของหน้าทั้งหมด |
+| **Partition compactness** | ต่ำสุด | ลดอัตราส่วนพื้นผิวต่อปริมาตรให้น้อยที่สุด |
 
 ---
 
 ### 2. Ghost Cells (Halo Regions)
 
-**Ghost cells** enable each processor to perform interior matrix operations independently without waiting for communication, using a data replication strategy that separates computation from communication.
+**Ghost cells** (หรือเซลล์เสมือน) ช่วยให้หน่วยประมวลผลแต่ละตัวสามารถดำเนินการเมทริกซ์ภายในได้อย่างอิสระโดยไม่ต้องรอการสื่อสาร โดยใช้กลยุทธ์การจำลองข้อมูลที่แยกการคำนวณออกจากการสื่อสาร
 
 ```mermaid
 flowchart LR
@@ -247,12 +247,12 @@ flowchart LR
     A1 -->|Local Operations| A1
     A2 -->|Local Operations| A2
 ```
-> **Figure 2:** Ghost cell mechanism enabling each processor to compute its domain independently before exchanging boundary information with neighboring processors.
+> **รูปที่ 2:** กลไก Ghost cell ที่ช่วยให้หน่วยประมวลผลแต่ละตัวคำนวณโดเมนของตนได้อย่างอิสระก่อนที่จะแลกเปลี่ยนข้อมูลขอบเขตกับหน่วยประมวลผลข้างเคียง
 
-**Mathematical Foundation** relies on **domain decomposition theory**, where:
-- Local computational domain of processor $p$: $\Omega_p$
-- Extended computational domain: $\Omega_p^* = \Omega_p \cup \Gamma_p$
-- $\Gamma_p$ represents the halo region
+**รากฐานทางคณิตศาสตร์** อาศัย **ทฤษฎีการแบ่งโดเมน (domain decomposition theory)** โดยที่:
+- โดเมนการคำนวณท้องถิ่นของหน่วยประมวลผล $p$: $\Omega_p$
+- โดเมนการคำนวณแบบขยาย: $\Omega_p^* = \Omega_p \cup \Gamma_p$
+- $\Gamma_p$ แทนบริเวณ halo (halo region)
 
 ```cpp
 // 🔧 Mechanism: processor boundaries with ghost cells
@@ -451,33 +451,33 @@ public:
 };
 ```
 
-> **📂 Source:** `src/lduMatrix/lduProcessorInterfaces/lduProcessorInterface/lduProcessorInterface.H`
->
-> **💡 Explanation:** The `processorLduInterface` class manages communication between processor boundaries through ghost cells. Non-blocking MPI operations (`MPI_Isend`/`MPI_Irecv`) allow computation and communication to overlap, significantly improving parallel efficiency by hiding latency.
->
-> **🔑 Key Concepts:**
-> - **Ghost Cells:** Replicated data from neighboring processors enabling independent local computation
-> - **Non-blocking Communication:** Asynchronous MPI operations that don't block computation
-> - **Halo Exchange:** Synchronization mechanism for updating boundary values between processors
-> - **Computation-Communication Overlap:** Hiding communication latency behind useful work
+> **📂 แหล่งที่มา:** `src/lduMatrix/lduProcessorInterfaces/lduProcessorInterface/lduProcessorInterface.H`
+> 
+> **💡 คำอธิบาย:** คลาส `processorLduInterface` จัดการการสื่อสารระหว่างขอบเขตของหน่วยประมวลผลผ่าน Ghost cells การดำเนินการ MPI แบบไม่บล็อก (`MPI_Isend`/`MPI_Irecv`) ช่วยให้การคำนวณและการสื่อสารสามารถเหลื่อมซ้อนกันได้ (overlap) ซึ่งช่วยปรับปรุงประสิทธิภาพแบบขนานอย่างมีนัยสำคัญโดยการซ่อนความหน่วงเวลา
+> 
+> **🔑 แนวคิดสำคัญ:**
+> - **Ghost Cells:** ข้อมูลที่จำลองมาจากหน่วยประมวลผลข้างเคียงที่ช่วยให้การคำนวณในท้องถิ่นเป็นอิสระ
+> - **Non-blocking Communication:** การดำเนินการ MPI แบบอะซิงโครนัสที่ไม่ปิดกั้นการคำนวณ
+> - **Halo Exchange:** กลไกการซิงโครไนซ์สำหรับการอัปเดตค่าขอบเขตระหว่างหน่วยประมวลผล
+> - **Computation-Communication Overlap:** การซ่อนความหน่วงของการสื่อสารไว้เบื้องหลังงานที่มีประโยชน์
 
-**Ghost Cell Management** uses mathematical domain decomposition:
+**การจัดการ Ghost Cell** ใช้ทฤษฎีการแบ่งโดเมนทางคณิตศาสตร์:
 
-- **Owned cells**: $\Omega_p^{\text{owned}} = \{i \in \Omega_p : i \text{ assigned to processor } p\}$
-- **Ghost cells**: $\Omega_p^{\text{ghost}} = \{i \in \Omega_q : \exists j \in \Omega_p^{\text{owned}} : (i,j) \in \mathcal{E}\}$
+- **Owned cells (เซลล์ที่เป็นเจ้าของ)**: $\Omega_p^{\text{owned}} = \{i \in \Omega_p : i \text{ assigned to processor } p\}$
+- **Ghost cells (เซลล์เสมือน)**: $\Omega_p^{\text{ghost}} = \{i \in \Omega_q : \exists j \in \Omega_p^{\text{owned}} : (i,j) \in \mathcal{E}\}$
 
-where $\mathcal{E}$ denotes the set of mesh faces connecting different cells
+โดยที่ $\mathcal{E}$ แทนชุดของหน้าเมชที่เชื่อมต่อเซลล์ต่างๆ
 
-**Halo Exchange Algorithm:**
+**อัลกอริทึม Halo Exchange:**
 $$\phi_p^{\text{ghost}}(t+1) = \text{MPI\_Recv}(\phi_q^{\text{border}}(t), q \in \mathcal{N}(p))$$
 
-where $\mathcal{N}(p)$ denotes the set of neighboring processors
+โดยที่ $\mathcal{N}(p)$ แทนชุดของหน่วยประมวลผลข้างเคียง
 
 ---
 
-### 3. Parallel Matrix Assembly
+### 3. การประกอบเมทริกซ์แบบขนาน (Parallel Matrix Assembly)
 
-Parallel matrix assembly in OpenFOAM uses a **distributed memory** programming model where each processor constructs its local matrix portion while maintaining global consistency.
+การประกอบเมทริกซ์แบบขนานใน OpenFOAM ใช้โมเดลการเขียนโปรแกรมแบบ **หน่วยความจำกระจาย (distributed memory)** ซึ่งหน่วยประมวลผลแต่ละตัวจะสร้างส่วนเมทริกซ์ท้องถิ่นของตนในขณะที่ยังคงรักษาความสอดคล้องระดับสากล (global consistency) ไว้
 
 ```mermaid
 flowchart TD
@@ -497,16 +497,16 @@ flowchart TD
     E --> F[Interface Communication]
     F --> G[Global Linear System]
 ```
-> **Figure 3:** Parallel matrix assembly process, from internal processor face assembly to global consistency verification.
+> **รูปที่ 3:** กระบวนการประกอบเมทริกซ์แบบขนาน ตั้งแต่การประกอบหน้าภายในหน่วยประมวลผลไปจนถึงการตรวจสอบความสอดคล้องระดับสากล
 
-**Assembly Process follows a face-by-face approach** where each mesh face contributes to the matrix of exactly one processor.
+**กระบวนการประกอบเป็นไปตามแนวทางแบบทีละหน้า (face-by-face approach)** โดยที่แต่ละหน้าเมชจะส่งผลต่อเมทริกซ์ของหน่วยประมวลผลเพียงตัวเดียวเท่านั้น
 
-**Assembly Steps:**
+**ขั้นตอนการประกอบ:**
 
-1. **Phase 1**: Assemble **internal faces** locally
-2. **Phase 2**: Assemble **processor boundaries**
-3. **Phase 3**: Physical boundary conditions
-4. **Phase 4**: Ensure global consistency
+1. **ระยะที่ 1**: ประกอบ **หน้าภายใน (internal faces)** ในท้องถิ่น
+2. **ระยะที่ 2**: ประกอบ **ขอบเขตหน่วยประมวลผล (processor boundaries)**
+3. **ระยะที่ 3**: เงื่อนไขขอบเขตทางกายภาพ
+4. **ระยะที่ 4**: รับประกันความสอดคล้องระดับสากล
 
 ```cpp
 // 🔧 Mechanism: Each processor constructs its portion of the global matrix
@@ -522,9 +522,9 @@ private:
     const labelList& faceProcAddressing_;    // Global to local face mapping
 
     // Local matrix storage
-    scalarField diag_;                       // Local diagonal entries
-    scalarField upper_;                      // Upper triangle entries
-    scalarField lower_;                      // Lower triangle entries
+    scalarField diag_;
+    scalarField upper_;
+    scalarField lower_;
 
     // Interface coefficients for parallel connections
     List<scalarField> interfaceCoefficients_;
@@ -717,44 +717,44 @@ public:
 };
 ```
 
-> **📂 Source:** `src/finiteVolume/fields/fvPatchFields/processor/processorFvPatchField.C`
->
-> **💡 Explanation:** Parallel matrix assembly distributes the construction of linear systems across processors. Each processor assembles only its local portion (internal faces and owner-side processor boundaries), then validates global consistency through reduction operations ensuring each face is counted exactly once.
->
-> **🔑 Key Concepts:**
-> - **Face Ownership:** Each processor face belongs to exactly one processor (lower rank)
-> - **Global Indexing:** Mapping between global and local indices preserves mathematical structure
-> - **Interface Coefficients:** Boundary contributions stored for ghost cell communication
-> - **Assembly Validation:** Global reduction verifies consistency across distributed data
+> **📂 แหล่งที่มา:** `src/finiteVolume/fields/fvPatchFields/processor/processorFvPatchField.C`
+> 
+> **💡 คำอธิบาย:** การประกอบเมทริกซ์แบบขนานกระจายการสร้างระบบเชิงเส้นไปยังหน่วยประมวลผลต่างๆ หน่วยประมวลผลแต่ละตัวจะประกอบเฉพาะส่วนท้องถิ่นของตน (หน้าภายในและขอบเขตหน่วยประมวลผลฝั่งเจ้าของ) จากนั้นตรวจสอบความสอดคล้องระดับสากลผ่านการดำเนินการ reduction เพื่อให้แน่ใจว่าแต่ละหน้าถูกนับเพียงครั้งเดียว
+> 
+> **🔑 แนวคิดสำคัญ:**
+> - **Face Ownership:** หน้าแต่ละหน้าเป็นของหน่วยประมวลผลเพียงตัวเดียวเท่านั้น (ตัวที่มีลำดับต่ำกว่า)
+> - **Global Indexing:** การทำแผนที่ระหว่างดัชนีสากลและดัชนีท้องถิ่นเพื่อรักษาโครงสร้างทางคณิตศาสตร์
+> - **Interface Coefficients:** การมีส่วนร่วมของขอบเขตที่เก็บไว้สำหรับการสื่อสาร Ghost cell
+> - **Assembly Validation:** การลดรูปสากล (Global reduction) ตรวจสอบความสอดคล้องทั่วทั้งข้อมูลที่กระจายอยู่
 
-**Parallel Consistency** maintained through several mechanisms:
+**ความสอดคล้องแบบขนาน (Parallel Consistency)** ได้รับการรักษาผ่านกลไกหลายประการ:
 
-1. **Face Ownership**:
-   - Each processor face belongs to exactly one processor (the one with lower rank)
-   - Ensures no double counting
+1. **ความเป็นเจ้าของหน้า (Face Ownership)**:
+   - แต่ละหน้าของหน่วยประมวลผลเป็นของหน่วยประมวลผลเพียงตัวเดียว (ตัวที่มีลำดับต่ำกว่า)
+   - รับประกันว่าจะไม่มีการนับซ้ำ
 
-2. **Global Indexing**:
-   Mapping between global and local indices preserves mathematical structure:
+2. **การทำดัชนีสากล (Global Indexing)**:
+การทำแผนที่ระหว่างดัชนีสากลและดัชนีท้องถิ่นรักษาโครงสร้างทางคณิตศาสตร์:
    $$A_{global}[i,j] = \begin{cases}
    A_{local}^{(p)}[i_{local}, j_{local}] & \text{if } i,j \in \Omega_p^{\text{owned}} \\
    0 & \text{otherwise (handled by interfaces)}
    \end{cases}$$
 
-3. **Interface Consistency**:
-   - Boundary contributions are symmetric
-   - Preserves global matrix properties like symmetry and positive definiteness
+3. **ความสอดคล้องของรอยต่อ (Interface Consistency)**:
+   - การมีส่วนร่วมของขอบเขตมีความสมมาตร
+   - รักษาคุณสมบัติเมทริกซ์สากลเช่นความสมมาตรและความเป็นบวกแน่นอน (positive definiteness)
 
-4. **Redundancy Elimination**:
-   - Assembly process prevents redundant contributions
-   - Careful separation between owned and ghost cells
+4. **การกำจัดความซ้ำซ้อน (Redundancy Elimination)**:
+   - กระบวนการประกอบป้องกันการมีส่วนร่วมที่ซ้ำซ้อน
+   - การแยกอย่างระมัดระวังระหว่างเซลล์ที่เป็นเจ้าของและ Ghost cells
 
 ---
 
-## 🧠 Under the Hood
+## 🧠 ภายใน: การทำงานเชิงลึก (Under the Hood)
 
-### Parallel Matrix-Vector Product with Communication
+### ผลคูณเมทริกซ์-เวกเตอร์แบบขนานพร้อมการสื่อสาร
 
-Parallel matrix-vector product in OpenFOAM is implemented through `lduMatrix::Amul`, demonstrating sophisticated coordination between computation and communication.
+ผลคูณเมทริกซ์-เวกเตอร์แบบขนานใน OpenFOAM ถูกนำไปใช้ผ่าน `lduMatrix::Amul` ซึ่งแสดงให้เห็นถึงการประสานงานที่ซับซ้อนระหว่างการคำนวณและการสื่อสาร
 
 ```mermaid
 sequenceDiagram
@@ -787,89 +787,89 @@ sequenceDiagram
     P2->>P2: Apply boundary contributions
     P3->>P3: Apply boundary contributions
 ```
-> **Figure 4:** Parallel matrix-vector multiplication sequence, demonstrating overlap between boundary data communication and intra-processor computation to reduce overhead.
+> **รูปที่ 4:** ลำดับการคูณเมทริกซ์-เวกเตอร์แบบขนาน แสดงให้เห็นถึงการเหลื่อมซ้อนระหว่างการสื่อสารข้อมูลขอบเขตและการคำนวณภายในหน่วยประมวลผลเพื่อลดค่าใช้จ่ายส่วนเกิน
 
-**Function Parameters:**
-- `result field`: field storing the result
-- `input field tx`: input field for multiplication
-- `interface boundary coefficients`: boundary coefficient values
-- `interface field pointers`: pointers to boundary fields
+**พารามิเตอร์ฟังก์ชัน:**
+- `result field`: ฟิลด์ที่เก็บผลลัพธ์
+- `input field tx`: ฟิลด์อินพุตสำหรับการคูณ
+- `interface boundary coefficients`: ค่าสัมประสิทธิ์ขอบเขตรอยต่อ
+- `interface field pointers`: ตัวชี้ไปยังฟิลด์ขอบเขต
 
-**Communication and Computation Pattern:**
+**รูปแบบการสื่อสารและการคำนวณ:**
 
-The communication pattern follows a carefully orchestrated sequence to enable overlapping computation and message passing.
+รูปแบบการสื่อสารเป็นไปตามลำดับที่จัดเตรียมไว้อย่างระมัดระวังเพื่อให้สามารถเหลื่อมซ้อนการคำนวณและการส่งข้อความ
 
-**Execution Steps:**
+**ขั้นตอนการดำเนินการ:**
 
-1. **Initiate non-blocking sends**: Send border values to neighboring processors
-2. **Receive border values**: Receive values from neighboring processors
-3. **Compute local interior contributions**: Perform calculations while messages travel through network
-4. **Wait for message completion**: Wait for messages to complete and add boundary contributions
+1. **เริ่มการส่งแบบไม่บล็อก (Initiate non-blocking sends)**: ส่งค่าขอบไปยังหน่วยประมวลผลข้างเคียง
+2. **รับค่าขอบ (Receive border values)**: รับค่าจากหน่วยประมวลผลข้างเคียง
+3. **คำนวณการมีส่วนร่วมภายในท้องถิ่น (Compute local interior contributions)**: ทำการคำนวณในขณะที่ข้อความเดินทางผ่านเครือข่าย
+4. **รอให้ข้อความเสร็จสมบูรณ์ (Wait for message completion)**: รอให้ข้อความเสร็จสิ้นและเพิ่มการมีส่วนร่วมของขอบเขต
 
-**Processing Mechanism:**
+**กลไกการประมวลผล:**
 
-**Phase 1: Ghost Cell Updates**
+**ระยะที่ 1: การอัปเดต Ghost Cell**
 ```cpp
 updateMatrixInterfaces(); // exchange border values between neighboring processors
 ```
-- Each processor ensures it has necessary values from adjacent domains
-- Prepares for local computation
+- หน่วยประมวลผลแต่ละตัวตรวจสอบให้แน่ใจว่ามีค่าที่จำเป็นจากโดเมนที่อยู่ติดกัน
+- เตรียมพร้อมสำหรับการคำนวณท้องถิ่น
 
-**Phase 2: Local Computation**
+**ระยะที่ 2: การคำนวณท้องถิ่น**
 ```cpp
 result = diag() * x; // Diagonal multiplication
 ```
-- Iterate through each processor's faces
-- Add contributions from both upper and lower triangular matrix elements
+- วนซ้ำผ่านหน้าของหน่วยประมวลผลแต่ละตัว
+- เพิ่มการมีส่วนร่วมจากองค์ประกอบเมทริกซ์สามเหลี่ยมบนและล่าง
 
-**Key Insight:** While messages are in transit, processors can calculate contributions from interior cells that don't depend on boundary data
+**ข้อมูลเชิงลึกที่สำคัญ:** ในขณะที่ข้อความกำลังเดินทาง หน่วยประมวลผลสามารถคำนวณการมีส่วนร่วมจากเซลล์ภายในที่ไม่ขึ้นอยู่กับข้อมูลขอบเขต
 
-This overlap significantly reduces communication overhead, which is critical to parallel efficiency in CFD simulations where matrix operations are a major computational cost.
+การเหลื่อมซ้อนนี้ช่วยลดค่าใช้จ่ายในการสื่อสารได้อย่างมาก ซึ่งมีความสำคัญต่อประสิทธิภาพแบบขนานในการจำลอง CFD ที่การดำเนินการเมทริกซ์เป็นต้นทุนการคำนวณหลัก
 
 ---
 
-### Parallel Dot Products and Norms
+### ผลคูณแบบดอทและนอร์มแบบขนาน (Parallel Dot Products and Norms)
 
-The `gSumProd` function implements global reductions across all processors, which is essential for iterative solver convergence checks.
+ฟังก์ชัน `gSumProd` ใช้การลดรูปสากล (global reductions) ข้ามหน่วยประมวลผลทั้งหมด ซึ่งจำเป็นสำหรับการตรวจสอบการลู่เข้าของตัวแก้สมการแบบวนซ้ำ (iterative solver)
 
-**Global Reduction Operation Pattern:**
+**รูปแบบการดำเนินการลดรูปสากล:**
 
-**Phase 1: Local Computation**
+**ระยะที่ 1: การคำนวณท้องถิ่น**
 ```cpp
 localSum += a[i] * b[i]; // compute local dot product
 ```
-- Each processor computes local dot product by iterating through local elements
-- Embarrassingly parallel work with no communication required
+- หน่วยประมวลผลแต่ละตัวคำนวณผลคูณแบบดอทท้องถิ่นโดยการวนซ้ำผ่านองค์ประกอบท้องถิ่น
+- งานที่เป็นขนานอย่างสมบูรณ์ (Embarrassingly parallel) โดยไม่ต้องมีการสื่อสาร
 
-**Phase 2: Global Reduction**
+**ระยะที่ 2: การลดรูปสากล**
 ```cpp
 reduce(globalSum, sumOp<scalar>()); // MPI_Allreduce operation
 ```
 
-| Step | Operation | Description |
+| ขั้นตอน | การดำเนินการ | คำอธิบาย |
 |---------|-------------|---------|
-| **Local Computation** | `localSum += a[i] * b[i]` | Each processor computes local product |
-| **Global Reduction** | `MPI_Allreduce` | Combine results from all processors via network |
-| **Synchronization** | Collective Operation | All processors must reach same point |
+| **การคำนวณท้องถิ่น** | `localSum += a[i] * b[i]` | แต่ละหน่วยประมวลผลคำนวณผลคูณท้องถิ่น |
+| **การลดรูปสากล** | `MPI_Allreduce` | รวมผลลัพธ์จากหน่วยประมวลผลทั้งหมดผ่านเครือข่าย |
+| **การซิงโครไนซ์** | การดำเนินการแบบกลุ่ม (Collective Operation) | หน่วยประมวลผลทั้งหมดต้องไปถึงจุดเดียวกัน |
 
-**Performance and Challenges:**
+**ประสิทธิภาพและความท้าทาย:**
 
-**Advantages:**
-- Local computation is perfectly parallel
-- No communication required in first phase
+**ข้อดี:**
+- การคำนวณท้องถิ่นเป็นแบบขนานอย่างสมบูรณ์
+- ไม่ต้องมีการสื่อสารในระยะแรก
 
-**Limitations:**
-- MPI_Allreduce creates a global synchronization barrier
-- Can limit scalability if not carefully managed
-- Becomes a bottleneck in large-scale parallel computation
+**ข้อจำกัด:**
+- MPI_Allreduce สร้างอุปสรรคการซิงโครไนซ์ระดับสากล
+- สามารถจำกัดความสามารถในการขยายขนาดหากไม่ได้รับการจัดการอย่างระมัดระวัง
+- กลายเป็นคอขวดในการคำนวณแบบขนานขนาดใหญ่
 
-The efficiency of global reductions is critical to the performance of parallel solvers in iterative methods like **Conjugate Gradient** where dot products and vector norms are computed each iteration to check convergence.
+ประสิทธิภาพของการลดรูปสากลมีความสำคัญต่อประสิทธิภาพของตัวแก้สมการแบบขนานในวิธีวนซ้ำเช่น **Conjugate Gradient** ซึ่งผลคูณแบบดอทและนอร์มเวกเตอร์จะถูกคำนวณในแต่ละรอบเพื่อตรวจสอบการลู่เข้า
 
 ---
 
-### Parallel Preconditioners
+### ตัวปรับสภาพล่วงหน้าแบบขนาน (Parallel Preconditioners)
 
-The `DICPreconditioner` class illustrates the challenges of using incomplete Cholesky preconditioning in a parallel environment.
+คลาส `DICPreconditioner` แสดงให้เห็นถึงความท้าทายของการใช้การปรับสภาพล่วงหน้าแบบ incomplete Cholesky ในสภาพแวดล้อมแบบขนาน
 
 ```mermaid
 flowchart TD
@@ -885,95 +885,95 @@ flowchart TD
         B1 -.->|Jacobi-like| B2
     end
 ```
-> **Figure 5:** Challenges in parallel preconditioning, demonstrating the balance between global mathematical accuracy and processor-level computational efficiency.
+> **รูปที่ 5:** ความท้าทายในการปรับสภาพล่วงหน้าแบบขนาน แสดงให้เห็นถึงความสมดุลระหว่างความแม่นยำทางคณิตศาสตร์ระดับสากลและประสิทธิภาพการคำนวณระดับหน่วยประมวลผล
 
-**Challenge in Forward Sweep:**
+**ความท้าทายในการกวาดไปข้างหน้า (Forward Sweep):**
 
-Gauss-Seidel sweeps require sequential updates that are not naturally parallelizable, creating a fundamental challenge:
+Gauss-Seidel sweeps ต้องการการอัปเดตตามลำดับซึ่งไม่สามารถทำเป็นแบบขนานได้ตามธรรมชาติ สร้างความท้าทายพื้นฐาน:
 
-**Workaround:**
+**วิธีแก้ปัญหา:**
 ```cpp
 if (!isProcessorFace[facei]) {
     // Update only non-processor boundary faces
 }
 ```
 
-**This limitation results in:**
-- Maintaining triangular solve dependencies within each local subdomain
-- But processor boundaries break dependencies as boundary cell updates depend on values from neighboring processors
+**ข้อจำกัดนี้ส่งผลให้:**
+- การรักษาการพึ่งพาการแก้สามเหลี่ยมภายในแต่ละโดเมนย่อยท้องถิ่น
+- แต่ขอบเขตหน่วยประมวลผลทำลายการพึ่งพาเนื่องจากการอัปเดตเซลล์ขอบเขตขึ้นอยู่กับค่าจากหน่วยประมวลผลข้างเคียง
 
-**Hybrid Approach:**
+**แนวทางแบบผสมผสาน (Hybrid Approach):**
 
-| Method | Region Used | Properties |
+| วิธีการ | พื้นที่ที่ใช้ | คุณสมบัติ |
 |-----------|------------|-----------|
-| **Gauss-Seidel** | Within subdomains | Strict mathematical convergence |
-| **Jacobi-like** | At processor boundaries | Better parallel efficiency |
+| **Gauss-Seidel** | ภายในโดเมนย่อย | การลู่เข้าทางคณิตศาสตร์ที่เข้มงวด |
+| **Jacobi-like** | ที่ขอบเขตหน่วยประมวลผล | ประสิทธิภาพแบบขนานที่ดีกว่า |
 
-**Communication Pattern:**
-1. **Forward sweep**: Update interfaces during computation
-2. **Interface synchronization**: Exchange values between processors
-3. **Backward sweep**: Repeat updates with new values
+**รูปแบบการสื่อสาร:**
+1. **การกวาดไปข้างหน้า**: อัปเดตรอยต่อระหว่างการคำนวณ
+2. **การซิงโครไนซ์รอยต่อ**: แลกเปลี่ยนค่าระหว่างหน่วยประมวลผล
+3. **การกวาดไปข้างหลัง**: ทำซ้ำการอัปเดตด้วยค่าใหม่
 
-**Trade-off Analysis:**
+**การวิเคราะห์ข้อดีข้อเสีย (Trade-off Analysis):**
 
-**Efficiency:**
-- Resulting preconditioner is less effective than serial counterpart
-- But enables scalability to large processor counts
+**ประสิทธิภาพ:**
+- ตัวปรับสภาพล่วงหน้าที่ได้จะมีประสิทธิภาพน้อยกว่าแบบอนุกรม
+- แต่ช่วยให้สามารถขยายขนาดไปยังจำนวนหน่วยประมวลผลจำนวนมากได้
 
-**Trade-off:**
-- **Convergence rate**: Slightly reduced
-- **Parallel efficiency**: Significantly improved
-- **Synchronization overhead**: Reduced
+**ข้อแลกเปลี่ยน:**
+- **อัตราการลู่เข้า**: ลดลงเล็กน้อย
+- **ประสิทธิภาพแบบขนาน**: ปรับปรุงอย่างมีนัยสำคัญ
+- **ค่าใช้จ่ายในการซิงโครไนซ์**: ลดลง
 
-**Communication Requirements:**
+**ความต้องการในการสื่อสาร:**
 
-Each forward/backward sweep typically requires two communication phases:
+แต่ละการกวาดไปข้างหน้า/ข้างหลังมักต้องการการสื่อสารสองระยะ:
 
-1. **Interface exchange**: Exchange boundary values between processors
-2. **Convergence check**: Global reduction for checking progress
+1. **การแลกเปลี่ยนรอยต่อ**: แลกเปลี่ยนค่าขอบเขตระหว่างหน่วยประมวลผล
+2. **การตรวจสอบการลู่เข้า**: การลดรูปสากลเพื่อตรวจสอบความคืบหน้า
 
-This makes preconditioners one of the most communication-intensive components of parallel solvers.
+สิ่งนี้ทำให้ตัวปรับสภาพล่วงหน้าเป็นหนึ่งในองค์ประกอบที่ใช้การสื่อสารเข้มข้นที่สุดของตัวแก้สมการแบบขนาน
 
-The trade-off between convergence rate and parallel efficiency is a fundamental challenge in parallel iterative solvers, requiring careful coordination between processors to maintain stability while reducing synchronization overhead.
+ข้อแลกเปลี่ยนระหว่างอัตราการลู่เข้าและประสิทธิภาพแบบขนานเป็นความท้าทายพื้นฐานในตัวแก้สมการวนซ้ำแบบขนาน ซึ่งต้องการการประสานงานอย่างระมัดระวังระหว่างหน่วยประมวลผลเพื่อรักษาเสถียรภาพในขณะที่ลดค่าใช้จ่ายในการซิงโครไนซ์
 
 ---
 
-## ⚠️ Common Pitfalls and Solutions
+## ⚠️ ข้อผิดพลาดทั่วไปและวิธีแก้ไข
 
-### Pitfall 1: Poor Load Balancing
+### ข้อผิดพลาดที่ 1: การจัดสมดุลภาระงานที่ไม่ดี (Poor Load Balancing)
 
-**Load balancing** in parallel CFD simulations is critical for achieving maximum performance. The fundamental challenge in domain decomposition is ensuring each processor receives approximately equal computational workload.
+**การจัดสมดุลภาระงาน (Load balancing)** ในการจำลอง CFD แบบขนานมีความสำคัญอย่างยิ่งต่อการบรรลุประสิทธิภาพสูงสุด ความท้าทายพื้นฐานในการแบ่งโดเมนคือการรับประกันว่าหน่วยประมวลผลแต่ละตัวได้รับภาระงานการคำนวณที่ใกล้เคียงกัน
 
-**Problem Analysis:**
+**การวิเคราะห์ปัญหา:**
 
-When computational load is unevenly distributed across processors, overall parallel efficiency is limited by the slowest processor.
+เมื่อภาระการคำนวณกระจายไม่สม่ำเสมอข้ามหน่วยประมวลผล ประสิทธิภาพแบบขนานโดยรวมจะถูกจำกัดโดยหน่วยประมวลผลที่ช้าที่สุด
 
-**Phenomenon:** Amdahl's Law bottleneck means if one processor has twice as many cells as another, it will take approximately twice as long to complete its computational work.
+**ปรากฏการณ์:** คอขวดของกฎ Amdahl หมายความว่าหากหน่วยประมวลผลหนึ่งมีเซลล์มากกว่าอีกตัวหนึ่งเป็นสองเท่า มันจะใช้เวลาประมาณสองเท่าในการทำงานคำนวณให้เสร็จสิ้น
 
-**Mathematical Model:**
+**โมเดลทางคณิตศาสตร์:**
 
-For $n$ processors with cell counts $N_i$, theoretical maximum speedup $S_{max}$ is:
+สำหรับหน่วยประมวลผล $n$ ตัวที่มีจำนวนเซลล์ $N_i$ ความเร็วสูงสุดทางทฤษฎี $S_{max}$ คือ:
 
 $$S_{max} = \frac{\sum_{i=1}^{n} N_i}{\max(N_1, N_2, ..., N_n)}$$
 
-In practice, actual speedup is reduced due to communication overhead:
+ในทางปฏิบัติ ความเร็วที่แท้จริงจะลดลงเนื่องจากค่าใช้จ่ายในการสื่อสาร:
 
 $$S_{actual} = \frac{S_{max}}{1 + \tau \cdot \frac{N_{interface}}{N_{cells}}}$$
 
-**where:**
-- $\tau$ = communication-to-computation ratio
-- $N_{interface}$ = number of cells at processor boundaries
-- $N_{cells}$ = total number of cells
+**โดยที่:**
+- $\tau$ = อัตราส่วนการสื่อสารต่อการคำนวณ
+- $N_{interface}$ = จำนวนเซลล์ที่ขอบเขตหน่วยประมวลผล
+- $N_{cells}$ = จำนวนเซลล์ทั้งหมด
 
-**Solution Strategies:**
+**กลยุทธ์การแก้ไข:**
 
-| Method | Domain Type | Advantages | Cautions |
+| วิธีการ | ประเภทโดเมน | ข้อดี | ข้อควรระวัง |
 |------|---------------|--------|--------------|
-| **Scotch** | Complex geometry | High quality, tunable | Longer computation time |
-| **Hierarchical** | Structured mesh | Good cache locality | Best for rectangular domains |
-| **Simple** | Regular domains | Fast, simple | Doesn't adapt to shape |
+| **Scotch** | เรขาคณิตที่ซับซ้อน | คุณภาพสูง, ปรับแต่งได้ | ใช้เวลาคำนวณนานกว่า |
+| **Hierarchical** | เมชแบบมีโครงสร้าง | Cache locality ดี | ดีที่สุดสำหรับโดเมนสี่เหลี่ยม |
+| **Simple** | โดเมนปกติ | เร็ว, ง่าย | ไม่ปรับตามรูปร่าง |
 
-#### 1. Scotch Method (Recommended for Complex Geometry)
+#### 1. วิธี Scotch (แนะนำสำหรับเรขาคณิตที่ซับซ้อน)
 
 ```cpp
 decomposeParDict
@@ -991,7 +991,7 @@ decomposeParDict
 }
 ```
 
-#### 2. Hierarchical Method (Structured Meshes)
+#### 2. วิธี Hierarchical (เมชแบบมีโครงสร้าง)
 
 ```cpp
 decomposeParDict
@@ -999,7 +999,7 @@ decomposeParDict
     method          hierarchical;
     hierarchicalCoeffs
     {
-        n           (4 2 2);  // Total 16 processors
+        n               (4 2 2);  // Total 16 processors
         // Prefer decomposition in x direction for larger
         // for better cache locality
         direction   (1 1 0);
@@ -1007,7 +1007,7 @@ decomposeParDict
 }
 ```
 
-#### 3. Simple Method Manual (Regular Domains)
+#### 3. วิธี Simple Manual (โดเมนปกติ)
 
 ```cpp
 decomposeParDict
@@ -1023,7 +1023,7 @@ decomposeParDict
 }
 ```
 
-**Quality Verification:**
+**การตรวจสอบคุณภาพ:**
 
 ```bash
 # Check decomposition quality
@@ -1035,7 +1035,7 @@ checkMesh -allGeometry -allTopology > meshQuality.log
 # - Processor boundary surface area
 ```
 
-**Load Balance Analysis Script:**
+**สคริปต์วิเคราะห์สมดุลภาระงาน:**
 
 ```bash
 #!/bin/bash
@@ -1052,34 +1052,34 @@ awk 'BEGIN{min=1e9; max=0; sum=0; n=0}
 
 ---
 
-### Pitfall 2: Excessive Communication
+### ข้อผิดพลาดที่ 2: การสื่อสารที่มากเกินไป (Excessive Communication)
 
-Communication overhead in parallel CFD simulations arises from data exchange across processor boundaries, including:
-- **Ghost cell exchange** for finite volume operations
-- **Coefficient synchronization** for linear solvers
-- **Result gathering** for global operations
+ค่าใช้จ่ายในการสื่อสารในการจำลอง CFD แบบขนานเกิดจากการแลกเปลี่ยนข้อมูลข้ามขอบเขตหน่วยประมวลผล รวมถึง:
+- **การแลกเปลี่ยน Ghost cell** สำหรับการดำเนินการไฟไนต์วอลุ่ม
+- **การซิงโครไนซ์สัมประสิทธิ์** สำหรับตัวแก้สมการเชิงเส้น
+- **การรวบรวมผลลัพธ์** สำหรับการดำเนินการระดับสากล
 
-**Communication Cost Model:**
+**โมเดลต้นทุนการสื่อสาร:**
 
-Total communication time $T_{comm}$ can be modeled as:
+เวลาการสื่อสารทั้งหมด $T_{comm}$ สามารถจำลองได้เป็น:
 
 $$T_{comm} = \sum_{interfaces} \left( \alpha + \beta \frac{N_{data}}{P} \right)$$
 
-**where:**
-- $\alpha$ = latency cost (constant per message)
-- $\beta$ = bandwidth cost (per unit data)
-- $N_{data}$ = amount of data transferred
-- $P$ = number of parallel channels
+**โดยที่:**
+- $\alpha$ = ต้นทุนความหน่วง (คงที่ต่อข้อความ)
+- $\beta$ = ต้นทุนแบนด์วิดท์ (ต่อหน่วยข้อมูล)
+- $N_{data}$ = ปริมาณข้อมูลที่ถ่ายโอน
+- $P$ = จำนวนช่องทางขนาน
 
-**Performance Bottleneck Issues:**
+**ปัญหาคอขวดประสิทธิภาพ:**
 
-1. **High Latency Cost:** Multiple small messages have constant latency overhead
-2. **Excessive Interface Area:** Larger interface area means more data transfer
-3. **Synchronization Points:** Global operations require participation from all processors
+1. **ต้นทุนความหน่วงสูง:** ข้อความขนาดเล็กหลายข้อความมีค่าใช้จ่ายความหน่วงคงที่
+2. **พื้นที่รอยต่อมากเกินไป:** พื้นที่รอยต่อขนาดใหญ่หมายถึงการถ่ายโอนข้อมูลมากขึ้น
+3. **จุดซิงโครไนซ์:** การดำเนินการระดับสากลต้องการการมีส่วนร่วมจากหน่วยประมวลผลทั้งหมด
 
-**Optimization Strategies:**
+**กลยุทธ์การเพิ่มประสิทธิภาพ:**
 
-#### 1. Reduce Interface Area
+#### 1. ลดพื้นที่รอยต่อ (Reduce Interface Area)
 
 ```cpp
 decomposeParDict
@@ -1097,7 +1097,7 @@ decomposeParDict
 }
 ```
 
-#### 2. Improve Connectivity Quality
+#### 2. ปรับปรุงคุณภาพการเชื่อมต่อ (Improve Connectivity Quality)
 
 ```cpp
 // Use connectivity-aware partitioning
@@ -1114,7 +1114,7 @@ decomposeParDict
 }
 ```
 
-#### 3. Advanced Partitioning Methods
+#### 3. วิธีการแบ่งส่วนขั้นสูง (Advanced Partitioning Methods)
 
 ```cpp
 // For specific mesh types
@@ -1132,7 +1132,7 @@ decomposeParDict
 }
 ```
 
-**Communication Analysis:**
+**การวิเคราะห์การสื่อสาร:**
 
 ```bash
 # Analyze communication patterns
@@ -1144,7 +1144,7 @@ mpirun -np 16 mySolver -case myCase -profiling
 # - Average message size
 ```
 
-**Preconditioner Selection for Parallel Efficiency:**
+**การเลือกตัวปรับสภาพล่วงหน้าเพื่อประสิทธิภาพแบบขนาน:**
 
 ```cpp
 // Choose parallel-friendly preconditioner
@@ -1164,36 +1164,36 @@ solver
 
 ---
 
-### Pitfall 3: Serial I/O Bottlenecks
+### ข้อผิดพลาดที่ 3: คอขวด I/O แบบอนุกรม (Serial I/O Bottlenecks)
 
-I/O operations in parallel CFD simulations present significant challenges due to the inherently serial nature of traditional file system operations.
+การดำเนินการ I/O ในการจำลอง CFD แบบขนานนำเสนอความท้าทายที่สำคัญเนื่องจากธรรมชาติที่เป็นอนุกรมของการดำเนินการระบบไฟล์แบบดั้งเดิม
 
-**I/O Bottleneck Analysis:**
+**การวิเคราะห์คอขวด I/O:**
 
-Total I/O time for traditional master-writer approach follows:
+เวลา I/O ทั้งหมดสำหรับแนวทาง master-writer แบบดั้งเดิมเป็นไปตาม:
 
 $$T_{I/O}^{master} = T_{gather} + T_{serialize} + T_{write} + T_{distribute}$$
 
-**where:**
-- $T_{gather}$ = time to gather data from all processors
-- $T_{serialize}$ = time to process and format data
-- $T_{write}$ = time to write to disk
-- $T_{distribute}$ = time to confirm job completion
+**โดยที่:**
+- $T_{gather}$ = เวลาในการรวบรวมข้อมูลจากหน่วยประมวลผลทั้งหมด
+- $T_{serialize}$ = เวลาในการประมวลผลและจัดรูปแบบข้อมูล
+- $T_{write}$ = เวลาในการเขียนลงดิสก์
+- $T_{distribute}$ = เวลาในการยืนยันความสมบูรณ์ของงาน
 
-For large simulations with $P$ processors, this becomes:
+สำหรับการจำลองขนาดใหญ่ที่มีหน่วยประมวลผล $P$ ตัว จะกลายเป็น:
 
 $$T_{I/O}^{master} \approx O(P) \cdot T_{per-proc-data}$$
 
-**OpenFOAM I/O Methods and Trade-offs:**
+**วิธีการ I/O ของ OpenFOAM และข้อแลกเปลี่ยน:**
 
-| Method | Processor Count | Advantages | Disadvantages |
+| วิธีการ | จำนวนหน่วยประมวลผล | ข้อดี | ข้อเสีย |
 |----------|------------------|--------|----------|
-| **Master-Writer** | < 32 | Simple, single file | Serial bottleneck |
-| **Collated** | 32-256 | Reduced bottleneck, threaded | Higher memory usage |
-| **Distributed** | > 256 | No bottleneck | Requires reconstruct |
-| **MPI-IO** | > 1024 | High performance | Complex, requires HPC |
+| **Master-Writer** | < 32 | ง่าย, ไฟล์เดียว | คอขวดแบบอนุกรม |
+| **Collated** | 32-256 | ลดคอขวด, เธรด | ใช้หน่วยความจำสูงขึ้น |
+| **Distributed** | > 256 | ไม่มีคอขวด | ต้อง reconstruct |
+| **MPI-IO** | > 1024 | ประสิทธิภาพสูง | ซับซ้อน, ต้องใช้ HPC |
 
-#### 1. Traditional Master-Writer (Default)
+#### 1. Traditional Master-Writer (ค่าเริ่มต้น)
 
 ```cpp
 // controlDict settings
@@ -1209,7 +1209,7 @@ IOSettings
 }
 ```
 
-#### 2. Distributed I/O (Per-Processor)
+#### 2. Distributed I/O (ต่อหน่วยประมวลผล)
 
 ```cpp
 // controlDict for distributed output
@@ -1226,7 +1226,7 @@ IOSettings
 }
 ```
 
-**Operations:**
+**การดำเนินการ:**
 ```bash
 # Run with per-processor I/O
 mpirun -np 64 solver -case myCase -decomposePar
@@ -1236,7 +1236,7 @@ mpirun -np 64 solver -case myCase -decomposePar
 reconstructPar -case myCase
 ```
 
-#### 3. Collated I/O (Multi-threaded Gathering)
+#### 3. Collated I/O (การรวบรวมแบบมัลติเธรด)
 
 ```cpp
 // controlDict for collated I/O
@@ -1255,10 +1255,10 @@ IOSettings
 }
 ```
 
-**Internal Process:**
-- Multiple I/O threads gather data concurrently
-- Threads write to separate or parallel file sections
-- Reduces master bottleneck through parallel gathering
+**กระบวนการภายใน:**
+- เธรด I/O หลายเธรดรวบรวมข้อมูลพร้อมกัน
+- เธรดเขียนลงในส่วนไฟล์ที่แยกจากกันหรือขนานกัน
+- ลดคอขวดของมาสเตอร์ผ่านการรวบรวมแบบขนาน
 
 #### 4. Advanced Parallel I/O (MPI-IO)
 
@@ -1277,9 +1277,9 @@ parallelIO
 }
 ```
 
-**Optimization Strategies:**
+**กลยุทธ์การเพิ่มประสิทธิภาพ:**
 
-#### 1. Manage I/O Frequency
+#### 1. จัดการความถี่ I/O (Manage I/O Frequency)
 
 ```cpp
 // Convergence-dependent write frequency
@@ -1293,7 +1293,7 @@ purgeWrite         0;              // Keep all time steps
 writeOnce          true;           // Avoid re-writing
 ```
 
-#### 2. Memory-Efficient Output
+#### 2. ผลลัพธ์ที่ประหยัดหน่วยความจำ (Memory-Efficient Output)
 
 ```cpp
 // Minimum field output
@@ -1316,7 +1316,7 @@ fields
 }
 ```
 
-**I/O Performance Verification:**
+**การตรวจสอบประสิทธิภาพ I/O:**
 
 ```bash
 # Analyze I/O operations
@@ -1332,26 +1332,26 @@ mpirun -np 32 mySolver -case myCase -profiling
 iostat -x 1 100  # Check disk I/O
 ```
 
-**Best Practices Summary:**
+**สรุปแนวทางปฏิบัติที่ดีที่สุด:**
 
-| Cores Count | Recommended I/O Method | Suitable Situation |
+| จำนวนคอร์ | วิธี I/O ที่แนะนำ | สถานการณ์ที่เหมาะสม |
 |--------------|-------------------|-------------------|
-| **< 32** | Master-writer | Small, uncomplicated |
-| **32-256** | Collated I/O + 2-4 threads | Medium parallel, good efficiency |
-| **> 256** | Distributed I/O + reconstruct | Large parallel, avoid bottlenecks |
-| **> 1024** | MPI-IO + specialized file system | Very large HPC parallel |
+| **< 32** | Master-writer | ขนาดเล็ก, ไม่ซับซ้อน |
+| **32-256** | Collated I/O + 2-4 threads | ขนานปานกลาง, ประสิทธิภาพดี |
+| **> 256** | Distributed I/O + reconstruct | ขนานขนาดใหญ่, หลีกเลี่ยงคอขวด |
+| **> 1024** | MPI-IO + ระบบไฟล์เฉพาะ | ขนาน HPC ขนาดใหญ่มาก |
 
 ---
 
-## 🎯 Why This Matters for CFD
+## 🎯 ทำไมเรื่องนี้ถึงสำคัญสำหรับ CFD (Why This Matters for CFD)
 
-### Engineering Benefit 1: Industrial-Scale Aerodynamics
+### ประโยชน์ทางวิศวกรรมที่ 1: อากาศพลศาสตร์ระดับอุตสาหกรรม
 
-**OpenFOAM's parallel computational efficiency** enables real-scale industrial simulations. Consider an automotive aerodynamics case with mesh exceeding 100 million cells - impossible on a single workstation but feasible with appropriate parallel scaling.
+**ประสิทธิภาพการคำนวณแบบขนานของ OpenFOAM** ช่วยให้สามารถจำลองระดับอุตสาหกรรมจริงได้ พิจารณากรณีอากาศพลศาสตร์ยานยนต์ที่มีเมชเกิน 100 ล้านเซลล์ ซึ่งเป็นไปไม่ได้บนเวิร์กสเตชันเดียว แต่เป็นไปได้ด้วยการขยายขนาดแบบขนานที่เหมาะสม
 
-**Domain Decomposition Strategy:**
+**กลยุทธ์การแบ่งโดเมน:**
 
-For automotive geometry with structured blocks, **hierarchical decomposition** provides optimal load distribution:
+สำหรับเรขาคณิตยานยนต์ที่มีบล็อกแบบมีโครงสร้าง **การแบ่งแบบลำดับชั้น (hierarchical decomposition)** ให้การกระจายภาระงานที่เหมาะสมที่สุด:
 
 ```cpp
 // decomposeParDict for 1024 processors
@@ -1369,14 +1369,14 @@ decomposeParDict
 }
 ```
 
-**Benefits of Hierarchical Method:**
-- **Preserves structured block integrity**
-- **Minimizes interface area** between subdomains
-- **Reduces communication overhead** compared to graph methods
+**ประโยชน์ของวิธี Hierarchical:**
+- **รักษาความสมบูรณ์ของบล็อกแบบมีโครงสร้าง**
+- **ลดพื้นที่รอยต่อ** ระหว่างโดเมนย่อยให้น้อยที่สุด
+- **ลดค่าใช้จ่ายในการสื่อสาร** เมื่อเทียบกับวิธีกราฟ
 
-**Solver Configuration for Parallel Efficiency:**
+**การกำหนดค่าตัวแก้สมการเพื่อประสิทธิภาพแบบขนาน:**
 
-Configuring the **linear solver** significantly impacts parallel performance:
+การกำหนดค่า **ตัวแก้สมการเชิงเส้น** มีผลอย่างมากต่อประสิทธิภาพแบบขนาน:
 
 ```cpp
 // fvSolution optimized for large-scale parallel
@@ -1395,25 +1395,25 @@ p
 }
 ```
 
-**Performance Impact:**
+**ผลกระทบด้านประสิทธิภาพ:**
 
-The combination of **hierarchical decomposition** and optimized **multigrid solvers** enables:
+การรวมกันของ **การแบ่งแบบลำดับชั้น** และ **multigrid solvers** ที่ปรับให้เหมาะสมช่วยให้:
 
-| Performance | Result |
+| ประสิทธิภาพ | ผลลัพธ์ |
 |-------------|---------|
-| **Wall-clock time reduction** | 100M cell case solvable in hours versus weeks |
-| **Strong parallel efficiency** | Maintains >80% efficiency up to 1024 cores |
-| **Memory usage** | Distributed across cluster nodes enables larger cases than single machine |
+| **ลดเวลา Wall-clock** | เคส 100 ล้านเซลล์แก้ได้ในไม่กี่ชั่วโมงเทียบกับเป็นสัปดาห์ |
+| **ประสิทธิภาพแบบขนานที่แข็งแกร่ง** | รักษาประสิทธิภาพ >80% จนถึง 1024 คอร์ |
+| **การใช้หน่วยความจำ** | กระจายข้ามโหนดคลัสเตอร์ช่วยให้ทำเคสที่ใหญ่กว่าเครื่องเดียวได้ |
 
 ---
 
-### Engineering Benefit 2: Load-Imbalanced Multiphase Flow
+### ประโยชน์ทางวิศวกรรมที่ 2: การไหลแบบหลายเฟสที่มีภาระงานไม่สมดุล
 
-**Multiphase flow** presents unique computational challenges where workload varies dynamically across the domain. **Interface tracking algorithms** focus computational effort in small regions while other areas have minimal activity.
+**การไหลแบบหลายเฟส (Multiphase flow)** นำเสนอความท้าทายในการคำนวณที่ไม่เหมือนใคร โดยที่ภาระงานแปรผันแบบไดนามิกทั่วทั้งโดเมน **อัลกอริทึมการติดตามรอยต่อ (Interface tracking algorithms)** มุ่งเน้นความพยายามในการคำนวณในพื้นที่เล็กๆ ในขณะที่พื้นที่อื่นๆ มีกิจกรรมน้อยที่สุด
 
-**Dynamic Load Balancing Strategy:**
+**กลยุทธ์การจัดสมดุลภาระงานแบบไดนามิก:**
 
-Static decomposition fails when interface positions shift significantly during simulation. **Dynamic redistribution** maintains efficiency:
+การแบ่งแบบสถิตจะล้มเหลวเมื่อตำแหน่งของรอยต่อเปลี่ยนไปอย่างมากระหว่างการจำลอง **การกระจายใหม่แบบไดนามิก (Dynamic redistribution)** รักษาประสิทธิภาพ:
 
 ```cpp
 // ✅ True: Slug flow simulation with dynamic load balancing
@@ -1432,17 +1432,17 @@ if (loadImbalance > 1.2)  // 20% imbalance triggers redistribution
 }
 ```
 
-**Weighting Strategy:**
+**กลยุทธ์การถ่วงน้ำหนัก:**
 
-| Cell Type | Computational Weight | Rationale |
+| ประเภทเซลล์ | น้ำหนักการคำนวณ | เหตุผล |
 |-------------|------------------|---------|
-| **Bulk phase cells** | 1.0 | Basic computation |
-| **Interface cells** | ≈ 11.0 | Additional 10x overhead |
-| **Interface thickness** | Determined by maximum of `alpha*(1-alpha)` at `α = 0.5` | Point of highest complexity |
+| **Bulk phase cells** | 1.0 | การคำนวณพื้นฐาน |
+| **Interface cells** | ≈ 11.0 | ค่าใช้จ่ายเพิ่มเติม 10 เท่า |
+| **Interface thickness** | กำหนดโดยค่าสูงสุดของ `alpha*(1-alpha)` ที่ `α = 0.5` | จุดที่มีความซับซ้อนสูงสุด |
 
-**Implementation Considerations:**
+**ข้อพิจารณาในการนำไปใช้:**
 
-**Dynamic load balancing** requires careful monitoring and decision-making:
+**การจัดสมดุลภาระงานแบบไดนามิก** ต้องการการตรวจสอบและการตัดสินใจอย่างระมัดระวัง:
 
 ```cpp
 // Compute load imbalance
@@ -1461,32 +1461,32 @@ if (loadImbalance > 1.2 && timeIndex > lastRebalance + rebalanceInterval)
 }
 ```
 
-**Decision Algorithm:**
+**อัลกอริทึมการตัดสินใจ:**
 
-1. **Check imbalance** of workload (>20%)
-2. **Check interval** since last redistribution
-3. **Execute redistribution** if conditions pass
-4. **Update last redistribution** time
+1. **ตรวจสอบความไม่สมดุล** ของภาระงาน (>20%)
+2. **ตรวจสอบช่วงเวลา** ตั้งแต่การกระจายใหม่ครั้งล่าสุด
+3. **ดำเนินการกระจายใหม่** หากผ่านเงื่อนไข
+4. **อัปเดตเวลาการกระจายใหม่** ล่าสุด
 
-**Engineering Impact:**
+**ผลกระทบทางวิศวกรรม:**
 
-For `multiphaseEulerFoam` with **Arbitrary Mesh Interface (AMI)**:
+สำหรับ `multiphaseEulerFoam` ที่มี **Arbitrary Mesh Interface (AMI)**:
 
-| Performance | Result |
+| ประสิทธิภาพ | ผลลัพธ์ |
 |-------------|---------|
-| **Maintained efficiency** | Despite interface-specific complexity |
-| **Consistent timing** | Avoids slow processors determining overall time step |
-| **Resource utilization** | All processors remain efficient throughout simulation |
+| **รักษาประสิทธิภาพ** | แม้จะมีความซับซ้อนเฉพาะของรอยต่อ |
+| **เวลาที่สม่ำเสมอ** | หลีกเลี่ยงหน่วยประมวลผลที่ช้ากำหนดขั้นตอนเวลาโดยรวม |
+| **การใช้ทรัพยากร** | หน่วยประมวลผลทั้งหมดทำงานอย่างมีประสิทธิภาพตลอดการจำลอง |
 
 ---
 
-### Engineering Benefit 3: Checkpoint/Restart for Production Work
+### ประโยชน์ทางวิศวกรรมที่ 3: Checkpoint/Restart สำหรับงานการผลิต
 
-**Production-level CFD simulations** often exceed HPC queue time limits. **Checkpoint/restart capability** is essential for completing long-running studies.
+**การจำลอง CFD ระดับการผลิต** มักเกินขีดจำกัดเวลาคิวของ HPC **ความสามารถ Checkpoint/restart** จำเป็นสำหรับการศึกษาที่ใช้เวลานานให้เสร็จสมบูรณ์
 
-**Robust Checkpoint Strategy:**
+**กลยุทธ์ Checkpoint ที่แข็งแกร่ง:**
 
-Appropriate **checkpoint** configuration balances data completeness with storage efficiency:
+การกำหนดค่า **checkpoint** ที่เหมาะสมจะรักษาสมดุลระหว่างความสมบูรณ์ของข้อมูลและประสิทธิภาพการจัดเก็บ:
 
 ```cpp
 // ✅ True: Week-long simulation with fault tolerance
@@ -1505,19 +1505,19 @@ writeInterval     7200;      // Write every 2 hours
 maxWriteInterval  14400;     // Maximum interval if solver stalls
 ```
 
-**Recommended Settings:**
+**การตั้งค่าที่แนะนำ:**
 
-| Parameter | Recommended Value | Rationale |
+| พารามิเตอร์ | ค่าที่แนะนำ | เหตุผล |
 |-------------|-------------|---------|
-| **purgeWrite** | 2 | Keep recent checkpoints to save space |
-| **writeCompression** | true | Reduce file size, save disk space |
-| **writeFormat** | binary | Faster I/O compared to ASCII |
-| **writeInterval** | 7200 | Balance between frequency and efficiency |
-| **writePrecision** | 8 | Sufficient precision for CFD |
+| **purgeWrite** | 2 | เก็บ checkpoint ล่าสุดไว้เพื่อประหยัดพื้นที่ |
+| **writeCompression** | true | ลดขนาดไฟล์, ประหยัดพื้นที่ดิสก์ |
+| **writeFormat** | binary | I/O เร็วกว่าเมื่อเทียบกับ ASCII |
+| **writeInterval** | 7200 | สมดุลระหว่างความถี่และประสิทธิภาพ |
+| **writePrecision** | 8 | ความแม่นยำเพียงพอสำหรับ CFD |
 
-**Restart Workflow:**
+**ขั้นตอนการทำงาน Restart:**
 
-Flexible **restart capability** enables continuation after various failure modes:
+**ความสามารถในการรีสตาร์ท** ที่ยืดหยุ่นช่วยให้สามารถดำเนินการต่อหลังจากความล้มเหลวในรูปแบบต่างๆ:
 
 ```cpp
 // Controlled shutdown from running simulation
@@ -1535,16 +1535,16 @@ mpirun -np 256 pimpleFoam -parallel -case myCase
 mpirun -np 256 pimpleFoam -parallel -case myCase -startTime 10000
 ```
 
-**Restart Steps:**
+**ขั้นตอนการรีสตาร์ท:**
 
-1. **Controlled shutdown** from running simulation
-2. **Write data** immediately to create checkpoint
-3. **Restart from checkpoint** automatically
-4. **Select start time** if necessary
+1. **การปิดเครื่องแบบควบคุม** จากการจำลองที่กำลังทำงาน
+2. **เขียนข้อมูล** ทันทีเพื่อสร้าง checkpoint
+3. **รีสตาร์ทจาก checkpoint** โดยอัตโนมัติ
+4. **เลือกเวลาเริ่มต้น** หากจำเป็น
 
-**Fault Tolerance Implementation:**
+**การนำความทนทานต่อความผิดพลาดไปใช้ (Fault Tolerance Implementation):**
 
-**Production environments** require multiple failure recovery strategies:
+**สภาพแวดล้อมการผลิต** ต้องการกลยุทธ์การกู้คืนความล้มเหลวหลายรูปแบบ:
 
 ```bash
 #!/bin/bash
@@ -1578,58 +1578,58 @@ while [ $restart_count -lt $max_restarts ]; do
 done
 ```
 
-**Failure Recovery Strategies:**
+**กลยุทธ์การกู้คืนความล้มเหลว:**
 
-| Situation | Handling |
+| สถานการณ์ | การจัดการ |
 |-------------|-------------|
-| **Power outage** | Restart from latest checkpoint |
-| **Queue time limit** | Automatic job resubmission |
-| **System maintenance** | Controlled shutdown, restart later |
-| **Solver failure** | Error detection and reporting |
+| **ไฟฟ้าดับ** | รีสตาร์ทจาก checkpoint ล่าสุด |
+| **ขีดจำกัดเวลาคิว** | ส่งงานใหม่โดยอัตโนมัติ |
+| **การบำรุงรักษาระบบ** | ปิดเครื่องแบบควบคุม, รีสตาร์ทภายหลัง |
+| **Solver ล้มเหลว** | การตรวจจับข้อผิดพลาดและการรายงาน |
 
-**Reliability Benefits:**
+**ประโยชน์ด้านความน่าเชื่อถือ:**
 
-**Checkpoint/restart capability** provides:
+**ความสามารถ Checkpoint/restart** ให้:
 
-- **Recovery from power outages**: Continue simulation after system stoppage
-- **Queue limit management**: Avoid HPC time limitations
-- **Maintenance windows**: Temporarily stop simulation during system maintenance
-- **Data verification**: Check results between completion
+- **การกู้คืนจากไฟฟ้าดับ**: ดำเนินการจำลองต่อหลังจากระบบหยุดทำงาน
+- **การจัดการขีดจำกัดคิว**: หลีกเลี่ยงข้อจำกัดเวลา HPC
+- **หน้าต่างการบำรุงรักษา**: หยุดการจำลองชั่วคราวระหว่างการบำรุงรักษาระบบ
+- **การตรวจสอบข้อมูล**: ตรวจสอบผลลัพธ์ระหว่างการเสร็จสิ้น
 
-The combination of checkpoint frequency, compression, and automated restart enables simulations of problems otherwise impossible due to system limitations.
+การรวมกันของความถี่ checkpoint, การบีบอัด และการรีสตาร์ทอัตโนมัติช่วยให้สามารถจำลองปัญหาที่เป็นไปไม่ได้เนื่องจากข้อจำกัดของระบบ
 
 ---
 
-## 📚 Key Takeaways
+## 📚 ประเด็นสำคัญ (Key Takeaways)
 
-### Core Concepts
+### แนวคิดหลัก
 
-1. **Orchestra Analogy**: Parallel computing coordinates multiple processors like musicians in an orchestra, requiring careful coordination, minimized communication overhead, optimal load distribution, and computational harmony.
+1. **การเปรียบเทียบวงออร์เคสตรา**: การประมวลผลแบบขนานประสานงานหน่วยประมวลผลหลายตัวเหมือนนักดนตรีในวงออร์เคสตรา ซึ่งต้องการการประสานงานอย่างระมัดระวัง ลดค่าใช้จ่ายในการสื่อสาร การกระจายภาระงานที่เหมาะสม และความกลมกลืนของการคำนวณ
 
-2. **Domain Decomposition**: Sophisticated graph partitioning (METIS, Scotch) divides computational domain while minimizing interface area and maintaining load balance.
+2. **การแบ่งโดเมน**: การแบ่งกราฟที่ซับซ้อน (METIS, Scotch) แบ่งโดเมนการคำนวณในขณะที่ลดพื้นที่รอยต่อและรักษาสมดุลภาระงาน
 
-3. **Ghost Cells**: Enable independent local computation through data replication at processor boundaries, separating computation from communication.
+3. **Ghost Cells**: ช่วยให้การคำนวณท้องถิ่นเป็นอิสระผ่านการจำลองข้อมูลที่ขอบเขตหน่วยประมวลผล แยกการคำนวณออกจากการสื่อสาร
 
-4. **Parallel Assembly**: Face-by-face approach ensures global consistency while allowing local matrix construction on each processor.
+4. **การประกอบแบบขนาน**: แนวทางแบบทีละหน้า (face-by-face) รับประกันความสอดคล้องระดับสากลในขณะที่อนุญาตให้สร้างเมทริกซ์ท้องถิ่นบนแต่ละหน่วยประมวลผล
 
-### Technical Implementation
+### การนำไปใช้ทางเทคนิค
 
-1. **Communication Patterns**: Non-blocking MPI operations enable overlapping computation and communication, critical for parallel efficiency.
+1. **รูปแบบการสื่อสาร**: การดำเนินการ MPI แบบไม่บล็อกช่วยให้สามารถเหลื่อมซ้อนการคำนวณและการสื่อสาร ซึ่งสำคัญต่อประสิทธิภาพแบบขนาน
 
-2. **Load Balancing**: Dynamic redistribution adapts to changing computational requirements, especially important for multiphase flows with moving interfaces.
+2. **การจัดสมดุลภาระงาน**: การกระจายใหม่แบบไดนามิกปรับให้เข้ากับความต้องการการคำนวณที่เปลี่ยนแปลง โดยเฉพาะอย่างยิ่งสำคัญสำหรับการไหลแบบหลายเฟสที่มีรอยต่อเคลื่อนที่
 
-3. **I/O Strategies**: Distributed I/O, collated writing, and MPI-IO address serial bottlenecks at different processor counts.
+3. **กลยุทธ์ I/O**: Distributed I/O, collated writing และ MPI-IO จัดการกับคอขวดแบบอนุกรมที่จำนวนหน่วยประมวลผลต่างๆ
 
-4. **Fault Tolerance**: Checkpoint/restart capability enables production simulations exceeding queue time limits.
+4. **ความทนทานต่อความผิดพลาด**: ความสามารถ Checkpoint/restart ช่วยให้สามารถจำลองการผลิตเกินขีดจำกัดเวลาคิว
 
-### Performance Considerations
+### ข้อพิจารณาด้านประสิทธิภาพ
 
-1. **Amdahl's Law**: Serial portions limit parallel speedup; minimize synchronization points and global operations.
+1. **กฎของ Amdahl**: ส่วนที่เป็นอนุกรมจำกัดความเร็วแบบขนาน; ลดจุดซิงโครไนซ์และการดำเนินการระดับสากลให้น้อยที่สุด
 
-2. **Communication Overhead**: Grows as $O(N^{2/3}/P^{1/3})$ for 3D domains; becomes dominant at high processor counts.
+2. **ค่าใช้จ่ายในการสื่อสาร**: เติบโตตาม $O(N^{2/3}/P^{1/3})$ สำหรับโดเมน 3 มิติ; กลายเป็นปัจจัยหลักที่จำนวนหน่วยประมวลผลสูง
 
-3. **Optimal Processor Count**: $p_{optimal} \approx (T_{computation}/T_{communication})^{3/2}$ provides practical guidance.
+3. **จำนวนหน่วยประมวลผลที่เหมาะสม**: $p_{optimal} \approx (T_{computation}/T_{communication})^{3/2}$ ให้คำแนะนำในทางปฏิบัติ
 
-4. **Parallel Efficiency**: OpenFOAM achieves 70-90% efficiency up to 1000-1000 cores for well-partitioned problems.
+4. **ประสิทธิภาพแบบขนาน**: OpenFOAM บรรลุประสิทธิภาพ 70-90% จนถึง 1000-10000 คอร์สำหรับปัญหาที่แบ่งส่วนได้ดี
 
-The parallel linear algebra system in OpenFOAM represents a sophisticated integration of numerical algorithms, computational efficiency, and physical modeling, enabling industrial-scale CFD simulations with billions of cells while maintaining mathematical rigor and computational efficiency required for next-generation scientific computing.
+ระบบพีชคณิตเชิงเส้นแบบขนานใน OpenFOAM แสดงถึงการผสมผสานที่ซับซ้อนของอัลกอริทึมเชิงตัวเลข ประสิทธิภาพการคำนวณ และการสร้างแบบจำลองทางฟิสิกส์ ซึ่งช่วยให้สามารถจำลอง CFD ระดับอุตสาหกรรมที่มีเซลล์พันล้านเซลล์ในขณะที่รักษาความเข้มงวดทางคณิตศาสตร์และประสิทธิภาพการคำนวณที่จำเป็นสำหรับการคำนวณทางวิทยาศาสตร์ยุคหน้า

@@ -1,26 +1,26 @@
-# Summary & Reference
+# สรุปและเอกสารอ้างอิง (Summary & Reference)
 
-## Overview
+## ภาพรวม (Overview)
 
-OpenFOAM's foundation primitives form the bedrock of computational fluid dynamics simulations, providing a robust framework that balances **portability**, **precision**, and **physics safety**. This comprehensive reference summarizes the seven core primitive types that enable reliable, efficient CFD computations across diverse computing environments.
+ประเภทข้อมูลพื้นฐานของ OpenFOAM เป็นรากฐานสำคัญของการจำลองพลศาสตร์ของไหลเชิงคำนวณ (CFD) โดยมีกรอบการทำงานที่แข็งแกร่งซึ่งรักษาสมดุลระหว่าง **ความสามารถในการพกพา (Portability)**, **ความแม่นยำ (Precision)** และ **ความปลอดภัยทางฟิสิกส์ (Physics safety)** เอกสารอ้างอิงฉบับสมบูรณ์นี้จะสรุปประเภทข้อมูลหลักทั้ง 7 ประการที่ช่วยให้การคำนวณ CFD มีความน่าเชื่อถือและมีประสิทธิภาพในทุกสภาพแวดล้อมการคำนวณ
 
 ---
 
-## Quick Reference Table
+## ตารางอ้างอิงฉบับย่อ (Quick Reference Table)
 
-| OpenFOAM Type | C++ Equivalent | Purpose | Common Usage |
+| ประเภทข้อมูล OpenFOAM | ข้อมูล C++ ที่เทียบเท่า | วัตถุประสงค์ | การใช้งานทั่วไป |
 |---------------|----------------|---------|---------------|
-| `label` | `int` (portable) | Mesh indexing, counters | `label nCells = mesh.nCells();` |
-| `scalar` | `float`/`double` | Physical quantities | `scalar p = 101325.0;` |
-| `word` | `std::string` (optimized) | Dictionary keys, names | `word bcName = "inlet";` |
-| `dimensionedType` | N/A | Values with units | `dimensionedScalar rho("rho", dimDensity, 1.225);` |
-| `autoPtr` | `std::unique_ptr` | Exclusive ownership | `autoPtr<volScalarField> pPtr(...);` |
-| `tmp` | N/A | Reference-counted temporaries | `tmp<volScalarField> tT = thermo.T();` |
-| `List` | `std::vector` | Dynamic arrays | `List<scalar> p(mesh.nCells());` |
+| `label` | `int` (พกพาได้) | การทำดัชนีเมช, ตัวนับ | `label nCells = mesh.nCells();` |
+| `scalar` | `float`/`double` | ปริมาณทางกายภาพ | `scalar p = 101325.0;` |
+| `word` | `std::string` (ปรับปรุงแล้ว) | คีย์พจนานุกรม, ชื่อต่างๆ | `word bcName = "inlet";` |
+| `dimensionedType` | ไม่มี | ค่าที่มีหน่วยกำกับ | `dimensionedScalar rho("rho", dimDensity, 1.225);` |
+| `autoPtr` | `std::unique_ptr` | ความเป็นเจ้าของแบบผูกขาด | `autoPtr<volScalarField> pPtr(...);` |
+| `tmp` | ไม่มี | ตัวแปรชั่วคราวแบบนับการอ้างอิง | `tmp<volScalarField> tT = thermo.T();` |
+| `List` | `std::vector` | อาร์เรย์แบบไดนามิก | `List<scalar> p(mesh.nCells());` |
 
 ---
 
-## Complete Code Example
+## ตัวอย่างโค้ดฉบับสมบูรณ์ (Complete Code Example)
 
 ```cpp
 #include "fvCFD.H"
@@ -31,170 +31,170 @@ int main(int argc, char *argv[])
     #include "createTime.H"
     #include "createMesh.H"
 
-    // 1. Basic Primitives
-    // Portable integer for mesh operations
-    label nCells = mesh.nCells();           // Portable integer
+    // 1. ประเภทข้อมูลพื้นฐาน (Basic Primitives)
+    // จำนวนเต็มที่พกพาได้สำหรับการดำเนินการเมช
+    label nCells = mesh.nCells();           // จำนวนเต็มที่พกพาได้
     
-    // Configurable precision floating-point value
-    scalar pRef = 101325.0;                 // Configurable precision
+    // เลขทศนิยมที่กำหนดความแม่นยำได้
+    scalar pRef = 101325.0;                 // ความแม่นยำที่กำหนดค่าได้
     
-    // Optimized string for dictionary operations
-    word fieldName = "U";                   // Optimized string
+    // สตริงที่ปรับปรุงมาเพื่อการดำเนินการในพจนานุกรม
+    word fieldName = "U";                   // สตริงที่ปรับปรุงประสิทธิภาพแล้ว
 
-    // 2. Dimensioned Types
-    // Density with dimensional information (kg/m^3)
+    // 2. ประเภทที่มีมิติ (Dimensioned Types)
+    // ความหนาแน่นพร้อมข้อมูลมิติ (kg/m^3)
     dimensionedScalar rho
     (
-        "rho",                              // Name
-        dimDensity,                         // Dimensions [M][L^-3]
-        1.225                               // Value (air density at sea level)
+        "rho",                              // ชื่อ
+        dimDensity,                         // มิติ [M][L^-3]
+        1.225                               // ค่า (ความหนาแน่นอากาศที่ระดับน้ำทะเล)
     );
     
-    // Gravitational acceleration with dimensions
+    // ความเร่งเนื่องจากแรงโน้มถ่วงพร้อมมิติ
     dimensionedScalar g
     (
-        "g",                                // Name
-        dimAcceleration,                    // Dimensions [L][T^-2]
-        9.81                                // Value (m/s^2)
+        "g",                                // ชื่อ
+        dimAcceleration,                    // มิติ [L][T^-2]
+        9.81                                // ค่า (m/s^2)
     );
 
-    // 3. Smart Pointers
-    // autoPtr manages exclusive ownership of a field
+    // 3. สมาร์ทพอยน์เตอร์ (Smart Pointers)
+    // autoPtr จัดการความเป็นเจ้าของสนามข้อมูลแบบผูกขาด
     autoPtr<volScalarField> pPtr
     (
         new volScalarField
         (
             IOobject
             (
-                "p",                        // Field name
-                runTime.timeName(),         // Time directory
-                mesh,                       // Mesh reference
-                IOobject::MUST_READ,        // Must read from file
-                IOobject::AUTO_WRITE        // Auto-write to file
+                "p",                        // ชื่อสนาม
+                runTime.timeName(),         // ไดเรกทอรีเวลา
+                mesh,                       // การอ้างอิงเมช
+                IOobject::MUST_READ,        // ต้องอ่านจากไฟล์
+                IOobject::AUTO_WRITE        // เขียนลงไฟล์อัตโนมัติ
             ),
-            mesh                            // Mesh reference for field creation
+            mesh                            // การอ้างอิงเมชสำหรับการสร้างสนาม
         )
     );
 
-    // tmp provides reference-counted temporary field
-    tmp<volScalarField> tT = thermo.T();    // Temporary temperature
+    // tmp ให้สนามข้อมูลชั่วคราวแบบนับการอ้างอิง
+    tmp<volScalarField> tT = thermo.T();    // อุณหภูมิชั่วคราว
 
-    // 4. Containers
-    // Dynamic list for pressure values
+    // 4. คอนเทนเนอร์ (Containers)
+    // ลิสต์แบบไดนามิกสำหรับค่าความดัน
     List<scalar> pressureList(nCells);
     
-    // Iterate over all cells using OpenFOAM macro
+    // วนซ้ำผ่านทุกเซลล์โดยใช้มาโครของ OpenFOAM
     forAll(pressureList, cellI)
     {
-        // Hydrostatic pressure calculation
+        // การคำนวณความดันไฮโดรสแตติก
         pressureList[cellI] = pRef 
-            - rho.value()                   // Density value
-            * g.value()                     // Gravity value
-            * mesh.C()[cellI].z();          // Cell center z-coordinate
+            - rho.value()                   // ค่าความหนาแน่น
+            * g.value()                     // ค่าแรงโน้มถ่วง
+            * mesh.C()[cellI].z();          // พิกัด z ของจุดศูนย์กลางเซลล์
     }
 
-    // Physical calculations with dimensional consistency
+    // การคำนวณทางฟิสิกส์พร้อมการตรวจสอบความสอดคล้องทางมิติ
     dimensionedScalar totalForce = rho 
         * g 
-        * sum(mesh.V())                     // Total volume
-        * average(pressureList);            // Average pressure
+        * sum(mesh.V())                     // ปริมาตรรวม
+        * average(pressureList);            // ความดันเฉลี่ย
 
-    Info << "Total force: " << totalForce << endl;
+    Info << "แรงรวม: " << totalForce << endl;
 
     return 0;
 }
 ```
 
-> **Source:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+> **แหล่งที่มา:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
 > 
-> **Explanation:** ตัวอย่างนี้สาธิตการใช้งาน OpenFOAM primitives ทั้ง 7 ประเภทในบริบทของการคำนวณ CFD จริง:
+> **คำอธิบาย:** ตัวอย่างนี้สาธิตการใช้งาน OpenFOAM primitives ทั้ง 7 ประเภทในบริบทของการคำนวณ CFD จริง:
 > - **Basic Types** (`label`, `scalar`, `word`) ใช้สำหรับการจัดเก็บข้อมูลพื้นฐาน
 > - **Dimensioned Types** บังคับใช้ความสอดคล้องของหน่วยในการคำนวณ
 > - **Smart Pointers** (`autoPtr`, `tmp`) จัดการหน่วยความจำอัตโนมัติ
 > - **Containers** (`List`) เก็บข้อมูลอาร์เรย์แบบไดนามิก
 >
-> **Key Concepts:**
-> - **Portability**: `label` และ `scalar` รับประกันผลลัพธ์เหมือนกันทุกแพลตฟอร์ม
-> - **Dimensional Safety**: ระบบตรวจสอบหน่วยป้องกันข้อผิดพลาดทางฟิสิกส์
-> - **Memory Management**: Smart pointers ป้องกัน memory leaks
-> - **Performance**: Container classes ออกแบบมาสำหรับ numerical efficiency
+> **แนวคิดสำคัญ:**
+> - **ความสามารถในการพกพา (Portability)**: `label` และ `scalar` รับประกันผลลัพธ์เหมือนกันทุกแพลตฟอร์ม
+> - **ความปลอดภัยทางมิติ (Dimensional Safety)**: ระบบตรวจสอบหน่วยป้องกันข้อผิดพลาดทางฟิสิกส์
+> - **การจัดการหน่วยความจำ (Memory Management)**: สมาร์ทพอยน์เตอร์ป้องกันหน่วยความจำรั่วไหล
+> - **ประสิทธิภาพ (Performance)**: คลาสคอนเทนเนอร์ออกแบบมาเพื่อประสิทธิภาพเชิงตัวเลข
 
 ---
 
-## Core Concepts
+## แนวคิดหลัก (Core Concepts)
 
-### Primitive Types
+### ประเภทข้อมูลพื้นฐาน (Primitive Types)
 
-OpenFOAM defines fundamental primitive types that guarantee **portability** and **performance** across different platforms:
+OpenFOAM กำหนดประเภทข้อมูลพื้นฐานที่รับประกัน **ความสามารถในการพกพา** และ **ประสิทธิภาพ** ในแพลตฟอร์มต่างๆ:
 
 #### **`label`**
-- **Definition**: Portable integer type
-- **Usage**: Mesh indices, loop counters, array sizes
-- **Size**: Configuration-dependent (32-bit on most systems, 64-bit on large systems)
+- **นิยาม**: ประเภทจำนวนเต็มที่พกพาได้
+- **การใช้งาน**: ดัชนีเมช, ตัวนับลูป, ขนาดอาร์เรย์
+- **ขนาด**: ขึ้นอยู่กับการตั้งค่า (32 บิตในระบบส่วนใหญ่, 64 บิตในระบบขนาดใหญ่)
 
 #### **`scalar`**
-- **Definition**: Configurable floating-point type
-- **Usage**: All physical quantities
-- **Configurable**: Single or double precision at compile time
+- **นิยาม**: ประเภทเลขทศนิยมที่กำหนดค่าได้
+- **การใช้งาน**: ปริมาณทางกายภาพทั้งหมด
+- **การตั้งค่า**: ความแม่นยำชั้นเดียวหรือสองชั้น ณ เวลาคอมไพล์
 
 #### **`word`**
-- **Definition**: Optimized string class
-- **Usage**: Dictionary keys, field names
-- **Performance**: Faster than `std::string` for OpenFOAM-specific use cases
+- **นิยาม**: คลาสสตริงที่ได้รับการปรับปรุงประสิทธิภาพ
+- **การใช้งาน**: คีย์ในพจนานุกรม, ชื่อสนามข้อมูล
+- **ประสิทธิภาพ**: เร็วกว่า `std::string` สำหรับกรณีการใช้งานเฉพาะของ OpenFOAM
 
-### Dimensioned Types
+### ประเภทที่มีมิติ (Dimensioned Types)
 
-One of OpenFOAM's key innovations is its built-in **dimensional analysis** system. The `dimensionedType` template class enforces **dimensional consistency** at compile time:
+หนึ่งในนวัตกรรมหลักของ OpenFOAM คือระบบ **การวิเคราะห์มิติ (Dimensional analysis)** ในตัว คลาสเทมเพลต `dimensionedType` บังคับใช้ **ความสอดคล้องทางมิติ** ณ เวลาคอมไพล์:
 
-$$Q = \text{value} \times [\text{dimensions}]^{\text{exponents}}$$
+$$Q = \text{ค่าตัวเลข} \times [\text{มิติ}]^{\text{เลขชี้กำลัง}}$$
 
-**Base Dimensions:**
-- Mass: $M$
-- Length: $L$
-- Time: $T$
-- Temperature: $\Theta$
-- Amount of substance: $A$
-- Current: $I$
-- Luminous intensity: $J$
+**มิติพื้นฐาน:**
+- มวล (Mass): $M$
+- ความยาว (Length): $L$
+- เวลา (Time): $T$
+- อุณหภูมิ (Temperature): $\Theta$
+- ปริมาณสาร (Amount of substance): $A$
+- กระแสไฟฟ้า (Current): $I$
+- ความเข้มแสง (Luminous intensity): $J$
 
-**Example Dimensions:**
-- Pressure: $[M][L]^{-1}[T]^{-2}$
-- Velocity: $[L][T]^{-1}$
+**ตัวอย่างมิติ:**
+- ความดัน (Pressure): $[M][L]^{-1}[T]^{-2}$
+- ความเร็ว (Velocity): $[L][T]^{-1}$
 
-### Memory Management Patterns
+### รูปแบบการจัดการหน่วยความจำ (Memory Management Patterns)
 
-OpenFOAM employs sophisticated memory management patterns for optimal performance:
+OpenFOAM ใช้รูปแบบการจัดการหน่วยความจำที่ซับซ้อนเพื่อให้ได้ประสิทธิภาพสูงสุด:
 
 #### **`autoPtr`**
-- **Definition**: Exclusive ownership semantics
-- **Comparison**: Similar to `std::unique_ptr` in C++11
-- **Behavior**: Ownership transfers on copy, source becomes null
+- **นิยาม**: ความหมายการเป็นเจ้าของแบบผูกขาด
+- **การเปรียบเทียบ**: คล้ายกับ `std::unique_ptr` ใน C++11
+- **พฤติกรรม**: ความเป็นเจ้าของจะโอนย้ายเมื่อมีการคัดลอก ต้นทางจะกลายเป็นค่าว่าง
 
 #### **`tmp`**
-- **Definition**: Reference-counted temporary objects
-- **Feature**: Copy-on-write semantics
-- **Benefit**: Efficient sharing of expensive computations
+- **นิยาม**: วัตถุชั่วคราวแบบนับการอ้างอิง
+- **คุณสมบัติ**: ความหมายการคัดลอกเมื่อมีการเขียน (Copy-on-write)
+- **ประโยชน์**: แชร์ผลการคำนวณที่มีค่าใช้จ่ายสูงได้อย่างมีประสิทธิภาพ
 
-### Container Classes
+### คลาสคอนเทนเนอร์ (Container Classes)
 
-OpenFOAM's container classes are optimized for numerical computations:
+คลาสคอนเทนเนอร์ของ OpenFOAM ได้รับการปรับแต่งเพื่อการคำนวณเชิงตัวเลข:
 
 #### **`List<T>`**
-- **Function**: Dynamic arrays with bounds checking
-- **Performance**: Cache-friendly memory access
-- **Macro**: `forAll` for efficient iteration
+- **หน้าที่**: อาร์เรย์แบบไดนามิกพร้อมการตรวจสอบขอบเขต
+- **ประสิทธิภาพ**: การเข้าถึงหน่วยความจำที่เป็นมิตรต่อแคช
+- **มาโคร**: `forAll` สำหรับการวนซ้ำที่มีประสิทธิภาพ
 
 #### **`Field<T>`**
-- **Function**: Extends `List<T>` with mesh-aware operations
-- **Capabilities**: Algebraic manipulations
+- **หน้าที่**: ขยาย `List<T>` ด้วยการดำเนินการที่รับรู้ถึงเมช
+- **ความสามารถ**: การจัดการทางพีชคณิต
 
-#### **`volField<T>` and `surfaceField<T>`**
-- **Location**: Cell centers and face centers
-- **Capabilities**: Automatic interpolation between them
+#### **`volField<T>` และ `surfaceField<T>`**
+- **ตำแหน่ง**: จุดศูนย์กลางเซลล์และจุดศูนย์กลางหน้า
+- **ความสามารถ**: การอินเทอร์โพลชันระหว่างกันโดยอัตโนมัติ
 
 ---
 
-## Class Relationship Diagram
+## แผนผังความสัมพันธ์ระหว่างคลาส (Class Relationship Diagram)
 
 ```mermaid
 classDiagram
@@ -206,104 +206,104 @@ classDiagram
     autoPtr --> "*Owns" Object
     tmp --> "*References" Object
 
-    note for dimensionedType "Tracks physical dimensions"
-    note for autoPtr "Exclusive ownership"
-    note for tmp "Reference counting with copy-on-write"
+    note for dimensionedType "ติดตามมิติทางกายภาพ"
+    note for autoPtr "ความเป็นเจ้าของแบบผูกขาด"
+    note for tmp "การนับการอ้างอิงพร้อมการคัดลอกเมื่อมีการเขียน"
 ```
-> **Figure 1:** แผนผังคลาส (Class Diagram) แสดงความสัมพันธ์และการสืบทอดระหว่างโครงสร้างข้อมูลหลักใน OpenFOAM ตั้งแต่คอนเทนเนอร์พื้นฐานไปจนถึงประเภทข้อมูลที่มีมิติทางฟิสิกส์และการจัดการหน่วยความจำผ่าน Smart Pointers
+> **รูปที่ 1:** แผนผังคลาส (Class Diagram) แสดงความสัมพันธ์และการสืบทอดระหว่างโครงสร้างข้อมูลหลักใน OpenFOAM ตั้งแต่คอนเทนเนอร์พื้นฐานไปจนถึงประเภทข้อมูลที่มีมิติทางฟิสิกส์และการจัดการหน่วยความจำผ่านสมาร์ทพอยน์เตอร์
 
 ---
 
-## Dimension Checking Workflow
+## ขั้นตอนการตรวจสอบมิติ (Dimension Checking Workflow)
 
 ```mermaid
 flowchart TD
-    A[Operation: Q1 + Q2] --> B{Are dimensions equal?}
-    B -->|Yes| C[Perform numerical operation]
-    B -->|No| D[Error: Incompatible units]
+    A[การดำเนินการ: Q1 + Q2] --> B{มิติเท่ากันหรือไม่?}
+    B -->|ใช่| C[ดำเนินการทางตัวเลข]
+    B -->|ไม่ใช่| D[ข้อผิดพลาด: หน่วยไม่เข้ากัน]
 
-    E[Operation: Q1 * Q2] --> F[Add dimension exponents]
-    F --> G[Return new dimensionedType]
+    E[การดำเนินการ: Q1 * Q2] --> F[บวกเลขชี้กำลังของมิติ]
+    F --> G[ส่งคืน dimensionedType ใหม่]
 
-    H[Operation: Q1 / Q2] --> I[Subtract dimension exponents]
-    I --> J[Return new dimensionedType]
+    H[การดำเนินการ: Q1 / Q2] --> I[ลบเลขชี้กำลังของมิติ]
+    I --> J[ส่งคืน dimensionedType ใหม่]
 ```
-> **Figure 2:** แผนผังขั้นตอนการตรวจสอบมิติทางฟิสิกส์ (Dimension Checking Workflow) ซึ่งแสดงให้เห็นว่าระบบจะตรวจสอบความเข้ากันได้ของหน่วยสำหรับการบวก/ลบ และคำนวณเลขชี้กำลังของมิติใหม่สำหรับการคูณ/หาร เพื่อรักษาความถูกต้องทางฟิสิกส์ตลอดการคำนวณ
+> **รูปที่ 2:** แผนผังขั้นตอนการตรวจสอบมิติทางฟิสิกส์ (Dimension Checking Workflow) ซึ่งแสดงให้เห็นว่าระบบจะตรวจสอบความเข้ากันได้ของหน่วยสำหรับการบวก/ลบ และคำนวณเลขชี้กำลังของมิติใหม่สำหรับการคูณ/หาร เพื่อรักษาความถูกต้องทางฟิสิกส์ตลอดการคำนวณ
 
 ---
 
-## Performance Considerations
+## ข้อพิจารณาด้านประสิทธิภาพ (Performance Considerations)
 
-### Compile-Time Optimization
+### การปรับปรุงประสิทธิภาพ ณ เวลาคอมไพล์ (Compile-Time Optimization)
 
-OpenFOAM leverages **template metaprogramming** to perform operations at compile time rather than runtime:
+OpenFOAM ใช้ประโยชน์จาก **การเขียนโปรแกรมแบบเทมเพลต (Template metaprogramming)** เพื่อดำเนินการต่างๆ ในขั้นตอนคอมไพล์แทนที่จะเป็นขณะรันโปรแกรม:
 
-- **Dimensional checking**: Eliminates runtime overhead
-- **Expression templates**: Reduces temporary object creation
-- **Compile-time loop unrolling**: Improves vectorization
+- **การตรวจสอบมิติ**: กำจัดภาระงานส่วนเกินขณะรันโปรแกรม
+- **เทมเพลตนิพจน์ (Expression templates)**: ลดการสร้างวัตถุชั่วคราว
+- **การคลี่ลูป ณ เวลาคอมไพล์ (Compile-time loop unrolling)**: ปรับปรุงการทำงานแบบเวกเตอร์
 
-### Memory Access Patterns
+### รูปแบบการเข้าถึงหน่วยความจำ (Memory Access Patterns)
 
-Container classes are designed for optimal **cache** performance:
+คลาสคอนเทนเนอร์ถูกออกแบบมาเพื่อประสิทธิภาพสูงสุดของ **แคช (Cache)**:
 
-- **Contiguous memory layout**: Improves CPU cache utilization
-- **SIMD operations**: Automatically applied where possible
-- **Memory prefetching**: Optimized for typical CFD access patterns
+- **การจัดวางหน่วยความจำแบบต่อเนื่อง**: ปรับปรุงการใช้งานแคชของ CPU
+- **การดำเนินการแบบ SIMD**: ประยุกต์ใช้อัตโนมัติเมื่อทำได้
+- **การดึงข้อมูลล่วงหน้า (Memory prefetching)**: ปรับปรุงมาเพื่อรูปแบบการเข้าถึงทั่วไปของ CFD
 
-### Parallel Efficiency
+### ประสิทธิภาพแบบขนาน (Parallel Efficiency)
 
-The smart pointer system facilitates efficient parallel computations:
+ระบบสมาร์ทพอยน์เตอร์ช่วยอำนวยความสะดวกในการคำนวณแบบขนานที่มีประสิทธิภาพ:
 
-- **Reference counting**: Simplifies distributed memory management
-- **Copy-on-write semantics**: Reduces data transfer between processors
-- **Automatic serialization/deserialization**: For MPI communication
-
----
-
-## Best Practices
-
-### Code Organization
-
-Follow OpenFOAM naming conventions for **maintainability**:
-
-- **Hungarian notation**: For member variables (`field_`, `mesh_`)
-- **Class names**: Capitalized, camelCase
-- **Local variables**: Meaningful prefixes (`cellI`, `faceJ`)
-
-### Error Handling
-
-Use **robust error handling** with OpenFOAM's mechanisms:
-
-- **`FatalError`**: For unrecoverable situations
-- **Runtime dimension checking**: With `dimensionSet`
-- **Error messages**: Provide context and guidance
-
-### Performance Optimization
-
-Employ these strategies for optimal performance:
-
-- **Prefer `tmp`**: Over explicit copies for expensive computations
-- **Use `forAll` macros**: Instead of raw loops where appropriate
-- **Minimize dynamic memory allocation**: In tight loops
-- **Leverage expression templates**: For complex mathematical operations
+- **การนับการอ้างอิง**: ช่วยให้การจัดการหน่วยความจำแบบกระจายง่ายขึ้น
+- **ความหมายการคัดลอกเมื่อเขียน**: ลดการส่งผ่านข้อมูลระหว่างโปรเซสเซอร์
+- **การทำซีเรียลไลซ์เซชันอัตโนมัติ**: สำหรับการสื่อสารผ่าน MPI
 
 ---
 
-## Further Reading
+## แนวทางปฏิบัติที่ดีที่สุด (Best Practices)
 
-1. **Chapter 4.2**: Template Programming in OpenFOAM
-2. **Chapter 4.3**: Memory Management Patterns
-3. **Chapter 4.4**: Advanced Container Classes
-4. **Chapter 6**: Field Operations and Algebra
-5. **OpenFOAM Source Code**: The definitive reference
+### การจัดระเบียบโค้ด (Code Organization)
+
+ปฏิบัติตามข้อกำหนดการตั้งชื่อของ OpenFOAM เพื่อ **ความสะดวกในการบำรุงรักษา**:
+
+- **Hungarian notation**: สำหรับตัวแปรสมาชิก (`field_`, `mesh_`)
+- **ชื่อคลาส**: ขึ้นต้นด้วยตัวใหญ่, camelCase
+- **ตัวแปรเฉพาะที่**: คำนำหน้าที่มีความหมาย (`cellI`, `faceJ`)
+
+### การจัดการข้อผิดพลาด (Error Handling)
+
+ใช้กลไก **การจัดการข้อผิดพลาดที่แข็งแกร่ง** ของ OpenFOAM:
+
+- **`FatalError`**: สำหรับสถานการณ์ที่ไม่สามารถกู้คืนได้
+- **การตรวจสอบมิติขณะรันโปรแกรม**: ด้วย `dimensionSet`
+- **ข้อความแสดงข้อผิดพลาด**: ให้บริบทและคำแนะนำในการแก้ไข
+
+### การปรับปรุงประสิทธิภาพ (Performance Optimization)
+
+ใช้กลยุทธ์เหล่านี้เพื่อประสิทธิภาพสูงสุด:
+
+- **เลือกใช้ `tmp`**: แทนการคัดลอกแบบชัดเจนสำหรับการคำนวณที่มีค่าใช้จ่ายสูง
+- **ใช้มาโคร `forAll`**: แทนการวนลูปแบบปกติเมื่อเหมาะสม
+- **ลดการจัดสรรหน่วยความจำแบบไดนามิก**: ในลูปที่ทำงานหนัก
+- **ใช้ประโยชน์จากเทมเพลตนิพจน์**: สำหรับการดำเนินการทางคณิตศาสตร์ที่ซับซ้อน
 
 ---
 
-## Source Code Reference
+## แหล่งข้อมูลเพิ่มเติม (Further Reading)
 
-For further study, examine these key header files:
+1. **บทที่ 4.2**: การเขียนโปรแกรมแบบเทมเพลตใน OpenFOAM
+2. **บทที่ 4.3**: รูปแบบการจัดการหน่วยความจำ
+3. **บทที่ 4.4**: คลาสคอนเทนเนอร์ขั้นสูง
+4. **บทที่ 6**: การดำเนินการสนามข้อมูลและพีชคณิต
+5. **ซอร์สโค้ดของ OpenFOAM**: แหล่งอ้างอิงที่แน่นอนที่สุด
 
-| Type | Header File | Location |
+---
+
+## แหล่งอ้างอิงซอร์สโค้ด (Source Code Reference)
+
+สำหรับการศึกษาเพิ่มเติม โปรดตรวจสอบไฟล์ส่วนหัวที่สำคัญเหล่านี้:
+
+| ประเภทข้อมูล | ไฟล์ส่วนหัว | ตำแหน่ง |
 |------|-------------|----------|
 | `label` | `label.H` | `src/OpenFOAM/primitives/ints/label/` |
 | `scalar` | `scalar.H` | `src/OpenFOAM/primitives/Scalar/scalar/` |
@@ -315,49 +315,49 @@ For further study, examine these key header files:
 
 ---
 
-## Mathematical Foundations
+## พื้นฐานทางคณิตศาสตร์ (Mathematical Foundations)
 
-### Navier-Stokes Implementation
+### การนำสมการ Navier-Stokes ไปใช้ (Navier-Stokes Implementation)
 
-The dimensioned type system ensures the **Navier-Stokes equations** remain dimensionally consistent:
+ระบบประเภทที่มีมิติช่วยให้มั่นใจได้ว่า **สมการ Navier-Stokes** ยังคงมีความสอดคล้องทางมิติ:
 
 $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
 
-Each term maintains consistent units of $\mathrm{N/m^3}$ (force per unit volume).
+ทุกพจน์รักษาหน่วยที่สอดคล้องกันคือ $\mathrm{N/m^3}$ (แรงต่อหน่วยปริมาตร)
 
-**Variables:**
-- $\rho$: Density (kg/m³)
-- $\mathbf{u}$: Velocity vector (m/s)
-- $t$: Time (s)
-- $p$: Pressure (Pa)
-- $\mu$: Dynamic viscosity (Pa·s)
-- $\mathbf{f}$: External force per unit volume (N/m³)
+**ตัวแปร:**
+- $\rho$: ความหนาแน่น (kg/m³)
+- $\mathbf{u}$: เวกเตอร์ความเร็ว (m/s)
+- $t$: เวลา (s)
+- $p$: ความดัน (Pa)
+- $\mu$: ความหนืดจลน์ (Pa·s)
+- $\mathbf{f}$: แรงภายนอกต่อหน่วยปริมาตร (N/m³)
 
-### Reynolds Number Calculation
+### การคำนวณเลขเรย์โนลด์ (Reynolds Number Calculation)
 
-The Reynolds number demonstrates dimensional consistency:
+เลขเรย์โนลด์แสดงถึงความสอดคล้องทางมิติ:
 
 $$\text{Re} = \frac{\rho U L}{\mu}$$
 
-- $\rho$ (density): $[M L^{-3}]$
-- $U$ (velocity): $[L T^{-1}]$
-- $L$ (length): $[L]$
-- $\mu$ (viscosity): $[M L^{-1} T^{-1}]$
+- $\rho$ (ความหนาแน่น): $[M L^{-3}]$
+- $U$ (ความเร็ว): $[L T^{-1}]$
+- $L$ (ความยาว): $[L]$
+- $\mu$ (ความหนืด): $[M L^{-1} T^{-1}]$
 
-**Dimensions**: $\frac{[M L^{-3}] \times [L T^{-1}] \times [L]}{[M L^{-1} T^{-1}]} = [1]$ (dimensionless)
+**มิติ**: $\frac{[M L^{-3}] \times [L T^{-1}] \times [L]}{[M L^{-1} T^{-1}]} = [1]$ (ไร้มิติ)
 
 ---
 
-## Engineering Benefits Summary
+## สรุปประโยชน์เชิงวิศวกรรม (Engineering Benefits Summary)
 
-| Benefit | Description | Impact |
+| ประโยชน์ | คำอธิบาย | ผลกระทบ |
 |-----------|-------------|---------|
-| **Numerical Consistency** | Same results across platforms | Reliable portability |
-| **Dimensional Safety** | Compile-time unit error prevention | Physical correctness |
-| **Memory Efficiency** | Smart pointers eliminate memory leaks | System stability |
-| **Performance Optimization** | Reference counting reduces copy overhead | Computational speed |
-| **Code Portability** | Single codebase works everywhere | Cross-platform development |
+| **ความสม่ำเสมอทางตัวเลข** | ผลลัพธ์เดิมในทุกแพลตฟอร์ม | ความน่าเชื่อถือในการพกพา |
+| **ความปลอดภัยทางมิติ** | ป้องกันข้อผิดพลาดของหน่วย ณ เวลาคอมไพล์ | ความถูกต้องทางฟิสิกส์ |
+| **ประสิทธิภาพหน่วยความจำ** | สมาร์ทพอยน์เตอร์กำจัดหน่วยความจำรั่วไหล | เสถียรภาพของระบบ |
+| **การปรับปรุงประสิทธิภาพ** | การนับการอ้างอิงลดภาระการคัดลอก | ความเร็วในการคำนวณ |
+| **ความสามารถในการพกพา** | โค้ดชุดเดียวทำงานได้ทุกที่ | การพัฒนาข้ามแพลตฟอร์ม |
 
 ---
 
-Mastering these primitives is essential for effective OpenFOAM programming. They enable the development of robust, portable, and physically meaningful CFD simulations that can scale from simple test cases to complex industrial applications.
+การเชี่ยวชาญประเภทข้อมูลพื้นฐานเหล่านี้เป็นสิ่งจำเป็นสำหรับการเขียนโปรแกรม OpenFOAM อย่างมีประสิทธิภาพ ซึ่งช่วยให้สามารถพัฒนาการจำลอง CFD ที่แข็งแกร่ง พกพาได้ และมีความหมายทางกายภาพ ซึ่งสามารถปรับขนาดได้ตั้งแต่กรณีทดสอบง่ายๆ ไปจนถึงแอปพลิเคชันระดับอุตสาหกรรมที่ซับซ้อน

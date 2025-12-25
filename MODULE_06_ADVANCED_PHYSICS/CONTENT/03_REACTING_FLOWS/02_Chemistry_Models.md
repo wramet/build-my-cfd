@@ -1,81 +1,81 @@
-# Chemistry Models and ODE Solvers
+# แบบจำลองทางเคมีและตัวแก้สมการ ODE (Chemistry Models and ODE Solvers)
 
-## 🔮 Introduction
+## 🔮 บทนำ (Introduction)
 
-Combustion involves reactions occurring at timescales from $10^{-9}s$ (radicals) to $10^{-1}s$ (NOx formation). This vast range creates **stiff ODE systems** that explicit solvers cannot handle efficiently.
+การเผาไหม้เกี่ยวข้องกับปฏิกิริยาที่เกิดขึ้นในช่วงมาตราส่วนเวลาตั้งแต่ $10^{-9}$ วินาที (อนุมูลอิสระ) ไปจนถึง $10^{-1}$ วินาที (การก่อตัวของ NOx) ช่วงเวลาที่กว้างมากนี้ทำให้เกิด **ระบบสมการเชิงอนุพันธ์สามัญแบบแข็ง (stiff ODE systems)** ซึ่งตัวแก้สมการแบบชัดแจ้ง (explicit solvers) ไม่สามารถจัดการได้อย่างมีประสิทธิภาพ
 
-OpenFOAM uses **implicit ODE solvers** to integrate the reaction rates:
+OpenFOAM ใช้ **ตัวแก้สมการ ODE แบบโดยนัย (implicit ODE solvers)** เพื่อบูรณาการอัตราการเกิดปฏิกิริยา:
 
 $$\frac{d Y_i}{dt} = \frac{\dot{\omega}_i}{\rho}$$
 
-where:
-- $Y_i$ = mass fraction of species $i$ [-]
-- $\dot{\omega}_i$ = reaction rate of species $i$ [kg/(m³·s)]
-- $\rho$ = density [kg/m³]
+โดยที่:
+- $Y_i$ = เศษส่วนมวลของสปีชีส์ $i$ [-]
+- $\dot{\omega}_i$ = อัตราการเกิดปฏิกิริยาของสปีชีส์ $i$ [kg/(m³·s)]
+- $\rho$ = ความหนาแน่น [kg/m³]
 
 ---
 
-## 📐 The Stiffness Problem
+## 📐 ปัญหาความแข็งเกร็ง (The Stiffness Problem)
 
-### What is Stiffness?
+### ความแข็งเกร็งคืออะไร? (What is Stiffness?)
 
-A **stiff ODE system** contains components with vastly different timescales. In combustion chemistry:
+**ระบบ ODE แบบแข็ง** ประกอบด้วยส่วนประกอบที่มีมาตราส่วนเวลาแตกต่างกันอย่างมาก ในทางเคมีการเผาไหม้:
 
-| Timescale | Process | Typical Range |
+| มาตราส่วนเวลา | กระบวนการ | ช่วงเวลาทั่วไป |
 |-----------|---------|---------------|
-| **Fast** | Radical reactions (H, O, OH) | $10^{-9}$ to $10^{-6}$ s |
-| **Medium** | CO oxidation | $10^{-3}$ to $10^{-1}$ s |
-| **Slow** | NOx formation | $10^{-1}$ to $10^{0}$ s |
+| **รวดเร็ว** | ปฏิกิริยาอนุมูลอิสระ (H, O, OH) | $10^{-9}$ ถึง $10^{-6}$ วินาที |
+| **ปานกลาง** | การออกซิเดชันของ CO | $10^{-3}$ ถึง $10^{-1}$ วินาที |
+| **ช้า** | การก่อตัวของ NOx | $10^{-1}$ ถึง $10^{0}$ วินาที |
 
-> [!WARNING] Why Explicit Methods Fail
-> Explicit solvers require time steps smaller than the fastest timescale for stability. For stiff systems, this becomes computationally prohibitive.
+> [!WARNING] ทำไมวิธีการแบบชัดแจ้งจึงล้มเหลว
+> ตัวแก้สมการแบบชัดแจ้งต้องการช่วงเวลา (time step) ที่เล็กกว่ามาตราส่วนเวลาที่เร็วที่สุดเพื่อรักษาเสถียรภาพ สำหรับระบบที่แข็งเกร็งมาก สิ่งนี้จะทำให้ต้นทุนการคำนวณสูงจนไม่สามารถยอมรับได้
 
-### Mathematical Characterization
+### ลักษณะเฉพาะทางคณิตศาสตร์ (Mathematical Characterization)
 
-The stiffness ratio is defined as:
+อัตราส่วนความแข็งเกร็งถูกกำหนดเป็น:
 
 $$S = \frac{|\lambda_{\max}|}{|\lambda_{\min}|}$$
 
-where $\lambda$ are eigenvalues of the Jacobian matrix. For combustion:
-- $S \approx 10^{6}$ to $10^{9}$ (extremely stiff)
+โดยที่ $\lambda$ คือค่าเจาะจง (eigenvalues) ของเมทริกซ์ Jacobian สำหรับการเผาไหม้:
+- $S \approx 10^{6}$ ถึง $10^{9}$ (แข็งเกร็งอย่างมาก)
 
 ---
 
-## 🔬 ODE Solvers in OpenFOAM
+## 🔬 ตัวแก้สมการ ODE ใน OpenFOAM (ODE Solvers in OpenFOAM)
 
-### Available Solvers
+### ตัวแก้สมการที่มีให้ใช้งาน
 
-OpenFOAM provides several ODE solvers defined in `constant/chemistryProperties`:
+OpenFOAM มีตัวแก้สมการ ODE หลายแบบที่กำหนดในไฟล์ `constant/chemistryProperties`:
 
-| Solver | Type | Stability | Best For | Cost |
+| ตัวแก้ปัญหา | ประเภท | เสถียรภาพ | เหมาะสำหรับ | ต้นทุน |
 |--------|------|-----------|----------|------|
-| **SEulex** | Extrapolation-based semi-implicit | High | Moderate mechanisms (< 50 species) | Medium |
-| **Rosenbrock** | Rosenbrock-type | Very High | Very stiff systems (H₂) | High |
-| **CVODE** | External library (Sundials) | Very High | Large mechanisms (> 100 species) | Low |
+| **SEulex** | กึ่งโดยนัยอ้างอิงการประมาณค่า (Extrapolation) | สูง | กลไกขนาดปานกลาง (< 50 สปีชีส์) | ปานกลาง |
+| **Rosenbrock** | ประเภท Rosenbrock | สูงมาก | ระบบที่แข็งเกร็งมาก (เช่น การเผาไหม้ H₂) | สูง |
+| **CVODE** | ไลบรารีภายนอก (Sundials) | สูงมาก | กลไกขนาดใหญ่ (> 100 สปีชีส์) | ต่ำ |
 
-### Configuration
+### การกำหนดค่า (Configuration)
 
 ```cpp
-// Chemistry solver configuration in OpenFOAM
+// การกำหนดค่าตัวแก้สมการเคมีใน OpenFOAM
 chemistryType
 {
-    solver          SEulex;      // ODE solver selection: SEulex, Rosenbrock, or CVODE
-    tolerance       1e-6;        // Absolute tolerance for convergence
-    relTol          0.01;        // Relative tolerance (typically 0.01-0.1)
+    solver          SEulex;      // การเลือกตัวแก้ ODE: SEulex, Rosenbrock หรือ CVODE
+    tolerance       1e-6;        // ค่าความคลาดเคลื่อนสัมบูรณ์สำหรับการลู่เข้า
+    relTol          0.01;        // ค่าความคลาดเคลื่อนสัมพัทธ์ (ปกติคือ 0.01-0.1)
 }
 ```
 
-> **📂 Source:** `.applications/utilities/miscellaneous/foamDictionary/foamDictionary.c`
+> **📂 แหล่งที่มา:** `.applications/utilities/miscellaneous/foamDictionary/foamDictionary.c`
 
-**Parameters:**
-- `tolerance`: Absolute tolerance for convergence
-- `relTol`: Relative tolerance (typically 0.01-0.1)
+**พารามิเตอร์:**
+- `tolerance`: ค่าความคลาดเคลื่อนสัมบูรณ์สำหรับการลู่เข้า
+- `relTol`: ค่าความคลาดเคลื่อนสัมพัทธ์ (ปกติคือ 0.01-0.1)
 
 ---
 
-## ⚙️ The `chemistryModel` Class
+## ⚙️ คลาส `chemistryModel` (The `chemistryModel` Class)
 
-### Class Hierarchy
+### ลำดับชั้นของคลาส (Class Hierarchy)
 
 ```mermaid
 classDiagram
@@ -96,103 +96,102 @@ classDiagram
     chemistryModel <|-- StandardChemistryModel
     StandardChemistryModel --> ReactionThermophysicalTransportModel
 ```
-> **Figure 1:** แผนผังคลาสแสดงโครงสร้างลำดับชั้นของแบบจำลองเคมีใน OpenFOAM โดยแสดงความสัมพันธ์ระหว่างคลาสฐานเชิงนามธรรมและคลาสที่นำไปใช้งานจริงสำหรับการคำนวณปฏิกิริยาและอุณหพลศาสตร์
+> **รูปที่ 1:** แผนผังคลาสแสดงโครงสร้างลำดับชั้นของแบบจำลองเคมีใน OpenFOAM โดยแสดงความสัมพันธ์ระหว่างคลาสฐานเชิงนามธรรมและคลาสที่นำไปใช้งานจริงสำหรับการคำนวณปฏิกิริยาและอุณหพลศาสตร์
 
-### Key Methods
+### เมธอดหลัก (Key Methods)
 
-| Method | Purpose | Return |
+| เมธอด | วัตถุประสงค์ | สิ่งที่ส่งคืน |
 |--------|---------|--------|
-| `solve(deltaT)` | Integrate chemistry for timestep | void |
-| `RR(i)` | Return reaction rate for species i | scalarField |
-| `omega()` | Return all reaction rates | PtrList |
+| `solve(deltaT)` | บูรณาการทางเคมีสำหรับช่วงเวลาที่กำหนด | void |
+| `RR(i)` | คืนค่าอัตราปฏิกิริยาสำหรับสปีชีส์ i | scalarField |
+| `omega()` | คืนค่าอัตราปฏิกิริยาทั้งหมด | PtrList |
 
 ---
 
-## 🔄 Operator Splitting
+## 🔄 การแยกตัวดำเนินการ (Operator Splitting)
 
-### Splitting Strategy
+### กลยุทธ์การแยก (Splitting Strategy)
 
-OpenFOAM uses **operator splitting** to separate chemistry integration from fluid transport:
+OpenFOAM ใช้เทคนิค **การแยกตัวดำเนินการ (operator splitting)** เพื่อแยกการบูรณาการทางเคมีออกจากการขนส่งของไหล:
 
 ```mermaid
 graph TD
-    A[Start Time Step] --> B[Step 1: Solve Chemistry ODEs<br/>Flow Frozen]
-    B --> C[Extract Source Terms<br/>dmdt_i, dQdt]
-    C --> D[Step 2: Solve Fluid Transport<br/>Chemistry Frozen]
-    D --> E[Next Time Step]
+    A[เริ่มช่วงเวลา] --> B[ขั้นตอนที่ 1: แก้สมการ ODE เคมี<br/>การไหลถูกแช่แข็ง]
+    B --> C[สกัดเทอมแหล่งกำเนิด<br/>dmdt_i, dQdt]
+    C --> D[ขั้นตอนที่ 2: แก้การขนส่งของไหล<br/>เคมีถูกแช่แข็ง]
+    D --> E[ช่วงเวลาถัดไป]
 
     style B fill:#fff9c4,stroke:#fbc02d
     style D fill:#e1f5fe,stroke:#01579b
 ```
-> **Figure 2:** แผนภูมิแสดงกลยุทธ์การแยกตัวดำเนินการ (Operator Splitting) ซึ่งแบ่งขั้นตอนการคำนวณออกเป็นการแก้สมการเคมีและการแก้สมการขนส่งของไหลแยกจากกันในแต่ละขั้นตอนเวลา เพื่อจัดการกับความแตกต่างของมาตราส่วนเวลา (Time Scales)
+> **รูปที่ 2:** แผนภูมิแสดงกลยุทธ์การแยกตัวดำเนินการ (Operator Splitting) ซึ่งแบ่งขั้นตอนการคำนวณออกเป็นการแก้สมการเคมีและการแก้สมการขนส่งของไหลแยกจากกันในแต่ละขั้นตอนเวลา เพื่อจัดการกับความแตกต่างของมาตราส่วนเวลา (Time Scales)
 
-### Algorithm
+### อัลกอริทึม (Algorithm)
 
 ```cpp
-// Step 1: Chemistry integration with frozen flow field
+// ขั้นตอนที่ 1: การบูรณาการทางเคมีโดยแช่แข็งสนามการไหล
 chemistry.solve(deltaT);
 
-// Extract source terms from chemistry model
+// สกัดเทอมแหล่งกำเนิดจากแบบจำลองเคมี
 const volScalarField& RR = chemistry.RR(speciesI);
 
-// Step 2: Fluid transport with frozen chemistry
+// ขั้นตอนที่ 2: การขนส่งของไหลโดยแช่แข็งทางเคมี
 fvScalarMatrix YiEqn
 (
-    fvm::ddt(rho, Yi)      // Unsteady term
-  + fvm::div(phi, Yi)      // Convection term
-  - fvm::laplacian(Di, Yi) // Diffusion term
+    fvm::ddt(rho, Yi)      // เทอมสภาวะไม่คงตัว
+  + fvm::div(phi, Yi)      // เทอมการพา
+  - fvm::laplacian(Di, Yi) // เทอมการแพร่
  ==
-    RR                     // Chemistry source term from Step 1
+    RR                     // เทอมแหล่งกำเนิดเคมีจากขั้นตอนที่ 1
 );
-YiEqn.solve();              // Solve transport equation
+YiEqn.solve();              // แก้สมการการขนส่ง
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
 
 ---
 
-## 📊 Arrhenius Law
+## 📊 กฎของอาร์เรเนียส (Arrhenius Law)
 
-### Reaction Rate Equation
+### สมการอัตราการเกิดปฏิกิริยา
 
-Reaction rates follow the modified Arrhenius equation:
+อัตราการเกิดปฏิกิริยาเป็นไปตามสมการอาร์เรเนียสที่ปรับปรุงแล้ว:
 
 $$k = A T^\beta \exp\left(-\frac{E_a}{RT}\right)$$
 
-**Parameters:**
-- $A$ = Pre-exponential factor [(mol/cm³)^(1-n) / s]
-- $\beta$ = Temperature exponent [-]
-- $E_a$ = Activation energy [J/mol or cal/mol]
-- $R$ = Universal gas constant = 8.314 J/(mol·K)
-- $T$ = Temperature [K]
+**พารามิเตอร์:**
+- $A$ = ปัจจัยก่อนเลขชี้กำลัง (Pre-exponential factor) [(mol/cm³)^(1-n) / s]
+- $\beta$ = เลขชี้กำลังอุณหภูมิ [-]
+- $E_a$ = พลังงานก่อกัมมันต์ [J/mol หรือ cal/mol]
+- $R$ = ค่าคงที่สากลของก๊าซ = 8.314 J/(mol·K)
+- $T$ = อุณหภูมิ [K]
 
-### Units Conversion
+### การแปลงหน่วย (Units Conversion)
 
-> [!TIP] Watch Your Units!
-> Chemkin files often use **cal/mol** for $E_a$. OpenFOAM internally converts to **J/mol**:
+> [!TIP] ระวังเรื่องหน่วย!
+> ไฟล์ Chemkin มักใช้หน่วย **cal/mol** สำหรับ $E_a$ แต่ OpenFOAM จะแปลงเป็น **J/mol** ภายในโปรแกรม:
 > $$E_a [\text{J/mol}] = 4184 \times E_a [\text{cal/mol}]$$
 
-### Temperature Dependence
+### การพึ่งพาอุณหภูมิ
 
-The Arrhenius factor varies dramatically with temperature:
+ปัจจัยอาร์เรเนียสแปรผันอย่างมากตามอุณหภูมิ:
 
 $$\begin{align}
-\text{At } T &= 300\text{ K}: &&k \approx 10^{-20} \text{ s}^{-1} \\
-\text{At } T &= 1500\text{ K}: &&k \approx 10^{8} \text{ s}^{-1}
+\text{ที่ } T &= 300\text{ K}: &&k \approx 10^{-20} \text{ s}^{-1} \\n\text{ที่ } T &= 1500\text{ K}: &&k \approx 10^{8} \text{ s}^{-1}
 \end{align}$$
 
-This $10^{28}$-fold variation creates the stiffness in combustion systems.
+การแปรผันถึง $10^{28}$ เท่านี้เองที่สร้างความแข็งเกร็ง (stiffness) ในระบบการเผาไหม้
 
 ---
 
-## 🛠️ Practical Implementation
+## 🛠️ การใช้งานจริง (Practical Implementation)
 
-### Setting Up Chemistry
+### การตั้งค่าเคมี (Setting Up Chemistry)
 
-**File: `constant/chemistryProperties`**
+**ไฟล์: `constant/chemistryProperties`**
 
 ```cpp
-// OpenFOAM chemistry properties dictionary
+// พจนานุกรมคุณสมบัติเคมีของ OpenFOAM
 FoamFile
 {
     version     2.0;
@@ -204,151 +203,151 @@ FoamFile
 
 chemistryType
 {
-    solver          SEulex;             // ODE solver choice: SEulex, Rosenbrock, CVODE
-    tolerance       1e-6;               // Absolute tolerance for convergence
-    relTol          0.01;               // Relative tolerance (typically 0.01-0.1)
+    solver          SEulex;             // ตัวเลือกตัวแก้ ODE: SEulex, Rosenbrock, CVODE
+    tolerance       1e-6;               // ค่าความคลาดเคลื่อนสัมบูรณ์สำหรับการลู่เข้า
+    relTol          0.01;               // ค่าความคลาดเคลื่อนสัมพัทธ์ (ปกติคือ 0.01-0.1)
 
-    initialChemicalTimeStep  1e-8;      // Initial timestep [s] for chemistry integration
-    maxChemicalTimeStep      1e-3;      // Maximum timestep [s] allowed
+    initialChemicalTimeStep  1e-8;      // ช่วงเวลาเริ่มต้น [วินาที] สำหรับการบูรณาการเคมี
+    maxChemicalTimeStep      1e-3;      // ช่วงเวลาสูงสุด [วินาที] ที่อนุญาต
 }
 
-chemistry     on;                        // Enable chemistry calculations
+chemistry     on;                        // เปิดใช้งานการคำนวณทางเคมี
 ```
 
-> **📂 Source:** `.applications/utilities/miscellaneous/foamDictionary/foamDictionary.c`
+> **📂 แหล่งที่มา:** `.applications/utilities/miscellaneous/foamDictionary/foamDictionary.c`
 
-### Solver Selection Guide
+### คู่มือการเลือกตัวแก้สมการ (Solver Selection Guide)
 
-**Use SEulex when:**
-- Mechanism has 10-50 species
-- Moderate stiffness
-- Good balance of speed and stability
+**ใช้ SEulex เมื่อ:**
+- กลไกมี 10-50 สปีชีส์
+- มีความแข็งเกร็งปานกลาง
+- ต้องการความสมดุลที่ดีระหว่างความเร็วและเสถียรภาพ
 
-**Use Rosenbrock when:**
-- Mechanism is very stiff (e.g., H₂ combustion)
-- Fewer than 20 species
-- Stability is critical
+**ใช้ Rosenbrock เมื่อ:**
+- กลไกแข็งเกร็งมาก (เช่น การเผาไหม้ H₂)
+- มีสปีชีส์น้อยกว่า 20 ชนิด
+- เสถียรภาพเป็นปัจจัยวิกฤต
 
-**Use CVODE when:**
-- Large mechanisms (> 50 species)
-- External library available
-- Best performance for large systems
+**ใช้ CVODE เมื่อ:**
+- กลไกมีขนาดใหญ่ (> 50 สปีชีส์)
+- มีไลบรารีภายนอกให้ใช้งาน
+- ต้องการประสิทธิภาพสูงสุดสำหรับระบบขนาดใหญ่
 
 ---
 
-## 🔍 Advanced Features
+## 🔍 คุณสมบัติขั้นสูง (Advanced Features)
 
-### Adaptive Time Stepping
+### การปรับช่วงเวลาแบบปรับตัว (Adaptive Time Stepping)
 
-OpenFOAM chemistry solvers use adaptive time stepping:
+ตัวแก้สมการเคมีของ OpenFOAM ใช้เทคนิคการปรับช่วงเวลาแบบปรับตัว:
 
 ```cpp
-// Adaptive time stepping for chemistry integration
+// การปรับช่วงเวลาแบบปรับตัวสำหรับการบูรณาการทางเคมี
 scalar deltaTChem = min(deltaT, maxChemicalTimeStep);
 
-// Solver adjusts internally based on:
-// 1. Local reaction rates - faster reactions require smaller steps
-// 2. Convergence behavior - non-converging steps trigger reduction
-// 3. Error estimates - step size adjusted based on error control
+// ตัวแก้ปัญหาจะปรับภายในตามปัจจัยดังนี้:
+// 1. อัตราปฏิกิริยาเฉพาะที่ - ปฏิกิริยาที่เร็วขึ้นต้องการช่วงเวลาที่เล็กลง
+// 2. พฤติกรรมการลู่เข้า - ขั้นตอนที่ไม่ลู่เข้าจะกระตุ้นการลดช่วงเวลาลง
+// 3. การประมาณค่าข้อผิดพลาด - ปรับขนาดช่วงเวลาตามการควบคุมข้อผิดพลาด
 ```
 
-> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+> **📂 แหล่งที่มา:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
 
-### Jacobian Evaluation
+### การประเมิน Jacobian (Jacobian Evaluation)
 
-For stiff systems, the Jacobian matrix is critical:
+สำหรับระบบที่แข็งเกร็ง เมทริกซ์ Jacobian มีความสำคัญอย่างยิ่ง:
 
 $$\mathbf{J}_{ij} = \frac{\partial \dot{\omega}_i}{\partial Y_j}$$
 
-**Evaluation methods:**
-1. **Numerical**: Finite difference approximation
-2. **Analytical**: Exact derivatives (faster, more accurate)
+**วิธีการประเมิน:**
+1. **เชิงตัวเลข (Numerical)**: การประมาณค่าด้วยผลต่างอันดับสุดท้าย (Finite difference)
+2. **เชิงวิเคราะห์ (Analytical)**: การหาอนุพันธ์ที่แน่นอน (รวดเร็วกว่าและแม่นยำกว่า)
 
-### Sub-cycling
+### การทำขั้นตอนย่อย (Sub-cycling)
 
-Chemistry uses **sub-cycling** to maintain accuracy:
+เคมีจะใช้เทคนิค **ขั้นตอนย่อย (sub-cycling)** เพื่อรักษาความแม่นยำ:
 
 ```mermaid
 graph LR
-    A[Fluid Time Step] --> B[Chemistry Step 1]
-    B --> C[Chemistry Step 2]
+    A[ช่วงเวลาของไหลหลัก] --> B[ขั้นตอนเคมีย่อย 1]
+    B --> C[ขั้นตอนเคมีย่อย 2]
     C --> D[...]
-    D --> E[Chemistry Step N]
-    E --> F[Update Source Terms]
+    D --> E[ขั้นตอนเคมีย่อย N]
+    E --> F[อัปเดตเทอมแหล่งกำเนิด]
 
     style A fill:#e1f5fe
     style F fill:#c8e6c9
 ```
-> **Figure 3:** แผนภาพแสดงกระบวนการคำนวณแบบขั้นตอนย่อย (Sub-cycling) ของเคมีภายในหนึ่งขั้นตอนเวลาของการไหลหลัก เพื่อรักษาความแม่นยำในการคำนวณปฏิกิริยาเคมีที่มีความเร็วสูง
+> **รูปที่ 3:** แผนภาพแสดงกระบวนการคำนวณแบบขั้นตอนย่อย (Sub-cycling) ของเคมีภายในหนึ่งขั้นตอนเวลาของการไหลหลัก เพื่อรักษาความแม่นยำในการคำนวณปฏิกิริยาเคมีที่มีความเร็วสูง
 
 ---
 
-## 📈 Performance Optimization
+## 📈 การเพิ่มประสิทธิภาพ (Performance Optimization)
 
-### Reducing Computational Cost
+### การลดต้นทุนการคำนวณ
 
-| Strategy | Description | Speedup |
+| กลยุทธ์ | คำอธิบาย | การเร่งความเร็ว |
 |----------|-------------|---------|
-| **Mechanism reduction** | Remove unimportant species/reactions | 10-100x |
-| **Tabulation** | Pre-compute chemistry lookup tables | 100-1000x |
-| **Dynamic load balancing** | Distribute chemistry work | 2-10x |
-| **Analytical Jacobian** | Faster convergence | 2-5x |
+| **การลดรูปกลไก (Mechanism reduction)** | กำจัดสปีชีส์/ปฏิกิริยาที่ไม่สำคัญออก | 10-100 เท่า |
+| **การทำตาราง (Tabulation)** | คำนวณตารางค้นหาทางเคมีล่วงหน้า | 100-1000 เท่า |
+| **การปรับสมดุลภาระงานแบบไดนามิก** | กระจายงานด้านเคมีให้เหมาะสม | 2-10 เท่า |
+| **Jacobian เชิงวิเคราะห์** | การลู่เข้าที่เร็วขึ้น | 2-5 เท่า |
 
-### Memory Considerations
+### ข้อควรพิจารณาเรื่องหน่วยความจำ
 
-For a mechanism with:
-- $N_s$ = number of species
-- $N_r$ = number of reactions
+สำหรับกลไกที่มี:
+- $N_s$ = จำนวนสปีชีส์
+- $N_r$ = จำนวนปฏิกิริยา
 
-Memory scales as:
+หน่วยความจำจะเพิ่มขึ้นตาม:
 $$\text{Memory} \propto N_s + N_r + N_s^2 \text{ (Jacobian)}$$
 
-**Example:** GRI-Mech 3.0 (53 species, 325 reactions)
-- Jacobian: $53^2 = 2809$ entries per cell
+**ตัวอย่าง:** GRI-Mech 3.0 (53 สปีชีส์, 325 ปฏิกิริยา)
+- Jacobian: $53^2 = 2809$ รายการต่อหนึ่งเซลล์
 
 ---
 
-## ✅ Summary
+## ✅ สรุป (Summary)
 
-### Key Takeaways
+### ประเด็นสำคัญ (Key Takeaways)
 
-1. **Stiffness** arises from disparate chemical timescales ($10^{-9}$ to $10^{-1}$ s)
-2. **Implicit solvers** (SEulex, Rosenbrock, CVODE) are required for stability
-3. **Operator splitting** separates chemistry from fluid transport
-4. **Arrhenius law** governs temperature dependence: $k = A T^\beta \exp(-E_a/RT)$
-5. **Adaptive time stepping** maintains accuracy while controlling cost
+1. **ความแข็งเกร็ง (Stiffness)** เกิดจากมาตราส่วนเวลาเคมีที่แตกต่างกันมาก ($10^{-9}$ ถึง $10^{-1}$ วินาที)
+2. **ตัวแก้สมการแบบโดยนัย (Implicit solvers)** (SEulex, Rosenbrock, CVODE) จำเป็นต่อเสถียรภาพ
+3. **การแยกตัวดำเนินการ (Operator splitting)** แยกการบูรณาการทางเคมีออกจากการขนส่งของไหล
+4. **กฎของอาร์เรเนียส** ควบคุมการพึ่งพาอุณหภูมิ: $k = A T^\beta \exp(-E_a/RT)$
+5. **การปรับช่วงเวลาแบบปรับตัว** ช่วยรักษาความแม่นยำในขณะที่ควบคุมต้นทุน
 
-### OpenFOAM Implementation
+### การใช้งานใน OpenFOAM (OpenFOAM Implementation)
 
 ```cpp
-// Main workflow for reacting flow simulations
+// ขั้นตอนการทำงานหลักสำหรับการจำลองการไหลแบบมีปฏิกิริยา
 while (runTime.run())
 {
-    // 1. Solve chemistry (ODE integration with operator splitting)
+    // 1. แก้สมการเคมี (การบูรณาการ ODE พร้อมการแยกตัวดำเนินการ)
     chemistry.solve(deltaT);
 
-    // 2. Get reaction rates for each species
+    // 2. รับอัตราการเกิดปฏิกิริยาสำหรับแต่ละสปีชีส์
     const volScalarField& RR_CH4 = chemistry.RR(CH4_ID);
 
-    // 3. Solve transport equations with chemistry source terms
+    // 3. แก้สมการการขนส่งพร้อมเทอมแหล่งกำเนิดทางเคมี
     solve
     (
-        fvm::ddt(rho, CH4)        // Unsteady term
-      + fvm::div(phi, CH4)        // Convection
-      - fvm::laplacian(D_CH4, CH4) // Diffusion
+        fvm::ddt(rho, CH4)        // เทอมสภาวะไม่คงตัว
+      + fvm::div(phi, CH4)        // การพา
+      - fvm::laplacian(D_CH4, CH4) // การแพร่
    ==
-        RR_CH4                     // Chemistry source from operator splitting
+        RR_CH4                     // แหล่งกำเนิดเคมีจากการแยกตัวดำเนินการ
     );
 }
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
 
 ---
 
-## 🔗 Related Topics
+## 🔗 หัวข้อที่เกี่ยวข้อง (Related Topics)
 
-- [[01_Species_Transport_Equation|Species Transport Equations]] — Convection-diffusion-reaction balance
-- [[03_Combustion_Models|Combustion Models: PaSR vs EDC]] — Turbulence-chemistry interaction
-- [[04_Chemkin_Parsing|Chemkin File Parsing]] — Mechanism file format and parsing
-- [[Practical_Workflow|Practical Workflow]] — Setting up reacting flow simulations
+- [[01_Species_Transport_Equation|สมการการขนส่งสปีชีส์]] — ความสมดุลของการพา-การแพร่-ปฏิกิริยา
+- [[03_Combustion_Models|แบบจำลองการเผาไหม้: PaSR เทียบกับ EDC]] — ปฏิสัมพันธ์ความปั่นป่วน-เคมี
+- [[04_Chemkin_Parsing|การวิเคราะห์ไฟล์ Chemkin]] — รูปแบบไฟล์กลไกและการแปลงข้อมูล
+- [[Practical_Workflow|ขั้นตอนการทำงานจริง]] — การตั้งค่าการจำลองการไหลแบบมีปฏิกิริยา

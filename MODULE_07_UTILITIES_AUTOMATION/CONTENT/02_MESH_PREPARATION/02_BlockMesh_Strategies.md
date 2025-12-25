@@ -1,170 +1,170 @@
-# 🎯 BlockMesh Strategies: Advanced Structured Mesh Generation
+# 🎯 กลยุทธ์ blockMesh: การสร้างเมชแบบมีโครงสร้างขั้นสูง (BlockMesh Strategies: Advanced Structured Mesh Generation)
 
-**Learning Objectives**: Master advanced blockMesh techniques for complex geometries, automated mesh generation workflows, and physics-based grading strategies in OpenFOAM.
+**วัตถุประสงค์การเรียนรู้**: เชี่ยวชาญเทคนิค blockMesh ขั้นสูงสำหรับเรขาคณิตที่ซับซ้อน, ขั้นตอนการสร้างเมชแบบอัตโนมัติ และกลยุทธ์การปรับขนาดเซลล์ตามหลักฟิสิกส์ใน OpenFOAM
 
-**Prerequisites**: Module 03 (Mesh Generation basics), Python programming skills, understanding of boundary layer theory.
+**เงื่อนไขเบื้องต้น**: โมดูล 03 (พื้นฐานการสร้างเมช), ทักษะการเขียนโปรแกรม Python, ความเข้าใจในทฤษฎีชั้นขอบเขต (boundary layer)
 
-**Target Skills**: Multi-block topology design, automated mesh scripting, physics-based grading, quality optimization.
+**ทักษะเป้าหมาย**: การออกแบบโทโพโลยีแบบหลายบล็อก, การเขียนสคริปต์เมชอัตโนมัติ, การปรับขนาดเซลล์ตามหลักฟิสิกส์, การปรับปรุงคุณภาพให้เหมาะสมที่สุด
 
 ---
 
-## 1. Advanced blockMesh Techniques
+## 1. เทคนิค blockMesh ขั้นสูง (Advanced blockMesh Techniques)
 
-### 1.1 Complex Geometries with blockMesh
+### 1.1 เรขาคณิตที่ซับซ้อนด้วย blockMesh
 
-The `blockMesh` utility in OpenFOAM provides powerful capabilities for generating ==structured hexahedral meshes== for complex geometries. While traditionally used for simple rectangular domains, advanced techniques enable the creation of sophisticated mesh topologies, including pipe junctions, T-junctions, and curved geometries.
+ยูทิลิตี้ `blockMesh` ใน OpenFOAM มีความสามารถที่ทรงพลังสำหรับการสร้าง ==เมชแบบหกเหลี่ยมที่มีโครงสร้าง (structured hexahedral meshes)== สำหรับเรขาคณิตที่ซับซ้อน แม้ว่าโดยดั้งเดิมจะใช้สำหรับโดเมนสี่เหลี่ยมผืนผ้าที่เรียบง่าย แต่เทคนิคขั้นสูงช่วยให้สามารถสร้างโทโพโลยีเมชที่ซับซ้อนได้ รวมถึงจุดต่อท่อ, จุดต่อแบบ T และเรขาคณิตที่มีความโค้ง
 
-#### Multi-Block Domain Strategy
+#### กลยุทธ์โดเมนหลายบล็อก (Multi-Block Domain Strategy)
 
-For complex geometries, it is essential to ==decompose the domain== into multiple connected hexahedral blocks. The key principle is that each block must maintain ==topological consistency== through proper vertex ordering and face connectivity.
+สำหรับเรขาคณิตที่ซับซ้อน จำเป็นอย่างยิ่งที่จะต้อง ==แยกย่อยโดเมน (decompose the domain)== ออกเป็นบล็อกหกเหลี่ยมหลายบล็อกที่เชื่อมต่อกัน หลักการสำคัญคือแต่ละบล็อกต้องรักษา ==ความสอดคล้องของโทโพโลยี (topological consistency)== ผ่านการจัดลำดับจุดยอดและการเชื่อมต่อหน้าผิวที่เหมาะสม
 
-> [!INFO] Vertex Numbering Convention
-> OpenFOAM follows a specific vertex numbering convention for hexahedral blocks:
-> - **Bottom face**: Vertices 0-3 (counter-clockwise when viewed from above)
-> - **Top face**: Vertices 4-7 (counter-clockwise when viewed from above)
-> - **Vertical edges**: Connect corresponding bottom and top vertices
+> [!INFO] ข้อกำหนดการจัดลำดับจุดยอด
+> OpenFOAM ปฏิบัติตามข้อกำหนดการจัดลำดับจุดยอดเฉพาะสำหรับบล็อกหกเหลี่ยม:
+> - **หน้าด้านล่าง**: จุดยอด 0-3 (เรียงทวนเข็มนาฬิกาเมื่อมองจากด้านบน)
+> - **หน้าด้านบน**: จุดยอด 4-7 (เรียงทวนเข็มนาฬิกาเมื่อมองจากด้านบน)
+> - **ขอบแนวตั้ง**: เชื่อมต่อระหว่างจุดยอดด้านล่างและด้านบนที่สอดคล้องกัน
 
 ```mermaid
 flowchart TD
-    A[Geometry Analysis] --> B{Block Topology Selection}
+    A[การวิเคราะห์เรขาคณิต] --> B{การเลือกโทโพโลยีบล็อก}
     B --> C[H-Grid]
     B --> D[O-Grid]
     B --> E[C-Grid]
-    B --> F[Multi-block Hybrid]
+    B --> F[แบบผสมหลายบล็อก]
 
-    C --> G[Channel Flows]
-    D --> H[Circular Geometries]
-    E --> I[Airfoil Shapes]
-    F --> J[Complex Assemblies]
+    C --> G[การไหลในช่องทาง]
+    D --> H[เรขาคณิตวงกลม]
+    E --> I[รูปทรงแอร์ฟอยล์]
+    F --> J[ชุดประกอบที่ซับซ้อน]
 
-    G --> K[Vertex Definition]
+    G --> K[การนิยามจุดยอด]
     H --> K
     I --> K
     J --> K
 
-    K --> L[Block Connectivity]
-    L --> M[Grading Strategy]
-    M --> N[Quality Validation]
+    K --> L[การเชื่อมต่อระหว่างบล็อก]
+    L --> M[กลยุทธ์การปรับขนาด]
+    M --> N[การตรวจสอบคุณภาพ]
 ```
-> **Figure 1:** แผนภูมิขั้นตอนการเลือกโทโพโลยีของบล็อก (Block Topology Selection) โดยพิจารณาจากลักษณะเรขาคณิต เช่น H-Grid สำหรับท่อทางไหลทั่วไป O-Grid สำหรับรูปทรงวงกลม และ C-Grid สำหรับแอร์ฟอยล์ เพื่อนำไปสู่การกำหนดจุดยอด การเชื่อมต่อ และกลยุทธ์การจัดระดับความละเอียดของเมช
+> **รูปที่ 1:** แผนภูมิขั้นตอนการเลือกโทโพโลยีของบล็อก (Block Topology Selection) โดยพิจารณาจากลักษณะเรขาคณิต เช่น H-Grid สำหรับท่อทางไหลทั่วไป O-Grid สำหรับรูปทรงวงกลม และ C-Grid สำหรับแอร์ฟอยล์ เพื่อนำไปสู่การกำหนดจุดยอด การเชื่อมต่อ และกลยุทธ์การจัดระดับความละเอียดของเมช
 
-#### 3D Pipe Junction Example
+#### ตัวอย่างจุดต่อท่อ 3 มิติ
 
-Consider a pipe junction where an inlet pipe branches into multiple outlet pipes. This geometry requires careful block decomposition to maintain mesh quality while capturing the geometric features.
+พิจารณาจุดต่อท่อที่ท่อทางเข้าแตกแขนงออกเป็นท่อทางออกหลายท่อ เรขาคณิตนี้ต้องการการแยกย่อยบล็อกอย่างระมัดระวังเพื่อรักษาคุณภาพของเมชในขณะที่ต้องจับลักษณะเฉพาะทางเรขาคณิตไว้ให้ได้
 
-The mathematical challenge lies in maintaining ==mesh orthogonality== at the junction while ensuring smooth cell size distribution. The governing equation for cell size distribution in the flow direction can be expressed as:
+ความท้าทายทางคณิตศาสตร์อยู่ที่การรักษา ==ความตั้งฉากของเมช (mesh orthogonality)== ที่จุดต่อในขณะที่รับประกันการกระจายขนาดเซลล์ที่ราบรื่น สมการควบคุมสำหรับการกระจายขนาดเซลล์ในทิศทางการไหลสามารถแสดงได้ดังนี้:
 
 $$\Delta x_i = \Delta x_0 \cdot r^{i-1}$$
 
-where $\Delta x_i$ is the cell size at position $i$, $\Delta x_0$ is the initial cell size, and $r$ is the growth ratio.
+โดยที่ $\Delta x_i$ คือขนาดเซลล์ที่ตำแหน่ง $i$, $\Delta x_0$ คือขนาดเซลล์เริ่มต้น และ $r$ คืออัตราส่วนการเติบโต
 
-For boundary layer resolution near walls, the first cell height $\Delta y^+$ should follow:
+สำหรับการวิเคราะห์ชั้นขอบเขตใกล้ผนัง ความสูงของเซลล์แรก $\Delta y^+$ ควรเป็นไปตามเงื่อนไข:
 
 $$\Delta y^+ = \frac{y_1 u_\tau}{\nu} \approx 1$$
 
-where $y_1$ is the first cell height, $u_\tau$ is the friction velocity, and $\nu$ is the kinematic viscosity.
+โดยที่ $y_1$ คือความสูงของเซลล์แรก, $u_\tau$ คือความเร็วแรงเสียดทาน และ $\nu$ คือความหนืดจลน์
 
-### 1.2 Advanced Grading Strategies
+### 1.2 กลยุทธ์การปรับขนาดเซลล์ขั้นสูง (Advanced Grading Strategies)
 
-OpenFOAM provides multiple grading functions to control cell size distribution within blocks:
+OpenFOAM มีฟังก์ชันการปรับขนาดเซลล์ (grading) หลายรูปแบบเพื่อควบคุมการกระจายขนาดเซลล์ภายในบล็อก:
 
-#### Mathematical Grading Functions
+#### ฟังก์ชันการปรับขนาดทางคณิตศาสตร์
 
-| **Type** | **Syntax** | **Cell Progression** | **Use Case** |
+| **ประเภท** | **ไวยากรณ์** | **การก้าวหน้าของเซลล์** | **กรณีใช้งาน** |
 |----------|------------|---------------------|--------------|
-| **Simple Grading** | `simpleGrading (x_ratio y_ratio z_ratio)` | $\Delta x_i = \Delta x_{min} + (\Delta x_{max} - \Delta x_{min}) \cdot \frac{i}{n}$ | One-sided refinement |
-| **Exponential Grading** | `expandingGrading (x_ratio y_ratio z_ratio)` | $\Delta x_i = \Delta x_0 \cdot r^i$ | Boundary layer growth |
-| **Geometric Grading** | `geometricGrading (x_ratio y_ratio z_ratio)` | $r = \left(\frac{L_{final}}{L_{initial}}\right)^{1/n}$ | Fixed total length |
+| **Simple Grading** | `simpleGrading (x_ratio y_ratio z_ratio)` | $\Delta x_i = \Delta x_{min} + (\Delta x_{max} - \Delta x_{min}) \cdot \frac{i}{n}$ | การปรับละเอียดด้านเดียว |
+| **Exponential Grading** | `expandingGrading (x_ratio y_ratio z_ratio)` | $\Delta x_i = \Delta x_0 \cdot r^i$ | การเติบโตของชั้นขอบเขต |
+| **Geometric Grading** | `geometricGrading (x_ratio y_ratio z_ratio)` | $r = \left(\frac{L_{final}}{L_{initial}}\right)^{1/n}$ | กำหนดความยาวรวมคงที่ |
 
-#### Boundary Layer Optimization
+#### การเพิ่มประสิทธิภาพชั้นขอบเขต (Boundary Layer Optimization)
 
-For wall-bounded flows, proper ==boundary layer resolution== is critical. Grading strategies should ensure:
-- **First cell height**: $y^+ \approx 1$ for viscous sublayer resolution
-- **Growth ratio**: $r \leq 1.2$ for smooth transitions
-- **Total boundary layer thickness**: $\delta_{BL} \approx 0.15 \cdot L$ for turbulent flows
+สำหรับการไหลที่ถูกจำกัดด้วยผนัง ==การวิเคราะห์ชั้นขอบเขต (boundary layer resolution)== ที่เหมาะสมมีความสำคัญ กลยุทธ์การปรับขนาดเซลล์ควรรับประกันว่า:
+- **ความสูงของเซลล์แรก**: $y^+ \approx 1$ สำหรับการวิเคราะห์ชั้นย่อยความหนืด (viscous sublayer)
+- **อัตราส่วนการเติบโต**: $r \leq 1.2$ เพื่อการเปลี่ยนผ่านที่ราบรื่น
+- **ความหนารวมของชั้นขอบเขต**: $\delta_{BL} \approx 0.15 \cdot L$ สำหรับการไหลแบบปั่นป่วน
 
-Reichardt's wall function provides guidance for boundary layer meshing:
+ฟังก์ชันผนังของ Reichardt ให้คำแนะนำสำหรับการสร้างเมชชั้นขอบเขต:
 
 $$u^+ = \frac{1}{\kappa} \ln(1 + \kappa y^+) + C \left(1 - e^{-y^+/A} - \frac{y^+}{A} e^{-b y^+}\right)$$
 
-where $\kappa \approx 0.41$ is the von Kármán constant.
+โดยที่ $\kappa \approx 0.41$ คือค่าคงที่ของฟอน คาร์มาน (von Kármán constant)
 
-> [!TIP] Optimal Grading Calculation
-> For boundary layer meshing, calculate the required growth ratio using:
+> [!TIP] การคำนวณการปรับขนาดที่เหมาะสมที่สุด
+> สำหรับการสร้างเมชชั้นขอบเขต ให้คำนวณอัตราส่วนการเติบโตที่ต้องการโดยใช้:
 > $$r = \left(\frac{\delta_{BL}}{y_1}\right)^{\frac{1}{n_{layers}-1}}$$
-> Always verify that $r \leq 1.2$ for numerical stability.
+> ตรวจสอบเสมอว่า $r \leq 1.2$ เพื่อเสถียรภาพเชิงตัวเลข
 
 ---
 
-## 2. Automated blockMesh Workflows
+## 2. ขั้นตอนการทำงาน blockMesh อัตโนมัติ (Automated blockMesh Workflows)
 
-### 2.1 Python Scripts for blockMeshDict Generation
+### 2.1 สคริปต์ Python สำหรับการสร้าง blockMeshDict
 
-Automated blockMesh generation significantly reduces manual effort while ensuring consistency across similar geometries. Python provides a systematic approach for generating complex meshes.
+การสร้าง blockMesh แบบอัตโนมัติช่วยลดภาระงานที่ต้องทำด้วยตนเองได้อย่างมาก พร้อมทั้งรับประกันความสม่ำเสมอในเรขาคณิตที่คล้ายคลึงกัน Python จัดทำแนวทางที่เป็นระบบสำหรับการสร้างเมชที่ซับซ้อน
 
-#### Core Generator Class Architecture
+#### สถาปัตยกรรมคลาส Generator หลัก
 
-The `BlockMeshGenerator` class encapsulates the entire mesh generation workflow:
+คลาส `BlockMeshGenerator` ครอบคลุมขั้นตอนการทำงานการสร้างเมชทั้งหมด:
 
 ```python
 class BlockMeshGenerator:
     def __init__(self, config):
         """
-        Initialize generator with configuration parameters
+        เริ่มต้น generator ด้วยพารามิเตอร์การกำหนดค่า
 
         Args:
-            config (dict): Dictionary containing domain specifications
-                          - domain_length, domain_width, domain_height
-                          - mesh_resolution, boundary_layer_specs
-                          - grading_strategies, geometry_features
+            config (dict): พจนานุกรมที่ระบุรายละเอียดโดเมน
+                          - ความยาว, ความกว้าง, ความสูงของโดเมน
+                          - ความละเอียดเมช, ข้อกำหนดชั้นขอบเขต
+                          - กลยุทธ์การปรับขนาด, คุณลักษณะทางเรขาคณิต
         """
         self.config = config
-        self.vertices = []  # List of vertex coordinates
-        self.blocks = []    # List of block definitions
-        self.patches = []   # List of boundary patches
-        self.edges = []     # List of curved edges
+        self.vertices = []  # รายชื่อพิกัดจุดยอด
+        self.blocks = []    # รายชื่อการนิยามบล็อก
+        self.patches = []   # รายชื่อแพตช์ขอบเขต
+        self.edges = []     # รายชื่อขอบโค้ง
 
-        # Initialize coordinate system and scaling
+        # เริ่มต้นระบบพิกัดและการปรับขนาด
         self.scale = config.get('scale_factor', 1.0)
         self.origin = np.array(config.get('origin', [0, 0, 0]))
 ```
 
-#### Pipe Junction Generation Algorithm
+#### อัลกอริทึมการสร้างจุดต่อท่อ
 
-The pipe junction generator uses sophisticated algorithms for creating smooth transitions between pipes:
+เครื่องมือสร้างจุดต่อท่อใช้อัลกอริทึมที่ซับซ้อนเพื่อสร้างการเปลี่ยนผ่านที่ราบรื่นระหว่างท่อ:
 
 ```python
 def generate_pipe_junction(self, pipe_diameter, junction_size):
     """
-    Generate 3D pipe junction using O-type and H-type block topologies
+    สร้างจุดต่อท่อ 3 มิติโดยใช้โทโพโลยีบล็อกแบบ O-type และ H-type
 
-    Mathematical approach:
-    - Use O-gridding for circular pipe sections
-    - Implement H-gridding for junction transitions
-    - Apply smooth blending functions at interfaces
+    แนวทางทางคณิตศาสตร์:
+    - ใช้ O-gridding สำหรับส่วนท่อวงกลม
+    - ใช้งาน H-gridding สำหรับการเปลี่ยนผ่านที่จุดต่อ
+    - ใช้ฟังก์ชันการผสม (blending functions) ที่ราบรื่นที่ส่วนต่อประสาน
     """
-    # Extract geometry parameters
+    # สกัดพารามิเตอร์เรขาคณิต
     L = self.config['domain_length']
     D = self.config['domain_width']
     H = self.config['domain_height']
 
-    # Junction center coordinates
+    # พิกัดจุดศูนย์กลางจุดต่อ
     junction_center = np.array([L/2, 0, H/2])
 
-    # Create O-type block topology for circular sections
+    # สร้างโทโพโลยีบล็อกแบบ O-type สำหรับส่วนวงกลม
     n_radial = self.config.get('n_radial_cells', 10)
     n_circumferential = self.config.get('n_circumferential_cells', 20)
 
-    # Generate vertices using cylindrical coordinates
+    # สร้างจุดยอดโดยใช้พิกัดทรงกระบอก
     theta_points = np.linspace(0, 2*np.pi, n_circumferential, endpoint=False)
 
     for theta in theta_points:
-        # Inner boundary vertices
+        # จุดยอดขอบเขตด้านใน
         x_inner = junction_center[0] + (pipe_diameter/2) * np.cos(theta)
         y_inner = junction_center[1] + (pipe_diameter/2) * np.sin(theta)
         z_inner = junction_center[2]
 
-        # Outer boundary vertices
+        # จุดยอดขอบเขตด้านนอก
         x_outer = junction_center[0] + (junction_size/2) * np.cos(theta)
         y_outer = junction_center[1] + (junction_size/2) * np.sin(theta)
         z_outer = junction_center[2]
@@ -174,146 +174,146 @@ def generate_pipe_junction(self, pipe_diameter, junction_size):
             (x_outer, y_outer, z_outer)
         ])
 
-    # Apply smooth blending function at junction interfaces
+    # ใช้ฟังก์ชันการผสมที่ราบรื่นที่ส่วนต่อประสานจุดต่อ
     self._create_junction_transition(junction_center, pipe_diameter, junction_size)
 ```
 
-#### Physics-Based Grading Implementation
+#### การปรับขนาดเซลล์ตามหลักฟิสิกส์
 
-The grading system incorporates boundary layer physics and numerical stability considerations:
+ระบบการปรับขนาดเซลล์รวมฟิสิกส์ของชั้นขอบเขตและข้อควรพิจารณาด้านเสถียรภาพเชิงตัวเลขเข้าไว้ด้วยกัน:
 
 ```python
 def create_graded_block(self, vertices, grading, block_type="hex"):
     """
-    Create block with advanced grading based on flow physics
+    สร้างบล็อกพร้อมการปรับขนาดขั้นสูงตามฟิสิกส์การไหล
 
     Args:
-        vertices (list): Vertex indices for the block
-        grading (tuple): Grading ratios (x, y, z)
-        block_type (str): Block topology type
+        vertices (list): ดัชนีจุดยอดสำหรับบล็อก
+        grading (tuple): อัตราส่วนการปรับขนาด (x, y, z)
+        block_type (str): ประเภทโทโพโลยีบล็อก
     """
-    # Calculate optimal grading based on Reynolds number
+    # คำนวณการปรับขนาดที่เหมาะสมตามเลขเรย์โนลด์ส
     Re = self.config.get('reynolds_number', 1000)
 
-    # First cell height based on y+ = 1
+    # ความสูงเซลล์แรกตามเงื่อนไข y+ = 1
     nu = self.config.get('kinematic_viscosity', 1e-6)
     U_inf = self.config.get('free_stream_velocity', 1.0)
 
-    # Estimate friction velocity using Blasius correlation
-    Cf = 0.026 * Re**(-0.139)  # Skin friction coefficient
+    # ประมาณค่าความเร็วแรงเสียดทานโดยใช้สหสัมพันธ์ของ Blasius
+    Cf = 0.026 * Re**(-0.139)  # สัมประสิทธิ์แรงเสียดทานผิว
     u_tau = U_inf * np.sqrt(Cf/2)
 
-    # First cell height for y+ = 1
+    # ความสูงเซลล์แรกสำหรับ y+ = 1
     delta_y = 1.0 * nu / u_tau
 
-    # Calculate required growth ratio
+    # คำนวณอัตราส่วนการเติบโตที่ต้องการ
     boundary_layer_thickness = 0.15 * self.config['domain_length']
     n_boundary_cells = 10
 
-    # Growth ratio to resolve boundary layer
+    # อัตราส่วนการเติบโตเพื่อวิเคราะห์ชั้นขอบเขต
     growth_ratio = (boundary_layer_thickness/delta_y)**(1/(n_boundary_cells-1))
 
-    # Apply maximum growth ratio limit for stability
+    # จำกัดอัตราส่วนการเติบโตสูงสุดเพื่อเสถียรภาพ
     growth_ratio = min(growth_ratio, 1.2)
 
-    # Generate block definition with calculated grading
+    # สร้างการนิยามบล็อกพร้อมการปรับขนาดที่คำนวณได้
     block_definition = f"{block_type} ({' '.join(map(str, vertices))})"
     block_grading = f"simpleGrading ({growth_ratio:.3f} {grading[1]:.3f} {grading[2]:.3f})"
 
     return f"{block_definition}\n    {block_grading}"
 ```
 
-### 2.2 Shell Scripts for Workflow Automation
+### 2.2 สคริปต์เชลล์สำหรับการทำงานอัตโนมัติ (Shell Scripts for Workflow Automation)
 
-#### Comprehensive Mesh Generation Pipeline
+#### ท่อส่งการสร้างเมชที่ครอบคลุม
 
-The automation script organizes the entire mesh generation workflow with quality assurance:
+สคริปต์อัตโนมัติจัดระเบียบขั้นตอนการสร้างเมชทั้งหมดพร้อมการรับประกันคุณภาพ:
 
 ```bash
 #!/bin/bash
-# Advanced Mesh Generation Automation Pipeline
-# Integrates blockMesh, snappyHexMesh, and mesh optimization
+# ท่อส่งการสร้างเมชอัตโนมัติขั้นสูง
+# บูรณาการ blockMesh, snappyHexMesh และการเพิ่มประสิทธิภาพเมช
 
-set -euo pipefail  # Enhanced error handling
+set -euo pipefail  # เพิ่มการจัดการข้อผิดพลาด
 
-# Configuration parameters with defaults
+# พารามิเตอร์การกำหนดค่าพร้อมค่าเริ่มต้น
 CASE_DIR="${1:-complex_geometry}"
 GEOMETRY_FILE="${2:-geometry.stl}"
 TARGET_CELLS="${3:-50000}"
 MIN_CELL_SIZE="${4:-0.001}"
 MAX_ITERATIONS="${5:-10}"
 
-# Logging setup
+# การตั้งค่าการบันทึก Log
 LOG_FILE="mesh_generation_$(date +%Y%m%d_%H%M%S).log"
 exec 1> >(tee -a "$LOG_FILE")
 exec 2> >(tee -a "$LOG_FILE" >&2)
 
 echo "=== OpenFOAM Advanced Mesh Generation Pipeline ==="
-echo "Timestamp: $(date)"
-echo "Case directory: $CASE_DIR"
-echo "Target cells: $TARGET_CELLS"
-echo "Log file: $LOG_FILE"
+echo "เวลา: $(date)"
+echo "ไดเรกทอรีกรณีศึกษา: $CASE_DIR"
+echo "จำนวนเซลล์เป้าหมาย: $TARGET_CELLS"
+echo "ไฟล์ Log: $LOG_FILE"
 
-# Stage 1: Surface preprocessing and repair
-echo "[1/8] Surface geometry preprocessing..."
+# ระยะที่ 1: การเตรียมประมวลผลพื้นผิวและการซ่อมแซม
+echo "[1/8] การเตรียมประมวลผลเรขาคณิตพื้นผิว..."
 if [[ ! -f "$GEOMETRY_FILE" ]]; then
-    echo "ERROR: Geometry file not found: $GEOMETRY_FILE" >&2
+    echo "ข้อผิดพลาด: ไม่พบไฟล์เรขาคณิต: $GEOMETRY_FILE" >&2
     exit 1
 fi
 
-# Advanced surface processing with quality checks
+# การประมวลผลพื้นผิวขั้นสูงพร้อมการตรวจสอบคุณภาพ
 process_surface() {
     local input_file="$1"
     local output_file="$2"
 
-    echo "Processing surface: $input_file"
+    echo "กำลังประมวลผลพื้นผิว: $input_file"
 
-    # Check surface manifoldness
+    # ตรวจสอบความเป็น manifold ของพื้นผิว
     if ! surfaceCheck "$input_file" > surface_check.log 2>&1; then
-        echo "WARNING: Surface manifoldness issues detected"
+        echo "คำเตือน: ตรวจพบปัญหาความเป็น manifold ของพื้นผิว"
 
-        # Attempt automatic repair
+        # พยายามซ่อมแซมอัตโนมัติ
         if command -v surfaceMeshTriangulate &>/dev/null; then
             surfaceMeshTriangulate "$input_file" "$output_file"
-            echo "Surface repaired successfully"
+            echo "ซ่อมแซมพื้นผิวสำเร็จ"
         else
-            echo "ERROR: Unable to repair surface automatically" >&2
+            echo "ข้อผิดพลาด: ไม่สามารถซ่อมแซมพื้นผิวได้โดยอัตโนมัติ" >&2
             return 1
         fi
     else
         cp "$input_file" "$output_file"
-        echo "Surface validation passed"
+        echo "ผ่านการตรวจสอบความถูกต้องของพื้นผิว"
     fi
 }
 
 GEOMETRY_FILE="repaired_$(basename "$GEOMETRY_FILE")"
 process_surface "$GEOMETRY_FILE" "$GEOMETRY_FILE"
 
-# Stage 2: Feature edge extraction and refinement
-echo "[2/8] Extracting geometric features..."
+# ระยะที่ 2: การสกัดขอบคุณลักษณะและการปรับละเอียด
+echo "[2/8] กำลังสกัดคุณลักษณะทางเรขาคณิต..."
 python3 << 'EOF'
 import numpy as np
 from scipy.spatial import KDTree
 import trimesh
 
 def extract_features(stl_file, output_file):
-    """Extract feature edges using curvature analysis"""
+    """สกัดขอบคุณลักษณะโดยใช้การวิเคราะห์ความโค้ง"""
     mesh = trimesh.load_mesh(stl_file)
 
-    # Calculate vertex curvature
+    # คำนวณความโค้งที่จุดยอด
     curvature = mesh.vertex_defects
 
-    # Identify feature edges (high curvature regions)
+    # ระบุขอบคุณลักษณะ (บริเวณที่มีความโค้งสูง)
     feature_threshold = np.percentile(curvature, 90)
     feature_vertices = np.where(curvature > feature_threshold)[0]
 
-    # Generate feature edge lines
+    # สร้างเส้นขอบคุณลักษณะ
     feature_edges = []
     for edge in mesh.edges_unique:
         if edge[0] in feature_vertices or edge[1] in feature_vertices:
             feature_edges.append(edge)
 
-    # Save feature edges as OBJ
+    # บันทึกขอบคุณลักษณะเป็นไฟล์ OBJ
     with open(output_file, 'w') as f:
         for vertex in mesh.vertices:
             f.write(f"v {vertex[0]} {vertex[1]} {vertex[2]}\n")
@@ -323,51 +323,51 @@ def extract_features(stl_file, output_file):
 extract_features("$GEOMETRY_FILE", "features.obj")
 EOF
 
-# Stage 3: Background mesh generation with optimal sizing
-echo "[3/8] Generating optimal background mesh..."
+# ระยะที่ 3: การสร้างเมชพื้นหลังด้วยขนาดที่เหมาะสมที่สุด
+echo "[3/8] กำลังสร้างเมชพื้นหลังที่เหมาะสมที่สุด..."
 cd "$CASE_DIR"
 
-# Execute blockMesh
+# รัน blockMesh
 blockMesh -case "$CASE_DIR" | tee blockMesh.log
 
-# Stage 4-8: Continue with snappyHexMesh and quality checks...
+# ระยะที่ 4-8: ดำเนินการต่อด้วย snappyHexMesh และการตรวจสอบคุณภาพ...
 ```
 
-This comprehensive workflow provides:
+ขั้นตอนการทำงานที่ครอบคลุมนี้จัดทำ:
 
-1. **Advanced geometry processing**: Surface repair, feature extraction, and manifold checking
-2. **Intelligent mesh generation**: Optimal cell sizing based on target cell count and physics requirements
-3. **Quality assurance**: Comprehensive mesh analysis with automatic optimization
-4. **Parallel optimization**: Automatic decomposition for large meshes
-5. **Detailed reporting**: Comprehensive statistics and optimization recommendations
+1. **การประมวลผลเรขาคณิตขั้นสูง**: การซ่อมแซมพื้นผิว, การสกัดคุณลักษณะ และการตรวจสอบความเป็น manifold
+2. **การสร้างเมชอัจฉริยะ**: การกำหนดขนาดเซลล์ที่เหมาะสมที่สุดตามจำนวนเซลล์เป้าหมายและข้อกำหนดทางฟิสิกส์
+3. **การรับประกันคุณภาพ**: การวิเคราะห์เมชอย่างครอบคลุมพร้อมการเพิ่มประสิทธิภาพอัตโนมัติ
+4. **การเพิ่มประสิทธิภาพแบบขนาน**: การแบ่งโดเมนโดยอัตโนมัติสำหรับเมชขนาดใหญ่
+5. **การรายงานผลโดยละเอียด**: สถิติที่ครอบคลุมและคำแนะนำในการเพิ่มประสิทธิภาพ
 
 ---
 
-## 3. Mesh Quality Assessment and Optimization
+## 3. การประเมินและการเพิ่มประสิทธิภาพคุณภาพเมช (Mesh Quality Assessment and Optimization)
 
-### 3.1 Quality Metrics Framework
+### 3.1 กรอบงานตัวชี้วัดคุณภาพ (Quality Metrics Framework)
 
-Mesh quality assessment involves multiple geometric and numerical criteria:
+การประเมินคุณภาพเมชเกี่ยวข้องกับเกณฑ์ทางเรขาคณิตและเชิงตัวเลขหลายประการ:
 
-| **Metric** | **Definition** | **Acceptable Range** | **Impact on Simulation** |
+| **ตัวชี้วัด** | **นิยาม** | **ช่วงที่ยอมรับได้** | **ผลกระทบต่อการจำลอง** |
 |------------|----------------|---------------------|--------------------------|
-| **Orthogonality** | Angle between cell face and line connecting cell centers | < 70° | Solver stability, convergence |
-| **Skewness** | Deviation from ideal cell shape | < 4 (0.5 normalized) | Numerical diffusion, accuracy |
-| **Aspect Ratio** | Ratio of maximum to minimum cell dimensions | < 100 | Solution accuracy, stability |
-| **Determinant** | Minimum Jacobian of cell transformation | > 0.01 | Mesh validity, solver stability |
+| **Orthogonality** | มุมระหว่างหน้าผิวเซลล์และเส้นเชื่อมต่อจุดศูนย์กลางเซลล์ | < 70° | เสถียรภาพและการลู่เข้าของตัวแก้ปัญหา |
+| **Skewness** | ความเบี่ยงเบนจากรูปร่างเซลล์ในอุดมคติ | < 4 (0.5 แบบนอร์มัลไลซ์) | การแพร่กระจายเชิงตัวเลข, ความแม่นยำ |
+| **Aspect Ratio** | อัตราส่วนของมิติเซลล์สูงสุดต่อต่ำสุด | < 100 | ความแม่นยำของคำตอบ, เสถียรภาพ |
+| **Determinant** | ค่าดีเทอร์มิแนนต์จาโคเบียนขั้นต่ำของการแปลงเซลล์ | > 0.01 | ความถูกต้องของเมช, เสถียรภาพตัวแก้ปัญหา |
 
-> [!WARNING] Quality Thresholds
-> Exceeding these thresholds may result in:
-> - **Non-orthogonality > 70°**: Requires non-orthogonal correction schemes
-> - **Skewness > 4**: May cause solver divergence or poor convergence
-> - **Aspect ratio > 100**: Can lead to numerical diffusion and accuracy loss
+> [!WARNING] เกณฑ์คุณภาพ
+> การเกินเกณฑ์เหล่านี้อาจส่งผลให้:
+> - **Non-orthogonality > 70°**: ต้องการรูปแบบการแก้ไขความไม่ตั้งฉาก
+> - **Skewness > 4**: อาจทำให้ตัวแก้ปัญหาลู่ออกหรือลู่เข้าได้ไม่ดี
+> - **Aspect ratio > 100**: อาจนำไปสู่การแพร่กระจายเชิงตัวเลขและการสูญเสียความแม่นยำ
 
-### 3.2 Automated Quality Analysis
+### 3.2 การวิเคราะห์คุณภาพอัตโนมัติ (Automated Quality Analysis)
 
 ```python
 #!/usr/bin/env python3
 """
-Comprehensive mesh quality analyzer for OpenFOAM meshes
+เครื่องมือวิเคราะห์คุณภาพเมชที่ครอบคลุมสำหรับเมชของ OpenFOAM
 """
 
 import numpy as np
@@ -384,34 +384,34 @@ class MeshQualityAnalyzer:
         self.load_mesh_data()
 
     def calculate_quality_metrics(self):
-        """Calculate comprehensive mesh quality metrics"""
+        """คำนวณตัวชี้วัดคุณภาพเมชที่ครอบคลุม"""
         metrics = {}
 
-        # Parse checkMesh output for quality metrics
+        # วิเคราะห์ผลลัพธ์จาก checkMesh เพื่อหาตัวชี้วัดคุณภาพ
         lines = self.checkmesh_output.split('\n')
         for line in lines:
             line = line.strip()
 
-            # Non-orthogonality analysis
+            # วิเคราะห์ความไม่ตั้งฉาก (non-orthogonality)
             if 'non-orthogonal' in line:
                 if 'cells with non-orthogonality' in line:
                     metrics['non_orthogonal_cells'] = int(line.split()[0])
                 if 'maximum non-orthogonality' in line:
                     metrics['max_non_orthogonality'] = float(line.split()[-1])
 
-            # Skewness analysis
+            # วิเคราะห์ความเบ้ (skewness)
             if 'skewness' in line:
                 if 'skewness cells' in line:
                     metrics['skewness_cells'] = int(line.split()[0])
                 if 'maximum skewness' in line:
                     metrics['max_skewness'] = float(line.split()[-1])
 
-            # Aspect ratio analysis
+            # วิเคราะห์อัตราส่วนรูปร่าง (aspect ratio)
             if 'aspect ratio' in line:
                 if 'maximum aspect ratio' in line:
                     metrics['max_aspect_ratio'] = float(line.split()[-1])
 
-            # Cell and face statistics
+            # สถิติเซลล์, หน้าผิว และจุด
             if 'total cells' in line:
                 metrics['total_cells'] = int(line.split()[0])
             if 'total faces' in line:
@@ -422,17 +422,17 @@ class MeshQualityAnalyzer:
         return metrics
 
     def identify_problematic_cells(self, quality_metrics):
-        """Identify cells with quality issues"""
+        """ระบุเซลล์ที่มีปัญหาด้านคุณภาพ"""
         problematic_cells = []
 
-        # Define quality thresholds
+        # กำหนดเกณฑ์คุณภาพ
         thresholds = {
             'max_non_orthogonality': 70.0,
             'max_skewness': 4.0,
             'max_aspect_ratio': 1000.0
         }
 
-        # Check each threshold
+        # ตรวจสอบแต่ละเกณฑ์
         if quality_metrics.get('max_non_orthogonality', 0) > thresholds['max_non_orthogonality']:
             problematic_cells.append({
                 'type': 'non_orthogonality',
@@ -459,23 +459,23 @@ class MeshQualityAnalyzer:
 
 ---
 
-## 4. Best Practices and Troubleshooting
+## 4. แนวทางปฏิบัติที่ดีที่สุดและการแก้ไขปัญหา (Best Practices and Troubleshooting)
 
-### 4.1 Common Mesh Generation Issues
+### 4.1 ปัญหาการสร้างเมชที่พบบ่อย
 
-| **Issue** | **Symptoms** | **Solutions** |
+| **ปัญหา** | **อาการ** | **วิธีแก้ไข** |
 |-----------|--------------|---------------|
-| **Non-manifold edges** | Mesh generation fails | Use `surfaceCleanFeatures` with appropriate angle |
-| **High aspect ratio cells** | Poor convergence, numerical diffusion | Adjust grading ratios or add intermediate blocks |
-| **Skewed cells near junctions** | Solver instability | Implement O-grid topology or C-grid blocks |
-| **Insufficient boundary resolution** | Incorrect wall shear/heat transfer | Calculate $y^+$ and adjust first cell height |
+| **ขอบแบบ Non-manifold** | การสร้างเมชล้มเหลว | ใช้ `surfaceCleanFeatures` พร้อมมุมที่เหมาะสม |
+| **เซลล์ที่มีอัตราส่วนรูปร่างสูง** | การลู่เข้าไม่ดี, การแพร่กระจายเชิงตัวเลข | ปรับอัตราส่วนการปรับขนาดหรือเพิ่มบล็อกกลาง |
+| **เซลล์ที่เบี้ยวใกล้จุดต่อ** | ตัวแก้ปัญหาไม่เสถียร | ใช้งานโทโพโลยี O-grid หรือบล็อก C-grid |
+| **ความละเอียดที่ขอบเขตไม่เพียงพอ** | แรงเฉือนที่ผนัง/การถ่ายโอนความร้อนไม่ถูกต้อง | คำนวณ $y^+$ และปรับความสูงของเซลล์แรก |
 
-### 4.2 Optimization Strategies
+### 4.2 กลยุทธ์การเพิ่มประสิทธิภาพ (Optimization Strategies)
 
 ```bash
 #!/bin/bash
-# Mesh optimization workflow for OpenFOAM
-# Usage: ./optimize_mesh.sh <case_directory>
+# ขั้นตอนการเพิ่มประสิทธิภาพเมชสำหรับ OpenFOAM
+# การใช้งาน: ./optimize_mesh.sh <ไดเรกทอรีกรณีศึกษา>
 
 set -e
 
@@ -484,97 +484,97 @@ QUALITY_THRESHOLD_NONORTHO=70
 QUALITY_THRESHOLD_SKEWNESS=4
 MAX_ITERATIONS=3
 
-# Quality assessment function
+# ฟังก์ชันประเมินคุณภาพ
 assess_quality() {
     checkMesh -case "$CASE_DIR" -meshQuality > quality.log 2>&1 || true
 
-    # Extract key metrics
+    # สกัดตัวชี้วัดหลัก
     local max_non_ortho=$(grep -o "maximum non-orthogonality.*[0-9.]\+" quality.log | grep -o "[0-9.]\+" || echo "0")
     local max_skewness=$(grep -o "maximum skewness.*[0-9.]\+" quality.log | grep -o "[0-9.]\+" || echo "0")
 
     echo "MAX_NON_ORTHO=$max_non_ortho" > quality_metrics.txt
     echo "MAX_SKEWNESS=$max_skewness" >> quality_metrics.txt
 
-    echo "Quality Assessment:"
-    echo "  Max non-orthogonality: $max_non_ortho°"
-    echo "  Max skewness: $max_skewness"
+    echo "การประเมินคุณภาพ:"
+    echo "  ความไม่ตั้งฉากสูงสุด: $max_non_ortho°"
+    echo "  ความเบ้สูงสุด: $max_skewness"
 }
 
-# Apply mesh optimization
+# ประยุกต์ใช้การเพิ่มประสิทธิภาพเมช
 optimize_mesh() {
-    echo "Applying mesh optimization..."
+    echo "กำลังประยุกต์ใช้การเพิ่มประสิทธิภาพเมช..."
 
-    # Local refinement for problematic cells
+    # การปรับละเอียดเฉพาะจุดสำหรับเซลล์ที่มีปัญหา
     if command -v refineMesh &>/dev/null; then
         refineMesh -case "$CASE_DIR" -overwrite > refine.log 2>&1 || true
     fi
 
-    # Mesh smoothing
+    # การทำให้เมชเรียบ (Mesh smoothing)
     if command -v optimizeMesh &>/dev/null; then
         optimizeMesh -case "$CASE_DIR" -overwrite > optimize.log 2>&1 || true
     fi
 }
 
-# Iterative optimization loop
+# วงรอบการเพิ่มประสิทธิภาพแบบวนซ้ำ
 for iteration in $(seq 1 $MAX_ITERATIONS); do
-    echo "Optimization iteration $iteration/$MAX_ITERATIONS"
+    echo "การวนซ้ำการเพิ่มประสิทธิภาพที่ $iteration/$MAX_ITERATIONS"
     assess_quality
 
     source quality_metrics.txt
 
     if (( $(echo "$MAX_NON_ORTHO <= $QUALITY_THRESHOLD_NONORTHO" | bc -l) )) && \
        (( $(echo "$MAX_SKEWNESS <= $QUALITY_THRESHOLD_SKEWNESS" | bc -l) )); then
-        echo "✓ Mesh quality meets all thresholds"
+        echo "✓ คุณภาพเมชผ่านเกณฑ์ทั้งหมดแล้ว"
         break
     fi
 
     optimize_mesh
 done
 
-echo "Mesh optimization complete"
+echo "การเพิ่มประสิทธิภาพเมชเสร็จสิ้น"
 ```
 
 ---
 
-## 5. Integration with CAD Workflows
+## 5. การบูรณาการกับขั้นตอนการทำงาน CAD (Integration with CAD Workflows)
 
-### 5.1 CAD Preparation Best Practices
+### 5.1 แนวทางปฏิบัติที่ดีที่สุดในการเตรียม CAD
 
-> [!INFO] CAD Requirements for blockMesh
-> - **Watertight geometry**: No gaps or holes in surface
-> - **Manifold topology**: Each edge shared by exactly 2 faces
-> - **Appropriate simplification**: Remove features smaller than target cell size
-> - **Consistent units**: Use SI units (meters) throughout
+> [!INFO] ข้อกำหนด CAD สำหรับ blockMesh
+> - **เรขาคณิตแบบปิด (Watertight)**: ไม่มีช่องว่างหรือรูบนพื้นผิว
+> - **โทโพโลยีแบบ Manifold**: แต่ละขอบถูกใช้ร่วมกันโดยหน้าผิว 2 หน้าพอดี
+> - **การทำให้ง่ายขึ้นอย่างเหมาะสม**: กำจัดรายละเอียดที่เล็กกว่าขนาดเซลล์เป้าหมายออก
+> - **หน่วยวัดที่สอดคล้องกัน**: ใช้หน่วย SI (เมตร) ตลอดทั้งงาน
 
-### 5.2 Geometry Validation Workflow
+### 5.2 ขั้นตอนการตรวจสอบความถูกต้องของเรขาคณิต
 
 ```cpp
-// C++ code snippet for geometry validation
+// ตัวอย่างโค้ด C++ สำหรับการตรวจสอบความถูกต้องของเรขาคณิต
 bool validateGeometry(const fileName& stlFile)
 {
-    // Check if STL file exists
+    // ตรวจสอบว่าไฟล์ STL มีอยู่จริงหรือไม่
     if (!isFile(stlFile))
     {
-        FatalErrorInFunction << "STL file not found: " << stlFile << exit(FatalError);
+        FatalErrorInFunction << "ไม่พบไฟล์ STL: " << stlFile << exit(FatalError);
     }
 
-    // Load the triangulated surface from STL file
+    // โหลดพื้นผิวแบบสามเหลี่ยมจากไฟล์ STL
     triSurface surface(stlFile);
-    Info << "Surface contains " << surface.size() << " triangles" << nl;
+    Info << "พื้นผิวประกอบด้วยรูปสามเหลี่ยมจำนวน " << surface.size() << " รูป" << nl;
 
-    // Check for non-manifold edges (edges shared by more than 2 faces)
+    // ตรวจสอบขอบแบบ non-manifold (ขอบที่ใช้ร่วมกันมากกว่า 2 หน้า)
     labelHashSet nonManifoldEdges = surface.nonManifoldEdges();
     if (!nonManifoldEdges.empty())
     {
-        Warning << "Found " << nonManifoldEdges.size()
-                 << " non-manifold edges" << endl;
+        Warning << "พบขอบแบบ non-manifold จำนวน " << nonManifoldEdges.size()
+                 << " ขอบ" << endl;
         return false;
     }
 
-    // Check surface orientation (normal vectors pointing outward)
+    // ตรวจสอบทิศทางพื้นผิว (เวกเตอร์ปกติชี้ออกด้านนอก)
     if (!surface.checkNormals(true))
     {
-        Warning << "Inconsistent surface normals detected" << endl;
+        Warning << "ตรวจพบเวกเตอร์ปกติของพื้นผิวที่ไม่สอดคล้องกัน" << endl;
         return false;
     }
 
@@ -584,47 +584,47 @@ bool validateGeometry(const fileName& stlFile)
 
 ---
 
-## 6. Summary and Key Takeaways
+## 6. สรุปและประเด็นสำคัญ (Summary and Key Takeaways)
 
-### 6.1 Essential Concepts
+### 6.1 แนวคิดที่จำเป็น
 
-| **Concept** | **Key Formula/Rule** | **Application** |
+| **แนวคิด** | **สูตร/กฎที่สำคัญ** | **การประยุกต์ใช้** |
 |-------------|---------------------|-----------------|
-| **Cell size progression** | $\Delta x_i = \Delta x_0 \cdot r^{i-1}$ | Boundary layer meshing |
-| **First cell height** | $y^+ = \frac{y_1 u_\tau}{\nu} \approx 1$ | Wall-bounded flows |
-| **Growth ratio limit** | $r \leq 1.2$ | Numerical stability |
-| **Boundary layer thickness** | $\delta_{BL} \approx 0.15 \cdot L$ | Turbulent flows |
+| **การก้าวหน้าขนาดเซลล์** | $\Delta x_i = \Delta x_0 \cdot r^{i-1}$ | การสร้างเมชชั้นขอบเขต |
+| **ความสูงเซลล์แรก** | $y^+ = \frac{y_1 u_\tau}{\nu} \approx 1$ | การไหลที่ถูกจำกัดด้วยผนัง |
+| **ขีดจำกัดอัตราส่วนการเติบโต** | $r \leq 1.2$ | เสถียรภาพเชิงตัวเลข |
+| **ความหนาชั้นขอบเขต** | $\delta_{BL} \approx 0.15 \cdot L$ | การไหลแบบปั่นป่วน |
 
-### 6.2 Workflow Checklist
+### 6.2 รายการตรวจสอบขั้นตอนการทำงาน (Workflow Checklist)
 
-- [ ] **Geometry validation**: Check manifoldness and orientation
-- [ ] **Block topology design**: Select appropriate H/O/C-grid strategy
-- [ ] **Vertex definition**: Ensure proper numbering convention
-- [ ] **Grading calculation**: Compute based on $y^+$ requirements
-- [ ] **Quality assessment**: Verify orthogonality, skewness, aspect ratio
-- [ ] **Iterative optimization**: Refine until quality thresholds met
-- [ ] **Final validation**: Comprehensive checkMesh analysis
+- [ ] **การตรวจสอบความถูกต้องเรขาคณิต**: ตรวจสอบความเป็น manifold และทิศทาง
+- [ ] **การออกแบบโทโพโลยีบล็อก**: เลือกกลยุทธ์ H/O/C-grid ที่เหมาะสม
+- [ ] **การนิยามจุดยอด**: รับประกันข้อกำหนดการจัดลำดับที่ถูกต้อง
+- [ ] **การคำนวณการปรับขนาด**: คำนวณตามข้อกำหนด $y^+$
+- [ ] **การประเมินคุณภาพ**: ยืนยัน orthogonality, skewness, aspect ratio
+- [ ] **การเพิ่มประสิทธิภาพแบบวนซ้ำ**: ปรับปรุงจนกว่าจะผ่านเกณฑ์คุณภาพ
+- [ ] **การตรวจสอบขั้นสุดท้าย**: วิเคราะห์ checkMesh อย่างครอบคลุม
 
-> [!TIP] Performance Optimization
-> For large-scale meshes (> 1M cells):
-> 1. Use parallel decomposition with `decomposePar`
-> 2. Optimize cell count using target-based sizing algorithms
-> 3. Implement adaptive mesh refinement (AMR) for critical regions
-> 4. Consider hybrid structured/unstructured approaches
+> [!TIP] การเพิ่มประสิทธิภาพการทำงาน
+> สำหรับเมชสเกลใหญ่ (> 1 ล้านเซลล์):
+> 1. ใช้การแบ่งโดเมนแบบขนานด้วย `decomposePar`
+> 2. ปรับจำนวนเซลล์ให้เหมาะสมโดยใช้อัลกอริทึมกำหนดขนาดตามเป้าหมาย
+> 3. ใช้งานการปรับละเอียดเมชแบบปรับตัว (AMR) สำหรับภูมิภาคที่วิกฤต
+> 4. พิจารณาแนวทางผสมระหว่างแบบมีโครงสร้างและไม่มีโครงสร้าง
 
 ---
 
-## References and Further Reading
+## เอกสารอ้างอิงและการอ่านเพิ่มเติม
 
-1. OpenFOAM User Guide: blockMeshDict specification
+1. คู่มือผู้ใช้ OpenFOAM: ข้อกำหนดของ blockMeshDict
 2. Ferziger, J.H., & Perić, M. (2002). *Computational Methods for Fluid Dynamics*
 3. Thompson, J.F., et al. (1985). *Numerical Grid Generation*
-4. [[03_🎯_BlockMesh_Enhancement_Workflow]] - Advanced automation techniques
-5. [[02_🏗️_CAD_to_CFD_Workflow]] - Geometry preparation strategies
+4. [[03_🎯_BlockMesh_Enhancement_Workflow]] - เทคนิคการทำงานอัตโนมัติขั้นสูง
+5. [[02_🏗️_CAD_to_CFD_Workflow]] - กลยุทธ์การเตรียมเรขาคณิต
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2025-01-23
-**Author**: OpenFOAM Training Module
-**Status**: ✅ Complete
+**เวอร์ชันเอกสาร**: 1.0
+**อัปเดตล่าสุด**: 23 มกราคม 2025
+**ผู้เขียน**: โมดูลการฝึกอบรม OpenFOAM
+**สถานะ**: ✅ สมบูรณ์

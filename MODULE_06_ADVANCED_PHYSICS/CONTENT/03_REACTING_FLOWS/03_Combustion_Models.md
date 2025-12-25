@@ -1,122 +1,122 @@
-# Combustion Models in OpenFOAM
+# แบบจำลองการเผาไหม้ใน OpenFOAM (Combustion Models in OpenFOAM)
 
-## 🔮 Introduction
+## 🔮 บทนำ (Introduction)
 
-In **turbulent flames**, reaction rates are not determined solely by chemical kinetics but also by **mixing** at the smallest turbulent scales. The interaction between turbulence and chemistry creates one of the most challenging problems in computational fluid dynamics.
+ใน **เปลวไฟแบบปั่นป่วน (turbulent flames)** อัตราการเกิดปฏิกิริยาไม่ได้ถูกกำหนดโดยจลนพลศาสตร์เคมีเพียงอย่างเดียว แต่ยังขึ้นอยู่กับ **การผสม (mixing)** ที่มาตราส่วนความปั่นป่วนที่เล็กที่สุดด้วย ปฏิสัมพันธ์ระหว่างความปั่นป่วนและเคมีสร้างหนึ่งในปัญหาที่ท้าทายที่สุดในพลศาสตร์ของไหลเชิงคำนวณ
 
-OpenFOAM provides sophisticated combustion models that bridge this gap through different physical assumptions and computational approaches. The two most prominent models are:
+OpenFOAM มีแบบจำลองการเผาไหม้ที่ซับซ้อนซึ่งเชื่อมโยงช่องว่างนี้ผ่านข้อสมมติทางฟิสิกส์และวิธีการคำนวณที่แตกต่างกัน แบบจำลองที่โดดเด่นที่สุดสองแบบคือ:
 
 - **Partially Stirred Reactor (PaSR)**
 - **Eddy Dissipation Concept (EDC)**
 
-Both models use a **two-environment approach** to represent the interaction between turbulent mixing and chemical reactions, but with different theoretical foundations and computational costs.
+ทั้งสองแบบจำลองใช้วิธี **สองสภาวะแวดล้อม (two-environment approach)** เพื่อแสดงถึงปฏิสัมพันธ์ระหว่างการผสมแบบปั่นป่วนและปฏิกิริยาเคมี แต่มีรากฐานทางทฤษฎีและต้นทุนการคำนวณที่แตกต่างกัน
 
 ```mermaid
 flowchart TD
-    A[Turbulent Combustion] --> B[Turbulence-Chemistry Interaction]
-    B --> C[Two-Environment Models]
+    A[การเผาไหม้แบบปั่นป่วน] --> B[ปฏิสัมพันธ์ความปั่นป่วน-เคมี]
+    B --> C[แบบจำลองสองสภาวะแวดล้อม]
     C --> D[PaSR]
     C --> E[EDC]
 
-    D --> F[Characteristic Time Scales]
-    D --> G[Reacting Fraction χ]
+    D --> F[มาตราส่วนเวลาลักษณะเฉพาะ]
+    D --> G[สัดส่วนปฏิกิริยา χ]
 
-    E --> H[Fine Structures]
-    E --> I[Kolmogorov Scales]
+    E --> H[โครงสร้างละเอียด]
+    E --> I[มาตราส่วนคอลโมโกรอฟ]
 
-    F --> J[Chemistry Time Scale]
-    F --> K[Mixing Time Scale]
+    F --> J[มาตราส่วนเวลาเคมี]
+    F --> K[มาตราส่วนเวลาการผสม]
 
-    H --> L[Volume Fraction ξ*]
-    H --> M[Residence Time τ*]
+    H --> L[สัดส่วนปริมาตร ξ*]
+    H --> M[เวลาอาศัย τ*]
 ```
-> **Figure 1:** แผนภาพแสดงโครงสร้างการจำลองการเผาไหม้แบบปั่นป่วน (Turbulent Combustion) และความสัมพันธ์ระหว่างแบบจำลองแบบสองสภาวะ (Two-Environment Models) กับมาตราส่วนเวลาและพื้นที่ของความปั่นป่วน
+> **รูปที่ 1:** แผนภาพแสดงโครงสร้างการจำลองการเผาไหม้แบบปั่นป่วน (Turbulent Combustion) และความสัมพันธ์ระหว่างแบบจำลองแบบสองสภาวะ (Two-Environment Models) กับมาตราส่วนเวลาและพื้นที่ของความปั่นป่วน
 
 
-> [!INFO] Key Concept
-> Turbulent combustion models must account for the fact that **mixing rates** and **reaction rates** can be comparable in magnitude, leading to complex interactions that cannot be captured by chemistry or turbulence models alone.
+> [!INFO] แนวคิดหลัก
+> แบบจำลองการเผาไหม้แบบปั่นป่วนต้องคำนึงถึงข้อเท็จจริงที่ว่า **อัตราการผสม** และ **อัตราการเกิดปฏิกิริยา** อาจมีขนาดที่เทียบเคียงกันได้ นำไปสู่ปฏิสัมพันธ์ที่ซับซ้อนซึ่งไม่สามารถจับภาพได้ด้วยแบบจำลองเคมีหรือความปั่นป่วนเพียงอย่างเดียว
 
 ---
 
-## 📐 Theoretical Foundation
+## 📐 รากฐานทางทฤษฎี (Theoretical Foundation)
 
-### Two-Environment Approach
+### วิธีการแบบสองสภาวะแวดล้อม (Two-Environment Approach)
 
-Both PaSR and EDC divide each computational cell into two distinct regions:
+ทั้ง PaSR และ EDC แบ่งแต่ละเซลล์การคำนวณออกเป็นสองบริเวณที่แตกต่างกัน:
 
-| Component | Description | Physical Meaning |
+| ส่วนประกอบ | คำอธิบาย | ความหมายทางฟิสิกส์ |
 |-----------|-------------|------------------|
-| **Fine structures** | Small regions with intense mixing where reactions occur | Reaction zones at smallest turbulent scales |
-| **Surrounding fluid** | Bulk fluid that exchanges mass and energy with fine structures | Non-reacting or slowly reacting regions |
+| **โครงสร้างละเอียด (Fine structures)** | บริเวณขนาดเล็กที่มีการผสมอย่างรุนแรงซึ่งเกิดปฏิกิริยา | โซนปฏิกิริยาที่มาตราส่วนความปั่นป่วนเล็กที่สุด |
+| **ของไหลโดยรอบ (Surrounding fluid)** | ของไหลส่วนใหญ่ที่แลกเปลี่ยนมวลและพลังงานกับโครงสร้างละเอียด | บริเวณที่ไม่เกิดปฏิกิริยาหรือเกิดปฏิกิริยาช้า |
 
-The **overall reaction rate** is governed by a **reacting fraction**:
+**อัตราการเกิดปฏิกิริยาโดยรวม** ถูกควบคุมโดย **สัดส่วนปฏิกิริยา**:
 
 $$\bar{\dot{\omega}}_i = \chi \cdot \dot{\omega}_i^{\text{chem}}(Y_i^*, T^*)$$
 
-**Variables:**
-- $\chi$: Fraction of volume where reactions occur
-- $Y_i^*$: Species mass fractions in fine structures
-- $T^*$: Temperature in fine structures
+**ตัวแปร:**
+- $\chi$: สัดส่วนของปริมาตรที่เกิดปฏิกิริยา
+- $Y_i^*$: เศษส่วนมวลของสปีชีส์ในโครงสร้างละเอียด
+- $T^*$: อุณหภูมิในโครงสร้างละเอียด
 
-### Statistical Framework
+### กรอบงานทางสถิติ (Statistical Framework)
 
-The reaction rate can be expressed as a statistical average over the probability density function (PDF) of scalar fluctuations:
+อัตราปฏิกิริยาสามารถแสดงเป็นค่าเฉลี่ยทางสถิติเหนือฟังก์ชันความหนาแน่นความน่าจะเป็น (PDF) ของความผันผวนของสเกลาร์:
 
 $$\bar{\dot{\omega}}_i = \bar{\rho} \int_{P} \dot{\omega}_i(\boldsymbol{\psi}) P(\boldsymbol{\psi}; \mathbf{x}, t) \, \mathrm{d}\boldsymbol{\psi}$$
 
-**Variables:**
-- $\bar{\dot{\omega}}_i$: Mean reaction rate of species $i$
-- $\boldsymbol{\psi}$: Sample space vector of scalar quantities (species, temperature)
-- $P(\boldsymbol{\psi}; \mathbf{x}, t)$: Joint PDF at location $\mathbf{x}$ and time $t$
+**ตัวแปร:**
+- $\bar{\dot{\omega}}_i$: อัตราปฏิกิริยาเฉลี่ยของสปีชีส์ $i$
+- $\boldsymbol{\psi}$: เวกเตอร์ปริภูมิสุ่มของปริมาณสเกลาร์ (สปีชีส์, อุณหภูมิ)
+- $P(\boldsymbol{\psi}; \mathbf{x}, t)$: PDF ร่วมที่ตำแหน่ง $\mathbf{x}$ และเวลา $t$
 
 ---
 
-## 🔬 Partially Stirred Reactor (PaSR) Model
+## 🔬 แบบจำลอง Partially Stirred Reactor (PaSR)
 
-### Physical Concept
+### แนวคิดทางฟิสิกส์ (Physical Concept)
 
-The **PaSR model** treats each computational cell as a **partially stirred reactor** with a characteristic residence time $\tau_{\text{res}}$. The key assumption is that reactions occur only in a fraction of the cell volume where mixing is sufficiently intense.
+**แบบจำลอง PaSR** จัดการแต่ละเซลล์การคำนวณเสมือนเป็น **เครื่องปฏิกรณ์ที่ผสมกันบางส่วน** พร้อมเวลาอาศัยลักษณะเฉพาะ (characteristic residence time) $\tau_{\text{res}}$ ข้อสมมติหลักคือปฏิกิริยาเกิดขึ้นเฉพาะในส่วนย่อยของปริมาตรเซลล์ที่มีการผสมที่รุนแรงเพียงพอ
 
-### Mathematical Formulation
+### รูปแบบทางคณิตศาสตร์ (Mathematical Formulation)
 
-The **reacting fraction** in PaSR is determined by the ratio of chemical to mixing time scales:
+**สัดส่วนปฏิกิริยา** ใน PaSR ถูกกำหนดโดยอัตราส่วนของมาตราส่วนเวลาเคมีต่อมาตราส่วนเวลาการผสม:
 
 $$\chi_{\text{PaSR}} = \frac{\tau_{\text{chem}}}{\tau_{\text{chem}} + \tau_{\text{mix}}}$$
 
-**Time scales:**
-- $\tau_{\text{chem}}$: Chemical time scale (inverse of reaction rate)
-- $\tau_{\text{mix}}$: Mixing time scale (from turbulence, typically $k/\varepsilon$)
+**มาตราส่วนเวลา:**
+- $\tau_{\text{chem}}$: มาตราส่วนเวลาเคมี (ส่วนกลับของอัตราปฏิกิริยา)
+- $\tau_{\text{mix}}$: มาตราส่วนเวลาการผสม (จากความปั่นป่วน โดยทั่วไปคือ $k/\varepsilon$)
 
-**Alternative formulation:**
+**รูปแบบทางเลือก:**
 
 $$\chi_{\text{PaSR}} = \frac{\tau_c}{\tau_c + \tau_t}$$
 
-**Variables:**
-- $\tau_c$: Turbulent mixing time scale
-- $\tau_t$: Chemical time scale
+**ตัวแปร:**
+- $\tau_c$: มาตราส่วนเวลาการผสมแบบปั่นป่วน
+- $\tau_t$: มาตราส่วนเวลาเคมี
 
-The **effective reaction rate** becomes:
+**อัตราปฏิกิริยาที่มีผลจริง** กลายเป็น:
 
 $$\dot{\omega}_i^{\text{PaSR}} = C_{\text{PaSR}} \frac{\tau_c}{\tau_c + \tau_t} \dot{\omega}_i^{\text{laminar}}$$
 
-where $C_{\text{PaSR}}$ is a model constant.
+โดยที่ $C_{\text{PaSR}}$ คือค่าคงที่ของแบบจำลอง
 
-### Algorithm Flow
+### ลำดับขั้นตอนอัลกอริทึม (Algorithm Flow)
 
 ```mermaid
 flowchart TD
-    Start[Start PaSR Step] --> Input[Get: Y_i, T, p, k, ε]
-    Input --> CalcMix[Calculate τ_mix = k/ε]
-    CalcMix --> CalcChem[Calculate τ_chem from kinetics]
-    CalcChem --> CalcChi[Calculate χ = τ_chem/τ_chem + τ_mix]
-    CalcChi --> SolveChem[Solve chemistry ODEs for Δt_react = χ·Δt]
-    SolveChem --> UpdateRates[Update reaction rates ω_i^PaSR]
-    UpdateRates --> End[Return reaction rates]
+    Start[เริ่มขั้นตอน PaSR] --> Input[รับค่า: Y_i, T, p, k, ε]
+    Input --> CalcMix[คำนวณ τ_mix = k/ε]
+    CalcMix --> CalcChem[คำนวณ τ_chem จากจลนศาสตร์]
+    CalcChem --> CalcChi[คำนวณ χ = τ_chem/τ_chem + τ_mix]
+    CalcChi --> SolveChem[แก้สมการ ODE เคมีสำหรับ Δt_react = χ·Δt]
+    SolveChem --> UpdateRates[อัปเดตอัตราปฏิกิริยา ω_i^PaSR]
+    UpdateRates --> End[ส่งคืนอัตราปฏิกิริยา]
 ```
-> **Figure 2:** แผนผังลำดับขั้นตอนการคำนวณของแบบจำลอง PaSR (Partially Stirred Reactor) แสดงกระบวนการคำนวณสัดส่วนการเกิดปฏิกิริยาโดยใช้ความสัมพันธ์ระหว่างมาตราส่วนเวลาของเคมีและการผสม
+> **รูปที่ 2:** แผนผังลำดับขั้นตอนการคำนวณของแบบจำลอง PaSR (Partially Stirred Reactor) แสดงกระบวนการคำนวณสัดส่วนการเกิดปฏิกิริยาโดยใช้ความสัมพันธ์ระหว่างมาตราส่วนเวลาของเคมีและการผสม
 
 
-### OpenFOAM Implementation
+### การใช้งานใน OpenFOAM (OpenFOAM Implementation)
 
 ```cpp
 // PaSR combustion model correction step
@@ -144,7 +144,7 @@ void PaSR<ReactionThermo>::correct()
 }
 ```
 
-**Source:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
+**แหล่งที่มา:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
 
 > **คำอธิบาย (Explanation):**
 > โค้ดนี้แสดงการทำงานของแบบจำลอง PaSR ใน OpenFOAM ซึ่งแบ่งการทำงานออกเป็นสามขั้นตอนหลัก:
@@ -157,7 +157,7 @@ void PaSR<ReactionThermo>::correct()
 > - **Time scale competition**: อัตราปฏิกิริยาขึ้นอยู่กับการแข่งขันระหว่างมาตราส่วนเวลาทางเคมีและการผสม
 > - **Fractional stepping**: แก้สมการเคมีเฉพาะในส่วนย่อยของเซลล์เพื่อลดต้นทุนการคำนวณ
 
-**Configuration in `constant/combustionProperties`:**
+**การกำหนดค่าใน `constant/combustionProperties`:**
 
 ```cpp
 // Select PaSR combustion model
@@ -171,17 +171,17 @@ PaSRCoeffs
     // Turbulence time scale calculation method
     // Options: "integral" (k/ε) or "kolmogorov" (sub-grid mixing)
     // วิธีคำนวณมาตราส่วนเวลาความปั่นป่วน
-    turbulenceTimeScaleModel   integral;  // or "kolmogorov"
+    turbulenceTimeScaleModel   integral;  // หรือ "kolmogorov"
     
     // Mixing constant - controls the mixing intensity
     // Typical range: 0.5 - 2.0
     // Higher value = more mixing, lower reaction rates
     // ค่าคงที่การผสม - ควบคุมความเข้มของการผสม
-    Cmix                       1.0;       // Typically 0.5-2.0
+    Cmix                       1.0;       // โดยทั่วไปคือ 0.5-2.0
 }
 ```
 
-**Source:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
+**แหล่งที่มา:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
 
 > **คำอธิบาย (Explanation):**
 > ไฟล์การตั้งค่านี้กำหนดพารามิเตอร์ที่ควบคุมการทำงานของแบบจำลอง PaSR:
@@ -196,65 +196,65 @@ PaSRCoeffs
 > - **Mixing constant**: Cmix ที่สูงกว่าจะเพิ่มการผสมและลดอัตราปฏิกิริยา
 > - **Parameter tuning**: ปรับค่าพารามิเตอร์ให้เหมาะกับเงื่อนไขของเปลวไฟ
 
-**Turbulence time scale options:**
-- `integral`: Uses integral time scale $k/\varepsilon$
-- `kolmogorov`: Uses Kolmogorov time scale for sub-grid mixing
+**ตัวเลือกมาตราส่วนเวลาความปั่นป่วน:**
+- `integral`: ใช้มาตราส่วนเวลาแบบอินทิกรัล $k/\varepsilon$
+- `kolmogorov`: ใช้มาตราส่วนเวลาคอลโมโกรอฟสำหรับการผสมที่ระดับ sub-grid
 
 ---
 
-## 🔥 Eddy Dissipation Concept (EDC) Model
+## 🔥 แบบจำลอง Eddy Dissipation Concept (EDC)
 
-### Physical Concept
+### แนวคิดทางฟิสิกส์ (Physical Concept)
 
-The **EDC model**, developed by Magnussen and Hjertager, assumes that reactions occur in **fine structures** representing the smallest scales of turbulence. These structures have high density gradients and intense mixing, based on **Kolmogorov's turbulence theory**.
+**แบบจำลอง EDC** พัฒนาโดย Magnussen และ Hjertager สมมติว่าปฏิกิริยาเกิดขึ้นใน **โครงสร้างละเอียด (fine structures)** ซึ่งเป็นตัวแทนของมาตราส่วนที่เล็กที่สุดของความปั่นป่วน โครงสร้างเหล่านี้มีเกรเดียนต์ความหนาแน่นสูงและการผสมที่รุนแรง โดยอิงตาม **ทฤษฎีความปั่นป่วนของคอลโมโกรอฟ**
 
-### Mathematical Formulation
+### รูปแบบทางคณิตศาสตร์ (Mathematical Formulation)
 
-The **volume fraction** and **residence time** of fine structures are derived from turbulence quantities:
+**สัดส่วนปริมาตร** และ **เวลาอาศัย** ของโครงสร้างละเอียดหามาจากปริมาณความปั่นป่วน:
 
 $$\xi^* = C_\xi \left( \frac{\nu \varepsilon}{k^2} \right)^{1/4}$$
 
 $$\tau^* = C_\tau \left( \frac{\nu}{\varepsilon} \right)^{1/2}$$
 
-**Variables:**
-- $\xi^*$: Volume fraction of fine structures
-- $\tau^*$: Residence time in fine structures
-- $C_\xi = 2.1377$: Model constant for volume fraction
-- $C_\tau = 0.4082$: Model constant for residence time
-- $\nu$: Kinematic viscosity
-- $\varepsilon$: Turbulence dissipation rate
-- $k$: Turbulent kinetic energy
+**ตัวแปร:**
+- $\xi^*$: สัดส่วนปริมาตรของโครงสร้างละเอียด
+- $\tau^*$: เวลาอาศัยในโครงสร้างละเอียด
+- $C_\xi = 2.1377$: ค่าคงที่แบบจำลองสำหรับสัดส่วนปริมาตร
+- $C_\tau = 0.4082$: ค่าคงที่แบบจำลองสำหรับเวลาอาศัย
+- $\nu$: ความหนืดจลนศาสตร์
+- $\varepsilon$: อัตราการสลายพลังงานปั่นป่วน
+- $k$: พลังงานจลน์ความปั่นป่วน
 
-The **reacting fraction** in EDC is equal to the fine structure volume fraction:
+สัดส่วนปฏิกิริยาใน EDC เท่ากับสัดส่วนปริมาตรโครงสร้างละเอียด:
 
 $$\chi_{\text{EDC}} = \xi^*$$
 
-### Reaction Rate Expression
+### นิพจน์อัตราการเกิดปฏิกิริยา
 
-The **EDC reaction rate** is given by:
+**อัตราปฏิกิริยาแบบ EDC** กำหนดโดย:
 
 $$\dot{\omega}_i^{\text{EDC}} = \chi \frac{\rho \varepsilon}{k} \frac{1}{\tau_{\text{chem}}} \Pi(Y)$$
 
-**Variables:**
-- $\chi$: Structure factor
-- $\Pi(Y)$: Function of species concentrations
-- $\tau_{\text{chem}}$: Chemical time scale
+**ตัวแปร:**
+- $\chi$: ปัจจัยโครงสร้าง
+- $\Pi(Y)$: ฟังก์ชันของความเข้มข้นสปีชีส์
+- $\tau_{\text{chem}}$: มาตราส่วนเวลาเคมี
 
-### Algorithm Flow
+### ลำดับขั้นตอนอัลกอริทึม (Algorithm Flow)
 
 ```mermaid
 flowchart TD
-    Start[Start EDC Step] --> Input[Get: Y_i, T, p, k, ε, ν]
-    Input --> CalcXi[Calculate ξ* = C_ξ·ν·ε/k²^1/4]
-    CalcXi --> CalcTau[Calculate τ* = C_τ·ν/ε^1/2]
-    CalcTau --> SolveChem[Solve chemistry ODEs for Δt_react = ξ*·Δt]
-    SolveChem --> UpdateRates[Update reaction rates ω_i^EDC]
-    UpdateRates --> End[Return reaction rates]
+    Start[เริ่มขั้นตอน EDC] --> Input[รับค่า: Y_i, T, p, k, ε, ν]
+    Input --> CalcXi[คำนวณ ξ* = C_ξ·ν·ε/k²^1/4]
+    CalcXi --> CalcTau[คำนวณ τ* = C_τ·ν/ε^1/2]
+    CalcTau --> SolveChem[แก้สมการ ODE เคมีสำหรับ Δt_react = ξ*·Δt]
+    SolveChem --> UpdateRates[อัปเดตอัตราปฏิกิริยา ω_i^EDC]
+    UpdateRates --> End[ส่งคืนอัตราปฏิกิริยา]
 ```
-> **Figure 3:** แผนผังลำดับขั้นตอนการคำนวณของแบบจำลอง EDC (Eddy Dissipation Concept) ซึ่งคำนวณลักษณะเฉพาะของโครงสร้างละเอียด (Fine Structures) โดยอิงตามทฤษฎีการกระจายพลังงานความปั่นป่วน
+> **รูปที่ 3:** แผนผังลำดับขั้นตอนการคำนวณของแบบจำลอง EDC (Eddy Dissipation Concept) ซึ่งคำนวณลักษณะเฉพาะของโครงสร้างละเอียด (Fine Structures) โดยอิงตามทฤษฎีการกระจายพลังงานความปั่นป่วน
 
 
-### OpenFOAM Implementation
+### การใช้งานใน OpenFOAM (OpenFOAM Implementation)
 
 ```cpp
 // EDC combustion model correction step
@@ -280,7 +280,7 @@ void EDC<ReactionThermo>::correct()
 }
 ```
 
-**Source:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
+**แหล่งที่มา:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
 
 > **คำอธิบาย (Explanation):**
 > โค้ดนี้แสดงการทำงานของแบบจำลอง EDC ใน OpenFOAM ซึ่งใช้ทฤษฎีความปั่นป่วนระดับ Kolmogorov:
@@ -298,7 +298,7 @@ void EDC<ReactionThermo>::correct()
 > - **Universal constants**: Cξ และ Cτ เป็นค่าคงที่สากลที่ไม่ต้องปรับแต่ง
 > - **Physics-based**: แบบจำลองนี้อิงตามหลักการฟิสิกส์ของความปั่นป่วนโดยตรง
 
-**Configuration in `constant/combustionProperties`:**
+**การกำหนดค่าใน `constant/combustionProperties`:**
 
 ```cpp
 // Select EDC combustion model
@@ -323,7 +323,7 @@ EDCCoeffs
 }
 ```
 
-**Source:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
+**แหล่งที่มา:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
 
 > **คำอธิบาย (Explanation):**
 > ไฟล์การตั้งค่านี้กำหนดพารามิเตอร์ของแบบจำลอง EDC ซึ่งต่างจาก PaSR ตรงที่:
@@ -342,73 +342,73 @@ EDCCoeffs
 
 ---
 
-## ⚖️ Comparison: PaSR vs EDC
+## ⚖️ การเปรียบเทียบ: PaSR เทียบกับ EDC (PaSR vs EDC)
 
-### Theoretical Differences
+### ความแตกต่างทางทฤษฎี (Theoretical Differences)
 
-| Aspect | PaSR | EDC |
+| ประเด็น | PaSR | EDC |
 |--------|------|-----|
-| **Physical basis** | Reactor approach with characteristic times | Kolmogorov scale theory |
-| **Mixing model** | Explicit mixing time scale | Fine structure mixing |
-| **Time scale calculation** | Ratio of chemical to mixing times | Derived from turbulence quantities |
-| **Reaction zone** | Fraction of cell volume | Fine structures only |
+| **รากฐานทางฟิสิกส์** | วิธีการแบบเครื่องปฏิกรณ์พร้อมเวลาลักษณะเฉพาะ | ทฤษฎีมาตราส่วนคอลโมโกรอฟ |
+| **แบบจำลองการผสม** | มาตราส่วนเวลาการผสมแบบชัดแจ้ง | การผสมในโครงสร้างละเอียด |
+| **การคำนวณมาตราส่วนเวลา** | อัตราส่วนระหว่างเวลาเคมีและการผสม | หามาจากปริมาณความปั่นป่วน |
+| **โซนปฏิกิริยา** | ส่วนย่อยของปริมาตรเซลล์ | เฉพาะในโครงสร้างละเอียด |
 
-### Practical Considerations
+### ข้อควรพิจารณาในการใช้งานจริง (Practical Considerations)
 
-| Consideration | PaSR | EDC |
+| ข้อควรพิจารณา | PaSR | EDC |
 |--------------|------|-----|
-| **Computational cost** | Lower | Higher |
-| **Accuracy for fast chemistry** | Excellent | Good |
-| **Accuracy for finite-rate chemistry** | Good | Excellent |
-| **Parameter tuning** | Requires $C_{\text{mix}}$ | Uses universal constants |
-| **Mesh dependency** | Moderate | Lower |
+| **ต้นทุนการคำนวณ** | ต่ำกว่า | สูงกว่า |
+| **ความแม่นยำสำหรับเคมีที่รวดเร็ว** | ดีเยี่ยม | ดี |
+| **ความแม่นยำสำหรับเคมีอัตราจำกัด** | ดี | ดีเยี่ยม |
+| **การปรับจูนพารามิเตอร์** | ต้องการ $C_{\text{mix}}$ | ใช้ค่าคงที่สากล |
+| **การพึ่งพาเมช** | ปานกลาง | ต่ำกว่า |
 
-### When to Use Each Model
+### ควรเลือกใช้แบบจำลองใด (When to Use Each Model)
 
-> [!TIP] Model Selection Guide
+> [!TIP] คู่มือการเลือกแบบจำลอง
 >
-> **Use PaSR when:**
-> - Fast chemistry (high Damköhler number)
-> - Computational resources are limited
-> - Non-premixed and partially premixed flames
-> - You need faster computations
+> **ใช้ PaSR เมื่อ:**
+> - ปฏิกิริยาเคมีรวดเร็วมาก (Damköhler number สูง)
+> - ทรัพยากรการคำนวณมีจำกัด
+> - เปลวไฟแบบไม่ผสมล่วงหน้าและแบบผสมบางส่วน
+> - คุณต้องการความเร็วในการคำนวณ
 >
-> **Use EDC when:**
-> - Finite-rate chemistry (moderate Damköhler number)
-> - High accuracy is required
-> - Premixed flames with high turbulence
-> - Resources permit higher computational cost
-> - You need physics-based constants
+> **ใช้ EDC เมื่อ:**
+> - ปฏิกิริยาเคมีมีอัตราจำกัด (Damköhler number ปานกลาง)
+> - ต้องการความแม่นยำสูง
+> - เปลวไฟแบบผสมล่วงหน้าที่มีความปั่นป่วนสูง
+> - งบประมาณการคำนวณเพียงพอสำหรับต้นทุนที่สูงขึ้น
+> - คุณต้องการใช้ค่าคงที่อ้างอิงตามฟิสิกส์
 
-### Performance Comparison
+### การเปรียบเทียบประสิทธิภาพ
 
 ```mermaid
 flowchart LR
-    A[Combustion Model Selection] --> B{Chemistry Regime?}
-    B -->|Fast Chemistry| C[PaSR Recommended]
-    B -->|Finite-Rate Chemistry| D[EDC Recommended]
-    B -->|Mixed Regime| E{Computational Budget?}
-    E -->|Limited| C
-    E -->|Adequate| D
+    A[การเลือกแบบจำลองการเผาไหม้] --> B{พฤติกรรมเคมี?};
+    B -->|เคมีรวดเร็ว| C[แนะนำ PaSR]
+    B -->|เคมีอัตราจำกัด| D[แนะนำ EDC]
+    B -->|ผสมกัน| E{งบประมาณการคำนวณ?};
+    E -->|จำกัด| C
+    E -->|เพียงพอ| D
 
-    C --> F[✓ Faster computation]
-    C --> G[✓ Lower memory usage]
-    C --> H[⚠ Requires tuning]
+    C --> F[✓ คำนวณเร็วกว่า]
+    C --> G[✓ ใช้หน่วยความจำน้อยกว่า]
+    C --> H[⚠ ต้องมีการปรับจูน]
 
-    D --> I[✓ Higher accuracy]
-    D --> J[✓ Universal constants]
-    D --> K[⚠ Higher cost]
+    D --> I[✓ ความแม่นยำสูงกว่า]
+    D --> J[✓ ใช้ค่าคงที่สากล]
+    D --> K[⚠ ต้นทุนสูงกว่า]
 ```
-> **Figure 4:** แผนผังการตัดสินใจเลือกแบบจำลองการเผาไหม้ที่เหมาะสมโดยพิจารณาจากสภาวะของปฏิกิริยาเคมีและข้อจำกัดด้านทรัพยากรการคำนวณ เพื่อให้ได้สมดุลระหว่างความแม่นยำและความเร็ว
+> **รูปที่ 4:** แผนผังการตัดสินใจเลือกแบบจำลองการเผาไหม้ที่เหมาะสมโดยพิจารณาจากสภาวะของปฏิกิริยาเคมีและข้อจำกัดด้านทรัพยากรการคำนวณ เพื่อให้ได้สมดุลระหว่างความแม่นยำและความเร็ว
 
 
 ---
 
-## 🔧 Implementation Details
+## 🔧 รายละเอียดการใช้งาน (Implementation Details)
 
-### Architecture in OpenFOAM
+### สถาปัตยกรรมใน OpenFOAM
 
-Combustion models in OpenFOAM follow a **run-time selection** mechanism:
+แบบจำลองการเผาไหม้ใน OpenFOAM ใช้กลไกการเลือกขณะรันโปรแกรม (**run-time selection**):
 
 ```cpp
 // Base class hierarchy
@@ -419,15 +419,15 @@ combustionModel
 └── infiniteFastChemistry
 ```
 
-**Key classes:**
-- `combustionModel`: Base abstract class for all combustion models
-- `PaSR`: Partial Stirred Reactor implementation
-- `EDC`: Eddy Dissipation Concept implementation
-- `laminar`: Laminar chemistry (no turbulence-chemistry interaction)
+**คลาสสำคัญ:**
+- `combustionModel`: คลาสฐานเชิงนามธรรมสำหรับแบบจำลองการเผาไหม้ทั้งหมด
+- `PaSR`: การใช้งานแบบจำลอง Partial Stirred Reactor
+- `EDC`: การใช้งานแบบจำลอง Eddy Dissipation Concept
+- `laminar`: เคมีแบบราบเรียบ (ไม่มีปฏิสัมพันธ์ความปั่นป่วน-เคมี)
 
-### Integration with Chemistry Solver
+### การบูรณาการกับตัวแก้สมการเคมี
 
-Both models interact with the ODE solver through the `chemistryModel` interface:
+ทั้งสองแบบจำลองโต้ตอบกับตัวแก้ ODE ผ่านอินเทอร์เฟซ `chemistryModel`:
 
 ```cpp
 // Common interface for chemistry solver integration
@@ -447,7 +447,7 @@ public:
 };
 ```
 
-**Source:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
+**แหล่งที่มา:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
 
 > **คำอธิบาย (Explanation):**
 > คลาส `chemistryModel` ทำหน้าที่เป็นอินเทอร์เฟซระหว่างแบบจำลองการเผาไหม้กับตัวแก้สมการเคมี:
@@ -466,9 +466,9 @@ public:
 > - **Stiff ODE solver**: ใช้ตัวแก้สมการเชิงอนุพันธ์ที่เหมาะกับปฏิกิริยาเคมีที่แข็ง
 > - **Operator splitting**: แยกการแก้สมการเคมีออกจากสมการถอดแบบและความปั่นป่วน
 
-### Coupling with Turbulence Model
+### การคัปปลิงกับแบบจำลองความปั่นป่วน
 
-The combustion models require turbulence quantities:
+แบบจำลองการเผาไหม้ต้องการปริมาณความปั่นป่วน:
 
 ```cpp
 // Required turbulence quantities for combustion models
@@ -490,7 +490,7 @@ volScalarField& epsilon_ = turbulence().epsilon();
 volScalarField& nu_ = turbulence().nu();    
 ```
 
-**Source:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
+**แหล่งที่มา:** 📂 `.applications/test/thermoMixture/Test-thermoMixture.C`
 
 > **คำอธิบาย (Explanation):**
 > แบบจำลองการเผาไหม้ต้องการปริมาณความปั่นป่วนสามค่าหลักในการคำนวณ:
@@ -515,43 +515,43 @@ volScalarField& nu_ = turbulence().nu();
 
 ---
 
-## 🎯 Configuration Guidelines
+## 🎯 แนวทางการกำหนดค่า (Configuration Guidelines)
 
-### Step-by-Step Setup
+### ขั้นตอนการตั้งค่า
 
-1. **Select combustion model in `constant/combustionProperties`:**
+1. **เลือกแบบจำลองการเผาไหม้ใน `constant/combustionProperties`:**
 
 ```cpp
-combustionModel PaSR;  // or "EDC"
+combustionModel PaSR;  // หรือ "EDC"
 ```
 
-2. **Configure model-specific coefficients:**
+2. **กำหนดค่าสัมประสิทธิ์เฉพาะของแบบจำลอง:**
 
-For **PaSR:**
+สำหรับ **PaSR:**
 ```cpp
 PaSRCoeffs
 {
-    turbulenceTimeScaleModel   integral;  // or "kolmogorov"
-    Cmix                       1.0;       // Typically 0.5-2.0
+    turbulenceTimeScaleModel   integral;  // หรือ "kolmogorov"
+    Cmix                       1.0;       // โดยทั่วไปคือ 0.5-2.0
 }
 ```
 
-For **EDC:**
+สำหรับ **EDC:**
 ```cpp
 EDCCoeffs
 {
-    Cxi                       2.1377;    // Standard value
-    Ctau                      0.4082;    // Standard value
+    Cxi                       2.1377;    // ค่ามาตรฐาน
+    Ctau                      0.4082;    // ค่ามาตรฐาน
 }
 ```
 
-3. **Configure chemistry solver in `constant/chemistryProperties`:**
+3. **กำหนดค่าตัวแก้สมการเคมีใน `constant/chemistryProperties`:**
 
 ```cpp
 chemistry
 {
     chemistry       on;
-    solver          SEulex;     // Stiff ODE solver
+    solver          SEulex;     // ตัวแก้ ODE แบบแข็ง
 
     initialChemicalTimeStep  1e-8;
     maxChemicalTimeStep      1e-3;
@@ -561,7 +561,7 @@ chemistry
 }
 ```
 
-4. **Ensure thermophysical properties are set correctly:**
+4. **รับประกันว่าสมบัติเทอร์โมฟิสิกส์ถูกตั้งค่าอย่างถูกต้อง:**
 
 ```cpp
 thermoType
@@ -576,49 +576,49 @@ thermoType
 }
 ```
 
-### Parameter Tuning Recommendations
+### คำแนะนำในการปรับจูนพารามิเตอร์
 
-| Parameter | Typical Range | Effect |
+| พารามิเตอร์ | ช่วงทั่วไป | ผลกระทบ |
 |-----------|--------------|--------|
-| `Cmix` (PaSR) | 0.5 - 2.0 | Higher = more mixing, lower reaction rates |
-| `Cxi` (EDC) | 2.1377 (fixed) | Volume fraction of fine structures |
-| `Ctau` (EDC) | 0.4082 (fixed) | Residence time in fine structures |
-| `tolerance` | 1e-6 - 1e-9 | Chemistry solver tolerance |
-| `relTol` | 0.001 - 0.01 | Relative tolerance for ODE solver |
+| `Cmix` (PaSR) | 0.5 - 2.0 | สูงขึ้น = ผสมมากขึ้น, อัตราปฏิกิริยาต่ำลง |
+| `Cxi` (EDC) | 2.1377 (คงที่) | สัดส่วนปริมาตรของโครงสร้างละเอียด |
+| `Ctau` (EDC) | 0.4082 (คงที่) | เวลาอาศัยในโครงสร้างละเอียด |
+| `tolerance` | 1e-6 - 1e-9 | ค่าความคลาดเคลื่อนของตัวแก้เคมี |
+| `relTol` | 0.001 - 0.01 | ค่าความคลาดเคลื่อนสัมพัทธ์สำหรับตัวแก้ ODE |
 
-> [!WARNING] Tuning Caution
-> When adjusting `Cmix` in PaSR, values too high will over-predict mixing and suppress reactions, while values too low will under-predict mixing and over-predict reaction rates.
+> [!WARNING] ข้อควรระวังในการปรับจูน
+> เมื่อปรับ `Cmix` ใน PaSR ค่าที่สูงเกินไปจะคาดการณ์การผสมสูงเกินจริงและยับยั้งปฏิกิริยา ในขณะที่ค่าที่ต่ำเกินไปจะคาดการณ์การผสมต่ำเกินจริงและคาดการณ์อัตราปฏิกิริยาสูงเกินไป
 
 ---
 
-## 📊 Validation and Verification
+## 📊 การตรวจสอบและการรับรองความถูกต้อง (Validation and Verification)
 
-### Benchmark Cases
+### กรณีเกณฑ์มาตรฐาน (Benchmark Cases)
 
-Common validation cases for combustion models:
+กรณีรับรองความถูกต้องทั่วไปสำหรับแบบจำลองการเผาไหม้:
 
-1. **Non-premixed jet flame**: Standard methane-air jet flame
-2. **Premixed Bunsen flame**: Cone-shaped flame on circular burner
-3. **Autoignition**: Spontaneous ignition in hot co-flow
-4. **Bluff-body stabilized flame**: Flame stabilized behind bluff body
+1. **Non-premixed jet flame**: เปลวไฟเจ็ทมีเทน-อากาศมาตรฐาน
+2. **Premixed Bunsen flame**: เปลวไฟรูปกรวยบนหัวเผาวงกลม
+3. **Autoignition**: การจุดติดไฟเองในกระแสไหลร่วมที่ร้อน
+4. **Bluff-body stabilized flame**: เปลวไฟที่เสถียรอยู่หลังวัตถุทื่อ
 
-### Validation Metrics
+### ตัวชี้วัดการรับรองความถูกต้อง (Validation Metrics)
 
-Key quantities for comparison with experimental data:
+ปริมาณหลักสำหรับการเปรียบเทียบกับข้อมูลการทดลอง:
 
-| Metric | Description | Typical Accuracy |
+| ตัวชี้วัด | คำอธิบาย | ความแม่นยำทั่วไป |
 |--------|-------------|------------------|
-| **Flame length** | Visible flame extent | ±10% |
-| **Peak temperature** | Maximum temperature in flame | ±50 K |
-| **Species profiles** | CO, CO₂, H₂O distributions | ±15% |
-| **Lift-off height** | Flame stabilization height | ±20% |
+| **ความยาวเปลวไฟ** | ขอบเขตเปลวไฟที่มองเห็นได้ | ±10% |
+| **อุณหภูมิสูงสุด** | อุณหภูมิสูงสุดในเปลวไฟ | ±50 K |
+| **โปรไฟล์สปีชีส์** | การกระจายของ CO, CO₂, H₂O | ±15% |
+| **Lift-off height** | ความสูงที่เปลวไฟเริ่มเสถียร | ±20% |
 
-### Convergence Criteria
+### เกณฑ์การลู่เข้า (Convergence Criteria)
 
-Simulation should be considered converged when:
+การจำลองควรได้รับการพิจารณาว่าลู่เข้าเมื่อ:
 
 ```cpp
-// In controlDict
+// ใน controlDict
 functions
 {
     convergenceCheck
@@ -626,144 +626,144 @@ functions
         type            convergenceCheck;
         fields          (T p Y_CH4 Y_O2 Y_CO2);
         tolerance       1e-4;
-        window          100;    // Check over 100 iterations
+        window          100;    // ตรวจสอบในช่วง 100 รอบการวนซ้ำ
     }
 }
 ```
 
 ---
 
-## 🚀 Advanced Topics
+## 🚀 หัวข้อขั้นสูง (Advanced Topics)
 
-### Coupling with Radiation Models
+### การคัปปลิงกับแบบจำลองการแผ่รังสี
 
-Combustion models can be combined with radiation:
+แบบจำลองการเผาไหม้สามารถรวมกับการแผ่รังสีได้:
 
 ```cpp
-// In thermophysicalProperties
+// ใน thermophysicalProperties
 radiation
 {
-    type            P1;          // or "fvDom" "viewFactor"
+    type            P1;          // หรือ "fvDom" "viewFactor"
     absorptionModel none;
     scatterModel    none;
 }
 ```
 
-**Impact on combustion:**
-- Radiation reduces flame temperature
-- Affects chemical reaction rates
-- Important for optically thick flames (sooting, large-scale)
+**ผลกระทบต่อการเผาไหม:**
+- การแผ่รังสีลดอุณหภูมิเปลวไฟ
+- ส่งผลต่ออัตราปฏิกิริยาเคมี
+- สำคัญสำหรับเปลวไฟที่ทึบแสงทางสายตา (มีเขม่า, ขนาดใหญ่)
 
-### Integration with LES
+### การบูรณาการกับ LES
 
-For **Large Eddy Simulation (LES)**, combustion models require modifications:
+สำหรับการจำลอง **Large Eddy Simulation (LES)** แบบจำลองการเผาไหม้ต้องการการปรับปรุง:
 
 ```cpp
-// LES turbulence model
+// แบบจำลองความปั่นป่วน LES
 simulationType  LES;
 
 turbulence
 {
-    model   oneEqEddy;    // or "locallyDynamicKEpsilon"
+    model   oneEqEddy;    // หรือ "locallyDynamicKEpsilon"
 }
 ```
 
-**LES-specific considerations:**
-- Sub-grid scale turbulence quantities
-- Filtered reaction rates
-- Reduced model constants typically needed
+**ข้อควรพิจารณาเฉพาะสำหรับ LES:**
+- ปริมาณความปั่นป่วนในระดับ sub-grid
+- อัตราปฏิกิริยาที่ผ่านการกรอง (Filtered reaction rates)
+- โดยทั่วไปต้องการการลดค่าคงที่ของแบบจำลอง
 
-### Parallel Computation
+### การคำนวณแบบขนาน (Parallel Computation)
 
-Both PaSR and EDC scale well in parallel:
+ทั้ง PaSR และ EDC ขยายขนาดได้ดีในการทำงานแบบขนาน:
 
 ```bash
-# Decompose case
+# แยกกรณีศึกษา
 decomposePar
 
-# Run in parallel
+# รันแบบขนาน
 mpirun -np 16 reactingFoam -parallel
 
-# Reconstruct
+# ประกอบข้อมูลกลับคืน
 reconstructPar
 ```
 
-**Scaling considerations:**
-- Chemistry solver scales with number of cells
-- Load balancing important for stiff chemistry
-- Communication overhead minimal for local models
+**ข้อควรพิจารณาในการขยายขนาด:**
+- ตัวแก้เคมีขยายขนาดตามจำนวนเซลล์
+- การปรับสมดุลภาระงานมีความสำคัญสำหรับเคมีที่แข็งเกร็ง
+- ภาระการสื่อสารมีน้อยสำหรับแบบจำลองเฉพาะที่ (local models)
 
 ---
 
-## 📌 Summary
+## 📌 สรุป (Summary)
 
-### Key Takeaways
+### ประเด็นสำคัญ (Key Takeaways)
 
-1. **Both models use two-environment approach** but with different theoretical foundations
-2. **PaSR** balances chemical and mixing time scales through characteristic time ratio
-3. **EDC** uses Kolmogorov-scale turbulence to determine reaction zones
-4. **Model selection** depends on chemistry regime, accuracy requirements, and computational resources
-5. **Proper configuration** requires understanding of model constants and their physical meaning
+1. **ทั้งสองแบบจำลองใช้วิธีสองสภาวะแวดล้อม** แต่มีรากฐานทางทฤษฎีต่างกัน
+2. **PaSR** สร้างสมดุลระหว่างมาตราส่วนเวลาเคมีและการผสมผ่านอัตราส่วนเวลาลักษณะเฉพาะ
+3. **EDC** ใช้ความปั่นป่วนมาตราส่วนคอลโมโกรอฟเพื่อกำหนดโซนปฏิกิริยา
+4. **การเลือกแบบจำลอง** ขึ้นอยู่กับพฤติกรรมทางเคมี, ข้อกำหนดด้านความแม่นยำ และทรัพยากรการคำนวณ
+5. **การกำหนดค่าที่เหมาะสม** ต้องการความเข้าใจในค่าคงที่แบบจำลองและความหมายทางฟิสิกส์
 
-### Decision Matrix
+### แผนผังการตัดสินใจ (Decision Matrix)
 
 ```mermaid
 flowchart TD
-    A[Select Combustion Model] --> B{Chemistry Speed?}
-    B -->|Very Fast| C[PaSR]
-    B -->|Moderate| D{Accuracy Required?}
-    B -->|Slow| E[Laminar or EDC]
+    A[เลือกแบบจำลองการเผาไหม้] --> B{ความเร็วเคมี?};
+    B -->|เร็วมาก| C[PaSR]
+    B -->|ปานกลาง| D{ต้องการความแม่นยำสูง?};
+    B -->|ช้า| E[Laminar หรือ EDC]
 
-    D -->|High| F[EDC]
-    D -->|Medium| G{Compute Budget?}
+    D -->|สูง| F[EDC]
+    D -->|ปานกลาง| G{งบประมาณคำนวณ?};
 
-    G -->|Limited| C
-    G -->|Available| F
+    G -->|จำกัด| C
+    G -->|มีเพียงพอ| F
 
-    C --> H[✓ Fast, ✓ Simple]
-    F --> I[✓ Accurate, ✓ Physics-based]
+    C --> H[✓ เร็ว, ✓ ง่าย]
+    F --> I[✓ แม่นยำ, ✓ อิงฟิสิกส์]
 
     style H fill:#90EE90
     style I fill:#87CEEB
 ```
-> **Figure 5:** แผนภูมิสรุปการเลือกแบบจำลองการเผาไหม้ตามพฤติกรรมทางเคมีของระบบ เพื่อช่วยในการตัดสินใจเลือกใช้แบบจำลองที่เหมาะสมกับลักษณะของเปลวไฟและความต้องการของโครงการ
+> **รูปที่ 5:** แผนภูมิสรุปการเลือกแบบจำลองการเผาไหม้ตามพฤติกรรมทางเคมีของระบบ เพื่อช่วยในการตัดสินใจเลือกใช้แบบจำลองที่เหมาะสมกับลักษณะของเปลวไฟและความต้องการของโครงการ
 
 
-### Best Practices
+### แนวทางปฏิบัติที่ดีที่สุด (Best Practices)
 
-> [!TIP] Best Practices
+> [!TIP] แนวทางปฏิบัติที่ดีที่สุด
 >
-> 1. **Start with PaSR** for initial simulations and parameter studies
-> 2. **Switch to EDC** for final results when accuracy is critical
-> 3. **Validate** against experimental data whenever possible
-> 4. **Monitor** time scales to ensure model assumptions are valid
-> 5. **Document** all parameter choices and their justification
+> 1. **เริ่มด้วย PaSR** สำหรับการจำลองเบื้องต้นและการศึกษาพารามิเตอร์
+> 2. **เปลี่ยนไปใช้ EDC** สำหรับผลลัพธ์สุดท้ายเมื่อความแม่นยำเป็นปัจจัยวิกฤต
+> 3. **รับรองความถูกต้อง** เทียบกับข้อมูลการทดลองเมื่อเป็นไปได้
+> 4. **ติดตาม** มาตราส่วนเวลาเพื่อรับประกันว่าข้อสมมติของแบบจำลองนั้นถูกต้อง
+> 5. **บันทึก** การเลือกพารามิเตอร์ทั้งหมดและเหตุผลประกอบ
 
-### Further Reading
+### การอ่านเพิ่มเติม (Further Reading)
 
 - **Original Papers**:
-  - Magnussen & Hjertager (1976) for EDC
-  - Borghi (1985) for PaSR concepts
+  - Magnussen & Hjertager (1976) สำหรับ EDC
+  - Borghi (1985) สำหรับแนวคิด PaSR
 - **OpenFOAM Source Code**: `src/combustionModels/`
-- **Validation Cases**: OpenFOAM tutorials for `reactingFoam`
+- **Validation Cases**: บทช่วยสอน OpenFOAM สำหรับ `reactingFoam`
 
 ---
 
-## 🔗 Related Topics
+## 🔗 หัวข้อที่เกี่ยวข้อง (Related Topics)
 
-### Internal Links
-- [[02_1._Species_Transport_Equation_($Y_i$)_and_Diffusion_Models]] - Species transport fundamentals
-- [[03_2._chemistryModel_and_ODE_Solvers_for_Stiff_Reaction_Rates]] - Chemical kinetics integration
-- [[05_4._Chemkin_File_Parsing_in_OpenFOAM]] - Mechanism file format
-- [[06_Practical_Workflow_Setting_Up_a_Reacting_Flow_Simulation]] - Complete setup guide
+### ลิงก์ภายใน (Internal Links)
+- [[02_1._Species_Transport_Equation_($Y_i$)_and_Diffusion_Models]] - พื้นฐานการขนส่งสปีชีส์
+- [[03_2._chemistryModel_and_ODE_Solvers_for_Stiff_Reaction_Rates]] - การบูรณาการจลนพลศาสตร์เคมี
+- [[05_4._Chemkin_File_Parsing_in_OpenFOAM]] - รูปแบบไฟล์กลไกเคมี
+- [[06_Practical_Workflow_Setting_Up_a_Reacting_Flow_Simulation]] - คู่มือการตั้งค่าฉบับสมบูรณ์
 
-### External Dependencies
-- **Turbulence Models**: RANS/LES provide mixing time scales
-- **Chemistry Model**: Provides reaction rates and species properties
-- **Thermophysical Models**: Provides transport and thermodynamic properties
+### การพึ่งพาภายนอก (External Dependencies)
+- **แบบจำลองความปั่นป่วน**: RANS/LES ให้มาตราส่วนเวลาการผสม
+- **แบบจำลองเคมี**: ให้อัตราปฏิกิริยาและสมบัติสปีชีส์
+- **แบบจำลองเทอร์โมฟิสิกส์**: ให้สมบัติการขนส่งและเทอร์โมไดนามิก
 
 ---
 
-**Last Updated:** 2024-12-23
-**OpenFOAM Version:** 9.x and later
-**Maintainer:** Advanced Physics Module Team
+**อัปเดตล่าสุด:** 23 ธันวาคม 2025
+**เวอร์ชัน OpenFOAM:** 9.x และใหม่กว่า
+**ผู้ดูแล:** ทีมโมดูลฟิสิกส์ขั้นสูง

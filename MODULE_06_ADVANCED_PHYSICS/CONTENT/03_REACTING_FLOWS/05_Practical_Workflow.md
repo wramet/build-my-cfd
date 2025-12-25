@@ -1,88 +1,88 @@
-# Practical Workflow: Setting Up a Reacting Flow Simulation
+# ขั้นตอนการทำงานจริง: การตั้งค่าการจำลองการไหลแบบมีปฏิกิริยา (Practical Workflow: Setting Up a Reacting Flow Simulation)
 
-## Overview
+## ภาพรวม (Overview)
 
-This guide provides a comprehensive workflow for setting up and running reacting flow simulations in OpenFOAM. It covers the complete process from chemistry file preparation to solver execution and troubleshooting.
+คู่มือนี้จัดทำขั้นตอนการทำงานที่ครอบคลุมสำหรับการตั้งค่าและรันการจำลองการไหลแบบมีปฏิกิริยาใน OpenFOAM ครอบคลุมกระบวนการที่สมบูรณ์ตั้งแต่การเตรียมไฟล์เคมีไปจนถึงการรันตัวแก้ปัญหาและการแก้ไขปัญหา
 
 ---
 
-## Step 1: Prepare Chemistry Files
+## ขั้นตอนที่ 1: เตรียมไฟล์เคมี (Prepare Chemistry Files)
 
-The foundation of any reacting flow simulation is the **chemical reaction mechanism**. OpenFOAM requires chemistry data in Chemkin format to describe reaction mechanisms and thermodynamic properties of species involved.
+รากฐานของการจำลองการไหลแบบมีปฏิกิริยาใดๆ คือ **กลไกปฏิกิริยาเคมี (chemical reaction mechanism)** OpenFOAM ต้องการข้อมูลทางเคมีในรูปแบบ Chemkin เพื่ออธิบายกลไกปฏิกิริยาและสมบัติทางเทอร์โมไดนามิกของสปีชีส์ที่เกี่ยวข้อง
 
-### Required Files
+### ไฟล์ที่จำเป็น
 
-| File | Description |
+| ไฟล์ | คำอธิบาย |
 |------|-------------|
-| **`chem.inp`** | Contains chemical reactions, Arrhenius parameters, and third-body efficiencies |
-| **`therm.dat`** | Provides temperature-dependent thermodynamic data (Cp, H, S) for each species |
-| **`tran.dat`** | Additional transport property file for molecular viscosity and thermal conductivity |
+| **`chem.inp`** | บรรจุปฏิกิริยาเคมี, พารามิเตอร์อาร์เรเนียส และประสิทธิภาพของตัวที่สาม |
+| **`therm.dat`** | ให้ข้อมูลเทอร์โมไดนามิกที่ขึ้นกับอุณหภูมิ (Cp, H, S) สำหรับแต่ละสปีชีส์ |
+| **`tran.dat`** | ไฟล์สมบัติการขนส่งเพิ่มเติมสำหรับความหนืดโมเลกุลและการนำความร้อน |
 
-### Example: GRI-Mech 3.0 for Methane Combustion
+### ตัวอย่าง: GRI-Mech 3.0 สำหรับการเผาไหม้มีเทน
 
-For methane combustion, the widely-used GRI-Mech 3.0 mechanism provides detailed chemistry with **53 species** and **325 reactions**.
+สำหรับการเผาไหม้มีเทน กลไก GRI-Mech 3.0 ที่ใช้กันอย่างแพร่หลายให้รายละเอียดทางเคมีด้วย **53 สปีชีส์** และ **325 ปฏิกิริยา**
 
-Place these files in your case directory:
+วางไฟล์เหล่านี้ไว้ในไดเรกทอรีกรณีศึกษาของคุณ:
 
 ```
 case_directory/
-├── chem.inp          # Reaction mechanism
-├── therm.dat         # Thermodynamic data
-└── tran.dat          # Transport data (optional)
+├── chem.inp          # กลไกปฏิกิริยา
+├── therm.dat         # ข้อมูลเทอร์โมไดนามิก
+└── tran.dat         # ข้อมูลการขนส่ง (ทางเลือก)
 ```
 
-The `chemistryReader` parses these files during solver initialization to generate reaction rate coefficients and species properties required for the simulation.
+`chemistryReader` จะวิเคราะห์ไฟล์เหล่านี้ในระหว่างการเริ่มต้นตัวแก้ปัญหาเพื่อสร้างสัมประสิทธิ์อัตราปฏิกิริยาและสมบัติสปีชีส์ที่จำเป็นสำหรับการจำลอง
 
-### Recommended Chemistry Sources
+### แหล่งข้อมูลเคมีที่แนะนำ
 
-- **GRI-Mech**: Natural gas (methane) combustion mechanisms
-- **LLNL mechanisms**: Large mechanisms for various fuels
-- **San Diego mechanism**: Small hydrocarbon combustion
-- **Konnov mechanism**: Hydrogen combustion
+- **GRI-Mech**: กลไกการเผาไหม้ก๊าซธรรมชาติ (มีเทน)
+- **LLNL mechanisms**: กลไกขนาดใหญ่สำหรับเชื้อเพลิงหลากหลายชนิด
+- **San Diego mechanism**: การเผาไหม้ไฮโดรคาร์บอนขนาดเล็ก
+- **Konnov mechanism**: การเผาไหม้ไฮโดรเจน
 
-> [!TIP] Chemistry File Locations
-> Place chemistry files in either the `constant/` directory or a dedicated `chem/` subdirectory. Reference them correctly in `thermophysicalProperties`.
+> [!TIP] ตำแหน่งไฟล์เคมี
+> วางไฟล์เคมีไว้ในไดเรกทอรี `constant/` หรือไดเรกทอรีย่อย `chem/` ที่สร้างขึ้นโดยเฉพาะ อ้างอิงไฟล์เหล่านี้ให้ถูกต้องใน `thermophysicalProperties`
 
 ---
 
-## Step 2: Configure `thermophysicalProperties`
+## ขั้นตอนที่ 2: กำหนดค่า `thermophysicalProperties`
 
-The `constant/thermophysicalProperties` file defines how thermodynamic and transport properties are calculated throughout the simulation.
+ไฟล์ `constant/thermophysicalProperties` กำหนดวิธีคำนวณคุณสมบัติทางเทอร์โมไดนามิกและการขนส่งตลอดการจำลอง
 
-### Thermophysical Model Configuration
+### การกำหนดค่ารูปแบบจำลองเทอร์โมฟิสิกส์
 
 ```cpp
 thermoType
 {
-    // Main thermodynamics type selector
+    // ตัวเลือกประเภทเทอร์โมไดนามิกหลัก
     type            hePsiThermo;
     
-    // Mixture type for reacting flows
+    // ประเภทส่วนผสมสำหรับการไหลแบบมีปฏิกิริยา
     mixture         reactingMixture;
     
-    // Transport property calculation method
+    // วิธีการคำนวณสมบัติการขนส่ง
     transport       multiComponent;
     
-    // Thermodynamic property format
+    // รูปแบบสมบัติเทอร์โมไดนามิก
     thermo          janaf;
     
-    // Energy formulation type
+    // ประเภทรูปแบบพลังงาน
     energy          sensibleEnthalpy;
     
-    // Equation of state model
+    // แบบจำลองสมการสภาวะ
     equationOfState idealGas;
     
-    // Individual species properties
+    // สมบัติสปีชีส์แต่ละตัว
     specie          specie;
 }
 ```
 
-#### 📂 Source: `.applications/test/thermoMixture/Test-thermoMixture.C`
+#### 📂 แหล่งที่มา: `.applications/test/thermoMixture/Test-thermoMixture.C`
 
-**Explanation:**
+**คำอธิบาย:**
 ไฟล์นี้กำหนดชนิดของเทอร์โมไดนามิกส์และการคำนวณคุณสมบัติทางกายภาพสำหรับการไหลแบบมีปฏิกิริยาเคมี การกำหนดค่าเหล่านี้ส่งผลต่อความแม่นยำและประสิทธิภาพของการจำลองแบบ
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - `hePsiThermo`: คำนวณเอนทาลปีจากค่าความอัดตัว (ψ) และอุณหภูมิ
 - `reactingMixture`: เปิดใช้งานการคำนวณสำหรับสารผสมหลายชนิดที่มีปฏิกิริยาเคมี
 - `multiComponent`: ใช้คุณสมบัติการขนส่งแบบผสมเฉลี่ย
@@ -91,639 +91,639 @@ thermoType
 - `idealGas`: สมการสถานะ: p = ρRₛT
 - `specie`: คุณสมบัติของสารแต่ละชนิด
 
-### Configuration Breakdown
+### รายละเอียดการกำหนดค่า (Configuration Breakdown)
 
-| Component | Description |
+| ส่วนประกอบ | คำอธิบาย |
 |-----------|-------------|
-| **`hePsiThermo`** | Calculates enthalpy from compressibility ($\psi$) and temperature |
-| **`reactingMixture`** | Enables multi-species reacting mixture calculations |
-| **`multiComponent`** | Uses mixture-averaged transport properties |
-| **`janaf`** | NASA polynomial format for thermodynamic properties |
-| **`sensibleEnthalpy`** | Energy equation based on enthalpy rather than internal energy |
-| **`idealGas`** | Equation of state: $p = \rho R_s T$ |
-| **`specie`** | Properties of individual species |
+| **`hePsiThermo`** | คำนวณเอนทาลปีจากค่าความอัดตัว ($\psi$) และอุณหภูมิ |
+| **`reactingMixture`** | เปิดใช้งานการคำนวณส่วนผสมแบบมีปฏิกิริยาหลายสปีชีส์ |
+| **`multiComponent`** | ใช้สมบัติการขนส่งแบบเฉลี่ยส่วนผสม (mixture-averaged) |
+| **`janaf`** | รูปแบบพหุนาม NASA สำหรับสมบัติเทอร์โมไดนามิก |
+| **`sensibleEnthalpy`** | สมการพลังงานอ้างอิงตามเอนทาลปีแทนที่จะเป็นพลังงานภายใน |
+| **`idealGas`** | สมการสภาวะ: $p = \rho R_s T$ |
+| **`specie`** | สมบัติของสปีชีส์แต่ละตัว |
 
-### Referencing Chemistry Files
+### การอ้างอิงไฟล์เคมี
 
 ```cpp
 mixture
 {
-    // Chemistry file format reader
+    // ตัวอ่านรูปแบบไฟล์เคมี
     chemistryReader   chemkin;
     
-    // Chemical reaction mechanism file
+    // ไฟล์กลไกปฏิกิริยาเคมี
     chemkinFile       "chem.inp";
     
-    // Thermodynamic data file
+    // ไฟล์ข้อมูลเทอร์โมไดนามิก
     thermoFile        "therm.dat";
     
-    // Transport properties file (optional)
+    // ไฟล์สมบัติการขนส่ง (ทางเลือก)
     // transportFile    "tran.dat";
 }
 ```
 
-This section tells OpenFOAM where to find the chemistry mechanism files from Step 1.
+ส่วนนี้บอก OpenFOAM ว่าจะหาไฟล์กลไกเคมีจากขั้นตอนที่ 1 ได้ที่ไหน
 
-> [!INFO] Energy Formulation
-> For low Mach number flows, use `sensibleEnthalpy`. For compressible flows with significant density variations, consider `sensibleInternalEnergy`.
+> [!INFO] รูปแบบพลังงาน
+> สำหรับการไหลที่มีเลขมัค (Mach number) ต่ำ ให้ใช้ `sensibleEnthalpy` สำหรับการไหลที่อัดตัวได้ซึ่งมีการเปลี่ยนแปลงความหนาแน่นอย่างมีนัยสำคัญ ให้พิจารณาใช้ `sensibleInternalEnergy`
 
 ---
 
-## Step 3: Select Combustion Model
+## ขั้นตอนที่ 3: เลือกแบบจำลองการเผาไหม้ (Select Combustion Model)
 
-The combustion model determines how turbulence-chemistry interactions are handled, defined in `constant/combustionProperties`.
+แบบจำลองการเผาไหม้กำหนดวิธีจัดการปฏิสัมพันธ์ระหว่างความปั่นป่วนและเคมี โดยระบุใน `constant/combustionProperties`
 
-### Available Models
+### แบบจำลองที่มีให้ใช้งาน
 
-| Model | Description |
+| แบบจำลอง | คำอธิบาย |
 |--------|-------------|
-| **PaSR** | Partial Stirred Reactor - treats each cell as a partially stirred reactor |
-| **EDC** | Eddy Dissipation Concept - considers turbulence-chemistry interaction at sub-grid scales |
-| **laminar** | No turbulence-chemistry interaction |
+| **PaSR** | Partial Stirred Reactor - จัดการแต่ละเซลล์เสมือนเครื่องปฏิกรณ์ที่ผสมกันบางส่วน |
+| **EDC** | Eddy Dissipation Concept - พิจารณาปฏิสัมพันธ์ความปั่นป่วน-เคมีที่ระดับ sub-grid |
+| **laminar** | ไม่มีการพิจารณาปฏิสัมพันธ์ความปั่นป่วน-เคมี |
 
-### PaSR Model Configuration
+### การกำหนดค่าแบบจำลอง PaSR
 
 ```cpp
 combustionModel PaSR;
 
 PaSRCoeffs
 {
-    // Turbulence time scale calculation method
+    // วิธีการคำนวณมาตราส่วนเวลาความปั่นป่วน
     turbulenceTimeScaleModel integral;
     
-    // Mixing constant (0.5-2.0)
+    // ค่าคงที่การผสม (0.5-2.0)
     Cmix                   1.0;
 }
 ```
 
-**Explanation:**
+**คำอธิบาย:**
 โมเดล Partially Stirred Reactor (PaSR) ถือว่าเซลล์แต่ละเซลล์เป็นเครื่องปฏิกรณ์ที่คนละส่วนผสม โดยพิจารณาปฏิสัมพันธ์ระหว่างความปั่นและปฏิกิริยาเคมีในระดับย่อย
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - `turbulenceTimeScaleModel`: วิธีการคำนวณมาตราส่วนเวลาความปั่น
 - `integral`: ใช้มาตราส่วนเวลาอินทิกรัลที่อิงกับพลังงานจลน์ของความปั่น
 - `Cmix`: ค่าคงที่การผสม (0.5-2.0) ควบคุมระดับการผสม
 
-### EDC Model Configuration
+### การกำหนดค่าแบบจำลอง EDC
 
 ```cpp
 combustionModel EDC;
 
 EDCCoeffs
 {
-    // Structure factor constant
+    // ค่าคงที่ปัจจัยโครงสร้าง (Structure factor constant)
     Cmix                   0.1;
     
-    // Time scale constant
+    // ค่าคงที่มาตราส่วนเวลา (Time scale constant)
     Ctau                   0.5;
     
-    // Volume fraction exponent
+    // เลขชี้กำลังสัดส่วนปริมาตร
     exp                    2.0;
 }
 ```
 
-**Explanation:**
+**คำอธิบาย:**
 โมเดล Eddy Dissipation Concept (EDC) พิจารณาปฏิสัมพันธ์ความปั่น-เคมีในระดับ sub-grid โดยใช้โครงสร้างโมเมนตัมแบบหมุนเวียน
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - `Cmix`: ค่าคงที่โครงสร้าง (ค่าเริ่มต้น: 0.1)
 - `Ctau`: ค่าคงที่มาตราส่วนเวลา (ค่าเริ่มต้น: 0.5)
 - `exp`: เลขชี้กำลังสำหรับการคำนวณปริมาตรส่วน (ค่าเริ่มต้น: 2.0)
 
-### Model Parameters
+### พารามิเตอร์แบบจำลอง
 
-**PaSR Parameters:**
-- **`Cmix`**: Mixing constant (typically 0.5-2.0) controlling mixing level
-- **`turbulenceTimeScaleModel`**: Method for calculating turbulence time scale
-  - `integral`: Uses integral time scale based on turbulent kinetic energy
-  - `kolmogorov`: Uses Kolmogorov time scale for fine-scale mixing
+**พารามิเตอร์ PaSR:**
+- **`Cmix`**: ค่าคงที่การผสม (โดยทั่วไปคือ 0.5-2.0) ควบคุมระดับการผสม
+- **`turbulenceTimeScaleModel`**: วิธีการคำนวณมาตราส่วนเวลาความปั่นป่วน
+  - `integral`: ใช้มาตราส่วนเวลาแบบอินทิกรัลอิงตามพลังงานจลน์ปั่นป่วน
+  - `kolmogorov`: ใช้มาตราส่วนเวลาคอลโมโกรอฟสำหรับการผสมระดับละเอียด
 
-**EDC Parameters:**
-- **`Cmix`**: Structure factor constant (default: 0.1)
-- **`Ctau`**: Time scale constant (default: 0.5)
-- **`exp`**: Exponent for volume fraction calculation (default: 2.0)
+**พารามิเตอร์ EDC:**
+- **`Cmix`**: ค่าคงที่ปัจจัยโครงสร้าง (ค่าเริ่มต้น: 0.1)
+- **`Ctau`**: ค่าคงที่มาตราส่วนเวลา (ค่าเริ่มต้น: 0.5)
+- **`exp`**: เลขชี้กำลังสำหรับการคำนวณสัดส่วนปริมาตร (ค่าเริ่มต้น: 2.0)
 
-### Model Selection Guide
+### คู่มือการเลือกแบบจำลอง
 
-**Use PaSR when:**
-- Fast chemistry (Da >> 1)
-- Limited computational resources
-- Non-premixed or partially premixed flames
+**ใช้ PaSR เมื่อ:**
+- เคมีเกิดเร็วมาก (Da >> 1)
+- ทรัพยากรการคำนวณมีจำกัด
+- เปลวไฟแบบไม่ผสมล่วงหน้าหรือแบบผสมกันบางส่วน
 
-**Use EDC when:**
-- Finite-rate chemistry (intermediate Da)
-- Higher accuracy required
-- Adequate computational resources available
-- Premixed flames with high turbulence
+**ใช้ EDC เมื่อ:**
+- เคมีมีอัตราจำกัด (Da ระดับปานกลาง)
+- ต้องการความแม่นยำสูงขึ้น
+- มีทรัพยากรการคำนวณเพียงพอ
+- เปลวไฟแบบผสมล่วงหน้าที่มีความปั่นป่วนสูง
 
 ---
 
-## Step 4: Setup Chemistry Solver
+## ขั้นตอนที่ 4: ตั้งค่าตัวแก้สมการเคมี (Setup Chemistry Solver)
 
-The chemistry solver controls how the stiff ODE system representing chemical reactions is integrated over time, specified in `constant/chemistryProperties`.
+ตัวแก้สมการเคมีควบคุมวิธีที่ระบบ ODE แบบแข็งซึ่งแทนปฏิกิริยาเคมีจะถูกบูรณาการในเวลา ระบุใน `constant/chemistryProperties`
 
 ```cpp
 chemistry
 {
-    // Enable chemistry calculation
+    // เปิดใช้งานการคำนวณทางเคมี
     chemistry       on;
     
-    // ODE solver type
+    // ประเภทตัวแก้ ODE
     solver          SEulex;
     
-    // Initial chemistry time step [s]
+    // ช่วงเวลาเริ่มต้นสำหรับการบูรณาการเคมี [วินาที]
     initialChemicalTimeStep 1e-8;
     
-    // Maximum chemistry time step [s]
+    // ช่วงเวลาสูงสุดที่อนุญาตสำหรับการบูรณาการเคมี [วินาที]
     maxChemicalTimeStep     1e-3;
     
-    // Absolute convergence tolerance
+    // ค่าความคลาดเคลื่อนสัมบูรณ์สำหรับการลู่เข้า
     tolerance       1e-6;
     
-    // Relative convergence tolerance
+    // ค่าความคลาดเคลื่อนสัมพัทธ์สำหรับการลู่เข้า
     relTol          0.01;
 }
 ```
 
-**Explanation:**
+**คำอธิบาย:**
 ตัวแก้สมการเคมีควบคุมการรวมระบบ ODE ที่แข็งแรงซึ่งเป็นตัวแทนของปฏิกิริยาเคมีตลอดเวลา การเลือก solver และการตั้งค่าแต่ละอย่างมีผลต่อความเสถียรและประสิทธิภาพของการคำนวณ
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - `SEulex`: Solver แบบ extrapolation-based สำหรับระบบที่มี stiffness ปานกลาง
 - `initialChemicalTimeStep`: ขั้นตอนเวลาเริ่มต้นสำหรับการรวมเคมี
 - `maxChemicalTimeStep`: ขั้นตอนเวลาสูงสุดที่อนุญาต
 - `tolerance`: ค่าความอดทนการบรรจบกันแบบสัมบูรณ์
 - `relTol`: ค่าความอดทนการบรรจบกันแบบสัมพัทธ์
 
-### Solver Options
+### ตัวเลือกตัวแก้ปัญหา (Solver Options)
 
-| Solver | Type | Stiffness Handling | Best For |
+| ตัวแก้ปัญหา | ประเภท | การจัดการความแข็งเกร็ง | เหมาะสำหรับ |
 |--------|------|-------------------|----------|
-| **`SEulex`** | Extrapolation-based | High | Moderate mechanisms (≤ 50 species) |
-| **`Rosenbrock`** | Linearly implicit Runge-Kutta | Very High | Very stiff systems (H₂ combustion) |
-| **`CVODE`** | Variable step/order (external) | Very High | Large mechanisms (≥ 100 species) |
+| **`SEulex`** | อ้างอิงการประมาณค่า (Extrapolation) | สูง | กลไกขนาดปานกลาง (≤ 50 สปีชีส์) |
+| **`Rosenbrock`** | แบบโดยนัยเชิงเส้น (Linearly implicit) Runge-Kutta | สูงมาก | ระบบที่แข็งเกร็งมาก (เช่น การเผาไหม้ H₂) |
+| **`CVODE`** | ปรับช่วงเวลา/อันดับได้ (ภายนอก) | สูงมาก | กลไกขนาดใหญ่ (≥ 100 สปีชีส์) |
 
-### Time Step Control
+### การควบคุมช่วงเวลา
 
-Chemical integration often requires much smaller time steps than fluid dynamics due to reaction stiffness:
+การบูรณาการทางเคมีมักต้องการช่วงเวลาที่เล็กกว่าพลศาสตร์การไหลมากเนื่องจากความแข็งเกร็งของปฏิกิริยา:
 
-- **`initialChemicalTimeStep`**: Initial time step for chemistry integration ($10^{-8}$ s)
-- **`maxChemicalTimeStep`**: Maximum allowed time step for chemistry ($10^{-3}$ s)
-- **`tolerance`**: Absolute convergence tolerance for species concentrations
-- **`relTol`**: Relative tolerance for convergence (1%)
+- **`initialChemicalTimeStep`**: ช่วงเวลาเริ่มต้นสำหรับการบูรณาการเคมี ($10^{-8}$ วินาที)
+- **`maxChemicalTimeStep`**: ช่วงเวลาสูงสุดที่อนุญาตสำหรับเคมี ($10^{-3}$ วินาที)
+- **`tolerance`**: ค่าความคลาดเคลื่อนสัมบูรณ์สำหรับการลู่เข้าของความเข้มข้นสปีชีส์
+- **`relTol`**: ค่าความคลาดเคลื่อนสัมพัทธ์สำหรับการลู่เข้า (1%)
 
-The solver automatically adjusts the chemistry time step based on local reaction rates to maintain accuracy while reducing computational cost.
+ตัวแก้ปัญหาจะปรับช่วงเวลาเคมีโดยอัตโนมัติตามอัตราปฏิกิริยาเฉพาะที่เพื่อรักษาความแม่นยำในขณะที่ลดต้นทุนการคำนวณ
 
-> [!WARNING] Stiff Chemistry
-> For stiff mechanisms (large activation energies), explicit solvers will require time steps ~10⁻⁹ s, making simulations impractical. Always use implicit or semi-implicit solvers for reacting flows.
+> [!WARNING] เคมีแบบแข็งเกร็ง
+> สำหรับกลไกที่แข็งเกร็งมาก (พลังงานก่อกัมมันต์สูง) ตัวแก้ปัญหาแบบชัดแจ้งจะต้องการช่วงเวลา ~10⁻⁹ วินาที ซึ่งทำให้การจำลองทำไม่ได้จริง ให้ใช้ตัวแก้ปัญหาแบบโดยนัยหรือกึ่งโดยนัยสำหรับการไหลแบบมีปฏิกิริยาเสมอ
 
 ---
 
-## Step 5: Define Initial and Boundary Conditions
+## ขั้นตอนที่ 5: กำหนดเงื่อนไขเริ่มต้นและเงื่อนไขขอบเขต
 
-Proper specification of species mass fractions, temperature, and pressure is critical for accurate combustion simulation.
+การระบุเศษส่วนมวลของสปีชีส์ อุณหภูมิ และความดันที่เหมาะสมเป็นสิ่งสำคัญสำหรับการจำลองการเผาไหม้ที่แม่นยำ
 
-### Species Mass Fractions
+### เศษส่วนมวลของสปีชีส์ (Species Mass Fractions)
 
-For each species in your mechanism, create field files in the `0/` directory:
+สำหรับแต่ละสปีชีส์ในกลไกของคุณ ให้สร้างไฟล์ฟิลด์ในไดเรกทอรี `0/`:
 
-#### Example: `0/CH4` (Methane)
+#### ตัวอย่าง: `0/CH4` (มีเทน)
 
 ```cpp
 dimensions      [0 0 0 0 0 0 0];
 
-// Initial mass fraction of methane (5.5%)
+// เศษส่วนมวลเริ่มต้นของมีเทน (5.5%)
 internalField   uniform 0.055;
 
 boundaryField
 {
     inlet
     {
-        // Fixed value at inlet
+        // ค่าคงที่ที่ทางเข้า
         type            fixedValue;
         value           uniform 0.055;
     }
     outlet
     {
-        // Zero gradient at outlet
+        // เกรเดียนต์เป็นศูนย์ที่ทางออก
         type            zeroGradient;
     }
     walls
     {
-        // Adiabatic walls
+        // ผนังแบบอะไดอะแบติก (Adiabatic walls)
         type            zeroGradient;
     }
 }
 ```
 
-**Explanation:**
+**คำอธิบาย:**
 ไฟล์นี้กำหนดเงื่อนไขขอบเขตสำหรับส่วนประกอบชนิดหนึ่ง (เมเทน) ในการจำลองแบบการไหลแบบมีปฏิกิริยาเคมี การตั้งค่าอย่างถูกต้องสำคัญต่อความแม่นยำของการทำนาย
 
-**Key Concepts:**
-- `dimensions`: มิติของตัวแปร (มวลเศษเป็น无量纲)
+**แนวคิดสำคัญ:**
+- `dimensions`: มิติของตัวแปร (มวลเศษเป็นไร้มิติ)
 - `internalField`: ค่าเริ่มต้นในโดเมน
 - `fixedValue`: กำหนดค่าคงที่ที่ขอบเขต
 - `zeroGradient`: การไล่ระดับเป็นศูนย์ (ไม่มีการเปลี่ยนแปลง)
 
-#### Example: `0/O2` (Oxygen)
+#### ตัวอย่าง: `0/O2` (ออกซิเจน)
 
 ```cpp
 dimensions      [0 0 0 0 0 0 0];
 
-// Initial mass fraction of oxygen (23.3%)
+// เศษส่วนมวลเริ่มต้นของออกซิเจน (23.3%)
 internalField   uniform 0.233;
 
 boundaryField
 {
     inlet
     {
-        // Fixed value at inlet
+        // ค่าคงที่ที่ทางเข้า
         type            fixedValue;
         value           uniform 0.233;
     }
     outlet
     {
-        // Zero gradient at outlet
+        // เกรเดียนต์เป็นศูนย์ที่ทางออก
         type            zeroGradient;
     }
     walls
     {
-        // Adiabatic walls
+        // ผนังแบบอะไดอะแบติก
         type            zeroGradient;
     }
 }
 ```
 
-**Explanation:**
+**คำอธิบาย:**
 ไฟล์นี้กำหนดเงื่อนไขขอบเขตสำหรับออกซิเจนซึ่งเป็นส่วนประกอบสำคัญในปฏิกิริยาการเผาไหม้
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - ค่า mass fraction ของ O₂ ในอากาศปกติคือ 23.3%
 - การใช้ zeroGradient ที่ผนังหมายถึงไม่มีการแพร่ผ่าน
 
-> [!TIP] Species Mass Fraction Sum
-> Ensure that $\sum Y_i = 1.0$ for all species. Common practice is to specify major species and calculate the last one (usually N₂) as $Y_{N_2} = 1 - \sum_{i \neq N_2} Y_i$.
+> [!TIP] ผลรวมเศษส่วนมวลสปีชีส์
+> ตรวจสอบให้แน่ใจว่า $\sum Y_i = 1.0$ สำหรับทุกสปีชีส์ แนวทางปฏิบัติทั่วไปคือระบุสปีชีส์หลักและคำนวณสปีชีส์สุดท้าย (มักจะเป็น N₂) เป็น $Y_{N_2} = 1 - \sum_{i \neq N_2} Y_i$
 
-### Temperature Field (`0/T`)
+### ฟิลด์อุณหภูมิ (`0/T`)
 
 ```cpp
 dimensions      [0 0 0 1 0 0 0];
 
-// Initial temperature field [K]
+// ฟิลด์อุณหภูมิเริ่มต้น [เคลวิน]
 internalField   uniform 300;
 
 boundaryField
 {
     inlet
     {
-        // Heated inlet temperature
+        // อุณหภูมิทางเข้าที่ได้รับความร้อน
         type            fixedValue;
         value           uniform 600;
     }
     outlet
     {
-        // Zero gradient at outlet
+        // เกรเดียนต์เป็นศูนย์ที่ทางออก
         type            zeroGradient;
     }
     walls
     {
-        // Hot wall temperature
+        // อุณหภูมิผนังร้อน
         type            fixedValue;
         value           uniform 1200;
     }
 }
 ```
 
-**Explanation:**
+**คำอธิบาย:**
 ไฟล์นี้กำหนดการกระจายของอุณหภูมิในโดเมนการจำลองแบบ ซึ่งมีผลต่อความเร็วปฏิกิริยาเคมีและคุณสมบัติของของไหล
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - อุณหภูมิมีหน่วยเป็นเคลวิน (K)
 - การใช้ fixedValue ที่ผนังสำหรับเงื่อนไขผนังร้อน
 - การตั้งค่าอุณหภูมิเริ่มต้นที่สมเหตุสมผลสำคัญต่อความเสถียรของการคำนวณ
 
-### Pressure Field (`0/p`)
+### ฟิลด์ความดัน (`0/p`)
 
 ```cpp
 dimensions      [1 -1 -2 0 0 0 0];
 
-// Initial pressure field [Pa]
+// ฟิลด์ความดันเริ่มต้น [ปาสกาล]
 internalField   uniform 101325;
 
 boundaryField
 {
     inlet
     {
-        // Zero gradient at inlet
+        // เกรเดียนต์เป็นศูนย์ที่ทางเข้า
         type            zeroGradient;
     }
     outlet
     {
-        // Fixed atmospheric pressure at outlet
+        // กำหนดความดันบรรยากาศคงที่ที่ทางออก
         type            fixedValue;
         value           uniform 101325;
     }
     walls
     {
-        // Zero gradient at walls
+        // เกรเดียนต์เป็นศูนย์ที่ผนัง
         type            zeroGradient;
     }
 }
 ```
 
-**Explanation:**
+**คำอธิบาย:**
 ไฟล์นี้กำหนดการกระจายของความดันในโดเมนการจำลองแบบ ซึ่งสำคัญต่อการคำนวณความเร็วและคุณสมบัติของของไหล
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - ความดันมีหน่วยเป็นปาสกาล (Pa): [kg/(m·s²)]
 - การกำหนดความดันคงที่ที่ outlet เป็นเงื่อนไขขอบเขตทั่วไป
 - ความดันเริ่มต้นควรเป็นค่าทางกายภาพที่สมเหตุสมผล
 
-### Boundary Condition Types
+### ประเภทเงื่อนไขขอบเขต
 
-| BC Type | Appropriate Value | Location |
+| ประเภท BC | ค่าที่เหมาะสม | ตำแหน่ง |
 |---------|------------------|----------|
-| `fixedValue` | Specific concentration/temperature | Inlets |
-| `zeroGradient` | No change | Outlets |
-| `inletOutlet` | Switches between inlet/outlet | Mixed boundaries |
+| `fixedValue` | ความเข้มข้น/อุณหภูมิเฉพาะ | ทางเข้า (Inlets) |
+| `zeroGradient` | ไม่มีการเปลี่ยนแปลง | ทางออก (Outlets) |
+| `inletOutlet` | สลับระหว่างทางเข้า/ทางออก | ขอบเขตผสม |
 
 ---
 
-## Step 6: Run Solver
+## ขั้นตอนที่ 6: รันตัวแก้ปัญหา (Run Solver)
 
-### Selecting the Appropriate Solver
+### การเลือกตัวแก้ปัญหาที่เหมาะสม
 
-| Solver | Description | Application |
+| ตัวแก้ปัญหา | คำอธิบาย | การประยุกต์ใช้ |
 |--------|-------------|------------|
-| **`reactingFoam`** | Low Mach number reacting flow | Small density variations |
-| **`rhoReactingFoam`** | Compressible reacting flow | Large density variations |
-| **`reactingEulerFoam`** | Multiphase reacting flow with phase change | Multiphase systems |
+| **`reactingFoam`** | การไหลแบบมีปฏิกิริยาที่เลขมัคต่ำ | การเปลี่ยนแปลงความหนาแน่นน้อย |
+| **`rhoReactingFoam`** | การไหลแบบมีปฏิกิริยาที่อัดตัวได้ | การเปลี่ยนแปลงความหนาแน่นมาก |
+| **`reactingEulerFoam`** | การไหลแบบมีปฏิกิริยาหลายเฟสพร้อมการเปลี่ยนสถานะ | ระบบหลายเฟส |
 
-### Execution
+### การรัน (Execution)
 
 ```bash
-# For low Mach number flow
+# สำหรับการไหลที่มีเลขมัคต่ำ
 reactingFoam -case your_case_directory
 
-# For compressible flow
+# สำหรับการไหลที่อัดตัวได้
 rhoReactingFoam -case your_case_directory
 ```
 
-### Progress Monitoring
+### การติดตามความคืบหน้า
 
-Key quantities to monitor during simulation:
+ปริมาณหลักที่ต้องติดตามในระหว่างการจำลอง:
 
-1. **Residuals**: All equations should show decreasing residuals
-2. **Temperature**: Should be physically reasonable (300-3000 K for combustion)
-3. **Species**: Mass fractions should remain between 0 and 1
-4. **Heat release**: Monitor chemical heat release rate
+1. **ค่าตกค้าง (Residuals)**: สมการทั้งหมดควรแสดงค่าตกค้างที่ลดลง
+2. **อุณหภูมิ**: ควรมีความสมเหตุสมผลทางฟิสิกส์ (300-3000 K สำหรับการเผาไหม้)
+3. **สปีชีส์**: เศษส่วนมวลควรอยู่ระหว่าง 0 และ 1
+4. **การคายความร้อน (Heat release)**: ติดตามอัตราการคายความร้อนทางเคมี
 
-### Time Step Control
+### การควบคุมช่วงเวลา (Time Step Control)
 
-In `system/controlDict`, adjust time stepping as necessary:
+ในไฟล์ `system/controlDict` ให้ปรับการก้าวช่วงเวลาตามต้องการ:
 
 ```cpp
-// Courant number limit for stability
+// ขีดจำกัดเลขคูแรนท์เพื่อเสถียรภาพ
 maxCo           0.5;
 
-// Maximum time step [s]
+// ช่วงเวลาสูงสุด [วินาที]
 maxDeltaT       1e-3;
 
-// Enable adaptive time stepping
+// เปิดใช้งานการปรับช่วงเวลาแบบปรับตัว
 adjustTimeStep  yes;
 ```
 
-**Explanation:**
+**คำอธิบาย:**
 การควบคุมขั้นตอนเวลาสำคัญต่อความเสถียรและประสิทธิภาพของการจำลองแบบ โดยเฉพาะสำหรับปัญหาการไหลแบบมีปฏิกิริยาเคมีที่มีหลายมาตราส่วนเวลา
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - `maxCo`: จำกัดเลข Courant สำหรับเสถียรภาพเชิงตัวเลข
 - `maxDeltaT`: ขั้นตอนเวลาสูงสุดที่อนุญาต
 - `adjustTimeStep`: เปิดใช้งานการปรับขั้นตอนเวลาอัตโนมัติ
 
-### Convergence Criteria
+### เกณฑ์การลู่เข้า (Convergence Criteria)
 
-The simulation is considered converged when:
-- All residual plots show consistent decrease
-- Temperature field reaches steady state (for steady-state cases)
-- Species concentrations stabilize
-- Global heat release rate balances
+การจำลองจะถือว่าลู่เข้าเมื่อ:
+- พล็อตค่าตกค้างทั้งหมดแสดงการลดลงอย่างต่อเนื่อง
+- สนามอุณหภูมิเข้าสู่สภาวะคงตัว (สำหรับกรณีสภาวะคงตัว)
+- ความเข้มข้นของสปีชีส์คงที่
+- อัตราการคายความร้อนโดยรวมเกิดความสมดุล
 
-> [!INFO] Typical Time Scales
-> - Fluid time step: ~10⁻⁵ to 10⁻³ s (limited by Courant number)
-> - Chemistry time step: ~10⁻⁸ to 10⁻⁶ s (limited by reaction stiffness)
-> - Operator splitting allows different time scales for flow and chemistry
+> [!INFO] มาตราส่วนเวลาทั่วไป
+> - ช่วงเวลาของไหล: ~10⁻⁵ ถึง 10⁻³ วินาที (จำกัดโดยเลขคูแรนท์)
+> - ช่วงเวลาเคมี: ~10⁻⁸ ถึง 10⁻⁶ วินาที (จำกัดโดยความแข็งเกร็งของปฏิกิริยา)
+> - การแยกตัวดำเนินการ (Operator splitting) ช่วยให้ใช้มาตราส่วนเวลาที่ต่างกันสำหรับของไหลและเคมีได้
 
 ---
 
-## Step 7: Post-Processing and Analysis
+## ขั้นตอนที่ 7: การประมวลผลหลังการจำลองและการวิเคราะห์ (Post-Processing)
 
-### Analysis Techniques
+### เทคนิคการวิเคราะห์
 
-#### 1. Mass Balance Analysis
+#### 1. การวิเคราะห์สมดุลมวล
 
 ```bash
-# Calculate inlet/outlet mass flow rates
+# คำนวณอัตราการไหลของมวลที่ทางเข้า/ทางออก
 postProcess -func "volFlowRate" -name "inlet"
 postProcess -func "volFlowRate" -name "outlet"
 
-# Calculate species production/destruction rates
+# คำนวณอัตราการผลิต/ทำลายสปีชีส์
 foamCalc add Yi
 ```
 
-#### 2. Energy Balance Analysis
+#### 2. การวิเคราะห์สมดุลพลังงาน
 
-Check energy balance between:
-- Energy entering with fluid flow
-- Heat from reactions (reaction heat)
-- Heat loss at boundaries
-- Change in internal energy
+ตรวจสอบสมดุลพลังงานระหว่าง:
+- พลังงานที่เข้ามาพร้อมกับการไหลของของไหล
+- ความร้อนจากปฏิกิริยา (ความร้อนจากปฏิกิริยา)
+- การสูญเสียความร้อนที่ขอบเขต
+- การเปลี่ยนแปลงพลังงานภายใน
 
-#### 3. Combustion Indicators
+#### 3. ตัวบ่งชี้การเผาไหม้
 
-Key indicators for combustion analysis:
+ตัวบ่งชี้หลักสำหรับการวิเคราะห์การเผาไหม้:
 
 ```bash
-# Flame temperature
+# อุณหภูมิเปลวไฟ
 foamCalc max T
 
-# Maximum reaction rate
+# อัตราปฏิกิริยาสูงสุด
 postProcess -func "max(reactionRate)"
 
-# Intermediate species concentrations
+# ความเข้มข้นของสปีชีส์ตัวกลาง
 postProcess -func "volFieldValue" -name "OH" -region "reactorZone"
 ```
 
-### Flow Tracers
+### ตัวติดตามการไหล (Flow Tracers)
 
-Use intermediate species to track reaction zones:
-- **OH radical**: Indicates high flame zones
-- **CO/CO₂ ratio**: Indicates combustion efficiency
-- **Temperature gradients**: Indicate reaction layer thickness
+ใช้สปีชีส์ตัวกลางเพื่อติดตามโซนปฏิกิริยา:
+- **อนุมูลอิสระ OH**: บ่งชี้โซนเปลวไฟที่มีความร้อนสูง
+- **อัตราส่วน CO/CO₂**: บ่งชี้ประสิทธิภาพการเผาไหม้
+- **เกรเดียนต์อุณหภูมิ**: บ่งชี้ความหนาของชั้นปฏิกิริยา
 
 ---
 
-## Troubleshooting Guide
+## คู่มือการแก้ไขปัญหา (Troubleshooting Guide)
 
-### Common Issues and Solutions
+### ปัญหาที่พบบ่อยและวิธีแก้ไข
 
-| Problem | Symptoms | Solution |
+| ปัญหา | อาการ | วิธีแก้ไข |
 |---------|----------|----------|
-| **Divergence** | Residuals increase, simulation crashes | Reduce time step, check boundary conditions |
-| **Negative species** | Mass fractions < 0 | Improve mesh quality, reduce chemistry stiffness |
-| **Temperature spikes** | Unrealistic temperatures (>4000 K) | Check reaction mechanism, verify thermodynamic data |
-| **Slow convergence** | Residuals plateau | Check turbulence model, adjust combustion model parameters |
-| **Mass imbalance** | Mass not conserved | Verify boundary conditions, check mass fraction sum |
+| **การลู่ออก (Divergence)** | ค่าตกค้างเพิ่มขึ้น, การจำลองแครช | ลดช่วงเวลา, ตรวจสอบเงื่อนไขขอบเขต |
+| **สปีชีส์เป็นลบ** | เศษส่วนมวล < 0 | ปรับปรุงคุณภาพเมช, ลดความแข็งเกร็งทางเคมี |
+| **อุณหภูมิพุ่งสูง** | อุณหภูมิไม่สมจริง (>4000 K) | ตรวจสอบกลไกปฏิกิริยา, ยืนยันข้อมูลเทอร์โมไดนามิก |
+| **การลู่เข้าช้า** | ค่าตกค้างคงที่ที่ระดับสูง | ตรวจสอบแบบจำลองความปั่นป่วน, ปรับพารามิเตอร์แบบจำลองการเผาไหม้ |
+| **มวลไม่สมดุล** | มวลไม่ได้รับการอนุรักษ์ | ตรวจสอบเงื่อนไขขอบเขต, ตรวจสอบผลรวมเศษส่วนมวล |
 
-### Divergence Checklist
+### รายการตรวจสอบการลู่ออก (Divergence Checklist)
 
-- **Check `initialChemicalTimeStep`**: Reduce if chemistry is exploding
-- **Check `T` boundaries**: Ensure realistic temperature values
-- **Ensure reaction balance**: Verify stoichiometry
-- **Check mesh quality**: Non-orthogonality < 70, aspect ratio < 1000
-- **Verify solver settings**: Use appropriate schemes for reacting flows
+- **ตรวจสอบ `initialChemicalTimeStep`**: ลดลงหากเคมีเกิดการระเบิด (exploding)
+- **ตรวจสอบขอบเขต `T`**: รับประกันว่าค่าอุณหภูมิมีความสมจริง
+- **รับประกันสมดุลปฏิกิริยา**: ยืนยันปริมาณสัมพันธ์ (stoichiometry)
+- **ตรวจสอบคุณภาพเมช**: ความไม่ตั้งฉาก < 70, อัตราส่วนรูปร่าง < 1000
+- **ยืนยันการตั้งค่าตัวแก้ปัญหา**: ใช้รูปแบบ (schemes) ที่เหมาะสมสำหรับการไหลแบบมีปฏิกิริยา
 
-### Performance Optimization
+### การเพิ่มประสิทธิภาพ
 
-#### Mesh Refinement Strategy
-- Use **dynamic mesh refinement** for reacting flows
-- Base refinement on:
-  - Temperature gradients
-  - Species concentration gradients
-  - Reaction rate magnitude
-- Limit maximum refinement level to control memory and computation time
+#### กลยุทธ์การปรับปรุงเมช
+- ใช้ **การปรับปรุงเมชแบบพลวัต (dynamic mesh refinement)** สำหรับการไหลแบบมีปฏิกิริยา
+- ปรับปรุงตาม:
+  - เกรเดียนต์อุณหภูมิ
+  - เกรเดียนต์ความเข้มข้นสปีชีส์
+  - ขนาดของอัตราปฏิกิริยา
+- จำกัดระดับการปรับปรุงสูงสุดเพื่อควบคุมหน่วยความจำและเวลาคำนวณ
 
-#### Chemistry Reduction Techniques
-- **Mechanism reduction**: Remove unimportant reactions
-- **Tabulation**: Use flamelet libraries for complex chemistry
-- **Load balancing**: Essential for parallel simulations with local chemistry
+#### เทคนิคการลดขนาดทางเคมี
+- **การลดขนาดกลไก**: กำจัดปฏิกิริยาที่ไม่สำคัญออก
+- **การทำตาราง (Tabulation)**: ใช้ไลบรารี flamelet สำหรับเคมีที่ซับซ้อน
+- **การปรับสมดุลภาระงาน**: จำเป็นสำหรับการจำลองแบบขนานที่มีเคมีเฉพาะที่
 
-### Numerical Scheme Recommendations
+### คำแนะนำรูปแบบเชิงตัวเลข (Numerical Scheme Recommendations)
 
-For `system/fvSchemes`:
+สำหรับไฟล์ `system/fvSchemes`:
 
 ```cpp
 ddtSchemes
 {
-    // First-order Euler scheme (implicit)
+    // รูปแบบ Euler อันดับหนึ่ง (โดยนัย)
     default         Euler;
     
-    // Or use second-order for better accuracy
+    // หรือใช้อันดับสองเพื่อความแม่นยำที่ดีกว่า
     // default         backward;
 }
 
 gradSchemes
 {
-    // Linear interpolation for gradients
+    // การประมาณค่าเชิงเส้นสำหรับเกรเดียนต์
     default         Gauss linear;
 }
 
 divSchemes
 {
-    // Upwind scheme for stability
+    // รูปแบบ upwind เพื่อเสถียรภาพ
     default         Gauss upwind;
     
-    // Species transport with upwind
+    // การขนส่งสปีชีส์ด้วย upwind
     div(phi,Yi)     Gauss upwind;
 }
 
 laplacianSchemes
 {
-    // Linear scheme with non-orthogonal correction
+    // รูปแบบเชิงเส้นพร้อมการแก้ไขความไม่ตั้งฉาก
     default         Gauss linear corrected;
 }
 
 interpolationSchemes
 {
-    // Linear interpolation for face values
+    // การประมาณค่าเชิงเส้นสำหรับค่าที่หน้าผิว
     default         linear;
 }
 
 snGradSchemes
 {
-    // Corrected surface normal gradient
+    // การแก้ไขเกรเดียนต์ในแนวตั้งฉากกับพื้นผิว
     default         corrected;
 }
 ```
 
-#### 📂 Source: `.applications/test/fieldMapping/pipe1D/system/fvSchemes`
+#### 📂 แหล่งที่มา: `.applications/test/fieldMapping/pipe1D/system/fvSchemes`
 
-**Explanation:**
+**คำอธิบาย:**
 การเลือกแบบจำลองเชิงตัวเลข (numerical schemes) มีผลต่อความเสถียร ความแม่นยำ และประสิทธิภาพของการจำลองแบบ สำหรับปัญหาการไหลแบบมีปฏิกิริยาเคมี ความเสถียรมักมีความสำคัญมากกว่าความแม่นยำ
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - `Euler`: แบบจำลองอันดับหนึ่งแบบ implicit สำหรับความเสถียร
 - `backward`: แบบจำลองอันดับสองสำหรับความแม่นยำที่ดีกว่า
 - `Gauss upwind`: แบบจำลอง upwind สำหรับเสถียรภาพ
 - `Gauss linear corrected`: แบบจำลองเชิงเส้นพร้อมการแก้ไข non-orthogonal
 
-For `system/fvSolution`:
+สำหรับไฟล์ `system/fvSolution`:
 
 ```cpp
 solvers
 {
-    // Momentum and turbulence equation solvers
+    // ตัวแก้สมการโมเมนตัมและความปั่นป่วน
     "(U|k|epsilon)"
     {
-        // Preconditioned bi-conjugate gradient solver
+        // ตัวแก้สมการ bi-conjugate gradient แบบมีตัวปรับสภาพ (preconditioned)
         solver          PBiCGStab;
         
-        // Diagonal incomplete LU preconditioner
+        // ตัวปรับสภาพแบบ Diagonal incomplete LU
         preconditioner  DILU;
         
-        // Absolute convergence tolerance
+        // ค่าความคลาดเคลื่อนสัมบูรณ์สำหรับการลู่เข้า
         tolerance       1e-05;
         
-        // Relative convergence tolerance
+        // ค่าความคลาดเคลื่อนสัมพัทธ์สำหรับการลู่เข้า
         relTol          0.1;
     }
 
-    // Energy and species equation solvers
+    // ตัวแก้สมการพลังงานและสปีชีส์
     "(h|Yi.*)"
     {
-        // Preconditioned bi-conjugate gradient solver
+        // ตัวแก้สมการ bi-conjugate gradient แบบมีตัวปรับสภาพ
         solver          PBiCGStab;
         
-        // Diagonal incomplete LU preconditioner
+        // ตัวปรับสภาพแบบ Diagonal incomplete LU
         preconditioner  DILU;
         
-        // Absolute convergence tolerance
+        // ค่าความคลาดเคลื่อนสัมบูรณ์สำหรับการลู่เข้า
         tolerance       1e-06;
         
-        // Relative convergence tolerance
+        // ค่าความคลาดเคลื่อนสัมพัทธ์สำหรับการลู่เข้า
         relTol          0.01;
     }
 }
 
 PIMPLE
 {
-    // Number of outer correctors
+    // จำนวนรอบการแก้ไขรอบนอก
     nOuterCorrectors  2;
     
-    // Number of inner correctors
+    // จำนวนรอบการแก้ไขรอบใน
     nCorrectors       2;
     
-    // Non-orthogonal correctors
+    // การแก้ไขความไม่ตั้งฉาก
     nNonOrthogonalCorrectors 0;
 }
 
 chemistry
 {
-    // Chemistry ODE solver
+    // ตัวแก้ ODE ทางเคมี
     solver            SEulex;
     
-    // Absolute tolerance
+    // ค่าความคลาดเคลื่อนสัมบูรณ์
     tolerance         1e-06;
     
-    // Relative tolerance
+    // ค่าความคลาดเคลื่อนสัมพัทธ์
     relTol            0.01;
 }
 ```
 
-**Explanation:**
+**คำอธิบาย:**
 การตั้งค่า solver ใน fvSolution กำหนดวิธีการแก้สมการเชิงเส้นและเกณฑ์การบรรจบกัน ซึ่งมีผลต่อความเร็วและความแม่นยำของการคำนวณ
 
-**Key Concepts:**
+**แนวคิดสำคัญ:**
 - `PBiCGStab`: Solver gradient conjugate แบบ preconditioned สำหรับเมทริกซ์ไม่สมมาตร
 - `DILU`: Preconditioner แบบ incomplete LU สำหรับความเร็วในการบรรจบกัน
 - `nOuterCorrectors`: จำนวนรอบการแก้ไขภายนอกสำหรับ PIMPLE
@@ -731,28 +731,28 @@ chemistry
 
 ---
 
-## Complete Workflow Summary
+## สรุปขั้นตอนการทำงานที่สมบูรณ์ (Complete Workflow Summary)
 
 ```mermaid
 flowchart TD
-    A[Prepare Chemistry Files<br/>chem.inp, therm.dat, tran.dat] --> B[Configure thermophysicalProperties]
-    B --> C[Select Combustion Model<br/>PaSR or EDC]
-    C --> D[Setup Chemistry Solver<br/>SEulex, Rosenbrock, CVODE]
-    D --> E[Define Initial &<br/>Boundary Conditions]
-    E --> F[Run Solver<br/>reactingFoam]
-    F --> G[Monitor Convergence]
-    G --> H{Converged?}
-    H -->|No| I[Troubleshoot &<br/>Adjust Parameters]
+    A[เตรียมไฟล์เคมี<br/>chem.inp, therm.dat, tran.dat] --> B[กำหนดค่า thermophysicalProperties]
+    B --> C[เลือกแบบจำลองการเผาไหม้<br/>PaSR หรือ EDC]
+    C --> D[ตั้งค่าตัวแก้สมการเคมี<br/>SEulex, Rosenbrock, CVODE]
+    D --> E[กำหนดเงื่อนไขเริ่มต้นและ<br/>เงื่อนไขขอบเขต]
+    E --> F[รันตัวแก้ปัญหา<br/>reactingFoam]
+    F --> G[ติดตามการลู่เข้า]
+    G --> H{ลู่เข้าแล้วหรือยัง?};
+    H -->|ยัง| I[แก้ไขปัญหาและ<br/>ปรับปรุงพารามิเตอร์]
     I --> F
-    H -->|Yes| J[Post-Processing &<br/>Analysis]
+    H -->|ใช่| J[ประมวลผลภายหลังและ<br/>การวิเคราะห์]
 ```
-> **Figure 1:** แผนผังลำดับขั้นตอนการปฏิบัติงานสำหรับการจำลองการไหลแบบมีปฏิกิริยาเคมีที่สมบูรณ์ ตั้งแต่การเตรียมข้อมูลกลไกปฏิกิริยาเคมี การตั้งค่าพารามิเตอร์ของ Solver ไปจนถึงกระบวนการวิเคราะห์ผลลัพธ์เชิงวิศวกรรมและการแก้ปัญหาความไม่ลู่เข้าของคำตอบ
+> **รูปที่ 1:** แผนผังลำดับขั้นตอนการปฏิบัติงานสำหรับการจำลองการไหลแบบมีปฏิกิริยาเคมีที่สมบูรณ์ ตั้งแต่การเตรียมข้อมูลกลไกปฏิกิริยาเคมี การตั้งค่าพารามิเตอร์ของ Solver ไปจนถึงกระบวนการวิเคราะห์ผลลัพธ์เชิงวิศวกรรมและการแก้ปัญหาความไม่ลู่เข้าของคำตอบ
 
 ---
 
-## Quick Reference Configuration
+## การกำหนดค่าอ้างอิงด่วน (Quick Reference Configuration)
 
-### Minimal `constant/thermophysicalProperties`
+### ค่าต่ำสุดสำหรับ `constant/thermophysicalProperties`
 
 ```cpp
 thermoType
@@ -774,7 +774,7 @@ mixture
 }
 ```
 
-### Minimal `constant/chemistryProperties`
+### ค่าต่ำสุดสำหรับ `constant/chemistryProperties`
 
 ```cpp
 chemistry       on;
@@ -785,7 +785,7 @@ tolerance       1e-6;
 relTol          0.01;
 ```
 
-### Minimal `constant/combustionProperties`
+### ค่าต่ำสุดสำหรับ `constant/combustionProperties`
 
 ```cpp
 combustionModel PaSR;
@@ -799,4 +799,4 @@ PaSRCoeffs
 
 ---
 
-This workflow provides a robust foundation for setting up reacting flow simulations in OpenFOAM, enabling accurate prediction of combustion phenomena in engineering applications.
+ขั้นตอนการทำงานนี้จัดทำรากฐานที่แข็งแกร่งสำหรับการตั้งค่าการจำลองการไหลแบบมีปฏิกิริยาใน OpenFOAM ช่วยให้สามารถคาดการณ์ปรากฏการณ์การเผาไหม้ในการประยุกต์ใช้งานทางวิศวกรรมได้อย่างแม่นยำ

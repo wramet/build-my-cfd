@@ -1,124 +1,124 @@
-# Key Points to Remember
+# ประเด็นสำคัญที่ควรจดจำ (Key Points to Remember)
 
-## 1. Conservation Laws: Foundation of CFD
+## 1. กฎการอนุรักษ์: รากฐานของ CFD (Conservation Laws: Foundation of CFD)
 
-**All of computational fluid dynamics (CFD)** is built upon the fundamental principles of conservation of mass, momentum, and energy
+**พลศาสตร์ของไหลเชิงคำนวณ (CFD) ทั้งหมด** ถูกสร้างขึ้นบนหลักการพื้นฐานของการอนุรักษ์มวล โมเมนตัม และพลังงาน
 
-These conservation laws represent the physical constraints governing fluid behavior and form the mathematical core of all CFD simulations:
+กฎการอนุรักษ์เหล่านี้แสดงถึงข้อจำกัดทางกายภาพที่ควบคุมพฤติกรรมของของไหล และก่อตัวเป็นแกนกลางทางคณิตศาสตร์ของการจำลอง CFD ทั้งหมด:
 
-- **Mass conservation**: Ensures fluid cannot be created or destroyed within the domain
-- **Momentum conservation**: Follows Newton's second law applied to continuous media
-- **Energy conservation**: Maintains the first law of thermodynamics throughout the computational domain
+- **การอนุรักษ์มวล (Mass conservation)**: มั่นใจได้ว่าของไหลจะไม่สามารถถูกสร้างขึ้นหรือถูกทำลายได้ภายในโดเมน (domain)
+- **การอนุรักษ์โมเมนตัม (Momentum conservation)**: เป็นไปตามกฎข้อที่สองของนิวตันที่ประยุกต์ใช้กับตัวกลางต่อเนื่อง (continuous media)
+- **การอนุรักษ์พลังงาน (Energy conservation)**: รักษาความเป็นไปตามกฎข้อที่หนึ่งของอุณหพลศาสตร์ตลอดทั่วทั้งโดเมนการคำนวณ
 
-In OpenFOAM, these principles are implemented through the finite volume method, where integral forms of conservation equations are applied to each control volume
+ใน OpenFOAM หลักการเหล่านี้ถูกนำไปใช้งานผ่านวิธีไฟไนต์วอลุ่ม (finite volume method) โดยที่รูปแบบอินทิกรัลของสมการอนุรักษ์จะถูกประยุกต์ใช้กับแต่ละปริมาตรควบคุม (control volume)
 
-### General Transport Equation
+### สมการการขนส่งทั่วไป (General Transport Equation)
 
-For a generic property $\phi$, the conservation equation can be expressed as:
+สำหรับคุณสมบัติทั่วไป $\phi$ สมการการอนุรักษ์สามารถแสดงได้ในรูปแบบดังนี้:
 $$\frac{\partial (\rho \phi)}{\partial t} + \nabla \cdot (\rho \phi \mathbf{u}) = \nabla \cdot (\Gamma \nabla \phi) + S_\phi$$
 
-Where:
-- $\rho$ = density
-- $\mathbf{u}$ = velocity vector
-- $\Gamma$ = diffusion coefficient
-- $S_\phi$ = source terms
+โดยที่:
+- $\rho$ = ความหนาแน่น (density)
+- $\mathbf{u}$ = เวกเตอร์ความเร็ว (velocity vector)
+- $\Gamma$ = สัมประสิทธิ์การแพร่ (diffusion coefficient)
+- $S_\phi$ = พจน์แหล่งกำเนิด (source terms)
 
-This general transport equation serves as a template for all conservation equations in CFD, where $\phi$ represents different physical quantities depending on the specific equation being solved
+สมการการขนส่งทั่วไปนี้ทำหน้าที่เป็นแม่แบบ (template) สำหรับสมการอนุรักษ์ทั้งหมดใน CFD โดยที่ $\phi$ จะแทนปริมาณทางกายภาพที่แตกต่างกันไปตามสมการเฉพาะที่กำลังทำการแก้ปัญหา
 
-### Application of Gauss's Divergence Theorem
+### การประยุกต์ใช้ทฤษฎีบทการลู่ออกของเกาส์ (Application of Gauss's Divergence Theorem)
 ![[Pasted image 20251223200317.png]]
 
-The finite volume implementation in OpenFOAM discretizes these integral equations by applying Gauss's divergence theorem:
+การทำงานแบบไฟไนต์วอลุ่มใน OpenFOAM จะทำให้สมการอินทิกรัลเหล่านี้กลายเป็นค่าไม่ต่อเนื่อง (discretize) โดยการประยุกต์ใช้ทฤษฎีบทการลู่ออกของเกาส์ (Gauss's divergence theorem):
 $$\int_V \nabla \cdot \mathbf{F} \, \mathrm{d}V = \oint_S \mathbf{F} \cdot \mathbf{n} \, \mathrm{d}S$$
 
-Where:
-- $\mathbf{F}$ = flux vector
-- $\mathbf{n}$ = outward normal vector at cell faces
+โดยที่:
+- $\mathbf{F}$ = เวกเตอร์ฟลักซ์ (flux vector)
+- $\mathbf{n}$ = เวกเตอร์แนวฉากที่พุ่งออกที่ผิวของเซลล์ (outward normal vector at cell faces)
 
-This discretization ensures exact conservation at the discrete level, making the finite volume method ideally suited for CFD applications where conservation properties are paramount
+การทำให้เป็นส่วนย่อย (discretization) นี้ช่วยให้มั่นใจได้ถึงการอนุรักษ์ที่แม่นยำในระดับไม่ต่อเนื่อง (discrete level) ทำให้วิธีไฟไนต์วอลุ่มเหมาะสมอย่างยิ่งสำหรับการประยุกต์ใช้งาน CFD ซึ่งคุณสมบัติการอนุรักษ์ถือเป็นเรื่องที่สำคัญที่สุด
 
 ---
 
-## 2. Continuity Equation: Principle of Mass Conservation
+## 2. สมการความต่อเนื่อง: หลักการอนุรักษ์มวล (Continuity Equation: Principle of Mass Conservation)
 
-**The continuity equation** mathematically expresses the fundamental principle that mass cannot be created or destroyed within a fluid system
+**สมการความต่อเนื่อง (continuity equation)** แสดงถึงหลักการพื้นฐานทางคณิตศาสตร์ที่ว่า มวลไม่สามารถถูกสร้างขึ้นหรือถูกทำลายได้ภายในระบบของไหล
 
-This equation states that the rate of mass accumulation within any control volume must equal the net mass flux into that volume, plus any mass sources or sinks
+สมการนี้ระบุว่าอัตราการสะสมมวลภายในปริมาตรควบคุมใด ๆ จะต้องเท่ากับฟลักซ์มวลสุทธิที่ไหลเข้าสู่ปริมาตรนั้น รวมกับแหล่งกำเนิดหรือแหล่งรับมวลใด ๆ
 
-### Incompressible Flow Case
+### กรณีการไหลแบบอัดตัวไม่ได้ (Incompressible Flow Case)
 
-For incompressible flows where density is constant, the continuity equation simplifies dramatically:
+สำหรับการไหลแบบอัดตัวไม่ได้ซึ่งมีความหนาแน่นคงที่ สมการความต่อเนื่องจะลดรูปอย่างมากเหลือเพียง:
 $$\nabla \cdot \mathbf{u} = 0$$
 
-This constraint ensures the flow remains **solenoidal (divergence-free)**, meaning the volume of fluid elements remains constant as they move through the flow field
+ข้อจำกัดนี้ทำให้มั่นใจได้ว่าการไหลจะมีลักษณะเป็นแบบ **โซเลนอยด์ (solenoidal หรือ divergence-free)** ซึ่งหมายความว่าปริมาตรขององค์ประกอบของไหลจะยังคงที่ในขณะที่เคลื่อนที่ผ่านสนามการไหล (flow field)
 
-### Compressible Flow Case
+### กรณีการไหลแบบอัดตัวได้ (Compressible Flow Case)
 
-In compressible flow situations, the continuity equation takes a more general form:
+ในสถานการณ์การไหลแบบอัดตัวได้ สมการความต่อเนื่องจะมีรูปแบบทั่วไปมากขึ้น:
 $$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$$
 
-This equation accounts for density variations and is essential for capturing phenomena such as:
-- Shock waves
-- Acoustic propagation
-- High-speed gas dynamics
+สมการนี้คำนึงถึงการเปลี่ยนแปลงความหนาแน่นและเป็นสิ่งจำเป็นสำหรับการจับปรากฏการณ์ต่าง ๆ เช่น:
+- คลื่นกระแทก (Shock waves)
+- การแพร่กระจายของเสียง (Acoustic propagation)
+- พลศาสตร์ของแก๊สความเร็วสูง (High-speed gas dynamics)
 
-### Pressure-Velocity Coupling in OpenFOAM
+### การเชื่อมโยงความดันและความเร็วใน OpenFOAM (Pressure-Velocity Coupling in OpenFOAM)
 
-In OpenFOAM, the continuity equation is typically enforced through specialized pressure-velocity coupling algorithms:
+ใน OpenFOAM สมการความต่อเนื่องมักจะถูกบังคับใช้ผ่านอัลกอริทึมการเชื่อมโยงความดันและความเร็ว (pressure-velocity coupling algorithms) ที่เชี่ยวชาญเฉพาะด้าน:
 
-| Algorithm | Simulation Type | Characteristics |
+| อัลกอริทึม | ประเภทการจำลอง | คุณลักษณะ |
 |-----------|------------------|------------------|
-| **SIMPLE** | Steady-state | Semi-implicit with iteration |
-| **PISO** | Transient | Pressure-Implicit with Splitting of Operators |
-| **PIMPLE** | Large Transient | Combination of SIMPLE and PISO |
+| **SIMPLE** | สภาวะคงตัว (Steady-state) | กึ่งอ้อม (Semi-implicit) พร้อมการวนซ้ำ |
+| **PISO** | สภาวะไม่คงตัว (Transient) | Pressure-Implicit with Splitting of Operators |
+| **PIMPLE** | สภาวะไม่คงตัวขนาดใหญ่ | การผสมผสานระหว่าง SIMPLE และ PISO |
 
-#### SIMPLE Algorithm
+#### อัลกอริทึม SIMPLE
 
-The SIMPLE algorithm solves the coupled system through an iterative process:
+อัลกอริทึม SIMPLE แก้ระบบสมการที่เชื่อมโยงกันผ่านกระบวนการวนซ้ำ:
 
-1. **Momentum Prediction**: Solve momentum equation using current pressure field
-2. **Pressure Correction**: Construct pressure correction equation from continuity
-3. **Velocity Correction**: Update velocity field according to pressure correction
-4. **Boundary Condition Update**: Apply corrected values at boundaries
-5. **Convergence Check**: Verify residuals are below specified tolerance
+1. **การทำนายโมเมนตัม (Momentum Prediction)**: แก้สมการโมเมนตัมโดยใช้สนามความดันปัจจุบัน
+2. **การแก้ไขความดัน (Pressure Correction)**: สร้างสมการแก้ไขความดันจากเงื่อนไขความต่อเนื่อง
+3. **การแก้ไขความเร็ว (Velocity Correction)**: อัปเดตสนามความเร็วตามการแก้ไขความดัน
+4. **การอัปเดตเงื่อนไขขอบเขต (Boundary Condition Update)**: ประยุกต์ใช้ค่าที่ได้รับการแก้ไขที่ขอบเขต
+5. **การตรวจสอบการลู่เข้า (Convergence Check)**: ตรวจสอบว่าค่าคงเหลือ (residuals) ต่ำกว่าเกณฑ์ที่กำหนด
 
-For transient simulations, the PISO algorithm adds additional corrector steps to maintain temporal accuracy while ensuring mass conservation at each time step
+สำหรับการจำลองแบบสภาวะไม่คงตัว (transient) อัลกอริทึม PISO จะเพิ่มขั้นตอนการแก้ไขเพิ่มเติมเพื่อรักษาความแม่นยำเชิงเวลาในขณะที่ยังคงมั่นใจได้ถึงการอนุรักษ์มวลในแต่ละขั้นตอนเวลา (time step)
 
 ---
 
-## 3. Navier-Stokes Equations: Newton's Second Law for Fluids
+## 3. สมการ Navier-Stokes: กฎข้อที่สองของนิวตันสำหรับของไหล (Navier-Stokes Equations: Newton's Second Law for Fluids)
 
-**The Navier-Stokes equations** represent the mathematical formulation of Newton's second law of motion applied to fluid elements
+**สมการ Navier-Stokes** แสดงถึงรูปแบบทางคณิตศาสตร์ของกฎข้อที่สองของการเคลื่อนที่ของนิวตันที่ประยุกต์ใช้กับองค์ประกอบของของไหล
 
-Fundamentally, they state that the force acting on a fluid particle equals the particle's mass times its acceleration. These equations balance:
-- **Inertial forces**
-- **Pressure forces**
-- **Viscous forces**
-- **External body forces**
+โดยพื้นฐานแล้ว สมการเหล่านี้ระบุว่าแรงที่กระทำต่ออนุภาคของไหลเท่ากับมวลของอนุภาคคูณด้วยความเร่ง สมการเหล่านี้สร้างสมดุลระหว่าง:
+- **แรงเฉื่อย (Inertial forces)**
+- **แรงดัน (Pressure forces)**
+- **แรงหนืด (Viscous forces)**
+- **แรงภายนอก (External body forces)**
 
-### Momentum Equation in Conservative Form
+### สมการโมเมนตัมในรูปแบบอนุรักษ์ (Momentum Equation in Conservative Form)
 
 $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
 
-Where:
-- $p$ = pressure
-- $\mu$ = dynamic viscosity
-- $\mathbf{f}$ = body forces (such as gravity or electromagnetic forces)
+โดยที่:
+- $p$ = ความดัน (pressure)
+- $\mu$ = ความหนืดพลวัต (dynamic viscosity)
+- $\mathbf{f}$ = แรงภายนอก (เช่น แรงโน้มถ่วงหรือแรงแม่เหล็กไฟฟ้า)
 
-#### Term Analysis:
+#### การวิเคราะห์พจน์ (Term Analysis):
 
-- **Left-hand side**: substantial derivative of velocity
-  - Temporal acceleration: $\frac{\partial \mathbf{u}}{\partial t}$
-  - Convective acceleration: $(\mathbf{u} \cdot \nabla) \mathbf{u}$
+- **ฝั่งซ้ายมือ**: อนุพันธ์ย่อยของความเร็ว (substantial derivative)
+  - ความเร่งเชิงเวลา (Temporal acceleration): $\frac{\partial \mathbf{u}}{\partial t}$
+  - ความเร่งจากการพา (Convective acceleration): $(\mathbf{u} \cdot \nabla) \mathbf{u}$
 
-- **Right-hand side**: surface forces
-  - Pressure gradient forces: $-\nabla p$
-  - Viscous forces: $\mu \nabla^2 \mathbf{u}$
+- **ฝั่งขวามือ**: แรงที่ผิว (surface forces)
+  - แรงจากเกรเดียนต์ของความดัน (Pressure gradient forces): $-\nabla p$
+  - แรงหนืด (Viscous forces): $\mu \nabla^2 \mathbf{u}$
 
 ![[Pasted image 20251223200332.png]]
-### OpenFOAM Implementation
+### การนำไปใช้งานใน OpenFOAM (OpenFOAM Implementation)
 
-In OpenFOAM, these terms are applied using finite volume discretization with specialized functions:
+ใน OpenFOAM พจน์เหล่านี้จะถูกประยุกต์ใช้โดยการทำให้เป็นส่วนย่อยแบบไฟไนต์วอลุ่มด้วยฟังก์ชันเฉพาะทาง:
 
 ```cpp
 // OpenFOAM Code Implementation
@@ -138,7 +138,7 @@ fvVectorMatrix UEqn
 );
 ```
 
-**Source**: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C:46`
+**📂 แหล่งที่มา (Source)**: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C:46`
 
 **คำอธิบาย (Explanation):**
 - `fvm::ddt(rho, U)` - เทอมอนุพันธ์เชิงเวลาของความหนาแน่นและความเร็ว ใช้ implicit discretization เพื่อความเสถียรของการคำนวณ
@@ -146,56 +146,56 @@ fvVectorMatrix UEqn
 - `fvm::laplacian(mu, U)` - เทอมการแพร่ (diffusion term) ที่เกี่ยวข้องกับความหนืดของของไหล
 - `fvc::grad(p)` - เทอม gradient ของความดัน ที่ถูก treat แบบ explicit ในการแก้สมการ
 
-**Key Concepts:**
+**แนวคิดสำคัญ (Key Concepts):**
 - **Implicit (fvm) vs Explicit (fvc)**: fvm (finite volume method) ใช้สำหรับเทอมที่ต้องการ discretization แบบ implicit สำหรับเสถียรภาพเชิงตัวเลข ส่วน fvc (finite volume calculus) ใช้สำหรับเทอมที่คำนวณแบบ explicit
 - **Matrix Assembly**: fvVectorMatrix เป็นโครงสร้างข้อมูลที่ใช้รวบรวมสมการเชิงเส้นสำหรับการแก้ปัญหา
 - **Operator Splitting**: การแยกสมการออกเป็นส่วนต่างๆ (temporal, convection, diffusion, pressure) เพื่อให้สามารถ apply numerical schemes ที่เหมาะสมกับแต่ละเทอม
 
-### Dimensionless Form and Reynolds Number
+### รูปแบบไร้มิติและเลขเรย์โนลด์ (Dimensionless Form and Reynolds Number)
 
-The Navier-Stokes equations can be non-dimensionalized:
+สมการ Navier-Stokes สามารถทำให้เป็นรูปแบบไร้มิติได้ดังนี้:
 $$\frac{\partial \mathbf{u}^*}{\partial t^*} + (\mathbf{u}^* \cdot \nabla^*) \mathbf{u}^* = -\nabla^* p^* + \frac{1}{Re} \nabla^{*2} \mathbf{u}^* + \mathbf{f}^*$$
 
-Where the **Reynolds number** $Re = \frac{\rho UL}{\mu}$ indicates the ratio of inertial to viscous forces
+โดยที่ **เลขเรย์โนลด์ (Reynolds number)** $Re = \frac{\rho UL}{\mu}$ บ่งบอกถึงอัตราส่วนของแรงเฉื่อยต่อแรงหนืด
 
-- **At high Reynolds numbers**: viscous effects become negligible except in thin boundary layers near walls
-- **Result**: leads to the formation of turbulent flow structures requiring specialized modeling approaches
+- **ที่เลขเรย์โนลด์สูง**: ผลของความหนืดจะกลายเป็นสิ่งที่ละเลยได้ ยกเว้นในชั้นขอบเขต (boundary layers) บาง ๆ ใกล้ผนัง
+- **ผลลัพธ์**: นำไปสู่การก่อตัวของโครงสร้างการไหลแบบปั่นป่วน (turbulent flow structures) ซึ่งต้องการแนวทางการสร้างแบบจำลองที่เชี่ยวชาญเฉพาะด้าน
 
 ---
 
-## 4. Equation of State: Thermodynamic Relations
+## 4. สมการสถานะ: ความสัมพันธ์ทางอุณหพลศาสตร์ (Equation of State: Thermodynamic Relations)
 
-**The Equation of State (EOS)** is a fundamental relation in fluid dynamics that links thermodynamic properties such as pressure, density, and temperature
+**สมการสถานะ (Equation of State - EOS)** เป็นความสัมพันธ์พื้นฐานในพลศาสตร์ของไหลที่เชื่อมโยงคุณสมบัติทางอุณหพลศาสตร์ เช่น ความดัน ความหนาแน่น และอุณหภูมิ
 
-### Ideal Gas Law
+### กฎของแก๊สอุดมคติ (Ideal Gas Law)
 
-For compressible flows, the ideal gas law relates pressure ($p$), density ($\rho$), and temperature ($T$):
+สำหรับการไหลแบบอัดตัวได้ กฎของแก๊สอุดมคติจะเชื่อมโยงความดัน ($p$) ความหนาแน่น ($ho$) และอุณหภูมิ ($T$):
 
 $$p = \rho R T$$
 
-**Where:**
-- $p$ is absolute pressure [Pa]
-- $\rho$ is fluid density [kg/m³]
-- $R$ is specific gas constant [J/(kg·K)]
-- $T$ is absolute temperature [K]
+**โดยที่:**
+- $p$ คือ ความดันสัมบูรณ์ [Pa]
+- $\rho$ คือ ความหนาแน่นของของไหล [kg/m³]
+- $R$ คือ ค่าคงที่เฉพาะของแก๊ส [J/(kg·K)]
+- $T$ คือ อุณหภูมิสัมบูรณ์ [K]
 
-**Assumptions:**
-- Fluid behaves as an ideal gas
-- Applicable to most gases at normal temperatures and pressures
-- Molecular interactions are minimal
+**ข้อสมมติ:**
+- ของไหลมีพฤติกรรมเป็นแก๊สอุดมคติ
+- ใช้ได้กับแก๊สส่วนใหญ่ที่อุณหภูมิและความดันปกติ
+- ปฏิสัมพันธ์ระหว่างโมเลกุลมีน้อยมาก
 
-### Incompressible Fluid
+### ของไหลที่อัดตัวไม่ได้ (Incompressible Fluid)
 
-For liquids such as water, density remains essentially constant:
+สำหรับของเหลว เช่น น้ำ ความหนาแน่นจะยังคงที่โดยพื้นฐาน:
 
-$$\rho = \text{constant}$$
+$$\rho = \text{คงที่ (constant)}$$
 
-**Valid conditions:**
-- Pressure changes are small compared to Bulk Modulus
-- Temperature changes do not significantly affect density
-- **Mach number typically below 0.3**
+**เงื่อนไขที่ใช้ได้:**
+- การเปลี่ยนแปลงความดันมีค่าน้อยเมื่อเทียบกับ Bulk Modulus
+- การเปลี่ยนแปลงอุณหภูมิไม่ส่งผลกระทบต่อความหนาแน่นอย่างมีนัยสำคัญ
+- **เลขมัค (Mach number) โดยปกติจะต่ำกว่า 0.3**
 
-### OpenFOAM Code Implementation
+### การนำไปใช้งานใน OpenFOAM (OpenFOAM Code Implementation)
 
 ```cpp
 // Thermodynamic model for ideal gas
@@ -225,57 +225,57 @@ thermoType
 }
 ```
 
-**Source**: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C:41`
+**📂 แหล่งที่มา (Source)**: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C:41`
 
 **คำอธิบาย (Explanation):**
 - `perfectGas` - สมการสถานะสำหรับแก๊สอุดมคติ ใช้กับปัญหา compressible flow เช่น การไหลของอากาศที่ความเร็วสูง
 - `incompressible` - สมการสถานะสำหรับของไหลที่อัดตัวไม่ได้ ใช้กับของเหลวและการไหลของแก๊สที่ความเร็วต่ำ
 - `hePsiThermo` - คลาสพื้นฐานสำหรับการคำนวณคุณสมบัติทางอุณหพลศาสตร์แบบ enthalpy-based
 
-**Key Concepts:**
-- **Thermophysical Models**: OpenFOAM มีระบบ thermophysical models ที่ flexible ซึ่งสามารถปรับเปลี่ยนได้ตามประเภทของปัญหา
+**แนวคิดสำคัญ (Key Concepts):**
+- **Thermophysical Models**: OpenFOAM มีระบบ thermophysical models ที่ยืดหยุ่น (flexible) ซึ่งสามารถปรับเปลี่ยนได้ตามประเภทของปัญหา
 - **Equation of State Selection**: การเลือกสมการสถานะที่เหมาะสมมีความสำคัญต่อความถูกต้องของการจำลอง
 - **Transport Properties**: คุณสมบัติการขนส่งเช่นความหนืด (viscosity) และการนำความร้อน (thermal conductivity) สามารถระบุได้ทั้งแบบค่าคงที่หรือขึ้นกับอุณหภูมิ
 
 ---
 
-## 5. Dimensionless Numbers: Flow Regime Controllers
+## 5. เลขไร้มิติ: ตัวควบคุมระบอบการไหล (Dimensionless Numbers: Flow Regime Controllers)
 
-Dimensionless numbers are fundamental parameters in fluid dynamics indicating the relative importance of competing physical phenomena
+เลขไร้มิติเป็นพารามิเตอร์พื้นฐานในพลศาสตร์ของไหลที่บ่งบอกถึงความสำคัญสัมพัทธ์ของปรากฏการณ์ทางฟิสิกส์ที่แข่งขันกัน
 
-### Reynolds Number ($Re$)
+### เลขเรย์โนลด์ (Reynolds Number - $Re$)
 
-The Reynolds number is arguably the most important dimensionless parameter in fluid mechanics:
+เลขเรย์โนลด์อาจกล่าวได้ว่าเป็นพารามิเตอร์ไร้มิติที่สำคัญที่สุดในกลศาสตร์ของไหล:
 
-$$Re = \frac{\rho U L}{\mu} = \frac{\text{Inertial Forces}}{\text{Viscous Forces}}$$
+$$Re = \frac{\rho U L}{\mu} = \frac{\text{แรงเฉื่อย (Inertial Forces)}}{\text{แรงหนืด (Viscous Forces)}}$$
 
-**Flow Regime Classification:**
+**การจำแนกระบอบการไหล (Flow Regime Classification):**
 
-| Reynolds Number | Flow Regime | Flow Characteristics |
+| เลขเรย์โนลด์ | ระบอบการไหล | ลักษณะการไหล |
 |-----------------|--------------|----------------------|
-| $Re < 2300$ | Laminar | Smooth, layered flow without mixing |
-| $2300 < Re < 4000$ | Transitional | Transition from laminar to turbulent |
-| $Re > 4000$ | Turbulent | Chaotic flow with mixing and fluctuations |
+| $Re < 2300$ | การไหลแบบราบเรียบ (Laminar) | การไหลที่ราบรื่น เป็นชั้น ๆ ไม่มีการผสมกัน |
+| $2300 < Re < 4000$ | การไหลช่วงเปลี่ยนผ่าน (Transitional) | การเปลี่ยนผ่านจากการไหลแบบราบเรียบไปสู่ความปั่นป่วน |
+| $Re > 4000$ | การไหลแบบปั่นป่วน (Turbulent) | การไหลที่วุ่นวาย มีการผสมกันและการผันผวน |
 
-### Mach Number ($Ma$)
+### เลขมัค (Mach Number - $Ma$)
 
-The Mach number represents the ratio of flow velocity to local speed of sound:
+เลขมัคแสดงถึงอัตราส่วนของความเร็วการไหลต่อความเร็วเสียงในบริเวณนั้น:
 
-$$Ma = \frac{U}{c} = \frac{\text{Flow Velocity}}{\text{Speed of Sound}}$$
+$$Ma = \frac{U}{c} = \frac{\text{ความเร็วการไหล (Flow Velocity)}}{\text{ความเร็วเสียง (Speed of Sound)}}$$
 
-**Mach Number Flow Regimes:**
+**ระบอบการไหลตามเลขมัค (Mach Number Flow Regimes):**
 
-| Mach Number | Flow Regime | Compressibility Effects |
+| เลขมัค | ระบอบการไหล | ผลของการอัดตัวได้ |
 |-------------|-------------|------------------------|
-| $Ma < 0.3$ | Incompressible | Density variations negligible |
-| $0.3 < Ma < 0.8$ | Subsonic Compressible | Small compressibility effects |
-| $Ma = 1$ | Sonic | Critical condition, flow at speed of sound |
-| $0.8 < Ma < 1.2$ | Transonic | Mixed subsonic/supersonic regions |
-| $Ma > 1.2$ | Supersonic | Flow faster than sound, shock waves form |
+| $Ma < 0.3$ | อัดตัวไม่ได้ (Incompressible) | การเปลี่ยนแปลงความหนาแน่นน้อยมากจนละเลยได้ |
+| $0.3 < Ma < 0.8$ | ต่ำกว่าเสียง (Subsonic Compressible) | มีผลของการอัดตัวได้เล็กน้อย |
+| $Ma = 1$ | ความเร็วเสียง (Sonic) | สภาวะวิกฤต การไหลที่ความเร็วเสียง |
+| $0.8 < Ma < 1.2$ | ช่วงความเร็วเสียง (Transonic) | มีบริเวณที่ความเร็วต่ำกว่าและเหนือกว่าเสียงผสมกัน |
+| $Ma > 1.2$ | เหนือเสียง (Supersonic) | การไหลเร็วกว่าเสียง มีการก่อตัวของคลื่นกระแทก |
 
-### OpenFOAM Solver Selection
+### การเลือก Solver ใน OpenFOAM (OpenFOAM Solver Selection)
 
-OpenFOAM offers specialized solvers for different Mach number regimes:
+OpenFOAM มี solver ที่เชี่ยวชาญเฉพาะด้านสำหรับระบอบเลขมัคที่แตกต่างกัน:
 
 ```cpp
 // Low Mach number (Ma < 0.3) - incompressible solvers
@@ -291,63 +291,63 @@ solver sonicFoam;        // Transonic/supersonic flow
 
 ---
 
-## 6. OpenFOAM Syntax: Translating Mathematical Notation
+## 6. ไวยากรณ์ของ OpenFOAM: การแปลสัญลักษณ์ทางคณิตศาสตร์ (OpenFOAM Syntax: Translating Mathematical Notation)
 
-**OpenFOAM syntax** is intentionally designed to closely mirror the vector notation used in fluid dynamics equations
+**ไวยากรณ์ของ OpenFOAM (OpenFOAM syntax)** ถูกออกแบบมาโดยเฉพาะให้สะท้อนถึงสัญลักษณ์เวกเตอร์ (vector notation) ที่ใช้ในสมการพลศาสตร์ของไหลอย่างใกล้ชิด
 
-### Mapping Mathematical Operators to OpenFOAM Functions
+### การแมปตัวดำเนินการทางคณิตศาสตร์กับฟังก์ชันของ OpenFOAM
 
-Finite volume method (FVM) functions in OpenFOAM correspond directly to mathematical operators:
+ฟังก์ชันไฟไนต์วอลุ่ม (FVM) ใน OpenFOAM สอดคล้องโดยตรงกับตัวดำเนินการทางคณิตศาสตร์:
 
-| OpenFOAM Function | Mathematical Operator | Meaning |
+| ฟังก์ชันของ OpenFOAM | ตัวดำเนินการทางคณิตศาสตร์ | ความหมาย |
 |------------------|---------------------|---------|
-| `fvm::div(phi, U)` | $\nabla \cdot (\phi \mathbf{U})$ | Divergence operator |
-| `fvm::laplacian(DT, T)` | $\nabla \cdot (DT \nabla T)$ | Laplacian operator |
-| `fvm::ddt(rho, U)` | $\frac{\partial (\rho \mathbf{U})}{\partial t}$ | Temporal derivative |
-| `fvc::grad(p)` | $\nabla p$ | Pressure gradient |
+| `fvm::div(phi, U)` | $\nabla \cdot (\phi \mathbf{U})$ | ตัวดำเนินการไดเวอร์เจนซ์ (Divergence operator) |
+| `fvm::laplacian(DT, T)` | $\nabla \cdot (DT \nabla T)$ | ตัวดำเนินการลาพลาเซียน (Laplacian operator) |
+| `fvm::ddt(rho, U)` | $\frac{\partial (\rho \mathbf{U})}{\partial t}$ | อนุพันธ์เชิงเวลา (Temporal derivative) |
+| `fvc::grad(p)` | $\nabla p$ | เกรเดียนต์ความดัน (Pressure gradient) |
 
-The direct correspondence between mathematical notation and code implementation significantly reduces cognitive load when translating equations to OpenFOAM applications
+ความสอดคล้องโดยตรงระหว่างสัญลักษณ์ทางคณิตศาสตร์และการนำไปใช้ในโค้ดช่วยลดภาระทางความคิด (cognitive load) ได้อย่างมากเมื่อต้องแปลสมการไปเป็นแอปพลิเคชันใน OpenFOAM
 
-### OpenFOAM Field Type System
+### ระบบประเภทฟิลด์ของ OpenFOAM (OpenFOAM Field Type System)
 
-OpenFOAM uses a sophisticated template system for field types that maintains mathematical consistency throughout the codebase:
+OpenFOAM ใช้ระบบเทมเพลต (template system) ที่ซับซ้อนสำหรับประเภทฟิลด์ซึ่งช่วยรักษาความสอดคล้องทางคณิตศาสตร์ทั่วทั้งชุดโค้ด:
 
-#### Geometric Fields
-- `volScalarField` - Scalar quantities at cell centers
-- `volVectorField` - Vector quantities at cell centers
-- `volTensorField` - Tensor quantities at cell centers
+#### ฟิลด์ทางเรขาคณิต (Geometric Fields)
+- `volScalarField` - ปริมาณสเกลาร์ที่จุดศูนย์กลางเซลล์ (cell centers)
+- `volVectorField` - ปริมาณเวกเตอร์ที่จุดศูนย์กลางเซลล์
+- `volTensorField` - ปริมาณเทนเซอร์ที่จุดศูนย์กลางเซลล์
 
-#### Surface Fields
-- `surfaceScalarField` - Scalar quantities at cell faces
-- `surfaceVectorField` - Vector quantities at cell faces
+#### ฟิลด์ที่ผิว (Surface Fields)
+- `surfaceScalarField` - ปริมาณสเกลาร์ที่ผิวของเซลล์ (cell faces)
+- `surfaceVectorField` - ปริมาณเวกเตอร์ที่ผิวของเซลล์
 
-#### Specialized Features
-- **Dimensional Sets**: Automatic dimensional analysis and unit checking
-- **Interpolation Schemes**: Linear, upwind, central differencing, and higher-order schemes
+#### คุณสมบัติเฉพาะทาง (Specialized Features)
+- **ชุดมิติ (Dimensional Sets)**: การวิเคราะห์มิติและการตรวจสอบหน่วยโดยอัตโนมัติ
+- **รูปแบบการประมาณค่า (Interpolation Schemes)**: Linear, upwind, central differencing และรูปแบบอันดับสูงอื่น ๆ
 
 ---
 
-## 7. Boundary Conditions: Essential for Physical Solutions
+## 7. เงื่อนไขขอบเขต: สิ่งจำเป็นสำหรับผลเฉลยทางกายภาพ (Boundary Conditions: Essential for Physical Solutions)
 
-**Boundary conditions** are crucial for obtaining unique and physically correct solutions to CFD problems
+**เงื่อนไขขอบเขต (boundary conditions)** มีความสำคัญอย่างยิ่งในการได้รับผลเฉลยที่เป็นเอกลักษณ์และถูกต้องตามหลักฟิสิกส์สำหรับปัญหา CFD
 
-Since the governing equations themselves admit infinite solutions without proper constraints, in the finite volume method, boundary conditions must be specified for all variables at all domain boundaries
+เนื่องจากสมการควบคุมเองนั้นยอมให้มีผลเฉลยจำนวนมหาศาลหากไม่มีข้อจำกัดที่เหมาะสม ในวิธีไฟไนต์วอลุ่ม เงื่อนไขขอบเขตจะต้องถูกกำหนดสำหรับตัวแปรทั้งหมดที่ขอบเขตโดเมนทั้งหมด
 
-### Boundary Condition Types in OpenFOAM
+### ประเภทของเงื่อนไขขอบเขตใน OpenFOAM (Boundary Condition Types in OpenFOAM)
 
-| Type | OpenFOAM Example | Usage |
+| ประเภท | ตัวอย่างใน OpenFOAM | การใช้งาน |
 |------|------------------|-------|
-| **Dirichlet conditions** | `fixedValue` | Specify exact values at boundaries |
-| **Neumann conditions** | `fixedGradient` | Specify gradients (zero-gradient for fully developed flow) |
-| **Mixed conditions** | `mixed` | Combine value and gradient specification |
-| **Wall functions** | Various | Specialized treatment for near-wall turbulence modeling |
-| **Open boundary conditions** | `inletOutlet`, `outletInlet` | Allow flow reversal and specify conditions based on local flow direction |
+| **เงื่อนไขดิริชเลต์ (Dirichlet conditions)** | `fixedValue` | ระบุค่าที่แน่นอนที่ขอบเขต |
+| **เงื่อนไขนอยมันน์ (Neumann conditions)** | `fixedGradient` | ระบุเกรเดียนต์ (zero-gradient สำหรับการไหลที่พัฒนาเต็มที่) |
+| **เงื่อนไขผสม (Mixed conditions)** | `mixed` | รวมการระบุค่าและเกรเดียนต์เข้าด้วยกัน |
+| **ฟังก์ชันผนัง (Wall functions)** | ต่าง ๆ | การจัดการเฉพาะสำหรับการสร้างแบบจำลองความปั่นป่วนใกล้ผนัง |
+| **เงื่อนไขขอบเขตเปิด (Open boundary conditions)** | `inletOutlet`, `outletInlet` | อนุญาตให้มีการไหลย้อนกลับและระบุเงื่อนไขตามทิศทางการไหลในบริเวณนั้น |
 
-### OpenFOAM Boundary Condition Examples
+### ตัวอย่างเงื่อนไขขอบเขตใน OpenFOAM (OpenFOAM Boundary Condition Examples)
 
 ```cpp
 // Example: Velocity inlet with turbulent profile
-// ตัวอย่าง: ขอเข้าความเร็วที่มีโปรไฟล์แบบ turbulent
+// ตัวอย่าง: ทางเข้าความเร็วที่มีโปรไฟล์แบบ turbulent
 inlet
 {
     type            fixedValue;
@@ -356,7 +356,7 @@ inlet
 }
 
 // Example: Pressure outlet with backflow prevention
-// ตัวอย่าง: ขอออกความดันแบบ developed flow
+// ตัวอย่าง: ทางออกความดันแบบ developed flow
 outlet
 {
     type            zeroGradient;      // Natural development
@@ -381,35 +381,35 @@ symmetryPlane
 }
 ```
 
-**Source**: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C:39`
+**📂 แหล่งที่มา (Source)**: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C:39`
 
 **คำอธิบาย (Explanation):**
 - `fixedValue` - กำหนดค่าคงที่ที่ boundary ใช้กับ inlet velocity หรือ wall temperature
 - `zeroGradient` - gradient เป็นศูนย์ในทิศทางปกติของ boundary ใช้กับ outlet pressure หรือ developed flow
 - `symmetry` - เงื่อนไขสมมาตรที่ไม่มี flux ผ่านระนาบ ใช้เพื่อลดขนาดโดเมนการคำนวณ
 
-**Key Concepts:**
-- **Well-Posed Problems**: การกำหนด boundary conditions ที่เหมาะสมจำเป็นสำหรับ well-posed mathematical problem
-- **Physical Realism**: boundary conditions ต้องสอดคล้องกับสภาพทางกายภาพของปัญหา
-- **Numerical Stability**: boundary conditions ที่ไม่เหมาะสมอาจทำให้เกิด numerical instability
+**แนวคิดสำคัญ (Key Concepts):**
+- **Well-Posed Problems**: การกำหนด boundary conditions ที่เหมาะสมจำเป็นสำหรับปัญหาทางคณิตศาสตร์ที่สมบูรณ์ (well-posed mathematical problem)
+- **Physical Realism**: boundary conditions ต้องสอดคล้องกับสภาพทางกายภาพจริงของปัญหา
+- **Numerical Stability**: boundary conditions ที่ไม่เหมาะสมอาจทำให้เกิดความไม่เสถียรเชิงตัวเลข (numerical instability)
 
-### Advanced Boundary Condition Capabilities
+### ความสามารถของเงื่อนไขขอบเขตขั้นสูง (Advanced Boundary Condition Capabilities)
 
-OpenFOAM possesses sophisticated boundary condition capabilities extending far beyond basic value and gradient specification:
+OpenFOAM มีความสามารถด้านเงื่อนไขขอบเขตที่ซับซ้อนซึ่งขยายไปไกลกว่าการระบุค่าและเกรเดียนต์พื้นฐาน:
 
-- **Time-varying conditions**: `uniformFixedValue` with time-dependent functions
-- **Coupled boundaries**: `thermalBaffle` for conjugate heat transfer
-- **Cyclic conditions**: `cyclicAMI` for rotating machinery interfaces
-- **Atmospheric boundaries**: `atmBoundaryLayerInlet` for atmospheric boundary layer modeling
-- **Wave generation**: `waveAlpha` and `waveSurfaceHeight` for ocean engineering applications
+- **เงื่อนไขที่เปลี่ยนตามเวลา (Time-varying conditions)**: `uniformFixedValue` พร้อมฟังก์ชันที่ขึ้นกับเวลา
+- **ขอบเขตที่เชื่อมโยงกัน (Coupled boundaries)**: `thermalBaffle` สำหรับการถ่ายเทความร้อนแบบคอนจูเกต (conjugate heat transfer)
+- **เงื่อนไขแบบวัฏจักร (Cyclic conditions)**: `cyclicAMI` สำหรับส่วนต่อประสานเครื่องจักรที่หมุนได้
+- **ขอบเขตบรรยากาศ (Atmospheric boundaries)**: `atmBoundaryLayerInlet` สำหรับการสร้างแบบจำลองชั้นขอบเขตบรรยากาศ
+- **การสร้างคลื่น (Wave generation)**: `waveAlpha` และ `waveSurfaceHeight` สำหรับการประยุกต์ใช้วิศวกรรมทางทะเล
 
 ---
 
-## 8. Initial Conditions: Foundation of Numerical Stability
+## 8. เงื่อนไขเริ่มต้น: รากฐานของความเสถียรเชิงตัวเลข (Initial Conditions: Foundation of Numerical Stability)
 
-Simulations must start from somewhere. **Initial Conditions** (in the `0/` directory) define the state at $t=0$. These conditions are crucial for **Numerical Stability** and **Convergence** of CFD simulations
+การจำลองต้องเริ่มต้นจากจุดใดจุดหนึ่ง **เงื่อนไขเริ่มต้น (Initial Conditions)** (ในไดเรกทอรี `0/`) จะกำหนดสถานะที่เวลา $t=0$ เงื่อนไขเหล่านี้มีความสำคัญอย่างยิ่งต่อ **ความเสถียรเชิงตัวเลข (Numerical Stability)** และ **การลู่เข้า (Convergence)** ของการจำลอง CFD
 
-### Velocity Field Initialization
+### การกำหนดค่าเริ่มต้นของสนามความเร็ว (Velocity Field Initialization)
 
 ```cpp
 // Velocity field initialization for OpenFOAM simulation
@@ -431,39 +431,39 @@ boundaryField
     {
         type            fixedValue;
         value           uniform (10 0 0); // Uniform inlet velocity 10 m/s
-                                         // ความเร็ลคงที่ 10 m/s ที่ขอเข้า
+                                         // ความเร็วคงที่ 10 m/s ที่ทางเข้า
     }
     outlet
     {
         type            zeroGradient;     // Fully developed flow
-                                         // Gradient เป็นศูนย์ที่ขอออก
+                                         // Gradient เป็นศูนย์ที่ทางออก
     }
     walls
     {
         type            noSlip;           // No-slip condition
-                                         // เงื่อนไขไม่มีการไหลที่ผนัง
+                                         // เงื่อนไขไม่มีการลื่นไถลที่ผนัง
     }
 }
 ```
 
-**Source**: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C:42`
+**📂 แหล่งที่มา (Source)**: `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C:42`
 
 **คำอธิบาย (Explanation):**
-- `dimensions` - กำหนดหน่วยของปริมาณในระบบ MKS [Length Mass Time Temperature]
+- `dimensions` - กำหนดหน่วยของปริมาณในระบบ [M L T K Mole A Cd]
 - `internalField` - ค่าเริ่มต้นของฟิลด์ภายในโดเมน (สามารถเป็น uniform หรือ non-uniform)
 - `boundaryField` - กำหนด boundary conditions สำหรับแต่ละ boundary patch
 - `noSlip` - เงื่อนไข no-slip ซึ่งเป็นการรวมกันของ fixedValue (0 0 0) กับ zeroGradient
 
-**Key Concepts:**
+**แนวคิดสำคัญ (Key Concepts):**
 - **Dimensional Consistency**: ระบบ dimensions ใน OpenFOAM ช่วยตรวจสอบความถูกต้องของหน่วย
 - **Patch-based Definition**: boundary conditions ถูกกำหนดต่อ patch ซึ่งเป็นกลุ่มของ faces ที่มีเงื่อนไขเหมือนกัน
-- **Field Initialization**: ค่าเริ่มต้นที่ดีช่วยให้การแก้ปัญหา converge เร็วขึ้น
+- **Field Initialization**: ค่าเริ่มต้นที่ดีช่วยให้การแก้ปัญหาลู่เข้า (converge) ได้เร็วขึ้น
 
-### Pressure Field Initialization
+### การกำหนดค่าเริ่มต้นของสนามความดัน (Pressure Field Initialization)
 
 ```cpp
 // Pressure field initialization for incompressible flow
-// การกำหนดค่าเริ่มต้นของฟิลด์ความดันสำหรับการไหลแบบ incompressible
+// การกำหนดค่าเริ่มต้นของฟิลด์ความดันสำหรับการไหลแบบอัดตัวไม่ได้
 FoamFile
 {
     version     2.0;
@@ -474,74 +474,74 @@ FoamFile
 
 dimensions      [0 2 -2 0 0 0 0];  // Pa: kg/(m·s²)
 internalField   uniform 101325;    // Reference atmospheric pressure
-                                    // ความดันอ้างอิงบรรยากาศ
+                                    // ความดันบรรยากาศอ้างอิง
 
 boundaryField
 {
     inlet
     {
         type            zeroGradient; // Zero gradient at inlet
-                                    // Gradient เป็นศูนย์ที่ขอเข้า
+                                    // เกรเดียนต์เป็นศูนย์ที่ทางเข้า
     }
     outlet
     {
         type            fixedValue;
         value           uniform 101325; // Gauge pressure = 0
-                                        // ความดันเกจ = 0 (relative reference)
+                                        // ความดันเกจ = 0 (ค่าอ้างอิงสัมพัทธ์)
     }
     walls
     {
         type            zeroGradient; // Zero gradient at walls
-                                    // Gradient เป็นศูนย์ที่ผนัง
+                                    // เกรเดียนต์เป็นศูนย์ที่ผนัง
     }
 }
 ```
 
-**Source**: `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:42`
+**📂 แหล่งที่มา (Source)**: `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:42`
 
 **คำอธิบาย (Explanation):**
-- `volScalarField` - ฟิลด์สเกลาร์ที่จัดเก็บค่าที่ cell centers ใน mesh
-- Pressure reference - สำหรับ incompressible flow ความดันถูกกำหนดเป็นค่าสัมพัทธ์ (relative) ไม่ใช่ค่าสัมบูรณ์
-- Boundary condition consistency - inlet และ outlet มีเงื่อนไขที่แตกต่างกันเพื่อให้มี pressure gradient ที่ขับเคลื่อนการไหล
+- `volScalarField` - ฟิลด์สเกลาร์ที่จัดเก็บค่าที่จุดศูนย์กลางเซลล์ในเมช (mesh)
+- Pressure reference - สำหรับการไหลแบบอัดตัวไม่ได้ ความดันจะถูกกำหนดเป็นค่าสัมพัทธ์ (relative) ไม่ใช่ค่าสัมบูรณ์
+- Boundary condition consistency - ทางเข้าและทางออกมีเงื่อนไขที่แตกต่างกันเพื่อให้เกิดเกรเดียนต์ความดันที่ขับเคลื่อนการไหล
 
-**Key Concepts:**
-- **Reference Pressure**: ใน incompressible flow เฉพาะ pressure gradient ที่มีผลต่อการไหล ดังนั้นจึงต้องมี reference point
-- **Pressure-Velocity Coupling**: boundary conditions ของความดันและความเร็วต้องสอดคล้องกันเพื่อให้ satisfy continuity equation
-- **Gauge vs Absolute Pressure**: การใช้ gauge pressure (relative to reference) ช่วยลดปัญหา numerical error จากค่าขนาดใหญ่
+**แนวคิดสำคัญ (Key Concepts):**
+- **Reference Pressure**: ในการไหลแบบอัดตัวไม่ได้ มีเพียงเกรเดียนต์ความดันเท่านั้นที่มีผลต่อการไหล ดังนั้นจึงต้องมีจุดอ้างอิงหนึ่งจุด
+- **Pressure-Velocity Coupling**: เงื่อนไขขอบเขตของความดันและความเร็วต้องสอดคล้องกันเพื่อให้สอดคล้องกับสมการความต่อเนื่อง
+- **Gauge vs Absolute Pressure**: การใช้ความดันเกจ (เทียบกับค่าอ้างอิง) ช่วยลดปัญหาความคลาดเคลื่อนเชิงตัวเลขจากค่าที่มีขนาดใหญ่
 
-### Best Practices for Initial Conditions
+### แนวปฏิบัติที่ดีที่สุดสำหรับเงื่อนไขเริ่มต้น (Best Practices for Initial Conditions)
 
-1. **Physical Consistency**: Ensure initial conditions satisfy basic conservation laws
-2. **Numerical Stability**: Avoid **discontinuities** that may cause numerical instability
-3. **Convergence Acceleration**: For **steady-state problems**, use initialization strategies that promote rapid convergence
-4. **Restart Capabilities**: Structure initial conditions to facilitate **simulation restarts**
+1. **ความสอดคล้องทางฟิสิกส์ (Physical Consistency)**: ตรวจสอบให้แน่ใจว่าเงื่อนไขเริ่มต้นเป็นไปตามกฎการอนุรักษ์พื้นฐาน
+2. **ความเสถียรเชิงตัวเลข (Numerical Stability)**: หลีกเลี่ยง **ความไม่ต่อเนื่อง (discontinuities)** ที่อาจทำให้เกิดความไม่เสถียรเชิงตัวเลข
+3. **การเร่งการลู่เข้า (Convergence Acceleration)**: สำหรับ **ปัญหาในสภาวะคงตัว (steady-state problems)** ให้ใช้กลยุทธ์การกำหนดค่าเริ่มต้นที่ส่งเสริมการลู่เข้าอย่างรวดเร็ว
+4. **ความสามารถในการเริ่มใหม่ (Restart Capabilities)**: จัดโครงสร้างเงื่อนไขเริ่มต้นเพื่ออำนวยความสะดวกในการ **เริ่มจำลองใหม่ (simulation restarts)**
 
 ---
 
-## Summary of Key Points
+## สรุปประเด็นสำคัญ (Summary of Key Points)
 
-### Fundamental Principles to Remember
+### หลักการพื้นฐานที่ควรจำ (Fundamental Principles to Remember)
 
-1. **Conservation Laws** - Foundation of all CFD:
-   - Mass conservation → Continuity equation
-   - Momentum conservation → Navier-Stokes equation
-   - Energy conservation → Energy equation
+1. **กฎการอนุรักษ์ (Conservation Laws)** - รากฐานของ CFD ทั้งหมด:
+   - การอนุรักษ์มวล → สมการความต่อเนื่อง
+   - การอนุรักษ์โมเมนตัม → สมการ Navier-Stokes
+   - การอนุรักษ์พลังงาน → สมการพลังงาน
 
-2. **General Transport Equation**:
+2. **สมการการขนส่งทั่วไป (General Transport Equation)**:
    $$\frac{\partial (\rho \phi)}{\partial t} + \nabla \cdot (\rho \phi \mathbf{u}) = \nabla \cdot (\Gamma \nabla \phi) + S_\phi$$
 
-3. **Finite Volume Method** uses Gauss's Divergence Theorem:
+3. **วิธีไฟไนต์วอลุ่ม (Finite Volume Method)** ใช้ทฤษฎีบทการลู่ออกของเกาส์:
    $$\int_V \nabla \cdot \mathbf{F} \, \mathrm{d}V = \oint_S \mathbf{F} \cdot \mathbf{n} \, \mathrm{d}S$$
 
-### Important Dimensionless Numbers
+### เลขไร้มิติที่สำคัญ (Important Dimensionless Numbers)
 
-| Dimensionless Number | Formula | Significance |
+| เลขไร้มิติ | สูตร | ความสำคัญ |
 |---------------------|---------|--------------|
-| Reynolds ($Re$) | $\frac{\rho U L}{\mu}$ | Predicts flow regime (Laminar/Turbulent) |
-| Mach ($Ma$) | $\frac{U}{c}$ | Determines compressibility effects |
-| Froude ($Fr$) | $\frac{U}{\sqrt{gL}}$ | Important for free surface flows |
+| เรย์โนลด์ ($Re$) | $\frac{\rho U L}{\mu}$ | ทำนายระบอบการไหล (ราบเรียบ/ปั่นป่วน) |
+| มัค ($Ma$) | $\frac{U}{c}$ | กำหนดผลของการอัดตัวได้ |
+| ฟรูด ($Fr$) | $\frac{U}{\sqrt{gL}}$ | สำคัญสำหรับการไหลที่มีผิวอิสระ (free surface) |
 
-### OpenFOAM Syntax Mapping
+### การแมปไวยากรณ์ของ OpenFOAM (OpenFOAM Syntax Mapping)
 
 ```cpp
 fvm::ddt(rho, U)         // ∂(ρU)/∂t
@@ -550,19 +550,19 @@ fvm::laplacian(mu, U)    // ∇·(μ∇U)
 fvc::grad(p)             // ∇p
 ```
 
-### Pressure-Velocity Coupling Algorithms
+### อัลกอริทึมการเชื่อมโยงความดันและความเร็ว (Pressure-Velocity Coupling Algorithms)
 
-- **SIMPLE**: Semi-Implicit Method for Pressure-Linked Equations (Steady-State)
-- **PISO**: Pressure-Implicit with Splitting of Operators (Transient)
-- **PIMPLE**: Combined SIMPLE-PISO (Hybrid)
+- **SIMPLE**: Semi-Implicit Method for Pressure-Linked Equations (สภาวะคงตัว)
+- **PISO**: Pressure-Implicit with Splitting of Operators (สภาวะไม่คงตัว)
+- **PIMPLE**: การรวมกันของ SIMPLE และ PISO (ไฮบริด)
 
-### Essential Boundary Conditions
+### เงื่อนไขขอบเขตที่จำเป็น (Essential Boundary Conditions)
 
-- **Dirichlet**: `fixedValue` - Specify exact values
-- **Neumann**: `zeroGradient` - Specify gradients
-- **Wall**: `noSlip` - Zero velocity at walls
-- **Symmetry**: `symmetry` - Symmetry plane
+- **ดิริชเลต์ (Dirichlet)**: `fixedValue` - ระบุค่าที่แน่นอน
+- **นอยมันน์ (Neumann)**: `zeroGradient` - ระบุเกรเดียนต์เป็นศูนย์
+- **ผนัง (Wall)**: `noSlip` - ความเร็วเป็นศูนย์ที่ผนัง
+- **สมมาตร (Symmetry)**: `symmetry` - ระนาบสมมาตร
 
 ---
 
-> **[!TIP]** Deep understanding of these key points is essential for successful CFD simulations with OpenFOAM, as everything in CFD from mesh generation to result interpretation is grounded in these fundamental principles
+> **[!TIP]** ความเข้าใจอย่างลึกซึ้งในประเด็นสำคัญเหล่านี้เป็นสิ่งจำเป็นสำหรับการจำลอง CFD ที่ประสบความสำเร็จด้วย OpenFOAM เนื่องจากทุกอย่างใน CFD ตั้งแต่การสร้างเมชไปจนถึงการแปลความหมายของผลลัพธ์นั้นมีรากฐานมาจากหลักการพื้นฐานเหล่านี้

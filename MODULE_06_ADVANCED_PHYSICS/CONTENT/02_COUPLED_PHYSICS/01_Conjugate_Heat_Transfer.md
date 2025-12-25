@@ -1,88 +1,88 @@
-# Conjugate Heat Transfer (CHT) in OpenFOAM
+# การถ่ายโอนความร้อนแบบคอนจูเกต (Conjugate Heat Transfer - CHT) ใน OpenFOAM
 
-## Overview
+## ภาพรวม (Overview)
 
-**Conjugate Heat Transfer (CHT)** addresses one of the most fundamental challenges in computational fluid dynamics: the simultaneous simulation of heat transfer between fluid and solid domains. This capability is essential for engineering applications where thermal interaction between materials dominates design decisions.
+**การถ่ายโอนความร้อนแบบคอนจูเกต (Conjugate Heat Transfer - CHT)** จัดการกับความท้าทายพื้นฐานประการหนึ่งในพลศาสตร์ของไหลเชิงคำนวณ นั่นคือการจำลองการถ่ายโอนความร้อนระหว่างโดเมนของไหล (fluid) และโดเมนของแข็ง (solid) ไปพร้อมๆ กัน ความสามารถนี้มีความสำคัญอย่างยิ่งสำหรับการประยุกต์ใช้งานทางวิศวกรรมที่ปฏิสัมพันธ์ทางความร้อนระหว่างวัสดุต่างๆ เป็นปัจจัยหลักในการตัดสินใจออกแบบ
 
 ---
 
-## 1. The Thermal Handshake Problem
+## 1. ปัญหาการส่งต่อทางความร้อน (The Thermal Handshake Problem)
 
-### 1.1 Physical Motivation
+### 1.1 แรงจูงใจทางกายภาพ (Physical Motivation)
 
-Consider designing a **jet engine turbine blade**: hot combustion gases flow over the exterior surface while internal cooling channels circulate cooler air. The blade material experiences extreme thermal gradients, but traditional CFD treats fluid and solid as separate domains.
+พิจารณาการออกแบบ **ใบพัดเทอร์ไบน์ของเครื่องยนต์เจ็ท**: ก๊าซจากการเผาไหม้ที่ร้อนจัดไหลผ่านพื้นผิวภายนอก ในขณะที่ช่องหล่อเย็นภายในจะมีอากาศที่เย็นกว่าไหลเวียนอยู่ วัสดุของใบพัดจะเผชิญกับเกรเดียนต์ความร้อนที่รุนแรง แต่ CFD แบบดั้งเดิมมักจะจัดการของไหลและของแข็งแยกกันเป็นโดเมนอิสระ
 
-**CHT solves this fundamental challenge** by coupling fluid and solid domains at their interface, solving for temperature fields in both simultaneously with strict continuity of temperature and heat flux.
+**CHT แก้ไขความท้าทายพื้นฐานนี้** โดยการเชื่อมโยง (coupling) โดเมนของไหลและของแข็งเข้าด้วยกันที่ส่วนต่อประสาน (interface) ของทั้งสอง และหาคำตอบสำหรับสนามอุณหภูมิในทั้งสองโดเมนพร้อมกันภายใต้เงื่อนไขความต่อเนื่องของอุณหภูมิและฟลักซ์ความร้อนที่เข้มงวด
 
-### 1.2 Real-World Applications
+### 1.2 การประยุกต์ใช้งานในโลกแห่งความเป็นจริง
 
-CHT enables accurate prediction of:
-- **Electronics Cooling**: Heat sinks with forced convection
-- **Building Energy Efficiency**: Wall insulation with external wind
-- **Nuclear Safety**: Fuel rod cooling systems
-- **Hypersonic Vehicles**: Thermal protection systems
-- **Heat Exchangers**: Multi-region thermal coupling
+CHT ช่วยให้สามารถคาดการณ์สิ่งต่อไปนี้ได้อย่างแม่นยำ:
+- **การระบายความร้อนของอุปกรณ์อิเล็กทรอนิกส์**: แผ่นระบายความร้อน (Heat sinks) ที่มีการพาความร้อนแบบบังคับ
+- **ประสิทธิภาพพลังงานของอาคาร**: ฉนวนผนังที่เผชิญกับลมภายนอก
+- **ความปลอดภัยนิวเคลียร์**: ระบบระบายความร้อนของแท่งเชื้อเพลิง
+- **ยานยนต์ไฮเปอร์โซนิก**: ระบบป้องกันความร้อน
+- **เครื่องแลกเปลี่ยนความร้อน**: การคัปปลิงทางความร้อนแบบหลายภูมิภาค (Multi-region thermal coupling)
 
-### 1.3 Mathematical Foundation
+### 1.3 พื้นฐานทางคณิตศาสตร์ (Mathematical Foundation)
 
-#### Governing Equations
+#### สมการควบคุม (Governing Equations)
 
-**Fluid Domain (Convection + Conduction):**
+**โดเมนของไหล (การพา + การนำ):**
 
-For incompressible flow with heat transfer:
+สำหรับการไหลที่อัดตัวไม่ได้พร้อมการถ่ายโอนความร้อน:
 
-$$\rho_f c_{p,f} \left( \frac{\partial T_f}{\partial t} + \mathbf{u}_f \cdot \nabla T_f \right) = k_f \nabla^2 T_f + Q_f \tag{1.1}$$
+$$\rho_f c_{p,f} \left( \frac{\partial T_f}{\partial t} + \mathbf{u}_f \cdot \nabla T_f \right) = k_f \nabla^2 T_f + Q_f \tag{1.1}$$ 
 
-**Solid Domain (Pure Conduction):**
+**โดเมนของแข็ง (การนำความร้อนอย่างเดียว):**
 
-$$\rho_s c_{p,s} \frac{\partial T_s}{\partial t} = k_s \nabla^2 T_s + Q_s \tag{1.2}$$
+$$\rho_s c_{p,s} \frac{\partial T_s}{\partial t} = k_s \nabla^2 T_s + Q_s \tag{1.2}$$ 
 
-**Interface Coupling Conditions:**
+**เงื่อนไขการคัปปลิงที่ส่วนต่อประสาน (Interface Coupling Conditions):**
 
-At the fluid-solid interface $\Gamma$, two physical constraints must be satisfied:
+ที่ส่วนต่อประสานระหว่างของไหลและของแข็ง $\Gamma$ จะต้องเป็นไปตามข้อจำกัดทางกายภาพสองประการ:
 
-1. **Temperature Continuity:**
-   $$T_f|_{\Gamma} = T_s|_{\Gamma} \tag{1.3}$$
+1. **ความต่อเนื่องของอุณหภูมิ (Temperature Continuity):**
+   $$T_f|_{\Gamma} = T_s|_{\Gamma} \tag{1.3}$$ 
 
-2. **Heat Flux Continuity:**
-   $$k_f \left(\frac{\partial T_f}{\partial n}\right)_{\Gamma} = k_s \left(\frac{\partial T_s}{\partial n}\right)_{\Gamma} \tag{1.4}$$
+2. **ความต่อเนื่องของฟลักซ์ความร้อน (Heat Flux Continuity):**
+   $$k_f \left(\frac{\partial T_f}{\partial n}\right)_{\Gamma} = k_s \left(\frac{\partial T_s}{\partial n}\right)_{\Gamma} \tag{1.4}$$ 
 
-**Variable Definitions:**
-- $\rho_f, \rho_s$ - Density of fluid and solid [kg/m³]
-- $c_{p,f}, c_{p,s}$ - Specific heat capacity [J/(kg·K)]
-- $T_f, T_s$ - Temperature fields [K]
-- $k_f, k_s$ - Thermal conductivity [W/(m·K)]
-- $\mathbf{u}_f$ - Fluid velocity vector [m/s]
-- $Q_f, Q_s$ - Volumetric heat sources [W/m³]
-- $\frac{\partial}{\partial n}$ - Normal derivative at interface
+**คำจำกัดความของตัวแปร:**
+- $\rho_f, \rho_s$ - ความหนาแน่นของของไหลและของแข็ง [kg/m³]
+- $c_{p,f}, c_{p,s}$ - ความจุความร้อนจำเพาะ [J/(kg·K)]
+- $T_f, T_s$ - สนามอุณหภูมิ [K]
+- $k_f, k_s$ - สัมประสิทธิ์การนำความร้อน [W/(m·K)]
+- $\mathbf{u}_f$ - เวกเตอร์ความเร็วของของไหล [m/s]
+- $Q_f, Q_s$ - แหล่งกำเนิดความร้อนตามปริมาตร [W/m³]
+- $\frac{\partial}{\partial n}$ - อนุพันธ์ในแนวตั้งฉากที่ส่วนต่อประสาน
 
-### 1.4 Computational Challenges
+### 1.4 ความท้าทายในการคำนวณ
 
-| Challenge | Description | Impact |
+| ความท้าทาย | คำอธิบาย | ผลกระทบ |
 |-----------|-------------|--------|
-| **Mesh Compatibility** | Regions often have different mesh resolution and topology | Requires geometric mapping |
-| **Field Synchronization** | Temperature fields must be synchronized at every time step | High communication overhead |
-| **Property Discontinuities** | Large jumps in thermal properties at interfaces | Numerical instability |
-| **Time Scale Disparity** | Different time scales in fluid and solid regions | Severe time step restrictions |
+| **ความเข้ากันได้ของเมช** | ภูมิภาคต่างๆ มักมีความละเอียดและโทโพโลยีของเมชที่ต่างกัน | จำเป็นต้องมีการแม็พทางเรขาคณิต (Geometric mapping) |
+| **การซิงโครไนซ์ฟิลด์** | สนามอุณหภูมิจะต้องถูกซิงโครไนซ์ในทุกช่วงเวลา | มีภาระในการสื่อสารข้อมูลสูง |
+| **ความไม่ต่อเนื่องของสมบัติ** | สมบัติทางความร้อนมีการกระโดดอย่างมากที่ส่วนต่อประสาน | ความไม่เสถียรเชิงตัวเลข |
+| **ความแตกต่างของมาตราส่วนเวลา** | มาตราส่วนเวลาในภูมิภาคของไหลและของแข็งต่างกันมาก | ข้อจำกัดของช่วงเวลา (time step) ที่รุนแรง |
 
 ---
 
-## 2. Blueprint: `chtMultiRegionFoam` Solver Architecture
+## 2. พิมพ์เขียว: สถาปัตยกรรมของตัวแก้ปัญหา `chtMultiRegionFoam`
 
-### 2.1 Partitioned Multi-Region Approach
+### 2.1 วิธีแบบแบ่งส่วนหลายภูมิภาค (Partitioned Multi-Region Approach)
 
-OpenFOAM's primary CHT solver, `chtMultiRegionFoam`, uses a **partitioned approach** where fluid and solid regions solve their own equations independently but exchange boundary data at every iteration.
+ตัวแก้ปัญหา CHT หลักของ OpenFOAM คือ `chtMultiRegionFoam` ใช้วิธี **แบบแบ่งส่วน (partitioned approach)** โดยภูมิภาคของไหลและของแข็งจะแก้สมการของตัวเองอย่างอิสระ แต่จะแลกเปลี่ยนข้อมูลที่ขอบเขตในทุกๆ รอบการวนซ้ำ
 
-**Key Architectural Benefits:**
-- Modular design reuses existing solvers
-- Memory efficient (smaller matrices than monolithic)
-- Allows different numerical schemes for fluid/solid
-- Supports multiple fluid and solid regions simultaneously
+**ข้อดีหลักทางสถาปัตยกรรม:**
+- การออกแบบที่เป็นโมดูลช่วยให้นำตัวแก้ปัญหาที่มีอยู่เดิมมาใช้ซ้ำได้
+- ประหยัดหน่วยความจำ (เมทริกซ์มีขนาดเล็กกว่าวิธีแบบรวมศูนย์ - monolithic)
+- อนุญาตให้ใช้รูปแบบเชิงตัวเลข (numerical schemes) ที่แตกต่างกันสำหรับของไหลและของแข็ง
+- รองรับหลายภูมิภาคของไหลและของแข็งพร้อมกัน
 
-### 2.2 Main Solver Loop
+### 2.2 วงรอบหลักของตัวแก้ปัญหา (Main Solver Loop)
 
 ```cpp
-// Main entry point for chtMultiRegionFoam solver
+// จุดเริ่มต้นหลักสำหรับตัวแก้ปัญหา chtMultiRegionFoam
 // applications/solvers/heatTransfer/chtMultiRegionFoam/chtMultiRegionFoam.C
 int main(int argc, char *argv[])
 {
@@ -90,33 +90,33 @@ int main(int argc, char *argv[])
     #include "createTime.H"
     #include "createMeshes.H"
 
-    // Multi-region PIMPLE control system - orchestrates time-stepping
-    // across multiple fluid and solid regions simultaneously
+    // ระบบควบคุม PIMPLE แบบหลายภูมิภาค - ประสานงานช่วงเวลา
+    // ในภูมิภาคของไหลและของแข็งหลายแห่งพร้อมกัน
     pimpleMultiRegionControl pimples(fluidRegions, solidRegions);
     #include "createFields.H"
 
-    // Main time loop - continues until specified end time
+    // วงรอบเวลาหลัก - ดำเนินการไปจนถึงเวลาสิ้นสุดที่ระบุ
     while (pimples.run(runTime))
     {
         runTime++;
-        // Number of energy correctors per time step (outer iterations)
+        // จำนวนรอบการแก้ไขพลังงานต่อช่วงเวลา (outer iterations)
         const int nEcorr = pimples.dict().lookupOrDefault<int>("nEcorrectors", 1);
 
         while (pimples.loop())
         {
-            // Outer coupling iterations for fluid-solid thermal coupling
+            // การวนซ้ำรอบนอกสำหรับการคัปปลิงทางความร้อนระหว่างของไหลและของแข็ง
             for(int Ecorr=0; Ecorr<nEcorr; Ecorr++)
             {
-                // SOLID REGIONS SOLUTION
-                // Solve heat conduction in all solid regions
+                // การหาคำตอบในภูมิภาคของแข็ง (SOLID REGIONS SOLUTION)
+                // แก้ปัญหาการนำความร้อนในภูมิภาคของแข็งทั้งหมด
                 forAll(solidRegions, i)
                 {
                     #include "setRegionSolidFields.H"
                     #include "solveSolid.H"
                 }
 
-                // FLUID REGIONS SOLUTION
-                // Solve Navier-Stokes + energy equation in all fluid regions
+                // การหาคำตอบในภูมิภาคของไหล (FLUID REGIONS SOLUTION)
+                // แก้ปัญหา Navier-Stokes + สมการพลังงานในภูมิภาคของไหลทั้งหมด
                 forAll(fluidRegions, i)
                 {
                     #include "setRegionFluidFields.H"
@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-📂 **Source:** `applications/solvers/heatTransfer/chtMultiRegionFoam/chtMultiRegionFoam.C`
+📂 **แหล่งที่มา:** `applications/solvers/heatTransfer/chtMultiRegionFoam/chtMultiRegionFoam.C`
 
 ---
 
@@ -151,67 +151,67 @@ int main(int argc, char *argv[])
 
 ---
 
-### 2.3 Algorithm Flow
+### 2.3 ขั้นตอนการทำงานของอัลกอริทึม (Algorithm Flow)
 
 ```mermaid
 flowchart TD
-    A[Start Time Step] --> B{PIMPLE Loop}
-    B --> C[Loop over Solid Regions]
-    C --> D[Solve Conduction solveSolid.H]
-    D --> E[Loop over Fluid Regions]
-    E --> F[Solve N-S + Energy solveFluid.H]
-    F --> G[Exchange Interface Data mappedWall]
-    G --> H{Converged?}
-    H -- No --> C
-    H -- Yes --> I[Next Time Step]
+    A[เริ่มช่วงเวลา] --> B{รอบ PIMPLE}
+    B --> C[วนรอบผ่านภูมิภาคของแข็ง]
+    C --> D[แก้ปัญหาการนำความร้อน solveSolid.H]
+    D --> E[วนรอบผ่านภูมิภาคของไหล]
+    E --> F[แก้ปัญหา N-S + พลังงาน solveFluid.H]
+    F --> G[แลกเปลี่ยนข้อมูลส่วนต่อประสาน mappedWall]
+    G --> H{ลู่เข้าแล้วหรือยัง?}
+    H -- ยัง --> C
+    H -- ใช่ --> I[ช่วงเวลาถัดไป]
 
     style G fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
 ```
-> **Figure 1:** แผนผังลำดับขั้นตอนการคำนวณของตัวแก้สมการ `chtMultiRegionFoam` แสดงวงจรการวนซ้ำระหว่างภูมิภาคของแข็งและของไหล พร้อมกระบวนการแลกเปลี่ยนข้อมูลที่ส่วนต่อประสานเพื่อให้บรรลุความสมดุลทางความร้อน
+> **รูปที่ 1:** แผนผังลำดับขั้นตอนการคำนวณของตัวแก้สมการ `chtMultiRegionFoam` แสดงวงจรการวนซ้ำระหว่างภูมิภาคของแข็งและของไหล พร้อมกระบวนการแลกเปลี่ยนข้อมูลที่ส่วนต่อประสานเพื่อให้บรรลุความสมดุลทางความร้อน
 
 
-### 2.4 Key Architectural Features
+### 2.4 คุณสมบัติทางสถาปัตยกรรมที่สำคัญ
 
-| Feature | Description | Benefit |
+| คุณสมบัติ | คำอธิบาย | ประโยชน์ |
 |----------|-------------|---------|
-| **PtrList\<fvMesh\>** | Variable number of fluid and solid regions | Scalable to multi-region problems |
-| **pimpleMultiRegionControl** | Orchestrates synchronized time-stepping | Coordinated convergence criteria |
-| **Macro System** | `#include` statements for region-specific code | Reusable, modular code structure |
-| **Modular Solver** | Separate `solveSolid.H` and `solveFluid.H` | Independent numerical schemes |
+| **PtrList<fvMesh>** | จำนวนภูมิภาคของไหลและของแข็งที่แปรผันได้ | ขยายขนาดได้สำหรับปัญหาที่มีหลายภูมิภาค |
+| **pimpleMultiRegionControl** | ประสานงานการก้าวไปข้างหน้าของเวลาที่ซิงโครไนซ์กัน | เกณฑ์การลู่เข้าที่สอดประสานกัน |
+| **ระบบแมโคร (Macro System)** | ใช้คำสั่ง `#include` สำหรับโค้ดเฉพาะภูมิภาค | โครงสร้างโค้ดที่เป็นโมดูลและนำกลับมาใช้ใหม่ได้ |
+| **ตัวแก้ปัญหาแบบโมดูล** | แยก `solveSolid.H` และ `solveFluid.H` ออกจากกัน | รูปแบบเชิงตัวเลขที่เป็นอิสระต่อกัน |
 
-### 2.5 Case Directory Structure
+### 2.5 โครงสร้างไดเรกทอรีของกรณีศึกษา (Case Directory Structure)
 
 ```
 case/
 ├── constant/
-│   ├── regionProperties           # Defines regions (fluid vs solid)
-│   ├── fluid/                     # Fluid region data
+│   ├── regionProperties           # กำหนดภูมิภาค (ของไหล vs ของแข็ง)
+│   ├── fluid/                     # ข้อมูลภูมิภาคของไหล
 │   │   ├── polyMesh/
 │   │   └── thermophysicalProperties
-│   └── solid/                     # Solid region data
+│   └── solid/                     # ข้อมูลภูมิภาคของแข็ง
 │       ├── polyMesh/
 │       └── thermophysicalProperties
-├── 0/                             # Initial conditions
-│   ├── fluid/                     # Fluid fields (U, p, T)
-│   └── solid/                     # Solid fields (T)
-└── system/                        # Solver settings
-    ├── fluid/                     # Fluid solver settings
-    └── solid/                     # Solid solver settings
+├── 0/                             # เงื่อนไขเริ่มต้น
+│   ├── fluid/                     # ฟิลด์ของไหล (U, p, T)
+│   └── solid/                     # ฟิลด์ของแข็ง (T)
+└── system/                        # การตั้งค่าตัวแก้ปัญหา
+    ├── fluid/                     # การตั้งค่าตัวแก้ปัญหาของไหล
+    └── solid/                     # การตั้งค่าตัวแก้ปัญหาของแข็ง
 ```
 
-### 2.6 Region Properties Definition
+### 2.6 การนิยามคุณสมบัติภูมิภาค (Region Properties Definition)
 
 ```cpp
-// Configuration file defining region types and names
+// ไฟล์กำหนดค่าที่ระบุประเภทและชื่อของภูมิภาค
 // constant/regionProperties
 regions
 (
-    fluid (fluidChannel fluidCavity)  // Multiple fluid regions supported
-    solid (solidWall solidObstacle)   // Multiple solid regions supported
+    fluid (fluidChannel fluidCavity)  // รองรับหลายภูมิภาคของไหล
+    solid (solidWall solidObstacle)   // รองรับหลายภูมิภาคของแข็ง
 );
 ```
 
-📂 **Source:** `applications/solvers/heatTransfer/chtMultiRegionFoam/createMeshes.H`
+📂 **แหล่งที่มา:** `applications/solvers/heatTransfer/chtMultiRegionFoam/createMeshes.H`
 
 ---
 
@@ -233,39 +233,39 @@ regions
 
 ---
 
-## 3. Internal Mechanics: Mathematical Formulation
+## 3. กลไกภายใน: รูปแบบทางคณิตศาสตร์ (Internal Mechanics)
 
-### 3.1 Solid Domain Equations
+### 3.1 สมการในโดเมนของแข็ง
 
-The solid region solves the **transient heat conduction equation**:
+ภูมิภาคของแข็งจะแก้ **สมการการนำความร้อนสภาวะไม่คงตัว (transient heat conduction equation)**:
 
-$$\rho_s c_{p,s} \frac{\partial T_s}{\partial t} = \nabla \cdot (k_s \nabla T_s) + Q_s \tag{3.1}$$
+$$\rho_s c_{p,s} \frac{\partial T_s}{\partial t} = \nabla \cdot (k_s \nabla T_s) + Q_s \tag{3.1}$$ 
 
-**Implementation in `solveSolid.H`:**
+**การใช้งานใน `solveSolid.H`:**
 
 ```cpp
-// Solid energy equation - transient heat conduction
+// สมการพลังงานของแข็ง - การนำความร้อนสภาวะไม่คงตัว
 // applications/solvers/heatTransfer/chtMultiRegionFoam/solveSolid.H
 fvScalarMatrix TEqn
 (
-    // Time derivative term: ρ * Cp * ∂T/∂t
+    // เทอมอนุพันธ์ตามเวลา: ρ * Cp * ∂T/∂t
     fvm::ddt(rho, Cpv, T)
-  + // Laplacian term: ∇·(k * ∇T)
+  + // เทอม Laplacian: ∇·(k * ∇T)
     fvm::laplacian(K, T)
  ==
-    // Source terms (e.g., volumetric heat generation)
+    // เทอมแหล่งกำเนิด (เช่น การสร้างความร้อนตามปริมาตร)
     fvOptions(rho, Cpv, T)
 );
 
-// Apply relaxation to improve stability
+// ใช้ relaxation เพื่อปรับปรุงเสถียรภาพ
 TEqn.relax();
-// Apply constraint equations (if any)
+// ใช้สมการข้อจำกัด (ถ้ามี)
 fvOptions.constrain(TEqn);
-// Solve the linear system
+// แก้ระบบสมการเชิงเส้น
 TEqn.solve();
 ```
 
-📂 **Source:** `applications/solvers/heatTransfer/chtMultiRegionFoam/solveSolid.H`
+📂 **แหล่งที่มา:** `applications/solvers/heatTransfer/chtMultiRegionFoam/solveSolid.H`
 
 ---
 
@@ -286,39 +286,39 @@ TEqn.solve();
 
 ---
 
-### 3.2 Fluid Domain Equations
+### 3.2 สมการในโดเมนของไหล
 
-The fluid region solves the **incompressible Navier-Stokes equations** coupled with energy:
+ภูมิภาคของไหลจะแก้ **สมการ Navier-Stokes สำหรับของไหลที่อัดตัวไม่ได้** ร่วมกับสมการพลังงาน:
 
-**Continuity:**
-$$\nabla \cdot \mathbf{u} = 0 \tag{3.2}$$
+**ความต่อเนื่อง (Continuity):**
+$$\nabla \cdot \mathbf{u} = 0 \tag{3.2}$$ 
 
-**Momentum:**
-$$\rho_f \frac{\partial \mathbf{u}}{\partial t} + \rho_f (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu_f \nabla^2 \mathbf{u} + \rho_f \mathbf{g} \tag{3.3}$$
+**โมเมนตัม (Momentum):**
+$$\rho_f \frac{\partial \mathbf{u}}{\partial t} + \rho_f (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu_f \nabla^2 \mathbf{u} + \rho_f \mathbf{g} \tag{3.3}$$ 
 
-**Energy (Enthalpy Formulation):**
-$$\rho_f c_{p,f} \left( \frac{\partial T_f}{\partial t} + \mathbf{u} \cdot \nabla T_f \right) = \nabla \cdot (k_f \nabla T_f) + \Phi \tag{3.4}$$
+**พลังงาน (Enthalpy Formulation):**
+$$\rho_f c_{p,f} \left( \frac{\partial T_f}{\partial t} + \mathbf{u} \cdot \nabla T_f \right) = \nabla \cdot (k_f \nabla T_f) + \Phi \tag{3.4}$$ 
 
-Where $\Phi$ represents viscous dissipation:
-$$\Phi = \mu_f \left[ 2\left(\frac{\partial u}{\partial x}\right)^2 + 2\left(\frac{\partial v}{\partial y}\right)^2 + 2\left(\frac{\partial w}{\partial z}\right)^2 + \left(\frac{\partial u}{\partial y} + \frac{\partial v}{\partial x}\right)^2 + \dots \right]$$
+โดยที่ $\Phi$ แทนการสลายตัวเนื่องจากความหนืด (viscous dissipation):
+$$\Phi = \mu_f \left[ 2\left(\frac{\partial u}{\partial x}\right)^2 + 2\left(\frac{\partial v}{\partial y}\right)^2 + 2\left(\frac{\partial w}{\partial z}\right)^2 + \left(\frac{\partial u}{\partial y} + \frac{\partial v}{\partial x}\right)^2 + \dots \right]$$ 
 
-### 3.3 Coupling Strategy
+### 3.3 กลยุทธ์การคัปปลิง (Coupling Strategy)
 
-The coupling is **explicit or semi-implicit** via boundary conditions. The solver iterates between domains until:
+การคัปปลิงเป็นแบบ **Explicit หรือ Semi-implicit** ผ่านเงื่อนไขขอบเขต ตัวแก้ปัญหาจะวนซ้ำระหว่างโดเมนจนกระทั่ง:
 
-1. Interface temperature continuity: $T_f|_{\Gamma} = T_s|_{\Gamma}$
-2. Heat flux balance: $-k_f \frac{\partial T_f}{\partial n}\bigg|_{\Gamma} = -k_s \frac{\partial T_s}{\partial n}\bigg|_{\Gamma}$
+1. อุณหภูมิที่ส่วนต่อประสานมีความต่อเนื่อง: $T_f|_{\Gamma} = T_s|_{\Gamma}$
+2. ฟลักซ์ความร้อนมีความสมดุล: $-k_f \frac{\partial T_f}{\partial n}igg|_{\Gamma} = -k_s \frac{\partial T_s}{\partial n}igg|_{\Gamma}$
 
 ---
 
-## 4. Mechanism: `mappedWall` Boundary Condition
+## 4. กลไก: เงื่อนไขขอบเขต `mappedWall` (Mechanism)
 
-### 4.1 The Mapping Engine: `mappedPatchBase`
+### 4.1 เครื่องมือการแม็พ: `mappedPatchBase`
 
-The core of CHT coupling is the `mappedPatchBase` class—a geometric mapping tool that establishes relationships between source and target faces/cells across potentially non-conformal meshes.
+หัวใจสำคัญของการคัปปลิงแบบ CHT คือคลาส `mappedPatchBase` ซึ่งเป็นเครื่องมือแม็พทางเรขาคณิตที่สร้างความสัมพันธ์ระหว่างหน้า/เซลล์ที่เป็นต้นทาง (source) และเป้าหมาย (target) ข้ามเมชที่อาจไม่สอดคล้องกัน (non-conformal meshes)
 
 ```cpp
-// Mapped wall patch class definition
+// คำจำกัดความคลาสแพตช์ผนังที่แม็พไว้
 // src/meshTools/mappedPatches/mappedPolyPatch/mappedWallPolyPatch.H
 class mappedWallPolyPatch
 :
@@ -327,15 +327,15 @@ class mappedWallPolyPatch
 {
     TypeName("mappedWall");
 
-    // Sampling parameters:
-    // - sampleRegion: region to sample from
+    // พารามิเตอร์การสุ่มตัวอย่าง (Sampling parameters):
+    // - sampleRegion: ภูมิภาคที่จะสุ่มตัวอย่าง
     // - sampleMode: nearestCell, nearestFace, nearestPatchFace
-    // - samplePatch: patch to sample from
-    // - offset: geometric offset between regions
+    // - samplePatch: แพตช์ที่จะสุ่มตัวอย่าง
+    // - offset: ระยะเยื้องทางเรขาคณิตระหว่างภูมิภาค
 };
 ```
 
-📂 **Source:** `src/meshTools/mappedPatches/mappedPolyPatch/mappedWallPolyPatch.H`
+📂 **แหล่งที่มา:** `src/meshTools/mappedPatches/mappedPolyPatch/mappedWallPolyPatch.H`
 
 ---
 
@@ -350,27 +350,27 @@ class mappedWallPolyPatch
 
 **แนวคิดสำคัญ (Key Concepts):**
 1. **Multiple inheritance**: รับคุณลักษณะจากทั้ง wall patch และ mapping capability
-2. **Sample modes**: กลยุทธ์การหาคู่映射 (mapping) ที่หลากหลาย (nearestCell, nearestFace, etc.)
+2. **Sample modes**: กลยุทธ์การหาคู่แม็พ (mapping) ที่หลากหลาย (nearestCell, nearestFace, etc.)
 3. **Non-conformal meshes**: รองรับ meshes ที่มี resolution/tolerance ต่างกัน
 4. **Region specification**: ระบุ source region และ patch ที่จะ map ข้อมูลมา
 
 ---
 
-### 4.2 Sampling Modes
+### 4.2 โหมดการสุ่มตัวอย่าง (Sampling Modes)
 
-| Mode | Description | Accuracy | Performance |
+| โหมด | คำอธิบาย | ความแม่นยำ | ประสิทธิภาพ |
 |------|-------------|----------|-------------|
-| **`nearestCell`** | Map to nearest cell center | First-order | Fastest |
-| **`nearestFace`** | Map to nearest face center | Medium | Fast |
-| **`nearestPatchFace`** | Map to nearest face on specified patch | Medium-High | Fast |
-| **`interpolation`** | Use advanced interpolation schemes | Second-order+ | Slowest |
+| **`nearestCell`** | แม็พไปยังจุดศูนย์กลางเซลล์ที่ใกล้ที่สุด | อันดับหนึ่ง (First-order) | เร็วที่สุด |
+| **`nearestFace`** | แม็พไปยังจุดศูนย์กลางหน้าผิวที่ใกล้ที่สุด | ปานกลาง | เร็ว |
+| **`nearestPatchFace`** | แม็พไปยังหน้าที่ใกล้ที่สุดบนแพตช์ที่ระบุ | ปานกลาง-สูง | เร็ว |
+| **`interpolation`** | ใช้รูปแบบการประมาณค่า (interpolation) ขั้นสูง | อันดับสองขึ้นไป | ช้าที่สุด |
 
-### 4.3 Field Transfer: `mappedFixedValueFvPatchField`
+### 4.3 การถ่ายโอนฟิลด์: `mappedFixedValueFvPatchField`
 
-The actual field coupling is implemented through boundary conditions:
+การคัปปลิงฟิลด์ที่เกิดขึ้นจริงนั้นถูกทำผ่านเงื่อนไขขอบเขต:
 
 ```cpp
-// Mapped fixed value boundary condition for field transfer
+// เงื่อนไขขอบเขตแบบค่าคงที่ที่แม็พไว้สำหรับการถ่ายโอนฟิลด์
 // src/finiteVolume/fields/fvPatchFields/derived/mappedFixedValue/mappedFixedValueFvPatchField.H
 template<class Type>
 class mappedFixedValueFvPatchField
@@ -380,12 +380,12 @@ class mappedFixedValueFvPatchField
 {
     TypeName("mapped");
 
-    // Virtual function called every iteration to update boundary values
+    // ฟังก์ชันเสมือนที่ถูกเรียกในทุกรอบการวนซ้ำเพื่ออัปเดตค่าขอบเขต
     virtual void updateCoeffs();
 };
 ```
 
-📂 **Source:** `src/finiteVolume/fields/fvPatchFields/derived/mappedFixedValue/mappedFixedValueFvPatchField.H`
+📂 **แหล่งที่มา:** `src/finiteVolume/fields/fvPatchFields/derived/mappedFixedValue/mappedFixedValueFvPatchField.H`
 
 ---
 
@@ -406,23 +406,23 @@ class mappedFixedValueFvPatchField
 
 ---
 
-### 4.4 Configuration Examples
+### 4.4 ตัวอย่างการกำหนดค่า (Configuration Examples)
 
-**In `0/fluid/T`:**
+**ใน `0/fluid/T`:**
 
 ```cpp
 interface_to_solid
 {
-    type            mapped;               // Uses mappedFixedValue
-    fieldName       T;                    // Map Temperature
-    sampleMode      nearestPatchFace;     // Mapping strategy
-    sampleRegion    solid;                // Source region
-    samplePatch     interface_to_fluid;   // Source patch
-    value           uniform 300;          // Initial guess
+    type            mapped;               // ใช้ mappedFixedValue
+    fieldName       T;                    // แม็พค่าอุณหภูมิ (Temperature)
+    sampleMode      nearestPatchFace;     // กลยุทธ์การแม็พ
+    sampleRegion    solid;                // ภูมิภาคต้นทาง
+    samplePatch     interface_to_fluid;   // แพตช์ต้นทาง
+    value           uniform 300;          // ค่าเริ่มต้นสำหรับการคาดการณ์
 }
 ```
 
-**In `constant/fluid/polyMesh/boundary`:**
+**ใน `constant/fluid/polyMesh/boundary`:**
 
 ```cpp
 interface_to_solid
@@ -435,70 +435,70 @@ interface_to_solid
 }
 ```
 
-### 4.5 Data Transfer Algorithm
+### 4.5 อัลกอริทึมการถ่ายโอนข้อมูล (Data Transfer Algorithm)
 
 ```mermaid
 flowchart LR
-    A[Preprocessing] --> B[Build Mapping Weights]
-    B --> C[Store Interpolation Coefficients]
+    A[การเตรียมประมวลผล] --> B[สร้างน้ำหนักการแม็พ]
+    B --> C[เก็บสัมประสิทธิ์การประมาณค่า]
 
-    D[Runtime] --> E[updateCoeffs Call]
-    E --> F[Sample Source Field]
-    F --> G[Apply Weights]
-    G --> H[Update Boundary Values]
-    H --> I[Enforce Flux Conservation]
+    D[ขณะทำงาน] --> E[เรียกใช้ updateCoeffs]
+    E --> F[สุ่มตัวอย่างฟิลด์ต้นทาง]
+    F --> G[ใช้น้ำหนัก]
+    G --> H[อัปเดตค่าขอบเขต]
+    H --> I[บังคับใช้การอนุรักษ์ฟลักซ์]
 
     style A fill:#e3f2fd,stroke:#1976d2
     style D fill:#fff3e0,stroke:#f57c00
 ```
-> **Figure 2:** แผนภาพแสดงกระบวนการถ่ายโอนข้อมูลทางเรขาคณิตและฟิสิกส์ระหว่างภูมิภาค โดยใช้กลไกการแม็พ (Mapping) เพื่ออัปเดตเงื่อนไขขอบเขตในขณะรันการจำลอง
+> **รูปที่ 2:** แผนภาพแสดงกระบวนการถ่ายโอนข้อมูลทางเรขาคณิตและฟิสิกส์ระหว่างภูมิภาค โดยใช้กลไกการแม็พ (Mapping) เพื่ออัปเดตเงื่อนไขขอบเขตในขณะรันการจำลอง
 
 
 ---
 
-## 5. Architectural Trade-offs: Partitioned vs. Monolithic
+## 5. การแลกเปลี่ยนทางสถาปัตยกรรม: แบบแบ่งส่วน vs แบบรวมศูนย์ (Partitioned vs. Monolithic)
 
-### 5.1 Partitioned Approach (OpenFOAM)
+### 5.1 วิธีแบบแบ่งส่วน (Partitioned Approach - OpenFOAM)
 
-**Advantages:**
-- ✅ Modular (reuses existing solvers)
-- ✅ Memory efficient (smaller matrices)
-- ✅ Flexible numerical schemes per region
-- ✅ Easier code maintenance
+**ข้อดี:**
+- ✅ เป็นโมดูล (นำตัวแก้ปัญหาที่มีอยู่กลับมาใช้ได้)
+- ✅ ประหยัดหน่วยความจำ (เมทริกซ์ขนาดเล็กกว่า)
+- ✅ รูปแบบเชิงตัวเลขที่ยืดหยุ่นตามภูมิภาค
+- ✅ บำรุงรักษาโค้ดได้ง่ายกว่า
 
-**Disadvantages:**
-- ❌ Requires sub-iterations for strong coupling
-- ❌ Potential stability issues with high conductivity ratios
-- ❌ May need under-relaxation for convergence
+**ข้อเสีย:**
+- ❌ ต้องการการวนซ้ำย่อยเพื่อให้ได้การคัปปลิงที่เข้มแข็ง
+- ❌ อาจมีปัญหาความเสถียรเมื่ออัตราส่วนการนำความร้อนสูง
+- ❌ อาจต้องใช้การผ่อนคลาย (under-relaxation) เพื่อการลู่เข้า
 
-### 5.2 Stability Considerations
+### 5.2 การพิจารณาด้านความเสถียร (Stability Considerations)
 
-High conductivity ratios (e.g., Copper vs. Air, $k_s/k_f \gg 1$) can cause numerical instability.
+อัตราส่วนการนำความร้อนที่สูง (เช่น ทองแดงเทียบกับอากาศ, $k_s/k_f \gg 1$) อาจทำให้เกิดความไม่เสถียรเชิงตัวเลข
 
-**Conductivity Ratio Impact:**
+**ผลกระทบของอัตราส่วนการนำความร้อน:**
 
-$$\beta_k = \frac{k_s}{k_f}$$
+$$\beta_k = \frac{k_s}{k_f}$$ 
 
-| Ratio Range | Stability | Recommended Approach |
+| ช่วงอัตราส่วน | ความเสถียร | วิธีการที่แนะนำ |
 |-------------|-----------|---------------------|
-| $\beta_k < 10$ | Stable | Standard coupling |
-| $10 \leq \beta_k \leq 100$ | Moderately stable | Under-relaxation required |
-| $\beta_k > 100$ | Potentially unstable | Strong under-relaxation, small time steps |
+| $\beta_k < 10$ | เสถียร | การคัปปลิงมาตรฐาน |
+| $10 \leq \beta_k \leq 100$ | เสถียรปานกลาง | ต้องใช้การผ่อนคลาย (Under-relaxation) |
+| $\beta_k > 100$ | อาจไม่เสถียร | ต้องมีการผ่อนคลายที่เข้มข้น, ช่วงเวลาสั้นๆ |
 
-### 5.3 Under-Relaxation Strategy
+### 5.3 กลยุทธ์การผ่อนคลาย (Under-Relaxation Strategy)
 
-Essential for convergence with high conductivity ratios:
+จำเป็นสำหรับการลู่เข้าเมื่อมีอัตราส่วนการนำความร้อนสูง:
 
-$$T^{n+1} = (1-\alpha_T) T^n + \alpha_T T_{\text{mapped}} \tag{5.1}$$
+$$T^{n+1} = (1-\alpha_T) T^n + \alpha_T T_{\text{mapped}} \tag{5.1}$$ 
 
-**Configuration in `system/fluid/fvSolution`:**
+**การกำหนดค่าใน `system/fluid/fvSolution`:**
 
 ```cpp
 relaxationFactors
 {
     fields
     {
-        T           0.5;    // Temperature under-relaxation
+        T           0.5;    // การผ่อนคลายอุณหภูมิ
     }
     equations
     {
@@ -508,20 +508,20 @@ relaxationFactors
 }
 ```
 
-**Typical Values:**
-- Temperature: $\alpha_T \approx 0.3-0.7$ (lower for high $\beta_k$)
-- Velocity: $\alpha_U \approx 0.7$
-- Turbulence: $\alpha_{\text{turb}} \approx 0.7$
+**ค่าโดยทั่วไป:**
+- อุณหภูมิ: $\alpha_T \approx 0.3-0.7$ (ลดลงเมื่อ $\beta_k$ สูง)
+- ความเร็ว: $\alpha_U \approx 0.7$
+- ความปั่นป่วน: $\alpha_{\text{turb}} \approx 0.7$
 
-### 5.4 Aitken Acceleration
+### 5.4 การเร่งความเร็วแบบ Aitken (Aitken Acceleration)
 
-OpenFOAM can use **Aitken's $\Delta^2$ method** to dynamically adjust relaxation factors:
+OpenFOAM สามารถใช้วิธี **Aitken's $\Delta^2$** เพื่อปรับปัจจัยการผ่อนคลายแบบไดนามิก:
 
-$$\alpha^k = -\alpha^{k-1} \frac{(\mathbf{r}^k, \mathbf{r}^k - \mathbf{r}^{k-1})}{\|\mathbf{r}^k - \mathbf{r}^{k-1}\|^2} \tag{5.2}$$
+$$\alpha^k = -\alpha^{k-1} \frac{(\mathbf{r}^k, \mathbf{r}^k - \mathbf{r}^{k-1})}{\|\mathbf{r}^k - \mathbf{r}^{k-1}\|^2} \tag{5.2}$$ 
 
-Where $\mathbf{r}^k = \mathbf{x}^{k+1} - \mathbf{x}^k$ is the iteration residual.
+โดยที่ $\mathbf{r}^k = \mathbf{x}^{k+1} - \mathbf{x}^k$ คือค่าตกค้างจากการวนซ้ำ (iteration residual)
 
-**Enable in `fvSolution`:**
+**เปิดใช้งานใน `fvSolution`:**
 
 ```cpp
 PIMPLE
@@ -529,36 +529,36 @@ PIMPLE
     nOuterCorrectors  50;
     nCorrectors      2;
     nNonOrthogonalCorrectors 0;
-    aitkenAcceleration on;      // Enable Aitken acceleration
+    aitkenAcceleration on;      // เปิดใช้งานการเร่งความเร็วแบบ Aitken
 }
 ```
 
 ---
 
-## 6. Usage: Setting Up a CHT Simulation
+## 6. การใช้งาน: การตั้งค่าการจำลองแบบ CHT (Usage)
 
-### 6.1 Step-by-Step Workflow
+### 6.1 ขั้นตอนการทำงาน (Step-by-Step Workflow)
 
-#### Step 1: Mesh Generation
+#### ขั้นตอนที่ 1: การสร้างเมช (Mesh Generation)
 
-Create separate meshes for each region:
+สร้างเมชแยกกันสำหรับแต่ละภูมิภาค:
 
 ```bash
-# Generate fluid mesh
+# สร้างเมชสำหรับของไหล
 blockMesh -region fluid
 
-# Generate solid mesh
+# สร้างเมชสำหรับของแข็ง
 blockMesh -region solid
 ```
 
-**Critical Requirements:**
-- Interface patches must geometrically overlap
-- Consistent face orientations (normal vectors)
-- Appropriate mesh resolution at interfaces
+**ข้อกำหนดที่สำคัญ:**
+- แพตช์ที่ส่วนต่อประสานจะต้องซ้อนทับกันทางเรขาคณิต
+- การวางแนวหน้าผิว (normal vectors) ต้องสอดคล้องกัน
+- ความละเอียดของเมชที่ส่วนต่อประสานต้องเหมาะสม
 
-#### Step 2: Define Regions
+#### ขั้นตอนที่ 2: การนิยามภูมิภาค (Define Regions)
 
-Edit `constant/regionProperties`:
+แก้ไขไฟล์ `constant/regionProperties`:
 
 ```cpp
 regions
@@ -568,9 +568,9 @@ regions
 );
 ```
 
-#### Step 3: Configure Boundary Conditions
+#### ขั้นตอนที่ 3: การกำหนดเงื่อนไขขอบเขต (Configure Boundary Conditions)
 
-Set `type mappedWall` in `polyMesh/boundary`:
+ตั้งค่า `type mappedWall` ใน `polyMesh/boundary`:
 
 ```cpp
 // constant/fluid/polyMesh/boundary
@@ -584,7 +584,7 @@ interface_to_solid
 }
 ```
 
-Set `type mapped` in field files:
+ตั้งค่า `type mapped` ในไฟล์ฟิลด์:
 
 ```cpp
 // 0/fluid/T
@@ -595,26 +595,26 @@ interface_to_solid
 }
 ```
 
-#### Step 4: Run Solver
+#### ขั้นตอนที่ 4: รันตัวแก้ปัญหา (Run Solver)
 
 ```bash
 chtMultiRegionFoam
 ```
 
-### 6.2 Best Practices
+### 6.2 แนวทางปฏิบัติที่ดีที่สุด (Best Practices)
 
-#### Time Step Selection
+#### การเลือกช่วงเวลา (Time Step Selection)
 
-Limited by the fastest timescale (usually fluid convection):
+ถูกจำกัดด้วยมาตราส่วนเวลาที่เร็วที่สุด (มักจะเป็นการพาความร้อนในของไหล):
 
 ```cpp
 // system/controlDict
 adjustTimeStep  yes;
-maxCo           0.3;          // Reduced for CHT stability
+maxCo           0.3;          // ลดลงเพื่อความเสถียรของ CHT
 maxDeltaT       0.1;
 ```
 
-#### Relaxation Factors
+#### ปัจจัยการผ่อนคลาย (Relaxation Factors)
 
 ```cpp
 // system/fluid/fvSolution
@@ -622,14 +622,14 @@ relaxationFactors
 {
     fields
     {
-        T           0.5;    // Critical for interface stability
+        T           0.5;    // สำคัญสำหรับความเสถียรที่ส่วนต่อประสาน
     }
 }
 ```
 
-#### Monitoring
+#### การตรวจสอบ (Monitoring)
 
-Use function objects to monitor heat balance:
+ใช้ออบเจกต์ฟังก์ชัน (function objects) เพื่อตรวจสอบสมดุลความร้อน:
 
 ```cpp
 // system/controlDict
@@ -644,8 +644,8 @@ functions
         operation       weightedSum;
         fields
         (
-            phi         // Volume flux
-            phiH        // Enthalpy flux (heat transfer rate)
+            phi         // ฟลักซ์ปริมาตร
+            phiH        // ฟลักซ์เอนทาลปี (อัตราการถ่ายโอนความร้อน)
         );
     }
 }
@@ -653,22 +653,22 @@ functions
 
 ---
 
-## 7. Conservation Verification
+## 7. การตรวจสอบการอนุรักษ์ (Conservation Verification)
 
-### 7.1 Heat Flux Continuity Check
+### 7.1 การตรวจสอบความต่อเนื่องของฟลักซ์ความร้อน
 
-The fundamental physical requirement for CHT is heat flux continuity across interfaces:
+ข้อกำหนดทางฟิสิกส์พื้นฐานสำหรับ CHT คือความต่อเนื่องของฟลักซ์ความร้อนข้ามส่วนต่อประสาน:
 
-$$q_f = -k_f \frac{\partial T_f}{\partial n} = -k_s \frac{\partial T_s}{\partial n} = q_s \tag{7.1}$$
+$$q_f = -k_f \frac{\partial T_f}{\partial n} = -k_s \frac{\partial T_s}{\partial n} = q_s \tag{7.1}$$ 
 
-**Verification Criterion:**
+**เกณฑ์การตรวจสอบ:**
 
-$$\frac{|q_f + q_s|}{|q_f|} < 10^{-6} \tag{7.2}$$
+$$\frac{|q_f + q_s|}{|q_f|} < 10^{-6} \tag{7.2}$$ 
 
-### 7.2 Implementation
+### 7.2 การใช้งาน (Implementation)
 
 ```cpp
-// Heat flux continuity verification
+// การตรวจสอบความต่อเนื่องของฟลักซ์ความร้อน
 scalarField qFluid = -kFluid.boundaryField()[fluidPatchID] *
                      fvc::grad(TFluid).boundaryField()[fluidPatchID];
 
@@ -679,11 +679,11 @@ scalar maxRelError = max(mag(qFluid + qSolid)/mag(qFluid));
 
 if (maxRelError < 1e-6)
 {
-    Info << "Heat flux continuity verified: " << maxRelError << endl;
+    Info << "ผ่านการตรวจสอบความต่อเนื่องของฟลักซ์ความร้อน: " << maxRelError << endl;
 }
 ```
 
-📂 **Source:** Custom function object implementation pattern
+📂 **แหล่งที่มา:** รูปแบบการใช้งานออบเจกต์ฟังก์ชันแบบกำหนดเอง (Custom function object implementation pattern)
 
 ---
 
@@ -704,101 +704,101 @@ if (maxRelError < 1e-6)
 
 ---
 
-### 7.3 Energy Balance Monitoring
+### 7.3 การตรวจสอบสมดุลพลังงาน
 
-Track total system energy:
+ติดตามพลังงานรวมของระบบ:
 
-$$E_{\text{total}} = \int_{\Omega_f} \rho_f c_{p,f} T_f \, dV + \int_{\Omega_s} \rho_s c_{p,s} T_s \, dV \tag{7.3}$$
+$$E_{\text{total}} = \int_{\Omega_f} \rho_f c_{p,f} T_f \, dV + \int_{\Omega_s} \rho_s c_{p,s} T_s \, dV \tag{7.3}$$ 
 
-**Change should equal boundary fluxes:**
+**การเปลี่ยนแปลงควรเท่ากับฟลักซ์ที่ขอบเขต:**
 
-$$\frac{dE_{\text{total}}}{dt} = \sum_{\text{boundaries}} \int_{\partial \Omega} \mathbf{q} \cdot \mathbf{n} \, dS \tag{7.4}$$
-
----
-
-## 8. Common Issues and Solutions
-
-### 8.1 Mapping Failures
-
-**Symptoms:**
-- Error: "Cannot find sample region"
-- Error: "Failed to map patch to region"
-
-**Solutions:**
-- Check region names match exactly (case-sensitive)
-- Verify patches exist in `constant/region/polyMesh/boundary`
-- Ensure proper region definition in `regionProperties`
-
-### 8.2 Numerical Instability
-
-**Symptoms:**
-- Temperature oscillations at interface
-- Solution divergence near mapped boundaries
-- Time step continuously reduced by solver
-
-**Solutions:**
-- Reduce under-relaxation factors: `T 0.3`
-- Decrease time step: `maxCo 0.2`
-- Improve mesh quality at interfaces
-- Use `nearestPatchFace` sampling mode
-
-### 8.3 Conservation Errors
-
-**Symptoms:**
-- Increasing energy imbalance
-- Mass balance violations
-- Unphysical heat transfer rates
-
-**Solutions:**
-- Ensure consistent flux orientation
-- Use conservative discretization schemes
-- Verify boundary normal vectors
-- Check time integration consistency
-
-### 8.4 Slow Convergence
-
-**Symptoms:**
-- High coupling residuals (> 1e-3)
-- Solver stuck at iteration limits
-- Excessive CPU time per time step
-
-**Solutions:**
-- Enable Aitken acceleration
-- Increase outer correctors: `nOuterCorrectors 100`
-- Optimize linear solver settings
-- Improve initial conditions
+$$\frac{dE_{\text{total}}}{dt} = \sum_{\text{boundaries}} \int_{\partial \Omega} \mathbf{q} \cdot \mathbf{n} \, dS \tag{7.4}$$ 
 
 ---
 
-## 9. Summary
+## 8. ปัญหาทั่วไปและวิธีแก้ไข (Common Issues and Solutions)
 
-### Key Takeaways
+### 8.1 ความล้มเหลวในการแม็พ (Mapping Failures)
 
-**`chtMultiRegionFoam` Architecture:**
-- Uses **partitioned multi-region approach** for coupled thermal simulations
-- **`PtrList<fvMesh>`** handles variable numbers of fluid and solid regions
-- **`pimpleMultiRegionControl`** orchestrates synchronized time-stepping
-- **Modular design** with separate `solveSolid.H` and `solveFluid.H`
+**อาการ:**
+- ข้อผิดพลาด: "Cannot find sample region" (หาภูมิภาคตัวอย่างไม่พบ)
+- ข้อผิดพลาด: "Failed to map patch to region" (แม็พแพตช์ไปยังภูมิภาคไม่สำเร็จ)
 
-**Coupling Mechanism:**
-- **`mappedWall`** boundary conditions enforce $T$ and $q$ continuity
-- **`mappedPatchBase`** provides geometric mapping between regions
-- **`mappedFixedValue`** handles field transfer at runtime
+**วิธีแก้ไข:**
+- ตรวจสอบว่าชื่อภูมิภาคตรงกันทุกประการ (ตัวเล็กตัวใหญ่มีผล)
+- ตรวจสอบว่ามีแพตช์อยู่ใน `constant/region/polyMesh/boundary`
+- ตรวจสอบความถูกต้องของการนิยามภูมิภาคใน `regionProperties`
 
-**Stability Considerations:**
-- **Under-relaxation** essential for high conductivity ratios
-- **Aitken acceleration** improves convergence
-- **Conservation checks** verify physical correctness
+### 8.2 ความไม่เสถียรเชิงตัวเลข (Numerical Instability)
 
-**Best Practices:**
-- Start with `T` relaxation factor of 0.5
-- Use `nearestPatchFace` sampling mode for accuracy
-- Monitor heat flux continuity at interfaces
-- Verify energy balance conservation
+**อาการ:**
+- อุณหภูมิเกิดการแกว่ง (oscillations) ที่ส่วนต่อประสาน
+- คำตอบลู่ออก (divergence) ใกล้ขอบเขตที่แม็พไว้
+- ตัวแก้ปัญหาลดช่วงเวลาลงอย่างต่อเนื่อง
+
+**วิธีแก้ไข:**
+- ลดปัจจัยการผ่อนคลาย (under-relaxation factors): เช่น `T 0.3`
+- ลดช่วงเวลา: `maxCo 0.2`
+- ปรับปรุงคุณภาพเมชที่ส่วนต่อประสาน
+- ใช้โหมดการสุ่มตัวอย่างแบบ `nearestPatchFace`
+
+### 8.3 ข้อผิดพลาดในการอนุรักษ์ (Conservation Errors)
+
+**อาการ:**
+- ความไม่สมดุลของพลังงานเพิ่มขึ้น
+- มีการละเมิดสมดุลมวล
+- อัตราการถ่ายโอนความร้อนที่ไม่สอดคล้องกับฟิสิกส์
+
+**วิธีแก้ไข:**
+- ตรวจสอบให้แน่ใจว่าการวางแนวฟลักซ์สอดคล้องกัน
+- ใช้รูปแบบการแยกส่วนแบบอนุรักษ์ (conservative discretization schemes)
+- ตรวจสอบเวกเตอร์แนวตั้งฉากของขอบเขต (boundary normal vectors)
+- ตรวจสอบความสอดคล้องของการบูรณาการเวลา (time integration consistency)
+
+### 8.4 การลู่เข้าช้า (Slow Convergence)
+
+**อาการ:**
+- ค่าตกค้างการคัปปลิง (coupling residuals) สูง (> 1e-3)
+- ตัวแก้ปัญหาติดอยู่ที่ขีดจำกัดการวนซ้ำ
+- ใช้เวลา CPU ต่อช่วงเวลามากเกินไป
+
+**วิธีแก้ไข:**
+- เปิดใช้งานการเร่งความเร็วแบบ Aitken
+- เพิ่มจำนวนรอบการแก้ไขรอบนอก (outer correctors): `nOuterCorrectors 100`
+- ปรับแต่งการตั้งค่าตัวแก้ปัญหาเชิงตัวเลข
+- ปรับปรุงเงื่อนไขเริ่มต้น
 
 ---
 
-## References
+## 9. สรุป (Summary)
+
+### ประเด็นสำคัญ
+
+**สถาปัตยกรรมของ `chtMultiRegionFoam`:**
+- ใช้วิธี **แบบแบ่งส่วนหลายภูมิภาค (partitioned multi-region approach)** สำหรับการจำลองทางความร้อนที่คัปปลิงกัน
+- **`PtrList<fvMesh>`** จัดการภูมิภาคของไหลและของแข็งจำนวนที่แปรผันได้
+- **`pimpleMultiRegionControl`** ประสานงานช่วงเวลาที่ซิงโครไนซ์กัน
+- **การออกแบบที่เป็นโมดูล** พร้อมไฟล์แยก `solveSolid.H` และ `solveFluid.H`
+
+**กลไกการคัปปลิง:**
+- เงื่อนไขขอบเขต **`mappedWall`** บังคับใช้ความต่อเนื่องของ $T$ และ $q$
+- **`mappedPatchBase`** ให้การแม็พทางเรขาคณิตระหว่างภูมิภาค
+- **`mappedFixedValue`** จัดการการถ่ายโอนฟิลด์ในขณะรันโปรแกรม
+
+**การพิจารณาด้านความเสถียร:**
+- **การผ่อนคลาย (Under-relaxation)** เป็นสิ่งจำเป็นสำหรับอัตราส่วนการนำความร้อนสูง
+- **การเร่งความเร็วแบบ Aitken** ช่วยปรับปรุงการลู่เข้า
+- **การตรวจสอบการอนุรักษ์** ยืนยันความถูกต้องทางกายภาพ
+
+**แนวทางปฏิบัติที่ดีที่สุด:**
+- เริ่มต้นด้วยปัจจัยการผ่อนคลายของ `T` ที่ 0.5
+- ใช้โหมดการสุ่มตัวอย่างแบบ `nearestPatchFace` เพื่อความแม่นยำ
+- ตรวจสอบความต่อเนื่องของฟลักซ์ความร้อนที่ส่วนต่อประสาน
+- ตรวจสอบการอนุรักษ์สมดุลพลังงาน
+
+---
+
+## เอกสารอ้างอิง (References)
 
 - OpenFOAM® v2312 Documentation: `chtMultiRegionFoam` solver guide
 - Jasak, H. (2009). "OpenFOAM: Open Source CFD in Research and Industry"
@@ -806,6 +806,6 @@ $$\frac{dE_{\text{total}}}{dt} = \sum_{\text{boundaries}} \int_{\partial \Omega}
 - The OpenFOAM Foundation Ltd. (2024). "OpenFOAM User Guide"
 
 ---
-**Document Version:** 1.0
-**Last Updated:** 2025-12-23
-**OpenFOAM Version:** 2312+
+**เวอร์ชันเอกสาร:** 1.0
+**อัปเดตล่าสุด:** 23 ธันวาคม 2025
+**เวอร์ชัน OpenFOAM:** 2312+

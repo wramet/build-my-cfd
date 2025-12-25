@@ -1,61 +1,61 @@
-# Module 07: OpenFOAM Utilities & Workflow Automation
+# โมดูล 07: ยูทิลิตี้ของ OpenFOAM และการทำงานอัตโนมัติ (OpenFOAM Utilities & Workflow Automation)
 
-## 📋 Executive Summary
+## 📋 บทสรุปผู้บริหาร (Executive Summary)
 
-This module provides comprehensive training in OpenFOAM's extensive utilities ecosystem and workflow automation strategies, enabling efficient management of complete CFD workflows from geometry preparation to advanced post-processing and reporting.
+โมดูลนี้จัดทำขึ้นเพื่อฝึกอบรมอย่างครอบคลุมในระบบนิเวศยูทิลิตี้ที่กว้างขวางของ OpenFOAM และกลยุทธ์การทำงานอัตโนมัติ (workflow automation) ซึ่งช่วยให้สามารถจัดการกระบวนการทำงาน CFD ที่สมบูรณ์ได้อย่างมีประสิทธิภาพ ตั้งแต่การเตรียมเรขาคณิตไปจนถึงการประมวลผลภายหลังและการรายงานผลขั้นสูง
 
-**Core Focus**: Practical workflows, automation, and integration with OpenFOAM solvers for engineering applications.
-
----
-
-## 🎯 Module Objectives
-
-### Primary Goals
-
-**Mastery of OpenFOAM Utilities**
-- Control OpenFOAM utilities for mesh processing, case setup, and post-processing
-- Develop proficiency in preprocessing utilities: `blockMesh`, `snappyHexMesh`, surface preparation tools
-- Execute advanced field operations with `foamCalc` and custom post-processing workflows
-- Implement automated boundary condition setup and field initialization
-
-**Workflow Automation & Integration**
-- Construct automated CFD pipelines using bash scripting and Python integration
-- Develop parameter studies and design of experiments (DOE) frameworks
-- Integrate OpenFOAM with HPC schedulers (SLURM, PBS) for batch processing
-- Create end-to-end workflows from geometry to engineering reports
-
-**Quality Assurance & Optimization**
-- Implement comprehensive mesh quality assessment using metrics and automated checks
-- Develop validation frameworks for solver-specific mesh requirements
-- Optimize workflows for high-performance computing environments
-- Establish best practices for code organization and version control
-
-### Expected Outcomes
-
-Upon completion, you will demonstrate expertise in:
-
-- **Geometry Processing**: CAD format conversion, geometry repair, and surface mesh preparation
-- **Mesh Generation**: Structured and unstructured mesh creation with `blockMesh`, `snappyHexMesh`, and specialized utilities
-- **Case Management**: Boundary condition setup, initial conditions, and solver control parameter configuration
-- **Automation**: Scripting for batch processing, parameter studies, and workflow optimization
-- **Post-Processing**: Quantitative data extraction, visualization generation, and engineering reporting
-- **Integration**: Connecting utilities with custom solvers and third-party tools
+**จุดเน้นหลัก**: ขั้นตอนการทำงานจริง, การทำงานอัตโนมัติ และการบูรณาการกับตัวแก้สมการของ OpenFOAM สำหรับการประยุกต์ใช้งานทางวิศวกรรม
 
 ---
 
-## 📚 Learning Path
+## 🎯 วัตถุประสงค์ของโมดูล (Module Objectives)
 
-### 🥉 Foundation: Essential Mesh Tools
+### เป้าหมายหลัก
 
-#### 1. blockMesh Fundamentals
+**ความเชี่ยวชาญในยูทิลิตี้ของ OpenFOAM**
+- ควบคุมยูทิลิตี้ของ OpenFOAM สำหรับการจัดการเมช, การตั้งค่ากรณีศึกษา และการประมวลผลภายหลัง
+- พัฒนาความเชี่ยวชาญในยูทิลิตี้การเตรียมประมวลผล: `blockMesh`, `snappyHexMesh`, และเครื่องมือเตรียมพื้นผิว
+- ดำเนินการคำนวณฟิลด์ขั้นสูงด้วย `foamCalc` และขั้นตอนการประมวลผลภายหลังแบบกำหนดเอง
+- ใช้งานการตั้งค่าเงื่อนไขขอบเขตและการกำหนดค่าเริ่มต้นฟิลด์แบบอัตโนมัติ
 
-**Core Concepts**
+**การทำงานอัตโนมัติและการบูรณาการ**
+- สร้างท่อส่งข้อมูล (pipelines) ของ CFD แบบอัตโนมัติโดยใช้การเขียนสคริปต์ bash และการบูรณาการ Python
+- พัฒนาเฟรมเวิร์กการศึกษาพารามิเตอร์และการออกแบบการทดลอง (DOE)
+- บูรณาการ OpenFOAM กับระบบจัดการทรัพยากรบน HPC (เช่น SLURM, PBS) สำหรับการประมวลผลแบบกลุ่ม (batch processing)
+- สร้างขั้นตอนการทำงานแบบครบวงจรตั้งแต่เรขาคณิตไปจนถึงรายงานทางวิศวกรรม
 
-`blockMesh` is OpenFOAM's foundational structured mesh generation utility, creating hexahedral meshes from definitions in `system/blockMeshDict`. The utility employs a block-based approach, dividing the computational domain into multiple hexahedral blocks, each defined by 8 vertices.
+**การรับประกันคุณภาพและการเพิ่มประสิทธิภาพ**
+- ใช้งานการประเมินคุณภาพเมชที่ครอบคลุมโดยใช้ตัวชี้วัดและการตรวจสอบอัตโนมัติ
+- พัฒนาเฟรมเวิร์กการตรวจสอบความถูกต้องสำหรับข้อกำหนดเมชเฉพาะของแต่ละตัวแก้สมการ
+- เพิ่มประสิทธิภาพขั้นตอนการทำงานสำหรับสภาพแวดล้อมการคำนวณสมรรถนะสูง (HPC)
+- กำหนดแนวทางปฏิบัติที่ดีที่สุดสำหรับการจัดระเบียบโค้ดและการควบคุมเวอร์ชัน (version control)
 
-**Advanced Grading Techniques**
+### ผลลัพธ์ที่คาดหวัง
 
-Edge grading enables variable mesh resolution through defined functions. The grading specification follows the format:
+เมื่อจบหลักสูตรนี้ คุณจะแสดงให้เห็นถึงความเชี่ยวชาญในด้านต่างๆ ดังนี้:
+
+- **การประมวลผลเรขาคณิต**: การแปลงรูปแบบ CAD, การซ่อมแซมเรขาคณิต และการเตรียมเมชที่พื้นผิว
+- **การสร้างเมช**: การสร้างเมชแบบมีโครงสร้าง (structured) และไม่มีโครงสร้าง (unstructured) ด้วย `blockMesh`, `snappyHexMesh` และยูทิลิตี้เฉพาะทางอื่นๆ
+- **การจัดการกรณีศึกษา**: การตั้งค่าเงื่อนไขขอบเขต, เงื่อนไขเริ่มต้น และการกำหนดค่าพารามิเตอร์ควบคุมตัวแก้ปัญหา
+- **การทำงานอัตโนมัติ**: การเขียนสคริปต์สำหรับการประมวลผลแบบกลุ่ม, การศึกษาพารามิเตอร์ และการปรับปรุงขั้นตอนการทำงานให้เหมาะสมที่สุด
+- **การประมวลผลภายหลัง**: การสกัดข้อมูลเชิงปริมาณ, การสร้างภาพกราฟิก และการรายงานผลทางวิศวกรรม
+- **การบูรณาการ**: การเชื่อมต่อยูทิลิตี้กับตัวแก้ปัญหาแบบกำหนดเองและเครื่องมือจากภายนอก
+
+---
+
+## 📚 เส้นทางการเรียนรู้ (Learning Path)
+
+### 🥉 พื้นฐาน: เครื่องมือจัดการเมชที่จำเป็น (Essential Mesh Tools)
+
+#### 1. พื้นฐานของ blockMesh
+
+**แนวคิดหลัก**
+
+`blockMesh` เป็นยูทิลิตี้พื้นฐานของ OpenFOAM สำหรับสร้างเมชแบบมีโครงสร้างหกเหลี่ยม (hexahedral) จากการนิยามในไฟล์ `system/blockMeshDict` ยูทิลิตี้นี้ใช้วิธีการแบบอิงตามบล็อก โดยแบ่งโดเมนการคำนวณออกเป็นบล็อกหกเหลี่ยมหลายบล็อก ซึ่งแต่ละบล็อกกำหนดโดยจุดยอด (vertices) 8 จุด
+
+**เทคนิคการปรับขนาดเซลล์ขั้นสูง (Advanced Grading Techniques)**
+
+การปรับขนาดที่ขอบ (Edge grading) ช่วยให้สามารถกำหนดความละเอียดของเมชที่แปรผันได้ผ่านฟังก์ชันที่กำหนด รูปแบบการระบุการปรับขนาดมีดังนี้:
 
 ```cpp
 // Edge grading syntax - Define curved edges using spline interpolation
@@ -70,35 +70,35 @@ edges
 );
 ```
 
-> **📂 Source:** OpenFOAM `applications/utilities/mesh/generation/blockMesh`
+> **📂 แหล่งที่มา:** OpenFOAM `applications/utilities/mesh/generation/blockMesh`
 > 
 > **คำอธิบาย (Explanation):**
-> ไวยากรณ์นี้ใช้กำหนดเส้นโค้งระหว่างจุดยอด (vertices) สองจุด โดยใช้การประมาณค่าแบบ spline เพื่อสร้างความลาดชันที่ไม่สม่ำเสมอของขนาดเซลล์ตามแนวเส้นขอบ
+> ไวยากรณ์นี้ใช้กำหนดเส้นบน (vertices) สองจุด โดยใช้การประมาณค่าแบบ spline เพื่อสร้างความลาดชันที่ไม่สม่ำเสมอของขนาดเซลล์ตามแนวเส้นขอบ
 > 
 > **แนวคิดสำคัญ (Key Concepts):**
 > - **spline**: ฟังก์ชันการประมาณค่าเส้นโค้งที่ลื่นไหล
 > - **0 1**: ดัชนีของจุดยอดเริ่มต้นและสิ้นสุดที่เชื่อมต่อกับเส้นโค้ง
 > - **Point coordinates**: พิกัดจุดควบคุม (control points) ที่กำหนดรูปร่างของ spline
 
-**Grading Functions**
-- **Linear grading**: Uniform cell size progression
-- **Exponential grading**: Cell size follows exponential growth/decay
-- **Power law grading**: Cell size follows $y = x^p$ where $p$ is the power parameter
+**ฟังก์ชันการปรับขนาด (Grading Functions)**
+- **Linear grading**: ขนาดเซลล์เพิ่มขึ้นคงที่ตามลำดับ
+- **Exponential grading**: ขนาดเซลล์เพิ่มขึ้นหรือลดลงตามฟังก์ชันเอกซ์โพเนนเชียล
+- **Power law grading**: ขนาดเซลล์เป็นไปตามฟังก์ชัน $y = x^p$ โดยที่ $p$ คือพารามิเตอร์กำลัง
 
-**Mesh Topology Patterns**
+**รูปแบบโทโพโลยีเมช (Mesh Topology Patterns)**
 
 ```cpp
 // O-grid topology for circular geometries - Define vertices for O-grid structure
 vertices
 (
-    (0 0 0)           // Center point
-    (1 0 0)           // Inner radius
-    (2 0 0)           // Outer radius
-    // ... additional vertices
+    (0 0 0)           // จุดศูนย์กลาง
+    (1 0 0)           // รัศมีด้านใน
+    (2 0 0)           // รัศมีด้านนอก
+    // ... จุดยอดเพิ่มเติม
 );
 ```
 
-> **📂 Source:** OpenFOAM `applications/utilities/mesh/generation/blockMesh`
+> **📂 แหล่งที่มา:** OpenFOAM `applications/utilities/mesh/generation/blockMesh`
 > 
 > **คำอธิบาย (Explanation):**
 > โครงสร้าง O-grid เป็นเทคนิคการสร้างเมชแบบโครงสร้างวงแหวนที่ล้อมรอบโดเมนหลัก ซึ่งเหมาะสำหรับเรขาคณิตแบบวงกลมหรือทรงกระบอก โดยจุดยอดแรกคือจุดศูนย์กลางและจุดถัดไปกำหนดรัศมีชั้นต่างๆ
@@ -109,44 +109,40 @@ vertices
 > - **Center point**: จุดศูนย์กลางของโครงสร้าง O-grid
 > - **Inner/Outer radius**: รัศมีชั้นในและชั้นนอกของโครงสร้าง
 
-**Boundary Layer Considerations**
+**ข้อควรพิจารณาเรื่องชั้นขอบเขต (Boundary Layer)**
 
-For boundary layer mesh quality, the first cell height calculation uses:
+เพื่อคุณภาพเมชในบริเวณชั้นขอบเขต การคำนวณความสูงของเซลล์แรกจะใช้ค่า $y^+$:
 
-$$
-y^+ = \frac{\rho u_\tau y}{\mu}
-$$
+$$ y^+ = \frac{\rho u_\tau y}{\mu} $$
 
-where $u_\tau$ is the friction velocity computed from:
+โดยที่ $u_\tau$ คือความเร็วเสียดทาน (friction velocity) คำนวณจาก:
 
-$$
-u_\tau = \sqrt{\frac{\tau_w}{\rho}}
-$$
+$$ u_\tau = \sqrt{\frac{\tau_w}{\rho}} $$
 
-#### 2. Surface Preparation
+#### 2. การเตรียมพื้นผิว (Surface Preparation)
 
-**Surface Requirements**
+**ข้อกำหนดของพื้นผิว**
 
-Quality surface meshes must satisfy:
-- **Watertightness**: No gaps or holes in the triangulation
-- **Normal consistency**: All face normals point outward
-- **Triangle quality**: Aspect ratio < 10 for most regions
-- **Feature preservation**: Sharp edges and corners maintained
+เมชที่พื้นผิวที่มีคุณภาพจะต้องเป็นไปตามเงื่อนไขดังนี้:
+- **ความเป็นระบบปิด (Watertightness)**: ไม่มีช่องว่างหรือรูในโครงสร้างสามเหลี่ยม
+- **ความสอดคล้องของเวกเตอร์ปกติ (Normal consistency)**: เวกเตอร์ปกติของทุกหน้าผิวต้องชี้ออกด้านนอก
+- **คุณภาพของรูปสามเหลี่ยม**: อัตราส่วนรูปร่าง (Aspect ratio) < 10 สำหรับบริเวณส่วนใหญ่
+- **การรักษาคุณลักษณะ (Feature preservation)**: รักษาขอบและมุมที่แหลมคมไว้ได้
 
-**Surface Repair Utilities**
+**ยูทิลิตี้ซ่อมแซมพื้นผิว**
 
 ```bash
-# Check surface quality - Verify mesh integrity and topology
+# ตรวจสอบคุณภาพพื้นผิว - ยืนยันความสมบูรณ์และโทโพโลยี
 surfaceCheck geometry.stl
 
-# Extract sharp features - Identify and extract geometric edges
+# ดึงคุณลักษณะขอบแหลม - ระบุและสกัดขอบทางเรขาคณิต
 surfaceFeatureExtract -angle 30 geometry.stl
 
-# Smooth surface - Reduce surface roughness and improve quality
+# ทำให้พื้นผิวเรียบ - ลดความขรุขระและปรับปรุงคุณภาพ
 surfaceSmoothFeatures geometry.stl
 ```
 
-> **📂 Source:** OpenFOAM `applications/utilities/surfaceHandling/surfaceCheck`, `applications/utilities/mesh/generation/surfaceFeatureExtract`
+> **📂 แหล่งที่มา:** OpenFOAM `applications/utilities/surfaceHandling/surfaceCheck`, `applications/utilities/mesh/generation/surfaceFeatureExtract`
 > 
 > **คำอธิบาย (Explanation):**
 > ชุดคำสั่งนี้ใช้ในกระบวนการเตรียมพื้นผิวก่อนการสร้างเมช โดยเริ่มจากการตรวจสอบคุณภาพ การดึงคุณลักษณะเชิงเรขาคณิต และการปรับปรุงความเรียบของพื้นผิว
@@ -157,53 +153,53 @@ surfaceSmoothFeatures geometry.stl
 > - **-angle 30**: กำหนดมุมขั้นต่ำสำหรับการตรวจจับคุณลักษณะ (30 องศา)
 > - **surfaceSmoothFeatures**: ปรับปรุงความเรียบของพื้นผิวเพื่อลดปัญหาการสร้างเมช
 
-**Format Conversion Pipeline**
+**ท่อส่งการแปลงรูปแบบไฟล์ (Format Conversion Pipeline)**
 
 ```mermaid
 flowchart LR
-    CAD[CAD File] --> STEP[STEP/IGES]
-    STEP --> STL[STL Conversion]
-    STL --> CHECK{Quality Check}
-    CHECK -->|Pass| MESH[Meshing]
-    CHECK -->|Fail| REPAIR[Repair Tools]
+    CAD[ไฟล์ CAD] --> STEP[รูปแบบ STEP/IGES]
+    STEP --> STL[การแปลงเป็น STL]
+    STL --> CHECK{ตรวจสอบคุณภาพ}
+    CHECK -->|ผ่าน| MESH[สร้างเมช]
+    CHECK -->|ไม่ผ่าน| REPAIR[เครื่องมือซ่อมแซม]
     REPAIR --> CHECK
 ```
-> **Figure 1:** แผนภูมิแสดงขั้นตอนการแปลงรูปแบบไฟล์ (Format Conversion Pipeline) จากไฟล์ CAD ต้นฉบับผ่านมาตรฐาน STEP/IGES เข้าสู่รูปแบบ STL เพื่อเข้าสู่กระบวนการตรวจสอบคุณภาพและการซ่อมแซมก่อนการสร้างเมช
+> **รูปที่ 1:** แผนภูมิแสดงขั้นตอนการแปลงรูปแบบไฟล์ (Format Conversion Pipeline) จากไฟล์ CAD ต้นฉบับผ่านมาตรฐาน STEP/IGES เข้าสู่รูปแบบ STL เพื่อเข้าสู่กระบวนการตรวจสอบคุณภาพและการซ่อมแซมก่อนการสร้างเมช
 
-#### 3. Mesh Quality Assessment
+#### 3. การประเมินคุณภาพเมช (Mesh Quality Assessment)
 
-**Essential Quality Metrics**
+**ตัวชี้วัดคุณภาพที่สำคัญ**
 
-- **Non-orthogonality**: $\theta = \cos^{-1}\left(\frac{\mathbf{n}_f \cdot \mathbf{d}_{PN}}{|\mathbf{n}_f| \cdot |\mathbf{d}_{PN}|}\right)$
-  - Target: < 70° for general CFD
-  - Target: < 40° for complex turbulence models
+- **ความไม่ตั้งฉาก (Non-orthogonality)**: $\theta = \cos^{-1}\left(\frac{\mathbf{n}_f \cdot \mathbf{d}_{PN}}{|\mathbf{n}_f| \cdot |\mathbf{d}_{PN}|}\right)$
+  - เป้าหมาย: < 70° สำหรับ CFD ทั่วไป
+  - เป้าหมาย: < 40° สำหรับแบบจำลองความปั่นป่วนที่ซับซ้อน
 
-- **Aspect Ratio**: $AR = \frac{h_{max}}{h_{min}}$
-  - Target: < 1000 for general applications
-  - Target: < 100 for boundary layer regions
+- **อัตราส่วนรูปร่าง (Aspect Ratio)**: $AR = \frac{h_{max}}{h_{min}}$
+  - เป้าหมาย: < 1000 สำหรับการประยุกต์ใช้งานทั่วไป
+  - เป้าหมาย: < 100 สำหรับบริเวณชั้นขอบเขต
 
-- **Skewness**: $\text{skewness} = \frac{|\mathbf{C} - \mathbf{C}_{ideal}|}{|\mathbf{C}_{PF} - \mathbf{C}_{ideal}|}$
-  - Target: < 4 for most solvers
-  - Target: < 2 for high-accuracy simulations
+- **ความเบ้ (Skewness)**: $\text{skewness} = \frac{|\mathbf{C} - \mathbf{C}_{ideal}|}{|\mathbf{C}_{PF} - \mathbf{C}_{ideal}|}$
+  - เป้าหมาย: < 4 สำหรับตัวแก้ปัญหาส่วนใหญ่
+  - เป้าหมาย: < 2 สำหรับการจำลองที่ต้องการความแม่นยำสูง
 
-- **Expansion Ratio**: Local cell size variation
-  - Target: < 1.3 for general CFD
-  - Target: < 1.1 for boundary layers
+- **อัตราส่วนการขยาย (Expansion Ratio)**: การเปลี่ยนแปลงขนาดเซลล์เฉพาะที่
+  - เป้าหมาย: < 1.3 สำหรับ CFD ทั่วไป
+  - เป้าหมาย: < 1.1 สำหรับบริเวณชั้นขอบเขต
 
-**Automated Quality Checks**
+**การตรวจสอบคุณภาพอัตโนมัติ**
 
 ```bash
-# Comprehensive mesh analysis - Check all geometry and topology
+# วิเคราะห์เมชอย่างครอบคลุม - ตรวจสอบเรขาคณิตและโทโพโลยีทั้งหมด
 checkMesh -allGeometry -allTopology -time 0
 
-# Quality metrics only - Focus on mesh quality parameters
+# ตรวจสอบเฉพาะตัวชี้วัดคุณภาพ - เน้นที่พารามิเตอร์คุณภาพเมช
 checkMesh -meshQuality
 
-# Detailed report with thresholds - Generate detailed quality report
+# รายงานรายละเอียดพร้อมเกณฑ์ที่กำหนด - สร้างรายงานคุณภาพโดยละเอียด
 checkMesh -allRegions -writeFields
 ```
 
-> **📂 Source:** OpenFOAM `applications/utilities/mesh/manipulation/checkMesh`
+> **📂 แหล่งที่มา:** OpenFOAM `applications/utilities/mesh/manipulation/checkMesh`
 > 
 > **คำอธิบาย (Explanation):**
 > เครื่องมือ checkMesh ใช้วิเคราะห์คุณภาพของเมชโดยตรวจสอบทั้งโครงสร้างเรขาคณิตและโทโพโลยี พร้อมทั้งสร้างรายงานคุณภาพและฟิลด์ข้อมูลสำหรับการวิเคราะห์เพิ่มเติม
@@ -215,40 +211,40 @@ checkMesh -allRegions -writeFields
 > - **-meshQuality**: แสดงเฉพาะตัวชี้วัดคุณภาพเมช
 > - **-writeFields**: เขียนฟิลด์คุณภาพลงไฟล์สำหรับการวิเคราะห์เชิงลึก
 
-### 🏦 Intermediate: Advanced Meshing Workflows
+### 🏦 ระดับกลาง: ขั้นตอนการสร้างเมชขั้นสูง (Advanced Meshing Workflows)
 
-#### 1. snappyHexMesh Mastery
+#### 1. ความเชี่ยวชาญใน snappyHexMesh
 
-**Three-Stage Process**
+**กระบวนการทำงานสามระยะ**
 
 ```mermaid
 flowchart TD
-    START[Background Mesh] --> CAST[Castellation]
+    START[เมชพื้นหลัง] --> CAST[Castellation]
     CAST --> SNAP[Snapping]
-    SNAP --> LAYER[Layer Addition]
-    LAYER --> FINAL[Final Mesh]
+    SNAP --> LAYER[การเพิ่มชั้น]
+    LAYER --> FINAL[เมชสุดท้าย]
 ```
-> **Figure 2:** กระบวนการทำงาน 3 ขั้นตอนหลักของ `snappyHexMesh` ประกอบด้วยขั้นตอนการสร้างเมชแบบ Castellated การปรับพื้นผิวให้แนบชิด (Snapping) และการเพิ่มชั้นขอบเขต (Layer Addition) เพื่อให้ได้เมชสุดท้ายที่สมบูรณ์
+> **รูปที่ 2:** กระบวนการทำงาน 3 ขั้นตอนหลักของ `snappyHexMesh` ประกอบด้วยขั้นตอนการสร้างเมชแบบ Castellated การปรับพื้นผิวให้แนบชิด (Snapping) และการเพิ่มชั้นขอบเขต (Layer Addition) เพื่อให้ได้เมชสุดท้ายที่สมบูรณ์
 
-**Castellation Stage**
+**ระยะ Castellation**
 
 ```cpp
-// snappyHexMeshDict - Castellation controls
-// Convert background mesh to castellated mesh with refinement
+// snappyHexMeshDict - ส่วนควบคุม Castellation
+// แปลงเมชพื้นหลังเป็นเมชแบบ castellated พร้อมการปรับความละเอียด
 castellatedMesh true;
-castellatedMeshControls
+cestellatedMeshControls
 {
-    // Maximum cells allowed in local and global domain
+    // จำนวนเซลล์สูงสุดที่อนุญาตในระดับท้องถิ่นและโดเมนรวม
     maxLocalCells        1000000;
     maxGlobalCells       20000000;
     
-    // Minimum cells to trigger refinement
+    // จำนวนเซลล์ขั้นต่ำที่จะกระตุ้นการปรับความละเอียด
     minRefinementCells   10;
 
-    // Cells between refinement levels
+    // จำนวนเซลล์ระหว่างระดับการปรับความละเอียด
     nCellsBetweenLevels  3;
 
-    // Feature edges for geometry preservation
+    // ขอบคุณลักษณะเพื่อรักษาเรขาคณิต
     features
     (
         {
@@ -257,12 +253,12 @@ castellatedMeshControls
         }
     );
 
-    // Surface refinement settings
+    // การตั้งค่าการปรับความละเอียดที่พื้นผิว
     refinementSurfaces
     {
         geometry
         {
-            // Refinement level for surface and region
+            // ระดับการปรับความละเอียดสำหรับพื้นผิวและภูมิภาค
             level (2 2);
             patchInfo
             {
@@ -271,12 +267,12 @@ castellatedMeshControls
         }
     }
 
-    // Minimum angle for feature detection
+    // มุมขั้นต่ำสำหรับการตรวจจับคุณลักษณะ
     resolveFeatureAngle 30;
 }
 ```
 
-> **📂 Source:** OpenFOAM `.applications/utilities/mesh/generation/snappyHexMesh`
+> **📂 แหล่งที่มา:** OpenFOAM `.applications/utilities/mesh/generation/snappyHexMesh`
 > 
 > **คำอธิบาย (Explanation):**
 > ขั้นตอน Castellation เป็นการแปลงเมชพื้นหลังให้เป็นเมชแบบ castellated ที่มีการ refine ตามรูปทรงเรขาคณิต โดยใช้การควบคุมจำนวนเซลล์และระดับการ refine สำหรับพื้นผิวและคุณลักษณะเชิงเรขาคณิต
@@ -287,34 +283,34 @@ castellatedMeshControls
 > - **refinementSurfaces**: กำหนดระดับการ refine สำหรับแต่ละพื้นผิว
 > - **resolveFeatureAngle**: มุมขั้นต่ำสำหรับการตรวจจับคุณลักษณะเชิงเรขาคณิต
 
-**Snapping Stage**
+**ระยะ Snapping**
 
 ```cpp
-// Snapping controls - Move mesh vertices to surface geometry
+// ส่วนควบคุม Snapping - เลื่อนจุดยอดของเมชไปยังเรขาคณิตพื้นผิว
 snapControls
 {
-    // Number of patch smoothing iterations
+    // จำนวนรอบการทำให้แพตช์เรียบ
     nSmoothPatch       3;
     
-    // Tolerance for snapping to surface
+    // ค่าความคลาดเคลื่อนในการ snap เข้าหาพื้นผิว
     tolerance          2.0;
     
-    // Solver iterations for relaxation
+    // รอบการวนซ้ำของตัวแก้ปัญหาสำหรับการผ่อนคลาย
     nSolveIter         30;
     nRelaxIter         5;
 
-    // Feature snapping iterations
+    // รอบการวนซ้ำของการ snap คุณลักษณะ
     nFeatureSnapIter   10;
     
-    // Use implicit feature snapping
+    // ใช้การ snap คุณลักษณะแบบ implicit
     implicitFeatureSnap false;
     
-    // Enable multi-region feature snapping
+    // เปิดใช้งานการ snap คุณลักษณะแบบหลายภูมิภาค
     multiRegionFeatureSnap true;
 }
 ```
 
-> **📂 Source:** OpenFOAM `.applications/utilities/mesh/generation/snappyHexMesh`
+> **📂 แหล่งที่มา:** OpenFOAM `.applications/utilities/mesh/generation/snappyHexMesh`
 > 
 > **คำอธิบาย (Explanation):**
 > ขั้นตอน Snapping ทำหน้าที่ปรับจุดยอดของเมชให้แนบชิดกับพื้นผิวเรขาคณิต โดยใช้กระบวนการทางคณิตศาสตร์เพื่อให้ได้ความแม่นยำสูง
@@ -324,16 +320,16 @@ snapControls
 > - **tolerance**: ค่าความอดทนในการย้ายจุดยอดไปยังพื้นผิว
 > - **implicitFeatureSnap**: การ snap แบบ implicit สำหรับคุณลักษณะเชิงเรขาคณิต
 
-**Layer Addition Stage**
+**ระยะการเพิ่มชั้น (Layer Addition Stage)**
 
 ```cpp
-// Layer addition controls - Add boundary layer cells
+// ส่วนควบคุมการเพิ่มชั้น - เพิ่มเซลล์ชั้นขอบเขต
 addLayersControls
 {
-    // Use relative size calculations
+    // ใช้การคำนวณขนาดสัมพัทธ์
     relativeSizes true;
 
-    // Define layers for specific patches
+    // กำหนดชั้นสำหรับแพตช์เฉพาะ
     layers
     {
         "geometry.*"
@@ -342,25 +338,25 @@ addLayersControls
         }
     }
 
-    // Layer expansion parameters
+    // พารามิเตอร์การขยายชั้น
     expansionRatio      1.3;
     finalLayerThickness 0.3;
     minThickness        0.1;
     
-    // Layer growth control
+    // การควบคุมการเติบโตของชั้น
     nGrow               1;
 
-    // Feature angle for layer termination
+    // มุมคุณลักษณะสำหรับการสิ้นสุดชั้น
     featureAngle        60;
     
-    // Smoothing iterations
+    // รอบการวนซ้ำของการทำให้เรียบ
     nRelaxIter          3;
     nSmoothSurfaceNormals 3;
     nSmoothNormals      3;
 }
 ```
 
-> **📂 Source:** OpenFOAM `.applications/utilities/mesh/generation/snappyHexMesh`
+> **📂 แหล่งที่มา:** OpenFOAM `.applications/utilities/mesh/generation/snappyHexMesh`
 > 
 > **คำอธิบาย (Explanation):**
 > ขั้นตอน Layer Addition เพิ่มชั้นเซลล์บริเวณขอบเขตเพื่อให้ได้ความละเอียดที่เหมาะสมในบริเวณชั้นขอบเขต โดยควบคุมอัตราส่วนการขยายและความหนาของชั้น
@@ -371,25 +367,25 @@ addLayersControls
 > - **finalLayerThickness**: ความหนาสัมพัทธ์ของชั้นสุดท้าย
 > - **featureAngle**: มุมที่ชั้นเซลล์จะสิ้นสุด
 
-#### 2. Multi-Block Domain Assembly
+#### 2. การประกอบโดเมนแบบหลายบล็อก (Multi-Block Domain Assembly)
 
-**Block Topology Planning**
+**การวางแผนโทโพโลยีบล็อก**
 
 ```cpp
-// Multi-block configuration example - Assemble multiple mesh blocks
+// ตัวอย่างการกำหนดค่าหลายบล็อก - ประกอบบล็อกเมชหลายบล็อก
 blocks
 (
-    // Block 1: Inlet region
+    // บล็อก 1: ภูมิภาคทางเข้า
     hex (0 1 2 3 4 5 6 7) (100 50 1) simpleGrading (1 1 1)
 
-    // Block 2: Main domain
+    // บล็อก 2: โดเมนหลัก
     hex (8 9 10 11 12 13 14 15) (200 100 1) simpleGrading (1 1 1)
 
-    // Block 3: Outlet region
+    // บล็อก 3: ภูมิภาคทางออก
     hex (16 17 18 19 20 21 22 23) (100 50 1) simpleGrading (1 1 1)
 );
 
-// Boundary connections - Merge patches between blocks
+// การเชื่อมต่อขอบเขต - รวมแพตช์ระหว่างบล็อก
 mergePatchPairs
 (
     (
@@ -403,7 +399,7 @@ mergePatchPairs
 );
 ```
 
-> **📂 Source:** OpenFOAM `applications/utilities/mesh/generation/blockMesh`
+> **📂 แหล่งที่มา:** OpenFOAM `applications/utilities/mesh/generation/blockMesh`
 > 
 > **คำอธิบาย (Explanation):**
 > การกำหนดค่าหลายบล็อกช่วยให้สามารถสร้างโดเมนที่ซับซ้อนได้โดยการแบ่งเป็นบล็อกย่อยที่เชื่อมต่อกัน พร้อมทั้งระบุจุดประสานระหว่างบล็อก
@@ -413,34 +409,34 @@ mergePatchPairs
 > - **simpleGrading**: กำหนดอัตราส่วนการขยายของขนาดเซลล์
 > - **mergePatchPairs**: ระบุ patch ที่จะเชื่อมต่อระหว่างบล็อก
 
-#### 3. Adaptive Refinement Strategies
+#### 3. กลยุทธ์การปรับความละเอียดแบบปรับตัว (Adaptive Refinement Strategies)
 
-**Solution-Adaptive Refinement**
+**การปรับความละเอียดตามผลเฉลย (Solution-Adaptive Refinement)**
 
 ```cpp
-// dynamicRefineFvMeshDict for runtime adaptation
+// dynamicRefineFvMeshDict สำหรับการปรับตัวขณะรันโปรแกรม
 dynamicFvMesh dynamicRefineFvMesh;
 
 refiner
 {
-    // Refinement interval in time steps
+    // ช่วงเวลาการปรับความละเอียดในหน่วยก้าวเวลา
     refineInterval  5;
     
-    // Field to monitor for refinement
+    // ฟิลด์ที่จะติดตามเพื่อปรับความละเอียด
     field           alpha.water;
     
-    // Refinement thresholds
+    // เกณฑ์การปรับความละเอียด
     lowerRefineLevel 0.3;
     upperRefineLevel 0.7;
     nRefineIterations 1;
     
-    // Maximum refinement level and cells
+    // ระดับการปรับความละเอียดและจำนวนเซลล์สูงสุด
     maxRefinement  4;
     maxCells       2000000;
 }
 ```
 
-> **📂 Source:** OpenFOAM `applications/solvers/multiphase/interDynFoam`
+> **📂 แหล่งที่มา:** OpenFOAM `applications/solvers/multiphase/interDynFoam`
 > 
 > **คำอธิบาย (Explanation):**
 > การ refine แบบปรับตามผลเฉลย (solution-adaptive) ช่วยให้สามารถปรับความละเอียดของเมชตามค่าของฟิลด์ที่กำลังคำนวณในขณะทำงานจริง
@@ -450,33 +446,31 @@ refiner
 > - **refineInterval**: รอบเวลาที่มีการ refine
 > - **lower/upperRefineLevel**: ช่วงค่าที่จะ trigger การ refine
 
-**Error Indicator-Based Refinement**
+**การปรับความละเอียดตามตัวบ่งชี้ข้อผิดพลาด (Error Indicator-Based Refinement)**
 
-$$
-\epsilon = \left| \nabla \phi \right| \cdot h^2
-$$
+$$ \epsilon = \left| \nabla \phi \right| \cdot h^2 $$
 
-where $\phi$ is the field variable and $h$ is the local cell size.
+โดยที่ $\phi$ คือตัวแปรฟิลด์ และ $h$ คือขนาดเซลล์เฉพาะที่
 
-### 🚀 Advanced: Specialized Applications
+### 🚀 ขั้นสูง: การประยุกต์ใช้งานเฉพาะทาง (Specialized Applications)
 
-#### 1. Application-Specific Meshing
+#### 1. การสร้างเมชสำหรับการประยุกต์ใช้งานเฉพาะ
 
-**Turbomachinery O-Grid**
+**O-Grid สำหรับเครื่องจักรเทอร์โบ (Turbomachinery O-Grid)**
 
 ```cpp
-// O-grid topology for rotating machinery
+// โทโพโลยี O-grid สำหรับเครื่องจักรหมุน
 blocks
 (
-    // O-grid block with curved grading
+    // บล็อก O-grid พร้อมการปรับขนาดขอบโค้ง
     hex (0 1 2 3 4 5 6 7) (200 80 1) edgeGrading (1 1 1 1 4 4 1 1 1 1 4 4)
 
-    // H-grid blocks for inlet/outlet
+    // บล็อก H-grid สำหรับทางเข้า/ทางออก
     hex (8 9 10 11 12 13 14 15) (50 20 1) simpleGrading (1 1 1)
 );
 ```
 
-> **📂 Source:** OpenFOAM `applications/utilities/mesh/generation/blockMesh`
+> **📂 แหล่งที่มา:** OpenFOAM `applications/utilities/mesh/generation/blockMesh`
 > 
 > **คำอธิบาย (Explanation):**
 > โครงสร้าง O-grid สำหรับเครื่องจักรหมุนใช้ grading แบบโค้งเพื่อให้ได้ความละเอียดที่เหมาะสมในบริเวณใกล้ใบพัด
@@ -485,23 +479,19 @@ blocks
 > - **edgeGrading**: กำหนด grading แบบโค้งสำหรับขอบโค้ง
 > - **O-grid block**: บล็อกโครงสร้างวงแหวนสำหรับการหมุน
 
-**Boundary Layer $y^+$ Calculation**
+**การคำนวณ $y^+$ ของชั้นขอบเขต**
 
-$$
-y = \frac{y^+ \mu}{\rho u_\tau}, \quad u_\tau = U_\infty \sqrt{\frac{C_f}{2}}
-$$
+$$ y = \frac{y^+ \mu}{\rho u_\tau}, \quad u_\tau = U_\infty \sqrt{\frac{C_f}{2}} $$
 
-For turbulent boundary layers:
-$$
-C_f \approx 0.0592 \cdot Re_x^{-0.2}
-$$
+สำหรับชั้นขอบเขตแบบปั่นป่วน:
+$$ C_f \approx 0.0592 \cdot Re_x^{-0.2} $$
 
-#### 2. Dynamic Meshing
+#### 2. การสร้างเมชแบบพลวัต (Dynamic Meshing)
 
-**Motion Solver Configuration**
+**การกำหนดค่าตัวแก้การเคลื่อนที่ (Motion Solver Configuration)**
 
 ```cpp
-// dynamicMeshDict - Configure mesh motion solver
+// dynamicMeshDict - กำหนดค่าตัวแก้การเคลื่อนที่ของเมช
 dynamicFvMesh   dynamicMotionSolverFvMesh;
 
 motionSolverLibs ("libfvMotionSolvers.so");
@@ -514,7 +504,7 @@ displacementLaplacianCoeffs
 }
 ```
 
-> **📂 Source:** OpenFOAM `applications/solvers/multiphase/interDyMFoam`
+> **📂 แหล่งที่มา:** OpenFOAM `applications/solvers/multiphase/interDyMFoam`
 > 
 > **คำอธิบาย (Explanation):**
 > การกำหนดค่า motion solver สำหรับเมชแบบ dynamic ที่สามารถเคลื่อนที่ได้ตามเวลา เช่น ในปัญหา FSI
@@ -524,35 +514,33 @@ displacementLaplacianCoeffs
 > - **displacementLaplacian**: วิธีการคำนวณการกระจายการเคลื่อนที่
 > - **diffusivity**: ค่าสัมประสิทธิ์การกระจาย
 
-#### 3. Multi-Phase Meshing
+#### 3. การสร้างเมชสำหรับการไหลหลายเฟส (Multi-Phase Meshing)
 
-**Interface Resolution Requirements**
+**ข้อกำหนดความละเอียดที่ส่วนต่อประสาน (Interface Resolution Requirements)**
 
-$$
-\Delta x < \frac{\sigma}{\rho U^2}
-$$
+$$ \Delta x < \frac{\sigma}{\rho U^2} $$
 
-where $\sigma$ is surface tension, $\rho$ is density, and $U$ is characteristic velocity.
+โดยที่ $\sigma$ คือแรงตึงผิว, $\rho$ คือความหนาแน่น และ $U$ คือความเร็วลักษณะเฉพาะ
 
-**Adaptive Interface Tracking**
+**การติดตามส่วนต่อประสานแบบปรับตัว (Adaptive Interface Tracking)**
 
 ```cpp
-// Interface refinement settings
+// การตั้งค่าการปรับความละเอียดที่ส่วนต่อประสาน
 refinementSurfaces
 {
     interface
     {
-        // High resolution for interface
+        // ความละเอียดสูงสำหรับส่วนต่อประสาน
         level (4 4);
         
-        // Define cell and face zones
+        // กำหนดโซนเซลล์และหน้าผิว
         cellZone interface;
         faceZone interface;
     }
 }
 ```
 
-> **📂 Source:** OpenFOAM `.applications/utilities/mesh/generation/snappyHexMesh`
+> **📂 แหล่งที่มา:** OpenFOAM `.applications/utilities/mesh/generation/snappyHexMesh`
 > 
 > **คำอธิบาย (Explanation):**
 > การ refine แบบปรับตาม interface ช่วยให้ได้ความละเอียดสูงบริเวณพื้นผิวระหว่างเฟสในปัญหา multiphase
@@ -563,49 +551,49 @@ refinementSurfaces
 
 ---
 
-## 🛠️ Technical Outcomes
+## 🛠️ ผลลัพธ์ทางเทคนิค (Technical Outcomes)
 
-### 1. Advanced Mesh Generation & Management
+### 1. การสร้างและจัดการเมชขั้นสูง
 
-**Structured Mesh with blockMesh**
-- Master `blockMeshDict` syntax and topology definition
-- Create multi-block structured meshes for complex geometries
-- Implement grading functions for boundary layer resolution
-- Apply advanced edge grading and curvature-based cell density control
-- Generate conformal meshes with consistent connectivity
+**เมชแบบมีโครงสร้างด้วย blockMesh**
+- เชี่ยวชาญไวยากรณ์ของ `blockMeshDict` และการนิยามโทโพโลยี
+- สร้างเมชแบบมีโครงสร้างหลายบล็อกสำหรับเรขาคณิตที่ซับซ้อน
+- ใช้งานฟังก์ชันการปรับขนาดสำหรับการระบุความละเอียดชั้นขอบเขต
+- ประยุกต์ใช้การปรับขนาดขอบขั้นสูงและการควบคุมความหนาแน่นเซลล์ตามความโค้ง
+- สร้างเมชแบบ Conformal ที่มีการเชื่อมต่อที่สอดคล้องกัน
 
-**Unstructured Mesh with snappyHexMesh**
-- Configure surface-based meshing around STL/OBJ geometries
-- Implement multi-level mesh refinement based on geometric features
-- Optimize cell quality through layer addition and snapping processes
-- Control refinement levels for regions of interest
-- Generate high-quality boundary layer meshes with appropriate $y^+$ values
+**เมชแบบไม่มีโครงสร้างด้วย snappyHexMesh**
+- กำหนดค่าการสร้างเมชตามพื้นผิวรอบเรขาคณิต STL/OBJ
+- ใช้งานการปรับความละเอียดเมชหลายระดับตามคุณลักษณะทางเรขาคณิต
+- เพิ่มประสิทธิภาพคุณภาพเซลล์ผ่านกระบวนการเพิ่มชั้นและการ snap
+- ควบคุมระดับการปรับความละเอียดสำหรับภูมิภาคที่สนใจ
+- สร้างเมชชั้นขอบเขตคุณภาพสูงพร้อมค่า $y^+$ ที่เหมาะสม
 
-### 2. Process Automation & Workflow Optimization
+### 2. การทำงานอัตโนมัติและการปรับปรุงขั้นตอนการทำงานให้เหมาะสม
 
-**Automated Meshing Workflows**
+**ขั้นตอนการสร้างเมชอัตโนมัติ**
 
 ```bash
 #!/bin/bash
-# Automated meshing workflow - Process multiple geometries
+# ขั้นตอนการสร้างเมชอัตโนมัติ - ประมวลผลเรขาคณิตหลายรายการ
 for geom in geometries/*.stl; do
     case_name=$(basename "$geom" .stl)
     mkdir -p "cases/$case_name"
     cp mesh_template/* "cases/$case_name/"
 
-    # Generate surface features
+    # สกัดคุณลักษณะพื้นผิว
     surfaceFeatureExtract -case "cases/$case_name" "geometries/$case_name.stl"
 
-    # Run meshing pipeline
+    # รันกระบวนการสร้างเมช
     blockMesh -case "cases/$case_name"
     snappyHexMesh -case "cases/$case_name" -overwrite
 
-    # Quality check
+    # ตรวจสอบคุณภาพ
     checkMesh -case "cases/$case_name" > "cases/$case_name/mesh_quality.txt"
 done
 ```
 
-> **📂 Source:** OpenFOAM Workflow Automation
+> **📂 แหล่งที่มา:** OpenFOAM Workflow Automation
 > 
 > **คำอธิบาย (Explanation):**
 > สคริปต์นี้ทำให้สามารถประมวลผลหลาย geometry ได้อัตโนมัติ โดยสร้าง case แยกสำหรับแต่ละ geometry และดำเนินการตาม workflow ที่กำหนด
@@ -616,58 +604,58 @@ done
 > - **blockMesh/snappyHexMesh**: สร้างเมชตามลำดับ
 > - **checkMesh**: ตรวจสอบคุณภาพของเมช
 
-**Batch Processing for Parameter Studies**
-- Implement parameter sweeps with automated case generation
-- Create parallel processing workflows for HPC environments
-- Develop custom scripts for systematic geometry variations
-- Integrate with job schedulers (SLURM, PBS) for large-scale studies
+**การประมวลผลแบบกลุ่มสำหรับการศึกษาพารามิเตอร์**
+- ใช้งานการกวาดพารามิเตอร์ (parameter sweeps) พร้อมการสร้างกรณีศึกษาอัตโนมัติ
+- สร้างขั้นตอนการประมวลผลแบบขนานสำหรับสภาพแวดล้อม HPC
+- พัฒนาสคริปต์แบบกำหนดเองสำหรับการเปลี่ยนแปลงเรขาคณิตอย่างเป็นระบบ
+- บูรณาการกับระบบจัดการงาน (เช่น SLURM, PBS) สำหรับการศึกษาสเกลใหญ่
 
-**CAD Integration & Geometry Processing**
-- Automate CAD file conversion and preprocessing
-- Implement geometry cleaning and repair workflows
-- Create parametric geometry generation scripts
-- Integrate with CAD software APIs for seamless workflow
+**การบูรณาการ CAD และการประมวลผลเรขาคณิต**
+- ทำให้การแปลงไฟล์ CAD และการเตรียมประมวลผลเป็นแบบอัตโนมัติ
+- ใช้งานขั้นตอนการล้างข้อมูลและซ่อมแซมเรขาคณิต
+- สร้างสคริปต์การสร้างเรขาคณิตแบบพารามิเตอร์
+- บูรณาการกับ API ของซอฟต์แวร์ CAD เพื่อขั้นตอนการทำงานที่ลื่นไหล
 
-### 3. Comprehensive Quality Assessment
+### 3. การประเมินคุณภาพที่ครอบคลุม
 
-**Automated Quality Control Pipelines**
+**ท่อส่งการควบคุมคุณภาพอัตโนมัติ**
 
 ```python
-# Python script for automated mesh quality assessment
+# สคริปต์ Python สำหรับการประเมินคุณภาพเมชอัตโนมัติ
 import numpy as np
 import pandas as pd
 import re
 
 def extract_metric(content, metric_name):
-    """Extract metric value from checkMesh output."""
+    """สกัดค่าตัวชี้วัดจากผลลัพธ์ของ checkMesh"""
     pattern = rf"{metric_name}.*?([\d.]+)"
     match = re.search(pattern, content)
     return float(match.group(1)) if match else None
 
 def calculate_quality_score(orthogonality, aspect_ratio, skewness):
-    """Calculate composite quality score."""
-    # Weighted quality metrics
+    """คำนวณคะแนนคุณภาพแบบรวม"""
+    # ตัวชี้วัดคุณภาพแบบถ่วงน้ำหนัก
     w_ortho = 0.4
     w_aspect = 0.3
     w_skew = 0.3
 
-    # Normalize (lower is better for all metrics)
+    # ปรับให้เป็นมาตรฐาน (ค่าน้อยกว่าดีกว่าสำหรับทุกตัวชี้วัด)
     score = (w_ortho * orthogonality / 70.0 +
              w_aspect * aspect_ratio / 1000.0 +
              w_skew * skewness / 4.0)
-    return min(score, 1.0)  # Cap at 1.0
+    return min(score, 1.0)  # จำกัดไว้ที่ 1.0
 
 def assess_mesh_quality(case_path):
-    # Parse checkMesh output
+    # วิเคราะห์ผลลัพธ์จาก checkMesh
     with open(f"{case_path}/mesh_quality.txt", 'r') as f:
         content = f.read()
 
-    # Extract key metrics
+    # สกัดตัวชี้วัดหลัก
     orthogonality = extract_metric(content, "Non-orthogonality")
     aspect_ratio = extract_metric(content, "Aspect ratio")
     skewness = extract_metric(content, "Skewness")
 
-    # Quality classification
+    # การจำแนกประเภทคุณภาพ
     quality_score = calculate_quality_score(orthogonality, aspect_ratio, skewness)
 
     return {
@@ -679,7 +667,7 @@ def assess_mesh_quality(case_path):
     }
 ```
 
-> **📂 Source:** OpenFOAM Python Integration
+> **📂 แหล่งที่มา:** OpenFOAM Python Integration
 > 
 > **คำอธิบาย (Explanation):**
 > สคริปต์ Python นี้ทำให้สามารถประเมินคุณภาพของเมชอัตโนมัติ โดยอ่านผลลัพธ์จาก checkMesh และคำนวณคะแนนคุณภาพแบบรวม
@@ -689,13 +677,13 @@ def assess_mesh_quality(case_path):
 > - **calculate_quality_score**: คำนวณคะแนนคุณภาพแบบถ่วงน้ำหนัก
 > - **assess_mesh_quality**: ฟังก์ชันหลักสำหรับประเมินคุณภาพ
 
-### 4. Custom Utility Development
+### 4. การพัฒนายูทิลิตี้แบบกำหนดเอง (Custom Utility Development)
 
-**Custom OpenFOAM Utility Template**
+**เทมเพลตยูทิลิตี้ OpenFOAM แบบกำหนดเอง**
 
 ```cpp
-// Custom utility: meshStatisticsGenerator.C
-// Generate comprehensive mesh statistics for quality assessment
+// ยูทิลิตี้กำหนดเอง: meshStatisticsGenerator.C
+// สร้างสถิติเมชที่ครอบคลุมสำหรับการประเมินคุณภาพ
 #include "fvMesh.H"
 #include "volFields.H"
 #include "surfaceFields.H"
@@ -705,21 +693,21 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
-    // Initialize OpenFOAM environment
+    // เริ่มต้นสภาพแวดล้อม OpenFOAM
     #include "setRootCase.H"
     #include "createTime.H"
     #include "createMesh.H"
 
     Info << "Calculating mesh statistics..." << endl;
 
-    // Calculate mesh statistics
+    // คำนวณสถิติเมช
     const fvPatchList& patches = mesh.boundary();
     label nCells = mesh.nCells();
     label nFaces = mesh.nFaces();
     label nPoints = mesh.nPoints();
     label nInternalFaces = mesh.nInternalFaces();
 
-    // Output detailed statistics
+    // แสดงผลสถิติโดยละเอียด
     OFstream outFile("meshStatistics.txt");
     outFile << "Mesh Statistics:" << nl
             << "  Cells: " << nCells << nl
@@ -729,11 +717,11 @@ int main(int argc, char *argv[])
             << "  Points: " << nPoints << nl
             << "  Patches: " << patches.size() << nl;
 
-    // Calculate quality metrics
+    // คำนวณตัวชี้วัดคุณภาพ
     scalar maxNonOrthog = 0.0;
     scalar maxSkewness = 0.0;
 
-    // ... quality assessment implementation
+    // ... ส่วนการประเมินคุณภาพ
 
     outFile << "\nQuality Metrics:" << nl
             << "  Max Non-orthogonality: " << maxNonOrthog << nl
@@ -744,7 +732,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-> **📂 Source:** Custom OpenFOAM Utility Development
+> **📂 แหล่งที่มา:** การพัฒนายูทิลิตี้ OpenFOAM แบบกำหนดเอง
 > 
 > **คำอธิบาย (Explanation):**
 > อรรถานุทค์ custom utility นี้สร้างสถิติที่ครอบคลุมของเมชเพื่อการประเมินคุณภาพ โดยรวบรวมข้อมูลพื้นฐานและตัวชี้วัดคุณภาพ
@@ -755,139 +743,139 @@ int main(int argc, char *argv[])
 > - **maxNonOrthog/maxSkewness**: ค่าตัวชี้วัดคุณภาพสูงสุด
 > - **OFstream**: คลาสสำหรับเขียนไฟล์ output
 
-**Compilation and Usage**
+**การคอมไพล์และการใช้งาน**
 
 ```bash
-# Compile custom utility
+# คอมไพล์ยูทิลิตี้กำหนดเอง
 wmake
 
-# Run on case
-meshStatisticsGenerator -case <case_directory>
+# รันกับกรณีศึกษา
+meshStatisticsGenerator -case <ไดเรกทอรีกรณีศึกษา>
 ```
 
 ---
 
-## 🎯 Module Integration
+## 🎯 การบูรณาการโมดูล (Module Integration)
 
-### Prerequisites
+### เงื่อนไขเบื้องต้น (Prerequisites)
 
-Before starting this module, ensure completion of:
+ก่อนเริ่มโมดูลนี้ โปรดตรวจสอบให้แน่ใจว่าได้เรียนรู้สิ่งต่อไปนี้แล้ว:
 
-**Required Modules**
-- [x] **Module 03**: Mesh Generation and Geometry Fundamentals
-- [x] **Module 04**: Basic Solver Development (SIMPLE/PISO implementation)
+**โมดูลที่จำเป็น**
+- [x] **โมดูล 03**: พื้นฐานการสร้างเมชและเรขาคณิต
+- [x] **โมดูล 04**: การพัฒนาตัวแก้ปัญหาเบื้องต้น (การใช้งาน SIMPLE/PISO)
 
-**Technical Skills**
-- **OpenFOAM Commands**: Proficiency with `blockMesh`, `snappyHexMesh`, `refineMesh`, `checkMesh`
-- **Shell Scripting**: BASH/Python scripting for automation
-- **CAD Software**: Familiarity with CAD software and basic file formats
-- **Command Line Tools**: Comfort with `grep`, `awk`, `sed`, and text processing utilities
-- **File I/O Management**: Understanding of OpenFOAM file formats and data structures
+**ทักษะทางเทคนิค**
+- **คำสั่ง OpenFOAM**: ความเชี่ยวชาญใน `blockMesh`, `snappyHexMesh`, `refineMesh`, `checkMesh`
+- **การเขียนสคริปต์**: การเขียนสคริปต์ BASH/Python สำหรับการทำงานอัตโนมัติ
+- **ซอฟต์แวร์ CAD**: ความคุ้นเคยกับซอฟต์แวร์ CAD และรูปแบบไฟล์พื้นฐาน
+- **เครื่องมือบรรทัดคำสั่ง**: ความคล่องแคล่วในการใช้ `grep`, `awk`, `sed` และยูทิลิตี้จัดการข้อความ
+- **การจัดการไฟล์ I/O**: ความเข้าใจในรูปแบบไฟล์และโครงสร้างข้อมูลของ OpenFOAM
 
-### Recommended Learning Sequence
+### ลำดับการเรียนรู้ที่แนะนำ
 
-#### Foundation Phase
-1. Master `blockMesh` fundamentals and topology
-2. Develop surface preparation and repair skills
-3. Implement mesh quality assessment workflows
+#### ระยะพื้นฐาน
+1. เชี่ยวชาญพื้นฐานและโทโพโลยีของ `blockMesh`
+2. พัฒนาทักษะการเตรียมพื้นผิวและการซ่อมแซม
+3. ใช้งานขั้นตอนการประเมินคุณภาพเมช
 
-#### Intermediate Phase
-1. Master `snappyHexMesh` for complex geometries
-2. Learn multi-block domain assembly
-3. Develop systematic refinement strategies
-4. Implement advanced quality enhancement techniques
+#### ระยะกลาง
+1. เชี่ยวชาญ `snappyHexMesh` สำหรับเรขาคณิตที่ซับซ้อน
+2. เรียนรู้การประกอบโดเมนแบบหลายบล็อก
+3. พัฒนากลยุทธ์การปรับความละเอียดอย่างเป็นระบบ
+4. ใช้งานเทคนิคการปรับปรุงคุณภาพขั้นสูง
 
-#### Advanced Phase
-1. Specialized CFD application meshing
-2. Dynamic meshing for FSI applications
-3. Multi-phase mesh requirements
-4. GPU-accelerated solver considerations
-
----
-
-## 📊 Module Structure
-
-### Utility Library (`examples/`)
-
-Organized by domain:
-- **Mesh Preparation**: Advanced meshing workflows for complex geometries
-- **Solver Setup**: Parameter studies and automated case generation
-- **Boundary Conditions**: Boundary condition automation tools
-- **Post-Processing**: Field analysis, force calculations, and visualization
-- **Parallel Processing**: HPC workflow tools and batch operations
-- **Multi-Phase**: Phase model configurations and specialized analysis
-- **Development Tools**: C++ debugging, performance analysis, and testing frameworks
-
-### Workflow Systems (`workflows/`)
-
-End-to-end workflow coordination including:
-- **Complete CFD Workflows**: From geometry to results with automated optimization
-- **Mesh to Solver**: Integrated mesh preparation with solver validation
-- **Post-Processing Pipelines**: Integrated analysis and reporting workflows
-
-### Progressive Learning (`tutorials/`)
-
-Structured lessons from beginner to expert:
-- **Beginner**: Basic mesh creation, simple solvers, basic operations
-- **Intermediate**: Complex geometries, advanced snappyHexMesh meshing
-- **Advanced**: Turbulent flows, conjugate heat transfer, moving meshes
-- **Expert**: Solver development, GPU acceleration, specialized physics
+#### ระยะสูง
+1. การสร้างเมชสำหรับการประยุกต์ใช้งาน CFD เฉพาะทาง
+2. เมชแบบพลวัตสำหรับการประยุกต์ใช้งาน FSI
+3. ข้อกำหนดเมชสำหรับการไหลหลายเฟส
+4. ข้อควรพิจารณาสำหรับตัวแก้ปัญหาที่เร่งด้วย GPU
 
 ---
 
-## 🔧 Key Features
+## 📊 โครงสร้างโมดูล (Module Structure)
 
-### Automation-First Design
+### ไลบรารียูทิลิตี้ (`examples/`)
 
-All utilities and workflows designed with automation as the primary requirement, reducing manual intervention and human error.
+จัดระเบียบตามขอบเขตงาน:
+- **การเตรียมเมช**: ขั้นตอนการสร้างเมชขั้นสูงสำหรับเรขาคณิตซับซ้อน
+- **การตั้งค่าตัวแก้ปัญหา**: การศึกษาพารามิเตอร์และการสร้างกรณีศึกษาอัตโนมัติ
+- **เงื่อนไขขอบเขต**: เครื่องมืออัตโนมัติสำหรับเงื่อนไขขอบเขต
+- **การประมวลผลภายหลัง**: การวิเคราะห์ฟิลด์, การคำนวณแรง และการสร้างภาพ
+- **การประมวลผลแบบขนาน**: เครื่องมือสำหรับ HPC และการทำงานแบบกลุ่ม
+- **หลายเฟส**: การกำหนดค่าแบบจำลองเฟสและการวิเคราะห์เฉพาะทาง
+- **เครื่องมือพัฒนา**: การดีบั๊ก C++, การวิเคราะห์ประสิทธิภาพ และเฟรมเวิร์กการทดสอบ
 
-### Scalable Architecture
+### ระบบขั้นตอนการทำงาน (`workflows/`)
 
-Tools scale from desktop CFD to HPC clusters and cloud environments, with built-in parallelization and optimization capabilities.
+การประสานงานขั้นตอนการทำงานแบบครบวงจร รวมถึง:
+- **ขั้นตอนการทำงาน CFD ที่สมบูรณ์**: ตั้งแต่เรขาคณิตไปจนถึงผลลัพธ์พร้อมการเพิ่มประสิทธิภาพอัตโนมัติ
+- **จากเมชสู่ตัวแก้ปัญหา**: การเตรียมเมชที่บูรณาการกับการตรวจสอบความถูกต้องของตัวแก้ปัญหา
+- **ท่อส่งการประมวลผลภายหลัง**: ขั้นตอนการวิเคราะห์และการรายงานผลแบบบูรณาการ
 
-### End-to-End Coverage
+### การเรียนรู้แบบก้าวหน้า (`tutorials/`)
 
-From initial CAD import, mesh generation, solver execution, post-processing, to final reporting and documentation.
-
-### Integration-Ready
-
-Designed for integration with external tools, databases, and services, including CAD software, cloud platforms, and monitoring systems.
-
----
-
-## 🎓 Professional Standards
-
-### Code Documentation
-
-- Follow OpenFOAM documentation guidelines
-- Maintain comprehensive inline comments
-- Provide usage examples for all custom utilities
-- Document input parameters and expected outputs
-
-### Industry Best Practices
-
-- Version control workflows for CFD projects
-- Automated testing and validation frameworks
-- Code review processes for custom utilities
-- Reproducible research practices
-
-### Quality Assurance
-
-- Mesh quality metrics and thresholds
-- Solver convergence criteria
-- Automated regression testing
-- Performance benchmarking standards
+บทเรียนที่มีโครงสร้างตั้งแต่ระดับเริ่มต้นจนถึงผู้เชี่ยวชาญ:
+- **ระดับเริ่มต้น**: การสร้างเมชพื้นฐาน, ตัวแก้ปัญหาอย่างง่าย, การดำเนินการเบื้องต้น
+- **ระดับกลาง**: เรขาคณิตที่ซับซ้อน, การสร้างเมชด้วย snappyHexMesh ขั้นสูง
+- **ระดับสูง**: การไหลแบบปั่นป่วน, การถ่ายโอนความร้อนแบบคอนจูเกต, เมชที่เคลื่อนที่ได้
+- **ระดับผู้เชี่ยวชาญ**: การพัฒนาตัวแก้ปัญหา, การเร่งความเร็วด้วย GPU, ฟิสิกส์เฉพาะทาง
 
 ---
 
-## 📝 Summary
+## 🔧 คุณสมบัติเด่น (Key Features)
 
-This module provides comprehensive technical training in OpenFOAM utilities and workflow automation, enabling you to develop complex CFD workflows capable of handling sophisticated engineering problems efficiently and reliably. The acquired skills will prepare you for advanced research and industrial applications where high-quality automated mesh generation and process optimization are critical requirements.
+### การออกแบบที่เน้นการทำงานอัตโนมัติเป็นอันดับแรก (Automation-First Design)
 
-The module bridges the gap between basic OpenFOAM usage and professional-grade CFD practice, emphasizing:
-- **Technical rigor** with mathematical foundations for all methods
-- **Practical application** with working code examples and real-world workflows
-- **Professional standards** for documentation, testing, and collaboration
-- **Scalable solutions** from desktop to HPC environments
+ยูทิลิตี้และขั้นตอนการทำงานทั้งหมดถูกออกแบบมาโดยมีประสิทธิภาพการทำงานอัตโนมัติเป็นความต้องการหลัก เพื่อลดการแทรกแซงด้วยตนเองและข้อผิดพลาดจากมนุษย์
 
-Upon completion, you will possess the complete toolkit necessary to tackle industrial CFD challenges with confidence and efficiency.
+### สถาปัตยกรรมที่ขยายขนาดได้ (Scalable Architecture)
+
+เครื่องมือต่างๆ สามารถขยายขนาดได้ตั้งแต่ CFD บนเดสก์ท็อปไปจนถึงคลัสเตอร์ HPC และสภาพแวดล้อมระบบคลาวด์ พร้อมความสามารถในการทำงานแบบขนานและเพิ่มประสิทธิภาพในตัว
+
+### ครอบคลุมตั้งแต่ต้นจนจบ (End-to-End Coverage)
+
+ตั้งแต่การนำเข้า CAD เริ่มต้น, การสร้างเมช, การรันตัวแก้ปัญหา, การประมวลผลภายหลัง ไปจนถึงการรายงานผลและการจัดทำเอกสารขั้นสุดท้าย
+
+### พร้อมสำหรับการบูรณาการ (Integration-Ready)
+
+ออกแบบมาเพื่อการบูรณาการกับเครื่องมือภายนอก, ฐานข้อมูล และบริการต่างๆ รวมถึงซอฟต์แวร์ CAD, แพลตฟอร์มคลาวด์ และระบบการติดตามตรวจสอบ
+
+---
+
+## 🎓 มาตรฐานวิชาชีพ (Professional Standards)
+
+### เอกสารประกอบโค้ด
+
+- ปฏิบัติตามแนวทางการจัดทำเอกสารของ OpenFOAM
+- รักษาการเขียนคอมเมนต์ในบรรทัด (inline comments) อย่างครอบคลุม
+- จัดทำตัวอย่างการใช้งานสำหรับยูทิลิตี้ที่กำหนดเองทั้งหมด
+- จัดทำเอกสารสำหรับพารามิเตอร์อินพุตและผลลัพธ์ที่คาดหวัง
+
+### แนวทางปฏิบัติที่ดีที่สุดในอุตสาหกรรม
+
+- ขั้นตอนการทำงานการควบคุมเวอร์ชันสำหรับโครงการ CFD
+- เฟรมเวิร์กการทดสอบและการตรวจสอบความถูกต้องอัตโนมัติ
+- กระบวนการรีวิวโค้ดสำหรับยูทิลิตี้ที่กำหนดเอง
+- แนวทางปฏิบัติสำหรับการวิจัยที่ทำซ้ำได้
+
+### การรับประกันคุณภาพ
+
+- ตัวชี้วัดคุณภาพเมชและเกณฑ์การยอมรับ
+- เกณฑ์การลู่เข้าของตัวแก้ปัญหา
+- การทดสอบการถดถอย (regression testing) อัตโนมัติ
+- มาตรฐานการวัดประสิทธิภาพ (benchmarking)
+
+---
+
+## 📝 สรุป (Summary)
+
+โมดูลนี้จัดทำขึ้นเพื่อการฝึกอบรมทางเทคนิคที่ครอบคลุมในยูทิลิตี้ของ OpenFOAM และการทำงานอัตโนมัติ ช่วยให้คุณสามารถพัฒนาขั้นตอนการทำงาน CFD ที่ซับซ้อนซึ่งสามารถจัดการกับปัญหาทางวิศวกรรมระดับสูงได้อย่างมีประสิทธิภาพและน่าเชื่อถือ ทักษะที่ได้รับจะเตรียมคุณให้พร้อมสำหรับการวิจัยขั้นสูงและการประยุกต์ใช้งานในอุตสาหกรรม ซึ่งการสร้างเมชอัตโนมัติคุณภาพสูงและการเพิ่มประสิทธิภาพกระบวนการเป็นข้อกำหนดที่สำคัญ
+
+โมดูลนี้เชื่อมช่องว่างระหว่างการใช้งาน OpenFOAM ขั้นพื้นฐานและการปฏิบัติงาน CFD ระดับมืออาชีพ โดยเน้นที่:
+- **ความเข้มงวดทางเทคนิค** พร้อมรากฐานทางคณิตศาสตร์สำหรับทุกวิธีการ
+- **การประยุกต์ใช้งานจริง** พร้อมตัวอย่างโค้ดที่ทำงานได้จริงและขั้นตอนการทำงานในโลกจริง
+- **มาตรฐานวิชาชีพ** สำหรับการจัดทำเอกสาร, การทดสอบ และการทำงานร่วมกัน
+- **โซลูชันที่ขยายขนาดได้** ตั้งแต่ระดับเดสก์ท็อปไปจนถึงสภาพแวดล้อม HPC
+
+เมื่อทำสำเร็จ คุณจะมีชุดเครื่องมือที่สมบูรณ์ซึ่งจำเป็นต่อการรับมือกับความท้าทายด้าน CFD ในภาคอุตสาหกรรมด้วยความมั่นใจและมีประสิทธิภาพ

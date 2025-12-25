@@ -1,77 +1,77 @@
-# Validation and Benchmarks
+# การรับรองความถูกต้องและเกณฑ์มาตรฐาน (Validation and Benchmarks)
 
-> [!INFO] Overview
-> Validation and benchmarking are critical steps in ensuring the reliability and accuracy of coupled physics simulations. This note covers analytical benchmarks, conservation checks, and cross-validation with commercial solvers for OpenFOAM multi-physics applications.
+> [!INFO] ภาพรวม
+> การรับรองความถูกต้อง (Validation) และการสร้างเกณฑ์มาตรฐาน (Benchmarking) เป็นขั้นตอนที่สำคัญในการรับประกันความน่าเชื่อถือและความแม่นยำของการจำลองทางฟิสิกส์แบบคัปปลิง บันทึกฉบับนี้ครอบคลุมถึงเกณฑ์มาตรฐานเชิงวิเคราะห์ การตรวจสอบการอนุรักษ์ และการรับรองความถูกต้องข้ามซอฟต์แวร์กับตัวแก้ปัญหาเชิงพาณิชย์สำหรับการประยุกต์ใช้แบบหลายฟิสิกส์ใน OpenFOAM
 
 ---
 
-## 1. Analytical Benchmarks
+## 1. เกณฑ์มาตรฐานเชิงวิเคราะห์ (Analytical Benchmarks)
 
-### 1.1 1D Conjugate Heat Transfer Problem
+### 1.1 ปัญหาการถ่ายโอนความร้อนแบบคอนจูเกต 1 มิติ (1D Conjugate Heat Transfer Problem)
 
-**Problem Overview**
+**ภาพรวมของปัญหา**
 
-The 1D conjugate heat transfer benchmark, based on the work of Ghaddar et al., provides a fundamental test case for verifying conjugate heat transfer (CHT) in OpenFOAM. This problem couples forced convection in a channel with conduction through adjacent walls, creating a simple yet representative CHT scenario.
+เกณฑ์มาตรฐานการถ่ายโอนความร้อนแบบคอนจูเกต 1 มิติ ซึ่งอ้างอิงจากงานของ Ghaddar และคณะ เป็นกรณีทดสอบพื้นฐานสำหรับการตรวจสอบความถูกต้องของการถ่ายโอนความร้อนแบบคอนจูเกต (CHT) ใน OpenFOAM ปัญหานี้เป็นการคัปปลิงระหว่างการพาความร้อนแบบบังคับในช่องทางกับการนำความร้อนผ่านผนังที่อยู่ติดกัน สร้างสถานการณ์ CHT ที่เรียบง่ายแต่เป็นตัวแทนที่ดี
 
 ```mermaid
 flowchart TD
-    A[Fluid Domain] -->|Heat Flux| B[Solid Wall]
-    B -->|Conduction| C[Interface]
-    C -->|Convection| A
-    D[Forced Convection] --> A
-    E[Conduction] --> B
+    A[โดเมนของไหล] -->|ฟลักซ์ความร้อน| B[ผนังของแข็ง]
+    B -->|การนำความร้อน| C[ส่วนต่อประสาน]
+    C -->|การพาความร้อน| A
+    D[การพาความร้อนแบบบังคับ] --> A
+    E[การนำความร้อน] --> B
 ```
-> **Figure 1:** แผนภาพแสดงองค์ประกอบและกลไกของปัญหาการถ่ายเทความร้อนแบบคอนจูเกต (CHT) แบบ 1 มิติ ซึ่งประกอบด้วยกระบวนการพาความร้อนและการนำความร้อนที่เกิดขึ้นพร้อมกัน
+> **รูปที่ 1:** แผนภาพแสดงองค์ประกอบและกลไกของปัญหาการถ่ายเทความร้อนแบบคอนจูเกต (CHT) แบบ 1 มิติ ซึ่งประกอบด้วยกระบวนการพาความร้อนและการนำความร้อนที่เกิดขึ้นพร้อมกัน
 
 
-**Problem Configuration**
+**การกำหนดค่าปัญหา**
 
-The benchmark consists of two distinct domains:
+เกณฑ์มาตรฐานประกอบด้วยสองโดเมนที่แตกต่างกัน:
 
-| Domain | Description | Primary Mechanism |
+| โดเมน | คำอธิบาย | กลไกหลัก |
 |--------|-------------|-------------------|
-| **Fluid Domain** | Channel flow region | Driven by pressure gradient or body force |
-| **Solid Domain** | Wall region | Direct heat conduction |
+| **โดเมนของไหล** | บริเวณการไหลในช่องทาง | ขับเคลื่อนโดยเกรเดียนต์ความดันหรือแรงจากภายนอก |
+| **โดเมนของแข็ง** | บริเวณผนัง | การนำความร้อนโดยตรง |
 
-**Governing Equations**
+**สมการควบคุม (Governing Equations)**
 
-*Fluid Region (Forced Convection):*
-$$\rho_f c_{p,f} \frac{\partial T_f}{\partial t} + \rho_f c_{p,f} \mathbf{u} \cdot \nabla T_f = k_f \nabla^2 T_f$$
+*บริเวณของไหล (การพาความร้อนแบบบังคับ):*
+$$\rho_f c_{p,f} \frac{\partial T_f}{\partial t} + \rho_f c_{p,f} \mathbf{u} \cdot \nabla T_f = k_f \nabla^2 T_f$$ 
 
-*Solid Region (Direct Conduction):*
-$$\rho_s c_{p,s} \frac{\partial T_s}{\partial t} = k_s \nabla^2 T_s$$
+*บริเวณของแข็ง (การนำความร้อนโดยตรง):*
+$$\rho_s c_{p,s} \frac{\partial T_s}{\partial t} = k_s \nabla^2 T_s$$ 
 
-**Boundary Conditions**
-- **Temperature continuity**: $T_f = T_s$ at fluid-solid interface
-- **Heat flux continuity**: $-k_f \frac{\partial T_f}{\partial n} = -k_s \frac{\partial T_s}{\partial n}$
+**เงื่อนไขขอบเขต (Boundary Conditions)**
+- **ความต่อเนื่องของอุณหภูมิ**: $T_f = T_s$ ที่ส่วนต่อประสานของไหล-ของแข็ง
+- **ความต่อเนื่องของฟลักซ์ความร้อน**: $-k_f \frac{\partial T_f}{\partial n} = -k_s \frac{\partial T_s}{\partial n}$
 
-**Variable Definitions:**
-- $\rho_f$ - Fluid density
-- $\rho_s$ - Solid density
-- $c_{p,f}$ - Fluid specific heat capacity
-- $c_{p,s}$ - Solid specific heat capacity
-- $k_f$ - Fluid thermal conductivity
-- $k_s$ - Solid thermal conductivity
-- $\mathbf{u}$ - Fluid velocity vector
+**คำจำกัดความตัวแปร:**
+- $\rho_f$ - ความหนาแน่นของของไหล
+- $\rho_s$ - ความหนาแน่นของของแข็ง
+- $c_{p,f}$ - ความจุความร้อนจำเพาะของของไหล
+- $c_{p,s}$ - ความจุความร้อนจำเพาะของของแข็ง
+- $k_f$ - สัมประสิทธิ์การนำความร้อนของของไหล
+- $k_s$ - สัมประสิทธิ์การนำความร้อนของของแข็ง
+- $\mathbf{u}$ - เวกเตอร์ความเร็วของของไหล
 
-**Analytical Solution**
+**คำตอบเชิงวิเคราะห์ (Analytical Solution)**
 
-For fully developed regions where $\frac{\partial T}{\partial x} = 0$ and steady-state conditions apply, the analytical solution can be obtained using separation of variables:
+สำหรับบริเวณที่การไหลพัฒนาเต็มที่ (fully developed) โดยที่ $\frac{\partial T}{\partial x} = 0$ และอยู่ในสภาวะคงตัว คำตอบเชิงวิเคราะห์สามารถหาได้โดยใช้วิธีการแยกตัวแปร:
 
-$$T_f(y) = T_w + (T_m - T_w)\left[1 - \left(\frac{y}{H}\right)^2\right]$$
+$$T_f(y) = T_w + (T_m - T_w)\\[1 - \left(\frac{y}{H}\\right)^2\\]$$ 
 
-$$T_s(y) = T_w - \frac{q_w}{k_s}(y - H)$$
+$$T_s(y) = T_w - \frac{q_w}{k_s}(y - H)$$ 
 
-**Solution Variable Definitions:**
-- $T_w$ - Wall temperature at boundary
-- $T_m$ - Mean fluid temperature
-- $H$ - Channel half-height
-- $q_w$ - Wall heat flux
+**คำจำกัดความตัวแปรของคำตอบ:**
+- $T_w$ - อุณหภูมิผนังที่ขอบเขต
+- $T_m$ - อุณหภูมิเฉลี่ยของของไหล
+- $H$ - ความสูงครึ่งหนึ่งของช่องทาง
+- $q_w$ - ฟลักซ์ความร้อนที่ผนัง
 
-**OpenFOAM Implementation**
+**ตัวอย่างการเขียนโค้ดใน OpenFOAM**
 
 ```cpp
-// Calculate interface temperature
+// คำนวณอุณหภูมิที่ส่วนต่อประสาน
 volScalarField wallTemperature
 (
     IOobject
@@ -85,7 +85,7 @@ volScalarField wallTemperature
     T.boundaryField()[fluidInterfaceID]
 );
 
-// Calculate heat flux at boundary
+// คำนวณฟลักซ์ความร้อนที่ขอบเขต
 volScalarField heatFlux
 (
     IOobject
@@ -117,53 +117,53 @@ volScalarField heatFlux
 > - **Surface Normal Gradient:** `fvc::snGrad()` คำนวณ gradient ในทิศทางปกติของ surface
 > - **Heat Flux Calculation:** ใช้ dot product (&) ระหว่าง gradient และ surface normal
 
-**Verification Criteria**
+**เกณฑ์การตรวจสอบความถูกต้อง**
 
-Numerical solutions from OpenFOAM must satisfy the following accuracy requirement:
+คำตอบเชิงตัวเลขจาก OpenFOAM จะต้องเป็นไปตามข้อกำหนดด้านความแม่นยำดังต่อไปนี้:
 
-$$\frac{|T_{\text{num}} - T_{\text{analytical}}|}{T_{\text{analytical}}} < 0.01 \quad \text{(1\% error)}$$
+$$\frac{|T_{\text{num}} - T_{\text{analytical}}|}{T_{\text{analytical}}} < 0.01 \quad \text{(ความคลาดเคลื่อน 1\%)}$$ 
 
-This criterion ensures that the CHT implementation accurately captures the physics of conjugate heat transfer with minimal numerical discretization error.
+เกณฑ์นี้ช่วยรับประกันว่าการใช้งาน CHT สามารถจับภาพฟิสิกส์ของการถ่ายโอนความร้อนแบบคอนจูเกตได้อย่างแม่นยำโดยมีข้อผิดพลาดจากการแยกส่วนเชิงตัวเลขน้อยที่สุด
 
 ---
 
-### 1.2 Cross-Validation with StarCCM+ Commercial Solver
+### 1.2 การรับรองความถูกต้องข้ามซอฟต์แวร์กับ StarCCM+ (Cross-Validation)
 
-**Objective**
+**วัตถุประสงค์**
 
-To validate OpenFOAM's CHT capabilities against an established commercial code. A cross-validation study using StarCCM+ provides an independent benchmark for verification.
+เพื่อรับรองความถูกต้องของความสามารถด้าน CHT ของ OpenFOAM เทียบกับโค้ดเชิงพาณิชย์ที่เป็นที่ยอมรับ การศึกษาการรับรองความถูกต้องข้ามซอฟต์แวร์โดยใช้ StarCCM+ จะให้เกณฑ์มาตรฐานที่เป็นอิสระสำหรับการตรวจสอบความถูกต้อง
 
 ```mermaid
 flowchart LR
-    A[OpenFOAM] -->|Compare| B[Results]
-    C[StarCCM+] -->|Compare| B
-    B --> D[Validation Metrics]
-    D --> F[Temperature Field]
-    D --> G[Convergence Behavior]
+    A[OpenFOAM] -->|เปรียบเทียบ| B[ผลลัพธ์]
+    C[StarCCM+] -->|เปรียบเทียบ| B
+    B --> D[ตัวชี้วัดการรับรองความถูกต้อง]
+    D --> F[สนามอุณหภูมิ]
+    D --> G[พฤติกรรมการลู่เข้า]
 ```
-> **Figure 2:** แผนผังกระบวนการตรวจสอบความถูกต้องข้ามซอฟต์แวร์ (Cross-Validation Methodology) เพื่อยืนยันความแม่นยำของ OpenFOAM เทียบกับซอฟต์แวร์เชิงพาณิชย์ที่เป็นมาตรฐาน
+> **รูปที่ 2:** แผนผังกระบวนการตรวจสอบความถูกต้องข้ามซอฟต์แวร์ (Cross-Validation Methodology) เพื่อยืนยันความแม่นยำของ OpenFOAM เทียบกับซอฟต์แวร์เชิงพาณิชย์ที่เป็นมาตรฐาน
 
 
-**Comparison Methodology**
+**ระเบียบวิธีเปรียบเทียบ**
 
-1. **Geometric Consistency**: Identical mesh topology and boundary conditions in both solvers
-2. **Physical Equivalence**: Same turbulence models, material properties, and numerical schemes
-3. **Convergence Criteria**: Comparable residual acceptance and solution monitoring
+1. **ความสอดคล้องทางเรขาคณิต**: ใช้โทโพโลยีเมชและเงื่อนไขขอบเขตที่เหมือนกันในทั้งสองตัวแก้ปัญหา
+2. **ความเท่าเทียมทางกายภาพ**: ใช้แบบจำลองความปั่นป่วนเดียวกัน สมบัติวัสดุ และรูปแบบเชิงตัวเลขเดียวกัน
+3. **เกณฑ์การลู่เข้า**: ใช้การยอมรับค่าตกค้าง (residual acceptance) และการตรวจสอบคำตอบที่เปรียบเทียบกันได้
 
-**Comparison Metrics**
+**ตัวชี้วัดการเปรียบเทียบ**
 
-*Boundary Heat Flux Distribution:*
-The primary verification metric is the heat flux distribution along the fluid-solid interface:
+*การกระจายฟลักซ์ความร้อนที่ขอบเขต:*
+ตัวชี้วัดการตรวจสอบความถูกต้องหลักคือการกระจายฟลักซ์ความร้อนตามแนวส่วนต่อประสานของไหล-ของแข็ง:
 
 $$q_w(x) = -k_f \left.\frac{\partial T_f}{\partial n}\right|_{\text{interface}}$$
 
-*Acceptance Criterion:*
-$$\frac{|q_{\text{OpenFOAM}}(x) - q_{\text{StarCCM+}}(x)|}{\max(q_w)} < 0.05 \quad \text{(5\% deviation)}$$
+*เกณฑ์การยอมรับ:*
+$$\frac{|q_{\text{OpenFOAM}}(x) - q_{\text{StarCCM+}}(x)|}{\max(q_w)} < 0.05 \quad \text{(ความเบี่ยงเบน 5\%)}$$ 
 
-**OpenFOAM Implementation**
+**ตัวอย่างการเขียนโค้ดใน OpenFOAM**
 
 ```cpp
-// Example heat flux calculation for comparison
+// ตัวอย่างการคำนวณฟลักซ์ความร้อนเพื่อการเปรียบเทียบ
 volScalarField heatFlux
 (
     IOobject
@@ -177,7 +177,7 @@ volScalarField heatFlux
     -kappaFluid * fvc::snGrad(T) & mesh.Sf().boundaryField()[fluidInterfaceID]
 );
 
-// Calculate L2 norm of heat flux difference
+// คำนวณ L2 norm ของความแตกต่างของฟลักซ์ความร้อน
 scalar L2Error = sqrt
 (
     gSum
@@ -209,51 +209,51 @@ scalar L2Error = sqrt
 > - **Global Reduction:** `gSum` รวมค่าจากทุก processor ใน parallel computation
 > - **Surface Area Weighting:** คูณด้วย `mesh.Sf()` เพื่อให้ error ถูกต้องในเชิงปริมาตร
 
-**Expected Verification Results**
+**ผลการตรวจสอบความถูกต้องที่คาดหวัง**
 
-| Metric | Criterion | Significance |
+| ตัวชี้วัด | เกณฑ์ | ความสำคัญ |
 |--------|-----------|---------------|
-| **Global Heat Balance** | Net heat transfer within 2% | Overall heat transfer consistency |
-| **Local Flux Distribution** | Pointwise deviation < 5% | Local heat transfer pattern agreement |
-| **Temperature Field** | Temperature gradients and boundary values match | Temperature distribution consistency |
-| **Convergence Behavior** | Similar residual reduction patterns and iteration counts | Numerical solver efficiency equivalence |
+| **สมดุลความร้อนโดยรวม** | การถ่ายโอนความร้อนสุทธิภายใน 2% | ความสอดคล้องของการถ่ายโอนความร้อนโดยรวม |
+| **การกระจายฟลักซ์เฉพาะจุด** | ความเบี่ยงเบนแต่ละจุด < 5% | ความสอดคล้องของรูปแบบการถ่ายโอนความร้อนเฉพาะจุด |
+| **สนามอุณหภูมิ** | เกรเดียนต์อุณหภูมิและค่าขอบเขตตรงกัน | ความสอดคล้องของการกระจายอุณหภูมิ |
+| **พฤติกรรมการลู่เข้า** | รูปแบบการลดลงของค่าตกค้างและจำนวนรอบการวนซ้ำใกล้เคียงกัน | ความเท่าเทียมกันของประสิทธิภาพตัวแก้ปัญหาเชิงตัวเลข |
 
-**Error Sources and Mitigation**
+**แหล่งที่มาของข้อผิดพลาดและการบรรเทา**
 
-| Source | Impact | Mitigation |
+| แหล่งที่มา | ผลกระทบ | การบรรเทา |
 |--------|--------|------------|
-| **Numerical Schemes** | Different discretization approaches (second-order vs. higher-order) | Use identical numerical schemes or refine mesh |
-| **Wall Treatment** | Differences in near-wall modeling (y+, wall functions) | Use identical near-wall mesh resolution |
-| **Linear Solvers** | Different solver tolerances and preconditioning strategies | Use identical solver settings with strict tolerance |
-| **Domain Decomposition** | Load balancing and boundary communication differences | Use identical processor count and decomposition method |
+| **รูปแบบเชิงตัวเลข** | วิธีการแยกส่วนที่ต่างกัน (อันดับสอง vs อันดับสูงกว่า) | ใช้รูปแบบเชิงตัวเลขที่เหมือนกันหรือทำให้เมชละเอียดขึ้น |
+| **การจัดการผนัง** | ความแตกต่างในการสร้างแบบจำลองใกล้ผนัง (y+, ฟังก์ชันผนัง) | ใช้ความละเอียดของเมชใกล้ผนังที่เหมือนกัน |
+| **ตัวแก้ปัญหาเชิงเส้น** | ค่าความคลาดเคลื่อนของตัวแก้ปัญหาและกลยุทธ์ preconditioning ที่ต่างกัน | ใช้การตั้งค่าตัวแก้ปัญหาที่เหมือนกันพร้อมค่าความคลาดเคลื่อนที่เข้มงวด |
+| **การแบ่งโดเมน** | ความแตกต่างในการปรับสมดุลภาระงานและการสื่อสารที่ขอบเขต | ใช้จำนวนตัวประมวลผลและวิธีการแบ่งโดเมนที่เหมือนกัน |
 
-These analytical benchmarks provide a solid foundation for validating heat transfer capabilities in OpenFOAM, ensuring accuracy for both simple analytical solutions and complex engineering applications.
+เกณฑ์มาตรฐานเชิงวิเคราะห์เหล่านี้ให้รากฐานที่แข็งแกร่งสำหรับการรับรองความถูกต้องของความสามารถด้านการถ่ายโอนความร้อนใน OpenFOAM รับประกันความแม่นยำสำหรับทั้งคำตอบเชิงวิเคราะห์อย่างง่ายและการประยุกต์ใช้งานทางวิศวกรรมที่ซับซ้อน
 
 ---
 
-## 2. Conservation Checks
+## 2. การตรวจสอบการอนุรักษ์ (Conservation Checks)
 
-> [!WARNING] Importance
-> Conservation checks are fundamental to computational fluid dynamics that guarantee numerical results preserve basic physical principles of mass, momentum, and energy conservation. For multiphase flow simulations, especially those involving heat and mass transfer between phases, these checks become **critical** for validating result accuracy and detecting numerical errors.
+> [!WARNING] ความสำคัญ
+> การตรวจสอบการอนุรักษ์เป็นพื้นฐานของพลศาสตร์ของไหลเชิงคำนวณที่รับประกันว่าผลลัพธ์เชิงตัวเลขเป็นไปตามหลักการทางฟิสิกส์พื้นฐานของการอนุรักษ์มวล โมเมนตัม และพลังงาน สำหรับการจำลองการไหลหลายเฟส โดยเฉพาะอย่างยิ่งที่เกี่ยวข้องกับการถ่ายโอนความร้อนและมวลระหว่างเฟส การตรวจสอบเหล่านี้มีความ **สำคัญอย่างยิ่ง** ในการรับรองความแม่นยำของผลลัพธ์และการตรวจจับข้อผิดพลาดเชิงตัวเลข
 
-### 2.1 Mass Conservation
+### 2.1 การอนุรักษ์มวล (Mass Conservation)
 
-Mass conservation is the **most fundamental** check in any CFD simulation. For multiphase systems, this check involves verifying both global mass conservation and individual phase mass balance.
+การอนุรักษ์มวลเป็นการตรวจสอบที่ **พื้นฐานที่สุด** ในการจำลอง CFD ใดๆ สำหรับระบบหลายเฟส การตรวจสอบนี้เกี่ยวข้องกับการยืนยันทั้งการอนุรักษ์มวลโดยรวมและสมดุลมวลของแต่ละเฟส
 
-**OpenFOAM Implementation**
+**ตัวอย่างการเขียนโค้ดใน OpenFOAM**
 
 ```cpp
-// Phase mass conservation check for multiphaseEulerFoam
+// การตรวจสอบการอนุรักษ์มวลเฟสสำหรับ multiphaseEulerFoam
 forAll(phases, phasei)
 {
     const phaseModel& phase = phases[phasei];
     const volScalarField& alpha = phase;
     const volScalarField& rho = phase.rho();
 
-    // Calculate volume integral of phase mass
+    // คำนวณอินทิกรัลปริมาตรของมวลเฟส
     scalar totalPhaseMass = fvc::domainIntegrate(alpha * rho).value();
 
-    // Store initial mass for comparison
+    // เก็บค่ามวลเริ่มต้นเพื่อการเปรียบเทียบ
     if (!massHistory.found(phase.name()))
     {
         massHistory.set(phase.name(), totalPhaseMass);
@@ -272,7 +272,7 @@ forAll(phases, phasei)
     }
 }
 
-// Global continuity check
+// การตรวจสอบความต่อเนื่องโดยรวม
 scalar divError = fvc::domainIntegrate
 (
     fvc::div(phaseSystem.phi()) / runTime().deltaT()
@@ -302,41 +302,41 @@ Info << "Global divergence error: " << divError << endl;
 > - **Continuity Equation:** Divergence of flux ควรเป็นศูนย์สำหรับ incompressible flow
 > - **Hash Table Storage:** `massHistory.found()`/`massHistory.set()` ใช้ HashTable สำหรับ tracking
 
-**Mass Conservation Tracking:**
-- **Individual phase masses**: To verify phase conservation
-- **Global continuity**: To check numerical divergence errors
-- **Relative error metrics**: To identify significant conservation violations
-- **Time history tracking**: To detect gradual drift in conservation properties
+**การติดตามการอนุรักษ์มวล:**
+- **มวลของแต่ละเฟส**: เพื่อตรวจสอบการอนุรักษ์เฟส
+- **ความต่อเนื่องโดยรวม**: เพื่อตรวจสอบข้อผิดพลาดจากการลู่ออกเชิงตัวเลข (numerical divergence)
+- **ตัวชี้วัดข้อผิดพลาดสัมพัทธ์**: เพื่อระบุการละเมิดการอนุรักษ์ที่สำคัญ
+- **การติดตามประวัติเวลา**: เพื่อตรวจจับการเลื่อนลอย (drift) ทีละน้อยของคุณสมบัติการอนุรักษ์
 
 ```mermaid
 flowchart TD
-    A[Phase 1 Mass] --> B[Conservation Check]
-    C[Phase 2 Mass] --> B
-    D[Global Continuity] --> B
-    B --> E[Error Metrics]
-    E --> F{Tolerance Check}
-    F -->|Pass| G[Conservation Satisfied]
-    F -->|Fail| H[Warning Issued]
+    A[มวลเฟส 1] --> B[ตรวจสอบการอนุรักษ์]
+    C[มวลเฟส 2] --> B
+    D[ความต่อเนื่องโดยรวม] --> B
+    B --> E[ตัวชี้วัดข้อผิดพลาด]
+    E --> F{ตรวจสอบเกณฑ์ยอมรับ}
+    F -->|ผ่าน| G[ผ่านการตรวจสอบการอนุรักษ์]
+    F -->|ไม่ผ่าน| H[แจ้งเตือน]
 ```
-> **Figure 3:** แผนผังลำดับขั้นตอนการตรวจสอบการอนุรักษ์มวลในระบบหลายเฟส เพื่อประเมินความคลาดเคลื่อนเชิงตัวเลขและความต่อเนื่องของข้อมูลมวลในระหว่างการจำลอง
+> **รูปที่ 3:** แผนผังลำดับขั้นตอนการตรวจสอบการอนุรักษ์มวลในระบบหลายเฟส เพื่อประเมินความคลาดเคลื่อนเชิงตัวเลขและความต่อเนื่องของข้อมูลมวลในระหว่างการจำลอง
 
 
 ---
 
-### 2.2 Momentum Balance
+### 2.2 สมดุลโมเมนตัม (Momentum Balance)
 
-The momentum conservation check ensures that forces and momentum transfers are properly accounted for in the system.
+การตรวจสอบการอนุรักษ์โมเมนตัมช่วยให้มั่นใจได้ว่าแรงและการถ่ายโอนโมเมนตัมได้รับการพิจารณาอย่างเหมาะสมในระบบ
 
-**OpenFOAM Implementation**
+**ตัวอย่างการเขียนโค้ดใน OpenFOAM**
 
 ```cpp
-// Momentum conservation check
+// การตรวจสอบการอนุรักษ์โมเมนตัม
 void momentumBalanceCheck::execute()
 {
     const volVectorField& U = mesh_.lookupObject<volVectorField>("U");
     const surfaceScalarField& phi = mesh_.lookupObject<surfaceScalarField>("phi");
 
-    // Calculate momentum flux through boundaries
+    // คำนวณฟลักซ์โมเมนตัมผ่านขอบเขต
     vector totalMomentumInflux = vector::zero;
     vector totalMomentumOutflux = vector::zero;
 
@@ -357,7 +357,7 @@ void momentumBalanceCheck::execute()
         }
     }
 
-    // Calculate body forces (gravity, etc.)
+    // คำนวณแรงจากตัวกลาง (แรงโน้มถ่วง ฯลฯ)
     vector totalBodyForce = vector::zero;
     if (mesh_.foundObject<uniformDimensionedVectorField>("g"))
     {
@@ -366,7 +366,7 @@ void momentumBalanceCheck::execute()
         totalBodyForce = g.value() * fvc::domainIntegrate(rho).value();
     }
 
-    // Momentum balance check
+    // ตรวจสอบสมดุลโมเมนตัม
     vector momentumError = totalMomentumInflux + totalMomentumOutflux - totalBodyForce;
     scalar relativeError = mag(momentumError) / (mag(totalMomentumInflux) + SMALL);
 
@@ -407,31 +407,31 @@ void momentumBalanceCheck::execute()
 
 ```mermaid
 flowchart LR
-    A[Inlet Momentum] --> B[Control Volume]
-    C[Outlet Momentum] --> B
-    D[Body Forces] --> B
-    B --> E[Momentum Balance]
-    E --> F{Check Balance}
-    F -->|Balanced| G[Conservation OK]
-    F -->|Imbalance| H[Adjust Parameters]
+    A[โมเมนตัมขาเข้า] --> B[ปริมาตรควบคุม]
+    C[โมเมนตัมขาออก] --> B
+    D[แรงภายนอก] --> B
+    B --> E[สมดุลโมเมนตัม]
+    E --> F{ตรวจสอบสมดุล}
+    F -->|สมดุล| G[การอนุรักษ์ถูกต้อง]
+    F -->|ไม่สมดุล| H[ปรับจูนพารามิเตอร์]
 ```
-> **Figure 4:** แผนภาพแสดงกระบวนการตรวจสอบสมดุลโมเมนตัมภายในปริมาตรควบคุม ซึ่งพิจารณาจากผลรวมของโมเมนตัมขาเข้า-ขาออก และแรงภายนอกที่กระทำต่อระบบ
+> **รูปที่ 4:** แผนภาพแสดงกระบวนการตรวจสอบสมดุลโมเมนตัมภายในปริมาตรควบคุม ซึ่งพิจารณาจากผลรวมของโมเมนตัมขาเข้า-ขาออก และแรงภายนอกที่กระทำต่อระบบ
 
 
 ---
 
-### 2.3 Energy Balance
+### 2.3 สมดุลพลังงาน (Energy Balance)
 
-Energy conservation is **critically important** in multiphase heat transfer problems where energy is exchanged between phases through interfaces.
+การอนุรักษ์พลังงานมีความ **สำคัญอย่างยิ่ง** ในปัญหาการถ่ายโอนความร้อนหลายเฟส ซึ่งพลังงานจะถูกแลกเปลี่ยนระหว่างเฟสผ่านส่วนต่อประสาน
 
-**Energy Balance Components to Consider:**
+**องค์ประกอบของสมดุลพลังงานที่ต้องพิจารณา:**
 
-1. **Convective Energy Transport**: Energy transported by mass flow
-2. **Conductive Heat Transfer**: Energy diffusion through phases
-3. **Interfacial Heat Transfer**: Energy exchange between phases
-4. **External Heat Sources/Sinks**: Volumetric heat generation or removal
+1. **การขนส่งพลังงานโดยการพา (Convective Energy Transport)**: พลังงานที่ถูกขนส่งโดยการไหลของมวล
+2. **การถ่ายโอนความร้อนโดยการนำ (Conductive Heat Transfer)**: การแพร่ของพลังงานผ่านเฟสต่างๆ
+3. **การถ่ายโอนความร้อนที่ส่วนต่อประสาน (Interfacial Heat Transfer)**: การแลกเปลี่ยนพลังงานระหว่างเฟส
+4. **แหล่งกำเนิด/แหล่งรับความร้อนภายนอก**: การสร้างหรือการกำจัดความร้อนตามปริมาตร
 
-**OpenFOAM Implementation**
+**ตัวอย่างการเขียนโค้ดใน OpenFOAM**
 
 ```cpp
 class energyBalanceCheck
@@ -456,13 +456,13 @@ class energyBalanceCheck
 
         void execute()
         {
-            // Initialize energy balance components
+            // กำหนดค่าเริ่มต้นองค์ประกอบสมดุลพลังงาน
             scalar totalConvection = 0.0;
             scalar totalConduction = 0.0;
             scalar totalInterfacial = 0.0;
             scalar totalSources = 0.0;
 
-            // Phase-specific energy calculations
+            // การคำนวณพลังงานเฉพาะเฟส
             forAll(phaseSystem_.phases(), phasei)
             {
                 const phaseModel& phase = phaseSystem_.phases()[phasei];
@@ -471,7 +471,7 @@ class energyBalanceCheck
                 const volScalarField& h = phase.thermo().he();
                 const surfaceScalarField& phi = phase.phi();
 
-                // Convective energy transport through boundaries
+                // การขนส่งพลังงานโดยการพาผ่านขอบเขต
                 scalar phaseConvection = 0.0;
                 forAll(phi.boundaryField(), patchi)
                 {
@@ -482,7 +482,7 @@ class energyBalanceCheck
                 }
                 totalConvection += phaseConvection;
 
-                // Conductive heat transfer (Fourier's law)
+                // การถ่ายโอนความร้อนโดยการนำ (กฎของฟูเรียร์)
                 const volScalarField& k = phase.thermo().kappa();
                 scalar phaseConduction = -fvc::domainIntegrate
                 (
@@ -490,7 +490,7 @@ class energyBalanceCheck
                 ).value();
                 totalConduction += phaseConduction;
 
-                // Volumetric heat sources
+                // แหล่งกำเนิดความร้อนตามปริมาตร
                 if (mesh_.foundObject<volScalarField>("Q_" + phase.name()))
                 {
                     const volScalarField& Q =
@@ -499,7 +499,7 @@ class energyBalanceCheck
                 }
             }
 
-            // Interfacial heat transfer
+            // การถ่ายโอนความร้อนที่ส่วนต่อประสาน
             const heatTransferPhaseSystem& htPhaseSystem =
                 dynamic_cast<const heatTransferPhaseSystem&>(phaseSystem_);
 
@@ -511,11 +511,11 @@ class energyBalanceCheck
                 totalInterfacial += fvc::domainIntegrate(htModel.Ti()).value();
             }
 
-            // Energy balance calculation
+            // การคำนวณสมดุลพลังงาน
             scalar totalEnergyChange = totalConvection + totalConduction +
                                      totalInterfacial + totalSources;
 
-            // Calculate relative error using system total energy as reference
+            // คำนวณข้อผิดพลาดสัมพัทธ์โดยใช้พลังงานรวมของระบบเป็นค่าอ้างอิง
             scalar referenceEnergy = 0.0;
             forAll(phaseSystem_.phases(), phasei)
             {
@@ -529,7 +529,7 @@ class energyBalanceCheck
 
             scalar energyError = mag(totalEnergyChange) / (mag(referenceEnergy) + SMALL);
 
-            // Report conservation status
+            // รายงานสถานะการอนุรักษ์
             if (energyError > energyTolerance_)
             {
                 WarningInFunction
@@ -583,14 +583,14 @@ class energyBalanceCheck
 
 ---
 
-### 2.4 Phase Fraction Conservation
+### 2.4 การอนุรักษ์สัดส่วนเฟส (Phase Fraction Conservation)
 
-In multiphase flows, the sum of volume fractions must equal unity at all times. This fundamental constraint must be monitored:
+ในการไหลหลายเฟส ผลรวมของสัดส่วนปริมาตร (volume fractions) จะต้องเท่ากับหนึ่งเสมอในทุกช่วงเวลา ข้อจำกัดพื้นฐานนี้จะต้องได้รับการตรวจสอบ:
 
-**OpenFOAM Implementation**
+**ตัวอย่างการเขียนโค้ดใน OpenFOAM**
 
 ```cpp
-// Phase fraction conservation check
+// การตรวจสอบการอนุรักษ์สัดส่วนเฟส
 void checkPhaseFractionSum()
 {
     const PtrList<volScalarField>& alphas = phaseSystem_.phases();
@@ -608,13 +608,13 @@ void checkPhaseFractionSum()
         dimensionedScalar("zero", dimless, 0.0)
     );
 
-    // Sum all phase fractions
+    // รวมสัดส่วนเฟสทั้งหมด
     forAll(alphas, phasei)
     {
         alphaSum += alphas[phasei];
     }
 
-    // Check deviation from unity
+    // ตรวจสอบความเบี่ยงเบนจากค่าหนึ่ง
     volScalarField alphaError = mag(alphaSum - 1.0);
     scalar maxError = max(alphaError).value();
     scalar meanError = average(alphaError).value();
@@ -623,7 +623,7 @@ void checkPhaseFractionSum()
          << "  Maximum deviation: " << maxError << nl
          << "  Mean deviation: " << meanError << endl;
 
-    // Report cells with significant deviation
+    // รายงานเซลล์ที่มีความเบี่ยงเบนอย่างมีนัยสำคัญ
     if (maxError > phaseTolerance_)
     {
         volScalarField::Internal& alphaErrorI = alphaError.ref();
@@ -672,11 +672,11 @@ void checkPhaseFractionSum()
 
 ---
 
-### 2.5 Automatic Conservation Monitoring Framework
+### 2.5 กรอบงานการตรวจสอบการอนุรักษ์อัตโนมัติ (Automatic Conservation Monitoring Framework)
 
-For comprehensive conservation checking, an automated framework can be implemented as a function object:
+สำหรับการตรวจสอบการอนุรักษ์ที่ครอบคลุม สามารถสร้างกรอบงานอัตโนมัติในรูปแบบของ function object ได้ดังนี้:
 
-**OpenFOAM Implementation**
+**ตัวอย่างการเขียนโค้ดใน OpenFOAM**
 
 ```cpp
 class conservationMonitor
@@ -684,18 +684,18 @@ class conservationMonitor
     public fvMeshFunctionObject
 {
     private:
-        // Conservation tolerances
+        // ค่าความคลาดเคลื่อนที่ยอมรับได้สำหรับการอนุรักษ์
         dimensionedScalar massTolerance_;
         dimensionedScalar momentumTolerance_;
         dimensionedScalar energyTolerance_;
         dimensionedScalar phaseTolerance_;
 
-        // Previous time step values for rate calculations
+        // ค่าจากช่วงเวลาก่อนหน้าสำหรับการคำนวณอัตรา
         scalar previousMass_;
         vector previousMomentum_;
         scalar previousEnergy_;
 
-        // Output frequency
+        // ความถี่ของการแสดงผล
         label writeInterval_;
 
     public:
@@ -720,7 +720,7 @@ class conservationMonitor
         {
             if (mesh_.time().timeIndex() % writeInterval_ != 0) return;
 
-            // Perform all conservation checks
+            // ดำเนินการตรวจสอบการอนุรักษ์ทุกประเภท
             checkMassConservation();
             checkMomentumConservation();
             checkEnergyConservation();
@@ -729,7 +729,7 @@ class conservationMonitor
 
         virtual bool write()
         {
-            // Write detailed conservation report to file
+            // เขียนรายงานการอนุรักษ์อย่างละเอียดลงในไฟล์
             writeConservationReport();
             return true;
         }
@@ -737,27 +737,27 @@ class conservationMonitor
     private:
         void checkMassConservation()
         {
-            // Implementation as shown in previous sections
+            // การใช้งานตามที่แสดงในส่วนก่อนหน้า
         }
 
         void checkMomentumConservation()
         {
-            // Implementation as shown in previous sections
+            // การใช้งานตามที่แสดงในส่วนก่อนหน้า
         }
 
         void checkEnergyConservation()
         {
-            // Implementation as shown in previous sections
+            // การใช้งานตามที่แสดงในส่วนก่อนหน้า
         }
 
         void checkPhaseFractionConservation()
         {
-            // Implementation as shown in previous sections
+            // การใช้งานตามที่แสดงในส่วนก่อนหน้า
         }
 
         void writeConservationReport()
         {
-            // Generate comprehensive conservation report
+            // สร้างรายงานการอนุรักษ์ที่ครอบคลุม
             OFstream file
             (
                 mesh_.time().timePath() / "conservationReport.dat"
@@ -765,7 +765,7 @@ class conservationMonitor
 
             file << "Time\tMassError\tMomentumError\tEnergyError\tPhaseError" << nl;
 
-            // Write current conservation metrics
+            // เขียนตัวชี้วัดการอนุรักษ์ปัจจุบัน
         }
 };
 ```
@@ -805,9 +805,9 @@ class conservationMonitor
 
 ---
 
-### 2.6 Application in Simulation Control
+### 2.6 การประยุกต์ใช้ในการควบคุมการจำลอง (Application in Simulation Control)
 
-To enable conservation checking in your simulation, add the following to `controlDict`:
+เพื่อเปิดใช้งานการตรวจสอบการอนุรักษ์ในการจำลองของคุณ ให้เพิ่มส่วนต่อไปนี้ในไฟล์ `controlDict`:
 
 ```cpp
 functions
@@ -816,16 +816,16 @@ functions
     {
         type conservationMonitor;
 
-        // Conservation tolerances
+        // ค่าความคลาดเคลื่อนสำหรับการอนุรักษ์
         massTolerance 1e-8;
         momentumTolerance 1e-8;
         energyTolerance 1e-6;
         phaseTolerance 1e-6;
 
-        // Output control
+        // การควบคุมการแสดงผล
         writeInterval 1;
 
-        // Enable detailed reporting
+        // เปิดใช้งานการรายงานอย่างละเอียด
         verbose true;
     }
 }
@@ -860,44 +860,44 @@ functions
 
 ```mermaid
 flowchart TD
-    A[Simulation Start] --> B[Initialize Monitor]
-    B --> C[Time Loop]
-    C --> D[Execute Checks]
-    D --> E[Mass Conservation]
-    D --> F[Momentum Conservation]
-    D --> G[Energy Conservation]
-    D --> H[Phase Conservation]
-    E --> I[Report Status]
+    A[เริ่มการจำลอง] --> B[กำหนดค่า Monitor]
+    B --> C[วงรอบเวลา]
+    C --> D[ดำเนินการตรวจสอบ]
+    D --> E[อนุรักษ์มวล]
+    D --> F[อนุรักษ์โมเมนตัม]
+    D --> G[อนุรักษ์พลังงาน]
+    D --> H[อนุรักษ์เฟส]
+    E --> I[รายงานสถานะ]
     F --> I
     G --> I
     H --> I
-    I --> J{Violations?}
-    J -->|No| K[Continue Simulation]
-    J -->|Yes| L[Write Warning]
+    I --> J{มีการละเมิดเกณฑ์?}
+    J -->|ไม่| K[ดำเนินการจำลองต่อ]
+    J -->|ใช่| L[เขียนคำเตือน]
     L --> K
-    K --> M{Time Complete?}
-    M -->|No| C
-    M -->|Yes| N[Write Final Report]
+    K --> M{สิ้นสุดเวลา?}
+    M -->|ไม่| C
+    M -->|ใช่| N[เขียนรายงานสรุป]
 ```
-> **Figure 5:** แผนผังระบบการเฝ้าสังเกตการอนุรักษ์โดยอัตโนมัติ (Automated Conservation Monitoring Framework) ซึ่งครอบคลุมการตรวจสอบสมดุลมวล โมเมนตัม พลังงาน และสัดส่วนเฟสตลอดระยะเวลาการจำลอง
+> **รูปที่ 5:** แผนผังระบบการเฝ้าสังเกตการอนุรักษ์โดยอัตโนมัติ (Automated Conservation Monitoring Framework) ซึ่งครอบคลุมการตรวจสอบสมดุลมวล โมเมนตัม พลังงาน และสัดส่วนเฟสตลอดระยะเวลาการจำลอง
 
 
 ---
 
-## 3. Interface Balance Verification
+## 3. การตรวจสอบสมดุลที่ส่วนต่อประสาน (Interface Balance Verification)
 
-For coupled physics problems, verifying the balance at interfaces is crucial:
+สำหรับปัญหาทางฟิสิกส์ที่คัปปลิงกัน การตรวจสอบสมดุลที่ส่วนต่อประสานเป็นเรื่องสำคัญอย่างยิ่ง:
 
-### 3.1 Thermal Interface Balance
+### 3.1 สมดุลความร้อนที่ส่วนต่อประสาน (Thermal Interface Balance)
 
-The energy balance at the fluid-solid interface requires:
+สมดุลพลังงานที่ส่วนต่อประสานระหว่างของไหล-ของแข็งต้องการให้:
 
-$$\int_{\Gamma} q_f \, dA + \int_{\Gamma} q_s \, dA = 0$$
+$$\int_{\Gamma} q_f \, dA + \int_{\Gamma} q_s \, dA = 0$$ 
 
-**OpenFOAM Function Object:**
+**การใช้ออบเจกต์ฟังก์ชันใน OpenFOAM:**
 
 ```cpp
-// Example: Checking heat flux balance
+// ตัวอย่าง: การตรวจสอบสมดุลฟลักซ์ความร้อน
 scalar qFluid = fvc::domainIntegrate
 (
     fluidInterfaceHeatFlux
@@ -937,13 +937,13 @@ Info << "Interface heat flux balance error: "
 
 ---
 
-### 3.2 Momentum Balance (FSI)
+### 3.2 สมดุลโมเมนตัมใน FSI (Momentum Balance)
 
-For fluid-structure interaction, the force exerted by the fluid on the solid must equal the reaction force:
+สำหรับปฏิสัมพันธ์ระหว่างของไหลและโครงสร้าง แรงที่ของไหลกระทำต่อของแข็งจะต้องเท่ากับแรงปฏิกิริยา:
 
-$$\mathbf{F}_f = -\mathbf{F}_s$$
+$$\mathbf{F}_f = -\mathbf{F}_s$$ 
 
-Use the `forces` function object to monitor interface forces:
+ใช้ออบเจกต์ฟังก์ชัน `forces` เพื่อติดตามแรงที่ส่วนต่อประสาน:
 
 ```cpp
 forces
@@ -983,74 +983,74 @@ forces
 > - **Dynamic Library Loading:** `libs` โหลด code ที่ runtime
 > - **Coordinate System:** `CofR` ระบุ origin สำหรับ moment calculations
 
-**Troubleshooting Force Imbalance:**
+**การแก้ปัญหาความไม่สมดุลของแรง:**
 
-If forces don't balance, check:
-1. Mesh resolution at the interface
-2. Coupling iteration convergence tolerance
-3. Under-relaxation factors
-4. Time step size
+หากแรงไม่สมดุล ให้ตรวจสอบ:
+1. ความละเอียดของเมชที่ส่วนต่อประสาน
+2. ค่าความคลาดเคลื่อนของการวนซ้ำการคัปปลิง
+3. ปัจจัยการผ่อนคลาย (Under-relaxation factors)
+4. ขนาดของช่วงเวลา (Time step size)
 
 ---
 
-## 4. Practical Validation Workflow
+## 4. ขั้นตอนการรับรองความถูกต้องในทางปฏิบัติ (Practical Validation Workflow)
 
-### 4.1 Systematic Validation Process
+### 4.1 กระบวนการรับรองความถูกต้องอย่างเป็นระบบ
 
 ```mermaid
 flowchart TD
-    A[Select Benchmark] --> B[1D Analytical]
-    A --> C[Commercial Solver]
-    A --> D[Experimental Data]
-    B --> E[Setup Simulation]
+    A[เลือกเกณฑ์มาตรฐาน] --> B[คำตอบวิเคราะห์ 1 มิติ]
+    A --> C[ตัวแก้ปัญหาเชิงพาณิชย์]
+    A --> D[ข้อมูลการทดลอง]
+    B --> E[ตั้งค่าการจำลอง]
     C --> E
     D --> E
-    E --> F[Run Conservation Checks]
-    F --> G{All Criteria Met?}
-    G -->|Yes| H[Validation Complete]
-    G -->|No| I[Identify Issue]
-    I --> J[Mesh/Parameters]
-    I --> K[Numerical Schemes]
-    I --> L[Boundary Conditions]
+    E --> F[รันการตรวจสอบการอนุรักษ์]
+    F --> G{ผ่านเกณฑ์ทั้งหมด?}
+    G -->|ใช่| H[รับรองความถูกต้องเสร็จสิ้น]
+    G -->|ไม่| I[ระบุปัญหา]
+    I --> J[เมช/พารามิเตอร์]
+    I --> K[รูปแบบเชิงตัวเลข]
+    I --> L[เงื่อนไขขอบเขต]
     J --> E
     K --> E
     L --> E
 ```
-> **Figure 6:** แผนภูมิแสดงขั้นตอนการตรวจสอบความถูกต้องอย่างเป็นระบบ (Systematic Validation Process) เพื่อให้มั่นใจว่าการจำลองสามารถสะท้อนพฤติกรรมทางฟิสิกส์จริงได้อย่างแม่นยำและน่าเชื่อถือ
+> **รูปที่ 6:** แผนภูมิแสดงขั้นตอนการตรวจสอบความถูกต้องอย่างเป็นระบบ (Systematic Validation Process) เพื่อให้มั่นใจว่าการจำลองสามารถสะท้อนพฤติกรรมทางฟิสิกส์จริงได้อย่างแม่นยำและน่าเชื่อถือ
 
 
 ---
 
-### 4.2 Error Metrics and Acceptance Criteria
+### 4.2 ตัวชี้วัดข้อผิดพลาดและเกณฑ์การยอมรับ
 
-| Metric | Formula | Application | Acceptable Value |
+| ตัวชี้วัด | สูตร | การประยุกต์ใช้ | ค่าที่ยอมรับได้ |
 |--------|---------|-------------|------------------|
-| **L2 Norm** | $\|e\|_{L_2} = \sqrt{\frac{1}{V}\int_{\Omega} (u_{\text{num}} - u_{\text{ref}})^2 \, dV}$ | Overall error | < 5% |
-| **Maximum Error** | $|e|_{\max} = \max |u_{\text{num}} - u_{\text{ref}}|$ | Worst-case deviation | < 10% |
-| **Correlation Coefficient** | $R = \frac{\sum_i (u_i^{\text{num}} - \bar{u}^{\text{num}})(u_i^{\text{ref}} - \bar{u}^{\text{ref}})}{\sigma^{\text{num}} \sigma^{\text{ref}}}$ | Agreement quality | > 0.95 |
+| **L2 Norm** | $\|e\|_{L_2} = \sqrt{\frac{1}{V}\int_{\Omega} (u_{\text{num}} - u_{\text{ref}})^2 \, dV}$ | ข้อผิดพลาดโดยรวม | < 5% |
+| **ข้อผิดพลาดสูงสุด** | $|e|_{\max} = \max |u_{\text{num}} - u_{\text{ref}}|$ | ความเบี่ยงเบนในกรณีที่แย่ที่สุด | < 10% |
+| **สัมประสิทธิ์สหสัมพันธ์** | $R = \frac{\sum_i (u_i^{\text{num}} - \bar{u}^{\text{num}})(u_i^{\text{ref}} - \bar{u}^{\text{ref}})}{\sigma^{\text{num}} \sigma^{\text{ref}}}$ | คุณภาพความสอดคล้อง | > 0.95 |
 
 ---
 
-### 4.3 Common Validation Issues
+### 4.3 ปัญหาการรับรองความถูกต้องที่พบบ่อย
 
-| Issue | Symptom | Solution |
+| ปัญหา | อาการ | วิธีแก้ไข |
 |-------|---------|----------|
-| **Mass drift** | Gradual mass increase/decrease | Check flux boundary conditions, reduce time step |
-| **Energy imbalance** | Non-zero net heat flux in closed system | Verify thermal conductivity values, check interface coupling |
-| **Force mismatch** | Fluid/solid forces unequal | Refine interface mesh, tighten coupling tolerance |
-| **Non-physical oscillations** | Spurious pressure/velocity oscillations | Use bounded numerical schemes, improve mesh quality |
+| **มวลเลื่อนลอย (Mass drift)** | มวลเพิ่มขึ้น/ลดลงทีละน้อย | ตรวจสอบเงื่อนไขขอบเขตของฟลักซ์, ลดขนาดช่วงเวลา |
+| **ความไม่สมดุลของพลังงาน** | ฟลักซ์ความร้อนสุทธิไม่เป็นศูนย์ในระบบปิด | ตรวจสอบค่าการนำความร้อน, ตรวจสอบการคัปปลิงที่ส่วนต่อประสาน |
+| **แรงไม่ตรงกัน** | แรงของไหล/ของแข็งไม่เท่ากัน | ทำให้เมชที่ส่วนต่อประสานละเอียดขึ้น, บังคับเกณฑ์การคัปปลิงให้เข้มงวดขึ้น |
+| **การแกว่งที่ไม่สอดคล้องกับฟิสิกส์** | การแกว่งของความดัน/ความเร็วที่ผิดปกติ | ใช้รูปแบบเชิงตัวเลขที่มีขอบเขต (bounded), ปรับปรุงคุณภาพเมช |
 
 ---
 
-## 5. Summary
+## 5. สรุป (Summary)
 
-> [!TIP] Best Practices
+> [!TIP] แนวทางปฏิบัติที่ดีที่สุด
 >
-> 1. **Always start** with analytical benchmarks before complex problems
-> 2. **Implement conservation monitoring** from the beginning of simulation development
-> 3. **Document validation results** for future reference and solver verification
-> 4. **Use multiple metrics** (L2 norm, maximum error, correlation) for comprehensive validation
-> 5. **Perform mesh convergence studies** to ensure results are grid-independent
-> 6. **Cross-validate with commercial solvers** when experimental data is unavailable
+> 1. **เริ่มจากง่ายเสมอ** โดยใช้เกณฑ์มาตรฐานเชิงวิเคราะห์ก่อนจะไปทำปัญหาที่ซับซ้อน
+> 2. **ใช้งานการติดตามการอนุรักษ์** ตั้งแต่เริ่มต้นการพัฒนาการจำลอง
+> 3. **บันทึกผลการรับรองความถูกต้อง** ไว้เพื่อการอ้างอิงในอนาคตและการตรวจสอบความถูกต้องของตัวแก้ปัญหา
+> 4. **ใช้ตัวชี้วัดที่หลากหลาย** (L2 norm, ข้อผิดพลาดสูงสุด, สหสัมพันธ์) เพื่อการรับรองความถูกต้องที่ครอบคลุม
+> 5. **ทำการศึกษาการลู่เข้าของเมช** เพื่อรับประกันว่าผลลัพธ์ไม่ขึ้นกับความละเอียดของกริต
+> 6. **รับรองความถูกต้องข้ามซอฟต์แวร์** กับตัวแก้ปัญหาเชิงพาณิชย์เมื่อไม่มีข้อมูลการทดลอง
 
-Validation and benchmarking provide the foundation for reliable coupled physics simulations in OpenFOAM. By following systematic procedures and implementing comprehensive conservation checks, users can ensure their simulations accurately represent the physical phenomena being modeled.
+การรับรองความถูกต้องและการสร้างเกณฑ์มาตรฐานเป็นรากฐานของการจำลองทางฟิสิกส์แบบคัปปลิงที่น่าเชื่อถือใน OpenFOAM การปฏิบัติตามขั้นตอนอย่างเป็นระบบและการใช้งานการตรวจสอบการอนุรักษ์ที่ครอบคลุม จะช่วยให้ผู้ใช้มั่นใจได้ว่าการจำลองของตนแสดงถึงปรากฏการณ์ทางกายภาพที่กำลังจำลองได้อย่างถูกต้องแม่นยำ

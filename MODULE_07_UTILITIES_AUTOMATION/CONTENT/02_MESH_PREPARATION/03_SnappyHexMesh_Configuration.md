@@ -1,24 +1,24 @@
-# 🔧 คู่มือการกำหนดค่า snappyHexMesh ขั้นสูง
+# 🔧 Advanced snappyHexMesh Configuration Guide
 
-**วัตถุประสงค์การเรียนรู้**: ทำความเข้าใจการกำหนดค่า snappyHexMesh อย่างละเอียดสำหรับการสร้างเมช CFD คุณภาพสูงจากเรขาคณิตที่ซับซ้อน
-**ข้อกำหนดเบื้องต้น**: ความเข้าใจพื้นฐานเกี่ยวกับ blockMesh, ความรู้เกี่ยวกับเรขาคณิต CAD, ประสบการณ์ OpenFOAM ระดับกลาง
-**ทักษะเป้าหมาย**: การกำหนดค่า snappyHexMeshDict ขั้นสูง, การจัดการ boundary layers, การควบคุมคุณภาพเมช, การดำเนินการแบบขนาน
+**Learning Objectives**: Gain detailed understanding of snappyHexMesh configuration for generating high-quality CFD meshes from complex geometries
+**Prerequisites**: Basic understanding of blockMesh, CAD geometry knowledge, intermediate OpenFOAM experience
+**Target Skills**: Advanced snappyHexMeshDict configuration, boundary layer management, mesh quality control, parallel execution
 
 ---
 
-## ภาพรวม (Overview)
+## Overview
 
-`snappyHexMesh` เป็นยูทิลิตี้การสร้างเมชแบบ ==Semi-structured== หลักของ OpenFOAM ที่รวมการสร้างเมชพื้นหลังแบบ Hexahedral เข้ากับการปรับแต่งพื้นผิวที่สอดรับกับเรขาคณิต (Surface-conforming refinement) โดยอัตโนมัติ
+`snappyHexMesh` is OpenFOAM's primary ==semi-structured== meshing utility that combines hexahedral background mesh generation with automatic surface-conforming refinement
 
-### ขัดแย้งการออกแบบ (Design Trade-offs)
+### Design Trade-offs
 
-| แนวทาง | ข้อดี | ข้อเสีย | Use Case |
-|---------|--------|----------|----------|
-| **Structured (blockMesh)** | คุณภาพสูง, ความเสถียรทางเชิงตัวเลข | ต้องการแรงงานสูงสำหรับเรขาคณิตซับซ้อน | โดเมนเรขาคณิตง่าย, ท่อ, ช่องทาง |
-| **Semi-structured (snappyHexMesh)** | สมดุลระหว่างอัตโนมัติและการควบคุม | ต้องการการเตรียมพื้นผิวที่ดี | เรขาคณิตซับซ้อน, ชิ้นส่วนเครื่องยนต์ |
-| **Unstructured (cfMesh)** | อัตโนมัติสมบูรณ์ | ความแม่นยำต่ำกว่าแบบโครงสร้าง | เรขาคณิตอินทรีย์, การแพทย์ |
+| Approach | Advantages | Disadvantages | Use Case |
+|---------|-----------|---------------|----------|
+| **Structured (blockMesh)** | High quality, numerical stability | High labor for complex geometry | Simple geometric domains, pipes, channels |
+| **Semi-structured (snappyHexMesh)** | Balance of automation and control | Requires good surface preparation | Complex geometries, engine parts |
+| **Unstructured (cfMesh)** | Fully automatic | Lower accuracy than structured | Organic geometries, biomedical |
 
-### ขั้นตอนการทำงาน (Workflow)
+### Workflow
 
 ```mermaid
 flowchart TD
@@ -34,17 +34,17 @@ flowchart TD
     J --> E
     I -->|Yes| K[Final Mesh]
 ```
-> **Figure 1:** แผนภูมิแสดงขั้นตอนการทำงานของ `snappyHexMesh` ตั้งแต่การเตรียมเรขาคณิตพื้นผิว การสกัดคุณลักษณะเด่น การสร้างเมชพื้นหลัง ไปจนถึงขั้นตอนการเพิ่มชั้นขอบเขตและการประเมินคุณภาพเมชแบบวนซ้ำเพื่อให้ได้ผลลัพธ์ที่เหมาะสมที่สุดสำหรับการจำลอง
+> **Figure 1:** Flowchart showing the complete snappyHexMesh workflow from surface geometry preparation, through feature extraction and background mesh generation, to boundary layer addition and iterative quality assessment for optimal simulation results
 
 ---
 
-## ส่วนที่ 1: การเตรียมพื้นผิว (Surface Preparation)
+## Part 1: Surface Preparation
 
-### 1.1 การประมวลผลเรขาคณิต CAD
+### 1.1 CAD Geometry Processing
 
-พื้นฐานของการจำลอง CFD ที่ประสบความสำเร็จเริ่มต้นจากการเตรียมเรขาคณิต CAD ที่เหมาะสม OpenFOAM รองรับหลายรูปแบบเรขาคณิต:
+Successful CFD simulation begins with proper CAD geometry preparation. OpenFOAM supports multiple geometry formats:
 
-**รูปแบบ CAD ที่แนะนำ:**
+**Recommended CAD Formats:**
 ```bash
 # Formats compatible with OpenFOAM
 STEP (.stp, .step)     # STEP Exchange Protocol - recommended
@@ -53,12 +53,12 @@ STL (.stl)           # StereoLithography (triangular format)
 VTK (.vtk)           # Visualization Toolkit (for reference)
 ```
 
-> [!INFO] **การเลือกรูปแบบไฟล์ (Format Selection)**
-> - **STEP**: รูปแบบหลักที่แนะนำ - รักษาข้อมูลพาราเมตริกและความต่อเนื่องของพื้นผิว
-> - **IGES**: ทางเลือกสำหรับระบบเดิม - อาจแนะนำความไม่สม่ำเสมอของพื้นผิว
-> - **STL**: พื้นผิวแบบสามเหลี่ยม - ต้องการความเอาใจใส่ด้านคุณภาพและความหนาแน่น
+> [!INFO] **Format Selection**
+> - **STEP**: Primary recommended format - preserves parametric information and surface continuity
+> - **IGES**: Alternative for legacy systems - may introduce surface inconsistencies
+> - **STL**: Triangular surface - requires attention to quality and density
 
-**การตรวจสอบความถูกต้องของเรขาคณิต:**
+**Geometry Validation:**
 
 ```cpp
 // Code pattern for geometry validation
@@ -87,32 +87,32 @@ bool validateGeometry(const fileName& stlFile)
 ```
 
 <details>
-<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
+<summary>📖 Code Explanation</summary>
 
-**แหล่งที่มา**: แนวคิดการตรวจสอบเรขาคณิตจาก OpenFOAM surface mesh utilities
+**Source**: OpenFOAM surface mesh utilities validation concept
 
-**คำอธิบาย**:
-- **ฟังก์ชัน validateGeometry**: ใช้ตรวจสอบความถูกต้องของไฟล์ STL ก่อนนำไปใช้ในการสร้างเมช
-- **การตรวจสอบไฟล์**: ใช้ `isFile()` เพื่อตรวจสอบว่าไฟล์มีอยู่จริงและสามารถอ่านได้
-- **การโหลดพื้นผิว**: ใช้คลาส `triSurface` เพื่อโหลดและจัดการข้อมูลพื้นผิวสามเหลี่ยม
-- **การตรวจสอบ non-manifold edges**: ขอบที่ไม่ใช่ manifold เป็นปัญหาทั่วไปที่ทำให้การสร้างเมชล้มเหลว
+**Explanation**:
+- **validateGeometry function**: Validates STL files before meshing operations
+- **File checking**: Uses `isFile()` to verify file existence and readability
+- **Surface loading**: Uses `triSurface` class to load and manipulate triangular surface data
+- **Non-manifold edge checking**: Non-manifold edges are common problems causing meshing failure
 
-**แนวคิดสำคัญ**:
-- **Manifold edges**: ขอบปกติที่มีหน้าเชื่อมต่อได้สูงสุด 2 หน้า
-- **Non-manifold edges**: ขอบที่มีหน้าเชื่อมต่อมากกว่า 2 หน้า หรือมีโครงสร้างที่ผิดปกติ
-- **ขอบเขตการใช้งาน**: การตรวจสอบเบื้องต้นก่อนการสร้างเมชเพื่อประหยัดเวลาและทรัพยากร
+**Key Concepts**:
+- **Manifold edges**: Normal edges with maximum 2 face connections
+- **Non-manifold edges**: Edges with more than 2 face connections or abnormal structure
+- **Application scope**: Pre-meshing validation to save time and resources
 
 </details>
 
-กระบวนการตรวจสอบความถูกต้องประกอบด้วย:
-- **เรขาคณิตที่กันรั่ว**: จำเป็นสำหรับการสร้างเมชปริมาตร
-- **ขอบที่ไม่เป็น manifold**: อาจทำให้การสร้างเมชล้มเหลว
-- **คุณภาพพื้นผิว**: มีผลต่อคุณภาพเมชขั้นสุดท้าย
-- **การรักษาคุณสมบัติ**: สำคัญสำหรับฟิสิกส์การไหลที่แม่นยำ
+The validation process includes:
+- **Watertight geometry**: Essential for volumetric mesh generation
+- **Non-manifold edges**: Can cause meshing failure
+- **Surface quality**: Affects final mesh quality
+- **Feature preservation**: Important for accurate flow physics
 
-### 1.2 การทำความสะอาดและซ่อมแซมพื้นผิว
+### 1.2 Surface Cleaning and Repair
 
-**ปัญหา CAD ทั่วไปที่ต้องแก้ไข:**
+**Common CAD Problems to Fix:**
 ```bash
 # Common CAD problems that must be fixed:
 # 1. Non-manifold geometry
@@ -124,7 +124,7 @@ bool validateGeometry(const fileName& stlFile)
 # 7. Overlapping surfaces
 ```
 
-**เวิร์กโฟลว์การทำความสะอาดพื้นผิว:**
+**Surface Cleaning Workflow:**
 
 ```bash
 # Surface mesh repair workflow
@@ -136,31 +136,31 @@ surfaceFeatureExtract -case constant/triSurface/
 ```
 
 <details>
-<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
+<summary>📖 Code Explanation</summary>
 
-**แหล่งที่มา**: OpenFOAM surface preparation utilities
+**Source**: OpenFOAM surface preparation utilities
 
-**คำอธิบาย**:
-- **surfaceCleanPatch**: ยูทิลิตี้สำหรับทำความสะอาดแพตช์พื้นผิว โดยการปิดรูเล็กๆ และซ่อมแซมความไม่สมบูรณ์
-- **surfaceOrient**: จัดแนวเวกเตอร์ปกติของพื้นผิวให้สอดคล้องกัน (ชี้ออกด้านนอก)
-- **surfaceFeatureExtract**: สกัดขอบคุณลักษณะจากพื้นผิวเพื่อใช้ในการปรับปรุงเมช
+**Explanation**:
+- **surfaceCleanPatch**: Utility for cleaning surface patches by closing small holes and repairing imperfections
+- **surfaceOrient**: Orients surface normals consistently (pointing outward)
+- **surfaceFeatureExtract**: Extracts feature edges from surfaces for mesh refinement
 
-**แนวคิดสำคัญ**:
-- **Consistent orientation**: เวกเตอร์ปกติที่สอดคล้องกันจำเป็นสำหรับการคำนวณฟลักซ์และการระบุขอบเขต
-- **Feature preservation**: การรักษาคุณลักษณะสำคัญของเรขาคณิตในขณะทำความสะอาด
-- **Automated repair**: ใช้เครื่องมืออัตโนมัติเพื่อลดเวลาและความผิดพลาดจากการแก้ไขด้วยมือ
+**Key Concepts**:
+- **Consistent orientation**: Consistent normals are essential for flux calculations and boundary identification
+- **Feature preservation**: Maintaining important geometry features while cleaning
+- **Automated repair**: Using automated tools to reduce time and manual error
 
 </details>
 
-การดำเนินการทำความสะอาดหลักประกอบด้วย:
-- **การปิดช่องว่าง**: เติมรูเล็กๆ บนพื้นผิว
-- **การจัดแนวปกติ**: ทำให้มั่นใจว่าเวกเตอร์ปกติชี้ออกด้านนอกอย่างสม่ำเสมอ
-- **การลดจำนวน**: ลดจำนวนสามเหลี่ยมโดยยังคงรักษาคุณสมบัติไว้
-- **การยุบขอบ**: ลบองค์ประกอบเรขาคณิตที่ซ้ำซ้อน
+Key cleaning operations include:
+- **Gap closing**: Fill small holes in surfaces
+- **Normal orientation**: Ensure normals point outward consistently
+- **Decimation**: Reduce triangle count while preserving features
+- **Edge collapse**: Remove redundant geometric elements
 
-### 1.3 การดึงคุณลักษณะ (Feature Extraction)
+### 1.3 Feature Extraction
 
-การสกัดคุณลักษณะขึ้นอยู่กับเรขาคณิต โดยต้องการพารามิเตอร์ต่างกันสำหรับประเภทพื้นผิวต่างๆ:
+Feature extraction depends on geometry, requiring different parameters for different surface types:
 
 ```bash
 # Extract feature edges for different surface types
@@ -179,32 +179,32 @@ fi
 ```
 
 <details>
-<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
+<summary>📖 Code Explanation</summary>
 
-**แหล่งที่มา**: OpenFOAM feature extraction utilities
+**Source**: OpenFOAM feature extraction utilities
 
-**คำอธิบาย**:
-- **Mechanical parts**: ใช้มุม 30 องศาเพื่อจับคุณลักษณะที่ชัดเจนจากการแมชชีน
-- **Organic shapes**: ใช้มุมต่ำกว่า (15 องศา) และรวมมุมกว้างกว่าเพื่อจับรูปร่างที่ซับซ้อน
-- **Terrain**: ใช้มุมสูงกว่าและระบุชนิดคุณลักษณะเฉพาะสำหรับภูมิประเทศ
+**Explanation**:
+- **Mechanical parts**: Use 30° angle to capture clear machining features
+- **Organic shapes**: Use lower angle (15°) and wider included angle for complex shapes
+- **Terrain**: Use higher angle and specify specific feature types for terrain
 
-**แนวคิดสำคัญ**:
-- **Feature angle**: มุมระหว่างเวกเตอร์ปกติของหน้าสองหน้าที่กำหนดขอบคุณลักษณะ
-- **Included angle**: มุมที่รวมในการตรวจจับคุณลักษณะ
-- **Adaptive extraction**: การปรับพารามิเตอร์การสกัดตามประเภทของเรขาคณิต
+**Key Concepts**:
+- **Feature angle**: Angle between face normals defining feature edges
+- **Included angle**: Angle included in feature detection
+- **Adaptive extraction**: Adjusting extraction parameters based on geometry type
 
 </details>
 
-> [!TIP] **ตัวบ่งชี้คุณภาพพื้นผิว (Surface Quality Indicators)**
-> - **Manifoldness**: จำเป็นสำหรับการสร้างเมชปริมาตร
-> - **ความสอดคล้องของเวกเตอร์ปกติ (Normal consistency)**: สำคัญสำหรับการระบุขอบเขตและการคำนวณฟลักซ์
-> - **คุณภาพของสามเหลี่ยม (Triangle quality)**: ส่งผลต่อความแม่นยำของเมชขั้นสุดท้าย - มุ่งเป้าไปที่การกระจายแบบด้านเท่า
+> [!TIP] **Surface Quality Indicators**
+> - **Manifoldness**: Essential for volumetric mesh generation
+> - **Normal consistency**: Critical for boundary identification and flux calculations
+> - **Triangle quality**: Affects final mesh accuracy - aim for equilateral distribution
 
 ---
 
-## ส่วนที่ 2: การกำหนดค่าพจนานุกรม snappyHexMesh (Dictionary Configuration)
+## Part 2: Dictionary Configuration
 
-### 2.1 snappyHexMeshDict พื้นฐาน
+### 2.1 Basic snappyHexMeshDict
 
 ```cpp
 /*--------------------------------*- C++ -*----------------------------------*\
@@ -339,27 +339,27 @@ meshQualityControls
 ```
 
 <details>
-<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
+<summary>📖 Code Explanation</summary>
 
-**แหล่งที่มา**: OpenFOAM snappyHexMeshDict dictionary format
+**Source**: OpenFOAM snappyHexMeshDict dictionary format
 
-**คำอธิบาย**:
-- **FoamFile header**: ส่วนหัวมาตรฐานของไฟล์พจนานุกรม OpenFOAM ที่ระบุเวอร์ชันและประเภทไฟล์
-- **Main switches**: สวิตช์หลักที่ควบคุมขั้นตอนการสร้างเมช (castellated, snap, addLayers)
-- **Geometry section**: นิยามเรขาคณิตที่จะใช้ในการสร้างเมช
-- **castellatedMeshControls**: ควบคุมการสร้างเมช castellated และการปรับปรุง
-- **snapControls**: ควบคุมการแนบเมชไปยังพื้นผิว
-- **addLayersControls**: ควบคุมการเพิ่มชั้นขอบเขต
-- **meshQualityControls**: กำหนดเกณฑ์คุณภาพเมช
+**Explanation**:
+- **FoamFile header**: Standard OpenFOAM dictionary file header specifying version and file type
+- **Main switches**: Main switches controlling mesh generation stages (castellated, snap, addLayers)
+- **Geometry section**: Definition of geometry to be used for meshing
+- **castellatedMeshControls**: Controls castellated mesh generation and refinement
+- **snapControls**: Controls mesh snapping to surfaces
+- **addLayersControls**: Controls boundary layer addition
+- **meshQualityControls**: Defines mesh quality criteria
 
-**แนวคิดสำคัญ**:
+**Key Concepts**:
 - **Three-stage process**: Castellated mesh → Snapping → Layer addition
-- **Refinement levels**: การปรับปรุงแบบลำดับชั้น (hierarchical refinement)
-- **Quality criteria**: การตรวจสอบคุณภาพเมชหลายมิติ
+- **Refinement levels**: Hierarchical refinement levels
+- **Quality criteria**: Multi-dimensional mesh quality checking
 
 </details>
 
-### 2.2 การกำหนดค่าแบบหลายภูมิภาคขั้นสูง (Advanced Multi-Region)
+### 2.2 Advanced Multi-Region Configuration
 
 ```cpp
 /*--------------------------------*- C++ -*----------------------------------*\
@@ -450,72 +450,72 @@ snapControls
 ```
 
 <details>
-<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
+<summary>📖 Code Explanation</summary>
 
-**แหล่งที่มา**: OpenFOAM multi-region meshing configuration
+**Source**: OpenFOAM multi-region meshing configuration
 
-**คำอธิบาย**:
-- **Multi-region support**: การสนับสนุนการสร้างเมชหลายภูมิภาค (fluid/solid)
-- **Region-specific parameters**: พารามิเตอร์ที่แตกต่างกันสำหรับแต่ละภูมิภาค
-- **Layer termination**: การหยุดการเพิ่มชั้นตามเกณฑ์มุม
-- **Implicit snapping**: การใช้อัลกอริทึมการแนบโดยนัยสำหรับเรขาคณิตที่ซับซ้อน
+**Explanation**:
+- **Multi-region support**: Support for multi-region meshing (fluid/solid)
+- **Region-specific parameters**: Different parameters for each region
+- **Layer termination**: Stopping layer addition based on angle criteria
+- **Implicit snapping**: Using implicit snapping algorithm for complex geometry
 
-**แนวคิดสำคัญ**:
-- **Conjugate heat transfer**: การสร้างเมชร่วมกันระหว่างภูมิภาคของไหลและของแข็ง
-- **Adaptive refinement**: การปรับปรุงที่แตกต่างกันตามความต้องการของแต่ละภูมิภาค
-- **Feature preservation**: การรักษาคุณลักษณะเฉพาะในแต่ละภูมิภาค
+**Key Concepts**:
+- **Conjugate heat transfer**: Joint meshing of fluid and solid regions
+- **Adaptive refinement**: Different refinement for each region's needs
+- **Feature preservation**: Preserving region-specific features
 
 </details>
 
 ---
 
-## ส่วนที่ 3: ฟิสิกส์ชั้นขอบเขตและคณิตศาสตร์ (Boundary Layer Physics & Mathematics)
+## Part 3: Boundary Layer Physics & Mathematics
 
-### 3.1 ตัวชี้วัดคุณภาพ (Quality Metrics)
+### 3.1 Quality Metrics
 
-รากฐานทางคณิตศาสตร์สำหรับการประเมินคุณภาพเมช:
+Mathematical foundation for mesh quality assessment:
 
 $$\text{Non-orthogonality} = \arccos\left(\frac{\mathbf{d} \cdot \mathbf{n}}{\|\mathbf{d}\| \|\mathbf{n}\|}\right)$$
 
-โดยที่ $\mathbf{d}$ คือเวกเตอร์ที่เชื่อมจุดศูนย์กลางเซลล์ และ $\mathbf{n}$ คือเวกเตอร์ปกติของหน้า
+Where $\mathbf{d}$ is the vector connecting cell centers and $\mathbf{n}$ is the face normal vector
 
 $$\text{Skewness} = \frac{\|\mathbf{x}_f - \mathbf{x}_{projected}\|}{\|\mathbf{x}_f - \mathbf{x}_{owner}\| + \|\mathbf{x}_f - \mathbf{x}_{neighbor}\|}$$
 
 $$\text{Aspect Ratio} = \frac{\max(d_1, d_2, d_3)}{\min(d_1, d_2, d_3)}$$
 
-### 3.2 ฟิสิกส์ชั้นขอบเขต (Boundary Layer Physics)
+### 3.2 Boundary Layer Physics
 
-สำหรับการไหลที่ถูกจำกัดโดยผนัง การแก้ไขชั้นขอบเขตที่เหมาะสมเป็นสิ่งสำคัญ:
+For wall-bounded flows, proper boundary layer resolution is critical:
 
-**การคำนวณความสูงของเซลล์แรก (First cell height)**:
+**First Cell Height Calculation**:
 $$\Delta y = \frac{y^+ \mu}{\rho u_\tau}$$
 
-โดยที่:
-- $u_\tau = U_\infty \sqrt{C_f/2}$ คือความเร็วเสียดทาน
-- $C_f = 0.026 \cdot Re^{-0.139}$ คือสัมประสิทธิ์แรงต้านผิว (Blasius correlation)
-- $\mu$ คือความหนืดจลน์
+Where:
+- $u_\tau = U_\infty \sqrt{C_f/2}$ is the friction velocity
+- $C_f = 0.026 \cdot Re^{-0.139}$ is the skin friction coefficient (Blasius correlation)
+- $\mu$ is the dynamic viscosity
 
-**อัตราส่วนการเจริญเติบโต (Growth ratio)** สำหรับเซลล์ชั้นขอบเขต:
+**Growth Ratio** for boundary layer cells:
 $$h_{i+1} = r \cdot h_i$$
 
-โดยที่ $h_i$ คือความสูงของเซลล์ และ $r$ คืออัตราส่วนการขยาย (โดยทั่วไปคือ $1.1 \leq r \leq 1.3$)
+Where $h_i$ is the cell height and $r$ is the expansion ratio (typically $1.1 \leq r \leq 1.3$)
 
-**ค่า $y^+$ ที่แนะนำ**:
-- **Viscous sublayer**: $y^+ < 1$ สำหรับโมเดลความปั่นป่วนแบบ Low-Re
+**Recommended $y^+$ Values**:
+- **Viscous sublayer**: $y^+ < 1$ for Low-Re turbulence models
 - **Buffer layer**: $1 < y^+ < 5$
-- **Log-law region**: $30 < y^+ < 300$ สำหรับ Wall functions
+- **Log-law region**: $30 < y^+ < 300$ for wall functions
 
-**ฟังก์ชันผนังของ Reichardt** ให้คำแนะนำสำหรับการเมชชั้นขอบเขต:
+**Reichardt's Wall Function** provides guidance for boundary layer meshing:
 
 $$u^+ = \frac{1}{\kappa} \ln(1 + \kappa y^+) + C \left(1 - e^{-y^+/A} - \frac{y^+}{A} e^{-b y^+}\right)$$
 
-โดยที่ $\kappa \approx 0.41$ คือค่าคงที่ von Kármán
+Where $\kappa \approx 0.41$ is the von Kármán constant
 
 ---
 
-## ส่วนที่ 4: กลยุทธ์การปรับปรุงขั้นสูง (Advanced Refinement Strategies)
+## Part 4: Advanced Refinement Strategies
 
-### 4.1 การควบคุมเมชแบบ Castellated (Castellated Mesh Controls)
+### 4.1 Castellated Mesh Controls
 
 ```cpp
 /*--------------------------------*- C++ -*----------------------------------*\
@@ -577,30 +577,30 @@ castellatedMeshControls
 ```
 
 <details>
-<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
+<summary>📖 Code Explanation</summary>
 
-**แหล่งที่มา**: OpenFOAM castellated mesh controls
+**Source**: OpenFOAM castellated mesh controls
 
-**คำอธิบาย**:
-- **Global refinement**: การปรับปรุงทั่วทั้งโดเมน
-- **Feature preservation**: การรักษาคุณลักษณะสำคัญด้วยการปรับปรุงเพิ่มเติม
-- **Refinement regions**: การปรับปรุงเฉพาะพื้นที่ (wake regions, boundary layers)
-- **Distance-based refinement**: การปรับปรุงตามระยะห่างจากพื้นผิว
+**Explanation**:
+- **Global refinement**: Refinement across the entire domain
+- **Feature preservation**: Preserving important features with additional refinement
+- **Refinement regions**: Localized refinement (wake regions, boundary layers)
+- **Distance-based refinement**: Refinement based on distance from surfaces
 
-**แนวคิดสำคัญ**:
-- **Gradation control**: การควบคุมการไล่ระดับของขนาดเซลล์
-- **Local refinement**: การปรับปรุงเฉพาะที่ที่ต้องการความละเอียดสูง
-- **Feature detection**: การตรวจจับและรักษาคุณลักษณะเรขาคณิต
+**Key Concepts**:
+- **Gradation control**: Control of cell size gradation
+- **Local refinement**: Refinement only where high resolution is needed
+- **Feature detection**: Detecting and preserving geometric features
 
 </details>
 
-### 4.2 อัลกอริทึมการแนบสูงสุด (Supreme Snapping Algorithm)
+### 4.2 Supreme Snapping Algorithm
 
-อัลกอริทึมการแนบจัดชุดเมชให้สอดคล้องกับเรขาคณิตพื้นผิว:
+The snapping algorithm conforms the mesh to surface geometry:
 
 $$\min_{\mathbf{x}_v} \|\mathbf{x}_v - \mathbf{x}_s(\mathbf{u}_v)\|^2$$
 
-โดยที่ $\mathbf{x}_v$ คือตำแหน่งจุดยอด, $\mathbf{x}_s$ คือการพารามิเตอร์ไรซ์พื้นผิว, และ $\mathbf{u}_v$ คือพิกัด UV
+Where $\mathbf{x}_v$ is the vertex position, $\mathbf{x}_s$ is the surface parameterization, and $\mathbf{u}_v$ are the UV coordinates
 
 ```cpp
 /*--------------------------------*- C++ -*----------------------------------*\
@@ -628,24 +628,24 @@ snapControls
 ```
 
 <details>
-<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
+<summary>📖 Code Explanation</summary>
 
-**แหล่งที่มา**: OpenFOAM snapping algorithm controls
+**Source**: OpenFOAM snapping algorithm controls
 
-**คำอธิบาย**:
-- **Patch smoothing**: การทำให้แพตช์เรียบก่อนการแนบ
-- **Snapping tolerance**: ความอดทนในการแนบเป็นเศษส่วนของขนาดเซลล์เฉพาะที่
-- **Implicit feature snap**: การใช้การตรวจจับคุณลักษณะโดยนัยซึ่งแข็งแกร่งกว่า
-- **Multi-region support**: การจัดการคุณลักษณะในหลายภูมิภาค
+**Explanation**:
+- **Patch smoothing**: Smoothing patches before snapping
+- **Snapping tolerance**: Snapping tolerance as fraction of local cell size
+- **Implicit feature snap**: Using implicit feature detection which is more robust
+- **Multi-region support**: Handling features in multiple regions
 
-**แนวคิดสำคัญ**:
-- **Surface conformity**: การให้เมชสอดคล้องกับพื้นผิวอย่างแม่นยำ
-- **Quality preservation**: การรักษาคุณภาพเมชในระหว่างการแนบ
-- **Robust snapping**: อัลกอริทึมที่แข็งแกร่งสำหรับเรขาคณิตที่ซับซ้อน
+**Key Concepts**:
+- **Surface conformity**: Precise mesh conformance to surfaces
+- **Quality preservation**: Maintaining mesh quality during snapping
+- **Robust snapping**: Robust algorithms for complex geometry
 
 </details>
 
-### 4.3 การสร้างชั้นขอบเขต (Boundary Layer Generation)
+### 4.3 Boundary Layer Generation
 
 ```cpp
 /*--------------------------------*- C++ -*----------------------------------*\
@@ -689,34 +689,34 @@ addLayersControls
 ```
 
 <details>
-<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
+<summary>📖 Code Explanation</summary>
 
-**แหล่งที่มา**: OpenFOAM boundary layer generation controls
+**Source**: OpenFOAM boundary layer generation controls
 
-**คำอธิบาย**:
-- **Layer specification**: การระบุจำนวนชั้นสำหรับแต่ละพื้นผิว
-- **Expansion ratio**: อัตราส่วนการขยายของความหนาชั้น
-- **Quality controls**: การควบคุมคุณภาพเพื่อป้องกันเซลล์ที่มีคุณภาพต่ำ
-- **Smoothing iterations**: การทำให้เรียบของฟิลด์ความหนาและเวกเตอร์ปกติ
+**Explanation**:
+- **Layer specification**: Specifying number of layers for each surface
+- **Expansion ratio**: Expansion ratio of layer thickness
+- **Quality controls**: Quality controls to prevent low-quality cells
+- **Smoothing iterations**: Smoothing of thickness field and normal vectors
 
-**แนวคิดสำคัญ**:
-- **Y+ compliance**: การปฏิบัติตามข้อกำหนด Y+ สำหรับโมเดลความปั่นป่วน
-- **Growth control**: การควบคุมอัตราการเจริญเติบโตของชั้น
-- **Feature handling**: การจัดการคุณลักษณะที่ซับซ้อนในการเพิ่มชั้น
+**Key Concepts**:
+- **Y+ compliance**: Compliance with Y+ requirements for turbulence models
+- **Growth control**: Control of layer growth rate
+- **Feature handling**: Handling complex features in layer addition
 
 </details>
 
-**ตัวชี้วัดคุณภาพเมชชั้นขอบเขต:**
-- **ความสูงของเซลล์แรก**: $y^+ = \frac{u_* \Delta y}{\nu} \approx 1$
-- **อัตราการเจริญเติบโต**: ควบคุมโดยอัตราส่วนการขยาย
-- **สัดส่วนภาพ**: รักษาให้ต่ำกว่าขีดจำกัดที่กำหนด
-- **ความตั้งฉาก**: ช่วยให้มั่นใจในเสถียรภาพเชิงตัวเลข
+**Boundary layer mesh quality metrics**:
+- **First cell height**: $y^+ = \frac{u_* \Delta y}{\nu} \approx 1$
+- **Growth rate**: Controlled by expansion ratio
+- **Aspect ratio**: Keep below defined limits
+- **Orthogonality**: Ensures numerical stability
 
 ---
 
-## ส่วนที่ 5: การดำเนินการแบบขนาน (Parallel Execution)
+## Part 5: Parallel Execution
 
-### 5.1 เวิร์กโฟลว์ Parallel Meshing
+### 5.1 Parallel Meshing Workflow
 
 ```bash
 #!/bin/bash
@@ -746,26 +746,26 @@ checkMesh -case "$CASE_DIR" -allTopology -allGeometry | tee check_parallel.log
 ```
 
 <details>
-<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
+<summary>📖 Code Explanation</summary>
 
-**แหล่งที่มา**: OpenFOAM parallel meshing workflow
+**Source**: OpenFOAM parallel meshing workflow
 
-**คำอธิบาย**:
-- **Decomposition**: การย่อยโดเมนเป็น subdomains สำหรับการประมวลผลแบบขนาน
-- **Parallel execution**: การรัน snappyHexMesh แบบขนานด้วย MPI
-- **Reconstruction**: การรวมผลลัพธ์จาก subdomains กลับเป็นเมชเดียว
-- **Quality verification**: การตรวจสอบคุณภาพเมชหลังการประมวลผลแบบขนาน
+**Explanation**:
+- **Decomposition**: Decomposing domain into subdomains for parallel processing
+- **Parallel execution**: Running snappyHexMesh in parallel with MPI
+- **Reconstruction**: Reconstructing results from subdomains into single mesh
+- **Quality verification**: Verifying mesh quality after parallel processing
 
-**แนวคิดสำคัญ**:
-- **Domain decomposition**: การแบ่งโดเมนเพื่อใช้ประโยชน์จากหลาย processor
-- **Load balancing**: การกระจายภาระงานอย่างสมดุล
-- **Scalability**: ความสามารถในการขยายขนาดไปยัง processors จำนวนมาก
+**Key Concepts**:
+- **Domain decomposition**: Dividing domain to utilize multiple processors
+- **Load balancing**: Even distribution of workload
+- **Scalability**: Ability to scale to many processors
 
 </details>
 
-การดำเนินการแบบขนานเป็นสิ่งจำเป็นสำหรับการสร้างเมชขนาดใหญ่ โดยลดเวลาการคำนวณอย่างมากผ่านการย่อยโดเมน เวิร์กโฟลว์มีการย่อยโดเมน ดำเนินการสร้างเมชแบบขนาน จากนั้นรวมผลลัพธ์ การตรวจสอบคุณภาพสุดท้ายรับประกันว่ากระบวนการสร้างเมชแบบขนานยังคงรักษาความสมบูรณ์และมาตรฐานคุณภาพของเมช
+Parallel execution is essential for large mesh generation, dramatically reducing computation time through domain decomposition. The workflow involves decomposing the domain, parallel mesh generation, then reconstructing results. Final quality verification ensures the parallel meshing process maintains mesh integrity and quality standards.
 
-### 5.2 การกำหนดค่า Decomposition
+### 5.2 Decomposition Configuration
 
 ```cpp
 /*--------------------------------*- C++ -*----------------------------------*\
@@ -803,42 +803,42 @@ hierarchicalCoeffs
 ```
 
 <details>
-<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
+<summary>📖 Code Explanation</summary>
 
-**แหล่งที่มา**: OpenFOAM domain decomposition configuration
+**Source**: OpenFOAM domain decomposition configuration
 
-**คำอธิบาย**:
-- **numberOfSubdomains**: จำนวน subdomains ที่ต้องการแบ่ง
-- **Method selection**: วิธีการ decompose (scotch, hierarchical, simple, etc.)
-- **Scotch method**: วิธีอัตโนมัติที่ให้ load balancing ที่ดี
-- **Coefficients**: พารามิเตอร์เฉพาะสำหรับแต่ละวิธี
+**Explanation**:
+- **numberOfSubdomains**: Number of subdomains to divide into
+- **Method selection**: Decompose method (scotch, hierarchical, simple, etc.)
+- **Scotch method**: Automatic method providing good load balancing
+- **Coefficients**: Parameters specific to each method
 
-**แนวคิดสำคัญ**:
-- **Load balancing**: การกระจายเซลล์อย่างสม่ำเสมอใน subdomains
-- **Minimize communication**: ลดการสื่อสารระหว่าง processors
-- **Decomposition quality**: คุณภาพของการแบ่งโดเมนมีผลต่อประสิทธิภาพ
+**Key Concepts**:
+- **Load balancing**: Even distribution of cells in subdomains
+- **Minimize communication**: Reducing inter-processor communication
+- **Decomposition quality**: Decomposition quality affects efficiency
 
 </details>
 
 ---
 
-## ส่วนที่ 6: คู่มือการแก้ไขปัญหา (Troubleshooting Guide)
+## Part 6: Troubleshooting Guide
 
-### 6.1 ปัญหาทั่วไปและวิธีแก้ไข
+### 6.1 Common Problems and Solutions
 
-| ปัญหา | อาการ | วิธีแก้ไข |
+| Problem | Symptoms | Solution |
 |---------|----------|----------|
-| **การตรวจจับช่องว่างล้มเหลว** | "No surface features found" | ตรวจสอบพารามิเตอร์การตรวจจับ: `featureAngle`, `minFeatureSize` |
-| **การสร้างเซลล์ที่เป็นอนันต์** | "Zero or negative volume cells" | ตรวจสอบเวกเตอร์ปกติพื้นผิว, คุณภาพ CAD |
-| **คุณภาพชั้นขอบเขตต่ำ** | "Boundary layer thickness variation" | ใช้การควบคุมชั้นด้วย `minThickness`/`maxThickness` |
-| **ปัญหาคุณภาพเซลล์** | "High non-orthogonal cells" | ตรวจสอบการควบคุมคุณภาพ, ปรับการไล่ระดับ (Grading) |
-| **ข้อผิดพลาดหน่วยความจำ** | "Insufficient memory for meshing" | ลดจำนวนเซลล์เป้าหมาย, ใช้การประมวลผลแบบขนาน |
+| **Gap detection failure** | "No surface features found" | Check detection parameters: `featureAngle`, `minFeatureSize` |
+| **Infinite cell creation** | "Zero or negative volume cells" | Check surface normals, CAD quality |
+| **Low boundary layer quality** | "Boundary layer thickness variation" | Use layer controls with `minThickness`/`maxThickness` |
+| **Cell quality problems** | "High non-orthogonal cells" | Check quality controls, adjust grading |
+| **Memory errors** | "Insufficient memory for meshing" | Reduce target cell count, use parallel processing |
 
-### 6.2 การตรวจจับช่องว่างล้มเหลว (Gap Detection Failure)
+### 6.2 Gap Detection Failure
 
-ปัญหานี้มักเกิดขึ้นเมื่อ snappyHexMesh ไม่สามารถระบุคุณลักษณะพื้นผิวได้อย่างถูกต้อง อัลกอริทึมการตรวจจับขึ้นอยู่กับพารามิเตอร์ `featureAngle` ซึ่งกำหนดมุมระหว่างเวกเตอร์ปกติพื้นผิวที่ถือว่าเป็นขอบคุณลักษณะ
+This problem occurs when snappyHexMesh cannot properly identify surface features. The detection algorithm depends on the `featureAngle` parameter, which defines the angle between surface normals considered a feature edge.
 
-**ตัวอย่างการกำหนดค่า:**
+**Configuration Example:**
 ```cpp
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
@@ -856,26 +856,26 @@ castellatedMeshControls
 ```
 
 <details>
-<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
+<summary>📖 Code Explanation</summary>
 
-**แหล่งที่มา**: OpenFOAM feature detection configuration
+**Source**: OpenFOAM feature detection configuration
 
-**คำอธิบาย**:
-- **featureAngle**: มุมขั้นต่ำสำหรับการตรวจจับขอบคุณลักษณะ (มุมที่แหลมกว่าจะถูกตรวจจับ)
-- **minFeatureSize**: ขนาดคุณลักษณะขั้นต่ำที่จะถูกรักษาไว้
+**Explanation**:
+- **featureAngle**: Minimum angle for feature edge detection (sharper angles are detected)
+- **minFeatureSize**: Minimum feature size to be preserved
 
-**แนวคิดสำคัญ**:
-- **Feature sensitivity**: ความไวต่อคุณลักษณะสามารถปรับได้ด้วยพารามิเตอร์
-- **Geometry complexity**: เรขาคณิตที่ซับซ้อนอาจต้องการพารามิเตอร์ที่แตกต่างกัน
-- **Detection threshold**: การตั้งค่า threshold ที่เหมาะสมเพื่อตรวจจับคุณลักษณะที่สำคัญ
+**Key Concepts**:
+- **Feature sensitivity**: Sensitivity to features adjustable via parameters
+- **Geometry complexity**: Complex geometries may require different parameters
+- **Detection threshold**: Setting appropriate threshold for feature detection
 
 </details>
 
-### 6.3 การสร้างเซลล์ที่เป็นอนันต์ (Infinite Cell Creation)
+### 6.3 Infinite Cell Creation
 
-เมื่อ snappyHexMesh สร้างเซลล์ที่มีปริมาตรเป็นศูนย์หรือติดลบ โดยปกติจะบ่งชี้ถึงปัญหากับเรขาคณิตพื้นผิวอินพุต สาเหตุทั่วไป ได้แก่ **เวกเตอร์ปกติกลับด้าน (Inverted normals)**, **ขอบที่ไม่ใช่ Manifold**, หรือ **พื้นผิวที่ตัดกันเอง (Self-intersecting surfaces)**
+When snappyHexMesh creates cells with zero or negative volume, this typically indicates problems with the input surface geometry. Common causes include **inverted normals**, **non-manifold edges**, or **self-intersecting surfaces**.
 
-**ขั้นตอนการวินิจฉัย:**
+**Diagnostic Steps:**
 ```bash
 # Check surface quality with surfaceCheck utility
 surfaceCheck constant/triSurface/<geometry>.stl
@@ -887,25 +887,25 @@ surfaceCheck constant/triSurface/<geometry>.stl
 ```
 
 <details>
-<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
+<summary>📖 Code Explanation</summary>
 
-**แหล่งที่มา**: OpenFOAM surface diagnostic utilities
+**Source**: OpenFOAM surface diagnostic utilities
 
-**คำอธิบาย**:
-- **surfaceCheck**: ยูทิลิตี้สำหรับตรวจสอบคุณภาพพื้นผิว
-- **Non-manifold edges**: ขอบที่มีความซับซ้อนเกินไปทำให้เกิดปัญหาการสร้างเมช
-- **Self-intersection**: พื้นผิวที่ตัดกันเองทำให้เกิดความกำกวม
+**Explanation**:
+- **surfaceCheck**: Utility for checking surface quality
+- **Non-manifold edges**: Overly complex edges cause meshing problems
+- **Self-intersection**: Self-intersecting surfaces create ambiguity
 
-**แนวคิดสำคัญ**:
-- **Preventive checking**: การตรวจสอบก่อนการสร้างเมชเพื่อป้องกันปัญหา
-- **Geometry preparation**: การเตรียมเรขาคณิตที่ดีเป็นสิ่งสำคัญ
-- **Diagnostic tools**: การใช้เครื่องมือวินิจฉัยเพื่อระบุปัญหา
+**Key Concepts**:
+- **Preventive checking**: Checking before meshing to prevent problems
+- **Geometry preparation**: Good geometry preparation is essential
+- **Diagnostic tools**: Using diagnostic tools to identify problems
 
 </details>
 
-### 6.4 กลยุทธ์การปรับปรุงแบบก้าวหน้า (Progressive Refinement Strategy)
+### 6.4 Progressive Refinement Strategy
 
-สำหรับเรขาคณิตที่ซับซ้อน ให้ใช้แนวทางการปรับปรุงแบบก้าวหน้าเพื่อระบุและแก้ไขปัญหาตั้งแต่เนิ่นๆ:
+For complex geometries, use a progressive refinement approach to identify and fix problems early:
 
 ```cpp
 /*--------------------------------*- C++ -*----------------------------------*\
@@ -934,27 +934,27 @@ castellatedMeshControls
 ```
 
 <details>
-<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
+<summary>📖 Code Explanation</summary>
 
-**แหล่งที่มา**: OpenFOAM progressive refinement strategy
+**Source**: OpenFOAM progressive refinement strategy
 
-**คำอธิบาย**:
-- **Progressive refinement**: การเริ่มต้นด้วยเมชหยาบแล้วปรับปรุงทีละขั้น
-- **Distance-based**: การปรับปรุงตามระยะห่างจากพื้นผิวหรือคุณลักษณะ
-- **Level specification**: การระบุระดับการปรับปรุงสำหรับแต่ละระยะห่าง
+**Explanation**:
+- **Progressive refinement**: Starting with coarse mesh then refining stepwise
+- **Distance-based**: Refinement based on distance from surfaces or features
+- **Level specification**: Specifying refinement levels for each distance
 
-**แนวคิดสำคัญ**:
-- **Iterative improvement**: การปรับปรุงแบบวนซ้ำเพื่อคุณภาพที่ดีขึ้น
-- **Resource management**: การจัดการทรัพยากรโดยการปรับปรุงแบบก้าวหน้า
-- **Early problem detection**: การตรวจจับปัญหาตั้งแต่เนิ่นๆ
+**Key Concepts**:
+- **Iterative improvement**: Iterative refinement for better quality
+- **Resource management**: Managing resources through progressive refinement
+- **Early problem detection**: Detecting problems early
 
 </details>
 
 ---
 
-## ส่วนที่ 7: เวิร์กโฟลว์การประเมินคุณภาพ (Quality Assessment Workflow)
+## Part 7: Quality Assessment Workflow
 
-### 7.1 การตรวจสอบคุณภาพแบบอัตโนมัติ
+### 7.1 Automated Quality Checking
 
 ```bash
 #!/bin/bash
@@ -1010,23 +1010,23 @@ echo "Mesh quality assessment complete."
 ```
 
 <details>
-<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
+<summary>📖 Code Explanation</summary>
 
-**แหล่งที่มา**: OpenFOAM quality assessment workflow
+**Source**: OpenFOAM quality assessment workflow
 
-**คำอธิบาย**:
-- **checkMesh utility**: ยูทิลิตี้มาตรฐานสำหรับตรวจสอบคุณภาพเมช
-- **Metric extraction**: การสกัดตัวชี้วัดคุณภาพจากผลลัพธ์
-- **Quality scoring**: การให้คะแนนคุณภาพอัตโนมัติ
+**Explanation**:
+- **checkMesh utility**: Standard utility for checking mesh quality
+- **Metric extraction**: Extracting quality metrics from results
+- **Quality scoring**: Automated quality scoring
 
-**แนวคิดสำคัญ**:
-- **Automated validation**: การตรวจสอบคุณภาพอัตโนมัติ
-- **Quality gates**: การตั้งเกณฑ์คุณภาพเพื่อการตัดสินใจ
-- **Continuous assessment**: การประเมินคุณภาพอย่างต่อเนื่อง
+**Key Concepts**:
+- **Automated validation**: Automated quality checking
+- **Quality gates**: Setting quality criteria for decision making
+- **Continuous assessment**: Continuous quality assessment
 
 </details>
 
-### 7.2 Python Script สำหรับการวิเคราะห์คุณภาพ
+### 7.2 Python Script for Quality Analysis
 
 ```python
 #!/usr/bin/env python3
@@ -1170,43 +1170,43 @@ class MeshQualityAnalyzer:
 ```
 
 <details>
-<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
+<summary>📖 Code Explanation</summary>
 
-**แหล่งที่มา**: Custom Python mesh quality analyzer
+**Source**: Custom Python mesh quality analyzer
 
-**คำอธิบาย**:
-- **MeshQualityAnalyzer class**: คลาสสำหรับวิเคราะห์คุณภาพเมช
-- **load_mesh_data**: โหลดข้อมูลเมชจาก checkMesh output
-- **calculate_quality_metrics**: คำนวณเมตริกคุณภาพเมช
-- **identify_problematic_cells**: ระบุเซลล์ที่มีปัญหาคุณภาพ
+**Explanation**:
+- **MeshQualityAnalyzer class**: Class for mesh quality analysis
+- **load_mesh_data**: Loads mesh data from checkMesh output
+- **calculate_quality_metrics**: Calculates mesh quality metrics
+- **identify_problematic_cells**: Identifies cells with quality issues
 
-**แนวคิดสำคัญ**:
-- **Automated analysis**: การวิเคราะห์อัตโนมัติด้วย Python
-- **Threshold-based**: การใช้เกณฑ์ในการตรวจสอบคุณภาพ
-- **Extensible framework**: กรอบงานที่สามารถขยายได้
+**Key Concepts**:
+- **Automated analysis**: Automated analysis with Python
+- **Threshold-based**: Using thresholds for quality checking
+- **Extensible framework**: Extensible framework
 
 </details>
 
 ---
 
-## สรุปแนวทางปฏิบัติที่ดีที่สุด (Best Practices Summary)
+## Best Practices Summary
 
-> [!TIP] **คำแนะนำหลัก**
+> [!TIP] **Key Recommendations**
 >
-> 1. **คุณภาพพื้นผิว**: ตรวจสอบความถูกต้องของเรขาคณิต CAD เสมอก่อนการทำเมช
-> 2. **การตรวจจับคุณลักษณะ**: ปรับพารามิเตอร์ `featureAngle` ตามความซับซ้อนของเรขาคณิต
-> 3. **กลยุทธ์การปรับปรุง**: ใช้การปรับปรุงแบบก้าวหน้าสำหรับกรณีที่ซับซ้อน
-> 4. **ชั้นขอบเขต**: คำนวณความสูงของเซลล์แรกตามข้อกำหนดของ $y^+$
-> 5. **การประมวลผลแบบขนาน**: เปิดใช้งานการทำงานแบบขนานสำหรับเมชที่มีขนาดมากกว่า 10⁶ เซลล์
-> 6. **Quality Gates**: ใช้การตรวจสอบคุณภาพอัตโนมัติก่อนการรัน Solver
-> 7. **แนวทางแบบทำซ้ำ**: ปรับปรุงคุณภาพเมชผ่านการวนซ้ำอย่างเป็นระบบ
+> 1. **Surface Quality**: Always validate CAD geometry before meshing
+> 2. **Feature Detection**: Adjust `featureAngle` parameters according to geometry complexity
+> 3. **Refinement Strategy**: Use progressive refinement for complex cases
+> 4. **Boundary Layers**: Calculate first cell height according to $y^+$ requirements
+> 5. **Parallel Processing**: Enable parallel processing for meshes > 10⁶ cells
+> 6. **Quality Gates**: Use automated quality checking before running solvers
+> 7. **Iterative Approach**: Improve mesh quality through systematic iteration
 
 ---
 
-## เอกสารอ้างอิง (References)
+## References
 
-- [[01_🎯_Overview_Mesh_Preparation_Strategy]] - กลยุทธ์เมชโดยรวม
-- [[03_🎯_BlockMesh_Enhancement_Workflow]] - การสร้างเมชพื้นหลัง
-- [[04_🎯_snappyHexMesh_Workflow_Surface_Meshing_Excellence]] - เวิร์กโฟลว์เมชพื้นผิว
-- [[05_🔧_Advanced_Utilities_and_Automation]] - เครื่องมืออัตโนมัติ
-- [[02_🏗️_CAD_to_CFD_Workflow]] - การแปลง CAD เป็น CFD
+- [[01_🎯_Overview_Mesh_Preparation_Strategy]] - Overall mesh strategy
+- [[03_🎯_BlockMesh_Enhancement_Workflow]] - Background mesh generation
+- [[04_🎯_snappyHexMesh_Workflow_Surface_Meshing_Excellence]] - Surface meshing workflow
+- [[05_🔧_Advanced_Utilities_and_Automation]] - Automation utilities
+- [[02_🏗️_CAD_to_CFD_Workflow]] - CAD to CFD conversion

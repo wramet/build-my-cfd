@@ -1,77 +1,76 @@
-# Eigen Decomposition: The Why & Physical Applications
+# การสลายตัวของค่าลักษณะเฉพาะ: เหตุผลและการประยุกต์ใช้ทางฟิสิกส์ (Eigen Decomposition: The Why & Physical Applications)
 
 ![[principal_directions_eigen.png]]
-> **Academic Vision:** A distorted sphere (Ellipsoid) representing a tensor. Three primary axes (Eigenvectors) are shown originating from the center, each with a different length (Eigenvalues). This illustrates the principal directions of stress or strain. Professional scientific illustration.
+> **Academic Vision:** ทรงกลมที่บิดเบี้ยว (Ellipsoid) แทนเทนเซอร์ แกนหลักสามแกน (Eigenvectors) แสดงจุดกำเนิดจากศูนย์กลาง แต่ละแกนมีความยาวต่างกัน (Eigenvalues) ภาพนี้แสดงทิศทางหลักของความเค้นหรือความเครียด ภาพประกอบทางวิทยาศาสตร์ระดับมืออาชีพ
 
 ---
 
-## The Eigenvalue Problem
+## ปัญหาค่าลักษณะเฉพาะ (The Eigenvalue Problem)
 
-For a symmetric tensor $\mathbf{S}$, there exist three real eigenvalues $\lambda_k$ and orthogonal eigenvectors $\mathbf{v}_k$ such that:
+สำหรับเทนเซอร์สมมาตร $\mathbf{S}$ จะมีค่าลักษณะเฉพาะจริงสามค่า $\lambda_k$ และเวกเตอร์ลักษณะเฉพาะที่ตั้งฉากกัน $\mathbf{v}_k$ ซึ่งทำให้:
 
 $$\mathbf{S} \cdot \mathbf{v}_k = \lambda_k \mathbf{v}_k, \quad k=1,2,3$$
 
-This fundamental relationship defines the eigenvalue decomposition, where eigenvectors represent the principal directions of the tensor and eigenvalues represent the magnitude of the tensor's action in those directions.
+ความสัมพันธ์พื้นฐานนี้กำหนดการสลายตัวของค่าลักษณะเฉพาะ โดยที่เวกเตอร์ลักษณะเฉพาะแทนทิศทางหลักของเทนเซอร์ และค่าลักษณะเฉพาะแทนขนาดของการกระทำของเทนเซอร์ในทิศทางเหล่านั้น
 
-For symmetric tensors, the eigenvectors form an orthogonal basis, which has profound implications for physical interpretation in CFD.
+สำหรับเทนเซอร์สมมาตร เวกเตอร์ลักษณะเฉพาะจะสร้างฐานที่ตั้งฉากกัน (Orthogonal basis) ซึ่งมีนัยสำคัญอย่างลึกซึ้งต่อการตีความทางฟิสิกส์ใน CFD
 
 ```mermaid
 flowchart TD
-    T[Complex Tensor Matrix] -->|eigenValues| V[3 Principal Magnitudes: λ]
-    T -->|eigenVectors| D[3 Principal Directions: v]
+    T[เมทริกซ์เทนเซอร์ที่ซับซ้อน] -->|eigenValues| V[3 ขนาดหลัก: λ]
+    T -->|eigenVectors| D[3 ทิศทางหลัก: v]
 
-    V --> P[Physical Insight: Max Stress/Strain]
+    V --> P[ข้อมูลเชิงลึกทางฟิสิกส์: ความเค้น/ความเครียดสูงสุด]
     D --> P
 
     style V fill:#c8e6c9
     style D fill:#e1f5fe
 ```
-> **Figure 1:** ขั้นตอนการแยกส่วนค่าลักษณะเฉพาะ (Eigen Decomposition) เพื่อหาขนาดหลัก (Eigenvalues) และทิศทางหลัก (Eigenvectors) จากเมทริกซ์เทนเซอร์ที่ซับซ้อน ช่วยให้เห็นภาพรวมของความเค้นหรือความเครียดในระบบ
+> **รูปที่ 1:** ขั้นตอนการสลายตัวของค่าลักษณะเฉพาะ (Eigen Decomposition) เพื่อหาขนาดหลัก (Eigenvalues) และทิศทางหลัก (Eigenvectors) จากเมทริกซ์เทนเซอร์ที่ซับซ้อน ช่วยให้เห็นภาพรวมของความเค้นหรือความเครียดในระบบ
 
 ---
 
-## OpenFOAM Implementation
+## การนำไปใช้ใน OpenFOAM
 
-In OpenFOAM, computing eigenvalues and eigenvectors is straightforward:
+ใน OpenFOAM การคำนวณค่าลักษณะเฉพาะและเวกเตอร์ลักษณะเฉพาะทำได้โดยตรงดังนี้:
 
 ```cpp
-// Example: Symmetric tensor with six components (xx, xy, xz, yy, yz, zz)
-symmTensor S(2, -1, 0, -1, 2, 0, 0, 0, 1);  // Initialize symmetric tensor
+// ตัวอย่าง: เทนเซอร์สมมาตรที่มีหกองค์ประกอบ (xx, xy, xz, yy, yz, zz)
+symmTensor S(2, -1, 0, -1, 2, 0, 0, 0, 1);  // เริ่มต้นเทนเซอร์สมมาตร
 
-// Compute eigenvalues (principal magnitudes) - returns as vector sorted largest to smallest
+// คำนวณค่าลักษณะเฉพาะ (ขนาดหลัก) - ส่งคืนเป็นเวกเตอร์ที่เรียงลำดับจากมากไปน้อย
 vector lambdas = eigenValues(S);
 
-// Compute eigenvectors (principal directions) - returns as tensor columns
+// คำนวณเวกเตอร์ลักษณะเฉพาะ (ทิศทางหลัก) - ส่งคืนเป็นคอลัมน์ของเทนเซอร์
 tensor V = eigenVectors(S);
 ```
 
-> **📂 Source:** `.applications/test/tensor/Test-tensor.C`
+> **📂 แหล่งที่มา:** `.applications/test/tensor/Test-tensor.C`
 >
-> **Source Finding:** The test file demonstrates eigenvalue/eigenvector computation with verification checks, including the line `vector e = eigenValues(t6);` and `tensor ev = eigenVectors(t6);`
+> **คำอธิบาย:** ไฟล์ทดสอบแสดงการคำนวณค่าลักษณะเฉพาะ/เวกเตอร์ลักษณะเฉพาะพร้อมการตรวจสอบความถูกต้อง รวมถึงบรรทัด `vector e = eigenValues(t6);` และ `tensor ev = eigenVectors(t6);`
 >
-> **Key Concepts:**
-> - `symmTensor`: Symmetric tensor type requiring only 6 components (xx, xy, xz, yy, yz, zz)
-> - `eigenValues()`: Returns eigenvalues sorted from largest to smallest as a `vector`
-> - `eigenVectors()`: Returns eigenvectors as columns of a `tensor` (each column is one eigenvector)
-> - For symmetric tensors, eigenvectors are always orthogonal and form a complete basis
-> - Thai: ฟังก์ชัน `eigenValues()` และ `eigenVectors()` ใช้สำหรับคำนวณค่าลักษณะเฉพาะและเวกเตอร์ลักษณะเฉพาะ โดยค่าลักษณะเฉพาะจะถูกเรียงลำดับจากมากไปน้อย
+> **แนวคิดสำคัญ:**
+> - `symmTensor`: ประเภทเทนเซอร์สมมาตรที่ต้องการเพียง 6 องค์ประกอบ (xx, xy, xz, yy, yz, zz)
+> - `eigenValues()`: ส่งคืนค่าลักษณะเฉพาะที่เรียงลำดับจากมากไปน้อยในรูปแบบ `vector`
+> - `eigenVectors()`: ส่งคืนเวกเตอร์ลักษณะเฉพาะเป็นคอลัมน์ของ `tensor` (แต่ละคอลัมน์คือหนึ่งเวกเตอร์ลักษณะเฉพาะ)
+> - สำหรับเทนเซอร์สมมาตร เวกเตอร์ลักษณะเฉพาะจะตั้งฉากกันเสมอและสร้างฐานที่สมบูรณ์
 
-**Key Behavior:**
-- The `eigenValues` function returns three eigenvalues sorted from largest to smallest
-- The `eigenVectors` function returns a tensor where each column represents the corresponding eigenvector
-- This organization makes it easy to work with principal values and directions in numerical algorithms
+**พฤติกรรมหลัก:**
+- ฟังก์ชัน `eigenValues` จะส่งคืนค่าลักษณะเฉพาะสามค่าที่เรียงลำดับจากมากไปน้อย
+- ฟังก์ชัน `eigenVectors` จะส่งคืนเทนเซอร์ที่แต่ละคอลัมน์แทนเวกเตอร์ลักษณะเฉพาะที่สอดคล้องกัน
+- การจัดระเบียบนี้ทำให้ง่ายต่อการทำงานกับค่าหลักและทิศทางหลักในอัลกอริทึมเชิงตัวเลข
 
 ---
 
-## Mathematical Foundation
+## รากฐานทางคณิตศาสตร์
 
-### The Characteristic Equation
+### สมการลักษณะเฉพาะ (The Characteristic Equation)
 
-The `eigenValues` function computes the roots of the characteristic cubic equation:
+ฟังก์ชัน `eigenValues` คำนวณรากของสมการกำลังสามลักษณะเฉพาะ:
 
 $$\det(\mathbf{S} - \lambda \mathbf{I}) = -\lambda^3 + I_1 \lambda^2 - I_2 \lambda + I_3 = 0$$
 
-where $I_1, I_2, I_3$ are the principal invariants of the tensor:
+โดยที่ $I_1, I_2, I_3$ คือค่าคงที่หลัก (Principal invariants) ของเทนเซอร์:
 
 $$\begin{aligned}
 I_1 &= \operatorname{tr}(\mathbf{S}) \\
@@ -79,171 +78,121 @@ I_2 &= \frac{1}{2}[(\operatorname{tr}\mathbf{S})^2 - \operatorname{tr}(\mathbf{S
 I_3 &= \det(\mathbf{S})
 \end{aligned}$$
 
-**Meaning of Invariants:**
-- $I_1$: Represents the trace (sum of diagonal components)
-- $I_2$: Describes the "deviatoric" nature of the tensor
-- $I_3$: Represents the determinant
+**ความหมายของค่าคงที่:**
+- $I_1$: แทนค่า Trace (ผลรวมขององค์ประกอบแนวทแยง)
+- $I_2$: อธิบายลักษณะ "เบี่ยงเบน" (Deviatoric) ของเทนเซอร์
+- $I_3$: แทนค่าดีเทอร์มิแนนต์ (Determinant)
 
-These invariants are coordinate-independent quantities that completely describe the tensor's properties.
+ค่าคงที่เหล่านี้เป็นปริมาณที่ไม่ขึ้นกับระบบพิกัดซึ่งอธิบายคุณสมบัติของเทนเซอร์ได้อย่างสมบูรณ์
 
-### Solving the Eigenvalue Equation
+### การแก้สมการค่าลักษณะเฉพาะ
 
-OpenFOAM solves this eigenvalue equation using `cubicEqn`, which implements Cardano's analytical method for solving cubic equations.
+OpenFOAM แก้สมการค่าลักษณะเฉพาะนี้โดยใช้ `cubicEqn` ซึ่งใช้วิธีเชิงวิเคราะห์ของ Cardano ในการแก้สมการกำลังสาม
 
-The implementation handles various cases, including:
+การนำไปใช้งานรองรับกรณีต่างๆ ดังนี้:
 
-| Case | Description |
+| กรณี | คำอธิบาย |
 |------|-------------|
-| Three distinct real roots | General case for non-degenerate tensors |
-| Multiple real roots | Occurs when tensor has repeated eigenvalues |
-| One real root and two complex conjugates | Cannot occur for symmetric tensors (handled for completeness) |
-
-### Computational Steps
-
-1. **Compute tensor invariants** $I_1, I_2, I_3$
-2. **Form characteristic polynomial coefficients**
-3. **Apply depressed cubic transformation** to eliminate the quadratic term
-4. **Solve the depressed cubic** using trigonometric or logarithmic methods
-5. **Transform back** to obtain original eigenvalues
-6. **Sort eigenvalues** from largest to smallest
+| รากจริงสามค่าที่แตกต่างกัน | กรณีทั่วไปสำหรับเทนเซอร์ที่ไม่มีความเสื่อม (Non-degenerate) |
+| รากจริงหลายค่า | เกิดขึ้นเมื่อเทนเซอร์มีค่าลักษณะเฉพาะซ้ำกัน |
+| รากจริงหนึ่งค่าและรากเชิงซ้อนคู่หนึ่ง | ไม่สามารถเกิดขึ้นได้สำหรับเทนเซอร์สมมาตร (รองรับเพื่อความสมบูรณ์) |
 
 ---
 
-## Tensor Invariants
+## ค่าคงที่ของเทนเซอร์ (Tensor Invariants)
 
-The eigenvalues are the roots of a polynomial whose coefficients are the **Principal Invariants**, which are coordinate-independent values:
+ค่าลักษณะเฉพาะคือรากของพหุนามที่มีสัมประสิทธิ์เป็น **ค่าคงที่หลัก (Principal Invariants)** ซึ่งเป็นค่าที่ไม่ขึ้นกับระบบพิกัด:
 
-| Invariant | Formula | Physical Meaning |
+| ค่าคงที่ | สูตร | ความหมายทางฟิสิกส์ |
 |:---|:---|:---|
-| **$I_1$ (Trace)** | $\operatorname{tr}(\mathbf{S}) = \sum \lambda_k$ | Sum of normal forces |
-| **$I_2$** | $\frac{1}{2}[(\operatorname{tr}\mathbf{S})^2 - \operatorname{tr}(\mathbf{S}^2)]$ | Distortion energy |
-| **$I_3$ (Det)** | $\det(\mathbf{S}) = \prod \lambda_k$ | Volume change |
+| **$I_1$ (Trace)** | $\operatorname{tr}(\mathbf{S}) = \sum \lambda_k$ | ผลรวมของแรงตั้งฉาก |
+| **$I_2$** | $\frac{1}{2}[(\operatorname{tr}\mathbf{S})^2 - \operatorname{tr}(\mathbf{S}^2)]$ | พลังงานการบิดเบี้ยว |
+| **$I_3$ (Det)** | $\det(\mathbf{S}) = \prod \lambda_k$ | การเปลี่ยนแปลงปริมาตร |
 
 ---
 
-## Physical Applications in CFD
+## การประยุกต์ใช้ทางฟิสิกส์ใน CFD
 
-### 1. Turbulence Modeling
+### 1. การสร้างแบบจำลองความปั่นป่วน (Turbulence Modeling)
 
-In Reynolds-Averaged Navier-Stokes (RANS) modeling, the Reynolds stress tensor $\mathbf{R} = \overline{\mathbf{u}' \otimes \mathbf{u}'}$ is symmetric by construction.
+ในการสร้างแบบจำลอง Reynolds-Averaged Navier-Stokes (RANS) เทนเซอร์ความเค้นเรย์โนลด์ส $\mathbf{R} = \overline{\mathbf{u}' \otimes \mathbf{u}'}$ มีความสมมาตรตามโครงสร้าง
 
-**Eigenvalue Decomposition:**
+**การสลายตัวของค่าลักษณะเฉพาะ:**
 
 $$\mathbf{R} = \sum_{k=1}^{3} \lambda_k \mathbf{v}_k \otimes \mathbf{v}_k$$
 
-**Physical Meaning:**
-- $\lambda_k$: Represents the intensity of normal stress in principal directions
-- $\mathbf{v}_k$: Principal stress directions
-- Eigenvalues satisfy $\sum_{k=1}^{3} \lambda_k = 2k$ (twice the turbulent kinetic energy)
+**ความหมายทางฟิสิกส์:**
+- $\lambda_k$: แทนความเข้มของความเค้นปกติในทิศทางหลัก
+- $\mathbf{v}_k$: ทิศทางความเค้นหลัก
+- ค่าลักษณะเฉพาะสอดคล้องกับ $\sum_{k=1}^{3} \lambda_k = 2k$ (สองเท่าของพลังงานจลน์ความปั่นป่วน)
 
-**Applications:**
-- **Anisotropy Analysis**: The distribution of eigenvalues describes turbulence anisotropy
-- **Model Validation**: Compare computed eigenvalues with experimental data
-- **Flow Visualization**: Eigenvectors indicate desired turbulent structure directions
+**การประยุกต์ใช้งาน:**
+- **การวิเคราะห์ความไม่เท่ากัน (Anisotropy Analysis)**: การกระจายตัวของค่าลักษณะเฉพาะอธิบายความไม่เท่ากันของความปั่นป่วน
+- **การตรวจสอบความถูกต้องของแบบจำลอง**: เปรียบเทียบค่าลักษณะเฉพาะที่คำนวณได้กับข้อมูลจากการทดลอง
+- **การแสดงภาพการไหล**: เวกเตอร์ลักษณะเฉพาะบ่งบอกทิศทางโครงสร้างความปั่นป่วนที่ต้องการ
 
-**Turbulence Classification:**
-- **Isotropic**: Equal turbulence in all directions ($\lambda_1 \approx \lambda_2 \approx \lambda_3$)
-- **Disk-like**: Turbulence in one plane
-- **Rod-like**: Turbulence in one direction (e.g., in shear layers)
+### 2. กลศาสตร์ของแข็ง (Solid Mechanics)
 
-### 2. Solid Mechanics
-
-In fluid-structure interaction and stress analysis, the Cauchy stress tensor $\boldsymbol{\sigma}$ undergoes eigenvalue decomposition:
+ในปฏิสัมพันธ์ระหว่างของไหลและโครงสร้าง (FSI) และการวิเคราะห์ความเค้น เทนเซอร์ความเค้น Cauchy $\boldsymbol{\sigma}$ จะถูกสลายค่าลักษณะเฉพาะดังนี้:
 
 $$\boldsymbol{\sigma} = \sum_{k=1}^{3} \sigma_k \mathbf{n}_k \otimes \mathbf{n}_k$$
 
-**Definitions:**
-- $\sigma_k$: Principal stresses (eigenvalues)
-- $\mathbf{n}_k$: Principal stress directions (eigenvectors)
+**นิยาม:**
+- $\sigma_k$: ความเค้นหลัก (ค่าลักษณะเฉพาะ)
+- $\mathbf{n}_k$: ทิศทางความเค้นหลัก (เวกเตอร์ลักษณะเฉพาะ)
 
-**Applications Include:**
-- **Failure Analysis**: Maximum principal stress criterion uses $\sigma_{max} = \max(\sigma_1, \sigma_2, \sigma_3)$
-- **Von Mises Stress**: Computed from differences between principal stresses
-- **Structural Optimization**: Material placement according to principal stress directions
+**การประยุกต์ใช้งานประกอบด้วย:**
+- **การวิเคราะห์ความล้มเหลว**: เกณฑ์ความเค้นหลักสูงสุดใช้ $\sigma_{max} = \max(\sigma_1, \sigma_2, \sigma_3)$
+- **ความเค้น Von Mises**: คำนวณจากความแตกต่างระหว่างความเค้นหลัก
+- **การเพิ่มประสิทธิภาพโครงสร้าง**: การจัดวางวัสดุตามทิศทางความเค้นหลัก
 
-### 3. Non-Newtonian Fluids
+### 3. ของไหลนอกกฎของนิวตัน (Non-Newtonian Fluids)
 
-For viscoelastic and non-Newtonian fluids, the extra stress tensor $\boldsymbol{\tau}$ reveals flow structure through eigenvalue decomposition:
+สำหรับของไหลที่มีความหนืดหยุ่นและนอกกฎของนิวตัน เทนเซอร์ความเค้นส่วนเกิน $\boldsymbol{\tau}$ จะเผยให้เห็นโครงสร้างการไหลผ่านการสลายตัวของค่าลักษณะเฉพาะ:
 
 $$\boldsymbol{\tau} = \sum_{k=1}^{3} \tau_k \mathbf{e}_k \otimes \mathbf{e}_k$$
 
-**Physical Interpretation:**
-- **Positive eigenvalues**: Regions of tensile stress (stretching)
-- **Negative eigenvalues**: Regions of compressive stress
-- **Eigenvectors**: Principal stretching or compression directions
+**การตีความทางฟิสิกส์:**
+- **ค่าลักษณะเฉพาะที่เป็นบวก**: บริเวณที่มีความเค้นดึง (การยืดออก)
+- **ค่าลักษณะเฉพาะที่เป็นลบ**: บริเวณที่มีความเค้นอัด
+- **เวกเตอร์ลักษณะเฉพาะ**: ทิศทางการยืดหรือการอัดหลัก
 
-**This Analysis is Critical For:**
-- **Polymer Processing**: Understanding molecular alignment
-- **Biological Flows**: Analyzing cell deformation in complex flows
-- **Material Characterization**: Identifying flow-induced anisotropy
+### 4. การวิเคราะห์ Vorticity และ Strain
 
-### 4. Vorticity and Strain Analysis
-
-The strain-rate tensor $\mathbf{D} = \frac{1}{2}(\nabla\mathbf{u} + \nabla\mathbf{u}^T)$ is decomposed to identify:
+เทนเซอร์อัตราความเครียด $\mathbf{D} = \frac{1}{2}(\nabla\mathbf{u} + \nabla\mathbf{u}^T)$ ถูกสลายตัวเพื่อระบุ:
 
 $$\mathbf{D} = \sum_{k=1}^{3} D_k \mathbf{d}_k \otimes \mathbf{d}_k$$
 
-**Definitions:**
-- $D_k$: Principal strain rates
-- $\mathbf{d}_k$: Principal strain directions
-
-**This Decomposition Enables:**
-- **Coherent Structure Detection**: Identifying regions of high strain
-- **Mixing Analysis**: Principal strain rates indicate mixing efficiency
-- **Vortex Identification**: Used with vorticity tensor for Q-criterion
-
-### 5. Heat Transfer Applications
-
-In CFD heat transfer, the heat flux tensor $\mathbf{q} = -k\nabla T$ for anisotropic materials uses eigenvalue decomposition:
-
-$$\mathbf{k} = \sum_{k=1}^{3} k_k \mathbf{t}_k \otimes \mathbf{t}_k$$
-
-where $\mathbf{k}$ is the thermal conductivity tensor with:
-- $k_k$: Principal thermal conductivities
-- $\mathbf{t}_k$: Principal heat conduction directions
-
-**Essential For:**
-- **Composite Materials**: Modeling anisotropic heat transfer
-- **Crystal Growth**: Understanding directional heat absorption
-- **Electronics Cooling**: Optimizing heat sink placement
+**นิยาม:**
+- $D_k$: อัตราความเครียดหลัก
+- $\mathbf{d}_k$: ทิศทางความเครียดหลัก
 
 ---
 
-## Numerical Considerations
+## ข้อพิจารณาทางตัวเลข
 
-### Accuracy and Stability
+### ความแม่นยำและเสถียรภาพ
 
-Eigenvalue computation can be sensitive to numerical errors, especially when:
-- **Eigenvalues are close together** (nearly degenerate case)
-- **Tensor has large condition number**
-- **Floating-point precision limitations exist**
+การคำนวณค่าลักษณะเฉพาะอาจมีความอ่อนไหวต่อข้อผิดพลาดทางตัวเลข โดยเฉพาะอย่างยิ่งเมื่อ:
+- **ค่าลักษณะเฉพาะอยู่ใกล้กันมาก** (กรณีเกือบเสื่อม)
+- **เทนเซอร์มีค่า Condition Number ขนาดใหญ่**
+- **มีข้อจำกัดด้านความแม่นยำของจุดทศนิยม**
 
-**OpenFOAM Implements Robust Algorithms with:**
-- **Scaling techniques**: Improving numerical stability through normalization
-- **Iterative refinement**: Improving accuracy through Newton iteration
-- **Special case handling**: Optimized paths for common tensor types
-
-### Performance Optimization
-
-For large-scale CFD simulations, the efficiency of eigenvalue decomposition is crucial.
-
-**Optimization Techniques:**
-- **Vectorization**: SIMD instructions for parallel eigenvalue computation
-- **Cache efficiency**: Memory access pattern optimization
-- **Approximation methods**: Fast eigenvalue approximation for real-time applications
-
-The implementation exploits the symmetry of stress and strain tensors to achieve computational efficiency, reducing the general eigenvalue problem from $O(n^3)$ to approximately $O(n^2)$ for symmetric cases.
+**OpenFOAM นำอัลกอริทึมที่ทนทานมาใช้พร้อมกับ:**
+- **เทคนิคการปรับสเกล (Scaling techniques)**: ปรับปรุงเสถียรภาพเชิงตัวเลขผ่านการทำให้เป็นมาตรฐาน
+- **การปรับแต่งแบบวนซ้ำ (Iterative refinement)**: ปรับปรุงความแม่นยำผ่านการวนซ้ำแบบนิวตัน
+- **การจัดการกรณีพิเศษ**: เส้นทางการคำนวณที่ปรับแต่งให้เหมาะสมสำหรับประเภทเทนเซอร์ทั่วไป
 
 ---
 
-## Summary
+## สรุป
 
-Eigenvalue decomposition allows engineers to see through nine numbers to the physical "core"—revealing where forces act and how intensely. It transforms complex tensor fields into intuitive principal directions and magnitudes that are essential for:
+การสลายตัวของค่าลักษณะเฉพาะช่วยให้วิศวกรสามารถมองทะลุตัวเลขเก้าตัวไปยัง "แก่น" ทางฟิสิกส์—เผยให้เห็นว่าแรงกระทำที่ใดและรุนแรงเพียงใด มันเปลี่ยนฟิลด์เทนเซอร์ที่ซับซ้อนให้กลายเป็นทิศทางและขนาดหลักที่เข้าใจง่ายซึ่งจำเป็นสำหรับ:
 
-- Understanding material behavior and failure mechanisms
-- Analyzing turbulent flow structures
-- Characterizing non-Newtonian fluid dynamics
-- Optimizing structural designs
-- Visualizing complex flow phenomena
+- การเข้าใจพฤติกรรมของวัสดุและกลไกความล้มเหลว
+- การวิเคราะห์โครงสร้างการไหลแบบปั่นป่วน
+- การระบุลักษณะพลศาสตร์ของของไหลนอกกฎของนิวตัน
+- การเพิ่มประสิทธิภาพการออกแบบโครงสร้าง
+- การแสดงภาพปรากฏการณ์การไหลที่ซับซ้อน
 
-The mathematical elegance and computational efficiency of OpenFOAM's eigenvalue implementation make it a powerful tool for CFD analysis across all application domains.
+ความสวยงามทางคณิตศาสตร์และประสิทธิภาพการคำนวณของการนำ eigenvalue ไปใช้ใน OpenFOAM ทำให้มันเป็นเครื่องมือที่ทรงพลังสำหรับการวิเคราะห์ CFD ในทุกโดเมนการประยุกต์ใช้งาน

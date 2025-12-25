@@ -175,8 +175,8 @@ OpenFOAM can handle complex geometries with multiple PCM materials having:
 For directional materials (e.g., composites), OpenFOAM supports anisotropic thermal conductivity tensors:
 
 $$\mathbf{k} = \begin{bmatrix}
-k_x & 0 & 0 \\
-0 & k_y & 0 \\
+ k_x & 0 & 0 \\ 
+0 & k_y & 0 \\ 
 0 & 0 & k_z
 \end{bmatrix}$$
 
@@ -381,7 +381,7 @@ Due to the nonlinear nature of radiation (T⁴ dependence), OpenFOAM solvers emp
 
 The linearized radiation term can be expressed as:
 
-$$q_{\text{rad}}^{n+1} \approx q_{\text{rad}}^n + \frac{\partial q_{\text{rad}}}{\partial T}\bigg|_n (T^{n+1} - T^n)$$
+$$q_{\text{rad}}^{n+1} \approx q_{\text{rad}}^n + \frac{\partial q_{\text{rad}}}{\partial T}igg|_n (T^{n+1} - T^n)$$
 
 Where the derivative is:
 
@@ -533,16 +533,18 @@ for (int iter = 0; iter < maxIter; iter++)
 The most robust approach is **fully implicit coupling**, where fluid and structure are solved simultaneously in a monolithic system:
 
 $$\begin{bmatrix}
-\mathbf{A}_f & -\mathbf{B} \\
+\mathbf{A}_f & -\mathbf{B} \\ 
 \mathbf{B}^T & \mathbf{A}_s
 \end{bmatrix}
+
 \begin{bmatrix}
-\Delta \mathbf{u}_f \\
+\Delta \mathbf{u}_f \\ 
 \Delta \mathbf{d}
 \end{bmatrix}
 =
+
 \begin{bmatrix}
-\mathbf{R}_f \\
+\mathbf{R}_f \\ 
 \mathbf{R}_s
 \end{bmatrix}$$
 
@@ -568,7 +570,7 @@ $$\begin{bmatrix}
 
 #### Selecting Appropriate Stabilization Strategy
 
-##### Low Density Ratio ($\rho_f/\rho_s < 0.2$)
+##### Low Density Ratio ($ho_f/\rho_s < 0.2$)
 - Standard under-relaxation may be sufficient
 - Low computational cost
 - Can converge rapidly
@@ -578,7 +580,7 @@ $$\begin{bmatrix}
 - Better stability bounds
 - Automatic parameter tuning
 
-##### High Density Ratio ($\rho_f/\rho_s > 1.0$)
+##### High Density Ratio ($ho_f/\rho_s > 1.0$)
 - Implicit coupling required
 - Consider specialized FSI solvers
 - May require block preconditioners
@@ -596,7 +598,7 @@ $$\begin{bmatrix}
 Monitor these indicators for stability assessment:
 
 | Indicator | Behavior to Observe |
-|-----------|-------------------|
+|-----------|-------------------|------------------|
 | **Interface force convergence** | Should show monotonic convergence |
 | **Energy conservation** | Check for unnatural energy gains/losses |
 | **Residual history** | Look for oscillatory or divergent behavior |

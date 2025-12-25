@@ -1,19 +1,19 @@
-# Eulerian Multiphase Solvers in OpenFOAM
+# ตัวแก้สมการแบบหลายเฟสของยูเลอร์ใน OpenFOAM (Eulerian Multiphase Solvers in OpenFOAM)
 
-## 1. Introduction (บทนำ)
+## 1. บทนำ (Introduction)
 
-การจำลองการไหลแบบหลายเฟสโดยวิธี **Eulerian-Eulerian** (หรือที่เรียกว่าแบบจำลอง Two-fluid) จัดการแต่ละเฟสเป็นคอนติวนั่ม (Continuum) ที่แทรกซึมกันในพื้นที่เดียวกัน แต่ละเฟสมีชุดสมการการอนุรักษ์ (มวล โมเมนตัม และพลังงาน) ของตัวเอง และมีการแลกเปลี่ยนกันผ่านเทอมต้นทางที่อินเตอร์เฟซ
+การจำลองการไหลแบบหลายเฟสโดยวิธี **Eulerian-Eulerian** (หรือที่เรียกว่าแบบจำลองของไหลสองชนิด - Two-fluid model) จัดการแต่ละเฟสเป็นคอนตินิวอัม (Continuum) ที่แทรกซึมกันในพื้นที่เดียวกัน แต่ละเฟสมีชุดสมการการอนุรักษ์ (มวล โมเมนตัม และพลังงาน) ของตัวเอง และมีการแลกเปลี่ยนกันผ่านเทอมต้นทางที่ส่วนต่อประสาน (Interface)
 
 > [!INFO] **ข้อดีของแบบจำลอง Euler-Euler**
 > - เหมาะสำหรับระบบที่มีความเข้มข้นของเฟสกระจายสูง ($\alpha_d > 0.1$)
 > - หลีกเลี่ยงการติดตามอนุภาคแต่ละตัว (เช่นในวิธี Euler-Lagrange)
 > - สามารถจำลองระบบขนาดอุตสาหกรรมได้
 
-## 2. Governing Equations (สมการควบคุม)
+## 2. สมการควบคุม (Governing Equations)
 
 สำหรับเฟส $k$ สมการควบคุมพื้นฐานประกอบด้วย:
 
-### 2.1 Continuity Equation (สมการความต่อเนื่อง)
+### 2.1 สมการความต่อเนื่อง (Continuity Equation)
 
 $$\frac{\partial}{\partial t}(\alpha_k \rho_k) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k) = \sum_{p=1}^n (\dot{m}_{pk} - \dot{m}_{kp})$$
 
@@ -21,12 +21,12 @@ $$\frac{\partial}{\partial t}(\alpha_k \rho_k) + \nabla \cdot (\alpha_k \rho_k \
 - $\alpha_k$ = สัดส่วนปริมาตร (Volume Fraction)
 - $\rho_k$ = ความหนาแน่นของเฟส $k$
 - $\mathbf{u}_k$ = ความเร็วของเฟส $k$
-- $\dot{m}_{pk}$ = อัตราการถ่ายโอนมวลจากเฟส $p$ ถึง $k$
+- $\dot{m}_{pk}$ = อัตราการถ่ายโอนมวลจากเฟส $p$ ไปยัง $k$
 
 **เงื่อนไขข้อจำกัด:**
 $$\sum_{k=1}^n \alpha_k = 1$$
 
-### 2.2 Momentum Equation (สมการโมเมนตัม)
+### 2.2 สมการโมเมนตัม (Momentum Equation)
 
 $$\frac{\partial}{\partial t}(\alpha_k \rho_k \mathbf{u}_k) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \mathbf{u}_k) = -\alpha_k \nabla p + \nabla \cdot (\alpha_k \boldsymbol{\tau}_k) + \alpha_k \rho_k \mathbf{g} + \mathbf{M}_k$$
 
@@ -36,10 +36,10 @@ $$\frac{\partial}{\partial t}(\alpha_k \rho_k \mathbf{u}_k) + \nabla \cdot (\alp
 |-----------|-------------|-----------|
 | $p$ | ความดันที่แชร์ร่วมกันระหว่างเฟส | Pa |
 | $\boldsymbol{\tau}_k$ | เทนเซอร์ความเค้นของเฟส | N/m² |
-| $\mathbf{g}$ | เวกเตอร์ความโน้มถ่วง | m/s² |
+| $\mathbf{g}$ | เวกเตอร์ความเร่งจากแรงโน้มถ่วง | m/s² |
 | $\mathbf{M}_k$ | แรงปฏิสัมพันธ์ระหว่างเฟส | N/m³ |
 
-### 2.3 Energy Equation (สมการพลังงาน)
+### 2.3 สมการพลังงาน (Energy Equation)
 
 $$\frac{\partial}{\partial t}(\alpha_k \rho_k h_k) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k h_k) = \alpha_k \frac{\partial p}{\partial t} + \nabla \cdot (\alpha_k k_k \nabla T_k) + \dot{q}_k + \dot{m}_k h_{k,\mathrm{int}}$$
 
@@ -47,10 +47,10 @@ $$\frac{\partial}{\partial t}(\alpha_k \rho_k h_k) + \nabla \cdot (\alpha_k \rho
 - $h_k$ = เอนทาลปีของเฟส $k$ (J/kg)
 - $k_k$ = สัมประสิทธิ์การนำความร้อน (W/m·K)
 - $T_k$ = อุณหภูมิของเฟส $k$ (K)
-- $\dot{q}_k$ = การถ่ายเทความร้อนอินเตอร์เฟซ (W/m³)
+- $\dot{q}_k$ = การถ่ายเทความร้อนที่ส่วนต่อประสาน (W/m³)
 - $\dot{m}_k$ = อัตราการถ่ายโอนมวลจากการเปลี่ยนสถานะ (kg/m³·s)
 
-### 2.4 Species Transport Equation (สมการขนส่งสปีชีส์)
+### 2.4 สมการการขนส่งสปีชีส์ (Species Transport Equation)
 
 $$\frac{\partial}{\partial t}(\alpha_k \rho_k Y_{k,i}) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k Y_{k,i}) = \nabla \cdot (\alpha_k \rho_k D_{k,i} \nabla Y_{k,i}) + R_{k,i}$$
 
@@ -59,11 +59,11 @@ $$\frac{\partial}{\partial t}(\alpha_k \rho_k Y_{k,i}) + \nabla \cdot (\alpha_k 
 - $D_{k,i}$ = สัมประสิทธิ์การแพร่
 - $R_{k,i}$ = อัตราการผลิตสุทธิจากปฏิกิริยาเคมี
 
-## 3. Interfacial Forces (แรงอินเตอร์เฟซ)
+## 3. แรงที่ส่วนต่อประสาน (Interfacial Forces)
 
-### 3.1 Drag Force (แรงลาก)
+### 3.1 แรงลาก (Drag Force)
 
-แรงลากเป็นแรงอินเตอร์เฟซที่สำคัญที่สุดในระบบหลายเฟส:
+แรงลากเป็นแรงที่ส่วนต่อประสานที่สำคัญที่สุดในระบบหลายเฟส:
 
 $$\mathbf{M}_k^{\mathrm{drag}} = \frac{3}{4}C_D\frac{\alpha_k \alpha_p \rho_k}{d_p}|\mathbf{u}_p - \mathbf{u}_k|(\mathbf{u}_p - \mathbf{u}_k)$$
 
@@ -72,94 +72,94 @@ $$\mathbf{M}_k^{\mathrm{drag}} = \frac{3}{4}C_D\frac{\alpha_k \alpha_p \rho_k}{d
 | แบบจำลอง | สมการ | การใช้งานที่เหมาะสม |
 |-------------|-----------|----------------------|
 | **Schiller-Naumann** | $C_D = \frac{24}{Re_p}(1 + 0.15Re_p^{0.687})$ | การไหลเจือจาง |
-| **Gidaspow** | ผสมผสาน Wen-Yu และ Ergun | เตียงลอย |
-| **Ishii-Zuber** | ขึ้นอยู่กับรูปร่างฟอง | การไหลของฟอง |
+| **Gidaspow** | ผสมผสาน Wen-Yu และ Ergun | เตียงฟลูอิดไดซ์ (Fluidized beds) |
+| **Ishii-Zuber** | ขึ้นอยู่กับรูปร่างฟอง | การไหลแบบฟอง |
 
-### 3.2 Lift Force (แรงยก)
+### 3.2 แรงยก (Lift Force)
 
 $$\mathbf{F}_L = C_L \rho_c \alpha_d (\mathbf{u}_c - \mathbf{u}_d) \times (\nabla \times \mathbf{u}_c)$$
 
 สัมประสิทธิ์การยก $C_L$ ขึ้นอยู่กับ:
-- Reynolds อนุภาค
+- เลขเรย์โนลด์สของอนุภาค
 - อัตราการเฉือน
 - รูปร่างอนุภาค
 
-### 3.3 Virtual Mass Force (แรงมวลเสมือน)
+### 3.3 แรงมวลเสมือน (Virtual Mass Force)
 
 $$\mathbf{F}_{vm} = C_{vm} \rho_c \alpha_d \left(\frac{\mathrm{d}\mathbf{u}_d}{\mathrm{d}t} - \frac{\mathrm{d}\mathbf{u}_c}{\mathrm{d}t}\right)$$
 
 โดยที่ $C_{vm} \approx 0.5$ สำหรับทรงกลม
 
-### 3.4 Turbulent Dispersion Force (แรงกระจายแบบปั่นป่วน)
+### 3.4 แรงการกระจายแบบปั่นป่วน (Turbulent Dispersion Force)
 
 $$\mathbf{F}_{td} = -C_{td} \rho_c k_c \nabla \alpha_d$$
 
 โดยที่ $k_c$ คือพลังงานจลน์ความปั่นป่วนของเฟสต่อเนื่อง
 
-### 3.5 Wall Lubrication Force (แรงหล่อลื่นผนัง)
+### 3.5 แรงหล่อลื่นผนัง (Wall Lubrication Force)
 
 $$\mathbf{F}_{wl} = \frac{\alpha_d \rho_c}{d_p} \left[C_{w1} + C_{w2} \frac{d_p}{y_w}\right] \mathbf{u}_{rel} \cdot \mathbf{n}_w$$
 
-## 4. Key Solver: `reactingTwoPhaseEulerFoam`
+## 4. ตัวแก้สมการหลัก: `reactingTwoPhaseEulerFoam` (Key Solver)
 
-เป็น Solver ที่ทรงพลังที่สุดใน OpenFOAM สำหรับการไหลแบบสองเฟสที่เกี่ยวข้องกับการถ่ายเทความร้อนและปฏิกิริยาเคมี
+เป็นตัวแก้สมการ (Solver) ที่ทรงพลังที่สุดใน OpenFOAM สำหรับการไหลแบบสองเฟสที่เกี่ยวข้องกับการถ่ายเทความร้อนและปฏิกิริยาเคมี
 
-### 4.1 Architecture (สถาปัตยกรรม)
+### 4.1 สถาปัตยกรรม (Architecture)
 
-Solver นี้ขยายกรอบงาน Euler-Euler พื้นฐานโดยรวม:
+ตัวแก้สมการนี้ขยายกรอบงาน Euler-Euler พื้นฐานโดยรวม:
 
 | ส่วนประกอบ | คำอธิบาย |
 |--------------|----------|
-| **Species Transport** | การขนส่งองค์ประกอบทางเคมีหลายชนิดในแต่ละเฟส |
-| **Energy Coupling** | สมการพลังงานแยกแต่ละเฟสสำหรับการจำลองแบบไม่สมดุลอุณหภูมิ |
-| **Phase Change** | แบบจำลองการเปลี่ยนสถานะ (Boiling, Condensation) |
-| **Chemistry** | จลนศาสตร์ปฏิกิริยาเคมี |
+| **การขนส่งสปีชีส์** | การขนส่งองค์ประกอบทางเคมีหลายชนิดในแต่ละเฟส |
+| **การคัปปลิงพลังงาน** | สมการพลังงานแยกแต่ละเฟสสำหรับการจำลองแบบอุณหภูมิไม่สมดุล |
+| **การเปลี่ยนสถานะเฟส** | แบบจำลองการเปลี่ยนสถานะ (การเดือด, การควบแน่น) |
+| **ปฏิกิริยาเคมี** | จลนศาสตร์ปฏิกิริยาเคมี |
 
-### 4.2 Solution Algorithm (อัลกอริทึมการแก้ปัญหา)
+### 4.2 อัลกอริทึมการหาคำตอบ (Solution Algorithm)
 
 OpenFOAM ใช้อัลกอริทึม **Phase-Coupled SIMPLE (PCS)** หรือ **PIMPLE** เพื่อจัดการการเชื่อมต่อที่แข็งแกร่งระหว่างความดันและความเร็วของทั้งสองเฟส
 
 ```mermaid
 graph TD
-    A[Start Time Step] --> B[Solve Alpha Equation - MULES]
-    B --> C[Predict Thermophysical Properties]
-    C --> D[Solve Momentum Equation for each Phase]
-    D --> E[Pressure Equation Loop]
-    E --> F[Correct Velocities and Fluxes]
-    F --> G[Solve Energy and Species Equations]
-    G --> H[Check PIMPLE Convergence]
-    H -- No --> C
-    H -- Yes --> I[Next Time Step]
+    A[เริ่มช่วงเวลา] --> B[แก้สมการ Alpha - MULES]
+    B --> C[ทำนายสมบัติทางเทอร์โมฟิสิกส์]
+    C --> D[แก้สมการโมเมนตัมสำหรับแต่ละเฟส]
+    D --> E[วงรอบสมการความดัน]
+    E --> F[ปรับแก้ความเร็วและฟลักซ์]
+    F --> G[แก้สมการพลังงานและสปีชีส์]
+    G --> H[ตรวจสอบการลู่เข้าของ PIMPLE]
+    H -- ยังไม่ลู่เข้า --> C
+    H -- ลู่เข้าแล้ว --> I[ช่วงเวลาถัดไป]
 
     style B fill:#e1f5fe,stroke:#01579b
     style E fill:#e1f5fe,stroke:#01579b
 ```
 
-> **Figure 1:** แผนผังลำดับขั้นตอนการคำนวณของตัวแก้สมการการไหลหลายเฟสแบบยูเลอเรียน (Eulerian Multiphase Solver) แสดงการทำงานร่วมกันระหว่างการแก้สมการสัดส่วนปริมาตร (Alpha Equation) และการวนซ้ำของสมการความดันเพื่อรักษาความต่อเนื่องของมวลและพลังงานในทุกเฟส
+> **รูปที่ 1:** แผนผังลำดับขั้นตอนการคำนวณของตัวแก้สมการการไหลหลายเฟสแบบยูเลอเรียน (Eulerian Multiphase Solver) แสดงการทำงานร่วมกันระหว่างการแก้สมการสัดส่วนปริมาตร (Alpha Equation) และการวนซ้ำของสมการความดันเพื่อรักษาความต่อเนื่องของมวลและพลังงานในทุกเฟส
 
 **ขั้นตอนหลัก:**
 
 1. แก้สมการสัดส่วนปริมาตร (Alpha Equation) โดยใช้ MULES
 2. คำนวณคุณสมบัติทางเทอร์โมฟิสิกส์
-3. แก้สมการโมเมนตัมสำหรับทุกเฟส (รวมแรงอินเตอร์เฟซแบบกึ่งโดยนัย)
-4. แก้สมการความดันเพื่อรับประกันการอนุรักษ์มวลของส่วนผสม
+3. แก้สมการโมเมนตัมสำหรับทุกเฟส (รวมแรงที่ส่วนต่อประสานแบบกึ่งโดยนัย)
+4. แก้สมการความดันเพื่อรับประกันการอนุรักษ์มวลของสารผสม
 5. แก้สมการพลังงานและสปีชีส์
 
-## 5. Implementation Details (รายละเอียดการใช้งาน)
+## 5. รายละเอียดการใช้งาน (Implementation Details)
 
-การกำหนดค่าสำหรับ Solver นี้มีความซับซ้อนและต้องการไฟล์หลายส่วน:
+การกำหนดค่าสำหรับตัวแก้สมการนี้มีความซับซ้อนและต้องการไฟล์หลายส่วน:
 
 ### 5.1 `phaseProperties`
 
-กำหนดความสัมพันธ์ระหว่างเฟสและแรงปฏิสัมพันธ์:
+กำหนดความสัมพันธ์ระหว่างเฟสและแบบจำลองแรงปฏิสัมพันธ์:
 
 ```cpp
-// Phase definition and interaction model
+// การนิยามเฟสและแบบจำลองการปฏิสัมพันธ์
 phases (gas liquid);
 
 gas
 {
-    // Transport model specification
+    // การระบุแบบจำลองการขนส่ง
     transportModel  Newtonian;
     nu              1.5e-05;
     rho             1.2;
@@ -167,13 +167,13 @@ gas
 
 liquid
 {
-    // Transport model specification
+    // การระบุแบบจำลองการขนส่ง
     transportModel  Newtonian;
     nu              1e-06;
     rho             1000;
 }
 
-// Interfacial forces configuration
+// การกำหนดค่าแรงที่ส่วนต่อประสาน
 phaseInteraction
 {
     (gas in liquid)
@@ -187,11 +187,11 @@ phaseInteraction
 }
 ```
 
-> **Source:** 📂 `constant/phaseProperties`
+> **แหล่งที่มา:** 📂 `constant/phaseProperties`
 > 
-> **Explanation:** ไฟล์นี้กำหนดคุณสมบัติของแต่ละเฟส (gas/liquid) และโมเดลแรงปฏิสัมพันธ์ระหว่างเฟส รวมถึงแบบจำลองแรงลาก แรงยก แรงมวลเสมือน และอื่นๆ
->
-> **Key Concepts:**
+> **คำอธิบาย (Explanation):** ไฟล์นี้กำหนดคุณสมบัติของแต่ละเฟส (gas/liquid) และโมเดลแรงปฏิสัมพันธ์ระหว่างเฟส รวมถึงแบบจำลองแรงลาก แรงยก แรงมวลเสมือน และอื่นๆ
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
 > - `transportModel`: รุ่นของการขนส่ง (Newtonian/Non-Newtonian)
 > - `dragModel`: แบบจำลองแรงลาก (Gidaspow, Schiller-Naumann, etc.)
 > - `liftModel`: แบบจำลองแรงยก (Tomiyama, Legendre-Magnaudet)
@@ -200,10 +200,10 @@ phaseInteraction
 
 ### 5.2 `thermophysicalProperties`
 
-ต้องกำหนดแยกสำหรับแต่ละเฟสในโฟลเดอร์ `constant/phaseName/`:
+ต้องกำหนดแยกสำหรับแต่ละเฟสในไดเรกทอรี `constant/phaseName/`:
 
 ```cpp
-// Thermophysical properties for each phase
+// สมบัติทางเทอร์โมฟิสิกส์สำหรับแต่ละเฟส
 thermoType
 {
     type            heRhoThermo;
@@ -214,14 +214,14 @@ thermoType
     equationOfState perfectGas;
 }
 
-// Species definition
+// การนิยามสปีชีส์
 species
 (
     O2
     N2
 );
 
-// Oxygen properties
+// สมบัติของออกซิเจน
 O2
 {
     molWeight       32;
@@ -229,7 +229,7 @@ O2
     Hf              0;
 }
 
-// Nitrogen properties
+// สมบัติของไนโตรเจน
 N2
 {
     molWeight       28.0134;
@@ -238,23 +238,23 @@ N2
 }
 ```
 
-> **Source:** 📂 `constant/gas/thermophysicalProperties` และ `constant/liquid/thermophysicalProperties`
+> **แหล่งที่มา:** 📂 `constant/gas/thermophysicalProperties` และ `constant/liquid/thermophysicalProperties`
 > 
-> **Explanation:** กำหนดคุณสมบัติเทอร์โมฟิสิกส์ของแต่ละเฟส รวมถึงชนิดของสมการถดถอย คุณสมบัติการขนส่ง และคุณสมบัติของสปีชีส์แต่ละชนิด
->
-> **Key Concepts:**
+> **คำอธิบาย (Explanation):** กำหนดคุณสมบัติเทอร์โมฟิสิกส์ของแต่ละเฟส รวมถึงชนิดของสมการถดถอย คุณสมบัติการขนส่ง และคุณสมบัติของสปีชีส์แต่ละชนิด
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
 > - `heRhoThermo`: Enthalpy-based thermodynamics with density calculation
 > - `multiComponentMixture`: ส่วนผสมหลายสปีชีส์
 > - `sutherland`: รุ่นการขนส่งแบบ Sutherland
 > - `hConst`: ความร้อนจำเพาะคงที่
 > - `sensibleEnthalpy`: ใช้เอนทาลปีในการคำนวณพลังงาน
 
-### 5.3 Solver Control Parameters
+### 5.3 พารามิเตอร์การควบคุมตัวแก้ปัญหา (Solver Control Parameters)
 
-ใน `fvSolution`:
+ในไฟล์ `fvSolution`:
 
 ```cpp
-// PIMPLE algorithm control parameters
+// พารามิเตอร์ควบคุมอัลกอริทึม PIMPLE
 PIMPLE
 {
     nCorrectors        3;
@@ -270,7 +270,7 @@ PIMPLE
     rDeltaTSmoothingCoeff 0.1;
 }
 
-// Linear solver settings
+// การตั้งค่าตัวแก้ปัญหาเชิงเส้น
 solvers
 {
     p
@@ -299,32 +299,32 @@ solvers
 }
 ```
 
-> **Source:** 📂 `system/fvSolution`
+> **แหล่งที่มา:** 📂 `system/fvSolution`
 > 
-> **Explanation:** ตั้งค่าพารามิเตอร์การควบคุมอัลกอริทึม PIMPLE และตัวแก้สมการเชิงเส้น รวมถึงการตั้งค่าความอดทนและวิธีการแก้ปัญหา
->
-> **Key Concepts:**
+> **คำอธิบาย (Explanation):** ตั้งค่าพารามิเตอร์การควบคุมอัลกอริทึม PIMPLE และตัวแก้สมการเชิงเส้น รวมถึงการตั้งค่าความอดทนและวิธีการแก้ปัญหา
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
 > - `nCorrectors`: จำนวนรอบการแก้ไขความดัน
 > - `nAlphaCorr`: จำนวนรอบการแก้ไขสัดส่วนปริมาตร
 > - `GAMG`: Geometric-Algebraic Multi-Grid solver
 > - `smoothSolver`: Solver แบบ smoothing สำหรับเมชที่ไม่ได้โครงสร้าง
 
-ใน `fvSchemes`:
+ในไฟล์ `fvSchemes`:
 
 ```cpp
-// Temporal discretization scheme
+// รูปแบบการแยกส่วนทางเวลา
 ddtSchemes
 {
     default         Euler;
 }
 
-// Gradient calculation schemes
+// รูปแบบการคำนวณเกรเดียนต์
 gradSchemes
 {
     default         Gauss linear;
 }
 
-// Divergence schemes
+// รูปแบบการคำนวณไดเวอร์เจนซ์
 divSchemes
 {
     default         none;
@@ -341,156 +341,156 @@ divSchemes
     div(phi,K)      Gauss limitedLinear 1;
 }
 
-// Laplacian schemes
+// รูปแบบการคำนวณลาพลาเซียน
 laplacianSchemes
 {
     default         Gauss linear corrected;
 }
 
-// Interpolation schemes
+// รูปแบบการประมาณค่า (Interpolation)
 interpolationSchemes
 {
     default         linear;
 }
 
-// Surface normal gradient schemes
+// รูปแบบเกรเดียนต์ในแนวตั้งฉากกับพื้นผิว
 snGradSchemes
 {
     default         corrected;
 }
 ```
 
-> **Source:** 📂 `system/fvSchemes`
+> **แหล่งที่มา:** 📂 `system/fvSchemes`
 > 
-> **Explanation:** กำหนดรูปแบบการจำแนกตัวเลข (discretization schemes) สำหรับสมการต่างๆ รวมถึงการประมาณค่า gradient, divergence, และ laplacian
->
-> **Key Concepts:**
+> **คำอธิบาย (Explanation):** กำหนดรูปแบบการจำแนกตัวเลข (discretization schemes) สำหรับสมการต่างๆ รวมถึงการประมาณค่า gradient, divergence, และ laplacian
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
 > - `Euler`: รูปแบบการจำแนกเวลาแบบ Euler อันดับหนึ่ง
 > - `limitedLinearV`: รูปแบบ divergence แบบ limited linear พร้อมการจำกัดความผันผวน
 > - `vanLeer`: รูปแบบ flux limiter แบบ Van Leer สำหรับสัดส่วนปริมาตร
 > - `corrected`: การแก้ไข non-orthogonality ของเมช
 
-## 6. Closure Relations (ความสัมพันธ์การปิด)
+## 6. ความสัมพันธ์การปิด (Closure Relations)
 
-แบบจำลอง Euler-Euler ต้องการ "การปิด" (Closure) สำหรับพจน์ที่ไม่ทราบค่า:
+แบบจำลอง Euler-Euler ต้องการ "การปิด" (Closure) สำหรับเทอมที่ไม่ทราบค่า:
 
-> [!WARNING] **ความสำคัญของ Closure Models**
+> [!WARNING] **ความสำคัญของแบบจำลองการปิด**
 > ความแม่นยำของการจำลองขึ้นอยู่กับความเหมาะสมของแบบจำลองปิดที่เลือกใช้
 
-### 6.1 Interfacial Momentum Transfer
+### 6.1 การถ่ายโอนโมเมนตัมที่ส่วนต่อประสาน (Interfacial Momentum Transfer)
 
-แบบจำลองแรงลาก แรงยก ฯลฯ:
+แบบจำลองแรงลาก, แรงยก ฯลฯ:
 
 | แรง | แบบจำลอง | ความสำคัญ |
 |------|------------|----------|
-| **Drag** | Schiller-Naumann, Gidaspow | ==สำคัญที่สุด== |
-| **Lift** | Tomiyama, Legendre-Magnaudet | สำคัญในการไหลแบบ shear |
-| **Virtual Mass** | Cvm = 0.5 | สำคัญในการเร่งความเร็วสูง |
-| **Turbulent Dispersion** | Lopez de Bertodano, Burns | สำคัญในการไหลแบบปั่นป่วน |
-| **Wall Lubrication** | Antal, Tomiyama | สำคัญใกล้ผนัง |
+| **แรงลาก (Drag)** | Schiller-Naumann, Gidaspow | ==สำคัญที่สุด== |
+| **แรงยก (Lift)** | Tomiyama, Legendre-Magnaudet | สำคัญในการไหลแบบเฉือน (Shear flow) |
+| **แรงมวลเสมือน** | Cvm = 0.5 | สำคัญในการเร่งความเร็วสูง |
+| **การกระจายแบบปั่นป่วน** | Lopez de Bertodano, Burns | สำคัญในการไหลแบบปั่นป่วน |
+| **แรงหล่อลื่นผนัง** | Antal, Tomiyama | สำคัญใกล้ผนัง |
 
-### 6.2 Granular Stress (สำหรับเฟสของแข็งหนาแน่น)
+### 6.2 ความเค้นแบบเกรนูลาร์ (สำหรับเฟสของแข็งหนาแน่น)
 
 สำหรับเฟสของแข็งหนาแน่น (ทฤษฎีจลนศาสตร์ของการไหลแบบเม็ด - KTGF):
 
-**Granular Temperature:**
+**อุณหภูมิเกรนูลาร์ (Granular Temperature):**
 $$\Theta_s = \frac{1}{3}\langle \mathbf{c}' \cdot \mathbf{c}' \rangle$$
 
-**Solid Pressure:**
+**ความดันของแข็ง (Solid Pressure):**
 $$p_s = \alpha_s \rho_s \Theta_s \left[1 + 2g_0\alpha_s(1+e)\right]$$
 
-**Radial Distribution Function:**
+**ฟังก์ชันการกระจายแนวรัศมี (Radial Distribution Function):**
 $$g_0 = \left[1 - \left(\frac{\alpha_s}{\alpha_{s,max}}\right)^{1/3}\right]^{-1}$$
 
-**Solid Viscosity:**
+**ความหนืดของของแข็ง:**
 $$\mu_s = \mu_{coll} + \mu_{kin}$$
 
 โดยที่:
-- $e$ = สัมประสิทธิ์การฟื้นตัว (0.9-0.99)
+- $e$ = สัมประสิทธิ์การคืนสภาพ (Coefficient of restitution) (0.9-0.99)
 - $\alpha_{s,max}$ = สัดส่วนปริมาตรสูงสุด (~0.63)
 
-### 6.3 Interfacial Heat Transfer
+### 6.3 การถ่ายโอนความร้อนที่ส่วนต่อประสาน (Interfacial Heat Transfer)
 
-ความสัมพันธ์ Nusselt Number สำหรับการถ่ายเทความร้อนระหว่างเฟส:
+ความสัมพันธ์ของเลขเฉลี่ยสเซิลต์ (Nusselt Number) สำหรับการถ่ายโอนความร้อนระหว่างเฟส:
 
 $$\dot{q}_{12} = h_{12}A_{12}(T_1 - T_2)$$
 
 | ระบบ | ความสัมพันธ์ Nusselt | ช่วงใช้งาน |
 |------|-------------------------|-------------|
-| แก๊ส-ของเหลว | $Nu = 2 + 0.6Re^{1/2}Pr^{1/3}$ | ฟองและหยด |
-| ของแข็ง-แก๊ส | $Nu = 2 + 0.6Re^{0.5}Pr^{0.33}$ | อนุภาคในแก๊ส |
-| ของแข็ง-ของเหลว | $Nu = 2 + 0.6Re^{0.5}Pr^{0.33}$ | เตียงลอย |
+| ก๊าซ-ของเหลว | $Nu = 2 + 0.6Re^{1/2}Pr^{1/3}$ | ฟองและหยด |
+| ของแข็ง-ก๊าซ | $Nu = 2 + 0.6Re^{0.5}Pr^{0.33}$ | อนุภาคในก๊าซ |
+| ของแข็ง-ของเหลว | $Nu = 2 + 0.6Re^{0.5}Pr^{0.33}$ | เตียงฟลูอิดไดซ์ |
 
-### 6.4 Turbulence Models
+### 6.4 แบบจำลองความปั่นป่วน (Turbulence Models)
 
 แบบจำลองความปั่นป่วนแยกแต่ละเฟสหรือแบบผสม:
 
-**แบบจำลอง $k$-$\varepsilon$ แยกเฟส:**
+**แบบจำลอง $k$-$\varepsilon$ แยกแต่ละเฟส:**
 $$\frac{\partial}{\partial t}(\alpha_k \rho_k \varepsilon_k) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \varepsilon_k) = \nabla \cdot \left(\alpha_k \frac{\mu_{t,k}}{\sigma_{\varepsilon}} \nabla \varepsilon_k\right) + S_{\varepsilon,k}$$
 
-## 7. Advanced Topics (หัวข้อขั้นสูง)
+## 7. หัวข้อขั้นสูง (Advanced Topics)
 
-### 7.1 Phase Change Modeling (การจำลองการเปลี่ยนสถานะ)
+### 7.1 การสร้างแบบจำลองการเปลี่ยนสถานะเฟส (Phase Change Modeling)
 
-**แบบจำลอง Hertz-Knudsen:**
+**แบบจำลองเฮิร์ตซ์-คนุดเซน (Hertz-Knudsen Model):**
 $$\dot{m}'' = \sqrt{\frac{M}{2\pi R T_{sat}}} \left(\frac{p_{sat}(T_l) - p_v}{\sqrt{T_l}} - \frac{p_v - p_{sat}(T_v)}{\sqrt{T_v}}\right)$$
 
-**แบบจำลอง Schrage:**
+**แบบจำลองชราจ (Schrage Model):**
 $$\dot{m}'' = \frac{2\sigma}{2-\sigma} \sqrt{\frac{M}{2\pi R T_{sat}}} \left(p_{sat}(T_l) - p_v\right)$$
 
-### 7.2 Population Balance Models (แบบจำลองสมดุลประชากร)
+### 7.2 แบบจำลองสมดุลประชากร (Population Balance Models)
 
 สำหรับระบบที่มีการกระจายขนาดของฟองหรืออนุภาค:
 
 $$\frac{\partial n(R,t)}{\partial t} + \frac{\partial}{\partial R}\left[G(R) n(R,t)\right] = B(R,t) - D(R,t)$$
 
-**Method of Moments (QMOM):**
+**ระเบียบวิธีโมเมนต์ (Method of Moments - QMOM):**
 $$m_k = \int_0^{\infty} R^k n(R) dR$$
 
-### 7.3 Cavitation Models (แบบจำลองโพรงเปี่ยว)
+### 7.3 แบบจำลองการเกิดโพรงไอ (Cavitation Models)
 
-**แบบจำลอง Schnerr-Sauer:**
+**แบบจำลองเชนเนอร์-เซาเออร์ (Schnerr-Sauer Model):**
 $$\dot{m}'' = \frac{3\rho_l\rho_v}{\rho} \frac{\alpha_l\alpha_v}{R_b} \text{sign}(p_{sat} - p) \sqrt{\frac{2}{3}\frac{|p_{sat} - p|}{\rho_l}}$$
 
-โดยที่รัศมีฟอง $R_b$ เกี่ยวข้องกับสัดส่วนปริมาตรไอ:
+โดยที่รัศมีฟอง $R_b$ สัมพันธ์กับสัดส่วนปริมาตรไอ:
 $$\alpha_v = \frac{4}{3}\pi n_b R_b^3$$
 
-## 8. Best Practices (แนวทางปฏิบัติที่ดี)
+## 8. แนวทางปฏิบัติที่ดีที่สุด (Best Practices)
 
-### 8.1 Stability (ความเสถียร)
+### 8.1 เสถียรภาพ (Stability)
 
-- **เริ่มต้นด้วยแบบจำลองที่ง่ายก่อน** (Isothermal, No reactions) แล้วค่อยเพิ่มความซับซ้อน
-- **ใช้การค่อยๆ ปรับค่า** (gradual ramping) สำหรับเงื่อนไขขอบเขตที่ซับซ้อน
+- **เริ่มต้นด้วยแบบจำลองที่ง่ายก่อน** (ไม่มีอุณหภูมิ, ไม่มีปฏิกิริยา) แล้วค่อยเพิ่มความซับซ้อน
+- **ใช้การค่อยๆ ปรับค่า (Gradual ramping)** สำหรับเงื่อนไขขอบเขตที่ซับซ้อน
 - **ตรวจสอบการอนุรักษ์มวล** ในแต่ละเฟสอย่างสม่ำเสมอ
 
-### 8.2 Time Stepping (การกำหนดค่าเวลา)
+### 8.2 การกำหนดค่าเวลา (Time Stepping)
 
-- **ใช้การปรับ Time Step อัตโนมัติ** (Adjustable Time Step)
-- จำกัด Max Co และ Max Alpha Co:
+- **ใช้การปรับช่วงเวลาอัตโนมัติ (Adjustable Time Step)**
+- จำกัดค่า Max Co และ Max Alpha Co:
 
 ```cpp
-// Adaptive time step control
+// การควบคุมช่วงเวลาแบบปรับตัว
 adjustTimeStep yes;
 
 maxCo           0.5;
 maxAlphaCo      0.5;
 ```
 
-> **Source:** 📂 `system/controlDict`
+> **แหล่งที่มา:** 📂 `system/controlDict`
 > 
-> **Explanation:** ตั้งค่าการปรับค่าเวลาอัตโนมัติตามค่า Courant number และ volume fraction flux number
->
-> **Key Concepts:**
+> **คำอธิบาย (Explanation):** ตั้งค่าการปรับค่าเวลาอัตโนมัติตามค่า Courant number และ volume fraction flux number
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
 > - `adjustTimeStep`: เปิดใช้งานการปรับ time step อัตโนมัติ
 > - `maxCo`: ค่า Courant number สูงสุดที่อนุญาต
 > - `maxAlphaCo`: ค่า alpha Courant number สูงสุดสำหรับสัดส่วนปริมาตร
 
-### 8.3 Convergence (การลู่เข้า)
+### 8.3 การลู่เข้า (Convergence)
 
-- **การใช้ Relaxation Factors ที่เหมาะสม**:
+- **การใช้ปัจจัยการผ่อนคลาย (Relaxation Factors) ที่เหมาะสม**:
 
 ```cpp
-// Under-relaxation factors for stability
+// ปัจจัยการผ่อนคลายเพื่อเสถียรภาพ
 relaxationFactors
 {
     fields
@@ -506,86 +506,86 @@ relaxationFactors
 }
 ```
 
-> **Source:** 📂 `system/fvSolution`
+> **แหล่งที่มา:** 📂 `system/fvSolution`
 > 
-> **Explanation:** ตั้งค่า under-relaxation factors เพื่อเพิ่มความเสถียรของการแก้สมการ
->
-> **Key Concepts:**
+> **คำอธิบาย (Explanation):** ตั้งค่า under-relaxation factors เพื่อเพิ่มความเสถียรของการแก้สมการ
+> 
+> **แนวคิดสำคัญ (Key Concepts):**
 > - `p`: Under-relaxation factor สำหรับความดัน (ค่าต่ำช่วยเสถียร)
 > - `U`: Under-relaxation factor สำหรับความเร็ว
 > - `(k|epsilon|omega)`: Under-relaxation สำหรับตัวแปรความปั่นป่วน
 
-### 8.4 Mesh Quality (คุณภาพเมช)
+### 8.4 คุณภาพเมช (Mesh Quality)
 
 | พารามิเตอร์ | ข้อกำหนด | วัตถุประสงค์ |
 |-------------|-----------|-------------|
-| **การปรับปรุง** | 10-15 cells ต่อเส้นผ่านศูนย์กลางของฟอง | แก้ปัญหาความโค้งของอินเตอร์เฟซ |
-| **ตัวชี้วัดคุณภาพ** | ความตั้งฉาก < 45°, อัตราส่วนภาพ < 5, ความเบ้ < 0.8 | ความถูกต้องเชิงตัวเลข |
-| **การรักษาชั้นขอบเขต** | ความหนา 1-3 cells ใกล้ผนัง | การทำนายความเค้นแรงเฉือนที่แม่นยำ |
+| **การปรับปรุงความละเอียด** | 10-15 เซลล์ต่อเส้นผ่านศูนย์กลางฟอง | เพื่อแก้ปัญหาความโค้งของส่วนต่อประสาน |
+| **ตัวชี้วัดคุณภาพ** | ความไม่ตั้งฉาก < 45°, อัตราส่วนรูปร่าง < 5, ความเบ้ (Skewness) < 0.8 | ความแม่นยำเชิงตัวเลข |
+| **การรักษาชั้นขอบเขต** | ความหนา 1-3 เซลล์ใกล้ผนัง | การพยากรณ์ความเค้นเฉือนที่ผนังที่แม่นยำ |
 
-### 8.5 Post-Processing
+### 8.5 การประมวลผลภายหลัง (Post-Processing)
 
 **การตรวจสอบความถูกต้อง:**
 - ตรวจสอบการอนุรักษ์มวลโดยรวม
 - ตรวจสอบสมการพลังงานรวม
-- วิเคราะห์ distribution ของสัดส่วนเฟส
+- วิเคราะห์การกระจาย (Distribution) ของสัดส่วนเฟส
 - เปรียบเทียบกับข้อมูลการทดลอง
 
-## 9. Applications (การประยุกต์ใช้)
+## 9. การประยุกต์ใช้งาน (Applications)
 
-### 9.1 Industrial Applications
+### 9.1 การประยุกต์ใช้งานในอุตสาหกรรม
 
-| แอปพลิเคชัน | เฟสหลัก | Solver ที่เหมาะสม |
+| การใช้งาน | เฟสหลัก | ตัวแก้สมการที่เหมาะสม |
 |--------------|-----------|-------------------|
-| **Fluidized Beds** | แก๊ส-ของแข็ง | reactingTwoPhaseEulerFoam |
-| **Bubble Columns** | แก๊ส-ของเหลว | multiphaseEulerFoam |
-| **Boiling** | ของเหลว-ไอ | reactingTwoPhaseEulerFoam |
-| **Spray Combustion** | เชื้อเพลิง-อากาศ | reactingEulerFoam |
+| **เตียงฟลูอิดไดซ์** | ก๊าซ-ของแข็ง | reactingTwoPhaseEulerFoam |
+| **คอลัมน์ฟอง** | ก๊าซ-ของเหลว | multiphaseEulerFoam |
+| **การเดือด** | ของเหลว-ไอ | reactingTwoPhaseEulerFoam |
+| **การเผาไหม้แบบละอองฉีด** | เชื้อเพลิง-อากาศ | reactingEulerFoam |
 
-### 9.2 Case Studies
+### 9.2 กรณีศึกษา (Case Studies)
 
-**Case 1: การเดือดในไมโครช่องทาง**
+**กรณีที่ 1: การเดือดในไมโครช่องทาง**
 - ช่องทาง: $50 \mu m \times 50 \mu m \times 1 mm$
-- ความร้อนจากผนังคงที่: $100 kW/m^2$
-- อัตราความร้อนวิกฤต: $q''_{crit} \approx 1.2 MW/m^2$
+- ฟลักซ์ความร้อนที่ผนังคงที่: $100 kW/m^2$
+- ฟลักซ์ความร้อนวิกฤต: $q''_{crit} \approx 1.2 MW/m^2$
 
-**Case 2: เครื่องปฏิกรณ์เตียงลอย**
+**กรณีที่ 2: เครื่องปฏิกรณ์เตียงฟลูอิดไดซ์**
 - อุณหภูมิ: $320°C$
 - ความดัน: $15$ MPa
-- สิ่งทรงกลม: อัลคาไทต์ขนาด $6$ mm
+- อนุภาคทรงกลม: อัลคาไทต์ขนาด $6$ mm
 
-## 10. Troubleshooting (การแก้ปัญหา)
+## 10. การแก้ไขปัญหา (Troubleshooting)
 
-### 10.1 Common Problems
+### 10.1 ปัญหาทั่วไป
 
 | ปัญหา | สาเหตุ | การแก้ไข |
 |--------|----------|------------|
-| **การไม่ลู่เข้า** | เงื่อนไขเริ่มต้นไม่ดี | ใช้การค่อยๆ ปรับค่า |
-| **การสั่นของความดัน** | การจับอินเตอร์เฟซที่ไม่ดี | เพิ่ม compression factor |
-| **ปัญหาความเร็วสูงเกินไป** | การเสียดสีมากเกินไป | ปรับความหนืดของอินเตอร์เฟซ |
+| **ไม่ลู่เข้า** | เงื่อนไขเริ่มต้นไม่ดี | ใช้การค่อยๆ ปรับค่า (Gradual ramping) |
+| **ความดันแกว่งกวัด** | การจับส่วนต่อประสานไม่ดี | เพิ่มปัจจัยการบีบอัด (Compression factor) |
+| **ความเร็วสูงเกินจริง** | แรงเสียดทานที่ส่วนต่อประสานมากเกินไป | ปรับความหนืดที่ส่วนต่อประสาน |
 
-### 10.2 Debugging Tips
+### 10.2 เคล็ดลับในการดีบั๊ก (Debugging Tips)
 
-1. **ตรวจสอบ scaling ของสมการ**
-2. **ตรวจสอบ boundary conditions**
-3. **วิเคราะห์ residuals**
-4. **ตรวจสอบ mass balance**
-5. **ใช้ plot และ probes สำหรับ monitoring**
+1. **ตรวจสอบมาตราส่วน (Scaling) ของสมการ**
+2. **ตรวจสอบเงื่อนไขขอบเขต (Boundary conditions)**
+3. **วิเคราะห์ค่าตกค้าง (Residuals)**
+4. **ตรวจสอบสมดุลมวล (Mass balance)**
+5. **ใช้การพล็อตจุด (Plot) และจุดตรวจสอบ (Probes) เพื่อการติดตาม**
 
 ---
 
-## 11. References and Further Reading
+## 11. เอกสารอ้างอิงและการอ่านเพิ่มเติม
 
 1. **Ishii, M., & Hibiki, T.** (2011). *Thermo-Fluid Dynamics of Two-Phase Flow* (2nd ed.). Springer.
 2. **Crowe, C. T., et al.** (2011). *Multiphase Flows with Droplets and Particles* (2nd ed.). CRC Press.
 3. **Gidaspow, D.** (1994). *Multiphase Flow and Fluidization*. Academic Press.
-4. **OpenFOAM User Guide** - Multiphase Flows Chapter
-5. **OpenFOAM Programmer's Guide** - Phase System Models
+4. **OpenFOAM User Guide** - บทการไหลหลายเฟส (Multiphase Flows)
+5. **OpenFOAM Programmer's Guide** - แบบจำลองระบบเฟส (Phase System Models)
 
 ---
 
-> [!TIP] **Learning Path**
+> [!TIP] **เส้นทางการเรียนรู้ (Learning Path)**
 > หลังจากศึกษาเอกสารนี้ แนะนำให้:
-> 1. ทำแบบฝึกหัด Tutorial: `multiphase/multiphaseEulerFoam/bubbleColumn`
-> 2. ลองปรับเปลี่ยน drag models และเปรียบเทียบผลลัพธ์
+> 1. ทำแบบฝึกหัดบทช่วยสอน (Tutorial): `multiphase/multiphaseEulerFoam/bubbleColumn`
+> 2. ลองปรับเปลี่ยนแบบจำลองแรงลาก (Drag models) และเปรียบเทียบผลลัพธ์
 > 3. ศึกษาการใช้งาน `reactingTwoPhaseEulerFoam` สำหรับระบบที่มีปฏิกิริยาเคมี

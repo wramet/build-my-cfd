@@ -1,94 +1,94 @@
-# Physics-Aware Type System
+# ระบบประเภทข้อมูลที่ตระหนักถึงฟิสิกส์ (Physics-Aware Type System)
 
-> [!INFO] Overview
-> This section explores how OpenFOAM transforms the compiler into a mathematical referee that enforces physical correctness at **compile-time** rather than runtime.
+> [!INFO] ภาพรวม
+> หัวข้อนี้จะสำรวจว่า OpenFOAM เปลี่ยนคอมไพเลอร์ให้กลายเป็น "กรรมการตัดสินทางคณิตศาสตร์" ที่บังคับใช้ความถูกต้องทางฟิสิกส์ใน **เวลาคอมไพล์ (Compile-time)** แทนที่จะเป็นเวลาทำงาน (Runtime) ได้อย่างไร
 
 ---
 
-## 🔍 High-Level Concept: From Calculator to Physics Checker
+## 🔍 แนวคิดระดับสูง: จากเครื่องคิดเลขสู่เครื่องตรวจสอบฟิสิกส์
 
-In Section 1, we introduced the **"unit-aware calculator"** concept—a system preventing addition of meters to kilograms. Let's extend this to the **"compile-time physics checker"**—a system that validates physical equations *before* code execution.
+ในหัวข้อที่ 1 เราได้แนะนำแนวคิด **"เครื่องคิดเลขที่รับรู้หน่วย"**—ระบบที่ป้องกันการบวกเมตรกับกิโลกรัม ลองขยายแนวคิดนี้ไปสู่ **"เครื่องตรวจสอบฟิสิกส์เวลาคอมไพล์"**—ระบบที่ตรวจสอบความถูกต้องของสมการฟิสิกส์ *ก่อน* ที่โค้ดจะทำงานจริง
 
-### Traditional vs. Template-Based Approaches
+### การเปรียบเทียบแนวทางดั้งเดิมกับแนวทางที่ใช้เทมเพลต
 
-| Aspect | Traditional Unit Checking | OpenFOAM's Template Approach |
+| ลักษณะ | การตรวจสอบหน่วยแบบดั้งเดิม | แนวทางเทมเพลตของ OpenFOAM |
 |--------|---------------------------|-------------------------------|
-| **Check timing** | Runtime checking | **Compile-time checking** |
-| **Performance** | Runtime overhead | **Zero runtime cost** |
-| **Error detection** | After computational resources spent | **Before simulation begins** |
-| **Expressiveness** | Limited - checks basic unit compatibility | Rich - Template Specialization for various physical quantities |
+| **จังหวะการตรวจสอบ** | ตรวจสอบขณะทำงาน (Runtime) | **ตรวจสอบขณะคอมไพล์ (Compile-time)** |
+| **ประสิทธิภาพ** | มีภาระงานส่วนเกินขณะทำงาน | **ไม่มีค่าใช้จ่ายขณะทำงาน (Zero runtime cost)** |
+| **การตรวจพบข้อผิดพลาด** | หลังจากเสียทรัพยากรการคำนวณไปแล้ว | **ก่อนที่การจำลองจะเริ่มต้น** |
+| **ความสามารถในการแสดงออก** | จำกัด - ตรวจสอบความเข้ากันได้พื้นฐาน | หลากหลาย - ใช้ Template Specialization สำหรับปริมาณฟิสิกส์ต่างๆ |
 
-**Meaning of each aspect:**
+**ความหมายของแต่ละด้าน:**
 
-- **Runtime checking**: Errors detected during execution, often after significant computational resources have been consumed
-- **Compile-time checking**: Errors detected during compilation, ensuring dimensional consistency before any simulation runs
-- **Performance overhead**: Consistent dimensional checking throughout simulation impacts solver performance
-- **Zero runtime cost**: Dimensions resolved at compile-time via Template Specialization, eliminating runtime checks
-- **Expressive type system**: Template Specialization for different physical quantities allows precise dimensional relationship definitions
+- **การตรวจสอบขณะทำงาน**: ตรวจพบข้อผิดพลาดระหว่างการประมวลผล ซึ่งมักจะเกิดขึ้นหลังจากใช้ทรัพยากรการคำนวณไปมากแล้ว
+- **การตรวจสอบขณะคอมไพล์**: ตรวจพบข้อผิดพลาดระหว่างการคอมไพล์ ช่วยรับประกันความสอดคล้องทางมิติก่อนที่จะรันการจำลองใดๆ
+- **ภาระงานด้านประสิทธิภาพ**: การตรวจสอบมิติอย่างต่อเนื่องตลอดการจำลองส่งผลกระทบต่อประสิทธิภาพของตัวแก้สมการ (Solver)
+- **ไม่มีค่าใช้จ่ายขณะทำงาน**: มิติข้อมูลถูกประมวลผลเสร็จสิ้นในเวลาคอมไพล์ผ่าน Template Specialization ทำให้ไม่ต้องตรวจสอบซ้ำขณะทำงาน
+- **ระบบประเภทที่แสดงออกได้ดี**: การใช้ Template Specialization สำหรับปริมาณทางฟิสิกส์ที่ต่างกันช่วยให้กำหนดความสัมพันธ์ทางมิติได้อย่างแม่นยำ
 
-### Real-World Scenario: Building Inspector vs. Construction Foreman
+### สถานการณ์สมมติในโลกจริง: ผู้ตรวจสอบอาคาร เทียบกับ หัวหน้าคนงานก่อสร้าง
 
-**Building Inspector** (compile-time):
-- ✅ Inspects blueprints *before* construction begins
-- ✅ Ensures every measurement, material, and structural calculation complies with physics and regulations
-- ✅ Catches errors when easiest to fix—during the design phase
+**ผู้ตรวจสอบอาคาร** (เวลาคอมไพล์):
+- ✅ ตรวจสอบพิมพ์เขียว *ก่อน* เริ่มการก่อสร้าง
+- ✅ มั่นใจว่าทุกการวัด วัสดุ และการคำนวณโครงสร้างเป็นไปตามหลักฟิสิกส์และกฎระเบียบ
+- ✅ จับข้อผิดพลาดได้ในขั้นตอนที่แก้ไขง่ายที่สุด—คือขั้นตอนการออกแบบ
 
-**Construction Foreman** (runtime):
-- ⚠️ Inspects measurements *during* construction
-- ⚠️ Detects errors as they happen
-- ❌ Higher cost to fix and potential structural failures
+**หัวหน้าคนงานก่อสร้าง** (เวลาทำงาน):
+- ⚠️ ตรวจสอบการวัด *ระหว่าง* การก่อสร้าง
+- ⚠️ ตรวจพบข้อผิดพลาดเมื่อมันเกิดขึ้นแล้ว
+- ❌ มีค่าใช้จ่ายสูงในการแก้ไข และเสี่ยงต่อความล้มเหลวของโครงสร้าง
 
 ```mermaid
 flowchart TD
-    A[Programmer writes code] --> B{Operation: A + B}
-    B --> C[Compiler checks Types]
-    C --> D{Do Dimensions match?}
-    D -- No --> E[Compile Error: Stopped]
-    D -- Yes --> F[Generate Efficient Binary]
-    E --> G[Fix Physics Error early]
-    F --> H[Fast Simulation]
+    A[นักพัฒนาเขียนโค้ด] --> B{การดำเนินการ: A + B}
+    B --> C[คอมไพเลอร์ตรวจสอบประเภทข้อมูล]
+    C --> D{มิติข้อมูลตรงกันหรือไม่?}
+    D -- ไม่ตรง --> E[ข้อผิดพลาดคอมไพล์: หยุดทำงาน]
+    D -- ตรง --> F[สร้างไบนารีที่มีประสิทธิภาพ]
+    E --> G[แก้ไขข้อผิดพลาดฟิสิกส์ตั้งแต่เนิ่นๆ]
+    F --> H[การจำลองทำงานรวดเร็ว]
 ```
-> **Figure 1:** กระบวนการทำงานของคอมไพเลอร์ในฐานะ "ตัวตรวจสอบฟิสิกส์" (Physics Checker) ซึ่งจะหยุดกระบวนการสร้างโปรแกรมทันทีหากตรวจพบความไม่สอดคล้องของมิติทางกายภาพ
+> **รูปที่ 1:** กระบวนการทำงานของคอมไพเลอร์ในฐานะ "ตัวตรวจสอบฟิสิกส์" (Physics Checker) ซึ่งจะหยุดกระบวนการสร้างโปรแกรมทันทีหากตรวจพบความไม่สอดคล้องของมิติทางกายภาพ
 
 ---
 
-## ⚙️ Core Mechanisms in Code
+## ⚙️ กลไกหลักในโค้ด
 
-OpenFOAM's innovation is integrating physical dimensions into type definitions:
+นวัตกรรมของ OpenFOAM คือการรวมมิติทางกายภาพเข้ากับนิยามของประเภทข้อมูล:
 
-### OpenFOAM Code Implementation
+### การนำไปใช้ในโค้ด OpenFOAM
 
 ```cpp
-// Dimensions become part of the type system
-dimensionedScalar pressure;      // Type: dimensioned<scalar> with pressure dimensions (ML^-1T^-2)
-dimensionedScalar velocity;      // Type: dimensioned<scalar> with velocity dimensions (LT^-1)
+// มิติกลายเป็นส่วนหนึ่งของระบบประเภทข้อมูล
+dimensionedScalar pressure;      // ประเภท: dimensioned<scalar> พร้อมมิติของความดัน (ML^-1T^-2)
+dimensionedScalar velocity;      // ประเภท: dimensioned<scalar> พร้อมมิติของความเร็ว (LT^-1)
 
-// Compile-time error: Different dimensions
-auto wrong = pressure + velocity;  // Error: Cannot add pressure (ML^-1T^-2) to velocity (LT^-1)
+// ข้อผิดพลาดเวลาคอมไพล์: มิติข้อมูลต่างกัน
+auto wrong = pressure + velocity;  // ข้อผิดพลาด: ไม่สามารถบวกความดัน (ML^-1T^-2) กับความเร็ว (LT^-1)
 
-// Compile-time success: Same dimensions
+// สำเร็จเวลาคอมไพล์: มิติข้อมูลเหมือนกัน
 dimensionedScalar anotherPressure;
-auto total = pressure + anotherPressure;  // OK: Both have pressure dimensions
+auto total = pressure + anotherPressure;  // ตกลง: ทั้งคู่มีมิติของความดัน
 ```
 
-> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L:45-52`  
-> **📖 Explanation:** โค้ดตัวอย่างแสดงให้เห็นว่า OpenFOAM ผนวกข้อมูลมิติทางกายภาพเข้าไปในนิยามประเภทข้อมูล (type definitions) โดยตรง ตัวแปร `pressure` และ `velocity` มีชนิดข้อมูลเป็น `dimensionedScalar` แต่มีข้อมูลมิติที่แตกต่างกัน การพยายามบวกตัวแปรที่มีมิติต่างกันจะทำให้เกิดข้อผิดพลาดในช่วงคอมไพล์  
-> **🔑 Key Concepts:** `dimensionedScalar`, `compile-time error`, `dimensional consistency`, `type system`
+> **📂 แหล่งที่มา:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L:45-52`  
+> **📖 คำอธิบาย:** โค้ดตัวอย่างแสดงให้เห็นว่า OpenFOAM ผนวกข้อมูลมิติทางกายภาพเข้าไปในนิยามประเภทข้อมูล (Type definitions) โดยตรง ตัวแปร `pressure` และ `velocity` มีชนิดข้อมูลเป็น `dimensionedScalar` แต่มีข้อมูลมิติที่แตกต่างกัน การพยายามบวกตัวแปรที่มีมิติต่างกันจะทำให้เกิดข้อผิดพลาดในช่วงคอมไพล์  
+> **🔑 แนวคิดสำคัญ:** `dimensionedScalar`, `compile-time error`, `dimensional consistency`, `type system`
 
-### Template Mechanism for Dimensional Analysis
+### กลไกเทมเพลตสำหรับการวิเคราะห์มิติ
 
 ```cpp
-// Template mechanism for dimensional analysis enforcement
+// กลไกเทมเพลตสำหรับการบังคับใช้การวิเคราะห์มิติ
 template<class Type1, class Type2>
 class dimensionedSum
 {
-    // Static assertion to check dimensional compatibility at compile-time
+    // การตรวจสอบแบบคงที่ (Static assertion) เพื่อตรวจสอบความเข้ากันได้ของมิติในเวลาคอมไพล์
     static_assert(
         dimensions<Type1>::compatible(dimensions<Type2>::value),
         "Cannot add quantities with different dimensions"
     );
     
-    // Implementation compiles only when dimensions match
+    // การนำไปใช้งานจะคอมไพล์ผ่านเมื่อมิติตรงกันเท่านั้น
 public:
     typedef typename Type1::value_type value_type;
     
@@ -99,136 +99,136 @@ public:
 };
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C:98-115`  
-> **📖 Explanation:** กลไกเทมเพลตของ OpenFOAM ใช้ `static_assert` เพื่อตรวจสอบความเข้ากันได้ของมิติในช่วงคอมไพล์เวลา ฟังก์ชัน `dimensions<Type>::compatible()` จะตรวจสอบว่ามิติของทั้งสองประเภทข้อมูลสอดคล้องกันหรือไม่ หากไม่สอดคล้อง คอมไพเลอร์จะหยุดการทำงานทันที ซึ่งช่วยป้องกันข้อผิดพลาดทางฟิสิกส์ในขั้นตอนการพัฒนาซอฟต์แวร์  
-> **🔑 Key Concepts:** `template metaprogramming`, `static_assert`, `dimensional compatibility`, `compile-time checking`
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C:98-115`  
+> **📖 คำอธิบาย:** กลไกเทมเพลตของ OpenFOAM ใช้ `static_assert` เพื่อตรวจสอบความเข้ากันได้ของมิติในช่วงคอมไพล์เวลา ฟังก์ชัน `dimensions<Type>::compatible()` จะตรวจสอบว่ามิติของทั้งสองประเภทข้อมูลสอดคล้องกันหรือไม่ หากไม่สอดคล้อง คอมไพเลอร์จะหยุดการทำงานทันที ซึ่งช่วยป้องกันข้อผิดพลาดทางฟิสิกส์ในขั้นตอนการพัฒนาซอฟต์แวร์  
+> **🔑 แนวคิดสำคัญ:** `template metaprogramming`, `static_assert`, `dimensional compatibility`, `compile-time checking`
 
-**Mechanism Components:**
+**ส่วนประกอบของกลไก:**
 
-- `template<class Type1, class Type2>`: Generic type definition for mathematical operations
-- `static_assert`: Compile-time check enforcing dimensional compatibility
-- `dimensions<Type>::compatible()`: Function checking dimensional compatibility between two types
-
----
-
-## 🎯 Engineering Benefits
-
-### 1. Zero Runtime Cost
-
-All checking happens at compile-time, allowing solvers to run as fast as raw numerical operations.
-
-### 2. Early Detection
-
-Errors in equation formulation or unit entry are caught during the development phase.
-
-### 3. Physical Integrity
-
-Code written is guaranteed to respect fundamental physical laws.
+- `template<class Type1, class Type2>`: นิยามประเภทข้อมูลทั่วไปสำหรับการดำเนินการทางคณิตศาสตร์
+- `static_assert`: การตรวจสอบเวลาคอมไพล์เพื่อบังคับใช้ความเข้ากันได้ทางมิติ
+- `dimensions<Type>::compatible()`: ฟังก์ชันตรวจสอบความเข้ากันได้ทางมิติระหว่างสองประเภทข้อมูล
 
 ---
 
-## 📐 Mathematical Foundation
+## 🎯 ประโยชน์เชิงวิศวกรรม
 
-The dimensional analysis framework in OpenFOAM is built on rigorous mathematical foundations ensuring physical consistency across all numerical operations.
+### 1. ไม่มีค่าใช้จ่ายส่วนเกินขณะทำงาน (Zero Runtime Cost)
 
-### Dimensional Representation
+การตรวจสอบทั้งหมดเกิดขึ้นในเวลาคอมไพล์ ทำให้ตัวแก้สมการ (Solvers) ทำงานได้รวดเร็วเท่ากับการดำเนินการตัวเลขดิบโดยตรง
 
-For any physical quantity $q$, the dimensional representation is:
+### 2. การตรวจพบข้อผิดพลาดตั้งแต่เนิ่นๆ
+
+ข้อผิดพลาดในการสร้างสมการหรือการป้อนหน่วยจะถูกจับได้ในขั้นตอนการพัฒนาโค้ด
+
+### 3. ความถูกต้องสมบูรณ์ทางฟิสิกส์
+
+โค้ดที่เขียนขึ้นได้รับการรับประกันว่าเคารพกฎพื้นฐานทางฟิสิกส์
+
+---
+
+## 📐 รากฐานทางคณิตศาสตร์
+
+กรอบการทำงานการวิเคราะห์มิติใน OpenFOAM ถูกสร้างขึ้นบนรากฐานทางคณิตศาสตร์ที่เข้มงวด เพื่อให้แน่ใจถึงความสอดคล้องทางฟิสิกส์ในทุกการดำเนินการตัวเลข
+
+### การแทนค่าทางมิติ (Dimensional Representation)
+
+สำหรับปริมาณทางกายภาพ $q$ ใดๆ การแทนค่าทางมิติคือ:
 $$[q] = M^a L^b T^c \Theta^d I^e N^f J^g$$
 
-Where:
-- $M$ = Mass
-- $L$ = Length
-- $T$ = Time
-- $\Theta$ = Temperature
-- $I$ = Electric current
-- $N$ = Amount of substance
-- $J$ = Luminous intensity
+โดยที่:
+- $M$ = มวล (Mass)
+- $L$ = ความยาว (Length)
+- $T$ = เวลา (Time)
+- $\Theta$ = อุณหภูมิ (Temperature)
+- $I$ = กระแสไฟฟ้า (Electric current)
+- $N$ = ปริมาณของสาร (Amount of substance)
+- $J$ = ความเข้มแสง (Luminous intensity)
 
-Exponents $a$ through $g$ are integers determining the specific physical quantity's character.
+เลขชี้กำลัง $a$ ถึง $g$ เป็นจำนวนเต็มที่กำหนดลักษณะเฉพาะของปริมาณทางกายภาพนั้นๆ
 
-### Application to Momentum Equation
+### การประยุกต์ใช้กับสมการโมเมนตัม
 
-This mathematical foundation extends to tensor operations where dimensional analysis ensures mathematical operations maintain physical meaning.
+รากฐานทางคณิตศาสตร์นี้ขยายไปถึงการดำเนินการเทนเซอร์ (Tensor operations) ซึ่งการวิเคราะห์มิติจะรับประกันว่าการดำเนินการทางคณิตศาสตร์ยังคงรักษาความหมายทางฟิสิกส์ไว้
 
-For the momentum equation:
+สำหรับสมการโมเมนตัม:
 $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
 
-**Each term must have the same dimension** $[ML^{-2}T^{-2}]$, representing **force per volume**.
+**แต่ละพจน์ต้องมีมิติเดียวกัน** คือ $[ML^{-2}T^{-2}]$ ซึ่งแทน **แรงต่อหน่วยปริมาตร (Force per volume)**
 
-OpenFOAM's dimensional analysis automatically verifies this consistency at both compile-time and runtime, preventing meaningless physical calculations that could lead to:
-- ❌ Simulation errors
-- ❌ Incorrect results
-- ❌ Conservation law violations
+การวิเคราะห์มิติของ OpenFOAM จะตรวจสอบความสอดคล้องนี้โดยอัตโนมัติทั้งในเวลาคอมไพล์และเวลาทำงาน เพื่อป้องกันการคำนวณทางฟิสิกส์ที่ไม่มีความหมายซึ่งอาจนำไปสู่:
+- ❌ ข้อผิดพลาดในการจำลอง
+- ❌ ผลลัพธ์ที่ไม่ถูกต้อง
+- ❌ การละเมิดกฎการอนุรักษ์
 
 ---
 
-## 🔧 Key Implementation Mechanisms
+## 🔧 กลไกหลักในการนำไปใช้งาน
 
-### Template Hierarchy and Specialization Patterns
+### ลำดับชั้นของเทมเพลตและรูปแบบ Specialization (Template Hierarchy and Specialization Patterns)
 
-OpenFOAM's dimensional type system uses a **complex template hierarchy** providing compile-time dimensional safety while maintaining runtime flexibility.
+ระบบประเภทข้อมูลที่มีมิติของ OpenFOAM ใช้ **ลำดับชั้นเทมเพลตที่ซับซ้อน** เพื่อให้ความปลอดภัยทางมิติในเวลาคอมไพล์ในขณะที่ยังคงความยืดหยุ่นในเวลาทำงาน
 
-**The core `dimensioned<Type>` class** serves as a wrapper around any numerical type (scalar, vector, tensor, etc.) with:
-- Dimensional metadata
-- Embedded descriptive name
+**คลาสหลัก `dimensioned<Type>`** ทำหน้าที่เป็นตัวห่อหุ้ม (Wrapper) รอบประเภทข้อมูลตัวเลขใดๆ (สเกลาร์, เวกเตอร์, เทนเซอร์ ฯลฯ) พร้อมด้วย:
+- ข้อมูลเมตาทางมิติ (Dimensional metadata)
+- ชื่อที่ใช้อธิบายตัวแปรนั้นๆ
 
-**Key Design Benefits:**
-- ✅ **Prevents mathematical errors** at compile-time, not runtime
-- ✅ **Treats physical quantities as first-class citizens**
-- ✅ **Prevents hard-to-debug errors** in complex CFD simulations
+**ประโยชน์หลักของการออกแบบ:**
+- ✅ **ป้องกันข้อผิดพลาดทางคณิตศาสตร์** ณ เวลาคอมไพล์ ไม่ใช่เวลาทำงาน
+- ✅ **ปฏิบัติกับปริมาณทางกายภาพเป็นสมาชิกชั้นหนึ่ง (First-class citizens)** ของระบบ
+- ✅ **ป้องกันข้อผิดพลาดที่ยากต่อการดีบัก** ในการจำลอง CFD ที่ซับซ้อน
 
-### Component Type Separation
+### การแยกประเภทส่วนประกอบ (Component Type Separation)
 
-**Component type separation** allows tensor operations to maintain dimensional consistency at the component level.
+**การแยกประเภทส่วนประกอบ** ช่วยให้การดำเนินการเทนเซอร์รักษาความสอดคล้องทางมิติในระดับส่วนประกอบได้
 
-**Example:** When extracting a component from a dimensioned vector:
-- Result is a **dimensioned scalar**
-- Has same physical dimensions as the original vector
+**ตัวอย่าง:** เมื่อดึงส่วนประกอบ (Component) ออกจากเวกเตอร์ที่มีมิติ:
+- ผลลัพธ์จะเป็น **สเกลาร์ที่มีมิติ (Dimensioned scalar)**
+- มีมิติทางกายภาพเหมือนกับเวกเตอร์เดิม
 
-**Approach Benefits:**
-- ✅ Dimensional information correctly propagated through all operations
-- ✅ Supports operations from simple calculations to complex tensor manipulations
+**ประโยชน์ของแนวทางนี้:**
+- ✅ ข้อมูลมิติถูกส่งผ่านอย่างถูกต้องในทุกการดำเนินการ
+- ✅ รองรับตั้งแต่การคำนวณง่ายๆ ไปจนถึงการจัดการเทนเซอร์ที่ซับซ้อน
 
-### `dimensionSet` Representation and Algebraic Operations
+### การแทนค่า `dimensionSet` และการดำเนินการทางพีชคณิต
 
-**The `dimensionSet` class** is OpenFOAM's dimensional analysis mathematical foundation.
+**คลาส `dimensionSet`** คือรากฐานทางคณิตศาสตร์สำหรับการวิเคราะห์มิติของ OpenFOAM
 
-**Basic Structure:**
-- Encodes physical dimensions as exponents of seven SI base units
-- Each dimension represented as a floating-point exponent
-- Allows fractional exponents (e.g., square roots in diffusion coefficients)
+**โครงสร้างพื้นฐาน:**
+- เข้ารหัสมิติทางกายภาพเป็นเลขชี้กำลังของหน่วยฐาน SI ทั้งเจ็ด
+- แต่ละมิติถูกแทนด้วยเลขชี้กำลังที่เป็นทศนิยม
+- อนุญาตให้ใช้เลขชี้กำลังที่เป็นเศษส่วนได้ (เช่น รากที่สองในสัมประสิทธิ์การแพร่)
 
-**Dimensional Algebra Operations:**
+**การดำเนินการพีชคณิตทางมิติ:**
 
-| Operation | Dimension Rule | Example |
+| การดำเนินการ | กฎของมิติ | ตัวอย่าง |
 |-----------|----------------|---------|
-| **Addition/Subtraction** | Requires same dimensions | m/s + m/s = m/s |
-| **Multiplication** | Add exponents | kg × m/s² = kg·m/s² (force) |
-| **Division** | Subtract exponents | (m²/s²)/(m/s) = m/s |
-| **Power** | Multiply exponents | (m/s)² = m²/s² |
+| **การบวก/การลบ** | ต้องมีมิติเหมือนกัน | m/s + m/s = m/s |
+| **การคูณ** | บวกเลขชี้กำลังเข้าด้วยกัน | kg × m/s² = kg·m/s² (แรง) |
+| **การหาร** | ลบเลขชี้กำลังออกจากกัน | (m²/s²)/(m/s) = m/s |
+| **การยกกำลัง** | คูณเลขชี้กำลังด้วยค่าคงที่ | (m/s)² = m²/s² |
 
-**Special Functions:**
-- **Power operations**: Supports fractional exponents
-- **Example**: √(m²/s²) = m/s
+**ฟังก์ชันพิเศษ:**
+- **การดำเนินการยกกำลัง**: รองรับเลขชี้กำลังที่เป็นเศษส่วน
+- **ตัวอย่าง**: √(m²/s²) = m/s
 
 ---
 
-## 🧠 Under the Hood: Template Metaprogramming Architecture
+## 🧠 ภายใต้ฝาครอบ: สถาปัตยกรรมเทมเพลตเมตาโปรแกรมมิ่ง
 
-OpenFOAM's dimensional analysis system represents a sophisticated application of compile-time metaprogramming techniques providing both type safety and computational performance.
+ระบบการวิเคราะห์มิติของ OpenFOAM เป็นการประยุกต์ใช้เทคนิคการเขียนโปรแกรมเชิงเทมเพลต (Template metaprogramming) ขั้นสูง เพื่อให้ได้ทั้งความปลอดภัยของประเภทข้อมูลและประสิทธิภาพในการคำนวณ
 
-### CRTP (Curiously Recurring Template Pattern) in Dimensioned Types
+### CRTP (Curiously Recurring Template Pattern) ในประเภทข้อมูลที่มีมิติ
 
-CRTP forms the foundation of OpenFOAM's compile-time polymorphism strategy for dimensional operations, enabling static dispatch while avoiding virtual function overhead.
+CRTP เป็นรากฐานของกลยุทธ์ Polymorphism เวลาคอมไพล์ของ OpenFOAM สำหรับการดำเนินการทางมิติ ช่วยให้สามารถส่งคำสั่งแบบคงที่ (Static dispatch) ได้โดยไม่ต้องมีภาระงานส่วนเกิน (Overhead) จาก Virtual function
 
 ```cpp
-// Base template using CRTP (Curiously Recurring Template Pattern)
+// คลาสฐานเทมเพลตโดยใช้ CRTP (Curiously Recurring Template Pattern)
 template<class Derived>
 class DimensionedBase
 {
 public:
-    // CRTP helper for accessing derived class
+    // ฟังก์ชันช่วยของ CRTP เพื่อเข้าถึงคลาสลูก (Derived class)
     Derived& derived()
     {
         return static_cast<Derived&>(*this);
@@ -239,7 +239,7 @@ public:
         return static_cast<const Derived&>(*this);
     }
 
-    // Operations defined in terms of derived class
+    // การดำเนินการที่นิยามตามคลาสลูก
     auto operator+(const Derived& other) const
     {
         return Derived::add(derived(), other);
@@ -252,23 +252,23 @@ public:
     }
 };
 
-// Concrete dimensioned type using CRTP
+// ประเภทข้อมูลที่มีมิติจริงโดยใช้ CRTP
 template<class Type>
 class dimensioned : public DimensionedBase<dimensioned<Type>>
 {
 private:
-    word name_;                    // Descriptive name for the quantity
-    dimensionSet dimensions_;      // Physical dimensions (M, L, T, etc.)
-    Type value_;                   // Numerical value
+    word name_;                    // ชื่อที่ใช้อธิบายปริมาณ
+    dimensionSet dimensions_;      // มิติทางกายภาพ (M, L, T ฯลฯ)
+    Type value_;                   // ค่าตัวเลข
 
 public:
-    // CRTP-enabled operations
+    // การดำเนินการที่เปิดใช้งาน CRTP
     friend class DimensionedBase<dimensioned<Type>>;
 
-    // Addition with dimensional checking
+    // การบวกพร้อมการตรวจสอบมิติ
     static dimensioned add(const dimensioned& a, const dimensioned& b)
     {
-        // Runtime dimension verification (also enforced at compile-time)
+        // การยืนยันมิติขณะทำงาน (ซึ่งถูกบังคับใช้ในเวลาคอมไพล์ด้วย)
         if (a.dimensions() != b.dimensions())
         {
             FatalErrorIn("dimensioned::add")
@@ -277,7 +277,7 @@ public:
                 << abort(FatalError);
         }
 
-        // Return new dimensioned quantity with same dimensions
+        // ส่งคืนปริมาณที่มีมิติใหม่พร้อมมิติเดิม
         return dimensioned(
             "result",
             a.dimensions(),
@@ -285,10 +285,10 @@ public:
         );
     }
 
-    // Multiplication with dimensional propagation
+    // การคูณพร้อมการส่งผ่านมิติ
     static dimensioned multiply(const dimensioned& a, const dimensioned& b)
     {
-        // Multiply dimensions by adding exponents
+        // คูณมิติโดยการบวกเลขชี้กำลัง
         return dimensioned(
             "result",
             a.dimensions() * b.dimensions(),
@@ -298,33 +298,33 @@ public:
 };
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/StationaryPhaseModel/StationaryPhaseModel.C:52-98`  
-> **📖 Explanation:** CRTP (Curiously Recurring Template Pattern) เป็นเทคนิคขั้นสูงใน C++ ที่ช่วยให้ OpenFOAM สามารถทำ static polymorphism ได้โดยไม่ต้องใช้ virtual function ซึ่งจะสร้าง overhead ในขณะทำงาน คลาสฐาน `DimensionedBase<Derived>` มีฟังก์ชันการทำงานที่กำหนดไว้ล่วงหน้า แต่จะเรียกใช้การนำไปใช้จริง (implementation) จากคลาสลูก (`dimensioned<Type>`) ผ่านการ cast ด้วย `static_cast` ทำให้คอมไพเลอร์สามารถ optimize โค้ดได้ดีขึ้นและไม่ต้องการตาราง virtual function table  
-> **🔑 Key Concepts:** `CRTP`, `static polymorphism`, `compile-time dispatch`, `virtual function overhead`, `type erasure`
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/StationaryPhaseModel/StationaryPhaseModel.C:52-98`  
+> **📖 คำอธิบาย:** CRTP (Curiously Recurring Template Pattern) เป็นเทคนิคขั้นสูงใน C++ ที่ช่วยให้ OpenFOAM สามารถทำ static polymorphism ได้โดยไม่ต้องใช้ virtual function ซึ่งจะสร้าง overhead ในขณะทำงาน คลาสฐาน `DimensionedBase<Derived>` มีฟังก์ชันการทำงานที่กำหนดไว้ล่วงหน้า แต่จะเรียกใช้การนำไปใช้จริง (implementation) จากคลาสลูก (`dimensioned<Type>`) ผ่านการ cast ด้วย `static_cast` ทำให้คอมไพเลอร์สามารถ optimize โค้ดได้ดีขึ้นและไม่ต้องการตาราง virtual function table  
+> **🔑 แนวคิดสำคัญ:** `CRTP`, `static polymorphism`, `compile-time dispatch`, `virtual function overhead`, `type erasure`
 
-### Expression Templates for Dimensional Operations
+### Expression Templates สำหรับการดำเนินการทางมิติ (Expression Templates for Dimensional Operations)
 
-Expression templates in OpenFOAM eliminate temporary objects and enable lazy evaluation of dimensional algebra operations. This technique is critical for performance in field calculations where temporary objects create significant overhead.
+Expression templates ใน OpenFOAM ช่วยกำจัดการสร้างวัตถุชั่วคราวและเปิดใช้งานการประเมินผลแบบขี้เกียจ (Lazy evaluation) ของพีชคณิตทางมิติ เทคนิคนี้สำคัญอย่างยิ่งต่อประสิทธิภาพในการคำนวณสนามข้อมูล ซึ่งวัตถุชั่วคราวสามารถสร้างภาระงานส่วนเกินได้อย่างมหาศาล
 
 ```cpp
-// Expression template for dimensioned addition
+// Expression template สำหรับการบวกปริมาณที่มีมิติ
 template<class E1, class E2>
 class DimensionedAddExpr
 {
 private:
-    const E1& e1_;    // Left operand reference
-    const E2& e2_;    // Right operand reference
+    const E1& e1_;    // อ้างอิงไปยัง Operand ฝั่งซ้าย
+    const E2& e2_;    // อ้างอิงไปยัง Operand ฝั่งขวา
 
 public:
-    // Type definitions for value and dimension
+    // นิยามประเภทข้อมูลสำหรับค่าและมิติ
     typedef typename E1::value_type value_type;
     typedef typename E1::dimension_type dimension_type;
 
-    // Constructor with compile-time dimension check
+    // คอนสตรัคเตอร์พร้อมการตรวจสอบมิติเวลาคอมไพล์
     DimensionedAddExpr(const E1& e1, const E2& e2)
     : e1_(e1), e2_(e2)
     {
-        // Compile-time dimension check using static_assert
+        // การตรวจสอบมิติเวลาคอมไพล์โดยใช้ static_assert
         static_assert(
             std::is_same<
                 typename E1::dimension_type,
@@ -334,19 +334,19 @@ public:
         );
     }
 
-    // Lazy evaluation: compute value only when requested
+    // การประเมินผลแบบขี้เกียจ: คำนวณค่าเฉพาะเมื่อมีการร้องขอเท่านั้น
     value_type value() const
     {
         return e1_.value() + e2_.value();
     }
     
-    // Propagate dimensions from operands
+    // ส่งผ่านมิติจาก Operand
     dimension_type dimensions() const
     {
         return e1_.dimensions();
     }
 
-    // Enable further expression template chaining
+    // เปิดใช้งานการต่อสายโซ่ Expression template ต่อไป
     template<class E3>
     auto operator+(const E3& e3) const
     {
@@ -355,77 +355,77 @@ public:
 };
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/coalescenceModels/LiaoCoalescence/LiaoCoalescence.C:145-178`  
-> **📖 Explanation:** Expression Templates เป็นเทคนิคขั้นสูงที่ใช้ใน OpenFOAM เพื่อลดการสร้าง object ชั่วคราว (temporary objects) และเปิดใช้งาน lazy evaluation สำหรับการดำเนินการพีชคณิตของมิติ คลาส `DimensionedAddExpr<E1, E2>` เก็บ references ไปยัง operands แทนที่จะคำนวณผลลัพธ์ทันที และใช้ `static_assert` เพื่อตรวจสอบความเข้ากันได้ของมิติในช่วงคอมไพล์ นี่ช่วยให้คอมไพเลอร์ optimize การดำเนินการได้ดีขึ้นผ่าน loop fusion และลด overhead ของ memory allocation  
-> **🔑 Key Concepts:** `expression templates`, `lazy evaluation`, `temporary objects`, `loop fusion`, `compile-time optimization`, `type traits`
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/coalescenceModels/LiaoCoalescence/LiaoCoalescence.C:145-178`  
+> **📖 คำอธิบาย:** Expression Templates เป็นเทคนิคขั้นสูงที่ใช้ใน OpenFOAM เพื่อลดการสร้าง object ชั่วคราว (temporary objects) และเปิดใช้งาน lazy evaluation สำหรับการดำเนินการพีชคณิตของมิติ คลาส `DimensionedAddExpr<E1, E2>` เก็บ references ไปยัง operands แทนที่จะคำนวณผลลัพธ์ทันที และใช้ `static_assert` เพื่อตรวจสอบความเข้ากันได้ของมิติในช่วงคอมไพล์ นี่ช่วยให้คอมไพเลอร์ optimize การดำเนินการได้ดีขึ้นผ่าน loop fusion และลด overhead ของ memory allocation  
+> **🔑 แนวคิดสำคัญ:** `expression templates`, `lazy evaluation`, `temporary objects`, `loop fusion`, `compile-time optimization`, `type traits`
 
-Expression templates enable lazy evaluation and loop fusion in field operations, providing significant performance improvements for large-scale CFD calculations.
+Expression templates ช่วยให้เกิดการประเมินผลแบบขี้เกียจและการรวมลูป (Loop fusion) ในการดำเนินการสนามข้อมูล ซึ่งช่วยเพิ่มประสิทธิภาพอย่างมีนัยสำคัญสำหรับการคำนวณ CFD ขนาดใหญ่
 
 ---
 
-## ⚠️ Advanced Pitfalls and Solutions
+## ⚠️ ข้อผิดพลาดขั้นสูงและแนวทางแก้ไข
 
-### Template Instantiation Errors and Debugging Strategies
+### ข้อผิดพลาดการสร้างอินสแตนซ์เทมเพลตและกลยุทธ์การดีบัก (Template Instantiation Errors and Debugging Strategies)
 
-In OpenFOAM's **template metaprogramming architecture**, template instantiation errors often manifest as cryptic compiler messages. Understanding these patterns is crucial for debugging complex dimensional analysis problems.
+ใน **สถาปัตยกรรมเทมเพลตเมตาโปรแกรมมิ่ง** ของ OpenFOAM ข้อผิดพลาดในการสร้างอินสแตนซ์เทมเพลตมักจะปรากฏในรูปแบบของข้อความคอมไพเลอร์ที่ซับซ้อน การเข้าใจรูปแบบเหล่านี้เป็นสิ่งสำคัญสำหรับการดีบักปัญหาการวิเคราะห์มิติที่ซับซ้อน
 
 ```cpp
-// Error: Template argument deduction failure
+// ข้อผิดพลาด: ความล้มเหลวในการอนุมานอาร์กิวเมนต์เทมเพลต (Template argument deduction failure)
 template<class Type>
 dimensioned<Type> operator+(const dimensioned<Type>& a, const dimensioned<Type>& b)
 {
-    // Requires identical dimensions
+    // ต้องการมิติข้อมูลที่เหมือนกันทุกประการ
     return dimensioned<Type>(a.name(), a.dimensions(), a.value() + b.value());
 }
 
-// Problem: Mixing dimensionedScalar with plain scalar
+// ปัญหา: การผสม dimensionedScalar เข้ากับ scalar ธรรมดา
 dimensionedScalar p(dimPressure, 101325.0);
 scalar factor = 2.0;
-auto wrong = p + factor;  // Error: No matching operator+
+auto wrong = p + factor;  // ข้อผิดพลาด: ไม่พบ operator+ ที่ตรงกัน
 
-// Solution 1: Explicit conversion with dimensioned scalar
+// แนวทางแก้ไขที่ 1: แปลงเป็นประเภทที่มีมิติอย่างชัดเจน
 auto correct1 = p + dimensionedScalar(dimless, factor);
 
-// Solution 2: Use multiplication operator (defined for dimensioned × scalar)
-auto correct2 = p * factor;  // scalar multiplication is defined
+// แนวทางแก้ไขที่ 2: ใช้ตัวดำเนินการคูณ (ซึ่งถูกนิยามไว้สำหรับ dimensioned × scalar)
+auto correct2 = p * factor;  // การคูณด้วย scalar ถูกนิยามไว้แล้ว
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/binaryBreakupModels/Liao/LiaoBase.C:67-89`  
-> **📖 Explanation:** ปัญหาที่พบบ่อยในระบบ type system ของ OpenFOAM คือการผสมประเภทข้อมูลที่แตกต่างกัน เช่น `dimensionedScalar` กับ `scalar` ธรรมดา การดำเนินการบวกต้องการ operands ทั้งสองมีมิติเหมือนกัน แต่ scalar ธรรมดาไม่มีข้อมูลมิติ ทำให้เกิดข้อผิดพลาดในช่วงคอมไพล์ วิธีแก้ไขคือแปลง scalar ให้เป็น dimensionedScalar ที่ไม่มีมิติ (dimensionless) หรือใช้ operator คูณที่ถูกนิยามไว้สำหรับกรณีนี้  
-> **🔑 Key Concepts:** `type deduction`, `template instantiation`, `dimensionless`, `operator overloading`, `type conversion`
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/binaryBreakupModels/Liao/LiaoBase.C:67-89`  
+> **📖 คำอธิบาย:** ปัญหาที่พบบ่อยในระบบ type system ของ OpenFOAM คือการผสมประเภทข้อมูลที่แตกต่างกัน เช่น `dimensionedScalar` กับ `scalar` ธรรมดา การดำเนินการบวกต้องการให้ operands ทั้งสองมีมิติเหมือนกัน แต่ scalar ธรรมดาไม่มีข้อมูลมิติ ทำให้เกิดข้อผิดพลาดในช่วงคอมไพล์ วิธีแก้ไขคือแปลง scalar ให้เป็น dimensionedScalar ที่ไม่มีมิติ (dimensionless) หรือใช้ operator คูณที่ถูกนิยามไว้สำหรับกรณีนี้  
+> **🔑 แนวคิดสำคัญ:** `type deduction`, `template instantiation`, `dimensionless`, `operator overloading`, `type conversion`
 
-**Fundamental Issue**: Arises from OpenFOAM's strict type system where `dimensionedScalar` and `scalar` are distinct types. Addition operations require both operands to have the same dimension set, which plain scalars lack by definition.
+**ปัญหาพื้นฐาน**: เกิดจากระบบประเภทข้อมูลที่เข้มงวดของ OpenFOAM ซึ่ง `dimensionedScalar` และ `scalar` เป็นประเภทข้อมูลที่แตกต่างกัน การดำเนินการบวกต้องการให้ Operand ทั้งสองมีชุดมิติข้อมูลที่เหมือนกัน ซึ่งสเกลาร์ธรรมดาไม่มีนิยามนี้ตามโครงสร้าง
 
 ---
 
-## 🎯 Advanced Engineering Applications
+## 🎯 แอปพลิเคชันเชิงวิศวกรรมขั้นสูง
 
-### Extensible Dimension System
+### ระบบมิติที่ขยายได้ (Extensible Dimension System)
 
-OpenFOAM's dimensional system extends beyond the basic 7 dimensions through a sophisticated plugin architecture enabling custom physics models while maintaining strict dimensional consistency.
+ระบบมิติของ OpenFOAM สามารถขยายได้เกินกว่า 7 มิติพื้นฐานผ่านสถาปัตยกรรมปลั๊กอิน (Plugin architecture) ที่ซับซ้อน ช่วยให้สร้างแบบจำลองฟิสิกส์แบบกำหนดเองได้ในขณะที่ยังคงความสอดคล้องทางมิติอย่างเข้มงวด
 
 ```cpp
-// Base class for physics plugins with dimensional checking
+// คลาสฐานสำหรับปลั๊กอินฟิสิกส์พร้อมการตรวจสอบมิติ
 class PhysicsPlugin
 {
 public:
     virtual ~PhysicsPlugin() = default;
 
-    // Pure virtual methods with dimensional constraints
+    // เมธอดเสมือนบริสุทธิ์พร้อมข้อจำกัดทางมิติ
     virtual dimensionedScalar compute(
         const dimensionedScalar& input,
         const dimensionSet& expectedDimensions
     ) const = 0;
 
 protected:
-    // Dimension validation helper
+    // ฟังก์ชันช่วยในการตรวจสอบความถูกต้องของมิติ
     void validateDimensions(
         const dimensionSet& actual,
         const dimensionSet& expected,
         const char* functionName
     ) const
     {
-        // Check if dimensions match
+        // ตรวจสอบว่ามิติตรงกันหรือไม่
         if (actual != expected)
         {
             FatalErrorInFunction
@@ -437,105 +437,105 @@ protected:
     }
 };
 
-// Custom turbulence model plugin
+// ปลั๊กอินแบบจำลองความปั่นป่วนแบบกำหนดเอง
 class CustomTurbulenceModel : public PhysicsPlugin
 {
 public:
-    // Compute dissipation rate with dimensional safety
+    // คำนวณอัตราการสลายตัว (Dissipation rate) พร้อมความปลอดภัยทางมิติ
     dimensionedScalar compute(
-        const dimensionedScalar& k,  // Turbulent kinetic energy
+        const dimensionedScalar& k,  // พลังงานจลน์ความปั่นป่วน
         const dimensionSet& expectedDimensions
     ) const override
     {
-        // Validate input dimensions: k should have velocity²
+        // ตรวจสอบมิติขาเข้า: k ควรมีหน่วยเป็น velocity²
         validateDimensions(k.dimensions(), dimVelocity*dimVelocity, "CustomTurbulenceModel");
 
-        // Dimensional-safe computation: ε = Cμ * k^(3/2) / l
+        // การคำนวณที่ปลอดภัยทางมิติ: ε = Cμ * k^(3/2) / l
         dimensionedScalar epsilon = 0.09 * pow(k, 1.5) / lengthScale_;
         
-        // Validate output dimensions
+        // ตรวจสอบมิติขาออก
         validateDimensions(epsilon.dimensions(), expectedDimensions, "compute");
 
         return epsilon;
     }
 
 private:
-    // Length scale for turbulence model
+    // สเกลความยาวสำหรับแบบจำลองความปั่นป่วน
     dimensionedScalar lengthScale_{"lengthScale", dimLength, 0.1};
 };
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C:198-245`  
-> **📖 Explanation:** OpenFOAM มีสถาปัตยกรรม plugin ที่อนุญาตให้ขยายระบบมิติเกินกว่า 7 มิติพื้นฐานผ่าน inheritance hierarchy คลาสฐาน `PhysicsPlugin` นิยาม contracts ทางมิติที่คลาสลูกต้องปฏิบัติตาม ฟังก์ชัน `validateDimensions()` ตรวจสอบความถูกต้องของมิติทั้ง input และ output ทำให้แน่ใจว่า model ทางฟิสิกส์ที่กำหนดเองยังคงเคารพกฎหมายฟิสิกส์และความสอดคล้องของมิติ  
-> **🔑 Key Concepts:** `plugin architecture`, `dimensional contracts`, `inheritance hierarchy`, `custom physics models`, `runtime validation`, `turbulence modeling`
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C:198-245`  
+> **📖 คำอธิบาย:** OpenFOAM มีสถาปัตยกรรม plugin ที่อนุญาตให้ขยายระบบมิติเกินกว่า 7 มิติพื้นฐานผ่าน inheritance hierarchy คลาสฐาน `PhysicsPlugin` นิยาม contracts ทางมิติที่คลาสลูกต้องปฏิบัติตาม ฟังก์ชัน `validateDimensions()` ตรวจสอบความถูกต้องของมิติทั้ง input และ output ทำให้แน่ใจว่า model ทางฟิสิกส์ที่กำหนดเองยังคงเคารพกฎหมายฟิสิกส์และความสอดคล้องของมิติ  
+> **🔑 แนวคิดสำคัญ:** `plugin architecture`, `dimensional contracts`, `inheritance hierarchy`, `custom physics models`, `runtime validation`, `turbulence modeling`
 
-The plugin architecture enforces dimensional consistency through an inheritance hierarchy where the base class defines dimensional contracts that derived classes must fulfill.
+สถาปัตยกรรมปลั๊กอินบังคับใช้ความสอดคล้องทางมิติผ่านลำดับชั้นการสืบทอด ซึ่งคลาสฐานจะกำหนด "สัญญาทางมิติ" (Dimensional contracts) ที่คลาสลูกต้องปฏิบัติตาม
 
 ---
 
-## 🔬 Physics Connection: Advanced Mathematical Formulations
+## 🔬 การเชื่อมโยงทางฟิสิกส์: สูตรคณิตศาสตร์ขั้นสูง
 
-### Buckingham Pi Theorem and Implementation
+### ทฤษฎีบทพายของบัคกิงแฮม (Buckingham Pi Theorem) และการนำไปใช้
 
-**Buckingham Pi Theorem** provides the fundamental framework for dimensional analysis in fluid dynamics and CFD, stating that any physically meaningful equation involving $n$ variables can be rewritten in terms of $n - k$ dimensionless parameters, where $k$ is the number of fundamental dimensions.
+**ทฤษฎีบทพายของบัคกิงแฮม** ให้กรอบการทำงานพื้นฐานสำหรับการวิเคราะห์มิติในพลศาสตร์ของไหลและ CFD โดยระบุว่าสมการที่มีความหมายทางฟิสิกส์ใดๆ ที่เกี่ยวข้องกับตัวแปร $n$ ตัว สามารถเขียนใหม่ในรูปของพารามิเตอร์ไร้มิติ $n - k$ ตัวได้ โดยที่ $k$ คือจำนวนมิติพื้นฐาน
 
-For variables $Q_1, Q_2, \ldots, Q_n$ with dimensions expressed as:
+สำหรับตัวแปร $Q_1, Q_2, \ldots, Q_n$ ที่มีมิติแสดงเป็น:
 $$[Q_i] = \prod_{j=1}^k D_j^{a_{ij}}$$
 
-The theorem seeks combinations of dimensionless quantities $\Pi_m$ formed by:
-$$\Pi_m = \prod_{i=1}^n Q_i^{b_{im}} \quad \text{where} \quad \sum_{i=1}^n a_{ij} b_{im} = 0 \quad \forall j$$
+ทฤษฎีบทนี้มองหาการรวมกันของปริมาณไร้มิติ $\Pi_m$ ที่สร้างขึ้นโดย:
+$$\Pi_m = \prod_{i=1}^n Q_i^{b_{im}} \quad \text{โดยที่} \quad \sum_{i=1}^n a_{ij} b_{im} = 0 \quad \forall j$$
 
-This mathematical foundation enables systematic identification of dimensionless groups such as **Reynolds number**, **Froude number**, and **Mach number** that govern flow behavior and similarity between different flow configurations.
+รากฐานทางคณิตศาสตร์นี้ช่วยให้สามารถระบุกลุ่มไร้มิติอย่างเป็นระบบ เช่น **เลขเรย์โนลด์ (Reynolds number)**, **เลขฟรูด (Froude number)** และ **เลขมัค (Mach number)** ที่ควบคุมพฤติกรรมการไหลและความคล้ายคลึงกันระหว่างรูปแบบการไหลที่ต่างกัน
 
-### Non-Dimensionalization Techniques for CFD
+### เทคนิคการทำให้ไร้มิติ (Non-Dimensionalization) สำหรับ CFD
 
-**Non-dimensionalization** plays a critical role in CFD computations by improving numerical stability and solution convergence. This process involves identifying appropriate reference scales and normalizing all variables to create dimensionless forms of governing equations.
+**การทำให้ไร้มิติ** มีบทบาทสำคัญในการคำนวณ CFD โดยการปรับปรุงเสถียรภาพเชิงตัวเลขและการลู่เข้าของผลเฉลย กระบวนการนี้เกี่ยวข้องกับการระบุสเกลอ้างอิงที่เหมาะสมและปรับตัวแปรทั้งหมดให้เป็นมาตรฐานเพื่อสร้างรูปแบบไร้มิติของสมการควบคุม
 
-The process transforms the dimensional Navier-Stokes equations:
+กระบวนการนี้เปลี่ยนสมการ Navier-Stokes ที่มีมิติ:
 $$\frac{\partial (\rho \mathbf{u})}{\partial t} + \nabla \cdot (\rho \mathbf{u} \mathbf{u}) = -\nabla p + \nabla \cdot (\mu \nabla \mathbf{u}) + \rho \mathbf{g}$$
 
-Into the dimensionless form:
+ให้กลายเป็นรูปแบบไร้มิติ:
 $$\frac{\partial \tilde{\rho} \tilde{\mathbf{u}}}{\partial \tilde{t}} + \tilde{\nabla} \cdot (\tilde{\rho} \tilde{\mathbf{u}} \tilde{\mathbf{u}}) = -\tilde{\nabla} \tilde{p} + \frac{1}{\mathrm{Re}} \tilde{\nabla}^2 \tilde{\mathbf{u}} + \frac{1}{\mathrm{Fr}^2} \tilde{\rho} \tilde{\mathbf{g}}$$
 
-Where the dimensionless parameters:
-- $\mathrm{Re} = \frac{\rho U L}{\mu}$ (Reynolds number)
-- $\mathrm{Fr} = \frac{U}{\sqrt{gL}}$ (Froude number)
+โดยที่พารามิเตอร์ไร้มิติ:
+- $\mathrm{Re} = \frac{\rho U L}{\mu}$ (เลขเรย์โนลด์)
+- $\mathrm{Fr} = \frac{U}{\sqrt{gL}}$ (เลขฟรูด)
 
-Emerge from the natural scaling process.
+เกิดขึ้นมาจากกระบวนการปรับสเกลตามธรรมชาติ
 
 ---
 
-## 📊 Summary and Key Takeaways
+## 📊 สรุปและประเด็นสำคัญ
 
-### Core Principles
+### หลักการสำคัญ
 
-| Concept | Traditional Method | OpenFOAM Template Method | Performance Impact |
+| แนวคิด | วิธีการดั้งเดิม | วิธีเทมเพลตของ OpenFOAM | ผลกระทบต่อประสิทธิภาพ |
 |---------|-------------------|--------------------------|-------------------|
-| **Unit checking** | Runtime verification | Template constraints at compile-time | No runtime cost |
-| **Dimension storage** | Object attributes | Template parameters + type traits | Compile-time resolution |
-| **Operation validation** | Runtime conditionals | SFINAE + static_assert | Eliminated in optimized builds |
-| **Expression evaluation** | Temporary objects | Expression templates | Loop fusion, no temporaries |
-| **Extensibility** | Inheritance hierarchies | Template specialization | Compile-time polymorphism |
+| **การตรวจสอบหน่วย** | การยืนยันขณะทำงาน | ข้อจำกัดเทมเพลตเวลาคอมไพล์ | ไม่มีค่าใช้จ่ายขณะทำงาน |
+| **การเก็บข้อมูลมิติ** | แอตทริบิวต์ของออบเจกต์ | พารามิเตอร์เทมเพลต + Type traits | ประมวลผลเสร็จในเวลาคอมไพล์ |
+| **การตรวจสอบการดำเนินการ** | เงื่อนไขขณะทำงาน | SFINAE + static_assert | ถูกกำจัดออกใน Release builds |
+| **การประเมินค่านิพจน์** | วัตถุชั่วคราว | Expression templates | การรวมลูป, ไม่มีวัตถุชั่วคราว |
+| **ความสามารถในการขยาย** | ลำดับชั้นการสืบทอด | Template specialization | Polymorphism เวลาคอมไพล์ |
 
-### Complete Code Example: Dimension-Safe CFD Solver Component
+### ตัวอย่างโค้ดฉบับสมบูรณ์: ส่วนประกอบของ Solver CFD ที่ปลอดภัยทางมิติ
 
 ```cpp
 #include "dimensionedType.H"
 #include "dimensionSet.H"
 #include "volFields.H"
 
-// Dimension-safe pressure equation solver component
+// ส่วนประกอบตัวแก้สมการความดันที่ปลอดภัยทางมิติ
 class DimensionSafeSolverComponent
 {
 public:
-    // Solve pressure equation with dimensional checking
+    // แก้สมการความดันพร้อมการตรวจสอบมิติ
     void solvePressureEquation(
-        volScalarField& p,                     // Pressure field
-        const volScalarField& rho,             // Density field
-        const volVectorField& U,               // Velocity field
-        const dimensionedScalar& dt)           // Time step
+        volScalarField& p,                     // สนามความดัน
+        const volScalarField& rho,             // สนามความหนาแน่น
+        const volVectorField& U,               // สนามความเร็ว
+        const dimensionedScalar& dt)           // ขั้นตอนเวลา
     {
-        // Verify input dimensions
+        // ตรวจสอบมิติขาเข้า
         if (p.dimensions() != dimPressure)
         {
             FatalErrorInFunction
@@ -568,13 +568,13 @@ public:
                 << abort(FatalError);
         }
 
-        // Pressure Poisson equation: ∇²p = ρ∇·(U·∇U)
+        // สมการปัวซองของความดัน: ∇²p = ρ∇·(U·∇U)
         fvScalarMatrix pEqn
         (
             fvm::laplacian(p) == rho * fvc::div(fvc::grad(U) & U)
         );
 
-        // Verify equation dimensions
+        // ตรวจสอบมิติของสมการ
         dimensionSet lhsDims = p.dimensions() / (dimLength * dimLength);
         dimensionSet rhsDims = rho.dimensions() * dimVelocity * dimVelocity /
                                (dimLength * dimLength * dimLength);
@@ -588,10 +588,10 @@ public:
                 << abort(FatalError);
         }
 
-        // Solve equation
+        // แก้สมการ
         pEqn.solve();
 
-        // Verify solution dimensions unchanged
+        // ตรวจสอบมิติของผลเฉลยว่าไม่เปลี่ยนแปลงหลังการแก้
         if (p.dimensions() != dimPressure)
         {
             FatalErrorInFunction
@@ -602,14 +602,14 @@ public:
     }
 
 private:
-    // Dimensioned convergence tolerance
+    // ค่าความคลาดเคลื่อนในการลู่เข้าที่มีมิติ
     dimensionedScalar tolerance_{"tolerance", dimPressure, 1e-6};
 };
 ```
 
-> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L:245-289`  
-> **📖 Explanation:** ตัวอย่างโค้ดแสดงการนำระบบตรวจสอบมิติมาใช้ในการสร้าง solver component ที่ปลอดภัย ฟังก์ชัน `solvePressureEquation()` ตรวจสอบมิติของ input fields ทั้งหมด (pressure, density, velocity, time step) ก่อนดำเนินการคำนวณ จากนั้นตรวจสอบความสอดคล้องของมิติในสมการ Poisson และตรวจสอบว่ามิติของผลลัพธ์ไม่เปลี่ยนแปลงหลังจากการแก้สมการ การตรวจสอบหลายระดับนี้ช่วยรับประกันความถูกต้องทางฟิสิกส์ตลอดกระบวนการแก้สมการ  
-> **🔑 Key Concepts:** `dimensional verification`, `pressure Poisson equation`, `field operations`, `solver safety`, `runtime validation`, `CFD solver`
+> **📂 แหล่งที่มา:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L:245-289`  
+> **📖 คำอธิบาย:** ตัวอย่างโค้ดแสดงการนำระบบตรวจสอบมิติมาใช้ในการสร้าง solver component ที่ปลอดภัย ฟังก์ชัน `solvePressureEquation()` ตรวจสอบมิติของ input fields ทั้งหมด (pressure, density, velocity, time step) ก่อนดำเนินการคำนวณ จากนั้นตรวจสอบความสอดคล้องของมิติในสมการ Poisson และตรวจสอบว่ามิติของผลลัพธ์ไม่เปลี่ยนแปลงหลังจากการแก้สมการ การตรวจสอบหลายระดับนี้ช่วยรับประกันความถูกต้องทางฟิสิกส์ตลอดกระบวนการแก้สมการ  
+> **🔑 แนวคิดสำคัญ:** `dimensional verification`, `pressure Poisson equation`, `field operations`, `solver safety`, `runtime validation`, `CFD solver`
 
 ---
 
@@ -694,21 +694,21 @@ flowchart TD
 
 ---
 
-## 📚 Further Reading
+## 📚 แนะนำให้อ่านเพิ่มเติม
 
-| Topic | Description | Relevance |
+| หัวข้อ | รายละเอียด | ความเกี่ยวข้อง |
 |-------|-------------|-----------|
-| **Section 1** | Foundation Primitives - Basic `dimensionedType` usage | Prerequisite |
-| **Section 3** | Key Mechanisms - Advanced Implementation | Deep Dive |
-| **Section 4** | Template Metaprogramming Architecture | Technical Details |
-| **Section 5** | Advanced Pitfalls and Solutions | Debugging Guide |
-| **Section 6** | Engineering Benefits | Real-world Applications |
-| **Section 7** | Mathematical Formulations | Physics Connection |
-| **OpenFOAM Source Code** | Definitive implementation reference | Primary Source |
+| **หัวข้อที่ 1** | ประเภทข้อมูลพื้นฐาน - การใช้งาน `dimensionedType` เบื้องต้น | ความรู้พื้นฐาน |
+| **หัวข้อที่ 3** | กลไกหลัก - การนำไปใช้งานขั้นสูง | เจาะลึกรายละเอียด |
+| **หัวข้อที่ 4** | สถาปัตยกรรมเทมเพลตเมตาโปรแกรมมิ่ง | รายละเอียดทางเทคนิค |
+| **หัวข้อที่ 5** | ข้อผิดพลาดขั้นสูงและแนวทางแก้ไข | คู่มือการดีบัก |
+| **หัวข้อที่ 6** | ประโยชน์เชิงวิศวกรรม | แอปพลิเคชันในโลกจริง |
+| **หัวข้อที่ 7** | สูตรทางคณิตศาสตร์ | การเชื่อมโยงทางฟิสิกส์ |
+| **ซอร์สโค้ด OpenFOAM** | แหล่งอ้างอิงการนำไปใช้งานที่แน่นอนที่สุด | แหล่งข้อมูลหลัก |
 
 ---
 
-> [!TIP] Key Insight
-> OpenFOAM's dimensional type system demonstrates how **modern C++** can create **scientific computing software** that is both safe and efficient, where **physical correctness** is enforced **without sacrificing computational performance**.
+> [!TIP] ข้อมูลเชิงลึกที่สำคัญ
+> ระบบประเภทข้อมูลที่มีมิติของ OpenFOAM แสดงให้เห็นว่า **C++ สมัยใหม่** สามารถสร้าง **ซอฟต์แวร์การคำนวณทางวิทยาศาสตร์** ที่ทั้งปลอดภัยและมีประสิทธิภาพได้อย่างไร โดยที่ **ความถูกต้องทางฟิสิกส์** จะถูกบังคับใช้ **โดยไม่เสียประสิทธิภาพในการคำนวณ**
 
-The **dimensioned** types establish the **foundation of OpenFOAM's computational framework**, enabling expression of **complex physical problem formulations** with **type safety** and **maximum performance**.
+ประเภทข้อมูลที่มี **มิติ** เหล่านี้สร้างเป็น **รากฐานของกรอบการคำนวณของ OpenFOAM** ซึ่งช่วยให้สามารถแสดงผล **สูตรปัญหาทางฟิสิกส์ที่ซับซ้อน** ได้ด้วย **ความปลอดภัยของประเภทข้อมูล** และ **ประสิทธิภาพสูงสุด**

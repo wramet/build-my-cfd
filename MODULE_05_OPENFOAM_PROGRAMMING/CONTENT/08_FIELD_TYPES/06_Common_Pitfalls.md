@@ -1,90 +1,90 @@
-# Common Pitfalls & Debugging
+# ⚠️ ข้อผิดพลาดทั่วไปและการดีบัก (Common Pitfalls & Debugging)
 
 ![[mismatched_puzzle_pitfall.png]]
 
-> [!WARNING] Overview
-> This section covers the most common mistakes developers encounter when working with OpenFOAM field types, along with proven solutions and debugging techniques.
+> [!WARNING] ภาพรวม
+> หัวข้อนี้ครอบคลุมข้อผิดพลาดที่พบบ่อยที่สุดที่นักพัฒนาพบเจอเมื่อทำงานกับประเภทฟิลด์ของ OpenFOAM พร้อมด้วยแนวทางแก้ไขที่ผ่านการพิสูจน์แล้วและเทคนิคการดีบัก
 
 ---
 
-## Dimensional Inconsistency Errors
+## ข้อผิดพลาดความไม่สอดคล้องทางมิติ (Dimensional Inconsistency Errors)
 
-### Problem: Type Mismatch in Field Operations
+### ปัญหา: ประเภทข้อมูลไม่ตรงกันในการดำเนินการกับฟิลด์
 
-**The most common error** in OpenFOAM development is attempting operations between incompatible field types:
+**ข้อผิดพลาดที่พบบ่อยที่สุด** ในการพัฒนา OpenFOAM คือการพยายามดำเนินการระหว่างประเภทฟิลด์ที่ไม่เข้ากัน:
 
 ```cpp
-// Attempting to add a scalar pressure field to a vector velocity field
-volScalarField wrong = p + U;  // ERROR: Cannot add scalar to vector
+// การพยายามบวกฟิลด์ความดันที่เป็นสเกลาร์กับฟิลด์ความเร็วที่เป็นเวกเตอร์
+volScalarField wrong = p + U;  // ข้อผิดพลาด: ไม่สามารถบวกสเกลาร์กับเวกเตอร์ได้
 ```
 
-**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:121-127`
+📂 **แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:121-127`
 
 ```cpp
-// Example of proper phase field access in momentum transfer
-// Note: Accessing phase velocity fields with proper type matching
+// ตัวอย่างการเข้าถึงฟิลด์เฟสที่ถูกต้องในการถ่ายเทโมเมนตัม
+// หมายเหตุ: การเข้าถึงฟิลด์ความเร็วเฟสด้วยการจับคู่ประเภทที่เหมาะสม
 if (!phase1.stationary())
 {
-    *eqns[phase1.name()] +=
+    *eqns[phase1.name()] += 
         dmdtf21*phase2.U() + fvm::Sp(dmdtf12, phase1.URef());
 }
 ```
 
-**Root Cause**: OpenFOAM enforces ==strict compile-time dimensional checking==. The expression `p + U` attempts to add a pressure field (scalar) with a velocity field (vector), which is mathematically invalid.
+**สาเหตุหลัก**: OpenFOAM บังคับใช้ ==การตรวจสอบมิติอย่างเข้มงวดในเวลาคอมไพล์== นิพจน์ `p + U` พยายามบวกฟิลด์ความดัน (สเกลาร์) กับฟิลด์ความเร็ว (เวกเตอร์) ซึ่งไม่ถูกต้องตามหลักคณิตศาสตร์
 
-**Solutions**:
+**แนวทางแก้ไข**:
 
-| Desired Result | Correct Solution | Explanation |
+| ผลลัพธ์ที่ต้องการ | แนวทางแก้ไขที่ถูกต้อง | คำอธิบาย |
 |----------------|------------------|-------------|
-| Kinetic pressure | `p + 0.5 * rho * magSqr(U)` | Uses dot product for kinetic energy |
-| Pressure + speed | `p + mag(U)` | Uses magnitude for vector size |
-| Specific velocity component | `p + U.component(0)` | Uses component access for x-axis |
+| ความดันจลน์ (Kinetic pressure) | `p + 0.5 * rho * magSqr(U)` | ใช้ผลคูณเชิงสเกลาร์สำหรับพลังงานจลน์ |
+| ความดัน + ขนาดความเร็ว | `p + mag(U)` | ใช้ขนาด (Magnitude) สำหรับขนาดของเวกเตอร์ |
+| ส่วนประกอบความเร็วเฉพาะเจาะจง | `p + U.component(0)` | ใช้การเข้าถึงส่วนประกอบสำหรับแกน x |
 
-> [!TIP] Dimensional Consistency Check
-> $$\text{Dimension}_{\text{result}} = \text{Dimension}_{\text{operand}_1} + \text{Dimension}_{\text{operand}_2}$$
+> [!TIP] การตรวจสอบความสอดคล้องทางมิติ
+> $$\text{มิติ}_{\text{ผลลัพธ์}} = \text{มิติ}_{\text{ตัวถูกดำเนินการ}_1} + \text{มิติ}_{\text{ตัวถูกดำเนินการ}_2}$$ 
 
 ---
 
-## Incomplete Field Initialization
+## การเริ่มต้นฟิลด์ที่ไม่สมบูรณ์ (Incomplete Field Initialization)
 
-### Problem: Missing Constructor Arguments
+### ปัญหา: ขาดอาร์กิวเมนต์ในคอนสตรัคเตอร์
 
-**Insufficient field initialization** leads to undefined behavior:
+**การเริ่มต้นฟิลด์ไม่เพียงพอ** นำไปสู่พฤติกรรมที่ไม่ได้กำหนด (Undefined behavior):
 
 ```cpp
-// Incomplete field initialization missing critical components
-volScalarField T(mesh);  // ERROR: No dimensions or IOobject
+// การเริ่มต้นฟิลด์ไม่สมบูรณ์ ขาดส่วนประกอบสำคัญ
+volScalarField T(mesh);  // ข้อผิดพลาด: ไม่มีข้อมูลมิติหรือ IOobject
 ```
 
-**Root Cause**: The minimal constructor `volScalarField(mesh)` creates an uninitialized field without:
-- **Physical dimensions** (required for dimensional consistency)
-- **IOobject information** (required for file I/O)
-- **Initial field values** or **boundary conditions**
+**สาเหตุหลัก**: คอนสตรัคเตอร์ขั้นต่ำ `volScalarField(mesh)` สร้างฟิลด์ที่ไม่ได้เริ่มต้นโดยไม่มี:
+- **มิติทางฟิสิกส์** (จำเป็นสำหรับความสอดคล้องทางมิติ)
+- **ข้อมูล IOobject** (จำเป็นสำหรับการจัดการไฟล์ I/O)
+- **ค่าเริ่มต้นของฟิลด์** หรือ **เงื่อนไขขอบเขต**
 
-**Correct Implementation**:
+**การนำไปใช้ที่ถูกต้อง**:
 
 ```cpp
-// Complete field initialization with all required components
+// การเริ่มต้นฟิลด์ที่สมบูรณ์พร้อมส่วนประกอบที่จำเป็นทั้งหมด
 volScalarField T
 (
     IOobject
     (
-        "T",                              // Field name
-        runTime.timeName(),               // Time directory
-        mesh,                             // Mesh reference
-        IOobject::MUST_READ,              // Read from file if exists
-        IOobject::AUTO_WRITE              // Write automatically
+        "T",                              // ชื่อฟิลด์
+        runTime.timeName(),               // ไดเรกทอรีเวลา
+        mesh,                             // การอ้างอิงเมช
+        IOobject::MUST_READ,              // อ่านจากไฟล์ถ้ามีอยู่
+        IOobject::AUTO_WRITE              // เขียนโดยอัตโนมัติ
     ),
     mesh,
-    dimensionSet(0, 0, 0, 1, 0, 0, 0),  // Temperature dimension [Θ] = K
-    TInit.value()                        // Uniform initial value
+    dimensionSet(0, 0, 0, 1, 0, 0, 0),  // มิติอุณหภูมิ [Θ] = K
+    TInit.value()                        // ค่าเริ่มต้นที่สม่ำเสมอ
 );
 ```
 
-**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:156-172`
+📂 **แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:156-172`
 
 ```cpp
-// Example of proper drag coefficient field initialization
+// ตัวอย่างการเริ่มต้นฟิลด์สัมประสิทธิ์แรงฉุดที่ถูกต้อง
 Kds_.insert
 (
     dragModelIter.key(),
@@ -97,241 +97,124 @@ Kds_.insert
             this->mesh()
         ),
         this->mesh(),
-        dimensionedScalar(dragModel::dimK, 0)  // Proper dimension initialization
+        dimensionedScalar(dragModel::dimK, 0)  // การเริ่มต้นมิติที่เหมาะสม
     )
 );
 ```
 
-> [!INFO] Initialization Sequence
-> 1. **IOobject** → Defines I/O behavior
-> 2. **GeometricField** → Creates field with mesh and dimensions
-> 3. **Internal Field** → Initializes cell center values
-> 4. **Boundary Fields** → Sets boundary conditions
+> [!INFO] ลำดับการเริ่มต้น (Initialization Sequence)
+> 1. **IOobject** → กำหนดพฤติกรรม I/O
+> 2. **GeometricField** → สร้างฟิลด์พร้อมเมชและมิติ
+> 3. **Internal Field** → เริ่มต้นค่าที่จุดศูนย์กลางเซลล์
+> 4. **Boundary Fields** → ตั้งค่าเงื่อนไขขอบเขต
 
 ---
 
-## Incorrect Patch Field Types
+## ประเภทฟิลด์แพตช์ที่ไม่ถูกต้อง (Incorrect Patch Field Types)
 
-### Problem: Wrong Field Type for Surface vs. Volume Mesh
+### ปัญหา: ประเภทฟิลด์ผิดสำหรับเมชพื้นผิวเทียบกับเมชปริมาตร
 
 ```cpp
-// Surface flux field with proper dimension specification
+// ฟิลด์ฟลักซ์พื้นผิวพร้อมข้อกำหนดมิติที่ถูกต้อง
 surfaceScalarField phi
 (
     IOobject(...),
     mesh,
-    dimensionSet(0, 3, -1, 0, 0, 0, 0)  // Volume flux [L³/T] = m³/s
+    dimensionSet(0, 3, -1, 0, 0, 0, 0)  // ฟลักซ์ปริมาตร [L³/T] = m³/s
 );
-// Must use fvsPatchField for surfaceMesh, not fvPatchField
+// ต้องใช้ fvsPatchField สำหรับ surfaceMesh ไม่ใช่ fvPatchField
 ```
 
-**Root Cause**: OpenFOAM distinguishes between:
+**สาเหตุหลัก**: OpenFOAM แยกแยะความแตกต่างระหว่าง:
 
-| Field Type | Base Class | Boundary Condition | Physical Location |
+| ประเภทฟิลด์ | คลาสฐาน | เงื่อนไขขอบเขต | ตำแหน่งทางกายภาพ |
 |------------|------------|-------------------|-------------------|
-| Volume Fields | `volScalarField`, `volVectorField` | `fvPatchField` | Cell centers |
-| Surface Fields | `surfaceScalarField`, `surfaceVectorField` | `fvsPatchField` | Face centers |
+| ฟิลด์ปริมาตร (Volume Fields) | `volScalarField`, `volVectorField` | `fvPatchField` | จุดศูนย์กลางเซลล์ |
+| ฟิลด์พื้นผิว (Surface Fields) | `surfaceScalarField`, `surfaceVectorField` | `fvsPatchField` | จุดศูนย์กลางหน้า |
 
-**Correct Boundary Specification**:
+---
+
+## การจัดการหน่วยความจำด้วย `tmp<T>`
+
+### ปัญหา: การจัดการฟิลด์ชั่วคราวที่ไม่เหมาะสม
+
+**การจัดการฟิลด์ชั่วคราวไม่ถูกต้อง** นำไปสู่ ==dangling references== (การอ้างอิงที่ค้างคา):
 
 ```cpp
-// For volume fields - use fvPatchField derivative
-volScalarField::Boundary& Tbf = T.boundaryField();
-Tbf.set(0, fixedValueFvPatchField<scalar>(mesh.boundary()[0], T));
-
-// For surface fields - use fvsPatchField derivative
-surfaceScalarField::Boundary& phibf = phi.boundaryField();
-phibf.set(0, calculatedFvsPatchField<scalar>(mesh.boundary()[0], phi));
+// อันตราย: การสร้าง non-const reference ไปยังฟิลด์ชั่วคราว
+tmp<volScalarField> tTemp = p + q;
+volScalarField& ref = tTemp();  // สร้าง non-const reference
+// หาก tTemp ออกจากขอบเขต (scope) ตัวแปร ref จะกลายเป็น dangling ทันที!
 ```
 
-**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:175-186`
+**สาเหตุหลัก**: คลาส `tmp<T>` ใช้ ==การจัดการหน่วยความจำอัตโนมัติ== โดยที่ออบเจ็กต์ภายในจะถูกลบเมื่อการอ้างอิงทั้งหมดออกจากขอบเขต การสร้าง non-const reference จะข้ามกลไกความปลอดภัยนี้
+
+**รูปแบบการใช้งานที่ปลอดภัย**:
+
+#### ทางเลือกที่ 1: Const Reference (แนะนำสำหรับการเข้าถึงชั่วคราว)
 
 ```cpp
-// Example of surface scalar field initialization for drag coefficient
-Kdfs_.insert
-(
-    dragModelIter.key(),
-    new surfaceScalarField
-    (
-        IOobject
-        (
-            IOobject::groupName("Kdf", interface.name()),
-            this->mesh().time().timeName(),
-            this->mesh()
-        ),
-        this->mesh(),
-        dimensionedScalar(dragModel::dimK, 0)
-    )
-);
+// ปลอดภัย: Const reference ช่วยยืดอายุขัยของฟิลด์ชั่วคราว
+tmp<volScalarField> tTemp = p + q;
+const volScalarField& ref = tTemp();  // safe const reference
+// ใช้ ref เฉพาะภายในขอบเขตปัจจุบันเท่านั้น
+```
+
+#### ทางเลือกที่ 2: การเก็บสำเนา (สำหรับการจัดเก็บระยะยาว)
+
+```cpp
+// ปลอดภัย: สร้างสำเนาที่เป็นอิสระ
+tmp<volScalarField> tTemp = p + q;
+volScalarField permanentCopy = tTemp();  // สร้างสำเนาที่ไม่ขึ้นกับ tmp
+// permanentCopy จะยังคงอยู่หลังจาก tTemp ถูกทำลาย
 ```
 
 ---
 
-## Memory Management with `tmp<T>`
+## รูปแบบข้อผิดพลาดขั้นสูง
 
-### Problem: Improper Temporary Field Handling
-
-**Incorrect temporary management** leads to ==dangling references==:
+### การละเมิดขอบเขตอาร์เรย์ (Array Bounds Violation)
 
 ```cpp
-// DANGEROUS: Creating non-const reference to temporary
-tmp<volScalarField> tTemp = p + q;
-volScalarField& ref = tTemp();  // Creates non-const reference
-// If tTemp leaves scope, ref becomes dangling!
+// อันตราย: การเข้าถึงเกินจำนวนแพตช์ที่มีอยู่
+label badPatch = mesh.boundary().size();  // เกินขอบเขต!
+scalarField& badField = T.boundaryField()[badPatch];  // เกิด Segmentation fault
 ```
 
-**Root Cause**: The `tmp<T>` class uses ==automatic memory management== where the contained object is deleted when all references leave scope. Creating a non-const reference bypasses this safety mechanism.
-
-**Safe Usage Patterns**:
-
-#### Option 1: Const Reference (Recommended for temporary access)
+**รูปแบบที่ปลอดภัย**:
 
 ```cpp
-// SAFE: Const reference extends temporary lifetime
-tmp<volScalarField> tTemp = p + q;
-const volScalarField& ref = tTemp();  // Safe const reference
-// Use ref only within current scope
-```
-
-#### Option 2: Keep a Copy (For long-term storage)
-
-```cpp
-// SAFE: Create independent copy
-tmp<volScalarField> tTemp = p + q;
-volScalarField permanentCopy = tTemp();  // Creates copy independent of tmp
-// permanentCopy persists after tTemp is destroyed
-```
-
-#### Option 3: Direct Assignment (For immediate use)
-
-```cpp
-// SAFE: Automatic tmp handling by assignment operator
-volScalarField result = p + q;  // Automatic tmp handling
-```
-
-> [!WARNING] Dangling Reference Prevention
-> ```cpp
-> // NEVER do this:
-> volScalarField& badRef = (p + q)();  // Temporary destroyed immediately!
->
-> // ALWAYS do this:
-> const volScalarField& goodRef = (p + q)();  // Safe while in scope
-> ```
-
----
-
-## Advanced Error Patterns
-
-### Array Bounds Violation
-
-```cpp
-// DANGEROUS: Accessing beyond available patches
-label badPatch = mesh.boundary().size();  // Out of bounds!
-scalarField& badField = T.boundaryField()[badPatch];  // Segmentation fault
-```
-
-**Safe Pattern**:
-
-```cpp
-// SAFE: Always validate patch indices before access
+// ปลอดภัย: ตรวจสอบความถูกต้องของดัชนีแพตช์ก่อนเข้าถึงเสมอ
 if (patchID < mesh.boundary().size())
 {
     scalarField& patchField = T.boundaryField()[patchID];
-    // Safe operations
-}
-```
-
-**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C:89-112`
-
-```cpp
-// Example of safe field access with iteration
-forAllConstIter(phaseSystem::dmdtfTable, dmdtfs, dmdtfIter)
-{
-    const phaseInterface interface(*this, dmdtfIter.key());
-    const volScalarField& dmdtf = *dmdtfIter();
-    const volScalarField dmdtf21(posPart(dmdtf));
-    const volScalarField dmdtf12(negPart(dmdtf));
-    
-    // Safe phase model access with validation
-    phaseModel& phase1 = this->phases()[interface.phase1().name()];
-    phaseModel& phase2 = this->phases()[interface.phase2().name()];
-}
-```
-
-### Dimensional Analysis Failure
-
-```cpp
-// Subtle error: Time derivative has wrong units
-volScalarField dTdt = fvc::ddt(T);  // Correct: [K/s]
-volScalarField wrong = dTdt * T;    // Wrong: [K²/s]
-volScalarField correct = dTdt * rho*T;  // Correct: [kg·K/(m³·s)]
-```
-
-**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:33-52`
-
-```cpp
-// Example of dimensionally consistent momentum transfer calculation
-// Note: Mass transfer rate [kg/s] × velocity [m/s] = momentum source [kg·m/s²]
-if (!phase1.stationary())
-{
-    *eqns[phase1.name()] +=
-        dmdtf21*phase2.U() + fvm::Sp(dmdtf12, phase1.URef());
-}
-```
-
-### Ghost Cell Access Problem
-
-```cpp
-// ERROR: Directly accessing internal field values near boundary
-forAll(T.internalField(), i)
-{
-    label faceI = mesh.faceNeighbour()[i];  // May access invalid face
-    // Should use proper cell-to-face mapping
-}
-```
-
-**Correct Ghost Cell Handling**:
-
-```cpp
-// Proper cell value access using geometric field
-forAll(T, cellI)
-{
-    scalar cellValue = T[cellI];  // Direct cell access
-    // Use geometric fields for face values
+    // ดำเนินการที่ปลอดภัย
 }
 ```
 
 ---
 
-## Debugging Techniques
+## เทคนิคการดีบัก (Debugging Techniques)
 
-### Compile-Time Dimensional Checking
+### การตรวจสอบมิติเวลาคอมไพล์ (Compile-Time Dimensional Checking)
 
-Use explicit dimension sets to catch errors early:
+ใช้ชุดมิติที่ชัดเจนเพื่อดักจับข้อผิดพลาดแต่เนิ่นๆ:
 
 ```cpp
-// Define explicit dimension sets for type safety
+// กำหนดชุดมิติที่ชัดเจนเพื่อความปลอดภัยของประเภทข้อมูล
 dimensionSet velocityDim(0, 1, -1, 0, 0, 0, 0);  // [m/s]
 dimensionSet pressureDim(1, -1, -2, 0, 0, 0, 0); // [Pa]
 
-// This will fail at compile-time if dimensions don't match
+// สิ่งนี้จะล้มเหลวในเวลาคอมไพล์หากมิติไม่ตรงกัน
 volScalarField kineticEnergy = 0.5 * magSqr(U);  // [m²/s²]
 ```
 
-**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C:163-172`
+### การตรวจสอบความถูกต้องขณะรันไทม์ (Runtime Validation)
+
+เพิ่มการตรวจสอบขอบเขตเพื่อความทนทาน:
 
 ```cpp
-// Example of dimensioned scalar initialization in OpenFOAM
-this->mesh(),
-dimensionedScalar(dragModel::dimK, 0)  // Uses predefined dimension
-```
-
-### Runtime Validation
-
-Add boundary checks for robustness:
-
-```cpp
-// Runtime validation function for field sanity checks
+// ฟังก์ชันตรวจสอบความถูกต้องของฟิลด์
 void validateField(const volScalarField& field)
 {
     if (min(field).value() < 0 && field.name() == "T")
@@ -348,68 +231,20 @@ void validateField(const volScalarField& field)
 }
 ```
 
-> [!TIP] Best Practice Question
-> Always ask yourself: **"Where does this data live on the mesh?"** This simple question will guide you to the correct field type.
+> [!TIP] คำถามเพื่อแนวทางปฏิบัติที่ดีที่สุด
+> ถามตัวเองเสมอว่า: **"ข้อมูลนี้อยู่ที่ตำแหน่งใดบนเมช?"** คำถามง่ายๆ นี้จะนำคุณไปสู่ประเภทฟิลด์ที่ถูกต้อง
 
 ---
 
-## Performance Considerations
+## สรุปข้อผิดพลาดทั่วไป
 
-### Memory Access Patterns
-
-```cpp
-// GOOD: Contiguous memory access
-forAll(T, cellI)
-{
-    T[cellI] = T[cellI] + source[cellI];
-}
-
-// BAD: Random memory access through boundary conditions
-forAll(mesh.boundary(), patchI)
-{
-    forAll(T.boundaryField()[patchI], faceI)
-    {
-        T.boundaryField()[patchI][faceI] = value;
-    }
-}
-```
-
-### Reducing Temporary Fields
-
-```cpp
-// INEFFICIENT: Creates multiple temporaries
-volScalarField result = p + 0.5 * rho * magSqr(U);
-
-// EFFICIENT: Reduce temporaries
-tmp<volScalarField> tKE = 0.5 * rho * magSqr(U);
-volScalarField result = p + tKE;
-```
-
-**📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H:52-60`
-
-```cpp
-// Example of efficient field table management
-typedef HashTable<
-    autoPtr<phaseModel>,
-    word,
-    word,
-    hashCombineWordWord
-> phaseModelTable;
-// Efficient lookup and storage for phase fields
-```
-
----
-
-## Summary of Common Pitfalls
-
-| Pitfall Category | Symptom | Solution |
+| ประเภทข้อผิดพลาด | อาการ | แนวทางแก้ไข |
 |-----------------|---------|----------|
-| **Dimensional mismatch** | Compile-time error | Check dimensions match for arithmetic operations |
-| **Incomplete initialization** | Runtime segfault | Provide IOobject, dimensions, and initial values |
-| **Wrong patch field type** | Boundary condition errors | Use `fvPatchField` for volume, `fvsPatchField` for surface |
-| **Dangling references** | Memory corruption | Use const references or copies with `tmp<T>` |
-| **Array bounds violation** | Segmentation fault | Always validate indices before accessing |
-| **Ghost cell misuse** | Incorrect boundary values | Use proper field-to-face mapping |
+| **มิติไม่ตรงกัน** | ข้อผิดพลาดเวลาคอมไพล์ | ตรวจสอบมิติให้ตรงกันสำหรับการดำเนินการทางคณิตศาสตร์ |
+| **การเริ่มต้นไม่สมบูรณ์** | Segfault ขณะรันโปรแกรม | ระบุ IOobject, มิติ และค่าเริ่มต้นให้ครบถ้วน |
+| **ประเภทฟิลด์แพตช์ผิด** | ข้อผิดพลาดเงื่อนไขขอบเขต | ใช้ `fvPatchField` สำหรับปริมาตร, `fvsPatchField` สำหรับพื้นผิว |
+| **Dangling references** | หน่วยความจำเสียหาย (Memory corruption) | ใช้ const references หรือสร้างสำเนาด้วย `tmp<T>` |
+| **การละเมิดขอบเขตอาร์เรย์** | Segmentation fault | ตรวจสอบดัชนีเสมอก่อนเข้าถึงอาร์เรย์ |
 
-> [!INFO] Key Takeaway
-> OpenFOAM's field system provides powerful abstractions, but requires careful attention to dimensional consistency, memory management, and proper initialization. Understanding the underlying architecture prevents these common pitfalls.
+> [!INFO] ประเด็นสำคัญ
+> ระบบฟิลด์ของ OpenFOAM มอบความสามารถระดับสูง แต่ต้องการความระมัดระวังเรื่องความสอดคล้องทางมิติ การจัดการหน่วยความจำ และการเริ่มต้นที่ถูกต้อง การเข้าใจสถาปัตยกรรมพื้นฐานจะช่วยป้องกันข้อผิดพลาดทั่วไปเหล่านี้ได้

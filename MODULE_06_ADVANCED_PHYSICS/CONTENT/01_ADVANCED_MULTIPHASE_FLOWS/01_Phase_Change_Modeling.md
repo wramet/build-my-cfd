@@ -1,242 +1,242 @@
-# Phase Change Modeling in OpenFOAM
+# การสร้างแบบจำลองการเปลี่ยนสถานะเฟสใน OpenFOAM (Phase Change Modeling in OpenFOAM)
 
-> [!INFO] Overview
-> This note covers the ==fundamental physics and numerical implementation== of phase change phenomena in OpenFOAM, including **boiling**, **condensation**, and **cavitation**. These processes are essential for industrial applications ranging from power generation to chemical processing.
+> [!INFO] ภาพรวม
+> บันทึกฉบับนี้ครอบคลุม ==ฟิสิกส์พื้นฐานและการใช้งานเชิงตัวเลข== ของปรากฏการณ์การเปลี่ยนสถานะเฟสใน OpenFOAM รวมถึง **การเดือด (boiling)**, **การควบแน่น (condensation)** และ **การเกิดโพรงไอ (cavitation)** กระบวนการเหล่านี้มีความสำคัญต่อการประยุกต์ใช้งานในอุตสาหกรรม ตั้งแต่การผลิตพลังงานไปจนถึงกระบวนการทางเคมี
 
 ---
 
-## 1. Introduction
+## 1. บทนำ (Introduction)
 
-**Phase change** refers to the transformation of matter between different states (solid-liquid-gas), characterized by:
-- **Latent heat effects** during transformation
-- **Discontinuous property changes** at phase boundaries
-- **Mass transfer** driven by thermodynamic non-equilibrium
+**การเปลี่ยนสถานะเฟส (Phase change)** หมายถึงการเปลี่ยนรูปของสสารระหว่างสถานะต่างๆ (ของแข็ง-ของเหลว-ก๊าซ) โดยมีลักษณะเฉพาะดังนี้:
+- **ผลของความร้อนแฝง (Latent heat effects)** ในระหว่างการเปลี่ยนรูป
+- **การเปลี่ยนแปลงสมบัติที่ไม่ต่อเนื่อง (Discontinuous property changes)** ที่ขอบเขตเฟส
+- **การถ่ายโอนมวล (Mass transfer)** ที่ขับเคลื่อนโดยสภาวะไม่สมดุลทางเทอร์โมไดนามิกส์
 
-### Key Applications
+### การประยุกต์ใช้งานหลัก
 
-| Industry | Phase Change Phenomena | Critical Concerns |
+| อุตสาหกรรม | ปรากฏการณ์การเปลี่ยนสถานะ | ข้อกังวลที่สำคัญ |
 |----------|----------------------|-------------------|
-| **Power Generation** | Boiling in boilers, condensation in turbines | Heat transfer efficiency |
-| **Chemical Processing** | Evaporation, crystallization | Product quality control |
-| **Nuclear Safety** | Coolant boiling, emergency condensation | Safety margins |
-| **Aerospace** | Fuel cavitation, cryogenic phase change | System reliability |
-| **Oil & Gas** | Multiphase flow in wells, separation | Flow assurance |
+| **การผลิตพลังงาน** | การเดือดในหม้อต้ม, การควบแน่นในเทอร์ไบน์ | ประสิทธิภาพการถ่ายโอนความร้อน |
+| **กระบวนการทางเคมี** | การระเหย, การตกผลึก | การควบคุมคุณภาพผลิตภัณฑ์ |
+| **ความปลอดภัยนิวเคลียร์** | การเดือดของสารหล่อเย็น, การควบแน่นฉุกเฉิน | ขอบเขตความปลอดภัย |
+| **การบินและอวกาศ** | การเกิดโพรงในเชื้อเพลิง, การเปลี่ยนสถานะแบบไครโอเจนิก | ความน่าเชื่อถือของระบบ |
+| **น้ำมันและก๊าซ** | การไหลหลายเฟสในบ่อ, การแยกเฟส | การรับประกันการไหล (Flow assurance) |
 
 ---
 
-## 2. Thermodynamic Fundamentals
+## 2. พื้นฐานทางเทอร์โมไดนามิกส์ (Thermodynamic Fundamentals)
 
-### 2.1 Saturation Conditions
+### 2.1 สภาวะอิ่มตัว (Saturation Conditions)
 
-Phase change occurs under saturation conditions when the phase temperature reaches the saturation temperature $T_{sat}$ at the local pressure $p$:
+การเปลี่ยนสถานะเฟสเกิดขึ้นภายใต้สภาวะอิ่มตัว เมื่ออุณหภูมิของเฟสถึงอุณหภูมิอิ่มตัว $T_{sat}$ ที่ความดันเฉพาะที่ $p$:
 
 $$T_{sat} = f(p)$$
 
-The **Clausius-Clapeyron equation** governs the pressure-temperature dependence along the phase boundary:
+**สมการของเคลาซิอุส-คลาเปรอง (Clausius-Clapeyron equation)** ควบคุมความสัมพันธ์ระหว่างความดันและอุณหภูมิตามแนวขอบเขตเฟส:
 
 $$\frac{\mathrm{d}p}{\mathrm{d}T} = \frac{L}{T\Delta v} \tag{2.1}$$
 
-**Variables:**
-- $L$: Latent heat of vaporization $[J/kg]$
-- $T$: Absolute temperature $[K]$
-- $\Delta v$: Specific volume change $[m^3/kg]$
-- $\mathrm{d}p/\mathrm{d}T$: Slope of the saturation curve
+**ตัวแปร:**
+- $L$: ความร้อนแฝงของการกลายเป็นไอ $[J/kg]$
+- $T$: อุณหภูมิสัมบูรณ์ $[K]$
+- $\Delta v$: การเปลี่ยนแปลงปริมาตรจำเพาะ $[m^3/kg]$
+- $\mathrm{d}p/\mathrm{d}T$: ความชันของเส้นโค้งความอิ่มตัว
 
-### 2.2 Energy Balance at Interface
+### 2.2 สมดุลพลังงานที่ส่วนต่อประสาน (Energy Balance at Interface)
 
-**Stefan Condition:** The interface velocity is governed by energy balance:
+**เงื่อนไขของสเตฟาน (Stefan Condition):** ความเร็วของส่วนต่อประสานถูกควบคุมโดยสมดุลพลังงาน:
 
 $$\rho_L v_{interface} = -k_L \left.\frac{\partial T}{\partial n}\right|_L + k_V \left.\frac{\partial T}{\partial n}\right|_V \tag{2.2}$$
 
-**Variables:**
-- $v_{interface}$: Interface velocity $[m/s]$
-- $k_L, k_V$: Thermal conductivities $[W/(m·K)]$
-- $\partial T/\partial n$: Temperature gradient normal to interface
-- $\rho_L$: Liquid density $[kg/m^3]$
+**ตัวแปร:**
+- $v_{interface}$: ความเร็วของส่วนต่อประสาน $[m/s]$
+- $k_L, k_V$: สัมประสิทธิ์การนำความร้อน $[W/(m·K)]$
+- $\partial T/\partial n$: เกรเดียนต์อุณหภูมิในแนวตั้งฉากกับส่วนต่อประสาน
+- $\rho_L$: ความหนาแน่นของของเหลว $[kg/m^3]$
 
-**Heat Flux Balance:**
+**สมดุลฟลักซ์ความร้อน:**
 
 $$q_l'' - q_v'' = \dot{m}'' h_{lv} \tag{2.3}$$
 
-During boiling, the latent heat of vaporization $h_{lv}$ drives the phase transformation:
+ในระหว่างการเดือด ความร้อนแฝงของการกลายเป็นไอ $h_{lv}$ จะขับเคลื่อนการเปลี่ยนสถานะเฟส:
 
 $$\dot{m}'' = \frac{q''}{h_{lv}} \tag{2.4}$$
 
 ```mermaid
 flowchart LR
-    A[Wall Heat Flux] --> B[Thermal Boundary Layer]
-    B --> C[Liquid Temperature Gradient]
+    A[ฟลักซ์ความร้อนที่ผนัง] --> B[ชั้นขอบทางความร้อน]
+    B --> C[เกรเดียนต์อุณหภูมิของเหลว]
     C --> D{TL > Tsat?}
-    D -->|Yes| N[Nucleation Sites]
-    N --> E[Bubble Formation]
-    E --> F[Mass Transfer]
-    F --> G[Interface Motion]
-    D -->|No| H[Single Phase Convection]
+    D -->|ใช่| N[จุดกำเนิดฟอง]
+    N --> E[การก่อตัวของฟอง]
+    E --> F[การถ่ายโอนมวล]
+    F --> G[การเคลื่อนที่ของส่วนต่อประสาน]
+    D -->|ไม่ใช่| H[การพาความร้อนเฟสเดียว]
 
     style E fill:#f96,stroke:#333,stroke-width:2px
     style F fill:#f96,stroke:#333,stroke-width:2px
 ```
-> **Figure 1:** แผนภาพแสดงกระบวนการเกิดการเดือดตั้งแต่การรับความร้อนที่ผนังจนถึงการเคลื่อนที่ของส่วนต่อประสานระหว่างเฟสเนื่องจากการถ่ายโอนมวล
+> **รูปที่ 1:** แผนภาพแสดงกระบวนการเกิดการเดือดตั้งแต่การรับความร้อนที่ผนังจนถึงการเคลื่อนที่ของส่วนต่อประสานระหว่างเฟสเนื่องจากการถ่ายโอนมวล
 
 ---
 
-## 3. Mass Transfer Models
+## 3. แบบจำลองการถ่ายโอนมวล (Mass Transfer Models)
 
-### 3.1 Hertz-Knudsen Model
+### 3.1 แบบจำลองเฮิร์ตซ์-คนุดเซน (Hertz-Knudsen Model)
 
-Based on kinetic theory of gases, this model describes evaporation/condensation rates through pressure differences:
+อ้างอิงจากทฤษฎีจลน์ของก๊าซ แบบจำลองนี้อธิบายอัตราการระเหย/การควบแน่นผ่านความแตกต่างของความดัน:
 
 $$\dot{m}'' = \sqrt{\frac{M}{2\pi R T_{sat}}} \left(\frac{p_{sat}(T_l) - p_v}{\sqrt{T_l}} - \frac{p_v - p_{sat}(T_v)}{\sqrt{T_v}}\right) \tag{3.1}$$
 
-**Assumptions:**
-- Molecular collisions at interface
-- Maxwell-Boltzmann velocity distribution
-- No interface resistance (ideal conditions)
+**ข้อสมมติ:**
+- การชนกันของโมเลกุลที่ส่วนต่อประสาน
+- การกระจายความเร็วแบบแมกซ์เวลล์-โบลต์ซมาน
+- ไม่มีความต้านทานที่ส่วนต่อประสาน (สภาวะในอุดมคติ)
 
-**Variables:**
-- $M$: Molecular weight $[kg/mol]$
-- $R$: Universal gas constant $[J/(mol·K)]$
-- $p_{sat}(T)$: Saturation pressure $[Pa]$
-- $T_l, T_v$: Liquid and vapor temperatures $[K]$
-- $p_v$: Vapor pressure $[Pa]$
+**ตัวแปร:**
+- $M$: น้ำหนักโมเลกุล $[kg/mol]$
+- $R$: ค่าคงที่สากลของก๊าซ $[J/(mol·K)]$
+- $p_{sat}(T)$: ความดันอิ่มตัว $[Pa]$
+- $T_l, T_v$: อุณหภูมิของเหลวและไอ $[K]$
+- $p_v$: ความดันไอ $[Pa]$
 
-### 3.2 Schrage Model
+### 3.2 แบบจำลองชราจ (Schrage Model)
 
-Extends Hertz-Knudsen to include **accommodation coefficient** $\sigma$ for non-ideal interfaces:
+ขยายแบบจำลองเฮิร์ตซ์-คนุดเซนเพื่อรวม **สัมประสิทธิ์การปรับตัว (accommodation coefficient)** $\sigma$ สำหรับส่วนต่อประสานที่ไม่เป็นอุดมคติ:
 
 $$\dot{m}'' = \frac{2\sigma}{2-\sigma} \sqrt{\frac{M}{2\pi R T_{sat}}} \left(p_{sat}(T_l) - p_v\right) \tag{3.2}$$
 
-**Variables:**
-- $\sigma$: Accommodation coefficient ($0 < \sigma \leq 1$)
+**ตัวแปร:**
+- $\sigma$: สัมประสิทธิ์การปรับตัว ($0 < \sigma \leq 1$)
 
-The accommodation coefficient accounts for:
-- Surface roughness effects
-- Molecular-interface interactions
-- Non-equilibrium thermodynamic effects
+สัมประสิทธิ์การปรับตัวคำนึงถึง:
+- ผลของความขรุขระของพื้นผิว
+- ปฏิสัมพันธ์ระหว่างโมเลกุลและส่วนต่อประสาน
+- ผลกระทบทางเทอร์โมไดนามิกส์ที่ไม่อยู่ในสภาวะสมดุล
 
-### 3.3 Lee Model (Semi-Empirical)
+### 3.3 แบบจำลองลี (Lee Model - กึ่งประจักษ์)
 
-Most popular in CFD due to **numerical stability**:
+ได้รับความนิยมมากที่สุดใน CFD เนื่องจาก **ความเสถียรเชิงตัวเลข**:
 
-**Evaporation ($T_l > T_{sat}$):**
+**การระเหย ($T_l > T_{sat}$):**
 $$\dot{m}'' = r \alpha_l \rho_l \frac{T_l - T_{sat}}{T_{sat}} \tag{3.3a}$$
 
-**Condensation ($T_v < T_{sat}$):**
+**การควบแน่น ($T_v < T_{sat}$):**
 $$\dot{m}'' = r \alpha_v \rho_v \frac{T_{sat} - T_v}{T_{sat}} \tag{3.3b}$$
 
-**Variables:**
-- $r$: Relaxation coefficient (typically $0.1$ to $1000$)
-- $\alpha_l, \alpha_v$: Liquid and vapor volume fractions
-- $\rho_l, \rho_v$: Densities $[kg/m^3]$
+**ตัวแปร:**
+- $r$: สัมประสิทธิ์การผ่อนคลาย (Relaxation coefficient) (โดยทั่วไปคือ $0.1$ ถึง $1000$)
+- $\alpha_l, \alpha_v$: สัดส่วนปริมาตรของของเหลวและไอ
+- $\rho_l, \rho_v$: ความหนาแน่น $[kg/m^3]$
 
-> [!TIP] Implementation Note
-> The relaxation coefficient $r$ requires careful tuning:
-> - **Too small**: Excessive numerical diffusion at interface
-> - **Too large**: Instability and stiffness issues
-> - **Typical range**: $0.1 - 100$ depending on time step and mesh resolution
+> [!TIP] หมายเหตุการใช้งาน
+> สัมประสิทธิ์การผ่อนคลาย $r$ ต้องการการปรับจูนอย่างระมัดระวัง:
+> - **เล็กเกินไป**: เกิดการแพร่กระจายเชิงตัวเลขมากเกินไปที่ส่วนต่อประสาน
+> - **ใหญ่เกินไป**: เกิดปัญหาความไม่เสถียรและความแข็งเกร็ง (stiffness) ของสมการ
+> - **ช่วงทั่วไป**: $0.1 - 100$ ขึ้นอยู่กับช่วงเวลาและความละเอียดของเมช
 
-### 3.4 Interfacial Temperature Calculation
+### 3.4 การคำนวณอุณหภูมิที่ส่วนต่อประสาน
 
-The interfacial temperature $T_{int}$ is determined from energy balance:
+อุณหภูมิที่ส่วนต่อประสาน $T_{int}$ ถูกกำหนดจากสมดุลพลังงาน:
 
 $$k_l \frac{\partial T_l}{\partial n}\bigg|_{int} - k_v \frac{\partial T_v}{\partial n}\bigg|_{int} = \dot{m}'' h_{lv} \tag{3.4}$$
 
-**Iterative Algorithm:**
-1. Assume interfacial temperature
-2. Calculate mass transfer rate using kinetic model
-3. Update interfacial temperature from energy balance
-4. Iterate until convergence
+**อัลกอริทึมแบบวนซ้ำ:**
+1. สมมติอุณหภูมิที่ส่วนต่อประสาน
+2. คำนวณอัตราการถ่ายโอนมวลโดยใช้แบบจำลองทางจลน์
+3. อัปเดตอุณหภูมิที่ส่วนต่อประสานจากสมดุลพลังงาน
+4. วนซ้ำจนกว่าจะลู่เข้า
 
 ---
 
-## 4. Nucleation and Bubble Dynamics
+## 4. การกำเนิดนิวเคลียสและพลศาสตร์ของฟอง (Nucleation and Bubble Dynamics)
 
-### 4.1 Nucleation Types
+### 4.1 ประเภทของการกำเนิดนิวเคลียส
 
-**Homogeneous Nucleation:**
-- Occurs in bulk liquid without surface assistance
-- Requires significant superheat $\Delta T = T - T_{sat}$
-- Nucleation rate $J$ (nuclei per volume per time):
+**การกำเนิดนิวเคลียสแบบเนื้อเดียว (Homogeneous Nucleation):**
+- เกิดขึ้นในมวลของเหลวโดยไม่มีความช่วยเหลือจากพื้นผิว
+- ต้องการความร้อนสูงยวด (superheat) ที่มีนัยสำคัญ $\Delta T = T - T_{sat}$
+- อัตราการเกิดนิวเคลียส $J$ (จำนวนนิวเคลียสต่อปริมาตรต่อเวลา):
 
 $$J = J_0 \exp\left(-\frac{16\pi \sigma^3 v_l^2}{3k_B T (\Delta T)^2 h_{lv}^2}\right) \tag{4.1}$$
 
-**Heterogeneous Nucleation:**
-- Occurs at surface imperfections
-- Lower energy barrier via contact angle $\theta$
-- Critical radius $r_c$ and nucleation barrier $\Delta G^*$:
+**การกำเนิดนิวเคลียสแบบเนื้อผสม (Heterogeneous Nucleation):**
+- เกิดขึ้นที่ความไม่สมบูรณ์ของพื้นผิว
+- มีอุปสรรคพลังงานต่ำกว่าผ่านมุมสัมผัส $\theta$
+- รัศมีวิกฤต $r_c$ และอุปสรรคการเกิดนิวเคลียส $\Delta G^*$:
 
 $$r_c = \frac{2\sigma T_{sat}}{h_{lv} \rho_v \Delta T} \tag{4.2a}$$
 
 $$\Delta G^* = \frac{16\pi\sigma^3 v_l^2}{3 h_{lv}^2} f(\theta) \tag{4.2b}$$
 
-where $f(\theta) = \frac{1}{4}(2+\cos\theta)(1-\cos\theta)^2$
+โดยที่ $f(\theta) = \frac{1}{4}(2+\cos\theta)(1-\cos\theta)^2$
 
-**Variables:**
-- $\sigma$: Surface tension $[N/m]$
-- $v_l$: Liquid specific volume $[m^3/kg]$
-- $k_B$: Boltzmann constant $[J/K]$
-- $J_0$: Pre-exponential factor (~$10^{35}$ $m^{-3}s^{-1}$)
+**ตัวแปร:**
+- $\sigma$: แรงตึงผิว $[N/m]$
+- $v_l$: ปริมาตรจำเพาะของของเหลว $[m^3/kg]$
+- $k_B$: ค่าคงที่ของโบลต์ซมาน $[J/K]$
+- $J_0$: ปัจจัยก่อนเลขชี้กำลัง (~$10^{35}$ $m^{-3}s^{-1}$)
 
-### 4.2 Bubble Growth (Rayleigh-Plesset Equation)
+### 4.2 การเติบโตของฟอง (Rayleigh-Plesset Equation)
 
-Describes bubble radius evolution $R(t)$ under pressure difference:
+อธิบายวิวัฒนาการของรัศมีฟอง $R(t)$ ภายใต้ความแตกต่างของความดัน:
 
 $$\rho_l \left(R\ddot{R} + \frac{3}{2}\dot{R}^2\right) = p_v - p_{\infty} - \frac{2\sigma}{R} - 4\mu_l \frac{\dot{R}}{R} \tag{4.3}$$
 
-**Variables:**
-- $R$: Bubble radius $[m]$
-- $p_v$: Vapor pressure in bubble $[Pa]$
-- $p_{\infty}$: Far-field pressure $[Pa]$
-- $\mu_l$: Liquid viscosity $[Pa·s]$
+**ตัวแปร:**
+- $R$: รัศมีฟอง $[m]$
+- $p_v$: ความดันไอในฟอง $[Pa]$
+- $p_{\infty}$: ความดันในระยะไกล $[Pa]$
+- $\mu_l$: ความหนืดของของเหลว $[Pa·s]$
 
-**Simplified Growth Regimes:**
+**รูปแบบการเติบโตแบบย่อ:**
 
-| Mechanism | Controlling Factor | Scaling Law |
+| กลไก | ปัจจัยควบคุม | กฎการขยายขนาด (Scaling Law) |
 |-----------|-------------------|-------------|
-| **Heat-transfer controlled** | Liquid thermal conductivity | $R(t) \propto \sqrt{\alpha_l t}$ |
-| **Inertia controlled** | Liquid inertia | $R(t) \propto t^{1/2}$ |
-| **Diffusion controlled** | Mass transfer | $R(t) \propto t^{1/3}$ |
+| **ควบคุมโดยการถ่ายโอนความร้อน** | สัมประสิทธิ์การนำความร้อนของของเหลว | $R(t) \propto \sqrt{\alpha_l t}$ |
+| **ควบคุมโดยความเฉื่อย** | ความเฉื่อยของของเหลว | $R(t) \propto t^{1/2}$ |
+| **ควบคุมโดยการแพร่** | การถ่ายโอนมวล | $R(t) \propto t^{1/3}$ |
 
-### 4.3 Population Balance Connection
+### 4.3 ความเชื่อมโยงกับสมดุลประชากร (Population Balance Connection)
 
-For bubble populations, the **Population Balance Equation (PBE)** describes size distribution evolution $n(R,t)$:
+สำหรับประชากรของฟอง **สมการสมดุลประชากร (Population Balance Equation - PBE)** จะอธิบายวิวัฒนาการของการกระจายขนาด $n(R,t)$:
 
 $$\frac{\partial n}{\partial t} + \nabla \cdot (n\mathbf{u}) + \frac{\partial}{\partial R}(G n) = B - D + C_{coag} - C_{break} \tag{4.4}$$
 
-**Variables:**
-- $G = dR/dt$: Bubble growth rate $[m/s]$
-- $B, D$: Birth and death rates
-- $C_{coag}, C_{break}$: Coalescence and breakup terms
+**ตัวแปร:**
+- $G = dR/dt$: อัตราการเติบโตของฟอง $[m/s]$
+- $B, D$: อัตราการเกิดและการตาย
+- $C_{coag}, C_{break}$: เทอมการรวมตัวและการแตกตัว
 
 ---
 
-## 5. OpenFOAM Implementation
+## 5. การใช้งานใน OpenFOAM (OpenFOAM Implementation)
 
-### 5.1 Phase Change Model Architecture
+### 5.1 สถาปัตยกรรมแบบจำลองการเปลี่ยนสถานะเฟส
 
-OpenFOAM implements phase change through the `phaseChangeModel` class hierarchy:
+OpenFOAM ใช้งานการเปลี่ยนสถานะเฟสผ่านลำดับชั้นของคลาส `phaseChangeModel`:
 
 ```cpp
-// Base class for phase change models
-// Provides interface for mass transfer calculations
+// คลาสฐานสำหรับแบบจำลองการเปลี่ยนสถานะเฟส
+// ให้ส่วนติดต่อสำหรับการคำนวณการถ่ายโอนมวล
 class phaseChangeModel
 {
-    // Calculate interfacial temperature
+    // คำนวณอุณหภูมิที่ส่วนต่อประสาน
     virtual tmp<volScalarField> Tintfc() const = 0;
 
-    // Calculate mass transfer rate [kg/m³/s]
+    // คำนวณอัตราการถ่ายโอนมวล [kg/m³/s]
     virtual tmp<volScalarField> dmdt() const = 0;
 
-    // Update source terms for energy equation
+    // อัปเดตเทอมแหล่งกำเนิดสำหรับสมการพลังงาน
     virtual void correctMassTransfer
     (
-        volScalarField& Su,  // Explicit source term
-        volScalarField& Sp   // Implicit source term
+        volScalarField& Su,  // เทอมแหล่งกำเนิดแบบชัดแจ้ง
+        volScalarField& Sp   // เทอมแหล่งกำเนิดโดยปริยาย
     );
 };
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H`
 >
 > **คำอธิบาย (Thai Explanation):**
 > คลาส `phaseChangeModel` เป็นคลาสฐาน (base class) ที่กำหนดส่วนติดต่อ (interface) สำหรับแบบจำลองการเปลี่ยนสถานะเฟสทั้งหมดใน OpenFOAM:
@@ -249,33 +249,33 @@ class phaseChangeModel
 > - **tmp<volScalarField>**: ใช้ smart pointer เพื่อจัดการหน่วยความจำอัตโนมัติและหลีกเลี่ยงการคัดลอกข้อมูลโดยไม่จำเป็น
 > - **Source Terms**: เทอมแหล่งกำเนิด Su และ Sp ใช้ใน fvMatrix สำหรับแก้สมการพลังงานและสมการอื่นๆ ที่เกี่ยวข้องกับการถ่ายโอนมวล
 
-### 5.2 Solver Integration
+### 5.2 การบูรณาการกับตัวแก้ปัญหา (Solver Integration)
 
-Phase change is typically implemented in solvers like:
-- `boilingEulerFoam`: Specialized for boiling flows
-- `reactingEulerFoam`: General reacting multiphase with phase change
-- `interPhaseChangeFoam`: VOF-based phase change
+การเปลี่ยนสถานะเฟสมักจะถูกใช้งานในตัวแก้ปัญหาเช่น:
+- `boilingEulerFoam`: เฉพาะทางสำหรับการไหลที่มีการเดือด
+- `reactingEulerFoam`: หลายเฟสที่มีปฏิกิริยาเคมีและการเปลี่ยนสถานะเฟสทั่วไป
+- `interPhaseChangeFoam`: การเปลี่ยนสถานะเฟสตามวิธี VOF
 
-**Solution Algorithm:**
+**อัลกอริทึมการหาคำตอบ:**
 
 ```mermaid
 graph TD
-    A[Solver Loop] --> B[Update p, U, T]
-    B --> C[Call phaseChangeModel::correctMassTransfer]
-    C --> D[Calculate dmdt based on T vs T_sat]
-    D --> E[Update Su & Sp Source Terms]
-    E --> F[Solve Phase Fraction Equation]
-    F --> G[Solve Energy Equation with Latent Heat Source]
-    G --> H[Check Convergence]
-    H -- No --> B
-    H -- Yes --> I[Next Time Step]
+    A[วงรอบตัวแก้ปัญหา] --> B[อัปเดต p, U, T]
+    B --> C[เรียก phaseChangeModel::correctMassTransfer]
+    C --> D[คำนวณ dmdt ตามค่า T เทียบกับ T_sat]
+    D --> E[อัปเดตเทอมแหล่งกำเนิด Su และ Sp]
+    E --> F[แก้สมการสัดส่วนเฟส]
+    F --> G[แก้สมการพลังงานพร้อมแหล่งความร้อนแฝง]
+    G --> H[ตรวจสอบการลู่เข้า]
+    H -- ยังไม่ลู่เข้า --> B
+    H -- ลู่เข้าแล้ว --> I[ช่วงเวลาถัดไป]
 
     style C fill:#f96,stroke:#333,stroke-width:2px
     style D fill:#f96,stroke:#333,stroke-width:2px
 ```
-> **Figure 2:** แผนผังลำดับขั้นตอนการคำนวณของ Solver สำหรับแบบจำลองการเปลี่ยนสถานะเฟส โดยแสดงการเชื่อมโยงระหว่างการคำนวณอัตราการถ่ายโอนมวลและสมการพลังงานในแต่ละขั้นตอนการวนซ้ำ
+> **รูปที่ 2:** แผนผังลำดับขั้นตอนการคำนวณของ Solver สำหรับแบบจำลองการเปลี่ยนสถานะเฟส โดยแสดงการเชื่อมโยงระหว่างการคำนวณอัตราการถ่ายโอนมวลและสมการพลังงานในแต่ละขั้นตอนการวนซ้ำ
 
-### 5.3 Configuration in `phaseProperties`
+### 5.3 การกำหนดค่าใน `phaseProperties`
 
 ```foam
 phaseChange
@@ -285,10 +285,10 @@ phaseChange
 
     LeeCoeffs
     {
-        coeff       1000;        // Relaxation coefficient
+        coeff       1000;        // สัมประสิทธิ์การผ่อนคลาย
     }
 
-    // Alternative: Schnerr-Sauer for cavitation
+    // ทางเลือก: Schnerr-Sauer สำหรับ cavitation
     // cavitationModel SchnerrSauer;
     // SchnerrSauerCoeffs
     // {
@@ -299,59 +299,59 @@ phaseChange
 }
 ```
 
-### 5.4 Energy Equation Coupling
+### 5.4 การคัปปลิงสมการพลังงาน
 
-The phase fraction evolution includes mass transfer source:
+วิวัฒนาการของสัดส่วนเฟสรวมถึงแหล่งที่มาของการถ่ายโอนมวล:
 
 $$\frac{\partial \alpha_l}{\partial t} + \nabla \cdot (\alpha_l \mathbf{u}_l) = -\frac{\dot{m}''}{\rho_l A_{int}} \tag{5.1}$$
 
-The energy equation includes latent heat source:
+สมการพลังงานรวมถึงแหล่งความร้อนแฝง:
 
 $$\frac{\partial (\alpha_k \rho_k h_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k h_k) = \alpha_k \frac{\partial p}{\partial t} + \nabla \cdot (\alpha_k k_k \nabla T_k) + \dot{q}_k + \dot{m}_k h_{k,\mathrm{int}} \tag{5.2}$$
 
-**Variables:**
-- $h_k$: Specific enthalpy of phase $k$ $[J/kg]$
-- $k_k$: Thermal conductivity $[W/(m·K)]$
-- $\dot{q}_k$: Interfacial heat transfer $[W/m^3]$
-- $\dot{m}_k$: Mass transfer due to phase change $[kg/(m^3·s)]$
+**ตัวแปร:**
+- $h_k$: เอนทาลปีจำเพาะของเฟส $k$ $[J/kg]$
+- $k_k$: สัมประสิทธิ์การนำความร้อน $[W/(m·K)]$
+- $\dot{q}_k$: การถ่ายโอนความร้อนที่ส่วนต่อประสาน $[W/m^3]$
+- $\dot{m}_k$: การถ่ายโอนมวลเนื่องจากการเปลี่ยนสถานะเฟส $[kg/(m^3·s)]$
 
 ---
 
-## 6. Cavitation Models
+## 6. แบบจำลองการเกิดโพรงไอ (Cavitation Models)
 
-### 6.1 Physics of Cavitation
+### 6.1 ฟิสิกส์ของการเกิดโพรงไอ
 
-**Cavitation** occurs when local pressure falls below vapor pressure:
+**การเกิดโพรงไอ (Cavitation)** เกิดขึ้นเมื่อความดันเฉพาะที่ลดลงต่ำกว่าความดันไอ:
 
 $$p_{local} < p_{sat}(T)$$
 
-**Cavitation Number:**
+**เลขการเกิดโพรงไอ (Cavitation Number):**
 $$\sigma_i = \frac{p_{\infty} - p_{sat}}{\frac{1}{2}\rho U_{\infty}^2} \tag{6.1}$$
 
-Cavitation initiates when $\sigma_i < \sigma_{critical}$
+การเกิดโพรงไอจะเริ่มต้นเมื่อ $\sigma_i < \sigma_{critical}$
 
-### 6.2 Schnerr-Sauer Model
+### 6.2 แบบจำลองเชนเนอร์-เซาเออร์ (Schnerr-Sauer Model)
 
-Based on bubble dynamics, assuming spherical bubbles with number density $n_b$:
+อ้างอิงจากพลศาสตร์ของฟอง โดยสมมติว่าเป็นฟองทรงกลมที่มีความหนาแน่นจำนวน $n_b$:
 
 $$\dot{m}'' = \frac{3\rho_l\rho_v}{\rho} \frac{\alpha_l\alpha_v}{R_b} \text{sign}(p_{sat} - p) \sqrt{\frac{2}{3}\frac{|p_{sat} - p|}{\rho_l}} \tag{6.2}$$
 
-where bubble radius $R_b$ relates to vapor volume fraction:
+โดยที่รัศมีฟอง $R_b$ สัมพันธ์กับสัดส่วนปริมาตรไอ:
 
 $$\alpha_v = \frac{4}{3}\pi n_b R_b^3 \tag{6.3}$$
 
 ```cpp
-// Schnerr-Sauer cavitation model implementation
-// Based on bubble dynamics theory with spherical bubble assumption
+// การใช้งานแบบจำลองการเกิดโพรงไอ Schnerr-Sauer
+// อ้างอิงจากทฤษฎีพลศาสตร์ของฟองโดยสมมติว่าฟองเป็นทรงกลม
 class SchnerrSauerPhaseChange : public phaseChangeModel
 {
-    // Cavitation and condensation coefficients
-    dimensionedScalar Cc_;      // Cavitation coefficient
-    dimensionedScalar Cv_;      // Condensation coefficient
-    dimensionedScalar pSat_;    // Saturation pressure
+    // สัมประสิทธิ์การเกิดโพรงไอและการควบแน่น
+    dimensionedScalar Cc_;      // สัมประสิทธิ์การเกิดโพรงไอ
+    dimensionedScalar Cv_;      // สัมประสิทธิ์การควบแน่น
+    dimensionedScalar pSat_;    // ความดันอิ่มตัว
 
-    // Calculate mass transfer rate [kg/(m³·s)]
-    // Uses pressure difference between local and saturation pressure
+    // คำนวณอัตราการถ่ายโอนมวล [kg/(m³·s)]
+    // ใช้ความแตกต่างของความดันระหว่างความดันเฉพาะที่และความดันอิ่มตัว
     virtual tmp<volScalarField> dmdt() const override
     {
         return (rhoLiquid_*rhoVapor_/rho_) * Cc_ *
@@ -361,10 +361,10 @@ class SchnerrSauerPhaseChange : public phaseChangeModel
 };
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 >
 > **คำอธิบาย (Thai Explanation):**
-> คลาส `SchnerrSauerPhaseChange` เป็นการ implement แบบจำลอง Schnerr-Sauer สำหรับการ voilup (cavitation) ใน OpenFOAM:
+> คลาส `SchnerrSauerPhaseChange` เป็นการ implement แบบจำลอง Schnerr-Sauer สำหรับการเกิดโพรงไอ (cavitation) ใน OpenFOAM:
 > - **Cc_ และ Cv_**: สัมประสิทธิ์ (coefficients) สำหรับกระบวนการ cavitation และ condensation ซึ่งสามารถปรับแต่งได้ตามเงื่อนไขการไหล
 > - **pSat_**: ความดันไอน้ำ/ความดันอิ่มตัว (saturation pressure) ที่ใช้เป็นเกณฑ์ในการกำหนดจุดเริ่มต้นของ cavitation
 > - **dmdt()**: คำนวณอัตราการถ่ายโอนมวลจากความแตกต่างของความดัน (pressure difference) โดยใช้รูปแบบสมการที่พิจารณาจลน์ (inertia) ของของไหล
@@ -374,66 +374,66 @@ class SchnerrSauerPhaseChange : public phaseChangeModel
 > - **Bubble Dynamics Theory**: พื้นฐานทางทฤษฎีมาจากสมการ Rayleigh-Plesset ที่อธิบายการเติบโตและยุบตัวของฟองในสนามความดัน
 > - **Sign Function**: ฟังก์ชัน `sign()` ใช้ในการกำหนดทิศทางของการถ่ายโอนมวล (evaporation หรือ condensation) ตามเครื่องหมายของความแตกต่างความดัน
 
-### 6.3 Kunz Model
+### 6.3 แบบจำลองคุนซ์ (Kunz Model)
 
-Uses empirical functions for vaporization and condensation:
+ใช้ฟังก์ชันเชิงประจักษ์สำหรับการกลายเป็นไอและการควบแน่น:
 
 $$\dot{m}'' = \frac{C_{prod}\rho_v \min(0, p - p_{sat})}{t_{\infty}} - \frac{C_{dest}\rho_l \max(0, p_{sat} - p)}{t_{\infty}} U_{\infty} \tag{6.4}$$
 
-**Characteristics:**
-- Different treatment for vaporization and condensation
-- Velocity-dependent source terms
-- Tunable coefficients for calibration
+**ลักษณะเด่น:**
+- การจัดการที่แตกต่างกันสำหรับการกลายเป็นไอและการควบแน่น
+- เทอมแหล่งกำเนิดที่ขึ้นกับความเร็ว
+- สัมประสิทธิ์ที่ปรับจูนได้สำหรับการสอบเทียบ
 
-### 6.4 Industrial Applications
+### 6.4 การประยุกต์ใช้งานทางอุตสาหกรรม
 
-| Application | Cavitation Type | Impact |
+| การประยุกต์ใช้งาน | ประเภทของการเกิดโพรงไอ | ผลกระทบ |
 |-------------|-----------------|--------|
-| **Hydraulic Machinery** | Vortex, sheet, cloud | Efficiency loss, vibration |
-| **Marine Propellers** | Tip vortex, sheet | Thrust reduction, noise |
-| **Fuel Injectors** | Transient cavitation | Atomization enhancement |
-| **Medical Devices** | Controlled collapse | Drug delivery, therapy |
+| **เครื่องจักรไฮดรอลิก** | Vortex, sheet, cloud | การสูญเสียประสิทธิภาพ, การสั่นสะเทือน |
+| **ใบพัดเรือ** | Tip vortex, sheet | การลดลงของแรงผลัก, เสียงรบกวน |
+| **หัวฉีดเชื้อเพลิง** | Transient cavitation | การเพิ่มประสิทธิภาพการทำให้เป็นละออง |
+| **อุปกรณ์การแพทย์** | Controlled collapse | การส่งยา, การบำบัดรักษา |
 
 ---
 
-## 7. Computational Challenges
+## 7. ความท้าทายในการคำนวณ (Computational Challenges)
 
-### 7.1 Time Scale Disparity
+### 7.1 ความแตกต่างของมาตราส่วนเวลา
 
-**Challenge:** Phase change may occur much faster than flow dynamics
+**ความท้าทาย:** การเปลี่ยนสถานะเฟสอาจเกิดขึ้นเร็วกว่าพลศาสตร์การไหลมาก
 
-| Phenomenon | Time Scale | Computational Impact |
+| ปรากฏการณ์ | มาตราส่วนเวลา | ผลกระทบต่อการคำนวณ |
 |------------|------------|---------------------|
-| **Phase change** | $10^{-6} - 10^{-4}$ s | Requires very small time steps |
-| **Fluid flow** | $10^{-3} - 10^{-1}$ s | Can use larger time steps |
-| **Heat transfer** | $10^{-4} - 10^{-2}$ s | Intermediate scale |
+| **การเปลี่ยนสถานะเฟส** | $10^{-6} - 10^{-4}$ วินาที | ต้องการช่วงเวลาที่สั้นมาก |
+| **การไหลของของไหล** | $10^{-3} - 10^{-1}$ วินาที | สามารถใช้ช่วงเวลาที่ใหญ่ขึ้นได้ |
+| **การถ่ายโอนความร้อน** | $10^{-4} - 10^{-2}$ วินาที | มาตราส่วนระดับกลาง |
 
-**Strategies:**
-- **Implicit time integration** for phase change source terms
-- **Adaptive time stepping** based on phase change rate
-- **Subcycling** for fast phase change dynamics
+**กลยุทธ์:**
+- **การบูรณาการเวลาแบบปริยาย (Implicit time integration)** สำหรับเทอมแหล่งกำเนิดการเปลี่ยนสถานะเฟส
+- **การปรับช่วงเวลาแบบปรับตัว (Adaptive time stepping)** ตามอัตราการเปลี่ยนสถานะเฟส
+- **Subcycling** สำหรับพลศาสตร์การเปลี่ยนสถานะเฟสที่รวดเร็ว
 
-### 7.2 Interface Sharpness
+### 7.2 ความคมชัดของส่วนต่อประสาน (Interface Sharpness)
 
-**Problem:** Numerical diffusion can smear sharp interfaces
+**ปัญหา:** การแพร่กระจายเชิงตัวเลขสามารถทำให้ส่วนต่อประสานที่คมชัดกลายเป็นพร่ามัว
 
-**Metrics:**
-- **Interface thickness:** Number of cells spanning interface
-- **Volume fraction boundedness:** Ensuring $0 \leq \alpha \leq 1$
+**ตัวชี้วัด:**
+- **ความหนาของส่วนต่อประสาน**: จำนวนเซลล์ที่ครอบคลุมส่วนต่อประสาน
+- **การมีขอบเขตของสัดส่วนปริมาตร**: รับประกันว่า $0 \leq \alpha \leq 1$
 
-**Solutions:**
-- **Compression schemes** (MULES in OpenFOAM)
-- **High-resolution interface capturing**
-- **Adaptive mesh refinement** near interface
+**วิธีแก้ไข:**
+- **รูปแบบการบีบอัด (Compression schemes)** (MULES ใน OpenFOAM)
+- **การจับภาพส่วนต่อประสานความละเอียดสูง**
+- **การปรับปรุงเมชแบบปรับตัว (Adaptive mesh refinement)** ใกล้ส่วนต่อประสาน
 
 ```cpp
-// Interface compression in VOF method
-// Compresses the interface to maintain sharpness
+// การบีบอัดส่วนต่อประสานในวิธี VOF
+// บีบอัดส่วนต่อประสานเพื่อรักษาความคมชัด
 surfaceScalarField phiAlpha
 (
     fvc::flux
     (
-        // Compressive flux based on interface normal gradient
+        // ฟลักซ์การบีบอัดตามเกรเดียนต์ปกติของส่วนต่อประสาน
         -fvc::snGrad(alpha1_)*mesh.magSf(),
         alpha1_,
         "div(phi,alpha1)"
@@ -441,7 +441,7 @@ surfaceScalarField phiAlpha
 );
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 >
 > **คำอธิบาย (Thai Explanation):**
 > โค้ดนี้แสดงการใช้งาน **Interface Compression Scheme** ในวิธี VOF (Volume of Fluid) เพื่อรักษาความคมชัดของส่วนต่อประสานระหว่างเฟส:
@@ -454,60 +454,60 @@ surfaceScalarField phiAlpha
 > - **MULES (Multidimensional Universal Limiter with Explicit Solution)**: เป็นอัลกอริทึมมาตรฐานใน OpenFOAM สำหรับรักษาความมั่นคงของ volume fraction และป้องกันค่าที่ออกนอกช่วง [0, 1]
 > - **Numerical Diffusion**: การแพร่กระจายเชิงตัวเลขเกิดจากการประมาณค่าในช่องว่างจำกัด (finite discretization) ทำให้ interface กระจายและไม่คมชัด
 
-### 7.3 Conservation Issues
+### 7.3 ปัญหาการอนุรักษ์
 
-**Mass Conservation:**
+**การอนุรักษ์มวล:**
 $$\sum_{cells} \frac{\partial (\alpha \rho)}{\partial t} V_{cell} \neq 0$$
 
-**Energy Conservation:**
+**การอนุรักษ์พลังงาน:**
 $$\sum_{cells} \left[ \frac{\partial (\rho h)}{\partial t} + \nabla \cdot (\rho h \mathbf{u}) \right] V_{cell} \neq 0$$
 
-**Verification Procedures:**
-1. **Global mass balance** monitoring
-2. **Energy balance** checking
-3. **Conservation error** quantification
-4. **Time step refinement** studies
+**ขั้นตอนการตรวจสอบ:**
+1. ติดตาม **สมดุลมวลโดยรวม (Global mass balance)**
+2. ตรวจสอบ **สมดุลพลังงาน (Energy balance)**
+3. ระบุปริมาณ **ข้อผิดพลาดการอนุรักษ์ (Conservation error)**
+4. ศึกษา **ความละเอียดของช่วงเวลา (Time step refinement)**
 
 ---
 
-## 8. Best Practices
+## 8. แนวทางปฏิบัติที่ดีที่สุด (Best Practices)
 
-### 8.1 Model Selection Guidelines
+### 8.1 คู่มือการเลือกแบบจำลอง
 
-| Application | Recommended Model | Justification |
+| การประยุกต์ใช้งาน | แบบจำลองที่แนะนำ | เหตุผล |
 |-------------|-------------------|----------------|
-| **Pool boiling** | Lee or Schrage** | Good stability, reasonable accuracy |
-| **Flash evaporation** | Hertz-Knudsen | Captures non-equilibrium effects |
-| **Cavitation** | Schnerr-Sauer | Validated for high-speed flows |
-| **Condensation** | Lee with condensation | Numerically robust |
+| **Pool boiling** | Lee หรือ Schrage** | เสถียรภาพดี, ความแม่นยำเหมาะสม |
+| **Flash evaporation** | Hertz-Knudsen | จับผลกระทบที่ไม่อยู่ในสภาวะสมดุลได้ |
+| **Cavitation** | Schnerr-Sauer | ได้รับการตรวจสอบแล้วสำหรับการไหลความเร็วสูง |
+| **Condensation** | Lee พร้อมการควบแน่น | มีความแข็งแกร่งเชิงตัวเลข |
 
-### 8.2 Parameter Calibration
+### 8.2 การสอบเทียบพารามิเตอร์ (Parameter Calibration)
 
-**Lee Model Coefficient Calibration:**
-1. Start with $r = 1.0$
-2. Increase if interface is too diffuse
-3. Decrease if simulation becomes unstable
-4. Validate against experimental data
+**การสอบเทียบสัมประสิทธิ์แบบจำลอง Lee:**
+1. เริ่มต้นด้วย $r = 1.0$
+2. เพิ่มค่าหากส่วนต่อประสานแพร่กระจายเกินไป
+3. ลดค่าหากการจำลองเริ่มไม่เสถียร
+4. ตรวจสอบความถูกต้องกับข้อมูลการทดลอง
 
-**Convergence Indicators:**
-- **Mass conservation error** < $10^{-6}$
-- **Energy balance error** < $10^{-4}$
-- **Interface position stability**
+**ตัวบ่งชี้การลู่เข้า:**
+- **ข้อผิดพลาดการอนุรักษ์มวล** < $10^{-6}$
+- **ข้อผิดพลาดสมดุลพลังงาน** < $10^{-4}$
+- **เสถียรภาพของตำแหน่งส่วนต่อประสาน**
 
-### 8.3 Mesh Guidelines
+### 8.3 แนวทางสำหรับเมช
 
-| Parameter | Requirement | Purpose |
+| พารามิเตอร์ | ข้อกำหนด | วัตถุประสงค์ |
 |-----------|-------------|---------|
-| **Resolution** | 10-15 cells per bubble diameter | Resolve interface curvature |
-| **Quality** | Orthogonality < 45°, Aspect ratio < 5 | Numerical accuracy |
-| **Refinement** | 1-3 cells in boundary layer | Near-wall heat transfer |
+| **ความละเอียด** | 10-15 เซลล์ต่อเส้นผ่านศูนย์กลางฟอง | เพื่อแสดงความโค้งของส่วนต่อประสาน |
+| **คุณภาพ** | ความไม่ตั้งฉาก < 45°, อัตราส่วนรูปร่าง < 5 | ความแม่นยำเชิงตัวเลข |
+| **การปรับแต่ง** | 1-3 เซลล์ในชั้นขอบ | การถ่ายโอนความร้อนใกล้ผนัง |
 
-### 8.4 Solver Settings
+### 8.4 การตั้งค่าตัวแก้ปัญหา
 
-**Recommended Schemes:**
+**รูปแบบที่แนะนำ (Recommended Schemes):**
 
 ```foam
-// In fvSchemes
+// ใน fvSchemes
 ddtSchemes
 {
     default         Euler;
@@ -531,10 +531,10 @@ fluxRequired
 }
 ```
 
-**Solution Controls:**
+**การควบคุมการหาคำตอบ (Solution Controls):**
 
 ```foam
-// In fvSolution
+// ใน fvSolution
 solvers
 {
     "alpha.*"
@@ -556,76 +556,76 @@ solvers
 
 ---
 
-## 9. Validation Cases
+## 9. กรณีการรับรองความถูกต้อง (Validation Cases)
 
-### 9.1 1D Stefan Problem
+### 9.1 ปัญหา Stefan 1 มิติ
 
-**Analytical Solution:**
+**คำตอบเชิงวิเคราะห์:**
 $$\delta(t) = 2\lambda \sqrt{\alpha t} \tag{9.1}$$
 
-where $\lambda$ satisfies:
+โดยที่ $\lambda$ เป็นไปตาม:
 $$\frac{e^{-\lambda^2}}{\text{erf}(\lambda)} = \frac{\sqrt{\pi} L}{c_p (T_m - T_0)} \tag{9.2}$$
 
-**Validation Metrics:**
-- Interface position error < 2%
-- Temperature profile error < 1%
+**ตัวชี้วัดการรับรองความถูกต้อง:**
+- ข้อผิดพลาดตำแหน่งส่วนต่อประสาน < 2%
+- ข้อผิดพลาดโปรไฟล์อุณหภูมิ < 1%
 
-### 9.2 2D Nucleate Boiling
+### 9.2 การเดือดแบบนิวเคลียส 2 มิติ (2D Nucleate Boiling)
 
-**Setup:**
-- Horizontal heated surface
-- Constant wall heat flux: $100 kW/m^2$
-- Fluid: Water at atmospheric pressure
+**การตั้งค่า:**
+- พื้นผิวทำความร้อนแนวนอน
+- ฟลักซ์ความร้อนที่ผนังคงที่: $100 kW/m^2$
+- ของไหล: น้ำที่ความดันบรรยากาศ
 
-**Results:**
-- Nucleate boiling accurately captured
-- Critical heat flux occurs at $q''_{crit} \approx 1.2 MW/m^2$
+**ผลลัพธ์:**
+- จับภาพการเดือดแบบนิวเคลียสได้อย่างแม่นยำ
+- ฟลักซ์ความร้อนวิกฤตเกิดขึ้นที่ $q''_{crit} \approx 1.2 MW/m^2$
 
-### 9.3 Cavitation in Nozzle
+### 9.3 การเกิดโพรงไอในหัวฉีด (Cavitation in Nozzle)
 
-**Parameters:**
-- Inlet velocity: $50 m/s$
-- Pressure ratio: $8:1$
-- Fluid: Water at $20°C$
+**พารามิเตอร์:**
+- ความเร็วทางเข้า: $50 m/s$
+- อัตราส่วนความดัน: $8:1$
+- ของไหล: น้ำที่ $20°C$
 
-**Analysis:**
-- Cavitation inception at nozzle throat
-- $15\%$ efficiency drop when NPSH < critical
+**การวิเคราะห์:**
+- การเริ่มต้นเกิดโพรงไอที่คอคอดของหัวฉีด
+- ประสิทธิภาพลดลง $15%$ เมื่อ NPSH < ค่าวิกฤต
 
 ---
 
-## 10. Troubleshooting
+## 10. การแก้ไขปัญหา (Troubleshooting)
 
-### 10.1 Common Issues
+### 10.1 ปัญหาที่พบบ่อย
 
-| Issue | Cause | Solution |
+| ปัญหา | สาเหตุ | วิธีแก้ไข |
 |-------|-------|----------|
-| **Non-convergence** | Poor initial conditions | Use gradual ramping of boundary conditions |
-| **Pressure oscillations** | Poor interface capturing | Increase compression factor |
-| **Excessive velocities** | Too much interface friction | Adjust interfacial viscosity |
-| **Mass imbalance** | Inconsistent phase fractions | Check MULES parameters |
+| **ไม่ลู่เข้า** | เงื่อนไขเริ่มต้นไม่ดี | ใช้การค่อยๆ เพิ่มค่า (ramping) ของเงื่อนไขขอบเขต |
+| **การแกว่งของความดัน** | การจับภาพส่วนต่อประสานไม่ดี | เพิ่มปัจจัยการบีบอัด (compression factor) |
+| **ความเร็วสูงเกินไป** | แรงเสียดทานที่ส่วนต่อประสานมากเกินไป | ปรับความหนืดที่ส่วนต่อประสาน |
+| **มวลไม่สมดุล** | สัดส่วนเฟสไม่สอดคล้องกัน | ตรวจสอบพารามิเตอร์ MULES |
 
-### 10.2 Performance Optimization
+### 10.2 การเพิ่มประสิทธิภาพ
 
-**Mesh Optimization:**
-- Use adaptive mesh refinement near interface
-- Employ 2D or axisymmetric meshes when possible
-- Limit total cell count to available computational resources
+**การปรับแต่งเมช:**
+- ใช้การปรับปรุงเมชแบบปรับตัวใกล้ส่วนต่อประสาน
+- ใช้เมชแบบ 2 มิติหรือแบบสมมาตรแกนเมื่อเป็นไปได้
+- จำกัดจำนวนเซลล์รวมตามทรัพยากรการคำนวณที่มีอยู่
 
-**Model Selection:**
-- Choose simpler models (Schiller-Naumann) for dilute flows
-- Use complex models (Gidaspow) for dense fluidized beds
-- Consider quasi-steady assumptions for long transients
+**การเลือกแบบจำลอง:**
+- เลือกแบบจำลองที่ง่ายกว่า (Schiller-Naumann) สำหรับการไหลที่เจือจาง
+- ใช้แบบจำลองที่ซับซ้อน (Gidaspow) สำหรับเตียงฟลูอิดไดซ์ที่หนาแน่น
+- พิจารณาข้อสมมติแบบกึ่งสถิต (quasi-steady) สำหรับช่วงการเปลี่ยนแปลงที่ยาวนาน
 
-**Time Control:**
-- Use **adaptive time stepping** based on Courant numbers (`maxCo`, `maxAlphaCo`)
-- Implement **pseudo-transient** approach for steady-state with large time steps and under-relaxation
+**การควบคุมเวลา:**
+- ใช้ **การปรับช่วงเวลาแบบปรับตัว** ตามเลขคูแรนท์ (`maxCo`, `maxAlphaCo`)
+- ใช้งานแนวทาง **แบบกึ่งสภาวะไม่คงตัว (pseudo-transient)** สำหรับสภาวะคงตัวที่มีช่วงเวลาใหญ่และการผ่อนคลาย
 
 ---
 
-## 11. References
+## 11. เอกสารอ้างอิง (References)
 
-### 11.1 Key Papers
+### 11.1 เอกสารสำคัญ
 
 1. **Lee, W.H.** (1980). "A Pressure Iteration Scheme for Two-Phase Flow Modeling." *Computational Methods in Two-Phase Flow*
 2. **Schnerr, G.H., & Sauer, J.** (2001). "Physical and Numerical Modeling of Unsteady Cavitation Dynamics." *Fourth International Symposium on Cavitation (CAV2001)*
@@ -633,29 +633,29 @@ $$\frac{e^{-\lambda^2}}{\text{erf}(\lambda)} = \frac{\sqrt{\pi} L}{c_p (T_m - T_
 4. **Hertz, H.** (1882). "Über die Verdunstung der Flüssigkeiten, besonders des Quecksilbers, im luftleeren Raume." *Annalen der Physik*
 5. **Knudsen, M.** (1915). "Die maximale Verdampfungsgeschwindigkeit des Quecksilbers." *Annalen der Physik*
 
-### 11.2 OpenFOAM Implementation
+### 11.2 การใช้งานใน OpenFOAM
 
-- **Source Code:** `src/phaseSystemModels/phaseChangeModels/`
-- **Tutorials:** `$FOAM_TUTORIALS/multiphase/multiphaseEulerFoam/`
-- **Documentation:** OpenFOAM Programmer's Guide, Chapter 6
-
----
-
-## 12. Summary Checklist
-
-- [ ] Understand the thermodynamics of phase change (saturation, latent heat)
-- [ ] Select appropriate mass transfer model for your application
-- [ ] Configure phase change parameters in `phaseProperties`
-- [ ] Set up proper mesh resolution near interfaces
-- [ ] Implement appropriate boundary conditions for heat transfer
-- [ ] Validate against analytical solutions or experimental data
-- [ ] Monitor conservation properties (mass, energy)
-- [ ] Perform time step sensitivity studies
-- [ ] Document all model parameters and calibration procedures
+- **ซอร์สโค้ด:** `src/phaseSystemModels/phaseChangeModels/`
+- **บทช่วยสอน (Tutorials):** `$FOAM_TUTORIALS/multiphase/multiphaseEulerFoam/`
+- **เอกสารประกอบ:** OpenFOAM Programmer's Guide, Chapter 6
 
 ---
 
-**Further Reading:**
+## 12. รายการตรวจสอบสรุป (Summary Checklist)
+
+- [ ] เข้าใจเทอร์โมไดนามิกส์ของการเปลี่ยนสถานะเฟส (ความอิ่มตัว, ความร้อนแฝง)
+- [ ] เลือกแบบจำลองการถ่ายโอนมวลที่เหมาะสมกับการประยุกต์ใช้งานของคุณ
+- [ ] กำหนดค่าพารามิเตอร์การเปลี่ยนสถานะเฟสใน `phaseProperties`
+- [ ] ตั้งค่าความละเอียดเมชที่เหมาะสมใกล้ส่วนต่อประสาน
+- [ ] ใช้งานเงื่อนไขขอบเขตที่เหมาะสมสำหรับการถ่ายโอนความร้อน
+- [ ] ตรวจสอบความถูกต้องเทียบกับคำตอบเชิงวิเคราะห์หรือข้อมูลการทดลอง
+- [ ] ติดตามคุณสมบัติการอนุรักษ์ (มวล, พลังงาน)
+- [ ] ทำการศึกษาความไวของช่วงเวลา (time step sensitivity)
+- [ ] บันทึกพารามิเตอร์แบบจำลองและขั้นตอนการสอบเทียบทั้งหมด
+
+---
+
+**อ่านเพิ่มเติม:**
 - [[02_Interfacial_Heat_Transfer]]
 - [[03_Cavitation_Models]]
 - [[04_Numerical_Methods]]

@@ -1,178 +1,178 @@
-# Cavitation Modeling in OpenFOAM
+# การสร้างแบบจำลองการเกิดโพรงไอใน OpenFOAM (Cavitation Modeling in OpenFOAM)
 
-## Table of Contents
-1. [Introduction to Cavitation](#1-introduction-to-cavitation)
-2. [Physics of Cavitation](#2-physics-of-cavitation)
-3. [Governing Equations](#3-governing-equations)
-4. [Cavitation Models in OpenFOAM](#4-cavitation-models-in-openfoam)
-5. [Implementation Details](#5-implementation-details)
-6. [Numerical Considerations](#6-numerical-considerations)
-7. [Applications and Case Studies](#7-applications-and-case-studies)
-8. [Best Practices](#8-best-practices)
+## สารบัญ
+1. [บทนำสู่การเกิดโพรงไอ](#1-บทนำสู่การเกิดโพรงไอ)
+2. [ฟิสิกส์ของการเกิดโพรงไอ](#2-ฟิสิกส์ของการเกิดโพรงไอ)
+3. [สมการควบคุม](#3-สมการควบคุม)
+4. [แบบจำลองการเกิดโพรงไอใน OpenFOAM](#4-แบบจำลองการเกิดโพรงไอใน-openfoam)
+5. [รายละเอียดการใช้งาน](#5-รายละเอียดการใช้งาน)
+6. [ข้อควรพิจารณาเชิงตัวเลข](#6-ข้อควรพิจารณาเชิงตัวเลข)
+7. [การประยุกต์ใช้งานและกรณีศึกษา](#7-การประยุกต์ใช้งานและกรณีศึกษา)
+8. [แนวทางปฏิบัติที่ดีที่สุด](#8-แนวทางปฏิบัติที่ดีที่สุด)
 
 ---
 
-## 1. Introduction to Cavitation
+## 1. บทนำสู่การเกิดโพรงไอ (Introduction to Cavitation)
 
-> [!INFO] **Cavitation Definition**
-> Cavitation is the formation, growth, and collapse of vapor or gas bubbles in a liquid when local pressure falls below the vapor pressure. This phenomenon is critical in hydraulic machinery, marine propellers, fuel injectors, and medical devices.
+> [!INFO] **นิยามของการเกิดโพรงไอ**
+> การเกิดโพรงไอ (Cavitation) คือการก่อตัว, การเติบโต และการยุบตัวของฟองไอหรือก๊าซในของเหลว เมื่อความดันเฉพาะที่ลดลงต่ำกว่าความดันไอ ปรากฏการณ์นี้มีความสำคัญอย่างยิ่งในเครื่องจักรไฮดรอลิก, ใบพัดเรือ, หัวฉีดเชื้อเพลิง และอุปกรณ์ทางการแพทย์
 
-### 1.1 Physical Mechanism
+### 1.1 กลไกทางกายภาพ (Physical Mechanism)
 
-Cavitation occurs through four distinct stages:
+การเกิดโพรงไอเกิดขึ้นผ่านสี่ระยะที่แตกต่างกัน:
 
 ```mermaid
 flowchart LR
-    A[Local Pressure<br/>drops below p_sat] --> B[Nucleation<br/>of vapor bubbles]
-    B --> C[Growth<br/>of bubbles]
-    C --> D[Transport<br/>by flow]
-    D --> E[Violent<br/>collapse]
+    A[ความดันเฉพาะที่<br/>ลดลงต่ำกว่า p_sat] --> B[การกำเนิดนิวเคลียส<br/>ของฟองไอ]
+    B --> C[การเติบโต<br/>ของฟอง]
+    C --> D[การขนส่ง<br/>โดยการไหล]
+    D --> E[การยุบตัว<br/>อย่างรุนแรง]
 
     style A fill:#ffebee,stroke:#c62828
     style E fill:#ffcdd2,stroke:#c62828
 ```
-> **Figure 1:** แผนภาพแสดงสี่ระยะหลักของปรากฏการณ์แควิเทชัน เริ่มจากการลดลงของความดันจนถึงการยุบตัวของฟองไออย่างรุนแรงซึ่งส่งผลต่อความคงทนของวัสดุ
+> **รูปที่ 1:** แผนภาพแสดงสี่ระยะหลักของปรากฏการณ์แควิเทชัน เริ่มจากการลดลงของความดันจนถึงการยุบตัวของฟองไออย่างรุนแรงซึ่งส่งผลต่อความคงทนของวัสดุ
 
 
-**Key Parameters:**
-- $p_{sat}$: Saturation vapor pressure at operating temperature
-- $p$: Local pressure in the liquid
-- $\sigma$: Cavitation number (dimensionless)
+**พารามิเตอร์ที่สำคัญ:**
+- $p_{sat}$: ความดันไออิ่มตัวที่อุณหภูมิใช้งาน
+- $p$: ความดันเฉพาะที่ในของเหลว
+- $\sigma$: เลขการเกิดโพรงไอ (ไม่มีหน่วย)
 
-$$\sigma = \frac{p - p_{sat}}{\frac{1}{2}\rho U^2}$$
+$$\sigma = \frac{p - p_{sat}}{\frac{1}{2}\rho U^2}$$ 
 
-### 1.2 Types of Cavitation
+### 1.2 ประเภทของการเกิดโพรงไอ
 
-| Type | Location | Cause | Effects |
+| ประเภท | ตำแหน่ง | สาเหตุ | ผลกระทบ |
 |------|----------|-------|---------|
-| **Inception** | Low pressure regions | $p < p_{sat}$ | Initial bubble formation |
-| **Sheet** | Boundary layers | Separated flow | Large vapor pockets |
-| **Cloud** | Wake regions | Vortex shedding | Turbulent vapor clouds |
-| **Traveling** | Flow path | Bubbles transported | Damage during collapse |
+| **การเริ่มต้น (Inception)** | บริเวณความดันต่ำ | $p < p_{sat}$ | การก่อตัวของฟองเริ่มต้น |
+| **แบบแผ่น (Sheet)** | ชั้นขอบ (Boundary layers) | การแยกตัวของการไหล | เกิดโพรงไอขนาดใหญ่ |
+| **แบบกลุ่ม (Cloud)** | บริเวณรอยพ่วง (Wake regions) | การหลุดล่อนของน้ำวน | กลุ่มไอที่ปั่นป่วน |
+| **แบบเคลื่อนที่ (Traveling)** | เส้นทางการไหล | ฟองถูกขนส่งไป | ความเสียหายระหว่างการยุบตัว |
 
 ---
 
-## 2. Physics of Cavitation
+## 2. ฟิสิกส์ของการเกิดโพรงไอ (Physics of Cavitation)
 
-### 2.1 Bubble Dynamics
+### 2.1 พลศาสตร์ของฟอง (Bubble Dynamics)
 
-The fundamental equation governing single bubble dynamics is the **Rayleigh-Plesset equation**:
+สมการพื้นฐานที่ควบคุมพลศาสตร์ของฟองเดี่ยวคือ **สมการเรย์ลี-เพลสเซ็ต (Rayleigh-Plesset equation)**:
 
-$$R\frac{\mathrm{d}^2R}{\mathrm{d}t^2} + \frac{3}{2}\left(\frac{\mathrm{d}R}{\mathrm{d}t}\right)^2 = \frac{1}{\rho_l}\left(p_B - p_\infty - \frac{2\sigma}{R} - \frac{4\mu_l}{R}\frac{\mathrm{d}R}{\mathrm{d}t}\right) \tag{2.1}$$
+$$R\frac{\mathrm{d}^2R}{\mathrm{d}t^2} + \frac{3}{2}\left(\frac{\mathrm{d}R}{\mathrm{d}t}\right)^2 = \frac{1}{\rho_l}\left(p_B - p_\infty - \frac{2\sigma}{R} - \frac{4\mu_l}{R}\frac{\mathrm{d}R}{\mathrm{d}t}\right) \tag{2.1}$$ 
 
-**Variables:**
-- $R(t)$: Bubble radius [m]
-- $p_B$: Pressure inside bubble [Pa]
-- $p_\infty$: Far-field pressure [Pa]
-- $\rho_l$: Liquid density [kg/m³]
-- $\sigma$: Surface tension [N/m]
-- $\mu_l$: Liquid dynamic viscosity [Pa·s]
+**ตัวแปร:**
+- $R(t)$: รัศมีฟอง [m]
+- $p_B$: ความดันภายในฟอง [Pa]
+- $p_\infty$: ความดันในระยะไกล [Pa]
+- $\rho_l$: ความหนาแน่นของของเหลว [kg/m³]
+- $\sigma$: แรงตึงผิว [N/m]
+- $\mu_l$: ความหนืดพลศาสตร์ของของเหลว [Pa·s]
 
-### 2.2 Collapse Mechanisms
+### 2.2 กลไกการยุบตัว (Collapse Mechanisms)
 
-> [!WARNING] **Collapse Damage**
-> Bubble collapse near solid walls generates:
-> - **Micro-jets**: High-velocity liquid jets penetrating the bubble
-> - **Shock waves**: Pressure waves up to GPa levels
-> - **Erosion**: Material damage from repeated collapses
+> [!WARNING] **ความเสียหายจากการยุบตัว**
+> การยุบตัวของฟองใกล้ผนังของแข็งสร้าง:
+> - **Micro-jets**: เจ็ทของเหลวความเร็วสูงที่พุ่งทะลุฟอง
+> - **Shock waves**: คลื่นความดันที่สูงถึงระดับ GPa
+> - **Erosion**: ความเสียหายของวัสดุจากการยุบตัวซ้ำๆ
 
-**Collapse Pressure Estimate:**
+**การประมาณความดันขณะยุบตัว:**
 
-$$p_{collapse} \approx \rho_l c_l \frac{\mathrm{d}R/\mathrm{d}t}{R}$$
+$$p_{collapse} \approx \rho_l c_l \frac{\mathrm{d}R/\mathrm{d}t}{R}$$ 
 
-where $c_l$ is the speed of sound in the liquid.
+โดยที่ $c_l$ คือความเร็วเสียงในของเหลว
 
-### 2.3 Cavitation Inception
+### 2.3 การเริ่มต้นเกิดโพรงไอ (Cavitation Inception)
 
-**Inception Criterion:**
+**เกณฑ์การเริ่มต้น:**
 
-$$\sigma_i = \frac{p_\infty - p_{sat}}{\frac{1}{2}\rho U_\infty^2} < \sigma_{critical}$$
+$$\sigma_i = \frac{p_\infty - p_{sat}}{\frac{1}{2}\rho U_\infty^2} < \sigma_{critical}$$ 
 
-**Critical Parameters:**
-- **Nuclei size**: $R_0 \approx 1-100 \,\mu m$
-- **Nuclei concentration**: $n_0 \approx 10^8 - 10^{13} \, \text{nuclei/m}^3$
-- **Tension factor**: $\tau = \frac{p_{sat} - p}{\frac{2\sigma}{R_0}}$
-
----
-
-## 3. Governing Equations
-
-### 3.1 Mixture Model Equations
-
-For cavitation modeling, OpenFOAM uses a mixture approach treating liquid-vapor as a single fluid with variable properties.
-
-#### 3.1.1 Continuity Equation
-
-$$\frac{\partial \rho_m}{\partial t} + \nabla \cdot (\rho_m \mathbf{u}_m) = 0 \tag{3.1}$$
-
-where the mixture density is:
-
-$$\rho_m = \alpha_l \rho_l + \alpha_v \rho_v \tag{3.2}$$
-
-#### 3.1.2 Momentum Equation
-
-$$\frac{\partial (\rho_m \mathbf{u}_m)}{\partial t} + \nabla \cdot (\rho_m \mathbf{u}_m \mathbf{u}_m) = -\nabla p + \nabla \cdot \boldsymbol{\tau}_m + \rho_m \mathbf{g} + \mathbf{f}_{\sigma} \tag{3.3}$$
-
-**Mixture velocity:**
-
-$$\mathbf{u}_m = \frac{\alpha_l \rho_l \mathbf{u}_l + \alpha_v \rho_v \mathbf{u}_v}{\rho_m} \tag{3.4}$$
-
-#### 3.1.3 Vapor Transport Equation
-
-$$\frac{\partial (\alpha_v \rho_v)}{\partial t} + \nabla \cdot (\alpha_v \rho_v \mathbf{u}_m) = \dot{m} \tag{3.5}$$
-
-where $\dot{m}$ is the mass transfer rate due to phase change.
+**พารามิเตอร์วิกฤต:**
+- **ขนาดนิวเคลียส**: $R_0 \approx 1-100 \,\mu m$
+- **ความหนาแน่นจำนวนนิวเคลียส**: $n_0 \approx 10^8 - 10^{13} \, \text{nuclei/m}^3$
+- **ปัจจัยความตึง**: $\tau = \frac{p_{sat} - p}{\frac{2\sigma}{R_0}}$
 
 ---
 
-## 4. Cavitation Models in OpenFOAM
+## 3. สมการควบคุม (Governing Equations)
 
-OpenFOAM implements several transport equation-based cavitation models. The key difference is in the formulation of the mass transfer term $\dot{m}$.
+### 3.1 สมการแบบจำลองของไหลผสม (Mixture Model Equations)
 
-### 4.1 Schnerr-Sauer Model
+สำหรับการสร้างแบบจำลองการเกิดโพรงไอ OpenFOAM ใช้แนวทางแบบผสมที่จัดการของเหลวและไอเป็นของไหลเดียวที่มีสมบัติแปรผัน
 
-> [!TIP] **Most Popular Model**
-> The Schnerr-Sauer model is based on bubble dynamics and assumes a constant bubble number density. It's widely used for hydraulic machinery applications.
+#### 3.1.1 สมการความต่อเนื่อง
 
-#### 4.1.1 Model Formulation
+$$\frac{\partial \rho_m}{\partial t} + \nabla \cdot (\rho_m \mathbf{u}_m) = 0 \tag{3.1}$$ 
 
-**Mass Transfer Rate:**
+โดยที่ความหนาแน่นของสารผสมคือ:
 
-$$\dot{m} = \frac{3\rho_l\rho_v}{\rho_m} \frac{\alpha_l\alpha_v}{R_b} \text{sign}(p_{sat} - p) \sqrt{\frac{2}{3}\frac{|p_{sat} - p|}{\rho_l}} \tag{4.1}$$
+$$\rho_m = \alpha_l \rho_l + \alpha_v \rho_v \tag{3.2}$$ 
 
-**Bubble Radius Relation:**
+#### 3.1.2 สมการโมเมนตัม
 
-$$\alpha_v = \frac{n_b \frac{4}{3}\pi R_b^3}{1 + n_b \frac{4}{3}\pi R_b^3} \tag{4.2}$$
+$$\frac{\partial (\rho_m \mathbf{u}_m)}{\partial t} + \nabla \cdot (\rho_m \mathbf{u}_m \mathbf{u}_m) = -\nabla p + \nabla \cdot \boldsymbol{\tau}_m + \rho_m \mathbf{g} + \mathbf{f}_{\sigma} \tag{3.3}$$ 
 
-Solving for $R_b$:
+**ความเร็วของสารผสม:**
 
-$$R_b = \left(\frac{3\alpha_v}{4\pi n_b (1-\alpha_v)}\right)^{1/3} \tag{4.3}$$
+$$\mathbf{u}_m = \frac{\alpha_l \rho_l \mathbf{u}_l + \alpha_v \rho_v \mathbf{u}_v}{\rho_m} \tag{3.4}$$ 
 
-**Variables:**
-- $n_b$: Bubble number density [$1/m^3$]
-- $R_b$: Mean bubble radius [m]
-- $\alpha_l$: Liquid volume fraction ($1 - \alpha_v$)
+#### 3.1.3 สมการการขนส่งไอ (Vapor Transport Equation)
 
-#### 4.1.2 OpenFOAM Implementation
+$$\frac{\partial (\alpha_v \rho_v)}{\partial t} + \nabla \cdot (\alpha_v \rho_v \mathbf{u}_m) = \dot{m} \tag{3.5}$$ 
+
+โดยที่ $\dot{m}$ คืออัตราการถ่ายโอนมวลเนื่องจากการเปลี่ยนสถานะเฟส
+
+---
+
+## 4. แบบจำลองการเกิดโพรงไอใน OpenFOAM (Cavitation Models in OpenFOAM)
+
+OpenFOAM ใช้งานแบบจำลองการเกิดโพรงไอตามสมการการขนส่งหลายรูปแบบ ความแตกต่างหลักอยู่ที่รูปแบบของเทอมการถ่ายโอนมวล $\dot{m}$
+
+### 4.1 แบบจำลองเชนเนอร์-เซาเออร์ (Schnerr-Sauer Model)
+
+> [!TIP] **แบบจำลองที่นิยมที่สุด**
+> แบบจำลอง Schnerr-Sauer อ้างอิงจากพลศาสตร์ของฟองและสมมติความหนาแน่นจำนวนฟองที่คงที่ นิยมใช้กันอย่างแพร่หลายสำหรับการประยุกต์ใช้งานเครื่องจักรไฮดรอลิก
+
+#### 4.1.1 รูปแบบของแบบจำลอง
+
+**อัตราการถ่ายโอนมวล:**
+
+$$\dot{m} = \frac{3\rho_l\rho_v}{\rho_m} \frac{\alpha_l\alpha_v}{R_b} \text{sign}(p_{sat} - p) \sqrt{\frac{2}{3}\frac{|p_{sat} - p|}{\rho_l}} \tag{4.1}$$ 
+
+**ความสัมพันธ์กับรัศมีฟอง:**
+
+$$\alpha_v = \frac{n_b \frac{4}{3}\pi R_b^3}{1 + n_b \frac{4}{3}\pi R_b^3} \tag{4.2}$$ 
+
+หาค่า $R_b$:
+
+$$R_b = \left(\frac{3\alpha_v}{4\pi n_b (1-\alpha_v)}\right)^{1/3} \tag{4.3}$$ 
+
+**ตัวแปร:**
+- $n_b$: ความหนาแน่นจำนวนฟอง [$1/m^3$]
+- $R_b$: รัศมีฟองเฉลี่ย [m]
+- $\alpha_l$: สัดส่วนปริมาตรของเหลว ($1 - \alpha_v$)
+
+#### 4.1.2 การใช้งานใน OpenFOAM
 
 ```cpp
-// Schnerr-Sauer model coefficients
+// สัมประสิทธิ์แบบจำลอง Schnerr-Sauer
 SchnerrSauerCoeffs
 {
-    n           1e+13;    // Bubble number density [1/m^3]
-    dNuc        2e-06;    // Nucleation site diameter [m]
-    pSat        2300;     // Saturation vapor pressure [Pa]
+    n           1e+13;    // ความหนาแน่นจำนวนฟอง [1/m^3]
+    dNuc        2e-06;    // เส้นผ่านศูนย์กลางจุดกำเนิดนิวเคลียส [m]
+    pSat        2300;     // ความดันไออิ่มตัว [Pa]
 }
 
-// Key code snippet from SchnerrSauer.C
-// Calculate bubble radius from vapor fraction
+// ส่วนของโค้ดหลักจาก SchnerrSauer.C
+// คำนวณรัศมีฟองจากสัดส่วนไอ
 volScalarField Rb
 (
     pow
     (
         max
         (
-            // Radius calculation from bubble number density
+            // การคำนวณรัศมีจากความหนาแน่นจำนวนฟอง
             (3*alphaV_)/(4*constant::mathematical::pi*nBubbles_),
             dimensionedScalar("minR", dimLength, 1e-6)
         ),
@@ -180,18 +180,18 @@ volScalarField Rb
     )
 );
 
-// Calculate pressure coefficient for mass transfer
+// คำนวณสัมประสิทธิ์ความดันสำหรับการถ่ายโอนมวล
 volScalarField pCoeff
 (
     coeff1_*sqrt(max(pSat_ - p, dimensionedScalar("zero", pSat_.dimensions(), 0)))
 );
 
-// Compute mass transfer rate per unit liquid volume
+// คำนวณอัตราการถ่ายโอนมวลต่อหน่วยปริมาตรของเหลว
 mDotAlphal_ = coeff2_ * pCoeff * Rb;
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C` (Reference for bubble dynamics implementation)
-
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C` (ข้อมูลอ้างอิงสำหรับการใช้งานพลศาสตร์ของฟอง)
+>
 > **คำอธิบายภาษาไทย:**
 > 
 > **แหล่งที่มา (Source):**
@@ -210,49 +210,49 @@ mDotAlphal_ = coeff2_ * pCoeff * Rb;
 > **แนวคิดสำคัญ (Key Concepts):**
 > - **Bubble Number Density ($n_b$)**: จำนวนฟองต่อหน่วยปริมาตร มีผลต่อความเร็วในการเปลี่ยนสถานะเฟส
 > - **Mean Bubble Radius ($R_b$)**: รัศมีเฉลี่ยของฟอง คำนวณจาก volume fraction และ bubble number density
-> - **Mass Transfer Rate ($\dot{m}$)**: อัตราการเปลี่ยนสถานะระหว่างเฟสของเหลวและก๊าซ ขึ้นกับความแตกต่างของความดัน
+> - **Mass Transfer Rate ($\\dot{m}$)**: อัตราการเปลี่ยนสถานะระหว่างเฟสของเหลวและก๊าซ ขึ้นกับความแตกต่างของความดัน
 > - **Pressure-Driven Phase Change**: การเปลี่ยนสถานะถูกควบคุมโดยฟังก์ชันของ ($p_{sat} - p$)
 > - **Dimensionally Consistent Calculation**: การคำนวณทั้งหมดต้องเป็นไปตามหลัก dimension checking ของ OpenFOAM
 
-### 4.2 Kunz Model
+### 4.2 แบบจำลองคุนซ์ (Kunz Model)
 
-The Kunz model uses separate empirical functions for vaporization and condensation.
+แบบจำลอง Kunz ใช้ฟังก์ชันเชิงประจักษ์แยกกันสำหรับการกลายเป็นไอและการควบแน่น
 
-#### 4.2.1 Model Formulation
+#### 4.2.1 รูปแบบของแบบจำลอง
 
-**Vaporization (Evaporation):**
+**การกลายเป็นไอ (การระเหย):**
 
-$$\dot{m}^+ = \frac{C_{prod}\rho_v \alpha_l \min[0, p - p_{sat}]}{(1/2 \rho_l U_\infty^2) t_\infty} \tag{4.4}$$
+$$\dot{m}^+ = \frac{C_{prod}\rho_v \alpha_l \min[0, p - p_{sat}]}{(1/2 \rho_l U_\infty^2) t_\infty} \tag{4.4}$$ 
 
-**Condensation:**
+**การควบแน่น:**
 
-$$\dot{m}^- = \frac{C_{dest}\rho_l \alpha_l^2 \alpha_v}{t_\infty} \tag{4.5}$$
+$$\dot{m}^- = \frac{C_{dest}\rho_l \alpha_l^2 \alpha_v}{t_\infty} \tag{4.5}$$ 
 
-**Total Mass Transfer:**
+**การถ่ายโอนมวลรวม:**
 
-$$\dot{m} = \dot{m}^+ + \dot{m}^- \tag{4.6}$$
+$$\dot{m} = \dot{m}^+ + \dot{m}^- \tag{4.6}$$ 
 
-**Coefficients:**
-- $C_{prod}$: Vaporization coefficient (typically 100-1000)
-- $C_{dest}$: Condensation coefficient (typically 50-100)
-- $t_\infty$: Characteristic time scale
+**สัมประสิทธิ์:**
+- $C_{prod}$: สัมประสิทธิ์การกลายเป็นไอ (โดยทั่วไปคือ 100-1000)
+- $C_{dest}$: สัมประสิทธิ์การควบแน่น (โดยทั่วไปคือ 50-100)
+- $t_\infty$: มาตราส่วนเวลาลักษณะเฉพาะ
 
-#### 4.2.2 OpenFOAM Implementation
+#### 4.2.2 การใช้งานใน OpenFOAM
 
 ```cpp
-// Kunz model configuration
+// การกำหนดค่าแบบจำลอง Kunz
 KunzCoeffs
 {
-    UInf        20;       // Characteristic velocity [m/s]
-    tInf        0.005;    // Characteristic time [s]
-    CProd       100;      // Production coefficient
-    CDest       100;      // Destruction coefficient
-    pSat        2300;     // Saturation pressure [Pa]
+    UInf        20;       // ความเร็วลักษณะเฉพาะ [m/s]
+    tInf        0.005;    // เวลาลักษณะเฉพาะ [s]
+    CProd       100;      // สัมประสิทธิ์การผลิต
+    CDest       100;      // สัมประสิทธิ์การทำลาย
+    pSat        2300;     // ความดันอิ่มตัว [Pa]
 }
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/ThermalPhaseChangePhaseSystem/ThermalPhaseChangePhaseSystem.C` (Reference for phase change model implementation)
-
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/ThermalPhaseChangePhaseSystem/ThermalPhaseChangePhaseSystem.C` (ข้อมูลอ้างอิงสำหรับการใช้งานแบบจำลองการเปลี่ยนสถานะเฟส)
+>
 > **คำอธิบายภาษาไทย:**
 > 
 > **แหล่งที่มา (Source):**
@@ -271,54 +271,54 @@ KunzCoeffs
 > - **Non-Uniform Mass Transfer**: อัตราการเปลี่ยนสถานะอาจต่างกันระหว่างการระเหยและการควบแน่น
 > - **Stability-Oriented Design**: โมเดล Kunz ถูกออกแบบให้มีเสถียรภาพทางตัวเลขสูง
 
-### 4.3 Merkle Model
+### 4.3 แบบจำลองเมอร์เคิล (Merkle Model)
 
-Similar to Kunz but with different scaling:
+คล้ายกับ Kunz แต่มีการปรับมาตราส่วนที่ต่างกัน:
 
-$$\dot{m} = C_{cav} \frac{\rho_v \alpha_l}{t_{\infty}} \max(p_{sat} - p, 0) - C_{cond} \frac{\rho_l \alpha_v}{t_{\infty}} \max(p - p_{sat}, 0) \tag{4.7}$$
+$$\dot{m} = C_{cav} \frac{\rho_v \alpha_l}{t_{\infty}} \max(p_{sat} - p, 0) - C_{cond} \frac{\rho_l \alpha_v}{t_{\infty}} \max(p - p_{sat}, 0) \tag{4.7}$$ 
 
-### 4.4 Model Comparison
+### 4.4 การเปรียบเทียบแบบจำลอง
 
-| Model | Strengths | Weaknesses | Best Applications |
+| แบบจำลอง | จุดแข็ง | จุดอ่อน | การประยุกต์ใช้ดีที่สุด |
 |-------|-----------|------------|-------------------|
-| **Schnerr-Sauer** | Physics-based, smooth transition | Sensitive to $n_b$ value | Hydraulic machinery, pumps |
-| **Kunz** | Numerically stable | Empirical coefficients | Ship propellers, nozzles |
-| **Merkle** | Robust for high-speed flows | Less accurate for low $\sigma$ | Fuel injectors, cavitating nozzles |
+| **Schnerr-Sauer** | อ้างอิงฟิสิกส์, การเปลี่ยนผ่านที่ราบรื่น | ไวต่อค่า $n_b$ | เครื่องจักรไฮดรอลิก, ปั๊ม |
+| **Kunz** | มีเสถียรภาพเชิงตัวเลข | ใช้สัมประสิทธิ์เชิงประจักษ์ | ใบพัดเรือ, หัวฉีด |
+| **Merkle** | แข็งแกร่งสำหรับการไหลความเร็วสูง | แม่นยำน้อยกว่าเมื่อ $\sigma$ ต่ำ | หัวฉีดเชื้อเพลิง, หัวฉีดที่มีโพรงไอ |
 
 ---
 
-## 5. Implementation Details
+## 5. รายละเอียดการใช้งาน (Implementation Details)
 
-### 5.1 Solver Selection
+### 5.1 การเลือกตัวแก้ปัญหา (Solver Selection)
 
-OpenFOAM provides specialized solvers for cavitation:
+OpenFOAM มีตัวแก้ปัญหาเฉพาะทางสำหรับการเกิดโพรงไอ:
 
-| Solver | Description | Use Case |
+| ตัวแก้ปัญหา | คำอธิบาย | กรณีใช้งาน |
 |--------|-------------|----------|
-| **interPhaseChangeFoam** | VOF method with phase change | Surface ship propellers, general cavitation |
-| **compressibleInterPhaseChangeFoam** | Compressible VOF with phase change | High-speed cavitating flows |
-| **cavitatingFoam** | Specialized for cavitation | Hydrofoils, venturi tubes |
+| **interPhaseChangeFoam** | วิธี VOF พร้อมการเปลี่ยนสถานะเฟส | ใบพัดเรือเดินสมุทร, การเกิดโพรงไอทั่วไป |
+| **compressibleInterPhaseChangeFoam** | วิธี VOF แบบอัดตัวได้พร้อมการเปลี่ยนสถานะ | การไหลที่มีโพรงไอความเร็วสูง |
+| **cavitatingFoam** | เฉพาะทางสำหรับการเกิดโพรงไอ | ปีกในน้ำ (Hydrofoils), ท่อเวนทูรี |
 
-### 5.2 Case Setup Structure
+### 5.2 โครงสร้างการตั้งค่ากรณีศึกษา
 
 ```
 cavitationCase/
 ├── 0/
-│   ├── alpha.water          # Volume fraction (initially 1)
-│   ├── p                    # Pressure field
-│   └── U                    # Velocity field
+│   ├── alpha.water          # สัดส่วนปริมาตร (เริ่มต้นเป็น 1)
+│   ├── p                    # สนามความดัน
+│   └── U                    # สนามความเร็ว
 ├── constant/
-│   ├── transportProperties  # Phase properties and cavitation model
+│   ├── transportProperties  # สมบัติเฟสและแบบจำลองการเกิดโพรงไอ
 │   ├── thermophysicalProperties
 │   └── turbulenceProperties
 ├── system/
 │   ├── controlDict
 │   ├── fvSchemes
 │   └── fvSolution
-└── Allrun                   # Execution script
+└── Allrun                   # สคริปต์การทำงาน
 ```
 
-### 5.3 Configuration Example
+### 5.3 ตัวอย่างการกำหนดค่า (Configuration Example)
 
 #### transportProperties
 
@@ -328,29 +328,29 @@ phases (water vapor);
 water
 {
     transportModel  Newtonian;
-    nu              [0 2 -1 0 0 0 0] 1e-06;    // Kinematic viscosity [m^2/s]
-    rho             [1 -3 0 0 0 0 0] 1000;     // Density [kg/m^3]
+    nu              [0 2 -1 0 0 0 0] 1e-06;    // ความหนืดจลนศาสตร์ [m^2/s]
+    rho             [1 -3 0 0 0 0 0] 1000;     // ความหนาแน่น [kg/m^3]
 }
 
 vapor
 {
     transportModel  Newtonian;
     nu              [0 2 -1 0 0 0 0] 4.27e-05;
-    rho             [1 -3 0 0 0 0 0] 0.025;      // Low density!
+    rho             [1 -3 0 0 0 0 0] 0.025;      // ความหนาแน่นต่ำมาก!
 }
 
-// Phase change model
+// แบบจำลองการเปลี่ยนสถานะเฟส
 phaseChangeModel SchnerrSauer;
 
 SchnerrSauerCoeffs
 {
-    n               1e+13;    // Bubble number density
-    dNuc            2e-06;    // Nucleation diameter
-    pSat            2300;     // Vapor pressure at operating temperature
+    n               1e+13;    // ความหนาแน่นจำนวนฟอง
+    dNuc            2e-06;    // เส้นผ่านศูนย์กลางนิวเคลียส
+    pSat            2300;     // ความดันไอที่อุณหภูมิใช้งาน
 }
 
-// Surface tension
-sigma           [1 0 -2 0 0 0 0] 0.07;   // Water-air at 20°C [N/m]
+// แรงตึงผิว
+sigma           [1 0 -2 0 0 0 0] 0.07;   // น้ำ-อากาศที่ 20°C [N/m]
 ```
 
 #### fvSchemes
@@ -415,76 +415,76 @@ PIMPLE
     nNonOrthogonalCorrectors 1;
     nAlphaCorr       2;
     nAlphaSubCycles  2;
-    cAlpha           1;     // Interface compression factor
+    cAlpha           1;     // ปัจจัยการบีบอัดส่วนต่อประสาน
 }
 
-MULESCorr       yes;    // Use MULES for boundedness
+MULESCorr       yes;    // ใช้ MULES เพื่อรักษาขอบเขต
 ```
 
-### 5.4 Algorithm Workflow
+### 5.4 ขั้นตอนการทำงานของอัลกอริทึม (Algorithm Workflow)
 
 ```mermaid
 flowchart TD
-    A[Initialize Fields] --> B[Solve Momentum]
-    B --> C[Solve Pressure]
-    C --> D[Correct Velocity]
+    A[กำหนดค่าเริ่มต้นฟิลด์] --> B[แก้สมการโมเมนตัม]
+    B --> C[แก้สมการความดัน]
+    C --> D[ปรับแก้ความเร็ว]
     D --> E{p < p_sat?}
-    E -- Yes --> F[Evaporation: αv increases]
-    E -- No --> G[Condensation: αv decreases]
-    F --> H[Update Mixture Properties]
+    E -- ใช่ --> F[การระเหย: αv เพิ่มขึ้น]
+    E -- ไม่ใช่ --> G[การควบแน่น: αv ลดลง]
+    F --> H[อัปเดตสมบัติสารผสม]
     G --> H
-    H --> I[Apply Interface Compression]
-    I --> J{Converged?}
-    J -- No --> B
-    J -- Yes --> K[Next Time Step]
+    H --> I[ใช้งานการบีบอัดส่วนต่อประสาน]
+    I --> J{ลู่เข้าแล้วหรือยัง?}
+    J -- ยัง --> B
+    J -- ใช่ --> K[ช่วงเวลาถัดไป]
 
     style F fill:#ffebee,stroke:#c62828
     style G fill:#e3f2fd,stroke:#1565c0
 ```
-> **Figure 2:** แผนผังลำดับขั้นตอนการคำนวณการจำลองแควิเทชัน โดยแสดงกลไกการเปลี่ยนสถานะเฟส (ระเหย/ควบแน่น) ที่ถูกควบคุมโดยความดันภายในแต่ละขั้นตอนการวนซ้ำ
+> **รูปที่ 2:** แผนผังลำดับขั้นตอนการคำนวณการจำลองแควิเทชัน โดยแสดงกลไกการเปลี่ยนสถานะเฟส (ระเหย/ควบแน่น) ที่ถูกควบคุมโดยความดันภายในแต่ละขั้นตอนการวนซ้ำ
 
 
 ---
 
-## 6. Numerical Considerations
+## 6. ข้อควรพิจารณาเชิงตัวเลข (Numerical Considerations)
 
-### 6.1 Stiffness Issues
+### 6.1 ปัญหาความแข็งเกร็ง (Stiffness Issues)
 
-Cavitation models introduce numerical stiffness due to:
+แบบจำลองการเกิดโพรงไอทำให้เกิดความแข็งเกร็งเชิงตัวเลขเนื่องจาก:
 
-1. **Large density ratios**: $\rho_l/\rho_v \approx 1000-40000$
-2. **Rapid phase change**: Time scales can be microseconds
-3. **Strong pressure-velocity coupling**
+1. **อัตราส่วนความหนาแน่นขนาดใหญ่**: $\rho_l/\rho_v \approx 1000-40000$
+2. **การเปลี่ยนสถานะเฟสที่รวดเร็ว**: มาตราส่วนเวลาอาจเป็นไมโครวินาที
+3. **การคัปปลิงระหว่างความดันและความเร็วที่รุนแรง**
 
-**Mitigation Strategies:**
+**กลยุทธ์การบรรเทาปัญหา:**
 
-| Issue | Solution |
+| ปัญหา | วิธีแก้ไข |
 |-------|----------|
-| Stiff source terms | Implicit treatment, under-relaxation |
-| Large density ratio | Compressible formulation, preconditioning |
-| Interface sharpness | MULES with compression, adaptive time stepping |
+| เทอมแหล่งกำเนิดที่แข็งเกร็ง | การจัดการแบบปริยาย, การผ่อนคลาย (under-relaxation) |
+| อัตราส่วนความหนาแน่นสูง | รูปแบบที่รองรับการอัดตัวได้, การทำ preconditioning |
+| ความคมชัดของส่วนต่อประสาน | MULES พร้อมการบีบอัด, การปรับช่วงเวลาแบบปรับตัว |
 
-### 6.2 Time Step Constraints
+### 6.2 ข้อจำกัดของช่วงเวลา (Time Step Constraints)
 
-**CFL Condition:**
+**เงื่อนไข CFL:**
 
-$$\Delta t < \text{CFL} \cdot \frac{\Delta x}{|\mathbf{u}| + c_s}$$
+$$\Delta t < \text{CFL} \cdot \frac{\Delta x}{|\mathbf{u}| + c_s}$$ 
 
-where $c_s$ is the speed of sound in the mixture.
+โดยที่ $c_s$ คือความเร็วเสียงในสารผสม
 
-**Recommended:**
-- Initial transients: $\text{Co} < 0.3$
-- Steady-state: $\text{Co} < 0.5$ (with under-relaxation)
+**ค่าที่แนะนำ:**
+- ช่วงเริ่มต้นการจำลอง: $\text{Co} < 0.3$
+- สภาวะคงตัว: $\text{Co} < 0.5$ (พร้อมการผ่อนคลาย)
 
 ```cpp
-// In controlDict
-maxCo          0.3;      // Maximum Courant number
-maxAlphaCo     0.3;      // Maximum Courant for alpha
+// ใน controlDict
+maxCo          0.3;      // เลขคูแรนท์สูงสุด
+maxAlphaCo     0.3;      // เลขคูแรนท์สูงสุดสำหรับ alpha
 adjustTimeStep yes;
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C` (Reference for time step control in multiphase systems)
-
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.H` (ข้อมูลอ้างอิงสำหรับการควบคุมช่วงเวลาในระบบหลายเฟส)
+>
 > **คำอธิบายภาษาไทย:**
 > 
 > **แหล่งที่มา (Source):**
@@ -492,7 +492,7 @@ adjustTimeStep yes;
 >
 > **คำอธิบาย (Explanation):**
 > 1. `maxCo`: ค่า Courant number สูงสุดที่อนุญาต คืออัตราส่วนระหว่างระยะทางที่ของไหลเดินทางในหนึ่ง time step กับขนาดเซลล์เมช
-> 2. `maxAlphaCo`: Courant number เฉพาะสำหรับ volume fraction field ($\alpha$) เพื่อความเสถียรของ interface
+> 2. `maxAlphaCo`: Courant number เฉพาะสำหรับ volume fraction field ($\\alpha$) เพื่อความเสถียรของ interface
 > 3. `adjustTimeStep`: สั่งให้ solver ปรับขนาด time step อัตโนมัติเพื่อรักษาค่า Co ให้อยู่ในขอบเขตที่กำหนด
 >
 > **แนวคิดสำคัญ (Key Concepts):**
@@ -501,20 +501,20 @@ adjustTimeStep yes;
 > - **Interface Stability**: การควบคุมความเสถียรของ interface ระหว่างเฟสของเหลวและก๊าซ
 > - **Numerical Diffusion vs. Stability**: การทำงานระหว่างการลดการแพร่กระจายเชิงตัวเลขกับความเสถียรของการคำนวณ
 
-### 6.3 Mesh Requirements
+### 6.3 ข้อกำหนดของเมช (Mesh Requirements)
 
-**Resolution Guidelines:**
+**แนวทางการกำหนดความละเอียด:**
 
-| Region | Requirement | Purpose |
+| ภูมิภาค | ข้อกำหนด | วัตถุประสงค์ |
 |--------|-------------|---------|
-| **Near walls** | $y^+ \approx 1-5$ | Boundary layer resolution |
-| **Low pressure zones** | 10-15 cells per bubble | Capture nucleation |
-| **Vapor cavity** | 5-10 cells across cavity | Interface tracking |
+| **ใกล้ผนัง** | $y^+ \approx 1-5$ | ความละเอียดของชั้นขอบ |
+| **โซนความดันต่ำ** | 10-15 เซลล์ต่อฟอง | เพื่อจับภาพการเกิดนิวเคลียส |
+| **โพรงไอ** | 5-10 เซลล์ขวางโพรง | การติดตามส่วนต่อประสาน |
 
-**Refinement Strategy:**
+**กลยุทธ์การปรับปรุงเมช (Refinement Strategy):**
 
 ```cpp
-// In snappyHexMeshDict
+// ใน snappyHexMeshDict
 refinementRegions
 {
     cavitationZone
@@ -525,17 +525,17 @@ refinementRegions
 }
 ```
 
-### 6.4 Convergence Issues
+### 6.4 ปัญหาการลู่เข้า (Convergence Issues)
 
-> [!WARNING] **Common Problems**
-> - **Oscillating vapor volume**: Reduce time step, increase under-relaxation
-> - **Non-physical void fraction**: Check MULES settings, verify mass conservation
-> - **Pressure spikes**: Improve mesh quality, check boundary conditions
+> [!WARNING] **ปัญหาทั่วไป**
+> - **ปริมาตรไอแกว่งกวัด**: ลดช่วงเวลา, เพิ่มการผ่อนคลาย
+> - **สัดส่วนช่องว่างไม่สอดคล้องกับฟิสิกส์**: ตรวจสอบการตั้งค่า MULES, ยืนยันการอนุรักษ์มวล
+> - **ความดันพุ่งสูง (Pressure spikes)**: ปรับปรุงคุณภาพเมช, ตรวจสอบเงื่อนไขขอบเขต
 
-**Solution Strategies:**
+**กลยุทธ์การแก้ปัญหา:**
 
 ```foam
-// Under-relaxation factors in fvSolution
+// ปัจจัยการผ่อนคลายใน fvSolution
 relaxationFactors
 {
     fields
@@ -553,83 +553,83 @@ relaxationFactors
 
 ---
 
-## 7. Applications and Case Studies
+## 7. การประยุกต์ใช้งานและกรณีศึกษา (Applications and Case Studies)
 
-### 7.1 Hydraulic Machinery
+### 7.1 เครื่องจักรไฮดรอลิก (Hydraulic Machinery)
 
-#### 7.1.1 Centrifugal Pumps
+#### 7.1.1 ปั๊มเหวี่ยง (Centrifugal Pumps)
 
-**Key Parameters:**
+**พารามิเตอร์หลัก:**
 - **NPSH** (Net Positive Suction Head):
-  $$\text{NPSH} = \frac{p_{inlet} - p_{sat}}{\rho g} + \frac{U_{inlet}^2}{2g}$$
+  $$\text{NPSH} = \frac{p_{inlet} - p_{sat}}{\rho g} + \frac{U_{inlet}^2}{2g}$$ 
 
-- **Efficiency Drop**: 5-15% loss under cavitation
+- **ประสิทธิภาพลดลง**: สูญเสีย 5-15% ภายใต้สภาวะเกิดโพรงไอ
 
-**Simulation Setup:**
+**การตั้งค่าการจำลอง:**
 
 ```foam
-// Inlet boundary condition for p
+// เงื่อนไขขอบเขตทางเข้าสำหรับ p
 inlet
 {
     type            fixedValue;
-    value           uniform 2e5;    // 2 bar absolute
+    value           uniform 2e5;    // 2 bar สัมบูรณ์
 }
 
-// Outlet boundary condition
+// เงื่อนไขขอบเขตทางออก
 outlet
 {
     type            fixedValue;
-    value           uniform 1e5;    // 1 bar absolute
+    value           uniform 1e5;    // 1 bar สัมบูรณ์
 }
 ```
 
-#### 7.1.2 Marine Propellers
+#### 7.1.2 ใบพัดเรือ (Marine Propellers)
 
-**Cavitation Number for Propellers:**
+**เลขการเกิดโพรงไอสำหรับใบพัด:**
 
-$$\sigma = \frac{p_\infty - p_{sat}}{\frac{1}{2}\rho (2\pi n D)^2}$$
+$$\sigma = \frac{p_\infty - p_{sat}}{\frac{1}{2}\rho (2\pi n D)^2}$$ 
 
-where:
-- $n$: Rotational speed [rev/s]
-- $D$: Propeller diameter [m]
+โดยที่:
+- $n$: ความเร็วรอบ [rev/s]
+- $D$: เส้นผ่านศูนย์กลางใบพัด [m]
 
-**Propeller Cavitation Patterns:**
+**รูปแบบการเกิดโพรงไอของใบพัด:**
 
-| Type | Location | Cause |
+| ประเภท | ตำแหน่ง | สาเหตุ |
 |------|----------|-------|
-| **Tip vortex** | Blade tips | Low pressure in vortex core |
-| **Sheet** | Suction side | Flow separation |
-| **Hub vortex** | Hub region | Swirl flow |
+| **Tip vortex** | ปลายใบพัด | ความดันต่ำในแกนกลางของน้ำวน |
+| **Sheet** | ด้านดูด (Suction side) | การแยกตัวของการไหล |
+| **Hub vortex** | บริเวณดุมใบพัด | การไหลแบบหมุนวน |
 
-### 7.2 Fuel Injectors
+### 7.2 หัวฉีดเชื้อเพลิง (Fuel Injectors)
 
-**High-Speed Cavitation Characteristics:**
+**ลักษณะการเกิดโพรงไอความเร็วสูง:**
 
-- **Velocity**: 100-300 m/s
-- **Pressure drop**: 50-200 bar
-- **Time scale**: < 1 μs for bubble collapse
+- **ความเร็ว**: 100-300 m/s
+- **ความดันลดลง**: 50-200 bar
+- **มาตราส่วนเวลา**: < 1 μs สำหรับการยุบตัวของฟอง
 
-**Spray Enhancement:**
+**การเพิ่มประสิทธิภาพการฉีด (Spray Enhancement):**
 
-Cavitation improves atomization by:
-1. Breaking up liquid jets
-2. Creating turbulence
-3. Enhancing spray cone angle
+การเกิดโพรงไอปรับปรุงการทำให้เป็นละอองโดย:
+1. การทำลายเจ็ทของเหลว
+2. การสร้างความปั่นป่วน
+3. การเพิ่มมุมกรวยการฉีด
 
-### 7.3 Venturi Tubes
+### 7.3 ท่อเวนทูรี (Venturi Tubes)
 
-**Cavitation Number:**
+**เลขการเกิดโพรงไอ:**
 
-$$\sigma_v = \frac{p_2 - p_{sat}}{p_1 - p_2}$$
+$$\sigma_v = \frac{p_2 - p_{sat}}{p_1 - p_2}$$ 
 
-where:
-- $p_1$: Upstream pressure
-- $p_2$: Throat pressure
+โดยที่:
+- $p_1$: ความดันต้นน้ำ
+- $p_2$: ความดันที่คอคอด
 
-**Validation Case:**
+**กรณีการรับรองความถูกต้อง:**
 
 ```bash
-# Standard Venturi cavitation test
+# การทดสอบการเกิดโพรงไอในเวนทูรีมาตรฐาน
 cd $FOAM_TUTORIALS/multiphase/interPhaseChangeFoam/
 cavitatingVenturi/
 blockMesh
@@ -639,52 +639,52 @@ paraFoam
 
 ---
 
-## 8. Best Practices
+## 8. แนวทางปฏิบัติที่ดีที่สุด (Best Practices)
 
-### 8.1 Model Selection Guidelines
+### 8.1 คู่มือการเลือกแบบจำลอง
 
 ```mermaid
 flowchart TD
-    A[Cavitation Application] --> B{Flow Speed};
-    B -- Low < 20 m/s --> C[Use Schnerr-Sauer];
-    B -- High > 50 m/s --> D[Use Kunz/Merkle];
+    A[การประยุกต์ใช้โพรงไอ] --> B{ความเร็วการไหล};
+    B -- ต่ำ < 20 m/s --> C[ใช้ Schnerr-Sauer];
+    B -- สูง > 50 m/s --> D[ใช้ Kunz/Merkle];
 
-    C --> E{Geometry};
-    E -- Simple --> F[interPhaseChangeFoam];
-    E -- Complex --> G[compressibleInterPhaseChangeFoam];
+    C --> E{เรขาคณิต};
+    E -- ง่าย --> F[interPhaseChangeFoam];
+    E -- ซับซ้อน --> G[compressibleInterPhaseChangeFoam];
 
     D --> G;
 
     style C fill:#e8f5e9,stroke:#2e7d32;
     style D fill:#fff3e0,stroke:#ef6c00;
 ```
-> **Figure 3:** แผนผังการตัดสินใจเลือกแบบจำลองและตัวแก้สมการแควิเทชันที่เหมาะสม โดยใช้ความเร็วการไหลและความซับซ้อนของเรขาคณิตเป็นเกณฑ์ในการเลือกเพื่อความแม่นยำและเสถียรภาพ
+> **รูปที่ 3:** แผนผังการตัดสินใจเลือกแบบจำลองและตัวแก้สมการแควิเทชันที่เหมาะสม โดยใช้ความเร็วการไหลและความซับซ้อนของเรขาคณิตเป็นเกณฑ์ในการเลือกเพื่อความแม่นยำและเสถียรภาพ
 
 
-### 8.2 Verification Checklist
+### 8.2 รายการตรวจสอบการตรวจสอบความถูกต้อง
 
-- [ ] **Mass conservation**: $\frac{\partial}{\partial t}\int \rho \, dV + \int \rho \mathbf{u} \cdot d\mathbf{A} = 0$
-- [ ] **Volume fraction bounds**: $0 \leq \alpha_v \leq 1$
-- [ ] **Cavitation number consistency**: $\sigma$ matches experimental data
-- [ ] **Grid independence**: Results unchanged with mesh refinement
-- [ ] **Time step independence**: Converged with $\Delta t$ reduction
+- [ ] **การอนุรักษ์มวล**: $\frac{\partial}{\partial t}\int \rho \, dV + \int \rho \mathbf{u} \cdot d\mathbf{A} = 0$
+- [ ] **ขอบเขตสัดส่วนปริมาตร**: $0 \leq \alpha_v \leq 1$
+- [ ] **ความสอดคล้องของเลขการเกิดโพรงไอ**: $\sigma$ ตรงกับข้อมูลการทดลอง
+- [ ] **ความเป็นอิสระของกริต**: ผลลัพธ์ไม่เปลี่ยนแปลงเมื่อเมชละเอียดขึ้น
+- [ ] **ความเป็นอิสระของช่วงเวลา**: ลู่เข้าหาคำตอบเมื่อลด $\Delta t$
 
-### 8.3 Troubleshooting Guide
+### 8.3 คู่มือการแก้ไขปัญหา
 
-| Symptom | Diagnosis | Remedy |
+| อาการ | การวินิจฉัย | วิธีแก้ไข |
 |---------|-----------|--------|
-| **Diverging pressure** | Time step too large | Reduce Co to < 0.2 |
-| **Vapor spreading** | Insufficient compression | Increase `cAlpha` to 1.5-2.0 |
-| **Mass imbalance** | MULES issue | Check `nAlphaSubCycles`, increase to 3-4 |
-| **No cavitation** | $p > p_{sat}$ everywhere | Lower outlet pressure, increase velocity |
-| **Excessive cavitation** | Over-prediction | Reduce $n_b$, check $p_{sat}$ value |
+| **ความดันลู่ออก (Diverging pressure)** | ช่วงเวลาใหญ่เกินไป | ลด Co ให้ < 0.2 |
+| **ไอแพร่กระจายเกินไป** | การบีบอัดไม่เพียงพอ | เพิ่ม `cAlpha` เป็น 1.5-2.0 |
+| **มวลไม่สมดุล** | ปัญหาที่ MULES | ตรวจสอบ `nAlphaSubCycles`, เพิ่มเป็น 3-4 |
+| **ไม่เกิดโพรงไอ** | $p > p_{sat}$ ทุกที่ | ลดความดันทางออก, เพิ่มความเร็ว |
+| **โพรงไอมากเกินไป** | การคาดการณ์สูงเกินจริง | ลด $n_b$, ตรวจสอบค่า $p_{sat}$ |
 
-### 8.4 Performance Optimization
+### 8.4 การเพิ่มประสิทธิภาพ (Performance Optimization)
 
-**Parallel Efficiency:**
+**ประสิทธิภาพการทำงานแบบขนาน:**
 
 ```foam
-// In decomposeParDict
+// ใน decomposeParDict
 method          scotch;
 
 numberOfSubdomains  16;
@@ -696,8 +696,8 @@ coeffs
 }
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C` (Reference for parallel implementation in multiphase solvers)
-
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C` (ข้อมูลอ้างอิงสำหรับการใช้งานแบบขนานในตัวแก้ปัญหาหลายเฟส)
+>
 > **คำอธิบายภาษาไทย:**
 > 
 > **แหล่งที่มา (Source):**
@@ -715,10 +715,10 @@ coeffs
 > - **Scotch Algorithm**: อัลกอริทึม graph partitioning ที่ให้ประสิทธิภาพสูง
 > - **Parallel Scaling**: การเพิ่มประสิทธิภาพโดยการใช้ processors หลายตัวพร้อมกัน
 
-**Memory Management:**
+**การจัดการหน่วยความจำ:**
 
 ```foam
-// In controlDict
+// ใน controlDict
 application     interPhaseChangeFoam;
 
 startFrom       latestTime;
@@ -729,17 +729,17 @@ writeInterval   50;
 
 ---
 
-## 9. Example Cases
+## 9. กรณีศึกษาตัวอย่าง (Example Cases)
 
-### 9.1 Simple Cavitation Validation
+### 9.1 การตรวจสอบการเกิดโพรงไออย่างง่าย
 
-**Objective**: Verify cavitation model implementation
+**วัตถุประสงค์**: ตรวจสอบการใช้งานแบบจำลองการเกิดโพรงไอ
 
-**Setup:**
+**การตั้งค่า:**
 ```foam
 // 0/alpha.water
 dimensions      [0 0 0 0 0 0 0];
-internalField   uniform 1;    // Initially all liquid
+internalField   uniform 1;    // เริ่มต้นเป็นของเหลวทั้งหมด
 
 boundaryField
 {
@@ -759,21 +759,21 @@ boundaryField
 }
 ```
 
-**Run:**
+**การรัน:**
 ```bash
 blockMesh
 interPhaseChangeFoam
 ```
 
-**Post-process:**
+**การประมวลผลภายหลัง (Post-process):**
 ```python
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Read vapor fraction
+# อ่านค่าสัดส่วนไอ
 alpha = np.loadtxt('postProcessing/vaporFraction/0/vaporFraction.csv')
 
-# Plot
+# พล็อตกราฟ
 plt.figure(figsize=(10, 6))
 plt.plot(alpha[:, 0], alpha[:, 1])
 plt.xlabel('Time [s]')
@@ -783,40 +783,40 @@ plt.grid(True)
 plt.show()
 ```
 
-### 9.2 Hydrofoil Cavitation
+### 9.2 การเกิดโพรงไอที่ Hydrofoil
 
-**Geometry:** NACA 0015 hydrofoil
+**เรขาคณิต**: ปีกในน้ำ NACA 0015
 
-**Conditions:**
-- Velocity: 10 m/s
-- Angle of attack: 8°
-- Cavitation number: $\sigma = 1.5$
+**เงื่อนไข:**
+- ความเร็ว: 10 m/s
+- มุมปะทะ (Angle of attack): 8°
+- เลขการเกิดโพรงไอ: $\sigma = 1.5$
 
-**Expected Results:**
-- Sheet cavitation on suction side
-- Re-entrant jet formation
-- Cloud cavitation shedding
+**ผลลัพธ์ที่คาดหวัง:**
+- การเกิดโพรงไอแบบแผ่นที่ด้านดูด
+- การก่อตัวของ re-entrant jet
+- การหลุดล่อนของกลุ่มโพรงไอ (Cloud cavitation)
 
 ---
 
-## 10. Advanced Topics
+## 10. หัวข้อขั้นสูง (Advanced Topics)
 
-### 10.1 Thermodynamic Effects
+### 10.1 ผลกระทบทางเทอร์โมไดนามิกส์
 
-In cryogenic liquids, thermal effects become important:
+ในของเหลวไครโอเจนิก ผลของความร้อนจะมีความสำคัญ:
 
-$$\Delta T = \frac{\rho_v L_v}{\rho_l c_{p,l}} \alpha_v$$
+$$\Delta T = \frac{\rho_v L_v}{\rho_l c_{p,l}} \alpha_v$$ 
 
-where:
-- $L_v$: Latent heat of vaporization [J/kg]
-- $c_{p,l}$: Liquid specific heat [J/kg·K]
+โดยที่:
+- $L_v$: ความร้อนแฝงของการกลายเป็นไอ [J/kg]
+- $c_{p,l}$: ความจุความร้อนจำเพาะของของเหลว [J/kg·K]
 
-### 10.2 Turbulence-Cavitation Interaction
+### 10.2 ปฏิสัมพันธ์ระหว่างความปั่นป่วนและการเกิดโพรงไอ
 
-**Modified Turbulence Models:**
+**แบบจำลองความปั่นป่วนที่ปรับปรุงแล้ว:**
 
 ```foam
-// In constant/turbulenceProperties
+// ใน constant/turbulenceProperties
 simulationType  RAS;
 
 RAS
@@ -824,14 +824,14 @@ RAS
     RASModel        kEpsilon;
     turbulence      on;
 
-    // Cavitation correction
+    // การปรับแก้สำหรับการเกิดโพรงไอ
     cavitation      on;
     cavitationModel SchnerrSauer;
 }
 ```
 
-> **📂 Source:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C` (Reference for turbulence model configuration)
-
+> **📂 แหล่งที่มา:** `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C` (ข้อมูลอ้างอิงสำหรับการกำหนดค่าแบบจำลองความปั่นป่วน)
+>
 > **คำอธิบายภาษาไทย:**
 > 
 > **แหล่งที่มา (Source):**
@@ -849,32 +849,32 @@ RAS
 > - **Modified Eddy Viscosity**: การปรับค่า eddy viscosity ในบริเวณที่มีการเปลี่ยนสถานะเฟส
 > - **Bubble-Induced Turbulence**: ความปั่นที่เกิดจากการเคลื่อนที่ของฟอง
 
-### 10.3 Scale Effects
+### 10.3 ผลกระทบของมาตราส่วน (Scale Effects)
 
-**Scale-up Laws:**
+**กฎการปรับขนาด (Scale-up Laws):**
 
-$$\sigma_{model} = \sigma_{prototype}$$
+$$\sigma_{model} = \sigma_{prototype}$$ 
 
-**Scaling considerations:**
-- Reynolds number similarity
-- Weber number similarity
-- Cavitation number matching
+**ข้อควรพิจารณาในการปรับขนาด:**
+- ความคล้ายคลึงของเลขเรย์โนลด์ส
+- ความคล้ายคลึงของเลขเวเบอร์
+- การจับคู่เลขการเกิดโพรงไอ
 
 ---
 
-## Summary
+## สรุป (Summary)
 
-Key takeaways for successful cavitation modeling in OpenFOAM:
+ประเด็นสำคัญสำหรับการจำลองการเกิดโพรงไอที่ประสบความสำเร็จใน OpenFOAM:
 
-1. **Model Selection**: Schnerr-Sauer for most applications, Kunz for stability
-2. **Mesh Quality**: Critical near walls and low-pressure zones
-3. **Time Stepping**: Conservative Co numbers (< 0.3) for accuracy
-4. **Verification**: Always check mass conservation and boundedness
-5. **Validation**: Compare with experimental data when available
+1. **การเลือกแบบจำลอง**: Schnerr-Sauer สำหรับการประยุกต์ใช้ส่วนใหญ่, Kunz เพื่อความเสถียร
+2. **คุณภาพเมช**: สำคัญอย่างยิ่งใกล้ผนังและโซนความดันต่ำ
+3. **การควบคุมเวลา**: ใช้เลข Co ที่อนุรักษ์นิยม (< 0.3) เพื่อความแม่นยำ
+4. **การตรวจสอบ**: ตรวจสอบการอนุรักษ์มวลและขอบเขตของค่าเสมอ
+5. **การรับรองความถูกต้อง**: เปรียบเทียบกับข้อมูลการทดลองเมื่อมีให้ใช้งาน
 
-> [!TIP] **Recommended Workflow**
-> 1. Start with coarse mesh for initial development
-> 2. Verify with analytical solutions
-> 3. Refine mesh in critical regions
-> 4. Perform grid convergence study
-> 5. Validate against experimental data
+> [!TIP] **ขั้นตอนการทำงานที่แนะนำ**
+> 1. เริ่มต้นด้วยเมชแบบหยาบสำหรับการพัฒนาเบื้องต้น
+> 2. ตรวจสอบความถูกต้องด้วยคำตอบเชิงวิเคราะห์
+> 3. ปรับปรุงเมชในภูมิภาคที่สำคัญ
+> 4. ทำการศึกษาการลู่เข้าของเมช (Grid convergence study)
+> 5. รับรองความถูกต้องกับข้อมูลการทดลอง

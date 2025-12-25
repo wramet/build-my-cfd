@@ -1,177 +1,177 @@
-# `fvMesh`: Finite Volume Data Management
+# `fvMesh`: การจัดการข้อมูลสำหรับวิธีไฟไนต์วอลุ่ม (Finite Volume Data Management)
 
 ![[construction_site_manager.png]]
 `A construction site manager holding a clipboard, coordinating between workers (Solvers) and a large storage of materials (Fields like p, U). The manager knows exactly where everything is located on the mesh structure, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
 
-## 🔍 **High-Level Concept: The "Construction Site Manager" Analogy**
+## 🔍 **แนวคิดระดับสูง: การอุปมา "ผู้จัดการหน้างานก่อสร้าง"**
 
-Imagine a **massive construction site** where different teams have completed preparatory work, and now a skilled manager must coordinate all activities to transform raw blueprints into a functional project.
+ลองจินตนาการถึง **หน้างานก่อสร้างขนาดมหึมา** ที่ทีมงานต่างๆ ได้เตรียมงานเบื้องต้นเสร็จแล้ว และตอนนี้ต้องการผู้จัดการที่มีทักษะในการประสานงานกิจกรรมทั้งหมดเพื่อเปลี่ยนพิมพ์เขียวดิบให้กลายเป็นโครงการที่ใช้งานได้จริง
 
-This analogy perfectly captures the role of `fvMesh` in OpenFOAM's computational framework.
+การอุปมานี้สะท้อนถึงบทบาทของ `fvMesh` ในกรอบการทำงานเชิงคำนวณของ OpenFOAM ได้อย่างสมบูรณ์แบบ
 
-### 🏗️ **Three-Layer Architecture**
+### 🏗️ **สถาปัตยกรรมสามชั้น (Three-Layer Architecture)**
 
-The OpenFOAM mesh system follows a **three-layer architecture** that provides a robust foundation for CFD computations:
+ระบบเมชของ OpenFOAM เป็นไปตาม **สถาปัตยกรรมสามชั้น** ที่ให้รากฐานที่มั่นคงสำหรับการคำนวณ CFD:
 
 ```mermaid
 flowchart TD
-    subgraph fvMesh["fvMesh (Finite Volume Layer)"]
-        FV1[Finite Volume Discretization]
-        FV2[Field Storage]
+    subgraph fvMesh["fvMesh (ชั้นไฟไนต์วอลุ่ม)"]
+        FV1[การดิสครีตแบบไฟไนต์วอลุ่ม]
+        FV2[การจัดเก็บสนามข้อมูล]
         FV3[Solver API]
     end
 
-    subgraph polyMesh["polyMesh (Topology Layer)"]
-        PM1[Polygonal Mesh Topology]
-        PM2[Boundary Patches]
-        PM3[Parallel Support]
+    subgraph polyMesh["polyMesh (ชั้นโทโพโลยี)"]
+        PM1[โทโพโลยีเมชรูปทรงหลายเหลี่ยม]
+        PM2[แพตช์ขอบเขต]
+        PM3[การรองรับการทำงานแบบขนาน]
     end
 
-    subgraph primitiveMesh["primitiveMesh (Analysis Layer)"]
-        PR1[Geometric Calculations]
-        PR2[Mesh Quality Metrics]
-        PR3[Lazy Evaluation]
+    subgraph primitiveMesh["primitiveMesh (ชั้นการวิเคราะห์เรขาคณิต)"]
+        PR1[การคำนวณทางเรขาคณิต]
+        PR2[ตัวชี้วัดคุณภาพเมช]
+        PR3[การคำนวณเมื่อต้องการ]
     end
 
     fvMesh --> polyMesh
     polyMesh --> primitiveMesh
 ```
-> **Figure 1:** ลำดับชั้นความสัมพันธ์ของ `fvMesh` ที่เชื่อมโยงข้อมูลโทโพโลยีเข้ากับกลไกการคำนวณปริมาตรจำกัด (Finite Volume Discretization) และระบบการจัดเก็บฟิลด์ข้อมูล
+> **รูปที่ 1:** ลำดับชั้นความสัมพันธ์ของ `fvMesh` ที่เชื่อมโยงข้อมูลโทโพโลยีเข้ากับกลไกการคำนวณปริมาตรจำกัด (Finite Volume Discretization) และระบบการจัดเก็บสนามข้อมูล (Field Storage System)
 
-**Key Responsibilities:**
+**ความรับผิดชอบหลัก (Key Responsibilities):**
 
-| Layer | Primary Function | Key Responsibilities |
+| ชั้น | หน้าที่หลัก | ความรับผิดชอบสำคัญ |
 |--------|-----------------|---------------------|
-| **primitiveMesh** | Pure geometric calculations | • Centers, volumes, normals<br>• Mesh quality metrics<br>• Lazy evaluation |
-| **polyMesh** | Topology management | • Points, faces, cells storage<br>• Owner/neighbor relationships<br>• Boundary patches<br>• Parallel support |
-| **fvMesh** | Finite volume discretization | • Geometric field storage<br>• Solver API<br>• Discretization schemes |
+| **primitiveMesh** | การคำนวณทางเรขาคณิตบริสุทธิ์ | • จุดศูนย์กลาง, ปริมาตร, เวกเตอร์แนวฉาก<br>• ตัวชี้วัดคุณภาพเมช<br>• การคำนวณเมื่อต้องการ (Lazy evaluation) |
+| **polyMesh** | การจัดการโทโพโลยี | • จัดเก็บจุด, หน้า, เซลล์<br>• ความสัมพันธ์เจ้าของ/เพื่อนบ้าน<br>• แพตช์ขอบเขต<br>• การรองรับแบบขนาน |
+| **fvMesh** | การดิสครีตแบบไฟไนต์วอลุ่ม | • จัดเก็บสนามทางเรขาคณิต<br>• Solver API<br>• รูปแบบการดิสครีต (Discretization schemes) |
 
-## 📊 **Finite Volume Foundations**
+## 📊 **พื้นฐานวิธีไฟไนต์วอลุ่ม (Finite Volume Foundations)**
 
-### **Gauss's Theorem: The Foundation of FVM**
+### **ทฤษฎีบทของ Gauss: รากฐานของ FVM**
 
-The finite volume method is built upon **Gauss's divergence theorem**, which provides the mathematical foundation for transforming volume integrals into surface integrals:
+วิธีไฟไนต์วอลุ่มถูกสร้างขึ้นบน **ทฤษฎีบทการลู่ออกของ Gauss (Gauss's divergence theorem)** ซึ่งให้รากฐานทางคณิตศาสตร์ในการแปลงอินทิเกรตตามปริมาตรให้เป็นอินทิเกรตตามพื้นผิว:
 
-$$
-\int_V \nabla \cdot \mathbf{F} \, \mathrm{d}V = \oint_{\partial V} \mathbf{F} \cdot \mathrm{d}\mathbf{S}
-$$
-
-**Variable Definitions:**
-- $\mathbf{F}$ = vector field
-- $V$ = control volume
-- $\partial V$ = boundary surface
-- $\mathrm{d}\mathbf{S}$ = surface area vector
-
-For a discrete cell $i$ with volume $V_i$ and faces $f$, we approximate the volume integral by summing fluxes through all cell faces:
-
-$$
-\int_{V_i} \nabla \cdot \mathbf{F} \, \mathrm{d}V \approx \sum_{f \in \partial V_i} \mathbf{F}_f \cdot \mathbf{S}_f
+$$ 
+\int_V \nabla \cdot \mathbf{F} \, \mathrm{d}V = \oint_{\partial V} \mathbf{F} \cdot \mathrm{d} \mathbf{S} 
 $$
 
-where:
-- $\mathbf{F}_f$ = **face-interpolated value** of the flux field
-- $\mathbf{S}_f$ = **face area vector** pointing outward from the cell center
+**นิยามตัวแปร:**
+- $\mathbf{F}$ = สนามเวกเตอร์ (Vector field)
+- $V$ = ปริมาตรควบคุม (Control volume)
+- $\partial V$ = พื้นผิวขอบเขต (Boundary surface)
+- $\mathrm{d} \mathbf{S}$ = เวกเตอร์พื้นที่ผิว (Surface area vector)
 
-### **Cell Center Calculation**
+สำหรับเซลล์แบบไม่ต่อเนื่อง $i$ ที่มีปริมาตร $V_i$ และหน้า $f$ เราจะประมาณค่าอินทิเกรตตามปริมาตรโดยการรวมฟลักซ์ (Fluxes) ผ่านหน้าเซลล์ทั้งหมด:
 
-For a polyhedral cell with $N_f$ faces, the cell center $\mathbf{C}_{\text{cell}}$ is calculated using **area-weighted face centroids**:
-
-$$
-\mathbf{C}_{\text{cell}} = \frac{\sum_{i=1}^{N_f} A_i \mathbf{C}_{f,i}}{\sum_{i=1}^{N_f} A_i}
-$$
-
-**Variables:**
-- $A_i$ = area of face $i$
-- $\mathbf{C}_{f,i}$ = centroid of face $i$
-
-**Physical Interpretation:** The cell center is the **center of mass**, assuming uniform density, making it the optimal location for storing cell-centered field values.
-
-### **Face Area Vector**
-
-The face area vector $\mathbf{S}_f$ has both **magnitude** (area) and **direction** (normal):
-
-$$
-\mathbf{S}_f = \sum_{k=1}^{N_p} \frac{1}{2} (\mathbf{r}_k \times \mathbf{r}_{k+1})
+$$ 
+\int_{V_i} \nabla \cdot \mathbf{F} \, \mathrm{d}V \approx \sum_{f \in \partial V_i} \mathbf{F}_f \cdot \mathbf{S}_f 
 $$
 
-**Variables:**
-- $\mathbf{r}_k$ = position vector of face vertices in **right-hand rule order**
-- $N_p$ = number of face vertices
+โดยที่:
+- $\mathbf{F}_f$ = **ค่าที่ได้จากการอินเทอร์โพลชันที่หน้า (Face-interpolated value)** ของสนามฟลักซ์
+- $\mathbf{S}_f$ = **เวกเตอร์พื้นที่หน้า (Face area vector)** ที่พุ่งออกจากจุดศูนย์กลางเซลล์
 
-**Key Properties:**
-- **Magnitude:** $|\mathbf{S}_f|$ gives the face area
-- **Direction:** $\hat{\mathbf{S}}_f = \mathbf{S}_f / |\mathbf{S}_f|$ gives the unit normal
-- **Outward-pointing:** $\mathbf{S}_f$ points from the **owner cell** to the **neighbor cell**
+### **การคำนวณจุดศูนย์กลางเซลล์ (Cell Center Calculation)**
 
-> [!INFO] **Flux Convention**
-> The direction of $\mathbf{S}_f$ establishes the **sign convention** for flux calculations, ensuring consistent flux contributions throughout the mesh.
+สำหรับเซลล์รูปทรงหลายเหลี่ยมที่มี $N_f$ หน้า จุดศูนย์กลางเซลล์ $\mathbf{C}_{\text{cell}}$ จะถูกคำนวณโดยใช้ **จุดศูนย์กลางหน้าถ่วงน้ำหนักตามพื้นที่ (Area-weighted face centroids)**:
 
-### **Cell Volume Calculation**
-
-For a closed polyhedron, the volume $V$ is calculated via the **divergence theorem**:
-
-$$
-V = \frac{1}{3} \sum_{i=1}^{N_f} \mathbf{C}_{f,i} \cdot \mathbf{S}_{f,i}
+$$ 
+\mathbf{C}_{\text{cell}} = \frac{\sum_{i=1}^{N_f} A_i \mathbf{C}_{f,i}}{\sum_{i=1}^{N_f} A_i} 
 $$
 
-**Variables:**
-- $\mathbf{C}_{f,i}$ = centroid of face $i$
-- $\mathbf{S}_{f,i}$ = face area vector of face $i$
+**ตัวแปร:**
+- $A_i$ = พื้นที่ของหน้า $i$
+- $\mathbf{C}_{f,i}$ = จุดศูนย์กลางของหน้า $i$
 
-**Mathematical Foundation:** This formula derives from $\nabla \cdot \mathbf{r} = 3$ and applying Gauss's divergence theorem:
+**การตีความทางกายภาพ:** จุดศูนย์กลางเซลล์คือ **จุดศูนย์กลางมวล (Center of mass)** โดยสมมติว่ามีความหนาแน่นสม่ำเสมอ ทำให้เป็นตำแหน่งที่เหมาะสมที่สุดสำหรับการจัดเก็บค่าสนามข้อมูลที่จุดศูนย์กลางเซลล์
 
+### **เวกเตอร์พื้นที่หน้า (Face Area Vector)**
+
+เวกเตอร์พื้นที่หน้า $\mathbf{S}_f$ มีทั้ง **ขนาด** (พื้นที่) และ **ทิศทาง** (แนวฉาก):
+
+$$ 
+\mathbf{S}_f = \sum_{k=1}^{N_p} \frac{1}{2} (\mathbf{r}_k \times \mathbf{r}_{k+1}) 
 $$
-\int_V \nabla \cdot \mathbf{r} \, \mathrm{d}V = 3V = \oint_{\partial V} \mathbf{r} \cdot \mathrm{d}\mathbf{S} = \sum_f \mathbf{C}_f \cdot \mathbf{S}_f
+
+**ตัวแปร:**
+- $\mathbf{r}_k$ = เวกเตอร์ตำแหน่งของจุดยอดหน้าเรียงตาม **กฎมือขวา (Right-hand rule order)**
+- $N_p$ = จำนวนจุดยอดของหน้า
+
+**คุณสมบัติหลัก:**
+- **ขนาด:** $|\mathbf{S}_f|$ คือพื้นที่หน้า
+- **ทิศทาง:** $\hat{\mathbf{S}}_f = \mathbf{S}_f / |\mathbf{S}_f|$ คือเวกเตอร์แนวฉากหนึ่งหน่วย
+- **ทิศทางพุ่งออก:** $\mathbf{S}_f$ ชี้จาก **เซลล์เจ้าของ (Owner cell)** ไปยัง **เซลล์เพื่อนบ้าน (Neighbor cell)**
+
+> [!INFO] **ข้อตกลงเรื่องฟลักซ์ (Flux Convention)**
+> ทิศทางของ $\mathbf{S}_f$ กำหนด **ข้อตกลงเครื่องหมาย (Sign convention)** สำหรับการคำนวณฟลักซ์ เพื่อให้มั่นใจว่าการคำนวณฟลักซ์มีความสม่ำเสมอทั่วทั้งเมช
+
+### **การคำนวณปริมาตรเซลล์ (Cell Volume Calculation)**
+
+สำหรับเซลล์รูปทรงหลายเหลี่ยมปิด ปริมาตร $V$ จะถูกคำนวณผ่าน **ทฤษฎีบทการลู่ออก (Divergence theorem)**:
+
+$$ 
+V = \frac{1}{3} \sum_{i=1}^{N_f} \mathbf{C}_{f,i} \cdot \mathbf{S}_{f,i} 
 $$
 
-## ⚙️ **Key Mechanisms: fvMesh Step-by-Step**
+**ตัวแปร:**
+- $\mathbf{C}_{f,i}$ = จุดศูนย์กลางของหน้า $i$
+- $\mathbf{S}_{f,i}$ = เวกเตอร์พื้นที่ของหน้า $i$
 
-### **Step 1: Core Finite Volume Structure**
+**รากฐานทางคณิตศาสตร์:** สูตรนี้มาจากการที่ $\nabla \cdot \mathbf{r} = 3$ และการใช้ทฤษฎีบทการลู่ออกของ Gauss:
 
-**The `fvMesh` class** represents the primary computational infrastructure for finite volume discretization in OpenFOAM.
+$$ 
+\int_V \nabla \cdot \mathbf{r} \, \mathrm{d}V = 3V = \oint_{\partial V} \mathbf{r} \cdot \mathrm{d} \mathbf{S} = \sum_f \mathbf{C}_f \cdot \mathbf{S}_f 
+$$
+
+## ⚙️ **กลไกสำคัญ: fvMesh แบบทีละขั้นตอน**
+
+### **ขั้นตอนที่ 1: โครงสร้างหลักของวิธีไฟไนต์วอลุ่ม (Core Finite Volume Structure)**
+
+**คลาส `fvMesh`** แทนโครงสร้างพื้นฐานเชิงคำนวณหลักสำหรับการดิสครีตแบบไฟไนต์วอลุ่มใน OpenFOAM
 
 ```cpp
-// 🔧 MECHANISM: Mesh data ready for discretization
+// 🔧 กลไก: ข้อมูลเมชที่พร้อมสำหรับการดิสครีต
 class fvMesh
-    : public polyMesh          // Inherit all topology/geometry
-    , public lduMesh           // Linear algebra interface
+    : public polyMesh          // สืบทอดโทโพโลยีและเรขาคณิตทั้งหมด
+    , public lduMesh           // ส่วนต่อประสานพีชคณิตเชิงเส้น (Linear algebra interface)
 {
 private:
-    // Finite volume specific data
-    fvBoundaryMesh boundary_;  // FV-specific boundary conditions
+    // ข้อมูลเฉพาะสำหรับไฟไนต์วอลุ่ม
+    fvBoundaryMesh boundary_;  // เงื่อนไขขอบเขตเฉพาะสำหรับ FV
 
-    // Discretization schemes
-    surfaceInterpolation interpolation_;  // Face interpolation weights
-    fvSchemes schemes_;                   // Numerical schemes
-    fvSolution solution_;                 // Solver settings
+    // รูปแบบการดิสครีต
+    surfaceInterpolation interpolation_;  // น้ำหนักการอินเทอร์โพลชันที่หน้า
+    fvSchemes schemes_;                   // รูปแบบเชิงตัวเลข (Numerical schemes)
+    fvSolution solution_;                 // การตั้งค่า Solver
 
-    // Finite volume geometry (computed on demand)
-    mutable autoPtr<volScalarField> Vptr_;         // Cell volumes
-    mutable autoPtr<surfaceScalarField> magSfPtr_; // Face areas
-    mutable autoPtr<surfaceVectorField> SfPtr_;    // Face area vectors
-    mutable autoPtr<surfaceVectorField> CfPtr_;    // Face centers
+    // เรขาคณิตไฟไนต์วอลุ่ม (คำนวณตามต้องการ)
+    mutable autoPtr<volScalarField> Vptr_;         // ปริมาตรเซลล์
+    mutable autoPtr<surfaceScalarField> magSfPtr_; // พื้นที่หน้า
+    mutable autoPtr<surfaceVectorField> SfPtr_;    // เวกเตอร์พื้นที่หน้า
+    mutable autoPtr<surfaceVectorField> CfPtr_;    // จุดศูนย์กลางหน้า
 };
 ```
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C`
-> - **Explanation:** ไฟล์นี้แสดงตัวอย่างการใช้งาน `fvMesh` ในการสร้างฟิลด์ต่างๆ เช่น `p_`, `T_`, `rho_` ผ่าน `U.mesh()` ซึ่งเป็นการเข้าถึง `fvMesh` จาก `volVectorField`
-> - **Key Concepts:** Multiple inheritance pattern, demand-driven data, mesh-field association
+> - **คำอธิบาย:** ไฟล์นี้แสดงตัวอย่างการใช้งาน `fvMesh` ในการสร้างสนามข้อมูลต่างๆ เช่น `p_`, `T_`, `rho_` ผ่าน `U.mesh()` ซึ่งเป็นการเข้าถึง `fvMesh` จาก `volVectorField`
+> - **แนวคิดสำคัญ:** รูปแบบการสืบทอดหลายชั้น (Multiple inheritance), ข้อมูลแบบคำนวณตามต้องการ (Demand-driven data), ความเชื่อมโยงระหว่างเมชและสนามข้อมูล (Mesh-field association)
 
-**Key Features:**
-- Uses **demand-driven calculation** via smart pointer `autoPtr`
-- Expensive geometric computations performed only when necessary
-- Cached for subsequent access
-- **Lazy evaluation** optimizes both memory usage and computational efficiency
+**คุณสมบัติหลัก:**
+- ใช้ **การคำนวณตามความต้องการ (Demand-driven calculation)** ผ่านสมาร์ทพอยน์เตอร์ `autoPtr`
+- การคำนวณทางเรขาคณิตที่มีค่าใช้จ่ายสูงจะดำเนินการเมื่อจำเป็นเท่านั้น
+- มีการเก็บแคชสำหรับการเข้าถึงในภายหลัง
+- **Lazy evaluation** ช่วยเพิ่มประสิทธิภาพทั้งการใช้หน่วยความจำและความเร็วในการคำนวณ
 
-### **Step 2: Field Management System**
+### **ขั้นตอนที่ 2: ระบบการจัดการสนามข้อมูล (Field Management System)**
 
-The field management system provides a hierarchical framework for creating and accessing various geometric field types in the finite volume context.
+ระบบการจัดการสนามข้อมูลให้กรอบการทำงานแบบลำดับชั้นสำหรับการสร้างและเข้าถึงสนามข้อมูลทางเรขาคณิตประเภทต่างๆ ในบริบทของไฟไนต์วอลุ่ม
 
-#### **Volume Field Management**
+#### **การจัดการสนามข้อมูลตามปริมาตร (Volume Field Management)**
 
 ```cpp
-// ✅ VOLUME FIELD: Data at cell centers
+// ✅ VOLUME FIELD: ข้อมูลที่จุดศูนย์กลางเซลล์
 template<class Type>
 GeometricField<Type, fvPatchField, volMesh>&
 lookupObjectRef(const word& name) const
@@ -184,13 +184,13 @@ lookupObjectRef(const word& name) const
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
-> - **Explanation:** การสร้างฟิลด์ความดัน `p_` และอุณหภูมิ `T_` โดยใช้ `U.mesh()` เพื่อรับ reference ถึง `fvMesh` และสร้างฟิลด์ที่เชื่อมโยงกับเมช
-> - **Key Concepts:** Template-based field lookup, object registry pattern, mesh-field association
+> - **คำอธิบาย:** การสืบค้นสนามความดัน `p_` และอุณหภูมิ `T_` โดยใช้ `U.mesh()` เพื่อรับการอ้างอิงไปยัง `fvMesh` และเข้าถึงสนามข้อมูลที่เชื่อมโยงกับเมช
+> - **แนวคิดสำคัญ:** การสืบค้นสนามข้อมูลแบบเทมเพลต (Template-based field lookup), รูปแบบ Object Registry, ความเชื่อมโยงระหว่างเมชและสนามข้อมูล
 
-**Volume fields** store quantities at cell centers $\phi_i$ for each cell $i$ in the mesh:
+**สนามข้อมูลตามปริมาตร (Volume fields)** จัดเก็บปริมาณที่จุดศูนย์กลางเซลล์ $\phi_i$ สำหรับแต่ละเซลล์ $i$ ในเมช:
 
-- **Primary unknowns** in most CFD simulations
-- Represent variables such as velocity, pressure, temperature, scalar concentration
+- **ตัวแปรที่ไม่ทราบค่าหลัก (Primary unknowns)** ในการจำลอง CFD ส่วนใหญ่
+- แทนตัวแปรต่างๆ เช่น ความเร็ว, ความดัน, อุณหภูมิ, ความเข้มข้นของสเกลาร์
 
 ```mermaid
 graph TD
@@ -198,7 +198,7 @@ graph TD
     M --> U[volVectorField: U]
     M --> T[volScalarField: T]
 
-    subgraph "Fields Management"
+    subgraph "การจัดการสนามข้อมูล"
         P
         U
         T
@@ -206,12 +206,12 @@ graph TD
 
     style M fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
 ```
-> **Figure 2:** ระบบการจัดการฟิลด์ข้อมูล (Field Management System) ที่ทำหน้าที่จัดเก็บและสืบค้นตัวแปรทางฟิสิกส์ต่างๆ อย่างเป็นระเบียบผ่าน Object Registry ของเมช
+> **รูปที่ 2:** ระบบการจัดการสนามข้อมูล (Field Management System) ที่ทำหน้าที่จัดเก็บและสืบค้นตัวแปรทางฟิสิกส์ต่างๆ อย่างเป็นระเบียบผ่าน Object Registry ของเมช
 
-#### **Dynamic Field Creation**
+#### **การสร้างสนามข้อมูลแบบไดนามิก (Dynamic Field Creation)**
 
 ```cpp
-// ✅ CREATE FIELD: With proper mesh association
+// ✅ CREATE FIELD: พร้อมความเชื่อมโยงกับเมชที่ถูกต้อง
 template<class Type>
 tmp<GeometricField<Type, fvPatchField, volMesh>>
 newField(const word& name, const dimensionSet& dims) const
@@ -228,18 +228,18 @@ newField(const word& name, const dimensionSet& dims) const
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:88-103`
-> - **Explanation:** การสร้างฟิลด์ `T1` และ `T2` โดยใช้ constructor ของ `volScalarField` ที่รับ `IOobject`, mesh, และ boundary field type
-> - **Key Concepts:** Temporary field management, calculatedFvPatchField, dimension-aware field creation
+> - **คำอธิบาย:** การสร้างสนามข้อมูล `T1` และ `T2` โดยใช้คอนสตรัคเตอร์ของ `volScalarField` ที่รับ `IOobject`, เมช และประเภทสนามขอบเขต
+> - **แนวคิดสำคัญ:** การจัดการสนามข้อมูลชั่วคราว (Temporary field management), calculatedFvPatchField, การสร้างสนามข้อมูลที่คำนึงถึงหน่วย (Dimension-aware field creation)
 
-**Field creation mechanism:**
-- Ensures proper mesh-field association
-- Creates necessary topological relationships for finite volume operations
-- `calculatedFvPatchField` provides initial boundary field behavior that can be specialized
+**กลไกการสร้างสนามข้อมูล:**
+- มั่นใจได้ว่ามีความเชื่อมโยงระหว่างเมชและสนามข้อมูลที่ถูกต้อง
+- สร้างความสัมพันธ์ทางโทโพโลยีที่จำเป็นสำหรับการดำเนินการไฟไนต์วอลุ่ม
+- `calculatedFvPatchField` ให้พฤติกรรมเริ่มต้นของสนามขอบเขตที่สามารถนำไปปรับแต่งเฉพาะทางได้ในภายหลัง
 
-#### **Surface Field Operations**
+#### **การดำเนินการกับสนามข้อมูลที่หน้า (Surface Field Operations)**
 
 ```cpp
-// ✅ SURFACE FIELD: Data at face centers
+// ✅ SURFACE FIELD: ข้อมูลที่จุดศูนย์กลางหน้า
 template<class Type>
 tmp<GeometricField<Type, fvsPatchField, surfaceMesh>>
 newSurfaceField(const word& name, const dimensionSet& dims) const
@@ -256,31 +256,31 @@ newSurfaceField(const word& name, const dimensionSet& dims) const
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
-> - **Explanation:** การสร้าง `calculatedFvPatchScalarField` สำหรับฟิลด์อุณหภูมิของแต่ละเฟส ซึ่งเป็นตัวอย่างของการใช้งาน patch field types ใน `fvMesh`
-> - **Key Concepts:** Surface mesh fields, face-centered data, interpolation schemes
+> - **คำอธิบาย:** การสร้าง `calculatedFvPatchScalarField` สำหรับสนามอุณหภูมิของแต่ละเฟส ซึ่งเป็นตัวอย่างของการใช้งานประเภทสนามบนแพตช์ (Patch field types) ใน `fvMesh`
+> - **แนวคิดสำคัญ:** สนามข้อมูลบนเมชพื้นผิว (Surface mesh fields), ข้อมูลที่จุดศูนย์กลางหน้า, รูปแบบการอินเทอร์โพลชัน
 
-**Surface fields** store quantities $\phi_f$ at face centers:
+**สนามข้อมูลที่หน้า (Surface fields)** จัดเก็บปริมาณ $\phi_f$ ที่จุดศูนย์กลางหน้า:
 
-- **Essential for flux calculations** and interpolation operations
-- Derived from volume fields through interpolation schemes
-- **Play crucial roles in convection term discretization**
+- **จำเป็นสำหรับการคำนวณฟลักซ์ (Flux calculations)** และการดำเนินการอินเทอร์โพลชัน
+- ได้มาจากสนามข้อมูลตามปริมาตรผ่านรูปแบบการอินเทอร์โพลชัน
+- **มีบทบาทสำคัญในการดิสครีตเทอมคอนเวกชัน (Convection term discretization)**
 
-### **Step 3: Discretization Framework**
+### **ขั้นตอนที่ 3: กรอบการทำงานสำหรับการดิสครีต (Discretization Framework)**
 
-The discretization framework employs mathematical operations that transform partial differential equations into algebraic form using the finite volume method.
+กรอบการทำงานสำหรับการดิสครีตใช้การดำเนินการทางคณิตศาสตร์เพื่อเปลี่ยนสมการอนุพันธ์ย่อยให้เป็นรูปแบบพีชคณิตโดยใช้วิธีไฟไนต์วอลุ่ม
 
-#### **Gradient Calculation Mechanism**
+#### **กลไกการคำนวณเกรเดียนต์ (Gradient Calculation Mechanism)**
 
 ```cpp
-// ✅ GRADIENT CALCULATION: Using selected scheme
+// ✅ GRADIENT CALCULATION: โดยใช้รูปแบบที่เลือก
 template<class Type>
 tmp<GeometricField<typename outerProduct<vector, Type>::type, fvPatchField, volMesh>>
 grad(const GeometricField<Type, fvPatchField, volMesh>& vf) const
 {
-    // Look up gradient scheme from fvSchemes
+    // สืบค้นรูปแบบเกรเดียนต์จาก fvSchemes
     const word& schemeName = schemes_.gradScheme(vf.name());
 
-    // Dispatch to appropriate gradient calculator
+    // ส่งต่อไปยังตัวคำนวณเกรเดียนต์ที่เหมาะสม
     if (schemeName == "Gauss linear")
     {
         return fv::gaussGrad<Type>(*this).grad(vf);
@@ -294,38 +294,38 @@ grad(const GeometricField<Type, fvPatchField, volMesh>& vf) const
         return fv::cellLimitedGrad<Type>(*this).grad(vf);
     }
 
-    // Default to Gauss linear
+    // ค่าเริ่มต้นเป็น Gauss linear
     return fv::gaussGrad<Type>(*this).grad(vf);
 }
 ```
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
-> - **Explanation:** ใน solver นี้ ฟิลด์ต่างๆ เช่น `p_`, `T_`, `rho_` ถูกสร้างขึ้นและใช้ในการคำนวณ discretization schemes ผ่าน `fvMesh`
-> - **Key Concepts:** Scheme selection pattern, Green-Gauss theorem, slope limiting
+> - **คำอธิบาย:** ใน solver นี้ สนามข้อมูลต่างๆ เช่น `p_`, `T_`, `rho_` ถูกสร้างขึ้นและใช้ในการคำนวณรูปแบบการดิสครีตผ่าน `fvMesh`
+> - **แนวคิดสำคัญ:** รูปแบบการเลือกรูปแบบเชิงตัวเลข (Scheme selection pattern), ทฤษฎีบท Green-Gauss, การจำกัดความชัน (Slope limiting)
 
-**Gradient operation** calculates $\nabla \phi$ using various schemes:
+**การดำเนินการเกรเดียนต์ (Gradient operation)** คำนวณ $\nabla \phi$ โดยใช้รูปแบบต่างๆ:
 
-| **Scheme** | **Method** | **Properties** |
+| **รูปแบบ (Scheme)** | **วิธีการ (Method)** | **คุณสมบัติ** |
 |------------|---------------|----------------|
-| **Gauss linear** | Green-Gauss theorem | Default, high accuracy |
-| **leastSquares** | Least squares | Tolerant to low mesh quality |
-| **cellLimited Gauss linear 1** | Slope limiting | Stable, prevents oscillations |
+| **Gauss linear** | ทฤษฎีบท Green-Gauss | ค่าเริ่มต้น, ความแม่นยำสูง |
+| **leastSquares** | กำลังสองน้อยที่สุด (Least squares) | ทนต่อเมชที่มีคุณภาพต่ำ |
+| **cellLimited Gauss linear 1** | การจำกัดความชัน (Slope limiting) | เสถียร, ป้องกันการแกว่งกวัด |
 
-**Gauss linear method** (Green-Gauss theorem):
-$$\nabla \phi_i = \frac{1}{V_i} \sum_{f \in \partial V_i} \phi_f \mathbf{S}_f$$
+**วิธี Gauss linear** (ทฤษฎีบท Green-Gauss):
+$$\nabla \phi_i = \frac{1}{V_i} \sum_{f \in \partial V_i} \phi_f \mathbf{S}_f$$ 
 
-where face values $\phi_f$ are interpolated from neighboring cell centers using linear interpolation.
+โดยที่ค่าที่หน้า $\phi_f$ ถูกอินเทอร์โพลชันจากจุดศูนย์กลางเซลล์ข้างเคียงโดยใช้การอินเทอร์โพลชันเชิงเส้น (Linear interpolation)
 
-#### **Divergence Calculation**
+#### **การคำนวณไดเวอร์เจนซ์ (Divergence Calculation)**
 
 ```cpp
-// ✅ DIVERGENCE CALCULATION: Surface integration
+// ✅ DIVERGENCE CALCULATION: การอินทิเกรตตามพื้นผิว
 template<class Type>
 tmp<GeometricField<typename innerProduct<vector, Type>::type, fvPatchField, volMesh>>
 div(const GeometricField<Type, fvsPatchField, surfaceMesh>& sf) const
 {
-    // Surface field → Volume field via divergence theorem
+    // สนามข้อมูลที่หน้า → สนามข้อมูลตามปริมาตร ผ่านทฤษฎีบทไดเวอร์เจนซ์
     tmp<GeometricField<typename innerProduct<vector, Type>::type, fvPatchField, volMesh>>
         tdiv = newField
         (
@@ -336,7 +336,7 @@ div(const GeometricField<Type, fvsPatchField, surfaceMesh>& sf) const
     GeometricField<typename innerProduct<vector, Type>::type, fvPatchField, volMesh>& div =
         tdiv.ref();
 
-    // Sum face contributions to cells
+    // รวมการมีส่วนร่วมของหน้าเข้าสู่เซลล์
     forAll(owner(), faceI)
     {
         label own = owner()[faceI];
@@ -347,11 +347,11 @@ div(const GeometricField<Type, fvsPatchField, surfaceMesh>& sf) const
         div[own] += flux;
         if (nei != -1)
         {
-            div[nei] -= flux;  // Negative for neighbor (opposite orientation)
+            div[nei] -= flux;  // ลบสำหรับเพื่อนบ้าน (เนื่องจากทิศทางตรงข้าม)
         }
     }
 
-    // Divide by cell volumes
+    // หารด้วยปริมาตรเซลล์
     div.primitiveFieldRef() /= V();
 
     return tdiv;
@@ -360,20 +360,20 @@ div(const GeometricField<Type, fvsPatchField, surfaceMesh>& sf) const
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
-> - **Explanation:** การใช้งาน `surfaceScalarField phi` ใน multiphase solvers เป็นตัวอย่างของการคำนวณ divergence จาก face fluxes
-> - **Key Concepts:** Divergence theorem, owner-neighbor relationships, face flux summation
+> - **คำอธิบาย:** การใช้งาน `surfaceScalarField phi` ใน solvers แบบหลายเฟสเป็นตัวอย่างของการคำนวณไดเวอร์เจนซ์จากฟลักซ์ที่หน้า (Face fluxes)
+> - **แนวคิดสำคัญ:** ทฤษฎีบทไดเวอร์เจนซ์, ความสัมพันธ์เจ้าของ/เพื่อนบ้าน, การรวมฟลักซ์ที่หน้า
 
-**Divergence operation** uses the divergence theorem:
+**การดำเนินการไดเวอร์เจนซ์ (Divergence operation)** ใช้ทฤษฎีบทไดเวอร์เจนซ์:
 
-$$\int_V \nabla \cdot \mathbf{F} \, \mathrm{d}V = \oint_{\partial V} \mathbf{F} \cdot \mathrm{d}\mathbf{S}$$
+$$\int_V \nabla \cdot \mathbf{F} \, \mathrm{d}V = \oint_{\partial V} \mathbf{F} \cdot \mathrm{d} \mathbf{S}$$ 
 
-In discrete form for cell $i$:
-$$(\nabla \cdot \mathbf{F})_i = \frac{1}{V_i} \sum_{f \in \partial V_i} \mathbf{F}_f \cdot \mathbf{S}_f$$
+ในรูปแบบไม่ต่อเนื่องสำหรับเซลล์ $i$:
+$$(\nabla \cdot \mathbf{F})_i = \frac{1}{V_i} \sum_{f \in \partial V_i} \mathbf{F}_f \cdot \mathbf{S}_f$$ 
 
-#### **Laplacian Discretization**
+#### **การดิสครีตแบบลาปลาเซียน (Laplacian Discretization)**
 
 ```cpp
-// ✅ LAPLACIAN: Diffusion term discretization
+// ✅ LAPLACIAN: การดิสครีตเทอมการแพร่ (Diffusion term discretization)
 template<class Type>
 tmp<GeometricField<Type, fvPatchField, volMesh>>
 laplacian
@@ -381,7 +381,7 @@ laplacian
     const GeometricField<Type, fvPatchField, volMesh>& vf
 ) const
 {
-    // ∇·(Γ∇φ) discretization
+    // การดิสครีต ∇·(Γ∇φ)
     const word& schemeName = schemes_.laplacianScheme(vf.name());
 
     return fv::gaussLaplacianScheme<Type>(*this).laplacian(vf);
@@ -390,67 +390,67 @@ laplacian
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
-> - **Explanation:** ฟิลด์ thermophysical properties เช่น `thermo1_` และ `thermo2_` ถูกสร้างจาก `fvMesh` และใช้ในการคำนวณ diffusion terms
-> - **Key Concepts:** Gauss theorem twice application, diffusion discretization, interpolation schemes
+> - **คำอธิบาย:** สนามคุณสมบัติทางความร้อนฟิสิกส์ (Thermophysical properties) เช่น `thermo1_` และ `thermo2_` ถูกสร้างจาก `fvMesh` และใช้ในการคำนวณเทอมการแพร่
+> - **แนวคิดสำคัญ:** การประยุกต์ใช้ทฤษฎีบท Gauss สองครั้ง, การดิสครีตการแพร่, รูปแบบการอินเทอร์โพลชัน
 
-**Laplacian operator** discretizes the diffusion term $\nabla \cdot (\Gamma \nabla \phi)$.
+**ตัวดำเนินการลาปลาเซียน (Laplacian operator)** ทำการดิสครีตเทอมการแพร่ $\nabla \cdot (\Gamma \nabla \phi)$
 
-Using Gauss's theorem twice:
-$$\int_V \nabla \cdot (\Gamma \nabla \phi) \, \mathrm{d}V = \oint_{\partial V} \Gamma \nabla \phi \cdot \mathrm{d}\mathbf{S}$$
+โดยการใช้ทฤษฎีบทของ Gauss สองครั้ง:
+$$\int_V \nabla \cdot (\Gamma \nabla \phi) \, \mathrm{d}V = \oint_{\partial V} \Gamma \nabla \phi \cdot \mathrm{d} \mathbf{S}$$ 
 
-For cell $i$, the discrete form becomes:
-$$\sum_{f \in \partial V_i} \Gamma_f \frac{\phi_{n} - \phi_i}{|\mathbf{d}_{fn}|} |\mathbf{S}_f|$$
+สำหรับเซลล์ $i$ รูปแบบไม่ต่อเนื่องจะเป็น:
+$$\sum_{f \in \partial V_i} \Gamma_f \frac{\phi_{n} - \phi_i}{|\mathbf{d}_{fn}|} |\mathbf{S}_f|$$ 
 
-**Variables:**
-- $\Gamma_f$: diffusivity at face $f$
-- $\phi_i$: cell center value
-- $\phi_n$: neighboring cell value
-- $\mathbf{d}_{fn}$: distance vector from face center to cell center
+**ตัวแปร:**
+- $\Gamma_f$: สัมประสิทธิ์การแพร่ (Diffusivity) ที่หน้า $f$
+- $\phi_i$: ค่าที่จุดศูนย์กลางเซลล์
+- $\phi_n$: ค่าที่เซลล์ข้างเคียง
+- $\mathbf{d}_{fn}$: เวกเตอร์ระยะทางจากจุดศูนย์กลางหน้าไปยังจุดศูนย์กลางเซลล์
 
-## 🎯 **Why This Matters for CFD**
+## 🎯 **ทำไมสิ่งนี้จึงสำคัญสำหรับ CFD**
 
-### **Engineering Benefit 1: Adaptive Memory Management**
+### **ประโยชน์ทางวิศวกรรมที่ 1: การจัดการหน่วยความจำแบบปรับตัว (Adaptive Memory Management)**
 
-In real-world industrial CFD simulations, memory efficiency is often the difference between a simulation running or failing.
+ในการจำลอง CFD ระดับอุตสาหกรรมในโลกแห่งความเป็นจริง ประสิทธิภาพของหน่วยความจำมักเป็นปัจจัยตัดสินว่าการจำลองจะสำเร็จหรือล้มเหลว
 
 ```cpp
 class LargeMeshSimulation
 {
 private:
-    // Memory requirements for 10 million cell mesh:
-    // - Raw point coordinates: 10M × 3 × 8 bytes = 240 MB (always needed)
-    // - Cell center coordinates: 240 MB (computed on demand)
-    // - Cell volumes: 80 MB (computed on demand)
-    // - Surface face vectors: ~500 MB (computed on demand)
+    // ความต้องการหน่วยความจำสำหรับเมช 10 ล้านเซลล์:
+    // - พิกัดจุดดิบ: 10M × 3 × 8 ไบต์ = 240 MB (จำเป็นเสมอ)
+    // - พิกัดจุดศูนย์กลางเซลล์: 240 MB (คำนวณตามต้องการ)
+    // - ปริมาตรเซลล์: 80 MB (คำนวณตามต้องการ)
+    // - เวกเตอร์พื้นที่หน้า: ~500 MB (คำนวณตามต้องการ)
 
 public:
     void solveTransientProblem()
     {
-        // Phase 1: Initial setup
-        const auto& centres = mesh_.cellCentres();  // +240 MB temporarily
+        // เฟส 1: การตั้งค่าเริ่มต้น
+        const auto& centres = mesh_.cellCentres();  // +240 MB ชั่วคราว
 
-        // Phase 2: Momentum equation solving
-        const auto& Sf = mesh_.faceAreas();         // +500 MB temporarily
+        // เฟส 2: การแก้สมการโมเมนตัม
+        const auto& Sf = mesh_.faceAreas();         // +500 MB ชั่วคราว
 
-        // Phase 3: Validation and diagnostics
-        const auto& vols = mesh_.cellVolumes();     // +80 MB temporarily
+        // เฟส 3: การตรวจสอบและวินิจฉัย
+        const auto& vols = mesh_.cellVolumes();     // +80 MB ชั่วคราว
     }
 };
 ```
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
-> - **Explanation:** การสร้างและใช้งานฟิลด์ต่างๆ เช่น `p_`, `T_`, `rho_` แสดงให้เห็นการจัดการหน่วยความจำอย่างมีประสิทธิภาพผ่าน `fvMesh` object registry
-> - **Key Concepts:** Memory management, demand-driven computation, temporary fields
+> - **คำอธิบาย:** การสร้างและใช้งานสนามข้อมูลต่างๆ เช่น `p_`, `T_`, `rho_` แสดงให้เห็นการจัดการหน่วยความจำอย่างมีประสิทธิภาพผ่าน `fvMesh` object registry
+> - **แนวคิดสำคัญ:** การจัดการหน่วยความจำ, การคำนวณตามความต้องการ, สนามข้อมูลชั่วคราว
 
-**Impact:**
-- **Cost reduction**: Fewer compute nodes needed for large simulations
-- **Scalability**: 20% larger problems on existing hardware
-- **Performance improvement**: Reduced memory bandwidth pressure
+**ผลกระทบ:**
+- **การลดต้นทุน**: ต้องการโหนดคอมพิวเตอร์น้อยลงสำหรับการจำลองขนาดใหญ่
+- **ความสามารถในการขยาย (Scalability)**: รองรับปัญหาใหญ่ขึ้น 20% บนฮาร์ดแวร์เดิม
+- **การปรับปรุงประสิทธิภาพ**: ลดภาระแบนด์วิดท์ของหน่วยความจำ
 
-### **Engineering Benefit 2: Robustness to Mesh Changes**
+### **ประโยชน์ทางวิศวกรรมที่ 2: ความทนทานต่อการเปลี่ยนแปลงเมช (Robustness to Mesh Changes)**
 
-Modern CFD simulations often involve dynamic meshes, from moving boundaries in fluid-structure interaction to topology changes in additive manufacturing simulations.
+การจำลอง CFD สมัยใหม่มักเกี่ยวข้องกับเมชแบบไดนามิก ตั้งแต่ขอบเขตที่เคลื่อนที่ในปฏิสัมพันธ์ระหว่างโครงสร้างและของไหล (FSI) ไปจนถึงการเปลี่ยนแปลงโทโพโลยีในการจำลองการผลิตแบบเติมเนื้อ (Additive manufacturing)
 
 ```cpp
 class MovingMeshSolver
@@ -461,22 +461,22 @@ private:
 public:
     void solveTimeStep()
     {
-        // Step 1: Update mesh geometry for current time step
+        // ขั้นตอนที่ 1: อัปเดตเรขาคณิตเมชสำหรับขั้นตอนเวลาปัจจุบัน
         mesh_.movePoints(newPoints);
 
-        // ✅ Automatic cache invalidation
-        // When movePoints() is called, primitiveMesh::movePoints()
-        // automatically triggers clearGeom(), invalidating all cached geometry:
-        // - cellCentres_ cache cleared
-        // - cellVolumes_ cache cleared
-        // - faceAreas_ cache cleared
-        // - All computed geometric data marked as "needs update"
+        // ✅ การทำให้แคชเป็นโมฆะโดยอัตโนมัติ
+        // เมื่อมีการเรียก movePoints() ฟังก์ชัน primitiveMesh::movePoints()
+        // จะเรียกใช้ clearGeom() โดยอัตโนมัติ เพื่อล้างเรขาคณิตที่เก็บในแคชทั้งหมด:
+        // - แคชของ cellCentres_ ถูกล้าง
+        // - แคชของ cellVolumes_ ถูกล้าง
+        // - แคชของ faceAreas_ ถูกล้าง
+        // - ข้อมูลเรขาคณิตที่คำนวณได้ทั้งหมดถูกทำเครื่องหมายว่า "ต้องการการอัปเดต"
 
-        // Step 2: Next geometry access triggers recomputation
-        const auto& newCentres = mesh_.cellCentres();  // Recomputed with new geometry
-        const auto& newVolumes = mesh_.cellVolumes();   // Recomputed with new geometry
+        // ขั้นตอนที่ 2: การเข้าถึงเรขาคณิตครั้งถัดไปจะเริ่มการคำนวณใหม่
+        const auto& newCentres = mesh_.cellCentres();  // คำนวณใหม่ด้วยเรขาคณิตใหม่
+        const auto& newVolumes = mesh_.cellVolumes();   // คำนวณใหม่ด้วยเรขาคณิตใหม่
 
-        // Step 3: Solver uses updated geometry automatically
+        // ขั้นตอนที่ 3: Solver ใช้เรขาคณิตที่อัปเดตแล้วโดยอัตโนมัติ
         solveWithUpdatedGeometry(newCentres, newVolumes);
     }
 };
@@ -484,18 +484,18 @@ public:
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
-> - **Explanation:** การที่ฟิลด์ต่างๆ เช่น `p_`, `T_`, `rho_` ถูกสร้างและเชื่อมโยงกับ `fvMesh` ทำให้เมื่อมีการเปลี่ยนแปลงเมส ฟิลด์เหล่านี้สามารถอัปเดตได้อัตโนมัติ
-> - **Key Concepts:** Cache invalidation, mesh motion, dynamic mesh handling
+> - **คำอธิบาย:** การที่สนามข้อมูลต่างๆ เช่น `p_`, `T_`, `rho_` ถูกสร้างและเชื่อมโยงกับ `fvMesh` ทำให้เมื่อมีการเปลี่ยนแปลงเมช สนามข้อมูลเหล่านี้สามารถอัปเดตได้โดยอัตโนมัติ
+> - **แนวคิดสำคัญ:** การทำให้แคชเป็นโมฆะ (Cache invalidation), การเคลื่อนที่ของเมช, การจัดการเมชแบบไดนามิก
 
-**Critical for:**
-- **Fluid-Structure Interaction (FSI)**: Moving boundaries and deforming domains
-- **Overset Meshing**: Dynamic interpolation between overlapping meshes
-- **Adaptive Mesh Refinement (AMR)**: Dynamic topology changes during simulation
-- **Multiphase Flow**: Interface tracking with mesh deformation
+**สำคัญสำหรับ:**
+- **ปฏิสัมพันธ์ระหว่างของไหลและโครงสร้าง (FSI)**: ขอบเขตที่เคลื่อนที่และโดเมนที่เกิดการบิดเบี้ยว
+- **Overset Meshing**: การอินเทอร์โพลชันแบบไดนามิกระหว่างเมชที่ซ้อนทับกัน
+- **การปรับความละเอียดเมชแบบปรับตัว (AMR)**: การเปลี่ยนแปลงโทโพโลยีแบบไดนามิกระหว่างการจำลอง
+- **การไหลแบบหลายเฟส (Multiphase Flow)**: การติดตามอินเตอร์เฟสพร้อมการบิดเบี้ยวของเมช
 
-### **Engineering Benefit 3: Quality-Driven Discretization**
+### **ประโยชน์ทางวิศวกรรมที่ 3: การดิสครีตที่เน้นคุณภาพ (Quality-Driven Discretization)**
 
-Mesh quality directly impacts simulation accuracy, but different mesh regions have inevitably different quality. Advanced CFD solvers adapt numerical schemes based on local mesh characteristics.
+คุณภาพเมชส่งผลโดยตรงต่อความแม่นยำของการจำลอง แต่ละบริเวณของเมชมักจะมีคุณภาพที่แตกต่างกัน Solvers ของ CFD ระดับสูงจะปรับเปลี่ยนรูปแบบเชิงตัวเลขตามลักษณะเฉพาะของเมชในบริเวณนั้นๆ
 
 ```cpp
 class QualityAwareSolver
@@ -506,25 +506,25 @@ private:
 public:
     void discretizeFlux(const volScalarField& phi, label faceI)
     {
-        // Step 1: Analyze local mesh quality metrics
+        // ขั้นตอนที่ 1: วิเคราะห์ตัวชี้วัดคุณภาพเมชในบริเวณนั้น
         scalar orthogonality = mesh_.nonOrthogonality(faceI);
         scalar skewness = mesh_.skewness(faceI);
         scalar aspectRatio = mesh_.aspectRatio(faceI);
 
-        // Step 2: Select optimal discretization strategy
+        // ขั้นตอนที่ 2: เลือกกลยุทธ์การดิสครีตที่เหมาะสมที่สุด
         if (orthogonality < 20.0 && skewness < 0.5 && aspectRatio < 5.0)
         {
-            // ✅ High quality region: Use second-order accurate schemes
+            // ✅ บริเวณคุณภาพสูง: ใช้รูปแบบที่มีความแม่นยำลำดับที่สอง
             return centralDifferenceScheme(phi, faceI);
         }
         else if (orthogonality < 70.0 && skewness < 1.0)
         {
-            // ✅ Medium quality region: Use high-order schemes with correction
+            // ✅ บริเวณคุณภาพปานกลาง: ใช้รูปแบบลำดับสูงพร้อมการแก้ไข (Correction)
             return correctedScheme(phi, faceI);
         }
         else
         {
-            // ✅ Low quality region: Use robust first-order schemes
+            // ✅ บริเวณคุณภาพต่ำ: ใช้รูปแบบลำดับที่หนึ่งที่มีความทนทาน
             return upwindScheme(phi, faceI);
         }
     }
@@ -533,22 +533,22 @@ public:
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
-> - **Explanation:** การใช้ `fvSchemes` และ `fvSolution` ในการเลือก numerical schemes ที่เหมาะสมกับคุณภาพของเมส
-> - **Key Concepts:** Mesh quality metrics, adaptive discretization, scheme selection
+> - **คำอธิบาย:** การใช้ `fvSchemes` และ `fvSolution` ในการเลือกรูปแบบเชิงตัวเลขที่เหมาะสมกับคุณภาพของเมช
+> - **แนวคิดสำคัญ:** ตัวชี้วัดคุณภาพเมช, การดิสครีตแบบปรับตัว, การเลือกรูปแบบเชิงตัวเลข
 
-**Benefits:**
-1. **Local accuracy**: Use higher-order schemes where mesh supports accurate discretization
-2. **Global stability**: Automatically switch to more robust schemes in problematic regions
-3. **Error control**: Maintain consistent accuracy across domains with varying mesh quality
-4. **Convergence**: Improve solver convergence rates by avoiding scheme-induced instabilities
+**ประโยชน์:**
+1. **ความแม่นยำเฉพาะจุด**: ใช้รูปแบบลำดับสูงในจุดที่เมชเอื้อต่อการดิสครีตที่แม่นยำ
+2. **เสถียรภาพโดยรวม**: เปลี่ยนไปใช้รูปแบบที่ทนทานกว่าในบริเวณที่มีปัญหาโดยอัตโนมัติ
+3. **การควบคุมความผิดพลาด**: รักษาความแม่นยำที่สม่ำเสมอทั่วทั้งโดเมนที่มีคุณภาพเมชต่างกัน
+4. **การลู่เข้า (Convergence)**: ปรับปรุงอัตราการลู่เข้าของ solver โดยการหลีกเลี่ยงความไม่เสถียรที่เกิดจากรูปแบบเชิงตัวเลข
 
-## ⚠️ **Common Pitfalls and Solutions**
+## ⚠️ **ข้อผิดพลาดที่พบบ่อยและแนวทางแก้ไข (Common Pitfalls and Solutions)**
 
-### **Pitfall 1: Storing Old Geometry References**
+### **ข้อผิดพลาดที่ 1: การจัดเก็บการอ้างอิงเรขาคณิตเก่า (Storing Old Geometry References)**
 
-The most dangerous aspect of OpenFOAM's geometric cache system is that computed geometric quantities are stored as reference-counted data, which can become invalid when the mesh is modified.
+ลักษณะที่อันตรายที่สุดของระบบแคชเรขาคณิตของ OpenFOAM คือ ปริมาณทางเรขาคณิตที่คำนวณได้จะถูกจัดเก็บเป็นข้อมูลที่มีการนับการอ้างอิง (Reference-counted data) ซึ่งอาจกลายเป็นข้อมูลที่ใช้ไม่ได้เมื่อเมชถูกแก้ไข
 
-#### ❌ **Problematic Code**
+#### ❌ **โค้ดที่มีปัญหา**
 
 ```cpp
 class MeshProcessor
@@ -557,16 +557,16 @@ private:
     const primitiveMesh& mesh_;
 
 public:
-    // ❌ BAD: Store geometry references
+    // ❌ ไม่ดี: จัดเก็บการอ้างอิงเรขาคณิต
     const vectorField& storedCentres_;
 
-    // ❌ BAD: Constructor stores reference
+    // ❌ ไม่ดี: คอนสตรัคเตอร์จัดเก็บการอ้างอิง
     MeshProcessor(const primitiveMesh& mesh, const vectorField& centres)
         : mesh_(mesh), storedCentres_(centres) {}
 
     void process()
     {
-        // ❌ Using stale reference after mesh changes
+        // ❌ การใช้งานการอ้างอิงที่เก่าแล้วหลังจากเมชมีการเปลี่ยนแปลง
         forAll(storedCentres_, cellI)
         {
             processCentre(storedCentres_[cellI], cellI);
@@ -577,10 +577,10 @@ public:
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
-> - **Explanation:** การเก็บ references ถึงฟิลด์ที่อาจกลายเป็น invalid เมื่อมีการเปลี่ยนแปลงเมส ซึ่งเป็นปัญหาที่ต้องหลีกเลี่ยง
-> - **Key Concepts:** Reference lifetime, cache invalidation, mesh modification
+> - **คำอธิบาย:** การเก็บการอ้างอิง (References) ไปยังสนามข้อมูลที่อาจกลายเป็นข้อมูลที่ใช้ไม่ได้เมื่อมีการเปลี่ยนแปลงเมช ซึ่งเป็นปัญหาที่ต้องหลีกเลี่ยง
+> - **แนวคิดสำคัญ:** อายุขัยของการอ้างอิง (Reference lifetime), การทำให้แคชเป็นโมฆะ, การปรับเปลี่ยนเมช
 
-#### ✅ **Solution: Fresh Access Pattern**
+#### ✅ **แนวทางแก้ไข: รูปแบบการเข้าถึงข้อมูลใหม่เสมอ (Fresh Access Pattern)**
 
 ```cpp
 class MeshProcessor
@@ -589,15 +589,15 @@ private:
     const primitiveMesh& mesh_;
 
 public:
-    // ✅ GOOD: Store only mesh reference
+    // ✅ ดี: จัดเก็บเฉพาะการอ้างอิงไปยังเมช
     MeshProcessor(const primitiveMesh& mesh) : mesh_(mesh) {}
 
     void process()
     {
-        // ✅ Access fresh geometry when needed
+        // ✅ เข้าถึงเรขาคณิตใหม่เมื่อต้องการใช้งาน
         const vectorField& centres = mesh_.cellCentres();
 
-        // Process immediately, don't store reference
+        // ประมวลผลทันที อย่าจัดเก็บการอ้างอิงไว้
         forAll(centres, cellI)
         {
             processCentre(centres[cellI], cellI);
@@ -608,28 +608,28 @@ public:
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
-> - **Explanation:** การเข้าถึงฟิลด์สดใหม่ทุกครั้งที่ต้องการใช้งาน เพื่อหลีกเลี่ยงปัญหา stale references
-> - **Key Concepts:** Fresh access pattern, reference scope, safe mesh access
+> - **คำอธิบาย:** การเข้าถึงสนามข้อมูลใหม่ทุกครั้งที่ต้องการใช้งาน เพื่อหลีกเลี่ยงปัญหาการใช้ข้อมูลที่เก่าหรือผิดพลาด
+> - **แนวคิดสำคัญ:** รูปแบบการเข้าถึงข้อมูลใหม่, ขอบเขตของการอ้างอิง (Reference scope), การเข้าถึงเมชที่ปลอดภัย
 
-### **Pitfall 2: Inefficient Repeated Queries**
+### **ข้อผิดพลาดที่ 2: การสืบค้นซ้ำๆ ที่ไม่มีประสิทธิภาพ (Inefficient Repeated Queries)**
 
-Repeated geometry queries are resource-intensive:
+การสืบค้นข้อมูลเรขาคณิตซ้ำๆ เป็นการสิ้นเปลืองทรัพยากร:
 
 ```cpp
-// ❌ INEFFICIENT: Repeated geometry access
+// ❌ ไม่มีประสิทธิภาพ: การเข้าถึงเรขาคณิตซ้ำๆ
 for (int iter = 0; iter < 1000; ++iter)
 {
-    const vectorField& centres = mesh_.cellCentres();  // Expensive!
+    const vectorField& centres = mesh_.cellCentres();  // มีค่าใช้จ่ายสูง!
     processIteration(centres, iter);
 }
 ```
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
-> - **Explanation:** การเรียกใช้งาน `cellCentres()` ซ้ำๆ ทำให้เกิดการคำนวณซ้ำที่ไม่จำเป็น
-> - **Key Concepts:** Cache efficiency, repeated computation, performance optimization
+> - **คำอธิบาย:** การเรียกใช้งาน `cellCentres()` ซ้ำๆ ทำให้เกิดการคำนวณซ้ำที่ไม่มีความจำเป็น
+> - **แนวคิดสำคัญ:** ประสิทธิภาพของแคช, การคำนวณซ้ำ, การเพิ่มประสิทธิภาพการทำงาน
 
-#### ✅ **Solution: Local Caching**
+#### ✅ **แนวทางแก้ไข: การใช้แคชเฉพาะที่ (Local Caching)**
 
 ```cpp
 class OptimizedMeshProcessor
@@ -637,7 +637,7 @@ class OptimizedMeshProcessor
 private:
     const primitiveMesh& mesh_;
 
-    // ✅ Local cache for geometry used within processing scope
+    // ✅ แคชเฉพาะที่สำหรับเรขาคณิตที่ใช้ภายในขอบเขตการประมวลผล
     mutable struct GeometryCache
     {
         vectorField cellCentres;
@@ -649,16 +649,16 @@ private:
 public:
     void processWithCaching()
     {
-        // ✅ Compute all necessary geometry upfront
+        // ✅ คำนวณเรขาคณิตที่จำเป็นทั้งหมดล่วงหน้า
         updateGeometryCache();
 
-        // Use cached data throughout processing
+        // ใช้ข้อมูลที่แคชไว้ตลอดการประมวลผล
         for (int iter = 0; iter < 1000; ++iter)
         {
             processIteration(cache_.cellCentres, iter);
         }
 
-        // Clear cache when done
+        // ล้างแคชเมื่อเสร็จสิ้น
         clearCache();
     }
 };
@@ -666,35 +666,35 @@ public:
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
-> - **Explanation:** การใช้ local caching เพื่อลดการคำนวณซ้ำและปรับปรุงประสิทธิภาพ
-> - **Key Concepts:** Local caching, cache lifecycle, performance patterns
+> - **คำอธิบาย:** การใช้การเก็บแคชเฉพาะที่ (Local caching) เพื่อลดการคำนวณซ้ำและปรับปรุงประสิทธิภาพ
+> - **แนวคิดสำคัญ:** การเก็บแคชเฉพาะที่, วงจรชีวิตของแคช, รูปแบบการเพิ่มประสิทธิภาพ
 
-### **Pitfall 3: Dimensional Inconsistency**
+### **ข้อผิดพลาดที่ 3: ความไม่สอดคล้องของหน่วย (Dimensional Inconsistency)**
 
-Improper field dimension specification is a critical source of errors in OpenFOAM development.
+การระบุหน่วยของสนามข้อมูลที่ไม่ถูกต้องเป็นแหล่งกำเนิดข้อผิดพลาดที่สำคัญในการพัฒนา OpenFOAM
 
 ```cpp
-// ❌ PROBLEMATIC: Fields without proper dimensions
+// ❌ มีปัญหา: สนามข้อมูลที่ไม่มีการระบุหน่วยที่ถูกต้อง
 void dimensionallyUnsafe(const fvMesh& mesh)
 {
-    volScalarField p(mesh);  // ❌ No dimensions specified!
-    volVectorField U(mesh);  // ❌ No dimensions specified!
+    volScalarField p(mesh);  // ❌ ไม่มีการระบุหน่วย!
+    volVectorField U(mesh);  // ❌ ไม่มีการระบุหน่วย!
 
-    auto force = p + U;  // ❌ Scalar + Vector = meaningless!
+    auto force = p + U;  // ❌ สเกลาร์ + เวกเตอร์ = ไม่มีความหมาย!
 }
 ```
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:88-103`
-> - **Explanation:** ตัวอย่างการสร้างฟิลด์ที่มีการระบุ dimensions อย่างถูกต้องในไฟล์ `compressibleTwoPhaseMixture.C`
-> - **Key Concepts:** Dimensional analysis, type safety, dimensionSet
+> - **คำอธิบาย:** ตัวอย่างการสร้างสนามข้อมูลที่มีการระบุหน่วย (Dimensions) อย่างถูกต้องในไฟล์ `compressibleTwoPhaseMixture.C`
+> - **แนวคิดสำคัญ:** การวิเคราะห์หน่วย (Dimensional analysis), ความปลอดภัยของประเภทข้อมูล, dimensionSet
 
-#### ✅ **Solution: Proper Dimensional Specification**
+#### ✅ **แนวทางแก้ไข: การระบุหน่วยอย่างเหมาะสม (Proper Dimensional Specification)**
 
 ```cpp
 void dimensionallySafe(const fvMesh& mesh)
 {
-    // ✅ Pressure: [M L⁻¹ T⁻²] = kg/(m·s²)
+    // ✅ ความดัน (Pressure): [M L⁻¹ T⁻²] = kg/(m·s²)
     volScalarField p
     (
         "p",
@@ -703,7 +703,7 @@ void dimensionallySafe(const fvMesh& mesh)
         calculatedFvPatchScalarField::typeName
     );
 
-    // ✅ Velocity: [L T⁻¹] = m/s
+    // ✅ ความเร็ว (Velocity): [L T⁻¹] = m/s
     volVectorField U
     (
         "U",
@@ -712,51 +712,51 @@ void dimensionallySafe(const fvMesh& mesh)
         calculatedFvPatchVectorField::typeName
     );
 
-    // ✅ Now dimensional checking prevents errors:
-    // auto force = p + U;  // ❌ COMPILE ERROR: dimension mismatch!
+    // ✅ ตอนนี้การตรวจสอบหน่วยจะป้องกันข้อผิดพลาด:
+    // auto force = p + U;  // ❌ ข้อผิดพลาดในการคอมไพล์: หน่วยไม่ตรงกัน!
 }
 ```
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:88-103`
-> - **Explanation:** การใช้ `dimensionSet` ในการระบุหน่วยของฟิลด์อย่างถูกต้อง เช่น ความดัน [M L⁻¹ T⁻²] และความเร็ว [L T⁻¹]
-> - **Key Concepts:** Dimension consistency, pressure dimensions, velocity dimensions, compile-time checking
+> - **คำอธิบาย:** การใช้ `dimensionSet` ในการระบุหน่วยของสนามข้อมูลอย่างถูกต้อง เช่น ความดัน [M L⁻¹ T⁻²] และความเร็ว [L T⁻¹]
+> - **แนวคิดสำคัญ:** ความสอดคล้องของหน่วย, หน่วยของความดัน, หน่วยของความเร็ว, การตรวจสอบในขั้นตอนการคอมไพล์
 
-## 📚 **Integration with OpenFOAM Ecosystem**
+## 📚 **การบูรณาการเข้ากับระบบนิเวศของ OpenFOAM (Integration with OpenFOAM Ecosystem)**
 
-### **Solver Integration**
+### **การบูรณาการเข้ากับ Solver (Solver Integration)**
 
-All OpenFOAM solvers work with the `fvMesh` interface, creating a unified API regardless of the underlying mesh type or creation method.
+Solvers ทั้งหมดของ OpenFOAM ทำงานผ่านส่วนต่อประสาน `fvMesh` ซึ่งสร้าง API ที่เป็นหนึ่งเดียวไม่ว่าเมชพื้นฐานจะเป็นประเภทใดหรือสร้างขึ้นด้วยวิธีใดก็ตาม
 
 ```cpp
-// Standard solver works with fvMesh
+// Solver มาตรฐานทำงานร่วมกับ fvMesh
 #include "fvMesh.H"
 
 int main() {
-    fvMesh mesh;  // Use standard API
+    fvMesh mesh;  // ใช้งาน API มาตรฐาน
 
-    // Access geometry through fvMesh
-    const volVectorField& C = mesh.C();     // Cell centers
-    const surfaceVectorField& Sf = mesh.Sf(); // Face area vectors
+    // เข้าถึงเรขาคณิตผ่าน fvMesh
+    const volVectorField& C = mesh.C();     // จุดศูนย์กลางเซลล์
+    const surfaceVectorField& Sf = mesh.Sf(); // เวกเตอร์พื้นที่หน้า
 
-    // Solver doesn't need to worry about internal topology
+    // Solver ไม่จำเป็นต้องกังวลเกี่ยวกับโทโพโลยีภายใน
 }
 ```
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/solvers/multiphase/compressibleInterFoam/compressibleTwoPhaseMixture/compressibleTwoPhaseMixture.C:73-81`
-> - **Explanation:** ตัวอย่างการใช้งาน `fvMesh` API ใน solver จริง เช่น `compressibleTwoPhaseMixture` ซึ่งใช้ `U.mesh()` ในการเข้าถึง mesh
-> - **Key Concepts:** Solver API, unified interface, mesh abstraction
+> - **คำอธิบาย:** ตัวอย่างการใช้งาน `fvMesh` API ใน solver จริง เช่น `compressibleTwoPhaseMixture` ซึ่งใช้ `U.mesh()` ในการเข้าถึงเมช
+> - **แนวคิดสำคัญ:** Solver API, ส่วนต่อประสานที่เป็นหนึ่งเดียว, การนำเสนอเมชในรูปแบบนามธรรม (Mesh abstraction)
 
-### **Parallel Support**
+### **การรองรับการทำงานแบบขนาน (Parallel Support)**
 
-The hierarchy naturally supports domain decomposition:
+ลำดับชั้นของระบบเมชรองรับการย่อยสลายโดเมน (Domain decomposition) โดยธรรมชาติ:
 
-| Layer | Role in Parallel Computation |
+| ชั้น | บทบาทในการคำนวณแบบขนาน |
 |------|-----------------------------|
-| **polyMesh** | Manages processor boundary identification<br>• Domain decomposition<br>• Processor patches |
-| **primitiveMesh** | Provides geometric calculations for parallel patches<br>• Parallel geometry calculations |
-| **fvMesh** | Manages parallel field communication<br>• Field distribution<br>• MPI communication |
+| **polyMesh** | จัดการการระบุขอบเขตระหว่างโปรเซสเซอร์<br>• การย่อยสลายโดเมน<br>• แพตช์โปรเซสเซอร์ |
+| **primitiveMesh** | ให้การคำนวณทางเรขาคณิตสำหรับแพตช์ขนาน<br>• การคำนวณเรขาคณิตแบบขนาน |
+| **fvMesh** | จัดการการสื่อสารสนามข้อมูลแบบขนาน<br>• การกระจายสนามข้อมูล<br>• การสื่อสารผ่าน MPI |
 
 ```cpp
 class ParallelSolver
@@ -764,7 +764,7 @@ class ParallelSolver
 public:
     void solveParallel(const fvMesh& mesh)
     {
-        // Create field - automatically distributed
+        // สร้างสนามข้อมูล - จะถูกกระจายโดยอัตโนมัติ
         volVectorField U
         (
             "U",
@@ -772,34 +772,34 @@ public:
             dimensionedVector("zero", dimVelocity, Zero)
         );
 
-        // ✅ No special code needed for parallelism!
-        // Operations automatically handle:
-        // 1. Processor boundary communication
-        // 2. Ghost cell updates
-        // 3. Parallel reductions (sum, average, min, max)
+        // ✅ ไม่จำเป็นต้องเขียนโค้ดพิเศษสำหรับการทำงานแบบขนาน!
+        // การดำเนินการจะจัดการสิ่งเหล่านี้โดยอัตโนมัติ:
+        // 1. การสื่อสารที่ขอบเขตโปรเซสเซอร์
+        // 2. การอัปเดตเซลล์ผี (Ghost cells)
+        // 3. การคำนวณแบบรวมศูนย์ (Parallel reductions เช่น sum, average, min, max)
 
-        // Example: Global minimum of field
-        scalar globalMin = gMin(U.component(0));  // Uses MPI_Allreduce automatically
+        // ตัวอย่าง: การหาค่าต่ำสุดของสนามข้อมูลทั่วโลก
+        scalar globalMin = gMin(U.component(0));  // เรียกใช้ MPI_Allreduce โดยอัตโนมัติ
     }
 };
 ```
 
 > **📚 แหล่งอ้างอิง:** 
 > - 📂 **Source:** `.applications/utilities/parallelProcessing/decomposePar/fvFieldDecomposerDecomposeFields.C`
-> - **Explanation:** การ decompose fields สำหรับ parallel computation แสดงให้เห็นว่า `fvMesh` รองรับการกระจายข้อมูลอัตโนมัติ
-> - **Key Concepts:** Domain decomposition, MPI communication, ghost cells, parallel reductions
+> - **คำอธิบาย:** การทำ Decompose ของสนามข้อมูลสำหรับการคำนวณแบบขนานแสดงให้เห็นว่า `fvMesh` รองรับการกระจายข้อมูลโดยอัตโนมัติ
+> - **แนวคิดสำคัญ:** การย่อยสลายโดเมน, การสื่อสารผ่าน MPI, เซลล์ผี (Ghost cells), การคำนวณแบบรวมศูนย์แบบขนาน
 
-## 🎓 **Summary**
+## 🎓 **บทสรุป (Summary)**
 
-The `fvMesh` class serves as the **computational backbone** for OpenFOAM's finite volume method, transforming raw geometric data into a powerful computational framework for solving complex fluid dynamics problems.
+คลาส `fvMesh` ทำหน้าที่เป็น **กระดูกสันหลังเชิงคำนวณ (Computational backbone)** สำหรับวิธีไฟไนต์วอลุ่มของ OpenFOAM โดยเปลี่ยนข้อมูลเรขาคณิตดิบให้กลายเป็นกรอบงานเชิงคำนวณที่ทรงพลังสำหรับการแก้ปัญหาพลศาสตร์ของไหลที่ซับซ้อน
 
-**Key Strengths:**
-- **Spatial discretization** in a systematic framework
-- **Conservation guarantees** for mass, momentum, and energy at the discrete level
-- **Dynamic field management** optimized for CFD
-- **Flexible schemes** for accurate discretization
-- **Lazy evaluation** for memory efficiency
-- **Automatic cache invalidation** for mesh consistency
-- **Quality-aware discretization** adapting to mesh characteristics
+**จุดแข็งที่สำคัญ:**
+- **การดิสครีตเชิงพื้นที่** ในกรอบงานที่เป็นระบบ
+- **การรับประกันการอนุรักษ์ (Conservation guarantees)** มวล, โมเมนตัม และพลังงานในระดับไม่ต่อเนื่อง
+- **การจัดการสนามข้อมูลแบบไดนามิก** ที่ปรับให้เหมาะกับ CFD
+- **รูปแบบการดิสครีตที่ยืดหยุ่น** เพื่อความแม่นยำในการคำนวณ
+- **การคำนวณเมื่อต้องการ (Lazy evaluation)** เพื่อประสิทธิภาพของหน่วยความจำ
+- **การทำให้แคชเป็นโมฆะโดยอัตโนมัติ** เพื่อความสอดคล้องของเมช
+- **การดิสครีตที่คำนึงถึงคุณภาพ** โดยปรับตัวตามลักษณะเฉพาะของเมช
 
-This comprehensive management infrastructure makes `fvMesh` the essential backbone for any OpenFOAM CFD simulation, converting raw geometric data into efficient computational tools for solving complex fluid dynamics problems.
+โครงสร้างพื้นฐานการจัดการที่ครอบคลุมนี้ทำให้ `fvMesh` เป็นกระดูกสันหลังที่จำเป็นสำหรับการจำลอง OpenFOAM CFD ใดๆ โดยเปลี่ยนข้อมูลเรขาคณิตดิบให้เป็นเครื่องมือเชิงคำนวณที่มีประสิทธิภาพสำหรับการแก้ปัญหาพลศาสตร์ของไหลที่ซับซ้อน

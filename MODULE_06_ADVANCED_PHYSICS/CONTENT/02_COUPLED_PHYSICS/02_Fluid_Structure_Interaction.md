@@ -1,183 +1,183 @@
-# Fluid-Structure Interaction (FSI) in OpenFOAM
+# ปฏิสัมพันธ์ระหว่างของไหลและโครงสร้าง (Fluid-Structure Interaction - FSI) ใน OpenFOAM
 
-## 1. Hook: When Fluids Bend Solids
+## 1. จุดเริ่มต้น: เมื่อของไหลทำให้ของแข็งโค้งงอ (When Fluids Bend Solids)
 
-Consider a **wind turbine blade** flexing in a gust, a **blood vessel** pulsing with heartbeat, or a **submarine periscope** vibrating due to vortex shedding. These are **Fluid-Structure Interaction (FSI)** problems, where fluid forces deform a structure, and the structure's motion modifies the fluid flow—a **two-way coupled**, highly non-linear system.
+ลองพิจารณา **ใบพัดกังหันลม** ที่โค้งงอเมื่อมีลมกระโชกแรง **หลอดเลือด** ที่เต้นตามจังหวะการเต้นของหัวใจ หรือ **กล้องตาเรือ (periscope) ของเรือดำน้ำ** ที่สั่นสะเทือนเนื่องจากการหลุดล่อนของน้ำวน (vortex shedding) ปรากฏการณ์เหล่านี้คือปัญหา **ปฏิสัมพันธ์ระหว่างของไหลและโครงสร้าง (Fluid-Structure Interaction - FSI)** ซึ่งแรงจากของไหลทำให้โครงสร้างเสียรูป และการเคลื่อนที่ของโครงสร้างก็ส่งผลกลับไปเปลี่ยนแปลงการไหลของของไหลด้วย—เกิดเป็นระบบ **คัปปลิงแบบสองทาง (two-way coupled)** ที่มีความไม่เชิงเส้นสูง
 
-> [!INFO] Real-World Applications
-> - **Aerospace**: Wing flutter, helicopter rotor dynamics
-> - **Biomedical**: Blood flow in arteries, heart valve mechanics
-> - **Civil Engineering**: Bridge aerodynamics, wind loads on buildings
-> - **Marine**: Propeller-blade interactions, underwater vehicle dynamics
+> [!INFO] การประยุกต์ใช้งานในโลกแห่งความเป็นจริง
+> - **การบินและอวกาศ**: การกระพือของปีก (Wing flutter), พลวัตของโรเตอร์เฮลิคอปเตอร์
+> - **ชีวการแพทย์**: การไหลของเลือดในหลอดเลือดแดง, กลศาสตร์ของลิ้นหัวใจ
+> - **วิศวกรรมโยธา**: อากาศพลศาสตร์ของสะพาน, แรงลมที่กระทำต่ออาคาร
+> - **วิศวกรรมทางเรือ**: ปฏิสัมพันธ์ระหว่างใบพัดและตัวเรือ, พลวัตของยานพาหนะใต้น้ำ
 
 ![[flexible_plate_fsi.png]]
 
-### The Challenge
+### ความท้าทาย (The Challenge)
 
-In FSI, the coupling creates challenges beyond standard CFD:
+ในปัญหา FSI การคัปปลิงสร้างความท้าทายที่เหนือกว่า CFD มาตรฐาน:
 
-*   **Added Mass Effect**: Fluid inertia resists structural acceleration, leading to numerical instability
-*   **Mesh Deformation**: The fluid mesh must move and deform to accommodate the solid, requiring dynamic mesh handling
-*   **Time Scale Disparity**: Structural vibration modes may be much faster than fluid flow timescales
+*   **ผลกระทบของมวลที่เพิ่มเข้ามา (Added Mass Effect)**: ความเฉื่อยของของไหลต้านทานการเร่งความเร็วของโครงสร้าง นำไปสู่ความไม่เสถียรเชิงตัวเลข
+*   **การเสียรูปของเมช (Mesh Deformation)**: เมชของของไหลต้องเคลื่อนที่และเสียรูปเพื่อรองรับการเคลื่อนที่ของของแข็ง จำเป็นต้องมีการจัดการเมชแบบพลวัต (dynamic mesh handling)
+*   **ความแตกต่างของมาตราส่วนเวลา (Time Scale Disparity)**: รูปแบบการสั่นสะเทือนของโครงสร้างอาจเร็วกว่ามาตราส่วนเวลาของการไหลของของไหลมาก
 
-> [!WARNING] Stability Critical
-> The ==added mass effect== is the primary source of numerical instability in FSI simulations. When fluid density approaches solid density ($\rho_f \approx \rho_s$), explicit coupling schemes become unstable unless special techniques are employed.
+> [!WARNING] วิกฤตด้านเสถียรภาพ
+> ==ผลกระทบของมวลที่เพิ่มเข้ามา== เป็นที่มาหลักของความไม่เสถียรเชิงตัวเลขในการจำลอง FSI เมื่อความหนาแน่นของของไหลเข้าใกล้ความหนาแน่นของของแข็ง ($ho_f \approx \rho_s$) รูปแบบการคัปปลิงแบบ explicit จะไม่เสถียร เว้นแต่จะใช้เทคนิคพิเศษเข้ามาช่วย
 
 ---
 
-## 2. Blueprint: OpenFOAM FSI Ecosystem
+## 2. พิมพ์เขียว: ระบบนิเวศ FSI ใน OpenFOAM (OpenFOAM FSI Ecosystem)
 
-OpenFOAM offers three main approaches to FSI:
+OpenFOAM มีวิธีหลัก 3 วิธีในการจัดการกับ FSI:
 
-### A. `solids4foam` (Specialized Toolkit)
+### ก. `solids4foam` (ชุดเครื่องมือเฉพาะทาง)
 
-*   **Type:** Monolithic / Strong Partitioned
-*   **Best For:** Large deformations, non-linear materials, complex FSI
-*   **Mechanism:** Solves fluid and solid equations in a tightly coupled loop (or monolithic matrix)
-*   **Pros:** Most robust for strong coupling (e.g., blood flow)
+*   **ประเภท:** แบบรวมศูนย์ (Monolithic) / แบบแบ่งส่วนที่เข้มข้น (Strong Partitioned)
+*   **เหมาะสำหรับ:** การเสียรูปขนาดใหญ่, วัสดุไม่เชิงเส้น, FSI ที่ซับซ้อน
+*   **กลไก:** แก้สมการของไหลและของแข็งในวงรอบที่คัปปลิงกันอย่างแน่นหนา (หรือใช้เมทริกซ์แบบรวมศูนย์)
+*   **ข้อดี:** แข็งแกร่งที่สุดสำหรับการคัปปลิงที่รุนแรง (เช่น การไหลของเลือด)
 
-### B. `preCICE` (External Coupling)
+### ข. `preCICE` (การคัปปลิงภายนอก)
 
-*   **Type:** Partitioned (Black-box)
-*   **Best For:** Coupling OpenFOAM with external FEA solvers (CalculiX, ANSYS, Abaqus)
-*   **Mechanism:** Uses the `preCICE` library to exchange boundary data
-*   **Pros:** Allows using best-in-class structural solvers
+*   **ประเภท:** แบบแบ่งส่วน (Black-box)
+*   **เหมาะสำหรับ:** การเชื่อมต่อ OpenFOAM กับตัวแก้ปัญหาโครงสร้าง (FEA) ภายนอก (เช่น CalculiX, ANSYS, Abaqus)
+*   **กลไก:** ใช้ไลบรารี `preCICE` ในการแลกเปลี่ยนข้อมูลขอบเขต
+*   **ข้อดี:** ช่วยให้ใช้ตัวแก้ปัญหาโครงสร้างที่ดีที่สุดในอุตสาหกรรมได้
 
-### C. Native `mapped` Coupling (Lightweight)
+### ค. การคัปปลิงแบบ `mapped` ดั้งเดิม (น้ำหนักเบา)
 
-*   **Type:** Explicit Partitioned
-*   **Best For:** Small deformations, one-way coupling, flutter analysis
-*   **Mechanism:** Uses `dynamicMotionSolverFvMesh` and `mapped` boundary conditions
-*   **Pros:** Native, no external dependencies
+*   **ประเภท:** แบบแบ่งส่วน (Explicit Partitioned)
+*   **เหมาะสำหรับ:** การเสียรูปขนาดเล็ก, การคัปปลิงทางเดียว, การวิเคราะห์การกระพือ (flutter)
+*   **กลไก:** ใช้ `dynamicMotionSolverFvMesh` และเงื่อนไขขอบเขตแบบ `mapped`
+*   **ข้อดี:** เป็นฟีเจอร์พื้นฐาน (native), ไม่ต้องใช้ไลบรารีภายนอก
 
-> [!TIP] Selection Guide
-> | Application | Recommended Tool |
+> [!TIP] คู่มือการเลือก
+> | การประยุกต์ใช้งาน | เครื่องมือที่แนะนำ |
 > |-------------|------------------|
-> | Large deformations, hyperelastic materials | **solids4foam** |
-> | Coupling with commercial FEA codes | **preCICE** |
-> | Small deformations, prototyping | **Native mapped** |
+> | การเสียรูปขนาดใหญ่, วัสดุไฮเปอร์อิลาสติก | **solids4foam** |
+> | การเชื่อมต่อกับโปรแกรม FEA ทางการค้า | **preCICE** |
+> | การเสียรูปขนาดเล็ก, การสร้างต้นแบบ | **Native mapped** |
 
 ---
 
-## 3. Internal Mechanics: FSI Mathematics
+## 3. กลไกภายใน: คณิตศาสตร์ของ FSI (FSI Mathematics)
 
-### Fluid Domain (ALE Formulation)
+### โดเมนของไหล (รูปแบบ ALE)
 
-Navier-Stokes on a moving mesh (Arbitrary Lagrangian-Eulerian):
+สมการ Navier-Stokes บนเมชที่เคลื่อนที่ (Arbitrary Lagrangian-Eulerian):
 
 $$\rho_f \frac{\partial \mathbf{u}_f}{\partial t} + \rho_f (\mathbf{u}_f - \mathbf{u}_g) \cdot \nabla \mathbf{u}_f = -\nabla p + \mu_f \nabla^2 \mathbf{u}_f$$
 
 $$\nabla \cdot \mathbf{u}_f = 0$$
 
-**Variables:**
-- $\rho_f$: Fluid density
-- $\mathbf{u}_f$: Fluid velocity
-- $\mathbf{u}_g$: Grid/mesh velocity
-- $p$: Pressure
-- $\mu_f$: Fluid viscosity
+**ตัวแปร:**
+- $\rho_f$: ความหนาแน่นของไหล
+- $\mathbf{u}_f$: ความเร็วของไหล
+- $\mathbf{u}_g$: ความเร็วของกริต/เมช
+- $p$: ความดัน
+- $\mu_f$: ความหนืดของของไหล
 
-### Solid Domain
+### โดเมนของแข็ง (Solid Domain)
 
-Elastodynamics equation:
+สมการพลศาสตร์ความยืดหยุ่น (Elastodynamics):
 
 $$\rho_s \frac{\partial^2 \mathbf{d}}{\partial t^2} = \nabla \cdot \boldsymbol{\sigma}_s + \mathbf{f}_s$$
 
-**Variables:**
-- $\rho_s$: Solid density
-- $\mathbf{d}$: Displacement
-- $\boldsymbol{\sigma}_s$: Cauchy stress tensor
-- $\mathbf{f}_s$: External forces
+**ตัวแปร:**
+- $\rho_s$: ความหนาแน่นของแข็ง
+- $\mathbf{d}$: การกระจัด (Displacement)
+- $\boldsymbol{\sigma}_s$: เทนเซอร์ความเค้นของ Cauchy
+- $\mathbf{f}_s$: แรงภายนอก
 
-### Interface Conditions
+### เงื่อนไขที่ส่วนต่อประสาน (Interface Conditions)
 
-At the fluid-solid interface $\Gamma_{FSI}$:
+ที่ส่วนต่อประสานระหว่างของไหลและของแข็ง $\Gamma_{FSI}$:
 
-1.  **Kinematic Continuity (Velocity):**
-    $$\mathbf{u}_f = \frac{\partial \mathbf{d}}{\partial t} \quad \text{on} \quad \Gamma_{FSI}$$
+1.  **ความต่อเนื่องทางจลนศาสตร์ (ความเร็ว):**
+    $$\mathbf{u}_f = \frac{\partial \mathbf{d}}{\partial t} \quad \text{บน} \quad \Gamma_{FSI}$$
 
-2.  **Dynamic Equilibrium (Traction):**
-    $$\boldsymbol{\sigma}_f \cdot \mathbf{n}_f + \boldsymbol{\sigma}_s \cdot \mathbf{n}_s = \mathbf{0} \quad \text{on} \quad \Gamma_{FSI}$$
+2.  **สมดุลทางพลศาสตร์ (แรงฉุด):**
+    $$\boldsymbol{\sigma}_f \cdot \mathbf{n}_f + \boldsymbol{\sigma}_s \cdot \mathbf{n}_s = \mathbf{0} \quad \text{บน} \quad \Gamma_{FSI}$$
 
-**Variables:**
-- $\mathbf{n}_f, \mathbf{n}_s$: Outward unit normals for fluid and solid domains
+**ตัวแปร:**
+- $\mathbf{n}_f, \mathbf{n}_s$: เวกเตอร์แนวตั้งฉากหน่วยด้านนอกสำหรับโดเมนของไหลและของแข็ง
 
 ---
 
-## 4. Mechanism: Coupling Algorithms
+## 4. กลไก: อัลกอริทึมการคัปปลิง (Coupling Algorithms)
 
-### Partitioned Approach (Dirichlet-Neumann)
+### วิธีแบบแบ่งส่วน (Dirichlet-Neumann)
 
-The most common FSI algorithm follows a **staggered approach**:
+อัลกอริทึม FSI ที่พบบ่อยที่สุดคือ **วิธีแบบสลับลำดับ (staggered approach)**:
 
 ```mermaid
 graph TD
-    A[Start Time Step] --> B[Solve Fluid - Dirichlet BC u_f = v_s]
-    B --> C[Calculate Interface Force F_f = sigma_f . n]
-    C --> D[Solve Solid - Neumann BC load = F_f]
-    D --> E[Update Solid Displacement d_s]
-    E --> F[Deform Fluid Mesh based on d_s]
-    F --> G{Converged?}
-    G -- No --> B
-    G -- Yes --> H[Next Time Step]
+    A[เริ่มช่วงเวลา] --> B[แก้ปัญหาของไหล - เงื่อนไขขอบเขตแบบ Dirichlet u_f = v_s]
+    B --> C[คำนวณแรงที่ส่วนต่อประสาน F_f = sigma_f . n]
+    C --> D[แก้ปัญหาของแข็ง - เงื่อนไขขอบเขตแบบ Neumann load = F_f]
+    D --> E[อัปเดตการกระจัดของของแข็ง d_s]
+    E --> F[ทำให้เมชของไหลเสียรูปตาม d_s]
+    F --> G{ลู่เข้าแล้วหรือยัง?}
+    G -- ยัง --> B
+    G -- ใช่ --> H[ช่วงเวลาถัดไป]
 
     style B fill:#e3f2fd,stroke:#1565c0
     style D fill:#e8f5e9,stroke:#2e7d32
     style F fill:#fff3e0,stroke:#f57c00
 ```
-> **Figure 1:** แผนผังลำดับขั้นตอนการคำนวณแบบแบ่งส่วน (Partitioned Approach) สำหรับการจำลอง FSI โดยใช้การวนซ้ำระหว่างตัวแก้สมการของไหลและโครงสร้างเพื่อรักษาความต่อเนื่องของความเร็วและแรงที่บริเวณส่วนต่อประสาน
+> **รูปที่ 1:** แผนผังลำดับขั้นตอนการคำนวณแบบแบ่งส่วน (Partitioned Approach) สำหรับการจำลอง FSI โดยใช้การวนซ้ำระหว่างตัวแก้สมการของไหลและโครงสร้างเพื่อรักษาความต่อเนื่องของความเร็วและแรงที่บริเวณส่วนต่อประสาน
 
-**Algorithm Steps:**
+**ขั้นตอนของอัลกอริทึม:**
 
-1.  **Fluid Step (Dirichlet):** Solve fluid using structure velocity as BC
+1.  **ขั้นตอนของไหล (Dirichlet):** แก้ปัญหาของไหลโดยใช้ความเร็วของโครงสร้างเป็นเงื่อนไขขอบเขต (BC)
     $$\mathbf{u}_f|_{\Gamma} = \mathbf{v}_s$$
 
-2.  **Force Transfer:** Calculate fluid stress
+2.  **การถ่ายโอนแรง (Force Transfer):** คำนวณความเค้นของไหล
     $$\mathbf{F}_{fs} = \oint_{\Gamma} \boldsymbol{\sigma}_f \cdot \mathbf{n} \, \mathrm{d}S$$
 
-3.  **Solid Step (Neumann):** Solve structure using fluid force as load
+3.  **ขั้นตอนของแข็ง (Neumann):** แก้ปัญหาโครงสร้างโดยใช้แรงจากของไหลเป็นภาระ (load)
     $$\boldsymbol{\sigma}_s \cdot \mathbf{n}_s = -\mathbf{t}_f$$
 
-4.  **Mesh Update:** Move fluid mesh based on solid displacement
+4.  **การอัปเดตเมช (Mesh Update):** เคลื่อนย้ายเมชของไหลตามการกระจัดของของแข็ง
 
-### Strong vs. Weak Coupling
+### การคัปปลิงแบบเข้มข้น vs แบบอ่อน (Strong vs. Weak Coupling)
 
-| **Aspect** | **Weak (Explicit)** | **Strong (Implicit)** |
+| **ประเด็น** | **แบบอ่อน (Explicit)** | **แบบเข้มข้น (Implicit)** |
 |------------|---------------------|----------------------|
-| **Algorithm** | Sequential per time step | Iterative within time step |
-| **Stability** | Unstable for $\rho_f \approx \rho_s$ | Stable for all density ratios |
-| **Cost** | Lower (one solve per domain) | Higher (multiple iterations) |
-| **Use Case** | $\rho_f \ll \rho_s$ (air/steel) | $\rho_f \approx \rho_s$ (water/rubber) |
+| **อัลกอริทึม** | เรียงลำดับต่อช่วงเวลา | วนซ้ำภายในช่วงเวลา |
+| **เสถียรภาพ** | ไม่เสถียรสำหรับ $\rho_f \approx \rho_s$ | เสถียรสำหรับทุกอัตราส่วนความหนาแน่น |
+| **ต้นทุน** | ต่ำกว่า (แก้ปัญหาโดเมนละครั้ง) | สูงกว่า (วนซ้ำหลายรอบ) |
+| **กรณีใช้งาน** | $\rho_f \ll \rho_s$ (อากาศ/เหล็ก) | $\rho_f \approx \rho_s$ (น้ำ/ยาง) |
 
-### Stabilization: Aitken Relaxation
+### การทำให้เสถียร: การผ่อนคลายแบบ Aitken (Aitken Relaxation)
 
-To prevent divergence in strong coupling, displacement is under-relaxed dynamically:
+เพื่อป้องกันการลู่ออกในการคัปปลิงแบบเข้มข้น การกระจัดจะถูกผ่อนคลาย (under-relaxed) แบบไดนามิก:
 
 $$\mathbf{d}^{k+1} = \mathbf{d}^k + \omega_k (\tilde{\mathbf{d}} - \mathbf{d}^k)$$
 
 $$\omega^{n+1} = \omega^n \frac{(\mathbf{r}^{n-1})^T(\mathbf{r}^{n-1} - \mathbf{r}^n)}{(\mathbf{r}^{n-1} - \mathbf{r}^n)^T(\mathbf{r}^{n-1} - \mathbf{r}^n)}$$
 
-Where:
-- $\omega_k$: Dynamic relaxation factor
-- $\mathbf{r}^n = \mathbf{d}^n - \mathbf{d}^{n-1}$: Iteration residual
+โดยที่:
+- $\omega_k$: ปัจจัยการผ่อนคลายแบบไดนามิก
+- $\mathbf{r}^n = \mathbf{d}^n - \mathbf{d}^{n-1}$: ค่าตกค้างจากการวนซ้ำ (Iteration residual)
 
-> [!INFO] Implementation
-> Aitken acceleration is particularly effective for FSI problems with moderate density ratios ($0.1 < \rho_f/\rho_s < 1.0$).
+> [!INFO] การใช้งาน
+> การเร่งความเร็วแบบ Aitken มีประสิทธิภาพอย่างยิ่งสำหรับปัญหา FSI ที่มีอัตราส่วนความหนาแน่นปานกลาง ($0.1 < \rho_f/\rho_s < 1.0$)
 
 ---
 
-## 5. Usage: Getting Started with FSI (Native)
+## 5. การใช้งาน: เริ่มต้นกับ FSI (แบบ Native)
 
-For a simple "Flag Flutter" case using native OpenFOAM tools:
+สำหรับกรณี "ธงพริ้ว (Flag Flutter)" อย่างง่ายโดยใช้เครื่องมือพื้นฐานของ OpenFOAM:
 
-### 1. Mesh Motion Setup
+### 1. การตั้งค่าการเคลื่อนที่ของเมช (Mesh Motion Setup)
 
-In `constant/dynamicMeshDict`:
+ในไฟล์ `constant/dynamicMeshDict`:
 
 ```cpp
-dynamicFvMesh   dynamicMotionSolverFvMesh; // Set dynamic mesh type
-motionSolverLibs (fvMotionSolvers);        // Load motion solver libraries
-solver          displacementLaplacian;     // Use Laplacian displacement solver
-diffusivity     quadratic inverseDistance (flag_wall); // Quadratic diffusivity based on distance to flag_wall
+dynamicFvMesh   dynamicMotionSolverFvMesh; // ตั้งค่าชนิดของเมชพลวัต
+motionSolverLibs (fvMotionSolvers);        // โหลดไลบรารีตัวแก้การเคลื่อนที่
+solver          displacementLaplacian;     // ใช้ตัวแก้การกระจัดแบบ Laplacian
+diffusivity     quadratic inverseDistance (flag_wall); // ความแพร่แบบควอดราติกตามระยะทางจาก flag_wall
 ```
 
 > **📚 คำอธิบาย (Thai Explanation):**
@@ -196,27 +196,27 @@ diffusivity     quadratic inverseDistance (flag_wall); // Quadratic diffusivity 
 > - **Quadratic Diffusivity**: ค่าสัมประสิทธิ์แพร่แบบกำลังสอง ให้การควบคุมที่ละเอียดกว่าแบบเชิงเส้น
 > 
 > **สมการ Laplacian Smoothing:**
-> $$\nabla \cdot (\gamma \nabla \mathbf{d}) = 0$$
+> $$\\nabla \cdot (\gamma \nabla \mathbf{d}) = 0$$
 > 
 > โดยที่:
 > - $\gamma$ คือ ฟิลด์ความแพร่ (diffusivity field) ที่มีค่าสูงบริเวณใกล้ผนังเพื่อรักษาความละเอียดของ boundary layer
 > - $\mathbf{d}$ คือ เวกเตอร์การกระจัด (displacement vector)
 
-The `displacementLaplacian` solver smooths mesh motion according to:
+ตัวแก้ปัญหา `displacementLaplacian` จะทำให้การเคลื่อนที่ของเมชราบเรียบตามสมการ:
 
 $$\nabla \cdot (\gamma \nabla \mathbf{d}) = 0$$
 
-Where $\gamma$ is the diffusivity field (higher near walls to preserve boundary layer resolution).
+โดยที่ $\gamma$ คือฟิลด์ความแพร่ (diffusivity field) (ซึ่งจะมีค่าสูงใกล้ผนังเพื่อรักษาความละเอียดของชั้นขอบ)
 
-### 2. Boundary Conditions
+### 2. เงื่อนไขขอบเขต (Boundary Conditions)
 
-**Fluid Side (`0/pointDisplacement`):**
+**ฝั่งของไหล (`0/pointDisplacement`):**
 
 ```cpp
 flag_wall
 {
-    type            fixedValue;  // Set fixed value boundary condition type
-    value           uniform (0 0 0);  // Zero displacement (clamped condition)
+    type            fixedValue;  // ตั้งค่าประเภทเงื่อนไขขอบเขตแบบค่าคงที่
+    value           uniform (0 0 0);  // การกระจัดเป็นศูนย์ (เงื่อนไขแบบยึดแน่น)
 }
 ```
 
@@ -233,17 +233,17 @@ flag_wall
 > - **pointDisplacement**: ฟิลด์ที่เก็บการกระจัดของจุดยอดเมช (mesh vertex displacement)
 > - **Zero Displacement**: การกระจัดเป็นศูนย์หมายถึงจุดที่ไม่มีการเคลื่อนที่ (fixed point)
 
-### 3. Stability Settings
+### 3. การตั้งค่าเสถียรภาพ (Stability Settings)
 
-In `system/fvSolution`:
+ในไฟล์ `system/fvSolution`:
 
 ```cpp
 relaxationFactors
 {
     fields
     {
-        p               0.3;  // Pressure relaxation factor
-        U               0.5;  // Velocity relaxation factor
+        p               0.3;  // ปัจจัยการผ่อนคลายความดัน
+        U               0.5;  // ปัจจัยการผ่อนคลายความเร็ว
     }
 }
 ```
@@ -262,145 +262,145 @@ relaxationFactors
 > - **Convergence Acceleration**: การใช้ปัจจัยผ่อนคลายที่เหมาะสมช่วยให้การคำนวณลู่เข้าสู่คำตอบได้เร็วขึ้น
 > 
 > **สมการ Under-Relaxation:**
-> $$\phi^{n+1} = \phi^n + \omega (\phi^* - \phi^n)$$
+> $$\\phi^{n+1} = \phi^n + \omega (\phi^* - \phi^n)$$
 > 
 > โดยที่:
 > - $\phi$ คือ ตัวแปร (ความดันหรือความเร็ว)
 > - $\omega$ คือ ปัจจัยผ่อนคลาย (0 < ω ≤ 1)
 > - $\phi^*$ คือ ค่าใหม่ที่คำนวณได้
 
-### 4. Running
+### 4. การรัน (Running)
 
-For true FSI, `solids4foam` is recommended:
+สำหรับปัญหา FSI ที่แท้จริง แนะนำให้ใช้ `solids4foam`:
 
 ```bash
-# Example solids4foam run
+# ตัวอย่างการรัน solids4foam
 solids4Foam
 ```
 
-For lightweight problems with small deformations:
+สำหรับปัญหาเบาๆ ที่มีการเสียรูปขนาดเล็ก:
 
 ```bash
-# Moving mesh solver (fluid only with moving boundary)
+# ตัวแก้ปัญหาเมชเคลื่อนที่ (ของไหลอย่างเดียวพร้อมขอบเขตเคลื่อนที่)
 pimpleDyMFoam
 ```
 
 ---
 
-## 6. Why FSI is Challenging: Numerical Stability
+## 6. ทำไม FSI ถึงท้าทาย: ความเสถียรเชิงตัวเลข (Numerical Stability)
 
-### The Added Mass Instability
+### ความไม่เสถียรจากมวลที่เพิ่มเข้ามา (The Added Mass Instability)
 
-The **added mass effect** occurs when a structure accelerates through a dense fluid:
+**ผลกระทบของมวลที่เพิ่มเข้ามา** เกิดขึ้นเมื่อโครงสร้างเร่งความเร็วผ่านของไหลที่มีความหนาแน่นสูง:
 
 $$\mathbf{F}_{\text{added}} = -M_a \frac{\mathrm{d}^2 \mathbf{d}}{\mathrm{d}t^2}$$
 
 $$M_a = \rho_f \int_{\Gamma} \mathbf{N}^T \mathbf{N} \, \mathrm{d}\Gamma$$
 
-**Stability Criterion:**
+**เกณฑ์เสถียรภาพ:**
 
-Explicit coupling becomes unstable when:
+การคัปปลิงแบบ Explicit จะไม่เสถียรเมื่อ:
 
 $$\frac{\rho_f}{\rho_s} > C_{\text{crit}}$$
 
-Where $C_{\text{crit}} \approx 0.1-1.0$ depending on geometry and discretization.
+โดยที่ $C_{\text{crit}} \approx 0.1-1.0$ ขึ้นอยู่กับเรขาคณิตและการแยกส่วน (discretization)
 
-| **Density Ratio** | **Stability** | **Recommended Strategy** |
+| **อัตราส่วนความหนาแน่น** | **ความเสถียร** | **กลยุทธ์ที่แนะนำ** |
 |-------------------|---------------|---------------------------|
-| < 0.01 | Very High | Explicit coupling |
-| 0.01 - 0.1 | Moderate | Aitken relaxation |
-| > 0.1 | Very Low | Implicit coupling |
+| < 0.01 | สูงมาก | การคัปปลิงแบบ Explicit |
+| 0.01 - 0.1 | ปานกลาง | การผ่อนคลายแบบ Aitken |
+| > 0.1 | ต่ำมาก | การคัปปลิงแบบ Implicit |
 
-> [!WARNING] Water-Rubber Systems
-> For water-rubber systems where $\rho_f/\rho_s \approx 1$, strong implicit coupling is ==mandatory== for stability.
+> [!WARNING] ระบบน้ำ-ยาง
+> สำหรับระบบน้ำ-ยางที่ $\rho_f/\rho_s \approx 1$ การคัปปลิงแบบ implicit ที่เข้มข้นเป็นเรื่อง ==จำเป็นอย่างยิ่ง== เพื่อความเสถียร
 
-### Stabilization Techniques
+### เทคนิคการทำให้เสถียร (Stabilization Techniques)
 
-#### 1. Under-Relaxation
+#### 1. การผ่อนคลาย (Under-Relaxation)
 
 $$\mathbf{d}^{n+1} = \mathbf{d}^n + \omega(\mathbf{d}^* - \mathbf{d}^n)$$
 
-Where $\omega \in [0.1, 0.5]$ for stability.
+โดยที่ $\omega \in [0.1, 0.5]$ เพื่อความเสถียร
 
 #### 2. Interface Quasi-Newton (IQN)
 
-Approximates the inverse Jacobian of the interface mapping:
+ประมาณค่า Jacobian ผกผันของการแม็พที่ส่วนต่อประสาน:
 
 $$\mathbf{W}^{n+1} = \mathbf{W}^n + \frac{(\Delta\mathbf{R}^n - \mathbf{W}^n\Delta\mathbf{d}^n)\Delta\mathbf{d}^{nT}}{\Delta\mathbf{d}^{nT}\Delta\mathbf{d}^n}$$
 
-#### 3. Artificial Compressibility
+#### 3. ความสามารถในการอัดเทียม (Artificial Compressibility)
 
-Adds numerical dissipation to stabilize pressure-velocity coupling:
+เพิ่มการสลายตัวเชิงตัวเลขเพื่อให้การคัปปลิงระหว่างความดันและความเร็วเสถียร:
 
 $$\mu_{\text{art}} = C_{\text{art}} \rho_f h |\mathbf{v}_f - \mathbf{v}_m|$$
 
 ---
 
-## 7. Summary: Key Insights
+## 7. สรุป: ข้อมูลเชิงลึกที่สำคัญ (Summary)
 
-### Coupling Strategy Selection
+### การเลือกกลยุทธ์การคัปปลิง
 
-**Critical Parameter:** Density ratio $\rho_f/\rho_s$
+**พารามิเตอร์วิกฤต:** อัตราส่วนความหนาแน่น $\rho_f/\rho_s$
 
-| **Scenario** | **Condition** | **Strategy** | **Reason** |
+| **สถานการณ์** | **เงื่อนไข** | **กลยุทธ์** | **เหตุผล** |
 |--------------|---------------|--------------|------------|
-| Light structures in air | $\rho_f \ll \rho_s$ | **Weak coupling** | Sufficient accuracy, low cost |
-| Moderate density ratio | $0.1 < \rho_f/\rho_s < 1$ | **Strong coupling** | Required for stability |
-| Heavy structures in water | $\rho_f \approx \rho_s$ | **Strong coupling** | Maintain physical accuracy |
+| โครงสร้างน้ำหนักเบาในอากาศ | $\rho_f \ll \rho_s$ | **คัปปลิงแบบอ่อน** | ความแม่นยำเพียงพอ, ต้นทุนต่ำ |
+| อัตราส่วนความหนาแน่นปานกลาง | $0.1 < \rho_f/\rho_s < 1$ | **คัปปลิงแบบเข้มข้น** | จำเป็นเพื่อความเสถียร |
+| โครงสร้างหนักในน้ำ | $\rho_f \approx \rho_s$ | **คัปปลิงแบบเข้มข้น** | รักษาความแม่นยำทางกายภาพ |
 
-### Key Takeaways
+### ประเด็นสำคัญ (Key Takeaways)
 
-*   **Added Mass Instability:** The killer of explicit FSI schemes. Use implicit coupling or strong under-relaxation when fluid density is high (water).
-*   **Mesh Quality:** The limiting factor. Large deformations ruin the fluid mesh. Use diffusion-based smoothing or automatic remeshing.
-*   **Time Step:** Must satisfy both fluid CFL and structural stability criteria:
+*   **ความไม่เสถียรจากมวลที่เพิ่มเข้ามา:** ตัวทำลายรูปแบบ FSI แบบ explicit ควรใช้การคัปปลิงแบบ implicit หรือการผ่อนคลายที่รุนแรงเมื่อความหนาแน่นของของไหลสูง (เช่น น้ำ)
+*   **คุณภาพเมช:** ปัจจัยจำกัด การเสียรูปขนาดใหญ่ทำลายเมชของไหล ควรใช้การทำให้เรียบแบบอาศัยการแพร่ (diffusion-based smoothing) หรือการสร้างเมชใหม่โดยอัตโนมัติ
+*   **ช่วงเวลา (Time Step):** ต้องเป็นไปตามเกณฑ์ CFL ของไหลและเสถียรภาพของโครงสร้าง:
 
-    $$\Delta t < \min\left( \text{CFL} \cdot \frac{\Delta x}{|\mathbf{U}_f|}, \sqrt{\frac{m_s}{k_{structure}}} \right)$$
+    $$\\Delta t < \min\left( \text{CFL} \cdot \frac{\Delta x}{|\mathbf{U}_f|}, \sqrt{\frac{m_s}{k_{structure}}} \right)$$
 
-*   **Convergence Monitoring:** Track both interface residuals and energy balance:
+*   **การตรวจสอบการลู่เข้า:** ติดตามทั้งค่าตกค้างที่ส่วนต่อประสานและสมดุลพลังงาน:
 
     ```cpp
-    // Calculate residual force between fluid and solid domains
+    // คำนวณแรงตกค้างระหว่างโดเมนของไหลและของแข็ง
     scalar residualForce = mag(fluidForce - solidForce);
-    // Calculate energy change error for verification
+    // คำนวณข้อผิดพลาดการเปลี่ยนแปลงพลังงานเพื่อการตรวจสอบ
     scalar energyError = mag(totalEnergyChange - expectedEnergyChange);
     ```
 
 ---
 
-## 8. Conservation Checks
+## 8. การตรวจสอบการอนุรักษ์ (Conservation Checks)
 
-### Force Balance at Interface
+### สมดุลแรงที่ส่วนต่อประสาน
 
 $$\boldsymbol{\sigma}_f \cdot \mathbf{n}_f + \boldsymbol{\sigma}_s \cdot \mathbf{n}_s = \mathbf{0}$$
 
-### Energy Conservation
+### การอนุรักษ์พลังงาน
 
 $$\frac{\mathrm{d}}{\mathrm{d}t} (E_f + E_s) = P_f - D_s + Q_{\text{boundary}}$$
 
-Where:
-- $E_f, E_s$: Fluid and solid energy
-- $P_f$: Power input from fluid
-- $D_s$: Structural damping dissipation
-- $Q_{\text{boundary}}$: Heat/energy flux through boundaries
+โดยที่:
+- $E_f, E_s$: พลังงานของของไหลและของแข็ง
+- $P_f$: กำลังงานจากของไหล
+- $D_s$: การสลายตัวจากการหน่วงโครงสร้าง
+- $Q_{\text{boundary}}$: ฟลักซ์ความร้อน/พลังงานผ่านขอบเขต
 
-### Implementation in OpenFOAM
+### การใช้งานใน OpenFOAM
 
 ```cpp
-// Calculate heat flux at fluid side of interface
+// คำนวณฟลักซ์ความร้อนที่ฝั่งของไหลของส่วนต่อประสาน
 scalarField qFluid = -kFluid.boundaryField()[fluidPatchID] *
                      gradTFluid.boundaryField()[fluidPatchID];
 
-// Calculate heat flux at solid side of interface
+// คำนวณฟลักซ์ความร้อนที่ฝั่งของแข็งของส่วนต่อประสาน
 scalarField qSolid = -kSolid.boundaryField()[solidPatchID] *
                      gradTSolid.boundaryField()[solidPatchID];
 
-// Calculate maximum relative error between fluid and solid fluxes
+// คำนวณค่าความคลาดเคลื่อนสัมพัทธ์สูงสุดระหว่างฟลักซ์ของไหลและของแข็ง
 scalar maxRelError = max(mag(qFluid + qSolid)/mag(qFluid));
 
-// Verify force balance at the interface
+// ตรวจสอบสมดุลแรงที่ส่วนต่อประสาน
 if (maxRelError < 1e-6)
 {
-    Info << "Interface force balance verified: " << maxRelError << endl;
+    Info << "ผ่านการตรวจสอบสมดุลแรงที่ส่วนต่อประสาน: " << maxRelError << endl;
 }
 ```
 
@@ -420,10 +420,10 @@ if (maxRelError < 1e-6)
 > - **Interface Continuity**: ความต่อเนื่องของการถ่ายเทแรงและพลังงานที่ส่วนต่อประสาน
 > 
 > **สมการความสมดุลแรง:**
-> $$\boldsymbol{\sigma}_f \cdot \mathbf{n}_f + \boldsymbol{\sigma}_s \cdot \mathbf{n}_s = \mathbf{0}$$
+> $$\\boldsymbol{\sigma}_f \cdot \mathbf{n}_f + \boldsymbol{\sigma}_s \cdot \mathbf{n}_s = \mathbf{0}$$
 > 
 > **สมการการอนุรักษ์พลังงาน:**
-> $$\frac{\mathrm{d}}{\mathrm{d}t} (E_f + E_s) = P_f - D_s + Q_{\text{boundary}}$$
+> $$\\frac{\mathrm{d}}{\mathrm{d}t} (E_f + E_s) = P_f - D_s + Q_{\text{boundary}}$$
 > 
 > โดยที่:
 > - $E_f, E_s$: พลังงานของของไหลและของแข็ง
@@ -433,22 +433,23 @@ if (maxRelError < 1e-6)
 
 ---
 
-## 9. Advanced Learning Path
+## 9. เส้นทางการเรียนรู้ขั้นสูง (Advanced Learning Path)
 
-1. **Start Simple:** Begin with static FSI (one-way coupling) to understand the framework
-2. **Progress to Dynamic:** Move to weak coupling with small deformations
-3. **Master Strong Coupling:** Implement Aitken relaxation and IQN methods
-4. **Explore Advanced Topics:**
-   - Large deformation finite elements
-   - Hyperelastic material models
-   - Contact mechanics in FSI
-   - Parallel FSI algorithms
+1. **เริ่มจากง่าย:** เริ่มด้วย FSI สภาวะคงตัว (การคัปปลิงทางเดียว) เพื่อทำความเข้าใจกรอบงาน
+2. **ก้าวสู่พลวัต:** เปลี่ยนไปใช้การคัปปลิงแบบอ่อนที่มีการเสียรูปขนาดเล็ก
+3. **เชี่ยวชาญการคัปปลิงแบบเข้มข้น:** ใช้งานการผ่อนคลายแบบ Aitken และวิธี IQN
+4. **สำรวจหัวข้อขั้นสูง:**
+   - ไฟไนต์เอลิเมนต์สำหรับการเสียรูปขนาดใหญ่
+   - แบบจำลองวัสดุไฮเปอร์อิลาสติก
+   - กลศาสตร์การสัมผัส (Contact mechanics) ใน FSI
+   - อัลกอริทึม FSI แบบขนาน
 
-> [!TIP] Resources
+> [!TIP] แหล่งข้อมูล
 > - **solids4foam**: [https://github.com/OpenFOAM/OpenFOAM-dev](https://github.com/OpenFOAM/OpenFOAM-dev)
 > - **preCICE**: [https://precice.org/](https://precice.org/)
-> - **Textbooks**: "Computational Fluid-Structure Interaction" by Bungartz and Schäfer
+> - **ตำราเรียน**: "Computational Fluid-Structure Interaction" โดย Bungartz และ Schäfer
 
 ---
 
-The FSI framework in OpenFOAM provides a powerful foundation for simulating coupled fluid-structure problems, from simple flag flutter to complex biomedical applications. Success requires careful attention to stability, mesh quality, and appropriate coupling strategy selection.
+
+กรอบงาน FSI ใน OpenFOAM เป็นรากฐานที่ทรงพลังสำหรับการจำลองปัญหาการคัปปลิงระหว่างของไหลและโครงสร้าง ตั้งแต่การพริ้วไหวของธงไปจนถึงการประยุกต์ใช้งานทางชีวการแพทย์ที่ซับซ้อน ความสำเร็จต้องการการใส่ใจอย่างมากในเรื่องเสถียรภาพ คุณภาพเมช และการเลือกกลยุทธ์การคัปปลิงที่เหมาะสม

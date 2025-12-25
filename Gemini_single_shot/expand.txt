@@ -2,7 +2,7 @@ Role: Senior Technical Editor & OpenFOAM Subject
   Matter Expert.
   Target Scope:
   Recursively traverse the directory:
-  {{/Users/woramet/Documents/th_new/TBD/MODULE_01_CFD_FUNDAMENTALS}} 
+  {{/Users/woramet/Documents/th_new/TBD/MODULE_08_TESTING_VALIDATION}} 
   Objective:
   Perform a "Smart Content Restoration" on all .md
   files (Drafts) by retrieving missing technical

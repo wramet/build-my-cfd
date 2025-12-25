@@ -1,84 +1,82 @@
-# 📦 OpenFOAM Container System
+# 📦 ระบบคอนเทนเนอร์ของ OpenFOAM (OpenFOAM Container System)
 
-## Overview
+## ภาพรวม (Overview)
 
-The OpenFOAM container system provides specialized data structures optimized for Computational Fluid Dynamics (CFD) workloads. Unlike generic STL containers, OpenFOAM containers are designed for:
+ระบบคอนเทนเนอร์ของ OpenFOAM ให้โครงสร้างข้อมูลเฉพาะทางที่ได้รับการปรับปรุงให้เหมาะกับภาระงานของพลศาสตร์ของไหลเชิงคำนวณ (CFD) ต่างจากคอนเทนเนอร์ทั่วไปของ STL คอนเทนเนอร์ของ OpenFOAM ถูกออกแบบมาเพื่อ:
 
-- **Memory efficiency** in large-scale simulations (millions of cells)
-- **SIMD vectorization** through aligned memory layouts
-- **CFD-specific operations** (field operations, mesh traversal)
-- **Integration** with OpenFOAM's memory management system
+- **ประสิทธิภาพหน่วยความจำ (Memory efficiency)** ในการจำลองขนาดใหญ่ (หลายล้านเซลล์)
+- **การทำเวกเตอร์ไลเซชันแบบ SIMD (SIMD vectorization)** ผ่านการจัดวางหน่วยความจำที่จัดเรียงอย่างเหมาะสม
+- **การดำเนินการเฉพาะด้าน CFD** (การดำเนินการกับฟิลด์, การเดินผ่านเมช)
+- **การบูรณาการ** เข้ากับระบบการจัดการหน่วยความจำของ OpenFOAM
 
 ---
 
-## 1. Architecture and Taxonomy
+## 1. สถาปัตยกรรมและอนุกรมวิธาน (Architecture and Taxonomy)
 
-### 1.1 Container Hierarchy
+### 1.1 ลำดับชั้นของคอนเทนเนอร์ (Container Hierarchy)
 
 ```mermaid
 flowchart TD
-    A[Container Taxonomy] --> B[Lists Sequential]
-    A --> C[Hashes Key-Value]
+    A[อนุกรมวิธานของคอนเทนเนอร์] --> B[Lists แบบลำดับ]
+    A --> C[Hashes แบบ Key-Value]
     A --> D[Linked Lists]
     A --> E[Pointer Containers]
 
-    B --> B1[UList T Base]
-    B --> B2[List T Owned]
-    B --> B3[FixedList T N Compile-time]
-    B --> B4[DynamicList T Resizable]
-    B2 --> B5[SubList T View]
-    B2 --> B6[IndirectList T Indirect]
+    B --> B1[UList T พื้นฐาน]
+    B --> B2[List T ความเป็นเจ้าของ]
+    B --> B3[FixedList T N เวลาคอมไพล์]
+    B --> B4[DynamicList T ปรับขนาดได้]
+    B2 --> B5[SubList T มุมมองย่อย]
+    B2 --> B6[IndirectList T ทางอ้อม]
 
     C --> C1[HashTable Key T]
-    C --> C2[Dictionary T String Keys]
+    C --> C2[Dictionary T คีย์สตริง]
 
-    D --> D1[SLList T Singly-linked]
-    D --> D2[DLList T Doubly-linked]
+    D --> D1[SLList T เชื่อมโยงเดี่ยว]
+    D --> D2[DLList T เชื่อมโยงคู่]
 
-    E --> E1[PtrList T Owned Pointers]
-    E --> E2[UPtrList T Non-owned View]
+    E --> E1[PtrList T ตัวชี้ที่มีเจ้าของ]
+    E --> E2[UPtrList T มุมมองตัวชี้]
 ```
-> **Figure 1:** ลำดับชั้นและประเภทของคอนเทนเนอร์ใน OpenFOAM (Container Taxonomy) ซึ่งถูกออกแบบมาให้ครอบคลุมการใช้งานที่หลากหลายในงาน CFD ตั้งแต่รายการข้อมูลเชิงเส้นไปจนถึงตารางแฮชและคอนเทนเนอร์สำหรับออบเจ็กต์โพลิมอร์ฟิก
+> **รูปที่ 1:** ลำดับชั้นและประเภทของคอนเทนเนอร์ใน OpenFOAM (Container Taxonomy) ซึ่งถูกออกแบบมาให้ครอบคลุมการใช้งานที่หลากหลายในงาน CFD ตั้งแต่รายการข้อมูลเชิงเส้นไปจนถึงตารางแฮชและคอนเทนเนอร์สำหรับออบเจ็กต์โพลิมอร์ฟิก
 
-> **📂 Source:** `src/OpenFOAM/containers/Lists/`
+> **📂 แหล่งที่มา:** `src/OpenFOAM/containers/Lists/`
 
-> **📖 Explanation:** แผนภาพนี้แสดงโครงสร้างลำดับชั้นของคอนเทนเนอร์ใน OpenFOAM โดยแบ่งเป็น 5 ประเภทหลัก ได้แก่ Lists (รายการเชิงเส้น), Hashes (ตารางแฮช), Linked Lists (รายการเชื่อมโยง), และ Pointer Containers (คอนเทนเนอร์ตัวชี้) แต่ละประเภทมีความเชี่ยวชาญเฉพาะทางสำหรับงาน CFD เช่น List<T> สำหรับเก็บข้อมูลฟิลด์, HashTable สำหรับการค้นหาพจนานุกรม, และ PtrList สำหรับจัดการออบเจ็กต์โพลิมอร์ฟิก
-
-> **🔑 Key Concepts:** Container Hierarchy, CFD Optimization, Memory Management, Taxonomy
+> **📖 คำอธิบาย:** แผนภาพนี้แสดงโครงสร้างลำดับชั้นของคอนเทนเนอร์ใน OpenFOAM โดยแบ่งเป็น 5 ประเภทหลัก ได้แก่ Lists (รายการเชิงเส้น), Hashes (ตารางแฮช), Linked Lists (รายการเชื่อมโยง), และ Pointer Containers (คอนเทนเนอร์ตัวชี้) แต่ละประเภทมีความเชี่ยวชาญเฉพาะทางสำหรับงาน CFD เช่น `List<T>` สำหรับเก็บข้อมูลฟิลด์, `HashTable` สำหรับการค้นหาพจนานุกรม และ `PtrList` สำหรับจัดการออบเจ็กต์โพลิมอร์ฟิก
 
 ---
 
-### 1.2 Design Principles
+### 1.2 หลักการออกแบบ (Design Principles)
 
-| **Principle** | **Description** | **Benefit** |
+| **หลักการ** | **คำอธิบาย** | **ประโยชน์** |
 |--------------|---------------|-----------|
-| **Separation of allocation and access** | `UList` provides access without ownership | Zero-copy views via `SubList`, `IndirectList` |
-| **Contiguous memory layout** | All list containers store data contiguously | Cache efficiency, SIMD optimization |
-| **Zero overhead for fixed-size** | `FixedList<T,N>` uses stack allocation | No dynamic allocation overhead |
-| **Exponential growth policy** | `DynamicList` doubles capacity when full | Amortized O(1) insertion |
-| **Memory management integration** | Containers use RAII from Section 1 | Automatic cleanup, exception safety |
+| **การแยกส่วนการจัดสรรและการเข้าถึง** | `UList` ให้การเข้าถึงโดยไม่มีความเป็นเจ้าของ | การสร้างมุมมองโดยไม่ต้องคัดลอกข้อมูล (Zero-copy views) ผ่าน `SubList`, `IndirectList` |
+| **การจัดวางหน่วยความจำแบบต่อเนื่อง** | คอนเทนเนอร์รายการทั้งหมดจัดเก็บข้อมูลต่อเนื่องกัน | ประสิทธิภาพแคช, การปรับปรุง SIMD |
+| **ภาระงานเป็นศูนย์สำหรับขนาดคงที่** | `FixedList<T,N>` ใช้การจัดสรรบน Stack | ไม่มีภาระงานจากการจัดสรรหน่วยความจำแบบไดนามิก |
+| **นโยบายการเติบโตแบบทวีคูณ** | `DynamicList` เพิ่มความจุเป็นสองเท่าเมื่อเต็ม | การแทรกข้อมูลที่มีต้นทุนเฉลี่ย O(1) (Amortized O(1)) |
+| **การรวมระบบจัดการหน่วยความจำ** | คอนเทนเนอร์ใช้รูปแบบ RAII | การทำความสะอาดอัตโนมัติ, ความปลอดภัยจาก exception |
 
 ---
 
-## 2. Core Container Classes
+## 2. คลาสคอนเทนเนอร์หลัก (Core Container Classes)
 
-### 2.1 `UList<T>` - Non-owning Base Class
+### 2.1 `UList<T>` - คลาสฐานที่ไม่มีความเป็นเจ้าของ (Non-owning Base Class)
 
-The foundation of OpenFOAM's list hierarchy provides a view into existing memory without ownership:
+รากฐานของลำดับชั้นรายการของ OpenFOAM ให้มุมมองเข้าไปในหน่วยความจำที่มีอยู่โดยไม่มีความเป็นเจ้าของ:
 
 ```cpp
-// 📂 Source: src/OpenFOAM/containers/Lists/UList/UList.H
+// 📂 แหล่งที่มา: src/OpenFOAM/containers/Lists/UList/UList.H
 template<class T>
 class UList {
 private:
-    T* __restrict__ v_;   // 🔍 Pointer to data (no ownership!)
-    label size_;          // Number of elements (CFD-optimized integer type)
+    T* __restrict__ v_;   // 🔍 ตัวชี้ไปยังข้อมูล (ไม่มีความเป็นเจ้าของ!)
+    label size_;          // จำนวนองค์ประกอบ (ประเภทจำนวนเต็มที่ปรับให้เหมาะกับ CFD)
 
 public:
-    // ✅ Constructor takes external memory - no allocation
+    // ✅ คอนสตรัคเตอร์รับหน่วยความจำภายนอก - ไม่มีการจัดสรรใหม่
     UList(T* ptr, label size) : v_(ptr), size_(size) {}
 
-    // ✅ Access with bounds checking in debug mode
+    // ✅ การเข้าถึงพร้อมการตรวจสอบขอบเขตในโหมดดีบัก
     T& operator[](label i) {
         #ifdef FULLDEBUG
         if (i < 0 || i >= size_) {
@@ -86,38 +84,30 @@ public:
                                << size_-1 << "]" << abort(FatalError);
         }
         #endif
-        return v_[i];  // Direct memory access
+        return v_[i];  // เข้าถึงหน่วยความจำโดยตรง
     }
 
     label size() const { return size_; }
 };
 ```
 
-> **📖 Explanation:** UList คือคลาสพื้นฐานที่มีหน้าที่ให้การเข้าถึงข้อมูลโดยไม่มีความรับผิดชอบในการจัดการหน่วยความจำ (non-owning) โดยตัวชี้ `v_` ใช้ keyword `__restrict__` เพื่อบอก compiler ว่าไม่มี pointer aliasing ซึ่งช่วยให้ compiler ทำ optimization ได้ดีขึ้น การเข้าถึงข้อมูลผ่าน `operator[]` จะมีการตรวจสอบขอบเขต (bounds checking) เฉพาะใน debug mode เท่านั้น
-
-> **🔑 Key Concepts:** UList, Non-owning, Memory Access, Restrict Keyword, Bounds Checking
-
-**Key Implementation Details:**
-- **`__restrict__` keyword**: Tells compiler that `v_` has no pointer aliasing, enabling aggressive optimization
-- **`FULLDEBUG` bounds checking**: Enabled only in debug builds, no overhead in production
-- **No ownership semantics**: `UList` never allocates or frees memory
-- **`label` type**: Optimized integer size for mesh indexing (typically 32 or 64 bits)
+> **📖 คำอธิบาย:** `UList` คือคลาสพื้นฐานที่มีหน้าที่ให้การเข้าถึงข้อมูลโดยไม่มีความรับผิดชอบในการจัดการหน่วยความจำ (Non-owning) โดยตัวชี้ `v_` ใช้คำสำคัญ `__restrict__` เพื่อบอกคอมไพเลอร์ว่าไม่มี Pointer aliasing ซึ่งช่วยให้คอมไพเลอร์ทำการปรับปรุงประสิทธิภาพ (Optimization) ได้ดีขึ้น การเข้าถึงข้อมูลผ่าน `operator[]` จะมีการตรวจสอบขอบเขต (Bounds checking) เฉพาะในโหมดดีบักเท่านั้น เพื่อไม่ให้เกิดภาระงานส่วนเกินในโหมดใช้งานจริง
 
 ---
 
-### 2.2 `List<T>` - Owning Container
+### 2.2 `List<T>` - คอนเทนเนอร์ที่มีความเป็นเจ้าของ (Owning Container)
 
-The primary container for CFD fields, extending `UList<T>` with RAII memory management:
+คอนเทนเนอร์หลักสำหรับฟิลด์ CFD ซึ่งขยายความสามารถของ `UList<T>` ด้วยการจัดการหน่วยความจำแบบ RAII:
 
 ```cpp
-// 📂 Source: src/OpenFOAM/containers/Lists/List/List.H
+// 📂 แหล่งที่มา: src/OpenFOAM/containers/Lists/List/List.H
 template<class T>
 class List : public UList<T> {
 private:
-    // 🔧 Internal allocation helper
+    // 🔧 ตัวช่วยจัดสรรหน่วยความจำภายใน
     void alloc() {
         if (this->size_ > 0) {
-            // 🔍 ALIGNED ALLOCATION for SIMD optimization
+            // 🔍 การจัดสรรที่จัดเรียงเพื่อการปรับปรุง SIMD
             this->v_ = new T[this->size_];
         } else {
             this->v_ = nullptr;
@@ -125,158 +115,134 @@ private:
     }
 
 public:
-    // ✅ RAII constructor: allocates memory immediately
+    // ✅ คอนสตรัคเตอร์ RAII: จัดสรรหน่วยความจำทันที
     explicit List(label size = 0) {
         this->size_ = size;
-        alloc();  // Memory acquired here
+        alloc();  // ได้รับหน่วยความจำที่นี่
     }
 
-    // ✅ RAII destructor: releases memory automatically
+    // ✅ ดีสตรัคเตอร์ RAII: ปล่อยหน่วยความจำโดยอัตโนมัติ
     ~List() {
-        delete[] this->v_;  // Guaranteed cleanup
+        delete[] this->v_;  // รับประกันการทำความสะอาด
         this->v_ = nullptr;
         this->size_ = 0;
     }
 
-    // ✅ Move constructor: transfers ownership without copying
+    // ✅ คอนสตรัคเตอร์สำหรับการย้าย (Move constructor): โอนความเป็นเจ้าของโดยไม่ต้องคัดลอก
     List(List<T>&& other) noexcept {
         this->v_ = other.v_;
         this->size_ = other.size_;
-        other.v_ = nullptr;    // Source relinquishes ownership
+        other.v_ = nullptr;    // ต้นทางสละความเป็นเจ้าของ
         other.size_ = 0;
     }
 
-    // ✅ Resize with memory management
+    // ✅ ปรับขนาดพร้อมการจัดการหน่วยความจำ
     void setSize(label newSize) {
         if (newSize != this->size_) {
-            delete[] this->v_;          // Release old memory
+            delete[] this->v_;          // ปล่อยหน่วยความจำเดิม
             this->size_ = newSize;
-            alloc();                    // Allocate new memory
+            alloc();                    // จัดสรรหน่วยความจำใหม่
         }
     }
 };
 ```
 
-> **📖 Explanation:** List คือคอนเทนเนอร์หลักที่ใช้ในการจัดเก็บข้อมูลฟิลด์ CFD (เช่น ความเร็ว, ความดัน) โดยสืบทอดมาจาก UList และเพิ่มความสามารถในการจัดการหน่วยความจำด้วยรูปแบบ RAII ตัว constructor จะจองหน่วยความจำทันที, destructor จะคืนหน่วยความจำโดยอัตโนมัติ และ move constructor ช่วยให้สามารถโอนความเป็นเจ้าของได้โดยไม่ต้องคัดลอกข้อมูล
-
-> **🔑 Key Concepts:** List, RAII, Memory Management, Move Semantics, Aligned Allocation
-
-**Memory Management Integration:**
-- **RAII pattern**: Memory allocated in constructor, released in destructor
-- **Exception safety**: If allocation fails, constructor throws and destructor won't run (no memory to release)
-- **Move semantics**: Enables efficient ownership transfer for large CFD fields
-- **Aligned allocation**: Uses `new T[]` which may be replaced for SIMD alignment in OpenFOAM
+> **📖 คำอธิบาย:** `List` คือคอนเทนเนอร์หลักที่ใช้ในการจัดเก็บข้อมูลฟิลด์ CFD (เช่น ความเร็ว, ความดัน) โดยสืบทอดมาจาก `UList` และเพิ่มความสามารถในการจัดการหน่วยความจำด้วยรูปแบบ RAII ตัวคอนสตรัคเตอร์จะจองหน่วยความจำทันทีเมื่อถูกสร้าง ดีสตรัคเตอร์จะคืนหน่วยความจำโดยอัตโนมัติเมื่อสิ้นสุดอายุการใช้งาน และคอนสตรัคเตอร์สำหรับการย้ายช่วยให้สามารถโอนความเป็นเจ้าของข้อมูลขนาดใหญ่ได้โดยไม่ต้องคัดลอกข้อมูลจริง
 
 ---
 
-### 2.3 `DynamicList<T>` - Efficient Growth
+### 2.3 `DynamicList<T>` - การเติบโตที่มีประสิทธิภาพ (Efficient Growth)
 
-`DynamicList<T>` provides automatic resizing with exponential growth for mesh construction and dynamic CFD workloads:
+`DynamicList<T>` ให้การปรับขนาดอัตโนมัติด้วยการเติบโตแบบทวีคูณสำหรับการสร้างเมชและภาระงาน CFD แบบไดนามิก:
 
 ```cpp
-// 📂 Source: src/OpenFOAM/containers/Lists/DynamicList/DynamicList.H
+// 📂 แหล่งที่มา: src/OpenFOAM/containers/Lists/DynamicList/DynamicList.H
 template<class T>
 class DynamicList {
 private:
-    List<T> list_;          // Internal storage (uses List's RAII)
-    label capacity_;        // Currently allocated capacity
-    label size_;            // Current number of elements
+    List<T> list_;          // การจัดเก็บภายใน (ใช้ RAII ของ List)
+    label capacity_;        // ความจุที่จัดสรรไว้ในปัจจุบัน
+    label size_;            // จำนวนองค์ประกอบปัจจุบัน
 
-    // 🔧 Exponential growth policy
+    // 🔧 นโยบายการเติบโตแบบทวีคูณ
     void grow() {
-        label newCapacity = max(capacity_ * 2, label(10));  // Double or minimum 10
+        label newCapacity = max(capacity_ * 2, label(10));  // เพิ่มสองเท่าหรือขั้นต่ำ 10
         List<T> newList(newCapacity);
 
-        // Copy existing elements
+        // คัดลอกองค์ประกอบที่มีอยู่
         for (label i = 0; i < size_; ++i) {
             newList[i] = list_[i];
         }
 
-        list_ = newList;        // Move assignment transfers ownership
+        list_ = newList;        // การกำหนดค่าแบบย้ายโอนความเป็นเจ้าของ
         capacity_ = newCapacity;
     }
 
 public:
-    // ✅ Constructor with initial capacity
+    // ✅ คอนสตรัคเตอร์พร้อมความจุเริ่มต้น
     DynamicList(label initialCapacity = 10)
         : list_(initialCapacity), capacity_(initialCapacity), size_(0) {}
 
-    // ✅ Append with automatic growth
+    // ✅ การเพิ่มต่อท้ายพร้อมการเติบโตอัตโนมัติ
     void append(const T& value) {
         if (size_ >= capacity_) {
-            grow();  // Automatically resize when full
+            grow();  // ปรับขนาดอัตโนมัติเมื่อเต็ม
         }
         list_[size_] = value;
         ++size_;
     }
 
-    // ✅ Convert to regular List (transfers ownership)
+    // ✅ แปลงเป็น List ปกติ (โอนความเป็นเจ้าของ)
     List<T> shrink() {
-        list_.setSize(size_);  // Trim to actual size
-        return list_;          // Move constructor transfers ownership
+        list_.setSize(size_);  // ตัดส่วนเกินให้เท่ากับขนาดจริง
+        return list_;          // คอนสตรัคเตอร์สำหรับการย้ายโอนความเป็นเจ้าของ
     }
 };
 ```
 
-> **📖 Explanation:** DynamicList ออกแบบมาสำหรับสถานการณ์ที่ต้องการเพิ่มข้อมูลแบบ dynamic ซึ่งมีนโยบายการเติบโตแบบ exponential (เพิ่มขนาดเป็น 2 เท่า) เพื่อลดความถี่ในการจัดสรรหน่วยความจำใหม่ เมื่อเต็ม capacity ระบบจะเรียก `grow()` เพื่อขยายขนาด และเมื่อต้องการแปลงเป็น List ปกติสามารถใช้ `shrink()` เพื่อลดขนาดให้เท่ากับจำนวนข้อมูลจริง
-
-> **🔑 Key Concepts:** DynamicList, Exponential Growth, Amortized O(1), Capacity Management
-
-**Growth Optimization:**
-- **Exponential growth**: Doubles capacity on each resize, minimizing average allocation cost
-- **Minimum capacity**: Avoids many small allocations
-- **Efficient copying**: Uses `List`'s optimized copy/move operations
-- **Memory reuse**: `shrink()` method releases unused capacity
+> **📖 คำอธิบาย:** `DynamicList` ออกแบบมาสำหรับสถานการณ์ที่ต้องการเพิ่มข้อมูลโดยไม่ทราบขนาดล่วงหน้า ซึ่งมีนโยบายการเติบโตแบบทวีคูณ (เพิ่มขนาดเป็น 2 เท่า) เพื่อลดความถี่ในการจัดสรรหน่วยความจำใหม่ เมื่อข้อมูลเต็มความจุ ระบบจะขยายขนาดโดยอัตโนมัติ และเมื่อต้องการแปลงเป็น `List` ปกติสามารถใช้ `shrink()` เพื่อปล่อยหน่วยความจำส่วนที่ไม่ได้ใช้งาน
 
 ---
 
-### 2.4 `FixedList<T,N>` - Zero-Overhead Fixed Size
+### 2.4 `FixedList<T,N>` - ขนาดคงที่โดยไม่มีภาระงานส่วนเกิน (Zero-Overhead Fixed Size)
 
-For small fixed-size data (e.g., 3D points), `FixedList<T,N>` provides maximum efficiency with stack allocation:
+สำหรับข้อมูลขนาดเล็กที่มีขนาดคงที่ (เช่น จุด 3 มิติ), `FixedList<T,N>` ให้ประสิทธิภาพสูงสุดด้วยการจัดสรรบน Stack:
 
 ```cpp
-// 📂 Source: src/OpenFOAM/containers/Lists/FixedList/FixedList.H
+// 📂 แหล่งที่มา: src/OpenFOAM/containers/Lists/FixedList/FixedList.H
 template<class T, unsigned N>
 class FixedList {
 private:
-    T v_[N];  // 🔥 Stack-allocated array - no dynamic allocation!
+    T v_[N];  // 🔥 อาร์เรย์ที่จัดสรรบน Stack - ไม่มีการจัดสรรแบบไดนามิก!
 
 public:
-    // ✅ Compile-time size
+    // ✅ ขนาดที่ทราบ ณ เวลาคอมไพล์
     static constexpr label size() { return N; }
 
-    // ✅ Direct memory access (no bounds checking in release)
+    // ✅ การเข้าถึงหน่วยความจำโดยตรง
     T& operator[](label i) {
         #ifdef FULLDEBUG
-        if (i < 0 || i >= N) { /* bounds check */ }
+        if (i < 0 || i >= N) { /* ตรวจสอบขอบเขต */ }
         #endif
         return v_[i];
     }
 };
 
-// Common CFD usage:
-FixedList<scalar, 3> point = {0.0, 1.0, 2.0};  // 3D coordinates
-FixedList<vector, 6> stressComponents;         // Stress tensor components
+// การใช้งานทั่วไปใน CFD:
+FixedList<scalar, 3> point = {0.0, 1.0, 2.0};  // พิกัด 3 มิติ
+FixedList<vector, 6> stressComponents;         // ส่วนประกอบของเทนเซอร์ความเค้น
 ```
 
-> **📖 Explanation:** FixedList ใช้ stack allocation แทน heap allocation ซึ่งไม่มี overhead จากการจองและคืนหน่วยความจำแบบ dynamic ขนาดของ array ถูกกำหนดที่ compile-time ทำให้ compiler สามารถทำ loop unrolling และ optimization อื่นๆ ได้ เหมาะสำหรับข้อมูลขนาดเล็กที่รู้ขนาดล่วงหน้า เช่น จุด 3 มิติ (3D points) หรือ stress tensor components
-
-> **🔑 Key Concepts:** FixedList, Stack Allocation, Compile-time Size, Zero Overhead
-
-**Performance Advantages:**
-- **Stack allocation**: No dynamic allocation/deallocation overhead
-- **Cache proximity**: Data stored with object, excellent cache performance
-- **Compile-time size**: Enables loop unrolling and other optimizations
-- **Zero runtime overhead**: Equivalent to raw C arrays with safety checks
+> **📖 คำอธิบาย:** `FixedList` ใช้การจัดสรรบน Stack แทนการใช้ Heap ซึ่งช่วยลดภาระงานส่วนเกินจากการจองและคืนหน่วยความจำแบบไดนามิก ขนาดของอาร์เรย์ถูกกำหนดตั้งแต่ขั้นตอนการคอมไพล์ ทำให้คอมไพเลอร์สามารถทำ Optimization ได้อย่างเต็มที่ เหมาะสำหรับข้อมูลขนาดเล็ก เช่น พิกัดจุดหรือส่วนประกอบของเทนเซอร์
 
 ---
 
-### 2.5 `HashTable<Key,T>` - CFD-Optimized Hash Table
+### 2.5 `HashTable<Key,T>` - ตารางแฮชที่ปรับปรุงมาเพื่อ CFD (CFD-Optimized Hash Table)
 
-OpenFOAM's hash tables provide fast lookups with optimizations for CFD patterns:
+ตารางแฮชของ OpenFOAM ให้การสืบค้นที่รวดเร็วพร้อมการปรับปรุงให้เหมาะกับรูปแบบข้อมูล CFD:
 
 ```cpp
-// 📂 Source: src/OpenFOAM/containers/HashTables/HashTable/HashTable.H
+// 📂 แหล่งที่มา: src/OpenFOAM/containers/HashTables/HashTable/HashTable.H
 template<class Key, class T>
 class HashTable {
 private:
@@ -286,27 +252,27 @@ private:
         node* next_;
     };
 
-    node** table_;          // Array of linked list heads
+    node** table_;          // อาร์เรย์ของหัวรายการเชื่อมโยง
     label capacity_;
     label size_;
 
-    // 🔧 Hash function optimized for CFD keys
+    // 🔧 ฟังก์ชันแฮชที่ปรับปรุงมาเพื่อคีย์ CFD
     label hash(const Key& k) const {
         return Foam::Hash<Key>()(k) % capacity_;
     }
 
 public:
-    // ✅ Insert with automatic resizing
+    // ✅ การแทรกพร้อมการปรับขนาดอัตโนมัติ
     bool insert(const Key& k, const T& v) {
         if (loadFactor() > 0.7) {
-            resize(capacity_ * 2);  // Maintain low load factor
+            resize(capacity_ * 2);  // รักษาค่า Load factor ให้ต่ำ
         }
 
         label idx = hash(k);
-        // ... insertion logic with chaining
+        // ... ตรรกะการแทรกแบบ Chaining
     }
 
-    // ✅ Optimized lookup for CFD
+    // ✅ การสืบค้นที่ปรับปรุงมาเพื่อ CFD
     T* find(const Key& k) {
         label idx = hash(k);
         node* curr = table_[idx];
@@ -314,678 +280,214 @@ public:
             if (curr->key_ == k) return &curr->value_;
             curr = curr->next_;
         }
-        return nullptr;  // Not found
+        return nullptr;  // ไม่พบข้อมูล
     }
 };
 ```
 
-> **📖 Explanation:** HashTable ของ OpenFOAM ออกแบบมาเพื่อการค้นหาข้อมูลแบบ key-value ที่รวดเร็ว โดยใช้วิธี chaining เพื่อจัดการ collision และมีการปรับขนาดตารางอัตโนมัติเมื่อ load factor เกิน 0.7 เพื่อรักษาประสิทธิภาพ ฟังก์ชัน hash ถูก optimize สำหรับ CFD data types เช่น `word`, `label`, `face` เพื่อการกระจายตัวของข้อมูลที่ดี
-
-> **🔑 Key Concepts:** HashTable, Chaining, Load Factor, Hash Function, Prime Capacity
-
-**CFD-Specific Optimizations:**
-- **Prime capacity**: Better distribution for CFD hash keys
-- **Custom hash functions**: Specialized for `word`, `label`, `face` types
-- **Low load factor**: Aggressive resizing maintains performance
-- **Aligned memory**: Nodes aligned for cache efficiency
+> **📖 คำอธิบาย:** `HashTable` ของ OpenFOAM ออกแบบมาเพื่อการค้นหาข้อมูลแบบ Key-Value ที่รวดเร็ว โดยใช้วิธี Chaining เพื่อจัดการกับการชนกันของข้อมูล (Collision) และมีการปรับขนาดตารางอัตโนมัติเพื่อรักษาประสิทธิภาพ ฟังก์ชันแฮชได้รับการปรับปรุงให้เหมาะกับข้อมูล CFD เช่น `word`, `label` หรือ `face` เพื่อการกระจายข้อมูลที่สม่ำเสมอ
 
 ---
 
-### 2.6 `PtrList<T>` - Polymorphic Object Management
+### 2.6 `PtrList<T>` - การจัดการออบเจ็กต์โพลิมอร์ฟิก (Polymorphic Object Management)
 
-`PtrList<T>` manages ownership of polymorphic objects, essential for CFD plugin architecture:
+`PtrList<T>` จัดการความเป็นเจ้าของออบเจ็กต์โพลิมอร์ฟิก ซึ่งจำเป็นสำหรับสถาปัตยกรรมปลั๊กอินของ CFD:
 
 ```cpp
-// 📂 Source: src/OpenFOAM/containers/Lists/PtrList/PtrList.H
+// 📂 แหล่งที่มา: src/OpenFOAM/containers/Lists/PtrList/PtrList.H
 template<class T>
 class PtrList {
 private:
-    List<T*> ptrs_;          // List of pointers (owns objects)
+    List<T*> ptrs_;          // รายการของตัวชี้ (เป็นเจ้าของออบเจ็กต์)
 
 public:
-    // ✅ RAII cleanup of all owned objects
+    // ✅ การทำความสะอาดออบเจ็กต์ที่เป็นเจ้าของทั้งหมดด้วย RAII
     ~PtrList() {
         forAll(ptrs_, i) {
-            delete ptrs_[i];  // Delete each owned object
+            delete ptrs_[i];  // ลบแต่ละออบเจ็กต์ที่เป็นเจ้าของ
         }
     }
 
-    // ✅ Transfer ownership (like autoPtr for lists)
+    // ✅ โอนความเป็นเจ้าของ (เหมือน autoPtr สำหรับรายการ)
     void set(label i, T* ptr) {
-        if (ptrs_[i]) delete ptrs_[i];  // Clean up existing
-        ptrs_[i] = ptr;                 // Take ownership
+        if (ptrs_[i]) delete ptrs_[i];  // ทำความสะอาดของเดิม
+        ptrs_[i] = ptr;                 // รับความเป็นเจ้าของใหม่
     }
 
-    // ✅ Automatic dereferencing
+    // ✅ การลดระดับการอ้างอิงอัตโนมัติ (Automatic dereferencing)
     T& operator[](label i) {
-        return *ptrs_[i];  // Automatic dereferencing
+        return *ptrs_[i];  // เข้าถึงค่าผ่านตัวชี้โดยตรง
     }
 
-    // ✅ Polymorphic usage
+    // ✅ การใช้งานแบบโพลิมอร์ฟิก
     template<class Derived>
     void setDerived(label i, Derived* derived) {
-        set(i, static_cast<T*>(derived));  // Store as base pointer
+        set(i, static_cast<T*>(derived));  // จัดเก็บในรูปตัวชี้คลาสฐาน
     }
 };
 ```
 
-> **📖 Explanation:** PtrList ใช้จัดการออบเจ็กต์โพลิมอร์ฟิก (polymorphic objects) โดยมีความรับผิดชอบในการจัดการหน่วยความจำของออบเจ็กต์ทั้งหมด เมื่อ destructor ถูกเรียกจะทำการลบออบเจ็กต์ทั้งหมดโดยอัตโนมัติ รองรับการจัดเก็บ base pointers และลบผ่าน virtual destructors ทำให้เหมาะสำหรับใช้ใน CFD plugin architecture
-
-> **🔑 Key Concepts:** PtrList, Ownership, Polymorphism, Virtual Destructors, RAII
-
-**Memory Management Integration:**
-- **Ownership semantics**: `PtrList` owns all contained objects
-- **Polymorphic support**: Stores base pointers, deletes via virtual destructors
-- **Exception safety**: If one deletion throws, others still get cleaned up
-- **`autoPtr` integration**: Can take ownership from `autoPtr` objects
+> **📖 คำอธิบาย:** `PtrList` ใช้จัดการออบเจ็กต์ที่มีการสืบทอด (Polymorphic objects) โดยรับผิดชอบการจัดการหน่วยความจำของออบเจ็กต์ทั้งหมด เมื่อ `PtrList` ถูกทำลาย มันจะลบออบเจ็กต์ทั้งหมดที่ถือครองอยู่โดยอัตโนมัติผ่านดีสตรัคเตอร์เสมือน (Virtual destructors) ทำให้เหมาะสำหรับใช้ในระบบปลั๊กอินของ CFD เช่น เงื่อนไขขอบเขตหรือแบบจำลองทางกายภาพ
 
 ---
 
-## 3. Container Integration with CFD Operations
+## 3. การบูรณาการคอนเทนเนอร์กับการดำเนินการ CFD
 
-### 3.1 Field Operations - Vectorized Computation on Contiguous Data
+### 3.1 การดำเนินการกับฟิลด์ - การคำนวณแบบเวกเตอร์บนข้อมูลที่ต่อเนื่อง
 
-CFD simulations involve massive field operations where mathematical operations are applied to every cell in the mesh. OpenFOAM's `List` container enables vectorized operations through contiguous memory layout:
+การจำลอง CFD เกี่ยวข้องกับการดำเนินการกับฟิลด์ขนาดมหาศาล ระบบคอนเทนเนอร์ `List` ของ OpenFOAM ช่วยให้สามารถคำนวณแบบเวกเตอร์ได้ผ่านการจัดวางหน่วยความจำแบบต่อเนื่อง:
 
 ```cpp
-// 📂 Source: applications/solvers/incompressible/simpleFoam/simpleFoam.C
-// Example: Navier-Stokes momentum equation operation
+// 📂 แหล่งที่มา: applications/solvers/incompressible/simpleFoam/simpleFoam.C
+// ตัวอย่าง: การดำเนินการสมการโมเมนตัม Navier-Stokes
 void solveMomentumEquation(
-    const volVectorField& U,      // Velocity field (List<vector>)
-    const volScalarField& p,      // Pressure field (List<scalar>)
-    volVectorField& U_new         // Updated velocity
+    const volVectorField& U,      // สนามความเร็ว (List<vector>)
+    const volScalarField& p,      // สนามความดัน (List<scalar>)
+    volVectorField& U_new         // ความเร็วที่อัปเดตแล้ว
 ) {
-    // ✅ Contiguous memory enables SIMD vectorization
+    // ✅ หน่วยความจำต่อเนื่องช่วยให้เกิด SIMD vectorization
     const label nCells = U.size();
 
-    // Temporary fields with reference-counted cleanup
-    tmp<volVectorField> convection = fvc::div(U, U);  // tmp manages lifetime
-    tmp<volScalarField> pressureGrad = fvc::grad(p);  // Gradient computation
+    // สนามข้อมูลชั่วคราวพร้อมการทำความสะอาดแบบนับการอ้างอิง
+    tmp<volVectorField> convection = fvc::div(U, U);  // tmp จัดการอายุการใช้งาน
+    tmp<volScalarField> pressureGrad = fvc::grad(p);  // การคำนวณเกรเดียนต์
 
-    // ✅ Element-wise operation on entire field
+    // ✅ การดำเนินการทีละองค์ประกอบบนฟิลด์ทั้งหมด
     forAll(U, celli) {
-        // These operations can be auto-vectorized by compiler
+        // คอมไพเลอร์สามารถทำ auto-vectorize สำหรับการดำเนินการเหล่านี้ได้
         U_new[celli] = U[celli]
                      - dt * (convection()[celli] + pressureGrad()[celli])
                      + nu * fvc::laplacian(U)[celli];
     }
 
-    // ✅ tmp objects cleaned up automatically via reference counting
+    // ✅ วัตถุ tmp จะถูกทำความสะอาดโดยอัตโนมัติผ่านการนับการอ้างอิง
 }
 ```
 
-> **📖 Explanation:** ในการแก้สมการ Navier-Stokes ต้องมีการคำนวณ field operations บนทุก cell ใน mesh ซึ่ง OpenFOAM ใช้ List container ที่เก็บข้อมูลแบบ contiguous memory ทำให้ compiler สามารถทำ SIMD vectorization ได้ การใช้ `tmp` container ช่วยจัดการ lifetime ของ temporary fields ด้วย reference counting เพื่อหลีกเลี่ยงการคัดลอกข้อมูลโดยไม่จำเป็น
-
-> **🔑 Key Concepts:** Field Operations, SIMD Vectorization, Contiguous Memory, Reference Counting
-
-**Mathematical Foundation:** Momentum equation for incompressible flow:
-
-$$
-\frac{\partial \mathbf{u}}{\partial t} + (\mathbf{u} \cdot \nabla) \mathbf{u} = -\frac{1}{\rho} \nabla p + \nu \nabla^2 \mathbf{u}
-$$
-
-In discrete form, each term becomes an operation on `List` containers:
-- **Convection term**: $(\mathbf{u} \cdot \nabla) \mathbf{u}$ → `fvc::div(U, U)`
-- **Pressure gradient**: $-\frac{1}{\rho} \nabla p$ → `-fvc::grad(p)`
-- **Viscous term**: $\nu \nabla^2 \mathbf{u}$ → `nu * fvc::laplacian(U)`
+> **📖 คำอธิบาย:** ในการแก้สมการ Navier-Stokes ต้องมีการคำนวณบนทุกเซลล์ในเมช ซึ่ง OpenFOAM ใช้คอนเทนเนอร์ `List` ที่เก็บข้อมูลแบบต่อเนื่อง (Contiguous memory) ทำให้คอมไพเลอร์สามารถใช้คำสั่ง SIMD เพื่อประมวลผลข้อมูลหลายชุดพร้อมกันได้ การใช้ `tmp` ช่วยจัดการอายุของฟิลด์ชั่วคราวอย่างมีประสิทธิภาพโดยไม่ต้องคัดลอกข้อมูลซ้ำซ้อน
 
 ---
 
-### 3.2 Mesh Traversal - Efficient Connectivity Access
+### 3.2 การเดินผ่านเมช - การเข้าถึงการเชื่อมต่ออย่างมีประสิทธิภาพ (Mesh Traversal)
 
-Mesh operations require efficient access to cell-to-face and face-to-cell connectivity. OpenFOAM's specialized containers optimize these patterns:
+การดำเนินการกับเมชต้องการการเข้าถึงความสัมพันธ์ระหว่างเซลล์และหน้าอย่างมีประสิทธิภาพ:
 
 ```cpp
-// 📂 Source: src/OpenFOAM/meshes/polyMesh/polyMesh/polyMesh.H
-// Example: Face flux calculation from cell-centered velocity
+// 📂 แหล่งที่มา: src/OpenFOAM/meshes/polyMesh/polyMesh/polyMesh.H
+// ตัวอย่าง: การคำนวณฟลักซ์ที่หน้าจากความเร็วที่จุดศูนย์กลางเซลล์
 void calculateFaceFluxes(
     const polyMesh& mesh,
     const volVectorField& U,
     surfaceScalarField& phi
 ) {
-    // ✅ Mesh connectivity stored in optimized containers
+    // ✅ การเชื่อมต่อเมชถูกจัดเก็บในคอนเทนเนอร์ที่ได้รับการปรับปรุง
     const labelList& owner = mesh.owner();      // List<label>
     const labelList& neighbour = mesh.neighbour(); // List<label>
     const vectorField& Sf = mesh.faceAreas();   // List<vector>
 
-    // ✅ Efficient traversal using forAll macro
+    // ✅ การเดินผ่านอย่างมีประสิทธิภาพโดยใช้มาโคร forAll
     forAll(owner, facei) {
         label own = owner[facei];
         label nei = neighbour[facei];
 
-        // Interpolate velocity to face center
+        // อินเทอร์โพลชันความเร็วไปที่จุดศูนย์กลางหน้า
         vector Uface = 0.5 * (U[own] + U[nei]);
 
-        // Calculate flux: dot product with face area vector
+        // คำนวณฟลักซ์: ผลคูณเชิงสเกลาร์กับเวกเตอร์พื้นที่หน้า
         phi[facei] = Uface & Sf[facei];  // phi = U·Sf
     }
 }
 ```
 
-> **📖 Explanation:** การคำนวณ face flux ต้องการการเข้าถึง mesh connectivity เช่น cell owner/neighbour และ face areas OpenFOAM เก็บข้อมูลเหล่านี้ใน optimized containers เช่น `labelList` สำหรับ indices และ `vectorField` สำหรับ geometric quantities การ traverse ใช้ `forAll` macro ซึ่งให้ hints แก่ compiler สำหรับ vectorization
-
-> **🔑 Key Concepts:** Mesh Traversal, Connectivity, labelList, vectorField, Face Flux
-
-**Container Optimization for Mesh:**
-- **`labelList`**: Stores integer indices for cell owner/neighbour
-- **`vectorField`**: Stores geometric quantities (face areas, centers)
-- **`faceList`**: Stores vertex connectivity where `face` is `FixedList<label, 4>` for quads
-- **`cellList`**: Stores face connectivity where `cell` is `DynamicList<label>`
-
 ---
 
-### 3.3 Boundary Conditions - Polymorphic Container Management
+### 3.3 เงื่อนไขขอบเขต - การจัดการคอนเทนเนอร์แบบโพลิมอร์ฟิก
 
-Boundary conditions in OpenFOAM are implemented as polymorphic objects managed by the `PtrList` container:
+เงื่อนไขขอบเขตใน OpenFOAM ถูกนำมาใช้เป็นออบเจ็กต์โพลิมอร์ฟิกที่จัดการโดยคอนเทนเนอร์ `PtrList`:
 
 ```cpp
-// 📂 Source: src/finiteVolume/fields/fvPatchFields/fvPatchField/fvPatchField.H
-// Example: Applying boundary conditions to fields
+// 📂 แหล่งที่มา: src/finiteVolume/fields/fvPatchFields/fvPatchField/fvPatchField.H
+// ตัวอย่าง: การประยุกต์ใช้เงื่อนไขขอบเขตกับฟิลด์
 void applyBoundaryConditions(volVectorField& U) {
-    // ✅ Boundary fields stored as PtrList of polymorphic patch fields
+    // ✅ ฟิลด์ขอบเขตถูกจัดเก็บเป็น PtrList ของฟิลด์แพตช์แบบโพลิมอร์ฟิก
     PtrList<fvPatchVectorField>& boundaryFields = U.boundaryFieldRef();
 
-    // ✅ Each patch has its own boundary condition type
+    // ✅ แต่ละแพตช์มีประเภทเงื่อนไขขอบเขตของตัวเอง
     forAll(boundaryFields, patchi) {
-        // Virtual dispatch - different behavior per patch type
+        // Virtual dispatch - พฤติกรรมที่แตกต่างกันตามประเภทแพตช์
         boundaryFields[patchi].evaluate();
 
-        // ✅ Patch-specific operations
+        // การดำเนินการเฉพาะสำหรับแพตช์
         if (boundaryFields[patchi].type() == "fixedValue") {
-            // Fixed value boundary condition
+            // เงื่อนไขขอบเขตแบบกำหนดค่าคงที่
             fixedValueFvPatchVectorField& fixedPatch =
                 refCast<fixedValueFvPatchVectorField>(boundaryFields[patchi]);
 
-            fixedPatch == vector(1, 0, 0);  // Set to (1,0,0)
-        }
-        else if (boundaryFields[patchi].type() == "zeroGradient") {
-            // Zero gradient - automatically handled
+            fixedPatch == vector(1, 0, 0);  // ตั้งค่าเป็น (1,0,0)
         }
     }
 
-    // ✅ Automatic cleanup via PtrList destructor
-    // All patch field objects deleted when boundaryFields exits scope
+    // ✅ การทำความสะอาดอัตโนมัติผ่านดีสตรัคเตอร์ของ PtrList
 }
 ```
 
-> **📖 Explanation:** Boundary conditions ใน OpenFOAM ถูก implement แบบ polymorphic โดยแต่ละ patch สามารถมี type ที่ต่างกัน (เช่น fixedValue, zeroGradient) PtrList ใช้จัดการ ownership ของ polymorphic objects เหล่านี้ โดยใช้ virtual dispatch ผ่าน `evaluate()` และใช้ `refCast` สำหรับ safe downcasting เมื่อต้องการ patch-specific operations
-
-> **🔑 Key Concepts:** Boundary Conditions, Polymorphism, PtrList, Virtual Dispatch, Patch Fields
-
-**Boundary Condition Architecture:**
-- **`PtrList<fvPatchField<Type>>`**: Owns polymorphic boundary condition objects
-- **Virtual dispatch**: Different patch types (fixedValue, zeroGradient, etc.) via inheritance
-- **Memory management**: `PtrList` guarantees proper cleanup of acquired objects
-- **Type safety**: `refCast` for safe downcasting when needed
-
 ---
 
-### 3.4 Parallel Communication - Zero-Copy Views with Containers
+## 4. การวิเคราะห์ประสิทธิภาพ (Performance Analysis)
 
-Parallel CFD divides the mesh across processes, requiring efficient communication of overlapping (ghost) regions. OpenFOAM's `UList` views enable zero-copy data exchange:
+### 4.1 การเปรียบเทียบการจัดวางหน่วยความจำ
 
-```cpp
-// 📂 Source: src/OpenFOAM/mpi/Pstream/PstreamBuffers.H
-// Example: Parallel ghost cell exchange
-void exchangeGhostCells(
-    const polyMesh& mesh,
-    volScalarField& T  // Temperature field
-) {
-    // ✅ Get processor boundary patches
-    const PtrList<processorPolyPatch>& procPatches =
-        mesh.boundaryMesh().processorPatches();
-
-    forAll(procPatches, patchi) {
-        const processorPolyPatch& procPatch = procPatches[patchi];
-
-        // ✅ Create UList views into send/receive buffers
-        const labelList& faceCells = procPatch.faceCells();
-
-        // Prepare send buffer
-        scalarField sendBuffer(faceCells.size());
-        forAll(faceCells, i) {
-            sendBuffer[i] = T[faceCells[i]];  // Copy to send buffer
-        }
-
-        // ✅ MPI communication
-        if (procPatch.owner()) {
-            OPstream toNeighbor(...);
-            toNeighbor << sendBuffer;
-        } else {
-            IPstream fromNeighbor(...);
-            scalarField receiveBuffer;
-            fromNeighbor >> receiveBuffer;
-
-            // ✅ Zero-copy update using UList view
-            UList<scalar> ghostView(T.primitiveFieldRef().data(), faceCells.size());
-            ghostView = receiveBuffer;  // Direct memory write to field
-        }
-    }
-}
-```
-
-> **📖 Explanation:** ใน parallel CFD simulations mesh ถูกแบ่งข้าม processes และต้องมีการแลกเปลี่ยนข้อมูล ghost regions OpenFOAM ใช้ `UList` views เพื่อสร้าง zero-copy views เข้าไปใน MPI buffers ทำให้สามารถเขียนข้อมูลโดยตรงไปยัง field memory โดยไม่ต้องคัดลอกข้อมูลเพิ่มเติม ช่วยลด overhead ในการสื่อสารระหว่าง processors
-
-> **🔑 Key Concepts:** Parallel Communication, MPI, Ghost Cells, UList Views, Zero-Copy
-
-**Parallel Container Mechanisms:**
-- **`UList` views**: Zero-copy memory access for MPI buffers
-- **`labelList`**: Stores processor boundary face-cell mapping
-- **`scalarField`/`vectorField`**: Temporary buffers for communication
-- **`PtrList<processorPolyPatch>`**: Manages processor patch objects
-
----
-
-## 4. Performance Analysis
-
-### 4.1 Memory Layout Comparison
-
-```cpp
-// 📂 Source: src/OpenFOAM/containers/Lists/List/List.H
-// Memory footprint comparison for 1 million double-precision values
-struct MemoryFootprint {
-    // STL vector: 24 bytes overhead + allocation overhead
-    std::vector<double> stlVec;      // ~8MB + 24 bytes
-
-    // OpenFOAM List: 16 bytes + aligned allocation
-    List<double> foamList;           // ~8MB + 16 bytes (better alignment)
-
-    // FixedList<point, 1000>: No overhead (stack allocated)
-    FixedList<point, 1000> fixed;    // 24000 bytes exactly (24 bytes × 1000)
-
-    // DynamicList with growth: Varies with growth policy
-    DynamicList<double> dynamic;     // Typically 1.5-2× current size
-
-    // HashTable overhead: ~16 bytes per entry + table overhead
-    HashTable<label, double> hash;   // ~24 bytes per key-value pair
-};
-```
-
-> **📖 Explanation:** เปรียบเทียบ memory footprint ระหว่าง STL containers และ OpenFOAM containers พบว่า OpenFOAM List มี overhead น้อยกว่า STL vector (16 bytes vs 24 bytes) และมี aligned allocation ที่ดีกว่า FixedList ไม่มี overhead เลยเนื่องจากใช้ stack allocation ส่วน DynamicList มักใช้ memory 1.5-2 เท่าของขนาดจริงเนื่องจาก growth policy และ HashTable มี overhead ~24 bytes ต่อ key-value pair
-
-> **🔑 Key Concepts:** Memory Footprint, Overhead, Stack Allocation, Aligned Allocation
-
----
-
-### 4.2 Performance Considerations
-
-| **Aspect** | **STL Containers** | **OpenFOAM Containers** | **Improvement** |
+| ประเภทคอนเทนเนอร์ | ภาระงานส่วนเกิน (Overhead) | วิธีการจัดสรร | ประสิทธิภาพแคช |
 |------------|-----------------|----------------------|---------------|
-| **Memory overhead** | 24 bytes + allocation | 16 bytes + aligned | 33% reduction |
-| **SIMD alignment** | Not guaranteed | 64-byte aligned | Enables AVX-512 |
-| **Cache efficiency** | Indirection layers | Direct access | 20-40% faster |
-| **Vectorization** | Limited hints | `forAll` macro | Compiler optimization |
-| **Copy overhead** | Deep copies required | Zero-copy views | Eliminates copies |
+| `std::vector` | 24 ไบต์ + การจัดสรร | ทั่วไป | ปานกลาง |
+| `OpenFOAM List` | 16 ไบต์ + การจัดจัดเรียง | จัดเรียงเพื่อ SIMD | ดีเยี่ยม |
+| `FixedList` | 0 ไบต์ | จัดสรรบน Stack | สูงสุด |
+| `DynamicList` | 16 ไบต์ + ความจุส่วนเกิน | ทวีคูณ | ดีเยี่ยม |
 
 ---
 
-### 4.3 Cache Performance Analysis
+### 4.2 ข้อพิจารณาด้านประสิทธิภาพ
 
-```cpp
-// 📂 Source: src/OpenFOAM/containers/Lists/UList/UList.H
-void analyzeCachePerformance() {
-    // List: Contiguous memory → excellent cache locality
-    // FixedList: Stack memory → perfect cache locality
-    // HashTable: Scattered nodes → poorer cache performance
-    // DynamicList: Contiguous but may have unused capacity
-}
-```
-
-> **📖 Explanation:** วิเคราะห์ cache performance ของแต่ละ container type: List และ FixedList มี contiguous memory ทำให้มี cache locality ที่ดีมาก HashTable มี nodes ที่กระจายตัวทำให้ cache performance แย่ลง และ DynamicList มี contiguous memory แต่อาจมี unused capacity ที่สิ้นเปลือง memory
-
-> **🔑 Key Concepts:** Cache Locality, Contiguous Memory, Performance Analysis
+| ด้าน | คอนเทนเนอร์ STL | คอนเทนเนอร์ OpenFOAM | ผลลัพธ์ที่ได้ |
+|------------|-----------------|----------------------|---------------|
+| **ภาระงานหน่วยความจำ** | 24 ไบต์ + การจัดสรร | 16 ไบต์ + การจัดเรียง | ลดลง 33% |
+| **การจัดเรียง SIMD** | ไม่รับประกัน | จัดเรียงแบบ 64 ไบต์ | รองรับ AVX-512 |
+| **ประสิทธิภาพแคช** | มีชั้นการเข้าถึงทางอ้อม | เข้าถึงโดยตรง | เร็วขึ้น 20-40% |
+| **การคัดลอกข้อมูล** | ต้องทำ Deep copy | มีมุมมองแบบ Zero-copy | กำจัดการคัดลอกที่ไม่จำเป็น |
 
 ---
 
-## 5. Container Selection Matrix
+## 5. ตารางการเลือกใช้คอนเทนเนอร์ (Container Selection Matrix)
 
-| **CFD Task** | **Recommended Container** | **Rationale** |
+| **งาน CFD** | **คอนเทนเนอร์ที่แนะนำ** | **เหตุผล** |
 |--------------|------------------------|-------------|
-| Storing fields (velocity, pressure) | `List<T>` | Contiguous memory, SIMD-friendly, owns data |
-| Mesh connectivity (face lists) | `SLList<label>` or `DynamicList<label>` | Efficient insertion, compact memory |
-| Small fixed-size data (3D points) | `FixedList<scalar, 3>` | Zero overhead, stack allocation |
-| Parameter storage (dictionaries) | `Dictionary<dimensionedScalar>` | Fast string lookup, dimensional analysis |
-| Temporary field operations | `tmp<List<T>>` | Reference counting avoids copies |
-| Polymorphic object management | `PtrList<fvPatchField>` | Owns acquired objects, automatic cleanup |
-| Non-owned views (subdomains) | `UList<T>` or `SubList<T>` | No allocation, efficient partitioning |
+| การจัดเก็บฟิลด์ (ความเร็ว, ความดัน) | `List<T>` | หน่วยความจำต่อเนื่อง, เป็นมิตรกับ SIMD |
+| การเชื่อมต่อเมช (รายการหน้า) | `DynamicList<label>` | แทรกข้อมูลได้เร็ว, หน่วยความจำกะทัดรัด |
+| ข้อมูลขนาดเล็กคงที่ (จุด 3 มิติ) | `FixedList<scalar, 3>` | ภาระงานเป็นศูนย์, จัดสรรบน Stack |
+| การดำเนินการฟิลด์ชั่วคราว | `tmp<List<T>>` | การนับการอ้างอิงช่วยหลีกเลี่ยงการคัดลอก |
+| การจัดการออบเจ็กต์โพลิมอร์ฟิก | `PtrList<fvPatchField>` | จัดการความเป็นเจ้าของและการทำความสะอาดอัตโนมัติ |
+| มุมมองย่อย (Subdomains) | `UList<T>` หรือ `SubList<T>` | ไม่มีการจัดสรรใหม่, แบ่งพาร์ทิชันได้อย่างมีประสิทธิภาพ |
 
 ---
 
-## 6. Integration with Memory Management
+## 6. การบูรณาการกับระบบจัดการหน่วยความจำ
 
-OpenFOAM containers leverage the memory management system from Section 1:
+คอนเทนเนอร์ของ OpenFOAM ใช้ประโยชน์จากระบบการจัดการหน่วยความจำ (จากส่วนที่ 1):
 
-```cpp
-// 📂 Source: src/OpenFOAM/containers/Lists/List/List.H
-// Example: List using tmp for expression templates
-tmp<List<scalar>> calculateGradient(const List<scalar>& field) {
-    tmp<List<scalar>> result(new List<scalar>(field.size()));
-
-    // Computation using tmp's reference counting
-    forAll(field, i) {
-        result.ref()[i] = field[i] * 2.0;  // Share until modification
-    }
-
-    return result;  // Reference counting manages cleanup
-}
-
-// Example: PtrList using autoPtr for element ownership
-PtrList<fvPatchField> createBoundaryFields() {
-    PtrList<fvPatchField> fields;
-
-    // Each field created with autoPtr, transferred to PtrList
-    for (label i = 0; i < nPatches; ++i) {
-        autoPtr<fvPatchField> field = createPatchField(i);
-        fields.set(i, field.release());  // Transfer ownership
-    }
-
-    return fields;  // PtrList now owns all fields
-}
-```
-
-> **📖 Explanation:** OpenFOAM containers ผนวกรวมกับ memory management system ผ่าน `tmp` สำหรับ reference counting และ `autoPtr` สำหรับ ownership transfer การใช้ `tmp` ช่วยหลีกเลี่ยงการ copy โดยไม่จำเป็นใน expression templates และ `PtrList` สามารถรับ ownership จาก `autoPtr` ผ่าน `release()` method
-
-> **🔑 Key Concepts:** Memory Management Integration, tmp, autoPtr, Reference Counting
-
-**Key Integration Points:**
-- **`tmp` for temporary containers**: Reference counting avoids copies in expressions
-- **`autoPtr` for factory patterns**: Creates objects transferred to containers
-- **RAII throughout system**: All containers follow RAII for automatic cleanup
-- **Exception safety**: Integrated memory management guarantees no leaks
+- **`tmp` สำหรับคอนเทนเนอร์ชั่วคราว**: การนับการอ้างอิงช่วยหลีกเลี่ยงการคัดลอกในการดำเนินการทางคณิตศาสตร์
+- **`autoPtr` สำหรับรูปแบบโรงงาน (Factory patterns)**: สร้างออบเจ็กต์และโอนย้ายไปยังคอนเทนเนอร์อย่างปลอดภัย
+- **RAII ทั่วทั้งระบบ**: คอนเทนเนอร์ทั้งหมดใช้รูปแบบ RAII เพื่อรับประกันว่าไม่มีหน่วยความจำรั่วไหลแม้จะเกิดข้อผิดพลาด
 
 ---
 
-## 7. Mathematical Context: Navier-Stokes with Containers
+## 7. บทสรุป
 
-The momentum equation demonstrates how containers enable efficient CFD computations:
+ระบบคอนเทนเนอร์ของ OpenFOAM มอบ:
 
-$$
-\frac{\partial \mathbf{u}}{\partial t} + (\mathbf{u} \cdot \nabla) \mathbf{u} = -\frac{1}{\rho} \nabla p + \nu \nabla^2 \mathbf{u}
-$$
+1. **โครงสร้างข้อมูลที่ปรับแต่งมาเพื่อ CFD**: เชี่ยวชาญสำหรับการจำลองขนาดใหญ่
+2. **ประสิทธิภาพหน่วยความจำ**: ผ่านมุมมองแบบ Zero-copy และการนับการอ้างอิง
+3. **การเพิ่มประสิทธิภาพสูงสุด**: ผ่านการจัดเรียงข้อมูลสำหรับ SIMD และการจัดวางที่เป็นมิตรต่อแคช
+4. **ความปลอดภัยและความทนทาน**: บูรณาการกับระบบจัดการหน่วยความจำและ RAII
+5. **ความสามารถในการปรับขยาย (Scalability)**: รองรับการจำลองระดับพันล้านเซลล์ได้อย่างมีประสิทธิภาพ
 
-**Variable Definitions:**
-- $\mathbf{u}$ - Velocity vector (m/s)
-- $p$ - Pressure (Pa)
-- $\rho$ - Density (kg/m³)
-- $\nu$ - Kinematic viscosity (m²/s)
-- $t$ - Time (s)
-
-In discrete form, each term becomes an operation on OpenFOAM containers:
-- **Convection term**: $(\mathbf{u} \cdot \nabla) \mathbf{u}$ → `fvc::div(U, U)`
-- **Pressure gradient**: $-\frac{1}{\rho} \nabla p$ → `-fvc::grad(p)`
-- **Viscous term**: $\nu \nabla^2 \mathbf{u}$ → `nu * fvc::laplacian(U)`
-
----
-
-## 8. Advanced Usage Patterns
-
-### 8.1 Subdomain Operations with SubList
-
-```cpp
-// 📂 Source: src/OpenFOAM/containers/Lists/SubList/SubList.H
-void processSubdomain(
-    const volScalarField& T,
-    const labelList& cellsToProcess
-) {
-    // ✅ Create view into subset of cells
-    SubList<scalar> subT(T.primitiveField(), cellsToProcess.size(), 0);
-
-    // ✅ Work on subset (no data copying)
-    forAll(subT, i) {
-        subT[i] *= 2.0;  // Modifies original memory
-    }
-}
-```
-
-> **📖 Explanation:** SubList ใช้สร้าง view เข้าไปในส่วนย่อยของข้อมูลโดยไม่ต้องคัดลอก (zero-copy) ทำให้สามารถประมวลผล subdomains ได้อย่างมีประสิทธิภาพ การแก้ไขข้อมูลใน SubList จะกระทบกับ memory ต้นทางโดยตรง
-
-> **🔑 Key Concepts:** SubList, Zero-Copy View, Subdomain Processing
-
----
-
-### 8.2 Indirect Addressing with UIndirectList
-
-```cpp
-// 📂 Source: src/OpenFOAM/containers/Lists/UIndirectList/UIndirectList.H
-void processIndirect(
-    const volVectorField& U,
-    const labelList& addressing
-) {
-    // ✅ Indirect list provides permuted view with reindexing
-    UIndirectList<vector> indirectU(U.primitiveField(), addressing);
-
-    // Process in access order
-    vector sum = Zero;
-    forAll(indirectU, i) {
-        sum += indirectU[i];  // Accesses U[addressing[i]]
-    }
-}
-```
-
-> **📖 Explanation:** UIndirectList ใช้สำหรับ indirect addressing โดยให้ view ที่ถูก reindex ตาม addressing array ทำให้สามารถเข้าถึงข้อมูลในลำดับที่ต้องการโดยไม่ต้อง reorganize ข้อมูลจริง มีประโยชน์ในการประมวลผลข้อมูลที่ถูก permute หรือ reorder
-
-> **🔑 Key Concepts:** UIndirectList, Indirect Addressing, Reindexing
-
----
-
-### 8.3 Memory Pooling for Temporary Fields
-
-```cpp
-// 📂 Source: src/OpenFOAM/containers/Lists/List/List.H
-class MemoryPool {
-    List<scalarField> pool_;  // Pool of reusable fields
-
-public:
-    scalarField& getTemporary(label size) {
-        // ✅ Reuse field from pool if available
-        forAll(pool_, i) {
-            if (pool_[i].size() == size) {
-                return pool_[i];
-            }
-        }
-
-        // ✅ Create new field and add to pool
-        pool_.append(scalarField(size, Zero));
-        return pool_.last();
-    }
-};
-```
-
-> **📖 Explanation:** Memory Pool pattern ใช้ reuse หน่วยความจำของ temporary fields เพื่อลดการจองและคืนหน่วยความจำซ้ำๆ โดยค้นหา field ที่มีขนาดตรงกันใน pool ก่อน และสร้าง field ใหม่เมื่อจำเป็น ช่วยลด allocation overhead ในการคำนวณ CFD
-
-> **🔑 Key Concepts:** Memory Pooling, Temporary Fields, Memory Reuse
-
----
-
-## 9. Complete Integrated CFD Solver Example
-
-Combining all container concepts in a simplified Navier-Stokes solver:
-
-```cpp
-// 📂 Source: applications/solvers/incompressible/simpleFoam/simpleFoam.C
-// Simplified Navier-Stokes solver
-void simpleFoamStep(
-    fvMesh& mesh,
-    volVectorField& U,
-    volScalarField& p,
-    scalar nu
-) {
-    // ✅ 1. Momentum prediction
-    fvVectorMatrix UEqn(fvm::ddt(U) + fvm::div(phi, U) - fvm::laplacian(nu, U));
-    UEqn.solve();
-
-    // ✅ 2. Pressure correction
-    surfaceScalarField phi = fvc::flux(U);
-    fvScalarMatrix pEqn(fvm::laplacian(p) == fvc::div(phi));
-    pEqn.setReference(pRefCell, pRefValue);
-    pEqn.solve();
-
-    // ✅ 3. Velocity correction
-    U = U - fvc::grad(p);
-    U.correctBoundaryConditions();
-
-    // ✅ 4. Continuity check
-    phi = fvc::flux(U);
-    scalar continuityError = fvc::div(phi)().weightedAverage(mesh.V()).value();
-
-    // ✅ All containers manage memory automatically throughout
-    // No manual cleanup required, even if exceptions occur
-}
-```
-
-> **📖 Explanation:** ตัวอย่าง solver แบบง่ายที่รวมทุก container concept ไว้ด้วยกัน โดยใช้ List สำหรับ field storage, PtrList สำหรับ boundary patch fields, และ tmp สำหรับ temporary fields ทุก container จัดการหน่วยความจำอัตโนมัติด้วย RAII ทำให้ไม่ต้อง cleanup เองแม้ว่าจะเกิด exceptions
-
-> **🔑 Key Concepts:** Integrated Solver, Momentum Equation, Pressure Correction, Continuity Check
-
-**End-to-End Container Flow:**
-1. **Field storage**: `List` containers store velocity and pressure data
-2. **Matrix composition**: `fvMatrix` uses containers for coefficients
-3. **Linear solving**: Solvers work on container data directly
-4. **Boundary updates**: `PtrList` manages patch field objects
-5. **Memory cleanup**: RAII guarantees no leaks, even with solver failure
-
----
-
-## 10. Performance Optimization
-
-### 10.1 SIMD Vectorization Benefits
-
-OpenFOAM containers are optimized for SIMD instruction sets:
-
-- **AVX-512 alignment**: Data aligned to 64-byte boundaries
-- **Compiler hints**: `forAll` macro provides vectorization hints
-- **Contiguous access**: Sequential memory access patterns
-- **Reduced indirection**: Direct pointer access minimizes cache misses
-
----
-
-### 10.2 Memory Efficiency Techniques
-
-```cpp
-// 📂 Source: src/OpenFOAM/containers/Lists/List/List.H
-void memoryOptimizations() {
-    // ✅ View pattern (no copying)
-    List<scalar> largeField(1000000);
-    SubList<scalar> subField(largeField, 100000);  // Zero-copy view
-
-    // ✅ Reference counting for shared data
-    tmp<List<scalar>> shared1 = createLargeField();
-    tmp<List<scalar>> shared2 = shared1;  // No copy, refCount=2
-
-    // ✅ Memory pooling for temporary fields
-    static List<scalarField> temporaryPool;  // Reuse allocations
-}
-```
-
-> **📖 Explanation:** เทคนิคการประหยัด memory: 1) View pattern ใช้ SubList สร้าง zero-copy views 2) Reference counting ใช้ tmp แชร์ข้อมูลโดยไม่คัดลอก 3) Memory pooling ใช้ static pool reuse allocations ทั้งหมดช่วยลด memory footprint และ allocation overhead
-
-> **🔑 Key Concepts:** Memory Optimization, Zero-Copy, Reference Counting, Memory Pooling
-
----
-
-### 10.3 Extreme Scale Performance
-
-For billion-cell simulations with thousands of processes:
-
-```cpp
-// 📂 Source: src/OpenFOAM/containers/Lists/List/List.H
-class ExtremeScaleSolver {
-    // For 1 billion cells:
-    // - Each field: 1B × 8 bytes = 8 GB (double precision)
-    // - Typical solver: 10-20 fields = 80-160 GB
-    // - Multiple processes: domain decomposition
-
-    // ✅ OpenFOAM containers enable extreme scale through:
-
-    // 1. Low per-field overhead
-    List<scalar> pressure_;      // 8 GB + 16 bytes
-    List<vector> velocity_;      // 24 GB + 16 bytes
-
-    // 2. Efficient parallel decomposition
-    List<label> cellProcAddressing_;  // Compact processor mapping
-
-    // 3. Efficient communication
-    PtrList<processorPolyPatch> procPatches_;  // MPI communication
-
-    // 4. Memory-aware allocation
-    // Large contiguous blocks reduce fragmentation
-    // Aligned allocation enables efficient SIMD
-
-    // 5. View patterns for subdomain operations
-    // UList views enable zero-copy parallel operations
-};
-```
-
-> **📖 Explanation:** OpenFOAM containers รองรับ extreme scale simulations ได้ด้วย: 1) Per-field overhead ต่ำมาก (16 bytes) 2) Efficient parallel decomposition 3) Efficient MPI communication 4) Large contiguous blocks ลด fragmentation 5) Zero-copy views สำหรับ parallel operations
-
-> **🔑 Key Concepts:** Extreme Scale, Billion-Cell Simulations, Parallel Decomposition, Memory Efficiency
-
----
-
-## 11. Modern C++ Integration
-
-OpenFOAM containers integrate with modern C++ while maintaining CFD performance:
-
-```cpp
-// 📂 Source: src/OpenFOAM/containers/Lists/List/List.H
-void modernCppIntegration() {
-    // ✅ Move semantics for large field ownership
-    List<vector> createVelocityField() {
-        List<vector> field(1000000);
-        // Initialize...
-        return field;  // Move, not copy
-    }
-
-    // ✅ Automatic type deduction
-    auto& pressureField = mesh.lookupObject<volScalarField>("p");
-
-    // ✅ Range-based loops (with optimization)
-    for (const auto& celli : mesh.cells()) {
-        // Optimized iteration
-    }
-
-    // ✅ Lambda expressions with containers
-    auto processor = [](List<scalar>& field) {
-        field *= 2.0;  // Auto-vectorization possible
-    };
-
-    // ✅ Type traits for template programming
-    static_assert(std::is_same_v<label, int32_t>, "Check label type");
-}
-```
-
-> **📖 Explanation:** OpenFOAM containers ผนวกกับ Modern C++ features: move semantics สำหรับ efficient ownership transfer, auto type deduction, range-based for loops, lambda expressions และ type traits ทั้งหมดนี้ช่วยให้ code กระชับและ maintainable มากขึ้น
-
-> **🔑 Key Concepts:** Modern C++, Move Semantics, Auto Deduction, Range-based Loops, Lambdas
-
-**Benefits of Modern C++ Integration:**
-- **Move semantics**: Efficient ownership transfer for large fields
-- **Exception safety**: Strong guarantees in exception-rich algorithms
-- **Cleaner code**: RAII eliminates manual cleanup code
-- **Compiler optimization**: Type deduction and range-based for loops
-- **Template metaprogramming**: Type-safe generic programming
-
----
-
-## 12. Summary
-
-The OpenFOAM container system provides:
-
-1. **CFD-optimized data structures** specialized for computational fluid dynamics workloads
-2. **Memory efficiency** through zero-copy views, reference counting, and stack allocation
-3. **Performance optimization** via SIMD alignment, cache-friendly layouts, and efficient growth policies
-4. **Seamless integration** with OpenFOAM's memory management system
-5. **Exception safety** through RAII patterns throughout all containers
-6. **Scalability** to billion-cell, multi-process simulations
-
-The container system is not just a data storage layer—it's an enabling technology for high-performance, robust CFD computations.
-
----
-
-## References
-
-- OpenFOAM Source Code: `src/OpenFOAM/containers/`
-- Memory Management: [[02_Memory_Management]]
-- Integration Guide: [[04_Integration]]
-
----
+ระบบคอนเทนเนอร์ไม่ใช่แค่ชั้นจัดเก็บข้อมูล แต่เป็นเทคโนโลยีสำคัญที่ช่วยให้การคำนวณ CFD มีประสิทธิภาพสูงและแข็งแกร่ง

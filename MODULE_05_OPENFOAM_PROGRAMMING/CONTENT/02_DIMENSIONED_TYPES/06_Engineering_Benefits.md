@@ -1,8 +1,8 @@
-# 🎯 Engineering Benefits: Advanced Applications
+# 🎯 ประโยชน์เชิงวิศวกรรม: แอปพลิเคชันขั้นสูง (Engineering Benefits: Advanced Applications)
 
-## Extensible Dimension System with Plugin Architecture
+## ระบบมิติที่ขยายได้พร้อมสถาปัตยกรรมปลั๊กอิน (Extensible Dimension System with Plugin Architecture)
 
-OpenFOAM's dimension system extends far beyond the basic seven dimensions through a sophisticated plugin architecture that enables custom physics models while maintaining strict dimensional consistency.
+ระบบมิติของ OpenFOAM ขยายขอบเขตไปไกลกว่ามิติพื้นฐานทั้งเจ็ดผ่านสถาปัตยกรรมปลั๊กอินที่ซับซ้อน ช่วยให้สามารถสร้างแบบจำลองฟิสิกส์แบบกำหนดเองได้ในขณะที่ยังคงความสอดคล้องทางมิติอย่างเข้มงวด
 
 ```mermaid
 flowchart TD
@@ -24,27 +24,27 @@ flowchart TD
     style G fill:#e8f5e9
     style H fill:#e8f5e9
 ```
-> **Figure 1:** สถาปัตยกรรมปลั๊กอินทางฟิสิกส์ที่รองรับการตรวจสอบความสอดคล้องของมิติทั้งในระดับคอมไพล์และรันไทม์ เพื่อให้สามารถขยายขีดความสามารถของโปรแกรมได้อย่างปลอดภัย
+> **รูปที่ 1:** สถาปัตยกรรมปลั๊กอินทางฟิสิกส์ที่รองรับการตรวจสอบความสอดคล้องของมิติทั้งในระดับคอมไพล์และรันไทม์ เพื่อให้สามารถขยายขีดความสามารถของโปรแกรมได้อย่างปลอดภัย
 
-This extensible framework allows researchers and engineers to incorporate domain-specific physics with compile-time and runtime dimensional consistency checks.
+กรอบการทำงานที่ขยายได้นี้ช่วยให้นักวิจัยและวิศวกรสามารถรวมฟิสิกส์เฉพาะด้านเข้ากับระบบที่มีการตรวจสอบความสอดคล้องทางมิติทั้งในเวลาคอมไพล์และเวลาทำงาน
 
-### Base Plugin Class with Dimensional Validation
+### คลาสฐานปลั๊กอินพร้อมการตรวจสอบความถูกต้องทางมิติ
 
 ```cpp
-// Base class for physics plugins with dimensional checking
+// คลาสฐานสำหรับปลั๊กอินฟิสิกส์พร้อมการตรวจสอบมิติ
 class PhysicsPlugin
 {
 public:
     virtual ~PhysicsPlugin() = default;
 
-    // Pure virtual method with dimensional constraints
+    // เมธอดเสมือนบริสุทธิ์พร้อมข้อจำกัดทางมิติ
     virtual dimensionedScalar compute(
         const dimensionedScalar& input,
         const dimensionSet& expectedDimensions
     ) const = 0;
 
 protected:
-    // Helper for dimension validation
+    // ตัวช่วยสำหรับการตรวจสอบมิติ
     void validateDimensions(
         const dimensionSet& actual,
         const dimensionSet& expected,
@@ -62,18 +62,18 @@ protected:
     }
 };
 
-// Custom turbulence model plugin
+// ปลั๊กอินแบบจำลองความปั่นป่วนแบบกำหนดเอง
 class CustomTurbulenceModel : public PhysicsPlugin
 {
 public:
     dimensionedScalar compute(
-        const dimensionedScalar& k,  // Turbulent kinetic energy
+        const dimensionedScalar& k,  // พลังงานจลน์ความปั่นป่วน
         const dimensionSet& expectedDimensions
     ) const override
     {
         validateDimensions(k.dimensions(), dimVelocity*dimVelocity, "CustomTurbulenceModel");
 
-        // Dimensionally-safe computation
+        // การคำนวณที่ปลอดภัยทางมิติ
         dimensionedScalar epsilon = 0.09 * pow(k, 1.5) / lengthScale_;
         validateDimensions(epsilon.dimensions(), expectedDimensions, "compute");
 
@@ -85,30 +85,28 @@ private:
 };
 ```
 
-> **📖 คำอธิบาย (Source Explanation):**
-> โค้ดตัวอย่างนี้สาธิตประโยชน์ทางวิศวกรรมของระบบปลั๊กอินที่มีการตรวจสอบเชิงมิติ (dimensional checking) ซึ่งช่วยให้สามารถสร้างแบบจำลองทางฟิสิกส์ที่กำหนดเองได้อย่างปลอดภัย โดยมีหลักการทำงานดังนี้:
+> **📖 คำอธิบาย:**
+> โค้ดตัวอย่างนี้สาธิตประโยชน์ทางวิศวกรรมของระบบปลั๊กอินที่มีการตรวจสอบเชิงมิติ (Dimensional checking) ซึ่งช่วยให้สามารถสร้างแบบจำลองทางฟิสิกส์ที่กำหนดเองได้อย่างปลอดภัย โดยมีหลักการทำงานดังนี้:
 > 
-> - **PhysicsPlugin (คลาสพื้นฐาน):** เป็น abstract base class ที่กำหนดสัญญา (contract) สำหรับการตรวจสอบเชิงมิติผ่านเมธอด `validateDimensions()` เพื่อให้แน่ใจว่าทุก derived class ต้องปฏิบัติตามกฎเชิงมิติเดียวกัน
-> - **CustomTurbulenceModel (คลาส derivative):** เป็นตัวอย่างการนำไปประยุกต์ใช้กับโมเดลความปั่นป่วน (turbulence model) โดยมีการตรวจสอบว่า:
+> - **PhysicsPlugin (คลาสพื้นฐาน):** เป็น abstract base class ที่กำหนดสัญญา (Contract) สำหรับการตรวจสอบเชิงมิติผ่านเมธอด `validateDimensions()` เพื่อให้แน่ใจว่าทุก derived class ต้องปฏิบัติตามกฎเชิงมิติเดียวกัน
+> - **CustomTurbulenceModel (คลาสลูก):** เป็นตัวอย่างการนำไปประยุกต์ใช้กับแบบจำลองความปั่นป่วน (Turbulence model) โดยมีการตรวจสอบว่า:
 >   - พลังงานจลน์ความปั่นป่วน `k` มีมิติเป็น `velocity²` จริง
 >   - อัตราการสลายตัวของพลังงานจลน์ `ε` ที่คำนวณได้มีมิติตรงตามที่คาดหวัง
-> - **Error Prevention:** ระบบจะแจ้ง error ทันทีหากมีความไม่สอดคล้องของมิติ (dimension mismatch) เพื่อป้องกันบั๊กที่อาจเกิดขึ้นในการคำนวณทางฟิสิกส์
+> - **Error Prevention:** ระบบจะแจ้งข้อผิดพลาดทันทีหากมีความไม่สอดคล้องของมิติ (Dimension mismatch) เพื่อป้องกันบั๊กที่อาจเกิดขึ้นในการคำนวณทางฟิสิกส์
 > 
-> การออกแบบเช่นนี้ช่วยให้นักพัฒนาสามารถเพิ่มฟิสิกส์ใหม่ๆ ได้โดยที่มั่นใจว่าจะมีการตรวจสอบความสอดคล้องทางฟิสิกส์อัตโนมัติทั้งในขั้นตอน compile และ runtime
-> 
-> **แหล่งที่มา:** เนื้อหานี้เป็นแนวคิดการออกแบบที่ใช้หลักการของ OpenFOAM dimension system แต่เป็นตัวอย่างทางการศึกษา (educational example) ที่อธิบายแนวคิดการใช้งานจริง
+> การออกแบบเช่นนี้ช่วยให้นักพัฒนาสามารถเพิ่มฟิสิกส์ใหม่ๆ ได้โดยที่มั่นใจว่าจะมีการตรวจสอบความสอดคล้องทางฟิสิกส์อัตโนมัติทั้งในขั้นตอนคอมไพล์และรันไทม์
 
-The plugin architecture enforces dimensional consistency through an inheritance hierarchy where the base class defines dimensional contracts that derived classes must fulfill.
+สถาปัตยกรรมปลั๊กอินบังคับใช้ความสอดคล้องทางมิติผ่านลำดับชั้นการสืบทอดที่คลาสฐานกำหนดสัญญาทางมิติซึ่งคลาสลูกต้องปฏิบัติตาม
 
-> [!TIP] **Implementation Benefit**: This design prevents implementation bugs where dimensional analysis would catch physical inconsistencies that might manifest as incorrect simulation results.
+> [!TIP] **ประโยชน์ในการนำไปใช้**: การออกแบบนี้ช่วยป้องกันบั๊กจากการนำไปใช้งานจริง โดยการวิเคราะห์มิติจะช่วยตรวจจับความไม่สอดคล้องทางฟิสิกส์ซึ่งอาจแสดงออกมาเป็นผลลัพธ์การจำลองที่ไม่ถูกต้อง
 
----
+--- 
 
-## Multi-Physics Coupling with Automatic Unit Conversion
+## การเชื่อมโยงหลายฟิสิกส์พร้อมการแปลงหน่วยอัตโนมัติ (Multi-Physics Coupling with Automatic Unit Conversion)
 
-### Cross-Disciplinary Dimension System
+### ระบบมิติข้ามสาขาวิชา (Cross-Disciplinary Dimension System)
 
-Modern CFD simulations involve increasingly multi-physics scenarios where different physical domains interact through interface conditions.
+การจำลอง CFD สมัยใหม่เกี่ยวข้องกับสถานการณ์หลายฟิสิกส์มากขึ้นเรื่อยๆ ซึ่งโดเมนทางกายภาพที่แตกต่างกันจะโต้ตอบกันผ่านเงื่อนไขส่วนต่อประสาน (Interface conditions)
 
 ```mermaid
 flowchart LR
@@ -125,27 +123,27 @@ flowchart LR
     style D fill:#e8f5e9
     style E fill:#e8f5e9
 ```
-> **Figure 2:** ระบบการจัดการมิติข้ามสาขาวิชา (Cross-Disciplinary Dimension System) สำหรับการจำลองแบบหลายฟิสิกส์ (Multi-physics) ซึ่งรองรับการแปลงหน่วยโดยอัตโนมัติระหว่างโดเมนต่างๆ
+> **รูปที่ 2:** ระบบการจัดการมิติข้ามสาขาวิชา (Cross-Disciplinary Dimension System) สำหรับการจำลองแบบหลายฟิสิกส์ (Multi-physics) ซึ่งรองรับการแปลงหน่วยโดยอัตโนมัติระหว่างโดเมนต่างๆ
 
-OpenFOAM's dimensional analysis naturally extends to these complex scenarios through a framework for handling cross-disciplinary dimensions and automatic unit conversion.
+การวิเคราะห์มิติของ OpenFOAM ขยายไปสู่สถานการณ์ที่ซับซ้อนเหล่านี้โดยธรรมชาติผ่านกรอบการทำงานสำหรับการจัดการมิติข้ามสาขาวิชาและการแปลงหน่วยโดยอัตโนมัติ
 
-### Multi-Physics Dimension Implementation
+### การนำมิติหลายฟิสิกส์ไปใช้งาน
 
 ```cpp
-// Multi-physics dimension system
+// ระบบมิติสำหรับหลายฟิสิกส์
 class MultiPhysicsDimensionSet : public dimensionSet
 {
 public:
-    // Additional dimensions for different physics
+    // มิติเพิ่มเติมสำหรับฟิสิกส์ที่แตกต่างกัน
     enum MultiPhysicsDimensionType
     {
-        ELECTRIC_POTENTIAL = nDimensions,  // Volts
-        MAGNETIC_FIELD,                    // Tesla
-        RADIATION_DOSE,                    // Gray
+        ELECTRIC_POTENTIAL = nDimensions,  // โวลต์
+        MAGNETIC_FIELD,                    // เทสลา
+        RADIATION_DOSE,                    // เกรย์
         nMultiPhysicsDimensions
     };
 
-    // Conversion between domain-specific dimensions
+    // การแปลงระหว่างมิติเฉพาะโดเมน
     static dimensionSet convert(
         const dimensionSet& from,
         const UnitSystem& fromSystem,
@@ -154,7 +152,7 @@ public:
     {
         dimensionSet result = from;
 
-        // Apply conversion factors based on unit system
+        // ประยุกต์ใช้ตัวคูณการแปลงตามระบบหน่วย
         for (int i = 0; i < nDimensions; i++)
         {
             result[i] *= fromSystem.conversionFactor(i) / toSystem.conversionFactor(i);
@@ -165,27 +163,20 @@ public:
 };
 ```
 
-> **📖 คำอธิบาย (Source Explanation):**
-> โค้ดตัวอย่างนี้แสดงให้เห็นถึงความสามารถในการขยายระบบมิติของ OpenFOAM เพื่อรองรับการจำลองแบบหลายฟิสิกส์ (multi-physics simulations) โดยมีแนวคิดหลักดังนี้:
+> **📖 คำอธิบาย:**
+> โค้ดตัวอย่างนี้แสดงให้เห็นถึงความสามารถในการขยายระบบมิติของ OpenFOAM เพื่อรองรับการจำลองแบบหลายฟิสิกส์ (Multi-physics simulations) โดยมีแนวคิดหลักดังนี้:
 > 
-> - **Multi-Physics Dimension Types:** การเพิ่มมิติใหม่ๆ เข้าไปในระบบนอกเหนือจาก 7 มิติพื้นฐาน (Mass, Length, Time, Temperature, Current, Amount, Intensity) เช่น:
+> - **Multi-Physics Dimension Types:** การเพิ่มมิติใหม่ๆ เข้าไปในระบบนอกเหนือจาก 7 มิติพื้นฐาน (มวล, ความยาว, เวลา, อุณหภูมิ, กระแสไฟฟ้า, ปริมาณสาร, ความเข้มแสง) เช่น:
 >   - `ELECTRIC_POTENTIAL` (ศักย์ไฟฟ้า - Volts)
 >   - `MAGNETIC_FIELD` (สนามแม่เหล็ก - Tesla)
 >   - `RADIATION_DOSE` (ปริมาณรังสี - Gray)
 > - **Unit Conversion Framework:** เมธอด `convert()` ให้บริการแปลงหน่วยระหว่างระบบหน่วยที่ต่างกัน (เช่น SI ↔ Imperial) โดยอัตโนมัติ พร้อมทั้งรักษาความถูกต้องของมิติ
 > - **Extensibility:** การออกแบบแบบ inheritance จาก `dimensionSet` ช่วยให้สามารถเพิ่มมิติใหม่ๆ ได้โดยไม่กระทบต่อระบบเดิม
-> 
-> แนวคิดนี้มีประโยชน์อย่างมากในการจำลองแบบที่ซับซ้อนเช่น:
-> - **MHD (Magnetohydrodynamics):** การไหลของของไหลตัวนำไฟฟ้าในสนามแม่เหล็ก
-> - **Electrohydrodynamics:** ปฏิสัมพันธ์ระหว่างสนามไฟฟ้าและการไหลของของไหล
-> - **Fluid-Structure Interaction:** การปฏิสัมพันธ์ระหว่างของไหลและโครงสร้าง
-> 
-> **แหล่งที่มา:** เนื้อหานี้เป็นแนวคิดการออกแบบที่ใช้หลักการของ OpenFOAM dimension system แต่เป็นตัวอย่างทางการศึกษา (educational example) ที่อธิบายแนวคิดการใช้งานจริง
 
-### Fluid-Structure Interaction Coupling
+### การเชื่อมโยงปฏิสัมพันธ์ระหว่างของไหลและโครงสร้าง (Fluid-Structure Interaction Coupling)
 
 ```cpp
-// Fluid-structure coupling with automatic conversion
+// การเชื่อมโยงของไหลและโครงสร้างพร้อมการแปลงอัตโนมัติ
 class FSICoupler
 {
 public:
@@ -194,20 +185,20 @@ public:
         volVectorField& structuralDisplacement  // [m]
     )
     {
-        // Automatic dimension checking and conversion
+        // การตรวจสอบมิติและการแปลงอัตโนมัติ
         dimensionSet forceDims = fluidForce.dimensions();
         dimensionSet displacementDims = structuralDisplacement.dimensions();
 
-        // Physical consistency check
+        // การตรวจสอบความสอดคล้องทางฟิสิกส์
         if (forceDims != dimForce/dimVolume)
         {
             FatalErrorInFunction << "Fluid force has wrong dimensions" << abort(FatalError);
         }
 
-        // Dimensionally-safe computation
+        // การคำนวณที่ปลอดภัยทางมิติ
         structuralDisplacement = complianceTensor_ & fluidForce;
 
-        // Verify result dimensions
+        // ยืนยันมิติของผลลัพธ์
         if (structuralDisplacement.dimensions() != dimLength)
         {
             FatalErrorInFunction << "Displacement dimension error" << abort(FatalError);
@@ -223,42 +214,35 @@ private:
 };
 ```
 
-> **📖 คำอธิบาย (Source Explanation):**
-> โค้ดนี้สาธิตการประยุกต์ใช้ระบบมิติในการจำลองแบบ Fluid-Structure Interaction (FSI) ซึ่งเป็นปัญหา multi-physics ที่พบบ่อยในวิศวกรรม โดยมีหลักการสำคัญดังนี้:
+> **📖 คำอธิบาย:**
+> โค้ดนี้สาธิตการประยุกต์ใช้ระบบมิติในการจำลองแบบ Fluid-Structure Interaction (FSI) ซึ่งเป็นปัญหาหลายฟิสิกส์ที่พบบ่อยในวิศวกรรม โดยมีหลักการสำคัญดังนี้:
 > 
-> - **Interface Coupling:** การเชื่อมโยงระหว่างโดเมนของไหล (Fluid Domain) และโดเมนโครงสร้าง (Structural Domain) ผ่านเงื่อนไขขอบเขต (interface conditions)
+> - **Interface Coupling:** การเชื่อมโยงระหว่างโดเมนของไหล (Fluid Domain) และโดเมนโครงสร้าง (Structural Domain) ผ่านเงื่อนไขขอบเขต
 > - **Dimensional Consistency:** การตรวจสอบว่า:
 >   - แรงจากของไหล (`fluidForce`) มีมิติเป็น `Force/Volume` [N/m³]
 >   - การกระจัดของโครงสร้าง (`structuralDisplacement`) มีมิติเป็น `Length` [m]
 > - **Compliance Tensor:** เทนเซอร์ความยืดหยุ่น (`complianceTensor_`) ที่มีมิติ `[m/N]` ใช้แปลงแรงเป็นการกระจัด
-> 
-> การประยุกต์ใช้งานจริง:
-> - **Aerospace:** การสั่นของปีกเครื่องบิน (aeroelasticity)
-> - **Civil Engineering:** การโกลนของสะพานหรือตึกสูงจากลม
-> - **Biomedical:** การไหลของเลือดในเส้นเลือดที่มีความยืดหยุ่น
-> 
-> **แหล่งที่มา:** เนื้อหานี้เป็นแนวคิดการออกแบบที่ใช้หลักการของ OpenFOAM dimension system แต่เป็นตัวอย่างทางการศึกษา (educational example) ที่อธิบายแนวคิดการใช้งานจริง
 
-The multi-physics coupling framework ensures that interface conditions between different physical domains maintain dimensional consistency.
+กรอบการทำงานการเชื่อมโยงหลายฟิสิกส์ช่วยให้มั่นใจได้ว่าเงื่อนไขส่วนต่อประสานระหว่างโดเมนทางกายภาพที่แตกต่างกันจะรักษาความสอดคล้องทางมิติไว้ได้
 
-| **Coupling Type** | **Physics Domains** | **Interface Dimensions** | **Unit Conversion** |
+| **ประเภทการเชื่อมโยง** | **โดเมนฟิสิกส์** | **มิติที่ส่วนต่อประสาน** | **การแปลงหน่วย** |
 |------------------|---------------------|--------------------------|---------------------|
-| FSI | Fluid-Structural | Force/Volume ↔ Displacement | Automatic |
-| MHD | Magnetohydrodynamic | Velocity ↔ Magnetic Field | Automatic |
-| Thermal-fluid | Thermal-Fluid | Temperature ↔ Pressure | Automatic |
+| FSI | ของไหล-โครงสร้าง | แรง/ปริมาตร ↔ การกระจัด | อัตโนมัติ |
+| MHD | แมกนีโตไฮโดรไดนามิก | ความเร็ว ↔ สนามแม่เหล็ก | อัตโนมัติ |
+| Thermal-fluid | ความร้อน-ของไหล | อุณหภูมิ ↔ ความดัน | อัตโนมัติ |
 
-This is particularly important in applications such as **Magnetohydrodynamics**, **Electrohydrodynamics**, and **Fluid-Structure Interaction** where different physical quantities must be properly balanced at interfaces.
+สิ่งนี้มีความสำคัญอย่างยิ่งในการประยุกต์ใช้งาน เช่น **แมกนีโตไฮโดรไดนามิก (Magnetohydrodynamics)**, **อิเล็กโทรไฮโดรไดนามิก (Electrohydrodynamics)** และ **ปฏิสัมพันธ์ระหว่างของไหลและโครงสร้าง (Fluid-Structure Interaction)** ซึ่งปริมาณทางกายภาพที่แตกต่างกันจะต้องได้รับการปรับสมดุลอย่างเหมาะสมที่ส่วนต่อประสาน
 
----
+--- 
 
-## Code Generation and DSL Integration
+## การสร้างโค้ดและการบูรณาการ DSL (Code Generation and DSL Integration)
 
-### Domain-Specific Language for Dimensioned Equations
+### ภาษเฉพาะโดเมนสำหรับสมการที่มีมิติ (Domain-Specific Language for Dimensioned Equations)
 
-OpenFOAM's dimensional analysis capabilities extend to code generation and Domain-Specific Language (DSL) integration, allowing users to express complex physical relationships in natural syntax while maintaining compile-time dimensional safety.
+ความสามารถในการวิเคราะห์มิติของ OpenFOAM ขยายไปถึงการสร้างโค้ดและการบูรณาการภาษาเฉพาะโดเมน (DSL) ช่วยให้ผู้ใช้สามารถแสดงความสัมพันธ์ทางกายภาพที่ซับซ้อนในไวยากรณ์ที่เป็นธรรมชาติในขณะที่ยังคงความปลอดภัยทางมิติในเวลาคอมไพล์
 
 ```cpp
-// DSL for dimensionally-safe equation definition
+// DSL สำหรับการนิยามสมการที่ปลอดภัยทางมิติ
 class EquationDSL
 {
 public:
@@ -273,7 +257,7 @@ public:
         if (terms_.empty())
             return dimensionedScalar();
 
-        // Check that all terms have the same dimensions
+        // ตรวจสอบว่าทุกพจน์มีมิติเดียวกัน
         dimensionSet expectedDims = terms_[0].dimensions();
         for (const auto& term : terms_)
         {
@@ -285,7 +269,7 @@ public:
             }
         }
 
-        // Sum terms
+        // รวมพจน์ต่างๆ
         dimensionedScalar result = terms_[0];
         for (size_t i = 1; i < terms_.size(); i++)
             result += terms_[i];
@@ -298,68 +282,53 @@ private:
 };
 ```
 
-> **📖 คำอธิบาย (Source Explanation):**
+> **📖 คำอธิบาย:**
 > โค้ดตัวอย่างนี้แสดงให้เห็นถึงความสามารถในการสร้าง Domain-Specific Language (DSL) สำหรับนิพจน์ทางฟิสิกส์ที่มีการตรวจสอบเชิงมิติแบบอัตโนมัติ โดยมีแนวคิดหลักดังนี้:
 > 
-> - **Stream-based Syntax:** การใช้ operator `<<` ทำให้สามารถเขียนสมการในรูปแบบที่ใกล้เคียงกับสัญลักษณ์ทางคณิตศาสตร์ (natural syntax)
-> - **Automatic Dimension Checking:** ก่อนทำการดำเนินการใดๆ ระบบจะตรวจสอบว่าทุกเทอม (term) มีมิติเหมือนกัน ซึ่งเป็นการประยุกต์หลักการ Dimensional Homogeneity
-> - **Type Safety:** ข้อผิดพลาดทางมิติจะถูกตรวจพบในขั้นตอน compile-time และ runtime ทำให้ลดโอกาสเกิดบั๊กในการคำนวณ
-> 
-> ประโยชน์ของการออกแบบเช่นนี้:
-> - **Improved Readability:** โค้ดอ่านง่ายและใกล้เคียงกับสมการทางฟิสิกส์
-> - **Error Prevention:** การตรวจสอบมิติอัตโนมัติป้องกันข้อผิดพลาดทั่วไป
-> - **Maintainability:** ง่ายต่อการบำรุงรักษาและขยายความสามารถ
-> 
-> **แหล่งที่มา:** เนื้อหานี้เป็นแนวคิดการออกแบบที่ใช้หลักการของ OpenFOAM dimension system แต่เป็นตัวอย่างทางการศึกษา (educational example) ที่อธิบายแนวคิดการใช้งานจริง
+> - **Stream-based Syntax:** การใช้ตัวดำเนินการ `<<` ทำให้สามารถเขียนสมการในรูปแบบที่ใกล้เคียงกับสัญลักษณ์ทางคณิตศาสตร์
+> - **Automatic Dimension Checking:** ก่อนดำเนินการใดๆ ระบบจะตรวจสอบว่าทุกพจน์ (Term) มีมิติเหมือนกัน ซึ่งเป็นการประยุกต์หลักการความเป็นเอกพันธุ์ทางมิติ (Dimensional Homogeneity)
+> - **Type Safety:** ข้อผิดพลาดทางมิติจะถูกตรวจพบในขั้นตอนคอมไพล์และรันไทม์ ทำให้ลดโอกาสเกิดบั๊กในการคำนวณ
 
-### Natural Syntax Usage
+### การใช้งานไวยากรณ์ที่เป็นธรรมชาติ
 
 ```cpp
-// Natural syntax with automatic dimensional checking
+// ไวยากรณ์ที่เป็นธรรมชาติพร้อมการตรวจสอบมิติอัตโนมัติ
 dimensionedScalar p, rho, uSqr;
 EquationDSL eqn;
-eqn << p << 0.5*rho*uSqr;  // Bernoulli equation with automatic dimensional checking
+eqn << p << 0.5*rho*uSqr;  // สมการแบร์นุลลีพร้อมการตรวจสอบมิติอัตโนมัติ
 dimensionedScalar totalPressure = eqn.solve();
 ```
 
-> **📖 คำอธิบาย (Source Explanation):**
-> ตัวอย่างนี้แสดงการประยุกต์ใช้ DSL กับสมการ Bernoulli ซึ่งเป็นหนึ่งในสมการพื้นฐานของกลศาสตร์ของไหล โดยมีความสำคัญดังนี้:
+> **📖 คำอธิบาย:**
+> ตัวอย่างนี้แสดงการประยุกต์ใช้ DSL กับสมการแบร์นุลลี (Bernoulli equation) ซึ่งเป็นหนึ่งในสมการพื้นฐานของกลศาสตร์ของไหล โดยมีความสำคัญดังนี้:
 > 
 > - **Bernoulli Equation:** `p + ½ρu² = constant` แสดงถึงการอนุรักษ์พลังงานตามแนวเส้นกระแส
->   - `p`: ความดันสถิต [Pa] = [kg/(m·s²)]
+>   - `p`: ความดันสถิต [Pa]
 >   - `ρ`: ความหนาแน่น [kg/m³]
 >   - `u²`: กำลังสองของความเร็ว [m²/s²]
->   - `½ρu²`: ความดันพลวัต [kg/(m·s²)]
-> - **Dimensional Consistency:** DSL จะตรวจสอบอัตโนมัติว่าทุกเทอมมีมิติเป็น [Pressure] เหมือนกัน
-> - **Natural Expression:** ไวยากรณ์ที่ใกล้เคียงกับสมการทางคณิตศาสตร์ทำให้อ่านและเข้าใจได้ง่าย
-> 
-> การประยุกต์ใช้งาน:
-> - **Aerodynamics:** การคำนวณความดันรอบปีกเครื่องบิน
-> - **Hydraulics:** การวิเคราะห์การไหลในท่อ
-> - **Wind Engineering:** การประเมินแรงลมบนโครงสร้าง
-> 
-> **แหล่งที่มา:** เนื้อหานี้เป็นแนวคิดการออกแบบที่ใช้หลักการของ OpenFOAM dimension system แต่เป็นตัวอย่างทางการศึกษา (educational example) ที่อธิบายแนวคิดการใช้งานจริง
+>   - `½ρu²`: ความดันพลวัต [Pa]
+> - **Dimensional Consistency:** DSL จะตรวจสอบอัตโนมัติว่าทุกพจน์มีมิติเป็น [ความดัน] เหมือนกัน
 
-This DSL approach allows users to express physical equations in a form close to mathematical notation while automatically verifying dimensional consistency.
+แนวทาง DSL นี้ช่วยให้ผู้ใช้สามารถแสดงสมการทางฟิสิกส์ในรูปแบบที่ใกล้เคียงกับสัญกรณ์ทางคณิตศาสตร์ในขณะที่ตรวจสอบความสอดคล้องทางมิติโดยอัตโนมัติ
 
-The framework extends to support:
-- **Complex tensor operations**
-- **Differential operators**
-- **Boundary condition specifications**
+กรอบการทำงานนี้ขยายขอบเขตเพื่อรองรับ:
+- **การดำเนินการเทนเซอร์ที่ซับซ้อน**
+- **ตัวดำเนินการอนุพันธ์**
+- **การกำหนดเงื่อนไขขอบเขต**
 
-All with embedded dimensional checking.
+ทั้งหมดนี้มาพร้อมกับการตรวจสอบทางมิติในตัว
 
-### Template-Based Code Generation
+### การสร้างโค้ดตามเทมเพลต (Template-Based Code Generation)
 
-Template metaprogramming enables automatic generation of dimensionally-safe code for generic field operations, reducing boilerplate while maintaining strict dimensional checking.
+เทมเพลตเมตาโปรแกรมมิ่งช่วยให้สามารถสร้างโค้ดที่ปลอดภัยทางมิติโดยอัตโนมัติสำหรับการดำเนินการฟิลด์ทั่วไป ช่วยลดโค้ดซ้ำซ้อนในขณะที่ยังคงการตรวจสอบทางมิติที่เข้มงวด
 
 ```cpp
-// Code generator for dimensionally-safe field operations
+// เครื่องกำเนิดโค้ดสำหรับการดำเนินการฟิลด์ที่ปลอดภัยทางมิติ
 template<class FieldType>
 class FieldOperationGenerator
 {
 public:
-    // Generate code for field operations with dimensional checking
+    // สร้างโค้ดสำหรับการดำเนินการฟิลด์พร้อมการตรวจสอบมิติ
     std::string generate(
         const std::string& operation,
         const FieldType& field1,
@@ -368,27 +337,29 @@ public:
     {
         std::stringstream code;
 
-        code << "// Generated code for " << operation << "\n";
+        code << "// โค้ดที่สร้างขึ้นสำหรับ " << operation << "\n";
         code << "{\n";
-        code << "    // Dimension check\n";
+        code << "    // การตรวจสอบมิติ\n";
         code << "    if (" << field1.name() << ".dimensions() != "
-             << field2.name() << ".dimensions())\n";
+             << field2.name() << ".dimensions())
+";
         code << "    {\n";
         code << "        FatalErrorInFunction\n";
-        code << "            << \"Dimension mismatch in " << operation << "\"\n";
+        code << "            << \"Dimension mismatch in " << operation << \"\"\n";
         code << "            << abort(FatalError);\n";
         code << "    }\n";
         code << "    \n";
-        code << "    // Perform operation\n";
+        code << "    // ดำเนินการ\n";
         code << "    auto result = " << field1.name() << " " << operation
              << " " << field2.name() << ";\n";
         code << "    \n";
-        code << "    // Verify result dimensions\n";
+        code << "    // ตรวจสอบมิติของผลลัพธ์\n";
         code << "    if (result.dimensions() != " << field1.name()
-             << ".dimensions())\n";
+             << ".dimensions())
+";
         code << "    {\n";
         code << "        FatalErrorInFunction\n";
-        code << "            << \"Result dimension error in " << operation << "\"\n";
+        code << "            << \"Result dimension error in " << operation << \"\"\n";
         code << "            << abort(FatalError);\n";
         code << "    }\n";
         code << "    \n";
@@ -400,114 +371,84 @@ public:
 };
 ```
 
-> **📖 คำอธิบาย (Source Explanation):**
-> โค้ดตัวอย่างนี้แสดงให้เห็นถึงประโยชน์ของ Template Metaprogramming ในการสร้างโค้ดที่มีการตรวจสอบเชิงมิติโดยอัตโนมัติ โดยมีแนวคิดหลักดังนี้:
+> **📖 คำอธิบาย:**
+> โค้ดตัวอย่างนี้แสดงให้เห็นถึงประโยชน์ของเทมเพลตเมตาโปรแกรมมิ่งในการสร้างโค้ดที่มีการตรวจสอบเชิงมิติโดยอัตโนมัติ โดยมีแนวคิดหลักดังนี้:
 > 
-> - **Automatic Code Generation:** การสร้างโค้ดสำหรับการดำเนินการบน field ต่างๆ โดยอัตโนมัติ ซึ่งช่วยลดการเขียนโค้ดซ้ำ (boilerplate code)
-> - **Compile-Time Safety:** Template metaprogramming ทำให้การตรวจสอบเชิงมิติเกิดขึ้นในขั้นตอน compile-time ทำให้ไม่ส่งผลต่อประสิทธิภาพ runtime
-> - **Generic Programming:** สามารถใช้กับประเภท field ใดๆ ที่รองรับ dimensional checking
-> - **Three-Stage Validation:**
->   1. **Pre-operation check:** ตรวจสอบว่า input fields มีมิติตรงกัน
->   2. **Operation execution:** ดำเนินการตามที่ระบุ (+, -, *, /)
->   3. **Post-operation verification:** ตรวจสอบว่าผลลัพธ์มีมิติถูกต้อง
-> 
-> ประโยชน์ของการออกแบบเช่นนี้:
-> - **Reduced Development Time:** ลดเวลาในการเขียนและทดสอบโค้ด
-> - **Consistent Error Handling:** มั่นใจว่าทุก operation มีการตรวจสอบมิติอย่างสมบูรณ์
-> - **Maintainability:** ง่ายต่อการบำรุงรักษาและแก้ไขโค้ด
-> - **Performance:** ไม่มี overhead ที่ runtime เนื่องจากการตรวจสอบเกิดใน compile-time
-> 
-> **แหล่งที่มา:** เนื้อหานี้เป็นแนวคิดการออกแบบที่ใช้หลักการของ OpenFOAM dimension system แต่เป็นตัวอย่างทางการศึกษา (educational example) ที่อธิบายแนวคิดการใช้งานจริง
+> - **Automatic Code Generation:** การสร้างโค้ดสำหรับการดำเนินการบนฟิลด์ต่างๆ โดยอัตโนมัติ ซึ่งช่วยลดการเขียนโค้ดซ้ำ (Boilerplate code)
+> - **Compile-Time Safety:** เทมเพลตเมตาโปรแกรมมิ่งทำให้การตรวจสอบเชิงมิติเกิดขึ้นในขั้นตอนคอมไพล์ ทำให้ไม่ส่งผลต่อประสิทธิภาพขณะทำงาน
+> - **Generic Programming:** สามารถใช้กับประเภทฟิลด์ใดๆ ที่รองรับการตรวจสอบมิติ
 
-The code generation framework produces highly optimized and dimensionally-safe code that maintains OpenFOAM's performance characteristics.
+กรอบการทำงานการสร้างโค้ดจะผลิตโค้ดที่ได้รับการปรับปรุงประสิทธิภาพสูงสุดและปลอดภัยทางมิติ ซึ่งรักษาลักษณะประสิทธิภาพของ OpenFOAM ไว้ได้
 
-**Benefits:**
-- ✅ Eliminates common sources of dimensional errors
-- ✅ Comprehensive error checking
-- ✅ Customization for specific hardware architectures
-- ✅ Support for specialized numerical formats
+**ประโยชน์:**
+- ✅ กำจัดแหล่งที่มาทั่วไปของข้อผิดพลาดทางมิติ
+- ✅ การตรวจสอบข้อผิดพลาดที่ครอบคลุม
+- ✅ การปรับแต่งสำหรับสถาปัตยกรรมฮาร์ดแวร์เฉพาะ
+- ✅ รองรับรูปแบบตัวเลขเฉพาะทาง
 
----
+--- 
 
-## Framework Extension and Maintenance
+## การขยายกรอบการทำงานและการบำรุงรักษา (Framework Extension and Maintenance)
 
-### Version-Safe Dimension System Development
+### การพัฒนาระบบมิติที่ปลอดภัยตามเวอร์ชัน (Version-Safe Dimension System Development)
 
-OpenFOAM's dimensional analysis framework supports evolutionary development through versioned dimension systems that maintain backward compatibility while enabling extension to new physics domains.
+กรอบการทำงานการวิเคราะห์มิติของ OpenFOAM รองรับการพัฒนาแบบวิวัฒนาการผ่านระบบมิติที่มีการระบุเวอร์ชัน ซึ่งรักษาความเข้ากันได้แบบย้อนหลังในขณะที่เปิดใช้งานการขยายไปสู่โดเมนฟิสิกส์ใหม่ๆ
 
 ```cpp
-// Versioned dimension system for backward compatibility
+// ระบบมิติแบบระบุเวอร์ชันเพื่อความเข้ากันได้แบบย้อนหลัง
 template<int Version>
 class VersionedDimensionSet;
 
 template<>
 class VersionedDimensionSet<1> : public dimensionSet
 {
-    // Original 7-dimension system
+    // ระบบ 7 มิติดั้งเดิม
     enum { nDimensions = 7 };
 };
 
 template<>
 class VersionedDimensionSet<2> : public dimensionSet
 {
-    // Extended 9-dimension system
+    // ระบบ 9 มิติที่ขยายเพิ่มเติม
     enum { nDimensions = 9 };
 
-    // New dimensions
+    // มิติใหม่
     enum ExtendedDimensionType
     {
-        ECONOMIC_VALUE = 7,  // Currency
-        INFORMATION_CONTENT = 8  // Bits
+        ECONOMIC_VALUE = 7,  // ค่าเงิน
+        INFORMATION_CONTENT = 8  // ข้อมูล (บิต)
     };
 };
 
-// Serialization with versioning
+// การทำ Serialization พร้อมการระบุเวอร์ชัน
 template<int Version>
 void serialize(std::ostream& os, const VersionedDimensionSet<Version>& ds)
 {
-    os << Version << " ";  // Write version number
+    os << Version << " ";  // เขียนหมายเลขเวอร์ชัน
     for (int i = 0; i < ds.nDimensions; i++)
         os << ds[i] << " ";
 }
 ```
 
-> **📖 คำอธิบาย (Source Explanation):**
-> โค้ดตัวอย่างนี้สาธิตแนวคิดของ Versioned Dimension System ที่ช่วยให้ระบบมิติสามารถพัฒนาและขยายความสามารถได้โดยที่ยังคงความเข้ากันได้แบบย้อนหลัง (backward compatibility) โดยมีหลักการสำคัญดังนี้:
-> 
-> - **Template Versioning:** การใช้ template parameter `Version` ทำให้สามารถสร้าง version ต่างๆ ของระบบมิติได้แยกกัน
->   - **Version 1:** ระบบมิติพื้นฐาน 7 มิติ (Mass, Length, Time, Temperature, Current, Amount, Intensity)
->   - **Version 2:** ระบบมิติขยาย 9 มิติ (เพิ่ม Economic Value และ Information Content)
-> - **Extensibility:** สามารถเพิ่มมิติใหม่ๆ ใน version ถัดไปโดยไม่กระทบต่อ version เดิม
-> - **Serialization:** การบันทึกข้อมูลมิติพร้อม version number ทำให้สามารถอ่านและแปลงข้อมูลระหว่าง version ต่างๆ ได้
-> 
-> ประโยชน์ของการออกแบบเช่นนี้:
-> - **Backward Compatibility:** ไฟล์จำลองเก่ายังคงสามารถอ่านได้ใน version ใหม่
-> - **Forward Compatibility:** สามารถเพิ่มมิติใหม่ๆ ได้โดยไม่ต้องเปลี่ยนแปลงโค้ดเดิม
-> - **Gradual Migration:** ผู้ใช้สามารถอัปเกรดจาก version เดิมเป็น version ใหม่ได้ทีละขั้น
-> 
-> การประยุกต์ใช้งาน:
-> - **Research:** การเพิ่มมิติใหม่ๆ สำหรับสาขาวิชาที่กำลังพัฒนา
-> - **Industry:** การรักษาความเข้ากันได้กับไฟล์จำลองเก่า
-> - **Collaboration:** การทำงานร่วมกันระหว่างทีมที่ใช้ version ต่างกัน
-> 
-> **แหล่งที่มา:** เนื้อหานี้เป็นแนวคิดการออกแบบที่ใช้หลักการของ OpenFOAM dimension system แต่เป็นตัวอย่างทางการศึกษา (educational example) ที่อธิบายแนวคิดการใช้งานจริง
+> **📖 คำอธิบาย:**
+> โค้ดตัวอย่างนี้สาธิตแนวคิดของระบบมิติแบบระบุเวอร์ชัน (Versioned Dimension System) ที่ช่วยให้ระบบมิติสามารถพัฒนาและขยายความสามารถได้โดยที่ยังคงความเข้ากันได้แบบย้อนหลัง (Backward compatibility) โดยมีหลักการสำคัญคือการใช้เทมเพลตแยกเวอร์ชันที่ 1 (7 มิติมาตรฐาน) และเวอร์ชันที่ 2 (เพิ่มค่าเงินและข้อมูลสารสนเทศ)
 
-### Automatic Version Conversion
+### การแปลงเวอร์ชันอัตโนมัติ
 
 ```cpp
-// Deserialization with automatic version conversion
+// การทำ Deserialization พร้อมการแปลงเวอร์ชันอัตโนมัติ
 template<int FromVersion, int ToVersion>
 VersionedDimensionSet<ToVersion> convertDimensions(
     const VersionedDimensionSet<FromVersion>& from)
 {
     VersionedDimensionSet<ToVersion> to;
 
-    // Copy common dimensions
+    // คัดลอกมิติที่มีร่วมกัน
     int commonDimensions = std::min(FromVersion, ToVersion);
     for (int i = 0; i < commonDimensions; i++)
         to[i] = from[i];
 
-    // Initialize new dimensions (when upgrading)
+    // กำหนดค่าเริ่มต้นให้กับมิติใหม่ (เมื่อทำการอัปเกรด)
     for (int i = commonDimensions; i < ToVersion; i++)
         to[i] = 0.0;
 
@@ -515,40 +456,18 @@ VersionedDimensionSet<ToVersion> convertDimensions(
 }
 ```
 
-> **📖 คำอธิบาย (Source Explanation):**
-> โค้ดตัวอย่างนี้แสดงกลไกการแปลงระหว่าง version ต่างๆ ของระบบมิติโดยอัตโนมัติ ซึ่งเป็นส่วนสำคัญของการรักษาความเข้ากันได้ระหว่าง version โดยมีหลักการทำงานดังนี้:
-> 
-> - **Template-Based Conversion:** การใช้ template parameters `FromVersion` และ `ToVersion` ทำให้ compiler สามารถสร้างโค้ดสำหรับการแปลงระหว่าง version ใดๆ ก็ได้
-> - **Two-Stage Process:**
->   1. **Copy Common Dimensions:** คัดลอกมิติที่มีอยู่ในทั้งสอง version (ใช้ `std::min` เพื่อหาจำนวนมิติร่วม)
->   2. **Initialize New Dimensions:** สำหรับการอัปเกรด ให้กำหนดค่าเริ่มต้นของมิติใหม่เป็น 0.0
-> - **Compile-Time Safety:** Template metaprogramming ทำให้การตรวจสอบความถูกต้องเกิดขึ้นใน compile-time
-> - **Zero Runtime Overhead:** การแปลงเกิดขึ้นใน compile-time ทำให้ไม่มีผลต่อประสิทธิภาพ runtime
-> 
-> ประโยชน์ของการออกแบบเช่นนี้:
-> - **Seamless Migration:** ผู้ใช้สามารถอัปเกรดไฟล์จำลองจาก version เดิมเป็น version ใหม่ได้อย่างราบรื่น
-> - **Data Integrity:** รักษาความถูกต้องของข้อมูลมิติระหว่างการแปลง
-> - **Flexibility:** สามารถแปลงไปมาระหว่าง version ใดๆ ก็ได้
-> 
-> การประยุกต์ใช้งาน:
-> - **Long-Term Projects:** โครงการที่มีไฟล์จำลองจากหลาย version
-> - **Collaboration:** การทำงานร่วมกันระหว่างทีมที่ใช้ OpenFOAM version ต่างกัน
-> - **Data Archiving:** การจัดเก็บและกู้คืนข้อมูลจาก archive
-> 
-> **แหล่งที่มา:** เนื้อหานี้เป็นแนวคิดการออกแบบที่ใช้หลักการของ OpenFOAM dimension system แต่เป็นตัวอย่างทางการศึกษา (educational example) ที่อธิบายแนวคิดการใช้งานจริง
+สถาปัตยกรรมแบบระบุเวอร์ชันช่วยรับประกันว่า:
+- ✅ **การจำลองรุ่นเก่าจะยังคงเข้ากันได้** กับเวอร์ชันใหม่ของ OpenFOAM
+- ✅ **ระบบมิติสามารถพัฒนาได้** เพื่อรองรับโดเมนฟิสิกส์ใหม่ๆ
+- ✅ **ความเข้ากันได้แบบย้อนหลังจะถูกรักษาไว้ในเวลาคอมไพล์**
 
-The versioned architecture ensures that:
-- ✅ **Legacy simulations remain compatible** with newer OpenFOAM versions
-- ✅ **Dimension systems can evolve** to accommodate new physics domains
-- ✅ **Backward compatibility is maintained at compile-time**
+--- 
 
----
+## การทำงานร่วมกันระหว่างประเทศและมาตรฐานหน่วย (International Collaboration and Unit Standards)
 
-## International Collaboration and Unit Standards
+### การรองรับระบบหน่วยวัดหลายแบบ (Multiple Unit System Support)
 
-### Multiple Unit System Support
-
-Global engineering collaboration requires support for multiple unit systems with automatic conversion and dimensional consistency checking.
+การทำงานร่วมกันทางวิศวกรรมระดับโลกต้องการการรองรับระบบหน่วยวัดหลายแบบพร้อมการแปลงอัตโนมัติและการตรวจสอบความสอดคล้องทางมิติ
 
 ```mermaid
 flowchart TD
@@ -568,14 +487,14 @@ flowchart TD
     style F fill:#e8f5e9
     style G fill:#e8f5e9
 ```
-> **Figure 3:** ระบบการแปลงหน่วย (Unit Conversion System) ที่ช่วยให้นักวิจัยจากทั่วโลกสามารถทำงานร่วมกันได้โดยการแปลงหน่วยวัดต่างๆ เข้าสู่ระบบมาตรฐาน SI โดยอัตโนมัติพร้อมการตรวจสอบมิติ
+> **รูปที่ 3:** ระบบการแปลงหน่วย (Unit Conversion System) ที่ช่วยให้นักวิจัยจากทั่วโลกสามารถทำงานร่วมกันได้โดยการแปลงหน่วยวัดต่างๆ เข้าสู่ระบบมาตรฐาน SI โดยอัตโนมัติพร้อมการตรวจสอบมิติ
 
-OpenFOAM's dimensional analysis framework provides comprehensive support for international unit standards and collaborative workflows.
+กรอบการทำงานการวิเคราะห์มิติของ OpenFOAM ให้การสนับสนุนที่ครอบคลุมสำหรับมาตรฐานหน่วยสากลและกระบวนการทำงานร่วมกัน
 
-### Unit System Abstraction
+### การนำระบบหน่วยวัดมาใช้เป็นรูปแบบนามธรรม (Unit System Abstraction)
 
 ```cpp
-// Unit system abstraction
+// รูปแบบนามธรรมของระบบหน่วยวัด
 class UnitSystem
 {
 public:
@@ -586,14 +505,14 @@ public:
         initializeConversionFactors();
     }
 
-    // Convert dimensioned value to this unit system
+    // แปลงค่าที่มีมิติเป็นระบบหน่วยวัดนี้
     template<class Type>
     dimensioned<Type> convert(const dimensioned<Type>& value) const
     {
         dimensionSet convertedDims = value.dimensions();
         Type convertedValue = value.value();
 
-        // Apply unit conversion based on dimension exponents
+        // ประยุกต์ใช้การแปลงหน่วยตามเลขชี้กำลังของมิติ
         for (int i = 0; i < dimensionSet::nDimensions; i++)
         {
             double factor = std::pow(conversionFactors_[i], convertedDims[i]);
@@ -612,69 +531,43 @@ private:
         switch (type_)
         {
             case SI:
-                // Identity conversion
+                // การแปลงแบบเอกลักษณ์ (Identity conversion)
                 std::fill(conversionFactors_.begin(), conversionFactors_.end(), 1.0);
                 break;
 
             case IMPERIAL:
-                // Conversion factors from Imperial to SI
-                conversionFactors_[dimensionSet::LENGTH] = 0.3048;  // ft to m
-                conversionFactors_[dimensionSet::MASS] = 0.453592;  // lb to kg
-                // ... other conversions
+                // ตัวคูณการแปลงจากระบบอังกฤษเป็น SI
+                conversionFactors_[dimensionSet::LENGTH] = 0.3048;  // ฟุต เป็น เมตร
+                conversionFactors_[dimensionSet::MASS] = 0.453592;  // ปอนด์ เป็น กิโลกรัม
+                // ... การแปลงอื่นๆ
                 break;
 
             case CGS:
-                // Conversion factors from CGS to SI
-                conversionFactors_[dimensionSet::LENGTH] = 0.01;    // cm to m
-                conversionFactors_[dimensionSet::MASS] = 0.001;     // g to kg
+                // ตัวคูณการแปลงจาก CGS เป็น SI
+                conversionFactors_[dimensionSet::LENGTH] = 0.01;    // เซนติเมตร เป็น เมตร
+                conversionFactors_[dimensionSet::MASS] = 0.001;     // กรัม เป็น กิโลกรัม
                 break;
         }
     }
 };
 ```
 
-> **📖 คำอธิบาย (Source Explanation):**
-> โค้ดตัวอย่างนี้แสดงให้เห็นถึงความสามารถในการรองรับระบบหน่วยวัดหลายแบบ (Multiple Unit Systems) ซึ่งเป็นสิ่งจำเป็นสำหรับการทำงานร่วมกันระหว่างประเทศ โดยมีหลักการสำคัญดังนี้:
-> 
-> - **Unit System Types:** รองรับระบบหน่วยวัดหลักๆ ทั่วโลก:
->   - **SI (International System):** ใช้เมตร (m), กิโลกรัม (kg), วินาที (s) - เป็นมาตรฐานสากล
->   - **IMPERIAL:** ใช้ฟุต (ft), ปอนด์ (lb), วินาที (s) - ใช้ในสหรัฐอเมริกา
->   - **CGS (Centimeter-Gram-Second):** ใช้เซนติเมตร (cm), กรัม (g), วินาที (s) - ใช้ในฟิสิกส์ทฤษฎี
->   - **NATURAL:** ใช้ค่าคงที่ทางฟิสิกส์ (c, ℏ) เป็นหน่วย - ใช้ในฟิสิกส์อนุภาค
-> - **Automatic Conversion:** เมธอด `convert()` แปลงค่าจากระบบหน่วยหนึ่งไปยังอีกระบบหนึ่งโดยอัตโนมัติ โดย:
->   1. อ่านค่าเลขชี้กำลังของแต่ละมิติ (dimension exponents)
->   2. คำนวณ factor ของการแปลงโดยใช้ `std::pow(factor, exponent)`
->   3. นำ factor มาคูณกับค่าที่ต้องการแปลง
-> - **Dimension Preservation:** การแปลงหน่วยไม่เปลี่ยนแปลงมิติของปริมาณ เปลี่ยนแค่ค่าตัวเลขเท่านั้น
-> 
-> ประโยชน์ของการออกแบบเช่นนี้:
-> - **Global Collaboration:** ทีมงานจากประเทศต่างๆ สามารถแลกเปลี่ยนข้อมูลได้โดยไม่ต้องแปลงหน่วยเอง
-> - **Error Prevention:** ลดโอกาสเกิดข้อผิดพลาดจากการแปลงหน่วยผิด
-> - **Standardization:** ช่วยให้ทุกคนใช้มาตรฐานเดียวกันในการจำลองแบบ
-> 
-> การประยุกต์ใช้งาน:
-> - **International Projects:** โครงการร่วมระหว่างประเทศ เช่น การออกแบบเครื่องบิน การก่อสร้างเขื่อน
-> - **Literature Review:** การเปรียบเทียบผลลัพธ์กับงานวิจัยจากประเทศอื่น
-> - **Regulatory Compliance:** การทำตามมาตรฐานที่กำหนดโดยองค์กรต่างประเทศ
-> 
-> **แหล่งที่มา:** เนื้อหานี้เป็นแนวคิดการออกแบบที่ใช้หลักการของ OpenFOAM dimension system แต่เป็นตัวอย่างทางการศึกษา (educational example) ที่อธิบายแนวคิดการใช้งานจริง
-
-### Collaborative Simulation Workflow
+### กระบวนการจำลองแบบทำงานร่วมกัน (Collaborative Simulation Workflow)
 
 ```cpp
-// Collaborative simulation with automatic unit conversion
+// การจำลองแบบทำงานร่วมกันพร้อมการแปลงหน่วยอัตโนมัติ
 class CollaborativeSimulation
 {
 public:
     void importResults(const std::string& filename, UnitSystem sourceSystem)
     {
-        // Read data with source units
+        // อ่านข้อมูลด้วยหน่วยต้นทาง
         dimensionedScalar pressure = readPressure(filename);
 
-        // Convert to simulation's unit system
+        // แปลงเป็นระบบหน่วยของการจำลอง
         dimensionedScalar convertedPressure = unitSystem_.convert(pressure);
 
-        // Use in simulation with dimensional safety
+        // ใช้งานในการจำลองพร้อมความปลอดภัยทางมิติ
         if (convertedPressure.dimensions() != dimPressure)
         {
             FatalErrorInFunction
@@ -682,7 +575,7 @@ public:
                 << abort(FatalError);
         }
 
-        // Process converted data...
+        // ประมวลผลข้อมูลที่แปลงแล้ว...
     }
 
 private:
@@ -690,48 +583,22 @@ private:
 };
 ```
 
-> **📖 คำอธิบาย (Source Explanation):**
-> โค้ดตัวอย่างนี้แสดงให้เห็นถึงประโยชน์ของระบบแปลงหน่วยในกระบวนการทำงานร่วมกัน (Collaborative Workflow) ซึ่งเป็นสิ่งสำคัญสำหรับโครงการระหว่างประเทศ โดยมีหลักการทำงานดังนี้:
-> 
-> - **Import with Source Units:** การอ่านข้อมูลจากไฟล์ที่มาพร้อมกับระบบหน่วยของแหล่งที่มา (source units)
-> - **Automatic Conversion:** การแปลงค่าจากระบบหน่วยของแหล่งที่มาไปเป็นระบบหน่วยของการจำลองปัจจุบัน
-> - **Dimensional Validation:** การตรวจสอบว่าหลังจากแปลงแล้ว ค่ามีมิติที่ถูกต้อง (เช่น ความดันต้องมีมิติเป็น `dimPressure`)
-> - **Safety Net:** หากมีความผิดพลาดในการแปลงหรือมิติไม่ถูกต้อง ระบบจะแจ้ง error ทันที
-> 
-> ขั้นตอนการทำงาน:
-> 1. **Read:** อ่านข้อมูลจากไฟล์ (เช่น pressure จากทีมงานในสหรัฐอเมริกาที่ใช้หน่วย psi)
-> 2. **Convert:** แปลงค่าเป็นระบบหน่วยของเรา (เช่น Pa ในระบบ SI)
-> 3. **Validate:** ตรวจสอบว่าการแปลงถูกต้องและมิติเหมาะสม
-> 4. **Process:** นำข้อมูลที่แปลงแล้วไปใช้ในการจำลอง
-> 
-> ประโยชน์ของการออกแบบเช่นนี้:
-> - **Seamless Integration:** ทีมงานสามารถแชร์ผลลัพธ์ได้โดยไม่ต้องกังวลเรื่องหน่วย
-> - **Error Prevention:** ลดข้อผิดพลาดจากการแปลงหน่วยด้วยมือ
-> - **Traceability:** สามารถติดตามแหล่งที่มาและการแปลงหน่วยได้
-> 
-> การประยุกต์ใช้งานจริง:
-> - **Multi-National Projects:** โครงการที่มีทีมงานจากหลายประเทศ เช่น การพัฒนาเครื่องยนต์เครื่องบิน
-> - **Benchmarking:** การเปรียบเทียบผลลัพธ์กับข้อมูลจากแหล่งต่างประเทศ
-> - **Regulatory Submission:** การส่งเอกสารตามมาตรฐานสากล
-> 
-> **แหล่งที่มา:** เนื้อหานี้เป็นแนวคิดการออกแบบที่ใช้หลักการของ OpenFOAM dimension system แต่เป็นตัวอย่างทางการศึกษา (educational example) ที่อธิบายแนวคิดการใช้งานจริง
+การรองรับระบบหน่วยวัดหลายแบบช่วยให้การทำงานร่วมกันระหว่างทีมงานระหว่างประเทศที่ใช้มาตรฐานการวัดที่แตกต่างกันเป็นไปอย่างราบรื่น ในขณะที่ยังคงความสอดคล้องทางมิติตลอดทั้งกระบวนการ
 
-Multiple unit system support enables seamless collaboration between international teams using different measurement standards while maintaining dimensional consistency throughout the workflow.
-
-| **Unit System** | **Length** | **Mass** | **Time** | **Primary Use** |
+| **ระบบหน่วย** | **ความยาว** | **มวล** | **เวลา** | **การใช้งานหลัก** |
 |----------------|------------|----------|----------|-----------------|
-| SI | Meter | Kilogram | Second | Science/Engineering |
-| Imperial | Foot | Pound | Second | United States |
-| CGS | Centimeter | Gram | Second | Theoretical Physics |
-| Natural | c | ℏ | ℏ/c² | Particle Physics |
+| SI | เมตร | กิโลกรัม | วินาที | วิทยาศาสตร์/วิศวกรรม |
+| Imperial | ฟุต | ปอนด์ | วินาที | สหรัฐอเมริกา |
+| CGS | เซนติเมตร | กรัม | วินาที | ฟิสิกส์ทฤษฎี |
+| Natural | c | ℏ | ℏ/c² | ฟิสิกส์อนุภาค |
 
-This capability is essential for large-scale engineering projects with participants from different countries and disciplines.
+ความสามารถนี้จำเป็นอย่างยิ่งสำหรับโครงการวิศวกรรมขนาดใหญ่ที่มีผู้เข้าร่วมจากหลายประเทศและหลายสาขาวิชา
 
----
+--- 
 
-## Mathematical Foundations and Physical Consistency
+## รากฐานทางคณิตศาสตร์และความสอดคล้องทางฟิสิกส์ (Mathematical Foundations and Physical Consistency)
 
-OpenFOAM's dimensional analysis framework is built on rigorous mathematical foundations that ensure physical consistency in all numerical operations.
+กรอบการทำงานการวิเคราะห์มิติของ OpenFOAM ถูกสร้างขึ้นบนรากฐานทางคณิตศาสตร์ที่เข้มงวดซึ่งช่วยรับประกันความสอดคล้องทางฟิสิกส์ในทุกการดำเนินการทางตัวเลข
 
 ```mermaid
 flowchart TD
@@ -739,7 +606,7 @@ flowchart TD
     C[Dimensional Homogeneity] --> B
 
     B --> D[OpenFOAM Implementation]
-    D --> E[Compile-Time Checks]
+    D --> E[Compile-time Checks]
     D --> F[Runtime Checks]
 
     E --> G[Physical Consistency]
@@ -751,45 +618,36 @@ flowchart TD
     style D fill:#fff4e6
     style G fill:#e8f5e9
 ```
-> **Figure 4:** กรอบการทำงานสำหรับการวิเคราะห์มิติ (Dimensional Analysis Framework) ของ OpenFOAM ที่ใช้พื้นฐานทางคณิตศาสตร์ที่เข้มงวดเพื่อรับประกันความถูกต้องทางฟิสิกส์ของการจำลอง CFD
+> **รูปที่ 4:** กรอบการทำงานสำหรับการวิเคราะห์มิติ (Dimensional Analysis Framework) ของ OpenFOAM ที่ใช้พื้นฐานทางคณิตศาสตร์ที่เข้มงวดเพื่อรับประกันความถูกต้องทางฟิสิกส์ของการจำลอง CFD
 
-The implementation employs the **Buckingham Pi Theorem** and **Principle of Dimensional Homogeneity** to verify complex physical relationships.
+การนำไปใช้งานใช้ **ทฤษฎีบทพายของบัคกิงแฮม (Buckingham Pi Theorem)** และ **หลักความเป็นเอกพันธุ์ทางมิติ (Principle of Dimensional Homogeneity)** เพื่อตรวจสอบความสัมพันธ์ทางกายภาพที่ซับซ้อน
 
-### Mathematical Dimension Representation
+### การแทนค่ามิติทางคณิตศาสตร์
 
-For any physical quantity $q$, the dimensional representation is:
+สำหรับปริมาณทางกายภาพ $q$ ใดๆ การแทนค่าทางมิติคือ:
 $$[q] = M^a L^b T^c \Theta^d I^e N^f J^g$$
 
-Where:
-- $M$ represents Mass
-- $L$ Length
-- $T$ Time
-- $\Theta$ Temperature
-- $I$ Electric current
-- $N$ Amount of substance
-- $J$ Luminous intensity
+โดยที่เลขชี้กำลัง $a$ ถึง $g$ เป็นจำนวนเต็มที่กำหนดลักษณะทางกายภาพเฉพาะของปริมาณนั้นๆ
 
-The exponents $a$ through $g$ are integers that define the specific physical characteristics of the quantity.
+### การประยุกต์ใช้กับสมการโมเมนตัม
 
-### Application to Momentum Equation
+รากฐานทางคณิตศาสตร์นี้ขยายไปถึงการดำเนินการเทนเซอร์ซึ่งการวิเคราะห์มิติช่วยให้มั่นใจได้ว่าการดำเนินการทางคณิตศาสตร์จะรักษาความหมายทางฟิสิกส์ไว้
 
-This mathematical foundation extends to tensor operations where dimensional analysis ensures that mathematical operations preserve physical meaning.
-
-For example, in the momentum equation:
+ตัวอย่างเช่น ในสมการโมเมนตัม:
 $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
 
-Each term must have the same dimensions $[ML^{-2}T^{-2}]$, representing **force per volume**.
+ทุกพจน์ต้องมีมิติเดียวกันคือ $[ML^{-2}T^{-2}]$ ซึ่งแทน **แรงต่อหน่วยปริมาตร**
 
-OpenFOAM's dimensional analysis automatically verifies this consistency at compile-time and runtime, preventing physically meaningless calculations that could lead to:
-- ❌ Simulation errors
-- ❌ Incorrect results
-- ❌ Violation of conservation principles
+การวิเคราะห์มิติของ OpenFOAM ตรวจสอบความสอดคล้องนี้โดยอัตโนมัติทั้งในเวลาคอมไพล์และเวลาทำงาน ป้องกันการคำนวณทางฟิสิกส์ที่ไม่มีความหมายซึ่งอาจนำไปสู่:
+- ❌ ข้อผิดพลาดในการจำลอง
+- ❌ ผลลัพธ์ที่ไม่ถูกต้อง
+- ❌ การละเมิดหลักการอนุรักษ์
 
----
+--- 
 
-## Performance Optimization and Computational Efficiency
+## การปรับปรุงประสิทธิภาพและประสิทธิภาพในการคำนวณ (Performance Optimization and Computational Efficiency)
 
-Despite comprehensive dimensional checking, OpenFOAM's implementation maintains high computational performance through **template metaprogramming** and **compile-time optimization**.
+แม้จะมีการตรวจสอบมิติอย่างครอบคลุม แต่การนำไปใช้งานของ OpenFOAM ยังคงรักษาประสิทธิภาพในการคำนวณที่สูงผ่าน **เทมเพลตเมตาโปรแกรมมิ่ง** และ **การปรับปรุงประสิทธิภาพในเวลาคอมไพล์**
 
 ```mermaid
 flowchart TD
@@ -808,26 +666,26 @@ flowchart TD
     style F fill:#e8f5e9
     style G fill:#e8f5e9
 ```
-> **Figure 5:** กระบวนการปรับประสิทธิภาพผ่าน Template Metaprogramming ซึ่งช่วยลดโอเวอร์เฮดในการตรวจสอบมิติจนเหลือศูนย์ในขั้นตอนการทำงานจริง (Zero Runtime Overhead)
+> **รูปที่ 5:** กระบวนการปรับประสิทธิภาพผ่าน Template Metaprogramming ซึ่งช่วยลดโอเวอร์เฮดในการตรวจสอบมิติจนเหลือศูนย์ในขั้นตอนการทำงานจริง (Zero Runtime Overhead)
 
-### Optimization Strategies
+### กลยุทธ์การปรับปรุงประสิทธิภาพ
 
-1. **Dimension Encoding in Type System**: Dimensional information encoded in the type system rather than stored at runtime
+1. **การเข้ารหัสมิติในระบบประเภทข้อมูล**: ข้อมูลมิติถูกเข้ารหัสในระบบประเภทแทนที่จะถูกจัดเก็บในเวลาทำงาน
 
-2. **Zero-Cost Abstraction**: Compile-time guarantees with no runtime penalty
+2. **Zero-Cost Abstraction**: การรับประกันในเวลาคอมไพล์โดยไม่มีบทลงโทษในเวลาทำงาน
 
-3. **C++ Template Specialization**: Generates optimized code paths for specific dimension combinations
+3. **C++ Template Specialization**: สร้างเส้นทางการทำงานของโค้ดที่ได้รับการปรับปรุงประสิทธิภาพสำหรับการรวมมิติเฉพาะเจาะจง
 
-4. **Compile-Time Analysis**: Enables compiler to perform dimensional analysis during compilation rather than at runtime
+4. **การวิเคราะห์เวลาคอมไพล์**: ช่วยให้คอมไพเลอร์สามารถดำเนินการวิเคราะห์มิติในระหว่างการคอมไพล์แทนที่จะเป็นเวลาทำงาน
 
-### Performance Benefits
+### ประโยชน์ด้านประสิทธิภาพ
 
-- ✅ **Automatic loop unrolling and vectorization** for dimensionally-safe operations
-- ✅ **Optimized for modern hardware architectures**
-- ✅ **Dimensional safety does not impact simulation performance**
+- ✅ **การคลี่ลูปและการทำเป็นเวกเตอร์อัตโนมัติ** สำหรับการดำเนินการที่ปลอดภัยทางมิติ
+- ✅ **ได้รับการปรับปรุงให้เหมาะกับสถาปัตยกรรมฮาร์ดแวร์สมัยใหม่**
+- ✅ **ความปลอดภัยทางมิติไม่ส่งผลกระทบต่อประสิทธิภาพการจำลอง**
 
-This approach ensures that dimensional safety does not compromise simulation performance, which is critical for large-scale CFD applications requiring millions of computational operations.
+แนวทางนี้ช่วยให้มั่นใจได้ว่าความปลอดภัยทางมิติจะไม่ลดทอนประสิทธิภาพการจำลอง ซึ่งมีความสำคัญอย่างยิ่งสำหรับแอปพลิเคชัน CFD ขนาดใหญ่ที่ต้องการการดำเนินการทางคำนวณนับล้านครั้ง
 
-The combination of **dimensional safety** and **computational efficiency** makes OpenFOAM's dimensional analysis framework suitable for both:
-- 🎓 **Research applications**
-- 🏭 **Industrial-scale simulations**
+การผสมผสานระหว่าง **ความปลอดภัยทางมิติ** และ **ประสิทธิภาพในการคำนวณ** ทำให้กรอบการทำงานการวิเคราะห์มิติของ OpenFOAM เหมาะสำหรับทั้ง:
+- 🎓 **แอปพลิเคชันการวิจัย**
+- 🏭 **การจำลองในระดับอุตสาหกรรม**

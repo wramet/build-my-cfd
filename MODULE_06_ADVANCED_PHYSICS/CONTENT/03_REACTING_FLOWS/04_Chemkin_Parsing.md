@@ -1,23 +1,23 @@
-# Chemkin File Parsing in OpenFOAM
+# การวิเคราะห์ไฟล์ Chemkin ใน OpenFOAM (Chemkin File Parsing in OpenFOAM)
 
-## 1. Introduction
+## 1. บทนำ (Introduction)
 
-OpenFOAM uses the industry-standard **Chemkin-II** format for chemical mechanisms. This allows using complex mechanisms (e.g., GRI-Mech 3.0 for methane combustion) directly in simulations without manual conversion.
+OpenFOAM ใช้รูปแบบไฟล์ **Chemkin-II** ซึ่งเป็นมาตรฐานอุตสาหกรรมสำหรับกลไกปฏิกิริยาเคมี สิ่งนี้ช่วยให้สามารถใช้กลไกที่ซับซ้อน (เช่น GRI-Mech 3.0 สำหรับการเผาไหม้มีเทน) ในการจำลองได้โดยตรงโดยไม่ต้องแปลงไฟล์ด้วยตนเอง
 
-> [!INFO] Why Chemkin Format?
-> The Chemkin format has become the *de facto* standard for chemical reaction mechanisms in combustion research. By supporting it natively, OpenFOAM provides access to thousands of validated mechanisms covering fuels from hydrogen to heavy hydrocarbons.
+> [!INFO] ทำไมต้องใช้รูปแบบ Chemkin?
+> รูปแบบ Chemkin ได้กลายเป็นมาตรฐาน *de facto* สำหรับกลไกปฏิกิริยาเคมีในงานวิจัยด้านการเผาไหม้ การรองรับรูปแบบนี้ในตัว (natively) ช่วยให้ OpenFOAM สามารถเข้าถึงกลไกที่ผ่านการตรวจสอบแล้วหลายพันรายการ ครอบคลุมตั้งแต่เชื้อเพลิงไฮโดรเจนไปจนถึงไฮโดรคาร์บอนหนัก
 
 ---
 
-## 2. File Structure
+## 2. โครงสร้างไฟล์ (File Structure)
 
-Chemkin mechanisms consist of three primary files:
+กลไก Chemkin ประกอบด้วยไฟล์หลักสามประเภท:
 
 ```mermaid
 flowchart TD
-    A[chem.inp<br/>Reaction Data] --> R[chemkinReader]
-    B[therm.dat<br/>Thermodynamic Data] --> R
-    C[tran.dat<br/>Transport Data] -.->|Optional| R
+    A[chem.inp<br/>ข้อมูลปฏิกิริยา] --> R[chemkinReader]
+    B[therm.dat<br/>ข้อมูลเทอร์โมไดนามิก] --> R
+    C[tran.dat<br/>ข้อมูลการขนส่ง] -.->|เลือกเสริม| R
 
     R --> ST[speciesTable]
     R --> RL[reactionList]
@@ -28,29 +28,29 @@ flowchart TD
     style RL fill:#e8f5e9,stroke:#388e3c
     style TC fill:#fff3e0,stroke:#f57c00
 ```
-> **Figure 1:** แผนภาพแสดงโครงสร้างการจัดการไฟล์ Chemkin ใน OpenFOAM โดยเครื่องมือ `chemkinReader` จะทำหน้าที่อ่านข้อมูลจากไฟล์ปฏิกิริยา (chem.inp), ข้อมูลอุณหพลศาสตร์ (therm.dat) และข้อมูลการขนส่ง (tran.dat) เพื่อสร้างโครงสร้างข้อมูลภายในสำหรับการจำลอง
+> **รูปที่ 1:** แผนภาพแสดงโครงสร้างการจัดการไฟล์ Chemkin ใน OpenFOAM โดยเครื่องมือ `chemkinReader` จะทำหน้าที่อ่านข้อมูลจากไฟล์ปฏิกิริยา (chem.inp), ข้อมูลอุณหพลศาสตร์ (therm.dat) และข้อมูลการขนส่ง (tran.dat) เพื่อสร้างโครงสร้างข้อมูลภายในสำหรับการจำลอง
 
 
-| File | Description | Key Content |
+| ไฟล์ | คำอธิบาย | เนื้อหาหลัก |
 |------|-------------|-------------|
-| **`chem.inp`** | Reaction mechanism file | Species definitions, reaction equations, Arrhenius parameters |
-| **`therm.dat`** | Thermodynamic data | NASA polynomial coefficients for $C_p(T)$, $H(T)$, $S(T)$ |
-| **`tran.dat`** | Transport properties | Lennard-Jones parameters for viscosity and diffusion calculations |
+| **`chem.inp`** | ไฟล์กลไกปฏิกิริยา | การนิยามสปีชีส์, สมการปฏิกิริยา, พารามิเตอร์อาร์เรเนียส |
+| **`therm.dat`** | ข้อมูลเทอร์โมไดนามิก | สัมประสิทธิ์พหุนาม NASA สำหรับ $C_p(T)$, $H(T)$, $S(T)$ |
+| **`tran.dat`** | สมบัติการขนส่ง | พารามิเตอร์ Lennard-Jones สำหรับการคำนวณความหนืดและการแพร่ |
 
 ---
 
-## 3. The chemkinReader
+## 3. chemkinReader
 
-OpenFOAM's `chemkinReader` class parses these text files at runtime to populate the `speciesTable` and `reactionList` data structures.
+คลาส `chemkinReader` ของ OpenFOAM จะวิเคราะห์ไฟล์ข้อความเหล่านี้ขณะรันโปรแกรมเพื่อสร้างโครงสร้างข้อมูล `speciesTable` และ `reactionList`
 
-### 3.1 Class Architecture
+### 3.1 สถาปัตยกรรมคลาส (Class Architecture)
 
-The `chemkinReader` is located in:
+`chemkinReader` อยู่ที่:
 ```
 src/thermophysicalModels/chemistryModel/chemkinReader/
 ```
 
-**Core Class Definition:**
+**การนิยามคลาสหลัก:**
 
 ```cpp
 template<class ReactionThermo>
@@ -59,7 +59,7 @@ class chemkinReader
     public chemistryReader<ReactionThermo>
 {
 public:
-    // Read mechanism from files
+    // อ่านกลไกจากไฟล์
     virtual void read
     (
         const fileName& chemFile,
@@ -67,31 +67,31 @@ public:
         const fileName& tranFile = fileName::null
     );
 
-    // Return species, reactions, thermodynamics
+    // คืนค่าสปีชีส์, ปฏิกิริยา, เทอร์โมไดนามิก
     virtual const speciesTable& species() const;
     virtual const ReactionList<ReactionThermo>& reactions() const;
     virtual autoPtr<ReactionThermo> thermo() const;
 
-    // Return species thermo data
+    // คืนค่าข้อมูลเทอร์โมของสปีชีส์
     const HashTable<speciesThermo>& speciesThermo() const;
 };
 ```
 
-> **Source:** `src/thermophysicalModels/chemistryModel/chemkinReader/chemkinReader.H`
+> **แหล่งที่มา:** `src/thermophysicalModels/chemistryModel/chemkinReader/chemkinReader.H`
 
-> **Explanation:** The `chemkinReader` class is templated on `ReactionThermo` to support different thermodynamic packages. It inherits from `chemistryReader` base class and provides virtual methods for reading Chemkin-format files. The class maintains three primary data structures: `speciesTable` (list of species names), `ReactionList` (all reactions with rate parameters), and `speciesThermo` (NASA polynomial coefficients).
+> **คำอธิบาย (Explanation):** คลาส `chemkinReader` เป็นคลาสเทมเพลต (templated class) บน `ReactionThermo` เพื่อรองรับแพ็กเกจเทอร์โมไดนามิกที่แตกต่างกัน คลาสนี้สืบทอดมาจากคลาสฐาน `chemistryReader` และให้เมธอดเสมือน (virtual methods) สำหรับการอ่านไฟล์รูปแบบ Chemkin คลาสจะรักษาโครงสร้างข้อมูลหลักสามส่วน ได้แก่ `speciesTable` (รายการชื่อสปีชีส์), `ReactionList` (ปฏิกิริยาทั้งหมดพร้อมพารามิเตอร์อัตรา) และ `speciesThermo` (สัมประสิทธิ์พหุนาม NASA)
 
-> **Key Concepts:**
-> - **Template-based design**: Allows integration with different thermo models (janaf, griMech, etc.)
-> - **Virtual interface**: Enables polymorphic behavior through base class pointers
-> - **Runtime parsing**: Files are read during solver initialization, not compilation
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **การออกแบบอิงตามเทมเพลต**: ช่วยให้บูรณาการกับโมเดลเทอร์โมต่างๆ ได้ (janaf, griMech ฯลฯ)
+> - **ส่วนติดต่อแบบเสมือน**: ช่วยให้เกิดพฤติกรรมแบบโพลิมอร์ฟิก (polymorphic) ผ่านพอยน์เตอร์คลาสฐาน
+> - **การวิเคราะห์ขณะรัน**: ไฟล์จะถูกอ่านในระหว่างการเริ่มต้นตัวแก้ปัญหา ไม่ใช่ตอนคอมไพล์
 
-### 3.2 Reaction Type Enumeration
+### 3.2 การจำแนกประเภทปฏิกิริยา (Reaction Type Enumeration)
 
-The reader supports multiple reaction types through enum definitions:
+ผู้อ่านรองรับประเภทปฏิกิริยาที่หลากหลายผ่านการนิยาม enum:
 
 ```cpp
-// Reaction type classification
+// การจำแนกประเภทปฏิกิริยา
 enum reactionType
 {
     irreversibleReactionType,
@@ -100,7 +100,7 @@ enum reactionType
     unknownReactionType
 };
 
-// Rate expression types
+// ประเภทนิพจน์อัตรา
 enum reactionRateType
 {
     ArrheniusReactionRateType,
@@ -113,7 +113,7 @@ enum reactionRateType
     unknownReactionRateType
 };
 
-// Fall-off function types for pressure-dependent reactions
+// ประเภทฟังก์ชัน Fall-off สำหรับปฏิกิริยาที่ขึ้นกับความดัน
 enum fallOffFunctionType
 {
     LindemannFallOffFunctionType,
@@ -123,77 +123,77 @@ enum fallOffFunctionType
 };
 ```
 
-> **Source:** `src/thermophysicalModels/chemistryModel/chemkinReader/chemkinReader.H`
+> **แหล่งที่มา:** `src/thermophysicalModels/chemistryModel/chemkinReader/chemkinReader.H`
 
-> **Explanation:** These enumerations classify the different types of chemical reactions and rate expressions supported by Chemkin format. Fall-off reactions (pressure-dependent) require special treatment with different functional forms (Lindemann, Troe, SRI) to bridge between low-pressure and high-pressure limits.
+> **คำอธิบาย (Explanation):** การแจงนับ (enumerations) เหล่านี้ช่วยจำแนกประเภทต่างๆ ของปฏิกิริยาเคมีและนิพจน์อัตราที่รองรับในรูปแบบ Chemkin ปฏิกิริยาแบบ Fall-off (ขึ้นกับความดัน) ต้องการการจัดการพิเศษด้วยรูปแบบฟังก์ชันที่แตกต่างกัน (Lindemann, Troe, SRI) เพื่อเชื่อมต่อระหว่างขีดจำกัดความดันต่ำและความดันสูง
 
-> **Key Concepts:**
-> - **Irreversible reactions**: Proceed only in forward direction (A + B → C)
-> - **Reversible reactions**: Both directions considered (A + B ⇌ C)
-> - **Fall-off reactions**: Rate depends on pressure through third-body efficiency
-> - **Troe fall-off**: More accurate 3-parameter fit for complex molecules
-> - **SRI fall-off**: Simplified 3-parameter correlation
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **ปฏิกิริยาผันกลับไม่ได้**: ดำเนินไปในทิศทางเดียวเท่านั้น (A + B → C)
+> - **ปฏิกิริยาผันกลับได้**: พิจารณาทั้งสองทิศทาง (A + B ⇌ C)
+> - **ปฏิกิริยา Fall-off**: อัตราขึ้นกับความดันผ่านประสิทธิภาพของตัวที่สาม (third-body efficiency)
+> - **Troe fall-off**: การปรับค่า 3 พารามิเตอร์ที่แม่นยำกว่าสำหรับโมเลกุลที่ซับซ้อน
+> - **SRI fall-off**: ความสัมพันธ์ 3 พารามิเตอร์แบบลดรูป
 
-### 3.3 Reaction Keyword Table
+### 3.3 ตารางคีย์เวิร์ดปฏิกิริยา (Reaction Keyword Table)
 
-Chemkin parser uses keyword table to identify reaction modifiers:
+ตัววิเคราะห์ Chemkin ใช้ตารางคีย์เวิร์ดเพื่อระบุตัวปรับแก้ปฏิกิริยา (reaction modifiers):
 
 ```cpp
 void Foam::chemkinReader::initReactionKeywordTable()
 {
-    // Third-body reactions
+    // ปฏิกิริยาที่มีตัวที่สาม (Third-body)
     reactionKeywordTable_.insert("M", thirdBodyReactionType);
     
-    // Fall-off reaction types
+    // ประเภทปฏิกิริยา Fall-off
     reactionKeywordTable_.insert("LOW", unimolecularFallOffReactionType);
     reactionKeywordTable_.insert("HIGH", chemicallyActivatedBimolecularReactionType);
     
-    // Fall-off function modifiers
+    // ตัวปรับแก้ฟังก์ชัน Fall-off
     reactionKeywordTable_.insert("TROE", TroeReactionType);
     reactionKeywordTable_.insert("SRI", SRIReactionType);
     
-    // Specialized rate expressions
+    // นิพจน์อัตราเฉพาะทาง
     reactionKeywordTable_.insert("LT", LandauTellerReactionType);
     reactionKeywordTable_.insert("RLT", reverseLandauTellerReactionType);
     reactionKeywordTable_.insert("JAN", JanevReactionType);
     reactionKeywordTable_.insert("FIT1", powerSeriesReactionRateType);
     
-    // Additional modifiers
+    // ตัวปรับแก้เพิ่มเติม
     reactionKeywordTable_.insert("HV", radiationActivatedReactionType);
     reactionKeywordTable_.insert("TDEP", speciesTempReactionType);
     reactionKeywordTable_.insert("EXCI", energyLossReactionType);
     reactionKeywordTable_.insert("MOME", plasmaMomentumTransfer);
     reactionKeywordTable_.insert("XSMI", collisionCrossSection);
     
-    // Reaction direction and order
+    // ทิศทางและอันดับปฏิกิริยา
     reactionKeywordTable_.insert("REV", nonEquilibriumReversibleReactionType);
     reactionKeywordTable_.insert("FORD", speciesOrderForward);
     reactionKeywordTable_.insert("RORD", speciesOrderReverse);
     
-    // Unit specification
+    // การระบุหน่วย
     reactionKeywordTable_.insert("UNITS", UnitsOfReaction);
     
-    // Control keywords
+    // คีย์เวิร์ดควบคุม
     reactionKeywordTable_.insert("DUPLICATE", duplicateReactionType);
     reactionKeywordTable_.insert("DUP", duplicateReactionType);
     reactionKeywordTable_.insert("END", end);
 }
 ```
 
-> **Source:** `src/thermophysicalModels/chemistryModel/chemkinReader/chemkinReader.C`
+> **แหล่งที่มา:** `src/thermophysicalModels/chemistryModel/chemkinReader/chemkinReader.C`
 
-> **Explanation:** This initialization function builds a hash table that maps Chemkin keyword strings to enumeration values. The parser uses this table to efficiently identify reaction modifiers when reading each reaction line. Third-body reactions (M), fall-off reactions (LOW/HIGH), and specialized rate laws (LT for Landau-Teller, JAN for Janev) are all recognized through these keywords.
+> **คำอธิบาย (Explanation):** ฟังก์ชันเริ่มต้นนี้จะสร้างตารางแฮช (hash table) ที่แม็พสตริงคีย์เวิร์ดของ Chemkin ไปยังค่าการแจงนับ ตัววิเคราะห์จะใช้ตารางนี้เพื่อระบุตัวปรับแก้ปฏิกิริยาได้อย่างมีประสิทธิภาพเมื่ออ่านแต่ละบรรทัดปฏิกิริยา ปฏิกิริยาที่มีตัวที่สาม (M), ปฏิกิริยา Fall-off (LOW/HIGH) และกฎอัตราเฉพาะทาง (LT สำหรับ Landau-Teller, JAN สำหรับ Janev) ล้วนได้รับการจดจำผ่านคีย์เวิร์ดเหล่านี้
 
-> **Key Concepts:**
-> - **Hash table lookup**: O(1) keyword identification during parsing
-> - **Third-body efficiency**: M represents any species as collision partner
-> - **LOW/HIGH**: Low-pressure and high-pressure limit parameters for fall-off
-> - **TROE/SRI**: Specific parameterizations for pressure dependence
-> - **FORD/RORD**: Non-unity reaction orders for specific species
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **การค้นหาในตารางแฮช**: ระบุคีย์เวิร์ดด้วยความเร็ว O(1) ในระหว่างการวิเคราะห์
+> - **ประสิทธิภาพของตัวที่สาม**: M แทนสปีชีส์ใดๆ ในฐานะคู่ชน
+> - **LOW/HIGH**: พารามิเตอร์ขีดจำกัดความดันต่ำและความดันสูงสำหรับ Fall-off
+> - **TROE/SRI**: การกำหนดพารามิเตอร์เฉพาะสำหรับการพึ่งพาความดัน
+> - **FORD/RORD**: อันดับปฏิกิริยาที่ไม่ใช่หนึ่งสำหรับสปีชีส์เฉพาะ
 
-### 3.4 Molecular Weight Calculation
+### 3.4 การคำนวณน้ำหนักโมเลกุล (Molecular Weight Calculation)
 
-The reader computes molecular weights from elemental composition:
+ผู้อ่านจะคำนวณน้ำหนักโมเลกุลจากองค์ประกอบธาตุ:
 
 ```cpp
 Foam::scalar Foam::chemkinReader::molecularWeight
@@ -203,18 +203,18 @@ Foam::scalar Foam::chemkinReader::molecularWeight
 {
     scalar molWt = 0.0;
 
-    // Sum contribution from each element
+    // รวมผลตอบแทนจากแต่ละธาตุ
     forAll(specieComposition, i)
     {
         label nAtoms = specieComposition[i].nAtoms();
         const word& elementName = specieComposition[i].name();
 
-        // Check for isotope-specific atomic weight first
+        // ตรวจสอบน้ำหนักอะตอมเฉพาะไอโซโทปก่อน
         if (isotopeAtomicWts_.found(elementName))
         {
             molWt += nAtoms * isotopeAtomicWts_[elementName];
         }
-        // Fall back to standard atomic weight table
+        // ย้อนกลับไปยังตารางน้ำหนักอะตอมมาตรฐาน
         else if (atomicWeights.found(elementName))
         {
             molWt += nAtoms * atomicWeights[elementName];
@@ -233,26 +233,26 @@ Foam::scalar Foam::chemkinReader::molecularWeight
 }
 ```
 
-> **Source:** `src/thermophysicalModels/chemistryModel/chemkinReader/chemkinReader.C`
+> **แหล่งที่มา:** `src/thermophysicalModels/chemistryModel/chemkinReader/chemkinReader.C`
 
-> **Explanation:** This function calculates the molecular weight of each species by summing the atomic weights of its constituent elements. It first checks for isotope-specific weights (e.g., D for deuterium, C13 for carbon-13) before falling back to standard atomic weights. The function throws a fatal error if an unknown element is encountered.
+> **คำอธิบาย (Explanation):** ฟังก์ชันนี้คำนวณน้ำหนักโมเลกุลของแต่ละสปีชีส์โดยการรวมน้ำหนักอะตอมของธาตุที่เป็นองค์ประกอบ ฟังก์ชันจะตรวจสอบน้ำหนักเฉพาะไอโซโทป (เช่น D สำหรับดิวทีเรียม, C13 สำหรับคาร์บอน-13) ก่อนที่จะย้อนกลับไปยังน้ำหนักอะตอมมาตรฐาน ฟังก์ชันจะแจ้งข้อผิดพลาดร้ายแรง (fatal error) หากพบธาตุที่ไม่รู้จัก
 
-> **Key Concepts:**
-> - **Isotope handling**: Supports deuterium, tritium, carbon-13, etc.
-> - **Atomic weight tables**: Built-in periodic table data
-> - **Error detection**: Immediate failure for invalid elements
-> - **specieElement**: Structure containing element name and atom count
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **การจัดการไอโซโทป**: รองรับดิวทีเรียม, ทริเทียม, คาร์บอน-13 ฯลฯ
+> - **ตารางน้ำหนักอะตอม**: ข้อมูลตารางธาตุในตัว
+> - **การตรวจจับข้อผิดพลาด**: ความล้มเหลวทันทีสำหรับธาตุที่ไม่ถูกต้อง
+> - **specieElement**: โครงสร้างที่มีชื่อธาตุและจำนวนอะตอม
 
-### 3.5 Data Flow Pipeline
+### 3.5 ท่อส่งข้อมูล (Data Flow Pipeline)
 
-The parsing process follows a systematic pipeline:
+กระบวนการวิเคราะห์เป็นไปตามท่อส่งที่เป็นระบบ:
 
 ```mermaid
 flowchart LR
-    A[Raw Chemkin Files] --> B[Lexical Analysis]
-    B --> C[Syntax Parsing]
-    C --> D[Semantic Validation]
-    D --> E[Object Construction]
+    A[ไฟล์ Chemkin ดิบ] --> B[การวิเคราะห์ทางภาษา]
+    B --> C[การวิเคราะห์ไวยากรณ์]
+    C --> D[การตรวจสอบความถูกต้องทางอรรถศาสตร์]
+    D --> E[การสร้างออบเจกต์]
 
     E --> F[speciesTable]
     E --> G[ReactionList]
@@ -264,15 +264,15 @@ flowchart LR
     style G fill:#fff3e0,stroke:#ef6c00
     style H fill:#f3e5f5,stroke:#6a1b9a
 ```
-> **Figure 2:** แผนผังแสดงขั้นตอนการประมวลผลข้อมูล (Parsing Pipeline) ของไฟล์ Chemkin ซึ่งครอบคลุมตั้งแต่การวิเคราะห์ทางภาษาและไวยากรณ์ การตรวจสอบความถูกต้อง ไปจนถึงการสร้างโครงสร้างออบเจกต์ใน OpenFOAM
+> **รูปที่ 2:** แผนผังแสดงขั้นตอนการประมวลผลข้อมูล (Parsing Pipeline) ของไฟล์ Chemkin ซึ่งครอบคลุมตั้งแต่การวิเคราะห์ทางภาษาและไวยากรณ์ การตรวจสอบความถูกต้อง ไปจนถึงการสร้างโครงสร้างออบเจกต์ใน OpenFOAM
 
 ---
 
-## 4. Reaction File Format (chem.inp)
+## 4. รูปแบบไฟล์ปฏิกิริยา (chem.inp)
 
-The `chem.inp` file contains the chemical reaction mechanism in a structured format.
+ไฟล์ `chem.inp` บรรจุกลไกปฏิกิริยาเคมีในรูปแบบที่มีโครงสร้าง
 
-### 4.1 File Structure
+### 4.1 โครงสร้างไฟล์
 
 ```
 ELEMENTS
@@ -288,26 +288,26 @@ OH + H2 => H + H2O      2.20E13  0.0  4000.0
 END
 ```
 
-### 4.2 Arrhenius Rate Expression
+### 4.2 นิพจน์อัตราอาร์เรเนียส (Arrhenius Rate Expression)
 
-Each reaction line contains:
+แต่ละบรรทัดปฏิกิริยาประกอบด้วย:
 
 ```
-REACTANTS = PRODUCTS    A        n     E_a
+สารตั้งต้น = ผลิตภัณฑ์    A        n     E_a
 ```
 
-Where:
-- **$A$** — Pre-exponential factor [units vary]
-- **$n$** — Temperature exponent [-]
-- **$E_a$** — Activation energy [cal/mol or J/mol]
+โดยที่:
+- **$A$** — ปัจจัยก่อนเลขชี้กำลัง (Pre-exponential factor) [หน่วยแปรผัน]
+- **$n$** — เลขชี้กำลังอุณหภูมิ [-]
+- **$E_a$** — พลังงานก่อกัมมันต์ (Activation energy) [cal/mol หรือ J/mol]
 
-The rate constant follows the **modified Arrhenius equation**:
+ค่าคงที่อัตราเป็นไปตาม **สมการอาร์เรเนียสที่ปรับปรุงแล้ว**:
 
 $$k(T) = A \cdot T^n \cdot \exp\left(-\frac{E_a}{R_u T}\right)$$
 
-### 4.3 Rate Coefficient Validation
+### 4.3 การตรวจสอบสัมประสิทธิ์อัตรา (Rate Coefficient Validation)
 
-The parser validates the number of Arrhenius coefficients:
+ตัววิเคราะห์จะตรวจสอบจำนวนสัมประสิทธิ์อาร์เรเนียส:
 
 ```cpp
 void Foam::chemkinReader::checkCoeffs
@@ -317,7 +317,7 @@ void Foam::chemkinReader::checkCoeffs
     const label nCoeffs
 ) const
 {
-    // Verify correct number of coefficients
+    // ตรวจสอบความถูกต้องของจำนวนสัมประสิทธิ์
     if (reactionCoeffs.size() != nCoeffs)
     {
         FatalErrorInFunction
@@ -331,27 +331,27 @@ void Foam::chemkinReader::checkCoeffs
 }
 ```
 
-> **Source:** `src/thermophysicalModels/chemistryModel/chemkinReader/chemkinReader.C`
+> **แหล่งที่มา:** `src/thermophysicalModels/chemistryModel/chemkinReader/chemkinReader.C`
 
-> **Explanation:** This validation function ensures that each reaction line provides the correct number of coefficients for its rate expression type. Standard Arrhenius requires 3 coefficients (A, n, E_a), while fall-off reactions require additional parameters for low/high pressure limits.
+> **คำอธิบาย (Explanation):** ฟังก์ชันตรวจสอบความถูกต้องนี้ช่วยรับประกันว่าแต่ละบรรทัดปฏิกิริยาให้จำนวนสัมประสิทธิ์ที่ถูกต้องสำหรับประเภทนิพจน์อัตรานั้นๆ อาร์เรเนียสมาตรฐานต้องการ 3 สัมประสิทธิ์ (A, n, E_a) ในขณะที่ปฏิกิริยาแบบ Fall-off ต้องการพารามิเตอร์เพิ่มเติมสำหรับขีดจำกัดความดันต่ำ/สูง
 
-> **Key Concepts:**
-> - **Input validation**: Immediate error detection during file parsing
-> - **Rate expression types**: Different coefficient counts for different rate laws
-> - **Error messaging**: Detailed diagnostic information for debugging
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **การตรวจสอบความถูกต้องของอินพุต**: การตรวจจับข้อผิดพลาดทันทีในระหว่างการวิเคราะห์ไฟล์
+> - **ประเภทนิพจน์อัตรา**: จำนวนสัมประสิทธิ์ที่ต่างกันสำหรับกฎอัตราที่ต่างกัน
+> - **การแจ้งข้อผิดพลาด**: ข้อมูลการวินิจฉัยโดยละเอียดสำหรับการดีบั๊ก
 
-### 4.4 Advanced Reaction Types
+### 4.4 ประเภทปฏิกิริยาขั้นสูง
 
-OpenFOAM's parser supports various reaction types:
+ตัววิเคราะห์ของ OpenFOAM รองรับประเภทปฏิกิริยาต่างๆ:
 
-| Type | Syntax Example | Description |
+| ประเภท | ตัวอย่างไวยากรณ์ | คำอธิบาย |
 |------|----------------|-------------|
-| **Elementary** | `A + B = C + D` | Standard bimolecular reaction |
-| **Third-body** | `A + B = C + M` | M represents any species |
-| **Fall-off** | `A + B = C (+M)` | Pressure-dependent |
-| **PLOG** | `PLOG /1.0E5/` | Pressure-specific rate |
+| **ขั้นพื้นฐาน (Elementary)** | `A + B = C + D` | ปฏิกิริยาแบบสองโมเลกุลมาตรฐาน |
+| **ตัวที่สาม (Third-body)** | `A + B = C + M` | M แทนสปีชีส์ใดๆ |
+| **Fall-off** | `A + B = C (+M)` | ขึ้นกับความดัน |
+| **PLOG** | `PLOG /1.0E5/` | อัตราเฉพาะตามความดัน |
 
-**Third-body example with efficiencies:**
+**ตัวอย่างตัวที่สามพร้อมประสิทธิภาพ (efficiencies):**
 
 ```
 H + O2 + M = HO2 + M
@@ -360,11 +360,11 @@ H2/2.0/ H2O/6.0/ CO/1.5/ CO2/2.0/ N2/1.0/ O2/1.0/
 
 ---
 
-## 5. Thermodynamic Data (therm.dat)
+## 5. ข้อมูลเทอร์โมไดนามิก (therm.dat)
 
-Thermodynamic properties use **NASA polynomials** with temperature ranges.
+สมบัติเทอร์โมไดนามิกใช้ **พหุนาม NASA** พร้อมช่วงอุณหภูมิ
 
-### 5.1 NASA Polynomial Format
+### 5.1 รูปแบบพหุนาม NASA
 
 ```
 CH4             G 8/88C   1H   4         0    0G    300.000  5000.000  1000.000    1
@@ -372,23 +372,23 @@ CH4             G 8/88C   1H   4         0    0G    300.000  5000.000  1000.000 
  -1.02466476E+04 4.65473670E+00-4.41766994E-02-1.26609280E+02 6.02236961E+04    3
 ```
 
-### 5.2 Polynomial Form
+### 5.2 รูปแบบพหุนาม
 
-**For $T_{\text{mid}} \leq T \leq T_{\text{high}}$:**
+**สำหรับ $T_{	ext{mid}} \leq T \leq T_{	ext{high}}$:**
 
 $$\frac{C_p(T)}{R} = a_1 T^{-2} + a_2 T^{-1} + a_3 + a_4 T + a_5 T^2 + a_6 T^3 + a_7 T^4$$
 
-**For $T_{\text{low}} \leq T < T_{\text{mid}}$:**
+**สำหรับ $T_{	ext{low}} \leq T < T_{	ext{mid}}$:**
 
 $$\frac{C_p(T)}{R} = b_1 T^{-2} + b_2 T^{-1} + b_3 + b_4 T + b_5 T^2 + b_6 T^3 + b_7 T^4$$
 
-**Enthalpy and Entropy:**
+**เอนทาลปีและเอนโทรปี:**
 
 $$\frac{H(T)}{RT} = -a_1 T^{-2} + a_2 \frac{\ln T}{T} + a_3 + \frac{a_4}{2} T + \frac{a_5}{3} T^2 + \frac{a_6}{4} T^3 + \frac{a_7}{5} T^4 + \frac{a_8}{T}$$
 
 $$\frac{S(T)}{R} = -\frac{a_1}{2} T^{-2} - a_2 T^{-1} + a_3 \ln T + a_4 T + \frac{a_5}{2} T^2 + \frac{a_6}{3} T^3 + \frac{a_7}{4} T^4 + a_9$$
 
-Where the 14 coefficients are organized as:
+โดยที่สัมประสิทธิ์ทั้ง 14 ตัวถูกจัดเรียงดังนี้:
 
 ```
 a1  a2  a3  a4  a5  a6  a7  a8
@@ -397,11 +397,11 @@ b1  b2  b3  b4  b5  b6  b7  b9
 
 ---
 
-## 6. Transport Data (tran.dat)
+## 6. ข้อมูลการขนส่ง (tran.dat)
 
-The optional `tran.dat` file provides Lennard-Jones parameters for transport calculations.
+ไฟล์ `tran.dat` ซึ่งเป็นตัวเลือกเสริม ให้พารามิเตอร์ Lennard-Jones สำหรับการคำนวณการขนส่ง
 
-### 6.1 Format
+### 6.1 รูปแบบ
 
 ```
 TRANSPORT FIXED UNITS
@@ -411,34 +411,34 @@ H2O 2.641  809.1  1.0  0.0  0.0  0.0
 END
 ```
 
-**Parameters (for each species):**
-1. **Lennard-Jones $\sigma$** — Collision diameter [Å]
-2. **$\epsilon/k_B$** — Well depth parameter [K]
-3. **$\mu$** — Dipole moment [Debye]
-4. **$\alpha$** — Polarizability
-5. **Z_rot** — Rotational relaxation number
+**พารามิเตอร์ (สำหรับแต่ละสปีชีส์):**
+1. **Lennard-Jones $\sigma$** — เส้นผ่านศูนย์กลางการชน [Å]
+2. **$\varepsilon/k_B$** — พารามิเตอร์ความลึกของบ่อศักย์ [K]
+3. **$\mu$** — โมเมนต์ขั้วคู่ (Dipole moment) [Debye]
+4. **$\alpha$** — สภาพขั้วได้ (Polarizability)
+5. **Z_rot** — เลขการผ่อนคลายการหมุน
 
-### 6.2 Transport Properties Calculation
+### 6.2 การคำนวณสมบัติการขนส่ง
 
-These parameters enable calculation of:
+พารามิเตอร์เหล่านี้ช่วยให้สามารถคำนวณ:
 
-- **Dynamic viscosity** $\mu$ via Chapman-Enskog theory
-- **Thermal conductivity** $\lambda$
-- **Mass diffusivity** $D_{ij}$ for binary pairs
+- **ความหนืดพลศาสตร์** $\mu$ ผ่านทฤษฎี Chapman-Enskog
+- **การนำความร้อน** $\lambda$
+- **สภาพแพร่มวล** $D_{ij}$ สำหรับคู่สองส่วนประกอบ
 
-**Viscosity formulation:**
+**สูตรความหนืด:**
 
 $$\mu = \frac{5}{16} \frac{\sqrt{\pi m k_B T}}{\pi \sigma^2 \Omega^{(2,2)*}}$$
 
-Where $\Omega^{(2,2)*}$ is the collision integral from Lennard-Jones potential.
+โดยที่ $\Omega^{(2,2)*}$ คืออินทิกรัลการชนจากศักย์ Lennard-Jones
 
 ---
 
-## 7. Usage in OpenFOAM
+## 7. การใช้งานใน OpenFOAM
 
-### 7.1 Configuration
+### 7.1 การกำหนดค่า
 
-In `constant/thermophysicalProperties`:
+ใน `constant/thermophysicalProperties`:
 
 ```cpp
 mixture
@@ -446,7 +446,7 @@ mixture
     chemistryReader   chemkin;
     chemkinFile       "chem.inp";
     thermoFile        "therm.dat";
-    transportFile     "tran.dat";   // optional
+    transportFile     "tran.dat";   // เลือกเสริม
 
     species
     (
@@ -458,9 +458,9 @@ mixture
 }
 ```
 
-### 7.2 Solver Integration
+### 7.2 การบูรณาการตัวแก้ปัญหา
 
-The chemistry reader is instantiated in the reacting mixture constructor:
+ตัวอ่านเคมีจะถูกสร้างขึ้นในคอนสตรัคเตอร์ (constructor) ของส่วนผสมที่มีปฏิกิริยา:
 
 ```cpp
 reactingMixture<ReactionThermo>::reactingMixture
@@ -487,73 +487,73 @@ reactingMixture<ReactionThermo>::reactingMixture
 }
 ```
 
-> **Source:** `src/thermophysicalModels/reactionThermo/reactingMixture/reactingMixture.C`
+> **แหล่งที่มา:** `src/thermophysicalModels/reactionThermo/reactingMixture/reactingMixture.C`
 
-> **Explanation:** The reacting mixture constructor initializes the base multiComponentMixture class, then creates a chemkinReader instance to parse the chemical mechanism. The reader is stored as an autoPtr (auto pointer to handle memory management automatically). The `read()` method is called immediately to parse the Chemkin files and populate the species and reaction data structures.
+> **คำอธิบาย (Explanation):** คอนสตรัคเตอร์ของส่วนผสมที่มีปฏิกิริยา (reacting mixture) จะเริ่มต้นคลาสฐาน `multiComponentMixture` จากนั้นสร้างอินสแตนซ์ (instance) ของ `chemkinReader` เพื่อวิเคราะห์กลไกเคมี ตัวอ่านจะถูกเก็บไว้เป็น `autoPtr` (พอยน์เตอร์อัตโนมัติเพื่อจัดการการล้างหน่วยความจำโดยอัตโนมัติ) เมธอด `read()` จะถูกเรียกทันทีเพื่อวิเคราะห์ไฟล์ Chemkin และสร้างข้อมูลสปีชีส์และปฏิกิริยา
 
-> **Key Concepts:**
-> - **Constructor initialization list**: Efficient member initialization
-> - **Dictionary lookup**: OpenFOAM's configuration file access
-> - **autoPtr**: Automatic memory management for heap-allocated objects
-> - **Template inheritance**: Works with any ReactionThermo type
-> - **Sub-dictionary access**: nested parameter organization
+> **แนวคิดสำคัญ (Key Concepts):**
+> - **รายการเริ่มต้นของคอนสตรัคเตอร์**: การเริ่มต้นสมาชิกอย่างมีประสิทธิภาพ
+> - **การค้นหาในพจนานุกรม**: การเข้าถึงไฟล์กำหนดค่าของ OpenFOAM
+> - **autoPtr**: การจัดการหน่วยความจำอัตโนมัติสำหรับออบเจกต์ที่จองในฮีป (heap)
+> - **การสืบทอดแบบเทมเพลต**: ทำงานร่วมกับประเภท ReactionThermo ใดๆ
+> - **การเข้าถึงพจนานุกรมย่อย**: การจัดระเบียบพารามิเตอร์แบบซ้อนกัน
 
 ---
 
-## 8. Common Issues and Solutions
+## 8. ปัญหาทั่วไปและวิธีแก้ไข
 
-> [!WARNING] Troubleshooting Tips
+> [!WARNING] เคล็ดลับการแก้ปัญหา
 
-| Issue | Symptom | Solution |
+| ปัญหา | อาการ | วิธีแก้ไข |
 |-------|---------|----------|
-| **"Species not found"** | Solver crashes at startup | Verify species names match *exactly* between `chem.inp` and `therm.dat` |
-| **Missing thermodynamic data** | Negative temperatures | Check all species in `chem.inp` have entries in `therm.dat` |
-| **Unit mismatch** | Unrealistic reaction rates | Ensure activation energy units match (cal/mol vs J/mol) |
-| **Large mechanism slowdown** | Long initialization | Consider mechanism reduction or pre-compilation |
+| **"Species not found"** | ตัวแก้ปัญหาหยุดทำงานขณะเริ่มต้น | ตรวจสอบว่าชื่อสปีชีส์ตรงกัน *ทุกประการ* ระหว่าง `chem.inp` และ `therm.dat` |
+| **ข้อมูลเทอร์โมหายไป** | อุณหภูมิเป็นลบ | ตรวจสอบว่าสปีชีส์ทั้งหมดใน `chem.inp` มีรายการใน `therm.dat` |
+| **หน่วยไม่ตรงกัน** | อัตราปฏิกิริยาไม่สมจริง | รับประกันว่าหน่วยของพลังงานก่อกัมมันต์ตรงกัน (cal/mol vs J/mol) |
+| **กลไกขนาดใหญ่ช้า** | การเริ่มต้นใช้งานนาน | พิจารณาการลดรูปกลไกหรือการคอมไพล์ล่วงหน้า |
 
-### 8.1 Mechanism Size Considerations
+### 8.1 ข้อควรพิจารณาเรื่องขนาดของกลไก
 
-| Species Count | Memory Usage | Parse Time | Practical Use |
+| จำนวนสปีชีส์ | การใช้หน่วยความจำ | เวลาวิเคราะห์ | การใช้งานจริง |
 |---------------|--------------|------------|---------------|
-| **< 50** | ~10 MB | < 1 s | Educational, simple fuels |
-| **50 - 200** | ~50 MB | 1-5 s | Standard combustion research |
-| **200 - 1000** | ~200 MB | 5-30 s | Detailed mechanisms |
-| **> 1000** | > 500 MB | > 30 s | Research only, consider reduction |
+| **< 50** | ~10 MB | < 1 วินาที | เพื่อการศึกษา, เชื้อเพลิงอย่างง่าย |
+| **50 - 200** | ~50 MB | 1-5 วินาที | งานวิจัยการเผาไหม้มาตรฐาน |
+| **200 - 1000** | ~200 MB | 5-30 วินาที | กลไกที่มีรายละเอียดสูง |
+| **> 1000** | > 500 MB | > 30 วินาที | สำหรับงานวิจัยเท่านั้น, ควรพิจารณาการลดรูป |
 
 ---
 
-## 9. Best Practices
+## 9. แนวทางปฏิบัติที่ดีที่สุด (Best Practices)
 
-### 9.1 File Organization
+### 9.1 การจัดระเบียบไฟล์
 
 ```
-case_directory/
+ไดเรกทอรี_กรณีศึกษา/
 ├── constant/
-│   ├── thermophysicalProperties  <-- Reference Chemkin files here
+│   ├── thermophysicalProperties  <-- อ้างอิงไฟล์ Chemkin ที่นี่
 │   ├── chem.inp
 │   ├── therm.dat
 │   └── tran.dat
-├── 0/                              <-- Initial conditions
+├── 0/                              <-- เงื่อนไขเริ่มต้น
 └── system/
     ├── controlDict
     └── fvSchemes
 ```
 
-### 9.2 Validation Workflow
+### 9.2 ขั้นตอนการตรวจสอบความถูกต้อง
 
-1. **Syntax check**: Use `chemkinToFoam` utility for conversion validation
-2. **Element balance**: Verify elements sum to zero for all reactions
-3. **Thermodynamic range**: Check $T_{\text{low}}$ and $T_{\text{high}}$ cover simulation range
-4. **Rate consistency**: Ensure Arrhenius parameters are physically reasonable
+1. **ตรวจสอบไวยากรณ์**: ใช้ยูทิลิตี้ `chemkinToFoam` เพื่อตรวจสอบความถูกต้องของการแปลง
+2. **สมดุลธาตุ**: ยืนยันว่าผลรวมธาตุเป็นศูนย์สำหรับทุกปฏิกิริยา
+3. **ช่วงเทอร์โมไดนามิก**: ตรวจสอบว่า $T_{	ext{low}}$ และ $T_{	ext{high}}$ ครอบคลุมช่วงการจำลอง
+4. **ความสอดคล้องของอัตรา**: รับประกันว่าพารามิเตอร์อาร์เรเนียสมีความสมเหตุสมผลทางฟิสิกส์
 
-### 9.3 Performance Optimization
+### 9.3 การเพิ่มประสิทธิภาพ (Performance Optimization)
 
 ```cpp
-// In chemistryProperties
+// ใน chemistryProperties
 chemistry
 {
-    // Use tabulation for large mechanisms
-    chemistrySolver    rbcor;           // OR
+    // ใช้การทำตารางสำหรับกลไกขนาดใหญ่
+    chemistrySolver    rbcor;           // หรือ
     tabulation        on;
     tabulationControl
     {
@@ -566,53 +566,53 @@ chemistry
 
 ---
 
-## 10. Connection to Other Modules
+## 10. ความเชื่อมโยงกับโมดูลอื่น
 
-### 10.1 Species Transport
+### 10.1 การขนส่งสปีชีส์
 
-Chemkin data directly enables the **species transport equation**:
+ข้อมูล Chemkin ช่วยให้สามารถใช้ **สมการการขนส่งสปีชีส์** ได้โดยตรง:
 
 $$\frac{\partial (\rho Y_i)}{\partial t} + \nabla \cdot (\rho \mathbf{u} Y_i) = -\nabla \cdot \mathbf{J}_i + \dot{\omega}_i$$
 
-Where:
-- **$\dot{\omega}_i$** comes from the `reactionList`
-- **Diffusivity** uses transport data from `tran.dat`
+โดยที่:
+- **$\dot{\omega}_i$** มาจาก `reactionList`
+- **สภาพแพร่** ใช้ข้อมูลการขนส่งจาก `tran.dat`
 
-### 10.2 Combustion Models
+### 10.2 แบบจำลองการเผาไหม้
 
-Both **PaSR** and **EDC** combustion models use:
-- **Reaction rates** from `ReactionList`
-- **Thermodynamic properties** from `speciesThermo`
-- **Transport properties** for mixture-averaged coefficients
+ทั้งแบบจำลองการเผาไหม้ **PaSR** และ **EDC** ใช้:
+- **อัตราปฏิกิริยา** จาก `ReactionList`
+- **สมบัติเทอร์โมไดนามิก** จาก `speciesThermo`
+- **สมบัติการขนส่ง** สำหรับสัมประสิทธิ์เฉลี่ยส่วนผสม
 
-### 10.3 ODE Solvers
+### 10.3 ตัวแก้สมการ ODE
 
-The stiff chemical ODE system:
+ระบบ ODE เคมีที่แข็งเกร็ง:
 
 $$\frac{\mathrm{d}Y_i}{\mathrm{d}t} = \frac{\dot{\omega}_i(Y, T, p)}{\rho}$$
 
-is integrated using specialized solvers (e.g., **SEulex**, **Rosenbrock34**) with:
-- **Jacobian** computed from reaction stoichiometry
-- **Time steps** adapted based on chemical stiffness
+จะถูกบูรณาการโดยใช้ตัวแก้เฉพาะทาง (เช่น **SEulex**, **Rosenbrock34**) โดยมี:
+- **Jacobian** ที่คำนวณจากปริมาณสัมพันธ์ของปฏิกิริยา
+- **ช่วงเวลา** ที่ปรับเปลี่ยนตามความแข็งเกร็งทางเคมี
 
 ---
 
-## 11. Summary
+## 11. สรุป (Summary)
 
-| Component | Function | Key Output |
+| ส่วนประกอบ | หน้าที่ | ผลลัพธ์หลัก |
 |-----------|----------|------------|
-| **Chemkin Files** | Standard format for chemistry data | Text files |
-| **chemkinReader** | Parser and data structure builder | `speciesTable`, `ReactionList` |
-| **NASA Polynomials** | Temperature-dependent $C_p$, $H$, $S$ | Smooth thermodynamic curves |
-| **Transport Data** | Viscosity and diffusion parameters | Lennard-Jones $\sigma$, $\epsilon/k_B$ |
-| **Runtime Loading** | Flexible mechanism selection | No recompilation needed |
+| **ไฟล์ Chemkin** | รูปแบบมาตรฐานสำหรับข้อมูลเคมี | ไฟล์ข้อความ |
+| **chemkinReader** | ตัววิเคราะห์และตัวสร้างโครงสร้างข้อมูล | `speciesTable`, `ReactionList` |
+| **พหุนาม NASA** | $C_p$, $H$, $S$ ที่ขึ้นกับอุณหภูมิ | เส้นโค้งเทอร์โมไดนามิกที่ราบเรียบ |
+| **ข้อมูลการขนส่ง** | พารามิเตอร์ความหนืดและการแพร่ | Lennard-Jones $\sigma$, $\varepsilon/k_B$ |
+| **การโหลดขณะทำงาน** | การเลือกกลไกที่ยืดหยุ่น | ไม่ต้องคอมไพล์โค้ดใหม่ |
 
-> [!TIP] Key Takeaway
-> The Chemkin parsing infrastructure enables OpenFOAM to leverage decades of combustion research while maintaining the flexibility to switch mechanisms without code modification. This bridge between legacy data formats and modern CFD simulation is essential for practical combustion modeling.
+> [!TIP] ประเด็นสำคัญ
+> โครงสร้างพื้นฐานการวิเคราะห์ Chemkin ช่วยให้ OpenFOAM สามารถใช้ประโยชน์จากงานวิจัยด้านการเผาไหม้ที่สะสมมาหลายทศวรรษ ในขณะที่ยังคงรักษาความยืดหยุ่นในการเปลี่ยนกลไกโดยไม่ต้องแก้ไขโค้ด การเชื่อมต่อระหว่างรูปแบบข้อมูลดั้งเดิมและการจำลอง CFD สมัยใหม่นี้เป็นสิ่งจำเป็นสำหรับการสร้างแบบจำลองการเผาไหม้ในทางปฏิบัติ
 
 ---
 
-## 12. References
+## 12. เอกสารอ้างอิง (References)
 
 1. **Chemkin Theory Manual**, Reaction Design, 2016
 2. **OpenFOAM Source Code**: `src/thermophysicalModels/chemistryModel/chemkinReader/`
@@ -621,12 +621,12 @@ is integrated using specialized solvers (e.g., **SEulex**, **Rosenbrock34**) wit
 
 ---
 
-## 13. Further Reading
+## 13. อ่านเพิ่มเติม (Further Reading)
 
-- **[[01_🎯_File_Purpose.md]]** — Module overview and learning objectives
-- **[[03_2._chemistryModel`_and_ODE_Solvers_for_Stiff_Reaction_Rates.md]]** — Chemical kinetics integration
-- **[[04_3._Combustion_Models_PaSR_vs._EDC.md]]** — Turbulence-chemistry interaction models
-- **[[06_🧪_Practical_Workflow_Setting_Up_a_Reacting_Flow_Simulation.md]]** — Complete case setup workflow
+- **[[01_Species_Transport_Fundamentals]]** — ภาพรวมมอดูลและวัตถุประสงค์การเรียนรู้
+- **[[02_Chemistry_Integration]]** — การบูรณาการจลนพลศาสตร์เคมี
+- **[[03_Combustion_Modeling]]** — แบบจำลองปฏิสัมพันธ์ความปั่นป่วน-เคมี
+- **[[05_Reacting_Flow_Workflow]]** — ขั้นตอนการตั้งค่ากรณีศึกษาที่สมบูรณ์
 
 ---
-**Estimated Study Time:** 45-60 minutes
+**ระยะเวลาการเรียนโดยประมาณ:** 45-60 นาที

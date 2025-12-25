@@ -1,18 +1,18 @@
-# Common Boundary Conditions in OpenFOAM
+# เงื่อนไขขอบเขตทั่วไปใน OpenFOAM (Common Boundary Conditions in OpenFOAM)
 
-**Boundary conditions** are fundamental components in Computational Fluid Dynamics (CFD) simulations that define how fluid properties behave at the physical boundaries of the computational domain.
+**เงื่อนไขขอบเขต (Boundary conditions)** เป็นองค์ประกอบพื้นฐานในการจำลองพลศาสตร์ของไหลเชิงคำนวณ (CFD) ซึ่งกำหนดพฤติกรรมของคุณสมบัติของไหลที่ขอบเขตทางกายภาพของโดเมนการคำนวณ
 
-In OpenFOAM, boundary conditions are implemented through specialized Field classes that inherit from the base class `fvPatchField`, providing a robust framework for handling various physical situations encountered in engineering applications.
+ใน OpenFOAM เงื่อนไขขอบเขตถูกนำมาใช้ผ่านคลาสฟิลด์ (Field classes) เฉพาะทางที่สืบทอดมาจากคลาสฐาน `fvPatchField` ซึ่งเป็นโครงสร้างที่แข็งแกร่งสำหรับการจัดการสถานการณ์ทางกายภาพต่าง ๆ ที่พบในงานประยุกต์ทางวิศวกรรม
 
-**Proper selection of boundary conditions** is critical for obtaining physically realistic and numerically stable results.
+**การเลือกเงื่อนไขขอบเขตที่เหมาะสม** มีความสำคัญอย่างยิ่งต่อการได้รับผลลัพธ์ที่สมจริงทางกายภาพและมีความเสถียรเชิงตัวเลข
 
 ```mermaid
 graph TD
-    A["Boundary Conditions in OpenFOAM"] --> B["Velocity (U)"]
-    A --> C["Pressure (p)"]
-    A --> D["Turbulence (k, ε, ω)"]
-    A --> E["Temperature (T)"]
-    A --> F["Volume Fraction (α)"]
+    A["เงื่อนไขขอบเขตใน OpenFOAM"] --> B["ความเร็ว (U)"]
+    A --> C["ความดัน (p)"]
+    A --> D["ความปั่นป่วน (k, ε, ω)"]
+    A --> E["อุณหภูมิ (T)"]
+    A --> F["สัดส่วนปริมาตร (α)"]
 
     B --> B1["fixedValue<br/>noSlip<br/>slip<br/>pressureInletOutletVelocity"]
     C --> C1["zeroGradient<br/>fixedValue<br/>totalPressure"]
@@ -32,61 +32,60 @@ graph TD
     classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
     classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
-> **Figure 1:** Common boundary conditions in OpenFOAM organized by field variable types, such as velocity, pressure, turbulence, temperature, and volume fraction, to identify different physical behaviors in the computational domain
+> **รูปที่ 1:** เงื่อนไขขอบเขตทั่วไปใน OpenFOAM จำแนกตามประเภทของตัวแปรสนาม เช่น ความเร็ว ความดัน ความปั่นป่วน อุณหภูมิ และสัดส่วนปริมาตร เพื่อระบุพฤติกรรมทางกายภาพที่แตกต่างกันในโดเมนการคำนวณ
 
+สำหรับตัวแปรสนามทั่วไป $\phi$ เงื่อนไขขอบเขตสามารถแบ่งออกเป็นสามประเภทหลักทางคณิตศาสตร์ดังนี้:
 
-For a general field variable $\phi$, boundary conditions can be categorized into three main mathematical types:
+### 1. เงื่อนไขขอบเขตแบบดิริชเลต์ (Dirichlet Boundary Conditions - Fixed Value)
 
-### 1. Dirichlet Boundary Conditions (Fixed Value)
-
-**Dirichlet Boundary Condition** specifies the value of the field variable directly at the boundary surface. Mathematically, this can be expressed as:
+**เงื่อนไขขอบเขตแบบดิริชเลต์** ระบุค่าของตัวแปรสนามโดยตรงที่พื้นผิวขอบเขต ในทางคณิตศาสตร์สามารถแสดงได้ดังนี้:
 
 $$\phi|_{\partial\Omega} = \phi_{\text{specified}}$$
 
-*   $\phi$ represents the field variable (e.g., velocity components, temperature, or pressure)
-*   $\partial\Omega$ denotes the boundary of the computational domain $\Omega$
+*   $\phi$ แทนตัวแปรสนาม (เช่น องค์ประกอบความเร็ว อุณหภูมิ หรือความดัน)
+*   $\partial\Omega$ แทนขอบเขตของโดเมนการคำนวณ $\Omega$
 
-### 2. Neumann Boundary Conditions (Fixed Gradient)
+### 2. เงื่อนไขขอบเขตแบบนอยมันน์ (Neumann Boundary Conditions - Fixed Gradient)
 
-**Neumann Boundary Condition** specifies the normal gradient of the field variable at the boundary, which is equivalent to specifying the flux through that boundary. The mathematical representation is:
+**เงื่อนไขขอบเขตแบบนอยมันน์** ระบุค่าเกรเดียนต์ในแนวฉาก (normal gradient) ของตัวแปรสนามที่ขอบเขต ซึ่งเทียบเท่ากับการระบุฟลักซ์ (flux) ที่ไหลผ่านขอบเขตนั้น รูปแบบทางคณิตศาสตร์คือ:
 
 $$\frac{\partial \phi}{\partial n}\bigg|_{\partial\Omega} = g_{\text{specified}}$$
 
-*   $\frac{\partial}{\partial n}$ represents the derivative in the direction normal to the boundary
-*   $g_{\text{specified}}$ is the specified gradient value
+*   $rac{\partial}{\partial n}$ แทนอนุพันธ์ในทิศทางแนวฉากกับขอบเขต
+*   $g_{\text{specified}}$ คือค่าเกรเดียนต์ที่กำหนด
 
-### 3. Mixed Boundary Conditions (Robin Conditions)
+### 3. เงื่อนไขขอบเขตแบบผสม (Mixed Boundary Conditions - Robin Conditions)
 
-**Mixed Boundary Condition** combines both value and gradient specifications through weighting parameters:
+**เงื่อนไขขอบเขตแบบผสม** เป็นการรวมกันของการระบุทั้งค่าและเกรเดียนต์ผ่านพารามิเตอร์การถ่วงน้ำหนัก:
 
 $$\alpha \phi + \beta \frac{\partial \phi}{\partial n} = \gamma$$
 
-*   $\alpha$, $\beta$, and $\gamma$ are coefficients that determine the relative importance of the value and gradient terms
+*   $\alpha$, $\beta$, และ $\gamma$ คือสัมประสิทธิ์ที่กำหนดความสำคัญสัมพัทธ์ของพจน์ค่าและพจน์เกรเดียนต์
 
 ---
 
-## Boundary Conditions for Velocity (`U`)
+## เงื่อนไขขอบเขตสำหรับความเร็ว (`U`)
 
-### Fixed Value (Inlet)
+### ค่าคงที่ (Fixed Value - Inlet)
 
-The `fixedValue` condition specifies a **predetermined velocity vector** at the boundary, typically used for inlets with known flow characteristics.
+เงื่อนไข `fixedValue` ใช้ระบุ **เวกเตอร์ความเร็วที่กำหนดไว้ล่วงหน้า** ที่ขอบเขต มักใช้สำหรับทางเข้า (inlets) ที่ทราบลักษณะการไหล
 
-**Properties:**
-- Can be constant or time-varying
-- Supports mathematical functions
-- Suitable for inlets with well-defined velocity profiles
+**คุณสมบัติ:**
+- สามารถเป็นค่าคงที่หรือเปลี่ยนแปลงตามเวลาได้
+- รองรับฟังก์ชันทางคณิตศาสตร์
+- เหมาะสำหรับทางเข้าที่มีโปรไฟล์ความเร็วที่กำหนดไว้อย่างชัดเจน
 
-#### Uniform Constant Velocity
+#### ความเร็วสม่ำเสมอคงที่ (Uniform Constant Velocity)
 
 ```cpp
 inlet
 {
     type            fixedValue;
-    value           uniform (10 0 0); // Constant velocity in x-direction (m/s)
+    value           uniform (10 0 0); // ความเร็วคงที่ 10 m/s ในทิศทาง x
 }
 ```
 
-#### Time-Varying Inlet Condition
+#### เงื่อนไขทางเข้าที่เปลี่ยนแปลงตามเวลา (Time-Varying Inlet)
 
 ```cpp
 inlet
@@ -102,7 +101,7 @@ inlet
 }
 ```
 
-#### Parabolic Velocity Profile
+#### โปรไฟล์ความเร็วแบบพาราโบลา (Parabolic Velocity Profile)
 
 ```cpp
 inlet
@@ -133,65 +132,65 @@ inlet
 }
 ```
 
-> **📂 Source:** `src/fvOptions/derived/codedFixedValueFvPatchField`
+> **📂 แหล่งที่มา:** `src/fvOptions/derived/codedFixedValueFvPatchField`
 > 
-> **คำอธิบาย (Explanation):**
-> โค้ดด้านบนใช้ `#codeStream` เพื่อสร้าง velocity profile แบบ parabolic ที่ inlet ซึ่งเป็นวิธีการระบุค่าที่ซับซ้อนโดยใช้ C++ code โดยตรงในไฟล์ boundary condition
+> **คำอธิบาย:**
+> โค้ดด้านบนใช้ `#codeStream` เพื่อสร้างโปรไฟล์ความเร็วแบบพาราโบลาที่ทางเข้า ซึ่งเป็นวิธีการระบุค่าที่ซับซ้อนโดยใช้โค้ด C++ โดยตรงในไฟล์เงื่อนไขขอบเขต
 > 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Parabolic Profile**: รูปแบบความเร็วแบบ parabolic ให้ความเร็วสูงสุดที่กลางท่อและเป็นศูนย์ที่ผนัง (no-slip)
-> - **#codeStream**: ช่วยให้สามารถเขียน C++ code โดยตรงเพื่อคำนวณค่า boundary condition ที่ซับซ้อน
-> - **mesh.boundary()[patchi].Cf()**: ใช้ในการเข้าถึงตำแหน่ง face center ของแต่ละ face บน patch
+> **แนวคิดสำคัญ:**
+> - **Parabolic Profile**: รูปแบบความเร็วแบบพาราโบลาให้ความเร็วสูงสุดที่จุดศูนย์กลางท่อและเป็นศูนย์ที่ผนัง (no-slip)
+> - **#codeStream**: ช่วยให้สามารถเขียนโค้ด C++ โดยตรงเพื่อคำนวณค่าเงื่อนไขขอบเขตที่ซับซ้อน
+> - **mesh.boundary()[patchi].Cf()**: ใช้ในการเข้าถึงตำแหน่งจุดศูนย์กลางหน้า (face center) ของแต่ละหน้าบนแพตช์ (patch)
 
 ---
 
-### No-Slip (Wall)
+### เงื่อนไขไม่ลื่นไถล (No-Slip - Wall)
 
-The **No-Slip** condition models **viscous adhesion** at solid boundaries where the fluid velocity matches the wall velocity (typically zero for stationary walls).
+เงื่อนไข **No-Slip** จำลอง **การยึดเกาะเนื่องจากความหนืด (viscous adhesion)** ที่ขอบเขตของแข็ง โดยความเร็วของของไหลจะเท่ากับความเร็วของผนัง (มักเป็นศูนย์สำหรับผนังที่หยุดนิ่ง)
 
-**Properties:**
-- Standard condition for viscous flows
-- Applied at solid surfaces
-- Fluid velocity equals wall velocity
+**คุณสมบัติ:**
+- เป็นเงื่อนไขมาตรฐานสำหรับการไหลแบบมีความหนืด (viscous flows)
+- ใช้กับพื้นผิวของแข็ง
+- ความเร็วของของไหลเท่ากับความเร็วของผนัง
 
 ```cpp
 walls
 {
-    type            noSlip; // Modern standard shorthand
-    // Equivalent to:
+    type            noSlip; // รูปแบบย่อมาตรฐานในปัจจุบัน
+    // เทียบเท่ากับ:
     // type            fixedValue;
     // value           uniform (0 0 0);
 }
 ```
 
-**Mathematical representation:**
+**รูปแบบทางคณิตศาสตร์:**
 $$\mathbf{u} = \mathbf{u}_{\text{wall}}$$
 
-For stationary walls: $\mathbf{u} = \mathbf{0}$
+สำหรับผนังที่หยุดนิ่ง: $\mathbf{u} = \mathbf{0}$
 
-- **$\mathbf{u}$** = Fluid velocity vector
-- **$\mathbf{u}_{\text{wall}}$** = Wall velocity vector
+- **$\\mathbf{u}$** = เวกเตอร์ความเร็วของไหล
+- **$\\mathbf{u}_{\text{wall}}$** = เวกเตอร์ความเร็วของผนัง
 
-> **📂 Source:** `src/fvPatchFields/derived/noSlip`
+> **📂 แหล่งที่มา:** `src/fvPatchFields/derived/noSlip`
 > 
-> **คำอธิบาย (Explanation):**
-> เงื่อนไข no-slip เป็นการบังคับให้ fluid velocity เท่ากับ wall velocity ซึ่งเป็นเงื่อนไขมาตรฐานสำหรับ viscous flow ที่ผนังแข็ง
+> **คำอธิบาย:**
+> เงื่อนไข no-slip เป็นการบังคับให้ความเร็วของของไหลเท่ากับความเร็วของผนัง ซึ่งเป็นเงื่อนไขมาตรฐานสำหรับการไหลแบบมีความหนืดที่ผนังแข็ง
 > 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **No-Slip Condition**: ความเร็วของ fluid ที่ผนังจะเท่ากับความเร็วของผนังเสมอ (มักเป็นศูนย์)
-> - **Viscous Flow**: การไหลของไหลที่มีความหนืด ซึ่งส่งผลให้เกิดการยึดเกาะที่ผนัง
-> - **Boundary Layer**: ชั้นขอบเขตที่ความเร็วเปลี่ยนแปลงจากศูนย์ที่ผนังไปจนถึงค่า free stream
+> **แนวคิดสำคัญ:**
+> - **No-Slip Condition**: ความเร็วของของไหลที่ผนังจะเท่ากับความเร็วของผนังเสมอ (มักเป็นศูนย์)
+> - **Viscous Flow**: การไหลของของไหลที่มีความหนืด ซึ่งส่งผลให้เกิดการยึดเกาะที่ผนัง
+> - **Boundary Layer**: ชั้นขอบเขตที่ความเร็วเปลี่ยนแปลงจากศูนย์ที่ผนังไปจนถึงค่ากระแสอิสระ (free stream)
 
 ---
 
-### Slip (Free Surface / Symmetry)
+### เงื่อนไขลื่นไถล (Slip - Free Surface / Symmetry)
 
-The **Slip** condition models a boundary with **no shear stress**, allowing the fluid to slide freely along the surface.
+เงื่อนไข **Slip** จำลองขอบเขตที่ **ไม่มีความเค้นเฉือน (no shear stress)** ทำให้ของไหลสามารถเลื่อนไปตามพื้นผิวได้อย่างอิสระ
 
-**Applications:**
-- Symmetry planes
-- Inviscid walls
-- Free surfaces
+**การประยุกต์ใช้งาน:**
+- ระนาบสมมาตร (Symmetry planes)
+- ผนังที่ไม่มีความหนืด (Inviscid walls)
+- พื้นผิวอิสระ (Free surfaces)
 
 ```cpp
 top
@@ -200,32 +199,32 @@ top
 }
 ```
 
-**Mathematical enforcement:**
-$$\mathbf{u} \cdot \mathbf{n} = 0 \quad \text{(no normal penetration)}$$
-$$\frac{\partial \mathbf{u}_t}{\partial n} = 0 \quad \text{(zero tangential shear)}$$
+**การบังคับใช้ทางคณิตศาสตร์:**
+$$\mathbf{u} \cdot \mathbf{n} = 0 \quad \text{(ไม่มีการทะลุผ่านในแนวฉาก)}$$
+$$\frac{\partial \mathbf{u}_t}{\partial n} = 0 \quad \text{(ความเค้นเฉือนในแนวสัมผัสเป็นศูนย์)}$$
 
-- **$\mathbf{u}$** = Velocity vector
-- **$\mathbf{n}$** = Normal vector to boundary
-- **$\mathbf{u}_t$** = Tangential velocity component
+- **$\\mathbf{u}$** = เวกเตอร์ความเร็ว
+- **$\\mathbf{n}$** = เวกเตอร์แนวฉากกับขอบเขต
+- **$\\mathbf{u}_t$** = ส่วนประกอบความเร็วในแนวสัมผัส
 
 ```mermaid
 graph LR
-    A["Fluid Flow"] --> B["Wall Boundary"]
-    B --> C["Slip Condition"]
+    A["การไหลของของไหล"] --> B["ขอบเขตผนัง"]
+    B --> C["เงื่อนไข Slip"]
 
-    subgraph "Normal Component"
-        N1["Un⋅n = 0<br/><b>No normal penetration</b>"]
+    subgraph "ส่วนประกอบในแนวฉาก"
+        N1["Un⋅n = 0<br/><b>ไม่มีการทะลุผ่านในแนวฉาก</b>"]
         style N1 fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
     end
 
-    subgraph "Tangential Component"
-        T1["∂Un_t/∂n = 0<br/><b>Zero shear stress</b>"]
+    subgraph "ส่วนประกอบในแนวสัมผัส"
+        T1["∂Un_t/∂n = 0<br/><b>ความเค้นเฉือนเป็นศูนย์</b>"]
         style T1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
     end
 
-    subgraph "Wall Properties"
-        W1["Impermeable surface<br/><b>No flow through boundary</b>"]
-        W2["Free sliding<br/><b>No friction resistance</b>"]
+    subgraph "คุณสมบัติของผนัง"
+        W1["พื้นผิวที่ไม่ยอมให้ไหลผ่าน<br/><b>ไม่มีการไหลข้ามขอบเขต</b>"]
+        W2["การเลื่อนไถลอย่างอิสระ<br/><b>ไม่มีแรงต้านการเสียดสี</b>"]
         style W1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
         style W2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
     end
@@ -235,57 +234,60 @@ graph LR
     B --> W1
     B --> W2
 ```
-> **Figure 2:** Physical components of slip boundary condition showing enforcement of zero normal velocity (no penetration) and zero tangential velocity gradient (no shear stress) to model frictionless walls or symmetry planes
+> **รูปที่ 2:** ส่วนประกอบทางกายภาพของเงื่อนไขขอบเขตแบบลื่นไถล (slip) แสดงการบังคับให้ความเร็วในแนวฉากเป็นศูนย์ (ไม่มีการทะลุผ่าน) และเกรเดียนต์ความเร็วในแนวสัมผัสเป็นศูนย์ (ไม่มีความเค้นเฉือน) เพื่อจำลองผนังที่ไม่มีแรงเสียดทานหรือระนาบสมมาตร
 
+---
 
-This boundary condition **calculates velocity based on pressure gradient** to ensure mass conservation.
+### ความเร็วทางเข้า/ออกตามความดัน (Pressure Inlet Outlet Velocity)
 
-**Properties:**
-- Useful at boundaries where flow direction may reverse
-- Automatically calculated from flux
-- Suitable for outlets with flow reversal
+เงื่อนไขขอบเขตนี้จะ **คำนวณความเร็วโดยอิงจากเกรเดียนต์ความดัน** เพื่อให้มั่นใจถึงการอนุรักษ์มวล
+
+**คุณสมบัติ:**
+- มีประโยชน์ที่ขอบเขตซึ่งทิศทางการไหลอาจเกิดการย้อนกลับได้
+- คำนวณโดยอัตโนมัติจากฟลักซ์ (flux)
+- เหมาะสำหรับทางออกที่มีการไหลย้อนกลับ (flow reversal)
 
 ```cpp
 outlet
 {
     type            pressureInletOutletVelocity;
-    value           uniform (0 0 0); // Initial guess value
+    value           uniform (0 0 0); // ค่าเริ่มต้นสำหรับการประมาณ
 }
 ```
 
-**Velocity calculated from flux:**
+**ความเร็วที่คำนวณจากฟลักซ์:**
 $$\mathbf{u} = \frac{\dot{m}}{\rho A} \mathbf{n}$$
 
-- **$\dot{m}$** = Mass flux
-- **$\rho$** = Density
-- **$A$** = Face area
-- **$\mathbf{n}$** = Normal vector
+- **$\\dot{m}$** = ฟลักซ์มวล (Mass flux)
+- **$\\rho$** = ความหนาแน่น
+- **$A$** = พื้นที่หน้าเซลล์
+- **$\\mathbf{n}$** = เวกเตอร์แนวฉาก
 
-> **📂 Source:** `src/fvPatchFields/derived/pressureInletOutletVelocity`
+> **📂 แหล่งที่มา:** `src/fvPatchFields/derived/pressureInletOutletVelocity`
 > 
-> **คำอธิบาย (Explanation):**
-> เงื่อนไขนี้ใช้สำหรับ outlet ที่อาจเกิด backflow โดยจะคำนวณ velocity จาก pressure gradient และ flux โดยอัตโนมัติ
+> **คำอธิบาย:**
+> เงื่อนไขนี้ใช้สำหรับทางออกที่อาจเกิดการไหลย้อนกลับ (backflow) โดยจะคำนวณความเร็วจากเกรเดียนต์ความดันและฟลักซ์โดยอัตโนมัติ
 > 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Flow Reversal**: การไหลย้อนกลับที่อาจเกิดขึ้นที่ outlet เนื่องจาก recirculation
-> - **Mass Conservation**: การอนุรักษ์มวลที่สำคัญในการคำนวณ CFD
-> - **Flux-Based Calculation**: การคำนวณความเร็วโดยอิงจาก mass flux ที่ผ่านขอบเขต
+> **แนวคิดสำคัญ:**
+> - **Flow Reversal**: การไหลย้อนกลับที่อาจเกิดขึ้นที่ทางออกเนื่องจากการไหลวน (recirculation)
+> - **Mass Conservation**: การอนุรักษ์มวลซึ่งมีความสำคัญอย่างยิ่งในการคำนวณ CFD
+> - **Flux-Based Calculation**: การคำนวณความเร็วโดยอิงจากฟลักซ์มวลที่ผ่านขอบเขต
 
 ---
 
-### Moving Wall Velocity
+### ความเร็วผนังเคลื่อนที่ (Moving Wall Velocity)
 
-For moving walls:
+สำหรับผนังที่เคลื่อนที่:
 
 ```cpp
 movingWall
 {
     type            fixedValue;
-    value           uniform (5 0 0); // Wall moving at 5 m/s in x-direction
+    value           uniform (5 0 0); // ผนังเคลื่อนที่ด้วยความเร็ว 5 m/s ในทิศทาง x
 }
 ```
 
-Or use `movingWallVelocity` for walls moving with angular velocity:
+หรือใช้ `movingWallVelocity` สำหรับผนังที่เคลื่อนที่ด้วยความเร็วเชิงมุม:
 
 ```cpp
 rotor
@@ -295,7 +297,7 @@ rotor
 }
 ```
 
-In `dynamicMeshDict`:
+ในไฟล์ `dynamicMeshDict`:
 ```cpp
 movingMesh
 {
@@ -306,28 +308,28 @@ movingMesh
 }
 ```
 
-> **📂 Source:** `src/fvPatchFields/derived/movingWallVelocity`
+> **📂 แหล่งที่มา:** `src/fvPatchFields/derived/movingWallVelocity`
 > 
-> **คำอธิบาย (Explanation):**
+> **คำอธิบาย:**
 > สำหรับผนังที่เคลื่อนที่ สามารถระบุความเร็วได้โดยตรงหรือใช้ความเร็วเชิงมุมสำหรับการหมุน
 > 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Moving Wall**: ผนังที่มีการเคลื่อนที่ซึ่งส่งผลต่อการไหลของ fluid
+> **แนวคิดสำคัญ:**
+> - **Moving Wall**: ผนังที่มีการเคลื่อนที่ซึ่งส่งผลต่อการไหลของของไหล
 > - **Angular Velocity**: ความเร็วเชิงมุมที่ใช้สำหรับการหมุน (rad/s)
-> - **Dynamic Mesh**: mesh ที่เปลี่ยนแปลงตามเวลาเนื่องจากการเคลื่อนที่ของผนัง
+> - **Dynamic Mesh**: เมชที่เปลี่ยนแปลงตามเวลาเนื่องจากการเคลื่อนที่ของผนัง
 
 ---
 
-## Boundary Conditions for Pressure (`p`)
+## เงื่อนไขขอบเขตสำหรับความดัน (`p`)
 
-### Zero Gradient
+### เกรเดียนต์เป็นศูนย์ (Zero Gradient)
 
-The `zeroGradient` condition specifies that **pressure does not change in the normal direction** to the boundary.
+เงื่อนไข `zeroGradient` ระบุว่า **ความดันไม่มีการเปลี่ยนแปลงในทิศทางแนวฉาก** กับขอบเขต
 
-**Applications:**
-- Walls
-- Velocity inlets where pressure develops naturally
-- Cases where pressure is not precisely known
+**การประยุกต์ใช้งาน:**
+- ผนัง (Walls)
+- ทางเข้าความเร็วที่ความดันพัฒนาขึ้นเองตามธรรมชาติ
+- กรณีที่ไม่ทราบค่าความดันที่แน่นอน
 
 ```cpp
 walls
@@ -336,107 +338,107 @@ walls
 }
 ```
 
-**Mathematically:**
+**ในทางคณิตศาสตร์:**
 $$\frac{\partial p}{\partial n} = 0$$
 
-- **$p$** = Pressure
-- **$\frac{\partial p}{\partial n}$** = Pressure gradient in normal direction
+- **$p$** = ความดัน
+- **$\\frac{\partial p}{\partial n}$** = เกรเดียนต์ความดันในทิศทางแนวฉาก
 
 ---
 
-### Fixed Value
+### ค่าคงที่ (Fixed Value)
 
-This condition **specifies a predetermined pressure value** at the boundary, typically used for outlets with known pressure.
+เงื่อนไขนี้ **ระบุค่าความดันที่กำหนดไว้ล่วงหน้า** ที่ขอบเขต มักใช้สำหรับทางออกที่ทราบค่าความดัน
 
-**Applications:**
-- Outlet with known pressure (usually set as gauge pressure)
-- Cases requiring pressure control at outlet
+**การประยุกต์ใช้งาน:**
+- ทางออกที่ทราบความดัน (มักตั้งค่าเป็นความดันเกจ)
+- กรณีที่ต้องการควบคุมความดันที่ทางออก
 
 ```cpp
 outlet
 {
     type            fixedValue;
-    value           uniform 0; // Gauge pressure (relative to atmospheric)
+    value           uniform 0; // ความดันเกจ (เทียบกับความดันบรรยากาศ)
 }
 ```
 
-**For physical applications (Absolute Pressure):**
+**สำหรับงานประยุกต์ทางกายภาพ (ความดันสัมบูรณ์ - Absolute Pressure):**
 
 ```cpp
 outlet
 {
     type            fixedValue;
-    value           uniform 101325; // Atmospheric pressure in Pascals
+    value           uniform 101325; // ความดันบรรยากาศในหน่วยพาสคัล
 }
 ```
 
 ---
 
-### Total Pressure
+### ความดันรวม (Total Pressure)
 
-For compressible flows:
+สำหรับการไหลแบบอัดตัวได้ (compressible flows):
 
 ```cpp
 inlet
 {
     type            totalPressure;
-    p0              uniform 101325; // Total pressure in Pa
-    gamma           1.4;             // Heat capacity ratio
+    p0              uniform 101325; // ความดันรวมในหน่วย Pa
+    gamma           1.4;             // อัตราส่วนความจุความร้อน
 }
 ```
 
-**Total pressure equation:**
+**สมการความดันรวม:**
 $$p_0 = p \left(1 + \frac{\gamma-1}{2} M^2\right)^{\frac{\gamma}{\gamma-1}}$$
 
-- **$p_0$** = Total pressure (stagnation pressure)
-- **$p$** = Static pressure
-- **$\gamma$** = Heat capacity ratio ($c_p/c_v$)
-- **$M$** = Mach number
+- **$p_0$** = ความดันรวม (stagnation pressure)
+- **$p$** = ความดันสถิต (static pressure)
+- **$\\gamma$** = อัตราส่วนความจุความร้อน ($c_p/c_v$)
+- **$M$** = เลขมัค (Mach number)
 
-> **📂 Source:** `src/fvPatchFields/derived/totalPressure`
+> **📂 แหล่งที่มา:** `src/fvPatchFields/derived/totalPressure`
 > 
-> **คำอธิบาย (Explanation):**
-> เงื่อนไข total pressure ใช้สำหรับ compressible flow โดยระบุค่า stagnation pressure ที่ inlet
+> **คำอธิบาย:**
+> เงื่อนไขความดันรวมใช้สำหรับการไหลแบบอัดตัวได้ โดยระบุค่าความดันหยุดนิ่ง (stagnation pressure) ที่ทางเข้า
 > 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Total Pressure**: ความดันรวมที่เกิดจาก static pressure และ dynamic pressure
-> - **Stagnation Pressure**: ความดันที่วัดได้เมื่อ fluid ถูกนำมาหยุดนิ่งอย่างสมบูรณ์ (isentropic)
-> - **Compressible Flow**: การไหลของไหลที่มีการเปลี่ยนแปลงของความหนาแน่นอย่างชัดเจน
+> **แนวคิดสำคัญ:**
+> - **Total Pressure**: ความดันรวมที่เกิดจากความดันสถิตและความดันพลวัต
+> - **Stagnation Pressure**: ความดันที่วัดได้เมื่อของไหลถูกทำให้หยุดนิ่งอย่างสมบูรณ์แบบไอเซนโทรปิก (isentropic)
+> - **Compressible Flow**: การไหลของของไหลที่มีการเปลี่ยนแปลงของความหนาแน่นอย่างมีนัยสำคัญ
 
 ---
 
-### Fixed Flux Pressure
+### ความดันฟลักซ์คงที่ (Fixed Flux Pressure)
 
-For cases requiring direct pressure gradient specification:
+สำหรับกรณีที่ต้องการระบุเกรเดียนต์ความดันโดยตรง:
 
 ```cpp
 wall
 {
     type            fixedFluxPressure;
-    gradient        uniform 0; // Zero pressure gradient
+    gradient        uniform 0; // เกรเดียนต์ความดันเป็นศูนย์
 }
 ```
 
 ---
 
-## Boundary Conditions for Turbulence (`k`, `epsilon`, `omega`)
+## เงื่อนไขขอบเขตสำหรับความปั่นป่วน (`k`, `epsilon`, `omega`)
 
-### Wall Functions
+### วอลล์ฟังก์ชัน (Wall Functions)
 
-**Wall Functions** are **specialized boundary conditions** that model turbulent boundary layers without requiring extremely fine mesh resolution near walls.
+**วอลล์ฟังก์ชัน** เป็น **เงื่อนไขขอบเขตเฉพาะทาง** ที่ใช้จำลองชั้นขอบเขตแบบปั่นป่วน (turbulent boundary layers) โดยไม่จำเป็นต้องใช้เมชที่มีความละเอียดสูงมากบริเวณใกล้ผนัง
 
-**Working Principle:**
-- Bridge viscous sublayer and logarithmic layer
-- Use empirical correlations
-- Reduce need for very fine mesh near walls
+**หลักการทำงาน:**
+- เชื่อมต่อระหว่างชั้นย่อยหนืด (viscous sublayer) และชั้นลอการิทึม (logarithmic layer)
+- ใช้ความสัมพันธ์เชิงประจักษ์ (empirical correlations)
+- ลดความจำเป็นในการใช้เมชที่ละเอียดมากใกล้ผนัง
 
 ```mermaid
 graph LR
-    Wall["Wall Surface<br/>y+ < 1"]
-    Viscous["Viscous Sublayer<br/>y+ < 5<br/>u+ = y+"]
-    Buffer["Buffer Layer<br/>5 < y+ < 30<br/>Complex transition"]
-    Log["Logarithmic Layer<br/>y+ > 30<br/>u+ = (1/k) ln(y+) + B"]
-    Outer["Outer Layer<br/>Full turbulence<br/>u+ = u_tau"]
+    Wall["พื้นผิวผนัง<br/>y+ < 1"]
+    Viscous["ชั้นย่อยหนืด<br/>y+ < 5<br/>u+ = y+"]
+    Buffer["ชั้นกันชน<br/>5 < y+ < 30<br/>การเปลี่ยนผ่านที่ซับซ้อน"]
+    Log["ชั้นลอการิทึม<br/>y+ > 30<br/>u+ = (1/k) ln(y+) + B"]
+    Outer["ชั้นนอก<br/>ความปั่นป่วนเต็มที่<br/>u+ = u_tau"]
 
     Wall --> Viscous
     Viscous --> Buffer
@@ -451,67 +453,66 @@ graph LR
 
     classDef default fill:#f9f9f9,stroke:#333,stroke-width:1px,color:#000;
 ```
-> **Figure 3:** Structure and zonal division of turbulent boundary layer, from the wall to the outer layer, showing the importance of $y^+$ values in selecting appropriate wall functions for each region
-
+> **รูปที่ 3:** โครงสร้างและการแบ่งโซนของชั้นขอบเขตแบบปั่นป่วน จากผนังไปยังชั้นนอก แสดงความสำคัญของค่า $y^+$ ในการเลือกวอลล์ฟังก์ชันที่เหมาะสมสำหรับแต่ละภูมิภาค
 
 ```cpp
 walls
 {
-    type            kqRWallFunction; // For turbulent kinetic energy k
+    type            kqRWallFunction; // สำหรับพลังงานจลน์ความปั่นป่วน k
     value           uniform 0.1;
 }
 
 walls
 {
-    type            epsilonWallFunction; // For turbulent dissipation epsilon
+    type            epsilonWallFunction; // สำหรับอัตราการสลายตัวของความปั่นป่วน epsilon
     value           uniform 0.01;
 }
 ```
 
-#### Wall Function for k-omega Model
+#### วอลล์ฟังก์ชันสำหรับโมเดล k-omega
 
 ```cpp
 walls
 {
-    type            omegaWallFunction; // For specific dissipation rate omega
+    type            omegaWallFunction; // สำหรับอัตราการสลายตัวเฉพาะเจาะจง omega
     value           uniform 1000;
 }
 ```
 
-**Standard Wall Function for Turbulent Kinetic Energy:**
+**วอลล์ฟังก์ชันมาตรฐานสำหรับพลังงานจลน์ความปั่นป่วน:**
 $$k_w = \frac{u_\tau^2}{\sqrt{C_\mu}}$$
 
-- **$k_w$** = Turbulent kinetic energy at wall
-- **$u_\tau$** = Friction velocity ($u_\tau = \sqrt{\tau_w/\rho}$)
-- **$C_\mu$** = Model constant (typically 0.09)
+- **$k_w$** = พลังงานจลน์ความปั่นป่วนที่ผนัง
+- **$u_\tau$** = ความเร็วเสียดทาน ($u_\tau = \sqrt{\tau_w/\rho}$)
+- **$C_\mu$** = ค่าคงที่ของโมเดล (โดยปกติคือ 0.09)
 
-#### Logarithmic Law of the Wall
+#### กฎลอการิทึมของผนัง (Logarithmic Law of the Wall)
 
-The logarithmic law of the wall for velocity is:
+กฎลอการิทึมของผนังสำหรับความเร็วคือ:
 
 $$u^+ = \frac{1}{\kappa} \ln(y^+) + B$$
 
-*   $u^+ = \frac{u}{u_\tau}$ is the dimensionless velocity
-*   $y^+ = \frac{y u_\tau}{\nu}$ is the dimensionless distance from the wall
-*   $u_\tau = \sqrt{\frac{\tau_w}{\rho}}$ is the friction velocity
-*   $\kappa \approx 0.41$ is the von Kármán constant
-*   $B \approx 5.2$ is an empirical constant
+*   $u^+ = \frac{u}{u_\tau}$ คือความเร็วไร้มิติ
+*   $y^+ = \frac{y u_\tau}{\nu}$ คือระยะห่างจากผนังไร้มิติ
+*   $u_\tau = \sqrt{\frac{\tau_w}{\rho}}$ คือความเร็วเสียดทาน
+*   $\\kappa \approx 0.41$ คือค่าคงที่ von Kármán
+*   $B \approx 5.2$ คือค่าคงที่เชิงประจักษ์
 
-> **📂 Source:** `src/turbulenceModels/turbulenceModels/derivedFvPatchFields/wallFunctions/kqRWallFunction`
+> **📂 แหล่งที่มา:** `src/turbulenceModels/turbulenceModels/derivedFvPatchFields/wallFunctions/kqRWallFunction`
 > 
-> **คำอธิบาย (Explanation):**
-> Wall function ใช้เพื่อลดความละเอียดของ mesh ที่จำเป็นต้องใช้ใกล้ผนัง โดยใช้สมการเชิงประจักษ์ในการจำลอง turbulent boundary layer
+> **คำอธิบาย:**
+> วอลล์ฟังก์ชันใช้เพื่อลดความละเอียดของเมชที่จำเป็นต้องใช้ใกล้ผนัง โดยใช้สมการเชิงประจักษ์ในการจำลองชั้นขอบเขตแบบปั่นป่วน
 > 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **y+**: ค่าไร้มิติที่แสดงระยะห่างจากผนัง ซึ่งสำคัญในการเลือกวิธีการจำลอง turbulent flow
-> - **Log-Law Layer**: ชั้นที่มีการกระจายความเร็วแบบ logarithmic ใน turbulent boundary layer
-> - **Wall Function**: วิธีการที่ใช้สมการเชิงประจักษ์ในการหลีกเลี่ยงการใช้ mesh ที่ละเอียดมากใกล้ผนัง
+> **แนวคิดสำคัญ:**
+> - **y+**: ค่าไร้มิติที่แสดงระยะห่างจากผนัง ซึ่งสำคัญในการเลือกวิธีการจำลองการไหลแบบปั่นป่วน
+> - **Log-Law Layer**: ชั้นที่มีการกระจายความเร็วแบบลอการิทึมในชั้นขอบเขตแบบปั่นป่วน
+> - **Wall Function**: วิธีการที่ใช้สมการเชิงประจักษ์เพื่อหลีกเลี่ยงการใช้เมชที่ละเอียดมากใกล้ผนัง
 
 ---
 
-### Turbulent Inlet Conditions
+### เงื่อนไขทางเข้าแบบปั่นป่วน (Turbulent Inlet Conditions)
 
-#### Fixed Value with Turbulence Intensity
+#### ค่าคงที่พร้อมความเข้มข้นความปั่นป่วน (Fixed Value with Turbulence Intensity)
 
 ```cpp
 inlet
@@ -527,107 +528,107 @@ inlet
 }
 ```
 
-**Calculating initial values from turbulence intensity:**
+**การคำนวณค่าเริ่มต้นจากความเข้มข้นความปั่นป่วน:**
 
-For inlet velocity $U_{inlet}$ and turbulence intensity $I$:
+สำหรับความเร็วทางเข้า $U_{inlet}$ และความเข้มข้นความปั่นป่วน $I$:
 
 $$k = \frac{3}{2} (U_{inlet} I)^2$$
 
 $$\varepsilon = C_\mu^{3/4} \frac{k^{3/2}}{l}$$
 
-where:
-- $l$ = Length scale (typically 7% of hydraulic diameter)
+โดยที่:
+- $l$ = มาตราส่วนความยาว (โดยปกติคือ 7% ของเส้นผ่านศูนย์กลางไฮดรอลิก)
 - $C_\mu = 0.09$
 
 ---
 
-## Additional Important Boundary Conditions
+## เงื่อนไขขอบเขตที่สำคัญเพิ่มเติม
 
-### Boundary Conditions for Temperature (`T`)
+### เงื่อนไขขอบเขตสำหรับอุณหภูมิ (`T`)
 
-#### Fixed Temperature
+#### อุณหภูมิคงที่ (Fixed Temperature)
 ```cpp
 hotWall
 {
     type            fixedValue;
-    value           uniform 373.15; // Temperature in Kelvin
+    value           uniform 373.15; // อุณหภูมิในหน่วยเคลวิน
 }
 ```
 
-#### Fixed Heat Flux
+#### ฟลักซ์ความร้อนคงที่ (Fixed Heat Flux)
 ```cpp
 heatedWall
 {
-    type            fixedGradient; // For heat flux specification
-    gradient        uniform -1000; // W/m² (negative for heat into domain)
+    type            fixedGradient; // สำหรับการระบุฟลักซ์ความร้อน
+    gradient        uniform -1000; // W/m² (ค่าลบหมายถึงความร้อนไหลเข้าสู่โดเมน)
 }
 ```
 
-**According to Fourier's Law:**
+**ตามกฎของฟูเรียร์ (Fourier's Law):**
 $$q = -k \nabla T$$
 
-When using `zeroGradient` for temperature:
+เมื่อใช้ `zeroGradient` สำหรับอุณหภูมิ:
 $$\frac{\partial T}{\partial n} = 0 \implies q_n = -k \frac{\partial T}{\partial n} = 0$$
 
-This means **no heat transfer across the boundary** → perfectly insulating wall
+ซึ่งหมายถึง **ไม่มีการถ่ายเทความร้อนข้ามขอบเขต** → ผนังเป็นฉนวนที่สมบูรณ์แบบ (adiabatic)
 
-#### Convective Heat Transfer (Mixed BC)
+#### การถ่ายเทความร้อนแบบพา (Convective Heat Transfer - Mixed BC)
 
 ```cpp
 wall
 {
     type            externalWallHeatFlux;
     mode            coefficient;
-    h               uniform 10;      // Heat transfer coefficient [W/m²K]
-    Ta              uniform 293;     // Ambient temperature [K]
-    thickness       uniform 0.05;    // Wall thickness [m]
-    kappa           uniform 0.7;     // Thermal conductivity [W/mK]
+    h               uniform 10;      // สัมประสิทธิ์การถ่ายเทความร้อน [W/m²K]
+    Ta              uniform 293;     // อุณหภูมิแวดล้อม [K]
+    thickness       uniform 0.05;    // ความหนาของผนัง [m]
+    kappa           uniform 0.7;     // สภาพนำความร้อน [W/mK]
 }
 ```
 
-**Newton's Cooling Law equation:**
+**สมการกฎการทำให้เย็นของนิวตัน (Newton's Cooling Law):**
 $$-k\frac{\partial T}{\partial n} = h(T_s - T_\infty)$$
 
-- $k$ = Thermal Conductivity
-- $h$ = Convective Heat Transfer Coefficient
-- $T_s$ = Surface Temperature
-- $T_\infty$ = Ambient Fluid Temperature
+- $k$ = สภาพนำความร้อน (Thermal Conductivity)
+- $h$ = สัมประสิทธิ์การถ่ายเทความร้อนแบบพา (Convective Heat Transfer Coefficient)
+- $T_s$ = อุณหภูมิพื้นผิว
+- $T_\infty$ = อุณหภูมิของไหลแวดล้อม
 
-> **📂 Source:** `src/fvPatchFields/derived/externalWallHeatFlux`
+> **📂 แหล่งที่มา:** `src/fvPatchFields/derived/externalWallHeatFlux`
 > 
-> **คำอธิบาย (Explanation):**
-> เงื่อนไขนี้ใช้สำหรับจำลองการถ่ายเทความร้อนแบบ convection ระหว่างผนังและสิ่งแวดล้อม
+> **คำอธิบาย:**
+> เงื่อนไขนี้ใช้สำหรับจำลองการถ่ายเทความร้อนแบบพาความร้อนระหว่างผนังและสิ่งแวดล้อม
 > 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Convection**: การถ่ายเทความร้อนระหว่างผนังและ fluid
+> **แนวคิดสำคัญ:**
+> - **Convection**: การถ่ายเทความร้อนระหว่างผนังและของไหล
 > - **Heat Transfer Coefficient**: ค่าสัมประสิทธิ์การถ่ายเทความร้อน (h) ที่บ่งบอกถึงประสิทธิภาพการถ่ายเทความร้อน
-> - **Adiabatic**: ผนังที่ไม่มีการถ่ายเทความร้อน (zero gradient)
+> - **Adiabatic**: ผนังที่ไม่มีการถ่ายเทความร้อน (เกรเดียนต์เป็นศูนย์)
 
 ---
 
-### Boundary Conditions for Volume Fraction (`alpha`)
+### เงื่อนไขขอบเขตสำหรับสัดส่วนปริมาตร (`alpha`)
 
-For multiphase flow:
+สำหรับการไหลแบบหลายเฟส (multiphase flow):
 
-#### Fixed Value Interface
+#### อินเทอร์เฟซค่าคงที่ (Fixed Value Interface)
 ```cpp
 inlet
 {
     type            fixedValue;
-    value           uniform 1; // Pure phase
+    value           uniform 1; // เฟสบริสุทธิ์
 }
 ```
 
-#### Zero Gradient Interface
+#### อินเทอร์เฟซเกรเดียนต์เป็นศูนย์ (Zero Gradient Interface)
 ```cpp
 outlet
 {
     type            zeroGradient;
-    value           uniform 0; // Initial value
+    value           uniform 0; // ค่าเริ่มต้น
 }
 ```
 
-#### Inlet Outlet for Volume Fraction
+#### ทางเข้าทางออกสำหรับสัดส่วนปริมาตร (Inlet Outlet for Volume Fraction)
 ```cpp
 outlet
 {
@@ -639,9 +640,9 @@ outlet
 
 ---
 
-### Cyclic Boundary Condition
+### เงื่อนไขขอบเขตแบบไซคลิก (Cyclic Boundary Condition)
 
-Use **periodic boundary conditions** for periodic domains:
+ใช้ **เงื่อนไขขอบเขตแบบเป็นคาบ (periodic boundary conditions)** สำหรับโดเมนที่มีการทำซ้ำ:
 
 ```cpp
 left
@@ -657,24 +658,24 @@ right
 }
 ```
 
-**Possible transformations:**
-- **Translation** - shifting
-- **Rotation** - turning
-- **Reflection** - mirroring
+**การแปลงที่เป็นไปได้ (Possible transformations):**
+- **Translation** - การเลื่อนตำแหน่ง
+- **Rotation** - การหมุน
+- **Reflection** - การสะท้อน
 
-> **📂 Source:** `src/fvPatchFields/cyclic/cyclicFvPatchField`
+> **📂 แหล่งที่มา:** `src/fvPatchFields/cyclic/cyclicFvPatchField`
 > 
-> **คำอธิบาย (Explanation):**
-> เงื่อนไข cyclic ใช้สำหรับโดเมนที่มีความเป็นคาบ (periodic) โดย field จะเหมือนกันระหว่าง patch คู่
+> **คำอธิบาย:**
+> เงื่อนไข cyclic ใช้สำหรับโดเมนที่มีความเป็นคาบ โดยค่าในสนามจะเหมือนกันระหว่างแพตช์คู่
 > 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Periodic Boundary**: ขอบเขตที่มีการวนซ้ำของ pattern
-> - **Geometric Transformation**: การแปลงตำแหน่ง (translation, rotation, reflection) ระหว่าง cyclic patches
-> - **Field Continuity**: ความต่อเนื่องของ field ข้าม periodic boundary
+> **แนวคิดสำคัญ:**
+> - **Periodic Boundary**: ขอบเขตที่มีการวนซ้ำของรูปแบบ
+> - **Geometric Transformation**: การแปลงตำแหน่ง (การเลื่อน การหมุน การสะท้อน) ระหว่างแพตช์ไซคลิก
+> - **Field Continuity**: ความต่อเนื่องของสนามข้ามขอบเขตแบบเป็นคาบ
 
 ---
 
-### Symmetry Boundary Condition
+### เงื่อนไขขอบเขตแบบสมมาตร (Symmetry Boundary Condition)
 
 ```cpp
 symmetryPlane
@@ -683,79 +684,79 @@ symmetryPlane
 }
 ```
 
-**Mathematical conditions:**
+**เงื่อนไขทางคณิตศาสตร์:**
 
-1. **Normal velocity constraint:**
-   $$\mathbf{n} \cdot \mathbf{u} = 0 \quad \text{(normal velocity = 0)}$$
+1. **ข้อจำกัดความเร็วในแนวฉาก:**
+   $$\mathbf{n} \cdot \mathbf{u} = 0 \quad \text{(ความเร็วแนวฉากเป็นศูนย์)}$$
 
-2. **Scalar field handling (temperature, pressure):**
-   $$\frac{\partial \phi}{\partial n} = 0 \quad \text{(zero normal gradient)}$$
+2. **การจัดการสนามสเกลาร์ (อุณหภูมิ, ความดัน):**
+   $$\frac{\partial \phi}{\partial n} = 0 \quad \text{(เกรเดียนต์แนวฉากเป็นศูนย์)}$$
 
-3. **Tangential velocity behavior:**
-   $$\frac{\partial \mathbf{u}_t}{\partial n} = 0 \quad \text{(zero tangential velocity gradient)}$$
+3. **พฤติกรรมความเร็วในแนวสัมผัส:**
+   $$\frac{\partial \mathbf{u}_t}{\partial n} = 0 \quad \text{(เกรเดียนต์ความเร็วแนวสัมผัสเป็นศูนย์)}$$
 
-> **📂 Source:** `src/fvPatchFields/derived/symmetryPlane`
+> **📂 แหล่งที่มา:** `src/fvPatchFields/derived/symmetryPlane`
 > 
-> **คำอธิบาย (Explanation):**
-> เงื่อนไข symmetry plane ใช้สำหรับระนาบสมมาตรที่มีการไหลสมมาตร
+> **คำอธิบาย:**
+> เงื่อนไข symmetry plane ใช้สำหรับระนาบสมมาตรที่มีการไหลแบบสมมาตร
 > 
-> **แนวคิดสำคัญ (Key Concepts):**
+> **แนวคิดสำคัญ:**
 > - **Symmetry Plane**: ระนาบที่แบ่งโดเมนเป็นส่วนที่สมมาตรกัน
 > - **Zero Normal Velocity**: ไม่มีการไหลผ่านระนาบสมมาตร
 > - **Zero Tangential Gradient**: ไม่มีการเปลี่ยนแปลงของความเร็วในทิศทางสัมผัสกับระนาบ
 
 ---
 
-## Boundary Condition Selection Guidelines
+## แนวทางการเลือกเงื่อนไขขอบเขต
 
-### Inlet Boundary
+### ทางเข้า (Inlet Boundary)
 
-| Variable | Recommended BC | Remarks |
+| ตัวแปร | เงื่อนไขขอบเขตที่แนะนำ | หมายเหตุ |
 |----------|----------------|---------|
-| **Velocity** | `fixedValue` | When inlet velocity profile is known |
-| **Pressure** | `zeroGradient` | To allow pressure to develop naturally |
-| **Turbulence** | `fixedValue` | Turbulence intensity 1-5% |
-| **Temperature** | `fixedValue` | Inflow fluid temperature |
+| **ความเร็ว** | `fixedValue` | เมื่อทราบโปรไฟล์ความเร็วที่ทางเข้า |
+| **ความดัน** | `zeroGradient` | เพื่อให้ความดันพัฒนาขึ้นเองตามธรรมชาติ |
+| **ความปั่นป่วน** | `fixedValue` | ความเข้มข้นความปั่นป่วน 1-5% |
+| **อุณหภูมิ** | `fixedValue` | อุณหภูมิของของไหลที่ไหลเข้า |
 
-### Outlet Boundary
+### ทางออก (Outlet Boundary)
 
-| Variable | Recommended BC | Remarks |
+| ตัวแปร | เงื่อนไขขอบเขตที่แนะนำ | หมายเหตุ |
 |----------|----------------|---------|
-| **Velocity** | `pressureInletOutletVelocity` or `zeroGradient` | Depending on flow characteristics |
-| **Pressure** | `fixedValue` | Typically 0 (gauge pressure) |
-| **Turbulence** | `zeroGradient` | For developed flow |
-| **Temperature** | `zeroGradient` | When flow is fully developed |
+| **ความเร็ว** | `pressureInletOutletVelocity` หรือ `zeroGradient` | ขึ้นอยู่กับลักษณะการไหล |
+| **ความดัน** | `fixedValue` | โดยปกติคือ 0 (ความดันเกจ) |
+| **ความปั่นป่วน** | `zeroGradient` | สำหรับการไหลที่พัฒนาเต็มที่ |
+| **อุณหภูมิ** | `zeroGradient` | เมื่อการไหลพัฒนาเต็มที่ |
 
-### Wall Boundary
+### ผนัง (Wall Boundary)
 
-| Variable | Recommended BC | Remarks |
+| ตัวแปร | เงื่อนไขขอบเขตที่แนะนำ | หมายเหตุ |
 |----------|----------------|---------|
-| **Velocity** | `noSlip` (viscous) or `slip` (inviscid) | Depending on flow characteristics |
-| **Pressure** | `zeroGradient` | For most cases |
-| **Temperature** | `fixedValue` or `fixedGradient` | Depending on thermal conditions |
-| **Turbulence** | Wall Function | To avoid excessive mesh refinement |
+| **ความเร็ว** | `noSlip` (แบบมีความหนืด) หรือ `slip` (แบบไม่มีความหนืด) | ขึ้นอยู่กับลักษณะการไหล |
+| **ความดัน** | `zeroGradient` | สำหรับกรณีส่วนใหญ่ |
+| **อุณหภูมิ** | `fixedValue` หรือ `fixedGradient` | ขึ้นอยู่กับเงื่อนไขทางความร้อน |
+| **ความปั่นป่วน** | วอลล์ฟังก์ชัน (Wall Function) | เพื่อหลีกเลี่ยงการปรับเมชที่ละเอียดเกินไป |
 
 ---
 
-## Summary Table of Common Boundary Conditions
+## ตารางสรุปเงื่อนไขขอบเขตที่พบบ่อย
 
-| Boundary Condition Type | Mathematical Form | Physical Meaning | Common Applications |
+| ประเภทเงื่อนไขขอบเขต | รูปแบบทางคณิตศาสตร์ | ความหมายทางกายภาพ | การประยุกต์ใช้งานทั่วไป |
 |------------------------|-------------------|------------------|-------------------|
-| **fixedValue** | $\phi|_{\partial\Omega} = \phi_{\text{specified}}$ | Direct value specification | Inlet velocity, wall temperature, concentration |
-| **fixedGradient** | $\frac{\partial \phi}{\partial n}\bigg|_{\partial\Omega} = g_{\text{specified}}$ | Flux specification | Outlet flow, heat flux, symmetry |
-| **zeroGradient** | $\frac{\partial \phi}{\partial n}\bigg|_{\partial\Omega} = 0$ | Zero flux condition | Fully developed flow, adiabatic walls |
-| **mixed** | $\alpha \phi + \beta \frac{\partial \phi}{\partial n} = \gamma$ | Weighted value-gradient combination | Conjugate heat transfer, partial slip |
-| **cyclic** | $\phi_1 = \phi_2$ | Field continuity across patches | Rotational symmetry, periodic domains |
-| **inletOutlet** | Conditional on flux direction | Automatic switching for backflow | Outlets with possible recirculation |
+| **fixedValue** | $\phi|_{\partial\Omega} = \phi_{\text{specified}}$ | การระบุค่าโดยตรง | ความเร็วทางเข้า อุณหภูมิผนัง ความเข้มข้น |
+| **fixedGradient** | $\frac{\partial \phi}{\partial n}\bigg|_{\partial\Omega} = g_{\text{specified}}$ | การระบุฟลักซ์ | การไหลทางออก ฟลักซ์ความร้อน สมมาตร |
+| **zeroGradient** | $\frac{\partial \phi}{\partial n}\bigg|_{\partial\Omega} = 0$ | เงื่อนไขฟลักซ์เป็นศูนย์ | การไหลพัฒนาเต็มที่ ผนังฉนวน |
+| **mixed** | $\alpha \phi + \beta \frac{\partial \phi}{\partial n} = \gamma$ | การผสมผสานค่าและเกรเดียนต์ | การถ่ายเทความร้อนแบบคอนจูเกต การลื่นไถลบางส่วน |
+| **cyclic** | $\phi_1 = \phi_2$ | ความต่อเนื่องของสนามข้ามแพตช์ | สมมาตรการหมุน โดเมนที่เป็นคาบ |
+| **inletOutlet** | ขึ้นอยู่กับทิศทางฟลักซ์ | การสลับอัตโนมัติสำหรับการไหลย้อนกลับ | ทางออกที่อาจมีการไหลวน |
 
 ---
 
-## Complete Setup Examples
+## ตัวอย่างการตั้งค่าที่สมบูรณ์
 
-### Example 1: Pipe Flow
+### ตัวอย่างที่ 1: การไหลในท่อ (Pipe Flow)
 
 ```cpp
-// 0/U file
+// ไฟล์ 0/U
 dimensions      [0 1 -1 0 0 0 0];
 internalField   uniform 0;
 
@@ -764,7 +765,7 @@ boundaryField
     inlet
     {
         type            fixedValue;
-        value           uniform (5 0 0);  // 5 m/s in x-direction
+        value           uniform (5 0 0);  // 5 m/s ในทิศทาง x
     }
 
     outlet
@@ -778,7 +779,7 @@ boundaryField
     }
 }
 
-// 0/p file
+// ไฟล์ 0/p
 dimensions      [1 -1 -2 0 0 0 0];
 internalField   uniform 0;
 
@@ -792,7 +793,7 @@ boundaryField
     outlet
     {
         type            fixedValue;
-        value           uniform 0;  // 0 Pa gauge pressure
+        value           uniform 0;  // ความดันเกจ 0 Pa
     }
 
     walls
@@ -802,22 +803,23 @@ boundaryField
 }
 ```
 
-> **📂 Source:** Standard OpenFOAM boundary condition setup
+> **📂 แหล่งที่มา:** การตั้งค่าเงื่อนไขขอบเขตมาตรฐานของ OpenFOAM
 > 
-> **คำอธิบาย (Explanation):**
-> ตัวอย่างการตั้งค่า boundary condition สำหรับการไหลในท่อ (pipe flow) โดยใช้ fixed value ที่ inlet และ fixed pressure ที่ outlet
+> **คำอธิบาย:**
+> ตัวอย่างการตั้งค่าเงื่อนไขขอบเขตสำหรับการไหลในท่อ (pipe flow) โดยใช้ค่าคงที่ที่ทางเข้าและความดันคงที่ที่ทางออก
 > 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Fully Developed Flow**: การไหลที่ไม่เปลี่ยนแปลงตามทิศทางการไหล (zero gradient ที่ outlet)
+> **แนวคิดสำคัญ:**
+> - **Fully Developed Flow**: การไหลที่ไม่เปลี่ยนแปลงตามทิศทางการไหล (เกรเดียนต์เป็นศูนย์ที่ทางออก)
 > - **No-Slip at Walls**: ความเร็วเป็นศูนย์ที่ผนัง
-> - **Pressure-Driven Flow**: การไหลที่เกิดจากความแตกต่างของความดัน
+> - **Pressure-Driven Flow**: การไหลที่เกิดจากความต่างของความดัน
 
 ---
 
-### Example 2: Backward Facing Step Flow
+
+### ตัวอย่างที่ 2: การไหลข้ามขั้นตอนที่หันหลัง (Backward Facing Step Flow)
 
 ```cpp
-// 0/U file
+// ไฟล์ 0/U
 boundaryField
 {
     inlet
@@ -839,7 +841,7 @@ boundaryField
     }
 }
 
-// 0/p file
+// ไฟล์ 0/p
 boundaryField
 {
     inlet
@@ -861,22 +863,23 @@ boundaryField
 }
 ```
 
-> **📂 Source:** Standard OpenFOAM boundary condition setup
+> **📂 แหล่งที่มา:** การตั้งค่าเงื่อนไขขอบเขตมาตรฐานของ OpenFOAM
 > 
-> **คำอธิบาย (Explanation):**
-> ตัวอย่างการไหลแบบ backward facing step ซึ่งมี recirculation zone ที่ต้องการ inletOutlet condition ที่ outlet
+> **คำอธิบาย:**
+> ตัวอย่างการไหลแบบ backward facing step ซึ่งมีบริเวณการไหลวน (recirculation zone) ที่ต้องการเงื่อนไข inletOutlet ที่ทางออก
 > 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Flow Separation**: การแยกตัวของการไหลที่เกิดจากการเปลี่ยนทิศทางของ geometry
+> **แนวคิดสำคัญ:**
+> - **Flow Separation**: การแยกตัวของการไหลที่เกิดจากการเปลี่ยนแปลงรูปร่างของเรขาคณิต
 > - **Recirculation Zone**: บริเวณที่มีการไหลย้อนกลับ
 > - **Reattachment**: จุดที่การไหลกลับมาติดผนังอีกครั้ง
 
 ---
 
-### Example 3: Heat Transfer Flow
+
+### ตัวอย่างที่ 3: การไหลที่มีการถ่ายเทความร้อน (Heat Transfer Flow)
 
 ```cpp
-// 0/T file
+// ไฟล์ 0/T
 dimensions      [0 0 0 1 0 0 0];
 internalField   uniform 293;
 
@@ -885,7 +888,7 @@ boundaryField
     inlet
     {
         type            fixedValue;
-        value           uniform 293;  // 293 K inlet temperature
+        value           uniform 293;  // อุณหภูมิทางเข้า 293 K
     }
 
     outlet
@@ -896,43 +899,43 @@ boundaryField
     hotWall
     {
         type            fixedValue;
-        value           uniform 373;  // 373 K heated wall
+        value           uniform 373;  // ผนังร้อน 373 K
     }
 
     coldWall
     {
         type            fixedGradient;
-        gradient        uniform 0;  // Adiabatic (zero flux)
+        gradient        uniform 0;  // ผนังฉนวน (ฟลักซ์เป็นศูนย์)
     }
 }
 ```
 
-> **📂 Source:** Standard OpenFOAM thermal boundary condition setup
+> **📂 แหล่งที่มา:** การตั้งค่าเงื่อนไขขอบเขตความร้อนมาตรฐานของ OpenFOAM
 > 
-> **คำอธิบาย (Explanation):**
+> **คำอธิบาย:**
 > ตัวอย่างการไหลที่มีการถ่ายเทความร้อน โดยมีผนังร้อนและผนังฉนวน
 > 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Conjugate Heat Transfer**: การถ่ายเทความร้อนระหว่าง solid และ fluid
-> - **Adiabatic Wall**: ผนังที่ไม่มีการถ่ายเทความร้อน (zero gradient)
+> **แนวคิดสำคัญ:**
+> - **Conjugate Heat Transfer**: การถ่ายเทความร้อนระหว่างของแข็งและของไหล
+> - **Adiabatic Wall**: ผนังที่ไม่มีการถ่ายเทความร้อน (เกรเดียนต์เป็นศูนย์)
 > - **Fixed Temperature**: ผนังที่มีอุณหภูมิคงที่
 
 ---
 
-## Conclusion
+## บทสรุป
 
-**Proper selection and application of boundary conditions** is fundamental for accurate CFD simulations, as they significantly influence:
+**การเลือกและการนำเงื่อนไขขอบเขตไปใช้อย่างเหมาะสม** เป็นพื้นฐานสำคัญสำหรับการจำลอง CFD ที่แม่นยำ เนื่องจากมีอิทธิพลอย่างมากต่อ:
 
-- **Flow Physics** - The actual flow characteristics
-- **Solution Stability** - Computational stability
-- **Convergence** - Solution convergence
-- **Physical Accuracy** - Physical correctness
+- **Flow Physics (ฟิสิกส์การไหล)** - ลักษณะการไหลจริง
+- **Solution Stability (เสถียรภาพของคำตอบ)** - เสถียรภาพของการคำนวณ
+- **Convergence (การลู่เข้า)** - การลู่เข้าของคำตอบ
+- **Physical Accuracy (ความถูกต้องทางกายภาพ)** - ความถูกต้องแม่นยำทางกายภาพ
 
-### Key Principles for Boundary Condition Selection:
+### หลักการสำคัญในการเลือกเงื่อนไขขอบเขต:
 
-1. **Mathematical Consistency**: Boundary conditions must create a well-posed problem
-2. **Physical Accuracy**: Must correspond to actual physical phenomena
-3. **Numerical Stability**: Avoid conditions that cause solution divergence
-4. **Computational Efficiency**: Choose conditions that provide correct results in reasonable time
+1. **ความสอดคล้องทางคณิตศาสตร์**: เงื่อนไขขอบเขตต้องสร้างปัญหาที่มีการกำหนดขอบเขตที่ดี (well-posed problem)
+2. **ความถูกต้องทางกายภาพ**: ต้องสอดคล้องกับปรากฏการณ์ทางกายภาพจริง
+3. **เสถียรภาพเชิงตัวเลข**: หลีกเลี่ยงเงื่อนไขที่ทำให้คำตอบเกิดการลู่ออก (divergence)
+4. **ประสิทธิภาพการคำนวณ**: เลือกเงื่อนไขที่ให้ผลลัพธ์ถูกต้องในเวลาที่เหมาะสม
 
-Understanding the principles of each boundary condition enables appropriate selection for the problem at hand, leading to efficient and reliable CFD simulations.
+การเข้าใจหลักการของแต่ละเงื่อนไขขอบเขตจะช่วยให้เลือกใช้ได้อย่างเหมาะสมกับปัญหาที่ต้องการแก้ นำไปสู่การจำลอง CFD ที่มีประสิทธิภาพและเชื่อถือได้

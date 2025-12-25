@@ -1,34 +1,34 @@
-# Topic 1: Basic Primitives (`label`, `scalar`, `word`)
+# หัวข้อที่ 1: ประเภทข้อมูลพื้นฐาน (`label`, `scalar`, `word`)
 
-## 🔍 High-Level Concept: Universal Building Blocks
+## 🔍 แนวคิดระดับสูง: องค์ประกอบพื้นฐานสากล
 
-Imagine a skyscraper construction project:
+ลองนึกภาพโครงการก่อสร้างตึกระฟ้า:
 
-- **`label`** represents **standardized bricks** - uniform size and shape that fit perfectly together regardless of where construction happens
-- **`scalar`** represents **precision measuring tapes** - providing exact measurements for dimensions, material quantities, and structural calculations
-- **`word`** represents **labeled storage bins** - clearly marked containers for storing specific materials (cement, steel beams, glass panels) for quick identification and retrieval
+- **`label`** เปรียบเสมือน **อิฐมาตรฐาน** - มีขนาดและรูปร่างสม่ำเสมอที่ประกอบเข้าด้วยกันได้อย่างลงตัว ไม่ว่าการก่อสร้างจะเกิดขึ้นที่ใด
+- **`scalar`** เปรียบเสมือน **สายวัดความแม่นยำสูง** - ให้การวัดที่แม่นยำสำหรับขนาด ปริมาณวัสดุ และการคำนวณโครงสร้าง
+- **`word`** เปรียบเสมือน **ถังเก็บวัสดุที่มีป้ายกำกับ** - คอนเทนเนอร์ที่ระบุเครื่องหมายชัดเจนสำหรับเก็บวัสดุเฉพาะอย่าง (ซีเมนต์, คานเหล็ก, แผงกระจก) เพื่อการระบุและดึงมาใช้งานได้อย่างรวดเร็ว
 
-Just as construction projects require standardized materials, accurate measurements, and organized storage, OpenFOAM requires portable integers, precise floating-point numbers, and optimized strings to build reliable CFD simulations.
+เช่นเดียวกับโครงการก่อสร้างที่ต้องการวัสดุมาตรฐาน การวัดที่แม่นยำ และการจัดเก็บที่เป็นระเบียบ OpenFOAM ต้องการจำนวนเต็มที่พกพาได้ (Portable integers), เลขทศนิยมที่แม่นยำ และสตริงที่ได้รับการปรับปรุงประสิทธิภาพ เพื่อสร้างการจำลอง CFD ที่เชื่อถือได้
 
 ```mermaid
 graph LR
-    A["OpenFOAM CFD Structure"] --> B["Primitive Types"]
+    A["โครงสร้าง OpenFOAM CFD"] --> B["ประเภทข้อมูลพื้นฐาน (Primitive Types)"]
 
-    B --> C["label<br/>Integer Type<br/>Portable Indexing"]
-    B --> D["scalar<br/>Floating Point<br/>Precise Measurements"]
-    B --> E["word<br/>String Type<br/>Named Storage"]
+    B --> C["label<br/>ประเภทจำนวนเต็ม<br/>การทำดัชนีที่พกพาได้"]
+    B --> D["scalar<br/>เลขทศนิยม<br/>การวัดที่แม่นยำ"]
+    B --> E["word<br/>ประเภทสตริง<br/>การจัดเก็บแบบระบุชื่อ"]
 
-    C --> C1["Mesh Indexing"]
-    C --> C2["Loop Counters"]
-    C --> C3["Array Sizes"]
+    C --> C1["การทำดัชนีเมช"]
+    C --> C2["ตัวนับลูป"]
+    C --> C3["ขนาดอาร์เรย์"]
 
-    D --> D1["Physical Quantities"]
-    D --> D2["Numerical Values"]
-    D --> D3["Mathematical Operations"]
+    D --> D1["ปริมาณทางฟิสิกส์"]
+    D --> D2["ค่าตัวเลข"]
+    D --> D3["การดำเนินการทางคณิตศาสตร์"]
 
-    E --> E1["Field Names"]
-    E --> E2["File Paths"]
-    E --> E3["Boundary Conditions"]
+    E --> E1["ชื่อฟิลด์"]
+    E --> E2["เส้นทางไฟล์"]
+    E --> E3["เงื่อนไขขอบเขต"]
 
     style A fill:#e3f2fd,stroke:#1565c0,stroke-width:3px,color:#000
     classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
@@ -38,776 +38,776 @@ graph LR
     class B,C,D,E process
     class C1,C2,C3,D1,D2,D3,E1,E2,E3 storage
 ```
-> **Figure 1:** ความสัมพันธ์ระหว่างโครงสร้างการคำนวณ CFD ของ OpenFOAM กับประเภทข้อมูลพื้นฐาน (Primitive Types) ซึ่งเปรียบเสมือนองค์ประกอบหลักที่ใช้ในการสร้างระบบการจำลองที่มั่นคงและแม่นยำ
+> **รูปที่ 1:** ความสัมพันธ์ระหว่างโครงสร้างการคำนวณ CFD ของ OpenFOAM กับประเภทข้อมูลพื้นฐาน (Primitive Types) ซึ่งเปรียบเสมือนองค์ประกอบหลักที่ใช้ในการสร้างระบบการจำลองที่มั่นคงและแม่นยำ
 
-> [!INFO] Why Redefine Basic Types?
-> OpenFOAM doesn't use standard C++ types like `int` and `double` directly. Instead, it defines its own primitives: `label`, `scalar`, and `word`. This design choice serves three critical purposes:
+> [!INFO] ทำไมต้องนิยามประเภทพื้นฐานใหม่?
+> OpenFOAM ไม่ได้ใช้ประเภทข้อมูลมาตรฐานของ C++ เช่น `int` และ `double` โดยตรง แต่จะนิยามประเภทพื้นฐานของตัวเองขึ้นมา ได้แก่ `label`, `scalar` และ `word` การเลือกออกแบบเช่นนี้ตอบโจทย์สำคัญ 3 ประการ:
 >
-> 1. **Portability**: Ensures consistent behavior across different computer architectures (32-bit vs 64-bit, single vs double precision)
-> 2. **Precision Control**: Allows users to balance accuracy vs. performance for different simulation needs
-> 3. **Physics Safety**: Enforces dimensional consistency and prevents physically meaningless operations
+> 1. **ความสามารถในการพกพา (Portability)**: รับประกันพฤติกรรมที่สอดคล้องกันในสถาปัตยกรรมคอมพิวเตอร์ที่ต่างกัน (32-bit เทียบกับ 64-bit, ความแม่นยำชั้นเดียว เทียบกับ สองชั้น)
+> 2. **การควบคุมความแม่นยำ (Precision Control)**: ช่วยให้ผู้ใช้รักษาสมดุลระหว่างความแม่นยำและประสิทธิภาพสำหรับความต้องการในการจำลองที่แตกต่างกัน
+> 3. **ความปลอดภัยทางฟิสิกส์ (Physics Safety)**: บังคับใช้ความสอดคล้องทางมิติและป้องกันการดำเนินการที่ไม่มีความหมายทางฟิสิกส์
 
-## ⚙️ Core Mechanisms
+## ⚙️ กลไกหลัก (Core Mechanisms)
 
-### `label`: Portable Integer Type
+### `label`: ประเภทจำนวนเต็มที่พกพาได้ (Portable Integer Type)
 
-The `label` type serves as OpenFOAM's portable integer representation, specifically designed for mesh indexing, loop counters, and array sizing. Unlike the standard `int` type, which varies across architectures, `label` provides consistent behavior across all supported platforms.
+ประเภท `label` ทำหน้าที่เป็นตัวแทนจำนวนเต็มที่พกพาได้ของ OpenFOAM ออกแบบมาโดยเฉพาะสำหรับการทำดัชนีเมช (Mesh indexing), ตัวนับลูป และการกำหนดขนาดอาร์เรย์ ต่างจากประเภท `int` มาตรฐานที่แปรผันตามสถาปัตยกรรม `label` ให้พฤติกรรมที่สอดคล้องกันในทุกแพลตฟอร์มที่รองรับ
 
-**Purpose and Usage:**
-- Mesh indexing (cell indices, face indices, point indices)
-- Loop counters and iteration tracking
-- Array sizes and dimension specifications
-- Boundary condition indexing
+**วัตถุประสงค์และการใช้งาน:**
+- การทำดัชนีเมช (ดัชนีเซลล์, ดัชนีหน้า, ดัชนีจุด)
+- ตัวนับลูปและการติดตามการวนซ้ำ
+- ขนาดอาร์เรย์และการกำหนดมิติ
+- การทำดัชนีเงื่อนไขขอบเขต
 
-**Configuration Options:**
-| Mode | Size | Usage |
+**ตัวเลือกการตั้งค่า:**
+| โหมด | ขนาด | การใช้งาน |
 |-------|-------|------------|
-| 32-bit | 4 bytes | General purpose for most applications |
-| 64-bit | 8 bytes | Large-scale problems with >2 billion cells |
+| 32-bit | 4 ไบต์ | ใช้งานทั่วไปสำหรับแอปพลิเคชันส่วนใหญ่ |
+| 64-bit | 8 ไบต์ | ปัญหาขนาดใหญ่ที่มีเซลล์มากกว่า 2 พันล้านเซลล์ |
 
-**Implementation Details:**
+**รายละเอียดการนำไปใช้งาน:**
 ```cpp
-// Source: src/OpenFOAM/primitives/ints/label/label.H
+// แหล่งที่มา: src/OpenFOAM/primitives/ints/label/label.H
 
-// Conditional compilation for label size based on WM_LABEL_SIZE setting
+// การคอมไพล์แบบมีเงื่อนไขสำหรับขนาดของ label ตามการตั้งค่า WM_LABEL_SIZE
 #if WM_LABEL_SIZE == 32
-    typedef int32_t label;    // Use 32-bit signed integer for label
+    typedef int32_t label;    // ใช้จำนวนเต็มแบบมีเครื่องหมาย 32 บิตสำหรับ label
 #elif WM_LABEL_SIZE == 64
-    typedef int64_t label;    // Use 64-bit signed integer for large meshes
+    typedef int64_t label;    // ใช้จำนวนเต็มแบบมีเครื่องหมาย 64 บิตสำหรับเมชขนาดใหญ่
 #endif
 ```
 
-> **📂 Source:** `src/OpenFOAM/primitives/ints/label/label.H`
+> **📂 แหล่งที่มา:** `src/OpenFOAM/primitives/ints/label/label.H`
 >
-> **คำอธิบาย (Thai Explanation):**
+> **คำอธิบาย:**
 > - **Source (แหล่งที่มา):** ไฟล์นี้กำหนดประเภทข้อมูล `label` ซึ่งเป็นจำนวนเต็มพื้นฐานที่ใช้ใน OpenFOAM
-> - **Explanation (คำอธิบาย):** การใช้ conditional compilation (`#if`, `#elif`) ช่วยให้โค้ดเดียวกันสามารถคอมไพล์ได้ทั้งบนระบบ 32-bit และ 64-bit โดยอัตโนมัติ ค่า `WM_LABEL_SIZE` ถูกกำหนดในขั้นตอนการคอมไพล์
+> - **Explanation (คำอธิบาย):** การใช้ conditional compilation (`#if`, `#elif`) ช่วยให้โค้ดเดียวกันสามารถคอมไพล์ได้ทั้งบนระบบ 32 บิต และ 64 บิต โดยอัตโนมัติ ค่า `WM_LABEL_SIZE` ถูกกำหนดในขั้นตอนการคอมไพล์
 > - **Key Concepts (แนวคิดสำคัญ):**
 >   - **Portable Type (ประเภทข้อมูลแบบพกพา):** `label` รับประกันขนาดและพฤติกรรมเหมือนกันทุกแพลตฟอร์ม
 >   - **Conditional Compilation (การคอมไพล์แบบมีเงื่อนไข):** เลือกประเภทข้อมูลตามค่าที่ตั้งค่าไว้
 >   - **typedef (การนิยามชื่อแทน):** สร้างชื่อ `label` ให้ใช้งานได้สะดวกแทนการใช้ `int32_t` หรือ `int64_t` โดยตรง
 
-**Practical Usage Examples:**
+**ตัวอย่างการใช้งานจริง:**
 ```cpp
-// Mesh operations
-label nCells = mesh.nCells();           // Get total number of cells in mesh
-label nFaces = mesh.nFaces();           // Get total number of faces in mesh
-label cellI = 0;                        // Initialize cell index for iteration
+// การดำเนินการเกี่ยวกับเมช
+label nCells = mesh.nCells();           // รับจำนวนเซลล์ทั้งหมดในเมช
+label nFaces = mesh.nFaces();           // รับจำนวนหน้าทั้งหมดในเมช
+label cellI = 0;                        // เริ่มต้นดัชนีเซลล์สำหรับการวนลูป
 
-// Loop control
-label maxIterations = 1000;             // Set maximum solver iterations
+// การควบคุมลูป
+label maxIterations = 1000;             // ตั้งค่าจำนวนการวนซ้ำสูงสุดของ Solver
 for (label i = 0; i < maxIterations; i++)
 {
-    // Solver iteration logic here
-    // Label ensures consistent loop behavior across platforms
+    // ตรรกะการวนซ้ำของ Solver อยู่ที่นี่
+    // Label ช่วยรับประกันพฤติกรรมของลูปที่สอดคล้องกันในทุกแพลตฟอร์ม
 }
 
-// Array access
-label nPatches = mesh.boundary().size(); // Get number of boundary patches
+// การเข้าถึงอาร์เรย์
+label nPatches = mesh.boundary().size(); // รับจำนวนแพตช์ขอบเขต
 ```
 
-> **📂 Source:** `.applications/utilities/surface/surfaceFeatures/surfaceFeatures.C`
+> **📂 แหล่งที่มา:** `.applications/utilities/surface/surfaceFeatures/surfaceFeatures.C`
 >
-> **คำอธิบาย (Thai Explanation):**
-> - **Source (แหล่งที่มา):** ไฟล์ utility นี้แสดงการใช้ `label` ในการจัดการ indexing และ loop control ในงานจริง
-> - **Explanation (คำอธิบาย):** `label` ถูกใช้แทน `int` ในทุกการทำงานกับ mesh เพื่อความปลอดภัยและ portability โดยเฉพาะอย่างยิ่งสำหรับ mesh ขนาดใหญ่ที่อาจมี cell เกิน 2 พันล้าน (ต้องใช้ 64-bit label)
+> **คำอธิบาย:**
+> - **Source (แหล่งที่มา):** ไฟล์ utility นี้แสดงการใช้ `label` ในการจัดการการทำดัชนีและควบคุมลูปในงานจริง
+> - **Explanation (คำอธิบาย):** `label` ถูกใช้แทน `int` ในทุกการทำงานกับเมชเพื่อความปลอดภัยและความสามารถในการพกพา โดยเฉพาะอย่างยิ่งสำหรับเมชขนาดใหญ่ที่อาจมีเซลล์เกิน 2 พันล้านเซลล์ (ซึ่งต้องใช้ label แบบ 64 บิต)
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Mesh Indexing (การจัดทำดัชนีเมช):** ใช้ `label` เพื่อระบุ cell, face, และ point แต่ละตัวใน mesh
->   - **Loop Counter (ตัวนับรอบ):** ใช้ `label` เป็นตัวแปรวนลูปเพื่อความสอดคล้องกับขนาด mesh
->   - **Array Sizing (การกำหนดขนาดอาร์เรย์):** ขนาดของ mesh และ arrays ต่างๆ ใช้ `label` แทน `int`
+>   - **Mesh Indexing (การจัดทำดัชนีเมช):** ใช้ `label` เพื่อระบุแต่ละเซลล์ หน้า และจุดในเมช
+>   - **Loop Counter (ตัวนับรอบ):** ใช้ `label` เป็นตัวแปรวนลูปเพื่อความสอดคล้องกับขนาดของเมช
+>   - **Array Sizing (การกำหนดขนาดอาร์เรย์):** ขนาดของเมชและอาร์เรย์ต่างๆ จะใช้ `label` แทน `int`
 
-### `scalar`: Configurable Floating-Point Type
+### `scalar`: ประเภทเลขทศนิยมที่กำหนดค่าได้ (Configurable Floating-Point Type)
 
-The `scalar` type represents floating-point numbers in OpenFOAM, providing configurable precision for different computational requirements. This flexibility allows users to balance accuracy against performance based on their specific simulation needs.
+ประเภท `scalar` แทนเลขทศนิยมใน OpenFOAM โดยสามารถกำหนดความแม่นยำได้ตามความต้องการในการคำนวณที่แตกต่างกัน ความยืดหยุ่นนี้ช่วยให้ผู้ใช้สามารถรักษาสมดุลระหว่างความแม่นยำและประสิทธิภาพตามความจำเป็นของแต่ละการจำลอง
 
-**Precision Modes:**
-| Mode | Size | Precision | Performance |
+**โหมดความแม่นยำ (Precision Modes):**
+| โหมด | ขนาด | ความแม่นยำ | ประสิทธิภาพ |
 |-------|-------|------------|------------|
-| Single precision (`WM_SP`) | 4 bytes | 6-7 digits | Faster computation, reduced memory |
-| Double precision (`WM_DP`) | 8 bytes | 15-16 digits | Standard, balanced performance |
-| Long double precision (`WM_LP`) | 16 bytes | 19+ digits | Highest precision, increased memory |
+| ความแม่นยำชั้นเดียว (`WM_SP`) | 4 ไบต์ | 6-7 ตำแหน่ง | คำนวณเร็วขึ้น ใช้หน่วยความจำน้อยลง |
+| ความแม่นยำสองชั้น (`WM_DP`) | 8 ไบต์ | 15-16 ตำแหน่ง | มาตรฐาน ประสิทธิภาพสมดุล |
+| ความแม่นยำสูงพิเศษ (`WM_LP`) | 16 ไบต์ | 19+ ตำแหน่ง | ความแม่นยำสูงสุด ใช้หน่วยความจำเพิ่มขึ้น |
 
-**Physical Quantity Representation:**
+**การแทนค่าปริมาณทางกายภาพ:**
 ```cpp
-// Source: src/OpenFOAM/primitives/Scalar/scalar/scalar.H
+// แหล่งที่มา: src/OpenFOAM/primitives/Scalar/scalar/scalar.H
 
-// Conditional compilation for scalar precision based on WM_PRECISION_OPTION
+// การคอมไพล์แบบมีเงื่อนไขสำหรับความแม่นยำของ scalar ตามตัวเลือก WM_PRECISION_OPTION
 #ifdef WM_SP
-    typedef float scalar;              // Single precision (4 bytes)
+    typedef float scalar;              // ความแม่นยำชั้นเดียว (4 ไบต์)
 #elif defined(WM_DP)
-    typedef double scalar;             // Double precision (8 bytes) - default
+    typedef double scalar;             // ความแม่นยำสองชั้น (8 ไบต์) - ค่าเริ่มต้น
 #elif defined(WM_LP)
-    typedef long double scalar;        // Long double precision (16 bytes)
+    typedef long double scalar;        // ความแม่นยำสูงพิเศษ (16 ไบต์)
 #endif
 ```
 
-> **📂 Source:** `src/OpenFOAM/primitives/Scalar/scalar/scalar.H`
+> **📂 แหล่งที่มา:** `src/OpenFOAM/primitives/Scalar/scalar/scalar.H`
 >
-> **คำอธิบาย (Thai Explanation):**
+> **คำอธิบาย:**
 > - **Source (แหล่งที่มา):** ไฟล์หลักที่นิยามประเภทข้อมูล `scalar` สำหรับเลขทศนิยมใน OpenFOAM
-> - **Explanation (คำอธิบาย):** ค่าความแม่นยำ (precision) ถูกกำหนดผ่าน preprocessor macro (`WM_SP`, `WM_DP`, `WM_LP`) ซึ่งถูกตั้งค่าในขั้นตอนการ compile ทำให้ผู้ใช้สามารถเลือกความแม่นยำที่เหมาะสมกับปัญหาที่กำลังแก้ไขได้
+> - **Explanation (คำอธิบาย):** ค่าความแม่นยำ (precision) ถูกกำหนดผ่าน preprocessor macro (`WM_SP`, `WM_DP`, `WM_LP`) ซึ่งถูกตั้งค่าในขั้นตอนการคอมไพล์ ทำให้ผู้ใช้สามารถเลือกความแม่นยำที่เหมาะสมกับปัญหาที่ต้องการแก้ได้
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Precision Modes (ระดับความแม่นยำ):** เลือกได้ระหว่าง single, double, หรือ long double precision
->   - **Memory-Performance Tradeoff (การแลกเปลี่ยนระหว่างหน่วยความจำและประสิทธิภาพ):** Single precision ใช้หน่วยความจำน้อยลงครึ่งหนึ่งและคำนวณเร็วกว่า
->   - **IEEE 754 Standard:** รองรับมาตรฐาน floating-point สากล
+>   - **Precision Modes (ระดับความแม่นยำ):** เลือกได้ระหว่าง single, double หรือ long double precision
+>   - **Memory-Performance Tradeoff (การแลกเปลี่ยนระหว่างหน่วยความจำและประสิทธิภาพ):** ความแม่นยำชั้นเดียวใช้หน่วยความจำน้อยลงครึ่งหนึ่งและคำนวณได้เร็วกว่า
+>   - **IEEE 754 Standard:** รองรับมาตรฐานเลขทศนิยมสากล
 
-**Field Variable Examples:**
+**ตัวอย่างตัวแปรสนาม (Field Variable Examples):**
 ```cpp
-// Pressure field (Pa)
-scalar p = 101325.0;                   // Atmospheric pressure at sea level
+// สนามความดัน (Pa)
+scalar p = 101325.0;                   // ความดันบรรยากาศที่ระดับน้ำทะเล
 
-// Velocity components (m/s)
-scalar u = 1.5;                        // x-velocity component magnitude
-scalar v = 0.0;                        // y-velocity component (no flow)
-scalar w = 0.2;                        // z-velocity component
+// ส่วนประกอบความเร็ว (m/s)
+scalar u = 1.5;                        // ขนาดความเร็วในแนวแกน x
+scalar v = 0.0;                        // ส่วนประกอบความเร็วในแนวแกน y (ไม่มีการไหล)
+scalar w = 0.2;                        // ส่วนประกอบความเร็วในแนวแกน z
 
-// Temperature (K)
-scalar T = 293.15;                     // Room temperature in Kelvin
+// อุณหภูมิ (K)
+scalar T = 293.15;                     // อุณหภูมิห้องในหน่วยเคลวิน
 
-// Physical properties
-scalar rho = 1.225;                    // Air density at sea level (kg/m³)
-scalar mu = 1.8e-5;                    // Dynamic viscosity of air (Pa·s)
-scalar nu = 1.5e-5;                    // Kinematic viscosity (m²/s)
+// คุณสมบัติทางกายภาพ
+scalar rho = 1.225;                    // ความหนาแน่นของอากาศที่ระดับน้ำทะเล (kg/m³)
+scalar mu = 1.8e-5;                    // ความหนืดไดนามิกของอากาศ (Pa·s)
+scalar nu = 1.5e-5;                    // ความหนืดจลน์ (m²/s)
 ```
 
-**Mathematical Operations:**
+**การดำเนินการทางคณิตศาสตร์:**
 ```cpp
-// Vector operations using scalar types
-scalar magU = sqrt(u*u + v*v + w*w);   // Calculate velocity magnitude
-scalar Re = rho * magU * L / mu;       // Reynolds number calculation
+// การดำเนินการทางเวกเตอร์โดยใช้ประเภท scalar
+scalar magU = sqrt(u*u + v*v + w*w);   // คำนวณขนาดความเร็ว
+scalar Re = rho * magU * L / mu;       // การคำนวณเลขเรย์โนลด์ (Reynolds number)
 
-// Thermodynamic calculations
-scalar Cp = 1005.0;                    // Specific heat capacity (J/kg·K)
-scalar h = Cp * T;                     // Specific enthalpy calculation
+// การคำนวณทางอุณหพลศาสตร์
+scalar Cp = 1005.0;                    // ความจุความร้อนจำเพาะ (J/kg·K)
+scalar h = Cp * T;                     // การคำนวณเอนทัลปีจำเพาะ
 
-// Scalar field operations
-scalar dTdt = (T - T.oldTime()) / deltaT;  // Time derivative
+// การดำเนินการสนามสเกลาร์
+scalar dTdt = (T - T.oldTime()) / deltaT;  // อนุพันธ์เชิงเวลา
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/diameterModels/linearTsubDiameter/linearTsubDiameter.C`
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/diameterModels/linearTsubDiameter/linearTsubDiameter.C`
 >
-> **คำอธิบาย (Thai Explanation):**
-> - **Source (แหล่งที่มา):** ไฟล์ solver แสดงการใช้ `scalar` ในการคำนวณค่าทางกายภาพของระบบ multiphase
-> - **Explanation (คำอธิบาย):** `scalar` ใช้เก็บค่าต่างๆ ที่เกิดจากการคำนวณ เช่น แรงลาก (drag force), ความดัน, อุณหภูมิ ซึ่งต้องการความแม่นยำตามที่กำหนดไว้
+> **คำอธิบาย:**
+> - **Source (แหล่งที่มา):** ไฟล์ solver แสดงการใช้ `scalar` ในการคำนวณค่าทางกายภาพของระบบการไหลหลายเฟส (Multiphase)
+> - **Explanation (คำอธิบาย):** `scalar` ใช้เก็บค่าต่างๆ ที่เกิดจากการคำนวณ เช่น แรงฉุด (drag force), ความดัน, อุณหภูมิ ซึ่งต้องการความแม่นยำตามที่กำหนดไว้
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Physical Quantities (ปริมาณทางกายภาพ):** ค่าทางกายภาพทุกค่าใช้ `scalar` เพื่อความสอดคล้องกัน
->   - **Mathematical Operations (การดำเนินการทางคณิตศาสตร์):** การดำเนินการทางคณิตศาสตร์ทั้งหมดทำกับ `scalar`
->   - **Field Variables (ตัวแปรสนาม):** ค่าของ scalar สามารถแปรผันตามตำแหน่งและเวลาใน computational domain
+>   - **Physical Quantities (ปริมาณทางกายภาพ):** ทุกค่าทางกายภาพใช้ `scalar` เพื่อความสอดคล้องกัน
+>   - **Mathematical Operations (การดำเนินการทางคณิตศาสตร์):** การดำเนินการทางคณิตศาสตร์ทั้งหมดทำผ่าน `scalar`
+>   - **Field Variables (ตัวแปรสนาม):** ค่าของ scalar สามารถแปรผันตามตำแหน่งและเวลาในโดเมนการคำนวณ
 
-### `word`: Optimized String for Identifiers
+### `word`: สตริงที่ปรับปรุงประสิทธิภาพสำหรับตัวระบุ (Optimized String for Identifiers)
 
-The `word` type is a specialized string class optimized for dictionary keys, boundary names, and field identifiers. Unlike general strings, `word` is designed for efficient hash-based lookups and memory-efficient storage in OpenFOAM's dictionary system.
+ประเภท `word` เป็นคลาสสตริงเฉพาะทางที่ได้รับการปรับปรุงประสิทธิภาพสำหรับคีย์ในพจนานุกรม (Dictionary keys), ชื่อขอบเขต (Boundary names) และตัวระบุสนาม (Field identifiers) ต่างจากสตริงทั่วไป `word` ถูกออกแบบมาเพื่อการสืบค้นแบบแฮช (Hash-based lookup) ที่รวดเร็วและการจัดเก็บหน่วยความจำที่มีประสิทธิภาพในระบบพจนานุกรมของ OpenFOAM
 
-**Key Characteristics:**
-- No spaces allowed (single-word identifiers)
-- Fast hash-based comparison for dictionary lookups
-- Efficient storage for small string optimizations
-- Case-sensitive matching
+**ลักษณะสำคัญ:**
+- ไม่อนุญาตให้มีช่องว่าง (เป็นตัวระบุคำเดียว)
+- การเปรียบเทียบแบบแฮชที่รวดเร็วสำหรับการสืบค้นในพจนานุกรม
+- การจัดเก็บที่มีประสิทธิภาพสำหรับการเพิ่มประสิทธิภาพสตริงขนาดเล็ก
+- การจับคู่ที่คำนึงถึงตัวพิมพ์เล็ก-ใหญ่ (Case-sensitive)
 
-**Implementation Structure:**
+**โครงสร้างการนำไปใช้งาน:**
 ```cpp
-// Source: src/OpenFOAM/primitives/strings/word/word.H
+// แหล่งที่มา: src/OpenFOAM/primitives/strings/word/word.H
 
-class word : public string            // word inherits from string base class
+class word : public string            // word สืบทอดมาจากคลาสฐาน string
 {
 public:
-    // Optimized constructors for efficient object creation
-    word();                           // Default constructor
-    word(const std::string& s);       // Construct from std::string
-    word(const char* s);              // Construct from C-string
+    // คอนสตรัคเตอร์ที่ปรับปรุงเพื่อการสร้างออบเจกต์ที่มีประสิทธิภาพ
+    word();                           // คอนสตรัคเตอร์เริ่มต้น
+    word(const std::string& s);       // สร้างจาก std::string
+    word(const char* s);              // สร้างจาก C-string
 
-    // Hash optimization for fast dictionary lookups
-    size_t hash() const;              // Returns cached hash value
+    // การปรับปรุงแฮชเพื่อการสืบค้นในพจนานุกรมที่รวดเร็ว
+    size_t hash() const;              // ส่งคืนค่าแฮชที่เก็บในแคช
 
-    // Validation methods for ensuring valid word format
-    static bool valid(char c);        // Check if character is valid
-    static bool valid(const string& s); // Check if string is valid word
+    // เมธอดตรวจสอบเพื่อยืนยันรูปแบบคำที่ถูกต้อง
+    static bool valid(char c);        // ตรวจสอบว่าอักขระถูกต้องหรือไม่
+    static bool valid(const string& s); // ตรวจสอบว่าสตริงเป็น word ที่ถูกต้องหรือไม่
 };
 ```
 
-> **📂 Source:** `src/OpenFOAM/primitives/strings/word/word.H`
+> **📂 แหล่งที่มา:** `src/OpenFOAM/primitives/strings/word/word.H`
 >
-> **คำอธิบาย (Thai Explanation):**
-> - **Source (แหล่งที่มา):** ไฟล์นิยามคลาส `word` ซึ่งเป็น string class พิเศษสำหรับ OpenFOAM
-> - **Explanation (คำอธิบาย):** `word` สืบทอดจาก `string` แต่มีการปรับปรุงให้เหมาะกับการใช้งานเป็น identifier โดยมี hash function ที่ optimized สำหรับการค้นหาใน dictionary อย่างรวดเร็ว
+> **คำอธิบาย:**
+> - **Source (แหล่งที่มา):** ไฟล์นิยามคลาส `word` ซึ่งเป็นคลาสสตริงพิเศษสำหรับ OpenFOAM
+> - **Explanation (คำอธิบาย):** `word` สืบทอดมาจาก `string` แต่มีการปรับปรุงให้เหมาะกับการใช้งานเป็นตัวระบุ (Identifier) โดยมีฟังก์ชันแฮช (Hash function) ที่ปรับแต่งมาเพื่อการค้นหาในพจนานุกรมอย่างรวดเร็ว
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Hash Optimization (การปรับปรุง Hash):** มีการ cache ค่า hash เพื่อเร่งการค้นหา
->   - **Identifier Constraints (ข้อจำกัดของตัวระบุ):** ไม่อนุญาตให้มีช่องว่าง ทำให้เหมาะสำหรับชื่อ
->   - **Inheritance from string (การสืบทอดจาก string):** มีฟีเจอร์ทั้งหมดของ string บวกกับการปรับปรุงพิเศษ
+>   - **Hash Optimization (การปรับปรุงแฮช):** มีการเก็บค่าแฮชไว้ในแคชเพื่อเร่งการค้นหา
+>   - **Identifier Constraints (ข้อจำกัดของตัวระบุ):** ไม่อนุญาตให้มีช่องว่าง ทำให้เหมาะสำหรับใช้เป็นชื่อ
+>   - **Inheritance from string (การสืบทอดจาก string):** มีคุณสมบัติทั้งหมดของ string พร้อมการปรับปรุงพิเศษ
 
-**Dictionary and Naming Examples:**
+**ตัวอย่างการใช้ชื่อในพจนานุกรม:**
 ```cpp
-// Boundary condition names
-word inletPatch = "inlet";             // Inlet boundary identifier
-word outletPatch = "outlet";           // Outlet boundary identifier
-word wallPatch = "walls";              // Wall boundaries identifier
+// ชื่อเงื่อนไขขอบเขต
+word inletPatch = "inlet";             // ตัวระบุขอบเขตทางเข้า
+word outletPatch = "outlet";           // ตัวระบุขอบเขตทางออก
+word wallPatch = "walls";              // ตัวระบุขอบเขตผนัง
 
-// Field names
-word UField = "U";                     // Velocity field name
-word pField = "p";                     // Pressure field name
-word TField = "T";                     // Temperature field name
+// ชื่อสนามข้อมูล
+word UField = "U";                     // ชื่อสนามความเร็ว
+word pField = "p";                     // ชื่อสนามความดัน
+word TField = "T";                     // ชื่อสนามอุณหภูมิ
 
-// Solver and scheme names
-word solverName = "PCG";               // Linear solver choice
-word toleranceScheme = "GaussSeidel";  // Smoother scheme name
-word interpolationScheme = "linear";   // Interpolation method name
+// ชื่อ Solver และรูปแบบเชิงตัวเลข
+word solverName = "PCG";               // ตัวเลือกตัวแก้สมการเชิงเส้น
+word toleranceScheme = "GaussSeidel";  // ชื่อรูปแบบตัวทำให้เรียบ (Smoother)
+word interpolationScheme = "linear";   // ชื่อวิธีการอินเทอร์โพลชัน
 
-// Model names
-word turbulenceModel = "kOmegaSST";    // Turbulence model identifier
-word thermophysicalModel = "perfectGas"; // Thermophysical model identifier
+// ชื่อแบบจำลอง
+word turbulenceModel = "kOmegaSST";    // ตัวระบุแบบจำลองความปั่นป่วน
+word thermophysicalModel = "perfectGas"; // ตัวระบุแบบจำลองความร้อนฟิสิกส์
 ```
 
-**Dictionary Usage Patterns:**
+**รูปแบบการใช้งานพจนานุกรม:**
 ```cpp
-// Reading from dictionaries with default values
+// การอ่านค่าจากพจนานุกรมพร้อมค่าเริ่มต้น
 word Uname = mesh.solutionDict().lookupOrDefault<word>("U", "U");
 word pName = transportProperties.lookupOrDefault<word>("p", "p");
 
-// Dynamic field registration using word for field name
+// การลงทะเบียนสนามข้อมูลแบบไดนามิกโดยใช้ word สำหรับชื่อสนาม
 autoPtr<volScalarField> TField
 (
     new volScalarField
     (
-        IOobject                       // IOobject manages file I/O
+        IOobject                       // IOobject จัดการ I/O ของไฟล์
         (
-            "T",                        // Field name (word type)
-            runTime.timeName(),         // Time directory name
-            mesh,                       // Mesh reference
-            IOobject::MUST_READ,        // Read from file if exists
-            IOobject::AUTO_WRITE        // Automatically write on output
+            "T",                        // ชื่อสนาม (ประเภท word)
+            runTime.timeName(),         // ชื่อไดเรกทอรีเวลา
+            mesh,                       // การอ้างอิงเมช
+            IOobject::MUST_READ,        // อ่านจากไฟล์หากมีอยู่
+            IOobject::AUTO_WRITE        // เขียนออกโดยอัตโนมัติเมื่อสิ้นสุด
         ),
-        mesh                           // Mesh to create field on
+        mesh                           // เมชที่จะสร้างสนามข้อมูล
     )
 );
 ```
 
-> **📂 Source:** `.applications/utilities/surface/surfaceFeatures/surfaceFeatures.C`
+> **📂 แหล่งที่มา:** `.applications/utilities/surface/surfaceFeatures/surfaceFeatures.C`
 >
-> **คำอธิบาย (Thai Explanation):**
-> - **Source (แหล่งที่มา):** ไฟล์ utility แสดงการใช้ `word` ใน dictionary lookup
-> - **Explanation (คำอธิบาย):** การใช้ `word` แทน `string` ใน dictionary keys ช่วยเพิ่มประสิทธิภาพการค้นหา เนื่องจากมีการ optimize hash function และการเปรียบเทียบ
+> **คำอธิบาย:**
+> - **Source (แหล่งที่มา):** ไฟล์ utility แสดงการใช้ `word` ในการสืบค้นพจนานุกรม
+> - **Explanation (คำอธิบาย):** การใช้ `word` แทน `string` ในคีย์พจนานุกรมช่วยเพิ่มประสิทธิภาพการค้นหา เนื่องจากมีการปรับปรุงฟังก์ชันแฮชและการเปรียบเทียบให้เหมาะสมที่สุด
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Dictionary Lookups (การค้นหาในพจนานุกรม):** `word` ทำให้การค้นหาใน dictionary รวดเร็วกว่า `string`
->   - **Field Names (ชื่อฟิลด์):** ชื่อของ fields ทั้งหมดใช้ `word` เพื่อความสอดคล้อง
->   - **Boundary Identifiers (ตัวระบุขอบเขต):** ชื่อของ boundary patches ใช้ `word` สำหรับการระบุ
+>   - **Dictionary Lookups (การค้นหาในพจนานุกรม):** `word` ทำให้การค้นหาในพจนานุกรมเร็วกว่าการใช้ `string`
+>   - **Field Names (ชื่อฟิลด์):** ชื่อของสนามข้อมูลทั้งหมดใช้ `word` เพื่อความสอดคล้องกัน
+>   - **Boundary Identifiers (ตัวระบุขอบเขต):** ชื่อของแพตช์ขอบเขตใช้ `word` ในการระบุตัวตน
 
-## 🧠 Under the Hood
+## 🧠 เบื้องหลังการทำงาน (Under the Hood)
 
-### Compile-Time Configuration System
+### ระบบการตั้งค่าขณะคอมไพล์ (Compile-Time Configuration System)
 
-OpenFOAM's basic primitives are configured through a sophisticated preprocessor system that allows the same source code to compile for different precision and architecture requirements. This approach ensures binary compatibility while maintaining performance optimization.
+ประเภทพื้นฐานของ OpenFOAM ถูกกำหนดค่าผ่านระบบ Preprocessor ที่ซับซ้อน ซึ่งช่วยให้ซอร์สโค้ดเดียวกันสามารถคอมไพล์เพื่อรองรับความต้องการด้านความแม่นยำและสถาปัตยกรรมที่แตกต่างกันได้ แนวทางนี้ช่วยรับประกันความเข้ากันได้ในระดับไบนารีในขณะที่ยังคงรักษาประสิทธิภาพการทำงานสูงสุด
 
-**Build System Integration:**
+**การบูรณาการกับระบบ Build:**
 ```bash
-# In etc/bashrc or user environment configuration
-export WM_LABEL_SIZE=64               # Enable 64-bit integers for large meshes
-export WM_PRECISION_OPTION=DP         # Double precision mode (default)
+# ในไฟล์ etc/bashrc หรือการตั้งค่าสภาพแวดล้อมของผู้ใช้
+export WM_LABEL_SIZE=64               // เปิดใช้งานจำนวนเต็ม 64 บิตสำหรับเมชขนาดใหญ่
+export WM_PRECISION_OPTION=DP         // โหมดความแม่นยำสองชั้น (ค่าเริ่มต้น)
 
-# Alternative configurations
-export WM_PRECISION_OPTION=SP         # Single precision (faster, less memory)
-export WM_PRECISION_OPTION=LP         # Long double (high accuracy)
+# การตั้งค่าทางเลือกอื่นๆ
+export WM_PRECISION_OPTION=SP         // ความแม่นยำชั้นเดียว (เร็วกว่า, ใช้หน่วยความจำน้อยกว่า)
+export WM_PRECISION_OPTION=LP         // ความแม่นยำสูงพิเศษ (เพื่อความถูกต้องแม่นยำสูง)
 ```
 
 **Preprocessor Macros:**
 ```cpp
-// From wmake/rules/general/general
-// Default values if not explicitly set
+// จาก wmake/rules/general/general
+// ค่าเริ่มต้นหากไม่ได้ตั้งค่าไว้ชัดเจน
 #if !defined(WM_LABEL_SIZE)
-    #define WM_LABEL_SIZE 32          // Default to 32-bit labels
+    #define WM_LABEL_SIZE 32          // เริ่มต้นที่ label ขนาด 32 บิต
 #endif
 
 #if !defined(WM_PRECISION_OPTION)
-    #define WM_PRECISION_OPTION DP    // Default to double precision
+    #define WM_PRECISION_OPTION DP    // เริ่มต้นที่ความแม่นยำสองชั้น
 #endif
 
-// Precision mapping constants
-#define WM_SP  1                       // Single precision constant
-#define WM_DP  2                       // Double precision constant
-#define WM_LP  3                       // Long double precision constant
+// ค่าคงที่สำหรับการแม็ปความแม่นยำ
+#define WM_SP  1                       // ค่าคงที่ความแม่นยำชั้นเดียว
+#define WM_DP  2                       // ค่าคงที่ความแม่นยำสองชั้น
+#define WM_LP  3                       // ค่าคงที่ความแม่นยำสูงพิเศษ
 ```
 
-> **📂 Source:** `wmake/rules/general/general`
+> **📂 แหล่งที่มา:** `wmake/rules/general/general`
 >
-> **คำอธิบาย (Thai Explanation):**
-> - **Source (แหล่งที่มา):** ไฟล์การตั้งค่า build system ของ OpenFOAM ที่กำหนดค่า default สำหรับการ compile
-> - **Explanation (คำอธิบาย):** Build system ใช้ environment variables (`WM_LABEL_SIZE`, `WM_PRECISION_OPTION`) เพื่อควบคุมการ compile ทำให้สามารถ customize ความแม่นยำและขนาดของประเภทข้อมูลได้
+> **คำอธิบาย:**
+> - **Source (แหล่งที่มา):** ไฟล์การตั้งค่าระบบ Build ของ OpenFOAM ที่กำหนดค่าพื้นฐานสำหรับการคอมไพล์
+> - **Explanation (คำอธิบาย):** ระบบ Build ใช้ตัวแปรสภาพแวดล้อม (Environment variables เช่น `WM_LABEL_SIZE`, `WM_PRECISION_OPTION`) เพื่อควบคุมการคอมไพล์ ทำให้สามารถปรับแต่งความแม่นยำและขนาดของประเภทข้อมูลได้ตามต้องการ
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Compile-Time Configuration (การตั้งค่าขณะคอมไพล์):** ตั้งค่า precision และ label size ตั้งแต่ก่อน compile
->   - **Environment Variables (ตัวแปรสภาพแวดล้อม):** ใช้ตัวแปร environment เพื่อควบคุม build options
->   - **Default Values (ค่าเริ่มต้น):** มีค่า default ที่เหมาะสมกับการใช้งานทั่วไป
+>   - **Compile-Time Configuration (การตั้งค่าขณะคอมไพล์):** กำหนดค่าความแม่นยำและขนาด label ตั้งแต่ก่อนเริ่มคอมไพล์
+>   - **Environment Variables (ตัวแปรสภาพแวดล้อม):** ใช้ตัวแปรสภาพแวดล้อมในการควบคุมตัวเลือกการ Build
+>   - **Default Values (ค่าเริ่มต้น):** มีค่าพื้นฐานที่เหมาะสมกับการใช้งานทั่วไปเตรียมไว้ให้
 
-**Type Definition System:**
+**ระบบนิยามประเภทข้อมูล (Type Definition System):**
 ```cpp
-// Comprehensive type mapping in OpenFOAMPrimitives.H
+// การแม็ปประเภทข้อมูลที่ครอบคลุมใน OpenFOAMPrimitives.H
 
-// Integer types based on WM_LABEL_SIZE
+// ประเภทจำนวนเต็มตาม WM_LABEL_SIZE
 #if WM_LABEL_SIZE == 32
-    typedef int label;                 // 32-bit signed integer
-    typedef uint32_t uLabel;           // 32-bit unsigned integer
+    typedef int label;                 // จำนวนเต็มแบบมีเครื่องหมาย 32 บิต
+    typedef uint32_t uLabel;           // จำนวนเต็มแบบไม่มีเครื่องหมาย 32 บิต
 #elif WM_LABEL_SIZE == 64
-    typedef long label;                // 64-bit signed integer
-    typedef uint64_t uLabel;           // 64-bit unsigned integer
+    typedef long label;                // จำนวนเต็มแบบมีเครื่องหมาย 64 บิต
+    typedef uint64_t uLabel;           // จำนวนเต็มแบบไม่มีเครื่องหมาย 64 บิต
 #endif
 
-// Floating-point types based on WM_PRECISION_OPTION
+// ประเภทเลขทศนิยมตาม WM_PRECISION_OPTION
 #ifdef WM_SP
-    typedef float scalar;              // Single precision (4 bytes)
-    typedef float floatScalar;         // Explicit single precision
-    typedef double doubleScalar;       // Double precision available
+    typedef float scalar;              // ความแม่นยำชั้นเดียว (4 ไบต์)
+    typedef float floatScalar;         // ความแม่นยำชั้นเดียวแบบระบุชัดเจน
+    typedef double doubleScalar;       // มีความแม่นยำสองชั้นให้เลือกใช้
 #elif defined(WM_DP)
-    typedef double scalar;             // Double precision (8 bytes)
-    typedef float floatScalar;         // Single precision available
-    typedef double doubleScalar;       // Explicit double precision
+    typedef double scalar;             // ความแม่นยำสองชั้น (8 ไบต์)
+    typedef float floatScalar;         // มีความแม่นยำชั้นเดียวให้เลือกใช้
+    typedef double doubleScalar;       // ความแม่นยำสองชั้นแบบระบุชัดเจน
 #elif defined(WM_LP)
-    typedef long double scalar;        // Long double (16 bytes)
-    typedef float floatScalar;         // Single precision available
-    typedef double doubleScalar;       // Double precision available
+    typedef long double scalar;        // ความแม่นยำสูงพิเศษ (16 ไบต์)
+    typedef float floatScalar;         // มีความแม่นยำชั้นเดียวให้เลือกใช้
+    typedef double doubleScalar;       // มีความแม่นยำสองชั้นให้เลือกใช้
 #endif
 ```
 
-> **📂 Source:** `src/OpenFOAM/primitives/ints/label/label.H` and `src/OpenFOAM/primitives/Scalar/scalar/scalar.H`
+> **📂 แหล่งที่มา:** `src/OpenFOAM/primitives/ints/label/label.H` และ `src/OpenFOAM/primitives/Scalar/scalar/scalar.H`
 >
-> **คำอธิบาย (Thai Explanation):**
+> **คำอธิบาย:**
 > - **Source (แหล่งที่มา):** ไฟล์ต่างๆ ใน `src/OpenFOAM/primitives/` ที่นิยามประเภทข้อมูลพื้นฐาน
-> - **Explanation (คำอธิบาย):** ระบบ typedef ทำให้โค้ดทั้งหมดใน OpenFOAM ใช้ชื่อเดียวกัน (`label`, `scalar`, `word`) แต่สามารถ compile ได้หลายแบบตามการตั้งค่า
+> - **Explanation (คำอธิบาย):** ระบบ `typedef` ทำให้โค้ดทั้งหมดใน OpenFOAM สามารถใช้ชื่อเดียวกัน (`label`, `scalar`, `word`) แต่สามารถคอมไพล์ได้หลายรูปแบบตามการตั้งค่าของผู้ใช้
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Type Mapping (การแม็ปประเภทข้อมูล):** แม็ป `label` และ `scalar` ไปยังประเภท C++ พื้นฐาน
->   - **Unsigned Variants (รูปแบบไม่มีเครื่องหมาย):** มีทั้ง signed และ unsigned variants
->   - **Explicit Precision Types (ประเภทความแม่นยำแบบชัดเจน):** มี `floatScalar` และ `doubleScalar` สำหรับกรณีที่ต้องการความชัดเจน
+>   - **Type Mapping (การแม็ปประเภทข้อมูล):** เชื่อมโยง `label` และ `scalar` ไปยังประเภทข้อมูลพื้นฐานของ C++
+>   - **Unsigned Variants (รูปแบบไม่มีเครื่องหมาย):** มีทั้งแบบมีและไม่มีเครื่องหมายให้เลือกใช้
+>   - **Explicit Precision Types (ประเภทความแม่นยำแบบชัดเจน):** มี `floatScalar` และ `doubleScalar` สำหรับกรณีที่ต้องการระบุความแม่นยำให้ชัดเจนในโค้ด
 
-### Memory Layout and Performance
+### โครงสร้างหน่วยความจำและประสิทธิภาพ (Memory Layout and Performance)
 
-The memory representation of these primitives is carefully designed for optimal performance across different architectures:
+การแทนค่าในหน่วยความจำของประเภทพื้นฐานเหล่านี้ถูกออกแบบมาอย่างระมัดระวังเพื่อให้ได้ประสิทธิภาพสูงสุดในสถาปัตยกรรมที่แตกต่างกัน:
 
-**Memory Footprint:**
+**ร่องรอยหน่วยความจำ (Memory Footprint):**
 ```cpp
-// Size verification (bytes)
-sizeof(label)   // Returns 4 (32-bit) or 8 (64-bit)
-sizeof(scalar)  // Returns 4 (float), 8 (double), or 16 (long double)
-sizeof(word)    // Returns variable size, optimized for small strings
+// การตรวจสอบขนาด (ไบต์)
+sizeof(label)   // ส่งคืน 4 (32 บิต) หรือ 8 (64 บิต)
+sizeof(scalar)  // ส่งคืน 4 (float), 8 (double) หรือ 16 (long double)
+sizeof(word)    // คืนขนาดที่แปรผัน โดยปรับปรุงมาเพื่อสตริงขนาดเล็ก
 ```
 
-**Alignment Considerations:**
-- `label`: Natural word boundary alignment (4 or 8 bytes)
-- `scalar`: IEEE 754 standard alignment
-- `word`: Cache-friendly alignment for hash tables
+**การพิจารณาเรื่องการจัดแนว (Alignment Considerations):**
+- `label`: การจัดแนวตามขอบเขตคำตามธรรมชาติ (4 หรือ 8 ไบต์)
+- `scalar`: การจัดแนวตามมาตรฐาน IEEE 754
+- `word`: การจัดแนวที่เป็นมิตรต่อแคช (Cache-friendly alignment) สำหรับตารางแฮช (Hash tables)
 
-**Vectorization Optimization:**
+**การปรับปรุงประสิทธิภาพการทำงานแบบเวกเตอร์ (Vectorization Optimization):**
 ```cpp
-// SIMD-friendly operations with scalar arrays
-scalar a[8], b[8], c[8];               // Arrays of scalar values
-#pragma omp simd                       // SIMD vectorization directive
+// การดำเนินการที่เป็นมิตรต่อ SIMD กับอาร์เรย์ของ scalar
+scalar a[8], b[8], c[8];               // อาร์เรย์ของค่า scalar
+#pragma omp simd                       // คำสั่งสำหรับการทำ SIMD vectorization
 for (label i = 0; i < 8; i++)
 {
-    c[i] = a[i] + b[i];                // Vectorizable addition operation
+    c[i] = a[i] + b[i];                // การดำเนินการบวกที่สามารถทำเป็นเวกเตอร์ได้
 }
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/diameterModels/linearTsubDiameter/linearTsubDiameter.C`
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/diameterModels/linearTsubDiameter/linearTsubDiameter.C`
 >
-> **คำอธิบาย (Thai Explanation):**
-> - **Source (แหล่งที่มา):** ไฟล์ solver แสดงการใช้งาน scalar arrays ในการคำนวณ
-> - **Explanation (คำอธิบาย):** การจัดวาง memory ของ `scalar` arrays ถูกออกแบบให้เหมาะกับ SIMD vectorization ซึ่งช่วยเพิ่มประสิทธิภาพการคำนวณ
+> **คำอธิบาย:**
+> - **Source (แหล่งที่มา):** ไฟล์ solver แสดงการใช้งานอาร์เรย์ของ scalar ในการคำนวณ
+> - **Explanation (คำอธิบาย):** การจัดวางหน่วยความจำของอาร์เรย์ `scalar` ถูกออกแบบมาให้เหมาะสมกับการทำ SIMD vectorization ซึ่งช่วยเร่งความเร็วในการคำนวณได้อย่างมาก
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Memory Alignment (การจัดแนวหน่วยความจำ):** การจัดวาง memory ที่เหมาะสมช่วยเพิ่มประสิทธิภาพ
->   - **SIMD Vectorization (การแปลงเป็นเวกเตอร์):** ประมวลผลข้อมูลหลายค่าพร้อมกัน
->   - **Cache Friendliness (ความเป็นมิตรต่อแคช):** ออกแบบให้เข้ากับ cache architecture
+>   - **Memory Alignment (การจัดแนวหน่วยความจำ):** การจัดวางข้อมูลในหน่วยความจำที่เหมาะสมช่วยเพิ่มความเร็วในการเข้าถึง
+>   - **SIMD Vectorization (การประมวลผลแบบเวกเตอร์):** การประมวลผลข้อมูลหลายชุดพร้อมกันในคำสั่งเดียว
+>   - **Cache Friendliness (ความเป็นมิตรต่อแคช):** ออกแบบโครงสร้างข้อมูลให้เข้ากับสถาปัตยกรรมของแคช CPU
 
-### Hash Optimization in `word`
+### การปรับปรุงประสิทธิภาพแฮชใน `word` (Hash Optimization in `word`)
 
-The `word` class implements sophisticated hash optimization for efficient dictionary lookups:
+คลาส `word` มีการนำกลไกการปรับปรุงแฮชที่ซับซ้อนมาใช้เพื่อการสืบค้นพจนานุกรมอย่างมีประสิทธิภาพ:
 
-**Hash Computation:**
+**การคำนวณแฮช:**
 ```cpp
-// Optimized hash function with caching
+// ฟังก์ชันแฮชที่ปรับปรุงประสิทธิภาพพร้อมการเก็บแคช
 inline size_t word::hash() const
 {
-    // Cached hash value for performance optimization
-    if (!hashCached_)                    // Check if hash is already computed
+    // ค่าแฮชที่เก็บในแคชเพื่อปรับปรุงประสิทธิภาพ
+    if (!hashCached_)                    // ตรวจสอบว่าแฮชถูกคำนวณไว้แล้วหรือยัง
     {
-        hashValue_ = Foam::Hash<string>()(*this);  // Compute hash value
-        hashCached_ = true;              // Mark hash as cached
+        hashValue_ = Foam::Hash<string>()(*this);  // คำนวณค่าแฮช
+        hashCached_ = true;              // ทำเครื่องหมายว่าแฮชถูกเก็บในแคชแล้ว
     }
-    return hashValue_;                   // Return cached hash value
+    return hashValue_;                   // ส่งคืนค่าแฮชที่เก็บในแคช
 }
 ```
 
-> **📂 Source:** `src/OpenFOAM/primitives/strings/word/word.C`
+> **📂 แหล่งที่มา:** `src/OpenFOAM/primitives/strings/word/word.C`
 >
-> **คำอธิบาย (Thai Explanation):**
-> - **Source (แหล่งที่มา):** ไฟล์ implementation ของคลาส `word`
-> - **Explanation (คำอธิบาย):** การ cache ค่า hash ทำให้ไม่ต้องคำนวณซ้ำๆ เมื่อค้นหาใน dictionary หลายครั้ง ช่วยเพิ่มประสิทธิภาพอย่างมาก
+> **คำอธิบาย:**
+> - **Source (แหล่งที่มา):** ไฟล์การทำงาน (Implementation) ของคลาส `word`
+> - **Explanation (คำอธิบาย):** การเก็บค่าแฮชไว้ในแคช (Caching) ช่วยลดความจำเป็นในการคำนวณซ้ำเมื่อต้องค้นหาในพจนานุกรมหลายครั้ง ซึ่งช่วยเพิ่มประสิทธิภาพอย่างมหาศาล
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Hash Caching (การแคชค่าแฮช):** เก็บค่า hash ไว้เพื่อใช้ซ้ำ
->   - **Lazy Evaluation (การประเมินแบบล่าช้า):** คำนวณ hash เมื่อจำเป็นเท่านั้น
->   - **Dictionary Performance (ประสิทธิภาพพจนานุกรม):** การค้นหาใน dictionary เร็วขึ้นมาก
+>   - **Hash Caching (การแคชค่าแฮช):** การจัดเก็บค่าแฮชเพื่อนำกลับมาใช้ใหม่
+>   - **Lazy Evaluation (การประเมินผลเมื่อจำเป็น):** คำนวณค่าแฮชเฉพาะเมื่อมีความต้องการใช้จริงเท่านั้น
+>   - **Dictionary Performance (ประสิทธิภาพพจนานุกรม):** ความเร็วในการค้นหาในพจนานุกรมเพิ่มขึ้นอย่างมาก
 
-**Dictionary Performance:**
+**ประสิทธิภาพพจนานุกรม:**
 ```cpp
-// Fast dictionary lookups using word keys
-dictionary& dict = mesh.solutionDict(); // Get solution dictionary
-word solverName = dict.lookupOrDefault<word>("solver", "PCG"); // Fast lookup
+// การสืบค้นพจนานุกรมที่รวดเร็วโดยใช้คีย์ประเภท word
+dictionary& dict = mesh.solutionDict(); // รับพจนานุกรมโซลูชัน
+word solverName = dict.lookupOrDefault<word>("solver", "PCG"); // สืบค้นอย่างรวดเร็ว
 ```
 
-## ⚠️ Common Pitfalls and Best Practices
+## ⚠️ ข้อผิดพลาดที่พบบ่อยและแนวทางปฏิบัติที่ดีที่สุด
 
-### Type Mixing Problems
+### ปัญหาการผสมประเภทข้อมูล (Type Mixing Problems)
 
-**Issue**: Mixing OpenFOAM primitives with standard C++ types can lead to portability and precision issues.
+**ปัญหา**: การผสมประเภทข้อมูลพื้นฐานของ OpenFOAM เข้ากับประเภทข้อมูลมาตรฐานของ C++ อาจนำไปสู่ปัญหาด้านความสามารถในการพกพาและความแม่นยำ
 
 ```cpp
-// ❌ ANTI-PATTERN: Platform-dependent code
-int nCells = mesh.nCells();              // May fail on 64-bit systems
-double pressure = p[cellI];              // Assumes double precision
-string fieldName = "U";                  // Slower than word for identifiers
+// ❌ รูปแบบที่ไม่แนะนำ (Anti-pattern): โค้ดที่ขึ้นอยู่กับแพลตฟอร์ม
+int nCells = mesh.nCells();              // อาจล้มเหลวในระบบ 64 บิต
+double pressure = p[cellI];              // สมมติว่าเป็นความแม่นยำสองชั้นเสมอ
+string fieldName = "U";                  // ช้ากว่า word เมื่อใช้เป็นตัวระบุ
 
-// ✅ CORRECT PATTERN: OpenFOAM primitives
-label nCells = mesh.nCells();            // Portable across architectures
-scalar pressure = p[cellI];              // Adapts to precision settings
-word fieldName = "U";                    // Optimized for dictionary lookups
+// ✅ รูปแบบที่ถูกต้อง: ใช้ประเภทพื้นฐานของ OpenFOAM
+label nCells = mesh.nCells();            // พกพาไปใช้ในสถาปัตยกรรมต่างๆ ได้
+scalar pressure = p[cellI];              // ปรับตามการตั้งค่าความแม่นยำอัตโนมัติ
+word fieldName = "U";                    // ปรับปรุงมาเพื่อการสืบค้นพจนานุกรม
 ```
 
-> **📂 Source:** `.applications/utilities/surface/surfaceFeatures/surfaceFeatures.C`
+> **📂 แหล่งที่มา:** `.applications/utilities/surface/surfaceFeatures/surfaceFeatures.C`
 >
-> **คำอธิบาย (Thai Explanation):**
+> **คำอธิบาย:**
 > - **Source (แหล่งที่มา):** ไฟล์ utility แสดงตัวอย่างการใช้งานที่ถูกต้อง
-> - **Explanation (คำอธิบาย):** การใช้ OpenFOAM primitives แทน C++ standard types ช่วยให้โค้ด portable และทำงานได้ถูกต้องบนทุกแพลตฟอร์ม
+> - **Explanation (คำอธิบาย):** การใช้ประเภทพื้นฐานของ OpenFOAM แทนประเภทมาตรฐานของ C++ ช่วยให้โค้ดสามารถพกพาได้และทำงานได้อย่างถูกต้องบนทุกแพลตฟอร์ม
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Portability (การพกพาได้):** ใช้ `label` และ `scalar` แทน `int` และ `double`
->   - **Consistency (ความสอดคล้อง):** ใช้ประเภทข้อมูลเดียวกันทั่วทั้งโค้ด
->   - **Performance (ประสิทธิภาพ):** ใช้ `word` แทน `string` สำหรับ identifiers
+>   - **Portability (ความสามารถในการพกพา):** ใช้ `label` และ `scalar` แทน `int` และ `double`
+>   - **Consistency (ความสอดคล้อง):** ใช้ประเภทข้อมูลเดียวกันทั่วทั้งซอร์สโค้ด
+>   - **Performance (ประสิทธิภาพ):** ใช้ `word` แทน `string` สำหรับตัวระบุต่างๆ
 
-### Precision Assumptions
+### การสมมติเรื่องความแม่นยำ (Precision Assumptions)
 
-**Issue**: Assuming specific precision can cause numerical problems when precision settings change.
+**ปัญหา**: การสมมติระดับความแม่นยำที่เฉพาะเจาะจงอาจทำให้เกิดปัญหาทางตัวเลขเมื่อมีการเปลี่ยนการตั้งค่าความแม่นยำ
 
 ```cpp
-// ❌ DANGEROUS: Hardcoded precision assumptions
-const double epsilon = 1e-15;            // Only valid for double precision
-if (pressure == 0.0)                     // Exact comparison problematic
+// ❌ อันตราย: การสมมติความแม่นยำที่ถูกกำหนดค่าตายตัวในโค้ด
+const double epsilon = 1e-15;            // ใช้ได้เฉพาะกับความแม่นยำสองชั้นเท่านั้น
+if (pressure == 0.0)                     // การเปรียบเทียบค่าตรงๆ มีปัญหาเรื่องความแม่นยำ
 
-// ✅ SAFE: Precision-aware programming
-const scalar epsilon = ROOTVSMALL;       // OpenFOAM's machine epsilon
-if (mag(pressure) < epsilon)             // Magnitude-based comparison
+// ✅ ปลอดภัย: การเขียนโปรแกรมที่คำนึงถึงความแม่นยำ
+const scalar epsilon = ROOTVSMALL;       // ใช้ค่า Machine Epsilon ของ OpenFOAM
+if (mag(pressure) < epsilon)             // การเปรียบเทียบโดยใช้ขนาดสัมบูรณ์
 ```
 
-> **📂 Source:** `.applications/solvers/compressible/rhoCentralFoam/BCs/U/maxwellSlipUFvPatchVectorField.C`
+> **📂 แหล่งที่มา:** `.applications/solvers/compressible/rhoCentralFoam/BCs/U/maxwellSlipUFvPatchVectorField.C`
 >
-> **คำอธิบาย (Thai Explanation):**
-> - **Source (แหล่งที่มา):** ไฟล์ boundary condition แสดงการใช้ tolerance values ที่ถูกต้อง
-> - **Explanation (คำอธิบาย):** การใช้ค่า tolerance ที่ปรับตาม precision settings (`ROOTVSMALL`, `SMALL`) ทำให้โค้ดทำงานได้ถูกต้องไม่ว่าจะใช้ precision แบบใด
+> **คำอธิบาย:**
+> - **Source (แหล่งที่มา):** ไฟล์เงื่อนไขขอบเขตแสดงการใช้ค่าความคลาดเคลื่อน (Tolerance) ที่ถูกต้อง
+> - **Explanation (คำอธิบาย):** การใช้ค่าความคลาดเคลื่อนที่ปรับตามการตั้งค่าความแม่นยำ (`ROOTVSMALL`, `SMALL`) ช่วยให้โค้ดทำงานได้ถูกต้องไม่ว่าจะใช้ความแม่นยำระดับใด
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Machine Epsilon (เอปไซลอนเครื่อง):** ใช้ค่าที่เหมาะสมกับ precision ปัจจุบัน
->   - **Magnitude Comparison (การเปรียบเทียบขนาด):** เปรียบเทียบค่าสัมบูรณ์แทนการเปรียบเทียบตรง
->   - **Numerical Safety (ความปลอดภัยทางตัวเลข):** หลีกเลี่ยงปัญหา floating-point errors
+>   - **Machine Epsilon (ค่าเอปไซลอนของเครื่อง):** ใช้ค่าที่เหมาะสมกับระดับความแม่นยำปัจจุบัน
+>   - **Magnitude Comparison (การเปรียบเทียบขนาด):** เปรียบเทียบค่าสัมบูรณ์แทนการเปรียบเทียบค่าตรงๆ
+>   - **Numerical Safety (ความปลอดภัยทางตัวเลข):** หลีกเลี่ยงปัญหาความผิดพลาดจากจุดทศนิยม (Floating-point errors)
 
-### String Type Selection
+### การเลือกประเภทสตริง (String Type Selection)
 
-**Issue**: Using `word` for general text operations or `string` for identifiers.
+**ปัญหา**: การใช้ `word` สำหรับการดำเนินการข้อความทั่วไป หรือการใช้ `string` สำหรับตัวระบุ
 
 ```cpp
-// ❌ INEFFICIENT: Using string for identifiers
-string patchName = "inlet";              // Slower dictionary lookups
+// ❌ ไม่มีประสิทธิภาพ: การใช้ string สำหรับตัวระบุ
+string patchName = "inlet";              // สืบค้นในพจนานุกรมได้ช้ากว่า
 dictionary dict;
-dict.lookup(patchName);                  // Suboptimal performance
+dict.lookup(patchName);                  // ประสิทธิภาพไม่เหมาะสม
 
-// ✅ OPTIMAL: Using word for identifiers
-word patchName = "inlet";                // Fast hash-based lookups
+// ✅ เหมาะสมที่สุด: การใช้ word สำหรับตัวระบุ
+word patchName = "inlet";                // การสืบค้นแบบแฮชที่รวดเร็ว
 dictionary dict;
-dict.lookup(patchName);                  // Optimized performance
+dict.lookup(patchName);                  // ประสิทธิภาพสูงสุด
 
-// ❌ INCORRECT: Using word for message text
-word errorMsg = "Simulation failed: ";   // Not designed for general text
+// ❌ ไม่ถูกต้อง: การใช้ word สำหรับข้อความแจ้งเตือน
+word errorMsg = "Simulation failed: ";   // ไม่ได้ถูกออกแบบมาสำหรับข้อความทั่วไป
 
-// ✅ CORRECT: Using string for message text
-string errorMsg = "Simulation failed: "; // Proper text handling
+// ✅ ถูกต้อง: การใช้ string สำหรับข้อความแจ้งเตือน
+string errorMsg = "Simulation failed: "; // การจัดการข้อความที่เหมาะสม
 ```
 
-> **📂 Source:** `.applications/utilities/surface/surfaceFeatures/surfaceFeatures.C`
+> **📂 แหล่งที่มา:** `.applications/utilities/surface/surfaceFeatures/surfaceFeatures.C`
 >
-> **คำอธิบาย (Thai Explanation):**
+> **คำอธิบาย:**
 > - **Source (แหล่งที่มา):** ไฟล์ utility แสดงการใช้งาน `word` และ `string` อย่างเหมาะสม
-> - **Explanation (คำอธิบาย):** ใช้ `word` สำหรับ identifiers และ dictionary keys แต่ใช้ `string` สำหรับข้อความทั่วไป
+> - **Explanation (คำอธิบาย):** ใช้ `word` สำหรับตัวระบุและคีย์พจนานุกรม แต่ใช้ `string` สำหรับข้อความทั่วไปหรือประโยคที่ซับซ้อน
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Appropriate Type Selection (การเลือกประเภทที่เหมาะสม):** `word` สำหรับ identifiers, `string` สำหรับ text
->   - **Hash Performance (ประสิทธิภาพแฮช):** `word` เร็วกว่าใน dictionary lookups
->   - **Text Handling (การจัดการข้อความ):** `string` เหมาะกับข้อความที่ซับซ้อน
+>   - **Appropriate Type Selection (การเลือกประเภทที่เหมาะสม):** `word` สำหรับตัวระบุ และ `string` สำหรับข้อความ
+>   - **Hash Performance (ประสิทธิภาพแฮช):** `word` มีประสิทธิภาพสูงกว่าในการสืบค้นพจนานุกรม
+>   - **Text Handling (การจัดการข้อความ):** `string` เหมาะสำหรับข้อความที่มีความยาวและซับซ้อน
 
-### Memory Management
+### การจัดการหน่วยความจำ (Memory Management)
 
-**Issue**: Inefficient memory usage with large arrays of primitives.
+**ปัญหา**: การใช้หน่วยความจำที่ไม่มีประสิทธิภาพกับอาร์เรย์ขนาดใหญ่ของประเภทพื้นฐาน
 
 ```cpp
-// ❌ MEMORY-INTENSIVE: Unnecessary precision
-scalar largeArray[1000000];             // Uses 8MB in double precision
+// ❌ สิ้นเปลืองหน่วยความจำ: ใช้ความแม่นยำเกินความจำเป็น
+scalar largeArray[1000000];             // ใช้พื้นที่ 8MB ในโหมดความแม่นยำสองชั้น
 
-// ✅ MEMORY-EFFICIENT: Appropriate precision
-floatScalar largeArray[1000000];        // Uses 4MB in single precision
-// or use DynamicField with proper memory management
+// ✅ ประสิทธิภาพหน่วยความจำดีเยี่ยม: ใช้ความแม่นยำที่เหมาะสม
+floatScalar largeArray[1000000];        // ใช้พื้นที่ 4MB ในโหมดความแม่นยำชั้นเดียว
+// หรือใช้ DynamicField พร้อมการจัดการหน่วยความจำที่เหมาะสม
 ```
 
-## 🎯 Engineering Benefits
+## 🎯 ประโยชน์เชิงวิศวกรรม (Engineering Benefits)
 
-### Architectural Portability
+### ความสามารถในการพกพาเชิงสถาปัตยกรรม (Architectural Portability)
 
-The `label` type ensures consistent behavior across different computer architectures, which is critical for scientific reproducibility:
+ประเภท `label` รับประกันพฤติกรรมที่สอดคล้องกันในสถาปัตยกรรมคอมพิวเตอร์ที่แตกต่างกัน ซึ่งสำคัญอย่างยิ่งต่อการทำซ้ำได้ทางวิทยาศาสตร์ (Scientific reproducibility):
 
 ```cpp
-// Guaranteed portable mesh operations
-label maxCells = 2000000000;            // Works on both 32-bit and 64-bit
+// รับประกันการดำเนินการเมชที่พกพาได้
+label maxCells = 2000000000;            // ทำงานได้ทั้งบนระบบ 32 บิต และ 64 บิต
 for (label cellI = 0; cellI < maxCells; cellI++)
 {
-    // Consistent iteration behavior regardless of platform
+    // พฤติกรรมการวนลูปที่สอดคล้องกันไม่ว่าจะเป็นแพลตฟอร์มใด
 }
 ```
 
-> **📂 Source:** `.applications/utilities/surface/surfaceFeatures/surfaceFeatures.C`
+> **📂 แหล่งที่มา:** `.applications/utilities/surface/surfaceFeatures/surfaceFeatures.C`
 >
-> **คำอธิบาย (Thai Explanation):**
-> - **Source (แหล่งที่มา):** ไฟล์ utility แสดงการใช้ `label` สำหรับ large-scale mesh operations
-> - **Explanation (คำอธิบาย):** `label` รับประกันว่าการทำงานกับ mesh ขนาดใหญ่จะทำงานได้ถูกต้องบนทุกแพลตฟอร์ม
+> **คำอธิบาย:**
+> - **Source (แหล่งที่มา):** ไฟล์ utility แสดงการใช้ `label` สำหรับการดำเนินการเมชขนาดใหญ่
+> - **Explanation (คำอธิบาย):** `label` รับประกันว่าการทำงานกับเมชที่มีรายละเอียดสูงจะถูกต้องเสมอในทุกแพลตฟอร์ม
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Scientific Reproducibility (การทำซ้ำทางวิทยาศาสตร์):** ผลลัพธ์เหมือนกันทุกแพลตฟอร์ม
->   - **Large Mesh Support (การรองรับเมชขนาดใหญ่):** รองรับ mesh ที่มี cell เกิน 2 พันล้าน
->   - **Consistent Behavior (พฤติกรรมที่สอดคล้อง):** ทำงานเหมือนกันทุกที่
+>   - **Scientific Reproducibility (การทำซ้ำได้ทางวิทยาศาสตร์):** ได้ผลลัพธ์เดียวกันไม่ว่าจะรันบนเครื่องใด
+>   - **Large Mesh Support (การรองรับเมชขนาดใหญ่):** รองรับเมชที่มีจำนวนเซลล์เกิน 2 พันล้านเซลล์
+>   - **Consistent Behavior (พฤติกรรมที่สอดคล้อง):** โค้ดทำงานเหมือนเดิมทุกที่
 
-### Precision Flexibility
+### ความยืดหยุ่นของความแม่นยำ (Precision Flexibility)
 
-The configurable `scalar` type allows optimization for different problem sizes:
+ประเภท `scalar` ที่ปรับแต่งได้ช่วยให้สามารถปรับประสิทธิภาพให้เหมาะสมกับขนาดของปัญหาได้:
 
 ```cpp
-// Single precision for large-scale, less critical simulations
-scalar t = 0.01;                        // Time step (single precision: 6-7 digits)
+// ความแม่นยำชั้นเดียวสำหรับการจำลองขนาดใหญ่ที่ไม่ได้เน้นความถูกต้องในระดับวิกฤต
+scalar t = 0.01;                        // ขั้นตอนเวลา (6-7 ตำแหน่ง)
 
-// Double precision for critical scientific calculations
-scalar p = 101325.0;                    // Pressure (double precision: 15-16 digits)
+// ความแม่นยำสองชั้นสำหรับการคำนวณทางวิทยาศาสตร์ในระดับวิกฤต
+scalar p = 101325.0;                    // ความดัน (15-16 ตำแหน่ง)
 
-// Performance comparison
-// Single precision: ~2x faster, ~50% memory reduction
-// Double precision: Standard accuracy, most common
+// การเปรียบเทียบประสิทธิภาพ
+// ความแม่นยำชั้นเดียว: เร็วกว่าประมาณ 2 เท่า, ใช้หน่วยความจำน้อยลง 50%
+// ความแม่นยำสองชั้น: มาตรฐานความถูกต้อง พบเห็นได้บ่อยที่สุด
 ```
 
-### Performance Enhancement
+### การเพิ่มประสิทธิภาพการทำงาน (Performance Enhancement)
 
-**Hash-based Dictionary Efficiency:**
+**ประสิทธิภาพของพจนานุกรมแบบแฮช:**
 ```cpp
-// word provides ~10x faster dictionary lookups vs string
+// word ช่วยให้การสืบค้นพจนานุกรมเร็วกว่า string ประมาณ 10 เท่า
 dictionary& transportDict = mesh.lookupObject<dictionary>("transportProperties");
 word viscosityName = "nu";
-scalar nu = transportDict.lookup<scalar>(viscosityName); // Fast hash lookup
+scalar nu = transportDict.lookup<scalar>(viscosityName); // การสืบค้นแบบแฮชที่รวดเร็ว
 ```
 
-> **📂 Source:** `.applications/utilities/surface/surfaceFeatures/surfaceFeatures.C`
+> **📂 แหล่งที่มา:** `.applications/utilities/surface/surfaceFeatures/surfaceFeatures.C`
 >
-> **คำอธิบาย (Thai Explanation):**
-> - **Source (แหล่งที่มา):** ไฟล์ utility แสดงการใช้ `word` ใน dictionary operations
-> - **Explanation (คำอธิบาย):** การใช้ `word` สำหรับ dictionary keys ช่วยเพิ่มประสิทธิภาพการค้นหาอย่างมาก
+> **คำอธิบาย:**
+> - **Source (แหล่งที่มา):** ไฟล์ utility แสดงการใช้ `word` ในการดำเนินการพจนานุกรม
+> - **Explanation (คำอธิบาย):** การใช้ `word` สำหรับคีย์ในพจนานุกรมช่วยเร่งความเร็วในการค้นหาข้อมูลอย่างมาก
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Hash-Based Lookups (การค้นหาแบบแฮช):** ค้นหาเร็วกว่า string comparison
->   - **Dictionary Optimization (การปรับปรุงพจนานุกรม):** OpenFOAM dictionaries optimized สำหรับ `word`
->   - **Performance Gain (ผลกำไรด้านประสิทธิภาพ):** เร็วกว่าประมาณ 10 เท่า
+>   - **Hash-Based Lookups (การค้นหาตามแฮช):** เร็วกว่าการเปรียบเทียบสตริงแบบตัวอักษรต่อตัวอักษร
+>   - **Dictionary Optimization (การปรับปรุงพจนานุกรม):** พจนานุกรมของ OpenFOAM ถูกออกแบบมาเพื่อ `word` โดยเฉพาะ
+>   - **Performance Gain (ประสิทธิภาพที่เพิ่มขึ้น):** เร็วกว่าเดิมประมาณ 10 เท่า
 
-**Memory Layout Optimization:**
+**การจัดวางอาร์เรย์ที่เหมาะสมที่สุด (Packing):**
 ```cpp
-// Optimal array packing
+// การจัดวางอาร์เรย์ที่เหมาะสมที่สุด (Packing)
 struct CellData
 {
-    label cellID;                       // 4 or 8 bytes
-    scalar volume;                      // 4, 8, or 16 bytes
-    scalar temperature;                 // 4, 8, or 16 bytes
-    word zoneName;                      // Optimized string storage
+    label cellID;                       // 4 หรือ 8 ไบต์
+    scalar volume;                      // 4, 8 หรือ 16 ไบต์
+    scalar temperature;                 // 4, 8 หรือ 16 ไบต์
+    word zoneName;                      // การจัดเก็บสตริงที่ปรับปรุงมาแล้ว
 };
 ```
 
-## Physics Connection
+## การเชื่อมโยงกับวิชาฟิสิกส์ (Physics Connection)
 
-### Implementing Fundamental Equations
+### การนำสมการพื้นฐานไปปฏิบัติ (Implementing Fundamental Equations)
 
-OpenFOAM primitives implement the mathematical foundations of CFD directly:
+ประเภทพื้นฐานของ OpenFOAM ถูกใช้เพื่อเปลี่ยนรากฐานทางคณิตศาสตร์ของ CFD ให้เป็นโค้ดที่ทำงานได้จริง:
 
-#### **Continuity Equation (Mass Conservation)**
+#### **สมการความต่อเนื่อง (การอนุรักษ์มวล)**
 $$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$$
 
-**Implementation using primitives:**
+**การนำไปปฏิบัติโดยใช้ประเภทพื้นฐาน:**
 ```cpp
-// Time derivative term using scalar for physical quantities
-scalar dRhoDt = (rho - rho.oldTime()) / deltaT;  // scalar time difference
+// เทอมอนุพันธ์เชิงเวลาโดยใช้ scalar สำหรับปริมาณทางกายภาพ
+scalar dRhoDt = (rho - rho.oldTime()) / deltaT;  // ความต่างเวลาในหน่วย scalar
 
-// Divergence calculation using Gauss theorem
-scalar divRhoU = fvc::div(rho * U);              // scalar divergence result
+// การคำนวณไดเวอร์เจนซ์โดยใช้ทฤษฎีบทของ Gauss
+scalar divRhoU = fvc::div(rho * U);              // ผลลัพธ์ไดเวอร์เจนซ์ในหน่วย scalar
 ```
 
-#### **Momentum Equation (Newton's Second Law)**
+#### **สมการโมเมนตัม (กฎข้อที่สองของนิวตัน)**
 $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
 
-**Discretization for each cell:**
+**การดิสครีต (Discretization) สำหรับแต่ละเซลล์:**
 ```cpp
-// Iterate through each cell using label for indexing
+// วนลูปผ่านแต่ละเซลล์โดยใช้ label สำหรับการทำดัชนี
 for (label cellI = 0; cellI < mesh.nCells(); cellI++)
 {
-    // Convection term: ρ(u·∇)u
+    // เทอมคอนเวกชัน (Convection): ρ(u·∇)u
     scalar convectionTerm = rho[cellI] * (U[cellI] & fvc::grad(U)[cellI]);
 
-    // Pressure gradient: -∇p
+    // เกรเดียนต์ความดัน: -∇p
     vector pressureGrad = -fvc::grad(p)[cellI];
 
-    // Viscous term: μ∇²u
+    // เทอมความหนืด: μ∇²u
     vector viscousTerm = mu[cellI] * fvc::laplacian(U)[cellI];
 
-    // Source term: f (body forces like gravity)
+    // เทอมแหล่งกำเนิด: f (แรงภายนอก เช่น แรงโน้มถ่วง)
     vector sourceTerm = rho[cellI] * g[cellI];
 }
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/diameterModels/linearTsubDiameter/linearTsubDiameter.C`
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/diameterModels/linearTsubDiameter/linearTsubDiameter.C`
 >
-> **คำอธิบาย (Thai Explanation):**
-> - **Source (แหล่งที่มา):** ไฟล์ solver แสดงการ discretize momentum equation
-> - **Explanation (คำอธิบาย):** การใช้ `label` สำหรับ indexing และ `scalar` สำหรับ physical quantities ทำให้โค้ดอ่านง่ายและถูกต้องทางฟิสิกส์
+> **คำอธิบาย:**
+> - **Source (แหล่งที่มา):** ไฟล์ solver แสดงการดิสครีตสมการโมเมนตัม
+> - **Explanation (คำอธิบาย):** การใช้ `label` สำหรับการทำดัชนีและ `scalar` สำหรับปริมาณทางกายภาพทำให้โค้ดอ่านง่ายและมีความถูกต้องแม่นยำทางฟิสิกส์
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Finite Volume Discretization (การกระจายปริมาตรจำกัด):** แบ่ง domain เป็น control volumes
->   - **Cell-Based Computation (การคำนวณแบบต่อเซลล์):** คำนวณทีละ cell ใช้ `label` เป็น index
->   - **Physical Conservation (การอนุรักษ์ทางกายภาพ):** รักษาหลักการอนุรักษ์มวล โมเมนตัม และพลังงาน
+>   - **Finite Volume Discretization (การดิสครีตแบบปริมาตรจำกัด):** แบ่งโดเมนออกเป็นปริมาตรควบคุม
+>   - **Cell-Based Computation (การคำนวณแบบฐานเซลล์):** คำนวณทีละเซลล์โดยใช้ `label` เป็นดัชนี
+>   - **Physical Conservation (การอนุรักษ์ทางฟิสิกส์):** รักษาหลักการอนุรักษ์มวล โมเมนตัม และพลังงาน
 
-#### **Energy Equation**
+#### **สมการพลังงาน (Energy Equation)**
 $$\rho c_p \frac{\partial T}{\partial t} + \rho c_p \mathbf{u} \cdot \nabla T = k \nabla^2 T + Q$$
 
 ```cpp
-// Thermal diffusivity calculation using scalar types
+// การคำนวณการแพร่กระจายความร้อนโดยใช้ประเภท scalar
 scalar alpha = k / (rho * Cp);          // α = k/(ρcp)
 
-// Temperature equation terms
-scalar dTdt = (T - T.oldTime()) / deltaT;            // Time derivative
-scalar convection = rho * Cp * (U & fvc::grad(T));   // Convection term
-scalar diffusion = k * fvc::laplacian(T);            // Heat conduction
-scalar source = Q;                                   // Heat source term
+// เทอมต่างๆ ในสมการอุณหภูมิ
+scalar dTdt = (T - T.oldTime()) / deltaT;            // อนุพันธ์เชิงเวลา
+scalar convection = rho * Cp * (U & fvc::grad(T));   // เทอมคอนเวกชัน
+scalar diffusion = k * fvc::laplacian(T);            // การนำความร้อน
+scalar source = Q;                                   // เทอมแหล่งกำเนิดความร้อน
 ```
 
-### Mesh Topology and Discretization
+### โทโพโลยีเมชและการดิสครีต (Mesh Topology and Discretization)
 
-The finite volume method discretizes continuous equations on a mesh:
+วิธีไฟไนต์วอลุ่มเปลี่ยนสมการต่อเนื่องให้เป็นรูปแบบไม่ต่อเนื่องบนเมช:
 
-#### **Control Volume Integration**
-For any scalar field $\phi$:
+#### **การอินทิเกรตตามปริมาตรควบคุม (Control Volume Integration)**
+สำหรับสนามสเกลาร์ $\phi$ ใดๆ:
 $$\frac{\partial}{\partial t} \int_{V} \rho \phi \, \mathrm{d}V + \oint_{A} \rho \phi \mathbf{u} \cdot \mathrm{d}\mathbf{A} = \oint_{A} \Gamma \nabla \phi \cdot \mathrm{d}\mathbf{A} + \int_{V} S_{\phi} \, \mathrm{d}V$$
 
 ```cpp
-// Discretized implementation using label and scalar
+// การนำไปปฏิบัติในรูปแบบไม่ต่อเนื่องโดยใช้ label และ scalar
 for (label cellI = 0; cellI < mesh.nCells(); cellI++)
 {
-    scalar V = mesh.V()[cellI];                      // Cell volume (scalar)
+    scalar V = mesh.V()[cellI];                      // ปริมาตรเซลล์ (scalar)
     scalar dPhidt = V * rho[cellI] * (phi[cellI] - phi.oldTime()[cellI]) / deltaT;
 
-    // Surface flux integration over faces
+    // การอินทิเกรตฟลักซ์พื้นผิวตามหน้าเซลล์
     scalar surfaceFlux = 0;
-    const labelList& cellFaces = mesh.cells()[cellI]; // Face indices (label)
+    const labelList& cellFaces = mesh.cells()[cellI]; // ดัชนีของหน้า (label)
     forAll(cellFaces, faceI)
     {
-        label faceIdx = cellFaces[faceI];            // Face index (label)
-        vector Sf = mesh.Sf()[faceIdx];              // Face area vector
-        vector Cf = mesh.Cf()[faceIdx];              // Face center
+        label faceIdx = cellFaces[faceI];            // ดัชนีหน้า (label)
+        vector Sf = mesh.Sf()[faceIdx];              // เวกเตอร์พื้นที่หน้า
+        vector Cf = mesh.Cf()[faceIdx];              // จุดศูนย์กลางหน้า
         scalar flux = rho[faceIdx] * phi[faceIdx] * (U[faceIdx] & Sf);
         surfaceFlux += flux;
     }
 }
 ```
 
-#### **Boundary Condition Implementation**
+#### **การนำเงื่อนไขขอบเขตไปใช้งาน (Boundary Condition Implementation)**
 ```cpp
-// Boundary conditions use word for identification
-word inletName = "inlet";                           // Boundary identifier
+// เงื่อนไขขอบเขตใช้ word ในการระบุตัวตน
+word inletName = "inlet";                           // ตัวระบุขอบเขต
 label inletPatchID = mesh.boundaryMesh().findPatchID(inletName);
 
-// Apply boundary values using label indexing
+// ใช้ค่าขอบเขตโดยใช้การทำดัชนีแบบ label
 const fvPatchVectorField& inletU = U.boundaryField()[inletPatchID];
 forAll(inletU, faceI)
 {
     label globalFaceI = inletU.patch().start() + faceI;
-    U[globalFaceI] = inletVelocity;                 // scalar magnitude
+    U[globalFaceI] = inletVelocity;                 // ขนาดในหน่วย scalar
 }
 ```
 
-> **📂 Source:** `.applications/solvers/compressible/rhoCentralFoam/BCs/U/maxwellSlipUFvPatchVectorField.C`
+> **📂 แหล่งที่มา:** `.applications/solvers/compressible/rhoCentralFoam/BCs/U/maxwellSlipUFvPatchVectorField.C`
 >
-> **คำอธิบาย (Thai Explanation):**
-> - **Source (แหล่งที่มา):** ไฟล์ boundary condition แสดงการใช้ `word` และ `label` ในการจัดการ boundaries
-> - **Explanation (คำอธิบาย):** การใช้ `word` สำหรับ boundary names ทำให้โค้ดอ่านง่าย และ `label` สำหรับ face indexing ทำให้ access ข้อมูลได้อย่างมีประสิทธิภาพ
+> **คำอธิบาย:**
+> - **Source (แหล่งที่มา):** ไฟล์เงื่อนไขขอบเขตแสดงการใช้ `word` และ `label` ในการจัดการขอบเขต
+> - **Explanation (คำอธิบาย):** การใช้ `word` สำหรับชื่อขอบเขตช่วยให้โค้ดอ่านง่าย และการใช้ `label` สำหรับการทำดัชนีหน้าช่วยให้เข้าถึงข้อมูลได้อย่างมีประสิทธิภาพ
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Boundary Identification (การระบุขอบเขต):** ใช้ `word` สำหรับชื่อ boundaries
->   - **Patch Indexing (การทำดัชนีแพตช์):** ใช้ `label` สำหรับ patch IDs
->   - **Face-Based Operations (การดำเนินการแบบต่อหน้า):** ทำงานกับ faces โดยตรง
+>   - **Boundary Identification (การระบุขอบเขต):** ใช้ `word` สำหรับชื่อขอบเขตต่างๆ
+>   - **Patch Indexing (การทำดัชนีแพตช์):** ใช้ `label` สำหรับรหัสของแพตช์
+>   - **Face-Based Operations (การดำเนินการตามหน้า):** ทำงานกับหน้าเมชโดยตรง
 
-### Numerical Solver Implementation
+### การนำตัวแก้สมการเชิงตัวเลขไปใช้งาน (Numerical Solver Implementation)
 
-Primitives work together in iterative solvers:
+ประเภทพื้นฐานทำงานร่วมกันในตัวแก้สมการแบบวนซ้ำ (Iterative solvers):
 
 ```cpp
-// Linear system: A x = b
-// Using label for indexing, scalar for coefficients
+// ระบบเชิงเส้น: A x = b
+// ใช้ label สำหรับการทำดัชนี และ scalar สำหรับสัมประสิทธิ์
 
-// Matrix construction with proper types
-scalarSquareMatrix A(nCells);            // nCells is label
-scalarField b(nCells);                   // RHS vector
-scalarField x(nCells);                   // Solution vector
+// การสร้างเมทริกซ์ด้วยประเภทข้อมูลที่ถูกต้อง
+scalarSquareMatrix A(nCells);            // nCells คือ label
+scalarField b(nCells);                   // เวกเตอร์ RHS
+scalarField x(nCells);                   // เวกเตอร์คำตอบ (Solution)
 
-// Populate matrix for each cell
+// การเติมค่าในเมทริกซ์สำหรับแต่ละเซลล์
 for (label cellI = 0; cellI < nCells; cellI++)
 {
-    // Diagonal coefficient
-    A[cellI][cellI] = ap[cellI];         // scalar from discretization
+    // สัมประสิทธิ์แนวทแยง (Diagonal coefficient)
+    A[cellI][cellI] = ap[cellI];         // scalar จากการดิสครีต
 
-    // Neighbor coefficients
+    // สัมประสิทธิ์เพื่อนบ้าน (Neighbor coefficients)
     const labelList& neighbors = mesh.cellCells()[cellI];
     forAll(neighbors, neighborI)
     {
         label neighborJ = neighbors[neighborI];
-        A[cellI][neighborJ] = an[cellI][neighborI]; // scalar coupling
+        A[cellI][neighborJ] = an[cellI][neighborI]; // สัมประสิทธิ์การเชื่อมโยง (scalar)
     }
 
-    // Source term
-    b[cellI] = bSource[cellI];           // scalar source term
+    // เทอมแหล่งกำเนิด (Source term)
+    b[cellI] = bSource[cellI];           // เทอมแหล่งกำเนิด (scalar)
 }
 
-// Solve using specified solver identified by word
+// แก้สมการโดยใช้ solver ที่ระบุด้วย word
 word solverName = "GaussSeidel";
 solverPerformance solverPerf = solve(x, A, b, solverName);
 
-// Convergence check using scalar tolerance
+// การตรวจสอบการลู่เข้าโดยใช้ค่าความคลาดเคลื่อน (scalar tolerance)
 scalar tolerance = 1e-6;
 if (solverPerf.finalResidual() < tolerance)
 {
-    Info << "Solver converged: " << solverPerf << endl;
+    Info << "Solver ลู่เข้าแล้ว: " << solverPerf << endl;
 }
 ```
 
-> **📂 Source:** `.applications/utilities/surface/surfaceFeatures/surfaceFeatures.C`
+> **📂 แหล่งที่มา:** `.applications/utilities/surface/surfaceFeatures/surfaceFeatures.C`
 >
-> **คำอธิบาย (Thai Explanation):**
-> - **Source (แหล่งที่มา):** ไฟล์ utility แสดงการใช้ linear solver
-> - **Explanation (คำอธิบาย):** การรวมกันของ `label` (indexing), `scalar` (coefficients), และ `word` (solver names) ทำให้โค้ด solver ชัดเจนและปลอดภัย
+> **คำอธิบาย:**
+> - **Source (แหล่งที่มา):** ไฟล์ utility แสดงการใช้ตัวแก้สมการเชิงเส้น
+> - **Explanation (คำอธิบาย):** การรวมกันของ `label` (การทำดัชนี), `scalar` (สัมประสิทธิ์) และ `word` (ชื่อ solver) ทำให้โค้ดของ solver มีความชัดเจนและปลอดภัย
 > - **Key Concepts (แนวคิดสำคัญ):**
 >   - **Linear System Solution (การแก้ระบบเชิงเส้น):** แก้สมการ Ax = b
->   - **Matrix Assembly (การประกอบเมทริกซ์):** สร้าง matrix จาก discretization
->   - **Convergence Checking (การตรวจสอบการลู่เข้า):** ใช้ scalar tolerance
+>   - **Matrix Assembly (การประกอบเมทริกซ์):** สร้างเมทริกซ์จากการดิสครีต
+>   - **Convergence Checking (การตรวจสอบการลู่เข้า):** ใช้ความคลาดเคลื่อนในหน่วย scalar
 
-### Physical Property Models
+### แบบจำลองคุณสมบัติทางกายภาพ (Physical Property Models)
 
-Thermophysical properties use scalar for physical quantities:
+คุณสมบัติทางความร้อนฟิสิกส์ใช้ `scalar` สำหรับปริมาณทางกายภาพ:
 
 ```cpp
-// Perfect gas equation of state: p = ρRT
+// สมการสภาวะของก๊าซสมบูรณ์: p = ρRT
 class perfectGas
 {
-    scalar R_;                            // Specific gas constant (J/kg·K)
+    scalar R_;                            // ค่าคงที่ก๊าซจำเพาะ (J/kg·K)
 
 public:
-    // Density calculation
+    // การคำนวณความหนาแน่น
     scalar rho(scalar p, scalar T) const
     {
         return p / (R_ * T);              // ρ = p/(RT)
     }
 
-    // Pressure calculation
+    // การคำนวณความดัน
     scalar p(scalar rho, scalar T) const
     {
         return rho * R_ * T;              // p = ρRT
@@ -815,14 +815,14 @@ public:
 };
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/diameterModels/linearTsubDiameter/linearTsubDiameter.C`
+> **📂 แหล่งที่มา:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/diameterModels/linearTsubDiameter/linearTsubDiameter.C`
 >
-> **คำอธิบาย (Thai Explanation):**
-> - **Source (แหล่งที่มา):** ไฟล์ model แสดงการใช้ `scalar` ใน physical property calculations
-> - **Explanation (คำอธิบาย):** การใช้ `scalar` สำหรับ physical properties ช่วยให้ calculations ถูกต้องและสอดคล้องกับ precision settings
+> **คำอธิบาย:**
+> - **Source (แหล่งที่มา):** ไฟล์แบบจำลองแสดงการใช้ `scalar` ในการคำนวณคุณสมบัติทางกายภาพ
+> - **Explanation (คำอธิบาย):** การใช้ `scalar` สำหรับคุณสมบัติทางกายภาพช่วยให้การคำนวณถูกต้องและสอดคล้องกับการตั้งค่าความแม่นยำ
 > - **Key Concepts (แนวคิดสำคัญ):**
->   - **Thermodynamic Properties (สมบัติเทอร์โมไดนามิก):** ใช้ `scalar` สำหรับค่าทางกายภาพ
->   - **Equation of State (สมการสถานะ):** ใช้ `scalar` ในการคำนวณ
-   - **Dimensional Consistency (ความสอดคล้องด้านมิติ):** `scalar` ช่วยรักษามิติของสมการ
+>   - **Thermodynamic Properties (คุณสมบัติทางเทอร์โมไดนามิก):** ใช้ `scalar` สำหรับค่าทางกายภาพ
+>   - **Equation of State (สมการสภาวะ):** ใช้ `scalar` ในการคำนวณความสัมพันธ์ของตัวแปร
+   - **Dimensional Consistency (ความสอดคล้องทางมิติ):** `scalar` ช่วยรักษามิติที่ถูกต้องของสมการ
 
-This integration of fundamental CFD equations with OpenFOAM's basic primitive types demonstrates how the mathematical foundations of fluid dynamics are implemented directly in the codebase through careful use of `label`, `scalar`, and `word` types.
+การบูรณาการสมการ CFD พื้นฐานเข้ากับประเภทข้อมูลพื้นฐานของ OpenFOAM นี้แสดงให้เห็นว่ารากฐานทางคณิตศาสตร์ของพลศาสตร์ของไหลถูกนำมาปรับใช้ในโค้ดโดยตรงผ่านการใช้งานประเภท `label`, `scalar` และ `word` อย่างรอบคอบ

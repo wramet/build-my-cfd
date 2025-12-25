@@ -84,82 +84,195 @@ $$S(N) = N - \alpha(N-1)$$
 ### การตั้งค่า decomposeParDict
 
 ```cpp
-// decomposeParDict - Advanced domain decomposition configuration
-// NOTE: Synthesized by AI - Verify parameters
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  10                                    |
+|   \\  /    A nd           | Website:  https://openfoam.org                  |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+// Decomposition control dictionary - Domain decomposition configuration
 FoamFile
 {
     version     2.0;
     format      ascii;
     class       dictionary;
+    note        "mesh decomposition control dictionary";
     object      decomposeParDict;
 }
 
-// จำนวนโดเมนย่อย (ต้องเท่ากับจำนวน MPI processes)
+// Number of subdomains (must equal number of MPI processes)
 numberOfSubdomains  8;
 
-// วิธีการย่อย: "simple", "hierarchical", "scotch", "manual"
-method              scotch;
+//- Keep owner and neighbour on same processor for faces in zones:
+// preserveFaceZones (heater solid1 solid3);
 
-// พารามิเตอร์สำหรับวิธี Simple
+//- Keep owner and neighbour on same processor for faces in patches:
+//  (makes sense only for cyclic patches)
+// preservePatches (cyclic_half0 cyclic_half1);
+
+//- Keep all of faceSet on a single processor. This puts all cells
+//  connected with a point, edge or face on the same processor.
+//  (just having face connected cells might not guarantee a balanced
+//   decomposition)
+// The processor can be -1 (the decompositionMethod chooses the processor
+// for a good load balance) or explicitly provided (upsets balance).
+// singleProcessorFaceSets ((f0 -1));
+
+//- Use the volScalarField named here as a weight for each cell in the
+//  decomposition. For example, use a particle population field to decompose
+// for a balanced number of particles in a lagrangian simulation.
+// weightField dsmcRhoNMean;
+
+// Decomposition method: "simple", "hierarchical", "scotch", "manual"
+method          scotch;
+// method          hierarchical;
+// method          simple;
+// method          metis;
+// method          manual;
+// method          multiLevel;
+// method          structured;  // does 2D decomposition of structured mesh
+
+// Simple decomposition coefficients
 simpleCoeffs
 {
-    n               (4 2 1);  // แบ่ง 4 ใน x, 2 ใน y, 1 ใน z
-    delta           0.001;    // Cell expansion ratio
+    // Number of divisions in (x y z) directions
+    n               (4 2 1);  // 4 in x, 2 in y, 1 in z
+    delta           0.001;    // Cell expansion ratio for skew correction
 }
 
-// พารามิเตอร์สำหรับวิธี Hierarchical
+// Hierarchical decomposition coefficients
 hierarchicalCoeffs
 {
-    n               (4 2 1);  // (x y z) การแบ่งในแต่ละระดับ
-    hierarchical    true;
-    levels          // ระดับชั้นของการแบ่ง
-    (
-        (x y z)     // ระดับที่ 1: แบ่งตาม x, y, z
-        (y z)       // ระดับที่ 2: แบ่งตาม y, z
-    );
+    n               (4 2 1);  // (x y z) divisions at each level
+    order       xyz;          // Order of hierarchical decomposition
+    
+    // Alternative: multiLevelCoeffs for full general decomposition
+    /*
+    multiLevelCoeffs
+    {
+        // Decomposition methods to apply in turn. This is like hierarchical 
+        // but fully general - every method can be used at every level.
+
+        level0
+        {
+            numberOfSubdomains  64;
+            method scotch;
+        }
+        level1
+        {
+            numberOfSubdomains  4;
+            method scotch;
+        }
+    }
+    */
 }
 
-// พารามิเตอร์สำหรับวิธี Scotch
-scotchCoeffs
+// METIS decomposition coefficients (alternative graph-based method)
+metisCoeffs
 {
-    // น้ำหนักโปรเซสเซอร์สำหรับ Load balancing (กรณีเครื่องมีความเร็วต่างกัน)
+    // Processor weights for load balancing (heterogeneous hardware)
     processorWeights
     (
         1.0     // Processor 0
         1.0     // Processor 1
-        1.2     // Processor 2 (เร็วกว่า 20%)
-        0.8     // Processor 3 (ช้ากว่า 20%)
-        // ...
+        1.2     // Processor 2 (20% faster)
+        0.8     // Processor 3 (20% slower)
+        // ... continue for all processors
     );
-
-    strategy        "default";  // "default", "quality", "speed", "balance"
-    imbalanceTolerance  0.05;   // ยอมรับความไม่สมดุลได้ 5%
 }
 
-// พารามิเตอร์สำหรับวิธี Manual
+// Scotch decomposition coefficients (recommended for complex geometries)
+scotchCoeffs
+{
+    // Processor weights for heterogeneous clusters
+    /*
+    processorWeights
+    (
+        1.0     // Processor 0
+        1.0     // Processor 1
+        1.2     // Processor 2 (faster by 20%)
+        0.8     // Processor 3 (slower by 20%)
+    );
+    */
+    
+    // Strategy options: "default" (b), "quality", "speed", "balance"
+    strategy        "default";  // Default balance strategy
+    
+    // Tolerance for load imbalance (5% means 95% balance acceptable)
+    // imbalanceTolerance  0.05;
+    
+    // Write decomposition graph for debugging
+    // writeGraph  true;
+}
+
+// Manual decomposition coefficients
 manualCoeffs
 {
-    dataFile        "cellDecomposition";  // ไฟล์ระบุโดเมนสำหรับแต่ละเซลล์
+    // File containing cell-to-processor mapping (one label per cell)
+    dataFile    "decompositionData";
 }
 
-// ข้อมูลเพิ่มเติมสำหรับการแบ่ง
-singleProcessFace  off;  // ใบหน้าที่อยู่บน Interface ทั้งสองโดเมน
-preserveFaceZones  on;   // รักษา Face Zones หลังการแบ่ง
+// Structured decomposition coefficients (for 2D decomposition)
+structuredCoeffs
+{
+    // Patches to do 2D decomposition on. Structured mesh only; cells have
+    // to be in 'columns' on top of patches.
+    patches     (movingWall);
+
+    // Method to use on the 2D subset
+    method      scotch;
+}
+
+//- Is the case distributed? Note: command-line argument -roots takes precedence
+// distributed     yes;
+//- Per slave (so nProcs-1 entries) the directory above the case.
+// roots
+// (
+//     "/tmp"
+//     "/tmp"
+// );
+
+// ************************************************************************* //
 ```
+
+> **📂 Source:** `.applications/test/patchRegion/cavity_pinched/system/decomposeParDict`
+> 
+> **📖 คำอธิบาย (Explanation):**
+> 
+> ไฟล์ `decomposeParDict` นี้เป็นไฟล์คอนฟิกูเรชันหลักที่ควบคุมการแบ่งโดเมน (Domain Decomposition) สำหรับการประมวลผลแบบขนานใน OpenFOAM ไฟล์นี้อยู่ภายใต้ `system/` ซึ่งเป็นไดเรกทอรี่สำหรับเก็บการตั้งค่าต่างๆ ที่เกี่ยวข้องกับการแก้สมการ (Solver settings)
+> 
+> **🔑 หลักการสำคัญ (Key Concepts):**
+> 
+> - **`numberOfSubdomains`**: กำหนดจำนวนโดเมนย่อยที่ต้องการแบ่ง ซึ่งควรมีค่าเท่ากับจำนวน MPI processes ที่จะใช้ในการรัน
+> 
+> - **`method`**: เลือกวิธีการแบ่งโดเมน โดยแต่ละวิธีมีข้อดี-ข้อเสียที่แตกต่างกัน:
+>   - **`simple`**: แบ่งตามแกน X, Y, Z ตรงๆ เหมาะกับเรขาคณิตสี่เหลี่ยม (Rectangular geometry)
+>   - **`hierarchical`**: แบ่งเป็นลำดับชั้น (Levels) ช่วยให้ควบคุมการแบ่งในแต่ละทิศทางได้ละเอียดขึ้น
+>   - **`scotch`**: ใช้กราฟเพื่อหา partitioning ที่มี load balancing ดีที่สุด เหมาะกับเรขาคณิตซับซ้อน (Complex geometry)
+>   - **`manual`**: ผู้ใช้ระบุเองว่าแต่ละเซลล์ควรอยู่ที่ processor ใด
+> 
+> - **`scotchCoeffs`** และ **`metisCoeffs`**: พารามิเตอร์สำหรับวิธีกราฟ-based (Scotch/METIS):
+>   - **`processorWeights`**: ใช้กำหนดน้ำหนักโปรเซสเซอร์กรณีที่ฮาร์ดแวร์ไม่สมดุล (เช่น บางตัวเร็วกว่า)
+>   - **`strategy`**: เลือกกลยุทธ์การแบ่ง เช่น "quality" (เน้นคุณภาพ), "speed" (เน้นความเร็ว), "balance" (เน้นการกระจายภาระ)
+> 
+> - **`preserveFaceZones`** และ **`preservePatches`**: บังคับให้ faces ใน zones/patches ที่ระบุอยู่บน processor เดียวกัน ซึ่งมีประโยชน์สำหรับ cyclic patches หรือ boundary conditions พิเศษ
+> 
+> - **`weightField`**: ใช้ field ที่กำหนด (เช่น ความหนาแน่นของ particle ใน Lagrangian simulation) เป็นน้ำหนักในการแบ่งเพื่อให้ load balancing ดีขึ้น
 
 ### การเรียกใช้งาน (Execution Commands)
 
 ```bash
-# ย่อยโดเมน (Decompose case)
+# Decompose case (split domain for parallel processing)
 decomposePar
 
-# ย่อยโดเมนและบังคับเขียนทับ (Force overwrite)
+# Force overwrite existing processor directories
 decomposePar -force
 
-# รวมโดเมน (Reconstruct case)
+# Reconstruct case (merge processor directories back to single domain)
 reconstructPar
 
-# รวมโดเมนเฉพาะบางเวลา (Reconstruct specific times)
+# Reconstruct specific time directories only
 reconstructPar -latestTime
 reconstructPar -time '0, 100, 200'
 ```
@@ -205,7 +318,7 @@ import os
 import re
 
 def parse_execution_time(log_file):
-    """ดึง ExecutionTime จาก Log file"""
+    """Extract ExecutionTime from OpenFOAM log file"""
     with open(log_file, 'r') as f:
         content = f.read()
         match = re.search(r'ExecutionTime = (\d+\.\d+) s', content)
@@ -214,7 +327,7 @@ def parse_execution_time(log_file):
     return None
 
 def calculate_load_balance(log_dir, n_processors):
-    """คำนวณ Load balance efficiency"""
+    """Calculate load balance efficiency from processor logs"""
     times = []
     for i in range(n_processors):
         log_file = os.path.join(log_dir, f'log.solver.{i}')
@@ -229,7 +342,7 @@ def calculate_load_balance(log_dir, n_processors):
         return eta_lb, times
     return None, None
 
-# ตัวอย่างการใช้งาน
+# Example usage
 # eta, times = calculate_load_balance('./logs', 8)
 # print(f"Load Balance Efficiency: {eta:.4f}")
 # print(f"Times: {times}")
@@ -247,17 +360,17 @@ import numpy as np
 
 def calculate_optimal_weights(processor_speeds: np.ndarray) -> np.ndarray:
     """
-    คำนวณน้ำหนักโปรเซสเซอร์จากความเร็ว (Clock speed/Benchmarks)
+    Calculate optimal processor weights from relative speeds
 
     Parameters:
     -----------
     processor_speeds : np.ndarray
-        ความเร็วของแต่ละโปรเซสเซอร์ (เช่น GHz, GFLOPS)
+        Speed of each processor (e.g., GHz, GFLOPS)
 
     Returns:
     --------
     np.ndarray
-        น้ำหนักที่คำนวณได้ (weights)
+        Normalized weights for decomposeParDict
     """
     avg_speed = np.mean(processor_speeds)
     weights = processor_speeds / avg_speed
@@ -265,23 +378,29 @@ def calculate_optimal_weights(processor_speeds: np.ndarray) -> np.ndarray:
 
 def generate_decompose_dict(weights, filename='system/decomposeParDict'):
     """
-    สร้างไฟล์ decomposeParDict พร้อม processorWeights
+    Generate decomposeParDict with processorWeights
 
     Parameters:
     -----------
     weights : np.ndarray
-        น้ำหนักโปรเซสเซอร์
+        Processor weights from benchmarking
     filename : str
-        ชื่อไฟล์ที่ต้องการบันทึก
+        Output file path
     """
     weights_str = '\n        '.join([f'{w:.2f}' for w in weights])
 
-    dict_content = f"""// NOTE: Synthesized by AI - Verify parameters
+    dict_content = f"""/*--------------------------------*- C++ -*----------------------------------*\\
+| =========                 |                                                 |
+| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\\\    /   O peration     | Version:  10                                    |
+|   \\\\  /    A nd           | Website:  https://openfoam.org                  |
+|    \\\\/     M anipulation  |                                                 |
+\\*---------------------------------------------------------------------------*/
 FoamFile
 {{
-    version     2.0;
     format      ascii;
     class       dictionary;
+    note        "mesh decomposition control dictionary";
     object      decomposeParDict;
 }}
 
@@ -299,7 +418,7 @@ scotchCoeffs
     with open(filename, 'w') as f:
         f.write(dict_content)
 
-# ตัวอย่างการใช้งาน
+# Example usage
 # speeds = np.array([2.4, 2.4, 2.4, 2.4, 3.0, 3.0, 2.0, 2.0])  # GHz
 # weights = calculate_optimal_weights(speeds)
 # generate_decompose_dict(weights)
@@ -325,7 +444,7 @@ $$E = \frac{S}{N} = \frac{T_1}{N \cdot T_N}$$
 
 โดยที่:
 - $T_1$ = เวลาการคำนวณแบบ Serial
-- $T_N$ = เวลาการคำนวณแบบขนานด้วย $N$ processors
+- $T_N$ = เวลาการคำนาณแบบขนานด้วย $N$ processors
 - $N$ = จำนวนโปรเซสเซอร์ทั้งหมด
 
 ค่าที่ดี:
@@ -367,21 +486,21 @@ import matplotlib.pyplot as plt
 
 def analyze_scaling(serial_time, parallel_times, n_processors):
     """
-    วิเคราะห์ Parallel scaling
+    Analyze parallel scaling performance
 
     Parameters:
     -----------
     serial_time : float
-        เวลาการคำนวณแบบ Serial
+        Serial execution time (T1)
     parallel_times : list
-        เวลาการคำนวณแบบ Parallel สำหรับแต่ละจำนวนโปรเซสเซอร์
+        Parallel execution times for each processor count
     n_processors : list
-        จำนวนโปรเซสเซอร์ที่ใช้
+        Number of processors used for each run
 
     Returns:
     --------
     dict
-        ผลการวิเคราะห์ Speedup และ Efficiency
+        Dictionary containing speedup and efficiency analysis
     """
     results = {
         'n_processors': n_processors,
@@ -395,7 +514,7 @@ def analyze_scaling(serial_time, parallel_times, n_processors):
     return results
 
 def plot_scaling(results):
-    """พล็อตกราฟ Scaling"""
+    """Plot scaling analysis graphs"""
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
     # Speedup plot
@@ -424,8 +543,8 @@ def plot_scaling(results):
     plt.savefig('scaling_analysis.png', dpi=300)
     plt.show()
 
-# ตัวอย่างการใช้งาน
-# serial_time = 1200  # วินาที
+# Example usage
+# serial_time = 1200  # seconds
 # parallel_times = [1200, 650, 350, 200, 130, 100, 85, 75]
 # n_procs = [1, 2, 4, 8, 16, 32, 64, 128]
 # results = analyze_scaling(serial_time, parallel_times, n_procs)
@@ -444,16 +563,16 @@ from datetime import datetime
 
 def monitor_parallel_run(pids, output_file='monitoring.json', interval=5):
     """
-    ตรวจสอบการใช้ CPU และ Memory ของ MPI processes
+    Monitor CPU and memory usage of MPI processes in real-time
 
     Parameters:
     -----------
     pids : list
-        รายการ Process IDs ที่ต้องการติดตาม
+        List of Process IDs to monitor
     output_file : str
-        ชื่อไฟล์ที่บันทึกข้อมูล
+        JSON file to save monitoring data
     interval : float
-        ระยะห่างระหว่างการตรวจสอบ (วินาที)
+        Sampling interval in seconds
     """
     data = []
 
@@ -486,13 +605,13 @@ def monitor_parallel_run(pids, output_file='monitoring.json', interval=5):
     except KeyboardInterrupt:
         print("\nMonitoring stopped by user")
 
-        # บันทึกข้อมูล
+        # Save data to JSON
         with open(output_file, 'w') as f:
             json.dump(data, f, indent=2)
         print(f"Data saved to {output_file}")
 
 def get_mpi_pids():
-    """ค้นหา PIDs ของ MPI processes ที่กำลังรันอยู่"""
+    """Find PIDs of running MPI solver processes"""
     pids = []
     for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
         try:
@@ -503,7 +622,7 @@ def get_mpi_pids():
             pass
     return pids
 
-# ตัวอย่างการใช้งาน
+# Example usage
 # pids = get_mpi_pids()
 # print(f"Found {len(pids)} MPI processes")
 # monitor_parallel_run(pids, interval=5)
@@ -517,20 +636,20 @@ def get_mpi_pids():
 จาก Log files สามารถดูข้อมูลการสื่อสารระหว่างโปรเซสเซอร์ได้:
 
 ```cpp
-// ใน controlDict เพิ่มการติดตาม Profiling
-// NOTE: Synthesized by AI - Verify parameters
+// Add profiling settings in controlDict
+// Enable detailed parallel communication debugging
 DebugSwitches
 {
-    // แสดงข้อมูลการสื่อสาร
-    Pstream        1;
-    PstreamBuffers 1;
+    // Display detailed communication information
+    Pstream        1;      // Enable parallel stream debugging
+    PstreamBuffers 1;      // Enable buffer debugging
 }
 
 OptimisationSwitches
 {
-    // ปรับปรุงประสิทธิภาพการสื่อสาร
-    // 0 = ไม่ใช้, 1 = ใช้
-    commsType      1;  // nonBlocking
+    // Communication type optimization
+    // 0 = blocking, 1 = non-blocking (recommended)
+    commsType      1;      // Use non-blocking communication
 }
 ```
 
@@ -555,36 +674,54 @@ $$\text{CCR} = \frac{T_{\text{comm}}}{T_{\text{comp}}}$$
 #### การตั้งค่า fvSolution
 
 ```cpp
-// system/fvSolution - Solver settings
-// NOTE: Synthesized by AI - Verify parameters
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Website:  https://openfoam.org                  |
+|   \\  /    A nd           | Version:  10                                    |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+
+// Solver settings for linear equation systems
 solvers
 {
+    // Pressure solver - uses Geometric-Algebraic Multi-Grid
     p
     {
-        solver          GAMG;  // Geometric-Algebraic Multi-Grid
+        // GAMG is highly efficient for large parallel systems
+        solver          GAMG;  
 
-        // การควบคุมการลู่เข้า
-        tolerance       1e-06;
-        relTol          0.01;   // Relative tolerance (1%)
+        // Convergence control
+        tolerance       1e-06;     // Absolute tolerance
+        relTol          0.01;      // Relative tolerance (1%)
 
-        // ตั้งค่า Multigrid
-        smoother        GaussSeidel;
-        cacheAgglomeration on;
-        agglomerator    faceAreaPair;
-        nCellsInCoarsestLevel 10;
+        // Multigrid settings
+        smoother        GaussSeidel;      // Smoother algorithm
+        cacheAgglomeration on;            // Cache agglomeration for speed
+        agglomerator    faceAreaPair;     // Agglomeration method
+        nCellsInCoarsestLevel 10;         // Min cells in coarsest level
 
-        // การปรับแต่งเพิ่มเติม
-        mergeLevels     1;      // ระดับการรวมโหนด
-        maxCoarseIters  5;      // จำนวนรอบสูงสุดใน coarse level
+        // Additional tuning parameters
+        mergeLevels     1;                // Number of levels to merge
+        maxCoarseIters  5;                // Max iterations in coarse levels
     }
 
+    // Final pressure solver (used in last PIMPLE/PISO iteration)
     pFinal
     {
-        $p;  // สืบทอดจาก p
-        relTol          0;      // ไม่ใช้ relative tolerance สำหรับ step สุดท้าย
+        $p;                       // Inherit settings from p
+        relTol          0;        // Disable relative tolerance for final step
         tolerance       1e-06;
     }
 
+    // Velocity solver
     U
     {
         solver          smoothSolver;
@@ -593,11 +730,12 @@ solvers
         tolerance       1e-05;
         relTol          0.1;
 
-        // การปรับแต่งเพิ่มเติม
-        nSweeps         1;      // จำนวนครั้งการ smooth ต่อรอบ
+        // Number of smoothing sweeps per iteration
+        nSweeps         1;
     }
 
-    "(k|epsilon|omega)"  // ใช้ regular expression
+    // Turbulence solvers (using regular expression)
+    "(k|epsilon|omega|nuTilda)"
     {
         solver          smoothSolver;
         smoother        GaussSeidel;
@@ -607,26 +745,28 @@ solvers
     }
 }
 
-// การควบคุมการลู่เข้า (Convergence control)
+// SIMPLE algorithm settings (steady-state)
 SIMPLE
 {
+    // Number of non-orthogonal correctors
     nNonOrthogonalCorrectors 0;
 
-    // การผ่อนปรน (Relaxation)
-    p               0.3;
-    U               0.7;
-    k               0.7;
-    epsilon         0.7;
+    // Under-relaxation factors (prevent divergence)
+    p               0.3;    // Pressure relaxation
+    U               0.7;    // Velocity relaxation
+    k               0.7;    // Turbulent kinetic energy
+    epsilon         0.7;    // Dissipation rate
 }
 
+// PIMPLE algorithm settings (transient)
 PIMPLE
 {
-    // PISO + PIMPLE สำหรับ transient
-    nCorrectors     2;
-    nNonOrthogonalCorrectors 0;
+    // PISO + PIMPLE for transient simulations
+    nCorrectors     2;                   // Number of correctors
+    nNonOrthogonalCorrectors 0;          // Non-orthogonal correctors
 
-    nAlphaCorr      1;
-    nAlphaSubCycles 2;
+    nAlphaCorr      1;                   // Interface correction iterations
+    nAlphaSubCycles 2;                   // Sub-cycles for interface
 
     // Relaxation factors
     p               0.3;
@@ -635,14 +775,48 @@ PIMPLE
     epsilon         0.7;
 }
 
-// การควบคุม Residuals
+// Residual control for stopping criteria
 residualControl
 {
     p               1e-4;
     U               1e-4;
     "(k|epsilon)"   1e-4;
 }
+
+// ************************************************************************* //
 ```
+
+> **📂 Source:** `.applications/test/patchRegion/cavity_pinched/system/fvSolution`
+> 
+> **📖 คำอธิบาย (Explanation):**
+> 
+> ไฟล์ `fvSolution` ควบคุมการตั้งค่าของ Linear Solvers และ Algorithms ที่ใช้ในการแก้สมการใน OpenFOAM ไฟล์นี้มีผลกระทบโดยตรงต่อความเร็วและความเสถียรของการคำนวณ โดยเฉพาะในระบบขนาน
+> 
+> **🔑 หลักการสำคัญ (Key Concepts):**
+> 
+> - **`GAMG Solver`**: Geometric-Algebraic Multi-Grid solver มีประสิทธิภาพสูงมากสำหรับการแก้สมการความดัน (Poisson equation) ในระบบขนาน เนื่องจากช่วยลดจำนวนรอบการวนซ้ำ (Iterations) ลงได้อย่างมากเมื่อเทียบกับ solvers ธรรมดา เช่น `PCG` หรือ `smoothSolver`
+> 
+> - **`smoother`**: อัลกอริทึมที่ใช้ทำ smoothing ในแต่ละระดับของ Multigrid:
+>   - `GaussSeidel`: เสถียร แต่ช้ากว่า
+>   - `symGaussSeidel`: สมมาตร ดีกว่าสำหรับบางกรณี
+> 
+> - **`tolerance` vs `relTol`**:
+>   - **`tolerance`**: ค่า absolute tolerance (เช่น 1e-06) เป็นค่าที่ residual ต้องน้อยกว่าเพื่อให้ถือว่า converge
+>   - **`relTol`**: Relative tolerance (0-1) คือสัดส่วนของการลดลงของ residual เมื่อเทียบกับค่าเริ่มต้นของรอบนั้นๆ
+> 
+> - **`nCorrectors`** (ใน PIMPLE): จำนวนรอบที่จะแก้ pressure-velocity coupling ในแต่ละ time step:
+>   - มากขึ้น = แม่นยำขึ้น แต่ช้าลง
+>   - น้อยเกินไป = อาจไม่ converge
+> 
+> - **`nNonOrthogonalCorrectors`**: จำนวนรอบที่จะแก้ปัญหา non-orthogonality ของเมช:
+>   - สำหรับเมชที่ non-orthogonal สูง ควรเพิ่มค่านี้ (เช่น 2-4)
+>   - สำหรับเมชที่ดี ใช้ 0 เพื่อประหยัดเวลา
+> 
+> - **`relaxation factors`**: Under-relaxation factors ใน SIMPLE/PIMPLE:
+>   - ค่าน้อยกว่า 1.0 ช่วยป้องกันการ diverge ในช่วงแรก
+>   - ค่ามากขึ้น (ใกล้ 1.0) ทำให้ converge เร็วขึ้น แต่เสี่ยงต่อการ diverge
+> 
+> - **`residualControl`**: กำหนดเกณฑ์การหยุดการทำงาน (Stopping criteria) สำหรับ steady-state simulations เมื่อ residuals ต่ำกว่าค่าที่กำหนด
 
 > [!INFO] **GAMG Solver**
 > อัลกอริทึม Geometric-Algebraic Multi-Grid (GAMG) มีประสิทธิภาพสูงมากสำหรับการแก้สมการความดันในระบบขนาน เนื่องจากช่วยลดจำนวนรอบการวนซ้ำ (Iterations) ลงได้มาก
@@ -650,56 +824,124 @@ residualControl
 #### การตั้งค่า fvSchemes
 
 ```cpp
-// system/fvSchemes - Numerical schemes
-// NOTE: Synthesized by AI - Verify parameters
-ddtSchemes
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Website:  https://openfoam.org                  |
+|   \\  /    A nd           | Version:  10                                    |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
 {
-    // Transient schemes
-    default         Euler;          // 1st order
-    // default         backward;       // 2nd order
-    // default         CrankNicolson;  // 2nd order, A-stable
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSchemes;
 }
 
+// Temporal discretization schemes
+ddtSchemes
+{
+    // Transient time integration schemes
+    default         Euler;          // 1st order, stable, fast
+    // default         backward;       // 2nd order, more accurate
+    // default         CrankNicolson;  // 2nd order, A-stable, requires smaller dt
+}
+
+// Gradient calculation schemes
 gradSchemes
 {
-    // Gradient schemes
-    default         Gauss linear;
+    // Gradient reconstruction schemes
+    default         Gauss linear;   // Linear interpolation (2nd order)
 
-    // สำหรับฟิลด์ที่มีการเปลี่ยนแปลงรุนแรง
+    // Explicit gradient specification for key fields
     grad(p)         Gauss linear;
     grad(U)         Gauss linear;
 }
 
+// Divergence (convection-diffusion) schemes
 divSchemes
 {
-    // Divergence schemes
-    // การพาณิชย์ (Convection)
-    div(phi,U)      Gauss upwind;         // 1st order
-    // div(phi,U)      Gauss linearUpwindV; // 2nd order
-    // div(phi,U)      Gauss QUICK;         // 3rd order
+    // Convection schemes (order vs stability trade-off)
+    
+    // 1st order - very stable, numerical diffusion
+    div(phi,U)      Gauss upwind;         
+    
+    // 2nd order - more accurate, may require smaller time steps
+    // div(phi,U)      Gauss linearUpwindV grad(U);
+    
+    // 3rd order - high accuracy, potentially unstable
+    // div(phi,U)      Gauss QUICK;         
 
-    // การแพร่ (Diffusion)
+    // Diffusion schemes
     div((nuEff*dev2(T(grad(U))))) Gauss linear;
+    
+    // Other fields
+    div(phi,k)      Gauss upwind;
+    div(phi,epsilon) Gauss upwind;
 }
 
+// Laplacian diffusion schemes
 laplacianSchemes
 {
-    // Laplacian schemes
+    // Laplacian schemes with non-orthogonal correction
     default         Gauss linear corrected;
+    
+    // Alternative: limited schemes for stability
+    // laplacian(nuEff,U) Gauss linear limited 0.5;
 }
 
+// Interpolation schemes (face to point)
 interpolationSchemes
 {
-    // Interpolation schemes
-    default         linear;
+    // Interpolation from cells to faces
+    default         linear;        // Linear interpolation (2nd order)
 }
 
+// Surface normal gradient schemes
 snGradSchemes
 {
-    // Surface normal gradient schemes
-    default         corrected;
+    // Surface normal gradient calculation
+    default         corrected;     // Include non-orthogonal correction
 }
+
+// ************************************************************************* //
 ```
+
+> **📂 Source:** `.applications/test/patchRegion/cavity_pinched/system/fvSchemes` (Typical structure)
+> 
+> **📖 คำอธิบาย (Explanation):**
+> 
+> ไฟล์ `fvSchemes` กำหนดรูปแบบการ discretization ของสมการ differential ที่ใช้ใน OpenFOAM การเลือก schemes ที่เหมาะสมมีผลต่อทั้งความแม่นยำ ความเสถียร และความเร็วในการคำนวณ
+> 
+> **🔑 หลักการสำคัญ (Key Concepts):**
+> 
+> - **Temporal Schemes (`ddtSchemes`)**: วิธีการ discretize อนุพันธ์เชิงเวลา:
+>   - **`Euler`**: 1st order,  implicit, เสถียรมาก แต่มี numerical diffusion สูง เหมาะสำหรับการทดสอบหรือเคสที่ไม่ต้องการความแม่นยำสูง
+>   - **`backward`**: 2nd order, implicit, แม่นยำกว่า Euler แต่ต้องการเวลาคำนวณมากขึ้น
+>   - **`CrankNicolson`**: 2nd order, A-stable, แม่นยำมาก แต่อาจไม่เสถียรถ้า time step ใหญ่เกินไป
+> 
+> - **Gradient Schemes (`gradSchemes`)**: วิธีการคำนวณ gradient ที่ใบหน้า (faces):
+>   - **`Gauss linear`**: ใช้ทอย่างกว้างขวาง ให้ผลลัพธ์ 2nd order เมื่อเมช orthogonal
+>   - **`Gauss leastSquares`**: แม่นยำกว่าสำหรับเมชที่ไม่ดี แต่แพงกว่าในแง่การคำนวณ
+> 
+> - **Divergence Schemes (`divSchemes`)**: วิธีการ discretize พจน์ convection:
+>   - **`upwind`**: 1st order, เสถียรที่สุด แต่มี numerical diffusion สูง (ทำให้ผลลัพธ์ "blurry")
+>   - **`linearUpwindV`**: 2nd order, แม่นยำกว่า แต่อาจต้องลด time step
+>   - **`QUICK`**: 3rd order, แม่นยำมาก แต่เสี่ยงต่อการ oscillate หาก gradient สูง
+>   - เคล็ดลับ: เริ่มจาก `upwind` ให้ converge ก่อน จากนั้นจึงเปลี่ยนเป็น `linearUpwindV` หรือ `QUICK`
+> 
+> - **Laplacian Schemes (`laplacianSchemes`)**: วิธีการ discretize พจน์ diffusion:
+>   - **`Gauss linear corrected`**: รวม corrected term สำหรับ non-orthogonal meshes (แนะนำให้ใช้นี้เสมอ)
+>   - **`limited`**: ใช้ limiter เพื่อป้องกัน unbounded values
+> 
+> - **Interpolation Schemes (`interpolationSchemes`)**: วิธีการ interpolate ค่าจาก cell centers ไปยัง face centers:
+>   - **`linear`**: Linear interpolation (2nd order) เป็นค่า default ที่ดี
+>   - **`cubic`**: 4th order (ใช้ได้เฉพาะบน structured meshes)
+> 
+> - **Surface Normal Gradient Schemes (`snGradSchemes`)**: วิธีการคำนวณ gradient ในทิศทางปกติของ inface:
+>   - **`corrected`**: รวม corrected term (แนะนำให้ใช้)
+>   - **`uncorrected`**: เร็วกว่า แต่แม่นยำน้อยกว่าบนเมชที่ non-orthogonal
 
 ### การจัดการหน่วยความจำและ I/O
 
@@ -708,46 +950,96 @@ snGradSchemes
 #### การตั้งค่าใน controlDict
 
 ```cpp
-// system/controlDict
-// NOTE: Synthesized by AI - Verify parameters
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Website:  https://openfoam.org                  |
+|   \\  /    A nd           | Version:  10                                    |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+
+// Solver application
 application     interFoam;
 
-startFrom       latestTime;
+// Start time control
+startFrom       latestTime;  // Options: startTime, firstTime, latestTime
 
 startTime       0;
 
-stopAt          endTime;
+// Stop time control
+stopAt          endTime;     // Options: endTime, writeNow, nextWrite, noWriteNow
 
 endTime         10;
 
+// Time step control
 deltaT          0.001;
 
-// การควบคุมการเขียนข้อมูล
-writeControl    timeStep;
-writeInterval   100;
+// Write control - when to output results
+writeControl    timeStep;    // Options: timeStep, runTime, adjustableRunTime, cpuTime
+writeInterval   100;         // Write every 100 time steps
 
-// การบีบอัดไฟล์ (Compression)
-writeCompression on;   // ลดขนาดไฟล์ 50-80%
-writeFormat      binary;
-writePrecision   6;
+// File format and compression
+writeFormat      binary;     // Options: ascii, binary
+writePrecision   6;          // Number of decimal places
+writeCompression on;         // Compress output files (reduces size by 50-80%)
 
-// การบีบอัดฟิลด์ในหน่วยความจำ (Compressed Storage)
-// เปิดใช้ใน OptimisationSwitches
+// Parallel execution options
 OptimisationSwitches
 {
-    // 0 = off, 1 = on
-    commsType        1;  // nonBlocking
+    // Communication type: 0=blocking, 1=non-blocking (recommended for clusters)
+    commsType        1;      // non-blocking communication
+    
+    // File modification skew for distributed file systems
     fileModificationSkew 10;
-
-    // การบีบอัดข้อมูล
-    // 0 = ไม่บีบอัด, 1 = บีบอัด
-    // (ลดการใช้ Memory แต่อาจทำให้ช้าลง)
+    
+    // Additional optimization flags can be added here
 }
 
-// การปรับแต่งการทำงานแบบ Parallel
-// ใช้ Thread parallelism ร่วมกับ MPI
-threads         4;  // 4 threads per MPI process
+// Thread parallelism (hybrid MPI+OpenMP)
+// Set to > 0 to enable OpenMP threads per MPI process
+threads         4;  // 4 threads per MPI process (hybrid parallelization)
+
+// ************************************************************************* //
 ```
+
+> **📂 Source:** Typical OpenFOAM `system/controlDict` structure
+> 
+> **📖 คำอธิบาย (Explanation):**
+> 
+> ไฟล์ `controlDict` ควบคุมการทำงานของ solver โดยรวม รวมถึงการควบคุมเวลา (Time control), การเขียนผลลัพธ์ (Output control), และการตั้งค่าการประมวลผลแบบขนาน
+> 
+> **🔑 หลักการสำคัญ (Key Concepts):**
+> 
+> - **`writeControl`** และ **`writeInterval`**: ควบคุมความถี่ในการเขียนผลลัพธ์:
+>   - **`timeStep`**: เขียนทุก N time steps (เช่น 100)
+>   - **`runTime`**: เขียนทุก N วินาทีของเวลาจำลอง (เช่น 0.5)
+>   - **`adjustableRunTime`**: ปรับค่าให้ตรงกับเวลาที่ระบุ (เช่น 0.5, 1.0, 1.5, ...)
+>   - **`cpuTime`**: เขียนทุก N วินาทีของเวลา CPU
+> 
+> - **`writeCompression`**: บีบอัดไฟล์ output:
+>   - **`on`**: บีบอัดข้อมูล (ลดขนาด 50-80%) แต่ใช้เวลาในการเขียนมากขึ้นเล็กน้อย
+>   - **`off`**: ไม่บีบอัด (เขียนเร็วกว่า แต่ใช้พื้นที่มากกว่า)
+> 
+> - **`writeFormat`**: รูปแบบไฟล์:
+>   - **`binary`**: ไฟล์เล็กกว่า อ่าน/เขียนเร็วกว่า (แนะนำสำหรับ production runs)
+>   - **`ascii`**: ไฟล์ใหญ่กว่า แต่สามารถอ่านด้วย text editor ได้ (เหมาะสำหรับ debugging)
+> 
+> - **`OptimisationSwitches`**:
+>   - **`commsType`**: ประเภทการสื่อสารระหว่างโปรเซสเซอร์
+>     - `0` = Blocking (รอให้ส่งข้อมูลเสร็จก่อนค่อยทำต่อ)
+>     - `1` = Non-blocking (ส่งข้อมูลแล้วทำงานอื่นต่อไปพร้อมกัน - แนะนำสำหรับ clusters)
+>   - **`fileModificationSkew`**: ใช้สำหรับ distributed file systems (เช่น NFS) เพื่อหลีกเลี่ยงปัญหาการอ่านไฟล์ที่ไม่ตรงกัน
+> 
+> - **`threads`**: จำนวน OpenMP threads ต่อ MPI process (Hybrid MPI+OpenMP):
+>   - `0` = ไม่ใช้ OpenMP (pure MPI - แนะนำให้ใช้นี้โดย default)
+>   - `> 0` = ใช้ hybrid parallelization (เหมาะสำหรับ architectures บางประเภท)
 
 #### กลยุทธ์การจัดการ I/O
 
@@ -757,14 +1049,14 @@ threads         4;  // 4 threads per MPI process
 4. **Compression**: `writeCompression on;` ใน `controlDict` ช่วยลดขนาดไฟล์และเวลาในการย้ายข้อมูล
 
 ```bash
-# การตรวจสอบการใช้พื้นที่ดิสก์
+# Check disk usage of processor directories
 du -sh processor*
 
-# การลบไฟล์เก่าเพื่อประหยัดพื้นที่
-# ลบเวลาที่ไม่ต้องการ
+# Remove old time directories to save space
+# Remove all times except specific ones
 foamListTimes -rm
 
-# ลบเฉพาะบางเวลา
+# Remove specific times
 rm -r processor*/0.1
 rm -r processor*/0.2
 ```
@@ -793,18 +1085,17 @@ flowchart LR
 ### การปรับแต่ง MPI Parameters
 
 ```bash
-# การเรียกใช้ MPI พร้อมการปรับแต่ง
-# 1. การเชื่อมต่อแบบ Direct (rdma)
+# Run MPI with RDMA (InfiniBand) for high-performance networks
 mpirun -np 64 --mca btl_openib_allow_ib true \
     --map-by ppr:1:core --bind-to core \
     solverName -parallel
 
-# 2. การใช้ Shared Memory สำหรับ node เดียว
+# Use shared memory for single-node jobs
 mpirun -np 16 --mca btl sm,self \
     --map-by ppr:1:core --bind-to core \
     solverName -parallel
 
-# 3. การตั้งค่า Buffer sizes
+# Adjust buffer sizes for large messages
 mpirun -np 64 --mca btl_openib_eager_limit 65536 \
     --mca btl_openib_max_send_size 131072 \
     solverName -parallel
@@ -830,35 +1121,35 @@ mpirun -np 64 --mca btl_openib_eager_limit 65536 \
 #SBATCH --output=slurm-%j.out
 #SBATCH --error=slurm-%j.err
 
-# โหลดสภาพแวดล้อม OpenFOAM
+# Load OpenFOAM environment
 module purge
 module load openfoam/2312
 source $FOAM_BASH
 
-# แสดงข้อมูลระบบ
+# Display system information
 echo "Job running on node(s): $SLURM_JOB_NODELIST"
 echo "Number of tasks: $SLURM_NTASKS"
 echo "Working directory: $SLURM_SUBMIT_DIR"
 
-# ขั้นตอนการรัน
+# Execution steps
 cd $SLURM_SUBMIT_DIR
 
-# 0. ตรวจสอบเมช
+# 0. Check mesh quality
 checkMesh -allGeometry -allTopology
 
-# 1. ย่อยโดเมน (Decompose)
+# 1. Decompose case for parallel processing
 decomposePar -force
 
-# 2. รัน Solver แบบขนาน
+# 2. Run solver in parallel
 mpirun -np $SLURM_NTASKS \
     --map-by ppr:1:core \
     --bind-to core \
     interFoam -parallel > log.solver 2>&1
 
-# 3. รวมผลลัพธ์ (Reconstruct)
+# 3. Reconstruct results
 reconstructPar
 
-# 4. สร้างพาราทิชชันสำหรับ ParaView
+# 4. Generate VTK files for ParaView
 foamToVTK
 
 echo "Job completed successfully!"
@@ -872,14 +1163,14 @@ echo "Job completed successfully!"
 การผูกกระบวนการ (Processes) ไว้กับ Core เฉพาะช่วยลดปัญหาความล่าช้าจากการย้ายหน่วยความจำข้าม NUMA nodes:
 
 ```bash
-# การใช้ mpirun พร้อม CPU binding
+# Run MPI with CPU binding for better cache locality
 mpirun -np 64 \
     --bind-to core \
     --map-by ppr:1:core \
     --report-bindings \
     solverName -parallel
 
-# การใช้ทรัพยากร GPU (ถ้ามี)
+# Use GPU resources if available
 mpirun -np 4 \
     --bind-to none \
     --map-by ppr:1:socket \
@@ -891,17 +1182,17 @@ mpirun -np 4 \
 ```python
 #!/usr/bin/env python3
 """
-สคริปต์สร้าง SLURM job script สำหรับ OpenFOAM
+SLURM job script generator for OpenFOAM simulations
 """
 
 def generate_slurm_script(params):
     """
-    สร้าง SLURM script จากพารามิเตอร์
+    Generate SLURM batch script from parameters
 
     Parameters:
     -----------
     params : dict
-        พารามิเตอร์การรันงาน
+        Dictionary containing job parameters
     """
     script = f"""#!/bin/bash
 #SBATCH --job-name={params['job_name']}
@@ -934,7 +1225,7 @@ echo "Job completed!"
 """
     return script
 
-# ตัวอย่างการใช้งาน
+# Example usage
 params = {
     'job_name': 'cavity_simulation',
     'nodes': 4,
@@ -972,16 +1263,16 @@ graph TD
 ### การตรวจสอบสถานะงาน
 
 ```bash
-# ตรวจสอบคิว
+# Check queue status for your jobs
 squeue -u $USER
 
-# ยกเลิกงาน
+# Cancel a job
 scancel <job_id>
 
-# ตรวจสอบข้อมูล job ที่รันแล้ว
+# Check detailed job information after completion
 sacct -j <job_id> --format=JobID,JobName,Submit,Start,End,Elapsed,State,ExitCode
 
-# ตรวจสอบการใช้ทรัพยากรระหว่างรัน
+# Monitor resource usage during job execution
 sstat -j <job_id> --format=JobID,MaxRSS,MaxVMSize,NTasks,MinCPU,MaxCPU
 ```
 
@@ -1016,10 +1307,10 @@ $$N_{\text{cells/core}} \approx \frac{N_{\text{total}}}{N_{\text{processors}}}$$
 ตรวจสอบไฟล์ Log สม่ำเสมอเพื่อดูการบรรลุผลเฉลย (Convergence) และ Error:
 
 ```bash
-# ติดตามการลู่เข้าแบบ Real-time
+# Monitor convergence in real-time
 tail -f log.solver | grep "Solving for"
 
-# ตรวจสอบ Residuals
+# Check residuals using foamLog
 foamLog log.solver
 gnuplot residuals.gnuplot
 ```

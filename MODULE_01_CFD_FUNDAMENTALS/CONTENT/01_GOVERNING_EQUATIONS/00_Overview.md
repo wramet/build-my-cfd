@@ -299,7 +299,7 @@ while (simple.correctNonOrthogonal())
 > - **Momentum Prediction**: แก้สมการโมเมนตัมด้วยความดันปัจจุบัน ให้ค่าความเร็วที่คาดการณ์
 > - **Pressure Correction**: แก้สมการ Poisson สำหรับ pressure correction เพื่อบังคับให้ divergence-free
 > - **Velocity Correction**: ปรับความเร็วด้วย pressure correction gradient
-> - **Under-relaxation**: ใช้因子 (`relax()`) เพื่อป้องกัน oscillation ใน iteration
+> - **Under-relaxation**: ใช้ (`relax()`) เพื่อป้องกัน oscillation ใน iteration
 > - `rAU`: ค่าสัมประสิทธิผล inverse ของเมทริกซ์โมเมนตัม
 
 > **📂 Source**: `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`

@@ -1,168 +1,168 @@
-# Species Transport in Reacting Flows
+# การขนส่งสปีชีส์ในการไหลแบบมีปฏิกิริยา (Species Transport in Reacting Flows)
 
-> [!INFO] Overview
-> This note provides comprehensive technical coverage of **species transport equations** in OpenFOAM reacting flow simulations, including convection, diffusion, reaction source terms, and diffusion models.
+> [!INFO] ภาพรวม
+> บันทึกฉบับนี้ให้ข้อมูลทางเทคนิคที่ครอบคลุมเกี่ยวกับ **สมการการขนส่งสปีชีส์ (species transport equations)** ในการจำลองการไหลแบบมีปฏิกิริยาของ OpenFOAM รวมถึงการพา (convection), การแพร่ (diffusion), เทอมแหล่งกำเนิดปฏิกิริยา (reaction source terms) และแบบจำลองการแพร่
 
 ---
 
-## 🔮 Hook: Why Species Transport Matters
+## 🔮 ทำไมการขนส่งสปีชีส์จึงสำคัญ (Why Species Transport Matters)
 
-In a **combustor**, the distribution of fuel, oxidizer, and products determines:
-- **Flame stability** — concentration gradients control flame structure
-- **Emissions formation** — pollutant transport dictates emission patterns
-- **Combustion efficiency** — proper mixing affects overall burn rate
+ใน **ห้องเผาไหม้ (combustor)** การกระจายตัวของเชื้อเพลิง, ตัวออกซิไดซ์ และผลิตภัณฑ์เป็นตัวกำหนด:
+- **เสถียรภาพของเปลวไฟ** — เกรเดียนต์ความเข้มข้นควบคุมโครงสร้างของเปลวไฟ
+- **การก่อตัวของมลพิษ** — การขนส่งสารมลพิษเป็นตัวกำหนดรูปแบบการปล่อยมลพิษ
+- **ประสิทธิภาพการเผาไหม้** — การผสมที่เหมาะสมส่งผลต่ออัตราการเผาไหม้โดยรวม
 
-The **species transport equation** governs how chemical species move and distribute within a flow field, balancing three fundamental physical processes:
+**สมการการขนส่งสปีชีส์** ควบคุมวิธีที่สปีชีส์เคมีเคลื่อนที่และกระจายตัวภายในสนามการไหล โดยสร้างสมดุลระหว่างกระบวนการทางฟิสิกส์พื้นฐานสามประการ:
 
 ```mermaid
 flowchart LR
-    A[Convection] --> D[Species<br>Transport]
-    B[Diffusion] --> D
-    C[Reaction] --> D
+    A[การพา - Convection] --> D[การขนส่ง<br>สปีชีส์]
+    B[การแพร่ - Diffusion] --> D
+    C[ปฏิกิริยา - Reaction] --> D
 
-    A -.->|Bulk flow| E[ρuYᵢ]
-    B -.->|Molecular<br>gradient| F[Jᵢ]
-    C -.->|Chemistry| G[Rᵢ]
+    A -.->|การไหลหลัก| E[ρuYᵢ]
+    B -.->|เกรเดียนต์โมเลกุล| F[Jᵢ]
+    C -.->|เคมี| G[Rᵢ]
 
     style D fill:#e3f2fd,stroke:#2196f3
 ```
-> **Figure 1:** แผนภาพแสดงกลไกหลักสามประการที่ควบคุมการขนส่งสปีชีส์ (Species Transport) ในการไหลแบบมีปฏิกิริยาเคมี ได้แก่ การพา (Convection) จากการไหลหลัก, การแพร่ (Diffusion) จากเกรเดียนต์ความเข้มข้น, และการทำปฏิกิริยาเคมี (Reaction)
+> **รูปที่ 1:** แผนภาพแสดงกลไกหลักสามประการที่ควบคุมการขนส่งสปีชีส์ (Species Transport) ในการไหลแบบมีปฏิกิริยาเคมี ได้แก่ การพา (Convection) จากการไหลหลัก, การแพร่ (Diffusion) จากเกรเดียนต์ความเข้มข้น, และการทำปฏิกิริยาเคมี (Reaction)
 
 
 ---
 
-## 📐 Governing Equation
+## 📐 สมการควบคุม (Governing Equation)
 
-### The Species Transport Equation
+### สมการการขนส่งสปีชีส์
 
-For each species $i$, the mass fraction $Y_i$ evolves according to:
+สำหรับแต่ละสปีชีส์ $i$ เศษส่วนมวล $Y_i$ จะวิวัฒนาการตามสมการ:
 
-$$\frac{\partial (\rho Y_i)}{\partial t} + \nabla \cdot (\rho \mathbf{u} Y_i) = -\nabla \cdot \mathbf{J}_i + R_i \tag{1}$$
+$$\frac{\partial (\rho Y_i)}{\partial t} + \nabla  \cdot (\rho \mathbf{u} Y_i) = -\nabla  \cdot \mathbf{J}_i + R_i \tag{1}$$ 
 
-**Variable Definitions:**
+**คำจำกัดความตัวแปร:**
 
-| Symbol | Description | Units |
+| สัญลักษณ์ | คำอธิบาย | หน่วย |
 |--------|-------------|-------|
-| $\rho$ | Density of the fluid | kg/m³ |
-| $Y_i$ | Mass fraction of species $i$ | kg/kg |
-| $\mathbf{u}$ | Velocity vector | m/s |
-| $\mathbf{J}_i$ | Diffusive flux of species $i$ | kg/(m²·s) |
-| $R_i$ | Net production/consumption rate | kg/(m³·s) |
+| $\rho$ | ความหนาแน่นของของไหล | kg/m³ |
+| $Y_i$ | เศษส่วนมวลของสปีชีส์ $i$ | kg/kg |
+| $\mathbf{u}$ | เวกเตอร์ความเร็ว | m/s |
+| $\mathbf{J}_i$ | ฟลักซ์การแพร่ของสปีชีส์ $i$ | kg/(m²·s) |
+| $R_i$ | อัตราการผลิต/การบริโภคสุทธิ | kg/(m³·s) |
 
-**Physical Components:**
+**ส่วนประกอบทางฟิสิกส์:**
 
-$$\underbrace{\frac{\partial (\rho Y_i)}{\partial t}}_{\text{Accumulation}} + \underbrace{\nabla \cdot (\rho \mathbf{u} Y_i)}_{\text{Convection}} = \underbrace{-\nabla \cdot \mathbf{J}_i}_{\text{Diffusion}} + \underbrace{R_i}_{\text{Reaction}}$$
+$$\underbrace{\frac{\partial (\rho Y_i)}{\partial t}}_{\text{การสะสม}} + \underbrace{\nabla  \cdot (\rho \mathbf{u} Y_i)}_{\text{การพา}} = \underbrace{-\nabla  \cdot \mathbf{J}_i}_{\text{การแพร่}} + \underbrace{R_i}_{\text{ปฏิกิริยา}}$$
 
-> [!TIP] Control Volume Interpretation
-> Consider a differential control volume where:
-> - **Convective flux** $\rho \mathbf{u} Y_i$ transports species via bulk fluid motion
-> - **Diffusive flux** $\mathbf{J}_i$ moves species down concentration gradients
-> - **Reaction source** $R_i$ creates or destroys species through chemistry
-
----
-
-## 🔬 Diffusion Models
-
-OpenFOAM supports multiple diffusion models of increasing complexity:
-
-### 1. Fick's Law (Binary Mixture)
-
-The simplest approximation for binary mixtures:
-
-$$\mathbf{J}_i = -\rho D_i \nabla Y_i \tag{2}$$
-
-Where $D_i$ is the **mixture-averaged diffusion coefficient** [m²/s].
-
-**Limitations:**
-- Valid only for binary mixtures
-- Neglects multi-component coupling effects
-- No thermal diffusion (Soret effect)
+> [!TIP] การตีความด้วยปริมาตรควบคุม
+> พิจารณาปริมาตรควบคุมเชิงอนุพันธ์ที่ซึ่ง:
+> - **ฟลักซ์การพา (Convective flux)** $\rho \mathbf{u} Y_i$ ขนส่งสปีชีส์ผ่านการเคลื่อนที่ของของไหลหลัก
+> - **ฟลักซ์การแพร่ (Diffusive flux)** $\mathbf{J}_i$ เคลื่อนย้ายสปีชีส์ตามเกรเดียนต์ความเข้มข้น
+> - **แหล่งกำเนิดปฏิกิริยา (Reaction source)** $R_i$ สร้างหรือทำลายสปีชีส์ผ่านทางเคมี
 
 ---
 
-### 2. Maxwell-Stefan (Multi-component)
+## 🔬 แบบจำลองการแพร่ (Diffusion Models)
 
-For multi-component mixtures, gradients become coupled:
+OpenFOAM รองรับแบบจำลองการแพร่หลายรูปแบบที่มีความซับซ้อนเพิ่มขึ้น:
 
-$$\nabla X_i = \sum_{j \neq i} \frac{X_i X_j}{D_{ij}} \left( \frac{\mathbf{J}_j}{\rho_j} - \frac{\mathbf{J}_i}{\rho_i} \right) \tag{3}$$
+### 1. กฎของฟิค (Fick's Law - ส่วนผสมสองส่วนประกอบ)
 
-**Additional Variables:**
-- $X_i$ — Mole fraction of species $i$
-- $D_{ij}$ — Binary diffusion coefficient for pair $i$-$j$ [m²/s]
-- $\rho_i$ — Density of species $i$ [kg/m³]
+การประมาณค่าที่ง่ายที่สุดสำหรับส่วนผสมสองส่วนประกอบ:
 
-OpenFOAM typically uses a **mixture-averaged approximation** for efficiency:
+$$\mathbf{J}_i = -\rho D_i \nabla Y_i \tag{2}$$ 
 
-$$D_{i,\text{mix}} = \frac{1 - Y_i}{\sum_{j \neq i} \frac{Y_j}{D_{ij}}} \tag{4}$$
+โดยที่ $D_i$ คือ **สัมประสิทธิ์การแพร่เฉลี่ยส่วนผสม** [m²/s]
 
----
-
-### 3. Soret Effect (Thermal Diffusion)
-
-Important for light species like $\mathrm{H_2}$:
-
-$$\mathbf{J}_i = -\rho D_i \nabla Y_i - D_i^T \frac{\nabla T}{T} \tag{5}$$
-
-**Additional Variables:**
-- $D_i^T$ — Soret diffusion coefficient [kg/(m·s)]
-- $T$ — Temperature [K]
-
-> [!WARNING] When Soret Matters
-> - **Critical** for hydrogen-rich flames
-- Often negligible for hydrocarbon flames
-- Can affect flame speed predictions by 10-20%
+**ข้อจำกัด:**
+- ใช้ได้เฉพาะกับส่วนผสมสองส่วนประกอบ
+- ละเลยผลกระทบของการคัปปลิงหลายส่วนประกอบ
+- ไม่มีผลของการแพร่เนื่องจากความร้อน (Soret effect)
 
 ---
 
-## ⚙️ OpenFOAM Implementation
+### 2. แมกซ์เวลล์-สเตฟาน (Maxwell-Stefan - หลายส่วนประกอบ)
 
-### Solver Architecture
+สำหรับส่วนผสมหลายส่วนประกอบ เกรเดียนต์จะถูกคัปปลิงเข้าด้วยกัน:
 
-Species transport is handled within the `reactionThermo` framework using `fvScalarMatrix` discretization.
+$$\nabla X_i = \sum_{j  \neq  i} \frac{X_i X_j}{D_{ij}} \left( \frac{\mathbf{J}_j}{\rho_j} - \frac{\mathbf{J}_i}{\rho_i} \right) \tag{3}$$ 
+
+**ตัวแปรเพิ่มเติม:**
+- $X_i$ — เศษส่วนโมลของสปีชีส์ $i$
+- $D_{ij}$ — สัมประสิทธิ์การแพร่แบบสองส่วนประกอบสำหรับคู่ $i$-$j$ [m²/s]
+- $\rho_i$ — ความหนาแน่นของสปีชีส์ $i$ [kg/m³]
+
+โดยปกติ OpenFOAM จะใช้ **การประมาณค่าเฉลี่ยส่วนผสม (mixture-averaged approximation)** เพื่อประสิทธิภาพ:
+
+$$D_{i,\text{mix}} = \frac{1 - Y_i}{\sum_{j  \neq  i} \frac{Y_j}{D_{ij}}} \tag{4}$$ 
+
+---
+
+### 3. ผลกระทบ Soret (Soret Effect - การแพร่เนื่องจากความร้อน)
+
+มีความสำคัญสำหรับสปีชีส์น้ำหนักเบาอย่าง $\mathrm{H_2}$:
+
+$$\mathbf{J}_i = -\rho D_i \nabla Y_i - D_i^T \frac{\nabla T}{T} \tag{5}$$ 
+
+**ตัวแปรเพิ่มเติม:**
+- $D_i^T$ — สัมประสิทธิ์การแพร่ Soret [kg/(m·s)]
+- $T$ — อุณหภูมิ [K]
+
+> [!WARNING] เมื่อใดที่ Soret มีความสำคัญ
+> - **วิกฤต** สำหรับเปลวไฟที่อุดมไปด้วยไฮโดรเจน
+> - มักจะละเลยได้สำหรับเปลวไฟไฮโดรคาร์บอน
+> - สามารถส่งผลต่อการคาดการณ์ความเร็วเปลวไฟได้ 10-20%
+
+---
+
+## ⚙️ การใช้งานใน OpenFOAM (OpenFOAM Implementation)
+
+### สถาปัตยกรรมตัวแก้ปัญหา (Solver Architecture)
+
+การขนส่งสปีชีส์ถูกจัดการภายในกรอบงาน `reactionThermo` โดยใช้การแยกส่วนแบบ `fvScalarMatrix`
 
 ```mermaid
 flowchart TD
-    A[Start Species Transport] --> B[Loop over each species i]
-    B --> C[Calculate Reaction Rate RR_i]
-    C --> D[Assemble Transport Equation]
-    D --> E[Apply Boundary Conditions]
-    E --> F[Solve fvScalarMatrix]
-    F --> G{Enforce Boundedness<br>0 < Y_i < 1}
-    G --> H{Sum Check<br>ΣY_i = 1?}
-    H -->|No| I[Adjust/Normalize]
+    A[เริ่มการขนส่งสปีชีส์] --> B[วนรอบแต่ละสปีชีส์ i]
+    B --> C[คำนวณอัตราปฏิกิริยา RR_i]
+    C --> D[ประกอบสมการการขนส่ง]
+    D --> E[ใช้งานเงื่อนไขขอบเขต]
+    E --> F[แก้สมการ fvScalarMatrix]
+    F --> G{บังคับใช้ขอบเขตค่า<br>0 < Y_i < 1}
+    G --> H{ตรวจสอบผลรวม<br>ΣY_i = 1?}
+    H -->|ไม่| I[ปรับแก้/ทำให้เป็นบรรทัดฐาน]
     I --> H
-    H -->|Yes| J{All Species<br>Solved?}
-    J -->|No| B
-    J -->|Yes| K[End]
+    H -->|ใช่| J{แก้ครบทุก<br>สปีชีส์หรือยัง?}
+    J -->|ยัง| B
+    J -->|ใช่| K[สิ้นสุด]
 
     style C fill:#fff3e0,stroke:#f57c00
     style G fill:#e8f5e9,stroke:#4caf50
 ```
-> **Figure 2:** แผนผังลำดับขั้นตอนการคำนวณการขนส่งสปีชีส์ใน OpenFOAM ซึ่งครอบคลุมตั้งแต่การคำนวณอัตราการเกิดปฏิกิริยาเคมี การแก้สมการเมทริกซ์ ไปจนถึงการควบคุมขอบเขตของค่าเศษส่วนมวลและการรักษาความสมดุลของผลรวมสปีชีส์ทั้งหมด
+> **รูปที่ 2:** แผนผังลำดับขั้นตอนการคำนวณการขนส่งสปีชีส์ใน OpenFOAM ซึ่งครอบคลุมตั้งแต่การคำนวณอัตราการเกิดปฏิกิริยาเคมี การแก้สมการเมทริกซ์ ไปจนถึงการควบคุมขอบเขตของค่าเศษส่วนมวลและการรักษาความสมดุลของผลรวมสปีชีส์ทั้งหมด
 
 
-### Code: Transport Equation in `reactingFoam`
+### โค้ด: สมการการขนส่งใน `reactingFoam`
 
 ```cpp
-// Species transport equation (from reactingFoam)
+// Species transport equation (จาก reactingFoam)
 fvScalarMatrix YiEqn
 (
-    fvm::ddt(rho, Yi)                              // Unsteady term
-  + fvm::div(phi, Yi)                              // Convection
-  - fvm::laplacian(turbulence->mut()/Sct + rho*Di, Yi)  // Diffusion
+    fvm::ddt(rho, Yi)                              // เทอมสภาวะไม่คงตัว
+  + fvm::div(phi, Yi)                              // การพา
+  - fvm::laplacian(turbulence->mut()/Sct + rho*Di, Yi)  // การแพร่
  ==
-    chemistry->RR(i)                               // Reaction source
-  + fvOptions(rho, Yi)                             // Optional sources
+    chemistry->RR(i)                               // แหล่งกำเนิดปฏิกิริยา
+  + fvOptions(rho, Yi)                             // แหล่งกำเนิดเสริม
 );
 
 YiEqn.solve();
 ```
 
-> **📂 Source:** `.applications/solvers/combustion/reactingFoam/reactingFoam.C`
+> **📂 แหล่งที่มา:** `.applications/solvers/combustion/reactingFoam/reactingFoam.C`
 >
-> **Explanation:** โค้ดนี้แสดงการสร้างสมการขนส่งสปีชีส์ใน OpenFOAM โดยใช้ `fvScalarMatrix` เพื่อการแยกตัวแปร (discretization) แต่ละเงื่อนไขของสมการถูกสร้างด้วยฟังก์ชันจาก `fvm` (finite volume method) ซึ่งจัดการการหาอนุพันธ์เชิงพื้นที่และเวลาอย่างเป็นระบบ
+> **คำอธิบาย:** โค้ดนี้แสดงการสร้างสมการขนส่งสปีชีส์ใน OpenFOAM โดยใช้ `fvScalarMatrix` เพื่อการแยกตัวแปร (discretization) แต่ละเงื่อนไขของสมการถูกสร้างด้วยฟังก์ชันจาก `fvm` (finite volume method) ซึ่งจัดการการหาอนุพันธ์เชิงพื้นที่และเวลาอย่างเป็นระบบ
 >
-> **Key Concepts:**
+> **แนวคิดสำคัญ:**
 > - `fvm::ddt()` — การคำนวณเทอม unsteady (temporal derivative) ด้วยรูปแบบ implicit
 > - `fvm::div()` — การแยกเทอมการพา (convective flux) โดยใช้รูปแบบ implicit เพื่อเสถียรภาพเชิงตัวเลข
 > - `fvm::laplacian()` — การแยกเทอมการแพร่ (diffusive flux) ซึ่งรวมทั้ง turbulent diffusivity และ molecular diffusivity
@@ -172,94 +172,94 @@ YiEqn.solve();
 > - `fvOptions()` — ตัวเลือกสำหรับเพิ่ม source terms เพิ่มเติม (เช่น mass sources, porous media)
 > - `YiEqn.solve()` — การแก้ระบบสมการเชิงเส้นที่เกิดจากการแยกตัวแปร
 
-**Term Breakdown:**
+**การแยกรายละเอียดเทอม:**
 
-| Code Component | Physical Meaning | Typical Values |
+| ส่วนประกอบโค้ด | ความหมายทางฟิสิกส์ | ค่าทั่วไป |
 |----------------|------------------|----------------|
-| `fvm::ddt(rho, Yi)` | Temporal accumulation | — |
-| `fvm::div(phi, Yi)` | Convective transport | $\phi = \rho \mathbf{u}$ |
-| `turbulence->mut()/Sct` | Turbulent diffusivity | $S_{ct} \approx 0.7$ |
-| `rho*Di` | Molecular diffusivity | From transport model |
-| `chemistry->RR(i)` | Chemical reaction rate | From ODE solver |
+| `fvm::ddt(rho, Yi)` | การสะสมเชิงเวลา | — |
+| `fvm::div(phi, Yi)` | การขนส่งแบบพา | $\phi = \rho \mathbf{u}$ |
+| `turbulence->mut()/Sct` | สภาพแพร่ปั่นป่วน | $S_{ct} \approx 0.7$ |
+| `rho*Di` | สภาพแพร่โมเลกุล | จากแบบจำลองการขนส่ง |
+| `chemistry->RR(i)` | อัตราปฏิกิริยาเคมี | จากตัวแก้สมการ ODE |
 
-### Configuration: `constant/thermophysicalProperties`
+### การกำหนดค่า: `constant/thermophysicalProperties`
 
 ```cpp
 transport
 {
-    type            multiComponent;      // or "soret", "const"
+    type            multiComponent;      // หรือ "soret", "const"
 
-    // Mixture-averaged diffusion coefficients [m²/s]
+    // สัมประสิทธิ์การแพร่เฉลี่ยส่วนผสม [m²/s]
     D               (CH4 1e-5 O2 1e-5 CO2 8e-6 H2O 1e-5 N2 1e-5);
 
-    // Optional Soret coefficients (for thermal diffusion)
+    // สัมประสิทธิ์ Soret (สำหรับการแพร่เนื่องจากความร้อน)
     SoretCoeffs     (H2 0.2);
 }
 ```
 
-> **📂 Source:** `.src/thermophysicalModels/chemistryModel/chemistryModel/chemistryModel.C`
+> **📂 แหล่งที่มา:** `.src/thermophysicalModels/chemistryModel/chemistryModel/chemistryModel.C`
 >
-> **Explanation:** การตั้งค่าชนิดของโมเดลการแพร่ (diffusion model) ใน OpenFOAM ซึ่งกำหนดผ่านไฟล์ `thermophysicalProperties` โมเดล `multiComponent` เป็นการเลือกใช้ Maxwell-Stefan approach แบบ mixture-averaged สำหรับระบบที่มีหลายสปีชีส์
+> **คำอธิบาย:** การตั้งค่าชนิดของโมเดลการแพร่ (diffusion model) ใน OpenFOAM ซึ่งกำหนดผ่านไฟล์ `thermophysicalProperties` โมเดล `multiComponent` เป็นการเลือกใช้ Maxwell-Stefan approach แบบ mixture-averaged สำหรับระบบที่มีหลายสปีชีส์
 >
-> **Key Concepts:**
+> **แนวคิดสำคัญ:**
 > - `type` — ระบุชนิดของ transport model (multiComponent, soret, const)
 > - `D` — สัมประสิทธิ์การแพร่แบบ mixture-averaged สำหรับแต่ละสปีชีส์ [m²/s]
 > - `SoretCoeffs` — สัมประสิทธิ์ Soret สำหรับจำลอง thermal diffusion effect (สำคัญสำหรับ H₂)
 > - การเลือกชนิด transport model ส่งผลต่อความแม่นยำและค่าใช้จ่ายทางการคำนวณ
 
-### Boundary Conditions: `0/` Fields
+### เงื่อนไขขอบเขต (Boundary Conditions): ไฟล์ในไดเรกทอรี `0/`
 
-| Boundary Type | Recommended Use | Example |
+| ประเภทขอบเขต | การใช้งานที่แนะนำ | ตัวอย่าง |
 |---------------|-----------------|---------|
-| `fixedValue` | Inlets with known composition | Fuel inlet, oxidizer inlet |
-| `zeroGradient` | Outlets, symmetric boundaries | Exhaust outlet |
-| `inletOutlet` | Mixed inlet/outlet boundaries | Pressure boundaries |
+| `fixedValue` | ทางเข้าที่มีองค์ประกอบที่ทราบ | ทางเข้าเชื้อเพลิง, ทางเข้าตัวออกซิไดซ์ |
+| `zeroGradient` | ทางออก, ขอบเขตสมมาตร | ทางออกไอเสีย |
+| `inletOutlet` | ขอบเขตผสมทางเข้า/ทางออก | ขอบเขตความดัน |
 
 ---
 
-## ❓ Model Selection Guide
+## ❓ คู่มือการเลือกแบบจำลอง (Model Selection Guide)
 
-### Diffusion Model Comparison
+### การเปรียบเทียบแบบจำลองการแพร่
 
-| Model | Advantages | Disadvantages | Best For |
+| แบบจำลอง | ข้อดี | ข้อเสีย | เหมาะสำหรับ |
 |-------|------------|---------------|----------|
-| **Fick's Law** | Low computational cost | Inaccurate for multi-component | Initial simulations, testing |
-| **Maxwell-Stefan** | Physically accurate | Requires linear system solve per cell | High-accuracy systems |
-| **Soret/Dufour** | Captures thermal effects | Adds complexity | Hydrogen systems |
+| **กฎของฟิค** | ต้นทุนการคำนวณต่ำ | ไม่แม่นยำสำหรับหลายส่วนประกอบ | การจำลองเบื้องต้น, การทดสอบ |
+| **แมกซ์เวลล์-สเตฟาน** | แม่นยำทางกายภาพ | ต้องการการแก้ระบบเชิงเส้นต่อเซลล์ | ระบบที่ต้องการความแม่นยำสูง |
+| **Soret/Dufour** | จับผลกระทบทางความร้อนได้ | เพิ่มความซับซ้อน | ระบบที่มีไฮโดรเจน |
 
-### Impact of Neglecting Soret Effect
+### ผลกระทบของการละเลย Soret
 
-Consequences of ignoring thermal diffusion:
-- **Incorrect flame speeds** — errors up to 20% for $\mathrm{H_2}$
-- **Wrong extinction limits** — critical for safety analysis
-- **Emissions misprediction** — especially NOx in hydrogen flames
-
----
-
-## 🔗 Connections to Other Physics
-
-### Coupling with Energy Equation
-
-Species transport affects energy through enthalpy:
-
-$$\frac{\partial (\rho h)}{\partial t} + \nabla \cdot (\rho \mathbf{u} h) = \nabla \cdot (\alpha \nabla h) + \sum_i \dot{\omega}_i \Delta h_{f,i}^\circ$$
-
-Where $\Delta h_{f,i}^\circ$ is the formation enthalpy.
-
-### Coupling with Momentum
-
-Variable density due to composition changes affects the momentum equation:
-
-$$\frac{\partial (\rho \mathbf{u})}{\partial t} + \nabla \cdot (\rho \mathbf{u} \mathbf{u}) = -\nabla p + \nabla \cdot \boldsymbol{\tau} + \rho \mathbf{g}$$
+ผลที่ตามมาของการละเลยการแพร่เนื่องจากความร้อน:
+- **ความเร็วเปลวไฟไม่ถูกต้อง** — ข้อผิดพลาดสูงถึง 20% สำหรับ $\mathrm{H_2}$
+- **ขีดจำกัดการดับไฟผิดพลาด** — วิกฤตสำหรับการวิเคราะห์ความปลอดภัย
+- **การคาดการณ์การปล่อยมลพิษผิดพลาด** — โดยเฉพาะ NOx ในเปลวไฟไฮโดรเจน
 
 ---
 
-## 🛠 Practical Workflow
+## 🔗 ความเชื่อมโยงกับฟิสิกส์ส่วนอื่นๆ
 
-### Step 1: Define Species
+### การคัปปลิงกับสมการพลังงาน
+
+การขนส่งสปีชีส์ส่งผลต่อพลังงานผ่านเอนทาลปี:
+
+$$\frac{\partial (\rho h)}{\partial t} + \nabla  \cdot (\rho \mathbf{u} h) = \nabla  \cdot (\alpha \nabla h) + \sum_i \dot{\omega}_i \Delta h_{f,i}^\circ$$
+
+โดยที่ $\Delta h_{f,i}^\circ$ คือเอนทาลปีของการก่อตัว
+
+### การคัปปลิงกับโมเมนตัม
+
+ความหนาแน่นที่แปรผันเนื่องจากการเปลี่ยนแปลงองค์ประกอบส่งผลต่อสมการโมเมนตัม:
+
+$$\frac{\partial (\rho \mathbf{u})}{\partial t} + \nabla  \cdot (\rho \mathbf{u} \mathbf{u}) = -\nabla p + \nabla  \cdot \boldsymbol{\tau} + \rho \mathbf{g}$$
+
+---
+
+## 🛠 ขั้นตอนการทำงานจริง (Practical Workflow)
+
+### ขั้นตอนที่ 1: นิยามสปีชีส์
 
 ```cpp
-// In constant/thermophysicalProperties
+// ในไฟล์ constant/thermophysicalProperties
 species
 (
     CH4
@@ -270,30 +270,30 @@ species
 );
 ```
 
-> **📂 Source:** `.src/thermophysicalModels/specie/thermo/thermo/thermo.C`
+> **📂 แหล่งที่มา:** `.src/thermophysicalModels/specie/thermo/thermo/thermo.C`
 >
-> **Explanation:** การนิยามรายชื่อสปีชีส์เคมีที่จะใช้ในการจำลอง ซึ่ง OpenFOAM จะใช้ข้อมูลนี้ในการสร้าง objects สำหรับแต่ละสปีชีส์และคำนวณคุณสมบัติทางเทอร์โมไดนามิกส์
+> **คำอธิบาย:** การนิยามรายชื่อสปีชีส์เคมีที่จะใช้ในการจำลอง ซึ่ง OpenFOAM จะใช้ข้อมูลนี้ในการสร้าง objects สำหรับแต่ละสปีชีส์และคำนวณคุณสมบัติทางเทอร์โมไดนามิกส์
 >
-> **Key Concepts:**
+> **แนวคิดสำคัญ:**
 > - `species` — รายการชื่อสปีชีส์ที่จะถูกจำลองในระบบ
 > - แต่ละสปีชีส์ต้องมีข้อมูล thermophysical properties ที่สมบูรณ์
 > - ลำดับของสปีชีส์มีความสำคัญสำหรับการคำนวณ reaction rates
 
-### Step 2: Initialize Fields
+### ขั้นตอนที่ 2: กำหนดค่าเริ่มต้นฟิลด์
 
-Create initial field files for each species in `0/`:
-- `0/Y_CH4` — Methane mass fraction
-- `0/Y_O2` — Oxygen mass fraction
-- `0/Y_N2` — Nitrogen mass fraction
-- etc.
+สร้างไฟล์ฟิลด์เริ่มต้นสำหรับแต่ละสปีชีส์ในไดเรกทอรี `0/`:
+- `0/Y_CH4` — เศษส่วนมวลของมีเทน
+- `0/Y_O2` — เศษส่วนมวลของออกซิเจน
+- `0/Y_N2` — เศษส่วนมวลของไนโตรเจน
+- อื่นๆ
 
-### Step 3: Set Boundary Conditions
+### ขั้นตอนที่ 3: ตั้งค่าเงื่อนไขขอบเขต
 
 ```cpp
-// Example: 0/Y_CH4
+// ตัวอย่าง: 0/Y_CH4
 dimensions      [0 0 0 0 0 0 0];
 
-internalField   uniform 0.055;    // 5.5% methane by mass
+internalField   uniform 0.055;    // มีเทน 5.5% ตามมวล
 
 boundaryField
 {
@@ -313,20 +313,20 @@ boundaryField
 }
 ```
 
-> **📂 Source:** `.src/finiteVolume/fields/fvPatchFields/basic/fixedValue/fixedValueFvPatchField.C`
+> **📂 แหล่งที่มา:** `.src/finiteVolume/fields/fvPatchFields/basic/fixedValue/fixedValueFvPatchField.C`
 >
-> **Explanation:** การตั้งค่าเงื่อนไขขอบเขตสำหรับ field เศษส่วนมวลของสปีชีส์ ซึ่งควบคุมพฤติกรรมของสปีชีส์ที่พื้นผิวของโดเมนการคำนวณ
+> **คำอธิบาย:** การตั้งค่าเงื่อนไขขอบเขตสำหรับ field เศษส่วนมวลของสปีชีส์ ซึ่งควบคุมพฤติกรรมของสปีชีส์ที่พื้นผิวของโดเมนการคำนวณ
 >
-> **Key Concepts:**
+> **แนวคิดสำคัญ:**
 > - `dimensions` — มิติของตัวแปร (สำหรับ mass fraction เป็น dimensionless)
 > - `internalField` — ค่าเริ่มต้นของ field ในโดเมนภายใน
 > - `fixedValue` — กำหนดค่าคงที่ที่ขอบเขต (ใช้สำหรับ inlet)
 > - `zeroGradient` — ไม่มี gradient ตั้งฉากกับขอบเขต (ใช้สำหรับ outlet/walls)
 > - การเลือก boundary condition ส่งผลต่อความเสถียรและความแม่นยำของการคำนวณ
 
-### Step 4: Configure Solver Settings
+### ขั้นตอนที่ 4: กำหนดค่าตัวแก้ปัญหา
 
-In `system/fvSolution`:
+ในไฟล์ `system/fvSolution`:
 
 ```cpp
 solvers
@@ -341,42 +341,42 @@ solvers
 }
 ```
 
-> **📂 Source:** `.src/finiteVolume/fvSolution/fvSolution.C`
+> **📂 แหล่งที่มา:** `.src/finiteVolume/fvSolution/fvSolution.C`
 >
-> **Explanation:** การตั้งค่า linear solver สำหรับการแก้สมการขนส่งสปีชีส์ ซึ่งมีผลต่อประสิทธิภาพและความแม่นยำของการคำนวณ
+> **คำอธิบาย:** การตั้งค่า linear solver สำหรับการแก้สมการขนส่งสปีชีส์ ซึ่งมีผลต่อประสิทธิภาพและความแม่นยำของการคำนวณ
 >
-> **Key Concepts:**
-> - `GAMG` — Geometric-Algebraic Multi-Grid solver (เหมาะสำหรับปัญหาที่มีความยากตาม hierarchy)
-> - `tolerance` — ค่าความอดทนสัมบูรณ์ (absolute tolerance) สำหรับการหายู่
-> - `relTol` — ค่าความอดทนสัมพัทธ์ (relative tolerance)
-> - `smoother` — วิธีการ smoothing ภายใน multigrid cycle
+> **แนวคิดสำคัญ:**
+> - `GAMG` — Geometric-Algebraic Multi-Grid solver (เหมาะสำหรับปัญหาที่มีความยากตามลำดับชั้น)
+> - `tolerance` — ค่าความคลาดเคลื่อนสัมบูรณ์ (absolute tolerance) สำหรับการหาคำตอบ
+> - `relTol` — ค่าความคลาดเคลื่อนสัมพัทธ์ (relative tolerance)
+> - `smoother` — วิธีการปรับให้เรียบ (smoothing) ภายใน multigrid cycle
 > - การตั้งค่า `relTol = 0` หมายถึงการบังคับให้ถึง absolute tolerance เสมอ
-> - รูปแบบ `"\"Yi.*\""` เป็น regular expression ที่ match กับทุก species field (Y_CH4, Y_O2, etc.)
+> - รูปแบบ `"\"Yi.*\""` เป็น regular expression ที่ตรงกับทุกฟิลด์สปีชีส์ (Y_CH4, Y_O2, ฯลฯ)
 
 ---
 
-## 📌 Summary
+## 📌 สรุป (Summary)
 
-### Key Theoretical Principles
+### หลักการทางทฤษฎีที่สำคัญ
 
-1. **Species transport balances** convection, diffusion, and reaction
-2. **Diffusion models range** from simple Fick's law to complex Maxwell-Stefan
-3. **Soret/Dufour effects** are optional but critical for light species
-4. **Boundedness** ($0 \leq Y_i \leq 1$) and **summation** ($\sum Y_i = 1$) must be enforced
+1. **การขนส่งสปีชีส์สร้างสมดุล** ระหว่างการพา, การแพร่ และปฏิกิริยา
+2. **แบบจำลองการแพร่มีตั้งแต่** กฎของฟิคอย่างง่ายไปจนถึงแมกซ์เวลล์-สเตฟานที่ซับซ้อน
+3. **ผลกระทบ Soret/Dufour** เป็นตัวเลือกเสริมแต่สำคัญสำหรับสปีชีส์น้ำหนักเบา
+4. **ขอบเขตค่า** ($0  \leq  Y_i  \leq  1$) และ **ผลรวม** ($\sum Y_i = 1$) จะต้องได้รับการควบคุม
 
-### OpenFOAM Implementation
+### การใช้งานใน OpenFOAM
 
-- **`reactionThermo`** is the main framework
-- **`multiComponentTransportModel`** provides runtime diffusion model selection
-- **`fvScalarMatrix`** discretizes the transport equation
-- **`chemistryModel`** provides reaction source terms
-- **Model selection** depends on required accuracy vs. computational cost
+- **`reactionThermo`** เป็นกรอบงานหลัก
+- **`multiComponentTransportModel`** ให้การเลือกแบบจำลองการแพร่ขณะรันโปรแกรม
+- **`fvScalarMatrix`** แยกส่วนสมการการขนส่ง
+- **`chemistryModel`** ให้เทอมแหล่งกำเนิดปฏิกิริยา
+- **การเลือกแบบจำลอง** ขึ้นอยู่กับความแม่นยำที่ต้องการเทียบกับต้นทุนการคำนวณ
 
 ---
 
-## 🔍 Related Topics
+## 🔍 หัวข้อที่เกี่ยวข้อง
 
-- [[02_1._Species_Transport_Equation_($Y_i$)_and_Diffusion_Models]] — Detailed diffusion theory
-- [[03_2._`chemistryModel`_and_ODE_Solvers_for_Stiff_Reaction_Rates]] — Chemical kinetics integration
-- [[04_3._Combustion_Models_PaSR_vs._EDC]] — Turbulence-chemistry interaction
-- [[06_🧪_Practical_Workflow_Setting_Up_a_Reacting_Flow_Simulation]] — Complete case setup
+- [[02_1._Species_Transport_Equation_($Y_i$)_and_Diffusion_Models]] — ทฤษฎีการแพร่โดยละเอียด
+- [[03_2._`chemistryModel`_and_ODE_Solvers_for_Stiff_Reaction_Rates]] — การบูรณาการจลนพลศาสตร์เคมี
+- [[04_3._Combustion_Models_PaSR_vs._EDC]] — ปฏิสัมพันธ์ความปั่นป่วน-เคมี
+- [[06_🧪_Practical_Workflow_Setting_Up_a_Reacting_Flow_Simulation]] — การตั้งค่ากรณีศึกษาที่สมบูรณ์

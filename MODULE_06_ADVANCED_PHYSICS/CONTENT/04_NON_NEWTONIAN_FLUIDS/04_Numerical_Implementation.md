@@ -18,15 +18,15 @@ $$
 
 In OpenFOAM's strain-rate-dependent models, the **scalar magnitude of strain-rate** $\dot{\gamma}$ is used:
 
-$$
+$$$
 \dot{\gamma} = \sqrt{2} \; \bigl\| \dot{\boldsymbol{\gamma}} \bigr\|
-$$
+$$$
 
 **Variable Definitions:**
 - $\mathbf{u}$ – Fluid velocity vector
 - $\nabla \mathbf{u}$ – Velocity gradient tensor
 - $(\nabla \mathbf{u})^{\mathrm{T}}$ – Transpose of velocity gradient tensor
-- $\|\cdot\|$ – Frobenius norm (`.mag()` in OpenFOAM)
+- $|\cdot\|$ – Frobenius norm (`.mag()` in OpenFOAM)
 
 ### OpenFOAM Implementation
 
@@ -68,7 +68,7 @@ tmp<volScalarField> strainRateViscosityModel::strainRate() const
 |-----------|-------------|-------------------------|
 | `fvc::grad(U_)` | Computes velocity gradient tensor | $\nabla \mathbf{u}$ |
 | `symm(...)` | Extracts symmetric part | $\frac{1}{2}(\nabla\mathbf{u} + (\nabla\mathbf{u})^{\mathrm{T}})$ |
-| `mag(...)` | Returns Frobenius norm | $\|\mathbf{T}\| = \sqrt{\sum_{i,j} T_{ij}^2}$ |
+| `mag(...)` | Returns Frobenius norm | $|\mathbf{T}| = \sqrt{\sum_{i,j} T_{ij}^2}$ |
 | `sqrt(2.0)` | Scaling factor | Produces $\dot{\gamma}$ |
 
 ### Mathematical Properties
@@ -77,9 +77,9 @@ The strain-rate tensor represents the **rate of deformation of fluid elements** 
 
 For incompressible flow, **the trace of $\dot{\boldsymbol{\gamma}}$ is zero**:
 
-$$
+$$$
 \text{tr}(\dot{\boldsymbol{\gamma}}) = \nabla \cdot \mathbf{u} = 0
-$$
+$$$
 
 This property guarantees **volume conservation in incompressible flow** and is automatically satisfied by the symmetric part of the velocity gradient.
 
@@ -91,9 +91,9 @@ OpenFOAM's implementation leverages the **finite volume calculus (fvc) framework
 
 `fvc::grad(U_)` uses Gauss's theorem to compute cell-centered velocity gradients from face values:
 
-$$
+$$$
 (\nabla \mathbf{u})_P = \frac{1}{V_P} \sum_f \mathbf{u}_f \cdot \mathbf{S}_f
-$$
+$$$
 
 #### Step 2: Symmetrization
 
@@ -133,9 +133,9 @@ inline Type symm(const Type& t)
 
 `mag()` computes the Frobenius norm:
 
-$$
-\|\mathbf{T}\| = \sqrt{\sum_{i,j} T_{ij}^2}
-$$
+$$$
+|\mathbf{T}| = \sqrt{\sum_{i,j} T_{ij}^2}
+$$$
 
 ### Performance Considerations
 
@@ -193,9 +193,9 @@ The Bird-Carreau model is one of the most widely used generalized Newtonian flui
 
 The basic Bird-Carreau equation relates kinematic viscosity $\nu$ to shear rate $\dot{\gamma}$ through:
 
-$$
+$$$
 \nu = \nu_{\infty} + (\nu_0 - \nu_{\infty})\Bigl[1 + (k\dot{\gamma})^a\Bigr]^{(n-1)/a}
-$$
+$$$
 
 **Where:**
 - $\nu_0$ – Zero-shear-rate viscosity (maximum viscosity as $\dot{\gamma} \to 0$)
@@ -206,9 +206,9 @@ $$
 
 An alternative formulation uses critical stress $\tau^*$ instead of time constant $k$:
 
-$$
+$$$
 \nu = \nu_{\infty} + (\nu_0 - \nu_{\infty})\Bigl[1 + \bigl(\frac{\nu_0\dot{\gamma}}{\tau^*}\bigr)^a\Bigr]^{(n-1)/a}
-$$
+$$$
 
 #### Implementation Analysis
 
@@ -288,9 +288,9 @@ The Herschel-Bulkley model extends the power-law model to include yield stress b
 
 The constitutive equation combines yield stress and power-law behavior:
 
-$$
+$$$
 \nu = \min\Bigl(\nu_0,\; \frac{\tau_0}{\dot{\gamma}} + k\dot{\gamma}^{\,n-1}\Bigr)
-$$
+$$$
 
 **Where:**
 - $\tau_0$ – Yield stress (minimum stress required to initiate flow)
@@ -379,9 +379,9 @@ The power-law model is the simplest generalized Newtonian fluid model, represent
 
 The constitutive equation is:
 
-$$
+$$$
 \nu = \min\Bigl(\nu_{\max},\; \max\bigl(\nu_{\min},\; k\dot{\gamma}^{\,n-1}\bigr)\Bigr)
-$$
+$$$
 
 **Where:**
 - $k$ – Consistency index (comparable to viscosity)
@@ -671,14 +671,14 @@ This architecture exemplifies **OpenFOAM's design philosophy**: providing a robu
 
 Many non-Newtonian models, particularly those with yield stress (e.g., Herschel-Bulkley), have mathematical issues as $\dot{\gamma} \to 0$:
 
-$$
+$$$
 \mu_{eff} = \frac{\tau_0}{\dot{\gamma}} + \dots
-$$
+$$$
 
 As shear rate approaches zero, viscosity tends toward **infinity ($\infty$)**, which computers cannot handle.
 
 > [!WARNING] Numerical Singularity
-> Without proper handling, the division by zero causes solver divergence or crashes.
+> Without proper handling, the division by zero causes solver divergence or crashes
 
 ### Regularization Techniques
 
@@ -688,9 +688,9 @@ OpenFOAM and researchers use several techniques to address this issue:
 
 The simplest approach is to specify `nuMax` in the dictionary:
 
-$$
+$$$
 \mu = \min(\mu_{calculated}, \mu_{max})
-$$
+$$$
 
 **Implementation:**
 ```cpp
@@ -720,9 +720,9 @@ return min(nu0_, calculated_viscosity);
 
 Adds an exponential term to make the viscosity curve continuous and smooth:
 
-$$
+$$$
 \tau = \tau_y [1 - \exp(-m\dot{\gamma})] + K\dot{\gamma}^n
-$$
+$$$
 
 Where $m$ is the stress growth parameter controlling regularization.
 
@@ -730,9 +730,9 @@ Where $m$ is the stress growth parameter controlling regularization.
 
 Adds a small value ($\epsilon$) to the denominator:
 
-$$
+$$$
 \mu = \frac{\tau_y}{\sqrt{\dot{\gamma}^2 + \epsilon^2}} + \dots
-$$
+$$$
 
 ### Implementation Safeguards
 
@@ -743,7 +743,7 @@ OpenFOAM uses several numerical safeguards at the C++ code level:
 
 // Prevent division by zero in Herschel-Bulkley
 volScalarField shearRate = max(strainRate,
-    dimensionedScalar("vSmall", dimRate, 1e-6));
+    dimensionedScalar ("vSmall", dimRate, 1e-6));
 
 // Viscosity bounding (Limiting)
 mu = max(muMin, min(muMax, mu_calculated));
@@ -1015,7 +1015,7 @@ transport.correct();                          // Update viscosity
 
 ### Key Papers
 - Bird, R. B., et al. (1977). "Dynamics of Polymer Liquids"
-- Herschel, W. H., & Bulkley, R. (1926). "Konsistenzmessungen von Gummi-Benzollösungen"
+- Herschel, W. H., & Bulkley, R. (1926). "Konsistenzmeasungen von Gummi-Benzollösungen"
 - Papanastasiou, T. C. (1987). "Flows of Materials with Yield"
 
 ### Related Documentation

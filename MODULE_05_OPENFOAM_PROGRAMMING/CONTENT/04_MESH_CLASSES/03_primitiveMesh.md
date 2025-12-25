@@ -36,7 +36,7 @@ sequenceDiagram
         M-->>S: Return volumes
     end
 ```
-> **Figure 1:** ลำดับขั้นตอนการทำงานของ Lazy Evaluation ใน `primitiveMesh` ซึ่งจะทำการคำนวณข้อมูลเรขาคณิตที่มีค่าใช้จ่ายสูงเฉพาะเมื่อมีการร้องขอจากโซลเวอร์เท่านั้น และจะจัดเก็บผลลัพธ์ไว้ในแคชเพื่อการใช้งานซ้ำอย่างมีประสิทธิภาพความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** ลำดับขั้นตอนการทำงานของ Lazy Evaluation ใน `primitiveMesh` ซึ่งจะทำการคำนวณข้อมูลเรขาคณิตที่มีค่าใช้จ่ายสูงเฉพาะเมื่อมีการร้องขอจากโซลเวอร์เท่านั้น และจะจัดเก็บผลลัพธ์ไว้ในแคชเพื่อการใช้งานซ้ำอย่างมีประสิทธิภาพ
 
 แนวทางนี้สะท้อนให้เห็นถึงวิธีการทำงานของ `primitiveMesh` ใน OpenFOAM อย่างแท้จริง แทนที่จะคำนวณและจัดเก็บคุณสมบัติทางเรขาคณิตทั้งหมดที่เป็นไปได้ล่วงหน้า มันจะเก็บข้อมูลทางโทโพโลยีขั้นต่ำและคำนวณคุณสมบัติทางเรขาคณิต **อย่างเฉื่อยช้า** เมื่อได้รับคำขอ จากนั้นทิ้งข้อมูลเหล่านั้นเพื่ออนุรักษ์หน่วยความจำ
 
@@ -114,6 +114,20 @@ private:
 };
 ```
 
+> **📍 แหล่งที่มา:** OpenFOAM Source Code  
+> **📂 เส้นทาง:** `src/OpenFOAM/meshes/primitiveMesh/primitiveMesh.H`  
+> 
+> **💡 คำอธิบาย:**
+> - **Demand-Driven Pattern**: การคำนวณเรขาคณิตเกิดขึ้นเมื่อมีการร้องขอจริงเท่านั้น ไม่ใช่การคำนวณล่วงหน้าทั้งหมด
+> - **mutable Keyword**: อนุญาตให้ปรับเปลี่ยนตัวแปรสมาชิกในฟังก์ชัน const เพื่อรองรับการแคช
+> - **autoPtr Smart Pointer**: จัดการหน่วยความจำอัตโนมัติ ป้องกันการรั่วไหล
+> - **clearGeom() Method**: ล้างค่าที่แคชไว้ทั้งหมดเมื่อโทโพโลยีเปลี่ยนแปลง
+> 
+> **🔑 แนวคิดสำคัญ:**
+> - Lazy Evaluation ประหยัดหน่วยความจำโดยการคำนวณเฉพาะที่จำเป็น
+> - Caching เพิ่มประสิทธิภาพโดยการเก็บผลลัพธ์ไว้ใช้ซ้ำ
+> - Automatic Invalidation รับประกันความถูกต้องหลังการเปลี่ยนแปลง mesh
+
 #### **ส่วนประกอบสำคัญ**
 
 - **`mutable` keyword**: อนุญาตให้แก้ไขตัวแปรสมาชิกใน const methods โดยยังคง logical constness
@@ -161,6 +175,20 @@ public:
 };
 ```
 
+> **📍 แหล่งที่มา:** OpenFOAM Source Code  
+> **📂 เส้นทาง:** `src/OpenFOAM/meshes/primitiveMesh/primitiveMesh.H`  
+> 
+> **💡 คำอธิบาย:**
+> - **Cell-to-Cell Connectivity**: อาร์เรย์ที่เชื่อมโยงเซลล์ข้างเคียง ใช้สำหรับการคำนวณ gradient และ flux
+> - **Point-to-Cell Connectivity**: ระบุเซลล์ทั้งหมดที่แชร์จุดหนึ่งๆ ใช้สำหรับการค้นหาเซลล์รอบๆ จุด
+> - **Edge-to-Cell Connectivity**: ระบุเซลล์ข้างเคียงของขอบ ใช้สำหรับการจัดการขอบเขตและ refinement
+> - **Boundary Detection**: ตรวจสอบว่าหน้าเป็น internal face หรือ boundary face
+> 
+> **🔑 แนวคิดสำคัญ:**
+> - Topological Queries ที่มีประสิทธิภาพสำคัญสำหรับ finite volume method
+> - Precomputed Connectivity Arrays ลดเวลาการค้นหา
+> - Boundary Detection ใช้ระบบ owner-neighbour ของ OpenFOAM
+
 #### **ประเภทการเชื่อมต่อ**
 
 | ประเภทการเชื่อมต่อ | คำอธิบาย | การใช้งาน |
@@ -198,7 +226,8 @@ public:
     scalar nonOrthogonality(const label faceI) const
     {
         // Calculate angle between face normal and cell centre vector
-        vector d = cellCentres()[neighbour()[faceI]] - cellCentres()[owner()[faceI]];
+        vector d = cellCentres()[neighbour()[faceI]] 
+                  - cellCentres()[owner()[faceI]];
         vector Sf = faceAreas()[faceI];
 
         scalar magSf = mag(Sf);
@@ -230,7 +259,8 @@ public:
         if (magD > VSMALL)
         {
             // Project face centre onto line between cell centres
-            vector proj = ownC + ((faceC - ownC) & d) * d / (magD * magD);
+            vector proj = ownC + ((faceC - ownC) & d) * d 
+                                   / (magD * magD);
 
             // Skewness = distance from projection / distance between centres
             return mag(faceC - proj) / (magD + VSMALL);
@@ -240,6 +270,20 @@ public:
     }
 };
 ```
+
+> **📍 แหล่งที่มา:** OpenFOAM Source Code  
+> **📂 เส้นทาง:** `src/OpenFOAM/meshes/primitiveMesh/primitiveMeshGeometry.C`  
+> 
+> **💡 คำอธิบาย:**
+> - **Non-orthogonality**: วัดความเบี่ยงเบนระหว่างเวกเตอร์ปกติของหน้าและเส้นเชื่อมจุดศูนย์กลางเซลล์
+> - **Skewness**: วัดระยะห่างระหว่างจุดศูนย์ถ่วงหน้าและเส้นเชื่อมจุดศูนย์กลางเซลล์
+> - **Numerical Safety**: ใช้ VSMALL เพื่อป้องกันการหารด้วยศูนย์
+> - **Clamping**: จำกัดค่า cosAngle ในช่วง [-1, 1] เพื่อป้องกันข้อผิดพลาดโดเมน
+> 
+> **🔑 แนวคิดสำคัญ:**
+> - Mesh Quality ส่งผลโดยตรงต่อความเสถียรและความแม่นยำของการจำลอง
+> - Non-orthogonality สูง (>70°) อาจทำให้เกิดปัญหาการบรรจบ
+> - Skewness สูงส่งผลต่อความถูกต้องของ gradient calculation
 
 #### **การคำนวณ Non-orthogonality**
 
@@ -343,7 +387,7 @@ $$
 **ตัวแปร:**
 - $\mathbf{C}_{f,i}$ = จุดศูนย์ถ่วงของหน้าผิว $i$
 - $\mathbf{S}_{f,i}$ = เวกเตอร์พื้นที่หน้าผิว $i$
-- แต่ละหน้าผิวมีส่วนร่วม $\frac{1}{3} \mathbf{C}_f \cdot \mathbf{S}_f$
+- แต่ละหน้าผิวมีส่วนร่วน $\frac{1}{3} \mathbf{C}_f \cdot \mathbf{S}_f$
 
 **พื้นฐานทางคณิตศาสตร์:**
 สูตรนี้มาจาก $\nabla \cdot \mathbf{r} = 3$ และการใช้ทฤษฎีบท divergence ของ Gauss:
@@ -421,19 +465,19 @@ $$C_{\text{total}} = C_{\text{computation}} + C_{\text{memory\_access}}$$
 พิจารณา loop ของ solver แบบทั่วไปใน CFD:
 
 ```cpp
-// แนวทางแบบดั้งเดิม - คำนวณล่วงหน้า
+// Traditional approach - precomputed
 for (int i = 0; i < nCells; i++) {
-    scalar volume = cellVolumes[i];        // ค้นหาโดยตรง
-    vector center = cellCentroids[i];     // ค้นหาโดยตรง
-    // ... การคำนวณ
+    scalar volume = cellVolumes[i];        // Direct lookup
+    vector center = cellCentroids[i];     // Direct lookup
+    // ... computations
 }
 
-// แนวทาง lazy evaluation
+// Lazy evaluation approach
 for (int i = 0; i < nCells; i++) {
-    scalar volume = mesh.V()[i];          // คำนวณถ้าไม่มีใน cache
-    vector center = mesh.C()[i];          // คำนวณถ้าไม่มีใน cache
-    // ... การคำนวณ
-}                                        // ผลลัพธ์อาจถูกทิ้ง
+    scalar volume = mesh.V()[i];          // Compute if not in cache
+    vector center = mesh.C()[i];          // Compute if not in cache
+    // ... computations
+}                                        // Results may be discarded
 ```
 
 ### **สถานการณ์การใช้งาน**
@@ -474,22 +518,22 @@ private:
     const primitiveMesh& mesh_;
 
 public:
-    // ❌ ไม่ดี: เก็บการอ้างอิงเรขาคณิต
+    // ❌ BAD: Store geometric references
     // const vectorField& storedCentres_;
 
-    // ✅ ดี: เก็บการอ้างอิงเมชเท่านั้น
+    // ✅ GOOD: Store mesh reference only
     MeshProcessor(const primitiveMesh& mesh) : mesh_(mesh) {}
 
     void process()
     {
-        // ✅ ดึงข้อมูลเรขาคณิตใหม่เมื่อต้องการ
+        // ✅ Retrieve fresh geometry when needed
         const vectorField& centres = mesh_.cellCentres();
         processCentres(centres);
 
-        // ถ้าเมชเปลี่ยนแปลง...
+        // If mesh changes...
         // mesh_.clearGeom();
 
-        // ✅ ดึงข้อมูลใหม่หลังจากการเปลี่ยนแปลง
+        // ✅ Retrieve again after changes
         const vectorField& newCentres = mesh_.cellCentres();
         processCentres(newCentres);
     }
@@ -497,7 +541,7 @@ public:
 private:
     void processCentres(const vectorField& centres)
     {
-        // ประมวลผลทันที ไม่เก็บการอ้างอิงไว้
+        // Process immediately, don't store reference
         forAll(centres, cellI)
         {
             centreOperations(centres[cellI], cellI);
@@ -505,6 +549,20 @@ private:
     }
 };
 ```
+
+> **📍 แหล่งที่มา:** OpenFOAM Best Practices  
+> **📂 เส้นทาง:** `src/OpenFOAM/meshes/primitiveMesh/`  
+> 
+> **💡 คำอธิบาย:**
+> - **Reference Lifetime Problem**: การเก็บ reference ไปยัง cached geometry อาจกลายเป็น dangling reference
+> - **clearGeom() Effect**: เมื่อ mesh เปลี่ยนแปลง cached data จะถูกล้าง
+> - **Safe Pattern**: เก็บ mesh reference เท่านั้น และดึง geometry ใหม่ทุกครั้ง
+> - **Process-Immediately Pattern**: ประมวลผล geometry ทันทีโดยไม่เก็บ reference
+> 
+> **🔑 แนวคิดสำคัญ:**
+> - Cache Invalidation เป็นปัญหาสำคัญในการจัดการ mesh
+> - Lazy Evaluation ต้องใช้อย่างระมัดระวังเมื่อมีการเปลี่ยนแปลง topology
+> - Safe Pattern คือการดึง geometry ใหม่เสมอหลังการเปลี่ยนแปลง
 
 ---
 
@@ -545,7 +603,7 @@ class OptimizedMeshProcessor
 private:
     const primitiveMesh& mesh_;
 
-    // ✅ แคชในเครื่องสำหรับเรขาคณิตที่ใช้ภายในขอบเขตการประมวลผล
+    // ✅ Local cache for geometry used within processing scope
     mutable struct GeometryCache
     {
         vectorField cellCentres;
@@ -559,16 +617,16 @@ private:
 public:
     void processWithCaching()
     {
-        // ✅ คำนวณเรขาคณิตที่จำเป็นทั้งหมดล่วงหน้า
+        // ✅ Compute all necessary geometry upfront
         updateGeometryCache();
 
-        // ใช้ข้อมูลที่แคชไว้ตลอดการประมวลผล
+        // Use cached geometry throughout processing
         for (int iter = 0; iter < 1000; ++iter)
         {
             processIteration(cache_.cellCentres, iter);
         }
 
-        // ล้างแคชเมื่อเสร็จสิ้น
+        // Clear cache when done
         clearCache();
     }
 
@@ -594,18 +652,34 @@ private:
 
     void processIteration(const vectorField& centres, int iter)
     {
-        // ✅ ใช้เรขาคณิตที่แคชไว้อย่างมีประสิทธิภาพ
+        // ✅ Use cached geometry efficiently
         scalar totalDistance = 0;
         forAll(centres, cellI)
         {
-            totalDistance += mag(centres[cellI] - vector(iter*0.001, 0, 0));
+            totalDistance += mag(centres[cellI] 
+                               - vector(iter*0.001, 0, 0));
         }
 
-        // ดำเนินการเฉพาะรอบ
-        Info << "รอบที่ " << iter << ", ระยะทางรวม: " << totalDistance << nl;
+        // Iteration-specific operations
+        Info << "Iteration " << iter 
+             << ", Total distance: " << totalDistance << nl;
     }
 };
 ```
+
+> **📍 แหล่งที่มา:** OpenFOAM Optimization Patterns  
+> **📂 เส้นทาง:** `src/OpenFOAM/meshes/primitiveMesh/`  
+> 
+> **💡 คำอธิบาย:**
+> - **Local Caching Strategy**: สร้าง cache ภายในคลาสเพื่อลดการคำนวณซ้ำ
+> - **Scope-Limited Cache**: cache มีอายุการใช้งานที่ชัดเจน
+> - **Batch Update**: คำนวณ geometry ทั้งหมดในครั้งเดียว
+> - **Explicit Cache Management**: มีการจัดการ cache lifecycle ที่ชัดเจน
+> 
+> **🔑 แนวคิดสำคัญ:**
+> - Trade-off ระหว่างหน่วยความจำและ CPU time
+> - Local cache ปลอดภัยกว่า global cache
+> - Explicit cache management ลดความเสี่ยงของ stale data
 
 ##### **กลยุทธ์ที่ 2: การประมวลผลเป็นชุด**
 
@@ -618,13 +692,13 @@ private:
 public:
     void processBatchOperations()
     {
-        // ✅ จัดกลุ่มการดำเนินการเรขาคณิตทั้งหมดไว้ด้วยกัน
+        // ✅ Group all geometric operations together
         const vectorField& cellCentres = mesh_.cellCentres();
         const vectorField& faceCentres = mesh_.faceCentres();
         const scalarField& cellVolumes = mesh_.cellVolumes();
         const vectorField& faceAreas = mesh_.faceAreas();
 
-        // ประมวลผลการดำเนินการทั้งหมดในครั้งเดียว
+        // Process all operations in one pass
         processVolumeDistribution(cellVolumes);
         processCenterOfMass(cellCentres, cellVolumes);
         processFluxCalculation(faceAreas, faceCentres);
@@ -637,11 +711,11 @@ private:
         scalar totalVolume = sum(V);
         scalar meanVolume = totalVolume / V.size();
 
-        Info << "สถิติปริมาตร:" << nl
-             << "  รวม: " << totalVolume << nl
-             << "  เฉลี่ย: " << meanVolume << nl
-             << "  ต่ำสุด: " << min(V) << nl
-             << "  สูงสุด: " << max(V) << nl;
+        Info << "Volume statistics:" << nl
+             << "  Total: " << totalVolume << nl
+             << "  Mean: " << meanVolume << nl
+             << "  Min: " << min(V) << nl
+             << "  Max: " << max(V) << nl;
     }
 
     void processCenterOfMass(
@@ -661,7 +735,7 @@ private:
         if (totalVolume > SMALL)
         {
             vector centerOfMass = weightedSum / totalVolume;
-            Info << "จุดศูนย์กลางมวล: " << centerOfMass << nl;
+            Info << "Center of mass: " << centerOfMass << nl;
         }
     }
 
@@ -670,19 +744,19 @@ private:
         const vectorField& faceCentres
     ) const
     {
-        // ตัวอย่าง: คำนวณขนาด flux ออกทั้งหมด
+        // Example: Calculate total outward flux magnitude
         scalar totalOutwardFlux = 0;
 
         forAll(areas, faceI)
         {
             if (!mesh_.isInternalFace(faceI))
             {
-                // หน้าขอบเขต - ประมาณ flux ออก
+                // Boundary face - approximate outward flux
                 totalOutwardFlux += mag(areas[faceI]);
             }
         }
 
-        Info << "พื้นที่ขอบเขตทั้งหมด: " << totalOutwardFlux << nl;
+        Info << "Total boundary area: " << totalOutwardFlux << nl;
     }
 
     void processQualityMetrics(
@@ -690,17 +764,32 @@ private:
         const vectorField& faceAreas
     ) const
     {
-        // การตรวจสอบคุณภาพแบบง่าย
+        // Simple quality check
         scalar meanFaceArea = sum(mag(faceAreas)) / faceAreas.size();
         scalar maxFaceArea = max(mag(faceAreas));
         scalar minFaceArea = min(mag(faceAreas));
 
-        Info << "สถิติพื้นที่หน้า:" << nl
-             << "  เฉลี่ย: " << meanFaceArea << nl
-             << "  อัตราส่วนสูงสุด/ต่ำสุด: " << maxFaceArea/max(minFaceArea, SMALL) << nl;
+        Info << "Face area statistics:" << nl
+             << "  Mean: " << meanFaceArea << nl
+             << "  Max/min ratio: " 
+             << maxFaceArea/max(minFaceArea, SMALL) << nl;
     }
 };
 ```
+
+> **📍 แหล่งที่มา:** OpenFOAM Batch Processing Patterns  
+> **📂 เส้นทาง:** `src/OpenFOAM/meshes/primitiveMesh/`  
+> 
+> **💡 คำอธิบาย:**
+> - **Batch Processing**: รวบรวมการดำเนินการทั้งหมดที่ต้องใช้ geometry เดียวกัน
+> - **Single Geometry Query**: ดึง geometry แต่ละชนิดเพียงครั้งเดียว
+> - **Integrated Analysis**: ประมวลผลการวิเคราะห์ทั้งหมดในครั้งเดียว
+> - **Memory Efficiency**: ปล่อย geometry reference หลังจากเสร็จสิ้น
+> 
+> **🔑 แนวคิดสำคัญ:**
+> - Batch Processing ลด overhead ของ geometry calculation
+> - Single Pass Algorithm เพิ่มประสิทธิภาพ cache usage
+> - Scoped Resource Management ลดความเสี่ยงของ memory leaks
 
 #### **ประสิทธิภาพของกลยุทธ์แคช**
 
@@ -728,34 +817,46 @@ void iterativeMeshRefinement(primitiveMesh& mesh, int nIterations)
 {
     for (int iter = 0; iter < nIterations; ++iter)
     {
-        // ✅ สร้างขอบเขตใหม่สำหรับการทำซ้ำแต่ละครั้ง
+        // ✅ Create new scope for each iteration
         {
             const vectorField& centres = mesh.cellCentres();
 
-            // ประมวลผลด้วยเรขาคณิตปัจจุบัน
+            // Process with current geometry
             performRefinementStep(mesh, centres);
 
-            // เรขาคณิตจะถูกทำความสะอาดเมื่อจำเป็น
+            // Geometry will be cleaned if necessary
         }
 
-        // ปรับเปลี่ยนเมช
+        // Modify mesh
         modifyMeshGeometry(mesh);
 
-        // การทำซ้ำถัดไปจะมีเรขาคณิตใหม่
+        // Next iteration will have fresh geometry
     }
 }
 ```
+
+> **📍 แหล่งที่มา:** OpenFOAM Mesh Refinement Patterns  
+> **📂 เส้นทาง:** `src/dynamicMesh/`  
+> 
+> **💡 คำอธิบาย:**
+> - **Scoped Pattern**: ใช้ scope `{}` เพื่อจำกัดอายุของ geometry reference
+> - **Fresh Geometry**: แต่ละ iteration ดึง geometry ใหม่ ป้องกัน stale data
+> - **Automatic Cleanup**: scope จัดการ lifetime อัตโนมัติ
+> 
+> **🔑 แนวคิดสำคัญ:**
+> - Scope-based Resource Management ลดความเสี่ยงของ dangling references
+> - Iterative Refinement ต้องการ geometry ใหม่ทุกรอบ
 
 #### **กรณีที่ 2: การวิเคราะห์แบบขนาน**
 
 ```cpp
 void parallelMeshAnalysis(const primitiveMesh& mesh)
 {
-    // ✅ แคชเรขาคณิตครั้งเดียวสำหรับการใช้งานขนาน
+    // ✅ Cache geometry once for parallel use
     const vectorField& centres = mesh.cellCentres();
     const scalarField& volumes = mesh.cellVolumes();
 
-    // ประมวลผลขนานโดยใช้เรขาคณิตที่แคชไว้
+    // Parallel processing using cached geometry
     #pragma omp parallel for
     for (int cellI = 0; cellI < centres.size(); ++cellI)
     {
@@ -763,6 +864,18 @@ void parallelMeshAnalysis(const primitiveMesh& mesh)
     }
 }
 ```
+
+> **📍 แหล่งที่มา:** OpenFOAM Parallel Processing  
+> **📂 เส้นทาง:** `src/OpenFOAM/meshes/primitiveMesh/`  
+> 
+> **💡 คำอธิบาย:**
+> - **Single Cache for Parallel**: แคช geometry ครั้งเดียวสำหรับทุก thread
+> - **Read-Only Access**: parallel threads อ่าน geometry แบบ read-only
+> - **Thread-Safe**: const reference รับประกัน thread safety
+> 
+> **🔑 แนวคิดสำคัญ:**
+> - Parallel Processing ต้องการการจัดการ cache อย่างพิถีพิถัน
+> - Read-Only Access ปลอดภัยสำหรับ multi-threading
 
 ---
 

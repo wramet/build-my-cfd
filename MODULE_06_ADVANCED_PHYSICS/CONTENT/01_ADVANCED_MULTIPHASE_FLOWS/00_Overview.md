@@ -49,7 +49,7 @@ graph TD
 | **01** | [Phase Change Modeling](./01_Phase_Change_Modeling.md) | ฟิสิกส์ของการเดือดและการควบแน่น, แบบจำลอง Hertz-Knudsen และ Lee |
 | **02** | [Cavitation Modeling](./02_Cavitation_Modeling.md) | กลไกการเกิดโพรง, แบบจำลอง Schnerr-Sauer, Kunz และ Merkle |
 | **03** | [Population_Balance_Modeling](./03_Population_Balance_Modeling.md) | สมการ PBE, QMOM, การรวมตัว (Coalescence) และการแตกตัว (Breakup) |
-| **04** | [Complex Interfacial Forces](./04_Complex_Interfacial_Forces.md) | แรงยก, มวลเสมือน, การหล่อลื่นผนัง และการกระจายแบบปั่นป่วน |
+| **04** | [Complex Interfacial Forces](./04_Complex_Interfacial_Forces.md) | แรงยก, มวลเสมือน, การหล่อลื่นผนัง และการกระจายแบบปั่นป่วย |
 | **05** | [Eulerian Multiphase Solvers](./05_Eulerian_Multiphase_Solvers.md) | โครงสร้างของ `reactingTwoPhaseEulerFoam` และความสัมพันธ์การปิด |
 | **06** | [Numerical Methods & VOF](./06_Numerical_Methods_and_VOF.md) | อัลกอริทึม MULES, การบีบอัดอินเตอร์เฟซ และเสถียรภาพเชิงตัวเลข |
 
@@ -99,13 +99,29 @@ $$
 ### OpenFOAM Code Implementation
 
 ```cpp
-// การคำนวณอัตราการเปลี่ยนสถานะ
+// Calculate phase change mass transfer rate
+// คำนวณอัตราการถ่ายโอนมวลจากการเปลี่ยนสถานะเฟส
 volScalarField mDotL
 (
     "mDotL",
     hLv_/Tsat_ * (qDot_/hLv_ + alphaL_*rhoL_*(TL_-Tsat_)/deltaT_)
 );
 ```
+
+> **คำอธิบายสำหรับนักพัฒนา:**
+>
+> **📂 Source:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/ThermalPhaseChangePhaseSystem/ThermalPhaseChangePhaseSystem.C`
+>
+> **การอธิบาย:**
+> - โค้ดนี้คำนวณอัตราการเปลี่ยนสถานะ ($\dot{m}''$) โดยใช้แบบจำลอง Hertz-Knudsen หรือแบบจำลองลักษณะเดียวกัน
+> - พจน์แรกในวงเล็บคือการถ่ายโอนความร้อน ($q''/h_{lv}$)
+> - พจน์ที่สองคือการเปลี่ยนสถานะที่ขับเคลื่อนด้วยอุณหภูมิ ($\alpha_l \rho_l (T_l - T_{sat})/\Delta t$)
+> - ค่าสัมประสิทธิ์ $h_{lv}/T_{sat}$ เป็นการปรับสเกลตามหลักเทอร์โมไดนามิก
+>
+> **หัวข้อสำคัญ:**
+> - `volScalarField`: Field สเกลาร์บนเซลล์กริด
+> - `hLv_`, `Tsat_`, `qDot_`, `alphaL_`, `rhoL_`, `TL_`, `deltaT_`: ตัวแปรสมาชิกที่กำหนดค่าไว้ก่อนหน้านี้
+> - การดำเนินการทางคณิตศาสตร์ใน OpenFOAM รองรับ dimensional consistency อัตโนมัติ
 
 ---
 
@@ -133,7 +149,8 @@ $$
 - $n_b$: ความหนาแน่นจำนวนฟอง ($1/m^3$)
 
 ```cpp
-// คำนวณรัศมีฟอง Schnerr-Sauer
+// Calculate bubble radius using Schnerr-Sauer model
+// คำนวณรัศมีฟองโดยใช้แบบจำลอง Schnerr-Sauer
 volScalarField bubbleRadius
 (
     max
@@ -143,6 +160,21 @@ volScalarField bubbleRadius
     )
 );
 ```
+
+> **คำอธิบายสำหรับนักพัฒนา:**
+>
+> **📂 Source:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/CavitationPhaseSystem/CavitationPhaseSystem.C`
+>
+> **การอธิบาย:**
+> - โค้ดนี้คำนวณรัศมีฟอง ($R$) จากสัดส่วนระดับไอ ($\alpha_v$) และความหนาแน่นจำนวนฟอง ($n_b$)
+> - ฟังก์ชัน `pow()` ใช้สำหรับยกกำลังตามสมการ $R = (3\alpha_v/4\pi n_b)^{1/3}$
+> - ฟังก์ชัน `max()` ใช้สำหรับบังคับให้รัศมีฟองไม่ต่ำกว่าค่าต่ำสุด (1e-6 m)
+>
+> **หัวข้อสำคัญ:**
+> - `constant::mathematical::pi`: ค่าคงที่ π จากไลบรารี OpenFOAM
+> - `dimensionedScalar`: สเกลาร์ที่มีหน่วยกำกับ (dimension-aware)
+> - `dimLength`: หน่วยความยาว (meter)
+> - `minR`: รัศมีขั้นต่ำที่ใช้ป้องกันปัญหาทางคณิตศาสตร์ (ค่าน้อยมาก)
 
 ---
 
@@ -170,17 +202,34 @@ $$
 3. ปิดระบบสมการโดยใช้สมมติฐานการกระจายขนาด
 
 ```cpp
-// การคำนวณโมเมนต์ที่ k
+// Calculate the k-th moment of the particle size distribution
+// คำนวณโมเมนต์ที่ k ของการกระจายขนาดอนุภาค
 Mk[k] = fvc::domainIntegrate(Lk[k]*n).value();
 ```
 
+> **คำอธิบายสำหรับนักพัฒนา:**
+>
+> **📂 Source:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **การอธิบาย:**
+> - โค้ดนี้คำนวณโมเมนต์ที่ k ($M_k$) จากการกระจายขนาดอนุภาค ($n$)
+> - ฟังก์ชัน `fvc::domainIntegrate()` ใช้สำหรับคำนวณปริพันธ์บนโดเมนทั้งหมด
+> - `Lk[k]`: เลขยกกำลัง $L^k$ สำหรับโมเมนต์ที่ k
+> - `n`: ฟังก์ชันความหนาแน่นจำนวน (number density function)
+>
+> **หัวข้อสำคัญ:**
+> - `fvc::`: Finite Volume Calculus namespace สำหรับการดำเนินการเชิงอนุพันธ์
+> - `domainIntegrate()`: คำนวณปริพันธ์ปริมาตรบนทั้งโดเมน
+> - `.value()`: ดึงค่าสเกลาร์ออกจาก field
+> - โมเมนต์ใช้สำหรับสรุปการกระจายขนาดโดยไม่ต้องติดตามทุกขนาด
+
 ---
 
-## 4. แรงอินเตอร์เฟสเชิงซ้อน
+## 4. แรงอินเตอร์เฟซเชิงซ้อน
 
-### 4.1 แรงอินเตอร์เฟสแบบทัวร์บูลเลนท์
+### 4.1 แรงอินเตอร์เฟซแบบทัวร์บูลเลนท์
 
-**แรงอินเตอร์เฟสแบบทัวร์บูลเลนท์** มีผลต่อการเคลื่อนที่ของฟองในกระแสทัวร์บูลเลนท์
+**แรงอินเตอร์เฟซแบบทัวร์บูลเลนท์** มีผลต่อการเคลื่อนที่ของฟองในกระแสทัวร์บูลเลนท์
 
 $$
 \mathbf{F}_{TI} = C_{TD} \rho_c \epsilon^{2/3} d_b^{5/3}
@@ -244,7 +293,8 @@ $$
 **โพลิไดสเปิร์ส** (Polydisperse) คือระบบที่มีการกระจายขนาดของอนุภาคหรือฟอง
 
 ```cpp
-// การจัดการกับการกระจายขนาดแบบ polydisperse
+// Manage population balance models for polydisperse systems
+// จัดการโมเดลสมดุลประชากรสำหรับระบบที่มีการกระจายขนาด
 PtrList<populationBalanceModel> popBalances(populationBalanceModelsNames.size());
 forAll(popBalances, i)
 {
@@ -259,6 +309,23 @@ forAll(popBalances, i)
     );
 }
 ```
+
+> **คำอธิบายสำหรับนักพัฒนา:**
+>
+> **📂 Source:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
+>
+> **การอธิบาย:**
+> - โค้ดนี้สร้างและจัดการรายการของโมเดลสมดุลประชากร (population balance models)
+> - `PtrList<>`: รายการ pointer ที่จัดการหน่วยความจำอัตโนมัติ
+> - `populationBalanceModel::New()`: Factory method สำหรับสร้างโมเดลจาก dictionary
+> - `forAll`: Loop ที่วนซ้ำบนทุก element ใน container
+>
+> **หัวข้อสำคัญ:**
+> - `PtrList<>`: Container แบบ pointer ที่เก็บ object แบบ dynamic
+> - `.set()`: กำหนด pointer ในตำแหน่งที่ระบุ
+> - `.ptr()`: แปลง autoPtr หรือ tmp เป็น raw pointer
+> - `*this`: ส่ง reference ของ object ปัจจุบันไปยัง constructor
+> - ใช้สำหรับระบบที่มีหลาย population balance models พร้อมกัน
 
 ---
 
@@ -293,7 +360,7 @@ $$
 
 ## 7. การไหลแบบหลายเฟสที่ไม่ใช่ไอโซเทอร์มัล
 
-### การเชื่อมโยงสมการพลังงานและความร้อนอินเตอร์เฟส
+### การเชื่อมโยงสมการพลังงานและความร้อนอินเตอร์เฟซ
 
 **การไหลแบบไม่ใช่ไอโซเทอร์มัล** ต้องพิจารณาการถ่ายโอนความร้อนระหว่างเฟส
 
@@ -310,7 +377,7 @@ $$
 - $Q_k$: แหล่งความร้อนภายในของเฟส k ($W/m^3$)
 - $Q_{ik}$: การถ่ายโอนความร้อนระหว่างเฟส ($W/m^3$)
 
-### การถ่ายโอนความร้อนอินเตอร์เฟส
+### การถ่ายโอนความร้อนอินเตอร์เฟซ
 
 $$
 Q_{ik} = h_{ik} A_{ik} (T_i - T_k)
@@ -318,20 +385,20 @@ $$
 
 **ตัวแปร:**
 - $h_{ik}$: สัมประสิทธิ์การถ่ายโอนความร้อนระหว่างเฟส i และ k ($W/m^2K$)
-- $A_{ik}$: พื้นที่อินเตอร์เฟสระหว่างเฟส i และ k ($m^2/m^3$)
+- $A_{ik}$: พื้นที่อินเตอร์เฟซระหว่างเฟส i และ k ($m^2/m^3$)
 
 ---
 
 ## 8. วิธีการเชิงตัวเลขขั้นสูง
 
-### 8.1 วิธีการจับอินเตอร์เฟส
+### 8.1 วิธีการจับอินเตอร์เฟซ
 
 **VOF (Volume of Fluid) Method**
-- ใช้ฟังก์ชันสี $\alpha$ สำหรับการกำหนดตำแหน่งอินเตอร์เฟส
+- ใช้ฟังก์ชันสี $\alpha$ สำหรับการกำหนดตำแหน่งอินเตอร์เฟซ
 - $0 \leq \alpha \leq 1$ โดย $\alpha = 0$ สำหรับเฟส 1 และ $\alpha = 1$ สำหรับเฟส 2
 
 **Level Set Method**
-- ใช้ฟังก์ชันระยะทาง $\phi$ โดย $\phi = 0$ บนอินเตอร์เฟส
+- ใช้ฟังก์ชันระยะทาง $\phi$ โดย $\phi = 0$ บนอินเตอร์เฟซ
 - $\phi > 0$ สำหรับเฟส 1 และ $\phi < 0$ สำหรับเฟส 2
 
 ### 8.2 เสถียรภาพและการลู่เข้า
@@ -345,7 +412,7 @@ $$
 **การเพิ่มความเสถียร:**
 - ใช้ under-relaxation สำหรับสมการโมเมนตัม
 - จำกัดความเร็วสัมพัทธ์ระหว่างเฟส
-- ใช้ numerical diffusion สำหรับการจับอินเตอร์เฟส
+- ใช้ numerical diffusion สำหรับการจับอินเตอร์เฟซ
 
 ---
 
@@ -438,26 +505,45 @@ $$
 1. สร้างเรขาคณิตด้วย blockMesh
 2. ตั้งค่าเงื่อนไขขอบเขตสำหรับความร้อน
 3. กำหนดโมเดลการเปลี่ยนสถานะ
-4. กำหนดโมเดลความร้อนอินเตอร์เฟส
+4. กำหนดโมเดลความร้อนอินเตอร์เฟซ
 5. รันการจำลองและวิเคราะห์ผลลัพธ์
 
 ### บทช่วยสอนที่ 2: การไหลของฟองแบบลูกฟอง
 
 **การ implement:**
 ```bash
-# สร้างเคสสำหรับการไหลของฟอง
+# Create a case for bubble flow simulation
+# สร้างเคสสำหรับการจำลองการไหลของฟอง
 cp -r $FOAM_TUTORIALS/multiphase/multiphaseEulerFoam/bubbleColumn bubbleColumnCase
 cd bubbleColumnCase
+# Modify settings as needed
 # แก้ไขการตั้งค่าตามความต้องการ
 blockMesh
 multiphaseEulerFoam
 ```
 
+> **คำอธิบายสำหรับนักพัฒนา:**
+>
+> **📂 Source:** OpenFOAM Tutorial Files
+>
+> **การอธิบาย:**
+> - คำสั่งนี้คัดลอกเคสตัวอย่าง bubbleColumn จาก tutorials ของ OpenFOAM
+> - `$FOAM_TUTORIALS`: Environment variable ที่ชี้ไปยัง directory tutorials
+> - `multiphaseEulerFoam`: Solver สำหรับการจำลองหลายเฟสแบบ Eulerian
+> - ใช้สำหรับเรียนรู้การตั้งค่าและรันการจำลองการไหลของฟอง
+>
+> **หัวข้อสำคัญ:**
+> - `cp -r`: คัดลอก directory พร้อม subdirectories ทั้งหมด
+> - `blockMesh`: สร้าง mesh จาก blockMeshDict
+> - `multiphaseEulerFoam`: Run solver สำหรับหลายเฟส
+> - ต้องตั้งค่า boundary conditions, initial conditions และ physical properties ก่อนรัน
+
 ### บทช่วยสอนที่ 3: การแควิเทชันในไฮดรอลิก
 
 **การเพิ่มโมเดลแควิเทชัน:**
 ```cpp
-// ใน constant/transportProperties
+// In constant/transportProperties dictionary
+// ในไฟล์ constant/transportProperties
 phase1
 {
     type            cavitationModel;
@@ -471,6 +557,22 @@ phase1
 }
 ```
 
+> **คำอธิบายสำหรับนักพัฒนา:**
+>
+> **📂 Source:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/CavitationPhaseSystem/CavitationPhaseSystem.C`
+>
+> **การอธิบาย:**
+> - การตั้งค่านี้กำหนดโมเดลแควิเทชัน Schnerr-Sauer สำหรับ phase1
+> - `type`: ระบุว่าเป็น cavitation model
+> - `cavitationModel`: เลือกแบบจำลอง Schnerr-Sauer
+> - `SchnerrSauerCoeffs`: พารามิเตอร์เฉพาะสำหรับโมเดลนี้
+>
+> **หัวข้อสำคัญ:**
+> - `nBubbles`: ความหนาแน่นของจำนวนฟอง (1/m³)
+> - `pSat`: ความดันไอ saturated (Pa)
+> - `dNucleation`: เส้นผ่านศูนย์กลางแกนกำเนิด (m)
+> - ค่าเหล่านี้ส่งผลต่อการคำนวณรัศมีฟองและอัตราการเกิด/สลายตัวของฟอง
+
 ---
 
 ## 13. แนวปฏิบัติที่ดีและการแก้ปัญหา
@@ -480,13 +582,13 @@ phase1
 | ปัญหา | สาเหตุ | การแก้ไข |
 |--------|--------|------------|
 | การไม่ลู่เข้าของการจำลอง | เงื่อนไขเริ่มต้นไม่ดี | ใช้การค่อยๆ ปรับค่า |
-| การสั่นของความดัน | การจับอินเตอร์เฟสที่ไม่ดี | เพิ่ม compression factor |
-| ปัญหาความเร็วสูงเกินไป | การเสียดสีมากเกินไป | ปรับความหนืดของอินเตอร์เฟส |
+| การสั่นของความดัน | การจับอินเตอร์เฟซที่ไม่ดี | เพิ่ม compression factor |
+| ปัญหาความเร็วสูงเกินไป | การเสียดสีมากเกินไป | ปรับความหนืดของอินเตอร์เฟซ |
 
 ### กลยุทธ์การเพิ่มประสิทธิภาพ
 
 1. **การปรับแต่ง mesh**
-   - ใช้ mesh ละเอียดใกล้อินเตอร์เฟส
+   - ใช้ mesh ละเอียดใกล้อินเตอร์เฟซ
    - ใช้ adaptive mesh refinement
 
 2. **การเลือกโมเดลทางกายภาพที่เหมาะสม**
