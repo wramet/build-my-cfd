@@ -7,14 +7,17 @@
 
 ```mermaid
 flowchart TD
-    T["Tensor Types"]
-    T --> T9["tensor<br/><b>9 Components</b><br/>Full Matrix"]
-    T --> T6["symmTensor<br/><b>6 Components</b><br/>Symmetric Matrix"]
-    T --> T1["sphericalTensor<br/><b>1 Component</b><br/>Identity Scale"]
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
+T["Tensor Types"]:::context
 
-    style T9 fill:#e3f2fd,stroke:#1565c0
-    style T6 fill:#fff9c4,stroke:#fbc02d
-    style T1 fill:#e8f5e9,stroke:#2e7d32
+subgraph Variants[" Optimized Storage "]
+    T --> T9["tensor<br/><b>9 Components</b><br/>Full Matrix"]:::implicit
+    T --> T6["symmTensor<br/><b>6 Components</b><br/>Symmetric Matrix"]:::implicit
+    T --> T1["sphericalTensor<br/><b>1 Component</b><br/>Identity Scale"]:::implicit
+end
 ```
 > **Figure 1:** การจำแนกประเภทเทนเซอร์ตามจำนวนองค์ประกอบอิสระ ซึ่งส่งผลต่อความซับซ้อนของข้อมูลและประสิทธิภาพในการใช้หน่วยความจำความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
@@ -544,15 +547,18 @@ void processTensor(const Type& tensor) {
 
 ```mermaid
 flowchart LR
-    A[Physical Quantity] --> B{Symmetry?}
-    B -->|No Symmetry| C[tensor<br/>9 components<br/>100% memory]
-    B -->|Symmetric| D{Isotropic?}
-    D -->|Yes| E[sphericalTensor<br/>1 component<br/>11% memory]
-    D -->|No| F[symmTensor<br/>6 components<br/>67% memory]
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
+A["Physical Quantity"]:::explicit --> B{"Symmetry?"}:::decision
 
-    style C fill:#e3f2fd,stroke:#1565c0
-    style F fill:#fff9c4,stroke:#fbc02d
-    style E fill:#e8f5e9,stroke:#2e7d32
+B -->|"No Symmetry"| C["tensor<br/>9 components<br/>100% memory"]:::implicit
+
+B -->|"Symmetric"| D{"Isotropic?"}:::decision
+
+D -->|"Yes"| E["sphericalTensor<br/>1 component<br/>11% memory"]:::implicit
+D -->|"No"| F["symmTensor<br/>6 components<br/>67% memory"]:::implicit
 ```
 > **Figure 2:** แผนผังการตัดสินใจเลือกคลาสเทนเซอร์ที่เหมาะสมตามคุณสมบัติความสมมาตรและความสม่ำเสมอในทุกทิศทาง (Isotropy) เพื่อลดโอเวอร์เฮดในการคำนวณความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

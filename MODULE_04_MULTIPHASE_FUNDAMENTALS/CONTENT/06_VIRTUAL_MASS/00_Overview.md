@@ -8,14 +8,11 @@
 
 ```mermaid
 flowchart LR
-    A[Particle Acceleration] --> B[Fluid Displacement]
-    B --> C[Virtual Mass Force]
-    C --> D[Effective Mass Increase]
-
-    style A fill:#e3f2fd
-    style B fill:#bbdefb
-    style C fill:#90caf9
-    style D fill:#64b5f6
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+A["Particle Acceleration"]:::explicit --> B["Fluid Displacement"]:::explicit
+B --> C["Virtual Mass Force"]:::implicit
+C --> D["Effective Mass Increase"]:::implicit
 ```
 
 ---
@@ -54,19 +51,19 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    A[อนุภาคเคลื่อนที่ด้วยความเร่ง] --> B[การแทนที่ของไหล]
-    A --> C[การพัฒนาสนามความดัน]
-    A --> D[สนามการไหลที่เหนี่ยวนำ]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+A["Accelerating Particle"]:::explicit --> B["Fluid Displacement"]:::explicit
+A --> C["Pressure Field Dev"]:::explicit
+A --> D["Induced Flow Field"]:::explicit
 
-    B --> E[พลังงานจลน์ของของไหล]
-    C --> F[แรงเฉื่อยเพิ่มเติม]
-    D --> G[การเปลี่ยนแปลงสนามการไหล]
+B --> E["Fluid Kinetic Energy"]:::implicit
+C --> F["Added Inertia"]:::implicit
+D --> G["Flow Field Change"]:::implicit
 
-    E --> H[แรงมวลเสมือน]
-    F --> H
-    G --> H
-
-    style H fill:#f44336,color:#fff
+E --> H["Virtual Mass Force"]:::implicit
+F --> H
+G --> H
 ```
 
 ---

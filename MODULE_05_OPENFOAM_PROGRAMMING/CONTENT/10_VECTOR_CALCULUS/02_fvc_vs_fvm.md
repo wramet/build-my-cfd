@@ -14,20 +14,21 @@
 
 ```mermaid
 flowchart TD
-    subgraph fvc_Explicit["fvc:: Explicit Operations"]
-        D1["Data Known<br/>(Field Values)"] --> C["fvc::Operation<br/>(Calculate Now)"]
-        C --> R["Result: Field Value<br/>(Immediate Output)"]
+    classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px,color:#000
+    classDef implicit fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef logic fill:#fff9c4,stroke:#fbc02d,color:#000
+    
+    subgraph FVC [fvc:: Explicit Calculus]
+        D1[Known Field Values]:::explicit --> Op1[Calculate Now]:::logic
+        Op1 --> R1[New Field Value]:::explicit
     end
-
-    subgraph fvm_Implicit["fvm:: Implicit Operations"]
-        D2["Data Unknown<br/>(Future Values)"] --> M["fvm::Operation<br/>(Build Matrix)"]
-        M --> Mat["Result: fvMatrix<br/>(A·x = b system)"]
-        Mat --> S["Linear Solver<br/>(GAMG, PCG, etc.)"]
-        S --> R2["Result: Future Value<br/>(After Solve)"]
+    
+    subgraph FVM [fvm:: Implicit Calculus]
+        D2[Unknown Future Values]:::implicit --> Op2[Build Coefficients]:::logic
+        Op2 --> Mat[fvMatrix: Ax = b]:::implicit
+        Mat --> Solve[Linear Solver]:::logic
+        Solve --> R2[Future Field Value]:::implicit
     end
-
-    style fvc_Explicit fill:#e3f2fd,stroke:#2196f3
-    style fvm_Implicit fill:#fff3e0,stroke:#ff9800
 ```
 > **Figure 1:** การเปรียบเทียบกระบวนการทำงานระหว่างการคำนวณแบบ Explicit (fvc::) ที่ให้ผลลัพธ์ทันที กับการคำนวณแบบ Implicit (fvm::) ที่สร้างระบบสมการเมทริกซ์เพื่อหาค่าในอนาคตความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
@@ -357,12 +358,17 @@ TEqn.solve();
 
 ```mermaid
 flowchart LR
-    A["Momentum Prediction<br/>(Implicit: fvm::div, fvm::laplacian)"] --> B["Flux Calculation<br/>(Explicit: fvc::interpolate)"]
-    B --> C["Pressure Equation<br/>(Implicit: fvm::laplacian)"]
-    C --> D["Velocity Correction<br/>(Explicit: fvc::grad)"]
-    D --> E{Converged?}
-    E -->|No| C
-    E -->|Yes| F["Next Time Step"]
+    classDef implicit fill:#c8e6c9,stroke:#2e7d32,color:#000
+    classDef explicit fill:#ffccbc,stroke:#bf360c,color:#000
+    classDef check fill:#fff9c4,stroke:#fbc02d,color:#000
+    
+    Mom[Momentum Pred<br/>Implicit]:::implicit --> Flux[Flux Calc<br/>Explicit]:::explicit
+    Flux --> P[Pressure Eq<br/>Implicit]:::implicit
+    P --> Corr[Vel Correction<br/>Explicit]:::explicit
+    
+    Corr --> Conv{Converged?}:::check
+    Conv -- No --> P
+    Conv -- Yes --> Next[Next Time Step]:::implicit
 ```
 > **Figure 2:** ขั้นตอนการทำงานของอัลกอริทึม PISO ซึ่งแสดงให้เห็นถึงการใช้งานร่วมกันอย่างมีประสิทธิภาพระหว่างตัวดำเนินการแบบ Explicit และ Implicit ในการแก้ปัญหาความดันและความเร็วความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

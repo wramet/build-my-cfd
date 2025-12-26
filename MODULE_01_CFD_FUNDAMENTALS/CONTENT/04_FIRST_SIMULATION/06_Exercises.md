@@ -88,21 +88,25 @@ $$Re = \frac{\text{Inertial Forces}}{\text{Viscous Forces}} = \frac{\rho \mathbf
 ค่า $Re$ ที่สูงขึ้นหมายถึงแรงเฉื่อยมีอิทธิพลเหนือกว่า ทำให้โมเมนตัมของไหลพากระแสวนไปได้ไกลขึ้น
 
 ```mermaid
-graph LR
-    A["Re = 10<br/>Single Primary Vortex<br/>Center at middle of cavity"] --> B["Re = 100<br/>Vortex Center Moves Down<br/>And towards right wall"]
-    B --> C["Secondary Vortices<br/>Form in bottom corners<br/>Especially lower right"]
-    C --> D["Thinner Boundary Layers<br/>Higher velocity gradients<br/>Increased flow asymmetry"]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style C fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-
-    subgraph "Physical Interpretation"
-        E["Re = Inertial Forces / Viscous Forces"]
-        F["Higher Re = More momentum transport"]
-        G["Flow becomes more complex and asymmetric"]
+flowchart LR
+    subgraph FlowRegimes["Flow Regime Evolution"]
+        direction LR
+        A["Re = 10<br/>Single Primary Vortex"]:::implicit --> B["Re = 100<br/>Vortex Shift & Asymmetry"]:::explicit
+        B --> C["Secondary Vortices<br/>Corner Formation"]:::explicit
+        C --> D["Thin Boundary Layers<br/>High Gradients"]:::volatile
     end
+
+    subgraph Physics["Physical Interpretation"]
+        direction LR
+        E["Re = Inertia / Viscous"]:::context
+        F["High Re = Momentum Dominated"]:::context
+        G["Complexity Increases with Re"]:::context
+    end
+
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 1:** การเปลี่ยนผ่านจากระบอบการไหลที่ $Re = 10$ ไปสู่ $Re = 100$ แสดงให้เห็นการเคลื่อนที่ของจุดศูนย์กลางกระแสวนหลักและการก่อตัวของกระแสวนรองในมุมของ Cavity เมื่อแรงเฉื่อยเริ่มมีอิทธิพลเหนือกว่าแรงหนืด
 
@@ -188,39 +192,32 @@ $$\frac{|\phi_{\text{fine}} - \phi_{\text{coarse}}|}{|\phi_{\text{fine}}|} < 0.0
 | $\phi$ | ปริมาณที่สนใจ (ตำแหน่งจุดศูนย์กลางกระแสวน, ความเร็วสูงสุด) |
 
 ```mermaid
-graph LR
-    A["Mesh Configuration"] --> B["Coarse Mesh"]
-    A --> C["Fine Mesh"]
+flowchart LR
+    A["Mesh Configuration"]:::context --> B["Coarse Mesh<br/>(20×20)"]:::implicit
+    A --> C["Fine Mesh<br/>(40×40)"]:::implicit
+    
+    B --> B1["Δx = 0.005 m"]:::context
+    B --> B2["Higher Error"]:::volatile
+    
+    C --> C1["Δx = 0.0025 m"]:::context
+    C --> C2["Lower Error"]:::success
+    
+    B2 --> D["Grid Independence Check"]:::explicit
+    C2 --> D
+    
+    D --> E["Error Metric<br/>< 2% Difference"]:::explicit
+    D --> F["Comparison Metrics"]:::explicit
+    
+    F --> F1["Vortex Center<br/>+1-3%"]:::context
+    F --> F2["Max Velocity<br/>+2-5%"]:::context
+    F --> F3["Resolution Improved"]:::success
+    F --> F4["Convergence Improved"]:::success
 
-    B --> B1["20×20 Cells"]
-    B --> B2["Δx = 0.005 m"]
-    B --> B3["400 Total Cells"]
-    B --> B4["Higher Error"]
-
-    C --> C1["40×40 Cells"]
-    C --> C2["Δx = 0.0025 m"]
-    C --> C3["1600 Total Cells"]
-    C --> C4["Lower Error"]
-
-    B4 --> D["Grid Independence Criteria"]
-    C4 --> D
-
-    D --> E["|φ<sub>fine</sub> - φ<sub>coarse</sub>| / |φ<sub>fine</sub>| < 0.02"]
-
-    D --> F["Comparison Results"]
-    F --> F1["Vortex Center Accuracy: +1-3%"]
-    F --> F2["Maximum Velocity: +2-5%"]
-    F --> F3["Secondary Vortices: Better Resolution"]
-    F --> F4["Residual Convergence: Improved"]
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,F process;
-    class B,C,D decision;
-    class B1,B2,B3,B4,C1,C2,C3,C4,F1,F2,F3,F4 storage;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 2:** การเปรียบเทียบระหว่าง Mesh แบบหยาบ (20×20) แับ Mesh แบบละเอียด (40×40) เพื่อใช้ในการตรวจสอบ Grid Independence โดยวิเคราะห์ความแม่นยำของตำแหน่งกระแสวนและความเร็วสูงสุดที่เพิ่มขึ้นเมื่อลดขนาดของเซลล์ลง
 

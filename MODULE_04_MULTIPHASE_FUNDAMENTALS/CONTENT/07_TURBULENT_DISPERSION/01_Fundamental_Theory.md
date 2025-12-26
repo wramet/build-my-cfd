@@ -306,12 +306,15 @@ $$\tau_t = \frac{k}{\varepsilon}$$
 
 ```mermaid
 flowchart TD
-    A[เริ่มต้น] --> B[คำนวณค่าความปั่นป่วน<br/>k และ epsilon]
-    B --> C[ประเมิน gradient<br/>ของปริมาตรเฟส]
-    C --> D[คำนวณสัมประสิทธิ์<br/>การกระจายตัว D_disp]
-    D --> E[คำนวณแรง<br/>กระจายตัว F_disp]
-    E --> F[บวกเทอมแรงใน<br/>สมการโมเมนตัม]
-    F --> G[สิ้นสุด]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Start]:::context --> B[Calc k, epsilon]:::explicit
+B --> C[Eval Alpha Gradient]:::explicit
+C --> D[Calc D_disp]:::implicit
+D --> E[Calc Force F_disp]:::implicit
+E --> F[Add to Momentum]:::implicit
+F --> G[End]:::context
 ```
 
 ### รายละเอียดขั้นตอน:

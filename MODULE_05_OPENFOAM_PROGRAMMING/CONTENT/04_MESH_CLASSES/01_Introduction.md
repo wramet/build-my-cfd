@@ -46,12 +46,13 @@
 
 ```mermaid
 flowchart TD
-    A[fvMesh<br/>ชั้นไฟไนต์วอลุ่ม] --> B[polyMesh<br/>ชั้นโทโพโลยี]
-    B --> C[primitiveMesh<br/>เครื่องยนต์เรขาคณิต]
-
-    style A fill:#e1f5ff
-    style B fill:#fff3e0
-    style C fill:#f3e5f5
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[fvMesh<br/>Finite Volume Layer]:::implicit -->|inherits| B[polyMesh<br/>Topology Layer]:::explicit
+B -->|inherits| C[primitiveMesh<br/>Geometry Engine]:::context
 ```
 > **รูปที่ 1:** รูปแบบสถาปัตยกรรมสามชั้นที่ออกแบบมาเพื่อแยกหน้าที่การทำงานอย่างชัดเจน ช่วยให้นักพัฒนาสามารถปรับปรุงประสิทธิภาพในแต่ละระดับได้อย่างอิสระ ผ่านการแยกความรับผิดชอบที่ชัดเจนระหว่างระดับเรขาคณิตพื้นฐาน โทโพโลยี และการดิสครีตแบบไฟไนต์วอลุ่ม
 

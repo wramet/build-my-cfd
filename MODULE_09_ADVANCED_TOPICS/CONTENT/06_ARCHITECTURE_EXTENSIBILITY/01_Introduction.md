@@ -82,24 +82,24 @@ functions
 
 ```mermaid
 graph TD
-    A[OpenFOAM Platform] --> B[Core Engine<br/>Numerical Solvers]
-    A --> C[Plugin API<br/>Base Classes]
-    A --> D[Dynamic Loader<br/>dlopen / libs]
-
-    C --> C1[functionObjects]
-    C --> C2[Boundary Conditions]
-    C --> C3[Physics Models]
-
-    D --> E[User-defined Libraries<br/>.so / .dylib]
-    E --> C1
-    E --> C2
-    E --> C3
-
-    subgraph "The App Store"
-    C1
-    C2
-    C3
-    end
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+A[OpenFOAM Platform]:::implicit --> B[Core Engine<br/>Numerical Solvers]:::implicit
+A --> C[Plugin API<br/>Base Classes]:::implicit
+A --> D[Dynamic Loader<br/>dlopen / libs]:::implicit
+C --> C1[functionObjects]:::implicit
+C --> C2[Boundary Conditions]:::implicit
+C --> C3[Physics Models]:::implicit
+D --> E[User-defined Libraries<br/>.so / .dylib]:::explicit
+E --> C1
+E --> C2
+E --> C3
+subgraph "Plugin Store"
+C1
+C2
+C3
+end
 ```
 
 > **Figure 1:** สถาปัตยกรรมแพลตฟอร์มของ OpenFOAM ที่แยกส่วนเครื่องยนต์หลัก (Core Engine) ออกจากส่วนขยาย (Plugins) ผ่านทาง Plugin API และระบบโหลดไลบรารีแบบไดนามิก ทำให้ผู้ใช้สามารถติดตั้ง "แอป" หรือโมเดลฟิสิกส์ใหม่ๆ ได้อย่างอิสระเหมือนการใช้งานสมาร์ทโฟน

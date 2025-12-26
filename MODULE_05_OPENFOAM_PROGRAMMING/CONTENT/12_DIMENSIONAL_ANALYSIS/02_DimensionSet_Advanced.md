@@ -6,23 +6,20 @@
 
 ```mermaid
 classDiagram
-    class dimensionSet {
-        -scalar exponents_[7]
-        +operator+()
-        +operator-()
-        +operator*()
-        +operator/()
-        +dimensionless() bool
-        +matches() bool
-    }
+class dimensionSet {
+-scalar exponents_[7]
++operator+()
++operator*()
++dimensionless() bool
++matches() bool
+}
+class dimensionedScalar {
+    +word name_
+    +dimensionSet dimensions_
+    +scalar value_
+}
 
-    class dimensionedScalar {
-        +word name_
-        +dimensionSet dimensions_
-        +scalar value_
-    }
-
-    dimensionSet --> dimensionedScalar
+dimensionSet --> dimensionedScalar
 ```
 
 > **Figure 1:** แผนผังคลาสแสดงความสัมพันธ์ระหว่าง `dimensionSet` และ `dimensionedScalar` ซึ่งเป็นหัวใจสำคัญของการรวมค่าตัวเลขเข้ากับหน่วยทางฟิสิกส์ใน OpenFOAM
@@ -577,16 +574,14 @@ volScalarField::Internal timeField
 
 ```mermaid
 flowchart TD
-    A[การสร้างออบเจ็กต์] --> B[การตรวจสอบในเวลาคอมไพล์]
-    B --> C[การดำเนินการทางคณิตศาสตร์]
-    C --> D[การตรวจสอบในเวลารันไทม์]
-    D --> E[การผสานกับฟิลด์]
-
-    style A fill:#e3f2fd
-    style B fill:#fff3e0
-    style C fill:#f3e5f5
-    style D fill:#ffebee
-    style E fill:#e8f5e9
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Construction]:::implicit --> B[Compile Check]:::implicit
+B --> C[Math Ops]:::explicit
+C --> D[Runtime Check]:::implicit
+D --> E[Field Merge]:::implicit
 ```
 
 > **Figure 2:** ขั้นตอนการทำงานของระบบมิติ ตั้งแต่การสร้างออบเจ็กต์ การตรวจสอบความสอดคล้องในเวลาคอมไพล์ ไปจนถึงการประมวลผลร่วมกับฟิลด์ข้อมูลจริง

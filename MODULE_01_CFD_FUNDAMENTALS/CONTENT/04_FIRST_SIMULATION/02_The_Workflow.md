@@ -4,30 +4,39 @@
 
 
 ```mermaid
-flowchart TD
-    A["Physical Problem"] --> B["Pre-Processing"]
-    B --> C["Solving"]
-    C --> D["Post-Processing"]
-    D --> E["Engineering Insights"]
+flowchart LR
+    A["Physical Problem"]:::context --> B["Pre-Processing"]:::implicit
+    B --> C["Solving"]:::explicit
+    C --> D["Post-Processing"]:::implicit
+    D --> E["Engineering Insights"]:::success
+    
+    subgraph PreDetails["Pre-Processing Details"]
+        B1["Geometry & Mesh"]:::context
+        B2["Boundary Conditions"]:::context
+        B3["Physical Properties"]:::context
+        B4["Solver Parameters"]:::context
+    end
+    
+    subgraph SolveDetails["Solving Details"]
+        C1["Discretization"]:::context
+        C2["Numerical Solution"]:::context
+        C3["Convergence Monitoring"]:::context
+    end
+    
+    subgraph PostDetails["Post-Processing Details"]
+        D1["Visualization"]:::context
+        D2["Data Extraction"]:::context
+        D3["Validation"]:::context
+    end
+    
+    B -.-> PreDetails
+    C -.-> SolveDetails
+    D -.-> PostDetails
 
-    B --> B1["Geometry & Mesh"]
-    B --> B2["Boundary Conditions"]
-    B --> B3["Physical Properties"]
-    B --> B4["Solver Parameters"]
-
-    C --> C1["Discretization"]
-    C --> C2["Numerical Solution"]
-    C --> C3["Convergence Monitoring"]
-
-    D --> D1["Visualization"]
-    D --> D2["Data Extraction"]
-    D --> D3["Validation"]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:3px,color:#000
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style C fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 1:** ขั้นตอนการทำงานของการจำลอง CFD ในระดับสูง แสดงความเชื่อมโยงตั้งแต่การระบุปัญหาทางกายภาพ การเตรียมการ (Pre-processing) การหาผลเฉลย (Solving) และการประมวลผลขั้นหลัง (Post-processing) เพื่อให้ได้ข้อมูลเชิงลึกทางวิศวกรรม
 
@@ -42,28 +51,29 @@ flowchart TD
 
 
 ```mermaid
-graph LR
-    A["Physical Domain"] --> B["blockMesh Utility"]
-    B --> C["Structured Mesh"]
-    C --> D["Grid Cells"]
-    D --> E["Discrete Geometry"]
-
-    C --> F["Cell Centers"]
-    C --> G["Cell Faces"]
-    C --> H["Boundary Faces"]
-
-    F --> I["Field Variables"]
-    G --> J["Flux Calculations"]
-    H --> K["Boundary Conditions"]
-
-    I --> L["CFD Equations"]
+flowchart TD
+    A["Physical Domain"]:::context --> B["blockMesh Utility"]:::explicit
+    B --> C["Structured Mesh"]:::implicit
+    C --> D["Grid Cells"]:::implicit
+    D --> E["Discrete Geometry"]:::implicit
+    
+    C --> F["Cell Centers"]:::implicit
+    C --> G["Cell Faces"]:::implicit
+    C --> H["Boundary Faces"]:::implicit
+    
+    F --> I["Field Variables"]:::explicit
+    G --> J["Flux Calculations"]:::explicit
+    H --> K["Boundary Conditions"]:::volatile
+    
+    I --> L["CFD Equations"]:::success
     J --> L
     K --> L
 
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,B,C,D,E,F,G,H,I,J,K,L process;
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 2:** กระบวนการสร้าง Mesh และบทบาทต่อสมการ CFD แสดงการแปลงโดเมนทางกายภาพให้เป็นโครงสร้างเซลล์แบบไม่ต่อเนื่อง เพื่อใช้ในการคำนวณตัวแปรสนาม ฟลักซ์ และการบังคับใช้เงื่อนไขขอบเขต
 
@@ -614,30 +624,25 @@ OpenFOAM ใช้ PISO Algorithm (Pressure Implicit with Splitting of Operators
 
 
 ```mermaid
-graph TD
-    A["Start Time Step"] --> B["Predict Velocity<br/>U* from previous time step"]
-    B --> C["Solve Momentum Equation<br/>∇·(ρU*U*) = -∇p* + μ∇²U*"]
-    C --> D["Pressure Correction<br/>p' = pnew - p*"]
-    D --> E["Solve Pressure Equation<br/>∇²p' = ρ/Δt ∇·U*"]
-    E --> F["Correct Velocity<br/>U = U* - Δt/ρ ∇p'"]
-    F --> G["Update Pressure<br/>p = p* + p'"]
-    G --> H{"PISO Corrections<br/>Complete?"}
-    H -->|No| I["Additional Correction<br/>nCorrectors = 2"]
+flowchart TD
+    A["Start Time Step"]:::context --> B["Predict Velocity<br/>Momentum Predictor"]:::implicit
+    B --> C["Solve Momentum Eq<br/>Discretized Matrix"]:::implicit
+    C --> D["Pressure Correction<br/>p' = p_new - p*"]:::explicit
+    D --> E["Solve Pressure Eq<br/>∇²p' = Mass Source"]:::explicit
+    E --> F["Correct Velocity<br/>Flux Update"]:::implicit
+    F --> G["Update Pressure<br/>Field Update"]:::implicit
+    G --> H{"PISO Correctors<br/>Complete?"}:::explicit
+    H -->|No| I["Loop Correction"]:::context
     I --> E
-    H -->|Yes| J["Advance to Next Time Step"]
-    J --> K{"Simulation End?"}
+    H -->|Yes| J["Advance Time"]:::implicit
+    J --> K{"End of Sim?"}:::explicit
     K -->|No| A
-    K -->|Yes| L["End Simulation"]
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,L terminator;
-    class B,C,D,F,G,I process;
-    class E,J storage;
-    class H,K decision;
+    K -->|Yes| L["Finish"]:::success
+    
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 3:** วงรอบการวนซ้ำของอัลกอริทึม PISO ซึ่งใช้วิธีการทำนายและแก้ไข (predictor-corrector) เพื่อจัดการกับการเชื่อมโยงความดันและความเร็วในแต่ละขั้นตอนเวลาของการจำลองแบบไม่คงที่
 
@@ -832,33 +837,45 @@ $$\theta_{\text{max}} = \cos^{-1}\left(\frac{\mathbf{n} \cdot \mathbf{d}}{|\math
 
 
 ```mermaid
-graph LR
-    A["Pre-Processing"] --> B["Solving"]
-    B --> C["Post-Processing"]
-    C --> D["Validation"]
-    D --> E["Engineering Decisions"]
+flowchart LR
+    A["Pre-Processing"]:::implicit --> B["Solving"]:::explicit
+    B --> C["Post-Processing"]:::implicit
+    C --> D["Validation"]:::explicit
+    D --> E["Engineering Decisions"]:::success
+    
+    subgraph PreTasks["Pre-Processing Tasks"]
+        A1["Mesh Generation"]:::context
+        A2["Boundary Conditions"]:::context
+        A3["Physical Properties"]:::context
+    end
+    
+    subgraph SolveTasks["Solving Tasks"]
+        B1["FVM Discretization"]:::context
+        B2["PISO Algorithm"]:::context
+        B3["Convergence Check"]:::context
+    end
+    
+    subgraph PostTasks["Post-Processing Tasks"]
+        C1["ParaView Visualization"]:::context
+        C2["Data Extraction"]:::context
+        C3["Quantitative Analysis"]:::context
+    end
+    
+    subgraph ValTasks["Validation Tasks"]
+        D1["Grid Independence"]:::context
+        D2["Benchmark Comparison"]:::context
+        D3["Experimental Validation"]:::context
+    end
+    
+    A -.-> PreTasks
+    B -.-> SolveTasks
+    C -.-> PostTasks
+    D -.-> ValTasks
 
-    A --> A1["Mesh Generation"]
-    A --> A2["Boundary Conditions"]
-    A --> A3["Physical Properties"]
-
-    B --> B1["FVM Discretization"]
-    B --> B2["PISO Algorithm"]
-    B --> B3["Convergence Check"]
-
-    C --> C1["ParaView Visualization"]
-    C --> C2["Data Extraction"]
-    C --> C3["Quantitative Analysis"]
-
-    D --> D1["Grid Independence"]
-    D --> D2["Benchmark Comparison"]
-    D --> D3["Experimental Validation"]
-
-    style A fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style B fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style D fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 4:** รายละเอียดการแยกย่อยของขั้นตอนการทำงานใน OpenFOAM ตั้งแต่การสร้าง Mesh และการกำหนดเงื่อนไขทางฟิสิกส์ ไปจนถึงการ Discretization การตรวจสอบการลู่เข้า และการวิเคราะห์เชิงปริมาณเพื่อการตัดสินใจทางวิศวกรรม
 

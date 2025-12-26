@@ -58,22 +58,24 @@
 ### หลักการสำคัญ 3 ประการ
 
 ```mermaid
-graph TD
-    A[Testing Framework Design] --> B[Isolation]
-    A --> C[Reproducibility]
-    A --> D[Automation]
+flowchart TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+A[Testing Framework Design]:::explicit --> B[Isolation]:::implicit
+A --> C[Reproducibility]:::implicit
+A --> D[Automation]:::implicit
 
-    B --> B1[แต่ละ Test Case เป็นอิสระ]
-    B --> B2[ไม่มี Side Effects ระหว่าง Tests]
-    B --> B3[Fail ใน Test หนึ่งไม่กระทบ Test อื่น]
+B --> B1[แต่ละ Test Case เป็นอิสระ]:::implicit
+B --> B2[ไม่มี Side Effects ระหว่าง Tests]:::implicit
+B --> B3[Fail ใน Test หนึ่งไม่กระทบ Test อื่น]:::implicit
 
-    C --> C1[ใช้ Seed เดียวกันสำหรับ Random]
-    C --> C2[Fix Version ของ Dependencies]
-    C --> C3[Store Reference Data ใน VCS]
+C --> C1[ใช้ Seed เดียวกันสำหรับ Random]:::implicit
+C --> C2[Fix Version ของ Dependencies]:::implicit
+C --> C3[Store Reference Data ใน VCS]:::implicit
 
-    D --> D1[One-command Execution]
-    D --> D2[Automated Reporting]
-    D --> D3[CI/CD Integration]
+D --> D1[One-command Execution]:::implicit
+D --> D2[Automated Reporting]:::implicit
+D --> D3[CI/CD Integration]:::implicit
 ```
 
 ### 1. การแยกการทดสอบ (Isolation)

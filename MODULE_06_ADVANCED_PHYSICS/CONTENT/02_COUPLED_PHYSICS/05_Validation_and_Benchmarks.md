@@ -14,12 +14,15 @@
 เกณฑ์มาตรฐานการถ่ายโอนความร้อนแบบคอนจูเกต 1 มิติ ซึ่งอ้างอิงจากงานของ Ghaddar และคณะ เป็นกรณีทดสอบพื้นฐานสำหรับการตรวจสอบความถูกต้องของการถ่ายโอนความร้อนแบบคอนจูเกต (CHT) ใน OpenFOAM ปัญหานี้เป็นการคัปปลิงระหว่างการพาความร้อนแบบบังคับในช่องทางกับการนำความร้อนผ่านผนังที่อยู่ติดกัน สร้างสถานการณ์ CHT ที่เรียบง่ายแต่เป็นตัวแทนที่ดี
 
 ```mermaid
-flowchart TD
-    A[โดเมนของไหล] -->|ฟลักซ์ความร้อน| B[ผนังของแข็ง]
-    B -->|การนำความร้อน| C[ส่วนต่อประสาน]
-    C -->|การพาความร้อน| A
-    D[การพาความร้อนแบบบังคับ] --> A
-    E[การนำความร้อน] --> B
+graph LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Fluid["Fluid Domain<br/>Convection"]:::implicit
+Interface["Interface<br/>Coupling"]:::explicit
+Solid["Solid Domain<br/>Conduction"]:::implicit
+
+Fluid <--> Interface <--> Solid
 ```
 > **รูปที่ 1:** แผนภาพแสดงองค์ประกอบและกลไกของปัญหาการถ่ายเทความร้อนแบบคอนจูเกต (CHT) แบบ 1 มิติ ซึ่งประกอบด้วยกระบวนการพาความร้อนและการนำความร้อนที่เกิดขึ้นพร้อมกัน
 
@@ -134,12 +137,18 @@ $$\frac{|T_{\text{num}} - T_{\text{analytical}}|}{T_{\text{analytical}}} < 0.01 
 เพื่อรับรองความถูกต้องของความสามารถด้าน CHT ของ OpenFOAM เทียบกับโค้ดเชิงพาณิชย์ที่เป็นที่ยอมรับ การศึกษาการรับรองความถูกต้องข้ามซอฟต์แวร์โดยใช้ StarCCM+ จะให้เกณฑ์มาตรฐานที่เป็นอิสระสำหรับการตรวจสอบความถูกต้อง
 
 ```mermaid
-flowchart LR
-    A[OpenFOAM] -->|เปรียบเทียบ| B[ผลลัพธ์]
-    C[StarCCM+] -->|เปรียบเทียบ| B
-    B --> D[ตัวชี้วัดการรับรองความถูกต้อง]
-    D --> F[สนามอุณหภูมิ]
-    D --> G[พฤติกรรมการลู่เข้า]
+graph LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+OF["OpenFOAM"]:::implicit
+Star["StarCCM+"]:::context
+Compare["Comparison"]:::explicit
+Metrics["Metrics<br/>Temp & Convergence"]:::implicit
+
+OF --> Compare
+Star --> Compare
+Compare --> Metrics
 ```
 > **รูปที่ 2:** แผนผังกระบวนการตรวจสอบความถูกต้องข้ามซอฟต์แวร์ (Cross-Validation Methodology) เพื่อยืนยันความแม่นยำของ OpenFOAM เทียบกับซอฟต์แวร์เชิงพาณิชย์ที่เป็นมาตรฐาน
 
@@ -309,14 +318,18 @@ Info << "Global divergence error: " << divError << endl;
 - **การติดตามประวัติเวลา**: เพื่อตรวจจับการเลื่อนลอย (drift) ทีละน้อยของคุณสมบัติการอนุรักษ์
 
 ```mermaid
-flowchart TD
-    A[มวลเฟส 1] --> B[ตรวจสอบการอนุรักษ์]
-    C[มวลเฟส 2] --> B
-    D[ความต่อเนื่องโดยรวม] --> B
-    B --> E[ตัวชี้วัดข้อผิดพลาด]
-    E --> F{ตรวจสอบเกณฑ์ยอมรับ}
-    F -->|ผ่าน| G[ผ่านการตรวจสอบการอนุรักษ์]
-    F -->|ไม่ผ่าน| H[แจ้งเตือน]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Inputs["Phase Masses"]:::context
+Check["Conservation Check"]:::explicit
+Error["Error Metrics"]:::implicit
+Decide{"Pass/Fail"}:::implicit
+
+Inputs --> Check --> Error --> Decide
+Decide -- Pass --> Pass["Validation Passed"]:::context
+Decide -- Fail --> Fail["Validation Failed<br/>Review Setup"]:::context
 ```
 > **รูปที่ 3:** แผนผังลำดับขั้นตอนการตรวจสอบการอนุรักษ์มวลในระบบหลายเฟส เพื่อประเมินความคลาดเคลื่อนเชิงตัวเลขและความต่อเนื่องของข้อมูลมวลในระหว่างการจำลอง
 
@@ -406,14 +419,17 @@ void momentumBalanceCheck::execute()
 > - **Force Balance:** $\sum F = \frac{d}{dt}(momentum)$ สำหรับ steady-state ต้อง balance
 
 ```mermaid
-flowchart LR
-    A[โมเมนตัมขาเข้า] --> B[ปริมาตรควบคุม]
-    C[โมเมนตัมขาออก] --> B
-    D[แรงภายนอก] --> B
-    B --> E[สมดุลโมเมนตัม]
-    E --> F{ตรวจสอบสมดุล}
-    F -->|สมดุล| G[การอนุรักษ์ถูกต้อง]
-    F -->|ไม่สมดุล| H[ปรับจูนพารามิเตอร์]
+graph LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+In["Inlet Momentum"]:::context
+CV["Control Volume"]:::implicit
+Out["Outlet Momentum"]:::context
+Bal["Balance Check"]:::explicit
+
+In --> CV --> Out
+CV --> Bal
 ```
 > **รูปที่ 4:** แผนภาพแสดงกระบวนการตรวจสอบสมดุลโมเมนตัมภายในปริมาตรควบคุม ซึ่งพิจารณาจากผลรวมของโมเมนตัมขาเข้า-ขาออก และแรงภายนอกที่กระทำต่อระบบ
 
@@ -859,25 +875,16 @@ functions
 > - **Output Management:** `writeInterval` ควบคุม disk I/O frequency
 
 ```mermaid
-flowchart TD
-    A[เริ่มการจำลอง] --> B[กำหนดค่า Monitor]
-    B --> C[วงรอบเวลา]
-    C --> D[ดำเนินการตรวจสอบ]
-    D --> E[อนุรักษ์มวล]
-    D --> F[อนุรักษ์โมเมนตัม]
-    D --> G[อนุรักษ์พลังงาน]
-    D --> H[อนุรักษ์เฟส]
-    E --> I[รายงานสถานะ]
-    F --> I
-    G --> I
-    H --> I
-    I --> J{มีการละเมิดเกณฑ์?}
-    J -->|ไม่| K[ดำเนินการจำลองต่อ]
-    J -->|ใช่| L[เขียนคำเตือน]
-    L --> K
-    K --> M{สิ้นสุดเวลา?}
-    M -->|ไม่| C
-    M -->|ใช่| N[เขียนรายงานสรุป]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Start("Simulation"):::context
+Loop["Time Loop"]:::implicit
+Check["Conservation Checks<br/>Mass, Momentum, Energy"]:::explicit
+Report["Report & Log"]:::implicit
+
+Start --> Loop --> Check --> Report --> Loop
 ```
 > **รูปที่ 5:** แผนผังระบบการเฝ้าสังเกตการอนุรักษ์โดยอัตโนมัติ (Automated Conservation Monitoring Framework) ซึ่งครอบคลุมการตรวจสอบสมดุลมวล โมเมนตัม พลังงาน และสัดส่วนเฟสตลอดระยะเวลาการจำลอง
 
@@ -998,23 +1005,19 @@ forces
 ### 4.1 กระบวนการรับรองความถูกต้องอย่างเป็นระบบ
 
 ```mermaid
-flowchart TD
-    A[เลือกเกณฑ์มาตรฐาน] --> B[คำตอบวิเคราะห์ 1 มิติ]
-    A --> C[ตัวแก้ปัญหาเชิงพาณิชย์]
-    A --> D[ข้อมูลการทดลอง]
-    B --> E[ตั้งค่าการจำลอง]
-    C --> E
-    D --> E
-    E --> F[รันการตรวจสอบการอนุรักษ์]
-    F --> G{ผ่านเกณฑ์ทั้งหมด?}
-    G -->|ใช่| H[รับรองความถูกต้องเสร็จสิ้น]
-    G -->|ไม่| I[ระบุปัญหา]
-    I --> J[เมช/พารามิเตอร์]
-    I --> K[รูปแบบเชิงตัวเลข]
-    I --> L[เงื่อนไขขอบเขต]
-    J --> E
-    K --> E
-    L --> E
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Bench["Benchmark Data<br/>Analytic/Exp/Commercial"]:::context
+Sim["Setup Simulation"]:::implicit
+Run["Run & Check"]:::explicit
+Valid{"Criteria Met?"}:::implicit
+Fix["Debug Mesh/Schemes"]:::explicit
+
+Bench --> Sim --> Run --> Valid
+Valid -- No --> Fix --> Sim
+Valid -- Yes --> Done["Validated"]:::context
 ```
 > **รูปที่ 6:** แผนภูมิแสดงขั้นตอนการตรวจสอบความถูกต้องอย่างเป็นระบบ (Systematic Validation Process) เพื่อให้มั่นใจว่าการจำลองสามารถสะท้อนพฤติกรรมทางฟิสิกส์จริงได้อย่างแม่นยำและน่าเชื่อถือ
 

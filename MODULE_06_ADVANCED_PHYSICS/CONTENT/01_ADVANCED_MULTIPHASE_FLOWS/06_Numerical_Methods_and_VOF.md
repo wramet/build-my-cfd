@@ -64,16 +64,20 @@ $$\mathbf{u}_r = c_\alpha|\mathbf{u}| \frac{\nabla\alpha}{|\nabla\alpha|}$$
 **Multidimensional Universal Limiter with Explicit Solution (MULES)** เป็นอัลกอริทึมเฉพาะของ OpenFOAM เพื่อรับประกันว่าค่า $\alpha$ จะอยู่ในช่วง $[0, 1]$ เสมอ
 
 ```mermaid
-flowchart TD
-    A[คำนวณฟลักซ์แบบไม่มีขอบเขต] --> B[ประมาณค่า alpha ในขั้นตอนถัดไป]
-    B --> C[ระบุเซลล์ที่มีค่าเกิน 0 หรือ 1]
-    C --> D[คำนวณ Limiter lambda สำหรับแต่ละหน้าผิว]
-    D --> E[ปรับแก้ฟลักซ์: Flux_limited = lambda * Flux_high + 1-lambda * Flux_low]
-    E --> F[แก้สมการ alpha ด้วยฟลักซ์ที่ถูกจำกัด]
-    F --> G[รับประกันขอบเขต alpha อยู่ในช่วง 0,1]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Raw["Raw Fluxes"]:::context
+Detect["Detect Unbounded"]:::implicit
+Lambda["Calc Limiter (λ)"]:::explicit
+Correct["Correct Fluxes"]:::implicit
+Solve["Solve Alpha"]:::explicit
 
-    style D fill:#f8bbd0,stroke:#880e4f
-    style E fill:#f8bbd0,stroke:#880e4f
+Raw --> Detect
+Detect --> Lambda
+Lambda --> Correct
+Correct --> Solve
 ```
 > **รูปที่ 1:** แผนผังลำดับขั้นตอนการทำงานของอัลกอริทึม MULES ใน OpenFOAM ซึ่งใช้กลไกการจำกัดฟลักซ์ (Flux Limiting) เพื่อรักษาความเป็นบวกและการจำกัดช่วงของฟิลด์สัดส่วนปริมาตรให้อยู่ระหว่าง 0 และ 1
 

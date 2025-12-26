@@ -10,22 +10,23 @@
 ### รากฐานคณิตศาสตร์
 
 ```mermaid
-graph TD
-    subgraph "Eager Evaluation (Traditional)"
-    E1[A + B] --> E2[Temp 1]
-    E2 --> E3[Temp 1 + C]
-    E3 --> E4[Final Result]
-    end
+graph LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+subgraph "Eager Evaluation (Traditional)"
+direction TB
+E1[A + B]:::explicit --> E2[Temp 1]:::implicit
+E2 --> E3[Temp 1 + C]:::implicit
+E3 --> E4[Final Result]:::success
+end
 
-    subgraph "Lazy Evaluation (OpenFOAM)"
-    L1[A + B + C] --> L2{Expression Tree}
-    L2 --> L3[Single Pass Evaluation]
-    L3 --> L4[Final Result]
-    end
-
-    style E2 fill:#f99,stroke:#333
-    style E3 fill:#f99,stroke:#333
-    style L2 fill:#9f9,stroke:#333
+subgraph "Lazy Evaluation (OpenFOAM)"
+direction TB
+L1[A + B + C]:::explicit --> L2{Expression Tree}:::implicit
+L2 --> L3[Single Pass Evaluation]:::implicit
+L3 --> L4[Final Result]:::success
+end
 ```
 > **Figure 1:** การเปรียบเทียบระหว่างการประเมินผลแบบทันที (Eager Evaluation) ซึ่งสร้างออบเจกต์ชั่วคราวจำนวนมาก กับการประเมินผลแบบล่าช้า (Lazy Evaluation) ใน OpenFOAM ที่ใช้โครงสร้างต้นไม้นิพจน์ (Expression Tree) เพื่อคำนวณทุกอย่างในรอบเดียว ช่วยลดการใช้หน่วยความจำและเพิ่มประสิทธิภาพการประมวลผล
 

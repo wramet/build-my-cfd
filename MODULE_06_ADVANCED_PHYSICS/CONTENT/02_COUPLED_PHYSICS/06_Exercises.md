@@ -29,12 +29,15 @@
 - ระบบจัดการความร้อน
 
 ```mermaid
-flowchart TD
-    A[โดเมนของไหล<br/>การไหลของอากาศ] -->|ขอบเขตแบบแม็พ| B[บล็อกของแข็ง<br/>อลูมิเนียม]
-    B -->|การถ่ายโอนความร้อน| A
-    C[ทางเข้า<br/>U=2 m/s, T=293 K] --> A
-    A --> D[ทางออก<br/>Zero Gradient]
-    E[ผนังของแข็ง<br/>Adiabatic] --> B
+graph LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Fluid["Fluid Domain<br/>Air"]:::implicit
+Solid["Solid Domain<br/>Aluminum"]:::implicit
+Map["Mapped Boundary<br/>Heat Transfer"]:::explicit
+
+Fluid <--> Map <--> Solid
 ```
 > **รูปที่ 1:** แผนภาพการตั้งค่ากรณีศึกษาการถ่ายเทความร้อนแบบคอนจูเกต (CHT) สำหรับบล็อกของแข็งในกระแสไหลขวาง แสดงการเชื่อมโยงระหว่างโดเมนของไหลและของแข็งผ่านส่วนต่อประสาน
 
@@ -545,10 +548,17 @@ $$\Delta E_{fluid} + \Delta E_{solid} + Q_{interface} = 0 \tag{5}$$
 - **การพริ้วไหวพลวัต (Dynamic Flutter)** (ความเร็วสูง)
 
 ```mermaid
-flowchart LR
-    A[ตัวแก้ปัญหาของไหล<br/>pimpleFoam] -->|แรงของไหล| B[ตัวแก้ปัญหาของแข็ง<br/>solidDisplacementFoam]
-    B -->|การกระจัด| C[การเคลื่อนที่ของเมช<br/>dynamicFvMesh]
-    C -->|เรขาคณิตที่อัปเดต| A
+graph LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Fluid["Fluid Solver<br/>pimpleFoam"]:::implicit
+Force["Forces"]:::explicit
+Solid["Solid Solver<br/>solidDisplacement"]:::implicit
+Disp["Displacement"]:::explicit
+Mesh["Mesh Motion<br/>dynamicFvMesh"]:::implicit
+
+Fluid --> Force --> Solid --> Disp --> Mesh --> Fluid
 ```
 > **รูปที่ 2:** แผนภูมิแสดงวงจรการทำงานของการเชื่อมโยงแบบแบ่งส่วน (Partitioned Coupling) สำหรับปัญหา FSI โดยเน้นที่การแลกเปลี่ยนข้อมูลแรงและการกระจัดระหว่างตัวแก้สมการที่แตกต่างกัน
 
@@ -896,14 +906,19 @@ $$K = \frac{EI}{\rho_f U_\infty^2 L^3} \tag{13}$$
 - ตรวจจับและจัดการข้อผิดพลาด
 
 ```mermaid
-flowchart TD
-    A[สุ่มตัวอย่างฟิลด์ส่วนต่อประสาน] --> B[คำนวณค่าตกค้างการคัปปลิง]
-    B --> C[เก็บประวัติค่าตกค้าง]
-    C --> D[คำนวณการผ่อนคลายแบบ Aitken]
-    D --> E[ใช้การผ่อนคลายกับฟิลด์]
-    E --> F{ตรวจสอบการลู่เข้า}
-    F -->|ยังไม่ลู่เข้า| A
-    F -->|ลู่เข้าแล้ว| G[แสดงผลลัพธ์]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Sample["Sample Interface"]:::context
+Res["Calculate Residuals"]:::implicit
+Aitken["Aitken Relaxation"]:::explicit
+Update["Update Fields"]:::implicit
+Check{"Converged?"}:::context
+
+Sample --> Res --> Aitken --> Update --> Check
+Check -- No --> Sample
+Check -- Yes --> Done["Converged"]:::context
 ```
 > **รูปที่ 3:** แผนผังลำดับขั้นตอนการทำงานของยูทิลิตี้วิเคราะห์การลู่เข้า (Coupling Convergence Monitor) แสดงกระบวนการปรับปรุงคำตอบที่ส่วนต่อประสานโดยใช้อัลกอริทึมการเร่งการลู่เข้าแบบ Aitken
 

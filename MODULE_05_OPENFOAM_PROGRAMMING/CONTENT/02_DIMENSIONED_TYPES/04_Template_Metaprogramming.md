@@ -4,14 +4,16 @@
 
 ```mermaid
 classDiagram
-    class DimensionedBase~Derived~ {
-        +operator+(Derived)
-        +operator-(Derived)
-    }
-    class dimensioned~Type~ {
-        +add(a, b)
-    }
-    DimensionedBase <|-- dimensioned : Inherits with self-type
+class DimensionedBase~Derived~{
+    +operator+(Derived)
+    +operator-(Derived)
+}
+class dimensioned~Type~{
+    +add(a, b)
+}
+DimensionedBase <|-- dimensioned : Inherits with self-type
+style DimensionedBase fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+style dimensioned fill:#ffccbc,stroke:#d84315,stroke-width:2px
 ```
 > **Figure 1:** การใช้งานรูปแบบ CRTP (Curiously Recurring Template Pattern) เพื่อสร้างระบบ Polymorphism ระดับคอมไพล์ที่ไม่มีโอเวอร์เฮดในการเรียกใช้ฟังก์ชันเสมือน (Virtual Function)
 
@@ -107,14 +109,22 @@ public:
 
 ```mermaid
 graph TD
-    Op1["/"] --> p["p (Field)"]
-    Op1 --> rho["rho (Field)"]
-    Op2["*"] --> Op1
-    Op2 --> T["T (Field)"]
-
-    subgraph "Expression Tree (Lazy Evaluation)"
-    Op2
-    end
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+subgraph Inputs["Field Inputs"]
+    p["p (Field)"]:::explicit
+    rho["rho (Field)"]:::explicit
+    T["T (Field)"]:::explicit
+end
+subgraph Tree["Expression Tree"]
+    direction TB
+    Op1["/"]:::implicit
+    Op2["*"]:::implicit
+end
+p --> Op1
+rho --> Op1
+Op1 --> Op2
+T --> Op2
 ```
 > **Figure 2:** โครงสร้างต้นไม้นิพจน์ (Expression Tree) สำหรับการประเมินค่าแบบ Lazy Evaluation ซึ่งช่วยให้ระบบสามารถรวบรวมการคำนวณหลายขั้นตอนมาทำในลูปเดียวเพื่อเพิ่มประสิทธิภาพสูงสุดในการประมวลผลฟิลด์ข้อมูลขนาดใหญ่
 
@@ -223,11 +233,11 @@ Expression templates เปิดใช้งาน lazy evaluation และ lo
 
 ```mermaid
 graph LR
-    A["p / rho * T"] --> B["Expression Tree (Multiply(Divide(p, rho), T))"]
-    B --> C["Single Loop Execution"]
-    C --> D["Result Field"]
-
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+A["p / rho * T"]:::explicit --> B["Expression Tree<br/>Multiply(Divide(p, rho), T)"]:::implicit
+B --> C["Single Loop Execution<br/>(Loop Fusion)"]:::implicit
+C --> D["Result Field"]:::implicit
 ```
 > **Figure 3:** กระบวนการรวมลูป (Loop Fusion) โดยใช้ Expression Templates ซึ่งเปลี่ยนนิพจน์ทางคณิตศาสตร์ที่ซับซ้อนให้กลายเป็นการประมวลผลข้อมูลในขั้นตอนเดียว ลดการสร้างออบเจ็กต์ชั่วคราวและเพิ่มความเร็วในการคำนวณทาง CFD
 

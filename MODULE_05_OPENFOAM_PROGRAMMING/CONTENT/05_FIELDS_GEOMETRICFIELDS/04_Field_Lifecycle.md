@@ -15,12 +15,12 @@
 
 ```mermaid
 stateDiagram-v2
-    [*] --> IOobject: กำหนดชื่อและเส้นทาง
-    IOobject --> MemoryAllocation: MUST_READ
-    MemoryAllocation --> Parsing: อ่านมิติและค่าภายใน
-    Parsing --> BoundarySetup: เริ่มต้น Patches
-    BoundarySetup --> Registered: เพิ่มลงใน objectRegistry
-    Registered --> [*]
+[*] --> IOobject: Set Name/Path
+IOobject --> Allocation: MUST_READ
+Allocation --> Parsing: Read Dims/Vals
+Parsing --> BCSetup: Init Patches
+BCSetup --> Registered: Add to Registry
+Registered --> [*]
 ```
 > **Figure 1:** แผนภาพสถานะแสดงขั้นตอนการสร้างฟิลด์ข้อมูล ตั้งแต่การกำหนดเอกลักษณ์ผ่าน IOobject การจัดสรรหน่วยความจำ ไปจนถึงการลงทะเบียนในระบบจัดการออบเจ็กต์ของ OpenFOAM
 
@@ -293,14 +293,15 @@ void storeOldTimes() const {
 
 ```mermaid
 graph LR
-    A["สร้าง New"] --> B["อ่านไฟล์ Read"]
-    B --> C["คำนวณ Solve"]
-    C --> D["เก็บค่าเก่า Store Old"]
-    D --> C
-    C --> E["ทำลาย Destruct"]
-
-    style A fill:#e8f5e9,stroke:#2e7d32
-    style E fill:#ffebee,stroke:#c62828
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[New]:::implicit --> B[Read]:::implicit
+B --> C[Solve]:::explicit
+C --> D[Store Old]:::implicit
+D --> C
+C --> E[Destruct]:::explicit
 ```
 > **Figure 2:** วงจรชีวิตที่สมบูรณ์ของฟิลด์ข้อมูล เริ่มต้นจากการสร้างใหม่ การอ่านข้อมูล การคำนวณในตัวแก้ปัญหา การจัดเก็บประวัติเวลา และสิ้นสุดที่การทำลายออบเจ็กต์อย่างปลอดภัยด้วยรูปแบบ RAII
 

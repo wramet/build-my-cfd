@@ -17,22 +17,22 @@
 
 ```mermaid
 classDiagram
-    class dragModel {
-        <<interface>>
-        +K(phase1, phase2)*
-    }
-    class SchillerNaumann {
-        +K(phase1, phase2)
-    }
-    class Ergun {
-        +K(phase1, phase2)
-    }
-    class Gibilaro {
-        +K(phase1, phase2)
-    }
-    dragModel <|.. SchillerNaumann
-    dragModel <|.. Ergun
-    dragModel <|.. Gibilaro
+class dragModel {
+<<interface>>
++K(phase1, phase2)*
+}
+class SchillerNaumann {
++K(phase1, phase2)
+}
+class Ergun {
++K(phase1, phase2)
+}
+class Gibilaro {
++K(phase1, phase2)
+}
+dragModel <|.. SchillerNaumann
+dragModel <|.. Ergun
+dragModel <|.. Gibilaro
 ```
 > **Figure 1:** แผนผังโครงสร้างของ Strategy Pattern ที่ใช้ในโมเดลแรงลาก (Drag Model) โดยกำหนดอินเทอร์เฟซกลาง `dragModel` ที่ทุกอัลกอริทึมต้องปฏิบัติตาม ทำให้ Solver สามารถเรียกใช้ฟังก์ชัน `K` ได้อย่างสม่ำเสมอโดยไม่ต้องสนใจว่าภายในจะใช้สูตรคณิตศาสตร์ของ Schiller-Naumann หรือ Ergun
 

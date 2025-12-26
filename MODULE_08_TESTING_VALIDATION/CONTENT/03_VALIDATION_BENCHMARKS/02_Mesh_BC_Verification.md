@@ -678,14 +678,18 @@ def check_consistency_between_fields(field1, field2, patch_name):
 นอกจากคุณภาพแล้ว เรายังต้องทดสอบว่าการคำนวณพื้นฐานบนเมชทำงานถูกต้อง:
 
 ```mermaid
-graph LR
-    A[Raw Mesh] --> B{checkMesh}
-    B -- OK --> C[Test Field Operations]
-    B -- Error --> Error[Fix Mesh Topology]
-    C --> D[Test Interpolation]
-    D --> E[Test Differentiation]
-    E --> F[Test BC Consistency]
-    F --> Result([Mesh/BC Verified])
+flowchart LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[Raw Mesh]:::explicit --> B{checkMesh}:::warning
+B -- OK --> C[Test Field Operations]:::implicit
+B -- Error --> Error[Fix Mesh Topology]:::explicit
+C --> D[Test Interpolation]:::implicit
+D --> E[Test Differentiation]:::implicit
+E --> F[Test BC Consistency]:::implicit
+F --> Result([Mesh/BC Verified]):::success
 ```
 
 ### พื้นฐานทางคณิตศาสตร์ของ Mesh Operations

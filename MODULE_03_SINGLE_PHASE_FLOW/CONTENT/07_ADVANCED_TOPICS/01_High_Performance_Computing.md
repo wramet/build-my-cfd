@@ -6,15 +6,18 @@
 
 ```mermaid
 flowchart TD
-    A[Large Mesh Domain] --> B[Domain Decomposition]
-    B --> C1[Processor 0<br/>Sub-domain 0]
-    B --> C2[Processor 1<br/>Sub-domain 1]
-    B --> C3[Processor N<br/>Sub-domain N]
-    C1 --> D[MPI Communication<br/>at Interfaces]
-    C2 --> D
-    C3 --> D
-    D --> E[Parallel Solution]
-    E --> F[Result Reconstruction]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Large Domain]:::context --> B[Decomposition]:::explicit
+B --> C1[Proc 0]:::implicit
+B --> C2[Proc 1]:::implicit
+B --> C3[Proc N]:::implicit
+C1 & C2 & C3 --> D[MPI Comm]:::explicit
+D --> E[Parallel Solve]:::implicit
+E --> F[Reconstruct]:::explicit
 ```
 
 > **Figure 1:** แผนผังลำดับขั้นตอนการประมวลผลแบบขนาน (Parallel Processing) ตั้งแต่การแบ่งโดเมนการคำนวณ (Domain Decomposition) การสื่อสารระหว่างโปรเซสเซอร์ผ่าน MPI ที่ส่วนต่อประสาน ไปจนถึงการแก้ปัญหาแบบขนานและการรวมผลลัพธ์ขั้นสุดท้าย
@@ -176,16 +179,21 @@ $$\mathbf{A}_{c} = \mathbf{R} \mathbf{A}_f \mathbf{P}$$
 
 ```mermaid
 flowchart TD
-    A[Fine Grid] --> B[Pre-smoothing<br/>ν₁ Gauss-Seidel]
-    B --> C[Compute Residual<br/>r = b - Ax]
-    C --> D[Restrict to Coarse Grid<br/>r_c = R·r]
-    D --> E[Solve Coarse System<br/>e_c = A_c^(-1)·r_c]
-    E --> F[Prolongate Error<br/>e = P·e_c]
-    F --> G[Correct Solution<br/>x ← x + e]
-    G --> H[Post-smoothing<br/>ν₂ Gauss-Seidel]
-    H --> I[Check Convergence]
-    I -->|Not Converged| B
-    I -->|Converged| J[Done]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Fine Grid]:::explicit --> B[Pre-smooth]:::implicit
+B --> C[Residual]:::implicit
+C --> D[Restrict]:::implicit
+D --> E[Solve Coarse]:::explicit
+E --> F[Prolongate]:::implicit
+F --> G[Correct]:::implicit
+G --> H[Post-smooth]:::implicit
+H --> I{Converged?}:::context
+I -->|No| B
+I -->|Yes| J[Done]:::context
 ```
 
 > **Figure 2:** ขั้นตอนการทำงานของอัลกอริทึม Algebraic Multigrid (AMG) ในรูปแบบ V-cycle เพื่อเร่งการลู่เข้าของระบบสมการเชิงเส้นขนาดใหญ่ โดยการย้ายความผิดพลาด (Residual) ข้ามระดับความละเอียดของกริตเพื่อกำจัดความผิดพลาดในช่วงความถี่ที่แตกต่างกัน
@@ -428,14 +436,19 @@ $$\text{subject to } \sum_{v \in V_i} w_v \approx \frac{W_{\text{total}}}{N_p}$$
 
 ```mermaid
 flowchart TD
-    A[Monitor Load] --> B{Imbalance<br/>Exceeded?}
-    B -->|No| A
-    B -->|Yes| C[Trigger<br/>Repartitioning]
-    C --> D[Compute New<br/>Partition]
-    D --> E[Migrate Data<br/>Between Processors]
-    E --> F[Consistency<br/>Check]
-    F --> G[Resume<br/>Computation]
-    G --> A
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Monitor Load]:::context --> B{Imbalanced?}:::context
+B -->|No| A
+B -->|Yes| C[Trigger Repartition]:::explicit
+C --> D[Calc Partition]:::implicit
+D --> E[Migrate Data]:::implicit
+E --> F[Consistency Check]:::implicit
+F --> G[Resume]:::implicit
+G --> A
 ```
 
 > **Figure 3:** กระบวนการปรับสมดุลภาระงานแบบไดนามิก (Dynamic Load Balancing) ซึ่งจะคอยตรวจสอบความไม่สมดุลของงานระหว่างโปรเซสเซอร์ หากเกินเกณฑ์ที่กำหนดจะทำการแบ่งพาร์ติชันใหม่และย้ายข้อมูล เพื่อให้การประมวลผลมีประสิทธิภาพสูงสุดตลอดระยะเวลาการจำลอง
@@ -612,10 +625,14 @@ public:
 
 ```mermaid
 flowchart LR
-    A[Serial Case] --> B[decomposePar]
-    B --> C[mpirun -np N solver -parallel]
-    C --> D[reconstructPar]
-    D --> E[Post-Processing]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Serial Case]:::implicit --> B[decomposePar]:::explicit
+B --> C[mpirun]:::explicit
+C --> D[reconstructPar]:::explicit
+D --> E[Post-Process]:::implicit
 ```
 
 > **Figure 4:** ขั้นตอนการทำงานมาตรฐาน (Standard Workflow) สำหรับการรัน OpenFOAM แบบขนาน เริ่มต้นจากการเตรียมเคสแบบปกติ การแบ่งโดเมน การรัน Solver ด้วยคำสั่ง MPI และการรวมผลลัพธ์เพื่อนำไปประมวลผลต่อ

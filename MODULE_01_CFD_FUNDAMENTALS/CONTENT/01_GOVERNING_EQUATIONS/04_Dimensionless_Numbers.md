@@ -5,55 +5,33 @@
 
 ```mermaid
 graph LR
-    subgraph "Inertial Forces"
-        A["Convective<br/>Inertial Forces"]
-        B["Pressure Gradient<br/>Forces"]
-    end
+subgraph Forces["Force Types"]
+    direction TB
+    A["Inertial<br/>ρU²/L"]:::implicit
+    B["Viscous<br/>μU/L²"]:::implicit
+    C["Pressure<br/>ΔP"]:::implicit
+    D["Gravity<br/>ρgL"]:::implicit
+end
 
-    subgraph "Viscous Forces"
-        C["Viscous Shear<br/>Forces"]
-        D["Molecular<br/>Diffusion"]
-    end
+subgraph Numbers["Dimensionless Numbers"]
+    direction TB
+    H["Reynolds<br/>Re = ρUL/μ"]:::explicit
+    I["Froude<br/>Fr = U/√gL"]:::explicit
+    J["Euler<br/>Eu = ΔP/ρU²"]:::explicit
+end
 
-    subgraph "External Forces"
-        E["Gravity<br/>Forces"]
-        F["Buoyancy<br/>Forces"]
-        G["Surface Tension<br/>Forces"]
-    end
+A --> H
+B --> H
 
-    subgraph "Dimensionless Numbers"
-        H["Reynolds Number<br/>Re = ρUL/μ"]
-        I["Froude Number<br/>Fr = U/√(gL)"]
-        J["Weber Number<br/>We = ρU²L/σ"]
-        K["Euler Number<br/>Eu = ΔP/ρU²"]
-    end
+A --> I
+D --> I
 
-    A --> H
-    C --> H
+C --> J
+A --> J
 
-    A --> I
-    E --> I
-
-    A --> J
-    G --> J
-
-    B --> K
-    A --> K
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,B inertial
-    class C,D viscous
-    class E,F,G external
-    class I,J,K dimensionless
-
-    classDef inertial fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef viscous fill:#ffecb3,stroke:#ff8f00,stroke-width:2px,color:#000;
-    classDef external fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    classDef dimensionless fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
 ```
 > **Figure 1:** การหาที่มาของเลขไร้มิติที่สำคัญ (Re, Fr, We, Eu) จากอัตราส่วนของแรงพื้นฐานต่าง ๆ (แรงเฉื่อย, แรงหนืด, แรงโน้มถ่วง, แรงดัน และแรงตึงผิว)
 
@@ -167,31 +145,23 @@ $$Fr = \frac{U}{\sqrt{gL}} = \sqrt{\frac{\text{Inertial Forces}}{\text{Gravitati
 
 
 ```mermaid
-graph LR
-    A["Froude Number<br/>Fr = U/√(gL)"] --> B{"Flow Classification"}
+graph TD
+A["Froude Number<br/>Fr = U/√(gL)"]:::explicit --> B{"Flow State"}:::implicit
+B -->|Fr < 1| C["Subcritical<br/>(Tranquil)"]:::implicit
+B -->|Fr = 1| D["Critical<br/>(Transition)"]:::volatile
+B -->|Fr > 1| E["Supercritical<br/>(Rapid)"]:::volatile
 
-    B -->|Fr < 1| C["Subcritical Flow<br/>(Tranquil)"]
-    B -->|Fr = 1| D["Critical Flow<br/>(Fr = 1)"]
-    B -->|Fr > 1| E["Supercritical Flow<br/>(Rapid)"]
+C --> F["Slow / Deep<br/>Wave travels up"]:::context
+D --> G["Critical Depth<br/>Max Energy"]:::context
+E --> H["Fast / Shallow<br/>No upstream wave"]:::context
 
-    C --> F["Slow flow<br/>Large depth<br/>Disturbances travel upstream"]
-    D --> G["Critical depth<br/>Fr = 1<br/>Maximum specific energy"]
-    E --> H["Fast flow<br/>Shallow depth<br/>Disturbances cannot travel upstream"]
+I["Free Surface"]:::context --> J["Waves"]:::implicit
+I --> K["Hydraulic Jump"]:::explicit
 
-    I["Free Surface Effects"] --> J["Wave formation"]
-    I --> K["Hydraulic jumps"]
-    I --> L["Weir flow"]
-    I --> M["Open channel flow"]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style D fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
-    style E fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style I fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 2:** การจำแนกการไหลตามเลขฟรูด ($Fr$) แสดงการเปลี่ยนผ่านจากระบอบการไหลแบบ Subcritical ไปสู่ Supercritical และปรากฏการณ์ทางกายภาพที่เกี่ยวข้อง (คลื่น, Hydraulic jumps)
 
@@ -288,31 +258,24 @@ $$Ma = \frac{U}{c} = \frac{\text{Flow Velocity}}{\text{Speed of Sound}}$$
 
 
 ```mermaid
-graph LR
-    A["Flow Velocity U"] --> B["Mach Number<br/>Ma = U/c"]
-    B --> C{"Flow Regimes"}
+graph TD
+A["Velocity U"]:::context --> B["Mach Number<br/>Ma = U/c"]:::explicit
+B --> C{"Regime"}:::implicit
+C -->|Ma < 0.3| D["Incompressible<br/>ρ const"]:::implicit
+C -->|0.3 < Ma < 0.8| E["Subsonic<br/>ρ varies"]:::explicit
+C -->|0.8 < Ma < 1.2| F["Transonic<br/>Shocks"]:::volatile
+C -->|Ma > 1.2| G["Supersonic<br/>Strong Shocks"]:::volatile
 
-    C -->|Ma < 0.3| D["Incompressible<br/>ρ ≈ constant"]
-    C -->|0.3 < Ma < 0.8| E["Subsonic Compressible<br/>Density varies"]
-    C -->|0.8 < Ma < 1.2| F["Transonic<br/>Shocks mixed"]
-    C -->|Ma > 1.2| G["Supersonic<br/>Strong Shocks"]
+D --> H["Solver:<br/>simpleFoam"]:::success
+E --> I["Solver:<br/>rhoSimpleFoam"]:::success
+F --> J["Solver:<br/>sonicFoam"]:::success
+G --> J
 
-    D --> H["Solvers:<br/>simpleFoam<br/>pimpleFoam"]
-    E --> I["Solvers:<br/>rhoSimpleFoam<br/>rhoPimpleFoam"]
-    F --> J["Solvers:<br/>sonicFoam<br/>rhoCentralFoam"]
-    G --> J
-
-    H --> K["No EOS needed<br/>or Incompressible"]
-    I --> L["Equation of State<br/>p = ρRT"]
-    J --> M["Shock Capturing<br/>Schemes"]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style C fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
-    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style F fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style G fill:#fbe9e7,stroke:#bf360c,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 3:** การจำแนกระบอบการไหลแบบอัดตัวได้ตามเลขมัค ($Ma$) โดยรายละเอียดการเปลี่ยนผ่านจากการไหลแบบอัดตัวไม่ได้ไปสู่ความเร็วเหนือเสียง และข้อกำหนดของ Solver ใน OpenFOAM ที่เกี่ยวข้อง
 
@@ -409,40 +372,23 @@ $$Pr = \frac{c_p \mu}{k} = \frac{\text{Momentum Diffusivity}}{\text{Thermal Diff
 
 
 ```mermaid
-graph LR
-    subgraph "Low Pr Number (Pr < 1)"
-        A["Gases<br/>(Pr ≈ 0.7)"]
-        B["Thermal Boundary Layer<br/>THICKER<br/>than Velocity Layer"]
-        C["Thermal Diffusivity<br/>HIGHER than Momentum"]
-        A --> B --> C
-    end
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+subgraph Physics_Regimes["Physics Regimes"]
+    direction TB
+    Gases["Gases (Pr < 1)<br/>Thermal Layer > Velocity Layer<br/>High Thermal Diffusivity"]:::implicit
+    Liquids["Liquids (Pr > 1)<br/>Thermal Layer < Velocity Layer<br/>High Momentum Diffusivity"]:::implicit
+end
 
-    subgraph "High Pr Number (Pr > 1)"
-        D["Liquids<br/>(Pr ≈ 7)"]
-        E["Thermal Boundary Layer<br/>THINNER<br/>than Velocity Layer"]
-        F["Momentum Diffusivity<br/>HIGHER than Thermal"]
-        D --> E --> F
-    end
+subgraph Engineering_Context["Engineering Context"]
+    direction TB
+    Apps["Critical Applications<br/>Heat Exchangers<br/>Gas Turbines"]:::context
+end
 
-    G["Critical Applications"]
-    H["Heat Exchangers"]
-    I["Electronic Cooling"]
-    J["Gas Turbines"]
-    K["Chemical Reactors"]
-
-    G --> H
-    G --> I
-    G --> J
-    G --> K
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,B,C,D,E,F process
-    class G decision
-    class H,I,J,K storage
+Gases --> Apps
+Liquids --> Apps
 ```
 > **Figure 4:** ผลกระทบของเลขพรานดท์ ($Pr$) ต่อฟิสิกส์ของชั้นขอบเขต โดยเปรียบเทียบความหนาสัมพัทธ์ของชั้นขอบเขตความร้อนและชั้นขอบเขตความเร็วสำหรับก๊าซ ($Pr$ ต่ำ) และของเหลว ($Pr$ สูง)
 
@@ -477,32 +423,16 @@ $$St = \frac{f L}{U} = \frac{\text{Vortex Shedding Frequency} \times \text{Lengt
 
 
 ```mermaid
-graph LR
-    A["Fluid Flow"] --> B["Cylinder"]
-    B --> C["Vortex Formation"]
-    C --> D["Alternating Vortices"]
-    D --> E["Kármán Vortex Street"]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Params["Flow Parameters<br/>St = fL/U ≈ 0.2<br/>Re = ρUL/μ"]:::implicit
+Object["Cylinder<br/>Bluff Body"]:::context
+Flow["Fluid Flow<br/>Vortex Shedding<br/>Von Kármán Street"]:::explicit
 
-    F["Strouhal Number St = fL/U"] --> B
-    G["St ≈ 0.2<br/>(Typical Value)"] --> F
-    H["f: Vortex Shedding<br/>Frequency"] --> F
-    I["L: Characteristic<br/>Length"] --> F
-    J["U: Flow Velocity"] --> F
-
-    K["Flow Parameters"] --> L["Reynolds Number"]
-    L --> M["Flow Regime"]
-    M --> C
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style C fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style D fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style E fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style F fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style G fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style K fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style L fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style M fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+Params --> Object
+Object --> Flow
 ```
 > **Figure 5:** กลไกการหลุดของ Vortex แบบ von Kármán จากทรงกระบอก ซึ่งอธิบายโดยเลขสเตราฮัล ($St$) ที่เชื่อมโยงความถี่ของการหลุดเข้ากับความเร็วการไหลและความยาวลักษณะเฉพาะ
 

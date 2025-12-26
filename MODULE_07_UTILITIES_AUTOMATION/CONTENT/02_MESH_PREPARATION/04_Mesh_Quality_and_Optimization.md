@@ -107,13 +107,16 @@ grep -E "(ERROR|WARNING|non-manifold|self-intersection)" surface_analysis.txt
 ### 2.1 สถาปัตยกรรมของ Python Quality Analyzer
 
 ```mermaid
-graph LR
-    A[OpenFOAM Case] --> B[checkMesh Execution]
-    B --> C[Log Parsing]
-    C --> D[Statistical Analysis]
-    D --> E[PDF Report Generation]
-    E --> F[Histograms & Metrics]
-    F --> G[Quality Assessment]
+flowchart LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Case]:::context --> B[checkMesh]:::explicit
+B --> C[Log Parse]:::implicit
+C --> D[Analysis]:::implicit
+D --> E[Report]:::implicit
+E --> F[Plots]:::implicit
+F --> G[QA Assessment]:::explicit
 ```
 > **Figure 1:** สถาปัตยกรรมของเครื่องมือวิเคราะห์คุณภาพเมชด้วย Python แสดงลำดับการทำงานตั้งแต่การรันคำสั่ง `checkMesh` การแยกวิเคราะห์ Log การวิเคราะห์ทางสถิติ ไปจนถึงการสร้างรายงานในรูปแบบ PDF พร้อมกราฟฮิสโตแกรมและตัวชี้วัดต่างๆ
 
@@ -1185,16 +1188,18 @@ void optimizeMeshQuality(fvMesh& mesh, const dictionary& optimizerDict)
 ### แนวทางการทำงาน
 
 ```mermaid
-graph TD
-    A[Create Mesh<br>สร้าง Mesh] --> B[Check Quality<br>ตรวจสอบคุณภาพ]
-    B --> C{Quality Sufficient?<br>คุณภาพเพียงพอ?}
-    C -->|Yes| D[Proceed<br>ดำเนินการต่อ]
-    C -->|No| E[Identify Problems<br>ระบุปัญหา]
-    E --> F[Optimize Mesh<br>ปรับปรุง Mesh]
-    F --> B
-
-    D --> G[Final Validation<br>Validation สุดท้าย]
-    G --> H[Simulation Ready<br>พร้อมจำลอง]
+flowchart TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Create Mesh]:::explicit --> B[Check Quality]:::explicit
+B --> C{Sufficient?}:::explicit
+C -->|Yes| D[Proceed]:::implicit
+C -->|No| E[Identify Issues]:::explicit
+E --> F[Optimize/Refine]:::explicit
+F --> B
+D --> G[Final Validation]:::implicit
+G --> H[Ready]:::context
 ```
 > **Figure 2:** แผนภูมิกระบวนการปรับปรุงคุณภาพเมชแบบวนซ้ำ (Iterative Mesh Improvement) ครอบคลุมตั้งแต่การสร้างเมช การตรวจสอบและระบุปัญหา จนถึงการสรุปผลความถูกต้องขั้นสุดท้ายเพื่อให้เมชพร้อมสำหรับการจำลอง
 

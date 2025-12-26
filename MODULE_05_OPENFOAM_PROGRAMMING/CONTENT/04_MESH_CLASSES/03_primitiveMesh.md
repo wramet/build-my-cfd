@@ -22,19 +22,18 @@
 
 ```mermaid
 sequenceDiagram
-    participant S as Solver
-    participant M as primitiveMesh (Cache)
-    participant C as Geometry Calculator
-
-    S->>M: request mesh.V()
-    alt Data in Cache
-        M-->>S: Return cached volumes
-    else Cache Empty
-        M->>C: trigger calcCellVolumes()
-        C-->>M: return calculated data
-        M->>M: store in Cache
-        M-->>S: Return volumes
-    end
+participant S as Solver
+participant M as primitiveMesh (Cache)
+participant C as Geometry Calculator
+S->>M: request mesh.V()
+alt Data in Cache
+    M-->>S: Return cached volumes
+else Cache Empty
+    M->>C: trigger calcCellVolumes()
+    C-->>M: return calculated data
+    M->>M: store in Cache
+    M-->>S: Return volumes
+end
 ```
 > **Figure 1:** ลำดับขั้นตอนการทำงานของ Lazy Evaluation ใน `primitiveMesh` ซึ่งจะทำการคำนวณข้อมูลเรขาคณิตที่มีค่าใช้จ่ายสูงเฉพาะเมื่อมีการร้องขอจากโซลเวอร์เท่านั้น และจะจัดเก็บผลลัพธ์ไว้ในแคชเพื่อการใช้งานซ้ำอย่างมีประสิทธิภาพ
 

@@ -17,35 +17,29 @@ This elegant design enables CFD engineers to write code that closely mirrors the
 
 ```mermaid
 flowchart LR
-    subgraph Input["Input Fields"]
-        V1[Vector Field U]
-        V2[Vector Field V]
-    end
-
-    subgraph Operators["Operators"]
-        Amp["& (Dot Product)"]
-        Caret["^ (Cross Product)"]
-        Star["* (Outer Product)"]
-    end
-
-    subgraph Output["Output Fields"]
-        S[Scalar Field]
-        V_Res[Vector Field]
-        T[Tensor Field]
-    end
-
-    V1 --> Amp --> S
-    V2 --> Amp --> S
-
-    V1 --> Caret --> V_Res
-    V2 --> Caret --> V_Res
-
-    V1 --> Star --> T
-    V2 --> Star --> T
-
-    style S fill:#e1f5fe
-    style V_Res fill:#fff9c4
-    style T fill:#e8f5e9
+classDef input fill:#e1f5fe,stroke:#0288d1,color:#000
+classDef op fill:#ffecb3,stroke:#f57f17,color:#000
+classDef output fill:#c8e6c9,stroke:#388e3c,color:#000
+subgraph Data ["Input Vector Fields"]
+    U["Vector Field U"]:::input
+    V["Vector Field V"]:::input
+end
+subgraph Operations ["Operator Overloading"]
+    Dot["& (Inner Product)"]:::op
+    Cross["^ (Cross Product)"]:::op
+    Outer["* (Outer Product)"]:::op
+end
+subgraph Results ["Output Fields"]
+    S["Scalar Field"]:::output
+    Vec["Vector Field"]:::output
+    Ten["Tensor Field"]:::output
+end
+U & V --> Dot
+Dot --> S
+U & V --> Cross
+Cross --> Vec
+U & V --> Outer
+Outer --> Ten
 ```
 > **Figure 1:** แผนผังการทำงานของตัวดำเนินการ (Operator Overloading) ที่แปลงฟิลด์เวกเตอร์อินพุตผ่านการดำเนินการต่างๆ เช่น ผลคูณจุดหรือผลคูณไขว้ เพื่อให้ได้ผลลัพธ์ที่เป็นฟิลด์สเกลาร์ เวกเตอร์ หรือเทนเซอร์ตามกฎทางคณิตศาสตร์ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

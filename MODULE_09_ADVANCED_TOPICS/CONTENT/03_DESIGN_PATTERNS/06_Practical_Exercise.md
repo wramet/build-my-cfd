@@ -20,20 +20,15 @@
 
 ```mermaid
 graph TD
-    A[1. Physical Analysis] --> B[2. Interface Design]
-    B --> C[3. Implementation]
-    C --> D[4. Factory Registration]
-    D --> E[5. Build System]
-    E --> F[6. Case Configuration]
-    F --> G[7. Testing & Validation]
-
-    style A fill:#e1f5ff
-    style B fill:#fff4e1
-    style C fill:#ffe1f5
-    style D fill:#e1ffe1
-    style E fill:#f5e1ff
-    style F fill:#ffe1e1
-    style G fill:#e1f5e1
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+A[1. Physical Analysis]:::explicit --> B[2. Interface Design]:::implicit
+B --> C[3. Implementation]:::implicit
+C --> D[4. Factory Registration]:::implicit
+D --> E[5. Build System]:::implicit
+E --> F[6. Case Configuration]:::implicit
+F --> G[7. Testing & Validation]:::success
 ```
 
 > **Figure 1:** แผนภาพแสดงกระบวนการพัฒนาโมเดลแบบกำหนดเองใน OpenFOAM ตั้งแต่การวิเคราะห์ทางฟิสิกส์ไปจนถึงการทดสอบและการตรวจสอบความถูกต้อง
@@ -361,16 +356,22 @@ tmp<volScalarField> MyHeatTransfer::h
 
 ```mermaid
 graph LR
-    A[MyHeatTransfer.C] --> B{addToRunTimeSelectionTable}
-    B --> C[Static Registration Object]
-    C --> D[Global Selection Table]
-
-    E[Case Dictionary] --> F[heatTransferModel::New]
-    F --> G{Lookup 'myHeatTransfer'}
-    G --> D
-    D --> H[Create MyHeatTransfer Instance]
-    H --> I[Configure with Parameters]
-    I --> J[Return autoPtr]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+subgraph Registration [Compile-Time Registration]
+A[MyHeatTransfer.C]:::explicit --> B{addToRunTimeSelectionTable}:::implicit
+B --> C[Static Registration Object]:::implicit
+C --> D[Global Selection Table]:::success
+end
+subgraph Usage [Runtime Usage]
+E[Case Dictionary]:::explicit --> F[heatTransferModel::New]:::implicit
+F --> G{Lookup 'myHeatTransfer'}:::implicit
+G --> D
+D --> H[Create MyHeatTransfer Instance]:::implicit
+H --> I[Configure with Parameters]:::implicit
+I --> J[Return autoPtr]:::success
+end
 ```
 > **Figure 2:** แผนผังแสดงกลไกการลงทะเบียนโมเดลแบบกำหนดเองเข้าสู่ระบบ Factory ของ OpenFOAM โดยใช้การเริ่มต้นแบบสถิต (Static Registration) เพื่อเพิ่มชื่อโมเดลเข้าไปในตารางการเลือกส่วนกลาง ทำให้ระบบสามารถสร้างออบเจกต์ใหม่ได้ทันทีเมื่อมีการเรียกใช้ผ่าน Dictionary
 

@@ -70,14 +70,14 @@ A computational mesh has **three primary data storage locations**:
 
 ```mermaid
 graph TD
-    Mesh["Computational Mesh"]
-    Mesh --> C["Cell Centers<br/><b>volField</b>"]
-    Mesh --> F["Face Centers<br/><b>surfaceField</b>"]
-    Mesh --> P["Points/Vertices<br/><b>pointField</b>"]
-
-    style C fill:#e3f2fd,stroke:#1565c0
-    style F fill:#fff9c4,stroke:#fbc02d
-    style P fill:#e8f5e9,stroke:#2e7d32
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+Mesh[Computational Mesh]:::implicit
+Mesh --> C[Cell Centers<br/>volField]:::implicit
+Mesh --> F[Face Centers<br/>surfaceField]:::explicit
+Mesh --> P[Points<br/>pointField]:::implicit
 ```
 > **Figure 1:** ตำแหน่งหลักในการจัดเก็บข้อมูลภายในเมชคำนวณ ได้แก่ จุดศูนย์กลางเซลล์ (volField), จุดศูนย์กลางหน้า (surfaceField) และจุดยอด (pointField) ซึ่งแต่ละตำแหน่งทำหน้าที่ต่างกันในการจำลอง CFD
 

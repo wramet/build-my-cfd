@@ -63,18 +63,20 @@ $$q_l'' - q_v'' = \dot{m}'' h_{lv} \tag{2.3}$$
 $$\dot{m}'' = \frac{q''}{h_{lv}} \tag{2.4}$$
 
 ```mermaid
-flowchart LR
-    A[ฟลักซ์ความร้อนที่ผนัง] --> B[ชั้นขอบทางความร้อน]
-    B --> C[เกรเดียนต์อุณหภูมิของเหลว]
-    C --> D{TL > Tsat?}
-    D -->|ใช่| N[จุดกำเนิดฟอง]
-    N --> E[การก่อตัวของฟอง]
-    E --> F[การถ่ายโอนมวล]
-    F --> G[การเคลื่อนที่ของส่วนต่อประสาน]
-    D -->|ไม่ใช่| H[การพาความร้อนเฟสเดียว]
+graph LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Wall["Wall Heat Flux"]:::context
+Layer["Thermal Layer"]:::implicit
+Check{"TL > Tsat?"}:::context
+Boil["Boiling / Nucleation"]:::explicit
+Conv["Single Phase Convection"]:::implicit
 
-    style E fill:#f96,stroke:#333,stroke-width:2px
-    style F fill:#f96,stroke:#333,stroke-width:2px
+Wall --> Layer
+Layer --> Check
+Check -- Yes --> Boil
+Check -- No --> Conv
 ```
 > **รูปที่ 1:** แผนภาพแสดงกระบวนการเกิดการเดือดตั้งแต่การรับความร้อนที่ผนังจนถึงการเคลื่อนที่ของส่วนต่อประสานระหว่างเฟสเนื่องจากการถ่ายโอนมวล
 
@@ -260,18 +262,20 @@ class phaseChangeModel
 
 ```mermaid
 graph TD
-    A[วงรอบตัวแก้ปัญหา] --> B[อัปเดต p, U, T]
-    B --> C[เรียก phaseChangeModel::correctMassTransfer]
-    C --> D[คำนวณ dmdt ตามค่า T เทียบกับ T_sat]
-    D --> E[อัปเดตเทอมแหล่งกำเนิด Su และ Sp]
-    E --> F[แก้สมการสัดส่วนเฟส]
-    F --> G[แก้สมการพลังงานพร้อมแหล่งความร้อนแฝง]
-    G --> H[ตรวจสอบการลู่เข้า]
-    H -- ยังไม่ลู่เข้า --> B
-    H -- ลู่เข้าแล้ว --> I[ช่วงเวลาถัดไป]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Fields["Update p, U, T"]:::implicit
+Mass["Correct Mass Transfer"]:::explicit
+Source["Update Sources (Su, Sp)"]:::implicit
+Solve["Solve Alpha & Energy"]:::explicit
+Check{"Converged?"}:::context
 
-    style C fill:#f96,stroke:#333,stroke-width:2px
-    style D fill:#f96,stroke:#333,stroke-width:2px
+Fields --> Mass
+Mass --> Source
+Source --> Solve
+Solve --> Check
+Check -- No --> Fields
 ```
 > **รูปที่ 2:** แผนผังลำดับขั้นตอนการคำนวณของ Solver สำหรับแบบจำลองการเปลี่ยนสถานะเฟส โดยแสดงการเชื่อมโยงระหว่างการคำนวณอัตราการถ่ายโอนมวลและสมการพลังงานในแต่ละขั้นตอนการวนซ้ำ
 

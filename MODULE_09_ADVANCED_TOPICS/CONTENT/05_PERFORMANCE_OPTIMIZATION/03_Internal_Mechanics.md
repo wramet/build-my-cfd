@@ -53,12 +53,15 @@ BinaryExpression<
 
 ```mermaid
 graph TD
-    A[Start Evaluation: operator=] --> B[Recursive Tree Traversal]
-    B --> C[Compute Cell 0: All terms combined]
-    C --> D[Compute Cell 1: All terms combined]
-    D --> E[Compute Cell N: All terms combined]
-    E --> F[Update Boundary Fields]
-    F --> G[End: Final Field Updated]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+A[Start Evaluation: operator=]:::explicit --> B[Recursive Tree Traversal]:::implicit
+B --> C[Compute Cell 0: All terms combined]:::implicit
+C --> D[Compute Cell 1: All terms combined]:::implicit
+D --> E[Compute Cell N: All terms combined]:::implicit
+E --> F[Update Boundary Fields]:::implicit
+F --> G[End: Final Field Updated]:::success
 ```
 > **Figure 1:** ขั้นตอนการประเมินผลนิพจน์แบบรอบเดียว (Single-pass Evaluation) โดยระบบจะทำการไล่เรียงต้นไม้นิพจน์และคำนวณค่าของทุกพจน์รวมกันในแต่ละเซลล์ ก่อนจะบันทึกผลลัพธ์ลงในหน่วยความจำเพียงครั้งเดียว ช่วยลดภาระการเข้าถึงหน่วยความจำ (Memory Bandwidth) ได้อย่างมหาศาล
 

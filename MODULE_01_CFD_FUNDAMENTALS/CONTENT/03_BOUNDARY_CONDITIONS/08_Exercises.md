@@ -114,14 +114,25 @@ boundaryField
 
 ```mermaid
 graph LR
-    A["Inlet<br/>Fixed Velocity<br/>V = 5 m/s"] --> B["Pipe Flow<br/>Fully Developed<br/>Flow Pattern"]
-    B --> C["Outlet<br/>Fixed Pressure<br/>p = 0 Pa gauge"]
-    D["Walls<br/>No-Slip Condition<br/>V = 0 at surface"] --> B
+%% Pipe Flow BCs
+subgraph Boundaries ["Boundary Conditions"]
+    Inlet["Inlet (fixedValue U)"]:::explicit
+    Outlet["Outlet (fixedValue p)"]:::explicit
+    Wall["Wall (noSlip)"]:::implicit
+end
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style B fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style C fill:#ffebee,stroke:#c62828,stroke-width:2px
-    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+subgraph Flow ["Flow Domain"]
+    Pipe["Fluid Volume"]:::context
+end
+
+Inlet --> Pipe
+Outlet --> Pipe
+Wall -.->|Constraint| Pipe
+
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 1:** การตั้งค่าการไหลในท่อแบบพัฒนาเต็มที่ แสดงความเชื่อมโยงระหว่างเงื่อนไขขาเข้าแบบความเร็วคงที่ ขาออกที่ความดันคงที่ และเงื่อนไข No-Slip ที่ผนังเพื่อสร้างรูปแบบการไหลที่สมบูรณ์
 
@@ -356,24 +367,22 @@ slipWall
 
 ```mermaid
 graph LR
-    A["Symmetry Plane"] --> B["Physical Mirror"]
-    B --> C["Normal Velocity = 0"]
-    C --> D["Reverse Flow <br/> on Other Side"]
+%% Symmetry vs Slip
+subgraph Symmetry ["Symmetry Plane"]
+    SymCond["Normal Vel = 0, Normal Grad = 0"]:::implicit
+end
 
-    E["Slip Wall"] --> F["Frictionless Surface"]
-    F --> G["Normal Velocity = 0"]
-    G --> H["Tangential Flow <br/> Zero Shear"]
+subgraph Slip ["Slip Wall"]
+    SlipCond["Normal Vel = 0, Shear Stress = 0"]:::explicit
+end
 
-    I["Mathematical <br/> Conditions"] --> J["n · u = 0"]
-    I --> K["n × (τ · n) = 0"]
+SymCond -->|Mirror| Physics1["Virtual Mirror"]:::context
+SlipCond -->|Frictionless| Physics2["Smooth Wall"]:::context
 
-    classDef symmetry fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef slip fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef math fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-
-    class A,B,C,D symmetry;
-    class E,F,G,H slip;
-    class I,J,K math;
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 2:** ความแตกต่างระหว่างเงื่อนไขระนาบสมมาตร (Symmetry Plane) และผนังลื่น (Slip Wall) โดยแสดงการเปรียบเทียบระหว่างการสะท้อนทางกายภาพแบบกระจกเงากับพื้นผิวในอุดมคติที่ไม่มีแรงเสียดทาน
 
@@ -417,31 +426,24 @@ graph LR
 
 ```mermaid
 graph TD
-    subgraph "Inlet Boundary"
-        A["Fixed Velocity<br/>u = u₀"]:::process
-        B["Fixed Pressure<br/>p = p₀"]:::process
-    end
+%% Mathematical Conflict
+subgraph Conflict ["Over-Specification"]
+    Inlet["Inlet: Fixed U"]:::explicit
+    Outlet["Outlet: Fixed U (?)"]:::explicit
+    Problem["Mass Conservation Violation"]:::explicit
+end
 
-    subgraph "Mathematical Conflict"
-        C["Over-specified<br/>System"]:::decision
-        D["No Solution"]:::terminator
-    end
+subgraph Solution ["Correct Approach"]
+    InletFixed["Inlet: Fixed U"]:::implicit
+    OutletOpen["Outlet: ZeroGradient U, Fixed Pressure"]:::implicit
+end
 
-    subgraph "Navier-Stokes Equations"
-        E["Continuity: ∇⋅u = 0"]
-        F["Momentum: ∂u/∂t + (u⋅∇)u = -∇p/ρ + ν∇²u"]
-    end
+Inlet & Outlet --> Problem
+Problem -.->|Fix| Solution
 
-    A --> C
-    B --> C
-    C --> D
-    E --> C
-    F --> C
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
 ```
 > **Figure 3:** ความขัดแย้งทางคณิตศาสตร์ในระบบที่ถูกจำกัดเงื่อนไขมากเกินไป (Over-specification) แสดงให้เห็นว่าการกำหนดทั้งความเร็วและความดันตายตัวที่ทางเข้าเดียวกันนำไปสู่ระบบที่ไม่มีผลเฉลยและเกิดความไม่เสถียร
 
@@ -549,28 +551,26 @@ U
 
 ```mermaid
 graph LR
-    subgraph "Original Problem Domain"
-        A["Inlet Boundary"] --> B["Flow Development Region"]
-        B --> C["Outlet Too Close<br/>(Backflow Issues)"]
-        C --> D["Vortices & Recirculation<br/>at Boundary"]
-    end
+%% Domain Extension
+subgraph BadDomain ["Problematic Domain"]
+    Out1["Outlet (Too Close)"]:::explicit
+    Recirc["Backflow/Instability"]:::explicit
+end
 
-    subgraph "Extended Domain Solution"
-        E["Inlet Boundary"] --> F["Flow Development Region"]
-        F --> G["Fully Developed Flow"]
-        G --> H["Extended Domain<br/>(10-50x Diameter)"]
-        H --> I["Proper Outlet<br/>(No Backflow)"]
-    end
+subgraph GoodDomain ["Extended Domain"]
+    Ext["Extension Length"]:::implicit
+    Out2["Outlet (Developed)"]:::implicit
+    Stable["Stable Outflow"]:::implicit
+end
 
-    style A fill:#ffcdd2,stroke:#c62828,color:#000
-    style B fill:#ffcdd2,stroke:#c62828,color:#000
-    style C fill:#ffcdd2,stroke:#c62828,color:#000
-    style D fill:#ffcdd2,stroke:#c62828,color:#000
-    style E fill:#c8e6c9,stroke:#2e7d32,color:#000
-    style F fill:#c8e6c9,stroke:#2e7d32,color:#000
-    style G fill:#c8e6c9,stroke:#2e7d32,color:#000
-    style H fill:#c8e6c9,stroke:#2e7d32,color:#000
-    style I fill:#c8e6c9,stroke:#2e7d32,color:#000
+Out1 --> Recirc
+Recirc -.->|Remedy| Ext
+Ext --> Out2
+Out2 --> Stable
+
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
 ```
 > **Figure 4:** กลยุทธ์การขยายโดเมนการคำนวณเพื่อป้องกันปัญหาการไหลย้อนกลับ โดยเพิ่มระยะปลายน้ำให้เพียงพอสำหรับการพัฒนาการไหลแบบสมบูรณ์ ช่วยให้ได้ผลลัพธ์ที่ถูกต้องทางกายภาพที่ทางออก
 
@@ -638,30 +638,31 @@ boundaryField
 
 ```mermaid
 graph LR
-    subgraph "Backward Facing Step Geometry"
-        IN["Inlet Boundary<br/>Fixed Value: U = (1 0 0)<br/>Zero Gradient: p"]
-        STEP["Step Region<br/>Height: h<br/>Flow Separation"]
-        REC["Recirculation Zone<br/>Vortex Formation<br/>Reverse Flow"]
-        WALL1["Upper Wall<br/>No-Slip Condition<br/>U = (0 0 0)"]
-        WALL2["Lower Wall<br/>No-Slip Condition<br/>U = (0 0 0)"]
-        OUT["Outlet Boundary<br/>Zero Gradient: U<br/>Fixed Value: p = 0"]
+%% Backward Facing Step
+subgraph Geometry ["Geometry"]
+    Inlet["Inlet"]:::explicit
+    Step["Step Corner"]:::context
+    Wall["Walls"]:::implicit
+    Outlet["Outlet"]:::explicit
+end
 
-        IN --> STEP
-        STEP --> REC
-        REC --> OUT
-        WALL1 --"Constraints"--> REC
-        WALL2 --"Constraints"--> REC
-    end
+subgraph Physics ["Flow Physics"]
+    Sep["Separation Point"]:::explicit
+    Recirc["Recirculation Zone"]:::explicit
+    Reattach["Reattachment"]:::implicit
+end
 
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+Inlet --> Step
+Step --> Sep
+Sep --> Recirc
+Recirc --> Reattach
+Reattach --> Outlet
+Wall -.-> Physics
 
-    class IN,OUT process;
-    class STEP,REC decision;
-    class WALL1,WALL2 storage;
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 5:** เรขาคณิตของ Backward Facing Step และลักษณะการไหล แสดงจุดแยกตัวและการก่อตัวของกระแสวนในบริเวณ Recirculation Zone พร้อมเงื่อนไขขอบเขตที่เหมาะสมสำหรับส่วนประกอบต่าง ๆ
 
@@ -752,43 +753,38 @@ walls
 > - การคำนวณ first cell height
 
 ```mermaid
-graph LR
-    subgraph "Wall Function Implementation"
-        A["Wall Boundary"] --> B["Calculate y+"]
-        B --> C{"y+ < 11.23?"}
-        C -->|Yes| D["Viscous Sublayer<br/>u+ = y+"]
-        C -->|No| E["Log-Law Region<br/>u+ = 1/κ ln(y+) + B"]
-        D --> F["Velocity Profile"]
-        E --> F
-    end
+graph TD
+%% Wall Functions Implementation Flow
+subgraph Input ["Mesh Parameters"]
+y_dist["Wall Distance y"]:::context
+y_plus["y+ Value"]:::explicit
+end
 
-    subgraph "Parameters"
-        G["κ von Kármán = 0.41"]
-        H["B = 5.2"]
-        I["μ Dynamic Viscosity"]
-        J["ρ Density"]
-        K["uτ = √(τw/ρ) <br/>Friction Velocity"]
-    end
+subgraph Logic ["Wall Function Logic"]
+Viscous["Viscous Sublayer<br/>(y+ < 5)"]:::implicit
+LogLaw["Log Law Region<br/>(30 < y+ < 300)"]:::implicit
+Buffer["Buffer Layer<br/>(5 < y+ < 30)<br/>Avoid if possible!"]:::warning
+end
 
-    subgraph "Mesh Requirements"
-        L["First Cell Height y"]
-        M["Desired y+ Range<br/>30-300 for k-ε<br/>11-300 for k-ω"]
-        N["Calculate y+<br/>y+ = ρ uτ y/μ"]
-    end
+subgraph Output ["Boundary Condition"]
+Nut["Calculated nut<br/>(νt)"]:::implicit
+Shear["Wall Shear Stress<br/>(τw)"]:::implicit
+end
 
-    F --> O["Turbulence Production"]
-    O --> P["Wall Shear Stress τw"]
-    P --> A
+y_dist -->|Calculate| y_plus
+y_plus -->|Determine Region| Viscous
+y_plus --> LogLaw
+y_plus --> Buffer
 
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+Viscous -->|Direct| Nut
+LogLaw -->|Wall Function| Nut
+Nut -->|Compute| Shear
 
-    class A,F,O,P process;
-    class C decision;
-    class D,E terminator;
-    class G,H,I,J,K,L,M,N storage;
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
+classDef warning fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
 ```
 > **Figure 6:** ขั้นตอนการทำงานของการนำ Wall Function ไปใช้งาน โดยตรวจสอบค่า $y^+$ เพื่อเลือกระหว่างการใช้แบบจำลองชั้นย่อยหนืดหรือบริเวณกฎลอการิทึม ให้สอดคล้องกับพารามิเตอร์ของไหลและความละเอียดของ Mesh
 

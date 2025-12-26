@@ -41,10 +41,16 @@ $$k_f \frac{\partial T_f}{\partial n} = k_s \frac{\partial T_s}{\partial n}$$
 
 ```mermaid
 flowchart LR
-    A[Fluid Domain] <-->|Heat Flux| B[Interface]
-    B <-->|Heat Flux| C[Solid Domain]
-    B -->|T_fluid = T_solid| D[Temperature Continuity]
-    B -->|k_f ∂T_f/∂n = k_s ∂T_s/∂n| E[Flux Continuity]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+subgraph CHT_System["CHT Interface"]
+    A[Fluid Domain]:::implicit <-->|Heat Flux| B[Interface]:::explicit
+    B <-->|Heat Flux| C[Solid Domain]:::implicit
+    B -->|T_f = T_s| D[Temp Continuity]:::explicit
+    B -->|Flux Balance| E[Flux Continuity]:::explicit
+end
 ```
 > **Figure 1:** แผนผังการเชื่อมโยงที่ส่วนต่อประสาน (Interface) ในการถ่ายเทความร้อนแบบควบคู่ (CHT) ซึ่งต้องรักษาความต่อเนื่องของอุณหภูมิ (Temperature Continuity) และความสมดุลของฟลักซ์ความร้อน (Flux Continuity) ระหว่างโดเมนของไหลและของแข็งตามกฎการอนุรักษ์พลังงาน
 
@@ -427,12 +433,15 @@ postProcess -func "surfaceHeatFlux" -region fluid
 
 ```mermaid
 flowchart TD
-    A[Hot Fluid Inlet] --> B[Shell Side]
-    B --> C[Tube Walls]
-    C --> D[Tube Side]
-    D --> E[Cold Fluid Outlet]
-    C --> F[Heat Transfer]
-    F --> G[Temperature Distribution]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Hot Fluid Inlet]:::explicit --> B[Shell Side]:::implicit
+B -->|Convection| C[Tube Walls]:::implicit
+C -->|Conduction| D[Tube Side]:::implicit
+D -->|Convection| E[Cold Fluid Outlet]:::explicit
+C -->|Heat Transfer| F[Temp Distribution]:::implicit
 ```
 > **Figure 2:** กลไกการถ่ายเทความร้อนในเครื่องแลกเปลี่ยนความร้อนแบบ Shell-and-Tube ซึ่งแสดงกระบวนการพาความร้อนของของไหลฝั่งร้อน การนำความร้อนผ่านผนังท่อ และการรับความร้อนของของไหลฝั่งเย็น นำไปสู่การกระจายอุณหภูมิที่สอดคล้องกันทั่วทั้งระบบ
 

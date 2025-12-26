@@ -8,17 +8,15 @@
 ## โครงสร้างเนื้อหา
 
 ```mermaid
-flowchart TD
-    Start((เริ่มบทเรียน)) --> Intro[1. บทนำ: ทำไมต้องคอนเทนเนอร์เฉพาะ?]
-    Intro --> MemFound[2. พื้นฐานการจัดการหน่วยควาจำ: RAII & Smart Ptr]
-    MemFound --> SysCont[3. ระบบคอนเทนเนอร์: List, PtrList, HashTable]
-    SysCont --> Integration[4. การผสานรวมและแนวทางปฏิบัติ]
-    Integration --> End((สรุปและแบบฝึกหัด))
-
-    style Start fill:#f9f,stroke:#333,stroke-width:2px
-    style End fill:#00ff00,stroke:#333,stroke-width:2px
-    classDef step fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    class Intro,MemFound,SysCont,Integration step
+flowchart LR
+    classDef step fill:#f5f5f5,stroke:#333,color:#000
+    classDef startend fill:#000,stroke:#000,color:#fff
+    
+    S((Start)):::startend --> C1[1. Why Special Containers?]:::step
+    C1 --> C2[2. Memory Basics: RAII]:::step
+    C2 --> C3[3. Container Systems]:::step
+    C3 --> C4[4. Integration & Practice]:::step
+    C4 --> E((End)):::startend
 ```
 > **Figure 1:** โครงสร้างเนื้อหาของโมดูลเรื่องคอนเทนเนอร์และการจัดการหน่วยความจำ ซึ่งแสดงลำดับการเรียนรู้ตั้งแต่พื้นฐานไปจนถึงการประยุกต์ใช้งานจริงในอัลกอริทึม CFD
 

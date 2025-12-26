@@ -15,15 +15,19 @@ This system creates **expression trees** that evaluate the entire expression in 
 
 ```mermaid
 flowchart TD
-    Minus["- Operator"]
-    Plus["+ Operator"]
-    Minus --> Plus
-    Minus --> D["Field d"]
-    Plus --> B["Field b"]
-    Plus --> C["Field c"]
-
-    style Minus fill:#fff9c4
-    style Plus fill:#fff9c4
+classDef operator fill:#ffecb3,stroke:#ff6f00,color:#000
+classDef field fill:#e1f5fe,stroke:#01579b,color:#000
+subgraph Tree ["Expression Tree: (b + c) - d"]
+    Minus["operator- (Subtraction)"]:::operator
+    Plus["operator+ (Addition)"]:::operator
+    FieldD[Field d]:::field
+    FieldB[Field b]:::field
+    FieldC[Field c]:::field
+    Minus -->|Left| Plus
+    Minus -->|Right| FieldD
+    Plus -->|Left| FieldB
+    Plus -->|Right| FieldC
+end
 ```
 > **Figure 1:** โครงสร้างต้นไม้นิพจน์ (Expression Tree) ที่ถูกสร้างขึ้นเพื่อจัดการความสัมพันธ์ระหว่างตัวดำเนินการและตัวแปรฟิลด์ ช่วยให้คอมไพเลอร์สามารถปรับปรุงลำดับการคำนวณให้มีประสิทธิภาพสูงสุดความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

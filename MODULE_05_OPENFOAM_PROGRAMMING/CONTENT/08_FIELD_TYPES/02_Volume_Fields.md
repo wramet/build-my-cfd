@@ -29,25 +29,21 @@ The field type hierarchy in OpenFOAM follows a **systematic inheritance structur
 
 ```mermaid
 flowchart TD
-    A[List&lt;Type&gt;] --> B[Field&lt;Type&gt;]
-    B --> C[DimensionedField&lt;Type, GeoMesh&gt;]
-    C --> D[GeometricField&lt;Type, PatchField, GeoMesh&gt;]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[List Type]:::implicit --> B[Field Type]:::implicit
+B --> C[DimensionedField]:::implicit
+C --> D[GeometricField]:::explicit
+C --> E[regIOobject]:::implicit
+D --> F[GeometricBoundaryField]:::explicit
+F --> G[FieldField PatchField]:::explicit
 
-    C --> E[regIOobject]
-
-    D --> F[GeometricBoundaryField]
-    F --> G[FieldField&lt;PatchField&gt;]
-
-    H[volScalarField] -.->|typedef| D
-    I[volVectorField] -.->|typedef| D
-    J[volTensorField] -.->|typedef| D
-    K[surfaceScalarField] -.->|typedef| D
-
-    style D fill:#e1f5ff
-    style H fill:#ffe1e1
-    style I fill:#ffe1e1
-    style J fill:#ffe1e1
-    style K fill:#e1ffe1
+H[volScalarField]:::explicit -.->|typedef| D
+I[volVectorField]:::explicit -.->|typedef| D
+J[volTensorField]:::explicit -.->|typedef| D
+K[surfaceScalarField]:::explicit -.->|typedef| D
 ```
 > **Figure 1:** โครงสร้างการสืบทอดคลาสสำหรับฟิลด์ปริมาตร แสดงถึงความสัมพันธ์ตั้งแต่คลาสรายการข้อมูลดิบไปจนถึงฟิลด์เรขาคณิตที่สมบูรณ์ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
@@ -136,27 +132,28 @@ The most commonly used field types in OpenFOAM are defined as template specializ
 OpenFOAM uses a **dual data structure** that separates internal domain values from boundary conditions:
 
 ```mermaid
-flowchart TD
-    subgraph GF["GeometricField"]
+flowchart LR
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Subgraphs
+subgraph GF [GeometricField]
+    direction TB
+    subgraph IF [Internal Field]
         direction LR
-        subgraph IF["Internal Field"]
-            direction TB
-            IF1["Cell 0"]
-            IF2["Cell 1"]
-            IF3["..."]
-            IF4["Cell N-1"]
-        end
-
-        subgraph BF["Boundary Field"]
-            direction TB
-            BF1["Patch 0: Face 0, 1, ..."]
-            BF2["Patch 1: Face 0, 1, ..."]
-            BF3["..."]
-        end
+        IF1[Cell 0]:::implicit
+        IF2[Cell 1]:::implicit
+        IF3[...]:::implicit
+        IF4[Cell N-1]:::implicit
     end
 
-    style IF fill:#e3f2fd
-    style BF fill:#fff3e0
+    subgraph BF [Boundary Field]
+        direction LR
+        BF1[Patch 0]:::explicit
+        BF2[Patch 1]:::explicit
+        BF3[...]:::explicit
+    end
+end
 ```
 > **Figure 2:** สถาปัตยกรรมภายในของฟิลด์เรขาคณิตที่แยกการจัดเก็บข้อมูลภายในโดเมน (Internal Field) ออกจากข้อมูลขอบเขต (Boundary Field) เพื่อประสิทธิภาพในการประมวลผลความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

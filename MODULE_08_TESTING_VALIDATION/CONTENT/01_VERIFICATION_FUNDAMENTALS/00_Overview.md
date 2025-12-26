@@ -27,15 +27,14 @@
 ### Verification vs Validation
 
 ```mermaid
-graph LR
-    A[Physical Reality] -->|Compare| B(Validation)
-    B --> C[Mathematical Model]
-    C -->|Discretization| D[Numerical Model]
-    D -->|Verification| E[Computer Code]
-    E --> F[Simulation Results]
-
-    style B fill:#ff9999
-    style D fill:#99ccff
+flowchart LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+A[Physical Reality]:::explicit -->|Compare| B{Validation}:::explicit
+B --> C[Mathematical Model]:::implicit
+C -->|Discretization| D[Numerical Model]:::implicit
+D -->|Verification| E[Computer Code]:::implicit
+E --> F[Simulation Results]:::explicit
 ```
 
 **ตัวอย่างสมการเชิงอนุพันธ์ที่ใช้ในการตรวจสอบ:**

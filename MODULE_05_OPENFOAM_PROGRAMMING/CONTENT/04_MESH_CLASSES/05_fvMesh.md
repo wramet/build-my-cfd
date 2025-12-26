@@ -15,26 +15,34 @@
 
 ```mermaid
 flowchart TD
-    subgraph fvMesh["fvMesh (ชั้นไฟไนต์วอลุ่ม)"]
-        FV1[การดิสครีตแบบไฟไนต์วอลุ่ม]
-        FV2[การจัดเก็บสนามข้อมูล]
-        FV3[Solver API]
-    end
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Subgraphs
+subgraph fvMesh [fvMesh: FVM Layer]
+    direction TB
+    FV1[Discretization Support]:::implicit
+    FV2[Field Storage Management]:::implicit
+    FV3[Solver API Interface]:::implicit
+end
 
-    subgraph polyMesh["polyMesh (ชั้นโทโพโลยี)"]
-        PM1[โทโพโลยีเมชรูปทรงหลายเหลี่ยม]
-        PM2[แพตช์ขอบเขต]
-        PM3[การรองรับการทำงานแบบขนาน]
-    end
+subgraph polyMesh [polyMesh: Topology Layer]
+    direction TB
+    PM1[Polygonal Topology]:::explicit
+    PM2[Boundary Patches]:::explicit
+    PM3[Parallel Data Support]:::explicit
+end
 
-    subgraph primitiveMesh["primitiveMesh (ชั้นการวิเคราะห์เรขาคณิต)"]
-        PR1[การคำนวณทางเรขาคณิต]
-        PR2[ตัวชี้วัดคุณภาพเมช]
-        PR3[การคำนวณเมื่อต้องการ]
-    end
+subgraph primitiveMesh [primitiveMesh: Geometry Layer]
+    direction TB
+    PR1[Geometric Calculations]:::implicit
+    PR2[Mesh Quality Metrics]:::implicit
+    PR3[On-demand Evaluation]:::implicit
+end
 
-    fvMesh --> polyMesh
-    polyMesh --> primitiveMesh
+fvMesh -->|inherits| polyMesh
+polyMesh -->|inherits| primitiveMesh
 ```
 > **รูปที่ 1:** ลำดับชั้นความสัมพันธ์ของ `fvMesh` ที่เชื่อมโยงข้อมูลโทโพโลยีเข้ากับกลไกการคำนวณปริมาตรจำกัด (Finite Volume Discretization) และระบบการจัดเก็บสนามข้อมูล (Field Storage System)
 
@@ -194,17 +202,15 @@ lookupObjectRef(const word& name) const
 
 ```mermaid
 graph TD
-    M[fvMesh / objectRegistry] --> P[volScalarField: p]
-    M --> U[volVectorField: U]
-    M --> T[volScalarField: T]
-
-    subgraph "การจัดการสนามข้อมูล"
-        P
-        U
-        T
-    end
-
-    style M fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+M[fvMesh / objectRegistry<br/>Field Database]:::implicit --> P[volScalarField: p<br/>Pressure]:::explicit
+M --> U[volVectorField: U<br/>Velocity]:::explicit
+M --> T[volScalarField: T<br/>Temperature]:::explicit
+M --> O[Other Fields...]:::context
 ```
 > **รูปที่ 2:** ระบบการจัดการสนามข้อมูล (Field Management System) ที่ทำหน้าที่จัดเก็บและสืบค้นตัวแปรทางฟิสิกส์ต่างๆ อย่างเป็นระเบียบผ่าน Object Registry ของเมช
 

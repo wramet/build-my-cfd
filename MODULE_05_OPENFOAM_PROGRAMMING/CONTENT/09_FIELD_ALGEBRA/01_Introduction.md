@@ -9,10 +9,14 @@ The field algebra system represents one of OpenFOAM's most elegant architectural
 
 ```mermaid
 flowchart LR
-    C["C-Style: **Manual Loops**"] -- "Hard to Read / Bug Prone" --> B["OpenFOAM: **Field Algebra**"]
-    B -- "Clear / Safe / Efficient" --> S[Solver Code]
-
-    style B fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+classDef bad fill:#ffcdd2,stroke:#c62828,color:#000
+classDef good fill:#c8e6c9,stroke:#2e7d32,color:#000
+classDef result fill:#e0e0e0,stroke:#333,stroke-dasharray: 5 5,color:#000
+C["C-Style Loop"]:::bad
+OF["Field Algebra"]:::good
+Solver["Solver Application"]:::result
+C -- "Verbose / Error-Prone / Manual Optimization" --> Solver
+OF -- "Concise / Type-Safe / Auto-Optimized" --> Solver
 ```
 > **Figure 1:** การเปรียบเทียบระหว่างการเขียนลูปแบบภาษา C ดั้งเดิมกับระบบพีชคณิตฟิลด์ของ OpenFOAM ที่ช่วยให้โค้ดมีความชัดเจน ปลอดภัย และมีประสิทธิภาพสูงกว่าความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

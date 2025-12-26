@@ -980,20 +980,23 @@ surfaceFeatures -writeObj yes wing.stl
 
 ```mermaid
 flowchart LR
-    A[Surface Files<br/>STL/OBJ] --> B[surfaceCheck]
-    B --> C[surfaceFeatures]
-    C --> D[blockMesh]
-    D --> E[snappyHexMesh]
-    E --> F[checkMesh]
-    F --> G{ผ่าน?}
-    G -- ไม่ --> E
-    G -- ใช่ --> H[setFields]
-    H --> I[decomposePar]
-    I --> J[Solver<br/>mpirun]
-    J --> K[reconstructPar]
-    K --> L[postProcess]
-    L --> M[foamToVTK]
-    M --> N[Visualization<br/>ParaView]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Surface Files]:::context --> B[surfaceCheck]:::explicit
+B --> C[surfaceFeatures]:::explicit
+C --> D[blockMesh]:::implicit
+D --> E[snappyHexMesh]:::implicit
+E --> F[checkMesh]:::explicit
+F --> G{Pass?}:::explicit
+G -->|No| E
+G -->|Yes| H[setFields]:::explicit
+H --> I[decomposePar]:::explicit
+I --> J[Solver MPI]:::implicit
+J --> K[reconstructPar]:::explicit
+K --> L[postProcess]:::explicit
+L --> M[foamToVTK]:::explicit
+M --> N[ParaView]:::context
 ```
 > **Figure 1:** แผนผังแสดงการเชื่อมโยงของยูทิลิตี้ในแต่ละขั้นตอนของเวิร์กโฟลว์ CFD ตั้งแต่การเตรียมเรขาคณิตพื้นผิว (Surface Files) การสร้างเมช การเตรียมข้อมูลเริ่มต้น ไปจนถึงการประมวลผลหลังการจำลองและการแสดงผลภาพ
 

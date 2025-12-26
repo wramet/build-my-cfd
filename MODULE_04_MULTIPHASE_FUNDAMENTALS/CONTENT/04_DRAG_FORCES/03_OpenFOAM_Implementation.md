@@ -63,17 +63,19 @@ public:
 
 ```mermaid
 flowchart TD
-    A[dragModel<br/>Base Class] --> B[SchillerNaumann<br/>Standard Spherical Particles]
-    A --> C[IshiiZuber<br/>Deformable Bubbles/Droplets]
-    A --> D[MorsiAlexander<br/>Wide Re Range]
-    A --> E[SyamlalOBrien<br/>Fluidized Beds]
-    A --> F[Tomiyama<br/>Contaminated Bubbles]
-
-    B --> B1[Virtual Cd&#40;&#41;]
-    C --> C1[Virtual Cd&#40;&#41;]
-    D --> D1[Virtual Cd&#40;&#41;]
-    E --> E1[Virtual Cd&#40;&#41;]
-    F --> F1[Virtual Cd&#40;&#41;]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[dragModel Base]:::context --> B[SchillerNaumann]:::implicit
+A --> C[IshiiZuber]:::implicit
+A --> D[MorsiAlexander]:::implicit
+A --> E[SyamlalOBrien]:::implicit
+A --> F[Tomiyama]:::implicit
+B --> B1[Virtual Cd()]:::explicit
+C --> C1[Virtual Cd()]:::explicit
+D --> D1[Virtual Cd()]:::explicit
+E --> E1[Virtual Cd()]:::explicit
+F --> F1[Virtual Cd()]:::explicit
 ```
 
 ---
@@ -736,36 +738,34 @@ relaxationFactors
 
 ```mermaid
 flowchart TD
-    A[เริ่มต้น: วิเคราะห์ปัญหา] --> B{ชนิดของอนุภาค?}
-    B -->|ทรงกลม| C{Reynolds number?}
-    B -->|ไม่สมมาตร| D[ใช้ Haider-Levenspiel]
-    B -->|เปลี่ยนรูปได้| E{ระบบ?}
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Start]:::context --> B{Particle Type}:::explicit
+B -->|Spherical| C{Reynolds Num}:::explicit
+B -->|Non-Spherical| D[Haider-Levenspiel]:::implicit
+B -->|Deformable| E{System}:::explicit
 
-    C -->|Re &lt; 1000| F[Schiller-Naumann]
-    C -->|Re &gt; 1000| F
+C -->|Re < 1000| F[Schiller-Naumann]:::implicit
+C -->|Re ≥ 1000| F
 
-    E -->|Gas-Liquid| G{ฟองสะอาดหรือปนเปื้อน?}
-    E -->|เตียงของไหล| H[Syamlal-O'Brien]
+E -->|Gas-Liquid| G{Contamination}:::explicit
+E -->|Fluidized Bed| H[Syamlal-OBrien]:::implicit
 
-    G -->|สะอาด| I[Grace/Ishii-Zuber]
-    G -->|ปนเปื้อน| J[Tomiyama]
+G -->|Clean| I[Grace / Ishii-Zuber]:::implicit
+G -->|Contaminated| J[Tomiyama]:::implicit
 
-    F --> K{ความเข้มข้น?}
-    K -->|สูง| L[เพิ่ม Hindered Settling]
-    K -->|ต่ำ| M[ใช้โมเดลพื้นฐาน]
+F --> K{Concentration}:::explicit
+K -->|High| L[Hindered Settling]:::explicit
+K -->|Low| M[Basic Model]:::implicit
 
-    D --> N[ตั้งค่า Shape Factor]
-    H --> O[เพิ่ม Dense Suspension Effects]
-    L --> O
+D --> N[Shape Factor]:::explicit
+H --> O[Dense Effects]:::explicit
+L --> O
 
-    M --> P[ตั้งค่าใน phaseProperties]
-    N --> P
-    O --> P
-    I --> P
-    J --> P
-
-    P --> Q[ตั้งค่า Under-Relaxation]
-    Q --> R[ทดสอบและตรวจสอบ]
+M & N & O & I & J --> P[Set phaseProperties]:::context
+P --> Q[Set Under-Relaxation]:::explicit
+Q --> R[Validate]:::implicit
 ```
 
 ---

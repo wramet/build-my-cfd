@@ -7,25 +7,38 @@
 
 ```mermaid
 graph TD
-    A["Advanced Boundary Conditions"] --> B["Inlet/Outlet<br/>inletOutlet"]
-    A --> C["Cyclic/Periodic<br/>cyclic"]
-    A --> D["Wall Functions<br/>Wall Modeling"]
-    A --> E["Coupled BCs<br/>Multi-region"]
-    A --> F["Time-Varying BCs<br/>Transient"]
-    A --> G["Overset Mesh<br/>Chimera"]
+%% OpenFOAM BC Taxonomy
+Base["OpenFOAM<br/>Boundary Conditions"]:::implicit
 
-    B --> B1["Flow Direction<br/>Switching"]
-    C --> C1["Periodic<br/>Mapping"]
-    D --> D1["Turbulence<br/>Modeling"]
-    E --> E1["Conjugate<br/>Transfer"]
-    F --> F1["Time-Dependent<br/>Conditions"]
-    G --> G1["Interpolation<br/>Zones"]
+subgraph Basic ["Basic (Primitive) BCs"]
+BasicParent["Basic Types"]:::context
+Fix["fixedValue<br/>(Dirichlet)"]:::explicit
+Zero["zeroGradient<br/>(Neumann)"]:::implicit
+end
 
-    classDef advanced fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef feature fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+subgraph Advanced ["Advanced (Derived) BCs"]
+AdvParent["Specialized Types"]:::context
+IO["inletOutlet<br/>(Direction-dependent)"]:::explicit
+Wall["wallFunction<br/>(Turbulence modeling)"]:::implicit
+Cyc["cyclic<br/>(Periodic coupling)"]:::context
+CycAMI["cyclicAMI<br/>(Arbitrary Mesh Interface)"]:::context
+end
 
-    class A advanced;
-    class B,C,D,E,F,G feature;
+Base --> BasicParent
+Base --> AdvParent
+
+BasicParent --> Fix
+BasicParent --> Zero
+
+AdvParent --> IO
+AdvParent --> Wall
+AdvParent --> Cyc
+AdvParent --> CycAMI
+
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 1:** หมวดหมู่ของเงื่อนไขขอบเขตขั้นสูงใน OpenFOAM ครอบคลุมตั้งแต่การจัดการทิศทางการไหล (Inlet/Outlet) ความสมมาตรแบบเป็นคาบ (Cyclic) การจำลองผนัง (Wall Functions) ไปจนถึงการเชื่อมโยงหลายภูมิภาคและเงื่อนไขที่เปลี่ยนแปลงตามเวลา
 
@@ -43,37 +56,22 @@ graph TD
 
 ```mermaid
 graph TD
-    %% --- Context / Physical Cause ---
-    subgraph Physics [Physical Phenomenon]
-        direction TB
-        Recirc[Recirculation / Swirl]
-        Recirc -->|Induces local flow reversal| Patch
-    end
+%% inletOutlet Logic Flow
+subgraph Logic ["inletOutlet Automatic Switching"]
+Calc["Calculate Local Mass Flux<br/>φ = ρ(U·n)"]:::context
+Check{"Direction Check<br/>φ > 0 ?<br/>(Positive = Outflow)"}:::explicit
+Zero["Apply zeroGradient<br/>(Extrapolate from interior)<br/>Outlet behavior"]:::implicit
+Fixed["Apply fixedValue<br/>(Use specified inletValue)<br/>Inlet behavior"]:::explicit
+end
 
-    %% --- Main Solver Logic ---
-    subgraph Logic [Solver Logic: inletOutlet]
-        Patch(Boundary Patch Face) --> Calc["Calculate Flux<br/>φ = ρ(u &middot; n)"]
-        Calc --> Check{"Flux Direction<br/>(φ > 0 ?)"}
-        
-        %% Branch 1: Inflow
-        Check -->|Yes: Inflow| BranchIn[Flow Entering Domain]
-        BranchIn --> ActionIn["<b>Fixed Value</b><br/>u = u_fixed"]
+Calc --> Check
+Check -->|Yes (Outflow)| Zero
+Check -->|No (Inflow)| Fixed
 
-        %% Branch 2: Outflow
-        Check -->|No: Outflow| BranchOut[Flow Leaving Domain]
-        BranchOut --> ActionOut["<b>Zero Gradient</b><br/>∂u/∂n = 0"]
-    end
-
-    %% Styling
-    classDef state fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,shape:diamond;
-    classDef action fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    classDef physics fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
-
-    class Patch,BranchIn,BranchOut state;
-    class Check decision;
-    class ActionIn,ActionOut,Calc action;
-    class Recirc physics;
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 2:** ตรรกะการสลับพฤติกรรมอัตโนมัติของเงื่อนไข `inletOutlet` โดยพิจารณาจากเครื่องหมายของฟลักซ์มวลเฉพาะที่ เพื่อเลือกระหว่างเงื่อนไขกำหนดค่าตายตัว (เมื่อไหลเข้า) และเงื่อนไขเกรเดียนต์เป็นศูนย์ (เมื่อไหลออก)
 
@@ -177,29 +175,26 @@ $$\mathbf{u} = \frac{\dot{m}}{\rho A} \mathbf{n}$$
 
 
 ```mermaid
-graph TD
-    A["Patch A<br/>Left Boundary"] --> B["Physical<br/>Continuity"]
-    B --> C["Field Transfer<br/>(Velocity, Pressure, etc.)"]
-    C --> D["Patch B<br/>Right Boundary"]
-    D --> A
+graph LR
+%% Cyclic BC Conceptual Framework
+P1["Patch 1<br/>(Boundary face set 1)"]:::explicit
 
-    subgraph "Cyclic Pair Properties"
-        E["Identical Mesh<br/>Topology"]
-        F["Same Number of<br/>Faces"]
-        G["Transformation<br/>Mapping"]
-    end
+subgraph Transform ["Geometric Transformation"]
+Rot["Rotation (R)<br/>or Translation (T)<br/>or both"]:::implicit
+Map["Topology Mapping<br/>Face i ↔ Face j"]:::implicit
+end
 
-    B -.-> E
-    C -.-> F
-    D -.-> G
+P2["Patch 2<br/>(Boundary face set 2)"]:::explicit
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style D fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:#000;
-    style F fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:#000;
-    style G fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:#000;
+P1 <-->|φ values<br/>transferred| Rot
+Rot <-->|Transformed<br/>coordinates| Map
+Map <-->|Coupled<br/>fields| P2
+
+P1 -.->|Direct coupling<br/>after transform| P2
+
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
 ```
 > **Figure 3:** กรอบแนวคิดของเงื่อนไขขอบเขตแบบเป็นคาบ (Cyclic) แสดงการเชื่อมต่อเชิงทอพอโลยีเพื่อให้เกิดความต่อเนื่องทางกายภาพของฟิลด์และฟลักซ์ระหว่างขอบเขตคู่ที่ระบุ โดยใช้การแมปและการแปลงทางเรขาคณิต
 
@@ -295,25 +290,25 @@ left
 
 
 ```mermaid
-graph LR
-    Wall["Wall Surface<br/>y+ < 1"]
-    Viscous["Viscous Sublayer<br/>y+ < 5<br/>u+ = y+"]
-    Buffer["Buffer Layer<br/>5 < y+ < 30<br/>Complex transition"]
-    Log["Logarithmic Layer<br/>y+ > 30<br/>u+ = (1/κ) ln(y+) + B"]
-    Outer["Outer Layer<br/>Full turbulence<br/>u+ = u_tau"]
+graph TD
+%% Turbulent Boundary Layer Structure for Wall Functions
+Wall["Wall Surface<br/>(y = 0, u = 0)"]:::explicit
 
-    Wall --> Viscous
-    Viscous --> Buffer
-    Buffer --> Log
-    Log --> Outer
+subgraph Layers ["Turbulent Boundary Layer Zones"]
+Visc["Viscous Sublayer<br/>(0 < y+ < 5)<br/>Linear: u+ = y+<br/>Viscosity dominates"]:::implicit
+Buff["Buffer Layer<br/>(5 < y+ < 30)<br/>Transition zone<br/>Complex physics"]:::context
+Log["Log-Law Region<br/>(30 < y+ < 300)<br/>Logarithmic: u+ = (1/κ)ln(y+) + B<br/>Turbulence dominates"]:::implicit
+Wake["Wake/Outer Layer<br/>(y+ > 300)<br/>Velocity defect law<br/>Free stream influence"]:::implicit
+end
 
-    style Wall fill:#ffebee,stroke:#c62828,stroke-width:3px
-    style Viscous fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style Buffer fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    style Log fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style Outer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+Free["Free Stream<br/>(u = U∞, far from wall)"]:::explicit
 
-    classDef default fill:#f9f9f9,stroke:#333,stroke-width:1px,color:#000;
+Wall --> Visc --> Buff --> Log --> Wake --> Free
+
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 4:** โครงสร้างของชั้นขอบเขตแบบปั่นป่วนและการสร้างแบบจำลองที่ผนัง แสดงลำดับชั้นตั้งแต่ผนัง (Wall) ไปจนถึงชั้นนอก (Outer layer) เพื่ออธิบายการทำงานของ Wall Function ในการเชื่อมโยงบริเวณต่าง ๆ เข้าด้วยกัน
 
@@ -387,39 +382,25 @@ $$k_w = \frac{u_\tau^2}{\sqrt{C_\mu}}$$
 
 
 ```mermaid
-graph TD
-    A["Region 1: Fluid"] --> B["Coupled Thermal Interface"]
-    B --> C["Region 2: Solid"]
-
-    A --> A1["Temperature T1"]
-    A --> A2["Heat Flux q1"]
-    A --> A3["Fluid Flow"]
-
-    B --> B1["turbulentTemperatureCoupledBaffleMixed"]
-    B --> B2["Thermal Continuity"]
-    B --> B3["Heat Flux Conservation"]
-
-    C --> C1["Temperature T2"]
-    C --> C2["Heat Flux q2"]
-    C --> C3["Solid Properties"]
-
-    A1 -- "Conjugate" --> B2
-    B2 -- "Continuity" --> C1
-    A2 -- "Energy Balance" --> B3
-    B3 -- "Equal Flux" --> C2
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style C fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style A1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style A2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style A3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style B1 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
-    style B2 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
-    style B3 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
-    style C1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style C2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style C3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+graph LR
+%% CHT
+subgraph Fluid ["Fluid Domain"]
+F_Cell["Fluid Cell"]:::implicit
+F_T["Temp T_f"]:::context
+end
+subgraph Interface ["Coupled Interface"]
+    C_Cond["Continuity: T_f = T_s"]:::explicit
+    C_Flux["Flux: k_f∇T = k_s∇T"]:::explicit
+end
+subgraph Solid ["Solid Domain"]
+    S_Cell["Solid Cell"]:::implicit
+    S_T["Temp T_s"]:::context
+end
+F_Cell --> Interface --> S_Cell
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 5:** รอยต่อความร้อนแบบเชื่อมโยงสำหรับการจำลองแบบหลายภูมิภาค แสดงการบังคับใช้ความต่อเนื่องของอุณหภูมิและความสมดุลของฟลักซ์ความร้อนที่รอยต่อระหว่างของไหลและของแข็ง
 
@@ -440,42 +421,22 @@ graph TD
 
 
 ```mermaid
-graph LR
-    subgraph "Background Mesh"
-        B1["Cell 1"]
-        B2["Cell 2"]
-        B3["Cell 3"]
-        B4["Cell 4"]
-    end
-
-    subgraph "Overset Mesh"
-        O1["Fine Cell 1"]
-        O2["Fine Cell 2"]
-        O3["Fine Cell 3"]
-    end
-
-    subgraph "Overlap Region"
-        FR["Fringe Cells<br/>Interpolation"]
-        HR["Hole Cells<br/>Donated"]
-        AC["Active Cells<br/>Primary Solver"]
-    end
-
-    B2 --> FR
-    B3 --> FR
-    O1 --> AC
-    O2 --> AC
-    O3 --> HR
-
-    style B1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style B2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style B3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style B4 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style O1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style O2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style O3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style FR fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style HR fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style AC fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+graph TD
+%% Overset
+subgraph Background ["Background Mesh"]
+BgCells["Fluid Cells"]:::implicit
+Hole["Hole (Inactive)"]:::context
+end
+subgraph Overset ["Overset Mesh"]
+OvCells["Fluid Cells"]:::implicit
+Fringe["Fringe (Interpolated)"]:::explicit
+end
+BgCells -->|"Interpolates to"| Fringe
+OvCells -->|"Masks"| Hole
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 6:** การประมาณค่าในช่วงของ Overset Mesh และการแบ่งโซนเซลล์ แสดงการโต้ตอบระหว่าง Mesh พื้นหลังและ Mesh ซ้อนทับ รวมถึงบทบาทของเซลล์ประเภท Fringe, Hole และ Active ในการหาผลเฉลย
 
@@ -527,26 +488,18 @@ boundaryField
 
 ```mermaid
 graph LR
-    A["Inlet Velocity Profile"] --> B["Time: 0-2s"]
-    B --> C["Linear Ramp Up<br/>0 to 5 m/s"]
-    C --> D["Time: 2-8s"]
-    D --> E["Steady State<br/>5 m/s constant"]
-    E --> F["Time: 8-12s"]
-    F --> G["Oscillating Profile<br/>Sinusoidal variation"]
-    G --> H["Time: 12-15s"]
-    H --> I["Linear Ramp Down<br/>5 to 0 m/s"]
-    I --> J["Outlet Flow"]
-
-    style A fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
-    style J fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    classDef transition fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
-
-    class B,C,D,E,F,G,H,I process
+%% Timeline Profile
+Start["t=0"]:::context
+RampUp["Ramp Up"]:::explicit
+Steady["Steady State"]:::implicit
+Osc["Oscillation"]:::explicit
+RampDown["Ramp Down"]:::explicit
+End["t=End"]:::context
+Start --> RampUp --> Steady --> Osc --> RampDown --> End
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 7:** วิวัฒนาการของโปรไฟล์ความเร็วขาเข้าที่เปลี่ยนแปลงตามเวลา แสดงขั้นตอนตั้งแต่การเพิ่มความเร็ว สภาวะคงตัว การแกว่งแบบไซน์ ไปจนถึงการลดความเร็วและการไหลออกเพื่อจำลองพลวัตที่ซับซ้อน
 

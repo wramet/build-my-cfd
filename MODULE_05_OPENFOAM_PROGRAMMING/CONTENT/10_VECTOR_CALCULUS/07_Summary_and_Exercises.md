@@ -1,24 +1,36 @@
 # Summary & Exercises
 
 ```mermaid
-mindmap
-  root((Vector Calculus))
-    Namespaces
-      fvc (Explicit / Fields)
-      fvm (Implicit / Matrices)
-    Operators
-      Gradient (grad)
-      Divergence (div)
-      Curl (curl)
-      Laplacian (laplacian)
-    Theory
-      Gauss Theorem
-      Discretization
-      Conservation Laws
-    Best Practices
-      fvm for Unknowns
-      Check Mesh Quality
-      Verify Dimensions
+flowchart TD
+classDef root fill:#333,stroke:#000,color:#fff
+classDef branch fill:#e0e0e0,stroke:#333,color:#000
+classDef leaf fill:#fff,stroke:#333,color:#000
+Root((Vector Calculus)):::root
+
+subgraph NS [Namespaces]
+    N1[fvc: Explicit]:::branch
+    N2[fvm: Implicit]:::branch
+end
+
+subgraph Ops [Operators]
+    O1[grad / div]:::branch
+    O2[curl / laplacian]:::branch
+end
+
+subgraph Th [Theory]
+    T1[Gauss Theorem]:::branch
+    T2[Discretization]:::branch
+end
+
+Root --> NS
+Root --> Ops
+Root --> Th
+NS --> N1
+NS --> N2
+Ops --> O1
+Ops --> O2
+Th --> T1
+Th --> T2
 ```
 > **Figure 1:** แผนผังความคิดสรุปองค์ประกอบหลักของแคลคูลัสเวกเตอร์ใน OpenFOAM ซึ่งรวบรวมทั้ง Namespace ตัวดำเนินการ ทฤษฎีพื้นฐาน และแนวทางปฏิบัติที่ดีที่สุด
 

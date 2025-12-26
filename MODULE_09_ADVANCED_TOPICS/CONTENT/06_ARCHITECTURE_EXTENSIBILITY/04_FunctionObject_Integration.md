@@ -9,25 +9,22 @@
 
 ```mermaid
 sequenceDiagram
-    participant T as Time Loop
-    participant L as functionObjectList
-    participant F as Concrete functionObject (e.g. Forces)
-    participant S as Solver Engine (Physics)
-
-    loop Every Time Step
-        T->>L: 1. execute()
-        L->>F: 1.1 execute() (if time)
-        F-->>L: Done
-        L-->>T: Done
-
-        T->>S: 2. solvePhysics()
-        S-->>T: Results (U, p, etc.)
-
-        T->>L: 3. write()
-        L->>F: 3.1 write() (if time)
-        F-->>L: File I/O Done
-        L-->>T: Done
-    end
+participant T as Time Loop
+participant L as functionObjectList
+participant F as Concrete functionObject
+participant S as Solver Engine
+loop Every Time Step
+T->>L: 1. execute()
+L->>F: 1.1 execute() (if time)
+F-->>L: Done
+L-->>T: Done
+T->>S: 2. solvePhysics()
+S-->>T: Results (U, p, etc.)
+T->>L: 3. write()
+L->>F: 3.1 write() (if time)
+F-->>L: File I/O Done
+L-->>T: Done
+end
 ```
 > **Figure 1:** แผนผังการทำงาน (Sequence Diagram) แสดงการผสานรวมของ functionObjects เข้ากับวงรอบเวลาของโซลเวอร์ โดยใช้รูปแบบตัวสังเกต (Observer Pattern) เพื่อให้โซลเวอร์สามารถแจ้งเตือนและเรียกใช้งานส่วนขยายต่างๆ ได้ตามลำดับเวลาที่กำหนดไว้ล่วงหน้า
 

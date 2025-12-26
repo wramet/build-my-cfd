@@ -127,15 +127,18 @@ MultiphaseEulerFoam ใช้อัลกอริทึม **PIMPLE (PISO-SIMPL
 
 ```mermaid
 flowchart TD
-    A[Start Time Step] --> B[Predict Velocity u*]
-    B --> C[Solve Momentum Equations]
-    C --> D[Solve Pressure Equation]
-    D --> E[Correct Velocity Fields]
-    E --> F[Correct Volume Fractions]
-    F --> G[Solve Energy Equations]
-    G --> H{Converged?}
-    H -->|No| C
-    H -->|Yes| I[Next Time Step]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Start Time Step]:::context --> B[Predict Velocity u*]
+B --> C[Solve Momentum]
+C --> D[Solve Pressure]
+D --> E[Correct Velocity]:::explicit
+E --> F[Correct Vol Fractions]:::explicit
+F --> G[Solve Energy]
+G --> H{Converged?}:::explicit
+H -->|No| C
+H -->|Yes| I[Next Time Step]:::context
 ```
 
 ### คุณสมบัติการแก้ปัญหาเชิงตัวเลข
@@ -344,15 +347,18 @@ volScalarField& field = tfield.ref();
 
 ```mermaid
 flowchart LR
-    A[Computational Domain] --> B[Processor 0]
-    A --> C[Processor 1]
-    A --> D[Processor 2]
-    A --> E[Processor 3]
-    B --> F[Ghost Cells]
-    C --> F
-    D --> F
-    E --> F
-    F --> G[Communication]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+subgraph Domain[Domain]
+    direction LR
+    B[Proc 0]
+    C[Proc 1]
+    D[Proc 2]
+    E[Proc 3]
+end
+Domain:::context --> F[Ghost Cells]:::explicit
+F --> G[Communication]:::explicit
 ```
 
 ### การทำสมดุลภาระ (Load Balancing)

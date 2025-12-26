@@ -607,28 +607,26 @@ plt.show()
 
 ```mermaid
 flowchart TD
-    A["Start Parallel Run"] --> B["Enable Profiling"]
-    B --> C["Monitor Real-time Resources"]
-    C --> D["Log CPU/Memory Usage"]
-
-    D --> E{Performance OK?}
-    E -->|Yes| F["Continue Simulation"]
-    E -->|No| G["Identify Bottleneck"]
-
-    G --> H{Bottleneck Type}
-    H -->|CPU Bound| I["Check Decomposition"]
-    H -->|Memory Bound| J["Reduce Mesh or Increase RAM"]
-    H -->|I/O Bound| K["Optimize Write Interval"]
-
-    I --> L["Adjust decomposeParDict"]
-    L --> B
-
-    F --> M{Converged?}
-    M -->|No| C
-    M -->|Yes| N["Analyze Final Logs"]
-
-    N --> O["Calculate Speedup & Efficiency"]
-    O --> P["Generate Report"]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Start Parallel]:::context --> B[Profiling]:::explicit
+B --> C[Monitor Resources]:::explicit
+C --> D[Log Usage]:::explicit
+D --> E{Perf OK?}:::explicit
+E -->|Yes| F[Continue]:::implicit
+E -->|No| G[Identify Bottleneck]:::explicit
+G --> H{Type}:::explicit
+H -->|CPU| I[Check Decomp]:::implicit
+H -->|Memory| J[Reduce Mesh / Add RAM]:::implicit
+H -->|I/O| K[Optimize Write]:::implicit
+I --> L[Adjust Dict]:::explicit
+L --> B
+F --> M{Converged?}:::explicit
+M -->|No| C
+M -->|Yes| N[Analyze Logs]:::implicit
+N --> O[Stats]:::implicit
+O --> P[Report]:::context
 ```
 > **Figure 1:** แผนภูมิขั้นตอนการติดตามประสิทธิภาพ (Performance Monitoring Workflow) ตั้งแต่การเริ่มรันโปรแกรมขนาน การระบุปัญหาคอขวด (Bottlenecks) ประเภทต่างๆ ไปจนถึงการปรับแต่งพารามิเตอร์และการจัดทำรายงานสรุปผลประสิทธิภาพ
 
@@ -1080,23 +1078,19 @@ echo "=== Checklist Complete ==="
 
 ```mermaid
 flowchart TD
-    A[Start Solver Selection] --> B{Mesh Size?}
-
-    B -->|< 100K cells| C[Use PCG/PBiCGStab]
-    B -->|100K - 1M cells| D{Problem Type?}
-    B -->|> 1M cells| E[Use GAMG]
-
-    D -->|Incompressible| E
-    D -->|Compressible| F[Use PBiCGStab]
-
-    E --> G{Geometry?}
-    G -->|Regular| H[Simple decompose OK]
-    G -->|Irregular| I[Use Scotch decompose]
-
-    C --> J[Start Run]
-    F --> J
-    H --> J
-    I --> J
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Solver Selection]:::context --> B{Mesh Size}:::explicit
+B -->|< 100K| C[PCG / PBiCGStab]:::implicit
+B -->|100K - 1M| D{Problem}:::explicit
+B -->|> 1M| E[GAMG]:::implicit
+D -->|Incomp| E
+D -->|Comp| F[PBiCGStab]:::implicit
+E --> G{Geometry}:::explicit
+G -->|Regular| H[Simple Decomp]:::implicit
+G -->|Irregular| I[Scotch Decomp]:::implicit
+C & F & H & I --> J[Run]:::context
 ```
 > **Figure 2:** ผังการตัดสินใจสำหรับการเลือก Solver (Solver Selection Matrix) โดยพิจารณาจากจำนวนเซลล์ ประเภทของปัญหาทางฟิสิกส์ และความซับซ้อนของเรขาคณิต เพื่อให้ได้อัลกอริทึมที่ทำงานได้รวดเร็วและแม่นยำที่สุดในระบบขนาน
 

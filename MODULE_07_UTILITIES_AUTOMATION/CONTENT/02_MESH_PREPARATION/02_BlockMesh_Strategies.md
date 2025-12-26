@@ -26,25 +26,22 @@
 
 ```mermaid
 flowchart TD
-    A[การวิเคราะห์เรขาคณิต] --> B{การเลือกโทโพโลยีบล็อก}
-    B --> C[H-Grid]
-    B --> D[O-Grid]
-    B --> E[C-Grid]
-    B --> F[แบบผสมหลายบล็อก]
-
-    C --> G[การไหลในช่องทาง]
-    D --> H[เรขาคณิตวงกลม]
-    E --> I[รูปทรงแอร์ฟอยล์]
-    F --> J[ชุดประกอบที่ซับซ้อน]
-
-    G --> K[การนิยามจุดยอด]
-    H --> K
-    I --> K
-    J --> K
-
-    K --> L[การเชื่อมต่อระหว่างบล็อก]
-    L --> M[กลยุทธ์การปรับขนาด]
-    M --> N[การตรวจสอบคุณภาพ]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Geo Analysis]:::context --> B{Topology}:::explicit
+B --> C[H-Grid]:::implicit
+B --> D[O-Grid]:::implicit
+B --> E[C-Grid]:::implicit
+B --> F[Multi-Block]:::implicit
+C --> G[Channel]:::context
+D --> H[Circular]:::context
+E --> I[Airfoil]:::context
+F --> J[Complex]:::context
+G & H & I & J --> K[Vertex Def]:::explicit
+K --> L[Block Conn]:::explicit
+L --> M[Grading]:::explicit
+M --> N[QA]:::implicit
 ```
 > **รูปที่ 1:** แผนภูมิขั้นตอนการเลือกโทโพโลยีของบล็อก (Block Topology Selection) โดยพิจารณาจากลักษณะเรขาคณิต เช่น H-Grid สำหรับท่อทางไหลทั่วไป O-Grid สำหรับรูปทรงวงกลม และ C-Grid สำหรับแอร์ฟอยล์ เพื่อนำไปสู่การกำหนดจุดยอด การเชื่อมต่อ และกลยุทธ์การจัดระดับความละเอียดของเมช
 

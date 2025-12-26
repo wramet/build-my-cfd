@@ -10,10 +10,12 @@
 
 ```mermaid
 graph LR
-    GF[GeometricField] --> DF[DimensionedField: internalField]
-    GF --> BF[BoundaryField]
-
-    style DF fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+GF[GeometricField]:::explicit --> DF[DimensionedField: Internal]:::implicit
+GF --> BF[BoundaryField]:::explicit
 ```
 > **Figure 1:** ความแตกต่างระหว่าง `GeometricField` และ `DimensionedField` โดยอย่างหลังจะเน้นที่ข้อมูลภายในและมิติทางฟิสิกส์โดยไม่มีการจัดการเงื่อนไขขอบเขต เหมาะสำหรับผลลัพธ์ชั่วคราวหรือพจน์ต้นทางความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

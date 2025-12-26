@@ -5,16 +5,16 @@
 ในบทนี้ เราจะศึกษาเบื้องหลังของขั้นตอนที่ใช้ทรัพยากรคำนวณมากที่สุดใน CFD นั่นคือการสร้างและแก้ระบบสมการเชิงเส้นขนาดใหญ่ ($Ax=b$) โดยใช้สถาปัตยกรรมเมทริกซ์ที่ปรับแต่งมาเพื่อเมชแบบ Unstructured
 
 ```mermaid
-graph TD
-    A[Matrices Overview] --> B[Dense vs Sparse/LDU]
-    B --> C[fvMatrix Architecture]
-    C --> D[Linear Solvers & GAMG]
-    D --> E[Parallel Algebra]
-    E --> F[Common Pitfalls]
-    F --> G[Summary & Exercises]
+flowchart LR
+classDef step fill:#f5f5f5,stroke:#333,stroke-width:2px,color:#000
+classDef finish fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px,color:#000
 
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style G fill:#00ff00,stroke:#333,stroke-width:2px
+A[1. Matrices<br/>Overview]:::step --> B[2. Dense vs<br/>Sparse/LDU]:::step
+B --> C[3. fvMatrix<br/>Architecture]:::step
+C --> D[4. Linear Solvers<br/>& GAMG]:::step
+D --> E[5. Parallel<br/>Linear Algebra]:::step
+E --> F[6. Common<br/>Pitfalls]:::step
+F --> G[7. Summary<br/>& Exercises]:::finish
 ```
 > **Figure 1:** แผนผังลำดับการเรียนรู้ในโมดูลเรื่องเมทริกซ์และพีชคณิตเชิงเส้น ครอบคลุมตั้งแต่พื้นฐานการจัดเก็บข้อมูล สถาปัตยกรรม fvMatrix ไปจนถึงตัวแก้ปัญหาแบบขนานและการแก้ปัญหาที่พบบ่อย
 

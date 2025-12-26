@@ -235,14 +235,18 @@ $$f\left(\frac{y_w}{d}\right) = 1 - \exp\left(-\beta \frac{y_w}{d}\right) \tag{2
 | **$y_w/d \lesssim 1$** | $f \rightarrow 0$ | การกดแรงยกของผนังอย่างรุนแรง |
 
 ```mermaid
-flowchart TD
-    A[อนุภาคใกล้ผนัง] --> B{ระยะห่าง yw/d}
-    B -->|>> 1| C[แรงยกปกติ]
-    B -->|~ 1-5| D[แรงยกลดลง]
-    B -->|<< 1| E[แรงยกเข้าใกล้ 0]
-    C --> F[อนุภาคเคลื่อนที่ตามสมการ]
-    D --> G[แรงยกถูกหน่วง]
-    E --> H[Lubrication regime]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Dist{"Distance y/d"}:::context
+Far["Far (>>1)<br/>Normal Lift"]:::implicit
+Near["Near (~1)<br/>Reduced Lift"]:::implicit
+Contact["Contact (<<1)<br/>Lubrication"]:::explicit
+
+Dist --> Far
+Dist --> Near
+Dist --> Contact
 ```
 
 ---

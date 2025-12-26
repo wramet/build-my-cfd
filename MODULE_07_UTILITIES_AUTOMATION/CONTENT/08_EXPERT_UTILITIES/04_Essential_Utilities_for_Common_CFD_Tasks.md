@@ -1393,20 +1393,17 @@ boundaryField
 
 ```mermaid
 flowchart TD
-    A[<b>1. Mesh Generation</b><br>blockMesh/snappyHexMesh] --> B[<b>2. Mesh Validation</b><br>checkMesh]
-    B --> C{Mesh OK?}
-    C -->|No| D[<b>Fix Mesh</b><br>Adjust Grading/Refinement]
-    D --> A
-    C -->|Yes| E[<b>3. Domain Decomposition</b><br>decomposePar]
-    E --> F[<b>4. Parallel Run</b><br>mpirun -np N solver]
-    F --> G[<b>5. Reconstruction</b><br>reconstructPar]
-    G --> H[<b>6. Post-Processing</b><br>postProcess/foamToVTK/sample]
-    H --> I[<b>7. Analysis</b><br>ParaView/Python/MATLAB]
-
-    style A fill:#e1f5ff
-    style F fill:#fff4e1
-    style H fill:#e8f5e9
-    style I fill:#f3e5f5
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+A[1. Mesh Gen]:::implicit --> B[2. Mesh Valid]:::explicit
+B --> C{OK?}:::explicit
+C -->|No| D[Fix/Refine]:::explicit
+D --> A
+C -->|Yes| E[3. Decompose]:::implicit
+E --> F[4. Parallel Run]:::implicit
+F --> G[5. Reconstruct]:::implicit
+G --> H[6. Post-Process]:::explicit
+H --> I[7. Analysis]:::explicit
 ```
 > **Figure 1:** แผนผังแสดงขั้นตอนการทำงานมาตรฐานในกระบวนการ CFD (Standard CFD Workflow) ตั้งแต่การสร้างและตรวจสอบคุณภาพเมช การแบ่งโดเมนเพื่อคำนวณแบบขนาน ไปจนถึงการรวมผลลัพธ์และขั้นตอนการวิเคราะห์ข้อมูลเชิงวิศวกรรม
 

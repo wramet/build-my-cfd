@@ -20,34 +20,35 @@
 - เป็นหนึ่งในสามสมการอนุรักษ์พื้นฐานใน CFD ควบคู่กับการอนุรักษ์โมเมนตัมและพลังงาน
 
 ```mermaid
-graph LR
-    subgraph Inputs
-        Rho["Density ρ"]
-        Vel["Velocity u"]
+flowchart LR
+    subgraph Inputs["Input Variables"]
+        direction LR
+        Rho["Density ρ"]:::explicit
+        Vel["Velocity u"]:::explicit
     end
-
-    subgraph "Control Volume Analysis"
-        In["Mass In<br/>ρu dy dz"] --> CV["Control Volume<br/>dx dy dz"]
-        CV --> Out["Mass Out<br/>(ρu + ∂(ρu)/∂x dx) dy dz"]
-        CV --> Acc["Accumulation<br/>(∂ρ/∂t) dV"]
+    
+    subgraph CV["Control Volume Analysis"]
+        direction LR
+        In["Mass In<br/>ρu dy dz"]:::implicit --> CV["Control Volume<br/>dx dy dz"]:::context
+        CV --> Out["Mass Out<br/>(ρu + ∂/∂x)dy dz"]:::implicit
+        CV --> Acc["Accumulation<br/>∂ρ/∂t"]:::volatile
     end
-
+    
+    subgraph Result["Conservation Result"]
+        Eq["Continuity Equation<br/>∂ρ/∂t + ∇·(ρu) = 0"]:::success
+    end
+    
     Rho --> In
     Vel --> In
-
-    subgraph Balance
-        Eq["Conservation Equation<br/>∂ρ/∂t + ∇·(ρu) = 0"]
-    end
-
     In --> Eq
     Out --> Eq
     Acc --> Eq
 
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef input fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class CV,Eq process;
-    class Rho,Vel input;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 1:** การวิเคราะห์ปริมาตรควบคุมสำหรับการอนุรักษ์มวล แสดงให้เห็นว่าฟลักซ์มวล (เข้า/ออก) และการสะสมมวลนำไปสู่สมการความต่อเนื่อง $\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$ ได้อย่างไร
 
@@ -173,24 +174,28 @@ fvScalarMatrix UEqn
 - สมการ Navier-Stokes ปรับสมดุลระหว่างแรงเฉื่อย, แรงดัน, แรงหนืด, และแรงภายนอก
 
 ```mermaid
-graph TD
-    subgraph Forces["Applied Forces"]
-        P["Pressure Forces<br/>-∇p"]
-        V["Viscous Forces<br/>∇⋅τ"]
-        B["Body Forces<br/>f"]
+flowchart TD
+    subgraph Forces["Applied Forces on Fluid Element"]
+        direction LR
+        P["Pressure Forces<br/>-∇p"]:::implicit
+        V["Viscous Forces<br/>∇⋅τ"]:::implicit
+        B["Body Forces<br/>f"]:::implicit
     end
-
-    P --> Sum["Net Force<br/>ΣF"]
+    
+    Sum["Net Force<br/>ΣF = F_pressure + F_viscous + F_body"]:::explicit
+    
+    P --> Sum
     V --> Sum
     B --> Sum
+    
+    Sum -->|Newton's 2nd Law: F = ma| Acc["Acceleration<br/>ρ(∂u/∂t + (u⋅∇)u)"]:::volatile
+    
+    Acc --> Inertia["Inertial Terms<br/>Local + Convective Acceleration"]:::context
 
-    Sum -->|Newton's 2nd Law| Acc["Acceleration<br/>ρ Du/Dt"]
-
-    Acc --> Inertia["Inertial Terms<br/>Local: ∂u/∂t<br/>Convective: (u⋅∇)u"]
-
-    style Forces fill:#e3f2fd,stroke:#1565c0
-    style Sum fill:#fff9c4,stroke:#fbc02d
-    style Acc fill:#e8f5e9,stroke:#2e7d32
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 2:** โครงสร้างของสมการการอนุรักษ์โมเมนตัม โดยจับคู่แรงที่กระทำ (แรงดัน, แรงหนืด, แรงภายนอก) เข้ากับพจน์ความเร่งที่เกิดขึ้นตามกฎข้อที่สองของนิวตัน
 
@@ -323,34 +328,59 @@ while (pimple.correctNonOrthogonal())
 ใช้ใน Solver เช่น `buoyantBoussinesqSimpleFoam` และ `reactingFoam`
 
 ```mermaid
-graph TD
-    B["Energy In<br/>(พลังงานเข้า)"] --> A["Control Volume<br/>(ปริมาตรควบคุม)"]
-    A --> C["Energy Out<br/>(พลังงานออก)"]
-    A --> D["Energy Storage<br/>(พลังงานสะสม)"]
-
-    B1["Kinetic Energy<br/>(พลังงานจลน์)"] --> B
-    B2["Internal Energy<br/>(พลังงานภายใน)"] --> B
-    B3["Pressure Work<br/>(งานความดัน)"] --> B
-
-    C1["Convective Flow<br/>(การพาพลังงาน)"] --> C
-    C2["Conduction<br/>(การนำความร้อน)"] --> C
-    C3["Radiation<br/>(การแผ่รังสี)"] --> C
-
-    D --> D1["Temperature Change<br/>(การเปลี่ยนแปลงอุณหภูมิ)"]
-    D --> D2["Phase Change<br/>(การเปลี่ยนสถานะ)"]
-
-    E["<b>Energy Conservation</b><br/>E_in - E_out = dE_storage/dt"]
-    F["<b>OpenFOAM Implementation</b><br/>fvScalarMatrix EEqn"]
-
-    B --> E
+flowchart TD
+    subgraph InFlows["Energy Input (E_in)"]
+        direction LR
+        B1["Kinetic Energy<br/>(จลน์)"]:::context
+        B2["Internal Energy<br/>(ภายใน)"]:::context
+        B3["Pressure Work<br/>(งาน P)"]:::context
+    end
+    
+    subgraph OutFlows["Energy Output (E_out)"]
+        direction LR
+        C1["Convection<br/>(พา)"]:::context
+        C2["Conduction<br/>(นำ)"]:::context
+        C3["Radiation<br/>(รังสี)"]:::context
+    end
+    
+    subgraph CV["Control Volume"]
+        A["Energy In"]:::implicit --> CV["Control Volume<br/>(Analysis)"]:::context
+        CV --> C["Energy Out"]:::implicit
+        CV --> D["Energy Storage<br/>(Accumulation)"]:::volatile
+    end
+    
+    subgraph Storage["Storage Components"]
+        direction LR
+        D1["Temperature Change"]:::context
+        D2["Phase Change"]:::context
+    end
+    
+    subgraph Result["Conservation Law"]
+        E["Energy Conservation<br/>E_in - E_out = dE/dt"]:::success
+        F["OpenFOAM Implementation<br/>fvScalarMatrix EEqn"]:::explicit
+    end
+    
+    B1 --> A
+    B2 --> A
+    B3 --> A
+    
+    C1 --> C
+    C2 --> C
+    C3 --> C
+    
+    D --> D1
+    D --> D2
+    
+    A --> E
     C --> E
+    D --> E
     E --> F
 
-    style A fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px,color:#000;
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef storage fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    class B,C,E,F process;
-    class D storage;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 3:** สมดุลพลังงานบนปริมาตรควบคุม โดยคำนึงถึงฟลักซ์ของพลังงานจลน์ พลังงานภายใน และพลังงานศักย์ พจน์ของงาน และการถ่ายเทความร้อน เพื่อหาอนุพันธ์ของสมการการอนุรักษ์พลังงานรวม
 ### การกำหนดสมการพลังงาน

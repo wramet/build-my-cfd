@@ -197,15 +197,18 @@ public:
 
 ```mermaid
 flowchart TD
-    A[Start Time Step] --> B[Solve Alpha Equations]
-    B --> C[Predict Momentum]
-    C --> D[PISO Loop: Pressure Correction]
-    D --> E{Converged?}
-    E -->|No| D
-    E -->|Yes| F[SIMPLE Loop: Under-Relaxation]
-    F --> G{Final Convergence?}
-    G -->|No| C
-    G -->|Yes| H[Next Time Step]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Start]:::context --> B[Solve Alpha]:::explicit
+B --> C[Predict Momentum]:::implicit
+C --> D[PISO Loop: P-Corr]:::implicit
+D --> E{Converged?}:::explicit
+E -->|No| D
+E -->|Yes| F[SIMPLE Loop: Relax]:::implicit
+F --> G{Converged?}:::explicit
+G -->|No| C
+G -->|Yes| H[Next Step]:::context
 ```
 
 **ขั้นตอนหลัก:**
@@ -344,12 +347,14 @@ $$\text{Total Momentum} = \sum_k \int_{\text{domain}} \alpha_k \rho_k \mathbf{U}
 
 ```mermaid
 flowchart LR
-    A[บทที่ 0: พื้นฐาน CFD] --> B[บทที่ 1: แนวคิด Multiphase]
-    B --> C[บทที่ 2: สมการควบคุม]
-    C --> D[บทที่ 3: ปรากฏการณ์ระหว่างเฟส]
-    D --> E[บทที่ 4: หัวข้อขั้นสูง]
-    E --> F[บทที่ 5: การตรวจสอบความถูกต้อง]
-    F --> G[การประยุกต์ใช้จริง]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Ch.0: CFD Basics]:::context --> B[Ch.1: Multiphase Concepts]:::implicit
+B --> C[Ch.2: Governing Eqns]:::implicit
+C --> D[Ch.3: Interphase]:::implicit
+D --> E[Ch.4: Advanced]:::implicit
+E --> F[Ch.5: Validation]:::implicit
+F --> G[Real Applications]:::implicit
 ```
 
 ### เนื้อหาที่ครอบคลุมในบทนี้:

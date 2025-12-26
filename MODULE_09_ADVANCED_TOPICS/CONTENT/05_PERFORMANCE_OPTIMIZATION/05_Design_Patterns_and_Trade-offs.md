@@ -21,21 +21,24 @@
 
 ```mermaid
 classDiagram
-    class ExpressionTemplate~Derived~ {
-        <<interface>>
-        +evaluate(cell)
-    }
-    class FieldExpression {
-        -field_
-        +evaluate(cell)
-    }
-    class BinaryExpression~LHS, RHS, Op~ {
-        -lhs_
-        -rhs_
-        +evaluate(cell)
-    }
-    ExpressionTemplate <|-- FieldExpression
-    ExpressionTemplate <|-- BinaryExpression
+class ExpressionTemplate~Derived~ {
+<<interface>>
++derived() const
++evaluate(cellI)
+}
+class FieldExpression {
+-field_
++evaluate(cellI)
+}
+class BinaryExpression~LHS, RHS, Op~ {
+-lhs_
+-rhs_
++evaluate(cellI)
+}
+ExpressionTemplate <|-- FieldExpression : implements
+ExpressionTemplate <|-- BinaryExpression : implements
+BinaryExpression o-- ExpressionTemplate : LHS
+BinaryExpression o-- ExpressionTemplate : RHS
 ```
 
 > **Figure 1:** โครงสร้างของ Expression Template Pattern โดยใช้หลักการพหุสัณฐานแบบสถิต (Static Polymorphism) ซึ่งออบเจกต์จะถูกประกอบขึ้นเป็นโครงสร้างต้นไม้ในช่วงคอมไพล์ ทำให้สามารถเข้าถึงและประมวลผลข้อมูลในแต่ละเซลล์ได้อย่างรวดเร็วโดยไม่ต้องผ่านตารางฟังก์ชันเสมือน (Vtable)

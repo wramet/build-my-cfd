@@ -49,23 +49,19 @@ $$\frac{\partial n(V, t)}{\partial t} + \nabla \cdot (\mathbf{u} n(V, t)) + \fra
 
 ```mermaid
 graph TD
-    A[สมการ PBE] --> B[เทอมการพาคอนเวกชัน]
-    A --> C[เทอมการเจริญเติบโต]
-    A --> D[เทอมแหล่งกำเนิด/สูญสูญ]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+PBE["PBE Equation"]:::context
+Trans["Convection / Growth"]:::implicit
+Source["Source Terms"]:::explicit
+Mech["Coalescence / Breakup"]:::implicit
+Rates["Birth / Death Rates"]:::explicit
 
-    D --> E[การรวมตัว Coalescence]
-    D --> F[การแตกตัว Breakup]
-    D --> G[การเกิดนิวเคลียส Nucleation]
-
-    E --> H[อัตราการเกิด B_agg]
-    E --> I[อัตราการตาย D_agg]
-    F --> J[อัตราการเกิด B_break]
-    F --> K[อัตราการตาย D_break]
-
-    style A fill:#e1f5fe,stroke:#01579b
-    style D fill:#fff9c4,stroke:#fbc02d
-    style E fill:#f3e5f5,stroke:#4a148c
-    style F fill:#e8f5e9,stroke:#1b5e20
+PBE --> Trans
+PBE --> Source
+Source --> Mech
+Mech --> Rates
 ```
 > **Figure 1:** แผนภาพแสดงองค์ประกอบทางฟิสิกส์ของสมการสมดุลประชากร (PBE) ซึ่งครอบคลุมถึงกลไกการขนส่ง การเจริญเติบโต และการเปลี่ยนแปลงจำนวนประชากรอนุภาคผ่านกระบวนการรวมตัวและแตกตัว
 
@@ -75,18 +71,23 @@ graph TD
 OpenFOAM ให้วิธีการหลากหลายในการแก้สมการ PBE แต่ละวิธีมีข้อดีและข้อเสียที่แตกต่างกัน:
 
 ```mermaid
-flowchart TD
-    A[Solver Iteration] --> B[Solve Navier-Stokes & Phase Fractions]
-    B --> C[Calculate Coalescence & Breakup Kernels]
-    C --> D[Solve Transport Equations for Moments m_k]
-    D --> E[Reconstruct Distribution or Calculate Mean Diameter d_32]
-    E --> F[Update Interfacial Forces using New Size Info]
-    F --> G[Check Convergence]
-    G -- No --> B
-    G -- Yes --> H[Next Time Step]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+NS["Solve N-S"]:::implicit
+Kernels["Calc Kernels"]:::explicit
+Moments["Solve Moments"]:::implicit
+Diam["Update Diameter"]:::explicit
+Forces["Update Forces"]:::implicit
+Check{"Converged?"}:::context
 
-    style D fill:#fff9c4,stroke:#fbc02d
-    style E fill:#fff9c4,stroke:#fbc02d
+NS --> Kernels
+Kernels --> Moments
+Moments --> Diam
+Diam --> Forces
+Forces --> Check
+Check -- No --> NS
 ```
 > **Figure 2:** แผนผังลำดับขั้นตอนการคำนวณในแต่ละรอบการวนซ้ำของ Solver สำหรับแบบจำลองสมดุลประชากร โดยเน้นการเชื่อมโยงระหว่างสมการโมเมนต์และแรงที่ส่วนต่อประสานระหว่างเฟส
 

@@ -30,17 +30,16 @@ Reacting flows exhibit extreme separation of scales:
 | **Chemical Scales** | Milliseconds → Nanoseconds | Slow reactions to fast radical consumption |
 
 ```mermaid
-flowchart TD
-    subgraph "Spatial Scales"
-        L["L: System Size<br/>~1 m"] --> Eta["η: Kolmogorov Scale<br/>~10⁻⁶ m"]
-    end
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Space["Spatial Scales<br/>L (1m) → η (1e-6m)"]:::implicit
+Time["Temporal Scales<br/>Flow (0.1s) → Chem (1e-9s)"]:::explicit
+Problem["Stiff ODEs"]:::context
 
-    subgraph "Temporal Scales"
-        tau_f["τ_flow: Flow Time<br/>~0.1 s"] --> tau_c["τ_chem: Chemical Time<br/>~10⁻⁹ s"]
-    end
-
-    L --|10⁶ Ratio|--> Eta
-    tau_f --|Stiff ODEs|--> tau_c
+Space --> Problem
+Time --> Problem
 ```
 > **Figure 1:** แผนภาพแสดงความแตกต่างอย่างมหาศาลของมาตราส่วนเชิงพื้นที่ (Spatial Scales) และมาตราส่วนเชิงเวลา (Temporal Scales) ในการไหลแบบมีปฏิกิริยาเคมี ซึ่งเป็นความท้าทายหลักในการคำนวณเชิงตัวเลขเนื่องจากปัญหาความแข็งของสมการและช่วงความละเอียดที่กว้างมาก
 
@@ -572,13 +571,16 @@ fvScalarMatrix EEqn
 ### 9.1 Step-by-Step Setup
 
 ```mermaid
-flowchart LR
-    A[Prepare Chemkin Files] --> B[Configure Thermophysics]
-    B --> C[Select Combustion Model]
-    C --> D[Setup Chemistry Solver]
-    D --> E[Define Initial/Boundary Conditions]
-    E --> F[Run Simulation]
-    F --> G[Post-process Results]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Prep["Chemkin Files"]:::context
+Config["Thermophysics & Model"]:::implicit
+Setup["ODE Solver & BCs"]:::implicit
+Run["Run Simulation"]:::explicit
+
+Prep --> Config --> Setup --> Run
 ```
 > **Figure 2:** แผนผังลำดับขั้นตอนการปฏิบัติงานสำหรับการตั้งค่าการจำลองการไหลแบบมีปฏิกิริยาเคมีใน OpenFOAM ตั้งแต่การเตรียมข้อมูลกลไกปฏิกิริยาไปจนถึงการวิเคราะห์ผลลัพธ์เชิงวิศวกรรม
 

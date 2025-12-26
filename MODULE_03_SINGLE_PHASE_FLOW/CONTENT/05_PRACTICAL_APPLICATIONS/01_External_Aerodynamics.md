@@ -81,10 +81,14 @@ $$Re = \frac{\rho U_\infty L}{\mu} = \frac{U_\infty L}{\nu} \tag{1.5}$$
 
 ```mermaid
 flowchart TD
-    A[วัตถุ] --> B[ทางเข้า Upstream<br/>5-10L]
-    A --> C[ทางออก Downstream<br/>15-20L]
-    A --> D[ด้านข้าง Side<br/>5-10L]
-    A --> E[ด้านบน Top<br/>5-10L]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Object]:::explicit --> B[Upstream 5-10L]:::implicit
+A --> C[Downstream 15-20L]:::implicit
+A --> D[Side 5-10L]:::implicit
+A --> E[Top 5-10L]:::implicit
 ```
 > **Figure 1:** ข้อแนะนำในการกำหนดขนาดโดเมนการคำนวณสำหรับการไหลภายนอกรอบวัตถุ โดยต้องมีระยะห่างที่เพียงพอในทิศทางต้นน้ำ (Upstream) ท้ายน้ำ (Downstream) และด้านข้าง เพื่อป้องกันไม่ให้เงื่อนไขขอบเขตส่งผลกระทบต่อลักษณะการไหลจริงรอบรูปทรงที่พิจารณาความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

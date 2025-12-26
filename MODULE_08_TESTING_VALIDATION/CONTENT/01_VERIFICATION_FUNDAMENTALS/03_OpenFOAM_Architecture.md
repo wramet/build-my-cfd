@@ -8,28 +8,27 @@
 
 ```mermaid
 classDiagram
-    class TestSuite {
-        +name: String
-        +runAll()
-        +report()
-        +getStatistics()
-    }
-    class TestCase {
-        +name: String
-        +setUp()
-        +run()
-        +tearDown()
-    }
-    class TestAssertion {
-        +expected: scalar
-        +actual: scalar
-        +tolerance: scalar
-        +check()
-        +compare()
-    }
-
-    TestSuite "1" *-- "many" TestCase : Contains
-    TestCase "1" *-- "many" TestAssertion : Executes
+class TestSuite {
++name: String
++runAll()
++report()
++getStatistics()
+}
+class TestCase {
++name: String
++setUp()
++run()
++tearDown()
+}
+class TestAssertion {
++expected: scalar
++actual: scalar
++tolerance: scalar
++check()
++compare()
+}
+TestSuite "1" *-- "many" TestCase : Contains
+TestCase "1" *-- "many" TestAssertion : Executes
 ```
 
 ### 3.1.1 TestAssertion - หน่วยการตรวจสอบพื้นฐาน
@@ -314,18 +313,17 @@ done
 กระบวนการจากโค้ดต้นฉบับไปสู่รายงานผลการทดสอบมีขั้นตอนดังนี้:
 
 ```mermaid
-graph TD
-    A[C++ Test Source] -- wmake --> B[Executable Binary]
-    C[Base Case Directory] -- Allrun --> D[Initialized Case]
-    B --> E[Run Test Binary -case D]
-    D --> E
-    E --> F[Standard Output/Log]
-    F --> G[Test Report Markdown/CSV]
-
-    style A fill:#e1f5ff
-    style B fill:#c8e6c9
-    style E fill:#fff9c4
-    style G fill:#ffccbc
+flowchart TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px
+A[C++ Test Source]:::explicit -- wmake --> B[Executable Binary]:::implicit
+C[Base Case Directory]:::context -- Allrun --> D[Initialized Case]:::implicit
+B --> E[Run Test Binary -case D]:::implicit
+D --> E
+E --> F[Standard Output/Log]:::context
+F --> G[Test Report Markdown/CSV]:::success
 ```
 
 ### 3.3.1 ขั้นตอนที่ 1: Compilation

@@ -32,22 +32,27 @@ $$T_{parallel} = \frac{T_{computation}}{p} + T_{communication} + T_{synchronizat
 
 ```mermaid
 flowchart TD
-    subgraph Serial["Serial Processing"]
-        A[Single Process] --> B[Process All Cells]
-        B --> C[Complete Solution]
-    end
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef container fill:#fafafa,stroke:#424242,stroke-width:2px;
 
-    subgraph Parallel["Parallel Processing"]
-        D[Domain Decomposition] --> E1[Processor 1: Local Cells]
-        D --> E2[Processor 2: Local Cells]
-        D --> E3[Processor 3: Local Cells]
-        D --> E4[Processor 4: Local Cells]
-        E1 <--> F[Halo Exchange]
-        E2 <--> F
-        E3 <--> F
-        E4 <--> F
-        F --> G[Global Solution]
-    end
+%% Subgraph: Serial Processing
+subgraph Serial [Serial Processing]
+    direction TB
+    S1[Single Processor]:::implicit --> S2[Process All Cells]:::implicit
+    S2 --> S3[Complete Solution]:::implicit
+end
+
+%% Subgraph: Parallel Processing
+subgraph Parallel [Parallel Processing]
+    direction TB
+    P1[Domain Decomposition]:::explicit --> P2a[Processor 1<br/>Local Subdomain]:::implicit
+    P1 --> P2b[Processor 2<br/>Local Subdomain]:::implicit
+    P2a <-->|Halo Exchange| P3[Global Reduction<br/>MPI Communication]:::explicit
+    P2b <--> P3
+    P3 --> P4[Global Solution]:::implicit
+end
 ```
 > **รูปที่ 1:** การเปรียบเทียบระหว่างการประมวลผลแบบอนุกรมและแบบขนาน แสดงให้เห็นถึงความจำเป็นของการสื่อสารระหว่างหน่วยประมวลผลผ่านกลไก Halo Exchange
 
@@ -235,17 +240,26 @@ public:
 
 ```mermaid
 flowchart LR
-    subgraph P1["Processor 1"]
-        A1[Owned Cells] <--> B1[Ghost Cells]
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000
+
+subgraph Domain ["Parallel Domain Decomposition"]
+    subgraph P1 ["Processor 1"]
+        direction LR
+        O1[Owned Cells<br/>(Internal)]:::implicit <-->|Local<br/>Coupling| G1[Ghost Cells<br/>(Halo Region)]:::explicit
     end
 
-    subgraph P2["Processor 2"]
-        A2[Owned Cells] <--> B2[Ghost Cells]
+    subgraph P2 ["Processor 2"]
+        direction LR
+        G2[Ghost Cells<br/>(Halo Region)]:::explicit <-->|Local<br/>Coupling| O2[Owned Cells<br/>(Internal)]:::implicit
     end
+end
 
-    B1 <-->|Halo Exchange| B2
-    A1 -->|Local Operations| A1
-    A2 -->|Local Operations| A2
+G1 <==>|MPI Boundary<br/>Exchange| G2
+
+style P1 fill:#fff,stroke:#333,stroke-width:2px
+style P2 fill:#fff,stroke:#333,stroke-width:2px
 ```
 > **รูปที่ 2:** กลไก Ghost cell ที่ช่วยให้หน่วยประมวลผลแต่ละตัวคำนวณโดเมนของตนได้อย่างอิสระก่อนที่จะแลกเปลี่ยนข้อมูลขอบเขตกับหน่วยประมวลผลข้างเคียง
 
@@ -481,21 +495,32 @@ $$\phi_p^{\text{ghost}}(t+1) = \text{MPI\_Recv}(\phi_q^{\text{border}}(t), q \in
 
 ```mermaid
 flowchart TD
-    subgraph Assembly["Parallel Matrix Assembly"]
-        A[Phase 1: Internal Faces] --> B[Phase 2: Processor Boundaries]
-        B --> C[Phase 3: Physical Boundaries]
-        C --> D[Phase 4: Global Consistency]
-    end
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef explicit fill:#ffe0b2,stroke:#ef6c00,stroke-width:2px,color:#000
+classDef container fill:#f5f5f5,stroke:#424242,stroke-width:2px,color:#000
+classDef result fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
 
-    subgraph Processors["4 Processors"]
-        P1[Proc 0] --> E[Local Matrix]
-        P2[Proc 1] --> E
-        P3[Proc 2] --> E
-        P4[Proc 3] --> E
-    end
+subgraph Hardware ["Compute Hardware Layer"]
+    direction LR
+    P0[Proc 0]:::container
+    P1[Proc 1]:::container
+    P2[Proc 2]:::container
+    P3[Proc 3]:::container
+end
 
-    E --> F[Interface Communication]
-    F --> G[Global Linear System]
+subgraph Assembly ["Matrix Assembly Pipeline"]
+    direction TB
+    Phase1[Phase 1: Internal Faces<br/>Diagonal + Off-Diagonal]:::implicit
+    Phase2[Phase 2: Processor Boundaries<br/>Parallel Interfaces]:::explicit
+    Phase3[Phase 3: Physical Boundaries<br/>Inlet/Outlet/Wall]:::implicit
+    Phase4[Phase 4: Global Consistency<br/>MPI Reduce Operations]:::explicit
+end
+
+P0 & P1 & P2 & P3 -->|Construct Local| Phase1
+Phase1 --> Phase2
+Phase2 --> Phase3
+Phase3 --> Phase4
+Phase4 --> System[Global Linear System<br/>Ax = b]:::result
 ```
 > **รูปที่ 3:** กระบวนการประกอบเมทริกซ์แบบขนาน ตั้งแต่การประกอบหน้าภายในหน่วยประมวลผลไปจนถึงการตรวจสอบความสอดคล้องระดับสากล
 
@@ -758,34 +783,42 @@ public:
 
 ```mermaid
 sequenceDiagram
-    participant P0 as Processor 0
-    participant P1 as Processor 1
-    participant P2 as Processor 2
-    participant P3 as Processor 3
+participant P0 as Processor 0
+participant P1 as Processor 1
+participant P2 as Processor 2
+participant P3 as Processor 3
 
-    P0->>P1: Send boundary values
-    P1->>P0: Send boundary values
-    P0->>P3: Send boundary values
-    P3->>P0: Send boundary values
+rect rgb(255, 230, 230)
+    Note over P0,P3: Phase 1: Explicit Communication (Non-Blocking Send/Recv)
+    P0->>P1: Send Boundary Data
+    P1->>P0: Send Boundary Data
+    P0->>P3: Send Boundary Data
+    P3->>P0: Send Boundary Data
+end
 
-    Note over P0,P3: Non-blocking communication initiated
+rect rgb(230, 245, 255)
+    Note over P0,P3: Phase 2: Implicit Computation (Overlap & Hide Latency)
+    P0->>P0: Calculate Interior Points
+    P1->>P1: Calculate Interior Points
+    P2->>P2: Calculate Interior Points
+    P3->>P3: Calculate Interior Points
+end
 
-    P0->>P0: Compute interior contributions
-    P1->>P1: Compute interior contributions
-    P2->>P2: Compute interior contributions
-    P3->>P3: Compute interior contributions
+rect rgb(255, 245, 230)
+    Note over P0,P3: Phase 3: Synchronization Barrier
+    P0->>P0: MPI_Wait()
+    P1->>P1: MPI_Wait()
+    P2->>P2: MPI_Wait()
+    P3->>P3: MPI_Wait()
+end
 
-    Note over P0,P3: Computation overlaps with communication
-
-    P0->>P0: Wait for communication
-    P1->>P1: Wait for communication
-    P2->>P2: Wait for communication
-    P3->>P3: Wait for communication
-
-    P0->>P0: Apply boundary contributions
-    P1->>P1: Apply boundary contributions
-    P2->>P2: Apply boundary contributions
-    P3->>P3: Apply boundary contributions
+rect rgb(230, 255, 230)
+    Note over P0,P3: Phase 4: Boundary Ghost Update
+    P0->>P0: Update Ghost Cells
+    P1->>P1: Update Ghost Cells
+    P2->>P2: Update Ghost Cells
+    P3->>P3: Update Ghost Cells
+end
 ```
 > **รูปที่ 4:** ลำดับการคูณเมทริกซ์-เวกเตอร์แบบขนาน แสดงให้เห็นถึงการเหลื่อมซ้อนระหว่างการสื่อสารข้อมูลขอบเขตและการคำนวณภายในหน่วยประมวลผลเพื่อลดค่าใช้จ่ายส่วนเกิน
 
@@ -873,17 +906,30 @@ reduce(globalSum, sumOp<scalar>()); // MPI_Allreduce operation
 
 ```mermaid
 flowchart TD
-    subgraph Serial["Serial Gauss-Seidel"]
-        A1[Cell 1] --> A2[Cell 2]
-        A2 --> A3[Cell 3]
-        A3 --> A4[Cell 4]
+classDef serial fill:#e1bee7,stroke:#4a148c,stroke-width:2px,color:#000
+classDef parallel fill:#bbdefb,stroke:#0d47a1,stroke-width:2px,color:#000
+classDef boundary fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px,color:#000
+
+subgraph Serial ["Serial Gauss-Seidel"]
+    direction TB
+    C1[Cell 1]:::serial --> C2[Cell 2]:::serial
+    C2 --> C3[Cell 3]:::serial
+    C3 --> C4[Cell 4]:::serial
+end
+
+subgraph Parallel ["Parallel Domain Decomposition Gauss-Seidel"]
+    direction TB
+    subgraph Proc0 ["Processor 0 - Local Domain"]
+        P0_1[Cell 1]:::parallel --> P0_2[Cell 2]:::parallel
+    end
+    
+    subgraph Proc1 ["Processor 1 - Local Domain"]
+        P1_3[Cell 3]:::parallel --> P1_4[Cell 4]:::parallel
     end
 
-    subgraph Parallel["Parallel with Processor Boundaries"]
-        B1[Proc 0: Cells 1-2] -->|X| B2[Proc 1: Cells 3-4]
-        B2 -.->|Jacobi-like| B1
-        B1 -.->|Jacobi-like| B2
-    end
+    P0_2 -.->|Boundary Lag<br/>Explicit Update| P1_3:::boundary
+    P1_3 -.->|Boundary Lag<br/>Explicit Update| P0_2:::boundary
+end
 ```
 > **รูปที่ 5:** ความท้าทายในการปรับสภาพล่วงหน้าแบบขนาน แสดงให้เห็นถึงความสมดุลระหว่างความแม่นยำทางคณิตศาสตร์ระดับสากลและประสิทธิภาพการคำนวณระดับหน่วยประมวลผล
 

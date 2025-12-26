@@ -12,16 +12,19 @@
 
 ```mermaid
 flowchart TD
-    A[การกำหนดค่า YAML] --> B[คลาส CaseGenerator]
-    B --> C[สร้างโครงสร้างไดเรกทอรี]
-    B --> D[สร้างไฟล์พจนานุกรม (Dictionaries)]
-    D --> D1[blockMeshDict]
-    D --> D2[controlDict]
-    D --> D3[fvSchemes/fvSolution]
-    B --> E[ดำเนินการสร้างเมช]
-    E --> F[รันตัวแก้ปัญหาแบบกลุ่ม]
-    F --> G[การประเมินคุณภาพ]
-    G --> H[รายงานการตรวจสอบความถูกต้อง]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[YAML Config]:::explicit --> B[CaseGenerator Class]:::implicit
+B --> C[Create Dirs]:::implicit
+B --> D[Create Dicts]:::implicit
+D --> D1[blockMeshDict]:::explicit
+D --> D2[controlDict]:::explicit
+D --> D3[Schemes/Solution]:::explicit
+B --> E[Mesh Gen]:::explicit
+E --> F[Batch Solve]:::implicit
+F --> G[QA]:::explicit
+G --> H[Report]:::context
 ```
 > **รูปที่ 1:** ผังงานแสดงกระบวนการทำงานของระบบสร้างเคสอัตโนมัติ (Automated Case Generation) เริ่มจากการรับค่าพารามิเตอร์ผ่านไฟล์ YAML การสร้างโครงสร้างโฟลเดอร์และไฟล์ Dictionary ต่างๆ ไปจนถึงการรันเมชและ Solver แบบกลุ่ม พร้อมทั้งการประเมินคุณภาพและสรุปผลความถูกต้องอัตโนมัติ
 

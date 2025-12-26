@@ -5,15 +5,12 @@
 
 ```mermaid
 flowchart TD
-    A[Vector Calculus Overview] --> B[fvc vs fvm]
-    B --> C[Gradient Operations]
-    C --> D[Divergence Operations]
-    D --> E[Curl & Laplacian]
-    E --> F[Practical Applications]
-    F --> G[Summary]
-
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style G fill:#00ff00,stroke:#333,stroke-width:2px
+classDef section fill:#f5f5f5,stroke:#333,color:#000
+classDef topic fill:#e3f2fd,stroke:#1565c0,color:#000
+A[Overview]:::section --> B[fvc vs fvm]:::topic
+B --> C[Gradient & Divergence]:::topic
+C --> D[Curl & Laplacian]:::topic
+D --> E[Applications]:::section
 ```
 
 > **Figure 1:** แผนผังลำดับการเรียนรู้ในโมดูลเรื่องแคลคูลัสเวกเตอร์ ซึ่งครอบคลุมตั้งแต่พื้นฐานของตัวดำเนินการเชิงอนุพันธ์ไปจนถึงการประยุกต์ใช้งานจริงในสมการ Navier-Stokes ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว

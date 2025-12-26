@@ -217,14 +217,19 @@ while (pimple.loop())
 
 ```mermaid
 flowchart TD
-    A[Start Iteration] --> B[Momentum Predictor: Solve U Eqn]
-    B --> C[Pressure Correction: Solve p Eqn]
-    C --> D[Correct Velocity: U = U* - grad p']
-    D --> E[Correct Pressure: p = p* + p']
-    E --> F[Solve Other Transport Eqns: k, epsilon, etc.]
-    F --> G{Convergence Check}
-    G -- No --> A
-    G -- Yes --> H[End Simulation]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Iteration Start]:::context --> B[Momentum Predictor]:::implicit
+B --> C[Pressure Correction]:::explicit
+C --> D[Correct U]:::implicit
+D --> E[Correct p]:::implicit
+E --> F[Transport Eqns]:::implicit
+F --> G{Converged?}:::context
+G -->|No| A
+G -->|Yes| H[End]:::context
 ```
 
 > **Figure 1:** แผนผังลำดับขั้นตอนการทำงานของอัลกอริทึม SIMPLE (SIMPLE Algorithm Workflow) สำหรับการแก้ปัญหาการไหลแบบอัดตัวไม่ได้ในสภาวะคงที่ ซึ่งแสดงกระบวนการวนซ้ำตั้งแต่การทำนายโมเมนตัม การแก้ไขความดันและความเร็ว ไปจนถึงการตรวจสอบการลู่เข้า

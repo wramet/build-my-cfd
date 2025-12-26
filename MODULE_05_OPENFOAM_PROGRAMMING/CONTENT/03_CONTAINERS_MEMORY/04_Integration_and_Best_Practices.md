@@ -20,14 +20,18 @@
 
 ```mermaid
 flowchart TD
-    A[การจัดการหน่วยความจำ<br/>ผู้อำนวยเพลง] -->|ประสานงาน| B[คอนเทนเนอร์<br/>นักดนตรี]
-    B -->|ปฏิบัติตาม| C[อัลกอริทึม CFD<br/>บทเพลง]
-    A -->|จัดการทรัพยากร| D[RAII, autoPtr, tmp]
-    B -->|ดำเนินการ| E[List, DynamicList, PtrList]
-    C -->|กำหนด| F[สมการ Navier-Stokes]
-    D -->|เปิดใช้งาน| G[ประสิทธิภาพ]
-    E -->|สนับสนุน| G
-    F -->|โครงสร้าง| G
+classDef role fill:#e1bee7,stroke:#4a148c,color:#000,stroke-width:2px
+classDef action fill:#fff9c4,stroke:#fbc02d,color:#000,stroke-width:2px
+classDef component fill:#e1f5fe,stroke:#0277bd,color:#000,stroke-width:2px
+
+Conductor["🎼 Conductor<br/>Memory Management"]:::role -->|coordinates| Musicians["🎵 Musicians<br/>Containers"]:::role
+Musicians -->|perform| Score["🎼 Score<br/>CFD Algorithms"]:::role
+
+Conductor -.->|uses| RAII["RAII / autoPtr / tmp"]:::component
+Musicians -.->|uses| Lists["List / PtrList"]:::component
+Score -.->|defines| NSE["Navier-Stokes Equations"]:::component
+
+RAII & Lists & NSE -->|result| Harmony["🎯 High Performance<br/>Zero-Cost Abstraction"]:::action
 ```
 > **รูปที่ 1:** อุปมาเปรียบเทียบการทำงานร่วมกันระหว่างระบบจัดการหน่วยความจำและคอนเทนเนอร์เหมือนวงดุริยางค์ โดยมีการจัดการทรัพยากรเป็นผู้อำนวยเพลงและคอนเทนเนอร์เป็นนักดนตรีที่เล่นตามบทเพลงของอัลกอริทึม CFD
 
@@ -86,35 +90,39 @@ class IntegratedCFDSolver {
 
 ```mermaid
 flowchart TB
-    subgraph MI["การจัดการหน่วยความจำ"]
-        M1[autoPtr]
-        M2[tmp]
-        M3[refCount]
-        M4[RAII]
-    end
+classDef mem fill:#e1f5fe,stroke:#1565c0,color:#000,stroke-width:2px
+classDef con fill:#fff3e0,stroke:#e65100,color:#000,stroke-width:2px
+classDef alg fill:#e8f5e9,stroke:#2e7d32,color:#000,stroke-width:2px
 
-    subgraph CO["คอนเทนเนอร์"]
-        C1[List&lt;T&gt;]
-        C2[DynamicList&lt;T&gt;]
-        C3[FixedList&lt;T,N&gt;]
-        C4[PtrList&lt;T&gt;]
-    end
+subgraph Memory["Memory Management"]
+    direction LR
+    M1["autoPtr"]:::mem
+    M2["tmp"]:::mem
+    M3["refCount"]:::mem
+    M4["RAII"]:::mem
+end
 
-    subgraph CF["อัลกอริทึม CFD"]
-        A1[การดำเนินการ fvc/fvm]
-        A2[LduMatrix]
-        A3[การรวมเวลา]
-    end
+subgraph Container["Containers"]
+    direction LR
+    C1["List<T>"]:::con
+    C2["DynamicList<T>"]:::con
+    C3["FixedList<T,N>"]:::con
+    C4["PtrList<T>"]:::con
+end
 
-    M1 <-->|รูปแบบ RAII| C1
-    M2 <-->|การนับการอ้างอิง| C2
-    M3 <-->|ความเป็นเจ้าของร่วม| C4
-    M4 <-->|ความปลอดภัยจาก Error| A1
-    C1 <-->|การปรับแต่ง SIMD| A2
-    C2 <-->|การจัดวางหน่วยความจำ| A3
+subgraph Algorithm["CFD Algorithms"]
+    direction LR
+    A1["fvc/fvm<br/>Operations"]:::alg
+    A2["LduMatrix"]:::alg
+    A3["Time<br/>Integration"]:::alg
+end
 
-    MI -->|เปิดใช้งาน| CF
-    CO -->|ปรับปรุงประสิทธิภาพ| CF
+M1 <-->|exclusive<br/>ownership| C1
+M2 <-->|shared<br/>references| C2
+M3 <-->|polymorphic<br/>ownership| C4
+M4 <-->|exception<br/>safety| A1
+C1 <-->|SIMD<br/>layout| A2
+C2 <-->|memory<br/>alignment| A3
 ```
 > **รูปที่ 2:** จุดเชื่อมต่อการบูรณาการทางสถาปัตยกรรมระหว่างการจัดการหน่วยความจำและคอนเทนเนอร์ แสดงให้เห็นการประยุกต์ใช้รูปแบบ RAII และการนับการอ้างอิงในทุกระดับของโครงสร้างข้อมูล
 
@@ -215,30 +223,26 @@ void useSharedField() {
 
 ```mermaid
 flowchart TD
-    A[เริ่มต้นฟังก์ชัน] --> B[จัดสรรทรัพยากรแบบ RAII]
-    B --> C1[mesh: autoPtr]
-    B --> C2[p: tmp]
-    B --> C3[U: tmp]
-    B --> C4[boundaries: PtrList]
+classDef normal fill:#e8f5e9,stroke:#2e7d32,color:#000,stroke-width:2px
+classDef error fill:#ffcdd2,stroke:#c62828,color:#000,stroke-width:2px
+classDef cleanup fill:#e1f5fe,stroke:#1565c0,color:#000,stroke-width:2px
 
-    C1 --> D[การดำเนินการ CFD]
-    C2 --> D
-    C3 --> D
-    C4 --> D
+Start["Function Start"] --> Alloc["RAII Allocation:<br/>Mesh, Fields (p, U)"]:::normal
+Alloc --> Ops["CFD Operations"]:::normal
+Ops --> Check{"Exception<br/>Thrown?"}
 
-    D --> E{เกิดข้อผิดพลาด?}
-    E -->|ใช่| F[เริ่มต้น Stack Unwinding]
-    E -->|ไม่ใช่| G[ทำงานต่อไป]
+Check -->|No| Continue["Continue Execution"]:::normal
+Check -->|Yes| Unwind["Stack Unwinding Begins"]:::error
 
-    F --> H1[ดีสตรัคเตอร์ของ boundaries<br/>ลบฟิลด์แพตช์ทั้งหมด]
-    F --> H2[ดีสตรัคเตอร์ของ U<br/>ลดการนับการอ้างอิง, ลบถ้าเป็นตัวสุดท้าย]
-    F --> H3[ดีสตรัคเตอร์ของ p<br/>ลดการนับการอ้างอิง, ลบถ้าเป็นตัวสุดท้าย]
-    F --> H4[ดีสตรัคเตอร์ของ mesh<br/>ลบเมช]
+Unwind --> D1["~Boundaries()<br/>Delete All Boundary Conditions"]:::cleanup
+D1 --> D2["~U()<br/>Decrement Ref / Delete"]:::cleanup
+D2 --> D3["~p()<br/>Decrement Ref / Delete"]:::cleanup
+D3 --> D4["~Mesh()<br/>Delete Mesh"]:::cleanup
 
-    H1 --> I[✅ ทรัพยากรทั้งหมดถูกล้าง]
-    H2 --> I
-    H3 --> I
-    H4 --> I
+D4 --> Safe["✓ All Resources<br/>Cleaned Safely"]:::normal
+
+classDef guarantee fill:#fff9c4,stroke:#f57f17,color:#000,stroke-dasharray: 5 5
+Guarantee["RAII Guarantee:<br/>No Resource Leak"]:::guarantee -. Safe
 ```
 > **รูปที่ 3:** กระบวนการทำความสะอาดทรัพยากรแบบต้นจนจบเมื่อเกิดข้อผิดพลาดใน Solver CFD โดยอาศัยการทำงานที่ประสานกันของระบบจัดการหน่วยความจำและคอนเทนเนอร์ทั้งหมดที่เกี่ยวข้อง
 

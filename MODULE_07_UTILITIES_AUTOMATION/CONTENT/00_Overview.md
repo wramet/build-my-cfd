@@ -118,23 +118,16 @@ boundary
 
 ```mermaid
 graph TD
-    A["CAD Geometry<br/>(STL/OBJ)"] --> B["Background Mesh<br/>(blockMesh)"]
-    B --> C["Surface Triangulation<br/>& Feature Detection"]
-    C --> D["Cell Refinement<br/>(Refinement Boxes)"]
-    D --> E["Snapping to Surface<br/>(Surface Fitting)"]
-    E --> F["Boundary Layer<br/>(Add Layers)"]
-    F --> G["Final CFD Mesh<br/>(Quality Check)"]
-    G --> H["Export to<br/>simulation"]
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,B,D,F process;
-    class C,E decision;
-    class G terminator;
-    class H storage;
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[CAD Geometry STL]:::context --> B[Background blockMesh]:::implicit
+B --> C[Castellation / Feature Detection]:::explicit
+C --> D[Refinement Boxes]:::explicit
+D --> E[Surface Snapping]:::implicit
+E --> F[Boundary Layers]:::implicit
+F --> G[Final Mesh Quality]:::explicit
+G --> H[Export]:::context
 ```
 > **Figure 1:** แผนภูมิขั้นตอนการทำงานของ `snappyHexMesh` ตั้งแต่การนำเข้าเรขาคณิต CAD การสร้างเมชพื้นหลัง การเพิ่มความละเอียดเฉพาะจุด การปรับพื้นผิวให้แนบชิด ไปจนถึงการเพิ่มชั้นขอบเขตและการตรวจสอบคุณภาพเมชขั้นสุดท้าย
 
@@ -173,32 +166,27 @@ graph TD
 
 ```mermaid
 graph TD
-    A["Control Volume Mesh"] --> B["Face Quality Assessment"]
-    A --> C["Cell Quality Assessment"]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Mesh Quality]:::context --> B[Face Metrics]:::implicit
+A --> C[Cell Metrics]:::implicit
 
-    B --> D["Orthogonality"]
-    D --> D1["<b>Ideal: 90° between<br/>face normal and vector<br/>between cell centers</b>"]
-    D --> D2["<b>Formula: cos θ = |(d · n_f)| / |d|</b>"]
+B --> D[Orthogonality]:::explicit
+D --> D1["Ideal: 90°"]:::context
+D --> D2["cos(θ) formula"]:::context
 
-    B --> E["Skewness"]
-    E --> E1["<b>Deviation from ideal<br/>face center position</b>"]
-    E --> E2["<b>Formula: |c_f - c_ideal| / |c_1 - c_2|</b>"]
+B --> E[Skewness]:::explicit
+E --> E1[Center deviation]:::context
+E --> E2["distance formula"]:::context
 
-    C --> F["Aspect Ratio"]
-    F --> F1["<b>Maximum cell length<br/>divided by minimum</b>"]
-    F --> F2["<b>Ideal: AR ≈ 1<br/>Good: AR < 10</b>"]
+C --> F[Aspect Ratio]:::explicit
+F --> F1["Max/Min length"]:::context
+F --> F2["Ideal < 10"]:::context
 
-    C --> G["Determinant"]
-    G --> G1["<b>Jacobian determinant<br/>measures volume distortion</b>"]
-    G --> G2["<b>Ideal: det ≈ 1<br/>Warning: det < 0</b>"]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style E fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style F fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style G fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+C --> G[Determinant]:::explicit
+G --> G1[Jacobian]:::context
+G --> G2["Ideal ≈ 1"]:::context
 ```
 > **Figure 2:** กรอบการประเมินคุณภาพเมช (Quality Assessment Framework) แสดงรายละเอียดมาตรวัดที่สำคัญสำหรับหน้าเซลล์ (Faces) เช่น Orthogonality และ Skewness และสำหรับตัวเซลล์ (Cells) เช่น Aspect Ratio และ Determinant พร้อมคำอธิบายเกณฑ์ที่เหมาะสม
 

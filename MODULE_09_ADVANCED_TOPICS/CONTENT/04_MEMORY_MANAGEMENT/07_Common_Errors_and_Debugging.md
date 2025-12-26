@@ -384,21 +384,22 @@ autoPtr<MyField> tField(new MyField()); // ✅ doesn't need refCount
 
 ```mermaid
 graph TD
-    A[Debugging Checklist] --> B[Check Pointer Ownership]
-    A --> C[Verify refCount Status]
-    A --> D[Inspect objectRegistry]
-
-    B --> B1{Who deletes?}
-    B1 -->|Manual| E[Risk: Double Delete]
-    B1 -->|Smart Ptr| F[Safe: RAII]
-
-    C --> C1{Circular Refs?}
-    C1 -->|Yes| G[Risk: Memory Leak]
-    C1 -->|No| H[Safe]
-
-    D --> D1{Registered?}
-    D1 -->|Yes| I[Use isTemporary=false]
-    D1 -->|No| J[Use isTemporary=true]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[Debugging Checklist]:::explicit --> B[Check Pointer Ownership]:::implicit
+A --> C[Verify refCount Status]:::implicit
+A --> D[Inspect objectRegistry]:::implicit
+B --> B1{Who deletes?}:::warning
+B1 -->|Manual| E[Risk: Double Delete]:::warning
+B1 -->|Smart Ptr| F[Safe: RAII]:::success
+C --> C1{Circular Refs?}:::warning
+C1 -->|Yes| G[Risk: Memory Leak]:::warning
+C1 -->|No| H[Safe]:::success
+D --> D1{Registered?}:::warning
+D1 -->|Yes| I[Use isTemporary=false]:::implicit
+D1 -->|No| J[Use isTemporary=true]:::implicit
 ```
 > **Figure 1:** รายการตรวจสอบสำหรับการดีบักปัญหาหน่วยความจำ (Memory Debugging Checklist) เพื่อช่วยให้นักพัฒนาระบุความเสี่ยงต่างๆ เช่น การลบซ้ำ (Double Delete), การรั่วไหลจากความสัมพันธ์แบบวงกลม (Circular Reference), และการใช้โหมดความชั่วคราวที่ไม่ถูกต้องใน `tmp<T>`
 

@@ -320,35 +320,39 @@ PIMPLE
 
 ```mermaid
 flowchart TD
-    A[เริ่มต้น: วิเคราะห์ปัญหา CFD] --> B{ปัญหาเป็นสภาวะคงที่?}
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Start]:::context --> B{Steady State?}:::context
+B -->|Yes| C[SIMPLE]:::implicit
+B -->|No| D{Time Accurate?}:::context
 
-    B -->|ใช่| C[ใช้ SIMPLE Algorithm<br/>simpleFoam]
-    B -->|ไม่| D{ต้องการความแม่นยำเชิงเวลาสูง?}
+D -->|Yes| E{Co < 1?}:::context
+D -->|No| F{Complex Physics?}:::context
 
-    D -->|ใช่| E{Courant Number < 1?}
-    D -->|ไม่| F{ฟิสิกส์ซับซ้อน?}
+E -->|Yes| G[PISO]:::implicit
+E -->|No| H[PIMPLE + nCorr]:::implicit
 
-    E -->|ใช่| G[ใช้ PISO Algorithm<br/>pisoFoam]
-    E -->|ไม่| H[ใช้ PIMPLE<br/>เพิ่ม nCorrectors]
+F -->|Yes| I[PIMPLE]:::implicit
+F -->|No| G
 
-    F -->|ใช่| I[ใช้ PIMPLE Algorithm<br/>pimpleFoam]
-    F -->|ไม่| G
+C --> J{Converged?}:::context
+G --> K{Converged?}:::context
+I --> L{Converged?}:::context
 
-    C --> J{ลู่เข้าหรือไม่?}
-    G --> K{ลู่เข้าหรือไม่?}
-    I --> L{ลู่เข้าหรือไม่?}
+J -->|No| M[Relaxation]:::explicit
+K -->|No| N[Reduce dt]:::explicit
+L -->|No| O[Outer Corr]:::explicit
 
-    J -->|ไม่| M[ลด Relaxation Factors]
-    K -->|ไม่| N[ลด Δt หรือเพิ่ม nCorrectors]
-    L -->|ไม่| O[เพิ่ม nOuterCorrectors<br/>ปรับ Relaxation]
+M --> J
+N --> K
+O --> L
 
-    M --> J
-    N --> K
-    O --> L
-
-    J -->|ใช่| P[✅ สำเร็จ]
-    K -->|ใช่| P
-    L -->|ใช่| P
+J -->|Yes| P[Success]:::implicit
+K -->|Yes| P
+L -->|Yes| P
 ```
 
 > **Figure 1:** แผนผังการตัดสินใจเลือกใช้อัลกอริทึม (Decision Flowchart) สำหรับการแก้ปัญหาการเชื่อมโยงความดันและความเร็ว โดยพิจารณาจากลักษณะของปัญหา (Steady vs Transient) ความต้องการความแม่นยำเชิงเวลา เลข Courant และความซับซ้อนของฟิสิกส์ เพื่อเลือก Solver ที่เหมาะสมที่สุดระหว่าง SIMPLE, PISO และ PIMPLE พร้อมแนวทางการแก้ไขเบื้องต้นเมื่อพบปัญหาการลู่เข้า

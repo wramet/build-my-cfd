@@ -35,31 +35,24 @@
 
 ```mermaid
 graph TD
-    subgraph "Inlet Boundary"
-        A["Fixed Velocity<br/>u = u₀"]:::process
-        B["Fixed Pressure<br/>p = p₀"]:::process
-    end
+%% Mathematical Conflict
+subgraph Conflict ["Over-Specification"]
+    Inlet["Inlet: Fixed U"]:::explicit
+    Outlet["Outlet: Fixed U (?)"]:::explicit
+    Problem["Mass Conservation Violation"]:::explicit
+end
 
-    subgraph "Mathematical Conflict"
-        C["Over-specified<br/>System"]:::decision
-        D["No Solution"]:::terminator
-    end
+subgraph Solution ["Correct Approach"]
+    InletFixed["Inlet: Fixed U"]:::implicit
+    OutletOpen["Outlet: ZeroGradient U, Fixed Pressure"]:::implicit
+end
 
-    subgraph "Navier-Stokes Equations"
-        E["Continuity: ∇⋅u = 0"]
-        F["Momentum: ∂u/∂t + (u⋅∇)u = -∇p/ρ + ν∇²u"]
-    end
+Inlet & Outlet --> Problem
+Problem -.->|Fix| Solution
 
-    A --> C
-    B --> C
-    C --> D
-    E --> C
-    F --> C
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
 ```
 > **Figure 1:** ความขัดแย้งทางคณิตศาสตร์ในระบบที่ถูกจำกัดเงื่อนไขมากเกินไป (Over-specification) แสดงให้เห็นว่าการกำหนดทั้งความเร็วและความดันตายตัวที่ทางเข้าเดียวกันส่งผลให้ระบบไม่มีผลเฉลยและเกิดความไม่เสถียร
 
@@ -204,28 +197,26 @@ $$\mathbf{u}_b = \begin{cases}
 
 ```mermaid
 graph LR
-    subgraph "Original Problem Domain"
-        A["Inlet Boundary"] --> B["Flow Development Region"]
-        B --> C["Outlet Too Close<br/>(Backflow Issues)"]
-        C --> D["Vortices & Recirculation<br/>at Boundary"]
-    end
+%% Domain Extension
+subgraph BadDomain ["Problematic Domain"]
+    Out1["Outlet (Too Close)"]:::explicit
+    Recirc["Backflow/Instability"]:::explicit
+end
 
-    subgraph "Extended Domain Solution"
-        E["Inlet Boundary"] --> F["Flow Development Region"]
-        F --> G["Fully Developed Flow"]
-        G --> H["Extended Domain<br/>(10-50x Diameter)"]
-        H --> I["Proper Outlet<br/>(No Backflow)"]
-    end
+subgraph GoodDomain ["Extended Domain"]
+    Ext["Extension Length"]:::implicit
+    Out2["Outlet (Developed)"]:::implicit
+    Stable["Stable Outflow"]:::implicit
+end
 
-    style A fill:#ffcdd2,stroke:#c62828,color:#000
-    style B fill:#ffcdd2,stroke:#c62828,color:#000
-    style C fill:#ffcdd2,stroke:#c62828,color:#000
-    style D fill:#ffcdd2,stroke:#c62828,color:#000
-    style E fill:#c8e6c9,stroke:#2e7d32,color:#000
-    style F fill:#c8e6c9,stroke:#2e7d32,color:#000
-    style G fill:#c8e6c9,stroke:#2e7d32,color:#000
-    style H fill:#c8e6c9,stroke:#2e7d32,color:#000
-    style I fill:#c8e6c9,stroke:#2e7d32,color:#000
+Out1 --> Recirc
+Recirc -.->|Remedy| Ext
+Ext --> Out2
+Out2 --> Stable
+
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
 ```
 > **Figure 2:** การขยายโดเมนการคำนวณเพื่อแก้ไขปัญหาการไหลย้อนกลับที่ทางออก โดยการเพิ่มระยะห่างปลายน้ำให้เพียงพอสำหรับการพัฒนาการไหลแบบสมบูรณ์ ช่วยป้องกันการรบกวนจากกระแสวนที่ขอบเขต
 
@@ -277,33 +268,28 @@ U
 - อาจเกิดความไม่เสถียรเชิงตัวเลข (numerical instability)
 
 ```mermaid
-graph TD
-    A["Wall Boundary"] --> B["Physical Expectation<br/>No-slip condition"]
-    A --> C["Incorrect Implementation<br/>U: fixedValue uniform 0"]
-    A --> D["Correct Implementation<br/>U: noSlip"]
-
-    B --> E["<b>Expected Profile</b><br/>u = 0 at wall<br/>u increases gradually away from wall"]
-    C --> F["<b>Problematic Profile</b><br/>High velocity spikes near wall<br/>Non-physical wall shear stress"]
-    D --> G["<b>Correct Profile</b><br/>Smooth velocity gradient<br/>Physically realistic boundary layer"]
-
-    E --> H["Laminar: u(y) = u_max⋅(y/δ)<br/>Turbulent: u(y) ≈ u_τ/κ⋅ln(y⁺) + B"]
-    F --> I["τ_w = μ(du/dy)|wall<br/>Unrealistically high values"]
-    G --> J["τ_w = μ(du/dy)|wall<br/>Physically reasonable values"]
-
-    K["<b>Validation</b>"] --> L["Check wall shear stress<br/>τ_wall = μ(∂u/∂n)|wall"]
-    K --> M["Monitor velocity gradients<br/>Ensure smooth profile near wall"]
-    K --> N["PostProcess: wallShearStress<br/>postProcess -func 'wallShearStress'"]
-
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,B,E,H process;
-    class C,F,I decision;
-    class D,G,J storage;
-    class K,L,M,N terminator;
+graph LR
+%% BC Mistakes
+subgraph Scenario ["Wall Boundary Setup"]
+Wall["Wall Patch"]:::implicit
+end
+subgraph Wrong ["Incorrect"]
+ZeroV["fixedValue (0 0 0)"]:::explicit
+Spike["Velocity Spikes"]:::explicit
+BadTau["Wrong Shear Stress"]:::explicit
+end
+subgraph Right ["Correct"]
+NoSlip["noSlip"]:::implicit
+Smooth["Smooth Profile"]:::implicit
+GoodTau["Correct Shear Stress"]:::implicit
+end
+Wall -->|"If used"| Wrong
+Wall -->|"Should use"| Right
+ZeroV -->|"Causes"| Spike -->|"Leads to"| BadTau
+NoSlip -->|"Produces"| Smooth -->|"Correct"| GoodTau
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
 ```
 > **Figure 3:** การนำเงื่อนไขขอบเขตที่ผนังไปใช้งานอย่างถูกต้อง โดยเปรียบเทียบความแตกต่างระหว่างการใช้ `noSlip` ซึ่งให้โปรไฟล์ความเร็วที่ราบรื่นและสมจริง กับการใช้งานที่ผิดพลาดซึ่งนำไปสู่การพุ่งสูงของความเร็วและแรงเค้นเฉือนที่ผนังเกินความเป็นจริง
 
@@ -406,30 +392,24 @@ omega
 เมื่อ Boundary ของ Pressure ทั้งหมดใช้เงื่อนไข Neumann (`zeroGradient`) Pressure Field จะไม่ถูกกำหนดอย่างเป็นเอกลักษณ์ (uniquely determined)
 
 ```mermaid
-graph LR
-    A["Initial Stable Pressure"] --> B["Pressure Drift Begins"]
-    B --> C["Continuous Pressure Increase"]
-    C --> D["Unrealistic Pressure Values"]
+graph TD
+%% Pressure Drift Problem and Solution
+subgraph Problem ["Pressure Drift Problem"]
+    Cause["All Neumann BCs<br/>(Zero Gradient on All Boundaries)"]:::explicit
+    Symptom["Unbounded Pressure Rise<br/>(Mathematical Indeterminacy)"]:::explicit
+end
 
-    E["All Neumann Boundaries"] --> B
-    F["No Reference Point"] --> B
-    G["Incompressible Flow"] --> B
+subgraph Solution ["Stabilization Solution"]
+    Action["Pin Pressure at Reference Cell<br/>(fixedValue on Single Cell)"]:::implicit
+    Result["Stable Unique Solution<br/>(Well-posed System)"]:::implicit
+end
 
-    H["Set Reference Pressure"] --> I["Stabilized Pressure"]
-    J["Mixed Boundary Types"] --> I
-    K["Pressure Correction Loop"] --> I
+Cause --> Symptom
+Symptom -.->|Reference Cell| Action
+Action --> Result
 
-    style A fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style D fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style I fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style C fill:#ffecb3,stroke:#f57c00,stroke-width:2px,color:#000
-    style E fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style F fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style G fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style H fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style J fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style K fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 4:** การวินิจฉัยและการทำให้สนามความดันเสถียรเพื่อป้องกันปัญหา Pressure Drifting โดยการกำหนดจุดอ้างอิงความดันหรือใช้เงื่อนไขขอบเขตแบบผสม เพื่อให้ระบบสามารถหาผลเฉลยความดันที่เป็นเอกลักษณ์ได้
 
@@ -687,30 +667,31 @@ U
 
 ```mermaid
 graph LR
-    subgraph "Backward Facing Step Geometry"
-        IN["Inlet Boundary<br/>Fixed Value: U = (1 0 0)<br/>Zero Gradient: p"]
-        STEP["Step Region<br/>Height: h<br/>Flow Separation"]
-        REC["Recirculation Zone<br/>Vortex Formation<br/>Reverse Flow"]
-        WALL1["Upper Wall<br/>No-Slip Condition<br/>U = (0 0 0)"]
-        WALL2["Lower Wall<br/>No-Slip Condition<br/>U = (0 0 0)"]
-        OUT["Outlet Boundary<br/>Zero Gradient: U<br/>Fixed Value: p = 0"]
+%% Backward Facing Step
+subgraph Geometry ["Geometry"]
+    Inlet["Inlet"]:::explicit
+    Step["Step Corner"]:::context
+    Wall["Walls"]:::implicit
+    Outlet["Outlet"]:::explicit
+end
 
-        IN --> STEP
-        STEP --> REC
-        REC --> OUT
-        WALL1 --"Constraints"--> REC
-        WALL2 --"Constraints"--> REC
-    end
+subgraph Physics ["Flow Physics"]
+    Sep["Separation Point"]:::explicit
+    Recirc["Recirculation Zone"]:::explicit
+    Reattach["Reattachment"]:::implicit
+end
 
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+Inlet --> Step
+Step --> Sep
+Sep --> Recirc
+Recirc --> Reattach
+Reattach --> Outlet
+Wall -.-> Physics
 
-    class IN,OUT process;
-    class STEP,REC decision;
-    class WALL1,WALL2 storage;
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 5:** เรขาคณิตของ Backward Facing Step และลักษณะการไหล แสดงจุดแยกตัวและการไหลย้อนกลับในบริเวณ Recirculation Zone พร้อมการกำหนดเงื่อนไขขอบเขตที่เหมาะสมสำหรับทางเข้า ทางออก และผนัง
 
@@ -733,20 +714,17 @@ p
 
 ```mermaid
 graph LR
-    A["Pipe Inlet<br/>Fixed Velocity"] --> B["Main Flow Region<br/>Forward Flow"]
-    B --> C["Recirculation Zone 1<br/>Reverse Flow"]
-    B --> D["Recirculation Zone 2<br/>Reverse Flow"]
-    C --> E["Reattachment Point"]
-    D --> E
-    E --> F["Pipe Outlet<br/>Potential Backflow"]
-    F --> G["Outlet Boundary<br/>inletOutlet Condition"]
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style D fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style E fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style F fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style G fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000;
+A["Pipe Inlet<br/>(Fixed Velocity)"]:::explicit --> B["Main Flow Region<br/>(Forward Flow)"]:::implicit
+B --> C["Recirculation Zone 1<br/>(Reverse Flow)"]:::volatile
+B --> D["Recirculation Zone 2<br/>(Reverse Flow)"]:::volatile
+C --> E["Reattachment Point"]:::implicit
+D --> E
+E --> F["Pipe Outlet<br/>(Potential Backflow Region)"]:::volatile
+F --> G["Outlet Boundary<br/>(inletOutlet Condition)"]:::explicit
+
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 6:** การไหลในท่อที่มีการไหลย้อนกลับและการจัดการที่ทางออก โดยใช้เงื่อนไข `inletOutlet` เพื่อรองรับการไหลที่อาจไหลกลับเข้าสู่โดเมนในบริเวณที่มีกระแสวนถึงขอบเขตทางออก
 

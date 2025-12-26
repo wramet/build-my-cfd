@@ -2,23 +2,23 @@
 
 ```mermaid
 mindmap
-  root((Dimensional Analysis))
-    dimensionSet
-      SI Units (7 Dimensions)
-      Exponent Storage
-      isDimensionless()
-    Arithmetic
-      Add/Sub (Match required)
-      Mul/Div (Exponent Sum/Diff)
-      Pow/Sqrt
-    Non-Dimensionalization
-      Reference Scales
-      Similarity (Re, Fr, Pr)
-      Numerical Stability
-    Advanced
-      Multi-physics Coupling
-      Custom Units
-      Safety Net Mechanism
+root((Dimensional Analysis))
+dimensionSet
+SI Units
+Exponents
+isDimensionless
+Arithmetic
+Add/Sub
+Mul/Div
+Pow/Sqrt
+Non-Dimensionalization
+Ref Scales
+Similarity
+Stability
+Advanced
+Coupling
+Custom Units
+Safety Net
 ```
 > **Figure 1:** แผนผังความคิดสรุปองค์ประกอบของการวิเคราะห์มิติ ครอบคลุมทั้งโครงสร้าง dimensionSet กฎพีชคณิตมิติ เทคนิคการทำให้ไร้มิติ และการประยุกต์ใช้ในระบบหลายฟิสิกส์ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

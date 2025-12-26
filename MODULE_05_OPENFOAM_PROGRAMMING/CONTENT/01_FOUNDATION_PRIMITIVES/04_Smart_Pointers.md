@@ -23,15 +23,14 @@
 
 ```mermaid
 sequenceDiagram
-    participant P1 as autoPtr A
-    participant Obj as Data Object
-    participant P2 as autoPtr B
-
-    Note over P1,Obj: A owns Object
-    P1->>P2: Transfer Ownership (Assignment)
-    Note over P1: A is now NULL
-    Note over P2,Obj: B now owns Object
-    Note over P2,Obj: When B goes out of scope, Object is deleted
+participant P1 as autoPtr A
+participant Obj as Data Object
+participant P2 as autoPtr B
+Note over P1,Obj: Initial State: A owns Object
+P1->>P2: Transfer Ownership (Assignment)
+Note over P1: A is now NULL (Empty)
+Note over P2,Obj: B now owns Object
+Note over P2,Obj: Final State: When B goes out of scope,<br/>Object is automatically deleted
 ```
 
 > **Figure 1:** ลำดับการโอนความเป็นเจ้าของของ `autoPtr` ซึ่งแสดงให้เห็นว่าข้อมูลจะมีเจ้าของเพียงหนึ่งเดียวในแต่ละขณะ และจะถูกทำลายโดยอัตโนมัติเมื่อเจ้าของสิ้นสุดขอบเขตการทำงาน (Scope)
@@ -47,13 +46,22 @@ sequenceDiagram
 
 ```mermaid
 graph LR
-    T1["tmp<br/>Ref Count: 1"] --- Obj["Data Object<br/>(Large Field)"]
-    T2["tmp<br/>Ref Count: 2"] --- Obj
-    T3["tmp<br/>Ref Count: 3"] --- Obj
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
 
-    subgraph "Memory Efficient Sharing"
-    Obj
-    end
+subgraph References["📚 Smart Pointers (tmp)"]
+    direction TB
+    T1["tmp<br/>Ref Count: 1"]:::explicit
+    T2["tmp<br/>Ref Count: 2"]:::explicit
+    T3["tmp<br/>Ref Count: 3"]:::explicit
+end
+
+subgraph Shared["💾 Shared Resource"]
+    Obj["Data Object<br/>(Large Field)"]:::implicit
+end
+
+T1 & T2 & T3 -.->|reference| Obj
 ```
 
 > **Figure 2:** แผนผังการทำงานของ `tmp` ที่ใช้ระบบนับจำนวนการอ้างอิง (Reference Counting) เพื่อแชร์ข้อมูลขนาดใหญ่ระหว่างหลายส่วนของโปรแกรมอย่างมีประสิทธิภาพ โดยไม่ต้องคัดลอกข้อมูลซ้ำซ้อน

@@ -455,21 +455,17 @@ PIMPLE
 ## 4. ขั้นตอนการทำงานที่สมบูรณ์ (Complete Workflow)
 
 ```mermaid
-flowchart TD
-    A[การประมวลผลล่วงหน้า] --> B[การสร้างเมช]
-    B --> C[กำหนดเงื่อนไขเริ่มต้น]
-    C --> D[กำหนดค่า transportProperties]
-    D --> E[กำหนดเงื่อนไขขอบเขต]
-    E --> F[กำหนดค่า fvSchemes/fvSolution]
-    F --> G{รันการจำลอง}
-    G --> H{ติดตามการลู่เข้า}
-    H -- ยังไม่ลู่เข้า --> I[ปรับค่าการผ่อนคลาย/nuMax]
-    I --> G
-    H -- ลู่เข้าแล้ว --> J[การประมวลผลหลังการจำลอง]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Pre["การประมวลผลล่วงหน้า<br/>(Preprocessing)"]:::context
+Mesh["สร้างเมช<br/>(Meshing)"]:::implicit
+Setup["กำหนดค่า<br/>Properties/BCs"]:::explicit
+Run["รันการจำลอง<br/>(Run Simulation)"]:::explicit
+Post["การประมวลผลผลลัพธ์<br/>(Post-processing)"]:::context
 
-    style D fill:#ffc,stroke:#333
-    style I fill:#f99,stroke:#333
-    style J fill:#cfc,stroke:#333
+Pre --> Mesh --> Setup --> Run --> Post
 ```
 > **รูปที่ 1:** แผนผังลำดับขั้นตอนการจำลองของไหลที่ไม่ใช่แบบนิวตัน (Complete Workflow) ตั้งแต่การเตรียมเมช การตั้งค่าพารามิเตอร์ของแบบจำลองความหนืด ไปจนถึงกระบวนการวิเคราะห์ผลและการตรวจสอบความลู่เข้า
 
@@ -515,19 +511,19 @@ flowchart TD
 ### 4.2 ขั้นตอนการทำงานตามแนวทางปฏิบัติที่ดีที่สุด (Best Practice Workflow)
 
 ```mermaid
-flowchart LR
-    A[เริ่ม] --> B[รันด้วยแบบจำลองนิวตัน]
-    B --> C[ตรวจสอบสนามความเร็ว]
-    C --> D[เปลี่ยนเป็นนอนนิวตัน]
-    D --> E[ติดตามสนามความหนืด]
-    E --> F{ลู่เข้าแล้วหรือยัง?};
-    F -- ยัง --> G[ปรับปรุงพารามิเตอร์]
-    G --> E
-    F -- ใช่ --> H[ตรวจสอบความถูกต้องของผลลัพธ์]
+graph LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Start("เริ่ม"):::context
+Newton["รันแบบจำลองนิวตัน<br/>(Initial Guess)"]:::implicit
+NonNewton["เปลี่ยนเป็นนอนนิวตัน<br/>(Complex Model)"]:::explicit
+Check{"ตรวจสอบการลู่เข้า"}:::implicit
+End("เสร็จสิ้น"):::context
 
-    style B fill:#e8f5e9,stroke:#2e7d32
-    style D fill:#fff9c4,stroke:#fbc02d
-    style H fill:#c8e6c9,stroke:#2e7d32
+Start --> Newton --> NonNewton --> Check
+Check -- ยัง --> NonNewton
+Check -- ใช่ --> End
 ```
 > **รูปที่ 2:** แผนผังแสดงแนวทางปฏิบัติที่เป็นเลิศ (Best Practice) โดยใช้ลำดับการคำนวณจากแบบจำลองนิวตันไปสู่แบบจำลองที่ไม่ใช่แบบนิวตัน เพื่อรักษาเสถียรภาพทางตัวเลขและลดความซับซ้อนในการตั้งค่าเบื้องต้น
 
@@ -711,11 +707,15 @@ HerschelBulkleyCoeffs
 #### คำแนะนำที่ 1: เริ่มจากความเรียบง่าย
 
 ```mermaid
-flowchart LR
-    A[แบบจำลองนิวตัน] --> B[ตรวจสอบเมชและ BC]
-    B --> C[เปลี่ยนเป็นแบบจำลองกฎกำลัง]
-    C --> D[ตรวจสอบความถูกต้องของผลลัพธ์]
-    D --> E[ใช้แบบจำลองที่ซับซ้อน]
+graph LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Step1["1. แบบจำลองนิวตัน<br/>(Stabilize)"]:::implicit
+Step2["2. กฎกำลัง (Power Law)<br/>(Intermediate)"]:::explicit
+Step3["3. แบบจำลองซับซ้อน<br/>(Final Physics)"]:::explicit
+
+Step1 --> Step2 --> Step3
 ```
 > **รูปที่ 3:** แผนภูมิแสดงกลยุทธ์การเพิ่มระดับความซับซ้อนของแบบจำลองความหนืด (Progressive Modeling Strategy) เพื่อการตรวจสอบความถูกต้องของระบบอย่างเป็นลำดับ
 

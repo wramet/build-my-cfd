@@ -61,11 +61,13 @@ $$\phi_f = \mathbf{U}_f \cdot \mathbf{S}_f$$
 
 ```mermaid
 graph LR
-    C1((Cell 1)) -- "U1" --> F[Face: Interpolation]
-    C2((Cell 2)) -- "U2" --> F
-    F -- "Result" --> Uf[surfaceField: Uf]
-
-    style F fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+C1((Cell 1)):::implicit -- "U1" --> F[Face: Interpolation]:::explicit
+C2((Cell 2)):::implicit -- "U2" --> F
+F -- "Result" --> Uf[surfaceField: Uf]:::implicit
 ```
 > **Figure 1:** กระบวนการแทรกสอด (Interpolation) ข้อมูลจากจุดศูนย์กลางเซลล์ (Cell Centers) ไปยังจุดศูนย์กลางหน้า (Face Centers) เพื่อสร้างฟิลด์ผิวสเกลาร์ (surfaceScalarField) สำหรับการคำนวณฟลักซ์
 

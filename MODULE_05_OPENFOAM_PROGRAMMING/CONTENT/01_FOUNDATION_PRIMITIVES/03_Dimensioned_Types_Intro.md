@@ -67,15 +67,24 @@ dimensionedScalar wrong = velocity + pressure;  // Compile-time or runtime error
 
 ```mermaid
 flowchart TD
-    A[Operation: Q1 + Q2] --> B{Are dimensions equal?}
-    B -->|Yes| C[Perform numerical operation]
-    B -->|No| D[Error: Incompatible units]
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef error fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
 
-    E[Operation: Q1 * Q2] --> F[Add dimension exponents]
-    F --> G[Return new dimensionedType]
+subgraph AddSub[" Addition / Subtraction "]
+    A["Operation: Q1 + Q2"]:::explicit --> B{"Are dimensions equal?"}:::implicit
+    B -->|"Yes"| C["Perform numerical operation"]:::implicit
+    B -->|"No"| D["Error: Incompatible units"]:::error
+end
 
-    H[Operation: Q1 / Q2] --> I[Subtract dimension exponents]
-    I --> J[Return new dimensionedType]
+subgraph MultDiv[" Multiplication / Division "]
+    E["Operation: Q1 * Q2"]:::explicit --> F["Add dimension exponents"]:::implicit
+    F --> G["Return new dimensionedType"]:::implicit
+
+    H["Operation: Q1 / Q2"]:::explicit --> I["Subtract dimension exponents"]:::implicit
+    I --> J["Return new dimensionedType"]:::implicit
+end
 ```
 > **Figure 1:** แผนผังขั้นตอนการตรวจสอบมิติทางฟิสิกส์ (Dimension Checking Workflow) เพื่อยืนยันความถูกต้องของหน่วยในการดำเนินการทางคณิตศาสตร์ระหว่างปริมาณทางกายภาพต่างๆ
 
@@ -89,14 +98,14 @@ $$[Q] = M^\alpha L^\beta T^\gamma \Theta^\delta I^\epsilon N^\zeta J^\eta$$
 
 ```mermaid
 mindmap
-  root((dimensionSet))
-    M(Mass - kg)
-    L(Length - m)
-    T(Time - s)
-    Theta(Temperature - K)
-    I(Current - A)
-    N(Quantity - mol)
-    J(Luminous - cd)
+root((dimensionSet))
+M["Mass - kg"]
+L["Length - m"]
+T["Time - s"]
+Theta["Temperature - K"]
+I["Current - A"]
+N["Quantity - mol"]
+J["Luminous - cd"]
 ```
 > **Figure 2:** ส่วนประกอบของ `dimensionSet` ซึ่งครอบคลุม 7 มิติพื้นฐานตามมาตรฐาน SI ที่ใช้ในการระบุมิติทางฟิสิกส์ของทุกปริมาณใน OpenFOAM
 
@@ -148,11 +157,15 @@ class dimensionedType
 
 ```mermaid
 classDiagram
-    dimensionedType <|-- dimensionedScalar
-    dimensionedType <|-- dimensionedVector
-    dimensionedType <|-- dimensionedTensor
-
-    note for dimensionedType "Tracks physical dimensions"
+class dimensionedType {
+    +dimensionSet dimensions
+    +value()
+}
+dimensionedType <|-- dimensionedScalar
+dimensionedType <|-- dimensionedVector
+dimensionedType <|-- dimensionedTensor
+note for dimensionedType "Tracks physical dimensions"
+style dimensionedType fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
 ```
 > **Figure 3:** แผนผังคลาสแสดงลำดับชั้นการสืบทอดของประเภทข้อมูลที่มีมิติ โดย `dimensionedType` เป็นฐานในการสร้างประเภทข้อมูลสเปกตรัมต่างๆ เช่น สเกลาร์ เวกเตอร์ และเทนเซอร์
 

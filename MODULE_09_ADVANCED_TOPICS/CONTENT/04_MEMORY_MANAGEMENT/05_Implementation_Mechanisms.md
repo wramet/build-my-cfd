@@ -9,13 +9,13 @@
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Created: new volScalarField
-    Created --> Wrapped: tmp&lt;T&gt; tField(raw) [count=1]
-    Wrapped --> Shared: tCopy = tField [count=2]
-    Shared --> InUse: solve(*tField, *tCopy)
-    InUse --> OneRefLeft: tCopy out of scope [count=1]
-    OneRefLeft --> Cleanup: tField out of scope [count=0]
-    Cleanup --> [*]: delete raw object
+[*] --> Created: new volScalarField
+Created --> Wrapped: tmp<T> tField(raw) [count=1]
+Wrapped --> Shared: tCopy = tField [count=2]
+Shared --> InUse: solve(*tField, tCopy)
+InUse --> OneRefLeft: tCopy out of scope [count=1]
+OneRefLeft --> Cleanup: tField out of scope [count=0]
+Cleanup --> [*]: delete raw object
 ```
 > **Figure 1:** แผนภาพสถานะแสดงวงจรชีวิตของฟิลด์ชั่วคราว (Temporary Field) ตั้งแต่การสร้าง การห่อหุ้มด้วย `tmp` การเพิ่มจำนวนการอ้างอิงเมื่อมีการคัดลอก จนถึงการลดจำนวนและทำลายออบเจกต์ทิ้งโดยอัตโนมัติเมื่อไม่มีการใช้งานแล้ว
 

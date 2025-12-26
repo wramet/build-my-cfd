@@ -611,23 +611,17 @@ mpirun -np 128 \
 ### 3.2 กลยุทธ์การจัดการทรัพยากร
 
 ```mermaid
-graph TD
-    A["Available Resources"] --> B["Memory Allocation"]
-    A --> C["CPU Allocation"]
-
-    B --> B1["Per-processor Memory"]
-    B --> B2["Communication Buffer"]
-
-    C --> C1["CPU Binding"]
-    C --> C2["NUMA Awareness"]
-
-    B1 --> D["Optimal Performance"]
-    C1 --> D
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style D fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+flowchart TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Hardware Resources]:::context --> B[Memory RAM]:::explicit
+A --> C[CPU Cores]:::explicit
+B --> B1[Per-Core Memory]:::implicit
+B --> B2[Comm Buffers]:::implicit
+C --> C1[Process Binding]:::implicit
+C --> C2[NUMA Awareness]:::implicit
+B1 & C1 --> D[Optimal Performance]:::implicit
 ```
 > **Figure 1:** แผนภาพแสดงกลยุทธ์การจัดการทรัพยากรบนระบบ HPC โดยเน้นการจัดสรรหน่วยความจำและซีพียูให้เหมาะสมกับสถาปัตยกรรมของเครื่องแม่ข่าย เพื่อให้ได้ประสิทธิภาพในการคำนวณสูงสุด
 
@@ -784,23 +778,21 @@ rsync -av $SLURM_TMPDIR/openfoam_case/ $HOME/openfoam_results/
 
 ```mermaid
 flowchart TD
-    A["Setup Case"] --> B["Generate Mesh<br/>(blockMesh/snappyHexMesh)"]
-    B --> C["Quality Check<br/>(checkMesh)"]
-    C --> D{Quality OK?}
-    D -->|No| B
-    D -->|Yes| E["Decompose Domain<br/>(decomposePar)"]
-    E --> F["Submit HPC Job<br/>(sbatch)"]
-    F --> G["Run Parallel Solver<br/>(mpirun)"]
-    G --> H["Monitor Performance<br/>(实时监控)"]
-    H --> I{Converged?}
-    I -->|No| G
-    I -->|Yes| J["Reconstruct Results<br/>(reconstructPar)"]
-    J --> K["Post-process<br/>(paraFoam/sample)"]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style F fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    style G fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style K fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Setup Case]:::context --> B[Generate Mesh]:::explicit
+B --> C[Quality Check]:::explicit
+C --> D{OK?}:::explicit
+D -->|No| B
+D -->|Yes| E[Decompose Domain]:::implicit
+E --> F[Submit Job]:::context
+F --> G[Run MPI Solver]:::implicit
+G --> H[Monitor]:::explicit
+H --> I{Converged?}:::explicit
+I -->|No| G
+I -->|Yes| J[Reconstruct]:::implicit
+J --> K[Post-Process]:::context
 ```
 > **Figure 2:** ไปป์ไลน์การจำลองแบบขนานบนระบบ HPC ตั้งแต่ขั้นตอนการตั้งค่าเคส การสร้างเมช การส่งงานผ่านระบบคิว (Job Submission) การรัน Solver แบบขนาน ไปจนถึงการรวบรวมผลลัพธ์และวิเคราะห์ข้อมูล
 

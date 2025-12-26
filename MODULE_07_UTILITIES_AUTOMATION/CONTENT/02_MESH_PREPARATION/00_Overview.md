@@ -16,29 +16,26 @@ The mesh generation process typically begins with a CAD model or geometry defini
 
 ```mermaid
 flowchart TD
-    A["CAD/Geometry"]
-    B{"Mesh Strategy"}
-    C[blockMesh]
-    D[snappyHexMesh]
-    E["External Meshers"]
-    F["cgMesh - Alternative"]
-
-    A --> B
-    B --> C
-    B --> D
-    B --> E
-    B --> F
-
-    C --> G["Structured Mesh Generation"]
-    D --> H["Surface Meshing"]
-    E --> I["Hybrid Approach"]
-    F --> J["Advanced Features"]
-
-    G --> K["Quality Assessment"]
-    H --> L["Boundary Definition"]
-    I --> M["Optimization"]
-    J --> N["Specialized Meshes"]
-    K --> O["Automation"]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Geometry]:::context
+B{Strategy}:::explicit
+C[blockMesh]:::implicit
+D[snappyHexMesh]:::implicit
+E[External]:::implicit
+F[cgMesh]:::implicit
+A --> B
+B --> C & D & E & F
+C --> G[Structured]:::implicit
+D --> H[Surface]:::implicit
+E --> I[Hybrid]:::implicit
+F --> J[Advanced]:::implicit
+G --> K[QA]:::explicit
+H --> L[Boundaries]:::explicit
+I --> M[Optim]:::explicit
+J --> N[Special]:::explicit
+K --> O[Automated]:::implicit
 ```
 > **Figure 1:** Mesh Strategy Decision Flowchart, starting from CAD geometry import and selecting appropriate tools like `blockMesh` for simple structures or `snappyHexMesh` for complex geometries, leading to quality assessment and automation.
 

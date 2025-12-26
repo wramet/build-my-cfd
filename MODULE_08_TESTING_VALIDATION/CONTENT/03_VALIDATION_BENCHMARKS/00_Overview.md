@@ -16,20 +16,25 @@
 การตรวจสอบความถูกต้องด้วยเกณฑ์มาตรฐาน (Validation Benchmarks) คือกระบวนการที่สำคัญที่สุดในการสร้างความเชื่อมั่นในแบบจำลอง CFD โดยเฉพาะเมื่อต้องนำผลลัพธ์ไปใช้ในการตัดสินใจทางวิศวกรรมที่มีความเสี่ยงสูง
 
 ```mermaid
-graph TD
-    A[Physical Problem] --> B[Governing Equations]
-    B --> C[Discretization]
-    C --> D[Numerical Solution]
-    D --> E{Validation}
-    E -->|Compare with| F[Experimental Data]
-    E -->|Compare with| G[Analytical Solutions]
-    E -->|Compare with| H[Benchmark Cases]
-    F --> I{Acceptable Agreement?}
-    G --> I
-    H --> I
-    I -- Yes --> J[Validated Model]
-    I -- No --> K[Refine Model/BCs/Mesh]
-    K --> B
+flowchart TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[Physical Problem]:::context --> B[Governing Equations]:::implicit
+B --> C[Discretization]:::implicit
+C --> D[Numerical Solution]:::implicit
+D --> E{Validation}:::warning
+E -->|"Compare with"| F[Experimental Data]:::explicit
+E -->|"Compare with"| G[Analytical Solutions]:::explicit
+E -->|"Compare with"| H[Benchmark Cases]:::explicit
+F --> I{Acceptable Agreement?}:::warning
+G --> I
+H --> I
+I -- Yes --> J[Validated Model]:::success
+I -- No --> K[Refine Model/BCs/Mesh]:::explicit
+K --> B
 ```
 
 ### ความแตกต่างระหว่าง Verification และ Validation
@@ -347,19 +352,23 @@ $$R = \frac{\sum_{i}(u_{CFD,i} - \bar{u}_{CFD})(u_{ref,i} - \bar{u}_{ref})}{\sqr
 
 ```mermaid
 flowchart TD
-    A[Select Benchmark Case] --> B[Define Geometry & BCs]
-    B --> C[Generate Mesh M1]
-    C --> D[Run Simulation S1]
-    D --> E[Compare with Reference]
-    E --> F{Error < Threshold?}
-    F -- No --> G[Refine to M2]
-    G --> H[Run Simulation S2]
-    H --> I{S2-S1 Converged?}
-    I -- No --> G
-    I -- Yes --> J[Final Results Analysis]
-    F -- Yes --> J
-    J --> K[Document Results]
-    K --> L[Validation Complete]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[Select Benchmark Case]:::explicit --> B[Define Geometry & BCs]:::implicit
+B --> C[Generate Mesh M1]:::implicit
+C --> D[Run Simulation S1]:::implicit
+D --> E[Compare with Reference]:::warning
+E --> F{Error < Threshold?}:::warning
+F -- No --> G[Refine to M2]:::implicit
+G --> H[Run Simulation S2]:::implicit
+H --> I{S2-S1 Converged?}:::warning
+I -- No --> G
+I -- Yes --> J[Final Results Analysis]:::success
+F -- Yes --> J
+J --> K[Document Results]:::implicit
+K --> L[Validation Complete]:::success
 ```
 
 ### ขั้นตอนการทดสอบ (Testing Procedure)

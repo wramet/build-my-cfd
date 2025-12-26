@@ -410,25 +410,23 @@ while (runTime.loop())
 
 ```mermaid
 graph TD
-    A[Design Pattern Matrix] --> B[Plugin Capability]
-    A --> C[Numerical Flexibility]
-    A --> D[Developer Efficiency]
-
-    B --> B1[Factory Method + Registry]
-    B --> B2[Dependency Injection]
-
-    C --> C1[Strategy Pattern]
-    C --> C2[Template Method]
-
-    subgraph "Object Creation"
-    B1
-    B2
-    end
-
-    subgraph "Algorithm Execution"
-    C1
-    C2
-    end
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+A[Design Pattern Matrix]:::explicit --> B[Plugin Capability]:::implicit
+A --> C[Numerical Flexibility]:::implicit
+A --> D[Developer Efficiency]:::implicit
+B --> B1[Factory Method + Registry]:::implicit
+B --> B2[Dependency Injection]:::implicit
+C --> C1[Strategy Pattern]:::implicit
+C --> C2[Template Method]:::implicit
+subgraph "Object Creation"
+B1
+B2
+end
+subgraph "Algorithm Execution"
+C1
+C2
+end
 ```
 > **Figure 1:** เมทริกซ์ของรูปแบบการออกแบบ (Design Pattern Matrix) ที่ OpenFOAM นำมาใช้เพื่อสร้างความสามารถในการขยาย โดยแบ่งออกเป็นสองกลุ่มหลักคือ กลุ่มที่เน้นการสร้างออบเจกต์แบบไดนามิก (Object Creation) และกลุ่มที่เน้นความยืดหยุ่นในการประมวลผลอัลกอริทึม (Algorithm Execution)
 

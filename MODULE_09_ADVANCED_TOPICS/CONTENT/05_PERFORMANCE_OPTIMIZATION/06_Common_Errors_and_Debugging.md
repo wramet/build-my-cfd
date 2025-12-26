@@ -11,22 +11,21 @@
 
 ```mermaid
 graph TD
-    A[Performance Anti-Patterns] --> B[Expression Splitting]
-    A --> C[Manual Index Access]
-    A --> D[Excessive tmp Dereferencing]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[Performance Anti-Patterns]:::explicit --> B[Expression Splitting]:::warning
+A --> C[Manual Index Access]:::warning
+A --> D[Excessive tmp Dereferencing]:::warning
 
-    B --> B1[Multiple Allocations]
-    B --> B2[Poor Cache Locality]
+B --> B1[Multiple Allocations]:::implicit
+B --> B2[Poor Cache Locality]:::implicit
 
-    C --> C1[Skip Boundary Updates]
-    C --> C2[Broken SIMD Vectorization]
+C --> C1[Skip Boundary Updates]:::implicit
+C --> C2[Broken SIMD Vectorization]:::implicit
 
-    D --> D1[Forced Materialization]
-    D --> D2[Memory Copy Overhead]
-
-    style B fill:#fbb,stroke:#333
-    style C fill:#fbb,stroke:#333
-    style D fill:#fbb,stroke:#333
+D --> D1[Forced Materialization]:::implicit
+D --> D2[Memory Copy Overhead]:::implicit
 ```
 > **Figure 1:** แผนผังแสดงรูปแบบการเขียนโค้ดที่ลดทอนประสิทธิภาพ (Performance Anti-patterns) เช่น การแบ่งนิพจน์ออกเป็นส่วนๆ, การเข้าถึงดัชนีด้วยตนเองโดยข้ามการอัปเดตขอบเขต, และการถอดรหัสออบเจกต์ชั่วคราวเกินความจำเป็น ซึ่งทั้งหมดนี้ส่งผลเสียต่อการใช้งานหน่วยความจำและความเร็วในการคำนวณ
 

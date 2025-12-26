@@ -10,34 +10,37 @@
 
 ```mermaid
 flowchart TD
-    subgraph Memory["ระบบจัดการหน่วยความจำ"]
-        MP1[autoPtr - ความเป็นเจ้าของแบบเฉพาะ]
-        MP2[tmp - การนับรีเฟอเรนส์]
-        MP3[RAII - การทำความสะอาดอัตโนมัติ]
-    end
+classDef memory fill:#e3f2fd,stroke:#1565c0,color:#000,stroke-width:2px
+classDef container fill:#fff3e0,stroke:#e65100,color:#000,stroke-width:2px
+classDef algo fill:#f3e5f5,stroke:#7b1fa2,color:#000,stroke-width:2px
 
-    subgraph Containers["คอนเทนเนอร์"]
-        C1[List - อาร์เรย์ติดต่อกัน]
-        C2[DynamicList - การเติบโตแบบไดนามิก]
-        C3[FixedList - ขนาดคงที่บนสแต็ก]
-        C4[PtrList - คอนเทนเนอร์โพลิมอร์ฟิก]
-    end
+subgraph Mem["Memory Management System"]
+    direction TB
+    MP1["autoPtr<br/>Exclusive Ownership"]:::memory
+    MP2["tmp<br/>Reference Counting"]:::memory
+    MP3["RAII<br/>Auto Cleanup"]:::memory
+end
 
-    subgraph Algorithms["อัลกอริทึม CFD"]
-        A1[การดำเนินการฟิลด์]
-        A2[การแก้สมการเชิงเส้น]
-        A3[การจัดการเงื่อนไขขอบเขต]
-    end
+subgraph Cont["Container System"]
+    direction TB
+    C1["List<br/>Contiguous Memory"]:::container
+    C2["DynamicList<br/>Resizable"]:::container
+    C3["FixedList<br/>Stack-based"]:::container
+    C4["PtrList<br/>Polymorphic"]:::container
+end
 
-    MP1 --> C4
-    MP2 --> Algorithms
-    MP3 --> Containers
-    C1 --> A1
-    C4 --> A3
+subgraph Alg["CFD Algorithms"]
+    direction TB
+    A1["Field Operations"]:::algo
+    A2["Linear Solver"]:::algo
+    A3["Boundary Conditions"]:::algo
+end
 
-    style Memory fill:#e3f2fd
-    style Containers fill:#fff3e0
-    style Algorithms fill:#f3e5f5
+MP1 -.->|manages| C4
+MP2 -.->|optimizes| Alg
+MP3 -.->|protects| Cont
+C1 -->|data for| A1
+C4 -->|data for| A3
 ```
 
 > **Figure 1:** แผนภาพแนวคิดการทำงานร่วมกันระหว่างระบบจัดการหน่วยความจำ คอนเทนเนอร์ และอัลกอริทึม CFD ซึ่งเป็นหัวใจสำคัญที่ทำให้ OpenFOAM มีประสิทธิภาพสูง
@@ -96,13 +99,21 @@ $$
 ### ลำดับความสำคัญในการออกแบบ
 
 ```mermaid
-graph TD
-    A[Performance<br/>ประสิทธิภาพ] --> B[Safety<br/>ความปลอดภัย]
-    B --> C[Usability<br/>ความสามารถใช้งาน]
+flowchart TD
+classDef perf fill:#4caf50,stroke:#1b5e20,color:#fff,stroke-width:2px
+classDef safe fill:#2196f3,stroke:#0d47a1,color:#fff,stroke-width:2px
+classDef use fill:#ff9800,stroke:#e65100,color:#fff,stroke-width:2px
 
-    style A fill:#4caf50,color:#fff
-    style B fill:#2196f3,color:#fff
-    style C fill:#ff9800,color:#fff
+P["Performance<br/>Computational Efficiency"]:::perf <--> S["Safety<br/>Memory & Type Safety"]:::safe
+S <--> U["Usability<br/>API Design"]:::use
+U <--> P
+
+classDef core fill:#fff9c4,stroke:#f57f17,color:#000,stroke-width:2px
+Center["OpenFOAM<br/>Design Triangle"]:::core
+
+P -. Center
+S -. Center
+U -. Center
 ```
 
 > **Figure 2:** ลำดับความสำคัญในการออกแบบสถาปัตยกรรมของ OpenFOAM โดยมุ่งเน้นที่ประสิทธิภาพการคำนวณสูงสุดควบคู่ไปกับความปลอดภัยและการใช้งานที่สะดวกสำหรับวิศวกร
@@ -216,25 +227,37 @@ void solve() {
 ### แนวทางแบบผสานรวม vs แบบแยกส่วน
 
 ```mermaid
-graph LR
-    subgraph Integrated["Integrated Approach"]
-        I1[Memory] --> I3[Algorithms]
-        I2[Containers] --> I3
-        I1 -.-> I2
-    end
+flowchart LR
+classDef integrated fill:#c8e6c9,stroke:#2e7d32,color:#000,stroke-width:2px
+classDef modular fill:#e0e0e0,stroke:#616161,color:#000,stroke-width:2px
+classDef result fill:#ffecb3,stroke:#ff8f00,color:#000,stroke-width:2px
 
-    subgraph Modular["Modular Approach"]
-        M1[Memory<br/>Independent]
-        M2[Containers<br/>Independent]
-        M3[Algorithms<br/>Independent]
-    end
+subgraph Int["Integrated Approach"]
+    direction TB
+    I1["Memory<br/>Management"]:::integrated
+    I2["Containers"]:::integrated
+    I3["Algorithms"]:::integrated
+    
+    I1 <--> I2
+    I2 <--> I3
+    I3 <--> I1
+end
 
-    Integrated -->|2-5x faster| Performance[Performance]
-    Modular -->|Baseline| Performance
+subgraph Mod["Modular Approach"]
+    direction TB
+    M1["Memory"]:::modular
+    M2["Containers"]:::modular
+    M3["Algorithms"]:::modular
+    
+    M1 -.- M2
+    M2 -.- M3
+end
 
-    style Integrated fill:#4caf50,color:#fff
-    style Modular fill:#9e9e9e,color:#fff
-    style Performance fill:#ff9800,color:#fff
+Int -->|compile-time<br/>optimization| R1["2-5x<br/>Faster"]:::result
+Mod -->|runtime<br/>overhead| R2["Baseline"]:::result
+
+classDef tech fill:#e3f2fd,stroke:#1565c0,color:#000,stroke-dasharray: 5 5
+Tech["Template Metaprogramming:<br/>Zero-cost Abstraction"]:::tech -. Int
 ```
 
 > **Figure 3:** การเปรียบเทียบประสิทธิภาพระหว่างแนวทางแบบบูรณาการ (Integrated) และแนวทางแบบแยกส่วน (Modular) ซึ่งแสดงให้เห็นว่าการออกแบบระบบให้ทำงานสอดประสานกันช่วยเพิ่มความเร็วในการคำนวณได้มหาศาล ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว

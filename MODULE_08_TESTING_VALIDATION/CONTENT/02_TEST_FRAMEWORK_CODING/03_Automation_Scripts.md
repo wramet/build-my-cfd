@@ -19,25 +19,30 @@ OpenFOAM ใช้รูปแบบของสคริปต์ `Alltest` เ
 
 ```mermaid
 flowchart TB
-    Start([เริ่ม ./Alltest]) --> Init[ตั้งค่า Environment]
-    Init --> Scan[สแกนไดเรกทอรีย่อยทั้งหมด]
-    Scan --> Filter{กรองเฉพาะที่มี Allrun?}
-    Filter -- ใช่ --> Queue[เพิ่มเข้าคิว]
-    Filter -- ไม่ --> Skip[ข้าม]
-    Queue --> ExecLoop{วนลูปทุก Test Case}
-    ExecLoop --> ChangeDir[cd ไปยัง Test Directory]
-    ChangeDir --> LogSetup[สร้าง Log File]
-    LogSetup --> RunTest[Execute ./Allrun]
-    RunTest --> Check{Exit Code = 0?}
-    Check -- ใช่ --> Success[บันทึก: PASS]
-    Check -- ไม่ --> Fail[บันทึก: FAIL<br/>Copy Log ไปยัง Failed/]
-    Success --> ExecLoop
-    Fail --> ExecLoop
-    ExecLoop -- จบ --> Summary[สรุปผลการทดสอบ]
-    Summary --> FinalExit{ทุก Test ผ่าน?}
-    FinalExit -- ใช่ --> EndSuccess([Exit 0])
-    FinalExit -- ไม่ --> EndFail([Exit 1])
-    Skip --> ExecLoop
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px
+Start([เริ่ม ./Alltest]):::explicit --> Init[ตั้งค่า Environment]:::implicit
+Init --> Scan[สแกนไดเรกทอรีย่อยทั้งหมด]:::implicit
+Scan --> Filter{กรองเฉพาะที่มี Allrun?}:::warning
+Filter -- ใช่ --> Queue[เพิ่มเข้าคิว]:::implicit
+Filter -- ไม่ --> Skip[ข้าม]:::context
+Queue --> ExecLoop{วนลูปทุก Test Case}:::implicit
+ExecLoop --> ChangeDir[cd ไปยัง Test Directory]:::implicit
+ChangeDir --> LogSetup[สร้าง Log File]:::implicit
+LogSetup --> RunTest[Execute ./Allrun]:::implicit
+RunTest --> Check{Exit Code = 0?}:::warning
+Check -- ใช่ --> Success[บันทึก: PASS]:::success
+Check -- ไม่ --> Fail[บันทึก: FAIL<br/>Copy Log ไปยัง Failed/]:::explicit
+Success --> ExecLoop
+Fail --> ExecLoop
+ExecLoop -- จบ --> Summary[สรุปผลการทดสอบ]:::implicit
+Summary --> FinalExit{ทุก Test ผ่าน?}:::warning
+FinalExit -- ใช่ --> EndSuccess([Exit 0]):::success
+FinalExit -- ไม่ --> EndFail([Exit 1]):::explicit
+Skip --> ExecLoop
 ```
 
 **📌 คำอธิบายสถาปัตยกรรม:**
@@ -267,43 +272,42 @@ echo "Test completed successfully"
 
 ```mermaid
 sequenceDiagram
-    participant Dev as Developer
-    participant Git as GitHub Repository
-    participant Action as GitHub Action (Runner)
-    participant Cont as OpenFOAM Container
-    participant Build as Build System
-    participant Test as Test Suite
-    participant Report as Report Generator
-    participant Badge as Status Badge
-
-    Dev->>Git: Push Code / Pull Request
-    Git->>Action: Trigger Workflow
-    activate Action
-    Note over Action: Checkout Repository
-    Action->>Cont: Pull Container (openfoam/openfoam10)
-    Cont-->>Action: Container Ready
-    Note over Action: Source Environment
-    Action->>Build: ./Allwmake
-    Build-->>Action: Build Logs
-    alt Build Success
-        Action->>Test: ./Alltest
-        Test->>Test: Run All Test Cases
-        Test-->>Action: Test Results
-        Action->>Report: Generate Summary
-        Report-->>Action: Test Report
-        Action->>Git: Upload Artifacts
-        alt All Tests Pass
-            Action->>Badge: Update: ✓ Success
-            Action-->>Git: Exit Code: 0
-        else Some Tests Fail
-            Action->>Badge: Update: ✗ Failed
-            Action-->>Git: Exit Code: 1
-        end
-    else Build Failure
-        Action->>Badge: Update: ✗ Build Error
+participant Dev as Developer
+participant Git as GitHub Repository
+participant Action as GitHub Action (Runner)
+participant Cont as OpenFOAM Container
+participant Build as Build System
+participant Test as Test Suite
+participant Report as Report Generator
+participant Badge as Status Badge
+Dev->>Git: Push Code / Pull Request
+Git->>Action: Trigger Workflow
+activate Action
+Note over Action: Checkout Repository
+Action->>Cont: Pull Container (openfoam/openfoam10)
+Cont-->>Action: Container Ready
+Note over Action: Source Environment
+Action->>Build: ./Allwmake
+Build-->>Action: Build Logs
+alt Build Success
+    Action->>Test: ./Alltest
+    Test->>Test: Run All Test Cases
+    Test-->>Action: Test Results
+    Action->>Report: Generate Summary
+    Report-->>Action: Test Report
+    Action->>Git: Upload Artifacts
+    alt All Tests Pass
+        Action->>Badge: Update: ✓ Success
+        Action-->>Git: Exit Code: 0
+    else Some Tests Fail
+        Action->>Badge: Update: ✗ Failed
         Action-->>Git: Exit Code: 1
     end
-    deactivate Action
+else Build Failure
+    Action->>Badge: Update: ✗ Build Error
+    Action-->>Git: Exit Code: 1
+end
+deactivate Action
 ```
 
 **📌 คำอธิบาย CI/CD Flow:**
@@ -509,26 +513,25 @@ jobs:
 
 ```mermaid
 flowchart LR
-    subgraph Preparation["ขั้นตอนเตรียมการ"]
-        A["Database<br/>Pre-generated Meshes"] --> B["Checkmark<br/>Reference Values"]
-    end
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px
+subgraph Preparation["ขั้นตอนเตรียมการ"]
+    A["Database<br/>Pre-generated Meshes"]:::context --> B["Checkmark<br/>Reference Values"]:::explicit
+end
 
-    subgraph Execution["ขั้นตอนดำเนินการ"]
-        B --> C["Execute<br/>Run Simulation"]
-        C --> D["Compare<br/>Validate Results"]
-    end
+subgraph Execution["ขั้นตอนดำเนินการ"]
+    C["Execute<br/>Run Simulation"]:::implicit --> D["Compare<br/>Validate Results"]:::implicit
+end
 
-    subgraph Cleanup["ขั้นตอนทำความสะอาด"]
-        D --> E["Trash Bin<br/>Remove Temporary Files"]
-        D --> F["Archive<br/>Store Results"]
-    end
+subgraph Cleanup["ขั้นตอนทำความสะอาด"]
+    E["Trash Bin<br/>Remove Temporary Files"]:::context
+    F["Archive<br/>Store Results"]:::implicit
+end
 
-    style A fill:#e1f5ff
-    style B fill:#c8e6c9
-    style C fill:#fff9c4
-    style D fill:#ffccbc
-    style E fill:#f8bbd9
-    style F fill:#d1c4e9
+B --> C
+D --> E
+D --> F
 ```
 
 **📌 คำอธิบาย Data Lifecycle:**
@@ -1115,26 +1118,29 @@ def generate_html_report(test_results, output_file="test_report.html"):
 
 ```mermaid
 flowchart TB
-    Start([./Alltest --parallel]) --> Analyze[วิเคราะห์ Test Cases]
-    Analyze --> Categorize{จัดกลุ่ม<br/>ตาม Dependencies}
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+Start([./Alltest --parallel]):::explicit --> Analyze[วิเคราะห์ Test Cases]:::implicit
+Analyze --> Categorize{จัดกลุ่ม<br/>ตาม Dependencies}:::implicit
 
-    Categorize --> Group1[Group 1:<br/>Unit Tests]
-    Categorize --> Group2[Group 2:<br/>Integration Tests]
-    Categorize --> Group3[Group 3:<br/>Solver Tests]
+Categorize --> Group1[Group 1:<br/>Unit Tests]:::implicit
+Categorize --> Group2[Group 2:<br/>Integration Tests]:::implicit
+Categorize --> Group3[Group 3:<br/>Solver Tests]:::implicit
 
-    Group1 --> P1[Processor 1]
-    Group2 --> P2[Processor 2]
-    Group3 --> P3[Processor 3]
+Group1 --> P1[Processor 1]:::implicit
+Group2 --> P2[Processor 2]:::implicit
+Group3 --> P3[Processor 3]:::implicit
 
-    P1 --> R1[Results 1]
-    P2 --> R2[Results 2]
-    P3 --> R3[Results 3]
+P1 --> R1[Results 1]:::implicit
+P2 --> R2[Results 2]:::implicit
+P3 --> R3[Results 3]:::implicit
 
-    R1 --> Merge[รวมผลลัพธ์]
-    R2 --> Merge
-    R3 --> Merge
+R1 --> Merge[รวมผลลัพธ์]:::implicit
+R2 --> Merge
+R3 --> Merge
 
-    Merge --> Final[สรุปผล]
+Merge --> Final[สรุปผล]:::success
 ```
 
 **📌 คำอธิบาย Parallel Testing Architecture:**

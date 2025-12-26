@@ -20,11 +20,21 @@ $$ (\alpha \cdot \phi_1)(\mathbf{x}) = \alpha \cdot \phi_1(\mathbf{x}) $$
 โดยที่ $\alpha$ เป็นค่าสเกลาร์คงที่
 
 ```mermaid
-flowchart LR
-    F1[Field A: x1, x2...] -->|"+"| R[Result: x1+y1, x2+y2...]
-    F2[Field B: y1, y2...] -->|"+"| R
-
-    style R fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+flowchart TB
+classDef field fill:#e1f5fe,stroke:#0277bd,color:#000
+classDef op fill:#ffecb3,stroke:#f57f17,color:#000
+classDef result fill:#c8e6c9,stroke:#2e7d32,color:#000
+subgraph Inputs ["Field Inputs"]
+    A["Field A<br/>[x1, x2, ..., xN]"]:::field
+    B["Field B<br/>[y1, y2, ..., yN]"]:::field
+end
+Op((+)):::op
+subgraph Output ["SIMD Operation"]
+    R["Result Field<br/>[x1+y1, x2+y2, ..., xN+yN]"]:::result
+end
+A --> Op
+B --> Op
+Op --> R
 ```
 > **Figure 1:** การดำเนินการบวกแบบ Element-wise ซึ่งค่าในแต่ละเซลล์ของฟิลด์อินพุตจะถูกนำมาคำนวณร่วมกันเพื่อสร้างฟิลด์ผลลัพธ์ใหม่ที่มีโครงสร้างเมชเดียวกันความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

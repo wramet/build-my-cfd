@@ -423,12 +423,16 @@ public:
 
 ```mermaid
 graph LR
-    A[สร้างวัตถุ<br/>refCount = 0] --> B[ref()<br/>refCount++]
-    B --> C[ใช้งานวัตถุ<br/>refCount > 0]
-    C --> D[unref()<br/>refCount--]
-    D --> E{refCount == 0?}
-    E -->|No| C
-    E -->|Yes| F[ลบวัตถุ<br/>return true]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[สร้างวัตถุ<br/>refCount = 0]:::explicit --> B[ref()<br/>refCount++]:::implicit
+B --> C[ใช้งานวัตถุ<br/>refCount > 0]:::implicit
+C --> D[unref()<br/>refCount--]:::implicit
+D --> E{refCount == 0?}:::warning
+E -->|No| C
+E -->|Yes| F[ลบวัตถุ<br/>return true]:::success
 ```
 
 | ขั้นตอน | Operation | refCount | ผลลัพธ์ |
@@ -552,25 +556,25 @@ public:
 
 ```mermaid
 graph TD
-    A[Time Registry<br/>runTime] --> B[Mesh Registry<br/>mesh]
-    A --> C[Global Databases]
-    B --> D[volScalarField: p]
-    B --> E[volVectorField: U]
-    B --> F[Boundary Conditions]
-
-    subgraph "Parent Level"
-    A
-    end
-
-    subgraph "Child Level (Mesh-local)"
-    B
-    end
-
-    subgraph "Object Level"
-    D
-    E
-    F
-    end
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+A[Time Registry<br/>runTime]:::explicit --> B[Mesh Registry<br/>mesh]:::implicit
+A --> C[Global Databases]:::implicit
+B --> D[volScalarField: p]:::success
+B --> E[volVectorField: U]:::success
+B --> F[Boundary Conditions]:::success
+subgraph Parent["Parent Level"]
+A
+end
+subgraph Child["Child Level (Mesh-local)"]
+B
+end
+subgraph Object["Object Level"]
+D
+E
+F
+end
 ```
 
 | สมาชิก | ประเภท | บทบาท |
@@ -684,49 +688,44 @@ mesh.thisDb().incEvent();  // Notify that change occurred
 
 ```mermaid
 classDiagram
-    class autoPtr {
-        -T* ptr_
-        +T* operator->()
-        +T& operator*()
-        +T* release()
-    }
-
-    class tmp {
-        -T* ptr_
-        -bool isTemporary_
-        +bool isTmp()
-        +T* ptr()
-    }
-
-    class refCount {
-        -mutable int refCount_
-        +void ref()
-        +bool unref()
-        +int count()
-        +bool unique()
-    }
-
-    class objectRegistry {
-        -const Time& time_
-        -const objectRegistry& parent_
-        -fileName dbDir_
-        -mutable label event_
-        -HashTable~Pair<bool>~ cacheTemporaryObjects_
-        -bool cacheTemporaryObjectsSet_
-        -HashSet~word~ temporaryObjects_
-        +lookupObject() const
-        +store()
-    }
-
-    class GeometricField {
-        <<inherits>>
-        refCount
-    }
-
-    autoPtr --> GeometricField : manages
-    tmp --> GeometricField : manages
-    GeometricField --|> refCount : inherits
-    objectRegistry --> GeometricField : stores
+class autoPtr {
+-T* ptr_
++T* operator->()
++T& operator*()
++T* release()
+}
+class tmp {
+    -T* ptr_
+    -bool isTemporary_
+    +bool isTmp()
+    +T* ptr()
+}
+class refCount {
+    -mutable int refCount_
+    +void ref()
+    +bool unref()
+    +int count()
+    +bool unique()
+}
+class objectRegistry {
+    -const Time& time_
+    -const objectRegistry& parent_
+    -fileName dbDir_
+    -mutable label event_
+    -HashTable~Pair<bool>~ cacheTemporaryObjects_
+    -bool cacheTemporaryObjectsSet_
+    -HashSet~word~ temporaryObjects_
+    +lookupObject() const
+    +store()
+}
+class GeometricField {
+    <<inherits>>
+    refCount
+}
+autoPtr --> GeometricField : manages
+tmp --> GeometricField : manages
+GeometricField --|> refCount : inherits
+objectRegistry --> GeometricField : stores
 ```
 
 ---

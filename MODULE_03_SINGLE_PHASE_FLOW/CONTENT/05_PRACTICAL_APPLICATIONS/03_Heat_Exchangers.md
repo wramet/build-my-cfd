@@ -687,12 +687,17 @@ wallWithFouling
 
 ```mermaid
 flowchart TD
-    A[CAD Model] --> B[Simplify Geometry]
-    B --> C[Create Fluid Domains]
-    C --> D[Define Interfaces]
-    D --> E[Generate Mesh]
-    E --> F[Check Quality]
-    F --> G[Run Simulation]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[CAD Model]:::explicit --> B[Simplify]:::implicit
+B --> C[Create Domains]:::implicit
+C --> D[Interfaces]:::implicit
+D --> E[Generate Mesh]:::explicit
+E --> F[Check Quality]:::context
+F --> G[Run Simulation]:::implicit
 ```
 
 > **Figure 1:** ขั้นตอนมาตรฐานในการเตรียมรูปทรงเรขาคณิตสำหรับการจำลองเครื่องแลกเปลี่ยนความร้อน เริ่มต้นจากการจัดการโมเดล CAD การลดความซับซ้อนของรูปทรงที่ไม่มีผลต่อฟิสิกส์ การสร้างโดเมนของของไหล การกำหนดอินเทอร์เฟซระหว่างบริเวณที่แตกต่างกัน (เช่น ของไหลกับของแข็ง) การสร้างเมช และการตรวจสอบคุณภาพก่อนเริ่มการจำลอง

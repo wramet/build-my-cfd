@@ -119,20 +119,18 @@ $$\alpha_d = \frac{V_d}{V_{total}}$$
 
 ```mermaid
 flowchart TD
-    Start[เริ่ม: เลือก Drag Model] --> Phase{ประเภทของเฟส?}
-
-    Phase -->|Gas-Liquid| BubbleSize{ขนาดฟอง?}
-    Phase -->|Gas-Solid| SolidConc{ความเข้มข้น?}
-    Phase -->|Liquid-Liquid| DropSize{ขนาดหยด?}
-
-    BubbleSize -->|< 1mm| SN[ทรงกลม: Schiller-Naumann]
-    BubbleSize -->|> 1mm| Tomiyama[เสียรูป: Tomiyama]
-
-    SolidConc -->|เจือจาง| WY[Wen-Yu]
-    SolidConc -->|หนาแน่น| Gidaspow[Gidaspow / Ergun]
-
-    DropSize -->|Eo < 0.5| SchillerSmall[หยดทรงกลม: Schiller-Naumann]
-    DropSize -->|Eo > 0.5| Grace[หยดเสียรูป: Grace]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+Start[Select Drag Model]:::explicit --> Phase{Phase Type}:::explicit
+Phase -->|Gas-Liquid| BubbleSize{Size}:::explicit
+Phase -->|Gas-Solid| SolidConc{Conc.}:::explicit
+Phase -->|Liquid-Liquid| DropSize{Size}:::explicit
+BubbleSize -->|< 1mm| SN[Spherical: Schiller-Naumann]:::implicit
+BubbleSize -->|> 1mm| Tomiyama[Deformed: Tomiyama]:::implicit
+SolidConc -->|Dilute| WY[Wen-Yu]:::implicit
+SolidConc -->|Dense| Gidaspow[Gidaspow / Ergun]:::implicit
+DropSize -->|Eo < 0.5| SchillerSmall[Spherical: Schiller-Naumann]:::implicit
+DropSize -->|Eo > 0.5| Grace[Deformed: Grace]:::implicit
 ```
 
 ### รายละเอียดโมเดล Drag
@@ -483,19 +481,17 @@ SaffmanMeiCoeffs
 
 ```mermaid
 flowchart LR
-    A[เลือก Turbulence Model] --> B{ประเภทระบบ?}
-
-    B -->|Gas-Liquid| C{ส่วนปริมาตรก๊าซ?}
-    B -->|Gas-Solid| D{ความเข้มข้น?}
-    B -->|Liquid-Liquid| E[ทั้งสองเฟส]
-
-    C -->|ต่ำ| C1[k-ε แบบดั้งเดิม]
-    C -->|สูง| C2[Mixture k-ε]
-
-    D -->|เจือจาง| D1[Dispersed Phase]
-    D -->|หนาแน่น| D2[Per-Phase k-ε]
-
-    E --> F[Mixture k-ε หรือ k-ω SST]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+A[Select Turb Model]:::explicit --> B{System Type}:::explicit
+B -->|Gas-Liquid| C{Gas Fraction}:::explicit
+B -->|Gas-Solid| D{Concentration}:::explicit
+B -->|Liquid-Liquid| E[Both Phases]:::implicit
+C -->|Low| C1[Standard k-epsilon]:::implicit
+C -->|High| C2[Mixture k-epsilon]:::implicit
+D -->|Dilute| D1[Dispersed Phase]:::implicit
+D -->|Dense| D2[Per-Phase k-epsilon]:::implicit
+E --> F[Mixture k-epsilon / SST]:::implicit
 ```
 
 ### การกำหนดค่าใน OpenFOAM
@@ -627,18 +623,17 @@ turbulence
 
 ```mermaid
 flowchart TD
-    Start[เลือก Heat Transfer Model] --> App{แอปพลิเคชัน?}
-
-    App -->|ความแม่นยำสูง| Pe{จำนวนเปกเลต์?}
-    App -->|วิศวกรรม| Eng[Ranz-Marshall]
-
-    Pe -->|สูง > 10⁴| CHT[Conjugate Heat Transfer]
-    Pe -->|ต่ำ ≤ 10⁴| Fried[Friedlander]
-
-    Eng --> Basic[การใช้งานพื้นฐาน]
-
-    CHT --> Advanced[Population Balance + Heat Transfer]
-    Fried --> Simple[การใช้งานง่าย]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+Start[Select Heat Transfer]:::explicit --> App{Goal}:::explicit
+App -->|High Precision| Pe{Peclet Num}:::explicit
+App -->|Engineering| Eng[Ranz-Marshall]:::implicit
+Pe -->|High > 10^4| CHT[Conjugate Heat Transfer]:::implicit
+Pe -->|Low <= 10^4| Fried[Friedlander]:::implicit
+Eng --> Basic[Standard Application]:::context
+CHT --> Advanced[PBM + Heat Transfer]:::implicit
+Fried --> Simple[Simple Application]:::context
 ```
 
 ### จำนวนเปกเลต์ (Peclet Number)
@@ -724,15 +719,15 @@ phase2
 
 ```mermaid
 flowchart LR
-    A[เสถียรภาพการคำนาณ] --> B{อัตราส่วนความหนาแน่น?}
-    B -->|สูง > 100| C[ใช้ Under-relaxation ต่ำ 0.2-0.3]
-    B -->|ต่ำ < 10| D[ใช้ Under-relaxation สูง 0.5-0.7]
-
-    C --> E[Implicit Virtual Mass]
-    D --> F[Explicit Virtual Mass]
-
-    E --> G[พิจารณา Adaptive Time Stepping]
-    F --> H[สามารถใช้ Time Step ใหญ่กว่า]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+A[Stability Strategy]:::explicit --> B{Density Ratio}:::explicit
+B -->|High > 100| C[Under-relax: 0.2-0.3]:::implicit
+B -->|Low < 10| D[Under-relax: 0.5-0.7]:::implicit
+C --> E[Implicit Virtual Mass]:::implicit
+D --> F[Explicit Virtual Mass]:::implicit
+E --> G[Adaptive Time Stepping]:::explicit
+F --> H[Larger Time Step Possible]:::explicit
 ```
 
 ### การกำหนดค่า Numerical
@@ -873,19 +868,18 @@ relaxationFactors
 
 ```mermaid
 flowchart TD
-    Start[เลือก Phase Model] --> Alpha{ส่วนปริมาตรเฟส?}
-
-    Alpha -->|α < 0.1| Dilute[เฟสเจือจาง]
-    Alpha -->|0.1 < α < 0.3| Intermediate[ระดับกลาง]
-    Alpha -->|α > 0.3| Dense[เฟสหนาแน่น]
-
-    Dilute --> D1[One-way Coupling]
-    Intermediate --> I1[Two-way Coupling]
-    Dense --> D2[Four-way Coupling]
-
-    D1 --> D1a[Particle Tracking / Dispersed]
-    I1 --> I1a[Two-Fluid Model]
-    D2 --> D2a[Granular Temperature / Kinetic Theory]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+Start[Select Phase Model]:::explicit --> Alpha{Volume Fraction}:::explicit
+Alpha -->|< 0.1| Dilute[Dilute Regime]:::implicit
+Alpha -->|0.1 - 0.3| Intermediate[Intermediate Regime]:::implicit
+Alpha -->|> 0.3| Dense[Dense Regime]:::implicit
+Dilute --> D1[One-way Coupling]:::explicit
+Intermediate --> I1[Two-way Coupling]:::explicit
+Dense --> D2[Four-way Coupling]:::explicit
+D1 --> D1a[Lagrangian / Dispersed]:::implicit
+I1 --> I1a[Two-Fluid Model]:::implicit
+D2 --> D2a[KTGF / Granular]:::implicit
 ```
 
 ### เฟสเจือจาย (Dilute Phase)
@@ -999,15 +993,15 @@ GidaspowCoeffs
 
 ```mermaid
 flowchart TD
-    Start[พิจารณา MUSIG] --> Check1{การกระจายขนาดอนุภาค?}
-    Check1 -->|σ_d/d̄ > 0.3| UseMUSIG[ใช้ MUSIG]
-    Check1 -->|σ_d/d̄ ≤ 0.3| NoMUSIG[กลุ่มขนาดเดียวเพียงพอ]
-
-    UseMUSIG --> Check2{ปรากฏการณ์ที่ขึ้นกับขนาด?}
-    Check2 -->|มีนัยสำคัญ| Adv[รวม Coalescence & Breakup]
-    Check2 -->|ไม่มีนัยสำคัญ| Basic[MUSIG พื้นฐาน]
-
-    Adv --> Final[Population Balance + Size Groups]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+Start[Consider MUSIG]:::explicit --> Check1{Size Distribution}:::explicit
+Check1 -->|Wide Sigma| UseMUSIG[Use MUSIG]:::implicit
+Check1 -->|Narrow Sigma| NoMUSIG[Single Size Group]:::implicit
+UseMUSIG --> Check2{Size Dependent?}:::explicit
+Check2 -->|Significant| Adv[Coalescence & Breakup]:::implicit
+Check2 -->|Negligible| Basic[Basic MUSIG]:::implicit
+Adv --> Final[PBM + Size Groups]:::implicit
 ```
 
 ### เงื่อนไขที่จำเป็น

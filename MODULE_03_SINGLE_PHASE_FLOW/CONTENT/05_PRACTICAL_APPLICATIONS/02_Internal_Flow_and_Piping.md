@@ -75,19 +75,21 @@ $$u^+ = \frac{1}{\kappa} \ln y^+ + C$$
 
 ```mermaid
 flowchart TD
-    A[การไหลในท่อ] --> B{Reynolds Number}
-    B -->|Re < 2300| C[Laminar Flow]
-    B -->|2300 < Re < 4000| D[Transitional Flow]
-    B -->|Re > 4000| E[Turbulent Flow]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Pipe Flow]:::context --> B{Re Number}:::context
+B -->|< 2300| C[Laminar]:::implicit
+B -->|2300 - 4000| D[Transitional]:::implicit
+B -->|> 4000| E[Turbulent]:::explicit
 
-    C --> F[โปรไฟล์พาราโบลา]
-    E --> G[โปรไฟล์ Plug-like]
+C --> F[Parabolic Profile]:::implicit
+E --> G[Plug-like Profile]:::implicit
 
-    F --> H[f = 64/Re]
-    G --> I[Colebrook-White Eq.]
-
-    style C fill:#90EE90
-    style E fill:#FFB6C1
+F --> H[f = 64/Re]:::context
+G --> I[Colebrook-White]:::context
 ```
 > **Figure 1:** แผนผังการจำแนกระบอบการไหลในท่อ (Flow Regimes) ตามค่า Reynolds Number ซึ่งกำหนดลักษณะของโปรไฟล์ความเร็ว (Velocity Profile) และวิธีการคำนวณสัมประสิทธิ์ความเสียดทาน (Friction Factor) ที่แตกต่างกันระหว่างการไหลแบบ Laminar และ Turbulent
 
@@ -412,19 +414,21 @@ addLayers
 
 ```mermaid
 flowchart LR
-    A[การไหลเข้า] --> B[Inlet]
-    B --> C[Static Mixer Elements]
-    C --> D[การแบ่งและรวมกระแส]
-    D --> E[การผสมแบบ Chaotic]
-    E --> F[Outlet]
-    F --> G[การไหลออก]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Inflow]:::context --> B[Inlet]:::implicit
+B --> C[Static Mixer]:::explicit
+C --> D[Split/Merge]:::implicit
+D --> E[Chaotic Mixing]:::implicit
+E --> F[Outlet]:::implicit
+F --> G[Outflow]:::context
 
-    C --> H[Dean Vortices]
-    C --> I[Flow Division]
-    C --> J[Flow Recombination]
-
-    style C fill:#FFE4B5
-    style E fill:#90EE90
+C --> H[Dean Vortices]:::implicit
+C --> I[Flow Division]:::implicit
+C --> J[Recombination]:::implicit
 ```
 > **Figure 2:** กระบวนการทำงานของเครื่องผสมแบบสถิต (Static Mixer) ซึ่งอาศัยโครงสร้างภายในในการสร้างกระแสวน (Dean Vortices) และการแบ่งส่วนกระแสการไหลเพื่อเหนี่ยวนำให้เกิดการผสมที่มีประสิทธิภาพสูงผ่านกลไกการพาแบบโกลาหล (Chaotic Advection)
 

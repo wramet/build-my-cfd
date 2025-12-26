@@ -58,10 +58,21 @@ blocks
 
 ```mermaid
 flowchart TD
-    A["สร้าง Mesh ด้วยมือ<br/>(4-8 ชั่วโมง)"] --> B["ใช้ blockMesh<br/>(10-30 นาที)"]
-    B --> C["กำหนด Blocks & Grading"]
-    C --> D["Mesh คุณภาพสูง<br/>แบบมีโครงสร้าง"]
-    D --> E["เวลาประหยัด: 90-95%"]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Manual Mesh<br/>4-8 Hrs]:::explicit
+B[Define Blocks & Grading]:::implicit
+C[blockMesh<br/>10-30 Mins]:::implicit
+D[Structured Quality Mesh]:::implicit
+E[Time Saved: 90-95%]:::implicit
+
+%% Links
+A -.->|vs| C
+C --> B
+B --> D
+D --> E
 ```
 > **Figure 1:** แผนภูมิเปรียบเทียบระยะเวลาในการสร้างเมชระหว่างวิธีการทำด้วยมือ (Manual) กับการใช้ `blockMesh` ซึ่งช่วยลดระยะเวลาการทำงานลงได้ถึง 90-95% และยังได้เมชที่มีคุณภาพสูง
 
@@ -200,17 +211,22 @@ surfaces
 
 ```mermaid
 flowchart LR
-    A[OpenFOAM Fields] --> B[foamToVTK]
-    A --> C[foamToEnsight]
-    A --> D[sampleDict]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[OpenFOAM Fields]:::implicit --> B[foamToVTK]:::explicit
+A --> C[foamToEnsight]:::explicit
+A --> D[sampleDict]:::explicit
 
-    B --> E[ParaView<br/>Visualization]
-    C --> F[Ensight<br/>Advanced Analysis]
-    D --> G[Python/MATLAB<br/>Custom Processing]
+B --> E[ParaView]:::implicit
+C --> F[Ensight]:::implicit
+D --> G[Python/MATLAB]:::implicit
 
-    E --> H[ข้อมูลพร้อมใช้<br/>ภายใน 2-5 นาที]
-    F --> H
-    G --> H
+E --> H[Actionable Data]:::context
+F --> H
+G --> H
 ```
 > **Figure 2:** เวิร์กโฟลว์การแลกเปลี่ยนข้อมูลอัตโนมัติจาก OpenFOAM ไปยังซอฟต์แวร์วิเคราะห์ภายนอก ช่วยให้ข้อมูลพร้อมสำหรับการแสดงผลและวิเคราะห์เชิงลึกได้ภายในระยะเวลาอันสั้น
 
@@ -499,29 +515,32 @@ SIMPLE
 
 ```mermaid
 flowchart TD
-    A[เริ่ม Simulation] --> B[checkMesh<br/>ตรวจสอบคุณภาพ Mesh]
-    B --> C{ผ่าน?}
-    C -->|ไม่| D[แก้ไข Mesh]
-    D --> B
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Start Simulation]:::context --> B[checkMesh]:::implicit
+B --> C{Mesh OK?}:::context
+C -->|No| D[Fix Mesh]:::explicit
+D --> B
 
-    C -->|ใช่| E[checkBoundaryConditions<br/>ตรวจสอบ BC]
-    E --> F{BC ถูกต้อง?}
-    F -->|ไม่| G[แก้ไข BC]
-    G --> E
+C -->|Yes| E[checkBoundaryConditions]:::implicit
+E --> F{BC OK?}:::context
+F -->|No| G[Fix BC]:::explicit
+G --> E
 
-    F -->|ใช่| H[ตรวจสอบ Dimension]
-    H --> I{หน่วยสอดคล้อง?}
-    I -->|ไม่| J[แก้ไขหน่วย]
-    J --> H
+F -->|Yes| H[Check Dimensions]:::implicit
+H --> I{Units OK?}:::context
+I -->|No| J[Fix Units]:::explicit
+J --> H
 
-    I -->|ใช่| K[เริ่มรัน Solver]
-    K --> L[Monitor Residuals<br/>และ CFL]
-
-    L --> M{Converged?}
-    M -->|ไม่| N[ปรับ time step<br/>หรือ solver settings]
-    N --> K
-
-    M -->|ใช่| O[Simulation<br/>สำเร็จ]
+I -->|Yes| K[Run Solver]:::implicit
+K --> L[Monitor Residuals]:::implicit
+L --> M{Converged?}:::context
+M -->|No| N[Adjust Settings]:::explicit
+N --> K
+M -->|Yes| O[Success]:::implicit
 ```
 > **Figure 3:** ลูปกระบวนการตรวจสอบความถูกต้องอัตโนมัติ (Validation Loop) เพื่อลดข้อผิดพลาดก่อนและระหว่างการจำลอง ช่วยให้มั่นใจว่าผลลัพธ์มีความน่าเชื่อถือและลดเวลาที่สูญเสียจากการจำลองที่ล้มเหลว
 

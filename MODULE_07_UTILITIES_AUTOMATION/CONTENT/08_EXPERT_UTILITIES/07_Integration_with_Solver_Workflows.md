@@ -1338,19 +1338,19 @@ CpInf           1006;   // Specific heat of air (J/(kg·K))
 
 ```mermaid
 flowchart LR
-    A[Preprocessing<br/>Mesh Generation<br/>blockMesh/snappyHexMesh] --> B[Mesh Validation<br/>checkMesh]
-    B --> C[Initialization<br/>setFields/ICs]
-    C --> D[Decomposition<br/>decomposePar]
-    D --> E[Solver Execution<br/>simpleFoam/pimpleFoam]
-    E --> F[Reconstruction<br/>reconstructPar]
-    F --> G[Postprocessing<br/>wallShearStress/yPlus/forces]
-    G --> H[Visualization Export<br/>foamToVTK]
-    H --> I[Analysis<br/>ParaView/Python]
-
-    style A fill:#e1f5ff
-    style E fill:#ffe1e1
-    style G fill:#e1ffe1
-    style I fill:#fff5e1
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Mesh Generation]:::explicit --> B[Mesh Validation]:::context
+B --> C[Initialization]:::explicit
+C --> D[Decomposition]:::explicit
+D --> E[Solver Execution]:::implicit
+E --> F[Reconstruction]:::explicit
+F --> G[Postprocessing]:::implicit
+G --> H[Export VTK]:::implicit
+H --> I[Analysis]:::implicit
 ```
 > **Figure 1:** แผนภูมิแสดงลำดับขั้นตอนการทำงานมาตรฐานใน OpenFOAM ตั้งแต่การเตรียมเมช การตรวจสอบความถูกต้อง การกำหนดค่าเริ่มต้น การคำนวณด้วย Solver ไปจนถึงการวิเคราะห์ผลลัพธ์และการส่งออกข้อมูลเพื่อแสดงภาพ
 
@@ -1358,33 +1358,39 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    subgraph Pre ["Pre-Solver Phase"]
-        P1[Geometry<br/>STL/Step]
-        P2[Mesh<br/>blockMesh]
-        P3[Refinement<br/>snappyHexMesh]
-        P4[Quality Check<br/>checkMesh]
-        P5[BC Setup<br/>0/ files]
-    end
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Subgraphs
+subgraph Pre[Pre-Solver Phase]
+    P1[Geometry]:::explicit
+    P2[Mesh Gen]:::explicit
+    P3[Refinement]:::explicit
+    P4[Quality Check]:::context
+    P5[BC Setup]:::explicit
+end
 
-    subgraph Sol ["Solution Phase"]
-        S1[Decompose<br/>decomposePar]
-        S2[Solver Run<br/>mpirun -np 4]
-        S3[Reconstruct<br/>reconstructPar]
-    end
+subgraph Sol[Solution Phase]
+    S1[Decompose]:::explicit
+    S2[Solver Run]:::implicit
+    S3[Reconstruct]:::explicit
+end
 
-    subgraph Post ["Post-Solver Phase"]
-        Pst1[Forces<br/>forces]
-        Pst2[Wall Quantities<br/>wallShearStress/yPlus]
-        Pst3[Visualization<br/>foamToVTK]
-        Pst4[Analysis<br/>Python/Matlab]
-    end
+subgraph Post[Post-Solver Phase]
+    Pst1[Forces]:::implicit
+    Pst2[Wall Data]:::implicit
+    Pst3[Visualization]:::implicit
+    Pst4[Analysis]:::context
+end
 
-    P4 --> S1
-    P5 --> S1
-    S3 --> Pst1
-    Pst1 --> Pst2
-    Pst2 --> Pst3
-    Pst3 --> Pst4
+%% Links
+P1 --> P2 --> P3 --> P4
+P3 --> P5
+P4 --> S1
+P5 --> S1
+S1 --> S2 --> S3
+S3 --> Pst1 --> Pst2 --> Pst3 --> Pst4
 ```
 > **Figure 2:** รายละเอียดความเชื่อมโยงในแต่ละระยะ (Phase) ของเวิร์กโฟลว์ โดยแบ่งออกเป็นระยะก่อนการจำลอง (Pre-Solver) ระยะการคำนวณ (Solution) และระยะหลังการจำลอง (Post-Solver) เพื่อให้เห็นภาพรวมของการไหลของข้อมูลและการทำงานของยูทิลิตี้ต่างๆ
 

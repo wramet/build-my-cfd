@@ -17,22 +17,18 @@
 | **การบูรณาการ Chemkin** | การแปลงกลไกปฏิกิริยาและข้อมูลเทอร์โมไดนามิก |
 
 ```mermaid
-flowchart TD
-    A[การจำลองการไหลแบบมีปฏิกิริยา] --> B[สมการการขนส่งสปีชีส์]
-    A --> C[ระบบ ODE จลนพลศาสตร์เคมี]
-    A --> D[ปฏิสัมพันธ์ระหว่างความปั่นป่วนและเคมี]
-    A --> E[ไฟล์กลไก Chemkin]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Sim["Reacting Flow"]:::context
+Trans["Transport Eqns<br/>Mass Fractions Y_i"]:::implicit
+Kinetics["Kinetics ODEs<br/>Reaction Rates ω_i"]:::explicit
+Model["Combustion Model<br/>PaSR / EDC"]:::implicit
 
-    B --> F[เศษส่วนมวล Y_i]
-    C --> G[อัตราการเกิดปฏิกิริยา omega_i]
-    D --> H[แบบจำลองการเผาไหม้ PaSR/EDC]
-    E --> I[chem.inp therm.dat tran.dat]
-
-    style A fill:#fff3e0,stroke:#f57c00,stroke-width:4px
-    style B fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    style C fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    style D fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    style E fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+Sim --> Trans
+Sim --> Kinetics
+Sim --> Model
 ```
 > **รูปที่ 1:** แผนภาพแสดงโครงสร้างหลักสี่ประการของการจำลองการไหลแบบมีปฏิกิริยาเคมีใน OpenFOAM ซึ่งครอบคลุมถึงสมการการขนส่งสปีชีส์ จลนพลศาสตร์เคมี ปฏิสัมพันธ์ระหว่างความปั่นป่วนและเคมี และการบูรณาการข้อมูลกลไกปฏิกิริยาจากไฟล์ Chemkin
 

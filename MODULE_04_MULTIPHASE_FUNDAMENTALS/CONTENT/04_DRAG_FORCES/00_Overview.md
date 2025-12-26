@@ -54,22 +54,25 @@ $$\mathbf{F}_{D,kl} = \mathbf{K}_{kl}(\mathbf{u}_l - \mathbf{u}_k)$$
 
 ```mermaid
 flowchart TD
-    A["Drag Force"] --> B["Form Drag"]
-    A --> C["Friction Drag"]
-    A --> D["Wave Drag"]
-    A --> E["Added Mass"]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Drag Force Components]:::context --> B[Form Drag]:::implicit
+A --> C[Friction Drag]:::implicit
+A --> D[Wave Drag]:::implicit
+A --> E[Added Mass]:::implicit
 
-    B --> B1["Pressure Differences"]
-    B --> B2["Flow Separation"]
+B --> B1[Pressure Diff]:::explicit
+B --> B2[Separation]:::explicit
 
-    C --> C1["Viscous Stresses"]
-    C --> C2["No-Slip Condition"]
+C --> C1[Viscous Stress]:::explicit
+C --> C2[No-Slip]:::explicit
 
-    D --> D1["Surface Waves"]
-    D --> D2["Deformable Interfaces"]
+D --> D1[Surface Waves]:::explicit
+D --> D2[Deformation]:::explicit
 
-    E --> E1["Virtual Mass"]
-    E --> E2["Transient Acceleration"]
+E --> E1[Virtual Mass]:::explicit
+E --> E2[Transient Accel]:::explicit
 ```
 
 ---

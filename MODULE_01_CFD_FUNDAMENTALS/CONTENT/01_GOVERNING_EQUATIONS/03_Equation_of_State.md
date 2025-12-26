@@ -15,29 +15,19 @@
 
 ```mermaid
 graph TD
-    P["Pressure: p<br/>Pascal (Pa)"] --> E["Equation of State<br/>Relates P, ρ, T"]
-    RHO["Density: ρ<br/>kg/m³"] --> E
-    T["Temperature: T<br/>Kelvin (K)"] --> E
-    E --> IDEAL["Ideal Gas Law<br/>p = ρRT"]
-    IDEAL --> VARIABLES["Variables:<br/>R = Specific gas constant<br/>T = Absolute temperature<br/>ρ = Density<br/>p = Pressure"]
-    E --> THERMO["Thermodynamic<br/>Consistency"]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Vars["Thermodynamic Variables<br/>P T ρ"]:::context
+EOS["Equation of State<br/>p = ρRT"]:::implicit
+Regime{"Flow Regime"}:::context
+Comp["Compressible<br/>rhoPimpleFoam"]:::explicit
+Incomp["Incompressible<br/>simpleFoam"]:::implicit
 
-    E --> COMP["Compressible Flow<br/>ρ varies with p, T"]
-    E --> INCOMP["Incompressible Flow<br/>ρ = constant"]
-
-    COMP --> SOLVER1["rhoSimpleFoam<br/>rhoPimpleFoam<br/>sonicFoam"]
-    INCOMP --> SOLVER2["simpleFoam<br/>pimpleFoam<br/>icoFoam"]
-
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class P,RHO,T process
-    class E decision
-    class IDEAL,VARIABLES,SOLVER1,SOLVER2 storage
-    class THERMO,COMP,INCOMP terminator
+Vars --> EOS
+EOS --> Regime
+Regime --> Comp
+Regime --> Incomp
 ```
 > **Figure 1:** บทบาทของสมการสถานะ (EOS) ใน CFD โดยเชื่อมโยงตัวแปรทางอุณหพลศาสตร์ ($p, \rho, T$) และจำแนกระบอบการไหล (แบบอัดตัวได้และอัดตัวไม่ได้) เพื่อใช้ในการเลือก Solver ของ OpenFOAM ที่เหมาะสม
 
@@ -161,23 +151,15 @@ $$Ma = \frac{U}{c} = \frac{\text{Flow Velocity}}{\text{Speed of Sound}}$$
 
 ```mermaid
 graph LR
-    A[Start] --> B{Flow Type?}
-    B -->|Compressible| C[Gas Properties]
-    C --> D[Density ρ varies with p,T]
-    D --> E[Ideal Gas Equation: ρ = p/RT]
-    E --> F[Required for: <br/>Mach > 0.3<br/>Large pressure changes]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Flow{"Flow Type Classification"}:::context
+Incomp["Incompressible<br/>Ma < 0.3<br/>ρ constant"]:::implicit
+Comp["Compressible<br/>Ma > 0.3<br/>ρ = f p T"]:::explicit
 
-    B -->|Incompressible| G[Liquid Properties]
-    G --> H[Density ρ = constant]
-    H --> I[Ideal for: <br/>Mach < 0.3<br/>Small pressure changes]
-    I --> J[Computational efficiency]
-
-    F --> K[Applications: <br/>Aerodynamics<br/>High-speed flows]
-    J --> L[Applications: <br/>Pipe flow<br/>Low-speed liquids]
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    class A,B,C,D,E,F,G,H,I,J,K,L process
+Flow --> Incomp
+Flow --> Comp
 ```
 > **Figure 2:** กระบวนการตัดสินใจเลือกแนวทางการจำลองการไหลตามเลขมัค (Mach number) และการเปลี่ยนแปลงความหนาแน่น โดยแยกความแตกต่างระหว่างข้อสมมติแก๊สอุดมคติสำหรับการไหลแบบอัดตัวได้และความหนาแน่นคงที่สำหรับการไหลแบบอัดตัวไม่ได้
 

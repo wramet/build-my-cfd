@@ -24,6 +24,7 @@ classDiagram
         +nu()
         +correct()
     }
+    
     viscosityModel <|-- constantViscosity
     viscosityModel <|-- powerLawViscosity
 ```

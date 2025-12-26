@@ -21,7 +21,8 @@
 *   **ความแตกต่างของมาตราส่วนเวลา (Time Scale Disparity)**: รูปแบบการสั่นสะเทือนของโครงสร้างอาจเร็วกว่ามาตราส่วนเวลาของการไหลของของไหลมาก
 
 > [!WARNING] วิกฤตด้านเสถียรภาพ
-> ==ผลกระทบของมวลที่เพิ่มเข้ามา== เป็นที่มาหลักของความไม่เสถียรเชิงตัวเลขในการจำลอง FSI เมื่อความหนาแน่นของของไหลเข้าใกล้ความหนาแน่นของของแข็ง ($ho_f \approx \rho_s$) รูปแบบการคัปปลิงแบบ explicit จะไม่เสถียร เว้นแต่จะใช้เทคนิคพิเศษเข้ามาช่วย
+> ==ผลกระทบของมวลที่เพิ่มเข้ามา== เป็นที่มาหลักของความไม่เสถียรเชิงตัวเลขในการจำลอง FSI เมื่อความหนาแน่นของของไหลเข้าใกล้ความหนาแน่นของของแข็ง ($
+ho_f \approx \rho_s$) รูปแบบการคัปปลิงแบบ explicit จะไม่เสถียร เว้นแต่จะใช้เทคนิคพิเศษเข้ามาช่วย
 
 ---
 
@@ -111,18 +112,19 @@ $$\rho_s \frac{\partial^2 \mathbf{d}}{\partial t^2} = \nabla \cdot \boldsymbol{\
 
 ```mermaid
 graph TD
-    A[เริ่มช่วงเวลา] --> B[แก้ปัญหาของไหล - เงื่อนไขขอบเขตแบบ Dirichlet u_f = v_s]
-    B --> C[คำนวณแรงที่ส่วนต่อประสาน F_f = sigma_f . n]
-    C --> D[แก้ปัญหาของแข็ง - เงื่อนไขขอบเขตแบบ Neumann load = F_f]
-    D --> E[อัปเดตการกระจัดของของแข็ง d_s]
-    E --> F[ทำให้เมชของไหลเสียรูปตาม d_s]
-    F --> G{ลู่เข้าแล้วหรือยัง?}
-    G -- ยัง --> B
-    G -- ใช่ --> H[ช่วงเวลาถัดไป]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Fluid["Solve Fluid<br/>(Dirichlet BC)"]:::implicit
+Force["Calc Interface Force"]:::explicit
+Solid["Solve Solid<br/>(Neumann BC)"]:::implicit
+Disp["Update Displacement"]:::explicit
+Mesh["Deform Mesh"]:::implicit
+Check{"Converged?"}:::context
 
-    style B fill:#e3f2fd,stroke:#1565c0
-    style D fill:#e8f5e9,stroke:#2e7d32
-    style F fill:#fff3e0,stroke:#f57c00
+Fluid --> Force --> Solid --> Disp --> Mesh --> Check
+Check -- No --> Fluid
+Check -- Yes --> Done["FSI Converged"]:::context
 ```
 > **รูปที่ 1:** แผนผังลำดับขั้นตอนการคำนวณแบบแบ่งส่วน (Partitioned Approach) สำหรับการจำลอง FSI โดยใช้การวนซ้ำระหว่างตัวแก้สมการของไหลและโครงสร้างเพื่อรักษาความต่อเนื่องของความเร็วและแรงที่บริเวณส่วนต่อประสาน
 

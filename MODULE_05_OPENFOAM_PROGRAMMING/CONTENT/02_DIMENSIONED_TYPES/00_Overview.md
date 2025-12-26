@@ -6,17 +6,16 @@
 
 ```mermaid
 flowchart TD
-    Start((เริ่มบทเรียน)) --> PhysicsAware[1. ระบบที่ตระหนักถึงฟิสิกส์]
-    PhysicsAware --> Mechanisms[2. กลไก dimensionSet & dimensionedType]
-    Mechanisms --> TMP[3. Template Metaprogramming]
-    TMP --> Pitfalls[4. ปัญหาและแนวทางแก้ไข]
-    Pitfalls --> Math[5. ความเชื่อมโยงทางคณิตศาสตร์]
-    Math --> End((สรุปและแบบฝึกหัด))
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
 
-    style Start fill:#f9f,stroke:#333,stroke-width:2px
-    style End fill:#00ff00,stroke:#333,stroke-width:2px
-    classDef step fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
-    class PhysicsAware,Mechanisms,TMP,Pitfalls,Math step
+Start((เริ่มบทเรียน)):::explicit --> PhysicsAware[1. ระบบที่ตระหนักถึงฟิสิกส์]:::implicit
+PhysicsAware --> Mechanisms[2. กลไก dimensionSet & dimensionedType]:::implicit
+Mechanisms --> TMP[3. Template Metaprogramming]:::implicit
+TMP --> Pitfalls[4. ปัญหาและแนวทางแก้ไข]:::implicit
+Pitfalls --> Math[5. ความเชื่อมโยงทางคณิตศาสตร์]:::implicit
+Math --> End((สรุปและแบบฝึกหัด)):::explicit
 ```
 > **Figure 1:** โครงสร้างเนื้อหาของบทเรียนเรื่องประเภทข้อมูลที่มีมิติ (Dimensioned Types) ซึ่งครอบคลุมตั้งแต่พื้นฐาน กลไกการทำงาน ไปจนถึงการประยุกต์ใช้และการแก้ปัญหาเชิงลึก
 

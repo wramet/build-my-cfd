@@ -192,21 +192,16 @@ phaseInteraction
 ### 4.2 โครงสร้างคลาสใน OpenFOAM
 
 ```mermaid
-classDiagram
-    class interfacialForce {
-        <<abstract>>
-        +force() tmp~volVectorField~
-        +correct()
-    }
-    interfacialForce <|-- dragModel
-    interfacialForce <|-- liftModel
-    interfacialForce <|-- virtualMassModel
-    interfacialForce <|-- wallLubricationModel
-    interfacialForce <|-- turbulentDispersionModel
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Base["interfacialForce"]:::context
+Types["Types:<br/>Drag, Lift, VirtualMass<br/>WallLubrication"]:::implicit
+Models["Models:<br/>SchillerNaumann, Tomiyama<br/>Antal"]:::explicit
 
-    dragModel <|-- SchillerNaumann
-    liftModel <|-- Tomiyama
-    wallLubricationModel <|-- Antal
+Base --> Types
+Types --> Models
 ```
 > **รูปที่ 1:** แผนผังคลาสแสดงสถาปัตยกรรมเชิงวัตถุของแบบจำลองแรงที่ส่วนต่อประสานใน OpenFOAM ซึ่งช่วยให้สามารถสลับเปลี่ยนหรือเพิ่มแบบจำลองแรงประเภทต่างๆ (เช่น แรงลาก แรงยก และแรงหล่อลื่นผนัง) ได้อย่างยืดหยุ่นผ่านระบบการสืบทอดคลาส
 

@@ -103,14 +103,18 @@ $$Pr = \frac{\nu}{\alpha} = \frac{\mu c_p}{k}$$
 
 ```mermaid
 flowchart TD
-    A[Rayleigh Number] --> B{ค่า Ra}
-    B -->|Ra < 10³| C[การนำความร้อน]
-    B -->|10³ < Ra < 10⁹| D[การพาความร้อนแบบลามินาร์]
-    B -->|Ra > 10⁹| E[การพาความร้อนแบบปั่นป่วน]
-
-    C --> F[ไม่มีการเคลื่อนที่ของของไหล]
-    D --> G[การเคลื่อนที่เป็นเส้นโค้งสวยงาม]
-    E --> H[การเคลื่อนที่สุ่มระดับ]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Rayleigh Number]:::context --> B{Ra Value}:::context
+B -->|< 10³| C[Conduction]:::implicit
+B -->|10³ - 10⁹| D[Laminar Convection]:::implicit
+B -->|> 10⁹| E[Turbulent Convection]:::explicit
+C --> F[No Motion]:::context
+D --> G[Stable Rolls]:::implicit
+E --> H[Chaotic]:::explicit
 ```
 > **Figure 1:** แผนผังการจำแนกระบอบการไหลตามค่าตัวเลขเรย์ลี (Rayleigh Number, Ra) ซึ่งเป็นพารามิเตอร์หลักที่กำหนดลักษณะการถ่ายเทความร้อนและพฤติกรรมการเคลื่อนที่ของของไหลในการพาความร้อนตามธรรมชาติ ตั้งแต่สภาวะการนำความร้อนที่หยุดนิ่งไปจนถึงการไหลแบบปั่นป่วนที่ซับซ้อน
 

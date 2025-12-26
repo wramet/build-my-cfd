@@ -156,15 +156,17 @@ pointer นี้รักษาความเป็นเจ้าของแ
 
 ```mermaid
 graph TD
-    A[tmp&lt;T&gt; Object] --> B{isTemporary_?}
-    B -->|True| C[Temporary Mode]
-    B -->|False| D[Persistent Mode]
-
-    C --> E[Increments/Decrements<br/>Reference Count]
-    E --> F[Delete Object when<br/>count == 0]
-
-    D --> G[No Reference Counting]
-    G --> H[Managed by objectRegistry]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[tmp&lt;T&gt; Object]:::explicit --> B{isTemporary_?}:::warning
+B -->|True| C[Temporary Mode]:::implicit
+B -->|False| D[Persistent Mode]:::implicit
+C --> E[Increments/Decrements<br/>Reference Count]:::implicit
+E --> F[Delete Object when<br/>count == 0]:::success
+D --> G[No Reference Counting]:::implicit
+G --> H[Managed by objectRegistry]:::success
 ```
 > **Figure 1:** แผนผังการทำงานแบบสองโหมด (Dual-mode) ของ `tmp<T>` ซึ่งสามารถสลับระหว่างการจัดการออบเจกต์ชั่วคราวที่ต้องนับการอ้างอิงเพื่อทำความสะอาดโดยอัตโนมัติ กับการอ้างอิงออบเจกต์ถาวรที่ถูกจัดการโดยระบบ Registry ส่วนกลาง ทำให้ประหยัดทรัพยากรและเพิ่มความเร็วในการประมวลผล
 

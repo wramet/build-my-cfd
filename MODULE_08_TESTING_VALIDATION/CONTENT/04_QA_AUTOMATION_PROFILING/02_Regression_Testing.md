@@ -40,13 +40,17 @@ $$ \text{Error}_{\text{L2}} = \sqrt{\frac{\sum_{i=1}^{N} (\phi_{\text{new},i} - 
 
 ```mermaid
 flowchart TD
-    A[Code Version 1: Stable] --> B[Generate Reference Database]
-    B --> C[Modify Code / New Feature]
-    C --> D[Run Version 2: New]
-    D --> E{Compare New vs Reference}
-    E -- Within Tolerance --> F[PASS: Regression Safe]
-    E -- Out of Tolerance --> G[FAIL: Regression Detected]
-    G --> H[Debug / Revert Changes]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[Code Version 1: Stable]:::implicit --> B[Generate Reference Database]:::implicit
+B --> C[Modify Code / New Feature]:::explicit
+C --> D[Run Version 2: New]:::implicit
+D --> E{Compare New vs Reference}:::warning
+E -- Within Tolerance --> F[PASS: Regression Safe]:::success
+E -- Out of Tolerance --> G[FAIL: Regression Detected]:::explicit
+G --> H[Debug / Revert Changes]:::implicit
 ```
 
 ### ขั้นตอนการทำงาน:
@@ -437,13 +441,17 @@ Integration pattern นี้ใช้รูปแบบมาตรฐานข
 นอกจากการตรวจสอบค่าตัวเลขแล้ว เรายังต้องตรวจสอบว่า Dictionary หรือ Input Format ใหม่ยังสามารถทำงานกับไฟล์เก่าได้หรือไม่
 
 ```mermaid
-graph LR
-    A[Old Case Format] --> B{Compatibility Layer}
-    B -- Direct Support --> C[Execution Success]
-    B -- Deprecated --> D[Warning Message]
-    B -- Incompatible --> E[Automatic Converter Script]
-    E --> F[New Case Format]
-    F --> C
+flowchart LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px
+A[Old Case Format]:::context --> B{Compatibility Layer}:::implicit
+B -- Direct Support --> C[Execution Success]:::success
+B -- Deprecated --> D[Warning Message]:::explicit
+B -- Incompatible --> E[Automatic Converter Script]:::implicit
+E --> F[New Case Format]:::success
+F --> C
 ```
 
 -   **Deprecation Warnings**: แจ้งเตือนผู้ใช้เมื่อมีการเปลี่ยน Keyword ใน `controlDict` หรือ `fvSchemes`

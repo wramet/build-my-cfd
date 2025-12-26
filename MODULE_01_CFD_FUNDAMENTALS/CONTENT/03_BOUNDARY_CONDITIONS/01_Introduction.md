@@ -9,34 +9,24 @@
 
 ```mermaid
 graph TD
-    A["CFD Domain"] --> B["Inlet Boundary<br/>Fixed Velocity"]
-    A --> C["Outlet Boundary<br/>Fixed Pressure"]
-    A --> D["Wall Boundary<br/>No-slip Condition"]
-    A --> E["Symmetry Boundary<br/>Zero Gradient"]
-    A --> F["Periodic Boundary<br/>Cyclic Condition"]
-
-    B --> B1["Velocity: u = U₀<br/>Pressure: ∂p/∂n = 0"]
-    C --> C1["Pressure: p = P₀<br/>Velocity: ∂u/∂n = 0"]
-    D --> D1["Velocity: u = 0<br/>Temperature: T = T_w"]
-    E --> E1["Normal Gradient: ∂φ/∂n = 0<br/>Tangential: φ = constant"]
-    F --> F1["Matching: φ_left = φ_right<br/>Gradient: ∂φ/∂n_left = -∂φ/∂n_right"]
-
-    G["Mathematical Forms"] --> G1["Dirichlet: φ = φ₀<br/>Value specified"]
-    G --> G2["Neumann: ∂φ/∂n = g<br/>Gradient specified"]
-    G --> G3["Robin: aφ + b∂φ/∂n = c<br/>Mixed condition"]
-    G --> G4["Cauchy: φ = φ₀<br/>and ∂φ/∂n = g<br/>Both specified"]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:3px,color:#000
-    style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style C fill:#ffccbc,stroke:#e65100,stroke-width:2px,color:#000
-    style D fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style E fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style F fill:#e1bee7,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style G fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style G1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:#000
-    style G2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:#000
-    style G3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:#000
-    style G4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:#000
+%% Math Forms
+subgraph MathTypes ["Mathematical Definitions"]
+Dir["Dirichlet (Value)"]:::explicit
+Neu["Neumann (Gradient)"]:::implicit
+Rob["Robin (Mixed)"]:::context
+end
+subgraph Physical ["Physical BCs"]
+Inlet["Inlet"]:::explicit
+Outlet["Outlet"]:::implicit
+Wall["Wall"]:::context
+end
+Dir -.->|"Typically"| Inlet
+Neu -.->|"Typically"| Outlet
+Dir -.->|"Sometimes"| Wall
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 1:** ประเภทเงื่อนไขขอบเขตพื้นฐานในโดเมน CFD แสดงความเชื่อมโยงระหว่างรูปแบบทางกายภาพ (เช่น ทางเข้า ทางออก ผนัง) และรูปแบบทางคณิตศาสตร์ (Dirichlet, Neumann, Robin) เพื่อกำหนดพฤติกรรมการไหลที่ขอบเขต
 
@@ -64,34 +54,23 @@ graph TD
 พื้นฐานทางคณิตศาสตร์ของ Boundary Condition มาจากการจำแนกประเภทของสมการเชิงอนุพันธ์ย่อย:
 
 ```mermaid
-graph LR
-    subgraph "Partial Differential Equations Classification"
-        PDE["Partial Differential<br/>Equations"]
-
-        PDE --> Elliptic["<b>Elliptic PDE</b><br/>Equilibrium Problems<br/>- Laplace equation<br/>- Poisson equation<br/>- Steady-state heat conduction<br/><br/><b>Boundary Conditions:</b><br/>• Dirichlet (Value specified)<br/>• Neumann (Derivative specified)<br/>• Mixed (Robin)"]
-
-        PDE --> Parabolic["<b>Parabolic PDE</b><br/>Time-dependent Problems<br/>- Heat equation<br/>- Diffusion equation<br/>- Unsteady heat conduction<br/><br/><b>Boundary Conditions:</b><br/>• Initial condition +<br/>• Dirichlet/Neumann<br/>  on spatial boundaries"]
-
-        PDE --> Hyperbolic["<b>Hyperbolic PDE</b><br/>Wave/Transport Problems<br/>- Wave equation<br/>- Euler equations<br/>- Advection equation<br/><br/><b>Boundary Conditions:</b><br/>• Initial condition +<br/>• Characteristic-based<br/>  boundary conditions"]
-    end
-
-    subgraph "CFD Applications"
-        EllipticCFD["<b>Elliptic in CFD:</b><br/>• Pressure equation<br/>• Potential flow<br/>• Steady heat transfer"]
-
-        ParabolicCFD["<b>Parabolic in CFD:</b><br/>• Unsteady diffusion<br/>• Transient heat transfer<br/>• Viscous flows"]
-
-        HyperbolicCFD["<b>Hyperbolic in CFD:</b><br/>• Compressible flow<br/>• Wave propagation<br/>• Convective transport"]
-    end
-
-    Elliptic -.-> EllipticCFD
-    Parabolic -.-> ParabolicCFD
-    Hyperbolic -.-> HyperbolicCFD
-
-    classDef pde fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef cfd fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    class PDE pde;
-    class Elliptic,Parabolic,Hyperbolic pde;
-    class EllipticCFD,ParabolicCFD,HyperbolicCFD cfd;
+graph TD
+%% PDE Classification
+subgraph Equations ["PDE Types"]
+Ell["Elliptic (Equilibrium)"]:::implicit
+Par["Parabolic (Diffusion)"]:::implicit
+Hyp["Hyperbolic (Wave/Advection)"]:::explicit
+end
+subgraph Requirements ["BC Requirements"]
+AllBounds["BCs on All Boundaries"]:::implicit
+Open["Open Boundaries Allowed"]:::explicit
+end
+Ell -->|"Requires"| AllBounds
+Par -->|"Allows"| Open
+Hyp -->|"Allows"| Open
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
 ```
 > **Figure 2:** การจำแนกประเภทของสมการเชิงอนุพันธ์ย่อย (PDE) และการประยุกต์ใช้ใน CFD โดยแบ่งตามลักษณะทางคณิตศาสตร์ (Elliptic, Parabolic, Hyperbolic) ซึ่งเป็นตัวกำหนดความต้องการเงื่อนไขขอบเขตที่แตกต่างกัน
 
@@ -287,40 +266,24 @@ class mixedFvPatchField;           // Mixed conditions
 
 ```mermaid
 graph TD
-    A["fvPatchField<br/>Base class for all<br/>boundary conditions"]
-    B["fixedValueFvPatchField<br/>Dirichlet conditions<br/>(specified value)"]
-    C["fixedGradientFvPatchField<br/>Neumann conditions<br/>(specified gradient)"]
-    D["mixedFvPatchField<br/>Mixed/Robin conditions<br/>(value+gradient mix)"]
-    E["calculatedFvPatchField<br/>Calculated from<br/>other fields"]
-    F["timeVaryingMappedFvPatchField<br/>Time-varying boundary<br/>conditions"]
-    G["cyclicFvPatchField<br/>Periodic boundary<br/>conditions"]
-    H["wallFvPatchField<br/>Wall boundary<br/>conditions"]
-    I["inletOutletFvPatchField<br/>Inlet/outlet switching<br/>based on flow direction"]
-
-    A --> B
-    A --> C
-    A --> D
-    A --> E
-    A --> F
-    A --> G
-    A --> H
-    A --> I
-
-    B --> B1["fixedValue<br/>Constant value<br/>(T = 300K)"]
-    C --> C1["fixedGradient<br/>Constant gradient<br/>(∂T/∂n = 100 K/m)"]
-    D --> D1["mixed<br/>Linear combination<br/>(αT + β∂T/∂n = γ)"]
-    G --> G1["cyclic<br/>Periodic mapping<br/>(P₁ = P₂)"]
-    H --> H1["noSlip<br/>Zero velocity<br/>(u = 0)"]
-    H --> H2["fixedFluxPressure<br/>Pressure gradient<br/>(∂p/∂n = 0)"]
-
-    classDef base fill:#e3f2fd,stroke:#1565c0,stroke-width:3px,color:#000;
-    classDef primary fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef secondary fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    classDef tertiary fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-
-    class A base;
-    class B,C,D,E,F,G,H,I primary;
-    class B1,C1,D1,G1,H1,H2 secondary;
+%% OF Class Hierarchy
+Base["fvPatchField"]:::implicit
+subgraph Primitive ["Primitive Types"]
+FV["fixedValue"]:::explicit
+FG["fixedGradient"]:::explicit
+MX["mixed"]:::explicit
+end
+subgraph Derived ["Derived Types"]
+IO["inletOutlet"]:::context
+Wall["wallFunctions"]:::context
+Cyc["cyclic"]:::context
+end
+Base --> Primitive
+Base --> Derived
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 3:** ลำดับชั้นของคลาสสำหรับเงื่อนไขขอบเขตใน OpenFOAM แสดงการสืบทอดจากคลาสฐาน `fvPatchField` ไปยังคลาสเฉพาะทางประเภทต่าง ๆ เพื่อรองรับความต้องการทางคณิตศาสตร์และกายภาพที่หลากหลาย
 

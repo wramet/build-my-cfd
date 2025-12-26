@@ -15,34 +15,33 @@
 
 ```mermaid
 classDiagram
-    class primitiveMesh {
-        <<Abstract>>
-        +cellCentres()
-        +cellVolumes()
-        +faceAreas()
-        #calcGeometry()
-    }
-    class polyMesh {
-        +points()
-        +faces()
-        +owner()
-        +neighbour()
-        +boundaryMesh()
-    }
-    class fvMesh {
-        +C()
-        +V()
-        +Sf()
-        +phi()
-        +schemes()
-    }
-
-    polyMesh --|> primitiveMesh : inherits
-    fvMesh --|> polyMesh : inherits
-
-    style primitiveMesh fill:#e8f5e9,stroke:#2e7d32
-    style polyMesh fill:#fff9c4,stroke:#fbc02d
-    style fvMesh fill:#e3f2fd,stroke:#1565c0
+class primitiveMesh {
+<<Abstract Geometry Engine>>
++cellCentres() : pointField
++cellVolumes() : scalarField
++faceAreas() : vectorField
+#calcGeometry() : void
+#calcCellVolumes() : void
+#calcFaceAreas() : void
+}
+class polyMesh {
+<<Topology Manager>>
++points() : pointField
++faces() : faceList
++owner() : labelList
++neighbour() : labelList
++boundaryMesh() : polyBoundaryMesh
+}
+class fvMesh {
+<<FVM Interface>>
++C() : surfaceScalarField
++V() : volScalarField
++Sf() : surfaceVectorField
++phi() : surfaceScalarField
++schemes() : fvSchemes
+}
+polyMesh --|> primitiveMesh : extends
+fvMesh --|> polyMesh : extends
 ```
 
 > **รูปที่ 1:** แผนผังคลาสแสดงลำดับชั้นการสืบทอดของระบบเมช โดยมี `primitiveMesh` เป็นคลาสฐานเชิงนามธรรมที่จัดการเรขาคณิต และพัฒนาไปสู่ `fvMesh` ที่รองรับการจำลองฟิสิกส์เต็มรูปแบบ การออกแบบนี้ช่วยให้มั่นใจได้ว่าโครงสร้างทางโทโพโลยีและเรขาคณิตถูกแยกออกจากระดับการคำนวณฟิสิกส์อย่างชัดเจน

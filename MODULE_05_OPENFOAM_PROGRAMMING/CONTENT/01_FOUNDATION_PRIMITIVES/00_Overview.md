@@ -6,19 +6,19 @@
 
 ```mermaid
 graph TD
-    Start((เริ่มต้น)) --> Basic[พื้นฐาน Primitives]
-    Basic --> Types[ประเภทข้อมูลพื้นฐาน]
-    Types --> Dimensions[มิติทางฟิสิกส์]
-    Dimensions --> Memory[การจัดการหน่วยความจำ]
-    Memory --> Containers[คอนเทนเนอร์]
-    Containers --> Fields[คลาสฟิลด์]
-    Fields --> Mesh[โครงสร้าง Mesh]
-    Mesh --> Solvers[ระบบ Solver]
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
 
-    style Start fill:#f9f,stroke:#333,stroke-width:2px
-    style Solvers fill:#00ff00,stroke:#333,stroke-width:2px
-    classDef step fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
-    class Basic,Types,Dimensions,Memory,Containers,Fields,Mesh step
+Start((เริ่มต้น)):::explicit --> Basic[พื้นฐาน Primitives]:::context
+Basic --> Types[ประเภทข้อมูลพื้นฐาน]:::implicit
+Types --> Dimensions[มิติทางฟิสิกส์]:::implicit
+Dimensions --> Memory[การจัดการหน่วยความจำ]:::implicit
+Memory --> Containers[คอนเทนเนอร์]:::implicit
+Containers --> Fields[คลาสฟิลด์]:::implicit
+Fields --> Mesh[โครงสร้าง Mesh]:::implicit
+Mesh --> Solvers[ระบบ Solver]:::explicit
 ```
 
 > **Figure 1:** แผนผังลำดับชั้นขององค์ประกอบใน OpenFOAM ที่แสดงให้เห็นการสร้างระบบจากพื้นฐานขนาดเล็ก (Primitives) ไปสู่ระบบที่มีความซับซ้อนสูง (Solvers) โดยแต่ละระดับจะต่อยอดจากระดับก่อนหน้าเพื่อสร้างโครงสร้างที่สมบูรณ์สำหรับการคำนวณ CFD

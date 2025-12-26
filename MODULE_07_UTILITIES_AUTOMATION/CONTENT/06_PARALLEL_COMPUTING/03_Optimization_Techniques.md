@@ -425,19 +425,16 @@ functions
 
 ```mermaid
 flowchart TD
-    A["Parallel Simulation"] --> B{"I/O Strategy"}
-    B --> C["Master Process I/O"]
-    B --> D["Collective I/O"]
-    B --> E["Independent I/O"]
-
-    C --> C1["ข้อดี: ง่ายในการ implement"]
-    C --> C2["ข้อเสีย: Serial bottleneck"]
-
-    D --> D1["ข้อดี: High performance"]
-    D --> D2["ข้อเสีย: ต้องการ Parallel File System"]
-
-    E --> E1["ข้อดี: อิสระสูง"]
-    E --> E2["ข้อเสีย: Complex management"]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Parallel Simulation]:::explicit --> B{I/O Strategy}:::explicit
+B --> C[Master Process I/O]:::implicit
+B --> D[Collective I/O]:::implicit
+B --> E[Independent I/O]:::implicit
+C --> C1[Pros: Simple<br>Cons: Serial bottleneck]:::context
+D --> D1[Pros: High Perf<br>Cons: Needs Parallel FS]:::context
+E --> E1[Pros: Scalable<br>Cons: Complex Mgmt]:::context
 ```
 > **Figure 1:** แผนผังกลยุทธ์การจัดการ I/O ในการจำลองแบบขนาน เปรียบเทียบระหว่างการเขียนข้อมูลผ่าน Master Process, การเขียนแบบรวมกลุ่ม (Collective) และการเขียนแบบอิสระ (Independent) พร้อมข้อดีและข้อเสียในแต่ละรูปแบบ
 
@@ -539,20 +536,21 @@ writeJobMode     collective; // Or "masterOnly" or "distributed"
 
 ```mermaid
 flowchart LR
-    A["Setup Case"] --> B["Generate Mesh"]
-    B --> C["Quality Check"]
-    C --> D{Quality OK?}
-    D -->|No| B
-    D -->|Yes| E["Decompose Domain"]
-
-    E --> F["Run Parallel Solver"]
-    F --> G["Monitor Performance"]
-    G --> H{Converged?}
-    H -->|No| F
-    H -->|Yes| I["Reconstruct Results"]
-
-    I --> J["Post-process"]
-    J --> K["Visualization"]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Setup]:::context --> B[Mesh]:::explicit
+B --> C[Check]:::explicit
+C --> D{OK?}:::explicit
+D -->|No| B
+D -->|Yes| E[Decompose]:::implicit
+E --> F[Run]:::implicit
+F --> G[Monitor]:::explicit
+G --> H{Done?}:::explicit
+H -->|No| F
+H -->|Yes| I[Reconstruct]:::implicit
+I --> J[Post]:::context
+J --> K[Vis]:::context
 ```
 > **Figure 2:** ขั้นตอนการจำลองแบบขนานแบบครบวงจร ตั้งแต่การเตรียมเคส การสร้างและตรวจสอบเมช การย่อยโดเมน การรัน Solver พร้อมติดตามประสิทธิภาพ ไปจนถึงการรวมผลลัพธ์และแสดงผลภาพ
 

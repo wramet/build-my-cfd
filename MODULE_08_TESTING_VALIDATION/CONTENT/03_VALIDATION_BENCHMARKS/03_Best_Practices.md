@@ -312,12 +312,12 @@ private:
 เราควรแบ่งระดับการทดสอบตามความซับซ้อนและเวลาที่ใช้:
 
 ```mermaid
-graph TD
-    Level3[Validation Test: Hours] --> Level2[Integration Test: Minutes]
-    Level2 --> Level1[Unit Test: Seconds]
-    style Level1 fill:#f9f,stroke:#333
-    style Level2 fill:#bbf,stroke:#333
-    style Level3 fill:#bfb,stroke:#333
+flowchart TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px
+Level3[Validation Test: Hours]:::explicit --> Level2[Integration Test: Minutes]:::implicit
+Level2 --> Level1[Unit Test: Seconds]:::implicit
 ```
 
 | ระดับ | ระยะเวลา | เป้าหมาย | ตัวอย่าง |
@@ -1031,20 +1031,24 @@ Function Objects ให้การตรวจสอบแบบ real-time:
 
 ```mermaid
 flowchart TD
-    A[Start Test] --> B[Unit Tests]
-    B --> C{All Passed?}
-    C -- No --> D[Fix Code]
-    D --> B
-    C -- Yes --> E[Integration Tests]
-    E --> F{All Passed?}
-    F -- No --> D
-    F -- Yes --> G[Validation Tests]
-    G --> H{Results Validated?}
-    H -- No --> I[Refine Model]
-    I --> G
-    H -- Yes --> J[Generate Test Report]
-    J --> K[Archive Results]
-    K --> L[Test Complete]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[Start Test]:::explicit --> B[Unit Tests]:::implicit
+B --> C{All Passed?}:::warning
+C -- No --> D[Fix Code]:::explicit
+D --> B
+C -- Yes --> E[Integration Tests]:::implicit
+E --> F{All Passed?}:::warning
+F -- No --> D
+F -- Yes --> G[Validation Tests]:::implicit
+G --> H{Results Validated?}:::warning
+H -- No --> I[Refine Model]:::explicit
+I --> G
+H -- Yes --> J[Generate Test Report]:::success
+J --> K[Archive Results]:::implicit
+K --> L[Test Complete]:::success
 ```
 
 ### ขั้นตอนการดำเนินการ

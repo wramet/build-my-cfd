@@ -12,25 +12,30 @@
 
 ```mermaid
 flowchart LR
-    A["Source Code<br/>Templates"] --> B["Template Metaprogramming<br/>Compile-time Processing"]
-    B --> C["Type System<br/>Dimension Analysis"]
-    C --> D["Dimension Safety<br/>Unit Validation"]
-    D --> E["Compiled Binary<br/>Runtime Execution"]
-
-    F["Physical Quantities"] --> C
-    G["Mathematical Operations"] --> B
-
-    H["Traditional Approach<br/>Runtime Errors"] -.-> I["Template Metaprogramming<br/>Compile-time Safety"]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style D fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
-    style F fill:#e0f2f1,stroke:#00796b,stroke-width:2px,color:#000;
-    style G fill:#e0f2f1,stroke:#00796b,stroke-width:2px,color:#000;
-    style H fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style I fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
+subgraph Inputs["Explicit Inputs"]
+    direction TB
+    A["Source Code<br/>Templates"]:::explicit
+    F["Physical Quantities"]:::explicit
+    G["Mathematical Operations"]:::explicit
+end
+subgraph System["Compiler System"]
+    direction TB
+    B["Template Metaprogramming<br/>Compile-time Processing"]:::implicit
+    C["Type System<br/>Dimension Analysis"]:::implicit
+    D["Dimension Safety<br/>Unit Validation"]:::implicit
+end
+subgraph Output["Result"]
+    E["Compiled Binary<br/>Runtime Execution"]:::implicit
+end
+A --> B
+G --> B
+B --> C
+F --> C
+C --> D
+D --> E
 ```
 > **Figure 1:** การเปรียบเทียบระหว่างแนวทางการตรวจสอบหน่วยแบบเดิม (Runtime) กับแนวทางของ OpenFOAM (Compile-time) ซึ่งแสดงให้เห็นว่าระบบใหม่ช่วยตรวจพบข้อผิดพลาดทางฟิสิกส์ได้เร็วกว่าและมีประสิทธิภาพสูงกว่าผ่านกระบวนการ Template Metaprogramming
 
@@ -86,33 +91,29 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    subgraph "Module 1: Basic Usage"
-        A["Field Types"] --> B["Basic Operations"]
-        B --> C["Simple Applications"]
-        C --> D["User Level"]
-    end
-
-    subgraph "Advanced Module: Extension"
-        E["Template Metaprogramming"] --> F["Custom Physics Models"]
-        F --> G["Framework Design"]
-        G --> H["Developer Level"]
-    end
-
-    subgraph "Knowledge Evolution"
-        I["How to Use"] --> J["Why It Works"]
-        J --> K["How to Extend"]
-    end
-
-    D -.-> I
-    I -.-> E
-    H -.-> K
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    class A,B,C,E,F,G,H process;
-    class I,J,K storage;
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
+subgraph UserSpace["Module 1: Basic Usage (Explicit)"]
+    direction TB
+    A["Field Types"]:::explicit --> B["Basic Operations"]:::explicit
+    B --> C["Simple Applications"]:::explicit
+    C --> D["User Level"]:::explicit
+end
+subgraph DevSpace["Advanced Module: Extension (Implicit)"]
+    direction TB
+    E["Template Metaprogramming"]:::implicit --> F["Custom Physics Models"]:::implicit
+    F --> G["Framework Design"]:::implicit
+    G --> H["Developer Level"]:::implicit
+end
+subgraph Bridges["Knowledge Evolution"]
+    direction TB
+    I["How to Use"]:::context --> J["Why It Works"]:::context
+    J --> K["How to Extend"]:::context
+end
+D -.-> I
+I -.-> E
+H -.-> K
 ```
 > **Figure 2:** วิวัฒนาการของการเรียนรู้จากระดับผู้ใช้งาน (Basic Usage) ไปสู่ระดับนักพัฒนา (Advanced Extension) ผ่านการทำความเข้าใจกลไกเชิงลึกของประเภทข้อมูลที่มีมิติ ซึ่งช่วยให้สามารถขยายความสามารถของเฟรมเวิร์ก OpenFOAM ได้อย่างมั่นใจและมีประสิทธิภาพสูงสุด
 
@@ -138,24 +139,18 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    A["Source Code<br/>With Dimensions"] --> B["C++ Template<br/>Metaprogramming"]
-    B --> C["Compile-Time<br/>Dimension Analysis"]
-    C --> D["Dimensional<br/>Consistency Check"]
-    D --> E{"Valid?"}
-    E -->|Yes| F["Zero Runtime<br/>Overhead"]
-    E -->|No| G["Compile-Time<br/>Error"]
-    F --> H["Type-Safe<br/>Mathematical Operations"]
-    H --> I["Physically<br/>Correct Calculations"]
-    G --> J["Debug Source<br/>Code"]
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    class A,B,C,F,H,I,J process;
-    class E decision;
-    class G terminator;
-    class D storage;
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef error fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+A["Source Code<br/>With Dimensions"]:::explicit --> B["C++ Template<br/>Metaprogramming"]:::implicit
+B --> C["Compile-Time<br/>Dimension Analysis"]:::implicit
+C --> D["Dimensional<br/>Consistency Check"]:::implicit
+D --> E{"Valid?"}:::implicit
+E -->|Yes| F["Zero Runtime<br/>Overhead"]:::implicit
+E -->|No| G["Compile-Time<br/>Error"]:::error
+F --> H["Type-Safe<br/>Mathematical Operations"]:::implicit
+H --> I["Physically<br/>Correct Calculations"]:::implicit
+G --> J["Debug Source<br/>Code"]:::explicit
 ```
 > **Figure 3:** เป้าหมายของสถาปัตยกรรม "Zero-cost Abstraction" ที่ต้องการให้ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

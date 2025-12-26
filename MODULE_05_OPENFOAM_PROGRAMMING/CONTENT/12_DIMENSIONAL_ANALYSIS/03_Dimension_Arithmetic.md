@@ -366,11 +366,16 @@ dimensionSet Foam::mag(const dimensionSet& ds)
 
 ```mermaid
 flowchart TD
-    A[Field Operation] --> B{Dimensional<br>Compatibility Check}
-    B -->|Match| C[Create Result Field<br>with Combined Dimensions]
-    B -->|Mismatch| D[Fatal Error]
-    C --> E[Perform Element-wise<br>Computation]
-    E --> F[Return Dimensionally<br>Consistent Result]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Operation]:::context --> B{Compatible?}:::context
+B -->|Match| C[Create Result]:::implicit
+B -->|Mismatch| D[Error]:::explicit
+C --> E[Compute]:::implicit
+E --> F[Return]:::implicit
 ```
 > **Figure 1:** ขั้นตอนการตรวจสอบความสอดคล้องทางมิติระหว่างการดำเนินการกับฟิลด์ เพื่อให้มั่นใจว่าผลลัพธ์สุดท้ายยังคงความถูกต้องทางกายภาพตามกฎของ SIความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

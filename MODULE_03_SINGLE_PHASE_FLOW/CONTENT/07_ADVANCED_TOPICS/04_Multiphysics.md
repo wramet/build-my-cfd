@@ -401,10 +401,14 @@ $$\int_{\Gamma} \mathbf{w} \cdot (\mathbf{u}_f - \mathbf{u}_s) d\Gamma = 0$$
 
 ```mermaid
 flowchart LR
-    A[Current CFD] --> B[Digital Twins]
-    B --> C[Real-time Simulation]
-    C --> D[AI-Enhanced Physics]
-    D --> E[Quantum CFD]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Current CFD]:::implicit --> B[Digital Twins]:::implicit
+B --> C[Real-time Sim]:::explicit
+C --> D[AI-Physics]:::explicit
+D --> E[Quantum CFD]:::explicit
 ```
 
 > **Figure 1:** วิวัฒนาการของการจำลองพลศาสตร์ของไหลเชิงคำนวณ (CFD Evolution) จากปัจจุบันไปสู่อนาคต โดยมุ่งเน้นการบูรณาการเทคโนโลยี Digital Twins การจำลองแบบเรียลไทม์ การใช้ปัญญาประดิษฐ์ (AI) เพื่อเสริมสร้างความแม่นยำทางฟิสิกส์ และก้าวไปสู่การประมวลผลแบบควอนตัม (Quantum CFD) เพื่อรองรับปัญหาที่มีความซับซ้อนมหาศาลความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว

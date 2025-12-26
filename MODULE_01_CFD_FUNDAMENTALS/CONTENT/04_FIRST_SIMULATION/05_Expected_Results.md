@@ -24,16 +24,15 @@
 
 ```mermaid
 graph LR
-    A["Moving Lid<br/>U = 1 m/s →"] --> B["Shear Stress Generation<br/>τ = μ(∂u/∂y)"]
-    B --> C["Momentum Transfer<br/>to Fluid Below"]
-    C --> D["Primary Vortex Formation<br/>Clockwise Rotation"]
-    D --> E["Flow Circulation<br/>Complete Cavity Loop"]
+    A["Moving Lid<br/>U = 1 m/s"]:::volatile --> B["Shear Stress Generation<br/>τ = μ(∂u/∂y)"]:::explicit
+    B --> C["Momentum Transfer<br/>(Downward)"]:::implicit
+    C --> D["Primary Vortex<br/>(Clockwise)"]:::implicit
+    D --> E["Flow Circulation<br/>(Cavity Loop)"]:::success
 
-    style A fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style B fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style D fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 1:** กลไกการก่อตัวของกระแสวนหลัก แสดงการถ่ายโอนโมเมนตัมจากฝาปิดที่เคลื่อนที่ไปยังของไหลด้านล่างผ่านแรงเค้นเฉือน ซึ่งขับเคลื่อนให้เกิดการไหลเวียนตามเข็มนาฬิกาทั่วทั้งโพรง
  ศูนย์กลางกระแสวนเลื่อนไปทางผนังด้านล่างเนื่องจาก:
@@ -63,21 +62,18 @@ graph LR
 
 ```mermaid
 flowchart LR
-    A["Top Wall<br/>U = 1 m/s →"] --> B["Right Wall<br/>↓ 0.6-0.7 m/s"]
-    B --> C["Bottom Wall<br/>← 0.2-0.3 m/s"]
-    C --> D["Left Wall<br/>↑ Moderate Speed"]
+    A["Top Wall<br/>U = 1 m/s"]:::volatile --> B["Right Wall<br/>Flow Down"]:::implicit
+    B --> C["Bottom Wall<br/>Flow Return"]:::implicit
+    C --> D["Left Wall<br/>Flow Up"]:::implicit
     D --> A
-
-    E["Vortex Center<br/>at (0.5, 0.4)"] -.-> A
+    E["Vortex Center<br/>(0.5, 0.4)"]:::explicit -.-> A
     E -.-> B
     E -.-> C
     E -.-> D
 
-    style A fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style C fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style D fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000,stroke-dasharray: 5 5
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 2:** รูปแบบการไหลเวียนซ้ำและตำแหน่งจุดศูนย์กลางของกระแสวน แสดงความเร็วในแต่ละบริเวณตามแนวผนัง โดยมีจุดศูนย์กลางอยู่ที่พิกัด $(0.5, 0.4)$ ซึ่งเยื้องลงมาด้านล่างเนื่องจากผลของความหนืด
  รูปแบบการไหลสี่ส่วนยังคงสมมาตรตามแนวเส้นทแยงมุม $y=x$ ในระดับที่ $Re=10$ เนื่องจาก:
@@ -113,21 +109,21 @@ $$\psi_n \propto r^{\lambda_n} \sin(\lambda_n \theta)$$
 
 ```mermaid
 graph TD
-    subgraph "Moffatt Eddies Hierarchy at Re=10"
-        A["Primary Vortex<br/>Clockwise<br/>Dominant"]
-        B["Corner Eddy 1<br/>Counter-clockwise<br/>Very Weak"]
-        C["Corner Eddy 2<br/>Clockwise<br/>Extremely Weak"]
-        D["Corner Eddy 3<br/>Counter-clockwise<br/>Barely Detectable"]
+    subgraph "Moffatt Eddies Hierarchy (Re=10)"
+        direction TB
+        A["Primary Vortex<br/>(Clockwise Dominant)"]:::volatile
+        B["Corner Eddy 1<br/>(Counter-Clockwise)"]:::explicit
+        C["Corner Eddy 2<br/>(Clockwise Weak)"]:::implicit
+        D["Corner Eddy 3<br/>(Counter-Clockwise Tiny)"]:::context
     end
-
     A --> B
     B --> C
     C --> D
 
-    style A fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style C fill:#e3f2fd,stroke:#1565c0,stroke-width:1px,color:#000
-    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:#000
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 3:** ลำดับชั้นของ Moffatt Eddies ที่มุมกล่อง แสดงการก่อตัวของกระแสวนขนาดจิ๋วที่มีทิศทางการหมุนสลับกัน ซึ่งมักจะตรวจพบได้ยากหากความละเอียดของ Mesh ไม่เพียงพอ
 

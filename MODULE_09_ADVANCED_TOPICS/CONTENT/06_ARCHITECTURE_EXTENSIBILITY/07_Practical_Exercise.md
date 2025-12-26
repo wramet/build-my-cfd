@@ -11,11 +11,14 @@
 
 ```mermaid
 graph TD
-    A[1. กำหนด Interface Header] --> B[2. Implement Source Code]
-    B --> C[3. สร้าง Build Configuration]
-    C --> D[4. Compile Library]
-    D --> E[5. กำหนดค่า controlDict]
-    E --> F[6. ทดสอบและ Validate]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+A[1. กำหนด Interface Header]:::explicit --> B[2. Implement Source Code]:::implicit
+B --> C[3. สร้าง Build Configuration]:::implicit
+C --> D[4. Compile Library]:::implicit
+D --> E[5. กำหนดค่า controlDict]:::implicit
+E --> F[6. ทดสอบและ Validate]:::success
 ```
 
 > **Figure 1:** ขั้นตอนการพัฒนา functionObject แบบครบวงจร ตั้งแต่การออกแบบ interface ไปจนถึงการทดสอบในการจำลองจริง
@@ -619,13 +622,13 @@ functions
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Construction: functionObject::New()
-    Construction --> Initialized: read(dict)
-    Initialized --> Executing: execute() called
-    Executing --> Executing: Each time step
-    Executing --> Writing: write() called
-    Writing --> Executing: Continue simulation
-    Executing --> [*]: Destruction
+[*] --> Construction: functionObject::New()
+Construction --> Initialized: read(dict)
+Initialized --> Executing: execute() called
+Executing --> Executing: Each time step
+Executing --> Writing: write() called
+Writing --> Executing: Continue simulation
+Executing --> [*]: Destruction
 ```
 
 > **Figure 2:** วงจรชีวิตของ functionObject ตั้งแต่การสร้าง การอ่านค่าการกำหนดค่า การดำเนินการในแต่ละ time step ไปจนถึงการทำลาย

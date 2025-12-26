@@ -140,10 +140,20 @@ addToRunTimeSelectionTable
 
 ```mermaid
 graph TD
-    Step1[Step 1: Separate Compilation<br/>wmake libso] --> Step2[Step 2: Dynamic Loading<br/>controlDict libs]
-    Step2 --> Step3[Step 3: Dictionary Selection<br/>RASModel myCustomModel]
-    Step3 --> Step4[Step 4: Factory Dispatch<br/>turbulenceModel::New]
-    Step4 --> Step5[Step 5: Execution<br/>turbulence->correct()]
+    classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    
+    Step1[Step 1: Separate Compilation<br/>wmake libso]:::explicit
+    Step2[Step 2: Dynamic Loading<br/>controlDict libs]:::implicit
+    Step3[Step 3: Dictionary Selection<br/>RASModel myCustomModel]:::implicit
+    Step4[Step 4: Factory Dispatch<br/>turbulenceModel::New]:::implicit
+    Step5[Step 5: Execution<br/>turbulence->correct()]:::success
+    
+    Step1 --> Step2
+    Step2 --> Step3
+    Step3 --> Step4
+    Step4 --> Step5
 ```
 
 > **Figure 1:** แผนผังลำดับขั้นตอนการทำงานของสถาปัตยกรรมปลั๊กอิน (Plugin Architecture) ใน OpenFOAM ซึ่งช่วยให้โมเดลที่ถูกคอมไพล์แยกออกมาสามารถถูกโหลดและใช้งานได้ทันทีผ่านการตั้งค่าในไฟล์กรณีจำลอง โดยไม่จำเป็นต้องแก้ไขและคอมไพล์ซอร์สโค้ดหลักใหม่

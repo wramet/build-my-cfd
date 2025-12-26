@@ -672,44 +672,32 @@ forAll(phases, k)
 
 ```mermaid
 flowchart TD
-    Start([เริ่มต้น Time Step]) --> Init[อ่าน Control Parameters]
-    Init --> Courant[คำนวณ Courant Number<br/>ปรับ Δt หากจำเป็น]
-
-    Courant --> PIMPLE_Start{เริ่ม PIMPLE Loop}
-
-    PIMPLE_Start --> Alpha[แก้สมการ Phase Fractions<br/>alphaEqns.H]
-    Alpha --> Alpha_Check{ตรวจสอบ<br/>Σα = 1?}
-    Alpha_Check -->|ไม่| Alpha_Normalize[Normalize α<br/>α<sub>k</sub> /= Σα]
-    Alpha_Normalize --> Alpha_Check
-    Alpha_Check -->|ใช่| Momentum[แก้สมการ Momentum<br/>UEqns.H<br/>สำหรับทุกเฟส]
-
-    Momentum --> Pressure_Construct[สร้างสมการความดัน<br/>จากเงื่อนไขความต่อเนื่อง]
-    Pressure_Construct --> Pressure_Solve[แก้สมการ Pressure<br/>pEqn.H]
-    Pressure_Solve --> Velocity_Correct[ปรับความเร็ว<br/>ตาม pressure gradient]
-
-    Velocity_Correct --> Energy_Check{แก้พลังงาน?}
-    Energy_Check -->|ใช่| Energy[แก้สมการ Energy<br/>EEqns.H]
-    Energy --> Turbulence
-    Energy_Check -->|ไม่| Turbulence[แก้โมเดลความปั่นป่วน<br/>turbulence.correct]
-
-    Turbulence --> Converged{ลู่เข้า?}
-    Converged -->|ไม่| PIMPLE_Start
-    Converged -->|ใช่| Output_Check{บันทึกผลลัพธ์?}
-
-    Output_Check -->|ใช่| Write[เขียน Results<br/>runTime.write]
-    Write --> Next_Time{ถึงเวลาสิ้นสุด?}
-    Output_Check -->|ไม่| Next_Time
-
-    Next_Time -->|ไม่| PIMPLE_Start
-    Next_Time -->|ใช่| End([สิ้นสุดการจำลอง])
-
-    style Start fill:#e1f5e1
-    style End fill:#ffe1e1
-    style PIMPLE_Start fill:#fff4e1
-    style Converged fill:#e1f0ff
-    style Alpha_Check fill:#e1f0ff
-    style Energy_Check fill:#e1f0ff
-    style Next_Time fill:#e1f0ff
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+Start([Start Time Step]):::context --> Init[Read Controls]:::context
+Init --> Courant[Calc CoNum<br/>Adjust dt]:::explicit
+Courant --> PIMPLE_Start{PIMPLE Loop}:::explicit
+PIMPLE_Start --> Alpha[Solve Alpha<br/>alphaEqns.H]:::explicit
+Alpha --> Alpha_Check{Sum Alpha = 1?}:::explicit
+Alpha_Check -->|No| Alpha_Normalize[Normalize Alpha]:::explicit
+Alpha_Normalize --> Alpha_Check
+Alpha_Check -->|Yes| Momentum[Solve Momentum<br/>UEqns.H]
+Momentum --> Pressure_Construct[Construct P Eqn]
+Pressure_Construct --> Pressure_Solve[Solve Pressure<br/>pEqn.H]
+Pressure_Solve --> Velocity_Correct[Correct Flux/Vel]:::explicit
+Velocity_Correct --> Energy_Check{Solve Energy?}:::explicit
+Energy_Check -->|Yes| Energy[Solve Energy<br/>EEqns.H]
+Energy --> Turbulence
+Energy_Check -->|No| Turbulence[Correct Turbulence]
+Turbulence --> Converged{Converged?}:::explicit
+Converged -->|No| PIMPLE_Start
+Converged -->|Yes| Output_Check{Write Output?}:::context
+Output_Check -->|Yes| Write[Write Results]:::context
+Write --> Next_Time{End Time?}:::context
+Output_Check -->|No| Next_Time
+Next_Time -->|No| PIMPLE_Start
+Next_Time -->|Yes| End([End Simulation]):::context
 ```
 
 ---

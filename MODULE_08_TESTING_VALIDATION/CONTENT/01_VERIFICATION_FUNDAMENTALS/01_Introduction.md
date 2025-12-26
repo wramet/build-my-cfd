@@ -7,12 +7,12 @@
 OpenFOAM ใช้แนวทางการทดสอบหลายชั้น (Multi-layered testing approach) เพื่อครอบคลุมความเสี่ยงในทุกระดับ:
 
 ```mermaid
-graph TD
-    A[Physical Validation] --> B[Regression Testing]
-    B --> C[Integration Testing]
-    C --> D[Unit Testing]
-    style D fill:#f9f,stroke:#333,stroke-width:2px
-    style A fill:#bbf,stroke:#333,stroke-width:2px
+flowchart TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+A[Physical Validation]:::explicit --> B[Regression Testing]:::implicit
+B --> C[Integration Testing]:::implicit
+C --> D[Unit Testing]:::implicit
 ```
 
 ![[testing_layers_pyramid.png]]
@@ -30,12 +30,13 @@ graph TD
 
 ```mermaid
 flowchart LR
-    A[Physical Reality] -- Modeling --> B[Mathematical Model]
-    B -- Programming --> C[Computer Code]
-    C -- Simulation --> D[Numerical Results]
-
-    B <-. "Validation (Are we building the right thing?)" .-> A
-    C <-. "Verification (Are we building the thing right?)" .-> B
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+A[Physical Reality]:::explicit -- Modeling --> B[Mathematical Model]:::implicit
+B -- Programming --> C[Computer Code]:::implicit
+C -- Simulation --> D[Numerical Results]:::explicit
+B -. "Validation (Right Thing?)" .-> A
+C -. "Verification (Thing Right?)" .-> B
 ```
 
 > **สูตรความเชื่อถือได้**:
@@ -131,19 +132,22 @@ applications/test/
 
 ```mermaid
 sequenceDiagram
-    participant Main as main()
-    participant Case as setRootCase
-    participant Time as createTime
-    participant Mesh as createMesh
-    participant Test as Test Object
-
-    Main->>Case: Initialize Case
-    Main->>Time: Initialize Time
-    Main->>Mesh: Initialize Mesh
-    Main->>Test: Create("FieldOperationTest")
-    Note over Main, Test: Perform Testing Operations
-    Main->>Test: pass/fail assertion
-    Main->>Test: report()
+participant Main as main()
+participant Case as setRootCase
+participant Time as createTime
+participant Mesh as createMesh
+participant Test as Test Object
+Note over Main: Initialization Phase
+Main->>Case: Initialize Case
+Main->>Time: Initialize Time
+Main->>Mesh: Initialize Mesh
+Main->>Test: Create("FieldOperationTest")
+Note over Main, Test: Execution Phase
+activate Test
+Test->>Test: Perform Testing Operations
+Test-->>Main: pass/fail assertion
+deactivate Test
+Main->>Test: report()
 ```
 
 ```cpp

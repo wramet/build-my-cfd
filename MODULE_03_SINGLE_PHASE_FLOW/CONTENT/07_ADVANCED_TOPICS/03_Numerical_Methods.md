@@ -18,14 +18,19 @@ OpenFOAM ใช้ **dynamic AMR** ผ่านคลาส `dynamicRefineFvMesh
 
 ```mermaid
 flowchart TD
-    A[Start] --> B[Solve Current Mesh]
-    B --> C[Compute Error Indicators]
-    C --> D{Refinement Criteria Met?}
-    D -->|Yes| E[Mark Cells for Refinement]
-    D -->|No| F[Continue Simulation]
-    E --> G[Update Mesh Topology]
-    G --> H[Interpolate Fields]
-    H --> F
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Start]:::context --> B[Solve Mesh]:::implicit
+B --> C[Error Indicators]:::implicit
+C --> D{Refine?}:::context
+D -->|Yes| E[Mark Cells]:::explicit
+D -->|No| F[Continue]:::implicit
+E --> G[Update Topology]:::explicit
+G --> H[Interpolate]:::implicit
+H --> F
 ```
 > **Figure 1:** แผนผังลำดับขั้นตอนการทำงานของเทคนิค Adaptive Mesh Refinement (AMR) ซึ่งแสดงกระบวนการตรวจสอบเกณฑ์การปรับปรุงตาข่าย (Refinement Criteria) ในระหว่างการคำนวณ เพื่อเพิ่มความละเอียดของเมชเฉพาะในบริเวณที่มีความชันของตัวแปรสูง ช่วยเพิ่มความแม่นยำโดยใช้ทรัพยากรการคำนวณอย่างคุ้มค่า
 
@@ -137,14 +142,19 @@ $$\int_{K_e} \mathbf{v}_h \frac{\partial \mathbf{u}_h}{\partial t} \, \mathrm{d}
 
 ```mermaid
 flowchart LR
-    subgraph Element
-        A[Element K_e] --> B[Interior Solution]
-        B --> C[Boundary Flux]
-    end
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Subgraphs
+subgraph Element [Element K]
+    A[Element Center]:::implicit --> B[Interior Solution]:::implicit
+    B --> C[Boundary Flux]:::explicit
+end
 
-    C --> D[Numerical Flux]
-    D --> E[Neighbor Element]
-    E --> C
+C <--> D[Numerical Flux]:::explicit
+D --> E[Neighbor]:::context
+E -.-> C
 ```
 > **Figure 2:** กลไกการแลกเปลี่ยนฟลักซ์ระหว่างอิลิเมนต์ในวิธีการ Discontinuous Galerkin (DG) โดยผลเฉลยภายในแต่ละอิลิเมนต์จะเชื่อมโยงกันผ่าน Numerical Flux ที่ขอบเขต (Boundary) ซึ่งช่วยรักษาคุณสมบัติการอนุรักษ์และความแม่นยำอันดับสูงในระดับท้องถิ่น ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
@@ -242,13 +252,17 @@ $$\mathbf{A}_{c} = \mathbf{R} \mathbf{A}_f \mathbf{P}$$
 
 ```mermaid
 flowchart TD
-    A[Fine Grid] --> B[Pre-smoothing]
-    B --> C[Compute Residual]
-    C --> D[Restrict to Coarse]
-    D --> E[Coarse Grid Solve]
-    E --> F[Prolongate to Fine]
-    F --> G[Post-smoothing]
-    G --> H[Update Solution]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Fine Grid]:::explicit --> B[Pre-smooth]:::implicit
+B --> C[Residual]:::implicit
+C --> D[Restrict]:::implicit
+D --> E[Coarse Solve]:::explicit
+E --> F[Prolongate]:::implicit
+F --> G[Post-smooth]:::implicit
+G --> H[Update]:::implicit
 ```
 > **Figure 3:** แผนผังขั้นตอนการทำงานของ Algebraic Multigrid (AMG) ในรูปแบบ V-cycle ซึ่งช่วยเร่งการลู่เข้าของระบบสมการเชิงเส้นขนาดใหญ่โดยการลดความผิดพลาด (Error) ในหลายระดับความละเอียดของกริด ตั้งแต่กริตที่ละเอียดไปจนถึงกริตที่หยาบ ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

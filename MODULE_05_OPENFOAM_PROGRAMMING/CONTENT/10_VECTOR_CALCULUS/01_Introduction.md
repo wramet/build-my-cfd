@@ -15,11 +15,10 @@ This section covers the fundamental **vector calculus operations** that form the
 
 ```mermaid
 flowchart LR
-    V["Volume Integral: ∫∇·U dV"] -->|"Gauss Theorem"| S["Surface Integral: ∮U·dA"]
-    S -->|"Discretization"| Sum["Sum: Σ(Uf · Sf)"]
-
-    style S fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    style Sum fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+classDef math fill:#fff9c4,stroke:#fbc02d,color:#000
+classDef disc fill:#c8e6c9,stroke:#2e7d32,color:#000
+V["Volume Integral: ∫∇·U dV"]:::math -->|Gauss Thm| S["Surface Integral: ∮U·dA"]:::math
+S -->|Discretize| Sum["Sum: Σ(Flux · Area)"]:::disc
 ```
 > **Figure 1:** พื้นฐานการคำนวณในวิธีปริมาตรจำกัดที่ใช้ทฤษฎีบทของเกาส์ในการเปลี่ยนรูปแบบอินทิกรัลเชิงปริมาตรให้กลายเป็นการหาผลรวมเชิงพีชคณิตบนหน้าเซลล์ที่คำนวณได้จริงความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

@@ -26,17 +26,28 @@ OpenFOAM ถูกออกแบบมาเพื่อรองรับ:
 
 ```mermaid
 graph TD
-    A[Case Dictionary] --> B[RTS Registry]
-    B --> C[Factory Method]
-    C --> D[Custom Model Object]
-    D --> E[Solver Loop]
-    E --> F[Physics Results]
-
-    subgraph "The Integration Chain"
-    B
-    C
-    D
+    classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    
+    A[Case Dictionary]:::explicit
+    B[RTS Registry]:::implicit
+    C[Factory Method]:::implicit
+    D[Custom Model Object]:::success
+    E[Solver Loop]:::implicit
+    F[Physics Results]:::success
+    
+    subgraph IntegrationChain["The Integration Chain"]
+        B
+        C
+        D
     end
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
 ```
 > **Figure 1:** ห่วงโซ่การบูรณาการ (Integration Chain) ที่แสดงให้เห็นว่าโมเดลแบบกำหนดเองเชื่อมต่อกับระบบส่วนใหญ่ของ OpenFOAM อย่างไร ตั้งแต่การอ่านค่าจากพจนานุกรม การสร้างออบเจกต์ผ่านโรงงาน (Factory) ไปจนถึงการทำงานภายในวงรอบของโซลเวอร์
 

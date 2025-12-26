@@ -13,26 +13,27 @@
 
 ```mermaid
 flowchart TD
-    A[Fields ใน OpenFOAM] --> B[รากฐานทางคณิตศาสตร์]
-    A --> C[สถาปัตยกรรมการออกแบบ]
-    A --> D[การจัดการหน่วยความจำ]
-    A --> E[ระบบความปลอดภัย]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[OpenFOAM Fields]:::implicit --> B[Math Base]:::implicit
+A --> C[Architecture]:::implicit
+A --> D[Memory Mgmt]:::implicit
+A --> E[Safety]:::implicit
 
-    B --> B1[เทนเซอร์ & เวกเตอร์]
-    B --> B2[กฎการอนุรักษ์]
-    B --> B3[การวิเคราะห์มิติ]
+B --> B1[Tensors]:::explicit
+B --> B2[Conservation]:::explicit
+B --> B3[Dim Analysis]:::explicit
 
-    C --> C1[ลำดับชั้นการสืบทอด]
-    C --> C2[Template Metaprogramming]
-    C --> C3[Expression Templates]
+C --> C1[Inheritance]:::explicit
+C --> C2[Templates]:::explicit
 
-    D --> D1[Reference Counting]
-    D --> D2[Lazy Evaluation]
-    D --> D3[Cache Optimization]
+D --> D1[Ref Counting]:::explicit
+D --> D2[Lazy Eval]:::explicit
 
-    E --> E1[Compile-time Type Checking]
-    E --> E2[Dimensional Analysis]
-    E --> E3[Geometric Consistency]
+E --> E1[Type Check]:::explicit
+E --> E2[Dim Check]:::explicit
 ```
 > **Figure 1:** แผนผังแนวคิดโดยรวมของระบบฟิลด์ใน OpenFOAM ซึ่งรวบรวมรากฐานทางคณิตศาสตร์ สถาปัตยกรรมการออกแบบ และระบบความปลอดภัยเข้าไว้ด้วยกัน
 
@@ -135,17 +136,20 @@ $$\rho c_p\frac{\partial T}{\partial t} + \rho c_p\mathbf{u} \cdot \nabla T = k\
 
 ```mermaid
 flowchart TD
-    A[List&lt;Type&gt;] --> B[Field&lt;Type&gt;]
-    B --> C[DimensionedField]
-    C --> D[GeometricField]
-    D --> E1[volScalarField]
-    D --> E2[volVectorField]
-    D --> E3[surfaceScalarField]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+%% Nodes
+A[List]:::implicit --> B[Field]:::implicit
+B --> C[DimensionedField]:::implicit
+C --> D[GeometricField]:::implicit
+D --> E1[volScalarField]:::explicit
 
-    A -.->|Raw Data| A1[Memory Blocks]
-    B -.->|Math Operations| B1[Reference Counting]
-    C -.->|Physical Units| C1[Dimensional Analysis]
-    D -.->|Spatial Context| D1[Boundary Conditions]
+A -.->|Raw| A1[Memory]:::context
+B -.->|Math| B1[Refs]:::context
+C -.->|Units| C1[Analysis]:::context
+D -.->|Space| D1[BCs]:::context
 ```
 > **Figure 2:** ลำดับชั้นการสืบทอบของคลาสฟิลด์แบบย่อ ซึ่งแสดงเลเยอร์หลักจากข้อมูลดิบไปสู่ข้อมูลทางเรขาคณิตและฟิสิกส์พร้อมคำอธิบายหน้าที่ในแต่ละระดับ
 
@@ -218,17 +222,21 @@ volScalarField kineticEnergy("kE", 0.5 * magSqr(U)); // vector² = scalar
 
 ```mermaid
 flowchart LR
-    A[Design Decisions] --> B[Reference Counting]
-    A --> C[Expression Templates]
-    A --> D[Lazy Evaluation]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Design]:::implicit --> B[Ref Counting]:::explicit
+A --> C[Expr Templates]:::explicit
+A --> D[Lazy Eval]:::explicit
 
-    B --> E[Memory Efficiency]
-    C --> F[Computational Fusion]
-    D --> G[Cache Optimization]
+B --> E[Efficiency]:::implicit
+C --> F[Fusion]:::implicit
+D --> G[Cache Opt]:::implicit
 
-    E --> H[Large-Scale CFD]
-    F --> H
-    G --> H
+E --> H[Large Scale CFD]:::explicit
+F --> H
+G --> H
 ```
 > **Figure 3:** ความสัมพันธ์ระหว่างการตัดสินใจด้านการออกแบบระบบฟิลด์กับผลกระทบเชิงบวกที่เกิดขึ้นต่อประสิทธิภาพและความถูกต้องในการจำลอง CFD ขนาดใหญ่
 

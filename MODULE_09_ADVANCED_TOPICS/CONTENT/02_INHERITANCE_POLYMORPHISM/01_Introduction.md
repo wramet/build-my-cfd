@@ -21,22 +21,22 @@
 
 ```mermaid
 classDiagram
-    class dragModel {
-        <<abstract>>
-        +Kd(alpha1, alpha2, U1, U2)*
-    }
-    class SchillerNaumann {
-        +Kd(alpha1, alpha2, U1, U2)
-    }
-    class MorsiAlexander {
-        +Kd(alpha1, alpha2, U1, U2)
-    }
-    class CustomDragModel {
-        +Kd(alpha1, alpha2, U1, U2)
-    }
-    dragModel <|-- SchillerNaumann
-    dragModel <|-- MorsiAlexander
-    dragModel <|-- CustomDragModel
+class dragModel {
+<<abstract>>
++Kd(alpha1, alpha2, U1, U2)*
+}
+class SchillerNaumann {
++Kd(alpha1, alpha2, U1, U2)
+}
+class MorsiAlexander {
++Kd(alpha1, alpha2, U1, U2)
+}
+class CustomDragModel {
++Kd(alpha1, alpha2, U1, U2)
+}
+dragModel <|-- SchillerNaumann
+dragModel <|-- MorsiAlexander
+dragModel <|-- CustomDragModel
 ```
 
 > **Figure 1:** แผนผังคลาสแสดงลำดับชั้นการสืบทอดของ `dragModel` โดยที่ `dragModel` ทำหน้าที่เป็นคลาสฐานนามธรรม (Abstract Base Class) ที่กำหนดอินเทอร์เฟซมาตรฐาน `Kd` และมีคลาสลูกต่างๆ เช่น `SchillerNaumann` หรือ `CustomDragModel` ที่นำอินเทอร์เฟซนี้ไปใช้งานจริงตามหลักการพหุสัณฐาน (Polymorphism)

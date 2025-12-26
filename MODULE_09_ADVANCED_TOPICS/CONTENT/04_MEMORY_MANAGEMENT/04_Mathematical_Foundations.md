@@ -56,17 +56,15 @@ $$
 
 ```mermaid
 graph LR
-    subgraph "Processor Cache (64-byte lines)"
-    CL1[Cache Line 1<br/>refCount_ A]
-    CL2[Cache Line 2<br/>refCount_ B]
-    CL3[Cache Line 3<br/>Unused/Padding]
-    end
-
-    T1[Thread 1] --> CL1
-    T2[Thread 2] --> CL2
-
-    style CL1 fill:#dfd,stroke:#333
-    style CL2 fill:#dfd,stroke:#333
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+subgraph "Processor Cache (64-byte lines)"
+CL1[Cache Line 1<br/>refCount_ A]:::implicit
+CL2[Cache Line 2<br/>refCount_ B]:::implicit
+CL3[Cache Line 3<br/>Unused/Padding]:::explicit
+end
+T1[Thread 1]:::explicit --> CL1
+T2[Thread 2]:::explicit --> CL2
 ```
 > **Figure 1:** แผนผังการจัดวางตัวนับการอ้างอิง (refCount_) บนหน่วยความจำแคช โดยมีการใช้ `alignas(64)` เพื่อแยกตัวแปรของแต่ละออบเจกต์ให้อยู่คนละ Cache Line ป้องกันปัญหา False Sharing ที่จะทำให้ประสิทธิภาพลงลงเมื่อมีการประมวลผลแบบขนาน (Parallel Processing)
 

@@ -12,31 +12,39 @@
 
 ```mermaid
 graph LR
-    A["โครงสร้าง OpenFOAM CFD"] --> B["ประเภทข้อมูลพื้นฐาน (Primitive Types)"]
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
+A["โครงสร้าง OpenFOAM CFD"]:::context --> B["ประเภทข้อมูลพื้นฐาน (Primitive Types)"]:::context
 
-    B --> C["label<br/>ประเภทจำนวนเต็ม<br/>การทำดัชนีที่พกพาได้"]
-    B --> D["scalar<br/>เลขทศนิยม<br/>การวัดที่แม่นยำ"]
-    B --> E["word<br/>ประเภทสตริง<br/>การจัดเก็บแบบระบุชื่อ"]
+subgraph Primitives[" Core Types "]
+    C["label<br/>ประเภทจำนวนเต็ม"]:::implicit
+    D["scalar<br/>เลขทศนิยม"]:::implicit
+    E["word<br/>ประเภทสตริง"]:::implicit
+end
 
-    C --> C1["การทำดัชนีเมช"]
-    C --> C2["ตัวนับลูป"]
-    C --> C3["ขนาดอาร์เรย์"]
+B --> C
+B --> D
+B --> E
 
-    D --> D1["ปริมาณทางฟิสิกส์"]
-    D --> D2["ค่าตัวเลข"]
-    D --> D3["การดำเนินการทางคณิตศาสตร์"]
+subgraph UsageC[" Label Usage "]
+    C --> C1["การทำดัชนีเมช"]:::explicit
+    C --> C2["ตัวนับลูป"]:::explicit
+    C --> C3["ขนาดอาร์เรย์"]:::explicit
+end
 
-    E --> E1["ชื่อฟิลด์"]
-    E --> E2["เส้นทางไฟล์"]
-    E --> E3["เงื่อนไขขอบเขต"]
+subgraph UsageD[" Scalar Usage "]
+    D --> D1["ปริมาณทางฟิสิกส์"]:::explicit
+    D --> D2["ค่าตัวเลข"]:::explicit
+    D --> D3["การดำเนินการทางคณิตศาสตร์"]:::explicit
+end
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:3px,color:#000
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-
-    class B,C,D,E process
-    class C1,C2,C3,D1,D2,D3,E1,E2,E3 storage
+subgraph UsageE[" Word Usage "]
+    E --> E1["ชื่อฟิลด์"]:::explicit
+    E --> E2["เส้นทางไฟล์"]:::explicit
+    E --> E3["เงื่อนไขขอบเขต"]:::explicit
+end
 ```
 > **รูปที่ 1:** ความสัมพันธ์ระหว่างโครงสร้างการคำนวณ CFD ของ OpenFOAM กับประเภทข้อมูลพื้นฐาน (Primitive Types) ซึ่งเปรียบเสมือนองค์ประกอบหลักที่ใช้ในการสร้างระบบการจำลองที่มั่นคงและแม่นยำ
 

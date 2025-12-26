@@ -13,15 +13,19 @@
 
 ```mermaid
 flowchart TD
-    Start([Start Validation Driver]) --> Setup[1. Setup Time & Mesh]
-    Setup --> Models[2. Select Physics Models]
-    Models --> Solve[3. Solver Execution Loop]
-    Solve --> Extract[4. Extract Key Data: Drag, Flux, etc.]
-    Extract --> Compare{5. Compare vs Reference}
-    Compare -- PASS --> Log[Log Success]
-    Compare -- FAIL --> Warn[Log Warning/Failure]
-    Log --> Report([Generate Final Report])
-    Warn --> Report
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+Start([Start Validation Driver]):::explicit --> Setup[1. Setup Time & Mesh]:::implicit
+Setup --> Models[2. Select Physics Models]:::implicit
+Models --> Solve[3. Solver Execution Loop]:::implicit
+Solve --> Extract[4. Extract Key Data: Drag, Flux, etc.]:::implicit
+Extract --> Compare{5. Compare vs Reference}:::warning
+Compare -- PASS --> Log[Log Success]:::success
+Compare -- FAIL --> Warn[Log Warning/Failure]:::explicit
+Log --> Report([Generate Final Report]):::implicit
+Warn --> Report
 ```
 
 ### องค์ประกอบหลักในโค้ด Validation:

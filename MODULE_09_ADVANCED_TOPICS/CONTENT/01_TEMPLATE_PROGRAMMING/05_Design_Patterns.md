@@ -239,14 +239,18 @@ auto velocitySecondDerivative = fvc::grad(fvc::grad(velocity));
 
 ```mermaid
 graph TD
-    A[PDESolver<FieldType, Policy>] --> B[Algorithm Layer<br/>Navier-Stokes, Heat Eq]
-    B --> C{Policy Injection}
-    C --> D[GaussDiscretization<br/>Standard FVM]
-    C --> E[LeastSquaresDiscretization<br/>Unstructured Reconstruction]
-    C --> F[CustomResearchPolicy<br/>Experimental Scheme]
-    D --> G[Optimized Machine Code]
-    E --> G
-    F --> G
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[PDESolver~FieldType, Policy~]:::explicit --> B[Algorithm Layer<br/>Navier-Stokes, Heat Eq]:::implicit
+B --> C{Policy Injection}:::warning
+C --> D[GaussDiscretization<br/>Standard FVM]:::implicit
+C --> E[LeastSquaresDiscretization<br/>Unstructured Reconstruction]:::implicit
+C --> F[CustomResearchPolicy<br/>Experimental Scheme]:::implicit
+D --> G[Optimized Machine Code]:::success
+E --> G
+F --> G
 ```
 > **Figure 1:** แผนผังแสดงรูปแบบการออกแบบ Policy-based Design ที่ OpenFOAM ใช้ในการแยกอัลกอริทึมหลัก (เช่น การแก้สมการ N-S) ออกจากวิธีการทางตัวเลข (Discretization) ทำให้เราสามารถเปลี่ยนวิธีการคำนวณได้ง่ายเพียงแค่เปลี่ยนพารามิเตอร์เทมเพลต โดยไม่มีภาระรันไทม์ (Zero Runtime Overhead)
 

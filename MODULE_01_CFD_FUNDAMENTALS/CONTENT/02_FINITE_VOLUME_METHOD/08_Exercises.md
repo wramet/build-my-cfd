@@ -25,34 +25,29 @@
 
 ```mermaid
 graph LR
-    subgraph "1D Mesh Configuration"
-        W1["Node W₁<br/>(Cell 1 West)<br/>φ = 0"] --> P2["Node P₂<br/>(Cell 1 East<br/>Cell 2 West)"]
-        P2 --> P3["Node P₃<br/>(Cell 2 East<br/>Cell 3 West)"]
-        P3 --> E4["Node E₄<br/>(Cell 3 East)<br/>φ = 100"]
-    end
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
 
-    subgraph "Cell Representation"
-        C1["Cell 1<br/>Control Volume"]
-        C2["Cell 2<br/>Control Volume"]
-        C3["Cell 3<br/>Control Volume"]
-    end
+subgraph Mesh["1D Computational Mesh"]
+    N_W["Node W<br/>(West Neighbor)"]:::implicit
+    Face_w["Face w<br/>(Interface)"]:::explicit
+    N_P["Node P<br/>(Current Cell)"]:::implicit
+    Face_e["Face e<br/>(Interface)"]:::explicit
+    N_E["Node E<br/>(East Neighbor)"]:::implicit
+end
 
-    subgraph "Matrix Coefficients"
-        AW["a_W<br/>West Coefficient"]
-        AP["a_P<br/>Diagonal Coefficient"]
-        AE["a_E<br/>East Coefficient"]
-    end
+subgraph Coefficients["Matrix Coefficients"]
+    aW["a_W (West Coeff)"]:::context
+    aP["a_P (Diagonal Coeff)"]:::context
+    aE["a_E (East Coeff)"]:::context
+end
 
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+N_W -.->|Contributes via| aW
+N_P -.->|Contributes via| aP
+N_E -.->|Contributes via| aE
 
-    class W1,P3,E4 process;
-    class P2 decision;
-    class C1,C2,C3 storage;
-    class AW,AP,AE terminator;
+N_W --- Face_w --- N_P --- Face_e --- N_E
 ```
 > **Figure 1:** การกำหนดรูปแบบ Mesh 1 มิติ และสัมประสิทธิ์เมทริกซ์ แสดงตำแหน่งของโหนด จุดศูนย์กลางเซลล์ และความสัมพันธ์ของปริมาตรควบคุมสำหรับปัญหาการแพร่
 
@@ -228,27 +223,23 @@ solve
 
 ```mermaid
 graph LR
-    subgraph Control_Volume_P
-        P["Cell P<br/>φ = 10<br/>Owner Cell"]
-    end
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
 
-    subgraph Control_Volume_N
-        N["Cell N<br/>φ = 20<br/>Neighbor Cell"]
-    end
+subgraph Owner["Owner Cell"]
+    P["Cell P<br/>φ = 10"]:::implicit
+end
 
-    F["Face f<br/>A = 1 m²<br/>Flux Calculation Point"]
+subgraph Interface["Flux Interface"]
+    F["Face f<br/>Flux = ρ·u·A"]:::explicit
+end
 
-    P -->|u = 1 m/s<br/>Flow Direction| F
-    F --> N
+subgraph Neighbor["Neighbor Cell"]
+    N["Cell N<br/>φ = 20"]:::implicit
+end
 
-    style P fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style N fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style F fill:#fff9c4,stroke:#fbc02d,stroke-width:3px,color:#000
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+P -->|Convection u > 0| F
+F -->|Transport| N
 ```
 > **Figure 2:** ปริมาตรควบคุมสำหรับการคำนวณฟลักซ์ แสดงการไหลจากเซลล์เจ้าของ (Owner) ไปยังเซลล์ข้างเคียง (Neighbor) ผ่านหน้าเซลล์ซึ่งเป็นจุดคำนวณฟลักซ์ของการพา
 

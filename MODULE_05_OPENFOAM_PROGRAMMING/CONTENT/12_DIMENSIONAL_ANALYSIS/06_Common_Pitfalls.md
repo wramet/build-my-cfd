@@ -600,16 +600,21 @@ Info << "Viscous term dimensions: " << viscTermDims << endl;
 
 ```mermaid
 flowchart TD
-    A[เริ่มต้น: ข้อผิดพลาดมิติ] --> B[อ่านข้อความแสดงข้อผิดพลาด]
-    B --> C[ระบุ LHS และ RHS มิติ]
-    C --> D[แปลงสัญลักษณ์เป็นสมการมิติ]
-    D --> E[ระบุการดำเนินการที่ล้มเหลว]
-    E --> F{ตรวจสอบสมการฟิสิกส์}
-    F -->|ถูกต้อง| G[แก้ไขการ implement]
-    F -->|ผิด| H[ทบทวนสมการ]
-    G --> I[ทดสอบอีกครั้ง]
-    H --> I
-    I --> J[แก้ไขแล้ว]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Error Start]:::explicit --> B[Read Msg]:::context
+B --> C[ID Dimensions]:::implicit
+C --> D[Convert Symbols]:::implicit
+D --> E[Find Fail Op]:::explicit
+E --> F{Check Physics}:::context
+F -->|OK| G[Fix Code]:::explicit
+F -->|Bad| H[Review Eqn]:::explicit
+G --> I[Retest]:::implicit
+H --> I
+I --> J[Fixed]:::implicit
 ```
 > **Figure 1:** แผนผังลำดับขั้นตอนการดีบักเมื่อเกิดข้อผิดพลาดด้านมิติ ตั้งแต่การอ่านข้อความแจ้งเตือนจากคอมไพเลอร์ไปจนถึงการตรวจสอบสมการฟิสิกส์และการแก้ไขโค้ด ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

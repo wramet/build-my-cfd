@@ -250,12 +250,12 @@ Macro `addToRunTimeSelectionTable` สร้าง helper class ที่มี 
 
 ```mermaid
 timeline
-    title Registration vs. Usage Lifecycle
-    Static Initialization : All built-in functionObjects register with global table
-    Program Start : main() begins execution
-    Dynamic Loading : libs() entry in controlDict triggers dlopen()
-    Library Registration : Static initializers in .so file register new types
-    Runtime Usage : Solver reads 'type forces', looks up in table, creates object
+title Registration vs. Usage Lifecycle
+Static Initialization : All built-in functionObjects register with global table
+Program Start : main() begins execution
+Dynamic Loading : libs() entry in controlDict triggers dlopen()
+Library Registration : Static initializers in .so file register new types
+Runtime Usage : Solver reads 'type forces', looks up in table, creates object
 ```
 
 > **Figure 1:** ลำดับเหตุการณ์ (Timeline) ของกระบวนการลงทะเบียนและเรียกใช้งานออบเจกต์ใน OpenFOAM เริ่มต้นจากการลงทะเบียนแบบสถิตเมื่อโปรแกรมเริ่มทำงาน ตามด้วยการโหลดไลบรารีเพิ่มเติมในระหว่างรันไทม์ และสิ้นสุดที่การนำออบเจกต์ไปใช้งานจริงเมื่อผู้ใช้เรียกผ่าน Dictionary

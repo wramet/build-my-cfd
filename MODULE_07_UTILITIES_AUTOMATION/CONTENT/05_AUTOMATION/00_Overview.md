@@ -88,18 +88,15 @@ $$
 
 ```mermaid
 flowchart TD
-    A[Geometry Module<br/>FreeCAD/OpenCASCADE] --> D[Workflow Orchestrator<br/>Python/Bash]
-    B[Mesh Module<br/>blockMesh/snappyHexMesh] --> D
-    C[Solver Module<br/>simpleFoam/pimplesFoam] --> D
-    D --> E[Post-Processing Module<br/>ParaView/Python]
-    D --> F[Report Generation Module<br/>Markdown/PDF]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style D fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style E fill:#ffebee,stroke:#c62828,stroke-width:2px
-    style F fill:#e0f2f1,stroke:#00695c,stroke-width:2px
+A[Geo Module]:::explicit --> D[Orchestrator]:::implicit
+B[Mesh Module]:::explicit --> D
+C[Solver Module]:::explicit --> D
+D --> E[Post Module]:::explicit
+D --> F[Report Module]:::explicit
 ```
 > **Figure 1:** สถาปัตยกรรมของระบบประสานงานเวิร์กโฟลว์ (Workflow Orchestrator) แสดงการเชื่อมโยงโมดูลอิสระสำหรับการเตรียมเรขาคณิต การสร้างเมช การแก้สมการ และการวิเคราะห์ผลลัพธ์ผ่านตัวควบคุมส่วนกลางเพื่อความยืดหยุ่นและบำรุงรักษาง่าย
 
@@ -993,19 +990,17 @@ This simulation **diverged** - please review solver settings.
 
 ```mermaid
 flowchart LR
-    A["Phase 1:<br/>Basic Scripting"] --> B["Phase 2:<br/>Parameter Studies"]
-    B --> C["Phase 3:<br/>HPC Integration"]
-    C --> D["Phase 4:<br/>Full Automation"]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
 
-    A1["Shell Scripts<br/>Makefiles"] --> A
-    B1["Python Automation<br/>YAML Configs"] --> B
-    C1["SLURM Integration<br/>Parallel Running"] --> C
-    D1["End-to-End Pipeline<br/>CI/CD"] --> D
+A[Ph1: Basic Scripting]:::explicit --> B[Ph2: Parametric]:::explicit
+B --> C[Ph3: HPC]:::implicit
+C --> D[Ph4: Automation]:::implicit
 
-    style A fill:#e3f2fd
-    style B fill:#fff9c4
-    style C fill:#e8f5e9
-    style D fill:#f3e5f5
+A1[Bash]:::explicit --> A
+B1[Python]:::explicit --> B
+C1[SLURM]:::implicit --> C
+D1[CI/CD]:::implicit --> D
 ```
 > **Figure 2:** แผนการดำเนินงาน (Roadmap) สำหรับการพัฒนาความเป็นอัตโนมัติในกระบวนการ CFD ตั้งแต่การเขียนสคริปต์พื้นฐาน การศึกษาพารามิเตอร์ จนถึงการบูรณาการเข้ากับระบบ HPC และการสร้างไปป์ไลน์แบบครบวงจร (End-to-End Pipeline)
 

@@ -48,10 +48,13 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \
 
 ```mermaid
 flowchart LR
-    A[Cell P] --> B[Neighbor N]
-    A --> C[Face f]
-    B --> C
-    C --> D[Flux Calculation]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Cell P]:::implicit --> C[Face f]:::explicit
+B[Neighbor N]:::implicit --> C
+C --> D[Flux Calculation]:::explicit
 ```
 > **Figure 1:** ความสัมพันธ์ระหว่างเซลล์ควบคุม (Cell P) กับเซลล์ข้างเคียง (Neighbor N) ผ่านหน้าสัมผัส (Face f) ซึ่งเป็นตำแหน่งหลักในการคำนวณฟลักซ์ (Flux Calculation) โดยใช้วิธี Finite Volume เพื่อเปลี่ยนสมการอนุพันธ์เชิงพื้นที่ให้เป็นรูปแบบพีชคณิตที่สามารถแก้ปัญหาได้
 
@@ -220,9 +223,13 @@ U.correctBoundaryConditions();
 
 ```mermaid
 flowchart LR
-    A[Linear Interpolation] --> B[Decoupled Pressure Field]
-    B --> C[Checkerboard Pattern]
-    C --> D[Unphysical Oscillations]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Linear Interp]:::implicit --> B[Decoupled P]:::explicit
+B --> C[Checkerboard]:::explicit
+C --> D[Oscillations]:::explicit
 ```
 > **Figure 2:** แผนภาพแสดงผลกระทบของการใช้การประมาณค่าแบบเชิงเส้น (Linear Interpolation) บนเมชแบบ Collocated ซึ่งนำไปสู่การแยกตัวของข้อมูลความดันและความเร็ว (Decoupling) ส่งผลให้เกิดรูปแบบความดันสลับฟันปลา (Checkerboard pattern) และการแกว่งทางตัวเลขที่ไม่มีความหมายทางกายภาพ
 

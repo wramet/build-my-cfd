@@ -471,19 +471,17 @@ OpenFOAM employs a sophisticated **dictionary-driven factory pattern** for insta
 This design pattern enables remarkable **flexibility** in model selection while maintaining **compile-time type safety** and **runtime efficiency**. The pattern is constructed through three carefully designed macros working together to create a plug-in architecture:
 
 ```mermaid
-flowchart TD
-    A[Dictionary Entry] --> B[viscosityModel::New]
-    B --> C{Factory Table Lookup}
-    C --> D[Model Found?]
-    D -->|Yes| E[Instantiate Model]
-    D -->|No| F[Error with Available Models]
-    E --> G[Return autoPtr to Model]
-
-    style A fill:#e3f2fd,stroke:#1976d2
-    style B fill:#bbdefb,stroke:#1976d2
-    style C fill:#90caf9,stroke:#1976d2
-    style E fill:#4caf50,stroke:#2e7d32
-    style F fill:#f44336,stroke:#c62828
+graph TD
+    classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+    
+    Entry["Dictionary Entry"]:::context
+    Selector["viscosityModel::New"]:::implicit
+    Factory["Factory Lookup"]:::implicit
+    Result["Return autoPtr"]:::explicit
+    
+    Entry --> Selector --> Factory --> Result
 ```
 > **Figure 1:** แผนภาพแสดงรูปแบบการออกแบบโรงงาน (Factory Pattern) สำหรับการเลือกแบบจำลองความหนืดขณะรันโปรแกรม (Runtime Selection) ซึ่งช่วยให้ผู้ใช้สามารถสลับเปลี่ยนแบบจำลองผ่านไฟล์ Dictionary ได้โดยไม่ต้องทำการคอมไพล์โค้ดใหม่
 
@@ -625,15 +623,17 @@ This macro expands to create a static object that:
 - **Requires** no modification to core OpenFOAM code
 
 ```mermaid
-flowchart LR
-    A[Static Initialization] --> B[Constructor Object Created]
-    B --> C[Registered in Factory Table]
-    C --> D[Available at Runtime]
-
-    style A fill:#fff3e0,stroke:#ef6c00
-    style B fill:#ffe0b2,stroke:#ef6c00
-    style C fill:#ffcc80,stroke:#ef6c00
-    style D fill:#ffa726,stroke:#ef6c00
+graph LR
+    classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+    
+    Static["Static Initialization"]:::context
+    Ctor["Constructor"]:::implicit
+    Reg["Register to Factory"]:::explicit
+    Runtime["Available at Runtime"]:::implicit
+    
+    Static --> Ctor --> Reg --> Runtime
 ```
 > **Figure 2:** แผนภูมิแสดงกลไกการลงทะเบียนแบบสถิต (Static Registration) ซึ่งเป็นพื้นฐานของสถาปัตยกรรมแบบปลั๊กอินใน OpenFOAM ช่วยให้ระบบสามารถค้นพบและเรียกใช้งานแบบจำลองความหนืดใหม่ๆ ได้โดยอัตโนมัติ
 
@@ -780,18 +780,18 @@ Non-Newtonian simulations often converge more difficultly than Newtonian flows d
 
 ```mermaid
 graph TD
-    A[Stabilization Strategies] --> B[Field Relaxation]
-    A --> C[Viscosity Bounding]
-    A --> D[Iterative Coupling]
-
-    B --> B1[U: 0.3-0.7, p: 0.3]
-    C --> C1[nuMin / nuMax limits]
-    D --> D1[Picard Iteration]
-
-    style A fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    style B fill:#bbdefb
-    style C fill:#bbdefb
-    style D fill:#bbdefb
+    classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+    
+    Root["Stabilization Strategies"]:::context
+    Relax["Field Relaxation<br/>U:0.7, p:0.3"]:::implicit
+    Bound["Viscosity Bounding<br/>nuMin / nuMax"]:::implicit
+    Iter["Iterative Coupling<br/>Picard"]:::implicit
+    
+    Root --> Relax
+    Root --> Bound
+    Root --> Iter
 ```
 > **Figure 3:** แผนภาพสรุปกลยุทธ์การรักษาเสถียรภาพทางตัวเลข (Stabilization Strategies) สำหรับการจำลองของไหลที่ไม่ใช่แบบนิวตัน เพื่อป้องกันปัญหาการไม่ลู่เข้าของคำตอบที่เกิดจากการเปลี่ยนแปลงความหนืดอย่างรวดเร็ว
 

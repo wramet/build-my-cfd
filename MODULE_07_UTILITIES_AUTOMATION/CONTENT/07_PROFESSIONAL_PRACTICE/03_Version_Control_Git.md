@@ -186,19 +186,15 @@ git lfs migrate import --include="*.stl,*.step,*.pdf" --everything
 
 ```mermaid
 flowchart TD
-    Main[main Branch<br/>Production-Ready Cases] --> Dev[develop Branch<br/>Integration & Testing]
-    Dev --> Feature1[feature/mesh-refinement<br/>Mesh Improvements]
-    Dev --> Feature2[feature/turbulence-model<br/>Physics Updates]
-    Dev --> Feature3[feature/boundary-conditions<br/>BC Modifications]
-    Dev --> Hotfix[hotfix/critical-bug<br/>Urgent Fixes]
-    Main --> Hotfix
-
-    style Main fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-    style Dev fill:#fff9c4,stroke:#f57f17,stroke-width:2px
-    style Feature1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style Feature2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style Feature3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style Hotfix fill:#ffccbc,stroke:#d84315,stroke-width:2px
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+Main[main<br/>Production]:::implicit --> Dev[develop<br/>Integration]:::implicit
+Dev --> Feature1[feature/mesh]:::explicit
+Dev --> Feature2[feature/physics]:::explicit
+Dev --> Feature3[feature/BC]:::explicit
+Dev --> Hotfix[hotfix/bug]:::explicit
+Main --> Hotfix
 ```
 > **Figure 1:** รูปแบบการแตกกิ่ง (Branching Model) มาตรฐานสำหรับโครงการ CFD แสดงการแยกกิ่งหลัก (main) กิ่งพัฒนา (develop) กิ่งฟีเจอร์สำหรับงานเฉพาะทาง และกิ่งแก้ไขปัญหาเร่งด่วน (hotfix) เพื่อรักษาความเสถียรของเคสที่พร้อมใช้งานจริง
 
@@ -364,28 +360,24 @@ git commit -m "bc(inlet): update turbulence inlet values based on IBC"
 
 ```mermaid
 flowchart TD
-    Start([เริ่มงานใหม่]) --> Checkout[git checkout develop<br/>git pull]
-    Checkout --> Branch[git checkout -b<br/>feature/my-feature]
-    Branch --> Edit[แก้ไข Dictionary หรือสคริปต์]
-    Edit --> Stage[git add &lt;files&gt;]
-    Stage --> Commit[git commit -m<br/>"feat: clear message"]
-    Commit --> Test[รัน Test สั้นๆ<br/>ตรวจสอบความถูกต้อง]
-    Test --> TestPass{Test ผ่าน?}
-    TestPass -->|ผ่าน| Push[git push origin<br/>feature/my-feature]
-    TestPass -->|ไม่ผ่าน| Edit
-    Push --> PR[สร้าง Pull Request<br/>ใน GitHub/GitLab]
-    PR --> Review{Code Review<br/>ผ่าน?}
-    Review -->|แก้ไข| Edit
-    Review -->|อนุมัติ| Merge[Merge เข้า develop]
-    Merge --> Cleanup[git branch -d<br/>feature/my-feature]
-    Cleanup --> End([สิ้นสุด])
-
-    style Start fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style End fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style Test fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
-    style TestPass fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
-    style PR fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style Merge fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+Start([Start]):::context --> Checkout[Checkout Develop]:::implicit
+Checkout --> Branch[Create Feature Branch]:::implicit
+Branch --> Edit[Edit Code/Dicts]:::explicit
+Edit --> Stage[git add]:::implicit
+Stage --> Commit[git commit]:::implicit
+Commit --> Test[Run Local Test]:::explicit
+Test --> TestPass{Pass?}:::explicit
+TestPass -->|Yes| Push[git push]:::implicit
+TestPass -->|No| Edit
+Push --> PR[Pull Request]:::explicit
+PR --> Review{Review?}:::explicit
+Review -->|Changes| Edit
+Review -->|Approve| Merge[Merge]:::implicit
+Merge --> Cleanup[Delete Branch]:::context
+Cleanup --> End([End]):::context
 ```
 > **Figure 2:** แผนภูมิขั้นตอนการทำงานแบบ Feature Branch Workflow ครอบคลุมตั้งแต่การสร้างกิ่งใหม่ การแก้ไขและทดสอบเคส การตรวจสอบโค้ด (Code Review) ผ่าน Pull Request ไปจนถึงการรวมกิ่งเข้าสู่สายการพัฒนาหลัก
 
@@ -393,28 +385,32 @@ flowchart TD
 
 ```mermaid
 sequenceDiagram
-    participant A as Engineer A
-    participant Git as Git Repository
-    participant B as Engineer B
+participant A as Engineer A
+participant Git as Git Repository
+participant B as Engineer B
 
-    A->>Git: git checkout -b feature/new-mesh
-    A->>Git: git commit -m "mesh: add refinement"
-    A->>Git: git push origin feature/new-mesh
+A->>Git: git checkout -b feature/new-mesh
+A->>Git: git commit -m "mesh: add refinement"
+A->>Git: git push origin feature/new-mesh
 
-    B->>Git: git checkout develop
-    B->>Git: git pull
-    B->>Git: git checkout -b feature/bc-update
-    B->>Git: git commit -m "bc: update inlet profile"
+B->>Git: git checkout develop
+B->>Git: git pull
+B->>Git: git checkout -b feature/bc-update
+B->>Git: git commit -m "bc: update inlet profile"
 
-    Note over A,B: ทำงานแบบ Parallel ไม่ชนกัน
+Note over A,B: Parallel Work
+par Parallel Development
     A->>Git: Create Pull Request
+and
     B->>Git: Create Pull Request
+end
 
-    B->>Git: Review & Approve PR
-    A->>Git: Merge feature/new-mesh
-    B->>Git: Merge feature/bc-update
+Note over Git: Review Process
+B->>Git: Review & Approve PR
+A->>Git: Merge feature/new-mesh
+B->>Git: Merge feature/bc-update
 
-    Note over Git: ทั้งคู่อัปเดต develop
+Note over Git: Develop Updated
 ```
 > **Figure 3:** แผนผังลำดับเหตุการณ์ (Sequence Diagram) แสดงการทำงานร่วมกันระหว่างวิศวกรหลายคนในโครงการเดียวกัน โดยใช้ระบบ Git ในการจัดการการเปลี่ยนแปลงที่เกิดขึ้นพร้อมกันแบบขนาน (Parallel Development) โดยไม่เกิดความขัดแย้งของข้อมูล
 
@@ -763,23 +759,26 @@ chmod +x .git/hooks/pre-commit
 
 ```mermaid
 flowchart TD
-    Repo[Git Repository] --> Monorepo[Monorepo Structure]
-    Repo --> Multirepo[Multi-Repo Structure]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
 
-    Monorepo --> Cases1[Cases/]
-    Cases1 --> Case1[Airfoil_NACA0012/]
-    Cases1 --> Case2[Airfoil_NACA4412/]
-    Cases1 --> Case3[Backward_Facing_Step/]
+Repo[Git Repo]:::context --> Monorepo[Monorepo]:::implicit
+Repo --> Multirepo[Multi-Repo]:::implicit
 
-    Monorepo --> Shared[Shared/]
-    Shared --> Scripts[Scripts/]
-    Shared --> MeshTemplates[MeshTemplates/]
-    Shared --> Documentation[Docs/]
+Monorepo --> Cases1[Cases/]:::explicit
+Cases1 --> Case1[NACA0012]:::context
+Cases1 --> Case2[NACA4412]:::context
+Cases1 --> Case3[Step Flow]:::context
 
-    style Repo fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
-    style Monorepo fill:#fff9c4,stroke:#f57f17,stroke-width:2px
-    style Cases1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style Shared fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+Monorepo --> Shared[Shared/]:::explicit
+Shared --> Scripts[Scripts/]:::context
+Shared --> MeshTemplates[Templates/]:::context
+Shared --> Documentation[Docs/]:::context
+
+Multirepo --> Repo1[Case Repo 1]:::context
+Multirepo --> Repo2[Case Repo 2]:::context
+Multirepo --> Repo3[Shared Libs]:::explicit
 ```
 > **Figure 4:** การเปรียบเทียบโครงสร้างการจัดเก็บ Repository ระหว่างแบบ Monorepo (รวมทุกเคสและสคริปต์ไว้ที่เดียว) และแบบ Multi-Repo โดยเน้นการจัดระเบียบส่วนที่ใช้งานร่วมกัน (Shared Resources) เพื่อความสะดวกในการบริหารจัดการโครงการขนาดใหญ่
 

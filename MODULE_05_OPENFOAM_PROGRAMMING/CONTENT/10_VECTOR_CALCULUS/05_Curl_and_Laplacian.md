@@ -51,12 +51,13 @@ Where:
 
 ```mermaid
 flowchart LR
-    A[Vector Field u] --> B[Curl Operation ∇×u]
-    B --> C[Vorticity ω]
-    C --> D[Rotation Analysis]
-
-    style B fill:#fff9c4,stroke:#fbc02d
-    style C fill:#ffccbc,stroke:#e64a19
+    classDef data fill:#e1f5fe,stroke:#0288d1,color:#000
+    classDef op fill:#fff9c4,stroke:#fbc02d,color:#000
+    classDef result fill:#ffccbc,stroke:#d84315,color:#000
+    
+    U[Vector Field U]:::data --> Op[Curl: ∇×U]:::op
+    Op --> W[Vorticity ω]:::result
+    W --> Analysis[Rotation Analysis]:::data
 ```
 > **Figure 1:** กระบวนการคำนวณตัวดำเนินการเคิร์ล (Curl) เพื่อวิเคราะห์การหมุนวนของฟิลด์เวกเตอร์ ซึ่งเป็นพื้นฐานในการหาค่า Vorticity ในการจำลองการไหล
 
@@ -478,12 +479,13 @@ fvScalarMatrix unstableEqn(
 ## 3. Comparison Summary
 
 ```mermaid
-graph LR
-    U[Vector Field: U] -- "fvc::curl" --> V[Vorticity: Rotation]
-    T[Scalar Field: T] -- "fvm::laplacian" --> D[Heat Transfer: Diffusion]
-
-    style V fill:#fff9c4,stroke:#fbc02d
-    style D fill:#ffccbc,stroke:#e64a19
+flowchart LR
+    classDef vec fill:#e1f5fe,stroke:#0277bd,color:#000
+    classDef scal fill:#ffecb3,stroke:#ff6f00,color:#000
+    classDef op fill:#e0e0e0,stroke:#333,stroke-dasharray: 5 5,color:#000
+    
+    U[Vector U]:::vec -->|fvc::curl| V[Vorticity]:::vec
+    T[Scalar T]:::scal -->|fvm::laplacian| H[Heat Matrix]:::scal
 ```
 > **Figure 2:** การเปรียบเทียบหน้าที่ระหว่างตัวดำเนินการเคิร์ลที่ใช้สำหรับวิเคราะห์การหมุน และตัวดำเนินการลาปลาเชียนที่ใช้สำหรับจำลองกระบวนการแพร่กระจายในฟิสิกส์ต่างๆ
 

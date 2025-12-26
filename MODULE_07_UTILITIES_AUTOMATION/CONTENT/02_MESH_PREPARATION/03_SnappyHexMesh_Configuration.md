@@ -22,17 +22,20 @@
 
 ```mermaid
 flowchart TD
-    A[CAD Geometry] --> B[Surface Preparation]
-    B --> C[Feature Extraction]
-    C --> D[Background Mesh<br/>blockMesh]
-    D --> E[Castellated Mesh<br/>snappyHexMesh]
-    E --> F[Surface Snapping]
-    F --> G[Boundary Layer Addition]
-    G --> H[Quality Assessment]
-    H --> I{Quality Acceptable?}
-    I -->|No| J[Refinement & Iteration]
-    J --> E
-    I -->|Yes| K[Final Mesh]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Geometry]:::context --> B[Surface Prep]:::explicit
+B --> C[Features]:::explicit
+C --> D[blockMesh]:::implicit
+D --> E[snappyHexMesh]:::implicit
+E --> F[Snapping]:::implicit
+F --> G[Layers]:::implicit
+G --> H[Check]:::explicit
+H --> I{OK?}:::explicit
+I -->|No| J[Refine]:::explicit
+J --> E
+I -->|Yes| K[Final Mesh]:::context
 ```
 > **Figure 1:** Flowchart showing the complete snappyHexMesh workflow from surface geometry preparation, through feature extraction and background mesh generation, to boundary layer addition and iterative quality assessment for optimal simulation results
 

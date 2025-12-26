@@ -11,14 +11,17 @@
 
 ```mermaid
 flowchart TD
-    A[lduMatrix<br/>Sparse Matrix Operations] --> B[fvMatrix<br/>Finite Volume Matrix]
-    C[GeometricField] --> B
-    D[dimensionSet] --> B
-    E[Boundary Conditions] --> B
-
-    B --> F[Scalar/Vector/Tensor Fields]
-    B --> G[Linear System Assembly]
-    B --> H[Solver Operations]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[lduMatrix: Sparse]:::implicit --> B[fvMatrix: FVM]:::implicit
+C[GeometricField]:::explicit -.-> B
+D[dimensionSet]:::implicit -.-> B
+E[BCs]:::explicit -.-> B
+B --> F[Fields]:::implicit
+B --> G[Assembly]:::explicit
+B --> H[Solver Ops]:::explicit
 ```
 > **Figure 1:** ลำดับชั้นความสัมพันธ์ของคลาส `fvMatrix` ที่ขยายความสามารถจากเมทริกซ์เบาบางพื้นฐานไปสู่การเป็นออบเจ็กต์ที่รับรู้ถึงฟิลด์ข้อมูลและมิติทางฟิสิกส์
 
@@ -122,15 +125,18 @@ Each operator contributes to the LDU matrix components:
 
 ```mermaid
 flowchart LR
-    A[fvm::ddt] --> D[Diagonal + Source]
-    B[fvm::div] --> U[Upper + Lower]
-    C[fvm::laplacian] --> All[Diagonal + Upper + Lower]
-
-    subgraph LDU["fvMatrix LDU Structure"]
-        D
-        U
-        All
-    end
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[fvm::ddt]:::explicit --> D[Diagonal + Source]:::implicit
+B[fvm::div]:::explicit --> U[Upper + Lower]:::implicit
+C[fvm::laplacian]:::explicit --> All[Diag + Up + Low]:::implicit
+subgraph LDU [fvMatrix LDU]
+    D
+    U
+    All
+end
 ```
 > **Figure 2:** แผนภาพแสดงการกระจายตัวของเทอมต่างๆ ในสมการ Navier-Stokes เข้าสู่โครงสร้าง LDU ของ `fvMatrix` ทั้งในส่วนแนวทแยง (Diagonal) และส่วนนอกแนวทแยง (Upper/Lower)
 

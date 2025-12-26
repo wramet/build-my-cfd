@@ -6,14 +6,21 @@
 
 ```mermaid
 graph LR
-    A["Continuous Time<br/>Function f(t)"] --> B["Time Step Δt<br/>Discretization"]
-    B --> C["Discrete Time Points<br/>t₀, t₁, t₂, t₃..."]
-    C --> D["Numerical Solution<br/>at Each Step"]
+%% Timeline
+TimeCont["Continuous Time t"]:::implicit
+subgraph DiscreteSteps["Time Steps"]
+    t0["t_0"]:::context
+    dt1["Δt"]:::explicit
+    t1["t_1"]:::implicit
+    dt2["Δt"]:::explicit
+    t2["t_2"]:::implicit
+end
+TimeCont --> t0 --> dt1 --> t1 --> dt2 --> t2
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style D fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px
 ```
 > **Figure 1:** การทำให้เป็นดิสครีตเชิงเวลาจากฟังก์ชันเวลาต่อเนื่องไปสู่จุดเวลาดิสครีต โดยการแบ่งขั้นตอนเวลา $\Delta t$ เพื่อหาผลเฉลยเชิงตัวเลขในแต่ละก้าวเวลา
 
@@ -136,29 +143,28 @@ ddtSchemes
 
 ```mermaid
 graph TD
-    A["Time Integration<br/>Schemes"] --> B["Explicit Euler"]
-    A --> C["Implicit Euler"]
-    A --> D["Crank-Nicolson"]
+%% Taxonomy of Schemes
+Root["Time Integration Schemes"]:::implicit
+subgraph Explicit["Explicit Methods"]
+    ExpEuler["Explicit Euler"]:::explicit
+    PropExp["First Order Conditionally Stable (CFL)"]:::context
+end
+subgraph Implicit["Implicit Methods"]
+    ImpEuler["Implicit Euler"]:::implicit
+    PropImp["First Order Unconditionally Stable"]:::context
+    CN["Crank-Nicolson"]:::implicit
+    PropCN["Second Order Marginally Stable"]:::context
+end
+Root --> Explicit
+Root --> Implicit
+ExpEuler --- PropExp
+ImpEuler --- PropImp
+CN --- PropCN
 
-    B --> B1["First-order accurate"]
-    B --> B2["Conditionally stable"]
-    B --> B3["Small time steps only"]
-    B --> B4["Low computational cost"]
-
-    C --> C1["First-order accurate"]
-    C --> C2["Unconditionally stable"]
-    C --> C3["Large time steps allowed"]
-    C --> C4["High computational cost"]
-
-    D --> D1["Second-order accurate"]
-    D --> D2["Unconditionally stable"]
-    D --> D3["Best accuracy"]
-    D --> D4["May oscillate with large dt"]
-
-    style A fill:#e1f5fe
-    style B fill:#ffebee
-    style C fill:#e8f5e9
-    style D fill:#fff3e0
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px
 ```
 > **Figure 2:** การเปรียบเทียบวิธีการอินทิเกรตเชิงเวลา (Explicit Euler, Implicit Euler และ Crank-Nicolson) โดยแสดงความแตกต่างในด้านลำดับความแม่นยำ เสถียรภาพ และต้นทุนในการคำนวณ
 
@@ -199,38 +205,24 @@ $$\frac{\partial (\rho \phi)}{\partial t} + \nabla \cdot (\rho \mathbf{u} \phi) 
 
 ```mermaid
 graph TD
-    A["General Transport Equation"] --> B["Temporal Discretization"]
-    A --> C["Spatial Discretization"]
-    A --> D["Source Terms"]
+%% Logic of ddt contribution
+Term["Time Derivative ∂(ρφ)/∂t"]:::implicit
+subgraph Discretization["Discretization"]
+    Euler["Euler Scheme"]:::context
+    Eq["(ρφ_new - ρφ_old) / Δt"]:::explicit
+end
+subgraph MatrixContrib["Matrix Contributions"]
+    Diag["Diagonal (a_P) Add: ρV/Δt"]:::implicit
+    Source["Source (b) Add: (ρV/Δt)*φ_old"]:::explicit
+end
+Term --> Euler --> Eq
+Eq --> Diag
+Eq --> Source
 
-    B --> E["Explicit Euler"]
-    B --> F["Implicit Euler"]
-    B --> G["Crank-Nicolson"]
-
-    E --> H["Time term becomes Source"]
-    F --> I["Time term adds to Diagonal"]
-    G --> I
-
-    I --> J["Coefficient Matrix Structure"]
-    H --> J
-
-    J --> K["Diagonal Elements: aP"]
-    J --> L["Off-diagonal: aN"]
-    J --> M["Source Vector: bP"]
-
-    K --> N["aP = aP_original + ρV/Δt"]
-    L --> O["aN = aN_original"]
-    M --> P["bP = bP_original + time contribution"]
-
-    subgraph "Matrix Visual"
-        Q["[aP  aN  0  ]"]
-        R["[aN  aP  aN ]"]
-        S["[0   aN  aP ]"]
-    end
-
-    style Q fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style R fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style S fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px
 ```
 > **Figure 3:** ส่วนร่วมของการทำให้เป็นดิสครีตเชิงเวลาต่อโครงสร้างเมทริกซ์สัมประสิทธิ์ โดยแสดงให้เห็นว่าพจน์เชิงเวลาจะถูกเพิ่มเข้าไปในแนวทแยงมุม ($a_P$) หรือพจน์แหล่งกำเนิด ($b_P$) ขึ้นอยู่กับว่าเป็นวิธีแบบ Implicit หรือ Explicit
 
@@ -289,46 +281,32 @@ rDeltaTSmoothingCoeff 0.1;           // Smoothing coefficient for time step
 
 ```mermaid
 graph TD
-    subgraph "SIMPLE (Steady-State)"
-        S_Start["Start Iteration"] --> S_Mom["Momentum Predictor"]
-        S_Mom --> S_Pres["Pressure Equation"]
-        S_Pres --> S_Corr["Correct U & p"]
-        S_Corr --> S_Turb["Turbulence/Energy"]
-        S_Turb --> S_Conv{"Converged?"}
-        S_Conv -- No --> S_Start
-        S_Conv -- Yes --> S_End["End Simulation"]
-    end
+%% Algorithm Flowcharts
+subgraph SIMPLE ["SIMPLE (Steady)"]
+S_Pred["Momentum Predictor"]:::implicit
+S_Pres["Pressure Correction"]:::explicit
+S_Turb["Turbulence Update"]:::context
+S_Pred --> S_Pres --> S_Turb
+end
 
-    subgraph "PISO (Transient)"
-        P_Start["Start Time Step"] --> P_Mom["Momentum Predictor"]
-        P_Mom --> P_Loop["PISO Loop (2-3 times)"]
-        P_Loop --> P_Pres["Pressure Equation"]
-        P_Pres --> P_Corr["Correct U & p"]
-        P_Corr --> P_Loop
-        P_Corr -- "Loop Done" --> P_Turb["Turbulence/Energy"]
-        P_Turb --> P_End["Next Time Step"]
-    end
+subgraph PISO ["PISO (Transient)"]
+P_Pred["Momentum Predictor"]:::implicit
+P_Loop["Pressure Loop (2-3x)"]:::explicit
+P_Turb["Turbulence Update"]:::context
+P_Pred --> P_Loop --> P_Turb
+end
 
-    subgraph "PIMPLE (Hybrid Transient)"
-        Pi_Start["Start Time Step"] --> Pi_Outer["Outer Loop (SIMPLE)"]
-        Pi_Outer --> Pi_Mom["Momentum Predictor"]
-        Pi_Mom --> Pi_Inner["Inner Loop (PISO)"]
-        Pi_Inner --> Pi_Pres["Pressure Equation"]
-        Pi_Pres --> Pi_Corr["Correct U & p"]
-        Pi_Corr --> Pi_Inner
-        Pi_Corr -- "Inner Done" --> Pi_Turb["Turbulence/Energy"]
-        Pi_Turb --> Pi_Conv{"Converged?"}
-        Pi_Conv -- No --> Pi_Outer
-        Pi_Conv -- Yes --> Pi_End["Next Time Step"]
-    end
+subgraph PIMPLE ["PIMPLE (Hybrid)"]
+Pi_Outer["Outer Loop"]:::context
+Pi_Pred["Momentum Predictor"]:::implicit
+Pi_Inner["Inner PISO Loop"]:::explicit
+Pi_Outer --> Pi_Pred --> Pi_Inner
+end
 
-    classDef simple fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-    classDef piso fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    classDef pimple fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
-
-    class S_Start,S_Mom,S_Pres,S_Corr,S_Turb,S_Conv,S_End simple;
-    class P_Start,P_Mom,P_Loop,P_Pres,P_Corr,P_Turb,P_End piso;
-    class Pi_Start,Pi_Outer,Pi_Mom,Pi_Inner,Pi_Pres,Pi_Corr,Pi_Turb,Pi_Conv,Pi_End pimple;
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 4:** ตรรกะเชิงเปรียบเทียบของอัลกอริทึมการเชื่อมโยงความดันและความเร็ว (SIMPLE, PISO, PIMPLE) แสดงวงรอบการทำงานที่แตกต่างกันสำหรับปัญหาในสภาวะคงตัวและปัญหาชั่วคราว
 
@@ -730,29 +708,28 @@ TEqn.solve();
 > - **Source**: `.applications/solvers/heatTransfer/` - ใช้ใน energy equation solvers สำหรับ handling various heat source terms
 
 ```mermaid
-graph LR
-    A["Source Term Evaluation"] --> B["Explicit Treatment"]
-    A --> C["Implicit Treatment"]
-    A --> D["Semi-implicit Treatment"]
+graph TD
+%% Source Term Linearization
+Source["Source Term S(φ)"]:::implicit
+subgraph Explicit ["Explicit Treatment"]
+Exp["S_u (Constant part)"]:::explicit
+NoteExp["Added to Source Vector b"]:::context
+Exp --- NoteExp
+end
 
-    B --> B1["Sφ evaluated at time n"]
-    B --> B2["Simple implementation"]
-    B --> B3["Stability constraints"]
-    B --> B4["Used in AB2 scheme"]
+subgraph Implicit ["Implicit Treatment"]
+Imp["S_p (Linear part)"]:::implicit
+NoteImp["Added to Diagonal a_P<br/>Must be negative for stability"]:::context
+Imp --- NoteImp
+end
 
-    C --> C1["Sφ evaluated at time n+1"]
-    C --> C2["Added to diagonal"]
-    C --> C3["Enhanced stability"]
-    C --> C4["Used in BDF schemes"]
+Source -->|Linearization| Exp
+Source -->|Linearization| Imp
 
-    D --> D1["Partial implicit treatment"]
-    D --> D2["Linear source terms"]
-    D --> D3["fvm::Sp operator"]
-    D --> D4["Balanced approach"]
-
-    B1 --> E["fvScalarMatrix TEqn<br/>rho*cp*fvm::ddt(T)<br/>+ rho*cp*fvm::div(phi,T)<br/>- fvm::laplacian(k,T)<br/>== Q_explicit"]
-
-    D3 --> F["Semi-implicit Implementation<br/>fvScalarMatrix TEqn<br/>rho*cp*fvm::ddt(T)<br/>+ rho*cp*fvm::div(phi,T)<br/>- fvm::laplacian(k,T)<br/>== Q_explicit<br/>+ fvm::Sp(S_implicit,T)"]
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 5:** การประเมินและการนำพจน์แหล่งกำเนิด (Source term) ไปใช้งานใน OpenFOAM โดยแยกตามการจัดการแบบ Explicit, Implicit และ Semi-implicit เพื่อรักษาสมดุลระหว่างความง่ายในการคำนวณและความเสถียรเชิงตัวเลข
 

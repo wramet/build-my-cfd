@@ -8,9 +8,13 @@
 
 ```mermaid
 graph TD
-    UList["UList<T><br/>(No Memory Ownership)"] --> List["List<T><br/>(Allocated Memory)"]
-    List --> Field["Field<T><br/>(Algebraic Ops)"]
-    Field --> GeometricField["GeometricField<T><br/>(Physical Field: p, U)"]
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+
+UList["📋 UList<T><br/>(No Memory Ownership)"]:::implicit --> List["📦 List<T><br/>(Allocated Memory)"]:::implicit
+List --> Field["🔢 Field<T><br/>(Algebraic Ops)"]:::implicit
+Field --> GeometricField["🌡️ GeometricField<T><br/>(Physical Field: p, U)"]:::explicit
 ```
 > **Figure 1:** ลำดับชั้นการสืบทอด (Inheritance Hierarchy) ของคลาสคอนเทนเนอร์ใน OpenFOAM เริ่มต้นจาก `UList` ที่ไม่มีความเป็นเจ้าของหน่วยความจำ ไปจนถึง `GeometricField` ซึ่งเป็นคลาสที่มีความซับซ้อนสูงสุดสำหรับการจัดการฟิลด์ทางฟิสิกส์ที่มีข้อมูลเมชประกอบอยู่
 

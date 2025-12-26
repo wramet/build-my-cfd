@@ -21,18 +21,14 @@
 
 ```mermaid
 flowchart LR
-    A[OpenFOAM Results] --> B[postProcessing Data<br/>ASCII/CSV]
-    B --> C[Python Data Loading<br/>Pandas/NumPy]
-    C --> D[Data Analysis<br/>Stats/Integration]
-    D --> E[Plot Generation<br/>Matplotlib]
-    E --> F[Professional Reports<br/>PDF/LaTeX]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
 
-    style A fill:#e3f2fd
-    style B fill:#bbdefb
-    style C fill:#90caf9
-    style D fill:#64b5f6
-    style E fill:#42a5f5
-    style F fill:#2196f3
+A[Results]:::explicit --> B[postProcess Data]:::explicit
+B --> C[Python Load]:::implicit
+C --> D[Analysis]:::implicit
+D --> E[Plotting]:::implicit
+E --> F[Report PDF]:::implicit
 ```
 > **Figure 1:** แผนภูมิขั้นตอนการทำงานสำหรับการวิเคราะห์และพล็อตข้อมูลด้วย Python ตั้งแต่การสกัดข้อมูลจาก `postProcessing` การโหลดข้อมูลด้วย Pandas/NumPy การวิเคราะห์ทางสถิติ ไปจนถึงการสร้างกราฟด้วย Matplotlib และการจัดทำรายงานระดับมืออาชีพ
 

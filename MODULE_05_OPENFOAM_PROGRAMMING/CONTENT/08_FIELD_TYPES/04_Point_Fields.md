@@ -78,23 +78,21 @@ GeometricField<Type, pointPatchField, pointMesh>
 
 ```mermaid
 graph TD
-    P1((Point 1)) --> C1[Cell A]
-    P1 --> C2[Cell B]
-    P2((Point 2)) --> C1
-    P2 --> C3[Cell C]
-    P3((Point 3)) --> C2
-    P3 --> C4[Cell D]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+P1((Point 1)):::implicit --> C1[Cell A]:::implicit
+P1 --> C2[Cell B]:::implicit
+P2((Point 2)):::implicit --> C1
+P2 --> C3[Cell C]:::implicit
+P3((Point 3)):::implicit --> C2
+P3 --> C4[Cell D]:::implicit
 
-    CC1((Cell Center A)) -.-> P1
-    CC1 -.-> P2
-    CC2((Cell Center B)) -.-> P1
-    CC2 -.-> P3
-
-    style P1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style P2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style P3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style CC1 fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
-    style CC2 fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+CC1((Cell Center A)):::explicit -.-> P1
+CC1 -.-> P2
+CC2((Cell Center B)):::explicit -.-> P1
+CC2 -.-> P3
 ```
 > **Figure 1:** ความสัมพันธ์เชิงพื้นที่ระหว่างจุดยอด (Points) และจุดศูนย์กลางเซลล์ (Cell Centers) ซึ่งเป็นพื้นฐานในการทำ Interpolation ข้อมูลระหว่างตำแหน่งต่างๆ ในเมช
 

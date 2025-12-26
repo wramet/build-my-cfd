@@ -5,16 +5,15 @@
 
 ```mermaid
 flowchart LR
-    In[Inflow<br/>φ<sub>in</sub>] --> Cell{Control Volume}
-    Cell --> Out[Outflow<br/>φ<sub>out</sub>]
+classDef flow fill:#e1f5fe,stroke:#0277bd,color:#000
+classDef cell fill:#e0e0e0,stroke:#333,color:#000
+classDef res fill:#fff9c4,stroke:#fbc02d,color:#000
+In[Inflow]:::flow --> C{Cell}:::cell
+Out[Outflow]:::flow --> C
 
-    subgraph Divergence_Outcomes["Divergence Outcomes"]
-        D0["∇·U = 0<br/>(Balanced)"]
-        DP["∇·U > 0<br/>(Source)"]
-        DM["∇·U < 0<br/>(Sink)"]
-    end
-
-    Cell --> Divergence_Outcomes
+C --> Bal[Div=0: Balanced]:::res
+C --> Src[Div>0: Source]:::res
+C --> Sink[Div<0: Sink]:::res
 ```
 > **Figure 1:** แผนภาพแสดงการไหลเข้าและออกจากปริมาตรควบคุม ซึ่งเป็นหัวใจของตัวดำเนินการไดเวอร์เจนซ์ (Divergence) ในการตรวจสอบความสมดุลของฟลักซ์ตามกฎการอนุรักษ์ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
@@ -92,9 +91,12 @@ $$\nabla \cdot \mathbf{u} \approx \frac{1}{V} \sum_{f=1}^{N} \mathbf{u}_f \cdot 
 
 ```mermaid
 flowchart LR
-    Vol["Volume Integral<br/>∫ᵥ ∇·u dV"] --> Gauss["Gauss Theorem<br/>→ ∮ₛ u·n dS"]
-    Gauss --> Disc["Discretization<br/>→ Σ uբ·Sբ"]
-    Disc --> Result["Divergence<br/>∇·u ≈ 1/V Σ uբ·Sբ"]
+classDef theory fill:#e1bee7,stroke:#4a148c,color:#000
+classDef step fill:#fff9c4,stroke:#fbc02d,color:#000
+classDef code fill:#c8e6c9,stroke:#2e7d32,color:#000
+Vol[Integral Form]:::theory -->|Gauss| Surf[Surface Form]:::theory
+Surf -->|Summation| Disc[Discrete Faces]:::step
+Disc -->|Code| Res[fvc::div(phi)]:::code
 ```
 > **Figure 2:** ขั้นตอนการแปลงอนุพันธ์เชิงปริมาตรให้เป็นผลรวมของฟลักซ์ที่หน้าพื้นผิวผ่านทฤษฎีบทของเกาส์ (Gauss Theorem) เพื่อใช้ในวิธีปริมาตรจำกัด (Finite Volume Method)ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

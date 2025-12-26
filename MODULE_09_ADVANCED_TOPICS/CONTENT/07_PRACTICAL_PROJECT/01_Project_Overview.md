@@ -18,19 +18,23 @@
 
 ```mermaid
 graph LR
-    A[1. Math Formulation] --> B[2. Class Inheritance]
-    B --> C[3. Logic Implementation]
-    C --> D[4. Factory Registration]
-    D --> E[5. wmake Compilation]
-    E --> F[6. Validation & Testing]
-
+    classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    
     subgraph "The Developer Workflow"
-    A
-    B
-    C
-    D
-    E
-    F
+        A[1. Math Formulation]:::explicit
+        B[2. Class Inheritance]:::implicit
+        C[3. Logic Implementation]:::implicit
+        D[4. Factory Registration]:::implicit
+        E[5. wmake Compilation]:::implicit
+        F[6. Validation & Testing]:::success
+        
+        A --> B
+        B --> C
+        C --> D
+        D --> E
+        E --> F
     end
 ```
 > **Figure 1:** แผนผังลำดับขั้นตอนการดำเนินโครงการ (Project Roadmap) ตั้งแต่การกำหนดสูตรทางคณิตศาสตร์ การออกแบบโครงสร้างคลาส การนำอัลกอริทึมไปใช้งานจริง การลงทะเบียนเข้าสู่ระบบส่วนกลาง การคอมไพล์ จนถึงขั้นตอนสุดท้ายคือการตรวจสอบความถูกต้องของโมเดล

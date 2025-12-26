@@ -45,20 +45,27 @@ LIB = $(FOAM_USER_LIBBIN)/libcustomViscosityModels
 
 ```mermaid
 graph TD
-    A[powerLawViscosity.C] --> B[EXE_INC: Include Paths]
-    A --> C[EXE_LIBS: Link Libraries]
-
-    B --> B1[finiteVolume/lnInclude]
-    B --> B2[transportModels/lnInclude]
-    B --> B3[thermophysicalModels/lnInclude]
-
-    C --> C1[libfiniteVolume.so]
-    C --> C2[libtransportModels.so]
-    C --> C3[libthermophysicalModels.so]
-
-    style B1 fill:#f9f,stroke:#333
-    style B2 fill:#f9f,stroke:#333
-    style B3 fill:#f9f,stroke:#333
+    classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px
+    
+    A[powerLawViscosity.C]:::explicit
+    
+    subgraph Dependencies[" "]
+        B[EXE_INC: Include Paths]:::implicit
+        C[EXE_LIBS: Link Libraries]:::implicit
+        
+        B --> B1[finiteVolume/lnInclude]:::context
+        B --> B2[transportModels/lnInclude]:::context
+        B --> B3[thermophysicalModels/lnInclude]:::context
+        
+        C --> C1[libfiniteVolume.so]:::context
+        C --> C2[libtransportModels.so]:::context
+        C --> C3[libthermophysicalModels.so]:::context
+    end
+    
+    A --> B
+    A --> C
 ```
 > **Figure 1:** แผนผังแสดงการพึ่งพา (Dependencies) ของโปรเจกต์ โดยระบุเส้นทางการรวมไฟล์ส่วนหัว (Include Paths) และไลบรารีที่ต้องใช้ในการลิงก์ (Link Libraries) เพื่อให้คอมไพเลอร์สามารถเข้าถึงความสามารถต่างๆ ของ OpenFOAM เช่น การคำนวณเชิงปริมาตรจำกัดและแบบจำลองการขนส่ง
 

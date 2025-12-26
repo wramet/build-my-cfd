@@ -458,24 +458,24 @@ done
 
 ```mermaid
 flowchart TD
-    A[Problem Definition] --> B[Geometry & Meshing]
-    B --> C[Solver Setup]
-    C --> D[Initial Conditions]
-    D --> E[Run Simulation]
-    E --> F{Converged?}
-    F -->|No| G[Adjust Parameters]
-    G --> E
-    F -->|Yes| H[Post-Processing]
-    H --> I[Verification]
-    I --> J{Valid?}
-    J -->|No| K[Review Physics]
-    K --> C
-    J -->|Yes| L[Documentation]
-    L --> M[Archiving]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
 
-    style A fill:#e1f5fe
-    style L fill:#f3e5f5
-    style M fill:#e8f5e9
+A[Define Problem]:::context --> B[Geometry & Mesh]:::explicit
+B --> C[Setup Solver]:::explicit
+C --> D[Initial Conditions]:::explicit
+D --> E[Run Simulation]:::implicit
+E --> F{Converged?}:::explicit
+F -->|No| G[Adjust Settings]:::explicit
+G --> E
+F -->|Yes| H[Post-Processing]:::implicit
+H --> I[Verification]:::explicit
+I --> J{Valid?}:::explicit
+J -->|No| K[Review Physics]:::explicit
+K --> C
+J -->|Yes| L[Documentation]:::implicit
+L --> M[Archive]:::context
 ```
 > **Figure 1:** แผนภาพวงจรการทำงาน CFD ระดับมืออาชีพ (Professional CFD Workflow) แสดงขั้นตอนตั้งแต่การกำหนดปัญหา การสร้างเมช การตั้งค่า Solver ไปจนถึงการตรวจสอบความถูกต้องของผลลัพธ์ (Verification) และการจัดทำเอกสารเพื่อสรุปโครงการ
 

@@ -21,52 +21,27 @@ Finite Volume Method ทำงานบน**รูปแบบอินทิก
 
 ```mermaid
 graph TD
-    subgraph "Domain Division into Control Volumes"
-        A["Computational Domain"] --> B["Discretization Process"]
-        B --> C["Control Volume 1"]
-        B --> D["Control Volume 2"]
-        B --> E["Control Volume N"]
+%% Hierarchy: Domain -> CV -> Balance
+subgraph Domain["Computational Domain"]
+    CV["Control Volume (Cell)"]:::implicit
+    Faces["Bounding Faces"]:::explicit
+end
+subgraph Balance["Conservation Balance"]
+    InFlux["Flux In"]:::explicit
+    OutFlux["Flux Out"]:::explicit
+    Source["Source Term"]:::explicit
+    Net["Net Change (d/dt)"]:::implicit
+end
 
-        subgraph "Single Control Volume Details"
-            F["Cell Center<br/>P"]
-            G["Face Centers<br/>E, W, N, S, T, B"]
-            H["Cell Corners<br/>Vertices"]
-            F -.-> G
-            G -.-> H
-        end
+%% Logic
+CV --- Faces
+Faces --> InFlux
+Faces --> OutFlux
+InFlux & OutFlux & Source --> Net
 
-        subgraph "Flow Through Boundaries"
-            I["Mass Flux<br/>ρu · A"]
-            J["Momentum Flux<br/>ρu² · A"]
-            K["Energy Flux<br/>ρh · A"]
-            L["Source Terms<br/>S"]
-
-            M["Net Flux = Outflow - Inflow"]
-            I --> M
-            J --> M
-            K --> M
-            L --> M
-        end
-    end
-
-    style A fill:#e1f5fe
-    style B fill:#f3e5f5
-    style C fill:#e8f5e9
-    style D fill:#e8f5e9
-    style E fill:#e8f5e9
-    style F fill:#fff3e0
-    style G fill:#fce4ec
-    style H fill:#f1f8e9
-    style I fill:#e0f2f1
-    style J fill:#e0f2f1
-    style K fill:#e0f2f1
-    style L fill:#fff8e1
-    style M fill:#ffebee
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px
 ```
 > **Figure 1:** แนวคิดพื้นฐานของวิธี Finite Volume แสดงการแบ่งโดเมนการคำนวณออกเป็นปริมาตรควบคุมแบบไม่ต่อเนื่อง โดยประยุกต์ใช้กฎการอนุรักษ์กับฟลักซ์สุทธิและพจน์แหล่งกำเนิด
 
@@ -96,28 +71,31 @@ $$\int_V \frac{\partial \phi}{\partial t} \, \mathrm{d}V + \int_V \nabla \cdot \
 
 ```mermaid
 graph LR
-    subgraph "Computational Domain"
-        CV1["Control Volume 1"]
-        CV2["Control Volume 2"]
-        CV3["Control Volume 3"]
-        CV4["Control Volume 4"]
-        CV5["Control Volume 5"]
-        CV6["Control Volume 6"]
+    classDef cv fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+    classDef flux fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
+    
+    subgraph Domain["Computational Domain"]
+        CV1["Control Volume 1"]:::cv
+        CV2["Control Volume 2"]:::cv
+        CV3["Control Volume 3"]:::cv
+        CV4["Control Volume 4"]:::cv
+        CV5["Control Volume 5"]:::cv
+        CV6["Control Volume 6"]:::cv
     end
-
-    subgraph "Fluxes Across Boundaries"
-        F12["Flux 1→2"]
-        F23["Flux 2→3"]
-        F34["Flux 3→4"]
-        F45["Flux 4→5"]
-        F56["Flux 5→6"]
-        F61["Flux 6→1"]
-        F13["Flux 1→3"]
-        F24["Flux 2→4"]
-        F35["Flux 3→5"]
-        F46["Flux 4→6"]
+    
+    subgraph Fluxes["Fluxes Across Boundaries"]
+        F12["Flux 1→2"]:::flux
+        F23["Flux 2→3"]:::flux
+        F34["Flux 3→4"]:::flux
+        F45["Flux 4→5"]:::flux
+        F56["Flux 5→6"]:::flux
+        F61["Flux 6→1"]:::flux
+        F13["Flux 1→3"]:::flux
+        F24["Flux 2→4"]:::flux
+        F35["Flux 3→5"]:::flux
+        F46["Flux 4→6"]:::flux
     end
-
+    
     CV1 -- "Mass, Momentum, Energy" --> F12
     F12 --> CV2
     CV2 --> F23
@@ -130,7 +108,7 @@ graph LR
     F56 --> CV6
     CV6 --> F61
     F61 --> CV1
-
+    
     CV1 -.-> F13
     F13 -.-> CV3
     CV2 -.-> F24
@@ -139,11 +117,6 @@ graph LR
     F35 -.-> CV5
     CV4 -.-> F46
     F46 -.-> CV6
-
-    classDef cv fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef flux fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    class CV1,CV2,CV3,CV4,CV5,CV6 cv;
-    class F12,F23,F34,F45,F56,F61,F13,F24,F35,F46 flux;
 ```
 > **Figure 2:** ความเชื่อมโยงระหว่างปริมาตรควบคุมในเมชเชิงคำนวณ แสดงการแลกเปลี่ยนฟลักซ์ (มวล โมเมนตัม พลังงาน) ข้ามขอบเขตร่วมระหว่างเซลล์ที่อยู่ติดกัน
 
@@ -167,41 +140,29 @@ graph LR
 
 ```mermaid
 graph LR
-    subgraph "Continuous Domain"
-        A["Continuous Fluid<br/>Domain"] --> B["Mathematical<br/>Fields"]
-        B --> C["Differential<br/>Equations"]
-        C --> D["Analytical<br/>Solutions"]
-    end
+%% Transformation: Continuous -> Discrete
+subgraph Continuous["Continuous Physics"]
+    PDE["Partial Differential Eq"]:::implicit
+    Field_C["Continuous Fields"]:::implicit
+end
+subgraph Discretization["Discretization"]
+    Mesh["Mesh / Grid"]:::explicit
+    Disc["Algebraic Approximation"]:::context
+end
+subgraph Discrete["Discrete Math"]
+    Matrix["System Ax=b"]:::implicit
+    Field_D["Cell Centered Values"]:::implicit
+end
 
-    subgraph "Discretized Domain"
-        E["Control Volume<br/>Grid"] --> F["Computational<br/>Mesh"]
-        F --> G["Cell-centered<br/>Values"]
-        G --> H["Algebraic<br/>Equations"]
-        H --> I["Numerical<br/>Solution"]
-    end
+%% Flow
+PDE -->|Discretize| Disc
+Field_C -->|Sample| Mesh
+Mesh --> Disc --> Matrix --> Field_D
 
-    A -.->|Discretization| E
-    D -.->|Transformation| H
-
-    subgraph "Key Relationships"
-        J["Flux Conservation<br/>at Cell Faces"]
-        K["Local Mass<br/>Balance"]
-        L["Numerical<br/>Integration"]
-    end
-
-    F --> J
-    J --> K
-    K --> L
-
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,B,C,D process
-    class E,F,G,H,I storage
-    class J,K,L decision
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px
 ```
 > **Figure 3:** ขั้นตอนการทำงานที่ขนานกันระหว่างแนวทางเชิงวิเคราะห์แบบต่อเนื่องและแนวทางเชิงตัวเลขแบบไม่ต่อเนื่องใน CFD โดยเน้นการแปลงจากสมการเชิงอนุพันธ์ไปสู่ระบบสมการพีชคณิต
 
@@ -271,52 +232,25 @@ OpenFOAM ใช้แผนการทำให้เป็นส่วนย�
 - **การนำ Boundary Condition ที่ซับซ้อนไปใช้ได้อย่างตรงไปตรงมา**
 
 ```mermaid
-graph LR
-    subgraph CellCenteredFiniteVolume
-        P["Cell P<br/>Owner Cell"]
-        N["Cell N<br/>Neighbor Cell"]
-        f["Face f<br/>Boundary Interface"]
-        C_P["Center Point P<br/>(x_P, y_P, z_P)"]
-        C_N["Center Point N<br/>(x_N, y_N, z_N)"]
-        C_f["Face Center f<br/>(x_f, y_f, z_f)"]
-        Sf["Surface Vector S_f<br/>S_f = n_f × A_f"]
-        V_P["Cell Volume V_P<br/>Control Volume"]
-        nf["Normal Vector n_f<br/>Unit Normal"]
-        Af["Face Area A_f<br/>Surface Area"]
+graph TD
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
 
-        P -- "Owner" --> f
-        N -- "Neighbor" --> f
-        P -- "Center" --> C_P
-        N -- "Center" --> C_N
-        f -- "Center" --> C_f
-        f -- "Area Vector" --> Sf
-        f -- "Normal" --> nf
-        f -- "Area" --> Af
-        P -- "Volume" --> V_P
+subgraph Geometry["Cell Centered Geometry"]
+    subgraph Cells["Control Volumes"]
+        P["Owner Cell P<br/>(Center x_P)"]:::implicit
+        N["Neighbor Cell N<br/>(Center x_N)"]:::implicit
     end
 
-    style P fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style N fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style f fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style C_P fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:#000;
-    style C_N fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:#000;
-    style C_f fill:#ffebee,stroke:#c62828,stroke-width:1px,color:#000;
-    style Sf fill:#fce4ec,stroke:#ad1457,stroke-width:1px,color:#000;
-    style V_P fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:#000;
-    style nf fill:#e0f2f1,stroke:#00796b,stroke-width:1px,color:#000;
-    style Af fill:#e0f2f1,stroke:#00796b,stroke-width:1px,color:#000;
+    subgraph Interface["Face Properties"]
+        f["Face f<br/>(Center x_f)"]:::explicit
+        Sf["Surface Vector S_f<br/>(Normal × Area)"]:::explicit
+    end
+end
 
-    classDef cell fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef face fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef point fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:#000;
-    classDef vector fill:#fce4ec,stroke:#ad1457,stroke-width:1px,color:#000;
-    classDef property fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:#000;
-
-    class P,N cell;
-    class f face;
-    class C_P,C_N,C_f point;
-    class Sf,nf,Af vector;
-    class V_P property;
+P ---|Distance d_Pf| f
+f ---|Distance d_fN| N
+f -.- Sf
 ```
 > **Figure 4:** รายละเอียดทางเรขาคณิตของปริมาตรควบคุมแบบเน้นจุดศูนย์กลางเซลล์ แสดงความสัมพันธ์ระหว่างจุดศูนย์กลางเซลล์ ($P, N$), จุดศูนย์กลางหน้า ($f$) และเวกเตอร์พื้นผิว ($S_f$) ที่ใช้ใน OpenFOAM
 
@@ -338,35 +272,30 @@ graph LR
 
 ```mermaid
 graph LR
-    subgraph "Owner Cell P"
-        P["<b>Cell Center P</b><br/><i>φ<sub>P</sub>, u<sub>P</sub>, p<sub>P</sub></i><br/>Control Volume"]
-    end
+%% Spatial Layout: P -> f -> N with vectors annotated
+subgraph Mesh["Finite Volume Mesh"]
+    P["Cell P (Owner)"]:::implicit
+    f["Face f (Interface)"]:::explicit
+    N["Cell N (Neighbor)"]:::implicit
+end
+subgraph Vectors["Geometric Vectors"]
+    dPN["d_PN (P to N)"]:::context
+    Sf["S_f (Face Normal Area)"]:::context
+    dPf["d_Pf (P to Face)"]:::context
+end
 
-    subgraph "Face f"
-        f["<b>Face f</b><br/>Area: |S<sub>f</sub>|<br/>Normal: n<sub>f</sub>"]
-    end
+%% Connections
+P --- f --- N
 
-    subgraph "Neighbor Cell N"
-        N["<b>Cell Center N</b><br/><i>φ<sub>N</sub>, u<sub>N</sub>, p<sub>N</sub></i><br/>Control Volume"]
-    end
+%% Vector overlays (Semantic Coloring)
+P -.->|Vector| dPN -.-> N
+P -.->|Vector| dPf -.-> f
+f -.->|Vector| Sf
 
-    subgraph "Geometric Vectors"
-        Sf["<b>Surface Vector</b><br/>S<sub>f</sub> = n<sub>f</sub> × A<sub>f</sub>"]
-        dPN["<b>Distance Vector</b><br/>d<sub>PN</sub> = r<sub>N</sub> - r<sub>P</sub>"]
-        dPf["<b>Offset Vector</b><br/>d<sub>Pf</sub> = r<sub>f</sub> - r<sub>P</sub>"]
-    end
-
-    P -- "Owner → Face" --> f
-    f -- "Face → Neighbor" --> N
-    P -- "d<sub>PN</sub>" --> N
-    P -- "S<sub>f</sub> (points outward)" --> f
-
-    style P fill:#e3f2fd,stroke:#1565c0,stroke-width:3px,color:#000;
-    style N fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px,color:#000;
-    style f fill:#fff9c4,stroke:#fbc02d,stroke-width:3px,color:#000;
-    style Sf fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style dPN fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
-    style dPf fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000;
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px
+classDef context fill:#e0f7fa,stroke:#006064,stroke-width:1px,stroke-dasharray: 5 5
 ```
 > **Figure 5:** ความสัมพันธ์ของเวกเตอร์ในการ Discretization แบบ Finite Volume โดยกำหนดเวกเตอร์ระยะทาง $\mathbf{d}_{PN}$ และเวกเตอร์พื้นที่หน้า $\mathbf{S}_f$ ซึ่งจำเป็นสำหรับการคำนวณเกรเดียนต์และฟลักซ์ระหว่างเซลล์เจ้าของ ($P$) และเซลล์ข้างเคียง ($N$)
 
@@ -572,29 +501,25 @@ $$(\nabla \phi)_f \cdot \mathbf{S}_f = |\mathbf{S}_f| \frac{\phi_N - \phi_P}{|\m
 
 ```mermaid
 graph LR
-    A["Control Volume i"] --> B["Flux F_i+1/2"]
-    B --> C["Control Volume i+1"]
-    C --> D["Flux F_i+3/2"]
-    D --> E["Control Volume i+2"]
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
 
-    A --> F["Flux F_i-1/2"]
-    F --> G["Control Volume i-1"]
-    G --> H["Flux F_i-3/2"]
-    H --> I["Control Volume i-2"]
+subgraph Stencil["Finite Volume Stencil"]
+    C_WW["CV i-2"]:::implicit
+    F_WW["Flux<br/>i-3/2"]:::explicit
+    C_W["CV i-1"]:::implicit
+    F_W["Flux<br/>i-1/2"]:::explicit
+    C_P["CV i"]:::implicit
+    F_E["Flux<br/>i+1/2"]:::explicit
+    C_E["CV i+1"]:::implicit
+    F_EE["Flux<br/>i+3/2"]:::explicit
+    C_EE["CV i+2"]:::implicit
+end
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style C fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style E fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style G fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style I fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-
-    style B fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000;
-    style D fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000;
-    style F fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000;
-    style H fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000;
-
-    classDef cell fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef flux fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000;
+C_WW --- F_WW --- C_W
+C_W --- F_W --- C_P
+C_P --- F_E --- C_E
+C_E --- F_EE --- C_EE
 ```
 > **Figure 6:** คุณสมบัติการอนุรักษ์โดยธรรมชาติใน FVM ซึ่งฟลักซ์ที่ออกจากปริมาตรควบคุมหนึ่งจะเท่ากับฟลักซ์ที่เข้าสู่ปริมาตรควบคุมที่อยู่ติดกันพอดี ทำให้มั่นใจได้ถึงการอนุรักษ์ในระดับรวม
 
@@ -734,27 +659,20 @@ Boundary Conditions จะปรับเปลี่ยนสัมประส
 `fvMesh` คือคลาสเมชพื้นฐานใน OpenFOAM ที่จัดเก็บข้อมูลทางเรขาคณิตและโทโพโลยีทั้งหมดที่จำเป็นสำหรับการดิสครีตแบบปริมาตรจำกัด (finite volume discretization)
 
 ```mermaid
-graph LR
-    subgraph "Base Classes"
-        A["polyMesh<br/>Polygonal mesh topology<br/>Geometric structure"]
-        B["fvFields<br/>Field management<br/>Boundary conditions"]
-    end
+graph TD
+%% Inheritance Hierarchy
+subgraph Core["Core Mesh Classes"]
+    polyMesh["polyMesh (Topology & Shapes)"]:::implicit
+    fvMesh["fvMesh (Finite Volume Methods)"]:::implicit
+    dynamicFvMesh["dynamicFvMesh (Moving/Topological Changes)"]:::explicit
+end
+%% Relations
+polyMesh -->|Inheritance| fvMesh
+fvMesh -->|Inheritance| dynamicFvMesh
 
-    C["fvMesh<br/>Finite volume mesh<br/>Complete mesh structure"]
-    D["dynamicFvMesh<br/>Time-varying mesh<br/>Moving/deforming meshes"]
-
-    A --> C
-    B --> C
-    C --> D
-
-    %% Styling Definitions
-    classDef base fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    classDef core fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef derived fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-
-    class A,B base;
-    class C core;
-    class D derived;
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px
 ```
 > **Figure 7:** ลำดับชั้นการสืบทอดของคลาส `fvMesh` ใน OpenFOAM แสดงการสืบทอดจาก `polyMesh` (โทโพโลยี) และ `fvFields` (ข้อมูลฟิลด์) เพื่อรองรับเมชแบบปริมาตรจำกัดทั้งแบบคงที่และแบบเคลื่อนที่
 
@@ -845,36 +763,33 @@ Surface fields จะถูกคำนวณโดยอัตโนมัต�
 
 ```mermaid
 graph TD
-    A["Volume Field<br/>(Cell Center)"] -->|Interpolation| B["Surface Field<br/>(Face Center)"]
-    B -->|Flux Calculation| C["Cell Face Gradient<br/>Gauss Theorem"]
-    C -->|Discretization| D["fvMatrix Structure<br/>Sparse Linear System"]
+%% Process Flow: From Field to Matrix
+subgraph Data["Field Data"]
+    VolField["Volume Field (Cell Centers)"]:::implicit
+    SurfField["Surface Field (Face Centers)"]:::explicit
+end
+subgraph Discretization["Discretization Steps"]
+    Interp["Interpolation (Linear/Upwind/TVD)"]:::context
+    Grad["Gradient Calc (Gauss Theorem)"]:::context
+end
+subgraph Matrix["Linear System (Ax=b)"]
+    Diag["Diagonal A_D"]:::implicit
+    OffDiag["Off-Diagonal A_O"]:::implicit
+    Source["Source Vector b"]:::explicit
+end
 
-    D --> E["Diagonal Coefficients<br/>A_D"]
-    D --> F["Off-Diagonal Coefficients<br/>A_O"]
-    D --> G["Source Vector<br/>b"]
+%% Flow
+VolField --> Interp --> SurfField
+SurfField --> Grad
+Grad -->|Matrix Assembly| Matrix
+Grad --> Diag
+Grad --> OffDiag
+Grad --> Source
 
-    E --> H["Linear Solver<br/>Ax = b"]
-    F --> H
-    G --> H
-
-    I["Interpolation Schemes"] --> B
-    I --> J["Linear"]
-    I --> K["Upwind"]
-    I --> L["QUICK"]
-    I --> M["TVD"]
-
-    N["Conservation<br/>Principle"] --> C
-    O["Boundedness<br/>Constraints"] --> B
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,B,C,H process;
-    class D,E,F,G storage;
-    class I,J,K,L,M decision;
-    class N,O terminator;
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px
 ```
 > **Figure 8:** การไหลของข้อมูลในกระบวนการประกอบ `fvMatrix` แสดงวิธีการประมาณค่าฟิลด์ปริมาตรจากจุดศูนย์กลางเซลล์ไปยังหน้าเซลล์ เพื่อสร้างระบบสมการเชิงเส้นแบบเบาบาง $[A][x] = [b]$ สำหรับตัวแก้สมการเชิงเส้น
 

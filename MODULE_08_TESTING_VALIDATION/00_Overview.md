@@ -11,15 +11,13 @@
 `A comprehensive V-Model diagram for CFD. The descending arm includes 'Physical Reality', 'Mathematical Model', and 'Discretized Code'. The ascending arm includes 'Numerical Results', 'Verified Code', and 'Validated Model'. Horizontal links connect 'Verification' to 'Math' and 'Validation' to 'Reality'. scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
 
 ```mermaid
-graph TD
-    M1[01 Verification Fundamentals] --> M2[02 Test Framework Development]
-    M2 --> M3[03 Validation Benchmarks]
-    M3 --> M4[04 QA, Automation & Profiling]
-
-    style M1 fill:#f9f,stroke:#333,stroke-width:2px
-    style M2 fill:#bbf,stroke:#333,stroke-width:2px
-    style M3 fill:#bfb,stroke:#333,stroke-width:2px
-    style M4 fill:#fbb,stroke:#333,stroke-width:2px
+flowchart LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+M1[01 Verification Fundamentals]:::explicit --> M2[02 Test Framework Development]:::implicit
+M2 --> M3[03 Validation Benchmarks]:::implicit
+M3 --> M4[04 QA, Automation & Profiling]:::success
 ```
 
 ### 1. [[01_VERIFICATION_FUNDAMENTALS/00_Overview|01 Verification Fundamentals]]

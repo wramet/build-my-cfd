@@ -5,28 +5,18 @@
 สมการควบคุมของพลศาสตร์ของไหลเป็น **รากฐานทางคณิตศาสตร์** ของ Computational Fluid Dynamics (CFD) สมการเหล่านี้อธิบายถึง **การอนุรักษ์มวล, โมเมนตัม, และพลังงาน** ในการไหลของไหล และถูกแก้ปัญหาด้วยวิธีเชิงตัวเลขใน OpenFOAM
 
 ```mermaid
-graph LR
-    A["Continuum<br/>Mechanics"] --> B["Infinitesimal<br/>Control Volume"]
-    B --> C["Field Variables"]
-    C --> D["Velocity: u(x,t)"]
-    C --> E["Pressure: p(x,t)"]
-    C --> F["Temperature: T(x,t)"]
-    B --> G["Fluid as Continuous<br/>Medium"]
-    G --> H["Continuous<br/>Field Functions"]
-    H --> I["Conservative Form<br/>in OpenFOAM"]
-    I --> J["Finite Volume<br/>Discretization"]
-    I --> K["Shock Wave<br/>Accuracy"]
-    I --> L["Conservation<br/>Properties"]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Theory["Continuum Mechanics Theory"]:::context
+Vars["Field Variables<br/>u x t p x t"]:::implicit
+FVM["Finite Volume Method<br/>Discretization"]:::explicit
+Solver["OpenFOAM Solver"]:::explicit
 
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,B,G process;
-    class C,H,I,J decision;
-    class D,E,F,K,L storage;
+Theory --> Vars
+Vars --> FVM
+FVM --> Solver
 ```
 > **Figure 1:** รากฐานทางทฤษฎีของ CFD ซึ่งเชื่อมโยงแนวคิดของกลศาสตร์ตัวกลางต่อเนื่องเข้ากับการนำไปใช้งานแบบ Finite Volume ใน OpenFOAM ผ่านตัวแปรสนามและกฎการอนุรักษ์
 
@@ -90,24 +80,28 @@ $$\boldsymbol{\tau} = \mu \left[ \nabla \mathbf{u} + (\nabla \mathbf{u})^T \righ
 - $\mathbf{I}$ = Identity tensor
 
 ```mermaid
-graph TD
-    subgraph Forces["Applied Forces"]
-        P["Pressure Forces<br/>-∇p"]
-        V["Viscous Forces<br/>∇⋅τ"]
-        B["Body Forces<br/>f"]
+flowchart TD
+    subgraph Forces["Applied Forces on Fluid Element"]
+        direction LR
+        P["Pressure Forces<br/>-∇p"]:::implicit
+        V["Viscous Forces<br/>∇⋅τ"]:::implicit
+        B["Body Forces<br/>f"]:::implicit
     end
-
-    P --> Sum["Net Force<br/>ΣF"]
+    
+    Sum["Net Force<br/>ΣF = F_pressure + F_viscous + F_body"]:::explicit
+    
+    P --> Sum
     V --> Sum
     B --> Sum
+    
+    Sum -->|Newton's 2nd Law: F = ma| Acc["Acceleration<br/>ρ(∂u/∂t + (u⋅∇)u)"]:::volatile
+    
+    Acc --> Inertia["Inertial Terms<br/>Local + Convective Acceleration"]:::context
 
-    Sum -->|Newton's 2nd Law| Acc["Acceleration<br/>ρ Du/Dt"]
-
-    Acc --> Inertia["Inertial Terms<br/>Local: ∂u/∂t<br/>Convective: (u⋅∇)u"]
-
-    style Forces fill:#e3f2fd,stroke:#1565c0
-    style Sum fill:#fff9c4,stroke:#fbc02d
-    style Acc fill:#e8f5e9,stroke:#2e7d32
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 2:** การแยกส่วนของแรงในสมการโมเมนตัม (กฎข้อที่สองของนิวตัน) แสดงให้เห็นว่าแรงดัน แรงหนืด และแรงภายนอก ส่งผลต่อความเร่งของของไหล (พจน์ความเฉื่อย) อย่างไร
 
@@ -305,26 +299,23 @@ while (simple.correctNonOrthogonal())
 > **📂 Source**: `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ```mermaid
-graph LR
-    A["Start SIMPLE Algorithm"] --> B["Momentum Prediction<br/>Solve momentum equations<br/>using pressure from<br/>previous iteration"]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Start(("Start")):::context
+Pred["Momentum Predictor<br/>Solve Momentum Equation"]:::explicit
+Corr["Pressure Corrector<br/>Solve Pressure Equation"]:::explicit
+Update["Update Fields<br/>Correct U and Fluxes"]:::explicit
+Check{"Convergence Check"}:::implicit
+End(("End")):::context
 
-    B --> C["Pressure Correction<br/>Solve pressure correction<br/>equation to ensure<br/>mass continuity"]
-
-    C --> D["Velocity Correction<br/>Update velocity field<br/>using corrected<br/>pressure"]
-
-    D --> E{"Convergence<br/>Check"}
-
-    E -->|Not converged| B
-    E -->|Converged| F["End<br/>Solution<br/>Complete"]
-
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-
-    class A,B,C,D process;
-    class E decision;
-    class F terminator;
+Start --> Pred
+Pred --> Corr
+Corr --> Update
+Update --> Check
+Check -- No --> Pred
+Check -- Yes --> End
 ```
 > **Figure 3:** ลำดับขั้นตอนของอัลกอริทึม SIMPLE (Semi-Implicit Method for Pressure-Linked Equations) แสดงรายละเอียดขั้นตอนการทำนายและแก้ไข (prediction-correction) สำหรับการเชื่อมโยงสนามความเร็วและความดันเข้าด้วยกัน
 
@@ -385,37 +376,21 @@ $$p = \overline{p} + p'$$
 $$\rho \left( \frac{\partial \overline{\mathbf{u}}}{\partial t} + (\overline{\mathbf{u}} \cdot \nabla) \overline{\mathbf{u}} \right) = -\nabla \overline{p} + \mu \nabla^2 \overline{\mathbf{u}} - \nabla \cdot (\rho \overline{\mathbf{u}' \mathbf{u}'}) + \mathbf{f}$$
 
 ```mermaid
-graph TD
-    subgraph "Laminar Flow Characteristics"
-        A["Smooth Streamlines"] --> B["Parallel Flow Layers"]
-        B --> C["Predictable Motion"]
-        C --> D["Low Reynolds Number"]
-        D --> E["Direct NS Solution"]
-    end
+graph TB
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+subgraph Laminar["Laminar Regime"]
+    L["Laminar Flow<br/>Smooth Low Re"]:::implicit
+    L_Eq["Direct Navier-Stokes<br/>No Turbulence Model"]:::implicit
+    L --> L_Eq
+end
 
-    subgraph "Turbulent Flow Characteristics"
-        F["Chaotic Eddies"] --> G["Random Fluctuations"]
-        G --> H["Mixing Enhancement"]
-        H --> I["High Reynolds Number"]
-        I --> J["RANS/LES Models"]
-    end
-
-    subgraph "Mathematical Treatment"
-        K["Navier-Stokes"] --> L["Direct Solution"]
-        M["Reynolds Decomposition"] --> N["RANS Equations"]
-        N --> O["Turbulence Models"]
-    end
-
-    A --> K
-    F --> M
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,B,C,D,E,F,G,H,I,J process;
-    class K,L,M,N,O storage;
+subgraph Turbulent["Turbulent Regime"]
+    T["Turbulent Flow<br/>Chaotic High Re"]:::explicit
+    T_Eq["RANS LES Models<br/>Turbulence Modeling Required"]:::explicit
+    T --> T_Eq
+end
 ```
 > **Figure 4:** การเปรียบเทียบระบอบการไหลแบบราบเรียบ (Laminar) และแบบปั่นป่วน (Turbulent) โดยเน้นลักษณะทางกายภาพและการจัดการทางคณิตศาสตร์ที่แตกต่างกัน (Direct NS เทียบกับ RANS/LES) ใน CFD
 

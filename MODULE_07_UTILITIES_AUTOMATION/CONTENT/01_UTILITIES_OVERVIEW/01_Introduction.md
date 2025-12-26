@@ -12,17 +12,17 @@
 
 ```mermaid
 flowchart TD
-    A[CAD Geometry] --> B[Surface Preparation]
-    B --> C[blockMesh]
-    C --> D[snappyHexMesh]
-    D --> E[Mesh Quality Check]
-    E --> F[Case Setup]
-    F --> G[Solver Execution]
-    G --> H[Post-Processing]
-    H --> I[Analysis & Reporting]
-
-    style A fill:#e1f5ff
-    style I fill:#c8e6c9
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[CAD]:::context --> B[Surface Prep]:::explicit
+B --> C[blockMesh]:::implicit
+C --> D[snappyHexMesh]:::implicit
+D --> E[Quality Check]:::explicit
+E --> F[Case Setup]:::explicit
+F --> G[Solver Run]:::implicit
+G --> H[Post-Process]:::context
+H --> I[Analysis]:::context
 ```
 > **Figure 1:** แผนภูมิแสดงลำดับการทำงานภาพรวมของยูทิลิตี้ใน OpenFOAM ตั้งแต่การเตรียมเรขาคณิต CAD การสร้างเมช การตรวจสอบคุณภาพ การตั้งค่าเคสจำลอง ไปจนถึงการประมวลผลและการจัดทำรายงานสรุปผล
 
@@ -148,12 +148,10 @@ def assess_mesh_quality(case_path):
 
 ```mermaid
 flowchart LR
-    A[Efficient Workflow Management] --> B[Successful Project Delivery]
-    C[Physics Simulation] --> B
-
-    style A fill:#bbdefb
-    style C fill:#bbdefb
-    style B fill:#c8e6c9
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+A[Workflow Management]:::explicit --> B[Project Success]:::implicit
+C[Physics Simulation]:::explicit --> B
 ```
 > **Figure 2:** แผนภาพแสดงความสัมพันธ์ระหว่างการจัดการเวิร์กโฟลว์ที่มีประสิทธิภาพ (Workflow Management) และการจำลองทางฟิสิกส์ (Physics Simulation) ซึ่งเป็นสองปัจจัยหลักที่นำไปสู่ความสำเร็จในการส่งมอบโครงการ CFD
 

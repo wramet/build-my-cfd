@@ -24,20 +24,24 @@
 
 ```mermaid
 flowchart TD
-    subgraph Layer3["Layer 3: Finite Volume Computation"]
-        FVM["fvMesh<br/>• Finite volume discretization<br/>• Geometric field storage<br/>• Solver API"]
-    end
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+subgraph Layer3 [Layer 3: Finite Volume]
+    FVM[fvMesh<br/>Discretization & Fields]:::implicit
+end
 
-    subgraph Layer2["Layer 2: Topology Management"]
-        PM["polyMesh<br/>• Polygonal mesh topology<br/>• Points/faces/cells storage<br/>• Boundary patches & zones<br/>• Parallel decomposition support"]
-    end
+subgraph Layer2 [Layer 2: Topology]
+    PM[polyMesh<br/>Connectivity & Parallel]:::explicit
+end
 
-    subgraph Layer1["Layer 1: Geometry Engine"]
-        PSM["primitiveMesh<br/>• Geometric calculations<br/>• Mesh quality metrics<br/>• Topology queries<br/>• Lazy evaluation tools"]
-    end
+subgraph Layer1 [Layer 1: Geometry]
+    PSM[primitiveMesh<br/>Math & Metrics]:::implicit
+end
 
-    FVM --> PM
-    PM --> PSM
+FVM --> PM
+PM --> PSM
 ```
 
 > **Figure 1:** สถาปัตยกรรมสามชั้นของระบบเมชใน OpenFOAM ซึ่งแบ่งความรับผิดชอบออกเป็นระดับเรขาคณิต (primitiveMesh), ระดับโทโพโลยี (polyMesh) และระดับการคำนวณฟิสิกส์ (fvMesh) เพื่อประสิทธิภาพและความยืดหยุ่นสูงสุด

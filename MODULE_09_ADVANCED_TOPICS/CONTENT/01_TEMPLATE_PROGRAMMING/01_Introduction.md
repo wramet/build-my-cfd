@@ -129,13 +129,17 @@ $$\text{Additional Cost} = 10^6 \times 10^4 \times 50 \times 0.2 = 10^{11} \text
 
 ```mermaid
 graph TD
-    A[Template Blueprint<br/>GeometricField&lt;Type&gt;] --> B{Compiler Instantiation}
-    B --> C[volScalarField<br/>Type = scalar]
-    B --> D[volVectorField<br/>Type = vector]
-    B --> E[volTensorField<br/>Type = tensor]
-    C --> F[SIMD Optimized Code]
-    D --> G[Vector Register Optimization]
-    E --> H[Matrix Operation Optimization]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[Template Blueprint<br/>GeometricField~Type~]:::explicit --> B{Compiler Instantiation}:::warning
+B --> C[volScalarField<br/>Type = scalar]:::implicit
+B --> D[volVectorField<br/>Type = vector]:::implicit
+B --> E[volTensorField<br/>Type = tensor]:::implicit
+C --> F[SIMD Optimized Code]:::success
+D --> G[Vector Register Optimization]:::success
+E --> H[Matrix Operation Optimization]:::success
 ```
 > **Figure 1:** แผนผังแสดงกลไกการสร้างอินสแตนซ์ของเทมเพลต (Template Instantiation) โดยคอมไพเลอร์จะใช้พิมพ์เขียว (Blueprint) เดียวกันในการสร้างโค้ดที่ปรับแต่งมาเป็นพิเศษสำหรับแต่ละประเภทข้อมูลฟิสิกส์ ทำให้ได้ประสิทธิภาพสูงสุดในระดับฮาร์ดแวร์โดยไม่ต้องเขียนโค้ดซ้ำซ้อน
 

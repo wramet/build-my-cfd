@@ -11,42 +11,39 @@ OpenFOAM ใช้ **กรอบการทำงานการประม�
 
 
 ```mermaid
-graph TD
-    subgraph "Finite Volume Discretization Process"
-        A["<b>Control Volume</b><br/>Cell centered at P"] --> B["<b>Face Fluxes</b><br/>Across all cell faces"]
-        B --> C["<b>Gauss Theorem</b><br/>Convert volume to surface integrals"]
-        C --> D["<b>Spatial Discretization</b><br/>∂/∂x → (E-W)/Δx"]
-        D --> E["<b>Temporal Integration</b><br/>Euler, Backward, Crank-Nicolson"]
-        E --> F["<b>Linear System</b><br/>A · x = b"]
-    end
+graph LR
+subgraph FVM["FVM Process"]
+    A["Control Volume<br/>(Cell P)"]:::context --> B["Face Fluxes<br/>(Summation)"]:::implicit
+    B --> C["Gauss Theorem<br/>(Vol → Surf)"]:::implicit
+    C --> D["Spatial Discretization<br/>(Gradient schemes)"]:::explicit
+    D --> E["Temporal Discretization<br/>(Time schemes)"]:::explicit
+    E --> F["Linear System<br/>(Ax = b)"]:::success
+end
 
-    subgraph "Cell P Neighbors"
-        P["<b>Cell P<br/>Center</b>"] --> W["<b>Cell W<br/>West</b>"]
-        P --> E["<b>Cell E<br/>East</b>"]
-        P --> N["<b>Cell N<br/>North</b>"]
-        P --> S["<b>Cell S<br/>South</b>"]
-    end
+subgraph Topology["Cell Topology"]
+    P["Cell P"]:::volatile --> W["West<br/>W"]:::context
+    P --> E_cell["East<br/>E"]:::context
+    P --> N["North<br/>N"]:::context
+    P --> S["South<br/>S"]:::context
+end
 
-    subgraph "Face Fluxes"
-        PW["<b>Face w</b><br/>West flux"]
-        PE["<b>Face e</b><br/>East flux"]
-        PN["<b>Face n</b><br/>North flux"]
-        PS["<b>Face s</b><br/>South flux"]
-    end
+subgraph Fluxes["Face Fluxes"]
+    PW["φw"]:::implicit
+    PE["φe"]:::implicit
+    PN["φn"]:::implicit
+    PS["φs"]:::implicit
+end
 
-    P -- "ρ u·A" --> PW
-    P -- "ρ u·A" --> PE
-    P -- "ρ u·A" --> PN
-    P -- "ρ u·A" --> PS
+P -.->|flux| PW
+P -.->|flux| PE
+P -.->|flux| PN
+P -.->|flux| PS
 
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,B,C,D,E,F process;
-    class P,W,E,N,S storage;
-    class PW,PE,PN,PS decision;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 1:** ขั้นตอนการทำงานของการ Discretization ด้วยวิธี Finite Volume (FVM) ใน OpenFOAM แสดงการแปลงสมการควบคุมแบบต่อเนื่องให้เป็นระบบสมการเชิงเส้นแบบไม่ต่อเนื่องผ่านการอินทิเกรตปริมาตรควบคุมและทฤษฎีบทของเกาส์
 
@@ -117,33 +114,28 @@ solve(UEqn == -fvc::grad(p));
 
 ```mermaid
 graph LR
-    A["Control Volume<br/>Cell Center P"] --> B["Face Geometry<br/>Sf"]
+subgraph Interpolation
+    A["Cell P<br/>Center"]:::context --> B["Face Geometry<br/>Sf"]:::implicit
+    B --> C["Face Velocity<br/>Uf (Interp)"]:::implicit
+    B --> D["Face Pressure<br/>pf (Interp)"]:::implicit
+end
 
-    B --> C["Face Velocity<br/>Uf (Interpolated)"]
-    B --> D["Face Pressure<br/>pf (Interpolated)"]
+C --> E["Mass Flux<br/>φ = ρ⋅Uf⋅Sf"]:::explicit
+E --> F["Convection Term<br/>∇⋅(ρUU)"]:::success
 
-    C --> E["Mass Flux<br/>phi = ρ⋅Uf⋅Sf"]
-    E --> F["Convection Term<br/>∇⋅(ρUU) ≈ Σ(phi⋅Uf)"]
+D --> G["Pressure Force<br/>pf⋅Sf"]:::explicit
+G --> H["Pressure Gradient<br/>-∇p"]:::success
 
-    D --> G["Pressure Force<br/>pf⋅Sf"]
-    G --> H["Pressure Gradient<br/>-∇p ≈ -Σ(pf⋅Sf)/V"]
-
-    F --> I["Momentum Equation<br/>fvVectorMatrix UEqn"]
+subgraph Assembly
+    F --> I["Momentum Equation<br/>fvVectorMatrix"]:::success
     H --> I
+    J["Diffusion Term<br/>∇⋅(μ∇U)"]:::implicit --> I
+end
 
-    J["Diffusion Term<br/>∇⋅(μ∇U)"] --> I
-
-    classDef cell fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef face fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef flux fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef term fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    classDef eq fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
-
-    class A cell;
-    class B,C,D face;
-    class E,G flux;
-    class F,H,J term;
-    class I eq;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 2:** รายละเอียดขั้นตอนการ Discretization แบบ Finite Volume สำหรับสมการโมเมนตัม แสดงวิธีการประมาณค่าความเร็วและความดันที่หน้าเซลล์ (face interpolation) เพื่อประกอบเป็นพจน์การพา (convection), การแพร่ (diffusion) และพจน์แหล่งกำเนิด (source terms) ในระบบเมทริกซ์
 
@@ -280,44 +272,38 @@ $$\nabla^2 p = \nabla \cdot \mathbf{H}$$
 
 
 ```mermaid
-graph LR
-    A["Start: Initialize Pressure Field"] --> B["Solve Momentum Equation<br/>(u*, v*, w*)"]
-    B --> C["Solve Pressure Equation<br/>(∇ ⋅ (1/Ap ∇p') = rhs)"]
-    C --> D["Correct Velocity Field<br/>(u = u* - (1/Ap)∇p')"]
-    D --> E["Correct Pressure Field<br/>(p = p* + p')"]
-    E --> F{"Algorithm Type"}
+graph TD
+A["Init Pressure<br/>p*"]:::context --> B["Solve Momentum<br/>U*"]:::implicit
+B --> C["Solve Pressure<br/>p'"]:::explicit
+C --> D["Correct Velocity<br/>U = U* + U'"]:::implicit
+D --> E["Correct Pressure<br/>p = p* + αp·p'"]:::implicit
+E --> F{"Algorithm?"}:::explicit
 
-    F -->|"SIMPLE"| G{"Converged?<br/>(residuals < 1e-5)"}
-    F -->|"PISO"| H{"Correction Loop<br/>(n = 2-3)"}
-    F -->|"PIMPLE"| I{"Large Time Step?<br/>(Δt > 0.001s)"}
+F -->|SIMPLE| G{"Converged?"}:::explicit
+F -->|PISO| H{"Correct Loop<br/>(nCorrectors)"}:::explicit
+F -->|PIMPLE| I{"Large Δt?"}:::explicit
 
-    G -->|"No"| J["Apply Under-relaxation<br/>(αp = 0.3-0.7)"]
-    J --> B
-    G -->|"Yes"| K["Solution Converged"]
+G -->|No| J["Under-Relax<br/>(αU, αp)"]:::volatile
+J --> B
+G -->|Yes| K["Next Time Step"]:::success
 
-    H -->|"Continue"| C
-    H -->|"Complete"| L["Time Step Complete"]
+H -->|Continue| C
+H -->|Done| L["Next Time Step"]:::success
 
-    I -->|"Yes"| M["SIMPLE Mode<br/>(αrelax = 0.8)"]
-    I -->|"No"| N["PISO Mode<br/>(no relaxation)"]
+I -->|Yes<br/>(SIMPLE mode)| M["Apply Relaxation"]:::volatile
+I -->|No<br/>(PISO mode)| N["No Relaxation"]:::implicit
 
-    M --> O{"SIMPLE Loop<br/>(max 20 iterations)"}
-    N --> P["Proceed to Next Time Step"]
+M --> O{"Outer Loop"}:::explicit
+N --> O
 
-    O -->|"Continue"| B
-    O -->|"Complete"| P
+O -->|Iterate| B
+O -->|Done| P["Next Time Step"]:::success
 
-    classDef start fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef process fill:#9c27b0,stroke:#6a1b9a,stroke-width:2px,color:#fff;
-    classDef decision fill:#ff9800,stroke:#e65100,stroke-width:2px,color:#000;
-    classDef loop fill:#4caf50,stroke:#1b5e20,stroke-width:2px,color:#fff;
-    classDef result fill:#f44336,stroke:#b71c1c,stroke-width:2px,color:#fff;
-
-    class A start;
-    class B,C,D,E,J,P process;
-    class F,G,H,I,O decision;
-    class K,L,M,N result;
-    class H loop;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 3:** แผนผังลำดับขั้นตอนรวมสำหรับอัลกอริทึมการเชื่อมโยงความดันและความเร็ว (SIMPLE, PISO, PIMPLE) แสดงลำดับการวนซ้ำของการทำนายโมเมนตัม การแก้ไขความดัน และการอัปเดตฟิลด์สำหรับ Solver ทั้งแบบสภาวะคงตัวและแบบไม่คงที่
 
@@ -910,35 +896,33 @@ SIMPLE
 
 ```mermaid
 graph TD
-    A["Define Governing Equations"] --> B["Select Solver Type"]
-    B --> C{Compressible?}
-    C -->|Yes| D["rhoSimpleFoam<br/>rhoPimpleFoam<br/>sonicFoam"]
-    C -->|No| E["simpleFoam<br/>pimpleFoam<br/>icoFoam"]
+A["Governing Equations"]:::context --> B["Select Solver"]:::implicit
+B --> C{Compressible?}:::explicit
+C -->|Yes| D["rhoSimpleFoam<br/>rhoPimpleFoam<br/>sonicFoam"]:::volatile
+C -->|No| E["simpleFoam<br/>pimpleFoam<br/>icoFoam"]:::implicit
 
-    D --> F["Set up Thermophysical Properties"]
-    E --> G["Set Transport Properties"]
+D --> F["Thermophysical<br/>Properties"]:::explicit
+E --> G["Transport<br/>Properties"]:::explicit
 
-    F --> H["Initialize Fields<br/>(0/ directory)"]
-    G --> H
+F --> H["Initialize Fields (0/)"]:::context
+G --> H
 
-    H --> I["Configure Numerical Schemes<br/>(fvSchemes)"]
-    I --> J["Configure Solver Settings<br/>(fvSolution)"]
+H --> I["fvSchemes"]:::context
+I --> J["fvSolution"]:::context
 
-    J --> K["Run Simulation"]
-    K --> L{Converged?}
+J --> K["Run Simulation"]:::volatile
+K --> L{Converged?}:::explicit
 
-    L -->|No| M["Adjust Parameters<br/>Relaxation, Time Step"]
-    M --> K
+L -->|No| M["Adjust Parameters"]:::explicit
+M --> K
 
-    L -->|Yes| N["Post-process Results"]
+L -->|Yes| N["Post-Processing"]:::success
 
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,B,F,G,H,I,J,K,M,N process;
-    class C,L decision;
-    class D,E storage;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 4:** ขั้นตอนการทำงานเชิงกลยุทธ์สำหรับการจำลอง CFD ใน OpenFOAM ซึ่งแนะนำผู้ใช้ตั้งแต่การกำหนดรูปแบบทางคณิตศาสตร์และการเลือก Solver ไปจนถึงการตั้งค่ากรณีทดสอบ การรันการจำลอง และการประมวลผลขั้นหลัง
 

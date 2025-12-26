@@ -416,23 +416,19 @@ structuredCoeffs
 
 ```mermaid
 flowchart TD
-    A[เตรียมเรขาคณิต] --> B[blockMesh/snappyHexMesh]
-    B --> C[checkMesh]
-    C -->|ผ่าน| D[decomposePar]
-    C -->|ไม่ผ่าน| B
-    D --> E[Solver Execution]
-    E --> F[reconstructPar]
-    F --> G[postProcess/foamToVTK]
-    G --> H[Visualization]
-
-    style A fill:#e1f5ff
-    style B fill:#fff4e1
-    style C fill:#ffe1e1
-    style D fill:#e1ffe1
-    style E fill:#e1f5ff
-    style F fill:#e1ffe1
-    style G fill:#fff4e1
-    style H fill:#f0e1ff
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Geometry Prep]:::explicit --> B[blockMesh/snappyHexMesh]:::explicit
+B --> C[checkMesh]:::context
+C -->|Pass| D[decomposePar]:::explicit
+C -->|Fail| B
+D --> E[Solver Execution]:::implicit
+E --> F[reconstructPar]:::explicit
+F --> G[postProcess]:::implicit
+G --> H[Visualization]:::implicit
 ```
 > **Figure 1:** แผนภูมิแสดงลำดับการทำงาน (Workflow) ในการใช้งาน Utilities ร่วมกับ Solver ของ OpenFOAM โดยเน้นการตรวจสอบคุณภาพเมชและการจัดการข้อมูลแบบขนาน (Parallel Processing) ก่อนนำไปแสดงผล
 

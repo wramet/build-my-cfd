@@ -13,12 +13,13 @@
 
 ```mermaid
 flowchart LR
-    C1[("Cell 1")] -->|"face<br/>(owner: 1, neigh: 2)"| C2[("Cell 2")]
-    C2 -->|"boundary face<br/>(owner: 2)"| B["Boundary Patch"]
-
-    style C1 fill:#bbdefb,stroke:#1976d2
-    style C2 fill:#bbdefb,stroke:#1976d2
-    style B fill:#ffccbc,stroke:#e64a19
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+C1[Cell 1<br/>owner]:::implicit -->|face f<br/>(owner: 1, neighbour: 2)<br/>Normal: 1→2| C2[Cell 2<br/>neighbour]:::implicit
+C2 -->|boundary face<br/>(owner: 2)<br/>Normal: outward| B[Boundary Patch]:::explicit
 ```
 > **Figure 1:** อุปมาเปรียบเทียบระบบ `polyMesh` กับสำนักงานทะเบียนเมืองที่จัดการความสัมพันธ์เชิงพื้นที่และกรรมสิทธิ์ระหว่างเซลล์และหน้าผิวผ่านระบบ Owner และ Neighborความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

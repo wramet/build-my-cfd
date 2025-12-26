@@ -179,12 +179,16 @@ $$Re = \frac{\rho U D}{\mu}$$
 
 ```mermaid
 flowchart TD
-    Start[ระบุลักษณะโทโพโลยี] --> Sep{เป็นรอยต่อ<br/>ขนาดใหญ่ชัดเจน?}
-    Sep -- ใช่ --> VOF[VOF Methods<br/>interFoam / multiphaseInterFoam]
-    Sep -- ไม่ใช่ --> Disp{เป็นองค์ประกอบ<br/>กระจายตัว?}
-    Disp -- ใช่ --> EEDense[หนาแน่นสูง?<br/>multiphaseEulerFoam]
-    Disp -- เจือจาง --> EEDilute[DPMFoam<br/>Eulerian-Lagrangian]
-    Disp -- ผสม --> Trans[Transitional / Mixed<br/>ใช้ Blended Models]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+Start[Check Topology]:::context --> Sep{Large Interface?}:::explicit
+Sep -->|Yes| VOF[VOF: interFoam]:::implicit
+Sep -->|No| Disp{Dispersed?}:::explicit
+Disp -->|Yes| Dense{Dense?}:::explicit
+Dense -->|Yes| EEDense[multiphaseEulerFoam]:::implicit
+Dense -->|No| EEDilute[DPMFoam]:::implicit
+Disp -->|Mixed| Trans[Blended Models]:::implicit
 ```
 
 ### การใช้โมเดลแบบผสม (Blended Interfacial Models)

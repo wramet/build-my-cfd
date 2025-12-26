@@ -286,12 +286,17 @@ $$\frac{\partial p}{\partial t} \approx \frac{p^{n+1} - p^n}{\Delta t}$$
 
 ```mermaid
 graph TD
-    W[Call runTime.write] --> C{Check controlDict Conditions}
-    C -- "Interval NOT reached" --> End[Continue Loop]
-    C -- "Interval Reached" --> Scan[Scan objectRegistry for AUTO_WRITE]
-    Scan --> Loop[For each regIOobject]
-    Loop --> Write[obj.write]
-    Write --> Done[Folder Created & Data Saved]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+W[Call runTime.write]:::explicit --> C{Check Interval}:::context
+C -- "No" --> End[Continue]:::context
+C -- "Yes" --> Scan[Scan Registry]:::implicit
+Scan --> Loop[For each Object]:::implicit
+Loop --> Write[obj.write]:::explicit
+Write --> Done[Data Saved]:::implicit
 ```
 > **Figure 1:** กลไกการบันทึกผลลัพธ์ของฟังก์ชัน `runTime.write()` ซึ่งจะตรวจสอบเงื่อนไขในไฟล์ควบคุมและสั่งให้ออบเจ็กต์ที่ลงทะเบียนไว้ทั้งหมดทำการบันทึกข้อมูลลงในโฟลเดอร์เวลาที่กำหนดความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

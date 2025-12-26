@@ -167,11 +167,16 @@ forces {
 
 ```mermaid
 flowchart TD
-    A[Geometry Preparation] --> B[Block Mesh Generation]
-    B --> C[Surface Refinement]
-    C --> D[Boundary Layer Mesh]
-    D --> E[Quality Check]
-    E --> F[Simulation Ready]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Geometry Prep]:::explicit --> B[Block Mesh]:::implicit
+B --> C[Surface Refine]:::implicit
+C --> D[Boundary Layers]:::implicit
+D --> E[Quality Check]:::context
+E --> F[Ready]:::implicit
 ```
 > **Figure 1:** ขั้นตอนมาตรฐานในการเตรียมเมชสำหรับการจำลองพลศาสตร์อากาศของแอร์ฟอยล์และปีก เริ่มต้นจากการเตรียมรูปทรงเรขาคณิต การสร้างเมชโครงสร้างพื้นฐาน การปรับความละเอียดที่พื้นผิว การสร้างชั้นขอบเขต (Boundary Layer) และการตรวจสอบคุณภาพเมชเพื่อให้มั่นใจว่าพร้อมสำหรับการคำนวณที่แม่นยำ
 

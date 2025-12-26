@@ -180,17 +180,16 @@ public:
 
 ```mermaid
 sequenceDiagram
-    participant S as Solver Code
-    participant O as dragModel Object
-    participant V as dragModel vtable
-    participant I as SchillerNaumann::K()
-
-    Note over S: call drag.K()
-    S->>O: 1. Load __vptr
-    O->>V: 2. Lookup offset for K()
-    V->>S: 3. Return function pointer
-    S->>I: 4. Execute implementation
-    I-->>S: 5. Return result
+participant S as Solver Code
+participant O as dragModel Object
+participant V as dragModel vtable
+participant I as SchillerNaumann::K()
+Note over S: call drag.K()
+S->>O: 1. Load __vptr
+O->>V: 2. Lookup offset for K()
+V-->>S: 3. Return function pointer
+S->>I: 4. Execute implementation
+I-->>S: 5. Return result
 ```
 
 > **Figure 2:** ลำดับขั้นตอนการเรียกใช้งานฟังก์ชันผ่านกลไก Polymorphic Dispatch โดยเริ่มจาก Solver เรียกฟังก์ชันผ่านออบเจกต์ ซึ่งระบบจะไปค้นหาตำแหน่งของฟังก์ชันที่แท้จริงจาก vtable ก่อนจะกระโดดไปยังส่วนการทำงาน (Implementation) จริงของคลาสลูกที่ถูกต้อง

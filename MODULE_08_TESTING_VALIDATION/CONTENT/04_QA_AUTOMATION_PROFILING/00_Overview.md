@@ -27,20 +27,24 @@
 3.  **ความเสถียร**: ไม่เกิด Divergence หรือ Memory Leak ในกรณีศึกษาที่หลากหลาย
 
 ```mermaid
-graph TD
-    A[OpenFOAM Development] --> B{Code Works?}
-    B -- No --> C[Debug & Fix]
-    B -- Yes --> D[QA Process]
-    D --> E[Performance Profiling]
-    D --> F[Regression Testing]
-    D --> G[Advanced Debugging]
-    E --> H[Optimized Solver]
-    F --> I[Verified Correctness]
-    G --> J[Stable Solver]
-    H --> K[Production Ready]
-    I --> K
-    J --> K
-    K --> L[Reliable CFD Software]
+flowchart TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[OpenFOAM Development]:::explicit --> B{Code Works?}:::warning
+B -- No --> C[Debug & Fix]:::explicit
+B -- Yes --> D[QA Process]:::implicit
+D --> E[Performance Profiling]:::implicit
+D --> F[Regression Testing]:::implicit
+D --> G[Advanced Debugging]:::implicit
+E --> H[Optimized Solver]:::success
+F --> I[Verified Correctness]:::success
+G --> J[Stable Solver]:::success
+H --> K[Production Ready]:::success
+I --> K
+J --> K
+K --> L[Reliable CFD Software]:::success
 ```
 
 ### การเชื่อมโยงกับหัวข้ออื่น (Connections)
@@ -106,17 +110,21 @@ graph TD
 
 ```mermaid
 flowchart LR
-    A[Design Solver] --> B[Implementation]
-    B --> C[Unit Testing]
-    C --> D[Performance Profiling]
-    D --> E[Regression Testing]
-    E --> F{All Tests Pass?}
-    F -- No --> G[Debug & Fix]
-    G --> B
-    F -- Yes --> H[Release / Deploy]
-    H --> I[Monitor in Production]
-    I --> J[Collect Feedback]
-    J --> A
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[Design Solver]:::explicit --> B[Implementation]:::implicit
+B --> C[Unit Testing]:::implicit
+C --> D[Performance Profiling]:::implicit
+D --> E[Regression Testing]:::implicit
+E --> F{All Tests Pass?}:::warning
+F -- No --> G[Debug & Fix]:::explicit
+G --> B
+F -- Yes --> H[Release / Deploy]:::success
+H --> I[Monitor in Production]:::implicit
+I --> J[Collect Feedback]:::implicit
+J --> A
 ```
 
 ### 2. สมดุลระหว่าง Performance และ Accuracy

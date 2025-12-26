@@ -11,11 +11,16 @@
 
 ```mermaid
 flowchart LR
-    subgraph "symmTensor Mapping"
-        XY[Comp: XY] -->|"Mirror"| YX[Virtual: YX]
-        XZ[Comp: XZ] -->|"Mirror"| ZX[Virtual: ZX]
-        YZ[Comp: YZ] -->|"Mirror"| ZY[Virtual: ZY]
-    end
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
+
+subgraph symmTensor["symmTensor Memory Layout"]
+    direction TB
+    XY[Comp: XY]:::implicit -->|"Mirror"| YX[Virtual: YX]:::context
+    XZ[Comp: XZ]:::implicit -->|"Mirror"| ZX[Virtual: ZX]:::context
+    YZ[Comp: YZ]:::implicit -->|"Mirror"| ZY[Virtual: ZY]:::context
+end
 ```
 > **Figure 1:** กลไกการแมปหน่วยความจำของเทนเซอร์สมมาตร (symmTensor) ซึ่งใช้ประโยชน์จากคุณสมบัติการสะท้อนข้อมูลเพื่อลดจำนวนองค์ประกอบที่ต้องจัดเก็บจริงลง 33%ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

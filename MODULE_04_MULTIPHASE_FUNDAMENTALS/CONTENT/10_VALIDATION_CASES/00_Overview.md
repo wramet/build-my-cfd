@@ -13,18 +13,19 @@
 ## ลำดับชั้นการตรวจสอบความถูกต้อง (Validation Hierarchy)
 
 ```mermaid
-flowchart TD
-    A[เริ่มการตรวจสอบ] --> B[การตรวจสอบโค้ด - Code Verification]
-    B --> C[ทดสอบ MMS / Grid Convergence]
-    C --> D[การตรวจสอบคำตอบ - Solution Verification]
-    D --> E[ศึกษาความเป็นอิสระของเมชและก้าวเวลา]
-    E --> F[การตรวจสอบโมเดล - Model Validation]
-    F --> G[เปรียบเทียบกับ Benchmark และข้อมูลทดลอง]
-    G --> H[วิเคราะห์ความไม่แน่นอน - UQ]
-    H --> I{ผ่านเกณฑ์การยอมรับ?}
-    I -->|ใช่| J[แบบจำลองได้รับการตรวจสอบแล้ว]
-    I -->|ไม่| K[ปรับแต่งโมเดลหรือเมชใหม่]
-    K --> B
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Start["Start"]:::context
+Code["Code Verification"]:::implicit
+Sol["Solution Verification"]:::implicit
+Val["Validation Exp Data"]:::explicit
+UQ["UQ Analysis"]:::explicit
+Check{"Accepted?"}:::context
+
+Start --> Code --> Sol --> Val --> UQ --> Check
+Check -- No --> Code
 ```
 
 ### 1. การตรวจสอบโค้ด (Code Verification)

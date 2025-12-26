@@ -33,15 +33,16 @@ $$\rho L \frac{\partial f}{\partial t} = \nabla \cdot (k \nabla T)$$
 The liquid fraction $f$ represents the proportion of material in liquid state within a volume element and varies from **0 (fully solid)** to **1 (fully liquid)** within a small temperature range around the melting point.
 
 ```mermaid
-flowchart LR
-    A[Solid Region<br/>f = 0] -->|Heating| B[Mushy Zone<br/>0 < f < 1]
-    B -->|Heating| C[Liquid Region<br/>f = 1]
-    C -->|Cooling| B
-    B -->|Cooling| A
-
-    style A fill:#e3f2fd
-    style B fill:#fff9c4
-    style C fill:#ffccbc
+graph LR
+    classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+    
+    Solid["Solid (f=0)"]:::implicit
+    Mushy["Mushy Zone<br/>(0 < f < 1)"]:::explicit
+    Liquid["Liquid (f=1)"]:::implicit
+    
+    Solid <--> Mushy <--> Liquid
 ```
 > **Figure 1:** แผนภูมิแสดงกระบวนการเปลี่ยนสถานะของวัสดุเปลี่ยนสถานะ (PCM) และการแบ่งโซนตามค่าสัดส่วนของเหลว (f) ซึ่งมีผลต่อการคำนวณการถ่ายเทความร้อนและแรงต้านในสมการโมเมนตัม
 
@@ -344,18 +345,18 @@ The radiative heat exchange between surfaces $i$ and $j$ is:
 $$Q_{i-j} = \epsilon_i \sigma A_i F_{i-j} (T_i^4 - T_j^4)$$
 
 ```mermaid
-flowchart LR
-    A[Surface i<br/>Ti] -->|Radiation<br/>Qi-j| B[Surface j<br/>Tj]
-    B -->|Radiation<br/>Qj-i| A
-
-    subgraph ViewFactor["View Factor Fi-j"]
-        direction LR
-        C[Geometric<br/>Relationship] --> D[Surface<br/>Orientation]
-        D --> E[Distance<br/>Between<br/>Surfaces]
-    end
-
-    style A fill:#ffccbc
-    style B fill:#e3f2fd
+graph LR
+    classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+    
+    Si["Surface i"]:::context
+    Sj["Surface j"]:::context
+    View["View Factor Fi-j<br/>Geometry & Distance"]:::implicit
+    Rad["Radiation Exchange<br/>Qi-j"]:::explicit
+    
+    Si --- View --- Sj
+    View --> Rad
 ```
 > **Figure 2:** แผนภูมิแสดงกลไกการแผ่รังสีระหว่างพื้นผิวและปัจจัยที่ส่งผลต่อค่าตัวประกอบมุมมอง (View Factor) ซึ่งเป็นส่วนสำคัญในการคำนวณการแลกเปลี่ยนความร้อนแบบไม่เป็นเชิงเส้น
 
@@ -570,7 +571,8 @@ $$\begin{bmatrix}
 
 #### Selecting Appropriate Stabilization Strategy
 
-##### Low Density Ratio ($ho_f/\rho_s < 0.2$)
+##### Low Density Ratio ($
+ho_f/\rho_s < 0.2$)
 - Standard under-relaxation may be sufficient
 - Low computational cost
 - Can converge rapidly
@@ -580,7 +582,8 @@ $$\begin{bmatrix}
 - Better stability bounds
 - Automatic parameter tuning
 
-##### High Density Ratio ($ho_f/\rho_s > 1.0$)
+##### High Density Ratio ($
+ho_f/\rho_s > 1.0$)
 - Implicit coupling required
 - Consider specialized FSI solvers
 - May require block preconditioners

@@ -26,12 +26,13 @@ $$
 - $\mathbf{S}_f = \mathbf{n}_f A_f$ คือเวกเตอร์พื้นที่พื้นผิว
 
 ```mermaid
-graph LR
-    Scalar[Scalar Field: p] -- "fvc::grad" --> Vector[Vector Field: gradP]
-    Vector -- "fvc::grad" --> Tensor[Tensor Field: gradU]
-
-    style Vector fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style Tensor fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+flowchart LR
+    classDef s fill:#e1f5fe,stroke:#0277bd,color:#000
+    classDef v fill:#e8f5e9,stroke:#2e7d32,color:#000
+    classDef t fill:#f3e5f5,stroke:#7b1fa2,color:#000
+    
+    Scalar[Scalar p]:::s -->|fvc::grad| Vector[Vector gradP]:::v
+    Vector -->|fvc::grad| Tensor[Tensor gradU]:::t
 ```
 > **Figure 1:** การแปลงประเภทข้อมูลผ่านตัวดำเนินการเกรเดียนต์ (Gradient) โดยฟิลด์สเกลาร์จะเปลี่ยนเป็นฟิลด์เวกเตอร์ และฟิลด์เวกเตอร์จะเปลี่ยนเป็นฟิลด์เทนเซอร์ตามลำดับความซับซ้อนทางคณิตศาสตร์
 

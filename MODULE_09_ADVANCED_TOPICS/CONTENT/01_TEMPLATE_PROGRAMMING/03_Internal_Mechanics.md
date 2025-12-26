@@ -9,22 +9,23 @@
 
 ```mermaid
 graph LR
-    GF[GeometricField] --> IF[internalField_<br/>Field&lt;Type&gt;]
-    GF --> BF[boundaryField_<br/>FieldField&lt;PatchField&lt;Type&gt;&gt;]
-    GF --> M[mesh_<br/>const GeoMesh&]
-    GF --> D[dimensions_<br/>dimensionSet]
-    GF --> N[name_<br/>word]
-
-    subgraph "Core Data"
-    IF
-    BF
-    end
-
-    subgraph "Context & Metadata"
-    M
-    D
-    N
-    end
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px
+GF[GeometricField]:::explicit --> IF[internalField_~Field~Type~~]:::implicit
+GF --> BF[boundaryField_~FieldField~PatchField~Type~~~]:::implicit
+GF --> M[mesh_~const GeoMesh&]:::context
+GF --> D[dimensions_~dimensionSet]:::context
+GF --> N[name_~word]:::context
+subgraph Core Data
+IF
+BF
+end
+subgraph Context and Metadata
+M
+D
+N
+end
 ```
 > **Figure 1:** องค์ประกอบภายในของ `GeometricField` ที่แสดงความสัมพันธ์ระหว่างข้อมูลฟิลด์หลัก (Internal และ Boundary) กับบริบทประกอบอื่นๆ เช่น เรขาคณิตของเมช, ระบบหน่วยมิติ, และชื่อเรียกสำหรับระบบ I/O
 

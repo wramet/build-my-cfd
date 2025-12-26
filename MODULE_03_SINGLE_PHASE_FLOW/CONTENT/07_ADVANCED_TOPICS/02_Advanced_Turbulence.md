@@ -13,14 +13,16 @@
 
 ```mermaid
 flowchart TD
-    A[Navier-Stokes Equations] --> B[Spatial Filtering]
-    B --> C[Large Eddies<br/>Resolved Directly]
-    B --> D[Small Eddies<br/>SGS Modeled]
-    C --> E[Energy-Containing Structures]
-    D --> F[Isotropic Dissipation]
-
-    style C fill:#90EE90
-    style D fill:#FFB6C1
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[N-S Equations]:::context --> B[Spatial Filtering]:::explicit
+B --> C[Large Eddies]:::implicit
+B --> D[Small Eddies]:::implicit
+C --> E[Resolved]:::implicit
+D --> F[Modeled SGS]:::explicit
 ```
 > **Figure 1:** หลักการทำงานของ Large Eddy Simulation (LES) ซึ่งใช้กระบวนการกรองเชิงพื้นที่ (Spatial Filtering) เพื่อแยกการคำนวณระหว่างโครงสร้างกระแสวนขนาดใหญ่ (Large Eddies) ที่ถูกแก้โดยตรงจากสมการ และโครงสร้างขนาดเล็ก (Small Eddies) ที่ต้องใช้แบบจำลอง Subgrid-scale (SGS) ในการประมาณค่าการสลายตัวของพลังงาน
 
@@ -225,12 +227,14 @@ maxAlphaCo      0.5;      // For compressible flows
 
 ```mermaid
 flowchart LR
-    A[Inlet] --> B[Near-Wall Region<br/>RANS Mode]
-    B --> C[Separated Region<br/>LES Mode]
-    C --> D[Outlet]
-
-    style B fill:#FFE4B5
-    style C fill:#E6E6FA
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Inlet]:::context --> B[Near-Wall RANS]:::implicit
+B --> C[Separated LES]:::explicit
+C --> D[Outlet]:::context
 ```
 > **Figure 2:** แนวคิดของแบบจำลองผสม Hybrid RANS-LES หรือ Detached Eddy Simulation (DES) ซึ่งแสดงการแบ่งโซนการทำงาน โดยใช้ RANS ในบริเวณใกล้ผนังเพื่อลดต้นทุนการคำนวณ และสลับไปใช้ LES ในบริเวณที่เกิดการแยกตัวของการไหล (Separated Region) เพื่อจับโครงสร้างความปั่นป่วนที่ซับซ้อน
 
@@ -381,13 +385,16 @@ DES เหมาะสมที่สุดสำหรับ:
 
 ```mermaid
 flowchart TD
-    A[Laminar Flow] --> B{Transition Mechanism}
-    B --> C[Natural Transition<br/>Tollmien-Schlichting Waves]
-    B --> D[Bypass Transition<br/>High Turbulence]
-    B --> E[Separation-Induced<br/>Laminar Separation Bubble]
-    C --> F[Turbulent Flow]
-    D --> F
-    E --> F
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Laminar]:::context --> B{Mechanism}:::context
+B --> C[Natural T-S Waves]:::implicit
+B --> D[Bypass High Tu]:::explicit
+B --> E[Separation Induced]:::explicit
+C & D & E --> F[Turbulent]:::implicit
 ```
 > **Figure 3:** กลไกการเปลี่ยนสภาพของการไหล (Transition Mechanisms) จากสภาวะ Laminar ไปสู่ Turbulent ซึ่งสามารถเกิดขึ้นได้ผ่านหลายรูปแบบ เช่น การเปลี่ยนสภาพตามธรรมชาติ (Natural Transition) การเปลี่ยนสภาพแบบ Bypass หรือการเปลี่ยนสภาพที่เกิดจากการแยกตัวของการไหล (Separation-Induced)
 
@@ -720,28 +727,28 @@ SAS มีประสิทธิภาพสำหรับ:
 
 ```mermaid
 flowchart TD
-    A[เริ่มต้น] --> B{ความละเอียดที่ต้องการ?}
-    B -->|พื้นฐาน| C[RANS Models]
-    B -->|สูง| D{Reynolds Number?}
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Start]:::context --> B{Resolution?}:::context
+B -->|Basic| C[RANS]:::implicit
+B -->|High| D{Re Number?}:::context
 
-    D -->|ต่ำ| E[LES]
-    D -->|สูง| F{บริเวณแยกตัว?}
+D -->|Low| E[LES]:::explicit
+D -->|High| F{Separation?}:::context
 
-    F -->|จำกัด| G[DES/DDES]
-    F -->|กว้าง| H[SAS]
+F -->|Limited| G[DES/DDES]:::implicit
+F -->|Massive| H[SAS]:::implicit
 
-    C --> I{Anisotropy?}
-    I -->|สูง| J[RSM]
-    I -->|ต่ำ/ปานกลาง| K[k-ε / k-ω SST]
+C --> I{Anisotropy?}:::context
+I -->|High| J[RSM]:::explicit
+I -->|Low| K[k-eps / k-omega]:::implicit
 
-    E --> L{Transition สำคัญ?}
-    L -->|ใช่| M[γ-Reθ]
-    L -->|ไม่| N[LES Standard]
-
-    style C fill:#FFE4B5
-    style E fill:#90EE90
-    style G fill:#E6E6FA
-    style J fill:#FFB6C1
+E --> L{Transition?}:::context
+L -->|Yes| M[gamma-ReTheta]:::explicit
+L -->|No| N[Standard LES]:::implicit
 ```
 > **Figure 4:** แผนผังการตัดสินใจเลือกแบบจำลองความปั่นป่วน (Turbulence Model Selection Logic) โดยพิจารณาจากความละเอียดที่ต้องการ เลข Reynolds ลักษณะของการแยกตัวของการไหล และความไม่สมมาตรของความเค้น (Anisotropy) เพื่อให้ได้ผลลัพธ์ที่แม่นยำและคุ้มค่าที่สุด
 

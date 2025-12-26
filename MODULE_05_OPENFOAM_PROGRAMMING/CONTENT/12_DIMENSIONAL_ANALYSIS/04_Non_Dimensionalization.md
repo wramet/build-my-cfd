@@ -11,10 +11,12 @@
 
 ```mermaid
 graph LR
-    Real["Real Data: P, U, L"] -- "Divide by Reference" --> Norm["Normalized Data: p*, U*"]
-    Norm -- "Grouping" --> DimLess["Dimensionless Numbers: Re, Fr, Pr"]
-
-    style DimLess fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+Real[Real Data: P, U, L]:::implicit -- "Normalize" --> Norm[Norm Data: p*, U*]:::implicit
+Norm -- "Grouping" --> DimLess[Dimensionless: Re, Fr]:::explicit
 ```
 > **Figure 1:** แนวคิดการทำให้ไร้มิติโดยการหารตัวแปรจริงด้วยสเกลอ้างอิง เพื่อสร้างพารามิเตอร์ไร้มิติที่ใช้ในการวิเคราะห์ความเหมือนทางฟิสิกส์
 
@@ -358,14 +360,15 @@ public:
 
 ```mermaid
 flowchart TD
-    A[Prototype<br/>Large Scale] --> B[Define Dimensionless<br/>Parameters]
-    B --> C[Build Scale Model<br/>Match Re, Fr, etc.]
-    C --> D[Wind Tunnel Test<br/>Measure Forces]
-    D --> E[Extract Coefficients<br/>CD, CL]
-    E --> F[Scale Back to Prototype<br/>Using Scaling Laws]
-
-    style A fill:#e3f2fd,stroke:#1976d2
-    style F fill:#c8e6c9,stroke:#2e7d32
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Prototype]:::implicit --> B[Define Params]:::implicit
+B --> C[Build Scale Model]:::explicit
+C --> D[Wind Tunnel]:::explicit
+D --> E[Extract Coeffs]:::implicit
+E --> F[Scale Back]:::implicit
 ```
 > **Figure 2:** ลำดับขั้นตอนการประยุกต์ใช้กฎการปรับสเกล (Scaling Laws) เพื่อทำนายพฤติกรรมของระบบขนาดใหญ่จากการทดสอบในโมดูลขนาดเล็กผ่านพารามิเตอร์ไร้มิติ
 
@@ -598,14 +601,15 @@ if (mag(Re_model.value() - Re_prototype.value()) < 1e-3)
 
 ```mermaid
 flowchart TD
-    A[Define Reference<br/>Quantities] --> B[Calculate<br/>Dimensionless Groups]
-    B --> C[Create Nondimensional<br/>Fields]
-    C --> D[Formulate Nondimensional<br/>Equations]
-    D --> E[Verify Dimensional<br/>Consistency]
-    E --> F[Solve and Analyze<br/>Results]
-
-    style A fill:#e3f2fd,stroke:#1976d2
-    style F fill:#c8e6c9,stroke:#2e7d32
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Ref Quantities]:::implicit --> B[Calc DimLess Groups]:::implicit
+B --> C[Create Fields]:::explicit
+C --> D[Formulate Eqns]:::explicit
+D --> E[Verify Consist]:::implicit
+E --> F[Solve]:::explicit
 ```
 > **Figure 3:** ขั้นตอนการทำให้ไร้มิติใน OpenFOAM ตั้งแต่การกำหนดค่าอ้างอิงไปจนถึงการแก้สมการและวิเคราะห์ผลลัพธ์ที่ได้
 

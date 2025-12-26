@@ -9,15 +9,17 @@
 
 ```mermaid
 graph LR
-    C[Convection: m/s²] -- "Check" --> Match{Consistency}
-    D[Diffusion: m/s²] -- "Check" --> Match
-    S[Source: m/s²] -- "Check" --> Match
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+C[Convection]:::implicit -- "Check" --> Match{Consistent?}:::context
+D[Diffusion]:::implicit -- "Check" --> Match
+S[Source]:::implicit -- "Check" --> Match
 
-    Match -- "OK" --> Run[Simulation Starts]
-    Match -- "Fail" --> Error[Fatal Error: Incompatible Units]
-
-    style Match fill:#e8f5e9,stroke:#2e7d32
-    style Error fill:#ffebee,stroke:#c62828
+Match -- "OK" --> Run[Start]:::implicit
+Match -- "Fail" --> Error[Fatal Error]:::explicit
 ```
 > **Figure 1:** แผนภาพ "ตาข่ายนิรภัย" ของวิศวกร ซึ่งแสดงให้เห็นว่าระบบจะบล็อกการจำลองทันทีหากพบว่าเทอมต่างๆ ในสมการมีหน่วยที่ไม่สอดคล้องกันความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

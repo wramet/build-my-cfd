@@ -10,25 +10,22 @@
 
 ```mermaid
 flowchart TD
-    A["Pre-Processing<br/>(เตรียมข้อมูล)"] --> B["Mesh Generation<br/>(สร้างเมช)"]
-    B --> C["Case Setup<br/>(ตั้งค่าเคส)"]
-    C --> D["Solver Execution<br/>(รันซิมูเลชัน)"]
-    D --> E["Post-Processing<br/>(วิเคราะห์ผล)"]
-    E --> F["Reporting<br/>(สรุปผล)"]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
 
-    A1["CAD Processing<br/>Surface Preparation<br/>Domain Definition"] --> A
-    B1["blockMesh<br/>snappyHexMesh<br/>Quality Assessment"] --> B
-    C1["Boundary Conditions<br/>Field Initialization<br/>Solver Configuration"] --> C
-    D1["Parallel Execution<br/>Resource Management<br/>Job Scheduling"] --> D
-    E1["Data Extraction<br/>Visualization<br/>Analysis"] --> E
-    F1["Report Generation<br/>Documentation<br/>Knowledge Integration"] --> F
+A[Pre-Processing]:::explicit --> B[Meshing]:::implicit
+B --> C[Case Setup]:::explicit
+C --> D[Run Solver]:::implicit
+D --> E[Post-Processing]:::explicit
+E --> F[Reporting]:::implicit
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style D fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style E fill:#ffebee,stroke:#c62828,stroke-width:2px
-    style F fill:#e0f2f1,stroke:#00695c,stroke-width:2px
+A1[CAD / Domain]:::context -.-> A
+B1[blockMesh / snappy]:::context -.-> B
+C1[BCs / Config]:::context -.-> C
+D1[Parallel / HPC]:::context -.-> D
+E1[Data / Vis]:::context -.-> E
+F1[Documentation]:::context -.-> F
 ```
 > **Figure 1:** สถาปัตยกรรมของเฟรมเวิร์กการทำงานอัตโนมัติ (Automation Framework Architecture) แสดงการจัดระเบียบงานในแต่ละขั้นตอนของกระบวนการ CFD ตั้งแต่การเตรียมข้อมูล การสร้างเมช การตั้งค่าเคส การรัน Solver ไปจนถึงการวิเคราะห์และสรุปผล เพื่อให้ระบบทำงานได้อย่างต่อเนื่องและมีประสิทธิภาพ
 
@@ -444,16 +441,13 @@ meshQualityControls
 
 ```mermaid
 flowchart LR
-    A["Process Mapping<br/>(วิเคราะห์ขั้นตอน)"] --> B["Pilot Project<br/>(โครงการนำร่อง)"]
-    B --> C["Validation<br/>(ตรวจสอบผล)"]
-    C --> D["Scaling<br/>(ขยายผล)"]
-    D --> E["Production<br/>(ใช้งานจริง)"]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style D fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style E fill:#e0f2f1,stroke:#00695c,stroke-width:2px
+A[Mapping]:::explicit --> B[Pilot]:::explicit
+B --> C[Validation]:::implicit
+C --> D[Scaling]:::implicit
+D --> E[Production]:::implicit
 ```
 > **Figure 2:** กลยุทธ์การนำระบบอัตโนมัติไปปฏิบัติ (Implementation Strategy) แสดงขั้นตอนการเปลี่ยนผ่านอย่างเป็นระบบ เริ่มจากการวิเคราะห์กระบวนการ การทดสอบในโครงการนำร่อง การตรวจสอบความถูกต้อง จนถึงการขยายผลสู่การใช้งานจริงในระดับการผลิต
 

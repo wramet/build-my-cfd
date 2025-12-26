@@ -509,13 +509,30 @@ The tensor hierarchy begins with the base template class `Template<Cmpt>`, where
 
 ```mermaid
 graph TD
-    A[Template&lt;Cmpt&gt;] --> B[MatrixSpace&lt;tensor&lt;Cmpt&gt;, Cmpt, 3, 3&gt;]
-    A --> C[VectorSpace&lt;symmTensor&lt;Cmpt&gt;, Cmpt, 6&gt;]
-    A --> D[VectorSpace&lt;sphericalTensor&lt;Cmpt&gt;, Cmpt, 1&gt;]
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
+A["Template&lt;Cmpt&gt;"]:::context
 
-    B --> E[tensor: 9 components]
-    C --> F[symmTensor: 6 components]
-    D --> G[sphericalTensor: 1 component]
+subgraph Storage[" Underlying Storage "]
+    B["MatrixSpace&lt;tensor&lt;Cmpt&gt;, Cmpt, 3, 3&gt;"]:::implicit
+    C["VectorSpace&lt;symmTensor&lt;Cmpt&gt;, Cmpt, 6&gt;"]:::implicit
+    D["VectorSpace&lt;sphericalTensor&lt;Cmpt&gt;, Cmpt, 1&gt;"]:::implicit
+end
+
+subgraph Types[" User Types "]
+    E["tensor: 9 components"]:::explicit
+    F["symmTensor: 6 components"]:::explicit
+    G["sphericalTensor: 1 component"]:::explicit
+end
+
+A --> B
+A --> C
+A --> D
+B --> E
+C --> F
+D --> G
 ```
 > **Figure 1:** แผนผังลำดับชั้นของคลาสเทนเซอร์ใน OpenFOAM ซึ่งแบ่งออกเป็น 3 ประเภทหลัก ได้แก่ เทนเซอร์ทั่วไป (tensor), เทนเซอร์สมมาตร (symmTensor) และเทนเซอร์ทรงกลม (sphericalTensor) เพื่อประสิทธิภาพสูงสุดในการจัดเก็บข้อมูลความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

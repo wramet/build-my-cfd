@@ -13,16 +13,13 @@
 
 ```mermaid
 flowchart TD
-    A[Microscopic Flow<br>Discontinuous Interfaces] --> B[Volume Averaging]
-    B --> C[Phase-Averaged Variables]
-    C --> D[Continuum Fields]
-    D --> E[Governing Equations]
-
-    style A fill:#ffcdd2
-    style B fill:#fff3e0
-    style C fill:#e8f5e8
-    style D fill:#e3f2fd
-    style E fill:#f3e5f5
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A["Microscopic Flow<br/>Discontinuous Interfaces"]:::explicit --> B["Volume Averaging<br/>Operator"]:::context
+B --> C["Phase-Averaged Variables"]:::implicit
+C --> D["Continuum Fields"]:::implicit
+D --> E["Governing Equations"]:::implicit
 ```
 
 ### 1. การเฉลี่ยเชิงปริมาตร (Volume Averaging)

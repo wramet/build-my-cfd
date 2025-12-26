@@ -17,14 +17,19 @@ $$\mathbf{S} \cdot \mathbf{v}_k = \lambda_k \mathbf{v}_k, \quad k=1,2,3$$
 
 ```mermaid
 flowchart TD
-    T[เมทริกซ์เทนเซอร์ที่ซับซ้อน] -->|eigenValues| V[3 ขนาดหลัก: λ]
-    T -->|eigenVectors| D[3 ทิศทางหลัก: v]
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+T["เมทริกซ์เทนเซอร์ที่ซับซ้อน"]:::explicit
 
-    V --> P[ข้อมูลเชิงลึกทางฟิสิกส์: ความเค้น/ความเครียดสูงสุด]
-    D --> P
+subgraph Decomposition[" Eigen Decomposition "]
+    T -->|eigenValues| V["3 ขนาดหลัก: λ"]:::implicit
+    T -->|eigenVectors| D["3 ทิศทางหลัก: v"]:::implicit
+end
 
-    style V fill:#c8e6c9
-    style D fill:#e1f5fe
+subgraph Insight[" Physical Interpretation "]
+    V & D --> P["ข้อมูลเชิงลึกทางฟิสิกส์:<br/>ความเค้น/ความเครียดสูงสุด"]:::implicit
+end
 ```
 > **รูปที่ 1:** ขั้นตอนการสลายตัวของค่าลักษณะเฉพาะ (Eigen Decomposition) เพื่อหาขนาดหลัก (Eigenvalues) และทิศทางหลัก (Eigenvectors) จากเมทริกซ์เทนเซอร์ที่ซับซ้อน ช่วยให้เห็นภาพรวมของความเค้นหรือความเครียดในระบบ
 

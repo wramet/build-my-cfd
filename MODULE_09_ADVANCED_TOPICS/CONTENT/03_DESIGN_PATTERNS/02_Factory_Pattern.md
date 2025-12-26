@@ -235,15 +235,19 @@ namespace
 
 ```mermaid
 graph TD
-    A[Dictionary File<br/>type: "kEpsilon"] --> B[Factory Call<br/>turbulenceModel::New()]
-    B --> C[Parse Dictionary<br/>Read type keyword]
-    C --> D[Lookup in Selection Table<br/>Hash table search]
-    D --> E{Found?}
-    E -->|Yes| F[Call Registered Constructor<br/>kEpsilon::New(U, phi, transport)]
-    E -->|No| G[Fatal Error with Available Types<br/>Built from table entries]
-    F --> H[Dynamic Memory Allocation<br/>new kEpsilonModel(...)]
-    H --> I[Wrap in autoPtr<br/>Smart pointer management]
-    I --> J[Return to Caller<br/>Ready for use]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[Dictionary File<br/>type: "kEpsilon"]:::explicit --> B[Factory Call<br/>turbulenceModel::New()]:::implicit
+B --> C[Parse Dictionary<br/>Read type keyword]:::implicit
+C --> D[Lookup in Selection Table<br/>Hash table search]:::implicit
+D --> E{Found?}:::warning
+E -->|Yes| F[Call Registered Constructor<br/>kEpsilon::New(U, phi, transport)]:::implicit
+E -->|No| G[Fatal Error with Available Types<br/>Built from table entries]:::explicit
+F --> H[Dynamic Memory Allocation<br/>new kEpsilonModel(...)]:::implicit
+H --> I[Wrap in autoPtr<br/>Smart pointer management]:::implicit
+I --> J[Return to Caller<br/>Ready for use]:::success
 ```
 > **Figure 1:** แผนผังแสดงกระบวนการทำงานของ Factory Pattern ใน OpenFOAM เริ่มต้นจากการอ่านค่าจาก Dictionary เพื่อค้นหาประเภทของโมเดลที่ต้องการในตารางการเลือก (Selection Table) หากพบประเภทที่ถูกต้อง ระบบจะเรียกคอนสตรักเตอร์ที่ลงทะเบียนไว้เพื่อสร้างออบเจกต์จริงผ่านการจัดสรรหน่วยความจำแบบไดนามิก และส่งคืนในรูปแบบ Smart Pointer (`autoPtr`) เพื่อความปลอดภัยในการจัดการหน่วยความจำ
 

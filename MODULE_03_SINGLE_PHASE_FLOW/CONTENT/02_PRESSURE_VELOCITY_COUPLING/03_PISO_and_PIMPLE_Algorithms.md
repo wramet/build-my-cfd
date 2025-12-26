@@ -56,13 +56,18 @@ $$\phi^{(i+1)} = \mathbf{u}^{(i+1)} \cdot \mathbf{S}_f$$
 
 ```mermaid
 flowchart TD
-    A[Start Time Step] --> B[Momentum Predictor<br/>Solve with pⁿ]
-    B --> C[PISO Corrector Loop]
-    C --> D[Solve Pressure Correction]
-    D --> E[Correct Velocity & Fluxes]
-    E --> F{More Corrections?<br/>i < nCorrectors}
-    F -->|Yes| D
-    F -->|No| G[Next Time Step]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Start]:::context --> B[Predictor]:::implicit
+B --> C[PISO Loop]:::explicit
+C --> D[Solve P]:::implicit
+D --> E[Correct U & Flux]:::implicit
+E --> F{More Loops?}:::context
+F -->|Yes| D
+F -->|No| G[Next Step]:::context
 ```
 > **Figure 1:** แผนผังลำดับขั้นตอนการทำงานของอัลกอริทึม PISO (PISO Workflow) สำหรับการคำนวณแบบ Transient โดยเน้นที่ลูปการแก้ไข (Corrector Loop) ภายในก้าวเวลาเดียว เพื่อรักษาความแม่นยำเชิงเวลาและความต่อเนื่องของมวลโดยไม่ต้องใช้ Under-relaxation
 
@@ -184,17 +189,22 @@ $$p^{n+1,k+1} = p^{n+1,k} + \alpha_p p'$$
 
 ```mermaid
 flowchart TD
-    A[Start time step] --> B[Outer loop: k = 1 to nOuter]
-    B --> C[Under-relax momentum solve<br/>with pressure p^k]
-    C --> D[Inner PISO loop: i = 1 to nCorr]
-    D --> E[Solve pressure correction]
-    E --> F[Correct velocity & fluxes]
-    F --> G{Inner converged?}
-    G -->|No| D
-    G -->|Yes| H[Under-relax fields]
-    H --> I{Outer converged?}
-    I -->|No| B
-    I -->|Yes| J[Next time step]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Start Step]:::context --> B[Outer Loop]:::explicit
+B --> C[Momentum Solve]:::implicit
+C --> D[Inner PISO Loop]:::explicit
+D --> E[Pressure Solve]:::implicit
+E --> F[Correct U]:::implicit
+F --> G{Inner Converged?}:::context
+G -->|No| D
+G -->|Yes| H[Relax Fields]:::implicit
+H --> I{Outer Converged?}:::context
+I -->|No| B
+I -->|Yes| J[Next Step]:::context
 ```
 > **Figure 2:** โครงสร้างลูปแบบซ้อนกัน (Nested Loops) ของอัลกอริทึม PIMPLE ซึ่งประกอบด้วยลูปภายนอก (Outer Loop) แบบ SIMPLE เพื่อสร้างความเสถียรผ่าน Under-relaxation และลูปภายใน (Inner Loop) แบบ PISO เพื่อความแม่นยำในการแก้สมการความดันและความเร็ว ทำให้สามารถคำนวณด้วยก้าวเวลาขนาดใหญ่ (High Courant number) ได้
 
@@ -358,13 +368,13 @@ PIMPLE
 
 ```mermaid
 quadrantChart
-    title Stability vs. Time Step Size
-    x-axis "Small Δt (Co < 1)" --> "Large Δt (Co > 1)"
-    y-axis "Low Stability" --> "High Stability"
-    quadrant-1 "PISO optimal"
-    quadrant-2 "PIMPLE robust"
-    quadrant-3 "SIMPLE steady"
-    quadrant-4 "All stable"
+title Stability vs Time Step
+x-axis "Small dt (Co < 1)" --> "Large dt (Co > 1)"
+y-axis "Low Stability" --> "High Stability"
+quadrant-1 "PISO optimal"
+quadrant-2 "PIMPLE robust"
+quadrant-3 "SIMPLE steady"
+quadrant-4 "All stable"
 ```
 > **Figure 3:** กราฟเปรียบเทียบความสัมพันธ์ระหว่างความเสถียร (Stability) และขนาดของก้าวเวลา (Time Step Size) ของอัลกอริทึมต่างๆ แสดงให้เห็นว่า PISO เหมาะสมกับก้าวเวลาขนาดเล็ก (Co < 1) ในขณะที่ PIMPLE มีความแข็งแกร่ง (Robust) กว่าเมื่อต้องเผชิญกับก้าวเวลาขนาดใหญ่ และ SIMPLE เหมาะสำหรับการลู่เข้าสู่สภาวะคงที่ (Steady-state)
 

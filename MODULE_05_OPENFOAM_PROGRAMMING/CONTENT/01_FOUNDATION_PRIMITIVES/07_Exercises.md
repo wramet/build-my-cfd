@@ -26,16 +26,19 @@
 
 ```mermaid
 flowchart LR
-    A[Source Code] --> B{Compile Time}
-    B -->|WM_LABEL_SIZE=32| C[label = int32_t]
-    B -->|WM_LABEL_SIZE=64| D[label = int64_t]
-    B -->|WM_SP| E[scalar = float]
-    B -->|WM_DP| F[scalar = double]
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
 
-    C --> G[Consistent Behavior]
-    D --> G
-    E --> G
-    F --> G
+A["📄 Source Code"]:::explicit --> B{"⚙️ Compile Time"}:::context
+
+B -->|"WM_LABEL_SIZE=32"| C["label = int32_t"]:::implicit
+B -->|"WM_LABEL_SIZE=64"| D["label = int64_t"]:::implicit
+B -->|"WM_SP"| E["scalar = float"]:::implicit
+B -->|"WM_DP"| F["scalar = double"]:::implicit
+
+C & D & E & F --> G["✅ Consistent Behavior"]:::context
 ```
 > **Figure 1:** ขั้นตอนการเลือกประเภทข้อมูล (Type Selection) ในระดับคอมไพล์ ซึ่ง OpenFOAM จะเลือกขนาดของ `label` และความแม่นยำของ `scalar` ตามการตั้งค่าระบบเพื่อให้ได้ประสิทธิภาพสูงสุดบนสถาปัตยกรรมฮาร์ดแวร์ที่แตกต่างกัน
 
@@ -177,17 +180,32 @@ t2.ref() = 300.0;                      // Triggers copy-on-write
 
 ```mermaid
 graph TD
-    A[Contiguous Memory] --> B[Cache Line Utilization]
-    A --> C[SIMD Vectorization]
-    A --> D[Prefetching Effectiveness]
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
 
-    B --> E[Reduced Cache Misses]
-    C --> F[Parallel Operations]
-    D --> G[Hidden Memory Latency]
+A["🧠 Contiguous Memory"]:::implicit
 
-    E --> H[↑ Performance]
-    F --> H
-    G --> H
+subgraph Mechanisms["⚙️ Hardware Mechanisms"]
+    B["Cache Line Utilization"]:::context
+    C["SIMD Vectorization"]:::context
+    D["Prefetching Effectiveness"]:::context
+end
+
+subgraph Benefits["📈 Performance Benefits"]
+    E["Reduced Cache Misses"]:::implicit
+    F["Parallel Operations"]:::implicit
+    G["Hidden Memory Latency"]:::implicit
+end
+
+H["🚀 ↑ Performance"]:::explicit
+
+A --> B & C & D
+B --> E
+C --> F
+D --> G
+E & F & G --> H
 ```
 > **Figure 2:** แผนผังแสดงความสัมพันธ์ของการจัดเก็บข้อมูลแบบต่อเนื่องในหน่วยความจำ (Contiguous Memory) ที่ส่งผลเชิงบวกต่อประสิทธิภาพการคำนวณผ่านการใช้งาน CPU Cache และการประมวลผลแบบขนาน (SIMD)
 
@@ -265,14 +283,22 @@ fieldPtr is empty
 
 ```mermaid
 flowchart LR
-    A[Before Assignment] --> B[fieldPtr: owns object]
-    A --> C[anotherPtr: empty]
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
 
-    D[After Assignment] --> E[fieldPtr: empty]
-    D --> F[anotherPtr: owns object]
+subgraph Before["📌 Before Assignment"]
+    B["fieldPtr<br/>(owns object)"]:::explicit
+    C["anotherPtr<br/>(empty)"]:::context
+end
 
-    style E fill:#f99
-    style F fill:#9f9
+subgraph After["✅ After Assignment"]
+    E["fieldPtr<br/>(empty)"]:::context
+    F["anotherPtr<br/>(owns object)"]:::explicit
+end
+
+Before -->|"assignment operator"| After
 ```
 > **Figure 3:** แผนภาพแสดงการโอนความเป็นเจ้าของ (Ownership Transfer) ของ `autoPtr` โดยหลังจากมีการกำหนดค่า (Assignment) ความเป็นเจ้าของจะย้ายไปยังพอยน์เตอร์ใหม่ และพอยน์เตอร์เดิมจะกลายเป็นค่าว่าง (Empty)
 

@@ -20,11 +20,15 @@ $$\Pi_m = \prod_{i=1}^n Q_i^{b_{im}} \quad \text{โดยที่} \quad \sum_
 
 ```mermaid
 graph TD
-    A[ตัวแปรที่มีมิติ] --> B[สร้างเมทริกซ์มิติ A]
-    B --> C[คำนวณ Null Space]
-    C --> D[สกัดคำตอบจำนวนเต็ม]
-    D --> E[สร้างกลุ่มไร้มิติ]
-    E --> F[Re, Fr, Ma, ฯลฯ]
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+
+A[ตัวแปรที่มีมิติ]:::explicit --> B[สร้างเมทริกซ์มิติ A]:::implicit
+B --> C[คำนวณ Null Space]:::implicit
+C --> D[สกัดคำตอบจำนวนเต็ม]:::implicit
+D --> E[สร้างกลุ่มไร้มิติ]:::implicit
+E --> F[Re, Fr, Ma, ฯลฯ]:::implicit
 ```
 > **รูปที่ 1:** ขั้นตอนการประยุกต์ใช้ทฤษฎีบท Buckingham π เพื่อระบุกลุ่มพารามิเตอร์ไร้มิติ (Dimensionless Groups) จากตัวแปรทางฟิสิกส์ที่มีมิติต่างๆ
 
@@ -343,16 +347,31 @@ $$\frac{\partial \tilde{\rho} \tilde{\mathbf{u}}}{\partial \tilde{t}} + \tilde{\
 
 ```mermaid
 graph TD
-    NS["Navier-Stokes Equation"]
-    NS --> T1["Unsteady: [M L^-2 T^-2]"]
-    NS --> T2["Convection: [M L^-2 T^-2]"]
-    NS --> T3["Pressure: [M L^-2 T^-2]"]
-    NS --> T4["Viscous: [M L^-2 T^-2]"]
-    NS --> T5["Source: [M L^-2 T^-2]"]
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
 
-    T1 & T2 & T3 & T4 & T5 --> Check{Dimensionally Homogeneous?}
-    Check -->|Yes| Valid[Valid for Simulation]
-    Check -->|No| Error[Dimensional Inconsistency Detected]
+NS["Navier-Stokes Equation"]:::explicit
+
+subgraph Terms["Equation Terms"]
+    T1["Unsteady<br/>[M L^-2 T^-2]"]:::context
+    T2["Convection<br/>[M L^-2 T^-2]"]:::context
+    T3["Pressure<br/>[M L^-2 T^-2]"]:::context
+    T4["Viscous<br/>[M L^-2 T^-2]"]:::context
+    T5["Source<br/>[M L^-2 T^-2]"]:::context
+end
+
+NS --> T1
+NS --> T2
+NS --> T3
+NS --> T4
+NS --> T5
+
+T1 & T2 & T3 & T4 & T5 --> Check{Dimensionally<br/>Homogeneous?}:::implicit
+
+Check -->|Yes| Valid[Valid for Simulation]:::implicit
+Check -->|No| Error[Dimensional Inconsistency Detected]:::explicit
 ```
 > **รูปที่ 2:** การตรวจสอบความเป็นเนื้อเดียวกันทางมิติ (Dimensional Homogeneity) ของสมการ Navier-Stokes เพื่อให้มั่นใจว่าทุกพจน์ในสมการมีหน่วยที่สอดคล้องกันก่อนเริ่มการจำลอง
 

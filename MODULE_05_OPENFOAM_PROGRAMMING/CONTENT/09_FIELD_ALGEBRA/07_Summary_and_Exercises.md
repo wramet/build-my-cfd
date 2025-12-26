@@ -1,24 +1,36 @@
 # สรุปและแบบฝึกหัด (Summary & Exercises)
 
 ```mermaid
-mindmap
-  root((Field Algebra))
-    Operations
-      Arithmetic (+, -, *, /)
-      Vector (&, ^)
-      Tensor (*)
-    Dimensional Safety
-      SI Units Check
-      Fatal Error Protection
-      Algebra rules (Exp sum/sub)
-    Performance
-      Expression Templates
-      Loop Fusion
-      Zero-cost Abstraction
-    Best Practices
-      Use Parentheses
-      Avoid Over-complex Expressions
-      Check Unit Consistency
+flowchart LR
+classDef root fill:#424242,stroke:#000,color:#fff
+classDef safety fill:#c8e6c9,stroke:#2e7d32,color:#000
+classDef perf fill:#e3f2fd,stroke:#1565c0,color:#000
+classDef practice fill:#fff9c4,stroke:#fbc02d,color:#000
+Center((Field Algebra)):::root
+subgraph Safety ["Dimensional Safety"]
+    S1["SI Units Check"]:::safety
+    S2["Fatal Error Protection"]:::safety
+    S3["Algebraic Rules"]:::safety
+end
+subgraph Perf ["Performance"]
+    P1["Expression Templates"]:::perf
+    P2["Loop Fusion"]:::perf
+    P3["Zero-cost Abstraction"]:::perf
+end
+subgraph BestPractice ["Best Practices"]
+    B1["Use Parentheses"]:::practice
+    B2["Avoid Complexity"]:::practice
+    B3["Unit Consistency"]:::practice
+end
+Center --- S1
+Center --- S2
+Center --- S3
+Center --- P1
+Center --- P2
+Center --- P3
+Center --- B1
+Center --- B2
+Center --- B3
 ```
 > **Figure 1:** แผนผังความคิดสรุปองค์ประกอบสำคัญของพีชคณิตฟิลด์ ครอบคลุมทั้งตัวดำเนินการทางคณิตศาสตร์ ความปลอดภัยด้านมิติ และกลไกการเพิ่มประสิทธิภาพความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
@@ -987,10 +999,14 @@ volScalarField dissipation = 2.0 * mu * (S && S);  // Viscous dissipation: 2μS:
 
 ```mermaid
 flowchart LR
-    A[fieldA] --> C[+ Operator]
-    B[fieldB * 2.0] --> C
-    C --> D[No Temporary Allocation]
-    D --> E[Direct Computation on Assignment]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[fieldA]:::implicit --> C[+ Operator]:::explicit
+B[fieldB * 2.0]:::implicit --> C
+C --> D[No Temp Alloc]:::implicit
+D --> E[Direct Assign]:::explicit
 ```
 > **Figure 2:** กระบวนการทำงานของ Expression Template ที่ช่วยลดการใช้หน่วยความจำและเพิ่มความเร็วในการคำนวณโดยการหลีกเลี่ยงการสร้างตัวแปรชั่วคราวระหว่างขั้นตอนการประมวลผลความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

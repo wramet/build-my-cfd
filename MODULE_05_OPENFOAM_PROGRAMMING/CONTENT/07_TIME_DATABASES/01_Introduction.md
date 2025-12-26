@@ -16,33 +16,31 @@ Imagine you are establishing a **national weather monitoring system**. You need 
 
 ```mermaid
 graph TD
-    subgraph National_Level["National Headquarters (Time/runTime)"]
-        T[Time Controller]
-        T --> |broadcasts| DT[Time Signals]
-    end
-
-    subgraph Regional_Network["Regional Offices (objectRegistry)"]
-        OR[Object Registry]
-        OR --> |manages| REG1[Region 1 Data]
-        OR --> |manages| REG2[Region 2 Data]
-        OR --> |manages| REG3[Region 3 Data]
-    end
-
-    subgraph Local_Stations["Weather Stations (GeometricField)"]
-        FS1[Field Station 1]
-        FS2[Field Station 2]
-        FS3[Field Station 3]
-    end
-
-    DT --> OR
-    REG1 --> FS1
-    REG2 --> FS2
-    REG3 --> FS3
-
-    FS1 --> |reports| OR
-    FS2 --> |reports| OR
-    FS3 --> |reports| OR
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Subgraphs
+subgraph National [HQ: Time/runTime]
+    T[Time Controller]:::explicit
+    T --> |broadcasts| DT[Signals]:::explicit
 end
+
+subgraph Regional [Regional: objectRegistry]
+    OR[Object Registry]:::implicit
+    OR --> REG1[Region 1 Data]:::implicit
+    OR --> REG2[Region 2 Data]:::implicit
+end
+
+subgraph Local [Local: GeometricField]
+    FS1[Station 1]:::implicit
+    FS2[Station 2]:::implicit
+end
+
+DT --> OR
+REG1 --> FS1
+REG2 --> FS2
+FS1 --> OR
+FS2 --> OR
 ```
 > **Figure 1:** อุปมาเปรียบเทียบระบบการจัดการข้อมูลของ OpenFOAM กับเครือข่ายสถานีตรวจอากาศระดับชาติ ซึ่งแสดงให้เห็นถึงการประสานงานระหว่างส่วนควบคุมกลาง สำนักงานภูมิภาค และสถานีตรวจวัดในพื้นที่
 
@@ -136,20 +134,23 @@ temperatureField.boundaryField()[1] == zeroGradientFvPatchField<scalar>(
 
 ```mermaid
 graph LR
-    subgraph Boundary_Conditions["Regional Offices (Boundary Conditions)"]
-        BC1[Inlet Region]
-        BC2[Outlet Region]
-        BC3[Wall Regions]
-    end
-
-    subgraph Field_Internal["Internal Domain"]
-        IF[Internal Field Values]
-    end
-
-    BC1 --> |Fixed: 300K| IF
-    BC2 --> |Zero Gradient| IF
-    BC3 --> |Adiabatic| IF
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Subgraphs
+subgraph BC [Boundary Conditions]
+    BC1[Inlet]:::explicit
+    BC2[Outlet]:::explicit
+    BC3[Walls]:::explicit
 end
+
+subgraph IF [Internal Field]
+    Val[Field Values]:::implicit
+end
+
+BC1 --> |Fixed| Val
+BC2 --> |Gradient| Val
+BC3 --> |Adiabatic| Val
 ```
 > **Figure 2:** การจัดการเงื่อนไขขอบเขตเสมือนสำนักงานภูมิภาคที่ควบคุมพฤติกรรมของข้อมูลในแต่ละโซนของโดเมนการคำนวณ
 
@@ -250,28 +251,31 @@ TEqn.solve();
 
 ```mermaid
 flowchart TD
-    subgraph Level_1["Level 1: Local Measurements"]
-        A1[Cell Center Values]
-    end
-
-    subgraph Level_2["Level 2: Regional Processing"]
-        B1[Boundary Condition Updates]
-        B2[Patch-specific Calculations]
-    end
-
-    subgraph Level_3["Level 3: National Coordination"]
-        C1[Field Operations]
-        C2[Solver Integration]
-        C3[Global Reductions]
-    end
-
-    A1 --> B1
-    A1 --> B2
-    B1 --> C1
-    B2 --> C1
-    C1 --> C2
-    C1 --> C3
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Subgraphs
+subgraph L1 [Level 1: Local]
+    A1[Cell Values]:::implicit
 end
+
+subgraph L2 [Level 2: Regional]
+    B1[BC Updates]:::explicit
+    B2[Patch Calc]:::explicit
+end
+
+subgraph L3 [Level 3: National]
+    C1[Field Ops]:::implicit
+    C2[Solver Int]:::implicit
+    C3[Reductions]:::implicit
+end
+
+A1 --> B1
+A1 --> B2
+B1 --> C1
+B2 --> C1
+C1 --> C2
+C1 --> C3
 ```
 > **Figure 3:** สถาปัตยกรรมการไหลของข้อมูลสามระดับ ตั้งแต่การวัดค่าในพื้นที่ การประมวลผลระดับภูมิภาค ไปจนถึงการประสานงานระดับชาติผ่านตัวแก้ปัญหา
 

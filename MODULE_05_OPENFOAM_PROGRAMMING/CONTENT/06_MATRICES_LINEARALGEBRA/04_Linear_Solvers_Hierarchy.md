@@ -370,20 +370,21 @@ $$\mathbf{e}^{(k+1)} = \mathbf{e}^{(k)} + P\left(A_c^{-1}R(\mathbf{b} - A\mathbf
 
 ```mermaid
 flowchart TD
-    F1[Fine Mesh: Solve & Smooth] --> C[Coarser Mesh: Aggregate]
-    C --> CC[Coarsest Mesh: Direct Solve]
-    CC --> C2[Coarser Mesh: Correct]
-    C2 --> F2[Fine Mesh: Final Smooth]
-
-    subgraph V_Cycle["V-Cycle"]
-        F1
-        C
-        CC
-        C2
-        F2
-    end
-
-    style CC fill:#ffccbc,stroke:#e64a19
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+F1[Fine: Smooth]:::implicit --> C[Coarse: Aggr]:::implicit
+C --> CC[Coarsest: Solve]:::explicit
+CC --> C2[Coarse: Correct]:::implicit
+C2 --> F2[Fine: Smooth]:::implicit
+subgraph Cycle [V-Cycle]
+    F1
+    C
+    CC
+    C2
+    F2
+end
 ```
 > **Figure 1:** แผนภาพวงจร V-Cycle ของตัวแก้ปัญหา GAMG แสดงการทำงานข้ามระดับกริตที่หยาบขึ้นเพื่อกำจัดความผิดพลาดความถี่ต่ำอย่างมีประสิทธิภาพความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
@@ -687,22 +688,27 @@ matrix.diagonal() += epsilon;
 
 ```mermaid
 flowchart TD
-    Start[เริ่มต้น: เลือก Solver] --> Q1{ขนาดระบบ}
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+Start[Start]:::context --> Q1{System Size?}:::context
 
-    Q1 -->|เล็ก < 100K| Small[ใช้ PCG/PBiCGStab]
-    Q1 -->|ใหญ่ > 100K| Q2{ประเภทเมทริกซ์}
+Q1 -->|Small (< 100K)| Small[PCG/PBiCG]:::implicit
+Q1 -->|Large (> 100K)| Q2{Matrix Type?}:::context
 
-    Q2 -->|Symmetric| Sym[ใช้ GAMG สำหรับความดัน]
-    Q2 -->|Non-Symmetric| NonSym[ใช้ PBiCGStab + DILU]
+Q2 -->|Symmetric| Sym[GAMG]:::explicit
+Q2 -->|Non-Symmetric| NonSym[PBiCGStab + DILU]:::explicit
 
-    Small --> Check1[ตรวจสอบการลู่เข้า]
-    Sym --> Check1
-    NonSym --> Check1
+Small --> Check{Check<br/>Convergence?}:::context
+Sym --> Check
+NonSym --> Check
 
-    Check1 -->|ไม่ลู่เข้า| Fix[เปลี่ยน Preconditioner]
-    Check1 -->|ลู่เข้า| Done[เสร็จสิ้น]
+Check -->|Failed| Fix[Change<br/>Preconditioner]:::explicit
+Check -->|Converged| Done[Done]:::implicit
 
-    Fix --> Check1
+Fix --> Check
 ```
 > **Figure 2:** แผนผังลำดับขั้นตอนการตัดสินใจเลือกใช้ตัวแก้ปัญหาเชิงเส้นตามขนาดของระบบและประเภทของเมทริกซ์ เพื่อประสิทธิภาพสูงสุดในการจำลอง CFDความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

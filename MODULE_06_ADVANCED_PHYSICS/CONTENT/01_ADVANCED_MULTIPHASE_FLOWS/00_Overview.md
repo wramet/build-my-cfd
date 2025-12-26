@@ -8,23 +8,18 @@
 
 ```mermaid
 graph TD
-    A[Advanced Multiphase Flows] --> B[Phase Change]
-    A --> C[Cavitation]
-    A --> D[Population Balance]
-    A --> E[Complex Interfacial Forces]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Root["Advanced Multiphase"]:::context
+Phenom["Phenomena:<br/>Phase Change, Cavitation<br/>PBE"]:::implicit
+Forces["Forces:<br/>Lift, Drag, Lubrication"]:::implicit
+Solver["reactingTwoPhaseEulerFoam"]:::explicit
 
-    B --> B1[Boiling & Condensation]
-    C --> C1[Vaporization & Collapse]
-    D --> D1[Coalescence & Breakup]
-    E --> E1[Lift, Virtual Mass, Wall Lubrication]
-
-    B1 --> F[reactingTwoPhaseEulerFoam]
-    C1 --> F
-    D1 --> F
-    E1 --> F
-
-    style A fill:#f9f,stroke:#333,stroke-width:4px
-    style F fill:#69f,stroke:#333,stroke-width:2px
+Root --> Phenom
+Root --> Forces
+Phenom --> Solver
+Forces --> Solver
 ```
 > **Figure 1:** แผนภาพแสดงภาพรวมของปรากฏการณ์การไหลหลายเฟสขั้นสูงและกลไกทางฟิสิกส์ที่เกี่ยวข้อง ซึ่งบูรณาการเข้ากับตัวแก้สมการ `reactingTwoPhaseEulerFoam` เพื่อจัดการกับปัญหาการเปลี่ยนสถานะเฟสและพลวัตของอนุภาคที่ซับซ้อน
 

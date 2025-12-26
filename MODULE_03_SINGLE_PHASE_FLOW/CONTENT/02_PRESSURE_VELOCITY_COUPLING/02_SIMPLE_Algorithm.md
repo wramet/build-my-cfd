@@ -120,14 +120,19 @@ $$p^{new} = \alpha_p p^{corrected} + (1 - \alpha_p) p^{old} \tag{2.10}$$
 
 ```mermaid
 flowchart TD
-    A["Start: Initialize p*, u*"] --> B["Momentum Prediction<br/>Solve: aₚ u* = H(u) - ∇p*"]
-    B --> C["Pressure Correction<br/>Solve: ∇·(1/aₚ ∇p') = ∇·u*"]
-    C --> D["Velocity Correction<br/>u = u* - 1/aₚ ∇p'"]
-    D --> E["Pressure Update<br/>p = p* + p'"]
-    E --> F["Under-Relaxation<br/>Apply αᵤ, αₚ"]
-    F --> G{"Converged?"}
-    G -->|No| A
-    G -->|Yes| H["End: Converged Solution"]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Init p*, u*]:::context --> B[Predictor: Solve U]:::implicit
+B --> C[Solve P Correction]:::explicit
+C --> D[Correct Velocity]:::implicit
+D --> E[Update Pressure]:::implicit
+E --> F[Under-Relaxation]:::explicit
+F --> G{Converged?}:::context
+G -->|No| B
+G -->|Yes| H[End]:::context
 ```
 
 > **Figure 1:** แผนผังลำดับขั้นตอน (Algorithm Flowchart) ของกระบวนการวนซ้ำในอัลกอริทึม SIMPLE แสดงขั้นตอนตั้งแต่การทำนายโมเมนตัม (Momentum Prediction) การแก้สมการ Pressure Poisson เพื่อหาค่าแก้ไข และการปรับปรุงฟิลด์ความดันและความเร็ว พร้อมการประยุกต์ใช้ Under-Relaxation เพื่อให้เกิดความเสถียรในการคำนวณแบบ Steady-state
@@ -630,34 +635,39 @@ relaxationFactors
 
 ```mermaid
 flowchart TD
-    A[Simulation not converging] --> B{Residual pattern}
-    B -->|Oscillatory| C[Under-relaxation issues]
-    B -->|Monotonic increase| D[Mesh quality problems]
-    B -->|No progress| E[Convergence criteria issues]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Not Converging]:::explicit --> B{Pattern?}:::context
+B -->|Oscillatory| C[Relaxation Issues]:::implicit
+B -->|Increasing| D[Mesh Issues]:::implicit
+B -->|Stalled| E[Criteria Issues]:::implicit
 
-    C --> F[Reduce relaxation factors]
-    F --> F1[αₚ: 0.1-0.2]
-    F --> F2[αᵤ: 0.3-0.5]
-    F1 --> G[Test convergence]
-    F2 --> G
+C --> F[Reduce Factors]:::explicit
+F --> F1[alpha_p: 0.1-0.2]:::implicit
+F --> F2[alpha_u: 0.3-0.5]:::implicit
 
-    D --> H[Check mesh quality]
-    H --> H1[Max skewness < 0.85]
-    H --> H2[Max non-orthogonality < 70°]
-    H1 --> I[Improve mesh]
-    H2 --> I
+D --> H[Check Mesh]:::explicit
+H --> H1[Skewness < 0.85]:::implicit
+H --> H2[Non-Ortho < 70]:::implicit
+H1 --> I[Fix Mesh]:::explicit
+H2 --> I
 
-    E --> J[Adjust convergence criteria]
-    J --> J1[Relax tolerance]
-    J --> J2[Increase max iterations]
-    J1 --> K[Re-run]
-    J2 --> K
+E --> J[Adjust Criteria]:::explicit
+J --> J1[Relax Tolerance]:::implicit
+J --> J2[Increase Iters]:::implicit
 
-    G --> L{Converged?}
-    I --> L
-    K --> L
-    L -->|Yes| M[Problem solved]
-    L -->|No| N[Advanced debugging]
+F1 --> G[Test]:::context
+F2 --> G
+I --> L{Converged?}:::context
+J1 --> K[Re-run]:::context
+J2 --> K
+G --> L
+K --> L
+L -->|Yes| M[Solved]:::implicit
+L -->|No| N[Debug]:::explicit
 ```
 
 > **Figure 2:** แผนผังลำดับการวิเคราะห์และแก้ไขปัญหา (Troubleshooting Workflow) เมื่อการจำลองไม่ลู่เข้า โดยพิจารณาจากพฤติกรรมของค่า Residual เพื่อจำแนกสาเหตุระหว่างปัจจัยด้านความเสถียรเชิงตัวเลข (Numerical Stability) คุณภาพของเมช (Mesh Quality) หรือเกณฑ์การหยุดคำนวณ (Convergence Criteria) พร้อมแนวทางการปรับปรุงในแต่ละกรณี

@@ -11,28 +11,31 @@
 
 ```mermaid
 graph LR
-    subgraph "Computational Domain"
-        CV1["Control Volume 1"]
-        CV2["Control Volume 2"]
-        CV3["Control Volume 3"]
-        CV4["Control Volume 4"]
-        CV5["Control Volume 5"]
-        CV6["Control Volume 6"]
+    classDef cv fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+    classDef flux fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
+    
+    subgraph Domain["Computational Domain"]
+        CV1["Control Volume 1"]:::cv
+        CV2["Control Volume 2"]:::cv
+        CV3["Control Volume 3"]:::cv
+        CV4["Control Volume 4"]:::cv
+        CV5["Control Volume 5"]:::cv
+        CV6["Control Volume 6"]:::cv
     end
-
-    subgraph "Fluxes Across Boundaries"
-        F12["Flux 1→2"]
-        F23["Flux 2→3"]
-        F34["Flux 3→4"]
-        F45["Flux 4→5"]
-        F56["Flux 5→6"]
-        F61["Flux 6→1"]
-        F13["Flux 1→3"]
-        F24["Flux 2→4"]
-        F35["Flux 3→5"]
-        F46["Flux 4→6"]
+    
+    subgraph Fluxes["Fluxes Across Boundaries"]
+        F12["Flux 1→2"]:::flux
+        F23["Flux 2→3"]:::flux
+        F34["Flux 3→4"]:::flux
+        F45["Flux 4→5"]:::flux
+        F56["Flux 5→6"]:::flux
+        F61["Flux 6→1"]:::flux
+        F13["Flux 1→3"]:::flux
+        F24["Flux 2→4"]:::flux
+        F35["Flux 3→5"]:::flux
+        F46["Flux 4→6"]:::flux
     end
-
+    
     CV1 -- "Mass, Momentum, Energy" --> F12
     F12 --> CV2
     CV2 --> F23
@@ -45,7 +48,7 @@ graph LR
     F56 --> CV6
     CV6 --> F61
     F61 --> CV1
-
+    
     CV1 -.-> F13
     F13 -.-> CV3
     CV2 -.-> F24
@@ -54,11 +57,6 @@ graph LR
     F35 -.-> CV5
     CV4 -.-> F46
     F46 -.-> CV6
-
-    classDef cv fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef flux fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    class CV1,CV2,CV3,CV4,CV5,CV6 cv;
-    class F12,F23,F34,F45,F56,F61,F13,F24,F35,F46 flux;
 ```
 > **Figure 1:** การแบ่งโดเมนการคำนวณออกเป็นปริมาตรควบคุม (เซลล์) ที่ไม่ทับซ้อนกัน แสดงการไหลของมวล โมเมนตัม และพลังงาน (ฟลักซ์) ข้ามขอบเขตระหว่างเซลล์ที่อยู่ติดกัน
 
@@ -83,40 +81,35 @@ graph LR
 
 ```mermaid
 graph LR
-    subgraph "Continuous Domain"
-        A["Continuous Fluid<br/>Domain"] --> B["Mathematical<br/>Fields"]
-        B --> C["Differential<br/>Equations"]
-        C --> D["Analytical<br/>Solutions"]
-    end
+classDef process fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000;
+classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 
-    subgraph "Discretized Domain"
-        E["Control Volume<br/>Grid"] --> F["Computational<br/>Mesh"]
-        F --> G["Cell-centered<br/>Values"]
-        G --> H["Algebraic<br/>Equations"]
-        H --> I["Numerical<br/>Solution"]
-    end
+subgraph "Continuous Domain"
+    A["Continuous Fluid<br/>Domain"]:::process --> B["Mathematical<br/>Fields"]:::process
+    B --> C["Differential<br/>Equations"]:::process
+    C --> D["Analytical<br/>Solutions"]:::process
+end
 
-    A -.->|Discretization| E
-    D -.->|Transformation| H
+subgraph "Discretized Domain"
+    E["Control Volume<br/>Grid"]:::storage --> F["Computational<br/>Mesh"]:::storage
+    F --> G["Cell-centered<br/>Values"]:::storage
+    G --> H["Algebraic<br/>Equations"]:::storage
+    H --> I["Numerical<br/>Solution"]:::storage
+end
 
-    subgraph "Key Relationships"
-        J["Flux Conservation<br/>at Cell Faces"]
-        K["Local Mass<br/>Balance"]
-        L["Numerical<br/>Integration"]
-    end
+A -.->|Discretization| E
+D -.->|Transformation| H
 
-    F --> J
-    J --> K
-    K --> L
+subgraph "Key Relationships"
+    J["Flux Conservation<br/>at Cell Faces"]:::decision
+    K["Local Mass<br/>Balance"]:::decision
+    L["Numerical<br/>Integration"]:::decision
+end
 
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,B,C,D process
-    class E,F,G,H,I storage
-    class J,K,L decision
+F --> J
+J --> K
+K --> L
 ```
 > **Figure 2:** ความสัมพันธ์ระหว่างโดเมนแบบต่อเนื่องและโดเมนแบบดิสครีต แสดงกระบวนการแปลงสมการเชิงอนุพันธ์และฟิลด์ทางคณิตศาสตร์ให้เป็นระบบสมการพีชคณิตและค่าตัวแปรประจำเซลล์ที่สามารถหาผลเฉลยเชิงตัวเลขได้
 
@@ -127,21 +120,21 @@ graph LR
 
 ```mermaid
 graph TD
-    subgraph Fluxes
-        In["Mass Influx<br/>ρ u S"]
-        Out["Mass Outflux<br/>-(ρ u S)_out"]
-    end
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
 
-    In --> Balance["Mass Balance<br/>Net Flux"]
-    Out --> Balance
+subgraph Fluxes["Mass Fluxes"]
+    In["Mass Influx<br/>ρuS"]:::explicit
+    Out["Mass Outflux<br/>-(ρuS)_out"]:::explicit
+end
 
-    Balance --> Accum["Accumulation<br/>∂ρ/∂t V"]
+In --> Balance["Mass Balance<br/>Net Flux"]:::implicit
+Out --> Balance
 
-    Accum --> Eq["Continuity Equation<br/>∂ρ/∂t + ∇·(ρu) = 0"]
+Balance --> Accum["Accumulation<br/>∂ρ/∂t × V"]:::implicit
 
-    style Fluxes fill:#e3f2fd,stroke:#1565c0
-    style Balance fill:#fff9c4,stroke:#fbc02d
-    style Accum fill:#e8f5e9,stroke:#2e7d32
+Accum --> Eq["Continuity Equation<br/>∂ρ/∂t + ∇·(ρu) = 0"]:::success
 ```
 > **Figure 3:** การหาที่มาของสมการความต่อเนื่องผ่านสมดุลมวลบนปริมาตรควบคุม โดยการรักษาสมดุลระหว่างฟลักซ์มวลที่ไหลเข้าและไหลออกกับการสะสมมวลภายในปริมาตร
 
@@ -164,23 +157,23 @@ $$\nabla \cdot \mathbf{u} = 0$$
 
 ```mermaid
 graph TD
-    subgraph Forces["Forces Acting on Element"]
-        P["Pressure Forces<br/>-∇p"]
-        V["Viscous Forces<br/>∇·τ"]
-        B["Body Forces<br/>ρg"]
-    end
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
 
-    P --> Net["Net Force<br/>ΣF"]
-    V --> Net
-    B --> Net
+subgraph Forces["Forces Acting on Element"]
+    P["Pressure Forces<br/>-∇p"]:::explicit
+    V["Viscous Forces<br/>∇·τ"]:::explicit
+    B["Body Forces<br/>ρg"]:::explicit
+end
 
-    Net -->|Newton's 2nd Law| Acc["Acceleration<br/>ρ Du/Dt"]
+P --> Net["Net Force<br/>ΣF"]:::implicit
+V --> Net
+B --> Net
 
-    Acc --> Inertia["Inertial Response<br/>Unsteady + Convective"]
+Net -->|Newton's 2nd Law| Acc["Acceleration<br/>ρ(∂u/∂t + u·∇u)"]:::implicit
 
-    style Forces fill:#e3f2fd,stroke:#1565c0
-    style Net fill:#fff9c4,stroke:#fbc02d
-    style Acc fill:#e8f5e9,stroke:#2e7d32
+Acc --> Inertia["Inertial Response<br/>Unsteady + Convective"]:::success
 ```
 > **Figure 4:** สมดุลแรงพลวัตในสมการโมเมนตัม ซึ่งแรงที่ผิว (แรงดันและแรงหนืด) และแรงภายนอก ส่งผลต่อความเร่งและการตอบสนองเชิงความเฉื่อยขององค์ประกอบของไหล
 
@@ -212,36 +205,27 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \
 
 ```mermaid
 graph LR
-    A["Control Volume<br/>Energy Balance"] --> B["<b>Energy In</b><br/>ρcₚ u·∇T"]
-    B --> C["<b>Energy Storage</b><br/>ρcₚ ∂T/∂t"]
-    A --> D["<b>Conduction</b><br/>k∇²T"]
-    C --> E["<b>Temperature Field</b><br/>T(x,y,z,t)"]
-    D --> E
+classDef process fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000;
+classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 
-    F["<b>Heat Transfer Mechanisms</b>"] --> G["<b>Convection</b><br/>Fluid movement"]
-    F --> H["<b>Conduction</b><br/>Molecular diffusion"]
-    F --> I["<b>Generation</b><br/>Source terms Q"]
+A["Control Volume<br/>Energy Balance"]:::process --> B["<b>Energy In</b><br/>ρcₚ u·∇T"]:::process
+B --> C["<b>Energy Storage</b><br/>ρcₚ ∂T/∂t"]:::process
+A --> D["<b>Conduction</b><br/>k∇²T"]:::process
+C --> E["<b>Temperature Field</b><br/>T(x,y,z,t)"]:::storage
+D --> E
 
-    G --> J["<b>Transport Term</b><br/>ρcₚ u·∇T"]
-    H --> K["<b>Diffusion Term</b><br/>k∇²T"]
-    I --> L["<b>Source Term</b><br/>Q/(ρcₚ)"]
+F["<b>Heat Transfer Mechanisms</b>"]:::decision --> G["<b>Convection</b><br/>Fluid movement"]:::decision
+F --> H["<b>Conduction</b><br/>Molecular diffusion"]:::decision
+F --> I["<b>Generation</b><br/>Source terms Q"]:::decision
 
-    J --> E
-    K --> E
-    L --> E
+G --> J["<b>Transport Term</b><br/>ρcₚ u·∇T"]:::process
+H --> K["<b>Diffusion Term</b><br/>k∇²T"]:::process
+I --> L["<b>Source Term</b><br/>Q/(ρcₚ)"]:::process
 
-    style A fill:#e1f5fe
-    style E fill:#f3e5f5
-    style F fill:#fff3e0
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    classDef principle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
-    classDef arrows fill:none,stroke:none,color:none;
-
-    class A,B,C,D,E,F,G,H,I,J,K,L process;
+J --> E
+K --> E
+L --> E
 ```
 > **Figure 5:** ส่วนประกอบของสมดุลพลังงานบนปริมาตรควบคุม แสดงกลไกการถ่ายโอนความร้อนผ่านการพา (Convection) และการนำ (Conduction) รวมถึงพจน์แหล่งกำเนิดและการสะสมพลังงาน
 
@@ -276,35 +260,30 @@ $$\rho c_p \frac{\partial T}{\partial t} + \rho c_p \mathbf{u} \cdot \nabla T = 
 สำหรับการไหลแบบหลายองค์ประกอบ (multicomponent flows) ที่มีการถ่ายเทชนิดสารเคมี (chemical species transport) จะต้องแก้สมการอนุรักษ์สำหรับชนิดสาร $i$ แต่ละชนิด:
 
 ```mermaid
-graph LR
-    A[Control Volume] --> B[Species Transport In]
-    A --> C[Species Transport Out]
-    A --> D[Diffusion Flux J_i]
-    A --> E[Chemical Production/Destruction omega_i]
+graph TD
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#666;
 
-    B --> F["ρ u Y_i (convective flux)"]
-    C --> G["∂(ρY_i)/∂t (temporal change)"]
-    D --> H["-∇·J_i (diffusion term)"]
-    E --> I["ω_i (reaction source term)"]
+subgraph Control_Volume["Control Volume (Finite Volume)"]
+    CV_Node["Cell P<br/>(State: ρ, Yᵢ)"]:::implicit
+end
 
-    F --> J["Species Conservation Equation"]
-    G --> J
-    H --> J
-    I --> J
+subgraph Fluxes["Fluxes & Sources"]
+    Conv_In["Convective Flux In<br/>ρuYᵢ"]:::explicit
+    Diff_In["Diffusion Flux In<br/>Jᵢ"]:::explicit
+    Source["Reaction Source<br/>ωᵢ"]:::explicit
+end
 
-    J --> K["∂(ρY_i)/∂t + ∇·(ρuY_i) = -∇·J_i + ω_i"]
+subgraph Conservation["Conservation Equation"]
+    Eq["∂(ρYᵢ)/∂t + ∇·(ρuYᵢ) = -∇·Jᵢ + ωᵢ"]:::implicit
+end
 
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    classDef arrow fill:none,stroke:#333,stroke-width:2px,color:#000;
+Conv_In -->|Transport| CV_Node
+Diff_In -->|Gradient| CV_Node
+Source -->|Production/Destruction| CV_Node
 
-    class A,J process;
-    class B,C storage;
-    class D,E decision;
-    class F,G,H,I terminator;
+CV_Node -->|Resulting Balance| Eq
 ```
 > **Figure 6:** สมดุลการถ่ายเทชนิดสารและหลักการอนุรักษ์ แสดงการเปลี่ยนแปลงตามเวลา การพา การแพร่ และพจน์การผลิตหรือทำลายจากการทำปฏิกิริยาเคมีภายในปริมาตรควบคุม
 
@@ -334,48 +313,30 @@ $$\mathbf{J}_i = -\rho D_i \nabla Y_i$$
 
 ```mermaid
 graph TD
-    %% 1. High-Level Dependency
-    subgraph Context [Flow Dependency]
-        direction LR
-        In_P[Pressure p] --> Process[EOS Calc]
-        In_T[Temperature T] --> Process
-        Process --> Out_Rho[Density rho]
-    end
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#666;
 
-    %% 2. Detailed Calculation Logic (Expression Tree)
-    subgraph Logic [Equation Logic: rho = p / RT]
-        direction TB
-        
-        %% Inputs
-        L_P(p)
-        L_R(R)
-        L_T(T)
+subgraph Inputs["Input State Variables"]
+    P["Pressure (p)"]:::explicit
+    T["Temperature (T)"]:::explicit
+    R["Gas Constant (R)"]:::implicit
+end
 
-        %% Operators
-        Op_Mult(("×"))
-        Op_Div(("÷"))
+subgraph Calculation["EOS Logic: ρ = p/(R×T)"]
+    Mult(("×")):::context
+    Div(("÷")):::context
+end
 
-        %% Result
-        L_Rho(rho)
+subgraph Output["Derived Property"]
+    Rho["Density (ρ)"]:::implicit
+end
 
-        %% Connections
-        L_R --> Op_Mult
-        L_T --> Op_Mult
-        
-        L_P --> Op_Div
-        Op_Mult -->|RT| Op_Div
-        
-        Op_Div --> L_Rho
-    end
-
-    %% Styling
-    classDef inputs fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-    classDef result fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    classDef operator fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,shape:circle;
-
-    class In_P,In_T,L_P,L_R,L_T inputs;
-    class Out_Rho,L_Rho result;
-    class Op_Mult,Op_Div operator;
+R --> Mult
+T --> Mult
+P --> Div
+Mult -->|RT| Div
+Div -->|Result| Rho
 ```
 > **Figure 7:** ความสัมพันธ์ทางอุณหพลศาสตร์ในสมการสถานะ ซึ่งปิดระบบสมการควบคุมโดยการเชื่อมโยงความดัน อุณหภูมิ และความหนาแน่นผ่านค่าคงที่ของก๊าซ
 
@@ -436,29 +397,25 @@ $$\int_V \frac{\partial \phi}{\partial t} \, \mathrm{d}V + \int_V \nabla \cdot \
 
 ```mermaid
 graph LR
-    A["Control Volume i"] --> B["Flux F_i+1/2"]
-    B --> C["Control Volume i+1"]
-    C --> D["Flux F_i+3/2"]
-    D --> E["Control Volume i+2"]
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
 
-    A --> F["Flux F_i-1/2"]
-    F --> G["Control Volume i-1"]
-    G --> H["Flux F_i-3/2"]
-    H --> I["Control Volume i-2"]
+subgraph Stencil["Finite Volume Stencil"]
+    C_WW["CV i-2"]:::implicit
+    F_WW["Flux<br/>i-3/2"]:::explicit
+    C_W["CV i-1"]:::implicit
+    F_W["Flux<br/>i-1/2"]:::explicit
+    C_P["CV i"]:::implicit
+    F_E["Flux<br/>i+1/2"]:::explicit
+    C_E["CV i+1"]:::implicit
+    F_EE["Flux<br/>i+3/2"]:::explicit
+    C_EE["CV i+2"]:::implicit
+end
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style C fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style E fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style G fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style I fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-
-    style B fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000;
-    style D fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000;
-    style F fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000;
-    style H fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000;
-
-    classDef cell fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef flux fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000;
+C_WW --- F_WW --- C_W
+C_W --- F_W --- C_P
+C_P --- F_E --- C_E
+C_E --- F_EE --- C_EE
 ```
 > **Figure 8:** คุณสมบัติการอนุรักษ์โดยธรรมชาติใน FVM แสดงให้เห็นว่าฟลักซ์ที่ไหลออกจากเซลล์หนึ่งจะกลายเป็นฟลักซ์ที่ไหลเข้าสู่เซลล์ข้างเคียงโดยตรง ทำให้มั่นใจในความถูกต้องของการอนุรักษ์ในระดับรวม
 

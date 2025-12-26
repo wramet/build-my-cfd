@@ -237,9 +237,12 @@ else
 
 ```mermaid
 graph LR
-    Step1["1. Define Functor"] --> Step2["2. Define Expression Class"]
-    Step2 --> Step3["3. Overload Operator"]
-    Step3 --> Step4["4. Use in Solver"]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+Step1["1. Define Functor"]:::explicit --> Step2["2. Define Expression Class"]:::implicit
+Step2 --> Step3["3. Overload Operator"]:::implicit
+Step3 --> Step4["4. Use in Solver"]:::success
 ```
 
 > **Figure 1:** แผนผังขั้นตอนการสร้าง expression template แบบกำหนดเอง เริ่มจากการสร้าง functor สำหรับการคำนวณพื้นฐาน ไปจนถึงการสร้างคลาส expression และการ overload operators เพื่อให้สามารถใช้งานใน solver ได้

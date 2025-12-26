@@ -971,33 +971,31 @@ volVectorField U = U_old + dt*f + dt*grad(p);  // No temporaries!
 
 ```mermaid
 flowchart TD
-    A[1. Create .H File] --> B[Inherit from Base Class]
-    B --> C[Add TypeName Macro]
-    C --> D[Declare Constructor]
-    D --> E[Override Virtual Methods]
-
-    E --> F[2. Create .C File]
-    F --> G[Implement Constructor]
-    G --> H[Implement Virtual Methods]
-    H --> I[Add addToRunTimeSelectionTable]
-
-    I --> J[3. Create Make/files]
-    J --> K[Create Make/options]
-    K --> L[4. Run wmake libso]
-
-    L --> M{Compile Success?}
-    M -->|No| N[Debug Compilation Errors]
-    N --> F
-
-    M -->|Yes| O[5. Test Registration]
-    O --> P[listRegisteredModels]
-    P --> Q{Model Found?}
-
-    Q -->|No| R[Check Macro Syntax]
-    R --> I
-
-    Q -->|Yes| S[6. Use in Dictionary]
-    S --> T[Run Simulation]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[1. Create .H File]:::explicit --> B[Inherit from Base Class]:::implicit
+B --> C[Add TypeName Macro]:::implicit
+C --> D[Declare Constructor]:::implicit
+D --> E[Override Virtual Methods]:::implicit
+E --> F[2. Create .C File]:::explicit
+F --> G[Implement Constructor]:::implicit
+G --> H[Implement Virtual Methods]:::implicit
+H --> I[Add addToRunTimeSelectionTable]:::implicit
+I --> J[3. Create Make/files]:::explicit
+J --> K[Create Make/options]:::explicit
+K --> L[4. Run wmake libso]:::implicit
+L --> M{Compile Success?}:::warning
+M -->|No| N[Debug Compilation Errors]:::explicit
+N --> F
+M -->|Yes| O[5. Test Registration]:::implicit
+O --> P[listRegisteredModels]:::implicit
+P --> Q{Model Found?}:::warning
+Q -->|No| R[Check Macro Syntax]:::explicit
+R --> I
+Q -->|Yes| S[6. Use in Dictionary]:::success
+S --> T[Run Simulation]:::success
 ```
 
 ---\n

@@ -18,15 +18,15 @@
 - **ออบเจกต์ในเมช**: ภายใต้ `fvMesh` จะมีฟิลด์ต่างๆ เช่น `p`, `U`, `T`
 
 ```mermaid
-graph TD
-    Time["objectRegistry: <b>Time (runTime)</b>"]
-    Time --> Mesh["objectRegistry: <b>fvMesh (mesh)</b>"]
-    Mesh --> p["regIOobject: <b>p</b> (volScalarField)"]
-    Mesh --> U["regIOobject: <b>U</b> (volVectorField)"]
-    Mesh --> T["regIOobject: <b>T</b> (volScalarField)"]
-
-    style Time fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style Mesh fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+flowchart TD
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+Time[Time Registry]:::explicit --> Mesh[fvMesh Registry]:::implicit
+Mesh --> p[p: volScalarField]:::implicit
+Mesh --> U[U: volVectorField]:::implicit
+Mesh --> T[T: volScalarField]:::implicit
 ```
 > **Figure 1:** โครงสร้างลำดับชั้นของ Object Registry ใน OpenFOAM ซึ่งจัดเก็บออบเจ็กต์ต่างๆ เช่น เมชและฟิลด์ข้อมูลไว้ภายใต้ศูนย์กลางเดียวเพื่อการเข้าถึงที่สะดวกและเป็นระเบียบ
 
@@ -73,24 +73,23 @@ volScalarField p
 
 ```mermaid
 classDiagram
-    class IOobject {
-        +name()
-        +path()
-        +readOpt()
-        +writeOpt()
-    }
-    class regIOobject {
-        +checkOut()
-        +checkIn()
-        +write()
-    }
-    class volScalarField {
-        +internalField()
-        +boundaryField()
-    }
-
-    regIOobject --|> IOobject : inherits
-    volScalarField --|> regIOobject : inherits
+class IOobject {
++name()
++path()
++readOpt()
++writeOpt()
+}
+class regIOobject {
++checkOut()
++checkIn()
++write()
+}
+class volScalarField {
++internalField()
++boundaryField()
+}
+regIOobject --|> IOobject : inherits
+volScalarField --|> regIOobject : inherits
 ```
 > **Figure 2:** แผนผังคลาสแสดงความสัมพันธ์ระหว่าง IOobject และ regIOobject ซึ่งช่วยให้ออบเจ็กต์ต่างๆ มีความสามารถในการจดทะเบียนตัวเองและจัดการการอ่าน/เขียนไฟล์โดยอัตโนมัติ
 

@@ -208,42 +208,37 @@ boundaryField
 ใน OpenFOAM, Boundary Condition ถูกนำมาใช้ผ่านคลาส Field เฉพาะทางที่สืบทอดมาจากคลาสพื้นฐาน `fvPatchField` ซึ่งเป็นโครงสร้างที่แข็งแกร่งสำหรับการจัดการสถานการณ์ทางกายภาพต่างๆ ที่พบในการประยุกต์ใช้ทางวิศวกรรม
 
 ```mermaid
-graph LR
-    A["Base fvPatchField Class<br/>Abstract Field Boundary"] --> B["Basic Types"]
-    A --> C["Derived Types"]
-    A --> D["Specialized Types"]
+flowchart TD
+    A["Base fvPatchField Class<br/>Abstract"]:::context
+    
+    subgraph Basic["Basic Types"]
+        B1["fixedValue<br/>φ = φ₀"]:::explicit
+        B2["fixedGradient<br/>∇φ⋅n = g₀"]:::explicit
+        B3["zeroGradient<br/>∇φ⋅n = 0"]:::explicit
+        B4["calculated<br/>Dependent"]:::explicit
+    end
+    
+    subgraph Derived["Derived Types"]
+        C1["timeVaryingFixedValue<br/>φ = f(t)"]:::explicit
+        C2["timeVaryingUniform<br/>φ = f(t) uniform"]:::explicit
+        C3["uniformFixedValue<br/>φ = constant"]:::explicit
+        C4["mixedFixedValue<br/>Blended"]:::explicit
+    end
+    
+    subgraph Specialized["Specialized Types"]
+        D1["turbulentInlet<br/>Random"]:::explicit
+        D2["wallFunction<br/>Modeled"]:::explicit
+        D3["codedFixedValue<br/>User code"]:::explicit
+        D4["regionCoupled<br/>Multi-region"]:::explicit
+    end
+    
+    A --> Basic
+    A --> Derived
+    A --> Specialized
 
-    B --> B1["fixedValue<br/>φ = φ₀ (constant)"]
-    B --> B2["fixedGradient<br/>∇φ⋅n = g₀ (constant)"]
-    B --> B3["zeroGradient<br/>∇φ⋅n = 0"]
-    B --> B4["calculated<br/>Computed from other fields"]
-
-    C --> C1["timeVaryingFixedValue<br/>φ = f(t)"]
-    C --> C2["timeVaryingUniformFixedValue<br/>φ = f(t) spatially uniform"]
-    C --> C3["uniformFixedValue<br/>φ = constant (spatially)"]
-    C --> C4["mixedFixedValue<br/>φ = λφ₀ + (1-λ)φ_boundary"]
-
-    D --> D1["turbulentInlet<br/>Random fluctuations"]
-    D --> D2["wallFunction<br/>Wall modeling"]
-    D --> D3["codedFixedValue<br/>User-defined expression"]
-    D --> D4["regionCoupled<br/>Multi-region transfer"]
-
-    style A fill:#f5f5f5,stroke:#333,stroke-width:3px,color:#000
-    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style C fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style D fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
-    style B1 fill:#c8e6c9,stroke:#388e3c,stroke-width:1px,color:#000
-    style B2 fill:#c8e6c9,stroke:#388e3c,stroke-width:1px,color:#000
-    style B3 fill:#c8e6c9,stroke:#388e3c,stroke-width:1px,color:#000
-    style B4 fill:#c8e6c9,stroke:#388e3c,stroke-width:1px,color:#000
-    style C1 fill:#bbdefb,stroke:#1976d2,stroke-width:1px,color:#000
-    style C2 fill:#bbdefb,stroke:#1976d2,stroke-width:1px,color:#000
-    style C3 fill:#bbdefb,stroke:#1976d2,stroke-width:1px,color:#000
-    style C4 fill:#bbdefb,stroke:#1976d2,stroke-width:1px,color:#000
-    style D1 fill:#ffe0b2,stroke:#f57c00,stroke-width:1px,color:#000
-    style D2 fill:#ffe0b2,stroke:#f57c00,stroke-width:1px,color:#000
-    style D3 fill:#ffe0b2,stroke:#f57c00,stroke-width:1px,color:#000
-    style D4 fill:#ffe0b2,stroke:#f57c00,stroke-width:1px,color:#000
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
 ```
 > **Figure 1:** สถาปัตยกรรมของเงื่อนไขขอบเขตใน OpenFOAM แสดงโครงสร้างคลาสที่สืบทอดมาจาก `fvPatchField` โดยแบ่งออกเป็นประเภทพื้นฐาน (Basic), ประเภทที่เปลี่ยนแปลงตามเวลา (Derived) และประเภทเฉพาะทาง (Specialized) เพื่อรองรับสถานการณ์ทางกายภาพที่หลากหลาย
 

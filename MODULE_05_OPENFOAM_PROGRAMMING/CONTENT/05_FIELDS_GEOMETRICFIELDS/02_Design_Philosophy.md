@@ -55,13 +55,17 @@ The system ensures physical consistency through:
 
 ```mermaid
 flowchart TD
-    A[UList&lt;Type&gt;<br>STL-like interface] --> B[List&lt;Type&gt;<br>Memory-managed container]
-    B --> C[Field&lt;Type&gt;<br>Mathematical operations<br>+ reference counting]
-    C --> D[DimensionedField&lt;Type, GeoMesh&gt;<br>Physical units<br>+ mesh association]
-    D --> E[GeometricField&lt;Type, PatchField, GeoMesh&gt;<br>Boundary conditions<br>+ time management]
-    E --> F1[volScalarField<br>Cell-centered scalar]
-    E --> F2[volVectorField<br>Cell-centered vector]
-    E --> F3[surfaceScalarField<br>Face-centered scalar]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A["UList: STL"]:::implicit --> B["List: Managed"]:::implicit
+B --> C["Field: Math"]:::implicit
+C --> D["DimensionedField: Units"]:::implicit
+D --> E["GeometricField: BCs"]:::implicit
+E --> F1[volScalarField]:::explicit
+E --> F2[volVectorField]:::explicit
+E --> F3[surfaceScalarField]:::explicit
 ```
 > **Figure 1:** ลำดับชั้นการสืบทอดที่ซับซ้อนของคลาสฟิลด์ใน OpenFOAM ซึ่งแสดงให้เห็นถึงการสะสมความสามารถในแต่ละระดับ ตั้งแต่คอนเทนเนอร์ข้อมูลดิบไปจนถึงฟิลด์ทางฟิสิกส์ที่ตระหนักถึงเมชและขอบเขตความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
@@ -453,13 +457,17 @@ OpenFOAM ใช้ Structure of Arrays (SoA) layout แทน Array of Structure
 
 ```mermaid
 flowchart LR
-    A[Global Domain] --> B[Processor 0<br>Local Cells<br>Ghost Cells]
-    A --> C[Processor 1<br>Local Cells<br>Ghost Cells]
-    A --> D[Processor N<br>Local Cells<br>Ghost Cells]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Global Domain]:::implicit --> B["Proc 0"]:::explicit
+A --> C["Proc 1"]:::explicit
+A --> D["Proc N"]:::explicit
 
-    B <--> E[MPI Communication]
-    C <--> E
-    D <--> E
+B <--> E["MPI Comm"]:::implicit
+C <--> E
+D <--> E
 ```
 > **Figure 2:** ปรัชญาการออกแบบสำหรับการประมวลผลแบบขนาน ซึ่งใช้การย่อยโดเมน (Domain Decomposition) และการสื่อสารผ่าน MPI เพื่อให้การคำนวณขยายขนาดได้บนระบบซูเปอร์คอมพิวเตอร์อย่างมีประสิทธิภาพความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

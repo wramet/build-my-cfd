@@ -175,18 +175,21 @@ tmp<volVectorField> tresult(expression);
 
 ```mermaid
 classDiagram
-    class ExpressionTemplate~Derived~ {
-        <<interface>>
-        +derived() const
-        +evaluate(cellI, mesh)
-    }
-    class BinaryExpression~LHS, RHS, Op~ {
-        -lhs_
-        -rhs_
-        -op_
-        +evaluate(cellI, mesh)
-    }
-    ExpressionTemplate <|-- BinaryExpression : CRTP
+class ExpressionTemplate~Derived~ {
+<<template>>
++derived() const
++evaluate(cellI, mesh)
+}
+class BinaryExpression~LHS, RHS, Op~ {
+<<template>>
+-lhs_: RHS
+-rhs_: LHS
+-op_: Op
++evaluate(cellI, mesh)
+}
+ExpressionTemplate <|-- BinaryExpression : CRTP
+BinaryExpression *-- ExpressionTemplate : lhs
+BinaryExpression *-- ExpressionTemplate : rhs
 ```
 
 > **Figure 1:** Architecture diagram of Curiously Recurring Template Pattern (CRTP) used in OpenFOAM's Expression Template system. This enables static polymorphism where the compiler can immediately decide which function to execute at compile time, eliminating runtime function lookup overhead (Vtable Lookups).

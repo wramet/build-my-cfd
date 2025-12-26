@@ -5,19 +5,15 @@
 เอกสารนี้เป็นภาพรวมแบบครบวงจรของกรอบการทำงาน **Eulerian-Eulerian** สำหรับการจำลองการไหลแบบหลายเฟส (multiphase flow) ใน OpenFOAM โดยครอบคลุมตั้งแต่แนวคิดพื้นฐาน ทฤษฎีทางคณิตศาสตร์ การนำไปปฏิบัติ ไปจนถึงการประยุกต์ใช้ในระดับอุตสาหกรรม
 
 ```mermaid
-graph TB
-    A[พื้นฐาน Multiphase Flow] --> B[Eulerian-Eulerian Framework]
-    B --> C[สมการควบคุม]
-    C --> D[โมเดล Closure]
-    D --> E[การนำไปปฏิบัติใน OpenFOAM]
-    E --> F[การปรยกต์ใช้]
-
-    style A fill:#e3f2fd
-    style B fill:#bbdefb
-    style C fill:#90caf9
-    style D fill:#64b5f6
-    style E fill:#42a5f5
-    style F fill:#2196f3
+flowchart TB
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A["Multiphase Basics"]:::context --> B["Eulerian-Euler Framework"]:::implicit
+B --> C["Governing Equations"]:::implicit
+C --> D["Closure Models"]:::explicit
+D --> E["OpenFOAM Implementation"]:::explicit
+E --> F["Application"]:::implicit
 ```
 
 ---
@@ -53,17 +49,16 @@ graph TB
 ### เมื่อใดควรใช้ Eulerian-Eulerian?
 
 ```mermaid
-graph LR
-    A[ปัญหา Multiphase Flow] --> B{Volume Fraction ของเฟสกระจายตัว}
-    B -->|α_d > 0.1| C[Eulerian-Eulerian ✅]
-    B -->|α_d < 0.001| D[Lagrangian]
-    B -->|0.001 < α_d < 0.1| E{จำนวนเฟส}
-    E -->|2 เฟส| F[VOF หรือ E-E]
-    E -->|> 2 เฟส| C
-
-    style C fill:#c8e6c9
-    style D fill:#fff9c4
-    style F fill:#b3e5fc
+flowchart LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A["Problem Scope"]:::context --> B{"Volume Fraction αd"}:::explicit
+B -->|"High > 0.1"| C["Eulerian-Euler"]:::implicit
+B -->|"Low < 0.001"| D["Lagrangian"]:::implicit
+B -->|"Medium"| E{"Phase Count"}:::explicit
+E -->|"2 Phases"| F["VOF or E-E"]:::implicit
+E -->|"> 2 Phases"| C
 ```
 
 | เงื่อนไข | คำอธิบาย | ค่าที่เกี่ยวข้อง |

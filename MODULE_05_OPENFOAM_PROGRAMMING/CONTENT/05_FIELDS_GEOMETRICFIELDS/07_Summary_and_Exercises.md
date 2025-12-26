@@ -2,23 +2,23 @@
 
 ```mermaid
 mindmap
-  root((Geometric Fields))
-    Components
-      Internal Field
-      Boundary Field
-      Dimensions (Units)
-    Inheritance
-      UList > List
-      Field > regIOobject
-      GeometricField
-    Logic
-      Lazy Old-Time
-      Expression Templates
-      Loop Fusion
-    Safety
-      Compile-time Units
-      Tensor Rank Check
-      Manifold Awareness
+root((Geometric Fields))
+Components
+Internal Field
+Boundary Field
+Dimensions
+Inheritance
+UList > List
+Field > regIOobject
+GeometricField
+Logic
+Lazy Old-Time
+Expression Templates
+Loop Fusion
+Safety
+Compile-time Units
+Tensor Check
+Manifold Awareness
 ```
 > **Figure 1:** แผนผังความคิดสรุปองค์ประกอบหลักของระบบฟิลด์ใน OpenFOAM ซึ่งแสดงให้เห็นความเชื่อมโยงระหว่างข้อมูลภายใน เงื่อนไขขอบเขต มิติทางฟิสิกส์ และกลไกการเพิ่มประสิทธิภาพหน่วยความจำความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

@@ -129,19 +129,22 @@ public:
 
 ```mermaid
 graph TD
-    A["Input A [M1 L1 T1...]"]
-    B["Input B [M2 L2 T2...]"]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Input A]:::implicit
+B[Input B]:::implicit
 
-    A -- "Multiplication" --> C["Result [M1+M2, L1+L2, T1+T2...]"]
-    B -- "Multiplication" --> C
+A -- "Multiplication" --> C[Result Sum Dims]:::implicit
+B -- "Multiplication" --> C
 
-    A -- "Addition" --> D{Compare Dimensions}
-    B -- "Addition" --> D
+A -- "Addition" --> D{Compare Dims}:::context
+B -- "Addition" --> D
 
-    D -- "Match" --> E["Result [M1 L1 T1...]"]
-    D -- "Mismatch" --> F[FATAL ERROR]
-
-    style F fill:#ffebee,stroke:#c62828,stroke-width:2px
+D -- "Match" --> E[Result Dims]:::implicit
+D -- "Mismatch" --> F[FATAL ERROR]:::explicit
 ```
 > **Figure 1:** กฎการคำนวณมิติทางฟิสิกส์สำหรับการดำเนินการต่างๆ โดยระบบจะตรวจสอบความสอดคล้องของหน่วยสำหรับการบวก/ลบ และคำนวณเลขชี้กำลังใหม่สำหรับการคูณ/หารโดยอัตโนมัติความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

@@ -30,10 +30,12 @@ $$\mathbf{F}_{TD,k} = -D_{TD,k} \nabla \alpha_k \tag{1.1}$$
 
 ```mermaid
 flowchart TD
-    A[Turbulent Eddies in Continuous Phase] --> B[Random Velocity Fluctuations]
-    B --> C[Particle Dispersion]
-    C --> D[Enhanced Mixing]
-    D --> E[Homogenized Phase Distribution]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+A[Turbulent Eddies]:::explicit --> B[Velocity Fluctuations]:::explicit
+B --> C[Particle Dispersion]:::implicit
+C --> D[Enhanced Mixing]:::implicit
+D --> E[Homogenized Distribution]:::implicit
 ```
 
 ---
@@ -106,10 +108,12 @@ Foam::BurnsDispersionModel<PhaseType>::DTD() const
 
 ```mermaid
 flowchart LR
-    A[Calculate μ_t,c] --> B[Compute α_k × α_l / α_max]
-    B --> C[Calculate D_TD]
-    C --> D[Compute F_TD = -D_TD × ∇α_k]
-    D --> E[Add to Momentum Equation]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+A[Calc mu_t]:::explicit --> B[Compute Phase Fraction]:::explicit
+B --> C[Calc D_TD]:::implicit
+C --> D[Compute Force F_TD]:::implicit
+D --> E[Add to Momentum]:::implicit
 ```
 
 ---
@@ -247,10 +251,12 @@ public:
 
 ```mermaid
 flowchart TD
-    A[Calculate k_c] --> B[Calculate ε_c]
-    B --> C[Compute l_c = C_μ^3/4 × k_c^3/2 / ε_c]
-    C --> D[Calculate D_TD = C_TD × √k_c × l_c]
-    D --> E[Compute F_TD]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+A[Calc k]:::explicit --> B[Calc epsilon]:::explicit
+B --> C[Compute Length Scale]:::explicit
+C --> D[Calc Coeff D_TD]:::implicit
+D --> E[Compute Force]:::implicit
 ```
 
 ---
@@ -343,12 +349,14 @@ $$St = \frac{\tau_p}{\tau_t} = \frac{\rho_k d_k^2}{18 \mu_c} \sqrt{\frac{\epsilo
 
 ```mermaid
 flowchart TD
-    A[Calculate Particle Properties] --> B[Compute τ_p]
-    C[Calculate Turbulence Properties] --> D[Compute τ_t]
-    B --> E[Calculate St = τ_p / τ_t]
-    D --> E
-    E --> F[Compute σ_TD = σ_TD,0 × 1 + C_St × St²]
-    F --> G[Calculate D_TD]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+A[Particle Props]:::explicit --> B[Time Scale tau_p]:::explicit
+C[Turbulence Props]:::explicit --> D[Time Scale tau_t]:::explicit
+B --> E[Stokes Number St]:::implicit
+D --> E
+E --> F[Compute Sigma_TD]:::implicit
+F --> G[Calc D_TD]:::implicit
 ```
 
 ---
@@ -552,19 +560,22 @@ tmp<volVectorField> PhasePair::F() const
 
 ```mermaid
 flowchart TD
-    A[Start] --> B[Drag Force Valid?]
-    B -->|Yes| C[Add Drag Force]
-    B -->|No| D[Turbulent Dispersion Valid?]
-    C --> D
-    D -->|Yes| E[Add Turbulent Dispersion]
-    D -->|No| F[Lift Force Valid?]
-    E --> F
-    F -->|Yes| G[Add Lift Force]
-    F -->|No| H[Virtual Mass Valid?]
-    G --> H
-    H -->|Yes| I[Add Virtual Mass]
-    H -->|No| J[Return Total Force]
-    I --> J
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Start]:::context --> B{Drag Valid?}:::explicit
+B -->|Yes| C[Add Drag]:::implicit
+B -->|No| D{Turb Disp Valid?}:::explicit
+C --> D
+D -->|Yes| E[Add Turb Disp]:::implicit
+D -->|No| F{Lift Valid?}:::explicit
+E --> F
+F -->|Yes| G[Add Lift]:::implicit
+F -->|No| H{Virtual Mass Valid?}:::explicit
+G --> H
+H -->|Yes| I[Add Virtual Mass]:::implicit
+H -->|No| J[Return Total Force]:::context
+I --> J
 ```
 
 ---

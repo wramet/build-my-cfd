@@ -9,15 +9,16 @@
 
 ```mermaid
 flowchart TD
-    A[GeometricField Overview] --> B[Design Philosophy]
-    B --> C[Inheritance Hierarchy]
-    C --> D[Field Lifecycle]
-    D --> E[Type Theory & Safety]
-    E --> F[Common Pitfalls]
-    F --> G[Summary & Exercises]
-
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style G fill:#00ff00,stroke:#333,stroke-width:2px
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Overview]:::implicit --> B[Philosophy]:::implicit
+B --> C[Hierarchy]:::implicit
+C --> D[Lifecycle]:::implicit
+D --> E[Type Safety]:::implicit
+E --> F[Pitfalls]:::explicit
+F --> G[Summary]:::implicit
 ```
 
 > **Figure 1:** แผนผังลำดับการเรียนรู้ในโมดูลเรื่องฟิลด์และฟิลด์เรขาคณิต (GeometricField) ครอบคลุมตั้งแต่สถาปัตยกรรมพื้นฐานไปจนถึงทฤษฎีประเภททางคณิตศาสตร์และการแก้ปัญหาขั้นสูง

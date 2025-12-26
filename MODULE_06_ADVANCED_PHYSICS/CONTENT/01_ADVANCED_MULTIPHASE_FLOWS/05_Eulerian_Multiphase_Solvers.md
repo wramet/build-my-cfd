@@ -121,18 +121,22 @@ OpenFOAM ใช้อัลกอริทึม **Phase-Coupled SIMPLE (PCS)** 
 
 ```mermaid
 graph TD
-    A[เริ่มช่วงเวลา] --> B[แก้สมการ Alpha - MULES]
-    B --> C[ทำนายสมบัติทางเทอร์โมฟิสิกส์]
-    C --> D[แก้สมการโมเมนตัมสำหรับแต่ละเฟส]
-    D --> E[วงรอบสมการความดัน]
-    E --> F[ปรับแก้ความเร็วและฟลักซ์]
-    F --> G[แก้สมการพลังงานและสปีชีส์]
-    G --> H[ตรวจสอบการลู่เข้าของ PIMPLE]
-    H -- ยังไม่ลู่เข้า --> C
-    H -- ลู่เข้าแล้ว --> I[ช่วงเวลาถัดไป]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Alpha["Solve Alpha (MULES)"]:::explicit
+Thermo["Update Thermo"]:::implicit
+Mom["Solve Momentum"]:::implicit
+Press["Pressure Loop"]:::explicit
+Energy["Energy / Species"]:::implicit
+Check{"PIMPLE Converged?"}:::context
 
-    style B fill:#e1f5fe,stroke:#01579b
-    style E fill:#e1f5fe,stroke:#01579b
+Alpha --> Thermo
+Thermo --> Mom
+Mom --> Press
+Press --> Energy
+Energy --> Check
+Check -- No --> Thermo
 ```
 
 > **รูปที่ 1:** แผนผังลำดับขั้นตอนการคำนวณของตัวแก้สมการการไหลหลายเฟสแบบยูเลอเรียน (Eulerian Multiphase Solver) แสดงการทำงานร่วมกันระหว่างการแก้สมการสัดส่วนปริมาตร (Alpha Equation) และการวนซ้ำของสมการความดันเพื่อรักษาความต่อเนื่องของมวลและพลังงานในทุกเฟส

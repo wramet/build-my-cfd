@@ -15,16 +15,18 @@
 **สมการการขนส่งสปีชีส์** ควบคุมวิธีที่สปีชีส์เคมีเคลื่อนที่และกระจายตัวภายในสนามการไหล โดยสร้างสมดุลระหว่างกระบวนการทางฟิสิกส์พื้นฐานสามประการ:
 
 ```mermaid
-flowchart LR
-    A[การพา - Convection] --> D[การขนส่ง<br>สปีชีส์]
-    B[การแพร่ - Diffusion] --> D
-    C[ปฏิกิริยา - Reaction] --> D
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Eq["Species Transport"]:::context
+Conv["Convection<br/>ρuYᵢ"]:::implicit
+Diff["Diffusion<br/>Jᵢ"]:::implicit
+React["Reaction<br/>Rᵢ"]:::explicit
 
-    A -.->|การไหลหลัก| E[ρuYᵢ]
-    B -.->|เกรเดียนต์โมเลกุล| F[Jᵢ]
-    C -.->|เคมี| G[Rᵢ]
-
-    style D fill:#e3f2fd,stroke:#2196f3
+Eq --> Conv
+Eq --> Diff
+Eq --> React
 ```
 > **รูปที่ 1:** แผนภาพแสดงกลไกหลักสามประการที่ควบคุมการขนส่งสปีชีส์ (Species Transport) ในการไหลแบบมีปฏิกิริยาเคมี ได้แก่ การพา (Convection) จากการไหลหลัก, การแพร่ (Diffusion) จากเกรเดียนต์ความเข้มข้น, และการทำปฏิกิริยาเคมี (Reaction)
 
@@ -121,22 +123,20 @@ $$\mathbf{J}_i = -\rho D_i \nabla Y_i - D_i^T \frac{\nabla T}{T} \tag{5}$$
 การขนส่งสปีชีส์ถูกจัดการภายในกรอบงาน `reactionThermo` โดยใช้การแยกส่วนแบบ `fvScalarMatrix`
 
 ```mermaid
-flowchart TD
-    A[เริ่มการขนส่งสปีชีส์] --> B[วนรอบแต่ละสปีชีส์ i]
-    B --> C[คำนวณอัตราปฏิกิริยา RR_i]
-    C --> D[ประกอบสมการการขนส่ง]
-    D --> E[ใช้งานเงื่อนไขขอบเขต]
-    E --> F[แก้สมการ fvScalarMatrix]
-    F --> G{บังคับใช้ขอบเขตค่า<br>0 < Y_i < 1}
-    G --> H{ตรวจสอบผลรวม<br>ΣY_i = 1?}
-    H -->|ไม่| I[ปรับแก้/ทำให้เป็นบรรทัดฐาน]
-    I --> H
-    H -->|ใช่| J{แก้ครบทุก<br>สปีชีส์หรือยัง?}
-    J -->|ยัง| B
-    J -->|ใช่| K[สิ้นสุด]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Loop["Species Loop"]:::context
+Calc["Calc Rates & Transport"]:::implicit
+Solve["Solve Eqn"]:::explicit
+Bound["Bound 0 < Y < 1"]:::implicit
+Sum{"ΣY = 1?"}:::context
+Correct["Normalize"]:::explicit
 
-    style C fill:#fff3e0,stroke:#f57c00
-    style G fill:#e8f5e9,stroke:#4caf50
+Loop --> Calc --> Solve --> Bound --> Sum
+Sum -- No --> Correct --> Sum
+Sum -- Yes --> Next["Next"]:::context
 ```
 > **รูปที่ 2:** แผนผังลำดับขั้นตอนการคำนวณการขนส่งสปีชีส์ใน OpenFOAM ซึ่งครอบคลุมตั้งแต่การคำนวณอัตราการเกิดปฏิกิริยาเคมี การแก้สมการเมทริกซ์ ไปจนถึงการควบคุมขอบเขตของค่าเศษส่วนมวลและการรักษาความสมดุลของผลรวมสปีชีส์ทั้งหมด
 

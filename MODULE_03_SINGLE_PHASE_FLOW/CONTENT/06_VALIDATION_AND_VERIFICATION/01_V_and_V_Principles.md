@@ -35,18 +35,18 @@
 
 ```mermaid
 flowchart LR
-    A[Physical Reality] --> B[Mathematical Model]
-    B --> C[Numerical Solution]
-    C --> D[Computer Implementation]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Physical Reality]:::explicit --> B[Math Model]:::implicit
+B --> C[Numerical Solution]:::implicit
+C --> D[Computer Impl]:::implicit
 
-    D -.->|Verification| C
-    C -.->|Validation| B
-    B -.->|Validation| A
-
-    style D fill:#e1f5ff
-    style C fill:#fff4e1
-    style B fill:#ffe1e1
-    style A fill:#e1ffe1
+D -.->|Verification| C
+C -.->|Validation| B
+B -.->|Validation| A
 ```
 > **Figure 1:** กรอบการทำงานสำหรับการทวนสอบ (Verification) และการตรวจสอบความถูกต้อง (Validation) ซึ่งแสดงความแตกต่างระหว่างการตรวจสอบความแม่นยำในการแก้สมการทางคณิตศาสตร์ (Verification) และการตรวจสอบความสอดคล้องของแบบจำลองกับความเป็นจริงทางกายภาพ (Validation)
 

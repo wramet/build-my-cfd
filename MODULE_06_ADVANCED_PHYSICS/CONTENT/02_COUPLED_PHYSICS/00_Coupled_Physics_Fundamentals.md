@@ -13,17 +13,19 @@
 
 ```mermaid
 graph LR
-    F[Fluid Flow] <--> T[Thermal]
-    F <--> S[Structural]
-    F <--> C[Chemical]
-    T <--> S
-    T <--> C
-    S <--> C
-
-    style F fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style T fill:#ffebee,stroke:#c62828,stroke-width:2px
-    style S fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style C fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+    
+    Fluid["Fluid Flow"]:::context
+    Therm["Thermal"]:::implicit
+    Struct["Structural"]:::explicit
+    Chem["Chemical"]:::implicit
+    
+    Fluid <--> Therm
+    Fluid <--> Struct
+    Fluid <--> Chem
+    Therm <--> Struct
 ```
 > **Figure 1:** แผนภาพแสดงการปฏิสัมพันธ์ระหว่างปรากฏการณ์ทางฟิสิกส์ที่หลากหลาย (Multi-physics Coupling) ซึ่งครอบคลุมถึงพลศาสตร์ของไหล ความร้อน โครงสร้าง และเคมี เพื่อให้ได้ผลการจำลองที่มีความสมจริงสูง
 
@@ -108,15 +110,19 @@ $$\text{Nu} = \frac{hL}{k} = f(\text{Re}, \text{Pr})$$
 
 ```mermaid
 graph TD
-    A[Start Iteration] --> B[Solve Fluid Domain]
-    B --> C[Extract Interface Values]
-    C --> D[Solve Structural/Thermal Domain]
-    D --> E[Check Interface Convergence]
-    E -- No --> B
-    E -- Yes --> F[Next Step]
-
-    style B fill:#e3f2fd,stroke:#1565c0
-    style D fill:#ffebee,stroke:#c62828
+    classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+    
+    Start("Iterate"):::context
+    Fluid["Solve Fluid Domain"]:::implicit
+    Inter["Exchange Interface"]:::explicit
+    Solid["Solve Solid Domain"]:::implicit
+    Check{"Converged?"}:::context
+    
+    Start --> Fluid --> Inter --> Solid --> Check
+    Check -- "No" --> Fluid
+    Check -- "Yes" --> End["End"]:::context
 ```
 > **Figure 2:** แผนผังลำดับขั้นตอนการเชื่อมโยงแบบแบ่งส่วน (Segregated Coupling) แสดงกระบวนการแก้สมการแบบวนซ้ำระหว่างโดเมนต่างๆ เพื่อให้ได้คำตอบที่ลู่เข้าหากันในแต่ละขั้นตอนเวลา
 

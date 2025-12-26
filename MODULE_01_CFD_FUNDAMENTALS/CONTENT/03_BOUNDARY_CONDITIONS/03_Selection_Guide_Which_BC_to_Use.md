@@ -30,28 +30,41 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \
 ---
 
 ```mermaid
-graph LR
-    A["CFD Domain Boundaries"] --> B["Velocity Inlet<br/>Fixed u, Zero-gradient p"]
-    A --> C["Pressure Outlet<br/>Fixed p, Zero-gradient u"]
-    A --> D["No-slip Wall<br/>u = 0, Zero-gradient p"]
-    A --> E["Free-slip Wall<br/>u·n = 0, Zero-gradient p"]
-    A --> F["Symmetry Plane<br/>u·n = 0, Zero-gradient p"]
-    A --> G["Periodic Boundaries<br/>Matched u and p"]
+graph TD
+%% Physical to Mathematical BC Mapping
+subgraph Physical ["Physical Boundaries"]
+Inlet["Inlet (Pipe/Duct Entry)"]:::explicit
+Outlet["Outlet (Pipe/Duct Exit)"]:::explicit
+Wall["Wall (Solid Surface)"]:::context
+Sym["Symmetry Plane"]:::context
+end
 
-    B --> H["Physical: Known flow rate<br/>Mathematical: Dirichlet BC for u"]
-    C --> I["Physical: Known exit pressure<br/>Mathematical: Dirichlet BC for p"]
-    D --> J["Physical: Solid wall friction<br/>Mathematical: No penetration, no slip"]
-    E --> K["Physical: Slip at interface<br/>Mathematical: Zero normal component"]
-    F --> L["Physical: Symmetry condition<br/>Mathematical: Zero normal gradients"]
-    G --> M["Physical: Repeating geometry<br/>Mathematical: Cyclic conditions"]
+subgraph Dirichlet ["Fixed Value (Dirichlet)<br/>Specify φ directly"]
+InletV["fixedValue U"]:::explicit
+WallT["fixedValue T"]:::explicit
+end
 
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style C fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
-    style D fill:#ffebee,stroke:#c62828,stroke-width:2px
-    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style F fill:#e0f2f1,stroke:#00695c,stroke-width:2px
-    style G fill:#fff8e1,stroke:#f57f17,stroke-width:2px
+subgraph Neumann ["Zero Gradient (Neumann)<br/>∂φ/∂n = 0"]
+OutletV["zeroGradient U"]:::implicit
+WallP["zeroGradient p"]:::implicit
+end
+
+subgraph Mixed ["Mixed / Special"]
+Slip["slip<br/>U·n = 0"]:::context
+InletOutlet["inletOutlet"]:::context
+end
+
+Inlet -->|Specify Velocity| InletV
+Outlet -->|Extrapolate| OutletV
+Wall -->|Fixed Temperature| WallT
+Wall -->|Zero Pressure Grad| WallP
+Sym --> Slip
+Inlet -.->|Alternative| InletOutlet
+
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 1:** การแมปขอบเขตทางกายภาพเข้ากับข้อจำกัดทางคณิตศาสตร์ในโดเมน CFD แสดงการจับคู่สถานการณ์จริง (เช่น ทางเข้า ทางออก ผนัง) เข้ากับประเภทเงื่อนไขขอบเขตที่สอดคล้องกันเพื่อความสมบูรณ์ของแบบจำลอง
 
@@ -79,16 +92,17 @@ graph LR
 
 ```mermaid
 graph LR
-    A["Velocity Inlet<br/>(Fixed Value)"] --> B["Uniform Profile<br/>u = U_in"]
-    A --> C["Parabolic Profile<br/>u(r) = 2U_avg(1-r²/R²)"]
-    A --> D["Turbulent Profile<br/>Power Law u ∝ y^(1/7)"]
-    A --> E["Vector Field<br/>n.u = U_n"]
+%% Inlet Velocity Profile Types
+subgraph Inlet ["Velocity Inlet Profile Types"]
+Uniform["Uniform Profile<br/>U = constant<br/>Block profile"]:::implicit
+Parabolic["Parabolic Profile<br/>Fully Developed Laminar<br/>U(r) = U_max(1-r²/R²)"]:::implicit
+Power["Power Law Profile<br/>Turbulent Pipe Flow<br/>U(r) = U_max(1-r/R)^(1/n)"]:::implicit
+Table["Table/CSV Data<br/>Experimental/Measured<br/>Interpolated"]:::explicit
+end
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:3px,color:#000
-    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style D fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
 ```
 > **Figure 2:** ประเภทของโปรไฟล์ความเร็วที่ทางเข้า (Velocity Inlet) แสดงรูปแบบการกระจายความเร็วที่แตกต่างกัน เช่น โปรไฟล์แบบสม่ำเสมอ พาราโบลา หรือแบบปั่นป่วน ตามพารามิเตอร์ที่กำหนด
 
@@ -208,11 +222,16 @@ boundaryField
 
 ```mermaid
 graph LR
-    A["Inlet Boundary<br/>Fixed Velocity<br/>Zero-Gradient Pressure"] --> B["Flow Domain<br/>Pressure Field<br/>Develops Naturally"] --> C["Outlet Boundary<br/>Fixed Pressure<br/>Zero-Gradient Velocity"]
+%% Standard Steady-State BC Coupling
+Inlet["Inlet<br/>fixedValue(U)<br/>zeroGradient(p)"]:::explicit
+Domain["Domain<br/>Pressure-Velocity<br/>Coupling (SIMPLE/PISO)"]:::implicit
+Outlet["Outlet<br/>fixedValue(p)<br/>zeroGradient(U)"]:::explicit
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style C fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000;
+Inlet -->|Prescribe Velocity| Domain -->|Prescribe Pressure| Outlet
+
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
 ```
 > **Figure 3:** การจับคู่เงื่อนไขขอบเขตทั่วไปสำหรับการไหลแบบคงที่ โดยใช้การกำหนดความเร็วที่ทางเข้าและการกำหนดความดันที่ทางออก เพื่อให้สนามความดันและความเร็วภายในโดเมนพัฒนาขึ้นอย่างสมดุล
 
@@ -475,23 +494,22 @@ boundaryField
 ```
 
 ```mermaid
-graph LR
-    A["Fluid Flow"] --> B["Wall Boundary"]
-    B --> C["Slip Condition"]
+graph TD
+%% Slip Boundary Condition Physics
+subgraph SlipCond ["Slip Condition: Ideal Frictionless Wall"]
+Normal["Normal Component<br/><b>U · n = 0</b><br/>No penetration<br/>(Velocity perpendicular to wall = 0)"]:::implicit
+Tangential["Tangential Component<br/><b>τ = μ(∂U/∂n) = 0</b><br/>No shear stress<br/>(Fluid can slip freely)"]:::explicit
+end
 
-    subgraph "Normal Component"
-        N1["u·n = 0<br/><b>No normal penetration</b>"]
-    end
+Physical["Physical Interpretation:<br/>Frictionless surface<br/>Perfect slip plane"]:::context
 
-    subgraph "Tangential Component"
-        T1["∂u_t/∂n = 0<br/><b>Zero shear stress</b>"]
-    end
+Physical --> Normal
+Physical --> Tangential
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style C fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style N1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style T1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 4:** หลักการทางกายภาพของเงื่อนไขขอบเขตแบบ Slip แสดงพฤติกรรมของของไหลที่ผิวในอุดมคติที่ไม่มีแรงเสียดทาน โดยมีความเร็วแนวฉากเป็นศูนย์แต่สามารถลื่นไถลในแนวสัมผัสได้โดยไม่มีความเค้นเฉือน
 
@@ -769,22 +787,29 @@ boundaryField
 ```
 
 ```mermaid
-graph TD
-    A["Patch A<br/>Left Boundary"] --> B["Physical<br/>Continuity"]
-    B --> C["Field Transfer<br/>(Velocity, Pressure, etc.)"]
-    C --> D["Patch B<br/>Right Boundary"]
-    D --> A
+graph LR
+%% Cyclic Boundary Condition Framework
+subgraph Patch1 ["Cyclic Patch 1"]
+Face1["Face Set 1<br/>(Boundary faces)"]:::explicit
+end
 
-    subgraph "Cyclic Pair Properties"
-        E["Identical Mesh<br/>Topology"]
-        F["Same Number of<br/>Faces"]
-        G["Transformation<br/>Mapping"]
-    end
+subgraph Patch2 ["Cyclic Patch 2"]
+Face2["Face Set 2<br/>(Matched boundary faces)"]:::explicit
+end
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style D fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+subgraph Transform ["Geometric Transformation"]
+Map["Topology Mapping<br/>Face-to-face correspondence"]:::implicit
+Rot["Rotation Matrix<br/>R or Translation vector T"]:::implicit
+end
+
+Face1 <-->|φ₁ ↔ φ₂| Map
+Map <-->|Coupled| Face2
+Face1 -.->|Transform via| Rot
+Rot -.->|Apply to| Face2
+
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
 ```
 > **Figure 5:** กรอบแนวคิดสำหรับเงื่อนไขขอบเขตแบบเป็นคาบ (Cyclic) แสดงความต่อเนื่องทางกายภาพและการส่งผ่านข้อมูลของสนามตัวแปรระหว่างขอบเขตคู่ที่ระบุ เพื่อจำลองรูปทรงเรขาคณิตที่ซ้ำกัน
 
@@ -1021,14 +1046,25 @@ p
 
 ```mermaid
 graph LR
-    A["Inlet<br/>Fixed Velocity<br/>V = 5 m/s"] --> B["Pipe Flow<br/>Fully Developed<br/>Flow Pattern"]
-    B --> C["Outlet<br/>Fixed Pressure<br/>p = 0 Pa gauge"]
-    D["Walls<br/>No-Slip Condition<br/>V = 0 at surface"] --> B
+%% Pipe Flow BCs
+subgraph Boundaries ["Boundary Conditions"]
+    Inlet["Inlet (fixedValue U)"]:::explicit
+    Outlet["Outlet (fixedValue p)"]:::explicit
+    Wall["Wall (noSlip)"]:::implicit
+end
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style B fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style C fill:#ffebee,stroke:#c62828,stroke-width:2px
-    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+subgraph Flow ["Flow Domain"]
+    Pipe["Fluid Volume"]:::context
+end
+
+Inlet --> Pipe
+Outlet --> Pipe
+Wall -.->|Constraint| Pipe
+
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 6:** การตั้งค่าการไหลในท่อแบบพัฒนาเต็มที่ แสดงความสัมพันธ์ระหว่างเงื่อนไขขาเข้า ขาออก และเงื่อนไข No-Slip ที่ผนัง เพื่อสร้างรูปแบบการไหลที่สมดุลและสอดคล้องกับทฤษฎี
 

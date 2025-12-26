@@ -12,19 +12,17 @@
 ลองจินตนาการถึงกล่องสี่เหลี่ยมที่บรรจุของไหลอยู่ **ฝาปิดด้านบนเคลื่อนที่ไปทางขวาด้วยความเร็วคงที่** โดยลากของไหลให้เคลื่อนที่ตามไปด้วย
 
 ```mermaid
-graph TD
-    A["Cavity Geometry<br/>Square Box with Fluid"] --> B["Moving Lid<br/>Constant Velocity U<sub>lid</sub>"]
-    B --> C["Primary Vortex<br/>Large Central Rotation"]
-    C --> D["Secondary Vortices<br/>Corner Eddies"]
-    D --> E["Boundary Layers<br/>Wall Shear Effects"]
-    E --> F["Shear Layer<br/>Velocity Gradient"]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style C fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style F fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
+flowchart TD
+    A["Cavity Geometry<br/>Square Box"]:::context --> B["Moving Lid<br/>Source of Energy"]:::volatile
+    B --> C["Primary Vortex<br/>Central Rotation"]:::implicit
+    C --> D["Secondary Vortices<br/>Corner Eddies"]:::implicit
+    D --> E["Boundary Layers<br/>Wall Shear"]:::implicit
+    E --> F["Shear Layer<br/>Velocity Gradient"]:::explicit
+    
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 1:** เรขาคณิตของ Lid-Driven Cavity และลักษณะการไหล แสดงให้เห็นฝาปิดด้านบนที่เคลื่อนที่ซึ่งขับเคลื่อนให้เกิดกระแสวนหลักขนาดใหญ่ตรงกลางและกระแสวนรองในมุมกล่อง พร้อมอิทธิพลของชั้นขอบเขตและความเค้นเฉือนที่ผนัง
 
@@ -73,21 +71,35 @@ $$Re = \frac{1 \times 0.1}{0.01} = 10$$
 ### โครงสร้างไดเรกทอรี OpenFOAM Case
 
 ```mermaid
-graph TD
-    A["lidDrivenCavity/<br/>Root Directory"] --> B["0/<br/>Initial Conditions"]
-    A --> C["constant/<br/>Mesh Data"]
-    A --> D["system/<br/>Control Settings"]
+flowchart TD
+    A["lidDrivenCavity/<br/>Case Root"]:::context --> B["0/<br/>Initial Fields"]:::implicit
+    A --> C["constant/<br/>Mesh/Properties"]:::implicit
+    A --> D["system/<br/>Solver Settings"]:::implicit
+    
+    subgraph ZeroFolder["0/ Directory"]
+        B1["U<br/>Velocity"]:::explicit
+        B2["p<br/>Pressure"]:::explicit
+    end
+    
+    subgraph ConstantFolder["constant/ Directory"]
+        C1["polyMesh/<br/>Geometry"]:::explicit
+        C2["transportProperties<br/>Viscosity"]:::explicit
+    end
+    
+    subgraph SystemFolder["system/ Directory"]
+        D1["controlDict<br/>Time/Write"]:::explicit
+        D2["fvSchemes<br/>Discretization"]:::explicit
+        D3["fvSolution<br/>Solvers"]:::explicit
+        D4["blockMeshDict<br/>Mesh Gen"]:::explicit
+    end
+    
+    B --> ZeroFolder
+    C --> ConstantFolder
+    D --> SystemFolder
 
-    B --> B1["U<br/>Velocity Field<br/>Boundary Conditions"]
-    B --> B2["p<br/>Pressure Field<br/>Boundary Conditions"]
-
-    C --> C1["polyMesh/<br/>Mesh Geometry<br/>Points, Faces, Cells"]
-    C --> C2["transportProperties<br/>Viscosity Model<br/>and Properties"]
-
-    D --> D1["controlDict<br/>Time Stepping<br/>Solver Controls"]
-    D --> D2["fvSchemes<br/>Discretization<br/>Schemes"]
-    D --> D3["fvSolution<br/>Linear Solver<br/>Settings"]
-    D --> D4["blockMeshDict<br/>Mesh Generation<br/>Parameters"]
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
 ```
 > **Figure 2:** โครงสร้างไดเรกทอรีของกรณีทดสอบใน OpenFOAM แสดงการจัดเก็บเงื่อนไขเริ่มต้นในโฟลเดอร์ `0/`, ข้อมูล Mesh และคุณสมบัติของไหลใน `constant/` และการตั้งค่า Solver ใน `system/`
 
@@ -387,39 +399,33 @@ boundaryField
 ### ภาพรวม Boundary Conditions
 
 ```mermaid
-graph LR
-    A["Cavity Lid Driven Flow<br/>Boundary Conditions"]
-
-    subgraph "Lid Boundary<br/>(movingWall)"
-        B["Velocity: U = 1 m/s<br/>Direction: +x axis<br/>Type: fixedValue"]
-        C["Pressure: ∂p/∂n = 0<br/>Type: zeroGradient"]
+flowchart LR
+    A["Cavity Lid Driven Flow<br/>Boundary Conditions"]:::context
+    
+    subgraph LidBoundary["Lid Boundary (movingWall)"]
+        B["Velocity: U = (1 0 0)<br/>fixedValue"]:::volatile
+        C["Pressure: ∂p/∂n = 0<br/>zeroGradient"]:::implicit
     end
-
-    subgraph "Wall Boundaries<br/>(fixedWalls)"
-        D["Left Wall<br/>U = 0 m/s<br/>No-slip condition"]
-        E["Right Wall<br/>U = 0 m/s<br/>No-slip condition"]
-        F["Bottom Wall<br/>U = 0 m/s<br/>No-slip condition"]
-        G["Pressure: ∂p/∂n = 0<br/>Type: zeroGradient"]
+    
+    subgraph WallBoundaries["Wall Boundaries (fixedWalls)"]
+        D["Left Wall: U = (0 0 0)<br/>No-slip"]:::implicit
+        E["Right Wall: U = (0 0 0)<br/>No-slip"]:::implicit
+        F["Bottom Wall: U = (0 0 0)<br/>No-slip"]:::implicit
+        G["Pressure: ∂p/∂n = 0<br/>zeroGradient"]:::implicit
     end
-
-    subgraph "Front/Back<br/>(frontAndBack)"
-        H["Type: empty<br/>2D constraint<br/>No out-of-plane flow"]
+    
+    subgraph FrontBack["Front/Back (frontAndBack)"]
+        H["Type: empty<br/>2D Constraint"]:::context
     end
+    
+    A --> LidBoundary
+    A --> WallBoundaries
+    A --> FrontBack
 
-    A --> B
-    A --> C
-    A --> D
-    A --> E
-    A --> F
-    A --> G
-    A --> H
-
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px,color:#000
-    style B fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
-    style D fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
-    style E fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
-    style F fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
-    style H fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 3:** ภาพรวมของเงื่อนไขขอบเขตสำหรับปัญหาการไหลในโพรง แสดงการกำหนดความเร็วคงที่ที่ฝาปิดบน (movingWall), เงื่อนไข no-slip ที่ผนังด้านอื่น ๆ (fixedWalls) และเงื่อนไข empty สำหรับการจำลองแบบ 2 มิติ
 
@@ -554,26 +560,24 @@ runTimeModifiable true;             // Allow runtime modification
 ### ไทม์ไลน์การจำลอง
 
 ```mermaid
-graph LR
-    A["Simulation Start<br/>t = 0.0 s"] --> B["Time Step 1<br/>Δt = 0.005 s"]
-    B --> C["Time Step 2<br/>t = 0.010 s"]
-    C --> D["... Time Steps 3-19"]
-    D --> E["Output 1<br/>t = 0.100 s<br/>(After 20 steps)"]
-    E --> F["Time Steps 21-39"]
-    F --> G["Output 2<br/>t = 0.200 s<br/>(After 40 steps)"]
-    G --> H["Time Steps 41-59"]
-    H --> I["Output 3<br/>t = 0.300 s<br/>(After 60 steps)"]
-    I --> J["Time Steps 61-79"]
-    J --> K["Output 4<br/>t = 0.400 s<br/>(After 80 steps)"]
-    K --> L["Time Steps 81-99"]
-    L --> M["Output 5<br/>t = 0.500 s<br/>(Final time)"]
-
-    style A fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style M fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style E fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style G fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style I fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style K fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
+flowchart LR
+    A["Simulation Start<br/>t = 0.0 s"]:::context --> B["Time Step 1<br/>Δt = 0.005 s"]:::implicit
+    B --> C["Time Step 2<br/>t = 0.010 s"]:::implicit
+    C --> D["... Time Steps ..."]:::context
+    D --> E["Output 1<br/>t = 0.100 s"]:::explicit
+    E --> F["... Time Steps ..."]:::context
+    F --> G["Output 2<br/>t = 0.200 s"]:::explicit
+    G --> H["... Time Steps ..."]:::context
+    H --> I["Output 3<br/>t = 0.300 s"]:::explicit
+    I --> J["... Time Steps ..."]:::context
+    J --> K["Output 4<br/>t = 0.400 s"]:::explicit
+    K --> L["... Time Steps ..."]:::context
+    L --> M["Final Output<br/>t = 0.500 s"]:::success
+    
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 4:** ไทม์ไลน์การจำลองและความถี่ในการส่งออกข้อมูล แสดงขนาดขั้นตอนเวลา ($\Delta t$) และช่วงเวลาที่จะมีการบันทึกผลลัพธ์ลงในไดเรกทอรีเวลาตั้งแต่เริ่มต้นจนสิ้นสุดการจำลอง
 
@@ -856,24 +860,20 @@ paraFoam -builtin
 
 ```mermaid
 graph TD
-    A["สร้างไดเรกทอรีเคส<br/>mkdir -p cavity/{0,constant,system}"] --> B["สร้าง Mesh<br/>blockMesh"]
-    B --> C["กำหนด Boundary Conditions<br/>0/U, 0/p"]
-    C --> D["ตั้งค่าคุณสมบัติของไหล<br/>constant/transportProperties"]
-    D --> E["ตั้งค่า Solver<br/>system/controlDict<br/>system/fvSchemes<br/>system/fvSolution"]
-    E --> F["รันการจำลอง<br/>icoFoam"]
-    F --> G["ตรวจสอบการลู่เข้า<br/>monitor residuals"]
-    G --> H["ประมวลผลภายหลัง<br/>paraFoam"]
-    H --> I["วิเคราะห์ผลลัพธ์<br/>velocity, pressure, vorticity"]
+    A["สร้างไดเรกทอรีเคส<br/>(mkdir -p)"]:::context --> B["สร้าง Mesh<br/>(blockMesh)"]:::implicit
+    B --> C["กำหนด Boundary Conditions<br/>(0/U, 0/p)"]:::explicit
+    C --> D["ตั้งค่าคุณสมบัติของไหล<br/>(transportProperties)"]:::explicit
+    D --> E["ตั้งค่า Solver<br/>(system/controlDict)"]:::explicit
+    E --> F["รันการจำลอง<br/>(icoFoam)"]:::volatile
+    F --> G["ตรวจสอบการลู่เข้า<br/>(Monitor Residuals)"]:::implicit
+    G --> H["ประมวลผลภายหลัง<br/>(paraFoam)"]:::success
+    H --> I["วิเคราะห์ผลลัพธ์<br/>(Analysis)"]:::success
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style B fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style D fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style E fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style F fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style G fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style H fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style I fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 5:** สรุปขั้นตอนการทำงานของ OpenFOAM อย่างครบถ้วน ตั้งแต่การสร้างไดเรกทอรีและ Mesh การกำหนดเงื่อนไขขอบเขตและคุณสมบัติของไหล การตั้งค่า Solver ไปจนถึงการรันการจำลองและประมวลผลขั้นหลัง
 

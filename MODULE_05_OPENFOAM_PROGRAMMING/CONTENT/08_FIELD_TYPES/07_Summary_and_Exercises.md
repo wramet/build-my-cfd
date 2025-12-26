@@ -2,23 +2,23 @@
 
 ```mermaid
 mindmap
-  root((Field Types))
-    volField
-      Cell Centers
-      State Variables (p, U, T)
-      Internal + Boundary
-    surfaceField
-      Face Centers
-      Flux (phi)
-      Interpolation
-    pointField
-      Vertices
-      Mesh Motion
-      Visualization
-    DimensionedField
-      Internal Only
-      No Boundaries
-      Memory Efficient
+root((Field Types))
+volField
+Cell Centers
+State Vars p/U/T
+Internal + Boundary
+surfaceField
+Face Centers
+Flux phi
+Interpolation
+pointField
+Vertices
+Mesh Motion
+Vis
+DimensionedField
+Internal Only
+No Boundaries
+Memory Efficient
 ```
 > **Figure 1:** แผนผังความคิดสรุปประเภทของฟิลด์ใน OpenFOAM ซึ่งแบ่งตามตำแหน่งจัดเก็บข้อมูล เช่น จุดศูนย์กลางเซลล์ (volField), หน้า (surfaceField) และจุดยอด (pointField)ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

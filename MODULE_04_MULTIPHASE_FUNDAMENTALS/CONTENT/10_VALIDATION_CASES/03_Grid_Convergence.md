@@ -651,50 +651,38 @@ void checkPhaseConservation(const PtrList<volScalarField>& alphas)
 ### 7.1 ขั้นตอนการศึกษาการลู่เข้าของกริด
 
 ```mermaid
-flowchart TD
-    A[Start] --> B[Generate Base Mesh]
-    B --> C[Run Simulation on Coarse Mesh]
-    C --> D[Extract Result φ₃]
-    D --> E[Refine Mesh by Factor r]
-    E --> F[Run Simulation on Medium Mesh]
-    F --> G[Extract Result φ₂]
-    G --> H[Refine Mesh by Factor r]
-    H --> I[Run Simulation on Fine Mesh]
-    I --> J[Extract Result φ₁]
-    J --> K[Calculate Observed Order p]
-    K --> L[Perform Richardson Extrapolation]
-    L --> M[Calculate GCI Values]
-    M --> N{GCI < 3%?}
-    N -->|Yes| O[Mesh Independence Achieved]
-    N -->|No| P[Refine Further or Review Mesh Quality]
-    P --> E
-    O --> Q[Document Results]
-    Q --> R[End]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Setup["Meshes: Coarse, Med, Fine"]:::context
+Run["Run Simulations"]:::implicit
+Calc["Calc Order p and GCI"]:::explicit
+Check{"GCI < 3%?"}:::context
+Pass["Mesh Independent"]:::implicit
+Fail["Refine Mesh"]:::explicit
+
+Setup --> Run --> Calc --> Check
+Check -- Yes --> Pass
+Check -- No --> Fail
 ```
 
 ### 7.2 การวิเคราะห์ผลลัพธ์
 
 ```mermaid
-flowchart LR
-    A[Results from 3 Mesh Levels] --> B[Calculate Error Norms]
-    A --> C[Calculate GCI]
-    A --> D[Richardson Extrapolation]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Res["3 Mesh Results"]:::context
+Metrics["Calc GCI and Error Norms"]:::implicit
+Check{"GCI < 3% and Asymptotic?"}:::context
+Acc["Acceptable"]:::implicit
+Ref["Refine"]:::explicit
 
-    B --> E{L2 < 1e-4?}
-    C --> F{GCI < 3%?}
-    D --> G{Asymptotic Range?}
-
-    E -->|Yes| H[Acceptable Accuracy]
-    F -->|Yes| H
-    G -->|Yes| H
-
-    E -->|No| I[Refine Mesh]
-    F -->|No| I
-    G -->|No| I
-
-    H --> J[Final Results]
-    I --> K[Generate New Mesh]
-    K --> A
+Res --> Metrics --> Check
+Check -- Yes --> Acc
+Check -- No --> Ref
 ```
 
 ---

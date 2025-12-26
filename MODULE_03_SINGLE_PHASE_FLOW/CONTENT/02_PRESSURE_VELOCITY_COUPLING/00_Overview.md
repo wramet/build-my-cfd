@@ -85,14 +85,19 @@ $$p^{n} = p^* + \alpha_p p'$$
 
 ```mermaid
 flowchart TD
-    A["Start with guessed p*, u*"] --> B["Momentum Prediction<br/>Solve a_P u* = H(u) - ∇p*"]
-    B --> C["Pressure Correction<br/>Solve ∇·(1/a_P ∇p') = ∇·u*"]
-    C --> D["Velocity Correction<br/>u = u* - 1/a_P ∇p'"]
-    D --> E["Pressure Update<br/>p = p* + p'"]
-    E --> F["Under-Relaxation<br/>Apply α_u, α_p"]
-    F --> G{"Converged?"}
-    G -->|No| A
-    G -->|Yes| H["End"]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Guess p*, u*]:::context --> B[Predictor: Solve Momentum]:::implicit
+B --> C[Pressure Correction]:::explicit
+C --> D[Velocity Correction]:::implicit
+D --> E[Pressure Update]:::implicit
+E --> F[Under-relaxation]:::explicit
+F --> G{Converged?}:::context
+G -->|No| A
+G -->|Yes| H[End]:::context
 ```
 > **Figure 1:** แผนผังลำดับขั้นตอนของอัลกอริทึม SIMPLE (Semi-Implicit Method for Pressure-Linked Equations) สำหรับการหาผลเฉลยในสภาวะคงที่ (Steady-state) ซึ่งแสดงกระบวนการวนซ้ำตั้งแต่การทำนายโมเมนตัม การแก้ไขความดันและความเร็ว ไปจนถึงการใช้การผ่อนคลาย (Under-relaxation) เพื่อให้ระบบเข้าสู่จุดที่บรรจบกัน
 
@@ -140,17 +145,22 @@ for nOuterCorrectors (SIMPLE-like):
 
 ```mermaid
 flowchart TD
-    A[Start time step] --> B[Outer loop: k = 1 to nOuter]
-    B --> C[Under-relax momentum solve<br/>with pressure p^k]
-    C --> D[Inner PISO loop: i = 1 to nCorr]
-    D --> E[Solve pressure correction]
-    E --> F[Correct velocity & fluxes]
-    F --> G{Inner converged?}
-    G -->|No| D
-    G -->|Yes| H[Under-relax fields]
-    H --> I{Outer converged?}
-    I -->|No| B
-    I -->|Yes| J[Next time step]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Start Step]:::context --> B[Outer Loop]:::explicit
+B --> C[Momentum Solve]:::implicit
+C --> D[Inner PISO Loop]:::explicit
+D --> E[Pressure Solve]:::implicit
+E --> F[Correct U]:::implicit
+F --> G{Inner Converged?}:::context
+G -->|No| D
+G -->|Yes| H[Relax Fields]:::implicit
+H --> I{Outer Converged?}:::context
+I -->|No| B
+I -->|Yes| J[Next Step]:::context
 ```
 > **Figure 2:** แผนผังโครงสร้างของอัลกอริทึม PIMPLE ซึ่งเป็นการผสมผสานระหว่างลูปภายนอกแบบ SIMPLE (Outer loop) และลูปภายในแบบ PISO (Inner loop) เพื่อเพิ่มความเสถียรในการคำนวณสภาวะไม่คงที่ที่มีช่วงเวลาขนาดใหญ่ (Large time steps) โดยอนุญาตให้ค่า Courant number สูงกว่า 1 ได้โดยไม่สูญเสียความแม่นยำทางฟิสิกส์
 

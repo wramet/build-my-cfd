@@ -454,21 +454,24 @@ if (wallPatchID != -1)
 
 ```mermaid
 flowchart TD
-    A[เริ่มต้น] --> B[วิเคราะห์ความต้องการ]
-    B --> C[ออกแบบ Algorithm]
-    C --> D[เขียนโค้ด C++]
-    D --> E[สร้างไฟล์ Make/files]
-    E --> F[สร้างไฟล์ Make/options]
-    F --> G[รันคำสั่ง wmake]
-    G --> H{คอมไพล์ผ่าน?}
-    H -->|ไม่ผ่าน| I[แก้ไขข้อผิดพลาด]
-    I --> D
-    H -->|ผ่าน| J[ทดสอบการทำงาน]
-    J --> K{ใช้งานได้?}
-    K -->|ไม่| I
-    K -->|ใช่| L[ยูทิลิตี้พร้อมใช้งาน]
-    L --> M[บันทึกเอกสาร]
-    M --> N[จบ]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Start]:::context --> B[Analysis]:::explicit
+B --> C[Algorithm]:::implicit
+C --> D[C++ Code]:::explicit
+D --> E[Make/files]:::implicit
+E --> F[Make/options]:::implicit
+F --> G[wmake]:::explicit
+G --> H{Compile?}:::explicit
+H -->|No| I[Fix]:::explicit
+I --> D
+H -->|Yes| J[Test]:::implicit
+J --> K{Works?}:::explicit
+K -->|No| I
+K -->|Yes| L[Ready]:::implicit
+L --> M[Doc]:::context
+M --> N[End]:::context
 ```
 > **Figure 1:** แผนผังแสดงขั้นตอนการพัฒนา Custom Utility ตั้งแต่ขั้นตอนการออกแบบอัลกอริทึม การเขียนโค้ดภาษา C++ การตั้งค่าระบบการคอมไพล์ ไปจนถึงกระบวนการทดสอบและจัดทำเอกสารเพื่อให้ยูทิลิตี้พร้อมใช้งานในระดับมาตรฐาน
 

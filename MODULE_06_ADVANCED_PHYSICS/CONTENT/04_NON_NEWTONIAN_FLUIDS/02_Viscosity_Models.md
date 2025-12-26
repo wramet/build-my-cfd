@@ -331,15 +331,21 @@ return
 
 ```mermaid
 graph TD
-    Start{Analyze Material} --> Yield{Has Yield Stress?}
-    Yield -- Yes --> HB[Herschel-Bulkley]
-    Yield -- No --> Plateau{Has Newtonian Plateaus?}
-    Plateau -- Yes --> BC[Bird-Carreau]
-    Plateau -- No --> PL[Power-Law]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Start{"Analyze Material"}:::context
+Q1{"Yield Stress?"}:::explicit
+HB["Herschel-Bulkley"]:::implicit
+Q2{"Newtonian Plateaus?"}:::explicit
+BC["Bird-Carreau"]:::implicit
+PL["Power-Law"]:::implicit
 
-    style HB fill:#f96,stroke:#333
-    style BC fill:#9cf,stroke:#333
-    style PL fill:#9f9,stroke:#333
+Start --> Q1
+Q1 -- Yes --> HB
+Q1 -- No --> Q2
+Q2 -- Yes --> BC
+Q2 -- No --> PL
 ```
 > **Figure 1:** แผนผังขั้นตอนการตัดสินใจเลือกแบบจำลองความหนืดที่เหมาะสมตามสมบัติทางรีโอโลยีของวัสดุ โดยพิจารณาจากพฤติกรรมความเค้นยอมและความคงที่ของความหนืดที่ช่วงอัตราการเฉือนต่างๆ
 
@@ -464,12 +470,15 @@ while (runTime.loop())
 
 ```mermaid
 graph TD
-    A[viscosityModel] --> B[generalisedNewtonianViscosityModel]
-    B --> C[strainRateViscosityModel]
-    C --> D[BirdCarreau]
-    C --> E[HerschelBulkley]
-    C --> F[powerLaw]
-    C --> G[Cross model]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Base["viscosityModel"]:::context
+Gen["generalisedNewtonian"]:::implicit
+Strain["strainRateViscosityModel"]:::implicit
+Models["Concrete Models:<br/>- BirdCarreau<br/>- HerschelBulkley<br/>- PowerLaw"]:::explicit
+
+Base --> Gen --> Strain --> Models
 ```
 > **Figure 2:** แผนภูมิแสดงลำดับชั้นของคลาส (Class Hierarchy) สำหรับแบบจำลองความหนืดใน OpenFOAM โดยแยกส่วนอินเทอร์เฟซมาตรฐานและการคำนวณอัตราความเครียดออกจากพฤติกรรมทางจลนศาสตร์ของของไหลแต่ละประเภท
 

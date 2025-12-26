@@ -133,50 +133,41 @@ project_root/
 
 ```mermaid
 flowchart TD
-    subgraph ROOT["project_root/"]
-        DOC["docs/ - เอกสาร"]
-        SCR["scripts/ - โค้ดควบคุม"]
-        CAS["cases/ - เคสจำลอง"]
-        RES["resources/ - ข้อมูลนำเข้า"]
-        RSL["results/ - ผลลัพธ์"]
-        TST["tests/ - ทดสอบ"]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
 
-        subgraph DOC_SUB["เอกสารประกอบ"]
-            D1["design_spec.md"]
-            D2["theory_background.md"]
-            D3["validation_report.pdf"]
-        end
+subgraph ROOT[project_root/]
+    direction TB
+    DOC[docs/]:::implicit
+    SCR[scripts/]:::implicit
+    CAS[cases/]:::implicit
+    RES[resources/]:::explicit
+    RSL[results/]:::explicit
+    TST[tests/]:::implicit
 
-        subgraph SCR_SUB["สคริปต์อัตโนมัติ"]
-            S1["python/ - วิเคราะห์"]
-            S2["bash/ - ควบคุม"]
-            S3["paraview/ - visualization"]
-        end
-
-        subgraph CAS_SUB["เคสจำลอง"]
-            C1["templates/ - ต้นแบบ"]
-            C2["validation/ - ตรวจสอบ"]
-            C3["production/ - จำลองจริง"]
-        end
+    subgraph DOC_SUB[Documentation]
+        D1[Specs]:::context
+        D2[Theory]:::context
+        D3[Reports]:::context
     end
 
-    ROOT --> DOC
-    ROOT --> SCR
-    ROOT --> CAS
-    ROOT --> RES
-    ROOT --> RSL
-    ROOT --> TST
+    subgraph SCR_SUB[Automation]
+        S1[Python]:::context
+        S2[Bash]:::context
+        S3[ParaView]:::context
+    end
+
+    subgraph CAS_SUB[Simulation]
+        C1[Templates]:::context
+        C2[Validation]:::context
+        C3[Production]:::context
+    end
 
     DOC --> DOC_SUB
     SCR --> SCR_SUB
     CAS --> CAS_SUB
-
-    style ROOT fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
-    style DOC fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    style SCR fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style CAS fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style RES fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    style RSL fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+end
 ```
 > **Figure 1:** โครงสร้างไดเรกทอรีมาตรฐานสำหรับโครงการ OpenFOAM ระดับมืออาชีพ แสดงการแยกส่วนระหว่างเอกสาร (docs) สคริปต์ควบคุม (scripts) เคสจำลอง (cases) ข้อมูลนำเข้า (resources) และผลลัพธ์ (results) เพื่อความเป็นระเบียบและง่ายต่อการบำรุงรักษา
 
@@ -1099,22 +1090,17 @@ if __name__ == "__main__":
 
 ```mermaid
 flowchart TD
-    A[เริ่มโครงการใหม่] --> B[สร้างโครงสร้างไดเรกทอรีมาตรฐาน]
-    B --> C[จัดเก็บไฟล์ CAD/STL ใน resources/]
-    C --> D[เตรียมเคสต้นแบบใน cases/templates/]
-    D --> E[เขียนสคริปต์ควบคุมใน scripts/]
-    E --> F[ดำเนินการจำลอง]
-    F --> G[เก็บข้อมูลสรุปใน results/]
-    G --> H[จัดทำเอกสารใน docs/ และ README.md]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style B fill:#bbdefb,stroke:#1565c0,stroke-width:2px
-    style C fill:#90caf9,stroke:#1565c0,stroke-width:2px
-    style D fill:#64b5f6,stroke:#1565c0,stroke-width:2px
-    style E fill:#42a5f5,stroke:#1565c0,stroke-width:2px
-    style F fill:#2196f3,stroke:#1565c0,stroke-width:2px
-    style G fill:#1e88e5,stroke:#1565c0,stroke-width:2px
-    style H fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+A[Start]:::context --> B[Create Dir Struct]:::implicit
+B --> C[Store CAD resources]:::explicit
+C --> D[Prep Templates cases]:::explicit
+D --> E[Write Scripts]:::implicit
+E --> F[Run Sim]:::implicit
+F --> G[Collect Results]:::implicit
+G --> H[Document]:::context
 ```
 > **Figure 2:** แผนภูมิแสดงลำดับการจัดระเบียบโครงการ CFD (Project Organization Workflow) ตั้งแต่การเริ่มโครงการ การสร้างโครงสร้างไดเรกทอรี การเตรียมข้อมูลและเคสต้นแบบ ไปจนถึงการสรุปผลและจัดทำเอกสารโครงการ
 
@@ -1122,46 +1108,49 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph PHASE1["Phase 1: Setup"]
-        A1["Define Problem<br/>design_spec.md"] --> A2["Gather Geometry<br/>resources/cad/"]
-        A2 --> A3["Setup Directory<br/>Standard Structure"]
-    end
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
 
-    subgraph PHASE2["Phase 2: Preparation"]
-        B1["Create Base Case<br/>cases/templates/"] --> B2["Write Automation Scripts<br/>scripts/"]
-        B2 --> B3["Setup Config<br/>config.yaml"]
-        B3 --> B4["Git Initialization<br/>.gitignore, .gitattributes"]
-    end
+subgraph PHASE1[Phase 1: Setup]
+    direction TB
+    A1[Define Problem]:::context --> A2[Gather CAD]:::explicit
+    A2 --> A3[Dir Structure]:::implicit
+end
 
-    subgraph PHASE3["Phase 3: Validation"]
-        C1["Run Validation Cases<br/>cases/validation/"] --> C2["Compare with Theory/Experiment"]
-        C2 --> C3{Valid?}
-        C3|No| C4["Adjust Parameters<br/>and Mesh"]
-        C4 --> C1
-        C3|Yes| C5["Document Results<br/>docs/validation_report.md"]
-    end
+subgraph PHASE2[Phase 2: Prep]
+    direction TB
+    B1[Base Case]:::explicit --> B2[Automation]:::implicit
+    B2 --> B3[Config]:::explicit
+    B3 --> B4[Git Init]:::implicit
+end
 
-    subgraph PHASE4["Phase 4: Production"]
-        D1["Run Production Cases<br/>cases/production/"] --> D2["Monitor with<br/>Log Analyzer"]
-        D2 --> D3["Post-Process Results<br/>scripts/postprocess/"]
-        D3 --> D4["Generate Reports<br/>results/reports/"]
-    end
+subgraph PHASE3[Phase 3: Validation]
+    direction TB
+    C1[Run Validation]:::implicit --> C2[Compare]:::explicit
+    C2 --> C3{Valid?}:::explicit
+    C3 -->|No| C4[Adjust]:::explicit
+    C4 --> C1
+    C3 -->|Yes| C5[Document]:::implicit
+end
 
-    subgraph PHASE5["Phase 5: Documentation"]
-        E1["Update README.md"] --> E2["Document Findings<br/>docs/"]
-        E2 --> E3["Archive Case<br/>cases/archive/"]
-    end
+subgraph PHASE4[Phase 4: Production]
+    direction TB
+    D1[Run Prod]:::implicit --> D2[Monitor]:::explicit
+    D2 --> D3[Post-Process]:::implicit
+    D3 --> D4[Report]:::implicit
+end
 
-    PHASE1 --> PHASE2
-    PHASE2 --> PHASE3
-    PHASE3 --> PHASE4
-    PHASE4 --> PHASE5
+subgraph PHASE5[Phase 5: Docs]
+    direction TB
+    E1[Update Readme]:::implicit --> E2[Findings]:::implicit
+    E2 --> E3[Archive]:::context
+end
 
-    style PHASE1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style PHASE2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    style PHASE3 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style PHASE4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style PHASE5 fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+PHASE1 --> PHASE2
+PHASE2 --> PHASE3
+PHASE3 --> PHASE4
+PHASE4 --> PHASE5
 ```
 > **Figure 3:** รายละเอียดขั้นตอนการดำเนินงานโครงการ CFD แบ่งเป็น 5 ระยะ ตั้งแต่การตั้งค่าเบื้องต้น การเตรียมการ การตรวจสอบความถูกต้อง (Validation) การผลิตเคสจำลองจริง และการจัดทำเอกสารสรุปโครงการ
 
@@ -1169,44 +1158,46 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    subgraph INPUTS["Inputs (resources/)"]
-        CAD["CAD Files"]
-        STL["STL Surfaces"]
-        EXP["Experimental Data"]
-        CFG["Config Files"]
-    end
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
 
-    subgraph PROCESS["Processing (scripts/ + cases/)"]
-        PRE["Pre-processing<br/>Scripts"]
-        MESH["Mesh Generation"]
-        SOLV["Solver Execution"]
-        POST["Post-processing<br/>Scripts"]
-    end
+subgraph INPUTS[Inputs]
+    direction LR
+    CAD[CAD]:::explicit
+    STL[STL]:::explicit
+    EXP[Exp Data]:::explicit
+    CFG[Config]:::explicit
+end
 
-    subgraph OUTPUTS["Outputs (results/ + docs/)"]
-        PLOTS["Plots & Graphs"]
-        TABS["Data Tables"]
-        REPS["Reports"]
-        DOCS["Documentation"]
-    end
+subgraph PROCESS[Processing]
+    direction LR
+    PRE[Pre-proc]:::implicit
+    MESH[Meshing]:::implicit
+    SOLV[Solver]:::implicit
+    POST[Post-proc]:::implicit
+end
 
-    CAD --> PRE
-    STL --> MESH
-    CFG --> SOLV
-    EXP --> POST
+subgraph OUTPUTS[Outputs]
+    direction LR
+    PLOTS[Plots]:::implicit
+    TABS[Tables]:::implicit
+    REPS[Reports]:::implicit
+    DOCS[Docs]:::implicit
+end
 
-    PRE --> MESH
-    MESH --> SOLV
-    SOLV --> POST
+CAD --> PRE
+STL --> MESH
+CFG --> SOLV
+EXP --> POST
 
-    POST --> PLOTS
-    POST --> TABS
-    PLOTS --> REPS
-    TABS --> DOCS
+PRE --> MESH
+MESH --> SOLV
+SOLV --> POST
 
-    style INPUTS fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style PROCESS fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    style OUTPUTS fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+POST --> PLOTS & TABS
+PLOTS --> REPS
+TABS --> DOCS
 ```
 > **Figure 4:** ผังการไหลของข้อมูล (Data Flow) ภายในโครงการ แสดงความเชื่อมโยงระหว่างข้อมูลนำเข้า (Inputs) กระบวนการประมวลผล (Processing) และผลลัพธ์สุดท้าย (Outputs) ทั้งในรูปแบบกราฟ ตารางรายงาน และเอกสารโครงการ
 

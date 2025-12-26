@@ -256,10 +256,15 @@ SST model ใช้ฟังก์ชัน $F_1$ เพื่อสลับก
 
 ```mermaid
 flowchart LR
-    A[Near-Wall Region] -->|F1 → 1| B[k-ω Model]
-    C[Free-Stream Region] -->|F1 → 0| D[k-ε Model]
-    B --> E[Blended Model]
-    D --> E
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Near-Wall Region]:::context -->|F1 → 1| B[k-omega Model]:::implicit
+C[Free-Stream Region]:::context -->|F1 → 0| D[k-epsilon Model]:::implicit
+B --> E[Blended Model]:::explicit
+D --> E
 ```
 > **Figure 1:** กลไกการทำงานของฟังก์ชันผสม (Blending Function, F1) ในแบบจำลอง k-ω SST ซึ่งทำหน้าที่สลับการคำนวณระหว่างแบบจำลอง k-ω ในบริเวณใกล้ผนังเพื่อความแม่นยำในชั้นขอบเขต และแบบจำลอง k-ε ในบริเวณกระแสอิสระเพื่อความเสถียรเชิงตัวเลขความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

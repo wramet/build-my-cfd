@@ -6,23 +6,33 @@
 
 ```mermaid
 flowchart TD
-    A[PhysicsPlugin Base] --> B[TurbulenceModel Plugin]
-    A --> C[ReactionModel Plugin]
-    A --> D[HeatTransfer Plugin]
-    A --> E[Custom Physics Plugin]
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
 
-    B --> F[Dimensional Consistency Check]
-    C --> F
-    D --> F
-    E --> F
+subgraph Plugins["Specific Implementations"]
+    direction TB
+    B[TurbulenceModel Plugin]:::explicit
+    C[ReactionModel Plugin]:::explicit
+    D[HeatTransfer Plugin]:::explicit
+    E[Custom Physics Plugin]:::explicit
+end
 
-    F --> G[Compile-time Verification]
-    F --> H[Runtime Validation]
+A[PhysicsPlugin Base]:::implicit --> B
+A --> C
+A --> D
+A --> E
 
-    style A fill:#e1f5ff
-    style F fill:#fff4e6
-    style G fill:#e8f5e9
-    style H fill:#e8f5e9
+B & C & D & E --> F[Dimensional Consistency Check]:::implicit
+
+subgraph Verification["Safety Layer"]
+    direction TB
+    G[Compile-time Verification]:::implicit
+    H[Runtime Validation]:::implicit
+end
+
+F --> G
+F --> H
 ```
 > **รูปที่ 1:** สถาปัตยกรรมปลั๊กอินทางฟิสิกส์ที่รองรับการตรวจสอบความสอดคล้องของมิติทั้งในระดับคอมไพล์และรันไทม์ เพื่อให้สามารถขยายขีดความสามารถของโปรแกรมได้อย่างปลอดภัย
 
@@ -110,18 +120,30 @@ private:
 
 ```mermaid
 flowchart LR
-    A[Fluid Domain] -->|Force/Volume| B[Unit Conversion Layer]
-    C[Structural Domain] -->|Displacement| B
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
 
-    B --> D[Dimensional Consistency Check]
-    D --> E[Compatible Interface]
+subgraph Domains["Physics Domains (Inputs)"]
+    A[Fluid Domain]:::explicit
+    C[Structural Domain]:::explicit
+    F[Thermal Domain]:::explicit
+end
 
-    F[Thermal Domain] -->|Temperature| B
-    B --> G[Pressure-Temperature Coupling]
+subgraph Interface["Interface Layer"]
+    B[Unit Conversion Layer]:::implicit
+    D[Dimensional Consistency Check]:::implicit
+    E[Compatible Interface]:::implicit
+    G[Pressure-Temperature Coupling]:::implicit
+end
 
-    style B fill:#fff4e6
-    style D fill:#e8f5e9
-    style E fill:#e8f5e9
+A -->|Force/Volume| B
+C -->|Displacement| B
+F -->|Temperature| B
+
+B --> D
+D --> E
+B --> G
 ```
 > **รูปที่ 2:** ระบบการจัดการมิติข้ามสาขาวิชา (Cross-Disciplinary Dimension System) สำหรับการจำลองแบบหลายฟิสิกส์ (Multi-physics) ซึ่งรองรับการแปลงหน่วยโดยอัตโนมัติระหว่างโดเมนต่างๆ
 
@@ -471,21 +493,30 @@ VersionedDimensionSet<ToVersion> convertDimensions(
 
 ```mermaid
 flowchart TD
-    A[SI Units] --> D[Unit Conversion System]
-    B[Imperial Units] --> D
-    C[CGS Units] --> D
-    E[Natural Units] --> D
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
 
-    D --> F[Dimensional Consistency Check]
-    F --> G[Standardized Workflow]
+subgraph Sources["Diverse Inputs"]
+    H[International Team 1]:::explicit --> A[SI Units]:::explicit
+    I[International Team 2]:::explicit --> B[Imperial Units]:::explicit
+    J[International Team 3]:::explicit --> C[CGS Units]:::explicit
+    K[International Team 4]:::explicit --> E[Natural Units]:::explicit
+end
 
-    H[International Team 1] --> A
-    I[International Team 2] --> B
-    J[International Team 3] --> C
+subgraph System["Unification System"]
+    D[Unit Conversion System]:::implicit
+    F[Dimensional Consistency Check]:::implicit
+    G[Standardized Workflow]:::implicit
+end
 
-    style D fill:#fff4e6
-    style F fill:#e8f5e9
-    style G fill:#e8f5e9
+A --> D
+B --> D
+C --> D
+E --> D
+
+D --> F
+F --> G
 ```
 > **รูปที่ 3:** ระบบการแปลงหน่วย (Unit Conversion System) ที่ช่วยให้นักวิจัยจากทั่วโลกสามารถทำงานร่วมกันได้โดยการแปลงหน่วยวัดต่างๆ เข้าสู่ระบบมาตรฐาน SI โดยอัตโนมัติพร้อมการตรวจสอบมิติ
 
@@ -602,21 +633,36 @@ private:
 
 ```mermaid
 flowchart TD
-    A[Buckingham Pi Theorem] --> B[Dimensional Analysis Framework]
-    C[Dimensional Homogeneity] --> B
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
 
-    B --> D[OpenFOAM Implementation]
-    D --> E[Compile-time Checks]
-    D --> F[Runtime Checks]
+subgraph Theory["Mathematical Foundation"]
+    A[Buckingham Pi Theorem]:::context
+    C[Dimensional Homogeneity]:::context
+    B[Dimensional Analysis Framework]:::implicit
+end
 
-    E --> G[Physical Consistency]
-    F --> G
+subgraph Implementation["OpenFOAM Core"]
+    D[OpenFOAM Implementation]:::implicit
+    E[Compile-time Checks]:::implicit
+    F[Runtime Checks]:::implicit
+    G[Physical Consistency]:::implicit
+end
 
-    G --> H[Reliable CFD Simulations]
+subgraph Outcome["Simulation Quality"]
+    H[Reliable CFD Simulations]:::explicit
+end
 
-    style B fill:#e1f5ff
-    style D fill:#fff4e6
-    style G fill:#e8f5e9
+A --> B
+C --> B
+B --> D
+D --> E
+D --> F
+E --> G
+F --> G
+G --> H
 ```
 > **รูปที่ 4:** กรอบการทำงานสำหรับการวิเคราะห์มิติ (Dimensional Analysis Framework) ของ OpenFOAM ที่ใช้พื้นฐานทางคณิตศาสตร์ที่เข้มงวดเพื่อรับประกันความถูกต้องทางฟิสิกส์ของการจำลอง CFD
 
@@ -651,20 +697,27 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \
 
 ```mermaid
 flowchart TD
-    A[Dimensional Code] --> B{Template Metaprogramming}
-    B --> C[Compile-Time Resolution]
-    B --> D[Expression Templates]
-    B --> E[Loop Fusion]
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
 
-    C --> F[Optimized Machine Code]
-    D --> F
-    E --> F
+A[Dimensional Code]:::explicit --> B{Template Metaprogramming}:::implicit
 
-    F --> G[Zero Runtime Overhead]
+subgraph Techniques["Optimization Techniques"]
+    C[Compile-Time Resolution]:::implicit
+    D[Expression Templates]:::implicit
+    E[Loop Fusion]:::implicit
+end
 
-    style B fill:#fff4e6
-    style F fill:#e8f5e9
-    style G fill:#e8f5e9
+B --> C
+B --> D
+B --> E
+
+C --> F[Optimized Machine Code]:::implicit
+D --> F
+E --> F
+
+F --> G[Zero Runtime Overhead]:::implicit
 ```
 > **รูปที่ 5:** กระบวนการปรับประสิทธิภาพผ่าน Template Metaprogramming ซึ่งช่วยลดโอเวอร์เฮดในการตรวจสอบมิติจนเหลือศูนย์ในขั้นตอนการทำงานจริง (Zero Runtime Overhead)
 

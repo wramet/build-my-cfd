@@ -13,21 +13,24 @@
 
 ```mermaid
 flowchart TD
-    A[Liquid-Liquid Systems] --> B[Oil-Water Systems]
-    A --> C[Organic-Aqueous Systems]
-    A --> D[Emulsion Systems]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A["Liquid-Liquid Systems"]:::context --> B["Oil-Water"]:::implicit
+A --> C["Organic-Aqueous"]:::implicit
+A --> D["Emulsions"]:::implicit
 
-    B --> B1[Extraction Columns]
-    B --> B2[Separators]
-    B --> B3[Mixing Tanks]
+B --> B1["Extraction Columns"]:::explicit
+B --> B2["Separators"]:::explicit
+B --> B3["Mixing Tanks"]:::explicit
 
-    C --> C1[Solvent Extraction]
-    C --> C2[Phase Transfer]
-    C --> C3[Reactors]
+C --> C1["Solvent Extraction"]:::explicit
+C --> C2["Phase Transfer"]:::explicit
+C --> C3["Reactors"]:::explicit
 
-    D --> D1[Stable Emulsions]
-    D --> D2[Unstable Emulsions]
-    D --> D3[Multiple Emulsions]
+D --> D1["Stable"]:::implicit
+D --> D2["Unstable"]:::implicit
+D --> D3["Multiple"]:::implicit
 ```
 
 ---

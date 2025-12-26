@@ -50,16 +50,21 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \
 
 ```mermaid
 flowchart TD
-    A[Start Time Step] --> B[Momentum Predictor]
-    B --> C[Solve Momentum Eq using pⁿ]
-    C --> D[Intermediate Velocity u*]
-    D --> E[PISO Corrector Loop]
-    E --> F{Correction < nCorr?}
-    F -->|Yes| G[Solve Pressure Equation]
-    G --> H[Correct Velocity Field]
-    H --> F
-    F -->|No| I[Update Fields]
-    I --> J[Next Time Step]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Start Time Step]:::context --> B[Momentum Predictor]:::implicit
+B --> C[Solve Momentum]:::implicit
+C --> D[Intermediate U*]:::explicit
+D --> E[PISO Loop]:::implicit
+E --> F{Correct < nCorr?}:::context
+F -->|Yes| G[Solve Pressure]:::explicit
+G --> H[Correct U]:::explicit
+H --> F
+F -->|No| I[Update Fields]:::implicit
+I --> J[Next Time Step]:::context
 ```
 > **Figure 1:** แผนผังลำดับขั้นตอนของอัลกอริทึม PISO (Pressure-Implicit with Splitting of Operators) ซึ่งใช้กระบวนการ Predictor-Corrector เพื่อรักษาความแม่นยำเชิงเวลาและความต่อเนื่องของมวลในก้าวเวลาเดียว
 
@@ -327,18 +332,23 @@ SIMPLE
 
 ```mermaid
 flowchart TD
-    A[Start Time Step] --> B[PIMPLE Outer Loop]
-    B --> C{Outer < nOuterCorr?}
-    C -->|Yes| D[Momentum Predictor]
-    D --> E[PISO Inner Loop]
-    E --> F{Inner < nCorr?}
-    F -->|Yes| G[Solve Pressure Eq]
-    G --> H[Correct Velocity]
-    H --> F
-    F -->|No| I[Optional Under-Relaxation]
-    I --> C
-    C -->|No| J[Final Update]
-    J --> K[Next Time Step]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Start Time Step]:::context --> B[PIMPLE Outer Loop]:::implicit
+B --> C{Outer < nOuter?}:::context
+C -->|Yes| D[Momentum Predictor]:::implicit
+D --> E[PISO Inner Loop]:::implicit
+E --> F{Inner < nCorr?}:::context
+F -->|Yes| G[Solve Pressure]:::explicit
+G --> H[Correct U]:::explicit
+H --> F
+F -->|No| I[Under-Relaxation]:::context
+I --> C
+C -->|No| J[Final Update]:::implicit
+J --> K[Next Time Step]:::context
 ```
 
 **คุณสมบัติสำคัญ:**
@@ -572,21 +582,26 @@ SRFCoeffs
 
 ```mermaid
 flowchart TD
-    A[Start: Problem Type] --> B{Time Dependency?}
-    B -->|Transient| C{Newtonian?}
-    B -->|Steady| D{Turbulence?}
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Start]:::context --> B{Time Dependent?}:::context
+B -->|Transient| C{Newtonian?}:::context
+B -->|Steady| D{Turbulence?}:::context
 
-    C -->|Yes| E{Time Step Size?}
-    C -->|No| F[nonNewtonianIcoFoam]
+C -->|Yes| E{Time Step?}:::context
+C -->|No| F[nonNewtonianIcoFoam]:::implicit
 
-    E -->|Small dt| G[icoFoam]
-    E -->|Large dt| H[pimpleFoam]
+E -->|Small dt| G[icoFoam]:::explicit
+E -->|Large dt| H[pimpleFoam]:::explicit
 
-    D -->|Yes| I{Rotating?}
-    D -->|No| J[simpleFoam]
+D -->|Yes| I{Rotating?}:::context
+D -->|No| J[simpleFoam]:::implicit
 
-    I -->|Yes| K[SRFSimpleFoam]
-    I -->|No| J
+I -->|Yes| K[SRFSimpleFoam]:::explicit
+I -->|No| J
 ```
 
 ### 7.3 Flow Regime Characteristics

@@ -315,20 +315,21 @@ $$\frac{\partial C_m}{\partial \alpha} = 0 \quad \text{ที่ Aerodynamic Cen
 
 ```mermaid
 flowchart TD
-    A[CFD Simulation<br/>OpenFOAM Solver] --> B[Forces Function Object<br/>system/controlDict]
-    B --> C[Force/Coeffs Output Files<br/>postProcessing/forces/]
-    C --> D[Data Processing Script<br/>Python/MATLAB/ParaView]
-    D --> E[Drag/Lift Convergence Check<br/>Time History Analysis]
-    E --> F{Converged?}
-    F -->|No| G[Continue Simulation<br/>or Adjust Numerical Schemes]
-    F -->|Yes| H[Statistical Averaging<br/>for Unsteady Flow]
-    H --> I[Comparison with<br/>Experimental/Theoretical Data]
-    I --> J[Validation &<br/>Verification]
-    J --> K[Design Optimization<br/>Geometry/Flow Modification]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style K fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style F fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[CFD Solver]:::implicit --> B[Forces Function]:::explicit
+B --> C[Output Files]:::context
+C --> D[Processing Script]:::explicit
+D --> E[Convergence Check]:::implicit
+E --> F{Converged?}:::context
+F -->|No| G[Continue/Adjust]:::explicit
+F -->|Yes| H[Averaging]:::implicit
+H --> I[Data Comparison]:::implicit
+I --> J[Validation]:::implicit
+J --> K[Optimization]:::implicit
 ```
 > **Figure 1:** แผนภูมิแสดงลำดับขั้นตอนการวิเคราะห์แรง (Force Analysis Workflow) เริ่มจากการตั้งค่า Function Object ใน `controlDict` การประมวลผลข้อมูลผ่านสคริปต์ภายนอก ไปจนถึงการตรวจสอบความบรรจบ (Convergence Check) และการเปรียบเทียบกับผลการทดลองเพื่อปรับปรุงการออกแบบ
 
@@ -727,11 +728,15 @@ plt.savefig('force_psd.png', dpi=300)
 
 ```mermaid
 flowchart LR
-    A[Pre-processing<br/>Mesh Quality Check] --> B[Setup Forces<br/>Function Object]
-    B --> C[Run Simulation<br/>Monitor Convergence]
-    C --> D[Post-processing<br/>Extract Forces]
-    D --> E[Validate vs Theory/Exp]
-    E --> F[Optimize Design]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Mesh Quality Check]:::explicit --> B[Setup Forces]:::explicit
+B --> C[Run & Monitor]:::implicit
+C --> D[Extract Forces]:::implicit
+D --> E[Validation]:::implicit
+E --> F[Optimize]:::explicit
 ```
 > **Figure 2:** เวิร์กโฟลว์มาตรฐานที่แนะนำสำหรับการวิเคราะห์แรง ตั้งแต่การเตรียมคุณภาพของเมช การตรวจสอบความบรรจบระหว่างรัน ไปจนถึงขั้นตอนการสรุปผลและปรับปรุงการออกแบบ (Optimization)
 

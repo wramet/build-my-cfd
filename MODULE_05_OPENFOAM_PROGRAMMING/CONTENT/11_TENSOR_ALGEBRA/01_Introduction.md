@@ -11,13 +11,14 @@ Imagine a tiny cube of fluid being compressed and twisted:
 
 ```mermaid
 flowchart TD
-    S[Rank 0: Scalar<br/>1 Component] -->|Magnitude only| V[Rank 1: Vector<br/>3 Components]
-    V -->|Magnitude + Direction| T[Rank 2: Tensor<br/>9 Components]
-    T -->|Magnitude + Directions + Transformations| HT[Higher Order Tensors]
+%% Classes
+classDef rank0 fill:#e1bee7,stroke:#4a148c,stroke-width:2px,color:#000
+classDef rank1 fill:#bbdefb,stroke:#0d47a1,stroke-width:2px,color:#000
+classDef rank2 fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px,color:#000
 
-    style T fill:#fce4ec,stroke:#c2185b,stroke-width:3px
-    style V fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    style S fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+S[Rank 0: Scalar<br/>1 Component]:::rank0 -->|Magnitude only| V[Rank 1: Vector<br/>3 Components]:::rank1
+V -->|Magnitude + Direction| T[Rank 2: Tensor<br/>9 Components]:::rank2
+T -->|Magnitude + Directions + Transformations| HT[Higher Order Tensors]:::rank2
 ```
 > **Figure 1:** ลำดับชั้นของอันดับเทนเซอร์ (Tensor Rank) ตั้งแต่อันดับ 0 (สเกลาร์) ไปจนถึงอันดับ 2 (เทนเซอร์) และอันดับที่สูงกว่า ซึ่งใช้ในการอธิบายความซับซ้อนของปริมาณทางฟิสิกส์ในรูปแบบต่างๆ
 

@@ -11,52 +11,25 @@ OpenFOAM ใช้แผนการทำให้เป็นส่วนย�
 - **การนำ Boundary Condition ที่ซับซ้อนไปใช้ได้อย่างตรงไปตรงมา**
 
 ```mermaid
-graph LR
-    subgraph CellCenteredFiniteVolume
-        P["Cell P<br/>Owner Cell"]
-        N["Cell N<br/>Neighbor Cell"]
-        f["Face f<br/>Boundary Interface"]
-        C_P["Center Point P<br/>(x_P, y_P, z_P)"]
-        C_N["Center Point N<br/>(x_N, y_N, z_N)"]
-        C_f["Face Center f<br/>(x_f, y_f, z_f)"]
-        Sf["Surface Vector S_f<br/>S_f = n_f × A_f"]
-        V_P["Cell Volume V_P<br/>Control Volume"]
-        nf["Normal Vector n_f<br/>Unit Normal"]
-        Af["Face Area A_f<br/>Surface Area"]
+graph TD
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
 
-        P -- "Owner" --> f
-        N -- "Neighbor" --> f
-        P -- "Center" --> C_P
-        N -- "Center" --> C_N
-        f -- "Center" --> C_f
-        f -- "Area Vector" --> Sf
-        f -- "Normal" --> nf
-        f -- "Area" --> Af
-        P -- "Volume" --> V_P
+subgraph Geometry["Cell Centered Geometry"]
+    subgraph Cells["Control Volumes"]
+        P["Owner Cell P<br/>(Center x_P)"]:::implicit
+        N["Neighbor Cell N<br/>(Center x_N)"]:::implicit
     end
 
-    style P fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style N fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style f fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style C_P fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:#000;
-    style C_N fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:#000;
-    style C_f fill:#ffebee,stroke:#c62828,stroke-width:1px,color:#000;
-    style Sf fill:#fce4ec,stroke:#ad1457,stroke-width:1px,color:#000;
-    style V_P fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:#000;
-    style nf fill:#e0f2f1,stroke:#00796b,stroke-width:1px,color:#000;
-    style Af fill:#e0f2f1,stroke:#00796b,stroke-width:1px,color:#000;
+    subgraph Interface["Face Properties"]
+        f["Face f<br/>(Center x_f)"]:::explicit
+        Sf["Surface Vector S_f<br/>(Normal × Area)"]:::explicit
+    end
+end
 
-    classDef cell fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef face fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef point fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:#000;
-    classDef vector fill:#fce4ec,stroke:#ad1457,stroke-width:1px,color:#000;
-    classDef property fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:#000;
-
-    class P,N cell;
-    class f face;
-    class C_P,C_N,C_f point;
-    class Sf,nf,Af vector;
-    class V_P property;
+P ---|Distance d_Pf| f
+f ---|Distance d_fN| N
+f -.- Sf
 ```
 > **Figure 1:** การนิยามทางเรขาคณิตของปริมาตรควบคุมแบบเน้นจุดศูนย์กลางเซลล์ โดยระบุเซลล์เจ้าของและเซลล์ข้างเคียง เวกเตอร์แนวฉากของหน้าเซลล์ ($n_f$) เวกเตอร์พื้นที่หน้าเซลล์ ($S_f$) และจุดศูนย์กลางเซลล์ ($P, N$) ที่ใช้ในการคำนวณเกรเดียนต์และฟลักซ์
 
@@ -78,35 +51,30 @@ graph LR
 
 ```mermaid
 graph LR
-    subgraph "Owner Cell P"
-        P["<b>Cell Center P</b><br/><i>φ<sub>P</sub>, u<sub>P</sub>, p<sub>P</sub></i><br/>Control Volume"]
-    end
+%% Spatial Layout: P -> f -> N with vectors annotated
+subgraph Mesh["Finite Volume Mesh"]
+    P["Cell P (Owner)"]:::implicit
+    f["Face f (Interface)"]:::explicit
+    N["Cell N (Neighbor)"]:::implicit
+end
+subgraph Vectors["Geometric Vectors"]
+    dPN["d_PN (P to N)"]:::context
+    Sf["S_f (Face Normal Area)"]:::context
+    dPf["d_Pf (P to Face)"]:::context
+end
 
-    subgraph "Face f"
-        f["<b>Face f</b><br/>Area: |S<sub>f</sub>|<br/>Normal: n<sub>f</sub>"]
-    end
+%% Connections
+P --- f --- N
 
-    subgraph "Neighbor Cell N"
-        N["<b>Cell Center N</b><br/><i>φ<sub>N</sub>, u<sub>N</sub>, p<sub>N</sub></i><br/>Control Volume"]
-    end
+%% Vector overlays (Semantic Coloring)
+P -.->|Vector| dPN -.-> N
+P -.->|Vector| dPf -.-> f
+f -.->|Vector| Sf
 
-    subgraph "Geometric Vectors"
-        Sf["<b>Surface Vector</b><br/>S<sub>f</sub> = n<sub>f</sub> × A<sub>f</sub>"]
-        dPN["<b>Distance Vector</b><br/>d<sub>PN</sub> = r<sub>N</sub> - r<sub>P</sub>"]
-        dPf["<b>Offset Vector</b><br/>d<sub>Pf</sub> = r<sub>f</sub> - r<sub>P</sub>"]
-    end
-
-    P -- "Owner → Face" --> f
-    f -- "Face → Neighbor" --> N
-    P -- "d<sub>PN</sub>" --> N
-    P -- "S<sub>f</sub> (points outward)" --> f
-
-    style P fill:#e3f2fd,stroke:#1565c0,stroke-width:3px,color:#000;
-    style N fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px,color:#000;
-    style f fill:#fff9c4,stroke:#fbc02d,stroke-width:3px,color:#000;
-    style Sf fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style dPN fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
-    style dPf fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000;
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px
+classDef context fill:#e0f7fa,stroke:#006064,stroke-width:1px,stroke-dasharray: 5 5
 ```
 > **Figure 2:** จุดคำนวณและเวกเตอร์ทางเรขาคณิตใน FVM แสดงความสัมพันธ์ระหว่างจุดศูนย์กลางเซลล์เจ้าของ (P) และเพื่อนบ้าน (N) รวมถึงเวกเตอร์ระยะทาง ($d_{PN}$) และเวกเตอร์พื้นที่หน้า ($S_f$) ที่ใช้ในการประมาณค่าและการคำนวณฟลักซ์
 

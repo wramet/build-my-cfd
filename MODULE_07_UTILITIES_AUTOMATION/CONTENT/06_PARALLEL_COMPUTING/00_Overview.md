@@ -1068,17 +1068,20 @@ rm -r processor*/0.2
 
 ```mermaid
 flowchart LR
-    A["Setup Case"] --> B["Generate Mesh"]
-    B --> C["Quality Check"]
-    C --> D{Quality OK?}
-    D -->|No| B
-    D -->|Yes| E["Decompose Domain"]
-    E --> F["Run Parallel Solver"]
-    F --> G["Monitor Performance"]
-    G --> H{Converged?}
-    H -->|No| F
-    H -->|Yes| I["Reconstruct Results"]
-    I --> J["Post-process"]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Setup]:::context --> B[Mesh]:::explicit
+B --> C[Check]:::explicit
+C --> D{OK?}:::explicit
+D -->|No| B
+D -->|Yes| E[Decompose]:::implicit
+E --> F[Run]:::implicit
+F --> G[Monitor]:::explicit
+G --> H{Done?}:::explicit
+H -->|No| F
+H -->|Yes| I[Reconstruct]:::implicit
+I --> J[Post]:::context
 ```
 > **Figure 1:** แผนภูมิแสดงขั้นตอนการทำงานแบบขนาน (Parallel Workflow) ตั้งแต่การตั้งค่าเคส การสร้างและตรวจสอบคุณภาพเมช การย่อยโดเมนเพื่อรัน Solver แบบขนาน ไปจนถึงการติดตามประสิทธิภาพและการรวบรวมผลลัพธ์เพื่อประมวลผลขั้นสุดท้าย
 
@@ -1245,18 +1248,17 @@ params = {
 ### กลยุทธ์การจัดการทรัพยากร
 
 ```mermaid
-graph TD
-    A["Available Resources"] --> B["Memory Allocation"]
-    A --> C["CPU Allocation"]
-
-    B --> B1["Per-processor Memory"]
-    B --> B2["Communication Buffer"]
-
-    C --> C1["CPU Binding"]
-    C --> C2["NUMA Awareness"]
-
-    B1 --> D["Optimal Performance"]
-    C1 --> D
+flowchart TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Resources]:::context --> B[Memory]:::explicit
+A --> C[CPU]:::explicit
+B --> B1[Per-Core RAM]:::implicit
+B --> B2[Comm Buffer]:::implicit
+C --> C1[Binding]:::implicit
+C --> C2[NUMA]:::implicit
+B1 & C1 --> D[Performance]:::implicit
 ```
 > **Figure 2:** กลยุทธ์การจัดการทรัพยากร (Resource Management Strategy) แสดงการจัดสรรหน่วยความจำและซีพียู รวมถึงการปรับแต่งในระดับฮาร์ดแวร์ เช่น CPU Binding และ NUMA Awareness เพื่อให้บรรลุประสิทธิภาพสูงสุดในการคำนวณแบบขนาน
 

@@ -5,16 +5,15 @@
 **การวิเคราะห์และวัดปริมาณความไม่แน่นอน (Uncertainty Quantification - UQ)** ใน CFD คือกระบวนการวิเคราะห์เชิงระบบว่าความแปรปรวนของพารามิเตอร์อินพุตส่งผลต่อเอาต์พุตการจำลองอย่างไร นี่เป็นสิ่งสำคัญสำหรับ **การพยากรณ์ที่เชื่อถือได้** และ **การประเมินความเสี่ยง** ในแอปพลิเคชันทางวิศวกรรม
 
 ```mermaid
-flowchart TD
-    A[Input Parameters] --> B[UQ Methods]
-    B --> C[Monte Carlo]
-    B --> D[Polynomial Chaos]
-    B --> E[Sobol Indices]
-    C --> F[Uncertainty Propagation]
-    D --> F
-    E --> F
-    F --> G[Reliable Predictions]
-    F --> H[Risk Assessment]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+In["Input Parameters"]:::context
+Methods["UQ Methods<br/>Monte Carlo, PCE, Sobol"]:::implicit
+Out["Output<br/>Risk and Reliability"]:::explicit
+
+In --> Methods --> Out
 ```
 
 ---

@@ -397,12 +397,16 @@ OpenFOAM ให้ Utilities ที่เป็นประโยชน์ใน
 
 ```mermaid
 flowchart TD
-    Issue[Issue Detected: FAIL/Diverge] --> MeshCheck[Run checkMesh]
-    MeshCheck -- Fail --> FixMesh[Fix Topology/Quality]
-    MeshCheck -- OK --> FieldCheck[Run checkFields]
-    FieldCheck -- Fail --> FixBC[Fix Boundary/Initial Conditions]
-    FieldCheck -- OK --> DebugSwitch[Enable DebugSwitches in controlDict]
-    DebugSwitch --> Analyze[Analyze Detailed Matrix/PISO Logs]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+Issue[Issue Detected: FAIL/Diverge]:::explicit --> MeshCheck[Run checkMesh]:::implicit
+MeshCheck -- Fail --> FixMesh[Fix Topology/Quality]:::warning
+MeshCheck -- OK --> FieldCheck[Run checkFields]:::implicit
+FieldCheck -- Fail --> FixBC[Fix Boundary/Initial Conditions]:::warning
+FieldCheck -- OK --> DebugSwitch[Enable DebugSwitches in controlDict]:::implicit
+DebugSwitch --> Analyze[Analyze Detailed Matrix/PISO Logs]:::success
 ```
 
 ### 3.2.2 checkMesh - เครื่องมือตรวจสอบ Mesh

@@ -274,23 +274,24 @@ forAll(sizeGroups, i)
 
 ```mermaid
 flowchart TD
-    A[เริ่ม] --> B{ความเข้มข้น α_d?}
-    B -->|&lt; 0.1| C[เจือจาง: Schiller-Naumann]
-    B -->|&gt; 0.3| D[หนาแน่น: KTGF + Ergun]
-    B -->|0.1 - 0.3| E[ปานกลาง: Wen-Yu]
-    C --> F{ความเร็ว Slip?}
-    E --> F
-    F -->|ต่ำ| G[Homogeneous Model]
-    F -->|สูง| H[Inhomogeneous Model]
-    H --> I{หลายขนาด?}
-    G --> I
-    I -->|ใช่| J[PBM / MUSIG]
-    I -->|ไม่| K[Single Size Group]
-    J --> L{ระบบเฟส?}
-    K --> L
-    L -->|ก๊าซ-ของเหลว| M[Tomiyama + Virtual Mass]
-    L -->|ก๊าซ-ของแข็ง| N[Wen-Yu + Johnson-Jackson]
-    L -->|ของเหลว-ของเหลว| O[Grace + Film Drainage]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Start]:::context --> B{Conc. Alpha}:::explicit
+B -->|< 0.1| C[Dilute: Schiller-Naumann]:::implicit
+B -->|> 0.3| D[Dense: KTGF + Ergun]:::implicit
+B -->|0.1 - 0.3| E[Medium: Wen-Yu]:::implicit
+C & E --> F{Slip Velocity}:::explicit
+D --> F
+F -->|Low| G[Homogeneous]:::implicit
+F -->|High| H[Inhomogeneous]:::implicit
+G & H --> I{Polydisperse?}:::explicit
+I -->|Yes| J[PBM / MUSIG]:::implicit
+I -->|No| K[Single Size Group]:::implicit
+J & K --> L{Phase System}:::explicit
+L -->|Gas-Liq| M[Tomiyama + VM]:::implicit
+L -->|Gas-Sol| N[Wen-Yu + JJ]:::implicit
+L -->|Liq-Liq| O[Grace + Film]:::implicit
 ```
 
 ---

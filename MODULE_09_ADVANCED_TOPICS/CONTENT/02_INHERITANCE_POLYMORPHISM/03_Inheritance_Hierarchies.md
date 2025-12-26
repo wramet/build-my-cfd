@@ -29,6 +29,7 @@ classDiagram
         +mu()
         +Cp()
     }
+    
     dictionary <|-- phaseModel
     volScalarField <|-- phaseModel
     phaseModel <|-- purePhaseModel

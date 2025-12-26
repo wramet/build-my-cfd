@@ -21,18 +21,19 @@
 
 ```mermaid
 flowchart TD
-    A[Computational Domain] --> B[Processor 0<br/>Subdomain 0]
-    A --> C[Processor 1<br/>Subdomain 1]
-    A --> D[Processor 2<br/>Subdomain 2]
-    A --> E[Processor 3<br/>Subdomain 3]
-
-    B --> F[Ghost Cells]
-    C --> F
-    D --> F
-    E --> F
-
-    F --> G[Processor Boundaries]
-    G --> H[Data Exchange]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+subgraph Domain[Computational Domain]
+    direction TB
+    B[Proc 0: Subdomain]:::implicit
+    C[Proc 1: Subdomain]:::implicit
+    D[Proc 2: Subdomain]:::implicit
+    E[Proc 3: Subdomain]:::implicit
+end
+B & C & D & E --> F[Ghost Cells / Halo Regions]:::explicit
+F --> G[Processor Boundaries]:::context
+G --> H[Data Exchange MPI]:::explicit
 ```
 
 ### สถาปัตยกรรม `parallelPhaseModel`
@@ -150,18 +151,17 @@ void parallelPhaseModel::synchronizeFields()
 
 ```mermaid
 flowchart LR
-    A[Original Distribution] --> B{Load Calculation}
-    B --> C[Cell Count]
-    B --> D[Turbulence Model]
-    B --> E[Interface Area]
-
-    C --> F[Load Estimation]
-    D --> F
-    E --> F
-
-    F --> G[Graph Partitioning<br/>Metis/Scotch]
-    G --> H[Redistribution]
-    H --> I[Balanced Load]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Original Distribution]:::context --> B{Load Calculation}
+B --> C[Cell Count]:::explicit
+B --> D[Turbulence Model]:::explicit
+B --> E[Interface Area]:::explicit
+C & D & E --> F[Load Estimation]:::implicit
+F --> G[Graph Partitioning<br/>Metis/Scotch]
+G --> H[Redistribution]:::explicit
+H --> I[Balanced Load]:::implicit
 ```
 
 ### การคำนวณภาระ (Load Calculation)
@@ -361,10 +361,13 @@ OpenFOAM ใช้ MPI (Message Passing Interface) สำหรับการ�
 
 ```mermaid
 flowchart TD
-    A[Start] --> B[initSwapFields<br/>Non-blocking Send]
-    B --> C[Perform Other Computations]
-    C --> D[swapFields<br/>Complete Transfer]
-    D --> E[Continue Algorithm]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Start]:::context --> B[initSwapFields<br/>Non-blocking Send]:::explicit
+B --> C[Perform Other Computations]
+C --> D[swapFields<br/>Complete Transfer]:::explicit
+D --> E[Continue Algorithm]
 ```
 
 ---

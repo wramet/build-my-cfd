@@ -157,12 +157,15 @@ surfaceSmoothFeatures geometry.stl
 
 ```mermaid
 flowchart LR
-    CAD[ไฟล์ CAD] --> STEP[รูปแบบ STEP/IGES]
-    STEP --> STL[การแปลงเป็น STL]
-    STL --> CHECK{ตรวจสอบคุณภาพ}
-    CHECK -->|ผ่าน| MESH[สร้างเมช]
-    CHECK -->|ไม่ผ่าน| REPAIR[เครื่องมือซ่อมแซม]
-    REPAIR --> CHECK
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[CAD File]:::context --> B[STEP/IGES]:::implicit
+B --> C[STL Conversion]:::implicit
+C --> D{Quality?}:::explicit
+D -->|Pass| E[Meshing]:::implicit
+D -->|Fail| F[Repair Tool]:::explicit
+F --> D
 ```
 > **รูปที่ 1:** แผนภูมิแสดงขั้นตอนการแปลงรูปแบบไฟล์ (Format Conversion Pipeline) จากไฟล์ CAD ต้นฉบับผ่านมาตรฐาน STEP/IGES เข้าสู่รูปแบบ STL เพื่อเข้าสู่กระบวนการตรวจสอบคุณภาพและการซ่อมแซมก่อนการสร้างเมช
 
@@ -219,10 +222,13 @@ checkMesh -allRegions -writeFields
 
 ```mermaid
 flowchart TD
-    START[เมชพื้นหลัง] --> CAST[Castellation]
-    CAST --> SNAP[Snapping]
-    SNAP --> LAYER[การเพิ่มชั้น]
-    LAYER --> FINAL[เมชสุดท้าย]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+START[Background Mesh]:::context --> CAST[Castellation]:::explicit
+CAST --> SNAP[Snapping]:::explicit
+SNAP --> LAYER[Layer Addition]:::explicit
+LAYER --> FINAL[Final Mesh]:::implicit
 ```
 > **รูปที่ 2:** กระบวนการทำงาน 3 ขั้นตอนหลักของ `snappyHexMesh` ประกอบด้วยขั้นตอนการสร้างเมชแบบ Castellated การปรับพื้นผิวให้แนบชิด (Snapping) และการเพิ่มชั้นขอบเขต (Layer Addition) เพื่อให้ได้เมชสุดท้ายที่สมบูรณ์
 

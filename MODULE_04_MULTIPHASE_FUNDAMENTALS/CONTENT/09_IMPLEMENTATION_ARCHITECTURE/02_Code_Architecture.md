@@ -380,15 +380,18 @@ phaseModel& phase = phasePtr(); // Access object
 
 ```mermaid
 flowchart TD
-    A[Start PIMPLE Loop] --> B[Momentum Predictor]
-    B --> C[Solve Momentum Equations<br/>for all phases]
-    C --> D[Construct Pressure Equation]
-    D --> E[Solve Pressure Equation]
-    E --> F[Correct Velocities & Fluxes]
-    F --> G[Solve Energy Equations<br/>if enabled]
-    G --> H{Check Convergence}
-    H -->|Not converged| C
-    H -->|Converged| I[End Loop]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Start PIMPLE Loop]:::context --> B[Momentum Predictor]
+B --> C[Solve Momentum Eqns]
+C --> D[Construct Pressure Eqn]
+D --> E[Solve Pressure Eqn]
+E --> F[Correct Vel & Flux]:::explicit
+F --> G[Solve Energy]
+G --> H{Convergence?}:::explicit
+H -->|No| C
+H -->|Yes| I[End Loop]:::context
 ```
 
 #### รายละเอียดขั้นตอน
@@ -857,18 +860,21 @@ scalarField multiphaseLoadBalancer::calculateLoad()
 
 ```mermaid
 flowchart TD
-    A[Start Time Loop] --> B[Read Time Controls]
-    B --> C[Calculate Courant Numbers]
-    C --> D[Solve Alpha Equations]
-    D --> E[Solve Momentum Equations]
-    E --> F[Solve Pressure Equation]
-    F --> G[Solve Energy Equations]
-    G --> H{Check Convergence}
-    H -->|Not converged| D
-    H -->|Converged| I[Write Results]
-    I --> J{End Time?}
-    J -->|No| A
-    J -->|Yes| K[End Simulation]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Start Time Loop]:::context --> B[Read Controls]:::context
+B --> C[Calc Courant]:::explicit
+C --> D[Solve Alpha]:::explicit
+D --> E[Solve Momentum]
+E --> F[Solve Pressure]
+F --> G[Solve Energy]
+G --> H{Converged?}:::explicit
+H -->|No| D
+H -->|Yes| I[Write Results]:::context
+I --> J{End Time?}:::context
+J -->|No| A
+J -->|Yes| K[End]:::context
 ```
 
 #### รายละเอียดวงจรหลัก

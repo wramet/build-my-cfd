@@ -867,18 +867,19 @@ plt.show()
 
 ```mermaid
 flowchart TD
-    A[Raw CFD Data] --> B{การตรวจสอบข้อมูล<br/>Field Validation}
-    B --> C[การสกัด Field หลัก<br/>Primary Field Extraction]
-    C --> D[การคำนวณปริมาณอนุพันธ์<br/>Derived Quantity Calculation]
-    D --> E[การวิเคราะห์ชั้นขอบเขต<br/>Boundary Layer Analysis]
-    E --> F[สถิติความปั่นป่วน<br/>Turbulence Statistics]
-    F --> G[การสร้างภาพข้อมูล<br/>Visualization]
-    G --> H[การตรวจสอบกับทฤษฎี<br/>Validation]
-    H --> I[การสรุปผล<br/>Reporting]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style I fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style B fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Raw CFD Data]:::explicit --> B{Validation}:::context
+B --> C[Field Extraction]:::implicit
+C --> D[Derived Calc]:::implicit
+D --> E[Boundary Layer]:::implicit
+E --> F[Turbulence Stats]:::implicit
+F --> G[Visualization]:::implicit
+G --> H{Theory Check}:::context
+H --> I[Reporting]:::implicit
 ```
 > **Figure 1:** แผนภูมิแสดงขั้นตอนการวิเคราะห์ข้อมูลสนาม (Field Analysis) อย่างเป็นระบบ ตั้งแต่การตรวจสอบความถูกต้องของข้อมูลดิบ การสกัดปริมาณพื้นฐานและปริมาณอนุพันธ์ ไปจนถึงการวิเคราะห์ความปั่นป่วนและการเปรียบเทียบกับทฤษฎีเพื่อสรุปผล
 

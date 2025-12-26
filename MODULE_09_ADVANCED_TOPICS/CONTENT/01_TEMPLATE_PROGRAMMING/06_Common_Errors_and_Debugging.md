@@ -161,13 +161,17 @@ volScalarField p2_mapped = mapField(p2, mesh2, mesh1);
 
 ```mermaid
 graph TD
-    A[Compiler Error Produced] --> B{Length of Message}
-    B -->|> 100 lines| C[Template Instantiation Error]
-    B -->|< 10 lines| D[Simple Syntax Error]
-    C --> E[Look for 'candidate' and 'deduction failed']
-    E --> F[Check Argument Types vs. Template Parameters]
-    F --> G[Verify Header Inclusion & Namespaces]
-    G --> H[Resolved Code]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[Compiler Error Produced]:::explicit --> B{Length of Message}:::warning
+B -->|Greater than 100 lines| C[Template Instantiation Error]:::implicit
+B -->|Less than 10 lines| D[Simple Syntax Error]:::implicit
+C --> E[Look for 'candidate' and 'deduction failed']:::implicit
+E --> F[Check Argument Types vs. Template Parameters]:::implicit
+F --> G[Verify Header Inclusion and Namespaces]:::implicit
+G --> H[Resolved Code]:::success
 ```
 > **Figure 1:** แผนผังขั้นตอนการวิเคราะห์และแก้ไขข้อผิดพลาดจากเทมเพลต (Template Errors) โดยเน้นการแยกแยะระหว่างข้อผิดพลาดไวยากรณ์ทั่วไปกับข้อผิดพลาดจากการสร้างอินสแตนซ์เทมเพลต (Instantiation) ซึ่งมักจะมีข้อความแจ้งเตือนที่ยาวและซับซ้อนกว่า
 

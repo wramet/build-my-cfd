@@ -128,16 +128,19 @@ volScalarField k_alpha = phase.k();
 ### แผนภูมิการไหลของ Solver
 
 ```mermaid
-graph TD
-    A[Start Time Step] --> B[Solve alphaEqn.H]
-    B --> C[Construct UEqn.H]
-    C --> D[PIMPLE Loop]
-    D --> E[Solve pEqn.H]
-    E --> F[Correct Velocities]
-    F --> G{Converged?}
-    G -- No --> D
-    G -- Yes --> H[Update Turbulence & Thermo]
-    H --> I[Next Time Step]
+flowchart TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A(["Start Time Step]):::context --> B["Solve αEqn.H"]:::explicit
+B --> C["Construct UEqn.H"]:::implicit
+C --> D["PIMPLE Loop"]:::context
+D --> E["Solve pEqn.H"]:::implicit
+E --> F["Correct Velocities"]:::implicit
+F --> G{"Converged?"}:::explicit
+G -- No --> D
+G -- Yes --> H["Update Turb/Thermo"]:::implicit
+H --> I(["Next Time Step"]):::context
 ```
 
 ### ขั้นตอนการแก้สมการ

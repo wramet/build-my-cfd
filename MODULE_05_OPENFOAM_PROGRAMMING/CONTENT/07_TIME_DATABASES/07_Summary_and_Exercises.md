@@ -2,32 +2,23 @@
 
 ```mermaid
 mindmap
-  root((Geometric<br/>Fields))
-    Template Architecture
-      Type Parameter
-        scalar
-        vector
-        tensor
-      PatchField Parameter
-        fvPatchField
-        pointPatchField
-      GeoMesh Parameter
-        volMesh
-        surfaceMesh
-    Inheritance Hierarchy
-      Field
-      DimensionedField
-      GeometricField
-      volScalarField
-    Design Patterns
-      Template Metaprogramming
-      RAII
-      Policy-Based Design
-      Type Erasure
-    Performance
-      Expression Templates
-      Cache Efficiency
-      Reference Semantics
+root((Geometric Fields))
+Template Architecture
+Type: scalar/vector
+PatchField: fv/point
+GeoMesh: vol/surface
+Inheritance
+Field
+DimensionedField
+GeometricField
+volScalarField
+Patterns
+Template Metaprog
+RAII
+Policy-Based
+Performance
+Expression Templates
+Cache Efficiency
 ```
 > **Figure 1:** แผนผังความคิดสรุปสถาปัตยกรรมของฟิลด์เรขาคณิต ครอบคลุมทั้งพารามิเตอร์เทมเพลต ลำดับชั้นการสืบทอด รูปแบบการออกแบบ และประสิทธิภาพการทำงาน
 
@@ -43,21 +34,16 @@ mindmap
 
 ```mermaid
 flowchart TD
-    A[GeometricField Template] --> B[Type Parameter]
-    A --> C[PatchField Parameter]
-    A --> D[GeoMesh Parameter]
-
-    B --> B1[scalar - pressure, temperature]
-    B --> B2[vector - velocity, momentum]
-    B --> B3[tensor - stress, strain rate]
-
-    C --> C1[fvPatchField - finite volume]
-    C --> C2[pointPatchField - point mesh]
-    C --> C3[fvsPatchField - surface field]
-
-    D --> D1[volMesh - cell centers]
-    D --> D2[surfaceMesh - face centers]
-    D --> D3[pointMesh - mesh points]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[GeometricField Template]:::implicit --> B[Type Param]:::implicit
+A --> C[PatchField Param]:::implicit
+A --> D[GeoMesh Param]:::implicit
+B --> B1[scalar/vector/tensor]:::explicit
+C --> C1[fv/point/surface Patch]:::explicit
+D --> D1[vol/surface/point Mesh]:::explicit
 ```
 > **Figure 2:** องค์ประกอบของเทมเพลต GeometricField ซึ่งประกอบด้วยพารามิเตอร์ 3 ชนิด (Type, PatchField, GeoMesh) ที่กำหนดลักษณะทางคณิตศาสตร์ พฤติกรรมขอบเขต และโดเมนเชิงพื้นที่ของข้อมูล
 
@@ -90,11 +76,15 @@ GeometricField<Type, PatchField, GeoMesh> geometricField(dimensionalField, mesh)
 
 ```mermaid
 flowchart TD
-    A[Field&lt;Type&gt;<br/>Raw Data Storage] --> B[DimensionedField&lt;Type, GeoMesh&gt;<br/>Dimensions + Mesh Reference]
-    B --> C[GeometricField&lt;Type, PatchField, GeoMesh&gt;<br/>Complete Field with Boundaries]
-    C --> D[volScalarField<br/>Pressure, Temperature]
-    C --> E[volVectorField<br/>Velocity, Momentum]
-    C --> F[surfaceScalarField<br/>Flux Calculations]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Field: Raw Data]:::implicit --> B[DimensionedField: Units]:::implicit
+B --> C[GeometricField: BCs]:::implicit
+C --> D[volScalarField]:::explicit
+C --> E[volVectorField]:::explicit
+C --> F[surfaceScalarField]:::explicit
 ```
 > **Figure 3:** ลำดับชั้นการถ่ายทอดคุณสมบัติของฟิลด์ใน OpenFOAM โดยแต่ละชั้นจะเพิ่มความสามารถเฉพาะด้าน เช่น มิติทางฟิสิกส์ การเชื่อมโยงเมช และการจัดการขอบเขต
 
@@ -459,10 +449,14 @@ auto result = fieldA + fieldB * 2.0;  // Expression template constructed
 
 ```mermaid
 flowchart LR
-    A[fieldA] --> C[+ Operator]
-    B[fieldB * 2.0] --> C
-    C --> D[No Temporary Allocation]
-    D --> E[Direct Computation on Assignment]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[fieldA]:::implicit --> C[+ Operator]:::explicit
+B[fieldB * 2.0]:::implicit --> C
+C --> D[No Temp Alloc]:::implicit
+D --> E[Direct Assign]:::explicit
 ```
 > **Figure 4:** การทำงานของตัวดำเนินการบวกผ่าน Expression Template ซึ่งช่วยหลีกเลี่ยงการสร้างตัวแปรชั่วคราวและประมวลผลข้อมูลได้ในขั้นตอนเดียว
 

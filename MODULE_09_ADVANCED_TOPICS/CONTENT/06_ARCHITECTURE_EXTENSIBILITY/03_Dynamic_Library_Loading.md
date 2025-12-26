@@ -9,17 +9,16 @@
 
 ```mermaid
 sequenceDiagram
-    participant S as Solver (New method)
-    participant OS as Operating System (dlopen)
-    participant L as Shared Library (.so)
-    participant T as Global Selection Table
-
-    S->>OS: Call dlopen(libName, RTLD_GLOBAL)
-    OS->>L: Map library into memory
-    L->>L: Run Static Constructors
-    L->>T: Register types (addToRunTimeSelectionTable)
-    T-->>S: Update Table Pointers
-    S->>T: Lookup and Create Object
+participant S as Solver (New method)
+participant OS as Operating System
+participant L as Shared Library (.so)
+participant T as Global Selection Table
+S->>OS: Call dlopen(libName, RTLD_GLOBAL)
+OS->>L: Map library into memory
+L->>L: Run Static Constructors
+L->>T: Register types (addToRunTimeSelectionTable)
+T-->>S: Update Table Pointers
+S->>T: Lookup and Create Object
 ```
 > **Figure 1:** แผนผังลำดับขั้นตอน (Sequence Diagram) ของการโหลดไลบรารีแบบไดนามิก โดย Solver จะขอให้ระบบปฏิบัติการโหลดไฟล์ไลบรารีเข้าไปในหน่วยความจำ ซึ่งจะไปกระตุ้นให้โค้ดส่วนการลงทะเบียนทำงานอัตโนมัติเพื่อเพิ่มโมเดลใหม่เข้าไปในตารางส่วนกลาง ทำให้ Solver สามารถเรียกใช้งานโมเดลเหล่านั้นได้ทันที
 

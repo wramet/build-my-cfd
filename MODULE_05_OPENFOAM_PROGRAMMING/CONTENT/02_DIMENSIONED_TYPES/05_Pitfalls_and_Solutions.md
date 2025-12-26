@@ -5,16 +5,18 @@
 Working with OpenFOAM's dimensioned type system presents unique challenges that can trap even experienced developers. This document catalogues common pitfalls and provides battle-tested solutions.
 
 ```mermaid
-graph TD
-    A[Developer writes code] --> B{Dimension Check}
-    B -->|Pass| C[Compilation Success]
-    B -->|Fail| D[Compiler Error]
-    D --> E{Understand Error?}
-    E -->|Yes| F[Apply Solution]
-    E -->|No| G[Read This Guide]
-    G --> F
-    F --> A
-    C --> H[Runtime Execution]
+flowchart TD
+classDef action fill:#e1f5fe,stroke:#0277bd,color:#000
+classDef check fill:#fff9c4,stroke:#fbc02d,color:#000
+classDef fail fill:#ffcdd2,stroke:#c62828,color:#000
+classDef pass fill:#c8e6c9,stroke:#2e7d32,color:#000
+Code[Write Code]:::action --> Check{Dim Check}:::check
+
+Check --> Run[Runtime Execution]:::pass
+Check --> Err[Compiler Error]:::fail
+
+Err --> Fix[Fix Dimensions]:::action
+Fix --> Code
 ```
 > **Figure 1:** ขั้นตอนการทำงานของนักพัฒนาในการรับมือกับข้อผิดพลาดจากการตรวจสอบมิติ ตั้งแต่การเขียนโค้ด การวิเคราะห์ข้อความผิดพลาดจากคอมไพเลอร์ ไปจนถึงการประยุกต์ใช้แนวทางแก้ไขที่ถูกต้อง
 
@@ -174,21 +176,21 @@ void printDimensions()
 In large CFD projects, maintaining dimensional consistency across multiple compilation units presents significant challenges.
 
 ```mermaid
-graph LR
-    subgraph File1["File1.H"]
-        P1["p = 101325 Pa"]
-    end
-    subgraph File2["File2.H"]
-        P2["p = 101325 (same dims)"]
-    end
-    subgraph File3["File3.H"]
-        P3["p = 14.7 PSI (wrong!)"]
-    end
-    P1 --> S["Solver"]
-    P2 --> S
-    P3 --> S
-    S --> E["Physics Violation"]
-    style E fill:#ffcdd2,stroke:#f44336
+flowchart LR
+classDef file fill:#e0e0e0,stroke:#333,color:#000
+classDef ok fill:#c8e6c9,stroke:#2e7d32,color:#000
+classDef fail fill:#ffcdd2,stroke:#c62828,color:#000
+subgraph Sources [Input Files]
+    F1["p = 101325 Pa"]:::file
+    F2["p = 101325 (No Unit)"]:::file
+    F3["p = 14.7 PSI"]:::file
+end
+
+Solver((Solver))
+
+F1 -->|Consistent| OK[Run]:::ok
+F2 -->|Ambiguous| OK
+F3 -->|Mismatch| Err[Physics Error]:::fail
 ```
 > **Figure 2:** ปัญหาความไม่สอดคล้องกันของหน่วยวัดในโครงการขนาดใหญ่ที่เกิดจากการนิยามตัวแปรเดียวกันด้วยหน่วยที่ต่างกันในแต่ละไฟล์ ซึ่งนำไปสู่ความผิดพลาดทางฟิสิกส์ที่ร้ายแรง
 
@@ -332,11 +334,18 @@ public:
 OpenFOAM's dimension system can be extended to support domain-specific physics or custom requirements.
 
 ```mermaid
-graph TD
-    A[Standard 7 SI Dimensions] --> B[Extended System]
-    B --> C[Currency]
-    B --> D[Information]
-    B --> E[Domain-Specific]
+flowchart TD
+classDef base fill:#e3f2fd,stroke:#1565c0,color:#000
+classDef ext fill:#fff3e0,stroke:#e65100,color:#000
+A[Standard 7 SI Dimensions]:::base
+
+subgraph Extensions [Extended Dimensions]
+    B[Extended Systems]:::ext
+    C[Currency / Info]:::ext
+end
+
+A --> B
+A --> C
 ```
 > **Figure 3:** แนวทางการขยายระบบมิติของ OpenFOAM ให้ครอบคลุมปริมาณอื่นๆ นอกเหนือจาก 7 มิติมาตรฐาน SI เช่น มิติด้านค่าเงินหรือข้อมูลสารสนเทศ
 
@@ -473,14 +482,18 @@ struct DimensionSystemVersion<2>
 The dimensional analysis system introduces computational overhead that requires quantification for performance-critical applications.
 
 ```mermaid
-graph LR
-    subgraph "Without Dimensioning"
-        A1["1000000 operations"] --> B1["~0.01s"]
-    end
-    subgraph "With Dimensioning"
-        A2["1000000 operations"] --> B2["~0.012s"]
-    end
-    style B2 fill:#fff3e0,stroke:#ff9800
+flowchart LR
+classDef plain fill:#ffcdd2,stroke:#c62828,color:#000
+classDef dim fill:#c8e6c9,stroke:#2e7d32,color:#000
+subgraph Raw [No Dimensioning]
+    A1[1M Ops]:::plain --> B1[0.01s]:::plain
+end
+
+subgraph Dims [With Dimensioning]
+    A2[1M Ops]:::dim --> B2[0.012s]:::dim
+end
+
+B1 -.->|Small Overhead| B2
 ```
 > **Figure 4:** การเปรียบเทียบผลกระทบด้านประสิทธิภาพ (Runtime Overhead) ระหว่างการคำนวณแบบสเกลาร์ดิบกับการคำนวณที่มีระบบตรวจสอบมิติ ซึ่งแสดงให้เห็นถึงโอเวอร์เฮดที่เพิ่มขึ้นเพียงเล็กน้อยในแลกกับความปลอดภัยที่สูงขึ้น
 
@@ -628,11 +641,13 @@ struct DimensionChecker<true>
 The interface between dimensional and non-dimensional types requires careful design to maintain type safety while enabling practical computation.
 
 ```mermaid
-flowchart TD
-    A[dimensionedScalar] -->|explicit operator| B[scalar]
-    A -->|.value method| B
-    B -->|dimension constructor| C[dimensionedScalar]
-    B -->|operator *| D[dimensioned result]
+flowchart LR
+classDef type fill:#e1f5fe,stroke:#0277bd,color:#000
+classDef op fill:#fff9c4,stroke:#fbc02d,color:#000
+DS[dimensionedScalar]:::type -->|.value()| S[scalar]:::type
+S -->|constructor| DS2[dimensionedScalar]:::type
+DS -->|operator+| DS
+S -->|operator*| DS
 ```
 > **Figure 5:** รูปแบบการทำงานร่วมกัน (Interoperability Patterns) ระหว่างประเภทข้อมูลที่มีมิติและไม่มีมิติ เพื่อรักษาความปลอดภัยของข้อมูลในขณะที่ยังสามารถคำนวณร่วมกับค่าสเกลาร์ทั่วไปได้
 

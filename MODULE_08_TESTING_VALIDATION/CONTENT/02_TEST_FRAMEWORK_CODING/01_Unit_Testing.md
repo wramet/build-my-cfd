@@ -67,20 +67,24 @@ $$
 ### โครงสร้างการตัดสินใจของ Assertion
 
 ```mermaid
-graph TD
-    A[Input Values: A, B] --> B{Assertion Type}
-    B -- Integer/Boolean --> C[Check Exact Equality A == B]
-    B -- Floating Point --> D[Check with Tolerance]
-    D --> E{Tolerance Type}
-    E -- Absolute --> F[Check: |A-B| < epsilon_abs]
-    E -- Relative --> G[Check: |A-B|/|A| < epsilon_rel]
-    E -- Combined --> H[Check: |A-B| < max epsilon_abs, epsilon_rel*|A|]
-    F --> I[Result: PASS/FAIL]
-    G --> I
-    H --> I
-    C --> I
-    I -- PASS --> J[Continue Testing]
-    I -- FAIL --> K[Report Error & Stop/Continue]
+flowchart TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[Input Values: A, B]:::explicit --> B{Assertion Type}:::implicit
+B -- Integer/Boolean --> C[Check Exact Equality A == B]:::implicit
+B -- Floating Point --> D[Check with Tolerance]:::implicit
+D --> E{Tolerance Type}:::implicit
+E -- Absolute --> F[Check: |A-B| < epsilon_abs]:::implicit
+E -- Relative --> G[Check: |A-B|/|A| < epsilon_rel]:::implicit
+E -- Combined --> H[Check: |A-B| < max epsilon_abs, epsilon_rel*|A|]:::implicit
+F --> I[Result: PASS/FAIL]:::warning
+G --> I
+H --> I
+C --> I
+I -- PASS --> J[Continue Testing]:::success
+I -- FAIL --> K[Report Error & Stop/Continue]:::explicit
 ```
 
 ### ตัวอย่างการนำไปใช้งาน (C++ Implementation)
@@ -532,44 +536,43 @@ void createTestMesh()
 
 ```mermaid
 classDiagram
-    class TestCase {
-        <<Abstract Interface>>
-        +string name_
-        +run()*
-        +setUp()*
-        +tearDown()*
-        +reportResults()
-    }
-    class ScalarFieldOperationTest {
-        +run()
-        -testFieldCreation()
-        -testFieldArithmetic()
-        -testFieldGradient()
-        -testFieldLaplacian()
-    }
-    class VectorFieldOperationTest {
-        +run()
-        -testVectorCreation()
-        -testVectorOperations()
-        -testDivergence()
-    }
-    class MatrixTest {
-        +run()
-        -testMatrixCreation()
-        -testLUSolve()
-        -testMatrixVectorProduct()
-    }
-    TestCase <|-- ScalarFieldOperationTest
-    TestCase <|-- VectorFieldOperationTest
-    TestCase <|-- MatrixTest
-
-    class TestRunner {
-        +List~TestCase~ tests_
-        +addTest(TestCase)
-        +runAll()
-        +generateReport()
-    }
-    TestRunner --> TestCase : manages
+class TestCase {
+<<Abstract Interface>>
++string name_
++run()*
++setUp()*
++tearDown()*
++reportResults()
+}
+class ScalarFieldOperationTest {
++run()
+-testFieldCreation()
+-testFieldArithmetic()
+-testFieldGradient()
+-testFieldLaplacian()
+}
+class VectorFieldOperationTest {
++run()
+-testVectorCreation()
+-testVectorOperations()
+-testDivergence()
+}
+class MatrixTest {
++run()
+-testMatrixCreation()
+-testLUSolve()
+-testMatrixVectorProduct()
+}
+TestCase <|-- ScalarFieldOperationTest
+TestCase <|-- VectorFieldOperationTest
+TestCase <|-- MatrixTest
+class TestRunner {
+    +List~TestCase~ tests_
+    +addTest(TestCase)
+    +runAll()
+    +generateReport()
+}
+TestRunner --> TestCase : manages
 ```
 
 ### การ Implement Test Framework

@@ -62,25 +62,13 @@ $$\dot{\gamma} = \sqrt{2\mathbf{D}:\mathbf{D}} = \sqrt{2\sum_{i,j} D_{ij}D_{ij}}
 
 ```mermaid
 graph LR
-    A["ของไหลแบบนิวตัน"] --> B["ความหนืดคงที่"]
-    A --> C["ความสัมพันธ์ความเค้น-ความเครียดแบบเชิงเส้น"]
-    D["ของไหลนอนนิวตัน"] --> E["ความหนืดแปรผัน"]
-    D --> F["ความสัมพันธ์ความเค้น-ความเครียดแบบไม่เชิงเส้น"]
-    B --> G["τ = μ·γ̇"]
-    E --> H["τ = μ(γ̇)·γ̇"]
-    C --> I["μ = constant"]
-    F --> J["μ = f(γ̇)"]
-    G --> K["น้ำ, อากาศ"]
-    H --> L["เลือด, ซอสมะเขือเทศ, สี"]
-    I --> M["ของไหลอย่างง่าย"]
-    J --> N["ของไหลที่ซับซ้อน"]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Newton["ของไหลนิวตัน<br/>μ คงที่<br/>น้ำ, อากาศ"]:::implicit
+NonNewton["ของไหลนอนนิวตัน<br/>μ แปรผันตาม γ̇<br/>เลือด, โพลีเมอร์"]:::explicit
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style D fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    style G fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style H fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style K fill:#ffebee,stroke:#c62828,stroke-width:2px
-    style L fill:#ffebee,stroke:#c62828,stroke-width:2px
+Newton --> NonNewton
 ```
 > **รูปที่ 1:** แผนภาพแสดงการเปรียบเทียบสมบัติพื้นฐานและพฤติกรรมทางกายภาพระหว่างของไหลแบบนิวตัน (Newtonian) และของไหลที่ไม่ใช่แบบนิวตัน (Non-Newtonian) โดยเน้นที่ความแตกต่างของการตอบสนองความหนืดต่อแรงเฉือน
 
@@ -160,19 +148,14 @@ $$\mu(\dot{\gamma}) = \begin{cases}
 
 ```mermaid
 graph TD
-    A[viscosityModel<br/>คลาสฐาน] --> B[strainRateViscosityModel<br/>คลาสระดับกลาง]
-    B --> C[BirdCarreau]
-    B --> D[PowerLaw]
-    B --> E[HerschelBulkley]
-    B --> F[CrossPowerLaw]
-    B --> G[แบบจำลองที่กำหนดเอง...]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Base["viscosityModel<br/>(Base Class)"]:::context
+Inter["strainRateViscosityModel<br/>(Intermediate)"]:::implicit
+Concrete["Implementations:<br/>BirdCarreau, PowerLaw..."]:::explicit
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style E fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style F fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+Base --> Inter --> Concrete
 ```
 > **รูปที่ 2:** แผนภูมิแสดงลำดับชั้นของคลาส (Class Hierarchy) สำหรับการจัดการแบบจำลองความหนืดใน OpenFOAM โดยแยกโครงสร้างระหว่างอินเทอร์เฟซหลักและกลไกการคำนวณอัตราความเครียดออกจากแบบจำลองทางรีโอโลยีเฉพาะทาง
 
@@ -634,32 +617,19 @@ HerschelBulkleyCoeffs
 
 ```mermaid
 graph LR
-    A["การประยุกต์ใช้นอนนิวตัน"] --> B["กระบวนการโพลีเมอร์"]
-    A --> C["กระบวนการผลิตอาหาร"]
-    A --> D["ชีวการแพทย์"]
-    A --> E["งานก่อสร้าง"]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Root["การประยุกต์ใช้<br/>นอนนิวตัน"]:::context
+Poly["โพลีเมอร์<br/>(ฉีด, อัดรีด)"]:::implicit
+Food["อาหาร<br/>(ซอส, แป้ง)"]:::explicit
+Bio["ชีวการแพทย์<br/>(เลือด)"]:::implicit
+Const["ก่อสร้าง<br/>(ซีเมนต์)"]:::explicit
 
-    B --> B1["การขึ้นรูปฉีด"]
-    B --> B2["การอัดรีด"]
-    B --> B3["การหล่อฟิล์ม"]
-
-    C --> C1["ซอสและครีม"]
-    C --> C2["กระบวนการนวดแป้ง"]
-    C --> C3["การผสม"]
-
-    D --> D1["การไหลของเลือด"]
-    D --> D2["การขนส่งเมือก"]
-    D --> D3["ของเหลวในข้อต่อ"]
-
-    E --> E1["การไหลของคอนกรีต"]
-    E --> E2["ปูนซีเมนต์เหลว"]
-    E --> E3["ของเหลวขุดเจาะ"]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
-    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style C fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    style D fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style E fill:#ffebee,stroke:#c62828,stroke-width:2px
+Root --> Poly
+Root --> Food
+Root --> Bio
+Root --> Const
 ```
 > **รูปที่ 3:** แผนภาพแสดงการประยุกต์ใช้งานแบบจำลองของไหลที่ไม่ใช่แบบนิวตันในอุตสาหกรรมต่างๆ โดยระบุประเภทของกระบวนการและสารตัวอย่างที่ต้องใช้แบบจำลองความหนืดขั้นสูงเพื่อให้ได้ผลการจำลองที่ใกล้เคียงกับความเป็นจริง
 
@@ -852,24 +822,17 @@ $$\dot{\gamma} = \sqrt{2}\,\|\operatorname{symm}(\nabla \mathbf{u})\|$$
 
 ```mermaid
 graph TD
-    A[เริ่มการจำลอง] --> B[อ่านพจนานุกรม transportProperties]
-    B --> C[Factory: สร้างอินสแตนซ์แบบจำลองความหนืด]
-    C --> D[เริ่มวงรอบเวลา]
-    D --> E[คำนวณเกรเดียนต์ความเร็ว ∇u]
-    E --> F[คำนวณอัตราความเครียด γ̇ = √2‖symm∇u‖]
-    F --> G[อัปเดตความหนืด μ = fγ̇]
-    G --> H[ใช้ขอบเขต: μmin < μ < μmax]
-    H --> I[แก้สมการโมเมนตัม]
-    I --> J[อัปเดตการคัปปลิงความดัน-ความเร็ว]
-    J --> K{ลู่เข้าแล้วหรือยัง?}
-    K -- ยัง --> E
-    K -- ใช่ --> L{ถึงเวลาสุดท้ายหรือยัง?}
-    L -- ยัง --> D
-    L -- ใช่ --> M[สิ้นสุดการจำลอง]
-
-    style C fill:#fff9c4,stroke:#fbc02d
-    style G fill:#fff9c4,stroke:#fbc02d
-    style H fill:#fff9c4,stroke:#fbc02d
+    classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+    
+    Init["อ่านค่า transportProperties"]:::context
+    Loop["วงรอบเวลา (Time Loop)"]:::implicit
+    Calc["คำนวณ γ̇ และ μ<br/>μ = f(γ̇)"]:::explicit
+    Bound["จำกัดค่า μ<br/>min/max"]:::explicit
+    Solve["แก้สมการโมเมนตัม"]:::implicit
+    
+    Init --> Loop --> Calc --> Bound --> Solve --> Loop
 ```
 > **รูปที่ 4:** แผนผังลำดับขั้นตอนการจำลอง (Summary Algorithm) แสดงกระบวนการคำนวณแบบวนซ้ำของความหนืดที่แปรผันตามเวลาและอัตราการเฉือน เพื่อให้ได้ผลเฉลยที่สอดคล้องกับพฤติกรรมทางรีโอโลยีของของไหล
 

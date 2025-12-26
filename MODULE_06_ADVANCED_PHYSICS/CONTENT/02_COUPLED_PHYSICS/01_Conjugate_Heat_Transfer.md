@@ -154,18 +154,20 @@ int main(int argc, char *argv[])
 ### 2.3 ขั้นตอนการทำงานของอัลกอริทึม (Algorithm Flow)
 
 ```mermaid
-flowchart TD
-    A[เริ่มช่วงเวลา] --> B{รอบ PIMPLE}
-    B --> C[วนรอบผ่านภูมิภาคของแข็ง]
-    C --> D[แก้ปัญหาการนำความร้อน solveSolid.H]
-    D --> E[วนรอบผ่านภูมิภาคของไหล]
-    E --> F[แก้ปัญหา N-S + พลังงาน solveFluid.H]
-    F --> G[แลกเปลี่ยนข้อมูลส่วนต่อประสาน mappedWall]
-    G --> H{ลู่เข้าแล้วหรือยัง?}
-    H -- ยัง --> C
-    H -- ใช่ --> I[ช่วงเวลาถัดไป]
-
-    style G fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+graph TD
+    classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+    
+    Start("Time Step"):::context
+    Solid["Solid Region<br/>solveSolid.H"]:::implicit
+    Fluid["Fluid Region<br/>solveFluid.H"]:::implicit
+    Map["Interface Mapping<br/>mappedWall"]:::explicit
+    Check{"Convergence"}:::context
+    
+    Start --> Solid --> Fluid --> Map --> Check
+    Check -- "No" --> Solid
+    Check -- "Yes" --> Next["Next Time Step"]:::context
 ```
 > **รูปที่ 1:** แผนผังลำดับขั้นตอนการคำนวณของตัวแก้สมการ `chtMultiRegionFoam` แสดงวงจรการวนซ้ำระหว่างภูมิภาคของแข็งและของไหล พร้อมกระบวนการแลกเปลี่ยนข้อมูลที่ส่วนต่อประสานเพื่อให้บรรลุความสมดุลทางความร้อน
 
@@ -438,18 +440,18 @@ interface_to_solid
 ### 4.5 อัลกอริทึมการถ่ายโอนข้อมูล (Data Transfer Algorithm)
 
 ```mermaid
-flowchart LR
-    A[การเตรียมประมวลผล] --> B[สร้างน้ำหนักการแม็พ]
-    B --> C[เก็บสัมประสิทธิ์การประมาณค่า]
-
-    D[ขณะทำงาน] --> E[เรียกใช้ updateCoeffs]
-    E --> F[สุ่มตัวอย่างฟิลด์ต้นทาง]
-    F --> G[ใช้น้ำหนัก]
-    G --> H[อัปเดตค่าขอบเขต]
-    H --> I[บังคับใช้การอนุรักษ์ฟลักซ์]
-
-    style A fill:#e3f2fd,stroke:#1976d2
-    style D fill:#fff3e0,stroke:#f57c00
+graph LR
+    classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+    
+    Prep["Pre-processing<br/>Weights & Coeffs"]:::context
+    Runtime["Runtime Loop"]:::implicit
+    Sample["Sample & Map<br/>AMI Interpolation"]:::explicit
+    Update["Update Boundary"]:::implicit
+    
+    Prep --> Runtime --> Sample --> Update
+    Update --> Runtime
 ```
 > **รูปที่ 2:** แผนภาพแสดงกระบวนการถ่ายโอนข้อมูลทางเรขาคณิตและฟิสิกส์ระหว่างภูมิภาค โดยใช้กลไกการแม็พ (Mapping) เพื่ออัปเดตเงื่อนไขขอบเขตในขณะรันการจำลอง
 

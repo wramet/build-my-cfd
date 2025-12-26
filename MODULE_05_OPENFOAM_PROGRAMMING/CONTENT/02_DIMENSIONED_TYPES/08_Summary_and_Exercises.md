@@ -1210,49 +1210,26 @@ public:
 
 ```mermaid
 classDiagram
-    direction TB
-
-    class dimensioned~Type~ {
-        <<template>>
-        +word name_
-        +dimensionSet dimensions_
-        +Type value_
-        +operator+()
-        +operator*()
-        +operator/()
-        +dimensions() dimensionSet
-        +value() Type
-    }
-
-    class dimensionedScalar {
-        +scalar value_
-    }
-
-    class dimensionedVector {
-        +vector value_
-    }
-
-    class dimensionedTensor {
-        +tensor value_
-    }
-
-    class dimensionSet {
-        +int nDimensions = 7
-        +scalar exponents_[7]
-        +operator+()
-        +operator*()
-        +pow()
-        +sqrt()
-        +dimensionless() bool
-    }
-
-    dimensioned~Type~ <|-- dimensionedScalar
-    dimensioned~Type~ <|-- dimensionedVector
-    dimensioned~Type~ <|-- dimensionedTensor
-    dimensioned~Type~ *-- dimensionSet
-
-    note for dimensioned~Type~ "Primary template for all dimensioned types"
-    note for dimensionSet "Stores exponents for 7 base SI dimensions"
+class dimensionedType~T~ {
+    +word name
+    +dimensionSet dims
+    +Type value
+    +operators()
+}
+class dimensionSet {
+    +scalar exponents[7]
+    +operator*()
+    +operator/()
+}
+class dimensionedScalar {
+    +scalar value
+}
+class dimensionedVector {
+    +vector value
+}
+dimensionedType~T~ *-- dimensionSet
+dimensionedType~T~ <|-- dimensionedScalar
+dimensionedType~T~ <|-- dimensionedVector
 ```
 
 > **📚 คำอธิบายภาษาไทย (Thai Explanation)**

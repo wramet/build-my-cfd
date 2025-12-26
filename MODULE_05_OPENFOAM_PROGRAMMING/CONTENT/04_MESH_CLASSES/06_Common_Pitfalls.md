@@ -24,13 +24,18 @@
 
 ```mermaid
 flowchart TD
-    A[เริ่มต้น] --> B[เก็บอ้างอิง cellCentres]
-    B --> C[เรขาคณิตถูกแคช]
-    C --> D[เมชเปลี่ยนแปลง]
-    D --> E[clearGeom เรียก]
-    E --> F[แคชถูกล้าง]
-    F --> G[การอ้างอิงเดิมไม่ถูกต้อง]
-    G --> H[⚠️ Undefined Behavior]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Start Simulation]:::context --> B[Get Reference to cellCentres]:::implicit
+B --> C[Geometry Data Cached]:::implicit
+C --> D[Mesh Topology Changes]:::explicit
+D --> E[clearGeom() Called]:::explicit
+E --> F[Cache Cleared]:::explicit
+F --> G[Reference Now Invalidated]:::explicit
+G --> H[Dangling Reference - Undefined Behavior]:::explicit
 ```
 > **Figure 1:** ขั้นตอนการเกิดข้อผิดพลาดจากการเก็บการอ้างอิงเรขาคณิตที่ล้าสมัย ซึ่งเกิดขึ้นเมื่อเมชมีการเปลี่ยนแปลงแต่โปรแกรมยังคงใช้ข้อมูลเก่าที่ถูกล้างออกจากแคชไปแล้ว
 
@@ -105,9 +110,15 @@ OpenFOAM รักษา **dual perspective** สำหรับ internal faces:
 
 ```mermaid
 flowchart LR
-    P[Owner Cell] -->|Normal →| F[Face]
-    F -->|Normal →| N[Neighbor Cell]
-    N -.->|Flux ลบ| F
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+P[Owner Cell]:::implicit -->|Sf: Area Vector<br/>Points outward| F[Face]:::explicit
+F -->|From Owner to Neighbor| N[Neighbor Cell]:::implicit
+P -.->|Positive Flux<br/>φ = U·Sf| F
+N -.->|Negative Flux<br/>φ = -U·Sf| F
 ```
 > **Figure 2:** ข้อตกลงเรื่องทิศทางของหน้าผิว (Face Orientation) ใน OpenFOAM โดยเวกเตอร์ปกติจะชี้จากเซลล์เจ้าของ (Owner) ไปยังเซลล์ข้างเคียง (Neighbor) เสมอเพื่อความสม่ำเสมอในการคำนวณฟลักซ์
 
@@ -687,12 +698,16 @@ void robustBoundaryCode(const polyMesh& mesh)
 
 ```mermaid
 flowchart LR
-    A[สร้างการอ้างอิง] --> B[ประมวลผลทันที]
-    B --> C[ทำความสะอาด]
-    C --> D{ต้องการทำซ้ำ?}
-    D -->|ใช่| A
-    D -->|ไม่| E[เสร็จสิ้น]
-]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Create Ref]:::explicit --> B[Process Now]:::implicit
+B --> C[Clean Up]:::implicit
+C --> D{Repeat?}:::context
+D -->|Yes| A
+D -->|No| E[Done]:::context
 ```
 > **Figure 3:** รูปแบบการจัดการหน่วยความจำอย่างปลอดภัย (Safe Memory Management Pattern) ซึ่งเน้นการประมวลผลข้อมูลทันทีหลังจากสร้างการอ้างอิงและทำความสะอาดทรัพยากรอย่างเป็นระบบเพื่อป้องกันปัญหาหน่วยความจำ
 

@@ -342,20 +342,21 @@ if (!field1.dimensions().matches(field2.dimensions()))
 
 ```mermaid
 flowchart TD
-    A[Dimensional Analysis Overview] --> B[The Hook: Physical Units as Safety Net]
-    B --> C[The Blueprint: dimensionSet and dimensionedScalar]
-    C --> D[Internal Mechanics: How Dimensions are Stored]
-    D --> E[The Mechanism: Dimension Arithmetic]
-    E --> F[The Why: Safety and Physical Consistency]
-    F --> G[Non-Dimensionalization Techniques]
-    G --> H[Usage & Error Examples]
-    H --> I[Advanced Applications]
-    I --> J[Summary: The Dimensional Safety Net]
-    J --> K[Practical Exercises]
-
-    style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
-    style K fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-}
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Overview]:::context --> B[Safety Net]:::implicit
+B --> C[The Blueprint]:::implicit
+C --> D[Mechanics]:::implicit
+D --> E[Arithmetic]:::explicit
+E --> F[Consistency]:::implicit
+F --> G[Non-Dim Tech]:::implicit
+G --> H[Examples]:::explicit
+H --> I[Advanced]:::implicit
+I --> J[Summary]:::implicit
+J --> K[Exercises]:::explicit
 ```
 > **Figure 1:** Learning sequence in the dimensional analysis module, covering from basic units to advanced applications in physical safety engineering without affecting simulation speed, through the power of C++ Template Metaprogramming to verify all dimensional consistency at a single compilation step.
 

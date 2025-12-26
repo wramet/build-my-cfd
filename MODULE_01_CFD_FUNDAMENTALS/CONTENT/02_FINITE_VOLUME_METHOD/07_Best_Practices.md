@@ -6,55 +6,33 @@
 
 
 ```mermaid
-graph TD
-    A[Best Practices Framework] --> B[Mesh Quality]
-    A --> C[Numerical Schemes]
-    A --> D[Solver Settings]
-    A --> E[Boundary Conditions]
-    A --> F[Computational Efficiency]
-    A --> G[Debugging]
-    A --> H[Validation & Verification]
+graph LR
+%% Mind map style
+BestPractices["CFD Best Practices"]:::implicit
 
-    B --> B1[Non-orthogonality<br/>< 50°]
-    B --> B2[Skewness<br/>< 0.5]
-    B --> B3[Aspect Ratio<br/>< 10]
+subgraph Mesh ["Mesh Quality"]
+Ortho["Non-Orthogonality < 50°"]:::explicit
+Skew["Skewness < 0.5"]:::explicit
+end
 
-    C --> C1[Temporal Schemes]
-    C --> C2[Spatial Schemes]
-    C --> C3[Gradient Methods]
+subgraph Numerics ["Numerics"]
+Time["Courant Number < 1"]:::explicit
+Schemes["Bounded Schemes for div"]:::implicit
+end
 
-    D --> D1[Linear Solvers]
-    D --> D2[Preconditioners]
-    D --> D3[Convergence Criteria]
+subgraph Setup ["Setup"]
+BCs["Robust BCs"]:::implicit
+Init["Reasonable Initialization"]:::context
+end
 
-    E --> E1[Wall Boundaries]
-    E --> E2[Inlet Conditions]
-    E --> E3[Outlet Conditions]
+BestPractices --> Mesh
+BestPractices --> Numerics
+BestPractices --> Setup
 
-    F --> F1[Parallel Computing]
-    F --> F2[Memory Optimization]
-    F --> F3[AMR]
-
-    G --> G1[Troubleshooting]
-    G --> G2[Diagnostics Tools]
-
-    H --> H1[Verification]
-    H --> H2[Validation]
-    H --> H3[Uncertainty Analysis]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:3px,color:#000
-    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style D fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style F fill:#e0f2f1,stroke:#00796b,stroke-width:2px,color:#000
-    style G fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
-    style H fill:#fce4ec,stroke:#ad1457,stroke-width:2px,color:#000
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:1px,color:#000
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:#000
-
-    class B1,B2,B3,C1,C2,C3,D1,D2,D3,E1,E2,E3,F1,F2,F3,G1,G2,H1,H2,H3 process
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 1:** กรอบแนวคิดแนวปฏิบัติที่ดีที่สุดสำหรับการจำลอง CFD ครอบคลุมตั้งแต่คุณภาพของ Mesh, แผนการคำนวณเชิงตัวเลข, การตั้งค่า Solver ไปจนถึงการตรวจสอบความถูกต้องและการยืนยันผลลัพธ์
 
@@ -117,33 +95,34 @@ solvers
 
 
 ```mermaid
-graph LR
-    subgraph "Cell Geometry Relationship"
-        C1["Cell 1<br/>Center P"] -->|"Connecting<br/>Line d"| C2["Cell 2<br/>Center N"]
-        F["Shared Face<br/>Surface f"] -->|"Face Normal<br/>Vector n"| C1
-        F -->|"Face Normal<br/>Vector n"| C2
-    end
+graph TD
+%% Geometric Relation
+subgraph Connection ["Cell Connectivity"]
+P["Cell P"]:::implicit
+N["Cell N"]:::implicit
+d["Vector d (P to N)"]:::context
+end
 
-    subgraph "Non-orthogonality Analysis"
-        A["Angle between<br/>face normal n<br/>and line d"] --> B["Non-orthogonal<br/>Angle θ"]
-        B --> C["θ < 50°: Good<br/>θ > 70°: Critical"]
-    end
+subgraph FaceGeometry ["Face Geometry"]
+f["Face f"]:::implicit
+n["Normal Vector n"]:::explicit
+end
 
-    subgraph "Impact on Calculations"
-        D["Gauss Theorem<br/>Gradient Computation"] --> E["Accuracy<br/>Reduction"]
-        B --> E
-    end
+subgraph Analysis ["Non-Orthogonality"]
+Angle["Angle θ between d and n"]:::explicit
+Limit["Limit: θ < 70°"]:::context
+Correction["Non-Ortho Correction Required"]:::explicit
+end
 
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+d --> Angle
+n --> Angle
+Angle --> Limit
+Limit --> Correction
 
-    class C1,C2,F process
-    class B,E decision
-    class A terminator
-    class D storage
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 2:** การวิเคราะห์ความไม่ตั้งฉาก (Non-orthogonality) ของ Mesh และผลกระทบต่อการคำนวณเกรเดียนต์โดยใช้ทฤษฎีบทของเกาส์ ซึ่งความเบี่ยงเบนที่มากเกินไปจะลดความแม่นยำของผลเฉลยลง
 
@@ -382,37 +361,32 @@ divSchemes
 
 ```mermaid
 graph TD
-    A[Select Convection Scheme] --> B{Peclet Number<br/>Pe = ρuΔx/Γ}
+%% Decision Tree
+Pe{"Peclet Number (Pe)"}:::context
 
-    B -->|Pe < 2| C[Gauss Linear<br/>Central Differencing]
-    B -->|2 < Pe < 10| D[Limited Linear<br/>TVD Scheme]
-    B -->|Pe > 10| E[Gauss Upwind<br/>First Order]
+subgraph DiffusionDominated ["Pe < 2 (Diffusion Dominated)"]
+Central["Central Differencing"]:::implicit
+Acc["High Accuracy"]:::context
+end
 
-    C --> F[Diffusion-dominated<br/>High accuracy]
-    D --> G[Balanced<br/>Accuracy + Stability]
-    E --> H[Convection-dominated<br/>Maximum stability]
+subgraph Balanced ["2 < Pe < 10"]
+TVD["TVD / Limited Linear"]:::implicit
+Stab["Balanced Stability"]:::context
+end
 
-    I[Special Cases] --> J[Compressible flows]
-    I --> K[Shock waves]
-    I --> L[Heat transfer]
+subgraph ConvectionDominated ["Pe > 10 (Convection Dominated)"]
+Upwind["Upwind"]:::explicit
+Diss["Dissipative / Stable"]:::context
+end
 
-    J --> M[Van Leer or Superbee]
-    K --> M
-    L --> N[Linear or Limited Linear]
+Pe --> DiffusionDominated
+Pe --> Balanced
+Pe --> ConvectionDominated
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style D fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
-    style E fill:#ffebee,stroke:#c62828,stroke-width:2px
-
-    classDef good fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px
-    classDef medium fill:#fff3e0,stroke:#ef6c00,stroke-width:1px
-    classDef poor fill:#ffebee,stroke:#c62828,stroke-width:1px
-
-    class F good
-    class G medium
-    class H poor
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 3:** แผนผังการตัดสินใจสำหรับการเลือกแผนการคำนวณการพา (Convection scheme) ตามเลขเพกเลต์ ($Pe$) เพื่อรักษาสมดุลระหว่างความแม่นยำและเสถียรภาพตามลักษณะการไหล
 
@@ -778,33 +752,31 @@ reconstructPar -latestTime
 
 
 ```mermaid
-graph LR
-    A["Original Domain<br/>Single Block"] --> B["Mesh Decomposition<br/>Domain Split"]
-    B --> C1["Processor 1<br/>Subdomain 1"]
-    B --> C2["Processor 2<br/>Subdomain 2"]
-    B --> C3["Processor 3<br/>Subdomain 3"]
-    B --> C4["Processor 4<br/>Subdomain 4"]
-    C1 --> D1["Local Computation<br/>Field Updates"]
-    C2 --> D2["Local Computation<br/>Field Updates"]
-    C3 --> D3["Local Computation<br/>Field Updates"]
-    C4 --> D4["Local Computation<br/>Field Updates"]
-    D1 --> E["MPI Communication<br/>Interface Exchange"]
-    D2 --> E
-    D3 --> E
-    D4 --> E
-    E --> F["Reconstructed<br/>Complete Domain"]
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style C1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style C2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style C3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style C4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style D1 fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style D2 fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style D3 fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style D4 fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style E fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style F fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+graph TD
+%% Decomposition
+Domain["Global Domain"]:::implicit
+
+subgraph Decomp ["Decomposition"]
+Proc0["Processor 0"]:::explicit
+Proc1["Processor 1"]:::explicit
+Proc2["Processor 2"]:::explicit
+Proc3["Processor 3"]:::explicit
+end
+
+subgraph Comm ["Communication"]
+MPI["MPI Boundaries<br/>(Halo Cells)"]:::context
+end
+
+Domain --> Decomp
+Proc0 <--> MPI
+Proc1 <--> MPI
+Proc2 <--> MPI
+Proc3 <--> MPI
+
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 4:** ขั้นตอนการทำงานของการคำนวณแบบขนานผ่านการแบ่งโดเมน (Domain decomposition) แสดงการแยกส่วน Mesh ไปยังตัวประมวลผลต่าง ๆ และการสื่อสารผ่าน MPI เพื่อรวมผลลัพธ์กลับมาเป็นโดเมนที่สมบูรณ์
 
@@ -1065,51 +1037,32 @@ foamListTimes
 
 ```mermaid
 graph TD
-    A[Simulation Fails] --> B{Error Type?}
+%% Troubleshooting Logic
+Crash["Simulation Crash"]:::explicit
 
-    B -->|Divergence| C[Check Courant Number]
-    B -->|Floating Point| D[Check Boundary Conditions]
-    B -->|Slow Convergence| E[Check Mesh Quality]
-    B -->|Crash| F[Check Memory/Storage]
+subgraph Diagnostics ["Diagnosis"]
+Div["Divergence?"]:::context
+BC["BC Error?"]:::context
+Mesh["Bad Mesh?"]:::context
+end
 
-    C --> G{Co > 1?}
-    G -->|Yes| H[Reduce Time Step]
-    G -->|No| I[Check Under-relaxation]
+subgraph Actions ["Corrective Actions"]
+Relax["Increase Under-Relaxation"]:::implicit
+DT["Reduce Time Step"]:::implicit
+Schemes["Use Upwind Schemes"]:::implicit
+FixMesh["CheckNonOrtho / Refine"]:::implicit
+end
 
-    D --> J{BCs Consistent?}
-    J -->|No| K[Fix BCs]
-    J -->|Yes| L[Check Initial Conditions]
+Crash --> Diagnostics
+Div --> Relax
+Div --> DT
+Div --> Schemes
+Mesh --> FixMesh
 
-    E --> M{Mesh Quality Poor?}
-    M -->|Yes| N[Improve Mesh]
-    M -->|No| O[Check Solver Settings]
-
-    F --> P{Sufficient Memory?}
-    P -->|No| Q[Reduce Mesh/Procs]
-    P -->|Yes| R[Check Disk Space]
-
-    H --> S[Rerun]
-    I --> S
-    K --> S
-    L --> S
-    N --> T[Regenerate Mesh]
-    O --> U[Adjust Tolerances]
-    Q --> V[Rerun with Fewer Procs]
-    R --> W[Free Disk Space]
-
-    T --> S
-    U --> S
-    V --> S
-    W --> S
-
-    S --> Z{Still Failing?}
-    Z -->|Yes| AA[Expert Debugging]
-    Z -->|No| AB[Success]
-
-    style A fill:#ffebee,stroke:#c62828,stroke-width:2px
-    style AB fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style C,D,E,F fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    style G,J,M,P fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 5:** ขั้นตอนการแก้ปัญหาอย่างเป็นระบบเมื่อการจำลองล้มเหลว โดยไล่เรียงจากการตรวจสอบประเภทของข้อผิดพลาด (เช่น การไม่ลู่เข้า หรือข้อผิดพลาดทางคณิตศาสตร์) ไปจนถึงการปรับปรุงพารามิเตอร์และการรันซ้ำ
 
@@ -1358,28 +1311,30 @@ $$\sum \mathbf{F}_{\text{pressure}} + \sum \mathbf{F}_{\text{viscous}} + \sum \m
 **Grid Convergence Study:**
 
 ```mermaid
-graph TD
-    A[Grid Convergence Study] --> B[Generate Multiple Meshes]
-    B --> C1[Coarse Mesh<br/>N₁ cells]
-    B --> C2[Medium Mesh<br/>N₂ = 2N₁]
-    B --> C3[Fine Mesh<br/>N₃ = 4N₁]
+graph LR
+%% Grid Convergence
+subgraph Meshes ["Mesh Levels"]
+M1["Coarse"]:::implicit
+M2["Medium"]:::implicit
+M3["Fine"]:::implicit
+end
 
-    C1 --> D[Run Simulations]
-    C2 --> D
-    C3 --> D
+subgraph Analysis ["Richardson Extrapolation"]
+Result["Key Variable φ"]:::context
+GCI["Grid Convergence Index"]:::explicit
+Exact["Extrapolated Value"]:::implicit
+end
 
-    D --> E[Analyze Key Quantity<br/>φ]
-    E --> F[Calculate Grid Convergence Index<br/>GCI]
+M1 --> Result
+M2 --> Result
+M3 --> Result
+Result --> GCI
+GCI --> Exact
 
-    F --> G{Converged?}
-    G -->|No| H[Refine Further]
-    G -->|Yes| I[Extrapolated Solution<br/>φ∞]
-
-    H --> C3
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style F fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    style I fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 6:** ขั้นตอนการศึกษาความอิสระของ Mesh (Grid convergence study) เพื่อการยืนยันผลเลขนัยสำคัญเชิงตัวเลข โดยการเปรียบเทียบผลลัพธ์จาก Mesh หลายขนาดเพื่อหาผลเฉลยที่แม่นยำที่สุด
 

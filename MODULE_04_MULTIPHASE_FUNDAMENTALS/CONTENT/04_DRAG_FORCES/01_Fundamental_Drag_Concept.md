@@ -79,26 +79,29 @@ $$\mathbf{F}_{D,kl} = \mathbf{K}_{kl}(\mathbf{u}_l - \mathbf{u}_k) \tag{1.1}$$
 
 ```mermaid
 flowchart TD
-    A[แรงฉุดใน Multiphase Flow] --> B[Form Drag]
-    A --> C[Friction Drag]
-    A --> D[Wave Drag]
-    A --> E[Added Mass Effects]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Total Drag Force]:::context --> B[Form Drag]:::implicit
+A --> C[Friction Drag]:::implicit
+A --> D[Wave Drag]:::implicit
+A --> E[Added Mass]:::implicit
 
-    B --> B1[ความแตกต่างความดัน]
-    B --> B2[Flow Separation]
-    B --> B3[Wake Formation]
+B --> B1[Pressure Delta]:::explicit
+B --> B2[Separation]:::explicit
+B --> B3[Wake]:::explicit
 
-    C --> C1[Viscous Shear Stress]
-    C --> C2[No-slip Condition]
-    C --> C3[Boundary Layer]
+C --> C1[Viscous Shear]:::explicit
+C --> C2[No-slip]:::explicit
+C --> C3[Boundary Layer]:::explicit
 
-    D --> D1[Deformable Interfaces]
-    D --> D2[Surface Waves]
-    D --> D3[Gas-Liquid Flows]
+D --> D1[Deformation]:::explicit
+D --> D2[Surface Waves]:::explicit
+D --> D3[Interfacial]:::explicit
 
-    E --> E1[Virtual Mass Forces]
-    E --> E2[Apparent Inertia]
-    E --> E3[Transient Acceleration]
+E --> E1[Virtual Mass]:::explicit
+E --> E2[Apparent Inertia]:::explicit
+E --> E3[Acceleration]:::explicit
 ```
 
 ### ปัจจัยที่ส่งผลต่อความสำคัญของกลไก
@@ -237,17 +240,20 @@ $$\mathbf{K}_{kl} = \frac{3}{4} C_D \frac{\alpha_k \alpha_l \rho_l}{d_k} |\mathb
 
 ```mermaid
 flowchart LR
-    A[Single Particle] --> B[Volume Averaging]
-    B --> C[Multiphase System]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Single Particle]:::context --> B[Volume Averaging]:::explicit
+B --> C[Multiphase System]:::implicit
 
-    A --> A1[F_D = 1/2 C_D ρ A u_rel u_rel]
-    C --> C1[F_D = 3/4 C_D α_k α_l ρ_l/d_k u_rel u_rel]
+A --> A1[Single Drag Formula]:::context
+C --> C1[Multi Drag Formula]:::implicit
 
-    B --> B1[Interfacial Area Density]
-    B1 --> B2[a_i = 6α_p/d]
+B --> B1[Interfacial Area Density]:::explicit
+B1 --> B2["aᵢ = 6α/d"]:::explicit
 
-    C1 --> D[Momentum Exchange Coefficient]
-    D --> E[K_kl = F_D / u_rel]
+C1 --> D[Exchange Coeff K]:::implicit
+D --> E["K = F/u_rel"]:::implicit
 ```
 
 ---
@@ -547,32 +553,22 @@ $$C_D = \frac{v_r^2}{v_s^2} \tag{1.17}$$
 
 ```mermaid
 flowchart TD
-    A[เริ่มต้น] --> B[วิเคราะห์ปัญหา]
-    B --> C[ชนิดของอนุภาค?]
-    C --> C1[ทรงกลม]
-    C --> C2[ไม่สมมาตร/เปลี่ยนรูป]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Start]:::context --> B[Analysis]:::context
+B --> C{Particle Type}:::explicit
+C -->|Spherical| C1{Reynolds Num}:::explicit
+C -->|Deformable| C2{System}:::explicit
 
-    C1 --> D[ช่วง Reynolds number?]
-    D --> D1[Re < 1000]
-    D --> D2[Re > 1000]
+C1 -->|< 1000| D1[Schiller-Naumann]:::implicit
+C1 -->|≥ 1000| D2[Morsi-Alexander]:::implicit
 
-    D1 --> E[Schiller-Naumann]
-    D2 --> F[Schiller-Naumann / Morsi-Alexander]
+C2 -->|Bubbles/Drops| E1[Ishii-Zuber]:::implicit
+C2 -->|Fluidized Bed| E2[Syamlal-OBrien]:::implicit
 
-    C2 --> G[ชนิดของระบบ?]
-    G --> G1[ฟอง/หยด]
-    G --> G2[เตียงของไหล]
-
-    G1 --> H[Ishii-Zuber]
-    G2 --> I[Syamlal-O'Brien]
-
-    E --> J[ตรวจสอบความเสถียร]
-    F --> J
-    H --> J
-    I --> J
-
-    J --> K[การตรวจสอบความถูกต้อง]
-    K --> L[เสร็จสิ้น]
+D1 & D2 & E1 & E2 --> F[Stability Check]:::explicit
+F --> G[Validation]:::implicit
 ```
 
 ---

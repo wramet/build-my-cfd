@@ -13,27 +13,25 @@ The OpenFOAM field system implements one of the most sophisticated template meta
 
 ```mermaid
 flowchart TD
-    UList["UList<Type>"]
-    List["List<Type>"]
-    Field["Field<Type>"]
-    regIOobject["regIOobject"]
-    DimensionedField["DimensionedField<Type, GeoMesh>"]
-    GeometricField["GeometricField<Type, PatchField, GeoMesh>"]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+UList[UList]:::implicit
+List[List]:::implicit
+Field[Field]:::implicit
+regIO[regIOobject]:::implicit
+Dim[DimensionedField]:::implicit
+Geo[GeometricField]:::implicit
 
-    volScalarField["volScalarField"]
-    volVectorField["volVectorField"]
-    surfaceScalarField["surfaceScalarField"]
-    pointScalarField["pointScalarField"]
+vS[volScalarField]:::explicit
+vV[volVectorField]:::explicit
+sS[surfaceScalarField]:::explicit
 
-    UList -->|STL-like interface| List
-    List -->|Memory management| Field
-    Field -->|Mathematical operations + reference counting| regIOobject
-    regIOobject -->|I/O capabilities| DimensionedField
-    DimensionedField -->|Physical units + mesh| GeometricField
-    GeometricField -->|Boundary conditions + time| volScalarField
-    GeometricField -->|Boundary conditions + time| volVectorField
-    GeometricField -->|Boundary conditions + time| surfaceScalarField
-    GeometricField -->|Boundary conditions + time| pointScalarField
+UList --> List --> Field --> regIO --> Dim --> Geo
+Geo --> vS
+Geo --> vV
+Geo --> sS
 ```
 > **Figure 1:** แผนผังลำดับชั้นการสืบทอดฉบับสมบูรณ์ที่แสดงความสัมพันธ์ระหว่างคลาสพื้นฐานและคลาสเฉพาะทางสำหรับฟิลด์ประเภทต่างๆ ใน OpenFOAM
 
@@ -692,18 +690,22 @@ When you write `p = p_rgh + rho*gh`, OpenFOAM creates an expression tree at comp
 
 ```mermaid
 flowchart TD
-    A["p = p_rgh + rho * gh"]
-    B["AddOp p_rgh, MultiplyOp"]
-    C["p_rgh field"]
-    D["MultiplyOp rho, gh"]
-    E["rho field"]
-    F["gh field"]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A["p = p_rgh + rho * gh"]:::implicit
+B[AddOp]:::explicit
+C[p_rgh]:::implicit
+D[MulOp]:::explicit
+E[rho]:::implicit
+F[gh]:::implicit
 
-    A --> B
-    B --> C
-    B --> D
-    D --> E
-    D --> F
+A --> B
+B --> C
+B --> D
+D --> E
+D --> F
 ```
 > **Figure 2:** โครงสร้างต้นไม้นิพจน์ (Expression Tree) ที่ถูกสร้างขึ้นในเวลาคอมไพล์ เพื่อช่วยให้การคำนวณทางคณิตศาสตร์ที่ซับซ้อนสามารถทำงานได้รวดเร็วขึ้นโดยไม่ต้องสร้างตัวแปรชั่วคราวในหน่วยความจำ
 

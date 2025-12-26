@@ -11,10 +11,25 @@
 
 ```mermaid
 flowchart LR
-    T[เทนเซอร์ T] -- "& dot" --> V[ผลลัพธ์เวกเตอร์]
-    T -- "&& double dot" --> S[ผลลัพธ์สเกลาร์]
-    V1[เวกเตอร์ A] -- "* outer" --> T_Res[ผลลัพธ์เทนเซอร์]
-    V2[เวกเตอร์ B] -- "* outer" --> T_Res
+%% Classes
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+subgraph Inputs[" Operands "]
+    T["เทนเซอร์ T"]:::explicit
+    V1["เวกเตอร์ A"]:::explicit
+    V2["เวกเตอร์ B"]:::explicit
+end
+
+subgraph Results[" Result Types "]
+    V["ผลลัพธ์เวกเตอร์"]:::implicit
+    S["ผลลัพธ์สเกลาร์"]:::implicit
+    T_Res["ผลลัพธ์เทนเซอร์"]:::implicit
+end
+
+T -->|"& dot"| V
+T -->|"&& double dot"| S
+V1 -->|"* outer"| T_Res
+V2 -->|"* outer"| T_Res
 ```
 
 > **Figure 1:** แผนภาพแสดงการทำงานของตัวดำเนินการเทนเซอร์ เช่น ผลคูณจุด (dot) ผลคูณจุดคู่ (double dot) และผลคูณภายนอก (outer product) ซึ่งใช้ในการเชื่อมโยงและแปลงข้อมูลระหว่างเวกเตอร์และเทนเซอร์ ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว

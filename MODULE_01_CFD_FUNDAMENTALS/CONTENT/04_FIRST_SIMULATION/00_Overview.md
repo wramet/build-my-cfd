@@ -14,19 +14,17 @@
 การจัดวางที่ดูเรียบง่ายนี้สร้างรูปแบบการไหลที่ซับซ้อน ซึ่งทำหน้าที่เป็น **ปัญหาอ้างอิง (benchmark problems)** พื้นฐานที่สุดในพลศาสตร์ของไหลเชิงคำนวณ (Computational Fluid Dynamics หรือ CFD)
 
 ```mermaid
-graph TD
-    A["Cavity Geometry<br/>Square Box with Fluid"] --> B["Moving Lid<br/>Constant Velocity U<sub>lid</sub>"]
-    B --> C["Primary Vortex<br/>Large Central Rotation"]
-    C --> D["Secondary Vortices<br/>Corner Eddies"]
-    D --> E["Boundary Layers<br/>Wall Shear Effects"]
-    E --> F["Shear Layer<br/>Velocity Gradient"]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style C fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style F fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
+flowchart TD
+    A["Cavity Geometry<br/>Square Box"]:::context --> B["Moving Lid<br/>Source of Energy"]:::volatile
+    B --> C["Primary Vortex<br/>Central Rotation"]:::implicit
+    C --> D["Secondary Vortices<br/>Corner Eddies"]:::implicit
+    D --> E["Boundary Layers<br/>Wall Shear"]:::implicit
+    E --> F["Shear Layer<br/>Velocity Gradient"]:::explicit
+    
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 1:** เรขาคณิตของ Lid-Driven Cavity และลักษณะการไหล แสดงให้เห็นฝาปิดด้านบนที่เคลื่อนที่ซึ่งขับเคลื่อนให้เกิดกระแสวนหลัก (primary vortex) และกระแสวนรอง (secondary vortices) ในมุมกล่อง รวมถึงอิทธิพลของชั้นขอบเขตและความเค้นเฉือนที่ผนัง
 
@@ -119,29 +117,25 @@ $$\int_{V_P} \frac{\partial \phi}{\partial t} \, \mathrm{d}V + \int_{V_P} \nabla
 **PISO Algorithm** ใช้วิธีการแบบ predictor-corrector ในการจัดการกับการเชื่อมโยงระหว่างความดันและความเร็ว:
 
 ```mermaid
-graph TD
-    A["Start Time Step"] --> B["Predict Velocity<br/>U* from previous time step"]
-    B --> C["Solve Momentum Equation<br/>∇·(ρU*U*) = -∇p* + μ∇²U*"]
-    C --> D["Pressure Correction<br/>p' = pnew - p*"]
-    D --> E["Solve Pressure Equation<br/>∇²p' = ρ/Δt ∇·U*"]
-    E --> F["Correct Velocity<br/>U = U* - Δt/ρ ∇p'"]
-    F --> G["Update Pressure<br/>p = p* + p'"]
-    G --> H{"PISO Corrections<br/>Complete?"}
-    H -->|No| I["Additional correction<br/>nCorrectors = 2"]
+flowchart TD
+    A["Start Time Step"]:::context --> B["Predict Velocity U*"]:::implicit
+    B --> C["Solve Momentum Equation"]:::implicit
+    C --> D["Calculate p'"]:::explicit
+    D --> E["Solve Pressure Equation"]:::explicit
+    E --> F["Correct Velocity U"]:::implicit
+    F --> G["Update Pressure p"]:::implicit
+    G --> H{"PISO Loop Done?"}:::explicit
+    H -->|No| I["Next PISO Correction"]:::context
     I --> E
-    H -->|Yes| J["Advance to Next Time Step"]
-    J --> K{"Simulation End?"}
+    H -->|Yes| J["Next Time Step"]:::implicit
+    J --> K{"Simulation End?"}:::explicit
     K -->|No| A
-    K -->|Yes| L["End Simulation"]
+    K -->|Yes| L["Finish"]:::success
 
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-
-    class A,L terminator;
-    class B,C,D,F,G,I process;
-    class E,J storage;
-    class H,K decision;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 2:** ขั้นตอนการทำงานของอัลกอริทึม PISO (Pressure Implicit with Splitting of Operators) ซึ่งใช้วิธีการทำนายและแก้ไข (predictor-corrector) เพื่อจัดการกับการเชื่อมโยงความดันและความเร็วในแต่ละขั้นตอนเวลาของการจำลองแบบไม่คงที่
 
@@ -158,35 +152,25 @@ graph TD
 ### 4.1 โครงสร้างไดเรกทอรี
 
 ```mermaid
-graph TD
-    A["lidDrivenCavity/<br/>Root Directory"] --> B["0/<br/>Initial Conditions"]
-    A --> C["constant/<br/>Mesh Data"]
-    A --> D["system/<br/>Control Settings"]
-    A --> E["Allrun/<br/>Execution Script"]
+flowchart TD
+    A["lidDrivenCavity/<br/>(Root Directory)"]:::context --> B["0/<br/>(Initial Conditions)"]:::implicit
+    A --> C["constant/<br/>(Mesh & Properties)"]:::implicit
+    A --> D["system/<br/>(Solver Control)"]:::implicit
+    A --> E["Allrun<br/>(Execution Script)"]:::explicit
+    
+    B --> B1["U, p files"]:::context
+    C --> C1["polyMesh, transportProperties"]:::context
+    D --> D1["controlDict, fvSchemes, fvSolution"]:::context
+    
+    E --> E1["blockMesh<br/>(Mesh Generation)"]:::explicit
+    E --> E2["icoFoam<br/>(Solver)"]:::volatile
+    E --> E3["paraFoam<br/>(Visualization)"]:::success
 
-    B --> B1["U<br/>Velocity Field<br/>Boundary Conditions"]
-    B --> B2["p<br/>Pressure Field<br/>Boundary Conditions"]
-
-    C --> C1["polyMesh/<br/>Mesh Geometry<br/>Points, Faces, Cells"]
-    C --> C2["transportProperties<br/>Viscosity Model<br/>and Properties"]
-
-    D --> D1["controlDict<br/>Time Stepping<br/>Solver Controls"]
-    D --> D2["fvSchemes<br/>Discretization<br/>Schemes"]
-    D --> D3["fvSolution<br/>Linear Solver<br/>Settings"]
-    D --> D4["blockMeshDict<br/>Mesh Generation<br/>Parameters"]
-
-    E --> E1["blockMesh<br/>Generate Initial Mesh"]
-    E --> E2["icoFoam<br/>Run Incompressible<br/>Flow Solver"]
-    E --> E3["paraFoam<br/>Post-processing<br/>and Visualization"]
-
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-
-    class A storage;
-    class B,C,D,E process;
-    class B1,B2,C1,C2,D1,D2,D3,D4,E1,E2,E3 terminator;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 3:** โครงสร้างไดเรกทอรีของกรณีทดสอบ OpenFOAM แสดงการจัดเก็บเงื่อนไขเริ่มต้นในโฟลเดอร์ `0/`, ข้อมูล Mesh และคุณสมบัติของไหลใน `constant/` และการตั้งค่า Solver ใน `system/` พร้อมสคริปต์สำหรับการรันการจำลอง
 
@@ -433,28 +417,29 @@ writeInterval   20;  // Write output every 20 time steps
 โดเมนการคำนวณถูกสร้างขึ้นโดยใช้ยูทิลิตี `blockMesh` ซึ่งแปลงคำจำกัดความทางเรขาคณิตให้เป็นโครงสร้าง Mesh แบบไม่ต่อเนื่อง
 
 ```mermaid
-graph LR
-    A["Physical Domain"] --> B["blockMesh Utility"]
-    B --> C["Structured Mesh"]
-    C --> D["Grid Cells"]
-    D --> E["Discrete Geometry"]
-
-    C --> F["Cell Centers"]
-    C --> G["Cell Faces"]
-    C --> H["Boundary Faces"]
-
-    F --> I["Field Variables"]
-    G --> J["Flux Calculations"]
-    H --> K["Boundary Conditions"]
-
-    I --> L["CFD Equations"]
+flowchart TD
+    A["Physical Domain"]:::context --> B["blockMesh Utility"]:::explicit
+    B --> C["Structured Mesh"]:::implicit
+    C --> D["Grid Cells"]:::implicit
+    D --> E["Discrete Geometry"]:::implicit
+    
+    C --> F["Cell Centers"]:::implicit
+    C --> G["Cell Faces"]:::implicit
+    C --> H["Boundary Faces"]:::implicit
+    
+    F --> I["Field Variables"]:::explicit
+    G --> J["Flux Calculations"]:::explicit
+    H --> K["Boundary Conditions"]:::volatile
+    
+    I --> L["CFD Equations"]:::success
     J --> L
     K --> L
 
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,B,C,D,E,F,G,H,I,J,K,L process;
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 4:** ขั้นตอนการทำงานของการสร้าง Mesh โดยใช้ยูทิลิตี `blockMesh` ซึ่งแปลงโดเมนทางกายภาพให้เป็นโครงสร้างเซลล์แบบไม่ต่อเนื่อง เพื่อใช้ในการคำนวณตัวแปรสนาม ฟลักซ์ และการบังคับใช้เงื่อนไขขอบเขตในสมการ CFD
 
@@ -573,25 +558,31 @@ $$\theta_{\text{max}} = \cos^{-1}\left(\frac{\mathbf{n} \cdot \mathbf{d}}{|\math
 - $\mathbf{d}$ = Vector จาก cell center ของ owner ถึง neighbor
 
 ```mermaid
-graph LR
-    A["Cell P<br/>Center Point"] --> B["Face<br/>Normal Vector n"]
-    B --> C["Non-orthogonality<br/>Angle θ"]
-    C --> D["Cell Q<br/>Center Point"]
-    A --> E["Vector d<br/>Owner to Neighbor"]
-    E --> D
-    B --> F["Face<br/>Plane"]
-    D --> F
-    C --> G["Quality Check:<br/>θ < 70° = Good<br/>θ > 70° = Poor"]
+flowchart LR
+    subgraph Cells["Owner-Neighbor Cells"]
+        A["Cell P<br/>(Owner Center)"]:::implicit --> E["Vector d<br/>(Owner-Neighbor)"]:::implicit
+        E --> D["Cell Q<br/>(Neighbor Center)"]:::implicit
+    end
+    
+    subgraph Face["Face Properties"]
+        B["Face f<br/>(Normal Vector n)"]:::context
+        F["Face Plane"]:::context
+    end
+    
+    subgraph Quality["Quality Metrics"]
+        C["Non-orthogonality<br/>Angle θ"]:::explicit
+        G["Quality Check:<br/>θ < 70° (Good)<br/>θ > 70° (Poor)"]:::volatile
+    end
+    
+    A --> B
+    D --> B
+    B --> C
+    C --> G
 
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    class A,E process;
-    class B,F storage;
-    class C decision;
-    class D terminator;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 5:** การนิยามมุม Non-orthogonality ซึ่งเป็นตัวบ่งชี้คุณภาพของ Mesh โดยวัดจากการเบี่ยงเบนระหว่างเวกเตอร์แนวฉากของหน้าเซลล์กับเวกเตอร์ที่เชื่อมต่อระหว่างจุดศูนย์กลางของเซลล์ที่อยู่ติดกัน
 
@@ -612,22 +603,28 @@ graph LR
 ### 9.1 โครงสร้างการเรียนรู้
 
 ```mermaid
-graph TD
-    A["Foundation Module"] --> B["CFD Fundamentals"]
-    A --> C["OpenFOAM Basics"]
-    B --> D["Single Phase Flow"]
+flowchart TD
+    A["Foundation Module"]:::context --> B["CFD Fundamentals"]:::implicit
+    A --> C["OpenFOAM Basics"]:::implicit
+    
+    B --> D["Single Phase Flow"]:::implicit
     C --> D
-    D --> E["Lid-Driven Cavity<br/>(This Module)"]
-    E --> F["Multiphase Fundamentals"]
-    D --> G["OpenFOAM Programming"]
-    F --> H["Advanced Topics"]
-    G --> I["Utilities & Automation"]
-    H --> J["Testing & Validation"]
+    
+    D --> E["Lid-Driven Cavity<br/>(Current Focus)"]:::explicit
+    
+    E --> F["Multiphase Fundamentals"]:::implicit
+    D --> G["OpenFOAM Programming"]:::implicit
+    
+    F --> H["Advanced Topics"]:::implicit
+    G --> I["Utilities & Automation"]:::implicit
+    
+    H --> J["Testing & Validation"]:::success
     I --> J
 
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-
-    class A,B,C,D,E,F,G,H,I,J process;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 6:** เส้นทางการเรียนรู้ของโมดูลต่าง ๆ โดยแสดงความเชื่อมโยงจากพื้นฐาน CFD และการใช้งาน OpenFOAM เบื้องต้น ไปจนถึงการประยุกต์ใช้กับ Lid-Driven Cavity และหัวข้อขั้นสูงอื่น ๆ เช่น การไหลหลายเฟสและการเขียนโปรแกรม OpenFOAM
 

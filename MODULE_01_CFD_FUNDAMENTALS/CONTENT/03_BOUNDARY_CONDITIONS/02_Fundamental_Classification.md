@@ -10,35 +10,32 @@
 
 ```mermaid
 graph TD
-    A["Boundary Condition<br/>ใน OpenFOAM"] --> B["Dirichlet<br/>(Fixed Value)"]
-    A --> C["Neumann<br/>(Fixed Gradient)"]
-    A --> D["Robin/Mixed<br/>(Linear Combination)"]
-    A --> E["Calculated<br/>(Computed)"]
-    A --> F["Coupled<br/>(Multi-region)"]
+A["Boundary Condition<br/>(OpenFOAM Concept)"]:::context --> B["Dirichlet<br/>(Fixed Value)"]:::implicit
+A --> C["Neumann<br/>(Fixed Gradient)"]:::implicit
+A --> D["Robin/Mixed<br/>(Linear Combination)"]:::implicit
+A --> E["Calculated<br/>(Computed)"]:::implicit
+A --> F["Coupled<br/>(Multi-region)"]:::implicit
 
-    B --> B1["fixedValue<br/>φ = φ₀"]
-    B --> B2["timeVaryingFixedValue<br/>φ = f(t)"]
-    B --> B3["uniformFixedValue<br/>φ = constant"]
+B --> B1["fixedValue<br/>φ = φ₀"]:::explicit
+B --> B2["timeVaryingFixedValue<br/>φ = f(t)"]:::explicit
+B --> B3["uniformFixedValue<br/>φ = constant"]:::explicit
 
-    C --> C1["fixedGradient<br/>∇φ⋅n = g₀"]
-    C --> C2["zeroGradient<br/>∇φ⋅n = 0"]
+C --> C1["fixedGradient<br/>∇φ⋅n = g₀"]:::explicit
+C --> C2["zeroGradient<br/>∇φ⋅n = 0"]:::explicit
 
-    D --> D1["mixed<br/>aφ + b∂φ/∂n = c"]
-    D --> D2["convectiveHeatTransfer<br/>Newton's Law of Cooling"]
+D --> D1["mixed<br/>aφ + b(∂φ/∂n) = c"]:::explicit
+D --> D2["convectiveHeatTransfer<br/>Newton's Law of Cooling"]:::explicit
 
-    E --> E1["calculated<br/>Computed from other fields"]
-    E --> E2["wallFunction<br/>Turbulence modeling"]
+E --> E1["calculated<br/>Field Dependent"]:::explicit
+E --> E2["wallFunction<br/>Turbulence Model"]:::explicit
 
-    F --> F1["cyclic<br/>Periodic boundaries"]
-    F --> F2["regionCoupled<br/>Conjugate heat transfer"]
-    F --> F3["processor<br/>MPI communication"]
+F --> F1["cyclic<br/>Periodic BC"]:::explicit
+F --> F2["regionCoupled<br/>Conjugate Heat Transfer"]:::explicit
+F --> F3["processor<br/>MPI Communication"]:::explicit
 
-    style A fill:#f5f5f5,stroke:#333,stroke-width:3px,color:#000
-    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style C fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style D fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style E fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style F fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
 ```
 > **Figure 1:** ภาพรวมของการจำแนกประเภทเงื่อนไขขอบเขตใน OpenFOAM โดยแบ่งออกเป็นกลุ่มหลักตามลักษณะทางคณิตศาสตร์และกายภาพ เช่น Dirichlet, Neumann, Robin และกลุ่มเฉพาะทางสำหรับการคำนวณแบบหลายภูมิภาคและการสื่อสารแบบขนาน
 
@@ -151,29 +148,28 @@ boundaryField
 
 ```mermaid
 graph LR
-    A["Computational Domain Ω"] --> B["Boundary Surface ∂Ω"]
-    B --> C["FixedValue Boundary"]
-    C --> D["Field φ Assignment"]
-    D --> E["φ = φ₀(x,t)"]
+A["Computational Domain Ω"]:::context --> B["Boundary Surface ∂Ω"]:::implicit
+B --> C["FixedValue Boundary<br/>(Dirichlet Type)"]:::implicit
+C --> D["Field φ Assignment<br/>(Direct Specification)"]:::implicit
+D --> E["φ = φ₀(x,t)"]:::explicit
 
-    F["Velocity Inlet"] --> G["u = u_inlet(x,t)"]
-    H["Temperature Wall"] --> I["T = T_wall"]
-    J["Pressure Outlet"] --> K["p = p_ambient"]
+C --> F["Velocity Inlet"]:::volatile
+F --> G["u = u_inlet(x,t)"]:::explicit
 
-    C --> F
-    C --> H
-    C --> J
+C --> H["Temperature Wall"]:::volatile
+H --> I["T = T_wall"]:::explicit
 
-    L["OpenFOAM Implementation"] --> M["fixedValue"]
-    M --> N["value uniform <constant>"]
-    M --> O["timeVaryingValue <function>"]
+C --> J["Pressure Outlet"]:::volatile
+J --> K["p = p_ambient"]:::explicit
 
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+L["OpenFOAM Implementation"]:::context --> M["fixedValue"]:::implicit
+M --> N["value uniform <constant>"]:::explicit
+M --> O["timeVaryingFixedValue <function>"]:::explicit
 
-    class A,B,C,D,E,F,G,H,I,J,K process;
-    class L,M,N,O storage;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 2:** การนำเงื่อนไขขอบเขตแบบกำหนดค่าตายตัว (Dirichlet) ไปใช้งานใน OpenFOAM โดยกำหนดค่าตัวแปรสนามที่ขอบเขตโดยตรง เพื่อจำลองสถานการณ์ที่มีค่าทางกายภาพที่ทราบแน่นอน เช่น ความเร็วขาเข้าหรืออุณหภูมิที่ผนัง
 
@@ -285,28 +281,24 @@ boundaryField
 
 ```mermaid
 graph LR
-    A["Boundary ∂Ω"] --> B["Normal Vector n"]
-    B --> C["Gradient ∇φ"]
-    C --> D["Normal Derivative ∂φ/∂n"]
-    D --> E["Flux g₀(x,t)"]
+F["Control Volume"]:::context --> A["Boundary ∂Ω"]:::context
+G["Field Variable φ"]:::context --> C["Gradient ∇φ"]:::implicit
+A --> B["Normal Vector n"]:::implicit
+C --> D["Normal Derivative ∂φ/∂n"]:::implicit
+D --> E["Flux g₀(x,t)"]:::explicit
 
-    F["Control Volume"] --> A
-    G["Field Variable φ"] --> C
+H["Adiabatic Wall"]:::volatile --> I["∂T/∂n = 0<br/>(Zero Flux)"]:::explicit
+J["Heat Flux Wall"]:::volatile --> K["-k(∂T/∂n) = q''ₙ"]:::explicit
+L["Symmetry Plane"]:::volatile --> M["∂φ/∂n = 0<br/>(Zero Normal Gradient)"]:::explicit
 
-    H["Adiabatic Wall"] --> I["∂T/∂n = 0"]
-    J["Heat Flux"] --> K["-k∂T/∂n = q''ₙ"]
-    L["Symmetry Plane"] --> M["∂φ/∂n = 0"]
+I --> D
+K --> D
+M --> D
 
-    I --> D
-    K --> D
-    M --> D
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-
-    class A,B,F,G process;
-    class C,D,E,H,I,J,K,L,M storage;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 3:** การนำเงื่อนไขขอบเขตแบบกำหนดเกรเดียนต์ตายตัว (Neumann) ไปใช้งาน แสดงการควบคุมฟลักซ์ที่ผ่านขอบเขตโดยการกำหนดอัตราการเปลี่ยนแปลงของตัวแปรในทิศทางแนวฉาก เช่น ผนังที่เป็นฉนวนความร้อนหรือระนาบสมมาตร
 
@@ -439,28 +431,29 @@ boundaryField
 
 ```mermaid
 graph LR
-    A["Mixed Boundary Condition"] --> B["Field Value Contribution"]
-    A --> C["Normal Gradient Contribution"]
-    B --> D["a ϕ term"]
-    C --> E["b ∂ϕ/∂n term"]
-    D --> F["Dirichlet Component"]
-    E --> G["Neumann Component"]
-    A --> H["General Form:"]
-    H --> I["aϕ + b∂ϕ/∂n = c"]
-    F --> J["Prescribed Value"]
-    G --> K["Prescribed Flux"]
-    J --> L["Fixed Temperature"]
-    K --> M["Fixed Heat Flux"]
-    L --> N["Convection Boundary"]
-    M --> N
-    N --> O["Robin Condition"]
-    O --> P["Combined BC"]
+A["Mixed Boundary Condition<br/>(Robin Type)"]:::context --> B["Field Value Contribution"]:::implicit
+A --> C["Normal Gradient Contribution"]:::implicit
+B --> D["a φ term"]:::implicit
+C --> E["b (∂φ/∂n) term"]:::implicit
+D --> F["Dirichlet Component"]:::implicit
+E --> G["Neumann Component"]:::implicit
+A --> H["General Form:<br/>aφ + b(∂φ/∂n) = c"]:::explicit
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style H fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style N fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+F --> J["Prescribed Value"]:::explicit
+G --> K["Prescribed Flux"]:::explicit
+
+J --> L["Fixed Temperature"]:::volatile
+K --> M["Fixed Heat Flux"]:::volatile
+
+L --> N["Convection Boundary<br/>(Combined Effect)"]:::volatile
+M --> N
+N --> O["Robin Condition"]:::implicit
+O --> P["Combined BC"]:::context
+
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 4:** ส่วนประกอบและการกำหนดรูปแบบของเงื่อนไขขอบเขตแบบผสม (Robin) ซึ่งรวมผลของทั้งค่าตัวแปรและเกรเดียนต์เข้าด้วยกัน เพื่อให้ได้การแสดงพฤติกรรมทางกายภาพที่สมจริงยิ่งขึ้น เช่น ในการถ่ายโอนความร้อนแบบพา
 
@@ -548,43 +541,38 @@ $$k_w = \frac{u_\tau^2}{\sqrt{C_\mu}}$$
 - $C_\mu$ = Model constant (typically 0.09)
 
 ```mermaid
-graph LR
-    subgraph "Wall Function Implementation"
-        A["Wall Boundary"] --> B["Calculate y+"]
-        B --> C{"y+ < 11.23?"}
-        C -->|Yes| D["Viscous Sublayer<br/>u+ = y+"]
-        C -->|No| E["Log-Law Region<br/>u+ = 1/κ ln(y+) + B"]
-        D --> F["Velocity Profile"]
-        E --> F
-    end
+graph TD
+%% Wall Functions Implementation Flow
+subgraph Input ["Mesh Parameters"]
+y_dist["Wall Distance y"]:::context
+y_plus["y+ Value"]:::explicit
+end
 
-    subgraph "Parameters"
-        G["κ von Kármán = 0.41"]
-        H["B = 5.2"]
-        I["μ Dynamic Viscosity"]
-        J["ρ Density"]
-        K["uτ = √(τw/ρ) <br/>Friction Velocity"]
-    end
+subgraph Logic ["Wall Function Logic"]
+Viscous["Viscous Sublayer<br/>(y+ < 5)"]:::implicit
+LogLaw["Log Law Region<br/>(30 < y+ < 300)"]:::implicit
+Buffer["Buffer Layer<br/>(5 < y+ < 30)<br/>Avoid if possible!"]:::warning
+end
 
-    subgraph "Mesh Requirements"
-        L["First Cell Height y"]
-        M["Desired y+ Range<br/>30-300 for k-ε<br/>11-300 for k-ω"]
-        N["Calculate y+<br/>y+ = ρ uτ y/μ"]
-    end
+subgraph Output ["Boundary Condition"]
+Nut["Calculated nut<br/>(νt)"]:::implicit
+Shear["Wall Shear Stress<br/>(τw)"]:::implicit
+end
 
-    F --> O["Turbulence Production"]
-    O --> P["Wall Shear Stress τw"]
-    P --> A
+y_dist -->|Calculate| y_plus
+y_plus -->|Determine Region| Viscous
+y_plus --> LogLaw
+y_plus --> Buffer
 
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+Viscous -->|Direct| Nut
+LogLaw -->|Wall Function| Nut
+Nut -->|Compute| Shear
 
-    class A,F,O,P process;
-    class C decision;
-    class D,E terminator;
-    class G,H,I,J,K,L,M,N storage;
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
+classDef warning fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
 ```
 > **Figure 5:** การนำ Wall Function ไปใช้งานเพื่อจัดการความปั่นป่วนใกล้ผนัง โดยอธิบายความสัมพันธ์ระหว่างค่า $y^+$ และโครงสร้างของชั้นขอบเขต (Viscous sublayer และ Log-law region) เพื่อความแม่นยำในการคำนวณแรงเค้นเฉือนที่ผนัง
 
@@ -617,34 +605,23 @@ $$\mathcal{L}(\phi) = f \quad \text{in} \quad \Omega$$
 | **Hyperbolic** | Wave Propagation, Inviscid Flow, Euler equations | Characteristics-Based Boundary Conditions |
 
 ```mermaid
-graph LR
-    subgraph "Partial Differential Equations Classification"
-        PDE["Partial Differential<br/>Equations"]
-
-        PDE --> Elliptic["<b>Elliptic PDE</b><br/>Equilibrium Problems<br/>- Laplace equation<br/>- Poisson equation<br/>- Steady-state heat conduction<br/><br/><b>Boundary Conditions:</b><br/>• Dirichlet (Value specified)<br/>• Neumann (Derivative specified)<br/>• Mixed (Robin)"]
-
-        PDE --> Parabolic["<b>Parabolic PDE</b><br/>Time-dependent Problems<br/>- Heat equation<br/>- Diffusion equation<br/>- Unsteady heat conduction<br/><br/><b>Boundary Conditions:</b><br/>• Initial condition +<br/>• Dirichlet/Neumann<br/>  on spatial boundaries"]
-
-        PDE --> Hyperbolic["<b>Hyperbolic PDE</b><br/>Wave/Transport Problems<br/>- Wave equation<br/>- Euler equations<br/>- Advection equation<br/><br/><b>Boundary Conditions:</b><br/>• Initial condition +<br/>• Characteristic-based<br/>  boundary conditions"]
-    end
-
-    subgraph "CFD Applications"
-        EllipticCFD["<b>Elliptic in CFD:</b><br/>• Pressure equation<br/>• Potential flow<br/>• Steady heat transfer"]
-
-        ParabolicCFD["<b>Parabolic in CFD:</b><br/>• Unsteady diffusion<br/>• Transient heat transfer<br/>• Viscous flows"]
-
-        HyperbolicCFD["<b>Hyperbolic in CFD:</b><br/>• Compressible flow<br/>• Wave propagation<br/>• Convective transport"]
-    end
-
-    Elliptic -.-> EllipticCFD
-    Parabolic -.-> ParabolicCFD
-    Hyperbolic -.-> HyperbolicCFD
-
-    classDef pde fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef cfd fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    class PDE pde;
-    class Elliptic,Parabolic,Hyperbolic pde;
-    class EllipticCFD,ParabolicCFD,HyperbolicCFD cfd;
+graph TD
+%% PDE Classification
+subgraph Equations ["PDE Types"]
+Ell["Elliptic (Equilibrium)"]:::implicit
+Par["Parabolic (Diffusion)"]:::implicit
+Hyp["Hyperbolic (Wave/Advection)"]:::explicit
+end
+subgraph Requirements ["BC Requirements"]
+AllBounds["BCs on All Boundaries"]:::implicit
+Open["Open Boundaries Allowed"]:::explicit
+end
+Ell -->|"Requires"| AllBounds
+Par -->|"Allows"| Open
+Hyp -->|"Allows"| Open
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
 ```
 > **Figure 6:** การจำแนกประเภทของสมการเชิงอนุพันธ์ย่อย (PDE) และการประยุกต์ใช้ใน CFD โดยแบ่งตามลักษณะทางคณิตศาสตร์ (Elliptic, Parabolic, Hyperbolic) ซึ่งเป็นตัวกำหนดความต้องการเงื่อนไขขอบเขตที่แตกต่างกัน
 
@@ -727,30 +704,25 @@ public:
 
 ```mermaid
 graph TD
-    A["fvPatchField<Type><br/>Abstract base class"] --> B["fixedValueFvPatchField<Type>"]
-    A --> C["fixedGradientFvPatchField<Type>"]
-    A --> D["mixedFvPatchField<Type>"]
-    A --> E["zeroGradientFvPatchField<Type>"]
-    A --> F["calculatedFvPatchField<Type>"]
-    A --> G["cyclicFvPatchField<Type>"]
-    A --> H["processorFvPatchField<Type>"]
-    A --> I["Specialized derived classes"]
+A["fvPatchField<Type><br/>(Abstract Base Class)"]:::context --> B["fixedValueFvPatchField"]:::implicit
+A --> C["fixedGradientFvPatchField"]:::implicit
+A --> D["mixedFvPatchField"]:::implicit
+A --> E["zeroGradientFvPatchField"]:::implicit
+A --> F["calculatedFvPatchField"]:::implicit
+A --> G["cyclicFvPatchField"]:::implicit
+A --> H["processorFvPatchField"]:::implicit
 
-    B --> J["Dirichlet boundary condition<br/>φ = φ₀"]
-    C --> K["Neumann boundary condition<br/>∂φ/∂n = g₀"]
-    D --> L["Robin boundary condition<br/>aφ + b∂φ/∂n = c"]
-    E --> M["Zero flux boundary<br/>∂φ/∂n = 0"]
-    F --> N["Computed boundary values<br/>from other fields"]
-    G --> O["Periodic boundary<br/>φ₁ = φ₂"]
-    H --> P["Parallel domain boundary<br/>MPI communication"]
+B --> J["Dirichlet BC<br/>φ = φ₀"]:::explicit
+C --> K["Neumann BC<br/>∂φ/∂n = g₀"]:::explicit
+D --> L["Robin BC<br/>aφ + b(∂φ/∂n) = c"]:::explicit
+E --> M["Zero Flux<br/>∂φ/∂n = 0"]:::explicit
+F --> N["Computed<br/>Field Dependent"]:::explicit
+G --> O["Periodic<br/>φ₁ = φ₂"]:::explicit
+H --> P["Parallel<br/>MPI Comm"]:::explicit
 
-    classDef base fill:#f5f5f5,stroke:#333,stroke-width:3px,color:#000;
-    classDef primary fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef secondary fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A base;
-    class B,C,D,E,F,G,H,I primary;
-    class J,K,L,M,N,O,P secondary;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
 ```
 > **Figure 7:** ลำดับชั้นของคลาสสำหรับเงื่อนไขขอบเขตใน OpenFOAM แสดงการสืบทอดจากคลาสฐาน `fvPatchField` ไปยังคลาสเฉพาะทางประเภทต่าง ๆ ที่รองรับความต้องการทางคณิตศาสตร์และกายภาพที่หลากหลาย
 
@@ -783,22 +755,21 @@ addToRunTimeSelectionTable
 
 ```mermaid
 graph LR
-    A["Dictionary File<br/>(0/U, 0/p, etc.)"] --> B["Runtime Selection<br/>Mechanism"]
-    B --> C["Virtual Function<br/>Table Lookup"]
-    C --> D["Dynamic Class<br/>Instantiation"]
-    D --> E["Specific Boundary<br/>Condition Object"]
+A["Dictionary File<br/>(0/U, 0/p, etc.)"]:::explicit --> B["Runtime Selection<br/>Mechanism"]:::implicit
+B --> C["Virtual Function<br/>Table Lookup"]:::implicit
+C --> D["Dynamic Class<br/>Instantiation"]:::implicit
+D --> E["Specific Boundary<br/>Object Created"]:::volatile
 
-    F["fixedValue<br/>FvPatchField"] --> C
-    G["zeroGradient<br/>FvPatchField"] --> C
-    H["mixed<br/>FvPatchField"] --> C
-    I["calculated<br/>FvPatchField"] --> C
-    J["cyclic<br/>FvPatchField"] --> C
+F["fixedValue"]:::context --> C
+G["zeroGradient"]:::context --> C
+H["mixed"]:::context --> C
+I["calculated"]:::context --> C
+J["cyclic"]:::context --> C
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style C fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 8:** กลไกการเลือกเงื่อนไขขอบเขตขณะรันไทม์ (Runtime Selection) ช่วยให้ผู้ใช้สามารถระบุประเภทของเงื่อนไขขอบเขตในไฟล์ Dictionary ได้อย่างยืดหยุ่นโดยไม่ต้องคอมไพล์โค้ดใหม่
 
@@ -913,23 +884,20 @@ boundaryField
 
 ```mermaid
 graph LR
-    A["Inlet Velocity Profile"] --> B["Time: 0-2s"]
-    B --> C["Linear Ramp Up<br/>0 to 5 m/s"]
-    C --> D["Time: 2-8s"]
-    D --> E["Steady State<br/>5 m/s constant"]
-    E --> F["Time: 8-12s"]
-    F --> G["Oscillating Profile<br/>Sinusoidal variation"]
-    G --> H["Time: 12-15s"]
-    H --> I["Linear Ramp Down<br/>5 to 0 m/s"]
-    I --> J["Outlet Flow"]
+A["Inlet Velocity Profile<br/>(Time-Varying BC)"]:::context --> B["Time: 0-2s<br/>Ramp Up Phase"]:::explicit
+B --> C["Linear Ramp<br/>0 to 5 m/s"]:::implicit
+C --> D["Time: 2-8s<br/>Steady Phase"]:::explicit
+D --> E["Constant Flow<br/>5 m/s"]:::implicit
+E --> F["Time: 8-12s<br/>Oscillation Phase"]:::explicit
+F --> G["Sinusoidal<br/>Variation ±1 m/s"]:::implicit
+G --> H["Time: 12-15s<br/>Ramp Down Phase"]:::explicit
+H --> I["Linear Ramp<br/>5 to 0 m/s"]:::implicit
+I --> J["Simulation End"]:::volatile
 
-    style A fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
-    style J fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef transition fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
-
-    class B,C,D,E,F,G,H,I process
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 9:** วิวัฒนาการของโปรไฟล์ความเร็วขาเข้าที่เปลี่ยนแปลงตามเวลา แสดงลำดับขั้นตอนตั้งแต่การเพิ่มความเร็ว สภาวะคงตัว การแกว่งแบบไซน์ และการลดความเร็ว เพื่อจำลองพลวัตของการไหลที่ซับซ้อน
 
@@ -984,29 +952,29 @@ boundaryField
 
 ```mermaid
 graph TD
-    A["Region 1: Fluid"] --> B["Coupled Thermal Interface"]
-    B --> C["Region 2: Solid"]
+A["Region 1: Fluid"]:::implicit --> B["Coupled Thermal Interface"]:::explicit
+B --> C["Region 2: Solid"]:::implicit
 
-    A --> A1["Temperature T1"]
-    A --> A2["Heat Flux q1"]
-    A --> A3["Fluid Flow"]
+A --> A1["Temperature T₁"]:::context
+A --> A2["Heat Flux q₁"]:::context
+A --> A3["Fluid Flow Properties"]:::context
 
-    B --> B1["turbulentTemperatureCoupledBaffleMixed"]
-    B --> B2["Thermal Continuity"]
-    B --> B3["Heat Flux Conservation"]
+B --> B1["turbulentTemperatureCoupledBaffleMixed"]:::explicit
+B --> B2["Thermal Continuity<br/>T₁ = T₂"]:::implicit
+B --> B3["Heat Flux Conservation<br/>q₁ = q₂"]:::implicit
 
-    C --> C1["Temperature T2"]
-    C --> C2["Heat Flux q2"]
-    C --> C3["Solid Properties"]
+C --> C1["Temperature T₂"]:::context
+C --> C2["Heat Flux q₂"]:::context
+C --> C3["Solid Material Properties"]:::context
 
-    A1 -- "Conjugate" --> B2
-    B2 -- "Continuity" --> C1
-    A2 -- "Energy Balance" --> B3
-    B3 -- "Equal Flux" --> C2
+A1 -.->|Conjugate| B2
+B2 -.->|Continuity| C1
+A2 -.->|Energy Balance| B3
+B3 -.->|Equal Flux| C2
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style C fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
 ```
 > **Figure 10:** รอยต่อความร้อนแบบเชื่อมโยงสำหรับการถ่ายโอนความร้อนแบบคอนจูเกต แสดงการสื่อสารข้อมูลอุณหภูมิและฟลักซ์ความร้อนระหว่างภูมิภาคของไหลและของแข็งเพื่อให้มั่นใจในความต่อเนื่องของพลังงาน
 
@@ -1019,42 +987,22 @@ graph TD
 | `implicitOversetPressure` | การจัดการแบบ Implicit สำหรับ Pressure-Velocity Coupling | การแก้สมการความดันใน Overset Regions |
 
 ```mermaid
-graph LR
-    subgraph "Background Mesh"
-        B1["Cell 1"]
-        B2["Cell 2"]
-        B3["Cell 3"]
-        B4["Cell 4"]
-    end
-
-    subgraph "Overset Mesh"
-        O1["Fine Cell 1"]
-        O2["Fine Cell 2"]
-        O3["Fine Cell 3"]
-    end
-
-    subgraph "Overlap Region"
-        FR["Fringe Cells<br/>Interpolation"]
-        HR["Hole Cells<br/>Donated"]
-        AC["Active Cells<br/>Primary Solver"]
-    end
-
-    B2 --> FR
-    B3 --> FR
-    O1 --> AC
-    O2 --> AC
-    O3 --> HR
-
-    style B1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style B2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style B3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style B4 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style O1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style O2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style O3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style FR fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style HR fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style AC fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+graph TD
+%% Overset
+subgraph Background ["Background Mesh"]
+BgCells["Fluid Cells"]:::implicit
+Hole["Hole (Inactive)"]:::context
+end
+subgraph Overset ["Overset Mesh"]
+OvCells["Fluid Cells"]:::implicit
+Fringe["Fringe (Interpolated)"]:::explicit
+end
+BgCells -->|"Interpolates to"| Fringe
+OvCells -->|"Masks"| Hole
+%% Classes
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 ```
 > **Figure 11:** การประมาณค่าในช่วงของ Overset Mesh และประเภทของเซลล์ แสดงการโต้ตอบระหว่าง Mesh พื้นหลังและ Mesh ซ้อนทับในบริเวณที่ทับซ้อนกัน รวมถึงการจัดการเซลล์แบบ Fringe, Hole และ Active
 

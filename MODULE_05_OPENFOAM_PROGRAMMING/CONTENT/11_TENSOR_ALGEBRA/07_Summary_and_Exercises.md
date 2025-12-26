@@ -2,23 +2,23 @@
 
 ```mermaid
 mindmap
-  root((Tensor Algebra))
-    Types
-      Full Tensor (9)
-      Symmetric (6)
-      Spherical (1)
-    Operations
-      Dot (&) / Double Dot (&&)
-      Trace / Det / Inv
-      Deviatoric / Skew
-    Analysis
-      Eigenvalues
-      Eigenvectors
-      Invariants
-    Physics
-      Stress / Strain
-      Reynolds Stress
-      Conductivity
+root((Tensor Algebra))
+Types
+Full Tensor (9)
+Symmetric (6)
+Spherical (1)
+Operations
+Dot (&) / Double Dot (&&)
+Trace / Det / Inv
+Deviatoric / Skew
+Analysis
+Eigenvalues
+Eigenvectors
+Invariants
+Physics
+Stress / Strain
+Reynolds Stress
+Conductivity
 ```
 > **Figure 1:** แผนผังความคิดสรุปองค์ประกอบของพีชคณิตเทนเซอร์ ครอบคลุมทั้งประเภทข้อมูล การดำเนินการพื้นฐาน การวิเคราะห์ค่าลักษณะเฉพาะ และการประยุกต์ใช้ในฟิสิกส์ของการจำลองความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

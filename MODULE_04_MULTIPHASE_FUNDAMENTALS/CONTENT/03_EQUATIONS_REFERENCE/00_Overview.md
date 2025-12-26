@@ -13,30 +13,33 @@
 
 ```mermaid
 flowchart TD
-    A[สมการอ้างอิงการไหลแบบหลายเฟส] --> B[พื้นฐานและกรอบการทำงาน]
-    A --> C[สมการอนุรักษ์]
-    A --> D[ปรากฏการณ์ระหว่างเฟส]
-    A --> E[ความสัมพันธ์ปิด]
-    A --> F[กรณีพิเศษ]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A["Reference Equations"]:::context --> B["Fundamentals"]:::implicit
+A --> C["Conservation Laws"]:::implicit
+A --> D["Interfacial Phenomena"]:::explicit
+A --> E["Closure Relations"]:::explicit
+A --> F["Special Cases"]:::context
 
-    B --> B1[ทฤษฎีการหาค่าเฉลี่ยเฟส]
-    B --> B2[กรอบกฎการอนุรักษ์]
+B --> B1["Phase Averaging"]:::implicit
+B --> B2["Conservation Framework"]:::implicit
 
-    C --> C1[การอนุรักษ์มวล]
-    C --> C2[การอนุรักษ์โมเมนตัม]
-    C --> C3[การอนุรักษ์พลังงาน]
+C --> C1["Mass"]:::implicit
+C --> C2["Momentum"]:::implicit
+C --> C3["Energy"]:::implicit
 
-    D --> D1[แรงตึงผิว]
-    D --> D2[แรงระหว่างเฟส]
-    D --> D3[การถ่ายเทความร้อน]
+D --> D1["Surface Tension"]:::explicit
+D --> D2["Interphase Forces"]:::explicit
+D --> D3["Heat Transfer"]:::explicit
 
-    E --> E1[แบบจำลองความหนืด]
-    E --> E2[แบบจำลองแรงฉุด]
-    E --> E3[แบบจำลองความปั่นป่วน]
+E --> E1["Viscosity Models"]:::explicit
+E --> E2["Drag Models"]:::explicit
+E --> E3["Turbulence Models"]:::explicit
 
-    F --> F1[การไหลแบบอัดตัวไม่ได้]
-    F --> F2[การไหลแบบแกรนูลาร์]
-    F --> F3[การไหลแบบอัดตัวได้]
+F --> F1["Incompressible"]:::context
+F --> F2["Granular"]:::context
+F --> F3["Compressible"]:::context
 ```
 
 ---

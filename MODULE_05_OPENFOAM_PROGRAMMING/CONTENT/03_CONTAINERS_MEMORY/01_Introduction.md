@@ -36,35 +36,31 @@ $$
 ข้อมูลเชิงลึกที่สำคัญคือ **การจัดการหน่วยความจำและคอนเทนเนอร์ไม่สามารถศึกษาโดยแยกจากกันได้**:
 
 ```mermaid
-graph LR
-    subgraph "Memory Management Layer"
-        A[Reference Counting]
-        B[Smart Pointers]
-        C[RAII Pattern]
-    end
-
-    subgraph "Container Layer"
-        D[List T]
-        E[Field T]
-        F[DynamicList T]
-    end
-
-    subgraph "CFD Application Layer"
-        G[Solver Operations]
-        H[Field Algebra]
-        I[Parallel Processing]
-    end
-
-    A --> D
-    B --> E
-    C --> F
-    D --> G
-    E --> H
-    F --> I
-
-    style A fill:#e3f2fd,stroke:#1565c0
-    style D fill:#e8f5e9,stroke:#2e7d32
-    style G fill:#fff9c4,stroke:#fbc02d
+flowchart TD
+classDef memory fill:#e3f2fd,stroke:#1565c0,color:#000
+classDef container fill:#e8f5e9,stroke:#2e7d32,color:#000
+classDef app fill:#fff9c4,stroke:#fbc02d,color:#000
+subgraph L3 ["Application Layer"]
+    I["Parallel Processing"]:::app
+    H["Field Algebra"]:::app
+    G["Solver Operations"]:::app
+end
+subgraph L2 ["Container Layer"]
+    F["DynamicList\<T\>"]:::container
+    E["Field\<T\>"]:::container
+    D["List\<T\>"]:::container
+end
+subgraph L1 ["Memory Management Layer"]
+    C["RAII Pattern"]:::memory
+    B["Smart Pointers"]:::memory
+    A["Reference Counting"]:::memory
+end
+A --> D
+D --> G
+B --> E
+E --> H
+C --> F
+F --> I
 ```
 > **Figure 1:** ลำดับชั้นความสัมพันธ์ที่พึ่งพากันระหว่างระบบการจัดการหน่วยความจำ คอนเทนเนอร์ และแอปพลิเคชัน CFD ซึ่งแสดงให้เห็นว่าประสิทธิภาพในระดับบนสุดเกิดขึ้นจากรากฐานที่มั่นคงในระดับล่างความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
@@ -94,13 +90,13 @@ $$
 ### การแบ่งสัดส่วนหน่วยความจำ
 
 ```mermaid
-pie title "Memory Distribution Breakdown"
-    "Field Variables (56 MB)" : 50
-    "Mesh Topology (11 MB)" : 10
-    "Boundary Data (11 MB)" : 10
-    "Solver Temporary (17 MB)" : 15
-    "OS Overhead (11 MB)" : 10
-    "Peak Temporary (6 MB)" : 5
+pie title "Memory Distribution in CFD Simulation (Total: ~110MB)"
+"Field Variables" : 50
+"Solver Temporary" : 15
+"Mesh Topology" : 10
+"Boundary Data" : 10
+"OS Overhead" : 10
+"Peak Temporary" : 5
 ```
 > **Figure 2:** การแบ่งสัดส่วนการใช้หน่วยความจำในการจำลอง CFD ทั่วไป ซึ่งแสดงให้เห็นว่าตัวแปรฟิลด์ (Field Variables) เป็นส่วนที่ใช้ทรัพยากรมากที่สุดความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
@@ -140,23 +136,19 @@ pie title "Memory Distribution Breakdown"
 ### ผลกระทบด้านประสิทธิภาพ
 
 ```mermaid
-graph LR
-    subgraph "Generic C++"
-        A1["std::vector"] --> B1["Scattered Access"]
-        B1 --> C1["Cache Misses"]
-        C1 --> D1["Slow Performance"]
-    end
-
-    subgraph "OpenFOAM"
-        A2["List Field"] --> B2["Contiguous Access"]
-        B2 --> C2["SIMD Vectorization"]
-        C2 --> D2["High-Speed CFD"]
-    end
-
-    style A2 fill:#c8e6c9,stroke:#4caf50
-    style D2 fill:#c8e6c9,stroke:#4caf50
-    style A1 fill:#ffcdd2,stroke:#f44336
-    style D1 fill:#ffcdd2,stroke:#f44336
+flowchart LR
+classDef bad fill:#ffcdd2,stroke:#c62828,color:#000
+classDef good fill:#c8e6c9,stroke:#2e7d32,color:#000
+subgraph Generic ["Generic C++ (std::vector)"]
+    A1["std::vector"]:::bad --> B1["Scattered RAM"]:::bad
+    B1 --> C1["Cache Misses"]:::bad
+    C1 --> D1["Slow Performance"]:::bad
+end
+subgraph OF ["OpenFOAM (List\<T\>)"]
+    A2["List\<Field\>"]:::good --> B2["Contiguous RAM"]:::good
+    B2 --> C2["SIMD Ready"]:::good
+    C2 --> D2["High-Speed CFD"]:::good
+end
 ```
 > **Figure 3:** การเปรียบเทียบผลกระทบด้านประสิทธิภาพระหว่างการใช้คอนเทนเนอร์มาตรฐาน C++ กับคอนเทนเนอร์ของ OpenFOAM ที่ปรับแต่งมาเพื่อการเข้าถึงข้อมูลแบบติดต่อกันและรองรับการเวกเตอร์ไลเซชัน (SIMD)ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
@@ -417,17 +409,21 @@ solve(fvm::ddt(U) + fvm::div(phi, U) - fvm::laplacian(nu, U) == -fvc::grad(p));
 บทนี้ได้รับการออกแบบให้อ่านตามลำดับ โดยแต่ละส่วนจะสร้างบนส่วนก่อนหน้า:
 
 ```mermaid
-graph TD
-    A[บทนำ] --> B[ส่วนที่ 1:<br/>Memory Management]
-    B --> C[ส่วนที่ 2:<br/>Container System]
-    C --> D[ส่วนที่ 3:<br/>Integration]
-    D --> E[บทสรุป]
-
-    style A fill:#e3f2fd,stroke:#1565c0
-    style B fill:#e8f5e9,stroke:#2e7d32
-    style C fill:#fff9c4,stroke:#fbc02d
-    style D fill:#ffebee,stroke:#c62828
-    style E fill:#f3e5f5,stroke:#7b1fa2
+flowchart TD
+classDef intro fill:#e1f5fe,stroke:#0277bd,color:#000
+classDef part fill:#f5f5f5,stroke:#616161,color:#000
+classDef summary fill:#e8f5e9,stroke:#2e7d32,color:#000
+A["บทนำ (Introduction)"]:::intro
+subgraph Content ["Course Content Sections"]
+    B["Memory Management Fundamentals"]:::part
+    C["Container System"]:::part
+    D["Integration and Best Practices"]:::part
+end
+E["บทสรุป (Summary)"]:::summary
+A --> B
+B --> C
+C --> D
+D --> E
 ```
 > **Figure 4:** แผนผังการนำทางในบทเรียนเรื่องการจัดการหน่วยความจำและคอนเทนเนอร์ ซึ่งแสดงลำดับการศึกษาตั้งแต่บทนำไปจนถึงการสรุปผลและการบูรณาการระบบความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

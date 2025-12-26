@@ -379,14 +379,20 @@ fvVectorMatrix UEqn
 
 ```mermaid
 flowchart TD
-    A[U field] -->|ร่วมกับ| B[Pressure Eq]
-    C[T field] -->|เปลี่ยนความหนาแน่น| D[Rho]
-    D -->|แรงลอยตัว| A
-    D -->|ความหนาแน่น| E[Momentum Eq]
-    C -->|เทอมแหล่งกำเนิด| F[Energy Eq]
-    E -->|แก้| G[U new]
-    B -->|แก้| H[p new]
-    F -->|แก้| I[T new]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+subgraph CoupledSystem["Coupled P-V-T System"]
+    A[U field]:::implicit -->|Coupled| B[Pressure Eq]:::implicit
+    C[T field]:::implicit -->|Density Change| D[Rho]:::implicit
+    D -->|Buoyancy| A
+    D -->|Density| E[Momentum Eq]:::implicit
+    C -->|Source Term| F[Energy Eq]:::implicit
+end
+E -->|Solve| G[U new]:::explicit
+B -->|Solve| H[p new]:::explicit
+F -->|Solve| I[T new]:::explicit
 ```
 > **Figure 1:** แผนผังการเชื่อมโยงความสัมพันธ์ระหว่างสนามความเร็ว (U), ความดัน (p) และอุณหภูมิ (T) ในการจำลองที่มีการถ่ายเทความร้อน ซึ่งแสดงให้เห็นว่าอุณหภูมิส่งผลต่อความหนาแน่นที่นำไปสู่แรงลอยตัวในสมการโมเมนตัม ในขณะที่ความเร็วและความดันมีอิทธิพลต่อการพาความร้อนในสมการพลังงาน สร้างระบบการคำนวณที่ต้องแก้คู่กันไปอย่างสมบูรณ์
 

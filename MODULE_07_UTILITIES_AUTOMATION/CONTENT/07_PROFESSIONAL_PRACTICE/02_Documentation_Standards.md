@@ -1037,15 +1037,16 @@ pvbatch pressure_contour.py
 
 ```mermaid
 flowchart LR
-    A[จำลองเสร็จสิ้น<br/>Simulation Complete] --> B[สกัดข้อมูล<br/>Extract Data]
-    B --> C[สร้างรายงานทางเทคนิค<br/>LaTeX/Markdown/PDF]
-    A --> D[อัปเดต README.md]
-    D --> E[จัดเก็บเอกสารใน docs/]
-    C --> E
-    E --> F[เผยแพร่<br/>Publish/Deliver]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
 
-    style E fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style F fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+A[Sim Complete]:::context --> B[Extract Data]:::explicit
+B --> C[Generate Report]:::implicit
+A --> D[Update README]:::implicit
+D --> E[Archive in docs/]:::implicit
+C --> E
+E --> F[Publish]:::context
 ```
 > **Figure 1:** ผังงานแสดงกระบวนการจัดทำเอกสารประกอบโครงการ (Documentation Workflow) ตั้งแต่การสกัดข้อมูลหลังการจำลอง การจัดทำรายงานทางเทคนิคและอัปเดตไฟล์ README ไปจนถึงการจัดเก็บเอกสารอย่างเป็นระบบและการส่งมอบงานขั้นสุดท้าย
 

@@ -767,24 +767,24 @@ functions
 
 ```mermaid
 flowchart TD
-    A[Existing Case<br/>Case ที่มีอยู่] --> B{วิเคราะห์<br/>Analyze}
-    B --> C[Backup<br/>สำรองข้อมูล]
-    C --> D{เลือกแนวทาง<br/>Choose Strategy}
-    D --> E[Minor Changes<br/>ปรับค่าเล็กน้อย]
-    D --> F[Major Changes<br/>ปรับค่ามาก]
-    E --> G[แก้ไขทีละอย่าง<br/>Modify Incrementally]
-    F --> H[ทดสอบ Component<br/>Test Components]
-    G --> I[รันทดสอบ<br/>Test Run]
-    H --> I
-    I --> J{ตรวจสอบ<br/>Verify}
-    J -->|Pass| K[บันทึกและใช้<br/>Document & Deploy]
-    J -->|Fail| L[วิเคราะห์ปัญหา<br/>Debug]
-    L --> G
-    
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    style I fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style K fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Existing Case]:::context --> B{Analyze}:::context
+B --> C[Backup]:::explicit
+C --> D{Strategy}:::context
+D --> E[Minor Changes]:::implicit
+D --> F[Major Changes]:::implicit
+E --> G[Modify Incrementally]:::explicit
+F --> H[Test Components]:::explicit
+G --> I[Test Run]:::implicit
+H --> I
+I --> J{Verify}:::context
+J -->|Pass| K[Document & Deploy]:::implicit
+J -->|Fail| L[Debug]:::explicit
+L --> G
 ```
 
 **คำอธิบาย:**

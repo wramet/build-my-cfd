@@ -29,26 +29,16 @@
 กระบวนการตรวจสอบความถูกต้องจะดำเนินการตามลำดับขั้นจากพื้นฐานไปสู่ระบบที่ซับซ้อน:
 
 ```mermaid
-flowchart TD
-    A[Code Verification<br/>คณิตศาสตร์ถูกต้องหรือไม่?] --> B[Solution Verification<br/>ตัวเลขแม่นยำหรือไม่?]
-    B --> C[Model Validation<br/>ฟิสิกส์ถูกต้องหรือไม่?]
-    C --> D[Predictive Capability<br/>เชื่อถือได้หรือไม่?]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Code["Code Verification<br/>MMS"]:::implicit
+Sol["Solution Verification<br/>Mesh Independence"]:::implicit
+Mod["Validation<br/>Compare Exp Data"]:::explicit
+Pred["Prediction<br/>Blind Tests"]:::explicit
 
-    A --> A1[MMS]
-    A --> A2[Grid Convergence]
-    A --> A3[Conservation Checks]
-
-    B --> B1[Mesh Independence]
-    B --> B2[Time Step Sensitivity]
-    B --> B3[Uncertainty Quantification]
-
-    C --> C1[Fundamental Physics]
-    C --> C2[Simplified Systems]
-    C --> C3[Industrial Applications]
-
-    D --> D1[Blind Predictions]
-    D --> D2[Error Analysis]
-    D --> D3[Robustness Testing]
+Code --> Sol --> Mod --> Pred
 ```
 
 ### 2.1 การตรวจสอบโค้ด (Code Verification)
@@ -475,15 +465,17 @@ void assessMeshQuality()
 ### 5.1 ขั้นตอนสำคัญในการตรวจสอบความถูกต้อง
 
 ```mermaid
-flowchart LR
-    A[เริ่มต้น] --> B[วางแผนการตรวจสอบ]
-    B --> C[ตรวจสอบโค้ด<br/>MMS, Grid Convergence]
-    C --> D[ตรวจสอบผลเฉลย<br/>Mesh Independence, Time Step]
-    D --> E[ตรวจสอบโมเดล<br/>Fundamental, Simplified, Industrial]
-    E --> F[วิเคราะห์ความไม่แน่นอน<br/>Monte Carlo, PCE, Sobol]
-    F --> G[ประเมินความสามารถพยากรณ์<br/>Blind Predictions, Error Analysis]
-    G --> H[สรุปผลและรายงาน]
-    H --> I[เสร็จสิ้น]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Plan["Plan"]:::context
+Ver["Verification<br/>Code and Solution"]:::implicit
+Val["Validation<br/>Model Physics"]:::explicit
+UQ["UQ and Prediction"]:::explicit
+Rep["Report"]:::context
+
+Plan --> Ver --> Val --> UQ --> Rep
 ```
 
 ### 5.2 แหล่งอ้างอิง

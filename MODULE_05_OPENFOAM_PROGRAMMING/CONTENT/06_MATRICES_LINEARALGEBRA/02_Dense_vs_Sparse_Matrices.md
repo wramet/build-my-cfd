@@ -59,13 +59,13 @@ $$\mathbf{A} \boldsymbol{\phi} = \mathbf{b}$$
 
 ```mermaid
 graph LR
-    M["Matrix A"] --> D["Diagonal Array"]
-    M --> L["Lower Array"]
-    M --> U["Upper Array"]
-
-    style D fill:#e3f2fd,stroke:#1565c0
-    style L fill:#fff9c4,stroke:#fbc02d
-    style U fill:#e8f5e9,stroke:#2e7d32
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+M[Matrix A]:::implicit --> D[Diagonal]:::explicit
+M --> L[Lower]:::explicit
+M --> U[Upper]:::explicit
 ```
 > **Figure 1:** โครงสร้างการจัดเก็บเมทริกซ์สัมประสิทธิ์ A ในรูปแบบ LDU ซึ่งแบ่งออกเป็นอาร์เรย์แนวทแยง (Diagonal) และอาร์เรย์ส่วนบน/ส่วนล่าง (Upper/Lower) เพื่อประสิทธิภาพด้านหน่วยความจำสูงสุด
 

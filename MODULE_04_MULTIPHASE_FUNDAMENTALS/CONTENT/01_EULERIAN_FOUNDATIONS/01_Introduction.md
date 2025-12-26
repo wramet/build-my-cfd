@@ -208,17 +208,22 @@ $$\mathbf{F}_{TD,\alpha} = -C_{TD} \rho_c k_{t,c} \nabla \alpha_\alpha$$
 ## 🎯 เมื่อใดควรใช้แนวทาง Eulerian-Eulerian?
 
 ```mermaid
-graph LR
-    A[ปัญหาการไหลแบบหลายเฟส] --> B{การกระจายตัวของเฟส}
-    B -->|สารแขวนลอยหนาแน่น| C[Eulerian-Eulerian ✅]
-    B -->|ฟองอากาศกระจายตัว| D[VOF/Lagrangian]
-    B -->|การไหลแบบแยกชั้น| C
-    A --> E{จำนวนเฟส}
-    E -->|> 2 เฟส| C
-    E -->|2 เฟส| F[ใช้ได้ทั้งสองแบบ]
-    A --> G{ขนาดของปัญหา}
-    G -->|ระดับอุตสาหกรรม| C
-    G -->|ระดับหยดของเหลว| H[Lagrangian]
+flowchart LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A["Multiphase Problem"]:::context --> B{"Dispersion Type"}:::explicit
+B -->|"Dense Suspension"| C["Eulerian-Euler"]:::implicit
+B -->|"Dispersed Bubbles"| D["VOF / Lagrangian"]:::implicit
+B -->|"Stratified"| C
+
+A --> E{"Phase Count"}:::explicit
+E -->|"> 2 Phases"| C
+E -->|"2 Phases"| F["Hybrid / Both"]:::implicit
+
+A --> G{"Scale"}:::explicit
+G -->|"Industrial"| C
+G -->|"Droplet Scale"| H["Lagrangian"]:::implicit
 ```
 
 ### ✅ เลือกใช้ Eulerian-Eulerian เมื่อ:

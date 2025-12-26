@@ -247,10 +247,14 @@ castellatedMeshControls
 
 ```mermaid
 flowchart LR
-    A[Base Mesh<br>blockMesh] --> B[Castellated Mesh<br>Refinement]
-    B --> C[Snap to Surface<br>Projection]
-    C --> D[Boundary Layers<br>Add Layers]
-    D --> E[Final Mesh<br>checkMesh]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Base Mesh<br>blockMesh]:::explicit --> B[Castellated Mesh<br>Refinement]:::implicit
+B --> C[Snap to Surface<br>Projection]:::implicit
+C --> D[Boundary Layers<br>Add Layers]:::implicit
+D --> E[Final Mesh<br>checkMesh]:::implicit
 ```
 > **Figure 1:** แผนภูมิแสดงขั้นตอนการทำงานของ `snappyHexMesh` ซึ่งประกอบด้วย 3 ขั้นตอนหลัก คือการเพิ่มความละเอียดแบบ Castellated, การปรับพื้นผิวให้แนบชิด (Snapping) และการเพิ่มชั้นขอบเขต (Boundary Layers) ก่อนจะจบด้วยการตรวจสอบคุณภาพเมช
 
@@ -848,19 +852,23 @@ mpirun -np 32 solver -parallel     # Continue run
 
 ```mermaid
 flowchart TD
-    A[Geometry Preparation<br>CAD → STL] --> B[blockMesh<br>Base Mesh]
-    B --> C[snappyHexMesh<br>Refinement & Snap]
-    C --> D[checkMesh<br>Quality Assessment]
-    D --> E[setFields<br>Initialize Fields]
-    E --> F[decomposePar<br>Domain Decomposition]
-    F --> G[mpirun -np N solver<br>Parallel Simulation]
-    G --> H[reconstructPar<br>Reconstruct Results]
-    H --> I[foamToVTK<br>Format Conversion]
-    I --> J[postProcess<br>Compute Derived Quantities]
-    J --> K[Visualization<br>ParaView/Python]
-
-    D -->|Fail| C
-    G -->|Monitor| L[foamMonitor<br>Residual Tracking]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Geometry CAD/STL]:::explicit --> B[blockMesh]:::explicit
+B --> C[snappyHexMesh]:::explicit
+C --> D[checkMesh]:::context
+D -->|Fail| C
+D --> E[setFields]:::explicit
+E --> F[decomposePar]:::explicit
+F --> G[mpirun Parallel Solver]:::implicit
+G -->|Monitor| L[foamMonitor]:::context
+G --> H[reconstructPar]:::explicit
+H --> I[foamToVTK]:::explicit
+I --> J[postProcess]:::implicit
+J --> K[Visualization]:::implicit
 ```
 > **Figure 2:** เวิร์กโฟลว์การทำงานที่สมบูรณ์ใน OpenFOAM ตั้งแต่การเตรียมเรขาคณิต การสร้างและตรวจสอบเมช การย่อยโดเมนเพื่อประมวลผลแบบขนาน ไปจนถึงการรวมผลลัพธ์และการวิเคราะห์ข้อมูลขั้นสูง
 

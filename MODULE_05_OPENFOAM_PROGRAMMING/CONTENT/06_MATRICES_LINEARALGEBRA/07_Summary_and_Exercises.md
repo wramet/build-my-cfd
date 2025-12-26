@@ -11,26 +11,41 @@ OpenFOAM's linear algebra system represents a sophisticated integration of **mat
 
 ```mermaid
 flowchart TD
-    A[OpenFOAM Linear Algebra] --> B[Dense Matrices]
-    A --> C[Sparse Matrices lduMatrix]
-    A --> D[Physics-Aware fvMatrix]
-    A --> E[Solver Hierarchy]
+classDef matrix fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
+classDef solver fill:#ffecb3,stroke:#ff8f00,stroke-width:2px,color:#000
+classDef physics fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
+classDef root fill:#eeeeee,stroke:#333333,stroke-width:2px,color:#000
 
-    B --> B1[SquareMatrix RectangularMatrix]
-    B --> B2[Direct Solvers LU Cholesky]
-    B --> B3[Small Systems < 1000]
+Root[OpenFOAM Linear Algebra]:::root
 
-    C --> C1[Lower Diagonal Upper Storage]
-    C --> C2[Matrix-free Operations]
-    C --> C3[CFD-Scale Problems]
+Root --> Storage
+Root --> Physics
+Root --> Algorithms
 
-    D --> D1[Dimensional Analysis]
-    D --> D2[Boundary Condition Integration]
-    D --> D3[Discrete Conservation]
+subgraph Storage ["Matrix Storage Formats"]
+    direction LR
+    B[Dense Matrices]:::matrix
+    C[Sparse LDU Matrix]:::matrix
+    
+    B --> B1[Square/Rectangular]:::matrix
+    C --> C1[Lower-Diagonal-Upper]:::matrix
+    C --> C2[Matrix-free Operations]:::matrix
+end
 
-    E --> E1[Krylov Methods CG BiCGStab]
-    E --> E2[Multigrid GAMG AMG]
-    E --> E3[Preconditioners DIC DILU]
+subgraph Physics ["Physics-Aware Layer"]
+    direction LR
+    D[fvMatrix]:::physics
+    D --> D1[Dimensional Consistency]:::physics
+    D --> D2[Boundary Conditions]:::physics
+end
+
+subgraph Algorithms ["Solver Algorithms Hierarchy"]
+    direction LR
+    E[Solver Hierarchy]:::solver
+    E --> E1[Krylov Subspace<br/>PCG / BiCGStab]:::solver
+    E --> E2[Multigrid Methods<br/>GAMG]:::solver
+    E --> E3[Preconditioners<br/>DIC / DILU]:::solver
+end
 ```
 > **Figure 1:** สถาปัตยกรรมโดยรวมของระบบพีชคณิตเชิงเส้นใน OpenFOAM ซึ่งแบ่งออกเป็นระบบเมทริกซ์แบบหนาแน่น (Dense), แบบเบาบาง (Sparse/LDU) และแบบตระหนักถึงฟิสิกส์ (fvMatrix) พร้อมลำดับชั้นของตัวแก้ปัญหาความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
@@ -101,20 +116,26 @@ class lduMatrix
 
 ```mermaid
 flowchart TD
-    Start[Matrix System] --> CheckSym{Symmetric?}
-    CheckSym -->|Yes| CheckSPD{Positive Definite?}
-    CheckSym -->|No| CheckDiag{Diagonal Dominant?}
+classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
+classDef implicit fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef startend fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
 
-    CheckSPD -->|Yes| UseCG[PCG + DIC/DILU]
-    CheckSPD -->|No| UseBiCG[BiCGStab + DILU]
+Start[Matrix System Ax=b]:::startend --> Sym{Symmetric Matrix?}:::decision
 
-    CheckDiag -->|Yes| UseGAMG[GAMG + Smoother]
-    CheckDiag -->|No| UseGMRES[GMRES + ILU]
+Sym -- Yes --> SPD{Positive<br/>Definite?}:::decision
+Sym -- No --> Diag{Diagonal<br/>Dominant?}:::decision
 
-    UseCG --> Optimal[Best for Pressure Poisson]
-    UseGAMG --> Large[Best for Large Systems > 10⁶]
-    UseBiCG --> Momentum[Best for Momentum]
-    UseGMRES --> Complex[Best for Ill-conditioned]
+SPD -- Yes --> PCG[PCG + DIC/DILU<br/>For: Pressure Poisson]:::implicit
+SPD -- No --> BiCG[BiCGStab + DILU<br/>For: Momentum/Transport]:::explicit
+
+Diag -- Yes --> GAMG[GAMG + Smoother<br/>For: Large Scale > 1M cells]:::implicit
+Diag -- No --> GMRES[GMRES + ILU<br/>For: Ill-conditioned Systems]:::explicit
+
+PCG --> Done[Converged Solution]:::startend
+BiCG --> Done
+GAMG --> Done
+GMRES --> Done
 ```
 > **Figure 2:** แผนผังการตัดสินใจเลือกตัวแก้ปัญหา (Solver) ที่เหมาะสมตามคุณสมบัติทางคณิตศาสตร์ของเมทริกซ์ เพื่อให้ได้การลู่เข้าที่รวดเร็วและแม่นยำที่สุดความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
@@ -982,15 +1003,28 @@ if (minT < 0 || maxT > 500)
 
 ```mermaid
 flowchart TD
-    A[Finest Grid] -->|Pre-smooth| B[Relaxation]
-    B -->|Restrict| C[Coarser Grid]
-    C -->|Pre-smooth| D[Relaxation]
-    D -->|Restrict| E[Coarsest Grid]
-    E -->|Direct Solve| F[Exact Solution]
-    F -->|Prolongate| G[Coarser Grid]
-    G -->|Post-smooth| H[Relaxation]
-    H -->|Prolongate| I[Finest Grid]
-    I -->|Post-smooth| J[Final Solution]
+classDef fine fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef medium fill:#bbdefb,stroke:#1976d2,stroke-width:2px,color:#000
+classDef coarse fill:#90caf9,stroke:#1e88e5,stroke-width:2px,color:#000
+classDef solve fill:#fff59d,stroke:#fbc02d,stroke-width:3px,color:#000
+classDef arrow fill:#fff,stroke:#333,stroke-width:1px,color:#000
+
+subgraph Downstroke ["Restriction Phase (Downstroke)"]
+    direction TB
+    L1[Fine Grid<br/>High Resolution]:::fine -->|Smooth & Restrict| L2[Medium Grid<br/>Intermediate]:::medium
+    L2 -->|Smooth & Restrict| L3[Coarse Grid<br/>Low Resolution]:::coarse
+end
+
+L3 -->|Direct Solve| Base[Coarsest Grid<br/>Direct Solver]:::solve
+
+subgraph Upstroke ["Prolongation Phase (Upstroke)"]
+    direction TB
+    Base -->|Prolongate & Correct| R3[Coarse Grid<br/>Correction Applied]:::coarse
+    R3 -->|Prolongate & Correct| R2[Medium Grid<br/>Correction Applied]:::medium
+    R2 -->|Prolongate & Correct| R1[Fine Grid<br/>Final Update]:::fine
+end
+
+R1 --> Final[Final Solution<br/>Converged]:::solve
 ```
 > **Figure 3:** แผนผังขั้นตอนการทำงานของอัลกอริทึม V-Cycle ในระบบ Multigrid ซึ่งช่วยเร่งการลู่เข้าโดยการกำจัดความผิดพลาดในระดับความละเอียดของกริตที่แตกต่างกันความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

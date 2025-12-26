@@ -7,15 +7,17 @@
 แนวทางการตรวจสอบความถูกต้องแบบลำดับชั้น:
 
 ```mermaid
-flowchart TD
-    A[Code Verification<br/>การตรวจสอบโค้ด] --> B[Solution Verification<br/>การตรวจสอบผลเฉลย]
-    B --> C[Model Validation<br/>การตรวจสอบโมเดล]
-    C --> D[Predictive Capability<br/>ความสามารถในการพยากรณ์]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+VV["Verification & Validation"]:::context
+Code["Code Verification<br/>Math Correct?"]:::implicit
+Sol["Solution Verification<br/>Num. Error?"]:::implicit
+Mod["Model Validation<br/>Physics Correct?"]:::explicit
+Pred["Prediction<br/>Real World"]:::explicit
 
-    A1[MMS<br/>Grid Convergence] --> A
-    B1[GCI Analysis<br/>Time Step Study] --> B
-    C1[Experimental Data<br/>Benchmark Cases] --> C
-    D1[Blind Prediction<br/>Uncertainty Quantification] --> D
+VV --> Code --> Sol --> Mod --> Pred
 ```
 
 > [!INFO] ความสำคัญของปัญหาเบนช์มาร์ก

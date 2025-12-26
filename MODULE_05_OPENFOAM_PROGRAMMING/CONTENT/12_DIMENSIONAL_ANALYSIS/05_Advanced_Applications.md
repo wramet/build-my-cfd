@@ -11,11 +11,14 @@
 
 ```mermaid
 flowchart TD
-    Fluid["Fluid Solver: Pressure [ML⁻¹T⁻²]"] -->|"Transfer Force"| Sync{Dimension Sync}
-    Solid["Solid Solver: Stress [ML⁻¹T⁻²]"] -->|"Check Boundary"| Sync
-    Sync -->|Valid| Move[Deform Mesh]
-
-    style Sync fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+Fluid[Fluid Solver P]:::implicit -->|Transfer Force| Sync{Sync?}:::context
+Solid[Solid Solver Stress]:::implicit -->|Check Bnd| Sync
+Sync -->|Valid| Move[Deform Mesh]:::explicit
 ```
 > **Figure 1:** กระบวนการประสานงานมิติทางฟิสิกส์ (Dimension Sync) ระหว่างโซลเวอร์ประเภทต่างๆ เช่น ของไหลและโครงสร้าง เพื่อให้การส่งผ่านข้อมูลที่รอยต่อขอบเขตมีความสอดคล้องกันความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 
@@ -637,20 +640,22 @@ fvScalarMatrix YEqn
 
 ```mermaid
 flowchart TD
-    A[Equation Formulation] --> B[Dimensional Analysis]
-    B --> C{Dimensions Consistent?}
-    C -->|No| D[Revise Equation]
-    D --> B
-    C -->|Yes| E[Implement in OpenFOAM]
-    E --> F[Compile-Time Check]
-    F --> G{Compile Success?}
-    G -->|No| H[Fix Dimensional Errors]
-    H --> E
-    G -->|Yes| I[Runtime Execution]
-    I --> J[Validate Results]
-
-    style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    style G fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Formulation]:::context --> B[Analysis]:::implicit
+B --> C{Consistent?}:::context
+C -->|No| D[Revise]:::explicit
+D --> B
+C -->|Yes| E[Implement]:::explicit
+E --> F[Compile Check]:::implicit
+F --> G{Success?}:::context
+G -->|No| H[Fix]:::explicit
+H --> E
+G -->|Yes| I[Run]:::implicit
+I --> J[Validate]:::implicit
 ```
 > **Figure 2:** ขั้นตอนการพัฒนาสมการตั้งแต่การตั้งสูตรทางคณิตศาสตร์ การวิเคราะห์มิติ ไปจนถึงการตรวจสอบความถูกต้องขณะคอมไพล์และรันโปรแกรมความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

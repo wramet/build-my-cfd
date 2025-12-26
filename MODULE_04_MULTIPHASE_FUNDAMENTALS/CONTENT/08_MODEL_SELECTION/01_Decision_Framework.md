@@ -36,13 +36,16 @@
 
 ```mermaid
 flowchart TD
-    A[เริ่มต้น] --> B{รูปแบบการไหล?}
-    B -->|แยกชัด<br/>Separated| C[VOF Method<br/>interFoam]
-    B -->|กระจาย<br/>Dispersed| D{ความเข้มข้น α_d?}
-    D -->|> 0.3<br/>Dense| E[Euler-Euler + KTGF<br/>multiphaseEulerFoam]
-    D -->|< 0.3<br/>Dilute| F{ความเร็ว Slip?}
-    F -->|ต่ำ<br/>Low Slip| G[Homogeneous<br/>Single Velocity Field]
-    F -->|สูง<br/>High Slip| H[Inhomogeneous<br/>Separate Velocity Fields]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Start]:::context --> B{Flow Regime}:::explicit
+B -->|Separated| C[VOF Method<br>interFoam]:::implicit
+B -->|Dispersed| D{Alpha_d}:::explicit
+D -->|Dense > 0.3| E[Euler-Euler + KTGF<br>multiphaseEulerFoam]:::implicit
+D -->|Dilute < 0.3| F{Slip Velocity}:::explicit
+F -->|Low Slip| G[Homogeneous<br>Single Velocity]:::implicit
+F -->|High Slip| H[Inhomogeneous<br>Separate Velocities]:::implicit
 ```
 
 ---
@@ -447,58 +450,39 @@ relaxationFactors
 
 ```mermaid
 flowchart TD
-    A[เริ่มต้น] --> B{ระบุประเภทเฟส}
-    B -->|Gas-Liquid| C{รูปแบบการไหล?}
-    B -->|Liquid-Liquid| D{รูปแบบการไหล?}
-    B -->|Gas-Solid| E{ความเข้มข้น?}
-    B -->|Liquid-Solid| F{ความเข้มข้น?}
-
-    C -->|Separated<br/>α_g < 0.3| C1[VOF<br/>interFoam]
-    C -->|Dispersed<br/>α_g > 0.3| C2{Eo Number?}
-
-    C2 -->|Eo < 1<br/>Spherical| C2a[Schiller-Naumann Drag<br/>+ Ranz-Marshall HT]
-    C2 -->|1 < Eo < 4<br/>Deformed| C2b[Tomiyama Drag<br/>+ Tomiyama Lift]
-    C2 -->|Eo > 4<br/>Cap bubbles| C2c[Tomiyama Drag<br/>+ Wall Lubrication<br/>+ Turbulent Dispersion]
-
-    D -->|Separated<br/>α_d < 0.3| D1[VOF<br/>interFoam]
-    D -->|Dispersed<br/>α_d > 0.3| D2{Viscosity Ratio?}
-
-    D2 -->|μ_d/μ_c > 100<br/>High viscosity| D2a[Grace Drag<br/>+ Internal flow correction]
-    D2 -->|μ_d/μ_c < 0.1<br/>Low viscosity| D2b[Schiller-Naumann Drag<br/>+ Circulation correction]
-
-    E -->|α_s < 0.1<br/>Dilute| E1[Lagrangian<br/>DPMFoam]
-    E -->|α_s > 0.1<br/>Dense| E2[Eulerian-Euler<br/>+ KTGF]
-
-    F -->|α_s < 0.3<br/>Dilute| F1[Eulerian-Euler<br/>Wen-Yu Drag]
-    F -->|α_s > 0.3<br/>Dense| F2[Eulerian-Euler<br/>+ KTGF<br/>+ Ergun Drag]
-
-    C2a --> G{Density Ratio?}
-    C2b --> G
-    C2c --> G
-    D2a --> G
-    D2b --> G
-    E1 --> G
-    E2 --> G
-    F1 --> G
-    F2 --> G
-
-    G -->|ρ_d/ρ_c > 1000<br/>Heavy| G1[ละเลย Virtual Mass]
-    G -->|ρ_d/ρ_c < 10<br/>Light| G2[รวม Virtual Mass<br/>C_vm = 0.5]
-
-    G1 --> H{Reynolds Number?}
-    G2 --> H
-
-    H -->|Re_p < 1000<br/>Laminar-Transition| H1[RANS k-ε]
-    H -->|Re_p > 10000<br/>Fully Turbulent| H2[LES/DES<br/>สำหรับ High-fidelity]
-
-    H1 --> I[ตั้งค่า OpenFOAM]
-    H2 --> I
-
-    I --> J[ทดสอบความเสถียร]
-    J -->|เสถียร| K[เพิ่มแบบจำลองซับซ้อน]
-    J -->|ไม่เสถียร| L[ปรับ Relaxation<br/>และ Time Step]
-    L --> J
-    K --> M[Validation<br/>กับข้อมูลทดลอง]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Start]:::context --> B{Phase Types}:::explicit
+B -->|Gas-Liquid| C{Regime}:::explicit
+B -->|Liquid-Liquid| D{Regime}:::explicit
+B -->|Gas-Solid| E{Conc.}:::explicit
+B -->|Liquid-Solid| F{Conc.}:::explicit
+C -->|Separated| C1[VOF/interFoam]:::implicit
+C -->|Dispersed| C2{Eo Number}:::explicit
+C2 -->|Spherical| C2a[Schiller-Naumann<br>Ranz-Marshall]:::implicit
+C2 -->|Deformed| C2b[Tomiyama Drag/Lift]:::implicit
+C2 -->|Cap Bubbles| C2c[Tomiyama + Wall<br>+ Turb Disp]:::implicit
+D -->|Separated| D1[VOF/interFoam]:::implicit
+D -->|Dispersed| D2{Viscosity Ratio}:::explicit
+D2 -->|High| D2a[Grace Drag]:::implicit
+D2 -->|Low| D2b[Schiller-Naumann]:::implicit
+E -->|Dilute| E1[Lagrangian/DPM]:::implicit
+E -->|Dense| E2[Euler-Euler + KTGF]:::implicit
+F -->|Dilute| F1[EE + Wen-Yu]:::implicit
+F -->|Dense| F2[EE + KTGF + Ergun]:::implicit
+C2a & C2b & C2c & D2a & D2b & E1 & E2 & F1 & F2 --> G{Density Ratio}:::explicit
+G -->|Heavy| G1[Ignore Virtual Mass]:::implicit
+G -->|Light| G2[Virtual Mass 0.5]:::implicit
+G1 & G2 --> H{Reynolds Number}:::explicit
+H -->|Laminar| H1[RANS k-epsilon]:::implicit
+H -->|Turbulent| H2[LES/DES]:::implicit
+H1 & H2 --> I[Setup OpenFOAM]:::context
+I --> J[Stability Test]:::explicit
+J -->|Stable| K[Add Complexity]:::implicit
+J -->|Unstable| L[Relaxation/TimeStep]:::explicit
+L --> J
+K --> M[Validation]:::implicit
 ```
 
 ---

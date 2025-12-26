@@ -159,22 +159,25 @@ Assignment operator (`operator=`) เป็นจุดที่ expression temp
 
 ```mermaid
 graph TD
-    A[Field Expression] --> B[Expression Template AST]
-    B --> C[Compiler Loop Fusion]
-    C --> D[SIMD Pattern Matching]
-    D --> E[AVX/SSE Instruction Generation]
-    E --> F[SIMD-optimized Machine Code]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+A[Field Expression]:::explicit --> B[Expression Template AST]:::implicit
+B --> C[Compiler Loop Fusion]:::implicit
+C --> D[SIMD Pattern Matching]:::implicit
+D --> E[AVX/SSE Instruction Generation]:::implicit
+E --> F[SIMD-optimized Machine Code]:::success
 
-    subgraph "Compile-Time"
-    B
-    C
-    D
-    end
+subgraph "Compile-Time Optimization"
+B
+C
+D
+end
 
-    subgraph "Hardware-Level"
-    E
-    F
-    end
+subgraph "Hardware-Level Execution"
+E
+F
+end
 ```
 > **Figure 1:** แผนผังขั้นตอนการทำงานของคอมไพเลอร์ในการเปลี่ยนนิพจน์ฟิลด์ (Field Expression) ให้กลายเป็นชุดคำสั่งระดับฮาร์ดแวร์ (SIMD Instructions) โดยใช้เทคนิคการรวมลูป (Loop Fusion) และการจับคู่รูปแบบคำสั่งที่เหมาะสมกับสถาปัตยกรรมของหน่วยประมวลผล (CPU)
 

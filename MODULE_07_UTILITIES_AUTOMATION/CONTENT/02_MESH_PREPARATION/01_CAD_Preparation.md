@@ -14,21 +14,20 @@
 
 ```mermaid
 flowchart TD
-    A[CAD ต้นฉบับ] --> B{การเลือกรูปแบบ}
-    B --> C[STEP]
-    B --> D[IGES]
-    B --> E[STL]
-
-    C --> F[พื้นผิวพารามิเตอร์]
-    D --> G[รูปแบบเก่า]
-    E --> H[การสร้างรูปสามเหลี่ยม]
-
-    F --> I[การซ่อมแซมเรขาคณิต]
-    G --> I
-    H --> I
-    I --> J[การสกัดคุณลักษณะ]
-    J --> K[การตรวจสอบความถูกต้อง]
-    K --> L[การสร้างเมช]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+A[Raw CAD]:::context --> B{Format}:::explicit
+B --> C[STEP]:::implicit
+B --> D[IGES]:::implicit
+B --> E[STL]:::implicit
+C --> F[Parametric Surface]:::implicit
+D --> G[Legacy]:::context
+E --> H[Triangulation]:::implicit
+F & G & H --> I[Geometry Repair]:::explicit
+I --> J[Feature Extraction]:::explicit
+J --> K[Validation]:::implicit
+K --> L[Meshing]:::context
 ```
 > **รูปที่ 1:** แผนภูมิขั้นตอนการเตรียมข้อมูล CAD สำหรับงาน CFD โดยเริ่มจากการเลือกรูปแบบไฟล์ (STEP, IGES, STL) การซ่อมแซมเรขาคณิต การสกัดคุณลักษณะเด่น (Feature Extraction) และการตรวจสอบความถูกต้องก่อนเริ่มกระบวนการสร้างเมช
 

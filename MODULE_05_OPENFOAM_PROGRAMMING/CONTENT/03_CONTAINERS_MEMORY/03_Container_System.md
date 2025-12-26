@@ -17,26 +17,42 @@
 
 ```mermaid
 flowchart TD
-    A[อนุกรมวิธานของคอนเทนเนอร์] --> B[Lists แบบลำดับ]
-    A --> C[Hashes แบบ Key-Value]
-    A --> D[Linked Lists]
-    A --> E[Pointer Containers]
+classDef category fill:#cfd8dc,stroke:#455a64,color:#000,stroke-width:2px
+classDef item fill:#fff,stroke:#333,color:#000,stroke-width:1px
+classDef sub fill:#f5f5f5,stroke:#999,color:#000,stroke-dasharray: 3 3
 
-    B --> B1[UList T พื้นฐาน]
-    B --> B2[List T ความเป็นเจ้าของ]
-    B --> B3[FixedList T N เวลาคอมไพล์]
-    B --> B4[DynamicList T ปรับขนาดได้]
-    B2 --> B5[SubList T มุมมองย่อย]
-    B2 --> B6[IndirectList T ทางอ้อม]
+Root["Container Taxonomy"]:::category
 
-    C --> C1[HashTable Key T]
-    C --> C2[Dictionary T คีย์สตริง]
+Root --> Seq
+Root --> Map
+Root --> Link
+Root --> Ptr
 
-    D --> D1[SLList T เชื่อมโยงเดี่ยว]
-    D --> D2[DLList T เชื่อมโยงคู่]
+subgraph Seq["Sequential Containers"]
+    direction TB
+    S1["UList<br/>Basic View"]:::item
+    S2["List<br/>Owner"]:::item
+    S3["FixedList<br/>Compile-Time Size"]:::item
+    S4["DynamicList<br/>Resizable"]:::item
+end
 
-    E --> E1[PtrList T ตัวชี้ที่มีเจ้าของ]
-    E --> E2[UPtrList T มุมมองตัวชี้]
+subgraph Map["Key-Value Containers"]
+    direction TB
+    M1["HashTable<br/>Generic Key"]:::item
+    M2["Dictionary<br/>String Key"]:::item
+end
+
+subgraph Link["Linked Containers"]
+    direction TB
+    L1["SLList<br/>Singly Linked"]:::item
+    L2["DLList<br/>Doubly Linked"]:::item
+end
+
+subgraph Ptr["Pointer Containers"]
+    direction TB
+    P1["PtrList<br/>Owned Pointers"]:::item
+    P2["UPtrList<br/>View Pointers"]:::item
+end
 ```
 > **รูปที่ 1:** ลำดับชั้นและประเภทของคอนเทนเนอร์ใน OpenFOAM (Container Taxonomy) ซึ่งถูกออกแบบมาให้ครอบคลุมการใช้งานที่หลากหลายในงาน CFD ตั้งแต่รายการข้อมูลเชิงเส้นไปจนถึงตารางแฮชและคอนเทนเนอร์สำหรับออบเจ็กต์โพลิมอร์ฟิก
 

@@ -16,12 +16,24 @@
 
 ```mermaid
 graph TD
-    A[Start: powerLawViscosity] --> B[Add Temperature Field Reference]
-    B --> C[Implement Arrhenius Function]
-    C --> D[Update mu Method: mu = f, gammaDot, T]
-    D --> E[Add Numerical Safeguards for T]
-    E --> F[Test with Non-isothermal Case]
-    F --> G[Final: temperatureDependentPowerLaw]
+    classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    
+    A[Start: powerLawViscosity]:::explicit
+    B[Add Temperature Field Reference]:::implicit
+    C[Implement Arrhenius Function]:::implicit
+    D[Update mu Method: mu = f, gammaDot, T]:::implicit
+    E[Add Numerical Safeguards for T]:::implicit
+    F[Test with Non-isothermal Case]:::implicit
+    G[Final: temperatureDependentPowerLaw]:::success
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
 ```
 > **Figure 1:** แผนผังลำดับขั้นตอนการพิชิตความท้าทาย (Challenge Workflow) ในการยกระดับโมเดลความหนืดให้รองรับการเปลี่ยนแปลงของอุณหภูมิ โดยเริ่มจากการเพิ่มการอ้างอิงฟิลด์อุณหภูมิ ไปจนถึงการนำฟังก์ชัน Arrhenius มาใช้เชื่อมโยงฟิสิกส์ทั้งสองส่วนเข้าด้วยกัน
 

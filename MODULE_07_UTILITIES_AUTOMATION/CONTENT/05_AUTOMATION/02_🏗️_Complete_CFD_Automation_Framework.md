@@ -33,25 +33,24 @@
 
 ```mermaid
 flowchart TD
-    A[เริ่มโครงการ - Start] --> B[Geometry Processing]
-    B --> C[Surface Repair & Extraction]
-    C --> D[Mesh Generation]
-    D --> E{Mesh Quality Validation}
-    E -->|ผ่าน| F[Case Setup]
-    E -->|ไม่ผ่าน| D
-    F --> G[Solver Execution]
-    G --> H{Convergence Check}
-    H -->|Diverged| G
-    H -->|Converged| I[Post-Processing]
-    I --> J[Data Extraction]
-    J --> K[Visualization]
-    K --> L[Report Generation]
-    L --> M[เสร็จสิ้น - End]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
 
-    style A fill:#e1f5e1
-    style M fill:#e1f5e1
-    style H fill:#fff4e1
-    style E fill:#ffebee
+A[Start]:::context --> B[Geometry]:::explicit
+B --> C[Repair]:::explicit
+C --> D[Meshing]:::implicit
+D --> E{Quality?}:::explicit
+E -->|Pass| F[Setup]:::implicit
+E -->|Fail| D
+F --> G[Solver]:::implicit
+G --> H{Conv?}:::explicit
+H -->|No| G
+H -->|Yes| I[Post]:::implicit
+I --> J[Extract]:::explicit
+J --> K[Vis]:::explicit
+K --> L[Report]:::implicit
+L --> M[End]:::context
 ```
 > **Figure 1:** ผังงานแสดงไปป์ไลน์การทำงานอัตโนมัติแบบครบวงจร (Automation Pipeline) ครอบคลุมตั้งแต่การประมวลผลเรขาคณิต การสร้างและตรวจสอบคุณภาพเมช การตั้งค่าเคส การรัน Solver พร้อมระบบตรวจสอบความบรรจบ ไปจนถึงการวิเคราะห์ผลและการสร้างรายงานสรุปผลทางวิศวกรรม
 

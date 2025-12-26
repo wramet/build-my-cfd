@@ -265,22 +265,19 @@ $$
 
 ```mermaid
 graph TD
-    A[ฐานข้อมูลเวลา - Time Database] --> B[Registry ภูมิภาค 1]
-    A --> C[Registry ภูมิภาค 2]
-    A --> D[Registry ภูมิภาค N]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+DB["Time Database"]:::context
+R1["Region 1 Registry"]:::implicit
+R2["Region 2 Registry"]:::implicit
+Obj1["Mesh & Fields 1"]:::explicit
+Obj2["Mesh & Fields 2"]:::explicit
 
-    B --> B1[เมช 1]
-    B --> B2[ฟิลด์ T1]
-    B --> B3[ฟิลด์ U1]
-
-    C --> C1[เมช 2]
-    C --> C2[ฟิลด์ T2]
-    C --> C3[ฟิลด์ sigma2]
-
-    style A fill:#f96,stroke:#333,stroke-width:3px
-    style B fill:#9cf,stroke:#333
-    style C fill:#9cf,stroke:#333
-    style D fill:#9cf,stroke:#333
+DB --> R1
+DB --> R2
+R1 --> Obj1
+R2 --> Obj2
 ```
 > **Figure 1:** แผนภาพแสดงสถาปัตยกรรมการจัดการฟิลด์แบบแยกภูมิภาค (Region-wise Field Management) ใน OpenFOAM ซึ่งช่วยให้สามารถบริหารจัดการเมชและข้อมูลทางฟิสิกส์ที่แตกต่างกันในหลายโดเมนคำนวณพร้อมกันได้อย่างมีประสิทธิภาพ
 

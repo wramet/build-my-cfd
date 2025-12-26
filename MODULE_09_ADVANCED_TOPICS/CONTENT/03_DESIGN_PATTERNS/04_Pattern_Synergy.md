@@ -124,34 +124,38 @@ $$
 ### แผนภาพการไหลของข้อมูล
 
 ```mermaid
-graph TD
-    A[Case Dictionary] --> B[phaseSystem::New]
-    A --> C[dragModel::New]
-    A --> D[turbulenceModel::New]
+flowchart TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px
+A[Case Dictionary]:::explicit --> B[phaseSystem::New]:::implicit
+A --> C[dragModel::New]:::implicit
+A --> D[turbulenceModel::New]:::implicit
 
-    subgraph "Factory Layer"
+subgraph Factory["Factory Layer"]
     B
     C
     D
-    end
+end
 
-    B --> E[mixturePhaseSystem Object]
-    C --> F[SchillerNaumann Object]
-    D --> G[kEpsilon Object]
+B --> E[mixturePhaseSystem Object]:::success
+C --> F[SchillerNaumann Object]:::success
+D --> G[kEpsilon Object]:::success
 
-    subgraph "Strategy Implementation"
+subgraph Strategy["Strategy Implementation"]
     E
     F
     G
-    end
+end
 
-    E --> H[multiphaseEulerFoam Solver]
-    F --> H
-    G --> H
+E --> H[multiphaseEulerFoam Solver]:::context
+F --> H
+G --> H
 
-    subgraph "Solver Loop"
+subgraph Solver["Solver Loop"]
     H
-    end
+end
 ```
 
 > **Figure 1:** แผนผังแสดงการทำงานร่วมกันระหว่าง Factory และ Strategy ในโซลเวอร์ `multiphaseEulerFoam` โดย Factory ทำหน้าที่สร้างออบเจกต์ที่ถูกต้องตามการตั้งค่าใน Dictionary และส่งมอบให้ออบเจกต์เหล่านั้นทำหน้าที่เป็น Strategy ที่โซลเวอร์จะเรียกใช้งานผ่านอินเทอร์เฟซมาตรฐาน

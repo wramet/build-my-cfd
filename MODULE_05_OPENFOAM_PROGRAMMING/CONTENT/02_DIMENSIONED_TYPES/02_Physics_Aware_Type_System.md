@@ -40,13 +40,16 @@
 
 ```mermaid
 flowchart TD
-    A[นักพัฒนาเขียนโค้ด] --> B{การดำเนินการ: A + B}
-    B --> C[คอมไพเลอร์ตรวจสอบประเภทข้อมูล]
-    C --> D{มิติข้อมูลตรงกันหรือไม่?}
-    D -- ไม่ตรง --> E[ข้อผิดพลาดคอมไพล์: หยุดทำงาน]
-    D -- ตรง --> F[สร้างไบนารีที่มีประสิทธิภาพ]
-    E --> G[แก้ไขข้อผิดพลาดฟิสิกส์ตั้งแต่เนิ่นๆ]
-    F --> H[การจำลองทำงานรวดเร็ว]
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef error fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+A["นักพัฒนาเขียนโค้ด"]:::explicit --> B{"การดำเนินการ: A + B"}:::implicit
+B --> C["คอมไพเลอร์ตรวจสอบประเภทข้อมูล"]:::implicit
+C --> D{"มิติข้อมูลตรงกันหรือไม่?"}:::implicit
+D -->|ไม่ตรง| E["ข้อผิดพลาดคอมไพล์: หยุดทำงาน"]:::error
+E --> G["แก้ไขข้อผิดพลาดฟิสิกส์ตั้งแต่เนิ่นๆ"]:::explicit
+D -->|ตรง| F["สร้างไบนารีที่มีประสิทธิภาพ"]:::implicit
+F --> H["การจำลองทำงานรวดเร็ว"]:::implicit
 ```
 > **รูปที่ 1:** กระบวนการทำงานของคอมไพเลอร์ในฐานะ "ตัวตรวจสอบฟิสิกส์" (Physics Checker) ซึ่งจะหยุดกระบวนการสร้างโปรแกรมทันทีหากตรวจพบความไม่สอดคล้องของมิติทางกายภาพ
 
@@ -619,49 +622,26 @@ private:
 
 ```mermaid
 classDiagram
-    direction TB
-
-    class dimensioned~Type~ {
-        <<template>>
-        +word name_
-        +dimensionSet dimensions_
-        +Type value_
-        +operator+()
-        +operator*()
-        +operator/()
-        +dimensions() dimensionSet
-        +value() Type
-    }
-
-    class dimensionedScalar {
-        +scalar value_
-    }
-
-    class dimensionedVector {
-        +vector value_
-    }
-
-    class dimensionedTensor {
-        +tensor value_
-    }
-
-    class dimensionSet {
-        +int nDimensions = 7
-        +scalar exponents_[7]
-        +operator+()
-        +operator*()
-        +pow()
-        +sqrt()
-        +dimensionless() bool
-    }
-
-    dimensioned~Type~ <|-- dimensionedScalar
-    dimensioned~Type~ <|-- dimensionedVector
-    dimensioned~Type~ <|-- dimensionedTensor
-    dimensioned~Type~ *-- dimensionSet
-
-    note for dimensioned~Type~ "Primary template for all dimensioned types"
-    note for dimensionSet "Stores exponents for 7 base SI dimensions"
+class dimensionedType~T~ {
+    +word name
+    +dimensionSet dims
+    +Type value
+    +operators()
+}
+class dimensionSet {
+    +scalar exponents[7]
+    +operator*()
+    +operator/()
+}
+class dimensionedScalar {
+    +scalar value
+}
+class dimensionedVector {
+    +vector value
+}
+dimensionedType~T~ *-- dimensionSet
+dimensionedType~T~ <|-- dimensionedScalar
+dimensionedType~T~ <|-- dimensionedVector
 ```
 > **Figure 2:** แผนผังคลาสแสดงความสัมพันธ์ระหว่าง `dimensioned<Type>` และ `dimensionSet` ซึ่งเป็นหัวใจสำคัญของการเก็บข้อมูลค่าตัวเลขควบคู่ไปกับหน่วยทางฟิสิกส์
 
@@ -669,26 +649,25 @@ classDiagram
 
 ```mermaid
 flowchart TD
-    A[Template Instantiation] --> B{Type Check}
-    B -->|dimensioned~Type~| C[Extract dimensionSet from Type]
-    B -->|Other Type| D[Error: Not a dimensioned type]
-
-    C --> E{Operation Type}
-    E -->|Addition/Subtraction| F[Check Dimension Equality<br>static_assert(dimsA == dimsB)]
-    E -->|Multiplication| G[Add Dimension Exponents<br>dimsResult = dimsA + dimsB]
-    E -->|Division| H[Subtract Dimension Exponents<br>dimsResult = dimsA - dimsB]
-    E -->|Power| I[Multiply Dimension Exponents<br>dimsResult = dimsA * exponent]
-
-    F --> J{Dimensions Match?}
-    J -->|Yes| K[Generate Operation Code]
-    J -->|No| L[Compile Error<br>with Dimension Mismatch Message]
-
-    G --> K
-    H --> K
-    I --> K
-
-    K --> M[Compile Success<br>Zero Runtime Overhead]
-    L --> N[Compile Failure<br>Early Error Detection]
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+classDef error fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+A["Template Instantiation"]:::explicit --> B{"Type Check"}:::implicit
+B -->|dimensioned~Type~| C["Extract dimensionSet from Type"]:::implicit
+B -->|Other Type| D["Error: Not a dimensioned type"]:::error
+C --> E{"Operation Type"}:::implicit
+E -->|Add/Sub| F["Check Dimension Equality<br/>static_assert(dimsA == dimsB)"]:::implicit
+E -->|Multiply| G["Add Dimension Exponents<br/>dimsResult = dimsA + dimsB"]:::implicit
+E -->|Divide| H["Subtract Dimension Exponents<br/>dimsResult = dimsA - dimsB"]:::implicit
+E -->|Power| I["Multiply Dimension Exponents<br/>dimsResult = dimsA * exponent"]:::implicit
+F --> J{"Dimensions Match?"}:::implicit
+J -->|Yes| K["Generate Operation Code"]:::implicit
+J -->|No| L["Compile Error<br/>Dimension Mismatch"]:::error
+G --> K
+H --> K
+I --> K
+K --> M["Compile Success<br/>Zero Runtime Overhead"]:::implicit
+L --> N["Compile Failure<br/>Early Error Detection"]:::error
 ```
 > **Figure 3:** ขั้นตอนการตรวจสอบความถูกต้องระดับคอมไพล์ (Compile-Time Verification) สำหรับการดำเนินการทางคณิตศาสตร์ต่างๆ เพื่อให้ได้โค้ดที่มีประสิทธิภาพสูงสุดโดยไม่ต้องตรวจสอบซ้ำขณะรันโปรแกรม
 

@@ -30,17 +30,30 @@
 
 ```mermaid
 graph TD
-    A[Error Encountered] --> B{Error Type?}
-    B -->|Compilation| C[Check Make/options & Headers]
-    B -->|Linking| D[Check Make/files & Symbols]
-    B -->|Runtime: Unknown Type| E[Check libs entry & Registration]
-    B -->|Runtime: Numerical| F[Check Math Logic & Constants]
-
-    C --> G[Fixed Code]
+    classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    
+    A[Error Encountered]:::explicit
+    B{Error Type?}:::warning
+    C[Check Make/options & Headers]:::implicit
+    D[Check Make/files & Symbols]:::implicit
+    E[Check libs entry & Registration]:::implicit
+    F[Check Math Logic & Constants]:::implicit
+    G[Fixed Code]:::implicit
+    H[Success]:::success
+    
+    A --> B
+    B -->|Compilation| C
+    B -->|Linking| D
+    B -->|Runtime: Unknown Type| E
+    B -->|Runtime: Numerical| F
+    C --> G
     D --> G
     E --> G
     F --> G
-    G --> H[Success]
+    G --> H
 ```
 
 > **Figure 1:** แผนผังขั้นตอนการวิเคราะห์และแก้ไขปัญหาที่พบบ่อย (Troubleshooting Flow) ในการพัฒนาโมเดลแบบกำหนดเอง โดยแบ่งตามประเภทของข้อผิดพลาดที่เกิดขึ้นในแต่ละระยะ

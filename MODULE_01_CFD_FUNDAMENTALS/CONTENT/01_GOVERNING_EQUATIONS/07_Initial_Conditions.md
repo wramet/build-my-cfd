@@ -7,34 +7,17 @@
 
 ```mermaid
 graph LR
-    Start["Start Simulation"] --> SelectIC["Select Initial<br/>Conditions"]
-    SelectIC --> IC1["Realistic Physical<br/>Values"]
-    SelectIC --> IC2["Zero Initial<br/>Conditions"]
-    SelectIC --> IC3["Previous Solution<br/>Continuation"]
+classDef good fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef poor fill:#ffebee,stroke:#c62828,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Choice["Initial Conditions Strategy"]:::context
+Zero["Zero Fields<br/>Poor Stability"]:::poor
+Approx["Potential Flow<br/>Good Stability"]:::good
+Map["Mapped Fields<br/>Best Stability"]:::good
 
-    IC1 --> GoodStab["High Numerical<br/>Stability"]
-    IC2 --> PoorStab["Potential Numerical<br/>Instability"]
-    IC3 --> BestStab["Excellent Numerical<br/>Stability"]
-
-    GoodStab --> FastConv["Fast Convergence"]
-    PoorStab --> SlowConv["Slow Convergence<br/>or Divergence"]
-    BestStab --> FastestConv["Fastest Convergence"]
-
-    FastConv --> Final["Stable Solution"]
-    SlowConv --> Restart["Need to Adjust<br/>Initial Conditions"]
-    FastestConv --> Final
-
-    Restart --> SelectIC
-
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class Start,Final terminator;
-    class SelectIC,Restart decision;
-    class IC1,IC2,IC3,GoodStab,PoorStab,BestStab,FastConv,SlowConv,FastestConv process;
+Choice --> Zero
+Choice --> Approx
+Choice --> Map
 ```
 > **Figure 1:** ผลกระทบของการเลือกเงื่อนไขเริ่มต้นต่อประสิทธิภาพการจำลอง โดยไล่เรียงความเชื่อมโยงตั้งแต่กลยุทธ์การกำหนดค่าเริ่มต้น (ตามหลักฟิสิกส์, ค่าศูนย์ หรือการใช้ผลเฉลยเดิม) ไปจนถึงความเสถียรเชิงตัวเลขและความเร็วในการลู่เข้า
 
@@ -90,23 +73,17 @@ boundaryField
 
 ```mermaid
 graph LR
-    A["Velocity Field Initialization"] --> B["Internal Field<br/>uniform (0 0 0)"]
-    A --> C["Boundary Conditions"]
-    C --> D["Inlet<br/>fixedValue<br/>uniform (10 0 0)<br/>10 m/s"]
-    C --> E["Outlet<br/>zeroGradient<br/>Fully Developed Flow"]
-    C --> F["Walls<br/>noSlip<br/>Zero Velocity"]
-    C --> G["Symmetry<br/>symmetryPlane<br/>Mirror Condition"]
-    A --> H["Field Properties"]
-    H --> I["volVectorField"]
-    H --> J["Dimensions [0 1 -1 0 0 0 0]<br/>m/s: length/time"]
+classDef field fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+classDef data fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+classDef struct fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Field["volVectorField U"]:::field
+Int["Internal Field<br/>uniform (0 0 0)"]:::data
+BCs["Boundary Conditions<br/>Inlet fixedValue<br/>Wall noSlip"]:::data
+Dims["Dimensions<br/>[0 1 -1 0 0 0 0]"]:::struct
 
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    class A,B,C,H process;
-    class D,E,F,G,I,J storage;
+Field --> Int
+Field --> BCs
+Field --> Dims
 ```
 > **Figure 2:** โครงสร้างของไฟล์กำหนดค่าเริ่มต้นฟิลด์ใน OpenFOAM (`0/U`) โดยแยกส่วนประกอบออกเป็น มิติ (dimensions), ค่าฟิลด์ภายใน (internal field) และการกำหนดเงื่อนไขขอบเขตสำหรับฟิลด์เวกเตอร์ความเร็ว
 
@@ -559,28 +536,21 @@ foamListTimes -case .
 ```
 
 ```mermaid
-graph LR
-    A["Initial Setup<br/>Check Directory Structure"] --> B["Mesh Validation<br/>checkMesh -case ."]
-    B --> C["Field List<br/>foamListFields -case ."]
-    C --> D["Dimensional Analysis<br/>foamInfoDict -case ."]
-    D --> E{"Dimension<br/>Consistency Check"}
-    E -->|Pass| F["Boundary<br/>Compatibility<br/>Verification"]
-    E -->|Fail| G["Fix Dimensional<br/>Errors"]
-    F --> H{"Conservation<br/>Laws Check"}
-    H -->|Valid| I["Run Simulation<br/>Ready"]
-    H -->|Violated| J["Adjust Initial<br/>Conditions"]
-    G --> D
-    J --> H
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Start("Setup Phase"):::context
+Mesh["checkMesh"]:::explicit
+Fields["foamListFields"]:::explicit
+Dims{"Dimension Check"}:::implicit
+Run("Run Simulation"):::implicit
 
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,B,C,F,I process;
-    class E,H decision;
-    class G,J terminator;
+Start --> Mesh
+Mesh --> Fields
+Fields --> Dims
+Dims -- Pass --> Run
+Dims -- Fail --> Start
 ```
 > **Figure 3:** ขั้นตอนการตรวจสอบความถูกต้องของเงื่อนไขเริ่มต้นก่อนการจำลอง ซึ่งประกอบด้วยลำดับการตรวจสอบ (Mesh, ฟิลด์, มิติ และกฎการอนุรักษ์) เพื่อให้มั่นใจว่าการจำลองจะเริ่มต้นได้อย่างราบรื่นและปราศจากข้อผิดพลาด
 

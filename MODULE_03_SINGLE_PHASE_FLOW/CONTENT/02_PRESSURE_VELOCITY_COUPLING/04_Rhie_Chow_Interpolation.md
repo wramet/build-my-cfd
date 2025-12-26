@@ -17,14 +17,27 @@ $$\left( \frac{\partial p}{\partial x} \right)_P \approx \frac{p_E - p_W}{2\Delt
 หาก $p$ มีลักษณะสลับฟันปลา (เช่น 10, 0, 10, 0) เกรเดียนต์ที่คำนวณได้จะเป็นศูนย์เสมอ ซึ่งไม่เป็นความจริงทางกายภาพ
 
 ```mermaid
-flowchart LR
-    A[Collocated Grid] --> B[Linear Interpolation]
-    B --> C[Checkerboard Pressure Field]
-    C --> D[Unphysical Oscillations]
+flowchart TB
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Subgraphs
+subgraph Problem [Linear Interpolation Problems]
+    direction TB
+    B[Linear Interpolation]:::implicit --> C[Checkerboard Pressure]:::explicit
+    C --> D[Oscillations]:::explicit
+end
 
-    E[Rhie-Chow Interpolation] --> F[Pressure-Velocity Coupling]
-    F --> G[Smooth Pressure Field]
-    G --> H[Physical Solution]
+subgraph Solution [Rhie-Chow Solution]
+    direction TB
+    E[Rhie-Chow Interpolation]:::implicit --> F[Strong Coupling]:::implicit
+    F --> G[Smooth Pressure Field]:::implicit
+    G --> H[Physical Results]:::implicit
+end
+
+A[Collocated Grid]:::context --> Problem
+A --> Solution
 ```
 > **Figure 1:** การเปรียบเทียบระหว่างผลลัพธ์จากการใช้การประมาณค่าแบบเชิงเส้นปกติ (Linear Interpolation) ซึ่งนำไปสู่ปัญหาการแยกตัวของความดันและความเร็ว (Checkerboard pattern) กับการใช้ Rhie-Chow Interpolation ที่ช่วยสร้างการเชื่อมโยงที่แข็งแกร่ง ส่งผลให้ได้สนามความดันที่เรียบและสอดคล้องกับหลักการทางฟิสิกส์บนเมชแบบ Collocated Grid
 

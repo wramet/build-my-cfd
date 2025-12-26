@@ -49,14 +49,27 @@ $$ \text{Aspect Ratio} = \frac{\Delta_{max}}{\Delta_{min}} $$
 
 ```mermaid
 flowchart TD
-    A[blockMesh] --> B[checkMesh ครั้งที่ 1]
-    B --> C{คุณภาพผ่าน?}
-    C -->|ผ่าน| D[snappyHexMesh]
-    C -->|ไม่ผ่าน| A
-    D --> E[checkMesh ครั้งที่ 2]
-    E --> F{คุณภาพผ่าน?}
-    F -->|ผ่าน| G[เริ่มการจำลอง]
-    F -->|ไม่ผ่าน| D
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[blockMesh<br/>Generate Base Mesh]:::explicit
+B[checkMesh 1<br/>Initial Validation]:::implicit
+C{Quality OK?}:::context
+D[snappyHexMesh<br/>Refine & Snap]:::explicit
+E[checkMesh 2<br/>Final Validation]:::implicit
+F{Quality OK?}:::context
+G[Start Simulation<br/>Ready]:::implicit
+%% Edges
+A --> B
+B --> C
+C -->|Pass| D
+C -->|Fail| A
+D --> E
+E --> F
+F -->|Pass| G
+F -->|Fail| D
 ```
 > **Figure 1:** แผนภูมิแสดงขั้นตอนการตรวจสอบคุณภาพเมช (Validation Protocol) ในแต่ละระยะของการสร้างเมช เพื่อให้มั่นใจว่าเมชมีคุณภาพเพียงพอก่อนที่จะเริ่มการจำลองจริง ซึ่งช่วยลดโอกาสในการเกิดปัญหา Solver Divergence
 
@@ -1465,20 +1478,25 @@ $$ \phi_i = \phi_{exact} + C h_i^p $$
 
 ```mermaid
 flowchart TD
-    A[เริ่มต้น] --> B[ตรวจสอบ Mesh]
-    B --> C{Mesh OK?}
-    C -->|ไม่| D[ปรับปรุง Mesh]
-    D --> B
-    C -->|ใช่| E[เลือก Solver & Schemes]
-    E --> F[ตั้งค่า Parameters]
-    F --> G[รัน Simulation]
-    G --> H{Converge?}
-    H -->|ไม่| I[วินิจฉัยปัญหา]
-    I --> J[ปรับ Parameters/Mesh]
-    J --> G
-    H -->|ใช่| K[Post-Processing]
-    K --> L[Validation]
-    L --> M[เสร็จสิ้น]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Start]:::context --> B[Check Mesh]:::implicit
+B --> C{Mesh OK?}:::context
+C -->|No| D[Refine Mesh]:::explicit
+D --> B
+C -->|Yes| E[Select Solver & Schemes]:::explicit
+E --> F[Set Parameters]:::explicit
+F --> G[Run Simulation]:::implicit
+G --> H{Converge?}:::context
+H -->|No| I[Diagnose]:::explicit
+I --> J[Adjust Params/Mesh]:::explicit
+J --> G
+H -->|Yes| K[Post-Processing]:::implicit
+K --> L[Validation]:::implicit
+L --> M[Finish]:::context
 ```
 > **Figure 2:** แนวทางการแก้ปัญหาอย่างเป็นระบบ (Systematic Troubleshooting) ครอบคลุมตั้งแต่การประเมินเมช การเลือกพารามิเตอร์ของ Solver การตรวจสอบความบรรจบ ไปจนถึงการสรุปผลและตรวจสอบความถูกต้องของข้อมูล
 

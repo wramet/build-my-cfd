@@ -4,11 +4,15 @@
 
 ```mermaid
 flowchart TD
-    A[Field&lt;Type&gt;<br>คอนเทนเนอร์ข้อมูลดิบ] --> B[DimensionedField<br>หน่วยทางกายภาพ]
-    B --> C[GeometricField&lt;Type, PatchField, GeoMesh&gt;<br>ฟิลด์สมบูรณ์พร้อมขอบเขต]
-    C --> D[volScalarField<br>สเกลาร์ที่จุดศูนย์ถ่วงเซลล์]
-    C --> E[volVectorField<br>เวกเตอร์ที่จุดศูนย์ถ่วงเซลล์]
-    C --> F[surfaceScalarField<br>ฟลักซ์ผ่านหน้า]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Field: Raw]:::implicit --> B[DimensionedField: Units]:::implicit
+B --> C[GeometricField: Complete]:::implicit
+C --> D[volScalarField]:::explicit
+C --> E[volVectorField]:::explicit
+C --> F[surfaceScalarField]:::explicit
 ```
 > **Figure 1:** แผนผังลำดับชั้นการสืบทอดของคลาสฟิลด์ใน OpenFOAM แสดงความเชื่อมโยงตั้งแต่คอนเทนเนอร์ข้อมูลดิบไปจนถึงฟิลด์เรขาคณิตที่สมบูรณ์พร้อมข้อมูลขอบเขตความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

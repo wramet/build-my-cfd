@@ -33,19 +33,36 @@ class dimensioned
 
 ```mermaid
 graph TD
-    A["dimensioned&lt;Type&gt;"] --> B["Name word"]
-    A --> C["Dimensions dimensionSet"]
-    A --> D["Value Type"]
-
-    B --> B1["ตัวระบุสตริง"]
-    C --> C1["มวล M"]
-    C --> C2["ความยาว L"]
-    C --> C3["เวลา T"]
-    C --> C4["อุณหภูมิ Θ"]
-    C --> C5["จำนวนโมล N"]
-    C --> C6["กระแสไฟฟ้า I"]
-    C --> C7["ความเข้มแสง J"]
-    D --> D1["สเกลาร์/เวกเตอร์/เทนเซอร์"]
+classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+A["dimensioned&lt;Type&gt;"]:::implicit
+subgraph Components["Components"]
+    B["Name (word)"]:::explicit
+    C["Dimensions (dimensionSet)"]:::implicit
+    D["Value (Type)"]:::explicit
+end
+A --> B
+A --> C
+A --> D
+B --> B1["ตัวระบุสตริง"]:::explicit
+subgraph Units["7 Base SI Units"]
+    direction TB
+    C1["มวล M"]:::implicit
+    C2["ความยาว L"]:::implicit
+    C3["เวลา T"]:::implicit
+    C4["อุณหภูมิ Θ"]:::implicit
+    C5["จำนวนโมล N"]:::implicit
+    C6["กระแสไฟฟ้า I"]:::implicit
+    C7["ความเข้มแสง J"]:::implicit
+end
+C --> C1
+C --> C2
+C --> C3
+C --> C4
+C --> C5
+C --> C6
+C --> C7
+D --> D1["สเกลาร์/เวกเตอร์/เทนเซอร์"]:::explicit
 ```
 > **รูปที่ 1:** องค์ประกอบภายในของคลาส `dimensioned<Type>` ซึ่งประกอบด้วยชื่อ มิติ และค่าตัวเลข โดยมิติจะถูกจัดเก็บในรูปของเลขชี้กำลังของหน่วยพื้นฐาน 7 ชนิดตามมาตรฐาน SI เพื่อความปลอดภัยทางฟิสิกส์ระดับคอมไพล์
 

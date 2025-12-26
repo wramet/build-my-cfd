@@ -16,22 +16,20 @@
 
 ```mermaid
 graph LR
-    A["Differential Control Volume<br/>(length dx, area A)"] --> B["Mass Inlet Rate<br/>ρuA"]
-    A --> C["Mass Outlet Rate<br/>(ρu + ∂(ρu)/∂x dx)A"]
-    A --> D["Mass Accumulation Rate<br/>∂ρ/∂t A dx"]
-    B --> E["Conservation of Mass<br/>maccum = min - mout"]
-    C --> E
-    D --> E
-    E --> F["1D Continuity Equation<br/>∂ρ/∂t + ∂(ρu)/∂x = 0"]
+A["Control Volume<br/>(dx, A)"]:::context --> B["Mass In<br/>ρuA"]:::implicit
+A --> C["Mass Out<br/>(ρu + Δρu)A"]:::implicit
+A --> D["Accumulation<br/>∂ρ/∂t A dx"]:::volatile
+B --> E["Balance<br/>Acc = In - Out"]:::explicit
+C --> E
+D --> E
 
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    class A,B,C,D process
-    class E decision
-    class F terminator
+E --> F["Continuity Eq<br/>∂ρ/∂t + ∂(ρu)/∂x = 0"]:::success
+
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 
 > **Figure 1:** การหาอนุพันธ์ของสมการความต่อเนื่องแบบ 1 มิติ โดยใช้การวิเคราะห์ปริมาตรควบคุม และการรักษาสมดุลระหว่างอัตราการไหลของมวลขาเข้า ขาออก และอัตราการสะสมมวล เพื่อสร้างกฎการอนุรักษ์ในรูปอนุพันธ์
@@ -99,27 +97,27 @@ $$\rho \left(u_x \frac{\partial u_y}{\partial x} + u_y \frac{\partial u_y}{\part
 
 ```mermaid
 graph LR
-    F_inertial["<b>Inertial Forces</b><br/>ρu⋅∇u"] --> ForceBalance["<b>Force Balance<br/>in 2D Flow</b>"]
-    F_pressure["<b>Pressure Forces</b><br/>-∇p"] --> ForceBalance
-    F_viscous["<b>Viscous Forces</b><br/>μ∇²u"] --> ForceBalance
-    F_external["<b>External Forces</b><br/>f"] --> ForceBalance
+subgraph Forces
+    direction TB
+    F_inertial["Inertial Forces<br/>ρu⋅∇u"]:::implicit
+    F_pressure["Pressure Forces<br/>-∇p"]:::implicit
+    F_viscous["Viscous Forces<br/>μ∇²u"]:::implicit
+    F_external["External Forces<br/>f"]:::implicit
+end
 
-    subgraph "X-Momentum Equation"
-        XMomentum["<b>X-Component:</b><br/>ρ(uₓ∂uₓ/∂x + uᵧ∂uₓ/∂y)<br/>= -∂p/∂x + μ(∂²uₓ/∂x² + ∂²uₓ/∂y²) + fₓ"]
-    end
+ForceBalance["Force Balance<br/>(2D Flow)"]:::context
 
-    subgraph "Y-Momentum Equation"
-        YMomentum["<b>Y-Component:</b><br/>ρ(uₓ∂uᵧ/∂x + uᵧ∂uᵧ/∂y)<br/>= -∂p/∂y + μ(∂²uᵧ/∂x² + ∂²uᵧ/∂y²) + fᵧ"]
-    end
+F_inertial --> ForceBalance
+F_pressure --> ForceBalance
+F_viscous --> ForceBalance
+F_external --> ForceBalance
 
-    ForceBalance --> XMomentum
-    ForceBalance --> YMomentum
+ForceBalance --> XMomentum["X-Comp:<br/>ρ Duₓ/Dt = -∂p/∂x + μ∇²uₓ + fₓ"]:::success
+ForceBalance --> YMomentum["Y-Comp:<br/>ρ Duᵧ/Dt = -∂p/∂y + μ∇²uᵧ + fᵧ"]:::success
 
-%% Styling Definitions
-classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 
 > **Figure 2:** การแยกส่วนประกอบของสมการโมเมนตัม Navier-Stokes แบบ 2 มิติ แสดงให้เห็นว่าสมดุลของแรงเฉื่อย แรงดัน แรงหนืด และแรงภายนอก ถูกนำไปใช้แยกกันในทิศทางพิกัด $x$ และ $y$ อย่างไร
@@ -145,32 +143,30 @@ classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 
 ```mermaid
 graph TD
-    A["Fluid Domain"] --> B["Inlet Boundary"]
-    A --> C["Outlet Boundary"]
-    A --> D["Wall Boundaries"]
+A["Fluid Domain"]:::context --> B["Inlet Boundary"]:::volatile
+A --> C["Outlet Boundary"]:::volatile
+A --> D["Wall Boundaries"]:::volatile
+B --> E["Inlet Velocity<br/>Profile"]:::explicit
+C --> F["Outlet Zero<br/>Gradient"]:::explicit
+D --> H["Wall No-Slip<br/>Condition"]:::explicit
 
-    B --> E["Inlet<br/>Velocity Profile"]
-    C --> F["Outlet<br/>Zero Gradient"]
+E --> G["Profile Development<br/>Along Length"]:::implicit
+G --> H["Fully Developed<br/>Flow Region"]:::success
 
-    E --> G["Profile Development<br/>Along Length"]
-    G --> H["Fully Developed<br/>Flow Region"]
+subgraph Velocity["Velocity Evolution"]
+    direction LR
+    I["Initial<br/>(Uniform)"]:::context
+    J["Developing<br/>(Entrance)"]:::implicit
+    K["Developed<br/>(∂u/∂x = 0)"]:::success
+end
 
-    subgraph 'Velocity Profile Evolution'
-        I["Initial<br/>Uniform/Developed"]
-        J["Developing<br/>(Entrance Effects)"]
-        K["Fully Developed<br/>(∂u/∂x = 0)"]
-    end
+I --> J --> K
 
-    I --> J --> K
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style C fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 
 > **Figure 3:** เหตุผลทางกายภาพสำหรับเงื่อนไขขอบเขตการไหล แสดงให้เห็นวิวัฒนาการของโปรไฟล์ความเร็วจากทางเข้าไปยังสภาวะที่พัฒนาเต็มที่ (fully developed) ที่ทางออก ซึ่งเป็นจุดที่ใช้เงื่อนไข zero-gradient
@@ -230,22 +226,27 @@ $$\nabla \cdot (\mathbf{u} T) = \nabla \cdot (D \nabla T)$$
 
 ```mermaid
 graph LR
-    A["Convection Process<br/>∇·(uT)"] --> B["Flow Stream<br/>Moving Scalar Field"]
-    C["Diffusion Process<br/>∇·(D∇T)"] --> D["Molecular Motion<br/>Spreading of Scalar"]
-    B --> E["Scalar Transport<br/>Combined Effect"]
-    D --> E
-    E --> F["Conservation Principle<br/>Balance of Processes"]
+subgraph Mechanisms
+    direction TB
+    A["Convection<br/>∇·(uT)"]:::implicit
+    C["Diffusion<br/>∇·(D∇T)"]:::implicit
+end
 
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+B["Flow Stream<br/>(Motion)"]:::context
+D["Molecular<br/>(Spreading)"]:::context
 
-    class A,C process;
-    class B,D storage;
-    class E decision;
-    class F terminator;
+A --> B
+C --> D
+
+B --> E["Combined Transport<br/>Scalar Field"]:::explicit
+D --> E
+
+E --> F["Conservation Equation<br/>∂T/∂t + ∇·(uT) = ∇·(D∇T)"]:::success
+
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 
 > **Figure 4:** แบบจำลองแนวคิดของการขนส่งสเกลาร์ (Scalar transport) ซึ่งรวมผลของการพา (convective transport) จากการเคลื่อนที่ของไหล และการแพร่ (diffusive spreading) เพื่อสร้างหลักการอนุรักษ์สเกลาร์ทั่วไป
@@ -670,25 +671,19 @@ while (simple.correctNonOrthogonal())
 
 ```mermaid
 graph LR
-    A["Start SIMPLE Algorithm"] --> B["Momentum Prediction<br/>Solve momentum equations<br/>using pressure from<br/>previous iteration"]
+A["Start SIMPLE"]:::context --> B["Momentum Predictor<br/>(Solve U w/ old p*)"]:::implicit
+B --> C["Pressure Correction<br/>(Solve p' Equation)"]:::explicit
+C --> D["Velocity Correction<br/>(Update U = U* + U')"]:::implicit
+D --> E{"Converged?"}:::explicit
+E -->|No| F["Under-Relaxation<br/>(Apply α)"]:::volatile
+F --> B
+E -->|Yes| G["Solution Complete"]:::success
 
-    B --> C["Pressure Correction<br/>Solve pressure correction<br/>equation to ensure<br/>mass continuity"]
-
-    C --> D["Velocity Correction<br/>Update velocity field<br/>using corrected<br/>pressure"]
-
-    D --> E{"Convergence<br/>Check"}
-
-    E -->|Not converged| B
-    E -->|Converged| F["End<br/>Solution<br/>Complete"]
-
-    %% Styling Definitions
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-
-    class A,B,C,D process;
-    class E decision;
-    class F terminator
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 
 > **Figure 5:** ขั้นตอนการทำงานของอัลกอริทึม SIMPLE สำหรับการเชื่อมโยงความดันและความเร็ว โดยเน้นย้ำถึงกระบวนการวนซ้ำของการทำนายโมเมนตัมและการแก้ไขความดัน ซึ่งเป็นหัวใจสำคัญสำหรับแบบฝึกหัดการไหลแบบอัดตัวไม่ได้ในสภาวะคงตัว

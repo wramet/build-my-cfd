@@ -37,16 +37,19 @@ $$\phi_j = \frac{\sum_{i=1}^{N_c} w_{ij} \phi_i}{\sum_{i=1}^{N_c} w_{ij}} \tag{2
 
 ```mermaid
 flowchart TD
-    A[OpenFOAM Case] --> B[foamToVTK Utility]
-    B --> C{ประเภทข้อมูล<br/>Data Type}
-    C -->|Volume Fields| D[ข้อมูลศูนย์กลางเซลล์<br/>Cell-Centered Data]
-    C -->|Surface Fields| D2[ข้อมูลหน้าขอบเขต<br/>Boundary Face Data]
-    C -->|Lagrangian| E[ข้อมูลกลุ่มอนุภาค<br/>Particle Cloud Data]
-    D --> F[ไฟล์รูปแบบ VTK<br/>VTK Format Files]
-    D2 --> F
-    E --> F
-    F --> G[การสร้างภาพใน ParaView<br/>ParaView Visualization]
-    G --> H[การวิเคราะห์และส่งออก<br/>Analysis & Export]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+
+A[Case]:::context --> B[foamToVTK]:::explicit
+B --> C{Data Type}:::explicit
+C -->|Volume| D[Cell Data]:::implicit
+C -->|Surface| D2[Boundary Data]:::implicit
+C -->|Lagrangian| E[Particle Data]:::implicit
+
+D & D2 & E --> F[VTK Files]:::implicit
+F --> G[ParaView]:::explicit
+G --> H[Export]:::context
 ```
 > **Figure 1:** ผังงานแสดงกระบวนการแปลงข้อมูลจาก OpenFOAM โดยใช้ `foamToVTK` เพื่อแยกประเภทข้อมูลเป็น Volume Fields, SurfaceFields และ Lagrangian Data ให้อยู่ในรูปแบบไฟล์ VTK ที่พร้อมสำหรับการสร้างภาพและวิเคราะห์ผลใน ParaView
 
@@ -432,11 +435,14 @@ $$Q = \frac{1}{2} \left( |\boldsymbol{\Omega}|^2 - |\mathbf{S}|^2 \right) \tag{7
 
 ```mermaid
 flowchart TD
-    A[ไฟล์ VTK] --> B[ParaView Python Script]
-    B --> C[สร้างวัตถุการสร้างภาพ]
-    C --> D[ตั้งค่ากล้องและแสง]
-    D --> E[เรนเดอร์ภาพแบบกลุ่ม<br/>Batch Rendering]
-    E --> F[ผลลัพธ์ภาพ/วิดีโอ]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+
+A[VTK Files]:::explicit --> B[Python Script]:::explicit
+B --> C[Create Objects]:::implicit
+C --> D[Camera/Light]:::implicit
+D --> E[Batch Render]:::implicit
+E --> F[Image/Video]:::implicit
 ```
 > **Figure 2:** แผนภูมิขั้นตอนการทำงานของระบบสร้างภาพอัตโนมัติ (ParaView Automation) ตั้งแต่การนำเข้าไฟล์ VTK การรันสคริปต์ Python เพื่อสร้างวัตถุ ตั้งค่ามุมมองและแสงสว่าง ไปจนถึงการเรนเดอร์ภาพแบบกลุ่มเพื่อสร้างเป็นวิดีโอสรุปผล
 

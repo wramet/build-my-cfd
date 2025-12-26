@@ -9,16 +9,24 @@
 
 ```mermaid
 flowchart TD
-    A[Field Algebra Overview] --> B[Arithmetic Operations]
-    B --> C[Operator Overloading]
-    C --> D[Dimensional Checking]
-    D --> E[Expression Templates]
-    E --> F[Field Composition]
-    F --> G[Performance Optimization]
-    G --> H[Practical Applications]
-
-    style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
-    style H fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+classDef core fill:#e3f2fd,stroke:#1565c0,color:#000
+classDef advanced fill:#fff3e0,stroke:#e65100,color:#000
+classDef app fill:#e8f5e9,stroke:#2e7d32,color:#000
+A["Field Algebra Overview"]:::core
+B["Arithmetic Operations"]:::core
+C["Operator Overloading"]:::core
+D["Dimensional Checking"]:::core
+E["Expression Templates"]:::advanced
+F["Field Composition"]:::advanced
+G["Performance Optimization"]:::advanced
+H["Practical Applications"]:::app
+A --> B
+B --> C
+C --> D
+D --> E
+E --> F
+F --> G
+G --> H
 ```
 > **Figure 1:** แผนผังลำดับความเชื่อมโยงในระบบพีชคณิตฟิลด์ของ OpenFOAM ตั้งแต่การดำเนินการพื้นฐานไปจนถึงการเพิ่มประสิทธิภาพและการประยุกต์ใช้งานจริงในตัวแก้ปัญหา CFDความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

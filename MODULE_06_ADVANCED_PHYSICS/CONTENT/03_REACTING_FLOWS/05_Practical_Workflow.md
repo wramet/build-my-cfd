@@ -734,17 +734,21 @@ chemistry
 ## สรุปขั้นตอนการทำงานที่สมบูรณ์ (Complete Workflow Summary)
 
 ```mermaid
-flowchart TD
-    A[เตรียมไฟล์เคมี<br/>chem.inp, therm.dat, tran.dat] --> B[กำหนดค่า thermophysicalProperties]
-    B --> C[เลือกแบบจำลองการเผาไหม้<br/>PaSR หรือ EDC]
-    C --> D[ตั้งค่าตัวแก้สมการเคมี<br/>SEulex, Rosenbrock, CVODE]
-    D --> E[กำหนดเงื่อนไขเริ่มต้นและ<br/>เงื่อนไขขอบเขต]
-    E --> F[รันตัวแก้ปัญหา<br/>reactingFoam]
-    F --> G[ติดตามการลู่เข้า]
-    G --> H{ลู่เข้าแล้วหรือยัง?};
-    H -->|ยัง| I[แก้ไขปัญหาและ<br/>ปรับปรุงพารามิเตอร์]
-    I --> F
-    H -->|ใช่| J[ประมวลผลภายหลังและ<br/>การวิเคราะห์]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Files["Files<br/>chem.inp, therm.dat"]:::context
+Setup["Setup<br/>Combustion & ODE Solver"]:::implicit
+Run["Run reactingFoam"]:::explicit
+Check{"Converged?"}:::context
+Post["Post-Processing"]:::implicit
+
+Files --> Setup
+Setup --> Run
+Run --> Check
+Check -- No --> Run
+Check -- Yes --> Post
 ```
 > **รูปที่ 1:** แผนผังลำดับขั้นตอนการปฏิบัติงานสำหรับการจำลองการไหลแบบมีปฏิกิริยาเคมีที่สมบูรณ์ ตั้งแต่การเตรียมข้อมูลกลไกปฏิกิริยาเคมี การตั้งค่าพารามิเตอร์ของ Solver ไปจนถึงกระบวนการวิเคราะห์ผลลัพธ์เชิงวิศวกรรมและการแก้ปัญหาความไม่ลู่เข้าของคำตอบ
 

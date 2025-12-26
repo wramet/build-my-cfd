@@ -30,13 +30,17 @@
 | **Virtual Memory** | หน่วยความจำที่จองไว้ (รวม Swap) | GB | - |
 
 ```mermaid
-graph TD
-    A[เริ่มจับเวลา: Start Timer] --> B[วนลูป Solver: Solver Iterations]
-    B --> C[ตรวจสอบการลู่เข้า: Check Convergence]
-    C -- ยังไม่ลู่เข้า: No --> B
-    C -- ลู่เข้าแล้ว: Yes --> D[หยุดจับเวลา: Stop Timer]
-    D --> E[คำนวณ Wall Time vs CPU Time]
-    E --> F[รายงานเมตริกประสิทธิภาพ: Report Performance Metrics]
+flowchart TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px
+A[เริ่มจับเวลา: Start Timer]:::context --> B[วนลูป Solver: Solver Iterations]:::implicit
+B --> C[ตรวจสอบการลู่เข้า: Check Convergence]:::implicit
+C -- ยังไม่ลู่เข้า: No --> B
+C -- ลู่เข้าแล้ว: Yes --> D[หยุดจับเวลา: Stop Timer]:::implicit
+D --> E[คำนวณ Wall Time vs CPU Time]:::implicit
+E --> F[รายงานเมตริกประสิทธิภาพ: Report Performance Metrics]:::success
 ```
 
 ### 1.1.3 การบันทึกเวลาในโค้ด OpenFOAM
@@ -182,15 +186,19 @@ $$
 4. **Function Objects**: บางตัวที่ไม่รองรับ Parallel อย่างเต็มที่
 
 ```mermaid
-graph LR
-    A[เริ่ม Profiling: Start Profiling] --> B[รัน 1 CPU: Run with 1 CPU]
-    B --> C[บันทึกเวลา T1: Record Time T1]
-    C --> D[รัน N CPUs: Run with N CPUs]
-    D --> E[บันทึกเวลา Tn: Record Time Tn]
-    E --> F{คำนวณ Efficiency: Calculate Efficiency}
-    F -- มากกว่า 80%: > 80% --> G[การปรับขนานดี: Good Scaling]
-    F -- น้อยกว่า 50%: < 50% --> H[วิเคราะห์ Bottleneck: Network/IO/Serial]
-    H --> I[ปรับปรุงโค้ดหรือการ Decompose]
+flowchart LR
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[เริ่ม Profiling: Start Profiling]:::explicit --> B[รัน 1 CPU: Run with 1 CPU]:::implicit
+B --> C[บันทึกเวลา T1: Record Time T1]:::implicit
+C --> D[รัน N CPUs: Run with N CPUs]:::implicit
+D --> E[บันทึกเวลา Tn: Record Time Tn]:::implicit
+E --> F{คำนวณ Efficiency: Calculate Efficiency}:::warning
+F -- มากกว่า 80%: > 80% --> G[การปรับขนานดี: Good Scaling]:::success
+F -- น้อยกว่า 50%: < 50% --> H[วิเคราะห์ Bottleneck: Network/IO/Serial]:::explicit
+H --> I[ปรับปรุงโค้ดหรือการ Decompose]:::implicit
 ```
 
 ### 1.2.2 การปรับขนาดแบบอ่อน (Weak Scaling)
@@ -593,19 +601,23 @@ nCPUs,WallTime,CPUTime,Speedup,Efficiency
 ### 1.5.1 กระบวนการวิเคราะห์จุดคอขวบ
 
 ```mermaid
-graph TD
-    A[เริ่ม Performance Profiling] --> B[รัน Solver และจับเวลา]
-    B --> C[ระบุส่วนที่ใช้เวลานานที่สุด]
-    C --> D{ประเภท Bottleneck}
-    D -- Computation: คำนวณหนัก --> E[เปลี่ยน Numerical Scheme หรือ Algorithm]
-    D -- Communication: ส่งข้อมูลบ่อย --> F[ปรับ Decomposition หรือใช้ GSLIB]
-    D -- I/O: อ่าน/เขียนช้า --> G[ลดการ Output หรือใช้ Parallel I/O]
-    E --> H[ทดสอบอีกครั้ง]
-    F --> H
-    G --> H
-    H --> I{ดีขึ้นหรือไม่?}
-    I -- ใช่ --> J[บันทึกและนำไปใช้]
-    I -- ไม่ --> K[ลองวิธีอื่นหรือยอมรับ]
+flowchart TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+classDef warning fill:#fff3e0,stroke:#e65100,stroke-width:2px
+A[เริ่ม Performance Profiling]:::explicit --> B[รัน Solver และจับเวลา]:::implicit
+B --> C[ระบุส่วนที่ใช้เวลานานที่สุด]:::implicit
+C --> D{ประเภท Bottleneck}:::warning
+D -- "Computation: คำนวณหนัก" --> E[เปลี่ยน Numerical Scheme หรือ Algorithm]:::implicit
+D -- "Communication: ส่งข้อมูลบ่อย" --> F[ปรับ Decomposition หรือใช้ GSLIB]:::implicit
+D -- "I/O: อ่าน/เขียนช้า" --> G[ลดการ Output หรือใช้ Parallel I/O]:::implicit
+E --> H[ทดสอบอีกครั้ง]:::implicit
+F --> H
+G --> H
+H --> I{ดีขึ้นหรือไม่?}:::warning
+I -- ใช่ --> J[บันทึกและนำไปใช้]:::success
+I -- ไม่ --> K[ลองวิธีอื่นหรือยอมรับ]:::explicit
 ```
 
 ### 1.5.2 เทคนิคการปรับปรุงประสิทธิภาพ

@@ -57,15 +57,17 @@ smart pointers แบบกำหนดเองของ OpenFOAM เป็น 
 
 ```mermaid
 graph TD
-    A[OpenFOAM Memory Management] --> B[Exclusive Ownership<br/>autoPtr&lt;T&gt;]
-    A --> C[Shared Ownership<br/>tmp&lt;T&gt;]
-    A --> D[Reference Counting<br/>refCount Class]
-    A --> E[Centralized Registry<br/>objectRegistry]
-
-    B --> F[Automatic Cleanup]
-    C --> G[Zero-copy Sharing]
-    D --> G
-    E --> H[Object Lookup & Persistence]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+A[OpenFOAM Memory Management]:::explicit --> B[Exclusive Ownership<br/>autoPtr&lt;T&gt;]:::implicit
+A --> C[Shared Ownership<br/>tmp&lt;T&gt;]:::implicit
+A --> D[Reference Counting<br/>refCount Class]:::implicit
+A --> E[Centralized Registry<br/>objectRegistry]:::implicit
+B --> F[Automatic Cleanup]:::success
+C --> G[Zero-copy Sharing]:::success
+D --> G
+E --> H[Object Lookup & Persistence]:::success
 ```
 > **Figure 1:** องค์ประกอบหลักทั้ง 4 ประการของระบบจัดการหน่วยความจำใน OpenFOAM ซึ่งทำงานร่วมกันเพื่อรับประกันความปลอดภัยของทรัพยากร (Resource Safety) และเพิ่มประสิทธิภาพในการประมวลผลข้อมูลขนาดใหญ่โดยลดการคัดลอกข้อมูลที่ไม่จำเป็น
 

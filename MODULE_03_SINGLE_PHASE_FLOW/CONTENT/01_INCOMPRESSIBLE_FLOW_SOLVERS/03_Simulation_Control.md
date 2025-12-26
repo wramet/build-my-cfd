@@ -557,25 +557,30 @@ p
 
 ```mermaid
 flowchart TD
-    A[เริ่มต้น] --> B[ตรวจสอบ Mesh Quality]
-    B --> C{คุณภาพดี?}
-    C -->|ไม่| D[ปรับปรุง Mesh]
-    D --> B
-    C -->|ใช่| E[ตั้งค่า Initial Conditions]
-    E --> F[ตั้งค่า Boundary Conditions]
-    F --> G[ตั้งค่า controlDict]
-    G --> H[ตั้งค่า fvSchemes]
-    H --> I[ตั้งค่า fvSolution]
-    I --> J[เริ่มต้นรัน Solver]
-    J --> K[ตรวจสอบ Residuals]
-    K --> L{ลู่เข้า?}
-    L -->|ไม่| M[ปรับพารามิเตอร์]
-    M --> K
-    L -->|ใช่| N[ตรวจสอบ Physical Quantities]
-    N --> O{คงที่?}
-    O -->|ไม่| M
-    O -->|ใช่| P[การจำลองสำเร็จ]
-    P --> Q[วิเคราะห์ผลลัพธ์]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Start]:::context --> B[Check Mesh]:::implicit
+B --> C{Quality OK?}:::context
+C -->|No| D[Fix Mesh]:::explicit
+D --> B
+C -->|Yes| E[Set Initial Conditions]:::implicit
+E --> F[Set BCs]:::implicit
+F --> G[Set controlDict]:::implicit
+G --> H[Set fvSchemes]:::implicit
+H --> I[Set fvSolution]:::implicit
+I --> J[Run Solver]:::explicit
+J --> K[Check Residuals]:::implicit
+K --> L{Converged?}:::context
+L -->|No| M[Adjust Params]:::explicit
+M --> K
+L -->|Yes| N[Check Physics]:::implicit
+N --> O{Stable?}:::context
+O -->|No| M
+O -->|Yes| P[Success]:::implicit
+P --> Q[Analysis]:::context
 ```
 
 > **Figure 1:** แผนผังลำดับขั้นตอนการจำลองพลศาสตร์ของไหลเชิงคำนวณ (CFD Simulation Workflow) ใน OpenFOAM ตั้งแต่การตรวจสอบคุณภาพของเมช การตั้งค่าเงื่อนไขต่างๆ ไปจนถึงกระบวนการวนซ้ำเพื่อตรวจสอบความลู่เข้าของทั้งค่า Residual และปริมาณทางกายภาพ เพื่อให้มั่นใจในความถูกต้องและความเสถียรของผลลัพธ์

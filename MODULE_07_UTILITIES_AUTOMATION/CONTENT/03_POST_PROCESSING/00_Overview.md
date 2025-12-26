@@ -34,33 +34,32 @@ OpenFOAM มีชุดเครื่องมือ Post-processing ที่
 
 ```mermaid
 graph TD
-    A["Raw CFD Data<br/>(Time Directories)"] --> B["Field Extraction<br/>(foamCalc, sample)"]
-    A --> C["Force Analysis<br/>(forces, forceCoeffs)"]
-    A --> D["Surface Integration<br/>(wallShearStress, yPlus)"]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Raw CFD Data]:::explicit --> B[Field Extraction]:::implicit
+A --> C[Force Analysis]:::implicit
+A --> D[Surface Integration]:::implicit
 
-    B --> E["Point-Based Monitoring<br/>(probes functionObject)"]
-    B --> F["Line/Plane Sampling<br/>(sample utility)"]
-    B --> G["Volume Integration<br/>(volIntegrate)"]
+B --> E[Probes]:::context
+B --> F[Sampling]:::context
+B --> G[Vol Integrate]:::context
 
-    C --> H["Aerodynamic Coefficients<br/>(Cd, Cl, Cm)"]
-    C --> I["Pressure/Viscous Forces<br/>(Force Decomposition)"]
+C --> H[Coefficients Cd/Cl]:::implicit
+C --> I[Force Decomposition]:::implicit
 
-    D --> J["Boundary Layer Analysis<br/>(y+, wall shear)"]
-    D --> K["Heat Transfer<br/>(wallHeatFlux)"]
+D --> J[Wall Shear/y+]:::implicit
+D --> K[Heat Transfer]:::implicit
 
-    E --> L["Engineering Insights"]
-    F --> L
-    G --> L
-    H --> L
-    I --> L
-    J --> L
-    K --> L
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style C fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style D fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    style L fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
+E --> L[Engineering Insights]:::explicit
+F --> L
+G --> L
+H --> L
+I --> L
+J --> L
+K --> L
 ```
 > **Figure 1:** ผังงานแสดงโครงสร้างการทำงานของระบบ Post-processing ใน OpenFOAM ซึ่งเริ่มจากการนำข้อมูลดิบ (Raw Data) มาผ่านกระบวนการวิเคราะห์ใน 3 เส้นทางหลัก ได้แก่ การสกัดข้อมูลสนาม (Field Extraction), การวิเคราะห์แรง (Force Analysis) และการอินทิเกรตบนพื้นผิว (Surface Integration) เพื่อนำไปสู่การสรุปผลเชิงวิศวกรรม
 
@@ -96,20 +95,22 @@ $$\langle \phi \rangle_{\Omega} = \frac{\int_{\Omega} \phi(\mathbf{x}) \, \mathr
 
 ```mermaid
 graph LR
-    A["Case Directory"] --> B["time directories"]
-    B --> C["0/", "0.1/", "0.2/", ...]
-    C --> D["Field Files"]
-    D --> E["volScalarField<br/>(p, T, k)"]
-    D --> F["volVectorField<br/>(U, UMean)"]
-    D --> G["volTensorField<br/>(gradU, tau)"]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Case Directory]:::context --> B[Time Directories]:::explicit
+B --> C[0/, 0.1/, ...]:::explicit
+C --> D[Field Files]:::implicit
+D --> E[volScalarField]:::implicit
+D --> F[volVectorField]:::implicit
+D --> G[volTensorField]:::implicit
 
-    A --> H["postProcessing/"]
-    H --> I["probes/"]
-    H --> J["forces/"]
-    H --> K["graphs/"]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-    style H fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
+A --> H[postProcessing/]:::context
+H --> I[probes/]:::implicit
+H --> J[forces/]:::implicit
+H --> K[graphs/]:::implicit
 ```
 > **Figure 2:** โครงสร้างลำดับชั้นของข้อมูลภายใน Case Directory ของ OpenFOAM แสดงการจัดเก็บไฟล์ข้อมูลสนาม (Field Files) ในไดเรกทอรีเวลา (Time Directories) และการจัดเก็บผลลัพธ์จากการวิเคราะห์ในไดเรกทอรี `postProcessing` แยกตามประเภทของเครื่องมือที่ใช้
 
@@ -1030,22 +1031,22 @@ $$\frac{\mathrm{d}E}{\mathrm{d}t} = \dot{W}_{\text{pressure}} - \dot{E}_{\text{d
 
 ```mermaid
 graph TD
-    A["Define Analysis Objectives"] --> B["Identify Key Quantities"]
-    B --> C["Select Appropriate Utilities"]
-    C --> D["Configure functionObjects"]
-    D --> E["Run Simulation"]
-    E --> F["Runtime Monitoring"]
-    F --> G["Convergence Check"]
-    G --> H{Converged?}
-    H -->|No| E
-    H -->|Yes| I["Batch Post-Processing"]
-    I --> J["Data Validation"]
-    J --> K["Engineering Analysis"]
-    K --> L["Reporting & Visualization"]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-    style F fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
-    style L fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Define Objectives]:::explicit --> B[Identify Quantities]:::explicit
+B --> C[Select Utilities]:::implicit
+C --> D[Config functionObjects]:::implicit
+D --> E[Run Simulation]:::implicit
+E --> F[Runtime Monitor]:::context
+F --> G{Converged?}:::context
+G -->|No| E
+G -->|Yes| I[Batch Post-Processing]:::implicit
+I --> J[Validation]:::implicit
+J --> K[Engineering Analysis]:::explicit
+K --> L[Reporting]:::explicit
 ```
 > **Figure 3:** แผนภูมิขั้นตอนการวางแผนและดำเนินการประมวลผลหลังการจำลอง (Post-processing Strategy) ครอบคลุมตั้งแต่การกำหนดวัตถุประสงค์ การตั้งค่า Runtime Monitoring เพื่อตรวจสอบความบรรจบ (Convergence) ไปจนถึงการวิเคราะห์แบบ Batch และการสร้างรายงานสรุปผล
 

@@ -182,20 +182,19 @@ $$GCI_{fine} = F_s \frac{|\epsilon_{fine}|}{r^p - 1}$$
 
 ```mermaid
 flowchart TD
-    A[อัปเดตเคสจำลอง] --> B[รันสคริปต์ทดสอบ Mesh]
-    B --> C{ผ่านเกณฑ์คุณภาพ?}
-    C -->|ไม่ผ่าน| D[ปรับการตั้งค่า Mesh]
-    D --> B
-    C -->|ผ่าน| E[รันการจำลองระดับ Regression]
-    E --> F{ผลลัพธ์ตรงกับมาตรฐาน?}
-    F -->|ไม่ตรง| G[ตรวจสอบ Physics/Solver Settings]
-    G --> E
-    F -->|ตรง| H[อนุมัติการจำลองจริง Production Run]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style H fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style C fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
-    style F fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+A[Update Case]:::explicit --> B[Run Mesh Test]:::implicit
+B --> C{Quality?}:::explicit
+C -->|Fail| D[Adjust Mesh]:::explicit
+D --> B
+C -->|Pass| E[Run Regression Sim]:::implicit
+E --> F{Results OK?}:::explicit
+F -->|No| G[Check Physics]:::explicit
+G --> E
+F -->|Yes| H[Approve Production]:::implicit
 ```
 > **Figure 1:** แผนภูมิแสดงลำดับกระบวนการประกันคุณภาพ (QA Workflow) ครอบคลุมการทดสอบคุณภาพเมชและการจำลองระดับ Regression เพื่อเปรียบเทียบกับค่ามาตรฐานก่อนอนุมัติให้ดำเนินการจำลองจริงในระดับการผลิต
 

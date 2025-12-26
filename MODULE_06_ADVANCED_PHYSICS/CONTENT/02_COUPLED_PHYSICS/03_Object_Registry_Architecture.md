@@ -267,16 +267,17 @@ const fieldType& field = registry.lookupObject<fieldType>(name);
 ### 2.4 Object Lifecycle
 
 ```mermaid
-flowchart TD
-    A[Create regIOobject] --> B[checkIn with Registry]
-    B --> C[Object Registered]
-    C --> D[Use in Simulation]
-    D --> E[checkOut or Destruct]
-    E --> F[Automatic Cleanup]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Create["Create regIOobject"]:::context
+CheckIn["checkIn"]:::explicit
+Reg["Registered"]:::implicit
+Use["Use in Simulation"]:::implicit
+Clean["checkOut / Destruct"]:::explicit
 
-    style A fill:#e1f5fe
-    style C fill:#c8e6c9
-    style F fill:#ffcdd2
+Create --> CheckIn --> Reg --> Use --> Clean
 ```
 > **Figure 1:** แผนภาพแสดงวงจรชีวิตของวัตถุ (Object Lifecycle) ภายในระบบการจดทะเบียนของ OpenFOAM ตั้งแต่การสร้างออบเจกต์ การลงทะเบียนเข้าสู่ระบบ (checkIn) ไปจนถึงการล้างข้อมูลโดยอัตโนมัติเพื่อป้องกันปัญหาหน่วยความจำรั่วไหล
 
@@ -549,19 +550,20 @@ const volVectorField& T_bad =
 ### 6.1 Registry Hierarchy Diagram
 
 ```mermaid
-flowchart TD
-    Time[Time: Global objectRegistry] --> FM[fluidMesh: objectRegistry]
-    Time --> SM[solidMesh: objectRegistry]
+graph TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
+Time["Time (Global Registry)"]:::context
+FM["fluidMesh"]:::implicit
+SM["solidMesh"]:::implicit
+Fields1["Fields: U, p, T (fluid)"]:::explicit
+Fields2["Fields: U, p, T (solid)"]:::explicit
 
-    FM --> FT[T: volScalarField]
-    FM --> FU[U: volVectorField]
-    FM --> FP[p: volScalarField]
-
-    SM --> ST[T: volScalarField]
-
-    style Time fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style FM fill:#e3f2fd,stroke:#1565c0
-    style SM fill:#e8f5e9,stroke:#2e7d32
+Time --> FM
+Time --> SM
+FM --> Fields1
+SM --> Fields2
 ```
 > **Figure 2:** แผนผังแสดงโครงสร้างลำดับชั้นของระบบการจดทะเบียนวัตถุ (Registry Hierarchy) ในการจำลองแบบหลายภูมิภาค ซึ่งช่วยให้สามารถแยกแยะฟิลด์ที่มีชื่อซ้ำกันได้ภายใต้ภูมิภาคที่แตกต่างกัน ( fluidMesh vs solidMesh )
 
@@ -585,29 +587,29 @@ Global Registry (Time)
 
 ```mermaid
 classDiagram
-    class objectRegistry {
-        +lookupObject(name)
-        +checkOut(obj)
-        +checkIn(obj)
-    }
-    class regIOobject {
-        +write()
-        +rename(newName)
-        +db()
-    }
-    class fvMesh {
-        +thisDb()
-    }
-    class volScalarField {
-        +name()
-        +internalField()
-        +boundaryField()
-    }
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
 
-    objectRegistry <|-- fvMesh
-    regIOobject <|-- fvMesh
-    regIOobject <|-- volScalarField
-    fvMesh "1" *-- "many" volScalarField : contains
+class objectRegistry {
+    +lookupObject()
+    +checkIn()
+    +checkOut()
+}
+class regIOobject {
+    +write()
+    +db()
+}
+class fvMesh {
+    +thisDb()
+}
+class volScalarField {
+    +internalField()
+}
+objectRegistry <|-- fvMesh
+regIOobject <|-- fvMesh
+regIOobject <|-- volScalarField
+fvMesh "1" *-- "*" volScalarField
 ```
 > **Figure 3:** แผนผังคลาสแสดงความสัมพันธ์ระหว่างระบบจัดการข้อมูล (objectRegistry) และฟิลด์ข้อมูลทางฟิสิกส์ โดยแสดงให้เห็นว่าเมชทำหน้าที่เป็นศูนย์กลางในการบรรจุและจัดการข้อมูลฟิลด์ต่างๆ ภายในแต่ละภูมิภาค
 

@@ -2,19 +2,22 @@
 
 ```mermaid
 mindmap
-  root((OpenFOAM Mesh))
-    Architecture
-      primitiveMesh (Geometry/Lazy Eval)
-      polyMesh (Topology/Connectivity)
-      fvMesh (CFD Fields/Registry)
-    Key Concepts
-      Lazy Evaluation (Efficiency)
-      Owner-Neighbour (Topology)
-      Object Registry (Management)
-    Best Practices
-      Use References
-      Avoid unnecessary point edits
-      Check Mesh Quality
+root((OpenFOAM Mesh))
+Architecture
+primitiveMesh
+Geometry/Lazy Eval
+polyMesh
+Topology/Connectivity
+fvMesh
+CFD Fields/Registry
+Key Concepts
+Lazy Evaluation
+Owner-Neighbour
+Object Registry
+Best Practices
+Use References
+Avoid unnecessary edits
+Check Mesh Quality
 ```
 > **Figure 1:** แผนผังความคิดสรุปองค์ประกอบหลักของระบบเมชใน OpenFOAM ครอบคลุมทั้งโครงสร้างสถาปัตยกรรม แนวคิดสำคัญ และแนวทางปฏิบัติที่ดีที่สุดสำหรับการพัฒนาโปรแกรม
 

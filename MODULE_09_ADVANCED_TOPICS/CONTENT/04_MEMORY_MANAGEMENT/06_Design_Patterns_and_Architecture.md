@@ -614,25 +614,36 @@ tmp<volScalarField> t2 = mesh.lookupObject<...>("p");  // Persistent
 
 ```mermaid
 graph TD
-    A[Memory Architecture] --> B[RAII]
-    A --> C[Reference Counting]
-    A --> D[Registry]
-    A --> E[Move Semantics]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+subgraph Memory_Architecture["Memory Architecture"]
+direction TB
+A[Core Concepts]:::explicit
+B[RAII]:::implicit
+C[Reference Counting]:::implicit
+D[Registry]:::implicit
+E[Move Semantics]:::implicit
 
-    B --> B1[Resource Safety]
-    C --> C1[Shared Data Efficiency]
-    D --> D1[Centralized Management]
-    E --> E1[Zero-copy Ownership Transfer]
+B --> B1[Resource Safety]:::success
+C --> C1[Shared Data Efficiency]:::success
+D --> D1[Centralized Management]:::success
+E --> E1[Zero-copy Ownership Transfer]:::success
+end
 
-    F[Design Patterns] --> G[autoPtr]
-    F --> H[tmp]
-    F --> I[refCount]
-    F --> J[objectRegistry]
+subgraph Design_Patterns["Design Patterns"]
+direction TB
+F[Pattern Implementations]:::explicit
+G[autoPtr]:::implicit
+H[tmp]:::implicit
+I[refCount]:::implicit
+J[objectRegistry]:::implicit
 
-    G --> G1[Exclusive Ownership]
-    H --> H1[Temporary/Persistent Dual Mode]
-    I --> I1[Lightweight Reference Counting]
-    J --> J1[Hierarchical Object Management]
+G --> G1[Exclusive Ownership]:::success
+H --> H1[Temporary/Persistent Dual Mode]:::success
+I --> I1[Lightweight Reference Counting]:::success
+J --> J1[Hierarchical Object Management]:::success
+end
 ```
 
 ### การเปรียบเทียบกับ Smart Pointers มาตรฐาน
@@ -755,15 +766,17 @@ energyDensity = temp2 + temp3;
 
 ```mermaid
 graph TD
-    A[Memory Architecture] --> B[RAII]
-    A --> C[Reference Counting]
-    A --> D[Registry]
-    A --> E[Move Semantics]
-
-    B --> B1[Resource Safety]
-    C --> C1[Shared Data Efficiency]
-    D --> D1[Centralized Management]
-    E --> E1[Zero-copy Ownership Transfer]
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef explicit fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+A[Memory Architecture]:::explicit --> B[RAII]:::implicit
+A --> C[Reference Counting]:::implicit
+A --> D[Registry]:::implicit
+A --> E[Move Semantics]:::implicit
+B --> B1[Resource Safety]:::success
+C --> C1[Shared Data Efficiency]:::success
+D --> D1[Centralized Management]:::success
+E --> E1[Zero-copy Ownership Transfer]:::success
 ```
 
 > **Figure 1:** สรุปบทบาทของรูปแบบการออกแบบต่างๆ ในการจัดการหน่วยความจำของ OpenFOAM โดยแต่ละรูปแบบจะมุ่งเน้นการแก้ปัญหาที่แตกต่างกัน ตั้งแต่ความปลอดภัยของทรัพยากร ความประหยัดในการแชร์ข้อมูล ไปจนถึงการรวมศูนย์การจัดการออบเจกต์

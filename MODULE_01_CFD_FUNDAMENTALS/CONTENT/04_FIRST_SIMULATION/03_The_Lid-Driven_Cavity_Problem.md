@@ -11,18 +11,16 @@
 
 ```mermaid
 flowchart TD
-    A["Cavity Geometry<br/>Square Box with Fluid"] --> B["Moving Lid<br/>Constant Velocity U<sub>lid</sub>"]
-    B --> C["Primary Vortex<br/>Large Central Rotation"]
-    C --> D["Secondary Vortices<br/>Corner Eddies"]
-    D --> E["Boundary Layers<br/>Wall Shear Effects"]
-    E --> F["Shear Layer<br/>Velocity Gradient"]
+    A["Cavity Geometry<br/>(Square Box)"]:::context --> B["Moving Lid<br/>(Source)"]:::volatile
+    B --> C["Primary Vortex<br/>(Core Flow)"]:::implicit
+    C --> D["Secondary Vortices<br/>(Corner Eddies)"]:::implicit
+    D --> E["Boundary Layers<br/>(Wall Interaction)"]:::explicit
+    E --> F["Shear Layer<br/>(Gradients)"]:::explicit
 
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style B fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
-    style C fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style F fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 
 > **Figure 1:** เรขาคณิตของ Lid-Driven Cavity และลักษณะการไหล แสดงให้เห็นฝาปิดด้านบนที่เคลื่อนที่ด้วยความเร็วคงที่ซึ่งขับเคลื่อนให้เกิดกระแสวนหลักขนาดใหญ่และกระแสวนรองในมุมกล่อง พร้อมผลกระทบจากความเค้นเฉือนที่ผนัง
@@ -131,37 +129,34 @@ $$\rho \left(\frac{\partial v}{\partial t} + u \frac{\partial v}{\partial x} + v
 
 ```mermaid
 flowchart TD
-    A["lidDrivenCavity/<br/>Root Directory"] --> B["0/<br/>Initial Conditions"]
-    A --> C["constant/<br/>Mesh Data"]
-    A --> D["system/<br/>Control Settings"]
-    A --> E["Allrun/<br/>Execution Script"]
+    A["lidDrivenCavity/<br/>(Root)"]:::context --> B["0/<br/>(Fields)"]:::implicit
+    A --> C["constant/<br/>(Mesh/Props)"]:::implicit
+    A --> D["system/<br/>(Settings)"]:::implicit
+    A --> E["Allrun/<br/>(Script)"]:::explicit
+    
+    B --> B1["U (Velocity)"]:::context
+    B --> B2["p (Pressure)"]:::context
+    B --> B3["k (Turbulence)"]:::context
+    B --> B4["ω/ε (Dissipation)"]:::context
 
-    B --> B1["U<br/>Velocity Field<br/>Boundary Conditions"]
-    B --> B2["p<br/>Pressure Field<br/>Boundary Conditions"]
-    B --> B3["k<br/>Turbulence Kinetic<br/>Energy (if needed)"]
-    B --> B4["ω/ε<br/>Turbulence Dissipation<br/>Rate (if needed)"]
+    C --> C1["polyMesh/"]:::context
+    C --> C2["transportProperties"]:::context
+    C --> C3["turbulenceProperties"]:::context
 
-    C --> C1["polyMesh/<br/>Mesh Geometry<br/>Points, Faces, Cells"]
-    C --> C2["transportProperties<br/>Viscosity Model<br/>and Properties"]
-    C --> C3["turbulenceProperties<br/>Turbulence Model<br/>Settings"]
+    D --> D1["controlDict"]:::context
+    D --> D2["fvSchemes"]:::context
+    D --> D3["fvSolution"]:::context
+    D --> D4["blockMeshDict"]:::context
 
-    D --> D1["controlDict<br/>Time Stepping<br/>Solver Controls"]
-    D --> D2["fvSchemes<br/>Discretization<br/>Schemes"]
-    D --> D3["fvSolution<br/>Linear Solver<br/>Settings"]
-    D --> D4["blockMeshDict<br/>Mesh Generation<br/>Parameters"]
+    E --> E1["blockMesh<br/>(Meshing)"]:::explicit
+    E --> E2["icoFoam<br/>(Solving)"]:::volatile
+    E --> E3["paraFoam<br/>(Viewing)"]:::success
 
-    E --> E1["blockMesh<br/>Generate Initial Mesh"]
-    E --> E2["icoFoam<br/>Run Incompressible<br/>Flow Solver"]
-    E --> E3["paraFoam<br/>Post-processing<br/>and Visualization"]
-
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-
-    class A storage;
-    class B,C,D,E process;
-    class B1,B2,B3,B4,C1,C2,C3,D1,D2,D3,D4,E1,E2,E3 terminator;
+    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 
 > **Figure 2:** โครงสร้างไดเรกทอรีของกรณีทดสอบใน OpenFOAM แสดงการจัดแบ่งไฟล์เงื่อนไขเริ่มต้น ข้อมูล Mesh และการตั้งค่า Solver พร้อมสคริปต์สำหรับการรันและการประมวลผลขั้นหลัง
@@ -653,29 +648,24 @@ OpenFOAM Solver `icoFoam` ใช้ **PISO Algorithm** (Pressure Implicit with S
 
 ```mermaid
 flowchart TD
-    A["Start Time Step"] --> B["Predict Velocity<br/>U* from previous time step"]
-    B --> C["Solve Momentum Equation<br/>∇·(ρU*U*) = -∇p* + μ∇²U*"]
-    C --> D["Pressure Correction<br/>p' = pnew - p*"]
-    D --> E["Solve Pressure Equation<br/>∇²p' = ρ/Δt ∇·U*"]
-    E --> F["Correct Velocity<br/>U = U* - Δt/ρ ∇p'"]
-    F --> G["Update Pressure<br/>p = p* + p'"]
-    G --> H{"PISO Corrections<br/>Complete?"}
-    H -->|No| I["Additional Correction<br/>nCorrectors = 2"]
+    A["Start Step"]:::context --> B["Predict Velocity U*"]:::implicit
+    B --> C["Solve Momentum Eq"]:::implicit
+    C --> D["Pressure Correction p'"]:::explicit
+    D --> E["Solve Pressure Eq"]:::explicit
+    E --> F["Correct Velocity U"]:::implicit
+    F --> G["Update Pressure p"]:::implicit
+    G --> H{"Corrections Done?"}:::explicit
+    H -->|No| I["Next Correction"]:::context
     I --> E
-    H -->|Yes| J["Advance to Next Time Step"]
-    J --> K{"Simulation End?"}
+    H -->|Yes| J["Next Time Step"]:::implicit
+    J --> K{"Simulation Finished?"}:::explicit
     K -->|No| A
-    K -->|Yes| L["End Simulation"]
+    K -->|Yes| L["End"]:::success
 
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef terminator fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    class A,L terminator;
-    class B,C,D,F,G,I process;
-    class E,J storage;
-    class H,K decision;
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 
 > **Figure 3:** แผนผังลำดับขั้นตอนของอัลกอริทึม PISO ซึ่งใช้วิธีการทำนายและแก้ไขความดันและความเร็วในแต่ละขั้นตอนเวลา เพื่อรักษาความต่อเนื่องของมวลในแต่ละขั้นตอนของการจำลอง

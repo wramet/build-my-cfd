@@ -42,16 +42,18 @@ OpenFOAM employs a **carefully designed hierarchical structure** where different
 
 ```mermaid
 flowchart TD
-    A[Matrix Types] --> B[Dense<br/>SquareMatrix]
-    A --> C[Sparse<br/>lduMatrix]
-    A --> D[Physics-Aware<br/>fvMatrix]
-
-    B --> E[Small Systems<br/>Direct Solvers]
-    C --> F[CFD Problems<br/>Iterative Solvers]
-    D --> G[Finite Volume<br/>Boundary Conditions]
-
-    F --> H[Krylov Methods<br/>CG, BiCGStab, GMRES]
-    F --> I[Multigrid<br/>GAMG, AMG]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+A[Matrix Types]:::implicit --> B[Dense]:::implicit
+A --> C[Sparse ldu]:::implicit
+A --> D[fvMatrix]:::explicit
+B --> E[Direct Solvers]:::implicit
+C --> F[Iterative Solvers]:::implicit
+D --> G[FVM BCs]:::implicit
+F --> H[Krylov: PCG/PBiCG]:::explicit
+F --> I[Multigrid: GAMG]:::explicit
 ```
 > **Figure 1:** สถาปัตยกรรมลำดับชั้นของประเภทเมทริกซ์ใน OpenFOAM ซึ่งถูกออกแบบมาให้เหมาะสมกับการใช้งานแต่ละระดับ ตั้งแต่ระบบขนาดเล็กที่ใช้เมทริกซ์แบบหนาแน่น ไปจนถึงระบบขนาดใหญ่ที่ใช้เมทริกซ์แบบเบาบาง ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

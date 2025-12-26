@@ -111,11 +111,15 @@ OpenFOAM's **Policy-Based Design** intelligently applies template parameters to 
 
 ```mermaid
 graph TD
-    subgraph "Design Patterns Relationship"
-        T[Time: Controller] --> R[Registry: Mediator]
-        R --> D[Data Objects: Observers]
-        D -- "Report Status" --> R
-    end
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+%% Nodes
+subgraph Patterns [Design Patterns]
+    T[Time: Controller]:::explicit --> R[Registry: Mediator]:::implicit
+    R --> D[Data Objects: Observers]:::implicit
+    D -- "Report Status" --> R
+end
 ```
 > **Figure 1:** ความสัมพันธ์ระหว่างรูปแบบการออกแบบ (Design Patterns) ต่างๆ ใน OpenFOAM โดยมีคลาส Time เป็นตัวควบคุม และ Registry เป็นตัวกลางในการสื่อสารระหว่างออบเจ็กต์ข้อมูลความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
 

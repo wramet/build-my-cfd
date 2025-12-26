@@ -9,18 +9,18 @@
 
 ```mermaid
 classDiagram
-    class GeometricField {
-        +internalField_
-        +boundaryField_
-    }
-    class StatisticalField~Type~ {
-        -runningMean_
-        -runningVariance_
-        +updateStatistics()
-        +mean()
-        +variance()
-    }
-    GeometricField <|-- StatisticalField
+class GeometricField {
++internalField_
++boundaryField_
+}
+class StatisticalField~Type~ {
+-runningMean_
+-runningVariance_
++updateStatistics()
++mean()
++variance()
+}
+GeometricField <|-- StatisticalField
 ```
 > **Figure 1:** แผนผังการสืบทอดคลาสสำหรับ `StatisticalField` โดยมีการขยายขีดความสามารถจาก `GeometricField` มาตรฐานของ OpenFOAM เพื่อเพิ่มฟังก์ชันการคำนวณค่าสถิติแบบออนไลน์ (Online Statistics) ทำให้สามารถวิเคราะห์ข้อมูลได้ทันทีในระหว่างการจำลอง
 

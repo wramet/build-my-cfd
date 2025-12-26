@@ -12,29 +12,28 @@
 
 ```mermaid
 flowchart TD
-    A[Completed CFD Simulation] --> B[Data Validation]
-    B --> C[Field Extraction<br/>postProcess/sample]
-    B --> D[Force Analysis<br/>forces/forceCoeffs]
-    B --> E[Surface Integration<br/>surfaceFieldValue]
+%% Classes
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,color:#757575;
+%% Nodes
+A[Completed Simulation]:::context --> B[Data Validation]:::implicit
+B --> C[Field Extraction]:::explicit
+B --> D[Force Analysis]:::explicit
+B --> E[Surface Integration]:::explicit
 
-    C --> F[Python Processing<br/>NumPy/Pandas]
-    D --> F
-    E --> F
+C --> F[Python Processing]:::implicit
+D --> F
+E --> F
 
-    F --> G[Statistical Analysis]
-    F --> H[Visualization Generation<br/>Matplotlib/ParaView]
-    F --> I[Validation Against Theory]
+F --> G[Statistical Analysis]:::implicit
+F --> H[Visualization]:::implicit
+F --> I[Theory Check]:::context
 
-    G --> J[Comprehensive Report]
-    H --> J
-    I --> J
-
-    J --> K[Final Automated Output]
-
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style F fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
-    style J fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style K fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+G --> J[Report]:::implicit
+H --> J
+I --> J
+J --> K[Final Output]:::implicit
 ```
 > **Figure 1:** ผังงานแสดงสถาปัตยกรรมของระบบประมวลผลหลังการจำลองอัตโนมัติ (Automated Post-Processing Architecture) ครอบคลุมตั้งแต่การสกัดข้อมูล (Data Extraction) การประมวลผลด้วย Python (Processing Layer) ไปจนถึงการวิเคราะห์ทางสถิติและการสร้างรายงานสรุปผลในขั้นตอนสุดท้าย
 
