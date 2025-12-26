@@ -5,6 +5,25 @@
 
 ## **ภาพรวม**
 
+> [!TIP] **Physical Analogy: The Life of a Rental Car (วงจรชีวิตของรถเช่า)**
+>
+> เปรียบเทียบ Field Lifecycle กับ **"การเช่ารถ"** ในวันหยุด:
+>
+> 1.  **Construction (The Setup)**:
+>     -   **IOobject/Name**: จองรถระบุชื่อคนขับและรุ่นรถ (Metadata)
+>     -   **Allocation**: บริษัทเตรียมรถให้พร้อม (จอง Memory)
+>     -   **Read Data**: ปรับเบาะและกระจกตามที่คนขับคนก่อนตั้งไว้ (อ่านค่าจากไฟล์ 0/)
+>
+> 2.  **Usage (The Drive)**:
+>     -   **CorrectBCs**: เช็คลมยางและปิดประตูก่อนออกตัว (Update boundaries boundary conditions)
+>     -   **Equation Solve**: ขับไปตามถนน (Solve matrices)
+>     -   **Time Step**: เวลาผ่านไป 1 ชั่วโมง (Time advancement)
+>
+> 3.  **Destruction (The Return)**:
+>     -   **Destructor**: คืนกุญแจ, บริษัทเอารถไปล้าง (Clear Memory/Pointers), และลบข้อมูลการใช้งานของเรา (References = 0)
+>
+> ทุกขั้นตอนมีกฎระเบียบ (RAII) เพื่อให้แน่ใจว่าไม่มีรถหาย (Memory Lease) หรือกุญแจค้าง (Dangling Pointers)
+
 เอกสารนี้อธิบายวงจรชีวิตที่สมบูรณ์ของฟิลด์ OpenFOAM ตั้งแต่การสร้าง การใช้งาน ไปจนถึงการทำลาย โดยเน้นที่กลไกภายในที่ทำให้ฟิลด์ทำงานได้อย่างมีประสิทธิภาพและปลอดภัย
 
 ---
@@ -576,5 +595,26 @@ p2[0] = 1000.0;  // p2 แยกจาก p1
 
 - [[01_Introduction]] - ภาพรวมระบบฟิลด์
 - [[04_⚙️_Key_Mechanisms_The_Inheritance_Chain]] - ลำดับชั้นการสืบทอดที่สมบูรณ์
-- [[09_🧠_Under_the_Hood_Complete_CFD_Field_Lifecycle]] - รายละเอียดเชิงลึกเกี่ยวกับวงจรชีวิต
-- [[06_⚠️_Common_Pitfalls_and_Solutions]] - ข้อผิดพลาดเพิ่มเติมและวิธีแก้ไข
+
+---
+
+## 🧠 6. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ทำไมการเรียก `correctBoundaryConditions()` จึงมีผล "ก่อน" การเริ่มแก้สมการ (Solving)?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะการแก้สมการ (เช่น Laplacian หรือ Div) จำเป็นต้องใช้ค่าที่ขอบ (Boundary Faces) ในการคำนวณ Flux หรือ Gradient หากไม่อัปเดตค่าขอบให้เป็นปัจจุบันก่อน ผลลัพธ์การคำนวณจะผิดเพี้ยนตามไปด้วย
+    </details>
+
+2.  **ถ้าเราเขียน `volScalarField* ptr = new volScalarField(...)` แต่ลืมเรียก `delete ptr;` จะเกิดอะไรขึ้น? OpenFOAM จะจัดการให้ไหม?**
+    <details>
+    <summary>เฉลย</summary>
+    **ไม่จัดการให้! (Memory Leak)**: การใช้ Raw Pointer (`*`) และ `new` เป็นการข้ามระบบจัดการอัตโนมัติ (RAII) ของ OpenFOAM ถ้าคุณไม่ `delete` เอง Memory นั้นก็จะหายไปจนกว่าโปรแกรมจะจบ (ควรใช้ `autoPtr` หรือ `tmp` แทนเสมอ)
+    </details>
+
+3.  **ความแตกต่างระหว่าง `MUST_READ` และ `NO_READ` ใน IOobject คืออะไร?**
+    <details>
+    <summary>เฉลย</summary>
+    -   **MUST_READ**: บังคับว่าต้องมีไฟล์อยู่จริงในโฟลเดอร์ (เช่น `0/p`) โปรแกรมจะโหลดค่าจากไฟล์นั้น
+    -   **NO_READ**: ไม่สนใจไฟล์ สร้าง Field ขึ้นมาใหม่ใน Memory เลย (ใช้สำหรับการสร้าง Field ชั่วคราวระหว่างคำนวณ)
+    </details>

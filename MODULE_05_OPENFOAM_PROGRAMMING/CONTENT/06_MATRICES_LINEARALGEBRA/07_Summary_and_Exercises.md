@@ -51,6 +51,18 @@ end
 
 ---
 
+> [!TIP] **Physical Analogy: The City Infrastructure Management (การจัดการโครงสร้างพื้นฐานเมือง)**
+>
+> ลองมองภาพรวมของระบบทั้งหมดเหมือนการจัดการเมืองใหญ่:
+>
+> 1.  **Dense Matrix**: เหมือน **"แผนที่ดาวเทียมความละเอียดสูงทุกตารางนิ้ว"** เก็บข้อมูลทุกอย่างแม้แต่ที่ว่างเปล่า (เปลืองที่เก็บมาก แต่ละเอียดสุดๆ) - ใช้เฉพาะงานเล็กๆ
+> 2.  **Sparse Matrix (LDU)**: เหมือน **"แผนที่รถไฟฟ้า BTS/MRT"** เก็บเฉพาะสถานีและการเชื่อมต่อ (ประหยัดที่ ข้อมูลกระชับ) - ใช้กับงาน CFD ส่วนใหญ่
+> 3.  **Solver (PCG/BiCG/GAMG)**: เปรียบเสมือน **"ทีมแก้ปัญหาจราจร"**:
+>     - **PCG**: ทีมแก้ทางด่วน (เร็ว แม่น แต่งานต้องเป๊ะ/Symmetric)
+>     - **BiCGStab**: ทีมหน่วยกู้ภัย (ลุยได้ทุกสภาวะ แม้ถนนจะซับซ้อน/Asymmetric)
+>     - **GAMG**: ทีมวางผังเมืองดูจากภาพกว้าง (Coarse) ไปหาภาพละเอียด (Fine) เพื่อแก้ปัญหารถติดทั้งเมือง
+> 4.  **Preconditioner (DIC/DILU)**: คือ **"ตำรวจจราจร"** ที่คอยโบกรถให้ระบายคล่องตัวก่อนที่ทีมใหญ่จะลงมาแก้ปัญหา (ทำให้ Matrix แก้ได้ง่ายขึ้น)
+
 ## 📚 Core Concepts Review
 
 ### 1. Matrix Storage and Performance
@@ -1114,4 +1126,25 @@ Before running production simulations, verify:
 
 ---
 
-**Remember:** The art of CFD simulation lies in balancing **numerical accuracy**, **computational efficiency**, and **physical fidelity**. OpenFOAM's linear algebra system provides the tools—your expertise guides their application.
+
+---
+
+## 🧠 8. Final Concept Check (บททดสอบส่งท้าย)
+
+1.  **ทำไมเราถึงไม่ใช้ `SquareMatrix` (Dense) ในการแก้สมการ Pressure ($p$) ของ Mesh ขนาด 1 ล้าน Cells?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะ Dense Matrix ต้องเก็บข้อมูลถึง ($10^6 \times 10^6$) หรือ 1 ล้านล้านตัวเลข ซึ่งต้องใช้ RAM ประมาณ 8 TB! ในขณะที่ Sparse Matrix เก็บแค่ข้อมูลการเชื่อมต่อจริง (ประมาณ 6-7 ตัวต่อแถว) ซึ่งใช้ RAM เพียง ~100-200 MB เท่านั้น
+    </details>
+
+2.  **ถ้าสมการของผมเป็น Symmetric Positive Definite (เช่น Heat Diffusion) ผมควรเลือก Solver/Preconditioner คู่ไหนถึงจะดีที่สุด?**
+    <details>
+    <summary>เฉลย</summary>
+    คู่ที่แนะนำคือ **PCG (Preconditioned Conjugate Gradient)** คู่กับ **DIC (Diagonal Incomplete Cholesky)** หรือ **GAMG** (ถ้า Mesh ใหญ่มาก) เพราะ PCG ออกแบบมาเพื่อระเบียบวิธีนี้โดยเฉพาะและเร็วกว่า PBiCGStab ในกรณีนี้
+    </details>
+
+3.  **GAMG (Multigrid) มีหลักการทำงานอย่างไรที่ทำให้เร็วกว่า Solver ทั่วไป?**
+    <details>
+    <summary>เฉลย</summary>
+    GAMG แก้ปัญหาเรื่อง **Low-frequency errors** ได้เร็วโดยการสร้าง Grid ที่หยาบขึ้น (Coarsening) เพื่อเปลี่ยน Low-frequency error ให้กลายเป็น High-frequency error ใน Grid หยาบ ซึ่งแก้ได้ง่ายกว่า แล้วค่อยส่งค่ากลับมาปรับปรุง Grid ละเอียด ทำให้ลดจำนวน Iteration โดยรวมลงได้อย่างมหาศาล
+    </details>

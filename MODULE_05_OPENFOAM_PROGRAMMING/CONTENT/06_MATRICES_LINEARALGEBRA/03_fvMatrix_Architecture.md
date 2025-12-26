@@ -5,6 +5,14 @@
 
 ---
 
+> [!TIP] **Physical Analogy: The Universal Translator & Visa Protocol (ล่ามแปลภาษาและตม.)**
+>
+> `fvMatrix` ทำหน้าที่เป็นผู้ประสานงานระหว่างโลกฟิสิกส์และโลกคณิตศาสตร์:
+>
+> 1.  **The Universal Translator (ล่าม)**: กฎฟิสิกส์พูดภาษาแคลคูลัส ($\nabla \cdot \mathbf{U}, \partial T/\partial t$) แต่ Solver พูดภาษาตัวเลข ($Ax=b$) `fvMatrix` แปลคำสั่งเช่น "การแพร่ (Laplacian)" ให้กลายเป็น "ตัวเลขสัมพันธ์ระหว่างเซลล์เพื่อนบ้าน (Matrix Coefficients)"
+> 2.  **The Visa Officer (ตม.)**: ทุกครั้งที่มีการรวมสมการ `fvMatrix` จะตรวจพาสปอร์ต (Dimensions) อย่างเข้มงวด คุณไม่สามารถเอา "นักท่องเที่ยวความดัน (Pascal)" ไปรวมกลุ่มกับ "นักท่องเที่ยวความเร็ว (m/s)" ได้ ถ้าหน่วยไม่ตรงกัน จะถูกส่งกลับประเทศทันที (Fatal Error)
+> 3.  **The Border Control (ด่านชายแดน)**: `fvMatrix` จัดการคนที่อยู่ชายขอบ (Boundary Conditions) แยกต่างหาก เพื่อให้ง่ายต่อการปรับเปลี่ยนกฎระเบียบ (Fixed Value vs Zero Gradient) โดยไม่ต้องรื้อระบบในเมือง (Internal Matrix) ใหม่หมด
+
 ## 🏗️ Architecture Overview
 
 ### Class Hierarchy
@@ -760,5 +768,27 @@ pEqn.solve();
 - [[Sparse Matrix Storage]] - LDU matrix format
 - [[Linear Solvers]] - Krylov subspace methods
 - [[Preconditioning]] - Diagonal, ILU, AMG
-- [[Boundary Conditions]] - Patch field implementation
-- [[Numerical Schemes]] - Discretization strategies
+
+---
+
+## 🧠 8. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **องค์ประกอบหลัก 3 อย่างที่รวมกันเป็น `fvMatrix` คืออะไรบ้าง? (Hint: Structure, Math, Physics)**
+    <details>
+    <summary>เฉลย</summary>
+    1.  **LduMatrix Structure**: ตัวเก็บข้อมูล Sparse Matrix (lower, diag, upper)
+    2.  **Field Reference (`psi_`)**: ตัวเชื่อมโยงไปยัง GeometricField (Mesh & Physics context)
+    3.  **Dimensions**: ตัวตรวจสอบความสอดคล้องของหน่วย
+    </details>
+
+2.  **ทำไม `fvm::ddt(T)` ถึงถูกเรียกว่า "Implicit Operator"?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะมันสร้างค่าลงใน **Diagonal Coefficients** ของ Matrix $A$ ซึ่งหมายความว่ามันจะถูกแก้หาค่าพร้อมกับตัวแปร Unknown ($x$ or $T^{n+1}$) ในอนาคต (Implicit solve) ถ้าเป็น Explicit มันจะถูกคำนวณเป็นตัวเลขลงใน Source term $b$ ทันที
+    </details>
+
+3.  **จะเกิดอะไรขึ้นถ้าเราแก้สมการความดัน (Pressure Equation) ในระบบปิด (Closed System) โดยลืมกำหนด `pEqn.setReference(...)`?**
+    <details>
+    <summary>เฉลย</summary>
+    Matrix จะเป็น **Singular** (หา Inverse ไม่ได้ หรือมีผลเฉลยเป็นอนันต์) เพราะความดันในระบบ Incompressible ขึ้นอยู่กับความแตกต่าง (Gradient) เท่านั้น การเลือกจุดอ้างอิงจุดหนึ่ง 0 หรือ ฤtm) เสมือนการปักหมุดให้ระบบมีผลเฉลยเดียว (Unique Solution)
+    </details>

@@ -46,11 +46,19 @@ PM --> PSM
 
 > **Figure 1:** สถาปัตยกรรมสามชั้นของระบบเมชใน OpenFOAM ซึ่งแบ่งความรับผิดชอบออกเป็นระดับเรขาคณิต (primitiveMesh), ระดับโทโพโลยี (polyMesh) และระดับการคำนวณฟิสิกส์ (fvMesh) เพื่อประสิทธิภาพและความยืดหยุ่นสูงสุด
 
+> [!TIP] **Physical Analogy: The Anatomy of a High-Rise Building (โครงสร้างตึกระฟ้า)**
+>
+> ลองมองสถาปัตยกรรม 3 ชั้นนี้เหมือนระบบของตึก:
+>
+> 1.  **primitiveMesh (โครงสร้างเสา-คาน)**: รู้แค่ว่าเสาอยู่ตรงไหน คานยาวเท่าไหร่ (Geometry) รับน้ำหนักได้ไหม แต่ไม่รู้ว่าเป็นห้องอะไร
+> 2.  **polyMesh (แปลนสถาปัตย์)**: กั้นผนัง แบ่งห้อง ใส่ประตูหน้าต่าง (Topology) บอกได้ว่าห้อง A ติดกับห้อง B เป็นห้องมุมหรือห้องกลาง แต่ยังไม่มีระบบน้ำไฟ
+> 3.  **fvMesh (ระบบวิศวกรรมประกอบอาคาร - MEP)**: ติดตั้งท่อแอร์ ท่อน้ำ สายไฟ (Fields) ลงไปในห้อง เพื่อให้เกิดการไหลเวียนและใช้งานได้จริง (CFD Simulation)
+
 สถาปัตยกรรมสามชั้นประกอบด้วย:
 
-1. **primitiveMesh** - เครื่องมือคำนวณเรขาคณิต
-2. **polyMesh** - กรอบงานโทโพโลยี
-3. **fvMesh** - ชั้นการแบ่งพื้นที่ปริมาตรจำกัด
+1.  **primitiveMesh** - เครื่องมือคำนวณเรขาคณิต
+2.  **polyMesh** - กรอบงานโทโพโลยี
+3.  **fvMesh** - ชั้นการแบ่งพื้นที่ปริมาตรจำกัด
 
 ### โครงสร้างการสืบทอด
 
@@ -80,7 +88,7 @@ primitiveMesh
 ### การแยกความรับผิดชอบ
 
 | ชั้น | หน้าที่หลัก | ความรับผิดชอบ |
-|------|--------------|-----------------|
+|---|---|---|
 | **primitiveMesh** | การคำนาณเรขาคณิตแบบบริสุทธิ์ | • การคำนวณ centers, volumes, normals<br>• เมตริกคุณภาพ mesh<br>• Lazy evaluation |
 | **polyMesh** | การจัดการโทโพโลยี | • จัดเก็บ points, faces, cells<br>• owner/neighbor relationships<br>• Boundary patches<br>• การสนับสนุนขนาน |
 | **fvMesh** | การแบ่งพื้นที่ปริมาตรจำกัด | • การจัดเก็บฟิลด์เรขาคณิต<br>• API สำหรับ solver<br>• การคำนวณเรขาคณิตตามความต้องการ |
@@ -310,7 +318,7 @@ public:
 ### ประสิทธิภาพหน่วยความจำ
 
 | แนวทาง | ความต้องการหน่วยความจำ (double precision) |
-|----------|-----------------------------------------------------|
+|---|---|
 | **ดั้งเดิม (คำนวณล่วงหน้า)** | |
 | - ปริมาตร cell | $N_{\text{cells}} \times 8$ ไบต์ |
 | - พื้นที่หน้า | $N_{\text{faces}} \times 8$ ไบต์ |
@@ -353,7 +361,7 @@ $$
 ### มาตรฐานคุณภาพ Mesh
 
 | ตัวชี้วัด | ดีเยี่ยม | ดี | ยอมรับได้ | ต้องแก้ไข |
-|------------|-----------|------|------------|-----------|
+|---|---|---|---|---|
 | Non-orthogonality | < 30° | 30-50° | 50-70° | > 70° |
 | Skewness | < 1.0 | 1.0-2.0 | 2.0-4.0 | > 4.0 |
 | Aspect Ratio | < 5 | 5-10 | 10-20 | > 20 |
@@ -421,11 +429,11 @@ void process()
 
 สถาปัตยกรรม mesh นี้ทำให้สามารถ:
 
-- **Flux Calculations**: Face areas และ normals สำหรับ convection terms
-- **Gradient Computations**: Cell centers และ volumes สำหรับ diffusion terms
-- **Boundary Conditions**: Patch-specific physics และ constraints
-- **Adaptive Meshing**: การปรับเปลี่ยน dynamic ของ mesh topology
-- **Parallel Computation**: Domain decomposition และ load balancing
+-   **Flux Calculations**: Face areas และ normals สำหรับ convection terms
+-   **Gradient Computations**: Cell centers และ volumes สำหรับ diffusion terms
+-   **Boundary Conditions**: Patch-specific physics และ constraints
+-   **Adaptive Meshing**: การปรับเปลี่ยน dynamic ของ mesh topology
+-   **Parallel Computation**: Domain decomposition และ load balancing
 
 ---
 
@@ -440,3 +448,25 @@ void process()
 - ความแม่นยำทางคณิตศาสตร์สำหรับผลลัพธ์ที่เชื่อถือได้
 
 การออกแบบที่สวยงามของคลาส mesh ของ OpenFOAM ให้รากฐานที่มั่นคงสำหรับการจำลอง CFD ที่มีประสิทธิภาพสูง ทำให้เป็นหนึ่งในระบบเรขาคณิตการคำนาณที่ซับซ้อนที่สุดใน scientific computing
+
+---
+
+## 🧠 9. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ทำไม OpenFOAM ถึงต้องแยก `primitiveMesh` ออกจาก `polyMesh`? ทำไมไม่รวมเป็น Class เดียว?**
+    <details>
+    <summary>เฉลย</summary>
+    เพื่อแยก **Geometry (เรขาคณิต)** ออกจาก **Topology (ความเชื่อมโยง)** อย่างชัดเจน ทำให้เราสามารถเปลี่ยนรูปร่างเมช (เช่น Mesh Motion) ได้โดยไม่ต้องรื้อโครงสร้างความเชื่อมโยงใหม่ หรือสามารถใช้ Algorithm ทางเรขาคณิตซ้ำได้ในบริบทอื่นๆ ที่ไม่ใช่ CFD
+    </details>
+
+2.  **ในมุมมองของ "Lazy Evaluation" ถ้าเราไม่เคยเรียกใช้ฟังก์ชัน `mesh.cellCentres()` เลย ข้อมูลจุดศูนย์กลางเซลล์จะถูกคำนวณหรือไม่?**
+    <details>
+    <summary>เฉลย</summary>
+    **ไม่ถูกคำนวณ** ระบบจะคำนวณก็ต่อเมื่อมีการเรียกใช้ครั้งแรกเท่านั้น (On-demand) ซึ่งช่วยประหยัดหน่วยความจำและเวลาสำหรับ Field ที่ไม่ได้ใช้งานในการจำลองนั้นๆ
+    </details>
+
+3.  **ความสัมพันธ์ระหว่าง FVM (Finite Volume Method) กับ `face` คืออะไร?**
+    <details>
+    <summary>เฉลย</summary>
+    ใน FVM `face` คือประตูผ่านของ Fluxes (การไหลของมวล, โมเมนตัม, พลังงาน) ระหว่าง Cell ทฤษฎีบทของ Gauss (Divergence Theorem) เปลี่ยนปริพันธ์เชิงปริมาตรให้เป็นผลรวมของ Fluxes ผ่าน `face` เหล่านี้นั่นเอง
+    </details>

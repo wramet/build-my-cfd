@@ -797,7 +797,31 @@ public:
 
 ## 🎓 **บทสรุป (Summary)**
 
-คลาส `fvMesh` ทำหน้าที่เป็น **กระดูกสันหลังเชิงคำนวณ (Computational backbone)** สำหรับวิธีไฟไนต์วอลุ่มของ OpenFOAM โดยเปลี่ยนข้อมูลเรขาคณิตดิบให้กลายเป็นกรอบงานเชิงคำนวณที่ทรงพลังสำหรับการแก้ปัญหาพลศาสตร์ของไหลที่ซับซ้อน
+
+---
+
+## 🧠 9. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ทำไมเวลาสร้าง Field เช่น `volScalarField p` เราต้องส่ง `mesh` เข้าไปใน Constructor ด้วย?**
+    <details>
+    <summary>เฉลย</summary>
+    เพื่อทำการ **Register** ตัวแปร `p` เข้ากับระบบ `objectRegistry` ของ Mesh ทำให้:
+    1.  OpenFOAM รู้ว่ามี Field นี้อยู่และสามารถเขียนลงไฟล์ (IO) เมื่อถึงเวลา Write Time ได้อัตโนมัติ
+    2.  Field รู้จัก Topology ของ Mesh (เช่น มีกี่ Cell, เพื่อนบ้านอยู่ไหน) เพื่อใช้ในการคำนวณ Discretization
+    </details>
+
+2.  **ความแตกต่างหลักระหว่าง `volScalarField` และ `surfaceScalarField` คืออะไร และมักใช้ทำอะไร?**
+    <details>
+    <summary>เฉลย</summary>
+    -   **`volScalarField`**: ค่าอยู่ที่ **Cell Center** (ปริมาตร) ใช้เก็บตัวแปรหลักที่เราต้องการหาค่า (เช่น $p, T, k, \epsilon$)
+    -   **`surfaceScalarField`**: ค่าอยู่ที่ **Face Center** (หน้าผิว) ใช้เก็บค่า Flux หรือค่า Interpolate ที่หน้าผิว เพื่อใช้คำนวณ Convection/Diffusion term
+    </details>
+
+3.  **ถ้าเราต้องการเปลี่ยน Boundary Condition จาก "Fixed Value" เป็น "Zero Gradient" ระหว่างกลางการรัน Solver เราต้องไปแก้ที่ไหนในโค้ด C++ หรือไม่?**
+    <details>
+    <summary>เฉลย</summary>
+    **ไม่จำเป็น** (และไม่ควรทำ) โดยปกติเราเปลี่ยนที่ไฟล์ Input Case (`0/p`, `0/U`) ได้เลย เพราะ `fvMesh` อ่านค่า Boundary Conditions แบบ Run-time selection ยกเว้นแต่เราต้องการเขียน Custom BC ใหม่ที่ไม่มีให้เลือกในมาตรฐาน
+    </details>
 
 **จุดแข็งที่สำคัญ:**
 - **การดิสครีตเชิงพื้นที่** ในกรอบงานที่เป็นระบบ

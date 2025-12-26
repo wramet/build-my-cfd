@@ -4,6 +4,14 @@
 
 ระบบประเภท **dimensioned** ของ OpenFOAM เป็นการประยุกต์ใช้ **template metaprogramming** ขั้นสูงเพื่อบังคับให้ความถูกต้องทางกายภาพเกิดขึ้นในระหว่างการ **compile** ด้วยการ encode มิติไว้ในระบบประเภท OpenFOAM จึงเปลี่ยนการตรวจสอบหน่วยจาก **ภาระรันไทม์** เป็น **การประกันคอมไพล์ไทม์**
 
+> [!TIP] **Physical Analogy: The Math Gym (ยิมคณิตศาสตร์)**
+>
+> เปรียบการใช้งานแบบฝึกหัดนี้เหมือนการเข้ายิมเพื่อฝึกกล้ามเนื้อฟิสิกส์:
+>
+> 1.  **Beginner Exercises** คือ **"ท่าพื้นฐาน (Squats/Push-ups)"**: ฝึกสร้างตัวแปรถูกหน่วย (Create dimensionedScalar) และบวกลบเลขให้ถูกกฎ (Valid operations) ถ้าทำผิดท่า (Unit Mismatch) ก็จะยกไม่ขึ้น (Compile Error)
+> 2.  **Intermediate Exercises** คือ **"ท่า Free Weights"**: เริ่มจับคู่สมการ (Equation Consistency) เหมือนต้องทรงตัวขณะยกเวท ต้องเช็คสมดุลซ้ายขวาของสมการให้ดี
+> 3.  **Advanced Exercises** คือ **"ท่า Crossfit ผาดโผน"**: สร้างระบบใหม่ (Custom Dimensions) และเขียนโค้ดที่ยืดหยุ่น (Generic Programming) ที่ต้องแข็งแรงและคล่องตัวจริงๆ ถึงจะทำได้ (Robust & Flexible Code)
+
 ### ประโยชน์หลักของระบบ
 
 | ประโยชน์ | คำอธิบาย | ผลกระทบ |
@@ -509,7 +517,7 @@ if (Re.value() > 2300)
 > - Re > 4000: การไหลแบบ turbulent (ปั่นป่วน)
 > - 2300 < Re < 4000: บริเวณ transition
 >
-> **แนวคิดสำคัญ (Key Concepts):**
+> **แนวคิดสำคัญ (Key Concepts):
 > - **Flow Regimes:** Reynolds number determines flow type
 > - **Similarity:** Same Re → dynamically similar flows
 > - **Scale Independence:** Re independent of absolute scale
@@ -698,7 +706,7 @@ public:
 > **คำอธิบาย (Explanation):** สมการรัฐธรรมนูญของไหลนิวตัน (Newtonian Constitutive Equation):
 > - **Stress Tensor (τ):** เทนเซอร์ความเค้น [M L⁻¹ T⁻²]
 > - **Strain Rate (γ̇):** เทนเซอร์อัตราการเสียรูป [T⁻¹]
-> - **Viscosity (μ):** ความหนืด [M L⁻¹ T⁻¹]
+> - **Viscosity (μ)::** ความหนืด [M L⁻¹ T⁻¹]
 > - สมการ: τ = μ·γ̇ (ความเค้นเป็นสัดส่วนโดยตรงกับอัตราการเสียรูป)
 >
 > **แนวคิดสำคัญ (Key Concepts):**
@@ -1080,32 +1088,32 @@ public:
 
 ### ขั้นตอนการ Debug ปัญหามิติ
 
-1. **ระบุตำแหน่งข้อผิดพลาด**:
-   ```cpp
-   // Enable detailed dimension checking
-   #ifdef FULLDEBUG
-       Info << "Variable dimensions: " << var.dimensions() << endl;
-   #endif
-   ```
+1.  **ระบุตำแหน่งข้อผิดพลาด**:
+    ```cpp
+    // Enable detailed dimension checking
+    #ifdef FULLDEBUG
+        Info << "Variable dimensions: " << var.dimensions() << endl;
+    #endif
+    ```
 
-2. **ตรวจสอบความสอดคล้องของมิติ**:
-   ```cpp
-   // Check dimensions pairwise
-   if (dim1 != dim2)
-   {
-       Info << "Dimension mismatch:" << endl;
-       Info << "  Expected: " << dim1 << endl;
-       Info << "  Got: " << dim2 << endl;
-   }
-   ```
+2.  **ตรวจสอบความสอดคล้องของมิติ**:
+    ```cpp
+    // Check dimensions pairwise
+    if (dim1 != dim2)
+    {
+        Info << "Dimension mismatch:" << endl;
+        Info << "  Expected: " << dim1 << endl;
+        Info << "  Got: " << dim2 << endl;
+    }
+    ```
 
-3. **ใช้ static assertions สำหรับการตรวจสอบในเวลาคอมไพล์**:
-   ```cpp
-   static_assert(
-       std::is_same<Dim1, Dim2>::value,
-       "Dimensions must match"
-   );
-   ```
+3.  **ใช้ static assertions สำหรับการตรวจสอบในเวลาคอมไพล์**:
+    ```cpp
+    static_assert(
+        std::is_same<Dim1, Dim2>::value,
+        "Dimensions must match"
+    );
+    ```
 
 > **📚 คำอธิบายภาษาไทย (Thai Explanation)**
 >
@@ -1125,16 +1133,16 @@ public:
 
 ### กลยุทธ์การเพิ่มประสิทธิภาพ
 
-1. **ใช้ expression templates** เพื่อกำจัด temporary objects
-2. **Cache dimension sets** ที่ใช้บ่อย
-3. **ปิดการตรวจสอบมิติใน release builds**:
-   ```cpp
-   #ifndef FULLDEBUG
-       #define CHECK_DIMENSIONS(expr)
-   #else
-       #define CHECK_DIMENSIONS(expr) dimensionCheck(expr)
-   #endif
-   ```
+1.  **ใช้ expression templates** เพื่อกำจัด temporary objects
+2.  **Cache dimension sets** ที่ใช้บ่อย
+3.  **ปิดการตรวจสอบมิติใน release builds**:
+    ```cpp
+    #ifndef FULLDEBUG
+        #define CHECK_DIMENSIONS(expr)
+    #else
+        #define CHECK_DIMENSIONS(expr) dimensionCheck(expr)
+    #endif
+    ```
 
 > **📚 คำอธิบายภาษาไทย (Thai Explanation)**
 >
@@ -1169,7 +1177,7 @@ public:
 >
 > **แหล่งที่มา (Source):** 📂 OpenFOAM/src/OpenFOAM/dimensionedTypes
 >
-> **คำอธิบาย (Explanation):** ไฟล์ส่วนหัวหลักของระบบ dimensioned:
+> **คำอธิบาย (Explanation)::** ไฟล์ส่วนหัวหลักของระบบ dimensioned:
 > - **dimensionedType.H:** Base template สำหรับทุกประเภท dimensioned
 > - **dimensionSet.H:** Class สำหรับเก็บและดำเนินการกับมิติ
 > - **dimensionedScalar.H:** Specialization สำหรับ scalar values
@@ -1183,11 +1191,11 @@ public:
 
 ### หัวข้อที่เกี่ยวข้อง
 
-1. **หัวข้อที่ 1**: Foundation Primitives - การใช้งานพื้นฐาน `dimensionedType`
-2. **บทที่ 4**: Under the Hood - Template Metaprogramming Architecture
-3. **บทที่ 6**: Advanced Applications - Engineering Benefits
-4. **บทที่ 7**: Physics Connection - Advanced Mathematical Formulations
-5. **บทที่ 8**: Solver Development - แอปพลิเคชันจริงใน solver CFD
+1.  **หัวข้อที่ 1**: Foundation Primitives - การใช้งานพื้นฐาน `dimensionedType`
+2.  **บทที่ 4**: Under the Hood - Template Metaprogramming Architecture
+3.  **บทที่ 6**: Advanced Applications - Engineering Benefits
+4.  **บทที่ 7**: Physics Connection - Advanced Mathematical Formulations
+5.  **บทที่ 8**: Solver Development - แอปพลิเคชันจริงใน solver CFD
 
 > **📚 คำอธิบายภาษาไทย (Thai Explanation)**
 >
@@ -1279,3 +1287,25 @@ dimensionedType~T~ <|-- dimensionedVector
 > - **Expressiveness:** Natural syntax for physical equations
 > - **Correctness:** Compile-time error detection
 > - **Maintainability:** Self-documenting code
+
+---
+
+## 🧠 9. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ถ้าเราพยายามคอมไพล์โค้ด `dimensionedScalar a = p + U;` (เมื่อ p คือความดัน, U คือความเร็ว) จะเกิดอะไรขึ้น?**
+    <details>
+    <summary>เฉลย</summary>
+    จะเกิด **Compiler Error** ทีเกี่ยวกับ "Template Instantiation Failure" หรือ "No match for operator+" เพราะ OpenFOAM เช็คหน่วยตั้งแต่ตอนคอมไพล์ และไม่อนุญาตให้บวกตัวแปรที่มี `dimensionSet` ต่างกัน
+    </details>
+
+2.  **Zero-Cost Abstraction ในบริบทของ Dimensioned Types หมายถึงอะไร?**
+    <details>
+    <summary>เฉลย</summary>
+    หมายความว่า แม้เราจะเขียนโค้ดโดยใช้ class `dimensionedScalar` หรือ `dimensionedField` ที่ดูซับซ้อน แต่ตอนที่โปรแกรมถูกคอมไพล์เป็นภาษาเครื่อง (Machine Code) คำสั่งตรวจสอบหน่วยทั้งหมดจะถูก **ลบออก** เหลือเพียงคำสั่งบวกลบคูณหารตัวเลขแบบดิบๆ (Floating-point operations) ทำให้ได้ความเร็วเท่ากับการเขียนโค้ดภาษา C แบบบ้านๆ
+    </details>
+
+3.  **ทำไมเราถึงต้องมี Runtime Check ทั้งๆ ที่มี Compile-time Check แล้ว?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะข้อมูลบางอย่าง **ไม่รู้ตอนคอมไพล์** เช่น ข้อมูลที่อ่านจากไฟล์ (Dictionaries, Mesh files) หรือค่าที่ User ป้อนเข้ามาตอนรันโปรแกรม เราจึงต้องมีกลไก Runtime Check เพื่อตรวจสอบความถูกต้องของข้อมูลหน้างานเหล่านี้ด้วย
+    </details>

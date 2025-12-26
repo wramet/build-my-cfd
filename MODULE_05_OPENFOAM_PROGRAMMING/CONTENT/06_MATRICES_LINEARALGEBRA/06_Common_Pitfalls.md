@@ -5,6 +5,16 @@
 
 ---
 
+> [!TIP] **Physical Analogy: The 7 Deadly Sins of Matrix Solving (บาป 7 ประการของนักแก้เมทริกซ์)**
+>
+> 1.  **Lust (Dense Matrix)**: ความอยากรู้อยากเห็นเกินเหตุ พยายามเก็บข้อมูลความสัมพันธ์ของทุกคนในเมือง (Dense) แทนที่จะเก็บแค่เพื่อนบ้าน (Sparse) ผลคือเมมโมรี่ระเบิด!
+> 2.  **Gluttony (Too Strict Tolerance)**: ความตะกละตะกลามคำนวณ พยายามหาทศนิยมตำแหน่งที่ 12 ทั้งที่ไม้บรรทัดวัดได้ละเอียดแค่ 2 ตำแหน่ง เสียเวลาเปล่า
+> 3.  **Sloth (No Preconditioning)**: ความขี้เกียจเตรียมงาน พยายามแก้ปริศนายากๆ โดยไม่จัดหมวดหมู่ก่อน (Precondition) ทำให้แก้เท่าไหร่ก็ไม่เสร็จ
+> 4.  **Wrath (Dimensional Inconsistency)**: ความเกรี้ยวกราดทางฟิสิกส์ เอาความดันไปบวกกับความเร็ว Compiler จะลงโทษคุณทันที!
+> 5.  **Pride (Wrong BC)**: ความหยิ่งยโส สั่งให้กำแพงทำตัวเป็นทางลมเข้า (Wrong type) ธรรมชาติจะไม่ฟังคุณ
+> 6.  **Envy (Ignoring Parallel Comm)**: ความอิจฉาเพื่อนบ้าน ไม่ยอมคุยกับ Processor ข้างๆ ผลคือรอยต่อของภาพไม่เนียน
+> 7.  **Greed (Direct Solvers)**: ความโลภอยากได้คำตอบที่แม่นยำ 100% (Direct Inverse) จนยอมจ่ายด้วยเวลาทั้งชีวิต ($O(N^3)$) แทนที่จะเอาแค่ "ดีพอ" ($O(N)$)
+
 ## Pitfall #1: Using Dense Matrices for Sparse Problems
 
 ### The Problem
@@ -797,7 +807,29 @@ if (Pstream::parRun())
 > - **ที่มา (Source):** OpenFOAM parallel implementation ใช้ domain decomposition พร้อม `lduInterface` สำหรับ handle inter-processor coupling ใน matrix operations และ linear solvers
 > - **คำอธิบาย (Explanation):** Parallel runs ต้อง communicate ข้อมูลระหว่าง processors ผ่าน MPI boundaries `lduInterface` handle interface coefficients และ synchronize values ระหว่าง processor domains
 > - **แนวคิดสำคัญ (Key Concepts):**
->   - **Domain Decomposition:** Mesh ถูก split เป็น subdomains สำหรับแต่ละ processor
+
+---
+
+## 🧠 8. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ทำไมการตั้งค่า `tolerance = 1e-12` ถึงมักจะเป็นความคิดที่ไม่ดีสำหรับงาน CFD ทั่วไป?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะ Discretization Error (Error จากการแบ่ง Mesh) มักจะอยู่ที่ระดับ $10^{-4}$ ถึง $10^{-6}$ การพยายามแก้สมการ Linear System ให้แม่นยำกว่านั้น ($10^{-12}$) ไม่ได้ช่วยให้ผลลัพธ์ทางฟิสิกส์แม่นยำขึ้นเลย แต่กลับทำให้เสียเวลา CPU ไปเปล่าๆ (Law of Diminishing Returns)
+    </details>
+
+2.  **ในแง่ของการจัดการ Matrix, Boundary Condition แบบ `fixedValue` (Dirichlet) กับ `fixedGradient` (Neumann) ต่างกันอย่างไร?**
+    <details>
+    <summary>เฉลย</summary>
+    - **`fixedValue`**: ใช้วิธี **Penalty Method** โดยการบวกค่ามหาศาล (GREAT) เข้าไปที่ **Diagonal Coefficient** และ Source term เพื่อบังคับค่า
+    - **`fixedGradient`**: ปรับค่าที่ **Source term ($b$)** และ Coefficients โดยใช้ Flux แต่ไม่ได้บังคับค่า Diagonal แบบสุดโต่งเหมือน fixedValue
+    </details>
+
+3.  **ทำไม `fvm::laplacian(D, T)` ถึงต้องการ `D` ที่มีหน่วยเจาะจง?**
+    <details>
+    <summary>เฉลย</summary>
+    เพื่อให้หน่วยของเทอม Diffusion ($\nabla \cdot (D \nabla T)$) ตรงกับหน่วยของเทอมอื่นๆ ในสมการ (เช่น Time derivative $\partial T/\partial t$) ถ้าหน่วยไม่ตรง OpenFOAM จะฟ้อง Error ทันทีตอน Compile หรือ Run (Dimensional Check)
+    </details>
 >   - **Processor Coupling:** Interface faces ระหว่าง processors ต้อง be communicated
 >   - **lduInterface:** Handle inter-processor boundary coefficients และ field values
 >   - **MPI Communication:** `updateMatrixInterfaces` ทำ communication ผ่าน MPI

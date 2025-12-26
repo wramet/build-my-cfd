@@ -20,6 +20,19 @@ D --> E[Parallel Solve]:::implicit
 E --> F[Reconstruct]:::explicit
 ```
 
+> [!TIP] **Physical Analogy: The Construction Crew (ทีมก่อสร้างบ้าน)**
+>
+> เปรียบเทียบการคำนวณแบบขนาน (Parallel Computing) กับการสร้างบ้าน:
+>
+> 1.  **Grid (Mesh):** คือ "แบบแปลนบ้าน" ทั้งหมดที่ต้องสร้าง
+> 2.  **Processor (Core):** คือ "คนงานก่อสร้าง"
+> 3.  **Domain Decomposition:** คือการ "แบ่งงาน"
+>     - หัวหน้าแบ่งงาน: "นาย A ทำห้องครัว, นาย B ทำห้องนอน, นาย C ทำห้องน้ำ"
+>     - ถ้าแบ่งดี ทุกคนทำงานเสร็จพร้อมกัน (Load Balanced)
+> 4.  **MPI Communication:** คือการ "ตะโกนคุยกัน" ระหว่างคนงาน
+>     - ถ้าห้องครัวกับห้องนอนมีท่อน้ำเชื่อมกัน นาย A ต้องตะโกนถาม นาย B ว่า "ท่อประปาจะโผล่ตรงไหน?"
+>     - ถ้าคนงานเยอะเกินไป (Over-decomposition) ทุกคนจะมัวแตยืนตะโกนคุยกัน (Communication Overhead) จนไม่ได้ทำงาน! ดังนั้นต้องหาจุดสมดุล (Optimal Cores)
+
 > **Figure 1:** แผนผังลำดับขั้นตอนการประมวลผลแบบขนาน (Parallel Processing) ตั้งแต่การแบ่งโดเมนการคำนวณ (Domain Decomposition) การสื่อสารระหว่างโปรเซสเซอร์ผ่าน MPI ที่ส่วนต่อประสาน ไปจนถึงการแก้ปัญหาแบบขนานและการรวมผลลัพธ์ขั้นสุดท้าย
 
 > [!INFO] ความสำคัญของ HPC
@@ -474,9 +487,9 @@ $$\mathcal{I} = \frac{W_{\text{max}} - W_{\text{avg}}}{W_{\text{avg}}}$$
 
 OpenFOAM ใช้กลยุทธ์ที่คำนึงถึง cache หลายประการ:
 
-1. **Loop Tiling**: แบ่ง array ขนาดใหญ่เป็นบล็อกที่เข้ากันได้กับ cache
-2. **Data Structure Padding**: จัดแนว data structures ให้ตรงกับขอบของ cache line
-3. **Vectorization**: ใช้คำสั่ง SIMD สำหรับการดำเนินการแบบขนาน
+1.  **Loop Tiling**: แบ่ง array ขนาดใหญ่เป็นบล็อกที่เข้ากันได้กับ cache
+2.  **Data Structure Padding**: จัดแนว data structures ให้ตรงกับขอบของ cache line
+3.  **Vectorization**: ใช้คำสั่ง SIMD สำหรับการดำเนินการแบบขนาน
 
 รูปแบบการเข้าถึงหน่วยความจำสำหรับการดำเนินการแบบ finite volume:
 
@@ -913,12 +926,12 @@ mpirun -np 16 --hostfile cluster-hosts simpleFoam -parallel
 
 > [!TIP] แนวปฏิบัติที่ดีที่สุด
 >
-> 1. **เริ่มต้นด้วยจำนวน processors น้อยๆ** แล้วค่อยๆ เพิ่ม
-> 2. **ใช้ scotch/metis method** สำหรับ mesh ที่ไม่เป็น uniform
-> 3. **ตรวจสอบ load balance** หลังจาก decomposition
-> 4. **ใช้ GAMG solver** สำหรับ pressure equation
-> 5. **ปรับจำนวน processors** ให้เหมาะกับขนาดปัญหา
-> 6. **หลีกเลี่ยง excessive I/O** ในระหว่างการคำนวณ
+> 1.  **เริ่มต้นด้วยจำนวน processors น้อยๆ** แล้วค่อยๆ เพิ่ม
+> 2.  **ใช้ scotch/metis method** สำหรับ mesh ที่ไม่เป็น uniform
+> 3.  **ตรวจสอบ load balance** หลังจาก decomposition
+> 4.  **ใช้ GAMG solver** สำหรับ pressure equation
+> 5.  **ปรับจำนวน processors** ให้เหมาะกับขนาดปัญหา
+> 6.  **หลีกเลี่ยง excessive I/O** ในระหว่างการคำนวณ
 
 ---
 
@@ -943,3 +956,26 @@ mpirun -np 16 --hostfile cluster-hosts simpleFoam -parallel
 ---
 
 **หัวข้อถัดไป**: [Advanced Turbulence Modeling](./02_Advanced_Turbulence.md)
+
+---
+
+## 🧠 9. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ทำไมเราถึงไม่ใช้ 1,000 Cores ในการรันเคสขนาดเล็ก (เช่น 1 แสน cells)?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะ **Communication Overhead** จะสูงกว่า Computational Time มาก การที่แต่ละ Core ต้องส่งข้อมูลข้ามไปมาผ่าน MPI กินเวลามากกว่าการประมวลผลจริง ทำให้การเพิ่ม Cores กลับทำให้งานช้าลง (Negative Scalability) โดยทั่วไปแนะนำอย่างต่ำ 50,000-100,000 cells ต่อ 1 Core
+    </details>
+
+2.  **Speedup แบบ "Linear" คืออะไร? และทำไมยากที่จะทำให้ได้ในความเป็นจริง?**
+    <details>
+    <summary>เฉลย</summary>
+    Linear Speedup คือ "เพิ่ม Cores 2 เท่า งานเสร็จเร็วขึ้น 2 เท่าเป๊ะ" ($S = N$) ในความเป็นจริงทำได้ยากเพราะยังมีส่วนของโค้ดที่ต้องรันแบบ Serial (ตามกฎ Amdahl's Law) และมีเวลาที่เสียไปกับการสื่อสาร (MPI Latency/Bandwidth)
+    </details>
+
+3.  **Domain Decomposition แบบ "Scotch" ต่างจาก "Simple" อย่างไร?**
+    <details>
+    <summary>เฉลย</summary>
+    -   **Simple:** แบ่งตามพิกัด xyz ดื้อๆ (เหมาะกับกล่องสี่เหลี่ยมเป๊ะๆ)
+    -   **Scotch:** ใช้ **Graph Partitioning** พยายามลดจำนวนรอยต่อ (Face connection) ระหว่าง Domain ให้น้อยที่สุด เพื่อลดการสื่อสาร MPI และพยายามเกลี่ยจำนวน Cell ให้เท่ากัน (Load Balance) เหมาะกับ Shape ที่ซับซ้อน
+    </details>

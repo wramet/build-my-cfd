@@ -891,3 +891,26 @@ void parallelMeshAnalysis(const primitiveMesh& mesh)
 3. **Mesh Quality Metrics**: ตัววัดคุณภาพที่สำคัญเช่น non-orthogonality และ skewness สำหรับการประเมินเสถียรภาพเชิงตัวเลข
 4. **Memory Management**: หลีกเลี่ยงการเก็บการอ้างอิงเรขาคณิตที่อาจกลายเป็นไม่ถูกต้องหลังจากการเปลี่ยนแปลง mesh
 5. **Performance Optimization**: ใช้กลยุทธ์การแคชในเครื่องและการประมวลผลเป็นชุดเพื่อลดการคำนวณซ้ำ
+
+---
+
+## 🧠 9. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ถ้าเราเรียกคำสั่ง `mesh.cellVolumes()` ติดต่อกัน 10 ครั้ง โปรแกรมจะคำนวณหาปริมาตรใหม่กี่ครั้ง?**
+    <details>
+    <summary>เฉลย</summary>
+    **1 ครั้ง** เพราะครั้งแรกจะคำนวณแล้วเก็บผลลัพธ์ลง Cache (Lazy Evaluation) อีก 9 ครั้งถัดมาจะดึงข้อมูลจาก Cache โดยตรง ซึ่งเร็วมาก
+    </details>
+
+2.  **ทำไม Non-orthogonality ที่สูงเกินไป (> 70°) ถึงเป็นอันตรายต่อการคำนวณ CFD?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะในวิธี FVM การคำนวณ Flux ระหว่างหน้า (Face Flux) สมมติว่าเวกเตอร์พื้นที่หน้าตั้งฉากกับเส้นเชื่อมจุดศูนย์กลางเซลล์ ถ้ามันเบี้ยวมาก (Non-orthogonal) เราต้องใช้ **Non-orthogonal Correction** เข้ามาช่วย ซึ่งทำให้ Solver ทำงานหนักขึ้นและอาจไม่ลู่เข้า (Diverge) ถ้ามุมมันแย่จริงๆ
+    </details>
+
+3.  **`cellCells` (Connectivity Array) ใช้ทำอะไรในการคำนวณ Gradient?**
+    <details>
+    <summary>เฉลย</summary>
+    ใช้สำหรับ **ระบุเซลล์เพื่อนบ้าน (Neighbors)** ของเซลล์ที่เรากำลังสนใจ เพื่อดึงค่า Field จากรอบข้างมาคำนวณความชัน (Gradient) หรือใช้ในการอินเตอร์โพลรต (Interpolation) ค่าต่างๆ
+    </details>
+```

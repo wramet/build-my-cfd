@@ -5,6 +5,17 @@
 
 ---
 
+> [!TIP] **Physical Analogy: The Intelligent Paint (สีทาบ้านอัจฉริยะ)**
+>
+> ลองจินตนาการว่า `GeometricField` คือ **"สีทาบ้านอัจฉริยะ"** ที่เราทาลงบนตึก (Mesh):
+>
+> 1.  **The Paint (ข้อมูล)**: ตัวเนื้อสีคือค่าตัวเลข (เช่น อุณหภูมิ 300K, ความดัน 1 atm) ที่เกาะอยู่บนผนัง
+> 2.  **The Location (ตำแหน่ง)**: สีนี้รู้ตัวว่ามันทาอยู่ที่ไหน (Cell Center หรือ Face Center)
+> 3.  **The Rules (กฎทางฟิสิกส์/Dimensions)**: สีนี้มีชนิดพิเศษ! คุณไม่สามารถเอา "สีแดง (ความเร็ว)" ไปผสมกับ "สีน้ำเงิน (ความดัน)" ได้ตรงๆ ถ้า Units ไม่ตรงกัน ระบบจะร้องเตือนทันที
+> 4.  **The Edges (Boundary Conditions)**: เมื่อทาไปถึงขอบหน้าต่างหรือประตู สีจะรู้วิธีจัดการตัวเอง (เช่น หยุดไหล หรือสะท้อนกลับ) ตามที่ตั้งค่าไว้
+
+---
+
 ## แผนภาพโดยรวม
 
 ```mermaid
@@ -484,4 +495,26 @@ scalar rmsVal = sqrt(sum(phi*phi)/phi.size());
 - **ประสิทธิภาพการคำนวณ** ผ่าน expression templates และ reference counting
 - **ความสอดคล้องทางกายภาพ** ผ่านการจัดการ boundary conditions และ mesh-aware operations
 
-**สถาปัตยกรรมที่ใช้เทมเพลต** ทำให้การดำเนินการประเภทที่ปลอดภัยได้ในขณะที่รักษาประสิทธิภาพผ่านการจัดการหน่วยความำที่เพิ่มประสิทธิภาพและการ assembly สัมประสิทธิ์อัตโนมัติ
+
+---
+
+## 🧠 10. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ทำไม `GeometricField` ถึงต้องสืบทอดมาจาก `DimensionedField`?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะ `DimensionedField` จัดการเรื่อง **หน่วย (Dimensions)** และ **Domain** (Mesh) แต่ยังไม่มี Boundary Conditions การสืบทอดนี้ทำให้ `GeometricField` มีคุณสมบัติพื้นฐานครบถ้วนก่อนจะเติมระบบจัดการขอบเขต (`BoundaryField`) เข้าไป
+    </details>
+
+2.  **ความแตกต่างระหว่าง `fvc::grad(U)` และ `fvm::laplacian(nu, U)` ในแง่ของการคำนวณคืออะไร?**
+    <details>
+    <summary>เฉลย</summary>
+    -   **`fvc::grad(U)` (Explicit)**: คำนวณค่า Gradient ออกมาเป็น Field ตัวใหม่ทันที โดยใช้ค่า U จาก Time step ปัจจุบัน
+    -   **`fvm::laplacian(nu, U)` (Implicit)**: สร้าง **Matrix coefficients** ลงในระบบสมการเชิงเส้น เพื่อแก้หาค่า U ใน Time step ถัดไป (Implicit solver)
+    </details>
+
+3.  **ถ้าเราต้องการสร้าง Field เก็บค่าอุณหภูมิ (T) บนหน้าผิว (Faces) เพื่อคำนวณ Flux ความร้อน เราควรใช้ Type อะไร?**
+    <details>
+    <summary>เฉลย</summary>
+    **`surfaceScalarField`** เพราะเป็น Scalar (อุณหภูมิ) และอยู่บน Surface (Face centers)
+    </details>

@@ -7,6 +7,15 @@
 
 ## **Overview**
 
+> [!TIP] **Physical Analogy: The Construction Site Safety (ความปลอดภัยในไซต์ก่อสร้าง)**
+>
+> ลองเปรียบเทียบการเขียนโค้ด Field ใน OpenFOAM กับการทำงานใน **"ไซต์ก่อสร้าง"**:
+>
+> 1.  **Dimensional Inconsistency (The Wrong Tools)**: เหมือนพยายามใช้น็อต (Nut) ขันเข้ากับตะปู (Nail) หรือเอาไม้บรรทัด (Length) ไปวัดอุณหภูมิ (Temperature) ผลลัพธ์คือความเสียหายพังพินาศ
+> 2.  **Neglecting BCs (Unfinished Walls)**: เหมือนสร้างกำแพงเสร็จแต่ลืมฉาบปูนปิดทับรอยต่อ (Uncorrected BCs) ฝนตกน้ำก็รั่วเข้ามาได้ (Flux ผิดพลาด)
+> 3.  **Memory Confusion (Shared Blueprints)**: เหมือนมีพิมพ์เขียวแผ่นเดียว (Pointer) แล้วโฟร์แมน 2 คน (Variables) แย่งกันแก้ คนหนึ่งแก้ห้องนอน อีกคนนึกว่าห้องนอนเดิมยังอยู่ แต่จริงๆ เปลี่ยนไปแล้ว (Side Effects)
+> 4.  **Time Errors (Lost History)**: เหมือนเทปูนทับพื้นเดิมโดยไม่ได้ถ่ายรูปเก็บไว้ (Overwriting Old Time) พอจะเช็คระดับความสูงที่เปลี่ยนไป (Derivative) ก็ทำไม่ได้แล้ว
+
 OpenFOAM's field system provides powerful abstractions for CFD simulations, but its complexity introduces several categories of pitfalls that can lead to subtle bugs, performance issues, and runtime failures. This note identifies the most common pitfalls and provides professional-grade solutions.
 
 ---
@@ -1763,3 +1772,25 @@ void profileFieldOperations() {
 7. **Document custom field behavior** including dimensional analysis and performance characteristics
 
 These guidelines ensure that OpenFOAM field implementations are robust, efficient, and maintainable.
+
+---
+
+## 🧠 9. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ทำไมเราต้องเรียก `correctBoundaryConditions()` ทุกครั้งหลังแก้ไข Internal Internal Field (`U = ...`)?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะการกำหนดค่า (`=`) จะเปลี่ยนเฉพาะค่าใน Cell Centers เท่านั้น ค่าที่ Face Centers (Boundary Field) จะยังเป็นค่าเก่าอยู่ หากนำไปคำนวณต่อ (เช่น Flux) จะได้ผลลัพธ์ที่ผิดเพี้ยนทันที
+    </details>
+
+2.  **ถ้าเราต้องการ Copy Field `p1` ไปเป็น `p2` โดยให้ `p2` เป็นอิสระจาก `p1` อย่างสิ้นเชิง (Deep Copy) เราควรใช้วิธีไหน?**
+    <details>
+    <summary>เฉลย</summary>
+    วิธีที่ชัดเจนที่สุดคือ `volScalarField p2 = p1.clone();` หรือใช้ Deep Copy Constructor `volScalarField p2(p1, true);` การใช้ `=` เฉยๆ จะเป็นการทำ Shallow Copy (แชร์ข้อมูลกัน)
+    </details>
+
+3.  **ลำดับการเรียก `storeOldTime()` ที่ถูกต้องเมื่อจะอัปเดต Time Step คืออะไร?**
+    <details>
+    <summary>เฉลย</summary>
+    ต้องเรียก `storeOldTime()` **ก่อน** ที่จะมีการแก้ไขค่าใน Field นั้นๆ เพื่อให้ระบบเก็บค่าปัจจุบัน (ที่กำลังจะกลายเป็นอดีต) ลงใน `oldTime` ได้ทันท่วงที
+    </details>

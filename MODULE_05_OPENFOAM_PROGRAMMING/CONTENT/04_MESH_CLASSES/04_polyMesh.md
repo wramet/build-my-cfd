@@ -1296,3 +1296,31 @@ $$
 ---
 
 `polyMesh` ในฐานะอุปมาน "สำนักงานทะเบียนเมือง" จับภาพบทบาทของมันในฐานะ **รากฐานที่เป็นทางการและสอดคล้องเชิงโทโพโลยี** ซึ่งการคำนวณ CFD ทั้งหมดใน OpenFOAM ถูกสร้างขึ้น
+
+---
+
+## 🧠 9. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **Face Normal Convention ใน OpenFOAM มีทิศทางอย่างไร?**
+    <details>
+    <summary>เฉลย</summary>
+    Face Normal จะชี้จาก **Owner Cell** ไปยัง **Neighbour Cell** เสมอ สำหรับ Internal Faces และชี้ออกจาก Domain สำหรับ Boundary Faces (ซึ่งมีแต่ Owner)
+    </details>
+
+2.  **ค่า `neighbour` ของ Boundary Face คืออะไร?**
+    <details>
+    <summary>เฉลย</summary>
+    ค่า `neighbour` ของ Boundary Face คือ **-1** ซึ่งบ่งบอกว่าไม่มี Cell เพื่อนบ้านอีกฝั่งหนึ่ง (เพราะเป็นขอบเขตของ Domain)
+    </details>
+
+3.  **ทำไม `polyMesh` ถึงเปรียบเหมือน "สำนักงานทะเบียนเมือง" (City Registry Office)?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะ `polyMesh` ทำหน้าที่จัดเก็บและจัดการ **ความสัมพันธ์ทางโทโพโลยี (Topology)** ทั้งหมดของ Mesh เช่น ใครเป็นเจ้าของที่ดิน (Owner), ใครอยู่ติดกับใคร (Neighbour), และขอบเขตอยู่ตรงไหน (Boundary) ซึ่งคล้ายกับงานของสำนักงานทะเบียนที่ดูแลโฉนดและผังเมือง
+    </details>
+
+4.  **ในการรันแบบ Parallel (ขนาน), Boundary ระหว่าง Processor เรียกว่าอะไร และมีความสำคัญอย่างไร?**
+    <details>
+    <summary>เฉลย</summary>
+    เรียกว่า **Processor Patches** มีความสำคัญในการเชื่อมต่อ Sub-domains ที่ถูกแบ่งไปรันในแต่ละ Processor เพื่อให้สามารถแลกเปลี่ยนข้อมูล (เช่น ค่า Field ที่รอยต่อ) และทำให้การคำนวณเสมือนว่าเป็น Mesh เดียวกัน
+    </details>

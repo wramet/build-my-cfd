@@ -13,6 +13,14 @@ Linear algebra is the mathematical foundation of computational fluid dynamics (C
 
 ---
 
+> [!TIP] **Physical Analogy: The Traffic Control Systems (ระบบควบคุมการจราจร)**
+>
+> ลองจินตนาการระบบ Linear Algebra ของ OpenFOAM เสมือน **"ระบบโครงข่ายคมนาคม"**:
+>
+> 1.  **Dense Matrix (`SquareMatrix`)**: เปรียบเหมือน **"วงเวียนขนาดเล็ก"** (Roundabout) รถทุกคันที่เข้ามาสามารถเลี้ยวไปออกทางไหนก็ได้ทันที (Connected to everyone) เหมาะสำหรับจุดตัดย่อยๆ ที่คนไม่เยอะ
+> 2.  **Sparse Matrix (`LduMatrix`)**: เปรียบเหมือน **"โครงข่ายทางด่วนระดับประเทศ"** (Highway Network) คุณขับรถจากเชียงใหม่ไปภูเก็ตในรวดเดียวไม่ได้ ต้องผ่านจังหวัดข้างเคียง (Neighbors) ไปเรื่อยๆ ถนนส่วนใหญ่ที่เชื่อมเชียงใหม่กับขอนแก่น "ไม่มีอยู่จริง" (Zero entries) ถ้าฝืนสร้างถนนเชื่อมทุกจังหวัดเข้าด้วยกัน (Dense) งบประมาณ (Memory) จะพังพินาศ
+> 3.  **Physics-Aware Matrix (`fvMatrix`)**: เปรียบเหมือน **"ศูนย์ควบคุมจราจรอัจฉริยะ"** (Smart Control Center) ที่นอกจากจะรู้แผนที่ถนน (`LduMatrix`) แล้ว ยังรู้ด้วยว่ารถคันนี้เป็นรถบรรทุกสารเคมี (Dimensions) ห้ามวิ่งเข้าเขตชุมชน (Boundary Conditions) เพื่อความปลอดภัยสูงสุด
+
 ## Core Architecture
 
 ### Hierarchical Matrix Design
@@ -693,4 +701,26 @@ This comprehensive framework enables **industrial-scale CFD simulations** with b
 
 ---
 
-**Next:** Explore the [[02_🔍_High-Level_Concept_The_Spreadsheet_of_Numbers_Analogy]] for an intuitive understanding of dense matrix operations.
+
+---
+
+## 🧠 8. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ทำไม `fvMatrix` ถึงต้อง Inherit มาจาก `lduMatrix` แต่ในขณะเดียวกันก็ต้องเก็บ Reference ของ `GeometricField` (`psi_`) ไว้ด้วย?**
+    <details>
+    <summary>เฉลย</summary>
+    -   Inherit `lduMatrix` เพื่อเอากลไกการเก็บข้อมูลแบบ Sparse มาใช้ (เครื่องมือทางคณิตศาสตร์)
+    -   เก็บ `GeometricField` เพื่อให้ Matrix รูบริบททางฟิสิกส์ (Physics Context) เช่น Mesh, Boundary Conditions และ Dimensions
+    </details>
+
+2.  **ถ้าเรากำลังจำลองปฏิกิริยาเคมีในระดับ Cell โดยที่แต่ละ Space (Species) ใน Cell นั้นทำปฏิกิริยากันหมด เราควรใช้ Matrix Type แบไหนเพื่อแก้สมการเคมีจลนศาสตร์ (Chemical Kinetics)?**
+    <details>
+    <summary>เฉลย</summary>
+    ควรใช้ **Dense Matrix (`SquareMatrix`)** เพราะในหนึ่ง Cell สารเคมีทุกตัวผสมและทำปฏิกิริยากันโดยตรง (Fully coupled) แม้จำนวน Species จะมี 50-100 ตัว ก็ยังถือว่าเล็กพอที่จะใช้ Dense Matrix ได้อย่างมีประสิทธิภาพ
+    </details>
+
+3.  **ถ้าเราพยายามนำ `fvMatrix<scalar>` ของสมการความดัน (Pressure) ไปบวกกับ `fvMatrix<scalar>` ของสมการอุณหภูมิ (Temperature) โปรแกรมจะทำอย่างไร?**
+    <details>
+    <summary>เฉลย</summary>
+    จะเกิด **Runtime Error** (Fatal Error) ทันที เพราะ `dimensions_` ของทั้งสอง Matrix ไม่ตรงกัน ระบบความปลอดภัยของ OpenFOAM จะไม่อนุญาตให้บวกกันเพื่อป้องกันผลลัพธ์ที่ผิดเพี้ยนทางฟิสิกส์
+    </details>

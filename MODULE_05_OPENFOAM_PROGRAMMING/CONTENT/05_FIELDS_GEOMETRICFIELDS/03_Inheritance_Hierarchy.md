@@ -9,6 +9,18 @@ The OpenFOAM field system implements one of the most sophisticated template meta
 
 ---
 
+> [!TIP] **Physical Analogy: The Evolution of a Citizen (วิวัฒนาการของพลเมือง)**
+>
+> ถ้าเปรียบ **Grid Cell** เป็น **"บ้าน"** และ **Field** เป็น **"ข้อมูลสำมะโนครัว"**:
+>
+> 1.  **`UList` (The Raw DNA)**: เหมือนรหัสพันธุกรรมดิบๆ เก็บข้อมูล Array เปล่าๆ ไม่มีชื่อ ไม่รู้ว่าบ้านอยู่ไหน รู้แค่ว่า "ฉันมีข้อมูลเรียงกันนะ"
+> 2.  **`List` (The Individual)**: เริ่มมีความจำส่วนตัว (Memory Management) รู้จักขนาดตัวเอง ขยายตัวได้ (Resize) แต่ยังลอยๆ ไม่มีที่อยู่
+> 3.  **`Field` (The Worker)**: เริ่มมีความสามารถทางคณิตศาสตร์ (Calculus) บวก ลบ คูณ หาร ได้ เหมือนคนทำงานคำนวณได้ แต่ยังไม่รู้ตำแหน่งบ้าน
+> 4.  **`DimensionedField` (The Registered Citizen)**: มีป้ายชื่อและสัญชาติ (Units & Mesh Link) รู้แล้วว่าตัวเองอยู่ "ประเทศไหน" (Mesh) และมี "อาชีพอะไร" (Dimension)
+> 5.  **`GeometricField` (The Homeowner)**: ขั้นสูงสุด! มีบ้านเป็นหลักแหล่ง (Cell/Face) มีเพื่อนบ้าน (Boundary Conditions) และรู้จักกาลเวลา (Time Evolution) นี่คือพลเมืองเต็มขั้นในโลก OpenFOAM
+
+---
+
 ## 📊 **Complete Inheritance Architecture**
 
 ```mermaid
@@ -1318,3 +1330,25 @@ tmp<volScalarField> divU = fvc::div(U);
 > - **Template metaprogramming** enables compile-time optimizations
 >
 > This architecture transforms abstract PDEs into efficient, parallel, CFD code while respecting fundamental physical laws.
+
+---
+
+## 🧠 9. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ทำไม `GeometricField` ถึงต้องสืบทอดมาจาก `regIOobject` (ผ่าน `DimensionedField`)?**
+    <details>
+    <summary>เฉลย</summary>
+    เพื่อให้สามารถ **อ่าน/เขียน (Read/Write)** ข้อมูลลงไฟล์ได้โดยอัตโนมัติ `regIOobject` จัดการเรื่อง I/O, Headers, และการลงทะเบียน object เข้ากับ `objectRegistry` ทำให้เราบันทึกผล Simulation ได้ง่ายๆ แค่เรียก `.write()`
+    </details>
+
+2.  **ถ้าเราต้องการใช้ `List` ที่มีความเร็วสูงสุดในการเข้าถึงข้อมูล (High Performance Access) โดยไม่ต้องห่วงเรื่อง Bounds Checking เราควรใช้คลาสอะไร?**
+    <details>
+    <summary>เฉลย</summary>
+    **`UList` (Unallocated List)** เพราะเป็น Wrapper บางๆ รอบ Pointer ของ Memory จริงๆ ไม่มี Overhead ของการเช็ค Bounds หรือการจัดการ Memory ทำให้เข้าถึงเร็วที่สุด (แต่ก็อันตรายที่สุดถ้าใช้ไม่ระวัง)
+    </details>
+
+3.  **Expression Templates ช่วยแก้ปัญหา "Temporary Object Cost" ได้ยังไง อธิบายง่ายๆ?**
+    <details>
+    <summary>เฉลย</summary>
+    แทนที่จะคำนวณ `A + B` แล้วสร้าง Array ผลลัพธ์ชั่วคราวขึ้นมา 1 ตัว แล้วค่อยเอาไปคูณ `C` (สร้างอีก 1 ตัว)... **Expression Template** จะจำแค่ "สูตร" ว่า `Op = (A+B)*C` แล้วตอนวน Loop ใส่ค่าจริง มันจะคำนวณรวดเดียวจบใน 1 Loop โดยไม่สร้าง Array พักข้อมูลระหว่างทางเลย
+    </details>

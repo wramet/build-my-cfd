@@ -682,6 +682,39 @@ symmetryPlane
 
 ## แนวทางการเลือกเงื่อนไขขอบเขต
 
+```mermaid
+graph TD
+    Start[Start: Select Variable] --> Vari{Variable?}
+    
+    Vari -->|Velocity U| LocU{Location?}
+    Vari -->|Pressure p| LocP{Location?}
+    Vari -->|Turbulence| LocT{Location?}
+    
+    LocU -->|Inlet| UIn[fixedValue<br/>(Set Velocity)]
+    LocU -->|Outlet| UOut[zeroGradient<br/>(Fully Developed)]
+    LocU -->|Wall (Viscous)| UWall[noSlip]
+    LocU -->|Wall (Inviscid)| USlip[slip]
+    
+    LocP -->|Inlet| PIn[zeroGradient]
+    LocP -->|Outlet| POut[fixedValue<br/>(Set Pressure)]
+    LocP -->|Wall| PWall[zeroGradient]
+    
+    LocT -->|Inlet| TIn[fixedValue<br/>(Set k, ε)]
+    LocT -->|Wall| TWall[Wall Functions]
+    LocT -->|Outlet| TOut[zeroGradient]
+
+    style Start fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style UIn fill:#e3f2fd,stroke:#1565c0
+    style UOut fill:#e3f2fd,stroke:#1565c0
+    style UWall fill:#ffebee,stroke:#c62828
+    style USlip fill:#ffebee,stroke:#c62828
+    
+    style PIn fill:#fff9c4,stroke:#fbc02d
+    style POut fill:#fff9c4,stroke:#fbc02d
+    style PWall fill:#fff9c4,stroke:#fbc02d
+```
+> **Figure 4:** แผนภาพช่วยตัดสินใจ (Decision Flowchart) สำหรับการเลือกเงื่อนไขขอบเขตพื้นฐานสำหรับความเร็ว ความดัน และความปั่นป่วน ตามตำแหน่งของขอบเขต (ทางเข้า ทางออก หรือผนัง)
+
 ### ทางเข้า (Inlet Boundary)
 
 | ตัวแปร | เงื่อนไขขอบเขตที่แนะนำ | หมายเหตุ |
@@ -911,4 +944,30 @@ boundaryField
 3. **เสถียรภาพเชิงตัวเลข**: หลีกเลี่ยงเงื่อนไขที่ทำให้คำตอบเกิดการลู่ออก (divergence)
 4. **ประสิทธิภาพการคำนวณ**: เลือกเงื่อนไขที่ให้ผลลัพธ์ถูกต้องในเวลาที่เหมาะสม
 
-การเข้าใจหลักการของแต่ละเงื่อนไขขอบเขตจะช่วยให้เลือกใช้ได้อย่างเหมาะสมกับปัญหาที่ต้องการแก้ นำไปสู่การจำลอง CFD ที่มีประสิทธิภาพและเชื่อถือได้
+การเข้าใจหลักการของแต่ละเงื่อนไขขอบเขตจะช่วยให้เลือกใช้ได้อย่างเหมาะสมกับปัญหาที่ต้องการแก้ นำไปสู่การจำลอง CFD ที่มีประสิทธิภาพและเชื่อถือได้ใน OpenFOAM
+
+---
+
+## 🧠 Concept Check: ทดสอบความเข้าใจ
+
+<details>
+<summary><b>1. "No-slip condition" หมายความว่าอย่างไร และเราเขียนใน OpenFOAM อย่างไร?</b></summary>
+
+**คำตอบ:**
+*   **ความหมาย:** ของไหลที่สัมผัสกับผนังจะมีความเร็วเท่ากับผนังนั้น (ถ้าผนังอยู่นิ่ง ความเร็วของไหลก็เป็นศูนย์) เนื่องจากแรงเสียดทานความหนืด
+*   **OpenFOAM:** ใช้ `type noSlip;` (หรือ `type fixedValue; value uniform (0 0 0);`)
+</details>
+
+<details>
+<summary><b>2. ถ้าเรากำหนด Velocity Inlet (fixedValue) เราควรกำหนด Pressure เป็นอะไร? และทำไม?</b></summary>
+
+**คำตอบ:** ควรกำหนด Pressure เป็น **`zeroGradient`**
+เพราะถ้าเราฟิกซ์ความเร็วขาเข้าแล้ว เราควรปล่อยให้ความดัน "พัฒนา" (develop) ขึ้นมาเองตามสมการโมเมนตัม เพื่อขับเคลื่อนของไหลให้ได้ความเร็วนั้น ถ้าเราไปฟิกซ์ค่าความดันที่ทางเข้าด้วย อาจเกิดข้อขัดแย้งทางฟิสิกส์ (Over-constrained)
+</details>
+
+<details>
+<summary><b>3. Wall Function มีไว้ทำไม? ทำไมไม่ resolve boundary layer ไปเลยตรงๆ?</b></summary>
+
+**คำตอบ:** เพื่อ **ประหยัดทรัพยากรการคำนวณ**
+การจะ resolve boundary layer (ชั้นหนืด) ให้ถูกต้อง ต้องใช้ Mesh ที่ละเอียดมาก (y+ < 1) ซึ่งเปลืองเวลาคำนวณมหาศาล Wall Function ใช้สูตรคณิตศาสตร์มา "ประมาณ" ค่าที่ผนังแทน ทำให้ใช้ Mesh หยาบๆ (y+ 30-300) ได้โดยผลลัพธ์ยังยอมรับได้
+</details>

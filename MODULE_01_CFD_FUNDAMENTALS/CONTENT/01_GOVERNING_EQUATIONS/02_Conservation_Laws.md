@@ -52,6 +52,12 @@ classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 ```
 > **Figure 1:** การวิเคราะห์ปริมาตรควบคุมสำหรับการอนุรักษ์มวล แสดงให้เห็นว่าฟลักซ์มวล (เข้า/ออก) และการสะสมมวลนำไปสู่สมการความต่อเนื่อง $\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$ ได้อย่างไร
 
+> [!TIP] **สัญชาตญาณทางกายภาพ (Physical Intuition)**
+> สมการความต่อเนื่องบอกเราว่า "ของไหลหายไปไหนไม่ได้"
+> - ถ้าอัดอากาศลงในถัง ($\nabla \cdot \mathbf{u} < 0$, ไหลเข้ามากกว่าไหลออก) -> ความหนาแน่นในถังจะเพิ่มขึ้น ($\partial \rho / \partial t > 0$)
+> - ถ้าน้ำไหลผ่านท่อคงที่ (อัดไม่ได้) -> น้ำเข้าเท่าไหร่ ต้องออกเท่านั้น 
+
+
 ### รูปแบบสมการทั่วไป
 
 **สำหรับของไหลแบบอัดตัวได้ (Compressible Flow)**:
@@ -198,6 +204,14 @@ classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
 classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 ```
 > **Figure 2:** โครงสร้างของสมการการอนุรักษ์โมเมนตัม โดยจับคู่แรงที่กระทำ (แรงดัน, แรงหนืด, แรงภายนอก) เข้ากับพจน์ความเร่งที่เกิดขึ้นตามกฎข้อที่สองของนิวตัน
+
+> [!TIP] **สัญชาตญาณทางกายภาพ (Physical Intuition)**
+> คิดถึงการเตะบอล ⚽️:
+> - **Inertia ($\rho \mathbf{u} \cdot \nabla \mathbf{u}$):** ลูกบอลอยากพุ่งไปข้างหน้าตามความเร็วเดิม
+> - **Pressure Gradient ($-\nabla p$):** อากาศด้านหน้าอัดตัวต้านลูกบอล หรือแรงเตะที่ส่งแรงดันใส่
+> - **Viscosity ($\mu \nabla^2 \mathbf{u}$):** ความหนืดของอากาศที่พยายามหยุดผิวลูกบอล (Air drag)
+> - **Body Force ($\mathbf{f}$):** แรงโน้มถ่วงดึงลูกบอลตกลงพื้น
+
 
 ### แรงที่กระทำต่อองค์ประกอบของไหล
 
@@ -557,8 +571,28 @@ $$\int_V \nabla \cdot \mathbf{F} \, \mathrm{d}V = \oint_S \mathbf{F} \cdot \math
 | **โมเมนตัม** | โมเมนตัม $\rho \mathbf{u}$ | $\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$ | รูปแบบเดียวกัน |
 | **พลังงาน** | พลังงาน $\rho E$ | $\frac{\partial (\rho E)}{\partial t} + \nabla \cdot (\rho E \mathbf{u}) = \nabla \cdot (k \nabla T) - \nabla \cdot (p \mathbf{u}) + \rho \mathbf{g} \cdot \mathbf{u} + \Phi$ | ขึ้นกับรูปแบบ |
 
-> [!TIP] ความเข้าใจเชิงลึก
-> กฎการอนุรักษ์ทั้งสามนี้เป็นหลักการที่ไม่อาจละเลยได้ใน CFD การเข้าใจความสัมพันธ์ระหว่างสมการเหล่านี้จะช่วยให้คุณสามารถ:
 > - เลือก Solver ที่เหมาะสม
 > - ตั้งค่า Boundary Conditions ได้อย่างถูกต้อง
 > - ตีความผลการจำลองได้อย่างแม่นยำ
+
+---
+
+## ตรวจสอบความเข้าใจ (Concept Check)
+
+1. **ถาม:** ถ้าการไหลเป็นแบบ Incompressible (อัดตัวไม่ได้) เทอมใดในสมการความต่อเนื่องจะหายไป?
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b> เทอม $\frac{\partial \rho}{\partial t}$ (อัตราการเปลี่ยนแปลงความหนาแน่นตามเวลา) จะหายไป เพราะความหนาแน่นคงที่
+   </details>
+
+2. **ถาม:** ในสมการ Navier-Stokes เทอม $\mathbf{u} \cdot \nabla \mathbf{u}$ เรียกว่าอะไร และมีความสำคัญอย่างไร?
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b> เรียกว่า Convective acceleration term เป็นเทอมที่ทำให้สมการมีความไม่เป็นเชิงเส้น (Non-linear) ซึ่งทำให้สมการ Navier-Stokes ยากต่อการหาผลเฉลยแม่นตรง (Analytical solution)
+   </details>
+
+3. **ถาม:** PISO algorithm ใช้ทำอะไรในการแก้สมการอนุรักษ์?
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b> ใช้สำหรับ Pressure-Velocity Coupling เพื่อแก้ไขความดันและความเร็วให้สอดคล้องกับสมการความต่อเนื่อง ในขั้นตอนการแก้สมการแบบวนซ้ำ (Iterative)
+   </details>

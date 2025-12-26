@@ -22,6 +22,17 @@
 
 การเฉลี่ยแบบ Reynolds เป็นเทคนิคพื้นฐานในการสร้างแบบจำลองความปั่นป่วน (turbulence modeling) ซึ่งแยกตัวแปรการไหลแบบทันที (instantaneous flow variables) ออกเป็นส่วนเฉลี่ย (mean components) และส่วนผันผวน (fluctuating components)
 
+> [!TIP] **Physical Analogy: Long Exposure Photography (ภาพถ่ายแบบเปิดหน้ากล้องนาน)**
+>
+> ลองนึกภาพคุณกำลังถ่ายรูป "น้ำตก":
+>
+> 1.  **Reality (DNS):** ถ้าคุณถ่ายวิดีโอ High-speed คุณจะเห็นหยดน้ำทุกหยด การกระเซ็น และการหมุนวนที่คาดเดาไม่ได้ (นี่คือความจริงของ Turbulence)
+> 2.  **RANS:** ถ้าคุณถ่ายภาพนิ่งแบบ **Long Exposure** (เปิดหน้ากล้องค้างไว้ 5 วินาที)
+>     - น้ำจะดูเหมือน **"สายหมอกนุ่มๆ"** ที่ไหลต่อเนื่อง
+>     - คุณจะเห็นทิศทางหลักที่น้ำไหล (Mean Flow, $\overline{\phi}$)
+>     - แต่คุณจะไม่เห็นหยดน้ำแต่ละหยดที่กระเซ็นไปมา (Fluctuation, $\phi'$)
+>     - ความ "เบลอ" หรือความฟุ้งของสายน้ำในภาพ คือสิ่งที่ RANS พยายามบอกเราผ่านค่า **Turbulence Kinetic Energy ($k$)** (ยิ่งเบลอมาก แปลว่ายิ่งปั่นป่วนมาก)
+
 **สำหรับตัวแปรการไหลใดๆ $\phi$:**
 $$\phi(\mathbf{x}, t) = \overline{\phi}(\mathbf{x}, t) + \phi'(\mathbf{x}, t)$$
 
@@ -704,3 +715,29 @@ omega
 - **[[01_Turbulence_Fundamentals]]** - พื้นฐานความปั่นป่วน
 - **[[03_Wall_Treatment]]** - การจัดการผนังและ Wall Functions
 - **[[00_Overview]]** - ภาพรวมการสร้างแบบจำลองความปั่นป่วน
+
+---
+
+## 🧠 7. Concept Check (ทดสอบความเข้าใจ)
+
+1. **ทำไม k-epsilon ถึง "แย่" ในการทำนาย Flow Separation (เช่น การไหลผ่านหลังทรงกระบอก)?**
+   <details>
+   <summary>เฉลย</summary>
+   เพราะ k-epsilon มักจะทำนายค่า Eddy Viscosity ($\nu_t$) สูงเกินไปในบริเวณใกล้ผนัง ซึ่งเปรียบเสมือนการเติมความหนืดเทียมเข้าไป ทำให้ Flow เกาะติดผิววัตถุได้ดีเกินจริง (Delay Separation) ส่งผลให้ทำนายขนาดของ Wake เล็กกว่าความเป็นจริง
+   </details>
+
+2. **k-omega SST ทำงานเหมือน "ลูกผสม" (Hybrid) อย่างไร?**
+   <details>
+   <summary>เฉลย</summary>
+   SST ใช้ **Blending Function ($F_1$)** เพื่อสลับโหมดการทำงาน:
+   - **ใกล้ผนัง ($F_1 \to 1$):** ทำงานเป็น **k-omega** เพื่อจับ Physics ของ Boundary Layer ได้แม่นยำ
+   - **ไกลผนัง ($F_1 \to 0$):** สลับเป็น **k-epsilon** เพื่อหลีกเลี่ยงปัญหาความไวต่อค่า Free-stream omega
+   </details>
+
+3. **ค่า Y+ = 1 จำเป็นสำหรับ RANS ทุกรุ่นหรือไม่?**
+   <details>
+   <summary>เฉลย</summary>
+   **ไม่จำเป็น** ขึ้นอยู่กับว่าใช้ **Low-Re** หรือ **High-Re (Wall Function)** approach:
+   - ถ้าใช้ **k-omega SST (Low-Re)** เพื่อจับรายละเอียดการแยกตัว ควรใช้ $y^+ \approx 1$
+   - ถ้าใช้ **k-epsilon Standard (High-Re)** ควรใช้ Wall Functions และ $y^+$ ในช่วง 30-300
+   </details>

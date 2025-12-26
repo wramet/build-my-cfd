@@ -23,6 +23,17 @@ Mesh --> Solvers[ระบบ Solver]:::explicit
 
 > **Figure 1:** แผนผังลำดับชั้นขององค์ประกอบใน OpenFOAM ที่แสดงให้เห็นการสร้างระบบจากพื้นฐานขนาดเล็ก (Primitives) ไปสู่ระบบที่มีความซับซ้อนสูง (Solvers) โดยแต่ละระดับจะต่อยอดจากระดับก่อนหน้าเพื่อสร้างโครงสร้างที่สมบูรณ์สำหรับการคำนวณ CFD
 
+> [!TIP] **Physical Analogy: The Lego City (เมืองเลโก้)**
+>
+> จินตนาการว่าคุณกำลังสร้าง "เมือง" (CFD Simulation):
+>
+> 1.  **Primitives (`label`, `scalar`):** คือ **"ตัวต่อเลโก้" (Bricks)** ชิ้นเล็กที่สุด แข็งแรง และมีขนาดมาตรฐาน (Portable & Precise)
+> 2.  **Containers (`List`, `Field`):** คือ **"ถังใส่ตัวต่อ"** หรือ **"กำแพง"** ที่เกิดจากการเรียงตัวต่อหลายๆ อัน
+> 3.  **Mesh (`fvMesh`):** คือ **"แผ่นพื้นรอง" (Baseplate)** ที่กำหนดตำแหน่งที่ตั้งของสิ่งก่อสร้าง
+> 4.  **Equation (`fvMatrix`):** คือ **"คู่มือการประกอบ"** ที่บอกว่าตัวต่อแต่ละชิ้นต้องเชื่อมต่อกันอย่างไรเพื่อให้ตึกไม่ถล่ม (Conservation Laws)
+>
+> OpenFOAM ไม่ได้ใช้ "ดินน้ำมัน" (Standard C++ types) เพราะมันยืดหยุ่นเกินไปจนควบคุมโครงสร้างยาก แต่ใช้ "เลโก้" (OpenFOAM Primitives) ที่มีกฏการเชื่อมต่อที่ชัดเจน (Type Safety & Dimensional Consistency)
+
 ## ทำไมต้อง Redefine ประเภทข้อมูลพื้นฐานของ C++?
 
 OpenFOAM ไม่ได้ใช้ standard C++ types เช่น `int` และ `double` โดยตรง แต่จะ define primitives ของตัวเอง: `label`, `scalar` และอื่นๆ การเลือกแบบนี้มีจุดประสงค์สำคัญ 3 ประการ:
@@ -425,3 +436,26 @@ word turbulenceModel = transportProperties.lookup<word>("turbulenceModel");
 - [[04_Topic_3_Smart_Pointers_(`autoPtr`,_`tmp`)|Smart Pointers]] - autoPtr, tmp
 - [[05_Topic_4_Containers_(`List`)|คอนเทนเนอร์]] - List, PtrList
 - [[06_Summary_&_Reference|สรุปและอ้างอิง]] - ภาพรวมและตารางอ้างอิง
+
+---
+
+## 🧠 9. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ทำไม OpenFOAM ถึงไม่ให้เราบวก `pressure` (ความดัน) เข้ากับ `velocity` (ความเร็ว)?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะ OpenFOAM มีระบบ **Physics Safety** หรือ **Dimensional Consistency** ที่เข้มงวด มันจะตรวจสอบหน่วย (Dimensions) ของตัวแปรก่อนคำนวณ หากหน่วยไม่ตรงกัน (เช่น Pascal + m/s) คอมไพเลอร์จะฟ้อง Error ทันที เพื่อป้องกันผลลัพธ์ที่ผิดเพี้ยนทางฟิสิกส์
+    </details>
+
+2.  **ความแตกต่างระหว่าง `autoPtr` และ `tmp` คืออะไร?**
+    <details>
+    <summary>เฉลย</summary>
+    - **`autoPtr`:** เป็นเจ้าของข้อมูล **คนเดียว** (Exclusive Ownership) เหมาะสำหรับการสร้าง Object ใหม่แล้วส่งต่อให้คนอื่นดูแลต่อ
+    - **`tmp`:** เป็นระบบ **แชร์** (Shared Reference Counting) เหมาะสำหรับตัวแปรชั่วคราวในการคำนวณ (เช่น ผลลัพธ์ของ `grad(U)`) ที่อาจถูกเรียกใช้หลายครั้งหรือขอบเขตสิ้นสุดเร็ว ช่วยลดการ Copy ข้อมูลขนาดใหญ่โดยไม่จำเป็น
+    </details>
+
+3.  **ทำไม `LduMatrix` ถึงเก็บข้อมูลแบบ "Sparse" (เบาบาง)?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะในวิธีการ Finite Volume Method (FVM) เซลล์หนึ่งๆ จะเชื่อมต่อกับเซลล์ข้างเคียง (Neighbours) เพียงไม่กี่เซลล์เท่านั้น สัมประสิทธิ์ส่วนใหญ่ในเมทริกซ์จึงเป็น 0 การเก็บทุกตัวเปลืองหน่วยความจำมหาศาล การเก็บแบบ Sparse (เก็บเฉพาะตัวที่ไม่ใช่ 0) จึงประหยัด Memory และคำนวณเร็วกว่ามาก
+    </details>

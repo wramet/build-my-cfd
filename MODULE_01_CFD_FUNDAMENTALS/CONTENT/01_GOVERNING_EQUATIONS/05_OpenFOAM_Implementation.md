@@ -61,6 +61,30 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \
 **คำอธิบายเทอมสำคัญ**:
 - `fvm::` - **Implicit terms** (ช่วยในแนวทแยงของเมทริกซ์สำหรับความเสถียรเชิงตัวเลข)
 - `fvc::` - **Explicit terms** (ถือเป็น Source Term)
+
+```mermaid
+graph LR
+    subgraph Implicit["fvm:: (Implicit)"]
+        direction TB
+        I1["Creates Matrix Coefficients"]
+        I2["Part of Linear System A x = b"]
+        I3["Stable, but needs solver"]
+    end
+
+    subgraph Explicit["fvc:: (Explicit)"]
+        direction TB
+        E1["Calculates Values Directly"]
+        E2["Moved to RHS (Source Term)"]
+        E3["Fast, but lag behind"]
+    end
+
+    Code["User Code"] --> I1
+    Code --> E1
+    I1 --> System["Matrix Solver"]
+    E1 --> System
+```
+> **Figure 2b:** แผนภาพเปรียบเทียบ Mental Model ระหว่าง `fvm::` และ `fvc::` ใน OpenFOAM
+
 - `rhoPhi` - **Mass Flux** $\rho \mathbf{u} \cdot \mathbf{S}_f$ ที่หน้า Cell
 - `muEff` - **Effective Viscosity** $\mu_{eff} = \mu + \mu_t$
 
@@ -712,6 +736,44 @@ interpolationSchemes
 | **Transient, Laminar** | `linear` (accurate) | `linear` |
 | **Turbulent** | `linearUpwind` | `linear` |
 | **High Mach** | `bounded` schemes | `linear` |
+
+---
+
+## **Anatomy of an OpenFOAM Solver**
+
+เพื่อให้เห็นภาพรวม นี่คือโครงสร้างมาตรฐานที่เกือบทุก Solver ใน OpenFOAM จะเป็นไปตามนี้:
+
+```mermaid
+graph TD
+    Start(("Start application")) --> Header["#include 'fvCFD.H'<br/>Include core headers"]
+    Header --> CreateMesh["createMesh.H<br/>Load mesh"]
+    CreateMesh --> CreateFields["createFields.H<br/>Load p, U, phi, transportParams"]
+    CreateFields --> TimeLoop{"Time Loop<br/>runTime.run()"}
+    
+    TimeLoop -->|Yes| Courant["Read/Calc Time Step<br/>Adjust Δt (optional)"]
+    Courant --> PIMPLE_Loop{"PIMPLE Loop<br/>(Inner Iterations)"}
+    
+    PIMPLE_Loop --> UEqn["UEqn.H<br/>Construct & Solve Momentum Eq"]
+    UEqn --> P_Loop{"Pressure Corrector Loop<br/>(nCorrectors)"}
+    
+    P_Loop --> PEqn["pEqn.H<br/>Solve Pressure Eq<br/>Correct U"]
+    PEqn --> Turb["turbulence->correct()<br/>Update Turbulence"]
+    
+    Turb --> P_Loop
+    P_Loop -->|Done| PIMPLE_Loop
+    PIMPLE_Loop -->|Converged| Write["Write Data<br/>(if writeTime)"]
+    
+    Write --> TimeLoop
+    TimeLoop -->|No| End(("End"))
+```
+> **Figure 4:** ผังงานแสดงโครงสร้างการทำงานของ Solver มาตรฐานใน OpenFOAM ตั้งแต่การเริ่มต้น (Initialization) ไปจนถึงลูปเวลา (Time Loop) และลูปลูปย่อย (PIMPLE/PISO Loop)
+
+### องค์ประกอบหลัก (Standard Components)
+1.  **Header (`#include "fvCFD.H"`)**: รวมทุกอย่างที่จำเป็นสำหรับ Finite Volume CFD
+2.  **Meshing (`createMesh.H`)**: สร้าง object `mesh` จากไฟล์ใน `constant/polyMesh`
+3.  **Fields (`createFields.H`)**: สร้างตัวแปร `U`, `p`, `phi` จากไฟล์ใน `0/`
+4.  **Time Loop (`while(runTime.run())`)**: วนลูปจนกว่าจะถึง `endTime`
+5.  **Equation Header files (`UEqn.H`, `pEqn.H`)**: โค้ดสำหรับสมการมักจะถูกแยกออกไปเป็นไฟล์ .H เพื่อให้อ่านง่ายและนำกลับมาใช้ใหม่ได้
 
 ---
 

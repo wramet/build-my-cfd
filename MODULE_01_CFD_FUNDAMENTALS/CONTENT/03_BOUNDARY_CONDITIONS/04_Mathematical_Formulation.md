@@ -228,6 +228,32 @@ classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 
 #### OpenFOAM Code Implementation
 
+```mermaid
+graph TD
+    subgraph Interior ["Interior Domain"]
+        P["Point P (Internal Node)"]
+    end
+    subgraph Boundary ["Boundary Face"]
+        B["Face b"]
+    end
+    subgraph Ghost ["Ghost Zone (Imaginary)"]
+        G["Ghost Point G"]
+    end
+
+    P ---|"Δx"| B
+    B ---|"Δx"| G
+    
+    style G fill:#f9f9f9,stroke:#333,stroke-dasharray: 5 5
+    style B fill:#ffebee,stroke:#c62828,stroke-width:2px
+
+    linkStyle 0 stroke-width:2px,fill:none,stroke:black;
+    linkStyle 1 stroke-width:2px,fill:none,stroke:black,stroke-dasharray: 5 5;
+```
+> **Figure 3.1: Ghost Point Method**
+> แนวคิดของ "Ghost Point" (จุด G) คือจุดสมมติที่อยู่นอกโดเมน เพื่อช่วยในการคำนวณ Gradient ทีขอบเขต
+> *   Gradient $\approx \frac{\phi_G - \phi_P}{2\Delta x} = g_{specified}$
+> *   เราสามารถหาค่า $\phi_G$ ได้จากสมการนี้และนำไปใช้คำนวณค่าที่ขอบเขต $\phi_b$ ได้
+
 ```cpp
 // Boundary condition specification for fixed gradient
 boundaryField
@@ -838,13 +864,29 @@ outlet
 
 ---
 
-## อ้างอิงต่อเนื่อง
+---
 
-- [[00_Overview]] - ภาพรวมของ Boundary Conditions
-- [[01_Introduction]] - บทนับ Boundary Condition ใน OpenFOAM
-- [[02_Fundamental_Classification]] - การจำแนกพื้นฐาน
-- [[03_Selection_Guide_Which_BC_to_Use]] - คู่มือการเลือก Boundary Condition
-- [[05_Common_Boundary_Conditions_in_OpenFOAM]] - Boundary Condition ทั่วไปใน OpenFOAM
-- [[06_Advanced_Boundary_Conditions]] - เงื่อนไขขอบเขตขั้นสูง
-- [[07_Troubleshooting_Boundary_Conditions]] - การแก้ปัญหา Boundary Conditions
-- [[08_Exercises]] - แบบฝึกหัด
+## 🧠 Concept Check: ทดสอบความเข้าใจ
+
+<details>
+<summary><b>1. ผลเฉลย (Solution) ของปัญหา CFD จะเป็นเอกลักษณ์ (Unique) มั๊ยถ้าเรากำหนด Neumann BC รอบโดเมนทั้งหมด (เช่น กำหนด Flux รอบด้าน)?</b></summary>
+
+**คำตอบ:** **ไม่เป็นเอกลักษณ์ (Not Unique)**
+ถ้าเรากำหนดแค่อัตราการเปลี่ยนแปลงรอบด้าน (เช่น น้ำไหลเข้าเท่าไหร่ ไหลออกเท่าไหร่) เราจะทราบแค่ "ความชัน" ของผิวผลเฉลย แต่เราจะไม่รู้ "ระดับ" ของมัน (เช่น Pressure level)
+*   ผลเฉลยที่ได้จะลอย (Floating) คือ $P$ และ $P+Constant$ ต่างก็เป็นคำตอบที่ถูกต้องทั้งคู่
+*   ใน CFD เรามักจะต้องมี **Reference Value** (เช่น Fixed Value Pressure) อย่างน้อย 1 จุดเพื่อ "ปักหมุด" ผลเฉลยให้คงที่
+</details>
+
+<details>
+<summary><b>2. สมการ Elliptic (เช่น Steady Heat Conduction, Pressure Equation) ต้องการ Boundary Condition แบบไหน?</b></summary>
+
+**คำตอบ:** ต้องการ Boundary Condition **รอบทิศทาง (All Boundaries)**
+เนื่องจากสมการ Elliptic สื่อถึงการแพร่กระจายของข้อมูลไปทุกทิศทาง (เช่น แรงดันในท่อส่งผลกระทบย้อนกลับไปต้นทางได้) ดังนั้นเราต้องรู้ข้อมูลขอบเขตให้ครบรอบด้านถึงจะหาคำตอบภายในได้
+</details>
+
+<details>
+<summary><b>3. ใน OpenFOAM ทำไมเราถึงต้องกำหนดค่า `value` ให้กับ `fixedGradient` ด้วย ทั้งๆ ที่เราฟิกซ์แค่ Gradient?</b></summary>
+
+**คำตอบ:** เพื่อใช้เป็น **Initial Guess** หรือค่าเริ่มต้นในการแสดงผล (Visualization)
+แม้หลักการคำนวณจะใช้ Gradient แต่ OpenFOAM ยังเก็บค่า Field (`value`) ที่ Boundary patch นั้นๆ เพื่อใช้ในการเริ่มต้น Loop แรก หรือใช้ดูผลใน ParaView (แต่ค่าจะถูก Update ใหม่เรื่อยๆ ตาม Fixed Gradient ที่กำหนดในขณะคำนวณ)
+</details>

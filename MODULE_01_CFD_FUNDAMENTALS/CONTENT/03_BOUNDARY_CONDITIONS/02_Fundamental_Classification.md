@@ -183,6 +183,17 @@ classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 - เงื่อนไข Flux มักถูกกำหนดได้ง่ายกว่าค่าตัวแปร
 - ใช้เมื่อทราบอัตราการเปลี่ยนแปลงของปริมาณที่ข้ามขอบเขต
 
+> [!TIP]
+> **Practical Analogy: การปรับอากาศในห้อง (Air Conditioning)**
+>
+> 1.  **Dirichlet (Fixed Value) = "ตั้งอุณหภูมิที่รีโมทแอร์"**
+>     *   คุณสั่งแอร์ว่า: "จงทำให้อุณหภูมิหน้าเครื่องเป็น **25°C** เดี๋ยวนี้!"
+>     *   คุณไม่สนว่าแอร์ต้องทำงานหนักแค่ไหน หรือ Heat Flux จะเป็นเท่าไหร่ ขอแค่ค่าสุดท้ายที่ผิวหน้าต้องเป็น 25°C เป๊ะๆ
+>
+> 2.  **Neumann (Fixed Gradient/Flux) = "ปรับความแรงพัดลม/ฮีตเตอร์"**
+>     *   คุณสั่งฮีตเตอร์ว่า: "จงปล่อยความร้อนออกมา **1000 วัตต์**" (Fixed Heat Flux)
+>     *   คุณไม่รู้หรอกว่าสุดท้ายอุณหภูมิห้องจะเป็นเท่าไหร่ (อาจจะร้อนจัดหรือแค่อุ่นๆ ขึ้นอยู่กับอากาศข้างนอก) แต่คุณคุม **อัตราการไหลของพลังงาน** เข้าสู่ห้องได้แน่นอน
+
 ### สูตรทางคณิตศาสตร์
 
 $$\frac{\partial \phi}{\partial n}\bigg|_{\partial \Omega} = \mathbf{n} \cdot \nabla \phi = g_0(\mathbf{x}, t)$$
@@ -798,6 +809,32 @@ classDef volatile fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 |------|------------------------|-------------|-------------------|
 | **Fixed pressure** | `fixedValue` | $p = p_{ref}$ | ระบุค่า Pressure อ้างอิง |
 | **Open boundary** | `zeroGradient` | $\frac{\partial p}{\partial n} = 0$ | ขอบเขตเปิด |
+
+---
+
+## 🧠 Concept Check: ทดสอบความเข้าใจ
+
+<details>
+<summary><b>1. ความแตกต่างที่สำคัญที่สุดระหว่าง Dirichlet (FixedValue) และ Neumann (FixedGradient) คืออะไร?</b></summary>
+
+**คำตอบ:**
+*   **Dirichlet (FixedValue):** เราบังคับ **"ค่า" (Value)** ของตัวแปรที่ขอบเขตโดยตรง (เช่น $T = 300K$)
+*   **Neumann (FixedGradient):** เราบังคับ **"อัตราการเปลี่ยนแปลง" (Slope/Flux)** ของตัวแปรที่ข้ามขอบเขต (เช่น $\frac{\partial T}{\partial n} = 0$ คือห้ามมีความร้อนไหลผ่าน)
+</details>
+
+<details>
+<summary><b>2. ทำไมเราถึงใช้ `zeroGradient` ที่ Outlet สำหรับความเร็ว (Velocity)?</b></summary>
+
+**คำตอบ:** การใช้ `zeroGradient` ที่ Outlet หมายความว่าเราสมมติให้การไหลเป็นแบบ **"Fully Developed"** (พัฒนาเต็มที่แล้ว)
+คือของไหลไหลออกไปเรื่อยๆ โดยไม่มีการเปลี่ยนแปลงความเร็วในทิศทางที่ไหลออกอีก ($\frac{\partial u}{\partial n} = 0$) เป็นวิธีที่ปลอดภัยที่สุดในการปล่อยให้ Flow ไหลออกจากโดเมนโดยไม่ไปรบกวน Physics ภายใน
+</details>
+
+<details>
+<summary><b>3. Mixed Boundary Condition (Robin) มีประโยชน์ในสถานการณ์จริงอย่างไร?</b></summary>
+
+**คำตอบ:** ใช้จำลองสถานการณ์ที่ **ค่าที่ขอบเขตขึ้นอยู่กับสภาพแวดล้อม** ไม่ได้ถูกกำหนดตายตัว
+ตัวอย่างที่ชัดเจนที่สุดคือ **การระบายความร้อน (Convection Cooling)** ซึ่งอุณหภูมิที่ผิวผนัง ($T_{wall}$) ไม่ได้คงที่ และ Heat Flux ก็ไม่ได้คงที่ แต่ทั้งคู่สัมพันธ์กันผ่าน Heat Transfer Coefficient ($h$) และอุณหภูมิอากาศรอบข้าง ($T_{\infty}$) ตามกฎของนิวตัน
+</details>
 | **Wave boundary** | `waveTransmissive` | Non-Reflecting Condition | Acoustics, Wave Propagation |
 
 ### Thermal Boundary Conditions

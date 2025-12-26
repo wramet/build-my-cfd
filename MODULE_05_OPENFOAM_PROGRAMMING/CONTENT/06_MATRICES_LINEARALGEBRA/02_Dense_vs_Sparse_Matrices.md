@@ -2,6 +2,16 @@
 
 ## 🔍 **High-Level Concept: The Spreadsheet of Numbers Analogy**
 
+> [!TIP] **Physical Analogy: The City Zoning vs. Telecommunication (ผังเมือง vs. โทรคมนาคม)**
+>
+> เปรียบเทียบ Dense vs Sparse เหมือนระบบ **"การเดินสายไฟ"**:
+>
+> 1.  **Dense Matrix (Direct Cables)**: เหมือนการเดินสายไฟจากบ้านของคุณไปยัง **"บ้านทุกหลังในประเทศ"** โดยตรง ไม่ว่าคุณจะรู้จักเขาไหม (Zero entries). ถ้ามี 1 ล้านหลัง คุณต้องมี 1 ล้านสายไฟออกจากบ้าน! นี่คือวิธีที่สิ้นเปลืองทรัพยากรที่สุด
+> 2.  **Sparse Matrix (Grid Network)**: เหมือนระบบไฟฟ้าจริง คุณเดินสายไฟแค่ไปหา **"เสาไฟหน้าบ้าน"** (Neighbor) เท่านั้น แล้วกระแสไฟก็ไหลต่อกันไปเป็นทอดๆ ประหยัดสายไฟไปได้ 99.99%
+> 3.  **LDU Structure**: เหมือนการแยกบิลค่าไฟ:
+>     -   **Diagonal**: ค่าไฟที่คุณใช้เอง (Self-influence)
+>     -   **Off-diagonal**: ไฟที่คุณแบ่งให้เพื่อนบ้านหรือรับมาจากเพื่อนบ้าน (Neighbor coupling)
+
 Imagine a **spreadsheet** where every cell contains a number, and you can perform operations like addition, multiplication, and inversion on the entire sheet. Dense matrices in OpenFOAM are exactly that—**structured collections of numbers** where every possible element (even zeros) is explicitly stored.
 
 **Mathematical Foundation**: A dense matrix $\mathbf{A} \in \mathbb{R}^{m \times n}$ stores all $m \times n$ elements in contiguous memory:
@@ -1168,4 +1178,34 @@ The dense vs sparse matrix comparison in OpenFOAM represents a fundamental archi
 
 6. **Numerical stability**: Proper preconditioning and solver selection are critical for ill-conditioned CFD matrices
 
-The combination of sparse matrix storage with modern linear solvers (GAMG, PCG, BiCGStab) and preconditioners enables OpenFOAM to solve complex CFD problems on commodity hardware, making high-fidelity simulations accessible to researchers and engineers worldwide.
+
+---
+
+## 🧠 8. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ถ้าเรามี Mesh ขนาด 1 ล้าน Cells (1M cells) การใช้ Dense Matrix เพื่อเก็บระบบสมการนี้จะต้องใช้ RAM ประมาณเท่าไหร่? (สมมติเก็บ double precision 8 bytes)**
+    <details>
+    <summary>เฉลย</summary>
+    $10^6 \times 10^6 = 10^{12}$ elements. คูณ 8 bytes = 8 TB (Terabytes)! ซึ่งเป็นไปไม่ได้สำหรับคอมพิวเตอร์ทั่วไป แต่ถ้าใช้ Sparse Matrix จะใช้แค่ประมาณ 100-200 MB เท่านั้น
+    </details>
+
+2.  **ทำไม OpenFOAM ถึงแยกเก็บ `diag` (Diagonal) ออกจาก `upper` และ `lower` (Off-diagonal) ใน LDU Format?**
+    <details>
+    <summary>เฉลย</summary>
+    เพื่อความเร็วในการเข้าถึง (Cache Efficiency) และความสะดวกในการ implement Solver
+    - `diag` ถูกใช้บ่อยมาก (เช่น หารตลอดใน Jacobi method) การเก็บแยกทำให้เข้าถึงได้เป็นเส้นตรง (Contiguous memory)
+    - `upper` และ `lower` ใช้สำหรับการ update ค่าจากเพื่อนบ้าน ซึ่งทำแยกกันคนละ loop ได้
+    </details>
+
+3.  **ในกรณีใดบ้างที่เราควรใช้ `SquareMatrix` (Dense) ใน OpenFOAM?**
+    <details>
+    <summary>เฉลย</summary>
+    เมื่อระบบสมการมีขนาดเล็กมากๆ (Small N) เช่น:
+    - การแก้ Chemical Kinetics ในแต่ละ Cell (N = จำนวนสปีชีส์ ~50-100)
+    - การคำนวณ Tensor transformation (3x3 หรือ 6x6)
+    - Least-Square Gradient reconstruction (3x3)
+    </details>
+
+---
+
+**Next:** Study the [[03_fvMatrix_Architecture|fvMatrix Architecture]] to see how these sparse matrices are coupled with fields.

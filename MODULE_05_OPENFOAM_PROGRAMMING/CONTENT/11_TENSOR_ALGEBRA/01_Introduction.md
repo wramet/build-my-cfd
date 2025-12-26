@@ -1,13 +1,13 @@
-# Introduction to Tensor Algebra
+# บทนำสู่พีชคณิตเทนเซอร์ (Introduction to Tensor Algebra)
 
 ![[stress_block_tensor.png]]
 
-## The Hook: Why Tensors Matter in CFD
+## จุดเริ่มต้น: ทำไมเทนเซอร์ถึงสำคัญใน CFD (The Hook: Why Tensors Matter in CFD)
 
-Imagine a tiny cube of fluid being compressed and twisted:
-- Forces pressing down on one face of the cube may cause flow in another direction
-- **Stress** at a point doesn't have just one direction — forces act on all **six faces** of the cube
-- This complexity requires a **3×3 table (9 components)** to describe fully — a **Second-Order Tensor**
+ลองจินตนาการถึงลูกบาศก์ของของไหลขนาดเล็กที่ถูกบีบและบิด:
+- แรงที่กดลงบนหน้าหนึ่งของลูกบาศก์อาจทำให้เกิดการไหลในอีกทิศทางหนึ่ง
+- **ความเค้น (Stress)** ที่จุดหนึ่งไม่ได้มีแค่ทิศทางเดียว — แรงกระทำต่อทั้ง **6 หน้า** ของลูกบาศก์
+- ความซับซ้อนนี้ต้องการ **ตารางขนาด 3×3 (9 องค์ประกอบ)** ในการอธิบายอย่างครบถ้วน — ซึ่งก็คือ **เทนเซอร์อันดับสอง (Second-Order Tensor)**
 
 ```mermaid
 flowchart TD
@@ -24,9 +24,9 @@ T -->|Magnitude + Directions + Transformations| HT[Higher Order Tensors]:::rank2
 
 ---
 
-## 1. Fundamental Concepts: The Cauchy Stress Tensor
+## 1. แนวคิดพื้นฐาน: เทนเซอร์ความเค้น Cauchy (Fundamental Concepts: The Cauchy Stress Tensor)
 
-To completely describe the **stress state** at any point within a material, we need **nine independent numbers** arranged as a 3×3 matrix — the **Cauchy Stress Tensor**:
+เพื่ออธิบาย **สถานะความเค้น** ที่จุดใดๆ ภายในวัสดุอย่างสมบูรณ์ เราต้องการ **ตัวเลขอิสระ 9 ตัว** ที่จัดเรียงเป็นเมทริกซ์ 3×3 — เรียกว่า **เทนเซอร์ความเค้น Cauchy**:
 
 $$\boldsymbol{\tau} = \begin{bmatrix}
 \tau_{xx} & \tau_{xy} & \tau_{xz} \\
@@ -34,25 +34,25 @@ $$\boldsymbol{\tau} = \begin{bmatrix}
 \tau_{zx} & \tau_{zy} & \tau_{zz}
 \end{bmatrix}$$
 
-### **Component Definitions:**
+### **คำจำกัดความองค์ประกอบ:**
 
-- **Diagonal Components** ($\tau_{xx}$, $\tau_{yy}$, $\tau_{zz}$): Represent **normal stresses** acting perpendicular to their respective faces
-- **Off-Diagonal Components** ($\tau_{xy}$, $\tau_{xz}$, etc.): Represent **shear stresses** acting tangentially to the faces
+- **องค์ประกอบแนวทแยง (Diagonal Components)** ($\tau_{xx}$, $\tau_{yy}$, $\tau_{zz}$): แทน **ความเค้นตั้งฉาก (normal stresses)** ที่กระทำตั้งฉากกับหน้าของตัวเอง
+- **องค์ประกอบนอกแนวทแยง (Off-Diagonal Components)** ($\tau_{xy}$, $\tau_{xz}$, ฯลฯ): แทน **ความเค้นเฉือน (shear stresses)** ที่กระทำขนานไปกับหน้า
 
-> [!INFO] Symmetry Property
-> Due to **angular momentum conservation**, the stress tensor is symmetric ($\tau_{ij} = \tau_{ji}$), reducing independent components to **six**.
+> [!INFO] คุณสมบัติสมมาตร (Symmetry Property)
+> เนื่องจาก **การอนุรักษ์โมเมนตัมเชิงมุม**, เทนเซอร์ความเค้นจึงมีสมมาตร ($\tau_{ij} = \tau_{ji}$) ทำให้ลดจำนวนองค์ประกอบอิสระเหลือเพียง **6 ตัว**
 
 ---
 
-## 2. Principal Stress Analysis
+## 2. การวิเคราะห์ความเค้นหลัก (Principal Stress Analysis)
 
-A profound insight emerges when we ask: **In what directions does this stress block experience ONLY normal stress?**
+ความเข้าใจเชิงลึกเกิดขึ้นเมื่อเราถามว่า: **ในทิศทางใดที่ก้อนความเค้นนี้จะรับแรงเฉพาะในแนวตั้งฉากเท่านั้น?** (ไม่มีแรงเฉือน)
 
-This fundamental question leads to **Principal Stress Analysis** through eigenvalue decomposition.
+คำถามพื้นฐานนี้นำไปสู่ **การวิเคราะห์ความเค้นหลัก** ผ่านการแยกตัวประกอบไอเกน (eigenvalue decomposition)
 
-### The Principal Stress Tensor
+### เทนเซอร์ความเค้นหลัก (The Principal Stress Tensor)
 
-When we rotate our coordinate system to align with principal directions, the stress tensor becomes diagonal:
+เมื่อเราหมุนระบบพิกัดให้ตรงกับทิศทางหลัก เทนเซอร์ความเค้นจะกลายเป็นรูปแบบทแยงมุม (diagonal):
 
 $$\boldsymbol{\tau}_{\text{principal}} = \begin{bmatrix}
 \sigma_1 & 0 & 0 \\
@@ -60,39 +60,39 @@ $$\boldsymbol{\tau}_{\text{principal}} = \begin{bmatrix}
 0 & 0 & \sigma_3
 \end{bmatrix}$$
 
-**Principal Stress Definitions:**
-- $\sigma_1$: **First Principal Stress** (maximum normal stress)
-- $\sigma_2$: **Second Principal Stress** (intermediate normal stress)
-- $\sigma_3$: **Third Principal Stress** (minimum normal stress)
+**คำจำกัดความความเค้นหลัก:**
+- $\sigma_1$: **ความเค้นหลักที่หนึ่ง** (ความเค้นตั้งฉากสูงสุด)
+- $\sigma_2$: **ความเค้นหลักที่สอง** (ความเค้นตั้งฉากปานกลาง)
+- $\sigma_3$: **ความเค้นหลักที่สาม** (ความเค้นตั้งฉากต่ำสุด)
 
-These stresses act on **mutually perpendicular planes** where shear stresses vanish.
+ความเค้นเหล่านี้กระทำบน **ระนาบที่ตั้งฉากซึ่งกันและกัน** ซึ่งความเค้นเฉือนมีค่าเป็นศูนย์
 
 ---
 
-## 3. The Analogy: Rubik's Cube & Stress Blocks
+## 3. การเปรียบเทียบ: รูบิค และ ก้อนความเค้น (The Analogy: Rubik's Cube & Stress Blocks)
 
-The Rubik's Cube analogy provides an intuitive framework for understanding tensor behavior:
+การเปรียบเทียบกับลูกบาศก์รูบิค (Rubik's Cube) ช่วยให้เข้าใจพฤติกรรมของเทนเซอร์ได้ง่ายขึ้น:
 
-| **Rubik's Cube** | **Stress Tensor** |
+| **รูบิค (Rubik's Cube)** | **เทนเซอร์ความเค้น (Stress Tensor)** |
 |------------------|-------------------|
-| **Cube Structure** → 26 small cubes in 3×3×3 | **Tensor Architecture** → 9 components in 3×3 matrix |
-| **Face Colors** → Visualizing components | **Physical Interpretation** → Rotations change stress components |
-| **Pattern Alignment** → Discovering natural orientations | **Eigenvector Discovery** → Directions where tensor becomes diagonal |
-| **Twist Operations** → Rotating and turning faces | **Tensor Mathematics** → Inner products, contractions, coordinate transforms |
+| **โครงสร้างลูกบาศก์** → ลูกบาศก์เล็ก 26 ชิ้นใน 3×3×3 | **สถาปัตยกรรมเทนเซอร์** → 9 องค์ประกอบในเมทริกซ์ 3×3 |
+| **สีหน้าลูกบาศก์** → การมองเห็นองค์ประกอบ | **การตีความทางฟิสิกส์** → การหมุนเปลี่ยนค่าองค์ประกอบความเค้น |
+| **การจัดเรียงรูปแบบ** → การค้นหาทิศทางธรรมชาติ | **การค้นหา Eigenvector** → ทิศทางที่เทนเซอร์กลายเป็น diagonal |
+| **การบิดหมุน** → การหมุนและพลิกหน้า | **คณิตศาสตร์เทนเซอร์** → Inner products, contractions, coordinate transforms |
 
 ---
 
-## 4. OpenFOAM's Tensor Class Hierarchy
+## 4. ลำดับชั้นคลาสเทนเซอร์ของ OpenFOAM (OpenFOAM's Tensor Class Hierarchy)
 
-OpenFOAM provides a comprehensive tensor algebra framework through three main tensor classes:
+OpenFOAM มอบเฟรมเวิร์กพีชคณิตเทนเซอร์ที่ครอบคลุมผ่านคลาสเทนเซอร์หลัก 3 คลาส:
 
-| **Class** | **Components** | **Independent Elements** | **Storage** | **Primary Applications** |
+| **คลาส** | **องค์ประกอบ** | **องค์ประกอบอิสระ** | **การจัดเก็บ** | **การใช้งานหลัก** |
 |-----------|----------------|--------------------------|-------------|--------------------------|
-| **`tensor`** | 3×3 | 9 | `[xx, xy, xz, yx, yy, yz, zx, zy, zz]` | General rotations, full transformations |
-| **`symmTensor`** | 3×3 | 6 | `[xx, yy, zz, xy, yz, xz]` | Stress tensors, strain rate tensors |
-| **`sphericalTensor`** | 3×3 | 1 | `[ii]` | Isotropic pressure, material properties |
+| **`tensor`** | 3×3 | 9 | `[xx, xy, xz, yx, yy, yz, zx, zy, zz]` | การหมุนทั่วไป, การแปลงเต็มรูปแบบ |
+| **`symmTensor`** | 3×3 | 6 | `[xx, yy, zz, xy, yz, xz]` | เทนเซอร์ความเค้น, เทนเซอร์อัตราความเครียด |
+| **`sphericalTensor`** | 3×3 | 1 | `[ii]` | ความดันไอโซทรอปิก, สมบัติวัสดุ |
 
-### **Declaration & Initialization**
+### **การประกาศและการเริ่มต้นค่า (Declaration & Initialization)**
 
 ```cpp
 // General tensor: 3×3 full tensor with 9 independent components
@@ -108,65 +108,43 @@ symmTensor st(1, 2, 3, 4, 5, 6);
 sphericalTensor spt(2.5);  // Represents 2.5 * I
 ```
 
-> **📚 คำอธิบาย (Thai Explanation):**
-> - **Source:** `.applications/utilities/mesh/advanced/PDRMesh/PDRMesh.C`
-> - **Explanation:** OpenFOAM จัดเตรียมคลาสเทนเซอร์ 3 ประเภทเพื่อรองรับความต้องการที่แตกต่างกัน:
->   - `tensor`: เทนเซอร์เต็ม 3×3 สำหรับการแปลงทั่วไป
->   - `symmTensor`: เทนเซอร์สมมาตร (6 ค่า) สำหรับเทนเซอร์ความเค้นและอัตราการเสียรูป
->   - `sphericalTensor`: เทนเซอร์ทรงกลม (1 ค่า) สำหรับคุณสมบัติไอโซทรอปิก
-> - **Key Concepts:** 
->   - Row-major order: เก็บข้อมูลทีละแถว
->   - Symmetric optimization: ใช้ 6 ค่าแทน 9 ค่าเมื่อ τ_ij = τ_ji
->   - Memory efficiency: เลือกประเภทเทนเซอร์ที่เหมาะสมกับปัญหา
-
-### **Mathematical Representation**
-
-OpenFOAM tensor classes use the second-order tensor representation:
-$$\mathbf{T} = \begin{bmatrix} T_{xx} & T_{xy} & T_{xz} \\ T_{yx} & T_{yy} & T_{yz} \\ T_{zx} & T_{zy} & T_{zz} \end{bmatrix}$$
+> **📂 แหล่งที่มา (Source):** `.applications/utilities/mesh/advanced/PDRMesh/PDRMesh.C`
+>
+> **คำอธิบาย:**
+> - `tensor`: เทนเซอร์ทั่วไป เก็บข้อมูลแบบ row-major
+> - `symmTensor`: เทนเซอร์สมมาตร เก็บเฉพาะ 6 ค่า (xx, yy, zz และส่วนบนขวา xy, yz, xz) เพื่อประหยัดหน่วยความจำ
+> - `sphericalTensor`: เทนเซอร์ทรงกลม เก็บค่าเดียวแทนแนวทแยงทั้งหมด
+> - **แนวคิดสำคัญ:** การเลือกประเภทเทนเซอร์ที่เหมาะสมช่วยเพิ่มประสิทธิภาพทั้งหน่วยความจำและความเร็วในการคำนวณ
 
 ---
 
-## 5. Basic Tensor Operations in OpenFOAM
+## 5. การดำเนินการเทนเซอร์พื้นฐานใน OpenFOAM (Basic Tensor Operations)
 
-OpenFOAM provides a complete set of tensor operations maintaining mathematical rigor while ensuring computational efficiency.
+OpenFOAM มีชุดการดำเนินการเทนเซอร์ที่ครบถ้วนซึ่งรักษาความถูกต้องทางคณิตศาสตร์พร้อมประสิทธิภาพการคำนวณ
 
-### **Component-wise Operations**
+### **การดำเนินการแบบแยกส่วนประกอบ (Component-wise Operations)**
 
 ```cpp
 tensor A, B, C;
 scalar alpha;
 
-// Addition: element-wise sum of two tensors
-// Formula: C_ij = A_ij + B_ij
+// Addition: C_ij = A_ij + B_ij
 C = A + B;
 
-// Subtraction: element-wise difference
-// Formula: C_ij = A_ij - B_ij
-C = A - B;
-
-// Scalar multiplication: multiply all components by scalar
-// Formula: C_ij = α · A_ij
+// Scalar multiplication: C_ij = α · A_ij
 C = alpha * A;
 
-// Component-wise multiplication (Hadamard product)
-// Formula: C_ij = A_ij · B_ij
+// Component-wise multiplication: C_ij = A_ij · B_ij
 C = cmptMultiply(A, B);
 ```
 
-> **📚 คำอธิบาย (Thai Explanation):**
-> - **Source:** `.applications/utilities/mesh/manipulation/subsetMesh/subsetMesh.C`
-> - **Explanation:** การดำเนินการทางคณิตศาสตร์พื้นฐานบนเทนเซอร์:
->   - **Addition/Subtraction**: บวก/ลบ แต่ละส่วนประกอบโดยตรง
->   - **Scalar Multiplication**: คูณสเกลาร์กับทุกส่วนประกอบของเทนเซอร์
->   - **cmptMultiply**: การคูณแบบส่วนประกอบต่อส่วนประกอบ (ไม่ใช่ matrix multiplication)
-> - **Key Concepts:**
->   - Element-wise operations: ทำงานกับแต่ละส่วนประกอบอิสระ
->   - Hadamard product: การคูณระหว่างเทนเซอร์ที่ตำแหน่งเดียวกัน
->   - Operator overloading: OpenFOAM โอเวอร์โหลด operator ให้ใช้งานได้สะดวก
+> **📂 แหล่งที่มา (Source):** `.applications/utilities/mesh/manipulation/subsetMesh/subsetMesh.C`
+>
+> **คำอธิบาย:** การบวก, ลบ และคูณด้วยสเกลาร์ทำกับทุกองค์ประกอบของเทนเซอร์อย่างอิสระ ส่วน `cmptMultiply` คือการคูณสมาชิกตำแหน่งเดียวกัน (Hadamard product) ไม่ใช่การคูณเมทริกซ์
 
-### **Inner Products**
+### **ผลคูณภายใน (Inner Products)**
 
-| **Operation** | **Operator** | **Result** | **Equation** |
+| **การดำเนินการ** | **ตัวดำเนินการ** | **ผลลัพธ์** | **สมการ** |
 |---------------|--------------|------------|--------------|
 | **Single Inner Product** | `&` | Vector | $w_i = T_{ij} \cdot v_j$ |
 | **Double Inner Product** | `&&` | Scalar | $s = A_{ij} \cdot B_{ij}$ |
@@ -176,383 +154,120 @@ C = cmptMultiply(A, B);
 vector v, w;
 tensor T, A, B;
 scalar s;
-vector u;
 
-// Single inner product (matrix-vector multiplication)
-// Formula: w_i = Σ_j T_ij · v_j
+// Single inner product (Matrix-Vector multiplication)
 w = T & v;
 
-// Double inner product (scalar contraction/trace of product)
-// Formula: s = Σ_i Σ_j A_ij · B_ij
+// Double inner product (Scalar contraction)
 s = A && B;
 
-// Outer product (dyadic product)
-// Formula: T_ij = u_i · v_j
-T = u * v;
+// Outer product (Dyadic product)
+tensor T_out = v * w;
 ```
 
-> **📚 คำอธิบาย (Thai Explanation):**
-> - **Source:** `.applications/utilities/parallelProcessing/decomposePar/decomposePar.C`
-> - **Explanation:** การดำเนินการผลคูณภายใน (inner product) และผลคูณภายนอก (outer product):
->   - **Single Inner Product (&)**: เทนเซอร์ × เวกเตอร์ = เวกเตอร์
->   - **Double Inner Product (&&)**: เทนเซอร์ × เทนเซอร์ = สเกลาร์ (contraction)
->   - **Outer Product (*)**: เวกเตอร์ × เวกเตอร์ = เทนเซอร์ (dyadic)
-> - **Key Concepts:**
->   - Contraction: การลดลำดับของเทนเซอร์ผ่านการรวม index
->   - Dyadic product: การสร้างเทนเซอร์จากเวกเตอร์สองตัว
->   - Summation convention: การบวกโดยนัยบน index ซ้ำ
+> **📂 แหล่งที่มา (Source):** `.applications/utilities/parallelProcessing/decomposePar/decomposePar.C`
+>
+> **คำอธิบาย:**
+> - `&`: ลด rank ลง 1 (Tensor->Vector) เทียบเท่า Matrix-Vector multiplication
+> - `&&`: ลด rank ลง 2 (Tensor->Scalar) เทียบเท่า Frobenius inner product หรือการหา trace ของผลคูณ
+> - `*`: เพิ่ม rank ขึ้น 2 (Vector->Tensor) เทียบเท่า Outer product
 
-### **Tensor-Specific Operations**
+### **การดำเนินการเฉพาะของเทนเซอร์ (Tensor-Specific Operations)**
 
 ```cpp
-tensor T;
-
-// Transpose: swap rows and columns
-// Formula: (T_T)_ij = T_ji
+// Transpose: (T_T)_ij = T_ji
 tensor T_T = T.T();
 
-// Determinant: scalar value representing volume scaling factor
+// Determinant: volume scaling factor
 scalar det = det(T);
 
 // Trace: sum of diagonal elements (first invariant)
-// Formula: tr(T) = T_xx + T_yy + T_zz
 scalar tr = tr(T);
 
-// Identity tensor: Kronecker delta (δ_ij)
-tensor I = tensor::I;  // Represents δ_ij = 1 if i=j, 0 otherwise
-
-// Inverse: matrix such that T · T^(-1) = I
-tensor T_inv = inv(T);
-
-// Symmetric part: (T + T^T)/2
-symmTensor S = symm(T);
-
-// Antisymmetric/skew part: (T - T^T)/2
-tensor A = skew(T);
-
-// Deviatoric part: T - (1/3)·tr(T)·I (removes isotropic component)
+// Deviatoric part: T - (1/3)·tr(T)·I
 symmTensor dev = dev(T);
 ```
 
-> **📚 คำอธิบาย (Thai Explanation):**
-> - **Source:** `.applications/utilities/postProcessing/dataConversion/foamToVTK/foamToVTK.C`
-> - **Explanation:** การดำเนินการเฉพาะของเทนเซอร์ที่สำคัญใน CFD:
->   - **Transpose**: สลับแถวและคอลัมน์
->   - **Determinant**: ใช้ตรวจสอบการเปลี่ยนปริมาตร
->   - **Trace**: ผลรวมของส่วนประกอบเอกทแยง
->   - **Symmetric/Skew**: แยกส่วนสมมาตรและไม่สมมาตร
->   - **Deviatoric**: ส่วนที่แตกต่างจากค่าเฉลี่ย (ไอโซทรอปิก)
-> - **Key Concepts:**
->   - Invariants: ค่าที่ไม่เปลี่ยนเมื่อหมุนระบบพิกัด
->   - Deviatoric stress: เค้นเฉือน (shear) โดยไม่รวมความดัน
->   - Kronecker delta: เทนเซอร์เอกลักษณ์ δ_ij
+> **📂 แหล่งที่มา (Source):** `.applications/utilities/postProcessing/dataConversion/foamToVTK/foamToVTK.C`
+>
+> **คำอธิบาย:** ฟังก์ชันเหล่านี้ช่วยในการวิเคราะห์คุณสมบัติของเทนเซอร์ เช่น `tr()` บอกค่าเฉลี่ยความดัน, `det()` บอกการเปลี่ยนแปลงปริมาตร, และ `dev()` บอกส่วนความเค้นเฉือน
 
 ---
 
-## 6. Eigenvalue Decomposition
+## 6. การแยกตัวประกอบไอเกน (Eigenvalue Decomposition)
 
-For symmetric tensors, OpenFOAM computes eigenvalues and eigenvectors that reveal fundamental physical directions.
-
-### **The Eigenvalue Problem**
-
-For a symmetric tensor $\mathbf{S}$, we seek eigenvalues $\lambda_k$ and orthogonal eigenvectors $\mathbf{v}_k$ satisfying:
-
-$$\mathbf{S} \cdot \mathbf{v}_k = \lambda_k \mathbf{v}_k, \quad k=1,2,3$$
+สำหรับเทนเซอร์สมมาตร OpenFOAM สามารถคำนวณ eigenvalues และ eigenvectors ซึ่งเปิดเผยทิศทางทางฟิสิกส์ที่สำคัญ
 
 ### **OpenFOAM Implementation**
 
 ```cpp
-// Define symmetric stress tensor
-// Components: xx, yy, zz, xy, yz, xz
 symmTensor stressTensor(100, 50, 30, 80, 40, 60);
 
-// Compute eigenvalues (principal stresses)
-// Returns eigenvalues sorted by magnitude
+// Compute eigenvalues (sorted by magnitude)
 eigenValues ev = eigenValues(stressTensor);
-scalar lambda1 = ev.component(vector::X);  // Maximum principal stress
-scalar lambda2 = ev.component(vector::Y);  // Intermediate principal stress
-scalar lambda3 = ev.component(vector::Z);  // Minimum principal stress
+scalar lambda1 = ev.component(vector::X);  // Max principal stress
 
 // Compute eigenvectors (principal directions)
-// Each eigenvector is orthogonal to the others
 eigenVectors eigvecs = eigenVectors(stressTensor);
 vector e1 = eigvecs.component(vector::X);  // Direction of lambda1
-vector e2 = eigvecs.component(vector::Y);  // Direction of lambda2
-vector e3 = eigvecs.component(vector::Z);  // Direction of lambda3
 ```
 
-> **📚 คำอธิบาย (Thai Explanation):**
-> - **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
-> - **Explanation:** การหาค่าลักษณะเฉพาะ (eigenvalue) และเวกเตอร์ลักษณะเฉพาะ (eigenvector):
->   - **Eigenvalues**: ค่าเค้นหลัก (principal stresses) 3 ค่า
->   - **Eigenvectors**: ทิศทางที่เค้นทำงานโดยไม่มีเค้นเฉือน
->   - **Sorting**: OpenFOAM เรียงลำดับค่าจากมากไปน้อย
-> - **Key Concepts:**
->   - Principal stress directions: ทิศทางที่เทนเซอร์เป็น diagonal
->   - Orthogonality: เวกเตอร์ลักษณะเฉพาะตั้งฉากกัน
->   - Invariants: ค่าที่ไม่เปลี่ยนตามระบบพิกัด
-
-### **Principal Invariants**
-
-The three invariants of a symmetric tensor are:
-
-```cpp
-symmTensor T;
-
-// First invariant (trace): sum of diagonal elements
-// Represents hydrostatic stress component
-scalar I1 = tr(T);
-
-// Second invariant: related to deviatoric stress magnitude
-// Formula: I2 = 0.5 * [(tr(T))^2 - tr(T·T)]
-scalar I2 = 0.5 * (pow(tr(T), 2) - tr(T & T));
-
-// Third invariant (determinant): related to volume change
-scalar I3 = det(T);
-```
-
-**Physical Significance:**
-- **I₁**: Represents hydrostatic stress component
-- **I₂**: Related to deviatoric stress magnitude
-- **I₃**: Associated with volume change
-
-> **📚 คำอธิบาย (Thai Explanation):**
-> - **Source:** `.applications/utilities/mesh/advanced/PDRMesh/PDRMesh.C`
-> - **Explanation:** ค่าคงที่ (invariants) ของเทนเซอร์สมมาตร:
->   - **I1 (Trace)**: ผลรวมเค้นปกติ สัมพันธ์กับความดัน
->   - **I2**: ขนาดของเค้นเฉือน (deviatoric)
->   - **I3 (Determinant)**: การเปลี่ยนปริมาตร
-> - **Key Concepts:**
->   - Coordinate invariance: ค่าไม่เปลี่ยนเมื่อหมุนพิกัด
->   - Hydrostatic vs Deviatoric: แยกส่วนความดันและเค้นเฉือน
->   - Yield criteria: ใช้ทำนายการล้มของวัสดุ
+> **📂 แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+>
+> **คำอธิบาย:** `eigenValues()` และ `eigenVectors()` ใช้หาทิศทางหลักและค่าเค้นหลัก ซึ่งสำคัญมากในการวิเคราะห์ความแข็งแรงของวัสดุและพฤติกรรมความปั่นป่วน
 
 ---
 
-## 7. Tensor Calculus Operations
+## 7. การประยุกต์ใช้เทนเซอร์ใน CFD (CFD Applications of Tensor Algebra)
 
-Tensor calculus operations extend vector calculus to second-order tensor fields.
-
-### **Gradient of Tensor Fields**
-
-$$[\nabla \mathbf{U}]_{ij} = \frac{\partial U_i}{\partial x_j}$$
+### **7.1 แบบจำลองความเค้น Reynolds (Reynolds Stress Modeling)**
 
 ```cpp
-// Velocity gradient tensor computation
-// gradU_ij = ∂u_i/∂x_j
-volVectorField U(mesh);
-volTensorField gradU = fvc::grad(U);
-```
-
-> **📚 คำอธิบาย (Thai Explanation):**
-> - **Source:** `.applications/utilities/mesh/manipulation/subsetMesh/subsetMesh.C`
-> - **Explanation:** การคำนวณ gradient ของฟิลด์เวกเตอร์:
->   - **Gradient**: การเปลี่ยนแปลงของความเร็วในแต่ละทิศทาง
->   - **Velocity Gradient**: เทนเซอร์ 3×3 ที่บอกการไหลและการหมุน
-> - **Key Concepts:**
->   - Finite volume method: ใช้ค่าที่ใบหน้า (face) คำนวณ gradient
->   - Central differencing: ใช้ค่าเฉลี่ยจากเซลล์ข้างเคียง
-
-### **Decomposition into Symmetric and Antisymmetric Parts**
-
-```cpp
-// Strain rate tensor (symmetric part of velocity gradient)
-// Represents fluid deformation rate
-// Formula: S_ij = 0.5 * (∂u_i/∂x_j + ∂u_j/∂x_i)
-volSymmTensorField S = symm(gradU);
-
-// Vorticity tensor (antisymmetric part of velocity gradient)
-// Represents fluid rotation rate
-// Formula: Ω_ij = 0.5 * (∂u_i/∂x_j - ∂u_j/∂x_i)
-volTensorField Omega = skew(gradU);
-```
-
-> **📚 คำอธิบาย (Thai Explanation):**
-> - **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
-> - **Explanation:** การแยกส่วน velocity gradient:
->   - **Strain Rate (S)**: ส่วนสมมาตร = การเสียรูปของของไหล
->   - **Vorticity (Ω)**: ส่วนไม่สมมาตร = การหมุนของของไหล
-> - **Key Concepts:**
->   - Deformation vs Rotation: แยกการเปลี่ยนรูปและการหมุน
->   - Irrotational flow: กระแสที่ไม่หมุน (Ω = 0)
->   - Newtonian fluid: ความเค้นแปรผันตรงกับอัตราการเสียรูป
-
-### **Divergence of Tensor Fields**
-
-$$(\nabla \cdot \boldsymbol{\tau})_i = \sum_{j=1}^{3} \frac{\partial \tau_{ij}}{\partial x_j}$$
-
-```cpp
-// Divergence of stress tensor
-// Represents net force per unit volume
-volSymmTensorField tau(mesh);
-volVectorField divTau = fvc::div(tau);
-```
-
-**Physical Interpretation:** Represents the net force per unit volume acting on a control volume due to stress gradients.
-
-> **📚 คำอธิบาย (Thai Explanation):**
-> - **Source:** `.applications/utilities/parallelProcessing/decomposePar/decomposePar.C`
-> - **Explanation:** การคำนวณ divergence ของเทนเซอร์ความเค้น:
->   - **Divergence**: ผลรวมของ gradient ของความเค้น
->   - **Physical meaning**: แรงสุทธิต่อหน่วยปริมาตร
-> - **Key Concepts:**
->   - Momentum equation: divergence(tau) ปรากฏในสมการโมเมนตัม
->   - Surface forces: แรงที่เกิดจากความเค้นบนพื้นผิว
->   - Gauss theorem: แปลง integral พื้นผิวเป็น integral ปริมาตร
-
-### **Advanced Tensor Operations**
-
-```cpp
-// Laplacian of tensor field: ∇²T
-// Represents diffusion of tensor quantities
-volTensorField laplacianT = fvc::laplacian(T);
-
-// Interpolation from cell centers to faces
-// Required for finite volume flux calculations
-surfaceTensorField tau_f = fvc::interpolate(tau);
-
-// Higher-order gradients: gradient of strain rate tensor
-// Used in non-Newtonian and turbulence models
-volTensorTensorField gradS = fvc::grad(S);
-```
-
-> **📚 คำอธิบาย (Thai Explanation):**
-> - **Source:** `.applications/utilities/postProcessing/dataConversion/foamToVTK/foamToVTK.C`
-> - **Explanation:** การดำเนินการขั้นสูงบนเทนเซอร์ฟิลด์:
->   - **Laplacian**: การแพร่ (diffusion) ของปริมาณเทนเซอร์
->   - **Interpolation**: แปลงค่าจากจุดกลางเซลล์ไปยังใบหน้า
->   - **Higher-order gradients**: gradient ของ gradient สำหรับโมเดลที่ซับซ้อน
-> - **Key Concepts:**
->   - Diffusion term: ปรากฏในสมการขนส่ง
->   - Face interpolation: จำเป็นสำหรับการคำนวณ flux
->   - Non-Newtonian models: ความหลากหลายของความหนืด
-
----
-
-## 8. CFD Applications of Tensor Algebra
-
-### **8.1 Reynolds Stress Modeling**
-
-```cpp
-// Reynolds stress tensor definition
-// R_ij = -ρ · u'_i · u'_j (turbulent fluctuation correlations)
+// Reynolds stress tensor definition: R_ij = -ρ · u'_i · u'_j
 volSymmTensorField R
 (
     IOobject("R", runTime.timeName(), mesh),
     mesh,
-    dimensionedSymmTensor("zero", dimensionSet(0, 2, -2, 0, 0, 0, 0), symmTensor::zero)
+    dimensionedSymmTensor("zero", dimMass/dimLength/sqr(dimTime), symmTensor::zero)
 );
-
-// Production term in Reynolds stress transport
-// P_ij = -(R_ik · ∂u_j/∂x_k + R_jk · ∂u_i/∂x_k)
-volSymmTensorField P = -(R & fvc::grad(U)) + (R & fvc::grad(U)).T();
 ```
+> ใช้เก็บความสัมพันธ์ของความเร็วผันผวนในกระแสปั่นป่วน (Turbulence)
 
-> **📚 คำอธิบาย (Thai Explanation):**
-> - **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
-> - **Explanation:** การใช้เทนเซอร์ในการจำลองความปั่นป่วน (RANS):
->   - **Reynolds Stress**: ความเค้นจากการไหลแบบปั่นป่วน
->   - **Production Term**: การผลิตพลังงานความปั่นป่วน
-> - **Key Concepts:**
->   - Turbulent fluctuations: การแกว่งของความเร็ว u'_i
->   - Reynolds averaging: แยกส่วนเฉลี่ยและส่วนแกว่ง
->   - Closure problem: ต้องการโมเดลค่าความเค้น Reynolds
-
-### **8.2 Cauchy Stress Tensor**
+### **7.2 เทนเซอร์ความเค้น Cauchy (Cauchy Stress Tensor)**
 
 ```cpp
-// Strain rate tensor calculation
-// D_ij = 0.5 * (∂u_i/∂x_j + ∂u_j/∂x_i)
+// Strain rate tensor: D_ij = 0.5 * (∂u_i/∂x_j + ∂u_j/∂x_i)
 volSymmTensorField epsilon = symm(fvc::grad(U));
 
-// Cauchy stress tensor for Newtonian fluid
-// σ = -p·I + 2μ·D + λ·(∇·u)·I
-volSymmTensorField sigma = -p*I + 2*mu*epsilon + lambda*tr(epsilon)*I;
+// Cauchy stress for Newtonian fluid
+volSymmTensorField sigma = -p*I + 2*mu*epsilon;
 ```
-
-**Rate-of-Deformation Tensor:**
-$$D_{ij} = \frac{1}{2}\left(\frac{\partial u_i}{\partial x_j} + \frac{\partial u_j}{\partial x_i}\right)$$
-
-> **📚 คำอธิบาย (Thai Explanation):**
-> - **Source:** `.applications/utilities/mesh/advanced/PDRMesh/PDRMesh.C`
-> - **Explanation:** เทนเซอร์ความเค้น Cauchy สำหรับของไหลนิวตัน:
->   - **Isotropic part**: -p·I (ความดัน)
->   - **Deviatoric part**: 2μ·D (ความเค้นเฉือน)
->   - **Bulk viscosity**: λ·(∇·u)·I (การบีบอัด)
-> - **Key Concepts:**
->   - Newtonian fluid: ความหนืดคงที่
->   - Bulk viscosity: ความต้านทานการเปลี่ยนปริมาตร
->   - Constitutive relation: สมการเชื่อมความเค้นและอัตราการเสียรูป
-
-### **8.3 Principal Stress Analysis for Failure Prediction**
-
-```cpp
-// Compute principal stresses (eigenvalue decomposition)
-eigenValues sigma_eig = eigenValues(sigma);
-scalar sigma_max = max(sigma_eig.component(vector::X));
-
-// Material yield stress threshold
-scalar yieldStress = 250e6;  // Pa
-
-// Von Mises stress calculation (yield criterion)
-// σ_vm = sqrt(3/2 · S : S) where S is deviatoric stress
-volSymmTensorField S = dev(sigma);
-scalar sigma_vm = sqrt(3.0/2.0 * (S && S));
-
-// Yield criterion check
-if (sigma_vm > yieldStress) {
-    Info << "Material yielding detected!" << endl;
-}
-```
-
-> **📚 คำอธิบาย (Thai Explanation):**
-> - **Source:** `.applications/utilities/mesh/manipulation/subsetMesh/subsetMesh.C`
-> - **Explanation:** การวิเคราะห์ความเค้นหลักเพื่อทำนายการล้มของวัสดุ:
->   - **Principal Stresses**: เค้นสูงสุดในทิศทางต่างๆ
->   - **Von Mises Stress**: เกณฑ์การล้มแบบรวม
->   - **Yield Criterion**: ทำนายเมื่อวัสดุเริ่มเด้งกลับ
-> - **Key Concepts:**
->   - Von Mises criterion: ใช้ deviatoric stress
->   - Yield surface: พื้นที่ความปลอดภัยในปริภูมิเค้น
->   - Factor of safety: อัตราส่วนระหว่าง yield stress และ working stress
-
-### **8.4 Tensor Applications Summary**
-
-| **Application Domain** | **Tensor Role** | **Key Equation** |
-|------------------------|-----------------|------------------|
-| **RANS Turbulence** | Reynolds stress transport | $\tau_{RANS,ij} = -\rho \overline{u'_i u'_j}$ |
-| **LES/DNS** | Subgrid-scale stress | $\tau_{SGS} = 2 \nu_t \mathbf{D}$ |
-| **Fluid-Structure Interaction** | Stress and strain analysis | $\boldsymbol{\sigma} = 2\mu \boldsymbol{\varepsilon} + \lambda (\nabla \cdot \mathbf{u}) \mathbf{I}$ |
-| **Multiphase Flow** | Interface stress tensor | $\sigma_{interface} = \gamma \kappa \mathbf{n}$ |
-| **Non-Newtonian Fluids** | Viscous stress tensor | $\boldsymbol{\tau} = \eta(\dot{\gamma}) \dot{\gamma}$ |
+> ใช้คำนวณแรงภายในของไหลนิวตัน (ความดัน + ความหนืด)
 
 ---
 
-## 9. What Makes Tensors Essential
+## 8. สิ่งที่ทำให้เทนเซอร์มีความจำเป็น (What Makes Tensors Essential)
 
-> [!TIP] Key Insight
-> Understanding tensors enables the development of **advanced physics models** that scalars and vectors alone cannot represent.
+> [!TIP] ข้อมูลเชิงลึก (Key Insight)
+> การเข้าใจเทนเซอร์ช่วยให้สามารถพัฒนา **โมเดลฟิสิกส์ขั้นสูง** ที่สเกลาร์และเวกเตอร์เพียงอย่างเดียวไม่สามารถอธิบายได้
 
-### **Tensors in OpenFOAM Enable:**
+### **เทนเซอร์ใน OpenFOAM ช่วยให้สามารถ:**
 
-1. **Reynolds Stress**: Turbulence occurring in all directions
-2. **Rate of Strain**: Fluid deformation behavior
-3. **Conductivity Tensor**: **Anisotropic** heat conduction (different values in different directions)
-4. **Principal Stress Analysis**: Material failure prediction
-5. **Vorticity & Strain Decomposition**: Flow structure identification
-
----
-
-## 10. Connected Concepts
-
-This section connects to:
-
-- **[[02_Dimensioned_Types]]** - Dimensioned types and dimensional consistency
-- **[[06_MATRICES_LINEARALGEBRA]]** - Matrix operations and linear solvers
-- **[[10_VECTOR_CALCULUS]]** - Tensor calculus in finite volume methods
-- **[[09_FIELD_ALGEBRA]]** - Field operations and tensor algebra
-- **[[04_MESH_CLASSES]]** - Mesh integration with tensor fields
+1.  **ความเค้น Reynolds**: อธิบายความปั่นป่วนที่เกิดขึ้นในทุกทิศทาง
+2.  **อัตราความเครียด**: อธิบายพฤติกรรมการเปลี่ยนรูปของของไหล
+3.  **เทนเซอร์การนำความร้อน**: จำลองการนำความร้อนแบบ **Anisotropic** (ค่าต่างกันในแต่ละทิศทาง)
+4.  **การวิเคราะห์ความเค้นหลัก**: ทำนายการล้มเหลวของวัสดุ
+5.  **การแยก Vorticity & Strain**: ระบุโครงสร้างการไหล
 
 ---
 
-**Next Steps**: Continue to [[02_Dimensioned_Types]] to explore how OpenFOAM's type system ensures dimensional correctness.
+## 9. แนวคิดที่เชื่อมโยงกัน (Connected Concepts)
+
+โมดูลนี้เชื่อมโยงกับ:
+- **[[02_Dimensioned_Types]]**: ความสอดคล้องของมิติ
+- **[[06_MATRICES_LINEARALGEBRA]]**: การดำเนินการเมทริกซ์
+- **[[10_VECTOR_CALCULUS]]**: แคลคูลัสเทนเซอร์ใน FVM
+
+---
+
+**ขั้นตอนถัดไป**: ไปที่ [[02_Tensor_Class_Hierarchy]] เพื่อเจาะลึกโครงสร้างคลาสเทนเซอร์ของ OpenFOAM

@@ -22,6 +22,19 @@ Fix --> Code
 
 ---
 
+> [!TIP] **Physical Analogy: The Strict Airport Security (การรักษาความปลอดภัยสนามบินที่เข้มงวด)**
+>
+> ลองจินตนาการว่า "ระบบมิติ" คือ "ด่านรักษาความปลอดภัยสนามบิน":
+>
+> 1.  **Template Errors (Cryptic Messages)**: เหมือนการที่คุณพยายามเดินผ่านเครื่องสแกนพร้อม "ขวดน้ำ" (Wrong Type) แล้วเครื่องร้องเสียงดังพร้อมไฟกระพริบรัวๆ (Compiler Error) แต่ไม่ยอมบอกตรงๆ ว่า "ทิ้งขวดน้ำซะ" บอกแค่รหัส Error Code ยาวเหยียด
+> 2.  **Cross-Unit Inconsistency**: เหมือนนักท่องเที่ยว 3 คนคุยเรื่องเงิน คนแรกพูด "100" (บาท) คนที่สองเข้าใจว่าเป็น "100" (ดอลลาร์) คนที่สามนึกว่า "100" (เยน) -> ผลลัพธ์คือการซื้อขายที่ล้มเหลว (Physics Error)
+> 3.  **Compile-time vs Runtime**:
+>     -   **Compile-time**: การตรวจสอบวีซ่าตั้งแต่ตอนจองตั๋ว (ทำครั้งเดียว จบเร็ว ไม่เสียเวลาเดินทาง)
+>     -   **Runtime**: การไปตรวจวีซ่าหน้าตม. (ต้องต่อแถว ช้า และอาจโดนส่งกลับหลังจากบินมาตั้งไกล)
+> 4.  **Unit Conversion**: เหมือนบูธแลกเงิน (Exchange Counter) ที่มีการตรวจสอบอัตราแลกเปลี่ยนอย่างถูกต้องและเป็นทางการป้องกันการโกง
+
+---
+
 ## Template Errors and Debugging Strategies
 
 ### Common Template Error Patterns
@@ -741,9 +754,36 @@ auto computeMagnitude(const T& value)
 |----------|---------|----------|
 | **Template Errors** | Cryptic compiler messages | Use `static_assert` with clear messages |
 | **Cross-Unit Consistency** | Different unit definitions | Centralized dimension definitions |
-| **Performance** | Runtime overhead | Selective checking in release builds |
-| **Type Mixing** | Implicit conversion losses | Use `explicit` conversion operators |
-| **Custom Dimensions** | Limited to 7 SI dimensions | Extend through inheritance |
-| **Debugging** | Hard to trace dimension mismatches | Type trait debugging utilities |
+| Category | Pitfall | Solution | Physical Analogy |
+|----------|---------|----------|------------------|
+| **Template Errors** | Cryptic compiler messages | Use `static_assert` with clear messages | Confusing error codes on a machine, solved by clear diagnostic messages. |
+| **Cross-Unit Consistency** | Different unit definitions | Centralized dimension definitions | Everyone agreeing on using meters instead of feet for a project. |
+| **Performance** | Runtime overhead | Selective checking in release builds | A safety inspector only checking a product during development, not every single item on the assembly line. |
+| **Type Mixing** | Implicit conversion losses | Use `explicit` conversion operators | Converting currency: you explicitly state you're changing from USD to EUR, not just assuming. |
+| **Custom Dimensions** | Limited to 7 SI dimensions | Extend through inheritance | Adding new specialized tools to a standard toolbox. |
+| **Debugging** | Hard to trace dimension mismatches | Type trait debugging utilities | Using a magnifying glass to find a tiny, misplaced screw in a complex mechanism. |
 
 These patterns are essential techniques for working with OpenFOAM's dimensional analysis system in complex CFD applications, ensuring both computational accuracy and maintainability of large codebases.
+
+---
+
+## 🧠 9. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ทำไมเราไม่ควรผสม `dimensionedScalar` กับ `scalar` ตรงๆ (เช่น `p + 2.0`)?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะมัน **ผิดหลักฟิสิกส์** และ OpenFOAM ไม่อนุญาต 2.0 ไม่มีหน่วย (หรือมีหน่วยไม่ตรงกับ p) การบวกกันจึงไม่มีความหมาย ทางแก้คือต้องระบุหน่วยให้ 2.0 หรือทำให้ p กลายเป็นไม่มีหน่วยก่อน (ถ้ามั่นใจว่าทำได้)
+    </details>
+
+2.  **SFINAE คืออะไร และช่วยแก้ปัญหา Type Mixing ได้อย่างไร?**
+    <details>
+    <summary>เฉลย</summary>
+    SFINAE (Substitution Failure Is Not An Error) คือเทคนิคที่ทำให้ Compiler "เลือกช็อปปิ้ง" ฟังก์ชันที่เหมาะสมที่สุดให้เรา ถ้าเราส่ง `dimensionedScalar` มา มันก็จะเลือกฟังก์ชันเวอร์ชันที่รองรับมิติ ถ้าส่ง `scalar` มา มันก็จะเลือกเวอร์ชันธรรมดา ทำให้เราเขียนชื่อฟังก์ชันเดียว `computeSomething(x)` แต่ใช้ได้กับตัวแปรทุกแบบ
+    </details>
+
+3.  **มีวิธีลด Overhead ของการเช็คหน่วย (Dimension Checking) ตอนรันโปรแกรมจริงไหม?**
+    <details>
+    <summary>เฉลย</summary>
+    มี! โดยการใช้ **Macros** (เช่น `#ifdef FULLDEBUG`) เพื่อเปิดการเช็คหน่วยเฉพาะตอนเรากำลังพัฒนา (Development/Debug Mode) แต่พอจะเอาไปรันจริง (Release/Production Mode) ก็ปิดการเช็คพวกนี้ไป ทำให้ได้ความเร็วกลับมาเต็มที่
+    </details>
+```

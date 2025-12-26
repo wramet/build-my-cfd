@@ -529,4 +529,25 @@ void analyzeMeshQuality(const fvMesh& mesh)
 - การสร้าง Utilities สำหรับ Mesh Manipulation
 - การ Optimize Performance สำหรับ Large-Scale Simulation
 
-> [!TIP] **ข้อแนะนำ**: ความเข้าใจอย่างลึกซึ้งเกี่ยวกับคลาส Mesh เป็นพื้นฐานสำคัญสำหรับการพัฒนา OpenFOAM ขั้นสูง แนะนำให้ฝึกปฏิบัติเขียนโค้ดและทดลองกับ Mesh หลากประเภทเพื่อให้เข้าใจการทำงานอย่างแท้จริง
+
+---
+
+## 🏁 Final Check: สรุปความเข้าใจก่อนไปต่อ
+
+1.  **ทำไม OpenFOAM ถึงใช้วิธี Lazy Evaluation (คำนวณเมื่อใช้) แทนที่จะคำนวณเรขาคณิตทุกอย่างไว้ตั้งแต่เริ่มโปรแกรม?**
+    <details>
+    <summary>เฉลย</summary>
+    เพื่อ **ประหยัด Memory และเวลาเริ่มต้น (Startup Time)** การคำนวณทุกอย่างล่วงหน้า (Pre-calculation) อาจกิน RAM มหาศาลโดยไม่จำเป็น และในกรณี Dynamic Mesh ข้อมูลเหล่านี้จะเปลี่ยนไปเรื่อยๆ ทำให้การคำนวณทิ้งไว้ล่วงหน้าเป็นการสิ้นเปลือง
+    </details>
+
+2.  **ในสถาปัตยกรรม 3 ชั้น (primitive -> poly -> fv) ชั้นไหนที่เป็น "พระเอก" ในการเก็บ Field ตัวแปร (เช่น U, p) และใช้คำนวณ CFD?**
+    <details>
+    <summary>เฉลย</summary>
+    **`fvMesh`** (Finite Volume Mesh) ชั้นนี้สืบทอดความสามารถมาจากชั้นอื่นๆ และเพิ่มระบบ Register Field + Discretization เข้าไป
+    </details>
+
+3.  **ถ้าเราเขียน Solver ที่ต้องรองรับ Moving Mesh เราต้องเขียนโค้ดจัดการ "ล้าง Cache" เรขาคณิตเองไหม?**
+    <details>
+    <summary>เฉลย</summary>
+    **ไม่ต้อง!** ระบบ `fvMesh` (ผ่าน `primitiveMesh`) จะทำการ **Auto-invalidate** Cache ให้เองทันทีที่มีการเรียกฟังก์ชัน `movePoints()` ดังนั้นหน้าที่ของเราคือแค่เรียกใช้ `mesh.cellVolumes()` (หรืออื่นๆ) ตามปกติ OpenFOAM จะรู้เองว่าต้องคำนวณใหม่หรือไม่
+    </details>

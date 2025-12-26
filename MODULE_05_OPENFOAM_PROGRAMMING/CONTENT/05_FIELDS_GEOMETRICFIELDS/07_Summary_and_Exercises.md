@@ -24,6 +24,16 @@ Manifold Awareness
 
 ---
 
+> [!TIP] **Physical Analogy: The City Infrastructure (โครงสร้างพื้นฐานของเมือง)**
+>
+> เปรียบเทียบระบบ Geometric Fields กับ **"เมืองใหญ่"**:
+>
+> 1.  **Architecture (Infrastructure)**: โครงสร้างเมืองถูกวางแผนมาอย่างดี (Inheritance) ถนนทุกสาย (Arrays) เชื่อมต่อกันอย่างมีระบบ
+> 2.  **Zoning (Dimensionality)**: ย่านที่พักอาศัย (Scalar) ย่านการค้า (Vector) และย่านอุตสาหกรรม (Tensor) แยกจากกันชัดเจน แต่ทำงานร่วมกันผ่านกฎหมายผังเมือง (Math Rules)
+> 3.  **Public Transport (Polymorphism)**: ระบบขนส่ง (Template) สามารถรองรับผู้โดยสารได้ทุกประเภท ไม่ว่าจะเป็นคน (Scalar) หรือสินค้า (Tensor) โดยใช้รางรถไฟ (Algorithms) เดียวกัน
+> 4.  **Utilities (Memory)**: น้ำประปาและไฟฟ้า (Memory) จ่ายให้เฉพาะบ้านที่มีคนอยู่ (Lazy Allocation) เพื่อประหยัดทรัพยากร
+> 5.  **City Borders (Boundaries)**: ด่านตรวจคนเข้าเมือง (Boundary Conditions) คอยจัดการสิ่งที่เข้าและออกจากเมืองอย่างเคร่งครัด
+
 ## **หลักการทางสถาปัตยกรรม**
 
 ### **1. พหุสัณฑ์แบบเทมเพลต (Template-Based Polymorphism)**
@@ -882,6 +892,29 @@ void validateField(const volScalarField& field) {
 > - ฝึกใช้ dimensional analysis ในโค้ดของคุณเสมอ
 > - ใช้ correctBoundaryConditions() อย่างเป็นระบบ
 > - เรียนรู้ expression templates เพื่อประสิทธิภาพสูงสุด
+
+
+---
+
+## 🧠 9. Concept Check (ทดสอบความเข้าใจสุดท้าย)
+
+1.  **ทำไมการใช้ `GeometricField<scalar, fvPatchField, volMesh>` ถึงดีกว่าการเขียนโค้ดเฉพาะทางสำหรับ Scalar Field โดยตรง?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะการใช้ Template (`GeometricField`) ยอมให้เราใช้โค้ดชุดเดียวกันจัดการกับ Vector และ Tensor ได้ด้วย (Code Reuse) และยังได้รับประโยชน์จากการตรวจสอบ Type Safety และการเพิ่มประสิทธิภาพ (Optimization) จาก Template Metaprogramming ที่ทีมพัฒนา OpenFOAM เขียนไว้
+    </details>
+
+2.  **ในการเขียน Solver การละเลย `.correctBoundaryConditions()` จะส่งผลร้ายแรงที่สุดในขั้นตอนใด?**
+    <details>
+    <summary>เฉลย</summary>
+    ขั้นตอนการคำนวณ **Flux** หรือ **Gradient** ถัดไป เพราะ Boundary Values ที่ผิดพลาดจะถูกนำไปใช้คำนวณทันที ทำให้สมการเสียสมดุลทางฟิสิกส์ (Conservation Law Violation)
+    </details>
+
+3.  **จงเรียงลำดับความเร็วในการประมวลผลจากเร็วที่สุดไปช้าที่สุด: `UList`, `List`, `GeometricField`**
+    <details>
+    <summary>เฉลย</summary>
+    `UList` (เร็วที่สุด - เข้าถึง Memory โดยตรง) > `List` (เร็วรองลงมา - มี Memory Management) > `GeometricField` (ช้าที่สุดในกลุ่มนี้ - เพราะมี Metadata, Mesh, และ Boundary Logic) **หมายเหตุ:** ในการวน Loop คำนวณจริง OpenFOAM มักจะดึง `UList` หรือ `List` ออกมาใช้เพื่อความเร็วสูงสุด
+    </details>
 
 ---
 

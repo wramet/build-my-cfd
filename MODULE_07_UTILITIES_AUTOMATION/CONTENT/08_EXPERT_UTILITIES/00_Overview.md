@@ -1150,3 +1150,25 @@ SaveData('streamlines.vtk', streamlines)
 - **Last Updated:** 2025-12-23
 - **Status:** Complete with Synthesized Examples
 - **Note:** All code examples marked with `// NOTE: Synthesized by AI` should be verified for your specific application
+
+---
+
+## 🧠 ตรวจสอบความเข้าใจ (Concept Check)
+
+1. **ถาม:** ความแตกต่างหลักระหว่าง `blockMesh` และ `snappyHexMesh` คืออะไร?
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b> `blockMesh` เป็นเครื่องมือสร้างเมชแบบ Structured (Hexahedral) ที่ต้องกำหนดจุดและบล็อกด้วยมือ เหมาะกับรูปร่างเรขาคณิตง่ายๆ ส่วน `snappyHexMesh` เป็นเครื่องมือสร้างเมชแบบ Automated (Unstructured/Hybrid) ที่สร้างเมชจากไฟล์พื้นผิว STL เหมาะกับรูปร่างที่ซับซ้อนมาก
+   </details>
+
+2. **ถาม:** ในการตรวจสอบคุณภาพเมชด้วย `checkMesh` ค่า **Non-orthogonality** ที่สูงเกินไป (เช่น > 70°) ส่งผลอย่างไร?
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b> ทำให้เกิด Discretization Error สูงในการคำนวณ Gradient และ Diffusion term ซึ่งนำไปสู่ความไม่เสถียร (Instability) ของการคำนวณ หรือ Solver อาจจะลู่เข้าช้า/ไม่ลู่เข้าเลย (Divergence)
+   </details>
+
+3. **ถาม:** ประโยชน์ของการใช้ `mapFields` คืออะไร?
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b> ช่วยให้สามารถนำผลลัพธ์จากเคสหนึ่ง (เช่น เคสเมชหยาบ) มาใช้เป็นค่าเริ่มต้น (Initial Condition) สำหรับอีกเคสหนึ่ง (เช่น เคสเมชละเอียด) ได้ ซึ่งช่วยประหยัดเวลาในการรันเคสเมชละเอียดให้ลู่เข้าเร็วขึ้น (Initial guess ที่ดีกว่า Uniform 0)
+   </details>

@@ -860,3 +860,34 @@ void parallelMeshAnalysis(const primitiveMesh& mesh)
 ---
 
 ด้วยการทำความเข้าใจข้อผิดพลาดที่พบบ่อยเหล่านี้และการใช้วิธีแก้ไขที่ถูกต้อง คุณสามารถเขียนโค้ด OpenFOAM ที่แข็งแกร่งขึ้น มีประสิทธิภาพมากขึ้น และบำรุงรักษาได้ง่ายขึ้น ซึ่งจัดการกับเรขาคณิตเมชอย่างเหมาะสมและหลีกเลี่ยงคอขวดด้านประสิทธิภาพ
+
+---
+
+## 🧠 5. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ทำไมการเก็บ Reference ตัวแปรแบบ `const vectorField& centers = mesh.cellCentres();` ไว้ในคลาส Member ถึงเป็นสิ่งที่อันตราย?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะข้อมูลเรขาคณิตใน OpenFOAM (เช่น `cellCentres`) เป็แบบ **Lazy Evaluation** และอาจถูกล้างออกจาก Cache ได้ทุกเมื่อ (เช่น เมื่อ Mesh มีการขยับหรือเปลี่ยนแปลงโทโพโลยี) ถ้าเราเก็บ Reference ค้างไว้ Reference นั้นอาจชี้ไปยังหน่วยความจำที่ถูกล้างไปแล้ว (Dangling Reference) ทำให้เกิด Segmentation Fault หรือได้ค่าขยะ
+    </details>
+
+2.  **ถ้าต้องการหา Flux ที่ไหลผ่านหน้าผิว (Flux = U & Sf) เราต้องระวังเรื่องเครื่องหมายอย่างไร?**
+    <details>
+    <summary>เฉลย</summary>
+    ต้องจำไว้ว่า **Sf (Face Area Vector)** ชี้จาก **Owner** ไป **Neighbour** เสมอ
+    - สำหรับ **Owner Cell**: Flux เป็นบวก = ไหลออก
+    - สำหรับ **Neighbour Cell**: Flux เป็นลบ = ไหลออก (เพราะมุมมองตรงข้าม)
+    การคำนวณที่ถูกต้องจึงต้องพิจารณาว่าเรากำลังมองจากมุมของ Cell ไหน
+    </details>
+
+3.  **ทำไมเราไม่ควรเขียนโค้ดแบบ `mesh.boundaryMesh()[0]` เพื่ออ้างอิงถึง Inlet?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะลำดับของ Patch ในไฟล์ `boundary` อาจเปลี่ยนแปลงได้ (เช่น ผู้ใช้อาจสลับลำดับ หรือมี Patch อื่นแทรกมา) วิธีที่ถูกต้องคือการค้นหาจากชื่อด้วย `findPatchID("inlet")` ซึ่งมีความทนทาน (Robust) มากกว่า
+    </details>
+
+4.  **วิธีแก้ไขปัญหาการเรียกใช้ Geometry ซ้ำๆ (Repeated Queries) ที่ดีที่สุดคืออะไร?**
+    <details>
+    <summary>เฉลย</summary>
+    ใช้กลยุทธ์ **Local Caching** หรือ **Batch Processing**: ดึงข้อมูล Geometry ที่ต้องใช้ทั้งหมดมาเก็บไว้ในตัวแปร Local (หรือ Cache Structure ชั่วคราว) ก่อน แล้วค่อยวน Loop ประมวลผลจากตัวแปร Local นั้น แทนที่จะเรียก `mesh.geometry()` ในทุกรอบ Loop
+    </details>

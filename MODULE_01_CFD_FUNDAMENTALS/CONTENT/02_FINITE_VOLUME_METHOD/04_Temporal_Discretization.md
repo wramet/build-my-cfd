@@ -42,6 +42,30 @@ $$\phi^{n+1} = \phi^n + \Delta t \cdot f(\phi^n) \tag{1.1}$$
 - ต้องใช้ช่วงเวลาที่สั้นมากเพื่อความเสถียร (CFL < 1)
 - เสถียรแบบมีเงื่อนไข (Conditionally stable) - อาจไม่เสถียรสำหรับ $\Delta t$ ขนาดใหญ่
 
+```mermaid
+graph TD
+    subgraph Stable_Step ["CFL < 1 (Safe)"]
+    Fluid1[Fluid Particle] -->|Move 1 Step| Cell1[Cell 1]
+    Cell1 -->|Capture| Result1[Sharp Image]
+    end
+
+    subgraph Unstable_Step ["CFL > 1 (Unstable/Blurry)"]
+    Fluid2[Fluid Particle] -->|Move 2 Steps!| Cell3[Cell 3 (Skip Cell 2)]
+    Cell3 -.->|Missed Information| Result2[Explosion/Blur]
+    style Result2 fill:#ffcdd2,stroke:#c62828
+    end
+```
+
+> [!TIP]
+> **Practical Analogy: การถ่ายวิดีโอ (Videography) และ Time Step**
+>
+> คิดซะว่า **Time Step ($\Delta t$)** คือ **Frame Rate** ของวิดีโอที่คุณกำลังถ่ายการแข่งขันวิ่ง 100 เมตร
+>
+> 1.  **Small $\Delta t$ (High Frame Rate):** คุณถ่าย 120 เฟรมต่อวินาที ภาพ (Simulation) จะดูลื่นไหล เก็บทุกรายละเอียดยิบย่อยได้ (Accuracy สูง) แต่ไฟล์จะใหญ่มากและใช้เวลาตัดต่อนาน (Computational Cost สูง)
+> 2.  **Large $\Delta t$ (Low Frame Rate):** คุณถ่าย 1 เฟรมต่อวินาที นักวิ่งอาจจะ "วาร์ป" จากจุดออกตัวไปที่เส้นชัยเลย! ข้อมูลระหว่างทางหายหมด (Accuracy ต่ำ)
+> 3.  **CFL Condition (Explicit):** เหมือนกฎว่า "อย่าขยับกล้องเร็วกว่าวัตถุมากเกินไป" ถ้านักวิ่งวิ่งเร็วกว่าชัตเตอร์กล้องของคุณ ภาพจะเบลอเละเทะ (Simulation Unstable/Explode) คุณต้องลด $\Delta t$ ลงเพื่อให้จับภาพทัน!
+
+
 > [!INFO] **การใช้งาน Explicit Euler**
 > วิธีนี้เหมาะสำหรับปัญหาที่มีความเร็วการเปลี่ยนแปลงต่ำ หรือการทดสอบเบื้องต้นเนื่องจากความง่ายในการนำไปใช้
 
@@ -757,3 +781,29 @@ classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
 > - ศึกษา [[05_Matrix_Assembly]] เพื่อเข้าใจว่า temporal terms มีผลต่อ coefficient matrices อย่างไร
 > - อ้างอิง [[06_OpenFOAM_Implementation]] สำหรับตัวอย่างการนำไปใช้งานจริง
 > - ดู [[07_Best_Practices]] สำหรับแนวทางในการเลือก temporal scheme ที่เหมาะสม
+
+---
+
+## 🧠 Concept Check: ทดสอบความเข้าใจ
+
+<details>
+<summary><b>1. CFL Number (Courant Number) บอกอะไรเรา และทำไมต้อง < 1 สำหรับ Explicit Scheme?</b></summary>
+
+**คำตอบ:** CFL Number บอกว่า **"ในหนึ่งก้าวเวลา ($\Delta t$) ของไหลเคลื่อนที่ผ่านไปกี่ช่อง Grid ($\Delta x$)"**
+ถ้า Co > 1 แปลว่าของไหลเคลื่อนที่ "ข้าม" ช่อง Grid ไปเลยโดยที่ Solver ไม่ทันรู้ตัว ทำให้ข้อมูลสำคัญสูญหายและเกิดความไม่เสถียร (Unstable) สำหรับ Explicit Scheme จึงต้องบังคับให้ Co < 1 เสมอ (ค่อยๆ ไปทีละช่อง)
+</details>
+
+<details>
+<summary><b>2. ถ้า Implicit Scheme (เช่น Euler Implicit) เสถียรอย่างไม่มีเงื่อนไข (Unconditionally Stable) ทำไมเราไม่ใช้ $\Delta t$ ใหญ่ๆ ไปเลยเพื่อความเร็ว?</b></summary>
+
+**คำตอบ:** เพราะ **ความเสถียร (Stability) $\neq$ ความแม่นยำ (Accuracy)**
+แม้ Implicit Scheme จะไม่ระเบิด (ไม่ Error) แม้ใช้ $\Delta t$ ใหญ่มาก แต่ผลลัพธ์ที่ได้อาจจะไม่ถูกต้องเลย (Temporal Diffusion) รายละเอียดการเปลี่ยนแปลงเร็วๆ จะถูกเกลี่ยเรียบไปหมด ดังนั้นเรายังต้องเลือก $\Delta t$ ให้เล็กพอที่จะจับ Physics ของปัญหาได้ (Time Accuracy)
+</details>
+
+<details>
+<summary><b>3. PISO กับ SIMPLE ต่างกันอย่างไรในแง่ของการก้าวเวลา?</b></summary>
+
+**คำตอบ:**
+*   **SIMPLE:** ออกแบบมาสำหรับ **Steady-state** (หาค่าสุดท้ายที่ไม่เปลี่ยนตามเวลา) มันไม่ได้สนใจความถูกต้องระหว่างก้าวเวลา แต่สนใจแค่ให้ลู่เข้าหาคำตอบสุดท้าย
+*   **PISO:** ออกแบบมาสำหรับ **Transient** (ดูการเปลี่ยนแปลงตามเวลา) มันมีการแก้ไขความดัน (Corrector Loops) หลายครั้งในแต่ละ Time Step เพื่อให้แน่ใจว่ามวลและโมเมนตัมอนุรักษ์เป๊ะๆ ในทุกเสี้ยววินาที
+</details>

@@ -37,6 +37,15 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \
 
 สิ่งนี้สร้าง **ปัญหาจุดอานม้า (saddle-point problem)**: ความดันทำหน้าที่เป็นตัวคูณ Lagrange (Lagrange multiplier) ที่บังคับใช้ข้อจำกัด divergence-free กับความเร็ว
 
+> [!TIP] **Physical Analogy: The Event Manager (ผู้จัดการงานอีเวนต์)**
+>
+> ลองนึกภาพฝูงชนในงานคอนเสิร์ต (Velocity Field) ที่กำลังเต้น:
+> - **Velocity ($\mathbf{u}$):** คือคนที่พยายามจะเคลื่อนที่ไปข้างหน้าตามแรงผลักดัน (Momentum)
+> - **Continuity ($\nabla \cdot \mathbf{u} = 0$):**คือกฎความปลอดภัยที่ห้ามคนทับกัน (Overcrowding) หรือห้ามมีที่ว่างโหว่จนน่าเกลียด
+> - **Pressure ($p$):** คือ **ผู้จัดการ (Manager)** ที่คอยมองภาพรวม เขาไม่ได้เต้นเอง แต่เขาคอยตะโกนสั่ง (Gradient) ว่า "ตรงนั้นแน่นไปแล้ว! ขยับไปทางซ้ายหน่อย!" หรือ "ตรงนั้นว่างเกินไป! ขยับเข้ามา!"
+>
+> **The Saddle Point:** ผู้จัดการ (Pressure) ต้องพยายามหา "คำสั่งที่เบาที่สุด" (Minimum adjustment) ที่ทำให้ทุกคนเต้นได้โดยไม่ผิดกฎความปลอดภัย (Constraint Satisfied) นี่คือหน้าที่ของ Pressure ในสมการ Navier-Stokes แบบ Incompressible
+
 ### 1.2 รูปแบบดิสครีต (Discretized Form)
 
 เมื่อถูกทำให้เป็นดิสครีตโดยใช้วิธี Finite Volume สมการโมเมนตัมที่เซลล์ $P$ จะกลายเป็น:
@@ -590,5 +599,25 @@ $$\frac{\partial \bar{\mathbf{u}}}{\partial t} + \bar{\mathbf{u}} \cdot \nabla \
 - **Modified Pressure** รวมถึง Turbulence Kinetic Energy: $p^* = \bar{p} + \frac{2}{3}\rho k$
 
 ---
+
+## 🧠 5. Concept Check (ทดสอบความเข้าใจ)
+
+1. **ทำไมความดันใน Incompressible Flow ถึงถูกเรียกว่า Lagrange Multiplier?**
+   <details>
+   <summary>เฉลย</summary>
+   เพราะความดันไม่ได้เป็นตัวแปรทางอุณหพลศาสตร์ที่ขึ้นกับความหนาแน่นโดยตรง แต่เป็นตัวแปรทางคณิตศาสตร์ที่เกิดขึ้นมาเพื่อ "บังคับ" (Enforce) ให้สนามความเร็วเป็นไปตามข้อจำกัด (Constraint) ของสมการความต่อเนื่อง ($\nabla \cdot \mathbf{u} = 0$) เท่านั้น
+   </details>
+
+2. **ใน SIMPLE Algorithm, ทำไมเราถึงต้องแก้สมการ Pressure Correction ($p'$) แทนที่จะแก้หา $p$ ตรงๆ ในรอบแรก?**
+   <details>
+   <summary>เฉลย</summary>
+   เพราะเราเริ่มจากการเดา $p^*$ เพื่อหา $u^*$ ก่อน แต่ $u^*$ ที่ได้มักจะไม่สอดคล้องกับ Continuity เราจึงต้องหา "ส่วนแก้" ($p'$) ที่จะไปปรับ $u^*$ ให้เข้าสู่ Continuity ได้พอดี
+   </details>
+
+3. **Rhie-Chow Interpolation แก้ปัญหาอะไร และถ้าไม่มีจะเกิดอะไรขึ้น?**
+   <details>
+   <summary>เฉลย</summary>
+   แก้ปัญหา **Checkerboard Pressure** (ความดันลายตารางหมากรุก) บน Collocated Grid ถ้าไม่มี Rhie-Chow ความดันอาจจะแกว่งเป็นค่าสูง-ต่ำสลับกันระหว่างเซลล์โดยที่ Solver ไม่รู้ตัว เพราะ Average Gradient ระหว่างเซลล์ยังดูปกติ
+   </details>
 
 **หัวข้อถัดไป**: [[01_Mathematical_Foundation.md|รากฐานทางคณิตศาสตร์อย่างละเอียด]]

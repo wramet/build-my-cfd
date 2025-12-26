@@ -1,91 +1,83 @@
-# Module 05.12: Dimensional Analysis
+# โมดูล 05.12: การวิเคราะห์มิติ (Dimensional Analysis)
 
-> [!INFO] **Module Overview**
-> In this final module, we dive deep into OpenFOAM's physical safety system and learn non-dimensionalization techniques for maximum accuracy. Dimensional analysis is a fundamental tool in computational fluid dynamics that ensures mathematical and physical consistency in numerical simulations.
+> [!INFO] **ภาพรวมโมดูล**
+> ในโมดูลสุดท้ายนี้ เราจะเจาะลึกระบบความปลอดภัยทางฟิสิกส์ของ OpenFOAM และเรียนรู้เทคนิคการทำให้ไร้มิติ (non-dimensionalization) เพื่อความแม่นยำสูงสุด การวิเคราะห์มิติเป็นเครื่องมือพื้นฐานในพลศาสตร์ของไหลเชิงคำนวณที่รับประกันความสอดคล้องทางคณิตศาสตร์และฟิสิกส์ในการจำลองเชิงตัวเลข
 
 ---
 
-## 🎯 Learning Objectives
+## 🎯 วัตถุประสงค์การเรียนรู้
 
-Master OpenFOAM's `dimensionSet` system and its applications
+เชี่ยวชาญระบบ `dimensionSet` ของ OpenFOAM และการประยุกต์ใช้
 
-**OpenFOAM's Dimensional Analysis Framework** is built around the `dimensionSet` class, which provides a comprehensive system for tracking physical dimensions throughout CFD calculations. The `dimensionSet` class represents dimensions using seven base dimensions:
+**กรอบงานการวิเคราะห์มิติของ OpenFOAM** ถูกสร้างขึ้นรอบๆ คลาส `dimensionSet` ซึ่งระบุระบบที่ครอบคลุมสำหรับติดตามมิติทางฟิสิกส์ตลอดการคำนวณ CFD คลาส `dimensionSet` แสดงมิติโดยใช้ 7 มิติฐาน:
 
-- **Mass [M]**
-- **Length [L]**
-- **Time [T]**
-- **Temperature [Θ]**
-- **Amount of Substance [N]**
-- **Luminous Intensity [J]**
-- **Electric Current [I]**
+- **มวล (Mass) [M]**
+- **ความยาว (Length) [L]**
+- **เวลา (Time) [T]**
+- **อุณหภูมิ (Temperature) [Θ]**
+- **ปริมาณสาร (Amount of Substance) [N]**
+- **ความเข้มของการส่องสว่าง (Luminous Intensity) [J]**
+- **กระแสไฟฟ้า (Electric Current) [I]**
 
-**Basic Implementation** uses an array of seven exponents:
+**การนำไปใช้งานพื้นฐาน** ใช้อาร์เรย์ของเลขชี้กำลังเจ็ดตัว:
 
 ```cpp
-// dimensionSet internal representation
-// Format: dimensionSet(mass, length, time, temperature, moles, current, luminousIntensity)
-dimensionSet(1, -3, -2, 0, 0, 0, 0)  // Represents: kg·m⁻³·s⁻² (density)
+// การแสดงผลภายในของ dimensionSet
+// รูปแบบ: dimensionSet(มวล, ความยาว, เวลา, อุณหภูมิ, โมล, กระแส, ความเข้มแสง)
+dimensionSet(1, -3, -0, 0, 0, 0, 0)  // แทนค่า: kg·m⁻³ (ความหนาแน่น)
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **แหล่งที่มา (Source):** ไม่พบแหล่งที่มาเฉพาะในฐานข้อมูล แต่เป็นการใช้งานมาตรฐานของ OpenFOAM
->
-> **คำอธิบาย:** คลาส `dimensionSet` เก็บมิติทางกายภาพเป็นเลขชี้กำลังของ 7 หน่วยฐาน SI ตัวอย่างนี้แสดงความหนาแน่นที่มีมิติเป็น [M L⁻³ T⁻²]
->
-> **แนวคิดสำคัญ:**
-> - เลขชี้กำลังบวก = หน่วยในเชิงประกอบ (numerator)
-> - เลขชี้กำลังลบ = หน่วยในเชิงหาร (denominator)
-> - ศูนย์ = ไม่มีหน่วยนั้นในปริมาณ
+> คลาส `dimensionSet` เก็บมิติทางกายภาพเป็นเลขชี้กำลังของ 7 หน่วยฐาน SI ตัวอย่างนี้แสดงความหนาแน่นที่มีมิติเป็น [M L⁻³] (สังเกต: ในตัวอย่างเดิม T เป็น -2 ซึ่งคือความดันหรือพลังงานต่อปริมาตร แต่ context พูดถึง density ดังนั้นแก้ให้ถูกต้องเป็น M L^-3 T^0 หรือถ้าเป็นแรงดันควรแก้คำอธิบาย)
+> *หมายเหตุ: โค้ดต้นฉบับ `dimensionSet(1, -3, -2, ...)` คือหน่วยของ ความดันไล่ระดับ (Pressure gradient) หรือ แรงต่อปริมาตร แต่คอมเมนต์เขียนว่า density ซึ่งผิด ในที่นี้จะขอใช้ `(1, -3, 0, ...)` สำหรับความหนาแน่นตามคำอธิบาย*
 
-This system enables automatic dimensional consistency checking at both compile-time and runtime, preventing mathematical operations that violate physical laws.
+ระบบนี้ช่วยให้สามารถตรวจสอบความสอดคล้องทางมิติอัตโนมัติได้ทั้งในขณะคอมไพล์ (compile-time) และขณะรัน (runtime) ป้องกันการดำเนินการทางคณิตศาสตร์ที่ละเมิดกฎทางฟิสิกส์
 
-**Key Benefits of the Dimensional System:**
-- ✅ Automatic dimensional consistency checking
-- ✅ Prevention of mathematical errors
-- ✅ Integration with OpenFOAM field types (`volScalarField`, `volVectorField`, etc.)
-- ✅ Maintenance of dimensional homogeneity in all operations
+**ประโยชน์หลักของระบบมิติ:**
+- ✅ ตรวจสอบความสอดคล้องทางมิติอัตโนมัติ
+- ✅ ป้องกันข้อผิดพลาดทางคณิตศาสตร์
+- ✅ บูรณาการกับชนิดฟิลด์ของ OpenFOAM (`volScalarField`, `volVectorField`, ฯลฯ)
+- ✅ รักษาความเป็นเอกพันธ์ทางมิติ (dimensional homogeneity) ในทุกการดำเนินการ
 
-### Implementing Rigorous Dimensional Consistency Checking in Custom Solvers
+### การนำการตรวจสอบความสอดคล้องทางมิติที่เข้มงวดไปใช้ใน Solver ที่สร้างเอง
 
-When developing custom solvers, dimensional consistency must be enforced at multiple levels
+เมื่อพัฒนา solver แบบกำหนดเอง ความสอดคล้องทางมิติต้องถูกบังคับใช้ในหลายระดับ
 
-**The `dimensioned<Type>` Template Wrapper** provides the primary mechanism for binding dimensions to numerical values:
+**ตัวห่อหุ้มเทมเพลต `dimensioned<Type>`** ให้กลไกหลักสำหรับการผูกมิติเข้ากับค่าตัวเลข:
 
 ```cpp
-// Dimensional scalar declaration
-// Format: dimensionedScalar(name, dimensions, value)
+// การประกาศสเกลาร์ที่มีมิติ
+// รูปแบบ: dimensionedScalar(ชื่อ, มิติ, ค่า)
 dimensionedScalar viscosity(
     "mu", 
-    dimensionSet(1, -1, -1, 0, 0, 0, 0),  // [M L⁻¹ T⁻¹] - dynamic viscosity
-    1.8e-5                                 // value in Pa·s
+    dimensionSet(1, -1, -1, 0, 0, 0, 0),  // [M L⁻¹ T⁻¹] - ความหนืดพลวัต (dynamic viscosity)
+    1.8e-5                                 // ค่าในหน่วย Pa·s
 );
 
-// Dimensional vector field
+// ฟิลด์เวกเตอร์ที่มีมิติ
 volVectorField U
 (
     IOobject("U", runTime.timeName(), mesh),
     mesh,
-    dimensionSet(0, 1, -1, 0, 0, 0, 0)  // [L T⁻¹] - velocity dimensions
+    dimensionSet(0, 1, -1, 0, 0, 0, 0)  // [L T⁻¹] - มิติความเร็ว
 );
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **แหล่งที่มา (Source):** ไม่พบแหล่งที่มาเฉพาะ แต่เป็นรูปแบบการประกาศมาตรฐานใน OpenFOAM
->
-> **คำอธิบาย:** `dimensionedScalar` และ `volVectorField` เป็นคลาสที่รวมค่าตัวเลขกับมิติไว้ด้วยกัน ทำให้เกิดการตรวจสอบความสอดคล้องอัตโนมัติ
+> `dimensionedScalar` และ `volVectorField` เป็นคลาสที่รวมค่าตัวเลขกับมิติไว้ด้วยกัน ทำให้เกิดการตรวจสอบความสอดคล้องอัตโนมัติ
 >
 > **แนวคิดสำคัญ:**
 > - ต้องระบุชื่อตัวแปร, มิติ, และค่าเริ่มต้น
 > - ชื่อตัวแปรใช้สำหรับการระบุในข้อความแสดงข้อผิดพลาด
 > - การผิดพลาดในการกำหนดมิติจะถูกตรวจพบตั้งแต่ขั้นตอนคอมไพล์
 
-**Dimensional Compatibility Checking** in all mathematical operations:
+**การตรวจสอบความเข้ากันได้ทางมิติ** ในการดำเนินการทางคณิตศาสตร์ทั้งหมด:
 
 ```cpp
-// Dimensional checking in momentum equation
-// Verify that momentum equation has correct dimensions [M L⁻² T⁻²]
+// การตรวจสอบมิติในสมการโมเมนตัม
+// ตรวจสอบว่าสมการโมเมนตัมมีมิติที่ถูกต้อง [M L⁻² T⁻²] (แรงต่อปริมาตร)
 if (!UEqn.dimensions().matches(fvVectorMatrix::dimensions))
 {
     FatalErrorIn("myCustomSolver::solve()")
@@ -96,54 +88,52 @@ if (!UEqn.dimensions().matches(fvVectorMatrix::dimensions))
 }
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **แหล่งที่มา (Source):** ไม่พบแหล่งที่มาเฉพาะ แต่เป็นเทคนิคการตรวจสอบมาตรฐาน
->
-> **คำอธิบาย:** ฟังก์ชัน `matches()` ตรวจสอบว่ามิติของสมการสอดคล้องกับที่คาดหวังหรือไม่ ใช้สำหรับตรวจสอบความถูกต้องของสมการกำลัง
+> ฟังก์ชัน `matches()` ตรวจสอบว่ามิติของสมการสอดคล้องกับที่คาดหวังหรือไม่ ใช้สำหรับตรวจสอบความถูกต้องของสมการ
 >
 > **แนวคิดสำคัญ:**
 > - `fvVectorMatrix::dimensions` = [M L⁻² T⁻²] (แรงต่อหน่วยปริมาตร)
-> - `FatalErrorIn` สร้างข้อความแสดงข้อผิดพลาดที่ชัดเจน
+> - `FatalErrorIn` สร้างข้อความแสดงข้อผิดพลาดที่ชัดเจนและหยุดการทำงาน
 > - ควรใช้ใน solver แบบกำหนดเองเพื่อการตรวจสอบเชิงลึก
 
-**Checking Mechanisms:**
-- **Compile-time:** Catches most dimensional errors
-- **Runtime:** Essential for dynamic operations
-- **Consistency verification:** All mathematical operations must maintain dimensional homogeneity
+**กลไกการตรวจสอบ:**
+- **Compile-time:** จับข้อผิดพลาดทางมิติส่วนใหญ่
+- **Runtime:** จำเป็นสำหรับการดำเนินการแบบไดนามิก (เช่น การอ่านค่าจากไฟล์)
+- **การตรวจสอบความสอดคล้อง:** ทุกการดำเนินการทางคณิตศาสตร์ต้องรักษาความเป็นเอกพันธ์ทางมิติ
 
-### Using Non-Dimensionalization Techniques for Scaling and Similarity Analysis
+### การใช้เทคนิคการทำให้ไร้มิติสำหรับการวิเคราะห์สเกลและความคล้ายคลึง
 
-**Non-dimensionalization** transforms governing equations into dimensionless form, revealing key similarity parameters and simplifying computations
+**การทำให้ไร้มิติ (Non-dimensionalization)** แปลงสมการควบคุมให้อยู่ในรูปแบบไร้มิติ เผยให้เห็นพารามิเตอร์ความคล้ายคลึงที่สำคัญและช่วยให้การคำนวณง่ายขึ้น
 
-**Non-dimensionalization Process:**
+**กระบวนการทำให้ไร้มิติ:**
 $$\mathbf{x}^* = \frac{\mathbf{x}}{L_c}, \quad t^* = \frac{t}{t_c}, \quad \mathbf{u}^* = \frac{\mathbf{u}}{U_c}$$
 
-Where:
-- $L_c$ = characteristic length scale
-- $t_c$ = characteristic time scale
-- $U_c$ = characteristic velocity scale
+โดยที่:
+- $L_c$ = สเกลความยาวลักษณะเฉพาะ (characteristic length scale)
+- $t_c$ = สเกลเวลาลักษณะเฉพาะ (characteristic time scale)
+- $U_c$ = สเกลความเร็วลักษณะเฉพาะ (characteristic velocity scale)
 
-**Dimensionless Navier-Stokes Equation:**
+**สมการ Navier-Stokes ไร้มิติ:**
 $$\frac{\partial \mathbf{u}^*}{\partial t^*} + (\mathbf{u}^* \cdot \nabla^*)\mathbf{u}^* = -\nabla^*p^* + \frac{1}{Re}\nabla^{*2}\mathbf{u}^*$$
 
-**Reynolds Number:** $Re = \frac{\rho U_c L_c}{\mu}$ is the controlling similarity parameter
+**Reynolds Number:** $Re = \frac{\rho U_c L_c}{\mu}$ เป็นพารามิเตอร์ความคล้ายคลึงที่ควบคุมสมการ
 
-**Implementation in OpenFOAM:**
+**การนำไปใช้ใน OpenFOAM:**
 
 ```cpp
-// Reference quantities for non-dimensionalization
-// Define characteristic scales for the problem
+// ปริมาณอ้างอิงสำหรับการทำให้ไร้มิติ
+// กำหนดสเกลลักษณะเฉพาะสำหรับปัญหา
 dimensionedScalar LRef("LRef", dimLength, 1.0);
 dimensionedScalar URef("URef", dimensionSet(0, 1, -1, 0, 0, 0, 0), 1.0);
 dimensionedScalar rhoRef("rhoRef", dimDensity, 1.0);
 dimensionedScalar muRef("muRef", dimensionSet(1, -1, -1, 0, 0, 0, 0), 1.0);
 
-// Calculate Reynolds number
+// คำนวณ Reynolds number
 // Re = (ρ * U * L) / μ  [dimensionless]
 dimensionedScalar Re = rhoRef * URef * LRef / muRef;
 
-// Verify Reynolds number is dimensionless
+// ตรวจสอบว่า Reynolds number ไร้มิติหรือไม่
 if (!Re.dimensions().matches(dimless))
 {
     WarningIn("nonDimensionalSetup")
@@ -151,26 +141,24 @@ if (!Re.dimensions().matches(dimless))
 }
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **แหล่งที่มา (Source):** ไม่พบแหล่งที่มาเฉพาะ แต่เป็นการคำนวณมาตรฐานใน CFD
->
-> **คำอธิบาย:** การทำให้ไร้มิติต้องการปริมาณอ้างอิง (reference quantities) เพื่อคำนวณจำนวนไร้มิติ เช่น Reynolds number
+> การทำให้ไร้มิติต้องการปริมาณอ้างอิง (reference quantities) เพื่อคำนวณจำนวนไร้มิติ เช่น Reynolds number
 >
 > **แนวคิดสำคัญ:**
 > - `dimLength`, `dimDensity` คือค่าคงที่มิติที่กำหนดไว้ล่วงหน้า
 > - Reynolds number ต้องไร้มิติ (dimensionless) = [0 0 0 0 0 0 0]
 > - การตรวจสอบมิติของ Re เป็นการป้องกันข้อผิดพลาดที่ดี
 
-### Creating Custom Dimension Sets for Specialized Physics
+### การสร้างชุดมิติ (Dimension Sets) สำหรับฟิสิกส์เฉพาะทาง
 
-**OpenFOAM's Dimensional System** can be extended for specialized physics domains through custom `dimensionSet` definitions
+**ระบบมิติของ OpenFOAM** สามารถขยายเพื่อรองรับโดเมนฟิสิกส์เฉพาะทางผ่านการนิยาม `dimensionSet` แบบกำหนดเอง
 
-#### For Magnetohydrodynamics (MHD)
+#### สำหรับ Magnetohydrodynamics (MHD)
 
 ```cpp
-// Electromagnetic dimensional sets
-// Magnetic permeability [M L T⁻² A⁻²]
+// ชุดมิติทางแม่เหล็กไฟฟ้า
+// สภาพซึมได้ทางแม่เหล็ก (Magnetic permeability) [M L T⁻² A⁻²]
 dimensionSet magneticPermeability(
     "mu0", 
     1,    // mass [M]
@@ -182,7 +170,7 @@ dimensionSet magneticPermeability(
     0     // luminous intensity [J]
 );
 
-// Electrical conductivity [M⁻¹ L⁻³ T³ A²]
+// สภาพนำไฟฟ้า (Electrical conductivity) [M⁻¹ L⁻³ T³ A²]
 dimensionSet electricConductivity(
     "sigma", 
     -1,   // mass [M⁻¹]
@@ -194,31 +182,28 @@ dimensionSet electricConductivity(
     0     // luminous intensity [J]
 );
 
-// Custom MHD field declarations
+// การประกาศฟิลด์ MHD แบบกำหนดเอง
 volScalarField magneticField
 (
     IOobject("B", runTime.timeName(), mesh, IOobject::MUST_READ),
     mesh,
-    dimensionSet(1, 0, -2, 0, 0, 0, -1)  // Magnetic field [M T⁻² A⁻¹]
+    dimensionSet(1, 0, -2, 0, 0, 0, -1)  // สนามแม่เหล็ก [M T⁻² A⁻¹]
 );
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **แหล่งที่มา (Source):** ไม่พบแหล่งที่มาเฉพาะ แต่เป็นการใช้งานขั้นสูงของระบบมิติ
->
-> **คำอธิบาย:** ฟิสิกส์ MHD ต้องการหน่วยเฉพาะทางเช่นสนามแม่เหล็กและความนำไฟฟ้า ซึ่งต้องกำหนดเป็น `dimensionSet` แบบกำหนดเอง
+> ฟิสิกส์ MHD ต้องการหน่วยเฉพาะทางเช่นสนามแม่เหล็กและความนำไฟฟ้า ซึ่งต้องกำหนดเป็น `dimensionSet` แบบกำหนดเอง
 >
 > **แนวคิดสำคัญ:**
 > - สนามแม่เหล็ก B มีมิติ [M T⁻² A⁻¹] (Tesla)
 > - ความนำไฟฟ้า σ มีมิติ [M⁻¹ L⁻³ T³ A²] (Siemens/m)
-> - ระบบมิติของ OpenFOAM รองรับหน่วยฟิสิกส์ขั้นสูงได้อย่างสมบูรณ์
 
-#### For Plasma Physics
+#### สำหรับฟิสิกส์พลาสมา (Plasma Physics)
 
 ```cpp
-// Plasma physics dimensions
-// Electron temperature [M L² T⁻² Θ⁻¹] - energy per particle per temperature
+// มิติฟิสิกส์พลาสมา
+// อุณหภูมิอิเล็กตรอน [M L² T⁻² Θ⁻¹] - พลังงานต่ออนุภาคต่ออุณหภูมิ (Boltzmann constant unit ish)
 dimensionSet electronTemp(
     "Te", 
     1,    // mass [M]
@@ -230,7 +215,7 @@ dimensionSet electronTemp(
     0     // luminous intensity [J]
 );
 
-// Ion density [L⁻³ N] - number density with amount of substance
+// ความหนาแน่นไอออน [L⁻³ N] - ความหนาแน่นจำนวนร่วมกับปริมาณสาร
 dimensionSet ionDensity(
     "ni", 
     0,    // mass [M]
@@ -243,22 +228,11 @@ dimensionSet ionDensity(
 );
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
->
-> **แหล่งที่มา (Source):** ไม่พบแหล่งที่มาเฉพาะ แต่เป็นการใช้งานขั้นสูงของระบบมิติ
->
-> **คำอธิบาย:** ฟิสิกส์พลาสมาต้องการหน่วยพิเศษเช่น อุณหภูมิอิเล็กตรอน และความหนาแน่นไอออน ซึ่งต่างจากหน่วยมาตรฐาน
->
-> **แนวคิดสำคัญ:**
-> - อุณหภูมิอิเล็กตรอนมีมิติพลังงานต่ออุณหภูมิ [M L² T⁻² Θ⁻¹]
-> - ความหนาแน่นไอออนใช้ปริมาณสาร [N] แทนมวล [M]
-> - ระบบมิติ 7 หน่วยฐานสามารถแสดงฟิสิกส์ทุกประเภทได้
+### การดีบักข้อผิดพลาดทางมิติและการเข้าใจข้อความผิดพลาดของ OpenFOAM
 
-### Debugging Dimensional Errors and Understanding OpenFOAM Error Messages
+**OpenFOAM** ให้ข้อความแสดงข้อผิดพลาดที่ครอบคลุมสำหรับความไม่สอดคล้องทางมิติ
 
-**OpenFOAM** provides comprehensive error messages for dimensional inconsistencies
-
-#### Types of Errors:
+#### ประเภทของข้อผิดพลาด:
 
 ```
 --> FOAM FATAL ERROR:
@@ -270,47 +244,45 @@ dimensionSet ionDensity(
     in file dimensionedType.C at line 234.
 ```
 
-**Error Analysis:**
-- Attempting to add velocity [$m/s$] with kinetic energy per mass [$m^2/s^2$]
-- This operation is dimensionally inconsistent
+**การวิเคราะห์ข้อผิดพลาด:**
+- พยายามบวก ความเร็ว [$m/s$] กับ พลังงานจลน์ต่อมวล [$m^2/s^2$]
+- การดำเนินการนี้ไม่สอดคล้องทางมิติ
 
-#### Systematic Debugging Steps:
+#### ขั้นตอนการดีบักอย่างเป็นระบบ:
 
-1. **Identify the Operation** causing the error
-2. **Trace Variable Dimensions** using:
+1. **ระบุการดำเนินการ** ที่ทำให้เกิดข้อผิดพลาด
+2. **ติดตามมิติตัวแปร** โดยใช้:
    ```cpp
-   // Print dimensions for debugging
+   // พิมพ์มิติเพื่อการดีบัก
    Info << "Variable dimensions: " << var.dimensions() << endl;
    ```
-3. **Verify Unit Consistency** in mathematical equation formulations
-4. **Check Proper Scaling** of terms in equations
+3. **ตรวจสอบความสอดคล้องของหน่วย** ในสูตรสมการทางคณิตศาสตร์
+4. **ตรวจสอบการสเกล** ของเทอมต่างๆ ในสมการให้ถูกต้อง
 
-#### Common Multiphase Flow Errors:
+#### ข้อผิดพลาดทั่วไปในการไหลหลายเฟส (Multiphase Flow Errors):
 
 ```cpp
-// Error: mixing dimensionless alpha with dimensional density
+// Error: ผสม alpha ที่ไร้มิติ กับ density ที่มีมิติ
 dimensionedScalar mixtureDensity = alpha1 * rho1 + (1.0 - alpha1) * rho2;
 
-// Correct: both terms must have dimensions [M L⁻³]
+// Correct: ทั้งสองเทอมต้องมีมิติ [M L⁻³] และตัวเลขคงที่ต้องระบุชนิดข้อมูลถ้าจะนำไปคำนวณกับ object ที่มีมิติ
+// ใน OpenFOAM การบวก scalar ธรรมดากับ dimensionedScalar อาจทำไม่ได้โดยตรง หรือต้องระวังเรื่องการแปลง
 dimensionedScalar mixtureDensity = alpha1 * rho1 + (scalar(1.0) - alpha1) * rho2;
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **แหล่งที่มา (Source):** ไม่พบแหล่งที่มาเฉพาะ แต่เป็นข้อผิดพลาดที่พบบ่อยในการไหลหลายเฟส
->
-> **คำอธิบาย:** ในการไหลหลายเฟส ตัวแปร alpha (volume fraction) ไร้มิติ แต่ rho (density) มีมิติ การคำนวณต้องรักษาความสอดคล้อง
+> ในการไหลหลายเฟส ตัวแปร alpha (volume fraction) ไร้มิติ แต่ rho (density) มีมิติ การคำนวณต้องรักษาความสอดคล้อง
 >
 > **แนวคิดสำคัญ:**
 > - `alpha` ไร้มิติ [0 0 0 0 0 0 0]
-> - `rho` มีมิติ [1 -3 0 0 0 0 0] (ความหนาแน่น)
-> - ต้องใช้ `scalar(1.0)` ไม่ใช่ `1.0` เพื่อให้รู้จักชนิดข้อมูล
+> - `rho` มีมิติ [1 -3 0 0 0 0 0]
 > - OpenFOAM ตรวจสอบความสอดคล้องของมิติอัตโนมัติ
 
-#### Runtime Dimensional Checking:
+#### การตรวจสอบมิติขณะรันไทม์ (Runtime Dimensional Checking):
 
 ```cpp
-// Verify dimensional compatibility before operations
+// ตรวจสอบความเข้ากันได้ทางมิติก่อนการดำเนินการ
 if (!field1.dimensions().matches(field2.dimensions()))
 {
     WarningIn("myFunction")
@@ -320,25 +292,14 @@ if (!field1.dimensions().matches(field2.dimensions()))
 }
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
->
-> **แหล่งที่มา (Source):** ไม่พบแหล่งที่มาเฉพาะ แต่เป็นเทคนิคการตรวจสอบมาตรฐาน
->
-> **คำอธิบาย:** การตรวจสอบมิติเวลารันไทม์ช่วยป้องกันข้อผิดพลาดที่อาจเกิดขึ้นจากข้อมูลนำเข้าที่ผิดพลาด
->
-> **แนวคิดสำคัญ:**
-> - ใช้ `matches()` เพื่อเปรียบเทียบมิติ
-> - `WarningIn` แสดงข้อผิดพลาดแต่ไม่หยุดโปรแกรม
-> - ควรใช้ร่วมกับการตรวจสอบเชิงลึกใน solver แบบกำหนดเอง
-
-**Error Prevention Strategies:**
-- ✅ Verify dimensions before mathematical operations
-- ✅ Use `dimensionSet::matches()` for runtime checking
-- ✅ Clearly distinguish between dimensionless and dimensional quantities
+**กลยุทธ์ป้องกันข้อผิดพลาด:**
+- ✅ ตรวจสอบมิติก่อนการดำเนินการทางคณิตศาสตร์
+- ✅ ใช้ `dimensionSet::matches()` สำหรับการตรวจสอบขณะรันไทม์
+- ✅ แยกแยะให้ชัดเจนระหว่างปริมาณไร้มิติและปริมาณมีมิติ
 
 ---
 
-## Content Structure
+## โครงสร้างเนื้อหา (Content Structure)
 
 ```mermaid
 flowchart TD
@@ -358,172 +319,138 @@ H --> I[Advanced]:::implicit
 I --> J[Summary]:::implicit
 J --> K[Exercises]:::explicit
 ```
-> **Figure 1:** Learning sequence in the dimensional analysis module, covering from basic units to advanced applications in physical safety engineering without affecting simulation speed, through the power of C++ Template Metaprogramming to verify all dimensional consistency at a single compilation step.
+> **Figure 1:** ลำดับการเรียนรู้ในโมดูลการวิเคราะห์มิติ ครอบคลุมตั้งแต่หน่วยพื้นฐานไปจนถึงการประยุกต์ใช้ขั้นสูงในวิศวกรรมความปลอดภัยทางฟิสิกส์ โดยไม่กระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์เพียงครั้งเดียว
 
 ---
 
-## 🏗️ Mathematical Framework of Dimensions
+## 🏗️ กรอบงานคณิตศาสตร์ของมิติ (Mathematical Framework of Dimensions)
 
-OpenFOAM uses a sophisticated dimensional analysis system that automatically tracks and verifies units throughout the simulation process. Physical quantities can be expressed as products of seven base dimensions in the SI system:
+OpenFOAM ใช้ระบบการวิเคราะห์มิติที่ซับซ้อนซึ่งติดตามและตรวจสอบหน่วยโดยอัตโนมัติตลอดกระบวนการจำลอง ปริมาณทางฟิสิกส์สามารถแสดงเป็นผลคูณของ 7 มิติฐานในระบบ SI:
 
-| Dimension | Symbol | Unit |
+| มิติ (Dimension) | สัญลักษณ์ (Symbol) | หน่วย (Unit) |
 |-----------|--------|------|
-| Mass | $[M]$ | kg |
-| Length | $[L]$ | m |
-| Time | $[T]$ | s |
-| Temperature | $[\Theta]$ | K |
-| Electric Current | $[I]$ | A |
-| Amount of Substance | $[N]$ | mol |
-| Luminous Intensity | $[J]$ | cd |
+| มวล (Mass) | $[M]$ | kg |
+| ความยาว (Length) | $[L]$ | m |
+| เวลา (Time) | $[T]$ | s |
+| อุณหภูมิ (Temperature) | $[\Theta]$ | K |
+| กระแสไฟฟ้า (Electric Current) | $[I]$ | A |
+| ปริมาณสาร (Amount of Substance) | $[N]$ | mol |
+| ความเข้มของการส่องสว่าง (Luminous Intensity) | $[J]$ | cd |
 
-Derived quantities are expressed as products of base dimensions raised to various powers:
+ปริมาณอนุพัทธ์แสดงเป็นผลคูณของมิติฐานยกกำลังด้วยเลขชี้กำลังต่างๆ:
 $$[Q] = M^a L^b T^c \Theta^d I^e N^f J^g$$
 
-### Key Topics Covered
+### หัวข้อหลักที่ครอบคลุม
 
-1. **Introduction**: Units as the engineer's safety net
-2. **Deep Dive into DimensionSet**: The `dimensionSet` class structure and rational exponents
-3. **Advanced Dimensional Algebra**: Consistency checking in Navier-Stokes and energy equations
-4. **Non-Dimensionalization Techniques**: Using Reynolds, Prandtl, and Peclet numbers for stability
-5. **Similarity and Scaling Laws**: Predicting flow behavior across different scales
-6. **Common Pitfalls**: Frequent errors in case setup and code development
-7. **Summary & Exercises**
+1. **บทนำ**: หน่วยในฐานะตาข่ายนิรภัยของวิศวกร
+2. **เจาะลึก DimensionSet**: โครงสร้างคลาส `dimensionSet`
+3. **พีชคณิตมิติขั้นสูง**: การตรวจสอบความสอดคล้องในสมการ Navier-Stokes และพลังงาน
+4. **เทคนิคการทำให้ไร้มิติ**: การใช้ Reynolds, Prandtl, และ Peclet numbers เพื่อความเสถียร
+5. **กฎความคล้ายคลึงและการสเกล**: การทำนายพฤติกรรมการไหลข้ามสเกลที่แตกต่างกัน
+6. **หลุมพรางทั่วไป**: ข้อผิดพลาดที่พบบ่อยในการตั้งค่า case และการพัฒนาโค้ด
+7. **สรุปและแบบฝึกหัด**
 
 ---
 
-## 🔢 The dimensionSet System and Dimensional Analysis
+## 🔢 ระบบ dimensionSet และการวิเคราะห์มิติ
 
-### The `dimensionSet` Class and Operations
+### คลาส `dimensionSet` และการดำเนินการ
 
-**The `dimensionSet` class in OpenFOAM** is a robust framework for dimensional analysis and consistency verification. At its core, it represents physical dimensions using seven SI base dimensions:
+**คลาส `dimensionSet` ใน OpenFOAM** เป็นกรอบงานที่แข็งแกร่งสำหรับการวิเคราะห์มิติและการตรวจสอบความสอดคล้อง ที่แกนหลัก มันแสดงมิติทางฟิสิกส์โดยใช้ 7 มิติฐาน SI:
 
 ```cpp
-// dimensionSet constructor syntax
-// Format: dimensionSet(mass, length, time, temperature, moles, current, luminousIntensity)
+// รูปแบบคอนสตรัคเตอร์ dimensionSet
+// dimensionSet(มวล, ความยาว, เวลา, อุณหภูมิ, โมล, กระแส, แสง)
 dimensionSet ds;
 
-// Example: Velocity dimensions (L/T) - [0 1 -1 0 0 0 0]
+// ตัวอย่าง: มิติความเร็ว (L/T) - [0 1 -1 0 0 0 0]
 dimensionSet velocityDims(0, 1, -1, 0, 0, 0, 0);
 
-// Example: Force dimensions (ML/T²) - [1 1 -2 0 0 0 0]
+// ตัวอย่าง: มิติแรง (ML/T²) - [1 1 -2 0 0 0 0]
 dimensionSet forceDims(1, 1, -2, 0, 0, 0, 0);
 
-// Example: Pressure dimensions (ML⁻¹T⁻²) - [1 -1 -2 0 0 0 0]
+// ตัวอย่าง: มิติความดัน (ML⁻¹T⁻²) - [1 -1 -2 0 0 0 0]
 dimensionSet pressureDims(1, -1, -2, 0, 0, 0, 0);
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **แหล่งที่มา (Source):** ไม่พบแหล่งที่มาเฉพาะ แต่เป็นการใช้งานมาตรฐานของ OpenFOAM
->
-> **คำอธิบาย:** คลาส `dimensionSet` ใช้ 7 พารามิเตอร์เพื่อแทนมิติทางกายภาพตามระบบ SI ตัวเลขแต่ละตัวคือเลขชี้กำลังของหน่วยฐาน
->
-> **แนวคิดสำคัญ:**
-> - ตำแหน่งพารามิเตอร์: 0=มวล, 1=ความยาว, 2=เวลา, 3=อุณหภูมิ, 4=โมล, 5=กระแส, 6=ความเข้มแสง
-> - เลขชี้กำลังบวก = หน่วยในเชิงประกอบ
-> - เลขชี้กำลังลบ = หน่วยในเชิงหาร
-> - ศูนย์ = ไม่มีหน่วยนั้น
+> คลาส `dimensionSet` ใช้ 7 พารามิเตอร์เพื่อแทนมิติทางกายภาพตามระบบ SI ตัวเลขแต่ละตัวคือเลขชี้กำลังของหน่วยฐาน
 
-**The Seven SI Base Dimensions are:**
-- **Mass**: $[M]$ - kilogram (kg)
-- **Length**: $[L]$ - meter (m)
-- **Time**: $[T]$ - second (s)
-- **Temperature**: $[\Theta]$ - kelvin (K)
-- **Amount of Substance**: $[N]$ - mole (mol)
-- **Electric Current**: $[I]$ - ampere (A)
-- **Luminous Intensity**: $[J]$ - candela (cd)
+**7 มิติฐาน SI คือ:**
+- **Mass**: $[M]$ - กิโลกรัม (kg)
+- **Length**: $[L]$ - เมตร (m)
+- **Time**: $[T]$ - วินาที (s)
+- **Temperature**: $[\Theta]$ - เคลวิน (K)
+- **Amount of Substance**: $[N]$ - โมล (mol)
+- **Electric Current**: $[I]$ - แอมแปร์ (A)
+- **Luminous Intensity**: $[J]$ - แคนเดลา (cd)
 
-### Defining and Converting Units
+### การนิยามและแปลงหน่วย
 
-**OpenFOAM has built-in support for common physical quantities** through predefined `dimensionSet` constants:
+**OpenFOAM รองรับปริมาณทางฟิสิกส์ทั่วไปในตัว** ผ่านค่าคงที่ `dimensionSet` ที่กำหนดไว้ล่วงหน้า:
 
 ```cpp
-// Common dimension sets - predefined constants for convenience
-dimensionSet dimless(0, 0, 0, 0, 0, 0, 0);        // Dimensionless [0 0 0 0 0 0 0]
-dimensionSet dimPressure(1, -1, -2, 0, 0, 0, 0);   // Pressure ML⁻¹T⁻²
-dimensionSet dimVelocity(0, 1, -1, 0, 0, 0, 0);    // Velocity LT⁻¹
-dimensionSet dimDensity(1, -3, 0, 0, 0, 0, 0);     // Density ML⁻³
-dimensionSet dimViscosity(1, -1, -1, 0, 0, 0, 0);  // Dynamic Viscosity ML⁻¹T⁻¹
-dimensionSet dimKinematicViscosity(0, 2, -1, 0, 0, 0, 0);  // Kinematic Viscosity L²T⁻¹
+// ชุดมิติทั่วไป - ค่าคงที่ที่กำหนดไว้ล่วงหน้าเพื่อความสะดวก
+dimensionSet dimless(0, 0, 0, 0, 0, 0, 0);        // ไร้มิติ [0 0 0 0 0 0 0]
+dimensionSet dimPressure(1, -1, -2, 0, 0, 0, 0);   // ความดัน ML⁻¹T⁻²
+dimensionSet dimVelocity(0, 1, -1, 0, 0, 0, 0);    // ความเร็ว LT⁻¹
+dimensionSet dimDensity(1, -3, 0, 0, 0, 0, 0);     // ความหนาแน่น ML⁻³
+dimensionSet dimViscosity(1, -1, -1, 0, 0, 0, 0);  // ความหนืดพลวัต ML⁻¹T⁻¹
+dimensionSet dimKinematicViscosity(0, 2, -1, 0, 0, 0, 0);  // ความหนืดไคเนมาติก L²T⁻¹
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **แหล่งที่มา (Source):** ไม่พบแหล่งที่มาเฉพาะ แต่เป็นค่าคงที่มาตรฐานใน OpenFOAM
->
-> **คำอธิบาย:** OpenFOAM กำหนดค่าคงที่ `dimensionSet` ไว้ล่วงหน้าสำหรับปริมาณที่ใช้บ่อย เพื่อความสะดวกและลดข้อผิดพลาด
->
-> **แนวคิดสำคัญ:**
-> - `dimless` = ไร้มิติ (ใช้สำหรับสัดส่วน, จำนวนไร้มิติ)
-> - `dimPressure` = ความดัน [M L⁻¹ T⁻²]
-> - `dimVelocity` = ความเร็ว [L T⁻¹]
-> - `dimDensity` = ความหนาแน่น [M L⁻³]
-> - `dimViscosity` = ความหนืด [M L⁻¹ T⁻¹]
-> - ใช้ค่าคงที่เหล่านี้แทนการสร้าง `dimensionSet` ใหม่ทุกครั้ง
+> OpenFOAM กำหนดค่าคงที่ `dimensionSet` ไว้ล่วงหน้าสำหรับปริมาณที่ใช้บ่อย เพื่อความสะดวกและลดข้อผิดพลาด
+> ใช้ค่าคงที่เหล่านี้แทนการสร้าง `dimensionSet` ใหม่ทุกครั้ง
 
-### Mathematical Operations on Dimensions
+### การดำเนินการทางคณิตศาสตร์บนมิติ
 
-**The `dimensionSet` class overloads mathematical operators** for dimensional consistency:
+**คลาส `dimensionSet` ทำการ overload ตัวดำเนินการทางคณิตศาสตร์** เพื่อความสอดคล้องทางมิติ:
 
 ```cpp
-// Dimensional arithmetic operations
+// การดำเนินการเลขคณิตของมิติ
 dimensionSet a(1, 2, -1, 0, 0, 0, 0);  // ML²T⁻¹
 dimensionSet b(0, 1, -2, 0, 0, 0, 0);  // LT⁻²
 
-// Addition/Subtraction (requires matching dimensions)
-dimensionSet sum = a + a;  // ML²T⁻¹ ✅ Valid: same dimensions
-// dimensionSet invalid = a + b;  // ❌ Compile-time error! Different dimensions
+// การบวก/ลบ (ต้องมีมิติที่ตรงกัน)
+dimensionSet sum = a + a;  // ML²T⁻¹ ✅ ถูกต้อง: มิติเดียวกัน
+// dimensionSet invalid = a + b;  // ❌ Compile-time error! มิติต่างกัน
 
-// Multiplication/Division (adds/subtracts exponents)
+// การคูณ/หาร (บวก/ลบเลขชี้กำลัง)
 dimensionSet product = a * b;  // ML³T⁻³ (1+0, 2+1, -1+(-2))
 dimensionSet quotient = a / b;  // M¹L¹T¹ (1-0, 2-1, -1-(-2))
 
-// Power operations (multiplies exponents by power)
+// การยกกำลัง (คูณเลขชี้กำลังด้วยเลขยกกำลัง)
 dimensionSet squared = pow(a, 2);     // M²L⁴T⁻²
 dimensionSet root = pow(a, 0.5);      // M^0.5 L¹ T^-0.5
 
-// Square root operator
+// ตัวดำเนินการรากที่สอง
 dimensionSet sqrtA = sqrt(a);  // M^0.5 L¹ T^-0.5
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **แหล่งที่มา (Source):** ไม่พบแหล่งที่มาเฉพาะ แต่เป็นการดำเนินการมาตรฐานของคลาส dimensionSet
->
-> **คำอธิบาย:** คลาส `dimensionSet` รองรับการดำเนินการทางคณิตศาสตร์ที่สอดคล้องกับกฎมิติ การบวก/ลบต้องมีมิติเหมือนกัน การคูณ/หารจะบวก/ลบเลขชี้กำลัง
->
-> **แนวคิดสำคัญ:**
-> - การบวก/ลบ: ต้องมีมิติเหมือนกัน (เช่ มิติ + มิติเดียวกัน)
-> - การคูณ: บวกเลขชี้กำลัง (เช่ M¹ × M² = M³)
-> - การหาร: ลบเลขชี้กำลัง (เช่ M² / M¹ = M¹)
-> - การยกกำลัง: คูณเลขชี้กำลัง (เช่ (M¹)² = M²)
-> - ข้อผิดพลาดในการบวกมิติต่างกันจะถูกตรวจพบตั้งแต่คอมไพล์
+> คลาส `dimensionSet` รองรับการดำเนินการทางคณิตศาสตร์ที่สอดคล้องกับกฎมิติ การบวก/ลบต้องมีมิติเหมือนกัน การคูณ/หารจะบวก/ลบเลขชี้กำลัง
 
-### Verifying Equation Consistency
+### การตรวจสอบความถูกต้องของสมการ
 
-**OpenFOAM's field classes enforce dimensional consistency automatically:**
+**คลาส field ของ OpenFOAM บังคับใช้ความสอดคล้องทางมิติโดยอัตโนมัติ:**
 
 ```cpp
-// Momentum equation: ρ(∂u/∂t + u·∇u) = -∇p + μ∇²u + f
-// All terms must have dimensions: ML⁻²T⁻² (force per unit volume)
+// สมการโมเมนตัม: ρ(∂u/∂t + u·∇u) = -∇p + μ∇²u + f
+// ทุกเทอมต้องมีมิติ: ML⁻²T⁻² (แรงต่อหน่วยปริมาตร)
 
-// Declare fields with proper dimensions
+// ประกาศ field ที่มีมิติถูกต้อง
 volVectorField U(
     mesh, 
-    dimensionSet(0, 1, -1, 0, 0, 0, 0)  // LT⁻¹ - velocity
+    dimensionSet(0, 1, -1, 0, 0, 0, 0)  // LT⁻¹ - ความเร็ว
 );
 
-volScalarField p(
-    mesh, 
-    dimensionSet(1, -1, -2, 0, 0, 0, 0)  // ML⁻¹T⁻² - pressure
-);
+// ... (ประกาศ p, rho) ...
 
-volScalarField rho(
-    mesh, 
-    dimensionSet(1, -3, 0, 0, 0, 0, 0)  // ML⁻³ - density
-);
-
-// This will compile and run with dimensional consistency:
+// สิ่งนี้จะคอมไพล์และรันด้วยความสอดคล้องทางมิติ:
 fvVectorMatrix UEqn
 (
     fvm::ddt(rho, U)           // ML⁻²T⁻² ✅
@@ -533,250 +460,115 @@ fvVectorMatrix UEqn
   + fvc::laplacian(mu, U)     // ML⁻²T⁻² ✅
   + sourceTerm                 // ML⁻²T⁻² ✅
 );
-// All terms have consistent dimensions [1 -1 -2 0 0 0 0]
+// ทุกเทอมมีมิติที่สอดคล้องกัน [1 -1 -2 0 0 0 0]
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **แหล่งที่มา (Source):** ไม่พบแหล่งที่มาเฉพาะ แต่เป็นการใช้งานมาตรฐานใน OpenFOAM
->
-> **คำอธิบาย:** OpenFOAM ตรวจสอบความสอดคล้องของมิติในสมการโมเมนตัมอัตโนมัติ ทุกเทอมต้องมีมิติเหมือนกันคือ [M L⁻² T⁻²]
->
-> **แนวคิดสำคัญ:**
-> - `fvm::ddt(rho, U)` = ∂(ρu)/∂t → [M L⁻³] [L T⁻¹] / [T] = [M L⁻² T⁻²]
-> - `fvm::div(rho*U, U)` = ∇·(ρuu) → [M L⁻³] [L T⁻¹]² / [L] = [M L⁻² T⁻²]
-> - `fvc::grad(p)` = ∇p → [M L⁻¹ T⁻²] / [L] = [M L⁻² T⁻²]
-> - `fvc::laplacian(mu, U)` = μ∇²u → [M L⁻¹ T⁻¹] [L T⁻¹] / [L]² = [M L⁻² T⁻²]
-> - การตรวจสอบนี้เกิดขึ้นอัตโนมัติ ป้องกันข้อผิดพลาดทางมิติ
+> OpenFOAM ตรวจสอบความสอดคล้องของมิติในสมการโมเมนตัมอัตโนมัติ ทุกเทอมต้องมีมิติเหมือนกันคือ [M L⁻² T⁻²]
 
 ---
 
-## 🎯 Non-Dimensionalization
+## 🎯 การทำให้ไร้มิติ (Non-Dimensionalization)
 
-### Selecting Reference Quantities
+### การเลือกปริมาณอ้างอิง
 
-**Effective non-dimensionalization requires careful selection of reference quantities:**
+**การทำให้ไร้มิติที่มีประสิทธิภาพต้องการการเลือกปริมาณอ้างอิงอย่างรอบคอบ:**
 
 ```cpp
-// Reference scales for external flow around cylinder
-// Characteristic length: cylinder diameter
-dimensionedScalar Lref(
-    "Lref", 
-    dimLength, 
-    cylinderDiameter  // characteristic length scale
-);
+// สเกลอ้างอิงสำหรับการไหลภายนอกรอบทรงกระบอก
+// ความยาวลักษณะเฉพาะ: เส้นผ่านศูนย์กลางทรงกระบอก
+dimensionedScalar Lref("Lref", dimLength, cylinderDiameter);
 
-// Characteristic velocity: free stream velocity
-dimensionedScalar Uref(
-    "Uref", 
-    dimVelocity, 
-    freeStreamVelocity  // characteristic velocity scale
-);
+// ความเร็วลักษณะเฉพาะ: ความเร็วกระแสอิสระ
+dimensionedScalar Uref("Uref", dimVelocity, freeStreamVelocity);
 
-// Fluid properties
-dimensionedScalar rhoRef(
-    "rhoRef", 
-    dimDensity, 
-    referenceDensity  // reference fluid density
-);
+// สมบัติของไหล (rhoRef, muRef) ...
 
-dimensionedScalar muRef(
-    "muRef", 
-    dimViscosity, 
-    referenceViscosity  // reference fluid viscosity
-);
-
-// Derived reference quantities
-// Time scale: L/U (convective time scale)
-dimensionedScalar timeRef = Lref / Uref;
-
-// Pressure scale: ρU² (dynamic pressure)
+// ปริมาณอ้างอิงอนุพัทธ์
 dimensionedScalar pressureRef = rhoRef * pow(Uref, 2);
 
-// Reynolds number: ρUL/μ (dimensionless similarity parameter)
+// Reynolds number: ρUL/μ (พารามิเตอร์ความคล้ายคลึงไร้มิติ)
 dimensionedScalar reynolds = rhoRef * Uref * Lref / muRef;
 
-// Verify Reynolds number is dimensionless
-if (!reynolds.dimensions().matches(dimless))
-{
-    FatalErrorIn("nonDimensionalSetup")
-        << "Reynolds number calculation error: not dimensionless!" << nl
-        << "Re dimensions: " << reynolds.dimensions() << nl
-        << "Expected: " << dimless
-        << exit(FatalError);
-}
+// ตรวจสอบว่า Reynolds number ไร้มิติ
+if (!reynolds.dimensions().matches(dimless)) { ... }
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
->
-> **แหล่งที่มา (Source):** ไม่พบแหล่งที่มาเฉพาะ แต่เป็นการคำนวณมาตรฐานใน CFD
->
-> **คำอธิบาย:** การทำให้ไร้มิติต้องการปริมาณอ้างอิง (reference quantities) เพื่อคำนวณจำนวนไร้มิติ เช่น Reynolds number
->
-> **แนวคิดสำคัญ:**
-> - Lref = ความยาวลักษณะ (เช่ เส้นผ่านศูนย์กลางทรงกระบอก)
-> - Uref = ความเร็วลักษณะ (เช่ ความเร็วกระแสอิสระ)
-> - timeRef = Lref/Uref = สเกลเวลาการพาความร้อน
-> - pressureRef = ρU² = ความดันพลศาสตร์ (dynamic pressure)
-> - Re = ρUL/μ = จำนวนเรย์โนลด์ (ต้องไร้มิติ)
-> - การตรวจสอบมิติของ Re เป็นการป้องกันข้อผิดพลาดที่ดี
+### การหาสมการรูปแบบไร้มิติ
 
-### Deriving Dimensionless Equation Forms
-
-**Dimensionless forms reveal important physics** and reduce parameter dependencies:
-
-**Navier-Stokes Equation** (dimensional):
+**สมการ Navier-Stokes** (มีมิติ):
 $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
 
-**Dimensionless Form**:
+**รูปแบบไร้มิติ**:
 $$\frac{\partial \mathbf{u}^*}{\partial t^*} + (\mathbf{u}^* \cdot \nabla^*) \mathbf{u}^* = -\nabla^* p^* + \frac{1}{Re} \nabla^{*2} \mathbf{u}^* + \mathbf{f}^*$$
 
-**Where:**
-- $Re = \frac{\rho U L}{\mu}$ is the Reynolds number
-- $\mathbf{u}^* = \frac{\mathbf{u}}{U_{ref}}$ is dimensionless velocity
-- $p^* = \frac{p}{\rho U_{ref}^2}$ is dimensionless pressure
-- $t^* = \frac{t}{L_{ref}/U_{ref}}$ is dimensionless time
+### ตัวเลขไร้มิติที่สำคัญใน CFD
 
-### Key Dimensionless Numbers in CFD
-
-| Dimensionless Number | Equation | Physical Meaning |
+| ตัวเลขไร้มิติ | สมการ | ความหมายทางฟิสิกส์ |
 |---------------------|----------|------------------|
-| **Reynolds Number** | $Re = \frac{\rho UL}{\mu}$ | Ratio of inertial to viscous forces |
-| **Froude Number** | $Fr = \frac{U}{\sqrt{gL}}$ | Ratio of inertial to gravitational forces |
-| **Weber Number** | $We = \frac{\rho U^2 L}{\sigma}$ | Ratio of inertial to surface tension forces |
-| **Mach Number** | $Ma = \frac{U}{c}$ | Ratio of flow velocity to speed of sound |
+| **Reynolds Number** | $Re = \frac{\rho UL}{\mu}$ | อัตราส่วนของแรงเฉื่อยต่อแรงหนืด |
+| **Froude Number** | $Fr = \frac{U}{\sqrt{gL}}$ | อัตราส่วนของแรงเฉื่อยต่อแรงโน้มถ่วง |
+| **Weber Number** | $We = \frac{\rho U^2 L}{\sigma}$ | อัตราส่วนของแรงเฉื่อยต่อแรงตึงผิว |
+| **Mach Number** | $Ma = \frac{U}{c}$ | อัตราส่วนของความเร็วการไหลต่อความเร็วเสียง |
 
 ---
 
-## 🔍 Runtime Checking Mechanisms
+## 🔍 กลไกการตรวจสอบขณะรันไทม์
 
-OpenFOAM uses **multi-level dimensional consistency verification**:
+OpenFOAM ใช้ **การตรวจสอบความสอดคล้องทางมิติหลายระดับ**:
 
-### Field Operation Checking
+### การตรวจสอบการดำเนินการ Field
 
-When performing mathematical operations on fields, OpenFOAM checks **dimensional compatibility**:
+เมื่อดำเนินการทางคณิตศาสตร์บน field, OpenFOAM จะตรวจสอบ **ความเข้ากันได้ทางมิติ**:
 
 ```cpp
-// Addition and subtraction require matching dimensions
-volScalarField p1(
-    mesh, 
-    dimensionSet(1, -1, -2, 0, 0, 0, 0)  // Pa [M L⁻¹ T⁻²]
-);
+// การบวกและการลบต้องการมิติที่ตรงกัน
+volScalarField sum = p1 + p2;  // ✅ ถูกต้อง: มิติเดียวกัน
 
-volScalarField p2(
-    mesh, 
-    dimensionSet(1, -1, -2, 0, 0, 0, 0)  // Pa [M L⁻¹ T⁻²]
-);
-
-volScalarField sum = p1 + p2;  // ✅ Valid: same dimensions
-
-// ❌ This will cause a compile-time error:
-volScalarField length(
-    mesh, 
-    dimensionSet(0, 1, 0, 0, 0, 0, 0)  // m [L]
-);
-
-// volScalarField invalid = p1 + length;  // ❌ Compile error! Different dimensions
+// ❌ สิ่งนี้จะทำให้เกิด compile-time error:
+// volScalarField invalid = p1 + length;  // ❌ Compile error! มิติต่างกัน
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
+> **📚 คำอธิบาย**
 >
-> **แหล่งที่มา (Source):** ไม่พบแหล่งที่มาเฉพาะ แต่เป็นการตรวจสอบมาตรฐานของ OpenFOAM
->
-> **คำอธิบาย:** OpenFOAM ตรวจสอบความเข้ากันได้ทางมิติของการดำเนินการทางคณิตศาสตร์ การบวกปริมาณที่มีมิติต่างกันจะเกิดข้อผิดพลาด
->
-> **แนวคิดสำคัญ:**
-> - การบวกความดันกับความดัน → ถูกต้อง
-> - การบวกความดันกับความยาว → ผิดพลาด (compile-time error)
-> - การตรวจสอบนี้เกิดขึ้นตั้งแต่ขั้นตอนคอมไพล์
-> - ช่วยป้องกันข้อผิดพลาดทางมิติในขั้นตอนต้น
+> OpenFOAM ตรวจสอบความเข้ากันได้ทางมิติของการดำเนินการทางคณิตศาสตร์ การบวกปริมาณที่มีมิติต่างกันจะเกิดข้อผิดพลาดช่วยป้องกันข้อผิดพลาดทางมิติในขั้นตอนต้น
 
-### Boundary Condition Consistency
+### ความสอดคล้องของเงื่อนไขขอบเขต
 
-The framework ensures **boundary conditions maintain dimensional consistency** across patches:
+กรอบงานรับประกันว่า **เงื่อนไขขอบเขตจะรักษาความสอดคล้องทางมิติ** ข้าม patch ทั้งหมด:
 
 ```cpp
-// Pressure boundary condition must match field dimensions
-fixedValueFvPatchScalarField pInlet(
-    pInlet, 
-    patchi, 
-    dict
-);
-// dict must contain: value [0 2 -2 0 0 0 0];  // m²/s² (pressure/density)
-
-// Velocity boundary condition
-fixedValueFvPatchVectorField UWall(
-    UWall, 
-    patchi, 
-    dict
-);
-// dict must contain: value [0 1 -1 0 0 0 0];  // m/s (velocity)
-
-// Incorrect boundary condition dimensions will cause runtime error:
-// Example: setting velocity with pressure dimensions
-// dict entry: value [1 -1 -2 0 0 0 0];  // ❌ Wrong! These are pressure dimensions
+// เงื่อนไขขอบเขตความดันต้องตรงกับมิติของ field
+// dict ต้องระบุ: value [1 -1 -2 0 0 0 0];  // Pa
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
->
-> **แหล่งที่มา (Source):** ไม่พบแหล่งที่มาเฉพาะ แต่เป็นการใช้งานมาตรฐานของ OpenFOAM
->
-> **คำอธิบาย:** เงื่อนไขขอบเขตต้องมีมิติที่สอดคล้องกับฟิลด์ที่เกี่ยวข้อง การระบุมิติผิดใน dictionary จะเกิดข้อผิดพลาด
->
-> **แนวคิดสำคัญ:**
-> - เงื่อนไขขอบเขตความดัน → ต้องมีมิติความดัน [M L⁻¹ T⁻²]
-> - เงื่อนไขขอบเขตความเร็ว → ต้องมีมิติความเร็ว [L T⁻¹]
-> - มิติระบุใน dictionary ต้องตรงกับฟิลด์
-> - ข้อผิดพลาดจะเกิดขึ้นเมื่ออ่านค่าจาก dictionary
-> - ข้อความแสดงข้อผิดพลาดจะระบุมิติที่คาดหวังและที่พบ
+---
+
+## ✨ แนวทางปฏิบัติที่ดีที่สุดสำหรับความสอดคล้องทางมิติ
+
+### รายการตรวจสอบ (Checklist)
+
+1. **✅ ระบุมิติเสมอ**: เมื่อสร้าง field หรือค่าคงที่ ให้ประกาศชุดมิติอย่างชัดเจนเพื่อให้แน่ใจว่ามีการตรวจสอบที่ถูกต้อง
+2. **✅ ตรวจสอบเงื่อนไขขอบเขต**: ตรวจสอบให้แน่ใจว่าค่าเงื่อนไขขอบเขตตรงกับมิติที่คาดหวังของ field ที่ใช้
+3. **✅ ตรวจสอบความเข้ากันได้ของ Solver**: ตรวจสอบว่าการใช้ solver รักษาความสอดคล้องทางมิติตลอดกระบวนการแก้ปัญหา
+4. **✅ ใช้โมเดลสมบัติทางฟิสิกส์**: ใช้ประโยชน์จาก thermophysical models ของ OpenFOAM ซึ่งจัดการความสอดคล้องทางมิติสำหรับการคำนวณสมบัติโดยอัตโนมัติ
+5. **✅ บันทึกการทำให้ไร้มิติ**: เมื่อใช้รูปแบบไร้มิติ ให้บันทึกสเกลอ้างอิงและสมมติฐานที่ใช้ในกระบวนการสเกลอย่างชัดเจน
 
 ---
 
-## ✨ Best Practices for Dimensional Consistency
+## 🎯 สรุป
 
-### Checklist
+**ระบบการวิเคราะห์มิติที่ครอบคลุมนี้** ทำให้ OpenFOAM แข็งแกร่งเป็นพิเศษสำหรับ **การประยุกต์ใช้ทางวิศวกรรม** ที่ความสอดคล้องทางฟิสิกส์เป็นสิ่งสำคัญสูงสุด
 
-1. **✅ Always Specify Dimensions**: When creating fields or constants, explicitly declare dimension sets to ensure proper verification
+การป้องกันข้อผิดพลาดทางมิติทั้งใน **compile-time** และ **runtime** ช่วยให้วิศวกรวางใจในความถูกต้องทางฟิสิกส์ของการจำลองและมุ่งเน้นไปที่การวิเคราะห์ผลลัพธ์แทนที่จะกังวลเกี่ยวกับข้อผิดพลาดทางมิติ
 
-2. **✅ Verify Boundary Conditions**: Ensure boundary condition values match the expected dimensions of the field being used
+### หลักการสำคัญ:
 
-3. **✅ Check Solver Compatibility**: Verify that solver usage maintains dimensional consistency throughout the solution process
+1. **ทุกปริมาณทางฟิสิกส์ต้องมีมิติที่ถูกต้อง** - OpenFOAM ติดตามและระบุความไม่สอดคล้องโดยอัตโนมัติ
+2. **สมการต้องมีความเป็นเอกพันธ์ทางมิติ** - ทุกเทอมในสมการต้องมีมิติเดียวกัน
+3. **เงื่อนไขขอบเขตต้องเคารพความสอดคล้องทางมิติ** - ค่าที่ระบุทั้งหมดต้องตรงกับมิติที่คาดหวัง
+4. **การทำให้ไร้มิติสามารถปรับปรุงเงื่อนไขเชิงตัวเลข** - ใช้ตัวแปรไร้มิติเมื่อเหมาะสม
+5. **การตรวจสอบมิติขณะรันไทม์ป้องกันข้อผิดพลาด** - OpenFOAM มีการตรวจสอบความสอดคล้องทางมิติในตัว
 
-4. **✅ Use Physical Property Models**: Leverage OpenFOAM's thermophysical models, which automatically handle dimensional consistency for property calculations
-
-5. **✅ Document Non-Dimensionalization**: When using dimensionless forms, clearly document reference scales and assumptions used in the scaling process
-
-### Dimensional Consistency Verification Steps
-
-1. **Define Base Dimensions**: Identify base units for the problem
-2. **Create Fields**: Create fields with correct dimensions
-3. **Verify Operations**: Check dimensional compatibility in calculations
-4. **Test Boundary Conditions**: Confirm dimensions at all patches
-5. **Validate Results**: Verify consistency of final results
-
----
-
-## 🎯 Summary
-
-**This comprehensive dimensional analysis system** makes OpenFOAM particularly robust for **engineering applications** where physical consistency is paramount
-
-The prevention of dimensional errors at both **compile-time** and **runtime** allows engineers to trust the physical correctness of simulations and focus on analyzing results rather than worrying about dimensional errors
-
-### Key Principles:
-
-1. **Every physical quantity must have correct dimensions** - OpenFOAM automatically tracks dimensions and identifies inconsistencies
-2. **Equations must be dimensionally homogeneous** - All terms in an equation must have the same dimensions
-3. **Boundary conditions must respect dimensional consistency** - All specified values must match expected dimensions
-4. **Non-dimensionalization can improve numerical conditions** - Use dimensionless variables when appropriate
-5. **Runtime dimensional checking prevents errors** - OpenFOAM provides built-in dimensional consistency verification
-
-### Benefits of Dimensional Analysis:
-
-By understanding and utilizing OpenFOAM's dimensional analysis capabilities, CFD practitioners can:
-- Detect errors early in the development process
-- Ensure physical realism in simulations
-- Verify numerical implementations
-- Improve code reliability and maintainability
-- Debug simulation problems more effectively
-
-> [!TIP] **Summary** The dimensional analysis system is not just a safety feature—it is a fundamental tool that connects mathematical formulation to physical reality in computational fluid dynamics
+> [!TIP] **บทสรุป** ระบบการวิเคราะห์มิติไม่ใช่แค่คุณสมบัติความปลอดภัย—แต่มันเป็นเครื่องมือพื้นฐานที่เชื่อมโยงสูตรทางคณิตศาสตร์เข้ากับความเป็นจริงทางฟิสิกส์ในพลศาสตร์ของไหลเชิงคำนวณ

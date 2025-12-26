@@ -6,6 +6,18 @@ The OpenFOAM field architecture represents one of the most sophisticated applica
 
 ---
 
+> [!TIP] **Physical Analogy: The Automated Assembly Line (สายพานการผลิตอัตโนมัติ)**
+>
+> ปรัชญาการออกแบบฟิลด์ของ OpenFOAM เปรียบเสมือน **"สายพานการผลิตรถยนต์สมัยใหม่" (Assembly Line)**:
+>
+> 1.  **Type Safety (Quality Control Sensors)**: เซนเซอร์ทุกจุดตรวจสอบชิ้นส่วน (Variables) ก่อนประกอบ ถ้าพยายามเอา "ล้อ (Scalar)" ไปใส่ช่อง "ประตู (Vector)" สายพานจะหยุดทันที (Compile Error) ไม่ปล่อยให้ประกอบเสร็จแล้วค่อยพัง
+> 2.  **Zero-Cost Abstraction (Robotic Efficiency)**: หุ่นยนต์ทำงานรวดเร็วแม่นยำ (Template Metaprogramming) ไม่มีการเคลื่อนไหวสูญเปล่า (Temporary Objects) การประกอบชิ้นส่วนซับซ้อนทำได้ในจังหวะเดียว (Single-pass loop)
+> 3.  **Physical Law Enforcement (Blueprint Compliance)**: รถทุกคันที่ออกจากสายพานต้องวิ่งได้จริงตามหลักฟิสิกส์ (Dimensions & Conservation Laws) ไม่มีการผลิตรถที่บินได้ถ้าไม่มีปีก
+>
+> ผลลัพธ์คือกระบวนการที่เข้มงวดแต่ทรงประสิทธิภาพ มั่นใจได้ว่าสิ่งที่ผลิตออกมาใช้งานได้จริงและปลอดภัย
+
+---
+
 ## Core Philosophical Principles
 
 ### 1. **Mathematical Rigor Through Type Safety**
@@ -796,8 +808,30 @@ class BadCustomField
 
 1. **Always check dimensional consistency** when creating fields
 2. **Leverage expression templates** for performance
-3. **Group boundary condition updates** for cache efficiency
-4. **Use reference-counted pointers** (`tmp<>`, `autoPtr<>`)
+
+---
+
+## 🧠 9. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **"Zero-Cost Abstraction" ในบริบทของ OpenFOAM Field หมายความว่าอย่างไร?**
+    <details>
+    <summary>เฉลย</summary>
+    หมายถึงการใช้ High-level syntax (เช่น `code: a + b * c`) ที่สะดวกและอ่านง่าย แต่เมื่อ Compiler ทำงาน (Compile-time) มันจะถูกแปลงเป็น Machine code ที่มีประสิทธิภาพเทียบเท่ากับการเขียน Low-level loop ด้วยมือ (เช่น C-style for-loop) โดยไม่มี Overhead เพิ่มเติมจากการเรียก Function หรือสร้าง Temporary Object
+    </details>
+
+2.  **ทำไม OpenFOAM ถึงออกแบบให้ `DimensionedField` ตรวจสอบหน่วย (Dimensions) ที่ Compile-time แทนที่จะเป็น Runtime?**
+    <details>
+    <summary>เฉลย</summary>
+    เพื่อ **ความปลอดภัยและประสิทธิภาพ**:
+    1.  **ความปลอดภัย (Safety)**: ป้องกัน Logical Error ตั้งแต่เนิ่นๆ เราไม่อยากให้ Simulation รันไป 3 วันแล้ว Crash เพราะบวกหน่วยผิด
+    2.  **ประสิทธิภาพ (Performance)**: เมื่อตรวจสอบผ่านแล้วที่ Compile-time ช่วง Runtime ก็ไม่ต้องเสียเวลา CPU มาเช็คหน่วยซ้ำอีก ทำให้รันได้เร็วที่สุด
+    </details>
+
+3.  **กลยุทธ์ "Copy-on-Write" ช่วยประหยัดหน่วยความจำได้อย่างไรเมื่อเราป้อนคำสั่ง `volScalarField p2 = p1;`?**
+    <details>
+    <summary>เฉลย</summary>
+    ณ บรรทัดนั้น **ยังไม่มีการ Copy ข้อมูลจริงๆ** (No deep copy) เกิดขึ้น `p2` เพียงแค่ชี้ (Point) ไปที่ข้อมูลเดียวกับ `p1` และเพิ่มตัวนับ Reference count การ Copy ข้อมูลจริงๆ (Allocate memory ใหม่) จะเกิดขึ้นก็ต่อเมื่อเราพยายามจะ **แก้ไขค่า** ใน `p2` เท่านั้น
+    </details>
 5. **Implement virtual BC methods** in custom fields
 
 ---

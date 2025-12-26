@@ -1,0 +1,202 @@
+# การสร้างเมชแบบป้อนค่าตัวแปร (Parametric Meshing)
+
+จุดอ่อนสำคัญของการเขียน `blockMeshDict` ด้วยมือคือ **"การแก้ไขยาก"** หากคุณสร้างท่อเสร็จแล้ว แต่อยากเปลี่ยนรัศมีจาก 10cm เป็น 15cm คุณอาจต้องมานั่งแก้พิกัดจุด (Vertices) ใหม่เกือบทั้งหมด
+
+**Parametric Meshing** คือทางออก โดยการเขียนสคริปต์ที่ใช้ **ตัวแปร (Variables)** แทนค่าคงที่
+
+## 1. M4 Macro Preprocessor (The Classic Way)
+
+OpenFOAM มาพร้อมกับความสามารถในการใช้ `m4` ซึ่งเป็น Macro processor เก่าแก่แต่ทรงพลังของ Unix
+
+### M4 Workflow:
+```mermaid
+graph LR
+    A[1. Write blockMeshDict.m4<br/>Define variables] --> B[2. Run m4<br/>m4 file.m4 > file]
+    B --> C[3. Get blockMeshDict<br/>Auto-generated]
+    C --> D[4. Run blockMesh<br/>Generate mesh]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f1f8e9
+    style D fill:#c8e6c9
+```
+
+### Workflow Steps:
+1.  สร้างไฟล์ `system/blockMeshDict.m4` (แทนไฟล์เดิม)
+2.  ประกาศตัวแปรและสูตรคำนวณในไฟล์
+3.  Compile เป็นไฟล์จริงด้วยคำสั่ง: `m4 system/blockMeshDict.m4 > system/blockMeshDict`
+
+### Syntax พื้นฐานของ M4
+*   `define(VAR, value)`: ประกาศตัวแปร
+*   `calc(expression)`: คำนวณคณิตศาสตร์ (ต้องมี macro เสริม)
+*   `changecom(//)changequote([,])`: ตั้งค่า comment และ quote ให้ไม่ตีกับ syntax ของ OpenFOAM
+
+### ตัวอย่าง: ท่อทรงกระบอก (Cylinder) ปรับรัศมีได้
+
+```m4
+changecom(//)changequote([,])
+define(calc, [esyscmd(perl -e 'printf ($1)')])
+define(PI, 3.14159265359)
+
+// --- Parameters ---
+define(R, 1.0)      // Radius
+define(L, 5.0)      // Length
+define(N_R, 10)     // Cells radially
+define(N_L, 50)     // Cells axially
+define(N_C, 20)     // Cells circumferentially (quarter)
+
+// --- Derived Calculations ---
+define(X_POS, calc(R * cos(45 * PI / 180)))
+define(Y_POS, calc(R * sin(45 * PI / 180)))
+
+convertToMeters 1;
+
+vertices
+(
+    // Center square
+    (-0.5 -0.5 0)  // 0
+    ( 0.5 -0.5 0)  // 1
+    ( 0.5  0.5 0)  // 2
+    (-0.5  0.5 0)  // 3
+    
+    // Outer circle points (Projection)
+    (-X_POS -Y_POS 0) // 4
+    ( X_POS -Y_POS 0) // 5
+    ... (และจุดอื่นๆ สำหรับ Layer บน Z=L)
+);
+
+blocks
+(
+    // O-Grid Topology blocks
+    hex (0 1 5 4 ...) ...
+);
+```
+
+## 2. Python + Jinja2 (The Modern Way)
+
+ในยุคปัจจุบัน การใช้ Python ร่วมกับ Template Engine อย่าง **Jinja2** ได้รับความนิยมมากกว่า เพราะอ่านง่ายกว่า M4 และมีความยืดหยุ่นสูง (ใช้ numpy, scipy คำนวณได้เลย)
+
+### Python/Jinja2 Workflow:
+```mermaid
+graph LR
+    A[1. Create .template file<br/>with Jinja2 syntax] --> B[2. Write Python script<br/>with parameters]
+    B --> C[3. Run python script<br/>python generate.py]
+    C --> D[4. Get blockMeshDict<br/>Auto-generated]
+    D --> E[5. Run blockMesh<br/>Generate mesh]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#ffe0b2
+    style D fill:#f1f8e9
+    style E fill:#c8e6c9
+```
+
+### Workflow Steps:
+1.  สร้างไฟล์ Template `system/blockMeshDict.template`
+2.  เขียน Python script `generateMesh.py` เพื่อ Render template
+3.  รัน `python generateMesh.py`
+
+### ตัวอย่าง: `blockMeshDict.template`
+```cpp
+// นี่คือไฟล์ Template
+convertToMeters 1;
+
+vertices
+(
+{% for p in points %}
+    ({{ p.x }} {{ p.y }} {{ p.z }}) // Point {{ loop.index0 }}
+{% endfor %}
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) ({{ nx }} {{ ny }} {{ nz }}) simpleGrading (1 1 1)
+);
+```
+
+### ตัวอย่าง: `generateMesh.py`
+```python
+from jinja2 import Template
+import numpy as np
+
+# Parameters
+L = 10.0
+H = 2.0
+nx = 50
+
+# Logic
+points = [
+    {'x': 0, 'y': 0, 'z': 0},
+    {'x': L, 'y': 0, 'z': 0},
+    # ... สร้าง list ของจุด
+]
+
+# Render
+with open('system/blockMeshDict.template') as f:
+    template = Template(f.read())
+
+output = template.render(points=points, nx=nx, ny=10, nz=1)
+
+with open('system/blockMeshDict', 'w') as f:
+    f.write(output)
+```
+
+## 3. PyFoam
+Library **PyFoam** มี module `PyFoam.RunDictionary.BlockMesh` ที่ช่วยเขียน Dictionary โดยไม่ต้องสร้าง Template เอง แต่ใช้วิธีเรียก Method ของ Object แทน (เหมาะกับโปรแกรมเมอร์จ๋าๆ)
+
+## ข้อดีของ Parametric Meshing
+1.  **Optimization:** สามารถเขียน Loop รันเคสโดยเปลี่ยนขนาด Mesh ทีละนิดเพื่อทำ Grid Independence Study ได้อัตโนมัติ
+2.  **Design Exploration:** เปลี่ยนรูปร่าง Geometry เพื่อหา Optimal Design
+3.  **Reproducibility:** เก็บ Script ไว้ รู้เลยว่า Mesh นี้สร้างมาด้วย Logic อะไร
+
+> [!RECOMMENDATION]
+> เริ่มต้นด้วย **M4** สำหรับการแก้ไขง่ายๆ (เช่น เปลี่ยนขนาดกล่อง) แต่ถ้าต้องทำ Geometry ซับซ้อน แนะนำให้ข้ามไปใช้ **Python Script** เขียนไฟล์โดยตรง หรือใช้ **Jinja2** จะคุ้มค่าการเรียนรู้มากกว่า
+
+---
+
+## 📝 แบบฝึกหัด (Exercises)
+
+### แบบฝึกหัดระดับง่าย (Easy)
+1. **True/False**: M4 คือภาษาโปรแกรมมิ่งสำหรับเขียน OpenFOAM
+   <details>
+   <summary>คำตอบ</summary>
+   ❌ เท็จ - M4 เป็น Macro Preprocessor ของ Unix ใช้สำหรับประมวลผล text ไม่ใช่ภาษาโปรแกรมมิ่ง
+   </details>
+
+2. **เลือกตอบ**: วิธีไหนที่เหมาะสมที่สุดสำหรับการทำ Grid Independence Study (เปลี่ยนขนาด Mesh หลายๆ ครั้ง)?
+   - a) เขียน blockMeshDict ด้วยมือทุกครั้ง
+   - b) ใช้ M4 หรือ Python แบบ Parametric
+   - c) ใช้ snappyHexMesh
+   - d) ใช้ CAD software
+   <details>
+   <summary>คำตอบ</summary>
+   ✅ b) ใช้ M4 หรือ Python แบบ Parametric - สามารถ Loop เปลี่ยนค่าแล้วรันอัตโนมัติ
+   </details>
+
+### แบบฝึกหัดระดับปานกลาง (Medium)
+3. **อธิบาย**: ทำไม Python + Jinja2 จึงได้รับความนิยมมากกว่า M4 ในปัจจุบัน?
+   <details>
+   <summary>คำตอบ</summary>
+   เพราะ Python อ่านง่ายกว่า, มี library ทรงพลัง (numpy, scipy), สามารถ debug ได้ง่าย, และมี community ที่ใหญ่กว่า
+   </details>
+
+4. **ออกแบบ**: สมมติต้องการสร้างท่อรูปวงกลมที่สามารถปรับรัศมี (R) และความยาว (L) ได้ จงเขียนโครงสร้าง M4 macro ที่จำเป็นต้องประกาศ
+   <details>
+   <summary>คำตอบ</summary>
+   ```m4
+   define(R, 1.0)
+   define(L, 5.0)
+   define(PI, 3.14159265359)
+   define(X_POS, calc(R * cos(45 * PI / 180)))
+   define(Y_POS, calc(R * sin(45 * PI / 180)))
+   ```
+   </details>
+
+### แบบฝึกหัดระดับสูง (Hard)
+5. **Hands-on**: เขียน Python + Jinja2 script สำหรับสร้าง Box mesh ที่มี parameters: L, H, W, nx, ny, nz แล้วทดลองเปลี่ยนค่าและรัน 3 ครั้ง
+
+6. **วิเคราะห์**: เปรียบเทียบ M4 vs Python/Jinja2 vs PyFoam ในแง่ของ:
+   - Learning curve
+   - Debugging capability
+   - Integration กับ tools อื่น (เช่น numpy, pandas)
+   - Performance (compile/render speed)

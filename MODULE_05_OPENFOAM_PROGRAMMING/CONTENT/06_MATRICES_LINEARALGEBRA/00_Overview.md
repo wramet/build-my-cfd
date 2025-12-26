@@ -4,6 +4,19 @@
 
 ในบทนี้ เราจะศึกษาเบื้องหลังของขั้นตอนที่ใช้ทรัพยากรคำนวณมากที่สุดใน CFD นั่นคือการสร้างและแก้ระบบสมการเชิงเส้นขนาดใหญ่ ($Ax=b$) โดยใช้สถาปัตยกรรมเมทริกซ์ที่ปรับแต่งมาเพื่อเมชแบบ Unstructured
 
+> [!TIP] **Physical Analogy: The Giant Water Pipe Network (เครือข่ายท่อประปายักษ์)**
+>
+> จินตนาการว่าการแก้สมการเมทริกซ์ $Ax=b$ ใน CFD เหมือนกับการหาความดันใน **"ระบบท่อประปาของตึกระฟ้า"**:
+>
+> 1.  **The Matrix $A$ (ระบบท่อ)**: คือผังท่อทั้งหมดที่เชื่อมแต่ละห้อง (Cell) เข้าด้วยกัน ค่าในเมทริกซ์บอกถึงความกว้างและความต้านทานของท่อเชื่อม
+> 2.  **The Vector $x$ (สิ่งที่เราหา)**: คือค่า "ความดันน้ำ" ในแต่ละห้องที่ทำให้ระบบสมดุล
+> 3.  **The Vector $b$ (แหล่งจ่าย/ระบาย)**: คือปั๊มน้ำที่อัดน้ำเข้า (Source) หรือท่อระบายทิ้ง (Sink)
+> 4.  **Sparse vs Dense**:
+>     -   **Sparse (LDU)**: ห้องหนึ่งเชื่อมท่อแค่กับห้องบ้ค้างเคียง (Neighbor) เท่านั้น (โครงสร้างจริง เปลืองท่อน้อย)
+>     -   **Dense**: ห้องหนึ่งต้องต่อท่อตรงไปหา "ทุกห้อง" ในตึก (เป็นไปไม่ได้และสิ้นเปลืองมาก)
+>
+> หน้าที่ของ Solver (เช่น PCG, GAMG) คือการปรับวาล์วหาความดัน ($x$) จนกว่าน้ำจะไหลเข้าออกทุกห้องอย่างสมดุล (Convergence)
+
 ```mermaid
 flowchart LR
 classDef step fill:#f5f5f5,stroke:#333,stroke-width:2px,color:#000
@@ -333,4 +346,26 @@ fvMatrix<scalar> alphaEqn
 
 ---
 
-**หมายเหตุ:** เนื้อหาในบทนี้อ้างอิงจาก OpenFOAM Programming Documentation และตำราเรียนด้านพีชคณิตเชิงเส้นเชิงคำนวณ
+
+---
+
+## 🧠 8. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ทำไม OpenFOAM ถึงต้องใช้ LDU Matrix (Sparse) แทนที่จะใช้ Standard Matrix (Dense) แบบที่เราเรียนในห้องเรียน Linear Algebra?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะใน CFD แต่ละ Cell เชื่อมต่อกับเพื่อนบ้าน (Neighbor) เพียงไม่กี่ตัว (ประมาณ 4-10 ตัว) ทำให้เมทริกซ์เต็มไปด้วยเลข 0 (Zero entries) ถึง 99.9% การใช้ **Dense Matrix** จะเก็บเลข 0 เหล่านี้ซึ่งเปลือง Memory มหาศาล ($\mathcal{O}(n^2)$) ในขณะที่ **LDU** เก็บเฉพาะตัวเลขที่มีค่าจริงๆ ($\mathcal{O}(n)$)
+    </details>
+
+2.  **ความแตกต่างระหว่าง `fvm::` และ `fvc::` ในเชิงของการสร้าง Matrix $Ax=b$ คืออะไร?**
+    <details>
+    <summary>เฉลย</summary>
+    -   **`fvm::` (Implicit)**: สร้างและเติมค่าลงใน **Matrix $A$** (Coefficients) เพื่อหาค่าตัวแปรในอนาคต (Unknowns)
+    -   **`fvc::` (Explicit)**: คำนวณค่าออกมาเป็นตัวเลขเลย (Explicit value) แล้วนำไปใส่ใน **Vector $b$** (Source Term)
+    </details>
+
+3.  **ถ้าเรามี Matrix แบบ Symmetric Positive Definite (เช่น สมการ Pressure) เราควรเลือกใช้ Linear Solver ตัวไหนจึงจะมีประสิทธิภาพสูงสุด?**
+    <details>
+    <summary>เฉลย</summary>
+    ควรใช้ **PCG (Preconditioned Conjugate Gradient)** เพราะออกแบบมาสำหรับ Symmetric Matrix โดยเฉพาะ ซึ่งจะลู่เข้า (Converge) เร็วกว่า BiCGStab หรือ GMRES ที่ออกแบบมาสำหรับ Asymmetric Matrix
+    </details>

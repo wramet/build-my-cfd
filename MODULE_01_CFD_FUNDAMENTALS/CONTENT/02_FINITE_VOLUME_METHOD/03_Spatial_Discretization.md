@@ -179,7 +179,42 @@ $$(\nabla \phi)_f \cdot \mathbf{S}_f = |\mathbf{S}_f| \frac{\phi_N - \phi_P}{|\m
 
 > [!WARNING] **ข้อควรระวัง**: Non-orthogonality สูง (> 70°) อาจทำให้เกิด Numerical diffusion ที่สำคัญและลดความแม่นยำของการคำนวณ Gradient
 
----
+```mermaid
+graph TD
+    subgraph Physical_Situation ["Physical Situation: Wind blowing A -> B"]
+    A((City A)) ==>|Wind U| B((City B))
+    end
+
+    subgraph Upwind ["1. Upwind Scheme (Safe but Blurry)"]
+    InfoA[Info from A] ==>|Direct Copy| PredB[Predict B]
+    style PredB fill:#e1f5fe,stroke:#01579b
+    end
+
+    subgraph Central ["2. Central Scheme (Accurate but Risky)"]
+    InfoA2[Info from A] --> Average
+    InfoC2[Info from C (Downwind)] --> Average
+    Average -->|Mix| PredB2[Predict B]
+    style PredB2 fill:#fff9c4,stroke:#fbc02d
+    end
+```
+> **Figure 3:** เปรียบเทียบผลลัพธ์ของ Scheme: Upwind จะ "smear" (เบลอ) Profile เนื่องจาก Numerical Diffusion ในขณะที่ Linear (Central) จะพยายามรักษาความคมชัดแต่อาจเกิดการแกว่ง (Oscillation) ถ้าไม่มีการจัดการที่ดี
+
+> [!TIP]
+> **Practical Analogy: การพยากรณ์อากาศระหว่างเมือง (Weather Prediction)**
+>
+> สมมติคุณยืนอยู่ระหว่าง **เมือง A (ซ้าย)** และ **เมือง B (ขวา)** และลมพัดมาจากเมือง A (Flow Direction: A -> B)
+>
+> 1.  **Upwind Scheme (มองย้อนลม):** คุณทายว่าอากาศตรงที่คุณยืนอยู่ **"เหมือนกับเมือง A ทุกประการ"** เพราะลมพัดพาอากาศจาก A มาหาคุณ
+>     *   *ข้อดี:* ปลอดภัยมาก (Stable) อากาศไม่มีทางประหลาดไปกว่า A
+>     *   *ข้อเสีย:* ข้อมูลละเอียดบางอย่างอาจหายไประหว่างทาง (Diffusion/Blurring)
+>
+> 2.  **Linear/Central Scheme (หาค่าเฉลี่ย):** คุณทายว่าอากาศคือ **"ค่าตรงกลางระหว่าง A และ B"**
+>     *   *ข้อดี:* แม่นยำกว่าในทางคณิตศาสตร์ (Second-order)
+>     *   *ข้อเสีย:* ถ้าอากาศเมือง A = 30°C และ B = 10°C ทฤษฎีอาจบอกว่าตรงกลางคือ 20°C แต่ถ้าจู่ๆ ลมพัดแรง พลังงานอาจแกว่งจนคุณคำนวณได้ 40°C หรือ -10°C (Unbounded/Oscillation) ซึ่งเป็นไปไม่ได้จริง!
+>
+> **TVD Schemes (Smart Predictor):** คือการใช้ Central Scheme เป็นหลัก แต่มี "ตัวตรวจจับ (Limiter)" คอยดูว่าถ้าค่าเริ่มแกว่งจนเวอร์ (เช่น เกิน 30°C หรือต่ำกว่า 10°C) ให้สลับกลับไปใช้วิธี Upwind ทันทีเพื่อให้ปลอดภัย
+
+### **3.3 การจัดการระดับสูง (Advanced Treatments)**
 
 ## Gradient Calculation Schemes
 
@@ -269,6 +304,8 @@ $$a_f = \rho_f \mathbf{u}_f \cdot \mathbf{S}_f + \frac{\Gamma_f A_f}{\delta_f}$$
 
 โดยที่เครื่องหมายของเทอม Convective ขึ้นอยู่กับ:
 - ทิศทางการไหล
+> - ดู [[05_Matrix_Assembly]] สำหรับการนำผลลัพธ์ของการดิสครีตไปประกอบเป็นเมทริกซ์
+> - ดู [[06_OpenFOAM_Implementation]] สำหรับการนำไปใช้งานจริงใน OpenFOAM
 - Upwind Scheme ที่ใช้
 
 ### อัลกอริทึมการประกอบเมทริกซ์ (Matrix Assembly Algorithm)

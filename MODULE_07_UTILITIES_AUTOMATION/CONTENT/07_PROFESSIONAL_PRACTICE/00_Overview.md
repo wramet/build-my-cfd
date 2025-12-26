@@ -611,15 +611,36 @@ scalar calculateEddyViscosity(
 
 ---
 
-## ❓ คำถามท้ายบท (Review Questions)
+## 🧠 ตรวจสอบความเข้าใจ (Concept Check)
 
-1. อธิบายความสำคัญของการทดสอบ ==Grid Independence== ในการจำลอง CFD
+1. **ถาม:** อธิบายความสำคัญของการทดสอบ ==Grid Independence== ในการจำลอง CFD
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b> เพื่อยืนยันว่าผลลัพธ์การคำนวณ (Solution) ไม่ขึ้นอยู่กับความละเอียดของ Mesh (Discretization Error ต่ำพอ) หาก Mesh ละเอียดขึ้นแล้วผลลัพธ์ยังเปลี่ยนไปอย่างมีนัยสำคัญ แสดงว่า Mesh ชุดเดิมยังหยาบเกินไปและเชื่อถือไม่ได้
+   </details>
 
-2. เปรียบเทียบความแตกต่างระหว่าง **Verification** และ **Validation**
+2. **ถาม:** เปรียบเทียบความแตกต่างระหว่าง **Verification** และ **Validation**
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b>
+   - **Verification (Solving the equations right):** การตรวจสอบว่าโค้ดแก้สมการคณิตศาสตร์ได้ถูกต้องหรือไม่ (เช่น เปรียบเทียบกับ Analytical Solution, Grid Convergence)
+   - **Validation (Solving the right equations):** การตรวจสอบว่าสมการที่ใช้แทนโลกความจริงได้ถูกต้องหรือไม่ (เช่น เปรียบเทียบกับผลการทดลอง Experiment)
+   </details>
 
-3. เหตุใดการเขียนเอกสารประกอบโค้ดจึงมีความสำคัญในโครงการ CFD ระดับมืออาชีพ
+3. **ถาม:** เหตุใดการเขียนเอกสารประกอบโค้ดจึงมีความสำคัญในโครงการ CFD ระดับมืออาชีพ
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b> เพราะโครงการ CFD มักมีความซับซ้อนและยาวนาน การมีเอกสาร (Documentation) ช่วยให้ทีมงานเข้าใจตรรกะเบื้องหลังการตั้งค่า (Settings) และสคริปต์ ลดเวลาในการเรียนรู้งาน (Onboarding) และช่วยให้การ Debug หรือ Maintenance ทำได้ง่ายขึ้นในอนาคต
+   </details>
 
-4. อธิบายวิธีการเลือก ==Discretization Schemes== ที่เหมาะสมสำหรับปัญหาที่กำหนด
+4. **ถาม:** อธิบายวิธีการเลือก ==Discretization Schemes== ที่เหมาะสมสำหรับปัญหาที่กำหนด
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b>
+   - **Upwind (First-order):** เสถียรที่สุด (Stable) เหมาะสำหรับช่วงเริ่มต้นของการรัน แต่มีความคลาดเคลื่อนสูง (Diffusive)
+   - **Linear (Second-order):** แม่นยำแต่เสถียรน้อยกว่า เหมาะสำหรับเมื่อการไหลเริ่มคงที่
+   - **LinearUpwind/TVD schemes:** เป็นทางสายกลางที่ให้ความแม่นยำระดับ 2 (Second-order) แต่มี Limiter ช่วยรักษาความเสถียรในบริเวณที่มี Gradient สูง
+   </details>
 
 ---
 

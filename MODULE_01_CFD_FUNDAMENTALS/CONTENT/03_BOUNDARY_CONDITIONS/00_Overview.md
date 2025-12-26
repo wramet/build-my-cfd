@@ -22,6 +22,19 @@
 
 หากไม่มีการกำหนด Boundary Condition ที่เหมาะสม การกำหนดสูตรทางคณิตศาสตร์จะไม่สมบูรณ์ นำไปสู่ปัญหาที่กำหนดไม่ดี (ill-posed problems) ซึ่งไม่สามารถหาผลเฉลยที่เป็นเอกลักษณ์ได้
 
+> [!TIP] **เปรียบเทียบ: ยามหน้าประตู (The Border Control Analogy)**
+>
+> ลองคิดว่า **Boundary (ขอบเขต)** คือ **ด่านตรวจคนเข้าเมือง**:
+>
+> 1.  **Dirichlet (Fixed Value):** "ทุกคนที่จะผ่านประตูนี้ ต้องใส่เสื้อสีแดงเท่านั้น!"
+>     *   บังคับ **ค่า (Value)** โดยตรง (เช่น $T = 300K$) ไม่สนว่าข้างในจะเป็นยังไง
+>
+> 2.  **Neumann (Fixed Gradient):** "ทุกคนต้องเดินผ่านประตูด้วยความเร็ว 5 ก้าวต่อวินาที!"
+>     *   บังคับ **อัตราการเปลี่ยนแปลง (Flux/Gradient)** (เช่น Heat Flux = 500 W/m²) ไม่สนว่าเสื้อสีอะไร
+>
+> 3.  **Mixed (Robin):** "ถ้าใส่เสื้อแดง ให้เดินช้าๆ แต่ถ้าเสื้อเขียว ให้เดินเร็วๆ"
+>     *   ผสมเงื่อนไขทั้งสองอย่างเข้าด้วยกัน (เช่น Convective Heat Transfer)
+
 ---
 
 ## พื้นฐานทางคณิตศาสตร์ของ Boundary Conditions
@@ -620,3 +633,35 @@ boundaryField
 4. **Boundary Conditions ขั้นสูง** ช่วยแก้ไขปัญหาที่ซับซ้อนใน Multiphysics และ Special Applications
 
 การเข้าใจและการนำ Boundary Conditions ไปใช้งานอย่างถูกต้องเป็นพื้นฐานสำคัญสำหรับการสร้าง CFD Simulations ที่แม่นยำและเชื่อถือได้ใน OpenFOAM
+
+---
+
+> [!TIP] **เอกสารที่เกี่ยวข้อง**
+> - [[01_Introduction]] - บทนำและภาพรวม
+> - [[02_Fundamental_Classification]] - การจำแนกประเภทพื้นฐาน
+> - [[03_Selection_Guide_Which_BC_to_Use]] - คู่มือการเลือกเงื่อนไขขอบเขต
+> - [[04_Mathematical_Formulation]] - สูตรทางคณิตศาสตร์
+> - [[05_Common_Boundary_Conditions_in_OpenFOAM]] - เงื่อนไขขอบเขตทั่วไปใน OpenFOAM
+> - [[06_Advanced_Boundary_Conditions]] - เงื่อนไขขอบเขตขั้นสูง
+> - [[07_Troubleshooting_Boundary_Conditions]] - การแก้ไขปัญหา
+> - [[08_Exercises]] - แบบฝึกหัด
+
+## ตรวจสอบความเข้าใจ (Concept Check)
+
+1. **ถาม:** "zeroGradient" Boundary Condition หมายความว่าอย่างไร และมักใช้กับอะไร?
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b> หมายความว่า "ไม่มีการเปลี่ยนแปลงค่าในทิศทางตั้งฉากกับผิว" ($\frac{\partial \phi}{\partial n} = 0$) มักใช้กับ **Pressure ที่ผนัง** หรือ **Fully Developed Outlet**
+   </details>
+
+2. **ถาม:** ทำไมเราต้องกำหนด "Reference Pressure" (pRef) ในการจำลองแบบ Incompressible?
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b> เพราะใน Incompressible flow สมการ Navier-Stokes สนใจแค่ **ความแตกต่างของความดัน (Pressure Gradient)** ($\nabla p$) ไม่ใช่ค่าสัมบูรณ์ ดังนั้นเราต้องกำหนดจุดอ้างอิง 1 จุด (เช่น p=0) เพื่อให้ค่าความดันเป็น unique solution
+   </details>
+
+3. **ถาม:** ถ้ากำหนด Velocity Inlet เป็น "Fixed Value" ควรจะกำหนด Pressure ที่ Inlet เป็นอะไร (โดยทั่วไป)?
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b> **zeroGradient** เพื่อปล่อยให้ความดันที่หน้าทางเข้าปรับตัวตามธรรมชาติจากการคำนวณภายในโดเมน (Projection Method)
+   </details>

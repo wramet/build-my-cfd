@@ -7,6 +7,15 @@
 
 ---
 
+> [!TIP] **Physical Analogy: The Emergency Response Teams (ทีมกู้ภัยฉุกเฉิน)**
+>
+> การเลือก Solver ก็เหมือนการเลือกทีมกู้ภัยให้เหมาะกับสถานการณ์:
+>
+> 1.  **PCG (Conjugate Gradient)**: เปรียบเสมือน **"พลแม่นปืน" (Snipers)** แม่นยำสูง รวดเร็ว แต่ต้องการเป้าหมายที่ชัดเจนและสมมาตร (Symmetric Matrix) เหมาะกับงานละเอียดอย่างสมการความดัน
+> 2.  **PBiCGStab**: เปรียบเสมือน **"หน่วยจู่โจมพิเศษ" (SWAT Team)** ลุยได้ทุกสถานการณ์ (Asymmetric) แม้ลมจะแรงหรือสถานการณ์วุ่นวาย (Convection/Turbulence) ก็ยังทำงานได้ดี แต่อาจจะไม่นิ่งเท่าสไนเปอร์
+> 3.  **GAMG (Multigrid)**: เปรียบเสมือน **"กลยุทธ์ดาวเทียม" (Satellite Command)** แทนที่จะไล่จับผู้ร้ายทีละคนบนถนน (Fine Grid) เขาดูภาพรวมทั้งเมืองจากดาวเทียม (Coarse Grid) เพื่อแก้ปัญหาใหญ่ๆ ก่อน แล้วค่อยซูมลงมาเก็บงานละเอียด ทำให้เร็วกว่าทีมภาคพื้นดินนับร้อยเท่าในสมรภูมิใหญ่
+> 4.  **Preconditioner**: เปรียบเสมือน **"นักเจรจาต่อรอง" (Negotiator)** ที่เข้าไปเคลียร์พื้นที่ให้ง่ายขึ้นก่อนที่ทีมบุกจะเข้าทำงาน (ลด Condition Number) ทำให้ปิดจ๊อบได้เร็วขึ้น
+
 ## ⚙️ **กลไกหลัก: ลำดับชั้นของ Solver และการเลือกใช้งานขณะ Runtime**
 
 ### **ขั้นตอนที่ 1: Solver Base Class - "ชุดเครื่องมือของนักสืบ"**
@@ -728,5 +737,25 @@ Fix --> Check
 - [[Sparse Matrix Storage|08_⚙️_Key_Mechanisms_Sparse_Matrix_Storage]]
 - [[fvMatrix Architecture|13_⚙️_Key_Mechanisms_fvMatrix_Architecture]]
 - [[GAMG Deep Dive|19_🧠_Under_the_Hood_Geometric_Algebraic_Multigrid_(GAMG)]]
-- [[Matrix Assembly|14_🧠_Under_the_Hood_fvMatrix_Assembly_Patterns]]
-- [[Common Pitfalls|05_⚠️_Common_Pitfalls_and_Solutions]]
+
+---
+
+## 🧠 8. Concept Check (ทดสอบความเข้าใจ)
+
+1.  **ทำไม GAMG ถึงเร็วกว่า PCG มากสำหรับ Mesh ขนาดใหญ่ ( > 1 ล้าน Cells)?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะ iterative solvers ทั่วไป (เช่น PCG, Jacobi) กำจัด **High-frequency errors** (Local errors) ได้ดี แต่กำจัด **Low-frequency errors** (Global errors) ได้ช้ามาก GAMG แก้ปัญหานี้โดยการย้าย Low-frequency errors ไปแก้ใน Grid ที่หยาบกว่า (ซึ่งมันจะกลายเป็น High-frequency ใน Grid นั้น) ทำให้กำจัด Error ทุกย่านความถี่ได้อย่างรวดเร็ว
+    </details>
+
+2.  **สำหรับสมการความดัน ($p$) ใน Incompressible Flow ควรใช้ Solver-Preconditioner คู่ไหน?**
+    <details>
+    <summary>เฉลย</summary>
+    ควรใช้ **PCG + DIC** (สำหรับ mesh เล็ก-กลาง) หรือ **GAMG + GaussSeidel** (สำหรับ mesh ใหญ่) เหตุผลคือ Matrix ความดันเป็นแบบ **Symmetric Positive Definite** ซึ่ง PCG ออกแบบมาเพื่อสิ่งนี้โดยเฉพาะ
+    </details>
+
+3.  **ทำไมเราถึงใช้ PCG แก้สมการโมเมนตัม ($U$) ไม่ได้?**
+    <details>
+    <summary>เฉลย</summary>
+    เพราะสมการโมเมนตัมมีเทอม **Convection** ($ \nabla \cdot (\mathbf{U}\mathbf{U}) $) ทำให้ Matrix เป็นแบบ **Asymmetric** (ไม่สมมาตร) PCG ทำงานได้เฉพาะกับ Symmetric Matrix เท่านั้น จึงต้องใช้ **PBiCGStab** หรือ **SmoothSolver** แทน
+    </details>

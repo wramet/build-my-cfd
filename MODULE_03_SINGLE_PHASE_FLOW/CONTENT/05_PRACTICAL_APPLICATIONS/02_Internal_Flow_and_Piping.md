@@ -44,6 +44,23 @@ $$\frac{1}{\sqrt{f}} = -2 \log_{10}\left(\frac{\epsilon/D}{3.7} + \frac{2.51}{\t
 
 โดย $\epsilon/D$ คือความหยาบสัมพัทธ์ (relative roughness)
 
+> [!TIP] **Physical Analogy: The Crowded Hallway (ทางเดินที่แออัด)**
+>
+> เปรียบเทียบการไหลในท่อกับการเดินของคนในโถงทางเดิน:
+>
+> 1.  **Laminar Flow:** เหมือนทหารเดินแถวเรียงหนึ่งอย่างเป็นระเบียบ
+>     - ไม่มีการชนกัน ไม่มีการเสียพลังงานจากการกระแทกไหล่
+>     - ความดันตก (ความเหนื่อย) ต่ำ และแปรผันตรงกับความเร็ว ($V$)
+>
+> 2.  **Turbulent Flow:** เหมือนฝูงชนที่วิ่งอย่างโกลาหลเพื่อหนีภัย
+>     - มีการชนกันเองและชนผนังตลอดเวลา (Eddy mixing)
+>     - สูญเสียพลังงานมหาศาลจากการ "ปะทะ"
+>     - ความดันตกสูง และแปรผันตาม **กำลังสองของความเร็ว ($V^2$)**
+>
+> 3.  **Pipe Roughness ($\epsilon$):** เหมือนสิ่งกีดขวางหรือผนังที่ขรุขระในทางเดิน
+>     - ถ้าเดินช้า (Laminar) เราแค่เดินอ้อมได้ (Friction factor ไม่ขึ้นกับความขรุขระ)
+>     - ถ้าวิ่งเร็ว (Turbulent) เราจะชนสิ่งกีดขวางเต็มๆ (Friction factor ขึ้นกับความขรุขระอย่างมาก!)
+
 ### 1.2 Reynolds Number สำหรับการไหลในท่อ
 
 $$\text{Re} = \frac{\rho U_{avg} D}{\mu}$$
@@ -558,4 +575,27 @@ $$\sum \dot{m}_{in} = \sum \dot{m}_{out}$$
 
 ---
 
-**หัวข้อถัดไป**: [[เครื่องแลกเปลี่ยนความร้อน|./03_Heat_Exchangers.md]]
+**หัวข้อถัดไป**: [เครื่องแลกเปลี่ยนความร้อน](./03_Heat_Exchangers.md)
+
+---
+
+## 🧠 8. Concept Check (ทดสอบความเข้าใจ)
+
+1. **ทำไมความดันตก (Pressure Drop) ในท่อถึงเพิ่มขึ้นเป็นค่ายกกำลังสองของความเร็ว ($\Delta p \propto V^2$) ในช่วง Turbulent?**
+   <details>
+   <summary>เฉลย</summary>
+   เพราะใน Turbulent Flow แรงต้านหลักไม่ได้มาจากความหนืด (Viscosity) แบบ Laminar แต่มาจาก **Inertial Forces** (แรงเฉื่อยจากการปะทะของของไหล) ซึ่งแรงเฉื่อยสัมพันธ์กับ Kinetic Energy ($1/2 \rho V^2$) ดังนั้นเมื่อความเร็วเพิ่ม 2 เท่า แรงต้านจะเพิ่ม 4 เท่า!
+   </details>
+
+2. **ทำไม "Entry Length" ถึงสำคัญ? ถ้าเราละเลยจะเป็นอย่างไร?**
+   <details>
+   <summary>เฉลย</summary>
+   Entry Length คือระยะทางที่ flow ใช้ในการปรับตัวจาก Uniform Profile (ที่ทางเข้า) ไปเป็น Fully Developed Profile (Laminar หรือ Turbulent)
+   - ถ้าท่อสั้นกว่า Entry Length: การคำนวณ Pressure Drop โดยใช้สูตรมาตรฐาน ($f$) จะผิดพลาด เพราะ Wall Shear Stress ในช่วง Entry Region จะสูงกว่าช่วง Fully Developed มาก
+   </details>
+
+3. **ถ้าเราต้องการผสมสาร 2 ชนิดให้เร็วที่สุด ควรใช้ Laminar หรือ Turbulent Flow?**
+   <details>
+   <summary>เฉลย</summary>
+   **Turbulent Flow** เพราะ Eddies จะช่วยกวน (Mix) ของไหลในระดับ Macroscopic ได้ดีพากกว่า Laminar ที่ผสมได้แค่ระดับโมเลกุล (Diffusion) เท่านั้น แต่ข้อเสียคือต้องจ่ายค่าพลังงาน (Pressure Drop) ที่สูงขึ้น
+   </details>
