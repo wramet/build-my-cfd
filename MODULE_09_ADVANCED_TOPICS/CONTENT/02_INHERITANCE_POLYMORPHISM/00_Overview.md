@@ -602,3 +602,7 @@ export FOAM_VERBOSE=1  # Display model selection time
 ---
 
 *ความรู้สำคัญ: **OpenFOAM ใช้พหุสัณฐานไม่ใช่เพียงในฐานะเทคนิคการเขียนโปรแกรม แต่เป็นปรัชญาการสร้างแบบจำลองฟิสิกส์***
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ถัดไป:** [01_Introduction.md](01_Introduction.md) - บทนำสู่ระบบ Plug-and-Play Physics Sockets

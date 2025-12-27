@@ -362,4 +362,23 @@ GeometricField<vector> GeometricField<vector>::operator+(const GeometricField<ve
 4. **Code Reusability**: เขียนครั้งเดียว ใช้กับปริมาณทางฟิสิกส์ได้ทุกประเภท
 5. **Maintainability**: การแก้ไขหรือเพิ่มประสิทธิภาพต้องทำเพียงที่เดียวใน template
 
-ปรัชญา "Smart Cookie Cutter" นี้ทำให้ OpenFOAM เป็นหนึ่งในกรอบการทำงาน CFD ที่มีประสิทธิภาพสูงสุดและยืดหยุ่นที่สุดในโลก
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ทำไม OpenFOAM ถึงเลือกใช้ Template แทน Inheritance ในการจัดการ Field?</summary>
+
+**คำตอบ:** เพื่อหลีกเลี่ยง **Virtual Function Overhead** ซึ่งจะทำให้ประสิทธิภาพตกลงถึง 15-20% ในการคำนวณ CFD ที่มีการวนลูปมหาศาล และเพื่อให้ Compiler สามารถทำ **Inlining** และ **Vectorization (SIMD)** ได้
+</details>
+
+<details>
+<summary>2. แนวคิด "Smart Cookie Cutter" หมายถึงอะไร?</summary>
+
+**คำตอบ:** หมายถึงการใช้ Template เป็น **แม่พิมพ์ (Blueprint)** เดียว ที่สามารถสร้าง Code แบบเฉพาะเจาะจงสำหรับแป้งโดว์ (Type) แบบต่างๆ (Scalar, Vector, Tensor) ได้โดยอัตโนมัติ ทำให้ไม่ต้องเขียน Code ซ้ำๆ
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ถัดไป:** [02_Template_Syntax.md](02_Template_Syntax.md) - เรียนรู้ไวยากรณ์พื้นฐาน `template<class Type>`
+*   **เจาะลึก:** [03_Internal_Mechanics.md](03_Internal_Mechanics.md) - โครงสร้างข้อมูลภายใน `GeometricField`
+*   **ภาพรวม:** [00_Overview.md](00_Overview.md) - ภาพรวมของ Template Programming

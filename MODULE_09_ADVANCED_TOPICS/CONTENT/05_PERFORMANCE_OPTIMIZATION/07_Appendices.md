@@ -828,3 +828,22 @@ $$\text{JIT Benefits: } \text{Runtime Specialization} + \text{Hardware Adaptivit
 ---
 
 *คู่มือนี้สาธิตวิธีที่ OpenFOAM แปลงคณิตศาสตร์ CFD ที่ซับซ้อนให้เป็นโค้ดความเร็วสูงผ่าน expression templates—ซึ่งเป็นเทคโนโลยีที่กำจัด temporary objects, เปิดใช้งาน vectorization และรักษาความสวยงามทางคณิตศาสตร์ในขณะเดียวกันที่ส่งมอบประสิทธิภาพในระดับอุตสาหกรรม*
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. SIMD Vectorization (ที่เปิดใช้งานโดย Expression Templates) มีส่วนช่วยให้เกิดความเร็วเพิ่มขึ้นถึง 4.35 เท่าตามที่ระบุในผลการทดสอบได้อย่างไร?</summary>
+
+**คำตอบ:** SIMD (Single Instruction, Multiple Data) ช่วยให้หน่วยประมวลผลกลาง (CPU) สามารถประมวลผลจุดข้อมูลหลายจุด (เช่น 4 double-precision values หรือ 8 single-precision values) ได้พร้อมกันภายในรอบคำสั่งเดียว (Single Clock Cycle) ซึ่งเพิ่มปริมาณงาน (Throughput) ได้อย่างมหาศาลเมื่อเทียบกับการประมวลผลแบบทีละค่า (Scalar Processing)
+</details>
+
+<details>
+<summary>2. จุดประสงค์ของกลไก `static_assert` ในระบบวิเคราะห์มิติ (Dimensional Analysis) ของ OpenFOAM คืออะไร?</summary>
+
+**คำตอบ:** เพื่อทำการ **ตรวจสอบความถูกต้องตั้งแต่ตอนคอมไพล์ (Compile-time Check)** ว่าหน่วยทางฟิสิกส์ของตัวแปรที่นำมาคำนวณกันนั้นมีความสอดคล้องกัน (เช่น ป้องกันการนำความดันไปบวกกับความเร็ว) ซึ่งช่วยดักจับข้อผิดพลาดทางฟิสิกส์ได้ก่อนที่โปรแกรมจะถูกรัน
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [06_Common_Errors_and_Debugging.md](06_Common_Errors_and_Debugging.md) - ข้อผิดพลาดทั่วไปและการดีบัก
+*   **ภาพรวม:** [00_Overview.md](00_Overview.md) - กลับสู่ภาพรวมของโมดูล

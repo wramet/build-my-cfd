@@ -94,3 +94,30 @@ E --> H[Object Lookup & Persistence]:::success
 4. **`objectRegistry`**: ฐานข้อมูลออบเจกต์แบบลำดับชั้น
 
 การทำความเข้าใจองค์ประกอบเหล่านี้จะช่วยให้คุณสามารถพัฒนาส่วนขยายของ OpenFOAM ที่มีประสิทธิภาพสูงและปราศจากปัญหาหน่วยความจำรั่วไหล
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ทำไม OpenFOAM ถึงสร้างระบบ Smart Pointers ของตัวเองแทนที่จะใช้ `std::shared_ptr` หรือ `std::unique_ptr`?</summary>
+
+**คำตอบ:** เพราะ Smart Pointers มาตรฐานของ C++ เป็นแบบ Generic และไม่ได้ออกแบบมาสำหรับงาน CFD เฉพาะทาง OpenFOAM ต้องการระบบที่:
+1. ลด Overhead จาก Atomic Operations (เพราะทำงานแบบ Single-threaded เป็นหลักในระดับ Field)
+2. ปรับปรุง Memory Layout ให้เหมาะกับการคำนวณ Field ขนาดใหญ่ (ลด Cache Misses)
+3. มีกลไกการจัดการ Object Temporary (`tmp`) ที่มีประสิทธิภาพสูงกว่า
+4. สามารถเชื่อมต่อกับ `objectRegistry` เพื่อการจัดการ Lifetime แบบรวมศูนย์ได้
+</details>
+
+<details>
+<summary>2. ส่วนประกอบหลัก 4 อย่างในระบบจัดการหน่วยความจำของ OpenFOAM มีอะไรบ้าง และแต่ละอย่างทำหน้าที่อะไรสั้นๆ?</summary>
+
+**คำตอบ:** 
+1. **`autoPtr`**: ถือครองออบเจกต์แบบเดี่ยว (Exclusive Ownership) คล้าย `std::unique_ptr`
+2. **`tmp`**: จัดการออบเจกต์ชั่วคราวและแชร์ข้อมูลผ่าน Reference Counting
+3. **`refCount`**: คลาสฐานสำหรับนับจำนวนการอ้างอิง
+4. **`objectRegistry`**: ฐานข้อมูลกลางสำหรับจัดเก็บและค้นหาออบเจกต์ในระบบ
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [00_Overview.md](00_Overview.md) - ภาพรวมการจัดการหน่วยความจำ
+*   **ถัดไป:** [02_Memory_Syntax_and_Design.md](02_Memory_Syntax_and_Design.md) - ไวยากรณ์และการออกแบบหน่วยความจำ

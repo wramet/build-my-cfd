@@ -790,3 +790,22 @@ E --> E1[Zero-copy Ownership Transfer]:::success
 5. **สามารถบำรุงรักษาได้**: ลดความซับซ้อนของการจัดการหน่วยความจำด้วยตนเอง
 
 ระบบนี้ยืนหยังเป็น **หลักฐานของสถาปัตยกรรมซอฟต์แวร์ที่มีความคิดริเริ่ม** ในวิทยาศาสตร์การคำนวณ โดยให้รากฐานที่ทำให้ทั้งประสิทธิภาพและความปลอดภัยในแอปพลิเคชัน CFD ที่ท้าทาย
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. Design Pattern ใดใน OpenFOAM ที่รับประกันว่าหน่วยความจำที่จองไว้สำหรับ Field จะถูกคืน (Released) เสมอ แม้ว่าจะเกิด Exception ระหว่างการคำนวณ?</summary>
+
+**คำตอบ:** **RAII (Resource Acquisition Is Initialization)** รูปแบบนี้ผูกอายุขัยของทรัพยากร (Memory) ไว้กับอายุขัยของ Object เมื่อ Object หลุดจาก Scope (เช่น จบฟังก์ชัน หรือเกิด Error) Destructor จะถูกเรียกทำงานโดยอัตโนมัติเพื่อคืนหน่วยความจำ
+</details>
+
+<details>
+<summary>2. `objectRegistry` แตกต่างจาก C++ Container ทั่วไป (เช่น `std::map`) อย่างไรในแง่ของการจัดการวงจรชีวิตของ Object?</summary>
+
+**คำตอบ:** `objectRegistry` ไม่ได้ทำหน้าที่แค่เก็บ Object เท่านั้น แต่ทำหน้าที่เป็น **Centralized Catalog** ที่จัดการทั้งการ **Lookup (ค้นหาด้วยชื่อ)**, **Automatic I/O (เขียนลง Disk อัตโนมัติ)** และ **Automatic Cleanup (ลบข้อมูลเมื่อจบการจำลอง)** ซึ่ง Container ทั่วไปไม่มีฟีเจอร์เหล่านี้ในตัว
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [05_Implementation_Mechanisms.md](05_Implementation_Mechanisms.md) - กลไกการนำไปใช้งานจริง
+*   **ถัดไป:** [07_Code_Analysis.md](07_Code_Analysis.md) - การวิเคราะห์โค้ด: การจัดการหน่วยความจำในทางปฏิบัติ

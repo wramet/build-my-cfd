@@ -878,3 +878,22 @@ For a typical simulation with 10 million cells:
 </details>
 
 ---
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. เทคนิค Curiously Recurring Template Pattern (CRTP) ที่ OpenFOAM นำมาใช้ ช่วยเพิ่มประสิทธิภาพการทำงานเมื่อเทียบกับ Polymorphism แบบดั้งเดิมได้อย่างไร?</summary>
+
+**คำตอบ:** CRTP ทำให้เกิด **Static Polymorphism** (การแก้ไขรูปฟอร์มที่เวลาคอมไพล์) ซึ่งช่วยกำจัด Overhead ที่เกิดขึ้นขณะรันไทม์จากการค้นหาฟังก์ชันเสมือน (Vtable Lookups) และช่วยให้คอมไพเลอร์สามารถทำการ Inline Function Calls ได้โดยตรง ส่งผลให้การทำงานรวดเร็วขึ้นมาก
+</details>
+
+<details>
+<summary>2. บทบาทสำคัญของ Assignment Operator (`operator=`) ในบริบทของ Expression Templates คืออะไร?</summary>
+
+**คำตอบ:** มันทำหน้าที่เป็น **จุดสั่งการประมวลผล (Evaluation Trigger)** ซึ่งเป็นจุดเดียวที่มีการคำนวณเกิดขึ้นจริง โดยจะทำการท่องไปใน Expression Tree และประเมินผลลัพธ์ในรอบเดียว (Single Pass) ผ่าน Mesh ทั้งหมด แล้วเขียนค่าลงใน Field ปลายทางโดยตรง โดยไม่มีการสร้าง Field ชั่วคราวขึ้นมาคั่นกลาง
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [01_Introduction.md](01_Introduction.md) - บทนำเรื่อง Expression Templates
+*   **ถัดไป:** [03_Internal_Mechanics.md](03_Internal_Mechanics.md) - กลไกการทำงานภายใน

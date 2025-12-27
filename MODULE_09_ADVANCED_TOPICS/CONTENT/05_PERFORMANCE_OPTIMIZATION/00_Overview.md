@@ -558,3 +558,7 @@ evaluate(const Expr& expr)
 - **Natural extensibility** ไปยัง parallel และ GPU computing
 
 สถาปัตยกรรมนี้ช่วยให้ OpenFOAM บรรลุประสิทธิภาพที่เปรียบเทียบได้กับ Fortran ที่ถูก optimize ด้วยมือ ในขณะที่ยังคงความยืดหยุ่นและ type safety ของ C++ หลักการที่แสดงให้เห็นนี้ใช้ได้กับแอปพลิเคชันการคำนวณทางวิทยาศาสตร์ประสิทธิภาพสูงใดๆ ที่เกี่ยวข้องกับ large-scale field operations
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ถัดไป:** [01_Introduction.md](01_Introduction.md) - บทนำสู่การปรับแต่งประสิทธิภาพและ Expression Templates

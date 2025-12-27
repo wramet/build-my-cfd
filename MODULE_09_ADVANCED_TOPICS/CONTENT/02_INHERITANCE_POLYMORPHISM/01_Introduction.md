@@ -749,3 +749,22 @@ Physics models ใหม่ถูกเพิ่มเข้าไปใน Open
 ระบบ CFD ที่ซับซ้อนใน OpenFOAM ถูกสร้างขึ้นจาก components ที่ง่ายและสามารถสลับที่กันได้ตามหลักการของ composition
 
 สถาปัตยกรรมแบบ plug-and-play นี้เป็นพื้นฐานสำคัญต่อความสำเร็จของ OpenFOAM ทั้งเป็นเครื่องมือวิจัยและแพลตฟอร์ม CFD สำหรับการผลิต ทำให้ชุมชนสามารถขยายและปรับแต่งซอฟต์แวร์ในขณะที่ยังคงความเข้ากันได้ในเวอร์ชันและผู้ใช้ที่แตกต่างกัน
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. อะไรคือข้อแตกต่างสำคัญระหว่าง "Standard Socket" และ "Hot-Swappable Component" ในบริบทของ OpenFOAM?</summary>
+
+**คำตอบ:** "Standard Socket" คือ **Abstract Base Class** (เช่น `dragModel`) ที่กำหนดอินเทอร์เฟซมาตรฐานเหมือนเต้ารับ ส่วน "Hot-Swappable Component" คือ **Concrete Class** (เช่น `SchillerNaumann`) ที่เป็นการ implement จริงและสามารถสลับเปลี่ยนได้ผ่านการตั้งค่า
+</details>
+
+<details>
+<summary>2. หน้าที่หลักของตาราง Virtual Function Table (vtable) คืออะไร?</summary>
+
+**คำตอบ:** เป็นกลไกที่ Compiler สร้างขึ้นเพื่อใช้ในการ **Runtime Dispatch** คือช่วยให้โปรแกรมรู้ว่าจะต้องเรียกฟังก์ชันเวอร์ชันไหน (ของคลาสลูกตัวไหน) ในขณะที่โปรแกรมกำลังทำงานอยู่ (Runtime)
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ถัดไป:** [02_Abstract_Interfaces.md](02_Abstract_Interfaces.md) - เรียนรู้เกี่ยวกับ Abstract Interfaces อย่างละเอียด
+*   **ภาพรวม:** [00_Overview.md](00_Overview.md) - ภาพรวมบทเรียน Inheritance & Polymorphism

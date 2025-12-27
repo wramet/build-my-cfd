@@ -20,23 +20,23 @@ M2 --> M3[03 Validation Benchmarks]:::implicit
 M3 --> M4[04 QA, Automation & Profiling]:::success
 ```
 
-### 1. [[01_VERIFICATION_FUNDAMENTALS/00_Overview|01 Verification Fundamentals]]
+### 1. [[CONTENT/01_VERIFICATION_FUNDAMENTALS/00_Overview|01 Verification Fundamentals]]
 - **เนื้อหา**: ปรัชญาการทดสอบ, MMS, Grid Convergence (GCI), Richardson Extrapolation
 - **เป้าหมาย**: เข้าใจความถูกต้องเชิงคณิตศาสตร์ของโค้ด
 
-### 2. [[02_TEST_FRAMEWORK_CODING/00_Overview|02 Test Framework Development]]
+### 2. [[CONTENT/02_TEST_FRAMEWORK_CODING/00_Overview|02 Test Framework Development]]
 - **เนื้อหา**: การเขียน Unit Testing ใน C++, การสร้างระบบ Assertion, การจัดการ Numerical Tolerance
 - **เป้าหมาย**: พัฒนาระบบทดสอบอัตโนมัติภายในโครงสร้าง OpenFOAM
 
-### 3. [[03_VALIDATION_BENCHMARKS/00_Overview|03 Validation Benchmarks]]
+### 3. [[CONTENT/03_VALIDATION_BENCHMARKS/00_Overview|03 Validation Benchmarks]]
 - **เนื้อหา**: การเปรียบเทียบกับ Experimental Data, การตรวจสอบ Mesh & BC, มาตรฐาน Best Practices
 - **เป้าหมาย**: ยืนยันความสอดคล้องระหว่างแบบจำลองทางคณิตศาสตร์กับฟิสิกส์จริง
 
-### 4. [[04_QA_AUTOMATION_PROFILING/00_Overview|04 QA, Automation & Profiling]]
+### 4. [[CONTENT/04_QA_AUTOMATION_PROFILING/00_Overview|04 QA, Automation & Profiling]]
 - **เนื้อหา**: Regression Testing, Performance Profiling, Advanced Debugging (GDB/Valgrind)
 - **เป้าหมาย**: การประกันคุณภาพในระยะยาวและการเพิ่มประสิทธิภาพการคำนวณ
 
 ---
 
 ## 🚀 จุดเริ่มต้นการเรียนรู้
-หากคุณเพิ่งเริ่มต้น แนะนำให้ศึกษาจาก **[[01_VERIFICATION_FUNDAMENTALS/00_Overview|บทที่ 1]]** เพื่อสร้างความเข้าใจใน "กระบวนการคิด" เบื้องหลังการตรวจสอบความถูกต้องก่อนเริ่มลงมือเขียนโค้ด
+หากคุณเพิ่งเริ่มต้น แนะนำให้ศึกษาจาก **[[CONTENT/01_VERIFICATION_FUNDAMENTALS/00_Overview|บทที่ 1]]** เพื่อสร้างความเข้าใจใน "กระบวนการคิด" เบื้องหลังการตรวจสอบความถูกต้องก่อนเริ่มลงมือเขียนโค้ด

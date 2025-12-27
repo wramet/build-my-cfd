@@ -636,3 +636,7 @@ nut = turbulence->nut();
 ---
 
 *เอกสารนี้ใช้หลักสูตร **Code Archaeology** และ **Concept over Syntax** ถาม "ทำไม" ก่อน "อย่างไร" เสมอ และใช้ analogies เพื่อเชื่อมโยงความซับซ้อนของ C++ กับสัญชาตญาณ CFD*
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ถัดไป:** [01_Introduction.md](01_Introduction.md) - บทนำสู่ Design Patterns ใน OpenFOAM

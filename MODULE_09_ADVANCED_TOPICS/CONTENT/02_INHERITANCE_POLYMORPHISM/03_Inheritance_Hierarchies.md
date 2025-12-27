@@ -744,3 +744,24 @@ tmp<volVectorField> phaseSystem::U() const
 | **Template Method Pattern** | โครงสร้างอัลกอริทึมที่สม่ำเสมอ | `phaseModel::correct()` |
 
 ลำดับชั้นการสืบทอดของ OpenFOAM เป็นตัวอย่างที่ยอดเยี่ยมของการออกแบบซอฟต์แวร์เชิงวัตถุที่สมดุลระหว่างความยืดหยุ่น ประสิทธิภาพ และความสามารถในการบำรุงรักษา ทำให้สามารถจัดการกับความซับซ้อนของโมเดลฟิสิกส์ CFD ได้อย่างมีประสิทธิภาพ
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ทำไม OpenFOAM ถึงออกแบบให้ชั้น `GeometricField` สืบทอดแบบ Non-Virtual Multiple Inheritance แทนที่จะเป็น Virtual?</summary>
+
+**คำตอบ:** เพื่อหลีกเลี่ยง "Diamond Problem" และ **ลด Overhead ของ Virtual Function Calls** เนื่องจาก Base classes อย่าง `DimensionedField` และ `refCount` ไม่มี Ancestor ร่วมกัน จึงไม่จำเป็นต้องใช้ Virtual Inheritance ที่มีค่าใช้จ่ายสูงกว่า
+</details>
+
+<details>
+<summary>2. หน้าที่ของ `tmp<>` Smart Pointer แตกต่างจาก `autoPtr<>` อย่างไร?</summary>
+
+**คำตอบ:** 
+*   `tmp<>`: ใช้จัดการ **Temporary Objects** ด้วย **Reference Counting** (แชร์ได้) เหมาะสำหรับ field algebra ที่ต้องการประสิทธิภาพสูงและลดการ copy
+*   `autoPtr<>`: ใช้จัดการ **Exclusive Ownership** (เจ้าของเดียว) เหมาะสำหรับ object ที่สร้างจาก Factory Pattern และต้องการการจัดการ memory ที่ชัดเจน
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [02_Abstract_Interfaces.md](02_Abstract_Interfaces.md) - อินเทอร์เฟซนามธรรม
+*   **ถัดไป:** [04_Run_Time_Selection_System.md](04_Run_Time_Selection_System.md) - ระบบการเลือก Runtime Selection (RTS)

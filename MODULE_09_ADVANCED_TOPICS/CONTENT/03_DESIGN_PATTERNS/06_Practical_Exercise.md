@@ -891,3 +891,22 @@ gprof yourSolver gmon.out > analysis.txt
 ---
 
 **คำแนะนำสุดท้าย:** การเรียนรู้ design patterns ของ OpenFOAM เป็นการเดินทาง อย่าลังเลที่จะทดลอง ทำผิด และเรียนรู้จากความผิดพลาด ชุมชน OpenFOAM ยินดีช่วยเหลือและ codebase เต็มไปด้วยตัวอย่างที่ดี ขอให้สนุกกับการเขียนโค้ด!
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ทำไมการใช้ `override` keyword ในการประกาศฟังก์ชัน member ใน Derived Class จึงเป็น Good Practice?</summary>
+
+**คำตอบ:** เพื่อให้ Compiler ช่วยตรวจสอบว่าฟังก์ชันนี้ **แทนที่ (Override)** ฟังก์ชัน Virtual ของ Base Class จริงๆ หรือไม่ หากเราพิมพ์ชื่อผิด หรือ Signature ไม่ตรง Compiler จะฟ้อง Error ทันที ช่วยป้องกันบั๊กที่ยากจะสังเกตเห็น
+</details>
+
+<details>
+<summary>2. การใช้ `Max(..., smallValue)` ในการคำนวณ เช่น `1/Re` มีประโยชน์อย่างไร?</summary>
+
+**คำตอบ:** เพื่อ **ป้องกันการหารด้วยศูนย์ (Division by Zero)** ที่อาจเกิดขึ้นได้ในบาง Cell ที่มีความเร็วเข้าใกล้ศูนย์ (Stagnant Regions) ซึ่งจะทำให้ค่า `Re` เป็นศูนย์ และทำให้การคำนวณ `1/Re` เกิดค่า Infinity หรือ NaN ซึ่งจะทำให้ Solver ล้มเหลว
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [05_Performance_Analysis.md](05_Performance_Analysis.md) - การวิเคราะห์ประสิทธิภาพของ Design Patterns
+*   **ไปที่หน้าหลัก:** [00_Overview.md](00_Overview.md) - ภาพรวมของ Design Patterns ใน OpenFOAM

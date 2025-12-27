@@ -1,4 +1,4 @@
-# 02. Non-Newtonian Viscosity Models
+# 02. แบบจำลองความหนืดนอนนิวตัน (Non-Newtonian Viscosity Models)
 
 ## Overview
 
@@ -8,6 +8,15 @@ OpenFOAM implements non-Newtonian fluid behavior through a sophisticated **hiera
 > All models follow the *generalised Newtonian* approach where viscosity is a scalar function of the strain-rate magnitude: $\mu = \mu(\dot{\gamma})$.
 
 ---
+ 
+ > [!TIP] **มุมมองเปรียบเทียบ: การเลือกเกียร์รถยนต์ (Choosing the Right Gear)**
+ >
+ > ลองเปรียบเทียบแต่ละ Model เหมือนการเลือก **"โหมดขับขี่"**:
+ > *   **Power-Law:** เหมือน **"เกียร์ออโต้โหมด Sport (CVT)"** - เร่งเครื่องแรง (High Shear) รอบจัด แต่ถ้ารถติด (Low Shear) อาจจะกระตุกเพราะไม่มี Idle speed ที่นิ่ง (ไม่มี Newtonian Plateau)
+ > *   **Bird-Carreau:** เหมือน **"รถยนต์หรูที่มีระบบ Hybrid"** - ขับช้าๆ ก็นิ่ม (Low Shear Plateau) ขับเร็วก็พุ่ง (Shear Thinning) ช่วงเปลี่ยนถ่ายราบรื่น
+ > *   **Herschel-Bulkley:** เหมือน **"รถบรรทุกหนัก"** - ต้องเร่งเครื่องแรงๆ (Yield Stress) รถถึงจะเริ่มขยับ ถ้าเหยียบคันเร่งเบาๆ ไม่ไปเลย
+ 
+ ---
 
 ## Mathematical Foundation
 
@@ -705,3 +714,27 @@ CrossModelCoeffs
 
 > [!TIP] Best Practice
 > Always verify model parameters against experimental rheometer data before production simulations. Use regularization for yield-stress fluids to prevent numerical instability.
+ 
+ ---
+ 
+ ## 🧠 Concept Check: ทดสอบความเข้าใจ
+ 
+ <details>
+ <summary><b>1. Power-Law ต่างจาก Bird-Carreau ตรงไหน?</b></summary>
+ 
+ **คำตอบ:**
+ *   **Power-Law:** ง่ายที่สุด แต่ไม่มีลิมิตความหนืด (Viscosity limit) ที่ Shear Rate ต่ำมากๆ หรือสูงมากๆ (เป็นเส้นตรงใน log-log plot ตลอด)
+ *   **Bird-Carreau:** ซับซ้อนกว่า แต่สมจริงกว่า เพราะมี **Newtonian Plateaus** (ความหนืดคงที่) ที่ Shear Rate ต่ำและสูง ซึ่งตรงกับพฤติกรรมของ Polymer ส่วนใหญ่
+ </details>
+ 
+ <details>
+ <summary><b>2. ถ้าใช้ Herschel-Bulkley แล้ว Simulation ระเบิด (Blow up) ตอนเริ่มรัน น่าจะเกิดจากอะไร?</b></summary>
+ 
+ **คำตอบ:** มักเกิดจาก **Yield Stress term ($\tau_y/\dot{\gamma}$)** เพราะตอนเริ่มความเร็วเป็น 0 ทำให้ $\dot{\gamma} \to 0$ เกิดการหารด้วยศูนย์ ต้องแก้ด้วยการใส่ **Regularization** หรือใช้ **Papanastasiou model** หรือกำหนดค่า `nuMax` ให้เหมาะสม
+ </details>
+ 
+ <details>
+ <summary><b>3. Regularization คืออะไร?</b></summary>
+ 
+ **คำตอบ:** คือเทคนิคทางคณิตศาสตร์ที่ช่วยให้สมการที่ "ไม่ต่อเนื่อง" หรือ "หาค่าไม่ได้" (Singularity) สามารถคำนวณได้ เช่น การบวกค่า $\epsilon$ เล็กๆ เข้าไปที่ตัวหาร ($\frac{1}{\dot{\gamma} + \epsilon}$) เพื่อป้องกัน Infinite Viscosity
+ </details>

@@ -547,3 +547,7 @@ tmp<volScalarField> tPerm(&perm, false);  // ✅ not a temporary
 ---
 
 *ความรู้สำคัญ: **การจัดการหน่วยความจำของ OpenFOAM ถูกออกแบบมาเพื่อความปลอดภัยและประสิทธิภาพสูงสุดในงานคำนวณขนาดใหญ่***
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ถัดไป:** [01_Introduction.md](01_Introduction.md) - บทนำสู่การจัดการหน่วยความจำใน OpenFOAM

@@ -679,3 +679,22 @@ size $FOAM_USER_LIBBIN/libcustomViscosityModels.so
 | 4. Installation | `ln -sf` | `$FOAM_USER_LIBBIN/` | ทำให้ library available |
 
 การเข้าใจกระบวนการคอมไพล์นี้เป็นสิ่งสำคัญสำหรับการพัฒนา OpenFOAM ที่มีประสิทธิภาพ ระบบ build ที่ซับซ้อนนี้ช่วยให้สถาปัตยกรรมแบบโมดูลาร์และการใช้ template อย่างกว้างขวางของ OpenFOAM ทำงานร่วมกันได้อย่างราบรื่น ในขณะที่ยังคงประสิทธิภาพการคอมไพล์และความสามารถในการขยายตัว
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. หน้าที่ของคำสั่ง `wmakeLnInclude` คืออะไร และทำไมจึงสำคัญมากใน OpenFOAM?</summary>
+
+**คำตอบ:** ทำหน้าที่สร้างไดเรกทอรี `lnInclude` และสร้าง Symbolic Links ไปยังไฟล์ Header (.H) ทั้งหมดที่จำเป็นรวมถึงจาก Dependencies ด้วย การทำเช่นนี้ช่วย "แผ่แบน" (Flatten) โครงสร้างไฟล์ Header ทำให้ Compiler สามารถค้นหาไฟล์เหล่านั้นได้ง่ายโดยไม่ต้องระบุ Path ที่ซับซ้อน ซึ่งสำคัญมากสำหรับการจัดการ Template จำนวนมหาศาลใน OpenFOAM
+</details>
+
+<details>
+<summary>2. หากคุณพบข้อผิดพลาด "Undefined Reference" ในขั้นตอนการ Link สาเหตุที่น่าจะเป็นคืออะไร และแก้ไขอย่างไร?</summary>
+
+**คำตอบ:** สาเหตุมาจากการที่ Linker ไม่สามารถหา "เนื้อหา" หรือ Implementation ของฟังก์ชัน/คลาสที่ถูกเรียกใช้ได้ มักเกิดจากการลืมระบุไลบรารีในตัวแปร `EXE_LIBS` ในไฟล์ `Make/options` การแก้ไขคือให้เพิ่ม flag ลิงก์ไลบรารีที่ขาดหายไป (เช่น `-ltransportModels`) เข้าไปใน `EXE_LIBS`
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [03_Folder_and_File_Organization.md](03_Folder_and_File_Organization.md) - โครงสร้างโฟลเดอร์และการจัดระเบียบไฟล์
+*   **ถัดไป:** [05_Inheritance_and_Virtual_Functions.md](05_Inheritance_and_Virtual_Functions.md) - การสืบทอดและฟังก์ชันเสมือน: การกำหนด Interface พลวัต

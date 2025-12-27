@@ -526,3 +526,27 @@ heatTransferModel
 10. **จัดการหน่วยความจำอย่างมีประสิทธิภาพ** - ใช้ `tmp` และ `autoPtr` อย่างเหมาะสม
 
 รูปแบบความสอดคล้องระหว่าง Factory และ Strategy นี้เปิดให้ชุมชนการคำนวณทางวิทยาศาสตร์สามารถขยาย OpenFOAM โดยไม่ต้องแก้ไขโค้ดหลัก ส่งเสริมระบบนิเวศที่มีชีวิตของโมเดลฟิสิกส์แบบกำหนดเอง, รูปแบบตัวเลข และเครื่องมือจำลองที่สามารถแบ่งปันและปรับใช้งานได้ง่าย
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ทำไม OpenFOAM ถึงยอมแลกกับ Overhead ของ Virtual Function ในการใช้ Strategy Pattern?</summary>
+
+**คำตอบ:** เพราะ Overhead นั้นมีค่าน้อยมาก (ประมาณ 0.2%) เมื่อเทียบกับเวลาที่ใช้ในการคำนวณ Field Operations (เช่นการแก้สมการ Matrix ขนาดใหญ่) แต่ประโยชน์ที่ได้คือ **ความยืดหยุ่น (Flexibility)** และ **ความสามารถในการขยาย (Extensibility)** ที่มหาศาล ทำให้สามารถเปลี่ยนโมเดลใน Runtime ได้
+</details>
+
+<details>
+<summary>2. กระบวนการสร้างออบเจกต์ใน OpenFOAM มีลำดับอย่างไร (ตาม Flowchart ในบทเรียน)?</summary>
+
+**คำตอบ:** 
+1. อ่าน **Case Dictionary** เพื่อหา keyword `type`
+2. เรียก **Factory Method** (`New()`)
+3. **Lookup** ใน Runtime Selection Table
+4. สร้างออบเจกต์ตาม **Strategy** ที่ระบุ
+5. ส่งคืนออบเจกต์ในรูปแบบ `autoPtr` ให้ Solver ใช้งานผ่าน **Interface**
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [03_Strategy_Pattern.md](03_Strategy_Pattern.md) - เจาะลึก Strategy Pattern ใน OpenFOAM
+*   **ถัดไป:** [05_Performance_Analysis.md](05_Performance_Analysis.md) - การวิเคราะห์ประสิทธิภาพของ Design Patterns

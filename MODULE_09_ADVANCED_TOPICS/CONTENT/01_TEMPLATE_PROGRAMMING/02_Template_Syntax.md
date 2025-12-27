@@ -536,3 +536,25 @@ $$\frac{1}{2}\rho|\mathbf{U}|^2 : \text{ML}^{-3} \times (\text{LT}^{-1})^2 = \te
 ---
 
 **หัวข้อถัดไป:** [03_Internal_Mechanics.md](03_Internal_Mechanics.md) - เจาะลึกกลไกภายในของเทมเพลต ตัวแปรสมาชิก และความหมายทางฟิสิกส์
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. `GeometricField` ประกอบด้วย 3 Parameter หลักคืออะไรบ้าง?</summary>
+
+**คำตอบ:**
+1. **Type**: ปริมาณทางฟิสิกส์ (Scalar, Vector, Tensor)
+2. **PatchField**: พฤติกรรมที่ขอบเขต (Boundary Conditions)
+3. **GeoMesh**: รูปแบบการ Discretization (fvMesh, faMesh, pointMesh)
+</details>
+
+<details>
+<summary>2. หากเรานำ `pressure` (Scalar) มาบวกกับ `velocity` (Vector) จะเกิดอะไรขึ้น?</summary>
+
+**คำตอบ:** จะเกิด **Compile Error** เนื่องจากระบบ Template ของ OpenFOAM มีการตรวจสอบ **Dimensional Consistency** และ **Type Safety** ในขณะ Compile
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [01_Introduction.md](01_Introduction.md) - แนวคิดพื้นฐาน Template
+*   **ถัดไป:** [03_Internal_Mechanics.md](03_Internal_Mechanics.md) - โครงสร้างภายใน `internalField_` และ `boundaryField_`

@@ -826,3 +826,23 @@ Info << "Virtual: " << tVirtual << "s, Direct: " << tDirect << "s" << endl;
 4. **Document decisions**: บันทึกเหตุผลการออกแบบเพื่อการอ้างอิงในอนาคต
 
 สถาปัตยกรรม polymorphic ของ OpenFOAM ให้ความสมดุลที่ดีระหว่างประสิทธิภาพและความยืดหยุ่น ด้วยการทำความเข้าใจต้นทุนด้านประสิทธิภาพและการใช้กลยุทธ์ที่เหมาะสม นักพัฒนาสามารถสร้างโค้ดที่มีประสิทธิภาพสูงในขณะที่ยังคงประโยชน์ของความยืดหยุ่นทางสถาปัตยกรรม
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ทำไม OpenFOAM ถึงเลือกใช้ Virtual Calls ในระดับ Field (Field-Level) แทนที่จะใช้ในระดับ Cell (Cell-Level) ในลูป?</summary>
+
+**คำตอบ:** เพื่อลด Overhead ของ Virtual Dispatch การเรียก Virtual Function มีต้นทุน (Indirect Jump, ไม่สามารถ Inline ได้) หากเรียกในระดับ Cell (ล้านครั้งต่อ Iteration) จะทำให้ประสิทธิภาพลดลงอย่างมาก การเรียกในระดับ Field ครั้งเดียวแล้วใช้ Loop ภายในที่มีประสิทธิภาพ (Vectorized) จะช่วยรักษาความเร็วไว้ได้ใกล้เคียงกับการเขียนโค้ดแบบ Hard-coded
+</details>
+
+<details>
+<summary>2. Expression Templates ช่วยเพิ่มประสิทธิภาพการคำนวณได้อย่างไรเมื่อเปรียบเทียบกับ Operator Overloading แบบดั้งเดิม?</summary>
+
+**คำตอบ:** Expression Templates ช่วยกำจัด Temporary Objects ที่เกิดขึ้นระหว่างการคำนวณนิพจน์ซับซ้อน (เช่น `A + B + C`) แทนที่จะสร้างออบเจกต์ชั่วคราวสำหรับผลลัพธ์ย่อยแต่ละขั้นตอน Expression Templates จะสร้าง "Expression Tree" ที่เก็บโครงสร้างการคำนวณไว้ และประเมินผลลัพธ์ปลายทางในลูปเดียว (Loop Fusion) ทำให้ลดการจองหน่วยความจำและการคัดลอกข้อมูล
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [06_Common_Errors_and_Debugging.md](06_Common_Errors_and_Debugging.md) - ข้อผิดพลาดทั่วไปและการดีบักในระบบ Inheritance
+*   **ถัดไป:** [08_Practical_Exercise.md](08_Practical_Exercise.md) - แบบฝึกหัดปฏิบัติจริง: การสร้าง Custom Boundary Condition
+*   **ภาพรวม:** [00_Overview.md](00_Overview.md) - กลับสู่หน้าหลักของโมดูล Inheritance & Polymorphism

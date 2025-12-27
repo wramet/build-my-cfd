@@ -715,3 +715,22 @@ void solveExpressionTemplates(volVectorField& U, const volScalarField& p,
 - ความเชี่ยวชาญของทีมพัฒนา
 
 ในท้ายที่สุด ระบบ expression template ของ OpenFOAM เป็นตัวอย่างที่โดดเด่นของการที่ภาษาโปรแกรมระดับสูงสามารถผสานความสามารถในการแสดงออกที่ยอดเยี่ยมเข้ากับประสิทธิภาพการคำนวณที่เหนือกว่า — หลักการที่สามารถนำไปใช้กับแอปพลิเคชันการคำนวณทางวิทยาศาสตร์ใดๆ
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. จงอธิบายว่า "Expression Template Pattern" ใน OpenFOAM บรรลุ Static Polymorphism ได้อย่างไร และสิ่งนี้มีข้อได้เปรียบเหนือ Virtual Functions แบบดั้งเดิมอย่างไร?</summary>
+
+**คำตอบ:** บรรลุผ่านทาง **Curiously Recurring Template Pattern (CRTP)** โดยที่คลาสลูก (Derived Class) จะส่งตัวเองเป็นอาร์กิวเมนต์เทมเพลตให้กับคลาสแม่ (Base Class) ทำให้คอมไพเลอร์สามารถแก้ไขการเรียกใช้ฟังก์ชันได้ตั้งแต่ตอนคอมไพล์ (Compile-time resolution) ซึ่งช่วยกำจัด Overhead ที่เกิดจากการเปิดตาราง Vtable ในช่วงรันไทม์ของ Virtual Functions
+</details>
+
+<details>
+<summary>2. ในบริบทของ Object Pool Pattern ที่ใช้ใน `tmp<>` อะไรคือประโยชน์หลักของการนำวัตถุชั่วคราว (Temporary Objects) กลับมาใช้ใหม่สำหรับการดำเนินการกับฟิลด์ขนาดใหญ่?</summary>
+
+**คำตอบ:** ช่วยลด "ค่าใช้จ่าย" (Overhead) จากการจองและคืนหน่วยความจำ (`new`/`delete`) ได้อย่างมหาศาล โดยการนำวัตถุขนาดใหญ่ที่มีอยู่แล้วกลับมาใช้ใหม่ (Recycling) ซึ่งยังช่วยปรับปรุง **Memory Locality** และลดปัญหา Fragmentation ของหน่วยความจำอีกด้วย
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [04_Compilation_and_Machine_Code.md](04_Compilation_and_Machine_Code.md) - การแปลงเป็น Machine Code
+*   **ถัดไป:** [06_Common_Errors_and_Debugging.md](06_Common_Errors_and_Debugging.md) - ข้อผิดพลาดทั่วไปและการดีบัก

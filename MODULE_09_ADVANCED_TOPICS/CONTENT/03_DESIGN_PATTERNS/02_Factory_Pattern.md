@@ -748,3 +748,22 @@ Factory Pattern ใน OpenFOAM แสดงถึงการใช้งาน
 - **การลงทะเบียนเกิดผ่าน static initialization** - อัตโนมัติก่อนการดำเนินการ `main()`
 
 รูปแบบนี้เปิดให้ชุมชนการคำนวณทางวิทยาศาสตร์สามารถขยาย OpenFOAM โดยไม่ต้องแก้ไขโค้ดหลัก ส่งเสริมระบบนิเวศที่มีชีวิตของโมเดลฟิสิกส์แบบกำหนดเอง, รูปแบบตัวเลข และเครื่องมือจำลองที่สามารถแบ่งปันและปรับใช้งานได้ง่าย
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ทำไม `addToRunTimeSelectionTable` ถึงเป็นมาโครที่สำคัญที่สุดในการทำ Custom Model ใน OpenFOAM?</summary>
+
+**คำตอบ:** เพราะมาโครนี้ทำหน้าที่สร้าง **Static Registrar Object** ที่จะ "แอบ" ทำงานก่อนฟังก์ชัน `main()` เริ่ม (Static Initialization) เพื่อลงทะเบียนคอนสตรักเตอร์ของโมเดลเราเข้ากับ **ตารางเลือก (Selection Table)** ถ้าไม่มีขั้นตอนนี้ OpenFOAM จะไม่รู้จักโมเดลของเราและจะฟ้อง Error ว่า Unknown type
+</details>
+
+<details>
+<summary>2. ความแตกต่างระหว่าง `class turbulenceModel` ที่เป็น Abstract Base Class กับ "Factory" คืออะไร?</summary>
+
+**คำตอบ:** `class turbulenceModel` ทำหน้าที่เป็น **Blueprint** หรือ **Interface** ที่กำหนดว่าโมเดลทุกตัวต้องมีหน้าตาและฟังก์ชันอะไรบ้าง (เช่น `k()`, `epsilon()`) ส่วน **Factory** (ซึ่งคือ static method `New()`) ทำหน้าที่เป็น **คนสร้าง** (Creator) ที่ตัดสินใจว่าจะสร้าง object ของลูกหลานตัวไหน (เช่น `kEpsilon` หรือ `kOmega`) ตามคำสั่งจาก Dictionary
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [01_Introduction.md](01_Introduction.md) - บทนำสู่ Design Patterns ใน OpenFOAM
+*   **ถัดไป:** [03_Strategy_Pattern.md](03_Strategy_Pattern.md) - เจาะลึก Strategy Pattern ใน OpenFOAM

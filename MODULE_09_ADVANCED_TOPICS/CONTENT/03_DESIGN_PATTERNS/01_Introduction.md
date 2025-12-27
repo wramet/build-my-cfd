@@ -348,3 +348,22 @@ $$
 - **Factory Pattern** ≈ การกำหนดค่า Case ที่ไม่ขึ้นกับ Mesh
 - **Strategy Pattern** ≈ การเลือกโมเดลทางคณิตศาสตร์
 - **การรวมกัน** ≈ ความสามารถ Plug-and-play ของ Solver ฟิสิกส์
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. Factory Pattern ใน OpenFOAM เปรียบเสมือนอะไรในชีวิตจริง?</summary>
+
+**คำตอบ:** เปรียบเสมือน **"เครื่องจำหน่ายสินค้าอัตโนมัติ" (Vending Machine)** ที่เราใส่ข้อมูลระบุความต้องการ (เช่น เหรียญ หรือการเลือกสินค้า) แล้วเครื่องจะส่งสินค้า (Object) ที่ตรงตามความต้องการออกมาให้เรา โดยที่เราไม่ต้องรู้กลไกการผลิตภายใน
+</details>
+
+<details>
+<summary>2. ความสัมพันธ์ทางคณิตศาสตร์ $\mathcal{F}: \mathcal{P} \to \mathcal{A} \to \mathcal{I}$ หมายความว่าอย่างไร?</summary>
+
+**คำตอบ:** หมายถึงกระบวนการที่ **Factory ($\mathcal{F}$)** แปลง **พารามิเตอร์ ($\mathcal{P}$)** จาก Dictionary ให้เป็น **อัลกอริทึม ($\mathcal{A}$)** ที่เฉพาะเจาะจง ซึ่งอัลกอริทึมนั้นจะถูกใช้งานผ่าน **อินเทอร์เฟซมาตรฐาน ($\mathcal{I}$)**
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [00_Overview.md](00_Overview.md) - ภาพรวมของ Design Patterns ใน OpenFOAM
+*   **ถัดไป:** [02_Factory_Pattern.md](02_Factory_Pattern.md) - เจาะลึก Factory Pattern ใน OpenFOAM

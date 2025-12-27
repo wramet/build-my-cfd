@@ -1150,3 +1150,22 @@ class wellDocumentedFunctionObject : public functionObject
 - [ ] Performance acceptable
 
 การเข้าใจข้อผิดพลาดทั่วไปเหล่านี้และเทคนิคการ debugging จะช่วยให้คุณพัฒนา OpenFOAM extensions ที่เสถียรและมีประสิทธิภาพ การใช้ best practices เหล่านี้จะลดเวลา debugging และเพิ่มความน่าเชื่อถือของโค้ดของคุณอย่างมาก
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. จงอธิบายวัตถุประสงค์ของมาโคร `addToRunTimeSelectionTable` และระบุว่าควรวางไว้ในไฟล์นามสกุลใด (.H หรือ .C) เพราะเหตุใด?</summary>
+
+**คำตอบ:** มาโครนี้ใช้สำหรับ **ลงทะเบียน (Register)** คลาสเข้าสู่ระบบ Runtime Selection เพื่อให้ OpenFOAM รู้จักและเรียกใช้ได้ มัน **ต้องวางไว้ในไฟล์ .C เท่านั้น** เพื่อให้โค้ดการลงทะเบียนถูกคอมไพล์และทำงานเพียงครั้งเดียวในช่วงที่ไลบรารีถูกโหลด (Static Initialization) หากวางใน .H อาจเกิดปัญหา Multiple Definition หรือการลงทะเบียนซ้ำซ้อน
+</details>
+
+<details>
+<summary>2. ในการรันแบบขนาน (Parallel Execution) หากต้องการหาค่าสูงสุด (Max) ของสนามข้อมูลทั่วทั้งโดเมน ต้องทำอย่างไรจึงจะได้ค่าที่ถูกต้อง?</summary>
+
+**คำตอบ:** ต้องใช้ฟังก์ชัน **Global Reduction** เช่น `gMax()` หรือ `gSum()` แทนฟังก์ชันปกติ (`max()` หรือ `sum()`) เพราะฟังก์ชันปกติจะคำนวณเฉพาะข้อมูลใน Processor นั้นๆ (Local) แต่ฟังก์ชันที่มี `g` นำหน้าจะทำการรวบรวมข้อมูลจากทุก Processors ผ่าน MPI เพื่อให้ได้ค่าที่ถูกต้องของทั้งระบบ
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [05_Design_Patterns.md](05_Design_Patterns.md) - รูปแบบการออกแบบ: เบื้องหลังความสามารถในการขยาย
+*   **ถัดไป:** [07_Practical_Exercise.md](07_Practical_Exercise.md) - แบบฝึกหัด: การสร้าง FunctionObject ใหม่อย่างง่าย

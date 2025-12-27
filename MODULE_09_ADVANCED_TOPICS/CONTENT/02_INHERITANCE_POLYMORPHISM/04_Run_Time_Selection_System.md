@@ -495,3 +495,22 @@ addToRunTimeSelectionTable
 ---
 
 ระบบ RTS ที่ซับซ้อนนี้เป็นกระดูกสันหลังของความสามารถในการขยายของ OpenFOAM ทำให้นักวิจัยและวิศวกรสามารถเพิ่มโมเดลฟิสิกส์ใหม่ รูปแบบเชิงตัวเลข และเงื่อนไขขอบเขตได้โดยไม่ต้องแก้ไขโค้ด core solver ความสง่างามของระบบนี้อยู่ที่ความสามารถในการรักษาความปลอดภัยของประเภทและประสิทธิภาพในขณะที่ให้ความยืดหยุ่นสูงสุดสำหรับการกำหนดค่าการจำลอง CFD
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ทำไม OpenFOAM ถึงต้องสร้างระบบ RTS (Run-Time Selection) ขึ้นมาใช้เอง แทนที่จะใช้แค่ C++ Virtual Functions ธรรมดา?</summary>
+
+**คำตอบ:** เพราะ OpenFOAM ต้องการระบบที่ **สร้าง Object ได้จากชื่อใน Text File (Dictionary)** โดยไม่ต้อง Hard-code ชื่อคลาสไว้ในโปรแกรม และต้องรองรับการเพิ่มโมเดลใหม่ๆ แบบ **Plugin** (โหลด Library เสริม) โดยไม่ต้องแก้หรือ Compile โค้ดหลักใหม่ ซึ่ง Virtual Functions ธรรมดาทำไม่ได้ในส่วนของการสร้าง Object (Creation)
+</details>
+
+<details>
+<summary>2. หน้าที่ของ Macro `addToRunTimeSelectionTable` คืออะไร และมันทำงานตอนไหน?</summary>
+
+**คำตอบ:** หน้าที่คือ **ลงทะเบียน Class เข้าสู่ระบบ Factory** โดยอัตโนมัติ เพื่อให้โปรแกรมรู้จักและสร้าง Object นั้นได้ มันทำงานในช่วง **Static Initialization** (ก่อนฟังก์ชัน `main()` เริ่มทำงาน) ทำให้ Class ถูกลงทะเบียนทันทีที่โหลด Library
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [03_Inheritance_Hierarchies.md](03_Inheritance_Hierarchies.md) - ลำดับชั้นการสืบทอด
+*   **ถัดไป:** [05_Design_Patterns_in_Physics.md](05_Design_Patterns_in_Physics.md) - รูปแบบการออกแบบในโมเดลฟิสิกส์

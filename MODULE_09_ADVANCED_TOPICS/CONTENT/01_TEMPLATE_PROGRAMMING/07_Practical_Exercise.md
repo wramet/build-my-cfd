@@ -807,3 +807,22 @@ note: template argument deduction/substitution failed:
 4. **Code reusability**: เขียนคลาสเดียวใช้ได้กับทุกประเภทของฟิลด์ (scalar, vector, tensor)
 
 ระบบ template เปลี่ยนการพัฒนา CFD จากการ "เขียนโค้ดเพื่อแก้สมการ" เป็นการ "กำหนดสมการที่จะถูกคอมไพล์เป็นเครื่องยนต์ฟิสิกส์ที่เหมาะสมที่สุด"
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ทำไม `StatisticalField` ถึงต้องสืบทอด (Inherit) มาจาก `GeometricField`?</summary>
+
+**คำตอบ:** เพื่อให้ `StatisticalField` มีคุณสมบัติความเป็น Field ของ OpenFOAM ครบถ้วน (เช่น มี internalField, boundaryField, mesh) และสามารถนำไปใช้งานร่วมกับฟังก์ชันต่างๆ ของ OpenFOAM ได้ทันที
+</details>
+
+<details>
+<summary>2. จุดเด่นของ Welford's Algorithm ที่ใช้ในการคำนวณ Variance คืออะไร?</summary>
+
+**คำตอบ:** เป็นอัลกอริทึมแบบ **On-line (Single Pass)** ที่คำนวณค่าเฉลี่ยและความแปรปรวนได้ทันทีที่ข้อมูลเข้ามาทีละตัว และมี **ความเสถียรทางตัวเลข (Numerical Stability)** สูงกว่าสูตรดั้งเดิม
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [06_Common_Errors_and_Debugging.md](06_Common_Errors_and_Debugging.md) - การ Debug Template Code
+*   **กลับสู่ภาพรวม:** [00_Overview.md](00_Overview.md) - ภาพรวมบทเรียน Template Programming

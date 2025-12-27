@@ -590,3 +590,22 @@ Abstract interfaces ใน OpenFOAM ไม่ใช่แค่ technique ทา
 4. **ส่งเสริมการทดลอง**: Configuration-driven ทางวิทยาศาสตร์
 
 การสืบทอดและ polymorphism ของ OpenFOAM เปลี่ยน CFD จาก **hardcoded physics** ไปสู่ **configurable science** ซึ่งเป็นการเปลี่ยนแปลงที่มีอิทธิพลอย่างลึกซึ้งต่องานวิจัยและการใช้งานจริง
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ทำไม OpenFOAM ถึงเลือกใช้ Abstract Interfaces ตามหลักการ Dependency Inversion Principle (DIP)?</summary>
+
+**คำตอบ:** เพื่อให้โมดูลระดับสูง (High-level) อย่าง Solver ไม่ต้องพึ่งพาโมดูลระดับต่ำ (Low-level) อย่าง Model Implementations เฉพาะเจาะจง แต่ให้ทั้งคู่พึ่งพาผ่านอินเทอร์เฟซนามธรรมแทน ทำให้สามารถเปลี่ยน Model ได้โดยไม่ต้องแก้โค้ด Solver
+</details>
+
+<details>
+<summary>2. หลักการ Interface Segregation Principle ช่วยป้องกันปัญหา "Fat Interface" ได้อย่างไรใน OpenFOAM?</summary>
+
+**คำตอบ:** โดยการแยกอินเทอร์เฟซให้เล็กและเฉพาะเจาะจง (เช่นแยก `dragModel` ออกจาก `liftModel`) ทำให้คลาสไม่ต้องถูกบังคับ Implementation ฟังก์ชันที่ไม่จำเป็นต้องใช้ เช่น Drag Model ไม่ต้องมีฟังก์ชันเกี่ยวกับ Lift
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [01_Introduction.md](01_Introduction.md) - บทนำเรื่องระบบ Plug-and-Play
+*   **ถัดไป:** [03_Inheritance_Hierarchies.md](03_Inheritance_Hierarchies.md) - ลำดับชั้นการสืบทอดใน OpenFOAM

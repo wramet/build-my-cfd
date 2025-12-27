@@ -673,3 +673,22 @@ Runtime Selection Tables ใน OpenFOAM แสดงให้เห็นถึ
 $$\text{Solver} \rightarrow \text{functionObject Interface} \leftarrow \text{Specific Implementation}$$
 
 ผลลัพธ์คือแพลตฟอร์ม CFD ที่สามารถพัฒนาจากโปรแกรมแก้ปัญหาการไหลแบบลามินาร์ที่ง่ายไปสู่ระบบหลายฟิสิกส์ที่ซับซ้อนผ่านรูปแบบสถาปัตยกรรมที่ยอมรับความสามารถในการขยายมากกว่าการจำกัด
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ทำไมรูปแบบ "Hardcoded Factory" (เช่น การใช้ if/else เช็คชื่อ type เพื่อสร้าง object) ถึงถือเป็นเรืองไม่ดีในสถาปัตยกรรมของ OpenFOAM?</summary>
+
+**คำตอบ:** เพราะการเพิ่มประเภทหรือโมเดลใหม่จะต้องทำการ **แก้ไขซอร์สโค้ด (Source Code Modification)** ในฟังก์ชัน Factory นั้นและต้องทำการ **คอมไพล์ OpenFOAM Core ใหม่ทั้งหมด (Recompilation)** ซึ่งไม่มีความยืดหยุ่นและขัดแย้งกับหลักการ Open-Closed Principle
+</details>
+
+<details>
+<summary>2. หน้าที่หลักของมาโคร `addToRunTimeSelectionTable` คืออะไร?</summary>
+
+**คำตอบ:** สร้าง static object ที่จะทำงานก่อนฟังก์ชัน `main()` เพื่อทำการ **ลงทะเบียน (Register)** คลาสใหม่ (พร้อมตัวสร้าง constructor ของมัน) เข้าไปใน Runtime Selection Table ของระบบโดยอัตโนมัติ ทำให้คลาสนั้นพร้อมใช้งานทันทีโดยไม่ต้องไปแก้ไขโค้ดที่ส่วนกลาง (Central Registry)
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [01_Introduction.md](01_Introduction.md) - บทนำ: สถาปัตยกรรมความสามารถในการขยาย
+*   **ถัดไป:** [03_Dynamic_Library_Loading.md](03_Dynamic_Library_Loading.md) - การโหลดไลบรารีแบบไดนามิก (dlopen)

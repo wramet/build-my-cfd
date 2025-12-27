@@ -544,3 +544,25 @@ calculateInvariant(const FieldType& field) {
 - การ maintain codebase ขนาดใหญ่ที่มีประสิทธิภาพ
 
 นี่คือเหตุผลที่ OpenFOAM สามารถจัดการ CFD problems ที่ซับซ้อนด้วยประสิทธิภาพสูงในขณะที่ยังคงความสามารถในการขยายและการใช้งานที่หลากหลาย
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. กระบวนการ Template Instantiation ประกอบด้วย 3 ขั้นตอนหลัก อะไรบ้าง?</summary>
+
+**คำตอบ:**
+1. **Template Definition:** กำหนดโครงสร้างคณิตศาสตร์พื้นฐาน
+2. **Template Argument Deduction:** Compiler อนุมานชนิดข้อมูล (Type) จากการใช้งาน
+3. **Code Generation:** สร้าง Machine Code ที่ปรับแต่งเฉพาะสำหรับ Type นั้นๆ
+</details>
+
+<details>
+<summary>2. ประโยชน์หลักของการทำ Template Specialization สำหรับ `scalar` คืออะไร?</summary>
+
+**คำตอบ:** เพื่อให้สามารถใช้คำสั่ง **SIMD (Single Instruction, Multiple Data)** ในการประมวลผลข้อมูลหลายค่าพร้อมกันได้ และลด Overhead ของการเรียกฟังก์ชัน (Function Call Overhead) ทำให้เร็วกว่า Generic Template ถึง 2-5 เท่า
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [03_Internal_Mechanics.md](03_Internal_Mechanics.md) - โครงสร้างข้อมูลภายใน
+*   **ถัดไป:** [05_Design_Patterns.md](05_Design_Patterns.md) - เรียนรู้ Design Patterns ขั้นสูง (Expression Templates, Traits)

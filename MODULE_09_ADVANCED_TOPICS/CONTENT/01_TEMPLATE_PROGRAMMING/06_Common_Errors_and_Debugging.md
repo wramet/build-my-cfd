@@ -439,3 +439,22 @@ auto computeGradient(const FieldType& field)
 ```
 
 ระบบความปลอดภัยทางมิตินี้เป็นหนึ่งในจุดแข็งของ OpenFOAM ซึ่งตรวจจับข้อผิดพลาดทางคณิตศาสตร์ก่อน runtime และรับประกันการคำนวณที่มีความหมายทางฟิสิกส์
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. หากเจอ Error ว่า `template argument deduction/substitution failed` หมายความว่าอะไร?</summary>
+
+**คำตอบ:** หมายความว่า Compiler ไม่สามารถจับคู่ชนิดข้อมูล (Type) ของตัวแปรที่เราส่งเข้าไป กับที่ Template กำหนดไว้ได้ (เช่น ส่ง int เข้าไปใน Template ที่รับ class Type แต่มีเงื่อนไขบางอย่างที่ไม่ตรง)
+</details>
+
+<details>
+<summary>2. `static_assert` มีประโยชน์อย่างไรในการเขียน Template?</summary>
+
+**คำตอบ:** ใช้ตรวจสอบเงื่อนไขความถูกต้องในขณะ Compile (Compile-time) และสามารถกำหนดข้อความ Error ที่สื่อความหมายชัดเจนได้ ช่วยให้ Debug ได้ง่ายขึ้นกว่า Error มาตรฐานของ Compiler
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [05_Design_Patterns.md](05_Design_Patterns.md) - Design Patterns ใน OpenFOAM
+*   **ถัดไป:** [07_Practical_Exercise.md](07_Practical_Exercise.md) - แบบฝึกหัดสร้าง Custom Template Field

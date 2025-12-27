@@ -1038,3 +1038,23 @@ S --> T[Run Simulation]:::success
 - Curiously Recurring Template Pattern (CRTP)
 - Expression Template optimization techniques
 - OpenFOAM memory management strategies
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ทำไมเราต้องกำหนด `TypeName` และใช้ `addToRunTimeSelectionTable` ในการสร้าง Model ใหม่?</summary>
+
+**คำตอบ:** `TypeName` ใช้สร้างข้อมูล Type Information (เช่น ชื่อคลาสแบบ string) ในขณะที่ `addToRunTimeSelectionTable` ทำหน้าที่ลงทะเบียน Constructor ของคลาสเข้าสู่ Factory Table แบบอัตโนมัติ (ในช่วง Static Initialization) เพื่อให้ OpenFOAM สามารถค้นหาและสร้าง Object ของ Model นี้ได้จากชื่อที่ระบุใน Dictionary ไฟล์
+</details>
+
+<details>
+<summary>2. Object Slicing เกิดขึ้นได้อย่างไรเมื่อใช้งาน Polymorphism และเราจะป้องกันได้อย่างไร?</summary>
+
+**คำตอบ:** Object Slicing เกิดขึ้นเมื่อเราส่งผ่าน Object ของคลาสลูก (Derived Class) ไปยังฟังก์ชันที่รับพารามิเตอร์เป็นคลาสแม่ (Base Class) แบบ **Value** (Pass-by-Value) ทำให้ส่วนข้อมูลที่เพิ่มมาในคลาสลูกถูก "ตัดทิ้ง" ไป เหลือเพียงส่วนที่เป็นคลาสแม่ เพื่อป้องกันปัญหานี้ ควรส่งผ่าน Object แบบ **Reference** (`const Type&`) หรือใช้ **Pointer** (โดยเฉพาะ Smart Pointer เช่น `autoPtr` หรือ `tmp`) แทน
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [07_Performance_Considerations.md](07_Performance_Considerations.md) - การพิจารณาด้านประสิทธิภาพในระบบ Polymorphism
+*   **ภาพรวม:** [00_Overview.md](00_Overview.md) - กลับสู่หน้าหลักของโมดูล Inheritance & Polymorphism
+

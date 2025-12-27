@@ -1,82 +1,129 @@
 # การบีบอัดผิวหน้าและ MULES (Interface Compression & MULES)
 
-ใน OpenFOAM การที่จะทำให้ VOF มีผิวที่ "คมกริบ" (Sharp) ไม่เบลอเหมือนหมอก เราต้องพึ่งพาเทคนิคพิเศษ 2 อย่างคือ **Artificial Compression** และ **MULES Algorithm**
+ปัญหาโลกแตกของวิธีการ **Volume of Fluid (VOF)** แบบดั้งเดิมคือ "ผิวเบลอ" (Numerical Diffusion) จากการแก้สมการ Transport
+OpenFOAM แก้ปัญหานี้ด้วยวิธีที่ชาญฉลาดมาก คือการเพิ่ม "เทอมพิเศษ" เพื่อบีบให้ผิวคมชัด และใช้อัลกอริทึม **MULES** เพื่อป้องกันค่าหลุดกรอบ
 
-## 1. เทอมการบีบอัด (The Compression Term)
+---
 
-OpenFOAM เพิ่มเทอมพิเศษเข้าไปในสมการ Advection ของ $\alpha$ เพื่อ "ต้านทาน" การเบลอของรอยต่อ:
+## 1. วิธีแก้ปัญหาผิวเบลอ (The Compression Term)
 
-$$ \frac{\partial \alpha}{\partial t} + \nabla \cdot (\mathbf{U} \alpha) + \underbrace{\nabla \cdot (\mathbf{U}_r \alpha (1-\alpha))}_{\text{Compression Term}} = 0 $$
+แทนที่จะใช้เทคนิคทางเรขาคณิตที่ซับซ้อน (อย่าง PLIC - Piecewise Linear Interface Calculation) OpenFOAM เลือกที่จะ **แก้สมการคณิตศาสตร์เพิ่มอีกเทอม**:
 
-### กลไกของ $\alpha(1-\alpha)$
-*   เมื่อ $\alpha=1$ (ในน้ำ): $\alpha(1-\alpha) = 0$ (ไม่ทำงาน)
-*   เมื่อ $\alpha=0$ (ในอากาศ): $\alpha(1-\alpha) = 0$ (ไม่ทำงาน)
-*   **เมื่อ $0 < \alpha < 1$ (ที่รอยต่อ):** เทอมนี้จะทำงาน และสร้างความเร็วสัมพันธ์ $\mathbf{U}_r$ เพื่อบีบให้เฟสทั้งสองวิ่งเข้าหากัน
+$$ \frac{\partial \alpha}{\partial t} + \nabla \cdot (\mathbf{U} \alpha) + \underbrace{\nabla \cdot (\mathbf{U}_r \alpha (1-\alpha))}_{\text{The Magic Term}} = 0 $$
 
-```mermaid
-graph LR
-    subgraph Diffusion [Standard Advection]
-        D1[Sharp] --> D2[Blurred/Smeared]
-    end
-    
-    subgraph Compression [With Compression Term]
-        C1[Blurred] --> C2[Sharp/Compressed]
-    end
-```
+### เจาะลึกกลไกของ "เทอมวิเศษ"
+1.  **Active only at Interface:** สังเกตเทอม $\alpha(1-\alpha)$
+    - ในน้ำ ($\alpha=1$) $\rightarrow 1(0) = 0$
+    - ในอากาศ ($\alpha=0$) $\rightarrow 0(1) = 0$
+    - **ที่รอยต่อ ($0 < \alpha < 1$)** $\rightarrow \text{มีค่า} \neq 0$
+    - *ผลลัพธ์:* เทอมนี้จะทำงานเฉพาะจุดที่เป็น Interface เท่านั้น ไม่กระทบส่วนอื่น
 
-## 2. การควบคุมความคมด้วย `cAlpha`
+2.  **Compression Velocity ($\mathbf{U}_r$):**
+    เป็นความเร็วเสมือนที่สร้างขึ้นมาเพื่อ "กด" ไหลเข้าหากันในทิศทางตั้งฉากกับผิว:
+    $$ \mathbf{U}_r = \mathbf{n}_{\alpha} \cdot \min(c_{\alpha}|\phi|, |\phi_{max}|) $$
+    โดยที่ $\mathbf{n}_{\alpha} = \frac{\nabla \alpha}{|\nabla \alpha|}$ คือเวกเตอร์ตั้งฉากผิวหน้า
 
-ในไฟล์ `system/fvSolution` คุณจะพบค่าพารามิเตอร์ `cAlpha`:
-*   `cAlpha 0`: ไม่บีบเลย (ผิวจะเบลอเร็วมาก)
-*   `cAlpha 1`: **(Recommended)** บีบพอดีๆ รักษาความคมไว้ที่ประมาณ 2-3 เซลล์
-*   `cAlpha > 1`: บีบแรงมาก (ผิวคมมาก แต่อาจเกิดความไม่เสถียรและหน้าตา Mesh แปลกๆ ตรงรอยต่อ)
+3.  **Physical Meaning:**
+    มันคือการบอกโปรแกรมว่า *"เฮ้ ตรงไหนที่เป็นรอยต่อ ให้สร้างกระแสไหลย้อนกลับเข้าหากันหน่อยนะ เพื่อต้านทานการแพร่ (Diffusion)"*
 
-## 3. MULES Algorithm
+---
 
-**MULES** (Multidimensional Universal Limiter for Explicit Solution) คือพระเอกตัวจริงที่ทำให้ `interFoam` โด่งดัง
+## 2. พารามิเตอร์ `cAlpha` (The Compression Factor)
 
-### ปัญหาที่ MULES แก้
-ตามฟิสิกส์ $\alpha$ ต้องมีค่าระหว่าง $0$ ถึง $1$ เท่านั้น แต่ในทางคณิตศาสตร์ สมการ Advection มักจะ "แกว่ง" (Oscillate) ทำให้ค่าหลุดเป็น $-0.1$ หรือ $1.1$ (ซึ่งไม่มีความหมายทางฟิสิกส์และทำให้ Solver พัง)
+ในไฟล์ `system/fvSolution` คุณสามารถคุมระดับความแรงของการบีบได้ผ่าน `cAlpha`:
 
-**MULES ทำหน้าที่เป็น "ตำรวจ"** ที่คอยคุมให้ $\alpha$ อยู่ในระเบียบ $[0, 1]$ เสมอโดยไม่เสียมวล (Mass Conservative)
+| ค่า `cAlpha` | พฤติกรรม (Behavior) | คำแนะนำ (Recommendation) |
+| :---: | :--- | :--- |
+| **0** | ปิดการบีบอัด | ไม่แนะนำ ผิวจะเบลอเละในไม่กี่ steps ยกเว้นคุณต้องการจำลองการกระจายตัวของสารเคมี (Scalar transport) |
+| **1** | **Conservative Compression** | **ค่าแนะนำมาตรฐาน** บีบความเร็วเท่ากับความเร็วการไหลจริง ($\mathbf{U}_r \approx \mathbf{U}$) ให้ผิวคมประมาณ 2-3 Cells และรักษา Boundedness ได้ดี |
+| **> 1** | Over-Compression | บีบแรงกว่าปกติ ผิวจะคมกริบ (1-2 Cells) แต่อาจเกิด **Wiggles** (รอยหยัก) หรือฟองอากาศปลอมๆ ได้ เหมาะกับงาน Static หรือ Quasi-static |
+
+> [!WARNING] **อย่าปรับเพลิน!**
+> ค่า `cAlpha` ที่สูงเกินไป (> 1.5) อาจทำให้เกิดแรง Parastic Currents ที่รุนแรง และทำให้ Solver ลู่เข้ายากขึ้น
+
+---
+
+## 3. MULES Algorithm (The Guardian)
+
+**MULES** ย่อมาจาก **M**ultidimensional **U**niversal **L**imiter for **E**xplicit **S**olution.
+หน้าที่ของมันคือเป็น "ผู้คุมกฎ" (Limiter) เพื่อรับประกันว่า:
+1.  **Boundedness:** $0 \le \alpha \le 1$ เสมอ (ห้ามมีค่าน้ำ -0.1 หรือ 1.2 เด็ดขาด)
+2.  **Mass Conservation:** มวลรวมของน้ำในระบบต้องเท่าเดิมเป๊ะๆ ไม่ว่าจะผ่านไปกี่ล้าน Time steps
+
+### กลไกการทำงาน: FCT (Flux Corrected Transport)
+MULES ทำงานคล้ายกับเทคนิค FCT คือ:
+1.  คำนวณ High-order flux (แม่นยำแต่แกว่ง)
+2.  คำนวณ Low-order flux (เสถียรแต่เบลอ)
+3.  ผสมสองค่านี้เข้าด้วยกันโดยมีตัวคูณ $\lambda$ (Limiter coefficient) เพื่อให้ได้ค่าที่ดีที่สุดที่ไม่เกินขอบเขต [0, 1]
 
 ```mermaid
 flowchart TD
-    Update[Calculate Alpha Update] --> Check{Is Alpha in [0,1]?}
-    Check -- Yes --> Final[Apply Update]
-    Check -- No --> Limit[MULES Limiter: Adjust Fluxes]
-    Limit --> Update
+    Raw[Calculate Raw Fluxes] --> Limit{Check Bounds [0,1]}
+    Limit -- OK --> Accept[Use High-Order Flux (Sharp)]
+    Limit -- Violation --> Correct[Reduce Flux with Limiter (Stable)]
+    Correct --> CheckGlobal[Global Mass Check]
+    CheckGlobal --> Final[Update Alpha]
 ```
 
-## 4. การตั้งค่าใน `fvSolution`
+---
 
-ตัวอย่างการตั้งค่าที่เป็นมาตรฐานสำหรับงาน VOF:
+## 4. การตั้งค่า VOF ขั้นเทพ (Advanced Configuration)
+
+ตัวอย่างการตั้งค่าใน `system/fvSolution` สำหรับงานที่ต้องการความแม่นยำสูง:
 
 ```cpp
 solvers
 {
     "alpha.water.*"
     {
-        nAlphaCorr      1;      // จำนวนรอบการแก้สมการ Alpha (Corrector)
-        nAlphaSubCycles 2;      // ซอยย่อย Time Step เฉพาะของ Alpha เพื่อความนิ่ง
-        cAlpha          1;      // ระดับการบีบอัดผิว
+        // 1. Solver Selection
+        nAlphaCorr      2;          // แก้สมการ Alpha 2 รอบต่อ Time step (เพิ่มความแม่น)
+        nAlphaSubCycles 3;          // ซอย Time step ย่อยสำหรับ Alpha เป็น 3 ส่วน (เสถียรมาก)
+        cAlpha          1;          // แรงบีบมาตรฐาน
         
-        MULESCorr       yes;    // เปิดใช้ MULES Corrector
-        nLimiterIter    3;      // จำนวนรอบการคำนวณ Limiter
+        // 2. MULES Settings
+        MULESCorr       yes;        // ใช้ Corrector loop
+        nLimiterIter    5;          // วนลูปหาค่า Limiter 5 ครั้งเพื่อให้มวลหายเท่ากับ 0
         
+        // 3. Linear Solver
         solver          smoothSolver;
         smoother        symGaussSeidel;
-        tolerance       1e-8;
+        tolerance       1e-9;       // ต้องการความแม่นยำสูง
         relTol          0;
     }
 }
 ```
 
-> [!TIP]
-> **Sub-cycling คือทางรอด!**
-> การตั้ง `nAlphaSubCycles 2` หรือมากกว่า ช่วยให้เราสามารถใช้ Time Step ของการไหลที่ใหญ่ขึ้นได้ โดยที่ Interface ยังคงเสถียร เพราะสมการ $\alpha$ ถูกซอยย่อยคำนวณถี่กว่าเพื่อน
+### เคล็ดลับ Sub-cycling (`nAlphaSubCycles`)
+เนื่องจากสมการ $\alpha$ อ่อนไหวต่อ Courant Number มากกว่าสมการโมเมนตัม เราจึงใช้เทคนิค **Sub-cycling**:
+- สมมติ Time step หลัก ($\Delta t$) = 0.01 วินาที
+- ถ้าตั้ง `nAlphaSubCycles 4` โปรแกรมจะแก้ $\alpha$ ด้วย $\Delta t_{\alpha} = 0.0025$ วินาที จำนวน 4 ครั้ง
+- จากนั้นค่อยเอาค่าเฉลี่ยไปแก้ Momentum
+- **ข้อดี:** ทำให้เราใช้ $\Delta t$ รวมใหญ่ขึ้นได้ โดยที่ Alpha ไม่ระเบิด!
 
-## 5. MULES รุ่นต่างๆ
-*   **Explicit MULES:** มาตรฐาน ดั้งเดิม เสถียรที่สุดสำหรับ Co < 1
-*   **Semi-Implicit MULES:** ช่วยให้รันได้ที่ Co > 1 ได้เล็กน้อย (แต่ไม่แนะนำสำหรับผิวที่ต้องการความละเอียดสูง)
-*   **ISO-MULES / interIsoFoam:** เทคนิคใหม่ที่ใช้ Geometric Reconstruction (คล้าย PLIC) ให้ผิวคมกว่า MULES แบบปกติ
+---
+
+## 5. ตระกูลของ MULES
+
+OpenFOAM มีวิวัฒนาการ MULES หลายเวอร์ชัน:
+
+1.  **Explicit MULES (Original):** แม่นยำที่สุด แต่จำกัดที่ $Co_{\alpha} < 0.5$ เพื่อความเสถียร
+2.  **Semi-Implicit MULES (Newer):** ผ่อนปรนเงื่อนไข Courant number ได้บ้าง ($Co \approx 1-2$) แต่ความคมอาจลดลงเล็กน้อย
+3.  **isoAdvector (interIsoFoam):** **(Game Changer!)** ไม่ใช้ MULES แบบบีบอัด แต่ใช้เทคนิค Geometric Reconstruction จริงๆ (ตัดระนาบในเซลล์) ทำให้ผิวคมกริบภายใน 1 Cell โดยไม่ต้องปรับ `cAlpha`
+    - *แนะนำให้ลองใช้ `interIsoFoam` หากต้องการความแม่นยำระดับงานวิจัย*
+
+---
+
+## 🧠 Concept Check
+
+1.  **ทำไมเทอมบีบอัด $\nabla \cdot (\mathbf{U}_r \alpha (1-\alpha))$ ถึงไม่มีผลในบริเวณที่มีน้ำเต็ม (Water bulk)?**
+    <details><summary>เฉลย</summary>เพราะในน้ำ $\alpha = 1$ ทำให้พจน์ $(1-\alpha) = 0$ ดังนั้นผลคูณทั้งหมดจึงเป็น 0 เทอมนี้จึงทำงานเงียบๆ เฉพาะที่ Interface เท่านั้น</details>
+
+2.  **ถ้าเราตั้ง `cAlpha 0` จะเกิดอะไรขึ้น?**
+    <details><summary>เฉลย</summary>เทอมบีบอัดจะหายไป สมการจะกลายเป็นสมการ Advection ธรรมดา ผิวน้ำจะค่อยๆ เบลอและกระจายตัวออกไปเรื่อยๆ ตามเวลา (Numerical Diffusion) จนดูเหมือนน้ำระเหยหรือผสมกับอากาศไปทั่ว</details>
+
+3.  **วัตถุประสงค์หลักของ MULES คืออะไร? (เลือกข้อที่ถูกที่สุด)**
+    - A) บีบผิวให้คม
+    - B) ทำให้น้ำไหลเร็วขึ้น
+    - C) บังคับค่า $\alpha$ ให้อยู่ระหว่าง 0 และ 1
+    <details><summary>เฉลย</summary>**C) บังคับค่า $\alpha$** (Boundedness) เป็นหน้าที่หลักของการเป็น Limiter ส่วนการบีบผิวเป็นหน้าที่ของเทอม Compression ในสมการ</details>

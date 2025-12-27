@@ -1052,3 +1052,25 @@ ls $WM_PROJECT_DIR/src/transportModels/viscosityModels/
 ---
 
 *เอกสารนี้เป็นส่วนหนึ่งของ Practical Project: Implementing Custom Viscosity Models ใน MODULE_09_ADVANCED_TOPICS*
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. หากคุณเจอข้อผิดพลาด "fatal error: ... .H: No such file or directory" ระหว่างการคอมไพล์ สิ่งแรกที่ควรตรวจสอบในไฟล์ `Make/options` คืออะไร?</summary>
+
+**คำตอบ:** ตรวจสอบว่าได้ระบุ **Include Paths (`EXE_INC`)** ถูกต้องและครบถ้วนหรือไม่ เพื่อให้ Compiler รู้ตำแหน่งของไฟล์ Header ที่ขาดหายไป (มักอยู่ในโฟลเดอร์ `lnInclude` ของโมดูลอื่นๆ)
+</details>
+
+<details>
+<summary>2. ถ้าการจำลองล้มเหลวด้วยข้อความ "Unknown viscosity model powerLaw" คุณควรตรวจสอบ 2 จุดสำคัญใดบ้าง?</summary>
+
+**คำตอบ:**
+1.  ตรวจสอบว่าไลบรารีของโมเดลเรา (`libcustomViscosityModels.so`) ถูกสร้างขึ้นจริงใน `$FOAM_USER_LIBBIN` หรือไม่
+2.  ตรวจสอบไฟล์ `system/controlDict` ว่าได้เพิ่มชื่อไลบรารีลงในรายการ `libs` แล้วหรือยัง เพื่อให้ Solver ทำการโหลดไลบรารีนั้นเข้ามาใช้งาน
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [06_Design_Pattern_Rationale.md](06_Design_Pattern_Rationale.md) - แนวคิดเบื้องหลังรูปแบบการออกแบบ (Design Patterns)
+*   **ถัดไป:** [08_Final_Challenge.md](08_Final_Challenge.md) - บทสรุปและความท้าทายสุดท้าย
+*   **ภาพรวม:** [00_Overview.md](00_Overview.md)

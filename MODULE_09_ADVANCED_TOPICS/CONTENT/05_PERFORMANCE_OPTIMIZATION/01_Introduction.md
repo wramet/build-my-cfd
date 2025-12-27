@@ -694,3 +694,22 @@ public:
 - **Natural extensibility** ไปยัง parallel และ GPU computing
 
 สถาปัตยกรรมนี้ช่วยให้ OpenFOAM บรรลุประสิทธิภาพที่เปรียบเทียบได้กับ Fortran ที่ถูก optimize ด้วยมือ ในขณะที่ยังคงความยืดหยุ่นและ type safety ของ C++
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. จงและเปรียบเทียบแนวคิด "Lazy Chef" (Expression Templates) กับ "Busy Chef" (Eager Evaluation) ในบริบทของการประหยัดทรัพยากร</summary>
+
+**คำตอบ:** "Busy Chef" (Eager Evaluation) หั่นผักใส่ชามแยกไว้ทีละอย่าง (สร้าง Intermediate Objects และใช้ Memory เยอะ) ก่อนนำมาปรุงรวมกัน ส่วน "Lazy Chef" (Expression Templates) จะยังไม่ลงมือทำทันที แต่จะรวบรวมรายการทั้งหมดไว้ก่อน แล้วหั่นผักทุกอย่างลงหม้อทีเดียว (Single Pass Evaluation) ทำให้ไม่ต้องล้างชามหลายใบ (ลด Memory Allocations) และทำงานได้เร็วกว่า
+</details>
+
+<details>
+<summary>2. ในเชิงปริมาณ (Quantitative) การใช้ Expression Templates สามารถลดภาระการจองหน่วยความจำ (Memory Allocation) ได้ประมาณกี่เปอร์เซ็นต์เมื่อเทียบกับวิธีดั้งเดิม?</summary>
+
+**คำตอบ:** สามารถลดได้ถึง **60-80%** โดยเปลี่ยนความซับซ้อนของการเข้าถึงหน่วยความจำจาก O(N × M) เหลือเพียง O(N × 1) สำหรับผลลัพธ์สุดท้าย
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [00_Overview.md](00_Overview.md) - ภาพรวมของโมดูล
+*   **ถัดไป:** [02_Expression_Templates_Syntax.md](02_Expression_Templates_Syntax.md) - ไวยากรณ์ของ Expression Templates

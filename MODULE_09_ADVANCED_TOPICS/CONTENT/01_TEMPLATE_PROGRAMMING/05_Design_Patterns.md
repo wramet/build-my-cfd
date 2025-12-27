@@ -458,3 +458,22 @@ void selectOptimalScheme(FieldType& field) {
 - **โค้ดมีความปลอดภัย** โดยการตรวจสอบในระดับคอมไพล์
 
 นี่คือหัวใจของสิ่งที่ทำให้ OpenFOAM สามารถจัดการปัญหา CFD ที่ซับซ้อนด้วยประสิทธิภาพระดับโลกในขณะที่ยังคงความยืดหยุ่นในการวิจัยและพัฒนา
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ปัญหาหลักที่ "Expression Templates" เข้ามาแก้ไขคืออะไร?</summary>
+
+**คำตอบ:** แก้ปัญหา **การสร้าง Object ชั่วคราว (Temporary Objects)** จำนวนมากในระหว่างการคำนวณสมการคณิตศาสตร์ที่ซับซ้อน ซึ่งทำให้สิ้นเปลืองหน่วยความจำและเวลา
+</details>
+
+<details>
+<summary>2. "Type Traits" ช่วยป้องกันข้อผิดพลาดทางฟิสิกส์ได้อย่างไร?</summary>
+
+**คำตอบ:** ช่วยตรวจสอบความถูกต้องของประเภทข้อมูล (Type Safety) และมิติ (Dimensions) **ในขณะ Compile** (Compile-time) เช่น ป้องกันการนำ Scalar ไปบวกกับ Vector หรือการหา Gradient ของ Scalar แล้วไม่ได้ Vector
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [04_Instantiation_and_Specialization.md](04_Instantiation_and_Specialization.md) - การสร้าง Instance ของ Template
+*   **ถัดไป:** [06_Common_Errors_and_Debugging.md](06_Common_Errors_and_Debugging.md) - การจัดการข้อผิดพลาดและการ Debug Template Code

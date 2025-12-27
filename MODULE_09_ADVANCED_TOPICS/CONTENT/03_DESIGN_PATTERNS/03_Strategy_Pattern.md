@@ -333,3 +333,24 @@ class SchillerNaumann : public dragModel { /* One implementation */ };
 - อัลกอริทึมถูกเลือกผ่านฟิลด์ `type` ใน dictionary
 - Strategy + Factory ทำให้การสลับอัลกอริทึมใน runtime เป็นไปได้
 - Virtual function overhead มีค่าเล็กน้อยสำหรับ field operations
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. อะไรคือความแตกต่างหลักระหว่าง Factory Pattern และ Strategy Pattern?</summary>
+
+**คำตอบ:** 
+*   **Factory Pattern** เน้นที่ **"การสร้าง" (Creation)**: สร้างออบเจกต์อะไร
+*   **Strategy Pattern** เน้นที่ **"พฤติกรรม" (Behavior)** หรือ **"วิธีการคำนวณ" (Algorithm)**: ออบเจกต์ทำอะไร (เช่น คำนวณ Drag ด้วยสูตรไหน)
+</details>
+
+<details>
+<summary>2. Anti-Pattern การใช้ `switch-case` หรือ `if-else` เพื่อเลือกโมเดล (เช่น Drag Model) ไม่ดีอย่างไร?</summary>
+
+**คำตอบ:** เพราะมันละเมิดหลักการ **Open/Closed Principle** กล่าวคือ หากเราต้องการเพิ่มโมเดลใหม่ เราต้องกลับไปแก้โค้ดที่มีอยู่เดิม (ในส่วน `if-else`) และต้องคอมไพล์โปรแกรมใหม่ทั้งหมด ซึ่งทำให้โค้ดขยายยากและบำรุงรักษายาก
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [02_Factory_Pattern.md](02_Factory_Pattern.md) - เจาะลึก Factory Pattern ใน OpenFOAM
+*   **ถัดไป:** [04_Pattern_Synergy.md](04_Pattern_Synergy.md) - การทำงานร่วมกันของ Patterns

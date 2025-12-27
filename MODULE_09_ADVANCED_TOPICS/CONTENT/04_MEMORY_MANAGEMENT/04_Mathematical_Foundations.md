@@ -253,7 +253,23 @@ $$
 
 ## อ้างอิงเพิ่มเติม
 
-- **Memory Model**: C++ Memory Model and Synchronization
-- **Atomic Operations**: Herlihy & Shavit, "The Art of Multiprocessor Programming"
-- **Reference Counting**: D. Lea, "Concurrent Programming in Java"
 - **Cache Coherence**: M. Flynn, "Computer Architecture: Pipelined and Parallel Processor Design"
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ทำไม Overhead ของหน่วยความจำจากการนับ Reference (Reference Counting) จึงถือว่า "น้อยมาก" ในบริบทของ CFD?</summary>
+
+**คำตอบ:** เพราะตัวแปร `refCount` ใช้พื้นที่เพียงค่าคงที่เล็กน้อย (ประมาณ 4 Bytes) เมื่อเทียบกับขนาดข้อมูลของ Field ใน CFD ซึ่งมักประกอบด้วยจุดข้อมูล (Data Points) จำนวนนับล้านที่มีขนาดรวมหลาย MB หรือ GB สัดส่วน Overhead นี้จึงเข้าใกล้ศูนย์ ($N \cdot s \gg 4$)
+</details>
+
+<details>
+<summary>2. เงื่อนไขทางคณิตศาสตร์ที่จำเป็นเพื่อให้ระบบทำการคืนหน่วยความจำ (De-allocation) ของออบเจกต์ $p$ คืออะไร?</summary>
+
+**คำตอบ:** จะต้องทำให้จำนวนการอ้างอิง $r(p, t)$ มีค่าเท่ากับ 0 หลังจากทำการ `unref()` ($r(p, t^+) = 0$) ซึ่งเป็นสัญญาณบ่งบอกว่าไม่มีส่วนใดของโปรแกรมต้องการใช้ออบเจกต์นี้อีกต่อไป
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [03_Internal_Mechanics.md](03_Internal_Mechanics.md) - กลไกภายในของการจัดการหน่วยความจำ
+*   **ถัดไป:** [05_Implementation_Mechanisms.md](05_Implementation_Mechanisms.md) - กลไกการนำไปใช้งานจริง

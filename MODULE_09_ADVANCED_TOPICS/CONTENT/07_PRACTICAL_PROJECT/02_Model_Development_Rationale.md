@@ -878,3 +878,22 @@ namespace Foam
 - **Testing & Validation**: การตรวจสอบความถูกต้อง
 
 คุณพร้อมที่จะเปลี่ยนจากผู้ใช้ OpenFOAM เป็นนักพัฒนา OpenFOAM แล้ว!
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ประโยชน์หลักของการใช้ "Expression Templates" ใน OpenFOAM คืออะไร?</summary>
+
+**คำตอบ:** ช่วยเพิ่มประสิทธิภาพด้านหน่วยความจำ (Memory Efficiency) และความเร็วในการประมวลผล โดยการ **ลดการสร้างออบเจกต์ชั่วคราว (Temporary Objects)** ในระหว่างการคำนวณสมการซับซ้อน และช่วยให้ Compiler สามารถรวบรวมลูปการคำนวณ (Loop Fusion) ให้เหลือเพียงครั้งเดียวได้
+</details>
+
+<details>
+<summary>2. Smart Pointer แบบ `tmp<T>` ใน OpenFOAM จัดการหน่วยความจำอย่างไร?</summary>
+
+**คำตอบ:** ใช้กลไก **Reference Counting** (นับจำนวนการอ้างอิง) โดยเมื่อจำนวนผู้ใช้งานออบเจกต์นั้นลดลงเหลือศูนย์ (Count = 0) ระบบจะทำการคืนหน่วยความจำ (Free Memory) โดยอัตโนมัติ ช่วยป้องกันปัญหา Memory Leak โดยผู้เขียนโค้ดไม่ต้องสั่ง `delete` เอง
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [01_Project_Overview.md](01_Project_Overview.md) - รายละเอียดโปรเจกต์: การสร้างโมเดลความหนืดแบบกำหนดเอง
+*   **ถัดไป:** [03_Folder_and_File_Organization.md](03_Folder_and_File_Organization.md) - โครงสร้างโฟลเดอร์และการจัดระเบียบไฟล์

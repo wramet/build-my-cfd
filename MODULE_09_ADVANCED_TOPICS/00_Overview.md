@@ -534,3 +534,7 @@ $$ S(N) = \frac{1}{(1-P) + \frac{P}{N}} $$
 - **ส่งคืน**: แบ่งปันส่วนขยายของคุณกับชุมชน OpenFOAM
 
 มาเริ่มการเดินทางของเราสู่ความสามารถขั้นสูงของ OpenFOAM กัน!
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ถัดไป:** [CONTENT/01_TEMPLATE_PROGRAMMING/00_Overview.md](CONTENT/01_TEMPLATE_PROGRAMMING/00_Overview.md) - เริ่มต้นส่วนที่ 1: การเขียนโปรแกรมเทมเพลต

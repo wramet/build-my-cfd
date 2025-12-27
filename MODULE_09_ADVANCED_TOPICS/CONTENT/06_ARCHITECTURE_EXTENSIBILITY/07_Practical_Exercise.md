@@ -839,3 +839,22 @@ reduce(maxGrad, maxOp<scalar>());
 - **สามารถบำรุงรักษาได้**: Separation of concerns ระหว่าง physics และ analysis
 
 สถาปัตยกรรมนี้เปิดใช้งาน "ร้านแอป CFD" ที่ functionObjects ใหม่สามารถถูกเพิ่มได้โดยไม่ต้องแก้ไข solvers หลัก ทำให้ OpenFOAM ไม่ใช่แค่ solver แต่เป็นแพลตฟอร์มสำหรับฟิสิกส์การคำนวณ
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ทำไม `addToRunTimeSelectionTable` ถึงต้องวางไว้ในไฟล์ `.C` ไม่ใช่ไฟล์ `.H`?</summary>
+
+**คำตอบ:** เพื่อให้แน่ใจว่าโค้ดการลงทะเบียนจะถูกคอมไพล์เพียงครั้งเดียวในออบเจกต์ไฟล์ของคลาสนั้นๆ หากวางไว้ในไลฟ์ Header (.H) ที่ถูก include โดยหลายไฟล์ อาจทำให้เกิดข้อผิดพลาด "Multiple Definitions" หรือการลงทะเบียนซ้ำซ้อนในขั้นตอนการ Link ได้
+</details>
+
+<details>
+<summary>2. ในแบบฝึกหัดนี้ ทำไมเราต้องใช้ `template<>` specialization สำหรับเมธอด `execute()` แยกกันระหว่าง Scalar และ Vector?</summary>
+
+**คำตอบ:** เพราะฟังก์ชัน `fvc::grad` คืนค่าชนิดข้อมูลที่ต่างกัน ตัวหนึ่งคืน `volVectorField` (สำหรับ Scalar input) อีกตัวคืน `volTensorField` (สำหรับ Vector input) การทำ Specialization ช่วยให้เราเขียนโค้ดจัดการความแตกต่างของชนิดข้อมูลเหล่านี้ได้อย่างเฉพาะเจาะจงภายใต้ชื่อเมธอด `execute()` เดียวกัน
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [06_Common_Errors_and_Debugging.md](06_Common_Errors_and_Debugging.md) - การแก้ปัญหา: ข้อผิดพลาดทั่วไปและเทคนิคการดีบัก
+*   **ภาพรวม:** [00_Overview.md](00_Overview.md) - กลับสู่หน้าหลักของโมดูลความสามารถในการขยายแนวสถาปัตยกรรม

@@ -462,3 +462,26 @@ tmp<volScalarField> tPerm(&perm, false);  // ✅ not a temporary
 ---
 
 การผสานรวมของกลไกเหล่านี้สร้างระบบการจัดการหน่วยความจำที่แข็งแกร่ง ซึ่งจัดการรูปแบบการเป็นเจ้าของที่ซับซ้อน ให้การเข้าถึงอ็อบเจกต์ที่มีประสิทธิภาพ และรักษาความปลอดภัยในสภาพแวดล้อมแบบขนาน—ทั้งหมดนี้ในขณะที่นำเสนออินเทอร์เฟซที่สะอาดและใช้งานง่ายสำหรับนักพัฒนา CFD
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. อธิบายขั้นตอนที่เกิดขึ้นเมื่อเราใช้คำสั่ง `store()` ในการแปลง Temporary Field จาก `tmp` ไปยัง `objectRegistry`</summary>
+
+**คำตอบ:** 
+1. `store()` จะดึง Pointer จริง (Raw Pointer) ออกมาจาก wrapper ของ `tmp`
+2. ตั้งค่า Flag `isTemporary_` ของ `tmp` เดิมเป็น `false` เพื่อป้องกันไม่ให้ Destructor ของ `tmp` ทำการลบออบเจกต์
+3. โอนความเป็นเจ้าของ (Ownership) ของออบเจกต์นั้นไปให้กับ `objectRegistry`
+4. ออบเจกต์จะมีอายุขัย (Lifetime) ผูกติดกับ Registry (เช่น Mesh) จนกว่าจะจบการทำงานหรือถูกสั่งลบโดย Registry
+</details>
+
+<details>
+<summary>2. ปัญหา "Circular Reference" ในระบบ Reference Counting คืออะไร และ OpenFOAM แก้ปัญหานี้อย่างไร?</summary>
+
+**คำตอบ:** คือสถานะที่ออบเจกต์ 2 ตัวอ้างอิงถึงกันและกันด้วย Smart Pointers (Strong Reference) ทำให้ Reference Count ของทั้งคู่ไม่มีวันลดลงเหลือ 0 จนเกิด Memory Leak วิธีแก้คือให้ใช้ **Raw Pointer** สำหรับการอ้างอิงย้อนกลับ (Back-reference) ที่ไม่ต้องการแสดงความเป็นเจ้าของ (Non-owning) แทน
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [04_Mathematical_Foundations.md](04_Mathematical_Foundations.md) - หมายเหตุทางคณิตศาสตร์
+*   **ถัดไป:** [06_Design_Patterns_and_Architecture.md](06_Design_Patterns_and_Architecture.md) - การออกแบบเชิงสถาปัตยกรรมและ Design Patterns

@@ -794,6 +794,27 @@ const volScalarField& p = mesh.thisDb().lookupObject<volScalarField>("p");
 // - Registry may maintain a cached copy for faster repeated access
 // - event_ counter ensures cache invalidation when field changes
 // - Automatic cache coherence: stale data is never returned
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ทำไม `autoPtr` ถึงถูกออกแบบมาให้เป็น "Move-Only Type" (ห้าม Copy)?</summary>
+
+**คำตอบ:** เพื่อบังคับใช้กฎ **Single Ownership** อย่างเคร่งครัด กล่าวคือ จะต้องมี Pointer เพียงตัวเดียวเท่านั้นที่เป็นเจ้าของออบเจกต์ในแต่ละช่วงเวลา การห้าม Copy ป้องกันปัญหา **Double Deletion** (การพยายามลบออบเจกต์เดิมซ้ำสองครั้ง) และ Side-effects ที่ไม่พึงประสงค์จากการแชร์ข้อมูลดิบ
+</details>
+
+<details>
+<summary>2. ความแตกต่างหลักระหว่าง `isTemporary_ = true` และ `isTemporary_ = false` ในคลาส `tmp` คืออะไร?</summary>
+
+**คำตอบ:** 
+*   **`isTemporary_ = true`**: ออบเจกต์ถือเป็น "ของชั่วคราว" จะถูกนับ Reference Count และจะถูก **ลบอัตโนมัติ (Delete)** เมื่อ Reference Count ลดลงเหลือ 0
+*   **`isTemporary_ = false`**: ออบเจกต์ถือเป็น "ของ ถาวร" (มักถูกจัดการโดย `objectRegistry` หรือภายนอก) `tmp` จะทำหน้าที่เป็นเพียงผู้อ้างอิง (Observation) เท่านั้น และ **จะไม่ลบ** ออบเจกต์เมื่อ Destructor ทำงาน
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [01_Introduction.md](01_Introduction.md) - บทนำสู่การจัดการหน่วยความจำ
+*   **ถัดไป:** [03_Internal_Mechanics.md](03_Internal_Mechanics.md) - กลไกภายในของการจัดการหน่วยความจำ
 ```
 
 **คำอธิบาย (ภาษาไทย)**

@@ -539,3 +539,22 @@ static_assert(fibonacci<10>() == 55);
 ---
 
 **สรุปภาคผนวก**: ระบบ expression template ของ OpenFOAM แสดงให้เห็นว่า template metaprogramming ขั้นสูงสามารถส่งมอบประสิทธิภาพระดับอุตสาหกรรมในขณะที่ยังคงความสามารถในการอ่านและการบำรุงรักษาโค้ด การเพิ่มประสิทธิภาพระดับ compile-time นี้เป็นพื้นฐานสำคัญที่ทำให้ OpenFOAM สามารถแข่งขันกับโค้ด Fortran ที่เพิ่มประสิทธิภาพด้วยมือในด้านประสิทธิภาพ ในขณะที่ยังคงความยืดหยุ่นและความปลอดภัยของ C++
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. จงอธิบายบทบาทของ Operator Overloading (เช่น `operator+`) ในกระบวนการสร้าง Expression Templates ใน OpenFOAM</summary>
+
+**คำตอบ:** ใน OpenFOAM, Operator Overloading ไม่ได้ถูกใช้เพื่อคำนวณผลลัพธ์ทันที แต่ใช้เพื่อสร้างและคืนค่าวัตถุ **Expression Object** (เช่น `BinaryExpression`) ที่มีขนาดเล็ก ซึ่งทำหน้าที่เก็บโครงสร้างต้นไม้ของการคำนวณ (Computational Tree) เอาไว้เพื่อรอการประมวลผลภายหลัง (Deferred Evaluation)
+</details>
+
+<details>
+<summary>2. เหตุใด Assignment Operator (`operator=`) จึงมีความสำคัญอย่างยิ่งในระบบ OpenFOAM Field Operations?</summary>
+
+**คำตอบ:** เพราะมันทำหน้าที่เป็น **จุดสั่งการประมวลผล (Eager Evaluation Trigger)** ซึ่งเป็นจุดเดียวที่มีการคำนวณเกิดขึ้นจริง โดยระบบจะทำการท่องไปใน Expression Tree และคำนวณค่าทั้งหมดลงในหน่วยความจำของ Field ปลายทางโดยตรงใน Loop เดียว ช่วยกำจัดตัวแปรชั่วคราว (Temporary Objects) ทั้งหมด
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [03_Internal_Mechanics.md](03_Internal_Mechanics.md) - กลไกการทำงานภายใน
+*   **ถัดไป:** [05_Design_Patterns_and_Trade-offs.md](05_Design_Patterns_and_Trade-offs.md) - รูปแบบการออกแบบและข้อแลกเปลี่ยน

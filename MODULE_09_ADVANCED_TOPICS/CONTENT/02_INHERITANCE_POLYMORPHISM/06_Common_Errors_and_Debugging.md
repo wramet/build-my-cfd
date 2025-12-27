@@ -482,3 +482,23 @@ listRegisteredModels<dragModel>();
 7. **ตรวจสอบการลงทะเบียน** หลังจากการคอมไพล์เพื่อยืนยันว่าโมเดลถูกเพิ่มเข้าไปในตารางการเลือกขณะรันโปรแกรมแล้ว
 
 8. **ใช้สมาร์ทพอยน์เตอร์** (`autoPtr`, `tmp`) เพื่อการจัดการหน่วยความจำที่ปลอดภัย
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. "Object Slicing" คืออะไร และจะป้องกันได้อย่างไร?</summary>
+
+**คำตอบ:** คือการที่ออบเจกต์ของคลาสลูกถูก "เฉือน" ข้อมูลส่วนเกินทิ้งเหลือแต่ส่วนของคลาสแม่ เมื่อถูกส่งผ่านแบบ **Pass-by-Value** ไปยังฟังก์ชันที่รับคลาสแม่ ทำให้ Polymorphism ไม่ทำงาน
+**วิธีป้องกัน:** ให้ส่งผ่านแบบ **Pass-by-Reference** (`const phaseModel&`) หรือใช้ **Smart Pointers** (`autoPtr<phaseModel>`)
+</details>
+
+<details>
+<summary>2. ทำไมต้องมี `virtual destructor` ใน Base Class?</summary>
+
+**คำตอบ:** เพื่อให้แน่ใจว่าเมื่อเราลบออบเจกต์ของคลาสลูกผ่าน Pointer ของคลาสแม่ (`Base* ptr = new Derived(); delete ptr;`) โปรแกรมจะเรียก Destructor ของคลาสลูกได้ถูกต้องและคืนหน่วยความจำได้ครบถ้วน ถ้าไม่มี virtual อาจเกิด Memory Leak
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [05_Design_Patterns_in_Physics.md](05_Design_Patterns_in_Physics.md) - รูปแบบการออกแบบ
+*   **ถัดไป:** [07_Performance_Considerations.md](07_Performance_Considerations.md) - การพิจารณาด้านประสิทธิภาพ

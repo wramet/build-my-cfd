@@ -1352,3 +1352,24 @@ ms_print massif.out.*
 ---
 
 **บทสรุป**: Design patterns ไม่ใช่เพียงแนวคิดทางทฤษฎี แต่เป็นเครื่องมือที่ทรงพลังที่ OpenFOAM ใช้สร้างความสมดุลระหว่าง **performance**, **flexibility**, และ **maintainability** การเข้าใจ patterns เหล่านี้จะทำให้คุณสามารถใช้ประโยชน์จาก OpenFOAM อย่างเต็มที่ทั้งในฐานะผู้ใช้ นักพัฒนา และนักวิจัย
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ความแตกต่างระหว่าง Strategy Pattern และ Template Method Pattern ในบริบทของ OpenFOAM คืออะไร?</summary>
+
+**คำตอบ:**
+*   **Strategy Pattern:** ใช้สำหรับสลับอัลกอริทึมที่ทำหน้าที่เดียวกันแต่มีวิธีการต่างกัน (เช่น การสลับระหว่าง `SchillerNaumann` และ `Ergun` Drag Models) ผ่านการใช้ Polymorphism
+*   **Template Method Pattern:** ใช้สำหรับกำหนด **โครงสร้างลำดับขั้นตอน** ที่แน่นอน (เช่นใน `phaseModel::correct()`) โดยอนุญาตให้คลาสลูกปรับแต่งบางขั้นตอนย่อยได้ (Override) แต่ไม่สามารถเปลี่ยนลำดับหลักได้
+</details>
+
+<details>
+<summary>2. Non-Virtual Interface (NVI) Pattern มีประโยชน์อย่างไรในการออกแบบคลาสแม่ (Base Class)?</summary>
+
+**คำตอบ:** NVI ช่วยให้คลาสแม่สามารถ **ควบคุมขั้นตอนการทำงานหลัก** ได้ผ่าน Public Non-Virtual Method ในขณะที่เปิดช่องทางให้คลาสลูกปรับแต่งพฤติกรรมเฉพาะจุดได้ผ่าน Private/Protected Virtual Method ช่วยป้องกันไม่ให้คลาสลูกข้ามขั้นตอนสำคัญหรือทำลายสัญญาระหว่างระดับชั้น
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [04_Run_Time_Selection_System.md](04_Run_Time_Selection_System.md) - ระบบ RTS
+*   **ถัดไป:** [06_Common_Errors_and_Debugging.md](06_Common_Errors_and_Debugging.md) - ข้อผิดพลาดทั่วไปและการดีบัก

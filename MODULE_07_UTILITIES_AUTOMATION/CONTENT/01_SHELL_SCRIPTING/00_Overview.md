@@ -4,6 +4,22 @@
 
 ---
 
+---
+
+## 📋 หัวข้อในบทนี้
+
+### 1. [[01_Automation_Strategy|กลยุทธ์การทำงานอัตโนมัติ (Automation Strategy)]]
+- สถาปัตยกรรมของระบบอัตโนมัติ
+- ระดับความสมบูรณ์ของ Automation (Maturity Models)
+- การออกแบบโมดูล (Modular Design)
+
+### 2. [[02_Automation_Framework|เฟรมเวิร์กการทำงานอัตโนมัติ (Automation Framework)]]
+- โครงสร้างเฟรมเวิร์กแบบครบวงจร (End-to-End)
+- การจัดการ Solver และ Post-processing
+- ระบบตรวจสอบคุณภาพ (Quality Control)
+
+---
+
 ## บทนำสู่การทำงานอัตโนมัติของเวิร์กโฟลว์ CFD (Introduction)
 
 ### ความท้าทายในกระบวนการ CFD แบบดั้งเดิม (Challenges in Traditional CFD Workflows)

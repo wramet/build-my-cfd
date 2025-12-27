@@ -1,87 +1,113 @@
-# แนวคิดพื้นฐาน VOF (The Volume of Fluid Concept)
+# แนวคิดพื้นฐาน VOF (The VOF Concept)
 
-**Volume of Fluid (VOF)** คือเทคนิคการจำลองการไหลแบบหลายเฟส (Multiphase Flow) ที่เป็น "มาตรฐานทองคำ" สำหรับการแก้ปัญหา **Free Surface Flows** (การไหลที่มีรอยต่อชัดเจน)
+**Volume of Fluid (VOF)** เป็นหัวใจสำคัญของการจำลองการไหลแบบ Free Surface ใน OpenFOAM การทำความเข้าใจ "ปรัชญา" ของมันจะช่วยให้คุณปรับแต่งค่าต่างๆ ได้อย่างมีเหตุผล ไม่ใช่แค่จำสูตร
 
 ---
 
-## 💡 แนวคิดเปรียบเทียบ (Analogy): ภาพแบบ Pixel vs Vector
+## 💡 แนวคิดเปรียบเทียบ: Raster vs. Vector (The Graphics Analogy)
 
-ในการระบุตำแหน่งรอยต่อ (Interface) มี 2 แนวคิดหลัก:
-1.  **Explicit Tracking (Vector)**: ลากเส้นตามผิว (เหมือนเอาหนังยางไปวางบนผิวน้ำ) ข้อดีคือคมชัด แต่ข้อเสียคือถ้าผิวขาดหรือรวมกัน (เช่น หยดน้ำรวมตัว) จะคำนวณยากมาก
-2.  **VOF (Raster/Pixel)**: ไม่ได้เก็บเส้นผิว แต่เก็บ "ค่าสี" ในแต่ละ Cell ว่ามีน้ำอยู่กี่เปอร์เซ็นต์
+ลองนึกภาพคุณกำลังวาดรูปวงกลมบนคอมพิวเตอร์ มีสองวิธีที่จะเก็บข้อมูลวงกลมนี้:
 
-```mermaid
-graph LR
-    subgraph Cell_Representation
-        C1[Alpha = 1.0<br>Water]
-        C2[Alpha = 0.5<br>Interface]
-        C3[Alpha = 0.0<br>Air]
-    end
-    
-    C1 --- C2 --- C3
-    
-    style C1 fill:#3498db,stroke:#333,stroke-width:2px
-    style C2 fill:#85c1e9,stroke:#333,stroke-width:2px
-    style C3 fill:#fff,stroke:#333,stroke-width:2px
-```
+### 1. Vector (Lagrangian / Front Tracking)
+- **วิธีเก็บ:** เก็บสมการของวงกลม ($x^2 + y^2 = r^2$) หรือเก็บจุดต่อกันเป็นเส้น
+- **ข้อดี:** คมชัดกริบ ซูมแค่ไหนก็ไม่แตก
+- **ข้อเสีย:** ถ้าวงกลมนี้แตกออกเป็น 2 วง หรือรวมร่างกับวงกลมอื่น สมการจะซับซ้อนมหาศาล (Topology Change is hard)
 
-## 1. ตัวแปร Phase Fraction (\alpha$)
+### 2. Raster / Pixel (Eulerian / VOF)
+- **วิธีเก็บ:** แบ่งหน้าจอเป็นตาราง (Grid) แล้วระบายสีแต่ละช่อง
+  - ช่องไหนอยู่ในวงกลม = สีดำ ($\alpha=1$)
+  - ช่องไหนอยู่นอกวงกลม = สีขาว ($\alpha=0$)
+  - ช่องที่ขอบตัดผ่าน = สีเทา ($0 < \alpha < 1$)
+- **ข้อดี:** ไม่สนว่าจะมีกี่วง จะแตกจะรวมกันก็แค่เปลี่ยนสีในช่อง (Topology Chage is easy)
+- **ข้อเสีย:** ภาพจะ "แตก" (Pixelated) หรือ "เบลอ" ถ้าตารางไม่ละเอียดพอ หรืออัลกอริทึมไม่ดี
 
-ใน OpenFOAM เราใช้ตัวแปร `alpha.water` (\alpha$) เป็นตัวบ่งชี้สถานะ:
+> [!INFO] **VOF คือวิธี Raster**
+> VOF ยอมสละความคมชัดระดับอนันต์ เพื่อแลกกับความสามารถในการจำลองการไหลที่ซับซ้อนและรุนแรง (เช่น คลื่นซัดฝั่ง) ได้อย่างทนทาน
 
-| ค่า \alpha$ | ความหมาย | สภาพใน Cell |
-| :---: | :--- | :--- |
-| **1.0** | Full Phase 1 | มีแต่น้ำเต็มเซลล์ |
-| **0.0** | Full Phase 2 | มีแต่อากาศเต็มเซลล์ |
-| **0 < \alpha$ < 1** | Interface | มีทั้งสองเฟสผสมกัน (รอยต่อ) |
+---
 
-## 2. คุณสมบัติ Mixture (Mixture Properties)
+## 1. ตัวแปร Phase Fraction ($\alpha$)
 
-OpenFOAM มองว่าทั้งโดเมนคือของไหลชนิดเดียว (Single Fluid) ที่มีความหนาแน่นและความหนืด "เฉลี่ย" ตามสัดส่วนปริมาตร:
+ใน OpenFOAM ตัวแปรพระเอกคือ `alpha.water` (หรือ `alpha1` ในเวอร์ชันเก่า):
 
-$$ \rho = \alpha \rho_1 + (1 - \alpha) \rho_2 $$
-$$ \mu = \alpha \mu_1 + (1 - \alpha) \mu_2 $$
+$$ \alpha(\mathbf{x}, t) = \begin{cases} 1 & \text{ถ้าจุดนั้นมีน้ำเต็มๆ} \\ 0 & \text{ถ้าจุดนั้นมีแต่อากาศ} \\ 0 < \alpha < 1 & \text{ถ้าจุดนั้นมี interface} \end{cases} $$
 
-```mermaid
-graph TD
-    A[Alpha Field] --> RhoCalc[Calculate Mixture Density]
-    A --> MuCalc[Calculate Mixture Viscosity]
-    RhoCalc --> Momentum[Solve Navier-Stokes Equation]
-    MuCalc --> Momentum
-    Momentum --> NewU[New Velocity Field]
-    NewU --> Advection[Advect Alpha to next step]
-```
+### การตีความทางกายภาพใน Cell
+ถ้า Cell หนึ่งมีปริมาตร $V$ และมีค่าน้ำ $\alpha = 0.4$:
+- แปลว่ามีปริมาตรน้ำ $V_{water} = 0.4 \times V$
+- มีปริมาตรอากาศ $V_{air} = 0.6 \times V$
 
-## 3. สมการการขนส่งผิว (The Interface Transport Equation)
+> **Note:** VOF ไม่รู้ว่าน้ำลอยอยู่ "ตรงไหน" ใน Cell นั้น (มุมซ้าย? มุมขวา? ตรงกลาง?) มันรู้แค่ "ปริมาณ" รวม เราต้องใช้เทคนิค Reconstruction (เช่น Iso-surface) เพื่อเดาหน้าตาผิวหน้าเอาเอง
 
-รอยต่อเคลื่อนที่ไปตามความเร็วของไหล (\mathbf{U}$) โดยใช้สมการ Advection:
+---
+
+## 2. คุณสมบัติของ "ของไหลผสม" (The Mixture Fluid)
+
+VOF ไม่ได้แก้สมการ Navier-Stokes สองรอบ (สำหรับน้ำและอากาศ) แต่แก้รอบเดียวสำหรับ **"ของไหลผสมเสมือน (Effective Fluid)"**:
+
+### ความหนาแน่น (Density)
+$$ \rho = \alpha \rho_{water} + (1-\alpha) \rho_{air} $$
+
+### ความหนืด (Dynamic Viscosity)
+$$ \mu = \alpha \mu_{water} + (1-\alpha) \mu_{air} $$
+
+> [!WARNING] **The Density Jump Challenge**
+> สำหรับน้ำและอากาศ, $\rho_{water} \approx 1000$ และ $\rho_{air} \approx 1$
+> ที่รอยต่อ (Interface), ความหนาแน่นจะกระโดดถึง **1000 เท่า** ในระยะห่างแค่ 1-2 Grid cells
+> นี่คือสาเหตุที่ Solver VOF ต้องมีความเสถียรสูงมาก ไม่งั้นสมการ Pressure จะระเบิด (Diverge) ทันที
+
+---
+
+## 3. สมการหลัก: The Transport Equation
+
+รอยต่อเคลื่อนที่ไปตามการไหลของของไหล ($\mathbf{U}$) ตามสมการ Advection มาตรฐาน:
 
 $$ \frac{\partial \alpha}{\partial t} + \nabla \cdot (\mathbf{U} \alpha) = 0 $$
 
-### ปัญหา Numerical Diffusion (ผิวเบลอ)
-ในการคำนวณจริง สมการนี้มักทำให้หน้าสัมผัส "เบลอ" ออกไป (Diffusion) จากที่ควรจะเป็นขั้นบันได (Step function) กลายเป็นทางลาด (Slope) ซึ่งจะทำให้แรงตึงผิวและฟิสิกส์ผิดเพี้ยน
+### ปัญหาของการใช้สมการนี้ตรงๆ
+ในการคำนวณเชิงตัวเลข (Numerics) การแก้สมการนี้มักจะทำให้เกิดปัญหา **Numerical Diffusion** (การแพร่):
+- **เริ่มต้น:** รอยต่อคมกริบ (Step Function) จาก 1 ไป 0 ใน 1 Cell
+- **ผ่านไป 10 Time steps:** รอยต่อเริ่มเบลอ ไล่ระดับ 0.9, 0.7, 0.5, 0.3, 0.1 กินพื้นที่ 4-5 Cells
+- **หายนะ:** เมื่อผิวเบลอ เราจะคำนวณแรงตึงผิว (Surface Tension) ไม่ได้ และน้ำจะดูเหมือนระเหยหายไป
 
-> [!WARNING]
-> หากผิวเบลอเกิน 3-4 เซลล์ แรงตึงผิว (Surface Tension) จะคำนวณผิดพลาดอย่างรุนแรง เพราะรัศมีความโค้ง (\kappa$) จะเพี้ยนไป
+**วิธีแก้ของ OpenFOAM:** การใช้เทอมอัด (Compression Term) ในบทต่อไป **[[02_Interface_Compression]]**
 
-## 4. การแสดงผลใน ParaView (Visualization)
+---
 
-เนื่องจากเราไม่มี "เส้นผิว" จริงๆ เราจึงใช้เทคนิค **Isosurface** เพื่อสร้างผิวจำลองขึ้นมา
+## 4. แรงตึงผิว (Surface Tension)
 
-```mermaid
-graph TD
-    Data[Alpha Field Data<br>0.0 ... 1.0] --> Contour[Filter: Contour / Isosurface]
-    Contour --> Value[Set Value = 0.5]
-    Value --> Surface[Visualized Free Surface]
-```
+VOF ใน OpenFOAM ใช้โมเดล **CSF (Continuum Surface Force)** โดยแปลงแรงตึงผิวให้เป็นแรงกระทำต่อปริมาตร ($\mathbf{F}_{st}$):
 
-**ขั้นตอนใน ParaView:**
-1.  Apply ข้อมูล และเลือกตัวแปร `alpha.water`
-2.  ใช้ Filter **Contour**
-3.  ใน Isosurfaces set ค่าเป็น `0.5`
-4.  คุณจะได้พื้นผิวสีขาวที่ตัดแบ่งระหว่างน้ำและอากาศพอดี
+$$ \mathbf{F}_{st} = \sigma \kappa \nabla \alpha $$
 
-## 🔑 สรุปหัวใจ VOF
-*   **Mass Conservation:** VOF มีจุดเด่นคือรักษามวลได้ดีเยี่ยม (ของเหลวไม่ค่อยหาย)
-*   **Topology Change:** จัดการการแตกตัว/รวมตัวของหยดน้ำและฟองอากาศได้อัตโนมัติ
-*   **Computational Cost:** ประหยัดกว่าวิธีติดตามผิวแบบอื่นๆ แต่ต้องการ Mesh ที่ละเอียดบริเวณผิวสัมผัส
+โดยที่:
+- $\sigma$ (Sigma): สัมประสิทธิ์แรงตึงผิว (N/m) [Water-Air $\approx 0.07$]
+- $\kappa$ (Kappa): ความโค้งของผิว (Curvature) คำนวณจาก $\alpha$:
+  $$ \kappa = - \nabla \cdot \left( \frac{\nabla \alpha}{|\nabla \alpha|} \right) $$
+
+> [!TIP] **ทำไมผิวเบลอถึงแย่?**
+> ถ้า $\alpha$ เบลอ (เกรเดียนต์ไม่ชัน), การคำนวณ $\mathbf{n} = \frac{\nabla \alpha}{|\nabla \alpha|}$ จะไม่แม่นยำ ทำให้ค่าความโค้ง $\kappa$ ผิดเพี้ยน ส่งผลให้เกิด **Spurious Currents** (กระแสน้ำวนปลอมๆ) รอบๆ ฟองอากาศที่อยู่นิ่งๆ
+
+---
+
+## 📊 เปรียบเทียบ VOF กับวิธีอื่น
+
+| Feature | VOF (OpenFOAM) | Level Set | Eulerian-Eulerian |
+| :--- | :--- | :--- | :--- |
+| **ตัวแปรหลัก** | Volume Fraction ($\alpha$) | Distance Function ($\phi$) | $\alpha$ + 2 Velocity Fields |
+| **จุดเด่น** | รักษามวลดีเยี่ยม (Mass Conservation) | ผิวเรียบเนียน คำนวณ Curvature แม่น | แยก Velocity ของแต่ละเฟสได้ (Slip velocity) |
+| **จุดด้อย** | ผิวอาจเบลอ (Numerical Smearing) | มวลหายนิรภัย (Mass Loss) | เปลืองทรัพยากรคำนวณมาก |
+| **งานที่เหมาะ** | Dam break, Tank Sloshing | Droplet dynamics, precision flows | Bubble columns, Sedimentation |
+
+---
+
+## 🧠 Concept Check
+
+1.  **ถ้า $\rho_{water} = 1000$ และ $\rho_{air} = 1$, ในเซลล์ที่มี $\alpha = 0.5$ ความหนาแน่นของเซลล์นั้นคือเท่าไหร่?**
+    <details><summary>เฉลย</summary>$\rho = 0.5(1000) + 0.5(1) = 500.5 \, kg/m^3$</details>
+
+2.  **ทำไม OpenFOAM ถึงไม่ใช้ Level Set Method เป็นวิธีหลัก?**
+    <details><summary>เฉลย</summary>เพราะ OpenFOAM เน้นงานวิศวกรรมที่ "มวลต้องหายไม่ได้" (Conservation is key) วิธี Level Set แบบดั้งเดิมมักทำมวลหายเมื่อผ่านไปหลาย steps (ฟองอากาศเล็กลงเรื่อยๆ) ซึ่งยอมรับไม่ได้ในงานอุตสาหกรรม</details>
+
+3.  **VOF รู้ตำแหน่งของ Interface ภายใน Cell หรือไม่?**
+    <details><summary>เฉลย</summary>**ไม่รู้** มันรู้แค่ "ปริมาณ" (Volume Fraction) เราต้องใช้เทคนิค Reconstruction เช่น Isosurface หรือ Geometric Reconstruction เพื่อสร้างภาพ Interface ขึ้นมา</details>

@@ -367,8 +367,26 @@ Reff = turbulence->devReff();
    - ไม่พึ่งพา concrete implementations
 
 4. **การสร้างแบบไดนามิก (Dynamic Instantiation)**
-   - Dictionary-driven object creation
    - Runtime type resolution
    - Plugin-like modularity
 
 สถาปัตยกรรมนี้เป็นตัวอย่างที่ยอดเยี่ยมของการออกแบบซอฟต์แวร์เชิงวัตถุที่เหมาะสมกับแอปพลิเคชันทางวิทยาศาสตร์ ซึ่งต้องการทั้งความยืดหยุ่นในการวิจัยและเสถียรภาพในการใช้งานเชิงการผลิต
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ปัญหาหลักทางวิศวกรรมซอฟต์แวร์ที่ Factory Pattern ใน OpenFOAM เข้ามาช่วยแก้ไขคืออะไร?</summary>
+
+**คำตอบ:** ช่วยให้เกิด **ความสามารถในการขยายต้ว (Extensibility) โดยไม่ต้องแก้ไขคลังหลัก (Core Library)** ผู้ใช้สามารถเพิ่มโมเดลใหม่โดยการคอมไพล์แยกเป็นไลบรารี (Plugin) และโหลดใช้งานได้ทันที ลดความเสี่ยงในการทำลายโค้ดหลักและไม่ต้องเสียเวลาคอมไพล์ OpenFOAM ใหม่ทั้งหมด
+</details>
+
+<details>
+<summary>2. ในบริบทของสถาปัตยกรรม Plugin ไฟล์ `controlDict` มีบทบาทอย่างไรในการโหลดโมเดลที่สร้างเอง?</summary>
+
+**คำตอบ:** ใช้สำหรับระบุชื่อไฟล์ไลบรารีแบบ Shared Library (.so) ที่ผู้ใช้สร้างขึ้น ผ่านคีย์เวิร์ด `libs` (เช่น `libs ("libmyCustomModels.so");`) เมื่อ Solver เริ่มทำงาน มันจะโหลดไลบรารีเหล่านี้แบบไดนามิก ทำให้โมเดลใหม่ที่อยู่ในไลบรารีพร้อมให้ Factory เรียกใช้งานได้ทันที
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [05_Inheritance_and_Virtual_Functions.md](05_Inheritance_and_Virtual_Functions.md) - การสืบทอดและฟังก์ชันเสมือน: การกำหนด Interface พลวัต
+*   **ถัดไป:** [07_Common_Errors_and_Debugging.md](07_Common_Errors_and_Debugging.md) - ข้อผิดพลาดทั่วไปและเทคนิคการแก้ไขปัญหา

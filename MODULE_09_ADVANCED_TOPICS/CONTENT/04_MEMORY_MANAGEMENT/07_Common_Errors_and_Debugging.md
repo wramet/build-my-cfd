@@ -871,3 +871,22 @@ wmake libso Debug
 ---
 
 *✅ บทนี้เป็นไปตามกรอบการสอนแบบพื้นฐาน: Hook → Blueprint → Internal Mechanics → Mechanism → Why → Usage & Errors → Summary.*
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ทำไมการใช้ `tmp` ที่สร้างจาก Raw Pointer ร่วมกับ `delete` Manual ถึงทำให้เกิด Undefined Behavior?</summary>
+
+**คำตอบ:** เพราะ `tmp` ทำหน้าที่เป็น Smart Pointer ที่จัดการ Lifecycle ของ Object นั้นอยู่แล้ว (Reference Counting หรือ Ownership Transfer) หากเราทำการ `delete` Object นั้นด้วยตนเอง ในขณะที่ `tmp` ยังใช้งานอยู่หรือกำลังจะถูกทำลาย `tmp` อาจพยายามเข้าถึงหรือลบ Object นั้นอีกครั้ง (Double Delete) ทำให้โปรแกรมทำงานผิดพลาดหรือ Crash ได้
+</details>
+
+<details>
+<summary>2. ความเสี่ยงของการใช้ `tmp<T>(&obj)` (สร้าง tmp จาก Pointer ของ Object ที่มีอยู่แล้ว) คืออะไร และแก้ไขอย่างไร?</summary>
+
+**คำตอบ:** ความเสี่ยงคือ `tmp` จะถือว่า `isTemporary_` เป็น `true` โดยค่าเริ่มต้น ซึ่งหมายความว่า `tmp` จะพยายาม delete Object นั้นเมื่อ `tmp` ถูกทำลาย หาก Object นั้นเป็น Registered Object อยู่ใน Database หรือถูกใช้งานโดยส่วนอื่นจะทำให้เกิดปัญหา การแก้ไขคือต้องระบุ `false` ใน Argument ที่สองของ Constructor: `tmp<T> tObj(&obj, false);`
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [06_Design_Patterns_and_Architecture.md](06_Design_Patterns_and_Architecture.md) - รูปแบบการออกแบบและสถาปัตยกรรมใน OpenFOAM
+*   **ภาพรวม:** [00_Overview.md](00_Overview.md) - กลับสู่หน้าหลักของโมดูล Memory Management

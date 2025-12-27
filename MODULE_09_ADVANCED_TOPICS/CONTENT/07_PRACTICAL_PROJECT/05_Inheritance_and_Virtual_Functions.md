@@ -616,3 +616,22 @@ $$\mu = \mu_{\infty} + (\mu_0 - \mu_{\infty})\left[1 + (\lambda\dot{\gamma})^a\r
 - ✅ มีประสิทธิภาพสูงผ่าน template metaprogramming
 - ✅ ปลอดภัยต่อ memory leaks ผ่าน smart pointers
 - ✅ ง่ายต่อการบำรุงรักษาและขยาย
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ในสถาปัตยกรรมของ OpenFOAM ความสำคัญของ "Pure Virtual Functions" ในคลาสฐาน `viscosityModel` คืออะไร?</summary>
+
+**คำตอบ:** ทำหน้าที่กำหนด **สัญญา (Contract)** ที่เข้มงวด ซึ่งบังคับให้คลาสลูก (Derived Classes) ทุกตัวที่สืบทอดไป ต้องมีการเขียนโปรแกรมการทำงาน (Implementation) ของฟังก์ชันเหล่านั้น เช่น `nu()` และ `correct()` ให้ครบถ้วน เพื่อให้ Solver สามารถเรียกใช้งานได้อย่างถูกต้องเสมอไม่ว่าจะใช้โมเดลใด
+</details>
+
+<details>
+<summary>2. OpenFOAM ใช้กลไกใดเพื่อให้เกิด "Runtime Polymorphism" ในการเลือกโมเดลที่ถูกต้องระหว่างการจำลอง?</summary>
+
+**คำตอบ:** ใช้ **ตารางฟังก์ชันเสมือน (Virtual Function Table - vtable)** และการ Dispatch แบบ Dynamic โดย Solver จะถือตัวแปร Pointer ของคลาสฐาน (`viscosityModel*`) แต่เมื่อมีการเรียกใช้เมธอด (เช่น `correct()`) ระบบจะไปเปิดดูตาราง vtable ของออบเจกต์จริงที่ถูกสร้างขึ้น (เช่น `powerLawViscosity`) ในขณะรันโปรแกรม เพื่อเรียกใช้ฟังก์ชันที่ถูกต้องของออบเจกต์นั้น
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [04_Compilation_process.md](04_Compilation_process.md) - กระบวนการคอมไพล์และการสร้างไลบรารี
+*   **ถัดไป:** [06_Design_Pattern_Rationale.md](06_Design_Pattern_Rationale.md) - แนวคิดเบื้องหลังรูปแบบการออกแบบ (Design Patterns)

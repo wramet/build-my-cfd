@@ -628,3 +628,22 @@ public:
 - **Modules**: เวลาคอมไพล์ที่เร็วขึ้นสำหรับโค้ดที่ใช้ template อย่างหนัก
 
 ระบบ expression template แสดงถึงหนึ่งในการเพิ่มประสิทธิภาพด้านประสิทธิภาพที่ซับซ้อนที่สุดของ OpenFOAM สาธิตให้เห็นว่าเทคนิค C++ metaprogramming ขั้นสูงสามารถนำมาใช้เพื่อแก้ไขความท้าทายการคำนวณในโลกจริงในวิทยาศาสตร์คอมพิวเตอร์
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. จงอธิบายความแตกต่างหลักระหว่าง OpenFOAM operator `fvm` (finite volume method) และ `fvc` (finite volume calculus) ในบริบทของระบบ expression template</summary>
+
+**คำตอบ:** `fvm` operator ทำหน้าที่ **Implicit Discretization** สร้างเมทริกซ์สำหรับแก้ระบบสมการเชิงเส้น ในขณะที่ `fvc` operator ทำหน้าที่ **Explicit Discretization** ซึ่งประเมินค่าออกมาเป็นฟิลด์ทันทีจากข้อมูลปัจจุบัน
+</details>
+
+<details>
+<summary>2. ระบบ Smart Pointer `tmp<>` ช่วยจัดการหน่วยความจำสำหรับ temporal objects ได้อย่างมีประสิทธิภาพกว่า Raw Pointer อย่างไร?</summary>
+
+**คำตอบ:** ระบบ `tmp<>` ใช้ **Reference Counting** เพื่อจัดการวงจรชีวิต (Lifetime) ของ object โดยอัตโนมัติ ทำให้ทำลาย object เมื่อไม่มีการใช้งานแล้ว (Automatic Cleanup) และรองรับ **Move Semantics** เพื่อโอนถ่ายความเป็นเจ้าของข้อมูลโดยไม่ต้องทำการคัดลอก (Copy) ข้อมูลขนาดใหญ่
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [02_Expression_Templates_Syntax.md](02_Expression_Templates_Syntax.md) - ไวยากรณ์ของ Expression Templates
+*   **ถัดไป:** [04_Compilation_and_Machine_Code.md](04_Compilation_and_Machine_Code.md) - การแปลงเป็น Machine Code ของ Compiler

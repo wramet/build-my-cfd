@@ -456,3 +456,24 @@ void powerLawViscosity::correct()
    - การเข้าถึงฟิลด์ขอบเขตมีให้สำหรับการ coupling กับโมเดลอื่น
 
 การ implement นี้สาธิตหลักการของ OpenFOAM: polymorphism เชิงวัตถุ, การผสานรวมการวิเคราะห์มิติ, การจัดการฟิลด์ที่มีประสิทธิภาพ และการผสานรวมที่ราบรื่นกับกรอบงาน solver CFD
+
+## 🧠 ทดสอบความเข้าใจ (Concept Check)
+
+<details>
+<summary>1. ไฟล์ `Make/files` มีหน้าที่สำคัญอย่างไรในระบบ Build ของ OpenFOAM?</summary>
+
+**คำตอบ:** เป็นตัวกำหนดว่าไฟล์ Source Code (.C) ไฟล์ใดบ้างที่จะถูกคอมไพล์ และระบุว่าผลลัพธ์สุดท้าย (Library หรือ Executable) จะถูกสร้างขึ้นที่ไหนและชื่ออะไร โดยใช้ตัวแปร `LIB` (สำหรับ Library) หรือ `EXE` (สำหรับ Application)
+</details>
+
+<details>
+<summary>2. ทำไมเราต้องกำหนด `EXE_INC` และ `EXE_LIBS` ในไฟล์ `Make/options`?</summary>
+
+**คำตอบ:**
+*   `EXE_INC`: เพื่อบอก Compiler ว่าจะหาไฟล์ Header (.H) ได้ที่ไหน (เช่น finiteVolume หรือ transportModels)
+*   `EXE_LIBS`: เพื่อบอก Linker ว่าต้องเชื่อมต่อกับ Library อะไรบ้าง เพื่อให้โปรแกรมของเราสามารถเรียกใช้ฟังก์ชันมาตรฐานของ OpenFOAM ได้อย่างถูกต้อง
+</details>
+
+## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+
+*   **ก่อนหน้า:** [02_Model_Development_Rationale.md](02_Model_Development_Rationale.md) - เหตุผลในการพัฒนา: ทำไมต้องสร้างโมเดลเอง?
+*   **ถัดไป:** [04_Compilation_process.md](04_Compilation_process.md) - กระบวนการคอมไพล์และการสร้างไลบรารี
