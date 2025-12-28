@@ -1,9 +1,25 @@
 # ตรรกะการทำงานและการควบคุมเวลา
 
+> [!TIP] **สำคัญอย่างยิ่งสำหรับ OpenFOAM**
+> หัวข้อนี้คือ **หัวใจของการเขียน Solver และ Boundary Conditions ของคุณเอง** การเข้าใจวิธีสร้าง Field, จัดการเวลา, และโต้ตอบกับ Mesh จะช่วยให้คุณสามารถ:
+> - สร้างฟิลด์ใหม่ (เช่น สมการการนำความร้อนเพิ่มเติม)
+> - แก้ไข Solver ที่มีอยู่เพื่อเพิ่มฟิสิกส์ใหม่
+> - เขียน Boundary Conditions ที่กำหนดเอง (Custom BC)
+> - ทำให้เข้าใจโครงสร้างภายในของ OpenFOAM อย่างลึกซึ้ง
+>
+> **หากคุณต้องการเขียนโค้ด OpenFOAM ของคุณเอง** นี่คือจุดเริ่มต้นที่สำคัญที่สุด!
+
 ![[automatic_archivist.png]]
 `An automated robot librarian (The Time class) checking a set of rules from a controlDict. If a condition is met (e.g., Write Interval reached), it stamps "ARCHIVE" on field data boxes and pushes them into a storage slot labeled with the current time name, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
 
 ## 4. กลไก: ตรรกะฟังก์ชันการทำงานและปฏิสัมพันธ์กับ Mesh
+
+> [!NOTE] **📂 OpenFOAM Context: Domain E (Coding) + Domain A (Fields)**
+> หัวข้อนี้เกี่ยวข้องกับ **Custom Solver Development**:
+> - **File Location:** ใน C++ source code ของคุณ (โดยทั่วไปอยู่ใน `createFields.H` หรือตอนต้นของ solver `.C`)
+> - **Key Classes:** `GeometricField`, `volScalarField`, `volVectorField`, `IOobject`
+> - **Connection to Case Directory:** Constructor จะอ่านค่าเริ่มต้นจากโฟลเดอร์ `0/` (เช่น `0/p`, `0/U`)
+> - **Compilation:** ต้องมี `Make/files` และ `Make/options` เพื่อ compile โค้ดของคุณ
 
 ### **4.1 การสร้างฟิลด์: "ใบประกาศแรกเกิด"**
 
@@ -88,6 +104,15 @@ volScalarField p
 
 ### **4.2 การ Overload Operator: "ไวยากรณ์คณิตศาสตร์"**
 
+> [!NOTE] **📂 OpenFOAM Context: Domain E (Coding) + Domain B (Numerics)**
+> หัวข้อนี้เกี่ยวข้องกับ **Field Algebra ใน Solver Code**:
+> - **File Location:** ในส่วน Time loop ของ solver (ภายใน `while (runTime.loop())`)
+> - **Key Operations:** `fvc::grad()`, `fvc::div()`, `fvm::laplacian()`, `fvm::ddt()`
+> - **Connection to Case:**
+>   - `system/fvSchemes`: กำหนด discretization schemes สำหรับ operators
+>   - เช่น `gradSchemes`, `divSchemes`, `laplacianSchemes`
+> - **Dimensional Safety:** Compile-time checking ป้องกันข้อผิดพลาดทางฟิสิกส์
+
 Field operators ของ OpenFOAM ใช้ไวยากรณ์คณิตศาสตร์ที่ซับซ้อน ซึ่งช่วยให้สามารถคำนวณได้ตรงตามสัญชาตญาณและปลอดภัยต่อมิติ
 
 ![[of_operator_overloading_flow.png]]
@@ -155,6 +180,16 @@ dimensionSet dims = p.dimensions() * U.dimensions();
 
 ### **4.3 ปฏิสัมพันธ์กับ Mesh: "บริบทเชิงพื้นที่"**
 
+> [!NOTE] **📂 OpenFOAM Context: Domain E (Coding) + Domain D (Meshing)**
+> หัวข้อนี้เกี่ยวข้องกับ **Mesh-Aware Field Operations**:
+> - **File Location:** ใน solver code หรือ custom function objects
+> - **Key Mesh Classes:** `fvMesh`, `polyMesh`, `primitiveMesh`
+> - **Connection to Case:**
+>   - `constant/polyMesh/`: โฟลเดอร์เก็บข้อมูล mesh (`points`, `faces`, `cells`)
+>   - `mesh.C()`: Cell centers (ใช้ใน post-processing และ visualization)
+>   - `mesh.Sf()`: Face area vectors (ใช้ใน flux calculations)
+> - **Geometric Calculations:** ทุก operation อัตโนมัติใช้ข้อมูลเรขาคณิตจาก mesh
+
 ความสัมพันธ์ระหว่างฟิลด์และ mesh ใน OpenFOAM เป็นตัวอย่างของการออกแบบเชิงวัตถุที่มีประสิทธิภาพ
 
 ```cpp
@@ -216,6 +251,15 @@ surfaceScalarField phi = linearInterpolate(U) & mesh.Sf();
   - ถ่วงน้ำหนักค่าฟิลด์ด้วยปริมาตรเซลล์สำหรับการ integration เชิงพื้นที่ที่แม่นยำ
 
 ### **4.4 การจัดการเวลา: "ความทรงจำเชิงเวลา"**
+
+> [!NOTE] **📂 OpenFOAM Context: Domain E (Coding) + Domain C (Simulation Control)**
+> หัวข้อนี้เกี่ยวข้องกับ **Temporal Discretization และ Time Control**:
+> - **File Location:** ใน `Time` class และ `GeometricField` class implementations
+> - **Connection to Case:**
+>   - `system/controlDict`: ควบคุมเวลา (`startTime`, `endTime`, `deltaT`, `writeInterval`)
+>   - `system/fvSolution`: กำหนด temporal schemes (`ddtSchemes`)
+> - **Time Hierarchy:** `p.oldTime()` สำหรับ backward/second-order schemes
+> - **Automatic Storage:** ระบบจัดการข้อมูลอัตโนมัติตาม scheme ที่เลือก
 
 OpenFOAM ใช้ระบบการจัดการเวลาที่ซับซ้อน ซึ่งช่วยให้ temporal discretization ที่แม่นยำในขณะเดียวกันรักษาประสิทธิภาพการคำนวณ
 
@@ -283,6 +327,17 @@ $$\frac{\partial p}{\partial t} \approx \frac{p^{n+1} - p^n}{\Delta t}$$
 ---
 
 ## 2. กลไกการบันทึกผลลัพธ์ (`runTime.write()`)
+
+> [!NOTE] **📂 OpenFOAM Context: Domain C (Simulation Control)**
+> หัวข้อนี้เกี่ยวข้องกับ **Output Control ใน Case Setup**:
+> - **Control File:** `system/controlDict`
+> - **Key Keywords:**
+>   - `writeInterval`: ความถี่ในการบันทึก (เช่น `0.1`, `0.5`, `1`)
+>   - `writeFormat`: รูปแบบไฟล์ (`binary`, `ascii`)
+>   - `writePrecision`: ความละเอียดของข้อมูล (เช่น `6`)
+>   - `timePrecision`: จำนวนตัวเลขหลังจุดทศนิยมในชื่อโฟลเดอร์เวลา
+> - **Output Directory:** สร้างโฟลเดอร์เวลาอัตโนมัติ (เช่น `0.1/`, `0.2/`, `0.3/`)
+> - **Auto-Write:** Fields ที่มี `IOobject::AUTO_WRITE` จะถูกบันทึกโดยอัตโนมัติ
 
 ```mermaid
 graph TD

@@ -1,5 +1,13 @@
 # 04 QA, Automation & Profiling (การประกันคุณภาพและการวิเคราะห์ประสิทธิภาพ)
 
+> [!TIP] ทำไม QA สำคัญต่อ OpenFOAM Solver?
+> การพัฒนา Custom Solver หรือ Boundary Condition ใน OpenFOAM ที่ "ทำงานได้" เป็นเพียงจุดเริ่มต้น เมื่อโค้ดมีความซับซ้อน มีการ Refactor บ่อย หรือมีผู้พัฒนาหลายคน ระบบ QA จะช่วย:
+> - **ป้องกัน Regression**: การแก้ Bug ตัวเดียวไม่ควรทำลายฟีเจอร์เดิมที่เคยทำงานได้
+> - **รับประกัน Performance**: เพิ่มฟีเจอร์ใหม่ไม่ควรทำให้ Solver ช้าลงอย่างน่าใจหาย
+> - **ลดเวลา Debug**: ระบบ Test อัตโนมัติช่วยจับ Issue ตั้งแต่โค้ดเข้า Git
+>
+> **📂 OpenFOAM Context**: หัวข้อนี้เกี่ยวข้องกับ **Custom Code Development** (Solver/BC/Library) ซึ่งอยู่ใน `src/` directory และไฟล์ `Make/` ที่ใช้คอมไพล์ รวมถึง Test Cases ที่ใช้ Validate ความถูกต้องของ Custom Code
+
 > [!INFO] Module Focus
 > การยกระดับมาตรฐานการพัฒนา OpenFOAM Solver ด้วยการประกันคุณภาพ (Quality Assurance) การทดสอบถอยหลัง (Regression Testing) และการวิเคราะห์ประสิทธิภาพของโค้ด (Profiling) เพื่อให้แน่ใจว่าซอฟต์แวร์ที่พัฒนาขึ้นมีทั้งความถูกต้อง ความเสถียร และประสิทธิภาพสูง
 
@@ -24,6 +32,16 @@
 ---
 
 ## 📋 ภาพรวมของหัวข้อ (Module Overview)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain E: Coding/Customization** & **Domain C: Simulation Control**
+>
+> หัวข้อนี้เชื่อมโยงกับไฟล์และไดเรกทอรีต่อไปนี้ใน OpenFOAM:
+> - **Custom Solver Development**: `src/finiteVolume/cfd/solvers/` (เช่น `myCustomSolver`)
+> - **Compilation Files**: `Make/files` (ระบุ source files), `Make/options` (compiler flags)
+> - **Test Case Organization**: `tutorials/` หรือ `tests/` directory structure สำหรับเก็บ Test Cases
+> - **Runtime Control**: `system/controlDict` (สำหรับ Function Objects ที่ใช้ Profile)
+> - **Debug Configuration**: `etc/controlDict` (Global DebugSwitches), `.OpenFOAM-` file per case
 
 ### บริบทความสำคัญ (Context)
 
@@ -68,6 +86,16 @@ K --> L[Reliable CFD Software]:::success
 
 ### 01 [[01_Performance_Profiling|การวิเคราะห์ประสิทธิภาพ (Profiling)]]
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain E: Coding/Customization** & **Domain C: Simulation Control**
+>
+> **Performance Profiling** เกี่ยวข้องกับ:
+> - **Inline Profiling**: ใช้ `cpuTime` class ใน C++ code (`#include "cpuTime.H"`) เพื่อจับเวลา function ใน solver
+> - **Function Objects**: `system/controlDict` → `functions` → `profiling`, `cpuTime`, `execFlowFunctionObjects`
+> - **Compilation Profiling**: `Make/options` → เพิ่ม `-pg` flag เพื่อใช้ `gprof`
+> - **Memory Tools**: Valgrind (`valgrind --tool=massif --leak-check=full`) สำหรับตรวจสอบ Memory Leak
+> - **Scaling Analysis**: ใช้ `decomposePar` กับ `system/decomposeParDict` ทดสอบ Strong/Weak Scaling
+
 การวัดประสิทธิภาพของ Solver ด้วยเมตริกหลัก เช่น Execution Time, Memory Usage และการวิเคราะห์การปรับขนาด (Scaling Analysis) ทั้ง Strong Scaling และ Weak Scaling
 
 **เนื้อหาหลัก:**
@@ -83,6 +111,16 @@ K --> L[Reliable CFD Software]:::success
 
 ### 02 [[02_Regression_Testing|การทดสอบถอยหลัง (Regression Testing)]]
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain E: Coding/Customization** & **CI/CD Integration**
+>
+> **Regression Testing** เกี่ยวข้องกับ:
+> - **Test Suite Structure**: `tutorials/` หรือ `tests/` directory ที่มีหลาย Test Cases (Laminar, Turbulent, Multiphase)
+> - **Validation Scripts**: Python/Bash scripts ที่ compare results กับ Reference Database
+> - **Function Objects**: `system/controlDict` → `functions` → `probes`, `sampledSurface`, `sets` สำหรับ dump ข้อมูลเพื่อเทียบ
+> - **Automated Testing**: ใช้ `foamRun` หรือ custom scripts รัน Test Cases อัตโนมัติ
+> - **CI/CD Integration**: GitLab CI (`.gitlab-ci.yml`) หรือ Jenkins ที่ trigger test เมื่อมี commit ใหม่
+
 การสร้างระบบตรวจสอบความเสถียรของผลลัพธ์ในระยะยาว และการนำ CI/CD มาใช้ในงาน CFD เพื่อตรวจจับความผิดปกติจากการแก้ไขโค้ด
 
 **เนื้อหาหลัก:**
@@ -97,6 +135,16 @@ K --> L[Reliable CFD Software]:::success
 ---
 
 ### 03 [[03_Debugging_Troubleshooting|การดีบักและการแก้ปัญหา]]
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain E: Coding/Customization** & **Diagnostic Tools**
+>
+> **Debugging** เกี่ยวข้องกับ:
+> - **Built-in Utilities**: `checkMesh` (mesh quality), `checkFields` (field consistency), `foamListTimes` (time directories)
+> - **Debug Switches**: `etc/controlDict` (global) หรือ `.OpenFOAM-` (per case) → `DebugSwitches` subsection เพื่อเปิด Logging รายละเอียด
+> - **Runtime Compilation**: `wmake -debug` (compile with debug symbols), `-O0 -g3` flags ใน `Make/options`
+> - **External Debuggers**: `gdb`, `lldb` สำหรับ debug Segmentation Fault และ Logic Errors
+> - **Memory Checkers**: `valgrind --tool=memcheck` สำหรับตรวจ Memory Leak, Invalid Access
 
 เทคนิคการใช้เครื่องมือ Debugging ขั้นสูง (GDB, Valgrind) และวิธีการเชิงระบบเพื่อหาจุดผิดพลาดใน Solver และชุดการทดสอบ
 

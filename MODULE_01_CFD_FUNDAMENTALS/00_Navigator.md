@@ -1,5 +1,14 @@
 # 🗺️ Learning Navigator: CFD Fundamentals
 
+> [!TIP] 💡 เหตุใด Navigator นี้สำคัญต่อการเรียนรู้ OpenFOAM
+> เอกสารนี้เป็น **แผนที่เชื่อมโยง** ระหว่าง **ทฤษฎี CFD** และ **การนำไปใช้งานจริงใน OpenFOAM** โดย:
+> - **เชื่อมโยง Content → Source Code**: ช่วยให้เข้าใจว่าสมการทางคณิตศาสตร์ถูกเขียนเป็นโค้ด C++ อย่างไร
+> - **ลดระยะห่างระหว่างทฤษฎีและปฏิบัติ**: อ่านทฤษฎีแล้วสามารถดูการ implement จริงใน solver ได้ทันที
+> - **เข้าใจโครงสร้าง OpenFOAM**: ช่วยให้คุ้นเคยกับ directory structure และ source code organization
+> - **พัฒนาทักษะอ่านโค้ด**: ฝึกอ่าน C++ code ของ OpenFOAM ซึ่งเป็นทักษะสำคัญสำหรับการ customize solver ในอนาคต
+>
+> การใช้งาน Navigator อย่างมีประสิทธิภาพจะช่วยให้คุณเข้าใจ OpenFOAM **ลึกกว่าการใช้งานเพียงอย่างเดียว** และสามารถนำไปประยุกต์ใช้กับปัญหาที่ซับซ้อนได้
+
 > **วัตถุประสงค์**: เอกสารนี้เป็น **เส้นทางการเรียนรู้แบบคู่ขนาน** ที่เชื่อมโยงเนื้อหาทฤษฎี (.md) กับ Source Code จริงใน OpenFOAM เพื่อให้เข้าใจทั้งแนวคิดและการนำไปใช้งานจริงพร้อมกัน
 
 ---
@@ -14,6 +23,17 @@
 ---
 
 ## 1. Governing Equations (สมการควบคุม)
+
+> [!NOTE] 📂 OpenFOAM Context
+> **Domain:** Physics & Fields + Coding/Customization
+>
+> หัวข้อนี้เกี่ยวข้องกับ **การนำสมการควบคุมไปใช้ใน OpenFOAM** ซึ่งอยู่ใน 2 ส่วนหลัก:
+> - **Source Code (`src/` และ `applications/solvers/`)**: การ implement สมการ N-S ในรูปแบบ C++ code
+>   - ไฟล์หลัก: `icoFoam.C`, `createFields.H`
+>   - Keywords: `fvVectorMatrix`, `fvm::ddt()`, `fvm::div()`, `fvm::laplacian()`, `solve()`
+> - **Case Files (`0/`, `constant/`)**: การกำหนดค่าฟิลด์และคุณสมบัติของไหล
+>   - Directory: `0/U`, `0/p`, `constant/transportProperties`, `constant/turbulenceProperties`
+>   - Keywords: `nu` (viscosity), `rho` (density), `k`, `epsilon`, `omega`
 
 ### 📖 Content → 🔧 Source Code Mapping
 
@@ -43,6 +63,19 @@
 
 ## 2. Finite Volume Method (วิธีปริมาตรจำกัด)
 
+> [!NOTE] 📂 OpenFOAM Context
+> **Domain:** Numerics & Linear Algebra + Coding/Customization
+>
+> หัวข้อนี้เกี่ยวข้องกับ **การแบ่งส่วนและการแก้สมการเชิงตัวเลข** ใน OpenFOAM:
+> - **Source Code (`applications/solvers/`)**: การ implement discretization schemes
+>   - ไฟล์หลัก: `laplacianFoam.C`, `scalarTransportFoam.C`, `icoFoam.C`
+>   - Keywords: `fvm::div()`, `fvm::laplacian()`, `fvm::ddt()`, `fvMatrix`, `solve()`
+> - **Case Files (`system/fvSchemes`, `system/fvSolution`)**: การกำหนดวิธีการแบ่งส่วนและ solver settings
+>   - File: `system/fvSchemes`
+>     - Keywords: `gradSchemes`, `divSchemes`, `laplacianSchemes`, `interpolationSchemes`
+>   - File: `system/fvSolution`
+>     - Keywords: `solvers`, `solver`, `preconditioner`, `tolerance`, `relTol`
+
 ### 📖 Content → 🔧 Source Code Mapping
 
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
@@ -69,6 +102,18 @@
 ---
 
 ## 3. Boundary Conditions (เงื่อนไขขอบเขต)
+
+> [!NOTE] 📂 OpenFOAM Context
+> **Domain:** Physics & Fields
+>
+> หัวข้อนี้เกี่ยวข้องกับ **การกำหนดเงื่อนไขขอบเขต** ใน OpenFOAM:
+> - **Case Files (`0/` directory)**: การกำหนด BC สำหรับแต่ละ field variable
+>   - Directory: `0/U`, `0/p`, `0/T`, `0/k`, `0/epsilon`, ฯลฯ
+>   - Keywords: `fixedValue`, `zeroGradient`, `noSlip`, `inletOutlet`, `pressureInletOutletVelocity`
+> - **Source Code (`src/finiteVolume/`)**: การ implement BC classes
+>   - Directory: `src/finiteVolume/fields/fvPatchFields/`
+>   - Keywords: `fixedValueFvPatchField`, `zeroGradientFvPatchField`
+> - **Selection**: เลือก BC ที่เหมาะสมกับปัญหา (Dirichlet, Neumann, Robin, Mixed)
 
 ### 📖 Content → 🔧 Source Code Mapping
 
@@ -97,6 +142,23 @@
 
 ## 4. First Simulation (การจำลองแรก)
 
+> [!NOTE] 📂 OpenFOAM Context
+> **Domain:** Simulation Control + Meshing + Case Structure
+>
+> หัวข้อนี้เกี่ยวข้องกับ **การ setup และรัน simulation** แบบครบวงจร:
+> - **Mesh Generation (`system/`)**: การสร้าง mesh ด้วย blockMesh
+>   - File: `system/blockMeshDict`
+>   - Keywords: `vertices`, `blocks`, `edges`, `boundary`, `hex`
+> - **Simulation Control (`system/`)**: การควบคุมการรัน
+>   - File: `system/controlDict`
+>   - Keywords: `application`, `startFrom`, `startTime`, `stopAt`, `endTime`, `deltaT`, `writeControl`
+> - **Numerics (`system/`)**: การกำหนด discretization schemes
+>   - File: `system/fvSchemes`
+>   - Keywords: `gradSchemes`, `divSchemes`, `laplacianSchemes`
+> - **Solver Settings (`system/`)**: การตั้งค่า solver และ tolerances
+>   - File: `system/fvSolution`
+>   - Keywords: `solvers`, `PISO`, `SIMPLE`, `tolerance`, `relTol`
+
 ### 📖 Content → 🔧 Source Code Mapping
 
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
@@ -121,6 +183,20 @@
 ---
 
 ## 📁 OpenFOAM Source Code Directory Structure
+
+> [!NOTE] 📂 OpenFOAM Context
+> **Domain:** Coding/Customization + Directory Structure
+>
+> หัวข้อนี้แสดง **โครงสร้าง directory ของ OpenFOAM source code** ซึ่งเป็นพื้นฐานสำคัญในการ:
+> - **ค้นหา solver ที่ต้องการ**: `applications/solvers/` แบ่งเป็น `basic/`, `incompressible/`, `compressible/`, ฯลฯ
+> - **อ่าน source code ของ solver**: เข้าใจการ implement สมการและ algorithms
+> - **Customize หรือสร้าง solver ใหม่**: ศึกษาโครงสร้างและการจัดการ files
+> - **ใช้ utilities**: `applications/utilities/` สำหรับ mesh generation, post-processing, ฯลฯ
+>
+> **Key Directories:**
+> - `$FOAM_SOLVERS`: ที่เก็บ solvers ทั้งหมด
+> - `$FOAM_APP`: applications ทั้ง solvers และ utilities
+> - `$WM_PROJECT_DIR`: root directory ของ OpenFOAM installation
 
 ```
 applications/
@@ -148,6 +224,21 @@ applications/
 
 ## 🎓 Learning Path Recommendation
 
+> [!NOTE] 📂 OpenFOAM Context
+> **Domain:** Study Strategy + Learning Workflow
+>
+> หัวข้อนี้เป็น **แนวทางการเรียนรู้แบบ systematic** ที่เชื่อมโยง:
+> - **Content (ทฤษฎี)** → **Code (การ implement)** → **Practice (การทดลอง)**
+> - **การเรียนแบบขั้นตอน**: เริ่มจากทฤษฎี → ดูโค้ด → ลงมือทำ
+> - **การเชื่อมโยง cross-references**: ดูว่าแต่ละหัวข้อเกี่ยวข้องกับ solver หรือ file ไหนใน OpenFOAM
+>
+> **ขั้นตอนที่แนะนำ:**
+> 1. **อ่าน Content** เพื่อเข้าใจ concept
+> 2. **เปิด Source Code** ตามที่ระบุในตาราง mapping
+> 3. **เปรียบเทียบ** สมการใน content กับโค้ด C++
+> 4. **ลองรัน** tutorial case และแก้ไข parameters
+> 5. **ทดลอง customize** เล็กน้อยเพื่อเข้าใจมากขึ้น
+
 ```mermaid
 graph TD
     classDef content fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
@@ -166,6 +257,19 @@ graph TD
 ---
 
 ## 🔗 Quick Links
+
+> [!NOTE] 📂 OpenFOAM Context
+> **Domain:** Quick Reference + Common Use Cases
+>
+> หัวข้อนี้เป็น **การรวบรวม links สำคัญ** สำหรับการเข้าถึง:
+> - **Content ที่ใช้บ่อย**: หัวข้อที่จำเป็นต้องเข้าใจเป็นพิเศษ
+> - **Source code ที่เกี่ยวข้อง**: solver และ utilities ที่ใช้ใน module นี้
+> - **การใช้งานเบื้องต้น**: Quick start สำหรับผู้เริ่มต้น
+>
+> **Recommended Flow:**
+> - **Beginner**: เริ่มจาก "เริ่มต้นเร็ว" → ทำตาม tutorial → ย้อนกลับไปอ่านทฤษฎี
+> - **Intermediate**: อ่าน "ทฤษฎี N-S" + "FVM พื้นฐาน" → ศึกษา source code → ลอง customize
+> - **Advanced**: ศึกษา "BC ที่ใช้บ่อย" → implement custom BC → optimize simulation
 
 | หมวด | Content | Source Code |
 |------|---------|-------------|

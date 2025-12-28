@@ -1,5 +1,8 @@
 # รูปแบบการไหลหลายเฟส (Multiphase Flow Regimes)
 
+> [!TIP] ทำไม Flow Regimes จึงมีความสำคัญใน OpenFOAM?
+> การระบุ Flow Regime ที่ถูกต้องเป็นพื้นฐานที่สำคัญที่สุดก่อนเริ่ม Simulation ทุกครั้ง ถ้าเลือก Solver ผิด เช่น ใช้ VOF กับ Bubbly flow ที่มีฟองนับพันฟอง คอมพิวเตอร์อาจทำงานไม่ได้เลย (คอมพิวเตอร์แฮงก์) หรือใช้ Eulerian-Eulerian กับ Stratified flow ที่ควรใช้ VOF ก็จะได้ผลลัพธ์ที่ไม่แม่นยำ การเข้าใจ Flow Regime จึงเป็นเหมือน "แผนที่เส้นทาง" ที่บอกว่าควรใช้เครื่องมืออะไรในการแก้ปัญหา เพื่อให้การจำลองเสถียร รวดเร็ว และแม่นยำ
+
 ## ภาพรวม (Overview)
 
 **Flow regimes** ในการไหลหลายเฟส คือรูปแบบการกระจายตัวของเฟส (phase distribution) และลักษณะทางโทโพโลยีของรอยต่อ (interface topology) ที่เกิดขึ้นตามสภาวะการไหล คุณสมบัติทางกายภาพ และข้อจำกัดทางเรขาคณิต การทำความเข้าใจรูปแบบเหล่านี้เป็นสิ่งสำคัญอย่างยิ่ง (fundamental) ในการเลือกวิธีการจำลอง (modeling approach) และสมการปิด (closure relations) ที่เหมาะสมใน OpenFOAM
@@ -14,6 +17,12 @@
 ---
 
 ## การแบ่งประเภทตามโทโพโลยีของรอยต่อ (Classification by Interface Topology)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> การแบ่งประเภท Flow Regime ตาม Interface Topology นี้เป็นพื้นฐานในการ **เลือก Solver** และ **กำหนดค่าในไฟล์ `constant/phaseProperties`** หรือ **`constant/multiphaseInterFoamProperties`**
+> - **Separated Flow:** ใช้ VOF-based solvers เช่น `interFoam`, `multiphaseInterFoam` → ตั้งค่าใน `constant/transportProperties` และ `0/alpha.water`
+> - **Dispersed Flow:** ใช้ Eulerian-Eulerian solvers เช่น `multiphaseEulerFoam` → ตั้งค่าใน `constant/phaseProperties` พร้อม Drag/Lift models
+> - **โครงสร้างไฟล์:** แต่ละ Solver มีไฟล์ตั้งค่าเฉพาะที่ `constant/` สำหรับนิยามเฟสและคุณสมบัติระหว่างเฟส
 
 การไหลหลายเฟสสามารถแบ่งประเภทพื้นฐานตามลักษณะทางกายภาพของรอยต่อได้ดังนี้:
 
@@ -64,6 +73,13 @@
 
 ## รูปแบบการไหลในท่อ (Flow Regimes in Pipe Flow)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> การจำลอง Flow Regimes ในท่อต้อง **กำหนด Boundary Conditions** ในไฟล์ `0/` ที่เหมาะสมกับรูปแบบการไหล:
+> - **Inlet Conditions:** ใช้ `fixedValue` สำหรับ `U` (velocity) และ `alpha` (phase fraction) เพื่อสร้าง Flow regime ที่ต้องการ ใน `0/U` และ `0/alpha.water`
+> - **Gravity:** กำหนดใน `constant/g` เพื่อให้แรงโน้มถ่วงทำงานตามท่อแนวตั้งหรือแนวนอน
+> - **Mesh Resolution:** ใช้ `blockMeshDict` หรือ `snappyHexMeshDict` เพื่อสร้าง mesh ที่ละเอียดพอที่จะจับฟองหรือรอยต่อได้
+> - **Time Step:** ใช้ `adjustTimeStep` ใน `system/controlDict` เพื่อควบคุม Courant Number สำหรับความเสถียร
+
 ### 1. การไหลในท่อแนวตั้ง (Vertical Pipe Flow)
 
 | รูปแบบ (Regime) | ลักษณะเฉพาะ | สภาวะการเกิด | โครงสร้าง |
@@ -87,6 +103,13 @@
 ---
 
 ## ปัจจัยที่ส่งผลต่อรูปแบบการไหล (Factors Affecting Flow Regimes)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> ปัจจัยที่ส่งผลต่อ Flow Regimes ต้อง **กำหนดในไฟล์คุณสมบัติ (Property Files)** และ **Transport Models**:
+> - **Physical Properties:** กำหนดความหนาแน่น (`rho`), ความหนืด (`nu`), และแรงตึงผิว (`sigma`) ใน `constant/transportProperties` หรือ `constant/phaseProperties`
+> - **Interfacial Forces:** ใช้ Drag/Lift/Virtual Mass models ใน `constant/phaseProperties` สำหรับ Eulerian-Eulerian solvers
+> - **Turbulence Modeling:** เลือก turbulence model ใน `constant/turbulenceProperties` ซึ่งส่งผลต่อ flow regime transitions
+> - **Surface Tension:** กำหนดใน VOF solvers ผ่านคำสั่ง `sigma` ใน `constant/transportProperties`
 
 การเปลี่ยนแปลงระหว่างรูปแบบการไหลขึ้นอยู่กับปัจจัยหลักหลายประการ:
 
@@ -115,6 +138,13 @@
 ---
 
 ## เกณฑ์การเปลี่ยนรูปแบบ (Regime Transition Criteria)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> ตัวเลขไร้มิติและเกณฑ์การเปลี่ยนรูปแบบสามารถ **คำนวณและตรวจสอบได้ผ่าน functionObjects** ใน `system/controlDict`:
+> - **Void Fraction Monitoring:** ใช้ `probes` หรือ `sampledSurface` functionObjects เพื่อติดตามค่า `alpha` และตรวจสอบ regime transition ใน `system/controlDict`
+> - **Reynolds/Froude Numbers:** คำนวณผ่าน `coded` หรือ `expressionField` functionObjects เพื่อ monitor ค่าจำนวนไร้มิติ
+> - **Field Averaging:** ใช้ `fieldAverage` functionObject เพื่อคำนวณค่าเฉลี่ยของ phase fraction และ velocity fields
+> - **Custom Regime Detection:** เขียน `coded` functionObject เพื่อตรวจจับ regime transitions อัตโนมัติ
 
 การเปลี่ยนรูปแบบถูกกำหนดด้วยตัวเลขไร้มิติและพารามิเตอร์ต่างๆ:
 
@@ -153,6 +183,13 @@ $$Re = \frac{\rho U D}{\mu}$$
 
 ## แผนที่รูปแบบการไหล (Flow Regime Maps)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> แผนที่รูปแบบการไหลใช้เป็น **เกณฑ์ในการเลือก Solver และตั้งค่าเริ่มต้น** ก่อนเริ่ม Simulation:
+> - **Solver Selection:** ใช้ regime map เพื่อเลือก solver ที่เหมาะสม (VOF vs. Eulerian-Eulerian) ก่อนสร้าง case
+> - **Parameter Initialization:** ใช้ค่าจาก regime map เพื่อประเมินค่าเริ่มต้นของ velocity inlet และ phase fraction ใน `0/` directory
+> - **Validation Framework:** เปรียบเทียบผลลัพธ์ Simulation กับ regime maps ที่เป็นที่รู้จักเพื่อ validation
+> - **Case Setup Planning:** ใช้ regime map เพื่อวางแผนขนาด mesh, time step และระยะเวลา simulation ที่เหมาะสม
+
 แผนที่รูปแบบการไหลเป็นเครื่องมือสำคัญในการทำนายรูปแบบการไหลตามเงื่อนไขการทำงาน
 
 ### แผนที่รูปแบบการไหลสำหรับท่อแนวตั้ง
@@ -174,6 +211,13 @@ $$Re = \frac{\rho U D}{\mu}$$
 ---
 
 ## การนำไปใช้ใน OpenFOAM
+
+> [!NOTE] **📂 OpenFOAM Context**
+> การนำแนวคิด Flow Regime ไปใช้ใน OpenFOAM เกี่ยวข้องกับ **การเลือกและตั้งค่า Solver** ตามหมวดหมู่:
+> - **Solver Selection:** เลือกระหว่าง `interFoam`, `multiphaseInterFoam` (VOF), `multiphaseEulerFoam` (Eulerian-Eulerian), หรือ `DPMFoam` (Lagrangian) ตาม regime ที่วินิจฉัย
+> - **Property Files:** ตั้งค่า `constant/phaseProperties` สำหรับ Eulerian solvers หรือ `constant/transportProperties` สำหรับ VOF solvers
+> - **Numerical Schemes:** กำหนด `divSchemes` และ `laplacianSchemes` ใน `system/fvSchemes` ให้เหมาะกับ interface capturing (เช่น `Gauss vanLeer` สำหรับ VOF)
+> - **Solution Control:** ปรับ `PIMPLE` settings ใน `system/fvSolution` สำหรับความเสถียรของ multiphase flow
 
 ### กลยุทธ์การเลือก Solver
 
@@ -279,6 +323,13 @@ blending
 
 ## ความท้าทายและข้อควรพิจารณา (Challenges and Considerations)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> ความท้าทายในการจำลอง Flow Regimes สามารถ **จัดการผ่านการตั้งค่าและเทคนิคต่างๆ**:
+> - **Numerical Stability:** ใช้ `maxCo` (Courant number) ใน `system/controlDict` และเลือก `divSchemes` ที่เหมาะสม (เช่น `Gauss MUSCL` หรือ `Gauss vanLeerV`) เพื่อลบปัญหา instability
+> - **Mesh Refinement:** ใช้ `refinementRegions` ใน `snappyHexMeshDict` เพื่อเพิ่มความละเอียดบริเวณ interface หรือใช้ `dynamicRefineFvMesh` สำหรับ adaptive mesh refinement
+> - **Computational Cost:** ปรับ `writeInterval` และ `purgeWrite` ใน `system/controlDict` เพื่อจัดการ disk space, ใช้ `decomposePar` สำหรับ parallel processing
+> - **Blended Models:** ตั้งค่า `blending` ใน `constant/phaseProperties` เพื่อให้ model ปรับตาม regime โดยอัตโนมัติ
+
 ### ความท้าทายในการจำลองรูปแบบการไหล
 
 > [!WARNING] ความท้าทายที่สำคัญ
@@ -305,3 +356,32 @@ blending
 5. **Blended Models:** สำคัญสำหรับรูปแบบการไหลที่เปลี่ยนผ่าน
 
 การระบุรูปแบบการไหลที่ถูกต้องและการเลือก Solver ที่เหมาะสมเป็นกุญแจสำคัญสู่ความสำเร็จในการจำลองการไหลหลายเฟสด้วย OpenFOAM
+
+---
+
+## 🧠 Concept Check: ทดสอบความเข้าใจ
+
+1.  **Slug Flow มีลักษณะอย่างไรและทำไมถึงจำลองยาก?**
+    <details>
+    <summary>เฉลย</summary>
+    Slug Flow มีลักษณะเป็นฟองก๊าซขนาดใหญ่ (Taylor bubbles) สลับกับปลั๊กของเหลว เป็นการไหลแบบกึ่งแยกตัวกึ่งผสม (Transitional/Intermittent) ความยากอยู่ที่ความไม่เสถียร (Unsteadiness) และการเปลี่ยนไปมาระหว่างเฟสต่อเนื่องและเฟสแยกตัวที่รวดเร็ว
+    </details>
+
+2.  **Blended Interfacial Model ใน OpenFOAM มีความสำคัญอย่างไร?**
+    <details>
+    <summary>เฉลย</summary>
+    ช่วยให้ Solver สามารถเปลี่ยนสูตรการคำนวณแรง (เช่น Drag model) ได้อย่างราบรื่นตามสัดส่วนเฟส ($\alpha$) เช่น ใช้สูตรสำหรับฟองเมื่อ $\alpha$ ต่ำ และเปลี่ยนเป็นสูตรสำหรับผิวอิสระเมื่อ $\alpha$ สูง ทำให้จำลองเคสที่มีหลาย Flow regime ปนกันได้โดยไม่เกิด Numerical instability
+    </details>
+
+3.  **ถ้าต้องการจำลอง "น้ำไหลในท่อระบายน้ำทิ้ง" (Stratified Flow) ควรใช้ Solver ตัวไหน?**
+    <details>
+    <summary>เฉลย</summary>
+    ควรใช้ **`interFoam`** หรือ **`multiphaseInterFoam`** (VOF method) เพราะมีผิวรอยต่อระหว่างน้ำและอากาศที่ชัดเจนและแยกออกจากกัน (Separated flow) ไม่ได้ปะปนกันเป็นเนื้อเดียวเหมือน Bubbly flow
+    </details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+*   **บทก่อนหน้า**: [00_Overview.md](00_Overview.md)
+*   **บทถัดไป**: [02_Interfacial_Phenomena.md](02_Interfacial_Phenomena.md)

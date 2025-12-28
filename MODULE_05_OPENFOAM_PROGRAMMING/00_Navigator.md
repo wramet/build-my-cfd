@@ -1,5 +1,13 @@
 # 🗺️ Learning Navigator: OpenFOAM Programming
 
+> [!TIP] ทำไมต้องเข้าใจ OpenFOAM Programming?
+> การเข้าใจโครงสร้าง Source Code ของ OpenFOAM เป็นพื้นฐานสำคัญในการ:
+> - **พัฒนา Custom Solvers** สำหรับปัญหาทางวิศวกรรมเฉพาะทาง
+> - **สร้าง Boundary Conditions ใหม่** ที่ไม่มีในไลบรารีมาตรฐาน
+> - **เขียน Function Objects** สำหรับ Post-processing แบบกำหนดเอง
+> - **ดีบักและแก้ไขปัญหา** เมื่อ Simulation ไม่ Converge หรือเกิด Error
+> - **ปรับปรุง Performance** ของ Solver ผ่านการเข้าใจ Linear Solvers และ Matrix Assembly
+
 > **วัตถุประสงค์**: เอกสารนี้เป็น **เส้นทางการเรียนรู้แบบคู่ขนาน** ที่เชื่อมโยงเนื้อหาการเขียนโปรแกรม OpenFOAM กับ Source Code จริงของไลบรารีหลัก
 
 ---
@@ -23,6 +31,15 @@
 
 ## 1. Foundation Primitives (ประเภทข้อมูลพื้นฐาน)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Source Code Structure (`src/OpenFOAM/`)
+> **Location:** `src/OpenFOAM/primitives/`
+> **Key Files:**
+> - `Scalar/` → ประเภทข้อมูล `double` พื้นฐานที่ใช้ใน Field Calculations
+> - `Vector/` → `vector`, `label` สำหรับพิกัดและการจำแนก Cell
+> - `Tensor/` → `tensor`, `symmTensor` สำหรับ Stress/Strain
+> - **Application:** เมื่อเขียน Custom Code คุณจะใช้ Primitives เหล่านี้โดยตรงในการคำนวณ
+
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
 | [[01_FOUNDATION_PRIMITIVES/00_Overview]] | ภาพรวม Primitives | `src/OpenFOAM/primitives/` |
@@ -38,6 +55,15 @@
 
 ## 2. Dimensioned Types (ประเภทที่มีมิติ)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Physics-Aware Type System (`src/OpenFOAM/`)
+> **Location:** `src/OpenFOAM/dimensionedTypes/`
+> **Key Files:**
+> - `dimensionedScalar/` → ใช้ใน `constant/transportProperties` (nu, rho)
+> - `dimensionedVector/` → ใช้ใน Gravity definition
+> - `dimensionSet/` → ตรวจสอบความสมดุลของหน่วยในสมการ (Unit Consistency)
+> - **Application:** เมื่อกำหนด Physical Properties ใน Solver หรือ Boundary Conditions
+
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
 | [[02_DIMENSIONED_TYPES/00_Overview]] | ภาพรวม | `src/OpenFOAM/dimensionedTypes/` |
@@ -52,6 +78,14 @@
 
 ## 3. Containers & Memory (คอนเทนเนอร์และหน่วยความจำ)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Memory Management (`src/OpenFOAM/`)
+> **Location:** `src/OpenFOAM/containers/` และ `src/OpenFOAM/memory/`
+> **Key Files:**
+> - `List/`, `UList/` → พื้นฐานของ Field Storage
+> - `autoPtr/`, `refPtr/` → Smart Pointers สำหรับ Dynamic Memory
+> - **Application:** เมื่อจัดการ Large Arrays ของ Field Data และ Mesh Connectivity
+
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
 | [[03_CONTAINERS_MEMORY/00_Overview]] | ภาพรวม | `src/OpenFOAM/containers/` |
@@ -63,6 +97,15 @@
 ---
 
 ## 4. Mesh Classes (คลาสเมช)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Mesh Infrastructure (`src/OpenFOAM/` และ `src/finiteVolume/`)
+> **Location:** `src/OpenFOAM/meshes/` และ `src/finiteVolume/fvMesh/`
+> **Key Files:**
+> - `primitiveMesh/` → Topology พื้นฐาน (points, faces, cells)
+> - `polyMesh/` → General Mesh Structure ที่ใช้ใน Pre-processing
+> - `fvMesh/` → Finite Volume Mesh ที่ Solver ใช้งานจริง
+> - **Application:** เมื่อเขียน Function Objects ที่ต้อง Access Cell/Face Data หรือ Custom Boundary Conditions
 
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
@@ -78,6 +121,15 @@
 
 ## 5. Fields & GeometricFields (ฟิลด์)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Field System (`src/OpenFOAM/fields/` และ `src/finiteVolume/`)
+> **Location:** `src/OpenFOAM/fields/` และ `src/finiteVolume/fields/`
+> **Key Files:**
+> - `Fields/Field/` → Base Class สำหรับ Field Storage
+> - `GeometricFields/` → Field ที่ผูกกับ Mesh (มี Internal Field + Boundary Field)
+> - **Application:** **สำคัญที่สุด** เมื่อเขียน Solver คุณจะใช้ `volScalarField`, `volVectorField` ทุกวัน
+> - **Connection:** Fields ใน `0/` directory ถูก Read/Write ผ่าน Class เหล่านี้
+
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
 | [[05_FIELDS_GEOMETRICFIELDS/00_Overview]] | ภาพรวม Fields | `src/OpenFOAM/fields/` |
@@ -91,6 +143,16 @@
 ---
 
 ## 6. Matrices & Linear Algebra (เมทริกซ์และพีชคณิตเชิงเส้น)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Linear Solvers (`system/fvSolution` + `src/`)
+> **Location:** `src/OpenFOAM/matrices/lduMatrix/` และ `src/finiteVolume/fvMatrices/`
+> **Key Files:**
+> - `lduMatrix/` → Sparse Matrix Storage ที่ใช้ใน FVM
+> - `fvMatrix/` → Matrix ที่เกิดจาก Discretization ของ PDE
+> - `solvers/` → Linear Solvers (GAMG, PCG, PBiCGStab)
+> - **Application:** เมื่อปรับแต่ง Solver Settings ใน `system/fvSolution` หรือเขียน Custom Equation
+> - **Connection:** Keywords ใน `system/fvSolution` เช่น `solver`, `tolerance`, `relTol` มาจาก Class เหล่านี้
 
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
@@ -106,6 +168,15 @@
 
 ## 7. Time & Databases (เวลาและฐานข้อมูล)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Simulation Control (`system/controlDict` + `src/`)
+> **Location:** `src/OpenFOAM/db/Time/`
+> **Key Files:**
+> - `Time/` → Time Management (startTime, endTime, deltaT)
+> - `IOobjects/` → File I/O System (การอ่าน/เขียน Fields)
+> - **Application:** เมื่อเขียน Function Objects ที่ต้อง Access Time Data หรือ Custom Output
+> - **Connection:** Settings ใน `system/controlDict` เช่น `startTime`, `endTime`, `writeControl` ถูกควบคุมโดย Class นี้
+
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
 | [[07_TIME_DATABASES/00_Overview]] | ภาพรวม | `src/OpenFOAM/db/Time/` |
@@ -115,6 +186,15 @@
 ---
 
 ## 8. Field Types (ประเภทฟิลด์)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Field Definitions (`0/` directory + `src/`)
+> **Location:** `src/finiteVolume/fields/`
+> **Key Files:**
+> - `volFields/` → Field บน Cell Centers (U, p, T) → เก็บใน `0/` directory
+> - `surfaceFields/` → Field บน Face Centers (flux, phi)
+> - **Application:** **ใช้งานทุกวัน** เมื่อเขียน Solver คุณจะ Declare Fields เหล่านี้ใน `createFields.H`
+> - **Connection:** Files ใน `0/U`, `0/p`, `0/T` คือ Serialization ของ Class เหล่านี้
 
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
@@ -127,6 +207,14 @@
 
 ## 9. Field Algebra (พีชคณิตฟิลด์)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Field Operations (Solver Code)
+> **Location:** `src/finiteVolume/` และ `src/OpenFOAM/fields/`
+> **Key Files:**
+> - Operator Overloading → `+`, `-`, `*`, `/` สำหรับ Field Operations
+> - **Application:** เมื่อเขียน PDE เช่น `solve(fvm::ddt(T) - fvm::laplacian(k, T))`
+> - **Connection:** Algebra ที่คุณเขียนใน Solver จะถูกแปลงเป็น Matrix Operations ผ่าน Class เหล่านี้
+
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
 | [[09_FIELD_ALGEBRA/00_Overview]] | ภาพรวม | `src/OpenFOAM/fields/` |
@@ -135,6 +223,15 @@
 ---
 
 ## 10. Vector Calculus (แคลคูลัสเวกเตอร์)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Discretization Schemes (`system/fvSchemes` + `src/`)
+> **Location:** `src/finiteVolume/finiteVolume/fvc/` และ `fvm/`
+> **Key Files:**
+> - `fvc/` → Explicit Calculus (grad, div, laplacian) → ใช้ใน `system/fvSchemes`
+> - `fvm/` → Implicit Calculus → สร้าง Matrix สำหรับ Solver
+> - **Application:** **ใจกลางของ Solver** เมื่อ Discretize PDE เช่น $\nabla \cdot (\rho \mathbf{U})$
+> - **Connection:** Keywords ใน `system/fvSchemes` เช่น `gradSchemes`, `divSchemes`, `laplacianSchemes` คือการเลือก Numerical Schemes สำหรับ Operations เหล่านี้
 
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
@@ -147,6 +244,15 @@
 
 ## 11. Tensor Algebra (พีชคณิตเทนเซอร์)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Tensor Operations (`src/OpenFOAM/primitives/`)
+> **Location:** `src/OpenFOAM/primitives/Tensor/` และ `SymmTensor/`
+> **Key Files:**
+> - `tensor/` → General 3x3 Tensor (สำหรับ Velocity Gradient, Stress)
+> - `symmTensor/` → Symmetric Tensor (สำหรับ Strain Rate, Reynolds Stress)
+> - **Application:** เมื่อทำ Turbulence Modeling, Stress Analysis, หรือ Rheology
+> - **Connection:** ใช้ใน RANS Models ($\tau_{ij} = 2\mu_t S_{ij}$) และ Constitutive Equations
+
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
 | [[11_TENSOR_ALGEBRA/00_Overview]] | ภาพรวม | `src/OpenFOAM/primitives/Tensor/` |
@@ -156,6 +262,15 @@
 ---
 
 ## 12. Dimensional Analysis (การวิเคราะห์มิติ)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Unit Consistency (`src/OpenFOAM/dimensionSet/`)
+> **Location:** `src/OpenFOAM/dimensionSet/` และ `dimensionedTypes/`
+> **Key Files:**
+> - `dimensionSet/` → ระบบตรวจสอบหน่วย (Mass [kg], Length [m], Time [s], ...)
+> - **Application:** **Compile-time Safety** ป้องกันการเขียนสมการที่มีหน่วยไม่ตรง
+> - **Connection:** Properties ใน `constant/transportProperties` ต้องระบุ dimensions ผ่านระบบนี้
+> - **Example:** `nu [0 2 -1 0 0 0 0]` → kinematic viscosity (m²/s)
 
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|

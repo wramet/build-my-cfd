@@ -1,5 +1,13 @@
 # การจัดเก็บและความสมมาตร (Storage & Symmetry)
 
+> [!TIP] **ทำไมเรื่องนี้สำคัญกับ OpenFOAM?**
+>
+> ใน OpenFOAM การเลือกใช้ประเภทเทนเซอร์ที่เหมาะสม (`tensor`, `symmTensor`, `sphericalTensor`) ไม่ได้เป็นเรื่องของความถูกต้องทางคณิตศาสตร์เพียงอย่างเดียว แต่ส่งผลโดยตรงต่อ **ประสิทธิภาพการคำนวณ (Computational Performance)** และ **การใช้หน่วยความจำ (Memory Usage)** ในการจำลอง CFD ขนาดใหญ่ การเข้าใจกลไกการจัดเก็บข้อมูลเหล่านี้จะช่วยให้คุณ:
+> - เขียนโค้ดที่มีประสิทธิภาพสูงขึ้น (Optimized Code)
+> - ประหยัดหน่วยความจำใน Large-Scale Simulation (ลดได้ถึง 89% สำหรับ sphericalTensor)
+> - หลีกเลี่ยงข้อผิดพลาดทางตัวเลข (Numerical Errors) จากการสูญเสียความสมมาตรของเทนเซอร์
+> - ทำความเข้าใจโครงสร้างภายในของ OpenFOAM เพื่อการ Custom Solver หรือ Boundary Condition
+
 ![[mirror_property_tensor.png]]
 > ตาราง 3x3 ที่แนวทแยงเปรียบเสมือนกระจกเงา ค่าเหนือเส้นทแยงมุม (XY, XZ, YZ) สะท้อนลงมาด้านล่างอย่างสมบูรณ์ไปยัง (YX, ZX, ZY) แสดงถึงคุณสมบัติเทนเซอร์สมมาตร
 
@@ -27,6 +35,16 @@ end
 ---
 
 ## รูปแบบหน่วยความจำ (Memory Layouts)
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> **Domain:** Coding/Customization (Source Code Structure)
+>
+> ส่วนนี้เกี่ยวข้องกับ **C++ Tensor Classes** ใน OpenFOAM Source Code:
+> - **Header Files:** `OpenFOAM/containers/Tensor/Tensor.H`, `symmTensor.H`, `sphericalTensor.H`
+> - **Source Location:** `src/OpenFOAM/containers/Tensor/`
+> - **Usage in Solvers:** การประกาศตัวแปรใน Custom Solver เช่น `volTensorField`, `volSymmTensorField`
+> - **Key Keywords:** `tensor`, `symmTensor`, `sphericalTensor`, `Tensor<Cmpt>`, `component()`
 
 ### 1. เทนเซอร์ทั่วไป (`tensor`)
 
@@ -82,6 +100,16 @@ $$\mathbf{\Lambda} = \lambda \mathbf{I} = \lambda \begin{bmatrix} 1 & 0 & 0 \\ 0
 
 ## การแสดงทางคณิตศาสตร์ (Mathematical Representation)
 
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> **Domain:** Physics & Fields (CFD Applications)
+>
+> การแสดงทางคณิตศาสตร์ของเทนเซอร์ถูกนำไปใช้ใน:
+> - **Fields Dictionary (`0/` directory):** การประกาศ Field Class ในไฟล์ Field Data เช่น `volSymmTensorField` สำหรับความเค้น
+> - **Transport Properties:** `constant/transportProperties` - คุณสมบัติของไหลที่เป็นเทนเซอร์
+> - **Turbulence Models:** เทนเซอร์ความเค้น Reynolds stress tensor ใน `constant/turbulenceProperties`
+> - **Key Keywords:** `volSymmTensorField`, `deviatoric`, `symm()`, `skew()`, `twoSymm()`
+
 เทนเซอร์ $\mathbf{T}$ ในพื้นที่ 3 มิติคือการแมปเชิงเส้นระหว่างเวกเตอร์:
 $$\mathbf{v}_{\text{out}} = \mathbf{T} \cdot \mathbf{v}_{\text{in}}$$
 
@@ -97,6 +125,16 @@ $$v_i = \sum_{j=1}^3 T_{ij} \, w_j$$
 ---
 
 ### การแยกองค์ประกอบเทนเซอร์ (Tensor Decomposition)
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> **Domain:** Coding/Customization (Solver Development)
+>
+> การแยกส่วนประกอบเทนเซอร์ถูกใช้ใน **Custom Solver Development**:
+> - **Tensor Operations Functions:** `symm()`, `skew()`, `twoSymm()`, `dev()` ใน `src/OpenFOAM/fields/Fields/TensorField/`
+> - **Navier-Stokes Solvers:** การคำนวณเทนเซอร์ความเค้นใน `icoFoam`, `simpleFoam`, `interFoam`
+> - **Turbulence Models:** Reynolds stress decomposition ใน `src/TurbulenceModels`
+> - **Key Keywords:** `symm(Tensor)`, `skew(Tensor)`, `dev(Tensor)`, `twoSymm(Tensor)`, `constSymmTensorField`
 
 **ส่วนสมมาตร (Symmetric Part)** ของเทนเซอร์ใดๆ คือ:
 $$\mathbf{S} = \text{symm}(\mathbf{T}) = \frac{1}{2}(\mathbf{T} + \mathbf{T}^T)$$
@@ -116,6 +154,16 @@ $$\mathbf{A} = \text{skew}(\mathbf{T}) = \frac{1}{2}(\mathbf{T} - \mathbf{T}^T)$
 ---
 
 ## การใช้งาน Template Specialization
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> **Domain:** Coding/Customization (Advanced C++ Implementation)
+>
+> ส่วนนี้เกี่ยวข้องกับ **OpenFOAM Source Code Architecture**:
+> - **Template Metaprogramming:** การใช้ C++ Templates ใน `src/OpenFOAM/containers/Tensor/Tensor.H`
+> - **Type Safety:** Compile-time dimension checking สำหรับ Tensor Operations
+> - **Custom Classes:** การสร้าง Custom Tensor Class สำหรับ Physics Model ใหม่
+> - **Key Keywords:** `template<>`, `Tensor<Cmpt>`, `specialization`, `component()`, `triangularIndex()`
 
 OpenFOAM ใช้ประโยชน์จาก C++ template specialization เพื่อปรับปรุงการดำเนินการเทนเซอร์ตามคุณสมบัติของความสมมาตร
 
@@ -164,6 +212,16 @@ public:
 
 ## ประสิทธิภาพการคำนวณ (Computational Efficiency)
 
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> **Domain:** Simulation Control (Performance Optimization)
+>
+> การเลือกประเภทเทนเซอร์ส่งผลต่อ **Memory & Compute Performance**:
+> - **Large Cases:** การใช้ `symmTensor` แทน `tensor` สำหรับ 10M+ cells ลด Memory ได้ ~3GB
+> - **HPC Environments:** Memory bandwidth optimization สำคัญบน Parallel Computing
+> - **Solver Selection:** บาง solver บังคับใช้ `symmTensor` เพื่อ Numerical Stability
+> - **Key Keywords:** `memory footprint`, `cache locality`, `SIMD`, `parallel efficiency`, `decomposePar`
+
 กลยุทธ์การจัดเก็บส่งผลกระทบโดยตรงต่อประสิทธิภาพการคำนวณ
 
 | ด้านประสิทธิภาพ | เทนเซอร์ทั่วไป | เทนเซอร์สมมาตร | เทนเซอร์ทรงกลม | ผลกระทบ |
@@ -185,6 +243,16 @@ public:
 ---
 
 ## 🎯 ประโยชน์ทางวิศวกรรม (Engineering Benefits)
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> **Domain:** Coding/Customization (Best Practices)
+>
+> การนำไปใช้ใน **Real-World OpenFOAM Projects**:
+> - **Custom Solver Development:** การเลือก Field Type ที่เหมาะสมใน `createFields.H`
+> - **Boundary Condition Coding:** การใช้ `symmTensor` ใน Custom BC สำหรับ Stress-based BCs
+> - **Function Objects:** การเขียน `functionObject` สำหรับ Tensor Field Processing
+> - **Key Keywords:** `createField.H`, `GeometricField`, `calculatedFvPatchField`, `functionObject`
 
 การใช้ `symmTensor` ไม่ได้ประหยัดแค่แรม แต่ช่วยเพิ่มความเร็วในการคำนวณและความเสถียรด้วย:
 

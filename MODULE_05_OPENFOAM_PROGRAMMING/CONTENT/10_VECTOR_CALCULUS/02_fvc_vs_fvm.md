@@ -1,5 +1,17 @@
 # fvc vs fvm: แตกต่างกันอย่างไร?
 
+> [!TIP] ทำไมความแตกต่างระหว่าง fvc และ fvm จึงสำคัญ?
+>
+> ใน OpenFOAM การเลือกใช้ `fvc::` (Explicit) หรือ `fvm::` (Implicit) มีผลโดยตรงต่อ **ความเสถียรของการจำลอง** และ **ประสิทธิภาพการคำนวณ**
+>
+> - **ถ้าใช้ `fvc::` กับตัวแปรที่กำลังหา** → การจำลองอาจไม่เสถียร หรือต้องใช้ time step เล็กมาก
+> - **ถ้าใช้ `fvm::` กับตัวแปรที่รู้ค่าแล้ว** → เสียเวลาสร้างเมทริกซ์โดยไม่จำเป็น
+>
+> การเข้าใจความแตกต่างนี้จะช่วยให้คุณ:
+> 1. **พัฒนา Solver ใหม่** ได้อย่างถูกต้องใน `src/` directory
+> 2. **ปรับแต่งสมการ** ใน custom solver ให้เสถียรและมีประสิทธิภาพ
+> 3. **เข้าใจ Discretization Schemes** ใน `system/fvSchemes` และ `system/fvSolution`
+
 ![[explicit_calculator_vs_implicit_architect.png]]
 > **Academic Vision:** A split screen. On the left (fvc), a calculator producing a direct number. On the right (fvm), an architect drawing a complex blueprint (The Matrix) of a building that hasn't been built yet. Clean, high-contrast flat design.
 
@@ -11,6 +23,22 @@
 ---
 
 ## 📊 ภาพรวมการดำเนินการ Explicit กับ Implicit
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> ส่วนนี้อธิบาย **แนวคิดพื้นฐาน** ของการแยกประเภทการดำเนินการ ซึ่งเป็นรากฐานสำคัญในการ:
+>
+> - **Domain B: Numerics & Linear Algebra** → กำหนดการทำงานของ **Linear Solvers** ใน `system/fvSolution`
+> - **Domain E: Coding/Customization** → เขียนสมการใน solver code ที่ `src/finiteVolume/` หรือ `applications/solvers/`
+>
+> **Files ที่เกี่ยวข้อง:**
+> - `system/fvSchemes` → กำหนด discretization schemes (`gradSchemes`, `divSchemes`, `laplacianSchemes`)
+> - `system/fvSolution` → กำหนด solver algorithms (`solvers`, `algorithms`, `solver`)
+>
+> **Keywords สำคัญ:**
+> - `Gauss <scheme>` → รูปแบบการ discretization ของ gradient, divergence, laplacian
+> - `solvers` → เช่น `GAMG`, `PCG`, `BiCGStab` (ใช้แก้ implicit equations)
+> - `algorithms` → เช่น `PISO`, `PIMPLE`, `SIMPLE` (อัลกอริทึม pressure-velocity coupling)
 
 ```mermaid
 flowchart TD
@@ -36,6 +64,28 @@ flowchart TD
 
 ## 🎯 ตารางเปรียบเทียบความแตกต่าง
 
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> ตารางนี้ช่วยให้คุณตัดสินใจเลือกใช้ `fvc::` หรือ `fvm::` เมื่อเขียน **Custom Solver** หรือปรับแต่งสมการ:
+>
+> - **Domain E: Coding/Customization** → เขียน C++ code ใน `src/finiteVolume/fvMesh/fvMesh/fvMatrix.C`
+> - **Domain B: Numerics & Linear Algebra** → ผลกระทบต่อการกำหนด `system/fvSolution`
+>
+> **การเลือกใช้งาน:**
+> - ถ้าต้องการ **Implicit** (`fvm::`) → จะต้องกำหนด **Solver settings** ใน `system/fvSolution` เช่น:
+>   ```cpp
+>   solvers
+>   {
+>       p
+>       {
+>           solver          GAMG;
+>           tolerance       1e-06;
+>           relTol          0.01;
+>       }
+>   }
+>   ```
+> - ถ้าใช้ **Explicit** (`fvc::`) → ไม่ต้องใช้ solver คำนวณค่าทันที แต่ต้องระวัง **CFL condition** ใน `system/controlDict` ด้วย `maxCo`
+
 | หัวข้อเปรียบเทียบ | `fvc` (Explicit) | `fvm` (Implicit) |
 |:---|:---|:---|
 | **ผลลัพธ์ที่ได้** | ค่าตัวเลข (Fields) | เมทริกซ์ระบบสมการ (`fvMatrix`) |
@@ -49,6 +99,25 @@ flowchart TD
 ---
 
 ## ⚙️ กฎการเลือกใช้งาน
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> กฎทองคำนี้เป็นหลักการพื้นฐานในการ **เขียนสมการใน Solver Code** (`Domain E: Coding/Customization`):
+>
+> **ตัวอย่างการประยุกต์ใช้:**
+> - ถ้าแก้สมการโมเมนตัมหา `U` → ใช้ `fvm::div(phi, U)` (implicit)
+> - ถ้าคำนวณกราดิเอนต์ความดันจาก `p` ที่รู้แล้ว → ใช้ `fvc::grad(p)` (explicit)
+>
+> **ผลกระทบต่อ Case Files:**
+> - `system/fvSchemes` → ระบุว่าจะใช้ scheme ไหนสำหรับ `fvm::div()` เช่น:
+>   ```cpp
+>   divSchemes
+>   {
+>       div(phi,U)      Gauss upwind;  // สำหรับ fvm::div(phi, U)
+>       div(phi,k)      Gauss upwind;
+>   }
+>   ```
+> - `system/fvSolution` → กำหนด relaxation factors สำหรับ implicit equations
 
 > [!TIP] กฎทองคำในการเลือกใช้ fvc หรือ fvm
 >
@@ -88,6 +157,36 @@ TEqn.solve();
 ---
 
 ## 🔬 รายละเอียดการดำเนินการแบบ Explicit (`fvc::`)
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> การดำเนินการ `fvc::` เหล่านี้ใช้ใน **Solver Development** และ **Post-processing**:
+>
+> - **Domain E: Coding/Customization** → เขียนใน solver code ที่ `src/finiteVolume/fvc/`
+> - **Domain B: Numerics & Linear Algebra** → กำหนด schemes ใน `system/fvSchemes`
+>
+> **Files ที่เกี่ยวข้อง:**
+> - `system/fvSchemes` → กำหนด discretization methods:
+>   ```cpp
+>   gradSchemes
+>   {
+>       default         Gauss linear;
+>   }
+>   divSchemes
+>   {
+>       default         none;
+>       div(phi,U)      Gauss upwind;
+>   }
+>   laplacianSchemes
+>   {
+>       default         Gauss linear corrected;
+>   }
+>   ```
+>
+> **Keywords สำคัญ:**
+> - `Gauss linear` → รูปแบบ interpolation (linear, upwind, limitedLinear, etc.)
+> - `corrected` → แก้ไข non-orthogonality ของ mesh
+> - `none` → ปิดการใช้งาน scheme บางตัว (ปลอดภัยกว่า default)
 
 ### แนวคิดพื้นฐาน
 
@@ -183,6 +282,47 @@ volScalarField ddtT = fvc::ddt(T);
 
 ## 🏗️ รายละเอียดการดำเนินการแบบ Implicit (`fvm::`)
 
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> การดำเนินการ `fvm::` สร้าง **Matrix System** ที่ต้องแก้ด้วย Linear Solver:
+>
+> - **Domain E: Coding/Customization** → เขียนใน solver code ที่ `src/finiteVolume/fvm/`
+> - **Domain B: Numerics & Linear Algebra** → กำหนด solver settings ใน `system/fvSolution`
+>
+> **Files ที่เกี่ยวข้อง:**
+> - `system/fvSolution` → กำหนด solver algorithms และ tolerances:
+>   ```cpp
+>   solvers
+>   {
+>       p
+>       {
+>           solver          GAMG;          // Geometric-Algebraic Multi-Grid
+>           tolerance       1e-06;
+>           relTol          0.01;
+>           smoother        GaussSeidel;
+>       }
+>       pFinal
+>       {
+>           $p;                           // สืบทอดจาก p
+>           relTol          0;
+>       }
+>       U
+>       {
+>           solver          smoothSolver;  // สำหรับโมเมนตัม
+>           smoother        GaussSeidel;
+>           tolerance       1e-05;
+>           relTol          0.1;
+>       }
+>   }
+>   ```
+> - `system/fvSchemes` → กำหนด discretization schemes สำหรับ fvm operators
+>
+> **Keywords สำคัญ:**
+> - `GAMG` → Generalized Geometric-Algebraic Multi-Grid (เร็วสำหรับ pressure)
+> - `smoothSolver` → ใช้สำหรับ velocity equations
+> - `tolerance` / `relTol` → ค่าความคลาดเคลื่อนที่ยอมรับได้
+> - `nCorrectors` → จำนวนรอบการแก้ใน PISO/PIMPLE (ใน `system/fvSolution`)
+
 ### แนวคิดพื้นฐาน
 
 การดำเนินการ Implicit สร้างระบบสมการที่ coupled โดยค่าสนามที่ไม่รู้ปรากฏในทั้งด้านซ้ายมือ (สัมประสิทธิ์เมทริกซ์) และด้านขวามือ (พจน์ต้นทาง)
@@ -270,6 +410,20 @@ fvVectorMatrix UEqn
 
 ## 📐 รากฐานทางคณิตศาสตร์
 
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> สมการเหล่านี้เป็น **Mathematical Foundation** ที่ถูก implement ใน OpenFOAM source code:
+>
+> - **Domain E: Coding/Customization** → ดู implementation ได้ที่:
+>   - `src/finiteVolume/finiteVolume/fvc/fvcGrad.C` (gradient)
+>   - `src/finiteVolume/finiteVolume/fvc/fvcDiv.C` (divergence)
+>   - `src/finiteVolume/finiteVolume/fvc/fvcLaplacian.C` (laplacian)
+>   - `src/finiteVolume/finiteVolume/fvm/fvmDdt.C`, `fvmDiv.C`, `fvmLaplacian.C`
+>
+> **ผลกระทบต่อ Case Files:**
+> - `system/fvSchemes` → รูปแบบของ Gauss theorem ที่เลือก (linear, upwind, limitedVanLeer, etc.)
+> - `constant/polyMesh/` → คุณภาพ mesh (orthogonality, non-orthogonality) ส่งผลต่อความแม่นยำของ discretization
+
 ### Finite Volume Discretization
 
 การดำเนินการทั้งสองแบบใช้หลักการเดียวกันจากทฤษฎีบทของ Gauss:
@@ -298,6 +452,46 @@ $$\nabla \cdot (\Gamma \nabla \psi) = \frac{1}{V} \sum_{faces} \Gamma_f (\nabla 
 ---
 
 ## 🔄 รูปแบบผสมและการผ่อนคลาย
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> การใช้รูปแบบผสม (Semi-Implicit) และ Under-Relaxation เป็นสิ่งสำคัญใน **Domain B: Numerics & Linear Algebra**:
+>
+> **Files ที่เกี่ยวข้อง:**
+> - `system/fvSolution` → กำหนด relaxation factors และ algorithm controls:
+>   ```cpp
+>   relaxationFactors
+>   {
+>       fields
+>       {
+>           p               0.3;           // Pressure relaxation
+>           rho             1;             // Density (no relaxation)
+>       }
+>       equations
+>       {
+>           U               0.7;           // Momentum relaxation
+>           "(U|k|epsilon)" 0.7;           // Regex for multiple fields
+>       }
+>   }
+>   PISO
+>   {
+>       nCorrectors     2;                 // จำนวนรอบ pressure correction
+>       nNonOrthogonalCorrectors 0;        // สำหรับ non-orthogonal mesh
+>       pRefCell        0;
+>       pRefValue       0;
+>   }
+>   PIMPLE
+>   {
+>       nCorrectors     2;
+>       nOuterCorrectors 1;                // สำหรับ transient
+>       nOrthogonalCorrectors 0;
+>   }
+>   ```
+>
+> **Keywords สำคัญ:**
+> - `relaxationFactors` → ค่าปัจจัยการผ่อนคลาย (0-1)
+> - `nCorrectors` → จำนวนรอบการแก้ในแต่ละ time step
+> - `nNonOrthogonalCorrectors` → สำหรับ mesh ที่ไม่ orthogonal
 
 ในทางปฏิบัติ มักใช้การผสมผสานระหว่าง explicit และ implicit
 
@@ -353,6 +547,32 @@ TEqn.solve();
 ---
 
 ## 🌊 การประยุกต์ใช้อัลกอริทึม PISO
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> อัลกอริทึม PISO แสดงการใช้งานร่วมกันของ `fvc::` และ `fvm::` ใน **Domain B: Numerics & Linear Algebra**:
+>
+> **Files ที่เกี่ยวข้อง:**
+> - `system/fvSolution` → กำหนด PISO algorithm parameters:
+>   ```cpp
+>   PISO
+>   {
+>       nCorrectors     2;                 // จำนวนรอบ pressure correction
+>       nNonOrthogonalCorrectors 0;        // สำหรับ non-orthogonal mesh
+>       pRefCell        0;                 // เซลล์อ้างอิงสำหรับ pressure
+>       pRefValue       0;                 // ค่าความดันอ้างอิง
+>   }
+>   ```
+> - `system/fvSchemes` → กำหนด schemes สำหรับแต่ละ operator ใน PISO loop
+>
+> **Keywords สำคัญ:**
+> - `nCorrectors` → จำนวนรอบการแก้ pressure-velocity coupling
+> - `nNonOrthogonalCorrectors` → จำนวนรอบสำหรับ mesh ที่ไม่ orthogonal
+> - `pRefCell` / `pRefValue` → กำหนด reference pressure (เพื่อแก้ปัญหา singular matrix)
+>
+> **Source Code:**
+> - `applications/solvers/incompressible/icoFoam/icoFoam.C` → ตัวอย่าง PISO implementation
+> - `src/finiteVolume/fvMesh/fvMesh/fvSolution.C` → การอ่าน PISO settings
 
 อัลกอริทึม PISO (Pressure-Implicit with Splitting of Operators) แสดงให้เห็นการใช้งานร่วมกันของ fvc และ fvm อย่างชัดเจน
 
@@ -479,6 +699,32 @@ U -= rUA * fvc::grad(p);
 
 ## 📋 ตารางเปรียบเทียบเชิงลึก
 
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> ตารางนี้ช่วยให้คุณเข้าใจ **Trade-offs** ระหว่าง Explicit และ Implicit ซึ่งส่งผลต่อ **Domain C: Simulation Control**:
+>
+> **Files ที่เกี่ยวข้อง:**
+> - `system/controlDict` → กำหนด time step และ stability controls:
+>   ```cpp
+>   application     icoFoam;
+>   startFrom       latestTime;
+>   startTime       0;
+>   stopAt          endTime;
+>   endTime         1.0;
+>   deltaT          0.001;             // Time step (สำคัญมากสำหรับ explicit)
+>   writeControl    timeStep;
+>   writeInterval   20;
+>
+>   adjustTimeStep  yes;                // Auto-adjust time step
+>   maxCo           1.0;                // Max Courant number (CFL condition)
+>   maxAlphaCo      0.5;                // Max Courant number for VOF
+>   ```
+>
+> **Keywords สำคัญ:**
+> - `deltaT` → ขนาด time step (explicit ต้องเล็ก, implicit ใช้ใหญ่ได้)
+> - `maxCo` → ค่า Courant number สูงสุด (CFL condition)
+> - `adjustTimeStep` → ปรับ time step อัตโนมัติตาม stability
+
 | ปัจจัย | Explicit (`fvc::`) | Implicit (`fvm::`) |
 |:---|:---|:---|
 | **ความเสถียร** | Time step จำกัด | เสถียรโดยไม่มีเงื่อนไข |
@@ -493,6 +739,20 @@ U -= rUA * fvc::grad(p);
 
 ## 💡 แนวทางปฏิบัติที่ดี
 
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> แนวทางปฏิบัติเหล่านี้เป็น **Best Practices** สำหรับ **Domain E: Coding/Customization** และ **Domain B: Numerics & Linear Algebra**:
+>
+> **ตัวอย่างการประยุกต์ใช้:**
+> - เมื่อเขียน **Custom Solver** → ใช้ `fvm::` สำหรับ diffusion และ `fvc::` สำหรับ convection (ถ้า stable)
+> - เมื่อปรับ `system/fvSchemes` → เลือก schemes ที่เหมาะสมกับปัญหา (upwind สำหรับสเถียร, linear สำหรับแม่นยำ)
+> - เมื่อปรับ `system/fvSolution` → เพิ่ม `nCorrectors` ถ้าไม่ converge, ปรับ `relaxationFactors` ถ้า oscillate
+>
+> **Keywords สำคัญ:**
+> - `nCorrectors` → เพิ่มความเสถียรของ pressure-velocity coupling
+> - `relaxationFactors` → ลด oscillation ในการวนซ้ำ
+> - `tolerance` / `relTol` → ความแม่นยำของ solver (ปรับแต่งตามความต้องการ)
+
 > [!INFO] Best Practices ในการเลือกใช้ fvc และ fvm
 >
 > - **ใช้ `fvm::`** สำหรับการแพร่, coupling ความดัน-ความเร็ว, และพจน์ต้นทางแบบ stiff
@@ -504,6 +764,38 @@ U -= rUA * fvc::grad(p);
 ---
 
 ## 🧪 การประยุกต์ใช้ใน Solver จริง
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> ตัวอย่างสมการโมเมนตัมและพลังงานเหล่านี้คือ **Implementation จริง** ใน **Domain E: Coding/Customization**:
+>
+> **Source Code Locations:**
+> - `applications/solvers/basic/potentialFoam/` → Potential flow (Laplace equation)
+> - `applications/solvers/incompressible/simpleFoam/` → Steady-state incompressible flow
+> - `applications/solvers/incompressible/pisoFoam/` → Transient incompressible flow
+> - `applications/solvers/heatTransfer/buoyantSimpleFoam/` → Heat transfer
+>
+> **Files ที่เกี่ยวข้อง:**
+> - `system/fvSchemes` → ต้องกำหนด schemes ให้ตรงกับสมการที่เขียน:
+>   ```cpp
+>   // ถ้า solver ใช้ fvm::div(phi, U)
+>   divSchemes
+>   {
+>       div(phi,U)      Gauss upwind;     // หรือ limitedLinear 1;
+>   }
+>
+>   // ถ้า solver ใช้ fvm::laplacian(nu, U)
+>   laplacianSchemes
+>   {
+>       laplacian(nu,U) Gauss linear corrected;
+>   }
+>   ```
+> - `system/fvSolution` → กำหนด solver settings สำหรับ matrix ที่เกิดจาก `fvm::`
+>
+> **Keywords สำคัญ:**
+> - `fvOptions` → Source terms เพิ่มเติม (เช่น porous media, forces)
+> - `relaxationFactors` → สำคัญมากสำหรับ steady-state solvers (SIMPLE)
+> - `nCorrectors` → สำคัญสำหรับ transient solvers (PISO/PIMPLE)
 
 ### สมการโมเมนตัม
 
@@ -576,6 +868,39 @@ TEqn.solve();
 ---
 
 ## 🔍 ข้อจำกัดความเสถียร
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> ข้อจำกัดความเสถียร (Stability Limits) ส่งผลโดยตรงต่อ **Domain C: Simulation Control**:
+>
+> **Files ที่เกี่ยวข้อง:**
+> - `system/controlDict` → ควบคุม time step และ CFL condition:
+>   ```cpp
+>   application     interFoam;
+>   startFrom       startTime;
+>   startTime       0;
+>   stopAt          endTime;
+>   endTime         10;
+>   deltaT          0.001;             // เริ่มต้นด้วย time step เล็ก
+>
+>   adjustTimeStep  yes;                // ปรับ time step อัตโนมัติ
+>   maxCo           0.5;                // CFL limit สำหรับ convection
+>   maxAlphaCo      0.5;                // CFL limit สำหรับ VOF
+>   maxDi           10;                 // Diffusion number limit
+>
+>   writeControl    adjustableRunTime;
+>   writeInterval  0.05;
+>   ```
+>
+> **Keywords สำคัญ:**
+> - `maxCo` → Courant number สูงสุด (ควร < 1 สำหรับ explicit convection)
+> - `maxAlphaCo` → Courant number สำหรับ volume fraction (VOF)
+> - `maxDi` → Diffusion number (Δt·Γ/Δx²) สำหรับ diffusion
+> - `adjustTimeStep` → ปรับ time step อัตโนมัติเพื่อรักษา stability
+>
+> **Domain B: Numerics & Linear Algebra**
+> - `system/fvSchemes` → เลือก schemes ที่เสถียรกว่า (upwind > linear > linearUpwind)
+> - การใช้ `fvm::` (implicit) → ลดข้อจำกัด CFL แต่เพิ่มต้นทุนการคำนวณ
 
 ### Explicit Stability Limits
 

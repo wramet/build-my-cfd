@@ -1,11 +1,21 @@
 # 03 กลไกภายใน: ตัวแปรสมาชิกและความหมายทางฟิสิกส์
 
+> [!TIP] ความสำคัญของ GeometricField
+> ทำความเข้าใจโครงสร้างภายในของ `GeometricField` เป็นพื้นฐานสำคัญสำหรับการพัฒนาโค้ด OpenFOAM ขั้นสูง ช่วยให้เข้าใจว่าข้อมูลฟิสิกส์ถูกจัดเก็บและเข้าถึงอย่างไร ซึ่งส่งผลโดยตรงต่อประสิทธิภาพของการคำนวณ ความถูกต้องทางตัวเลข และความสามารถในการปรับแต่ง solver หรือ boundary condition ให้เหมาะกับปัญหาทางวิศวกรรมเฉพาะทาง
+
 ![[geometric_field_anatomy.png]]
 `A clean scientific diagram illustrating the internal components of a GeometricField. Show a 3D computational mesh. Highlight the "Internal Field" (values at cell centers), "Boundary Fields" (values at the boundary faces), and the connection to the "fvMesh" object. Include a callout for the "dimensionSet" showing SI units. Use a minimalist palette with black lines and clear labels, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
 
 เมื่อเราสร้างอินสแตนซ์ของเทมเพลต เช่น `GeometricField<Type>`, OpenFOAM จะจัดระเบียบข้อมูลภายในเพื่อให้สอดคล้องกับโครงสร้างของเมช (Mesh) และความต้องการทางฟิสิกส์:
 
 ## สถาปัตยกรรมการจัดเก็บข้อมูลหลัก
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Coding/Customization (src/ directory)
+> - **Source File:** `src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H`
+> - **Key Classes:** `GeometricField`, `Field<Type>`, `DimensionedField`
+> - **Usage:** เมื่อสร้างฟิลด์ใหม่ในโค้ด เช่น `volScalarField p(mesh, dimensionSet, ...)` ข้อมูลภายในจะถูกจัดเก็บใน `internalField_` ซึ่งเป็นสมาชิกหลักที่เข้าถึงค่าที่ cell centers ทั้งหมด
+> - **Memory Access:** ในไฟล์ `0/p`, `0/U` ข้อมูล `internalField` คือส่วนที่ไม่ใช่ `boundaryField` ในไฟล์
 
 ```mermaid
 graph LR
@@ -60,6 +70,14 @@ private:
 
 ## การนำฟิสิกส์ขอบเขตไปใช้
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Physics & Fields (0/ directory) + Coding (src/ directory)
+> - **Case Files:** `0/p`, `0/U`, `0/T` และไฟล์ฟิลด์อื่นๆ
+> - **Keywords:** `boundaryField`, patch types (`fixedValue`, `zeroGradient`, `noSlip`, etc.)
+> - **Source Location:** `src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H`, `src/OpenFOAM/fields/FieldFields/`
+> - **Implementation:** แต่ละ patch ใน `boundaryField` มี `PatchField<Type>` ที่ระบุเงื่อนไขขอบเขต ซึ่งถูกอ่านจากไฟล์ `0/` และสร้างขึ้นจาก runtime selection table
+> - **Custom BC:** การสร้าง boundary condition ใหม่ต้องสืบทอดจาก `PatchField<Type>` ใน `src/finiteVolume/fields/fvPatchFields/`
+
 สมาชิก `boundaryField_` ให้กรอบงานสำหรับการนำเงื่อนไขขอบเขตไปใช้:
 
 ```cpp
@@ -86,6 +104,14 @@ private:
 - **FieldField container**: คอนเทนเนอร์สำหรับจัดการชุดของพาทช์ฟิลด์
 
 ## การผสานรวมบริบทเรขาคณิต
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Meshing (constant/ directory) + Coding (src/ directory)
+> - **Case Files:** `constant/polyMesh/points`, `constant/polyMesh/faces`, `constant/polyMesh/owner`, `constant/polyMesh/neighbour`
+> - **Key Classes:** `fvMesh`, `polyMesh`, `volMesh`, `surfaceMesh`
+> - **Source Location:** `src/OpenFOAM/meshes/polyMesh/polyMesh.H`, `src/finiteVolume/fields/fvPatchFields/`
+> - **Usage:** เมื่อสร้างฟิลด์ใน solver, ต้อง pass `mesh` object: `volScalarField p(mesh, dimensionSet, ...)` ซึ่ง `mesh_` จะเก็บ reference ไปยัง `fvMesh` ที่มีข้อมูลเรขาคณิตทั้งหมด
+> - **Geometry Access:** `mesh.V()` (cell volumes), `mesh.Sf()` (face area vectors), `mesh.C()` (cell centers)
 
 สมาชิก `mesh_` สร้างรากฐานเรขาคณิตสำหรับการดำเนินงานฟิลด์ทั้งหมด:
 
@@ -116,6 +142,14 @@ private:
 - **Geometric context**: ให้บริบทสำหรับการดำเนินงานเชิงปริมาตรจำกัด
 
 ## กรอบการวิเคราะห์มิติ
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Physics & Fields (All field files) + Coding (src/ directory)
+> - **Case Files:** ทุกไฟล์ฟิลด์ใน `0/` และ `constant/` มี `dimensions` keyword, เช่น `dimensions [0 2 -2 0 0 0 0];` สำหรับความดัน
+> - **Keywords:** `dimensions`, `dimensionSet`, `DimensionedField`
+> - **Source Location:** `src/OpenFOAM/dimensionSet/dimensionSet.H`, `src/OpenFOAM/dimensionedTypes/`
+> - **Usage Example:** `dimensionSet(1, -1, -2, 0, 0, 0, 0)` สำหรับหน่วยความดัน (kg·m⁻¹·s⁻²)
+> - **Error Prevention:** ถ้ากำหนดมิติผิด เช่น บวกความดันกับความเร็ว จะเกิด compile error หรือ runtime error จาก dimensional consistency check
 
 สมาชิก `dimensions_` ใช้ระบบการวิเคราะห์มิติอันทรงพลังของ OpenFOAM:
 
@@ -154,6 +188,14 @@ private:
 
 ## ระบบการระบุฟิลด์
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Simulation Control (system/controlDict) + I/O Operations
+> - **Case Files:** ชื่อฟิลด์ใช้เป็นชื่อไฟล์ เช่น `0/p`, `0/U`, `0/T`
+> - **Keywords:** `name`, field identifiers, I/O operations
+> - **Source Location:** `src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H`
+> - **Usage:** ในโค้ด สร้างฟิลด์ด้วย: `volScalarField p("p", mesh, dimensionSet, ...)` โดย "p" คือชื่อฟิลด์ที่ใช้ในการอ่าน/เขียนไฟล์และการระบุใน function objects
+> - **Function Objects:** ใน `system/controlDict`, function objects อ้างอิงฟิลด์ด้วยชื่อนี้ เช่น `fields (p U T);`
+
 สมาชิก `name_` ให้การระบุที่อ่านได้:
 
 ```cpp
@@ -180,6 +222,14 @@ private:
 - **Field conventions**: ข้อตกลงการตั้งชื่อมาตรฐาน
 
 ## ความคู่แบบกายภาพ-การคำนวณ
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Coding/Customization (Solver Development)
+> - **Overall Architecture:** การออกแบบ `GeometricField` เป็นฐานของการเขียน solver ทุกตัวใน OpenFOAM
+> - **Solver Development:** เมื่อเขียน solver ใหม่ ต้องเข้าใจว่าฟิลด์ถูกจัดเก็บและเข้าถึงอย่างไร เพื่อให้สามารถดำเนินการทางคณิตศาสตร์ (การบวก, การคูณ, การไล่ระดับ) ได้อย่างถูกต้อง
+> - **Performance:** การเข้าใจ memory layout ช่วยในการ optimize การคำนวณ เช่น การใช้ SIMD operations, cache-friendly access patterns
+> - **Field Operations:** การดำเนินการกับฟิลด์ทั้งหมด (เช่น `fvc::ddt(p)`, `fvm::laplacian(nu, U)`) ขึ้นอยู่กับโครงสร้างภายในของ `GeometricField`
+> - **Code Location:** `src/OpenFOAM/fields/GeometricFields/GeometricField/` และ `src/finiteVolume/` สำหรับ finite volume operations
 
 ความงามของ `GeometricField` อยู่ในลักษณะคู่ของมันทั้งเป็นคอนเทนเนอร์ปริมาณทางกายภาพและโครงสร้างข้อมูลการคำนวณ ตัวแปรสมาชิกแต่ละตัวสะพานช่องว่างระหว่างแนวคิด CFD ทฤษฎีและการนำไปใช้จริง:
 

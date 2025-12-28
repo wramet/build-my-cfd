@@ -1,395 +1,143 @@
-# ฟิลด์ใน OpenFOAM: รากฐานทางคณิตศาสตร์และสถาปัตยกรรม
+# GeometricFields - Introduction
 
-## บทนำ
-
-**ฟิลด์ (Fields)** คือออบเจ็กต์ทางคณิตศาสตร์พื้นฐานในพลศาสตร์ของไหลเชิงคำนวณ (CFD) ซึ่งแทนปริมาณทางกายภาพเช่น ความเร็ว ความดัน อุณหภูมิ และความเครียด
-
-ระบบฟิลด์ของ OpenFOAM ไม่ใช่เพียงแค่การรวบรวมตัวเลข แต่เป็น **ระบบความปลอดภัยทางคณิตศาสตร์** ที่:
-- บังคับใช้กฎฟิสิกส์ในขั้นตอนคอมไพล์
-- ป้องกันความไม่สอดคล้องของมิติ
-- จัดการความสัมพันธ์ทางหน่วยความจำที่ซับซ้อนระหว่างเซลล์เมชและเงื่อนไขขอบเขต
-
-บทนี้จะอธิบายสถาปัตยกรรมฟิลด์ของ OpenFOAM ผ่านมุมมองของ **"โบราณคดีโค้ด"** — ทำความเข้าใจไม่เพียงแค่ว่าโค้ดทำอะไร แต่ว่าทำไมถึงถูกออกแบบมาลักษณะนี้
-
-```mermaid
-flowchart TD
-%% Classes
-classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-%% Nodes
-A[OpenFOAM Fields]:::implicit --> B[Math Base]:::implicit
-A --> C[Architecture]:::implicit
-A --> D[Memory Mgmt]:::implicit
-A --> E[Safety]:::implicit
-
-B --> B1[Tensors]:::explicit
-B --> B2[Conservation]:::explicit
-B --> B3[Dim Analysis]:::explicit
-
-C --> C1[Inheritance]:::explicit
-C --> C2[Templates]:::explicit
-
-D --> D1[Ref Counting]:::explicit
-D --> D2[Lazy Eval]:::explicit
-
-E --> E1[Type Check]:::explicit
-E --> E2[Dim Check]:::explicit
-```
-> **Figure 1:** แผนผังแนวคิดโดยรวมของระบบฟิลด์ใน OpenFOAM ซึ่งรวบรวมรากฐานทางคณิตศาสตร์ สถาปัตยกรรมการออกแบบ และระบบความปลอดภัยเข้าไว้ด้วยกัน
-
-**ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง** ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+บทนำ GeometricField
 
 ---
 
-> [!TIP] **Physical Analogy: The "Smart" Container (ภาชนะอัจฉริยะ)**
->
-> ลองนึกภาพ "ถังใส่น้ำ" (Container) ที่ไม่ได้มีไว้ใส่น้ำอย่างเดียว แต่มี **"เซนเซอร์"** และ **"ชิปประมวลผล"** ฝังมาด้วย:
->
-> 1.  **ตัวถัง (Raw Data)**: เก็บข้อมูลตัวเลข (น้ำ) เหมือน `List` หรือ `std::vector` ทั่วไป
-> 2.  **ฉลากอัจฉริยะ (Dimensionality)**: มีจอแสดงผลบอกหน่วยชัดเจน (เช่น kg/m³) และ *ล็อกฝาถัง* ไม่ให้เทของผิดประเภทใส่ (เช่น เอา เมตร มาบวก วินาที ไม่ได้)
-> 3.  **GPS (Mesh & Topology)**: ถังนี้รู้พิกัดตัวเองบนพื้นโลก (Mesh) ว่าวางอยู่ตรงไหน ติดกับถังใบไหนบ้าง
-> 4.  **ระบบเตือนภัย (Boundary Logic)**: ถ้าระดับน้ำล้นหรือรั่วออกขอบ (Boundary) มันรู้วิธีจัดการตัวเอง (เช่น ปิดวาล์ว หรือส่งน้ำกลับ)
->
-> นี่คือสิ่งที่ `GeometricField` เป็น — มันคือถังข้อมูลที่ฉลาดที่สุดถังหนึ่งในโลกการเขียนโปรแกรม!
+## Overview
+
+> **GeometricField** = Core data structure for CFD fields
 
 ---
 
-## รากฐานทางคณิตศาสต์: ฟิลด์เป็นออบเจ็กต์เทนเซอร์
+## 1. What is GeometricField?
 
-ใน CFD ทุกปริมาณทางกายภาพนั้นเป็นพื้นฐานของ **เทนเซอร์** ในบางอันดับ:
+A GeometricField combines:
 
-| ประเภท | อันดับเทนเซอร์ | ตัวอย่าง | สัญลักษณ์คณิตศาสตร์ | มิติ SI |
-|---------|--------------|---------|-------------------|----------|
-| **สเกลาร์** | 0 | ความดัน, อุณหภูมิ, ความหนาแน่น | $p$, $T$, $\rho$ | ขึ้นกับปริมาณ |
-| **เวกเตอร์** | 1 | ความเร็ว, โมเมนตัม, แรง | $\mathbf{u}$, $\rho\mathbf{u}$, $\mathbf{f}$ | [L T⁻¹] |
-| **เทนเซอร์** | 2 | ความเครียด, อัตราการเสียรูป, เกรเดียนต์ความเร็ว | $\boldsymbol{\tau}$, $\mathbf{D}$, $\nabla\mathbf{u}$ | [L⁻¹ T⁻¹] |
-| **เทนเซอร์สูง** | >2 | เทนเซอร์ความหนืด, สภาพนำความร้อนแบบไม่เท่ากัน | - | ซับซ้อน |
-
-**ระบบฟิลด์ของ OpenFOAM** แสดงถึงสิ่งเหล่านี้เป็นออบเจ็กต์ทางเรขาคณิตพร้อมด้วย:
-- การดำเนินการทางคณิตศาสตร์ในตัวที่เคารพกฎพีชคณิตเทนเซอร์
-- ความจำเป็นสำหรับการรักษาความสอดคล้องทางกายภาพในการดำเนินการเชิงคำนวณหลายล้านครั้ง
-
-> [!INFO] **ทฤษฎีเทนเซอร์ใน OpenFOAM**
-> ระบบฟิลด์ใช้ **tensor fields ที่ตระหนักถึงพื้นที่ความโค้ง (manifold-aware)** โดยใช้ template metaprogramming ขั้นสูงใน C++ เพื่อบังคับใช้ **ความสอดคล้องทางเรขาคณิต** และ **ความถูกต้องทางโทโพโลยี** ในระหว่างการคอมไพล์
->
-> สำหรับ field $\phi: M \rightarrow \mathbb{R}^n$ บน manifold $M$ (mesh) OpenFOAM บังคับให้:
-> $$\text{operation}(\phi_1, \phi_2) \text{ เป็นที่ถูกต้อง } \iff M_1 \cong M_2 \text{ (manifolds เป็น homeomorphic)}$$
+| Component | Purpose |
+|-----------|---------|
+| **Values** | Numerical data |
+| **Mesh** | Spatial location |
+| **Dimensions** | Physical units |
+| **Boundaries** | Patch conditions |
 
 ---
 
-## ข้อจำกัดทางกายภาพ: กฎการอนุรักษ์
-
-ทุกฟิลด์ใน OpenFOAM ต้องเป็นไปตาม **กฎการอนุรักษ์**:
-
-### การอนุรักษ์มวล
-
-$$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho\mathbf{u}) = 0$$
-
-**ตัวแปร:**
-- $\rho$ = ความหนาแน่น (kg/m³) [M L⁻³]
-- $\mathbf{u}$ = เวกเตอร์ความเร็ว (m/s) [L T⁻¹]
-- $t$ = เวลา (s) [T]
-
-### การอนุรักษ์โมเมนตัม
-
-$$\rho\frac{\partial \mathbf{u}}{\partial t} + \rho(\mathbf{u} \cdot \nabla)\mathbf{u} = -\nabla p + \mu\nabla^2\mathbf{u} + \mathbf{f}$$
-
-**ตัวแปร:**
-- $p$ = ความดัน (Pa) [M L⁻¹ T⁻²]
-- $\mu$ = ความหนืดพลศาสตร์ (Pa·s) [M L⁻¹ T⁻¹]
-- $\mathbf{f}$ = เวกเตอร์แรงภายนอก (N/m³) [M L⁻² T⁻²]
-
-### การอนุรักษ์พลังงาน
-
-$$\rho c_p\frac{\partial T}{\partial t} + \rho c_p\mathbf{u} \cdot \nabla T = k\nabla^2 T + Q$$
-
-**ตัวแปร:**
-- $T$ = อุณหภูมิ (K) [Θ]
-- $c_p$ = ความจุความร้อนที่ความดันคงที่ (J/kg·K) [L² T⁻² Θ⁻¹]
-- $k$ = ความนำความร้อน (W/m·K) [M L T⁻³ Θ⁻¹]
-- $Q$ = แหล่งกำเนิดความร้อน (W/m³) [M L⁻¹ T⁻³]
-
-**สถาปัตยกรรมฟิลด์บังคับใช้ข้อจำกัดเหล่านี้ผ่าน:**
-
-1. **ความสอดคล้องของมิติ**: หน่วยถูกตรวจสอบในขั้นตอนคอมไพล์
-2. **ความสอดคล้องทางเรขาคณิต**: การดำเนินการเคารพการแปลงพิกัด
-3. **การแบ่งส่วนการอนุรักษ์**: ตัวดำเนินการปริมาตต์จำกัดรักษาการอนุรักษ์ทั่วโลก
-
-> [!TIP] **การดำเนินการเชิงปริพันธ์ใน OpenFOAM**
->
-> ระบบฟิลด์รักษาเอกลักษณ์ทางคณิตศาสตร์พื้นฐาน:
->
-> **ทฤษฎีบทไล่ระดับ:**
-> $$\int_\Omega \nabla\phi\,dV = \oint_{\partial\Omega} \phi\,d\mathbf{S}$$
->
-> **ทฤษฎีบทไดเวอร์เจนซ์:**
-> $$\int_\Omega \nabla\cdot\mathbf{U}\,dV = \oint_{\partial\Omega} \mathbf{U}\cdot d\mathbf{S}$$
->
-> เอกลักษณ์เหล่านี้ถูกบังคับใช้อย่างแม่นยำใน discretization
-
----
-
-## ความท้าทายทางวิศวกรรม: การจัดการหน่วยความจำ
-
-การจำลอง CFD ทั่วไปประกอบด้วยส่วนประกอบหลายอย่าง:
-
-| ส่วนประกอบ | คำอธิบาย | ความท้าทาย |
-|------------|----------|------------|
-| **เซลล์เมชหลายล้านเซลล์** | แต่ละเซลล์เก็บค่าฟิลด์ | การใช้หน่วยความจำขนาดใหญ่ |
-| **เงื่อนไขขอบเขต** | แต่ละแพตช์ขอบเขตต้องการการจัดการพิเศษ | การจัดการเงื่อนไขที่ซับซ้อน |
-| **การวิวัฒนาการตามเวลา** | ฟิลด์เปลี่ยนแปลงตามช่วงเวลา | การจัดเก็บข้อมูลช่วงเวลา |
-| **การกระจายแบบขนาน** | ฟิลด์ถูกแบ่งข้ามโปรเซสเซอร์ | การสื่อสารระหว่างโปรเซสเซอร์ |
-
-**OpenFOAM แก้ปัญหานี้ผ่านระบบหน่วยความจำตามลำดับชั้น:**
-
-- **ฟิลด์ทางเรขาคณิต**: เก็บค่าที่จุดศูนย์กลางเซลล์ หน้า และจุด
-- **ฟิลด์ขอบเขต**: จัดการเงื่อนไขเฉพาะแพตช์
-- **การนับการอ้างอิง**: การจัดการหน่วยความจำอัตโนมัติป้องกันการรั่วไหล
-- **การประเมินแบบเกียจคร้าว**: การคำนวณถูกเลื่อนออกไปจนกว่าจำเป็น
-
-```mermaid
-flowchart TD
-%% Classes
-classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-classDef context fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
-%% Nodes
-A[List]:::implicit --> B[Field]:::implicit
-B --> C[DimensionedField]:::implicit
-C --> D[GeometricField]:::implicit
-D --> E1[volScalarField]:::explicit
-
-A -.->|Raw| A1[Memory]:::context
-B -.->|Math| B1[Refs]:::context
-C -.->|Units| C1[Analysis]:::context
-D -.->|Space| D1[BCs]:::context
-```
-> **Figure 2:** ลำดับชั้นการสืบทอบของคลาสฟิลด์แบบย่อ ซึ่งแสดงเลเยอร์หลักจากข้อมูลดิบไปสู่ข้อมูลทางเรขาคณิตและฟิสิกส์พร้อมคำอธิบายหน้าที่ในแต่ละระดับ
-
-**ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง** ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
-
----
-
-## ระบบความปลอดภัย: การรับประกันในขั้นตอนคอมไพล์
-
-การเขียนโปรแกรมเทมเพลตของ OpenFOAM สร้าง **ภาษาคณิตศาสตร์ที่ปลอดภัยจากประเภท**
-
-### OpenFOAM Code Implementation
+## 2. Template Parameters
 
 ```cpp
-// This will NOT compile - incompatible dimensions
-volScalarField pressure("p", mesh);
-volVectorField velocity("U", mesh);
-volTensorField result = pressure * velocity; // Error: scalar × vector ≠ tensor
-
-// Correct examples
-volVectorField momentum("rhoU", rho * U); // scalar × vector = vector
-volScalarField kineticEnergy("kE", 0.5 * magSqr(U)); // vector² = scalar
+template<class Type, template<class> class PatchField, class GeoMesh>
+class GeometricField
 ```
 
-> **📂 Source:** [`.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`](.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C)
->
-> **💡 คำอธิบาย:** โค้ดตัวอย่างนี้แสดงให้เห็นว่า OpenFOAM มีระบบตรวจสอบความสอดคล้องของเทนเซอร์และมิติในขั้นตอนการคอมไพล์ การคูณสเกลาร์กับเวกเตอร์จะให้ผลลัพธ์เป็นเวกเตอร์ แต่การคูณสเกลาร์กับเวกเตอร์แล้วคาดหวังให้ได้เทนเซอร์จะเกิดข้อผิดพลาดในการคอมไพล์
->
-> **🔑 แนวคิดสำคัญ:**
-> - **Type Safety:** ระบบฟิลด์ของ OpenFOAM ตรวจสอบประเภทข้อมูล (scalar, vector, tensor) ในขั้นตอนคอมไพล์
-> - **Dimensional Consistency:** การดำเนินการทางคณิตศาสตร์ต้องสอดคล้องกับมิติทางกายภาพ
-> - **Compile-time Protection:** ข้อผิดพลาดทางฟิสิกส์ถูกตรวจพบตั้งแต่ขั้นตอนการคอมไพล์ ไม่ใช่รันไทม์
-
-**สิ่งนี้ป้องกันคลาสของบั๊กทั้งหมด:**
-
-- **ข้อผิดพลาดมิติ**: การบวกความดันเข้ากับความเร็ว
-- **ข้อผิดพลาดอันดับเทนเซอร์**: การคำนวณ curl ของฟิลด์สเกลาร์
-- **ข้อผิดพลาดทางเรขาคณิต**: การใช้ตัวดำเนินการพื้นผิวกับฟิลด์ปริมาตร
-
-> [!WARNING] **ข้อผิดพลาดที่ถูกป้องกันโดยระบบ Type**
->
-> ระบบ field ของ OpenFOAM ป้องกันข้อผิดพลาดรันไทม์ทั้งหมดเหล่านี้:
->
-> ```cpp
-> // ❌ Dimensional inconsistency
-> volScalarField p("p", mesh, dimensionedScalar("p", dimPressure, 0));
-> volVectorField U("U", mesh, dimensionedVector("U", dimVelocity, vector::zero));
-> auto invalid = p + U;  // Compile error!
->
-> // ❌ Tensor rank mismatch
-> volScalarField T("T", mesh);
-> auto curlT = fvc::curl(T);  // Compile error: curl requires vector field!
->
-> // ❌ Geometric inconsistency
-> volScalarField cellField("T", mesh);
-> surfaceScalarField faceField("phi", mesh);
-> auto invalid = cellField + faceField;  // Compile error!
-> ```
+| Parameter | Examples |
+|-----------|----------|
+| `Type` | scalar, vector, tensor |
+| `PatchField` | fvPatchField, fvsPatchField |
+| `GeoMesh` | volMesh, surfaceMesh |
 
 ---
 
-## แนวทางโบราณคดีโค้ด
+## 3. Common Field Types
 
-เพื่อเข้าใจฟิลด์ของ OpenFOAM อย่างแท้จริง เราต้องตรวจสอบ:
-
-1. **การตัดสินใจในการออกแบบ**: ทำไมต้องใช้พอยน์เตอร์ที่นับการอ้างอิง?
-2. **รากฐานทางคณิตศาสตร์**: ตัวดำเนินการรักษาการอนุรักษ์อย่างไร?
-3. **ผลกระทบด้านประสิทธิภาพ**: การเพิ่มประสิทธิภาพใดเปิดใช้การจำลองในระดับขนาดใหญ่?
-4. **วิวัฒนาการทางประวัติศาสตร์**: สถาปัตยกรรมพัฒนาอย่างไร?
-
-```mermaid
-flowchart LR
-%% Classes
-classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px;
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-%% Nodes
-A[Design]:::implicit --> B[Ref Counting]:::explicit
-A --> C[Expr Templates]:::explicit
-A --> D[Lazy Eval]:::explicit
-
-B --> E[Efficiency]:::implicit
-C --> F[Fusion]:::implicit
-D --> G[Cache Opt]:::implicit
-
-E --> H[Large Scale CFD]:::explicit
-F --> H
-G --> H
-```
-> **Figure 3:** ความสัมพันธ์ระหว่างการตัดสินใจด้านการออกแบบระบบฟิลด์กับผลกระทบเชิงบวกที่เกิดขึ้นต่อประสิทธิภาพและความถูกต้องในการจำลอง CFD ขนาดใหญ่
-
-**ความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง** ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
-
-บทนี้จะแนะนำคุณผ่านชั้นของการแยกส่วน จากการประกาศฟิลด์ระดับสูงไปจนถึงการจัดการหน่วยความจำระดับต่ำ เผยให้เห็นว่า OpenFOAM แปลง PDEs เชิงนามธรรมเป็นโค้ด C++ ที่มีประสิทธิภาพและขนานได้ซึ่งเคารพกฎพื้นฐานของฟิสิกส์
-
----
-
-## การวิเคราะห์มิติ: รากฐานความปลอดภัย
-
-### มิติพื้นฐานใน OpenFOAM
-
-OpenFOAM ใช้ระบบการวิเคราะห์มิติอย่างเข้มงวดโดยยึดตามมิติพื้นฐานเจ็ดประการ:
-
-| มิติ | สัญลักษณ์ | หน่วย SI | คำอธิบาย |
-|------|------------|-----------|-----------|
-| **มวล** | [M] | กิโลกรัม (kg) | หน่วยพื้นฐานสำหรับคุณสมบัติเฉื่อย |
-| **ความยาว** | [L] | เมตร (m) | หน่วยวัดเชิงพื้นที่ |
-| **เวลา** | [T] | วินาที (s) | หน่วยวัดเชิงเวลา |
-| **อุณหภูมิ** | [Θ] | เคลวิน (K) | อุณหภูมิทางอุณหพลศาสตร์ |
-| **ปริมาณ** | [N] | โมล (mol) | ปริมาณของสาร |
-| **กระแส** | [I] | แอมแปร์ (A) | กระแสไฟฟ้า |
-| **ความเข้มแสง** | [J] | แคนเดลา (cd) | ความเข้มแสง |
-
-### การใช้งานใน OpenFOAM
+### Volume Fields (Cell-centered)
 
 ```cpp
-// Dimension declaration in OpenFOAM
-// Create dimension sets for different physical quantities
-
-dimensionSet(1, -3, -2, 0, 0, 0, 0)  // [M L⁻³ T⁻²] = Pressure
-dimensionSet(0, 1, -1, 0, 0, 0, 0)    // [L T⁻¹] = Velocity
-dimensionSet(1, -1, -2, 0, 0, 0, 0)  // [M L⁻¹ T⁻²] = Pressure (Pa)
+volScalarField p;   // Pressure
+volVectorField U;   // Velocity
+volTensorField R;   // Stress tensor
 ```
 
-> **📂 Source:** [`.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`](.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C)
->
-> **💡 คำอธิบาย:** dimensionSet เป็นคลาสที่ใช้กำหนดมิติทางกายภาพของปริมาณใน OpenFOAM โดยรับพารามิเตอร์ 7 ค่าตามลำดับคือ Mass, Length, Time, Temperature, Quantity, Current และ Luminous intensity ซึ่งช่วยให้ระบบตรวจสอบความสอดคล้องของมิติในการคำนวณ
->
-> **🔑 แนวคิดสำคัญ:**
-> - **Seven Base Dimensions:** OpenFOAM ใช้ระบบ SI ที่มี 7 มิติพื้นฐานตามมาตรฐานสากล
-> - **DimensionSet Constructor:** คอนสตรักเตอร์รับ 7 อาร์กิวเมนต์ที่แทนเลขชี้กำลังของแต่ละมิติพื้นฐาน
-> - **Compile-time Checking:** ระบบตรวจสอบความสอดคล้องของมิติในขั้นตอนคอมไพล์
+### Surface Fields (Face-centered)
 
-### กฎการคำนวณมิติ
-
-#### 1. การบวกและการลบ
-$$[A] + [B] = [C] \quad \text{ต้องการ} \quad [A] = [B] = [C]$$
-
-**ตัวอย่าง**:
-$$p_1 + p_2 = p_3 \quad \text{ถูกต้องถ้า} \quad [p_1] = [p_2] = [p_3] = [M L^{-1} T^{-2}]$$
-
-#### 2. การคูณ
-$$[A] \times [B] = [A + B]$$
-
-**ตัวอย่าง**:
-$$F = ma: \quad [M L T^{-2}] = [M] \times [L T^{-2}]$$
-
-#### 3. การหาร
-$$[A] / [B] = [A - B]$$
-
-**ตัวอย่าง**:
-$$\text{จำนวนเรย์โนลด์: } Re = \frac{\rho V L}{\mu}: \quad [1] = \frac{[M L^{-3}][L T^{-1}][L]}{[M L^{-1} T^{-1}]}$$
-
-#### 4. การยกกำลัง
-$$[A]^n = [nA]$$
-
-**ตัวอย่าง**:
-$$\text{พื้นที่: } A = L^2: \quad [L^2] = 2[L]$$
-
-> [!INFO] **การตรวจสอบความสอดคล้องของมิติ**
->
-> ```cpp
-> // ❌ Invalid usage
-> dimensionedScalar wrongPressure("p", dimVelocity, 101325);  // Error!
->
-> // ✅ Correct usage
-> dimensionedVector velocity("U", dimVelocity, vector(1, 0, 0));
->
-> // ✅ Heat source term: [M L⁻¹ T⁻³] = W/m³
-> volScalarField heatSource("Q", dimEnergy/(dimVolume*dimTime), mesh);
-> ```
+```cpp
+surfaceScalarField phi;  // Mass flux
+surfaceVectorField Sf;   // Face area vectors
+```
 
 ---
 
-## สรุป: ฟิลด์เป็นรากฐานของ CFD ใน OpenFOAM
+## 4. Basic Usage
 
-ระบบฟิลด์ของ OpenFOAM แสดงถึงการผสานรวมที่ยอดเยี่ยมระหว่าง:
+### Create and Initialize
 
-### ความเข้มงวดทางคณิตศาสตร์
-- **เทนเซอร์ types** ที่เข้มงวด: scalar, vector, tensor, symmTensor
-- **Dimensional analysis** ในขั้นตอนคอมไพล์
-- **การอนุรักษ์** ที่รักษาโดย discretization
+```cpp
+volScalarField T
+(
+    IOobject("T", runTime.timeName(), mesh, IOobject::MUST_READ),
+    mesh
+);
+```
 
-### ประสิทธิภาพการคำนวณ
-- **Expression templates** สำหรับ zero-cost abstractions
-- **Reference counting** สำหรับการจัดการหน่วยความจำอัตโนมัติ
-- **Cache optimization** ผ่าน Structure of Arrays layout
+### Access Values
 
-### ความปลอดภัยในการทำงาน
-- **Compile-time type checking** ป้องกันข้อผิดพลาด
-- **Runtime boundary condition enforcement**
-- **Automatic dimensional consistency**
+```cpp
+// Cell value
+scalar T0 = T[0];
 
-บทนี้จะเจาะลึกถึงกลไกเหล่านี้ทั้งหมด เริ่มต้นจากระดับสูงสุดของการประกาศฟิลด์ ไปจนถึงรายละเอียดระดับต่ำของการจัดการหน่วยความจำและการดำเนินการเชิงคณิตศาสตร์
+// All cells
+forAll(T, cellI)
+{
+    T[cellI] = compute(cellI);
+}
+```
+
+### Operations
+
+```cpp
+volScalarField T2 = sqr(T);
+scalar maxT = max(T).value();
+```
 
 ---
 
-## ดำเนินการต่อไป
+## 5. Why Not Just Arrays?
 
-เพื่อเข้าใจระบบฟิลด์ของ OpenFOAM อย่างลึกซึ้ง แนะนำให้อ่านบทความต่อไปนี้:
-
-- **[[02_🔗_Advanced_Design_Philosophy_Deep_Dive]]** - การวิเคราะห์ปรัชญาการออกแบบขั้นสูงเชิงลึก
-- **[[03_🔍_High-Level_Concept_The_Mathematical_Safety_System_Analogy]]** - แนวคิดระดับสูง: ระบบความปลอดภัยทางคณิตศาสตร์
-- **[[04_⚙️_Key_Mechanisms_The_Inheritance_Chain]]** - กลไกหลัก: ห่วงโซ่การสืบทอบ
-
-แหล่งข้อมูลเพิ่มเติม:
+| Feature | Array | GeometricField |
+|---------|-------|----------------|
+| Dimension check | ❌ | ✅ |
+| Mesh aware | ❌ | ✅ |
+| Boundary handling | ❌ | ✅ |
+| I/O integrated | ❌ | ✅ |
+| Old time | ❌ | ✅ |
 
 ---
 
-## 🧠 10. Concept Check (ทดสอบความเข้าใจ)
+## Quick Reference
 
-1.  **ถ้าเราพยายามนำ `volScalarField p` (ความดัน) มาบวกกับ `volScalarField T` (อุณหภูมิ) ใน OpenFOAM จะเกิดอะไรขึ้น? และทำไม?**
-    <details>
-    <summary>เฉลย</summary>
-    **Compile Error!** โปรแกรมจะคอมไพล์ไม่ผ่าน เพราะ OpenFOAM มีระบบ **Compile-time Dimensional Checking** ที่ตรวจสอบหน่วยของตัวแปร หน่วยของความดัน [M L⁻¹ T⁻²] ไม่ตรงกับอุณหภูมิ [Θ] การบวกกันจึงเป็นสิ่งต้องห้ามทางฟิสิกส์
-    </details>
+| Alias | Type | Location |
+|-------|------|----------|
+| `volScalarField` | scalar | Cell |
+| `volVectorField` | vector | Cell |
+| `surfaceScalarField` | scalar | Face |
+| `surfaceVectorField` | vector | Face |
 
-2.  **ทำไม OpenFOAM ถึงแยก `Field` (เก็บข้อมูลดิบ) ออกจาก `GeometricField` (เก็บข้อมูล + เมช + ขอบเขต)?**
-    <details>
-    <summary>เฉลย</summary>
-    เพื่อ **Separation of Concerns (การแยกความรับผิดชอบ)**:
-    - `Field` ทำหน้าที่เป็น Container ประสิทธิภาพสูงสำหรับการดำเนินการทางคณิตศาสตร์แบบ Array (เช่น SIMD, Vectorization)
-    - `GeometricField` เพิ่มบริบททางฟิสิกส์และโทโพโลยี (Boundary conditions)
-    การแยกนี้ทำให้เราสามารถใช้ `Field` ในบริบทที่ไม่ต้องการ Mesh (เช่น การคำนวณชั่วคราว) ได้อย่างรวดเร็วและเบาเครื่อง
-    </details>
+---
 
-3.  **หน่วยพื้นฐาน (Base Dimensions) 7 อย่างใน OpenFOAM มีอะไรบ้าง? (ไม่ต้องจำแม่น แต่ให้รู้คร่าวๆ)**
-    <details>
-    <summary>เฉลย</summary>
-    Mass [M], Length [L], Time [T], Temperature [Θ], Mole [N], Current [I], Luminous Intensity [J] (ตามระบบ SI Units)
-    </details>
+## Concept Check
+
+<details>
+<summary><b>1. GeometricField มีอะไรมากกว่า array?</b></summary>
+
+**Mesh + Dimensions + BC + I/O + Old time**
+</details>
+
+<details>
+<summary><b>2. vol vs surface field?</b></summary>
+
+- **vol**: Cell centers
+- **surface**: Face centers
+</details>
+
+<details>
+<summary><b>3. ทำไมต้อง template?</b></summary>
+
+**Code reuse** — same structure for scalar, vector, tensor
+</details>
+
+---
+
+## Related Documents
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md)
+- **Design Philosophy:** [02_Design_Philosophy.md](02_Design_Philosophy.md)

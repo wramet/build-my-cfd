@@ -1,5 +1,8 @@
 # บทนำสู่ Function Objects (Introduction to Function Objects)
 
+> [!TIP] ทำไม Function Objects สำคัญ?
+> Function Objects เป็นเครื่องมือพลังงานที่ช่วยให้คุณ **ติดตามผลลัพธ์แบบ Real-time** ระหว่างการจำลอง โดยไม่ต้องรอให้รันเสร็จก่อน ช่วยประหยัดเวลาและพื้นที่จัดเก็บ ทำให้คุณรู้ได้ทันทีว่า Simulation กำลังไปในทิศทางที่ถูกต้องหรือไม่ และสามารถคำนวณค่าทางฟิสิกส์ที่ซับซ้อนได้โดยอัตโนมัติ
+
 ในยุคแรกของ OpenFOAM หากเราต้องการค่าแรงต้าน (Drag) เราต้องรอให้รันเสร็จ แล้วใช้โปรแกรมอื่นคำนวณ หรือต้องเขียน Code แทรกใน Solver เอง
 
 แต่ปัจจุบัน เรามี **Function Objects** ซึ่งเป็นเหมือน "Plugin" ที่สามารถเสียบเข้าไปทำงานระหว่างที่ Solver กำลังรันอยู่ (Runtime) โดยไม่ต้องแก้ Code หลัก
@@ -10,11 +13,23 @@
 
 ## 1. ทำไมต้องใช้ Function Objects?
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **File:** `system/controlDict`
+> **Keywords:** `functions`, `#includeFunc`, `type`, `libs`, `writeInterval`
+>
+> Function Objects ถูกกำหนดใน `system/controlDict` ภายใต้ block `functions { ... }` เป็นการตั้งค่าการทำงานของ Solver ที่ระบุว่าต้องการคำนวณค่าอะไรเพิ่มเติมระหว่างการรัน Simulation
+
 1.  **Online Monitoring:** เห็นค่า $C_d, C_l$ หรือ Mass Flow Rate แบบ Real-time (ผ่านไฟล์ .dat/.csv) รู้ได้ทันทีว่า Simulation นิ่ง (Converge) หรือยัง
 2.  **Space Saving:** แทนที่จะ Save ผลลัพธ์ทั้งก้อน (Volumetric Field) ทุกๆ 1 วินาที เราสามารถ Save เฉพาะจุดที่สนใจ (Probes) ถี่ๆ ได้โดยไม่เปลือง Harddisk
 3.  **On-the-fly Calculation:** คำนวณค่าทางฟิสิกส์ที่ซับซ้อน (เช่น Q-criterion, Vorticity) ไว้เลย ไม่ต้องเสียเวลามาคำนวณซ้ำตอน Post-processing
 
 ## 2. การใช้งานใน `controlDict`
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **File:** `system/controlDict`
+> **Keywords:** `functions`, `type`, `libs`, `enabled`, `writeControl`, `writeInterval`
+>
+> Section นี้แสดงวิธีการเขียน Function Objects ใน `system/controlDict` สองแบบ: แบบเต็ม (Classic) และแบบย่อ (Modern) โดยมี Keywords สำคัญ ได้แก่ `type` (ชนิดของ function), `libs` (library ที่ต้องโหลด), และการควบคุมการเขียนผลลัพธ์ด้วย `writeControl` และ `writeInterval`
 
 เราสามารถเพิ่ม Block `functions { ... }` ท้ายไฟล์ `system/controlDict`
 
@@ -53,6 +68,12 @@ functions
 
 ## 3. Function Objects ยอดนิยม
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **File:** `system/controlDict`
+> **Keywords:** `type` (Q, vorticity, yPlus, wallShearStress, forces, forceCoeffs, probes, surfaces, sets), `libs ("libfieldFunctionObjects.so")`, `fields`, `probeLocations`, `writeControl`
+>
+> Function Objects แต่ละประเภทใช้ Keyword ที่แตกต่างกัน เช่น `Q`, `vorticity`, `yPlus` สำหรับ Field Calculation, `forces`, `forceCoeffs` สำหรับ Monitoring, และ `probes`, `surfaces` สำหรับ Sampling โดยปกติจะโหลด library จาก `libfieldFunctionObjects.so` หรือ `libforces.so`
+
 ### Field Calculation
 *   `Q`: คำนวณ Q-criterion (ดูโครงสร้าง Turbulence)
 *   `vorticity`: คำนวณ Vorticity field
@@ -70,6 +91,12 @@ functions
 *   `sets`: ดึงค่าตามเส้น (Line plotting)
 
 ## 4. การรันแบบ Post-Process (ทำย้อนหลัง)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Utility:** `postProcess` (Command Line)
+> **Keywords:** `-func`, `-latestTime`, `-dirs`, `-region`
+>
+> Section นี้แสดงการใช้ Utility `postProcess` ซึ่งเป็นคำสั่ง Command Line ที่ทำงานแยกจาก Solver ช่วยให้สามารถคำนวณ Function Objects ย้อนหลังได้โดยใช้ Flag `-func` ตามด้วยชื่อ function ที่ต้องการ และสามารถระบุเวลาที่ต้องการคำนวณด้วย `-latestTime` หรือ `-time`
 
 ถ้าลืมใส่ Function Objects ตอนรัน ไม่ต้องเสียใจ! เราสามารถสั่งรันย้อนหลังได้ด้วย Utility `postProcess`
 
@@ -123,7 +150,7 @@ graph TB
 
 ---
 
-## 📝 แบบฝึกหัด (Exercises)
+## 🧠 Concept Check: ทดสอบความเข้าใจ
 
 ### แบบฝึกหัดระดับง่าย (Easy)
 1. **True/False**: Function Objects ต้องแก้ไข Source Code ของ Solver
@@ -164,7 +191,10 @@ graph TB
 ### แบบฝึกหัดระดับสูง (Hard)
 5. **Hands-on**: เพิ่ม Function Objects ใน Tutorial case ใดๆ แล้วรัน ตรวจสอบไฟล์ output ใน `postProcessing/`
 
-6. **วิเคราะห์**: เปรียบเทียบการคำนวณ derived fields (เช่น vorticity) ระหว่าง:
-   - ใช้ Function Objects ระหว่างรัน (Runtime)
-   - คำนวณด้วย ParaView หลังรันเสร็จ (Post-processing)
-   ในแง่ของเวลาและความยืดหยุ่น
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+*   **บทก่อนหน้า**: [../05_MESH_QUALITY_AND_MANIPULATION/03_Mesh_Manipulation_Tools.md](../05_MESH_QUALITY_AND_MANIPULATION/03_Mesh_Manipulation_Tools.md)
+*   **บทถัดไป**: [02_Forces_and_Coefficients.md](02_Forces_and_Coefficients.md)

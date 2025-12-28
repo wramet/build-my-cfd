@@ -1,739 +1,251 @@
-# การศึกษาการลู่เข้าของกริด (Grid Convergence Study)
+# Grid Convergence Study
 
-## 1. บทนำ (Introduction)
-
-การศึกษาการลู่เข้าของกริด (Grid Convergence Study) เป็นขั้นตอนสำคัญในกระบวนการ **Code Verification** เพื่อให้แน่ใจว่าผลเฉลยเชิงตัวเลข (Numerical Solution) ไม่ขึ้นอยู่กับความละเอียดของเมช (Mesh Independent) การศึกษาเชิงระบบนี้ช่วยให้เราสามารถประเมินความไม่แน่นอนเชิงตัวเลข (Numerical Uncertainty) และหาค่าที่ใกล้เคียงกับผลเฉลยที่แท้จริงได้แม่นยำยิ่งขึ้น
-
-> [!INFO] ความสำคัญของการศึกษาการลู่เข้าของกริด
-> การศึกษาการลู่เข้าของกริดเป็นส่วนสำคัญของกระบวนการ **Verification & Validation (V&V)** ตามมาตรฐาน ASME V&V 20 ซึ่งให้แนวทางสำหรับการประเมินความแม่นยำของการจำลอง CFD
+การศึกษาการลู่เข้าของกริดสำหรับ Multiphase Flow
 
 ---
 
-## 2. พื้นฐานทางทฤษฎี (Theoretical Foundation)
+## Overview
 
-### 2.1 การละเอียดเมชอย่างเป็นระบบ (Systematic Mesh Refinement)
+> **เป้าหมาย:** ยืนยันว่าผลลัพธ์ **ไม่ขึ้นกับความละเอียดของ mesh** (Mesh Independent)
 
-การศึกษาต้องรันบนเมชอย่างน้อย 3 ชุดที่มีความละเอียดต่างกันตามอัตราส่วนคงที่ $r$ (มักใช้ $r=2$):
-
-| เมช | ระดับ | ขนาดเซลล์ลักษณะเฉพาะ | จำนวนเซลล์ |
-|------|--------|-------------------------|--------------|
-| เมชหยาบ | $h_3$ | $h$ | $N$ |
-| เมชกลาง | $h_2$ | $h/2$ | $8N$ |
-| เมชละเอียด | $h_1$ | $h/4$ | $64N$ |
-
-เงื่อนไขสำคัญ:
-- **อัตราส่วนการละเอียดคงที่**: $r = h_{coarse}/h_{fine} = \text{constant}$
-- **คุณภาพเมชสม่ำเสมอ**: รักษา aspect ratio, orthogonality, และ skewness ให้ใกล้เคียงกันทุกชุด
-- **การละเอียดสม่ำเสมอ**: ละเอียดทั่วทั้งโดเมน ไม่เฉพาะบางบริเวณ
-
-### 2.2 Richardson Extrapolation
-
-ใช้สำหรับประมาณค่าผลเฉลยในอุดมคติที่ขนาดเมชเป็นศูนย์ ($h \to 0$):
-
-$$\phi_{exact} \approx \phi_1 + \frac{\phi_1 - \phi_2}{r^p - 1} \tag{2.1}$$
-
-โดยที่:
-- $\phi_{exact}$ คือ ค่าที่ extrapolate ได้ (ค่าใกล้เคียงผลเฉลยแท้จริง)
-- $\phi_1$ คือ ผลเฉลยบนเมชละเอียดที่สุด ($h_1$)
-- $\phi_2$ คือ ผลเฉลยบนเมชกลาง ($h_2$)
-- $r$ คือ อัตราส่วนการละเอียด ($r = h_2/h_1$)
-- $p$ คือ อันดับความแม่นยำที่สังเกตได้ (Observed order of accuracy)
-
-**อันดับความแม่นยำที่สังเกตได้** $p$ คำนวณได้จาก:
-
-$$p = \frac{\ln\left(\frac{\phi_3 - \phi_2}{\phi_2 - \phi_1}\right)}{\ln(r)} \tag{2.2}$$
-
-> [!TIP] เงื่อนไขการใช้ Richardson Extrapolation
-> การใช้สูตร (2.2) ต้องมั่นใจว่า:
-> 1. อยู่ในช่วง asymptotic convergence (ค่าคลาดเคลื่อนลดลงอย่างสม่ำเสมอ)
-> 2. อัตราส่วนการละเอียด $r$ คงที่
-> 3. ไม่มีความคลาดเคลื่อนจากแหล่งอื่นปนป่วน
-
----
-
-## 3. ดัชนีการลู่เข้าของกริด (Grid Convergence Index - GCI)
-
-ดัชนี GCI ตามวิธีของ Roache (1998) เป็นตัวชี้วัดความแปรปรวนเชิงตัวเลขในรูปแบบเปอร์เซ็นต์:
-
-$$\text{GCI}_{12} = F_s \frac{|\epsilon_{12}|}{r^p - 1} \tag{3.1}$$
-
-โดยที่:
-- $F_s$: ปัจจัยความปลอดภัย (Safety Factor)
-  - ใช้ $F_s = 1.25$ สำหรับการศึกษาด้วยเมช 3 ระดับ
-  - ใช้ $F_s = 3.0$ สำหรับการศึกษาด้วยเมช 2 ระดับ
-- $\epsilon_{12}$: ความคลาดเคลื่อนสัมพัทธ์ระหว่างเมชละเอียดและเมชกลาง
-  $$\epsilon_{12} = \frac{\phi_1 - \phi_2}{\phi_1}$$
-
-### การคำนวณ GCI สำหรับเมชหลายระดับ
-
-สำหรับเมช 3 ระดับ คำนวณ GCI ได้ 2 ค่า:
-
-$$\text{GCI}_{21}^{fine} = F_s \frac{|\phi_2 - \phi_1|/|\phi_2|}{r^{p}_{21} - 1}$$
-
-$$\text{GCI}_{32}^{coarse} = F_s \frac{|\phi_3 - \phi_2|/|\phi_3|}{r^{p}_{32} - 1}$$
-
-### เกณฑ์การยอมรับ GCI
-
-| ประเภทการวิเคราะห์ | GCI ที่ยอมรับได้ |
-|---------------------|---------------------|
-| งานวิจัย (Research) | < 1% |
-| วิศวกรรม (Engineering) | < 3% |
-| การตรวจสอบเบื้องต้น (Screening) | < 5% |
-
-> [!WARNING] การตรวจสอบ Asymptotic Range
-> ต้องตรวจสอบว่าอยู่ในช่วง asymptotic โดยตรวจสอบ:
-> $$\frac{\text{GCI}_{32}}{r^p \cdot \text{GCI}_{21}} \approx 1$$
-> ค่านี้ควรอยู่ในช่วง 0.8 - 1.2 สำหรับการลู่เข้าที่เหมาะสม
-
----
-
-## 4. การประเมินคุณภาพด้วย Error Norms
-
-เราใช้ Norm รูปแบบต่างๆ เพื่อประเมินความแม่นยำทั่วทั้งโดเมน:
-
-### 4.1 L2 Norm (Root Mean Square Error)
-
-ประเมินความแม่นยำโดยรวม:
-
-$$\epsilon_{L2} = \sqrt{\frac{1}{N} \sum_{i=1}^{N} \left( \frac{\phi_i - \phi_{exact,i}}{\phi_{ref}} \right)^2 } \tag{4.1}$$
-
-โดยที่:
-- $N$: จำนวนจุดในโดเมน
-- $\phi_i$: ค่าที่คำนวณได้ที่จุด $i$
-- $\phi_{exact,i}$: ค่าอ้างอิงที่แน่นอนหรือค่าที่ extrapolate
-- $\phi_{ref}$: ค่าอ้างอิงสำหรับการทำให้เป็นมิติเดียว (มักใช้ค่าสูงสุด)
-
-### 4.2 Maximum Norm (L∞)
-
-ระบุจุดที่เกิดความคลาดเคลื่อนสูงสุด:
-
-$$\epsilon_{max} = \max_{i} \left| \frac{\phi_i - \phi_{exact,i}}{\phi_{ref}} \right| \tag{4.2}$$
-
-Maximum norm มีประโยชน์สำหรับ:
-- ระบุบริเวณที่ต้องการเมชละเอียดขึ้น
-- ตรวจสอบความเสถียรเชิงตัวเลข
-- หาจุดที่มีปัญหาการกระจายตัว
-
-### 4.3 L1 Norm (Average Error)
-
-ความคลาดเคลื่อนเฉลี่ย:
-
-$$\epsilon_{L1} = \frac{1}{N} \sum_{i=1}^{N} \left| \frac{\phi_i - \phi_{exact,i}}{\phi_{ref}} \right| \tag{4.3}$$
-
-### การเปรียบเทียบ Error Norms
-
-| Norm | การใช้งาน | ความไวต่อค่าผิดปกติ |
-|------|-------------|-------------------------|
-| **L1** | ค่าเฉลี่ยโดยรวม | ต่ำ |
-| **L2** | RMS error | ปานกลาง |
-| **L∞** | จุดคลาดเคลื่อนสูงสุด | สูง |
-
----
-
-## 5. การนำไปใช้งานใน OpenFOAM (C++ Implementation)
-
-### 5.1 คลาสสำหรับคำนวณการลู่เข้า
-
-```cpp
-// Class for performing grid convergence studies
-// Computes Richardson extrapolation and GCI metrics
-class gridConvergenceStudy
-{
-private:
-    // Store cell counts for each mesh level
-    List<label> nCellsList_;
-    
-    // Characteristic mesh sizes for refinement levels
-    List<scalar> meshSizes_;
-    
-    // Simulation results for quantity of interest
-    List<scalar> results_;
-    
-    // Name of quantity being monitored
-    word quantityName_;
-    
-    // Observed order of accuracy from convergence study
-    scalar observedOrder_;
-
-public:
-    // Constructor: Initialize with mesh cell counts and quantity name
-    gridConvergenceStudy(const labelList& nCells, const word& quantityName)
-    :
-        nCellsList_(nCells),
-        quantityName_(quantityName)
-    {
-        // Allocate storage for mesh sizes and results
-        meshSizes_.setSize(nCells_.size());
-        results_.setSize(nCells_.size());
-
-        // Calculate characteristic mesh size as cube root of cell volume
-        forAll(nCells_, i)
-        {
-            meshSizes_[i] = 1.0 / cbrt(scalar(nCells_[i]));
-        }
-    }
-
-    // Main execution: Run simulations on all mesh levels
-    void runStudy()
-    {
-        forAll(nCells_, i)
-        {
-            Info << "Running simulation on mesh level " << i
-                 << " with " << nCells_[i] << " cells..." << endl;
-
-            // Generate mesh for this refinement level
-            createMesh(nCells_[i]);
-
-            // Execute CFD simulation
-            runSimulation();
-
-            // Extract quantity of interest (e.g., gas holdup, pressure drop)
-            results_[i] = extractResult();
-        }
-
-        // Analyze convergence behavior
-        calculateConvergence();
-    }
-
-    // Compute convergence metrics and perform Richardson extrapolation
-    void calculateConvergence()
-    {
-        if (nCells_.size() < 3)
-        {
-            WarningIn("gridConvergenceStudy::calculateConvergence()")
-                << "Need at least 3 mesh refinements for Richardson extrapolation"
-                << endl;
-            return;
-        }
-
-        // Calculate refinement ratio between successive meshes
-        scalar r = meshSizes_[1] / meshSizes_[0];
-
-        // Compute observed order of accuracy using three solutions
-        observedOrder_ = log((results_[2] - results_[1]) / (results_[1] - results_[0])) /
-                         log(r);
-
-        // Richardson extrapolation to estimate mesh-independent solution
-        scalar phi_exact = results_[2] + (results_[2] - results_[1]) / (pow(r, observedOrder_) - 1);
-
-        // Calculate Grid Convergence Index for fine mesh
-        scalar epsilon_12 = mag(results_[1] - results_[0]) / mag(results_[0]);
-        scalar GCI_fine = 1.25 * epsilon_12 / (pow(r, observedOrder_) - 1);
-
-        // Display comprehensive convergence results
-        Info << nl << "=== Grid Convergence Study Results ===" << nl
-             << "Quantity: " << quantityName_ << nl
-             << "Mesh refinements: " << nCells_.size() << nl
-             << "Refinement ratio: " << r << nl
-             << "Observed order of accuracy: " << observedOrder_ << nl
-             << "Extrapolated exact value: " << phi_exact << nl
-             << "GCI on finest mesh: " << GCI_fine * 100 << "%" << nl
-             << "--------------------------------------" << endl;
-    }
-};
+```mermaid
+flowchart LR
+    A[Coarse Mesh] --> B[Medium Mesh]
+    B --> C[Fine Mesh]
+    C --> D[Richardson Extrapolation]
+    D --> E[GCI Calculation]
 ```
 
-#### 📂 ที่มาและคำอธิบาย (Source & Explanation)
-
-**📂 Source:** อ้างอิงโครงสร้างจาก `.applications/solvers/combustion/XiFoam/PDRFoam/PDRFoamAutoRefine.c:46-82` (Dynamic mesh refinement loop)
-
-**คำอธิบาย:**
-คลาสนี้ใช้สำหรับการศึกษาการลู่เข้าของกริดอย่างเป็นระบบ โดยอัตโนมัติ การทำงานหลักประกอบด้วย:
-1. เก็บข้อมูลจำนวนเซลล์และผลลัพธ์จากแต่ละระดับการละเอียดเมช
-2. คำนวณขนาดเมชลักษณะเฉพาะ (characteristic mesh size) จากจำนวนเซลล์
-3. รันการจำลองบนเมชหลายระดับและเก็บผลลัพธ์
-4. คำนวณอันดับความแม่นยำที่สังเกตได้ (observed order of accuracy)
-5. ใช้ Richardson extrapolation เพื่อประมาณค่าที่ไม่ขึ้นอยู่กับกริด
-6. คำนวณดัชนี GCI (Grid Convergence Index) เพื่อประเมินความไม่แน่นอน
-
-**แนวคิดสำคัญ:**
-- **Grid Convergence Study**: การศึกษาว่าผลลัพธ์ลู่เข้าสู่ค่าคงที่เมื่อละเอียดเมชมากขึ้น
-- **Richardson Extrapolation**: เทคนิคในการประมาณค่าที่ไม่ขึ้นกับขนาดกริด ($h \to 0$) จากผลลัพธ์บนเมชหลายระดับ
-- **GCI (Grid Convergence Index)**: ตัวชี้วัดความไม่แน่นอนเชิงตัวเลขในรูปเปอร์เซ็นต์
-- **Observed Order of Accuracy**: อันดับความแม่นยำที่แท้จริงจากการวัดบนเมช 3 ระดับ
-
 ---
 
-### 5.2 คลาสสำหรับวิเคราะห์ความคลาดเคลื่อน
+## 1. Systematic Mesh Refinement
 
-```cpp
-// Error analysis class for computing field-level error norms
-// Evaluates L1, L2, and maximum errors across computational domain
-class errorAnalysis
-{
-private:
-    // Reference magnitude for error normalization
-    scalar phiRef_;
+### Three-Grid Method
 
-public:
-    // Constructor: Initialize with reference value
-    errorAnalysis(const scalar phiRef)
-    :
-        phiRef_(phiRef)
-    {}
+| Mesh | Size | Cell Count |
+|------|------|------------|
+| Coarse | $h$ | $N$ |
+| Medium | $h/2$ | $8N$ |
+| Fine | $h/4$ | $64N$ |
 
-    // Calculate L1 norm error (average absolute error)
-    // Sum of local errors divided by total number of cells
-    scalar calculateL1Error(
-        const volScalarField& phi,
-        const volScalarField& phiExact
-    )
-    {
-        scalar errorSum = 0.0;
-        scalar phiRef = max(mag(phiExact));
+**Refinement ratio:** $r = h_{coarse}/h_{fine} = 2$ (typical)
 
-        // Accumulate normalized error across all cells
-        forAll(phi, celli)
-        {
-            scalar localError = mag(phi[celli] - phiExact[celli]) / phiRef;
-            errorSum += localError;
-        }
+### OpenFOAM Commands
 
-        // Return average error per cell
-        return errorSum / phi.size();
-    }
+```bash
+# สร้างและรัน mesh 3 ระดับ
+# Coarse mesh
+blockMesh
+cp -r 0.org 0
+interFoam > log.coarse
 
-    // Calculate L2 norm error (root-mean-square error)
-    // More sensitive to large local errors than L1 norm
-    scalar calculateL2Error(
-        const volScalarField& phi,
-        const volScalarField& phiExact
-    )
-    {
-        scalar errorSum = 0.0;
-        scalar phiRef = max(mag(phiExact));
+# Medium mesh (แก้ไข blockMeshDict: จำนวนเซลล์ × 2)
+blockMesh
+interFoam > log.medium
 
-        // Accumulate squared errors
-        forAll(phi, celli)
-        {
-            scalar localError = mag(phi[celli] - phiExact[celli]) / phiRef;
-            errorSum += localError * localError;
-        }
-
-        // Return RMS error
-        return sqrt(errorSum / phi.size());
-    }
-
-    // Calculate maximum norm error (L-infinity norm)
-    // Identifies worst local error location
-    scalar calculateMaxError(
-        const volScalarField& phi,
-        const volScalarField& phiExact
-    )
-    {
-        scalar phiRef = max(mag(phiExact));
-        scalar maxError = 0.0;
-        label maxErrorCell = -1;
-
-        // Find cell with maximum normalized error
-        forAll(phi, celli)
-        {
-            scalar localError = mag(phi[celli] - phiExact[celli]) / phiRef;
-
-            if (localError > maxError)
-            {
-                maxError = localError;
-                maxErrorCell = celli;
-            }
-        }
-
-        // Report location of maximum error
-        Info << "Maximum error location: cell " << maxErrorCell
-             << " at coordinates " << mesh.C()[maxErrorCell] << endl;
-        return maxError;
-    }
-
-    // Perform comprehensive convergence analysis for multiple fields
-    // Generates formatted report comparing all error norms
-    void fieldConvergenceAnalysis(
-        const List<volScalarField*>& fields,
-        const List<volScalarField*>& referenceFields
-    )
-    {
-        if (fields.size() != referenceFields.size())
-        {
-            FatalErrorIn("errorAnalysis::fieldConvergenceAnalysis")
-                << "Field lists must have same size" << abort(FatalError);
-        }
-
-        // Print formatted header
-        Info << nl << "=== Field Convergence Analysis ===" << nl;
-        Info << setw(20) << "Field Name"
-             << setw(15) << "L1 Error"
-             << setw(15) << "L2 Error"
-             << setw(15) << "Max Error" << nl;
-        Info << setw(20) << "---------"
-             << setw(15) << "--------"
-             << setw(15) << "--------"
-             << setw(15) << "--------" << nl;
-
-        // Compute and display error metrics for each field
-        forAll(fields, fieldi)
-        {
-            scalar l1Error = calculateL1Error(*fields[fieldi], *referenceFields[fieldi]);
-            scalar l2Error = calculateL2Error(*fields[fieldi], *referenceFields[fieldi]);
-            scalar maxError = calculateMaxError(*fields[fieldi], *referenceFields[fieldi]);
-
-            Info << setw(20) << fields[fieldi]->name()
-                 << setw(15) << l1Error
-                 << setw(15) << l2Error
-                 << setw(15) << maxError << nl;
-        }
-    }
-};
+# Fine mesh (จำนวนเซลล์ × 4)
+blockMesh
+interFoam > log.fine
 ```
 
-#### 📂 ที่มาและคำอธิบาย (Source & Explanation)
+---
 
-**📂 Source:** อ้างอิงรูปแบบการวนลูปเหนือเซลล์จาก `.applications/solvers/combustion/XiFoam/PDRFoam/PDRFoamAutoRefine.c:46-82`
+## 2. Richardson Extrapolation
 
-**คำอธิบาย:**
-คลาสนี้ให้เครื่องมือสำหรับวิเคราะห์ความคลาดเคลื่อนระหว่างสนามที่คำนวณได้กับค่าอ้างอิง โดยใช้ Norm รูปแบบต่างๆ:
+### Observed Order of Accuracy
 
-1. **L1 Norm (ค่าเฉลี่ย)**: 
-   - คำนวณค่าเฉลี่ยของความคลาดเคลื่อนสัมบูรณ์
-   - เหมาะสำหรับประเมินความแม่นยำโดยรวม
-   - ไม่ไวต่อค่าผิดปกติ (outliers)
+$$p = \frac{\ln\left(\frac{\phi_3 - \phi_2}{\phi_2 - \phi_1}\right)}{\ln(r)}$$
 
-2. **L2 Norm (RMS Error)**:
-   - Root Mean Square error ให้น้ำหนักมากกว่ากับความคลาดเคลื่อนขนาดใหญ่
-   - ใช้กันทั่วไปใน CFD สำหรับวัดความแม่นยำ
-   - ไวต่อค่าผิดปกติปานกลาง
+### Extrapolated Value
 
-3. **L∞ Norm (Maximum Error)**:
-   - ระบุตำแหน่งที่มีความคลาดเคลื่อนสูงสุด
-   - มีประโยชน์สำหรับระบุบริเวณที่ต้องการเมชละเอียดขึ้น
-   - ไวต่อค่าผิดปกติสูงมาก
+$$\phi_{exact} \approx \phi_1 + \frac{\phi_1 - \phi_2}{r^p - 1}$$
 
-**แนวคิดสำคัญ:**
-- **Error Norms**: ตัวชี้วัดความคลาดเคลื่อนระหว่างผลเฉลยเชิงตัวเลขกับค่าอ้างอิง
-- **Normalization**: การทำให้เป็นมิติเดียวด้วยค่าอ้างอิงเพื่อให้สามารถเปรียบเทียบกันได้
-- **Field-level Analysis**: การวิเคราะห์ความคลาดเคลื่อนทุกจุดในโดเมน ไม่ใช่เฉพาะค่ารวม
+**Where:**
+- $\phi_1$ = fine mesh result
+- $\phi_2$ = medium mesh result
+- $\phi_3$ = coarse mesh result
+- $r$ = refinement ratio
 
 ---
 
-### 5.3 ระบบอัตโนมัติสำหรับการศึกษาการลู่เข้า
+## 3. Grid Convergence Index (GCI)
 
-```cpp
-// Automated convergence study system
-// Combines grid convergence and error analysis
-class automatedConvergenceStudy
-{
-private:
-    // Grid convergence analyzer
-    gridConvergenceStudy convergenceAnalyzer_;
-    
-    // Error metrics calculator
-    errorAnalysis errorAnalyzer_;
+$$\text{GCI}_{fine} = F_s \frac{|\varepsilon_{12}|}{r^p - 1}$$
 
-public:
-    // Constructor: Initialize both analyzers
-    automatedConvergenceStudy(const labelList& nCells, const word& quantityName)
-    :
-        convergenceAnalyzer_(nCells, quantityName),
-        errorAnalyzer_(1.0)  // Normalize by unity
-    {}
+| Parameter | Value |
+|-----------|-------|
+| $F_s$ (3 grids) | 1.25 |
+| $F_s$ (2 grids) | 3.0 |
 
-    // Execute complete convergence study workflow
-    void runCompleteStudy()
-    {
-        // Phase 1: Run grid convergence study
-        // This executes simulations on all mesh refinement levels
-        convergenceAnalyzer_.runStudy();
+**Relative error:**
+$$\varepsilon_{12} = \frac{\phi_1 - \phi_2}{\phi_1}$$
 
-        // Phase 2: Perform detailed error analysis
-        // Only if we have at least 3 mesh levels
-        if (nCells_.size() >= 3)
-        {
-            performDetailedAnalysis();
-        }
-    }
+### Acceptance Criteria
 
-    // Detailed field-level error analysis
-    void performDetailedAnalysis()
-    {
-        // Compare fields between two finest mesh levels
-        // This provides insight into spatial error distribution
-        const volScalarField& phi_fine = getField("phi_fine");
-        const volScalarField& phi_ref = getField("phi_reference");
+| Application | GCI Target |
+|-------------|------------|
+| Research | < 1% |
+| Engineering | < 3% |
+| Screening | < 5% |
 
-        // Create field lists for comparison
-        List<volScalarField*> fields = {const_cast<volScalarField*>(&phi_fine)};
-        List<volScalarField*> reference = {const_cast<volScalarField*>(&phi_ref)};
+### Asymptotic Range Check
 
-        // Generate comprehensive error report
-        errorAnalyzer_.fieldConvergenceAnalysis(fields, reference);
-    }
-};
-```
+$$\frac{\text{GCI}_{32}}{r^p \cdot \text{GCI}_{21}} \approx 1.0$$
 
-#### 📂 ที่มาและคำอธิบาย (Source & Explanation)
-
-**📂 Source:** อ้างอิงรูปแบบการทำงานแบบ multi-phase จาก `.applications/solvers/combustion/XiFoam/PDRFoam/PDRFoamAutoRefine.c:46-82`
-
-**คำอธิบาย:**
-คลาสนี้เป็น wrapper ที่รวมเอากระบวนการศึกษาการลู่เข้าทั้งหมดมาไว้ด้วยกันอย่างเป็นระบบ:
-
-1. **การทำงานเป็น 2 เฟส**:
-   - Phase 1: รันการจำลองบนเมชหลายระดับ และคำนวณเมตริกการลู่เข้า (GCI, Richardson extrapolation)
-   - Phase 2: วิเคราะห์ความคลาดเคลื่อนระดับสนามอย่างละเอียด
-
-2. **การเปรียบเทียบสนาม**:
-   - เปรียบเทียบผลลัพธ์จากเมช 2 ระดับที่ละเอียดที่สุด
-   - ช่วยระบุบริเวณที่มีความคลาดเคลื่อนสูง
-   - สามารถใช้ข้อมูลนี้เพื่อ adaptive mesh refinement
-
-**แนวคิดสำคัญ:**
-- **Automated Workflow**: ระบบอัตโนมัติที่ลดความซับซ้อนในการศึกษาการลู่เข้า
-- **Two-phase Analysis**: การวิเคราะห์ทั้งในระดับค่าสเกลาร์ (GCI) และระดับสนาม (error norms)
-- **Mesh Independence**: การตรวจสอบว่าผลลัพธ์ไม่ขึ้นอยู่กับความละเอียดของเมช
+ค่านี้ควรอยู่ในช่วง **0.8 - 1.2**
 
 ---
 
-## 6. แนวทางปฏิบัติสำหรับการไหลหลายเฟส (Multiphase Specifics)
+## 4. Error Norms
 
-การศึกษาการลู่เข้าในระบบหลายเฟสมีความท้าทายเพิ่มเติมดังนี้:
+### L1 Norm (Average)
+$$\varepsilon_{L1} = \frac{1}{N} \sum_{i=1}^{N} \left| \frac{\phi_i - \phi_{ref}}{\phi_{ref}} \right|$$
 
-### 6.1 ความท้าทายเฉพาะของ Multiphase Flow
+### L2 Norm (RMS)
+$$\varepsilon_{L2} = \sqrt{\frac{1}{N} \sum_{i=1}^{N} \left( \frac{\phi_i - \phi_{ref}}{\phi_{ref}} \right)^2}$$
 
-| ความท้าทาย | คำอธิบาย | กลยุทธ์แก้ไข |
-|-------------|-----------|---------------|
-| **Interface Tracking** | ต้องละเอียดเมชเป็นพิเศษบริเวณอินเตอร์เฟซ | ใช้ adaptive mesh refinement (AMR) |
-| **Phase Fraction Convergence** | สนามสัดส่วนปริมาตร ($\alpha$) ลู่เข้าช้ากว่าความเร็ว | ตรวจสอบ GCI แยกตามแต่ละเฟส |
-| **Sharp Interface Gradients** | Gradient สูงบริเวณอินเตอร์เฟซ | ใช้ interface compression schemes |
-| **Coupling Between Phases** | ความผิดพลาดในเฟสหนึ่งส่งผลต่ออีกเฟสหนึ่ง | ตรวจสอบ residuals ทั้งหมด |
+### L∞ Norm (Maximum)
+$$\varepsilon_{max} = \max_{i} \left| \frac{\phi_i - \phi_{ref}}{\phi_{ref}} \right|$$
 
-### 6.2 กลยุทธ์การละเอียดเมช
+---
+
+## 5. Multiphase-Specific Considerations
+
+### Interface Resolution
+
+| Model | Interface Cells |
+|-------|-----------------|
+| VOF | 2-3 cells |
+| Level Set | 3-5 cells |
+
+### Target GCI by Field
+
+| Field | GCI Target |
+|-------|------------|
+| Phase fraction ($\alpha$) | < 3% |
+| Velocity | < 5% |
+| Pressure | < 2% |
+
+### AMR for Interface
 
 ```cpp
-// Mesh refinement strategy for multiphase flow
-// Used in blockMeshDict or snappyHexMeshDict
+// system/dynamicMeshDict
+dynamicFvMesh   dynamicRefineFvMesh;
 
-// 1. Refinement around interface region
-// Distance-based refinement levels
-refinementRegions
-{
-    interfaceRegion
-    {
-        mode distance;
-        // Specify refinement levels at different distance ranges
-        // Format: (distance level)
-        levels ((0.001 4)(0.01 3)(0.1 2));
-    }
-}
-
-// 2. Gradient-based refinement using phase fraction
-// Use dynamicRefineFvMesh for adaptive mesh refinement (AMR)
 dynamicRefineFvMeshCoeffs
 {
-    // Define refinement criteria based on alpha field
-    // Cells are refined when alpha is within specified range
-    alphaField
-    {
-        // Refine cells where alpha > lowerRefineLevel
-        lowerRefineLevel 0.3;
-        
-        // Refine cells where alpha < upperRefineLevel
-        upperRefineLevel 0.7;
-        
-        // Check refinement every this many time steps
-        refineInterval 1;
-    }
+    refineInterval  1;
+    field           alpha.water;
+    lowerRefineLevel 0.01;
+    upperRefineLevel 0.99;
+    maxRefinement   4;
+    maxCells        200000;
 }
 ```
 
-#### 📂 ที่มาและคำอธิบาย (Source & Explanation)
-
-**📂 Source:** อ้างอิงโครงสร้างการจัดการ dynamic mesh refinement จาก `.applications/solvers/combustion/XiFoam/PDRFoam/PDRFoamAutoRefine.c:46-82`
-
-**คำอธิบาย:**
-การละเอียดเมชสำหรับการไหลหลายเฟสต้องใช้กลยุทธ์พิเศษ เนื่องจาก:
-
-1. **Distance-based Refinement**: 
-   - ละเอียดเมชตามระยะห่างจากบริเวณที่สนใจ (เช่น อินเตอร์เฟซ)
-   - กำหนดระดับการละเอียดหลายระดับตามระยะทาง
-   - ใช้ใน snappyHexMesh เพื่อสร้างเมชคุณภาพสูงรอบอินเตอร์เฟซ
-
-2. **Gradient-based AMR**:
-   - ใช้ dynamicRefineFvMesh สำหรับ adaptive mesh refinement แบบ dynamic
-   - ละเอียด/คลายเมชตาม gradient ของสัดส่วนเฟส ($\alpha$)
-   - ช่วยลดจำนวนเซลล์ทั้งหมด ในขณะที่รักษาความละเอียดบริเวณสำคัญ
-
-**แนวคิดสำคัญ:**
-- **Adaptive Mesh Refinement (AMR)**: เทคนิคการปรับความละเอียดเมชแบบ dynamic ระหว่างการจำลอง
-- **Interface Capturing**: การติดตามอินเตอร์เฟซระหว่างเฟสด้วยความละเอียดเมชที่เหมาะสม
-- **Refinement Criteria**: เกณฑ์การตัดสินใจว่าควรละเอียดหรือคลายเมช
-
 ---
 
-### 6.3 การตรวจสอบการอนุรักษ์สำหรับ Multiphase
+## 6. OpenFOAM Implementation
+
+### Extract QoI with Function Objects
 
 ```cpp
-// Check mass conservation for each phase
-// Ensures sum of all phase fractions equals unity
-void checkPhaseConservation(const PtrList<volScalarField>& alphas)
+// system/controlDict
+functions
 {
-    // Accumulate total phase fraction across all phases
-    scalar totalAlpha = 0.0;
-
-    // Sum volume fraction for each phase
-    forAll(alphas, phasei)
+    gasHoldup
     {
-        // Calculate volume-weighted phase fraction
-        scalar phaseVolume = sum(alphas[phasei] * mesh.V());
-        totalAlpha += phaseVolume;
-
-        // Report individual phase volume fraction
-        Info << "Phase " << phasei << " volume fraction: "
-             << phaseVolume / sum(mesh.V()) << endl;
+        type            volRegion;
+        operation       volAverage;
+        fields          (alpha.gas);
+        writeControl    writeTime;
     }
 
-    // Check if sum deviates from unity
-    // For boundedness, sum of all alphas should equal 1.0
-    scalar unityError = mag(totalAlpha / sum(mesh.V()) - 1.0);
-
-    // Warn if conservation error exceeds tolerance
-    if (unityError > 1e-6)
+    pressureDrop
     {
-        WarningIn("checkPhaseConservation")
-            << "Phase fractions do not sum to unity. Error: " << unityError;
+        type            surfaceRegion;
+        regionType      patch;
+        name            inlet;
+        operation       areaAverage;
+        fields          (p);
     }
 }
 ```
 
-#### 📂 ที่มาและคำอธิบาย (Source & Explanation)
+### Interpolate Between Meshes
 
-**📂 Source:** อ้างอิงรูปแบบการตรวจสอบ boundedness จาก `.applications/solvers/combustion/XiFoam/PDRFoam/PDRFoamAutoRefine.c:46-82`
-
-**คำอธิบาย:**
-การตรวจสอบการอนุรักษ์มวลเป็นสิ่งสำคัญอย่างยิ่งในการไหลหลายเฟส:
-
-1. **Unity Constraint**:
-   - ผลรวมของสัดส่วนปริมาตรทุกเฟสต้องเท่ากับ 1.0 ($\sum \alpha_k = 1$)
-   - ความคลาดเคลื่อนจากค่านี้บ่งชี้ถึงปัญหาในการคำนวณ
-
-2. **Volume-weighted Sum**:
-   - คำนวณปริมาตรของแต่ละเฟสโดยรวมกับปริมาตรเซลล์
-   - ตรวจสอบว่ามวลรวมถูกอนุรักษ์หรือไม่
-
-3. **Tolerance Check**:
-   - ความคลาดเคลื่อนควรอยู่ในระดับ machine precision ($< 10^{-6}$)
-   - ค่าที่สูงกว่านี้อาจบ่งชี้ถึงปัญหาใน solver
-
-**แนวคิดสำคัญ:**
-- **Boundedness**: สนามสัดส่วนเฟสต้องอยู่ในช่วง [0, 1] เสมอ
-- **Conservation Law**: กฎการอนุรักษ์มวลต้องถูกต้องทุกเฟส
-- **Machine Precision**: ความแม่นยำที่จำกัดของ floating-point arithmetic
-
----
-
-### 6.4 เกณฑ์การยอมรับ (Acceptance Criteria)
-
-สำหรับการไหลหลายเฟส ใช้เกณฑ์ต่อไปนี้:
-
-| ปริมาณ | เกณฑ์การยอมรับ | หมายเหตุ |
-|---------|-------------------|-----------|
-| **Gas Holdup ($\alpha_g$)** | GCI < 3% | ต้องตรวจสอบทั้งเฉลี่ยและโปรไฟล์ |
-| **Terminal Velocity** | GCI < 5% | อาจมีความแปรผันตามเวลา |
-| **Pressure Drop** | GCI < 2% | ความไวต่อการละเอียดเมชสูง |
-| **Mass Conservation Error** | < $10^{-10}$ | สำหรับการตรวจสอบความถูกต้องโค้ด |
-| **Phase Sum ($\sum \alpha_k$)** | 1.0 ± $10^{-6}$ | ต้องเป็น 1 ทุกจุด |
-
-> [!TIP] การตรวจสอบเพิ่มเติมสำหรับ Multiphase
-> - ตรวจสอบ **interface sharpness**: ความกว้างของอินเตอร์เฟซควรอยู่ใน 2-3 เซลล์
-> - วิเคราะห์ **bubble size distribution** ถ้ามีการใช้ population balance models
-> - ตรวจสอบ **force balance**: drag, lift, virtual mass forces
-
----
-
-## 7. กระบวนการทำงานและแผนภูมิ
-
-### 7.1 ขั้นตอนการศึกษาการลู่เข้าของกริด
-
-```mermaid
-graph TD
-classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
-Setup["Meshes: Coarse, Med, Fine"]:::context
-Run["Run Simulations"]:::implicit
-Calc["Calc Order p and GCI"]:::explicit
-Check{"GCI < 3%?"}:::context
-Pass["Mesh Independent"]:::implicit
-Fail["Refine Mesh"]:::explicit
-
-Setup --> Run --> Calc --> Check
-Check -- Yes --> Pass
-Check -- No --> Fail
-```
-
-### 7.2 การวิเคราะห์ผลลัพธ์
-
-```mermaid
-graph TD
-classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
-Res["3 Mesh Results"]:::context
-Metrics["Calc GCI and Error Norms"]:::implicit
-Check{"GCI < 3% and Asymptotic?"}:::context
-Acc["Acceptable"]:::implicit
-Ref["Refine"]:::explicit
-
-Res --> Metrics --> Check
-Check -- Yes --> Acc
-Check -- No --> Ref
+```bash
+# Interpolate from coarse to fine mesh
+mapFields ../coarseCase -sourceTime latestTime -consistent
 ```
 
 ---
 
-## 8. สรุปและแนวทางปฏิบัติที่ดีที่สุด
+## 7. GCI Calculation Script
 
-### 8.1 แนวทางปฏิบัติที่ดีที่สุด
+```python
+# Python script for GCI calculation
+import numpy as np
 
-> [!INFO] Best Practices for Grid Convergence Studies
->
-> 1. **เริ่มต้นด้วยเมชคุณภาพสูง**: ตรวจสอบคุณภาพเมชก่อนเริ่มการศึกษา
->    - Aspect ratio < 100 (สำหรับชั้นขอบเขต) หรือ < 10 (สำหรับการไหลทั่วไป)
->    - Non-orthogonality < 70°
->    - Skewness < 0.85
->
-> 2. **ใช้อัตราส่วนการละเอียดคงที่**: $r = 2$ เป็นค่าที่แนะนำ
->
-> 3. **ตรวจสอบ asymptotic range**: ต้องมั่นใจว่าอยู่ในช่วงที่ความคลาดเคลื่อนลดลงอย่างสม่ำเสมอ
->
-> 4. **เก็บบันทึกข้อมูลทั้งหมด**: เกณฑ์การลู่เข้า, residuals, เวลาคำนวณ
->
-> 5. **ตรวจสอบการอนุรักษ์**: มวล, โมเมนตัม, พลังงานสำหรับทุกชุดเมช
+# Results from 3 mesh levels
+phi = [0.152, 0.148, 0.141]  # fine, medium, coarse
+r = 2.0  # refinement ratio
 
-### 8.2 สิ่งที่ควรหลีกเลี่ยง
+# Observed order
+p = np.log((phi[2] - phi[1]) / (phi[1] - phi[0])) / np.log(r)
 
-| ปัญหา | ผลกระทบ | วิธีแก้ไข |
-|--------|----------|-------------|
-| เปลี่ยนรูปแบบการกระจายเมช | ความคลาดเคลื่อนจากเรขาคณิต | ใช้ uniform refinement |
-| ไม่ตรวจสอบคุณภาพเมช | ผลลัพธ์ไม่น่าเชื่อถือ | ใช้ `checkMesh` ทุกครั้ง |
-| ใช้เพียง 2 ระดับเมช | ไม่สามารถคำนวณ $p$ ได้ | ใช้อย่างน้อย 3 ระดับ |
-| ไม่ทำการทดสอบ asymptotic | GCI ไม่ถูกต้อง | ตรวจสอบอัตราส่วน GCI |
-| ละเลยเงื่อนไขขอบเขต | ผลกระทบจากผนัง | ใช้เมชที่ใหญ่พอ |
+# Richardson extrapolation
+phi_exact = phi[0] + (phi[0] - phi[1]) / (r**p - 1)
 
-### 8.3 เกณฑ์การตัดสินใจ
+# GCI (fine mesh)
+eps_12 = abs(phi[0] - phi[1]) / phi[0]
+GCI_fine = 1.25 * eps_12 / (r**p - 1)
 
-ตัดสินใจว่าการลู่เข้าของกริดเพียงพอเมื่อ:
-
-1. **GCI < 3%** สำหรับปริมาณหลักทั้งหมด
-2. **อันดับความแม่นยำที่สังเกตได้** ($p$) ใกล้เคียงกับค่าทางทฤษฎี
-3. **Asymptotic range** ถูกตรวจสอบและยอมรับได้
-4. **การอนุรักษ์** อยู่ในเกณฑ์ที่เหมาะสม
-5. **Error norms** ลดลงตามที่คาดหวัง
+print(f"Observed order: {p:.2f}")
+print(f"Extrapolated value: {phi_exact:.4f}")
+print(f"GCI (fine): {GCI_fine*100:.2f}%")
+```
 
 ---
 
-## 9. อ้างอิง
+## Quick Reference
 
-- Roache, P. J. (1998). *Verification of codes and calculations*. AIAA Journal, 36(5), 696-702.
-- ASME V&V 20 Standard (2009). *Standard for Verification and Validation in Computational Fluid Dynamics and Heat Transfer*.
-- Celik, I. B., et al. (2008). *Procedure for estimation and reporting of uncertainty due to discretization in CFD applications*. Journal of Fluids Engineering, 130(7).
+| Step | Action |
+|------|--------|
+| 1 | สร้าง mesh 3 ระดับ (r = 2) |
+| 2 | รัน simulation ทั้ง 3 |
+| 3 | Extract QoI จาก postProcessing |
+| 4 | คำนวณ $p$ (observed order) |
+| 5 | คำนวณ $\phi_{exact}$ (Richardson) |
+| 6 | คำนวณ GCI |
+| 7 | ตรวจสอบ asymptotic range |
 
 ---
 
-**การทำ Grid Convergence Study อย่างเป็นระบบช่วยเปลี่ยนจากการจำลองที่ "ดูเหมือนจริง" ให้กลายเป็นการคำนวณทางวิศวกรรมที่ "เชื่อถือได้"**
+## Concept Check
+
+<details>
+<summary><b>1. ทำไมต้องใช้ mesh 3 ระดับ?</b></summary>
+
+เพราะต้องการคำนวณ **observed order of accuracy** $p$ ซึ่งต้องใช้ผลลัพธ์ 3 จุดในการ fit logarithmic curve
+</details>
+
+<details>
+<summary><b>2. GCI บอกอะไร?</b></summary>
+
+GCI คือ **uncertainty estimate** ของผลลัพธ์เนื่องจากความละเอียดของ mesh — บอกว่าห่างจาก grid-independent solution เท่าไหร่ในรูปเปอร์เซ็นต์
+</details>
+
+<details>
+<summary><b>3. ทำไม multiphase ต้องการ interface resolution พิเศษ?</b></summary>
+
+เพราะ **interface** มี **sharp gradients** ของ phase fraction — ถ้า mesh หยาบเกินไป interface จะ **smeared** และทำนาย physics ผิด
+</details>
+
+---
+
+## Related Documents
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md)
+- **Validation Methodology:** [01_Validation_Methodology.md](01_Validation_Methodology.md)
+- **Benchmark Problems:** [02_Benchmark_Problems.md](02_Benchmark_Problems.md)

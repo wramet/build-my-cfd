@@ -1,709 +1,215 @@
-# ผลลัพธ์ที่คาดหวังสำหรับ Lid-Driven Cavity ที่ $Re=10$
+# Expected Results & Validation
 
-> [!INFO] **ภาพรวม**
-> หน้านี้อธิบายผลลัพธ์ที่คาดหวังจากการจำลอง Lid-Driven Cavity Flow ที่เลข Reynolds Number ($Re$) เท่ากับ 10 โดยใช้ OpenFOAM Solver `icoFoam` ผลลัพธ์เหล่านี้ทำหน้าที่เป็น ==benchmark== สำหรับการตรวจสอบความถูกต้องของการจำลอง CFD ของคุณ
-
----
-
-## โครงสร้างกระแสวนหลัก (Primary Vortex Structure)
-
-### ลักษณะเด่นของกระแสวน
-
-ลักษณะเด่นที่สุดของการไหลในโพรงที่ $Re=10$ คือกระแสวนหลักขนาดใหญ่และต่อเนื่องที่ครอบงำบริเวณกลาง Cavity
-
-**คุณสมบัติหลัก:**
-
-| คุณสมบัติ | ค่า | คำอธิบาย |
-|-----------|------|------------|
-| **ตำแหน่ง** | ครอบคลุม 50-60% ของ Cavity | กระแสวนขนาดใหญ่ครอบงำพื้นที่ส่วนใหญ่ |
-| **ศูนย์กลางกระแสวน** | $(x/L, y/L) \approx (0.5, 0.4)$ | เยื้องศูนย์เล็กน้อยไปทางผนังด้านล่าง |
-| **การหมุน** | ตามเข็มนาฬิกา (Clockwise) | ขับเคลื่อนโดย Shear Stress จาก Lid |
-| **Stream Function สูงสุด** | $\psi_{\max} \approx -0.1$ | เครื่องหมายลบ = การหมุนตามเข็มนาฬิกา |
-
-### สาเหตุของการก่อตัว
-
-```mermaid
-graph LR
-    A["Moving Lid<br/>U = 1 m/s"]:::volatile --> B["Shear Stress Generation<br/>τ = μ(∂u/∂y)"]:::explicit
-    B --> C["Momentum Transfer<br/>(Downward)"]:::implicit
-    C --> D["Primary Vortex<br/>(Clockwise)"]:::implicit
-    D --> E["Flow Circulation<br/>(Cavity Loop)"]:::success
-
-    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-```
-> **Figure 1:** กลไกการก่อตัวของกระแสวนหลัก แสดงการถ่ายโอนโมเมนตัมจากฝาปิดที่เคลื่อนที่ไปยังของไหลด้านล่างผ่านแรงเค้นเฉือน ซึ่งขับเคลื่อนให้เกิดการไหลเวียนตามเข็มนาฬิกาทั่วทั้งโพรง
- ศูนย์กลางกระแสวนเลื่อนไปทางผนังด้านล่างเนื่องจาก:
-- **Boundary Conditions** ที่ไม่สมมาตร (Lid เคลื่อนที่ด้านบนเท่านั้น)
-- **No-slip Condition** ที่ผนังด้านล่างสร้างแรงต้าน
-- **Viscous Dissipation** ทำให้โมเมนตัมลดลงเมื่ออยู่ห่างจาก Lid
-
-> [!TIP] **ข้อสังเกต**
-> ที่ $Re=10$ แรงเฉื่อย (Inertial Forces) ยังไม่แข็งแรงพอที่จะดึงกระแสวนให้อยู่ตรงกลาง ดังนั้นศูนย์กลางจึงเยื้องลงมาทางด้านล่าง
+การตรวจสอบความถูกต้องของผลลัพธ์
 
 ---
 
-## รูปแบบการไหลเวียนหลัก (Main Circulation Pattern)
+## Flow Pattern
 
-### การไหลตามแนวผนัง (Wall Flow Distribution)
+### Primary Vortex
 
-การไหลโดยรวมเป็นไปตามรูปแบบการไหลเวียนตามเข็มนาฬิกาที่ชัดเจน โดยมีการกระจายความเร็วดังนี้:
+| Re | Center (x/L, y/L) | Stream Function ψ_max |
+|----|-------------------|----------------------|
+| 100 | (0.617, 0.734) | -0.1034 |
+| 400 | (0.555, 0.606) | -0.1139 |
+| 1000 | (0.531, 0.563) | -0.1179 |
 
-| บริเวณ | ทิศทางการไหล | ความเร็ว | ลักษณะเฉพาะ |
-|---------|---------------|-----------|--------------|
-| **บริเวณด้านบน (Top Region)** | ไปทางขวาในแนวนอน | $U = 1 \, \text{m/s}$ | Boundary Layer มีโมเมนตัมสูงขับเคลื่อนการไหลเวียน |
-| **ผนังด้านขวา (Right Wall)** | ไหลลงตามขอบแนวตั้ง | $0.6-0.7 \, \text{m/s}$ | ก่อตัวเป็น Jet ที่เคลื่อนที่ลง |
-| **บริเวณด้านล่าง (Bottom Region)** | ไปทางซ้ายตามผนัง | $0.2-0.3 \, \text{m/s}$ | ความเร็วลดลงเนื่องจากการหน่วงด้วยความหนืด |
-| **ผนังด้านซ้าย (Left Wall)** | ไหลขึ้นตามขอบแนวตั้ง | ความเร็วขึ้นปานกลาง | ทำให้การไหลเวียนครบวง |
+*Reference: Ghia et al. (1982)*
 
-### การไหลแบบวนซ้ำ (Recirculation Pattern)
+### Secondary Vortices (Re ≥ 400)
 
-```mermaid
-flowchart LR
-    A["Top Wall<br/>U = 1 m/s"]:::volatile --> B["Right Wall<br/>Flow Down"]:::implicit
-    B --> C["Bottom Wall<br/>Flow Return"]:::implicit
-    C --> D["Left Wall<br/>Flow Up"]:::implicit
-    D --> A
-    E["Vortex Center<br/>(0.5, 0.4)"]:::explicit -.-> A
-    E -.-> B
-    E -.-> C
-    E -.-> D
-
-    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-```
-> **Figure 2:** รูปแบบการไหลเวียนซ้ำและตำแหน่งจุดศูนย์กลางของกระแสวน แสดงความเร็วในแต่ละบริเวณตามแนวผนัง โดยมีจุดศูนย์กลางอยู่ที่พิกัด $(0.5, 0.4)$ ซึ่งเยื้องลงมาด้านล่างเนื่องจากผลของความหนืด
- รูปแบบการไหลสี่ส่วนยังคงสมมาตรตามแนวเส้นทแยงมุม $y=x$ ในระดับที่ $Re=10$ เนื่องจาก:
-- การไหลยังอยู่ใน ==Laminar Regime==
-- ไม่มีปรากฏการณ์แบบ Unsteady
-- การไหลถูกควบคุมโดย Viscous Forces เป็นหลัก
+| Re | Bottom-Right (BR) | Bottom-Left (BL) |
+|----|-------------------|------------------|
+| 400 | (0.89, 0.12) | (0.03, 0.04) |
+| 1000 | (0.86, 0.11) | (0.08, 0.08) |
 
 ---
 
-## ลักษณะการไหลรอง (Secondary Flow Features)
+## Velocity Profiles
 
-### ผลกระทบที่มุม (Corner Effects)
+### u-velocity at x = 0.5 (Vertical Centerline)
 
-สำหรับ $Re=10$ การไหลยังคงค่อนข้างเรียบง่าย แต่ควรสังเกตปรากฏการณ์เหล่านี้:
-
-#### 1. Moffatt Eddies (กระแสวนมุม)
-
-**ลักษณะเฉพาะ:**
-- โซนการไหลเวียนซ้ำ (recirculation zones) เริ่มก่อตัวที่มุมด้านล่าง
-- ขนาดเล็กมาก อาจต่ำกว่าเกณฑ์การตรวจจับสำหรับ Mesh หยาบ
-- หมุนทวนเข็มนาฬิกา (Counter-clockwise) ตรงข้ามกับ Primary Vortex
-
-**การวิเคราะห์ทางทฤษฎี:**
- Moffatt (1964) แสดงให้เห็นว่าที่มุมขวาล่างของโพรงสี่เหลี่ยมที่มี Sharp Corner จะเกิดลำดับของกระแสวนขนาดเล็ก:
-
-$$\psi_n \propto r^{\lambda_n} \sin(\lambda_n \theta)$$
-
-โดยที่:
-- $\psi_n$ = Stream function ของกระแสวนที่ $n$
-- $r$ = ระยะห่างจากมุม
-- $\lambda_n$ = Eigenvalue ที่เพิ่มขึ้นตามลำดับ ($\lambda_1 \approx 2$, $\lambda_2 \approx 4$, ...)
-- $\theta$ = มุมในระบบพิกัดเชิงขั้ว
-
-```mermaid
-graph TD
-    subgraph "Moffatt Eddies Hierarchy (Re=10)"
-        direction TB
-        A["Primary Vortex<br/>(Clockwise Dominant)"]:::volatile
-        B["Corner Eddy 1<br/>(Counter-Clockwise)"]:::explicit
-        C["Corner Eddy 2<br/>(Clockwise Weak)"]:::implicit
-        D["Corner Eddy 3<br/>(Counter-Clockwise Tiny)"]:::context
-    end
-    A --> B
-    B --> C
-    C --> D
-
-    classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
-    classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-    classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+**Re = 100:**
 ```
-> **Figure 3:** ลำดับชั้นของ Moffatt Eddies ที่มุมกล่อง แสดงการก่อตัวของกระแสวนขนาดจิ๋วที่มีทิศทางการหมุนสลับกัน ซึ่งมักจะตรวจพบได้ยากหากความละเอียดของ Mesh ไม่เพียงพอ
+y/L     u/U (Ghia)
+0.0000  0.00000
+0.0547  -0.03717
+0.0625  -0.04192
+0.0703  -0.04775
+0.1016  -0.06434
+0.1719  -0.10150
+0.2813  -0.15662
+0.4531  -0.21090
+0.5000  -0.20581
+0.6172  -0.13641
+0.7344   0.00332
+0.8516   0.23151
+0.9531   0.68717
+0.9609   0.73722
+0.9688   0.78871
+0.9766   0.84123
+1.0000   1.00000
+```
 
-> ที่ Mesh Resolution $20 \times 20$ กระแสวนมุมอาจไม่ปรากฏชัดเจน เนื่องจากขนาดเล็กเกินไป การเพิ่มความละเอียด Mesh เป็น $40 \times 40$ หรือ $80 \times 80$ จะช่วยให้เห็นโครงสร้างเหล่านี้ได้ชัดเจนขึ้น
+### v-velocity at y = 0.5 (Horizontal Centerline)
 
-#### 2. Boundary Layer Characteristics
-
-**ความหนาของ Boundary Layer:**
-ที่ $Re=10$ ความหนาของ Boundary Layer ประมาณ:
-
-$$\delta \sim \frac{L}{\sqrt{Re}} \approx \frac{0.1}{\sqrt{10}} \approx 0.032 \, \text{m} = 0.32L$$
-
-**การกระจายตามผนัง:**
-
-| ตำแหน่ง | ความหนาของ Boundary Layer | ความเร็ว Shear |
-|----------|---------------------------|----------------|
-| **ใกล้ Lid (บน)** | $\delta \approx 0.02L$ | $\tau_w = \mu \left(\frac{\partial u}{\partial y}\right)_{y=L}$ สูงสุด |
-| **ผนังด้านข้าง** | $\delta \approx 0.3L$ | $\tau_w$ ปานกลาง |
-| **ผนังด้านล่าง** | $\delta \approx 0.35L$ | $\tau_w$ ต่ำสุด |
-
-#### 3. Velocity Gradients
-
-**เขตที่มี Gradient สูง:**
-- **ใกล้ Lid:** $\frac{\partial u}{\partial y}$ สูงมากเนื่องจาก $U_{\text{lid}} = 1$ m/s และ $U_{\text{fluid}} \approx 0$ m/s
-- **บริเวณมุม:** เกิด Shear Layers ที่ซับซ้อนจากการปะทะกันของการไหลจากทิศทางต่างกัน
-- **No-slip Condition:** สร้าง Velocity Gradient ที่ผนังทุกด้าน
-
-**การวิเคราะห์ Shear Stress:**
-$$\tau_w = \mu \left(\frac{\partial u}{\partial n}\right)_{\text{wall}}$$
-
-โดยที่:
-- $\tau_w$ = Wall shear stress (Pa)
-- $\mu$ = Dynamic viscosity (Pa·s)
-- $\frac{\partial u}{\partial n}$ = Velocity gradient normal to wall (1/s)
+**Re = 100:**
+```
+x/L     v/U (Ghia)
+0.0000  0.00000
+0.0625  0.09233
+0.0703  0.10091
+0.0781  0.10890
+0.0938  0.12317
+0.1563  0.16077
+0.2266  0.17507
+0.2344  0.17527
+0.5000  0.05454
+0.8047  -0.24533
+0.8594  -0.22445
+0.9063  -0.16914
+0.9453  -0.10313
+0.9531  -0.08864
+0.9609  -0.07391
+0.9688  -0.05906
+1.0000  0.00000
+```
 
 ---
 
-## จุดตรวจสอบเชิงปริมาณ (Quantitative Validation)
+## Validation Approach
 
-### ค่าอ้างอิงสำหรับการตรวจสอบ (Benchmark Values)
+### 1. Visual Check
 
-ตรวจสอบความถูกต้องของการจำลองด้วยค่าเหล่านี้ ซึ่งเปรียบเทียบได้กับข้อมูลจาก Ghia et al. (1982):
+**ใน ParaView:**
+- Streamlines ควรแสดง clockwise rotation
+- Primary vortex ควรอยู่ใกล้ center
+- ไม่มี spurious oscillations
 
-| ปริมาณ | ค่าที่คาดหวัง | ช่วงที่ยอมรับได้ | วิธีการวัด |
-|---------|--------------|------------------|-------------|
-| **Stream Function สูงสุด** | $\psi_{\max} \approx -0.1$ | $-0.09$ ถึง $-0.11$ | ค่าสัมบูรณ์ที่จุดศูนย์กลาง |
-| **ศูนย์กลางกระแสวน** | $(x/L, y/L) = (0.5, 0.4)$ | $\pm 0.05$ ในแต่ละทิศทาง | ตำแหน่งจากฟิลด์ Velocity |
-| **ความเร็วสูงสุด** | $|\mathbf{u}|_{\max} \approx 1.0$ | $0.95-1.05$ m/s | ตามแนว Lid |
-| **ความเร็วภายใน** | $< 0.7$ m/s | ทุกที่ใน Cavity | ยกเว้นบริเวณ Lid |
-| **Wall Shear Stress** | ไม่เป็นศูนย์ตามผนังทั้งหมด | สูงสุดที่มุม | $\tau_w$ จาก Gradient ความเร็ว |
+### 2. Quantitative Comparison
 
-### การตรวจสอบความสมบูรณ์ (Conservation Checks)
-
-#### 1. Mass Conservation (การอนุรักษ์มวล)
-
-สำหรับการไหลแบบ Incompressible สมการความต่อเนื่องต้องเป็นดังนี้:
-
-$$\nabla \cdot \mathbf{u} = 0$$
-
-**การตรวจสอบเชิงปริมาณ:**
-$$\int_V \nabla \cdot \mathbf{u} \, \mathrm{d}V \approx 0$$
-
-**เกณฑ์การยอมรับ:**
-- ค่าสัมบูรณ์ของ $\nabla \cdot \mathbf{u}$ ควร < $10^{-8}$ 1/s
-- หากสูงกว่านี้ อาจมีปัญหากับ Mesh Quality หรือ Solver Tolerance
-
-#### 2. Momentum Balance (การสมดุลโมเมนตัม)
-
-สมการโมเมนตัมในสภาวะคงที่ (Steady State):
-
-$$\rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u}$$
-
-**การตรวจสอบ:**
-- ผลรวมของแรงทั้งหมดบน Lid ควรสมดุลกับแรงที่ผนังอื่น
-- Drag Force บน Lid $\approx$ Shear Force บนผนังทั้ง 3 ด้าน
-
----
-
-## ตัวบ่งชี้การลู่เข้า (Convergence Indicators)
-
-### เกณฑ์การลู่เข้าที่เหมาะสม (Proper Convergence Criteria)
-
-สำหรับผลเฉลยที่ลู่เข้าอย่างเหมาะสม ตรวจสอบตัวบ่งชี้เหล่านี้:
-
-#### 1. Residuals
-
-**ค่าที่คาดหวัง:**
-- **Initial residuals** ควรต่ำกว่า $10^{-6}$ สำหรับสมการทั้งหมด
-- **Final residuals** ควรต่ำกว่า $10^{-7}$
-
-**ตัวอย่าง Log ของการลู่เข้าที่ดี:**
-```
-Time = 0.5
-DILUPBiCG: Solving for Ux, initial residual = 0.0012, final residual = 1.2e-07, no iterations = 3
-DILUPBiCG: Solving for Uy, initial residual = 0.0008, final residual = 8.1e-08, no iterations = 2
-GAMG: Solving for p, initial residual = 0.05, final residual = 2.1e-06, no iterations = 12
-```
-
-> [!TIP] **การตีความ Residuals**
-> - Initial residual แสดงถึงความผิดพลาดเริ่มต้นของแต่ละ time step
-> - Final residual แสดงถึงความแม่นยำหลังจากการแก้สมการ
-> - No iterations ควรไม่สูงเกินไป (มัก < 5 สำหรับ U, < 20 สำหรับ p)
-
-#### 2. Steady State Detection
-
-**เกณฑ์การถึงสภาวะคงที่:**
-- สนามการไหลถึงสภาวะคงที่ ไม่มีพฤติกรรมขึ้นกับเวลา
-- ความเร็วสูงสุดใน Cavity เปลี่ยนแปลง < $0.1\%$ ระหว่าง time steps
-- Stream function ที่จุดศูนย์กลางกระแสวนคงที่
-
-**การตรวจสอบ:**
+**Extract centerline data:**
 ```cpp
-// Add function object in controlDict for monitoring
-functions
-{
-    vortexCenterProbe
-    {
-        // Function object type: sample along sets/lines
-        type            sets;
-        
-        // Output format for sampled data
-        setFormat       raw;
-        
-        // Define sampling sets
-        sets            (
-            vortexCenter
-            {
-                // Uniform sampling along specified axis
-                type    uniform;
-                
-                // Sample along y-axis
-                axis    y;
-                
-                // Start point of sampling line (x y z)
-                start   (0.5 0 0.005);
-                
-                // End point of sampling line (x y z)
-                end     (0.5 1 0.005);
-                
-                // Number of sampling points
-                nPoints 100;
-            }
-        );
-        
-        // Fields to sample: pressure and velocity
-        fields          (p U);
-    }
-}
-```
-
-> [!NOTE] **คำอธิบาย**
-> **แหล่งที่มา (Source):** .applications/utilities/postProcessing/miscellaneous/probes/probes.C
-> 
-> **คำอธิบาย (Explanation):** โค้ดนี้กำหนด Function Object สำหรับสุ่มค่า (sampling) ข้อมูลฟิลด์ความดันและความเร็ว ตามเส้นที่ผ่านจุดศูนย์กลางของกระแสวน โดย:
-> - `type sets`: ระบุว่าเป็นการสุ่มค่าตามเส้น (sets/lines)
-> - `setFormat raw`: ระบุรูปแบบข้อมูลที่ต้องการบันทึก (raw = ข้อมูลดิบโดยไม่มีการแปลงเพิ่ม)
-> - `axis y`: ระบุแกนที่จะสุ่มค่า (แกน y ในที่นี้)
-> - `nPoints 100`: จำนวนจุดที่ใช้ในการสุ่มค่าตามเส้น
-> - `fields (p U)`: ระบุฟิลด์ที่ต้องการสุ่มค่า (ความดัน p และความเร็ว U)
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Function Objects**: กลไกใน OpenFOAM สำหรับคำนวณและบันทึกข้อมูลระหว่างการรัน
-> - **Sampling Sets**: การสุ่มค่าฟิลด์ตามเส้นหรือจุดที่กำหนด
-> - **Raw Format**: รูปแบบข้อมูลดิบที่ไม่ผ่านการประมวลผลเพิ่มเติม
-
-#### 3. Mass Conservation Check
-
-**วิธีการตรวจสอบ:**
-```bash
-# Use OpenFOAM utility to calculate velocity divergence
-foamCalc magDivU
-```
-
-> [!NOTE] **คำอธิบาย**
-> **แหล่งที่มา (Source):** .applications/utilities/postProcessing/miscellaneous/calc/calc.C
-> 
-> **คำอธิบาย (Explanation):** คำสั่ง `foamCalc magDivU` ใช้คำนวณค่าขนาดของการแตกต่างของความเร็ว (magnitude of velocity divergence) ซึ่งเป็นตัวชี้วัดความถูกต้องของการอนุรักษ์มวล โดย:
-> - `magDivU`: คำนวณค่าสัมบูรณ์ของ divergence ของความเร็ว $|\nabla \cdot \mathbf{u}|$
-> - สำหรับการไหลแบบ incompressible ค่านี้ควรมีค่าใกล้ศูนย์
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Mass Conservation**: กฎการอนุรักษ์มวลในพลศาสตร์ของไหล
-> - **Velocity Divergence**: ค่า divergence ของสนามความเร็ว เป็นตัวชี้วัดว่ามวลถูกอนุรักษ์หรือไม่
-> - **Incompressible Flow**: การไหลที่ความหนาแน่นคงที่ ทำให้ $\nabla \cdot \mathbf{u} = 0$
-
-**ผลลัพธ์ที่คาดหวัง:**
-- ค่าสูงสุดของ $|\nabla \cdot \mathbf{u}|$ ควร < $10^{-8}$ 1/s
-- ค่าเฉลี่ยของ $|\nabla \cdot \mathbf{u}|$ ควร < $10^{-10}$ 1/s
-
----
-
-## การแสดงผลและการวิเคราะห์ (Visualization and Analysis)
-
-### การใช้งาน ParaView (paraFoam)
-
-#### 1. Velocity Field Visualization
-
-**ขั้นตอนการแสดงผล:**
-```bash
-# Launch ParaView with built-in reader
-paraFoam -builtin
-```
-
-> [!NOTE] **คำอธิบาย**
-> **แหล่งที่มา (Source):** .applications/utilities/postProcessing/graphics/paraFoam/paraFoam.C
-> 
-> **คำอธิบาย (Explanation):** คำสั่ง `paraFoam -builtin` เป็นการเปิด ParaView ด้วย built-in OpenFOAM reader ที่มาพร้อมกับ OpenFOAM โดย:
-> - `-builtin`: ใช้ built-in VTK reader แทนการใช้ external ParaView
-> - อ่านข้อมูล OpenFOAM โดยตรงโดยไม่ต้องแปลงเป็น VTK format
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **ParaView**: ซอฟต์แวร์โอเพนซอร์สสำหรับ visualization ข้อมูล CFD
-> - **VTK Format**: Visualization Toolkit format สำหรับแลกเปลี่ยนข้อมูลกราฟิก
-> - **Built-in Reader**: ตัวอ่านข้อมูลที่มีมากับ OpenFOAM เอง
-
-**การตั้งค่าใน ParaView:**
-1. **Streamlines:**
-   - สร้าง Streamlines จากบริเวณด้านบน
-   - แสดงการไหลเวียนตามเข็มนาฬิกาที่ชัดเจน
-   - ใช้ Color by: Velocity Magnitude
-
-2. **Velocity Vectors:**
-   - แสดง Vector field ที่ทุกจุดใน Mesh
-   - ใช้ Glyph filter
-   - ปรับขนาดให้เห็นการกระจายตัวของความเร็ว
-
-#### 2. Pressure Field Visualization
-
-**ลักษณะที่คาดหวัง:**
-- ความดันสูงสุด (High pressure) ที่มุมบนขวา
-- ความดันต่ำสุด (Low pressure) ที่มุมบนซ้าย
-- Gradient ของความดันไล่ตัวจากขวาไปซ้าย
-
-**Contour Plot Settings:**
-- Number of contours: 20
-- Color map: Cool to Warm (Blue = Low, Red = High)
-- Rescale to Custom Range: ถ้าจำเป็น
-
-#### 3. Vorticity Visualization
-
-**การคำนวณ Vorticity:**
-$$\omega = \nabla \times \mathbf{u}$$
-
-สำหรับการไหล 2 มิติ:
-$$\omega_z = \frac{\partial v}{\partial x} - \frac{\partial u}{\partial y}$$
-
-**การใช้งานใน ParaView:**
-1. ใช้ Calculator filter
-2. ใส่สูตร: `curl(U)`
-3. แสดงผลเป็น Contour
-
-**ผลลัพธ์ที่คาดหวัง:**
-- Vorticity สูงสุดใกล้ Lid (Shear layer)
-- Vorticity บวก (Positive) ใน Primary Vortex (ตามเข็มนาฬิกา)
-- Vorticity เปลี่ยนเครื่องหมายใน Moffatt Eddies (ถ้าเห็น)
-
-### การวิเคราะห์เชิงปริมาณ (Quantitative Analysis)
-
-#### 1. Velocity Profile ตามแนวกลาง
-
-**การสร้าง Line Probe ตามแนวแกน x:**
-```cpp
-// Sampling dictionary for extracting data along lines
+// system/sampleDict
 sets
 (
-    // Horizontal line probe along x-axis at y=0.5
-    centerlineX
+    verticalCenterline
     {
-        // Uniform distribution of sampling points
         type    uniform;
-        
-        // Sample along x-direction
-        axis    x;
-        
-        // Start point (x y z)
-        start   (0 0.5 0.005);
-        
-        // End point (x y z)
-        end     (1 0.5 0.005);
-        
-        // Number of sampling points
-        nPoints 100;
-    }
-
-    // Vertical line probe along y-axis at x=0.5
-    centerlineY
-    {
-        // Uniform distribution of sampling points
-        type    uniform;
-        
-        // Sample along y-direction
         axis    y;
-        
-        // Start point (x y z)
-        start   (0.5 0 0.005);
-        
-        // End point (x y z)
-        end     (0.5 1 0.005);
-        
-        // Number of sampling points
-        nPoints 100;
+        start   (0.5 0 0.05);
+        end     (0.5 1 0.05);
+        nPoints 50;
+    }
+    horizontalCenterline
+    {
+        type    uniform;
+        axis    x;
+        start   (0 0.5 0.05);
+        end     (1 0.5 0.05);
+        nPoints 50;
     }
 );
-
-// Fields to sample: pressure and velocity
-fields (p U);
+fields (U);
 ```
 
-> [!NOTE] **คำอธิบาย**
-> **แหล่งที่มา (Source):** .applications/utilities/postProcessing/miscellaneous/sample/sample.C
-> 
-> **คำอธิบาย (Explanation):** ไฟล์ sampleDict กำหนดการสุ่มค่าข้อมูลฟิลด์ตามแนวเส้นที่กำหนด โดย:
-> - `sets`: ระบุการสุ่มค่าตามเส้น (sets/lines)
-> - `centerlineX` และ `centerlineY`: ชื่อของเส้นที่จะสุ่มค่า
-> - `type uniform`: แจกแจงจุดสุ่มค่าอย่างสม่ำเสมอ
-> - `axis x/y`: ระบุแกนที่จะสุ่มค่า
-> - `start/end`: จุดเริ่มต้นและจุดสิ้นสุดของเส้นสุ่มค่า
-> - `nPoints 100`: จำนวนจุดที่ใช้ในการสุ่มค่า
-> - `fields (p U)`: ฟิลด์ที่ต้องการสุ่มค่า (ความดันและความเร็ว)
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Line Probe**: เส้นสมมติสำหรับสุ่มค่าข้อมูลฟิลด์
-> - **Uniform Sampling**: การสุ่มค่าด้วยระยะห่างสม่ำเสมอ
-> - **Field Sampling**: การดึงค่าฟิลด์ (ความดัน, ความเร็ว) จากตำแหน่งที่กำหนด
-
-**ผลลัพธ์ที่คาดหวัง:**
-- **ตามแนวกลาง x (y = 0.5):**
-  - $u$ เป็นบวกใกล้ผนังซ้าย (ไหลขึ้น)
-  - $u$ เป็นลบใกล้ผนังขวา (ไหลลง)
-  - $u \approx 0$ ที่ศูนย์กลางกระแสวน
-
-- **ตามแนวกลาง y (x = 0.5):**
-  - $v$ เป็นบวกใกล้ผนังล่าง (ไหลไปขวา)
-  - $v$ เป็นลบใกล้ Lid (ไหลไปซ้าย)
-  - $v \approx 0$ ที่ศูนย์กลางกระแสวน
-
-#### 2. Wall Shear Stress Distribution
-
-**การคำนวณ:**
 ```bash
-# Calculate wall shear stress at specific time
-wallShearStress -time 0.5
+postProcess -func sample -latestTime
 ```
 
-> [!NOTE] **คำอธิบาย**
-> **แหล่งที่มา (Source):** .applications/utilities/postProcessing/wall/wallShearStress/wallShearStress.C
-> 
-> **คำอธิบาย (Explanation):** คำสั่ง `wallShearStress` คำนวณค่าความเค้นเฉือนที่ผนัง (wall shear stress) จาก gradient ของความเร็วปกติต่อผนัง โดย:
-> - `-time 0.5`: ระบุเวลาที่ต้องการคำนวณ (time directory)
-> - คำนวณค่า $\tau_w = \mu (\partial u/\partial n)_{\text{wall}}$
-> - บันทึกผลลัพธ์ลงในไฟล์ `wallShearStress` ใน time directory
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Wall Shear Stress**: ความเค้นเฉือนที่เกิดที่ผนังจากการไหลของของไหล
-> - **Velocity Gradient**: การเปลี่ยนแปลงของความเร็วในทิศทางปกติต่อผนัง
-> - **No-slip Condition**: เงื่อนไขที่ความเร็วของของไหลที่ผนังเป็นศูนย์
+### 3. Python Validation Script
 
-**ผลลัพธ์ที่คาดหวัง:**
-- Shear stress สูงสุดบน Lid (เนื่องจาก $U_{\text{lid}} = 1$ m/s)
-- Shear stress ต่ำสุดบนผนังด้านล่าง
-- Distribution ไม่สมมาตรเนื่องจากทิศทางการไหล
-
-#### 3. Grid Independence Study
-
-**วัตถุประสงค์:** ตรวจสอบว่า Mesh ละเอียดพอ
-
-**ขั้นตอน:**
-1. รันการจำลองด้วย Mesh 3 ขนาด:
-   - Coarse: $10 \times 10$
-   - Medium: $20 \times 20$ (Base case)
-   - Fine: $40 \times 40$
-
-2. เปรียบเทียบปริมาณสำคัญ:
-   - ตำแหน่งศูนย์กลางกระแสวน $(x_c, y_c)$
-   - ความเร็วสูงสุด $|\mathbf{u}|_{\max}$
-   - Stream function สูงสุด $\psi_{\max}$
-
-3. ตรวจสอบการลู่เข้า:
-   $$\frac{|\phi_{\text{fine}} - \phi_{\text{medium}}|}{|\phi_{\text{fine}}|} < 0.02$$
-
-**ผลลัพธ์ที่คาดหวัง:**
-| Mesh Resolution | Cells | $\psi_{\max}$ | $(x_c, y_c)$ | $|\mathbf{u}|_{\max}$ |
-|----------------|-------|--------------|--------------|---------------------|
-| $10 \times 10$ | 100 | -0.095 | (0.52, 0.42) | 0.98 |
-| $20 \times 20$ | 400 | -0.099 | (0.50, 0.40) | 0.99 |
-| $40 \times 40$ | 1600 | -0.100 | (0.50, 0.40) | 1.00 |
-
-> [!INFO] **การตีความผลลัพธ์**
-> หากค่าจาก $20 \times 20$ และ $40 \times 40$ ต่างกัน < 2% แสดงว่า Mesh $20 \times 20$ เพียงพอสำหรับ Grid Independence สำหรับ $Re=10$
-
----
-
-## การเปรียบเทียบกับข้อมูลอ้างอิง (Comparison with Benchmark Data)
-
-### Ghia et al. (1982) Benchmark
-
-**ข้อมูลอ้างอิง:**
-Ghia, U., Ghia, K. N., & Shin, C. T. (1982). "High-Re solutions for incompressible flow using the Navier-Stokes equations and a multigrid method." *Journal of Computational Physics*, 48(3), 387-411.
-
-**ค่าอ้างอิงที่ $Re=10$:**
-
-| ปริมาณ | ค่าจาก Ghia et al. | ค่าที่คาดหวังจาก OpenFOAM | % ความแตกต่าง |
-|---------|---------------------|---------------------------|-----------------|
-| $\psi_{\min}$ | -0.0998 | -0.099 ถึง -0.100 | < 1% |
-| $(x_c, y_c)$ | (0.500, 0.400) | (0.50, 0.40) | < 2% |
-| $u_{\max}$ บนแนวกลาง | 0.120 | 0.115 ถึง 0.125 | < 5% |
-| $v_{\max}$ บนแนวกลาง | -0.150 | -0.145 ถึง -0.155 | < 5% |
-
-### การทำ Validation Plot
-
-**ขั้นตอน:**
-1. Export ข้อมูลจาก OpenFOAM:
-```bash
-# Sample data according to sampleDict
-sample -dict system/sampleDict
-```
-
-> [!NOTE] **คำอธิบาย**
-> **แหล่งที่มา (Source):** .applications/utilities/postProcessing/miscellaneous/sample/sample.C
-> 
-> **คำอธิบาย (Explanation):** คำสั่ง `sample` ใช้สุ่มค่าข้อมูลฟิลด์ตามที่กำหนดใน sampleDict โดย:
-> - `-dict system/sampleDict`: ระบุไฟล์ dictionary ที่มีการกำหนด sampling
-> - อ่านค่าฟิลด์ตามเส้นหรือจุดที่กำหนดใน sampleDict
-> - บันทึกผลลัพธ์ลงใน directory `sets/`
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Data Sampling**: การดึงข้อมูลฟิลด์จากตำแหน่งที่กำหนด
-> - **Dictionary Files**: ไฟล์กำหนดค่าของ OpenFOAM
-> - **Post-processing**: การประมวลผลภายหลังจากการจำลองเสร็จสิ้น
-
-2. สร้าง Plot ด้วย Python/Matplotlib:
 ```python
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
-# Load data from OpenFOAM simulation
-x_foam, u_foam = np.loadtxt('sets/centerlineX_U.xy', unpack=True)
+# Ghia et al. data for Re=100
+ghia_y = [0, 0.0547, 0.0625, 0.0703, 0.1016, 0.1719, 
+          0.2813, 0.4531, 0.5, 0.6172, 0.7344, 0.8516, 
+          0.9531, 0.9609, 0.9688, 0.9766, 1.0]
+ghia_u = [0, -0.03717, -0.04192, -0.04775, -0.06434, 
+          -0.1015, -0.15662, -0.2109, -0.20581, -0.13641, 
+          0.00332, 0.23151, 0.68717, 0.73722, 0.78871, 
+          0.84123, 1.0]
 
-# Load benchmark data from Ghia et al. (1982)
-x_ghia, u_ghia = np.loadtxt('ghia_Re10_u.xy', unpack=True)
+# Load OpenFOAM data
+data = np.loadtxt('postProcessing/sample1/0.5/verticalCenterline_U.raw')
+of_y = data[:, 1]
+of_u = data[:, 3]  # Ux component
 
-# Create figure with specified size
+# Plot comparison
 plt.figure(figsize=(8, 6))
-
-# Plot OpenFOAM results with blue circles and solid line
-plt.plot(x_foam, u_foam, 'b-o', label='OpenFOAM (20x20)', linewidth=2)
-
-# Plot Ghia et al. benchmark data with red dashed line
-plt.plot(x_ghia, u_ghia, 'r--', label='Ghia et al. (1982)', linewidth=2)
-
-# Set axis labels with specified font size
-plt.xlabel('x/L', fontsize=14)
-plt.ylabel('u/U_lid', fontsize=14)
-
-# Set plot title
-plt.title('Velocity Profile along Centerline (y=0.5, Re=10)', fontsize=16)
-
-# Display legend with specified font size
-plt.legend(fontsize=12)
-
-# Enable grid with transparency
-plt.grid(True, alpha=0.3)
-
-# Adjust layout to prevent label clipping
-plt.tight_layout()
-
-# Save figure to file with high resolution
-plt.savefig('validation_velocity_profile.png', dpi=300)
+plt.plot(of_u, of_y, 'b-', label='OpenFOAM')
+plt.plot(ghia_u, ghia_y, 'ro', label='Ghia et al.')
+plt.xlabel('u/U')
+plt.ylabel('y/L')
+plt.legend()
+plt.grid(True)
+plt.savefig('validation.png')
+plt.show()
 ```
 
-> [!NOTE] **คำอธิบาย**
-> **แหล่งที่มา (Source):** เป็น Python script สำหรับ visualization และ validation
-> 
-> **คำอธิบาย (Explanation):** สคริปต์ Python นี้ใช้สร้างกราฟเปรียบเทียบระหว่างผลลัพธ์ OpenFOAM กับข้อมูลอ้างอิง Ghia et al. โดย:
-> - `np.loadtxt`: โหลดข้อมูลจากไฟล์ text
-> - `plt.plot`: สร้างกราฟเส้น
-> - `label`: ป้ายกำกับสำหรับ legend
-> - `figsize`: ขนาดของกราฟ (นิ้ว)
-> - `dpi`: ความละเอียดของภาพ (dots per inch)
-> - `linewidth`: ความหนาของเส้น
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Data Validation**: การตรวจสอบความถูกต้องของผลลัพธ์เทียบกับข้อมูลอ้างอิง
-> - **Visualization**: การแสดงผลข้อมูลในรูปแบบกราฟิก
-> - **Benchmark Data**: ข้อมูลอ้างอิงมาตรฐานจากวรรณกรรมทางวิชาการ
+---
 
-**ผลลัพธ์ที่คาดหวัง:**
-- กราฟควรทับซ้อนกับข้อมูล Ghia et al. อย่างใกล้ชิด
-- % Error ควร < 5% สำหรับทุกจุด
-- Deviation ที่ใหญ่ที่สุดมักเกิดใกล้ผนัง
+## Error Metrics
+
+### L2 Norm Error
+
+$$E_{L2} = \sqrt{\frac{\sum_{i=1}^{N}(u_i^{CFD} - u_i^{ref})^2}{N}}$$
+
+**Acceptable range:** < 5% for coarse mesh, < 1% for fine mesh
+
+### Max Error
+
+$$E_{max} = \max_i |u_i^{CFD} - u_i^{ref}|$$
 
 ---
 
-## ความสำคัญและการนำไปใช้ (Significance and Applications)
+## Grid Convergence Study
 
-### ทำไม Lid-Driven Cavity จึงสำคัญ?
-
-> [!TIP] **Benchmark Case ที่สำคัญ**
-> การไหลแบบ Lid-Driven Cavity เป็นกรณีการตรวจสอบที่ยอดเยี่ยมสำหรับ CFD Solvers และการประเมินคุณภาพ Mesh เนื่องจากเป็นปัญหามาตรฐานสำหรับ Benchmark ในเอกสารทางวิชาการ
-
-**เหตุผล:**
-1. **รูปทรงเรขาคณิตที่เรียบง่าย:** สี่เหลี่ยมจัตุรัส ไม่ซับซ้อน
-2. **ฟิสิกส์ที่หลากหลาย:** ประกอบด้วย Vortex formation, Boundary layers, Shear layers
-3. **มีข้อมูลอ้างอิง:** Ghia et al. (1982) และอื่นๆ
-4. **Condition ที่ชัดเจน:** Boundary Conditions ทั้งหมดเป็น No-slip
-
-### การนำไปใช้ในการเรียนรู้
-
-**ทักษะที่พัฒนาได้:**
-- ✅ การตั้งค่า OpenFOAM Case ตั้งแต่เริ่มต้น
-- ✅ การสร้าง Mesh ด้วย `blockMesh`
-- ✅ การกำหนด Boundary Conditions ที่ถูกต้อง
-- ✅ การเลือก Solver ที่เหมาะสม (`icoFoam` vs `simpleFoam`)
-- ✅ การตรวจสอบการลู่เข้า (Convergence monitoring)
-- ✅ การประมวลผลภายหลังด้วย `paraFoam`
-- ✅ การทำ Validation เทียบกับข้อมูลอ้างอิง
-
-### การขยายผลลัพธ์ไปยังปัญหาอื่น
-
-**แนวคิดที่ได้จาก Lid-Driven Cavity:**
-
-1. **Internal Flows:**
-   - การไหลในพื้นที่ปิด (Enclosed flows)
-   - การไหลใน Mixing chambers
-   - การไหลใน Electronic cooling systems
-
-2. **Vortex Dynamics:**
-   - การก่อตัวของ Primary และ Secondary vortices
-   - การโต้ตอบระหว่างกระแสวน
-   - การแยกชั้น (Boundary layer separation)
-
-3. **Numerical Methods:**
-   - การประเมินความแม่นยำของ Discretization schemes
-   - การทดสอบ Solver algorithms (PISO, SIMPLE)
-   - การตรวจสอบคุณภาพ Mesh
+| Grid | Cells | L2 Error (%) |
+|------|-------|--------------|
+| 10×10 | 100 | ~15% |
+| 20×20 | 400 | ~5% |
+| 40×40 | 1600 | ~2% |
+| 80×80 | 6400 | ~1% |
 
 ---
 
-## สรุป (Summary)
+## Common Issues
 
-### จุดสำคัญที่ต้องจำ
-
-1. **Primary Vortex:**
-   - ตั้งอยู่ที่ $(x/L, y/L) \approx (0.5, 0.4)$
-   - หมุนตามเข็มนาฬิกา (Clockwise)
-   - $\psi_{\max} \approx -0.1$
-
-2. **Velocity Distribution:**
-   - สูงสุดบน Lid: $U = 1$ m/s
-   - ปานกลางตามผนังด้านขวา: $0.6-0.7$ m/s
-   - ต่ำสุดบนผนังด้านล่าง: $0.2-0.3$ m/s
-
-3. **Secondary Features:**
-   - Moffatt Eddies ที่มุม (ขนาดเล็กมาก)
-   - Boundary Layers ความหนา $\delta \approx 0.32L$
-   - Shear Stress สูงสุดบน Lid
-
-4. **Validation Criteria:**
-   - Residuals < $10^{-6}$
-   - Mass conservation: $\nabla \cdot \mathbf{u} \approx 0$
-   - Grid independence: เปลี่ยนแปลง < 2% ระหว่าง Mesh resolutions
-
-### แหล่งอ้างอิงเพิ่มเติม
-
-**เอกสารทางวิชาการ:**
-- Ghia, U., Ghia, K. N., & Shin, C. T. (1982). *Journal of Computational Physics*, 48(3), 387-411.
-- Moffatt, H. K. (1964). "Viscous and resistive eddies near a sharp corner." *Journal of Fluid Mechanics*, 18(1), 1-18.
-
-**OpenFOAM Documentation:**
-- `icoFoam` Solver Guide
-- `paraFoam` User Manual
-- OpenFOAM CFD Direct Documentation
+| Issue | Possible Cause | Solution |
+|-------|----------------|----------|
+| Vortex off-center | Not converged | Longer endTime |
+| Poor validation | Mesh too coarse | Refine mesh |
+| Oscillations | Scheme unstable | Use upwind |
+| Slow convergence | Large time step | Reduce deltaT |
 
 ---
 
-## แบบฝึกหัดเสริมทักษะ (Exercises)
+## Concept Check
 
-> [!INFO] **ลองทำดู!**
-- ทดลองเปลี่ยน Reynolds Number เป็น 100 และสังเกตการเคลื่อนที่ของกระแสวน
-- เพิ่มความละเอียด Mesh เป็น $40 \times 40$ และตรวจสอบ Grid Independence
-- เปรียบเทียบผลลัพธ์กับข้อมูลจาก Ghia et al. (1982)
+<details>
+<summary><b>1. ทำไมต้อง validate กับ Ghia et al.?</b></summary>
 
-สำหรับรายละเอียดเพิ่มเติมของแบบฝึกหัด โปรดดูที่ [[06_Exercises.md]]
+เพราะเป็น benchmark reference ที่ได้รับการยอมรับในวงการ CFD — ใช้ high-resolution methods และมี data ที่ละเอียด
+</details>
+
+<details>
+<summary><b>2. Grid convergence study ทำไปทำไม?</b></summary>
+
+เพื่อตรวจสอบว่า error มาจาก mesh resolution หรือ physics — ถ้า error ลดลงเมื่อ mesh fine ขึ้น แสดงว่า approach ถูกต้อง
+</details>
+
+<details>
+<summary><b>3. L2 error < 5% ถือว่าดีไหม?</b></summary>
+
+สำหรับ engineering applications ถือว่ายอมรับได้ แต่สำหรับ research อาจต้องการ < 1%
+</details>
+
+---
+
+## เอกสารที่เกี่ยวข้อง
+
+- **บทก่อนหน้า:** [04_Step-by-Step_Tutorial.md](04_Step-by-Step_Tutorial.md) — Tutorial
+- **บทถัดไป:** [06_Exercises.md](06_Exercises.md) — Exercises

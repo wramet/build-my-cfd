@@ -1,5 +1,8 @@
 # 🗺️ Learning Navigator: Meshing and Case Setup
 
+> [!TIP]
+> **ทำไม Meshing ถึงสำคัญ?** Mesh คือพื้นฐานที่สำคัญที่สุดของการจำลอง CFD คุณภาพของเมสมีผลต่อความแม่นยำ (accuracy), เสถียรภาพ (stability), และความเร็วในการคำนวณ (convergence speed) โดยตรง ใน OpenFOAM, เมชถูกเก็บใน `constant/polyMesh/` และถูกสร้างด้วย utilities อย่าง `blockMesh` และ `snappyHexMesh` การเข้าใจโครงสร้างและการสร้างเมสจะช่วยให้คุณสามารถสร้างเคสที่มีประสิทธิภาพและแก้ปัญหาได้อย่างมั่นใจ
+
 > **วัตถุประสงค์**: เอกสารนี้เป็น **เส้นทางการเรียนรู้แบบคู่ขนาน** ที่เชื่อมโยงเนื้อหาทฤษฎี (.md) กับ Source Code และ Utilities จริงใน OpenFOAM
 
 ---
@@ -17,6 +20,12 @@
 
 ## 1. Meshing Fundamentals (พื้นฐานการสร้างเมช)
 
+> [!NOTE]
+> **📂 OpenFOAM Context**:
+> - **Case Files**: เมชที่สร้างเสร็จจะถูกเก็บใน `constant/polyMesh/` ซึ่งประกอบด้วย `points`, `faces`, `owner`, `neighbour`, `boundary`
+> - **Utilities**: `blockMesh` (อ่าน `system/blockMeshDict`), `snappyHexMesh` (อ่าน `system/snappyHexMeshDict`)
+> - **Keywords**: `convertToMeters`, `blocks`, `boundary`, `vertices` ใน blockMeshDict
+
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
 | [[00_Overview]] | ภาพรวมของโมดูล | - |
@@ -26,6 +35,12 @@
 ---
 
 ## 2. BlockMesh Mastery (การใช้ blockMesh)
+
+> [!NOTE]
+> **📂 OpenFOAM Context**:
+> - **File**: `system/blockMeshDict` - ไฟล์กำหนดค่าสำหรับสร้างเมชแบบ structured
+> - **Keywords**: `vertices` (มุม), `blocks` (โซน), `edges` (ความโค้ง), `boundary` (boundary patches), `grading` (ขยายเซลล์), `arc` (curve edges)
+> - **Utility**: รันด้วยคำสั่ง `blockMesh` ใน terminal
 
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
@@ -44,6 +59,12 @@
 
 ## 3. snappyHexMesh Basics (พื้นฐาน snappyHexMesh)
 
+> [!NOTE]
+> **📂 OpenFOAM Context**:
+> - **File**: `system/snappyHexMeshDict` - ไฟล์กำหนดค่าสำหรับสร้างเมชแบบ unstructured จาก geometry
+> - **Keywords**: `castellatedMesh` (phase 1), `snap` (phase 2), `addLayers` (phase 3), `geometry` (STL/OBJ), `refinementSurfaces`, `refinementRegions`
+> - **Utility**: รันด้วย `snappyHexMesh -overwrite` ต้องการ background mesh จาก blockMesh ก่อน
+
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
 | [[03_SNAPPYHEXMESH_BASICS/01_The_sHM_Workflow]] | ขั้นตอนการทำงานของ sHM | `utilities/mesh/generation/snappyHexMesh/` |
@@ -53,6 +74,12 @@
 ---
 
 ## 4. snappyHexMesh Advanced (snappyHexMesh ขั้นสูง)
+
+> [!NOTE]
+> **📂 OpenFOAM Context**:
+> - **File**: `system/snappyHexMeshDict` (advanced sections)
+> - **Keywords**: `addLayersControls` (layer addition), `layers` (specify surface layers), `nSurfaceLayers`, `expansionRatio`, `finalLayerThickness`, `minThickness`, `refinementRegions` (local refinement)
+> - **Advanced**: Multi-region meshing, layer quality control, feature edge refinement
 
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
@@ -64,6 +91,12 @@
 
 ## 5. Mesh Quality and Manipulation (คุณภาพและการจัดการเมช)
 
+> [!NOTE]
+> **📂 OpenFOAM Context**:
+> - **Utilities**: `checkMesh` (ตรวจสอบคุณภาพ), `topoSet` (สร้าง sets), `refineMesh` (refine), `createBaffles` (แปลง internal faces)
+> - **Keywords**: `maxNonOrthogonality`, `maxSkewness`, `maxAspectRatio` (mesh quality criteria), `cellSet`, `faceSet`, `pointSet` (topoSet actions)
+> - **Output**: `checkMesh` แจ้ง warning ถ้า mesh quality ไม่ผ่านเกณฑ์
+
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
 | [[05_MESH_QUALITY_AND_MANIPULATION/01_Mesh_Quality_Criteria]] | เกณฑ์คุณภาพเมช | `utilities/mesh/manipulation/checkMesh/` |
@@ -73,6 +106,12 @@
 ---
 
 ## 6. Runtime Post-Processing (การประมวลผลระหว่างรัน)
+
+> [!NOTE]
+> **📂 OpenFOAM Context**:
+> - **File**: `system/controlDict` - นิยาม function objects ที่นี่
+> - **Keywords**: `functions` (block), `type` (เช่น `forces`, `probes`, `sets`, `surfaces`), `writeControl`, `writeInterval`, `timeStart`, `timeEnd`
+> - **Examples**: `forces` (คำนวณ lift/drag), `probes` (sample ที่จุด), `surfaceIso` (iso-surfaces), `fieldMinMax` (min/max values)
 
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|

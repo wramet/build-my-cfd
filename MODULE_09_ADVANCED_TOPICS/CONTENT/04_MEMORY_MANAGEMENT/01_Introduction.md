@@ -1,5 +1,19 @@
 # 01 บทนำ: ความท้าทายและการจัดการหน่วยความจำใน CFD
 
+> [!TIP] ทำไมต้องเข้าใจ Memory Management?
+> **การเข้าใจระบบจัดการหน่วยความจำของ OpenFOAM เป็นสิ่งสำคัญเพื่อ:**
+> - **ป้องกัน Memory Leaks:** เมื่อเขียน Custom Boundary Conditions หรือ Custom Solvers
+> - **เพิ่มประสิทธิภาพ:** ลดการ Copy ข้อมูลโดยไม่จำเป็น ทำให้ Solver ทำงานเร็วขึ้น 10-30%
+> - **ความเสถียร:** ป้องกัน Segmentation Faults จากการใช้ Pointer ที่ถูกทำลายไปแล้ว (Dangling Pointers)
+> - **การพัฒนาโค้ดที่เป็นมืออาชีพ:** เขียนโค้ดที่ทำงานร่วมกับระบบ OpenFOAM ได้อย่างราบรื่น
+>
+> **📍 ตำแหน่งใน OpenFOAM:** แนวคิดนี้ใช้ในการเขียนโค้ด C++ ที่อยู่ในไดเรกทอรี `src/` เช่น:
+> - `src/finiteVolume/` (สำหรับ Fields และ Discretization)
+> - `src/OpenFOAM/` (สำหรับ Core Classes อย่าง `autoPtr`, `tmp`, `refCount`)
+> - `src/ODE/` หรือ `src/meshTools/` (สำหรับโมดูลเฉพาะทาง)
+>
+> **คำสั่งที่เกี่ยวข้อง:** ไม่มีใน Dictionary files (`0/`, `constant/`, `system/`) เป็นแนวคิดการเขียนโค้ด C++ ล้วนๆ
+
 การจัดการหน่วยความจำในการคำนวณพลศาสตร์ของไหล (Computational Fluid Dynamics - CFD) เป็นหนึ่งในความท้าทายด้านประสิทธิภาพและความน่าเชื่อถือที่สำคัญที่สุดในการจำลองเชิงตัวเลขขนาดใหญ่ แอปพลิเคชัน OpenFOAM ต้องจัดการข้อมูลหลายล้านรายการที่กระจายอยู่บนโครงสร้างเมชที่ซับซ้อน โดยมีข้อมูลชั่วคราวที่ต้องจัดสรรให้มีประสิทธิภาพ แชร์ระหว่างโมดูลการคำนวณ และทำความสะอาดอย่างเป็นระบบโดยไม่มีหน่วยความจำรั่วหรือการลดประสิทธิภาพ
 
 แตกต่างจากแอปพลิเคชัน C++ แบบดั้งเดิมที่พึ่งพาการจัดการหน่วยความจำด้วยตนเองผ่านการดำเนินการ `new`/`delete` หรือ smart pointer ของไลบรารีมาตรฐาน (`std::shared_ptr`, `std::unique_ptr`) OpenFOAM ใช้ระบบนิเวศการจัดการหน่วยความจำแบบกำหนดเองที่ซับซ้อนซึ่งได้รับการออกแบบมาโดยเฉพาะสำหรับความต้องการเฉพาะของงาน CFD
@@ -28,6 +42,17 @@
 
 ## ทำไมไม่ใช้ `std::shared_ptr` และ `std::unique_ptr`?
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **บทนี้เป็นการเปรียบเทียบทางทฤษฎีระหว่าง Standard C++ และ OpenFOAM Design**
+> - **ตำแหน่งใน OpenFOAM:** ไม่มี mapping ตรงไปยัง dictionary files ใดๆ
+> - **แนวคิดนี้สำคัญต่อ:** การเขียนโค้ด C++ ในไดเรกทอรี `src/` เช่น:
+>   - การสร้าง Custom Boundary Condition (`src/finiteVolume/fields/fvPatchFields/`)
+>   - การสร้าง Custom Function Object (`src/OpenFOAM/db/functionObjects/`)
+>   - การพัฒนา Solver ใหม่ (`src/` ของ solver นั้นๆ)
+> - **Keywords ที่เกี่ยวข้อง:** `autoPtr`, `tmp`, `refPtr`, `refCount` (ในไฟล์ `.H` และ `.C`)
+>
+> **💡 Best Practice:** เมื่อเขียน Custom Code ให้ใช้ `autoPtr<T>` สำหรับ ownership แบบเดี่ยว และ `tmp<T>` สำหรับ temporary objects ที่ต้องการแชร์ระหว่าง expressions
+
 การออกแบบของ OpenFOAM เกิดขึ้นก่อน C++11 และ smart pointers ของมัน ที่สำคัญกว่านั้น คือ smart pointers มาตรฐานเป็นสิ่งทั่วไปและไม่ได้รับการปรับให้เหมาะสมกับรูปแบบเฉพาะทาง CFD ระบบการจัดการหน่วยความจำแบบกำหนดเองของกรอบงานนี้จัดการกับความต้องการการคำนวณเฉพาะทางของการคำนวณวิธีปริมาตรจำกัด
 
 ความแตกต่างพื้นฐานอยู่ที่รูปแบบการเข้าถึงข้อมูลที่เป็นเอกลักษณ์ในการจำลอง CFD ในขณะที่ smart pointers มาตรฐานได้รับการออกแบบสำหรับการเขียนโปรแกรมเชิงทั่วไป การจัดการหน่วยความจำของ OpenFOAM มุ่งเป้าไปที่การดำเนินการฟิลด์ที่:
@@ -55,6 +80,20 @@ smart pointers แบบกำหนดเองของ OpenFOAM เป็น 
 
 ## องค์ประกอบหลักของระบบ
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **4 Components หลักของ Memory Management System**
+> - **ตำแหน่งใน OpenFOAM:** ทั้งหมดนี้คือ C++ Classes ในไดเรกทอรี `src/`:
+>   - `autoPtr<T>` → `src/OpenFOAM/memory/autoPtr.H` (ใช้ในทุกที่ที่ต้องการ exclusive ownership)
+>   - `tmp<T>` → `src/OpenFOAM/memory/tmp.H` (ใช้ใน field expressions เช่น `fvc::div(phi)`)
+>   - `refCount` → `src/OpenFOAM/containers/Lists/refCount.H` (base class สำหรับ shared objects)
+>   - `objectRegistry` → `src/OpenFOAM/db/objectRegistry/objectRegistry.H` (ใช้ใน `Time`, `fvMesh`)
+> - **การใช้งานใน Solver:** คุณจะเห็นพวกนี้ใน solver code เช่น:
+>   ```cpp
+>   autoPtr<basicThermophysicalModel> pThermo   // ใน createFields.H
+>   tmp<volScalarField> tRho                    // ใน thermodynamic models
+>   ```
+> - **Best Practice:** เมื่อสร้าง Custom Function Object หรือ Boundary Condition ให้ใช้ `tmp<T>` สำหรับ return values ที่เป็น field calculations
+
 ```mermaid
 graph TD
 classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
@@ -72,6 +111,15 @@ E --> H[Object Lookup & Persistence]:::success
 > **Figure 1:** องค์ประกอบหลักทั้ง 4 ประการของระบบจัดการหน่วยความจำใน OpenFOAM ซึ่งทำงานร่วมกันเพื่อรับประกันความปลอดภัยของทรัพยากร (Resource Safety) และเพิ่มประสิทธิภาพในการประมวลผลข้อมูลขนาดใหญ่โดยลดการคัดลอกข้อมูลที่ไม่จำเป็น
 
 ## การทำความเข้าใจผ่านอุปมาน
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Analogies สำหรับการเข้าใจ Concepts**
+> - **ไม่มีการ Map ตรงไปยัง Files:** นี่เป็น analogies เพื่อให้เข้าใจ concepts เท่านั้น
+> - **Application จริง:** Concepts เหล่านี้ใช้เมื่อ:
+>   - เขียน Custom Solver ที่ต้องสร้าง/ทำลาย objects หลายชนิด
+>   - สร้าง Custom Library ที่ต้อง sharing data ระหว่าง components
+>   - Debug Memory Leaks ใน Custom Boundary Conditions
+> - **ตัวอย่าง Real-world:** ดูได้จาก `src/finiteVolume/cfdTools/general/include/createFields.H` ใน solvers ต่างๆ
 
 เพื่อให้เข้าใจสถาปัตยกรรมการจัดการหน่วยความจำของ OpenFOAM ได้ง่ายขึ้น เราสามารถใช้การเปรียบเทียบดังนี้:
 

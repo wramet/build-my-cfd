@@ -1,1074 +1,375 @@
-# แบบฝึกหัดเพื่อความเชี่ยวชาญใน CFD และ OpenFOAM
+# แบบฝึกหัด: สมการควบคุมและ OpenFOAM
 
-เอกสารนี้รวบรวมแบบฝึกหัดที่ครอบคลุมเพื่อพัฒนาความเข้าใจใน **สมการควบคุม (Governing Equations)**, **การนำไปใช้ใน OpenFOAM**, และ **แนวคิดทางฟิสิกส์** ที่สำคัญใน Computational Fluid Dynamics (CFD)
+แบบฝึกหัดเหล่านี้ช่วยให้คุณเชื่อมโยงทฤษฎีกับการใช้งานจริงใน OpenFOAM
 
 ---
 
-## แบบฝึกหัดที่ 1: หาสมการ Continuity
+## แบบฝึกหัดที่ 1: การอนุรักษ์มวล
 
-**วัตถุประสงค์**: ใช้แนวคิดปริมาตรควบคุม (control volume approach) เพื่อหาสมการ Continuity สำหรับการไหลแบบ 1 มิติ (1D flow)
+**โจทย์:** หาสมการ Continuity สำหรับการไหล 1 มิติโดยใช้ control volume
 
-### หลักการพื้นฐาน
+### ขั้นตอน
 
-พิจารณาปริมาตรควบคุมเชิงอนุพันธ์ (differential control volume) ที่มีความยาว $\mathrm{d}x$ และพื้นที่หน้าตัด $A$ ในระบบการไหลแบบ 1 มิติ
+1. พิจารณา control volume ขนาด $dx$ และพื้นที่หน้าตัด $A$
+2. คำนวณ:
+   - มวลไหลเข้า: $\dot{m}_{in} = \rho u A$
+   - มวลไหลออก: $\dot{m}_{out} = \left(\rho u + \frac{\partial(\rho u)}{\partial x}dx\right)A$
+   - การสะสมมวล: $\frac{\partial \rho}{\partial t} A\, dx$
 
-**หลักการอนุรักษ์มวล**: ฟลักซ์มวลสุทธิ (net mass flux) ที่ผ่านพื้นผิวควบคุม (control surfaces) จะต้องเท่ากับอัตราการสะสมมวล (rate of mass accumulation) ภายในปริมาตร
+3. สมดุลมวล: สะสม = เข้า − ออก
 
-```mermaid
-graph LR
-A["Control Volume<br/>(dx, A)"]:::context --> B["Mass In<br/>ρuA"]:::implicit
-A --> C["Mass Out<br/>(ρu + Δρu)A"]:::implicit
-A --> D["Accumulation<br/>∂ρ/∂t A dx"]:::volatile
-B --> E["Balance<br/>Acc = In - Out"]:::explicit
-C --> E
-D --> E
+<details>
+<summary><b>ดูคำตอบ</b></summary>
 
-E --> F["Continuity Eq<br/>∂ρ/∂t + ∂(ρu)/∂x = 0"]:::success
-
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-```
-
-> **Figure 1:** การหาอนุพันธ์ของสมการความต่อเนื่องแบบ 1 มิติ โดยใช้การวิเคราะห์ปริมาตรควบคุม และการรักษาสมดุลระหว่างอัตราการไหลของมวลขาเข้า ขาออก และอัตราการสะสมมวล เพื่อสร้างกฎการอนุรักษ์ในรูปอนุพันธ์
-
-### การคำนวณฟลักซ์มวล
-
-- **อัตราการไหลเข้าของมวล (Mass inlet rate):** $\dot{m}_{in} = \rho u A$
-- **อัตราการไหลออกของมวล (Mass outlet rate):** $\dot{m}_{out} = \left(\rho u + \frac{\partial(\rho u)}{\partial x}\mathrm{d}x\right)A$
-- **อัตราการสะสมมวล (Mass accumulation rate):** $\dot{m}_{accum} = \frac{\partial \rho}{\partial t} A \mathrm{d}x$
-
-### การประยุกต์ใช้การอนุรักษ์มวล
-
-การประยุกต์ใช้การอนุรักษ์มวล:
-$$\dot{m}_{accum} = \dot{m}_{in} - \dot{m}_{out}$$
-
-การแทนค่าสมการ:
-$$\frac{\partial \rho}{\partial t} A \mathrm{d}x = \rho u A - \left(\rho u + \frac{\partial(\rho u)}{\partial x}\mathrm{d}x\right)A$$
-
-การทำให้ง่ายขึ้นและตัดพจน์:
-$$\frac{\partial \rho}{\partial t} \mathrm{d}x = -\frac{\partial(\rho u)}{\partial x}\mathrm{d}x$$
-
-การหารด้วย $\mathrm{d}x$ จะได้สมการ Continuity แบบ 1 มิติ:
 $$\frac{\partial \rho}{\partial t} + \frac{\partial(\rho u)}{\partial x} = 0$$
 
-สมการพื้นฐานนี้แสดงถึงการอนุรักษ์มวลในระบบการไหล และเป็นหนึ่งในสมการพื้นฐานของพลศาสตร์ของไหล (fluid dynamics) ควบคู่ไปกับสมการโมเมนตัม (momentum equation)
+สำหรับ incompressible ($\rho = \text{const}$):
+$$\frac{\partial u}{\partial x} = 0$$
+
+**ใน OpenFOAM:** สมการนี้ถูกบังคับผ่าน pressure correction ใน SIMPLE/PISO algorithm
+</details>
 
 ---
 
-## แบบฝึกหัดที่ 2: ทำให้สมการ Navier-Stokes ง่ายขึ้น
+## แบบฝึกหัดที่ 2: ลดรูป Navier-Stokes
 
-**วัตถุประสงค์**: ทำให้สมการ Navier-Stokes ง่ายลงอย่างเป็นระบบสำหรับการไหลแบบคงที่ (steady), อัดไม่ได้ (incompressible), 2 มิติ (2D flow)
+**โจทย์:** ลดรูปสมการ Navier-Stokes สำหรับ steady, incompressible, 2D flow
 
-### สมการ Navier-Stokes ฉบับเต็ม
-
-$$\rho \left(\frac{\partial \mathbf{u}}{\partial t} + (\mathbf{u} \cdot \nabla)\mathbf{u}\right) = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
-
-**คำนิยามตัวแปร:**
-- $\rho$ = ความหนาแน่นของไหล (fluid density)
-- $\mathbf{u}$ = เวกเตอร์ความเร็ว (velocity vector)
-- $t$ = เวลา (time)
-- $p$ = ความดัน (pressure)
-- $\mu$ = ความหนืดแบบไดนามิก (dynamic viscosity)
-- $\mathbf{f}$ = แรงภายนอก (body force)
-- $\nabla$ = เวกเตอร์เกรเดียนต์ (gradient operator)
-- $\nabla^2$ = เลปลาเซียน (Laplacian operator)
-
-### การทำให้ง่ายขึ้นทีละขั้นตอน
-
-#### **ขั้นตอนที่ 1: สภาวะคงที่ (Steady-state)**
-สำหรับการไหลแบบคงที่ พจน์อนุพันธ์เทียบกับเวลาจะหายไป:
-$$\rho (\mathbf{u} \cdot \nabla)\mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
-
-#### **ขั้นตอนที่ 2: การไหลแบบอัดไม่ได้ (Incompressible flow)**
-สำหรับการไหลแบบอัดไม่ได้ ความหนาแน่น $\rho$ มีค่าคงที่ และ $\nabla \cdot \mathbf{u} = 0$
-$$\rho (\mathbf{u} \cdot \nabla)\mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
-
-#### **ขั้นตอนที่ 3: การไหลแบบ 2 มิติ (2D flow)**
-สำหรับการไหลแบบ 2 มิติ เวกเตอร์ความเร็ว $\mathbf{u} = (u_x, u_y, 0)$ และ $\frac{\partial}{\partial z} = 0$
-
-**สมการโมเมนตัมในแนวแกน x:**
-$$\rho \left(u_x \frac{\partial u_x}{\partial x} + u_y \frac{\partial u_x}{\partial y}\right) = -\frac{\partial p}{\partial x} + \mu \left(\frac{\partial^2 u_x}{\partial x^2} + \frac{\partial^2 u_x}{\partial y^2}\right) + f_x$$
-
-**สมการโมเมนตัมในแนวแกน y:**
-$$\rho \left(u_x \frac{\partial u_y}{\partial x} + u_y \frac{\partial u_y}{\partial y}\right) = -\frac{\partial p}{\partial y} + \mu \left(\frac{\partial^2 u_y}{\partial x^2} + \frac{\partial^2 u_y}{\partial y^2}\right) + f_y$$
-
-```mermaid
-graph LR
-subgraph Forces
-    direction TB
-    F_inertial["Inertial Forces<br/>ρu⋅∇u"]:::implicit
-    F_pressure["Pressure Forces<br/>-∇p"]:::implicit
-    F_viscous["Viscous Forces<br/>μ∇²u"]:::implicit
-    F_external["External Forces<br/>f"]:::implicit
-end
-
-ForceBalance["Force Balance<br/>(2D Flow)"]:::context
-
-F_inertial --> ForceBalance
-F_pressure --> ForceBalance
-F_viscous --> ForceBalance
-F_external --> ForceBalance
-
-ForceBalance --> XMomentum["X-Comp:<br/>ρ Duₓ/Dt = -∂p/∂x + μ∇²uₓ + fₓ"]:::success
-ForceBalance --> YMomentum["Y-Comp:<br/>ρ Duᵧ/Dt = -∂p/∂y + μ∇²uᵧ + fᵧ"]:::success
-
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-```
-
-> **Figure 2:** การแยกส่วนประกอบของสมการโมเมนตัม Navier-Stokes แบบ 2 มิติ แสดงให้เห็นว่าสมดุลของแรงเฉื่อย แรงดัน แรงหนืด และแรงภายนอก ถูกนำไปใช้แยกกันในทิศทางพิกัด $x$ และ $y$ อย่างไร
-
-### ผลลัพธ์สุดท้าย
-
-สมการที่ง่ายขึ้นเหล่านี้เป็นพื้นฐานสำหรับการจำลอง CFD แบบ 2 มิติ สภาวะคงที่ อัดไม่ได้ ส่วนใหญ่ และแสดงถึงสมดุลพื้นฐานระหว่าง:
-
-- **แรงเฉื่อย (Inertial forces)**: $\rho (\mathbf{u} \cdot \nabla)\mathbf{u}$
-- **แรงดัน (Pressure forces)**: $-\nabla p$
-- **แรงหนืด (Viscous forces)**: $\mu \nabla^2 \mathbf{u}$
-- **แรงภายนอก (Body forces)**: $\mathbf{f}$
-
----
-
-## แบบฝึกหัดที่ 3: ฟิสิกส์ของ Boundary Condition
-
-**วัตถุประสงค์**: อธิบายเหตุผลทางกายภาพสำหรับ Boundary Condition ทางออกทั่วไปในการจำลอง CFD
-
-### หลักการทางกายภาพ
-
-การเลือก Boundary Condition ที่ทางออกของการไหลถูกควบคุมโดยพื้นฐานจากฟิสิกส์ของการไหลและลักษณะทางคณิตศาสตร์ของสมการควบคุม (governing equations)
-
-```mermaid
-graph TD
-A["Fluid Domain"]:::context --> B["Inlet Boundary"]:::volatile
-A --> C["Outlet Boundary"]:::volatile
-A --> D["Wall Boundaries"]:::volatile
-B --> E["Inlet Velocity<br/>Profile"]:::explicit
-C --> F["Outlet Zero<br/>Gradient"]:::explicit
-D --> H["Wall No-Slip<br/>Condition"]:::explicit
-
-E --> G["Profile Development<br/>Along Length"]:::implicit
-G --> H["Fully Developed<br/>Flow Region"]:::success
-
-subgraph Velocity["Velocity Evolution"]
-    direction LR
-    I["Initial<br/>(Uniform)"]:::context
-    J["Developing<br/>(Entrance)"]:::implicit
-    K["Developed<br/>(∂u/∂x = 0)"]:::success
-end
-
-I --> J --> K
-
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-```
-
-> **Figure 3:** เหตุผลทางกายภาพสำหรับเงื่อนไขขอบเขตการไหล แสดงให้เห็นวิวัฒนาการของโปรไฟล์ความเร็วจากทางเข้าไปยังสภาวะที่พัฒนาเต็มที่ (fully developed) ที่ทางออก ซึ่งเป็นจุดที่ใช้เงื่อนไข zero-gradient
-
-### Boundary Condition สำหรับความเร็ว
-
-**`zeroGradient` สำหรับความเร็ว**
-
-**คำจำกัดความ**: โปรไฟล์ความเร็ว (velocity profile) พัฒนาเต็มที่แล้วที่ทางออก ซึ่งหมายถึง:
-$$\frac{\partial \mathbf{u}}{\partial n} = 0$$
-โดยที่ $n$ คือทิศทางตั้งฉากกับ Boundary ทางออก
-
-**เหตุผลทางกายภาพ**:
-- **การพัฒนาโปรไฟล์**: ตำแหน่งทางออกส่วนใหญ่ การไหลได้เคลื่อนที่ห่างจากสิ่งรบกวนทางเรขาคณิต (geometric disturbances) เพียงพอที่จะเข้าสู่สภาวะที่พัฒนาแล้ว (developed state)
-- **ป้องกันการรบกวนเทียม**: มันป้องกันการเร่งหรือลดความเร็วเทียม (artificial acceleration or deceleration) ที่จะเกิดขึ้นหากมีการกำหนดค่าความเร็วคงที่
-- **การปรับตัวตามธรรมชาติ**: ช่วยให้ความเร็วปรับตัวตามธรรมชาติโดยอิงจากฟิสิกส์การไหลต้นน้ำ (upstream flow physics)
-- **ลักษณะทางคณิตศาสตร์**: แสดงถึง **Neumann boundary condition** ที่เคารพลักษณะไฮเพอร์โบลิก (hyperbolic nature) ของพจน์ Convection
-
-### Boundary Condition สำหรับความดัน
-
-**`fixedValue` สำหรับความดัน**
-
-**คำจำกัดความ**: ระบุค่าอ้างอิงความดันที่ทางออก โดยทั่วไปจะตั้งค่าเป็นความดันเกจศูนย์ (zero gauge pressure)
-
-**ความจำเป็นทางคณิตศาสตร์และฟิสิกส์**:
-- **การกำหนดค่าอ้างอิง**: สนามความดัน (pressure field) ถูกกำหนดได้เพียงค่าคงที่ที่ไม่เจาะจง (Pressure gradient ไม่ใช่ความดันสัมบูรณ์ ที่ขับเคลื่อนการไหล)
-- **การป้องกันความผิดปกติ**: หากไม่มีค่าอ้างอิงความดัน ระบบเชิงเส้น (linear system) จะมีความผิดปกติทางคณิตศาสตร์ (mathematically singular)
-- **ให้แรงขับเคลื่อน**: มันให้แรงขับเคลื่อน (driving force) สำหรับการไหลผ่าน Pressure gradient ระหว่างทางเข้าและทางออก
-- **ลักษณะทางคณิตศาสตร์**: แสดงถึง **Dirichlet boundary condition** ที่ให้ข้อจำกัดที่จำเป็นสำหรับสมการความดันแบบ Elliptic
-
-### สรุปฟิสิกส์การไหลพื้นฐาน
-
-ในสถานการณ์การไหลจริงส่วนใหญ่ **Pressure gradient ขับเคลื่อนการไหล** มากกว่าค่าความดันสัมบูรณ์ การกำหนดความดันที่ทางออกและปล่อยให้ความเร็วพัฒนาตามธรรมชาติ เราจำลองความเป็นจริงทางกายภาพที่:
-
-1. **ความแตกต่างของความดันสร้างแรงขับเคลื่อน** สำหรับการไหล
-2. **โปรไฟล์ความเร็วพัฒนา** ตามเรขาคณิต, ความหนืด และเงื่อนไขต้นน้ำ
-3. **การไหลออกจากโดเมนโดยมีข้อจำกัดเทียมน้อยที่สุด**
-
-การรวมกันของ Boundary Condition นี้ช่วยให้มั่นใจถึงความสมจริงทางกายภาพและความเสถียรเชิงตัวเลขในการจำลอง CFD
-
----
-
-## แบบฝึกหัดที่ 4: การนำ OpenFOAM fvMatrix ไปใช้งาน
-
-**วัตถุประสงค์**: เขียนสูตร OpenFOAM fvMatrix สำหรับสมการ Scalar Transport แบบสภาวะคงที่ (steady-state scalar transport equation) และทำความเข้าใจรายละเอียดการนำไปใช้งาน
-
-### สมการ Scalar Transport
-
-สมการ Scalar Transport แสดงถึงสมดุลระหว่าง **Convection** (ด้านซ้าย) และ **Diffusion** (ด้านขวา) ของปริมาณ Scalar $T$:
-$$\nabla \cdot (\mathbf{u} T) = \nabla \cdot (D \nabla T)$$
-
-**คำนิยามตัวแปร**:
-- $T$ = ปริมาณ Scalar (เช่น อุณหภูมิ, ความเข้มข้น)
-- $\mathbf{u}$ = เวกเตอร์ความเร็ว
-- $D$ = สัมประสิทธิ์การแพร่ (diffusion coefficient)
-- $\nabla$ = เวกเตอร์เกรเดียนต์
-
-```mermaid
-graph LR
-subgraph Mechanisms
-    direction TB
-    A["Convection<br/>∇·(uT)"]:::implicit
-    C["Diffusion<br/>∇·(D∇T)"]:::implicit
-end
-
-B["Flow Stream<br/>(Motion)"]:::context
-D["Molecular<br/>(Spreading)"]:::context
-
-A --> B
-C --> D
-
-B --> E["Combined Transport<br/>Scalar Field"]:::explicit
-D --> E
-
-E --> F["Conservation Equation<br/>∂T/∂t + ∇·(uT) = ∇·(D∇T)"]:::success
-
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-```
-
-> **Figure 4:** แบบจำลองแนวคิดของการขนส่งสเกลาร์ (Scalar transport) ซึ่งรวมผลของการพา (convective transport) จากการเคลื่อนที่ของไหล และการแพร่ (diffusive spreading) เพื่อสร้างหลักการอนุรักษ์สเกลาร์ทั่วไป
-
-### OpenFOAM Code Implementation
-
-ใน OpenFOAM สิ่งนี้ถูกนำไปใช้งานโดยใช้วิธี Finite Volume (finite volume method) ด้วยตัวดำเนินการ `fvm` (finite volume matrix)
-
-**สูตร fvMatrix หลัก:**
-
-```cpp
-// Solve the steady-state scalar transport equation
-fvScalarMatrix TEqn
-(
-    // Convection term: ∇·(u·T)
-    fvm::div(phi, T)
-
-    // Diffusion term: ∇·(D·∇T)
-  - fvm::laplacian(D, T)
-);
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-
-> **คำอธิบาย:**
-> - โค้ดนี้แสดงการใช้งาน OpenFOAM fvMatrix สำหรับสมการ Scalar Transport แบบสภาวะคงที่
-> - พจน์ Convection `fvm::div(phi, T)` แทนการขนส่งโดยการไหลของไหล (∇ · (uT))
-> - พจน์ Diffusion `fvm::laplacian(D, T)` แทนการแพร่ของสเกลาร์ (∇ · (D∇T))
-> - คำนำหน้า `fvm::` บ่งชี้ว่าเป็นการจัดการแบบ Implicit ซึ่งจะถูกแก้ไขในรูปแบบเมทริกซ์
->
-> **แนวคิดสำคัญ:**
-> - **Convection**: การเคลื่อนที่ของสเกลาร์โดยกระแสของไหล
-> - **Diffusion**: การกระจายตัวของสเกลาร์โดยการเคลื่อนที่แบบโมเลกุล
-> - **Implicit Treatment**: การแก้สมการโดยให้ตัวแปรที่ไม่ทราบค่าปรากฏในเมทริกซ์สัมประสิทธิ์
-
-### การตีความทางคณิตศาสตร์
-
-| OpenFOAM Operator | Mathematical Term | Description |
-|-------------------|-------------------|-------------|
-| `fvm::div(phi, T)` | $\nabla \cdot (\mathbf{u} T)$ | Convection term |
-| `fvm::laplacian(D, T)` | $\nabla \cdot (D \nabla T)$ | Diffusion term |
-| `phi` | $\phi = \mathbf{u} \cdot \mathbf{S}_f$ | Surface flux field |
-| `fvm::` | - | Implicit treatment (matrix coefficients) |
-| `fvc::` | - | Explicit treatment (evaluated with current field) |
-
-**คำอธิบายเพิ่มเติม**:
-- **`fvm::div(phi, T)`**: นำไปใช้งานพจน์ Convection โดยที่ `phi` คือ Field ฟลักซ์พื้นผิว (surface flux field) $\phi = \mathbf{u} \cdot \mathbf{S}_f$ (ความเร็ว Dot กับเวกเตอร์พื้นที่ผิว)
-- **`fvm::laplacian(D, T)`**: นำไปใช้งานพจน์ Diffusion โดยใช้การ Discretization แบบ Finite Volume มาตรฐาน
-- **คำนำหน้า `fvm::`**: ระบุว่าตัวดำเนินการเหล่านี้มีส่วนร่วมในสัมประสิทธิ์เมทริกซ์ (การจัดการแบบ Implicit)
-- **Implicit เทียบกับ Explicit**: การใช้ `fvm` สร้างระบบ Implicit ที่ถูกแก้พร้อมกัน ในขณะที่ `fvc` จะจัดการพจน์ต่างๆ อย่าง Explicit โดยใช้ค่า Field ปัจจุบัน
-
-### การนำไปใช้งานที่สมบูรณ์ใน Solver
-
-**การประกาศตัวแปร (typically in createFields.H):**
-
-```cpp
-volScalarField T
-(
-    IOobject
-    (
-        "T",
-        runTime.timeName(),
-        mesh,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh
-);
-
-// Velocity field
-volVectorField U
-(
-    IOobject
-    (
-        "U",
-        runTime.timeName(),
-        mesh,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh
-);
-
-// Surface flux field
-surfaceScalarField phi = fvc::interpolate(U) & mesh.Sf();
-
-// Diffusion coefficient (can be constant or field)
-volScalarField D
-(
-    IOobject
-    (
-        "D",
-        runTime.timeName(),
-        mesh,
-        IOobject::READ_IF_PRESENT,
-        IOobject::AUTO_WRITE
-    ),
-    mesh,
-    dimensionedScalar("D", dimensionSet(0,2,-1,0,0,0,0), 0.1)
-);
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-
-> **คำอธิบาย:**
-> - ส่วนนี้แสดงการประกาศตัวแปรที่จำเป็นสำหรับการแก้ปัญหา Scalar Transport
-> - `volScalarField T`: สนามสเกลาร์เช่นอุณหภูมิหรือความเข้มข้น
-> - `volVectorField U`: สนามความเร็วของไหล
-> - `surfaceScalarField phi`: ฟลักซ์พื้นผิวที่คำนวณจากความเร็ว
-> - `volScalarField D`: สัมประสิทธิ์การแพร่ที่สามารถเป็นค่าคงที่หรือสนามแบบแปรผันได้
->
-> **แนวคิดสำคัญ:**
-> - **Field Declaration**: การประกาศสนามตัวแปรใน OpenFOAM ต้องระบุ IOobject และ mesh
-> - **Surface Flux**: การคำนวณฟลักซ์พื้นผิวจากความเร็วโดยการแปลงค่าจากจุดศูนย์กลางเซลล์ไปยังพื้นผิว
-> - **IOobject Flags**: MUST_READ และ AUTO_WRITE คือการควบคุมการอ่านและเขียนไฟล์
-
-**วงจรแก้ปัญหาหลัก:**
-
-```cpp
-// Main solver loop
-while (simple.correctNonOrthogonal())
-{
-    fvScalarMatrix TEqn
-    (
-        fvm::div(phi, T) - fvm::laplacian(D, T)
-    );
-
-    TEqn.relax();
-    TEqn.solve();
-}
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-
-> **คำอธิบาย:**
-> - วงจรการแก้ปัญหาหลักสำหรับสมการ Scalar Transport
-> - `simple.correctNonOrthogonal()`: วงจรการแก้ไขสำหรับ mesh ที่ไม่ตั้งฉาก (non-orthogonal mesh)
-> - `TEqn.relax()`: การผ่อนคลาย (under-relaxation) เพื่อความเสถียรของการคำนวณ
-> - `TEqn.solve()`: การแก้ระบบสมการเชิงเส้น
->
-> **แนวคิดสำคัญ:**
-> - **Non-Orthogonal Correction**: การแก้ไขปัญหาสำหรับ mesh ที่ไม่ตั้งฉากเพื่อความแม่นยำ
-> - **Under-Relaxation**: เทคนิคเพื่อป้องกันการหลุดของการคำนวณ
-> - **Matrix Solve**: การแก้ระบบสมการเชิงเส้นเพื่อหาค่าตัวแปร
-
-### การนำ Boundary Condition ไปใช้งาน
-
-**ไฟล์ 0/T:**
-
-```cpp
-dimensions      [0 0 0 1 0 0 0];
-
-internalField   uniform 300;
-
-boundaryField
-{
-    inlet
-    {
-        type            fixedValue;
-        value           uniform 350;
-    }
-
-    outlet
-    {
-        type            zeroGradient;
-    }
-
-    walls
-    {
-        type            fixedValue;
-        value           uniform 300;
-    }
-}
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-
-> **คำอธิบาย:**
-> - ไฟล์กำหนดเงื่อนไขขอบเขตสำหรับสนามสเกลาร์ T
-> - `dimensions`: มิติของตัวแปร (ในที่นี้คืออุณหภูมิ)
-> - `internalField`: ค่าเริ่มต้นภายในโดเมน
-> - `inlet`: กำหนดค่า T คงที่ 350 หน่วย
-> - `outlet`: ใช้ zero-gradient (การไหลที่พัฒนาเต็มที่)
-> - `walls`: กำหนดค่า T คงที่ 300 หน่วย
->
-> **แนวคิดสำคัญ:**
-> - **Dirichlet BC**: การกำหนดค่าคงที่ที่ขอบเขต
-> - **Neumann BC**: การกำหนดค่า gradient เป็นศูนย์ที่ขอบเขต
-> - **Boundary Types**: ประเภทของเงื่อนไขขอบเขตที่แตกต่างกันสำหรับสถานการณ์ทางกายภาพที่ต่างกัน
-
-### ข้อควรพิจารณาขั้นสูง
-
-| ลักษณะ | คำอธิบาย | OpenFOAM Implementation |
-|---------|-----------|------------------------|
-| **Convection Schemes** | สามารถใช้ Discretization Scheme ที่แตกต่างกันได้ (upwind, linear, Gamma เป็นต้น) | `divSchemes { div(phi,T) Gauss upwind; }` |
-| **Under-relaxation** | มักจำเป็นสำหรับความเสถียร | `TEqn.relax();` |
-| **Transient Problems** | เพิ่มพจน์การเปลี่ยนแปลงตามเวลา | `fvm::ddt(T) + fvm::div(phi,T) - fvm::laplacian(D,T)` |
-| **Source Terms** | การจัดการ Source term แบบ Implicit | `fvm::Sp(source, T)` |
-
-การนำไปใช้งานนี้เป็นพื้นฐานสำหรับการถ่ายเทความร้อน (heat transfer), การขนส่งชนิด (species transport) และการคำนวณ Scalar Field อื่นๆ อีกมากมายใน OpenFOAM Solver
-
----
-
-## แบบฝึกหัดที่ 5: การวิเคราะห์เลขไร้มิติ
-
-**วัตถุประสงค์**: คำนวณและวิเคราะห์เลขไร้มิติสำคัญใน CFD เพื่อทำนายระบอบการไหลและเลือก Solver ที่เหมาะสม
-
-### Reynolds Number ($Re$)
-
-Reynolds number แสดงถึงอัตราส่วนของแรงเฉื่อยต่อแรงหนืดในการไหล:
-
-$$Re = \frac{\rho U L}{\mu} = \frac{\text{Inertial Forces}}{\text{Viscous Forces}}$$
-
-โดยที่:
-- $\rho$ = ความหนาแน่นของของไหล [kg/m³]
-- $U$ = ความเร็วจำเพาะ [m/s]
-- $L$ = มาตราส่วนความยาวจำเพาะ [m]
-- $\mu$ = ความหนืดพลวัต [Pa·s]
-
-### Flow Regime Classification
-
-| ค่า Reynolds Number | ระบอบการไหล | ลักษณะการไหล |
-|---------------------|--------------|----------------|
-| $Re < 2300$ | Laminar | การไหลเป็นชั้นๆ ไม่มีการปนเปื้อน |
-| $2300 < Re < 4000$ | Transitional | การเปลี่ยนผ่านจาก Laminar เป็น Turbulent |
-| $Re > 4000$ | Turbulent | การไหลมีการปนเปื้อนและกระเพื่อม |
-
-### Mach Number ($Ma$)
-
-Mach number แสดงถึงอัตราส่วนของความเร็วการไหลต่อความเร็วเสียงเฉพาะที่:
-
-$$Ma = \frac{U}{c} = \frac{\text{Flow Velocity}}{\text{Speed of Sound}}$$
-
-โดยที่:
-- $U$ = ความเร็วการไหล [m/s]
-- $c$ = ความเร็วเสียงเฉพาะที่ [m/s]
-- $c = \sqrt{\gamma R T}$ สำหรับ Ideal Gas
-
-### Mach Number Flow Regimes
-
-| ค่า Mach Number | ระบอบการไหล | ผลกระทบของ Compressibility |
-|-----------------|---------------|------------------------------|
-| $Ma < 0.3$ | Incompressible | ความแปรผันของความหนาแน่นน้อยมาก |
-| $0.3 < Ma < 0.8$ | Subsonic Compressible | มีผลกระทบของ compressibility เล็กน้อย |
-| $Ma = 1$ | Sonic | สภาวะวิกฤต การไหลผ่านความเร็วเสียง |
-| $0.8 < Ma < 1.2$ | Transonic | บริเวณ Subsonic/Supersonic ผสมกัน |
-| $Ma > 1.2$ | Supersonic | การไหลเร็วกว่าเสียง Shock Wave ก่อตัว |
-
-### OpenFOAM Solver Selection
-
-```cpp
-// Low Mach number (Ma < 0.3) - incompressible solvers
-solver simpleFoam;        // Steady-state
-solver pimpleFoam;        // Transient
-solver icoFoam;          // Laminar transient
-
-// Compressible flow solvers (Ma > 0.3)
-solver rhoSimpleFoam;     // Steady compressible
-solver rhoPimpleFoam;     // Transient compressible
-solver sonicFoam;        // Transonic/supersonic flow
-
-// High-speed flow with shock waves
-solver reactingFoam;      // Combustion with compressibility
-
-// Thermophysical properties for compressible flow
-thermoType
-{
-    type            heRhoThermo;
-    mixture         pureMixture;
-    transport       sutherland;
-    thermo          hConst;
-    energy          sensibleEnthalpy;
-    equationOfState perfectGas;
-    specie          specie;
-}
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-
-> **คำอธิบาย:**
-> - ตัวอย่างโค้ดแสดงการเลือก Solver ที่เหมาะสมขึ้นอยู่กับค่า Mach Number
-> - `simpleFoam`, `pimpleFoam`, `icoFoam`: Solvers สำหรับการไหลแบบอัดไม่ได้ (Incompressible)
-> - `rhoSimpleFoam`, `rhoPimpleFoam`, `sonicFoam`: Solvers สำหรับการไหลแบบอัดได้ (Compressible)
-> - `thermoType`: การกำหนดคุณสมบัติทางเทอร์โมไดนามิกส์สำหรับการไหลแบบอัดได้
->
-> **แนวคิดสำคัญ:**
-> - **Compressibility Effect**: ผลกระทบของการอัดตัวของไหลต่อคุณสมบัติทางกายภาพ
-> - **Solver Selection**: การเลือก Solver ที่เหมาะสมกับลักษณะของการไหล
-> - **Equation of State**: สมการสถานะที่ใช้อธิบายความสัมพันธ์ระหว่างความดัน ความหนาแน่น และอุณหภูมิ
-
-### Froude Number ($Fr$)
-
-Froude number บ่งบอกถึงความสำคัญสัมพัทธ์ของแรงเฉื่อยต่อแรงโน้มถ่วง และมีความสำคัญอย่างยิ่งสำหรับการไหลที่มี Free Surface:
-
-$$Fr = \frac{U}{\sqrt{gL}} = \sqrt{\frac{\text{Inertial Forces}}{\text{Gravitational Forces}}}$$
-
-### Prandtl Number ($Pr$)
-
-$$Pr = \frac{c_p \mu}{k} = \frac{\text{Momentum Diffusivity}}{\text{Thermal Diffusivity}}$$
-
-**ความสำคัญ:**
-- จำเป็นสำหรับแอปพลิเคชันการถ่ายเทความร้อน
-- $Pr \approx 0.7$ สำหรับก๊าซ
-- $Pr \approx 7$ สำหรับน้ำ
-
----
-
-## แบบฝึกหัดที่ 6: การเขียนสมการใน OpenFOAM
-
-**วัตถุประสงค์**: แปลงสมการทางคณิตศาสตร์เป็นโค้ด OpenFOAM ที่ถูกต้อง
-
-### สมการ Momentum แบบ Incompressible
+### สมการเต็ม
 
 $$\rho \left(\frac{\partial \mathbf{u}}{\partial t} + \mathbf{u} \cdot \nabla \mathbf{u}\right) = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
 
-### OpenFOAM Implementation
+<details>
+<summary><b>ดูคำตอบ</b></summary>
+
+**ขั้นที่ 1: Steady** ($\partial/\partial t = 0$)
+$$\rho \mathbf{u} \cdot \nabla \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
+
+**ขั้นที่ 2: 2D** ($\partial/\partial z = 0$, $w = 0$)
+
+**X-momentum:**
+$$\rho \left(u \frac{\partial u}{\partial x} + v \frac{\partial u}{\partial y}\right) = -\frac{\partial p}{\partial x} + \mu \left(\frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}\right)$$
+
+**Y-momentum:**
+$$\rho \left(u \frac{\partial v}{\partial x} + v \frac{\partial v}{\partial y}\right) = -\frac{\partial p}{\partial y} + \mu \left(\frac{\partial^2 v}{\partial x^2} + \frac{\partial^2 v}{\partial y^2}\right)$$
+
+**ใน OpenFOAM:** ใช้ `simpleFoam` กับ `ddtSchemes { default steadyState; }`
+</details>
+
+---
+
+## แบบฝึกหัดที่ 3: เลือก Solver
+
+**โจทย์:** เลือก solver ที่เหมาะสมสำหรับสถานการณ์ต่อไปนี้
+
+| กรณี | $Re$ | $Ma$ | ประเภท | Solver? |
+|------|------|------|--------|---------|
+| A | 1500 | 0.1 | Steady | ? |
+| B | 50000 | 0.05 | Transient | ? |
+| C | 10000 | 0.5 | Steady | ? |
+| D | 500 | 0.02 | Transient + Free Surface | ? |
+
+<details>
+<summary><b>ดูคำตอบ</b></summary>
+
+| กรณี | Solver | เหตุผล |
+|------|--------|--------|
+| A | `simpleFoam` (laminar) | Steady, Incomp, Laminar ($Re < 2300$) |
+| B | `pimpleFoam` + kEpsilon | Transient, Incomp, Turbulent ($Re > 4000$) |
+| C | `rhoSimpleFoam` | Steady, Compressible ($Ma > 0.3$), Turbulent |
+| D | `interFoam` (laminar) | Transient, Free surface, Laminar |
+
+</details>
+
+---
+
+## แบบฝึกหัดที่ 4: Boundary Conditions
+
+**โจทย์:** เขียน BCs สำหรับ pipe flow ที่มี inlet velocity = 10 m/s
+
+```
+case/
+├── 0/
+│   ├── U     ← เขียน BC
+│   └── p     ← เขียน BC
+```
+
+<details>
+<summary><b>ดูคำตอบ: 0/U</b></summary>
 
 ```cpp
-// Momentum equation (UEqn.H)
-fvVectorMatrix UEqn
+dimensions      [0 1 -1 0 0 0 0];
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    inlet
+    {
+        type    fixedValue;
+        value   uniform (10 0 0);
+    }
+    outlet
+    {
+        type    zeroGradient;
+    }
+    walls
+    {
+        type    noSlip;
+    }
+}
+```
+</details>
+
+<details>
+<summary><b>ดูคำตอบ: 0/p</b></summary>
+
+```cpp
+dimensions      [0 2 -2 0 0 0 0];
+internalField   uniform 0;
+
+boundaryField
+{
+    inlet
+    {
+        type    zeroGradient;
+    }
+    outlet
+    {
+        type    fixedValue;
+        value   uniform 0;
+    }
+    walls
+    {
+        type    zeroGradient;
+    }
+}
+```
+</details>
+
+---
+
+## แบบฝึกหัดที่ 5: Initial Conditions for Turbulence
+
+**โจทย์:** คำนวณค่าเริ่มต้น k และ epsilon สำหรับ:
+- Velocity: $U = 10$ m/s
+- Turbulence intensity: $I = 5\%$
+- Length scale: $l = 0.01$ m
+
+<details>
+<summary><b>ดูคำตอบ</b></summary>
+
+$$k = \frac{3}{2}(I \cdot U)^2 = \frac{3}{2}(0.05 \times 10)^2 = 0.375 \text{ m}^2/\text{s}^2$$
+
+$$\epsilon = C_\mu^{0.75} \cdot k^{1.5} / l = 0.09^{0.75} \times 0.375^{1.5} / 0.01 \approx 3.73 \text{ m}^2/\text{s}^3$$
+
+**ไฟล์ 0/k:**
+```cpp
+internalField   uniform 0.375;
+```
+
+**ไฟล์ 0/epsilon:**
+```cpp
+internalField   uniform 3.73;
+```
+</details>
+
+---
+
+## แบบฝึกหัดที่ 6: แปลสมการเป็น OpenFOAM
+
+**โจทย์:** แปลสมการ scalar transport เป็น fvMatrix
+
+$$\frac{\partial T}{\partial t} + \nabla \cdot (\mathbf{u} T) = \nabla \cdot (D \nabla T) + S$$
+
+<details>
+<summary><b>ดูคำตอบ</b></summary>
+
+```cpp
+fvScalarMatrix TEqn
 (
-    fvm::ddt(rho, U)              // Time derivative: ∂(ρU)/∂t
-  + fvm::div(rhoPhi, U)           // Convection: ∇•(ρUU)
+    fvm::ddt(T)                    // ∂T/∂t
+  + fvm::div(phi, T)               // ∇·(uT)
+  - fvm::laplacian(D, T)           // -∇·(D∇T)
  ==
-    fvm::laplacian(muEff, U)      // Diffusion: ∇•(μ∇U)
-  - fvc::div(rhoPhi, muEff*...)   // Reynolds stress / deviatoric part
+    fvOptions(T)                   // Source term S
 );
 
-UEqn.relax();                     // Numerical stability trick
-solve(UEqn == -fvc::grad(p));     // Solve: LHS = -∇p
+TEqn.relax();
+TEqn.solve();
 ```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-
-> **คำอธิบาย:**
-> - การแปลงสมการโมเมนตัมแบบ Incompressible เป็นโค้ด OpenFOAM
-> - `fvm::ddt(rho, U)`: พจน์อนุพันธ์เทียบกับเวลาของความเร็ว
-> - `fvm::div(rhoPhi, U)`: พจน์ Convection ของโมเมนตัม
-> - `fvm::laplacian(muEff, U)`: พจน์ Diffusion ของความเร็ว
-> - `UEqn.relax()`: การผ่อนคลายเพื่อความเสถียร
-> - `solve(UEqn == -fvc::grad(p))`: การแก้สมการโมเมนตัมร่วมกับ gradient ของความดัน
->
-> **แนวคิดสำคัญ:**
-> - **Momentum Conservation**: การอนุรักษ์โมเมนตัมในระบบการไหล
-> - **Pressure-Velocity Coupling**: การเชื่อมโยงระหว่างความดันและความเร็ว
-> - **Implicit vs Explicit Terms**: การใช้ `fvm` สำหรับพจน์ Implicit และ `fvc` สำหรับพจน์ Explicit
-
-### การแปลงพจน์สมการ
-
-| พจน์สมการ | คณิตศาสตร์ | OpenFOAM |
-|-------------|-------------|---------|
-| Time derivative | $\frac{\partial (\rho \mathbf{u})}{\partial t}$ | `fvm::ddt(rho, U)` |
-| Convection | $\nabla \cdot (\rho \mathbf{u} \mathbf{u})$ | `fvm::div(rhoPhi, U)` |
-| Pressure gradient | $-\nabla p$ | `-fvc::grad(p)` |
-| Viscous diffusion | $\mu \nabla^2 \mathbf{u}$ | `fvm::laplacian(mu, U)` |
-| Body forces | $\mathbf{f}$ | `fvOptions(rho, U)` |
+</details>
 
 ---
 
-## แบบฝึกหัดที่ 7: Pressure-Velocity Coupling
+## แบบฝึกหัดที่ 7: เลือก Discretization Scheme
 
-**วัตถุประสงค์**: เข้าใจและใช้งานอัลกอริทึม SIMPLE, PISO และ PIMPLE ใน OpenFOAM
+**โจทย์:** เลือก scheme ใน `fvSchemes` สำหรับ high-Re turbulent flow
 
-### อัลกอริทึม SIMPLE
+| Term | Scheme? | เหตุผล? |
+|------|---------|---------|
+| `div(phi,U)` | ? | ? |
+| `laplacian(nuEff,U)` | ? | ? |
+| `grad(p)` | ? | ? |
 
-**ขั้นตอนอัลกอริทึม SIMPLE**:
-1. **Momentum Prediction**: แก้สมการโมเมนตัมโดยใช้ความดันจาก time step ก่อนหน้า
-2. **Pressure Correction**: แก้สมการแก้ไขความดันเพื่อให้เกิดความต่อเนื่องของมวล
-3. **Velocity Correction**: แก้ไขความเร็วโดยใช้ความดันที่ถูกแก้ไข
-4. **Convergence Check**: ตรวจสอบการลู่เข้าและทำซ้ำถ้าจำเป็น
-
-### การนำไปใช้ใน OpenFOAM
+<details>
+<summary><b>ดูคำตอบ</b></summary>
 
 ```cpp
-// SIMPLE algorithm
-while (simple.correctNonOrthogonal())
+divSchemes
 {
-    // Momentum equation
-    tmp<fvVectorMatrix> UEqn(fvm::ddt(U) + fvm::div(phi, U));
-    UEqn().relax();
+    default         none;
+    div(phi,U)      Gauss linearUpwind grad(U);  // 2nd order, stable
+    div(phi,k)      Gauss upwind;                // 1st order for turbulence
+    div(phi,epsilon) Gauss upwind;
+}
 
-    // Pressure equation
-    adjustPhi(phi, U, p);
+laplacianSchemes
+{
+    default         Gauss linear corrected;      // 2nd order, unbounded
+}
 
-    // Pressure-velocity coupling loop
-    for (int corr = 0; corr < nCorr; corr++)
-    {
-        // Solve momentum
-        solve(UEqn() == -fvc::grad(p));
-
-        // Solve pressure
-        solve(fvm::laplacian(rAU, p) == fvc::div(phi));
-    }
+gradSchemes
+{
+    default         Gauss linear;                // Standard central
+    grad(U)         cellLimited Gauss linear 1;  // Limited for stability
 }
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-
-> **คำอธิบาย:**
-> - การนำอัลกอริทึม SIMPLE ไปใช้ใน OpenFOAM
-> - `simple.correctNonOrthogonal()`: วงจรการแก้ไขสำหรับ mesh ที่ไม่ตั้งฉาก
-> - `UEqn()`: สมการโมเมนตัมที่จะแก้ไข
-> - `adjustPhi()`: การปรับฟลักซ์เพื่อรักษาการอนุรักษ์มวล
-> - `solve(UEqn() == -fvc::grad(p))`: การแก้สมการโมเมนตัมด้วย gradient ของความดัน
-> - `solve(fvm::laplacian(rAU, p) == fvc::div(phi))`: การแก้สมการความดัน Poisson
->
-> **แนวคิดสำคัญ:**
-> - **SIMPLE Algorithm**: Semi-Implicit Method for Pressure-Linked Equations
-> - **Pressure-Velocity Coupling**: การเชื่อมโยงระหว่างความดันและความเร็ว
-> - **Mass Conservation**: การรักษาการอนุรักษ์มวลในระบบ
-> - **Iterative Process**: กระบวนการวนซ้ำเพื่อให้ได้ผลลัพธ์ที่ลู่เข้า
-
-### ความแตกต่างระหว่าง Algorithms
-
-| Feature | SIMPLE | PISO | PIMPLE |
-|---------|--------|------|---------|
-| **Temporal Accuracy** | First-order | Second-order | Configurable |
-| **Number of Corrections** | Single per iteration | Multiple per time step | Multiple per time step |
-| **Stability** | High (with relaxation) | Moderate | High |
-| **Computational Cost** | Low | High | Moderate-High |
-| **Best For** | Steady-state problems | Accurate transient solutions | Large time step simulations |
-
-```mermaid
-graph LR
-A["Start SIMPLE"]:::context --> B["Momentum Predictor<br/>(Solve U w/ old p*)"]:::implicit
-B --> C["Pressure Correction<br/>(Solve p' Equation)"]:::explicit
-C --> D["Velocity Correction<br/>(Update U = U* + U')"]:::implicit
-D --> E{"Converged?"}:::explicit
-E -->|No| F["Under-Relaxation<br/>(Apply α)"]:::volatile
-F --> B
-E -->|Yes| G["Solution Complete"]:::success
-
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-classDef success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-```
-
-> **Figure 5:** ขั้นตอนการทำงานของอัลกอริทึม SIMPLE สำหรับการเชื่อมโยงความดันและความเร็ว โดยเน้นย้ำถึงกระบวนการวนซ้ำของการทำนายโมเมนตัมและการแก้ไขความดัน ซึ่งเป็นหัวใจสำคัญสำหรับแบบฝึกหัดการไหลแบบอัดตัวไม่ได้ในสภาวะคงตัว
+**เหตุผล:**
+- Convection (div): `linearUpwind` ให้ความแม่นยำ 2nd order และเสถียรกว่า `linear`
+- Turbulence: `upwind` เสถียรกว่า เพราะ k, epsilon sensitive
+- Laplacian: `linear corrected` สำหรับ non-orthogonal mesh
+</details>
 
 ---
 
-## แบบฝึกหัดที่ 8: Initial Conditions และ Boundary Conditions
+## แบบฝึกหัดที่ 8: Debug Divergence
 
-**วัตถุประสงค์**: ตั้งค่า Initial Conditions และ Boundary Conditions ที่เหมาะสมสำหรับปัญหา CFD
+**โจทย์:** Simulation diverge ที่ time step แรก เห็นใน log:
 
-### Velocity Field Initialization (`0/U`)
-
-```cpp
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       volVectorField;
-    object      U;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-dimensions      [0 1 -1 0 0 0 0];  // m/s: ความยาว/เวลา
-internalField   uniform (0 0 0);   // ฟิลด์ความเร็วเริ่มต้น
-
-boundaryField
-{
-    inlet
-    {
-        type            fixedValue;
-        value           uniform (10 0 0); // ความเร็วขาเข้าแบบ Uniform 10 m/s
-    }
-    outlet
-    {
-        type            zeroGradient;     // การไหลที่พัฒนาเต็มที่
-    }
-    walls
-    {
-        type            noSlip;           // เงื่อนไข No-Slip
-    }
-    symmetry
-    {
-        type            symmetryPlane;    // ขอบเขตสมมาตร
-    }
-}
+```
+Solving for Ux, Initial residual = 1, Final residual = 1e+20, No Iterations 1
+Floating point exception
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+สาเหตุที่เป็นไปได้? วิธีแก้?
 
-> **คำอธิบาย:**
-> - ไฟล์กำหนดเงื่อนไขเริ่มต้นและเงื่อนไขขอบเขตสำหรับสนามความเร็ว
-> - `dimensions`: มิติของความเร็ว [L/T]
-> - `internalField`: ค่าเริ่มต้นของความเร็วในโดเมน
-> - `inlet`: กำหนดความเร็วคงที่ 10 m/s ในแนวแกน x
-> - `outlet`: ใช้ zero-gradient สำหรับการไหลที่พัฒนาเต็มที่
-> - `walls`: ใช้เงื่อนไข no-slip (ความเร็วเป็นศูนย์ที่ผนัง)
-> - `symmetry`: ใช้เงื่อนไขสมมาตร
->
-> **แนวคิดสำคัญ:**
-> - **Dirichlet BC**: การกำหนดค่าคงที่ที่ขอบเขต (inlet)
-> - **Neumann BC**: การกำหนด gradient เป็นศูนย์ที่ขอบเขต (outlet)
-> - **No-Slip Condition**: เงื่อนไขที่ผนังซึ่งความเร็วเป็นศูนย์
-> - **Symmetry Condition**: การใช้ความสมมาตรเพื่อลดขนาดโดเมน
+<details>
+<summary><b>ดูคำตอบ</b></summary>
 
-### Pressure Field Initialization (`0/p`)
+**สาเหตุที่เป็นไปได้:**
+1. Initial conditions ไม่ถูกต้อง (เช่น k = 0, epsilon = 0)
+2. BC ขัดแย้งกัน (เช่น fixedValue ทั้ง U และ p ที่ outlet)
+3. Mesh คุณภาพต่ำ (non-orthogonality สูง)
+4. Time step ใหญ่เกินไป (Co > 1)
 
-```cpp
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       volScalarField;
-    object      p;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-dimensions      [0 2 -2 0 0 0 0];  // Pa: kg/(m·s²)
-internalField   uniform 101325;    // ค่าอ้างอิงความดันบรรยากาศ
-
-boundaryField
-{
-    inlet
-    {
-        type            zeroGradient;
-    }
-    outlet
-    {
-        type            fixedValue;
-        value           uniform 101325; // ความดันเกจ = 0
-    }
-    walls
-    {
-        type            zeroGradient;
-    }
-}
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-
-> **คำอธิบาย:**
-> - ไฟล์กำหนดเงื่อนไขเริ่มต้นและเงื่อนไขขอบเขตสำหรับสนามความดัน
-> - `dimensions`: มิติของความดัน [M/(L·T²)]
-> - `internalField`: ค่าเริ่มต้นของความดันในโดเมน
-> - `inlet`: ใช้ zero-gradient สำหรับความดัน
-> - `outlet`: กำหนดความดันคงที่เป็นความดันบรรยากาศ
-> - `walls`: ใช้ zero-gradient สำหรับความดัน
->
-> **แนวคิดสำคัญ:**
-> - **Pressure Reference**: การกำหนดค่าอ้างอิงความดัน
-> - **Gauge Pressure**: ความดันเกจซึ่งวัดสัมพัทธ์กับความดันบรรยากาศ
-> - **Boundary Type Combinations**: การใช้รูปแบบเงื่อนไขขอบเขตที่แตกต่างกันระหว่างความดันและความเร็ว
-
-### Temperature Field Initialization (`0/T`)
-
-```cpp
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       volScalarField;
-    object      T;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-dimensions      [0 0 0 1 0 0 0];  // หน่วยอุณหภูมิ
-internalField   uniform 300;      // อุณหภูมิเริ่มต้น 300 K
-
-boundaryField
-{
-    hotWall
-    {
-        type            fixedValue;
-        value           uniform 400; // ผนังร้อน 400 K
-    }
-    coldWall
-    {
-        type            fixedValue;
-        value           uniform 280; // ผนังเย็น 280 K
-    }
-    inlet
-    {
-        type            fixedValue;
-        value           uniform 320; // อุณหภูมิขาเข้า 320 K
-    }
-}
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-
-> **คำอธิบาย:**
-> - ไฟล์กำหนดเงื่อนไขเริ่มต้นและเงื่อนไขขอบเขตสำหรับสนามอุณหภูมิ
-> - `dimensions`: มิติของอุณหภูมิ [Θ]
-> - `internalField`: ค่าเริ่มต้นของอุณหภูมิในโดเมน
-> - `hotWall`: กำหนดอุณหภูมิผนังร้อน 400 K
-> - `coldWall`: กำหนดอุณหภูมิผนังเย็น 280 K
-> - `inlet`: กำหนดอุณหภูมิขาเข้า 320 K
->
-> **แนวคิดสำคัญ:**
-> - **Thermal Boundary Conditions**: เงื่อนไขขอบเขตทางความร้อน
-> - **Fixed Temperature**: การกำหนดอุณหภูมิคงที่ที่ขอบเขต
-> - **Temperature Gradient**: การกระจายตัวของอุณหภูมิในโดเมน
+**วิธีแก้:**
+1. ตรวจสอบ `0/k`, `0/epsilon` ไม่ให้เป็น 0
+2. ตรวจสอบ BC ว่า inlet = fixedValue U + zeroGradient p
+3. รัน `checkMesh` ดู non-orthogonality
+4. ลด `deltaT` หรือใช้ `adjustTimeStep yes;`
+5. เพิ่ม under-relaxation ใน `fvSolution`
+</details>
 
 ---
 
-## แบบฝึกหัดที่ 9: การวิเคราะห์และแก้ไขปัญหา
+## แบบฝึกหัดที่ 9: Wall y+
 
-**วัตถุประสงค์**: ระบุและแก้ไขปัญหาที่พบบ่อยในการจำลอง CFD
+**โจทย์:** คำนวณ first cell height สำหรับ:
+- $y^+ = 50$
+- $U = 20$ m/s
+- $L = 1$ m (ความยาวลักษณะเฉพาะ)
+- $\nu = 1.5 \times 10^{-5}$ m²/s
 
-### ปัญหาที่พบบ่อย
+<details>
+<summary><b>ดูคำตอบ</b></summary>
 
-| ปัญหา | สาเหตุ | วิธีแก้ไข |
-|--------|--------|------------|
-| **Divergence** | Boundary Condition ไม่เหมาะสม | ตรวจสอบ BC และกำหนดค่าที่เหมาะสม |
-| **Slow Convergence** | Under-relaxation สูงเกินไป | ลดค่า under-relaxation factors |
-| **Non-physical Results** | Mesh quality ไม่ดี | ปรับปรุง mesh quality |
-| **Mass Conservation Error** | Pressure-velocity coupling ไม่ดี | เพิ่ม iterations ใน pressure correction |
+**ขั้นที่ 1:** ประมาณ Re และ $C_f$
 
-### การตรวจสอบ Mesh Quality
+$$Re = \frac{UL}{\nu} = \frac{20 \times 1}{1.5 \times 10^{-5}} = 1.33 \times 10^6$$
 
-```bash
-# Check mesh quality
-checkMesh -case .
+$$C_f \approx 0.058 \cdot Re^{-0.2} = 0.058 \times (1.33 \times 10^6)^{-0.2} \approx 0.00345$$
 
-# Check field files
-foamListFields -case .
+**ขั้นที่ 2:** คำนวณ $u_\tau$
 
-# Check dimensional consistency
-foamInfoDict -case .
-```
+$$u_\tau = U \sqrt{C_f/2} = 20 \times \sqrt{0.00345/2} \approx 0.83 \text{ m/s}$$
 
-> **คำอธิบาย:**
-> - คำสั่งตรวจสอบคุณภาพ Mesh และความสอดคล้องของข้อมูล
-> - `checkMesh`: ตรวจสอบคุณภาพของ Mesh
-> - `foamListFields`: แสดงรายการฟิลด์ทั้งหมดใน case
-> - `foamInfoDict`: ตรวจสอบความสอดคล้องของมิติ
->
-> **แนวคิดสำคัญ:**
-> - **Mesh Quality**: คุณภาพของ Mesh ส่งผลต่อความแม่นยำและความเสถียร
-> - **Orthogonality**: ความตั้งฉากของ Mesh
-> - **Aspect Ratio**: อัตราส่วนของขนาดเซลล์
-> - **Skewness**: ความเบ้อย้อนของเซลล์
+**ขั้นที่ 3:** คำนวณ $y$
 
-### ข้อควรพิจารณาเรื่อง Numerical Stability
+$$y = \frac{y^+ \cdot \nu}{u_\tau} = \frac{50 \times 1.5 \times 10^{-5}}{0.83} \approx 0.0009 \text{ m} = 0.9 \text{ mm}$$
 
-1. **Well-posed problems**: ตรวจสอบให้แน่ใจว่าปัญหาทางคณิตศาสตร์ถูกจำกัดอย่างเหมาะสมด้วยการรวมกันของเงื่อนไข Dirichlet และ Neumann ที่เหมาะสม
-
-2. **Pressure-velocity coupling**: สำหรับ **Incompressible Flows** ให้หลีกเลี่ยงการระบุทั้ง Velocity และ Pressure ที่ขอบเขตเดียวกันเพื่อรักษา Numerical Stability
-
-3. **Backflow treatment**: **Outlet Boundaries** ควรจัดการกับการไหลย้อนกลับที่อาจเกิดขึ้นโดยใช้ `outletInlet` หรือ Outlet Conditions เฉพาะทาง
-
-4. **Temporal consistency**: สำหรับ **Transient Simulations** ตรวจสอบให้แน่ใจว่า Boundary Conditions เปลี่ยนแปลงอย่างราบรื่นเพื่อหลีกเลี่ยง Numerical Oscillations
+**สรุป:** First cell height ≈ 0.9 mm สำหรับ $y^+ = 50$
+</details>
 
 ---
 
-## แบบฝึกหัดที่ 10: โปรเจกต์ประยุกต์
+## แบบฝึกหัดที่ 10: Algorithm Selection
 
-**วัตถุประสงค์**: ประยุกต์ใช้ความรู้ทั้งหมดเพื่อแก้ปัญหา CFD ที่สมบูรณ์
+**โจทย์:** เมื่อไหร่ใช้ SIMPLE, PISO, PIMPLE?
 
-### สถานการณ์: การไหลในท่อ (Pipe Flow)
+<details>
+<summary><b>ดูคำตอบ</b></summary>
 
-จงแก้ปัญหาการไหลแบบ Laminar ในท่อรูปทรงกระบอก:
+| Algorithm | ใช้เมื่อ | ข้อดี |
+|-----------|---------|-------|
+| **SIMPLE** | Steady-state | วนซ้ำจนลู่เข้า, เสถียร |
+| **PISO** | Transient, $\Delta t$ เล็ก | ไม่ต้อง outer loop, เร็ว |
+| **PIMPLE** | Transient, $\Delta t$ ใหญ่ | Outer corrections รองรับ Co > 1 |
 
-**ข้อมูลปัญหา:**
-- เส้นผ่านศูนย์กลางท่อ: $D = 0.05$ m
-- ความยาวท่อ: $L = 1.0$ m
-- ความเร็วเฉลี่ย: $U_{avg} = 0.01$ m/s
-- ของไหล: น้ำ ($\rho = 1000$ kg/m³, $\mu = 0.001$ Pa·s)
-
-**งานที่ต้องทำ:**
-
-1. **คำนวณ Reynolds Number** และระบุระบอบการไหล
-2. **เลือก Solver ที่เหมาะสม** สำหรับปัญหานี้
-3. **ตั้งค่า Boundary Conditions** สำหรับ Inlet, Outlet, และ Walls
-4. **สร้าง Mesh** ที่เหมาะสมสำหรับการแก้ปัญหา
-5. **เขียน OpenFOAM Case Files** ที่จำเป็น
-6. **รันการจำลอง** และวิเคราะห์ผลลัพธ์
-
-### คำตอบแนะนำ
-
-**1. Reynolds Number:**
-$$Re = \frac{\rho U D}{\mu} = \frac{1000 \times 0.01 \times 0.05}{0.001} = 50$$
-
-เนื่องจาก $Re < 2300$ → **Laminar Flow**
-
-**2. Solver Selection:**
-```cpp
-solver icoFoam;  // Laminar transient incompressible solver
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-
-> **คำอธิบาย:**
-> - การเลือก Solver ที่เหมาะสมสำหรับการไหลแบบ Laminar ในท่อ
-> - `icoFoam`: Solver สำหรับการไหลแบบ Incompressible, Transient และ Laminar
-> - Solver นี้เหมาะสำหรับปัญหาที่มี Reynolds Number ต่ำ
->
-> **แนวคิดสำคัญ:**
-> - **Laminar Flow**: การไหลแบบ Laminar ที่มีการเคลื่อนที่เป็นชั้นๆ
-> - **Incompressible**: การไหลแบบอัดไม่ได้ที่ความหนาแน่นคงที่
-> - **Transient**: การไหลแบบไม่คงที่ต่อเวลา
-
-**3. Boundary Conditions:**
-
-**Inlet (Parabolic profile):**
+**การตั้งค่าใน fvSolution:**
 
 ```cpp
-inlet
+// SIMPLE
+SIMPLE
 {
-    type            fixedValue;
-    value           #codeStream
-    {
-        code
-        #{
-            const vectorField& C = mesh().C();
-            vectorField& U = *this;
-            const scalar radius = 0.025; // รัศมีท่อ
-            const scalar Umax = 0.02;     // ความเร็วสูงสุด
+    nNonOrthogonalCorrectors 1;
+    residualControl { p 1e-4; U 1e-4; }
+}
 
-            forAll(C, i)
-            {
-                scalar r = sqrt(C[i].y()*C[i].y() + C[i].z()*C[i].z());
-                scalar u_parabolic = Umax * (1.0 - sqr(r/radius));
-                U[i] = vector(u_parabolic, 0, 0);
-            }
-        #};
-    };
+// PISO
+PISO
+{
+    nCorrectors 2;
+    nNonOrthogonalCorrectors 1;
+}
+
+// PIMPLE
+PIMPLE
+{
+    nOuterCorrectors 2;
+    nCorrectors 1;
+    nNonOrthogonalCorrectors 0;
 }
 ```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-
-> **คำอธิบาย:**
-> - การกำหนดโปรไฟล์ความเร็วแบบ Parabolic ที่ทางเข้า
-> - `codeStream`: การใช้โค้ด OpenFOAM เพื่อสร้างโปรไฟล์ความเร็ว
-> - `mesh().C()`: ตำแหน่งจุดศูนย์กลางของเซลล์
-> - `forAll(C, i)`: วนลูปผ่านทุกเซลล์
-> - `u_parabolic`: สมการ Parabolic สำหรับความเร็ว
->
-> **แนวคิดสำคัญ:**
-> - **Parabolic Profile**: โปรไฟล์ความเร็วแบบ Parabolic สำหรับการไหลแบบ Laminar
-> - **Fully Developed Flow**: การไหลที่พัฒนาเต็มที่ในท่อ
-> - **Poiseuille Flow**: การไหลในท่อแบบ Laminar ที่มีโปรไฟล์แบบ Parabolic
-
-**Outlet:**
-
-```cpp
-outlet
-{
-    type            zeroGradient;
-}
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-
-> **คำอธิบาย:**
-> - เงื่อนไขขอบเขตที่ทางออก
-> - `zeroGradient`: การใช้เงื่อนไข gradient เป็นศูนย์
-> - เหมาะสำหรับการไหลที่พัฒนาเต็มที่
->
-> **แนวคิดสำคัญ:**
-> - **Neumann BC**: การกำหนด gradient เป็นศูนย์ที่ขอบเขต
-> - **Developed Flow**: การไหลที่โปรไฟล์ไม่เปลี่ยนแปลงตามตำแหน่ง
-
-**Walls:**
-
-```cpp
-walls
-{
-    type            noSlip;
-}
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-
-> **คำอธิบาย:**
-> - เงื่อนไขขอบเขตที่ผนัง
-> - `noSlip`: เงื่อนไข No-slip ที่ผนัง
-> - ความเร็วเป็นศูนย์ที่ผนัง
->
-> **แนวคิดสำคัญ:**
-> - **No-Slip Condition**: เงื่อนไขที่ผนังซึ่งความเร็วเป็นศูนย์
-> - **Wall Boundary**: ขอบเขตผนังในการจำลอง CFD
-> - **Boundary Layer**: ชั้นขอบเขตที่ผนัง
+</details>
 
 ---
 
-## สรุปประเด็นสำคัญ
+## Concept Check
 
-### 1. กฎการอนุรักษ์: รากฐานของ CFD
+<details>
+<summary><b>1. fvm กับ fvc ต่างกันอย่างไร?</b></summary>
 
-**ทุกสิ่งใน computational fluid dynamics (CFD)** สร้างขึ้นบนหลักการพื้นฐานของการอนุรักษ์มวล (mass), โมเมนตัม (momentum) และพลังงาน (energy)
+- `fvm::` = Implicit, สร้าง matrix coefficient, แก้ร่วมกับ unknown
+- `fvc::` = Explicit, คำนวณจาก field ปัจจุบัน, ใส่ใน source term
+</details>
 
-กฎการอนุรักษ์เหล่านี้แสดงถึงข้อจำกัดทางกายภาพที่ควบคุมพฤติกรรมของไหล และเป็นแกนหลักทางคณิตศาสตร์ของการจำลอง CFD ทั้งหมด
+<details>
+<summary><b>2. ทำไม pressure gradient ใช้ fvc ไม่ใช่ fvm?</b></summary>
 
-### 2. สมการความต่อเนื่อง: หลักการอนุรักษ์มวล
+เพราะ $-\nabla p$ ไม่มี unknown $\mathbf{u}$ อยู่ในนั้น มันเป็นแรงที่มาจาก pressure field ที่คำนวณแยก (pressure correction) จึงเป็น explicit term
+</details>
 
-**สมการความต่อเนื่อง (continuity equation)** แสดงออกทางคณิตศาสตร์ถึงหลักการพื้นฐานที่ว่ามวลไม่สามารถถูกสร้างหรือทำลายได้ภายในระบบของไหล
+<details>
+<summary><b>3. เมื่อไหร่ต้องใช้ nNonOrthogonalCorrectors > 0?</b></summary>
 
-สำหรับ **incompressible flows** ซึ่ง density คงที่ สมการความต่อเนื่องจะลดรูปอย่างมาก:
-$$\nabla \cdot \mathbf{u} = 0$$
-
-ข้อจำกัดนี้ทำให้มั่นใจว่าการไหลของไหลยังคงเป็น **solenoidal (divergence-free)**
-
-### 3. สมการ Navier-Stokes: กฎข้อที่สองของนิวตันสำหรับของไหล
-
-**สมการ Navier-Stokes** แสดงถึงการกำหนดทางคณิตศาสตร์ของกฎข้อที่สองของนิวตันว่าด้วยการเคลื่อนที่ที่นำมาใช้กับ fluid elements
-
-โดยหลักแล้วระบุว่าแรงที่กระทำต่ออนุภาคของไหลเท่ากับมวลของอนุภาคนั้นคูณด้วยความเร่ง สมการเหล่านี้จะรักษาสมดุลระหว่าง:
-- **Inertial forces**
-- **Pressure forces**
-- **Viscous forces**
-- **External body forces**
-
-### 4. ไวยากรณ์ OpenFOAM: การแปลสัญลักษณ์ทางคณิตศาสตร์
-
-**ไวยากรณ์ของ OpenFOAM** ได้รับการออกแบบมาโดยเจตนาให้สะท้อนสัญลักษณ์ vector ทางคณิตศาสตร์ที่ใช้ในสมการพลศาสตร์ของไหลอย่างใกล้ชิด
-
-ทำให้โค้ดใช้งานง่ายขึ้นสำหรับวิศวกรและนักวิทยาศาสตร์ที่คุ้นเคยกับคณิตศาสตร์พื้นฐาน
-
-### 5. Boundary Conditions: สิ่งจำเป็นสำหรับ Physical Solutions
-
-**Boundary conditions** มีความสำคัญอย่างยิ่งต่อการได้มาซึ่ง solution ที่ไม่ซ้ำกันและถูกต้องทางกายภาพสำหรับปัญหา CFD
-
-เนื่องจาก governing equations เองยอมรับ solutions ที่ไม่มีที่สิ้นสุดหากไม่มีข้อจำกัดที่เหมาะสม ใน finite volume method, boundary conditions จะต้องถูกระบุสำหรับตัวแปรทั้งหมดที่ domain boundaries ทั้งหมด
+เมื่อ mesh มี non-orthogonality สูง (> 70°) การ correction ช่วยให้ gradient ที่ face ถูกต้องมากขึ้น
+</details>
 
 ---
 
-**บทสรุป**: เอกสารแบบฝึกหัดนี้ครอบคลุมแนวคิดพื้นฐานและการนำไปใช้งานจริงของ CFD ใน OpenFOAM โดยเน้นที่ความเข้าใจในสมการควบคุม (governing equations), การแปลงเป็นโค้ด OpenFOAM, และแนวทางการแก้ปัญหาที่มีประสิทธิภาพ
+## เอกสารที่เกี่ยวข้อง
+
+- **บทก่อนหน้า:** [08_Key_Points_to_Remember.md](08_Key_Points_to_Remember.md) — สรุปประเด็นสำคัญ
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวมบทนี้
+- **การนำไปใช้:** [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md) — รายละเอียด implementation

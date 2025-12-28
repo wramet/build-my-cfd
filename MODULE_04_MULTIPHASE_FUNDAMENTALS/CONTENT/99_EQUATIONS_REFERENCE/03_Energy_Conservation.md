@@ -1,508 +1,208 @@
-# การอนุรักษ์พลังงานในระบบหลายเฟส (Energy Conservation Equations)
+# Energy Conservation Equations
 
-## 📐 สมการพลังงานเฉพาะเฟส (Phase-Specific Energy Equation)
-
-> [!INFO] ภาพรวม
-> ในระบบหลายเฟส แต่ละเฟส $k$ มีการอนุรักษ์พลังงานที่รวมถึงการพาความร้อน การนำความร้อน งานจากความดัน และการแลกเปลี่ยนพลังงานที่รอยต่อ สมการเหล่านี้เป็นรากฐานสำคัญในการจำลองปรากฏการณ์การถ่ายเทความร้อน การเปลี่ยนเฟส และปฏิกิริยาเคมีในระบบหลายเฟส
-
-### สมการในรูปของเอนทัลปีจำเพาะ ($h_k$)
-
-สำหรับเฟส $k$ ในระบบหลายเฟส:
-
-$$\frac{\partial}{\partial t}(\alpha_k \rho_k h_k) + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k h_k) = \alpha_k \frac{\partial p}{\partial t} + \nabla \cdot (\alpha_k \kappa_k \nabla T_k) + \Phi_k + \dot{q}_k + \dot{m}_k h_{k,int} + \mathbf{M}_k \cdot \mathbf{u}_k \tag{3.1}$$
-
-**นิยามตัวแปร**:
-
-| สัญลักษณ์ | ความหมาย | หน่วย |
-|----------|-----------|--------|
-| $\alpha_k$ | สัดส่วนปริมาตรของเฟส $k$ | ไม่มีหน่วย |
-| $\rho_k$ | ความหนาแน่นของเฟส $k$ | $\text{kg/m}^3$ |
-| $h_k$ | เอนทัลปีจำเพาะของเฟส $k$ | $\text{J/kg}$ |
-| $\mathbf{u}_k$ | ความเร็วของเฟส $k$ | $\text{m/s}$ |
-| $p$ | ความดันร่วม (shared pressure) | $\text{Pa}$ |
-| $\kappa_k$ | สภาพนำความร้อนของเฟส $k$ | $\text{W/(m·K)}$ |
-| $T_k$ | อุณหภูมิของเฟส $k$ | $\text{K}$ |
-| $\Phi_k$ | การกระจายความหนืด (Viscous Dissipation) | $\text{W/m}^3$ |
-| $\dot{q}_k$ | อัตราการถ่ายเทความร้อนระหว่างเฟส | $\text{W/m}^3$ |
-| $\dot{m}_k$ | อัตราการถ่ายเทมวล | $\text{kg/(m}^3\cdot\text{s)}$ |
-| $h_{k,int}$ | เอนทัลปีที่พื้นผิวรอยต่อ | $\text{J/kg}$ |
-| $\mathbf{M}_k$ | แรงที่รอยต่อ (Interfacial Force) | $\text{N/m}^3$ |
+สมการอนุรักษ์พลังงานสำหรับ Multiphase
 
 ---
 
-## 🔍 การวิเคราะห์แต่ละเทอมในสมการ
+## Overview
 
-### 1. พจน์ชั่วขณะ (Temporal Term)
-
-$$\frac{\partial}{\partial t}(\alpha_k \rho_k h_k)$$
-
-แสดงถึงการสะสมของเอนทัลปีตามเวลา คำนึงถึงการมีอยู่ของเฟสผ่านสัดส่วนปริมาตร $\alpha_k$
-
-### 2. พจน์การพา (Convective Term)
-
-$$\nabla \cdot (\alpha_k \rho_k \mathbf{u}_k h_k)$$
-
-การขนส่งเอนทัลปีโดยการเคลื่อนที่แบบกลุ่มของเฟส $k$ รวมสัดส่วนเฟสสำหรับการถ่วงน้ำหนักที่ถูกต้อง
-
-### 3. งานจากความดัน (Pressure Work)
-
-$$\alpha_k \frac{\partial p}{\partial t}$$
-
-แสดงถึงงานที่ทำโดยการเปลี่ยนแปลงความดันตามเวลา สำคัญมากสำหรับระบบที่อัดตัวได้ (Compressible flows)
-
-> [!TIP] หมายเหตุ
-> สำหรับระบบที่อัดตัวไม่ได้ (incompressible flows) พจน์นี้มักจะถูกละเลย
-
-### 4. การนำความร้อน (Heat Conduction)
-
-$$\nabla \cdot (\alpha_k \kappa_k \nabla T_k)$$
-
-การนำความร้อนภายในเฟสตามกฎของฟูเรียร์ (Fourier's Law) ซึ่งปรับสเกลตามการมีอยู่ของเฟส
-
-### 5. การกระจายความหนืด (Viscous Dissipation)
-
-$$\Phi_k = \boldsymbol{\tau}_k : \nabla \mathbf{u}_k$$
-
-การแปลงพลังงานกลเป็นความร้อนผ่านแรงเสียดทานหนืดภายในเฟส
-
-$$\boldsymbol{\tau}_k = \mu_k \left[ \nabla \mathbf{u}_k + (\nabla \mathbf{u}_k)^T \right] - \frac{2}{3} \mu_k (\nabla \cdot \mathbf{u}_k) \mathbf{I}$$
-
-### 6. การถ่ายเทความร้อนระหว่างเฟส ($\dot{q}_k$)
-
-$$\dot{q}_{kl} = h_{kl} A_{kl} (T_l - T_k)$$
-
-โดยที่:
-- $h_{kl}$ = สัมประสิทธิ์การถ่ายเทความร้อน (Heat transfer coefficient)
-- $A_{kl}$ = ความหนาแน่นพื้นที่รอยต่อ (Interfacial area density)
-
-> [!WARNING] ข้อควรระวัง
-> ค่าสัมประสิทธิ์การถ่ายเทความร้อน $h_{kl}$ มักพึ่งพากับเลขเรย์โนลด์ส (Reynolds number) และเลขพรันด์ทล์ (Prandtl number)
-
-### 7. การถ่ายเทมวลและเอนทัลปีรอยต่อ
-
-$$\dot{m}_k h_{k,int}$$
-
-พจน์นี้สำคัญมากสำหรับระบบที่มีการเปลี่ยนเฟส (phase change) เช่น การระเหยและการควบแน่น
-
-### 8. งานจากแรงระหว่างเฟส
-
-$$\mathbf{M}_k \cdot \mathbf{u}_k$$
-
-งานที่เกิดจากแรงระหว่างเฟส (drag, lift, virtual mass, etc.)
+> แต่ละเฟสมีสมการพลังงานของตัวเอง เชื่อมโยงผ่าน **interphase heat transfer**
 
 ---
 
-## 🌡️ อุณหพลศาสตร์ของการเปลี่ยนเฟส (Phase Change Thermodynamics)
+## 1. General Form
 
-ระหว่างการเปลี่ยนเฟส (เช่น การระเหยหรือควบแน่น) สมดุลพลังงานต้องพิจารณาความร้อนแฝง (Latent Heat):
+$$\frac{\partial(\alpha_k \rho_k h_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k h_k \mathbf{u}_k) = \nabla \cdot (\alpha_k k_k \nabla T_k) + \alpha_k \frac{Dp}{Dt} + Q_k$$
 
-### สมการสมดุลพลังงานที่รอยต่อ
-
-$$\dot{m}_{kl} L + \dot{q}_{kl} = 0 \tag{3.2}$$
-
-โดยที่:
-- $L = h_{vapor}^{sat} - h_{liquid}^{sat}$ = ความร้อนแฝงของการกลายเป็นไอ (Latent heat of vaporization)
-- $\dot{m}_{kl}$ = อัตราการถ่ายเทมวลจากเฟส $k$ ไปยังเฟส $l$
-- $\dot{q}_{kl}$ = อัตราการถ่ายเทความร้อนจากเฟส $k$ ไปยังเฟส $l$
-
-### ผลของ Gibbs-Thomson
-
-ความโค้งของพื้นผิวรอยต่อส่งผลต่ออุณหภูมิสมดุล:
-
-$$T_{interface} = T_{sat} \left(1 - \frac{2\sigma v_l}{h_{lg}^{sat} r}\right)$$
-
-โดยที่:
-- $\sigma$ = สัมประสิทธิ์แรงตึงผิว
-- $v_l$ = ปริมาตรจำเพาะของเฟสของเหลว
-- $r$ = รัศมีความโค้งของพื้นผิว
-- $h_{lg}^{sat}$ = ความร้อนแฝงที่ภาวะอิ่มตัว
-
-> [!INFO] นัยสำคัญ
-> ผล Gibbs-Thomson สำคัญมากสำหรับการเกิดฟอง (nucleation) และการเติบโตของผลึก (crystal growth)
+| Term | Meaning |
+|------|---------|
+| $\frac{\partial(\alpha_k \rho_k h_k)}{\partial t}$ | Enthalpy storage |
+| $\nabla \cdot (\alpha_k \rho_k h_k \mathbf{u}_k)$ | Convection |
+| $\nabla \cdot (\alpha_k k_k \nabla T_k)$ | Conduction |
+| $\alpha_k \frac{Dp}{Dt}$ | Pressure work |
+| $Q_k$ | Interphase heat transfer |
 
 ---
 
-## 💻 การนำไปใช้ใน OpenFOAM (C++ Implementation)
+## 2. Interphase Heat Transfer
 
-### การสร้างสมการพลังงานใน Solver
+$$Q_k = \sum_{l \neq k} h_{kl} A_{kl} (T_l - T_k)$$
 
-ใน Solver เช่น `reactingTwoPhaseEulerFoam`, `multiphaseEulerFoam`, สมการพลังงานถูกสร้างดังนี้:
+| Symbol | Meaning | Unit |
+|--------|---------|------|
+| $h_{kl}$ | Heat transfer coefficient | W/(m²·K) |
+| $A_{kl}$ | Interfacial area | m²/m³ |
+| $T_k, T_l$ | Phase temperatures | K |
+
+### Nusselt Number
+
+$$h = \frac{Nu \cdot k_c}{d_p}$$
+
+### Common Correlations
+
+| Correlation | Use Case |
+|-------------|----------|
+| Ranz-Marshall | Spherical particles |
+| Hughmark | Bubble columns |
+| Gunn | Fluidized beds |
+
+---
+
+## 3. Ranz-Marshall Correlation
+
+$$Nu = 2 + 0.6 Re^{1/2} Pr^{1/3}$$
+
+| Limit | Nu |
+|-------|-----|
+| Re → 0 | 2 (conduction only) |
+| High Re | $\propto Re^{1/2}$ |
+
+---
+
+## 4. Temperature vs Enthalpy
+
+### Enthalpy Form
+
+$$h = \int_{T_{ref}}^{T} c_p \, dT$$
+
+### Temperature Form
+
+$$\frac{\partial(\alpha_k \rho_k c_{p,k} T_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k c_{p,k} T_k \mathbf{u}_k) = ...$$
+
+---
+
+## 5. OpenFOAM Implementation
+
+### Energy Equation
 
 ```cpp
-// Energy equation construction for phase k
-fvScalarMatrix hEqn
+fvScalarMatrix EEqn
 (
-    fvm::ddt(alpha, rho, h)
-  + fvm::div(alphaRhoPhi, h)
- ==
-    alpha*rho*(dpdt)                  // Pressure work
-  + fvc::div(alpha*kappa*grad(T))     // Conduction
-  + viscousDissipation                 // Viscous dissipation
-  + interfacialHeatTransfer            // Heat transfer between phases
-  + massTransfer*InterfaceEnthalpy     // Latent heat / phase change
-  + interfacialMomentumTransfer & U    // Interfacial work
+    fvm::ddt(alpha, rho, h)           // ∂(αρh)/∂t
+  + fvm::div(alphaPhi, h)             // ∇·(αρhU)
+  ==
+    fvc::div(alphaKappaEff*fvc::grad(T))  // ∇·(αk∇T)
+  + alpha*dpdt                         // αDp/Dt
+  + interphaseHeatTransfer             // Q_k
 );
 ```
 
-📂 **Source:** `.applications/solvers/multiphase/multiphaseInterFoam/multiphaseMixture/multiphaseMixture.C`
-
-<details>
-<summary>📖 คำอธิบายโค้ด (Code Explanation)</summary>
-
-**การอธิบายแต่ละบรรทัดในสมการพลังงาน:**
-
-1. `fvm::ddt(alpha, rho, h)` → พจน์ชั่วขณะ: อนุพันธ์เวลาของเอนทัลปี เป็น implicit discretization
-2. `fvm::div(alphaRhoPhi, h)` → พจน์การพา: การขนส่งเอนทัลปีด้วยการเคลื่อนที่ของเฟส
-3. `alpha*rho*(dpdt)` → งานจากความดัน: งานที่เกิดจากการเปลี่ยนแปลงความดันตามเวลา
-4. `fvc::div(alpha*kappa*grad(T))` → การนำความร้อน: การแพร่ความร้อนตามกฎของฟูเรียร์
-5. `viscousDissipation` → การกระจายความหนืด: การแปลงพลังงานกลเป็นความร้อน
-6. `interfacialHeatTransfer` → การถ่ายเทความร้อนระหว่างเฟส ใช้ Nusselt correlations
-7. `massTransfer*InterfaceEnthalpy` → ผลของการเปลี่ยนเฟส: ความร้อนแฝง
-8. `interfacialMomentumTransfer & U` → งานจากแรงระหว่างเฟส: drag, lift, virtual mass
-
-**แนวคิดสำคัญ:**
-- `fvm` (Finite Volume Method) → ใช้สำหรับ implicit terms (มีส่วนร่วมในเมทริกซ์)
-- `fvc` (Finite Volume Calculus) → ใช้สำหรับ explicit terms (คำนวณตรง ๆ)
-- สมการนี้จะถูกแก้ด้วย linear solver เช่น `PBiCGStab` หรือ `GAMG`
-
-</details>
-
-### การตั้งค่าเทอร์โมฟิสิกส์
-
-OpenFOAM ต้องการไฟล์ `constant/thermophysicalProperties.phaseName` เพื่อกำหนดโมเดลพลังงาน
-
-#### ประเภทของโมเดลเทอร์โมฟิสิกส์
-
-| โมเดล | คำอธิบาย | การใช้งาน |
-|--------|-----------|-----------|
-| **hConstThermo** | เอนทัลปีคงที่ | ระบบที่อุณหภูมิไม่แตกต่างมาก |
-| **janafThermo** | เอนทัลปีแปรผันตามอุณหภูมิ (JANAF tables) | แก๊สที่ความดันสูง/อุณหภูมิสูง |
-| **hPolynomialThermo** | เอนทัลปีเป็นพหุนามของอุณหภูมิ | ของไหลทั่วไป |
-| **icoPolynomial** | แบบจำลองพหุนามสำหรับของเหลว | ของเหลวที่ไม่อัดตัวได้ |
-
-### ตัวอย่างการตั้งค่าในไฟล์ thermophysicalProperties
+### Thermophysical Model
 
 ```cpp
-// Example for liquid phase
+// constant/thermophysicalProperties.water
 thermoType
 {
     type            heRhoThermo;
-    mixture         multiComponentMixture;
+    mixture         pureMixture;
     transport       const;
-    thermo          hPolynomial;
-    energy          sensibleEnthalpy;
-    equationOfState perfectGas;  // or icoPolynomial for liquids
+    thermo          hConst;
+    equationOfState rhoConst;
     specie          specie;
+    energy          sensibleEnthalpy;
 }
 
 mixture
 {
-    specie
-    {
-        nMoles          1;
-        molWeight       18.015;  // Water
-    }
-
-    thermodynamics
-    {
-        Hf              0;
-        Cp              4181;    // J/kg.K for water
-        Sf              0;
-    }
-
-    transport
-    {
-        mu              0.001;   // Pa.s
-        Pr              7.0;     // Prandtl number
-        kappa           0.6;     // W/m.K
-    }
+    Cp      4180;
+    Hf      0;
 }
 ```
 
-<details>
-<summary>📖 คำอธิบายการตั้งค่าเทอร์โมฟิสิกส์</summary>
+---
 
-**อธิบายแต่ละพารามิเตอร์:**
+## 6. Phase Change
 
-1. **`heRhoThermo`** → โมเดลเทอร์โมฟิสิกส์แบบใช้เอนทัลปีและความหนาแน่น
-2. **`multiComponentMixture`** → รองรับส่วนผสมหลายส่วนประกอบ
-3. **`hPolynomial`** → เอนทัลปีเป็นฟังก์ชันพหุนามของอุณหภูมิ
-4. **`sensibleEnthalpy`** → ใช้เอนทัลปีที่วัตถุรู้สึกได้ (ไม่รวม enthalpy of formation)
-5. **`equationOfState`** → สมการสถานะ: `perfectGas` สำหรับแก๊ส, `icoPolynomial` สำหรับของเหลว
-6. **`transport`** → คุณสมบัติการขนส่ง: ความหนืด (mu), Prandtl number (Pr), สภาพนำความร้อน (kappa)
+### Latent Heat
 
-**แนวคิดสำคัญ:**
-- `Hf` = Enthalpy of formation (พลังงานที่ต้องใช้ในการสร้างสาร)
-- `Cp` = ความร้อนจำเพาะที่ความดันคงที่
-- `Pr` = Prandtl number = μ*Cp/k (อัตราส่วนของการแพร่ตัวของโมเมนตัมต่อความร้อน)
+$$Q_{latent} = \dot{m}_{lk} \cdot L_{lk}$$
 
-</details>
+| Symbol | Meaning |
+|--------|---------|
+| $\dot{m}_{lk}$ | Mass transfer rate |
+| $L_{lk}$ | Latent heat |
 
-### การคำนวณคุณสมบัติของส่วนผสม
+### Saturation Model
 
 ```cpp
-// Mixture properties calculation
-template<class ThermoType>
-inline const typename ThermoType::thermoType&
-multiphaseMixture<ThermoType>::cellThermoMixture
-(
-    const label celli
-) const
+// constant/phaseProperties
+saturationTemperatureModel
 {
-    return mixtures_[celli].thermo();
+    type    constant;
+    value   373.15;
 }
-
-// Effective thermal conductivity
-k_eff = sum_k(alpha_k * k_k);
 ```
 
+---
+
+## 7. Boundary Conditions
+
+### Fixed Temperature
+
+```cpp
+T.water
+{
+    type    fixedValue;
+    value   uniform 300;
+}
+```
+
+### Heat Flux
+
+```cpp
+T.water
+{
+    type    fixedGradient;
+    gradient uniform 1000;  // W/m²
+}
+```
+
+### Adiabatic
+
+```cpp
+T.water
+{
+    type    zeroGradient;
+}
+```
+
+---
+
+## Quick Reference
+
+| Component | Equation |
+|-----------|----------|
+| Convection | $\nabla \cdot (\alpha \rho h U)$ |
+| Conduction | $\nabla \cdot (\alpha k \nabla T)$ |
+| Interphase | $h_{kl} A_{kl} (T_l - T_k)$ |
+| Phase change | $\dot{m} L$ |
+
+---
+
+## Concept Check
+
 <details>
-<summary>📖 คำอธิบายการคำนวณคุณสมบัติส่วนผสม</summary>
+<summary><b>1. ทำไมใช้ enthalpy แทน temperature?</b></summary>
 
-**การอธิบายการคำนวณ:**
+เพราะ **enthalpy เป็น conserved quantity** และรวม latent heat สำหรับ phase change ได้ง่ายกว่า
+</details>
 
-1. **`cellThermoMixture`** → ฟังก์ชันที่คืนค่าคุณสมบัติเทอร์โมฟิสิกส์ของส่วนผสมในแต่ละเซลล์
-   - ใช้ `template` เพื่อรองรับประเภท `ThermoType` ที่แตกต่างกัน
-   - `inline` → คอมไพเลอร์จะพยายามแทนที่การเรียกฟังก์ชันด้วยโค้ดโดยตรง (เพื่อประสิทธิภาพ)
+<details>
+<summary><b>2. Ranz-Marshall ให้ Nu = 2 เมื่อไหร่?</b></summary>
 
-2. **`k_eff`** → ความนำความร้อนประสิทธิผลของส่วนผสม
-   - คำนวณจากผลรวมของความนำความร้อนแต่ละเฟสถ่วงน้ำหนักด้วยสัดส่วนปริมาตร
-   - นิพจน์: $k_{eff} = \sum_k \alpha_k k_k$
+เมื่อ **Re → 0** (no relative motion) — heat transfer เกิดจาก **conduction เท่านั้น** (sphere in stagnant fluid)
+</details>
 
-**แนวคิดสำคัญ:**
-- การคำนวณคุณสมบัติส่วนผสมเป็นแบบ cell-by-cell
-- OpenFOAM ใช้ weighted averaging ตามสัดส่วนเฟส (phase fraction)
-- คุณสมบัติที่คำนวณได้จะถูกใช้ในสมการพลังงานและการแก้สมการ
+<details>
+<summary><b>3. Interfacial area สำคัญอย่างไร?</b></summary>
 
+เพราะ **heat transfer ∝ area** — ถ้า bubbles เล็กลง, surface area/volume เพิ่มขึ้น → heat transfer ดีขึ้น
 </details>
 
 ---
 
-## 📊 ตารางสรุปกลไกการแลกเปลี่ยนพลังงาน
-
-| กลไก | สมการปิด (Closure) | ความสำคัญ | การประยุกต์ใช้ |
-|-----|-------------------|-----------|----------------|
-| **Interphase Heat** | Nusselt Correlations (Ranz-Marshall) | สูง (ระบบที่มีความต่างอุณหภูมิ) | Heat exchangers, Boiling |
-| **Latent Heat** | Clausius-Clapeyron, Hertz-Knudsen | สูงมาก (Boiling, Condensation) | Phase change phenomena |
-| **Viscous Work** | Viscous Dissipation Model | ต่ำ (ยกเว้น High-speed/High-viscosity) | Polymer processing |
-| **Pressure Work** | Isenthalpic/Isothermal assumptions | ปานกลาง (Compressible flows) | Gas dynamics |
-| **Marangoni Effect** | Thermocapillary convection | ปานกลาง (Free surface flows) | Welding, Crystal growth |
-
-### สหสัมพันธ์การถ่ายเทความร้อนระหว่างเฟส
-
-**โมเดล Ranz-Marshall** (สำหรับฟอง/หยด):
-
-$$Nu = 2 + 0.6 Re^{1/2} Pr^{1/3}$$
-
-$$h_{kl} = \frac{Nu \cdot k_l}{d_p}$$
-
-โดยที่:
-- $Nu$ = เลขนุสเซลต์ (Nusselt number)
-- $Re$ = เลขเรย์โนลด์ส (Reynolds number)
-- $Pr$ = เลขพรันด์ทล์ (Prandtl number)
-- $d_p$ = เส้นผ่านศูนย์กลางของฟอง/หยด
-
-> [!TIP] เคล็ดลับ
-> การเลือกสหสัมพันธ์การถ่ายเทความร้อนที่ถูกต้อง ($Nu$ correlation) มีผลอย่างยิ่งต่อความแม่นยำในการทำนายอุณหภูมิของแต่ละเฟสในระบบ
-
----
-
-## 🔄 สมการพลังงานของส่วนผสม (Mixture Energy Equation)
-
-### การอนุรักษ์พลังงานของส่วนผสม
-
-สมการพลังงานของส่วนผสมให้สมดุลพลังงานโดยรวม:
-
-$$\frac{\partial (\rho h)}{\partial t} + \nabla \cdot (\rho \mathbf{u} h) = \frac{\partial p}{\partial t} + \nabla \cdot (k_{eff} \nabla T) + \Phi \tag{3.3}$$
-
-โดยที่:
-- $\rho = \sum_k \alpha_k \rho_k$ = ความหนาแน่นของส่วนผสม
-- $\mathbf{u} = \frac{1}{\rho} \sum_k \alpha_k \rho_k \mathbf{u}_k$ = ความเร็วของส่วนผสม
-- $k_{eff} = \sum_k \alpha_k k_k$ = สภาพนำความร้อนประสิทธิผล
-- $\Phi$ = การกระจายตัวเนื่องจากความหนืดรวม
-
-### ความสัมพันธ์อุณหพลศาสตร์
-
-สำหรับการคำนวณคุณสมบัติทางอุณหพลศาสตร์:
-
-**ความหนาแน่นของส่วนผสม**:
-$$\rho_{mix} = \sum_k \alpha_k \rho_k$$
-
-**ความร้อนจำเพาะของส่วนผสม**:
-$$c_{p,mix} = \frac{1}{\rho_{mix}} \sum_k \alpha_k \rho_k c_{p,k}$$
-
-**สภาพนำความร้อนของส่วนผสม**:
-$$k_{mix} = \sum_k \alpha_k k_k$$
-
----
-
-## 🌊 ผลของ Marangoni ต่อการถ่ายเทความร้อน (Marangoni Effects on Heat Transfer)
-
-### แนวคิดพื้นฐาน
-
-**ผลของ Marangoni** เกิดจากการเปลี่ยนแปลงของแรงตึงผิวตามตำแหน่งอันเนื่องมาจากความแตกต่างของอุณหภูมิ ซึ่งขับเคลื่อนการไหลที่พื้นผิวรอยต่อ
-
-### ความเค้น Marangoni
-
-$$\boldsymbol{\tau}_{Marangoni} = \nabla_s \sigma = \frac{\partial \sigma}{\partial T} \nabla_s T$$
-
-โดยที่:
-- $\nabla_s$ = ตัวดำเนินการเกรเดียนต์บนพื้นผิว
-- $\frac{\partial \sigma}{\partial T}$ = อนุพันธ์ของแรงตึงผิวเทียบกับอุณหภูมิ
-
-### จำนวน Marangoni
-
-$$\text{Ma} = \frac{|\partial \sigma/\partial T| \Delta T L}{\mu \alpha}$$
-
-โดยที่:
-- $\Delta T$ = ความแตกต่างของอุณหภูมิ
-- $L$ = มาตราส่วนความยาว
-- $\mu$ = ความหนืดพลวัต
-- $\alpha$ = การแพร่ความร้อน
-
-### การนำไปใช้ใน OpenFOAM
-
-```cpp
-// Marangoni force calculation
-volVectorField gradT = fvc::grad(T);
-volVectorField n = fvc::grad(alpha)/mag(fvc::grad(alpha));
-
-// Surface tension gradient
-volVectorField gradSigma = dSigma_dT * gradT;
-
-// Tangential component (Marangoni stress)
-volVectorField marangoniStress = gradSigma - n*(n & gradSigma);
-
-// Volume force for CSF
-volVectorField Fmarangoni = marangoniStress * mag(fvc::grad(alpha));
-```
-
-<details>
-<summary>📖 คำอธิบายการคำนวณแรง Marangoni</summary>
-
-**การอธิบายแต่ละขั้นตอน:**
-
-1. **`gradT = fvc::grad(T)`** → คำนวณเกรเดียนต์ของอุณหภูมิ
-   - ใช้ `fvc` (Finite Volume Calculus) เพราะเป็น explicit calculation
-
-2. **`n = fvc::grad(alpha)/mag(fvc::grad(alpha))`** → หาเวกเตอร์หน้าปกติของพื้นผิวรอยต่อ
-   - เกรเดียนต์ของสัดส่วนเฟส (`alpha`) ชี้ไปยังทิศทางที่เฟสเปลี่ยน
-   - หารด้วยขนาด (`mag`) เพื่อทำให้เป็นเวกเตอร์หน้าปกติหน่วย
-
-3. **`gradSigma = dSigma_dT * gradT`** → คำนวณเกรเดียนต์ของแรงตึงผิว
-   - `dSigma_dT` = อนุพันธ์ของแรงตึงผิวเทียบกับอุณหภูมิ (ค่าคงที่ของวัสดุ)
-
-4. **`marangoniStress = gradSigma - n*(n & gradSigma)`** → แยกส่วนประกอบสัมผัสของความเค้น
-   - `n & gradSigma` → ส่วนประกอบปกติ (dot product)
-   - ลบส่วนประกอบปกติออก เพื่อให้เหลือเฉพาะส่วนสัมผัส
-
-5. **`Fmarangoni = marangoniStress * mag(fvc::grad(alpha))`** → คำนวณแรงปริมาตรสำหรับ CSF (Continuum Surface Force)
-   - คูณด้วยขนาดของเกรเดียนต์เฟส เพื่อกระจายแรงไปยังพื้นที่รอบ ๆ พื้นผิว
-
-**แนวคิดสำคัญ:**
-- ใช้ระเบียบวิธี CSF (Continuum Surface Force) ในการจำลองผลของแรงตึงผิว
-- แรง Marangoni ทำงานในทิศทางสัมผัสกับพื้นผิว (ไม่ใช่ทิศทางปกติ)
-- แรงนี้ขับเคลื่อนการไหลจากพื้นที่ที่มีแรงตึงผิวน้อยไปหามาก (ตามอุณหภูมิ)
-
-</details>
-
-> [!WARNING] ความสำคัญ
-> ผลของ Marangoni มักมีอิทธิพลมากในระบบที่มีความแตกต่างของอุณหภูมิสูง เช่น การเชื่อม (welding) และการเติบโตของผลึก (crystal growth)
-
----
-
-## 📐 การวิเคราะห์แบบไร้มิติ (Dimensionless Analysis)
-
-### เลขมิติสำคัญสำหรับการถ่ายเทความร้อน
-
-| เลข | สมการ | ความหมายทางกายภาพ |
-|-----|----------|---------------------|
-| **Prandtl** | $Pr = \frac{\mu c_p}{k}$ | อัตราส่วนของการแพร่ตัวของโมเมนตัมต่อความร้อน |
-| **Nusselt** | $Nu = \frac{h L}{k}$ | อัตราส่วนของการถ่ายเทความร้อนแบบนูมำนักต่อการนำ |
-| **Peclet** | $Pe = Re \cdot Pr = \frac{u L}{\alpha}$ | อัตราส่วนของการพาความร้อนต่อการนำ |
-| **Stanton** | $St = \frac{Nu}{Re \cdot Pr}$ | ประสิทธิภาพการถ่ายเทความร้อน |
-| **Eckert** | $Ec = \frac{u^2}{c_p \Delta T}$ | อัตราส่วนของพลังงานจลน์ต่อเอนทัลปี |
-
-### แผนที่ระบอบการไหลความร้อน (Thermal Flow Regime Map)
-
-| ระบอบ | เงื่อนไข | ลักษณะ |
-|--------|----------|--------|
-| **Conduction dominant** | $Pe \ll 1$ | การนำความร้อนมีอิทธิพลเหนือกว่า |
-| **Intermediate** | $Pe \sim 1$ | การพาและการนำสำคัญเท่ากัน |
-| **Convection dominant** | $Pe \gg 1$ | การพาความร้อนมีอิทธิพลเหนือกว่า |
-
----
-
-## 🔧 การประยุกต์ใช้ในกรณีศึกษา (Application Case Studies)
-
-### 1. การเดือด (Boiling)
-
-สมการสำหรับการถ่ายเทมวลในระบบการเดือด:
-
-$$\dot{m}_{lv} = \frac{q''}{h_{lv}}$$
-
-โดยที่ $q''$ = ฟลักซ์ความร้อนที่พื้นผิว
-
-### 2. การควบแน่น (Condensation)
-
-**แบบจำลอง Hertz-Knudsen**:
-
-$$\dot{m}_{lv} = \frac{C_{evap}}{\sqrt{2\pi}} \left( \frac{p_{sat} - p_l}{\sqrt{R_g T_l}} \right) \alpha_l \alpha_v$$
-
-### 3. การแลกเปลี่ยนความร้อนในเครื่องแลกเปลี่ยนความร้อน (Heat Exchangers)
-
-$$Q = U A \Delta T_{lm}$$
-
-โดยที่:
-- $U$ = สัมประสิทธิ์การถ่ายเทความร้อนโดยรวม
-- $\Delta T_{lm}$ = ความแตกต่างของอุณหภูมิเฉลี่ยแบบลอการิทึม (Log-mean temperature difference)
-
-### 4. การเชื่อม (Welding)
-
-การถ่ายเทความร้อนร่วมกับผลของ Marangoni:
-
-$$\mathbf{q} = -k \nabla T + \mathbf{u} \rho h + \mathbf{F}_{Marangoni} \cdot \mathbf{u}$$
-
----
-
-## 📚 สรุปและข้อเสนอแนะ (Summary and Recommendations)
-
-### หลักการสำคัญ
-
-1. **การเลือกโมเดลเทอร์โมฟิสิกส์ที่เหมาะสม** มีความสำคัญอย่างยิ่งต่อความแม่นยำของการจำลอง
-2. **การปิดสมการ (Closure Relations)** สำหรับการถ่ายเทความร้อนระหว่างเฟสต้องได้รับความสำคัญเป็นพิเศษ
-3. **ผลของการเปลี่ยนเฟส** (Phase Change Effects) ต้องถูกจำลองอย่างถูกต้องโดยใช้ความร้อนแฝง
-4. **ผลของ Marangoni** สำคัญในระบบที่มีความแตกต่างของอุณหภูมิสูง
-
-### แนวทางการนำไปใช้ใน OpenFOAM
-
-```cpp
-// General workflow for energy equation in multiphase
-1. กำหนดโมเดลเทอร์โมฟิสิกส์สำหรับแต่ละเฟส
-2. สร้างสมการพลังงานสำหรับแต่ละเฟส
-3. คำนวณการแลกเปลี่ยนความร้อนระหว่างเฟส
-4. จัดการผลของการเปลี่ยนเฟส (ถ้ามี)
-5. แก้สมการด้วยรูปแบบเชิงตัวเลขที่เหมาะสม
-6. ตรวจสอบการอนุรักษ์พลังงาน
-```
-
-### ข้อควรพิจารณาด้านเสถียรภาพ
-
-| ประเด็น | เงื่อนไข | วิธีการจัดการ |
-|----------|-----------|----------------|
-| **CFL condition** | $\Delta t \leq \frac{\Delta x}{|u|_{max}}$ | ใช้ time stepping ที่เหมาะสม |
-| **Boundedness** | $0 \leq h_k \leq h_{max}$ | ใช้รูปแบบที่รักษาค่าบวก |
-| **Conservation** | $\sum E_{in} = \sum E_{out}$ | ตรวจสอบ balance ของพลังงาน |
-| **Convergence** | $R_h < 10^{-6}$ | ใช้ under-relaxation ที่เหมาะสม |
-
----
-
-## 🔗 การอ้างอิงเชิงลึก (Cross-References)
-
-สมการการอนุรักษ์พลังงานเชื่อมโยงกับ:
-
-- [[02_Mass_Conservation#การวิเคราะห์แต่ละเทอมในสมการ]]: ทบทวนแนวคิดพื้นฐานเรื่องการอนุรักษ์
-- [[02_Foundation_and_Mathematical_Framework]]: ทฤษฎีบทการหาค่าเฉลี่ยของเฟส
-- [[06_Interfacial_Phenomena_Equations]]: ผลของแรงตึงผิวและ Marangoni
-- [[08_Closure_Relations]]: ความสัมพันธ์ปิดสำหรับคุณสมบัติทางอุณหพลศาสตร์
-- [[10_Special_Cases]]: การประยุกต์ใช้ในกรณีพิเศษ
+## Related Documents
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md)
+- **Mass Conservation:** [01_Mass_Conservation.md](01_Mass_Conservation.md)
+- **Momentum Conservation:** [02_Momentum_Conservation.md](02_Momentum_Conservation.md)

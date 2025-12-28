@@ -1,461 +1,142 @@
-# พื้นฐาน Primitives: องค์ประกอบหลักของ OpenFOAM
+# Foundation Primitives - Overview
 
-## ภาพรวม
+ภาพรวม OpenFOAM Primitives
 
-สถาปัตยกรรมของ OpenFOAM สร้างขึ้นบนพื้นฐานของคลาส primitive หลักที่ซับซ้อน ซึ่งเป็นองค์ประกอบพื้นฐานสำหรับการคำนวณ CFD ทั้งหมด พื้นฐาน primitives เหล่านี้ให้โครงสร้างข้อมูลและอัลกอริทึมพื้นฐานที่เปิดให้สามารถจำลองทางตัวเลขของพลศาสตร์ของไหลและปรากฏการณ์ทางกายภาพที่เกี่ยวข้องได้อย่างมีประสิทธิภาพ
+---
+
+## Overview
+
+> **OpenFOAM Primitives** = Building blocks for CFD programming
 
 ```mermaid
-graph TD
-%% Classes
-classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
-
-Start((เริ่มต้น)):::explicit --> Basic[พื้นฐาน Primitives]:::context
-Basic --> Types[ประเภทข้อมูลพื้นฐาน]:::implicit
-Types --> Dimensions[มิติทางฟิสิกส์]:::implicit
-Dimensions --> Memory[การจัดการหน่วยความจำ]:::implicit
-Memory --> Containers[คอนเทนเนอร์]:::implicit
-Containers --> Fields[คลาสฟิลด์]:::implicit
-Fields --> Mesh[โครงสร้าง Mesh]:::implicit
-Mesh --> Solvers[ระบบ Solver]:::explicit
-```
-
-> **Figure 1:** แผนผังลำดับชั้นขององค์ประกอบใน OpenFOAM ที่แสดงให้เห็นการสร้างระบบจากพื้นฐานขนาดเล็ก (Primitives) ไปสู่ระบบที่มีความซับซ้อนสูง (Solvers) โดยแต่ละระดับจะต่อยอดจากระดับก่อนหน้าเพื่อสร้างโครงสร้างที่สมบูรณ์สำหรับการคำนวณ CFD
-
-> [!TIP] **Physical Analogy: The Lego City (เมืองเลโก้)**
->
-> จินตนาการว่าคุณกำลังสร้าง "เมือง" (CFD Simulation):
->
-> 1.  **Primitives (`label`, `scalar`):** คือ **"ตัวต่อเลโก้" (Bricks)** ชิ้นเล็กที่สุด แข็งแรง และมีขนาดมาตรฐาน (Portable & Precise)
-> 2.  **Containers (`List`, `Field`):** คือ **"ถังใส่ตัวต่อ"** หรือ **"กำแพง"** ที่เกิดจากการเรียงตัวต่อหลายๆ อัน
-> 3.  **Mesh (`fvMesh`):** คือ **"แผ่นพื้นรอง" (Baseplate)** ที่กำหนดตำแหน่งที่ตั้งของสิ่งก่อสร้าง
-> 4.  **Equation (`fvMatrix`):** คือ **"คู่มือการประกอบ"** ที่บอกว่าตัวต่อแต่ละชิ้นต้องเชื่อมต่อกันอย่างไรเพื่อให้ตึกไม่ถล่ม (Conservation Laws)
->
-> OpenFOAM ไม่ได้ใช้ "ดินน้ำมัน" (Standard C++ types) เพราะมันยืดหยุ่นเกินไปจนควบคุมโครงสร้างยาก แต่ใช้ "เลโก้" (OpenFOAM Primitives) ที่มีกฏการเชื่อมต่อที่ชัดเจน (Type Safety & Dimensional Consistency)
-
-## ทำไมต้อง Redefine ประเภทข้อมูลพื้นฐานของ C++?
-
-OpenFOAM ไม่ได้ใช้ standard C++ types เช่น `int` และ `double` โดยตรง แต่จะ define primitives ของตัวเอง: `label`, `scalar` และอื่นๆ การเลือกแบบนี้มีจุดประสงค์สำคัญ 3 ประการ:
-
-### 1. **Portability** (การพกพา)
-
-การจำลอง CFD ทำงานได้บนอุปกรณ์ต่างๆ ตั้งแต่ laptop ไปจนถึง supercomputer ที่มีสถาปัตยกรรมแตกต่างกัน (32-bit vs 64-bit, single vs double precision)
-
-> [!INFO] ความสำคัญของ Portable Types
-> Primitives ของ OpenFOAM มี consistent behavior บนทุก platform:
-> - เมื่อ compile OpenFOAM บนระบบต่างๆ underlying primitive types จะปรับเปลี่ยนโดยอัตโนมัติ
-> - เพื่อ optimal representation สำหรับ hardware นั้นๆ
-> - ทำให้ CFD code ของคุณทำงานเหมือนเดิมไม่ว่าจะรันบน development laptop หรือ production cluster
-
-### 2. **Precision Control** (การควบคุมความแม่นยำ)
-
-ปัญหา CFD ที่แตกต่างกันต้องการ numerical precision ที่แตกต่างกัน
-
-| ระดับความแม่นยำ | Use Case | ผลกระทบด้านประสิทธิภาพ |
-|-------------------|----------|----------------------|
-| Single | Rapid prototyping, educational purposes | เร็วกว่า ~2x, ใช้หน่วยความจำลดลง ~50% |
-| Double | High-fidelity simulations, production | มาตรฐาน, สมดุลระหว่างความเร็วและความแม่นยำ |
-| Extended | Research requiring extreme accuracy | ช้าที่สุด แต่ความแม่นยำสูงสุด |
-
-### 3. **Physics Safety** (ความปลอดภัยทางฟิสิกส์)
-
-Primitives ของ OpenFOAM บังคับให้มี dimensional consistency และป้องกันการดำเนินการที่ไม่มีความหมายทางฟิสิกส์
-
-> [!WARNING] ตัวอย่างการป้องกันข้อผิดพลาด
-> ```cpp
-> // Adding pressure to velocity - not allowed!
-> volScalarField p = ...;      // [kg/(m·s²)]
-> volVectorField U = ...;      // [m/s]
-> volScalarField error = p + U; // Compile error: dimensional inconsistency
-> ```
->
-> ประโยชน์ใน CFD:
-> - ป้องกัน dimensional errors ที่นำไปสู่ simulation crashes
-> - หลีกเลี่ยง physically incorrect results ที่ดูเหมือนสมเหตุสมผล
-> - Type system ทำหน้าที่เป็น first line of defense ต่อ implementation mistakes
-
-## ประเภทข้อมูลพื้นฐาน
-
-### คลาสเวกเตอร์และเทนเซอร์
-
-ใจกลางของเครื่องมือคำนวณของ OpenFOAM คือคลาส geometric primitive ที่จัดการกับคณิตศาสตร์เวกเตอร์และเทนเซอร์
-
-**คลาสเวกเตอร์ (`Vector<Type>`)**:
-คลาสเทมเพลต Vector ให้การดำเนินการเวกเตอร์พื้นฐานสำหรับปริมาณมิติและไร้มิติ
-
-- `Vector<scalar>`: เวกเตอร์ 3 มิติของค่าสเกลาร์ (typedef'd ว่า `vector`)
-- `Vector<label>`: เวกเตอร์ 3 มิติของดัชนีจำนวนเต็ม (typedef'd ว่า `labelVector`)
-
-**การดำเนินการหลัก:**
-```cpp
-vector a(1, 2, 3);
-vector b(4, 5, 6);
-vector c = a + b;          // Vector addition
-scalar mag = a.mag();      // Magnitude: sqrt(a_x^2 + a_y^2 + a_z^2)
-scalar dot = a & b;        // Dot product: a · b
-vector cross = a ^ b;      // Cross product: a × b
-```
-
-**คลาสเทนเซอร์:**
-OpenFOAM ใช้ลำดับชั้นเทนเซอร์ที่ครอบคลุม:
-
-| คลาสเทนเซอร์ | คำอธิบาย | จำนวนส่วนประกอบ |
-|---------------|------------|------------------|
-| `Tensor<Type>` | เทนเซอร์อันดับสอง | 9 ส่วนประกอบ |
-| `SymmTensor<Type>` | เทนเซอร์สมมาตร | 6 ส่วนประกอบอิสระ |
-| `SphericalTensor<Type>` | เทนเซอร์ทรงกลม | ส่วนประกอบแนวทแยงเดียว |
-
-**การดำเนินการทางคณิตศาสตร์ตามกฎของพีชคณิตเทนเซอร์:**
-$$\boldsymbol{\tau}_{ij} = \mu \left(\frac{\partial u_i}{\partial x_j} + \frac{\partial u_j}{\partial x_i}\right)$$
-
-โดยที่:
-- $\boldsymbol{\tau}_{ij}$: เทนเซอร์ความเค้น
-- $\mu$: ความหนืดไดนามิก
-- $u_i$, $u_j$: ส่วนประกอบความเร็ว
-- $x_i$, $x_j$: พิกัดทิศทาง
-
-### คลาสฟิลด์
-
-คลาสฟิลด์เป็นศูนย์กลางของการจัดการข้อมูลของ OpenFOAM โดยให้คอนเทนเนอร์สำหรับปริมาณทางกายภาพที่กำหนดไว้บนโดเมนการคำนวณ
-
-**ฟิลด์เรขาคณิต:**
-- `GeometricField<Type, PatchField, GeoMesh>`: คลาสเทมเพลตสำหรับฟิลด์
-- `volScalarField`: ฟิลด์สเกลาร์ที่กำหนดไว้ที่ศูนย์กลางเซลล์
-- `volVectorField`: ฟิลด์เวกเตอร์ที่กำหนดไว้ที่ศูนย์กลางเซลล์
-- `surfaceScalarField`: ฟิลด์สเกลาร์ที่กำหนดไว้ที่ศูนย์กลางหน้า
-
-**การดำเนินการฟิลด์ใช้ประโยชน์จากเทมเพลตนิพจน์เพื่อประสิทธิภาพการคำนวณ:**
-```cpp
-volScalarField p(mesh);                    // Pressure field
-volVectorField U(mesh);                    // Velocity field
-volVectorField UgradU = fvc::grad(U) & U;  // Convection term: (U · ∇)U
+flowchart TD
+    A[Primitives] --> B[Basic Types]
+    A --> C[Mathematical Types]
+    A --> D[Dimensioned Types]
+    A --> E[Smart Pointers]
+    A --> F[Containers]
 ```
 
 ---
 
-**คำอธิบาย:**
+## 1. Basic Types
 
-**แหล่งที่มา:** แนวคิดการใช้ฟิลด์เรขาคณิตและการดำเนินการเวกเตอร์/เทนเซอร์ถูกนำไปใช้ใน multiphase solver ของ OpenFOAM
-
-**คำอธิบาย:**
-- `volScalarField` ใช้เก็บปริมาณสเกลาร์ เช่น ความดัน (pressure), ค่า volume fraction (α) ของแต่ละเฟส
-- `volVectorField` ใช้เก็บปริมาณเวกเตอร์ เช่น ความเร็ว (velocity) ของแต่ละเฟส
-- `fvc::grad(U)` คำนวณ gradient ของฟิลด์ความเร็ว ซึ่งจำเป็นสำหรับการคำนวณเทอม convection และ drag forces
-
-**แนวคิดสำคัญ:**
-- **GeometricField**: คลาสพื้นฐานสำหรับฟิลด์ทั้งหมดใน OpenFOAM
-- **Volume Field (vol)**: ฟิลด์ที่กำหนดที่จุดศูนย์กลางเซลล์
-- **Surface Field**: ฟิลด์ที่กำหนดที่ผิวหน้าเซลล์
-- **Expression Templates**: เทคนิคการเขียนโปรแกรมที่ช่วยเพิ่มประสิทธิภาพการคำนวณ
+| Type | Description | Example |
+|------|-------------|---------|
+| `label` | Integer index | Cell/face indices |
+| `scalar` | Floating point | Temperature, pressure |
+| `word` | String identifier | Field names |
+| `fileName` | File path | Case directories |
+| `Switch` | Boolean flag | Solver options |
 
 ---
 
-## โครงสร้างพื้นฐาน Mesh
+## 2. Mathematical Types
 
-### คลาส fvMesh
+| Type | Rank | Components | Use |
+|------|------|------------|-----|
+| `scalar` | 0 | 1 | p, T, k |
+| `vector` | 1 | 3 | U, F |
+| `tensor` | 2 | 9 | σ, ∇U |
+| `symmTensor` | 2 | 6 | R (symmetric) |
+| `sphericalTensor` | 2 | 1 | pI |
 
-คลาส `fvMesh` ให้โครงสร้าง mesh ปริมาตรจำกัดพื้นฐาน:
+---
+
+## 3. Dimensioned Types
 
 ```cpp
-class fvMesh : public polyMesh
-{
-    // Cell geometry
-    const volScalarField& V() const;        // Cell volumes
-    const surfaceScalarField& Sf() const;   // Face area vectors
-    const surfaceScalarField& magSf() const; // Face areas
+// Scalar with units
+dimensionedScalar rho("rho", dimDensity, 1000);
 
-    // Mesh topology
-    const labelList& owner() const;         // Face owner cells
-    const labelList& neighbour() const;     // Face neighbour cells
-};
+// Vector with units
+dimensionedVector g("g", dimAcceleration, vector(0, 0, -9.81));
 ```
 
-**คำอธิบาย:**
-
-**แหล่งที่มา:** โครงสร้าง mesh ถูกใช้ในทุก solver ของ OpenFOAM รวมทั้ง multiphaseEulerFoam
-
-**คำอธิบาย:**
-- `V()`: ส่งคืนฟิลด์ปริมาตรเซลล์ ใช้ในการคำนวณ volume integrals
-- `Sf()`: ส่งคืนเวกเตอร์พื้นที่หน้า ใช้ใน surface integrals และการคำนวณ flux
-- `owner()`, `neighbour()`: ให้ข้อมูลโทโพโลยี mesh สำหรับการเชื่อมโยงเซลล์ข้างเคียง
-
-**แนวคิดสำคัญ:**
-- **Finite Volume Mesh**: แบ่งโดเมนเป็นเซลล์ชิดกันสำหรับการคำนวณ
-- **Face Area Vector**: เวกเตอร์ที่มีขนาดเท่ากับพื้นที่หน้าและทิศทางตั้งฉากกับหน้า
-- **Owner-Neighbour**: โครงสร้างข้อมูลที่เชื่อมโยงหน้ากับเซลล์สองด้าน
-
----
-
-### การดำเนินการ Mesh
-
-การดำเนินการ mesh หลัก ได้แก่ การคำนวณเรขาคณิตและการประมาณค่า
-
-**การคำนวณ Gradient:**
-$$\nabla \phi_f = \frac{\phi_N - \phi_P}{d_{PN}}$$
-
-**การคำนวณ Divergence:**
-$$\nabla \cdot \mathbf{u} = \frac{1}{V_P} \sum_f \mathbf{S}_f \cdot \mathbf{u}_f$$
-
-**การคำนวณ Laplacian:**
-$$\nabla^2 \phi = \nabla \cdot (\Gamma \nabla \phi)$$
-
-โดยที่:
-- $\phi_f$: ค่าของฟิลด์ที่หน้า f
-- $\phi_P$, $\phi_N$: ค่าของฟิลด์ที่เซลล์เจ้าของ (P) และเซลล์ข้างเคียง (N)
-- $d_{PN}$: ระยะห่างระหว่างเซลล์
-- $V_P$: ปริมาตรของเซลล์ P
-- $\mathbf{S}_f$: เวกเตอร์พื้นที่หน้า f
-- $\Gamma$: สัมประสิทธิ์การแพร่กระจาย
-
-## การจัดการหน่วยความจำ
-
-### Smart Pointers
-
-OpenFOAM ใช้ smart pointers ที่นับการอ้างอิงสำหรับการจัดการหน่วยความจำอัตโนมัติ
-
-**autoPtr:**
-```cpp
-autoPtr<volScalarField> pField
-(
-    new volScalarField
-    (
-        IOobject("p", runTime.timeName(), mesh),
-        mesh
-    )
-);
-```
-
-**tmp:**
-```cpp
-tmp<volVectorField> gradP = fvc::grad(p);
-volVectorField& gradPRef = gradP();  // Automatic reference counting
-```
-
----
-
-**คำอธิบาย:**
-
-**แหล่งที่มา:** Smart pointers ถูกใช้อย่างแพร่หลายใน OpenFOAM solvers ทั้งหมด
-
-**คำอธิบาย:**
-- **autoPtr**: เป็น smart pointer ที่มีเจ้าของคนเดียว (exclusive ownership) ใช้สำหรับการส่งผ่านออบเจกต์ที่สร้างขึ้นใหม่
-- **tmp**: เป็น smart pointer ที่ใช้ร่วมกันได้ (shared ownership) พร้อมระบบนับการอ้างอิง (reference counting)
-
-**แนวคิดสำคัญ:**
-- **Reference Counting**: ติดตามจำนวนการอ้างอิงถึงออบเจกต์
-- **Automatic Memory Management**: ป้องกัน memory leaks โดยการทำลายออบเจกต์อัตโนมัติเมื่อไม่มีการอ้างอิง
-- **Expression Templates**: tmp ช่วยให้สามารถส่งค่ากลับชั่วคราวจากฟังก์ชันได้โดยไม่ต้องคัดลอกข้อมูล
-
----
-
-> [!TIP] ประโยชน์ของ Smart Pointers
-> - **ป้องกัน memory leaks**: การทำลายออบเจกต์อัตโนมัติเมื่อไม่มีการอ้างอิง
-> - **การแชร์ข้อมูลอย่างปลอดภัย**: การนับการอ้างอิงป้องกันการเข้าถึงข้อมูลที่ถูกทำลาย
-> - **ประสิทธิภาพ**: การส่งผ่านออบเจกต์โดยไม่ต้องคัดลอกข้อมูล
-
-## ระบบพีชคณิตเชิงเส้น
-
-### คลาส LduMatrix
-
-คลาส `LduMatrix` ใช้ระบบเชิงเส้นเบาบางโดยใช้รูปแบบ Lower-Diagonal-Upper:
+### Dimension Checking
 
 ```cpp
-template<class Type, class DType, class LUType>
-class LduMatrix
-{
-    // Matrix coefficients
-    const Field<DType>& diag() const;      // Diagonal
-    const Field<LUType>& upper() const;    // Upper part
-    const Field<LUType>& lower() const;    // Lower part
+// Valid: dimensions match
+volScalarField dynP = 0.5 * rho * magSqr(U);
 
-    // Solver interface
-    SolverPerformance<Type> solve
-    (
-        Field<Type>& psi,
-        const Field<Type>& source,
-        const dictionary& solverControls
-    ) const;
-};
+// Invalid: dimension error
+// p + U;  // Error!
 ```
 
-**คำอธิบาย:**
+---
 
-**แหล่งที่มา:** ระบบ LduMatrix เป็นพื้นฐานของการแก้สมการเชิงเส้นใน OpenFOAM
+## 4. Smart Pointers
 
-**คำอธิบาย:**
-- **LduMatrix**: เก็บเมทริกซ์แบบเบาบางในรูปแบบ Lower-Diagonal-Upper
-- **diag()**: เก็บสัมประสิทธิ์เส้นทแยงมุม (a_P)
-- **upper()**, **lower()**: เก็บสัมประสิทธิ์ข้างเคียง (a_N)
-- **solve()**: อินเทอร์เฟซสำหรับการแก้สมการเชิงเส้น
-
-**แนวคิดสำคัญ:**
-- **Sparse Matrix Storage**: เก็บเฉพาะสัมประสิทธิ์ที่ไม่ใช่ศูนย์เพื่อประหยัดหน่วยความจำ
-- **Finite Volume Discretization**: โครงสร้างเมทริกซ์สะท้อนถึง connectivity ของ mesh
-- **Iterative Solvers**: ใช้ iterative methods เช่น GAMG, PCG, PBiCGStab ในการแก้สมการ
+| Type | Purpose |
+|------|---------|
+| `autoPtr` | Unique ownership |
+| `tmp` | Reference counted temporary |
+| `PtrList` | List of pointers |
 
 ---
 
-### การประกอบเมทริกซ์
+## 5. Containers
 
-สัมประสิทธิ์เมทริกซ์ถูกประกอบโดยใช้การกระจายตามปริมาตรจำกัด
+| Container | Use |
+|-----------|-----|
+| `List<T>` | Dynamic array |
+| `Field<T>` | List with CFD operations |
+| `HashTable` | Key-value map |
+| `DynamicList` | Growable list |
 
-**สมการ Convection-Diffusion:**
-$$\frac{\partial \phi}{\partial t} + \nabla \cdot (\mathbf{u} \phi) = \nabla \cdot (\Gamma \nabla \phi) + S_\phi$$
+---
 
-**รูปแบบกระจาย:**
-$$a_P \phi_P + \sum_N a_N \phi_N = b_P$$
+## 6. Learning Path
 
-โดยที่:
-- $a_P$: สัมประสิทธิ์เส้นทแยงมุม (เซลล์ P)
-- $a_N$: สัมประสิทธิ์ข้างเคียง
-- $b_P$: เทอมต้นทาง
-- $\phi_P$, $\phi_N$: ค่าของฟิลด์ที่เซลล์ P และ N
-
-**OpenFOAM Code Implementation:**
-```cpp
-// Matrix assembly for convection-diffusion equation
-fvScalarMatrix phiEqn
-(
-    fvm::ddt(phi)                    // Temporal term: ∂φ/∂t
-  + fvm::div(phi, U)                 // Convection term: ∇·(uφ)
-  - fvm::laplacian(Diffusivity, phi) // Diffusion term: ∇·(Γ∇φ)
- ==
-    Source                           // Source term: S_φ
-);
+```mermaid
+flowchart LR
+    A[Introduction] --> B[Basic Types]
+    B --> C[Dimensioned Types]
+    C --> D[Smart Pointers]
+    D --> E[Containers]
+    E --> F[Exercises]
 ```
 
-**คำอธิบาย:**
+---
 
-**แหล่งที่มา:** การประกอบเมทริกซ์เป็นแกนหลักของ multiphase momentum equations ใน MomentumTransferPhaseSystem
+## Quick Reference
 
-**คำอธิบาย:**
-- **fvm::ddt()**: เทอม temporal derivative ใช้ implicit discretization
-- **fvm::div()**: เทอม convection ใช้ finite volume discretization
-- **fvm::laplacian()**: เทอม diffusion ใช้ central differencing
-- **fvm** (finite volume method): สร้างเมทริกซ์ coefficients สำหรับการแก้ implicit
-- **fvc** (finite volume calculus): คำนวณ explicit terms
-
-**แนวคิดสำคัญ:**
-- **Implicit vs Explicit**: implicit terms ถูกเพิ่มเข้าไปในเมทริกซ์, explicit terms ถูกคำนวณโดยตรง
-- **Linear System**: สมการที่ discretized ถูกแปลงเป็นระบบเชิงเส้น Ax = b
-- **Matrix Assembly**: การรวบรวม coefficients จากแต่ละ term ในสมการ
+| Need | Use |
+|------|-----|
+| Index | `label` |
+| Value | `scalar` |
+| 3D vector | `vector` |
+| With units | `dimensionedScalar` |
+| Memory managed | `autoPtr`, `tmp` |
+| Array | `List`, `Field` |
 
 ---
 
-## ระบบ Input/Output
+## Concept Check
 
-### คลาส IO
+<details>
+<summary><b>1. ทำไมต้องใช้ dimensioned types?</b></summary>
 
-OpenFOAM ให้ระบบ I/O ที่ครอบคลุมสำหรับการอ่าน/เขียนข้อมูลการจำลอง
+เพื่อ **ตรวจสอบหน่วย** อัตโนมัติ — ป้องกัน physics errors
+</details>
 
-**คลาส IOobject:**
-```cpp
-IOobject pHeader
-(
-    "p",                          // Name
-    runTime.timeName(),           // Time instance
-    mesh,                         // Registry
-    IOobject::MUST_READ,          // Read option
-    IOobject::AUTO_WRITE          // Write option
-);
-```
+<details>
+<summary><b>2. autoPtr vs tmp ใช้เมื่อไหร่?</b></summary>
 
-**ฟิลด์ I/O:**
-```cpp
-volScalarField p(pHeader, mesh);
-p.write();                       // Write to file
-```
+- **autoPtr**: Unique ownership (factories)
+- **tmp**: Temporary calculations (fvc::)
+</details>
 
-**คำอธิบาย:**
+<details>
+<summary><b>3. Field กับ List ต่างกันอย่างไร?</b></summary>
 
-**แหล่งที่มา:** ระบบ I/O ของ OpenFOAM ถูกใช้ในทุก solver สำหรับการจัดการ field data
-
-**คำอธิบาย:**
-- **IOobject**: คลาสพื้นฐานสำหรับการจัดการไฟล์ I/O
-- **MUST_READ**: ต้องอ่านไฟล์ ถ้าไม่พบจะเกิด error
-- **AUTO_WRITE**: เขียนไฟล์อัตโนมัติเมื่อ simulation บันทึกผลลัพธ์
-- **Time Instance**: ระบุ directory ของข้อมูล (เช่น 0/, 0.1/, 0.2/)
-
-**แนวคิดสำคัญ:**
-- **Dictionary-based I/O**: ข้อมูลถูกเก็บในรูปแบบ text-based dictionary
-- **Time Directories**: แต่ละ time step มี directory ของตัวเอง
-- **Field Registration**: ฟิลด์ถูกจดทะเบียนใน mesh object registry
+**Field** มี CFD operations เช่น `max()`, `average()`, `sum()`
+</details>
 
 ---
 
-### ระบบ Dictionary
+## Related Documents
 
-คลาส `dictionary` ให้การจัดเก็บพารามิเตอร์แบบลำดับชั้น:
-
-```cpp
-dictionary transportProperties
-(
-    IOobject("transportProperties", runTime.constant(), mesh)
-);
-
-scalar nu = transportProperties.lookupOrDefault<scalar>("nu", 1e-5);
-word turbulenceModel = transportProperties.lookup<word>("turbulenceModel");
-```
-
-**คำอธิบาย:**
-
-**แหล่งที่มา:** Dictionary system ถูกใช้อย่างแพร่หลายใน OpenFOAM สำหรับ configuration และ parameter settings
-
-**คำอธิบาย:**
-- **dictionary**: เก็บ key-value pairs ในรูปแบบลำดับชั้น
-- **lookup()**: ค้นหาค่าจาก dictionary ถ้าไม่พบจะเกิด error
-- **lookupOrDefault()**: ค้นหาค่า ถ้าไม่พบใช้ค่า default
-- **constant()**: directory ที่เก็บข้อมูลคงที่ (ไม่ขึ้นกับเวลา)
-
-**แนวคิดสำคัญ:**
-- **Hierarchical Structure**: dictionaries สามารถซ้อนกันได้
-- **Type Safety**: lookup functions ตรวจสอบ type ของข้อมูล
-- **Default Values**: สามารถระบุค่า default สำหรับ optional parameters
-
----
-
-**ตัวเลือกการอ่าน/เขียน IOobject:**
-
-| ค่า | ความหมาย | การใช้งาน |
-|------|------------|------------|
-| `MUST_READ` | ต้องอ่านไฟล์ | ฟิลด์เริ่มต้นที่จำเป็น |
-| `READ_IF_PRESENT` | อ่านถ้ามี | ฟิลด์ที่มีหรือไม่มีก็ได้ |
-| `NO_READ` | ไม่อ่าน | สร้างฟิลด์ใหม่ |
-| `AUTO_WRITE` | เขียนอัตโนมัติ | บันทึกผลลัพธ์ |
-| `NO_WRITE` | ไม่เขียน | ฟิลด์ชั่วคราว |
-
----
-
-พื้นฐาน primitives เหล่านี้เป็นหลักมูลของเฟรมเวิร์กการคำนวณของ OpenFOAM ซึ่งเปิดให้สามารถพัฒนา CFD solvers ที่ซับซ้อนผ่านการประกอบและการขยายองค์ประกอบหลักเหล่านี้
-
-ในหัวข้อถัดไป เราจะเจาะลึกแต่ละ primitive type เพื่อความเข้าใจที่ลึกซึ้งยิ่งขึ้น:
-- [[01_Introduction|บทนำ]] - แนะนำระบบประเภทข้อมูล
-- [[02_Topic_1_Basic_Primitives_(`label`,_`scalar`,_`word`)|Primitive พื้นฐาน]] - label, scalar, word
-- [[03_Topic_2_Dimensioned_Types_(`dimensionedType`)|ประเภทที่มีมิติ]] - dimensionedType
-- [[04_Topic_3_Smart_Pointers_(`autoPtr`,_`tmp`)|Smart Pointers]] - autoPtr, tmp
-- [[05_Topic_4_Containers_(`List`)|คอนเทนเนอร์]] - List, PtrList
-- [[06_Summary_&_Reference|สรุปและอ้างอิง]] - ภาพรวมและตารางอ้างอิง
-
----
-
-## 🧠 9. Concept Check (ทดสอบความเข้าใจ)
-
-1.  **ทำไม OpenFOAM ถึงไม่ให้เราบวก `pressure` (ความดัน) เข้ากับ `velocity` (ความเร็ว)?**
-    <details>
-    <summary>เฉลย</summary>
-    เพราะ OpenFOAM มีระบบ **Physics Safety** หรือ **Dimensional Consistency** ที่เข้มงวด มันจะตรวจสอบหน่วย (Dimensions) ของตัวแปรก่อนคำนวณ หากหน่วยไม่ตรงกัน (เช่น Pascal + m/s) คอมไพเลอร์จะฟ้อง Error ทันที เพื่อป้องกันผลลัพธ์ที่ผิดเพี้ยนทางฟิสิกส์
-    </details>
-
-2.  **ความแตกต่างระหว่าง `autoPtr` และ `tmp` คืออะไร?**
-    <details>
-    <summary>เฉลย</summary>
-    - **`autoPtr`:** เป็นเจ้าของข้อมูล **คนเดียว** (Exclusive Ownership) เหมาะสำหรับการสร้าง Object ใหม่แล้วส่งต่อให้คนอื่นดูแลต่อ
-    - **`tmp`:** เป็นระบบ **แชร์** (Shared Reference Counting) เหมาะสำหรับตัวแปรชั่วคราวในการคำนวณ (เช่น ผลลัพธ์ของ `grad(U)`) ที่อาจถูกเรียกใช้หลายครั้งหรือขอบเขตสิ้นสุดเร็ว ช่วยลดการ Copy ข้อมูลขนาดใหญ่โดยไม่จำเป็น
-    </details>
-
-3.  **ทำไม `LduMatrix` ถึงเก็บข้อมูลแบบ "Sparse" (เบาบาง)?**
-    <details>
-    <summary>เฉลย</summary>
-    เพราะในวิธีการ Finite Volume Method (FVM) เซลล์หนึ่งๆ จะเชื่อมต่อกับเซลล์ข้างเคียง (Neighbours) เพียงไม่กี่เซลล์เท่านั้น สัมประสิทธิ์ส่วนใหญ่ในเมทริกซ์จึงเป็น 0 การเก็บทุกตัวเปลืองหน่วยความจำมหาศาล การเก็บแบบ Sparse (เก็บเฉพาะตัวที่ไม่ใช่ 0) จึงประหยัด Memory และคำนวณเร็วกว่ามาก
-    </details>
+- **Introduction:** [01_Introduction.md](01_Introduction.md)
+- **Basic Primitives:** [02_Basic_Primitives.md](02_Basic_Primitives.md)
+- **Dimensioned Types:** [03_Dimensioned_Types_Intro.md](03_Dimensioned_Types_Intro.md)

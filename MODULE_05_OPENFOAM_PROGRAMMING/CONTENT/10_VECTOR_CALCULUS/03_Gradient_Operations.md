@@ -1,11 +1,28 @@
 # การดำเนินการ Gradient ใน OpenFOAM
 
+> [!TIP] ทำไม Gradient Operations สำคัญ?
+> Gradient Operations เป็นหัวใจของการคำนวณ CFD เนื่องจากใช้คำนวณอนุพันธ์เชิงพื้นที่ (Spatial Derivatives) ของสนามข้อมูล เช่น ความดัน (Pressure) และความเร็ว (Velocity) ความแม่นยำของ Gradient ส่งผลโดยตรงต่อ:
+> - **ความถูกต้องของแรง (Forces)**: เช่น แรงลอยตัว (Buoyancy), แรงเฉือน (Shear Force)
+> - **เสถียรภาพของการคำนวณ (Numerical Stability)**: ค่า Gradient ที่ไม่ถูกต้องทำให้การคำนวณแตก (Diverge)
+> - **คุณภาพของการทำนาย (Prediction Quality)**: โดยเฉพาะการไหลแบบ Turbulent และการไหลที่มีความชันสูง
+>
+> **🎯 ประยุกต์ใช้กับ OpenFOAM Case**: การตั้งค่า `gradSchemes` ในไฟล์ `system/fvSchemes` มีผลต่อทุกสมการใน solver เช่น แรงดัน ($-\nabla p$), ความเค้นเฉือก ($\mu \nabla^2 \mathbf{u}$), และการคำนวณ Turbulence
+
 ![[slope_of_data_gradient.png]]
 `A 3D landscape of data values. At one point, a glowing arrow points straight "uphill" representing the gradient vector. Below the surface, the underlying mesh cells are visible, showing how their values contribute to the arrow's direction, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
 
 ---
 
 ## 1. พื้นฐานทางคณิตศาสตร์
+
+> [!NOTE] **📂 OpenFOAM Context: รากฐานของ Finite Volume Calculus**
+> ส่วนนี้อธิบาย **Gauss Theorem** ซึ่งเป็นพื้นฐานของ `fvc::grad()` function ใน OpenFOAM
+> - **📍 ไฟล์ Source Code**: `src/finiteVolume/fvc/fvcGrad.C`
+> - **🔑 คำสั่ง C++**: `volVectorField gradP = fvc::grad(p);`
+> - **📊 คณิตศาสตร์**: $\nabla \phi = \frac{1}{V} \sum_f \phi_f \mathbf{S}_f$
+> - **🎯 ผลลัพธ์**: แปลง Scalar → Vector, Vector → Tensor
+>
+> **🔗 การเชื่อมโยงกับ Case Files**: สมการนี้ถูกใช้โดย solver ทุกตัวเพื่อคำนวณ gradient ของความดันและความเร็วจากไฟล์ใน `0/` directory (เช่น `0/p`, `0/U`) ตามการตั้งค่าใน `system/fvSchemes`
 
 **Operator นามิกร $\nabla$** ทำการแปลงสนามสเกลาร์เป็นสนามเวกเตอร์ และสนามเวกเตอร์เป็นสนามเทนเซอร์ ในวิธีการปริมาตรจำกัด หลักการเชิงอนุพันธ์เชิงต่อเนื่องนี้จะถูกแบ่งส่วนโดยใช้ทฤษฎีบทของเกาส์:
 
@@ -46,6 +63,17 @@ flowchart LR
 
 ## 2. การใช้งานพื้นฐาน
 
+> [!NOTE] **📂 OpenFOAM Context: การเรียกใช้ Gradient ใน C++ Code**
+> ส่วนนี้แสดงวิธีการใช้ `fvc::grad()` ใน **Custom Solver** หรือ **Function Object**
+> - **📍 ไฟล์ Header**: `src/finiteVolume/fvc/fvc.H`
+> - **🔑 Namespace**: `fvc` (Finite Volume Calculus)
+> - **🎯 การประยุกต์ใช้**:
+>   - สร้าง Custom Solver ใน `MySolver.C`
+>   - สร้าง Function Object ใน `src/postProcessing/functionObjects/`
+> - **📦 การ Compile**: ต้องเพิ่ม `#include "fvc.H"` และ link กับ `libfiniteVolume.so`
+>
+> **💡 ตัวอย่างการใช้งานจริง**: ในไฟล์ solver source code เช่น `src/transportFoam/transportFoam.C` จะมีการคำนวณ gradient ของความดันเพื่อหาแรงกระตุ้น
+
 คุณสามารถเรียกใช้ gradient ได้ผ่าน Namespace `fvc`:
 
 ```cpp
@@ -79,6 +107,25 @@ volTensorField gradU = fvc::grad(U);
 ---
 
 ## 3. รูปแบบการแบ่งส่วน
+
+> [!NOTE] **📂 OpenFOAM Context: การตั้งค่า Gradient Schemes ใน Case**
+> ส่วนนี้เชื่อมโยง **ทฤษฎี Discretization** กับ **ไฟล์ Case Configuration**
+> - **📍 ไฟล์ Case**: `system/fvSchemes`
+> - **🔑 คีย์เวิร์ด**: `gradSchemes`
+> - **🎯 ผลต่อการคำนวณ**: กำหนดความแม่นยำของการคำนวณ gradient สำหรับทุก field ใน solver
+> - **⚙️ ตัวอย่างการตั้งค่า**:
+>   ```cpp
+>   gradSchemes {
+>       default         Gauss linear;
+>       grad(p)         Gauss leastSquares;
+>       grad(U)         Gauss fourth;
+>   }
+>   ```
+>
+> **🔗 ผลต่อ Simulation**: Scheme ที่เลือกมีผลต่อ:
+> - **Convergence**: LeastSquares อาจช้ากว่าแต่แม่นยำกว่า
+> - **Stability**: Linear scheme มักจะเสถียรกว่า
+> - **Mesh Quality**: Fourth ต้องการ mesh คุณภาพสูง
 
 ความแม่นยำของการคำนวณ gradient ขึ้นอยู่กับรูปแบบการอินเตอร์โพลเลชันที่ใช้สำหรับ $\phi_f$
 
@@ -125,6 +172,17 @@ gradSchemes
 
 ## 4. อัลกอริทึม Gradient แบบ Least Squares
 
+> [!NOTE] **📂 OpenFOAM Context: การทำงานภายในของ `Gauss leastSquares`**
+> ส่วนนี้อธิบาย **Implementation Details** ของ least squares gradient scheme
+> - **📍 ไฟล์ Source**: `src/finiteVolume/fvSchemes/gaussGrad/gaussLeastSquaresGrad.C`
+> - **🔑 การเรียกใช้**: `gradSchemes { default Gauss leastSquares; }`
+> - **🎯 ข้อดี**: เหมาะสำหรับ **Unstructured Mesh** ที่มีความไม่สมมาตรสูง
+> - **⚠️ ข้อเสีย**: ใช้หน่วยความจำและเวลามากกว่า Linear scheme
+>
+> **🔗 การเชื่อมโยงกับ Mesh Quality**:
+> - ถ้า mesh ใน `constant/polyMesh/` มี non-orthogonality สูง → ใช้ LeastSquares
+> - ถ้า mesh เป็น structured/orthogonal → Linear ก็เพียงพอและเร็วกว่า
+
 วิธี least squares ลดข้อผิดพลาดในการขยายแบบเทย์เลอร์เชิงเส้น:
 
 $$
@@ -170,6 +228,23 @@ $$
 ---
 
 ## 5. การประยุกต์ใช้งานจริง
+
+> [!NOTE] **📂 OpenFOAM Context: การใช้ Gradient ใน Solvers และ Physics**
+> ส่วนนี้แสดง **Practical Applications** ของ gradient ใน OpenFOAM solvers
+> - **📍 ไฟล์ Solvers**:
+>   - `src/transportFoam/` - การคำนวณ Buoyancy
+>   - `src/heatTransfer/` - การคำนวณ Natural Convection
+>   - `src/turbulenceModels/` - การคำนวณ Strain Rate
+> - **🔑 ฟิสิกส์ที่เกี่ยวข้อง**:
+>   - Pressure Gradient Force ($-\nabla p$) → แรงขับเคลื่อนหลัก
+>   - Buoyancy Force ($-\nabla \rho \cdot \mathbf{g}$) → แรงลอยตัว
+>   - Strain Rate Tensor ($\mathbf{S}$) → ความเค้นเฉือน
+> - **🎯 การประยุกต์ใช้**: ใช้ในทุก solver ที่แก้สมการ Navier-Stokes
+>
+> **💡 ตัวอย่างการใช้งานจริง**:
+> - `buoyantSimpleFoam`: คำนวณ `fvc::grad(rho)` เพื่อหาแรงลอยตัว
+> - `simpleFoam`: คำนวณ `fvc::grad(p)` เพื่อหาแรงดัน
+> - `kEpsilon`: คำนวณ `fvc::grad(U)` เพื่อหา strain rate
 
 ### 5.1 เทอมต้นทางของสมการโมเมนตัม
 
@@ -265,6 +340,19 @@ volScalarField wallShearStress = mag(mu * fvc::grad(U));
 
 ## 6. ข้อผิดพลาดทั่วไปและวิธีแก้ไข
 
+> [!NOTE] **📂 OpenFOAM Context: การ Debugging และ Type Safety**
+> ส่วนนี้ครอบคลุม **Common Pitfalls** ในการเขียน C++ Code ด้วย OpenFOAM API
+> - **📍 ประเภทปัญหา**: Compilation Errors, Runtime Errors
+> - **🔑 แหล่งที่มาของข้อผิดพลาด**:
+>   - Type System: `src/OpenFOAM/fields/`
+>   - Boundary Conditions: `src/finiteVolume/fields/fvPatchFields/`
+> - **🎯 การแก้ไข**:
+>   - ตรวจสอบ Field Types (Scalar vs Vector vs Tensor)
+>   - ตรวจสอบ Header Includes (`#include "fvc.H"`)
+>   - ตรวจสอบ Boundary Conditions ใน `0/` directory
+>
+> **💻 การ Debug**: ใช้ compiler output และ check dimensions ด้วย `Info <<` statements
+
 ### 6.1 ชนิดข้อมูลไม่ตรงกัน
 
 ```cpp
@@ -335,6 +423,19 @@ Info << "Boundary gradient values: " << gradP.boundaryField() << endl;
 
 ## 7. การพิจารณาด้านประสิทธิภาพ
 
+> [!NOTE] **📂 OpenFOAM Context: Performance Optimization และ Computational Cost**
+> ส่วนนี้เชื่อมโยง **Numerical Schemes** กับ **Performance Impact**
+> - **📍 ไฟล์ Config**: `system/fvSchemes`
+> - **🔑 ประเด็นสำคัญ**:
+>   - Memory Usage: สัมพันธ์กับ mesh size ใน `constant/polyMesh/`
+>   - CPU Time: ขึ้นอยู่กับความซับซ้อนของ scheme
+> - **🎯 การ Trade-off**:
+>   - `Gauss linear`: เร็ว แต่อาจแม่นยำน้อยกว่า
+>   - `Gauss leastSquares`: แม่นยำ แต่ใช้ memory/CPU มากกว่า
+>   - `Gauss fourth`: แม่นยำมาก แต่ต้องการ mesh คุณภาพสูง
+>
+> **📊 การวัดผล**: ใช้ `log.` files จากการ run solver เพื่อดู execution time ของแต่ละ time step
+
 ### 7.1 การใช้หน่วยความจำ
 
 | รูปแบบ | การใช้หน่วยความจำ | หมายเหตุ |
@@ -374,6 +475,20 @@ gradSchemes { default Gauss linear; }
 ---
 
 ## 8. คุณสมบัติขั้นสูง
+
+> [!NOTE] **📂 OpenFOAM Context: Gradient Limiters สำหรับ Numerical Stability**
+> ส่วนนี้ครอบคลุม **Advanced Schemes** ที่ใช้สำหรับ High-Gradient Flows
+> - **📍 ไฟล์ Config**: `system/fvSchemes`
+> - **🔑 คีย์เวิร์ด**:
+>   - `cellLimited`: จำกัด gradient ต่อเซลล์
+>   - `faceLimited`: จำกัด gradient ต่อพื้นผิว
+> - **🎯 การใช้งาน**:
+>   - Shock waves: การไหลที่มีการกระแทก
+>   - Multiphase flows: ระหว่าง phases
+>   - High-Mach flows: การไหลความเร็วเสียงสูง
+> - **⚠️ ผลข้างเคียง**: อาจลดความแม่นยำลงเพื่อรักษาเสถียรภาพ
+>
+> **💡 การเลือกใช้**: ใช้ limiters เมื่อ simulation แตก (diverge) หรือมี oscillations ในผลลัพธ์
 
 ### 8.1 Gradient ที่ถูกจำกัดต่อเซลล์
 
@@ -427,6 +542,21 @@ gradSchemes
 ---
 
 ## 9. การประยุกต์ใช้ในสมการ Navier-Stokes
+
+> [!NOTE] **📂 OpenFOAM Context: Gradient ใน Pressure-Velocity Coupling Algorithms**
+> ส่วนนี้เชื่อมโยง **Theory** กับ **Solver Implementations**
+> - **📍 ไฟล์ Solvers**:
+>   - `src/finiteVolume/cfdTools/incompressible/rhoPimpleFoam/` - PIMPLE algorithm
+>   - `src/finiteVolume/cfdTools/incompressible/simpleFoam/` - SIMPLE algorithm
+>   - `src/finiteVolume/cfdTools/incompressible/pisoFoam/` - PISO algorithm
+> - **🔑 สมการ Navier-Stokes**:
+>   $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
+> - **🎯 การใช้ Gradient**:
+>   - $-\nabla p$: Pressure gradient force (แรงดัน)
+>   - $\nabla \mathbf{u}$: Velocity gradient tensor (ความเค้นเฉือก)
+>   - $\nabla \rho$: Density gradient (แรงลอยตัว)
+>
+> **💻 การ Implement**: ใน solver code จะใช้ `fvc::grad()` และ `fvm::grad()` (implicit) เพื่อแก้สมการ
 
 สมการ Navier-Stokes สำหรับการไหลแบบอินคอมเพรสซิเบิลใช้ gradient อย่างกว้างขวาง:
 

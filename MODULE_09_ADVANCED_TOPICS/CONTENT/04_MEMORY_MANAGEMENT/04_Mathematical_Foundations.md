@@ -1,5 +1,16 @@
 # 04 รากฐานคณิตศาสต์: การนับการอ้างอิงและความปลอดภัยของหน่วยความจำ
 
+> [!TIP] ทำไมเรื่องนี้สำคัญต่อการจำลอง?
+> การจัดการหน่วยความจำที่มีประสิทธิภาพและปลอดภัยเป็นรากฐานของ **เสถียรภาพ (Stability)** และ **ประสิทธิภาพ (Performance)** ของการจำลอง CFD ขนาดใหญ่ หากไม่มีระบบ Reference Counting และ Smart Pointers:
+> - อาจเกิด **Memory Leaks** ทำให้โปรแกรมคราชหลังจากรันนานๆ
+> - อาจเกิด **Double Delete** ทำให้โปรแกรมหยุดทำงานแบบกระทันหัน
+> - การคัดลอกข้อมูล Field ขนาดใหญ่โดยไม่จำเป็นทำให้ **ประสิทธิภาพลดลง** อย่างมาก
+>
+> ในฐานะผู้ใช้งาน: คุณไม่จำเป็นต้องเขียนโค้ดเหล่านี้โดยตรง แต่การทำความเข้าใจช่วยให้คุณ:
+> 1. เขียน Custom Boundary Conditions หรือ Functions ได้อย่างมีประสิทธิภาพ
+> 2. Debug ปัญหา Memory ของ Custom Solvers ได้
+> 3. อ่านและเข้าใจ Source Code ของ OpenFOAM ได้ดีขึ้น
+
 ![[memory_safety_proof.png]]
 `A clean scientific diagram illustrating the "Memory Safety State Machine". Show states for "Memory Allocated", "Multiple References", "Single Reference", and "Memory Freed". Use mathematical arrows with +1/-1 labels representing ref() and unref(). Use a minimalist palette, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
 
@@ -8,6 +19,20 @@
 ---
 
 ## การนับการอ้างอิงเป็นสถานะเครื่องจักร
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **หมวดหมู่:** Domain E: Coding/Customization (C++ Source Code)
+>
+> แนวคิดของ Reference Counting ถูกนำไปใช้ใน **Source Code ของ OpenFOAM** โดยตรง:
+> - **ไฟล์หลัก:** `OpenFOAM/src/OpenFOAM/memory/refCount/refCount.H` และ `refCount.C`
+> - **คลาสที่เกี่ยวข้อง:** `refCount`, `tmp<T>`, `autoPtr<T>`
+> - **การใช้งาน:** คลาสเหล่านี้เป็นพื้นฐานของระบบ Field ทั้งหมดใน OpenFOAM (เช่น `volScalarField`, `volVectorField`)
+> - **ตัวอย่างใน Solvers:** เมื่อคุณเห็น `tmp<volScalarField>` ใน solver code นั่นคือการใช้ Reference Counting จริง
+>
+> **คำศัพท์สำคัญ:**
+> - `ref()` - เพิ่มจำนวนการอ้างอิง (+1)
+> - `unref()` - ลดจำนวนการอ้างอิง (-1)
+> - `refCount_` - ตัวแปรสมาชิกที่เก็บจำนวนการอ้างอิง
 
 กำหนดให้ $r(t) \in \mathbb{N}_0$ เป็นจำนวนการอ้างอิงของอ็อบเจกต์ในเวลา $t$ การดำเนินการ `ref()` และ `unref()` จะปรับเปลี่ยนค่านี้:
 
@@ -30,6 +55,20 @@ $$
 
 ## การวิเคราะห์ค่าใช้จ่ายหน่วยความจำ
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **หมวดหมู่:** Domain E: Coding/Customization (C++ Source Code)
+>
+> แนวคิดเรื่อง Memory Overhead นี้เกี่ยวข้องกับ **การออกแบบ Custom Boundary Conditions หรือ Custom Functions**:
+> - **ไฟล์ที่เกี่ยวข้อง:** เมื่อคุณสร้าง Custom Boundary Condition ใหม่ใน `src/finiteVolume/fields/fvPatchFields/`
+> - **การตัดสินใจ:** การใช้ `tmp<T>` แทนการคัดลอก Field โดยตรงจะช่วยประหยัดหน่วยความจำได้มาก
+> - **ตัวอย่าง:** ใน `codedFixedValue` BC หรือ `functionObjects` ที่คุณเขียนเอง
+> - **ผลกระทบ:** สำหรับ Case ขนาดใหญ่ที่มี Cells หลายล้าน การคัดลอก Field โดยไม่จำเป็นอาจทำให้ RAM เต็มได้
+>
+> **คำศัพท์สำคัญ:**
+> - `N` - จำนวน Cells หรือ Faces ใน Mesh
+> - `s` - ขนาดของแต่ละ Data Point (เช่น 8 bytes สำหรับ double)
+> - `refCount_` - ตัวแปรสมาชิกที่เก็บจำนวนการอ้างอิง (≈ 4 bytes)
+
 สำหรับฟิลด์ที่มี $N$ องศาอิสระ (เช่น เซลล์, หน้า) แต่ละตัวมีขนาด $s$ ไบต์ การใช้หน่วยความจำทั้งหมดกับการนับการอ้างอิงคือ:
 
 $$
@@ -42,6 +81,21 @@ $$
 
 ## ประสิทธิภาพของ Atomic Operations
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **หมวดหมู่:** Domain E: Coding/Customization (C++ Source Code) + Domain C: Simulation Control (Parallel Computing)
+>
+> เรื่องนี้เกี่ยวข้องกับ **การรันแบบ Parallel (MPI/OpenMP)** และ **Multi-threading**:
+> - **ไฟล์ที่เกี่ยวข้อง:** `OpenFOAM/src/OpenFOAM/memory/refCount/refCount.H` ในส่วนที่ใช้ `std::atomic<int>`
+> - **การตั้งค่า Parallel:** `system/decomposeParDict` สำหรับ MPI decomposition
+> - **ผลกระทบ:** เมื่อใช้ `mpirun -np 4` หรือมากกว่า การจัดการ Reference Counting ต้อง Thread-Safe
+> - **Best Practice:** สำหรับ Custom Code ที่ใช้งานกับ Parallel runs, ควรใช้ `tmp<T>` แทน Raw Pointers เพื่อให้มั่นใจว่า Thread-Safe
+>
+> **คำศัพท์สำคัญ:**
+> - `std::atomic<int>` - ประเภทข้อมูลที่รับประกัน Thread-Safety
+> - `memory-barrier` - กลไกฮาร์ดแวร์ที่ทำให้แน่ใจว่าการอัปเดตมองเห็นได้ทั่วทั้ง Multi-core
+> - `mpirun` - คำสั่งรัน Parallel ใน OpenFOAM
+> - `decomposePar` - เครื่องมือแบ่ง Domain สำหรับ Parallel computing
+
 ในการรันแบบขนาน การนับการอ้างอิงแบบ atomic ใช้ `std::atomic<int>` พร้อมข้อจำกัดของ memory-order ต้นทุนของการเพิ่ม/ลดค่าแบบ atomic มีค่าประมาณ:
 
 $$
@@ -53,6 +107,21 @@ $$
 ---
 
 ## การจัดแนว Cache-Line และ False Sharing
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **หมวดหมู่:** Domain E: Coding/Customization (C++ Source Code) + Domain C: Simulation Control (Parallel Computing)
+>
+> เรื่อง False Sharing และ Cache Alignment เกี่ยวข้องกับ **การรัน Parallel ที่มีประสิทธิภาพสูง**:
+> - **ไฟล์ที่เกี่ยวข้อง:** `OpenFOAM/src/OpenFOAM/memory/refCount/refCount.H` ในส่วนที่มีการใช้ `alignas(64)`
+> - **การตั้งค่า Parallel:** `system/decomposeParDict` สำหรับกำหนด Decomposition method
+> - **ผลกระทบ:** เมื่อรัน `mpirun -np 8` หรือมากกว่า หากไม่มี Cache Alignment อาจเกิด Performance Degradation ได้
+> - **Best Practice:** เมื่อเขียน Custom FunctionObjects หรือ Boundary Conditions ที่มีการใช้งานกับ Parallel runs ให้ระวังเรื่อง Data Layout ในหน่วยความจำ
+>
+> **คำศัพท์สำคัญ:**
+> - `alignas(64)` - C++ keyword สำหรับกำหนด Alignment ของตัวแปร
+> - `false sharing` - ปัญหาที่เกิดเมื่อหลาย Thread อัปเดตตัวแปรที่อยู่บน Cache Line เดียวกัน
+> - `cache line` - หน่วยข้อมูลที่ CPU โหลดจากหน่วยความจำ (64 bytes บน x86-64)
+> - `mpirun` - คำสั่งรัน Parallel ใน OpenFOAM
 
 ```mermaid
 graph LR
@@ -79,6 +148,27 @@ $$
 ---
 
 ## รากฐานทางคณิตศาสตร์ของ Smart Pointers
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **หมวดหมู่:** Domain E: Coding/Customization (C++ Source Code)
+>
+> เรื่อง Smart Pointers (autoPtr และ tmp) เป็น **พื้นฐานของการเขียนโค้ด OpenFOAM**:
+> - **ไฟล์หลัก:**
+>   - `OpenFOAM/src/OpenFOAM/memory/autoPtr/autoPtr.H`
+>   - `OpenFOAM/src/OpenFOAM/memory/tmp/tmp.H`
+> - **การใช้งานใน Solvers:** เกือบทุก Solver ใช้ `tmp<T>` สำหรับการคำนวณ Field Algebra
+> - **ตัวอย่างการใช้งาน:**
+>   ```cpp
+>   tmp<volScalarField> tRho = thermo.rho();
+>   const volScalarField& rho = tRho();
+>   ```
+> - **Best Practice:** เมื่อเขียน Custom Boundary Condition หรือ Function Object ให้ใช้ `tmp<T>` สำหรับ Field ชั่วคราวเพื่อหลีกเลี่ยงการคัดลอกโดยไม่จำเป็น
+>
+> **คำศัพท์สำคัญ:**
+> - `autoPtr<T>` - Smart Pointer ที่มีเจ้าของคนเดียว (Exclusive Ownership)
+> - `tmp<T>` - Smart Pointer ที่มีการนับการอ้างอิง (Reference Counting)
+> - `T` - ประเภทข้อมูล เช่น `volScalarField`, `volVectorField`
+> - `ref()` / `unref()` - ฟังก์ชันสำหรับเพิ่ม/ลด จำนวนการอ้างอิง
 
 ### ความสัมพันธ์ระหว่าง autoPtr และ tmp
 
@@ -115,6 +205,23 @@ $$
 ---
 
 ## การประยุกต์ใช้กับ Field Algebra
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **หมวดหมู่:** Domain E: Coding/Customization (C++ Source Code)
+>
+> เรื่อง Field Algebra และ Lazy Evaluation เป็น **หัวใจของ Solver Development**:
+> - **ไฟล์ตัวอย่าง:**
+>   - `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystemSolve.C`
+>   - `applications/solvers/compressible/rhoPimpleFoam/UEqn.H`
+> - **การใช้งาน:** ในไฟล์ `*.H` ของ Solvers คุณจะเห็นการใช้ `tmp<T>` อย่างแพร่หลาย
+> - **ผลกระทบ:** การใช้ `tmp<T>` อย่างถูกต้องสามารถเพิ่มประสิทธิภาพได้ 10-30% สำหรับการคำนวณที่ซับซ้อน
+> - **Best Practice:** เมื่อเขียน Custom Solver หรือ Modified Equation ให้ใช้ `tmp<T>` สำหรับ Intermediate Fields
+>
+> **คำศัพท์สำคัญ:**
+> - `tmp<volScalarField>` - Temporary Field สำหรับ Scalar quantities
+> - `tmp<volVectorField>` - Temporary Field สำหรับ Vector quantities
+> - `lazy evaluation` - การคำนวณที่เกิดขึ้นเมื่อจำเป็นต้องใช้ค่าจริง
+> - `expression templates` - เทคนิค C++ สำหรับ optimize expressions
 
 ในการคำนวณ CFD การดำเนินการฟิลด์สามารถแสดงเป็นนิพจน์เชิงฟังก์ชัน:
 
@@ -155,6 +262,21 @@ $$
 
 ## ข้อจำกัดและการแลกเปลี่ยน
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **หมวดหมู่:** Domain E: Coding/Customization (C++ Source Code)
+>
+> เรื่อง Trade-offs เกี่ยวข้องกับ **การตัดสินใจเมื่อเขียน Custom Code**:
+> - **สถานการณ์ที่ควรใช้ `tmp<T>`:** เมื่อต้องสร้าง Intermediate Fields ใน Solvers หรือ Boundary Conditions
+> - **สถานการณ์ที่ใช้ Raw Pointers:** ไม่ควรใช้ เว้นแต่มีความจำเป็นพิเศษและเข้าใจผลกระทบ
+> - **ตัวอย่าง:** ใน Custom Function Object ที่ต้อง Access Field หลายครั้ง การใช้ `tmp<T>` ช่วยประหยัด Memory
+> - **ผลกระทบ:** สำหรับ Large Cases (10M+ cells) การเลือกใช้ Memory Management ที่ถูกต้องสำคัญมาก
+>
+> **คำศัพท์สำคัญ:**
+> - `manual management` - การจัดการหน่วยความจำด้วยตนเอง (new/delete)
+> - `reference counting` - การจัดการหน่วยความจำแบบอัตโนมัติ
+> - `atomic ops` - การดำเนินการที่ Thread-Safe สำหรับ Parallel computing
+> - `memory overhead` - หน่วยความจำเพิ่มเติมที่ใช้สำหรับ Bookkeeping
+
 ### Trade-off: Reference Counting vs Manual Management
 
 | แง่มุม | Reference Counting | Manual Management |
@@ -182,6 +304,24 @@ $$
 ---
 
 ## การพิสูจน์ความถูกต้องของ Memory Safety
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **หมวดหมู่:** Domain E: Coding/Customization (C++ Source Code)
+>
+> เรื่อง Memory Safety Proofs เกี่ยวข้องกับ **การ Debug และ Quality Assurance ของ Custom Code**:
+> - **เครื่องมือ Debug:**
+>   - `valgrind` - สำหรับตรวจสอบ Memory Leaks
+>   - `gdb` - สำหรับตรวจสอบ Memory Corruption
+>   - `valgrind --leak-check=full solverName -case` - รันแบบตรวจสอบ Memory
+> - **การใช้งาน:** เมื่อเขียน Custom Boundary Conditions หรือ Solvers ใหม่
+> - **Best Practice:** ทดสอบ Custom Code กับ Small Case ก่อน แล้วจึงรัน `valgrind` เพื่อตรวจสอบ Memory
+> - **ผลกระทบ:** Memory Leaks ที่ไม่ได้รับการแก้ไข อาจทำให้ Simulation Crash หลังจากรันหลายวัน
+>
+> **คำศัพท์สำคัญ:**
+> - `memory leak` - การจองหน่วยความจำแต่ไม่คืน
+> - `double delete` - การคืนหน่วยความจำซ้ำ
+> - `segmentation fault` - ข้อผิดพลาดที่เกิดจากการเข้าถึง Memory ที่ไม่ได้จอง
+> - `RAII` - Resource Acquisition Is Initialization วิธีการจัดการทรัพยากรใน C++
 
 ### การไม่มี Memory Leaks
 

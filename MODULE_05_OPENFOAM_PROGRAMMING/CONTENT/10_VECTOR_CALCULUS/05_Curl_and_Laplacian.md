@@ -1,5 +1,12 @@
 # การดำเนินการ Curl และ Laplacian
 
+> [!TIP] ทำไมตัวดำเนินการเหล่านี้สำคัญสำหรับการจำลอง?
+> การเข้าใจ **Curl** และ **Laplacian** เป็นพื้นฐานสำคัญของ CFD:
+> - **Curl** ใช้วิเคราะห์ **โครงสร้างการหมุน (Vorticity)** ของการไหล เช่น การพัฒนาของน้ำวน (vortex), การแยกชั้น (flow separation), และความปั่นป่วน (turbulence)
+> - **Laplacian** เป็นหัวใจของ **กระบวนการแพร่ (Diffusion)**: ความหนืดในสมการโมเมนตัม, การนำความร้อนในสมการพลังงาน, และการแพร่ของสาร
+>
+> หากเลือก **Numerical Schemes** ที่ไม่เหมาะสมใน `system/fvSchemes` หรือใช้ **Explicit vs Implicit** ผิดวิธี การจำลองอาจกลายเป็น **Unstable** หรือให้ผลลัพธ์ที่ **Non-physical**
+
 ![[vortex_and_ripple_operators.png]]
 
 > **Academic Vision:** ภาพแบ่งครึ่ง ด้านหนึ่งแสดงน้ำวนที่หมุนติ้ว (Curl/Vorticity) อีกด้านหนึ่งแสดงระลอกคลื่นที่แผ่ออกจากจุดศูนย์กลาง (Laplacian/Diffusion) ภาพประกอบทางวิทยาศาสตร์ที่สะอาดตาและงดงาม ใช้โทนสีฟ้าและเขียวเทล
@@ -9,6 +16,15 @@
 ---
 
 ## 1. การดำเนินการ Curl (Curl Operation)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> ตัวดำเนินการ Curl ใน OpenFOAM เป็น **Post-processing Tool** ที่สำคัญ:
+> - **File:** ไม่มีใน dictionary files ใช้ใน **custom functionObjects** (`system/controlDict`) หรือ **solver source code**
+> - **Keywords:** `fvc::curl()`, `vorticity`, `Q-criterion`, `enstrophy`
+> - **Domain:** Numerics & Linear Algebra (Domain E - Coding)
+> - **Use Case:** คำนวณหลังจากจำลองเสร็จ เพื่อ visualise การหมุนวน, identify vortices, และวิเคราะห์ flow structures
+>
+> 💡 **สำคัญ:** Curl ไม่ได้ถูกใช้โดยตรงใน **Governing Equations** แต่ใช้ใน **Post-processing** เพื่อวิเคราะห์ผลลัพธ์ที่ได้จากการจำลอง
 
 ### 1.1 รากฐานทางคณิตศาสตร์
 
@@ -63,6 +79,15 @@ flowchart LR
 
 ### 1.2 การใช้งานใน OpenFOAM
 
+> [!NOTE] **📂 OpenFOAM Context**
+> การใช้งาน `fvc::curl()` ใน OpenFOAM:
+> - **File:** `src/finiteVolume/fvc/fvcCurl.C` (Source Code Implementation)
+> - **Usage Location:** Custom **functionObjects** ใน `system/controlDict` หรือใน **solver source code**
+> - **Keywords:** `fvc::curl()`, `vorticity`, `magSqr()`, `Q-criterion`
+> - **Domain:** Domain E (Coding/Customization) - Post-processing Functions
+>
+> 💡 **ตัวอย่างการใช้งาน:** สร้าง `functionObject` ใน `controlDict` เพื่อคำนวณ vorticity field โดยอัตโนมัติระหว่างรัน simulation
+
 OpenFOAM ใช้งานการดำเนินการ curl ผ่าน `fvc::curl`:
 
 ```cpp
@@ -89,6 +114,15 @@ volVectorField vorticityConfinement = epsilon * (fvc::curl(fvc::curl(U)) * fvc::
 > ฟังก์ชัน `fvc::curl` เป็นแม่แบบ (template) ที่รองรับประเภทฟิลด์ที่หลากหลาย แต่การใช้งานที่พบบ่อยที่สุดคือการคำนวณสนาม vorticity จากข้อมูลความเร็วในการจำลอง CFD
 
 ### 1.3 กลไกการทำงานภายใน
+
+> [!NOTE] **📂 OpenFOAM Context**
+> กลไกภายในของ Curl Operation:
+> - **File:** `src/finiteVolume/fvc/fvcCurl.C` - คำนวณจาก **Gradient Tensor** ที่ได้จาก `gradSchemes`
+> - **Dependency:** ใช้ผลลัพธ์จาก `fvc::grad()` ซึ่งถูกกำหนดใน `system/fvSchemes` ภายใต้ `gradSchemes`
+> - **Numerical Scheme:** ความแม่นยำของ curl ขึ้นอยู่กับ **Gradient Scheme** ที่เลือก (เช่น `Gauss linear`, `leastSquares`, `fourth`)
+> - **Domain:** Domain B (Numerics) & Domain E (Coding)
+>
+> 💡 **สำคัญ:** หากเลือก `gradSchemes` ที่ไม่แม่นยำ คำนวณ vorticity จะผิดพลาด แม้ว่าการจำลองจะ converge ก็ตาม
 
 OpenFOAM คำนวณ curl โดยเริ่มจากการหาเทนเซอร์เกรเดียนต์ (gradient tensor) ก่อน จากนั้นจึงดึงส่วนประกอบที่เหมาะสมออกมา:
 
@@ -164,6 +198,30 @@ curl(const GeometricField<Type, fvPatchField, volMesh>& vf)
 - `dimensioned` type รักษาความสอดคล้องของหน่วย
 
 ### 1.4 การประยุกต์ใช้ในพลศาสตร์ของไหล
+
+> [!NOTE] **📂 OpenFOAM Context**
+> การประยุกต์ใช้ Curl ใน CFD Analysis:
+> - **File:** Custom **functionObjects** ใน `system/controlDict` หรือ post-processing utilities
+> - **Applications:**
+>   - **Vorticity Visualization:** ดูการหมุนวนใน ParaView
+>   - **Q-Criterion:** ระบุตำแหน่ง **vortex cores** สำหรับ turbulent flow analysis
+>   - **Enstrophy Analysis:** วัดพลังงานการหมุนใน turbulent flows
+>   - **Flow Separation Detection:** หาตำแหน่งที่ flow แยกตัว
+> - **Domain:** Domain A (Physics) & Domain E (Coding) - Post-processing
+>
+> 💡 **ตัวอย่าง FunctionObject:**
+> ```cpp
+> // ใน system/controlDict
+> functions
+> {
+>     vorticity
+>     {
+>         type            vorticity;
+>         functionObjectLibs ("libfieldFunctionObjects.so");
+>         ...
+>     }
+> }
+> ```
 
 **การแสดงผลค่า Vorticity (Vorticity Visualization):**
 ```cpp
@@ -262,6 +320,19 @@ volVectorField vorticity = vector(gradU.zy() - gradU.yz(),
 
 ## 2. การดำเนินการ Laplacian (Laplacian Operation)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> ตัวดำเนินการ Laplacian เป็น **หัวใจของ Governing Equations** ใน CFD:
+> - **File:** `system/fvSchemes` → กำหนด `laplacianSchemes` สำหรับ discretization
+> - **Keywords:** `fvm::laplacian()`, `fvc::laplacian()`, `Gauss linear corrected`, `Gauss cubic corrected`
+> - **Domain:** Domain B (Numerics) & Domain E (Coding) - Equation Discretization
+> - **Physical Meaning:** แทน **Diffusion Terms** ในสมการ:
+>   - **Momentum:** $\nabla \cdot (\nu \nabla \mathbf{U})$ - ความหนืด (Viscous diffusion)
+>   - **Energy:** $\nabla \cdot (\alpha \nabla T)$ - การนำความร้อน (Thermal diffusion)
+>   - **Species:** $\nabla \cdot (D \nabla Y)$ - การแพร่ของสาร (Mass diffusion)
+>   - **Pressure Poisson:** $\nabla^2 p$ - การแก้สมการความดัน
+>
+> ⚠️ **CRITICAL:** หากเลือก `laplacianScheme` ที่ไม่เหมาะสม การจำลองอาจ **diverge** หรือได้ผลลัพธ์ที่ **inaccurate**!
+
 ### 2.1 รากฐานทางคณิตศาสตร์
 
 **ตัวดำเนินการ Laplacian** $\nabla^2$ แทนไดเวอร์เจนซ์ของเกรเดียนต์ ซึ่งอธิบายลักษณะของกระบวนการแพร่:
@@ -282,6 +353,26 @@ $$
 - **การแพร่ของสนามแม่เหล็กไฟฟ้า**
 
 ### 2.2 การ Discretization แบบ Finite Volume
+
+> [!NOTE] **📂 OpenFOAM Context**
+> การ Discretize สมการ Laplacian ใน OpenFOAM:
+> - **File:** `system/fvSchemes` → กำหนด numerical scheme ใน `laplacianSchemes`
+> - **Typical Settings:**
+>   ```cpp
+>   laplacianSchemes
+>   {
+>       default Gauss linear corrected;
+>       // หรือ
+>       default Gauss cubic corrected;
+>       // หรือสำหรับ non-orthogonal mesh
+>       default Gauss linear limited 0.5;
+>   }
+>   ```
+> - **Interpolation Schemes:** ใช้ `interpolationSchemes` สำหรับค่า $\Gamma_f$ ที่ face centers
+> - **Surface Normal Gradient:** ใช้ `snGradSchemes` สำหรับ $(\nabla \phi)_f \cdot \mathbf{n}_f$
+> - **Domain:** Domain B (Numerics) - Discretization Schemes
+>
+> 💡 **สำคัญ:** `corrected` scheme จัดการกับ **non-orthogonal meshes** โดยปรับปรุงความแม่นยำของ gradient calculation
 
 OpenFOAM ใช้งานการ discretization แบบ finite volume ของสมการการแพร่ดังนี้:
 
@@ -307,6 +398,22 @@ $$
 $$
 
 ### 2.3 Explicit vs Implicit Laplacian
+
+> [!NOTE] **📂 OpenFOAM Context**
+> การเลือกใช้ `fvc::laplacian` vs `fvm::laplacian` ใน Solver Development:
+> - **File:** ใช้ใน **solver source code** (`.C` files) สำหรับสร้าง governing equations
+> - **Decision Criteria:**
+>   - **Explicit (`fvc::`)**: สำหรับ **source terms**, **post-processing**, หรือ **explicit time stepping**
+>   - **Implicit (`fvm::`)**: สำหรับ **implicit diffusion** ใน governing equations (momentum, energy, pressure Poisson)
+> - **Stability Impact:**
+>   - Explicit: จำกัดด้วย **CFL condition** → time step เล็กมาก
+>   - Implicit: **unconditionally stable** → time step ใหญ่กว่าได้
+> - **Computational Cost:**
+>   - Explicit: ถูกกว่า (ไม่ต้อง solve linear system)
+>   - Implicit: แพงกว่า (ต้อง solve matrix system แต่ stable กว่า)
+> - **Domain:** Domain B (Numerics) & Domain E (Coding) - Time Integration Strategy
+>
+> ⚠️ **CRITICAL:** หากใช้ `fvc::laplacian` แทน `fvm::laplacian` ใน implicit solver จะทำให้ **simulation diverge** เมื่อ time step ใหญ่เกินไป!
 
 | คุณสมบัติ | Explicit Laplacian (`fvc::laplacian`) | Implicit Laplacian (`fvm::laplacian`) |
 |----------|--------------------------------------|--------------------------------------|
@@ -378,6 +485,29 @@ fvVectorMatrix UEqn(
 
 ### 2.5 การประยุกต์ใช้งาน
 
+> [!NOTE] **📂 OpenFOAM Context**
+> การประยุกต์ใช้ Laplacian ใน OpenFOAM Solvers:
+> - **File:** ใช้ใน **solver source code** (เช่น `src/finiteVolume/cfdTools/general/include/adjustPhi.C`)
+> - **Applications in Standard Solvers:**
+>   - **SimpleFoam/InterFoam:** ใช้ `fvm::laplacian(nu, U)` ใน momentum equation
+>   - **BuoyantFoam:** ใช้ `fvm::laplacian(alpha, T)` ใน energy equation
+>   - **ScalarTransportFoam:** ใช้ `fvm::laplacian(D, Y)` ใน species transport
+>   - **functionObjects:** ใช้ `fvc::laplacian` สำหรับ post-processing (เช่น `div` fieldObject)
+> - **Domain:** Domain A (Physics) & Domain E (Coding) - Solver Implementation
+>
+> 💡 **ตัวอย่างใน controlDict:**
+> ```cpp
+> // คำนวณ heat flux divergence สำหรับ post-processing
+> functions
+> {
+>     heatFluxDiv
+>     {
+>         type            coded;
+>         // ใช้ fvc::laplacian(kappa, T)
+>     }
+> }
+> ```
+
 **การใช้งาน Explicit Laplacian:**
 1. **วิเคราะห์การถ่ายเทความร้อน**: คำนวณ divergent heat flux และ temperature gradients
 2. **ประเมินความเค้นหนืด**: คำนวณ viscous diffusion contribution สำหรับ post-processing
@@ -420,6 +550,21 @@ volScalarField turbulentDiffusionK = fvc::laplacian(nut/sigmak, k);
 5. **กลศาสตร์ของแข็ง**: การนำความร้อนในการวิเคราะห์ coupled thermal-structural
 
 ### 2.6 ตัวอย่างการใช้งาน
+
+> [!NOTE] **📂 OpenFOAM Context**
+> Best Practices สำหรับการใช้ Laplacian ใน Solver Development:
+> - **File Location:** ใช้ใน **`.C` solver files** หรือ **custom boundary conditions**
+> - **Correct Usage:**
+>   - ต้องระบุ **diffusion coefficient** ($\Gamma$) และ **field** ($\phi$) ทั้งคู่
+>   - ใช้ `fvm::laplacian` สำหรับ **implicit diffusion** ใน governing equations
+>   - ใช้ `fvc::laplacian` สำหรับ **post-processing** หรือ **explicit source terms**
+> - **Common Mistakes:**
+>   - ลืม diffusion coefficient argument
+>   - ใช้ explicit ใน implicit solver → **unstable**
+>   - ผสมผสาน field types ที่ไม่ตรงกัน
+> - **Domain:** Domain E (Coding) - Solver Development
+>
+> ⚠️ **CRITICAL:** ตรวจสอบว่า diffusion coefficient มี **dimension** ที่ถูกต้อง!
 
 **การใช้งานที่ถูกต้อง:**
 ```cpp
@@ -477,6 +622,19 @@ fvScalarMatrix unstableEqn(
 ---
 
 ## 3. สรุปการเปรียบเทียบ
+
+> [!NOTE] **📂 OpenFOAM Context**
+> สรุปความแตกต่างระหว่าง Curl และ Laplacian ในการจำลอง CFD:
+> - **Curl (`fvc::curl`):**
+>   - **ใช้สำหรับ:** Post-processing, visualization, flow analysis
+>   - **ไม่ใช่ส่วนของ:** Governing equations (ไม่มีใน Navier-Stokesโดยตรง)
+>   - **ตำแหน่งใช้งาน:** `system/controlDict` (functionObjects), custom utilities
+> - **Laplacian (`fvm::laplacian`, `fvc::laplacian`):**
+>   - **ใช้สำหรับ:** Governing equations (diffusion terms), pressure Poisson equation
+>   - **เป็นส่วนสำคัญของ:** ทุก CFD solver (momentum, energy, species transport)
+>   - **ตำแหน่งใช้งาน:** `system/fvSchemes` (laplacianSchemes), solver source code
+>
+> 💡 **Key Insight:** Curl ใช้ "ดูผลลัพธ์" หลังจำลองเสร็จ, Laplacian ใช้ "คำนวณ" ระหว่างจำลอง!
 
 ```mermaid
 flowchart LR

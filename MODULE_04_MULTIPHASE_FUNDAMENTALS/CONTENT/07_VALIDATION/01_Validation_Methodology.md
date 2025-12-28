@@ -1,497 +1,241 @@
-# ระเบียบวิธีการตรวจสอบความถูกต้อง (Validation Methodology)
+# Validation Methodology
 
-## 1. บทนำ (Introduction)
-
-**การตรวจสอบความถูกต้อง (Validation)** คือกระบวนการเป็นระบบเพื่อให้แน่ใจว่าแบบจำลองทางคอมพิวเตอร์สามารถแทนปรากฏการณ์ทางฟิสิกส์ในโลกแห่งความเป็นจริงได้อย่างแม่นยำ สำหรับการไหลหลายเฟสแบบ Eulerian-Eulerian การตรวจสอบความถูกต้องช่วยสร้างความเชื่อมั่นในผลการพยากรณ์ของ CFD ผ่านการเปรียบเทียบอย่างเข้มงวดกับผลเฉลยเชิงวิเคราะห์ (Analytical solutions), ข้อมูลการทดลอง (Experimental data) และปัญหาเบนช์มาร์ก (Benchmark problems)
-
-### 1.1 ความสำคัญของการตรวจสอบความถูกต้อง
-
-ในการสร้างแบบจำลองการไหลแบบหลายเฟส การตรวจสอบความถูกต้องมีบทบาทเป็นสะพานที่สำคัญระหว่างการกำหนดสูตรทางทฤษฎีกับการประยุกต์ใช้ทางวิศวกรรมจริง โดยมีวัตถุประสงค์เพื่อ:
-
-- ยืนยันความถูกต้องของการ implement เชิงตัวเลข (Code verification)
-- ตรวจสอบความแม่นยำของการแก้สมการคณิตศาสตร์ (Solution verification)
-- ทำให้มั่นใจในความถูกต้องของโมเดลฟิสิกส์ (Model validation)
-- ประเมินความสามารถในการพยากรณ์ (Predictive capability)
-
-### 1.2 ลักษณะเฉพาะของการไหลหลายเฟส
-
-การตรวจสอบความถูกต้องสำหรับระบบหลายเฟสมีความท้าทายเพิ่มเติมเมื่อเปรียบเทียบกับการไหลเฟสเดียว:
-
-- **การกระจายของสัดส่วนปริมาณเฟส** (Phase fraction distribution)
-- **ความเข้มข้นของพื้นที่อินเตอร์เฟส** (Interfacial area concentration)
-- **โปรไฟล์ความเร็วเฉพาะเฟส** (Phase-specific velocity profiles)
-- **การโต้ตอบระหว่างเฟส** (Interphase interactions)
+ระเบียบวิธีการตรวจสอบความถูกต้องสำหรับ Multiphase Flow
 
 ---
 
-## 2. ลำดับชั้นของการตรวจสอบความถูกต้อง (Validation Hierarchy)
+## Validation Hierarchy
 
-กระบวนการตรวจสอบความถูกต้องจะดำเนินการตามลำดับขั้นจากพื้นฐานไปสู่ระบบที่ซับซ้อน:
-
-```mermaid
-graph TD
-classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
-Code["Code Verification<br/>MMS"]:::implicit
-Sol["Solution Verification<br/>Mesh Independence"]:::implicit
-Mod["Validation<br/>Compare Exp Data"]:::explicit
-Pred["Prediction<br/>Blind Tests"]:::explicit
-
-Code --> Sol --> Mod --> Pred
+```
+Code Verification → Solution Verification → Model Validation → Prediction
 ```
 
-### 2.1 การตรวจสอบโค้ด (Code Verification)
+| Level | Method | Purpose |
+|-------|--------|---------|
+| **Code Verification** | MMS, Unit tests | ตรวจสอบว่า code implement ถูกต้อง |
+| **Solution Verification** | Grid study, GCI | ตรวจสอบ discretization error |
+| **Model Validation** | Compare with exp | ตรวจสอบว่า physics ถูกต้อง |
+| **Prediction** | Blind tests | ประเมิน predictive capability |
 
-เพื่อให้แน่ใจว่าการเขียนโปรแกรมและอัลกอริทึมแก้สมการคณิตศาสตร์ได้อย่างถูกต้อง:
+---
 
-#### 2.1.1 Method of Manufactured Solutions (MMS)
+## 1. Code Verification
 
-การกำหนดผลเฉลยเชิงวิเคราะห์และคำนวณเทอมแหล่งกำเนิด (Source terms) เพื่อทดสอบ Solver:
+### Method of Manufactured Solutions (MMS)
 
-**สำหรับสัดส่วนเฟส** $\alpha_k$:
-$$\frac{\partial \alpha_k}{\partial t} + \nabla \cdot (\alpha_k \mathbf{u}_k) = S_{\alpha_k}^{\text{manufactured}}$$
-
-**สำหรับโมเมนตัมของเฟส $k$**:
-$$\rho_k \alpha_k \frac{\partial \mathbf{u}_k}{\partial t} + \rho_k \alpha_k (\mathbf{u}_k \cdot \nabla)\mathbf{u}_k = -\alpha_k \nabla p + \mathbf{M}_k^{\text{manufactured}}$$
+สร้าง analytical solution → คำนวณ source term → ตรวจสอบว่า solver ให้ผลตรงกัน
 
 ```cpp
-// Source: .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C
+// Define exact solution
+volScalarField alphaExact = 0.5*(1 + tanh(...));
 
-// Manufactured source term generation for MMS validation
-// การสร้างเทอมต้นทางสำหรับ MMS
-volScalarField Salpha1
-(
-    IOobject("Salpha1", runTime.timeName(), mesh),
-    mesh,
-    dimensionedScalar("zero", dimensionSet(0,-3,0,0,0,0,0), 0.0)
-);
+// Calculate manufactured source
+Salpha = -(fvc::ddt(alphaExact) + fvc::div(alphaExact*U));
 
-// Compute source terms from analytical solution
-// คำนวณเทอมต้นทางจากผลเฉลยเชิงวิเคราะห์
-const volScalarField alpha1Exact = 0.5 * (1.0 + tanh((mesh.C().component(1) - 0.5 - 0.1*sin(2.0*pi*mesh.C().component(0)))/0.05));
-
-const volVectorField U1Exact
-(
-    U0.value() * (vector(1,0,0) * (1.0 + sin(2.0*pi*mesh.C().component(0)/Lx.value()) * cos(2.0*pi*runTime.time().value()/T.value())) +
-    vector(0,1,0) * (1.0 + cos(2.0*pi*mesh.C().component(1)/Ly.value()) * sin(2.0*pi*runTime.time().value()/T.value())))
-);
-
-// Calculate continuity equation source terms
-// คำนวณเทอมต้นทางสมการต่อเนื่อง
-Salpha1 = -(fvc::ddt(alpha1Exact, rho1) + fvc::div(alpha1Exact * rho1 * U1Exact));
+// Add source to equation and solve
+// Error = |alpha_computed - alphaExact|
 ```
 
-> **คำอธิบาย:**
-> - **Source:** ไฟล์ต้นทาง `populationBalanceModel.C` ใน OpenFOAM มีโครงสร้างการจัดการเขตข้อมูล (field handling) ที่คล้ายกับการใช้งานใน MMS
-> - **Explanation:** โค้ดนี้แสดงการสร้างเทอมต้นทาง (source terms) เพื่อทดสอบความถูกต้องของ solver ผ่านวิธี MMS โดยกำหนดค่าที่แน่นอนของสัดส่วนเฟสและความเร็ว แล้วคำนวณเทอมต้นทางที่ต้องการเพื่อให้สมการสมดุล
-> - **หลักการสำคัญ:**
->   - **Manufactured Solutions:** การสร้างผลเฉลยที่รู้ล่วงหน้า
->   - **Source Term Calculation:** การคำนวณเทอมต้นทางจากสมการอนุพันธ์
->   - **Field Operations:** การดำเนินการกับเขตข้อมูลใน OpenFOAM (fvc::ddt, fvc::div)
+### Grid Convergence Index (GCI)
 
-#### 2.1.2 Grid Convergence Studies
+$$\text{GCI} = 1.25 \cdot \frac{|f_2 - f_1|}{r^p - 1}$$
 
-ประเมินความแม่นยำของการ Discretization ผ่าน **Grid Convergence Index (GCI)**:
-
-$$\text{GCI} = F_s \frac{|\epsilon_{12}|}{r^p - 1}$$
-
-โดย:
-- $F_s$ คือปัจจัยความปลอดภัย (มักใช้ 1.25)
-- $\epsilon_{12}$ คือ Error สัมพัทธ์ระหว่างเมช
-- $r$ คืออัตราส่วนการละเอียดของเมช
-- $p$ คืออันดับความแม่นยำที่สังเกตได้ (Observed order of accuracy)
+| Symbol | Meaning |
+|--------|---------|
+| $f_1, f_2$ | Solution on fine/coarse mesh |
+| $r$ | Refinement ratio (e.g., 2) |
+| $p$ | Observed order of accuracy |
 
 ```cpp
-// Function to calculate Grid Convergence Index (GCI)
-// ฟังก์ชันสำหรับคำนวณ GCI
-scalar calculateGCI(scalar f1, scalar f2, scalar f3, scalar r)
+scalar p = log(epsilon32/epsilon21) / log(r);
+scalar GCI = 1.25 * fabs(f2 - f1) / (pow(r, p) - 1);
+```
+
+**Target:** GCI < 5% for mesh-independent solution
+
+---
+
+## 2. Solution Verification
+
+### Mesh Independence Study
+
+```cpp
+// system/blockMeshDict
+// Mesh 1 (coarse): hex (0 1 2 3 4 5 6 7) (20 20 20)
+// Mesh 2 (medium): hex (0 1 2 3 4 5 6 7) (40 40 40)
+// Mesh 3 (fine):   hex (0 1 2 3 4 5 6 7) (80 80 80)
+```
+
+### Conservation Checks
+
+```cpp
+// system/controlDict
+functions
 {
-    // Relative errors between mesh refinements
-    // ข้อผิดพลาดสัมพัทธ์
-    scalar epsilon21 = fabs((f2 - f1)/f1);
-    scalar epsilon32 = fabs((f3 - f2)/f2);
-
-    // Observed order of accuracy
-    // ลำดับความแม่นยำที่ปรากฏ
-    scalar p = log(fabs(epsilon32/epsilon21))/log(r);
-
-    // Extrapolated value
-    // ค่าที่ extrapolate
-    scalar f_ext = (pow(r,p) * f2 - f1)/(pow(r,p) - 1.0);
-
-    // Extrapolation error
-    // ค่าคลาดเคลื่อน extrapolate
-    scalar e_ext = fabs((f_ext - f1)/f_ext);
-
-    // GCI for fine grid
-    // GCI สำหรับกริดละเอียด
-    scalar GCI_fine = 1.25 * e_ext/(pow(r,p) - 1.0);
-
-    return GCI_fine;
+    massBalance
+    {
+        type            volFieldValue;
+        operation       sum;
+        fields          (alpha.water);
+    }
+    
+    alphaCheck
+    {
+        type            fieldMinMax;
+        fields          (alpha.water alpha.air);
+        // Check: 0 ≤ α ≤ 1
+    }
 }
 ```
 
-> **คำอธิบาย:**
-> - **Source:** อัลกอริทึม GCI เป็นมาตรฐานสากลในการประเมินความละเอียดของเมช
-> - **Explanation:** ฟังก์ชันนี้คำนวณ Grid Convergence Index โดยใช้ผลลัพธ์จาก 3 ระดับความละเอียดของเมช และหาอันดับความแม่นยำที่สังเกตได้
-> - **หลักการสำคัญ:**
->   - **Mesh Refinement:** การเพิ่มความละเอียดของเมชแบบ systematic
->   - **Order of Accuracy:** อันดับความแม่นยำของการ discretization
->   - **Extrapolation:** การคาดคะเนค่าที่ mesh-independent
+---
 
-#### 2.1.3 Conservation Checks
+## 3. Model Validation
 
-ตรวจสอบการอนุรักษ์มวลและพลังงานในระดับ Global:
+### Compare with Experiments
 
-**การอนุรักษ์มวล**:
-$$\sum_{k} \frac{\partial}{\partial t} \int_V \rho_k \alpha_k \, \mathrm{d}V = 0$$
+| System | Quantity | Correlation/Data |
+|--------|----------|------------------|
+| Single bubble | Terminal velocity | $v_t = \sqrt{4gd_b(\rho_l-\rho_g)/(3C_d\rho_l)}$ |
+| Bubble column | Gas holdup | Experimental profiles |
+| Pipe flow | Pressure drop | Darcy-Weisbach |
 
-**การอนุรักษ์โมเมนตัม**:
-$$\frac{\partial}{\partial t} \int_V \sum_k \rho_k \alpha_k \mathbf{u}_k \, \mathrm{d}V = \mathbf{F}_{\text{external}}$$
-
-**การอนุรักษ์พลังงาน**:
-$$\frac{\partial}{\partial t} \int_V \sum_k \rho_k \alpha_k e_k \, \mathrm{d}V = \dot{Q}_{\text{external}}$$
+### OpenFOAM Setup
 
 ```cpp
-// Mass balance check for multiphase flow systems
-// การตรวจสอบการอนุรักษ์มวลสำหรับ multiphase flow
-forAll(phases, phasei)
+// system/controlDict - probes at sensor locations
+functions
 {
-    const volScalarField& alpha = phases[phasei];
-    const volVectorField& U = phases[phasei].U();
-
-    // Calculate flux through boundaries
-    // คำนวณ flux ผ่าน boundaries
-    scalar massIn = fvc::domainIntegrate(alpha*U & mesh.Sf()).value();
-    scalar massOut = -massIn; // From conservation principle
-
-    // Check balance
-    // ตรวจสอบความสมดุล
-    Info<< "Phase " << phases[phasei].name()
-        << " mass balance error: " << mag(massIn + massOut)
-        << " kg/s" << endl;
+    expProbes
+    {
+        type            probes;
+        probeLocations  ((0.05 0 0) (0.1 0 0) (0.15 0 0));
+        fields          (alpha.air U.air p);
+    }
 }
 ```
 
-> **คำอธิบาย:**
-> - **Source:** โครงสร้างการวนลูปผ่าน phases ใช้งานเหมือนกับ `populationBalanceModel.C:registerVelocityGroups()`
-> - **Explanation:** โค้ดนี้ตรวจสอบการอนุรักษ์มวลในระบบหลายเฟสโดยคำนวณ flux ผ่าน boundaries และตรวจสอบความสมดุล
-> - **หลักการสำคัญ:**
->   - **Global Conservation:** การอนุรักษ์มวลในระดับโดเมนทั้งหมด
->   - **Phase-specific Balance:** การตรวจสอบแต่ละเฟสแยกกัน
->   - **Flux Calculation:** การคำนวณอัตราการไหลผ่านพื้นที่ผิว
+### Error Metrics
+
+$$\text{RMSE} = \sqrt{\frac{1}{N}\sum(y_{pred} - y_{exp})^2}$$
+
+$$\text{MAPE} = \frac{100\%}{N}\sum\left|\frac{y_{pred} - y_{exp}}{y_{exp}}\right|$$
+
+$$R^2 = 1 - \frac{\sum(y_{exp} - y_{pred})^2}{\sum(y_{exp} - \bar{y})^2}$$
 
 ---
 
-### 2.2 การตรวจสอบความถูกต้องของโมเดล (Model Validation)
+## 4. Uncertainty Quantification
 
-ประเมินว่าโมเดลทางคณิตศาสตร์แทนปรากฏการณ์ทางฟิสิกส์ได้ถูกต้องเพียงใด:
+### Sources of Uncertainty
 
-#### 2.2.1 Fundamental Physics
+| Type | Examples |
+|------|----------|
+| Input | Inlet velocity, initial conditions |
+| Parameter | Drag coefficient $C_d$, lift $C_l$ |
+| Model form | Choice of drag model |
+| Experimental | Measurement error |
 
-เปรียบเทียบความเร็วลอยตัวของฟองเดี่ยว (Single bubble rise velocity) กับสูตรสหสัมพันธ์:
+### Sensitivity Analysis (Sobol Indices)
 
-$$v_t = \sqrt{\frac{4g d_b (\rho_l - \rho_g)}{3C_d \rho_l}}$$
+```python
+# Python with SALib
+from SALib.sample import saltelli
+from SALib.analyze import sobol
 
-โดยที่ $C_d$ คือสัมประสิทธิ์แรงลากซึ่งขึ้นอยู่กับจำนวน Reynolds:
-$$Re_b = \frac{\rho_l v_t d_b}{\mu_l}$$
-
-**การตรวจสอบความถี่ของการสั่น**:
-$$f = \frac{1}{2\pi} \sqrt{\frac{8\sigma}{\rho_l d_b^3}}$$
-
-**การตรวจสอบการถ่ายเทความร้อน** (สหสัมพันธ์จำนวน Nusselt ของอนุภาคเดี่ยว):
-$$Nu = 2 + 0.6 Re^{1/2} Pr^{1/3}$$
-
-#### 2.2.2 Simplified Systems
-
-ทดสอบกับระบบที่ควบคุมสภาวะได้ง่าย เช่น Bubble columns หรือการไหลในท่อ (Pipe flows) เพื่อวัดค่า Pressure drop ($\Delta P$) และสัดส่วนปริมาตรแก๊ส ($\alpha_g$):
-
-| ระบบทดสอบ | ปริมาณที่ตรวจสอบ | การวัดที่เกี่ยวข้อง |
-|---|---|---|
-| **Bubble columns** | Gas holdup, การกระจายขนาดฟอง, โปรไฟล์ความเร็ว | $\alpha_g = \frac{V_g}{V_{total}}$, $PDF(d_b)$, $\mathbf{u}_l(r,z)$ |
-| **การไหลในท่อ** | การลดความดัน, รูปแบบการไหล, แผนภูมิช่วง | $\Delta P = f \frac{L}{D} \frac{\rho v^2}{2}$, Baker/Taitel-Dukler |
-| **พลวัตของหยด** | การกระจายขนาดหยด, ความยาวการแตกหัก, ความลึกการเจาะ | การกระจายขนาด, เวลาการแตกหัก, ความลึก |
-
-#### 2.2.3 Industrial Applications
-
-ทดสอบกับระบบจริง เช่น Fluidized beds เพื่อวัด:
-
-- อัตราการขยายตัวของชั้นอนุภาค (Bed expansion ratio)
-- สเกลเวลาการผสม (Mixing time scale)
-- สัมประสิทธิ์การถ่ายเทความร้อน (Heat transfer coefficient)
-- อัตราการเปลี่ยนแปลงทางเคมี (Chemical reaction rate)
-
----
-
-### 2.3 การประเมินความสามารถในการพยากรณ์ (Predictive Capability Assessment)
-
-ประเมินประสิทธิภาพของแบบจำลองในสภาวะที่ไม่ได้ใช้ในการปรับแต่ง (Calibration) โมเดล:
-
-#### 2.3.1 Blind Predictions
-
-การทำนายผลโดยที่ผู้คำนวณไม่ทราบผลการทดลองล่วงหน้า เพื่อความโปร่งใสสูงสุด
-
-| ประเภทการทดสอบ | ตัวอย่าง | วัตถุประสงค์ |
-|---|---|---|
-| **International benchmarks** | CSNI International Standard Problems, OECD/NEA studies, ERCOFTAC groups | การเปรียบเทียบมาตรฐานระดับนานาชาติ |
-| **กรณีอุตสาหกรรม** | การเปลี่ยนแปลงชั่วคราว, การพยากรณ์ฉุกเฉิน, การขยายขนาด | การทดสอบสถานการณ์จริง |
-| **การปรับเหมาะสมกับการออกแบบ** | จุดประสิทธิภาพสูงสุด, ขอบเขตความเสถียร | การหาเงื่อนไขการทำงานที่เหมาะสมที่สุด |
-
-#### 2.3.2 Error Analysis
-
-การวิเคราะห์ความคลาดเคลื่อนทางสถิติ:
-
-**RMSE** (Root Mean Square Error):
-$$\text{RMSE} = \sqrt{\frac{1}{N}\sum_{i=1}^{N}(y_i^{pred} - y_i^{exp})^2}$$
-
-**MAPE** (Mean Absolute Percentage Error):
-$$\text{MAPE} = \frac{100\%}{N}\sum_{i=1}^{N}\left|\frac{y_i^{pred} - y_i^{exp}}{y_i^{exp}}\right|$$
-
-**R²** (สัมประสิทธิ์การตัดสินใจ):
-$$R^2 = 1 - \frac{\sum_{i=1}^{N}(y_i^{exp} - y_i^{pred})^2}{\sum_{i=1}^{N}(y_i^{exp} - \bar{y}^{exp})^2}$$
-
----
-
-## 3. การหาปริมาณความไม่แน่นอน (Uncertainty Quantification)
-
-ใช้ประเมินความน่าเชื่อถือของแบบจำลองเมื่อปัจจัยนำเข้ามีความแปรปรวน:
-
-### 3.1 แหล่งความไม่แน่นอนหลัก
-
-| ประเภท | คำอธิบาย | ตัวอย่าง |
-|---|---|---|
-| **Input Uncertainty** | การส่งผ่านความคลาดเคลื่อนจากข้อมูลดิบ | $\sigma_{output}^2 = \sum (\partial f / \partial x_i)^2 \sigma_{x_i}^2$ |
-| **Parameter Uncertainty** | ความแปรปรวนของค่าพารามิเตอร์โมเดล | $C_D \pm \Delta C_D$, $C_L \pm \Delta C_L$ |
-| **Model Form Uncertainty** | ข้อจำกัดของโมเดลฟิสิกส์ | การประมาณค่าการกระจายแรง |
-| **Experimental Uncertainty** | ความไม่แน่นอนในข้อมูลทดลอง | ความคลาดเคลื่อนการวัด, ความละเอียดเซ็นเซอร์ |
-
-### 3.2 Sensitivity Analysis
-
-ใช้ **Sobol Indices** เพื่อระบุว่าพารามิเตอร์ใดส่งผลต่อความแม่นยำมากที่สุด:
-
-$$S_i = \frac{\text{Var}_{x_i}(\mathbb{E}[f|x_i])}{\text{Var}(f)}$$
-
-**ดัชนี Sobol ที่สำคัญ:**
-- **ดัชนีลำดับแรก** $S_i$ → แสดงถึงส่วนของผลหลัก
-- **ดัชนีรวม** $S_{Ti}$ → รวมถึงผลของปฏิสัมพันธ์ทั้งหมด
-
-### 3.3 Monte Carlo Analysis
-
-```cpp
-// Monte Carlo uncertainty analysis framework
-// โครงสร้างโค้ด Monte Carlo Analysis
-class monteCarloAnalysis
-{
-private:
-    scalarField meanParameters_;
-    scalarField stdParameters_;
-    label nMonteCarlo_;
-
-public:
-    // Constructor with parameter distributions
-    monteCarloAnalysis(const scalarField& meanParams, const scalarField& stdParams, label nMC)
-    : meanParameters_(meanParams), stdParameters_(stdParams), nMonteCarlo_(nMC)
-    {}
-
-    // Run Monte Carlo simulation ensemble
-    void runAnalysis()
-    {
-        scalarField results(nMonteCarlo_);
-
-        for (int i = 0; i < nMonteCarlo_; i++)
-        {
-            // Generate random parameter set from distributions
-            // Generate random parameter set
-            scalarField randomParams = generateRandomParameters();
-
-            // Run single simulation with sampled parameters
-            // Run simulation
-            results[i] = runSingleSimulation(randomParams);
-        }
-
-        // Calculate statistical moments and confidence intervals
-        // Calculate statistics
-        scalar meanResult = average(results);
-        scalar stdResult = stdDeviation(results);
-        scalar confidenceInterval = 1.96 * stdResult / sqrt(nMonteCarlo_);
-
-        Info << "Monte Carlo Results:" << endl;
-        Info << "Mean: " << meanResult << endl;
-        Info << "Std dev: " << stdResult << endl;
-        Info << "95% CI: [" << meanResult - confidenceInterval
-             << ", " << meanResult + confidenceInterval << "]" << endl;
-    }
-};
-```
-
-> **คำอธิบาย:**
-> - **Source:** โครงสร้างคลาสและการจัดการ field คล้ายกับ `populationBalanceModel.C`
-> - **Explanation:** คลาสนี้ทำการวิเคราะห์ Monte Carlo เพื่อประเมินความไม่แน่นอนโดยการสุ่มพารามิเตอร์และรัน simulation หลายครั้ง
-> - **หลักการสำคัญ:**
->   - **Parameter Sampling:** การสุ่มค่าพารามิเตอร์จากการกระจายความน่าจะเป็น
->   - **Statistical Analysis:** การคำนวณค่าเฉลี่ยและความเบ้มาตรฐาน
->   - **Confidence Intervals:** การประเมินช่วงความเชื่อมั่น
-
-### 3.4 Polynomial Chaos Expansion (PCE)
-
-การขยาย Polynomial Chaos ให้ทางเลือกที่มีประสิทธิภาพกว่าวิธี Monte Carlo:
-
-$$Y(\mathbf{p}) = \sum_{\boldsymbol{\alpha} \in \mathcal{A}} c_{\boldsymbol{\alpha}} \Psi_{\boldsymbol{\alpha}}(\mathbf{p})$$
-
-โดยที่:
-- $\Psi_{\boldsymbol{\alpha}}$ = พหุนามมุมฉากหลายตัวแปร
-- $c_{\boldsymbol{\alpha}}$ = สัมประสิทธิ์การขยาย
-- $\mathcal{A}$ = เซตของดัชนีหลายตัวแปร
-
-**ข้อดีของ PCE:**
-- คำนวณโมเมนต์ทางสถิติแบบวิเคราะห์
-- คำนวณดัชนี Sobol แบบวิเคราะห์
-- ต้นทุนการคำนวณขั้นต่ำ
-
-**การเลือกครอบครัวพหุนาม:**
-
-| การกระจายพารามิเตอร์ | ครอบครัวพหุนาม | ลักษณะเฉพาะ |
-|---|---|---|
-| **Gaussian** | Hermite | เหมาะกับข้อมูลปกติ |
-| **Uniform** | Legendre | ช่วงค่าคงที่ |
-| **Beta** | Jacobi | ช่วงค่าจำกัด |
-| **Exponential** | Laguerre | ค่าเอ็กซ์โพเนนเชียล |
-
----
-
-## 4. รายการตรวจสอบคุณภาพ (Quality Assurance Checklist)
-
-เพื่อให้งานตรวจสอบความถูกต้องมีคุณภาพระดับมาตรฐาน:
-
-### 4.1 การตรวจสอบคุณภาพกริด
-
-```cpp
-// Mesh quality assessment function
-// การประเมินคุณภาพกริด
-void assessMeshQuality()
-{
-    // Calculate mesh quality metrics
-    scalar maxAspectRatio = max(mesh.aspectRatio());
-    scalar minOrthogonality = min(mesh.orthogonality());
-    scalar maxNonOrthogonality = max(mesh.nonOrthogonality());
-    scalar maxSkewness = max(mesh.skewness());
-
-    // Output quality indicators
-    Info << "ตัวชี้วัดคุณภาพกริด:" << nl
-         << "  อัตราส่วนภาพสูงสุด: " << maxAspectRatio << nl
-         << "  ความตั้งฉากขั้นต่ำ: " << minOrthogonality << nl
-         << "  ความไม่ตั้งฉากสูงสุด: " << maxNonOrthogonality << nl
-         << "  ความเบ้สูงสุด: " << maxSkewness << nl;
-
-    // Apply quality criteria thresholds
-    // เกณฑ์คุณภาพ
-    bool meshOK = true;
-    if (maxAspectRatio > 1000)
-    {
-        WarningIn("assessMeshQuality") << "ตรวจพบอัตราส่วนภาพสูง: " << maxAspectRatio;
-        meshOK = false;
-    }
-
-    if (minOrthogonality < 0.1)
-    {
-        WarningIn("assessMeshQuality") << "ความตั้งฉากต่ำ: " << minOrthogonality;
-        meshOK = false;
-    }
-
-    if (maxNonOrthogonality > 70)
-    {
-        WarningIn("assessMeshQuality") << "ความไม่ตั้งฉากสูง: " << maxNonOrthogonality;
-        meshOK = false;
-    }
-
-    if (maxSkewness > 4)
-    {
-        WarningIn("assessMeshQuality") << "ความเบ้สูง: " << maxSkewness;
-        meshOK = false;
-    }
-
-    // Final quality assessment
-    Info << "คุณภาพกริด: " << (meshOK ? "ผ่าน" : "ไม่ผ่าน") << endl;
+problem = {
+    'names': ['Cd', 'Cl', 'db'],
+    'bounds': [[0.4, 0.5], [0.01, 0.1], [0.001, 0.005]]
 }
+
+samples = saltelli.sample(problem, 1000)
+# Run OpenFOAM for each sample
+Si = sobol.analyze(problem, results)
+print("S1:", Si['S1'])  # First-order indices
 ```
 
-> **คำอธิบาย:**
-> - **Source:** การใช้งาน mesh object และฟังก์ชันคุณภาพเป็นส่วนประกอบมาตรฐานใน OpenFOAM
-> - **Explanation:** ฟังก์ชันนี้ประเมินคุณภาพของกริดโดยตรวจสอบค่าต่างๆ เช่น aspect ratio, orthogonality, และ skewness
-> - **หลักการสำคัญ:**
->   - **Mesh Quality Metrics:** ตัวชี้วัดคุณภาพกริด
->   - **Quality Thresholds:** เกณฑ์การยอมรับ
->   - **Error Handling:** การจัดการเมื่อคุณภาพไม่ผ่านเกณฑ์
+### Monte Carlo
 
-### 4.2 เกณฑ์การยอมรับ
+```bash
+#!/bin/bash
+for i in {1..100}; do
+    # Sample random parameters
+    Cd=$(python -c "import random; print(random.uniform(0.4, 0.5))")
+    
+    # Update phaseProperties
+    sed -i "s/CdValue/$Cd/" constant/phaseProperties
+    
+    # Run
+    multiphaseEulerFoam > log.$i
+done
 
-> [!INFO] ข้อกำหนดคุณภาพ
->
-> 1. **Mesh Quality**: Non-orthogonality < 70°, Skewness < 4, Aspect ratio < 1000
-> 2. **Temporal Resolution**: เลข Courant (CFL) < 1.0 สำหรับอัลกอริทึม PISO
-> 3. **Convergence**: ส่วนที่เหลือ (Residuals) ลดลงอย่างน้อย 6 อันดับ (Residual reduction < $10^{-6}$)
-> 4. **Conservation**: ความไม่สมดุลของมวลและพลังงานรวมต้องน้อยกว่า 1%
-
-### 4.3 เกณฑ์การยอมรับการตรวจสอบความถูกต้อง
-
-**ข้อกำหนดเชิงปริมาณ:**
-
-| ระดับ | ชนิด | เกณฑ์การยอมรับ |
-|---|---|---|
-| **ระดับ 1** (การตรวจสอบโค้ด) | ความแม่นยำ | $\|p_{numerical} - p_{theoretical}\| < 0.1$ |
-| | การอนุรักษ์ | $\|\text{mass/volume/energy balance}\| < 10^{-10}$ |
-| **ระดับ 2** (การตรวจสอบผลเฉลย) | GCI ปริมาณเฉลี่ยตามเฟส | GCI < 5% |
-| | GCI สัดส่วนปริมาณเฟสในพื้นที่ | GCI < 10% |
-| | การบรรจบกันเชิงซ้ำ | $r/r_0 < 10^{-8}$ |
-| **ระดับ 3** (การตรวจสอบแบบจำลอง) | NRMSE วิศวกรรม | NRMSE < 15% |
-| | NRMSE วิจัย | NRMSE < 5% |
-| | สัมประสิทธิ์การกำหนด | $R^2 > 0.8$ |
-| | การตรวจสอบเฉพาะเฟส | $\epsilon_{\alpha,k} < 20\%$, $\epsilon_{u,k} < 15\%$ |
-
-**ข้อกำหนดเชิงคุณภาะ:**
-
-- พฤติกรรมทางกายภาพสอดคล้องกับรูปแบบการไหลที่คาดหวัง
-- ไม่มีความไม่เสถียรเชิงตัวเลขหรือค่าที่ไม่ใช่ทางกายภาพ
-- การลู่เข้าที่ราบรื่นด้วยระดับส่วนที่เหลือที่เหมาะสม
-- ความไวต่อการแปรผันของพารามิเตอร์ที่เหมาะสม
+# Analyze statistics
+python analyze_uncertainty.py
+```
 
 ---
 
-## 5. สรุป (Summary)
+## Validation Workflow
 
-ระเบียบวิธีการตรวจสอบความถูกต้องที่เข้มงวดนี้จะช่วยให้การใช้งาน `multiphaseEulerFoam` ใน OpenFOAM เป็นไปอย่างมีประสิทธิภาพและให้ผลลัพธ์ที่นำไปใช้งานต่อในทางวิศวกรรมได้อย่างปลอดภัย
+```bash
+# 1. Code verification (MMS)
+./runMMS.sh
+checkMMS > mms_results.txt
 
-### 5.1 ขั้นตอนสำคัญในการตรวจสอบความถูกต้อง
+# 2. Mesh study
+for mesh in coarse medium fine; do
+    blockMesh -dict meshes/$mesh
+    multiphaseEulerFoam
+done
+python calculateGCI.py
 
-```mermaid
-graph TD
-classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
-Plan["Plan"]:::context
-Ver["Verification<br/>Code and Solution"]:::implicit
-Val["Validation<br/>Model Physics"]:::explicit
-UQ["UQ and Prediction"]:::explicit
-Rep["Report"]:::context
+# 3. Compare with experiment
+postProcess -func probes -latestTime
+python compareWithExperiment.py
 
-Plan --> Ver --> Val --> UQ --> Rep
+# 4. Uncertainty quantification
+python sobolAnalysis.py
 ```
-
-### 5.2 แหล่งอ้างอิง
-
-ระเบียบวิธีนี้วิเคราะห์ตามมาตรฐาน:
-- **ASME V&V 20**: มาตรฐานการตรวจสอบและยืนยันสำหรับ CFD
-- **ERCOFTAC**: แนวทางปฏิบัติที่ดีที่สุดสำหรับการจัดการ CFD อุตสาหกรรม
-- **OECD/NEA**: มาตรฐานการตรวจสอบความถูกต้องระดับนานาชาติ
-- **Best Practice Guidelines**: ระเบียบวิธีสากลสำหรับการตรวจสอบความถูกต้องของ CFD ในระบบหลายเฟส
 
 ---
 
-> [!TIP] คำแนะนำในการปฏิบัติ
->
-> - เริ่มต้นด้วยปัญหาที่เรียบง่ายก่อน แล้วค่อยๆ เพิ่มความซับซ้อน
-> - บันทึกข้อมูลทั้งหมดอย่างละเอียดตลอดกระบวนการ
-> - ใช้เครื่องมืออัตโนมัติเพื่อลดข้อผิดพลาดของมนุษย์
-> - ตรวจสอบความถูกต้องอย่างสม่ำเสมอเมื่อมีการเปลี่ยนแปลงโค้ดหรือพารามิเตอร์
-> - เปรียบเทียบกับข้อมูลการทดลองหลายชุดเพื่อความมั่นใจ
+## Quick Checklist
+
+| Step | Check | Target |
+|------|-------|--------|
+| ✅ MMS error | Order of accuracy | p ≈ expected (1 or 2) |
+| ✅ GCI | Mesh independence | GCI < 5% |
+| ✅ Conservation | Mass balance | Error < 1e-6 |
+| ✅ α bounds | 0 ≤ α ≤ 1 | No violations |
+| ✅ RMSE/MAPE | Compare exp | MAPE < 10-20% |
+| ✅ Sensitivity | Sobol indices | Identify key params |
+
+---
+
+## Concept Check
+
+<details>
+<summary><b>1. Code verification กับ model validation ต่างกันอย่างไร?</b></summary>
+
+- **Code verification**: ตรวจสอบว่า code แก้สมการคณิตศาสตร์ถูกต้อง (เปรียบเทียบกับ analytical solution)
+- **Model validation**: ตรวจสอบว่าสมการคณิตศาสตร์แทน physics จริงได้ดี (เปรียบเทียบกับ experiment)
+</details>
+
+<details>
+<summary><b>2. GCI ใช้ทำอะไร?</b></summary>
+
+วัดว่า solution ใกล้ mesh-independent แค่ไหน — ถ้า GCI < 5% แสดงว่า mesh ละเอียดพอแล้ว
+</details>
+
+<details>
+<summary><b>3. Sobol indices บอกอะไร?</b></summary>
+
+บอกว่า parameter ไหน (Cd, Cl, db) ส่งผลต่อ output มากที่สุด — ช่วย prioritize การปรับจูน model
+</details>
+
+---
+
+## เอกสารที่เกี่ยวข้อง
+
+- **บทก่อนหน้า:** [00_Overview.md](00_Overview.md)
+- **บทถัดไป:** [02_Benchmark_Cases.md](02_Benchmark_Cases.md)

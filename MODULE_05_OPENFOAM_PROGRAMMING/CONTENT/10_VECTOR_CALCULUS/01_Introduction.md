@@ -1,5 +1,13 @@
 # บทนำสู่แคลคูลัสเวกเตอร์ใน OpenFOAM (Introduction to Vector Calculus in OpenFOAM)
 
+> [!TIP] ทำไมต้องเข้าใจแคลคูลัสเวกเตอร์?
+> แคลคูลัสเวกเตอร์คือ **ภาษาของฟิสิกส์** ที่ OpenFOAM ใช้แก้สมการพลศาสตร์ของไหล การเข้าใจ `fvc::grad()`, `fvc::div()`, `fvm::laplacian()` ช่วยให้คุณ:
+> - ✅ สร้าง **Custom Solver** ที่เสถียรและแม่นยำ
+> - ✅ เขียน **functionObjects** สำหรับคำนวณปริมาณทางฟิสิกส์ (เช่น กำลัง, ฟลักซ์)
+> - ✅ Debug การจำลองที่ล้มเหลวจากการเลือก **Numerical Schemes** ที่ไม่เหมาะสม
+> - ✅ ปรับแต่ง **Boundary Conditions** ให้ทำงานสอดคล้องกับสมการ
+> **ผลลัพธ์:** Simulation ที่ลู่เข้า (converge) เร็วขึ้นและให้ผลลัพธ์ที่เชื่อถือได้
+
 ![[calculus_bridge_nabla.png]]
 
 > **Academic Vision:** สะพานที่เชื่อมระหว่างกลุ่มสัญลักษณ์เมฆคณิตศาสตร์นามธรรม (∇, ∇·, ∇²) ไปยังเมช 3 มิติที่เป็นรูปธรรม ในฝั่งเมช สัญลักษณ์จะเปลี่ยนเป็นลูกศรที่ทะลุผ่านหน้าเซลล์ ภาพประกอบทางวิทยาศาสตร์ที่สะอาดตาและงดงาม ใช้ลายเส้นเวกเตอร์ที่ชัดเจน พื้นหลังสีขาว การออกแบบแนวราบ (flat design) กราฟิกเพื่อการศึกษา --อัตราส่วน 16:9
@@ -7,6 +15,13 @@
 ในพลศาสตร์ของไหลเชิงคำนวณ (CFD) เราทำงานกับสมการที่เต็มไปด้วยตัวดำเนินการทางคณิตศาสตร์ เช่น **$\nabla$** (Nabla/del), **$\nabla^2$** (Laplacian), **$\nabla \cdot$** (divergence), และ **$\nabla \times$** (curl) OpenFOAM แปลงสัญลักษณ์นามธรรมเหล่านี้ให้เป็นฟังก์ชันที่ใช้งานได้จริงผ่านสองเนมสเปซหลัก: **`fvc`** (finite volume calculus - แบบชัดแจ้ง/explicit) และ **`fvm`** (finite volume method - แบบโดยนัย/implicit)
 
 ## 📋 ภาพรวมเนื้อหา (Section Overview)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> หัวข้อนี้เชื่อมโยงกับ **Domain B: Numerics & Linear Algebra**
+> - **ไฟล์ที่เกี่ยวข้อง:** `system/fvSchemes`, `system/fvSolution`
+> - **คีย์เวิร์ด:** `gradSchemes`, `divSchemes`, `laplacianSchemes`, `interpolationSchemes`
+> - **การใช้งาน:** การเลือก numerical schemes ที่เหมาะสมสำหรับการคำนวณ gradient, divergence, และ Laplacian บนเมช
+> - **โค้ด:** `src/finiteVolume/finiteVolume/fvc/fvcGrad.C`, `src/finiteVolume/finiteVolume/fvm/fvmLaplacian.C`
 
 ส่วนนี้ครอบคลุม **การดำเนินการแคลคูลัสเวกเตอร์** พื้นฐานที่เป็นกระดูกสันหลังทางคณิตศาสตร์ของพลศาสตร์ของไหลเชิงคำนวณ:
 
@@ -25,6 +40,13 @@ S -->|Discretize| Sum["Sum: Σ(Flux · Area)"]:::disc
 
 ## 🏗️ รากฐาน: ทฤษฎีบทไดเวอร์เจนซ์ของเกาส์ (The Foundation: Gauss's Divergence Theorem)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> หัวข้อนี้เชื่อมโยงกับ **Domain B: Numerics & Linear Algebra**
+> - **ไฟล์ที่เกี่ยวข้อง:** `system/fvSchemes`
+> - **คีย์เวิร์ด:** `gradSchemes`, `divSchemes`, `laplacianSchemes`
+> - **การใช้งาน:** ทฤษฎีบทของเกาส์เป็นพื้นฐานของทุก numerical scheme ใน OpenFOAM การเลือก scheme ที่ถูกต้องขึ้นอยู่กับความแม่นยำและเสถียรภาพที่ต้องการ
+> - **โค้ด:** `src/finiteVolume/finiteVolume/fvc/fvcDiv.C`, `src/finiteVolume/finiteVolume/fvc/fvcGrad.C`
+
 OpenFOAM อาศัย **ทฤษฎีบทไดเวอร์เจนซ์ของเกาส์** ในการแปลงอินทิกรัลเชิงปริมาตรของอนุพันธ์ให้เป็นผลรวมฟลักซ์ที่พื้นผิว นี่คือรากฐานสำคัญของวิธีปริมาตรจำกัด (Finite Volume Method - FVM):
 
 ![[of_gauss_theorem_visual.png]]
@@ -42,6 +64,17 @@ $$\int_V \nabla \cdot \mathbf{U} \, \mathrm{d}V = \oint_A \mathbf{U} \cdot \math
 กลไกนี้ช่วยให้ OpenFOAM สามารถคำนวณแคลคูลัสบนเมชที่ซับซ้อนได้อย่างแม่นยำในขณะที่ ==รักษาความถูกต้องของกฎการอนุรักษ์อย่างสมบูรณ์ (exactly preserving conservation laws)== ซึ่งเป็นสิ่งสำคัญสำหรับการจำลอง CFD ที่เชื่อถือได้
 
 ## 🔧 การนำไปใช้: เนมสเปซ `fvc::` (Implementation: The `fvc::` Namespace)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> หัวข้อนี้เชื่อมโยงกับ **Domain E: Coding/Customization**
+> - **ไฟล์ที่เกี่ยวข้อง:** `src/finiteVolume/finiteVolume/fvc/`
+> - **คีย์เวิร์ด:** `fvc::grad`, `fvc::div`, `fvc::curl`, `fvc::laplacian`
+> - **การใช้งาน:** เรียกใช้ explicit operators ใน custom solver หรือ functionObjects
+> - **ตัวอย่างไฟล์โค้ด:**
+>   - `src/finiteVolume/finiteVolume/fvc/fvcGrad/fvcGrad.C`
+>   - `src/finiteVolume/finiteVolume/fvc/fvcDiv/fvcDiv.C`
+>   - `src/finiteVolume/finiteVolume/fvc/fvcCurl/fvcCurl.C`
+>   - `src/finiteVolume/finiteVolume/fvc/fvcLaplacian/fvcLaplacian.C`
 
 ใน OpenFOAM การดำเนินการแคลคูลัสเวกเตอร์ถูกนำไปใช้ผ่านเนมสเปซ **`fvc::`** สำหรับการคำนวณแบบ **explicit** ตัวดำเนินการเหล่านี้ประเมินเทอมอนุพันธ์โดยตรงโดยใช้ค่าฟิลด์ที่ทราบจาก time step ปัจจุบัน
 
@@ -71,6 +104,13 @@ $$\int_V \nabla \cdot \mathbf{U} \, \mathrm{d}V = \oint_A \mathbf{U} \cdot \math
 ## 🎯 สี่ตัวดำเนินการพื้นฐาน (The Four Fundamental Operators)
 
 ### 1️⃣ **Gradient** (`∇φ`)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> หัวข้อนี้เชื่อมโยงกับ **Domain B: Numerics & Linear Algebra**
+> - **ไฟล์ที่เกี่ยวข้อง:** `system/fvSchemes`
+> - **คีย์เวิร์ด:** `gradSchemes`
+> - **การใช้งาน:** กำหนดวิธีการคำนวณ gradient เช่น `Gauss linear`, `Gauss leastSquares`, `Gauss fourth`
+> - **โค้ด:** `src/finiteVolume/finiteVolume/fvc/fvcGrad/fvcGrad.C`
 
 คำนวณอัตราการเปลี่ยนแปลงเชิงพื้นที่ของฟิลด์ เป็นพื้นฐานสำหรับปรากฏการณ์การขนส่ง (transport phenomena)
 
@@ -110,6 +150,13 @@ volTensorField gradU = fvc::grad(U);
 
 ### 2️⃣ **Divergence** (`∇·φ`)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> หัวข้อนี้เชื่อมโยงกับ **Domain B: Numerics & Linear Algebra**
+> - **ไฟล์ที่เกี่ยวข้อง:** `system/fvSchemes`
+> - **คีย์เวิร์ด:** `divSchemes`
+> - **การใช้งาน:** กำหนดวิธีการคำนวณ divergence สำหรับ convection terms เช่น `Gauss linear`, `Gauss upwind`, `Gauss limitedLinearV`
+> - **โค้ด:** `src/finiteVolume/finiteVolume/fvc/fvcDiv/fvcDiv.C`
+
 วัดฟลักซ์สุทธิออกจากปริมาตรควบคุม ==สำคัญสำหรับกฎการอนุรักษ์==
 
 $$\nabla \cdot \mathbf{F} = \frac{\partial F_x}{\partial x} + \frac{\partial F_y}{\partial y} + \frac{\partial F_z}{\partial z}$$
@@ -147,6 +194,13 @@ volScalarField convTerm = fvc::div(phi, T);
 ---
 
 ### 3️⃣ **Curl** (`∇×φ`)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> หัวข้อนี้เชื่อมโยงกับ **Domain A: Physics & Fields** และ **Domain E: Coding/Customization**
+> - **ไฟล์ที่เกี่ยวข้อง:** `system/controlDict` (สำหรับ functionObjects)
+> - **คีย์เวิร์ด:** `functionObjects`, `vorticity`, `Q`, `curl`
+> - **การใช้งาน:** คำนวณ vorticity และ vortex identification criteria สำหรับ post-processing
+> - **โค้ด:** `src/finiteVolume/finiteVolume/fvc/fvcCurl/fvcCurl.C`
 
 ประเมินองค์ประกอบการหมุนของสนามเวกเตอร์ จำเป็นสำหรับการวิเคราะห์ vorticity
 
@@ -187,6 +241,13 @@ volScalarField Q = 0.5*(magSqr(skew(gradU)) - magSqr(symm(gradU)));
 
 ### 4️⃣ **Laplacian** (`∇²φ`)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> หัวข้อนี้เชื่อมโยงกับ **Domain B: Numerics & Linear Algebra** และ **Domain E: Coding/Customization**
+> - **ไฟล์ที่เกี่ยวข้อง:** `system/fvSchemes`, `constant/transportProperties`
+> - **คีย์เวิร์ด:** `laplacianSchemes`, `nu`, `DT`, `D`
+> - **การใช้งาน:** กำหนดวิธีการคำนวณ Laplacian สำหรับ diffusion terms เช่น `Gauss linear corrected`
+> - **โค้ด:** `src/finiteVolume/finiteVolume/fvc/fvcLaplacian/fvcLaplacian.C`, `src/finiteVolume/finiteVolume/fvm/fvmLaplacian/fvmLaplacian.C`
+
 แสดงถึงกระบวนการแพร่ จำเป็นสำหรับการนำความร้อน การไหลหนืด และการแพร่ของมวล
 
 $$\nabla^2 \phi = \nabla \cdot (\nabla \phi) = \frac{\partial^2 \phi}{\partial x^2} + \frac{\partial^2 \phi}{\partial y^2} + \frac{\partial^2 \phi}{\partial z^2}$$
@@ -225,6 +286,17 @@ fvScalarMatrix pEqn(fvm::laplacian(1/rho, p) == fvc::div(U));
 ---
 
 ## 🔧 โครงร่างการ Discretization (Discretization Schemes)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> หัวข้อนี้เชื่อมโยงกับ **Domain B: Numerics & Linear Algebra**
+> - **ไฟล์ที่เกี่ยวข้อง:** `system/fvSchemes`
+> - **คีย์เวิร์ด:**
+>   - `gradSchemes` - สำหรับ gradient calculations
+>   - `divSchemes` - สำหรับ convection terms
+>   - `laplacianSchemes` - สำหรับ diffusion terms
+>   - `interpolationSchemes` - สำหรับ face interpolation
+> - **การใช้งาน:** เลือก numerical schemes ที่เหมาะสมกับปัญหา (accuracy vs stability trade-off)
+> - **ตัวอย่าง schemes:** `Gauss linear`, `Gauss upwind`, `Gauss limitedLinearV`, `Gauss leastSquares`, `Gauss linear corrected`
 
 ความแม่นยำและความเสถียรของการดำเนินการ finite volume ขึ้นอยู่กับ **interpolation schemes** ที่ระบุใน `system/fvSchemes`:
 

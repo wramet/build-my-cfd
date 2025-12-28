@@ -1,5 +1,17 @@
 # กลยุทธ์การเพิ่มชั้น Boundary Layer (Layer Addition Strategy)
 
+> [!TIP]
+> **ทำไม Boundary Layer ถึงสำคัญ?**
+>
+> Boundary Layer Mesh ช่วยให้การจำลอง CFD แม่นยำขึ้นอย่างมาก โดยเฉพาะ:
+> * **การทำนายแรงเสียดทาน (Skin Friction)**: ต้องการความละเอียดสูงเพื่อจับ Velocity Gradient ข้างผนัง ($\partial u/\partial y$) ให้แม่นยำ
+> * **การถ่ายเทความร้อน (Heat Transfer)**: ต้องการจับ Temperature Gradient ที่ผิว ($\partial T/\partial y$) เพื่อคำนวณ Nusselt Number ได้ถูกต้อง
+> * **Turbulence Modeling**: ค่า $y+$ ที่เหมาะสม (เช่น $y+ \approx 1$ สำหรับ Low-Re Models) ขึ้นอยู่กับความหนาของ Layer ชั้นแรกโดยตรง
+>
+> **หาก Layer ไม่ได้คุณภาพ**: จะเกิด Error ในการคำนวณแรงดันและแรงเสียดทาน ทำให้ผลลัพธ์การจำลองผิดไปจากความเป็นจริง
+>
+> **ไฟล์ที่เกี่ยวข้อง**: `system/snappyHexMeshDict` → ส่วน `addLayersControls`
+
 การสร้าง Boundary Layer Mesh (Prism Layer) ใน Phase 3 ของ `snappyHexMesh` เป็นขั้นตอนที่ "ปราบเซียน" ที่สุด เพราะมักเกิดปัญหา Layer ยุบ (Collapse), เบี้ยว, หรือไม่ขึ้นเลย
 
 > **ลิงก์ที่เกี่ยวข้อง**:
@@ -8,12 +20,50 @@
 
 ## 1. ความสำคัญของ Boundary Layer
 
+> [!NOTE]
+> **📂 OpenFOAM Context**
+>
+> **ไฟล์**: `system/snappyHexMeshDict`
+> **ส่วน**: `addLayersControls`
+>
+> **คำสั่งหลักที่ต้องใช้**:
+> - `layers`: ระบุ Patch ที่ต้องการเพิ่ม Layer (รองรับ Regex เช่น `"car_.*"`)
+> - `nSurfaceLayers`: จำนวนชั้นของ Boundary Layer
+> - `expansionRatio`: อัตราการขยายตัวของความหนาแต่ละชั้น
+> - `relativeSizes`: เลือกโหมด Relative (true) หรือ Absolute (false)
+> - `firstLayerThickness` / `finalLayerThickness`: ความหนาของ Layer แรก/สุดท้าย
+>
+> **ผลลัพธ์**: เมื่อรัน `snappyHexMesh` จะสร้างไฟล์ Mesh ใหม่ใน `constant/polyMesh` ที่มี Prism Layers ติดกับผนังที่ระบุ
+
 ใน CFD การจำลอง Turbulence และ Heat Transfer ต้องการความละเอียดสูงมากที่ผิวผนัง (Wall) เพื่อ:
 *   จับ Velocity Gradient ($du/dy$) ให้แม่นยำ -> แรงเสียดทาน (Skin Friction)
 *   จับ Temperature Gradient ($dT/dy$) ให้แม่นยำ -> การถ่ายเทความร้อน (Nusselt Number)
 *   ให้ค่า $y+$ อยู่ในช่วงที่เหมาะสมกับ Turbulence Model (เช่น $y+ < 1$ หรือ $30 < y+ < 300$)
 
 ## 2. การตั้งค่าใน `addLayersControls`
+
+> [!NOTE]
+> **📂 OpenFOAM Context**
+>
+> **ไฟล์**: `system/snappyHexMeshDict`
+> **ตำแหน่ง**: อยู่ภายใน `addLayersControls` sub-dictionary
+>
+> **การใช้งานจริง**:
+> ```cpp
+> addLayersControls
+> {
+>     layers
+>     {
+>         "wall_patch_name"  // ชื่อ Patch จาก Geometry
+>         {
+>             nSurfaceLayers 5;  // จำนวนชั้น Layer
+>         }
+>     }
+>     expansionRatio 1.2;        // อัตราขยายตัว
+>     relativeSizes true;        // หรือ false สำหรับ Absolute
+> }
+> ```
+> **หมายเหตุ**: Patch names ต้องตรงกับที่ระบุใน `geometry` หรือที่สร้างจาก `triSurfaceMesh`
 
 ```cpp
 addLayersControls
@@ -37,6 +87,25 @@ addLayersControls
 ```
 
 ## 3. Relative vs Absolute Sizes
+
+> [!NOTE]
+> **📂 OpenFOAM Context**
+>
+> **ไฟล์**: `system/snappyHexMeshDict`
+> **คำสั่ง**: `relativeSizes` (boolean)
+>
+> **โหมดที่ 1 - Relative (`true`)**:
+> - `finalLayerThickness 0.5` → Layer หนา 50% ของ Cell ข้างเคียง
+> - เหมาะสำหรับ: General purpose, Smooth transition
+>
+> **โหมดที่ 2 - Absolute (`false`)**:
+> - `firstLayerThickness 0.0001` → Layer หนา 0.1 mm (หน่วยเป็นเมตร)
+> - เหมาะสำหรับ: y+ control, High-fidelity turbulence simulation
+>
+> **ตัวอย่างการคำนวณ y+**:
+> - Target $y+ = 1$, Flow velocity = 10 m/s
+> - ใช้ Absolute mode กำหนด `firstLayerThickness = 1e-5` m
+> - ตรวจสอบด้วย `yPlusRAS` functionObject หลังจำลอง
 
 นี่คือจุดที่คนสับสนที่สุด: `relativeSizes true/false`
 
@@ -83,6 +152,33 @@ graph TB
 
 ## 4. การจัดการปัญหา Layer Collapse (Quality Controls)
 
+> [!NOTE]
+> **📂 OpenFOAM Context**
+>
+> **ไฟล์**: `system/snappyHexMeshDict`
+> **ส่วนที่เกี่ยวข้อง**:
+> 1. `meshQualityControls` (กำหนดเกณฑ์คุณภาพ)
+> 2. `addLayersControls` → `nRelaxIter` (จำนวนรอบปรับ Layer)
+>
+> **คำสั่งสำคัญ**:
+> ```cpp
+> meshQualityControls
+> {
+>     maxNonOrtho 75;              // Default 65, เพิ่มเพื่อรองรับ Layer
+>     maxBoundarySkewness 20;      // Default 4, เพิ่มเพื่ออนุญาต Layer เบี้ยว
+> }
+>
+> addLayersControls
+> {
+>     nRelaxIter 20;               // Default 5, เพิ่มเพื่อให้เวลาจัด Layer
+>     featureAngle 130;            // มุมที่ Layer จะหยุด
+> }
+> ```
+>
+> **การตรวจสอบผล**:
+> - ดู log ของ snappyHexMesh คำว่า "Layer insertion failed"
+> - ใช้ ParaView ดู Mesh: **Mesh Quality** → **Non-Orthogonality**
+
 ถ้า sHM พบว่าใส่ Layer แล้ว Mesh Quality แย่ลง มันจะ **"ไม่ใส่"** (Collapse) ทันที เราสามารถผ่อนปรนเกณฑ์ได้ในส่วน `meshQualityControls` (ท้ายไฟล์):
 
 1.  **maxNonOrtho:** เพิ่มเป็น 75 (เดิม 65) เพื่อยอมรับ Layer ที่เอียงหน่อย
@@ -96,6 +192,35 @@ graph TB
 
 ## 5. เทคนิคการคำนวณ First Layer Height ($\\Delta y$)
 
+> [!NOTE]
+> **📂 OpenFOAM Context**
+>
+> **ไฟล์**: `system/snappyHexMeshDict` → `addLayersControls`
+> **การใช้ค่าที่คำนวณ**:
+> ```cpp
+> addLayersControls
+> {
+>     relativeSizes false;          // เปลี่ยนเป็น Absolute mode
+>     firstLayerThickness 0.0001;   // ใส่ค่าที่คำนวณได้ (เมตร)
+> }
+> ```
+>
+> **การตรวจสอบหลังจำลอง**:
+> **ไฟล์**: `system/controlDict`
+> ```cpp
+> functions
+> {
+>     yPlus
+>     {
+>         type            yPlusRAS;
+>         functionObjectLibs ("libfieldFunctionObjects.so");
+>         writeControl    timeStep;
+>         writeInterval   1;
+>     }
+> }
+> ```
+> รัน `simpleFoam` หรือ `pimpleFoam` แล้วเปิดดู field `yPlus` ใน ParaView
+
 ต้องใช้สูตร $y+$:
 $$ \\Delta y = \\frac{y^+ \\mu}{\\rho u_\\tau} $$
 โดย $u_\\tau = \\sqrt{\\frac{\\tau_w}{\\rho}}$
@@ -106,6 +231,43 @@ $$ \\Delta y = \\frac{y^+ \\mu}{\\rho u_\\tau} $$
 
 ## 6. สรุป Checklist สำหรับ Layer
 
+> [!NOTE]
+> **📂 OpenFOAM Context**
+>
+> **ขั้นตอนการตรวจสอบ Layer ใน OpenFOAM**:
+>
+> **1. ตรวจสอบ Log**:
+> ```bash
+> # รัน snappyHexMesh
+> snappyHexMesh -overwrite
+>
+> # ดูข้อความเหล่านี้ใน log.snappyHexMesh:
+> grep "Layer" log.snappyHexMesh
+> # ควรเห็น: "Layer mesh added" ไม่ใช่ "Layer insertion failed"
+> ```
+>
+> **2. ตรวจสอบ Mesh ใน ParaView**:
+> - เปิดไฟล์ `constant/polyMesh`
+> - ใช้ **Mesh Quality** filter
+> - ตรวจ **Non-Orthogonality** และ **Aspect Ratio**
+> - Slice ผ่าน Layer เพื่อดูว่า Layer ขึ้นครบไหม
+>
+> **3. ตรวจสอบ y+ หลังจำลอง**:
+> ```bash
+> # เพิ่ม yPlus functionObject ใน controlDict
+> # รัน solver เช่น simpleFoam
+> simpleFoam
+>
+> # ดูค่า y+ ใน ParaView
+> # ค่าควรอยู่ในช่วงที่ต้องการ (เช่น y+ < 1)
+> ```
+>
+> **ไฟล์ที่ต้องตรวจสอบ**:
+> - `system/snappyHexMeshDict` → ตั้งค่า Layer
+> - `log.snappyHexMesh` → ดูว่า Layer สร้างสำเร็จไหม
+> - `constant/polyMesh` → Mesh ที่ได้
+> - `system/controlDict` → เพิ่ม yPlus functionObject
+
 1.  Background Mesh ต้องละเอียดพอ (Aspect Ratio ตรงผิวไม่ควรสูงเกินไป)
 2.  Snapping ต้องเนียน (Phase 2 ผ่านฉลุย)
 3.  เลือกโหมด Absolute Size ถ้าต้องการคุม $y+$
@@ -113,7 +275,7 @@ $$ \\Delta y = \\frac{y^+ \\mu}{\\rho u_\\tau} $$
 
 ---
 
-## 📝 แบบฝึกหัด (Exercises)
+## 🧠 Concept Check: ทดสอบความเข้าใจ
 
 ### แบบฝึกหัดระดับง่าย (Easy)
 1. **True/False**: `relativeSizes true` เหมาะสำหรับการคุมค่า $y+$ ที่แม่นยำ
@@ -148,7 +310,10 @@ $$ \\Delta y = \\frac{y^+ \\mu}{\\rho u_\\tau} $$
 ### แบบฝึกหัดระดับสูง (Hard)
 5. **Hands-on**: ใช้ snappyHexMesh สร้าง Mesh บน sphere โดยกำหนด Layer 5 ชั้น แล้วใช้ ParaView ตรวจสอบว่า Layer ขึ้นครบไหม
 
-6. **วิเคราะห์**: เปรียบเทียบการใช้ Layer กับการไม่ใช้ Layer ในงาน External Aerodynamics ในแง่ของ:
-   - ความแม่นยำของค่าแรงเสียดทาน (Skin friction)
-   - ความเร็วในการลู่เข้า (Convergence speed)
-   - จำนวน Cell ที่เพิ่มขึ้น
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+*   **บทก่อนหน้า**: [../03_SNAPPYHEXMESH_BASICS/03_Castellated_Mesh_Settings.md](../03_SNAPPYHEXMESH_BASICS/03_Castellated_Mesh_Settings.md)
+*   **บทถัดไป**: [02_Refinement_Regions.md](02_Refinement_Regions.md)

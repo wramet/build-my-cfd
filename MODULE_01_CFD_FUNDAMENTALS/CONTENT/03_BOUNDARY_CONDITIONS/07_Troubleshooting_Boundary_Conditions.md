@@ -1,754 +1,278 @@
-# การแก้ไขปัญหา Boundary Condition
+# Troubleshooting Boundary Conditions
 
-ปัญหาเกี่ยวกับ **Boundary Condition** เป็นหนึ่งในสาเหตุที่พบบ่อยที่สุดของการจำลองล้มเหลวใน OpenFOAM คู่มือฉบับสมบูรณ์นี้จะกล่าวถึงปัญหาที่พบบ่อยที่สุดและแนวทางแก้ไข
-
-## ตารางปัญหา Boundary Condition ที่พบบ่อย
-
-| Symptom | Probable Cause | Solution |
-| :--- | :--- | :--- |
-| **Divergence ที่ Inlet** | U และ p ไม่สอดคล้องกัน | ตรวจสอบ: หาก U ถูกกำหนดค่าตายตัว (fixed), p ควรเป็น zeroGradient (โดยปกติ) |
-| **Inflow ที่ Outlet** | Vortices พุ่งชน Outlet | ใช้ `inletOutlet` หรือขยาย Domain ปลายน้ำ |
-| **High Velocity ที่ Wall** | ประเภท BC ผิด | ตรวจสอบให้แน่ใจว่าใช้ `noSlip` หรือ `fixedValue (0 0 0)` |
-| **Pressure Drifting** | Boundary Condition ประเภท Neumann ทั้งหมด | กำหนดค่าความดันที่จุดใดจุดหนึ่ง (Reference Pressure) หรือที่ Patch ใด Patch หนึ่ง |
-| **Mass Balance Error** | Boundary Condition ไม่สอดคล้องกัน | ตรวจสอบ Flow Rate ที่ Inlet/Outlet ด้วย `postProcess -func "flowRatePatch(name=all)"` |
-| **Oscillating Residuals** | Initial Condition ไม่ถูกต้อง | ปรับ Initial Condition ให้สอดคล้องกับ Boundary Condition |
+การวินิจฉัยและแก้ปัญหาที่เกิดจาก BC
 
 ---
 
-## การวิเคราะห์และแนวทางแก้ไขโดยละเอียด
+## ปัญหาที่พบบ่อย
 
-### Divergence ที่ Inlet
+### 1. Divergence ที่ Inlet
 
-**Problem Description**:
-การจำลองเกิด **Divergence** หลังจากเริ่มต้นไม่นาน โดยค่า Residuals พุ่งสูงขึ้นอย่างรวดเร็วที่ Boundary ของ Inlet
-
-โดยทั่วไปปัญหานี้จะเกิดขึ้นภายในไม่กี่ Iteration แรก:
-
-- ค่า Residuals ของ Continuity และ Momentum เพิ่มขึ้นอย่างรวดเร็ว
-- ค่า Velocity หรือ Pressure ที่ Inlet ไม่เป็นไปตามหลักฟิสิกส์
-- Solver ไม่สามารถ Converge ได้
-
-**Root Cause**:
-ปัญหาพื้นฐานเกิดจากการ **กำหนด Boundary Condition มากเกินไป (over-specification)**
-
-เมื่อทั้ง Velocity และ Pressure ถูกกำหนดค่าตายตัวที่ Boundary เดียวกัน ระบบจะถูกจำกัดเงื่อนไขทางคณิตศาสตร์มากเกินไป
-
-```mermaid
-graph TD
-%% Mathematical Conflict
-subgraph Conflict ["Over-Specification"]
-    Inlet["Inlet: Fixed U"]:::explicit
-    Outlet["Outlet: Fixed U (?)"]:::explicit
-    Problem["Mass Conservation Violation"]:::explicit
-end
-
-subgraph Solution ["Correct Approach"]
-    InletFixed["Inlet: Fixed U"]:::implicit
-    OutletOpen["Outlet: ZeroGradient U, Fixed Pressure"]:::implicit
-end
-
-Inlet & Outlet --> Problem
-Problem -.->|Fix| Solution
-
-%% Classes
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
+**อาการ:**
 ```
-> **Figure 1:** ความขัดแย้งทางคณิตศาสตร์ในระบบที่ถูกจำกัดเงื่อนไขมากเกินไป (Over-specification) แสดงให้เห็นว่าการกำหนดทั้งความเร็วและความดันตายตัวที่ทางเข้าเดียวกันส่งผลให้ระบบไม่มีผลเฉลยและเกิดความไม่เสถียร
+FOAM FATAL ERROR:
+Maximum number of iterations exceeded.
+```
 
+**สาเหตุและวิธีแก้:**
 
-$$\nabla \cdot \mathbf{u} = 0 \quad \text{(continuity)}$$
-
-$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} \quad \text{(momentum)}$$
-
-หาก Velocity ถูกกำหนดค่า (prescribed) ด้วย `fixedValue` และ Pressure ก็ถูกกำหนดค่าด้วย `fixedValue` เช่นกัน ระบบจะมีข้อจำกัดมากกว่าระดับความเป็นอิสระ (degrees of freedom) ซึ่งนำไปสู่ความไม่เสถียรเชิงตัวเลข (numerical instability)
-
-**Proper Implementation**:
+| สาเหตุ | วิธีแก้ |
+|--------|---------|
+| U และ p เป็น Dirichlet ทั้งคู่ | เปลี่ยน p เป็น `zeroGradient` |
+| Velocity สูงเกินไป | ลด inlet velocity |
+| Turbulence initial ไม่ดี | ปรับ k, ε ให้สอดคล้อง |
 
 ```cpp
-// Velocity inlet configuration (recommended)
-// U: Fixed value at inlet, p: Zero gradient
-U
-{
-    type            fixedValue;
-    value           uniform (10 0 0);  // Prescribed velocity at inlet
-}
+// ❌ ผิด
+inlet { type fixedValue; value uniform (10 0 0); }  // U
+inlet { type fixedValue; value uniform 0; }         // p
 
-p
-{
-    type            zeroGradient;      // Natural outflow condition
-}
+// ✅ ถูก
+inlet { type fixedValue; value uniform (10 0 0); }  // U
+inlet { type zeroGradient; }                        // p
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
-> 
-> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
-> 
-> **คำอธิบาย:** การกำหนด Boundary Condition ที่เหมาะสมสำหรับ Velocity Inlet โดยใช้ `fixedValue` สำหรับ Velocity และ `zeroGradient` สำหรับ Pressure ช่วยป้องกันปัญหา Over-specification ในระบบสมการ Navier-Stokes
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **FixedValue Boundary Condition:** กำหนดค่าตายตัวที่ขอบเขต ใช้สำหรับ Inlet Velocity
-> - **ZeroGradient Boundary Condition:** การไหลออกแบบธรรมชาติ ไม่มีการเปลี่ยนแปลงค่าในทิศทางปกติของขอบเขต
-> - **Pressure-Velocity Coupling:** การเชื่อมโยงระหว่างความดันและความเร็วในระบบสมการของไหล
+### 2. Backflow ที่ Outlet
 
-หรืออีกทางเลือกหนึ่ง:
+**อาการ:**
+- Negative velocity ที่ outlet
+- Solution unstable
+
+**สาเหตุและวิธีแก้:**
 
 ```cpp
-// Pressure inlet configuration
-// p: Fixed value at inlet, U: Pressure-driven velocity
-p
-{
-    type            fixedValue;
-    value           uniform 101325;    // Prescribed pressure at inlet
-}
+// ❌ อาจมีปัญหา
+outlet { type zeroGradient; }
 
-U
+// ✅ ดีกว่า
+outlet
 {
-    type            pressureInletVelocity;
-    value           uniform (0 0 0);   // Initial value
+    type        inletOutlet;
+    inletValue  uniform (0 0 0);
+    value       uniform (10 0 0);
 }
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
-> 
-> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
-> 
-> **คำอธิบาย:** การกำหนด Pressure Inlet โดยใช้ `fixedValue` สำหรับ Pressure และ `pressureInletVelocity` สำหรับ Velocity ซึ่งเหมาะสำหรับการไหลแบบ Pressure-driven
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Pressure-Driven Flow:** การไหลของไหลที่เกิดจากความแตกต่างของความดัน
-> - **PressureInletVelocity:** Boundary Condition ที่คำนวณความเร็วจากความดัน
-> - **Inlet Boundary:** ขอบเขตทางเข้าของโดเมนการคำนวณ
+หรือขยาย outlet domain ให้ไกลจากบริเวณ recirculation
 
-**Validation Steps**:
-1. ตรวจสอบความสอดคล้องของ Boundary Condition โดยใช้ Utility `checkMesh`
-2. ตรวจสอบว่า Initial Condition เป็นไปตามสมการ Continuity
-3. ตรวจสอบค่า Residuals โดยเฉพาะที่ Patch ของ Inlet
-4. พิจารณาใช้ `totalPressure` สำหรับการไหลที่อัดตัวได้ (compressible flows)
+### 3. High Velocity ที่ Wall
 
-> [!TIP] **Diagnostic Tool**
-> ใช้คำสั่ง `foamListTimes` เพื่อตรวจสอบ Time Directories และ `foamLog` เพื่อติดตาม Residuals แบบ Real-time
+**อาการ:**
+- Velocity ไม่เป็น 0 ที่ผนัง
+- Unrealistic results
 
----
-
-### Inflow ที่ Outlet
-
-**Problem Description**:
-ของไหลไหล **เข้าสู่** Computational Domain ผ่าน Boundary ของ Outlet ซึ่งขัดแย้งกับความคาดหวังทางกายภาพที่ควรจะเป็นเงื่อนไขการไหลออกเท่านั้น
-
-สิ่งนี้แสดงออกในลักษณะ:
-- อัตราการไหลเชิงมวล (mass flux) เป็นลบที่ Outlet
-- เกิดบริเวณการไหลย้อนกลับ (Reverse flow regions)
-- อาจเกิดปัญหาการสมดุลมวลโดยรวม (global mass balance issues)
-- ปัญหาการ Converge
-
-**Root Cause**:
-โดยทั่วไปปัญหานี้เกิดขึ้นเมื่อ:
-1. **Domain สั้นเกินไป**: การไหลยังไม่พัฒนาเต็มที่ก่อนถึง Outlet
-2. **Pressure Gradient ไม่ถูกต้อง**: Back Pressure ไม่ได้ถูกกำหนดอย่างเหมาะสม
-3. **Vortices หรือ Recirculation**: โครงสร้างการไหลแบบปั่นป่วน (Turbulent structures) ไปถึง Boundary ของ Outlet
-
-**Solution 1: inletOutlet Boundary Condition**
-
-เงื่อนไข `inletOutlet` จะสลับระหว่าง `zeroGradient` และ `fixedValue` โดยอัตโนมัติตามทิศทางการไหล:
+**สาเหตุและวิธีแก้:**
 
 ```cpp
-U
-{
-    type            inletOutlet;
-    inletValue      uniform (0 0 0);      // Velocity if backflow occurs
-    value           uniform (0 0 0);      // Initial value
-}
+// ❌ ผิด
+wall { type zeroGradient; }
+
+// ✅ ถูก
+wall { type noSlip; }
+// หรือ
+wall { type fixedValue; value uniform (0 0 0); }
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
-> 
-> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
-> 
-> **คำอธิบาย:** Boundary Condition แบบ `inletOutlet` จะสลับระหว่าง `zeroGradient` เมื่อมีการไหลออก และ `fixedValue` เมื่อมีการไหลย้อนกลับ ช่วยป้องกันปัญหา Backflow ที่ Outlet
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **InletOutlet BC:** Boundary Condition แบบไดนามิกที่ปรับตามทิศทางการไหล
-> - **Backflow Prevention:** การป้องกันการไหลย้อนกลับเข้าสู่โดเมน
-> - **Direction-Dependent Condition:** เงื่อนไขที่ขึ้นกับทิศทางของ Flux
+### 4. Pressure Drifting
 
-สิ่งนี้จะดำเนินการ:
-- `zeroGradient` เมื่อการไหลออก (normal flux > 0)
-- `fixedValue` เมื่อการไหลเข้า (normal flux < 0)
+**อาการ:**
+- Pressure เพิ่มขึ้นหรือลดลงเรื่อยๆ
+- ไม่ converge
 
-หลักการทางคณิตศาสตร์:
+**สาเหตุ:** ไม่มี reference pressure
 
-$$\mathbf{u}_b = \begin{cases}
-\mathbf{u}_{\text{zero-grad}} & \text{if } \phi_f > 0 \text{ (outflow)} \\
-\mathbf{u}_{\text{fixed}} & \text{if } \phi_f \leq 0 \text{ (inflow)}
-\end{cases}$$
-
-โดยที่ $\phi_f = \rho \mathbf{u} \cdot \mathbf{n}_f$ คือ Local mass flux
-
-**Solution 2: Domain Extension**
-
-วิธีแก้ไขที่แข็งแกร่งที่สุดคือการทำให้ Outlet อยู่ไกลจากปลายน้ำมากพอ:
-
-| การไหล | ระยะ Outlet ที่แนะนำ | เท่าของเส้นผ่านศูนย์กลางไฮดรอลิก |
-| :--- | :--- | :--- |
-| **Laminar** | 10-15 เท่า | 10-15 |
-| **Turbulent** | 20-30 เท่า | 20-30 |
-| **Separating flows** | 30-50 เท่า | 30-50 |
-
-```mermaid
-graph LR
-%% Domain Extension
-subgraph BadDomain ["Problematic Domain"]
-    Out1["Outlet (Too Close)"]:::explicit
-    Recirc["Backflow/Instability"]:::explicit
-end
-
-subgraph GoodDomain ["Extended Domain"]
-    Ext["Extension Length"]:::implicit
-    Out2["Outlet (Developed)"]:::implicit
-    Stable["Stable Outflow"]:::implicit
-end
-
-Out1 --> Recirc
-Recirc -.->|Remedy| Ext
-Ext --> Out2
-Out2 --> Stable
-
-%% Classes
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
-```
-> **Figure 2:** การขยายโดเมนการคำนวณเพื่อแก้ไขปัญหาการไหลย้อนกลับที่ทางออก โดยการเพิ่มระยะห่างปลายน้ำให้เพียงพอสำหรับการพัฒนาการไหลแบบสมบูรณ์ ช่วยป้องกันการรบกวนจากกระแสวนที่ขอบเขต
-
-
-สำหรับการไหลที่ซับซ้อน ให้พิจารณาทางเลือกเหล่านี้:
+**วิธีแก้:**
 
 ```cpp
-// Pressure outlet with velocity constraint
-// p: Fixed value at outlet, U: Pressure-driven with inlet-outlet behavior
-p
-{
-    type            fixedValue;
-    value           uniform 0;           // Gauge pressure
-}
+// Option 1: fixedValue ที่ outlet
+outlet { type fixedValue; value uniform 0; }
 
-U
-{
-    type            pressureInletOutletVelocity;
-    phi             phi;
-    value           $internalField;
-}
-```
-
-> **📚 คำอธิบาย (Thai Explanation)**
-> 
-> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
-> 
-> **คำอธิบาย:** การกำหนด Pressure Outlet ร่วมกับ `pressureInletOutletVelocity` สำหรับ Velocity ช่วยควบคุมการไหลย้อนกลับในขณะที่ยังคงความยืดหยุ่นในการคำนวณ
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **PressureInletOutletVelocity:** Boundary Condition ที่ผสมผสานระหว่าง Pressure-driven และ Inlet-Outlet behavior
-> - **Gauge Pressure:** ความดันสัมพัทธ์ที่อ้างอิงต่อความดันบรรยากาศ
-> - **InternalField Reference:** การอ้างอิงค่าเริ่มต้นจากภายในโดเมน
-
-**Validation Approach**:
-ตรวจสอบค่า Flux โดยใช้ `postProcess -func "flowRatePatch(name=outlet)"` เพื่อยืนยันการไหลออกที่เป็นบวกตลอดการจำลอง
-
-> [!WARNING] **Common Pitfall**
-> หลีกเลี่ยงการใช้ `zeroGradient` สำหรับ Velocity ที่ Outlet เมื่อมี Recirculation หรือ Vortex Shedding ที่รุนแรง เนื่องจากอาจทำให้เกิด Backflow ที่ไม่เป็นจริง
-
----
-
-### High Velocity ที่ Wall
-
-**Problem Description**:
-เกิด **Velocity สูงผิดปกติ** ที่ Boundary ของ Wall ซึ่งมักแสดงออกในลักษณะ:
-- Velocity พุ่งสูงขึ้นใกล้ Wall
-- ค่า Wall Shear Stress สูงกว่าความเป็นจริงหลายเท่า
-- อาจเกิดความไม่เสถียรเชิงตัวเลข (numerical instability)
-
-```mermaid
-graph LR
-%% BC Mistakes
-subgraph Scenario ["Wall Boundary Setup"]
-Wall["Wall Patch"]:::implicit
-end
-subgraph Wrong ["Incorrect"]
-ZeroV["fixedValue (0 0 0)"]:::explicit
-Spike["Velocity Spikes"]:::explicit
-BadTau["Wrong Shear Stress"]:::explicit
-end
-subgraph Right ["Correct"]
-NoSlip["noSlip"]:::implicit
-Smooth["Smooth Profile"]:::implicit
-GoodTau["Correct Shear Stress"]:::implicit
-end
-Wall -->|"If used"| Wrong
-Wall -->|"Should use"| Right
-ZeroV -->|"Causes"| Spike -->|"Leads to"| BadTau
-NoSlip -->|"Produces"| Smooth -->|"Correct"| GoodTau
-%% Classes
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
-```
-> **Figure 3:** การนำเงื่อนไขขอบเขตที่ผนังไปใช้งานอย่างถูกต้อง โดยเปรียบเทียบความแตกต่างระหว่างการใช้ `noSlip` ซึ่งให้โปรไฟล์ความเร็วที่ราบรื่นและสมจริง กับการใช้งานที่ผิดพลาดซึ่งนำไปสู่การพุ่งสูงของความเร็วและแรงเค้นเฉือนที่ผนังเกินความเป็นจริง
-
-การกำหนดหรือการใช้งาน Wall Boundary Condition ที่ไม่ถูกต้อง
-
-**Correct Wall Boundary Conditions**:
-
-```cpp
-// No-slip wall (velocity)
-// Equivalent to fixedValue uniform (0 0 0)
-U
-{
-    type            noSlip;                     // Zero velocity at wall
-}
-
-// Alternative explicit specification
-U
-{
-    type            fixedValue;
-    value           uniform (0 0 0);            // Zero velocity at wall
-}
-
-// For moving walls
-U
-{
-    type            fixedValue;
-    value           uniform (1 0 0);            // Wall velocity
-}
-```
-
-> **📚 คำอธิบาย (Thai Explanation)**
-> 
-> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
-> 
-> **คำอธิบาย:** การกำหนด No-Slip Wall Condition โดยใช้ `noSlip` หรือ `fixedValue uniform (0 0 0)` เพื่อให้ความเร็วเป็นศูนย์ที่ผนัง ซึ่งสอดคล้องกับหลักฟิสิกส์ของการไหลของไหลจริง
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **No-Slip Condition:** สภาวะที่ความเร็วของไหลเป็นศูนย์ที่ผนัง
-> - **Wall Boundary:** ขอบเขตผนังที่ไหลไม่สามารถทะลุผ่านได้
-> - **Moving Wall:** ผนังที่เคลื่อนที่ซึ่งกำหนดความเร็วของไหลตาม
-
-**สำหรับ Scalar Fields ที่ Walls**:
-
-```cpp
-// Temperature - adiabatic wall
-// No heat flux through wall
-T
-{
-    type            zeroGradient;
-}
-
-// Temperature - fixed temperature
-T
-{
-    type            fixedValue;
-    value           uniform 300;                // Wall temperature in K
-}
-
-// Turbulence quantities
-k
-{
-    type            kqRWallFunction;            // Wall function
-}
-
-omega
-{
-    type            omegaWallFunction;
-}
-```
-
-> **📚 คำอธิบาย (Thai Explanation)**
-> 
-> **ที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatWallBoilingWallFunction/alphatWallBoilingWallFunctionFvPatchScalarField.C`
-> 
-> **คำอธิบาย:** การกำหนด Boundary Condition สำหรับ Scalar Fields (เช่น Temperature, Turbulence) ที่ผนัง โดยใช้ `zeroGradient` สำหรับ Adiabatic Wall และ `fixedValue` สำหรับ Fixed Temperature ส่วน Turbulence Quantities ใช้ Wall Functions
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Adiabatic Wall:** ผนังที่ไม่มีการถ่ายเทความร้อน (Zero Heat Flux)
-> - **Wall Function:** ฟังก์ชันที่ใช้ประมาณค่า Turbulence Quantities ใกล้ผนัง
-> - **Turbulence Boundary Conditions:** เงื่อนไขขอบเขตสำหรับ k, omega, epsilon ฯลฯ
-
-**Common Mistakes to Avoid**:
-1. การใช้ `zeroGradient` สำหรับ Velocity ที่ Walls (ทำให้เกิด Slip Condition)
-2. ลืมอัปเดต Wall Boundary Condition หลังจาก Mesh Refinement
-3. การกำหนด Wall ที่ไม่สอดคล้องกันระหว่าง Velocity และ Turbulence Fields
-
-> [!INFO] **Wall Functions for Turbulence**
-> สำหรับ Turbulent Flow ใช้ Wall Functions เช่น `kqRWallFunction` หรือ `omegaWallFunction` เพื่อหลีกเลี่ยงการใช้ Mesh ที่ละเอียดมากเกินไปใกล้ผนัง
-
----
-
-### Pressure Drifting
-
-**Problem Description**:
-ค่า **Absolute Pressure** เพิ่มขึ้นหรือลดลงอย่างต่อเนื่องตลอดการจำลอง แม้ว่า Velocity Field จะเสถียรก็ตาม
-
-**Mathematical Issue**:
-สมการ Incompressible Continuity $\nabla \cdot \mathbf{u} = 0$ กำหนด Pressure ได้เพียงแค่ค่าคงที่บวกเพิ่ม (additive constant) เท่านั้น
-
-เมื่อ Boundary ของ Pressure ทั้งหมดใช้เงื่อนไข Neumann (`zeroGradient`) Pressure Field จะไม่ถูกกำหนดอย่างเป็นเอกลักษณ์ (uniquely determined)
-
-```mermaid
-graph TD
-%% Pressure Drift Problem and Solution
-subgraph Problem ["Pressure Drift Problem"]
-    Cause["All Neumann BCs<br/>(Zero Gradient on All Boundaries)"]:::explicit
-    Symptom["Unbounded Pressure Rise<br/>(Mathematical Indeterminacy)"]:::explicit
-end
-
-subgraph Solution ["Stabilization Solution"]
-    Action["Pin Pressure at Reference Cell<br/>(fixedValue on Single Cell)"]:::implicit
-    Result["Stable Unique Solution<br/>(Well-posed System)"]:::implicit
-end
-
-Cause --> Symptom
-Symptom -.->|Reference Cell| Action
-Action --> Result
-
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-```
-> **Figure 4:** การวินิจฉัยและการทำให้สนามความดันเสถียรเพื่อป้องกันปัญหา Pressure Drifting โดยการกำหนดจุดอ้างอิงความดันหรือใช้เงื่อนไขขอบเขตแบบผสม เพื่อให้ระบบสามารถหาผลเฉลยความดันที่เป็นเอกลักษณ์ได้
-
-
-**Option 1: Reference Pressure Point**
-```cpp
-// In fvSolution
+// Option 2: pRef ใน fvSolution
 SIMPLE
 {
-    nCorrectors      2;
-    nNonOrthogonalCorrectors 0;
-
-    pRefPoint        (0.05 0.05 0);    // Reference cell location
-    pRefValue        0;                 // Reference pressure value
+    pRefCell    0;
+    pRefValue   0;
 }
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
-> 
-> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
-> 
-> **คำอธิบาย:** การกำหนด Reference Pressure Point ในไฟล์ `fvSolution` เพื่อแก้ปัญหา Pressure Drifting ในการไหลแบบ Incompressible โดยระบุตำแหน่งและค่าความดันอ้างอิง
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Reference Pressure Point:** จุดอ้างอิงสำหรับความดันในโดเมน
-> - **Pressure Drifting:** ปัญหาที่ความดันเพิ่มหรือลดต่อเนื่องโดยไม่มีจุดอ้างอิง
-> - **SIMPLE Algorithm:** อัลกอริทึมสำหรับแก้สมการ Pressure-Velocity Coupling
+### 5. Turbulence Instability
 
-**Option 2: Pressure Reference Patch**
+**อาการ:**
+- k หรือ ε กลายเป็นลบ
+- NaN ใน turbulence fields
+
+**วิธีแก้:**
+
 ```cpp
-// Set pressure at one boundary
-p
+// ใช้ bounded schemes
+divSchemes
 {
-    type            fixedValue;
-    value           uniform 0;          // Reference pressure
+    div(phi,k)      Gauss upwind;       // ไม่ใช่ linear
+    div(phi,epsilon) Gauss upwind;
 }
-```
 
-> **📚 คำอธิบาย (Thai Explanation)**
-> 
-> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
-> 
-> **คำอธิบาย:** การกำหนด Pressure ที่ Boundary หนึ่งด้วย `fixedValue` เพื่อสร้าง Reference Pressure และป้องกันปัญหา Pressure Drifting
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Pressure Reference Patch:** พื้นที่ขอบเขตที่ใช้อ้างอิงความดัน
-> - **FixedValue BC:** การกำหนดค่าตายตัวที่ขอบเขต
-> - **Boundary Reference:** การใช้ขอบเขตเป็นจุดอ้างอิง
-
-**Option 3: Mean Pressure Constraint**
-สำหรับระบบปิด (closed systems):
-
-```cpp
-p
+// ใช้ relaxation
+relaxationFactors
 {
-    type            meanValueConstraint;
-    meanValue       0;                  // Enforce zero mean pressure
-}
-```
-
-> **📚 คำอธิบาย (Thai Explanation)**
-> 
-> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
-> 
-> **คำอธิบาย:** การใช้ `meanValueConstraint` สำหรับระบบปิดเพื่อบังคับให้ค่าความดันเฉลี่ยในโดเมนมีค่าเป็นศูนย์ ช่วยป้องกันปัญหา Pressure Drifting
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **MeanValueConstraint:** การบังคับค่าเฉลี่ยของสนามในโดเมน
-> - **Closed System:** ระบบที่ไม่มีการไหลเข้าหรือออก
-> - **Global Constraint:** เงื่อนไขที่ใช้กับทั้งโดเมน
-
-**Implementation Best Practices**:
-1. ควรกำหนด Reference Pressure หนึ่งจุดเสมอสำหรับการไหลที่อัดตัวไม่ได้ (incompressible flows)
-2. วาง Reference Point ให้ห่างจาก Boundary และบริเวณที่สนใจ
-3. สำหรับระบบเปิด (open systems) โดยทั่วไปจะกำหนด Pressure ที่ Outlet
-4. ใช้ `setReference` ใน `fvSolution` สำหรับ Reference แบบจุด
-
----
-
-## Troubleshooting Workflow
-
-### Step-by-Step Diagnostic Process
-
-1. **Initial Check**: รัน `checkMesh` เพื่อตรวจสอบคุณภาพของ Mesh
-   ```bash
-   checkMesh -allGeometry -allTopology
-   ```
-
-2. **BC Consistency**: ตรวจสอบว่า Boundary Condition เข้ากันได้ทางคณิตศาสตร์
-   - ตรวจสอบ Dirichlet/Neumann pairing
-   - ตรวจสอบ Pressure-Velocity coupling
-
-3. **Mass Balance**: ตรวจสอบ `postProcess -func "flowRatePatch(name=all)"`
-   ```bash
-   postProcess -func "flowRatePatch(name=inlet)" -latestTime
-   postProcess -func "flowRatePatch(name=outlet)" -latestTime
-   ```
-
-4. **Flux Monitoring**: ใช้ `probes` หรือ `surfaceFieldValue` เพื่อตรวจสอบ Flux
-
-5. **Residual Analysis**: ติดตามค่า Residuals สำหรับแต่ละ Boundary Condition
-
-### Common Error Messages and Solutions
-
-| Error Message | Cause | Solution |
-| :--- | :--- | :--- |
-| **"FOAM exiting"** | Boundary Condition ไม่สอดคล้องกันอย่างรุนแรง | ตรวจสอบ Boundary Condition ทั้งหมดอย่างเป็นระบบ |
-| **"Negative densities found"** | ปัญหาการเชื่อมต่อ Pressure-Velocity ที่ Boundary | ตรวจสอบความเข้ากันได้ของ Inlet/Outlet Condition |
-| **"Courant number greater than 1"** | Time Step ไม่เพียงพอ อาจเกิดจากความไม่เสถียรที่เกิดจาก Boundary | ลด Time Step และตรวจสอบ Boundary Condition อีกครั้ง |
-| **"Continuity error > 1"** | Mass Balance ไม่สอดคล้องกัน | ตรวจสอบ Flow Rate ที่ Inlet/Outlet และ Initial Condition |
-
----
-
-## Advanced Topics
-
-### Transient vs. Steady-State Considerations
-
-สำหรับการจำลองแบบ Transient, Initial Transient ของ Boundary Condition อาจทำให้เกิดการละเมิดทางกายภาพชั่วคราว พิจารณา:
-- การปรับ Boundary Condition ให้ค่อยเป็นค่อยไปอย่างราบรื่น (Ramping)
-- การใช้ช่วงเวลาเริ่มต้นทางกายภาพที่ยาวนานขึ้น
-- การใช้ Relaxation Factors
-
-```cpp
-// Example of using table for ramping
-inlet
-{
-    type            fixedValue;
-    value           table
-    (
-        (0     (0 0 0))
-        (1     (2.5 0 0))
-        (2     (5 0 0))
-        (10    (10 0 0))
-    );
-}
-```
-
-> **📚 คำอธิบาย (Thai Explanation)**
-> 
-> **ที่มา (Source):** `.applications/utilities/parallelProcessing/reconstructPar/fvFieldReconstructorReconstructFields.C`
-> 
-> **คำอธิบาย:** การใช้ Table สำหรับ Ramping Boundary Condition ในการจำลองแบบ Transient เพื่อลดปัญหาการละเมิดทางกายภาพในช่วงเริ่มต้น
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Boundary Condition Ramping:** การปรับค่า Boundary Condition อย่างค่อยเป็นค่อยไป
-> - **Transient Simulation:** การจำลองแบบไม่ steady state
-> - **Time-Dependent BC:** เงื่อนไขขอบเขตที่เปลี่ยนตามเวลา
-
-### Compressible Flow Extensions
-
-สำหรับการไหลที่อัดตัวได้ (compressible flows) มีข้อควรพิจารณาเพิ่มเติม:
-- Boundary Condition ที่อิงตามลักษณะเฉพาะ (Characteristic-based boundary conditions)
-- ค่าคงที่ Riemann (Riemann invariants) สำหรับการไหลแบบ Supersonic
-- การกำหนด Total Pressure และ Total Temperature ที่เหมาะสม
-
-```cpp
-// Total pressure inlet for compressible flow
-p
-{
-    type            totalPressure;
-    p0              uniform 101325;    // Total pressure
-    T0              uniform 300;       // Total temperature
-    gamma           1.4;                // Heat capacity ratio
-}
-```
-
-> **📚 คำอธิบาย (Thai Explanation)**
-> 
-> **ที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatWallBoilingWallFunction/alphatWallBoilingWallFunctionFvPatchScalarField.C`
-> 
-> **คำอธิบาย:** การกำหนด Total Pressure Inlet สำหรับการไหลแบบ Compressible โดยใช้ `totalPressure` Boundary Condition พร้อมระบุค่า Total Pressure, Total Temperature และ Heat Capacity Ratio
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Total Pressure:** ความดันรวมที่รวม Static Pressure และ Dynamic Pressure
-> - **Compressible Flow:** การไหลที่มีความหนาแน่นเปลี่ยนแปลงตามความดัน
-> - **Heat Capacity Ratio:** อัตราส่วนความจุความร้อนที่คงที่และที่ความดันคงที่
-
-### Multiphase Flow Complications
-
-ในการไหลแบบ Multiphase, Boundary Condition ต้องสอดคล้องกันในทุก Phase:
-- Boundary Condition ของ Volume Fraction
-- เงื่อนไข Velocity เฉพาะ Phase
-- วิธีการจับรอยต่อ (Interface capturing schemes) ที่ Boundary
-
-```cpp
-// Multiphase flow BCs
-alpha.water
-{
-    inlet
+    equations
     {
-        type            fixedValue;
-        value           uniform 1;      // Pure water at inlet
-    }
-
-    outlet
-    {
-        type            zeroGradient;   // Advects out with flow
-    }
-
-    walls
-    {
-        type            zeroGradient;
+        k       0.5;
+        epsilon 0.5;
     }
 }
 ```
 
-> **📚 คำอธิบาย (Thai Explanation)**
-> 
-> **ที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/derivedFvPatchFields/alphatWallBoilingWallFunction/alphatWallBoilingWallFunctionFvPatchScalarField.C`
-> 
-> **คำอธิบาย:** การกำหนด Boundary Condition สำหรับ Volume Fraction (alpha.water) ในการไหลแบบ Multiphase โดยใช้ `fixedValue` ที่ Inlet และ `zeroGradient` ที่ Outlet และ Walls
-> 
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Volume Fraction:** สัดส่วนปริมาตรของแต่ละเฟสในเซลล์
-> - **Multiphase Flow:** การไหลที่มีหลายเฟสของไหลผสมกัน
-> - **Interface Capturing:** วิธีการติดตามรอยต่อระหว่างเฟส
+### 6. y+ ไม่อยู่ในช่วง
+
+**อาการ:**
+- Wall shear stress ผิด
+- Velocity profile ใกล้ผนังไม่สมเหตุสมผล
+
+**วินิจฉัย:**
+```bash
+postProcess -func yPlus
+```
+
+**วิธีแก้:**
+
+| y+ | Wall Function |
+|----|---------------|
+| < 5 | Low-Re model หรือ `nutLowReWallFunction` |
+| 5-30 | ❌ Buffer layer — หลีกเลี่ยง! |
+| 30-300 | Standard wall functions |
+| > 300 | Mesh หยาบเกินไป — refine |
 
 ---
 
-## Practical Examples
+## Diagnostic Commands
 
-### Example 1: Backward Facing Step
+### ตรวจสอบ BC Types
 
-```cpp
-// Inlet
-U
-{
-    type            fixedValue;
-    value           uniform (1 0 0);
-}
-
-p
-{
-    type            zeroGradient;
-}
-
-// Outlet
-U
-{
-    type            zeroGradient;
-}
-
-p
-{
-    type            fixedValue;
-    value           uniform 0;
-}
-
-// Walls
-U
-{
-    type            noSlip;
-}
+```bash
+foamListBoundaryPatches
 ```
 
-```mermaid
-graph LR
-%% Backward Facing Step
-subgraph Geometry ["Geometry"]
-    Inlet["Inlet"]:::explicit
-    Step["Step Corner"]:::context
-    Wall["Walls"]:::implicit
-    Outlet["Outlet"]:::explicit
-end
+### ตรวจสอบ Patch Names
 
-subgraph Physics ["Flow Physics"]
-    Sep["Separation Point"]:::explicit
-    Recirc["Recirculation Zone"]:::explicit
-    Reattach["Reattachment"]:::implicit
-end
-
-Inlet --> Step
-Step --> Sep
-Sep --> Recirc
-Recirc --> Reattach
-Reattach --> Outlet
-Wall -.-> Physics
-
-%% Classes
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-classDef explicit fill:#ffebee,stroke:#c62828,stroke-width:2px;
-classDef context fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px;
-```
-> **Figure 5:** เรขาคณิตของ Backward Facing Step และลักษณะการไหล แสดงจุดแยกตัวและการไหลย้อนกลับในบริเวณ Recirculation Zone พร้อมการกำหนดเงื่อนไขขอบเขตที่เหมาะสมสำหรับทางเข้า ทางออก และผนัง
-
-
-```cpp
-// Outlet with potential backflow
-U
-{
-    type            inletOutlet;
-    inletValue      uniform (0 0 0);
-    value           uniform (0 0 0);
-}
-
-p
-{
-    type            fixedValue;
-    value           uniform 0;
-}
+```bash
+grep -A 5 boundaryField 0/U
 ```
 
-```mermaid
-graph LR
-A["Pipe Inlet<br/>(Fixed Velocity)"]:::explicit --> B["Main Flow Region<br/>(Forward Flow)"]:::implicit
-B --> C["Recirculation Zone 1<br/>(Reverse Flow)"]:::volatile
-B --> D["Recirculation Zone 2<br/>(Reverse Flow)"]:::volatile
-C --> E["Reattachment Point"]:::implicit
-D --> E
-E --> F["Pipe Outlet<br/>(Potential Backflow Region)"]:::volatile
-F --> G["Outlet Boundary<br/>(inletOutlet Condition)"]:::explicit
+### Mesh Quality
 
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+```bash
+checkMesh
 ```
-> **Figure 6:** การไหลในท่อที่มีการไหลย้อนกลับและการจัดการที่ทางออก โดยใช้เงื่อนไข `inletOutlet` เพื่อรองรับการไหลที่อาจไหลกลับเข้าสู่โดเมนในบริเวณที่มีกระแสวนถึงขอบเขตทางออก
 
+### Residuals
 
-ก่อนรันการจำลอง ให้ตรวจสอบรายการต่อไปนี้:
+```bash
+foamLog log.simpleFoam
+gnuplot residuals.gp
+```
 
-### Pre-Run Checklist
+### Field Range
 
-- [ ] Mesh Quality: `checkMesh -all` ผ่าน
-- [ ] Boundary Patches ตรงกับใน `constant/polyMesh/boundary`
-- [ ] Initial Conditions สอดคล้องกับ Boundary Conditions
-- [ ] Pressure-Velocity Coupling ถูกต้อง
-- [ ] Reference Pressure ถูกกำหนดสำหรับ Incompressible Flow
-- [ ] Turbulence Properties สอดคล้องกับ Boundary Conditions
-- [ ] Time Step เหมาะสม (Co < 1 สำหรับ Explicit Solvers)
-
-### Post-Run Validation
-
-- [ ] Mass Balance: `ṁ_inlet ≈ ṁ_outlet`
-- [ ] Residuals ลู่เข้าสู่ค่าที่ยอมรับได้
-- [ ] ไม่มี Backflow ที่ Outlet (เว้นแต่ตั้งใจไว้)
-- [ ] Wall Shear Stress มีค่าสมเหตุสมผล
-- [ ] Pressure Field ไม่ Drift
+```bash
+postProcess -func "fieldMinMax(U)"
+```
 
 ---
 
-แนวทางที่ครอบคลุมในการแก้ไขปัญหา Boundary Condition นี้ช่วยให้มั่นใจได้ว่าการจำลอง OpenFOAM จะมีความแข็งแกร่งและเสถียรในแอปพลิเคชัน CFD ที่หลากหลาย
+## Common Mistakes
+
+### 1. Patch Name ไม่ตรงกับ polyMesh
+
+```cpp
+// ❌ constant/polyMesh/boundary มี "inlet" แต่
+// 0/U ใช้ "Inlet" (ตัวใหญ่ต่างกัน)
+boundaryField
+{
+    Inlet { ... }   // ❌ ไม่ตรง
+    inlet { ... }   // ✅ ตรง
+}
+```
+
+### 2. ลืม BC สำหรับบาง Patch
+
+```cpp
+// ❌ ไม่มี BC สำหรับ "sides"
+boundaryField
+{
+    inlet  { ... }
+    outlet { ... }
+    // sides หายไป → FATAL ERROR
+}
+```
+
+### 3. Units ผิด
+
+```cpp
+// ❌ Dimensions ผิด
+dimensions [0 1 -1 0 0 0 0];   // velocity
+value uniform 10;              // ≠ vector!
+
+// ✅ ถูก
+dimensions [0 1 -1 0 0 0 0];
+value uniform (10 0 0);        // vector
+```
+
+### 4. Value ไม่ consistent กับ Type
+
+```cpp
+// ❌ zeroGradient ไม่ต้องการ value
+outlet
+{
+    type  zeroGradient;
+    value uniform 0;    // ไม่จำเป็น (แต่ไม่ error)
+}
+
+// ✅ fixedValue ต้องการ value
+outlet
+{
+    type  fixedValue;
+    value uniform 0;    // จำเป็น!
+}
+```
+
+---
+
+## Debugging Checklist
+
+1. ✅ Patch names ตรงกับ `constant/polyMesh/boundary`
+2. ✅ ทุก patch มี BC ครบ
+3. ✅ U และ p coupling ถูกต้อง
+4. ✅ มี reference pressure อย่างน้อย 1 จุด
+5. ✅ Dimensions ถูกต้อง
+6. ✅ Value format ถูก (scalar vs vector)
+7. ✅ y+ อยู่ในช่วงที่เหมาะกับ wall function
+8. ✅ Turbulence BC consistent กับ model
+
+---
+
+## Concept Check
+
+<details>
+<summary><b>1. ทำไม buffer layer (5 < y+ < 30) ควรหลีกเลี่ยง?</b></summary>
+
+เพราะไม่มี wall function ที่ถูกต้องสำหรับ region นี้ — viscous sublayer model และ log-law model ต่างก็ให้ความผิดพลาดสูง
+</details>
+
+<details>
+<summary><b>2. Over-specification คืออะไร?</b></summary>
+
+การกำหนด BC มากเกินไปที่ boundary เดียว เช่น fixedValue ทั้ง U และ p → solver ไม่สามารถหา consistent solution
+</details>
+
+<details>
+<summary><b>3. Under-specification คืออะไร?</b></summary>
+
+การกำหนด BC ไม่พอ เช่น zeroGradient ทุกที่ไม่มี reference pressure → pressure ลอย (floating)
+</details>
+
+---
+
+## เอกสารที่เกี่ยวข้อง
+
+- **บทก่อนหน้า:** [06_Advanced_Boundary_Conditions.md](06_Advanced_Boundary_Conditions.md) — BC ขั้นสูง
+- **บทถัดไป:** [08_Exercises.md](08_Exercises.md) — แบบฝึกหัด

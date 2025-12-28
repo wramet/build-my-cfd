@@ -1,5 +1,10 @@
 # การสร้างเมชหลายโดเมน (Multi-Region Meshing)
 
+> [!TIP] ทำไมการสร้าง Multi-Region Mesh ถึงสำคัญ?
+> การสร้าง Mesh หลายโดเมนในเคสเดียวเป็นเทคนิคที่จำเป็นสำหรับโจทย์ Conjugate Heat Transfer (CHT) หรือ Porous Media ซึ่งช่วยให้เราสามารถจำลองปฏิสัมพันธ์ระหว่างของไหลและของแข็งได้อย่างแม่นยำ โดยไม่ต้องสร้าง Case แยกกัน การเชื่อมต่อ Zone ต่างๆ ผ่าน CellZones และ FaceZones ทำให้การส่งผ่านความร้อนและโมเมนตัมระหว่างโดเมนเกิดขึ้นอย่างสมบูรณ์ ซึ่งเป็นหัวใจสำคัญของการทำ CFD ระดับมืออาชีพ
+>
+> **Domain D: Meshing** → `system/snappyHexMeshDict`
+
 ในโจทย์ที่ซับซ้อน เช่น **Conjugate Heat Transfer (CHT)** (ของไหล + ของแข็ง) หรือ **Porous Media** เราจำเป็นต้องสร้าง Mesh ที่มีหลาย "Zone" อยู่ในเคสเดียวกัน โดยที่แต่ละ Zone เชื่อมต่อกันอย่างสมบูรณ์
 
 `snappyHexMesh` รองรับการทำ Multi-Region แบบอัตโนมัติผ่านฟีเจอร์ **CellZones** และ **FaceZones**
@@ -9,10 +14,23 @@
 
 ## 1. แนวคิด FaceZone vs CellZone
 
+> [!NOTE] **📂 OpenFOAM Context**
+> แนวคิดเรื่อง CellZone และ FaceZone เป็นพื้นฐานของโครงสร้าง Mesh ใน OpenFOAM:
+> - **CellZones** → เก็บอยู่ใน `constant/polyMesh/cellZones` ใช้จัดกลุ่ม Cell สำหรับ Multi-region simulation (เช่น chtMultiRegionFoam) หรือกำหนด Porous zone
+> - **FaceZones** → เก็บอยู่ใน `constant/polyMesh/faceZones` ใช้สร้าง Baffle, Fan, หรือ Interface ระหว่าง Region
+>
+> เมื่อรัน `splitMeshRegions` แต่ละ CellZone จะถูกแยกเป็น Mesh อิสระใน `constant/<regionName>/polyMesh`
+
 *   **CellZone:** กลุ่มของ Cell (ปริมาตร) เช่น "กลุ่ม Cell ที่เป็น Heatsink" (Solid) และ "กลุ่ม Cell ที่เป็นอากาศ" (Fluid)
 *   **FaceZone:** กลุ่มของ Face (ผิว) ภายในโดเมน มักใช้เป็น Baffle (แผ่นกั้นบาง) หรือ Fan (พัดลม)
 
 ## 2. การเตรียม Geometry สำหรับ Multi-Region
+
+> [!NOTE] **📂 OpenFOAM Context**
+> การเตรียม STL สำหรับ Multi-Region:
+> - **ไฟล์ STL** → วางไว้ใน `constant/triSurface/` หรือ `geometry/` (ถ้าใช้ `includeEmesh "geometry";`)
+> - **Keywords ใน snappyHexMeshDict**: `type triSurfaceMesh; name <surfaceName>;`
+> - สำหรับ CHT ควรเตรียม STL แยกชัดเจนระหว่าง Fluid และ Solid เพื่อให้ง่ายต่อการกำหนด CellZone
 
 สมมติเรามีท่อ (Fluid) ที่มีครีบระบายความร้อน (Solid) อยู่ข้างใน
 เราต้องเตรียมไฟล์ STL 2 ไฟล์ (หรือไฟล์เดียวแยก Solid):
@@ -20,6 +38,16 @@
 2.  `fins.stl` (โดเมนย่อยข้างใน)
 
 ## 3. การตั้งค่าใน `snappyHexMeshDict`
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **ไฟล์**: `system/snappyHexMeshDict`
+>
+> **Keywords สำคัญ**:
+> - `geometry` → โหลด STL ด้วย `type triSurfaceMesh;`
+> - `refinementSurfaces` → กำหนด `faceZone`, `cellZone`, และ `cellZoneInside`
+> - `locationInMesh` (ใน `castellatedMeshControls`) → ระบุจุดใน Fluid domain
+>
+> เมื่อรัน `snappyHexMesh` เสร็จ จะได้ Mesh ที่มีหลาย CellZones อยู่ใน `constant/polyMesh/cellZones`
 
 ### ขั้นตอนที่ 1: Geometry Section
 โหลดไฟล์เข้ามาตามปกติ
@@ -62,6 +90,12 @@ sHM จะรู้เองว่า:
 
 ## 4. ผลลัพธ์ที่ได้
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Output files** หลังจากรัน `snappyHexMesh`:
+> - `constant/polyMesh/cellZones` → บันทึก Cell ที่อยู่ในแต่ละ Zone (เช่น `finsRegion`)
+> - `constant/polyMesh/faceZones` → บันทึก Face ที่เป็น Interface
+> - ใช้ `checkMesh -topology` ตรวจสอบว่า Zone ถูกต้อง
+
 เมื่อรันเสร็จ คุณจะได้ Mesh เดียวที่มี 2 Regions:
 1.  Default Region (Fluid)
 2.  `finsRegion` (Solid)
@@ -69,6 +103,19 @@ sHM จะรู้เองว่า:
 ในไฟล์ `constant/polyMesh/cellZones` จะมีรายชื่อ Cell ที่อยู่ใน Fins
 
 ## 5. การแยก Region ไปเป็นแยก Folder (SplitMeshRegions)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **คำสั่ง**: `splitMeshRegions -cellZones -overwrite`
+>
+> **Output structure**:
+> - `constant/fluid/polyMesh/` → Mesh สำหรับ Fluid region
+> - `constant/solid/polyMesh/` → Mesh สำหรับ Solid region
+> - `0/fluid/` → Boundary conditions สำหรับ Fluid (U, p, T, k, epsilon, etc.)
+> - `0/solid/` → Boundary conditions สำหรับ Solid (T, etc.)
+>
+> **Boundary type ที่เกิดขึ้น**:
+> - `mappedWall` → Interface ระหว่าง Fluid-Solid (ใช้ `sampleMode nearestCell` หรือ `nearestPatchFace`)
+> - สำหรับ CHT ต้อง set BC เป็น `compressible::turbulentTemperatureCoupledBaffleMixed` หรือ `externalWallHeatFlux`
 
 สำหรับ CHT solver (เช่น `chtMultiRegionFoam`) เราต้องการแยก 2 zones นี้ออกจากกันเป็นคนละ Mesh (แต่ละ Mesh มี Boundary `T`, `U`, `p` ของตัวเอง)
 
@@ -82,6 +129,37 @@ splitMeshRegions -cellZones -overwrite
 และที่รอยต่อระหว่าง Fluid-Solid จะเกิด Boundary type ใหม่ชื่อ **`mappedWall`** (ทำหน้าที่ส่งผ่านความร้อนระหว่างกัน)
 
 ## 6. สรุป Workflow สำหรับ CHT
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **สรุป Case Structure สำหรับ chtMultiRegionFoam**:
+> ```
+> case/
+> ├── 0/
+> │   ├── fluid/
+> │   │   ├── U, p, T, k, epsilon, ...
+> │   │   └── fluid_to_solid (mappedWall)
+> │   └── solid/
+> │       ├── T
+> │       └── solid_to_fluid (mappedWall)
+> ├── constant/
+> │   ├── fluid/
+> │   │   ├── polyMesh/
+> │   │   ├── thermophysicalProperties
+> │   │   └── turbulenceProperties
+> │   └── solid/
+> │       ├── polyMesh/
+> │       └── thermophysicalProperties
+> └── system/
+>     ├── controlDict
+>     ├── fvSchemes
+>     └── fvSolution
+> ```
+>
+> **Boundary Conditions สำคัญ**:
+> - ที่ Interface: ใช้ `compressible::turbulentTemperatureCoupledBaffleMixed` สำหรับ CHT
+> - หรือ `externalWallHeatFlux` สำหรับ conjugate heat transfer กับ ambient
+>
+> **Solver**: `chtMultiRegionFoam` (สำหรับ compressible) หรือ custom solver
 
 1.  เตรียม STL แยกชิ้น (Fluid.stl, Solid.stl)
 2.  ตั้งค่า `snappyHexMeshDict`:
@@ -112,7 +190,7 @@ graph TB
 
 ---
 
-## 📝 แบบฝึกหัด (Exercises)
+## 🧠 Concept Check: ทดสอบความเข้าใจ
 
 ### แบบฝึกหัดระดับง่าย (Easy)
 1. **True/False**: `splitMeshRegions` สร้าง Mesh แยกกันสำหรับแต่ละ Region
@@ -158,7 +236,10 @@ graph TB
 ### แบบฝึกหัดระดับสูง (Hard)
 5. **Hands-on**: สร้าง Mesh 2 Regions (กล่อง + sphere ตรงกลาง) แล้วรัน `splitMeshRegions` และตรวจสอบผลลัพธ์
 
-6. **วิเคราะห์**: เปรียบเทียบ Multi-region meshing กับการสร้าง Mesh แยกแล้วค่อย merge ในแง่ของ:
-   - ความง่ายในการ setup
-   - ความต่อเนื่องของ mesh ที่รอยต่อ
-   - ความยืดหยุ่นในการปรับเปลี่ยน geometry
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+*   **บทก่อนหน้า**: [02_Refinement_Regions.md](02_Refinement_Regions.md)
+*   **บทถัดไป**: [../05_MESH_QUALITY_AND_MANIPULATION/01_Mesh_Quality_Criteria.md](../05_MESH_QUALITY_AND_MANIPULATION/01_Mesh_Quality_Criteria.md)

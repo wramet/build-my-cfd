@@ -1,9 +1,28 @@
 # การดำเนินการเทนเซอร์ (Tensor Operations)
 
+> [!TIP] ทำไมการดำเนินการเทนเซอร์จึงสำคัญใน OpenFOAM?
+> **เหตุผล:** การทำความเข้าใจการดำเนินการเทนเซอร์เป็นพื้นฐานสำคัญในการพัฒนาและปรับแต่ง **OpenFOAM Solvers** และ **Turbulence Models** เพราะ:
+> - **ความเค้น (Stress Tensor):** ใช้ในการคำนวณความเค้นและอัตราการเสียดทานในสมการโมเมนตัม
+> - **Reynolds Stress:** ใช้ในโมเดลความปั่น (Turbulence Models) เช่น k-epsilon, k-omega
+> - **Gradient Operations:** ใช้ในการคำนวณ fvc::grad, fvc::div สำหรับ discretization
+> - **Post-processing:** ใช้ในการวิเคราะห์ผลลัพธ์ เช่น Principal Stresses, Strain Rates
+>
+> **ผลกระทบ:** หากเข้าใจผิด อาจทำให้แก้สมการผิด หรือโมเดลความปั่นทำงานไม่ถูกต้อง ส่งผลให้การจำลองทั้งหมดล้มเหลว
+
 ![[tensor_workshop_tools.png]]
 > **มุมมองวิชาการ:** โต๊ะทำงานเฉพาะทางสำหรับเทนเซอร์ เครื่องมืออย่าง "ตัวรีด Trace" (tr), "ตาชั่ง Determinant" (det), และ "เครื่องกลับด้าน Inverter" (inv) วางเรียงราย เทนเซอร์กำลังถูกประมวลผลเพื่อดึงส่วน "Deviatoric" ออกมา
 
 ## ภาพรวมการดำเนินการเทนเซอร์
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Coding/Customization (`src/` directory)
+> - **Location:** `src/OpenFOAM/fields/Fields/tensor/` และ `src/OpenFOAM/fields/Fields/symmTensor/`
+> - **Key Files:**
+>   - `tensor.H`, `tensorI.H` - Tensor class definitions
+>   - `symmTensor.H`, `symmTensorI.H` - Symmetric tensor definitions
+> - **Usage:** ใช้ใน **Solver Development** และ **Turbulence Model** coding
+> - **Related Classes:** `Tensor`, `SymmTensor`, `Vector`, `scalar`
+> - **Compilation:** Part of `libOpenFOAM.so` core library
 
 การดำเนินการเทนเซอร์ของ OpenFOAM เป็นรากฐานของการคำนวณ CFD ทำให้สามารถจัดการทางคณิตศาสตร์กับ **เทนเซอร์อันดับสอง** ได้อย่างมีประสิทธิภาพ ซึ่งจำเป็นสำหรับการขนส่งโมเมนตัม การวิเคราะห์ความเค้น และการแปลงฟิลด์
 
@@ -37,6 +56,16 @@ V2 -->|"* outer"| T_Res
 ---
 
 ## 1. การคำนวณพื้นฐาน (Basic Arithmetic)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Coding/Customization (C++ Programming)
+> - **Implementation:** Expression Templates ใน `src/OpenFOAM/fields/Fields/tensor/tensorI.H`
+> - **Usage Scenarios:**
+>   - **Boundary Conditions:** การคำนวณค่าที่ขอบ (patch) เช่น `fixedValue`, `zeroGradient`
+>   - **Initial Conditions:** การกำหนดค่าเริ่มต้นของฟิลด์เทนเซอร์
+>   - **Custom Models:** การเขียนโมเดลความหนืด (Viscosity Models) หรือ Stress Models
+> - **Operator Overloading:** `+`, `-`, `*`, `/` ถูก overload สำหรับ tensor operations
+> - **Performance:** Inlined operations ด้วย templates ไม่มี function call overhead
 
 การดำเนินการทางคณิตศาสตร์พื้นฐานบนเทนเซอร์เป็นแบบ **Component-wise** (ทำทีละองค์ประกอบ) ซึ่งสะท้อนถึงนิยามทางคณิตศาสตร์ของพีชคณิตเทนเซอร์
 
@@ -73,6 +102,20 @@ tensor E = 2.5 * A;
 ---
 
 ## 2. ผลคูณภายในและภายนอก (Inner and Outer Products)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Physics & Fields + Numerics
+> - **Physics Applications:**
+>   - **Stress Calculations:** ใช้ `&` (single contraction) ในสมการโมเมนตัม: `fvm::div(nu*dev(T(gradU)))`
+>   - **Reynolds Stress:** ใช้ `*` (outer product) ใน `RASModel` สำหรับ `tau_ = -nuSgs_*dev(gradU.T())`
+>   - **Energy Dissipation:** ใช้ `&&` (double contraction) ใน `epsilon` คำนวณ
+> - **Numerical Schemes:**
+>   - **Gauss Divergence:** `divSchemes` ใน `system/fvSchemes` ใช้ tensor contractions
+>   - **Interpolation Schemes:** ใช้ใน surface field interpolations
+> - **Key Operators:**
+>   - `operator&` - Single contraction (tensor-vector or tensor-tensor)
+>   - `operator&&` - Double contraction (tensor-tensor to scalar)
+>   - `operator*` - Outer product (vector-vector to tensor)
 
 ผลคูณในแคลคูลัสเทนเซอร์มีการ **ลดอันดับ (Contraction)** ในระดับที่แตกต่างกัน โดยแต่ละแบบมีการตีความทางฟิสิกส์ที่เฉพาะเจาะจง:
 
@@ -139,6 +182,20 @@ tensor T = u * v;
 
 ## 3. ฟังก์ชันวิเคราะห์เทนเซอร์ (Tensor Analysis Functions)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Coding/Customization + Post-processing
+> - **Implementation:** `src/OpenFOAM/fields/Fields/tensor/tensorI.H`
+> - **Key Functions:**
+>   - `tr(tensor)` - Trace (ผลรวมแนวทแยง)
+>   - `det(tensor)` - Determinant (ดีเทอร์มิแนนต์)
+>   - `inv(tensor)` - Inverse (เมทริกซ์ผกผัน)
+>   - `.T()` - Transpose (ทรานสโพส)
+> - **Applications:**
+>   - **Invariants Calculation:** ใช้ใน `Turbulence Models` สำหรับคำนวณ `I1`, `I2`, `I3`
+>   - **Stress Analysis:** ใช้ใน functionObjects เพื่อวิเคราะห์ความเค้น
+>   - **Mesh Quality:** ใช้ `det()` ใน mesh quality checks (Jacobian determinant)
+> - **Function Objects:** สามารถเรียกใช้ใน `controlDict` ผ่าน `coded` หรือ custom functions
+
 ฟังก์ชันเหล่านี้คำนวณค่า **Invariants** ซึ่งเป็นคุณสมบัติที่ไม่เปลี่ยนค่าเมื่อเปลี่ยนระบบพิกัด
 
 | ฟังก์ชัน | สูตร | คำอธิบาย |
@@ -160,6 +217,21 @@ tensor invA = inv(A);     // Inverse (if det != 0)
 ---
 
 ## 4. การดำเนินการเฉพาะใน CFD
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Physics & Fields (Turbulence Models + Rheology)
+> - **Implementation:** `src/OpenFOAM/fields/Fields/tensor/tensorI.H` และ `symmTensorI.H`
+> - **Key Functions:**
+>   - `dev(tensor)` - Deviatoric part (ตัด isotropic ออก)
+>   - `symm(tensor)` - Symmetric part (สมมาตร)
+>   - `skew(tensor)` - Skew-symmetric part (หมุน)
+>   - `twoSymm(tensor)` - 2 * symmetric part
+> - **Critical Applications:**
+>   - **Newtonian Stress:** `tau = 2*mu*dev(symm(gradU))` ใน `Navier-Stokes`
+>   - **RANS Models:** `kEpsilon`, `kOmega` ใช้ `dev()` สำหรับ Reynolds stress
+>   - **Non-Newtonian:** ใช้ใน `BirdCarreau`, `PowerLaw` models
+>   - **Vorticity:** `omega = skew(gradU)` หรือ `curl(U)`
+> - **File Location:** ใช้ใน `src/turbulenceModels` และ custom solvers
 
 ### 4.1 Deviatoric, Symmetric, Skew
 
@@ -188,6 +260,20 @@ tensor Omega = skew(T);
 
 ## 5. การสลายตัวของค่าลักษณะเฉพาะ (Eigenvalue Decomposition)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Coding/Customization + Post-processing (Solid Mechanics)
+> - **Implementation:** `src/OpenFOAM/fields/Fields/tensor/tensorI.H`
+> - **Key Functions:**
+>   - `eigenValues(tensor)` - คำนวณค่าลักษณะเฉพาะ
+>   - `eigenVectors(tensor)` - คำนวณเวกเตอร์ลักษณะเฉพาะ
+> - **Applications:**
+>   - **Principal Stresses:** วิเคราะห์ความเค้นหลักใน solid mechanics (`solidDisplacementFoam`)
+>   - **Turbulence:** ใช้ใน `invariantQ`, `invariantC` สำหรับ vortex identification
+>   - **Failure Criteria:** ใช้ใน Von Mises stress คำนวณ
+>   - **Flow Visualization:** ใช้ใน `streamlines` และ particle tracking
+> - **Post-processing:** สามารถใช้ใน `paraFoam` ผ่าน `Eigenvalues` filter
+> - **Function Objects:** เขียน custom functionObject ใน `controlDict` เพื่อคำนวณ
+
 เครื่องมือสำคัญสำหรับวิเคราะห์ความเค้นหลัก (Principal Stresses) และทิศทางหลัก (Principal Directions)
 
 ### หลักการและการนำไปใช้
@@ -212,6 +298,22 @@ vector dir1 = eigVecs.col(0); // Direction of sigma1
 
 ## 6. แคลคูลัสเทนเซอร์ (Tensor Calculus)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Numerics & Linear Algebra (Finite Volume Discretization)
+> - **Implementation:** `src/finiteVolume/finiteVolume/fvc/fvcGrad.C`, `fvcDiv.C`
+> - **Key Functions:**
+>   - `fvc::grad(volTensorField)` - Gradient of tensor field
+>   - `fvc::div(volTensorField)` - Divergence of tensor field
+>   - `fvm::div(surfaceTensorField)` - Implicit divergence (matrix building)
+> - **Physical Applications:**
+>   - **Momentum Equation:** `fvm::div(tau)` ในสมการ Navier-Stokes
+>   - **Stress Divergence:** `fvc::div(sigma)` ใน solid mechanics
+>   - **Vortex Stretching:** ใช้ใน LES/DNS models
+> - **Numerical Schemes:**
+>   - **gradSchemes:** ใน `system/fvSchemes` - `Gauss`, `leastSquares`, `fourthGrad`
+>   - **divSchemes:** ใน `system/fvSchemes` - `Gauss upwind`, `Gauss linear`
+> - **Mesh Requirements:** ต้องมี surface field interpolations (fvc::interpolate)
+
 การดำเนินการเชิงอนุพันธ์บนฟิลด์เทนเซอร์:
 
 ### 6.1 Gradient (`fvc::grad`)
@@ -231,6 +333,24 @@ volVectorField DivT = fvc::div(T); // แรงต่อหน่วยปริ
 ---
 
 ## 7. การเพิ่มประสิทธิภาพ (Performance Optimization)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Coding/Customization (High-Performance Computing)
+> - **Compiler Optimization:** เปิดด้วย `-O3 -march=native` ใน `wmake/rules`
+> - **Implementation Details:**
+>   - **Expression Templates:** ใน `src/OpenFOAM/fields/Fields/tensor/tensor.H` (lazy evaluation)
+>   - **Loop Unrolling:** Hardcoded 3x3 operations ใน `.I` files
+>   - **SIMD Instructions:** ใช้ compiler vectorization (AVX, SSE)
+> - **Memory Management:**
+>   - **Contiguous Memory:** Tensor components stored contiguously
+>   - **Cache-Friendly:** Loop ordering optimized for cache locality
+> - **Profiling Tools:**
+>   - **CPU Time:** `foamListTimes` + `profiler` functionObject
+>   - **Memory:** `valgrind --tool=massif`
+> - **Best Practices:**
+>   - ใช้ `const reference` เพื่อ avoid copying
+>   - ใช้ `tmp<GeometricField>` สำหรับ temporary fields
+   - เลี่ยงการสร้าง temporary tensors ใน loops
 
 OpenFOAM ใช้เทคนิคขั้นสูงเพื่อให้การคำนวณเร็วที่สุด:
 

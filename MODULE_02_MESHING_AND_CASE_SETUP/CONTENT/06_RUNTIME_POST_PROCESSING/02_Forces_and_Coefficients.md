@@ -1,5 +1,10 @@
 # การคำนวณแรงและสัมประสิทธิ์ (Forces and Coefficients)
 
+> [!TIP] **ทำไมต้องคำนวณแรงและสัมประสิทธิ์?**
+> ในงาน External Aerodynamics เช่น การวิเคราะห์แรงต้านของรถยนต์ (Drag) หรือแรงยกของปีกเครื่องบิน (Lift) การเฝ้าดูค่าสนามความดันและความเร็วเป็นรายบุคคลนั้นทำได้ยาก การคำนวณแรงรวมที่กระทำต่อพื้นผิววัตถุจึงเป็นวิธีที่มีประสิทธิภาพที่สุดในการประเมินสมรรถนะ และการแปลงเป็นค่าไร้มิติ (Coefficients) ทำให้เราสามารถเปรียบเทียบผลลัพธ์ระหว่างสเกลที่ต่างกันหรือเปรียบเทียบกับข้อมูลทดลองได้
+>
+> **การบูรณาการ Function Objects**: การใช้ `forces` และ `forceCoeffs` ช่วยให้เราเฝ้าดู Convergence ของแรงได้แบบ Real-time โดยไม่ต้องหยุดการคำนวณ ช่วยประหยัดเวลาและทรัพยากรในการรัน Simulation ที่อาจใช้เวลานานหลายวัน
+
 สำหรับงาน External Aerodynamics (รถยนต์, เครื่องบิน, อาคาร) ข้อมูลที่สำคัญที่สุดคือแรงต้าน (**Drag**) และแรงยก (**Lift**)
 
 OpenFOAM มี Function objects 2 ตัวหลักสำหรับงานนี้: `forces` และ `forceCoeffs`
@@ -9,6 +14,22 @@ OpenFOAM มี Function objects 2 ตัวหลักสำหรับงา
 > - ดู Sampling and Probes → [03_Sampling_and_Probes.md](./03_Sampling_and_Probes.md)
 
 ## 1. Forces (`forces`)
+
+> [!NOTE] **📂 OpenFOAM Context: Function Object ใน controlDict**
+> การคำนวณแรงด้วย `forces` function object ถูกกำหนดในไฟล์ `system/controlDict` ภายใต้ dictionary `functions`
+>
+> **ไฟล์ที่เกี่ยวข้อง:**
+> - `system/controlDict` - บรรจุ function object definitions
+>
+> **Keywords หลัก:**
+> - `type forces` - ระบุประเภท function object
+> - `libs ("libforces.so")` - โหลด library ที่จำเป็น
+> - `patches (...)` - ระบุ patch ที่จะคำนวณแรง
+> - `rho` - ชื่อ field ความหนาแน่น (ใช้ `rhoInf` สำหรับ incompressible)
+> - `CofR` - Center of Rotation สำหรับคำนวณ Moment
+> - `writeControl` / `writeInterval` - ควบคุมความถี่ในการเขียน output
+>
+> **Output Location:** `postProcessing/<functionName>/<time>/forces.dat`
 
 คำนวณแรงรวม (Pressure + Viscous) และโมเมนต์ที่กระทำต่อ Patch ที่กำหนด
 
@@ -34,7 +55,27 @@ functions
 
 ## 2. Force Coefficients (`forceCoeffs`)
 
-คำนวณเป็นค่าไร้มิติ ($C_d, C_l, C_m$) โดยหารด้วย Dynamic Pressure ($rac{1}{2}ho U^2 A$)
+> [!NOTE] **📂 OpenFOAM Context: Non-Dimensional Coefficients**
+> การคำนวณสัมประสิทธิ์แรงด้วย `forceCoeffs` function object ถูกกำหนดในไฟล์ `system/controlDict` เหมือนกับ `forces` แต่มี parameters เพิ่มเติมสำหรับการทำให้เป็นค่าไร้มิติ
+>
+> **ไฟล์ที่เกี่ยวข้อง:**
+> - `system/controlDict` - บรรจุ function object definitions
+>
+> **Keywords เพิ่มเติม (เทียบกับ forces):**
+> - `type forceCoeffs` - ระบุประเภทเป็น coefficient calculator
+> - `rhoInf` - ค่าความหนาแน่นอ้างอิง (kg/m³)
+> - `magUInf` - ความเร็วลมอ้างอิง (m/s)
+> - `lRef` - ความยาวอ้างอิง (m) สำหรับ normalization ของ Moment
+> - `Aref` - **พื้นที่หน้าตัดอ้างอิง (m²)** - ค่าที่สำคัญที่สุด!
+> - `liftDir` / `dragDir` / `pitchAxis` - ทิศทางการฉายภาพแรง
+> - `CofR` - จุดอ้างอิงสำหรับ Moment calculation
+>
+> **Output Location:** `postProcessing/<functionName>/<time>/forceCoeffs.dat`
+>
+> **⚠️ ข้อควรระวัง:** ค่า `Aref` ต้องเป็นค่าที่คำนวณจาก CAD หรือวัดจาก ParaView เท่านั้น OpenFOAM ไม่สามารถคำนวณให้ได้
+
+คำนวณเป็นค่าไร้มิติ ($C_d, C_l, C_m$) โดยหารด้วย Dynamic Pressure ($rac{1}{2}
+ho U^2 A$)
 
 ```cpp
 functions
@@ -68,6 +109,25 @@ functions
 
 ## 3. Binning (การแบ่งช่วงแรง)
 
+> [!NOTE] **📂 OpenFOAM Context: Spatial Force Distribution**
+> การใช้ `binData` ช่วยวิเคราะห์การกระจายตัวของแรงตามตำแหน่ง โดยจะแบ่งแรงออกเป็น bins ตามแกนที่กำหนด
+>
+> **ไฟล์ที่เกี่ยวข้อง:**
+> - `system/controlDict` - บรรจุ binData sub-dictionary ภายใต้ forces/forceCoeffs
+>
+> **Keywords หลัก:**
+> - `binData` - Sub-dictionary สำหรับการแบ่งช่วง
+> - `nBin` - จำนวน bins ที่ต้องการแบ่ง
+> - `direction` - แกนที่ใช้แบ่ง (เช่น (1 0 0) สำหรับแกน X)
+> - `cumul` - ตัวเลือก cumulative (yes/no)
+>
+> **การประยุกต์ใช้:**
+> - วิเคราะห์ว่าส่วนไหนของ vehicle มีส่วนช่วยให้เกิด drag มากที่สุด
+> - ตรวจสอบการกระจายตัวของ lift ตาม span ของ wing
+> - ดูการกระจายตัวของ moment ตามความยาวรถ
+>
+> **Output Location:** `postProcessing/<functionName>/<time>/forces.dat` (เพิ่มคอลัมน์ bin data)
+
 ฟีเจอร์ `binData` ช่วยให้เราดูการกระจายตัวของแรงตามแกนต่างๆ ได้ (เช่น อยากรู้ว่าแรงต้านเกิดที่ส่วนหน้ารถ หรือท้ายรถมากกว่ากัน)
 
 ```cpp
@@ -80,6 +140,25 @@ functions
 ```
 
 ## 4. การ Plot กราฟ Real-time
+
+> [!NOTE] **📂 OpenFOAM Context: Runtime Monitoring**
+> การ Plot กราฟแบบ Real-time ช่วยให้เราสามารถตรวจสอบ Convergence ของค่าแรงและสัมประสิทธิ์ได้ทันทีขณะที่ Solver กำลังทำงาน
+>
+> **เครื่องมือที่ใช้:**
+> - `foamMonitor` - Script สำหรับ Plot กราฟ Real-time (ต้องการ gnuplot)
+> - `gnuplot` - Software สำหรับการ Plot กราฟ (ติดตั้งแยก)
+>
+> **การใช้งาน:**
+> ```bash
+> foamMonitor -l postProcessing/forceCoeffs1/0/forceCoeffs.dat
+> ```
+>
+> **ข้อดี:**
+> - ตัดสินใจได้ทันทีว่า Simulation นิ่ง (Converged) หรือยัง
+> - ประหยัดเวลา ไม่ต้องรอจนจบ Simulation ถึงรู้ว่าผิดพลาด
+> - สามารถ Stop การคำนวณได้ถ้าพบว่าผิดพลาดตั้งแต่แรก
+>
+> **Output Location:** กราฟจะแสดงในหน้าต่าง X11 และ Update ทุกครั้งที่มีการเขียนข้อมูล
 
 เราสามารถใช้ `gnuplot` หรือ `foamMonitor` เพื่อดูกราฟขณะรัน:
 
@@ -126,7 +205,7 @@ graph TB
 
 ---
 
-## 📝 แบบฝึกหัด (Exercises)
+## 🧠 Concept Check: ทดสอบความเข้าใจ
 
 ### แบบฝึกหัดระดับง่าย (Easy)
 1. **True/False**: `forceCoeffs` คำนวณพื้นที่หน้าตัด (Aref) ให้อัตโนมัติ
@@ -178,6 +257,10 @@ graph TB
 ### แบบฝึกหัดระดับสูง (Hard)
 5. **Hands-on**: เพิ่ม `binData` ใน forces function object และวิเคราะห์การกระจายตัวของแรงตามแกน X
 
-6. **วิเคราะห์**: เปรียบเทียบค่า Cd ที่ได้จาก CFD กับค่า Cd จริงจาก Wind tunnel ในแง่ของ:
-   - แหล่งที่มาของความคลาดเคลื่อน (Uncertainty)
-   - ปัจจัยที่ทำให้ต่าง (Mesh quality, Turbulence model, Boundary conditions)
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+*   **บทก่อนหน้า**: [01_Introduction_to_FunctionObjects.md](01_Introduction_to_FunctionObjects.md)
+*   **บทถัดไป**: [03_Sampling_and_Probes.md](03_Sampling_and_Probes.md)

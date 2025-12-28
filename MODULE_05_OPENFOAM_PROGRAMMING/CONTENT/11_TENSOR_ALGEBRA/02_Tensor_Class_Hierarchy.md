@@ -1,5 +1,15 @@
 # ลำดับชั้นของคลาสเทนเซอร์ (Tensor Class Hierarchy)
 
+> [!TIP] ทำไมต้องเข้าใจ Tensor Class Hierarchy?
+> **ความสำคัญต่อการพัฒนาโค้ด OpenFOAM:**
+> - **ประสิทธิภาพหน่วยควาจำ:** การเลือกประเภทเทนเซอร์ที่เหมาะสม (`symmTensor` แทน `tensor`) สามารถลดการใช้หน่วยความจำลง 33% ซึ่งมีผลต่อการจำลองขนาดใหญ่
+> - **ความถูกต้องทางฟิสิกส์:** การใช้เทนเซอร์ที่ไม่ตรงกับคุณสมบัติทางฟิสิกส์ (เช่น ใช้ `tensor` แทน `symmTensor` สำหรับ stress) อาจทำให้เกิดความผิดพลาดในการคำนวณ
+> - **พื้นฐานการพัฒนา Solver:** ทุก solver ใน OpenFOAM ใช้เทนเซอร์ทั้งสามประเภทนี้ การเข้าใจลำดับชั้นจึงเป็นพื้นฐานที่จำเป็นสำหรับการแก้ไขหรือสร้าง solver ใหม่
+>
+> **การเชื่อมโยงกับไฟล์ใน OpenFOAM:**
+> - **Source Code:** 📂 `src/OpenFOAM/primitives/Tensor/`, `src/OpenFOAM/primitives/SymmTensor/`, `src/OpenFOAM/primitives/SphericalTensor/`
+> - **Field Types:** 📂 `src/finiteVolume/fields/volFields/volFields.H` (สำหรับ `volTensorField`, `volSymmTensorField`, `volSphericalTensorField`)
+
 ![[tensor_storage_efficiency.png]]
 > การเปรียบเทียบตัวเก็บหน่วยความจำสามแบบ: เทนเซอร์เต็ม (9 ช่อง), สมมาตร (6 ช่อง), และทรงกลม (1 ช่อง) แสดงให้เห็นถึงประสิทธิภาพหน่วยความจำของคลาสเทนเซอร์เฉพาะทาง ภาพประกอบทางวิทยาศาสตร์ที่สะอาดตา
 
@@ -23,6 +33,22 @@ end
 
 ## สถาปัตยกรรมเทนเซอร์แต่ละประเภท
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **การเชื่อมโยงกับการพัฒนาโค้ด:**
+> - **Template Definitions:** 📂 `src/OpenFOAM/primitives/Tensor/Tensor.H`, `SymmTensor.H`, `SphericalTensor.H`
+> - **Implementation Files:** 📂 `src/OpenFOAM/primitives/Tensor/Tensor.C`, `SymmTensor.C`, `SphericalTensor.C`
+> - **Usage in Solvers:** เมื่อคุณสร้าง custom solver หรือ boundary condition คุณจำเป็นต้อง `#include` ไฟล์เหล่านี้
+> - **Compilation:** เมื่อคอมไพล์ solver หรือ library ใหม่ ต้องเพิ่ม dependencies ใน `Make/files` และ `Make/options`
+>
+> **ตัวอย่างการใช้งานในโค้ด:**
+> ```cpp
+> // ในไฟล์ .C ของ custom solver
+> #include "fvCFD.H"  // ซึ่งจะ include เทนเซอร์ทั้งหมด
+> // หรือ include เฉพาะที่ต้องการ
+> #include "tensor.H"
+> #include "symmTensor.H"
+> ```
+
 | ประเภทเทนเซอร์ | จำนวน Components | ลำดับชั้นการสืบทอด | การใช้หน่วยความจำ |
 |----------------|------------------|----------------------|------------------|
 | **`tensor`** | 9 components อิสระ | `MatrixSpace<tensor<Cmpt>, Cmpt, 3, 3>` | 9 × sizeof(Cmpt) bytes |
@@ -32,6 +58,20 @@ end
 ---
 
 ## 1. เทนเซอร์ทั่วไป (`tensor`)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **การใช้งานใน OpenFOAM:**
+> - **Gradient Calculations:** 📂 `system/fvSchemes` → `gradSchemes` - เกรเดียนต์ของความเร็วเป็น `tensor` (เช่น `grad(U)`)
+> - **Deformation Tensors:** ใน solvers ที่เกี่ยวกับ solid mechanics (เช่น `solidDisplacementFoam`) ใช้ `tensor` สำหรับ deformation gradient
+> - **Rotation Matrices:** ใน solvers ที่เกี่ยวกับ rotating machinery (เช่น `MRFSimpleFoam`) ใช้ `tensor` สำหรับ rotation
+> - **Field Files:** 📂 `0/` → ไฟล์ที่มี `class volTensorField;` (เช่ง `0/tensorField`)
+>
+> **ตัวอย่างใน Dictionary:**
+> ```cpp
+> // ในไฟล์ 0/gradU
+> dimensions      [0 0 -1 0 0 0 0];
+> internalField   uniform (0 0 0 0 0 0 0 0 0);  // 9 components
+> ```
 
 คลาส `tensor` ให้การแสดงเมทริกซ์ 3×3 แบบเต็ม จัดเก็บข้อมูลแบบ **Row-major** (XX, XY, XZ, YX, YY, YZ, ZX, ZY, ZZ)
 
@@ -85,6 +125,26 @@ scalar Txy = T.xy();  // Access XY component
 ---
 
 ## 2. เทนเซอร์สมมาตร (`symmTensor`)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **การใช้งานใน OpenFOAM:**
+> - **Stress Tensors:** 📂 `0/` → ไฟล์ที่มี `class volSymmTensorField;` (เช่น `0/Tau` ใน viscoelastic flows)
+> - **Strain Rate Tensors:** ใน solvers ส่วนใหญ่ (เช่น `simpleFoam`, `pimpleFoam`) คำนวณ strain rate tensor เป็น `symmTensor`
+> - **Reynolds Stresses:** 📂 `constant/turbulenceProperties` → turbulence models ใช้ `symmTensor` สำหรับ Reynolds stresses
+> - **Transport Properties:** 📂 `constant/transportProperties` → ค่า viscosity สามารถเป็น `symmTensor` สำหรับ anisotropic viscosity
+>
+> **ตัวอย่างใน Dictionary:**
+> ```cpp
+> // ในไฟล์ 0/R  (Reynolds stress)
+> dimensions      [0 2 -2 0 0 0 0];
+> internalField   uniform (0 0 0 0 0 0);  // 6 independent components
+> ```
+>
+> **ตัวอย่างใน Solver Code:**
+> ```cpp
+> // คำนวณ strain rate tensor
+> volSymmTensorField S = symm(fvc::grad(U));
+> ```
 
 คลาส `symmTensor` ใช้คุณสมบัติสมมาตร $T_{ij} = T_{ji}$ ในการจัดเก็บเพียง **6 ตัว** (XX, XY, XZ, YY, YZ, ZZ)
 
@@ -168,6 +228,23 @@ public:
 
 ## 3. เทนเซอร์ทรงกลม (`sphericalTensor`)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **การใช้งานใน OpenFOAM:**
+> - **Pressure Fields:** 📂 `0/p` → ความดันคือ `sphericalTensor` ในบางสถานการณ์ (แต่ปกติเป็น `scalar`)
+> - **Isotropic Properties:** 📂 `constant/transportProperties` → ค่าเช่น viscosity, thermal conductivity ที่เป็น isotropic ใช้ `scalar` แต่สามารถเป็น `sphericalTensor` ในบาง model
+> - **Identity Operations:** ใน source code ของ solvers มักใช้ `sphericalTensor(1)` สำหรับ identity tensor
+> - **Porous Media:** 📂 `constant/porousProperties` →  resistance coefficients สามารถเป็น `sphericalTensor` สำหรับ isotropic resistance
+>
+> **ตัวอย่างใน Solver Code:**
+> ```cpp
+> // สร้าง identity tensor
+> sphericalTensor I(1.0);  // เท่ากับ 1.0 * identity matrix
+>
+> // ใช้ในสมการ
+> volScalarField p = ...;
+> sphericalTensor pI = p * I;  // สร้าง pressure tensor
+> ```
+
 คลาส `sphericalTensor` แทนเทนเซอร์ไอโซทรอปิก ($\lambda \mathbf{I}$) จัดเก็บเพียง **1 ตัว**
 
 ### การจัดเก็บที่เพิ่มประสิทธิภาพสูงสุด
@@ -211,6 +288,35 @@ scalar value = P.value();
 
 ## การบูรณาการกับ Field Framework
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **การเชื่อมโยงกับ Field System:**
+> - **Field Type Definitions:** 📂 `src/finiteVolume/fields/volFields/volFields.H` → รวม `typedef` ทั้งหมด
+> - **Surface Fields:** 📂 `src/finiteVolume/fields/surfaceFields/surfaceFields.H` → `surfaceTensorField`, `surfaceSymmTensorField`, `surfaceSphericalTensorField`
+> - **Point Fields:** 📂 `src/finiteVolume/fields/pointFields/pointFields.H` → สำหรับ mesh points
+> - **Case Files:** เมื่อสร้าง custom field ใน `0/` directory ต้องระบุ `class` ให้ถูกต้อง
+>
+> **ตัวอย่างใน Field File (`0/someField`):**
+> ```cpp
+> class       volTensorField;  // หรือ volSymmTensorField, volSphericalTensorField
+> // ... dimensions, internalField, boundaryField ...
+> ```
+>
+> **ตัวอย่างการ Compile Custom Solver:**
+> ```cpp
+> // ในไฟล์ mySolver.C
+> #include "fvCFD.H"  // จะ include volTensorFields ทั้งหมด
+>
+> int main() {
+>     volTensorField gradU(...);  // ใช้งานได้ทันที
+> }
+> ```
+>
+> **ใน `Make/files`:**
+> ```makefile
+> mySolver.C
+> EXE = $(FOAM_APPBIN)/mySolver
+> ```
+
 OpenFOAM ใช้ `typedef` เพื่อสร้าง Field Types สำหรับแต่ละประเภทเทนเซอร์:
 
 ```cpp
@@ -237,6 +343,23 @@ OpenFOAM ผสานเทนเซอร์เข้ากับ finite volume
 ---
 
 ## การเพิ่มประสิทธิภาพ (Performance Optimization)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **ผลกระทบต่อการจำลองจริง:**
+> - **Memory Estimation:** การเลือก `symmTensor` แทน `tensor` สำหรับ stress field ใน mesh 10 ล้านเซลล์ ประหยัด ~240 MB RAM
+> - **Solver Performance:** Solvers ที่ใช้ `symmTensor` (เช่น `simpleFoam`) ทำงานเร็วกว่าเนื่องจากลดจำนวน operations
+> - **Parallel Efficiency:** การลด memory usage ช่วยให้สามารถรันบน cores มากขึ้นโดยไม่หมด memory
+> - **I/O Performance:** ไฟล์ที่เก็บ `symmTensor` มีขนาดเล็กกว่า ทำให้เขียน/อ่านไฟล์เร็วขึ้น
+>
+> **ตัวอย่างการเลือกประเภทใน Solver:**
+> ```cpp
+> // ใน custom solver
+> // ผิด: ใช้ tensor เต็มสำหรับ symmetric quantity
+> volTensorField stress(...);  // ใช้ memory มากเกินไป
+>
+> // ถูก: ใช้ symmTensor
+> volSymmTensorField stress(...);  // ประหยัด memory 33%
+> ```
 
 ### การเพิ่มประสิทธิภาพหน่วยความจำ
 

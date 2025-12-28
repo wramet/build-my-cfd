@@ -2,12 +2,28 @@
 
 ![[mismatched_puzzle_pitfall.png]]
 
+> [!TIP] ทำไมการเข้าใจข้อผิดพลาดเหล่านี้สำคัญ?
+> หัวข้อนี้เป็น **หัวใจของการพัฒนาโค้ด OpenFOAM ที่เสถียรและถูกต้อง** การเข้าใจข้อผิดพลาดเหล่านี้จะช่วยให้คุณ:
+> - **ป้องกัน crash ขณะรันไทม์** (เช่น segmentation faults, memory corruption)
+> - **เขียนโค้ดที่ผ่านการคอมไพล์ได้สำเร็จ** (โดยเฉพาะเรื่องความสอดคล้องของหน่วย)
+> - **จัดการหน่วยความจำอย่างมีประสิทธิภาพ** (หลีกเลี่ยง memory leaks และ dangling references)
+> - **สร้าง boundary conditions และ solvers ที่ทำงานได้อย่างถูกต้อง**
+>
+> **📍 OpenFOAM Location:** หัวข้อนี้เกี่ยวข้องกับ **โค้ด C++ ใน `src/` directory** (เช่น `src/finiteVolume/fields/`, `src/OpenFOAM/fields/`) และ **การเขียน custom solvers/boundary conditions** ในไฟล์ `.C` หรือ `.H` ของคุณเอง
+
 > [!WARNING] ภาพรวม
 > หัวข้อนี้ครอบคลุมข้อผิดพลาดที่พบบ่อยที่สุดที่นักพัฒนาพบเจอเมื่อทำงานกับประเภทฟิลด์ของ OpenFOAM พร้อมด้วยแนวทางแก้ไขที่ผ่านการพิสูจน์แล้วและเทคนิคการดีบัก
 
 ---
 
 ## ข้อผิดพลาดความไม่สอดคล้องทางมิติ (Dimensional Inconsistency Errors)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **เกี่ยวข้องกับ:** การพัฒนา **C++ Solvers/Utilities** และ **Boundary Conditions** ใน `src/` directory
+> - **ไฟล์ต้นฉบับ:** `.C` และ `.H` files ใน `src/finiteVolume/`, `src/transportModels/`, หรือ custom solvers
+> - **คลาสที่เกี่ยวข้อง:** `GeometricField`, `dimensionedScalar`, `dimensionSet`
+> - **ตัวอย่างการใช้งาน:** การคำนวณ terms ในสมการ (เช่น convection, diffusion, source terms)
+> - **Error Message ที่พบบ่อย:** "no match for 'operator+'" หรือ "dimensions of operands do not match"
 
 ### ปัญหา: ประเภทข้อมูลไม่ตรงกันในการดำเนินการกับฟิลด์
 
@@ -46,6 +62,13 @@ if (!phase1.stationary())
 ---
 
 ## การเริ่มต้นฟิลด์ที่ไม่สมบูรณ์ (Incomplete Field Initialization)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **เกี่ยวข้องกับ:** การสร้าง **Custom Fields** ใน Solvers หรือ Utilities
+> - **ไฟล์ต้นฉบับ:** `*.C` files ใน custom solvers (เช่น `myCustomSolver.C`) หรือ utilities
+> - **คลาสที่เกี่ยวข้อง:** `IOobject`, `GeometricField` constructors
+> - **ตำแหน่งการใช้งาน:** ใน `main()` function หรือใน `createFields.H` (ซึ่งถูก include จาก solver)
+> - **ผลกระทบ:** หากไม่ระบุ `IOobject` อย่างถูกต้อง ฟิลด์จะไม่ถูก **read/write** จาก/ไปยัง `0/`, `processor*/`, หรือ time directories
 
 ### ปัญหา: ขาดอาร์กิวเมนต์ในคอนสตรัคเตอร์
 
@@ -112,6 +135,13 @@ Kds_.insert
 
 ## ประเภทฟิลด์แพตช์ที่ไม่ถูกต้อง (Incorrect Patch Field Types)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **เกี่ยวข้องกับ:** การพัฒนา **Custom Boundary Conditions** และ **Surface Field Operations**
+> - **ไฟล์ต้นฉบับ:** `src/finiteVolume/fields/fvPatchFields/` (สำหรับ volume fields) และ `src/finiteVolume/fields/fvsPatchFields/` (สำหรับ surface fields)
+> - **คลาสฐาน:** `fvPatchField<Type>` (volume fields), `fvsPatchField<Type>` (surface fields)
+> - **ตัวอย่างการใช้งาน:** การสร้าง custom BC ใหม่, การทำงานกับ `phi` (flux field), `mesh.Sf()` (surface areas)
+> - **Error Message:** "cannot convert from 'fvsPatchField<...>' to 'fvPatchField<...>'"
+
 ### ปัญหา: ประเภทฟิลด์ผิดสำหรับเมชพื้นผิวเทียบกับเมชปริมาตร
 
 ```cpp
@@ -135,6 +165,13 @@ surfaceScalarField phi
 ---
 
 ## การจัดการหน่วยความจำด้วย `tmp<T>`
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **เกี่ยวข้องกับ:** การเขียน **Efficient C++ Code** ใน Solvers และ Models
+> - **ไฟล์ต้นฉบับ:** ทุกที่ใน OpenFOAM source code (`src/`) โดยเฉพาะใน solvers และ turbulence models
+> - **คลาสที่เกี่ยวข้อง:** `tmp<T>`, `refPtr`, `GeometricField`
+> - **ตัวอย่างการใช้งาน:** การคำนวณ intermediate results (เช่น `div(phi, U)`, `laplacian(nu, U)`) ซึ่งคืนค่าเป็น `tmp<volVectorField>`
+> - **Impact:** การใช้ `tmp<T>` อย่างถูกต้อง **ลดการ copy memory** และ **ปรับปรุง performance** ของ solver ได้อย่างมาก
 
 ### ปัญหา: การจัดการฟิลด์ชั่วคราวที่ไม่เหมาะสม
 
@@ -173,6 +210,13 @@ volScalarField permanentCopy = tTemp();  // สร้างสำเนาที
 
 ## รูปแบบข้อผิดพลาดขั้นสูง
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **เกี่ยวข้องกับ:** การเข้าถึง **Mesh Data Structures** และ **Boundary Patch Operations**
+> - **ไฟล์ต้นฉบับ:** ใน solvers หรือ utilities ที่ต้องการ loop ผ่าน patches หรือ cells
+> - **คลาสที่เกี่ยวข้อง:** `polyBoundaryMesh`, `fvPatch`, `labelList`
+> - **ตัวอย่างการใช้งาน:** การเข้าถึง `mesh.boundary()[patchID]`, การ loop ผ่าน patches, การเข้าถึง face zones
+> - **Error Message:** "index out of range" หรือ segmentation fault (runtime crash)
+
 ### การละเมิดขอบเขตอาร์เรย์ (Array Bounds Violation)
 
 ```cpp
@@ -195,6 +239,14 @@ if (patchID < mesh.boundary().size())
 ---
 
 ## เทคนิคการดีบัก (Debugging Techniques)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **เกี่ยวข้องกับ:** **Debugging และ Validation** ของ C++ Code ทุกประเภท
+> - **ไฟล์ต้นฉบับ:** ใน development phase ของ custom solvers, utilities, หรือ models
+> - **Tools:** `Info`, `WarningIn`, `FatalErrorIn` macros, `gdb` debugger, `valgrind` (memory checker)
+> - **ตำแหน่งการใช้งาน:** ใน `.C` files, การเพิ่ม assertions ในฟังก์ชัน, การตรวจสอบ input จาก dictionaries
+> - **Files:** ไม่เกี่ยวข้องกับ case files โดยตรง แต่เป็นเทคนิคการพัฒนาโค้ด
+> - **Output:** ข้อความ debug จะถูกเขียนไปยัง `log.` file หรือ `stdout/stderr`
 
 ### การตรวจสอบมิติเวลาคอมไพล์ (Compile-Time Dimensional Checking)
 

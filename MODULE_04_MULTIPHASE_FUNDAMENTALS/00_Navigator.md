@@ -1,6 +1,19 @@
 # 🗺️ Learning Navigator: Multiphase Fundamentals
 
-> **วัตถุประสงค์**: เอกสารนี้เป็น **เส้นทางการเรียนรู้แบบคู่ขนาน** ที่เชื่อมโยงเนื้อหาทฤษฎีการไหลหลายเฟสกับ Solvers จริงใน OpenFOAM
+> [!TIP]
+> **ทำไมการเรียนรู้ Multiphase Flow สำคัญ?**
+>
+> การไหลแบบหลายเฟส (Multiphase Flow) เป็นหัวใจของการจำลองปรากฏการณ์จริงที่ซับซ้อน เช่น:
+> - **การเคลื่อนที่ของคลื่นและ Dam break** → ต้องใช้ VOF method (`interFoam`)
+> - **กระบอกฟองอากาศ (Bubble column)** → ต้องใช้ Euler-Euler (`multiphaseEulerFoam`)
+> - **การผสมของเหลว 2 ชนิด** → ต้องเข้าใจ Interfacial forces
+>
+> การเลือก **โมเดลที่เหมาะสม** กับปัญหาของคุณเป็นกุญแจสำคัญที่จะทำให้ Simulation:
+> - **มีความเสถียร (Stability)**: Interface ไม่แตกออกหรือกลายเป็น "sawtooth" pattern
+> - **มีความแม่นยำ (Accuracy)**: ทำนายการเคลื่อนที่ของ Interface ได้ถูกต้อง
+> - **ประหยัดเวลา (Efficiency)**: ไม่ใช้เวลาคำนวณนานเกินไป
+>
+> เอกสารฉบับนี้เป็น **แผนที่เดินเรือ** ที่จะพาคุณไปสู่การเลือก Solver ที่เหมาะสม!
 
 ---
 
@@ -17,6 +30,16 @@
 ---
 
 ## 1. Fundamental Concepts (แนวคิดพื้นฐาน)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain A: Physics & Fields** - ข้อมูลในหมวดนี้เกี่ยวข้องกับการกำหนดคุณสมบัติทางฟิสิกส์ของระบบหลายเฟส:
+> - **File**: `constant/phaseProperties` (หรือ `constant/transportProperties` ในรุ่นเก่า)
+> - **Keywords**: `phases`, `sigma` (surface tension), `phase1`, `phase2`
+> - **Relevance**: การเข้าใจ Flow regimes และ Interfacial phenomena จะช่วยให้คุณเลือกชนิดของเฟสและคุณสมบัติที่เหมาะสม
+>
+> **Domain E: Coding/Customization** - สำหรับผู้ที่ต้องการแก้ไข solver:
+> - **Source**: `applications/solvers/multiphase/interFoam/`
+> - **Key Files**: `createFields.H` (สร้าง fields), `alphaEqn.H` (สมการ VOF)
 
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
@@ -37,6 +60,29 @@
 
 ## 2. VOF Method (วิธี Volume of Fluid)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain A: Physics & Fields** - VOF method ใช้ field พิเศษเพื่อติดตาม interface:
+> - **Field Files** (`0/` directory):
+>   - `alpha.water` (หรือ `alpha.phase1`): Volume fraction field (ค่า 0-1)
+>   - `U`: Velocity field
+>   - `p_rgh`: Pressure field (hydrostatic pressure)
+> - **Properties** (`constant/` directory):
+>   - `phaseProperties`: กำหนดชื่อเฟส, ความหนาแน่น, ความหื้อ (`nu`)
+>   - `transportProperties`: Surface tension coefficient (`sigma`)
+>
+> **Domain B: Numerics & Linear Algebra** - การจำลอง VOF ต้องการ discretization schemes เฉพาะ:
+> - **File**: `system/fvSchemes`
+> - **Critical Keywords**:
+>   - `divSchemes`: ใช้ `Gauss vanLeer` หรือ `Gauss linearUpwindV` สำหรับ convection
+>   - `laplacianSchemes`: ใช้ `Gauss linear corrected` สำหรับ diffusion
+> - **File**: `system/fvSolution`
+> - **Critical Keywords**:
+>   - `PIMPLE`: ใช้ `nAlphaCorr` (number of alpha corrections) และ `nAlphaSubCycles` สำหรับความเสถียรของ interface
+>
+> **Domain C: Simulation Control** - การควบคุมเวลาและการเขียนผล:
+> - **File**: `system/controlDict`
+> - **Keywords**: `adjustTimeStep`, `maxCo` (Courant number), `maxAlphaCo`
+
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
 | [[02_VOF_METHOD/00_Overview]] | ภาพรวมวิธี VOF | `solvers/multiphase/interFoam/` |
@@ -49,6 +95,31 @@
 
 ## 3. Euler-Euler Method
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain A: Physics & Fields** - Euler-Euler มองทุกเฟสเป็น interpenetrating continua:
+> - **Field Files** (`0/` directory):
+>   - `alpha.<phaseName>`: Volume fraction สำหรับแต่ละเฟส
+>   - `U.<phaseName>`: Velocity field สำหรับแต่ละเฟส
+>   - `k`, `epsilon`, `omega`: Turbulence fields
+> - **Properties** (`constant/` directory):
+>   - `phaseProperties`: กำหนด phases, drag models, lift models, virtual mass
+>   - `turbulenceProperties`: กำหนด turbulence model สำหรับ multiphase
+>
+> **Domain B: Numerics & Linear Algebra** - การแก้สมการหลายเฟสต้องการ solvers เฉพาะ:
+> - **File**: `system/fvSchemes`
+> - **Keywords**: ใช้ `Gauss upwind` สำหรับ stability ของ multiphase
+> - **File**: `system/fvSolution`
+> - **Critical Keywords**:
+>   - `solvers`: ต้องใช้ `GAMG` สำหรับ pressure และ `smoothSolver` สำหรับ velocity/alpha
+>   - `PIMPLE`: อาจต้องปรับ `nOuterCorrectors` สำหรับ coupling ระหว่างเฟส
+>
+> **Domain E: Coding/Customization** - สถาปัตยกรรมของ Euler-Euler solver:
+> - **Source**: `applications/solvers/multiphase/multiphaseEulerFoam/`
+> - **Key Files**:
+>   - `multiphaseEulerFoam.C`: Main solver loop
+>   - `phaseSystems/`: Implementation ของ interphase forces (drag, lift, virtual mass)
+>   - `dragModels/`, `liftModels/`: Sub-models สำหรับแต่ละ force
+
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
 | [[03_EULER_EULER_METHOD/00_Overview]] | ภาพรวม Euler-Euler | `solvers/multiphase/multiphaseEulerFoam/` |
@@ -59,6 +130,34 @@
 ---
 
 ## 4. Model Selection (การเลือกโมเดล)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain A: Physics & Fields** - การเลือกโมเดลขึ้นอยู่กับลักษณะของปัญหา:
+>
+> **Flow Characteristics → Solver Mapping:**
+> - **Dispersed bubbles/droplets** ( dispersed phase < 10-15%):
+>   - ใช้ `multiphaseEulerFoam` (Euler-Euler)
+>   - `phaseProperties`: กำหนด dispersed phase และ continuous phase
+>   - Drag model: `SchillerNaumann`, `IshiiZuber`
+>
+> - **Separated flows** ด้วย clear interface:
+>   - ใช้ `interFoam` (VOF)
+>   - `phaseProperties`: กำหนด phase1 และ phase2
+>   - Surface tension: สำคัญมาก (ใส่ `sigma`)
+>
+> - **Free surface flows** (wave, sloshing):
+>   - ใช้ `interFoam` หรือ `potentialFreeSurfaceFoam`
+>   - BC: `inletOutlet` สำหรับ velocity, `fixedFluxPressure` สำหรับ pressure
+>
+> **Phase Properties → Model Decision:**
+> - **Gas-Liquid**: Surface tension สำคัญ → VOF หรือ Euler-Euler
+> - **Liquid-Liquid**: Density difference น้อย → twoLiquidMixingFoam
+> - **Gas-Solid**: ใช้ Euler-Euler พร้อม kinetic theory models
+>
+> **Key Files สำหรับ Model Configuration:**
+> - `constant/phaseProperties`: เลือก drag/lift/virtual mass models
+> - `constant/turbulenceProperties`: เลือก turbulence model (k-epsilon, k-omega SST)
+> - `0/` boundary conditions: ต้อง match กับ flow regime
 
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
@@ -73,6 +172,36 @@
 
 ## 5. Implementation (การนำไปใช้งาน)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain E: Coding/Customization** - หมวดนี้เจาะจงไปที่ architecture ของ OpenFOAM solvers:
+>
+> **Source Code Structure:**
+> - **Main Solver Directory**: `applications/solvers/multiphase/<solverName>/`
+> - **Key Files**:
+>   - `<solverName>.C`: Main entry point และ time loop
+>   - `createFields.H`: สร้าง fields (U, p, alpha, etc.)
+>   - `UEqn.H`, `pEqn.H`, `alphaEqn.H`: สมการแยกส่วน
+>
+> **Compilation & Customization:**
+> - **Make/files**: ระบุ source files ที่ต้อง compile
+> - **Make/options**: กำหนด include paths และ libraries
+>
+> **Runtime Architecture (เมื่อ run simulation):**
+> - **`0/`**: Initial & boundary conditions
+>   - `alpha.water`: ต้อง set ค่าเริ่มต้นให้ถูกต้อง (0 หรือ 1)
+>   - `U`, `p_rgh`: BCs ต้องสอดคล้องกับ flow regime
+> - **`constant/`**: Physical properties
+>   - `phaseProperties`: หัวใจของ multiphase simulation
+>   - `transportProperties`, `turbulenceProperties`
+> - **`system/`**: Numerical schemes และ control
+>   - `controlDict`: จัดการ time stepping, output intervals
+>   - `fvSchemes`: Discretization schemes
+>   - `fvSolution`: Linear solvers และ algorithm settings
+>
+> **Post-Processing Integration:**
+> - `system/controlDict`: เพิ่ม `functions` สำหรับ runtime monitoring
+> - Function objects: `forces`, `fields`, `probes`, `sets`
+
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
 | [[06_IMPLEMENTATION/00_Overview]] | ภาพรวมการ Implement | `solvers/multiphase/` |
@@ -86,6 +215,37 @@
 
 ## 6. Validation (การตรวจสอบความถูกต้อง)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain C: Simulation Control + Post-Processing** - การ validation ต้องการการเก็บข้อมูลและวิเคราะห์:
+>
+> **Runtime Monitoring (system/controlDict):**
+> - **Function Objects** สำหรับ validation:
+>   - `probes`: บันทึกค่าที่ตำแหน่งจุดวัด (เทียบกับ experimental data)
+>   - `sets`: บันทึกค่าตามเส้น (line sampling)
+>   - `surfaceSampling`: สุ่มค่าบนพื้นผิว
+>   - `forces`: คำนวณ drag/lift forces (เทียบกับ theory)
+>
+> **Output Control:**
+> - `writeFormat`: `binary` สำหรับความแม่นยำสูง, `ascii` สำหรับง่ายต่อการอ่าน
+> - `writePrecision`: จำนวนหลัก (default = 6)
+> - `writeInterval`: ความถี่ในการบันทึกผล
+>
+> **Mesh Quality (constant/polyMesh/):**
+> - ใช้ `checkMesh` ตรวจสอบ:
+>   - `non-orthogonality`: ควร < 70
+>   - `skewness`: ควร < 4
+>   - `aspect ratio`: ควรไม่สูงเกินไป
+>
+> **Benchmark Problems (tutorials/):**
+> - **Dam break**: `tutorials/multiphase/interFoam/laminar/damBreak/`
+> - **Bubble column**: `tutorials/multiphase/multiphaseEulerFoam/RAS/bubbleColumn/`
+> - **LockExchange**: `tutorials/multiphase/interFoam/laminar/lockExchange/`
+>
+> **Grid Convergence Study:**
+> - สร้าง meshes หลายขนาด (refinement levels)
+> - ใช้ `refineMesh` หรือ `blockMesh` พร้อม grading
+> - เปรียบเทียบ results ระหว่าง meshes
+
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|
 | [[07_VALIDATION/00_Overview]] | ภาพรวม Validation | - |
@@ -97,6 +257,41 @@
 ---
 
 ## 7. Equations Reference (เอกสารอ้างอิงสมการ)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain B: Numerics & Linear Algebra + Domain E: Coding** - สมการที่ถูก Implement ใน OpenFOAM:
+>
+> **Mass Conservation → ใช้ใน:**
+> - **`alphaEqn.H`** (VOF solvers): ∂α/∂t + ∇·(Uα) + ∇·(Ucα(1-α)) = 0
+>   - อยู่ใน: `applications/solvers/multiphase/interFoam/alphaEqn.H`
+>   - Keywords: `divSchemes`, `nAlphaCorr`, `nAlphaSubCycles`
+>
+> **Momentum Conservation → ใช้ใน:**
+> - **`UEqn.H`**: ∂(ρU)/∂t + ∇·(ρUU) = -∇p + ∇·(μ∇U) + F<sub>surface</sub> + F<sub>drag</sub>
+>   - อยู่ใน: `applications/solvers/multiphase/interFoam/UEqn.H`
+>   - Keywords: `ddtSchemes`, `divSchemes`, `laplacianSchemes`
+>
+> **Interfacial Forces → ใช้ใน:**
+> - **Drag Models**: `src/transportModels/phaseSystems/phaseSystem/dragModels/`
+>   - Files: `SchillerNaumann.C`, `IshiiZuber.C`, `Ergun.C`
+> - **Lift Models**: `src/transportModels/phaseSystems/phaseSystem/liftModels/`
+> - **Virtual Mass**: `src/transportModels/phaseSystems/phaseSystem/virtualMassModels/`
+>
+> **Energy Equation (ถ้ามี):**
+> - **`TEqn.H`** (compressibleInterFoam)
+>   - Keywords: `divSchemes` (energy), `laplacianSchemes` (thermal conductivity)
+>
+> **Turbulence Equations → ใช้ใน:**
+> - **`kEqn.H`**, **`epsilonEqn.H`**, **`omegaEqn.H`**
+>   - อยู่ใน: `applications/solvers/multiphase/multiphaseEulerFoam/`
+>   - หรือ library: `src/turbulenceModels/`
+>
+> **Implementation Notes:**
+> - OpenFOAM ใช้ Finite Volume Method → Discretize สมการเป็นรูป matrix:
+>   - `[A][x] = [b]` โดยที่ `A` = coefficient matrix, `x` = field (U, p, α), `b` = source term
+> - ใช้ `fvScalarMatrix` และ `fvVectorMatrix` ในการสร้างสมการ discrete
+> - ใช้ `fvm::ddt`, `fvm::div`, `fvm::laplacian` สำหรับ implicit terms
+> - ใช้ `fvc::div`, `fvc::grad`, `fvc::curl` สำหรับ explicit terms
 
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |
 |-----------|------------|---------------------------|

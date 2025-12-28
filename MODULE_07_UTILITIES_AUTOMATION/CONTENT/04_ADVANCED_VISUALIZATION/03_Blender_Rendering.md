@@ -3,6 +3,19 @@
 **วัตถุประสงค์การเรียนรู้ (Learning Objectives)**: เปลี่ยนผลลัพธ์ CFD ทางวิทยาศาสตร์ให้เป็นงานศิลปะที่สวยงามสมจริงสำหรับการนำเสนอระดับสูงและการตลาด
 **ระดับความยาก**: ขั้นสูง (Advanced)
 
+> [!TIP] **ทำไมต้อง Blender สำหรับ OpenFOAM? (Why Blender for OpenFOAM?)**
+> การใช้ Blender กับผลลัพธ์ OpenFOAM ไม่ใช่เรื่องของ "ความแม่นยำทางวิทยาศาสตร์" แต่เป็นเรื่องของ **"การสื่อสารผลลัพธ์" (Communication)**
+> - **ParaView** → ใช้สำหรับ **วิเคราะห์ข้อมูล** (Analysis) เช่น ตรวจสอบ Convergence, ดู Residuals, วัดค่าที่ตำแหน่งต่างๆ
+> - **Blender** → ใช้สำหรับ **การนำเสนอ** (Presentation) เช่น สร้างภาพสวยๆ สำหรับ Report, ทำ Video Demo ส่งลูกค้า, หรือทำ Marketing Material
+>
+> **การเชื่อมต่อ OpenFOAM → Blender:**
+> 1. OpenFOAM เก็บผลลัพธ์ไว้ในโฟลเดอร์เวลา (`0/`, `0.01/`, `0.02/`, ...) ซึ่งเป็นรูปแบบข้อมูลที่ Blender อ่านไม่ได้
+> 2. ต้องใช้ utility `foamToVTK` เพื่อแปลงข้อมูลให้เป็น VTK format ก่อน
+> 3. จากนั้นใช้ ParaView เพื่อ **Extract Surface**, **Create Streamlines**, หรือ **Create Iso-surfaces**
+> 4. สุดท้าย Export ไฟล์เหล่านั้นเป็น X3D/GLTF/PLY format เพื่อนำเข้า Blender
+>
+> **เป้าหมายสูงสุด:** แปลงตัวเลขที่ซับซ้อน (U, p, k, epsilon, alpha.water) ให้กลายเป็นภาพที่ "เข้าใจง่าย" และ "สวยงาม" สำหรับคนทั่วไป
+
 ---
 
 > [!TIP] **เปรียบเทียบ Blender (Analogy)**
@@ -27,6 +40,32 @@
 
 ## 2. เวิร์กโฟลว์: OpenFOAM $\to$ ParaView $\to$ Blender
 
+> [!NOTE] **📂 OpenFOAM Context: Data Conversion Pipeline**
+> ก่อนที่จะส่งข้อมูลไป Blender ได้ ต้องแปลงข้อมูลจากรูปแบบ OpenFOAM native ให้เป็นรูปแบบที่ Blender เข้าใจก่อน:
+>
+> **1. การแปลงข้อมูล (Data Conversion):**
+> ```bash
+> # ใช้ utility ของ OpenFOAM เพื่อแปลงข้อมูลจาก OpenFOAM format เป็น VTK format
+> foamToVTK -latestTime  # แปลงเฉพาะเวลาล่าสุด
+> foamToVTK              # แปลงทุก time step
+> ```
+> - **Input:** โฟลเดอร์เวลา (`0/`, `0.1/`, `0.2/`, ...) ที่มีไฟล์ field data (U, p, alpha.water, k, epsilon, etc.)
+> - **Output:** โฟลเดอร์ `VTK/` ที่มีไฟล์ `.vtk` หรือ `.vtu` (สำหรับ unstructured mesh)
+>
+> **2. การเลือก Field ที่ต้องการ:**
+> - **Velocity Field (U):** ใช้สร้าง Streamlines, Vector plots
+> - **Pressure Field (p):** ใช้สร้าง Contour แสดงการกระจายความดัน
+> - **Volume Fraction (alpha.water):** ใช้สร้าง Iso-surface แสดง interface ระหว่างของไหล (เช่น น้ำ-อากาศ)
+> - **Turbulence Fields (k, omega, epsilon):** ใช้ visualise โซนที่มี turbulence สูง
+> - **Q-criterion:** ใช้ visualise โครงสร้าง vortices (vortex cores)
+>
+> **3. การ Export จาก ParaView:**
+> - เปิดไฟล์ VTK ใน ParaView
+> - ใช้ Filter: **Contour** (สำหรับ iso-surface), **StreamTracer** (สำหรับ streamlines)
+> - Export เป็น X3D/GLTF/PLY เพื่อนำเข้า Blender
+>
+> **ข้อควรระวัง:** การแปลงข้อมูลด้วย `foamToVTK` อาจสร้างไฟล์ขนาดใหญ่มากถ้า mesh ละเอียด ควรใช้ options เช่น `-surfaceFields` หรือ `-cellSet` เพื่อลดปริมาณข้อมูล
+
 OpenFOAM ไม่มีวิธีส่งข้อมูลไป Blender โดยตรง เราต้องใช้ ParaView เป็นตัวกลาง:
 
 ```mermaid
@@ -39,6 +78,32 @@ flowchart LR
 ```
 
 ### 2.1 การเตรียมข้อมูลใน ParaView
+
+> [!NOTE] **📂 OpenFOAM Context: Field Selection & Extraction**
+> การเตรียมข้อมูลใน ParaView ก่อนส่งไป Blender เป็นการแปลง **Field Data** ให้เป็น **Geometric Data** ที่ Blender เข้าใจ:
+>
+> **1. Iso-surfaces (Contour):**
+> - **ใช้กับ:** Volume Fraction (`alpha.water`), Q-criterion, Pressure (`p`)
+> - **ตัวอย่าง:** สร้าง interface ระหว่างน้ำและอากาศ โดยตั้งค่า Contour value = 0.5 สำหรับ `alpha.water`
+> - **OpenFOAM Source:** Field `alpha.water` จาก solver `interFoam`, `multiphaseInterFoam`
+>
+> **2. Streamlines (StreamTracer with Tube Filter):**
+> - **ใช้กับ:** Velocity Field (`U`)
+> - **ตัวอย่าง:** สร้างเส้นแสดงทิศทางการไหล และใช้ Tube filter เพื่อให้มีความหนา (3D geometry)
+> - **OpenFOAM Source:** Field `U` จากทุก solver (simpleFoam, pimpleFoam, interFoam, etc.)
+> - **ข้อควรระวัง:** ต้องใช้ **Tube** filter เพราะ Blender ไม่เห็น Lines 1D ใน rendering
+>
+> **3. Slices (Cut Planes):**
+> - **ใช้กับ:** ทุก Field ที่ต้องการดู Cross-section
+> - **ตัวอย่าง:** สร้าง Slice บนระนาบ XY, YZ, หรือ XZ และใช้ **Triangulate** filter
+> - **OpenFOAM Source:** 任意 Field (`U`, `p`, `T`, `k`, etc.)
+>
+> **4. Scalar Coloring (Vertex Colors):**
+> - **ใช้กับ:** การแสดงค่า Field เช่น Velocity magnitude, Pressure บนพื้นผิว
+> - **ตัวอย่าง:** ใช้ ParaView's "Color by" และ Export เป็น X3D เพื่อรักษาสี
+> - **OpenFOAM Source:** 任意 Scalar Field (magnitude of `U`, `p`, `T`, etc.)
+>
+> **ข้อควรระวัง:** ใช้ **Decimate** filter ใน ParaView เพื่อลดจำนวน polygons ถ้า mesh ละเอียดเกินไป ซึ่งจะทำให้ Blender ทำงานช้าหรือค้าง
 
 Blender ทำงานกับ "พื้นผิว" (Polygonal Mesh) ได้ดีที่สุด ไม่ใช่ Volume Data (แม้จะทำได้แต่ยากกว่า)
 
@@ -103,6 +168,71 @@ Blender มี 2 เครื่องยนต์หลัก:
 ---
 
 ## 5. การทำ Automation ด้วย Python (`bpy`)
+
+> [!NOTE] **📂 OpenFOAM Context: Automated Workflow Integration**
+> การใช้ Python ใน Blender เชื่อมต่อกับ OpenFOAM workflow ได้หลายวิธี:
+>
+> **1. Batch Processing Multiple Time Steps:**
+> - **OpenFOAM Output:** หลาย time directories (`0.1/`, `0.2/`, `0.3/`, ...)
+> - **ParaView Script:** ใช้ Python script ของ ParaView (`pvpython`) เพื่อ:
+>   - เปิดแต่ละ time step
+>   - สร้าง iso-surface/streamlines
+>   - Export เป็น X3D/PLY โดยอัตโนมัติ
+> - **Blender Script:** ใช้ `bpy` เพื่อ:
+>   - นำเข้าไฟล์ทั้งหมด
+>   - ตั้งค่า material (water, glass, emission)
+>   - Render เป็น image sequence
+>
+> **2. Function Objects Integration:**
+> - **OpenFOAM:** ใช้ `functions` ใน `controlDict` เพื่อ export surface/sampling data อัตโนมัติระหว่าง simulation
+>   ```cpp
+>   // ตัวอย่าง controlDict
+>   functions
+>   {
+>       exportSurface
+>       {
+>           type            surfaces;
+>           functionObjectLibs ("libsampling.so");
+>           outputControl   timeStep;
+>           outputInterval  10;
+>           surfaceFormat   vtk;
+>           fields          (U p alpha.water);
+>           surfaces
+>           (
+>               zPlane
+>               {
+>                   type        plane;
+>                   planeType   pointAndNormal;
+>                   pointAndNormalDict
+>                   {
+>                       point   (0 0 0);
+>                       normal  (0 0 1);
+>                   }
+>               }
+>           );
+>       }
+>   }
+>   ```
+> - **Blender:** อ่านไฟล์ VTK ที่ export มาจาก function object โดยตรง
+>
+> **3. Python Automation Pipeline:**
+> ```bash
+> # ตัวอย่าง workflow แบบ end-to-end
+> # 1. Run OpenFOAM simulation
+> solverName > log &
+>
+> # 2. ใช้ pvpython export เป็น X3D ทุกๆ N time steps
+> pvpython export_paraview.py
+>
+> # 3. ใช้ Blender render animation
+> blender -b -P render_blender.py
+> ```
+>
+> **4. การตั้งค่า Material อัตโนมัติ:**
+> - ตั้งค่า `Principled BSDF` parameters (Transmission, IOR, Roughness) ผ่าน script
+> - กำหนด Vertex Color ให้ตรงกับ field values จาก OpenFOAM (เช่น velocity magnitude)
+>
+> **ข้อดี:** ลดเวลาทำงานซ้ำๆ และทำให้การสร้าง visualization ที่ซับซ้อนเป็นไปโดยอัตโนมัติ
 
 เช่นเดียวกับ ParaView, Blender สามารถเขียนสคริปต์ได้ด้วย `bpy` เพื่อทำงานซ้ำๆ:
 

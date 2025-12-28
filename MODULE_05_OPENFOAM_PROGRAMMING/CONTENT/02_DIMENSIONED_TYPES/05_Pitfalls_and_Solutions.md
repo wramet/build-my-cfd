@@ -1,789 +1,216 @@
-# ⚠️ Pitfalls and Solutions: Common Challenges in OpenFOAM's Dimensioned Types
+# Dimensioned Types - Pitfalls and Solutions
 
-## Overview
-
-Working with OpenFOAM's dimensioned type system presents unique challenges that can trap even experienced developers. This document catalogues common pitfalls and provides battle-tested solutions.
-
-```mermaid
-flowchart TD
-classDef action fill:#e1f5fe,stroke:#0277bd,color:#000
-classDef check fill:#fff9c4,stroke:#fbc02d,color:#000
-classDef fail fill:#ffcdd2,stroke:#c62828,color:#000
-classDef pass fill:#c8e6c9,stroke:#2e7d32,color:#000
-Code[Write Code]:::action --> Check{Dim Check}:::check
-
-Check --> Run[Runtime Execution]:::pass
-Check --> Err[Compiler Error]:::fail
-
-Err --> Fix[Fix Dimensions]:::action
-Fix --> Code
-```
-> **Figure 1:** ขั้นตอนการทำงานของนักพัฒนาในการรับมือกับข้อผิดพลาดจากการตรวจสอบมิติ ตั้งแต่การเขียนโค้ด การวิเคราะห์ข้อความผิดพลาดจากคอมไพเลอร์ ไปจนถึงการประยุกต์ใช้แนวทางแก้ไขที่ถูกต้อง
+ปัญหาที่พบบ่อยและวิธีแก้ไข
 
 ---
 
-> [!TIP] **Physical Analogy: The Strict Airport Security (การรักษาความปลอดภัยสนามบินที่เข้มงวด)**
->
-> ลองจินตนาการว่า "ระบบมิติ" คือ "ด่านรักษาความปลอดภัยสนามบิน":
->
-> 1.  **Template Errors (Cryptic Messages)**: เหมือนการที่คุณพยายามเดินผ่านเครื่องสแกนพร้อม "ขวดน้ำ" (Wrong Type) แล้วเครื่องร้องเสียงดังพร้อมไฟกระพริบรัวๆ (Compiler Error) แต่ไม่ยอมบอกตรงๆ ว่า "ทิ้งขวดน้ำซะ" บอกแค่รหัส Error Code ยาวเหยียด
-> 2.  **Cross-Unit Inconsistency**: เหมือนนักท่องเที่ยว 3 คนคุยเรื่องเงิน คนแรกพูด "100" (บาท) คนที่สองเข้าใจว่าเป็น "100" (ดอลลาร์) คนที่สามนึกว่า "100" (เยน) -> ผลลัพธ์คือการซื้อขายที่ล้มเหลว (Physics Error)
-> 3.  **Compile-time vs Runtime**:
->     -   **Compile-time**: การตรวจสอบวีซ่าตั้งแต่ตอนจองตั๋ว (ทำครั้งเดียว จบเร็ว ไม่เสียเวลาเดินทาง)
->     -   **Runtime**: การไปตรวจวีซ่าหน้าตม. (ต้องต่อแถว ช้า และอาจโดนส่งกลับหลังจากบินมาตั้งไกล)
-> 4.  **Unit Conversion**: เหมือนบูธแลกเงิน (Exchange Counter) ที่มีการตรวจสอบอัตราแลกเปลี่ยนอย่างถูกต้องและเป็นทางการป้องกันการโกง
+## 1. Dimension Mismatch Error
+
+### Problem
+
+```
+--> FOAM FATAL ERROR:
+Inconsistent dimensions for +/-
+   Left: [1 -1 -2 0 0 0 0]
+   Right: [0 1 -1 0 0 0 0]
+```
+
+### Solution
+
+ตรวจสอบว่า operands มี dimension เดียวกัน:
+
+```cpp
+// BAD
+volScalarField result = p + U;  // pressure + velocity
+
+// GOOD
+volScalarField result = p;  // หรือใช้ที่ถูกต้องตาม physics
+```
 
 ---
 
-## Template Errors and Debugging Strategies
+## 2. Wrong Dimension Specification
 
-### Common Template Error Patterns
-
-In OpenFOAM's **template metaprogramming** architecture, template instantiation errors often manifest as cryptic compiler messages. Understanding these patterns is crucial for debugging complex dimensional analysis issues.
-
-#### Problem: Type Deduction Failures
+### Problem
 
 ```cpp
-// Error: Template argument deduction failure
-template<class Type>
-dimensioned<Type> operator+(const dimensioned<Type>& a, const dimensioned<Type>& b)
-{
-    // Requires identical dimensions
-    return dimensioned<Type>(a.name(), a.dimensions(), a.value() + b.value());
-}
-
-// Problem: Mixing dimensionedScalar with plain scalar
-dimensionedScalar p(dimPressure, 101325.0);
-scalar factor = 2.0;
-auto wrong = p + factor;  // Error: No matching operator+
+// Specifying wrong dimensions
+dimensionedScalar nu("nu", dimDynamicViscosity, 1e-6);
+// ERROR: 1e-6 is kinematic viscosity (m²/s), not dynamic (Pa·s)
 ```
 
-> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L`
->
-> **คำอธิบาย (Explanation):** 
-> โค้ดตัวอย่างนี้แสดงให้เห็นถึงปัญหาที่พบได้บ่อยเมื่อพยายามดำเนินการทางคณิตศาสตร์ระหว่าง `dimensionedScalar` (ซึ่งมีข้อมูลมิติ) กับ `scalar` (ซึ่งเป็นเพียงตัวเลขธรรมดาไม่มีมิติ) OpenFOAM มีระบบตรวจสอบชนิดข้อมูลที่เข้มงวด เพื่อป้องกันข้อผิดพลาดทางฟิสิกส์ ทำให้การดำเนินการระหว่างชนิดข้อมูลที่แตกต่างกันจะล้มเหลวในขั้นตอนการคอมไพล์ ซึ่งเป็นลักษณะเดียวกับที่พบใน lexer ที่ต้องการความแม่นยำในการระบุ token ประเภทต่างๆ
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Template Argument Deduction**: กระบวนการที่คอมไพเลอร์พยายามอนุมานชนิดของพารามิเตอร์ template โดยอัตโนมัติจากอาร์กิวเมนต์ที่ส่งเข้ามา ซึ่งจะล้มเหลหากชนิดข้อมูลไม่ตรงกัน
-> - **Type Safety**: การรักษาความปลอดภัยของชนิดข้อมูลผ่านการตรวจสอบในขั้นตอนคอมไพล์เท่านั้น ไม่ใช่ runtime
-> - **Dimensioned Types**: ชนิดข้อมูลที่มีความสามารถในการติดตามมิติทางฟิสิกส์ของค่า เพื่อป้องกันการคำนวณที่ไม่ถูกต้องทางมิติ
-
-**Root Cause**: OpenFOAM's strict type system treats `dimensionedScalar` and `scalar` as fundamentally different types. Addition requires both operands to have matching dimension sets.
-
-#### Solution: Explicit Conversions
+### Solution
 
 ```cpp
-// Solution 1: Wrap scalar in dimensioned type
-auto correct1 = p + dimensionedScalar(dimless, factor);
-
-// Solution 2: Use scalar multiplication (defined for dimensioned types)
-auto correct2 = p * factor;
-
-// Solution 3: Extract value, compute, re-wrap
-scalar result = p.value() + factor;
-auto correct3 = dimensionedScalar(dimPressure, result);
+// Correct
+dimensionedScalar nu("nu", dimKinematicViscosity, 1e-6);
+// or
+dimensionedScalar mu("mu", dimDynamicViscosity, 1e-3);
 ```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
->
-> **คำอธิบาย (Explanation):**
-> โซลูชันที่นำเสนอแสดงให้เห็นถึงวิธีการที่ถูกต้องในการจัดการกับการดำเนินการทางคณิตศาสตร์ที่เกี่ยวข้องกับค่าที่มีมิติและไม่มีมิติใน OpenFOAM โดยแนวทางที่ 1 ใช้การห่อหุ้ม scalar ด้วย dimensioned type ที่ไม่มีมิติ (dimless) แนวทางที่ 2 ใช้ประโยชน์จากการคูณซึ่งกำหนดไว้สำหรับ dimensioned types และแนวทางที่ 3 ใช้การแยกค่าออกมาคำนวณแล้วห่อหุ้มใหม่ วิธีการเหล่านี้สอดคล้องกับแนวทางที่ใช้ใน populationBalanceModel ที่ต้องจัดการกับหลายเฟสและหลายชนิดข้อมูลพร้อมกัน
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Explicit Type Conversion**: การแปลงชนิดข้อมูลที่ชัดเจนและตั้งใจ เพื่อหลีกเลี่ยงการสูญเสียข้อมูลมิติโดยไม่ตั้งใจ
-> - **Dimensionless Quantity**: ปริมาณที่ไม่มีมิติทางฟิสิกส์ ใช้เป็นตัวเชื่อมระหว่าง dimensioned types และ scalars
-> - **Value Extraction**: การดึงค่าตัวเลขออกมาจาก dimensioned type เพื่อการคำนวณแบบดั้งเดิม
-
-### Debugging Template Metaprogramming
-
-#### 1. Static Assertion Messages
-
-```cpp
-template<class T1, class T2>
-void checkDimensions(const T1& a, const T2& b)
-{
-    static_assert(
-        is_dimensioned<T1>::value && is_dimensioned<T2>::value,
-        "Both arguments must be dimensioned types"
-    );
-
-    static_assert(
-        std::is_same<
-            typename T1::dimension_type,
-            typename T2::dimension_type
-        >::value,
-        "Dimensions must match for this operation"
-    );
-}
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/binaryBreakupModels/Liao/LiaoBase.C`
->
-> **คำอธิบาย (Explanation):**
-> ฟังก์ชัน template `checkDimensions` ใช้ `static_assert` เพื่อตรวจสอบชนิดข้อมูลในขั้นตอนการคอมไพล์ ซึ่งเป็นเทคนิคที่มีประสิทธิภาพในการรับประกันความถูกต้องของโปรแกรม การตรวจสอบแรกตรวจสอบว่าทั้งสองอาร์กิวเมนต์เป็น dimensioned types และการตรวจสอบที่สองตรวจสอบว่าประเภทของมิติตรงกัน แนวทางนี้คล้ายกับที่ใช้ใน binaryBreakupModels ที่ต้องมั่นใจว่าการคำนวณที่เกี่ยวข้องกับการแตกตัวของฟองมีความถูกต้องทางมิติ
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Static Assertion**: การยืนยันเงื่อนไขในขั้นตอนคอมไพล์ทำให้สามารถตรวจจับข้อผิดพลาดได้ก่อนรันโปรแกรม
-> - **Type Traits**: คุณลักษณะของชนิดข้อมูลที่สามารถตรวจสอบได้ในขั้นตอนคอมไพล์
-> - **Template Metaprogramming**: เทคนิคการเขียนโปรแกรมที่ใช้ template ในการดำเนินการคำนวณในขั้นตอนคอมไพล์
-
-#### 2. Type Trait Debugging
-
-```cpp
-#include <type_traits>
-#include <iostream>
-
-template<class T>
-void debugType()
-{
-    std::cout << "is_dimensioned: " << is_dimensioned<T>::value << std::endl;
-    std::cout << "is_scalar: " << std::is_scalar<T>::value << std::endl;
-}
-
-// Usage
-debugType<dimensionedScalar>();  // is_dimensioned: 1, is_scalar: 0
-debugType<scalar>();             // is_dimensioned: 0, is_scalar: 1
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/coalescenceModels/LiaoCoalescence/LiaoCoalescence.C`
->
-> **คำอธิบาย (Explanation):**
-> เครื่องมือ debugType เป็นฟังก์ชัน template ที่ช่วยให้นักพัฒนาสามารถตรวจสอบคุณลักษณะของชนิดข้อมูลต่างๆ ได้ในขั้นตอน runtime โดยแสดงผลว่าชนิดข้อมูลนั้นเป็น dimensioned type หรือ scalar ซึ่งเป็นประโยชน์อย่างมากในการ debug โค้ดที่ซับซ้อน แนวทางนี้มีประโยชน์เช่นเดียวกับใน coalescenceModels ที่ต้องจัดการกับหลายเฟสและต้องตรวจสอบชนิดข้อมูลอย่างแม่นยำ
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Type Inspection**: การตรวจสอบคุณลักษณะของชนิดข้อมูลเพื่อความเข้าใจที่ดีขึ้น
-> - **Runtime Type Information**: ข้อมูลเกี่ยวกับชนิดข้อมูลที่พร้อมใช้งานในขั้นตอน runtime
-> - **Debugging Utilities**: เครื่องมือที่ช่วยในการติดตามและวินิจฉัยปัญหาในโค้ด
-
-#### 3. Compile-Time Dimension Printing
-
-```cpp
-template<int M, int L, int T, int Theta, int N, int I, int J>
-void printDimensions()
-{
-    std::cout << "Mass: " << M << ", Length: " << L << ", Time: " << T
-              << ", Temp: " << Theta << ", Moles: " << N
-              << ", Current: " << I << ", Luminous: " << J << std::endl;
-}
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/StationaryPhaseModel/StationaryPhaseModel.C`
->
-> **คำอธิบาย (Explanation):**
-> ฟังก์ชัน template `printDimensions` ช่วยให้สามารถแสดงผลข้อมูลเกี่ยวกับมิติทั้ง 7 มิติของ SI (Mass, Length, Time, Temperature, Moles, Current, Luminous Intensity) ในขั้นตอนคอมไพล์ ซึ่งเป็นประโยชน์อย่างมากในการ debug และตรวจสอบความถูกต้องของการคำนวณทางฟิสิกส์ แนวทางนี้มีความสำคัญใน StationaryPhaseModel ที่ต้องรับรู้ถึงมิติของค่าต่างๆ เพื่อคำนวณการไหลของเฟสที่ไม่เคลื่อนที่
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **SI Base Dimensions**: หน่วยฐาน 7 หน่วยของระบบ SI ซึ่งเป็นพื้นฐานของการวัดทางฟิสิกส์
-> - **Compile-Time Constants**: ค่าคงที่ที่รู้จักในขั้นตอนคอมไพล์ ช่วยให้ตรวจสอบได้ตั้งแต่เริ่มต้น
-> - **Template Parameters**: พารามิเตอร์ที่ส่งผ่านเข้าไปใน template เพื่อสร้างโค้ดที่เฉพาะเจาะจง
-
-> [!TIP] **Debugging Strategy**
-> When facing template errors, read the compiler message from bottom to top—the actual error is usually at the end, preceded by pages of template instantiation trace.
 
 ---
 
-## Cross-Unit Dimension Consistency in Large Codebases
+## 3. Forgetting Dimensions in Fields
 
-### Problem: Inconsistent Unit Definitions
-
-In large CFD projects, maintaining dimensional consistency across multiple compilation units presents significant challenges.
-
-```mermaid
-flowchart LR
-classDef file fill:#e0e0e0,stroke:#333,color:#000
-classDef ok fill:#c8e6c9,stroke:#2e7d32,color:#000
-classDef fail fill:#ffcdd2,stroke:#c62828,color:#000
-subgraph Sources [Input Files]
-    F1["p = 101325 Pa"]:::file
-    F2["p = 101325 (No Unit)"]:::file
-    F3["p = 14.7 PSI"]:::file
-end
-
-Solver((Solver))
-
-F1 -->|Consistent| OK[Run]:::ok
-F2 -->|Ambiguous| OK
-F3 -->|Mismatch| Err[Physics Error]:::fail
-```
-> **Figure 2:** ปัญหาความไม่สอดคล้องกันของหน่วยวัดในโครงการขนาดใหญ่ที่เกิดจากการนิยามตัวแปรเดียวกันด้วยหน่วยที่ต่างกันในแต่ละไฟล์ ซึ่งนำไปสู่ความผิดพลาดทางฟิสิกส์ที่ร้ายแรง
-
-#### Anti-Pattern Example
+### Problem
 
 ```cpp
-// File1.H
-dimensionedScalar p("p", dimPressure, 101325.0);  // Pascals
-
-// File2.H
-dimensionedScalar p_inlet("p_inlet", dimensionSet(1, -1, -2, 0, 0, 0, 0), 101325.0);
-// Same dimensions but different representation
-
-// File3.H
-dimensionedScalar p_outlet("p_outlet", dimPressure, 14.7);  // PSI? Wrong units!
+volScalarField T
+(
+    IOobject(...),
+    mesh,
+    scalar(300)  // Missing dimensions!
+);
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/StationaryPhaseModel/StationaryPhaseModel.C`
->
-> **คำอธิบาย (Explanation):**
-> ตัวอย่างนี้แสดงให้เห็นถึงปัญหาที่เกิดขึ้นเมื่อนิยามค่าความดันในหลายไฟล์ด้วยหน่วยที่แตกต่างกัน (Pascals ใน File1, การใช้ dimensionSet โดยตรงใน File2, และ PSI ใน File3) แม้ว่าจะมีค่าตัวเลขที่แตกต่างกัน แต่ปัญหาที่แท้จริงคือการใช้หน่วยที่ไม่สอดคล้องกัน ซึ่งอาจนำไปสู่ข้อผิดพลาดทางฟิสิกส์ที่ร้ายแรงในการแก้สมการกำลังการไหล ปัญหานี้มีความคล้ายคลึงกับสถานการณ์ใน StationaryPhaseModel ที่ต้องรักษาความสอดคล้องของหน่วยในการคำนวณคุณสมบัติของเฟส
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Unit Consistency**: ความสอดคล้องกันของหน่วยวัดในทั่วทั้งโค้ดเบสเพื่อป้องกันข้อผิดพลาด
-> - **Multiple Definition Problem**: ปัญหาที่เกิดจากการนิยามสิ่งเดียวกันในหลายที่และไม่สอดคล้องกัน
-> - **DimensionSet Representation**: การแสดงมิติโดยใช้เลขชี้กำลังของหน่วยฐาน 7 หน่วยของ SI
-
-**Impact**: Creates subtle but dangerous situations where pressure values appear numerically consistent but actually use different units, leading to physical inconsistency in governing equations.
-
-### Solution: Centralized Dimension Definitions
-
-#### 1. Single Source of Truth
+### Solution
 
 ```cpp
-// dimensions.H (included everywhere)
-namespace myDimensions
-{
-    const dimensionSet myPressure = dimPressure;
-    const dimensionSet myVelocity = dimVelocity;
-
-    // Custom dimensions for specific physics
-    const dimensionSet myCustomDim(1, 2, -3, 0, 0, 0, 0);
-}
-
-// Usage everywhere
-dimensionedScalar p("p", myDimensions::myPressure, 101325.0);
+volScalarField T
+(
+    IOobject(...),
+    mesh,
+    dimensionedScalar("T", dimTemperature, 300)
+);
 ```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
->
-> **คำอธิบาย (Explanation):**
-> การสร้าง namespace `myDimensions` ที่รวบรวมนิยามของมิติต่างๆ ไว้ในที่เดียว ช่วยให้มั่นใจได้ว่าทุกส่วนของโค้ดใช้มิติที่เหมือนกัน วิธีนี้ช่วยป้องกันปัญหาการนิยามซ้ำที่ไม่สอดคล้องกัน และทำให้การบำรุงรักษาโค้ดง่ายขึ้น แนวทางนี้สำคัญใน populationBalanceModel ที่ต้องจัดการกับหลายเฟสและหลายประเภทของอนุภาค ซึ่งแต่ละประเภทอาจต้องการมิติที่เฉพาะเจาะจง
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Single Source of Truth**: แหล่งข้อมูลหลักเดียวสำหรับนิยามที่สำคัญ ช่วยลดความซ้ำซ้อนและข้อผิดพลาด
-> - **Namespace Encapsulation**: การจัดกลุ่มนิยามที่เกี่ยวข้องกันไว้ด้วยกันเพื่อความชัดเจน
-> - **Custom Dimensions**: ความสามารถในการสร้างมิติที่กำหนดเองสำหรับฟิสิกส์เฉพาะทาง
-
-#### 2. Unit Conversion Layer
-
-```cpp
-class UnitConverter
-{
-public:
-    static dimensionedScalar psiToPa(dimensionedScalar p_psi)
-    {
-        if (p_psi.dimensions() != dimPressure)
-        {
-            FatalErrorInFunction
-                << "Expected pressure dimension"
-                << abort(FatalError);
-        }
-        return dimensionedScalar(
-            p_psi.name(),
-            dimPressure,
-            p_psi.value() * 6894.76  // 1 psi = 6894.76 Pa
-        );
-    }
-
-    static dimensionedScalar paToPsi(dimensionedScalar p_pa)
-    {
-        return dimensionedScalar(
-            p_pa.name(),
-            dimPressure,
-            p_pa.value() / 6894.76
-        );
-    }
-};
-```
-
-> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L`
->
-> **คำอธิบาย (Explanation):**
-> คลาส `UnitConverter` ให้ฟังก์ชัน static สำหรับแปลงหน่วยระหว่าง PSI และ Pascals พร้อมทั้งตรวจสอบความถูกต้องของมิติก่อนการแปลง ซึ่งช่วยป้องกันข้อผิดพลาดจากการแปลงหน่วยที่ไม่ถูกต้อง การใช้ `FatalErrorInFunction` เป็นลักษณะเดียวกับที่พบใน OpenFOAM lexer ที่ต้องการตรวจสอบและแจ้งข้อผิดพลาดอย่างชัดเจนเมื่อเกิดปัญหา
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Unit Conversion**: การแปลงค่าจากหน่วยหนึ่งไปยังอีกหน่วยหนึ่งโดยรักษาค่าทางฟิสิกส์
-> - **Dimension Validation**: การตรวจสอบว่าค่าที่จะแปลงมีมิติที่ถูกต้อง
-> - **Error Handling**: กลไกการจัดการข้อผิดพลาดที่ชัดเจนและหยุดการทำงานเมื่อเกิดปัญหาร้ายแรง
-
-#### 3. Runtime Validation
-
-```cpp
-class DimensionValidator
-{
-public:
-    static void validateConsistency(
-        const dimensionedScalar& value,
-        const dimensionSet& expected,
-        const char* location)
-    {
-        if (value.dimensions() != expected)
-        {
-            FatalErrorIn(location)
-                << "Dimension mismatch at " << location << nl
-                << "  Expected: " << expected << nl
-                << "  Got: " << value.dimensions() << nl
-                << "  Value: " << value.value()
-                << abort(FatalError);
-        }
-    }
-};
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/binaryBreakupModels/Liao/LiaoBase.C`
->
-> **คำอธิบาย (Explanation):**
-> คลาส `DimensionValidator` ให้ฟังก์ชัน static สำหรับตรวจสอบความสอดคล้องของมิติใน runtime โดยแสดงข้อความผิดพลาดที่ชัดเจนพร้อมข้อมูลเกี่ยวกับตำแหน่งที่เกิดปัญหา มิติที่คาดหวัง และค่าจริง วิธีการนี้มีประสิทธิภาพใน binaryBreakupModels ที่ต้องตรวจสอบมิติของค่าต่างๆ ที่เกี่ยวข้องกับการแตกตัวของฟอง
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Runtime Validation**: การตรวจสอบความถูกต้องในระหว่างการทำงานของโปรแกรม
-> - **Defensive Programming**: การเขียนโปรแกรมที่มีการตรวจสอบและจัดการข้อผิดพลาดอย่างเข้มงวด
-> - **Error Messages**: ข้อความผิดพลาดที่ให้ข้อมูลเพียงพอสำหรับการแก้ไขปัญหา
 
 ---
 
-## Custom Dimension Definitions and Extensions
+## 4. Division by Dimensioned Scalar
 
-### Extending the Dimension System
-
-OpenFOAM's dimension system can be extended to support domain-specific physics or custom requirements.
-
-```mermaid
-flowchart TD
-classDef base fill:#e3f2fd,stroke:#1565c0,color:#000
-classDef ext fill:#fff3e0,stroke:#e65100,color:#000
-A[Standard 7 SI Dimensions]:::base
-
-subgraph Extensions [Extended Dimensions]
-    B[Extended Systems]:::ext
-    C[Currency / Info]:::ext
-end
-
-A --> B
-A --> C
-```
-> **Figure 3:** แนวทางการขยายระบบมิติของ OpenFOAM ให้ครอบคลุมปริมาณอื่นๆ นอกเหนือจาก 7 มิติมาตรฐาน SI เช่น มิติด้านค่าเงินหรือข้อมูลสารสนเทศ
-
-#### Code Implementation
+### Problem
 
 ```cpp
-// Adding custom dimensions (e.g., currency, information)
-class extendedDimensionSet : public dimensionSet
-{
-public:
-    enum extendedDimensionType
-    {
-        CURRENCY = nDimensions,      // Dollars $
-        INFORMATION,                 // Bits
-        nExtendedDimensions
-    };
-
-    extendedDimensionSet()
-    : dimensionSet()
-    {
-        exponents_.resize(nExtendedDimensions);
-        for (int i = nDimensions; i < nExtendedDimensions; i++)
-            exponents_[i] = 0;
-    }
-
-    // Override operations to handle extended dimensions
-    extendedDimensionSet operator+(const extendedDimensionSet& ds) const
-    {
-        extendedDimensionSet result;
-
-        // Base dimensions
-        for (int i = 0; i < nDimensions; i++)
-            result.exponents_[i] = exponents_[i] + ds.exponents_[i];
-
-        // Extended dimensions
-        for (int i = nDimensions; i < nExtendedDimensions; i++)
-            result.exponents_[i] = exponents_[i] + ds.exponents_[i];
-
-        return result;
-    }
-};
-
-// Template specialization for extended dimensions
-template<>
-class dimensioned<scalar, extendedDimensionSet>
-{
-    word name_;
-    extendedDimensionSet dimensions_;
-    scalar value_;
-
-public:
-    // Special implementation for extended dimensions
-    dimensioned<scalar, extendedDimensionSet> operator+(
-        const dimensioned<scalar, extendedDimensionSet>& other) const
-    {
-        if (dimensions_ != other.dimensions_)
-        {
-            FatalErrorInFunction
-                << "Extended dimension mismatch"
-                << abort(FatalError);
-        }
-
-        return dimensioned<scalar, extendedDimensionSet>(
-            name_ + "+" + other.name_,
-            dimensions_,
-            value_ + other.value_
-        );
-    }
-};
+dimensionedScalar dt("dt", dimTime, 0.001);
+volScalarField result = T / dt.value();  // Loses dimension info!
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/coalescenceModels/LiaoCoalescence/LiaoCoalescence.C`
->
-> **คำอธิบาย (Explanation):**
-> โค้ดนี้แสดงให้เห็นถึงวิธีการขยายระบบมิติของ OpenFOAM เพื่อรองรับมิติเพิ่มเติมนอกเหนือจาก 7 มิติมาตรฐานของ SI โดยการสร้างคลาส `extendedDimensionSet` ที่สืบทอดจาก `dimensionSet` และเพิ่มมิติใหม่ เช่น CURRENCY (ค่าเงิน) และ INFORMATION (ข้อมูลสารสนเทศ) โค้ดยังแสดงการ overloading ตัวดำเนินการเพื่อรองรับมิติที่ขยายออกไป แนวทางนี้คล้ายกับที่ใช้ใน coalescenceModels ที่อาจต้องการติดตามปริมาณเพิ่มเติมเกี่ยวกับการรวมตัวของฟอง
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Inheritance**: การสืบทอดจากคลาสที่มีอยู่เพื่อขยายความสามารถ
-> - **Enum Extension**: การเพิ่ม enum เพื่อกำหนดมิติใหม่ที่ต่อท้ายมิติเดิม
-> - **Operator Overloading**: การกำหนดการทำงานของตัวดำเนินการใหม่สำหรับชนิดข้อมูลที่ขยายออกไป
-
-### Versioned Dimension Systems
+### Solution
 
 ```cpp
-// Versioned dimension system for backward compatibility
-class dimensionSetV1 : public dimensionSet
-{
-    // 7 base dimensions
-    static const int nDimensions = 7;
-};
-
-class dimensionSetV2 : public dimensionSet
-{
-    // 9 base dimensions (added currency, information)
-    static const int nDimensions = 9;
-};
-
-template<int Version>
-struct DimensionSystemVersion;
-
-template<>
-struct DimensionSystemVersion<1>
-{
-    typedef dimensionSetV1 type;
-    static const int nDimensions = 7;
-};
-
-template<>
-struct DimensionSystemVersion<2>
-{
-    typedef dimensionSetV2 type;
-    static const int nDimensions = 9;
-};
+volScalarField result = T / dt;  // Keep dimensioned
 ```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
->
-> **คำอธิบาย (Explanation):**
-> การใช้ระบบมิติแบบ versioned ช่วยให้สามารถพัฒนาและขยายระบบมิติได้โดยไม่ทำลายความเข้ากันได้แบบย้อนหลัง โดย `dimensionSetV1` มี 7 มิติมาตรฐาน และ `dimensionSetV2` มี 9 มิติที่เพิ่ม currency และ information เข้าไป การใช้ template specialization สำหรับแต่ละ version ทำให้สามารถเลือกใช้ระบบมิติที่ต้องการได้ แนวทางนี้มีประโยชน์ใน populationBalanceModel ที่อาจต้องการรองรับทั้งระบบเก่าและใหม่
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Versioning**: การจัดการหลาย version ของระบบเพื่อรักษาความเข้ากันได้แบบย้อนหลัง
-> - **Template Specialization**: การกำหนดการทำงานเฉพาะสำหรับพารามิเตอร์ template ที่เจาะจง
-> - **Backward Compatibility**: ความสามารถในการทำงานร่วมกับโค้ดหรือระบบเก่า
-
-**Benefits**: Versioning allows smooth evolution of the dimensional analysis system without breaking existing code, similar to how OpenFOAM handles API evolution across major versions.
 
 ---
 
-## Performance Impact of Dimension Checking
+## 5. Incorrect Power Operations
 
-### Runtime Overhead Analysis
-
-The dimensional analysis system introduces computational overhead that requires quantification for performance-critical applications.
-
-```mermaid
-flowchart LR
-classDef plain fill:#ffcdd2,stroke:#c62828,color:#000
-classDef dim fill:#c8e6c9,stroke:#2e7d32,color:#000
-subgraph Raw [No Dimensioning]
-    A1[1M Ops]:::plain --> B1[0.01s]:::plain
-end
-
-subgraph Dims [With Dimensioning]
-    A2[1M Ops]:::dim --> B2[0.012s]:::dim
-end
-
-B1 -.->|Small Overhead| B2
-```
-> **Figure 4:** การเปรียบเทียบผลกระทบด้านประสิทธิภาพ (Runtime Overhead) ระหว่างการคำนวณแบบสเกลาร์ดิบกับการคำนวณที่มีระบบตรวจสอบมิติ ซึ่งแสดงให้เห็นถึงโอเวอร์เฮดที่เพิ่มขึ้นเพียงเล็กน้อยในแลกกับความปลอดภัยที่สูงขึ้น
-
-#### Benchmark Results
+### Problem
 
 ```cpp
-// Benchmark: Dimensioned vs non-dimensioned operations
-void benchmark()
-{
-    // Test 1: Pure scalar operations
-    scalar a = 1.0, b = 2.0, c = 0.0;
-    auto start = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 1000000; i++)
-        c += a * b;  // Baseline
-    auto end = std::chrono::high_resolution_clock::now();
-
-    // Test 2: Dimensioned operations
-    dimensionedScalar da(dimless, 1.0);
-    dimensionedScalar db(dimless, 2.0);
-    dimensionedScalar dc(dimless, 0.0);
-    auto start2 = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 1000000; i++)
-        dc += da * db;  // Includes dimension checking
-    auto end2 = std::chrono::high_resolution_clock::now();
-
-    // Results:
-    // - <5% overhead for dimensionless operations
-    // - 10-20% overhead for dimensioned operations with checking
-}
+// sqrt of negative dimension is problematic
+dimensionedScalar a("a", dimPressure, 100);
+dimensionedScalar b = sqrt(a);  // sqrt of [M L^-1 T^-2]?
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/StationaryPhaseModel/StationaryPhaseModel.C`
->
-> **คำอธิบาย (Explanation):**
-> ฟังก์ชัน benchmark แสดงให้เห็นถึงวิธีการวัดผลกระทบด้านประสิทธิภาพของการใช้ dimensioned types เมื่อเปรียบเทียบกับ scalar ธรรมดา โดยใช้ `std::chrono` ในการวัดเวลา ผลลัพธ์แสดงให้เห็นว่ามี overhead น้อยกว่า 5% สำหรับการดำเนินการที่ไม่มีมิติ และ 10-20% สำหรับการดำเนินการที่มีการตรวจสอบมิติ ซึ่งเป็นการแลกกับความปลอดภัยทางฟิสิกส์ การทดสอบประสิทธิภาพนี้มีความสำคัญใน StationaryPhaseModel ที่ต้องทำงานกับเฟสที่ไม่เคลื่อนที่อย่างมีประสิทธิภาพ
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Performance Benchmarking**: การวัดและเปรียบเทียบประสิทธิภาพของโค้ด
-> - **Runtime Overhead**: ต้นทุนด้านประสิทธิภาพที่เกิดจากการตรวจสอบเพิ่มเติม
-> - **Trade-offs**: การตัดสินใจระหว่างประสิทธิภาพและความปลอดภัย
-
-**Overhead Sources**:
-- Dimension comparison during mathematical operations
-- Temporary object creation in operator overloads
-- Branch prediction misses from runtime checks
-
-### Optimization Techniques
-
-#### 1. Selective Dimension Checking
+### Solution
 
 ```cpp
-#ifdef FULLDEBUG
-    #define CHECK_DIMENSIONS(expr) dimensionCheck(expr)
-#else
-    #define CHECK_DIMENSIONS(expr) // Nothing in release builds
-#endif
+// Ensure dimension makes sense for sqrt
+dimensionedScalar U2("U2", dimVelocity*dimVelocity, 100);
+dimensionedScalar U = sqrt(U2);  // √[L² T^-2] = [L T^-1] ✓
 ```
-
-> **📂 Source:** `.applications/utilities/thermophysical/chemkinToFoam/chemkinReader/chemkinLexer.L`
->
-> **คำอธิบาย (Explanation):**
-> การใช้ preprocessor directives เพื่อเปิด/ปิดการตรวจสอบมิติตามโหมดการคอมไพล์ โดยในโหมด FULLDEBUG จะมีการตรวจสอบ แต่ใน release builds จะไม่มีการตรวจสอบเพื่อเพิ่มประสิทธิภาพ วิธีนี้ใช้ conditional compilation เพื่อสร้างโค้ดที่แตกต่างกันตามการตั้งค่า ซึ่งเป็นเทคนิคที่พบได้บ่อยใน OpenFOAM lexer ที่ต้องการรองรับทั้งโหมด debug และ production
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Conditional Compilation**: การคอมไพล์โค้ดที่แตกต่างกันตามเงื่อนไขที่กำหนด
-> - **Debug vs Release Builds**: การแยกแยะระหว่างโหมด debug ที่เน้นการตรวจสอบกับโหมด release ที่เน้นประสิทธิภาพ
-> - **Preprocessor Macros**: คำสั่ง preprocessor ที่ใช้ในการควบคุมการคอมไพล์
-
-#### 2. Dimension Caching
-
-```cpp
-class DimensionCache
-{
-    static HashTable<dimensionSet> cache_;
-
-public:
-    static const dimensionSet& get(dimensionSet ds)
-    {
-        auto it = cache_.find(ds);
-        if (it != cache_.end())
-            return it();
-
-        return cache_.insert(ds, ds);
-    }
-};
-
-// Usage: Reuse dimensionSet objects
-const dimensionSet& pressureDim = DimensionCache::get(dimPressure);
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
->
-> **คำอธิบาย (Explanation):**
-> คลาส `DimensionCache` ใช้ HashTable เพื่อเก็บ dimensionSet objects ที่ถูกสร้างไว้แล้ว และนำกลับมาใช้ใหม่แทนการสร้างใหม่ทุกครั้ง ซึ่งช่วยลดการจัดสรรหน่วยความจำและเพิ่มประสิทธิภาพ แนวทางนี้มีประโยชน์ใน populationBalanceModel ที่ต้องทำงานกับ dimensionSet จำนวนมากเนื่องจากต้องจัดการกับหลายเฟสและหลายชนิดของอนุภาค
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Caching**: การเก็บข้อมูลที่ใช้บ่อยไว้ในหน่วยความจำเพื่อเข้าถึงได้เร็วขึ้น
-> - **Memory Management**: การจัดการหน่วยความจำอย่างมีประสิทธิภาพ
-> - **HashTable**: โครงสร้างข้อมูลแบบ hash table สำหรับการเก็บและค้นหาข้อมูลอย่างรวดเร็ว
-
-#### 3. Compile-Time Optimization
-
-```cpp
-// Zero-overhead abstraction through template specialization
-template<bool HasDimensions>
-struct DimensionChecker;
-
-template<>
-struct DimensionChecker<false>
-{
-    static void check(...) {}  // No check = no overhead
-};
-
-template<>
-struct DimensionChecker<true>
-{
-    static void check(const dimensionSet& actual, const dimensionSet& expected)
-    {
-        if (actual != expected)
-        {
-            FatalErrorInFunction << "Dimension mismatch" << abort(FatalError);
-        }
-    }
-};
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/coalescenceModels/LiaoCoalescence/LiaoCoalescence.C`
->
-> **คำอธิบาย (Explanation):**
-> การใช้ template specialization กับ `DimensionChecker` ทำให้สามารถสร้างเวอร์ชันที่มีการตรวจสอบและไม่มีการตรวจสอบ โดยคอมไพเลอร์จะเลือกเวอร์ชันที่เหมาะสมตามพารามิเตอร์ template ซึ่งเป็น zero-overhead abstraction ที่ไม่สร้างต้นทุนเพิ่มเติมใน runtime แนวทางนี้มีประโยชน์ใน coalescenceModels ที่ต้องการความยืดหยุ่นในการตรวจสอบมิติ
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Zero-Overhead Abstraction**: นามธรรมที่ไม่สร้างต้นทุนด้านประสิทธิภาพใน runtime
-> - **Template Metaprogramming**: เทคนิคการใช้ template ในการดำเนินการในขั้นตอนคอมไพล์
-> - **Compile-Time Decisions**: การตัดสินใจในขั้นตอนคอมไพล์แทน runtime
-
-**Benefits**: Dimension caching reduces memory allocation overhead by reusing common dimension objects, while selective checking eliminates runtime overhead in production builds while maintaining full dimensional analysis during development.
 
 ---
 
-## Mixing Dimensioned and Non-Dimensioned Types
+## 6. Disabling Dimension Check
 
-### Safe Interoperability Patterns
-
-The interface between dimensional and non-dimensional types requires careful design to maintain type safety while enabling practical computation.
-
-```mermaid
-flowchart LR
-classDef type fill:#e1f5fe,stroke:#0277bd,color:#000
-classDef op fill:#fff9c4,stroke:#fbc02d,color:#000
-DS[dimensionedScalar]:::type -->|.value()| S[scalar]:::type
-S -->|constructor| DS2[dimensionedScalar]:::type
-DS -->|operator+| DS
-S -->|operator*| DS
-```
-> **Figure 5:** รูปแบบการทำงานร่วมกัน (Interoperability Patterns) ระหว่างประเภทข้อมูลที่มีมิติและไม่มีมิติ เพื่อรักษาความปลอดภัยของข้อมูลในขณะที่ยังสามารถคำนวณร่วมกับค่าสเกลาร์ทั่วไปได้
-
-#### Code Implementation
+### Problem
 
 ```cpp
-// Explicit conversion operators
-class dimensionedScalar
-{
-public:
-    // Safe conversion to scalar (loss of dimension information)
-    explicit operator scalar() const
-    {
-        return value_;
-    }
-
-    // Unsafe conversion (allows implicit conversion)
-    // NOT RECOMMENDED: operator scalar() { return value_; }
-};
-
-// Conversion functions
-scalar toScalar(const dimensionedScalar& ds)
-{
-    return ds.value();  // Explicit conversion
-}
-
-dimensionedScalar toDimensioned(scalar s, const dimensionSet& dims)
-{
-    return dimensionedScalar("", dims, s);
-}
-
-// Template-based interoperability using SFINAE
-template<class T>
-typename std::enable_if<is_dimensioned<T>::value, scalar>::type
-getValue(const T& dt)
-{
-    return dt.value();
-}
-
-template<class T>
-typename std::enable_if<std::is_scalar<T>::value, T>::type
-getValue(T s)
-{
-    return s;
-}
+// Tempting but dangerous
+dimensionSet::checking(false);
+// Now errors won't be caught!
 ```
 
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/StationaryPhaseModel/StationaryPhaseModel.C`
->
-> **คำอธิบาย (Explanation):**
-> โค้ดนี้แสดงให้เห็นถึงรูปแบบการทำงานร่วมกันที่ปลอดภัยระหว่าง dimensioned และ non-dimensioned types โดยใช้ `explicit` conversion operators เพื่อป้องกันการสูญเสียข้อมูลมิติโดยไม่ตั้งใจ และใช้ template metaprogramming ผ่าน SFINAE (Substitution Failure Is Not An Error) เพื่อสร้างฟังก์ชันที่ทำงานได้กับทั้งสองชนิดข้อมูล แนวทางนี้มีความสำคัญใน StationaryPhaseModel ที่ต้องจัดการกับค่าที่มีและไม่มีมิติ
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Explicit Conversion**: การแปลงชนิดข้อมูลที่ชัดเจนและตั้งใจ
-> - **SFINAE**: เทคนิค template metaprogramming ที่ให้การ overload ฟังก์ชันตามเงื่อนไขของชนิดข้อมูล
-> - **Type Safety**: การรักษาความปลอดภัยของชนิดข้อมูลผ่านกลไกการแปลงที่เข้มงวด
+### Solution
 
-#### Generic Programming with Dimensioned Types
-
-```cpp
-// Works with both dimensioned and non-dimensioned types
-template<class T>
-auto computeMagnitude(const T& value)
-    -> typename std::enable_if<
-        is_dimensioned<T>::value || std::is_scalar<T>::value,
-        scalar
-    >::type
-{
-    return getValue(value);
-}
-```
-
-> **📂 Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/binaryBreakupModels/Liao/LiaoBase.C`
->
-> **คำอธิบาย (Explanation):**
-> ฟังก์ชัน template `computeMagnitude` ใช้ SFINAE เพื่อสร้างฟังก์ชันทั่วไปที่ทำงานได้กับทั้ง dimensioned และ non-dimensioned types โดยใช้ `std::enable_if` เพื่อจำกัดให้ฟังก์ชันทำงานเฉพาะกับชนิดข้อมูลที่เป็น dimensioned หรือ scalar เท่านั้น แนวทางนี้มีประโยชน์ใน binaryBreakupModels ที่ต้องจัดการกับค่าที่หลากหลายในการคำนวณการแตกตัวของฟอง
->
-> **แนวคิดสำคัญ (Key Concepts):**
-> - **Generic Programming**: การเขียนโปรแกรมที่ทำงานได้กับหลายชนิดข้อมูล
-> - **Template Constraints**: การจำกัด template ให้ทำงานกับชนิดข้อมูลที่ต้องการ
-> - **Return Type Deduction**: การอนุมานชนิดของค่าที่ส่งคืนจากฟังก์ชัน
-
-> [!WARNING] **Safety Mechanism**
-> The `explicit` keyword prevents unintended loss of dimensional information while still allowing intentional type conversion. The template-based approach using SFINAE enables generic programming to work with both dimensioned and non-dimensioned types while maintaining type safety.
+**Never disable** in production. Use only for:
+- Debugging legacy code
+- Temporary testing
+- Always re-enable immediately
 
 ---
 
-## Summary: Best Practices for Dimensioned Types
+## 7. Dictionary Reading Errors
 
-| Category | Pitfall | Solution |
-|----------|---------|----------|
-| **Template Errors** | Cryptic compiler messages | Use `static_assert` with clear messages |
-| **Cross-Unit Consistency** | Different unit definitions | Centralized dimension definitions |
-| Category | Pitfall | Solution | Physical Analogy |
-|----------|---------|----------|------------------|
-| **Template Errors** | Cryptic compiler messages | Use `static_assert` with clear messages | Confusing error codes on a machine, solved by clear diagnostic messages. |
-| **Cross-Unit Consistency** | Different unit definitions | Centralized dimension definitions | Everyone agreeing on using meters instead of feet for a project. |
-| **Performance** | Runtime overhead | Selective checking in release builds | A safety inspector only checking a product during development, not every single item on the assembly line. |
-| **Type Mixing** | Implicit conversion losses | Use `explicit` conversion operators | Converting currency: you explicitly state you're changing from USD to EUR, not just assuming. |
-| **Custom Dimensions** | Limited to 7 SI dimensions | Extend through inheritance | Adding new specialized tools to a standard toolbox. |
-| **Debugging** | Hard to trace dimension mismatches | Type trait debugging utilities | Using a magnifying glass to find a tiny, misplaced screw in a complex mechanism. |
+### Problem
 
-These patterns are essential techniques for working with OpenFOAM's dimensional analysis system in complex CFD applications, ensuring both computational accuracy and maintainability of large codebases.
+```cpp
+// In dictionary: nu [0 2 -1 0 0 0 0] 1e-6;
+dimensionedScalar nu("nu", dimDynamicViscosity, dict);
+// Mismatch between dict dimensions and specified!
+```
+
+### Solution
+
+```cpp
+// Either match dimensions
+dimensionedScalar nu("nu", dimKinematicViscosity, dict);
+
+// Or let dictionary define dimensions
+dimensionedScalar nu(dict.lookup("nu"));
+```
 
 ---
 
-## 🧠 9. Concept Check (ทดสอบความเข้าใจ)
+## 8. Comparison Operations
 
-1.  **ทำไมเราไม่ควรผสม `dimensionedScalar` กับ `scalar` ตรงๆ (เช่น `p + 2.0`)?**
-    <details>
-    <summary>เฉลย</summary>
-    เพราะมัน **ผิดหลักฟิสิกส์** และ OpenFOAM ไม่อนุญาต 2.0 ไม่มีหน่วย (หรือมีหน่วยไม่ตรงกับ p) การบวกกันจึงไม่มีความหมาย ทางแก้คือต้องระบุหน่วยให้ 2.0 หรือทำให้ p กลายเป็นไม่มีหน่วยก่อน (ถ้ามั่นใจว่าทำได้)
-    </details>
+### Problem
 
-2.  **SFINAE คืออะไร และช่วยแก้ปัญหา Type Mixing ได้อย่างไร?**
-    <details>
-    <summary>เฉลย</summary>
-    SFINAE (Substitution Failure Is Not An Error) คือเทคนิคที่ทำให้ Compiler "เลือกช็อปปิ้ง" ฟังก์ชันที่เหมาะสมที่สุดให้เรา ถ้าเราส่ง `dimensionedScalar` มา มันก็จะเลือกฟังก์ชันเวอร์ชันที่รองรับมิติ ถ้าส่ง `scalar` มา มันก็จะเลือกเวอร์ชันธรรมดา ทำให้เราเขียนชื่อฟังก์ชันเดียว `computeSomething(x)` แต่ใช้ได้กับตัวแปรทุกแบบ
-    </details>
+```cpp
+dimensionedScalar a("a", dimLength, 1.0);
+dimensionedScalar b("b", dimTime, 1.0);
 
-3.  **มีวิธีลด Overhead ของการเช็คหน่วย (Dimension Checking) ตอนรันโปรแกรมจริงไหม?**
-    <details>
-    <summary>เฉลย</summary>
-    มี! โดยการใช้ **Macros** (เช่น `#ifdef FULLDEBUG`) เพื่อเปิดการเช็คหน่วยเฉพาะตอนเรากำลังพัฒนา (Development/Debug Mode) แต่พอจะเอาไปรันจริง (Release/Production Mode) ก็ปิดการเช็คพวกนี้ไป ทำให้ได้ความเร็วกลับมาเต็มที่
-    </details>
+if (a.value() == b.value())  // Compares values, ignores dimensions!
 ```
+
+### Solution
+
+```cpp
+// Check dimensions first
+if (a.dimensions() != b.dimensions())
+{
+    FatalError << "Cannot compare different dimensions";
+}
+```
+
+---
+
+## Quick Troubleshooting
+
+| Error | Check |
+|-------|-------|
+| Dimension mismatch | Verify equation physics |
+| Wrong value | Check units (SI) |
+| Field creation | Include dimensioned initial value |
+| sqrt/pow errors | Verify result dimension makes sense |
+
+---
+
+## Concept Check
+
+<details>
+<summary><b>1. ทำไม dimension error เกิดขึ้น?</b></summary>
+
+เพราะ **physics ผิด** — กำลังทำ operation ที่ไม่ make sense ทางฟิสิกส์
+</details>
+
+<details>
+<summary><b>2. ควร disable dimension checking ไหม?</b></summary>
+
+**ไม่ควร** — จะเสีย safety net ทั้งหมด
+</details>
+
+<details>
+<summary><b>3. อ่าน dimensioned value จาก dict อย่างไรให้ถูก?</b></summary>
+
+ให้ dict define dimensions: `dimensionedScalar nu(dict.lookup("nu"))`
+</details>
+
+---
+
+## Related Documents
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md)
+- **Engineering Benefits:** [06_Engineering_Benefits.md](06_Engineering_Benefits.md)

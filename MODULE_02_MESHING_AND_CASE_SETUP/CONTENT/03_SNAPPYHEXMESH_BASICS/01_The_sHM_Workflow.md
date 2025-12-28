@@ -1,5 +1,14 @@
 # กระบวนการทำงานของ snappyHexMesh (The snappyHexMesh Workflow)
 
+> [!TIP] **ทำไมต้องเข้าใจ snappyHexMesh?**
+> `snappyHexMesh` เป็นเครื่องมือสร้าง Mesh อัตโนมัติที่ทรงพลังที่สุดใน OpenFOAM การเข้าใจ Workflow 3 ขั้นตอนนี้จะช่วยให้คุณ:
+> - **ประหยัดเวลา** ในการสร้าง Mesh สำหรับเรขาคณิตที่ซับซ้อน (Complex Geometry)
+> - **ควบคุมคุณภาพ Mesh** ได้อย่างแม่นยำ โดยเลือกความละเอียดตามตำแหน่งที่ต้องการ
+> - **สร้าง Boundary Layer** ที่เหมาะสมกับแบบจำลองความปั่น (Turbulence Models) ซึ่งสำคัญมากต่อความแม่นยำของการคำนวณ
+> - **ลดข้อผิดพลาด** จากการตั้งค่าผิดพลาดที่ทำให้ Mesh พัง (Mesh Collapse) หรือ Quality ต่ำเกินไป
+>
+> ไฟล์ควบคุมหลัก: `system/snappyHexMeshDict` | เรียกใช้ด้วยคำสั่ง: `snappyHexMesh`
+
 `snappyHexMesh` (sHM) คือเครื่องมือสร้าง Grid แบบอัตโนมัติ (Automated Meshing Tool) ที่ทรงพลังที่สุดของ OpenFOAM โดยใช้วิธีการ **Cut-Cell Method** บนพื้นฐานของ Cartesian Grid เพื่อสร้าง Mesh ที่มีคุณภาพสูง (Hex-dominant) สำหรับเรขาคณิตที่ซับซ้อน
 
 ## 1. แนวคิดเปรียบเทียบ (Analogy): ประติมากรรมเลโก้
@@ -14,6 +23,18 @@
 นี่คือกระบวนการเป๊ะๆ ของ `snappyHexMesh`
 
 ## 2. โครงสร้างไฟล์ `system/snappyHexMeshDict`
+
+> [!NOTE] **📂 OpenFOAM Context: โครงสร้าง snappyHexMeshDict**
+> ไฟล์ `system/snappyHexMeshDict` เป็น Dictionary File ที่ควบคุมทั้ง 3 Phase ของการสร้าง Mesh โดยแต่ละส่วนประกอบด้วย:
+>
+> **Keywords หลัก:**
+> - `castellatedMesh`, `snap`, `addLayers` → เปิด/ปิดการทำงานแต่ละ Phase
+> - `geometry` → กำหนด Surface (STL/OBJ) และ Refinement Regions
+> - `castellatedMeshControls` → ควบคุม Refinement Levels, LocationInMesh, และการลบ Cell
+> - `snapControls` → ควบคุมความเรียบของผิว (nSmoothPatch, tolerance)
+> - `addLayersControls` → ควบคุม Layer Thickness, Expansion Ratio, และ Layer Settings
+>
+> การเข้าใจโครงสร้างนี้จำเป็นต่อการ Debug เมื่อ Mesh ไม่สำเร็จ
 
 ไฟล์ควบคุมหลักจะแบ่งออกเป็น 3 ส่วนใหญ่ๆ ตามกระบวนการทำงาน:
 
@@ -34,6 +55,21 @@ addLayersControls { ... }       // ควบคุมชั้น Boundary Layer
 ```
 
 ## 3. ขั้นตอนการทำงานแบบเจาะลึก (Detailed Phases)
+
+> [!NOTE] **📂 OpenFOAM Context: การเลือก Phase ในการรัน**
+> ใน `system/snappyHexMeshDict` คุณสามารถเลือกรันแต่ละ Phase แยกกันได้ โดยการตั้งค่า:
+>
+> ```cpp
+> castellatedMesh true;  // Phase 1: Refinement + Removal
+> snap            true;  // Phase 2: Surface Snapping
+> addLayers       true;  // Phase 3: Boundary Layer
+> ```
+>
+> **เทคนิคการ Debug:** แนะนำให้รันทีละ Phase เพื่อตรวจสอบผลลัพธ์ ก่อนจะรันทั้งหมดในครั้งเดียว
+>
+> **การตรวจสอบ:**
+> - ใช้ `checkMesh -latestTime` เพื่อตรวจสอบคุณภาพ Mesh หลังจากแต่ละ Phase
+> - เปิดดูใน ParaView ที่ Time directories: 0/, 1/, 2/, 3/
 
 **snappyHexMesh 3-Phase Workflow:**
 ```mermaid
@@ -56,6 +92,19 @@ graph TB
 ```
 
 ### Phase 1: Castellated Mesh (การขึ้นรูปหยาบ)
+
+> [!NOTE] **📂 OpenFOAM Context: การตั้งค่า Castellated Mesh**
+> Phase 1 นี้ถูกควบคุมโดย `castellatedMeshControls` ใน `system/snappyHexMeshDict`:
+>
+> **Keywords สำคัญ:**
+> - `locationInMesh` → พิกัด (x y z) ที่ระบุตำแหน่ง Fluid Domain
+> - `refinementSurfaces` → กำหนด Level ของความละเอียดบนผิวแต่ละส่วน
+> - `refinementRegions` → กำหนด Refinement Box/Sphere สำหรับเพิ่มความละเอียดเฉพาะจุด
+> - `maxGlobalCells` → จำกัดจำนวน Cell สูงสุดทั้งหมด (ป้องกัน Memory Overflow)
+> - `nCellsBetweenLevels` → ควบคุมการลดขนาด Cell ระหว่างระดับความละเอียด (ปกติ = 1-3)
+>
+> **ผลลัพธ์:** Mesh จะถูกเก็บใน Time directory `1/` สามารถเปิดดูใน ParaView ได้
+
 ขั้นตอนที่เป็นเหมือนการ "แกะสลัก" บล็อกพื้นฐาน
 
 1.  **Refinement:** โปรแกรมจะวนลูปตรวจสอบว่า Cell ไหนตัดผ่าน Geometry หรืออยู่ใน Refinement Region ถ้าใช่ จะทำการแตก Cell แม่ (Parent) เป็น 8 Cell ลูก (Children)
@@ -66,6 +115,21 @@ graph TB
 > `locationInMesh` ต้องเป็นพิกัด (x y z) ที่ **ไม่อยู่** บนผิวและ **ไม่อยู่** บนขอบของ Cell (ควรเลี่ยงจุดอย่าง 0, 0.5, 1 ให้ใช้ 0.00134 แทน)
 
 ### Phase 2: Snapping (การดึงผิวให้เรียบ)
+
+> [!NOTE] **📂 OpenFOAM Context: การตั้งค่า Snapping Phase**
+> Phase 2 นี้ถูกควบคุมโดย `snapControls` ใน `system/snappyHexMeshDict`:
+>
+> **Keywords สำคัญ:**
+> - `nSmoothPatch` → จำนวนครั้งที่ Smooth ผิว (ปกติ = 3-5)
+> - `tolerance` → ค่าความคลาดเคลื่อนที่ยอมรับได้ (ปกติ = 1.0-4.0)
+> - `nSolveIter` → จำนวนรอบการแก้ปัญหา (Solver Iterations)
+> - `nRelaxIter` → จำนวนรอบการผ่อนคลาย (Relaxation Iterations)
+> - `nFeatureSnapIter` → จำนวนรอบการดึงผิวตาม Feature Edges
+>
+> **ความสำคัญ:** Snapping จะสำเร็จได้ต้องอาศัย Castellated Mesh ที่ละเอียดพอ (Level สูงพอ) มิฉะนั้นจะไม่สามารถดึงผิวให้เรียบได้
+>
+> **ผลลัพธ์:** Mesh จะถูกเก็บใน Time directory `2/`
+
 การเปลี่ยนผิว "ขั้นบันได" ให้เป็น "ผิวเรียบ"
 
 1.  **Point Displacement:** จุดยอด (Vertices) ของเซลล์ที่อยู่ติดผิวจะถูก "ดีด" เข้าไปหาพื้นผิวของ STL
@@ -73,6 +137,23 @@ graph TB
 3.  **Iterative Morphing:** ทำซ้ำหลายรอบจนกว่า Error จะต่ำกว่าเกณฑ์
 
 ### Phase 3: Layer Addition (การเพิ่มชั้นผิว)
+
+> [!NOTE] **📂 OpenFOAM Context: การตั้งค่า Layer Addition**
+> Phase 3 นี้ถูกควบคุมโดย `addLayersControls` ใน `system/snappyHexMeshDict`:
+>
+> **Keywords สำคัญ:**
+> - `layers` → ระบุ Patch ไหนที่ต้องการ Layer และจำนวน Layer
+> - `expansionRatio` → อัตราส่วนการขยายตัวของ Layer (ปกติ = 1.0-1.5)
+> - `finalLayerThickness` → ความหนาของ Layer ชั้นนอกสุด
+> - `minThickness` → ความหนาขั้นต่ำที่ยอมรับได้
+> - `nGrow` → จำนวนรอบการขยาย Layer (Layer Growing)
+> - `maxFaceThicknessRatio` → อัตราส่วนความหนาสูงสุดระหว่าง Faces ต่างๆ
+> - `nSmoothSurfaceNormals` → จำนวนรอบการ Smooth Normal Vector
+>
+> **เทคนิค:** Layer Addition เป็น Phase ที่ล้มเหลวง่ายที่สุด แนะนำให้เริ่มจาก `expansionRatio = 1.0` แล้วค่อยๆ เพิ่ม ถ้า Layer ไม่ขึ้น
+>
+> **ผลลัพธ์:** Mesh สุดท้ายจะถูกเก็บใน Time directory `3/` ซึ่งเป็น Mesh ที่พร้อมใช้งาน
+
 ขั้นตอนที่ยากที่สุดและมักล้มเหลวบ่อยที่สุด
 
 1.  **Push Back:** Mesh ที่สร้างเสร็จแล้วจะถูกดันถอยหลังออกมาในแนว Normal
@@ -80,6 +161,24 @@ graph TB
 3.  **Quality Check:** ถ้าแทรกแล้ว Mesh Quality แย่ โปรแกรมจะยกเลิกการสร้าง Layer ตรงนั้น (Layer Collapse)
 
 ## 4. Workflow การรันคำสั่ง (Execution Guide)
+
+> [!NOTE] **📂 OpenFOAM Context: ไฟล์และคำสั่งที่เกี่ยวข้อง**
+> การรัน `snappyHexMesh` จำเป็นต้องใช้ไฟล์และคำสั่งต่อไปนี้:
+>
+> **ไฟล์ที่ต้องมี:**
+> - `system/blockMeshDict` → สร้าง Background Mesh
+> - `system/snappyHexMeshDict` → ควบคุมการสร้าง Mesh ทั้ง 3 Phase
+> - `system/surfaceFeatureExtractDict` → สกัด Feature Edges (สำคัญมากสำหรับ Snapping)
+> - `constant/triSurface/<geometry>.stl` → ไฟล์ Geometry (STL/OBJ)
+> - `system/decomposeParDict` → สำหรับการรันแบบ Parallel
+>
+> **คำสั่งที่ใช้:**
+> - `blockMesh` → สร้าง Background Mesh
+> - `surfaceFeatureExtract` → สกัด Feature Edges
+> - `decomposePar` → แยก Domain
+> - `mpirun -np N snappyHexMesh -parallel` → รัน Parallel
+> - `checkMesh` → ตรวจสอบคุณภาพ Mesh
+> - `reconstructParMesh` → รวมผลลัพธ์กลับ
 
 การรัน `snappyHexMesh` สำหรับงานจริง (Mesh > 500k cells) ควรใช้โหมด Parallel:
 
@@ -107,6 +206,25 @@ reconstructParMesh -constant
 
 ## 5. การ Debug ด้วย ParaView
 
+> [!NOTE] **📂 OpenFOAM Context: การตรวจสอบ Mesh ด้วย ParaView**
+> `snappyHexMesh` สามารถเขียนผลลัพธ์ออกมาทีละขั้นตอน โดยไม่ใช้ `-overwrite` flag:
+>
+> **Time Directories:**
+> - `0/` → Background Mesh จาก `blockMesh` (ตรวจสอบว่าครอบคลุม Geometry)
+> - `1/` → Castellated Mesh (ตรวจสอบ Refinement Level และการลบ Cell)
+> - `2/` → Snapped Mesh (ตรวจสอบความเรียบของผิว)
+> - `3/` → Final Mesh with Layers (ตรวจสอบ Layer Quality)
+>
+> **เทคนิคการ Visualize:**
+> 1. เปิด ParaView → File → Open → เลือก `case.foam`
+> 2. ใช้ `Mesh Regions` เพื่อดูเฉพาะส่วนที่ต้องการ
+> 3. ใช้ `Extract Surface` เพื่อดูผิว Mesh ชัดขึ้น
+> 4. ใช้ `Cell Size` Coloring เพื่อดูความละเอียดของ Mesh
+>
+> **ตัวช่วยการ Debug:**
+> - ใช้ `checkMesh -latestTime -allGeometry -allTopology` เพื่อดูรายงานคุณภาพ Mesh แบบละเอียด
+> - ตรวจสอบ Log file (`log.shm`) สำหรับ Layer collapse warnings
+
 `snappyHexMesh` สามารถเขียนผลลัพธ์ออกมาทีละขั้นตอนได้ ถ้าคุณไม่ใส่ `-overwrite` มันจะสร้าง Time folder:
 *   `0/`: Background Mesh
 *   `1/`: Castellated Mesh (ดูว่าละเอียดพอไหม)
@@ -123,7 +241,7 @@ reconstructParMesh -constant
 
 ---
 
-## 📝 แบบฝึกหัด (Exercises)
+## 🧠 Concept Check: ทดสอบความเข้าใจ
 
 ### แบบฝึกหัดระดับง่าย (Easy)
 1. **True/False**: `snappyHexMesh` สามารถรันได้โดยไม่ต้องสร้าง Background Mesh ด้วย `blockMesh` ก่อน
@@ -162,4 +280,10 @@ reconstructParMesh -constant
 
 ---
 
-ในบทถัดไป เราจะมาดูวิธีการเตรียมไฟล์ Geometry (.stl/.obj) ให้ "Clean" และพร้อมสำหรับการ Mesh ซึ่งเป็นด่านแรกที่คนส่วนใหญ่ตกม้าตาย → [02_Geometry_Preparation.md](./02_Geometry_Preparation.md)
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+*   **บทก่อนหน้า**: [../02_BLOCKMESH_MASTERY/02_Parametric_Meshing.md](../02_BLOCKMESH_MASTERY/02_Parametric_Meshing.md)
+*   **บทถัดไป**: [02_Geometry_Preparation.md](02_Geometry_Preparation.md)

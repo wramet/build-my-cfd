@@ -1,5 +1,12 @@
 # โมดูล 05.11: พีชคณิตเทนเซอร์ใน OpenFOAM (Tensor Algebra in OpenFOAM)
 
+> [!TIP] ทำไมต้องเรียนรู้ Tensor Algebra?
+> พีชคณิตเทนเซอร์เป็นภาษาหลักที่ OpenFOAM ใช้จำลองปรากฏการณ์ทางฟิสิกส์ เช่น ความเค้น (stress), ความเครียด (strain), และความปั่นป่วน (turbulence) การเข้าใจเทนเซอร์จะช่วยให้คุณ:
+> - เขียนซอร์สโค้ดสำหรับการแก้สมการโมเมนตัมและความปั่นป่วนได้อย่างถูกต้อง
+> - สร้าง custom boundary conditions หรือ turbulence models ได้อย่างมีประสิทธิภาพ
+> - ทำความเข้าใจการคำนวณเทนเซอร์ในซอร์สโค้ดของ OpenFOAM (เช่น `src/finiteVolume/`)
+> - หลีกเลี่ยงข้อผิดพลาดจากการใช้ tensor operations ที่ไม่ถูกต้องซึ่งอาจทำให้ simulation crash หรือให้ผลลัพธ์ผิดพลาด
+
 ## ภาพรวม (Overview)
 
 พีชคณิตเทนเซอร์เป็นรากฐานทางคณิตศาสตร์สำหรับการแสดง **ปริมาณที่มีทิศทาง (directional quantities)** และการเปลี่ยนแปลงเชิงพื้นที่ในพลศาสตร์ของไหลเชิงคำนวณ (CFD) ซึ่งแตกต่างจากสเกลาร์ (เทนเซอร์อันดับ 0) และเวกเตอร์ (เทนเซอร์อันดับ 1) โดย **เทนเซอร์อันดับสอง (second-order tensors)** อธิบายการแปลงเชิงเส้นระหว่างปริภูมิเวกเตอร์ ทำให้มีความจำเป็นอย่างยิ่งสำหรับการสร้างแบบจำลองความเค้น (stress), ความเครียด (strain) และปรากฏการณ์ความปั่นป่วน (turbulence)
@@ -14,6 +21,17 @@
 ---
 
 ## วัตถุประสงค์การเรียนรู้ (Learning Objectives)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **ส่วนประกอบ (Components):** ซอร์สโค้ด OpenFOAM, Custom solvers, Boundary conditions
+>
+> **ไฟล์ที่เกี่ยวข้อง (Files):**
+> - `src/OpenFOAM/fields/Fields/tensor/` - คลาสเทนเซอร์พื้นฐาน
+> - `src/OpenFOAM/fields/Fields/symmTensor/` - คลาสเทนเซอร์สมมาตร
+> - `src/finiteVolume/fields/volFields/volFields.H` - สนามเทนเซอร์บน mesh
+> - `applications/solvers/` - ตัวอย่างการใช้งานใน solvers
+>
+> **คำสั่ง/คำสำคัญ (Keywords):** `tensor`, `symmTensor`, `sphericalTensor`, `volTensorField`, `fvc::grad`, `fvc::div`, `eigenValues`, `eigenVectors`
 
 หลังจากจบโมดูลนี้ คุณจะสามารถ:
 
@@ -208,6 +226,17 @@ volSymmTensorField sigma = 2*mu*epsilon + lambda*tr(epsilon)*symmTensor::I;
 
 ## การตีความทางฟิสิกส์: การเปรียบเทียบก้อนความเค้น (Physical Interpretation: The Stress Block Analogy)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **ส่วนประกอบ (Components):** Physics modeling, Stress analysis
+>
+> **ไฟล์ที่เกี่ยวข้อง (Files):**
+> - `0/` - directory สำหรับเก็บสนามเทนเซอร์ (เช่น `0/sigma`, `0/tau`)
+> - `constant/transportProperties` - ค่า viscosity ที่ใช้คำนวณ stress
+> - `applications/solvers/stressAnalysis/` - solvers สำหรับ stress analysis
+> - `applications/solvers/compressible/` - solvers ที่ใช้ stress tensor
+>
+> **คำสั่ง/คำสำคัญ (Keywords):** `stress`, `strain`, `symmTensor`, `symm(fvc::grad(U))`, `dev()`, `tr()`
+
 ### เทนเซอร์ความเค้น Cauchy
 
 พิจารณาชิ้นส่วนเล็กๆ รูปบาศก์ของวัสดุภายใต้ภาระ บนทั้ง 6 หน้าของบาศก์นี้ มีแรงกระทำซึ่งสามารถแตกแรงได้เป็น:
@@ -232,6 +261,17 @@ $$\boldsymbol{\tau} = \begin{bmatrix}
 ---
 
 ## ลำดับชั้นคลาสเทนเซอร์ (Tensor Class Hierarchy)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **ส่วนประกอบ (Components):** C++ architecture, Memory layout optimization
+>
+> **ไฟล์ที่เกี่ยวข้อง (Files):**
+> - `src/OpenFOAM/fields/Fields/tensor/tensor.H` - definition คลาส tensor
+> - `src/OpenFOAM/fields/Fields/symmTensor/symmTensor.H` - definition คลาส symmTensor
+> - `src/OpenFOAM/fields/Fields/sphericalTensor/sphericalTensor.H` - definition คลาส sphericalTensor
+> - `src/OpenFOAM/primitives/VectorSpace/` - base classes สำหรับ algebra
+>
+> **คำสั่ง/คำสำคัญ (Keywords):** `VectorSpace`, `MatrixSpace`, template metaprogramming, row-major storage
 
 OpenFOAM ใช้ระบบลำดับชั้นคลาสที่ซับซ้อนสำหรับการจัดการเทนเซอร์ เพื่อให้ได้ประสิทธิภาพการคำนวณสูงสุดผ่าน **Template Metaprogramming**
 
@@ -281,6 +321,17 @@ D --> G
 
 ## กลไกการดำเนินการเทนเซอร์ (Tensor Operations Mechanism)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **ส่วนประกอบ (Components):** Tensor algebra operations, C++ operator overloading
+>
+> **ไฟล์ที่เกี่ยวข้อง (Files):**
+> - `src/OpenFOAM/fields/Fields/tensor/tensorI.H` - implementation การดำเนินการ tensor
+> - `src/OpenFOAM/fields/Fields/symmTensor/symmTensorI.H` - implementation การดำเนินการ symmTensor
+> - `src/finiteVolume/finiteVolume/fvc/fvcGrad.C` - gradient operations
+> - `src/finiteVolume/finiteVolume/fvc/fvcDiv.C` - divergence operations
+>
+> **คำสั่ง/คำสำคัญ (Keywords):** `&` (single contraction), `&&` (double contraction), `*` (outer product), `fvc::grad`, `fvc::div`
+
 ### 1. Single Contraction (`&`)
 ลด rank ลง 1:
 - Tensor & Vector → Vector ($y_i = \Sigma_j T_{ij} v_j$)
@@ -301,6 +352,16 @@ D --> G
 
 ## หลุมพรางทั่วไปและแนวทางปฏิบัติที่ดี (Common Pitfalls and Best Practices)
 
+> [!NOTE] **📂 OpenFOAM Context**
+> **ส่วนประกอบ (Components):** Performance optimization, Memory management, Debugging
+>
+> **ไฟล์ที่เกี่ยวข้อง (Files):**
+> - `src/OpenFOAM/fields/tmp/` - `tmp<T>` class สำหรับ temporary field management
+> - `src/finiteVolume/fields/volFields/` - vol*Field สำหรับ field references
+> - `applications/solvers/multiphase/multiphaseEulerFoam/` - ตัวอย่างการใช้งานจริง
+>
+> **คำสั่ง/คำสำคัญ (Keywords):** `const volTensorField&`, `tmp<volTensorField>`, `symm()`, `dev()`, `component()`
+
 ### การสับสนระหว่าง Single และ Double Contraction
 - **ผิด**: `vector v = A && B;` (ผลลัพธ์ของ `&&` คือ scalar ไม่ใช่ vector)
 - **ถูก**: `scalar s = A && B;`
@@ -314,6 +375,17 @@ D --> G
 ---
 
 ## สรุปโมดูล (Module Summary)
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **ส่วนประกอบ (Components):** Complete tensor workflow implementation
+>
+> **ไฟล์ที่เกี่ยวข้อง (Files):**
+> - Custom solver source files (เช่น `mySolver.C`) - ใช้ tensor operations ในสมการโมเมนตัม
+> - `0/` directory - เก็บเงื่อนไขเริ่มต้นของสนามเทนเซอร์
+> - `Make/files` และ `Make/options` - compile custom code
+> - `system/controlDict` - run-time function objects สำหรับ tensor fields
+>
+> **คำสั่ง/คำสำคัญ (Keywords):** `volTensorField`, `volSymmTensorField`, `fvc::grad`, `fvc::div`, `eigenValues`, `Reynolds stress`
 
 1.  **สถาปัตยกรรมเทนเซอร์**: OpenFOAM มี 3 คลาสหลัก (`tensor`, `symmTensor`, `sphericalTensor`) เพื่อเพิ่มประสิทธิภาพหน่วยความจำ
 2.  **ความสำคัญของการเลือกใช้**: การเลือกประเภทเทนเซอร์ที่ถูกต้องช่วยประหยัดหน่วยความจำและลดเวลาการคำนวณ

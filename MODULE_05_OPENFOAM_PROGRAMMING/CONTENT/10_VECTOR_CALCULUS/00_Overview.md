@@ -1,5 +1,8 @@
 # โมดูล 05.10: แคลคูลัสเวกเตอร์ (Vector Calculus)
 
+> [!TIP] ทำไม Vector Calculus สำคัญใน OpenFOAM?
+> การดำเนินการทางแคลคูลัสเวกเตอร์ (Gradient, Divergence, Curl, Laplacian) เป็น **หัวใจของ CFD** เพราะทุกสมการทางฟิสิกส์ (Navier-Stokes, Energy, Turbulence) ประกอบด้วยตัวดำเนินการเหล่านี้ การเลือกใช้ `fvc::` (Explicit) หรือ `fvm::` (Implicit) ส่งผลโดยตรงต่อ **ความเสถียรและความแม่นยำ** ของการจำลอง หากเลือกผิด การคำนวณอาจ diverge หรือให้ผลลัพธ์ที่คลาดเคลื่อน
+
 > [!INFO] เป้าหมายการเรียนรู้
 > เข้าใจการดำเนินการพื้นฐานของ Vector Calculus ใน OpenFOAM ได้แก่ **Gradient, Divergence, Curl, และ Laplacian** และสามารถเลือกใช้ `fvc::` (Explicit) หรือ `fvm::` (Implicit) ได้อย่างเหมาะสม
 
@@ -62,6 +65,14 @@ D --> E[Applications]:::section
 
 ## 📐 พื้นฐานทางคณิตศาสตร์
 
+> [!NOTE] **📂 OpenFOAM Context: Discretization Schemes**
+> ทฤษฎีบทของ Gauss เป็นรากฐานของการ Discretization ใน Finite Volume Method ใน OpenFOAM การแปลงอินทิกรัลปริมาตรเป็นผลรวมบนหน้าเซลล์ถูกกำหนดในไฟล์ **`system/fvSchemes`** ภายใต้ keyword:
+> - **`gradSchemes`**: กำหนดวิธีการคำนวณ Gradient (เช่น `Gauss linear`, `leastSquares`)
+> - **`divSchemes`**: กำหนดวิธีการคำนวณ Divergence (เช่น `Gauss upwind`, `Gauss linearUpwind`)
+> - **`laplacianSchemes`**: กำหนดวิธีการคำนวณ Laplacian (เช่น `Gauss linear corrected`)
+>
+> ส่วนการแก้ระบบสมการเชิงเส้นที่เกิดจากการ Discretization ถูกควบคุมใน **`system/fvSolution`**
+
 ### ทฤษฎีบทของ Gauss (Divergence Theorem)
 
 ทฤษฎีบทของ Gauss เป็นรากฐานของวิธี Finite Volume:
@@ -89,6 +100,13 @@ $$\nabla \cdot \mathbf{F} \approx \frac{1}{V_P} \sum_{f} \mathbf{F}_f \cdot \mat
 ---
 
 ## ⚙️ การ Implement ใน OpenFOAM
+
+> [!NOTE] **📂 OpenFOAM Context: C++ Source Code Structure**
+> การดำเนินการทางแคลคูลัสทั้งหมดถูก Implement ไว้ในซอร์สโค้ด C++ ของ OpenFOAM ภายใต้ไดเรกทอรี **`src/finiteVolume/`**:
+> - **`src/finiteVolume/fvc/`**: ไฟล์ Implementation สำหรับ Explicit operations (เช่น `fvcGrad.C`, `fvcDiv.C`, `fvcCurl.C`, `fvcLaplacian.C`)
+> - **`src/finiteVolume/fvm/`**: ไฟล์ Implementation สำหรับ Implicit operations (เช่น `fvmDdt.C`, `fvmLaplacian.C`, `fvmDiv.C`)
+>
+> เมื่อคุณเขียน Solver หรือ Custom Function Object คุณจะต้อง `#include` ไฟล์ header เหล่านี้จาก **`src/finiteVolume/lnInclude/`**
 
 ### Namespace `fvc::` (Finite Volume Calculus)
 
@@ -177,6 +195,12 @@ fvVectorMatrix UEqn(fvm::div(phi, U));
 ---
 
 ## 🔧 แนวทางปฏิบัติที่ดี
+
+> [!NOTE] **📂 OpenFOAM Context: Application in Solvers**
+> การเลือกใช้ `fvc::` หรือ `fvm::` ขึ้นอยู่กับ **ประเภทของ Solver** และ **ลักษณะของปัญหา**:
+> - **Standard Solvers** (เช่น `simpleFoam`, `pimpleFoam`): ใช้ `fvm::` สำหรับ diffusion/pressure-velocity coupling เพื่อความเสถียร
+> - **Explicit Solvers** (เช่าน `interFoam`): ใช้ `fvc::` สำหรับ convection terms เพื่อความแม่นยำ
+> - **Custom Code**: ดูตัวอย่างได้จาก **`src/finiteVolume/cfdTools/general/`** และ **`applications/solvers/`**
 
 > [!TIP] การเลือกใช้งาน
 > - **ใช้ `fvm::`** สำหรับการแพร่, coupling ความดัน-ความเร็ว, และพจน์ต้นทางแบบ stiff

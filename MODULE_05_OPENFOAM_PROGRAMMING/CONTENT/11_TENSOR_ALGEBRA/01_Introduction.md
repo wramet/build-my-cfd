@@ -1,5 +1,13 @@
 # บทนำสู่พีชคณิตเทนเซอร์ (Introduction to Tensor Algebra)
 
+> [!TIP] ทำไมต้องเรียนรู้เทนเซอร์?
+> เทนเซอร์เป็นภาษาหลักที่ใช้อธิบาย **ปรากฎการณ์ทางฟิสิกส์ที่ซับซ้อน** ในการไหลของไหล (Fluid Dynamics) และความเค้น (Stress) ที่เกิดขึ้นในวัสดุ การเข้าใจเทนเซอร์จะช่วยให้คุณ:
+> - สามารถตีความ **เทนเซอร์ความเค้น** และ **เทนเซอร์อัตราการเปลี่ยนรูป (Strain Rate Tensor)** ในสมการ Navier-Stokes
+> - เขียนโค้ดที่จัดการกับ **ความปั่นป่วน (Turbulence)**, **ความหนืด (Viscosity)**, และ **ความนำความร้อน (Thermal Conductivity)** ได้อย่างถูกต้อง
+> - ทำความเข้าใจการคำนวณเทนเซอร์ใน `fvSchemes` และการแยกตัวประกอบไอเกน (Eigenvalue) สำหรับการวิเคราะห์ความเค้น
+>
+> **การเรียนรู้เทนเซอร์จะทำให้คุณเข้าใจฟิสิกส์เชิงลึกและเขียนโค้ด OpenFOAM ได้อย่างมั่นใจ**
+
 ![[stress_block_tensor.png]]
 
 ## จุดเริ่มต้น: ทำไมเทนเซอร์ถึงสำคัญใน CFD (The Hook: Why Tensors Matter in CFD)
@@ -26,6 +34,18 @@ T -->|Magnitude + Directions + Transformations| HT[Higher Order Tensors]:::rank2
 
 ## 1. แนวคิดพื้นฐาน: เทนเซอร์ความเค้น Cauchy (Fundamental Concepts: The Cauchy Stress Tensor)
 
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> **โดเมน:** Physics & Fields (ฟิสิกส์และฟิลด์)
+>
+> เทนเซอร์ความเค้น Cauchy ในทางปฏิบัติจะถูกคำนวณและจัดเก็บในรูปแบบ **VolFields**:
+> - **0/* (Initial Conditions):** เทนเซอร์ความเค้นเริ่มต้น (ถ้ามี) จะถูกกำหนดที่นี่
+> - **constant/transportProperties:** ความหนื粘 ($\mu$) และความหนื粘ของปั่นป่วน ($\mu_t$) ที่ใช้คำนวณเทนเซอร์ความเค้น
+> - **constant/turbulenceProperties:** เทนเซอร์ความเค้น Reynolds ($R_{ij}$) ในโมเดลความปั่นป่วน RANS
+> - **Code Context:** ใน Solver Code จะใช้ `volSymmTensorField` เพื่อเก็บความเค้นทุกจุดใน mesh
+>
+> **คำสำคัญ:** `symmTensor`, `volSymmTensorField`, `transportProperties`, `R`
+
 เพื่ออธิบาย **สถานะความเค้น** ที่จุดใดๆ ภายในวัสดุอย่างสมบูรณ์ เราต้องการ **ตัวเลขอิสระ 9 ตัว** ที่จัดเรียงเป็นเมทริกซ์ 3×3 — เรียกว่า **เทนเซอร์ความเค้น Cauchy**:
 
 $$\boldsymbol{\tau} = \begin{bmatrix}
@@ -45,6 +65,17 @@ $$\boldsymbol{\tau} = \begin{bmatrix}
 ---
 
 ## 2. การวิเคราะห์ความเค้นหลัก (Principal Stress Analysis)
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> **โดเมน:** Numerics & Linear Algebra (เลขวิธีและพีชคณิตเชิงเส้น)
+>
+> การแยกตัวประกอบไอเกน (Eigenvalue Decomposition) เป็นเทคนิคเชิงตัวเลขที่ใช้ใน:
+> - **system/controlDict:** ใช้ `functionObjects` เช่น `eigenValues`, `stressComponents` เพื่อคำนวณและบันทึกค่า eigenvalues ระหว่าง simulation
+> - **Post-processing:** การวิเคราะห์ความเค้นหลักเพื่อทำนายจุดที่เกิด fracture หรือ failure ในวัสดุ
+> - **Code Context:** ใน Solver หรือ Custom FunctionObject จะเรียกใช้ `eigenValues()` และ `eigenVectors()` จาก OpenFOAM tensor library
+>
+> **คำสำคัญ:** `eigenValues`, `eigenVectors`, `functionObjects`, `stressComponents`
 
 ความเข้าใจเชิงลึกเกิดขึ้นเมื่อเราถามว่า: **ในทิศทางใดที่ก้อนความเค้นนี้จะรับแรงเฉพาะในแนวตั้งฉากเท่านั้น?** (ไม่มีแรงเฉือน)
 
@@ -71,6 +102,17 @@ $$\boldsymbol{\tau}_{\text{principal}} = \begin{bmatrix}
 
 ## 3. การเปรียบเทียบ: รูบิค และ ก้อนความเค้น (The Analogy: Rubik's Cube & Stress Blocks)
 
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> **โดเมน:** Physics & Fields (ฟิสิกส์และฟิลด์)
+>
+> แบบจำลอง Rubik's Cube นี้เป็น conceptual analogy ที่ช่วยให้เข้าใจ:
+> - **Mesh Structure:** แต่ละ "ลูกบาศก์" ใน Rubik's Cube เปรียบเทียบได้กับแต่ละ **Cell** ใน **polyMesh** ของ OpenFOAM
+> - **Cell-centered Values:** ค่าเทนเซอร์ที่จุดศูนย์กลางของ cell (cell center) ใช้แทนค่าเฉลี่ยใน cell นั้น
+> - **Boundary Faces:** 6 หน้าของลูกบาศก์ Rubik's Cube เปรียบเทียบกับ 6 **Boundary Faces** ที่เทนเซอร์ความเค้นกระทำ
+>
+> **คำสำคัญ:** `polyMesh`, `cell center`, `boundary faces`, `cell-based storage`
+
 การเปรียบเทียบกับลูกบาศก์รูบิค (Rubik's Cube) ช่วยให้เข้าใจพฤติกรรมของเทนเซอร์ได้ง่ายขึ้น:
 
 | **รูบิค (Rubik's Cube)** | **เทนเซอร์ความเค้น (Stress Tensor)** |
@@ -83,6 +125,18 @@ $$\boldsymbol{\tau}_{\text{principal}} = \begin{bmatrix}
 ---
 
 ## 4. ลำดับชั้นคลาสเทนเซอร์ของ OpenFOAM (OpenFOAM's Tensor Class Hierarchy)
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> **โดเมน:** Coding/Customization (การเขียนโค้ดและปรับแต่ง)
+>
+> คลาสเทนเซอร์ใน OpenFOAM ถูกกำหนดไว้ใน **Source Code** และใช้ทั่วทั้ง framework:
+> - **src/OpenFOAM/fields/Fields/:** ไฟล์ header ที่กำหนด `tensor`, `symmTensor`, `sphericalTensor`
+> - **src/OpenFOAM/matrices/:** ไฟล์ที่รับผิดชอบการดำเนินการทางคณิตศาสตร์ของเทนเซอร์
+> - **Make/files:** เมื่อสร้าง Custom Solver หรือ Library ที่ใช้เทนเซอร์ ต้อง link กับ OpenFOAM core libraries
+> - **Usage:** ใน `.C` files ของ solver หรือ custom boundary conditions
+>
+> **คำสำคัญ:** `tensor`, `symmTensor`, `sphericalTensor`, `src/OpenFOAM`, `volSymmTensorField`
 
 OpenFOAM มอบเฟรมเวิร์กพีชคณิตเทนเซอร์ที่ครอบคลุมผ่านคลาสเทนเซอร์หลัก 3 คลาส:
 
@@ -119,6 +173,17 @@ sphericalTensor spt(2.5);  // Represents 2.5 * I
 ---
 
 ## 5. การดำเนินการเทนเซอร์พื้นฐานใน OpenFOAM (Basic Tensor Operations)
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> **โดเมน:** Coding/Customization (การเขียนโค้ดและปรับแต่ง)
+>
+> การดำเนินการเทนเซอร์พื้นฐานเป็น **Building Blocks** สำหรับ:
+> - **Solver Development:** การเขียนสมการใน solver (เช่น การคำนวณ stress tensor ใน momentum equation)
+> - **Custom Boundary Conditions:** การสร้าง BC ที่ต้องการคำนวณค่าที่ boundary faces จากค่าเทนเซอร์
+> - **Function Objects:** การสร้าง functionObject สำหรับ post-processing (เช่น การคำนวณ `vorticity` จาก velocity gradient tensor)
+>
+> **คำสำคัญ:** `&` (single inner), `&&` (double inner), `cmptMultiply`, `T()`, `tr()`, `det()`
 
 OpenFOAM มีชุดการดำเนินการเทนเซอร์ที่ครบถ้วนซึ่งรักษาความถูกต้องทางคณิตศาสตร์พร้อมประสิทธิภาพการคำนวณ
 
@@ -196,6 +261,17 @@ symmTensor dev = dev(T);
 
 ## 6. การแยกตัวประกอบไอเกน (Eigenvalue Decomposition)
 
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> **โดเมน:** Numerics & Linear Algebra (เลขวิธีและพีชคณิตเชิงเส้น)
+>
+> การแยกตัวประกอบไอเกนใน OpenFOAM เป็น built-in functionality ที่ใช้ใน:
+> - **system/controlDict:** ใน `functions` สามารถเพิ่ม `eigenValues` functionObject เพื่อคำนวณและบันทึกค่า eigenvalues ของเทนเซอร์ (เช่น stress tensor, strain rate tensor) ระหว่าง simulation
+> - **Post-processing Tools:** utilities เช่น `foamCalc` หรือ custom functionObjects สามารถคำนวณ eigenvalues สำหรับการวิเคราะห์
+> - **Code Context:** ฟังก์ชัน `eigenValues()` และ `eigenVectors()` ถูกกำหนดใน `src/OpenFOAM/matrices/`
+>
+> **คำสำคัญ:** `eigenValues()`, `eigenVectors()`, `functionObjects`, `principal stresses`
+
 สำหรับเทนเซอร์สมมาตร OpenFOAM สามารถคำนวณ eigenvalues และ eigenvectors ซึ่งเปิดเผยทิศทางทางฟิสิกส์ที่สำคัญ
 
 ### **OpenFOAM Implementation**
@@ -219,6 +295,18 @@ vector e1 = eigvecs.component(vector::X);  // Direction of lambda1
 ---
 
 ## 7. การประยุกต์ใช้เทนเซอร์ใน CFD (CFD Applications of Tensor Algebra)
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> **โดเมน:** Physics & Fields + Simulation Control (ฟิสิกส์และฟิลด์ + การควบคุมการจำลอง)
+>
+> การประยุกต์ใช้เทนเซอร์ใน CFD ปรากฏในหลายส่วนของ OpenFOAM Case:
+> - **0/U, 0/p, 0/k, 0/epsilon:** เทนเซอร์ความเค้น Reynolds ($R_{ij}$) และ strain rate tensor ถูกคำนวณจากฟิลด์ความเร็วและฟิลด์ความปั่นป่วน
+> - **constant/turbulenceProperties:** โมเดลความปั่นป่วนต่างๆ (k-ε, k-ω, Reynolds Stress Model) ใช้เทนเซอร์เพื่ออธิบายความสัมพันธ์ของความเร็วผันผวน
+> - **constant/transportProperties:** ความหนื粘 ($\mu$) และความนำความร้อน ($k$) ใช้ในการคำนวณ stress tensor และ heat flux tensor
+> - **system/controlDict:** สามารถเพิ่ม functionObjects เช่น `shearStress`, `strainRate` เพื่อคำนวณและบันทึกค่าเทนเซอร์เหล่านี้
+>
+> **คำสำคัญ:** `Reynolds stress`, `strain rate tensor`, `heat flux tensor`, `turbulenceProperties`
 
 ### **7.1 แบบจำลองความเค้น Reynolds (Reynolds Stress Modeling)**
 
@@ -248,6 +336,17 @@ volSymmTensorField sigma = -p*I + 2*mu*epsilon;
 
 ## 8. สิ่งที่ทำให้เทนเซอร์มีความจำเป็น (What Makes Tensors Essential)
 
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> **โดเมน:** Coding/Customization + Advanced Physics (การเขียนโค้ดและฟิสิกส์ขั้นสูง)
+>
+> เทนเซอร์เป็นสิ่งจำเป็นเมื่อต้องการ:
+> - **พัฒนาโมเดลฟิสิกส์ขั้นสูง:** การสร้าง custom turbulence models, constitutive laws หรือ material models ที่ต้องการเทนเซอร์
+> - **Post-processing ขั้นสูง:** การวิเคราะห์ principal stresses, vorticity structures, หรือ anisotropic diffusion
+> - **Solver Development:** การเขียนสมการที่มีเทนเซอร์ (เช่น momentum equation with stress tensor, energy equation with heat flux tensor)
+>
+> **คำสำคัญ:** `custom turbulence models`, `constitutive laws`, `principal stress analysis`
+
 > [!TIP] ข้อมูลเชิงลึก (Key Insight)
 > การเข้าใจเทนเซอร์ช่วยให้สามารถพัฒนา **โมเดลฟิสิกส์ขั้นสูง** ที่สเกลาร์และเวกเตอร์เพียงอย่างเดียวไม่สามารถอธิบายได้
 
@@ -262,6 +361,18 @@ volSymmTensorField sigma = -p*I + 2*mu*epsilon;
 ---
 
 ## 9. แนวคิดที่เชื่อมโยงกัน (Connected Concepts)
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> **โดเมน:** Cross-Referencing (การอ้างอิงข้ามโมดูล)
+>
+> แนวคิดเทนเซอร์เชื่อมโยงกับโมดูลอื่นๆ ใน OpenFOAM Programming:
+> - **Dimensioned Types:** เทนเซอร์มีหน่วย (dimensions) เช่น stress มีหน่วยของความดัน (Pa)
+> - **Matrices & Linear Algebra:** การดำเนินการเทนเซอร์เป็นพื้นฐานของ sparse linear solvers ใน OpenFOAM
+> - **Vector Calculus:** gradient, divergence และ laplacian operators ใช้กับเทนเซอร์ fields (เช่น `fvc::grad(U)` ให้ tensor field)
+> - **Field Algebra:** การคำนวณเทนเซอร์ใน OpenFOAM ใช้ expression templates สำหรับประสิทธิภาพสูง
+>
+> **คำสำคัญ:** `dimensions`, `fvMatrix`, `fvc::grad`, `field algebra`
 
 โมดูลนี้เชื่อมโยงกับ:
 - **[[02_Dimensioned_Types]]**: ความสอดคล้องของมิติ

@@ -1,460 +1,124 @@
-# ภาพรวมสมการควบคุมของพลศาสตร์ของไหล
+# ภาพรวม: สมการควบคุมของพลศาสตร์ของไหล
 
-## บทนำ
-
-สมการควบคุมของพลศาสตร์ของไหลเป็น **รากฐานทางคณิตศาสตร์** ของ Computational Fluid Dynamics (CFD) สมการเหล่านี้อธิบายถึง **การอนุรักษ์มวล, โมเมนตัม, และพลังงาน** ในการไหลของไหล และถูกแก้ปัญหาด้วยวิธีเชิงตัวเลขใน OpenFOAM
-
-```mermaid
-graph TD
-classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
-Theory["Continuum Mechanics Theory"]:::context
-Vars["Field Variables<br/>u x t p x t"]:::implicit
-FVM["Finite Volume Method<br/>Discretization"]:::explicit
-Solver["OpenFOAM Solver"]:::explicit
-
-Theory --> Vars
-Vars --> FVM
-FVM --> Solver
-```
-> **Figure 1:** รากฐานทางทฤษฎีของ CFD ซึ่งเชื่อมโยงแนวคิดของกลศาสตร์ตัวกลางต่อเนื่องเข้ากับการนำไปใช้งานแบบ Finite Volume ใน OpenFOAM ผ่านตัวแปรสนามและกฎการอนุรักษ์
-
-## เปรียบเทียบเชิงอุปมาอุปไมย (Practical Analogies)
-
-เพื่อให้เข้าใจสมการคณิตศาสตร์ที่ซับซ้อนได้ง่ายขึ้น ลองจินตนาการถึงสถานการณ์ในชีวิตจริง:
-
-### 1. การอนุรักษ์มวล (Mass Conservation)
-> **🏢 เปรียบเทียบกับอาคารสำนักงาน:**
-> จำนวนคนที่อยู่ในอาคารจะเปลี่ยนแปลงตามผลต่างของคนที่เดินเข้าและคนที่เดินออก ถ้าไม่มีใครเกิดหรือตายในอาคาร (ไม่มี source/sink) คนที่เพิ่มขึ้นข้างใน = คนเดินเข้า - คนเดินออก
-
-### 2. การอนุรักษ์โมเมนตัม (Momentum Conservation)
-> **🚗 เปรียบเทียบกับรถยนต์บนทางด่วน:**
-> ความเร็วของรถ (โมเมนตัม) เปลี่ยนแปลงได้จาก:
-> - **การพา (Convection):** รถขับพาความเร็วของมันไปข้างหน้า
-> - **แรงดัน (Pressure):** รถคันหลังดันรถคันหน้า (ถ้าชนกัน)
-> - **แรงหนืด (Viscosity):** แรงเสียดทานถนนหรือระหว่างรถเลนข้างๆ
-> - **แรงภายนอก (Body Force):** แรงโน้มถ่วงตอนขับขึ้น/ลงเนิน
+สมการควบคุม (Governing Equations) คือ **รากฐานคณิตศาสตร์** ที่บังคับการทำงานของทุก solver ใน OpenFOAM ถ้าเข้าใจสมการเหล่านี้ คุณจะรู้ว่าทำไม solver ทำงานแบบนั้น และแก้ปัญหาได้เมื่อ simulation มีปัญหา
 
 ---
 
-## พัฒนาการทางประวัติศาสตร์
+## เนื้อหาในบทนี้
 
-รากฐานของพลศาสตร์ของไหลมาจาก **หลักการของกลศาสตร์ตัวกลางต่อเนื่อง** ซึ่งได้รับการพัฒนาอย่างเป็นระบบครั้งแรกโดย Claude-Louis Navier และ George Gabriel Stokes ในช่วงต้นศตวรรษที่ 19
-
-### สมมติฐานพื้นฐาน
-
-- **ของไหลถูกพิจารณาว่าเป็นตัวกลางต่อเนื่อง** แทนที่จะเป็นอนุภาคแยกส่วน
-- **ตัวแปรสนามเป็นฟังก์ชันต่อเนื่อง**:
-  - ความเร็ว: $\mathbf{u}(\mathbf{x},t)$
-  - ความดัน: $p(\mathbf{x},t)$
-  - อุณหภูมิ: $T(\mathbf{x},t)$
-
-### Conservative Form ใน OpenFOAM
-
-สมการควบคุมแสดงใน **Conservative form** เพื่อ:
-- ให้การแสดงผลที่แม่นยำของคลื่นกระแทก (shock waves)
-- รักษาคุณสมบัติการอนุรักษ์ในปริมาตรควบคุม
-- **เข้ากันได้กับวิธี Finite Volume discretization** ของ OpenFOAM
+| ไฟล์ | หัวข้อ | เนื้อหา |
+|------|--------|---------|
+| [01_Introduction.md](01_Introduction.md) | บทนำ | ภาพรวมสมการ, Conservative form, Reynolds number |
+| [02_Conservation_Laws.md](02_Conservation_Laws.md) | กฎการอนุรักษ์ | มวล, โมเมนตัม, พลังงาน พร้อมการพิสูจน์ |
+| [03_Equation_of_State.md](03_Equation_of_State.md) | สมการสถานะ | Ideal gas, Incompressible, การเลือก EOS |
+| [04_Dimensionless_Numbers.md](04_Dimensionless_Numbers.md) | ตัวเลขไร้มิติ | Re, Ma, Pr และความหมายทางกายภาพ |
+| [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md) | การนำไปใช้ | fvm vs fvc, Field classes, Discretization |
+| [06_Boundary_Conditions.md](06_Boundary_Conditions.md) | เงื่อนไขขอบเขต | Dirichlet, Neumann, Mixed BCs |
+| [07_Initial_Conditions.md](07_Initial_Conditions.md) | เงื่อนไขเริ่มต้น | การตั้งค่าเริ่มต้นสำหรับ fields |
+| [08_Key_Points_to_Remember.md](08_Key_Points_to_Remember.md) | ประเด็นสำคัญ | สรุปและข้อควรจำ |
+| [09_Exercises.md](09_Exercises.md) | แบบฝึกหัด | โจทย์ฝึกทักษะ |
 
 ---
 
-## กฎการอนุรักษ์พื้นฐาน
-
-### 1. การอนุรักษ์มวล (สมการความต่อเนื่อง)
-
-หลักการนี้ระบุว่า **มวลไม่สามารถถูกสร้างหรือทำลายได้** ภายในปริมาตรควบคุม
-
-**สำหรับของไหลอัดตัวได้**:
-$$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$$
-
-โดยที่:
-- $\rho$ = ความหนาแน่นของของไหล
-- $\mathbf{u}$ = เวกเตอร์ความเร็ว
-- $\nabla \cdot$ = Divergence operator
-
-**สำหรับของไหลอัดตัวไม่ได้** ($\rho = \text{constant}$):
-$$\nabla \cdot \mathbf{u} = 0$$
-
-> [!INFO] **ความสำคัญ**
-> เงื่อนไข **divergence-free condition** นี้ทำให้มั่นใจได้ว่าอัตราการไหลเชิงปริมาตร (volumetric flow rate) ที่ไหลเข้าสู่ปริมาตรควบคุมขนาดเล็กมาก ๆ จะเท่ากับอัตราการไหลเชิงปริมาตรที่ไหลออก ซึ่งเป็นการรักษาสภาพการอนุรักษ์มวลตลอดทั่วทั้งโดเมน (domain)
-
-### 2. การอนุรักษ์โมเมนตัม (สมการ Navier-Stokes)
-
-สมการนี้ได้มาจากการประยุกต์ใช้ **กฎข้อที่สองของนิวตัน** โดยสร้างสมดุลระหว่างแรงต่างๆ:
-
-$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \nabla \cdot \boldsymbol{\tau} + \mathbf{f}$$
-
-โดยที่:
-- $p$ = ความดัน
-- $\boldsymbol{\tau}$ = Viscous stress tensor
-- $\mathbf{f}$ = Body forces (เช่น แรงโน้มถ่วง)
-
-**Viscous stress tensor สำหรับ Newtonian fluid**:
-$$\boldsymbol{\tau} = \mu \left[ \nabla \mathbf{u} + (\nabla \mathbf{u})^T \right] - \frac{2}{3} \mu (\nabla \cdot \mathbf{u}) \mathbf{I}$$
-
-โดยที่:
-- $\mu$ = Dynamic viscosity
-- $\mathbf{I}$ = Identity tensor
+## สมการควบคุมพื้นฐาน
 
 ```mermaid
-flowchart TD
-    subgraph Forces["Applied Forces on Fluid Element"]
-        direction LR
-        P["Pressure Forces<br/>-∇p"]:::implicit
-        V["Viscous Forces<br/>∇⋅τ"]:::implicit
-        B["Body Forces<br/>f"]:::implicit
-    end
-    
-    Sum["Net Force<br/>ΣF = F_pressure + F_viscous + F_body"]:::explicit
-    
-    P --> Sum
-    V --> Sum
-    B --> Sum
-    
-    Sum -->|Newton's 2nd Law: F = ma| Acc["Acceleration<br/>ρ(∂u/∂t + (u⋅∇)u)"]:::volatile
-    
-    Acc --> Inertia["Inertial Terms<br/>Local + Convective Acceleration"]:::context
-
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-classDef explicit fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
-classDef volatile fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+graph LR
+    A[Continuum Mechanics] --> B[Conservation Laws]
+    B --> C1[Mass: ∇·u = 0]
+    B --> C2[Momentum: ρDu/Dt = -∇p + μ∇²u]
+    B --> C3[Energy: ρcp DT/Dt = k∇²T]
+    C1 --> D[Finite Volume Method]
+    C2 --> D
+    C3 --> D
+    D --> E[OpenFOAM Solver]
 ```
-> **Figure 2:** การแยกส่วนของแรงในสมการโมเมนตัม (กฎข้อที่สองของนิวตัน) แสดงให้เห็นว่าแรงดัน แรงหนืด และแรงภายนอก ส่งผลต่อความเร่งของของไหล (พจน์ความเฉื่อย) อย่างไร
+
+### 1. การอนุรักษ์มวล (Continuity)
+
+$$\nabla \cdot \mathbf{u} = 0 \quad \text{(incompressible)}$$
+
+**ความหมาย:** ปริมาตรของไหลที่ไหลเข้า control volume ต้องเท่ากับที่ไหลออก
+
+### 2. การอนุรักษ์โมเมนตัม (Navier-Stokes)
+
+$$\rho \frac{D\mathbf{u}}{Dt} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
+
+**ความหมาย:** แรงสุทธิ = มวล × ความเร่ง (กฎข้อ 2 ของนิวตัน)
 
 ### 3. การอนุรักษ์พลังงาน
 
-สมการนี้อิงตาม **กฎข้อที่หนึ่งของอุณหพลศาสตร์**:
+$$\rho c_p \frac{DT}{Dt} = k \nabla^2 T + Q$$
 
-$$\rho c_p \frac{\partial T}{\partial t} + \rho c_p (\mathbf{u} \cdot \nabla) T = k \nabla^2 T + \Phi + Q$$
-
-โดยที่:
-- $c_p$ = Specific heat capacity ที่ความดันคงที่
-- $k$ = Thermal conductivity
-- $\Phi$ = Viscous dissipation
-- $Q$ = แหล่งกำเนิดหรือตัวรับความร้อน
-
-**Viscous dissipation**:
-$$\Phi = \boldsymbol{\tau} : \nabla \mathbf{u}$$
+**ความหมาย:** พลังงานไม่สูญหาย เพียงเปลี่ยนรูป
 
 ---
 
-## การนำไปใช้งานใน OpenFOAM
+## ความเชื่อมโยงกับ OpenFOAM
 
-### การทำให้เป็นส่วนย่อยด้วย Finite Volume
+| สมการ | ไฟล์ OpenFOAM | Solver ตัวอย่าง |
+|-------|---------------|-----------------|
+| Continuity + Momentum | `0/U`, `0/p` | `simpleFoam`, `pimpleFoam` |
+| + Energy | `0/T` | `buoyantSimpleFoam` |
+| + Multiphase | `0/alpha.water` | `interFoam` |
+| + Turbulence | `0/k`, `0/epsilon` | `simpleFoam` (RAS) |
 
-OpenFOAM ใช้ **Finite Volume Method (FVM)** ในการจัดการสมการบน **polyhedral meshes**:
+### ไฟล์ที่ควบคุมการแก้สมการ
 
-**Integral form ของสมการการอนุรักษ์**:
-$$\int_V \frac{\partial \phi}{\partial t} \, \mathrm{d}V + \oint_S \phi \mathbf{u} \cdot \mathbf{n} \, \mathrm{d}S = \int_V S_\phi \, \mathrm{d}V$$
-
-โดยที่:
-- $\phi$ = ปริมาณที่ถูกขนส่ง (transported quantity)
-- $V$ = Control volume
-- $S$ = Control surface
-- $\mathbf{n}$ = เวกเตอร์แนวฉากที่ชี้ออก (outward normal vector)
-
-**การทำให้เป็นส่วนย่อยใน OpenFOAM**:
-```cpp
-// Finite Volume discretization in OpenFOAM
-// Time derivative term (Local acceleration)
-fvm::ddt(rho, T)                   
-  + fvm::div(phi, T)                // Convective term (Heat/Mass transfer)
-  - fvm::laplacian(k/rho, T)        // Diffusive term (Heat conduction)
- ==
-    sources/rho;                    // Source terms (Heat generation/sink)
-
-TEqn.solve();                       // Solve the linear system
-```
-
-> **คำอธิบาย (Thai Explanation)**:
-> โค้ดด้านบนแสดงการใช้ Finite Volume Method ใน OpenFOAM เพื่อแก้สมการพลังงาน โดย:
-> - `fvm::ddt`: พจน์อนุพันธ์เทียบกับเวลา (Implicit time discretization)
-> - `fvm::div`: พจน์การพา (Convection) ที่ใช้ฟลักซ์ผ่านผิวเซลล์
-> - `fvm::laplacian`: พจน์การแพร่ (Diffusion) ที่คำนวณจาก gradient ที่ผิวเซลล์
-> - `fvm::` (Finite Volume Method) หมายถึง implicit treatment ซึ่งจะถูกรวมเข้าในเมทริกซ์สมการ
-
-> **📂 Source**: `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
-
-### คลาส Field แบบ Template-Based
-
-OpenFOAM ใช้ **Templated field classes** เพื่อจัดการปริมาณทางกายภาพ:
-
-```cpp
-// Field declarations in OpenFOAM - Template-based geometric fields
-volScalarField p(mesh);           // Pressure field at cell centers
-volVectorField U(mesh);           // Velocity field at cell centers
-volScalarField T(mesh);           // Temperature field at cell centers
-surfaceScalarField phi(mesh);     // Flux field at cell faces
-```
-
-> **คำอธิบาย (Thai Explanation)**:
-> OpenFOAM ใช้ Template-based design สำหรับ field classes:
-> - `volScalarField`: ปริมาณสเกลาร์ (เช่น ความดัน, อุณหภูมิ) ที่จุดศูนย์กลางเซลล์
-> - `volVectorField`: ปริมาณเวกเตอร์ (เช่น ความเร็ว) ที่จุดศูนย์กลางเซลล์
-> - `surfaceScalarField`: ฟลักซ์ที่ผิวเซลล์ ใช้ในการคำนวณการถ่ายโอนระหว่างเซลล์
-> - `mesh`: ออบเจกต์ mesh ที่เก็บข้อมูลเรขาคณิตและโทโพโลยีของเขตคำนวณ
-
-> **📂 Source**: `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.H`
-
-**การหาอนุพันธ์อัตโนมัติ**:
-```cpp
-// Automatic derivative calculations using fvc (Finite Volume Calculus)
-volVectorField gradP = fvc::grad(p);    // Gradient of pressure field
-volScalarField divU = fvc::div(U);      // Divergence of velocity field
-volTensorField gradU = fvc::grad(U);    // Tensor gradient of velocity
-```
-
-> **คำอธิบาย (Thai Explanation)**:
-> `fvc` (Finite Volume Calculus) ใช้สำหรับการคำนวณ explicit derivatives:
-> - `fvc::grad`: คำนวณ gradient โดยใช้ Gauss theorem ผ่านผิวเซลล์
-> - `fvc::div`: คำนวณ divergence จากฟลักซ์ที่ผิวเซลล์
-> - ผลลัพธ์เป็น field ใหม่ที่สามารถใช้ในสมการได้ทันที
-> - แตกต่างจาก `fvm` ที่ใช้สำหรับ implicit treatment
-
-> **📂 Source**: `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
-
-### Time Discretization Schemes
-
-OpenFOAM รองรับ Time discretization ที่หลากหลาย:
-
-| Scheme | ความแม่นยำ | ประเภท | ข้อดี | เหมาะสำหรับ |
-|--------|------------|---------|--------|-------------|
-| Euler | อันดับหนึ่ง | Explicit/Implicit | เสถียร, ง่าย | Transient problems ทั่วไป |
-| Crank-Nicolson | อันดับสอง | Implicit | ความแม่นยำสูง | ปัญหาที่ต้องการความแม่นยำ |
-| Backward | อันดับสอง | Implicit | เสถียรมาก | Stiff problems |
-
-**การตั้งค่าใน OpenFOAM**:
-```cpp
-// Time scheme selection in OpenFOAM dictionary
-ddtSchemes
-{
-    default         Euler;                  // First-order scheme
-    // default        CrankNicolson 0.9;     // Second-order blended scheme
-    // default        backward;               // Second-order fully implicit
-}
-```
-
-> **คำอธิบาย (Thai Explanation)**:
-> การเลือก time discretization scheme ส่งผลต่อความแม่นยำและเสถียรภาพ:
-> - `Euler`: อันดับหนึ่ง ใช้ค่าที่ time step ก่อนหน้า เสถียรแต่ความแม่นยำต่ำ
-> - `CrankNicolson`: อันดับสอง ผสมค่าระหว่าง time step ปัจจุบันและถัดไป (0.0 = Euler, 1.0 = อันดับสองเต็ม)
-> - `backward`: อันดับสอง ใช้ค่า 2 time step ก่อนหน้า เสถียรมากสำหรับ stiff problems
+| ไฟล์ | บทบาท |
+|------|-------|
+| `system/fvSchemes` | วิธี discretization (divSchemes, laplacianSchemes) |
+| `system/fvSolution` | Linear solvers และ algorithms (SIMPLE, PISO, PIMPLE) |
+| `constant/transportProperties` | คุณสมบัติทางกายภาพ ($\nu$, $\rho$) |
 
 ---
 
-## ความไม่เป็นเชิงเส้นและการเชื่อมโยงความดัน-ความเร็ว
+## แนวคิดสำคัญ
 
-### ความไม่เป็นเชิงเส้น
+### Conservative Form
 
-**พจน์ Convective** $(\mathbf{u} \cdot \nabla)\mathbf{u}$ ทำให้เกิด **ความไม่เป็นเชิงเส้น** ซึ่งต้องใช้วิธีการแก้ปัญหาแบบวนซ้ำ:
+สมการเขียนในรูป:
+$$\frac{\partial \phi}{\partial t} + \nabla \cdot (\phi \mathbf{u}) = \text{source terms}$$
 
-```cpp
-// Nonlinear convective term treatment
-fvVectorMatrix UEqn
-(
-    fvm::ddt(rho, U)                           // Time derivative
-  + fvm::div(phi, U)                           // Implicit convection
-  + fvc::div((rho*phi), U)                     // Explicit convection part
-  - fvm::Sp(fvc::div(phi*rho), U)             // Source term linearization
-);                                              // Treats nonlinearity through under-relaxation
-```
+ข้อดี:
+- รักษาคุณสมบัติการอนุรักษ์ใน FVM
+- จับ shock waves ได้แม่นยำ
+- เข้ากันได้กับ Gauss's divergence theorem
 
-> **คำอธิบาย (Thai Explanation)**:
-> การจัดการพจน์ไม่เป็นเชิงเส้นในสมการ Navier-Stokes:
-> - พจน์ convection `u·∇u` เป็น nonlinear เพราะ velocity ปรากฏในทั้ง coefficient และ unknown
-> - `fvm::div(phi, U)`: ปฏิบัติต่อแบบ implicit โดยใช้ฟลักซ์จาก iteration ก่อนหน้า
-> - `fvm::Sp`: ปฏิบัติต่อ source term แบบ linearized เพื่อรักษาเสถียรภาพ
-> - ใช้ under-relaxation เพื่อป้องกันการสั่นของ solution
+### Pressure-Velocity Coupling
 
-> **📂 Source**: `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+ในการไหล incompressible ความดันไม่ได้มาจากสมการสถานะ แต่ทำหน้าที่ **บังคับให้ $\nabla \cdot \mathbf{u} = 0$**
 
-### การเชื่อมโยงความดัน-ความเร็ว
-
-สมการเหล่านี้มี **การเชื่อมโยงกันอย่างมาก** ผ่าน Pressure-velocity coupling โดย OpenFOAM ใช้อัลกอริทึม:
-
-#### อัลกอริทึม SIMPLE (Semi-Implicit Method for Pressure-Linked Equations)
-
-**ขั้นตอนอัลกอริทึม SIMPLE**:
-1. **Momentum Prediction**: แก้สมการโมเมนตัมโดยใช้ความดันจาก time step ก่อนหน้า
-2. **Pressure Correction**: แก้สมการแก้ไขความดันเพื่อให้เกิดความต่อเนื่องของมวล
-3. **Velocity Correction**: แก้ไขความเร็วโดยใช้ความดันที่ถูกแก้ไข
-4. **Convergence Check**: ตรวจสอบการลู่เข้าและทำซ้ำถ้าจำเป็น
-
-**การนำไปใช้ใน OpenFOAM**:
-```cpp
-// SIMPLE algorithm implementation for pressure-velocity coupling
-while (simple.correctNonOrthogonal())
-{
-    // Momentum prediction step
-    tmp<fvVectorMatrix> UEqn(fvm::ddt(U) + fvm::div(phi, U));
-    UEqn().relax();                              // Under-relax for stability
-    
-    // Pressure-velocity correction
-    adjustPhi(phi, U, p);                        // Ensure mass conservation
-    
-    // Pressure-velocity coupling loop
-    for (int corr = 0; corr < nCorr; corr++)
-    {
-        // Solve momentum with pressure gradient
-        solve(UEqn() == -fvc::grad(p));         // Momentum equation
-        
-        // Solve pressure correction equation
-        solve(fvm::laplacian(rAU, p) == fvc::div(phi));  // Poisson equation
-    }
-}
-```
-
-> **คำอธิบาย (Thai Explanation)**:
-> อัลกอริทึม SIMPLE ใช้ iterative prediction-correction:
-> - **Momentum Prediction**: แก้สมการโมเมนตัมด้วยความดันปัจจุบัน ให้ค่าความเร็วที่คาดการณ์
-> - **Pressure Correction**: แก้สมการ Poisson สำหรับ pressure correction เพื่อบังคับให้ divergence-free
-> - **Velocity Correction**: ปรับความเร็วด้วย pressure correction gradient
-> - **Under-relaxation**: ใช้ (`relax()`) เพื่อป้องกัน oscillation ใน iteration
-> - `rAU`: ค่าสัมประสิทธิผล inverse ของเมทริกซ์โมเมนตัม
-
-> **📂 Source**: `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-
-```mermaid
-graph TD
-classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
-Start(("Start")):::context
-Pred["Momentum Predictor<br/>Solve Momentum Equation"]:::explicit
-Corr["Pressure Corrector<br/>Solve Pressure Equation"]:::explicit
-Update["Update Fields<br/>Correct U and Fluxes"]:::explicit
-Check{"Convergence Check"}:::implicit
-End(("End")):::context
-
-Start --> Pred
-Pred --> Corr
-Corr --> Update
-Update --> Check
-Check -- No --> Pred
-Check -- Yes --> End
-```
-> **Figure 3:** ลำดับขั้นตอนของอัลกอริทึม SIMPLE (Semi-Implicit Method for Pressure-Linked Equations) แสดงรายละเอียดขั้นตอนการทำนายและแก้ไข (prediction-correction) สำหรับการเชื่อมโยงสนามความเร็วและความดันเข้าด้วยกัน
+อัลกอริทึมที่ใช้:
+- **SIMPLE** → steady-state
+- **PISO** → transient, small time step
+- **PIMPLE** → transient, large time step
 
 ---
 
-## การวิเคราะห์มิติและการทำให้ไร้มิติ
+## Concept Check
 
-เพื่อความเข้าใจและการเปรียบเทียบที่ดีขึ้น สมการควบคุมมักจะถูกทำให้ไร้มิติโดยใช้ **Characteristic scales**:
+<details>
+<summary><b>1. ทำไมต้องเข้าใจสมการควบคุมก่อนใช้ OpenFOAM?</b></summary>
 
-### Characteristic Scales
+เพราะทุกอย่างใน OpenFOAM (solver, schemes, BCs) มาจากสมการเหล่านี้ ถ้าไม่เข้าใจ จะไม่รู้ว่าทำไม simulation diverge หรือผลลัพธ์ไม่ถูกต้อง
+</details>
 
-- **มาตราส่วนความยาว (Length scale)**: $L$
-- **มาตราส่วนความเร็ว (Velocity scale)**: $U_{\text{ref}}$
-- **มาตราส่วนเวลา (Time scale)**: $t_{\text{ref}} = L/U_{\text{ref}}$
-- **มาตราส่วนความดัน (Pressure scale)**: $p_{\text{ref}} = \rho U_{\text{ref}}^2$
+<details>
+<summary><b>2. สมการอนุรักษ์มวลสำหรับ incompressible flow คืออะไร?</b></summary>
 
-### Reynolds Number
+$\nabla \cdot \mathbf{u} = 0$ หมายความว่า velocity field ต้องเป็น divergence-free (ไหลเข้า = ไหลออก)
+</details>
 
-**Reynolds number แบบไร้มิติ**:
-$$\text{Re} = \frac{\rho U_{\text{ref}} L}{\mu}$$
+<details>
+<summary><b>3. SIMPLE, PISO, PIMPLE ใช้ทำอะไร?</b></summary>
 
-**สมการโมเมนตัมแบบไร้มิติ**:
-$$\frac{\partial \mathbf{u}^*}{\partial t^*} + (\mathbf{u}^* \cdot \nabla^*) \mathbf{u}^* = -\nabla^* p^* + \frac{1}{\text{Re}} \nabla^{*2} \mathbf{u}^* + \mathbf{f}^*$$
-
-โดยที่เครื่องหมายดอกจัน (*) แทนปริมาณไร้มิติ
-
-> [!TIP] **ความสำคัญของเลขไร้มิติ**
-> เลขไร้มิติเป็นพารามิเตอร์พื้นฐานในพลศาสตร์ของไหลที่บ่งบอกถึงความสำคัญสัมพัทธ์ของปรากฏการณ์ทางฟิสิกส์ที่แข่งขันกัน ซึ่งช่วยให้วิศวกรและนักวิจัยสามารถ:
-> - คาดการณ์ระบอบการไหล (Flow Regimes)
-> - ระบุกลไกการถ่ายโอนที่สำคัญ
-> - ตัดสินใจอย่างมีข้อมูลเกี่ยวกับแนวทางการสร้างแบบจำลองที่เหมาะสม
+เป็นอัลกอริทึมสำหรับ pressure-velocity coupling ใช้แก้ปัญหาที่ความดันและความเร็ว coupled กันผ่านสมการความต่อเนื่อง
+</details>
 
 ---
 
-## กรณีพิเศษและการลดรูป
+## เอกสารที่เกี่ยวข้อง
 
-### การไหลที่อัดตัวไม่ได้ (Incompressible Flow)
-
-สำหรับ **incompressible flows** ($\rho = \text{constant}$) สมการจะลดรูปเป็น:
-
-$$\nabla \cdot \mathbf{u} = 0$$
-$$\rho \left( \frac{\partial \mathbf{u}}{\partial t} + (\mathbf{u} \cdot \nabla) \mathbf{u} \right) = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
-
-### Laminar vs Turbulent Flow
-
-| ลักษณะ | Laminar Flow | Turbulent Flow |
-|---------|--------------|---------------|
-| การเคลื่อนที่ | แบบชั้นๆ สมมาตร | ไม่สมมาตร มีปั่นป่วน |
-| การผสม | การแพร่โมเลกุล | การพาอย่างมาก |
-| สมการ | Navier-Stokes ตรงๆ | RANS/LES/DES |
-| ความซับซ้อน | น้อย | สูงมาก |
-
-**Reynolds Decomposition สำหรับ Turbulent Flow**:
-$$\mathbf{u} = \overline{\mathbf{u}} + \mathbf{u}'$$
-$$p = \overline{p} + p'$$
-
-**RANS Equations**:
-$$\rho \left( \frac{\partial \overline{\mathbf{u}}}{\partial t} + (\overline{\mathbf{u}} \cdot \nabla) \overline{\mathbf{u}} \right) = -\nabla \overline{p} + \mu \nabla^2 \overline{\mathbf{u}} - \nabla \cdot (\rho \overline{\mathbf{u}' \mathbf{u}'}) + \mathbf{f}$$
-
-```mermaid
-graph TB
-classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
-subgraph Laminar["Laminar Regime"]
-    L["Laminar Flow<br/>Smooth Low Re"]:::implicit
-    L_Eq["Direct Navier-Stokes<br/>No Turbulence Model"]:::implicit
-    L --> L_Eq
-end
-
-subgraph Turbulent["Turbulent Regime"]
-    T["Turbulent Flow<br/>Chaotic High Re"]:::explicit
-    T_Eq["RANS LES Models<br/>Turbulence Modeling Required"]:::explicit
-    T --> T_Eq
-end
-```
-> **Figure 4:** การเปรียบเทียบระบอบการไหลแบบราบเรียบ (Laminar) และแบบปั่นป่วน (Turbulent) โดยเน้นลักษณะทางกายภาพและการจัดการทางคณิตศาสตร์ที่แตกต่างกัน (Direct NS เทียบกับ RANS/LES) ใน CFD
-
----
-
-## สรุป
-
-ความแม่นยำทางคณิตศาสตร์และการนำไปใช้งานที่ครอบคลุมใน OpenFOAM ช่วยให้สามารถจำลองการไหลของของไหลที่ซับซ้อนได้อย่างแม่นยำในงานวิศวกรรมและวิทยาศาสตร์ ตั้งแต่ **การไหลแบบ Laminar ในท่อ** ไปจนถึง **การเผาไหม้แบบ Turbulent และระบบ Multiphase**
-
-สมการควบคุมของพลศาสตร์ของไหลเป็นรากฐานที่จำเป็นสำหรับการเข้าใจและใช้งาน OpenFOAM อย่างมีประสิทธิภาพ โดยมีประเด็นสำคัญที่ควรจดจำ:
-
-1. **กฎการอนุรักษ์** - รากฐานของ CFD
-2. **สมการความต่อเนื่อง** - หลักการอนุรักษ์มวล
-3. **สมการ Navier-Stokes** - กฎข้อที่สองของนิวตันสำหรับของไหล
-4. **ไวยากรณ์ OpenFOAM** - การแปลสัญลักษณ์ทางคณิตศาสตร์
-5. **Boundary Conditions** - สิ่งจำเป็นสำหรับ Physical Solutions
-
-สำหรับรายละเอียดเพิ่มเติมเกี่ยวกับแต่ละหัวข้อ สามารถศึกษาได้ในบทความที่เกี่ยวข้อง:
-- [[01_Introduction]] - บทนำสู่สมการควบคุม
-- [[02_Conservation_Laws]] - กฎการอนุรักษ์อย่างละเอียด
-- [[03_Equation_of_State]] - สมการสภาวะ
-- [[04_Dimensionless_Numbers]] - เลขไร้มิติใน CFD
-- [[05_OpenFOAM_Implementation]] - การนำไปใช้ใน OpenFOAM
-- [[06_Boundary_Conditions]] - เงื่อนไขขอบเขต
-- [[07_Initial_Conditions]] - เงื่อนไขเริ่มต้น
-- [[08_Key_Points_to_Remember]] - สรุปประเด็นสำคัญ
-- [[09_Exercises]] - แบบฝึกหัด
-
----
-
-## ตรวจสอบความเข้าใจ (Concept Check)
-
-1. **ถาม:** ใน OpenFOAM สมการ `fvm::ddt(rho, U)` หมายถึงเทอมใดในสมการ Navier-Stokes?
-   <details>
-   <summary>เฉลย</summary>
-   <b>ตอบ:</b> เทอมความเร่งเฉพาะที่ (Local acceleration term หรือ partial time derivative) $\frac{\partial (\rho \mathbf{u})}{\partial t}$
-   </details>
-
-2. **ถาม:** ทำไมสมการความต่อเนื่อง (Continuity Equation) ถึงไม่มีพจน์การแพร่ (Diffusion term)?
-   <details>
-   <summary>เฉลย</summary>
-   <b>ตอบ:</b> เพราะการอนุรักษ์มวลเกี่ยวข้องกับการขนย้ายมวลผ่านการไหล (convection) เท่านั้น มวลไม่สามารถ "แพร่" ผ่านผิวของ volume element ได้ในบริบทของ continuum mechanics (เว้นแต่จะเป็น multi-species transport)
-   </details>
-
-3. **ถาม:** `fvc::grad(p)` กับ `fvm::grad(p)` ต่างกันอย่างไร?
-   <details>
-   <summary>เฉลย</summary>
-   <b>ตอบ:</b> `fvc` (Calculus) ใช้คำนวณค่า explicit (ค่าที่รู้แล้วจาก step ก่อนหน้า) ส่วน `fvm` (Method) ใช้สำหรับสร้าง matrix coefficients สำหรับ implicit solving
-   </details>
+- **บทถัดไป:** [01_Introduction.md](01_Introduction.md) — บทนำสู่สมการควบคุม
+- **การนำไปใช้:** [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md) — การ implement ใน OpenFOAM

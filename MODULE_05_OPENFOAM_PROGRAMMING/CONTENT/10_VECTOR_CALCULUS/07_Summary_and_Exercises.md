@@ -1,5 +1,15 @@
 # สรุปและแบบฝึกหัด (Summary & Exercises)
 
+> [!TIP] ความสำคัญของ Vector Calculus ใน OpenFOAM
+>
+> แคลคูลัสเวกเตอร์คือ **ภาษาคณิตศาสตร์** ที่ OpenFOAM ใช้ในการแปลงสมการฟิสิกส์ (เช่น Navier-Stokes) ให้กลายเป็นโค้ดที่คอมพิวเตอร์เข้าใจได้ ความเข้าใจที่ลึกซึ้งเกี่ยวกับ `fvc::` vs `fvm::` และการเลือก discretization schemes ใน `system/fvSchemes` จะช่วยให้คุณ:
+> - **เลือก scheme ที่เหมาะสม** สำหรับปัญหาแต่ละประเภท (เช่น upwind สำหรับความเสถียร, linear สำหรับความแม่นยำ)
+> - **ทำนายปัญหาความเสถียร** ก่อนเริ่ม simulation (เช่น CFL condition, diffusion stability limits)
+> - **ปรับแต่ง solver** ได้อย่างมีประสิทธิภาพโดยใช้ explicit terms สำหรับ source quantities และ implicit terms สำหรับ unknown variables
+> - **Debug ปัญหาการจำลอง** ที่เกิดจากการเลือก scheme ที่ไม่เหมาะสม (เช่น numerical diffusion, oscillations)
+>
+> **📂 ไฟล์ที่เกี่ยวข้อง:** `system/fvSchemes`, `system/fvSolution`, `src/finiteVolume/fvc/fvc.H`, `src/finiteVolume/fvm/fvm.H`
+
 ```mermaid
 flowchart TD
 classDef root fill:#333,stroke:#000,color:#fff
@@ -37,6 +47,17 @@ Th --> T2
 ---
 
 ## 🎓 ประเด็นสำคัญ (Key Takeaways)
+
+> [!NOTE] **📂 OpenFOAM Context: Solver Development & Numerical Methods**
+>
+> หัวข้อนี้เกี่ยวข้องกับ **Domain B: Numerics & Linear Algebra** ซึ่งเป็นพื้นฐานของการพัฒนา solver และการปรับแต่ง numerical methods:
+>
+> - **Source Files:** `src/finiteVolume/fvc/fvc.H` (explicit operations), `src/finiteVolume/fvm/fvm.H` (implicit operations)
+> - **Solver Implementation:** เมื่อคุณเขียน custom solver ใหม่ คุณต้องตัดสินใจว่าแต่ละ term ในสมการควรใช้ `fvc::` (explicit) หรือ `fvm::` (implicit)
+> - **Matrix Assembly:** `fvm::` operations จะถูก assemble เป็น `fvMatrix` ซึ่งถูกแก้ด้วย linear solvers ที่ระบุใน `system/fvSolution`
+> - **Key Decision:**
+>   - ใช้ `fvc::` เมื่อ: คำนวณค่าจาก field ที่รู้แล้ว (เช่น source terms, post-processing)
+>   - ใช้ `fvm::` เมื่อ: field ที่ต้องการแก้คือ unknown (เช่น diffusion, transient terms)
 
 ### 1. การดำเนินการแบบ Explicit vs Implicit: `fvc::` vs `fvm::`
 
@@ -85,6 +106,19 @@ pEqn.solve();  // Solves for p
 > - **Trade-off**: Explicit เร็วแต่เสถียรน้อยกว่า Implicit ช้ากว่าแต่เสถียรกว่า สามารถใช้ time step ที่ใหญ่กว่าได้
 
 ### 2. การเลือกใช้ Scheme ใน `fvSchemes`
+
+> [!NOTE] **📂 OpenFOAM Context: Discretization Schemes Configuration**
+>
+> หัวข้อนี้เกี่ยวข้องกับ **Domain B: Numerics & Linear Algebra** โดยตรงเชื่อมโยงกับไฟล์ configuration:
+>
+> - **Configuration File:** `system/fvSchemes` - ไฟล์นี้คือ "คู่มือการจำลอง" ที่บอก OpenFOAM ว่าควร discretize สมการแต่ละ term อย่างไร
+> - **Key Sections:**
+>   - `gradSchemes`: กำหนดวิธีคำนวณ gradient (เช่น `Gauss linear`, `leastSquares`)
+>   - `divSchemes`: กำหนดวิธีคำนวณ divergence (เช่น `Gauss upwind`, `Gauss linear`)
+>   - `laplacianSchemes`: กำหนดวิธีคำนวณ laplacian (เช่น `Gauss linear corrected`)
+>   - `timeSchemes`: กำหนดวิธี discretize เวลา (เช่น `Euler`, `backward`)
+> - **Impact:** การเลือก scheme ผิดอาจทำให้ simulation diverge หรือให้ผลลัพธ์ที่ไม่แม่นยำ
+> - **Best Practice:** เริ่มต้นด้วย schemes ที่เสถียร (เช่น upwind) แล้วค่อยเปลี่ยนเป็น schemes ที่แม่นยำกว่า (เช่น linear) หลังจาก solution ลู่เข้าแล้ว
 
 ความแม่นยำและความเสถียรของการดำเนินการ finite volume ขึ้นอยู่กับ **interpolation schemes** ที่ระบุในพจนานุกรม `system/fvSchemes`
 
@@ -180,6 +214,23 @@ timeSchemes
 
 ### 3. การอนุรักษ์ผ่านตัวดำเนินการ Divergence
 
+> [!NOTE] **📂 OpenFOAM Context: Conservation Laws & Flux Calculations**
+>
+> หัวข้อนี้เกี่ยวข้องกับ **Domain A: Physics & Fields** และ **Domain B: Numerics & Linear Algebra**:
+>
+> - **Physics Connection:** กฎการอนุรักษ์ (mass, momentum, energy) ถูก implement ผ่าน divergence operator
+> - **Implementation Location:**
+>   - **Solver Code:** ใน source files ของ solvers (เช่น `src/finiteVolume/cfdTools/general/continuityErrs.H` สำหรับ mass conservation check)
+>   - **Divergence Theorem:** OpenFOAM ใช้ Gauss's theorem แปลง `∇·F` เป็น surface flux summation โดยอัตโนมัติ
+> - **Flux Fields:** Variable `phi` ใน OpenFOAM คือ mass flux `ρU·S` (ผลคูณของ density, velocity, และ face area)
+> - **Conservation Enforcement:**
+>   - Local conservation: แต่ละ cell balance fluxes ผ่าน faces ทั้งหมด
+>   - Global conservation: sum ของ local conservation = 0 (ถ้าไม่มี source terms)
+> - **Common Patterns:**
+>   - `fvc::div(phi)`: Check mass conservation (continuity)
+>   - `fvm::div(phi, U)`: Convective term in momentum equation
+>   - `fvc::div(phi, T)`: Convective heat transfer
+
 ตัวดำเนินการ Divergence ในวิธี finite volume บังคับใช้กฎการอนุรักษ์เฉพาะที่ (local) และทั่วโลก (global) โดยอัตโนมัติผ่าน **ทฤษฎีบทของเกาส์ (Gauss's theorem)** โดยการแปลงปริพันธ์เชิงปริมาตรของไดเวอร์เจนซ์ไปเป็นผลรวมของฟลักซ์ที่พื้นผิว:
 
 $$\int_V \nabla \cdot \mathbf{F} \, \mathrm{d}V = \oint_{\partial V} \mathbf{F} \cdot \mathbf{n} \, \mathrm{d}A$$
@@ -234,6 +285,24 @@ fvVectorMatrix UEqn
 
 ### 4. ข้อพิจารณาด้านประสิทธิภาพและความเสถียร
 
+> [!NOTE] **📂 OpenFOAM Context: Simulation Control & Performance Tuning**
+>
+> หัวข้อนี้เกี่ยวข้องกับ **Domain B: Numerics & Linear Algebra** และ **Domain C: Simulation Control**:
+>
+> - **Configuration Files:**
+>   - `system/fvSolution`: กำหนด linear solver tolerances (`tolerance`, `relTol`) และ algorithms (`GAMG`, `PCG`)
+>   - `system/controlDict`: กำหนด `time step`, `maxCo` (max Courant number), `adjustTimeStep`
+> - **Stability Monitoring:**
+>   - **CFL Number:** Monitor ผ่าน `functions` ใน `controlDict` เช่น ` CourantNumber` function object
+>   - **Continuity Errors:** Monitor ผ่าน `continuityErrs` ใน solvers
+> - **Performance Trade-offs:**
+>   - **Explicit:** รวดเร็วต่อ iteration แต่ต้องใช้ `dt` เล็ก → เหมาะสำหรับ unsteady flows ที่ต้องการ temporal resolution สูง
+>   - **Implicit:** ช้ากว่าต่อ iteration (เนื่องจาก matrix solve) แต่ใช้ `dt` ใหญ่ได้ → เหมาะสำหรับ steady-state หรือ long-time simulations
+> - **Solver Settings:** ใน `fvSolution` สามารถปรับ:
+>   - `nCorrectors`: จำนวน outer iterations สำหรับ pressure-velocity coupling (PISO/PIMPLE)
+>   - `nNonOrthogonalCorrectors`: สำหรับ meshes ที่มี non-orthogonality สูง
+>   - `solvers`: เลือก solver และ preconditioner ที่เหมาะสมกับ problem characteristics
+
 ต้นทุนการคำนวณและความเสถียรเชิงตัวเลขของการดำเนินการ finite volume เกี่ยวข้องกับ **trade-offs** พื้นฐาน
 
 #### ประสิทธิภาพของการดำเนินการแบบ Explicit
@@ -286,6 +355,35 @@ dt_diffusion <= dx^2 / (2 * D)  // Von Neumann stability
 > - **Trade-offs**: Explicit → เหมาะสำหรับ short-time, high-frequency phenomena; Implicit → เหมาะสำหรับ steady-state หรือ long-time simulations
 
 ### 5. ความหมายทางกายภาพของตัวดำเนินการ Finite Volume
+
+> [!NOTE] **📂 OpenFOAM Context: Physical Modeling & Equation Implementation**
+>
+> หัวข้อนี้เกี่ยวข้องกับ **Domain A: Physics & Fields** และ **Domain E: Coding/Customization**:
+>
+> - **Math-to-Code Mapping:** แต่ละ operator ใน OpenFOAM สอดคล้องกับ physical process ที่ชัดเจน:
+>   - **Gradient (`∇`)** → Driving forces (pressure gradient → force, temperature gradient → heat flux)
+>   - **Divergence (`∇·`)** → Conservation laws (mass, momentum, energy fluxes)
+>   - **Laplacian (`∇²`)** → Diffusion processes (viscosity, thermal conduction, mass diffusion)
+>   - **Temporal Derivative (`∂/∂t`)** → Unsteadiness, transient phenomena
+> - **Field Locations:**
+>   - **Gradient calculations:** ใช้ใน boundary conditions (เช่น `fixedGradient`), source terms
+>   - **Divergence operations:** ใช้ใน convection terms, flux calculations
+>   - **Laplacian operations:** ใช้ใน diffusion terms (viscous stresses, heat conduction)
+> - **Physical Property Files:**
+>   - `constant/transportProperties`: Viscosity (`nu`), thermal diffusivity (`alpha`)
+>   - `constant/turbulenceProperties`: Turbulent viscosity (`nut`), diffusivity (`D`)
+> - **Implementation Pattern:** เมื่อเขียน custom solver หรือ boundary condition:
+>   ```cpp
+>   // Force calculation: F = -∇p
+>   volVectorField force = -fvc::grad(p);
+>
+>   // Heat flux: q = -k∇T
+>   volVectorField heatFlux = -k * fvc::grad(T);
+>
+>   // Viscous diffusion: ∇·(ν∇U)
+>   tmp<fvVectorMatrix> tUEqn = fvm::laplacian(nu, U);
+>   ```
+> - **Dimensional Consistency:** OpenFOAM ตรวจสอบหน่วยอัตโนมัติ ช่วยป้องกันการเขียนสมการที่ผิดทางฟิสิกส์
 
 แต่ละตัวดำเนินการ finite volume สอดคล้องกับกระบวนการทางฟิสิกส์ที่เฉพาะเจาะจงในพลศาสตร์ของไหล
 
@@ -360,6 +458,19 @@ fvScalarMatrix advectionEqn = fvm::ddt(phi) + fvm::div(U, phi);
 ---
 
 ## แบบฝึกหัด (Exercises)
+
+> [!NOTE] **📂 OpenFOAM Context: Practical Application**
+>
+> แบบฝึกหัดเหล่านี้ออกแบบมาเพื่อให้คุณได้ฝึกทักษะในการเลือกใช้ `fvc::` vs `fvm::` และการตั้งค่า schemes ในสถานการณ์จริง:
+>
+> - **Exercise 1 (Namespace Selection):** เกี่ยวข้องกับการเขียน solver code หรือ custom function object โดยต้องตัดสินใจว่าควรใช้ explicit หรือ implicit
+> - **Exercise 2 (Equation Analysis):** ให้คุณวิเคราะห์สมการจาก solver code จริง (เช่นจาก `src/finiteVolume/cfd/solvers/`)
+> - **Exercise 3 (Application Scenario):** เกี่ยวข้องกับการคำนวณ post-processing quantities และการเลือก scheme ที่เหมาะสมใน `system/fvSchemes`
+>
+> **การนำไปใช้:**
+> - เมื่อคุณเขียน custom solver → ใช้หลักการจาก Exercise 1
+> - เมื่อคุณ debug solver code → ใช้หลักการจาก Exercise 2
+> - เมื่อคุณตั้งค่า case → ใช้หลักการจาก Exercise 3
 
 ### ส่วนที่ 1: การเลือก Namespace
 
