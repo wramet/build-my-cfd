@@ -93,7 +93,7 @@ autoPtr<volScalarField> field(new volScalarField(...));
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Factory vs direct construction?</b></summary>
@@ -115,7 +115,7 @@ autoPtr<volScalarField> field(new volScalarField(...));
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Inheritance:** [05_Inheritance_and_Virtual_Functions.md](05_Inheritance_and_Virtual_Functions.md)

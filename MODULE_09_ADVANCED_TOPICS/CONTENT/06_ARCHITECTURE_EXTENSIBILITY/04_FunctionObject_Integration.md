@@ -96,7 +96,7 @@ bool myFunctionObject::execute()
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. execute() vs write()?</b></summary>
@@ -119,7 +119,7 @@ bool myFunctionObject::execute()
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Patterns:** [05_Design_Patterns.md](05_Design_Patterns.md)

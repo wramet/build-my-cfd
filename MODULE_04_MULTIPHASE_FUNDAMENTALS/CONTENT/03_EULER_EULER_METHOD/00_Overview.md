@@ -2,9 +2,18 @@
 
 ภาพรวม Euler-Euler Method สำหรับ Multiphase Flow
 
+> **ทำไมต้องเข้าใจ Euler-Euler?**
+> - **สำหรับ dispersed flows** — ฟองอากาศ, fluidized beds, bubble columns
+> - **ต้องใช้ closure models** — drag, lift, virtual mass ต้องเลือกให้ถูก
+> - **Solver: twoPhaseEulerFoam, multiphaseEulerFoam** — ตั้งค่าซับซ้อนกว่า VOF
+
 ---
 
 ## Overview
+
+> **💡 Euler-Euler = สองเฟสซ้อนทับกันได้**
+>
+> ต่างจาก VOF (interface ชัด) — Euler-Euler มองทุกเฟสเป็น continua ที่อยู่ร่วมกัน
 
 ```mermaid
 flowchart TD

@@ -1,12 +1,22 @@
 # primitiveMesh
 
-primitiveMesh Class Reference
+primitiveMesh Class Reference — Topology เท่านั้น
+
+> **ทำไมต้องรู้ primitiveMesh?**
+> - เป็น **base class** ที่ polyMesh และ fvMesh สืบทอด
+> - **Connectivity queries** (cell→face, face→cell) อยู่ที่นี่
+> - เข้าใจ topology = debug mesh problems ได้
 
 ---
 
 ## Overview
 
-> **primitiveMesh** = Base class for mesh topology (no geometry)
+> **💡 primitiveMesh = "Who connects to whom?"**
+>
+> ไม่รู้ว่าอยู่ที่ไหน (no coordinates) แต่รู้ว่า:
+> - Cell มีกี่ faces
+> - Face เชื่อม cells ไหน
+> - Point อยู่ใน cells ไหน
 
 ```mermaid
 flowchart TD
@@ -165,7 +175,7 @@ mesh.checkCellVolumes();
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. owner vs neighbour ต่างกันอย่างไร?</b></summary>
@@ -189,7 +199,7 @@ mesh.checkCellVolumes();
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Mesh Hierarchy:** [02_Mesh_Hierarchy.md](02_Mesh_Hierarchy.md)

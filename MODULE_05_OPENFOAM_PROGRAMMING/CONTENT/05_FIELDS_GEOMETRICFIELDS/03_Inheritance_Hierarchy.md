@@ -1,10 +1,19 @@
 # Inheritance Hierarchy
 
-ลำดับการสืบทอดของ GeometricField
+ลำดับการสืบทอดของ GeometricField — เข้าใจ Class Structure
+
+> **ทำไมบทนี้สำคัญ?**
+> - เข้าใจว่า **GeometricField มาจากไหน**
+> - รู้ว่า features แต่ละอย่างอยู่ที่ class ไหน
+> - Debug ได้เร็วขึ้นเมื่อเข้าใจ hierarchy
 
 ---
 
 ## Overview
+
+> **💡 GeometricField = IOobject + DimensionedField + Boundaries**
+>
+> แต่ละ layer เพิ่ม features ต่างกัน
 
 ```mermaid
 flowchart TD
@@ -136,7 +145,7 @@ if (fieldPtr_.valid())
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. IOobject ทำอะไร?</b></summary>
@@ -158,7 +167,7 @@ if (fieldPtr_.valid())
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Field Lifecycle:** [04_Field_Lifecycle.md](04_Field_Lifecycle.md)

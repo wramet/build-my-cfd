@@ -68,7 +68,7 @@ File > Save Animation
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. case.foam ใช้ทำไม?</b></summary>
@@ -78,6 +78,6 @@ File > Save Animation
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Python:** [02_Python_Plotting.md](02_Python_Plotting.md)

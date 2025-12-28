@@ -2,6 +2,11 @@
 
 รายละเอียดของ 3 ขั้นตอนหลัก: Pre-processing, Solving, Post-processing
 
+> **ทำไมต้องรู้ workflow ละเอียด?**
+> - แต่ละขั้นตอนใช้ **ไฟล์และ tools ต่างกัน**
+> - ถ้า simulation ไม่ work → รู้ว่าต้อง debug ขั้นตอนไหน
+> - เข้าใจ workflow = ทำงานได้เร็วขึ้น
+
 ---
 
 ## 1. Pre-Processing

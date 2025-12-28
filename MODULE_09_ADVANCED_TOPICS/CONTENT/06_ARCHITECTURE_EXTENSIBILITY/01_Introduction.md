@@ -65,7 +65,7 @@ model myNewModel;
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไม extensibility สำคัญ?</b></summary>
@@ -87,7 +87,7 @@ model myNewModel;
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **RTS:** [02_Runtime_Selection_Tables.md](02_Runtime_Selection_Tables.md)

@@ -1,12 +1,19 @@
 # Mathematical Type Theory
 
-ทฤษฎีประเภททางคณิตศาสตร์ใน OpenFOAM
+ทฤษฎีประเภททางคณิตศาสตร์ใน OpenFOAM — Tensors & Operations
+
+> **ทำไมบทนี้สำคัญ?**
+> - เข้าใจ **tensor rank hierarchy** (scalar → vector → tensor)
+> - ใช้ **tensor operations** ได้คล่อง (tr, dev, symm, skew)
+> - คำนวณ **vorticity, strain rate** ได้ถูก
 
 ---
 
 ## Overview
 
-> OpenFOAM types = Mathematical entities with proper algebra
+> **💡 OpenFOAM Types = Mathematical Entities**
+>
+> ไม่ใช่แค่ตัวเลข แต่มี algebra ครบ — transformation, invariants, decomposition
 
 ---
 
@@ -153,7 +160,7 @@ volVectorField omega = fvc::curl(U);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. dev(T) คืออะไร?</b></summary>
@@ -175,7 +182,7 @@ volVectorField omega = fvc::curl(U);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Design Philosophy:** [02_Design_Philosophy.md](02_Design_Philosophy.md)

@@ -1,12 +1,19 @@
 # Field Lifecycle
 
-วงจรชีวิตของ Field
+วงจรชีวิตของ Field — Creation → Usage → Destruction
+
+> **ทำไมบทนี้สำคัญ?**
+> - รู้วิธี **สร้าง field** จาก file/code
+> - เข้าใจ **old time management** สำหรับ time derivatives
+> - รู้วิธี **write field** ให้ถูก
 
 ---
 
 ## Overview
 
-> Field lifecycle: **Creation → Initialization → Usage → Destruction**
+> **💡 Field Lifecycle = Create → Initialize → Use → (Store Old) → Write → Destroy**
+>
+> ทุกขั้นตอนมี methods เฉพาะ
 
 ---
 
@@ -155,7 +162,7 @@ T.writeObject(IOstreamOption(), true);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. MUST_READ vs READ_IF_PRESENT?</b></summary>
@@ -178,7 +185,7 @@ T.writeObject(IOstreamOption(), true);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Pitfalls:** [06_Common_Pitfalls.md](06_Common_Pitfalls.md)

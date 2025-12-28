@@ -678,3 +678,57 @@ flowchart LR
 
 > [!TIP] แนวทางปฏิบัติที่ดี
 > ใช้ `fvm::laplacian` สำหรับเทอมการแพร่, pressure-velocity coupling, และ stiff source terms ใช้ `fvc::laplacian` สำหรับ post-processing, การประเมิน source term, และรูปแบบ explicit time integration ผสมผสานทั้งสองแนวทางเพื่อความสมดุลที่ดีที่สุด
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. ทำไม Curl ถึงใช้เฉพาะใน post-processing แต่ไม่ใช่ใน governing equations โดยตรง?</b></summary>
+
+**Curl** ($\nabla \times U$) คือ **derived quantity** ไม่ใช่ตัวแปรหลักที่ต้อง solve:
+- **Vorticity** ($\omega = \nabla \times U$) คำนวณได้จาก velocity field ที่รู้แล้ว
+- ไม่มี conservation equation สำหรับ vorticity โดยตรงใน standard CFD
+- ใช้สำหรับ **visualization** และ **analysis** หลัง simulation เสร็จ
+
+</details>
+
+<details>
+<summary><b>2. ความแตกต่างหลักระหว่าง `fvc::laplacian` และ `fvm::laplacian` คืออะไร?</b></summary>
+
+| Aspect | `fvc::laplacian` (Explicit) | `fvm::laplacian` (Implicit) |
+|--------|---------------------------|---------------------------|
+| **ผลลัพธ์** | `volScalarField` ทันที | `fvScalarMatrix` (ต้อง solve) |
+| **Stability** | จำกัดด้วย $\Delta t \leq \frac{\Delta x^2}{2\Gamma}$ | Unconditionally stable |
+| **ใช้สำหรับ** | Post-processing, source terms | Diffusion ใน governing equations |
+
+**Rule:** ใช้ `fvm::` เมื่อ unknown อยู่ใน Laplacian term
+
+</details>
+
+<details>
+<summary><b>3. ถ้า mesh มี non-orthogonality สูง ควรเลือก laplacianScheme อย่างไร?</b></summary>
+
+ใช้ **`Gauss linear corrected`** หรือ **`Gauss linear limited 0.5`**:
+
+```cpp
+laplacianSchemes
+{
+    default Gauss linear corrected;  // เพิ่ม non-orthogonal correction
+    // หรือสำหรับ mesh ที่แย่มาก:
+    default Gauss linear limited 0.5;  // limited correction
+}
+```
+
+**เหตุผล:** `corrected` เพิ่ม explicit correction term เพื่อชดเชย non-orthogonality ของ mesh
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Vector Calculus
+- **บทก่อนหน้า:** [04_Divergence_Operations.md](04_Divergence_Operations.md) — Divergence Operations
+- **บทถัดไป:** [06_Common_Pitfalls.md](06_Common_Pitfalls.md) — ข้อผิดพลาดที่พบบ่อย
+- **สรุป:** [07_Summary_and_Exercises.md](07_Summary_and_Exercises.md) — สรุปและแบบฝึกหัด

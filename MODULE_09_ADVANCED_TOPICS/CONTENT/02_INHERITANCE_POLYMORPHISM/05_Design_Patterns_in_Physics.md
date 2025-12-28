@@ -125,7 +125,7 @@ turbulence->correct();
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Run-Time Selection ทำอะไร?</b></summary>
@@ -147,7 +147,7 @@ turbulence->correct();
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **RTS:** [04_Run_Time_Selection_System.md](04_Run_Time_Selection_System.md)

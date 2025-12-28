@@ -42,7 +42,7 @@
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไมต้อง version control?</b></summary>
@@ -52,6 +52,6 @@
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Organization:** [01_Project_Organization.md](01_Project_Organization.md)

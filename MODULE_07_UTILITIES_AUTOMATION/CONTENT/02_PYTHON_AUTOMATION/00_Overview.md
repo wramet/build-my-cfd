@@ -209,3 +209,56 @@ graph LR
    - การใช้ Python Loop รัน Case หลายๆ อันต่อเนื่อง (Sequential)
    - การใช้ HPC Cluster รัน Case แบบ Parallel
    ในแง่ของเวลาทั้งหมดที่ใช้ และประสิทธิภาพการใช้งาน Hardware
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. PyFoam, fluidfoam, และ PyVista แตกต่างกันอย่างไร?</b></summary>
+
+| Library | หน้าที่หลัก | ตัวอย่างการใช้งาน |
+|---------|------------|-------------------|
+| **PyFoam** | ควบคุม Solver, จัดการ Case | `BasicRunner`, `pyFoamPlotRunner.py` |
+| **fluidfoam** | อ่าน Fields เข้า NumPy | อ่าน U, p, T โดยตรงจาก folder |
+| **PyVista** | 3D Visualization | Slice, Clip, Streamlines |
+
+</details>
+
+<details>
+<summary><b>2. ทำไม Python ถึงดีกว่า Bash Script สำหรับ CFD Automation?</b></summary>
+
+**3 เหตุผลหลัก:**
+1. **Ecosystem:** NumPy, Pandas, Scikit-learn พร้อมใช้
+2. **Readability:** โค้ดอ่านง่าย ดูแลรักษาง่าย
+3. **Integration:** เชื่อมกับ Excel, Web APIs, AI/ML ได้
+
+</details>
+
+<details>
+<summary><b>3. BasicRunner ใน PyFoam ใช้ทำอะไร?</b></summary>
+
+ใช้ **รัน OpenFOAM Solver** จาก Python:
+
+```python
+from PyFoam.Execution.BasicRunner import BasicRunner
+
+runner = BasicRunner(
+    argv=["simpleFoam", "-case", "myCase"],
+    silent=True  # ไม่แสดง output
+)
+runner.start()
+```
+
+**ประโยชน์:** รวมการรัน solver เข้า workflow Python ได้
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **Shell Scripting:** [../01_SHELL_SCRIPTING/00_Overview.md](../01_SHELL_SCRIPTING/00_Overview.md) — Bash scripting สำหรับ OpenFOAM
+- **บทถัดไป:** [01_Python_Environment_Setup.md](01_Python_Environment_Setup.md) — การติดตั้ง Python Environment
+- **PyFoam:** [02_PyFoam_Fundamentals.md](02_PyFoam_Fundamentals.md) — พื้นฐาน PyFoam
+- **Visualization:** [../04_ADVANCED_VISUALIZATION/00_Overview.md](../04_ADVANCED_VISUALIZATION/00_Overview.md) — การ Visualize ขั้นสูง

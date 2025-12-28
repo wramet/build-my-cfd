@@ -89,7 +89,7 @@ vector m2 = maximum(v1, v2);         // Works with vector
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Template vs Runtime polymorphism?</b></summary>
@@ -112,7 +112,7 @@ vector m2 = maximum(v1, v2);         // Works with vector
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Syntax:** [02_Template_Syntax.md](02_Template_Syntax.md)

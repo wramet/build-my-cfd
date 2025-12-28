@@ -1,10 +1,21 @@
 # Containers & Memory - Overview
 
-ภาพรวม Container และ Memory Management
+ภาพรวม Container และ Memory Management — หัวใจของ Data Storage
+
+> **ทำไม Containers & Memory สำคัญ?**
+> - **ทุก field, mesh, boundary condition อยู่ใน containers**
+> - Memory management ผิด = **memory leaks = crashes**
+> - เลือก container ถูก = **performance ดี**
 
 ---
 
 ## Overview
+
+> **💡 OpenFOAM Containers = STL + CFD Features + Memory Safety**
+>
+> - `Field` มี max(), sum() ที่ vector ไม่มี
+> - `tmp` ป้องกัน memory leaks จาก temporary fields
+> - `PtrList` รองรับ polymorphism สำหรับ BCs
 
 ```mermaid
 flowchart TD
@@ -98,7 +109,7 @@ tmp<volScalarField> tGrad = fvc::grad(p);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. List vs Field ต่างกันอย่างไร?</b></summary>
@@ -121,7 +132,7 @@ tmp<volScalarField> tGrad = fvc::grad(p);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Introduction:** [01_Introduction.md](01_Introduction.md)
 - **Container System:** [03_Container_System.md](03_Container_System.md)

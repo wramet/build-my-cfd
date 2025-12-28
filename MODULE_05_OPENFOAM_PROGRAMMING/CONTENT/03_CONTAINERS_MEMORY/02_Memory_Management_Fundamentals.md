@@ -1,6 +1,11 @@
 # Memory Management Fundamentals
 
-พื้นฐานการจัดการหน่วยความจำใน OpenFOAM
+พื้นฐานการจัดการหน่วยความจำใน OpenFOAM — RAII และ Smart Pointers
+
+> **ทำไมบทนี้สำคัญที่สุด?**
+> - **CFD ใช้ memory มหาศาล** — leak เล็กๆ = crash
+> - เข้าใจ `autoPtr` vs `tmp` = เขียน code ที่ปลอดภัย
+> - RAII principle = ไม่ต้อง `delete` เอง
 
 ---
 
@@ -201,7 +206,7 @@ valgrind --leak-check=full myFoamApp
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. autoPtr กับ tmp ต่างกันอย่างไร?</b></summary>
@@ -224,7 +229,7 @@ valgrind --leak-check=full myFoamApp
 
 ---
 
-## เอกสารที่เกี่ยวข้อง
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **บทก่อนหน้า:** [01_Container_Types.md](01_Container_Types.md)
 - **บทถัดไป:** [03_Smart_Pointers.md](03_Smart_Pointers.md)

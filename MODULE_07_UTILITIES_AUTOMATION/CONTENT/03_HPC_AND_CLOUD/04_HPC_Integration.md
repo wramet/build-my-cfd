@@ -76,7 +76,7 @@ ssh cluster "squeue -u $USER"
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Job scheduler ทำอะไร?</b></summary>
@@ -86,6 +86,6 @@ ssh cluster "squeue -u $USER"
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)

@@ -2,6 +2,11 @@
 
 Boundary Conditions บอก solver ว่าตัวแปรควรมีพฤติกรรมอย่างไรที่ขอบของโดเมน
 
+> **ทำไม BC สำคัญ?**
+> - PDE ต้องมี BC จึงจะมี **unique solution**
+> - BC ผิด → simulation **diverge** หรือผลลัพธ์ผิดพลาด
+> - ต้องรู้ **กฎ U-p coupling** — fixedValue ต้องคู่กับ zeroGradient
+
 ---
 
 ## หลักการพื้นฐาน

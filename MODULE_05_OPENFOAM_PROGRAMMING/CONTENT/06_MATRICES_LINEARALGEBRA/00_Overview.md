@@ -1,10 +1,19 @@
 # Matrices & Linear Algebra - Overview
 
-ภาพรวม Matrices และ Linear Algebra
+ภาพรวม Matrices และ Linear Algebra — หัวใจของ CFD Solver
+
+> **ทำไม Linear Algebra สำคัญที่สุด?**
+> - **ทุก PDE กลายเป็น Ax = b** ที่ต้องแก้
+> - 90% ของ compute time อยู่ใน linear solver
+> - เลือก solver/preconditioner ผิด = ช้า หรือ diverge
 
 ---
 
 ## Overview
+
+> **💡 CFD = แก้ linear systems ซ้ำๆ**
+>
+> PDE → Discretize (fvm::) → fvMatrix → lduMatrix → Solver → Solution
 
 ```mermaid
 flowchart TD
@@ -121,7 +130,7 @@ solvers
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. lduMatrix คืออะไร?</b></summary>
@@ -144,7 +153,7 @@ solvers
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Introduction:** [01_Introduction.md](01_Introduction.md)
 - **Linear Solvers:** [04_Linear_Solvers_Hierarchy.md](04_Linear_Solvers_Hierarchy.md)

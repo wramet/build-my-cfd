@@ -700,3 +700,62 @@ volVectorField F_buoyancy = (rho - rhoRef) * g;  // [Mass/Volume] * [Acceleratio
 ---
 
 **การหลีกเลี่ยงข้อผิดพลาดเหล่านี้จะช่วยประหยัดเวลาในการดีบักและทำให้ solver ของคุณทำงานได้อย่างเสถียรและถูกต้อง**
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. ทำไมการใช้ `fvc::laplacian` แทน `fvm::laplacian` ใน diffusion term ทำให้ solver ไม่เสถียร?</b></summary>
+
+**`fvc::laplacian`** เป็น **explicit** → คำนวณจากค่า **time step ก่อนหน้า**
+
+ปัญหา:
+- ต้องปฏิบัติตาม **Von Neumann stability:** $\Delta t \leq \frac{\Delta x^2}{2\Gamma}$
+- สำหรับ mesh ละเอียด (Δx เล็ก) → **time step ต้องเล็กมากๆ**
+- ถ้า time step ใหญ่เกินไป → **solver diverge**
+
+**Solution:** ใช้ `fvm::laplacian` ซึ่งเป็น unconditionally stable
+
+</details>
+
+<details>
+<summary><b>2. ถ้า `fvc::grad(p)` มีหน่วย [Pa/m] ทำไมไม่สามารถใช้โดยตรงเป็น acceleration ได้?</b></summary>
+
+**Dimensional analysis:**
+- `fvc::grad(p)` มีหน่วย $[Pa/m] = [kg/(m^2 \cdot s^2)]$ = **Force per unit volume**
+- **Acceleration** มีหน่วย $[m/s^2]$
+
+**Solution:** ต้องหารด้วย density $\rho$:
+```cpp
+volVectorField acc = -fvc::grad(p) / rho;  // หน่วย: [m/s²]
+```
+
+</details>
+
+<details>
+<summary><b>3. เมื่อ `checkMesh` แสดง non-orthogonality > 70° ควรทำอย่างไร?</b></summary>
+
+**Options:**
+1. **ปรับปรุง mesh** — ใช้ `snappyHexMesh` settings ที่ดีกว่า หรือปรับ geometry
+2. **เปลี่ยน scheme** ใน `system/fvSchemes`:
+   ```cpp
+   laplacianSchemes
+   {
+       default Gauss linear corrected;  // เพิ่ม correction
+       // หรือ
+       default Gauss linear limited 0.5;  // สำหรับ mesh แย่มาก
+   }
+   ```
+3. **เพิ่ม nNonOrthogonalCorrectors** ใน `system/fvSolution`
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Vector Calculus
+- **บทก่อนหน้า:** [05_Curl_and_Laplacian.md](05_Curl_and_Laplacian.md) — Curl และ Laplacian
+- **บทถัดไป:** [07_Summary_and_Exercises.md](07_Summary_and_Exercises.md) — สรุปและแบบฝึกหัด
+- **fvc vs fvm:** [02_fvc_vs_fvm.md](02_fvc_vs_fvm.md) — เปรียบเทียบ Explicit และ Implicit

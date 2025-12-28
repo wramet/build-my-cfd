@@ -131,7 +131,7 @@ class Derived : public Base
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Object slicing คืออะไร?</b></summary>
@@ -153,7 +153,7 @@ class Derived : public Base
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Exercise:** [08_Practical_Exercise.md](08_Practical_Exercise.md)

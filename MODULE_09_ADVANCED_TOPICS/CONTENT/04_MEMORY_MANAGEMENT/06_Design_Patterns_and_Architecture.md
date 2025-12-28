@@ -107,7 +107,7 @@ const volScalarField& T = mesh.lookupObject<volScalarField>("T");
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. RAII คืออะไร?</b></summary>
@@ -129,7 +129,7 @@ const volScalarField& T = mesh.lookupObject<volScalarField>("T");
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Errors:** [07_Common_Errors_and_Debugging.md](07_Common_Errors_and_Debugging.md)

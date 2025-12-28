@@ -1,6 +1,13 @@
 # Boundary Conditions
 
-Boundary Conditions (BCs) คือ **ข้อกำหนดทางคณิตศาสตร์** ที่บอก solver ว่าของไหลมีพฤติกรรมอย่างไรที่ขอบเขตของโดเมน ถ้ากำหนดผิด simulation จะไม่ลู่เข้าหรือให้ผลลัพธ์ที่ไม่ถูกต้อง
+Boundary Conditions (BCs) คือ **ข้อกำหนดทางคณิตศาสตร์** ที่บอก solver ว่าของไหลมีพฤติกรรมอย่างไรที่ขอบเขต
+
+> **ทำไม BC สำคัญที่สุดหลัง mesh?**
+> - BC ผิด → **simulation diverge** หรือผลลัพธ์ผิด
+> - ต้องรู้กฎ **U-p coupling** — fixedValue + zeroGradient
+> - เข้าใจ **wall functions** สำหรับ turbulence
+
+---
 
 ---
 

@@ -283,7 +283,7 @@ for i, ply_file in enumerate(ply_files):
 
 ---
 
-## 🧠 ตรวจสอบความเข้าใจ (Concept Check)
+## 🧠 Concept Check
 
 1.  **ถาม:** ทำไมเราต้องใช้ Filter "Tube" กับ Streamlines ใน ParaView ก่อนส่งไป Blender?
     <details>
@@ -296,3 +296,12 @@ for i, ply_file in enumerate(ply_files):
     <summary>เฉลย</summary>
     <b>ตอบ:</b> **Cycles** เพราะเป็น Ray-tracing engine ที่คำนวณการสะท้อน (Reflection) และการหักเห (Refraction) ของแสงผ่านน้ำได้ถูกต้องตามหลักฟิสิกส์ ในขณะที่ Eevee ใช้การประมาณค่า (Screen Space Reflections) ซึ่งอาจดูไม่สมจริงเท่า
     </details>
+
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Visualization
+- **บทก่อนหน้า:** [02_Python_Plotting.md](02_Python_Plotting.md) — Python Plotting
+- **บทถัดไป:** [04_Animation_Techniques.md](04_Animation_Techniques.md) — เทคนิค Animation

@@ -2,6 +2,11 @@
 
 OpenFOAM CFD workflow และ components หลัก
 
+> **ทำไมต้องเข้าใจ Workflow?**
+> - CFD = **Pre-processing + Solving + Post-processing**
+> - ถ้าไม่เข้าใจขั้นตอน → จะไม่รู้ว่าต้องแก้ไฟล์ไหนเมื่อมีปัญหา
+> - เข้าใจ workflow = เข้าใจ **case structure** ของ OpenFOAM
+
 ---
 
 ## CFD คืออะไร?

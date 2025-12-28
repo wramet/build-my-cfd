@@ -2,6 +2,11 @@
 
 Solvers หลักสำหรับการไหลแบบ incompressible ใน OpenFOAM
 
+> **ทำไมต้องรู้ Solvers หลายตัว?**
+> - **icoFoam, simpleFoam, pimpleFoam** ใช้ต่างกรณี
+> - เลือกผิด = **ช้า** หรือ **ผลลัพธ์ไม่ถูกต้อง**
+> - Non-Newtonian, Rotating frame ต้องใช้ solver เฉพาะ
+
 ---
 
 ## Quick Reference

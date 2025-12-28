@@ -117,7 +117,7 @@ fvPatchField<Type>           // Base
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Pure virtual function คืออะไร?</b></summary>
@@ -139,7 +139,7 @@ Function ที่ **ต้อง implement** ใน derived class: `virtual voi
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Interfaces:** [02_Abstract_Interfaces.md](02_Abstract_Interfaces.md)

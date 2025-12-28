@@ -111,7 +111,7 @@ gdb --args solver -case myCase
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Undefined reference แก้อย่างไร?</b></summary>
@@ -133,7 +133,7 @@ gdb --args solver -case myCase
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Compilation:** [04_Compilation_process.md](04_Compilation_process.md)

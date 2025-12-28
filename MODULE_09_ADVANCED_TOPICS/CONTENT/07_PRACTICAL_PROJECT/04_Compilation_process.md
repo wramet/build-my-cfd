@@ -97,7 +97,7 @@ wclean && wmake
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Make/files ใส่อะไร?</b></summary>
@@ -119,7 +119,7 @@ wclean && wmake
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Errors:** [07_Common_Errors_and_Debugging.md](07_Common_Errors_and_Debugging.md)

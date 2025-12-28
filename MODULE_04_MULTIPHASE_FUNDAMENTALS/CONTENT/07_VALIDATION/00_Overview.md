@@ -2,9 +2,18 @@
 
 ภาพรวมการตรวจสอบความถูกต้องของ Multiphase Simulation
 
+> **ทำไม Validation สำคัญที่สุด?**
+> - **CFD ที่ไม่ validated = ไม่น่าเชื่อถือ**
+> - Multiphase ยิ่งซับซ้อน → ยิ่งต้อง validate มากขึ้น
+> - เข้าใจ GCI, mass balance, volume conservation
+
 ---
 
 ## Overview
+
+> **💡 Verification ≠ Validation**
+>
+> Verification: "Solving equations right" | Validation: "Solving right equations"
 
 ```mermaid
 flowchart LR

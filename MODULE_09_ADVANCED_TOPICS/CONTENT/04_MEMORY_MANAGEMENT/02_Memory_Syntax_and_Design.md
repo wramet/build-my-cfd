@@ -109,7 +109,7 @@ const volVectorField& bad = fvc::grad(p)();  // Dangling!
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. autoPtr vs tmp?</b></summary>
@@ -132,7 +132,7 @@ const volVectorField& bad = fvc::grad(p)();  // Dangling!
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Mechanics:** [03_Internal_Mechanics.md](03_Internal_Mechanics.md)

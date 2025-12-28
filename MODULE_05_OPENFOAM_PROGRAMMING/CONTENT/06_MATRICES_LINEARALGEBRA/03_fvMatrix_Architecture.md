@@ -173,7 +173,7 @@ For internal face f connecting cells O and N:
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. fvm vs fvc ต่างกันอย่างไรใน matrix terms?</b></summary>
@@ -198,7 +198,7 @@ For internal face f connecting cells O and N:
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Linear Solvers:** [04_Linear_Solvers_Hierarchy.md](04_Linear_Solvers_Hierarchy.md)

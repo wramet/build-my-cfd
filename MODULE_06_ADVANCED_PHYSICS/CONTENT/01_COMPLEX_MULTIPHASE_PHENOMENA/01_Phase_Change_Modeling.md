@@ -56,18 +56,54 @@ pSat 2300;  // Saturation pressure
 | interPhaseChangeFoam | Cavitation |
 | interCondensating... | Boiling |
 
----
-
-## Concept Check
+## 🧠 Concept Check
 
 <details>
-<summary><b>1. Phase change เกิดเมื่อไหร่?</b></summary>
+<summary><b>1. Phase change เกิดจากอะไรได้บ้าง?</b></summary>
 
-At **saturation conditions** (p or T)
+**Phase change เกิดได้จาก 2 สาเหตุหลัก:**
+- **Temperature-driven:** อุณหภูมิเปลี่ยน (เช่น Boiling, Condensation)
+- **Pressure-driven:** ความดันเปลี่ยน (เช่น Cavitation)
+
+**ตัวอย่าง:**
+- น้ำเดือด ($T > T_{sat}$) → Steam
+- ความดันต่ำในปั๊ม ($p < p_{sat}$) → ฟองอากาศ
+
+</details>
+
+<details>
+<summary><b>2. ทำไมต้องใช้ Mass Transfer Source Term ($\Gamma$)?</b></summary>
+
+เพราะ VOF equation ปกติไม่รองรับการเปลี่ยนสถานะ:
+
+$$\frac{\partial \alpha}{\partial t} + \nabla \cdot (U\alpha) = \underbrace{\Gamma_{evap} - \Gamma_{cond}}_{\text{Mass Transfer}}$$
+
+- **$\Gamma_{evap}$:** อัตราการระเหย (ของเหลว → ไอ)
+- **$\Gamma_{cond}$:** อัตราการควบแน่น (ไอ → ของเหลว)
+- ถ้าไม่มี → ปริมาตรสัดส่วน ($\alpha$) จะไม่เปลี่ยน
+
+</details>
+
+<details>
+<summary><b>3. Saturation Pressure ($p_{sat}$) สำคัญอย่างไร?</b></summary>
+
+**$p_{sat}$** คือความดันที่ของเหลวเริ่มเปลี่ยนสถานะที่อุณหภูมินั้นๆ
+
+**ในโค้ด OpenFOAM:**
+```cpp
+pSat 2300;  // Pa (สำหรับน้ำที่ 20°C)
+```
+
+**การใช้งาน:**
+- ถ้า $p < p_{sat}$ → **Cavitation** (เกิดฟอง)
+- ถ้า $p > p_{sat}$ → **Condensation** (ฟองยุบ)
+
 </details>
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
-- **Cavitation:** [02_Cavitation_Modeling.md](02_Cavitation_Modeling.md)
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Complex Multiphase
+- **บทถัดไป:** [02_Cavitation_Modeling.md](02_Cavitation_Modeling.md) — การจำลอง Cavitation
+- **Population Balance:** [03_Population_Balance_Modeling.md](03_Population_Balance_Modeling.md) — สมดุลประชากร

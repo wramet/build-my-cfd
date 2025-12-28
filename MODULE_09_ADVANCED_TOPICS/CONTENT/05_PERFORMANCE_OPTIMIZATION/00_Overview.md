@@ -83,7 +83,7 @@ scalar totalSum = gSum(field);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. tmp ช่วย performance อย่างไร?</b></summary>
@@ -105,7 +105,7 @@ scalar totalSum = gSum(field);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Introduction:** [01_Introduction.md](01_Introduction.md)
 - **Expression Templates:** [02_Expression_Templates_Syntax.md](02_Expression_Templates_Syntax.md)

@@ -131,7 +131,7 @@ scalar sumT = gSum(T);  // Global sum (parallel)
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. sqr vs pow(a,2)?</b></summary>
@@ -154,7 +154,7 @@ scalar sumT = gSum(T);  // Global sum (parallel)
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Operators:** [03_Operator_Overloading.md](03_Operator_Overloading.md)

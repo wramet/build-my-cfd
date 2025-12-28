@@ -46,7 +46,7 @@
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. หา utilities ได้ที่ไหน?</b></summary>
@@ -56,6 +56,6 @@
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Categories:** [01_Utility_Categories_and_Organization.md](01_Utility_Categories_and_Organization.md)

@@ -76,7 +76,7 @@ Yᵢ = mass fraction of species i
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Species transport equation?</b></summary>
@@ -98,7 +98,7 @@ Yᵢ = mass fraction of species i
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Fundamentals:** [01_Reacting_Flow_Fundamentals.md](01_Reacting_Flow_Fundamentals.md)
 - **Combustion:** [04_Combustion_Models.md](04_Combustion_Models.md)

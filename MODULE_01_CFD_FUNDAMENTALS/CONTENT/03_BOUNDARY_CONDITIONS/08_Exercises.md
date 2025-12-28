@@ -2,6 +2,11 @@
 
 แบบฝึกหัดเชิงปฏิบัติสำหรับการตั้งค่า BC ใน OpenFOAM
 
+> **ทำไมต้องทำแบบฝึกหัด BC?**
+> - ฝึก **เขียน BC files** จริงใน directory `0/`
+> - ฝึก **คำนวณ turbulence inlet values** (k, ε)
+> - ฝึก **debug BC errors** ที่พบบ่อย
+
 ---
 
 ## แบบฝึกหัด 1: Pipe Flow

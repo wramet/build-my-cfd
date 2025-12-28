@@ -91,7 +91,7 @@ turb->correct();
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Inheritance vs Composition?</b></summary>
@@ -114,7 +114,7 @@ turb->correct();
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Introduction:** [01_Introduction.md](01_Introduction.md)
 - **RTS:** [04_Run_Time_Selection_System.md](04_Run_Time_Selection_System.md)

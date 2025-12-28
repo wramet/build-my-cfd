@@ -395,7 +395,7 @@ $$
 
 - **Cache Coherence**: M. Flynn, "Computer Architecture: Pipelined and Parallel Processor Design"
 
-## 🧠 ทดสอบความเข้าใจ (Concept Check)
+## 🧠 Concept Check
 
 <details>
 <summary>1. ทำไม Overhead ของหน่วยความจำจากการนับ Reference (Reference Counting) จึงถือว่า "น้อยมาก" ในบริบทของ CFD?</summary>
@@ -409,7 +409,7 @@ $$
 **คำตอบ:** จะต้องทำให้จำนวนการอ้างอิง $r(p, t)$ มีค่าเท่ากับ 0 หลังจากทำการ `unref()` ($r(p, t^+) = 0$) ซึ่งเป็นสัญญาณบ่งบอกว่าไม่มีส่วนใดของโปรแกรมต้องการใช้ออบเจกต์นี้อีกต่อไป
 </details>
 
-## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+## 📖 เอกสารที่เกี่ยวข้อง
 
 *   **ก่อนหน้า:** [03_Internal_Mechanics.md](03_Internal_Mechanics.md) - กลไกภายในของการจัดการหน่วยความจำ
 *   **ถัดไป:** [05_Implementation_Mechanisms.md](05_Implementation_Mechanisms.md) - กลไกการนำไปใช้งานจริง

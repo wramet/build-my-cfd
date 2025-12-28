@@ -705,3 +705,54 @@ volScalarField divV = fvc::div(V);
 - [[07_4._Laplacian_Operations]] - การดำเนินการ Laplacian สำหรับ diffusion
 - [[08_🔧_Practical_Exercises]] - แบบฝึกหัดปฏิบัติเกี่ยวกับ divergence conservation
 - [[10_🎓_Key_Takeaways]] - สรุปประเด็นสำคัญของ vector calculus operations
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. ทำไม $\nabla \cdot U = 0$ จึงสำคัญสำหรับ incompressible flow?</b></summary>
+
+$\nabla \cdot U = 0$ คือ **continuity equation** สำหรับ incompressible flow:
+- หมายถึง **mass conservation** — ปริมาณที่ไหลเข้า = ปริมาณที่ไหลออก
+- ถ้าไม่เป็นศูนย์ → มวลถูกสร้างหรือหายไป = **ผลลัพธ์ผิด**
+
+ใน OpenFOAM ใช้ `fvc::div(phi)` ตรวจสอบ continuity error ทุก iteration
+
+</details>
+
+<details>
+<summary><b>2. ความแตกต่างระหว่าง `Gauss upwind` และ `Gauss linear` สำหรับ divSchemes คืออะไร?</b></summary>
+
+| Scheme | Order | ความแม่นยำ | ความเสถียร | ใช้เมื่อ |
+|--------|-------|------------|-----------|---------|
+| **Gauss upwind** | 1st | ต่ำ (diffusive) | สูงมาก | High Re, startup |
+| **Gauss linear** | 2nd | สูง | ต่ำ (oscillatory) | Laminar, DNS |
+
+**Recommendation:** ใช้ `Gauss linearUpwind grad(U)` สำหรับ balance ระหว่าง accuracy และ stability
+
+</details>
+
+<details>
+<summary><b>3. ใน momentum equation ทำไม convection term ใช้ `fvm::div` แต่ stress term ใช้ `fvc::div`?</b></summary>
+
+```cpp
+fvm::div(phi, U)  // Convection: U is unknown
+fvc::div(tau)     // Stress: tau is calculated from previous U
+```
+
+- **`fvm::div(phi, U)`**: U คือ unknown → ต้องเป็น **implicit** เพื่อ stability
+- **`fvc::div(tau)`**: τ คำนวณจาก U เก่า → เป็น **explicit** source term
+
+**Rule:** Unknown ใช้ `fvm::`, Known ใช้ `fvc::`
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Vector Calculus
+- **บทก่อนหน้า:** [03_Gradient_Operations.md](03_Gradient_Operations.md) — Gradient Operations
+- **บทถัดไป:** [05_Curl_and_Laplacian.md](05_Curl_and_Laplacian.md) — Curl และ Laplacian
+- **Common Pitfalls:** [06_Common_Pitfalls.md](06_Common_Pitfalls.md) — ข้อผิดพลาดที่พบบ่อย

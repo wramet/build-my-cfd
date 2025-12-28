@@ -1,6 +1,11 @@
 # Dimensioned Types - Pitfalls and Solutions
 
-ปัญหาที่พบบ่อยและวิธีแก้ไข
+ปัญหาที่พบบ่อยและวิธีแก้ไข — เรียนจากความผิดพลาดของคนอื่น
+
+> **ทำไมบทนี้สำคัญ?**
+> - **Error messages ของ OpenFOAM อ่านยาก** — บทนี้ช่วยแปล
+> - รู้ trap ที่พบบ่อย → หลีกเลี่ยงได้
+> - Debug เร็วขึ้นเมื่อเจอ dimension errors
 
 ---
 
@@ -188,7 +193,7 @@ if (a.dimensions() != b.dimensions())
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไม dimension error เกิดขึ้น?</b></summary>
@@ -210,7 +215,7 @@ if (a.dimensions() != b.dimensions())
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Engineering Benefits:** [06_Engineering_Benefits.md](06_Engineering_Benefits.md)

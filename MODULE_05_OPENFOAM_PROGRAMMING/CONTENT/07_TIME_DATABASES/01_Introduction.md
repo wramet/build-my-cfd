@@ -108,7 +108,7 @@ const volScalarField& T = mesh.lookupObject<volScalarField>("T");
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. loop() ทำอะไร?</b></summary>
@@ -131,7 +131,7 @@ const volScalarField& T = mesh.lookupObject<volScalarField>("T");
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Time Architecture:** [02_Time_Architecture.md](02_Time_Architecture.md)

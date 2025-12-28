@@ -369,3 +369,71 @@ Write --> Done[Data Saved]:::implicit
 
 > [!INFO] **สรุปการทำงาน**
 > การเรียกใช้ `runTime.write()` เพียงบรรทัดเดียวในโค้ด คือการสั่งให้ "ฐานข้อมูลออบเจกต์" ทั้งหมดทำการสำรองข้อมูลลงดิสก์อย่างเป็นระบบตามเงื่อนไขที่เราตั้งไว้
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. ทำไมต้องใช้ `IOobject::MUST_READ` และ `IOobject::AUTO_WRITE` เมื่อสร้าง field?</b></summary>
+
+**`IOobject::MUST_READ`:**
+- บังคับให้อ่านค่าจากไฟล์ (เช่น `0/p`) ระหว่างการสร้าง
+- ถ้าไฟล์ไม่มี → simulation จะหยุดพร้อม error
+
+**`IOobject::AUTO_WRITE`:**
+- บันทึกข้อมูลโดยอัตโนมัติเมื่อ `runTime.write()` ถูกเรียก
+- ไม่ต้องเขียน `p.write()` manually
+
+**ทางเลือกอื่น:**
+- `IOobject::NO_READ`: ไม่อ่าน (สำหรับ field ที่คำนวณขึ้นมา)
+- `IOobject::NO_WRITE`: ไม่บันทึก (สำหรับ intermediate fields)
+
+</details>
+
+<details>
+<summary><b>2. `p.oldTime()` ใช้ทำอะไร และทำไมต้องมี?</b></summary>
+
+**ใช้สำหรับ Temporal Discretization:**
+
+$$\frac{\partial p}{\partial t} \approx \frac{p^{n+1} - p^n}{\Delta t}$$
+
+- `p` = ค่าปัจจุบัน ($p^{n+1}$)
+- `p.oldTime()` = ค่าเวลาก่อนหน้า ($p^n$)
+- `p.oldTime().oldTime()` = ค่าเวลาก่อนหน้า 2 ขั้น ($p^{n-1}$)
+
+**ตัวอย่าง:**
+```cpp
+scalarField ddt = (p - p.oldTime()) / runTime.deltaT();
+```
+
+</details>
+
+<details>
+<summary><b>3. ทำไม OpenFOAM ใช้ "Reference-Based Design" สำหรับ mesh?</b></summary>
+
+**ประโยชน์:**
+
+| Aspect | Reference-Based | Copy-Based |
+|--------|-----------------|------------|
+| **Memory** | ประหยัดมาก | ใช้เยอะ |
+| **Sync** | อัตโนมัติ | ต้อง manual |
+| **Parallel** | รองรับ decomposition | ซับซ้อน |
+
+**ตัวอย่าง:**
+```cpp
+const fvMesh& mesh = p.mesh();  // Reference ไม่ใช่ copy
+```
+
+ฟิลด์หลายร้อยตัวสามารถอ้างอิง mesh เดียวกันได้โดยไม่ต้อง copy
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Time Databases
+- **บทก่อนหน้า:** [03_Object_Registry.md](03_Object_Registry.md) — Object Registry
+- **บทถัดไป:** [05_Design_Patterns.md](05_Design_Patterns.md) — Design Patterns
+- **Time Architecture:** [02_Time_Architecture.md](02_Time_Architecture.md) — สถาปัตยกรรมเวลา

@@ -1,6 +1,11 @@
 # Dimensioned Types - Summary and Exercises
 
-สรุปและแบบฝึกหัด
+สรุปและแบบฝึกหัด — ฝึกทำเพื่อเข้าใจจริง
+
+> **ทำไมต้องทำ Exercises?**
+> - อ่านอย่างเดียวไม่พอ — **ต้องเขียน code เอง**
+> - ฝึก dimension calculations จนคล่อง
+> - เตรียมพร้อมสำหรับ real-world usage
 
 ---
 
@@ -132,7 +137,7 @@ Re = `[M L^-3][L T^-1][L][M^-1 L T] = [1]` = dimless ✓
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไม Re ต้องเป็น dimless?</b></summary>
@@ -156,7 +161,7 @@ dimensionedScalar nu(dict.lookup("nu"));
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Pitfalls:** [05_Pitfalls_and_Solutions.md](05_Pitfalls_and_Solutions.md)

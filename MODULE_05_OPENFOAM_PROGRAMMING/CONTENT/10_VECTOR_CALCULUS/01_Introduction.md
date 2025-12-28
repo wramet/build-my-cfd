@@ -387,3 +387,49 @@ laplacianSchemes
 ---
 
 **การเชี่ยวชาญการดำเนินการแคลคูลัสเวกเตอร์เหล่านี้เป็นสิ่งจำเป็นสำหรับการสร้างการจำลอง CFD ที่แม่นยำ เสถียร และมีประสิทธิภาพใน OpenFOAM** แต่ละตัวดำเนินการแปลงกฎทางฟิสิกส์ให้เป็นรูปแบบดิสครีตที่คำนวณได้ ในขณะที่ยังคงรักษาคุณสมบัติการอนุรักษ์พื้นฐานที่ควบคุมพลศาสตร์ของไหล
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. Gradient operator ($\nabla \phi$) ทำหน้าที่อะไรและให้ผลลัพธ์เป็นอะไร?</b></summary>
+
+**Gradient** คำนวณ **อัตราการเปลี่ยนแปลงเชิงพื้นที่** ของ field:
+- **Scalar field** → **Vector field** (ทิศทางที่มีความชันสูงสุด)
+- **Vector field** → **Tensor field** (velocity gradient tensor)
+
+ตัวอย่าง: `fvc::grad(p)` คำนวณ pressure gradient ซึ่งเป็นแรงขับเคลื่อนในสมการโมเมนตัม
+
+</details>
+
+<details>
+<summary><b>2. ทำไม zero divergence ($\nabla \cdot U = 0$) จึงสำคัญสำหรับ incompressible flow?</b></summary>
+
+**Zero divergence** หมายความว่า **ปริมาตรของ fluid parcel คงที่** → ของไหลไม่สามารถ compress หรือ expand ได้ในทุกจุด
+
+ใน OpenFOAM:
+- ใช้ `fvc::div(U)` ตรวจสอบว่า velocity field สอดคล้องกับ continuity equation
+- ค่าที่ไม่เป็นศูนย์หมายถึง **mass conservation error**
+
+</details>
+
+<details>
+<summary><b>3. Laplacian operator ($\nabla^2 \phi$) แสดงถึงกระบวนการทางฟิสิกส์อะไร?</b></summary>
+
+**Laplacian** แสดงถึง **diffusion (การแพร่)** — กระบวนการที่ปริมาณกระจายตัวจากที่ที่มีความเข้มข้นสูงไปต่ำ
+
+ตัวอย่าง:
+- **Heat conduction:** `fvc::laplacian(DT, T)` → การนำความร้อน
+- **Viscous diffusion:** `fvm::laplacian(nu, U)` → ความหนืดในสมการ Navier-Stokes
+- **Pressure Poisson:** `fvm::laplacian(rUA, p)` → แก้สมการความดัน
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Vector Calculus
+- **บทถัดไป:** [02_fvc_vs_fvm.md](02_fvc_vs_fvm.md) — เปรียบเทียบ fvc และ fvm อย่างละเอียด
+- **Gradient Operations:** [03_Gradient_Operations.md](03_Gradient_Operations.md) — การดำเนินการ Gradient

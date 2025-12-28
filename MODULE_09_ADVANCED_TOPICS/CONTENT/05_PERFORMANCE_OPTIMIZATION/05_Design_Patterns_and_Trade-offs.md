@@ -78,7 +78,7 @@ protected:
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Virtual overhead เท่าไหร่?</b></summary>
@@ -100,7 +100,7 @@ protected:
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Errors:** [06_Common_Errors_and_Debugging.md](06_Common_Errors_and_Debugging.md)

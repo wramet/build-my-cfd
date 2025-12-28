@@ -113,7 +113,7 @@ scalar avgVal = average(field);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. DimensionedField vs GeometricField?</b></summary>
@@ -135,7 +135,7 @@ scalar avgVal = average(field);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Dimensional Checking:** [04_Dimensional_Checking.md](04_Dimensional_Checking.md)

@@ -934,3 +934,53 @@ $$\Delta t \leq \frac{\Delta x^2}{2\Gamma}$$
 - **การผสมผสาน** ทั้งสองแบบให้ผลลัพธ์ที่ดีที่สุดในการจำลอง CFD ที่ซับซ้อน
 
 การเข้าใจความแตกต่างนี้เป็นพื้นฐานสำคัญในการพัฒนา solver ที่มีประสิทธิภาพและเสถียรสำหรับปัญหา CFD ที่หลากหลาย
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. เมื่อใดควรใช้ `fvm::` แทน `fvc::`?</b></summary>
+
+ใช้ **`fvm::`** เมื่อ:
+- ตัวแปรนั้นคือ **Unknown ที่กำลังหา** (เช่น T, U, p ใหม่)
+- ต้องการ **Implicit treatment** เพื่อความเสถียร
+- แก้สมการ **diffusion** หรือ **time derivative**
+
+ตัวอย่าง: `fvm::laplacian(DT, T)` → สร้างเมทริกซ์สำหรับหาค่า T ใหม่
+
+</details>
+
+<details>
+<summary><b>2. ทำไม `fvm::` จึงเสถียรกว่า `fvc::`?</b></summary>
+
+**`fvm::`** สร้าง **coupled system** ที่รวมค่า future (unknown) ไว้ในเมทริกซ์:
+- ค่าใหม่อยู่ทั้งสองฝั่งของสมการ → **Implicit scheme**
+- ไม่มีข้อจำกัด CFL → ใช้ time step ใหญ่ได้
+
+**`fvc::`** คำนวณจากค่าปัจจุบัน (known):
+- ต้องปฏิบัติตามเงื่อนไข **CFL** (Courant-Friedrichs-Lewy)
+- $\Delta t \leq \frac{\Delta x}{|u|_{max}}$ สำหรับ convection
+
+</details>
+
+<details>
+<summary><b>3. ในสมการ `UEqn = fvm::ddt(U) + fvm::div(phi, U) == -fvc::grad(p)` ทำไม grad(p) ใช้ `fvc::`?</b></summary>
+
+เพราะ **p (pressure)** เป็นค่าที่รู้แล้วจาก previous iteration:
+1. เราไม่ได้แก้หาค่า p ในสมการ momentum
+2. ต้องการคำนวณ gradient ของ p **ทันที** เป็น source term
+3. ไม่ต้องสร้างเมทริกซ์สำหรับ p
+
+**Rule:** ใช้ `fvm::` สำหรับ unknown (U), ใช้ `fvc::` สำหรับ known (p)
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Vector Calculus
+- **บทก่อนหน้า:** [01_Introduction.md](01_Introduction.md) — บทนำ
+- **บทถัดไป:** [03_Gradient_Operations.md](03_Gradient_Operations.md) — การดำเนินการ Gradient
+- **Divergence:** [04_Divergence_Operations.md](04_Divergence_Operations.md) — การดำเนินการ Divergence

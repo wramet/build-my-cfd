@@ -248,7 +248,7 @@ private:
 - **Abstraction layers**: ชั้นนามธรรมที่แยกฟิสิกส์จากการนำไปใช้
 - **Design philosophy**: ปรัชญาการออกแบบที่เน้นความง่ายในการใช้งาน
 
-## 🧠 ทดสอบความเข้าใจ (Concept Check)
+## 🧠 Concept Check
 
 <details>
 <summary>1. `internalField_` เก็บข้อมูลอะไร และอยู่ที่ตำแหน่งใดของ Mesh?</summary>
@@ -262,7 +262,7 @@ private:
 **คำตอบ:** 7 หน่วยฐาน (Base Units) ตามระบบ SI ได้แก่ Mass, Length, Time, Temperature, Quantity, Current, Luminous Intensity
 </details>
 
-## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+## 📖 เอกสารที่เกี่ยวข้อง
 
 *   **ก่อนหน้า:** [02_Template_Syntax.md](02_Template_Syntax.md) - ไวยากรณ์ Template
 *   **ถัดไป:** [04_Instantiation_and_Specialization.md](04_Instantiation_and_Specialization.md) - การสร้าง Instance และการทำ Specialization

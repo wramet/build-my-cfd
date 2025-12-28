@@ -118,7 +118,7 @@ volScalarField T
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. dimensions ใน OpenFOAM มีกี่ตัว?</b></summary>
@@ -140,7 +140,7 @@ volScalarField T
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Arithmetic:** [03_Dimension_Arithmetic.md](03_Dimension_Arithmetic.md)

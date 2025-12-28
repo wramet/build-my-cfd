@@ -110,7 +110,7 @@ while (runTime.loop())
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไม Factory + Strategy ทำงานด้วยกันได้ดี?</b></summary>
@@ -132,7 +132,7 @@ while (runTime.loop())
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Performance:** [05_Performance_Analysis.md](05_Performance_Analysis.md)

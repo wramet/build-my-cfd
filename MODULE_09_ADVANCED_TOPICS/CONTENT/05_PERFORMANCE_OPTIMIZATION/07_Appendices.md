@@ -66,7 +66,7 @@ valgrind --leak-check=full solver
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. เมื่อไหร่ควร profile?</b></summary>
@@ -88,6 +88,6 @@ valgrind --leak-check=full solver
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)

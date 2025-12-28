@@ -217,7 +217,7 @@ functions
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. objectRegistry ทำหน้าที่อะไร?</b></summary>
@@ -240,7 +240,7 @@ functions
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **IOobject:** [02_IOobject.md](02_IOobject.md)

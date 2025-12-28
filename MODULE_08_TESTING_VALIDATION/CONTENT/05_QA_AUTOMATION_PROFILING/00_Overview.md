@@ -272,3 +272,11 @@ J --> A
    <summary>เฉลย</summary>
    <b>ตอบ:</b> ช่วยหา **Memory Errors** เช่น Memory Leak (จองแล้วไม่คืน), Access Out of Bounds (เขียนเกินขนาด array), และ Uninitialized Variables ซึ่งเป็นปัญหาที่พบบ่อยและแก้ยากใน C++ เพราะบางครั้งโปรแกรมไม่ Crash ทันที
    </details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **บทถัดไป:** [01_Introduction.md](01_Introduction.md) — Introduction
+- **QA Concepts:** [02_QA_Concepts.md](02_QA_Concepts.md) — แนวคิด QA
+- **Profiling:** [03_Profiling.md](03_Profiling.md) — การ Profiling

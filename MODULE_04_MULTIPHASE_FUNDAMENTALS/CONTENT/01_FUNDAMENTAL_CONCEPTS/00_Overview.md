@@ -2,9 +2,18 @@
 
 ภาพรวมพื้นฐาน Multiphase Flow
 
+> **ทำไมต้องเข้าใจพื้นฐาน Multiphase?**
+> - **ก่อนใช้ solver ต้องเข้าใจ physics** — dispersed vs separated flow เลือก solver ต่างกัน
+> - **Volume fraction (α)** เป็นหัวใจ — ถ้าไม่เข้าใจ α คุณตั้งค่า case ไม่ได้
+> - **Dimensionless numbers** บอกว่าใช้ model ไหน — Re, Eo, We
+
 ---
 
 ## Overview
+
+> **💡 Multiphase Flow = เมื่อของไหลชนิดเดียวไม่เพียงพอ**
+>
+> น้ำกับอากาศ, น้ำมันกับน้ำ, ฟองอากาศในน้ำ — ทุกอย่างต้องใช้วิธีที่ต่างจาก single-phase
 
 > **Multiphase flow** = การไหลที่มีมากกว่าหนึ่งเฟส (gas, liquid, solid) ไหลพร้อมกัน
 

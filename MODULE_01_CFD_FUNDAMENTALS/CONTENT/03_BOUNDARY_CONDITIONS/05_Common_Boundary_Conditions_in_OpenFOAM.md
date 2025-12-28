@@ -1,6 +1,11 @@
 # Common Boundary Conditions in OpenFOAM
 
-รายละเอียดของ BC ที่ใช้บ่อยพร้อม code examples
+รายละเอียดของ BC ที่ใช้บ่อยพร้อม code examples และเหตุผลการใช้งาน
+
+> **ทำไมต้องเข้าใจ BC แต่ละตัว?**
+> - BC ที่เลือกผิดอาจทำให้ simulation ล้มเหลวหรือให้ผลผิด
+> - แต่ละ BC มี **สมมติฐานทางกายภาพ** ที่ต้องเข้าใจ
+> - การรู้ options ทำให้เลือกได้เหมาะสมกับปัญหา
 
 ---
 
@@ -14,9 +19,11 @@
 inlet
 {
     type    fixedValue;
-    value   uniform (10 0 0);   // m/s
+    value   uniform (10 0 0);   // 10 m/s ในทิศ x
 }
 ```
+
+**ใช้เมื่อ:** รู้ velocity profile ที่ inlet
 
 ### noSlip
 
@@ -26,6 +33,10 @@ Shorthand สำหรับ fixedValue (0 0 0)
 wall { type noSlip; }
 ```
 
+**ทำไมใช้ noSlip?**
+- ของไหลจริง "ติด" ผนัง → U = 0 ที่ผิว
+- นี่คือ no-slip condition พื้นฐาน
+
 ### slip
 
 ไม่มี shear stress, ความเร็ว normal = 0
@@ -33,6 +44,12 @@ wall { type noSlip; }
 ```cpp
 symmetryWall { type slip; }
 ```
+
+**ใช้เมื่อ:**
+- Inviscid simulation (ไม่สนใจ viscosity)
+- Far-field boundary ที่ไม่ต้องการ friction
+
+**Physics:** $u_n = 0$, $\tau = 0$
 
 ### zeroGradient
 
@@ -42,18 +59,26 @@ Extrapolate จาก internal field
 outlet { type zeroGradient; }
 ```
 
+**ทำไมใช้ที่ outlet?**
+- สมมติ flow พัฒนาเต็มที่ (fully developed)
+- Profile ไม่เปลี่ยนแปลง → $\partial U/\partial n = 0$
+
 ### inletOutlet
 
-จัดการ backflow อัตโนมัติ
+จัดการ backflow อัตโนมัติ — **แนะนำสำหรับ outlet!**
 
 ```cpp
 outlet
 {
     type        inletOutlet;
-    inletValue  uniform (0 0 0);    // ใช้ถ้า flow กลับ
-    value       uniform (10 0 0);   // initial
+    inletValue  uniform (0 0 0);    // ใช้ถ้า flow กลับเข้า
+    value       uniform (10 0 0);   // initial guess
 }
 ```
+
+**ทำไมดีกว่า zeroGradient?**
+- zeroGradient ไม่จัดการ backflow → อาจ diverge
+- inletOutlet: ไหลออก = zeroGradient, ไหลเข้า = inletValue
 
 ### pressureInletVelocity
 
@@ -67,6 +92,8 @@ inlet
 }
 ```
 
+**ใช้เมื่อ:** รู้ pressure ไม่รู้ velocity (pressure-driven flow)
+
 ### freestreamVelocity
 
 Far-field สำหรับ external flow
@@ -79,6 +106,10 @@ farField
 }
 ```
 
+**ทำไมใช้สำหรับ external aero?**
+- Freestream = ห่างจาก body พอ → flow ไม่ถูกรบกวน
+- ปรับตัวตาม local flow direction
+
 ### movingWallVelocity
 
 ผนังเคลื่อนที่
@@ -90,6 +121,8 @@ belt
     value   uniform (1 0 0);
 }
 ```
+
+**ใช้เมื่อ:** Conveyor belt, rotating disk, car wheel on ground
 
 ---
 
@@ -107,6 +140,10 @@ outlet
 }
 ```
 
+**ทำไมใช้ที่ outlet?**
+- เป็น **reference point** สำหรับ pressure
+- ถ้าไม่มี reference → p สามารถ drift ได้ (Poisson equation)
+
 ### zeroGradient
 
 ปล่อยให้ p ปรับตัวตามธรรมชาติ
@@ -116,6 +153,10 @@ inlet { type zeroGradient; }
 wall  { type zeroGradient; }
 ```
 
+**ใช้เมื่อ:**
+- Inlet ที่กำหนด U แล้ว (ปล่อยให้ p คำนวณมา)
+- Wall ทั่วไป (ไม่มี pressure flux ผ่านผนัง)
+
 ### totalPressure
 
 กำหนด total pressure (รวม dynamic head)
@@ -124,10 +165,14 @@ wall  { type zeroGradient; }
 inlet
 {
     type    totalPressure;
-    p0      uniform 10000;  // Pa
+    p0      uniform 10000;  // Pa (total)
     gamma   1.4;            // สำหรับ compressible
 }
 ```
+
+**ใช้เมื่อ:** รู้ stagnation pressure
+
+**Physics:** $p_0 = p + \frac{1}{2}\rho|U|^2$
 
 ### freestreamPressure
 
@@ -141,9 +186,11 @@ farField
 }
 ```
 
+**ใช้คู่กับ:** `freestreamVelocity` สำหรับ external aero
+
 ### fixedFluxPressure
 
-รักษา mass flux ที่กำหนด
+รักษา mass flux ที่กำหนด — **สำหรับ buoyant flows**
 
 ```cpp
 wall
@@ -152,6 +199,10 @@ wall
     value   uniform 0;
 }
 ```
+
+**ทำไมใช้แทน zeroGradient?**
+- ถ้ามี body force (gravity): $\partial p/\partial n \neq 0$
+- `fixedFluxPressure` จัดการอัตโนมัติ
 
 ---
 
@@ -169,13 +220,17 @@ hotWall
 }
 ```
 
+**ใช้เมื่อ:** ผนังรักษาอุณหภูมิคงที่ (isothermal wall)
+
 ### zeroGradient
 
-ผนัง adiabatic
+ผนัง adiabatic (ไม่มี heat transfer)
 
 ```cpp
 insulated { type zeroGradient; }
 ```
+
+**Physics:** $\partial T/\partial n = 0$ → $q = 0$
 
 ### fixedGradient
 
@@ -189,21 +244,23 @@ heatedWall
 }
 ```
 
+**หมายเหตุ:** gradient = q/(k) ไม่ใช่ q โดยตรง
+
 ### externalWallHeatFlux
 
-Convective/radiative heat transfer
+Convective/radiative heat transfer — **ยืดหยุ่นที่สุด!**
 
 ```cpp
-// Coefficient mode (Newton's cooling)
+// Coefficient mode (Newton's cooling: q = h(T_wall - T_ambient))
 convWall
 {
     type    externalWallHeatFlux;
     mode    coefficient;
-    h       uniform 10;     // W/(m²·K)
-    Ta      uniform 300;    // K
+    h       uniform 10;     // W/(m²·K) - heat transfer coefficient
+    Ta      uniform 300;    // K - ambient temperature
 }
 
-// Power mode (fixed total heat)
+// Power mode (กำหนด total heat)
 heater
 {
     type    externalWallHeatFlux;
@@ -211,7 +268,7 @@ heater
     Q       100;            // W total
 }
 
-// Flux mode
+// Flux mode (กำหนด heat flux)
 fluxWall
 {
     type    externalWallHeatFlux;
@@ -219,6 +276,10 @@ fluxWall
     q       uniform 5000;   // W/m²
 }
 ```
+
+**ทำไมดีกว่า fixedGradient?**
+- ใช้ h และ T_ambient โดยตรง (intuitive)
+- รองรับหลาย modes
 
 ---
 
@@ -231,7 +292,7 @@ fluxWall
 inlet
 {
     type    fixedValue;
-    value   uniform 0.1;    // m²/s²
+    value   uniform 0.1;    // m²/s² (ดูสูตรคำนวณด้านล่าง)
 }
 
 // epsilon (dissipation rate)
@@ -251,10 +312,14 @@ inlet
 // nut (turbulent viscosity)
 inlet
 {
-    type    calculated;
+    type    calculated;     // คำนวณจาก k และ ε/ω
     value   uniform 0;
 }
 ```
+
+**ทำไม nut ใช้ calculated?**
+- $\nu_t = C_\mu \frac{k^2}{\varepsilon}$ หรือ $\nu_t = \frac{k}{\omega}$
+- คำนวณจาก k และ ε/ω อัตโนมัติ
 
 ### At Wall (Wall Functions)
 
@@ -273,11 +338,17 @@ wall
 {
     type    nutkWallFunction;
     value   uniform 0;
-    Cmu     0.09;
-    kappa   0.41;
-    E       9.8;
+    Cmu     0.09;     // Model constant
+    kappa   0.41;     // von Karman constant
+    E       9.8;      // Log-law constant
 }
 ```
+
+**ทำไมใช้ Wall Functions?**
+- ไม่ต้อง resolve viscous sublayer (y+ < 5)
+- ประหยัด cells ใกล้ผนังมหาศาล
+
+**ต้องมี y+ ในช่วง 30-300!**
 
 ### At Outlet
 
@@ -286,17 +357,23 @@ wall
 outlet { type zeroGradient; }
 ```
 
+**ทำไม?** ปล่อยให้ turbulent quantities ไหลออกอิสระ
+
 ---
 
 ## Special BCs
 
 ### symmetry
 
-สมมาตร
+สมมาตร — ลดขนาดโดเมนครึ่งหนึ่ง
 
 ```cpp
 symmetryPlane { type symmetry; }
 ```
+
+**Physics:**
+- $u_n = 0$ (no flow across symmetry)
+- $\partial \phi / \partial n = 0$ for scalars
 
 ### cyclic
 
@@ -307,6 +384,8 @@ left  { type cyclic; }
 right { type cyclic; }
 ```
 
+**ใช้เมื่อ:** Flow เป็น pattern ซ้ำๆ (pipe, heat exchanger)
+
 ### empty
 
 2D simulation (ไม่มี flux ในทิศทางนั้น)
@@ -314,6 +393,8 @@ right { type cyclic; }
 ```cpp
 frontAndBack { type empty; }
 ```
+
+**ใช้เมื่อ:** Mesh มี 1 cell ในทิศทาง z (pseudo-2D)
 
 ### wedge
 
@@ -324,6 +405,8 @@ wedgeFront { type wedge; }
 wedgeBack  { type wedge; }
 ```
 
+**ใช้เมื่อ:** ปัญหา axisymmetric (pipe, nozzle, jet)
+
 ---
 
 ## BC Estimation Formulas
@@ -332,19 +415,24 @@ wedgeBack  { type wedge; }
 
 $$I = \frac{u'}{U} \approx 0.01 - 0.10$$
 
+- **1-5%:** Low turbulence (clean wind tunnel)
+- **5-10%:** Moderate turbulence (internal flows)
+
 ### Turbulent Kinetic Energy
 
 $$k = \frac{3}{2}(U \cdot I)^2$$
+
+**ตัวอย่าง:** U = 10 m/s, I = 5% → k = 1.5 × (10 × 0.05)² = 0.375 m²/s²
 
 ### Dissipation Rate (epsilon)
 
 $$\varepsilon = C_\mu^{3/4} \frac{k^{3/2}}{l}$$
 
-โดย $l \approx 0.07 D$ (hydraulic diameter)
+โดย $l \approx 0.07 D$ (hydraulic diameter), $C_\mu = 0.09$
 
 ### Specific Dissipation (omega)
 
-$$\omega = \frac{\varepsilon}{C_\mu k}$$
+$$\omega = \frac{\varepsilon}{C_\mu k} = \frac{k^{1/2}}{C_\mu^{1/4} l}$$
 
 ---
 
@@ -353,20 +441,45 @@ $$\omega = \frac{\varepsilon}{C_\mu k}$$
 <details>
 <summary><b>1. inletOutlet กับ pressureInletOutletVelocity ต่างกันอย่างไร?</b></summary>
 
-- `inletOutlet`: ใช้ inletValue ถ้า flow reverse
-- `pressureInletOutletVelocity`: คำนวณ U จาก pressure ถ้า flow reverse
+| | inletOutlet | pressureInletOutletVelocity |
+|-|-------------|----------------------------|
+| Flow ออก | zeroGradient | zeroGradient |
+| Flow กลับ | ใช้ `inletValue` ที่กำหนด | **คำนวณ U จาก pressure** |
+
+**ใช้ pressureInletOutletVelocity เมื่อ:** ต้องการให้ backflow มี direction ถูกต้องตาม pressure
 </details>
 
 <details>
 <summary><b>2. totalPressure ใช้เมื่อไหร่?</b></summary>
 
-เมื่อต้องการรักษา stagnation pressure คงที่ (เช่น inlet ที่มี varying velocity) โดย $p_0 = p + \frac{1}{2}\rho|U|^2$
+**ใช้เมื่อ:** ต้องการรักษา stagnation pressure คงที่ ที่ inlet
+
+**Physics:** $p_0 = p + \frac{1}{2}\rho|U|^2$
+
+**ตัวอย่าง:** Fan inlet, compressor inlet ที่รู้ total pressure แต่ไม่รู้ velocity
 </details>
 
 <details>
 <summary><b>3. ทำไม nut ใช้ calculated ที่ inlet?</b></summary>
 
-เพราะ $\nu_t$ คำนวณจาก k และ ε (หรือ ω) ตาม turbulence model: $\nu_t = C_\mu \frac{k^2}{\varepsilon}$
+**เหตุผล:** $\nu_t$ ไม่ใช่ตัวแปรอิสระ — มันคำนวณจาก k และ ε/ω
+
+**สูตร:**
+- k-ε: $\nu_t = C_\mu \frac{k^2}{\varepsilon}$
+- k-ω: $\nu_t = \frac{k}{\omega}$
+
+ถ้ากำหนด k และ ε/ω แล้ว → nut คำนวณอัตโนมัติ
+</details>
+
+<details>
+<summary><b>4. fixedFluxPressure กับ zeroGradient ต่างกันอย่างไร?</b></summary>
+
+| | zeroGradient | fixedFluxPressure |
+|-|--------------|-------------------|
+| Physics | $\partial p/\partial n = 0$ | $\partial p/\partial n = \rho \mathbf{g} \cdot \mathbf{n}$ |
+| ใช้เมื่อ | ไม่มี body force | มี gravity หรือ buoyancy |
+
+**ถ้าใช้ผิด:** Buoyant flow จะมี artifacts ที่ผนัง
 </details>
 
 ---
@@ -375,3 +488,4 @@ $$\omega = \frac{\varepsilon}{C_\mu k}$$
 
 - **บทก่อนหน้า:** [04_Mathematical_Formulation.md](04_Mathematical_Formulation.md) — สูตรทางคณิตศาสตร์
 - **บทถัดไป:** [06_Advanced_Boundary_Conditions.md](06_Advanced_Boundary_Conditions.md) — BC ขั้นสูง
+- **คู่มือเลือก BC:** [03_Selection_Guide_Which_BC_to_Use.md](03_Selection_Guide_Which_BC_to_Use.md)

@@ -112,7 +112,7 @@ Combines yield stress + power law
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. n < 1 หมายความว่าอะไร?</b></summary>
@@ -134,7 +134,7 @@ Combines yield stress + power law
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Architecture:** [03_OpenFOAM_Architecture.md](03_OpenFOAM_Architecture.md)

@@ -131,7 +131,7 @@ tmp<volScalarField> computeField(const volScalarField& T)
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Template instantiation เกิดเมื่อไหร่?</b></summary>
@@ -153,7 +153,7 @@ tmp<volScalarField> computeField(const volScalarField& T)
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Template Syntax:** [02_Template_Syntax.md](02_Template_Syntax.md)

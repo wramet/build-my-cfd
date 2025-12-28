@@ -121,7 +121,7 @@ postProcess -func 'Qdot'
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Ydefault ใช้ทำอะไร?</b></summary>
@@ -144,7 +144,7 @@ postProcess -func 'Qdot'
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Chemkin:** [05_Chemkin_Parsing.md](05_Chemkin_Parsing.md)

@@ -1,12 +1,20 @@
 # Time & Databases - Overview
 
-ภาพรวม Time และ Object Registry
+ภาพรวม Time และ Object Registry — ศูนย์กลางการควบคุม simulation
+
+> **ทำไม Time & Databases สำคัญ?**
+> - **Time class ควบคุมทุกอย่าง** — deltaT, write, loop
+> - **Object Registry** = วิธี lookup fields by name
+> - เข้าใจ Time = เขียน custom solver ได้
 
 ---
 
 ## Overview
 
-> **Time** = Central controller for simulation time, I/O, and object management
+> **💡 Time = Controller + Database**
+>
+> - **Controller:** deltaT, endTime, loop()
+> - **Database:** objectRegistry สำหรับ lookup fields
 
 ```mermaid
 flowchart TD
@@ -101,7 +109,7 @@ if (mesh.foundObject<volScalarField>("T")) { ... }
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. objectRegistry คืออะไร?</b></summary>
@@ -123,7 +131,7 @@ if (mesh.foundObject<volScalarField>("T")) { ... }
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Introduction:** [01_Introduction.md](01_Introduction.md)
 - **Object Registry:** [03_Object_Registry.md](03_Object_Registry.md)

@@ -69,7 +69,7 @@ wait
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. set -e ทำอะไร?</b></summary>
@@ -79,6 +79,6 @@ wait
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)

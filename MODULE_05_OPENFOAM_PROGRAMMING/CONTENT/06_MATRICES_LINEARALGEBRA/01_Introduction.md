@@ -1,12 +1,20 @@
 # Matrices & Linear Algebra - Introduction
 
-บทนำ Matrices และ Linear Algebra ใน OpenFOAM
+บทนำ Matrices และ Linear Algebra ใน OpenFOAM — PDE → Ax = b
+
+> **ทำไมต้องเรียนบทนี้?**
+> - เข้าใจว่า **PDE กลายเป็น matrix** อย่างไร
+> - รู้ความแตกต่าง **fvm:: vs fvc::**
+> - เตรียมพร้อมสำหรับ custom solver development
 
 ---
 
 ## Overview
 
-> **fvMatrix** = Discretized PDE as linear system Ax = b
+> **💡 fvMatrix = Discretized PDE**
+>
+> `fvm::ddt(T) + fvm::div(phi, T) == fvm::laplacian(alpha, T)`
+> แปลงเป็น `Ax = b` ที่ linear solver แก้
 
 ---
 
@@ -128,7 +136,7 @@ scalar residual = perf.initialResidual();
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. fvm vs fvc ต่างกันอย่างไร?</b></summary>
@@ -151,7 +159,7 @@ scalar residual = perf.initialResidual();
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **fvMatrix:** [03_fvMatrix_Architecture.md](03_fvMatrix_Architecture.md)

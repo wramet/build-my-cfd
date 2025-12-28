@@ -1,12 +1,19 @@
 # Implementation Mechanisms
 
-กลไกการทำงานภายในของ Dimensioned Types
+กลไกการทำงานภายในของ Dimensioned Types — เบื้องหลัง Dimension Checking
+
+> **ทำไมต้องรู้ Implementation?**
+> - เข้าใจ **rules** ของ dimension operations (เมื่อไหร่บวก/คูณ dimensions)
+> - Debug errors ได้เร็วขึ้น
+> - เขียน custom dimensioned types ได้
 
 ---
 
 ## Overview
 
-> Dimension checking ทำงานผ่าน **operator overloading** และ **runtime validation**
+> **💡 Dimension checking = Operator Overloading + Runtime Validation**
+>
+> ทุกครั้งที่ `+`, `-`, `*`, `/` → OpenFOAM ตรวจสอบ dimensions ก่อน
 
 ---
 
@@ -162,7 +169,7 @@ typedef dimensioned<sphericalTensor> dimensionedSphericalTensor;
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Addition ต้อง dimension เหมือนกันไหม?</b></summary>
@@ -184,7 +191,7 @@ typedef dimensioned<sphericalTensor> dimensionedSphericalTensor;
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Template Metaprogramming:** [04_Template_Metaprogramming.md](04_Template_Metaprogramming.md)

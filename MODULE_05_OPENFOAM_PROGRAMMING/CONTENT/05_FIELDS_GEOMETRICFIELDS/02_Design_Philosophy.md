@@ -190,7 +190,7 @@ volVectorField gradP = tResult();
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไม internal field ต้อง contiguous?</b></summary>
@@ -212,7 +212,7 @@ volVectorField gradP = tResult();
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Field Types:** [../08_FIELD_TYPES/00_Overview.md](../08_FIELD_TYPES/00_Overview.md)

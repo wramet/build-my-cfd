@@ -94,7 +94,7 @@ Cmu_ = coeffDict().getOrDefault<scalar>("Cmu", 0.09);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไมใช้ inheritance?</b></summary>
@@ -116,7 +116,7 @@ Cmu_ = coeffDict().getOrDefault<scalar>("Cmu", 0.09);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Folder Organization:** [03_Folder_and_File_Organization.md](03_Folder_and_File_Organization.md)

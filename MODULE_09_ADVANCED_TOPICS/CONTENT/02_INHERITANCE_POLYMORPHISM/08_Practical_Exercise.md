@@ -111,7 +111,7 @@ source
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Pure virtual vs virtual?</b></summary>
@@ -134,7 +134,7 @@ source
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **RTS:** [04_Run_Time_Selection_System.md](04_Run_Time_Selection_System.md)

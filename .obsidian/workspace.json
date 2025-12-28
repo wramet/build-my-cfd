@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "MODULE_06_ADVANCED_PHYSICS/CONTENT/01_COMPLEX_MULTIPHASE_PHENOMENA/02_Cavitation_Modeling.md",
+                "file": "lecture/2025-12-27_OpenFOAM_Discretization_and_Configuration.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "02_Cavitation_Modeling"
+              "title": "2025-12-27_OpenFOAM_Discretization_and_Configuration"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "MODULE_06_ADVANCED_PHYSICS/CONTENT/01_COMPLEX_MULTIPHASE_PHENOMENA/02_Cavitation_Modeling.md",
+                "file": "lecture/2025-12-27_OpenFOAM_Discretization_and_Configuration.md",
                 "collapseAll": true,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for 02_Cavitation_Modeling"
+              "title": "Backlinks for 2025-12-27_OpenFOAM_Discretization_and_Configuration"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "MODULE_06_ADVANCED_PHYSICS/CONTENT/01_COMPLEX_MULTIPHASE_PHENOMENA/02_Cavitation_Modeling.md",
+                "file": "lecture/2025-12-27_OpenFOAM_Discretization_and_Configuration.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of 02_Cavitation_Modeling"
+              "title": "Outline of 2025-12-27_OpenFOAM_Discretization_and_Configuration"
             }
           }
         ],
@@ -186,6 +186,15 @@
   },
   "active": "3e4252933a4c0c28",
   "lastOpenFiles": [
+    "MODULE_02_MESHING_AND_CASE_SETUP/CONTENT/01_MESHING_FUNDAMENTALS/01_Introduction_to_Meshing.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/01_Introduction.md",
+    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/00_Overview.md",
+    "lecture/2025-12-27_OpenFOAM_Discretization_and_Configuration.md",
+    "MODULE_01_CFD_FUNDAMENTALS/00_Navigator.md",
+    "TBD/Obsidian_rule.md",
+    "TBD/obsidian_context_bridge.log",
+    "TBD/content_bridge.py",
+    "MODULE_06_ADVANCED_PHYSICS/CONTENT/01_COMPLEX_MULTIPHASE_PHENOMENA/02_Cavitation_Modeling.md",
     "MODULE_09_ADVANCED_TOPICS/00_Navigator.md",
     "MODULE_08_TESTING_VALIDATION/00_Navigator.md",
     "MODULE_06_ADVANCED_PHYSICS/00_Navigator.md",
@@ -200,15 +209,10 @@
     "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/11_TENSOR_ALGEBRA/05_Eigen_Decomposition.md.tmp.43962.1766906024080",
     "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/11_TENSOR_ALGEBRA/05_Eigen_Decomposition.md.tmp.43962.1766905995104",
     "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/11_TENSOR_ALGEBRA/05_Eigen_Decomposition.md.tmp.43962.1766905969552",
-    "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/11_TENSOR_ALGEBRA/05_Eigen_Decomposition.md.tmp.43962.1766905960766",
-    "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/11_TENSOR_ALGEBRA/05_Eigen_Decomposition.md.tmp.43962.1766905950252",
     "MODULE_01_CFD_FUNDAMENTALS/README.md",
     "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/04_Dimensionless_Numbers.md",
     "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/03_Equation_of_State.md",
     "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/02_Conservation_Laws.md",
-    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/01_Introduction.md",
-    "lecture/2025-12-27_OpenFOAM_Discretization_and_Configuration.md",
-    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/00_Overview.md",
     "Improve OpenFOAM Readability.md",
     "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/09_Exercises.md",
     "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/06_Boundary_Conditions.md",
@@ -218,10 +222,6 @@
     "MODULE_02_MESHING_AND_CASE_SETUP/00_Navigator.md",
     "MODULE_02_MESHING_AND_CASE_SETUP/README.md",
     "MODULE_02_MESHING_AND_CASE_SETUP/CONTENT/01_MESHING_FUNDAMENTALS/02_OpenFOAM_Mesh_Structure.md",
-    "MODULE_02_MESHING_AND_CASE_SETUP/CONTENT/01_MESHING_FUNDAMENTALS/01_Introduction_to_Meshing.md",
-    "daily/2025-12-27.md",
-    "MODULE_08_TESTING_VALIDATION/CONTENT/01_VERIFICATION_FUNDAMENTALS/00_Overview.md",
-    "TBD/staging_reviewed.md",
     "img/03/Pasted image 20251223200317.png",
     "img/03/Pasted image 20251223201626.png",
     "img/03/Pasted image 20251223200332.png",

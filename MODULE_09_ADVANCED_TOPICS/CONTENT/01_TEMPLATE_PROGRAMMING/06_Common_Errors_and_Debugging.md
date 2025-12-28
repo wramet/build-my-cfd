@@ -133,7 +133,7 @@ func<double>(1, 1.0);  // Explicit type
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. เมื่อไหร่ต้องใช้ typename?</b></summary>
@@ -155,7 +155,7 @@ func<double>(1, 1.0);  // Explicit type
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Exercise:** [07_Practical_Exercise.md](07_Practical_Exercise.md)

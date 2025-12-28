@@ -2,6 +2,11 @@
 
 รากฐานทางคณิตศาสตร์ของการเชื่อมโยงความดัน-ความเร็ว
 
+> **ทำไมต้องเข้าใจ P-V Coupling?**
+> - **Incompressible NS ไม่มีสมการวิวัฒนาการ p** — ต้อง derive
+> - เข้าใจ **H-operator** = เข้าใจ solver code
+> - Rhie-Chow interpolation = ป้องกัน checkerboard
+
 ---
 
 ## The Problem

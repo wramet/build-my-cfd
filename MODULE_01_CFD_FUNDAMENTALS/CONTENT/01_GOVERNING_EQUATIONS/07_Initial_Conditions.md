@@ -1,6 +1,13 @@
 # Initial Conditions
 
-Initial Conditions (ICs) คือ **สถานะเริ่มต้นของ field ทั้งหมดที่เวลา $t=0$** กำหนดใน directory `0/` ค่าเริ่มต้นที่เหมาะสมช่วยให้ simulation ลู่เข้าได้เร็วขึ้นและมีเสถียรภาพ
+Initial Conditions (ICs) คือ **สถานะเริ่มต้นของ field ทั้งหมดที่เวลา $t=0$**
+
+> **ทำไม IC สำคัญ?**
+> - **Transient**: IC คือสภาพจริงที่ t=0 — ต้องถูกต้องเพราะกำหนดผลลัพธ์ทั้งหมด
+> - **Steady-state**: IC ที่ดี → ลู่เข้าเร็วกว่า
+> - ถ้า k, epsilon = 0 → **simulation crash**
+
+---
 
 ---
 

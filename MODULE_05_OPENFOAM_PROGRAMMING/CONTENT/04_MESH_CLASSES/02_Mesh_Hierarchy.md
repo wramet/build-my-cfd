@@ -1,10 +1,21 @@
 # Mesh Hierarchy
 
-ลำดับชั้นคลาส Mesh ใน OpenFOAM
+ลำดับชั้นคลาส Mesh ใน OpenFOAM — เข้าใจ Inheritance
+
+> **ทำไมบทนี้สำคัญ?**
+> - เข้าใจ **ทำไมมี 3 classes** (primitiveMesh → polyMesh → fvMesh)
+> - รู้ว่า **method ไหนอยู่ class ไหน**
+> - ใช้ API ได้ถูกต้อง
 
 ---
 
 ## Overview
+
+> **💡 Mesh Hierarchy = Separation of Concerns**
+>
+> - `primitiveMesh`: **Topology** — "connected to what?"
+> - `polyMesh`: + **Geometry** — "where are things?"
+> - `fvMesh`: + **FVM** — "how to discretize?"
 
 ```mermaid
 flowchart TD
@@ -175,7 +186,7 @@ constant/polyMesh/
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. primitiveMesh vs polyMesh ต่างกันอย่างไร?</b></summary>
@@ -199,7 +210,7 @@ Face indices `nInternalFaces()` ถึง `nFaces()-1`
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **primitiveMesh:** [03_primitiveMesh.md](03_primitiveMesh.md)

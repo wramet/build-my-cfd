@@ -220,7 +220,7 @@ conda env remove -n openfoam_py
 
 ---
 
-## 🧠 ตรวจสอบความเข้าใจ (Concept Check)
+## 🧠 Concept Check
 
 ### แบบฝึกหัดระดับง่าย (Easy)
 1. **True/False**: Miniconda มีขนาดไฟล์ติดตั้งใหญ่กว่า Anaconda
@@ -272,3 +272,12 @@ conda env remove -n openfoam_py
    - ความยืดหยุ่นในการจัดการเวอร์ชัน
    - ความปลอดภัย (ไม่ทำลาย System)
    - ความง่ายในการถอนการติดตั้ง
+
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Python Automation
+- **บทถัดไป:** [02_PyFoam_Fundamentals.md](02_PyFoam_Fundamentals.md) — พื้นฐาน PyFoam
+- **Data Analysis:** [03_Data_Analysis_with_Pandas.md](03_Data_Analysis_with_Pandas.md) — วิเคราะห์ข้อมูลด้วย Pandas

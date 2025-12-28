@@ -1,6 +1,11 @@
 # Mesh Classes - Common Pitfalls
 
-ปัญหาที่พบบ่อยกับ Mesh Classes
+ปัญหาที่พบบ่อยกับ Mesh Classes — เรียนจากความผิดพลาดของคนอื่น
+
+> **ทำไมบทนี้สำคัญ?**
+> - **ป้องกัน bugs ที่หายาก** — mesh errors มักจับยาก
+> - รู้ **traps ที่พบบ่อย** → หลีกเลี่ยงได้
+> - Debug เร็วขึ้นเมื่อเจอ mesh-related errors
 
 ---
 
@@ -165,7 +170,7 @@ T.map(newMesh);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไม boundary face ไม่มี neighbour?</b></summary>
@@ -187,7 +192,7 @@ T.map(newMesh);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Mesh Hierarchy:** [02_Mesh_Hierarchy.md](02_Mesh_Hierarchy.md)

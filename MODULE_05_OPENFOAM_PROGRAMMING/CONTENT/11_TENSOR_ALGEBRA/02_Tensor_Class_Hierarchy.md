@@ -410,3 +410,57 @@ D -->|"Yes"| E["sphericalTensor<br/>1 component<br/>11% memory"]:::implicit
 D -->|"No"| F["symmTensor<br/>6 components<br/>67% memory"]:::implicit
 ```
 > **Figure 2:** แผนผังการตัดสินใจเลือกคลาสเทนเซอร์ที่เหมาะสมตามคุณสมบัติความสมมาตรและความสม่ำเสมอในทุกทิศทาง (Isotropy) เพื่อลดโอเวอร์เฮดในการคำนวณ
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. ถ้าต้องการเก็บ Cauchy Stress Tensor ควรใช้คลาสใด และทำไม?</b></summary>
+
+ใช้ **`symmTensor`** เพราะ:
+- Cauchy stress tensor มีคุณสมบัติสมมาตร ($\tau_{ij} = \tau_{ji}$)
+- ประหยัดหน่วยความจำ **33%** (6 แทน 9 components)
+- OpenFOAM จะจัดการ symmetry โดยอัตโนมัติ
+
+```cpp
+volSymmTensorField sigma(...);  // Cauchy stress
+```
+
+</details>
+
+<details>
+<summary><b>2. ความแตกต่างระหว่าง `volTensorField` และ `volSymmTensorField` คืออะไร?</b></summary>
+
+| Aspect | `volTensorField` | `volSymmTensorField` |
+|--------|------------------|---------------------|
+| **Components** | 9 (full 3×3) | 6 (symmetric) |
+| **Memory** | มากกว่า 50% | ประหยัดกว่า |
+| **ใช้สำหรับ** | Velocity gradient $\nabla U$ | Stress, Strain rate |
+| **Symmetry** | ไม่มี | $T_{ij} = T_{ji}$ |
+
+**Rule:** ใช้ `symmTensor` เมื่อ physics requires symmetry
+
+</details>
+
+<details>
+<summary><b>3. เมื่อใดควรใช้ `sphericalTensor`?</b></summary>
+
+ใช้เมื่อ tensor เป็น **isotropic** (ค่าเท่ากันทุกทิศทาง):
+
+- **Pressure:** $p\mathbf{I}$ (hydrostatic pressure)
+- **Isotropic resistance:** ใน porous media
+- **Identity operations:** scaling ทุกทิศทางเท่ากัน
+
+**ข้อดี:** ประหยัดหน่วยความจำ **89%** (1 แทน 9 components)
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Tensor Algebra
+- **บทก่อนหน้า:** [01_Introduction.md](01_Introduction.md) — บทนำสู่ Tensor Algebra
+- **บทถัดไป:** [03_Storage_and_Symmetry.md](03_Storage_and_Symmetry.md) — การจัดเก็บและ Symmetry
+- **Operations:** [04_Tensor_Operations.md](04_Tensor_Operations.md) — การดำเนินการเทนเซอร์

@@ -127,7 +127,7 @@ addToRunTimeSelectionTable(...);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. RTS ทำงานอย่างไร?</b></summary>
@@ -149,7 +149,7 @@ addToRunTimeSelectionTable(...);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Patterns:** [05_Design_Patterns_in_Physics.md](05_Design_Patterns_in_Physics.md)

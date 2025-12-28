@@ -1,6 +1,11 @@
 # Containers & Memory - Summary and Exercises
 
-สรุปและแบบฝึกหัด
+สรุปและแบบฝึกหัด — ฝึกทำเพื่อเข้าใจจริง
+
+> **ทำไมต้องทำ Exercises?**
+> - อ่านอย่างเดียวไม่พอ — **ต้องเขียน code เอง**
+> - ฝึก `autoPtr`, `tmp`, `PtrList` จนคล่อง
+> - เตรียมพร้อมสำหรับ real-world usage
 
 ---
 
@@ -176,7 +181,7 @@ volScalarField& f = fields[0];
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. List vs DynamicList ต่างกันอย่างไร?</b></summary>
@@ -200,7 +205,7 @@ volScalarField& f = fields[0];
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Container System:** [03_Container_System.md](03_Container_System.md)

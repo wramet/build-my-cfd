@@ -1,6 +1,11 @@
 # Mesh Classes - Summary and Exercises
 
-สรุปและแบบฝึกหัด
+สรุปและแบบฝึกหัด — ฝึกทำเพื่อเข้าใจจริง
+
+> **ทำไมต้องทำ Exercises?**
+> - อ่านอย่างเดียวไม่พอ — **ต้องเขียน code เอง**
+> - ฝึก access mesh data จนคล่อง
+> - เตรียมพร้อมสำหรับ real solver development
 
 ---
 
@@ -134,7 +139,7 @@ Info << "Cell " << cellI << " has " << neighbours.size() << " neighbours" << end
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Internal vs boundary face ต่างกันอย่างไร?</b></summary>
@@ -159,7 +164,7 @@ label patchI = mesh.boundaryMesh().findPatchID("patchName");
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **fvMesh:** [05_fvMesh.md](05_fvMesh.md)

@@ -2,6 +2,11 @@
 
 Semi-Implicit Method for Pressure-Linked Equations สำหรับ Steady-state
 
+> **ทำไม SIMPLE สำคัญ?**
+> - **Algorithm หลักสำหรับ steady-state** — simpleFoam ใช้
+> - เข้าใจ under-relaxation = แก้ divergence ได้
+> - เป็นพื้นฐานของ PIMPLE
+
 ---
 
 ## Overview

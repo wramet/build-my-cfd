@@ -1,12 +1,19 @@
 # GeometricFields - Overview
 
-ภาพรวม GeometricField ใน OpenFOAM
+ภาพรวม GeometricField ใน OpenFOAM — หัวใจของ CFD Data
+
+> **ทำไม GeometricField สำคัญที่สุด?**
+> - **ทุก variable (p, U, T) คือ GeometricField**
+> - รวม Values + Mesh + Dimensions + BCs ในที่เดียว
+> - เข้าใจ GeometricField = เข้าใจ OpenFOAM data model
 
 ---
 
 ## Overview
 
-> **GeometricField** = Field + Mesh + Dimensions + Boundary Conditions
+> **💡 GeometricField = Field + Mesh + Dimensions + Boundary Conditions**
+>
+> ไม่ใช่แค่ตัวเลข แต่คือ "physical quantity บน mesh"
 
 ```mermaid
 flowchart TD
@@ -125,7 +132,7 @@ forAll(T.boundaryField(), patchI)
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. volScalarField vs surfaceScalarField?</b></summary>
@@ -149,7 +156,7 @@ forAll(T.boundaryField(), patchI)
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Introduction:** [01_Introduction.md](01_Introduction.md)
 - **Design:** [02_Design_Philosophy.md](02_Design_Philosophy.md)

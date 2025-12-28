@@ -556,3 +556,56 @@ fvScalarMatrix TEqn
 6. **ทดสอบความไวต่อ time step** เมื่อใช้การดำเนินการแบบ explicit
 7. **ติดตาม residuals** ของการลู่เข้าสำหรับ implicit solvers
 8. **พิจารณา trade-offs** ระหว่าง numerical diffusion และต้นทุนการคำนวณ
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. สรุป: เมื่อใดควรใช้ `fvc::` และเมื่อใดควรใช้ `fvm::`?</b></summary>
+
+| Situation | ใช้ | เหตุผล |
+|-----------|-----|--------|
+| ตัวแปรที่กำลังหา (unknown) | `fvm::` | Implicit → stable, สร้าง matrix |
+| ตัวแปรที่รู้ค่าแล้ว (known) | `fvc::` | Explicit → compute ทันที |
+| Diffusion term | `fvm::laplacian` | Avoid severe time step limit |
+| Source term จาก known field | `fvc::` | Direct evaluation |
+| Post-processing | `fvc::` | Need immediate result |
+
+**Golden Rule:** ถ้าตัวแปรอยู่ใน LHS ของสมการ → `fvm::`, ถ้าอยู่ใน RHS → `fvc::`
+
+</details>
+
+<details>
+<summary><b>2. Gauss theorem แปลง volume integral เป็นอะไร และทำไมจึงสำคัญ?</b></summary>
+
+**Gauss Theorem:**
+$$\int_V \nabla \cdot \mathbf{F} \, dV = \oint_S \mathbf{F} \cdot \mathbf{n} \, dA \approx \sum_f \mathbf{F}_f \cdot \mathbf{S}_f$$
+
+**ความสำคัญ:**
+1. แปลง **volume derivative** → **surface flux summation**
+2. **Conservation** ถูกบังคับอัตโนมัติ (flux ที่ออกจาก cell หนึ่ง = flux ที่เข้า cell ข้างเคียง)
+3. เป็นรากฐานของ **Finite Volume Method** ใน OpenFOAM
+
+</details>
+
+<details>
+<summary><b>3. ถ้า simulation diverge ทันที ควรตรวจสอบอะไรก่อน?</b></summary>
+
+**Checklist:**
+1. ✅ ตรวจสอบว่าใช้ `fvm::` สำหรับ diffusion และ convection terms หรือไม่
+2. ✅ ตรวจสอบ **dimensional consistency** (หน่วยของทุก term ตรงกัน)
+3. ✅ ใช้ `checkMesh` ตรวจสอบ mesh quality
+4. ✅ ลด time step หรือใช้ `adjustTimeStep yes` กับ `maxCo < 0.5`
+5. ✅ ตรวจสอบ boundary conditions ใน `0/` directory
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Vector Calculus
+- **บทก่อนหน้า:** [06_Common_Pitfalls.md](06_Common_Pitfalls.md) — ข้อผิดพลาดที่พบบ่อย
+- **fvc vs fvm:** [02_fvc_vs_fvm.md](02_fvc_vs_fvm.md) — เปรียบเทียบ Explicit และ Implicit
+- **Tensor Algebra:** [../11_TENSOR_ALGEBRA/00_Overview.md](../11_TENSOR_ALGEBRA/00_Overview.md) — หัวข้อถัดไป: Tensor Algebra

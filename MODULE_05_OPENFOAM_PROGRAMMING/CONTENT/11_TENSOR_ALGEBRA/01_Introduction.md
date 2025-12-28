@@ -382,3 +382,59 @@ volSymmTensorField sigma = -p*I + 2*mu*epsilon;
 ---
 
 **ขั้นตอนถัดไป**: ไปที่ [[02_Tensor_Class_Hierarchy]] เพื่อเจาะลึกโครงสร้างคลาสเทนเซอร์ของ OpenFOAM
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. ทำไมเทนเซอร์ความเค้น Cauchy จึงมีคุณสมบัติสมมาตร ($\tau_{ij} = \tau_{ji}$)?</b></summary>
+
+เนื่องจาก **การอนุรักษ์โมเมนตัมเชิงมุม (Angular Momentum Conservation)**:
+
+- ถ้า $\tau_{ij} \neq \tau_{ji}$ → จะเกิด **couple** (แรงบิด) ทำให้เกิดการหมุนที่ไม่สมดุล
+- สภาวะสมดุลต้องการ $\tau_{xy} = \tau_{yx}$, $\tau_{xz} = \tau_{zx}$, $\tau_{yz} = \tau_{zy}$
+- ลดจำนวนองค์ประกอบอิสระจาก **9 → 6** → ใช้ `symmTensor` ใน OpenFOAM
+
+</details>
+
+<details>
+<summary><b>2. ความแตกต่างระหว่าง Single Inner Product (`&`) และ Double Inner Product (`&&`) คืออะไร?</b></summary>
+
+| Operation | Symbol | Result | Rank Change |
+|-----------|--------|--------|-------------|
+| **Single Inner** | `&` | $w_i = T_{ij} v_j$ | Tensor → Vector (−1) |
+| **Double Inner** | `&&` | $s = A_{ij} B_{ij}$ | Tensor → Scalar (−2) |
+
+**ตัวอย่าง:**
+```cpp
+vector w = T & v;      // Matrix-vector product
+scalar s = A && B;     // Frobenius inner product = tr(A·Bᵀ)
+```
+
+</details>
+
+<details>
+<summary><b>3. Principal Stresses ($\sigma_1, \sigma_2, \sigma_3$) คืออะไรและหาได้อย่างไร?</b></summary>
+
+**Principal Stresses** คือความเค้นตั้งฉากในทิศทางที่ **ไม่มีความเค้นเฉือน**
+
+**วิธีหา:** ใช้ **Eigenvalue Decomposition**:
+```cpp
+symmTensor sigma = ...;
+vector principals = eigenValues(sigma);  // σ₁, σ₂, σ₃
+tensor directions = eigenVectors(sigma); // ทิศทางหลัก
+```
+
+**การใช้งาน:** ทำนาย failure (Von Mises, Tresca), visualize stress distribution
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Tensor Algebra
+- **บทถัดไป:** [02_Tensor_Class_Hierarchy.md](02_Tensor_Class_Hierarchy.md) — ลำดับชั้นคลาสเทนเซอร์
+- **Operations:** [04_Tensor_Operations.md](04_Tensor_Operations.md) — การดำเนินการเทนเซอร์
+- **Eigen Decomposition:** [05_Eigen_Decomposition.md](05_Eigen_Decomposition.md) — การแยกตัวประกอบไอเกน

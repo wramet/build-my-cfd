@@ -280,7 +280,7 @@ typedef GeometricField<scalar, fvPatchField, volMesh> volScalarField;
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไมต้องเรียก correctBoundaryConditions()?</b></summary>
@@ -302,7 +302,7 @@ typedef GeometricField<scalar, fvPatchField, volMesh> volScalarField;
 
 ---
 
-## เอกสารที่เกี่ยวข้อง
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **บทก่อนหน้า:** [05_Mathematical_Type_Theory.md](05_Mathematical_Type_Theory.md)
 - **บทถัดไป:** [07_Summary_and_Exercises.md](07_Summary_and_Exercises.md)

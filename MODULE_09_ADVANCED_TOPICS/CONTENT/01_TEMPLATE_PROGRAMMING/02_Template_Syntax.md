@@ -136,7 +136,7 @@ using volVectorField = GeometricField<vector, fvPatchField, volMesh>;
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. class vs typename in template?</b></summary>
@@ -158,7 +158,7 @@ using volVectorField = GeometricField<vector, fvPatchField, volMesh>;
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Mechanics:** [03_Internal_Mechanics.md](03_Internal_Mechanics.md)

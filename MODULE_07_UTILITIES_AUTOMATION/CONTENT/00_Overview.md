@@ -93,7 +93,7 @@ graph TD
 
 ---
 
-## 🧠 ตรวจสอบความเข้าใจ (Concept Check)
+## 🧠 Concept Check
 
 1. **ถาม:** การทำ Automation มีข้อดีเหนือกว่าการทำงานแบบ Manual อย่างไรในบริบทของ CFD?
    <details>
@@ -101,14 +101,48 @@ graph TD
    <b>ตอบ:</b> ลดความผิดพลาดจากมนุษย์ (Human Error), เพิ่มความสามารถในการทำซ้ำ (Reproducibility), และขยายขีดความสามารถในการทำเคสจำนวนมาก (Scalability) เช่นการทำ Design Optimization
    </details>
 
+<details>
+<summary><b>2. Allrun และ Allclean ใช้ทำอะไร?</b></summary>
+
+**คำตอบ:**
+- **Allrun:** สคริปต์มาตรฐานสำหรับรันทุกขั้นตอนของ case (mesh → solver → postProcess)
+- **Allclean:** สคริปต์ลบไฟล์ผลลัพธ์ทั้งหมดเพื่อเริ่มใหม่
+</details>
+
 2. **ถาม:** ทำไมเราถึงต้องใช้ Python ร่วมกับ OpenFOAM?
    <details>
    <summary>เฉลย</summary>
    <b>ตอบ:</b> เพราะ Python มี Libraries ที่แข็งแกร่งสำหรับการจัดการข้อมูล (Pandas), การคำนวณ (NumPy), และการแสดงผล (Matplotlib/PyVista) ซึ่งช่วยเติมเต็มส่วนที่ OpenFOAM (C++) ทำได้ยากให้ง่ายขึ้น และทำหน้าที่เป็น "กาว" เชื่อมต่อ Workflow ต่างๆ เข้าด้วยกัน
    </details>
 
+<details>
+<summary><b>2. Allrun และ Allclean ใช้ทำอะไร?</b></summary>
+
+**คำตอบ:**
+- **Allrun:** สคริปต์มาตรฐานสำหรับรันทุกขั้นตอนของ case (mesh → solver → postProcess)
+- **Allclean:** สคริปต์ลบไฟล์ผลลัพธ์ทั้งหมดเพื่อเริ่มใหม่
+</details>
+
 3. **ถาม:** Git Version Control ช่วยงาน CFD ได้อย่างไร?
    <details>
    <summary>เฉลย</summary>
    <b>ตอบ:</b> ช่วยติดตามการเปลี่ยนแปลงของการตั้งค่า (Settings) และสคริปต์ ทำให้สามารถย้อนกลับไปเวอร์ชันที่ทำงานได้หากเกิดข้อผิดพลาด และช่วยให้การทำงานร่วมกันในทีมเป็นระบบ
    </details>
+
+<details>
+<summary><b>2. Allrun และ Allclean ใช้ทำอะไร?</b></summary>
+
+**คำตอบ:**
+- **Allrun:** สคริปต์มาตรฐานสำหรับรันทุกขั้นตอนของ case (mesh → solver → postProcess)
+- **Allclean:** สคริปต์ลบไฟล์ผลลัพธ์ทั้งหมดเพื่อเริ่มใหม่
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **Shell Scripting:** [01_SHELL_SCRIPTING/00_Overview.md](01_SHELL_SCRIPTING/00_Overview.md) — Bash Automation
+- **Python Automation:** [02_PYTHON_AUTOMATION/00_Overview.md](02_PYTHON_AUTOMATION/00_Overview.md) — Python สำหรับ OpenFOAM
+- **HPC:** [03_HPC_AND_CLOUD/00_Overview.md](03_HPC_AND_CLOUD/00_Overview.md) — High Performance Computing
+- **Visualization:** [04_ADVANCED_VISUALIZATION/00_Overview.md](04_ADVANCED_VISUALIZATION/00_Overview.md) — การ Visualize ขั้นสูง
+- **Professional Practice:** [05_PROFESSIONAL_PRACTICE/00_Overview.md](05_PROFESSIONAL_PRACTICE/00_Overview.md) — แนวปฏิบัติวิชาชีพ

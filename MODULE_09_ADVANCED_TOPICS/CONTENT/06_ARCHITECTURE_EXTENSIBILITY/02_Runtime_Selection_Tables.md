@@ -100,7 +100,7 @@ autoPtr<turbulenceModel> turb = turbulenceModel::New(dict, mesh);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. RTS ทำงานอย่างไร?</b></summary>
@@ -122,7 +122,7 @@ autoPtr<turbulenceModel> turb = turbulenceModel::New(dict, mesh);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Dynamic Loading:** [03_Dynamic_Library_Loading.md](03_Dynamic_Library_Loading.md)

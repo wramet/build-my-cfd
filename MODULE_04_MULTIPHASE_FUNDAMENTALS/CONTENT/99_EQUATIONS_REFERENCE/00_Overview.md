@@ -122,7 +122,34 @@ $$\nu_t = C_\mu \frac{k^2}{\varepsilon}$$
 
 ---
 
-## Related Documents
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. สมการ Continuity สำหรับ Multiphase มีอะไรเพิ่มจาก Single-phase?</b></summary>
+
+**เพิ่ม Volume Fraction ($\alpha_k$) และ Mass Transfer:**
+
+$$\frac{\partial(\alpha_k \rho_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k) = \sum_{l \neq k} \dot{m}_{lk}$$
+
+- **$\alpha_k$:** สัดส่วนปริมาตรของเฟส k
+- **$\dot{m}_{lk}$:** อัตราการถ่ายเทมวลระหว่างเฟส
+
+</details>
+
+<details>
+<summary><b>2. Drag Correlation ไหนเหมาะกับประเภทฟองใด?</b></summary>
+
+| Correlation | เหมาะกับ | ช่วง Eo/Re |
+|-------------|----------|------------|
+| **Schiller-Naumann** | Spherical | Re < 1000 |
+| **Ishii-Zuber** | Distorted | Eo > 4 |
+| **Tomiyama** | ทั่วไป | Wide range |
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Mass Conservation:** [01_Mass_Conservation.md](01_Mass_Conservation.md)
 - **Momentum Conservation:** [02_Momentum_Conservation.md](02_Momentum_Conservation.md)

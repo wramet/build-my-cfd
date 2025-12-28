@@ -232,7 +232,7 @@ relaxationFactors
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 > [!NOTE] **📂 OpenFOAM Context**
 > ส่วนนี้เป็น **Self-Assessment** สำหรับทบทวนความเข้าใจเกี่ยวกับ linear solver configuration
@@ -263,7 +263,7 @@ relaxationFactors
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **fvMatrix:** [03_fvMatrix_Architecture.md](03_fvMatrix_Architecture.md)

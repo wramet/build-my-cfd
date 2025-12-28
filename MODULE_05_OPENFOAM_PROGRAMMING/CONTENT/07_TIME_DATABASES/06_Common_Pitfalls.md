@@ -132,7 +132,7 @@ IOobject header(..., runTime.timeName(), mesh, ...);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. lookup ก่อน found ได้ไหม?</b></summary>
@@ -154,7 +154,7 @@ IOobject header(..., runTime.timeName(), mesh, ...);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Object Registry:** [03_Object_Registry.md](03_Object_Registry.md)

@@ -70,7 +70,7 @@ mpirun simpleFoam -parallel
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. MPI คืออะไร?</b></summary>
@@ -80,6 +80,6 @@ mpirun simpleFoam -parallel
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Decomposition:** [01_Domain_Decomposition.md](01_Domain_Decomposition.md)

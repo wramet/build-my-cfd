@@ -116,7 +116,7 @@ Inconsistent dimensions for +
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไม dimension checking สำคัญ?</b></summary>
@@ -138,7 +138,7 @@ Inconsistent dimensions for +
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Dimensioned Fields:** [06_Dimensioned_Fields.md](06_Dimensioned_Fields.md)

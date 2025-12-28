@@ -94,7 +94,7 @@ model->compute();
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. RTS ต้องทำอะไรบ้าง?</b></summary>
@@ -118,7 +118,7 @@ model->compute();
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **RTS:** [02_Runtime_Selection_Tables.md](02_Runtime_Selection_Tables.md)

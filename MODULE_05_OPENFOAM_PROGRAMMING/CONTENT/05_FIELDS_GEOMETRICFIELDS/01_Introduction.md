@@ -1,12 +1,19 @@
 # GeometricFields - Introduction
 
-บทนำ GeometricField
+บทนำ GeometricField — Core Data Structure สำหรับ CFD
+
+> **ทำไมต้องเรียนบทนี้?**
+> - เข้าใจว่า **GeometricField ต่างจาก array** อย่างไร
+> - รู้จัก vol vs surface fields
+> - เตรียมพร้อมสำหรับ field programming
 
 ---
 
 ## Overview
 
-> **GeometricField** = Core data structure for CFD fields
+> **💡 GeometricField = Smart Array สำหรับ CFD**
+>
+> ไม่ใช่แค่ตัวเลข แต่มี mesh, dimensions, BCs, old time ติดมา
 
 ---
 
@@ -114,7 +121,7 @@ scalar maxT = max(T).value();
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. GeometricField มีอะไรมากกว่า array?</b></summary>
@@ -137,7 +144,7 @@ scalar maxT = max(T).value();
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Design Philosophy:** [02_Design_Philosophy.md](02_Design_Philosophy.md)

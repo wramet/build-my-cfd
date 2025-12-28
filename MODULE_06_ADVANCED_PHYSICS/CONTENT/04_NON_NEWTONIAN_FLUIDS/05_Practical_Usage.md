@@ -108,7 +108,7 @@ functions
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. simpleFoam ใช้กับ non-Newtonian ได้ไหม?</b></summary>
@@ -130,7 +130,7 @@ functions
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Implementation:** [04_Numerical_Implementation.md](04_Numerical_Implementation.md)

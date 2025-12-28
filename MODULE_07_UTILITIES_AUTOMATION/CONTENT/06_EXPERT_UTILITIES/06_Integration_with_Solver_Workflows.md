@@ -82,7 +82,7 @@ functions
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Function objects ดีอย่างไร?</b></summary>
@@ -92,6 +92,6 @@ functions
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)

@@ -1,16 +1,31 @@
 # Mesh Classes - Overview
 
-ภาพรวม Mesh Classes ใน OpenFOAM
+ภาพรวม Mesh Classes ใน OpenFOAM — หัวใจของทุก simulation
+
+> **ทำไม Mesh Classes สำคัญที่สุด?**
+> - **ไม่มี mesh ไม่มี CFD** — ทุก field อยู่บน mesh
+> - เข้าใจ hierarchy = รู้ว่า method ไหนอยู่ class ไหน
+> - ใช้ mesh APIs ผิด = bugs + performance ย่ำแย่
 
 ---
 
 ## Overview
+
+> **💡 Mesh Hierarchy = Layers of Abstraction**
+>
+> - `primitiveMesh`: **Topology** (connections only)
+> - `polyMesh`: + **Geometry** (coordinates)
+> - `fvMesh`: + **FVM support** (Sf, V, schemes)
 
 ```mermaid
 flowchart TD
     A[primitiveMesh] --> B[polyMesh]
     B --> C[fvMesh]
     C --> D[dynamicFvMesh]
+    
+    A -.- A1["nCells(), owner, neighbour"]
+    B -.- B1["points, cellCentres"]
+    C -.- C1["Sf(), V(), boundary"]
 ```
 
 ---
@@ -135,7 +150,7 @@ constant/polyMesh/
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. primitiveMesh vs polyMesh ต่างกันอย่างไร?</b></summary>
@@ -159,7 +174,7 @@ Face indices `nInternalFaces()` ถึง `nFaces()-1`
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Introduction:** [01_Introduction.md](01_Introduction.md)
 - **fvMesh:** [05_fvMesh.md](05_fvMesh.md)

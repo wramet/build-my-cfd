@@ -493,3 +493,12 @@ if (maxRelError < 1e-6)
 *   แทนที่จะขยับตามแรงที่คำนวณได้ 100% (ซึ่งอาจจะเลยเถิด/Overshoot)
 *   Aitken จะดูประวัติการขยับครั้งก่อนๆ แล้วคำนวณ $\omega$ (Relaxation Factor) ที่ดีที่สุดในรอบนั้นๆ เพื่อให้ลู่เข้าสู่สมดุลเร็วที่สุดและไม่ระเบิด
 </details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Coupled Physics
+- **บทก่อนหน้า:** [02_Conjugate_Heat_Transfer.md](02_Conjugate_Heat_Transfer.md) — Conjugate Heat Transfer
+- **บทถัดไป:** [04_Advanced_Coupling.md](04_Advanced_Coupling.md) — Advanced Coupling
+- **Complex Multiphase:** [../01_COMPLEX_MULTIPHASE_PHENOMENA/00_Overview.md](../01_COMPLEX_MULTIPHASE_PHENOMENA/00_Overview.md) — ปรากฏการณ์หลายเฟส

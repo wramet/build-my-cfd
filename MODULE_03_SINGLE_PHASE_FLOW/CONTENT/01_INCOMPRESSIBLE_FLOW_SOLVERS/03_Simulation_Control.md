@@ -2,6 +2,11 @@
 
 การควบคุมการจำลองใน OpenFOAM
 
+> **ทำไมต้องเข้าใจ Simulation Control?**
+> - **controlDict, fvSolution, fvSchemes** ควบคุมทุกอย่าง
+> - ตั้งค่าผิด = **diverge** หรือ **ช้ามาก**
+> - Best practices ช่วยประหยัดเวลาและทรัพยากร
+
 ---
 
 ## Overview

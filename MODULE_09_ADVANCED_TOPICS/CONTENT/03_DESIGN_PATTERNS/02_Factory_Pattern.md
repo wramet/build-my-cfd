@@ -108,7 +108,7 @@ turb->correct();
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Factory ดีกว่า if-else อย่างไร?</b></summary>
@@ -130,7 +130,7 @@ turb->correct();
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Strategy:** [03_Strategy_Pattern.md](03_Strategy_Pattern.md)

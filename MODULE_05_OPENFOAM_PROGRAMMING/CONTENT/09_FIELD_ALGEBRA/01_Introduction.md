@@ -102,7 +102,7 @@ TEqn.solve();
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. fvc vs fvm?</b></summary>
@@ -125,7 +125,7 @@ TEqn.solve();
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Arithmetic:** [02_Arithmetic_Operations.md](02_Arithmetic_Operations.md)

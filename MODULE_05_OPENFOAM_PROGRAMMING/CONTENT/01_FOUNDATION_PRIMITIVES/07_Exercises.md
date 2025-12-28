@@ -1,6 +1,11 @@
 # Foundation Primitives - Exercises
 
-แบบฝึกหัดสำหรับ OpenFOAM Primitives
+แบบฝึกหัดสำหรับ OpenFOAM Primitives — ลงมือทำเพื่อเข้าใจจริง
+
+> **ทำไมต้องทำ Exercises?**
+> - อ่านอย่างเดียวไม่พอ — **ต้องเขียน code เอง**
+> - ผิดพลาดตอนทำแบบฝึกหัด ดีกว่าผิดตอน production
+> - Compile และ run จริง → เข้าใจ error messages
 
 ---
 
@@ -187,7 +192,7 @@ wmake
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. & และ ^ ต่างกันอย่างไร?</b></summary>
@@ -210,7 +215,7 @@ wmake
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Basic Primitives:** [02_Basic_Primitives.md](02_Basic_Primitives.md)

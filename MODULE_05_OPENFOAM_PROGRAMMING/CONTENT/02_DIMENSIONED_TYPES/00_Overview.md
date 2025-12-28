@@ -1,18 +1,28 @@
 # Dimensioned Types - Overview
 
-ภาพรวม Dimensioned Types ใน OpenFOAM
+ภาพรวม Dimensioned Types ใน OpenFOAM — ระบบป้องกัน Physics Errors
+
+> **ทำไม Dimensioned Types สำคัญที่สุดใน OpenFOAM?**
+> - **ป้องกัน bugs ที่ compiler จับไม่ได้** — เช่น บวก pressure + velocity
+> - ช่วยให้ code **self-documenting** — เห็นหน่วยทันที
+> - จับ errors ตั้งแต่ **compile-time** ไม่ใช่หลัง run หลายชั่วโมง
 
 ---
 
 ## Overview
 
-> **Dimensioned Types** = ค่าที่มีหน่วยทางฟิสิกส์ติดมาด้วย
+> **💡 คิดแบบนี้:**
+> `dimensionedScalar` = **ตัวเลข + ป้ายบอกหน่วย**
+>
+> เหมือนเขียน "1000 kg/m³" แทนแค่ "1000"
+> ถ้าพยายาม "1000 kg/m³" + "10 m/s" → OpenFOAM รู้ทันทีว่าผิด!
 
 ```mermaid
 flowchart TD
     A[dimensionedScalar] --> B[word name]
     A --> C[dimensionSet dims]
     A --> D[scalar value]
+    C --> E["7 SI Exponents<br/>[M L T Θ I N J]"]
 ```
 
 ---
@@ -127,7 +137,7 @@ dimensionedScalar nu("nu", dimKinematicViscosity, transportDict);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไมใช้ 7 dimensions?</b></summary>
@@ -149,7 +159,7 @@ dimensionedScalar nu("nu", dimKinematicViscosity, transportDict);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Introduction:** [01_Introduction.md](01_Introduction.md)
 - **Physics Aware:** [02_Physics_Aware_Type_System.md](02_Physics_Aware_Type_System.md)

@@ -272,7 +272,7 @@ ffmpeg -framerate 30 -i frame_%04d.png \
 
 ---
 
-## 🧠 ตรวจสอบความเข้าใจ (Concept Check)
+## 🧠 Concept Check
 
 1.  **ถาม:** ทำไมการ Export เป็น "Image Sequence" (PNG) ถึงดีกว่าการ Export เป็นไฟล์วิดีโอ (.avi/.mp4) โดยตรงจาก ParaView?
     <details>
@@ -288,3 +288,12 @@ ffmpeg -framerate 30 -i frame_%04d.png \
     <summary>เฉลย</summary>
     <b>ตอบ:</b> Temporal Interpolator ใช้ **Linear Interpolation** ระหว่าง Time steps ซึ่งถ้าการไหลมีการเปลี่ยนแปลงที่รวดเร็วมาก (เช่น High frequency fluctuation) ข้อมูลที่ Interpolate ออกมาอาจจะไม่ตรงกับความจริงทางฟิสิกส์ (Aliasing) หรือถ้า Mesh มีการเปลี่ยนแปลง (Dynamic Mesh) อาจจะทำให้ Topology ผิดพลาดได้
     </details>
+
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Visualization
+- **บทก่อนหน้า:** [03_Blender_Rendering.md](03_Blender_Rendering.md) — Blender Rendering
+- **ParaView:** [01_ParaView_Visualization.md](01_ParaView_Visualization.md) — ParaView Visualization

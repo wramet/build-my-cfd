@@ -1,12 +1,20 @@
 # Mesh Classes - Introduction
 
-บทนำ Mesh Classes
+บทนำ Mesh Classes — พื้นฐานที่ต้องรู้
+
+> **ทำไมต้องเรียนบทนี้?**
+> - เข้าใจ **โครงสร้าง mesh** ที่ OpenFOAM ใช้
+> - รู้ว่า **polyhedral mesh** ดีกว่า structured อย่างไร
+> - เตรียมพร้อมสำหรับ mesh programming
 
 ---
 
 ## Overview
 
-> **OpenFOAM Mesh** = Unstructured polyhedral mesh with FV support
+> **💡 OpenFOAM Mesh = Unstructured Polyhedral**
+>
+> - รองรับ **ทุกรูปร่าง cell** (hex, tet, prism, pyramid, arbitrary)
+> - **Face-based** structure = efficient สำหรับ FVM
 
 ---
 
@@ -100,7 +108,7 @@ constant/polyMesh/
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไมใช้ face-based structure?</b></summary>
@@ -122,7 +130,7 @@ constant/polyMesh/
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Mesh Hierarchy:** [02_Mesh_Hierarchy.md](02_Mesh_Hierarchy.md)

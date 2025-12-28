@@ -98,8 +98,36 @@ wall
 
 ---
 
-## Related Documents
+## 🧠 Concept Check
 
-- **ภาพรวม:** [00_Overview.md](00_Overview.md)
+<details>
+<summary><b>1. Young-Laplace Equation บอกอะไร?</b></summary>
+
+**ความสัมพันธ์ระหว่างความดันข้ามผิวสัมผัสกับความโค้ง:**
+
+$$\Delta p = \sigma \kappa = \sigma \left(\frac{1}{R_1} + \frac{1}{R_2}\right)$$
+
+- ฟองเล็ก (R น้อย) → ความดันภายในสูง
+- ฟองใหญ่ (R มาก) → ความดันภายในต่ำ
+
+</details>
+
+<details>
+<summary><b>2. CSF (Continuum Surface Force) ทำอะไร?</b></summary>
+
+**แปลงแรงตึงผิวที่เป็น Interface → Volume Force:**
+
+$$\mathbf{F}_\sigma = \sigma \kappa \nabla \alpha$$
+
+- ใช้ได้กับ VOF method
+- คำนวณ $\kappa$ จาก $\nabla \alpha$
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — สมการอ้างอิงทั้งหมด
 - **Mass Conservation:** [01_Mass_Conservation.md](01_Mass_Conservation.md)
 - **Momentum Conservation:** [02_Momentum_Conservation.md](02_Momentum_Conservation.md)

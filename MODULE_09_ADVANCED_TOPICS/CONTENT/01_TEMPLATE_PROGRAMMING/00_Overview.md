@@ -106,7 +106,7 @@ Type maximum(const Type& a, const Type& b)
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Templates ทำงานเมื่อไหร่?</b></summary>
@@ -129,7 +129,7 @@ Type maximum(const Type& a, const Type& b)
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Introduction:** [01_Introduction.md](01_Introduction.md)
 - **Syntax:** [02_Template_Syntax.md](02_Template_Syntax.md)

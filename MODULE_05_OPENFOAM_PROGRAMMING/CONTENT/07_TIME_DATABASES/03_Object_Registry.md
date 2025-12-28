@@ -140,7 +140,7 @@ HashTable<const volScalarField*> scalarFields =
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. IOobject registry parameter ทำอะไร?</b></summary>
@@ -163,7 +163,7 @@ HashTable<const volScalarField*> scalarFields =
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Time Architecture:** [02_Time_Architecture.md](02_Time_Architecture.md)

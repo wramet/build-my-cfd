@@ -1,12 +1,20 @@
 # Template Metaprogramming
 
-Template Metaprogramming ใน Dimensioned Types
+Template Metaprogramming ใน Dimensioned Types — Advanced C++ สำหรับ OpenFOAM
+
+> **ทำไมต้องรู้ Templates?**
+> - เข้าใจวิธีที่ **OpenFOAM reuse code** สำหรับ scalar, vector, tensor
+> - อ่าน/เขียน **template-based code** ได้
+> - สร้าง custom dimensioned types ได้
 
 ---
 
 ## Overview
 
-> OpenFOAM uses **C++ templates** for type-safe dimensioned operations
+> **💡 Templates = Code ที่ทำงานกับ multiple types**
+>
+> `dimensioned<scalar>`, `dimensioned<vector>`, `dimensioned<tensor>`
+> ใช้ logic เดียวกัน แค่ต่าง type inside
 
 ---
 
@@ -181,7 +189,7 @@ safeAdd(const Type& a, const Type& b)
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไมใช้ template?</b></summary>
@@ -203,7 +211,7 @@ safeAdd(const Type& a, const Type& b)
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Implementation:** [03_Implementation_Mechanisms.md](03_Implementation_Mechanisms.md)
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)

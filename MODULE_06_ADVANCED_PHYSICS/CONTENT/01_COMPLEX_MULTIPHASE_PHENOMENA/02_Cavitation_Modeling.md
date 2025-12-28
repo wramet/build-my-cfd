@@ -111,7 +111,7 @@ divSchemes
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Cavitation เกิดเมื่อไหร่?</b></summary>
@@ -133,7 +133,7 @@ divSchemes
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [../01_COMPLEX_MULTIPHASE_PHENOMENA/00_Overview.md](../01_COMPLEX_MULTIPHASE_PHENOMENA/00_Overview.md)
 - **Phase Change:** [01_Phase_Change_Modeling.md](01_Phase_Change_Modeling.md)

@@ -2,9 +2,18 @@
 
 หัวข้อขั้นสูงใน OpenFOAM สำหรับการจำลอง Single-Phase Flow
 
+> **ทำไมบทนี้สำคัญ?**
+> - ก้าวข้าม **พื้นฐาน** ไปสู่ **งานวิจัย/อุตสาหกรรมระดับสูง**
+> - HPC = ใช้ **parallel computing** ลดเวลาคำนวณ
+> - LES/DES = จับ **turbulent structures** ที่ RANS เห็นไม่ได้
+
 ---
 
 ## Module Topics
+
+> **💡 Advanced = ต่อยอดจาก basics:**
+>
+> HPC → Scale up | LES/DES → Better physics | AMR → Efficient meshing
 
 | Topic | Focus | Key Techniques |
 |-------|-------|----------------|

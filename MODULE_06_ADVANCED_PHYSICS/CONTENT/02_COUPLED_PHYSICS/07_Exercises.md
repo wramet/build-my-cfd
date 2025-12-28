@@ -96,7 +96,7 @@ cd tutorials/heatTransfer/chtMultiRegionFoam/coolingChip
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. CHT ทำอะไร?</b></summary>
@@ -118,7 +118,7 @@ cd tutorials/heatTransfer/chtMultiRegionFoam/coolingChip
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **CHT:** [02_Conjugate_Heat_Transfer.md](02_Conjugate_Heat_Transfer.md)

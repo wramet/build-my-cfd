@@ -1,6 +1,11 @@
 # Matrices & Linear Algebra - Common Pitfalls
 
-ปัญหาที่พบบ่อยใน Linear Algebra
+ปัญหาที่พบบ่อยใน Linear Algebra — เรียนจากความผิดพลาดของคนอื่น
+
+> **ทำไมบทนี้สำคัญ?**
+> - **Solver issues = #1 cause of divergence**
+> - รู้ traps ที่พบบ่อย → หลีกเลี่ยงได้
+> - Debug convergence problems ได้เร็ว
 
 ---
 
@@ -200,7 +205,7 @@ T.correctBoundaryConditions();
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. PCG ใช้กับ velocity ได้ไหม?</b></summary>
@@ -222,7 +227,7 @@ T.correctBoundaryConditions();
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Linear Solvers:** [04_Linear_Solvers_Hierarchy.md](04_Linear_Solvers_Hierarchy.md)
 - **fvMatrix:** [03_fvMatrix_Architecture.md](03_fvMatrix_Architecture.md)

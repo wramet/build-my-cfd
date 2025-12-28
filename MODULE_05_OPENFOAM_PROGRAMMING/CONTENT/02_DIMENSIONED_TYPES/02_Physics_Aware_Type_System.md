@@ -1,12 +1,20 @@
 # Physics-Aware Type System
 
-ระบบประเภทที่รับรู้ฟิสิกส์
+ระบบประเภทที่รับรู้ฟิสิกส์ — หัวใจของ OpenFOAM Type Safety
+
+> **ทำไมบทนี้สำคัญ?**
+> - เข้าใจว่า OpenFOAM **type system ฉลาดกว่า C++** อย่างไร
+> - รู้ **rules** ของ dimension checking
+> - ใช้ประโยชน์จากระบบได้เต็มที่
 
 ---
 
 ## Overview
 
-> OpenFOAM type system encodes **physical meaning** not just data type
+> **💡 OpenFOAM type system = C++ types + Physical Meaning**
+>
+> - C++: `double + double` = always OK
+> - OpenFOAM: `pressure + velocity` = **ERROR!**
 
 ---
 
@@ -150,7 +158,7 @@ volScalarField dynP = 0.5 * rho * magSqr(U);  // [M L^-1 T^-2] ✓
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไม pressure + velocity เป็น error?</b></summary>
@@ -172,7 +180,7 @@ Type system มี **compiler enforcement**, comments ไม่มี
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Implementation:** [03_Implementation_Mechanisms.md](03_Implementation_Mechanisms.md)

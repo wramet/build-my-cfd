@@ -110,7 +110,7 @@ autoPtr<T> b = std::move(a);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Reference counting ทำงานอย่างไร?</b></summary>
@@ -132,7 +132,7 @@ autoPtr<T> b = std::move(a);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Syntax:** [02_Memory_Syntax_and_Design.md](02_Memory_Syntax_and_Design.md)

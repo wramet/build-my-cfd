@@ -89,7 +89,7 @@ wmake libso
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. libs directive ทำงานเมื่อไหร่?</b></summary>
@@ -111,7 +111,7 @@ wmake libso
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **RTS:** [02_Runtime_Selection_Tables.md](02_Runtime_Selection_Tables.md)

@@ -368,7 +368,7 @@ scalar sumT = gSum(T * mesh.V());  // Volume-weighted sum
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. fvm::div vs fvc::div ต่างกันอย่างไร?</b></summary>
@@ -393,7 +393,7 @@ scalar sumT = gSum(T * mesh.V());  // Volume-weighted sum
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Dimensional Checking:** [04_Dimensional_Checking.md](04_Dimensional_Checking.md)

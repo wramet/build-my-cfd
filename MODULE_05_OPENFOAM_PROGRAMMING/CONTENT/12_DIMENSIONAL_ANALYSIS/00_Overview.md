@@ -1,12 +1,19 @@
 # Dimensional Analysis - Overview
 
-ภาพรวม Dimensional Analysis
+ภาพรวม Dimensional Analysis — ป้องกัน Physics Errors
+
+> **ทำไม Dimensional Analysis สำคัญ?**
+> - **ป้องกัน bugs ที่หายากที่สุด** — physics errors
+> - OpenFOAM ตรวจ dimensions ให้ที่ runtime
+> - เข้าใจ dimensionSet = debug dimension errors ได้เร็ว
 
 ---
 
 ## Overview
 
-> **Dimensional analysis** = Ensure physics correctness via unit checking
+> **💡 Dimensional Analysis = Physics Safety Net**
+>
+> ถ้าบวก pressure กับ velocity → OpenFOAM จะ error ทันที
 
 ---
 
@@ -82,7 +89,7 @@ volScalarField result = rho * sqr(U);  // [Pa] ✓
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. dimensionSet มีกี่ค่า?</b></summary>
@@ -104,7 +111,7 @@ volScalarField result = rho * sqr(U);  // [Pa] ✓
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Introduction:** [01_Introduction.md](01_Introduction.md)
 - **DimensionSet:** [02_DimensionSet_Advanced.md](02_DimensionSet_Advanced.md)

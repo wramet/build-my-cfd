@@ -71,7 +71,7 @@ flowchart LR
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. โปรเจคต้องมีอะไร?</b></summary>
@@ -93,7 +93,7 @@ flowchart LR
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Project Overview:** [01_Project_Overview.md](01_Project_Overview.md)
 - **Development:** [02_Model_Development_Rationale.md](02_Model_Development_Rationale.md)

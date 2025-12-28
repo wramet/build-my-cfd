@@ -93,7 +93,7 @@ tensor eigenVectors = eigenVectors(T);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. symm(gradU) คืออะไร?</b></summary>
@@ -115,7 +115,7 @@ tensor eigenVectors = eigenVectors(T);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Operations:** [04_Tensor_Operations.md](04_Tensor_Operations.md)

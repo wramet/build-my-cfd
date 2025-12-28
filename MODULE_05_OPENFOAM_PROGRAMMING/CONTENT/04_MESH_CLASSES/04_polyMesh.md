@@ -1,16 +1,33 @@
 # polyMesh: โครงสร้างและการจัดการโทโพโลยี
 
-ข้อมูลหลักของ Mesh ใน OpenFOAM
+ข้อมูลหลักของ Mesh ใน OpenFOAM — Topology + Geometry
+
+> **ทำไมต้องรู้ polyMesh?**
+> - **เก็บ geometry จริง** (points, faces, cells)
+> - เข้าใจ **owner-neighbour convention** → ใช้ flux ถูก
+> - รู้จัก **patch types** → ตั้ง BC ได้ถูก
 
 ---
 
 ## Overview
 
-`polyMesh` เก็บ topology ของ mesh ทั้งหมด:
-- **Points** — พิกัด 3D ของ vertices
-- **Faces** — การเชื่อมต่อของ vertices
-- **Owner/Neighbour** — cell connectivity
-- **Boundary** — patch definitions
+> **💡 polyMesh = primitiveMesh + Coordinates**
+>
+> - `primitiveMesh`: "Face 5 เชื่อม cell 0 กับ cell 1"
+> - `polyMesh`: + "Face 5 อยู่ที่ (0.5, 0.5, 0) พื้นที่ 0.01 m²"
+
+---
+
+## Directory Structure
+
+```
+constant/polyMesh/
+├── points          # พิกัด vertices
+├── faces           # face-vertex connectivity
+├── owner           # owner cell per face
+├── neighbour       # neighbour cell (internal faces)
+└── boundary        # patch definitions
+```
 
 ---
 
@@ -205,7 +222,7 @@ $$\nabla \cdot (\Gamma \nabla \phi) \approx \sum_f \Gamma_f \frac{\phi_N - \phi_
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Owner-neighbour convention มีผลอย่างไร?</b></summary>
@@ -228,7 +245,7 @@ $$\nabla \cdot (\Gamma \nabla \phi) \approx \sum_f \Gamma_f \frac{\phi_N - \phi_
 
 ---
 
-## เอกสารที่เกี่ยวข้อง
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **บทก่อนหน้า:** [03_primitiveMesh.md](03_primitiveMesh.md)
 - **บทถัดไป:** [05_fvMesh.md](05_fvMesh.md)

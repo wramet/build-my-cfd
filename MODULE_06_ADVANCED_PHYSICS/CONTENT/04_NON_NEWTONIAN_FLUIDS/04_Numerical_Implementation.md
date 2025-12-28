@@ -107,7 +107,7 @@ nu = min(nu, nuMax);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Shear thinning คืออะไร?</b></summary>
@@ -129,7 +129,7 @@ nu = min(nu, nuMax);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Viscosity Models:** [02_Viscosity_Models.md](02_Viscosity_Models.md)

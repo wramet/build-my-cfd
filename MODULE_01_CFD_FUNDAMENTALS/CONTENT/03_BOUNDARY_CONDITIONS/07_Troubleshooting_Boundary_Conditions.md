@@ -2,6 +2,11 @@
 
 การวินิจฉัยและแก้ปัญหาที่เกิดจาก BC
 
+> **ทำไม BC troubleshooting สำคัญ?**
+> - **ส่วนใหญ่ของ CFD failures มาจาก BC ผิด** (ไม่ใช่ mesh หรือ solver)
+> - BC ผิดให้ error message ที่ทำให้เข้าใจผิดได้ (เช่น "maximum iterations exceeded")
+> - รู้วิธี diagnose BC issues = แก้ปัญหาเร็วขึ้นมาก
+
 ---
 
 ## ปัญหาที่พบบ่อย

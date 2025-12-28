@@ -93,7 +93,7 @@ python3 checkConvergence.py
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Validation vs Verification?</b></summary>
@@ -116,7 +116,7 @@ python3 checkConvergence.py
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Exercises:** [07_Exercises.md](07_Exercises.md)

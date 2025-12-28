@@ -1,12 +1,20 @@
 # Containers & Memory - Introduction
 
-บทนำ Containers และ Memory Management
+บทนำ Containers และ Memory Management — ทำไมไม่ใช้ STL?
+
+> **ทำไมต้องเรียนบทนี้?**
+> - เข้าใจว่า **ทำไม OpenFOAM สร้าง containers เอง**
+> - รู้จักแต่ละ container type และเมื่อไหร่ใช้
+> - เลือก container ถูก = performance ดี
 
 ---
 
 ## Overview
 
-> OpenFOAM containers = **Efficient data structures** for CFD
+> **💡 OpenFOAM containers vs STL:**
+> - `std::vector` ไม่มี `max()`, `sum()`, `average()`
+> - `Field` มี CFD operations + parallel support
+> - `autoPtr`/`tmp` ป้องกัน memory leaks
 
 ---
 
@@ -118,7 +126,7 @@ volScalarField& field = tField();
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไมไม่ใช้ std::vector?</b></summary>
@@ -141,7 +149,7 @@ OpenFOAM containers มี **CFD-specific operations** และ **parallel supp
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Memory Management:** [02_Memory_Management_Fundamentals.md](02_Memory_Management_Fundamentals.md)

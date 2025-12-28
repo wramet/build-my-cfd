@@ -1,995 +1,1184 @@
-# บันทึกบทเรียน: พื้นฐาน OpenFOAM - Discretization, การตั้งค่า และโครงสร้างโค้ด
+# บันทึกบทเรียน: OpenFOAM Discretization และ Configuration
+
 **วันที่:** 27 ธันวาคม 2025
-**หัวข้อ:** จากแคลคูลัสสู่โค้ด: เข้าใจกลไกการทำงานหลักของ OpenFOAM
 
-> [!TIP] ทำไมต้องเข้าใจ Discretization?
-> การ Discretization คือการแปลงสมการฟิสิกส์ที่เป็น **Continuous (คณิตศาสตร์ต่อเนื่อง)** ให้กลายเป็น **Discrete (พีชคณิตลับๆ)** ที่คอมพิวเตอร์คำนวณได้ การเลือก Scheme ที่เหมาะสมจะส่งผลโดยตรงต่อ:
-> - **ความเสถียร (Stability):** จำลองได้โดยไม่ระเบิด
-> - **ความแม่นยำ (Accuracy):** ผลลัพธ์ใกล้ความจริง
-> - **ประสิทธิภาพ (Efficiency):** คำนวณเสร็จไว
->
-> **ความสำคัญต่อการจำลอง:** การตั้งค่า `system/fvSchemes` และ `system/fvSolution` ที่ผิดพลาดอาจทำให้ **Simulation ระเบิด (Blow up)** แม้ว่าจะตั้ง Boundary Conditions ถูกต้องก็ตาม
+> **สิ่งที่จะได้เรียนรู้:**
+> 1. แปลงสมการฟิสิกส์เป็นโค้ด
+> 2. ตั้งค่า `fvSchemes` และ `fvSolution`
+> 3. เขียน `createFields.H`
 
 ---
 
-## 1. บทนำ: ภาพรวม (The Big Picture)
-ในบทเรียนนี้ เราได้สำรวจวิธีการที่ OpenFOAM แปลงโจทย์ฟิสิกส์ของการไหลที่ซับซ้อนให้กลายเป็นสิ่งที่คอมพิวเตอร์คำนวณได้ โดยแบ่งหน้าที่ออกเป็น 4 ส่วนหลัก:
-1.  **นักแปลภาษา (`fvSchemes`):** แปลงสมการแคลคูลัสให้เป็นสมการพีชคณิต
-2.  **นักวางแผน (`fvSolution`):** วางแผนวิธีการแก้สมการพีชคณิตที่ได้มา
-3.  **โครงสร้างโค้ด (`createFields.H`):** วิธีการประกาศตัวแปรและจองพื้นที่ในหน่วยความจำ (C++)
-4.  **การวิเคราะห์ผล (`functionObjects`):** การแปลงข้อมูลดิบให้เป็นค่าทางวิศวกรรมที่มีความหมาย
+## 1. 3 สมการหลักของ CFD
 
----
+> ทุกอย่างใน OpenFOAM เริ่มจาก 3 สมการนี้ — ถ้าเข้าใจสมการ จะเข้าใจ solver
 
-## 1.5 รากฐานทางฟิสิกส์: 3 สมการควบคุม (The 3 Governing Equations)
+### 1.1 การอนุรักษ์มวล (Continuity)
 
-> [!NOTE] **📂 OpenFOAM Context**
-> **ไฟล์ที่เกี่ยวข้อง:**
-> - **`0/U`** — ค่าเริ่มต้นและ Boundary Condition ของความเร็ว (Velocity)
-> - **`0/p`** — ค่าเริ่มต้นและ Boundary Condition ของความดัน (Pressure)
-> - **`constant/transportProperties`** — คุณสมบัติของไหล (ความหนืด `nu`, ความหนาแน่น `rho`)
-> - **`constant/turbulenceProperties`** — ตั้งค่า Turbulence Model (k-ε, k-ω, ฯลฯ)
->
-> **คำสำคัญ (Keywords):**
-> - `nu` (Kinematic Viscosity), `rho` (Density), `mu` (Dynamic Viscosity)
-> - `RASModel`, `LESModel`, `laminar`
-> - `boundaryField`, `fixedValue`, `zeroGradient`
+**Physics:** มวลไม่หายไปไหน — ไหลเข้า = ไหลออก
 
-ก่อนจะไปถึงการ Discretize เราต้องเข้าใจ **"โจทย์ฟิสิกส์"** ที่ OpenFOAM ต้องแก้ก่อน โดยแบ่งออกเป็น 3 ภารกิจหลัก:
+$$\nabla \cdot \mathbf{u} = 0 \quad \text{(incompressible)}$$
 
-### ภารกิจที่ 1: การอนุรักษ์มวล (Continuity Equation)
-
-#### Step-by-Step: จากความจริงสู่สมการ
-1.  **Step 1: ความจริงทางฟิสิกส์ (Physics)**
-    "ของไหลหายไปไหนไม่ได้ และเกิดขึ้นเองไม่ได้" (Mass In = Mass Out + Accumulation)
-2.  **Step 2: คณิตศาสตร์ (Math)**
-    $$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$$
-    *   *กรณี Incompressible:* $\nabla \cdot \mathbf{u} = 0$ (ปริมาตรคงที่ตลอดเวลา)
-3.  **Step 3: โค้ด OpenFOAM (Code)**
-    ```cpp
-    fvc::div(phi)  // คำนวณ Flux รวมที่ไหลออกจากเซลล์ (ควรเป็น 0)
-    ```
-4.  **Step 4: ความหมายใน Simulation (Insight)**
-    เราไม่ได้แก้สมการนี้เพื่อหา "มวล" แต่ใช้เป็น **เงื่อนไขบังคับ (Constraint)** เพื่อสร้างสมการความดัน (Pressure Equation)
-
----
-
-### ภารกิจที่ 2: การอนุรักษ์โมเมนตัม (Navier-Stokes Equation)
-
-#### Step-by-Step: กฎของนิวตันในของไหล
-1.  **Step 1: ความจริงทางฟิสิกส์ (Physics)**
-    $F = ma$ (แรง = มวล $\times$ ความเร่ง)
-2.  **Step 2: คณิตศาสตร์ (Math)**
-    $$\underbrace{\frac{\partial (\rho \mathbf{u})}{\partial t} + \nabla \cdot (\rho \mathbf{u} \mathbf{u})}_{\text{ความเร่ง (เปลี่ยนตามเวลา + เคลื่อนที่)}} = \underbrace{-\nabla p}_{\text{แรงดัน}} + \underbrace{\mu \nabla^2 \mathbf{u}}_{\text{แรงหนืด}} + \mathbf{f}$$
-3.  **Step 3: โค้ด OpenFOAM (Code)**
-    ```cpp
-    fvVectorMatrix UEqn
-    (
-        fvm::ddt(rho, U)                // ความเร่ง (เวลา)
-      + fvm::div(phi, U)                // ความเร่ง (การพา - Convection)
-      - fvm::laplacian(mu, U)           // แรงหนืด (Diffusion)
-     ==
-       -fvc::grad(p)                    // แรงดัน (Source Term)
-    );
-    ```
-4.  **Step 4: ความยาก (Challenge)**
-    เทอม Convection ($\nabla \cdot \mathbf{u}\mathbf{u}$) ทำให้สมการเป็น **Non-linear** (ความเร็วคูณความเร็ว) ทำให้แก้ยากและต้องวน Loop
-
----
-
-### ภารกิจที่ 3: การอนุรักษ์พลังงาน (Energy Equation)
-
-#### Step-by-Step: ความร้อนและอุณหภูมิ
-1.  **Step 1: ความจริงทางฟิสิกส์ (Physics)**
-    "พลังงานไม่สูญหาย แต่เปลี่ยนรูปได้" (First Law of Thermodynamics)
-2.  **Step 2: คณิตศาสตร์ (Math)**
-    $$\frac{\partial (\rho h)}{\partial t} + \nabla \cdot (\rho \mathbf{u} h) = k \nabla^2 T + \text{Source}$$
-3.  **Step 3: โค้ด OpenFOAM (Code)**
-    ```cpp
-    fvScalarMatrix EEqn
-    (
-        fvm::ddt(rho, h) + fvm::div(phi, h)  // การพาความร้อน
-      - fvm::laplacian(alphaEff, h)          // การนำความร้อน
-    );
-    ```
-4.  **Step 4: เมื่อไหร่ต้องใช้? (Usage)**
-    *   ❌ **น้ำไหลในท่อปกติ:** ไม่ต้องใช้ (Isothermal)
-    *   ✅ **อากาศอัดตัวได้ (Compressible):** ต้องใช้ เพราะความหนาแน่น $\rho$ เปลี่ยนตาม $T$
-    *   ✅ **Heat Transfer:** ต้องใช้ เพื่อดูการกระจายอุณหภูมิ
-
----
-
-### 🔢 เลขไร้มิติ: ตัวบ่งชี้ Flow Regime
-
-เพื่อรู้ว่าควรใช้ Solver หรือ Model ไหน เราต้องคำนวณ **เลขไร้มิติ** 2 ตัวหลัก:
-
-#### 1. Reynolds Number ($Re$) — บอก Laminar vs Turbulent
-$$Re = \frac{\rho U L}{\mu} = \frac{U L}{\nu}$$
-
-- **$Re < 2300$ (ในท่อ):** Laminar flow — เรียบ ลู่ เป็นชั้นๆ
-- **$Re > 4000$ (ในท่อ):** Turbulent flow — ปั่นป่วน มี eddy สุ่มเป็นมิติ
-- **2300 < Re < 4000:** Transition region — อาจเป็นทั้งสองแบบ
-
-**ผลต่อ OpenFOAM:**
-- ถ้า $Re$ ต่ำ (Laminar): ใช้ `icoFoam` (incompressible laminar)
-- ถ้า $Re$ สูง (Turbulent): ต้องใช้ **Turbulence Model** (k-ε, k-ω SST, Spalart-Allmaras) เช่น `simpleFoam` + `RASModel kEpsilon`
-
-#### 2. Mach Number ($Ma$) — บอก Compressible vs Incompressible
-$$Ma = \frac{U}{c} = \frac{\text{Flow Velocity}}{\text{Speed of Sound}}$$
-
-- **$Ma < 0.3$:** Incompressible flow — ความหนาแน่นคงที่ (ใช้ `simpleFoam`, `pimpleFoam`)
-- **$0.3 < Ma < 0.8$:** Subsonic compressible — ต้องคำนึงถึงการอัดตัว (ใช้ `rhoSimpleFoam`, `rhoPimpleFoam`)
-- **$Ma > 0.8$:** Transonic/Supersonic — มี shock waves (ใช้ `sonicFoam`, `rhoCentralFoam`)
-
-**ผลต่อ Equation of State:**
-- Incompressible ($Ma < 0.3$): $\rho = \text{constant}$ (หรือ $\rho = \rho(T)$ สำหรับ Boussinesq)
-- Compressible ($Ma > 0.3$): $p = \rho R T$ (Ideal Gas Law)
-
-> [!tip] Practical Tip
-> ก่อนเริ่ม Simulation เสมอ คำนวณ $Re$ และ $Ma$ เพื่อ:
-> 1. เลือก Solver ที่เหมาะสม
-> 2. ตัดสินใจว่าต้องใช้ Turbulence model ไหม
-> 3. ตั้งค่า Boundary conditions อย่างถูกต้อง
-
----
-
-### 📊 Summary: สมการ → Code Mapping
-
-| สมการ | ฟิสิกส์ | OpenFOAM Code | เมื่อไหร่ใช้ |
-|--------|---------|---------------|--------------|
-| **Continuity** | $\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$ | `fvc::div(phi)`, `fvm::ddt(rho)` | ทุก Solver (implicit ใน pressure-velocity coupling) |
-| **Momentum** | $\frac{D\mathbf{u}}{Dt} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$ | `fvm::ddt(rho,U) + fvm::div(phi,U) + turbulence->divDevRhoReff(U)` | ทุก Solver (หลัก) |
-| **Energy** | $\rho c_p \frac{DT}{Dt} = k \nabla^2 T + \Phi$ | `fvm::div(phi,h) + fvm::laplacian(alphaEff,h)` | Heat transfer หรือ Compressible flow |
-
----
-
-## 2. นักแปลภาษา: `system/fvSchemes`
-
-> [!NOTE] **📂 OpenFOAM Context**
-> **ไฟล์:** **`system/fvSchemes`**
->
-> **บทบาท:** แปลงสมการแคลคูลัส (Continuous) → สมการพีชคณิต (Discrete)
->
-> **คำสำคัญ (Keywords) ในไฟล์:**
-> - **`ddtSchemes`** — การ Discretize เทอมเวลา $\frac{\partial}{\partial t}$
->   - `Euler` (1st order), `backward` (2nd order), `CrankNicolson` (2nd order)
-> - **`gradSchemes`** — การคำนวณ Gradient $\nabla \phi$
->   - `Gauss linear` (มาตรฐาน), `leastSquares` (แม่นกว่าแต่แพง)
-> - **`divSchemes`** — การ Discretize เทอม Divergence $\nabla \cdot (\dots)$ (สำคัญที่สุด!)
->   - `Gauss linear` (แม่นยำ), `Gauss upwind` (เสถียร), `limitedLinear` (สมดุล)
-> - **`laplacianSchemes`** — การ Discretize เทอม Laplacian $\nabla \cdot (\Gamma \nabla \phi)$
->   - `Gauss linear corrected` (มาตรฐาน), `Gauss linear limited` (mesh เบี้ยวหนัก)
-> - **`interpolationSchemes`** — การ Interpolate ค่าจาก Cell Center ไปหน้าเซลล์
->   - `linear` (เฉลี่ยเส้นตรง)
-> - **`snGradSchemes`** — ความชันปกติที่ผิวหน้า $\nabla \phi \cdot \mathbf{n}$
->   - `corrected` (แก้ non-orthogonality)
->
-> **ผลต่อการจำลอง:**
-> - ผิด → **ระเบิด (Blow up)** หรือ **ผลลัพธ์เบลอ (Numerical Diffusion)**
-> - ถูก → **สมดุลระหว่างความแม่นยำและความเสถียร**
-
-ไฟล์นี้รับผิดชอบเรื่อง **Discretization** โดยเปลี่ยนโจทย์จาก **Continuous (Calculus)** ให้เป็น **Discrete (Algebra)** ผ่านกระบวนการเป็นขั้นเป็นตอนดังนี้:
-
-### Step-by-Step: กลไกการทำงานของ Schemes
-
-#### 1. เป้าหมาย (The Goal)
-เราต้องการเปลี่ยนเทอมในสมการอนุพันธ์ (เช่น $\nabla \cdot (\rho \mathbf{u})$) ให้เป็นผลรวมของค่าต่างๆ บนตารางกริด เพื่อสร้างสมการ $Ax=b$
-
-#### 2. ปัญหา (The Problem)
-ตามทฤษฎี **Finite Volume Method (FVM)** การคำนวณเทอมต่างๆ ต้องทำที่ **"ผิวหน้าเซลล์ (Face)"** (ตาม Gauss's Theorem):
-$$ \int_V \nabla \cdot (\rho \mathbf{u}) dV = \sum_f (\mathbf{u} \rho)_f \cdot \mathbf{S}_f $$
-*แต่!!!* OpenFOAM เก็บค่าตัวแปร (เช่น $p, U, T$) ไว้ที่ **"จุดกึ่งกลางเซลล์ (Cell Center, $P$)"** เท่านั้น
-
-#### 3. ทางออก (The Solution)
-เราต้อง **"ประมาณค่า (Interpolate)"** จากจุดกึ่งกลาง ($P$) ไปยังผิวหน้า ($f$) วิธีการประมาณค่านี้แหละคือสิ่งที่เราเรียกว่า **"Schemes"**
-
----
-
-### 2.1 `divSchemes` (Divergence / Convection)
-
-> [!NOTE] **📂 OpenFOAM Context**
-> **ไฟล์:** **`system/fvSchemes`**
-> **Section:** `divSchemes`
->
-> **ตัวอย่างการตั้งค่า:**
-> ```cpp
-> divSchemes
-> {
->     default         none;
->     div(phi,U)      Gauss upwind;              // สำหรับความเร็ว (เสถียร)
->     div(phi,k)      Gauss limitedLinear 1;     // สำหรับ turbulent kinetic energy
->     div(phi,epsilon) Gauss limitedLinear 1;    // สำหรับ epsilon dissipation
->     div((nuEff*dev2(T(grad(U))))) Gauss linear corrected; // สำหรับ diffusion
-> }
-> ```
->
-> **คำสำคัญ (Keywords):**
-> - `Gauss upwind` — เสถียรสุด แต่เบลอ (Numerical Diffusion สูง)
-> - `Gauss linear` — แม่นยำ (2nd order) แต่อาจระเบิดถ้า flow รุนแรง
-> - `Gauss linearUpwind` — สมดุลระหว่างแม่นยำและเสถียร
-> - `limitedLinear <φ>` — จำกัดค่าเพื่อความเสถียร (<φ> คือ limiter factor 0-1)
->
-> **ผลกระทบ:**
-> - ใช้ `linear` กับ flow รุนแรง → **ระเบิด (Oscillations)**
-> - ใช้ `upwind` ตลอด → **ผลลัพธ์เบลอ (False Diffusion)**
->
-> **Best Practice:** เริ่มต้นด้วย `upwind` จนเสถียร แล้วค่อยเปลี่ยนเป็น `limitedLinear` เพื่อความแม่นยำ
-
-**โจทย์:** เทอมการพา $\nabla \cdot (\rho \mathbf{u})$ — ข้อมูลไหลไปตามลม
-*   **Step 1: พิจารณาทิศทางไหล** ข้อมูลควรไหลจากต้นน้ำ (Upwind) ไปปลายน้า
-*   **Step 2: เลือกวิธีการเดาค่า (Interpolation Scheme)**
-    *   **Option A: `Gauss linear` (Central Differencing)**
-        *   *วิธีคิด:* เอาค่า 2 ฝั่งมาเฉลี่ยกันตรงๆ
-        *   *ผลลัพธ์:* แม่นยำสูง (2nd order) แต่ถ้าลมแรง ค่าอาจกระโดด (Unbounded) จนระเบิดได้
-    *   **Option B: `Gauss upwind`**
-        *   *วิธีคิด:* เอาค่าจากฝั่ง "ต้นลม" มาใช้เลย
-        *   *ผลลัพธ์:* เสถียรสุดๆ (Bounded) แต่ค่าจะเบลอๆ (Numerical Diffusion) เหมือนภาพไม่ชัด
-    *   **Option C: `Gauss linearUpwind` / `limitedLinear` (แนะนำ)**
-        *   *วิธีคิด:* ลูกผสม พยายามใช้ Linear ให้แม่น แต่ถ้าเริ่มแกว่งจะถอยมาใช้ Upwind
-        *   *ผลลัพธ์:* สมดุลระหว่างความแม่นและความเสถียร
-
-### 2.2 `laplacianSchemes` (Laplacian / Diffusion)
-
-> [!NOTE] **📂 OpenFOAM Context**
-> **ไฟล์:** **`system/fvSchemes`**
-> **Section:** `laplacianSchemes`
->
-> **ตัวอย่างการตั้งค่า:**
-> ```cpp
-> laplacianSchemes
-> {
->     default         Gauss linear corrected;
->     laplacian(nu,U)  Gauss linear corrected;     // สำหรับ momentum diffusion
->     laplacian((1|A(U)),p)  Gauss linear corrected; // สำหรับ pressure equation
->     laplacian(alphaEff,h) Gauss linear corrected; // สำหรับ energy equation
-> }
-> ```
->
-> **คำสำคัญ (Keywords):**
-> - `Gauss linear uncorrected` — เร็วที่สุด ใช้กับ mesh สี่เหลี่ยมเท่านั้น (Orthogonal)
-> - `Gauss linear corrected` — มาตรฐาน แก้ non-orthogonality (สำหรับ mesh ทั่วไป)
-> - `Gauss linear limited <φ>` — ใช้กับ mesh เบี้ยวหนักมาก (> 70°) (<φ> = 0.33-0.5)
->
-> **ผลกระทบของ Non-orthogonality:**
-> - Mesh เบี้ยว (< 70°) → ใช้ `corrected` (แม่นยำ)
-> - Mesh เบี้ยวหนัก (> 70°) → ใช้ `limited` หรือเพิ่ม `nNonOrthogonalCorrectors` ใน `fvSolution`
->
-> **เช็ค Mesh:** รัน `checkMesh` เพื่อดูค่า `max non-orthogonality`
-
-**โจทย์:** เทอมการแพร่ $\nabla \cdot (\Gamma \nabla \phi)$ — เกี่ยวข้องกับความชัน (Gradient)
-*   **Step 1: คำนวณความชันที่ผิวหน้า** เราต้องหา $\nabla \phi \cdot \mathbf{n}$
-*   **Step 2: ตรวจสอบคุณภาพ Mesh (Orthogonality)**
-    *   *Mesh สวย:* เส้นเชื่อมเซลล์ ($\mathbf{d}$) ตั้งฉากกับผิวหน้า ($\mathbf{n}$) → คำนวณง่าย
-    *   *Mesh เบี้ยว:* เส้นไม่ตั้งฉาก → คำนวณตรงๆ จะผิด ต้องมีเทอมแก้ (Correction)
-*   **Step 3: เลือกวิธีการแก้ (Correction Scheme)**
-    *   **Option A: `Gauss linear uncorrected`**
-        *   *ใช้เมื่อ:* Mesh เป็นสี่เหลี่ยมเป๊ะ (Orthogonal) เท่านั้น เร็วที่สุด
-    *   **Option B: `Gauss linear corrected` (Standard)**
-        *   *ใช้เมื่อ:* Mesh ทั่วไป มีความเบี้ยวบ้าง (Non-orthogonal) แม่นยำ แต่คำนวณเยอะกว่า
-    *   **Option C: `Gauss linear limited`**
-        *   *ใช้เมื่อ:* Mesh เบี้ยวหนักมาก (> 70-80 องศา) แก้เต็มสูบแล้วระเบิด ต้องแก้แบบยั้งๆ (Limited) เพื่อความอยู่รอด
-
----
-
-### 2.3 รายละเอียดเชิงลึก: การแก้ปัญหา Mesh เบี้ยว (Non-Orthogonality Correction)
-
-**ปัญหา (The Issue):** ในโลกความเป็นจริง Mesh ไม่ได้สวยงามเป็นสี่เหลี่ยมผืนผ้าเสมอไป เส้นที่ลากเชื่อมระหว่างจุดกึ่งกลางเซลล์ ($\mathbf{d}$) มักจะไม่ตั้งฉากกับผิวหน้าสัมผัส ($\mathbf{n}$)
-
-**ผลกระทบ:** การคำนวณ Gradient ($\nabla \phi$) แบบปกติจะผิดพลาด เพราะทิศทางมันเพี้ยน
-
-#### Step-by-Step: วิธีการคำนวณและแก้ไข
-
-1.  **Step 1: แบ่งส่วน Gradient**
-    OpenFOAM จะแยก Gradient ที่ผิวหน้าออกเป็น 2 ส่วน:
-    $$\nabla \phi_f \cdot \mathbf{n} = \underbrace{\frac{\phi_N - \phi_P}{|\mathbf{d}|}}_{\text{Orthogonal part (A)}} + \underbrace{\text{Correction term}}_{\text{Non-orthogonal part (B)}}$$
-
-2.  **Step 2: คำนวณส่วนตรง (A)**
-    คำนวณเหมือน Mesh ปกติ (คิดว่ามันตั้งฉาก) — *ส่วนนี้ทำได้ง่ายและเร็ว*
-
-3.  **Step 3: คำนวณส่วนแก้ (B)**
-    ส่วนนี้ซับซ้อนและต้องเลือกวิธีจัดการ:
-    *   **แบบ Uncorrected:** ทิ้งส่วน B ไปเลย (สมมติว่า A ถูกแล้ว) → *เร็วแต่ผิด*
-    *   **แบบ Corrected:** คำนวณ B แล้วเอาไปบวกเพิ่ม → *แม่นแต่ต้องวนลูปทำซ้ำ*
-    *   **แบบ Limited:** คำนวณ B แต่เอามาใช้แค่บางส่วน (Limit) ไม่ให้ค่ากระโดด → *ปลอดภัยไว้ก่อน*
-
-> [!tip] Practical Tip
-> **Workflow ที่แนะนำ:**
-> 1.  เริ่มด้วย `corrected` เสมอ (มาตรฐาน)
-> 2.  ถ้า Simulation ระเบิด ให้เช็ค `checkMesh`
-> 3.  ถ้า Non-orthogonality > 70° ให้เปลี่ยนไปใช้ `limited 0.5` หรือ `limited 0.33`
-
----
-
-### 2.4 Flux Field (`phi`) — หัวใจของ FVM
-
-**คำถาม:** ทำไม OpenFOAM ถึงขาด `phi` ไม่ได้?
-
-#### Step-by-Step: ความสำคัญของ `phi`
-
-1.  **Step 1: ธรรมชาติของการไหล (Physics)**
-    การไหลคือการเคลื่อนที่ผ่าน "ผิวหน้า (Face)" ของปริมาตรควบคุม
-
-2.  **Step 2: การสร้างตัวแปร (Data Structure)**
-    OpenFOAM สร้างตัวแปรพิเศษชื่อ `phi` (Surface Scalar Field) เก็บค่า **Mass Flux** ($\dot{m} = \rho \mathbf{u} \cdot \mathbf{S}_f$) ที่ผิวหน้าทุกผิว
-    *   หน่วย: $[kg/s]$ หรือ $[m^3/s]$ (ถ้า Incompressible)
-
-3.  **Step 3: การใช้งาน (Usage)**
-    *   **ใช้คำนวณการพา (Convection):** ทุกสมการที่ของไหลพาอะไรไปด้วย (ความร้อน, โมเมนตัม) จะใช้ `phi` ในการคำนวณ `fvm::div(phi, ...)`
-    *   **ใช้รักษา Balance:** Solver จะบังคับให้ผลรวม `phi` เข้า-ออกเซลล์เป็น 0 (Continuity) เพื่อให้มวลไม่หาย
-
----
-
-### 2.5 การเลือกเครื่องมือ: `fvm` vs `fvc`
-
-> [!NOTE] **📂 OpenFOAM Context**
-> **ไฟล์:** **Solver Source Code** (เช่น `simpleFoam.C`, `icoFoam.C`)
-> **ตำแหน่ง:** ในฟังก์ชัน main() หรือ within time loop
->
-> **คำสำคัญ (Keywords):**
-> - **`fvm::`** (Finite Volume Method) — สร้าง Matrix ($A$) สำหรับ Implicit
-> - **`fvc::`** (Finite Volume Calculus) — คำนวณ Source Term ($b$) สำหรับ Explicit
->
-> **ตัวอย่างการใช้งานใน Solver:**
-> ```cpp
-> // ใน solver code (เช่น simpleFoam.C)
-> fvVectorMatrix UEqn
-> (
->     fvm::ddt(U)                          // Matrix (Implicit)
->   + fvm::div(phi, U)                     // Matrix (Implicit)
->   - fvm::laplacian(nu, U)                // Matrix (Implicit)
-> );
->
-> solve(UEqn == -fvc::grad(p));            // Explicit pressure gradient
-> ```
->
-> **กฎสำคัญ:**
-> - ตัวแปรที่ต้องการหาค่า (Unknown) → ใช้ `fvm::`
-> - ตัวแปรที่รู้ค่าแล้ว (Known) → ใช้ `fvc::`
->
-> **ผลกระทบ:**
-> - ใช้ `fvc` กับ Unknown → **Explicit** (เร็วแต่ไม่เสถียร ต้องใช้ Δt เล็กๆ)
-> - ใช้ `fvm` กับ Known → **Implicit** (เสถียรแต่เสียเวลา compile)
->
-> **Memory Trick:** M = Matrix, C = Calculus
-
-นี่คือจุดตัดสินใจที่สำคัญที่สุดในการเขียน Code: **จะใช้อันไหนเมื่อไหร่?**
-
-#### Step-by-Step: กระบวนการตัดสินใจ
-
-1.  **Step 1: ดูตัวแปรที่ต้องการหา (Identify Unknown)**
-    สมมติเรากำลังแก้สมการหาค่า $U$ (ความเร็ว) ณ เวลาปัจจุบัน
-    *   $U$ คือ **Unknown**
-    *   ค่าอื่นๆ ($p$, $U_{old}$) คือ **Known**
-
-2.  **Step 2: เลือกเครื่องมือ (Select Operator)**
-
-    *   **ทางเลือก A: `fvm::` (Finite Volume Method) — สำหรับ Unknown**
-        *   *หน้าที่:* สร้าง **Matrix Coefficient** ($A$)
-        *   *กลไก:* มันจะบอกว่า "ค่าของฉันขึ้นอยู่กับเพื่อนบ้านนะ" แล้วเขียนลงใน Matrix
-        *   *ผลลัพธ์:* Implicit (เสถียรมาก)
-        *   *ใช้เมื่อ:* เทอมนั้นมีตัวแปรที่เรากำลังหาค่า (เช่น `fvm::div(phi, U)` ในสมการ $U$)
-
-    *   **ทางเลือก B: `fvc::` (Finite Volume Calculus) — สำหรับ Known**
-        *   *หน้าที่:* คำนวณออกมาเป็น **ตัวเลข (Source Term)** ($b$)
-        *   *กลไก:* เอาค่าที่มีอยู่แล้วมาบวกลบคูณหารกันเลย
-        *   *ผลลัพธ์:* Explicit (เร็วแต่ต้องระวัง)
-        *   *ใช้เมื่อ:* เทอมนั้นรู้ค่าหมดแล้ว หรือต้องการย้ายไปฝั่งขวาของสมการ (เช่น `fvc::grad(p)`)
-
-3.  **Step 3: ประกอบร่าง (Assembly)**
-    ```cpp
-    solve
-    (
-        fvm::ddt(rho, U)        // Unknown (Matrix)
-      + fvm::div(phi, U)        // Unknown (Matrix)
-      ==
-      - fvc::grad(p)            // Known (Vector b)
-    );
-    ```
-
-> [!hint] Memory Trick
-> *   **M** in fv**M** = **M**atrix (สร้างเมทริกซ์ รอแก้)
-> *   **C** in fv**C** = **C**alculus (คิดเลขเลย เสร็จจบ)
-
----
-
-## 3. นักวางแผน: `system/fvSolution`
-
-> [!NOTE] **📂 OpenFOAM Context**
-> **ไฟล์:** **`system/fvSolution`**
->
-> **บทบาท:** วางแผนวิธีแก้สมการเชิงเส้น $Ax=b$ และ Pressure-Velocity Coupling
->
-> **คำสำคัญ (Keywords) ในไฟล์:**
-> - **`solvers`** — ตั้งค่า Linear Solvers (PCG, PBiCGStab, smoothSolver)
->   - `solver` — เลือก algorithm (เช่น `PCG`, `PBiCGStab`)
->   - `preconditioner` — ช่วย加速 convergence (เช่น `DIC`, `DILU`)
->   - `tolerance` — ค่าความแม่นยำสัมบูรณ์ (เช่น `1e-06`)
->   - `relTol` — ค่าความแม่นยำสัมพัทธ์ (เช่น `0.01`)
-> - **`SIMPLE`** — สำหรับ Steady-state (ภาพนิ่ง)
->   - `nNonOrthogonalCorrectors` — จำนวนรอบแก้ non-orthogonality
-> - **`PISO`** — สำหรับ Transient (ภาพเคลื่อนไหว)
->   - `nCorrectors` — จำนวนรอบแก้ pressure ต่อ time step
->   - `nNonOrthogonalCorrectors` — จำนวนรอบแก้ non-orthogonality
-> - **`PIMPLE`** — ผสม SIMPLE + PISO (สำหรับ transient ที่ใช้ large time step)
->   - `nOuterCorrectors` — จำนวนรอบ outer loop (แบบ SIMPLE)
->
-> **ผลต่อการจำลอง:**
-> - `tolerance` สูงไป → Convergence ไวแต่ไม่แม่น
-> - `relTol` ต่ำไป → Convergence ช้า (เสียเวลา)
-> - `nCorrectors` น้อยไป → Continuity error สูง
->
-> **Best Practice:**
-> - Pressure: `tolerance 1e-06`, `relTol 0.01`
-> - Velocity: `tolerance 1e-05`, `relTol 0.1`
-> - ถ้า mesh เบี้ยว → เพิ่ม `nNonOrthogonalCorrectors` (2-3)
-
-เมื่อ `fvSchemes` แปลงโจทย์เป็นเมทริกซ์ $Ax = b$ แล้ว หน้าที่ของ `fvSolution` คือวางแผนเพื่อหาคำตอบ $x$ ออกมา
-
-### Step-by-Step: เส้นทางการแก้สมการ
-
-#### 1. การแก้เมทริกซ์ (Linear Solver)
-**โจทย์:** มี $Ax=b$ จะหา $x$ อย่างไรให้เร็วที่สุด?
-*   **Step 1: ดูลักษณะเมทริกซ์ ($A$)**
-    *   **สมมาตร (Symmetric):** $A_{ij} = A_{ji}$ (เช่น สมการความดัน Laplacian)
-        *   *Solver:* ใช้ **`PCG`** (Conjugate Gradient) + DIC Preconditioner — เร็วและแม่นสำหรับงานนี้
-    *   **ไม่สมมาตร (Asymmetric):** $A_{ij} \neq A_{ji}$ (เช่น สมการความเร็วที่มี Convection)
-        *   *Solver:* ใช้ **`PBiCGStab`** หรือ **`smoothSolver`** + DILU Preconditioner — รับมือความซับซ้อนได้ดี
-
-#### 2. การเชื่อมโยงตัวแปร (Pressure-Velocity Coupling)
-**โจทย์:** สมการความเร็ว ($U$) ต้องใช้ความดัน ($p$) แต่สมการความดันก็ต้องใช้ความเร็ว... มันเป็นงูกินหาง!
-*   **Step 1: เลือกกลยุทธ์ตามประเภทงาน**
-    *   **ภาพนิ่ง (Steady-state):** ใช้ **SIMPLE**
-        *   *หลักการ:* "หม้อตุ๋น" — ไม่ต้องแม่นในแต่ละก้าว เดินหน้าไปเรื่อยๆ จนกว่าจะนิ่ง (Convergence)
-    *   **ภาพเคลื่อนไหว (Transient):** ใช้ **PISO**
-        *   *หลักการ:* "กระทะไฟแรง" — ทุกเสี้ยววินาทีต้องแม่นยำที่สุด วนแก้สมการความดันซ้ำๆ (`nCorrectors`) จนเป๊ะ
-    *   **ลูกผสม (Transient + Large Time Step):** ใช้ **PIMPLE**
-        *   *หลักการ:* รวมร่าง — ใช้วงนอก (Outer Loop) แบบ SIMPLE เพื่อความเสถียร และวงใน (Inner Loop) แบบ PISO เพื่อความแม่น ช่วยให้ใช้ Time Step ใหญ่ได้
-
-#### 3. เกณฑ์การหยุด (Convergence Criteria)
-**โจทย์:** คอมพิวเตอร์ไม่รู้ว่า "เสร็จแล้ว" คือเมื่อไหร่ เราต้องบอกมัน
-*   **Step 1: ตั้งค่า Tolerance (ความแม่นยำสัมบูรณ์)**
-    *   ถ้า Residual < `tolerance` (เช่น $10^{-6}$) → หยุดทันที ถือว่าแม่นพอแล้ว
-*   **Step 2: ตั้งค่า RelTol (ความแม่นยำสัมพัทธ์)**
-    *   ถ้า Residual ลดลงไปเยอะแล้วเมื่อเทียบกับตอนเริ่ม (เช่น 1% หรือ `0.01`) → หยุดได้ ไม่ต้องเค้นต่อ (เหมาะกับ Transient ที่เดี๋ยวก็แก้ใหม่)
-
----
-
-### 3.1 โครงสร้างเมทริกซ์ $Ax = b$ ใน FVM (เบื้องหลัง)
-
-> [!NOTE] **📂 OpenFOAM Context**
-> **ไฟล์:** **`system/fvSolution`**
-> **Section:** `solvers`
->
-> **คำสำคัญ (Keywords):**
-> - **Diagonal Dominance** — ค่า diagonal ต้องใหญ่กว่า off-diagonal (เพื่อความเสถียร)
-> - **Symmetric Matrix** — ใช้ `PCG` (Conjugate Gradient)
-> - **Asymmetric Matrix** — ใช้ `PBiCGStab` หรือ `smoothSolver`
-> - **Preconditioner** — ช่วย加速 convergence (เช่น `DIC`, `DILU`, `GAMG`)
->
-> **ตัวอย่างการตั้งค่า Solver:**
-> ```cpp
-> solvers
-> {
->     // สมการสมมาตร (Symmetric) — เช่น Pressure
->     p
->     {
->         solver          PCG;               // Conjugate Gradient
->         preconditioner  DIC;               // Diagonal Incomplete Cholesky
->         tolerance       1e-06;
->         relTol          0.01;
->     }
->
->     // สมการไม่สมมาตร (Asymmetric) — เช่น Velocity
->     U
->     {
->         solver          PBiCGStab;         // Stabilized Bi-Conjugate Gradient
->         preconditioner  DILU;              // Diagonal Incomplete LU
->         tolerance       1e-05;
->         relTol          0.1;
->     }
-> }
-> ```
->
-> **ผลกระทบ:**
-> - Matrix ไม่ Diagonal Dominant → **ระเบิด (Divergence)**
-> - Preconditioner ผิด → Convergence ช้า
-> - Tolerance สูงไป → ผลลัพธ์ไม่แม่นยำ
->
-> **Best Practice:** ตรวจสอบ Initial Residual ใน log file (ควรลดลงเรื่อยๆ)
-
-เมื่อใช้ `fvm::` สร้างสมการ ผลลัพธ์คือ **Sparse Matrix**:
-
-$$\begin{bmatrix}
-a_{1,1} & a_{1,2} & 0 & \cdots & a_{1,n} \\
-a_{2,1} & a_{2,2} & a_{2,3} & \cdots & 0 \\
-\vdots & \vdots & \vdots & \ddots & \vdots \\
-a_{n,1} & 0 & 0 & \cdots & a_{n,n}
-\end{bmatrix}
-\begin{bmatrix}
-x_1 \\ x_2 \\ \vdots \\ x_n
-\end{bmatrix}
-=
-\begin{bmatrix}
-b_1 \\ b_2 \\ \vdots \\ b_n
-\end{bmatrix}$$
-
-1.  **Diagonal ($a_{P,P}$):** ตัวเลขที่ "หนัก" ที่สุด (Dominant) ยิ่ง $\Delta t$ เล็ก ค่านี้ยิ่งเยอะ ยิ่งแก้ปัญหาง่าย
-2.  **Off-diagonal ($a_{P,N}$):** ความสัมพันธ์กับเพื่อนบ้าน ถ้าสัมพันธ์กันเยอะ เมทริกซ์จะแน่นขึ้น
-3.  **Source ($b$):** ขยะ (Terms) ที่เหลือทั้งหมดที่คำนวณค่าได้แล้ว จะถูกกวาดมาทิ้งไว้ฝั่งขวานี้
-
----
-
----
-
-## 4. ตัวอย่างการแปลงร่าง: Time Derivative
-
-> [!NOTE] **📂 OpenFOAM Context**
-> **ไฟล์:** **`system/fvSchemes`**
-> **Section:** `ddtSchemes`
->
-> **ตัวอย่างการตั้งค่า:**
-> ```cpp
-> ddtSchemes
-> {
->     default         Euler;             // 1st order (เสถียร)
->     // backward;                        // 2nd order (แม่นยำกว่า)
->     // CrankNicolson <φ>;               // 2nd order (สมดุล <φ> = 0.5-1.0)
-> }
-> ```
->
-> **คำสำคัญ (Keywords):**
-> - **`Euler`** — 1st order Implicit (เสถียรที่สุด แต่เบลอ)
-> - **`backward`** — 2nd order Implicit (แม่นยำ ใช้ในงาน transient)
-> - **`CrankNicolson`** — 2nd order (ผสมระหว่าง implicit/explicit)
->
-> **ผลกระทบ:**
-> - `Euler` → Δt ใหญ่ได้ แต่ผลลัพธ์เบลอ (Numerical Diffusion สูง)
-> - `backward` → ต้องใช้ Δt เล็กกว่า แต่ผลลัพธ์แม่นยำ
-> - Δt เล็กเกินไป → เสียเวลาคำนวณ
-> - Δt ใหญ่เกินไป → **ระเบิด (Blow up)**
->
-> **Best Practice:** เริ่มต้นด้วย `Euler` จนเสถียร แล้วค่อยเปลี่ยนเป็น `backward`
->
-> **ควบคุม Δt:** ใช้ `maxCo` (Courant Number) ใน `system/controlDict`
-> - Incompressible: `maxCo < 1.0`
-> - Compressible: `maxCo < 0.5`
-
-จาก **Calculus** (สมการอนุพันธ์) ไปเป็น **Algebra** (สมการเชิงเส้น) สำหรับเทอมของเวลา (Time Derivative) ตามหลักการ **Finite Volume Method (FVM)**:
-
-### Step-by-Step: จาก Calculus สู่ Matrix ($Ax = b$)
-
-สมมติเราพิจารณาเทอม **$\frac{\partial (\rho \phi)}{\partial t}$** ในสมการขนส่ง (Transport Equation)
-
-#### 1. ขั้นตอน Calculus (The Starting Point)
-เรามีอัตราการเปลี่ยนแปลงของ $\phi$ เทียบกับเวลาในเชิงทฤษฎี:
-$$\frac{\partial (\rho \phi)}{\partial t}$$
-
-#### 2. ขั้นตอน Integration (Volume Averaging)
-ใน FVM เราไม่ได้คิดที่จุดใดจุดหนึ่ง แต่เรา "อินทิเกรต" ครอบคลุมปริมาตรของเซลล์ $V_P$ เพื่อดูการเปลี่ยนแปลงมวล/พลังงานรวมในก้อนนั้น:
-$$\int_{V_P} \frac{\partial (\rho \phi)}{\partial t} dV$$
-*ถ้าเราสมมติว่าค่าในเซลล์นั้นสม่ำเสมอ (Uniform) ผลการอินทิเกรตจะได้:*
-$$\frac{\partial (\rho \phi)_P}{\partial t} V_P$$
-
-#### 3. ขั้นตอน Discretization (เปลี่ยน Calculus เป็น Arithmetic)
-เราต้องเปลี่ยน "อนุพันธ์" ($\partial t$) ให้กลายเป็น "ส่วนต่าง" ของเวลาที่จับต้องได้ ($\Delta t$) โดยใช้ **Euler Implicit Scheme**:
-*   **$\phi^n$** = ค่า "ใหม่" (สิ่งที่เราต้องการหาใน Time Step นี้)
-*   **$\phi^{n-1}$** = ค่า "เก่า" (รู้อยู่แล้วจาก Time Step ก่อนหน้า)
-
-สมการจะกลายเป็น:
-$$\frac{(\rho \phi)_P^n - (\rho \phi)_P^{n-1}}{\Delta t} V_P$$
-
-#### 4. ขั้นตอน Algebra (จัดรูปเข้า Matrix $Ax = b$)
-เพื่อจะแก้สมการ เราต้องแยกสิ่งที่ **ไม่รู้** (ฝั่งซ้าย - Matrix $A$) ออกจากสิ่งที่ **รู้แล้ว** (ฝั่งขวา - Vector $b$):
-
-กระจายเทอมออกมา:
-$$\left( \frac{\rho V_P}{\Delta t} \right) \phi_P^n - \left( \frac{\rho V_P}{\Delta t} \right) \phi_P^{n-1}$$
-
-*   **ฝั่งซ้าย (Matrix $A$):** ค่า $\left( \frac{\rho V_P}{\Delta t} \right)$ จะถูกนำไปบวกเพิ่มใน **Diagonal** ของ Matrix $A$ ตรงตำแหน่งของเซลล์ $P$
-*   **ฝั่งขวา (Vector $b$):** เทอม $\left( \frac{\rho V_P}{\Delta t} \right) \phi_P^{n-1}$ เป็นค่าที่รู้แล้ว จะถูกย้ายไปเป็น **Source Term** ในฝั่ง $b$
-
----
-
-### สรุปประเด็นสำคัญ:
-*   **ทำไม $\Delta t$ เล็กแล้วเสถียร?**
-    ดูที่ตัวคูณของ $\phi_P^n$ ใน Matrix $A$ คือ $\frac{\rho V_P}{\Delta t}$ ถ้า $\Delta t$ ยิ่งน้อย ค่าตัวนี้จะยิ่ง **"ใหญ่มาก"** เมื่อเทียบกับค่าอื่นๆ ในแถวนั้น (Diagonal Dominance) ทำให้คอมพิวเตอร์แก้สมการได้ง่าย แม่นยำ และไม่ระเบิด
-*   **การแปลงร่าง:**
-    $\frac{\partial}{\partial t}$ $\rightarrow$ Calculus
-    $\frac{\Delta}{\Delta t}$ $\rightarrow$ Discretization
-    $A\phi = b$ $\rightarrow$ Algebra (Matrix)
-
----
-
-## 5. การเขียนโค้ด: `createFields.H`
-
-> [!NOTE] **📂 OpenFOAM Context**
-> **ไฟล์:** **`createFields.H`** (อยู่ใน `src/` หรือสร้างเองใน solver)
->
-> **บทบาท:** สร้างและเริ่มต้นตัวแปรฟิสิกส์ (Fields) ที่ใช้ในการจำลอง
->
-> **คำสำคัญ (Keywords):**
-> - **`IOobject`** — ระบุตำแหน่งไฟล์และวิธีการอ่าน/เขียน
-> - **`volScalarField`**, **`volVectorField`** — Field ที่เก็บที่จุดกึ่งกลางเซลล์
-> - **`surfaceScalarField`** — Field ที่เก็บที่ผิวหน้า (เช่น `phi`)
-> - **`MUST_READ`**, **`AUTO_WRITE`** — ตั้งค่าการอ่าน/เขียนไฟล์
-> - **`mesh`** — อ้างอิงถึง mesh object ปัจจุบัน
->
-> **ตัวอย่างการใช้งาน:**
-> ```cpp
-> // สร้าง Pressure field
-> volScalarField p
-> (
->     IOobject
->     (
->         "p",                     // ชื่อไฟล์
->         runTime.timeName(),      // โฟลเดอร์เวลา (เช่น "0/")
->         mesh,
->         IOobject::MUST_READ,     // ต้องอ่านไฟล์
->         IOobject::AUTO_WRITE     // เขียนอัตโนมัติ
->     ),
->     mesh
-> );
->
-> // สร้าง Velocity field
-> volVectorField U
-> (
->     IOobject("U", runTime.timeName(), mesh, IOobject::MUST_READ, IOobject::AUTO_WRITE),
->     mesh
-> );
->
-> // สร้าง Flux field (surface scalar)
-> surfaceScalarField phi
-> (
->     IOobject("phi", runTime.timeName(), mesh, IOobject::READ_IF_PRESENT, IOobject::AUTO_WRITE),
->     fvc::flux(U)              // คำนวณจาก velocity
-> );
-> ```
->
-> **ผลกระทบ:**
-> - ผิดพลาด → **Runtime Error** (ไม่พบไฟล์ `0/p`, `0/U`)
-> - ลืม `MUST_READ` → Field เป็นค่าเริ่มต้น (ศูนย์) ทำให้ผลลัพธ์ผิด
->
-> **Best Practice:** ตรวจสอบว่าไฟล์ `0/p`, `0/U` มีอยู่จริงก่อนรัน
-
-นี่คือจุดเริ่มต้นของการสร้างตัวแปรใน OpenFOAM เราจะมาถอดรหัส Constructor นี้ทีละขั้น
-
-### Step-by-Step: วิธีสร้างตัวแปร (Anatomy of a Field)
-
-#### 1. เลือกประเภทตัวแปร (Class Selection)
-**คำถาม:** ข้อมูลที่จะเก็บมีหน้าตาแบบไหน? และเก็บไว้ตรงไหนของ Mesh?
-*   **Step 1: เลือก Geometric Type (เก็บที่ไหน)**
-    *   `vol...` = เก็บที่ **จุดกึ่งกลางเซลล์** (ใช้บ่อยสุด เช่น $p, U, T$)
-    *   `surface...` = เก็บที่ **ผิวหน้า** (ใช้กับ Flux เช่น `phi`)
-*   **Step 2: เลือก Data Type (เก็บอะไร)**
-    *   `...ScalarField` = เก็บ **ตัวเลขเดียว** (Scalar) เช่น ความดัน, อุณหภูมิ
-    *   `...VectorField` = เก็บ **เวกเตอร์** (Vector) เช่น ความเร็ว
-
-#### 2. สร้างบัตรประจำตัว (IOobject)
-**คำถาม:** ตัวแปรนี้ชื่ออะไร? อ่านไฟล์ไหน? เขียนไฟล์ไหม?
 ```cpp
-IOobject
-(
-    "p",                  // 1. ชื่อไฟล์บน Disk (สำคัญมาก!)
-    runTime.timeName(),   // 2. โฟลเดอร์เวลาที่จะไปค้นหา (เช่น "0", "0.5")
-    mesh,                 // 3. สังกัด Mesh ไหน (ปกติใช้ "mesh")
-    IOobject::MUST_READ,  // 4. เงื่อนไขการอ่าน (Read Option)
-    IOobject::AUTO_WRITE  // 5. เงื่อนไขการเขียน (Write Option)
-)
+fvc::div(phi)  // ตรวจสอบว่า = 0
 ```
-*   **Decision Checklist:**
-    *   *ต้องมีไฟล์ให้เริ่มรันไหม?*
-        *   ใช่ (ตัวแปรหลัก $p, U$) → `MUST_READ` (หาไม่เจอให้ error)
-        *   ไม่แน่ (ตัวแปรเสริม) → `READ_IF_PRESENT` (หาไม่เจอใช้ค่า default)
-        *   ไม่ (ตัวแปรชั่วคราว) → `NO_READ`
-    *   *อยากเก็บผลลัพธ์ลง Harddisk ไหม?*
-        *   ใช่ → `AUTO_WRITE`
-        *   ไม่ → `NO_WRITE`
 
-#### 3. กำหนดสังกัดและค่าเริ่มต้น (Mesh & Value)
-หลังจากยื่นบัตรประจำตัวแล้ว ต้องบอกว่าตัวแปรนี้เกาะอยู่กับ Mesh ไหน
+**ทำไมสำคัญ?**
+- สมการนี้ไม่ได้ "แก้" โดยตรง แต่ใช้เป็น **constraint** สร้างสมการความดัน
+- ถ้า continuity error สูง = มวลหายไปในการคำนวณ → ผลลัพธ์ไม่น่าเชื่อถือ
+
+---
+
+### 1.2 การอนุรักษ์โมเมนตัม (Navier-Stokes)
+
+**Physics:** F = ma — แรงทำให้ของไหลเร่ง
+
+$$\underbrace{\frac{\partial \mathbf{u}}{\partial t}}_{\text{เปลี่ยนตามเวลา}} + \underbrace{(\mathbf{u} \cdot \nabla)\mathbf{u}}_{\text{ของไหลพาตัวเอง}} = \underbrace{-\frac{1}{\rho}\nabla p}_{\text{ความดันดัน}} + \underbrace{\nu\nabla^2\mathbf{u}}_{\text{ความหนืดยับยั้ง}}$$
+
 ```cpp
-    mesh                // เกาะกับ Mesh นี้
-    // (Optional) อาจใส่ค่าเริ่มต้นตรงนี้ได้ถ้าเลือก NO_READ
+fvVectorMatrix UEqn
+(
+    fvm::ddt(U)           // ∂u/∂t
+  + fvm::div(phi, U)      // (u·∇)u
+  - fvm::laplacian(nu, U) // ν∇²u
+);
+solve(UEqn == -fvc::grad(p));
+```
+
+**แต่ละเทอมหมายความว่าอะไร?**
+
+| เทอม | ความหมาย | OpenFOAM | อธิบาย |
+|------|----------|----------|--------|
+| `ddt` | เปลี่ยนตามเวลา | `fvm::ddt(U)` | ความเร็วเปลี่ยนจาก time step ก่อน |
+| `div` | Convection | `fvm::div(phi, U)` | ของไหลพาโมเมนตัมไปด้วย (ทำให้เกิด non-linear!) |
+| `laplacian` | Diffusion | `fvm::laplacian(nu, U)` | ความหนืดทำให้โมเมนตัมกระจาย (เป็นตัวทำให้เสถียร) |
+| `grad` | Pressure | `fvc::grad(p)` | ความดันดันของไหลจากที่สูงไปต่ำ |
+
+**ทำไม Convection ถึงยากที่สุด?**
+- เทอม $(u \cdot \nabla)u$ มี **ความเร็วคูณความเร็ว** → Non-linear!
+- ค่าสามารถกระโดดสูงมาก (unbounded) → ระเบิดได้
+- ต้องเลือก discretization scheme อย่างระมัดระวัง
+
+---
+
+### 1.3 การอนุรักษ์พลังงาน
+
+**Physics:** พลังงานไม่หาย เพียงเปลี่ยนรูป
+
+$$\rho c_p \frac{DT}{Dt} = k \nabla^2 T + Q$$
+
+```cpp
+fvm::ddt(T) + fvm::div(phi, T) - fvm::laplacian(alpha, T)
+```
+
+**ใช้เมื่อไหร่?**
+- ❌ น้ำไหลในท่อ (isothermal) — ไม่ต้องแก้ เพราะอุณหภูมิไม่เปลี่ยน
+- ✅ Heat transfer — ต้องแก้ เพื่อหาการกระจายอุณหภูมิ
+- ✅ Compressible flow — ต้องแก้ เพราะ $\rho = \rho(p, T)$
+
+---
+
+## 2. เลือก Solver: Re และ Ma
+
+> **ก่อนเริ่ม simulation ต้องคำนวณ Re และ Ma เสมอ!**
+
+### Reynolds Number (Re) — บอก Laminar vs Turbulent
+
+$$Re = \frac{UL}{\nu} = \frac{\text{Inertia forces}}{\text{Viscous forces}}$$
+
+**ทำไมสำคัญ?**
+- Re ต่ำ: ความหนืดชนะ → flow เรียบ (laminar)
+- Re สูง: inertia ชนะ → flow ปั่นป่วน (turbulent) → ต้องใช้ turbulence model
+
+| Re | Flow | Solver | เหตุผล |
+|----|------|--------|--------|
+| < 2300 | Laminar | `icoFoam` | ไม่ต้องมี turbulence model |
+| > 4000 | Turbulent | `simpleFoam` + k-ε | ต้อง model eddies ที่มองไม่เห็น |
+
+### Mach Number (Ma) — บอก Incompressible vs Compressible
+
+$$Ma = \frac{U}{c} = \frac{\text{Flow speed}}{\text{Sound speed}}$$
+
+**ทำไมสำคัญ?**
+- Ma < 0.3: ความหนาแน่นเกือบคงที่ → ใช้สมการง่ายกว่า
+- Ma > 0.3: ความหนาแน่นเปลี่ยน → ต้องแก้สมการ state ($p = \rho RT$)
+
+| Ma | Flow | Solver | เหตุผล |
+|----|------|--------|--------|
+| < 0.3 | Incompressible | `simpleFoam` | $\rho$ = constant, ง่ายกว่า |
+| > 0.3 | Compressible | `rhoSimpleFoam` | ต้องคิด $\rho(p,T)$ |
+
+---
+
+## 3. fvSchemes — การแปลงสมการ
+
+> **หน้าที่:** แปลง Calculus (สมการอนุพันธ์) → Algebra (สมการเชิงเส้น Ax=b)
+
+### 3.1 ปัญหาหลัก: ค่าเก็บที่ไหน?
+
+```
+OpenFOAM เก็บค่า (p, U, T) ที่: Cell Center (จุดกลางเซลล์)
+แต่ FVM ต้องคำนวณ flux ที่: Face (ผิวหน้าระหว่างเซลล์)
+```
+
+**ปัญหา:** เราไม่รู้ค่าที่ face → ต้อง **interpolate** จาก cell center
+
+**ทางออก:** ใช้ Schemes เพื่อ "เดา" ค่าที่ face จากค่าที่ cell center
+
+---
+
+### 3.2 divSchemes (Convection) — สำคัญที่สุด!
+
+**โจทย์:** เลือกวิธี interpolate จาก cell center ไป face สำหรับเทอม $\nabla \cdot (u\phi)$
+
+#### Scheme 1: Upwind — เสถียรแต่เบลอ
+
+```
+Face value = ค่าจากฝั่งต้นลม (upwind cell)
+```
+
+**ทำไมเสถียร?** เพราะค่าไม่มีทางเกินค่าที่ cell center → Bounded
+
+**ทำไมเบลอ?** เพราะเป็น 1st order accuracy → numerical diffusion สูง (เหมือนภาพไม่ชัด)
+
+#### Scheme 2: Linear (Central) — แม่นยำแต่ระเบิดง่าย
+
+```
+Face value = เฉลี่ยจากทั้ง 2 ฝั่ง
+```
+
+**ทำไมแม่นยำ?** เพราะเป็น 2nd order accuracy
+
+**ทำไมระเบิด?** เพราะค่าอาจเกินค่าที่ cell center (overshoot) → Unbounded → oscillation → blow up
+
+#### Scheme 3: LinearUpwind — สมดุล (แนะนำ)
+
+```
+Face value = Upwind + gradient correction
+```
+
+**ทำไมดี?** ได้ทั้งความแม่นยำ (2nd order) และความเสถียร (bounded)
+
+| Scheme | ข้อดี | ข้อเสีย | ใช้เมื่อ |
+|--------|------|--------|---------|
+| `Gauss upwind` | เสถียรมาก | เบลอ (numerical diffusion) | เริ่มต้น, flow รุนแรง |
+| `Gauss linear` | แม่นยำ (2nd order) | ระเบิดง่าย (oscillation) | flow สงบมาก |
+| `Gauss linearUpwind` | สมดุล | - | **แนะนำสำหรับ production** |
+
+```cpp
+divSchemes
+{
+    default         none;
+    div(phi,U)      Gauss linearUpwind grad(U);
+    div(phi,k)      Gauss upwind;  // turbulence ใช้ upwind เพราะ sensitive
+}
+```
+
+> **กลยุทธ์:** เริ่มด้วย `upwind` จนเสถียร แล้วค่อยเปลี่ยนเป็น `linearUpwind` เพื่อความแม่นยำ
+
+---
+
+### 3.3 laplacianSchemes (Diffusion) — จัดการ Mesh เบี้ยว
+
+**โจทย์:** คำนวณ $\nabla \cdot (\Gamma \nabla \phi)$ ต้องหา gradient ที่ face
+
+**ปัญหา:** ถ้า mesh เบี้ยว (non-orthogonal) การคำนวณ gradient จะผิด!
+
+#### ทำไม Mesh เบี้ยวถึงเป็นปัญหา?
+
+```
+Mesh สวย (orthogonal):
+  เส้นเชื่อม cell centers ตั้งฉากกับ face → คำนวณ gradient ง่าย
+
+Mesh เบี้ยว (non-orthogonal):
+  เส้นเชื่อมไม่ตั้งฉาก → gradient ที่คำนวณเพี้ยน → ต้องมี correction term
+```
+
+| Mesh Quality | Scheme | เหตุผล |
+|--------------|--------|--------|
+| สวย (orthogonal) | `Gauss linear uncorrected` | ไม่ต้อง correct, เร็วที่สุด |
+| ปกติ (< 70°) | `Gauss linear corrected` | มี correction term แก้ความเพี้ยน |
+| เบี้ยวมาก (> 70°) | `Gauss linear limited 0.5` | correct แบบยั้งๆ ไม่งั้นระเบิด |
+
+```cpp
+laplacianSchemes
+{
+    default         Gauss linear corrected;
+}
+```
+
+> **เช็ค mesh:** `checkMesh` → ดู "max non-orthogonality"
+> - < 70° → ใช้ `corrected`
+> - > 70° → ใช้ `limited` หรือแก้ mesh
+
+---
+
+### 3.4 ddtSchemes (Time) — Implicit vs Explicit
+
+**โจทย์:** แปลง $\frac{\partial \phi}{\partial t}$ เป็น finite difference
+
+#### Euler Implicit (1st order)
+
+$$\frac{\phi^{n+1} - \phi^n}{\Delta t}$$
+
+**ทำไมเสถียร?** เพราะใช้ค่า $\phi^{n+1}$ (ค่าใหม่ที่กำลังหา) → ค่า coefficient ใน matrix ใหญ่ → Diagonal dominant → Solver แก้ง่าย
+
+**ทำไมเบลอ?** เพราะ 1st order → numerical diffusion
+
+#### Backward (2nd order)
+
+$$\frac{3\phi^{n+1} - 4\phi^n + \phi^{n-1}}{2\Delta t}$$
+
+**ทำไมแม่นยำกว่า?** ใช้ข้อมูลจาก 2 time steps ก่อนหน้า → 2nd order accurate
+
+| Scheme | Order | เสถียร | แม่นยำ | ใช้เมื่อ |
+|--------|-------|--------|--------|---------|
+| `Euler` | 1st | ✅✅ | ❌ | เริ่มต้น, ต้องการเสถียร |
+| `backward` | 2nd | ✅ | ✅ | ต้องการความแม่นยำทางเวลา |
+
+---
+
+## 4. fvSolution — การแก้สมการ
+
+> **หน้าที่:** แก้ระบบ Ax = b ที่ได้จาก fvSchemes
+
+### 4.1 เลือก Linear Solver
+
+**ปัญหา:** Matrix A ใน CFD มีขนาดใหญ่มาก (ล้าน x ล้าน) → ใช้ direct solver ไม่ได้ → ต้องใช้ iterative solver
+
+#### ทำไมต้องดูว่า Matrix สมมาตรไหม?
+
+- **Symmetric matrix:** ใช้ `PCG` (Conjugate Gradient) — algorithm optimize สำหรับ symmetric
+- **Asymmetric matrix:** ใช้ `PBiCGStab` — รองรับ asymmetric
+
+| สมการ | Matrix Type | Solver | เหตุผล |
+|-------|-------------|--------|--------|
+| Pressure (Laplacian) | Symmetric | `PCG` | $\nabla^2 p$ สมมาตร |
+| Velocity (Convection) | Asymmetric | `PBiCGStab` | $(u \cdot \nabla)u$ ทำให้ asymmetric |
+
+```cpp
+solvers
+{
+    p
+    {
+        solver          PCG;
+        preconditioner  DIC;       // ช่วยให้ converge เร็วขึ้น
+        tolerance       1e-06;     // หยุดเมื่อ residual < 1e-6
+        relTol          0.01;      // หยุดเมื่อลดลง 100 เท่า
+    }
+    U
+    {
+        solver          PBiCGStab;
+        preconditioner  DILU;
+        tolerance       1e-05;
+        relTol          0.1;
+    }
+}
+```
+
+#### tolerance vs relTol
+
+- **tolerance (absolute):** หยุดเมื่อ residual < ค่านี้
+- **relTol (relative):** หยุดเมื่อ residual ลดลงจากตอนเริ่มต้นตามสัดส่วนนี้
+
+> สำหรับ transient: ใช้ `relTol 0` เพื่อให้แก้จน tolerance เสมอ (ทุก time step ต้องแม่น)
+
+---
+
+### 4.2 P-V Coupling Algorithm
+
+**ปัญหา:** สมการ momentum ต้องใช้ p, แต่สมการ pressure ต้องใช้ U → งูกินหาง!
+
+**ทางออก:** ใช้ algorithm แบบ iterative
+
+#### SIMPLE (Steady-state)
+
+```
+Loop จนกว่าจะ converge:
+  1. แก้สมการ U (ใช้ p จาก iteration ก่อน)
+  2. แก้สมการ p (บังคับ continuity)
+  3. แก้ U อีกทีด้วย p ใหม่
+```
+
+**ทำไมใช้กับ steady?** เพราะเราไม่สนใจความแม่นยำระหว่างทาง สนแค่ตอนจบ
+
+#### PISO (Transient)
+
+```
+ทุก time step:
+  1. แก้สมการ U
+  2. แก้สมการ p (วนซ้ำ nCorrectors รอบ)
+  3. แก้ U ด้วย p ใหม่
+```
+
+**ทำไมต้องวนหลายรอบ?** เพราะทุก time step ต้องแม่นยำ (ไม่เหมือน SIMPLE ที่รอ converge ตอนจบ)
+
+#### PIMPLE (Transient + Large Δt)
+
+```
+ทุก time step:
+  วน SIMPLE loop (nOuterCorrectors รอบ):
+    วน PISO loop (nCorrectors รอบ)
+```
+
+**ทำไมดีกว่า PISO?** สามารถใช้ Δt ใหญ่ขึ้นได้ เพราะมี outer loop ช่วยเสถียร
+
+| Type | Algorithm | ใช้เมื่อ |
+|------|-----------|---------|
+| Steady | `SIMPLE` | ภาพนิ่ง, ไม่สนใจ transient |
+| Transient | `PISO` | Δt เล็ก, ต้องการความแม่นทุก step |
+| Transient | `PIMPLE` | Δt ใหญ่, ยอมเสียเวลาคำนวณ |
+
+---
+
+## 5. fvm vs fvc — ความแตกต่างสำคัญ
+
+> **กฎทอง:** Unknown → `fvm::`, Known → `fvc::`
+
+### ทำไมต้องแยก?
+
+- **`fvm::`** (Finite Volume **Method**): สร้าง **coefficient** ใน matrix A
+  - ผลลัพธ์: Implicit → เสถียร แต่ต้องแก้ Ax=b
+  
+- **`fvc::`** (Finite Volume **Calculus**): คำนวณ **ค่าตัวเลข** เลย
+  - ผลลัพธ์: Explicit → เร็ว แต่อาจไม่เสถียร
+
+### ตัวอย่างเข้าใจง่าย
+
+```cpp
+// สมมติกำลังแก้หา U (unknown)
+fvVectorMatrix UEqn
+(
+    fvm::ddt(U)              // U คือ unknown → ใส่ใน matrix
+  + fvm::div(phi, U)         // U คือ unknown → ใส่ใน matrix
+  - fvm::laplacian(nu, U)    // U คือ unknown → ใส่ใน matrix
+);
+
+// p รู้ค่าแล้ว (จาก iteration ก่อน) → คำนวณเลย
+solve(UEqn == -fvc::grad(p)); 
+```
+
+**ถ้าใช้ผิดล่ะ?**
+- ใช้ `fvc::` กับ unknown → Explicit → ต้องใช้ Δt เล็กมากไม่งั้นระเบิด!
+- ใช้ `fvm::` กับ known → ไม่ผิด แต่ไม่จำเป็น (เสียเวลา compile)
+
+> **จำง่าย:** fv**M** = **M**atrix, fv**C** = **C**alculate now
+
+---
+
+## 6. createFields.H — สร้างตัวแปร
+
+### 6.1 โครงสร้างพื้นฐาน
+
+```cpp
+volScalarField p     // Scalar ที่ cell center
+(
+    IOobject
+    (
+        "p",                     // ชื่อไฟล์ (ต้องตรงกับ 0/p)
+        runTime.timeName(),      // โฟลเดอร์ (0, 0.5, ...)
+        mesh,
+        IOobject::MUST_READ,     // ต้องอ่านจากไฟล์
+        IOobject::AUTO_WRITE     // เขียนอัตโนมัติตาม writeInterval
+    ),
+    mesh
 );
 ```
 
----
+### 6.2 ประเภท Field
 
-## 6. การวิเคราะห์ผล: `functionObjects`
+| Type | เก็บที่ | ตัวอย่าง | ทำไมต้องแยก? |
+|------|--------|---------|-------------|
+| `volScalarField` | Cell center | p, T, k | ค่า intensive (ไม่ขึ้นกับขนาด) |
+| `volVectorField` | Cell center | U | ความเร็วเป็น vector |
+| `surfaceScalarField` | Face | phi | flux ต้องเก็บที่ face เพราะ FVM ทำงานที่ face |
 
-> [!NOTE] **📂 OpenFOAM Context**
-> **ไฟล์:** **`system/controlDict`**
-> **Section:** `functions { ... }`
->
-> **บทบาท:** คำนวณค่าทางวิศวกรรม (Forces, Coefficients, Probes, Sampling) ระหว่างรัน
->
-> **คำสำคัญ (Keywords):**
-> - **`functions`** — Block หลักที่เก็บ functionObjects ทั้งหมด
-> - **`forceCoeffs`** — คำนวณ Lift/Drag Coefficients ($C_L, C_D$)
-> - **`forces`** — คำนวณแรง (Force) โดยตรง
-> - **`probes`** — วัดค่าที่จุดพิกัดเฉพาะ
-> - **`sets`** — สร้างเส้น/ระนาบ sampling (เช่น แนวรากฐาน)
-> - **`fieldMinMax`** — หาค่าสูงสุด/ต่ำสุดของ field
-> - **`volFieldValue`** — คำนวณค่าเฉลี่ย/ผลรวมใน volume หนึ่งๆ
->
-> **ตัวอย่างการตั้งค่า (Force Coefficients):**
-> ```cpp
-> functions
-> {
->     forceCoeffs
->     {
->         type        forceCoeffs;
->         libs        ("libforces.so");
->
->         // ตั้งค่า Reference Values (สำคัญมาก!)
->         rho         rhoInf;           // ความหนาแน่น
->         magUInf     10.0;             // ความเร็วลมอิสระ [m/s]
->         lRef        1.0;              // ความยาวอ้างอิง [m]
->         Aref        1.0;              // พื้นที่อ้างอิง [m^2]
->
->         // ตั้งค่า Patch ที่จะคำนวณ
->         patches     ("airfoil");
->
->         // ตั้งค่า Direction
->         dragDir     (1 0 0);          // ทิศทางลม
->         liftDir     (0 1 0);          // ทิศทาง lift
->         pitchAxis   (0 0 1);          // แกนหมุน
->
->         // ตั้งค่า Output
->         writeFields yes;
->     }
-> }
-> ```
->
-> **ผลกระทบ:**
-> - `magUInf` ผิด → $C_L, C_D$ ผิด!
-> - `Aref` ผิด → Scale ผิด!
-> - ลืม `patches` → ไม่มี output
->
-> **Best Practice:** ตรวจสอบ Reference Values ให้ถูกต้อง (หน่วย SI)
+### 6.3 IO Options
 
-เราไม่ต้องเขียน Code ใหม่เพื่อคำนวณค่าทางวิศวกรรม OpenFOAM เตรียม "ปลั๊กอิน" ไว้ให้แล้ว
-
-### Step-by-Step: การใช้งาน
-
-1.  **Step 1: กำหนดเป้าหมาย**
-    *   อยากรู้ Force Coefficients ($C_L, C_D$)?
-    *   อยากรู้ค่าเฉลี่ย (Average)?
-    *   อยากวัดค่าที่จุดใดจุดหนึ่ง (Probes)?
-
-2.  **Step 2: ไปที่ `system/controlDict`**
-    เพิ่ม Block `functions { ... }` ท้ายไฟล์
-
-3.  **Step 3: ตั้งค่า (Configuration)**
-    *   สำหรับ $C_L, C_D$ ต้องระวังเรื่อง **Reference Values** (ค่าอ้างอิง) ให้ดี:
-        $$ C_F = \frac{F}{\frac{1}{2} \rho U_\infty^2 A_{ref}} $$
-        *   `magUInf` (ความเร็วลมอิสระ) — *ใส่ผิด $C_L$ เพี้ยน*
-        *   `Aref` (พื้นที่หน้าตัด) — *ใส่ผิด Scale เพี้ยน*
-        *   `lRef` (ความยาว) — *ใช้คำนวณ Moment*
+| Read | เมื่อไหร่ | ตัวอย่าง |
+|------|---------|---------|
+| `MUST_READ` | ต้องมีไฟล์ ไม่งั้น error | p, U (ตัวแปรหลัก) |
+| `READ_IF_PRESENT` | มีก็อ่าน ไม่มีใช้ default | phi (สร้างจาก U ได้) |
+| `NO_READ` | ไม่ต้องมีไฟล์ | ตัวแปรชั่วคราวในการคำนวณ |
 
 ---
 
-## 7. 📖 สรุปฉบับย่อ + Decision Trees
+## 7. Quick Reference
 
-> [!NOTE] **📂 OpenFOAM Context** - **🗺️ Roadmap การตั้งค่า Case ทั้งหมด**
->
-> **1. เริ่มต้น (Pre-processing):**
-> - **`constant/polyMesh/`** — Mesh (จาก blockMesh/snappyHexMesh)
-> - **`0/`** — Boundary Conditions เริ่มต้น
->
-> **2. ตั้งค่า Physics:**
-> - **`constant/transportProperties`** — คุณสมบัติของไหล (`nu`, `rho`, `mu`)
-> - **`constant/turbulenceProperties`** — Turbulence Model (`kEpsilon`, `kOmegaSST`)
->
-> **3. ตั้งค่า Numerics (สำคัญ!):**
-> - **`system/fvSchemes`** — Discretization schemes
->   - `ddtSchemes`: `Euler` (เริ่มต้น) → `backward` (แม่นยำ)
->   - `gradSchemes`: `Gauss linear` (มาตรฐาน)
->   - `divSchemes`: `Gauss upwind` (เสถียร) → `limitedLinear` (สมดุล)
->   - `laplacianSchemes`: `Gauss linear corrected` (มาตรฐาน)
->
-> **4. ตั้งค่า Solver (สำคัญ!):**
-> - **`system/fvSolution`** — Linear Solvers และ Algorithm
->   - `solvers`: `PCG` (pressure), `PBiCGStab` (velocity)
->   - `SIMPLE` (steady) / `PISO` (transient) / `PIMPLE` (hybrid)
->   - `tolerance`: `1e-06` (pressure), `1e-05` (velocity)
->
-> **5. ตั้งค่า Control:**
-> - **`system/controlDict`** — Time stepping และ Output
->   - `deltaT` / `adjustTimeStep yes` + `maxCo`
->   - `writeInterval` — ความถี่ในการบันทึกผลลัพธ์
->   - `functions` — functionObjects (forces, probes)
->
-> **6. รัน Simulation:**
-> ```bash
-> # ตรวจสอบ mesh
-> checkMesh
->
-> # รัน (redirect log)
-> simpleFoam > log.simpleFoam 2>&1 &
->
-> # monitor residuals
-> tail -f log.simpleFoam
-> ```
->
-> **7. Post-processing:**
-> - **ParaView** — ดูภาพผลลัพธ์
-> - **`postProcessing/`** — ผลลัพธ์จาก functionObjects
+### fvSchemes Template
 
-### 7.1 สมการ → Code Mapping (สรุปภาพรวม)
-
-| สมการฟิสิกส์ | Mathematical Term | OpenFOAM Code | fvm vs fvc |
-|----------------|------------------|--------------|------------|
-| **Time Derivative** | $\frac{\partial (\rho \phi)}{\partial t}$ | `fvm::ddt(rho, phi)` | fvm (implicit) |
-| **Convection** | $\nabla \cdot (\rho \mathbf{u})$ | `fvm::div(phi, phi)` | fvm (implicit) |
-| **Diffusion** | $\nabla \cdot (\Gamma \nabla \phi)$ | `fvm::laplacian(Gamma, phi)` | fvm (implicit) |
-| **Pressure Gradient** | $-\nabla p$ | `fvc::grad(p)` | fvc (explicit) |
-| **Divergence** | $\nabla \cdot (\rho \mathbf{u})$ | `fvc::div(phi)` | fvc (explicit) |
-
-### 7.2 Decision Tree: เลือก Solver อย่างไร?
-
-```
-เริ่มต้น
-    ↓
-คำนวณ Reynolds Number: Re = ρUL/μ
-    ↓
-    ├─ Re < 2300 (Laminar)
-    │     ↓
-    │   ใช้ `icoFoam` (incompressible laminar)
-    │
-    └─ Re > 4000 (Turbulent)
-          ↓
-          คำนวณ Mach Number: Ma = U/c
-          ↓
-          ├─ Ma < 0.3 (Incompressible)
-          │     ↓
-          │   Steady? ──yes──> `simpleFoam` + turbulence model
-          │      │
-          │      └─no──> `pimpleFoam` + turbulence model
-          │
-          └─ Ma > 0.3 (Compressible)
-                ↓
-                Steady? ──yes──> `rhoSimpleFoam`
-                     │
-                     └─no──> `rhoPimpleFoam` หรือ `sonicFoam`
-```
-
-### 7.3 Decision Tree: เลือก Discretization Schemes
-
-```
-divSchemes (Convection):
-    ↓
-    Flow สงบ (ไม่มี shock)?
-    ↓
-    ├─ Yes → `Gauss linear` (แม่นยำสูง)
-    │
-    └─ No (Flow รุนแรง, ค่ากระโดก)
-          ↓
-          `Gauss upwind` (เสถียร) หรือ
-          `Gauss linearUpwind` (สมดุลระหว่างแม่น/เสถียร)
-
-laplacianSchemes (Diffusion):
-    ↓
-    Mesh สวย (orthogonal)?
-    ↓
-    ├─ Yes → `Gauss linear uncorrected` (เร็ว)
-    │
-    └─ No (Mesh เบี้ยว)
-          ↓
-          Non-orthogonality < 70°?
-          ↓
-          ├─ Yes → `Gauss linear corrected` (แนะนำ)
-          │
-          └─ No (> 70°) → `Gauss linear limited` (ป้องกันระเบิด)
-```
-
-### 7.4 Decision Tree: Pressure-Velocity Coupling
-
-```
-เลือก Algorithm:
-    ↓
-    Steady-state (ภาพนิ่ง)?
-    ↓
-    ├─ Yes → `SIMPLE`
-    │         - ใช้ under-relaxation factors
-    │         - Iterate จนถึง convergence
-    │
-    └─ No (Transient - ภาพเคลื่อนไหว)
-          ↓
-          Time step เล็กมาก?
-          ↓
-          ├─ Yes → `PISO`
-          │        - แก้ pressure หลายรอบต่อ time step
-          │        - nCorrectors: 2-3
-          │
-          └─ No (Time step ใหญ่)
-                ↓
-                `PIMPLE`
-                - ผสม SIMPLE + PISO
-                - nOuterCorrectors > 1: ให้ large time steps
-```
-
-### 7.5 Common Pitfalls และวิธีแก้
-
-| ปัญหา                                 | สาเหตุ                                                            | วิธีแก้                                                                                       |
-| ------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| **Simulation ระเบิด (Blow up)**       | - Time step ใหญ่เกินไป<br>- Schemes ไม่เสถียร<br>- BCs ขัดแย้งกัน | - ลด `deltaT`<br>- เปลี่ยนเป็น `Gauss upwind`<br>- ตรวจสอบ `0/` BCs                           |
-| **Residuals ไม่ลู่เข้า**              | - Mesh คุณภาพต่ำ<br>- Tolerance สูงไป<br>- Under-relaxation สูงไป | - ปรับปรุง mesh (checkMesh)<br>- ลด `tolerance`, `relTol`<br>- ลด relaxation factors          |
-| **Continuity errors สูง**             | - `phi` ไม่ถูกต้อง<br>- Pressure-velocity coupling ไม่ดี          | - เพิ่ม `nCorrectors`<br>- เพิ่ม `nNonOrthogonalCorrectors`<br>- ใช้ `Gauss linear corrected` |
-| **ผลลัพธ์เบลอ (Numerical diffusion)** | - `Gauss upwind`<br>- Mesh หยาบเกินไป                             | - เปลี่ยนเป็น `Gauss linear`<br>- Refine mesh<br>- ใช้ `linearUpwind` or `limitedLinear`      |
-
-### 7.6 Quick Reference: Config Files
-
-**`system/fvSchemes` — ควบคุมความแม่น:**
 ```cpp
-ddtSchemes { default Euler; }           // Time stepping
-gradSchemes { default Gauss linear; }   // Gradient calculation
-divSchemes { default Gauss upwind; }    // Convection (key for stability!)
-laplacianSchemes { default Gauss linear corrected; }  // Diffusion
+FoamFile { version 2.0; format ascii; class dictionary; object fvSchemes; }
+
+ddtSchemes { default Euler; }              // เวลา
+
+gradSchemes { default Gauss linear; }      // gradient
+
+divSchemes                                  // convection (สำคัญ!)
+{
+    default         none;
+    div(phi,U)      Gauss linearUpwind grad(U);  // แนะนำ
+    div(phi,k)      Gauss upwind;                // turbulence ใช้ upwind
+    div(phi,epsilon) Gauss upwind;
+}
+
+laplacianSchemes { default Gauss linear corrected; }  // diffusion
+
+interpolationSchemes { default linear; }
+
+snGradSchemes { default corrected; }
 ```
 
-**`system/fvSolution` — ควบคุมความเสถียร:**
+### fvSolution Template
+
 ```cpp
+FoamFile { version 2.0; format ascii; class dictionary; object fvSolution; }
+
 solvers
 {
     p { solver PCG; preconditioner DIC; tolerance 1e-06; relTol 0.01; }
     U { solver PBiCGStab; preconditioner DILU; tolerance 1e-05; relTol 0.1; }
 }
-SIMPLE { nNonOrthogonalCorrectors 0; }
-PISO { nCorrectors 2; }
-```
 
-**`constant/transportProperties` — คุณสมบัติของไหล:**
-```cpp
-nu          [0 2 -1 0 0 0 0]  1e-05;  // Kinematic viscosity [m²/s]
-// หรือ
-mu          [1 -1 -1 0 0 0 0]  1.8e-05;  // Dynamic viscosity [kg/(m·s)]
-rho         [1 -3 0 0 0 0 0]   1000;     // Density [kg/m³]
-```
-
-**`constant/turbulenceProperties` — Turbulence model:**
-```cpp
-simulationType  RAS;                    // หรือ LES, laminar
-RAS
+SIMPLE
 {
-    RASModel        kEpsilon;           // k-ε model (industry standard)
-    // RASModel        kOmegaSST;        // k-ω SST (better for adverse pressure gradients)
-    turbulence      on;
+    nNonOrthogonalCorrectors 1;  // เพิ่มถ้า mesh เบี้ยว
+    residualControl { p 1e-4; U 1e-4; }
+}
+
+relaxationFactors  // ช่วยเสถียร (SIMPLE only)
+{
+    fields { p 0.3; }
+    equations { U 0.7; k 0.7; }
 }
 ```
 
 ---
 
-## 8. 🎯 สรุปท้ายบท: 3 หลักในการเข้าใจ OpenFOAM
+## 8. Common Problems & Solutions
 
-### หลักที่ 1: เข้าใจฟิสิกส์ (กำแพงกว่าจะไป code)
-1. **3 สมการควบคุม:** Continuity → Momentum → Energy
-2. **เลขไร้มิติ:** Reynolds ($Re$) → Laminar vs Turbulent, Mach ($Ma$) → Compressibility
-3. **Flow regime ขึ้นกับ:** Solver selection, Turbulence modeling, Boundary conditions
-
-### หลักที่ 2: เข้าใจ discretization (กำแพงเรื่องความแม่น/เสถียร)
-1. **`fvm` vs `fvc`:** fvm = Implicit (เสถียร), fvc = Explicit (เร็ว)
-2. **Schemes:** `Gauss upwind` (เสถียร) vs `Gauss linear` (แม่นยำ)
-3. **Non-orthogonality:** ใช้ `corrected` สำหรับ mesh จริง
-
-### หลักที่ 3: เข้าใจ code structure (กำแพง debug)
-1. **Field classes:** `vol...Field` (cell centers) vs `surface...Field` (faces)
-2. **Matrix assembly:** $Ax=b$ จาก `fvm::` จะถูกแก้ด้วย solvers ใน `fvSolution`
-3. **Tolerance:** `tolerance` (absolute) vs `relTol` (relative) ควบคุมการหยุด iterate
+| ปัญหา | ทำไมเกิด | แก้ไขอย่างไร |
+|-------|---------|-------------|
+| **ระเบิด (Blow up)** | Δt ใหญ่เกิน หรือ scheme ไม่เสถียร | ลด Δt, เปลี่ยนเป็น `upwind` |
+| **Residual ไม่ลง** | Mesh ไม่ดี หรือ BCs ขัดแย้ง | `checkMesh`, ตรวจ BCs |
+| **ผลเบลอ** | ใช้ `upwind` (1st order) | เปลี่ยนเป็น `linearUpwind` |
+| **Continuity error สูง** | P-V coupling ไม่ดี | เพิ่ม `nCorrectors` |
+| **Converge ช้า** | Relaxation สูงเกิน | ลด relaxation factors |
 
 ---
 
-## 9. 📚 แหล่งอ้างอิงที่เป็นประโยชน์
+## 9. Workflow สรุป
 
-- **OpenFOAM User Guide:** https://www.openfoam.com/documentation/user-guide/
-- **OpenFOAM Programmer's Guide:** https://www.openfoam.com/documentation/programmers-guide/
-- **Cavity Tutorial:** `tutorials/incompressible/icoFoam/cavity/` (เริ่มต้นที่ดีที่สุด!)
-- **Mesh Quality:** `checkMesh` command → อ่าน output เพื่อดู non-orthogonality
-- **Log Files:** `log.simpleFoam`, `log.pimpleFoam` → monitor residuals และ continuity errors
+```
+1. คำนวณ Re, Ma → เลือก Solver
+2. สร้าง mesh → checkMesh (ดู non-orthogonality)
+3. ตั้งค่า 0/ → p, U, BCs
+4. ตั้งค่า constant/ → transportProperties
+5. ตั้งค่า system/fvSchemes → เริ่มด้วย upwind
+6. ตั้งค่า system/fvSolution → SIMPLE/PISO/PIMPLE
+7. รัน → simpleFoam > log 2>&1 &
+8. Monitor → tail -f log | grep Residual
+9. ถ้าเสถียร → เปลี่ยน scheme เป็น linearUpwind
+```
 
 ---
 
-**สรุปสั้นๆ จำง่ายๆ:**
-*   **`divSchemes`** = เลือกวิธีลากเส้น (ส่งผลต่อความแม่น/ความเบลอ)
-*   **`laplacianSchemes`** = เลือกวิธีหาความชัน (ส่งผลต่อการจัดการ Mesh เบี้ยว)
-*   **`fvSolution`** = เลือกวิธีคิดเลข (ส่งผลต่อความเร็ว/ความนิ่ง)
-*   **Code** = การสร้างตัวแปรต้องมี "บัตรประจำตัว" (`IOobject`)
+## 10. Decision Trees
+
+### เลือก Solver
+
+```
+คำนวณ Re = UL/ν
+
+Re < 2300? 
+  → icoFoam (laminar, transient)
+
+Re > 4000?
+  → คำนวณ Ma = U/c
+      Ma < 0.3?
+        → Steady? → simpleFoam
+        → Transient? → pimpleFoam
+      Ma > 0.3?
+        → rhoSimpleFoam / sonicFoam
+```
+
+### เลือก divSchemes
+
+```
+Simulation เพิ่งเริ่ม?
+  → Gauss upwind (เสถียร, ยอมเบลอ)
+
+เสถียรแล้ว ต้องการความแม่นยำ?
+  → Gauss linearUpwind grad(phi);
+
+Flow สงบมาก ไม่มี shock?
+  → Gauss linear (แม่นยำสุด)
+```
+
+### เลือก Algorithm
+
+```
+Steady-state (ไม่สนใจ transient)?
+  → SIMPLE + relaxation factors
+
+Transient + Δt เล็ก (Co < 1)?
+  → PISO + nCorrectors 2-3
+
+Transient + Δt ใหญ่ (Co > 1)?
+  → PIMPLE + nOuterCorrectors 2-3
+```
+
+---
+
+## 11. สรุปท้ายบท
+
+### หลักการ 3 ข้อจำง่าย
+
+1. **fvSchemes ควบคุมความแม่นยำ**
+   - `upwind` = เสถียร แต่เบลอ
+   - `linear` = แม่นยำ แต่ระเบิดง่าย
+   - `linearUpwind` = สมดุล
+
+2. **fvSolution ควบคุมความเสถียร**
+   - SIMPLE = steady (วนจนนิ่ง)
+   - PISO = transient (ทุก step ต้องแม่น)
+   - PIMPLE = transient + Δt ใหญ่
+
+3. **fvm vs fvc**
+   - fvm = สร้าง matrix (implicit, เสถียร)
+   - fvc = คำนวณค่า (explicit, เร็ว)
+
+---
+
+*"เริ่มด้วยเสถียร (upwind, SIMPLE) แล้วค่อยเพิ่มความแม่นยำ (linearUpwind)"*
+
+---
+
+## 12. 🧠 Advanced Concept Check
+
+> **คำเตือน:** คำถามเหล่านี้ต้องการความเข้าใจลึก ไม่ใช่แค่ท่องจำ
+
+### Level 1: Foundation Understanding
+
+<details>
+<summary><b>Q1: ทำไม Convection term ถึงทำให้ Matrix เป็น Asymmetric?</b></summary>
+
+**คำตอบ:**
+
+พิจารณา 1D convection: $u \frac{\partial \phi}{\partial x}$
+
+เมื่อ discretize ด้วย upwind:
+$$u \frac{\partial \phi}{\partial x} \approx u \frac{\phi_P - \phi_W}{\Delta x}$$
+
+**Coefficient ที่ได้:**
+- Cell P ได้: $+u/\Delta x$
+- Cell W ได้: $-u/\Delta x$
+
+**แต่!** เมื่อเขียนสมการสำหรับ Cell W:
+- Cell W ได้: $+u/\Delta x$
+- Cell WW ได้: $-u/\Delta x$
+
+**สรุป:** $A_{PW} \neq A_{WP}$ → **Asymmetric Matrix!**
+
+**เทียบกับ Diffusion:**
+$$\Gamma \frac{\partial^2 \phi}{\partial x^2} \approx \Gamma \frac{\phi_E - 2\phi_P + \phi_W}{\Delta x^2}$$
+
+ที่นี่ $A_{PW} = A_{WP} = \Gamma/\Delta x^2$ → **Symmetric!**
+
+</details>
+
+<details>
+<summary><b>Q2: ทำไม Implicit time scheme (Euler) ถึง "Unconditionally Stable"?</b></summary>
+
+**คำตอบ:**
+
+พิจารณา ODE: $\frac{d\phi}{dt} = -\lambda \phi$ (decay equation)
+
+**Explicit Euler:**
+$$\phi^{n+1} = \phi^n - \lambda \Delta t \cdot \phi^n = (1 - \lambda \Delta t) \phi^n$$
+
+**Amplification factor:** $G = 1 - \lambda \Delta t$
+
+- ถ้า $\lambda \Delta t > 2$ → $|G| > 1$ → **Unstable!**
+
+**Implicit Euler:**
+$$\phi^{n+1} = \phi^n - \lambda \Delta t \cdot \phi^{n+1}$$
+$$\phi^{n+1} = \frac{\phi^n}{1 + \lambda \Delta t}$$
+
+**Amplification factor:** $G = \frac{1}{1 + \lambda \Delta t}$
+
+- สำหรับ $\lambda > 0$, **ไม่ว่า $\Delta t$ ใหญ่แค่ไหน** → $|G| < 1$ → **Always Stable!**
+
+**ข้อแลก:** Implicit ต้องแก้สมการ (solve), Explicit ไม่ต้อง
+
+</details>
+
+<details>
+<summary><b>Q3: "Diagonal Dominance" คืออะไร และทำไมสำคัญกับ Linear Solver?</b></summary>
+
+**คำตอบ:**
+
+**Diagonal Dominance:** $|a_{ii}| \geq \sum_{j \neq i} |a_{ij}|$ สำหรับทุกแถว
+
+**ทำไมสำคัญ:**
+
+1. **Iterative Solver Convergence:** Gauss-Seidel, Jacobi ต้องมี diagonal dominance
+2. **Stability:** Matrix ที่ diagonal dominant มักจะ well-conditioned
+
+**ใน OpenFOAM:**
+- `fvm::ddt(U)` เพิ่ม $\frac{V}{\Delta t}$ ใน diagonal → ช่วย diagonal dominance
+- ถ้า $\Delta t$ ใหญ่มาก → diagonal term เล็ก → อาจเสีย diagonal dominance → Solver ไม่ converge
+
+**นี่คือสาเหตุที่:** ลด $\Delta t$ มักช่วยให้ simulation เสถียรขึ้น!
+
+</details>
+
+### Level 2: Deep Understanding
+
+<details>
+<summary><b>Q4: ทำไม "Bounded" scheme สำคัญสำหรับ Turbulence variables (k, ε)?</b></summary>
+
+**คำตอบ:**
+
+**Physical Constraint:**
+- $k$ (turbulent kinetic energy) ต้อง $\geq 0$ เสมอ (พลังงานจลน์ไม่เป็นลบ)
+- $\varepsilon$ (dissipation rate) ต้อง $> 0$ (ถ้า = 0, $\nu_t = C_\mu k^2/\varepsilon$ → หารด้วยศูนย์!)
+
+**ปัญหา Unbounded scheme (linear):**
+- สามารถ overshoot/undershoot → ค่าติดลบได้!
+- ถ้า $k < 0$ → solver จะคำนวณ $\sqrt{k}$ ไม่ได้ → **Floating Point Error!**
+- ถ้า $\varepsilon \leq 0$ → หารด้วยศูนย์ใน $\nu_t$ → **NaN → Blow up!**
+
+**ทางออก:**
+1. ใช้ `Gauss upwind` (bounded by design)
+2. หรือ `Gauss limitedLinear 1` (bounded + 2nd order)
+3. เพิ่ม `bound(k, 1e-10)` ใน code (safety net)
+
+</details>
+
+<details>
+<summary><b>Q5: อธิบาย "Numerical Diffusion" ใน Upwind Scheme ด้วยการวิเคราะห์ Taylor Series</b></summary>
+
+**คำตอบ:**
+
+พิจารณา upwind discretization:
+$$\left.\frac{\partial \phi}{\partial x}\right|_f \approx \frac{\phi_P - \phi_W}{\Delta x}$$
+
+**Taylor Series ของ $\phi_W$ รอบ $x_P$:**
+$$\phi_W = \phi_P - \Delta x \frac{\partial \phi}{\partial x} + \frac{(\Delta x)^2}{2} \frac{\partial^2 \phi}{\partial x^2} - O(\Delta x^3)$$
+
+**แทนเข้าไป:**
+$$\frac{\phi_P - \phi_W}{\Delta x} = \frac{\partial \phi}{\partial x} - \frac{\Delta x}{2} \frac{\partial^2 \phi}{\partial x^2} + O(\Delta x^2)$$
+
+**Truncation Error:** $-\frac{\Delta x}{2} \frac{\partial^2 \phi}{\partial x^2}$
+
+**นี่มีรูปแบบเหมือน Diffusion!** (Laplacian term)
+
+**สรุป:** Upwind มี "false viscosity" ขนาด $\Gamma_{numerical} \approx \frac{u \Delta x}{2}$
+
+**นี่คือเหตุผลที่:**
+- ผลลัพธ์ดู "เบลอ" (smeared)
+- Gradient ที่คมกลายเป็น smooth
+- Mesh หยาบ → numerical diffusion สูงขึ้น
+
+</details>
+
+<details>
+<summary><b>Q6: "Rhie-Chow Interpolation" คืออะไร และทำไมจำเป็นใน Colocated Grid?</b></summary>
+
+**คำตอบ:**
+
+**ปัญหา Colocated Grid:**
+
+OpenFOAM เก็บ p และ U ที่ cell center เดียวกัน ("colocated")
+
+**ปัญหา "Checkerboard":**
+ถ้าใช้ central difference หา $\nabla p$:
+$$\left.\frac{\partial p}{\partial x}\right|_P \approx \frac{p_E - p_W}{2\Delta x}$$
+
+**สังเกต:** ไม่มี $p_P$ ในสมการ!
+
+**ผลลัพธ์:** p สามารถมี pattern:
+```
+[100, 0, 100, 0, 100, 0]  ← Checkerboard!
+```
+แต่ $\nabla p = 0$ ทุกที่! → ผิด
+
+**Rhie-Chow Interpolation:**
+เพิ่ม pressure correction term เมื่อ interpolate velocity ไป face:
+$$U_f = \overline{U} - \left(\overline{\frac{1}{a_P}}\right) \left(\nabla p|_f - \overline{\nabla p}\right)$$
+
+**ผลลัพธ์:** pressure field ต้อง smooth ไม่งั้น face velocity จะผิด → ป้องกัน checkerboard!
+
+</details>
+
+### Level 3: Expert Understanding
+
+<details>
+<summary><b>Q7: ทำไม PISO ต้องมี "nCorrectors" มากกว่า 1? และค่าไหนเหมาะกับอะไร?</b></summary>
+
+**คำตอบ:**
+
+**กระบวนการ PISO:**
+
+1. **Predictor:** แก้ momentum ด้วย p เก่า → ได้ $U^*$ (ไม่ satisfy continuity!)
+2. **Corrector 1:** แก้ pressure equation → ได้ $p'$ → แก้ $U^* → U^{**}$
+3. **Corrector 2+:** ทำซ้ำจนกว่า continuity error จะต่ำพอ
+
+**ทำไมต้องมากกว่า 1?**
+
+$p'$ ถูกคำนวณโดยสมมติว่า velocity ไม่เปลี่ยนมาก แต่จริงๆ เปลี่ยน!
+→ ต้อง iterate
+
+**Guidelines:**
+
+| Courant | nCorrectors | เหตุผล |
+|---------|-------------|--------|
+| Co < 0.5 | 2 | Velocity เปลี่ยนน้อย, 2 รอบพอ |
+| 0.5 < Co < 1 | 3 | เพิ่มความแม่นยำ |
+| Co > 1 | ใช้ PIMPLE แทน! | PISO ไม่ designed สำหรับ Co > 1 |
+
+**Test:** เพิ่ม `nCorrectors` แล้วดู `continuity error` ใน log — ถ้าไม่ลดลงแปลว่าพอแล้ว
+
+</details>
+
+<details>
+<summary><b>Q8: "Under-Relaxation" ทำงานอย่างไรในระดับ Matrix?</b></summary>
+
+**คำตอบ:**
+
+**สมการเดิม:** $A\phi = b$
+
+**ใส่ Under-Relaxation $\alpha$:**
+
+แปลงเป็น:
+$$\frac{A}{\alpha}\phi = b + \frac{1-\alpha}{\alpha}A_{diag}\phi^{old}$$
+
+**ผลลัพธ์:**
+- Diagonal coefficients เพิ่มขึ้น $\frac{1}{\alpha}$ เท่า → **Diagonal更 dominant**
+- ค่าใหม่ = ผสมระหว่างค่าเก่ากับ solution
+
+**มุมมองอีกแบบ:**
+$$\phi^{new} = \alpha \cdot \phi^{solved} + (1-\alpha) \cdot \phi^{old}$$
+
+**Field URF vs Equation URF:**
+
+| Type | ใช้กับ | Effect |
+|------|--------|--------|
+| **fields** (p 0.3) | Apply หลัง solve | เปลี่ยน field โดยตรง |
+| **equations** (U 0.7) | Apply ก่อน solve | แก้ matrix (ดีกว่า) |
+
+**Stability Analysis:**
+ถ้า URF ต่ำเกินไป → converge ช้ามาก
+ถ้า URF สูงเกินไป → oscillate → diverge
+
+**Rule of thumb:**
+- p: 0.3 (sensitive มาก)
+- U, k, ε: 0.7
+
+</details>
+
+<details>
+<summary><b>Q9: อธิบาย "Deferred Correction" ใน OpenFOAM และทำไมใช้ใน Limited Schemes</b></summary>
+
+**คำตอบ:**
+
+**ปัญหา High-Order Schemes:**
+Central Difference (linear) เป็น 2nd order แต่อาจ unbounded → coefficient ติดลบ → ทำลาย diagonal dominance
+
+**Deferred Correction Approach:**
+
+แทนที่จะใส่ high-order scheme ใน matrix โดยตรง:
+
+1. **Implicit part:** ใช้ upwind (bounded, stable) → matrix A
+2. **Explicit part:** เพิ่ม correction term: $(H.O. - upwind)$ → RHS
+
+$$A\phi = b + (\text{High-order flux} - \text{Upwind flux})^{old}$$
+
+**ข้อดี:**
+- Matrix ยังคง well-conditioned (upwind-like diagonal dominance)
+- ได้ accuracy ของ high-order scheme (เมื่อ converge)
+
+**ใน OpenFOAM:**
+`Gauss linearUpwind grad(U)` ใช้ deferred correction:
+- Upwind ใส่ใน matrix
+- Linear + gradient correction เป็น explicit
+
+**สังเกตใน fvSchemes:**
+```cpp
+div(phi,U) Gauss linearUpwind grad(U);
+//                              ↑ gradiend used for deferred correction
+```
+
+</details>
+
+---
+
+## 13. ⚡ Advanced Hands-on Challenges
+
+> **คำเตือน:** Challenges เหล่านี้ต้องใช้เวลาและความเข้าใจลึก
+
+### Challenge 1: Scheme Comparison Study (⭐⭐⭐)
+
+**วัตถุประสงค์:** เห็นความแตกต่างระหว่าง schemes ด้วยตาตัวเอง
+
+**Setup:**
+```bash
+# Clone pitzDaily tutorial
+run
+cp -r $FOAM_TUTORIALS/incompressible/simpleFoam/pitzDaily pitzDaily_upwind
+cp -r pitzDaily_upwind pitzDaily_linear
+cp -r pitzDaily_upwind pitzDaily_linearUpwind
+```
+
+**Tasks:**
+
+1. **แก้ไข divSchemes ในแต่ละ case:**
+   ```cpp
+   // pitzDaily_upwind
+   div(phi,U) Gauss upwind;
+   
+   // pitzDaily_linear
+   div(phi,U) Gauss linear;
+   
+   // pitzDaily_linearUpwind
+   div(phi,U) Gauss linearUpwind grad(U);
+   ```
+
+2. **รันและสังเกต:**
+   - Case ไหน converge เร็วที่สุด?
+   - Case ไหนระเบิด (ถ้ามี)?
+   - เปรียบเทียบ velocity profile ที่ x/H = 5
+
+3. **วิเคราะห์ผลลัพธ์:**
+   - ทำไม `linear` (ถ้าไม่ระเบิด) ให้ recirculation zone ยาวกว่า `upwind`?
+   - อธิบายด้วยทฤษฎี numerical diffusion
+
+**Expected Learning:**
+- เห็นว่า upwind "กลืน" recirculation ด้วย numerical diffusion
+- เห็นความไม่เสถียรของ linear ใน high gradient region
+
+---
+
+### Challenge 2: Grid Convergence Study with Scheme Analysis (⭐⭐⭐⭐)
+
+**วัตถุประสงค์:** เข้าใจความสัมพันธ์ระหว่าง mesh และ scheme
+
+**Setup:**
+```bash
+# Use cavity tutorial
+run
+cp -r $FOAM_TUTORIALS/incompressible/icoFoam/cavity/cavity cavity_20
+cp -r cavity_20 cavity_40
+cp -r cavity_20 cavity_80
+```
+
+**Tasks:**
+
+1. **สร้าง mesh 3 ระดับ:**
+   ```cpp
+   // cavity_20: 20x20
+   // cavity_40: 40x40
+   // cavity_80: 80x80
+   ```
+
+2. **รันแต่ละ case ด้วย `upwind` และ `linear`:**
+   - รวม 6 simulations
+
+3. **วัดค่า:**
+   - Velocity ที่ center (0.05, 0.05, 0.005)
+   - คำนวณ Grid Convergence Index (GCI)
+
+4. **คำถามวิเคราะห์:**
+   - Scheme ไหนมี observed order of accuracy ตรง theoretical มากกว่า?
+   - ที่ mesh หยาบ (20x20), `upwind` หรือ `linear` ให้ผลใกล้ analytical solution มากกว่า?
+   - อธิบายทำไม?
+
+---
+
+### Challenge 3: Custom P-V Coupling Investigation (⭐⭐⭐⭐⭐)
+
+**วัตถุประสงค์:** เข้าใจ PISO/PIMPLE ในระดับ implementation
+
+**Setup:**
+```bash
+# Use pimpleFoam tutorial
+run
+cp -r $FOAM_TUTORIALS/incompressible/pimpleFoam/laminar/movingCone movingCone_piso
+cp -r movingCone_piso movingCone_pimple
+```
+
+**Tasks:**
+
+1. **ตั้งค่า PISO-like:**
+   ```cpp
+   PIMPLE
+   {
+       nOuterCorrectors 1;  // เหมือน PISO
+       nCorrectors 2;
+   }
+   ```
+
+2. **ตั้งค่า PIMPLE:**
+   ```cpp
+   PIMPLE
+   {
+       nOuterCorrectors 3;
+       nCorrectors 2;
+   }
+   ```
+
+3. **ทดสอบ Courant Number:**
+   - เริ่มด้วย Co = 0.5 → ทั้งสองน่าจะ stable
+   - เพิ่มเป็น Co = 2 → ดูว่า case ไหนยังทำงานได้
+
+4. **วิเคราะห์:**
+   - Plot `continuity error` vs time สำหรับแต่ละ case
+   - อธิบายว่า outer correctors ช่วยอย่างไร
+
+---
+
+### Challenge 4: Write Your Own Verification Test (⭐⭐⭐⭐⭐)
+
+**วัตถุประสงค์:** เข้าใจ Numerical Verification ลึกซึ้ง
+
+**Analytical Solution:**
+ใช้ Couette Flow (flow between two parallel plates):
+
+$$u(y) = U_{top} \frac{y}{H}$$
+
+**Tasks:**
+
+1. **สร้าง case:**
+   - 2D channel, H = 0.1 m
+   - Top wall: moving at U = 1 m/s
+   - Bottom wall: stationary
+
+2. **รัน 3 Mesh Levels:**
+   - 5, 10, 20 cells in y-direction
+
+3. **คำนวณ Error:**
+   ```python
+   L2_error = sqrt(sum((U_numerical - U_analytical)^2) / N)
+   ```
+
+4. **Plot log(error) vs log(h):**
+   - Slope ควรเป็นเท่าไหร่สำหรับ 2nd order scheme?
+   - ได้เท่าไหร่จริง?
+
+5. **ทดสอบกับ mesh เบี้ยว:**
+   - ใช้ `grading` ใน blockMesh
+   - Order of accuracy เปลี่ยนไหม?
+
+---
+
+### Challenge 5: Investigate Relaxation Factor Sensitivity (⭐⭐⭐)
+
+**วัตถุประสงค์:** เข้าใจ stability และ convergence tradeoff
+
+**Setup:**
+```bash
+run
+cp -r $FOAM_TUTORIALS/incompressible/simpleFoam/motorBike motorBike_base
+```
+
+**Tasks:**
+
+1. **ตั้งค่า baseline:**
+   ```cpp
+   relaxationFactors { fields { p 0.3; } equations { U 0.7; } }
+   ```
+
+2. **ทดสอบ aggressive:**
+   ```cpp
+   relaxationFactors { fields { p 0.5; } equations { U 0.9; } }
+   ```
+
+3. **ทดสอบ conservative:**
+   ```cpp
+   relaxationFactors { fields { p 0.1; } equations { U 0.5; } }
+   ```
+
+4. **วัด:**
+   - จำนวน iterations ถึง convergence
+   - มี oscillation ใน residual plot ไหม?
+
+5. **หา optimal:**
+   - ค่าไหนที่ balance ระหว่าง stability และ speed?
+
+---
+
+## 14. ❌ Common Mistakes และ Solutions
+
+### Mistake 1: ใช้ `linear` กับ Turbulence Variables
+
+```cpp
+// ❌ WRONG - จะระเบิด!
+div(phi,k)       Gauss linear;
+div(phi,epsilon) Gauss linear;
+
+// ✅ CORRECT
+div(phi,k)       Gauss upwind;        // หรือ limitedLinear 1
+div(phi,epsilon) Gauss upwind;
+```
+
+**ทำไมผิด:** k และ ε ต้องเป็น positive เสมอ Linear scheme สามารถให้ค่าติดลบได้ → NaN → Crash
+
+---
+
+### Mistake 2: ลืม gradient scheme สำหรับ linearUpwind
+
+```cpp
+// ❌ WRONG - จะ error หรือใช้ผิด scheme
+div(phi,U) Gauss linearUpwind;
+
+// ✅ CORRECT
+div(phi,U) Gauss linearUpwind grad(U);
+```
+
+**ทำไมผิด:** `linearUpwind` ต้องการ gradient ในการ reconstruct face value ถ้าไม่ระบุ OpenFOAM จะใช้ default ที่อาจไม่เหมาะสม
+
+---
+
+### Mistake 3: ใช้ `relTol 0` กับ SIMPLE
+
+```cpp
+// ❌ WRONG สำหรับ SIMPLE
+p { solver PCG; tolerance 1e-6; relTol 0; }
+
+// ✅ CORRECT สำหรับ SIMPLE
+p { solver PCG; tolerance 1e-6; relTol 0.01; }
+
+// ✅ CORRECT สำหรับ PISO/PIMPLE (transient)
+p { solver PCG; tolerance 1e-6; relTol 0; }
+```
+
+**ทำไมผิด:** 
+
+- **SIMPLE:** ทุก iteration ไม่ต้องแม่นยำ แค่ให้ทิศทางถูก → `relTol 0.01-0.1` ช่วยประหยัดเวลา
+- **PISO:** ทุก time step ต้องแม่นยำ → `relTol 0` บังคับให้แก้จน tolerance
+
+---
+
+### Mistake 4: Non-orthogonal mesh โดยไม่เพิ่ม correctors
+
+```bash
+# checkMesh output
+Mesh non-orthogonality Max: 75.2 degrees
+```
+
+```cpp
+// ❌ WRONG - mesh เบี้ยวแต่ไม่มี correction
+SIMPLE
+{
+    nNonOrthogonalCorrectors 0;
+}
+
+// ✅ CORRECT
+SIMPLE
+{
+    nNonOrthogonalCorrectors 2;  // หรือ 3 ถ้าเบี้ยวมาก
+}
+```
+
+**ทำไมผิด:** Non-orthogonal mesh ทำให้ gradient calculation เพี้ยน ต้อง iterate เพื่อแก้ไข
+
+---
+
+### Mistake 5: Courant Number สูงกับ PISO
+
+```cpp
+// ❌ WRONG - Co > 1 กับ PISO
+deltaT 0.01;  // ทำให้ Co = 2
+
+PISO
+{
+    nCorrectors 2;
+}
+
+// ✅ CORRECT - ใช้ PIMPLE แทน
+PIMPLE
+{
+    nOuterCorrectors 2;  // ช่วย stability
+    nCorrectors 2;
+}
+```
+
+**ทำไมผิด:** PISO assume ว่า velocity field ไม่เปลี่ยนมากระหว่าง iteration ถ้า Co > 1 assumption นี้ผิด
+
+---
+
+### Mistake 6: ไม่ตรวจ log file อย่างละเอียด
+
+```bash
+# ❌ WRONG - ดูแค่ว่าจบหรือยัง
+simpleFoam > log 2>&1 &
+# (รอจนจบ แล้วดู ParaView)
+
+# ✅ CORRECT - monitor ตลอด
+tail -f log | grep -E "Residual|Courant|continuity"
+```
+
+**ควรเฝ้าดู:**
+- Initial residual ลงเรื่อยๆ หรือไม่
+- Continuity error อยู่ใน acceptable range หรือไม่ (< 1e-6)
+- มี warning หรือ error หรือไม่
+
+---
+
+### Mistake 7: Copy-paste BCs โดยไม่เข้าใจ
+
+```cpp
+// ❌ WRONG - inlet ใช้ zeroGradient (ไม่ให้ข้อมูลอะไรเลย)
+inlet
+{
+    type    zeroGradient;
+}
+
+// ✅ CORRECT - ต้องกำหนดค่า
+inlet
+{
+    type    fixedValue;
+    value   uniform (1 0 0);
+}
+```
+
+**ทำไมผิด:** การเลือก BC ต้องตรงกับ physics:
+- **Inlet:** ต้องกำหนดค่า (Dirichlet)
+- **Outlet:** ปล่อยให้คำนวณ (Neumann/zeroGradient)
+- **Wall:** no-slip สำหรับ velocity, zeroGradient สำหรับ pressure
+
+---
+
+### Mistake 8: snGradSchemes ไม่ตรงกับ laplacianSchemes
+
+```cpp
+// ❌ INCONSISTENT
+laplacianSchemes { default Gauss linear corrected; }
+snGradSchemes { default uncorrected; }  // ไม่ consistent!
+
+// ✅ CONSISTENT
+laplacianSchemes { default Gauss linear corrected; }
+snGradSchemes { default corrected; }
+```
+
+**ทำไมผิด:** `laplacianSchemes` ใช้ `snGrad` internally ถ้าไม่ตรงกันจะเกิดความไม่สอดคล้อง → อาจ error หรือ inconsistent accuracy
+
+---
+
+## 15. 🔗 เชื่อมโยงกับ Repository
+
+### อ่านเพิ่มเติม:
+
+| หัวข้อ | ไฟล์ใน Repository |
+|--------|-------------------|
+| **fvc vs fvm ลึกขึ้น** | `MODULE_05/10_VECTOR_CALCULUS/02_fvc_vs_fvm.md` |
+| **Discretization Theory** | `MODULE_01/01_GOVERNING_EQUATIONS/` |
+| **SIMPLE Algorithm** | `MODULE_03/03_PRESSURE_VELOCITY_COUPLING/` |
+| **Turbulence Modeling** | `MODULE_03/02_TURBULENCE_MODELING/` |
+| **Matrix Solvers** | `MODULE_05/06_MATRICES_LINEARALGEBRA/` |
+| **Mesh Quality** | `MODULE_02/02_SNAPPYHEXMESH/` |
+
+---
+
+*"ความเข้าใจที่แท้จริงมาจากการทำผิดและแก้ไขซ้ำแล้วซ้ำเล่า"*

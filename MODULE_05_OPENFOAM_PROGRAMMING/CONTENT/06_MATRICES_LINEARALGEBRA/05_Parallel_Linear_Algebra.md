@@ -1,12 +1,19 @@
 # Parallel Linear Algebra
 
-การแก้สมการเชิงเส้นแบบขนาน
+การแก้สมการเชิงเส้นแบบขนาน — HPC สำหรับ CFD
+
+> **ทำไมบทนี้สำคัญ?**
+> - **Large cases ต้อง parallel** — 100M cells บน 1 core ใช้เวลาเป็นวัน
+> - เข้าใจ **domain decomposition**
+> - รู้วิธีใช้ **gSum, gMax** แทน sum, max
 
 ---
 
 ## Overview
 
-> OpenFOAM uses **domain decomposition** for parallel solving
+> **💡 Parallel CFD = Domain Decomposition + MPI**
+>
+> แต่ละ processor แก้ส่วนของตัวเอง + communicate ที่ boundaries
 
 ---
 
@@ -134,7 +141,7 @@ Pstream::gather(value);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. sum vs gSum ต่างกันอย่างไร?</b></summary>
@@ -157,7 +164,7 @@ Pstream::gather(value);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Linear Solvers:** [04_Linear_Solvers_Hierarchy.md](04_Linear_Solvers_Hierarchy.md)

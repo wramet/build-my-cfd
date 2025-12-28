@@ -72,7 +72,7 @@ volScalarField k = 0.5 * magSqr(UPrime);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไมต้อง document?</b></summary>
@@ -82,7 +82,7 @@ volScalarField k = 0.5 * magSqr(UPrime);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Version Control:** [04_Version_Control_Git.md](04_Version_Control_Git.md)

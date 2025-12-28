@@ -2,9 +2,20 @@
 
 ภาพรวมการเชื่อมโยงความดัน-ความเร็วใน OpenFOAM
 
+> **ทำไมต้องเข้าใจ Pressure-Velocity Coupling?**
+> - เป็น **หัวใจของ CFD algorithms** — SIMPLE, PISO, PIMPLE
+> - ถ้าไม่เข้าใจ = ตั้งค่า fvSolution ผิด = diverge หรือช้า
+> - รู้ว่าเมื่อไหร่ใช้ algorithm ไหน → ประหยัดเวลา + ได้ผลถูก
+
 ---
 
 ## The Core Problem
+
+> **💡 ปัญหาหลัก: ไม่มีสมการความดันโดยตรง!**
+>
+> - Momentum → หา U ถ้ารู้ ∇p
+> - Continuity → ∇·U = 0 (constraint ไม่ใช่ equation)
+> - **Solution:** Derive pressure equation from continuity + momentum
 
 ```mermaid
 flowchart LR

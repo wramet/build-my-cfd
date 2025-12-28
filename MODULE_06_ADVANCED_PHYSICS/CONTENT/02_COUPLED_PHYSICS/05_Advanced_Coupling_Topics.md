@@ -109,7 +109,7 @@ fvScalarMatrix TEqn
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Strong vs Weak coupling?</b></summary>
@@ -132,7 +132,7 @@ fvScalarMatrix TEqn
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Validation:** [06_Validation_and_Benchmarks.md](06_Validation_and_Benchmarks.md)

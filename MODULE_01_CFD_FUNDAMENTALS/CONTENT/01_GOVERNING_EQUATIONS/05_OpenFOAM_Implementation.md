@@ -1,8 +1,11 @@
 # การนำ OpenFOAM ไปใช้งาน
 
-เมื่อเราเข้าใจสมการควบคุม (Navier-Stokes) และการแบ่ง mesh แล้ว คำถามถัดไปคือ: **OpenFOAM แปลงคณิตศาสตร์เหล่านี้เป็นโค้ดที่คอมพิวเตอร์คำนวณได้จริงอย่างไร?**
+เมื่อเราเข้าใจสมการควบคุม (Navier-Stokes) และการแบ่ง mesh แล้ว คำถามถัดไปคือ: **OpenFOAM แปลงคณิตศาสตร์เหล่านี้เป็นโค้ดอย่างไร?**
 
-บทนี้จะพาคุณลงลึกไปดูกลไกภายในของ OpenFOAM ตั้งแต่การแปลงสมการเชิงอนุพันธ์ให้กลายเป็น matrix จนถึงวิธีการแก้สมการและการตั้งค่าที่สำคัญ
+> **ทำไมบทนี้สำคัญมาก?**
+> - เข้าใจ **fvm:: vs fvc::** → เลือก implicit/explicit ถูก
+> - เข้าใจ **SIMPLE/PISO/PIMPLE** → เลือก algorithm ถูก
+> - เข้าใจ **fvSchemes/fvSolution** → ตั้งค่าได้ถูกต้อง
 
 ---
 
@@ -479,7 +482,34 @@ graph TB
 
 ---
 
-## เอกสารที่เกี่ยวข้อง
+## 🧠 Concept Check
 
-- [← 04_Dimensionless_Numbers.md](04_Dimensionless_Numbers.md) — เลขไร้มิติในงาน CFD
+<details>
+<summary><b>1. controlDict, fvSchemes, และ fvSolution มีหน้าที่ต่างกันอย่างไร?</b></summary>
+
+| ไฟล์ | หน้าที่ |
+|------|--------|
+| **controlDict** | ควบคุมการรัน: เวลา, timestep, output |
+| **fvSchemes** | วิธี Discretization: grad, div, laplacian |
+| **fvSolution** | วิธีแก้สมการ: solver, tolerances, relaxation |
+
+</details>
+
+<details>
+<summary><b>2. PISO และ SIMPLE แตกต่างกันอย่างไร?</b></summary>
+
+| Algorithm | ลักษณะ | ใช้เมื่อ |
+|-----------|--------|---------|
+| **SIMPLE** | Steady-state, ใช้ relaxation | การไหลคงตัว |
+| **PISO** | Transient, predictor-corrector | การไหลไม่คงตัว |
+| **PIMPLE** | ผสมทั้งสอง | Transient + sub-cycling |
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **บทก่อนหน้า:** [04_Dimensionless_Numbers.md](04_Dimensionless_Numbers.md) — เลขไร้มิติในงาน CFD
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวมของหัวข้อ Governing Equations
 - [← 00_Overview.md](00_Overview.md) — ภาพรวมของหัวข้อ Governing Equations

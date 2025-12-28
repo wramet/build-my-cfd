@@ -2,9 +2,16 @@
 
 Mesh คือรากฐานของ CFD — ไม่ว่า solver ดีแค่ไหน mesh ที่แย่ก็ทำให้ผลลัพธ์ผิดพลาด
 
+> **ทำไม Meshing สำคัญที่สุด?**
+> - **Mesh คุณภาพดี = CFD ที่เชื่อถือได้** — 50%+ ของเวลางาน CFD อยู่ที่ mesh
+> - Mesh แย่ → diverge, ช้า, หรือผลผิด แม้ solver ดี
+> - ต้องเข้าใจ **blockMesh**, **snappyHexMesh**, และ **checkMesh**
+
 ---
 
 ## วัตถุประสงค์
+
+> **💡 เป้าหมาย: สามารถสร้าง Mesh คุณภาพสูงสำหรับ geometry ใดก็ได้**
 
 1. **เข้าใจกลยุทธ์การสร้าง Mesh** — blockMesh vs snappyHexMesh
 2. **เชี่ยวชาญ snappyHexMesh** — Castellated → Snap → Layers

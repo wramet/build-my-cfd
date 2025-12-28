@@ -74,7 +74,7 @@ fields.set(0, new volScalarField(...));
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. autoPtr vs tmp?</b></summary>
@@ -97,7 +97,7 @@ fields.set(0, new volScalarField(...));
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Introduction:** [01_Introduction.md](01_Introduction.md)
 - **Syntax:** [02_Memory_Syntax_and_Design.md](02_Memory_Syntax_and_Design.md)

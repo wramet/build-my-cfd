@@ -82,7 +82,7 @@ wclean
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. -O3 ดีกว่า -O2 เสมอไหม?</b></summary>
@@ -104,7 +104,7 @@ wclean
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Patterns:** [05_Design_Patterns_and_Trade-offs.md](05_Design_Patterns_and_Trade-offs.md)

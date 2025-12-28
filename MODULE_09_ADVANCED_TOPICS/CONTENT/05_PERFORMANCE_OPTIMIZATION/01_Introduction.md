@@ -72,7 +72,7 @@ perf report
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไมต้อง profile ก่อน?</b></summary>
@@ -94,7 +94,7 @@ perf report
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Expression Templates:** [02_Expression_Templates_Syntax.md](02_Expression_Templates_Syntax.md)

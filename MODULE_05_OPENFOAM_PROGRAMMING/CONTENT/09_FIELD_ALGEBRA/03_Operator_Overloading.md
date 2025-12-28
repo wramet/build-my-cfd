@@ -130,7 +130,7 @@ volScalarField dynP = 0.5 * rho * magSqr(U);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. & vs * ต่างกันอย่างไร?</b></summary>
@@ -153,7 +153,7 @@ volScalarField dynP = 0.5 * rho * magSqr(U);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Arithmetic:** [02_Arithmetic_Operations.md](02_Arithmetic_Operations.md)

@@ -2,14 +2,11 @@
 
 การจำลอง CFD แรกของคุณใน OpenFOAM ด้วย Benchmark Problem คลาสสิก
 
----
-
-## ทำไมต้อง Lid-Driven Cavity?
-
-- **Benchmark มาตรฐาน** — มีข้อมูลเปรียบเทียบ (Ghia et al., 1982)
-- **Geometry เรียบง่าย** — แค่กล่องสี่เหลี่ยม
-- **Physics สมบูรณ์** — Vortex, shear layer, boundary layer
-- **เรียนรู้ workflow ครบ** — Pre-process → Solve → Post-process
+> **ทำไมต้อง Lid-Driven Cavity?**
+> - **Benchmark มาตรฐาน** — มีข้อมูลเปรียบเทียบ (Ghia et al., 1982)
+> - **Geometry เรียบง่าย** — แค่กล่องสี่เหลี่ยม
+> - **Physics สมบูรณ์** — Vortex, shear layer, boundary layer
+> - **เรียนรู้ workflow ครบ** — Pre-process → Solve → Post-process
 
 ---
 

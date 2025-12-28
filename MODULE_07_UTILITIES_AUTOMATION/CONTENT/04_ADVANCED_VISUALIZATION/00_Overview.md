@@ -49,7 +49,7 @@
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ParaView vs Python?</b></summary>
@@ -60,6 +60,6 @@
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ParaView:** [01_ParaView_Visualization.md](01_ParaView_Visualization.md)

@@ -2,9 +2,18 @@
 
 การประยุกต์ใช้ OpenFOAM ในงานวิศวกรรมจริง
 
+> **ทำไมต้องเรียนบทนี้?**
+> - **เชื่อมโยง theory กับงานจริง** — aerodynamics, piping, heat exchangers
+> - รู้ **engineering metrics** ที่สำคัญ — $C_D$, $\Delta p$, $Nu$
+> - ใช้ **function objects** คำนวณค่าระหว่าง simulation
+
 ---
 
 ## Workflow
+
+> **💡 CFD Workflow ทั่วไป:**
+>
+> Physics → Solver → Mesh → BCs → Run → Post-process → Validate
 
 ```mermaid
 flowchart LR

@@ -113,7 +113,7 @@ turb->correct();
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. = 0 หมายความว่าอะไร?</b></summary>
@@ -135,7 +135,7 @@ turb->correct();
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Hierarchies:** [03_Inheritance_Hierarchies.md](03_Inheritance_Hierarchies.md)

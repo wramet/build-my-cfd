@@ -1,6 +1,11 @@
 # บทนำสู่ Finite Volume Method
 
-**Finite Volume Method (FVM)** เป็นวิธี discretization ที่ OpenFOAM ใช้แปลง PDE ให้เป็นระบบสมการพีชคณิต
+**Finite Volume Method (FVM)** เป็นวิธี discretization ที่ OpenFOAM ใช้
+
+> **ทำไม FVM ถึงเหมาะกับ CFD?**
+> - **Conservation ตาม definition** — flux in = flux out
+> - รองรับ **unstructured mesh** — geometry ซับซ้อนได้
+> - **Physical intuition** — มาจากการ balance จริงๆ
 
 ---
 

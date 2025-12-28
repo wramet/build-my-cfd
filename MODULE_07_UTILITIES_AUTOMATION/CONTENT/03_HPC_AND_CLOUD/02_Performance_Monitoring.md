@@ -72,7 +72,7 @@ done
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Load balance ดีแค่ไหน?</b></summary>
@@ -82,6 +82,6 @@ done
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)

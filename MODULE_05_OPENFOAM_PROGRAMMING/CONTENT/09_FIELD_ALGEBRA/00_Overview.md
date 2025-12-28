@@ -253,7 +253,7 @@ const scalarField& gradT = T.boundaryField()[patchI].snGrad();
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. fvm::div vs fvc::div ต่างกันอย่างไร?</b></summary>
@@ -276,7 +276,7 @@ const scalarField& gradT = T.boundaryField()[patchI].snGrad();
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Dimensional Checking:** [04_Dimensional_Checking.md](04_Dimensional_Checking.md)
 - **Field Types:** [../08_FIELD_TYPES/00_Overview.md](../08_FIELD_TYPES/00_Overview.md)

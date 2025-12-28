@@ -1,18 +1,25 @@
 # Dimensioned Types - Introduction
 
-บทนำ Dimensioned Types ใน OpenFOAM
+บทนำ Dimensioned Types ใน OpenFOAM — Values with Physical Units
+
+> **ทำไมต้องเรียนบทนี้?**
+> - เข้าใจวิธีสร้าง dimensioned values
+> - รู้วิธีอ่านจาก dictionary
+> - ป้องกัน common errors
 
 ---
 
 ## Overview
 
-> **Dimensioned Types** = Values with attached physical units
+> **💡 Dimensioned Types = ตัวเลข + หน่วย + ชื่อ**
+>
+> ไม่ใช่แค่ `1000` แต่คือ `rho = 1000 kg/m³`
 
 ```cpp
 dimensionedScalar rho("rho", dimDensity, 1000);
-// Name: "rho"
-// Dimensions: [M L^-3]
-// Value: 1000 kg/m³
+// Name: "rho"           → ใช้ใน output/debug
+// Dimensions: [M L^-3]  → ตรวจสอบ physics
+// Value: 1000           → ค่าจริง
 ```
 
 ---
@@ -172,7 +179,7 @@ T *= 1.0 + 0.01 * (runTime.value() / runTime.endTime().value());
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไมต้องใช้ dimensionedScalar แทน scalar?</b></summary>
@@ -198,7 +205,7 @@ dict.lookup<dimensionedScalar>("nu")
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Mathematical Formulations:** [07_Mathematical_Formulations.md](07_Mathematical_Formulations.md)

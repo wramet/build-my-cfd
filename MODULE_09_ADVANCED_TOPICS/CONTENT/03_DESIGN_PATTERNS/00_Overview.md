@@ -110,7 +110,7 @@ functions
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Factory pattern ดีอย่างไร?</b></summary>
@@ -132,7 +132,7 @@ functions
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Introduction:** [01_Introduction.md](01_Introduction.md)
 - **Factory:** [02_Factory_Pattern.md](02_Factory_Pattern.md)

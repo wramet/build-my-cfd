@@ -405,3 +405,58 @@ D --> G
 
 ## ขั้นตอนถัดไป
 ไปที่ [[01_Introduction]] เพื่อเริ่มต้นเจาะลึกเนื้อหาการดำเนินการเทนเซอร์อย่างละเอียด
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. ทำไม OpenFOAM จึงมี 3 คลาสเทนเซอร์แยกกัน (tensor, symmTensor, sphericalTensor)?</b></summary>
+
+เพื่อ **เพิ่มประสิทธิภาพหน่วยความจำ** และ **ลดการคำนวณ**:
+
+| คลาส | Components | Memory | ใช้สำหรับ |
+|------|------------|--------|----------|
+| `tensor` | 9 | มากสุด | General tensors (velocity gradient) |
+| `symmTensor` | 6 | ประหยัด 33% | Stress, Strain (ใช้ $T_{ij} = T_{ji}$) |
+| `sphericalTensor` | 1 | ประหยัด 89% | Isotropic pressure |
+
+**Rule:** ใช้คลาสที่เฉพาะเจาะจงที่สุดที่เหมาะกับ physics
+
+</details>
+
+<details>
+<summary><b>2. `symm(gradU)` และ `skew(gradU)` คืออะไรทางฟิสิกส์?</b></summary>
+
+**Gradient tensor decomposition:**
+$$\nabla \mathbf{U} = \underbrace{\frac{1}{2}(\nabla \mathbf{U} + \nabla \mathbf{U}^T)}_{\text{symm}(\nabla U) = \mathbf{S}} + \underbrace{\frac{1}{2}(\nabla \mathbf{U} - \nabla \mathbf{U}^T)}_{\text{skew}(\nabla U) = \mathbf{\Omega}}$$
+
+- **`symm(gradU)` = S** → **Strain rate tensor** (การเปลี่ยนรูป, stretching)
+- **`skew(gradU)` = Ω** → **Rotation rate tensor** (การหมุน, vorticity)
+
+</details>
+
+<details>
+<summary><b>3. Eigen decomposition ใช้ทำอะไรใน CFD?</b></summary>
+
+หา **principal directions** และ **principal values** ของ tensor:
+
+```cpp
+vector eigenVal = eigenValues(sigma);  // ค่าหลัก (principal stresses)
+tensor eigenVec = eigenVectors(sigma); // ทิศทางหลัก (principal directions)
+```
+
+**การใช้งาน:**
+- **Principal stresses:** หาความเค้นสูงสุด/ต่ำสุด
+- **Anisotropy analysis:** วิเคราะห์ Reynolds stress tensor ใน turbulence
+- **Failure criteria:** Von Mises, Tresca stress
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **บทถัดไป:** [01_Introduction.md](01_Introduction.md) — บทนำสู่ Tensor Algebra
+- **Tensor Class Hierarchy:** [02_Tensor_Class_Hierarchy.md](02_Tensor_Class_Hierarchy.md) — ลำดับชั้นคลาสเทนเซอร์
+- **Vector Calculus:** [../10_VECTOR_CALCULUS/00_Overview.md](../10_VECTOR_CALCULUS/00_Overview.md) — โมดูลก่อนหน้า: Vector Calculus

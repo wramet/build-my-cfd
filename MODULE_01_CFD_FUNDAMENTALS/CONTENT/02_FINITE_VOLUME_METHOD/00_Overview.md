@@ -1,16 +1,12 @@
 # ภาพรวม Finite Volume Method
 
-**Finite Volume Method (FVM)** เป็นวิธีการแปลงสมการ PDE ให้เป็นระบบสมการพีชคณิตที่คอมพิวเตอร์สามารถแก้ได้ FVM คือหัวใจของ OpenFOAM
+**Finite Volume Method (FVM)** เป็นวิธีการแปลง PDE ให้เป็นระบบสมการพีชคณิต — คือหัวใจของ OpenFOAM
 
----
-
-## ทำไมต้องเข้าใจ FVM?
-
-การเข้าใจ FVM ช่วยให้คุณ:
-- เลือก **Discretization Schemes** ที่เหมาะสมใน `system/fvSchemes`
-- แก้ปัญหา **Divergence** ได้โดยไม่ต้องลองผิดลองถูก
-- ตรวจสอบ **Mesh Quality** ว่าเหมาะกับโจทย์หรือไม่
-- อ่านและแก้ไข **Solver Source Code** ได้
+> **ทำไมต้องเข้าใจ FVM?**
+> - เลือก **Discretization Schemes** ใน `fvSchemes` ได้ถูกต้อง
+> - แก้ปัญหา **Divergence** ได้โดยไม่ต้องลองผิดลองถูก
+> - ตรวจสอบ **Mesh Quality** ว่าเหมาะกับโจทย์หรือไม่
+> - อ่านและแก้ไข **Solver Source Code** ได้
 
 ---
 

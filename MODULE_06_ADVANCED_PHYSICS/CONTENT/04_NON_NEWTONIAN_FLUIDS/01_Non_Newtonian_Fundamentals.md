@@ -461,3 +461,12 @@ nu_ = max(nuMin_, min(nuMax_, nuPower));
  
  **คำตอบ:** เพราะสมการมีความ **ไม่เชิงเส้นสูง (High Non-linearity)** ความหนืด ($\mu$) ขึ้นกับความเร็ว ($U$) และความเร็วก็ขึ้นกับความหนืด วนกันเป็นงูกินหาง การอัพเดตค่าแบบเต็มๆ (Full Update) ในแต่ละรอบอาจทำให้ค่าแกว่งไปมา (Oscillation) หรือระเบิด (Divergence) ได้ การใช้ Relaxation ช่วยหน่วงการเปลี่ยนแปลงให้ค่อยๆ ลู่เข้าสู่คำตอบที่ถูกต้องอย่างนิ่มนวล
  </details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Non-Newtonian Fluids
+- **บทถัดไป:** [02_OpenFOAM_Implementation.md](02_OpenFOAM_Implementation.md) — การใช้งานใน OpenFOAM
+- **Coupled Physics:** [../02_COUPLED_PHYSICS/00_Overview.md](../02_COUPLED_PHYSICS/00_Overview.md) — ฟิสิกส์แบบคัปปลิง
+- **Reacting Flows:** [../03_REACTING_FLOWS/00_Overview.md](../03_REACTING_FLOWS/00_Overview.md) — การไหลแบบมีปฏิกิริยา

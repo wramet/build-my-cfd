@@ -112,7 +112,7 @@ fvScalarMatrix TEqn
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. k มี dimension อะไร?</b></summary>
@@ -134,7 +134,7 @@ fvScalarMatrix TEqn
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Applications:** [05_Advanced_Applications.md](05_Advanced_Applications.md)

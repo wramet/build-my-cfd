@@ -2,6 +2,11 @@
 
 การเลือก Solver สำหรับ Incompressible Flow
 
+> **ทำไมต้องเลือก Solver ให้ถูก?**
+> - **Ma < 0.3** → ใช้ incompressible solver ได้
+> - **Steady vs Transient** → เลือกระหว่าง SIMPLE และ PISO/PIMPLE
+> - Solver ผิด = ผลลัพธ์ผิด หรือ diverge
+
 ---
 
 ## Overview

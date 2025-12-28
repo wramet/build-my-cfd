@@ -1,6 +1,11 @@
 # เลขไร้มิติในพลศาสตร์ของไหล
 
-เลขไร้มิติ (Dimensionless Numbers) เป็นอัตราส่วนที่บ่งบอกถึง **ความสำคัญสัมพัทธ์ของปรากฏการณ์ทางฟิสิกส์** ในการไหล ช่วยให้เราตัดสินใจเลือก solver, turbulence model และ mesh resolution ได้อย่างถูกต้อง
+เลขไร้มิติ (Dimensionless Numbers) เป็นอัตราส่วนที่บ่งบอกถึง **ความสำคัญสัมพัทธ์ของปรากฏการณ์ทางฟิสิกส์**
+
+> **ทำไมต้องรู้ Dimensionless Numbers?**
+> - **Re บอกว่า laminar หรือ turbulent** → เลือก solver และ turbulence model
+> - **Ma บอกว่า compressible หรือไม่** → เลือก solver ตระกูลไหน
+> - **ใช้ verify ผลลัพธ์** → เปรียบเทียบกับ correlation และ experiment
 
 ---
 

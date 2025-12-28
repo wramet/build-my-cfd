@@ -178,3 +178,12 @@ Mk[k] = fvc::domainIntegrate(Lk[k]*n).value();
 **คำตอบ:** จะเกิดปัญหา **Divergence** หรือ **Unrealistic Physics**
 *   ถ้าอัตราการถ่ายเทมวลสูงเกินไป ความหนาแน่นในเซลล์จะเปลี่ยนจากของเหลวเป็นไอเร็วเกินไปจน Solver คำนวณความดันไม่ทัน (Pressure Spike) ทำให้การคำนวณล้มเหลว
 </details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **บทถัดไป:** [01_Phase_Change_Modeling.md](01_Phase_Change_Modeling.md) — การจำลองการเปลี่ยนสถานะ
+- **Coupled Physics:** [../02_COUPLED_PHYSICS/00_Overview.md](../02_COUPLED_PHYSICS/00_Overview.md) — ฟิสิกส์แบบคัปปลิง
+- **Reacting Flows:** [../03_REACTING_FLOWS/00_Overview.md](../03_REACTING_FLOWS/00_Overview.md) — การไหลแบบมีปฏิกิริยา
+- **Non-Newtonian:** [../04_NON_NEWTONIAN_FLUIDS/00_Overview.md](../04_NON_NEWTONIAN_FLUIDS/00_Overview.md) — ของไหลนอนนิวตัน

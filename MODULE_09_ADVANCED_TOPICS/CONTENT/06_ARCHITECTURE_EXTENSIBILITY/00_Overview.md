@@ -78,7 +78,7 @@ functions
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. RTS คืออะไร?</b></summary>
@@ -100,7 +100,7 @@ functions
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Introduction:** [01_Introduction.md](01_Introduction.md)
 - **RTS:** [02_Runtime_Selection_Tables.md](02_Runtime_Selection_Tables.md)

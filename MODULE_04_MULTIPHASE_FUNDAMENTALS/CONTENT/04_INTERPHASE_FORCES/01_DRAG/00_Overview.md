@@ -2,9 +2,18 @@
 
 ภาพรวมแรงต้าน (Drag Force) ใน Multiphase Systems
 
+> **ทำไม Drag สำคัญที่สุดใน Multiphase?**
+> - **เป็นแรงหลัก** ที่กำหนด relative velocity ระหว่างเฟส
+> - เลือก drag model ผิด = ผลลัพธ์ผิดหมด
+> - มีหลาย models — SchillerNaumann, IshiiZuber, Tomiyama, Gidaspow...
+
 ---
 
 ## Overview
+
+> **💡 Drag = ตัวควบคุม slip velocity**
+>
+> ถ้า drag สูง → เฟสเคลื่อนที่พร้อมกัน | ถ้า drag ต่ำ → เฟสแยกจากกัน
 
 > **Drag Force** = แรงที่สำคัญที่สุดในระบบหลายเฟส ต้านการเคลื่อนที่สัมพัทธ์ระหว่างเฟส
 

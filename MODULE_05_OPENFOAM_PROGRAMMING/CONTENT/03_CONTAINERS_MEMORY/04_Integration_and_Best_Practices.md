@@ -1,6 +1,11 @@
 # Integration and Best Practices
 
-แนวทางปฏิบัติที่ดีสำหรับ Containers และ Memory
+แนวทางปฏิบัติที่ดีสำหรับ Containers และ Memory — เรียนจากความผิดพลาดของคนอื่น
+
+> **ทำไมบทนี้สำคัญ?**
+> - เรียนจาก **common mistakes** ของคนอื่น
+> - รู้ **Best Practices** ตั้งแต่แรก
+> - เขียน code ที่ **performant + safe**
 
 ---
 
@@ -156,7 +161,7 @@ if (fields.set(i))
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไมต้อง pre-allocate?</b></summary>
@@ -178,7 +183,7 @@ if (fields.set(i))
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Summary:** [05_Summary_and_Exercises.md](05_Summary_and_Exercises.md)

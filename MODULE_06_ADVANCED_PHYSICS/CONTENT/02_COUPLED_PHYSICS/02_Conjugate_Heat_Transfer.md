@@ -100,7 +100,7 @@ splitMeshRegions -cellZonesOnly -overwrite
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. CHT ทำอะไร?</b></summary>
@@ -122,7 +122,7 @@ splitMeshRegions -cellZonesOnly -overwrite
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Registry:** [04_Object_Registry_Architecture.md](04_Object_Registry_Architecture.md)

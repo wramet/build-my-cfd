@@ -1,10 +1,21 @@
 # Field Types - Overview
 
-ภาพรวม Field Types
+ภาพรวม Field Types — vol, surface, point
+
+> **ทำไม Field Types สำคัญ?**
+> - **ต้องรู้ว่า data อยู่ที่ไหน** — cell, face, or vertex
+> - เลือก field type ผิด = bugs + non-physical results
+> - เข้าใจ flux (surface) vs state (vol)
 
 ---
 
 ## Overview
+
+> **💡 OpenFOAM มี 3 locations สำหรับ data:**
+>
+> - **Volume (vol):** Cell centers — state variables (p, U, T)
+> - **Surface:** Face centers — fluxes (phi)
+> - **Point:** Vertices — mesh motion
 
 ```mermaid
 flowchart TD
@@ -93,7 +104,7 @@ GeometricField<Type, PatchField, GeoMesh>
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. vol vs surface field?</b></summary>
@@ -116,7 +127,7 @@ GeometricField<Type, PatchField, GeoMesh>
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Introduction:** [01_Introduction.md](01_Introduction.md)
 - **Volume Fields:** [02_Volume_Fields.md](02_Volume_Fields.md)

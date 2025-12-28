@@ -658,3 +658,55 @@ U -= rUA * fvc::grad(p);
 - [[05_2._Divergence_Operations]] - การดำเนินการ Divergence
 - [[08_🔧_Practical_Exercises]] - แบบฝึกหัดปฏิบัติเกี่ยวกับ Gradient
 - [[09_📈_Project_Integration]] - การบูรณาการโครงการ
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. `fvc::grad(p)` ให้ผลลัพธ์เป็นอะไรและมีหน่วยอะไร?</b></summary>
+
+**ผลลัพธ์:** `volVectorField` (Vector field ที่ cell centers)
+
+**หน่วย:** ถ้า `p` มีหน่วย $[Pa] = [kg/(m \cdot s^2)]$
+- $\nabla p$ มีหน่วย $[Pa/m] = [kg/(m^2 \cdot s^2)]$
+- เป็นแรงต่อหน่วยปริมาตร (force per unit volume)
+
+</details>
+
+<details>
+<summary><b>2. ความแตกต่างระหว่าง `Gauss linear` และ `Gauss leastSquares` คืออะไร?</b></summary>
+
+| Scheme | วิธีการ | ข้อดี | ข้อเสีย |
+|--------|---------|-------|---------|
+| **Gauss linear** | Interpolate ค่าไป face แล้วรวม | เร็ว, เสถียร | แม่นยำน้อยกว่าบน skewed mesh |
+| **Gauss leastSquares** | Fit least-squares จาก neighbors | แม่นยำกว่าบน unstructured mesh | ช้ากว่า, ใช้หน่วยความจำมากกว่า |
+
+**เลือกใช้:** LeastSquares สำหรับ unstructured/skewed mesh, Linear สำหรับ structured mesh
+
+</details>
+
+<details>
+<summary><b>3. ทำไมต้องใช้ `cellLimited` หรือ `faceLimited` gradient?</b></summary>
+
+เพื่อ **ป้องกัน numerical oscillations** ในกรณี:
+- **Steep gradients** (ความชันสูง)
+- **Shock waves** (คลื่นกระแทก)
+- **Multiphase interfaces** (รอยต่อระหว่าง phases)
+
+**หลักการ:** Limiter จำกัดค่า gradient ไม่ให้สร้าง new extrema (ค่าที่เกินกว่า neighbors)
+
+```cpp
+gradSchemes { default cellLimited Gauss linear 1; }
+```
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Vector Calculus
+- **fvc vs fvm:** [02_fvc_vs_fvm.md](02_fvc_vs_fvm.md) — เปรียบเทียบ Explicit และ Implicit
+- **บทถัดไป:** [04_Divergence_Operations.md](04_Divergence_Operations.md) — การดำเนินการ Divergence
+- **Curl \& Laplacian:** [05_Curl_and_Laplacian.md](05_Curl_and_Laplacian.md) — Curl และ Laplacian

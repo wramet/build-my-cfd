@@ -1,12 +1,19 @@
 # Engineering Benefits of Dimensioned Types
 
-ประโยชน์ทางวิศวกรรมของ Dimensioned Types
+ประโยชน์ทางวิศวกรรมของ Dimensioned Types — ทำไมต้องใช้?
+
+> **ทำไมบทนี้สำคัญ?**
+> - เห็น **ประโยชน์จริง** ของ dimension checking
+> - โน้มน้าว team ให้ใช้ dimensioned types
+> - เข้าใจว่าทำไม overhead เล็กน้อยคุ้มค่า
 
 ---
 
 ## Overview
 
-> Dimensioned Types = **Safety + Clarity + Maintainability**
+> **💡 Dimensioned Types = Safety + Clarity + Maintainability**
+>
+> ป้องกัน bugs + ทำให้ code อ่านง่าย + แก้ไขได้
 
 ---
 
@@ -142,7 +149,7 @@ Inconsistent dimensions for +/-
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไม dimensioned types ดีกว่า comments?</b></summary>
@@ -164,7 +171,7 @@ Comments ไม่มี **enforcement** — compiler ตรวจ dimensioned t
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Pitfalls:** [05_Pitfalls_and_Solutions.md](05_Pitfalls_and_Solutions.md)

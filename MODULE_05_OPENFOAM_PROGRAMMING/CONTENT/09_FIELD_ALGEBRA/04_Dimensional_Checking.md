@@ -298,7 +298,7 @@ dimensionSet::checking(true);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไม 7 dimensions?</b></summary>
@@ -323,7 +323,7 @@ dimensionSet::checking(true);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Dimensioned Types:** [../02_DIMENSIONED_TYPES/00_Overview.md](../02_DIMENSIONED_TYPES/00_Overview.md)

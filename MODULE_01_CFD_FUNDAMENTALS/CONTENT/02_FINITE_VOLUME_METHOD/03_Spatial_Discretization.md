@@ -2,99 +2,128 @@
 
 การแปลง Spatial Derivatives เป็นสมการพีชคณิตโดยใช้ค่าที่ Cell Centers และ Faces
 
+> **ทำไมต้อง discretize?**
+> คอมพิวเตอร์ไม่เข้าใจ $\nabla$ หรือ $\partial/\partial x$ แต่เข้าใจ "ลบ" กับ "หาร"
+> 
+> Discretization = แปลงอนุพันธ์เป็นผลต่างของค่าที่จุดต่างๆ
+
 ---
 
 ## Mesh Structure
 
 ### Cell-Centered Approach
 
-ค่าตัวแปรเก็บที่ **Cell Centers** (P, N) แต่ต้อง Interpolate ไปที่ **Face** (f) เพื่อคำนวณ Flux
+**ปัญหาพื้นฐาน:** เก็บค่าที่ Cell Centers แต่ต้องคำนวณ Flux ที่ Face
 
 ```
      Cell P          Face f         Cell N
        ●───────────────■───────────────●
       φ_P             φ_f            φ_N
-    (stored)      (interpolate)    (stored)
+    (stored)      (ต้องเดา!)       (stored)
 ```
+
+**วิธีแก้:** ใช้ Interpolation Scheme เพื่อ "เดา" ค่า $\phi_f$ จาก $\phi_P$ และ $\phi_N$
+
+### Orthogonality: ทำไมสำคัญ?
 
 | Mesh Type | ลักษณะ | ผลกระทบ |
 |-----------|--------|---------|
-| **Orthogonal** | d_PN ⊥ S_f | Gradient คำนวณง่าย |
-| **Non-orthogonal** | d_PN ∠ S_f | ต้องใช้ correction |
+| **Orthogonal** | $d_{PN} \perp S_f$ | Gradient คำนวณถูกต้องทันที |
+| **Non-orthogonal** | $d_{PN} \angle S_f$ | Gradient ผิด → ต้อง correction |
 
-**ตรวจสอบ:** `checkMesh` → ดู `Max non-orthogonality` (ควร < 70°)
+> **💡 คิดแบบนี้:**
+> ถ้า mesh เบี้ยว เหมือนเดินทแยง — ระยะทางที่วัดได้ไม่ใช่ระยะจริง ต้องแก้ไข
+
+**ตรวจสอบ:** `checkMesh` → ดู `Max non-orthogonality`
+- < 40°: ดี ไม่ต้อง correction
+- 40-70°: ต้อง correction
+- > 70°: อันตราย อาจ diverge
 
 ---
 
-## Convective Term
+## Convective Term: การพาพาสาร
 
 $$\nabla \cdot (\phi \mathbf{u}) \rightarrow \sum_f \phi_f \Phi_f$$
 
-โดย $\Phi_f = \mathbf{u}_f \cdot \mathbf{S}_f$ = Volumetric Flux
+โดย $\Phi_f = \mathbf{u}_f \cdot \mathbf{S}_f$ = Volumetric Flux (m³/s)
+
+> **ทำไม Convection ยากที่สุด?**
+> 1. **Nonlinear:** $u$ คูณ $\phi$ (ถ้า $\phi = u$ ก็ยิ่งซับซ้อน)
+> 2. **Information travels:** ข้อมูลไหลไปทิศทางเดียว → ต้องรู้ว่า "upstream" อยู่ไหน
+> 3. **Unbounded:** ค่าอาจพุ่งสูงมาก → oscillation → blow up
 
 ### Interpolation Schemes
 
-| Scheme | สูตร $\phi_f$ | Order | เสถียร | Applied |
-|--------|--------------|-------|--------|---------|
-| **Upwind** | $\phi_P$ (if $\Phi_f > 0$) | 1 | ✅ | เริ่มต้น, High Pe |
-| **Linear** | $\frac{1}{2}(\phi_P + \phi_N)$ | 2 | ❌ | Laminar |
-| **Linear Upwind** | Upwind + Gradient correction | 2 | ✅ | ทั่วไป |
-| **Van Leer** | TVD limiter | 2 | ✅ | Compressible |
+**ทางเลือกหลักมี 2 ขั้ว:**
+
+```
+  Upwind                                    Linear (Central)
+    │                                            │
+    ▼                                            ▼
+  เสถียร แต่เบลอ                          แม่นยำ แต่สั่น
+  (1st order)                              (2nd order)
+                    ↓
+             LinearUpwind / TVD
+             (Best of both worlds)
+```
+
+| Scheme | วิธีคำนวณ $\phi_f$ | Accuracy | Stability |
+|--------|-------------------|----------|-----------|
+| **Upwind** | ใช้ค่า upstream เท่านั้น | 1st | ✅ สูงมาก |
+| **Linear** | เฉลี่ย $\frac{1}{2}(\phi_P + \phi_N)$ | 2nd | ❌ อาจสั่น |
+| **Linear Upwind** | Upwind + gradient correction | 2nd | ✅ ดี |
+| **TVD (limitedLinear)** | ใช้ limiter ป้องกัน overshoot | 2nd | ✅ ดีมาก |
 
 **ตั้งค่าใน `system/fvSchemes`:**
 
 ```cpp
 divSchemes
 {
-    div(phi,U)      Gauss linearUpwind grad(U);  // แนะนำ
-    div(phi,k)      Gauss upwind;                // เสถียร
-    div(phi,T)      Gauss limitedLinear 1;       // TVD
+    // Velocity - ต้องการทั้งความแม่นยำและเสถียรภาพ
+    div(phi,U)      Gauss linearUpwind grad(U);
+    
+    // Turbulence - ต้องการเสถียรภาพ (k,ε ต้อง > 0 เสมอ)
+    div(phi,k)      Gauss upwind;
+    div(phi,epsilon) Gauss upwind;
+    
+    // Scalar - TVD ป้องกัน overshoots
+    div(phi,T)      Gauss limitedLinear 1;
 }
-```
-
-### เลือก Scheme อย่างไร?
-
-```
-Upwind ←──────────────────────────→ Linear
-(Stable, Diffusive)          (Accurate, Oscillatory)
-         ↑
-    LinearUpwind / TVD
-    (Best of both)
 ```
 
 ---
 
-## Diffusive Term
+## Diffusive Term: การแพร่กระจาย
 
 $$\nabla \cdot (D \nabla \phi) \rightarrow \sum_f D_f \frac{\phi_N - \phi_P}{|d_{PN}|} |S_f|$$
 
-### Orthogonal Mesh
+> **ทำไม Diffusion ง่ายกว่า Convection?**
+> - Diffusion เป็น **self-stabilizing:** ค่าสูงแพร่ไปหาค่าต่ำ → ทำให้เรียบ
+> - ไม่มี "ทิศทาง" → ใช้ central difference ได้
+
+### Orthogonal vs Non-Orthogonal Mesh
+
+**Orthogonal Mesh:** ใช้สูตรตรงๆ ได้เลย
 
 $$(D \nabla \phi)_f \cdot \mathbf{S}_f = D_f \frac{\phi_N - \phi_P}{|d_{PN}|} |S_f|$$
 
-### Non-Orthogonal Mesh
+**Non-Orthogonal Mesh:** ต้องเพิ่ม correction
 
-ต้องเพิ่ม correction:
+$$(D \nabla \phi)_f \cdot \mathbf{S}_f = \underbrace{D_f \frac{\phi_N - \phi_P}{|d_{PN}|} |S_f|}_{\text{orthogonal part}} + \underbrace{D_f (\nabla \phi)_f \cdot \mathbf{k}}_{\text{correction}}$$
 
-$$(D \nabla \phi)_f \cdot \mathbf{S}_f = D_f \frac{\phi_N - \phi_P}{|d_{PN}|} |S_f| + \underbrace{D_f (\nabla \phi)_f \cdot \mathbf{k}}_{\text{correction}}$$
-
-**ตั้งค่าใน `system/fvSchemes`:**
+**ตั้งค่าใน `fvSchemes` และ `fvSolution`:**
 
 ```cpp
+// fvSchemes
 laplacianSchemes
 {
-    default         Gauss linear corrected;   // มี correction
-    // หรือ
-    default         Gauss linear uncorrected; // ไม่มี (เร็วกว่า)
+    default    Gauss linear corrected;    // มี correction
 }
-```
 
-**เพิ่ม iterations ใน `system/fvSolution`:**
-
-```cpp
+// fvSolution - ต้องวน correction loop
 SIMPLE
 {
-    nNonOrthogonalCorrectors 2;  // สำหรับ non-ortho mesh
+    nNonOrthogonalCorrectors 2;  // วน 2 รอบ
 }
 ```
 
@@ -104,56 +133,36 @@ SIMPLE
 
 $$\nabla \phi_P \approx \frac{1}{V_P} \sum_f \phi_f \mathbf{S}_f$$
 
-**Schemes:**
-
-| Scheme | ข้อดี | ใช้เมื่อ |
-|--------|------|---------|
-| `Gauss linear` | Standard, เร็ว | Orthogonal mesh |
-| `leastSquares` | แม่นยำ | Non-orthogonal mesh |
+| Scheme | ใช้เมื่อ | ข้อดี |
+|--------|---------|------|
+| `Gauss linear` | Orthogonal mesh | เร็ว standard |
+| `leastSquares` | Non-orthogonal mesh | แม่นยำกว่า |
 
 ```cpp
 gradSchemes
 {
     default         Gauss linear;
-    grad(U)         cellLimited Gauss linear 1;  // Limited
+    grad(U)         cellLimited Gauss linear 1;  // จำกัดไม่ให้เกินค่าสูงสุด
 }
 ```
 
 ---
 
-## Matrix Assembly
+## Boundary Conditions: ผลต่อ Matrix
 
-หลัง discretize ได้สมการสำหรับ Cell P:
-
-$$a_P \phi_P + \sum_N a_N \phi_N = b_P$$
-
-โดย:
-- $a_P$ = Diagonal coefficient (จาก Cell P)
-- $a_N$ = Off-diagonal coefficients (จาก Neighbors)
-- $b_P$ = Source term
-
-**คุณสมบัติ:**
-- **Diagonal Dominance**: $|a_P| \geq \sum|a_N|$ → เสถียร
-- **Sparse**: ส่วนใหญ่เป็น 0
-
----
-
-## Boundary Conditions
-
-| Type | คำอธิบาย | OpenFOAM | ผลต่อ Matrix |
-|------|---------|----------|-------------|
-| **Dirichlet** | Fixed value | `fixedValue` | แก้ไข $a_P$, $b_P$ |
-| **Neumann** | Fixed gradient | `zeroGradient` | แก้ไข $b_P$ |
-| **Mixed** | Value + Gradient | `mixed` | แก้ไขทั้งคู่ |
+| Type | กำหนด | OpenFOAM | ผลต่อ Matrix |
+|------|-------|----------|--------------|
+| **Dirichlet** | ค่าที่ขอบ | `fixedValue` | แก้ $a_P$, $b_P$ |
+| **Neumann** | gradient ที่ขอบ | `zeroGradient` | แก้ $b_P$ เท่านั้น |
 
 **ตัวอย่าง `0/U`:**
 
 ```cpp
 boundaryField
 {
-    inlet  { type fixedValue; value uniform (10 0 0); }
-    outlet { type zeroGradient; }
-    walls  { type noSlip; }
+    inlet  { type fixedValue; value uniform (10 0 0); }  // กำหนด U
+    outlet { type zeroGradient; }                         // ปล่อยไหลอิสระ
+    walls  { type noSlip; }                               // U = 0
 }
 ```
 
@@ -161,16 +170,13 @@ boundaryField
 
 ## Linear Solvers
 
-ระบบ $[A][\phi] = [b]$ ถูกแก้โดย:
+หลัง discretize ได้ระบบ $[A][\phi] = [b]$ ต้องใช้ iterative solver
 
-| Solver | ใช้กับ | ข้อดี |
+| Solver | ใช้กับ | ทำไม |
 |--------|-------|------|
-| `GAMG` | p (pressure) | เร็วมาก |
-| `PCG` | Symmetric | เสถียร |
-| `PBiCGStab` | Asymmetric | ทั่วไป |
-| `smoothSolver` | ง่ายๆ | เร็ว |
-
-**ตั้งค่าใน `system/fvSolution`:**
+| **GAMG** | Pressure | เร็วมาก สำหรับ Laplacian equation |
+| **PCG** | Symmetric matrix | Conjugate Gradient |
+| **PBiCGStab** | Asymmetric | ทั่วไป (U, k, ε) |
 
 ```cpp
 solvers
@@ -179,7 +185,7 @@ solvers
     {
         solver      GAMG;
         tolerance   1e-6;
-        relTol      0.01;
+        relTol      0.01;    // ยอมแค่ลด 100 เท่า ต่อ iteration
         smoother    GaussSeidel;
     }
     U
@@ -199,32 +205,62 @@ solvers
 | Term | Scheme แนะนำ | เหตุผล |
 |------|-------------|--------|
 | Convection U | `linearUpwind grad(U)` | 2nd order + stable |
-| Convection k, ε | `upwind` | Turbulence sensitive |
-| Diffusion | `linear corrected` | Standard |
-| Gradient | `Gauss linear` | Standard |
-| Time | `backward` (2nd) หรือ `Euler` (1st) | ตามความต้องการ |
+| Convection k, ε | `upwind` | ค่าต้อง > 0 เสมอ |
+| Diffusion | `linear corrected` | Standard + non-ortho safe |
+| Gradient | `Gauss linear` | เร็ว standard |
+| Time | `backward` (transient accurate) หรือ `Euler` (simple) | ตามความต้องการ |
 
 ---
 
 ## Concept Check
 
 <details>
-<summary><b>1. Upwind vs Linear ต่างกันอย่างไร?</b></summary>
+<summary><b>1. Upwind vs Linear ต่างกันอย่างไร? ทำไมถึงสำคัญ?</b></summary>
 
-- **Upwind**: ใช้ค่าจาก upstream → เสถียรแต่ diffusive (smear sharp gradients)
-- **Linear**: เฉลี่ยทั้งสอง → แม่นยำแต่อาจ oscillate
+- **Upwind**: ใช้ค่าจาก upstream เท่านั้น → เสถียรแต่ **diffusive** (เบลอ sharp fronts)
+- **Linear**: เฉลี่ยทั้งสองฝั่ง → แม่นยำแต่อาจ **oscillate** (ค่าสั่นเกิน/ต่ำกว่าที่ควร)
+
+**ทำไมสำคัญ:** เลือกผิดอาจทำให้:
+- Upwind มากไป → ผลลัพธ์เบลอ ไม่เห็นรายละเอียด
+- Linear เมื่อ flow แรง → oscillation → diverge
 </details>
 
 <details>
 <summary><b>2. เมื่อไหร่ต้องใช้ Non-orthogonal Correction?</b></summary>
 
-เมื่อ mesh มี non-orthogonality > 40° เพื่อให้ gradient ที่ face ถูกต้อง ตั้ง `nNonOrthogonalCorrectors > 0`
+เมื่อ `checkMesh` แสดง non-orthogonality > 40°:
+
+```
+Max non-orthogonality = 55 degrees.
+```
+
+**วิธีแก้:** ตั้ง `nNonOrthogonalCorrectors` ใน `fvSolution`:
+- 40-60°: ใช้ 1-2
+- 60-70°: ใช้ 2-3
+- > 70°: ควรปรับ mesh ใหม่
 </details>
 
 <details>
 <summary><b>3. ทำไม Turbulence fields (k, ε) มักใช้ Upwind?</b></summary>
 
-เพราะ k, ε มีค่าเป็นบวกเสมอ (physical constraint) Higher-order schemes อาจทำให้เกิดค่าลบ → diverge
+เพราะ physical constraint: **k, ε ต้อง > 0 เสมอ**
+
+- Higher-order schemes อาจทำให้เกิด undershoots → **ค่าลบ**
+- ค่าลบใน k หรือ ε → คำนวณ $\nu_t$ ไม่ได้ → **diverge**
+
+Upwind = safe แม้ diffusive เล็กน้อย ก็ยังดีกว่า diverge
+</details>
+
+<details>
+<summary><b>4. GAMG ทำไมเร็วสำหรับ Pressure?</b></summary>
+
+**GAMG** = Geometric Algebraic MultiGrid
+
+หลักการ: แก้สมการบน coarse mesh ก่อน → prolong ลงมา fine mesh
+
+ทำไมเหมาะกับ p:
+- Pressure equation = Laplacian (elliptic) → information travels globally
+- GAMG "เห็น" ทั้งโดเมนจาก coarse level → converge เร็วมาก
 </details>
 
 ---
@@ -233,3 +269,4 @@ solvers
 
 - **บทก่อนหน้า:** [02_Fundamental_Concepts.md](02_Fundamental_Concepts.md) — แนวคิดพื้นฐาน
 - **บทถัดไป:** [04_Temporal_Discretization.md](04_Temporal_Discretization.md) — Temporal Discretization
+- **ประยุกต์:** [06_OpenFOAM_Implementation.md](06_OpenFOAM_Implementation.md) — การ implement ใน OpenFOAM

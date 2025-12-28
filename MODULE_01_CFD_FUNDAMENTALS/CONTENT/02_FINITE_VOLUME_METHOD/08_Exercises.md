@@ -2,6 +2,11 @@
 
 แบบฝึกหัดเชิงปฏิบัติเพื่อฝึกทักษะ Discretization และการตั้งค่า OpenFOAM
 
+> **ทำไมต้องทำแบบฝึกหัด?**
+> - ฝึกคำนวณ **matrix, flux, Peclet number** ด้วยตัวเอง
+> - ฝึก **debug** mesh quality และ divergence
+> - เตรียมพร้อมสำหรับโปรเจคจริง
+
 ---
 
 ## แบบฝึกหัด 1: Matrix Assembly

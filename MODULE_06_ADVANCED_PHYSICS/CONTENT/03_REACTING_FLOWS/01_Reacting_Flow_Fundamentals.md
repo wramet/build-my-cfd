@@ -106,7 +106,7 @@ odeCoeffs
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Mass fraction sum?</b></summary>
@@ -128,7 +128,7 @@ odeCoeffs
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Combustion:** [04_Combustion_Models.md](04_Combustion_Models.md)

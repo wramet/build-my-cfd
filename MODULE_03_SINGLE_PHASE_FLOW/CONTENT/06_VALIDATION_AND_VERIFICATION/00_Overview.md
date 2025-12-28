@@ -2,9 +2,19 @@
 
 ภาพรวมการทวนสอบและตรวจสอบความถูกต้อง
 
+> **ทำไม V&V สำคัญที่สุด?**
+> - **CFD ที่ไม่ validated = ไม่น่าเชื่อถือ**
+> - เข้าใจ verification vs validation = รู้ว่าตรวจสอบอะไร
+> - GCI (Grid Convergence Index) = benchmark สำหรับ mesh independence
+
 ---
 
 ## Core Distinction
+
+> **💡 หัวใจของ V&V:**
+>
+> - **Verification:** "Are we solving the equations right?" → Numerical errors
+> - **Validation:** "Are we solving the right equations?" → Physics vs reality
 
 | Term | Question | Focus |
 |------|----------|-------|

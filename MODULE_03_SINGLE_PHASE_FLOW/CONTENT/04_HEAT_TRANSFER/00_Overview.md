@@ -2,9 +2,22 @@
 
 การจำลองการถ่ายเทความร้อนใน OpenFOAM
 
+> **ทำไมต้องเข้าใจ Heat Transfer?**
+> - **งาน CFD จริงส่วนใหญ่มี thermal** — cooling, heating, HVAC
+> - ต้องเลือก solver ให้ถูก — buoyancy vs CHT vs radiation
+> - เข้าใหม่ thermophysicalProperties = ตั้งค่าได้ถูก
+
 ---
 
 ## Quick Start
+
+> **💡 เลือก Solver จาก Physics:**
+>
+> | ต้องการ | Solver |
+> |--------|--------|
+> | Natural convection (small ΔT) | `buoyantBoussinesqSimpleFoam` |
+> | Large ΔT / compressible | `buoyantSimpleFoam` |
+> | Solid-fluid coupling | `chtMultiRegionFoam` |
 
 | ต้องการจำลอง | Solver | Key File |
 |-------------|--------|----------|
@@ -12,6 +25,8 @@
 | Large $\Delta T$ / compressible | `buoyantSimpleFoam` | `thermophysicalProperties` |
 | Transient with buoyancy | `buoyantPimpleFoam` | `g`, `thermophysicalProperties` |
 | Solid-fluid coupling (CHT) | `chtMultiRegionFoam` | `regionProperties` |
+
+---
 
 ---
 

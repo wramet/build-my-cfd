@@ -127,7 +127,7 @@ autoPtr<T> b = std::move(a);  // Explicit
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. tmp scope ทำไมสำคัญ?</b></summary>
@@ -149,7 +149,7 @@ autoPtr<T> b = std::move(a);  // Explicit
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Syntax:** [02_Memory_Syntax_and_Design.md](02_Memory_Syntax_and_Design.md)

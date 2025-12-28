@@ -100,7 +100,7 @@ plt.xlabel('Iteration')
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. fluidfoam ใช้ทำอะไร?</b></summary>
@@ -116,7 +116,7 @@ plt.xlabel('Iteration')
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **ParaView:** [01_ParaView_Visualization.md](01_ParaView_Visualization.md)

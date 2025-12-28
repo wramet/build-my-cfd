@@ -327,3 +327,71 @@ class MyBoundaryCondition : public fvPatchField<scalar>
 -   การทำให้สมการไร้มิติ (Non-dimensionalization) เพื่อเพิ่มความแม่นยำทางตัวเลข
 
 การเชี่ยวชาญการวิเคราะห์มิติจะเปลี่ยนคุณจาก "คนเขียนโค้ด" ให้กลายเป็น "วิศวกรจำลองสถานการณ์" ที่มีความเป็นมืออาชีพสูง
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. ทำไม `dimensionedScalar invalidSum = U + p;` ทำให้เกิด compile error?</b></summary>
+
+เพราะ **มิติไม่ตรงกัน:**
+- `U` มีมิติ **L/T** (ความเร็ว)
+- `p` มีมิติ **M/(L·T²)** (ความดัน)
+
+**กฎ:** สามารถบวก/ลบได้เฉพาะปริมาณที่มี**มิติเหมือนกัน**เท่านั้น
+
+**ตัวอย่างที่ถูกต้อง:**
+```cpp
+dimensionedScalar validSum = U1 + U2;  // ความเร็ว + ความเร็ว = OK
+```
+
+</details>
+
+<details>
+<summary><b>2. dimensionSet ใน OpenFOAM เก็บข้อมูลอะไรบ้าง?</b></summary>
+
+เก็บ **7 exponents** ของหน่วยฐาน SI:
+
+| Index | หน่วย | สัญลักษณ์ | ตัวอย่าง |
+|-------|-------|----------|----------|
+| 0 | Mass | M | kg |
+| 1 | Length | L | m |
+| 2 | Time | T | s |
+| 3 | Temperature | Θ | K |
+| 4 | Moles | N | mol |
+| 5 | Current | I | A |
+| 6 | Luminosity | J | cd |
+
+**ตัวอย่าง:**
+- ความดัน: `[1 -1 -2 0 0 0 0]` = M·L⁻¹·T⁻² = Pa
+
+</details>
+
+<details>
+<summary><b>3. การคำนวณ Reynolds number ควรทำอย่างไรใน OpenFOAM?</b></summary>
+
+**วิธีที่ถูกต้อง:** คำนวณจากค่าที่มีมิติ
+
+```cpp
+// รักษามิติของค่าอ้างอิง
+dimensionedScalar U_ref("U_ref", dimVelocity, 1.0);  // m/s
+dimensionedScalar L_ref("L_ref", dimLength, 1.0);    // m
+dimensionedScalar nu("nu", dimKinematicViscosity, 1e-6); // m²/s
+
+// คำนวณ Re (ไร้มิติโดยอัตโนมัติ)
+dimensionedScalar Re = U_ref * L_ref / nu;
+```
+
+**ประโยชน์:** สามารถติดตามที่มาและตรวจสอบความถูกต้องได้
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Dimensional Analysis
+- **บทถัดไป:** [02_dimensionSet.md](02_dimensionSet.md) — คลาส dimensionSet
+- **Tensor Algebra:** [../11_TENSOR_ALGEBRA/00_Overview.md](../11_TENSOR_ALGEBRA/00_Overview.md) — โมดูลก่อนหน้า
+- **Field Types:** [../08_FIELD_TYPES/00_Overview.md](../08_FIELD_TYPES/00_Overview.md) — ประเภท Field

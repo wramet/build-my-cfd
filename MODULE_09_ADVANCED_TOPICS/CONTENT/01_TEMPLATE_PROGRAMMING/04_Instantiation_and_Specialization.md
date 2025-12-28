@@ -122,7 +122,7 @@ template class GeometricField<tensor, fvPatchField, volMesh>;
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Instantiation เกิดเมื่อไหร่?</b></summary>
@@ -145,7 +145,7 @@ template class GeometricField<tensor, fvPatchField, volMesh>;
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Syntax:** [02_Template_Syntax.md](02_Template_Syntax.md)

@@ -2,9 +2,18 @@
 
 ภาพรวมสถาปัตยกรรม multiphaseEulerFoam
 
+> **ทำไมต้องเข้าใจ Implementation?**
+> - **Debug ได้** เมื่อ simulation ไม่ work
+> - **Customize ได้** เมื่อต้องการ model ใหม่
+> - **เข้าใจ PIMPLE algorithm** สำหรับ multiphase
+
 ---
 
 ## Overview
+
+> **💡 multiphaseEulerFoam = N phases, shared pressure, interphase coupling**
+>
+> ทุกเฟสแบ่ง pressure field เดียวกัน แต่มี velocity แยก
 
 > **multiphaseEulerFoam** = Eulerian multi-phase solver สำหรับ N phases ที่ใช้ shared pressure field
 

@@ -83,7 +83,7 @@ fvc::div(phi, U);  // Uses scheme from fvSchemes
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Pattern คืออะไร?</b></summary>
@@ -105,7 +105,7 @@ fvc::div(phi, U);  // Uses scheme from fvSchemes
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Factory:** [02_Factory_Pattern.md](02_Factory_Pattern.md)

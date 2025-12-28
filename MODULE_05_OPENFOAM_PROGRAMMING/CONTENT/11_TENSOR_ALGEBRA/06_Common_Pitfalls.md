@@ -446,3 +446,67 @@ if (mag(T) > GREAT) {
 4.  **เฝ้าระวังความเสถียรทางตัวเลข** ตลอดการจำลอง
 
 การปฏิบัติตามแนวทางเหล่านี้จะช่วยให้คุณหลีกเลี่ยงข้อผิดพลาดที่พบบ่อยและพัฒนา CFD Solver ที่มีประสิทธิภาพและถูกต้อง
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. ถ้าได้ "Rank mismatch error" เมื่อใช้ `&` หรือ `&&` ควรตรวจสอบอะไร?</b></summary>
+
+**ตรวจสอบ:**
+1. **ประเภทผลลัพธ์ที่ต้องการ:**
+   - ต้องการ `scalar` → ใช้ `&&` (double contraction)
+   - ต้องการ `vector` → ใช้ `&` (single contraction)
+
+2. **ประเภท operands:**
+   - `tensor && tensor` → `scalar`
+   - `tensor & vector` → `vector`
+   - `tensor & tensor` → `tensor`
+
+**แก้ไข:** เปลี่ยน operator ให้ตรงกับ output type ที่ต้องการ
+
+</details>
+
+<details>
+<summary><b>2. ทำไมต้องตรวจสอบ `det(T)` ก่อนใช้ `inv(T)`?</b></summary>
+
+**ปัญหา:** ถ้า `det(T) ≈ 0` → tensor เป็น **singular** → ไม่มี inverse
+
+**ผลกระทบ:**
+- `inv(T)` จะให้ค่า **infinity** หรือ **NaN**
+- Simulation อาจ **blow up** ทันที
+
+**วิธีแก้:**
+```cpp
+if (mag(det(T)) > SMALL) {
+    tensor invT = inv(T);
+} else {
+    // Use regularization or alternative method
+}
+```
+
+</details>
+
+<details>
+<summary><b>3. การใช้ `symmTensor` แทน `tensor` ช่วยประหยัดอะไรบ้าง?</b></summary>
+
+| Aspect | `tensor` (9 comp) | `symmTensor` (6 comp) | ประหยัด |
+|--------|-------------------|----------------------|---------|
+| **Memory** | 72 bytes/cell | 48 bytes/cell | 33% |
+| **Operations** | 81 multiplications | 36 multiplications | ~55% |
+| **Cache** | ใช้ cache มากกว่า | ใช้ cache น้อยกว่า | ดีกว่า |
+| **Stability** | อาจเสีย symmetry | รับประกัน symmetry | ดีกว่า |
+
+**Rule:** ถ้า physics สมมาตร (stress, strain) → ใช้ `symmTensor`
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Tensor Algebra
+- **บทก่อนหน้า:** [05_Eigen_Decomposition.md](05_Eigen_Decomposition.md) — Eigenvalue Decomposition
+- **บทถัดไป:** [07_Summary_and_Exercises.md](07_Summary_and_Exercises.md) — สรุปและแบบฝึกหัด
+- **Vector Calculus:** [../10_VECTOR_CALCULUS/00_Overview.md](../10_VECTOR_CALCULUS/00_Overview.md) — โมดูลก่อนหน้า

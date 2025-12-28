@@ -1,6 +1,11 @@
 # GeometricFields - Summary and Exercises
 
-สรุปและแบบฝึกหัด GeometricFields
+สรุปและแบบฝึกหัด GeometricFields — ฝึกทำเพื่อเข้าใจจริง
+
+> **ทำไมต้องทำ Exercises?**
+> - อ่านอย่างเดียวไม่พอ — **ต้องเขียน code เอง**
+> - ฝึก field creation, access, operations จนคล่อง
+> - เตรียมพร้อมสำหรับ custom solver development
 
 ---
 
@@ -155,7 +160,7 @@ customField.write();
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. IOobject arguments คืออะไร?</b></summary>
@@ -182,7 +187,7 @@ customField.write();
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Design Philosophy:** [02_Design_Philosophy.md](02_Design_Philosophy.md)

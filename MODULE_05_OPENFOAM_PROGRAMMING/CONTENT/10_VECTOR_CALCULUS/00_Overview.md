@@ -222,3 +222,42 @@ fvVectorMatrix UEqn(fvm::div(phi, U));
 - [[09_📈_Project_Integration]] - การบูรณาการโครงการ
 - [[10_🎓_Key_Takeaways]] - ประเด็นสำคัญ
 - [[11_📚_Further_Reading]] - บทความเพิ่มเติม
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. ทำไมต้องใช้ทฤษฎีบทของ Gauss ในการ discretize ตัวดำเนินการ vector calculus?</b></summary>
+
+ทฤษฎีบทของ Gauss แปลง **volume integral** ของ divergence ให้เป็น **surface integral** ซึ่งทำให้สามารถคำนวณการเปลี่ยนแปลงในเซลล์โดยการรวมผลรวม flux ที่ผิวเซลล์ทั้งหมด วิธีนี้รักษา **conservation properties** ได้อย่างสมบูรณ์และเหมาะกับ Finite Volume Method
+
+</details>
+
+<details>
+<summary><b>2. ความแตกต่างหลักระหว่าง `fvc::` และ `fvm::` คืออะไร?</b></summary>
+
+- **`fvc::`** (Explicit) คำนวณค่าโดยตรงจาก field ที่รู้แล้ว → ผลลัพธ์เป็น field ใหม่ทันที
+- **`fvm::`** (Implicit) สร้าง matrix coefficients → ต้องแก้ระบบสมการเชิงเส้น
+
+**Rule of Thumb:** ใช้ `fvm::` สำหรับตัวแปรที่กำลังหา, ใช้ `fvc::` สำหรับตัวแปรที่รู้ค่าแล้ว
+
+</details>
+
+<details>
+<summary><b>3. ถ้าต้องการคำนวณ vorticity ($\omega = \nabla \times U$) ควรใช้ `fvc::` หรือ `fvm::`?</b></summary>
+
+ใช้ **`fvc::curl(U)`** เพราะ:
+1. Velocity field **U** เป็นค่าที่รู้แล้ว
+2. ต้องการผลลัพธ์ (vorticity) **ทันที** สำหรับ post-processing
+3. ไม่ต้องการสร้างสมการเพื่อหา vorticity
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **บทถัดไป:** [01_Introduction.md](01_Introduction.md) — บทนำสู่ Vector Calculus
+- **fvc vs fvm:** [02_fvc_vs_fvm.md](02_fvc_vs_fvm.md) — เปรียบเทียบ Explicit และ Implicit
+- **โมดูลก่อนหน้า:** [../09_BOUNDARY_CONDITIONS/00_Overview.md](../09_BOUNDARY_CONDITIONS/00_Overview.md) — Boundary Conditions

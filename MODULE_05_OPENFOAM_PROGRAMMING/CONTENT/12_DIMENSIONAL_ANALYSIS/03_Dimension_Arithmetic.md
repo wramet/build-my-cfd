@@ -96,7 +96,7 @@ volVectorField gradP = fvc::grad(p);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ρU² มี dimension อะไร?</b></summary>
@@ -118,7 +118,7 @@ volVectorField gradP = fvc::grad(p);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **DimensionSet:** [02_DimensionSet_Advanced.md](02_DimensionSet_Advanced.md)

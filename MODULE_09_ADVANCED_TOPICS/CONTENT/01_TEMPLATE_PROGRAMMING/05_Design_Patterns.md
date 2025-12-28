@@ -135,7 +135,7 @@ public:
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Policy-based vs inheritance?</b></summary>
@@ -157,7 +157,7 @@ public:
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Errors:** [06_Common_Errors_and_Debugging.md](06_Common_Errors_and_Debugging.md)

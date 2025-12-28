@@ -96,7 +96,7 @@ turb->correct();  // Calls correct() of actual model type
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Abstract class คืออะไร?</b></summary>
@@ -118,7 +118,7 @@ Class ที่มี **pure virtual function** — ไม่สามารถ 
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Interfaces:** [02_Abstract_Interfaces.md](02_Abstract_Interfaces.md)

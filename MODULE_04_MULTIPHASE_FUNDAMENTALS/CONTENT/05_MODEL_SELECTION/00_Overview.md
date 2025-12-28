@@ -2,9 +2,18 @@
 
 ภาพรวมการเลือกโมเดล Multiphase
 
+> **ทำไมการเลือก Model สำคัญ?**
+> - **Model ผิด = ผลลัพธ์ผิด** แม้ mesh และ settings ดี
+> - ต้องเข้าใจ flow regime — dispersed vs separated
+> - เริ่ม simple → ค่อยๆ เพิ่ม complexity
+
 ---
 
 ## Overview
+
+> **💡 Golden Rule: Start Simple, Add Complexity**
+>
+> เริ่มจาก drag only → ถ้า stable แล้วค่อยเพิ่ม lift, virtual mass
 
 ```mermaid
 flowchart TD

@@ -2,86 +2,136 @@
 
 ประเภทข้อมูลพื้นฐานใน OpenFOAM
 
+> **ทำไมต้องรู้เรื่อง Primitives?**
+> - **ทุกอย่างใน OpenFOAM สร้างจาก primitives เหล่านี้** — Fields, Equations, BCs
+> - ใช้ operators ผิด (เช่น `&` vs `^`) = ผลลัพธ์ผิดโดยไม่ error
+> - การเข้าใจ vector/tensor ช่วยให้ debug ปัญหาได้เร็ว
+
 ---
 
 ## Overview
 
-> OpenFOAM primitives = Mathematical types with CFD operations
+> **💡 คิดแบบนี้:**
+> OpenFOAM primitives = **Mathematical types ที่รู้จัก CFD operations**
+> 
+> เปรียบเทียบ: C++ `double` รู้แค่ +, -, *, /
+> แต่ OpenFOAM `vector` รู้ dot product, cross product, magnitude
 
 ---
 
 ## 1. Scalar Types
 
-| Type | Definition | Use |
-|------|------------|-----|
-| `label` | int/long | Indices |
-| `scalar` | double | Values |
+| Type | Definition | ใช้เมื่อ | ทำไม |
+|------|------------|---------|------|
+| `label` | int/long | Indices (cell, face IDs) | Integer เพราะ index ไม่มีทศนิยม |
+| `scalar` | double | Physical values (T, p, k) | ต้องการ precision สูง |
 
 ```cpp
-label cellI = 0;
-scalar T = 300.0;
+label cellI = 0;       // Cell index (integer)
+scalar T = 300.0;      // Temperature (double)
 ```
+
+**ทำไม OpenFOAM ไม่ใช้ `int` และ `double` ตรงๆ?**
+- Type aliasing ช่วยให้เปลี่ยน precision ได้ทั้งโปรแกรม (เช่น compile เป็น float)
 
 ---
 
 ## 2. Vector
 
+> **ทำไม vector สำคัญ?**
+> - **Velocity, Force, Gradient** ล้วนเป็น vectors
+> - การคูณ vector ผิดวิธี = คำตอบผิดด้าน หรือผิด dimension
+
 ```cpp
 // Create
-vector v1(1.0, 2.0, 3.0);
-vector v2 = vector::zero;
-vector v3 = vector::one;
+vector v1(1.0, 2.0, 3.0);    // Explicit
+vector v2 = vector::zero;     // (0, 0, 0)
+vector v3 = vector::one;      // (1, 1, 1)
 
 // Access components
-scalar x = v1.x();  // or v1[0]
-scalar y = v1.y();  // or v1[1]
-scalar z = v1.z();  // or v1[2]
+scalar x = v1.x();  // หรือ v1[0]
+scalar y = v1.y();  // หรือ v1[1]
+scalar z = v1.z();  // หรือ v1[2]
 ```
 
 ### Vector Operations
 
-| Operation | Syntax | Result |
-|-----------|--------|--------|
-| Dot product | `v1 & v2` | scalar |
-| Cross product | `v1 ^ v2` | vector |
-| Magnitude | `mag(v1)` | scalar |
-| Normalize | `v1 / mag(v1)` | vector |
-| Component-wise | `cmptMultiply(v1, v2)` | vector |
+| Operation | Syntax | Result | ใช้เมื่อ |
+|-----------|--------|--------|---------|
+| **Dot product** | `v1 & v2` | scalar | หา projection, work done |
+| **Cross product** | `v1 ^ v2` | vector | หา normal, torque |
+| **Magnitude** | `mag(v1)` | scalar | หา speed จาก velocity |
+| **Normalize** | `v1 / mag(v1)` | vector | หา unit direction |
+| **Component-wise** | `cmptMultiply(v1, v2)` | vector | Scale แต่ละ component |
+
+> **⚠️ ระวัง Operator Symbols:**
+> - `&` = **Dot product** (ไม่ใช่ bitwise AND!)
+> - `^` = **Cross product** (ไม่ใช่ XOR!)
+> - `*` = **Scalar multiply** (ไม่ใช่ vector multiply)
+
+**ตัวอย่างการใช้ผิด:**
+```cpp
+vector U(1, 0, 0);
+vector n(0, 1, 0);
+
+// ผิด! ต้องการ dot product แต่ใช้ *
+// scalar Un = U * n;  // Compile error!
+
+// ถูก! ใช้ & สำหรับ dot product
+scalar Un = U & n;  // = 0 (orthogonal)
+```
 
 ---
 
 ## 3. Tensor
 
+> **ทำไม tensor สำคัญ?**
+> - **Stress, Strain, Velocity gradient** เป็น tensors
+> - เข้าใจ tensor = เข้าใจ turbulence modeling
+
 ```cpp
-// Create 3x3 tensor
+// Create 3x3 tensor (row-major)
 tensor T
 (
-    1, 2, 3,    // row 1
-    4, 5, 6,    // row 2
-    7, 8, 9     // row 3
+    1, 2, 3,    // row 1: Txx, Txy, Txz
+    4, 5, 6,    // row 2: Tyx, Tyy, Tyz
+    7, 8, 9     // row 3: Tzx, Tzy, Tzz
 );
 
 // Special tensors
-tensor I = tensor::I;    // Identity
-tensor Z = tensor::zero; // Zero
+tensor I = tensor::I;    // Identity (diagonal = 1)
+tensor Z = tensor::zero; // Zero tensor
 ```
 
 ### Tensor Operations
 
-| Operation | Syntax | Result |
-|-----------|--------|--------|
-| Trace | `tr(T)` | scalar |
-| Determinant | `det(T)` | scalar |
-| Transpose | `T.T()` | tensor |
-| Inverse | `inv(T)` | tensor |
-| Tensor-vector | `T & v` | vector |
+| Operation | Syntax | Result | ความหมายทางกายภาพ |
+|-----------|--------|--------|------------------|
+| **Trace** | `tr(T)` | scalar | Sum of diagonal (= 3p for stress) |
+| **Determinant** | `det(T)` | scalar | Volume scaling factor |
+| **Transpose** | `T.T()` | tensor | สลับ row-column |
+| **Inverse** | `inv(T)` | tensor | Undo the transformation |
+| **Tensor-vector** | `T & v` | vector | Apply transformation to vector |
+
+**ตัวอย่าง: Strain Rate Tensor**
+```cpp
+// Velocity gradient
+volTensorField gradU = fvc::grad(U);
+
+// Strain rate = 0.5 * (gradU + gradU.T)
+volSymmTensorField S = symm(gradU);
+```
 
 ---
 
 ## 4. Symmetric Tensor
 
+> **ทำไมมี symmTensor แยก?**
+> - หลาย physical quantities สมมาตร (stress, strain)
+> - เก็บแค่ 6 components แทน 9 → **ประหยัด memory 33%**
+
 ```cpp
-// 6 components (symmetric)
+// 6 components only (upper triangle + diagonal)
 symmTensor S
 (
     1, 2, 3,    // xx, xy, xz
@@ -89,27 +139,36 @@ symmTensor S
           6     //         zz
 );
 
-// Operations
-scalar I1 = tr(S);         // First invariant
-symmTensor dev_S = dev(S); // Deviatoric
-symmTensor sph_S = sph(S); // Spherical
+// Decomposition
+scalar I1 = tr(S);         // First invariant (hydrostatic)
+symmTensor dev_S = dev(S); // Deviatoric part (shear)
+symmTensor sph_S = sph(S); // Spherical part (pressure)
 ```
+
+**ทำไม dev/sph สำคัญ?**
+- **Spherical (sph):** ส่วนที่ทำให้อัดตัว (pressure-like)
+- **Deviatoric (dev):** ส่วนที่ทำให้บิดเบี้ยว (shear)
+- Turbulence models มักสนใจแค่ deviatoric part
 
 ---
 
 ## 5. Vector Calculus (Fields)
 
+> **ทำไมต้องใช้ fvc functions ไม่ใช่คำนวณเอง?**
+> - fvc ใช้ mesh geometry ถูกต้อง (รวม non-orthogonality)
+> - fvc consistent กับ fvm → mass conservative
+
 ```cpp
-// Gradient
+// Gradient: scalar → vector
 volVectorField gradT = fvc::grad(T);
 
-// Divergence
+// Divergence: vector → scalar
 volScalarField divU = fvc::div(U);
 
-// Curl
+// Curl: vector → vector
 volVectorField curlU = fvc::curl(U);
 
-// Laplacian
+// Laplacian: scalar → scalar
 volScalarField lapT = fvc::laplacian(alpha, T);
 ```
 
@@ -117,17 +176,19 @@ volScalarField lapT = fvc::laplacian(alpha, T);
 
 ## 6. Mathematical Functions
 
-| Function | Description |
-|----------|-------------|
-| `sqr(x)` | x² |
-| `sqrt(x)` | √x |
-| `mag(v)` | |v| |
-| `magSqr(v)` | |v|² |
-| `sin/cos/tan(x)` | Trig |
-| `exp/log(x)` | Exp/Log |
-| `pow(x, n)` | xⁿ |
-| `sign(x)` | ±1 |
-| `pos/neg(x)` | 1 if positive/negative |
+| Function | Description | ใช้เมื่อ |
+|----------|-------------|---------|
+| `sqr(x)` | x² | Kinetic energy: 0.5*sqr(U) |
+| `sqrt(x)` | √x | Speed from kinetic energy |
+| `mag(v)` | \|v\| | Velocity magnitude |
+| `magSqr(v)` | \|v\|² | เร็วกว่า mag(v)*mag(v) |
+| `sign(x)` | ±1 | Determine direction |
+| `pos/neg(x)` | 1 if positive/negative | Conditional operations |
+
+**ทำไม magSqr ดีกว่า sqr(mag(v))?**
+- `magSqr(v) = v.x()² + v.y()² + v.z()`  → 3 multiplications
+- `sqr(mag(v)) = √(x² + y² + z²)²` → 3 mult + 1 sqrt + 1 sqr
+- หลีกเลี่ยง sqrt ที่ไม่จำเป็น → **เร็วกว่า**
 
 ---
 
@@ -135,55 +196,81 @@ volScalarField lapT = fvc::laplacian(alpha, T);
 
 ```cpp
 // Vector constants
-vector::zero     // (0, 0, 0)
-vector::one      // (1, 1, 1)
-vector::max      // (VGREAT, VGREAT, VGREAT)
+vector::zero     // (0, 0, 0)    — Starting point
+vector::one      // (1, 1, 1)    — Scaling
+vector::max      // (VGREAT, VGREAT, VGREAT) — Bounding box init
 
-// Directions
-vector::x_       // (1, 0, 0)
-vector::y_       // (0, 1, 0)
-vector::z_       // (0, 0, 1)
+// Directions (unit vectors)
+vector::x_       // (1, 0, 0)    — x direction
+vector::y_       // (0, 1, 0)    — y direction
+vector::z_       // (0, 0, 1)    — z direction
 ```
 
 ---
 
 ## Quick Reference
 
-| Type | Components | Example |
-|------|------------|---------|
-| `scalar` | 1 | T, p, k |
-| `vector` | 3 | U, F |
-| `tensor` | 9 | σ, ε |
-| `symmTensor` | 6 | Reynolds stress |
-| `sphericalTensor` | 1 | pI |
+| Type | Components | Example Fields | ทำไมใช้ |
+|------|------------|----------------|--------|
+| `scalar` | 1 | T, p, k | ค่าเดี่ยว (temperature, pressure) |
+| `vector` | 3 | U, F | ทิศทาง + magnitude (velocity, force) |
+| `tensor` | 9 | σ, ∇U | Transformation, full stress |
+| `symmTensor` | 6 | Reynolds stress | Symmetric saves memory |
+| `sphericalTensor` | 1 | pI | Isotropic part only |
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. & กับ ^ ใน vector ต่างกันอย่างไร?</b></summary>
 
-- **&**: Dot product → scalar
-- **^**: Cross product → vector
+| Operator | Name | Result | Physics |
+|----------|------|--------|---------|
+| **&** | Dot product | scalar | Work = F & d |
+| **^** | Cross product | vector | Torque = r ^ F |
+
+**จำ:** `&` ให้ผลเป็นตัวเลข (scalar), `^` ให้ผลเป็นทิศทาง (vector)
 </details>
 
 <details>
-<summary><b>2. symmTensor มีกี่ components?</b></summary>
+<summary><b>2. symmTensor มีกี่ components? ทำไมไม่ใช้ tensor ธรรมดา?</b></summary>
 
-**6** components เพราะ symmetric: xx, xy, xz, yy, yz, zz
+**6** components: xx, xy, xz, yy, yz, zz
+
+**ทำไมใช้:** 
+- Symmetric tensor มี Aij = Aji → เก็บแค่ครึ่งเดียว
+- ประหยัด memory 33% (6 vs 9)
+- OpenFOAM optimize operations สำหรับ symmTensor
 </details>
 
 <details>
-<summary><b>3. dev(T) คืออะไร?</b></summary>
+<summary><b>3. dev(T) คืออะไร? ใช้เมื่อไหร่?</b></summary>
 
-**Deviatoric part**: $T - \frac{1}{3}tr(T)I$ (ลบส่วน isotropic ออก)
+**Deviatoric part**: $T_{dev} = T - \frac{1}{3}tr(T)I$
+
+**ความหมาย:** ลบส่วน isotropic (pressure-like) ออก เหลือแต่ส่วน shear
+
+**ใช้เมื่อ:**
+- Turbulence modeling (Reynolds stress → deviatoric)
+- Viscous stress calculation
+</details>
+
+<details>
+<summary><b>4. ทำไมใช้ magSqr แทน sqr(mag)?</b></summary>
+
+**เร็วกว่า!**
+- `magSqr(v)` = x² + y² + z²  (3 operations)
+- `sqr(mag(v))` = (√(x² + y² + z²))² → sqrt ช้า!
+
+**กฎ:** ถ้าต้องการ |v|² ใช้ `magSqr` เสมอ
 </details>
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
+- **Smart Pointers:** [04_Smart_Pointers.md](04_Smart_Pointers.md)
 - **Containers:** [05_Containers.md](05_Containers.md)
 - **Exercises:** [07_Exercises.md](07_Exercises.md)

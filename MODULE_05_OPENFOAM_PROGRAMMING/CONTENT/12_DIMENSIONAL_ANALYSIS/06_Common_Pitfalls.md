@@ -134,7 +134,7 @@ if (!result.dimensions().dimensionless())
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไม scalar * field error?</b></summary>
@@ -156,7 +156,7 @@ if (!result.dimensions().dimensionless())
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Arithmetic:** [03_Dimension_Arithmetic.md](03_Dimension_Arithmetic.md)

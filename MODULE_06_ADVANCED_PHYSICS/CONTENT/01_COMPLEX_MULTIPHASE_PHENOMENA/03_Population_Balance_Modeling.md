@@ -106,7 +106,7 @@ multiphaseEulerFoam
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. PBM ใช้เมื่อไหร่?</b></summary>
@@ -128,7 +128,7 @@ multiphaseEulerFoam
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [../01_COMPLEX_MULTIPHASE_PHENOMENA/00_Overview.md](../01_COMPLEX_MULTIPHASE_PHENOMENA/00_Overview.md)
 - **Cavitation:** [02_Cavitation_Modeling.md](02_Cavitation_Modeling.md)

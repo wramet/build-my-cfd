@@ -83,7 +83,7 @@ myProject/
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. โปรเจคต้องมีอะไรบ้าง?</b></summary>
@@ -105,6 +105,6 @@ myProject/
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Next:** [02_Model_Development_Rationale.md](02_Model_Development_Rationale.md)

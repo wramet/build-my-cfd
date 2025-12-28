@@ -88,7 +88,7 @@ const volScalarField& bad = fvc::mag(U)();  // tmp dies!
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Expression templates ทำอะไร?</b></summary>
@@ -110,7 +110,7 @@ const volScalarField& bad = fvc::mag(U)();  // tmp dies!
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Mechanics:** [03_Internal_Mechanics.md](03_Internal_Mechanics.md)

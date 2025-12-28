@@ -1,6 +1,11 @@
 # Foundation Primitives - Summary
 
-สรุป OpenFOAM Primitives
+สรุป OpenFOAM Primitives — Quick Reference Card
+
+> **ใช้หน้านี้สำหรับ:**
+> - ดูสูตร/syntax อย่างรวดเร็ว
+> - เปรียบเทียบ types ต่างๆ
+> - เป็น cheat sheet ตอนเขียน code
 
 ---
 
@@ -146,7 +151,7 @@ for (label i = 0; i < field.size(); i++) { ... }
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. & vs ^ ต่างกันอย่างไร?</b></summary>
@@ -169,7 +174,7 @@ for (label i = 0; i < field.size(); i++) { ... }
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Exercises:** [07_Exercises.md](07_Exercises.md)

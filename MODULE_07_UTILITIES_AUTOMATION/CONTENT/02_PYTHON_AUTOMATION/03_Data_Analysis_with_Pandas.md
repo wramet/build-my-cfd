@@ -90,7 +90,7 @@ print(df.to_latex())
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Pandas ดีกว่า numpy อย่างไร?</b></summary>
@@ -100,6 +100,6 @@ print(df.to_latex())
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)

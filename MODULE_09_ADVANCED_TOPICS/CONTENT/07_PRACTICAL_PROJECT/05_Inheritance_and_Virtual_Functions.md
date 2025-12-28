@@ -99,7 +99,7 @@ public:
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. override keyword ทำอะไร?</b></summary>
@@ -121,7 +121,7 @@ public:
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Design Patterns:** [06_Design_Pattern_Rationale.md](06_Design_Pattern_Rationale.md)

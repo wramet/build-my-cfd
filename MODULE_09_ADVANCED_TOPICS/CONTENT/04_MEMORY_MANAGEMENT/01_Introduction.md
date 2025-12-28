@@ -143,7 +143,7 @@ E --> H[Object Lookup & Persistence]:::success
 
 การทำความเข้าใจองค์ประกอบเหล่านี้จะช่วยให้คุณสามารถพัฒนาส่วนขยายของ OpenFOAM ที่มีประสิทธิภาพสูงและปราศจากปัญหาหน่วยความจำรั่วไหล
 
-## 🧠 ทดสอบความเข้าใจ (Concept Check)
+## 🧠 Concept Check
 
 <details>
 <summary>1. ทำไม OpenFOAM ถึงสร้างระบบ Smart Pointers ของตัวเองแทนที่จะใช้ `std::shared_ptr` หรือ `std::unique_ptr`?</summary>
@@ -165,7 +165,7 @@ E --> H[Object Lookup & Persistence]:::success
 4. **`objectRegistry`**: ฐานข้อมูลกลางสำหรับจัดเก็บและค้นหาออบเจกต์ในระบบ
 </details>
 
-## 📚 เอกสารที่เกี่ยวข้อง (Related Documents)
+## 📖 เอกสารที่เกี่ยวข้อง
 
 *   **ก่อนหน้า:** [00_Overview.md](00_Overview.md) - ภาพรวมการจัดการหน่วยความจำ
 *   **ถัดไป:** [02_Memory_Syntax_and_Design.md](02_Memory_Syntax_and_Design.md) - ไวยากรณ์และการออกแบบหน่วยความจำ

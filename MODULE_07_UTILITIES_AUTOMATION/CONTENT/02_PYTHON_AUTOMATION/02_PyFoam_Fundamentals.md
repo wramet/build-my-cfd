@@ -283,7 +283,7 @@ runner.start()
 
 ---
 
-## 🧠 ตรวจสอบความเข้าใจ (Concept Check)
+## 🧠 Concept Check
 
 ### แบบฝึกหัดระดับง่าย (Easy)
 1. **True/False**: `pyFoamPlotRunner.py` สร้างกราฟ Real-time ในระหว่างรัน Solver
@@ -336,3 +336,12 @@ runner.start()
    - ใช้ pyFoamPlotRunner.py
    - ใช้ Python BasicRunner
    ในแง่ของความยืดหยุ่นในการควบคุม และความง่ายในการ Automation
+
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Python Automation
+- **บทก่อนหน้า:** [01_Python_Environment_Setup.md](01_Python_Environment_Setup.md) — การติดตั้ง Environment
+- **บทถัดไป:** [03_Data_Analysis_with_Pandas.md](03_Data_Analysis_with_Pandas.md) — วิเคราะห์ข้อมูลด้วย Pandas

@@ -81,7 +81,7 @@ CrossPowerLawCoeffs
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Blood เป็น non-Newtonian ไหม?</b></summary>
@@ -103,7 +103,7 @@ CrossPowerLawCoeffs
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **Viscosity Models:** [02_Viscosity_Models.md](02_Viscosity_Models.md)
 - **Implementation:** [04_Numerical_Implementation.md](04_Numerical_Implementation.md)

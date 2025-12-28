@@ -2,6 +2,11 @@
 
 Hands-on tutorial สำหรับ OpenFOAM
 
+> **ทำไมต้องทำ Tutorial นี้?**
+> - ฝึก **workflow จริง** ตั้งแต่ต้นจนจบ
+> - เข้าใจ **case structure** ของ OpenFOAM
+> - มีพื้นฐานสำหรับ modify และสร้าง case ใหม่
+
 ---
 
 ## Preparation

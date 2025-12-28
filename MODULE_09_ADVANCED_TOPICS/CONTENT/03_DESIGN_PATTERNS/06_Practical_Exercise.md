@@ -119,7 +119,7 @@ public:
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Factory vs direct new?</b></summary>
@@ -141,7 +141,7 @@ public:
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Factory:** [02_Factory_Pattern.md](02_Factory_Pattern.md)

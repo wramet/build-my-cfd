@@ -116,7 +116,7 @@ volScalarField Pe = mag(U) * L / alpha;  // dimless
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Re คือ dimensionless ไหม?</b></summary>
@@ -138,7 +138,7 @@ volScalarField Pe = mag(U) * L / alpha;  // dimless
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Non-Dim:** [04_Non_Dimensionalization.md](04_Non_Dimensionalization.md)

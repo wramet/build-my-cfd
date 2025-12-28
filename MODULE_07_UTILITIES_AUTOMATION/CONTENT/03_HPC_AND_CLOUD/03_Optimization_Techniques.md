@@ -79,7 +79,7 @@ relTol          0.1;
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. scotch ดีอย่างไร?</b></summary>
@@ -89,6 +89,6 @@ relTol          0.1;
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)

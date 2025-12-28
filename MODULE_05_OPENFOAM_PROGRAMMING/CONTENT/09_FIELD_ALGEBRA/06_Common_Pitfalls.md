@@ -153,7 +153,7 @@ divSchemes
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไมต้อง + SMALL?</b></summary>
@@ -176,7 +176,7 @@ divSchemes
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Operators:** [03_Operator_Overloading.md](03_Operator_Overloading.md)

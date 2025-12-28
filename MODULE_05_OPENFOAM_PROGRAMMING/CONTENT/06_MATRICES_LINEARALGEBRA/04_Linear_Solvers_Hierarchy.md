@@ -1,10 +1,20 @@
 # Linear Solvers Hierarchy
 
-ลำดับชั้น Linear Solvers ใน OpenFOAM
+ลำดับชั้น Linear Solvers ใน OpenFOAM — เลือกให้ถูก = converge เร็ว
+
+> **ทำไมบทนี้สำคัญ?**
+> - **เลือก solver ผิด = ช้าหรือ diverge**
+> - เข้าใจ **PCG vs PBiCGStab vs GAMG**
+> - รู้วิธีตั้งค่า **tolerance, relTol, preconditioner**
 
 ---
 
 ## Overview
+
+> **💡 Matrix Type กำหนด Solver**
+>
+> - Symmetric (pressure) → PCG, GAMG
+> - Non-symmetric (velocity) → PBiCGStab
 
 ```mermaid
 flowchart TD
@@ -175,7 +185,7 @@ U       { solver smoothSolver; smoother symGaussSeidel; tolerance 1e-6; relTol 0
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไม pressure ใช้ PCG?</b></summary>
@@ -198,7 +208,7 @@ U       { solver smoothSolver; smoother symGaussSeidel; tolerance 1e-6; relTol 0
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **fvMatrix:** [03_fvMatrix_Architecture.md](03_fvMatrix_Architecture.md)

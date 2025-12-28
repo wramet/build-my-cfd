@@ -61,7 +61,7 @@ pyFoamRunParameterVariation.py \
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไมต้อง parametric study?</b></summary>
@@ -71,6 +71,6 @@ pyFoamRunParameterVariation.py \
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [../02_PYTHON_AUTOMATION/00_Overview.md](../02_PYTHON_AUTOMATION/00_Overview.md)

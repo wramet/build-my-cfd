@@ -1,12 +1,20 @@
 # Mathematical Formulations
 
-การวิเคราะห์มิติขั้นสูงใน OpenFOAM
+การวิเคราะห์มิติขั้นสูงใน OpenFOAM — Buckingham π และ Non-Dimensionalization
+
+> **ทำไมบทนี้สำคัญ?**
+> - เข้าใจ **theory** เบื้องหลัง dimension analysis
+> - ใช้ **Buckingham π theorem** หา dimensionless groups
+> - เข้าใจ **non-dimensionalization** สำหรับ numerical stability
 
 ---
 
 ## Overview
 
-> **Dimensional Analysis** = ระบบตรวจสอบความสอดคล้องของหน่วยทางฟิสิกส์อัตโนมัติ
+> **💡 Dimensional Analysis = ค้นหา physics invariants**
+>
+> ทุก physical law ต้อง dimensionally consistent
+> Dimensionless groups (Re, Fr, Nu) capture essential physics
 
 ---
 
@@ -147,7 +155,7 @@ dimensionedScalar Re = rho * U * L / (rho * nu);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไมต้องใช้ 7 base dimensions?</b></summary>
@@ -171,7 +179,7 @@ dimensionedScalar Re = rho * U * L / (rho * nu);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Exercises:** [08_Exercises.md](08_Exercises.md)

@@ -404,3 +404,11 @@ print(f"Reported Value: {Cd_fine} +/- {Cd_fine*gci:.4f}")
    </details>
 
 $$L_2 \text{ Error} = \sqrt{\frac{1}{N} \sum_{i=1}^{N} (\phi_i^{numerical} - \phi_i^{exact})^2}$$
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Verification Fundamentals
+- **บทก่อนหน้า:** [01_Fundamental_Concepts.md](01_Fundamental_Concepts.md) — แนวคิดพื้นฐาน
+- **บทถัดไป:** [03_Code_Verification.md](03_Code_Verification.md) — Code Verification

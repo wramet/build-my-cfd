@@ -300,3 +300,69 @@ void validateField(const volScalarField& field)
 
 > [!INFO] ประเด็นสำคัญ
 > ระบบฟิลด์ของ OpenFOAM มอบความสามารถระดับสูง แต่ต้องการความระมัดระวังเรื่องความสอดคล้องทางมิติ การจัดการหน่วยความจำ และการเริ่มต้นที่ถูกต้อง การเข้าใจสถาปัตยกรรมพื้นฐานจะช่วยป้องกันข้อผิดพลาดทั่วไปเหล่านี้ได้
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. ทำไม `volScalarField wrong = p + U;` จึงเกิด compile error?</b></summary>
+
+เพราะ **type mismatch:**
+- `p` คือ `volScalarField` (scalar - ค่าเดียวต่อ cell)
+- `U` คือ `volVectorField` (vector - 3 ค่าต่อ cell)
+
+**ไม่สามารถบวก scalar กับ vector ได้โดยตรง**
+
+**ทางเลือก:**
+```cpp
+volScalarField kinetic = p + 0.5*rho*magSqr(U);  // ใช้ magSqr
+volScalarField pPlusMag = p + mag(U);             // ใช้ magnitude
+volScalarField pPlusUx = p + U.component(0);      // ใช้ component
+```
+
+</details>
+
+<details>
+<summary><b>2. ทำไมต้องใช้ `const volScalarField&` แทน `volScalarField&` เมื่อทำงานกับ `tmp<T>`?</b></summary>
+
+`tmp<T>` ใช้ **reference counting** เพื่อจัดการ memory อัตโนมัติ
+
+**ปัญหา:**
+```cpp
+tmp<volScalarField> tTemp = p + q;
+volScalarField& ref = tTemp();  // DANGER: non-const reference
+// เมื่อ tTemp ถูกทำลาย → ref กลายเป็น dangling reference!
+```
+
+**แก้ไข:**
+```cpp
+const volScalarField& safeRef = tTemp();  // const ยืดอายุ
+// หรือ
+volScalarField copy = tTemp();            // สร้าง copy
+```
+
+</details>
+
+<details>
+<summary><b>3. ความแตกต่างระหว่าง `fvPatchField` และ `fvsPatchField` คืออะไร?</b></summary>
+
+| Aspect | `fvPatchField` | `fvsPatchField` |
+|--------|----------------|-----------------|
+| **ใช้กับ** | Volume fields (`vol*Field`) | Surface fields (`surface*Field`) |
+| **ตำแหน่ง** | Cell centers | Face centers |
+| **ตัวอย่าง** | T, p, U | phi (flux), mesh.Sf() |
+| **BC type** | fixedValue, zeroGradient | calculated, coupled |
+
+**Rule:** ดูว่าข้อมูลอยู่ที่ไหน → cell = vol*, face = surface*
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Field Types
+- **บทก่อนหน้า:** [06_Dimensioned_Fields.md](06_Dimensioned_Fields.md) — Dimensioned Fields
+- **บทถัดไป:** [08_Summary_and_Exercises.md](08_Summary_and_Exercises.md) — สรุปและแบบฝึกหัด
+- **Volume Fields:** [02_Volume_Fields.md](02_Volume_Fields.md) — Volume Fields

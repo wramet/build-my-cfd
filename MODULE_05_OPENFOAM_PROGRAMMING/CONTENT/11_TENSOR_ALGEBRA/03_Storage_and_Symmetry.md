@@ -271,3 +271,53 @@ public:
 | **Tensor** | 9 องค์ประกอบ | `[xx, xy, xz, yx, yy, yz, zx, zy, zz]` | การหมุน, เกรเดียนต์ความเร็ว |
 | **symmTensor** | 6 องค์ประกอบ | `[xx, yy, zz, xy, yz, xz]` | เทนเซอร์ความเค้น, อัตราการเสียรูป |
 | **sphericalTensor** | 1 องค์ประกอบ | `[ii]` | ความดัน, เทนเซอร์เอกลักษณ์ |
+
+---
+
+## 🧠 Concept Check
+
+<details>
+<summary><b>1. ทำไม `symmTensor` จึงเก็บเพียง 6 components แทน 9?</b></summary>
+
+เพราะ **Symmetry Property:** $T_{ij} = T_{ji}$
+
+**ตัวอย่าง:**
+- $T_{xy} = T_{yx}$ → เก็บแค่ $T_{xy}$
+- $T_{xz} = T_{zx}$ → เก็บแค่ $T_{xz}$
+- $T_{yz} = T_{zy}$ → เก็บแค่ $T_{yz}$
+
+**ประโยชน์:** ประหยัดหน่วยความจำ **33%** และ OpenFOAM จะ return ค่าที่ถูกต้องอัตโนมัติเมื่อเรียก `S.yx()` (จะได้ `S.xy()`)
+
+</details>
+
+<details>
+<summary><b>2. `symm(T)` และ `skew(T)` ให้ผลลัพธ์อะไรทางฟิสิกส์?</b></summary>
+
+**Tensor Decomposition:**
+$$\mathbf{T} = \underbrace{\frac{1}{2}(\mathbf{T} + \mathbf{T}^T)}_{\text{symm}(\mathbf{T}) = \mathbf{S}} + \underbrace{\frac{1}{2}(\mathbf{T} - \mathbf{T}^T)}_{\text{skew}(\mathbf{T}) = \mathbf{\Omega}}$$
+
+- **`symm(gradU)` = S** → **Strain rate tensor** (การเปลี่ยนรูป, deformation)
+- **`skew(gradU)` = Ω** → **Rotation rate tensor** (การหมุน, vorticity)
+
+</details>
+
+<details>
+<summary><b>3. การเลือกใช้ `symmTensor` มีผลต่อ Numerical Stability อย่างไร?</b></summary>
+
+**ข้อดีด้าน Numerical Stability:**
+1. **บังคับ Symmetry โดยโครงสร้าง:** ไม่ต้องกังวลว่า round-off errors จะทำให้ $T_{xy} \neq T_{yx}$
+2. **ลด Operations:** คำนวณเฉพาะ 6 components → ลดโอกาส accumulation errors
+3. **Physics-consistent:** Stress tensor ต้องสมมาตร → `symmTensor` รับประกัน
+
+**ใช้ `tensor` เมื่อ:** ต้องการ full gradient (เช่น $\nabla U$) ที่ไม่สมมาตร
+
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อง
+
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Tensor Algebra
+- **บทก่อนหน้า:** [02_Tensor_Class_Hierarchy.md](02_Tensor_Class_Hierarchy.md) — ลำดับชั้นคลาสเทนเซอร์
+- **บทถัดไป:** [04_Tensor_Operations.md](04_Tensor_Operations.md) — การดำเนินการเทนเซอร์
+- **Common Pitfalls:** [06_Common_Pitfalls.md](06_Common_Pitfalls.md) — ข้อผิดพลาดที่พบบ่อย

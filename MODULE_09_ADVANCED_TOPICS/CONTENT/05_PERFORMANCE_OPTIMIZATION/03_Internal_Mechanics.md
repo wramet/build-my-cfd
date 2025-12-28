@@ -93,7 +93,7 @@ reduce(localMax, maxOp<scalar>());
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Inlining ช่วยอย่างไร?</b></summary>
@@ -115,7 +115,7 @@ reduce(localMax, maxOp<scalar>());
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Expression Templates:** [02_Expression_Templates_Syntax.md](02_Expression_Templates_Syntax.md)

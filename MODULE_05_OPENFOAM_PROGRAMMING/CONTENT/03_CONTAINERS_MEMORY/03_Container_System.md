@@ -1,12 +1,21 @@
 # Container System
 
-ระบบ Container ใน OpenFOAM
+ระบบ Container ใน OpenFOAM — List, Field, HashTable และอื่นๆ
+
+> **ทำไมบทนี้สำคัญ?**
+> - รู้จัก **แต่ละ container type** และเมื่อไหร่ใช้
+> - เข้าใจ **Field vs List** (CFD operations)
+> - ใช้ **forAll, SubList** ได้คล่อง
 
 ---
 
 ## Overview
 
-> OpenFOAM containers = STL-like with CFD optimizations
+> **💡 OpenFOAM containers = STL + CFD + Performance**
+>
+> - `Field` มี `max()`, `sum()` ที่ `vector` ไม่มี
+> - `SubList` = view ไม่ copy → ประหยัด memory
+> - `forAll` = cleaner syntax + consistent style
 
 ---
 
@@ -160,7 +169,7 @@ sortedOrder(values, order);
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Field vs List ต่างกันอย่างไร?</b></summary>
@@ -182,7 +191,7 @@ sortedOrder(values, order);
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Memory Management:** [02_Memory_Management_Fundamentals.md](02_Memory_Management_Fundamentals.md)

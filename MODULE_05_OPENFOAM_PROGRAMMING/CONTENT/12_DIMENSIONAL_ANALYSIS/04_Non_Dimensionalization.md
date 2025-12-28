@@ -102,7 +102,7 @@ solve
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. ทำไมต้อง non-dimensionalize?</b></summary>
@@ -124,7 +124,7 @@ solve
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Arithmetic:** [03_Dimension_Arithmetic.md](03_Dimension_Arithmetic.md)

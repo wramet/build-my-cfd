@@ -107,7 +107,7 @@ volScalarField T
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. Registry ทำอะไร?</b></summary>
@@ -129,7 +129,7 @@ volScalarField T
 
 ---
 
-## Related Documents
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
 - **Advanced:** [05_Advanced_Coupling_Topics.md](05_Advanced_Coupling_Topics.md)

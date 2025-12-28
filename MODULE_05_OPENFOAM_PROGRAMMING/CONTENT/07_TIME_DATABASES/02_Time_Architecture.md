@@ -307,7 +307,7 @@ functions
 
 ---
 
-## Concept Check
+## 🧠 Concept Check
 
 <details>
 <summary><b>1. oldTime() ใช้ทำอะไร?</b></summary>
@@ -330,7 +330,7 @@ functions
 
 ---
 
-## เอกสารที่เกี่ยวข้อง
+## 📖 เอกสารที่เกี่ยวข้อง
 
 - **บทก่อนหน้า:** [01_Introduction.md](01_Introduction.md)
 - **บทถัดไป:** [03_ObjectRegistry.md](03_ObjectRegistry.md)
