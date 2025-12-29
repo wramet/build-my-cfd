@@ -113,7 +113,7 @@ nu [0 2 -1 0 0 0 0] 0.001; // Re = 1×1/0.001 = 1000
 
 **ทำไม p ใช้ zeroGradient ทุกผนัง?**
 - ไม่มี flow ผ่านผนัง (no-slip) → $\mathbf{u} \cdot \mathbf{n} = 0$
-- No-penetration → $\frac{\partial p}{\partial n} ≈ 0$ (from NS equation at wall)
+- No-penetration → $\frac{\partial p}{\partial n} = 0$ (from NS equation at wall)
 - Reference pressure กำหนดผ่าน `pRefCell`
 
 **OpenFOAM implementation:**
@@ -233,6 +233,19 @@ blocks
     )
 );
 ```
+
+**รูปแบบ grading syntax:**
+```
+((fraction_start fraction_end expansion_ratio))
+- fraction_start: สัดส่วน block ที่ start (0-1)
+- fraction_end: สัดส่วน block ที่ end (0-1)
+- expansion_ratio: อัตราขยาย cell size (>1 = ใหญ่ขึ้น, <1 = เล็กลง)
+```
+
+**ตัวอย่าง:** `((0.2 0.8 3))`
+- 20% แรกของ block: cell เล็ก
+- 80% หลังของ block: cell ใหญ่ 3 เท่า
+- ใช้ refine ใกล้ผนัง (start)
 
 ---
 

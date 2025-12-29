@@ -151,6 +151,33 @@ fvScalarMatrix TEqn
 TEqn.solve();
 ```
 
+### ตัวอย่าง: Navier-Stokes Equations
+
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \nabla \cdot \boldsymbol{\tau} + \mathbf{f}$$
+
+โดยที่ **Viscous Stress Tensor** (สำหรับ compressible Newtonian fluid):
+$$\boldsymbol{\tau} = \mu \left[ \nabla \mathbf{u} + (\nabla \mathbf{u})^T \right] - \frac{2}{3} \mu (\nabla \cdot \mathbf{u}) \mathbf{I}$$
+
+**รูปแบบที่ง่ายขึ้น** (สำหรับ incompressible flow, $\nabla \cdot \mathbf{u} = 0$):
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \rho \mathbf{g}$$
+
+ใน OpenFOAM (สำหรับ incompressible flow):
+```cpp
+// Momentum equation (ไม่รวม pressure gradient)
+fvVectorMatrix UEqn
+(
+    fvm::ddt(rho, U)              // ρ ∂U/∂t
+  + fvm::div(phi, U)              // ρ ∇·(uU) — convective term
+  - fvm::laplacian(mu, U)         // μ ∇²U — viscous diffusion
+==
+    fvc::grad(p)                   // ∇p — pressure gradient (explicit)
+);
+
+// Pressure-velocity coupling ต้องใช้อัลกอริทึมพิเศษ (SIMPLE/PISO/PIMPLE)
+```
+
+> **⚠️ หมายเหตุ:** Pressure gradient อยู่ RHS (explicit) เพราะไม่มีสมการวิวัฒนาการของ pressure โดยตรง สำหรับ incompressible flow
+
 ---
 
 ## Files ที่เกี่ยวข้อง

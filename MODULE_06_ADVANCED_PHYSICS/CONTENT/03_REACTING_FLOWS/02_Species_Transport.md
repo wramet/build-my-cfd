@@ -407,10 +407,10 @@ solvers
  </details>
  
  ---
- 
- ## 🔍 หัวข้อที่เกี่ยวข้อง
 
-- [[02_1._Species_Transport_Equation_($Y_i$)_and_Diffusion_Models]] — ทฤษฎีการแพร่โดยละเอียด
-- [[03_2._`chemistryModel`_and_ODE_Solvers_for_Stiff_Reaction_Rates]] — การบูรณาการจลนพลศาสตร์เคมี
-- [[04_3._Combustion_Models_PaSR_vs._EDC]] — ปฏิสัมพันธ์ความปั่นป่วน-เคมี
-- [[06_🧪_Practical_Workflow_Setting_Up_a_Reacting_Flow_Simulation]] — การตั้งค่ากรณีศึกษาที่สมบูรณ์
+## 🔍 หัวข้อที่เกี่ยวข้อง
+
+- **Species Transport Equation:** ทฤษฎีการแพร์โดยละเอียด
+- **Chemistry Models:** [03_Chemistry_Models.md](03_Chemistry_Models.md) — แบบจำลองเคมีและ ODE Solvers
+- **Combustion Models:** [04_Combustion_Models.md](04_Combustion_Models.md) — ปฏิสัมพันธ์ความปั่นป่วน-เคมี
+- **Practical Workflow:** [06_Practical_Workflow.md](06_Practical_Workflow.md) — การตั้งค่ากรณีศึกษาที่สมบูรณ์

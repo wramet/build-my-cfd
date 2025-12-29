@@ -40,8 +40,14 @@ $$\frac{\partial \mathbf{u}}{\partial t} + (\mathbf{u} \cdot \nabla)\mathbf{u} =
 | Directory | ไฟล์ | หน้าที่ |
 |-----------|------|--------|
 | `0/` | U, p, T, k, ε... | Initial & Boundary Conditions |
-| `constant/` | polyMesh/, transportProperties | Mesh & Properties |
+| `constant/` | polyMesh/, transportProperties | **Mesh** (points, faces, cells) & Physical properties |
 | `system/` | controlDict, fvSchemes, fvSolution | Solver Settings |
+
+> **💡 `constant/polyMesh/` คืออะไร?**
+> - **`points`**: พิกัด (x,y,z) ของทุก vertices
+> - **`faces`**: ผิว (2D) ที่เกิดจากการเชื่อม vertices
+> - **`cells`**: volumes 3D ที่เกิดจาก faces
+> - **`boundary`**: ชื่อ patches และ types (wall, patch, symmetry, ฯลฯ)
 
 ### สร้าง Mesh
 
@@ -196,9 +202,10 @@ PISO { nCorrectors 2; pRefCell 0; pRefValue 0; }
 # ดู residuals
 grep "Solving for" log.icoFoam
 
-# Plot
+# Plot ด้วย foamLog และ gnuplot
 foamLog log.icoFoam
-gnuplot logs/p_0
+gnuplot
+gnuplot> plot "logs/p_0" with lines
 ```
 
 **เกณฑ์:**

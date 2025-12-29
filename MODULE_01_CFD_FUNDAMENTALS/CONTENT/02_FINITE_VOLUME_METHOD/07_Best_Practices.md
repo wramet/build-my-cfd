@@ -174,6 +174,36 @@ gradSchemes
 - Buffer layer: ไม่ตรงกับสมมติฐานใด
 - ผลลัพธ์ไม่น่าเชื่อถือ
 
+### การคำนวณ y+ และ Cell Size ใกล้ผนัง
+
+**Step 1: ประมาณ Friction Velocity (u_τ)**
+
+$$u_\tau = \sqrt{\frac{\tau_w}{\rho}} = \frac{U \sqrt{C_f}}{2^{1/2}}$$
+
+โดยที่ $C_f$ (skin friction coefficient) สำหรับ turbulent pipe flow:
+$$C_f \approx 0.079 \cdot Re^{-0.25}$$
+
+**Step 2: คำนวณ y+ จากระยะห่างผนัง (y)**
+
+$$y^+ = \frac{y \cdot u_\tau}{\nu}$$
+
+**Step 3: กลับคำนวณขนาด cell ที่ต้องการ**
+
+ถ้าต้องการ $y^+ = 30$:
+$$y = \frac{30 \cdot \nu}{u_\tau}$$
+
+**ตัวอย่าง:**
+- ความเร็ว $U = 10$ m/s
+- ความหนืด kinematic $\nu = 1.5 \times 10^{-5}$ m²/s (air)
+- ความยาวลักษณะ $L = 1$ m
+- $Re = \frac{10 \times 1}{1.5 \times 10^{-5}} \approx 666,667$
+
+$$C_f \approx 0.079 \times (666,667)^{-0.25} \approx 0.0042$$
+$$u_\tau = \frac{10 \times \sqrt{0.0042}}{1.414} \approx 0.46 \text{ m/s}$$
+$$y_{y+=30} = \frac{30 \times 1.5 \times 10^{-5}}{0.46} \approx 0.00098 \text{ m} \approx 1 \text{ mm}$$
+
+ดังนั้น cell size แรกแรกผนังควรเป็น **~1 mm** สำหรับกรณีนี้
+
 ---
 
 ## Convergence Monitoring

@@ -240,11 +240,24 @@ Heat flux คงที่
 heatedWall
 {
     type        fixedGradient;
-    gradient    uniform 1000;   // K/m (= q''/k)
+    gradient    uniform 1000;   // K/m
 }
 ```
 
-**หมายเหตุ:** gradient = q/(k) ไม่ใช่ q โดยตรง
+**Physics:**
+$$\frac{\partial T}{\partial n} = 1000 \text{ K/m}$$
+
+**Heat flux ที่เกิดขึ้น:**
+$$q'' = -k \frac{\partial T}{\partial n}$$
+
+ถ้า $k = 50$ W/(m·K) (เหล็ก):
+$$q'' = -50 \times 1000 = -50,000 \text{ W/m}^2$$
+
+> **⚠️ สำคัญ:** `gradient` field คือ **temperature gradient** ไม่ใช่ heat flux
+> - Input: $\partial T/\partial n$ [K/m]
+> - Actual flux: $q'' = -k \cdot \nabla T$ [W/m²]
+> - Gradient เป็นบวก → heat flows OUT (cooling)
+> - Gradient เป็นลบ → heat flows IN (heating) ในระบบ coordinate ที่ถูกต้อง
 
 ### externalWallHeatFlux
 
@@ -265,7 +278,7 @@ heater
 {
     type    externalWallHeatFlux;
     mode    power;
-    Q       100;            // W total
+    Q       100;            // W [total heat] = 100 Joules/sec
 }
 
 // Flux mode (กำหนด heat flux)
@@ -273,9 +286,14 @@ fluxWall
 {
     type    externalWallHeatFlux;
     mode    flux;
-    q       uniform 5000;   // W/m²
+    q       uniform 5000;   // W/m² [heat flux per unit area]
 }
 ```
+
+**คำอธิบาย:**
+- **Coefficient mode:** $q = h(T_{wall} - T_{ambient})$ — ใช้ convection coefficient
+- **Power mode:** ใส่ค่า **Total power** [W] ไม่ใช่ flux (จะถูกกระจายออกทั้งผิว)
+- **Flux mode:** ใส่ค่า **Heat flux** [W/m²] ต่อหน่วยพื้นที่
 
 **ทำไมดีกว่า fixedGradient?**
 - ใช้ h และ T_ambient โดยตรง (intuitive)

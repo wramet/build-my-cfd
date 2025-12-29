@@ -1,65 +1,58 @@
-# Test Framework - Overview
+# Test Framework Coding - Overview
 
-ภาพรวม Test Framework
+ภาพรวมกรอบการทดสอบ (Test Framework)
 
----
-
-## Overview
-
-> Framework สำหรับ testing OpenFOAM code
+> **Test Framework** = Framework สำหรับ testing OpenFOAM code
 
 ---
 
 ## 1. Testing Levels
 
-| Level | Scope | Tools |
-|-------|-------|-------|
-| **Unit** | Function | Custom asserts |
-| **Integration** | Components | Test cases |
-| **System** | Full solver | Allrun scripts |
+```
+        ▲ System Tests (10%)
+       /  \    - Complete solver runs
+      /----\   - Full case validation
+     /------\
+    / Integration \  Integration Tests (20%)
+   /----------------\ - Component interaction
+  /   Unit Tests (70%)  \ - Function tests
+/------------------------\ - Class tests
+```
+
+| Level | Scope | Tool |
+|:---|:---|:---|
+| **Unit** | Function | Custom test executables |
+| **Integration** | Components | Test with mesh + models |
+| **System** | Full Case | Allrun/Allclean scripts |
 
 ---
 
-## 2. Unit Test Structure
+## 2. Test Structure
 
-```cpp
-#include "fvCFD.H"
+**Unit Test Directory:**
+```
+tests/unit/
+├── Test_vector.C          # Test source
+├── Make/
+│   ├── files              # Source files
+│   └── options            # Compiler flags
+└── Test_vector            # Executable
+```
 
-int main()
-{
-    // Test vector cross product
-    vector a(1, 0, 0);
-    vector b(0, 1, 0);
-    vector c = a ^ b;
-    
-    if (mag(c - vector(0, 0, 1)) > SMALL)
-    {
-        FatalError << "Cross product failed";
-        return 1;
-    }
-    
-    Info << "PASSED" << endl;
-    return 0;
-}
+**System Test Directory:**
+```
+tutorials/test_case/
+├── Allrun                 # Run test
+├── Allclean               # Clean test
+├── system/                # Settings
+├── constant/              # Mesh
+├── 0/                     # Initial conditions
+└── expected/              # Reference results
 ```
 
 ---
 
-## 3. System Test Structure
-
-```
-testCase/
-├── Allrun
-├── Allclean
-├── system/
-├── constant/
-├── 0/
-└── expected/
-```
-
----
-
-## 4. Allrun Pattern
+## 3. Allrun Pattern
 
 ```bash
 #!/bin/bash
@@ -80,24 +73,24 @@ fi
 
 ---
 
-## 5. Module Contents
+## 4. Module Contents
 
-| File | Topic |
-|------|-------|
-| 01_Unit_Testing | Function tests |
-| 02_Validation | Physics checks |
-| 03_Automation | Scripts |
+| File | Topic | Lines |
+|:---|:---|:---:|
+| **01_Unit_Testing** | Function tests | ~160 |
+| **02_Validation** | Physics checks | ~160 |
+| **03_Automation** | Scripts | ~164 |
 
 ---
 
 ## Quick Reference
 
-| Test Type | Use |
-|-----------|-----|
-| Unit | Single function |
-| Integration | Components |
-| System | Full case |
-| Validation | Physics |
+| Test Type | Use | Tool |
+|:---|:---|:---|
+| **Unit** | Single function | Custom executable |
+| **Integration** | Components | Test with mesh |
+| **System** | Full case | Allrun script |
+| **Validation** | Physics | Compare with experiment |
 
 ---
 
@@ -106,20 +99,20 @@ fi
 <details>
 <summary><b>1. Unit vs System test?</b></summary>
 
-- **Unit**: Test single function
-- **System**: Test complete solver
+- **Unit**: Test single function (ทดสอบ function เดี่ยว)
+- **System**: Test complete solver (ทดสอบ solver ทั้งหมด)
 </details>
 
 <details>
 <summary><b>2. Allrun ทำอะไร?</b></summary>
 
-**Run case** และ optionally validate
+**Run case** และ optionally validate (รัน case และตรวจสอบผลลัพธ์)
 </details>
 
 <details>
 <summary><b>3. expected/ ใช้ทำอะไร?</b></summary>
 
-**Store expected results** สำหรับ comparison
+**Store expected results** สำหรับ comparison (เก็บผลลัพธ์อ้างอิง)
 </details>
 
 ---
@@ -127,4 +120,5 @@ fi
 ## Related Documents
 
 - **Unit Testing:** [01_Unit_Testing.md](01_Unit_Testing.md)
+- **Validation:** [02_Validation_Coding.md](02_Validation_Coding.md)
 - **Automation:** [03_Automation_Scripts.md](03_Automation_Scripts.md)

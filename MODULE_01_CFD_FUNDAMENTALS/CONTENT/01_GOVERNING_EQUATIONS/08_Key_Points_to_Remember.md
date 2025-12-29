@@ -191,6 +191,19 @@ case/
 
 ---
 
+## 11. Common Pitfalls (ข้อผิดพลาดที่พบบ่อย)
+
+| ปัญหา | สาเหตุ | วิธีแก้ |
+|--------|---------|---------|
+| Simulation diverge ทันที | BC ไม่ consistent | Inlet U fixed → Outlet p fixed |
+| k, epsilon ติดลบ | ค่าเริ่มต้น = 0 | ใช้ค่าเล็กๆ (e.g., 1e-10) |
+| Pressure drift | ไม่มี reference point | ต้องมี p fixedValue อย่างน้อย 1 จุด |
+| Convergence ช้ามาก | Δt ใหญ่เกินไกับ PISO | ลด Δt หรือเปลี่ยนเป็น PIMPLE |
+| y+ ผิดทั้งหมด | Mesh หยาบเกินไป | Refine ใกล้ผนัง |
+| Temperature units ผิด | สับสน K vs °C | compressible → K เสมอ |
+
+---
+
 ## เอกสารที่เกี่ยวข้อง
 
 - **บทก่อนหน้า:** [07_Initial_Conditions.md](07_Initial_Conditions.md) — เงื่อนไขเริ่มต้น

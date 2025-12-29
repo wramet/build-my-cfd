@@ -59,6 +59,14 @@
 | `zeroGradient` | `fixedValue` | Pressure outlet |
 | `noSlip` | `zeroGradient` | Wall |
 
+> **💡 ข้อควรระวังเรื่อง BC Selection:**
+> 1. **Reference point:** ต้องมี p fixedValue อย่างน้อย 1 จุด → มิฉะนั้น pressure จะ drift
+> 2. **Backflow:** Outlet ที่อาจมี backflow → ใช้ `inletOutlet` หรือ `pressureInletOutletVelocity`
+> 3. **Compressibility:** Gas ที่ Ma > 0.3 → ใช้ `totalPressure` แทน `fixedValue`
+> 4. **Wall functions:** Turbulent flow ต้องใช้ wall function BCs (kqRWallFunction, ฯลฯ)
+> 5. **Initial conditions:** ต้อง consistent กับ BCs → ไม่งั้นอาจ diverge ตอนเริ่ม
+> 6. **Physical constraints:** ค่าต้อง > 0 (k, ε, ω, nut) → ใช้ bounded schemes หรือตั้งค่าเริ่มต้นให้เหมาะสม
+
 ---
 
 ## โครงสร้างบทเรียน

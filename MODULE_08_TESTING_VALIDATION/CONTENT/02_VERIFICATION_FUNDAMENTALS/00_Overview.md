@@ -1,10 +1,6 @@
 # Verification Fundamentals - Overview
 
-ภาพรวม Verification
-
----
-
-## Overview
+ภาพรวมการตรวจสอบความถูกต้อง (Verification)
 
 > **Verification** = Are we solving the equations correctly?
 
@@ -12,65 +8,52 @@
 
 ## 1. V&V Definitions
 
-| Term | Question |
-|------|----------|
-| **Verification** | Solving equations right? |
-| **Validation** | Solving right equations? |
+| Concept | Question | OpenFOAM Files |
+|:---|:---|:---|
+| **Verification** | Solving equations **right**? | `system/fvSchemes`, `system/fvSolution` |
+| **Validation** | Solving the **right** equations? | `0/`, `constant/`, benchmarks |
 
 ---
 
 ## 2. Verification Types
 
-| Type | Check |
-|------|-------|
-| **Code** | Implementation |
-| **Solution** | Convergence |
-| **Calculation** | Consistency |
+| Type | Check | Method |
+|:---|:---|:---|
+| **Code** | Implementation correct? | MMS, Analytical Solutions |
+| **Solution** | Solver converges? | Residuals, Grid Convergence |
+| **Calculation** | Results consistent? | Conservation Checks, Mass Balance |
 
 ---
 
 ## 3. Key Methods
 
-| Method | Purpose |
-|--------|---------|
-| MMS | Manufactured solutions |
-| Grid convergence | Order of accuracy |
-| Conservation | Flux balance |
+| Method | Purpose | Complexity |
+|:---|:---|:---|
+| **MMS** | Manufactured solutions | High (code modification) |
+| **Grid Convergence** | Order of accuracy | Medium (3+ meshes) |
+| **Conservation** | Flux balance | Low (routine check) |
 
 ---
 
 ## 4. Module Contents
 
-| File | Topic |
-|------|-------|
-| 01_Introduction | Basics |
-| 03_Architecture | Testing structure |
-
----
-
-## 5. Quick Checks
-
-```bash
-# Convergence
-grep 'Solving for' log | tail -20
-
-# Conservation
-grep 'sum local' log
-
-# Mesh quality
-checkMesh
-```
+| File | Topic | Lines |
+|:---|:---|:---:|
+| **01_Introduction** | Basics | ~130 |
+| **02a_MMS** | Method of Manufactured Solutions | ~220 |
+| **02b_Richardson_GCI** | Richardson Extrapolation & GCI | ~195 |
+| **03_Architecture** | OpenFOAM Architecture | ~140 |
 
 ---
 
 ## Quick Reference
 
-| Check | How |
-|-------|-----|
-| Residuals | Log analysis |
-| Conservation | Flux balance |
-| Order | Grid refinement |
-| Implementation | MMS |
+| Check | How | Command |
+|:---|:---|:---|
+| Residuals | Log analysis | `grep 'Solving for' log` |
+| Conservation | Flux balance | `grep 'sum local' log` |
+| Order | Grid refinement | Run 3 meshes → plot |
+| Implementation | MMS | Custom solver code |
 
 ---
 
@@ -79,19 +62,19 @@ checkMesh
 <details>
 <summary><b>1. Verification คืออะไร?</b></summary>
 
-**Check code solves equations correctly**
+**Check code solves equations correctly** (แก้สมการถูกไหม?)
 </details>
 
 <details>
 <summary><b>2. MMS คืออะไร?</b></summary>
 
-**Method of Manufactured Solutions** — create known answer
+**Method of Manufactured Solutions** — create known answer, verify solver finds it
 </details>
 
 <details>
 <summary><b>3. Grid convergence ทดสอบอะไร?</b></summary>
 
-**Order of accuracy** — error vs mesh size
+**Order of accuracy** — error vs mesh size (ความผิดพลาด vs ขนาดเมช)
 </details>
 
 ---
@@ -99,4 +82,6 @@ checkMesh
 ## Related Documents
 
 - **Introduction:** [01_Introduction.md](01_Introduction.md)
+- **MMS:** [02a_Method_of_Manufactured_Solutions_MMS.md](02a_Method_of_Manufactured_Solutions_MMS.md)
+- **Richardson & GCI:** [02b_Richardson_Extrapolation_GCI.md](02b_Richardson_Extrapolation_GCI.md)
 - **Architecture:** [03_OpenFOAM_Architecture.md](03_OpenFOAM_Architecture.md)

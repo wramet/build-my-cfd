@@ -13,7 +13,7 @@
 <!-- IMAGE: IMG_10_001 -->
 <!--
 Purpose: เพื่อแสดงขั้นตอนของ PISO Algorithm อย่างละเอียด ให้ผู้อ่านเห็นภาพรวมของการทำงาน
-Prompt: "PISO Algorithm Flowchart. **Left Side (Momentum):** A grid showing velocity field U with arrows. An equation '∂U/∂t + ∇·(UU) = -∇p + ν∇²U'. **Middle (Pressure-Velocity Coupling):** Three cyclic loops arranged vertically showing: 1) Solve Momentum Predictor → 2) Pressure Correction Loop (repeated N times) → 3) Correct Velocity & Flux. **Right Side (Continuity):** A checkmark symbol with text '∇·U = 0 ✓'. **Arrows:** Flowing from top to bottom with iteration arrows. **Style:** Technical flowchart with clear step boxes, blue accent colors for momentum, green for pressure, mathematical typesetting, professional CFD textbook style."
+Prompt: "Technical Flowchart of PISO Algorithm in CFD. **Layout:** Vertical flow. **Top:** 'Start Time Step'. **Block 1 (Blue):** 'Momentum Predictor' (Solve Matrix). **Block 2 (Green Container):** 'PISO Loop'. Inside: 'Pressure Solution' → 'Flux Correction' → 'Velocity Correction'. Curved arrow indicating loop repeats. **Bottom:** 'Next Time Step'. **Style:** Professional Engineering Schematic, flat design, white background, clear typography (Helvetica/Inter), pastel blue and green accents. High resolution."
 -->
 ![IMG_10_001: PISO Algorithm Flow](IMG_10_001.jpg)
 
@@ -211,7 +211,7 @@ while (runTime.loop())             // Advance time step
 <!-- IMAGE: IMG_10_002 -->
 <!--
 Purpose: เพื่ออธิบาย Rhie-Chow Interpolation ที่ป้องกันปัญหา Checkerboard Pressure
-Prompt: "Rhie-Chow Interpolation Diagram. **Top Row (Problem):** A 2x2 cell grid showing alternating pressure values: P=100, P=0, P=100, P=0 (checkerboard pattern). Red X marks indicating 'Wrong!'. **Middle Row (Solution):** Same grid with arrows showing face flux calculation. Equation: 'φ_f = (U_P + U_N)/2 · S_f - (Δt/A_f)(∇p_f · S_f)'. **Bottom Row (Result):** Smooth pressure field with values 100, 50, 0, 50. Green checkmark showing 'Correct!'. **Annotations:** 'Cell-centered values interpolated to faces with pressure correction term'. **Style:** CFD textbook illustration, grid-based visualization, clear cell boundaries, color gradient from red (high pressure) to blue (low pressure)."
+Prompt: "CFD Visualization of Rhie-Chow Interpolation. **Panel 1 (The Problem):** 'Checkerboard Pressure'. A 4x4 grid with cells colored alternately Red (High P) and Blue (Low P). Overlay arrows showing zero gradient (canceling out). Label: 'Numerical Oscillation'. **Panel 2 (The Solution):** 'Rhie-Chow Flux'. Close up of a cell face. Abstract visual of a smoothing filter or damping spring added to the face flux. Equation hint: 'φ = U_bar - D*grad(p)'. **Panel 3 (The Result):** 'Smooth Pressure Field'. The grid now shows a smooth gradient from Red to Blue. **Style:** Scientific illustration, 3-panel strip, clean vector graphics, heatmap visualization."
 -->
 ![IMG_10_002: Rhie-Chow Interpolation](IMG_10_002.jpg)
 

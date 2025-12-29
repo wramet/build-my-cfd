@@ -16,11 +16,16 @@
 
 | Parameter | Value |
 |-----------|-------|
-| Domain | 1×1×0.1 m (quasi-2D) |
+| Domain | 1×1×0.1 m (quasi-2D: mesh 1 cell ในทิศ z, ใช้ `empty` BC) |
 | Lid velocity | 1 m/s (+x) |
 | Other walls | Stationary (no-slip) |
 | Fluid | Incompressible, Newtonian |
 | Re | 10-1000 |
+
+> **💡 ทำไมเรียก quasi-2D?**
+> - Mesh มี 1 cell ในทิศทาง z (depth = 0.1 m)
+> - ใช้ `empty` BC ที่ frontAndBack → ไม่มี flux ผ่านผนัง z
+> - Physics 2D แต่ mesh ยังเป็น 3D extruded → OpenFOAM เรียก "quasi-2D"
 
 ---
 

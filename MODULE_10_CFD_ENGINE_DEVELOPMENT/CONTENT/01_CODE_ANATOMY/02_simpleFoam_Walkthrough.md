@@ -13,7 +13,7 @@
 <!-- IMAGE: IMG_10_003 -->
 <!--
 Purpose: เพื่อแสดงความแตกต่างระหว่าง SIMPLE และ PISO algorithm อย่างชัดเจน
-Prompt: "SIMPLE vs PISO Algorithm Comparison. **Left Column (PISO - Transient):** Time step boxes stacked vertically. Inside each box: 'Momentum → Pressure × N → Correct'. Arrow from box 1 to 2 labeled 'Δt advances'. **Right Column (SIMPLE - Steady):** Single large circular loop with iterations. Inside loop: 'Momentum with Relax → Pressure × 1 → Relax Fields → Turbulence → Check Convergence'. Exit from loop labeled 'Converged!'. **Bottom:** Comparison table: 'PISO: Multiple pressure corrections, Time-accurate, No relaxation needed' vs 'SIMPLE: Single correction, Iterative to steady state, Requires under-relaxation'. **Style:** Split-screen comparison, blue theme for PISO, orange theme for SIMPLE, clear flow arrows, professional CFD illustration."
+Prompt: "Split-screen infographic comparing PISO and SIMPLE CFD algorithms. **Left Side (PISO - Transient):** Vertical flow of stacked blocks representing time steps. Arrows flowing down. Label: 'Transient / Time-Accurate'. Color: Cool Blue. **Right Side (SIMPLE - Steady):** A large circular cycle representing iterations. Arrows looping continuously. Label: 'Steady-State / Iterative'. Color: Warm Orange. **Comparison Table at Bottom:** Minimalist icons for 'Time' (Clock vs Infinity), 'Relaxation' (None vs Required). **Style:** Modern technical infographic, clean isometric view, soft lighting, professional layout."
 -->
 ![IMG_10_003: SIMPLE vs PISO](IMG_10_003.jpg)
 
@@ -143,7 +143,7 @@ while (simple.loop())   // NOT runTime.loop()!
 <!-- IMAGE: IMG_10_004 -->
 <!--
 Purpose: เพื่อแสดงผลของ Under-Relaxation ต่อการ Convergence ของ SIMPLE algorithm
-Prompt: "Under-Relaxation Effect Visualization. **Left Panel (No Relaxation - Divergence):** Line plot oscillating wildly. Y-axis: 'Residual', X-axis: 'Iteration'. Red line shows values jumping from 1.0 → 0.1 → 2.0 → 0.05 → 5.0 (explosive oscillation). Label: 'α = 1.0 (Unstable)'. **Right Panel (With Relaxation - Convergence):** Same axes but smooth decay. Blue line shows 1.0 → 0.5 → 0.3 → 0.15 → 0.08 → 0.01 (monotonic decay). Label: 'α = 0.7 (Stable)'. **Middle Panel (Formula):** Large equation 'φ_new = αφ_calc + (1-α)φ_old' with visual interpretation: 'Take α portion of new value, blend with (1-α) portion of old value'. **Style:** Technical plot with grid, clear legends, color-coded stability (red=bad, blue=good), mathematical annotation, textbook quality."
+Prompt: "Scientific data visualization of Under-Relaxation in CFD. **Layout:** Three horizontal panels. **Left Panel (Instability):** Graph of 'Residual vs Iteration'. A red jagged line oscillating wildly and growing. Label: 'No Relaxation (Divergence)'. **Center Panel (The Mechanism):** Conceptual blending visualization. Two liquid streams merging: 'Computed Value' (New) and 'Previous Value' (Old) mixing to form 'Relaxed Value'. Formula: 'φ_new = α*φ_new + (1-α)*φ_old'. **Right Panel (Stability):** Graph showing a smooth blue curve decaying exponentially. Label: 'With Relaxation (Convergence)'. **Style:** High-contrast technical plots, white background, textbook quality illustration."
 -->
 ![IMG_10_004: Under-Relaxation Effect](IMG_10_004.jpg)
 

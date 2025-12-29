@@ -99,7 +99,7 @@ convectiveWall
 | p | `zeroGradient` | — |
 | T | `fixedValue` | `T_inlet` |
 | k | `fixedValue` | $\frac{3}{2}(U \cdot I)^2$ |
-| ε | `fixedValue` | $C_\mu^{3/4} \frac{k^{3/2}}{l}$ |
+| ε | `fixedValue` | $C_\mu^{3/4} \frac{k^{3/2}}{l}$ (โดย $C_\mu = 0.09$) |
 
 ### Outlet
 

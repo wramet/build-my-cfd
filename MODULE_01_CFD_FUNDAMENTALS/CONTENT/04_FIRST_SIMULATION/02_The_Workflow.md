@@ -227,28 +227,44 @@ functions
 
 **Sample lines:**
 
-```cpp
-// system/sampleDict
-type            sets;
-setFormat       raw;
-fields          (U p);
+> **⚠️ หมายเหตุ:** ใน OpenFOAM รุ่นใหม่ ใช้ `functions` ใน `controlDict` แทน `sampleDict`
 
-sets
-(
+**วิธีที่ 1: ใช้ controlDict functions (แนะนำสำหรับ OpenFOAM v4+)**
+
+```cpp
+// system/controlDict
+functions
+{
     centerlineY
     {
-        type    uniform;
-        axis    y;
-        start   (0.5 0 0.05);
-        end     (0.5 1 0.05);
-        nPoints 100;
+        type            sets;
+        setFormat       raw;
+        fields          (U p);
+        interpolationScheme cellPoint;
+
+        sets
+        (
+            centerlineY
+            {
+                type    uniform;
+                axis    y;
+                start   (0.5 0 0.05);
+                end     (0.5 1 0.05);
+                nPoints 100;
+            }
+        );
     }
-);
+}
 ```
 
+**วิธีที่ 2: ใช้ postProcess กับ function name**
+
 ```bash
-postProcess -func sample
+# Run หลัง simulation จบ
+postProcess -func centerlineY
 ```
+
+ผลลัพธ์จะอยู่ที่ `postProcessing/centerlineY/`
 
 ---
 
@@ -259,7 +275,9 @@ postProcess -func sample
 # Allrun script
 
 # 1. Clean
-foamCleanTutorials
+foamCleanTutorials  # ใช้ได้เฉพาะกับ tutorials จาก $FOAM_TUTORIALS
+# หรือสำหรับ custom case:
+# rm -rf 0/*/processor* */postProcessing/ [0-9]*/
 
 # 2. Mesh
 blockMesh

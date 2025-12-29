@@ -39,10 +39,17 @@ $$\nabla \cdot \mathbf{u} = 0$$
 1. **มวลไหลเข้า** ที่ตำแหน่ง $x$: $\dot{m}_{in} = (\rho u_x) dy\, dz$
 2. **มวลไหลออก** ที่ตำแหน่ง $x + dx$: $\dot{m}_{out} = \left( \rho u_x + \frac{\partial (\rho u_x)}{\partial x} dx \right) dy\, dz$
 3. **ฟลักซ์มวลสุทธิ**: $\dot{m}_{in} - \dot{m}_{out} = - \frac{\partial (\rho u_x)}{\partial x} dV$
-4. **รวมทุกทิศทาง**: $- \nabla \cdot (\rho \mathbf{u}) \, dV$
-5. **สมดุลกับอัตราสะสมมวล**: $\frac{\partial \rho}{\partial t} dV$
+4. **รวมทุกทิศทาง** (ใช้ Divergence Theorem):
+   $$\sum_{\text{faces}} \dot{m} = - \left[ \frac{\partial (\rho u_x)}{\partial x} + \frac{\partial (\rho u_y)}{\partial y} + \frac{\partial (\rho u_z)}{\partial z} \right] dV = - \nabla \cdot (\rho \mathbf{u}) \, dV$$
+5. **สมดุลกับอัตราสะสมมวล**:
+   $$\text{อัตราสะสม} = - \text{ฟลักซ์สุทธิออก}$$
+   $$\frac{\partial \rho}{\partial t} dV = - [ - \nabla \cdot (\rho \mathbf{u}) \, dV ]$$
 
 ได้สมการ: $\boxed{\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0}$
+
+> **💡 หมายเหตุ:** ขั้นตอนที่ 4-5 ใช้ **Gauss's Divergence Theorem** ซึ่งแปลง surface integral เป็น volume integral:
+> $$\oint_S \mathbf{F} \cdot d\mathbf{S} = \int_V (\nabla \cdot \mathbf{F}) \, dV$$
+> นี่คือหลักการพื้นฐานที่ทำให้ FVM ทำงานได้
 
 ### ความหมายทางกายภาพ
 
@@ -116,6 +123,33 @@ $$\rho c_p \frac{\partial T}{\partial t} + \rho c_p (\mathbf{u} \cdot \nabla) T 
 | $k \nabla^2 T$ | Conduction | การนำความร้อนตามกฎ Fourier |
 | $\Phi = \boldsymbol{\tau} : \nabla \mathbf{u}$ | Viscous dissipation | พลังงานกลที่กลายเป็นความร้อน |
 | $Q$ | Source | แหล่งกำเนิด/ตัวรับความร้อน |
+
+### Viscous Dissipation: เมื่อไหร่สำคัญ?
+
+**Viscous dissipation** ($\Phi$) คืออัตราที่พลังงานจลน์ถูก "สลาย" เป็นความร้อนเนื่องจากแรงเสียดทานภายในของไหล
+
+$$\Phi = 2\mu \left[ \left(\frac{\partial u}{\partial x}\right)^2 + \left(\frac{\partial v}{\partial y}\right)^2 + \left(\frac{\partial w}{\partial z}\right)^2 \right] + \mu \left[ \left(\frac{\partial u}{\partial y} + \frac{\partial v}{\partial x}\right)^2 + \text{terms อื่นๆ} \right]$$
+
+**เมื่อไหร่ต้อง考虑:**
+
+| Flow Condition | สำคัญหรือไม่? | ตัวอย่าง |
+|----------------|------------------|----------|
+| **Low speed flow** | ❌ เล็กมาก (< 1%) | การไหลน้ำในท่อ, อากาศพัดลม |
+| **High speed flow** | ✅ สำคัญมาก | การไหลของน้ำมันเครื่อง, ชั้นบรรยากาศ |
+| **Polymer processing** | ✅ สำคัญมาก | ฉีดพลาสติก (viscosity สูงมาก) |
+| **Microfluidics** | ⚠️ อาจสำคัญ | Shear rate สูงมากใน channel เล็กๆ |
+
+**ตัวอย่างเชิงตัวเลข:**
+
+สำหรับการไหลของน้ำมันเครื่อง ($\mu \approx 0.1$ Pa·s) ผ่านช่องแคบ 0.5 mm ด้วยความเร็ว 10 m/s:
+- Shear rate $\dot{\gamma} \approx \frac{U}{h} = \frac{10}{0.0005} = 20,000$ s⁻¹
+- $\Phi \approx \mu \dot{\gamma}^2 \approx 0.1 \times (20000)^2 \approx 40,000,000$ W/m³
+- **นี่คือความร้อนที่เกิดขึ้นเอง** จากแรงเสียดทาน!
+
+> **💡 ใน OpenFOAM:**
+> - Solvers ส่วนใหญ่ **ignore** $\Phi$ สำหรับ low-speed flows
+> - สำหรับ high-speed compressible flows, solver เช่น `rhoCentralFoam` จะคิด $\Phi$ ให้อัตโนมัติ
+> - ถ้าต้องการเปิดใช้: ตั้ง `viscous yes` ใน thermophysical properties
 
 ---
 

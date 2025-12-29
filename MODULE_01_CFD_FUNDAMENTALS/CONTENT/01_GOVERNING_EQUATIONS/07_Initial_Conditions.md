@@ -54,6 +54,19 @@ internalField   uniform 0;             // Scalar
 
 ### 2. Non-uniform (#codeStream)
 
+> **⚠️ คำเตือน: codeStream ต้องการ Dynamic Compilation**
+> `#codeStream` ใช้ dynamc compilation ซึ่ง:
+> - ต้องการ `wmake` ในเครื่อง (ต้องมี compiler)
+> - ใช้เวลาทำงานเพิ่มในการรันครั้งแรก (compile code)
+> - อาจมีปัญหา security บางระบบ
+> - **ทางเลือกที่ดีกว่า:** ใช้ `funkySetFields` หรือ `setFields` utility แทน
+
+**เมื่อไหร่ควรใช้ #codeStream:**
+- ✅ ต้องการ IC ที่ซับซ้อนมากที่ utilities ทั่วไปทำไม่ได้
+- ✅ รู้ C++ และเข้าใจ OpenFOAM API ดี
+- ❌ ห้ามใช้บน production cluster ที่มี security restrictions
+- �o หลีกเลี่ยงถ้าหาก utility อื่นทำได้
+
 สำหรับ field ที่มีรูปแบบซับซ้อน:
 
 ```cpp
@@ -66,7 +79,7 @@ internalField   #codeStream
         vectorField& U = *this;
         scalar R = 0.05;              // Pipe radius
         scalar Umax = 2.0;            // Max velocity
-        
+
         forAll(C, i)
         {
             scalar r = sqrt(sqr(C[i].y()) + sqr(C[i].z()));
@@ -75,6 +88,27 @@ internalField   #codeStream
         }
     #};
 };
+```
+
+**ทางเลือก: setFields utility**
+
+```bash
+# สร้าง parabolic profile ด้วย setFields (ง่ายกว่า!)
+setFields -dict system/setFieldsDict
+```
+
+```cpp
+// system/setFieldsDict
+locations  (any);
+field       U;
+defaultValues uniform (0 0 0);
+
+// Set parabolic profile
+fieldValues
+{
+    box (0 -0.05 -0.05) (1 0.05 0.05);  // Pipe region
+    expression "vector(2 * (1 - sqr(pos().y()/0.05)), 0, 0)";
+}
 ```
 
 ### 3. From Previous Solution (mapFields)

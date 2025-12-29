@@ -72,19 +72,42 @@ $$\frac{\phi^{n+1} - \phi^n}{\Delta t} = \frac{1}{2}[f(\phi^n) + f(\phi^{n+1})]$
 > **💡 คิดแบบนี้:**
 > เฉลี่ย RHS จากอดีตและอนาคต → "ยุติธรรม" กับทั้งสอง
 
+### Crank-Nicolson Coefficient Blending
+
+ใน OpenFOAM เราสามารถ blend ระหว่าง Euler และ Pure Crank-Nicolson:
+
+$$\text{RHS} = (1-\theta) \cdot f(\phi^n) + \theta \cdot f(\phi^{n+1})$$
+
+โดยที่:
+- $\theta = 0$ → **Euler implicit** (most stable, least accurate)
+- $\theta = 0.5$ → **Pure Crank-Nicolson** (2nd order, marginally stable)
+- $\theta = 1$ → ไม่ใช้ (ไม่มี implicit part)
+
+**ใน OpenFOAM:**
+```cpp
+ddtSchemes
+{
+    default     CrankNicolson 0.5;  // θ = 0.5 (Pure CN)
+    // หรือ
+    default     CrankNicolson 0.9;  // θ = 0.9 (more stable than 0.5)
+    // หรือ
+    default     Euler;              // θ → 0 (most stable)
+}
+```
+
+**การเลือกค่า θ:**
+
+| θ Value | ความเสถียร | ความแม่นยำ | ใช้เมื่อ |
+|---------|-----------|-----------|----------|
+| **0.3 - 0.5** | ต่ำ | สูง (2nd order) | Acoustics, waves ที่ไม่มี shocks |
+| **0.7 - 0.9** | ปานกลาง-สูง | ปานกลาง-สูง | General transient, balance |
+| **1.0** | เป็น Euler | 1st order | Startup, ไม่ต้องการ accuracy |
+
 | คุณสมบัติ | ค่า | ทำไม |
 |-----------|-----|------|
 | Order | 2nd | เฉลี่ย explicit + implicit |
 | Stability | Marginally stable | อาจ oscillate ถ้า $\Delta t$ ใหญ่ |
 | ใช้กับ | Wave propagation | เก็บ energy ดี |
-
-**OpenFOAM:**
-```cpp
-ddtSchemes
-{
-    default     CrankNicolson 0.5;  // 0 = Euler, 1 = Pure CN
-}
-```
 
 **ใช้เมื่อ:**
 - Wave propagation (acoustic, surface waves)
@@ -114,7 +137,10 @@ Wave problems → CrankNicolson 0.5-0.9
 
 ## Courant Number (CFL)
 
-$$\text{Co} = \frac{|u| \Delta t}{\Delta x}$$
+$$\text{Co} = \frac{\|\mathbf{u}\| \Delta t}{\Delta x} \quad \text{(1D)}$$
+
+**สำหรับ 3D:**
+$$\text{Co} = \frac{\max(\|\mathbf{u}\|) \Delta t}{\min(\Delta x, \Delta y, \Delta z)}$$
 
 > **ความหมายทางกายภาพ:**
 > Co = "จำนวน cells ที่ข้อมูลเดินทางได้ใน 1 time step"

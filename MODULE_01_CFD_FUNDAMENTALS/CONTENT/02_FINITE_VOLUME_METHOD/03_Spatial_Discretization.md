@@ -112,7 +112,57 @@ $$(D \nabla \phi)_f \cdot \mathbf{S}_f = D_f \frac{\phi_N - \phi_P}{|d_{PN}|} |S
 
 **Non-Orthogonal Mesh:** ต้องเพิ่ม correction
 
-$$(D \nabla \phi)_f \cdot \mathbf{S}_f = \underbrace{D_f \frac{\phi_N - \phi_P}{|d_{PN}|} |S_f|}_{\text{orthogonal part}} + \underbrace{D_f (\nabla \phi)_f \cdot \mathbf{k}}_{\text{correction}}$$
+$$(D \nabla \phi)_f \cdot \mathbf{S}_f = \underbrace{D_f \frac{\phi_N - \phi_P}{|d_{PN}|} |\mathbf{S}_f|}_{\text{orthogonal part}} + \underbrace{D_f (\nabla \phi)_f \cdot \mathbf{k}}_{\text{correction}}$$
+
+> **⚠️ หมายเหตุ:** ในสูตรด้านบน:
+> - $|\mathbf{S}_f|$ คือขนาด (magnitude) ของ face area vector
+> - $\mathbf{k} = \mathbf{S}_f - \boldsymbol{\Delta}$ คือ non-orthogonal component (เศษที่เหลือหลังลบส่วนที่ขนานกับ $d_{PN}$)
+
+### ตัวอย่างการคำนวณ Non-Orthogonal Correction
+
+**Problem:** 2D mesh ที่ face เอียงมุม θ = 30° จากแนว perpendicular
+
+```
+       Cell N
+          ●
+         /|
+        / |
+    d   /  |
+    P N/   |Δ  (orthogonal component, ขนานกับ d_PN)
+     /     |
+    / θ    |
+  ●────────■
+ Cell P   Face f
+
+d_PN = distance ระหว่าง cell centers = 0.01 m
+θ = 30° (non-orthogonality angle)
+```
+
+**Step 1: คำนวณส่วน orthogonal**
+$$|\mathbf{S}_f| \approx 0.001 \text{ m}^2$$
+$$\Delta = |\mathbf{S}_f| \cdot \cos(30°) = 0.001 \times 0.866 = 0.000866 \text{ m}$$
+
+Orthogonal flux (ส่วนแรก):
+$$\Phi_{\text{ortho}} = D \frac{\phi_N - \phi_P}{d_{PN}} |\mathbf{S}_f|$$
+$$\Phi_{\text{ortho}} = 0.001 \times \frac{5 - 3}{0.01} \times 0.001 = 0.2$$
+
+**Step 2: คำนวณ correction**
+$$\mathbf{k} = \mathbf{S}_f - \boldsymbol{\Delta} = 0.000134 \text{ m}^2 \text{ (magnitude)}$$
+
+Correction term:
+$$\Phi_{\text{corr}} = D (\nabla \phi)_f \cdot \mathbf{k}$$
+
+ถ้า $(\nabla \phi)_f = 200 \text{ m}^{-1}$:
+$$\Phi_{\text{corr}} = 0.001 \times 200 \times 0.000134 = 0.0000268$$
+
+**Step 3: รวมสองส่วน**
+$$\Phi_{\text{total}} = 0.2 + 0.0000268 \approx 0.200027$$
+
+ในกรณีนี้ correction มีค่าน้อยมาก (~0.01%) เพราะ θ = 30° ยังไม่มากนัก
+
+**ถ้า θ = 70° (mesh เบี้ยวมาก):**
+- Correction อาจถึง 20-30% ของ orthogonal part
+- **ต้องใช้ `nNonOrthogonalCorrectors` หลายรอบ**
 
 **ตั้งค่าใน `fvSchemes` และ `fvSolution`:**
 

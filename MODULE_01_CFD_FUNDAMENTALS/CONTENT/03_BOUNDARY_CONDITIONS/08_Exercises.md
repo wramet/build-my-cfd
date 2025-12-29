@@ -165,8 +165,17 @@ wall { type epsilonWallFunction; value uniform 3.76; }
 // 0/nut
 inlet { type calculated; value uniform 0; }
 outlet { type calculated; value uniform 0; }
-wall { type nutkWallFunction; value uniform 0; }
+wall
+{
+    type    nutkWallFunction;
+    value   uniform 0;
+    Cmu     0.09;     // Model constant (default: 0.09)
+    kappa   0.41;     // von Karman constant
+    E       9.8;      // Log-law constant
+}
 ```
+
+> **⚠️ หมายเหตุ:** `value` ใน wall function BCs เป็นเพียง initial guess — solver จะคำนวณค่าจริงจาก wall function formula ตาม y+ ที่ได้จาก mesh
 </details>
 
 ---

@@ -32,6 +32,8 @@
 |--------|----------|
 | [00_Overview](CONTENT/02_VERIFICATION_FUNDAMENTALS/00_Overview.md) | ภาพรวม Verification |
 | [01_Introduction](CONTENT/02_VERIFICATION_FUNDAMENTALS/01_Introduction.md) | Introduction |
+| [02a_MMS](CONTENT/02_VERIFICATION_FUNDAMENTALS/02a_Method_of_Manufactured_Solutions_MMS.md) | Method of Manufactured Solutions |
+| [02b_Richardson_GCI](CONTENT/02_VERIFICATION_FUNDAMENTALS/02b_Richardson_Extrapolation_GCI.md) | Richardson Extrapolation & GCI |
 | [03_Architecture](CONTENT/02_VERIFICATION_FUNDAMENTALS/03_OpenFOAM_Architecture.md) | OpenFOAM Architecture |
 
 ---

@@ -21,6 +21,12 @@
 
 *Reference: Ghia et al. (1982)*
 
+> **💡 Stream Function (ψ) คืออะไร?**
+> - ψ = constant บน streamlines
+> - ความแตกต่างของ ψ ระหว่าง 2 streamlines = volumetric flow rate ระหว่างมัน
+> - ใน 2D incompressible flow: $u = \frac{\partial ψ}{\partial y}$, $v = -\frac{\partial ψ}{\partial x}$
+> - **ψ_max** (ค่าติดลบเพราะ clockwise rotation) คือความเข้มของ vortex
+
 ### Secondary Vortices (Re ≥ 400)
 
 | Re | Bottom-Right (BR) | Bottom-Left (BL) |
@@ -94,35 +100,63 @@ x/L     v/U (Ghia)
 ### 2. Quantitative Comparison
 
 **Extract centerline data:**
+
+> **⚠️ หมายเหตุ:** แนะนำให้ใช้ `controlDict functions` แทน `sampleDict` (ดูรายละเอียดใน 02_The_Workflow.md)
+
+**วิธีที่ 1: กำหนดใน controlDict**
 ```cpp
-// system/sampleDict
-sets
-(
+// system/controlDict
+functions
+{
     verticalCenterline
     {
-        type    uniform;
-        axis    y;
-        start   (0.5 0 0.05);
-        end     (0.5 1 0.05);
-        nPoints 50;
+        type            sets;
+        setFormat       raw;
+        fields          (U);
+        sets
+        (
+            verticalCenterline
+            {
+                type    uniform;
+                axis    y;
+                start   (0.5 0 0.05);
+                end     (0.5 1 0.05);
+                nPoints 50;
+            }
+        );
     }
     horizontalCenterline
     {
-        type    uniform;
-        axis    x;
-        start   (0 0.5 0.05);
-        end     (1 0.5 0.05);
-        nPoints 50;
+        type            sets;
+        setFormat       raw;
+        fields          (U);
+        sets
+        (
+            horizontalCenterline
+            {
+                type    uniform;
+                axis    x;
+                start   (0 0.5 0.05);
+                end     (1 0.5 0.05);
+                nPoints 50;
+            }
+        );
     }
-);
-fields (U);
+}
 ```
 
 ```bash
-postProcess -func sample -latestTime
+# Run หลัง simulation จบ
+postProcess -func verticalCenterline -latestTime
+postProcess -func horizontalCenterline -latestTime
 ```
 
 ### 3. Python Validation Script
+
+> **⚠️ ข้อกำหนดเบื้องต้น:**
+> - ต้องติดตั้ง Python 3.x
+> - ติดตั้ง packages: `pip install numpy matplotlib`
+> - หรือใช้ [Anaconda](https://www.anaconda.com/) / [Miniconda](https://docs.conda.io/en/latest/miniconda.html)
 
 ```python
 import numpy as np

@@ -236,6 +236,22 @@ relaxationFactors
 }
 ```
 
+> **💡 ทำมาจากไหน? — runTimeSelectionTable**
+>
+> OpenFOAM ใช้ระบบ **runTimeSelectionTable** ทำให้เลือก solvers/schemes ได้จาก dictionary (`fvSchemes`, `fvSolution`) โดยไม่ต้อง recompile:
+>
+> ```cpp
+> // In source code (e.g., fvScalarMatrix.C)
+> defineTypeNameAndDebug(fvScalarMatrix, 0);
+>
+> // ระบบ runtime selection เชื่อมชื่อ ("GAMG") → Class (GAMGSolver)
+> ```
+>
+> **ข้อดี:**
+> - เปลี่ยน solver แค่แก้ text file → ไม่ต้อง compile ใหม่
+> - เพิ่ม custom scheme/solver ได้โดยไม่ต้องแก้ library
+> - OpenFOAM จะ search และ load object ที่ตรงกับชื่อ automatically
+
 ---
 
 ## Creating Custom Solvers

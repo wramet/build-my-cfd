@@ -39,6 +39,19 @@ $$\nabla \cdot (D \nabla \phi) \rightarrow a_N = -\frac{D_f A_f}{d_{PN}}$$
 
 $$a_P = -\sum_N a_N$$
 
+**ตัวอย่างการคำนวณ:**
+
+สมมติ:
+- Cell P มี 2 neighbors (N และ S)
+- $D = 0.001$ m²/s
+- Face area $A_f = 0.01$ m² (ทุก face)
+- Distance $d_{PN} = 0.001$ m
+
+$$a_N = -\frac{0.001 \times 0.01}{0.001} = -0.01$$
+$$a_P = -(-0.01 - 0.01) = 0.02$$
+
+→ Diagonal dominant เพราะ $|a_P| > \sum |a_N|$
+
 **ทำไม Diffusion ดีสำหรับ Stability?**
 - $a_N < 0$ เสมอ (ติดลบ)
 - $a_P = -\sum a_N > 0$ (เป็นบวก)
@@ -49,6 +62,15 @@ $$a_P = -\sum_N a_N$$
 $$\nabla \cdot (\phi \mathbf{u}) \rightarrow a_N = \max(-\Phi_f, 0)$$
 
 โดย $\Phi_f = \mathbf{u}_f \cdot \mathbf{S}_f$ (face flux)
+
+**ตัวอย่างการคำนวณ:**
+
+สมมติ flow ไปทางบวก ($u_f > 0$):
+- Face flux $\Phi_f = 10 \times 0.01 = 0.1$ m³/s
+- สำหรับ neighbor ด้านท้าย (E): $a_E = \max(-0.1, 0) = 0$
+- สำหรับ neighbor ด้านหน้า (W): $a_W = \max(-(-0.1), 0) = 0.1$
+
+Matrix จะได้รูปแบบ upwind (ข้อมูลมาจาก upstream)
 
 **ทำไม Convection อาจเป็นปัญหา?**
 - Upwind: $a_N$ มาจากด้าน upstream เท่านั้น → ยังคง diagonal dominant
@@ -192,7 +214,7 @@ solvers
     }
     pFinal
     {
-        $p;                         // Copy settings from p
+        $p;                         // Copy settings from p entry (dictionary reference)
         relTol      0;              // ต้อง converge ถึง tolerance
     }
     U

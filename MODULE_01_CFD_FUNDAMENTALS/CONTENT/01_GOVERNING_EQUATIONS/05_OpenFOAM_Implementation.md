@@ -115,24 +115,59 @@ fvVectorMatrix UEqn
 
 สมการโมเมนตัมเกี่ยวข้องกับ U และ p แต่สมการความต่อเนื่อง (∇·U = 0) เป็นแค่ constraint ไม่ได้บอกว่า p มีค่าเท่าไหร่ นี่คือที่มาของ **pressure equation**
 
+### การพัฒนา Pressure Poisson Equation
+
+**Step 1: เริ่มจาก Momentum Equation (discretized form)**
+
+$$\mathbf{H}(\mathbf{U}) - \nabla p = 0$$
+
+โดยที่:
+- $\mathbf{H}(\mathbf{U})$ = พจน์ทั้งหมดจาก convection + diffusion + time derivative (เป็นฟังก์ชันของ $\mathbf{U}$)
+- $\nabla p$ = pressure gradient
+
+**Step 2: Isolate velocity terms**
+
+$$\mathbf{U} = \frac{1}{A_P} \mathbf{H}(\mathbf{U}) - \frac{1}{A_P} \nabla p$$
+
+โดยที่ $A_P$ = diagonal coefficient จาก matrix assembly
+
+ให้:
+- $\mathbf{H}/A_P = \mathbf{H}^*$ (HbyA ใน OpenFOAM)
+- $1/A_P = rAU$ (reciprocal of A_U ใน OpenFOAM)
+
+ดังนั้น:
+$$\mathbf{U} = \mathbf{H}^* - rAU \nabla p$$
+
+**Step 3: Apply Divergence (จาก Continuity: ∇·U = 0)**
+
+$$\nabla \cdot (\mathbf{H}^* - rAU \nabla p) = 0$$
+
+$$\nabla \cdot \mathbf{H}^* - \nabla \cdot (rAU \nabla p) = 0$$
+
+**Step 4: Rearrange ได้ Pressure Poisson Equation**
+
+$$\boxed{\nabla \cdot (rAU \nabla p) = \nabla \cdot \mathbf{H}^*}$$
+
+นี่คือสมการที่เราแก้ใน OpenFOAM!
+
 หลักการทำงาน:
 
 1. **Predictor Step** — แก้สมการโมเมนตัมโดยใช้ pressure เก่า ได้ velocity ที่ทำนายไว้ U* แต่ U* นี้อาจไม่สอดคล้องกับ mass conservation (∇·U* ≠ 0)
 
-2. **Pressure Equation** — นำ momentum equation มา rearrange แล้วแทนลงใน continuity equation ได้สมการ Poisson สำหรับ pressure: ∇²p = ∇·H
+2. **Pressure Equation** — แก้สมการ Poisson ข้างต้น ได้ pressure field ใหม่
 
 3. **Corrector Step** — เมื่อได้ p ใหม่แล้ว แก้ไข velocity: U = U* - (∇p)/A ทำให้ ∇·U ≈ 0 ตาม mass conservation
 
 ```cpp
-// Pressure equation
+// Pressure equation (ใน OpenFOAM)
 fvScalarMatrix pEqn
 (
-    fvm::laplacian(rAUf, p) == fvc::div(phiHbyA)
+    fvm::laplacian(rAUf, p) == fvc::div(phiHbyA)  // ∇·(rAU∇p) = ∇·H*
 );
 pEqn.solve();
 
 // Correct velocity
-U = HbyA - rAU * fvc::grad(p);
+U = HbyA - rAU * fvc::grad(p);  // U = H* - rAU∇p
 ```
 
 เนื่องจากสมการ Poisson เป็น elliptic type ข้อมูลจากทุกจุดใน domain มีผลต่อคำตอบทุกที่ ทำให้การแก้สมการนี้เป็นขั้นตอนที่ใช้เวลานานที่สุดใน simulation ดังนั้นการเลือก linear solver ที่ดี (เช่น GAMG) จึงสำคัญมาก

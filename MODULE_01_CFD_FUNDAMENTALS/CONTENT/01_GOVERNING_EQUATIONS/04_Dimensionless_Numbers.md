@@ -27,11 +27,20 @@ $$Re = \frac{\rho U L}{\mu} = \frac{\text{Inertial Forces}}{\text{Viscous Forces
 
 ### Flow Regime Classification
 
+> **⚠️ ข้อจำกัด:** ค่า thresholds เหล่านี้ใช้สำหรับ **pipe flow** (การไหลในท่อ) เท่านั้น รูปทรงอื่นจะมีค่าต่างกัน
+
 | Reynolds Number | ระบอบการไหล | ลักษณะ |
 |-----------------|-------------|--------|
 | $Re < 2300$ | Laminar | เรียบ, เป็นชั้นๆ |
 | $2300 < Re < 4000$ | Transitional | ไม่เสถียร, กำลังเปลี่ยน |
 | $Re > 4000$ | Turbulent | ปั่นป่วน, มีการผสมมาก |
+
+**ค่า critical Re สำหรับ geometries อื่นๆ:**
+- **Flat plate:** $Re_x \approx 5 \times 10^5$ (transition ตามระยะทาง)
+- **Flow past cylinder:** $Re \approx 200$ (vortex shedding เริ่ม)
+- **Jet flow:** $Re \approx 10-30$ (เริ่ม unstable)
+
+> **💡 แนะนำ:** ถ้าไม่แน่ใจ — เริ่มจาก laminar, แล้ว check ผลลัพธ์ว่ามี unsteadiness หรือไม่
 
 ### ผลกระทบใน CFD
 
@@ -128,22 +137,59 @@ $$St = \frac{fL}{U}$$
 
 $$y^+ = \frac{y u_\tau}{\nu}$$
 
-โดยที่ $u_\tau = \sqrt{\tau_w/\rho}$ (friction velocity)
+โดยที่:
+- $y$ = ระยะห่างจากผนัง [m]
+- $u_\tau = \sqrt{\tau_w/\rho}$ = friction velocity [m/s]
+- $\nu = \mu/\rho$ = kinematic viscosity [m²/s]
+- $\tau_w$ = wall shear stress [Pa]
 
 ### Boundary Layer Structure
 
-| $y^+$ Range | บริเวณ | การจัดการใน CFD |
-|-------------|--------|-----------------|
-| $y^+ < 5$ | Viscous sublayer | Resolve โดยตรง (low-Re model) |
-| $5 < y^+ < 30$ | Buffer layer | หลีกเลี่ยง |
-| $30 < y^+ < 300$ | Log-law region | ใช้ Wall function |
+```
+┌─────────────────────────────────────────────────────────┐
+│  TURBULENT BOUNDARY LAYER                                │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│  Free Stream                                             │
+│  │                                                       │
+│  ├─ y+ > 300 ──────────────────────────────────┐         │
+│  │    Outer Layer (wake region)                │         │
+│  │                                              │         │
+│  ├─ 30 < y+ < 300 ────────────────────────────┐ │         │
+│  │    Log-law Region (u+ = (1/κ) ln(y+) + B) │ │         │
+│  │    ✓ Wall Functions work well here        │ │         │
+│  │                                              │         │
+│  ├─ 5 < y+ < 30 ─────────────────────────────┐ │ │         │
+│  │    Buffer Layer                            │ │ │         │
+│  │    ✗ Avoid! Neither model works well     │ │ │         │
+│  │                                              │ │ │         │
+│  ├─ y+ < 5 ──────────────────────────────────┐ │ │ │         │
+│  │    Viscous Sublayer (u+ = y+)            │ │ │ │         │
+│  │    ✓ Must resolve with fine mesh         │ │ │ │         │
+│  │                                             │ │ │ │         │
+│  └─ WALL                                      │ │ │ │         │
+└──────────────────────────────────────────────┴─┴─┴─┴─────────┘
+```
+
+| $y^+$ Range | บริเวณ | การจัดการใน CFD | ขนาด cell ใกล้ผนัง |
+|-------------|--------|-----------------|-------------------|
+| $y^+ < 5$ | Viscous sublayer | Resolve โดยตรง (low-Re model) | $\Delta y \approx 1 \times 10^{-5}$ m |
+| $5 < y^+ < 30$ | Buffer layer | หลีกเลี่ยง | ไม่ใช้ทั้งสองแบบ |
+| $30 < y^+ < 300$ | Log-law region | ใช้ Wall function | $\Delta y \approx 1 \times 10^{-3}$ m |
+
+**หมายเหตุ:** ค่า $\Delta y$ ข้างต้นเป็นเพียงตัวอย่างสำหรับ Re ประมาณ $10^5$ ค่าจริงขึ้นกับ flow conditions
 
 ### ตรวจสอบ y+ ใน OpenFOAM
 
 ```bash
 # หลังจากรัน simulation
 postProcess -func yPlus
+
+# หรือ (สำหรับ RAS models)
+yPlusRAS
 ```
+
+ผลลัพธ์จะถูกเขียนไปที่ `postProcessing/` directory — สามารถเปิดดูใน ParaView ได้
 
 ---
 

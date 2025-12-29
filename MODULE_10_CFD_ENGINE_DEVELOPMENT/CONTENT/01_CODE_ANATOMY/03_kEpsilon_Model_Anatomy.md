@@ -13,7 +13,7 @@
 <!-- IMAGE: IMG_10_005 -->
 <!--
 Purpose: เพื่อแสดง Energy Cascade ใน Turbulent Flow และความสัมพันธ์ระหว่าง k และ ε
-Prompt: "Turbulent Energy Cascade Diagram. **Left Side (Large Eddies):** Large swirling structures labeled 'Integral Scale (ℓ)'. Arrows showing energy input 'Production P'. Color: Orange. **Middle Arrow Flow:** Rightward pointing arrow cascade labeled 'Energy Transfer Through Vortex Stretching'. Formula: 'ε = ν_t (∇U)²' showing dissipation rate. **Right Side (Small Eddies):** Small structures labeled 'Kolmogorov Scale (η)'. Bottom shows energy dissipation as heat 'Dissipation ε'. Color: Blue fading to red (heat). **Top Bar:** Energy spectrum E(κ) plot showing κ^(-5/3) slope. Annotations: 'k = Total TKE = ∫E(κ)dκ', 'ε = Energy transfer rate to small scales'. **Style:** Fluid dynamics textbook illustration, arrows showing energy flow, logarithmic scale for energy spectrum, professional color gradients."
+Prompt: "Artistic visualization of the Turbulent Energy Cascade. **Main Visual:** A fluid stream starting as large, swirling orange vortices on the left (Integral Scale), breaking down into smaller and smaller eddies, turning into fine blue noise on the right (Kolmogorov Scale). **Overlay Graph:** A semi-transparent line graph of Energy Spectrum E(κ) vs Wave Number κ (log-log) superimposed on the flow. Slope -5/3 indicated. **Annotations:** Arrows showing 'Energy Production' at large scales and 'Dissipation to Heat' at small scales. **Style:** Fusion of fluid simulation render and scientific graph, cinematic lighting, orange-to-blue gradient."
 -->
 ![IMG_10_005: Turbulent Energy Cascade](IMG_10_005.jpg)
 
@@ -466,7 +466,7 @@ void kEpsilon<BasicTurbulenceModel>::correct()
 <!-- IMAGE: IMG_10_006 -->
 <!--
 Purpose: เพื่อแสดง Physical Meaning ของแต่ละ Term ใน k-ε Transport Equation
-Prompt: "k-ε Transport Equation Term Breakdown. **Main Structure:** Two large boxes side by side. **Left Box (k-Equation):** Title 'Turbulent Kinetic Energy'. Formula: '∂k/∂t + U·∇k = P_k + ∇·[(ν+νₜ/σₖ)∇k] - ε'. Below formula, three color-coded boxes: Green box 'P_k = Production (mean shear → turbulence)', Blue box 'Diffusion (spreading of k)', Red box 'ε = Dissipation (k → heat)'. **Right Box (ε-Equation):** Title 'Dissipation Rate'. Formula: '∂ε/∂t + U·∇ε = C₁(ε/k)Pₖ + ∇·[(ν+νₜ/σₑ)∇ε] - C₂ε²/k'. Three color-coded boxes: Green box 'Production (tracks Pₖ)', Blue box 'Diffusion', Orange box 'Destruction (nonlinear decay)'. **Bottom:** Energy flow diagram: 'Mean Flow → Pₖ → k → ε → Heat'. Arrows showing cascade. **Style:** Equation visualization, color-coded terms, energy flow arrows, clear typography, textbook quality."
+Prompt: "Anatomy of the k-epsilon Transport Equations. **Layout:** Two large, clear equation blocks. **Top Block (k-Equation):** The equation 'Dk/Dt = P_k - ε + div(D_k)'. Arrows pointing to terms with icons: 'Production' (Gear/Engine), 'Dissipation' (Heat/Fire), 'Diffusion' (Spreading mist). **Bottom Block (ε-Equation):** The equation for dissipation rate. Similar icons. **Visual Flow:** A connecting pipe showing 'Energy' flowing from Mean Flow → Production → k → Dissipation → Heat. **Style:** Clean modern infographic, large typography, icon-based term explanation, dark blue background with bright accents."
 -->
 ![IMG_10_006: k-ε Equation Terms](IMG_10_006.jpg)
 
@@ -543,7 +543,7 @@ RAS
 <!-- IMAGE: IMG_10_007 -->
 <!--
 Purpose: เพื่อแสดง Near-Wall Treatment และ Boundary Layers ใน Turbulent Flow
-Prompt: "Turbulent Boundary Layer Structure. **Left Panel (Wall):** Vertical line labeled 'Wall (y=0)'. **Right-to-Left Layers:** 1) Outer layer (large eddies), 2) Log-law region (y⁺ = 30-500), 3) Buffer layer (y⁺ = 5-30), 4) Viscous sublayer (y⁺ < 5). **Top Graph:** Velocity profile u⁺ vs y⁺ on log scale. Three lines: 'Laminar: u⁺ = y⁺' (linear), 'Log-law: u⁺ = 2.44 ln(y⁺) + 5.5' (curved), 'Spalding's law' (full profile). **Bottom Annotations:** Boxes showing: 'Standard wall functions: y⁺ ≈ 30-300', 'Low-Re models: y⁺ < 1 (very fine mesh!)', 'k = 0, ε = ν(∂k/∂n)² at wall'. **Turbulence quantities:** Small graphs showing k(y) and ε(y) profiles peaking in buffer layer. **Style:** CFD boundary layer diagram, semi-log plot, clear region demarcations, textbook illustration with equations."
+Prompt: "Detailed Turbulent Boundary Layer Diagram. **Plot:** Semi-log graph of u+ vs y+. **Regions:** Clearly shaded vertical zones: 'Viscous Sublayer' (Linear, y+ < 5), 'Buffer Layer' (Curved), 'Log-law Region' (Straight line). **Schematic:** Below the graph, a physical cross-section of flow near a wall. Tiny eddies near the wall, growing larger away from it. **Annotations:** Equations for each region (u+=y+, Log law). **Style:** Textbook illustration, precise plotting, clear region boundaries, white background."
 -->
 ![IMG_10_007: Near-Wall Treatment](IMG_10_007.jpg)
 

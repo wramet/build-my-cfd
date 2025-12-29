@@ -93,21 +93,61 @@ inlet
 
 ### Turbulence ที่ Inlet
 
+> **⚠️ การคำนวณค่า Turbulence ที่ Inlet**
+> ค่า k และ ε ข้างต้นไม่ได้เดา แต่คำนวณจากคุณสมบัติการไหล
+
+**Step 1: กำหนด Flow Parameters**
+- ความเร็วเฉลี่ย $U = 10$ m/s
+- Turbulence intensity $I = 5\%$ (0.05)
+- Hydraulic diameter $D = 0.1$ m
+- ความหนืด $\nu = 1.5 \times 10^{-5}$ m²/s (air)
+
+**Step 2: คำนวณ k (Turbulent Kinetic Energy)**
+
+$$k = \frac{3}{2} (I \cdot U)^2$$
+
+$$k = 1.5 \times (0.05 \times 10)^2 = 1.5 \times 0.25 = 0.375 \text{ m}^2/\text{s}^2$$
+
+**Step 3: คำนวณ ε (Dissipation Rate)**
+
+$$\varepsilon = C_\mu^{3/4} \frac{k^{3/2}}{\ell}$$
+
+โดยที่:
+- $C_\mu = 0.09$ (empirical constant)
+- $\ell = 0.07 \times D$ (length scale สำหรับ pipe flow)
+- $\ell = 0.07 \times 0.1 = 0.007$ m
+
+$$\varepsilon = 0.09^{0.75} \times \frac{0.375^{1.5}}{0.007}$$
+
+$$\varepsilon = 0.164 \times \frac{0.229}{0.007} \approx 5.38 \text{ m}^2/\text{s}^3$$
+
 ```cpp
 // 0/k
 inlet
 {
     type    fixedValue;
-    value   uniform 0.375;      // k = 1.5 * (I * U)^2
+    value   uniform 0.375;      // k = 1.5 * (I * U)^2 = 1.5 * (0.05 * 10)^2
 }
 
 // 0/epsilon
 inlet
 {
     type    fixedValue;
-    value   uniform 14.855;     // epsilon = Cmu^0.75 * k^1.5 / l
+    value   uniform 5.38;       // epsilon = Cmu^0.75 * k^1.5 / l
+}
+
+// 0/omega (สำหรับ k-ω model)
+inlet
+{
+    type    fixedValue;
+    value   uniform 119.5;      // omega = k / (nu / sqrt(Cmu)) = ...
 }
 ```
+
+> **💡 Quick Formula:**
+> - **k:** $k = 1.5 \times (I \cdot U)^2$
+> - **ε:** $\varepsilon = C_\mu^{0.75} \cdot k^{1.5} / \ell$ โดย $\ell = 0.07 D$
+> - **ω:** $\omega = \sqrt{k} / (C_\mu^{0.25} \cdot \ell)$
 
 ---
 
@@ -173,8 +213,49 @@ rotatingWall
 
 ### Wall Functions (Turbulence)
 
+> **⚠️ การเลือก Wall Function**
+> การเลือก wall function ที่เหมาะสมขึ้นอยู่กับ **y+** ของ cell ใกล้ผนังมากกว่า
+
+**Flowchart การเลือก:**
+
+```
+                    START
+                      │
+              ┌───────┴───────┐
+              │ Check y+      │
+              │ (postProcess) │
+              └───────┬───────┘
+                      │
+          ┌───────────┴────────────┐
+          │                        │
+    y+ < 5 (Fine mesh)      30 < y+ < 300 (Coarse mesh)
+          │                        │
+          ▼                        ▼
+  ┌───────────────┐      ┌─────────────────┐
+  │ Low-Re Model  │      │ Wall Functions  │
+  │ (resolve BL)  │      │ (model BL)      │
+  └───────┬───────┘      └────────┬────────┘
+          │                       │
+  nutkLowReWallFunction     nutkWallFunction
+  kqRWallFunction           epsilonWallFunction
+                          omegaWallFunction
+          │                       │
+          └───────────┬───────────┘
+                      │
+                      ▼
+              SOLVE SIMULATION
+```
+
+**คำแนะนำแยกตาม Model:**
+
+| Turbulence Model | y+ Range | Wall Function BCs |
+|------------------|----------|-------------------|
+| **k-ε** | 30-300 | `nutkWallFunction`, `epsilonWallFunction` |
+| **k-ω SST** | < 5 | `nutkWallFunction`, `omegaWallFunction` (auto-switches) |
+| **Spalart-Allmaras** | < 5 | `nutUSpaldingWallFunction` |
+
 ```cpp
-// 0/nut
+// 0/nut - Wall function สำหรับ k-ε
 walls
 {
     type    nutkWallFunction;

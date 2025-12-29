@@ -1,60 +1,173 @@
-# Phase Change Modeling
-
-การจำลอง Phase Change
-
----
-
-## Overview
+# Phase Change Modeling (การจำลองการเปลี่ยนสถานะ)
 
 > **Phase change** = Transition between liquid/vapor/solid
 
 ---
 
-## 1. Types
+## 1. ประเภทของการเปลี่ยนสถานะ (Types of Phase Change)
 
-| Type | Example |
-|------|---------|
-| Boiling | Water → Steam |
-| Condensation | Steam → Water |
-| Cavitation | Liquid → Vapor (low p) |
-| Solidification | Liquid → Solid |
+| Type | ชนิด | ตัวอย่าง | Driving Force |
+|------|------|---------|---------------|
+| **Boiling** | การเดือด | Water → Steam | Temperature (T > T_sat) |
+| **Condensation** | การควบแน่น | Steam → Water | Temperature (T < T_sat) |
+| **Cavitation** | การเกิดโพรง | Liquid → Vapor (low p) | Pressure (p < p_sat) |
+| **Solidification** | การแข็งตัว | Liquid → Solid | Temperature (T < T_melt) |
+| **Evaporation** | การระเหย | Liquid → Vapor (surface) | Concentration gradient |
 
 ---
 
-## 2. Solver
+## 2. Solvers ใน OpenFOAM
 
 ```bash
-interPhaseChangeFoam  # Cavitation
-interCondensatingEvaporatingFoam  # Boiling
+# Cavitation (การเกิดโพรง)
+interPhaseChangeFoam
+
+# Boiling/Condensation (การเดือด/ควบแน่น)
+interCondensatingEvaporatingFoam
+
+# Multiphase with phase change
+reactingTwoPhaseEulerFoam
+multiphaseEulerFoam
 ```
 
 ---
 
-## 3. Mass Transfer
+## 3. สมการการถ่ายเทมวล (Mass Transfer Equation)
 
 ```cpp
-// Source in VOF equation
+// Source term in VOF equation
 ∂α/∂t + ∇·(Uα) = Γ_evap - Γ_cond
+
+α  = Volume fraction
+Γ  = Mass transfer rate [kg/(m³·s)]
 ```
+
+### 3.1 แบบจำลองการถ่ายเทมวล (Mass Transfer Models)
+
+#### แบบจำลอง Lee (Lee Model)
+
+อัตราการถ่ายเทมวลอิงจากความแตกต่างของอุณหภูมิ:
+
+$$\Gamma = r \cdot \alpha \cdot \rho \cdot \frac{|T - T_{sat}|}{T_{sat}}$$
+
+โดยที่:
+- $r$ = ค่าสัมประสิทธิ์การผ่อนถ่าย [1/s]
+- $\alpha$ = volume fraction ของเฟส
+- $\rho$ = ความหนาแน่น [kg/m³]
+- $T$ = อุณหภูมิ [K]
+- $T_{sat}$ = อุณหภูมิอิ่มตัว [K]
+
+#### แบบจำลอง Hertz-Knudsen
+
+อิงจากจลนพลศาสตร์โมเลกุล:
+
+$$\Gamma = \frac{2\sigma}{2-\sigma} \sqrt{\frac{M}{2\pi R}} \left(\frac{p_{sat}}{\sqrt{T_{sat}}} - \frac{p}{\sqrt{T}}\right)$$
 
 ---
 
-## 4. Setup
+## 4. การตั้งค่าใน OpenFOAM (Setup)
+
+### 4.1 สำหรับ Cavitation (SchnerrSauer Model)
 
 ```cpp
 // constant/phaseProperties
-model SchnerrSauer;
-pSat 2300;  // Saturation pressure
+phases (water vapor);
+
+water
+{
+    transportModel  Newtonian;
+    nu              1e-06;
+    rho             1000;
+}
+
+vapor
+{
+    transportModel  Newtonian;
+    nu              4.273e-04;
+    rho             0.023;
+}
+
+phaseChangeModel SchnerrSauer;
+
+SchnerrSauerCoeffs
+{
+    nBubbles     1e13;      // จำนวนฟองต่อลูกบาศก์เมตร
+    pSat         2300;      // ความดันอิ่มตัว [Pa]
+    dNucleation  1e-06;     // ขนาดเริ่มต้นของฟอง [m]
+}
 ```
+
+### 4.2 สำหรับ Boiling/Condensation
+
+```cpp
+// constant/phaseProperties
+phaseChangeModel thermalPhaseChange;
+
+thermalPhaseChangeCoeffs
+{
+    hLv     2.26e6;      // Latent heat of vaporization [J/kg]
+    Tsat    373.15;      // Saturation temperature [K]
+
+    // Mass transfer coefficient
+    r       100;         // Relaxation factor [1/s]
+
+    // Temperature limits
+    Tmin    300;         // Minimum temperature [K]
+    Tmax    400;         // Maximum temperature [K]
+}
+```
+
+### 4.3 Boundary Conditions
+
+```cpp
+// 0/T (Temperature)
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   uniform 300;
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 300;
+    }
+
+    heatedWall
+    {
+        type            fixedValue;
+        value           uniform 380;  // เหนือ T_sat ทำให้เกิดการเดือด
+    }
+
+    outlet
+    {
+        type            zeroGradient;
+    }
+}
+```
+
+---
+
+## 5. ข้อควรระวังและปัญหาที่พบบ่อย
+
+| ปัญหา | สาเหตุ | วิธีแก้ |
+|--------|---------|---------|
+| **Divergence** | Timestep ใหญ่เกินไป | ลด Δt หรือใช้ MaxCo < 0.3 |
+| **Unrealistic Temperature** | BC ผิด หรือ Cp ผิด | ตรวจสอบ BC และ thermophysical properties |
+| **Pressure Oscillations** | การเปลี่ยนความหนาแน่นอย่างรุนแรง | เพิ่ม nCorrectors ใน PIMPLE (3-5 ครั้ง) |
+| **Mass Imbalance** | Mass transfer rate ไม่สมดุล | ตรวจสอบ Γ_evap และ Γ_cond |
 
 ---
 
 ## Quick Reference
 
-| Solver | Use |
-|--------|-----|
-| interPhaseChangeFoam | Cavitation |
-| interCondensating... | Boiling |
+| Solver | การใช้งาน | Phase Change |
+|--------|-------------|--------------|
+| interPhaseChangeFoam | Cavitation | Pressure-driven |
+| interCondensating... | Boiling/Condensation | Temperature-driven |
+| reactingTwoPhaseEulerFoam | Multiphase reacting | Both |
+
+---
 
 ## 🧠 Concept Check
 

@@ -18,6 +18,28 @@ FVM ทำงานบน **Integral form** ของสมการอนุร
 
 $$\frac{\partial}{\partial t}\int_V \phi\, dV + \oint_S \mathbf{F} \cdot \mathbf{n}\, dS = \int_V S\, dV$$
 
+### Discretization Workflow
+
+```mermaid
+graph TD
+    A[PDE<br/>∂φ/∂t + ∇·F = S] --> B[Integral Form<br/>∫V + ∮S = ∫V S]
+    B --> C[Divide Domain<br/>into Cells]
+    C --> D[Compute Fluxes<br/>at Faces]
+    D --> E[Assemble Matrix<br/>aPφP + ΣaNφN = bP]
+    E --> F[Solve Linear System<br/>GAMG/PCG/PBiCGStab]
+    F --> G[Update Field<br/>φnew]
+    G --> H{Converged?}
+    H -->|No| D
+    H -->|Yes| I[Next Time Step]
+```
+
+**ขั้นตอนหลัก:**
+1. **Mesh generation** → แบ่ง domain เป็น cells
+2. **Flux calculation** → คำนวณผลรวมที่ faces
+3. **Matrix assembly** → สร้าง $[A][\phi] = [b]$
+4. **Linear solve** → หาคำตอบด้วย iterative solvers
+5. **Update & repeat** → วนจน converged
+
 | สิ่งที่อนุรักษ์ | สมการ | OpenFOAM Field |
 |----------------|-------|----------------|
 | มวล | $\nabla \cdot \mathbf{u} = 0$ | `U`, `p` |

@@ -218,7 +218,11 @@ gradSchemes
 divSchemes
 {
     default         none;
-    div(phi,U)      Gauss linear;
+    div(phi,U)      Gauss linear;      // 2nd order, accurate สำหรับ laminar flow
+    // หากใช้ Re สูงๆ อาจต้องเปลี่ยนเป็น:
+    // div(phi,U) Gauss linearUpwind grad(U);  // 2nd order + stable
+    // หรือ:
+    // div(phi,U) Gauss upwind;                 // 1st order + very stable
 }
 
 laplacianSchemes
@@ -284,10 +288,15 @@ paraFoam
 ```
 
 **ใน ParaView:**
-1. Click "Apply"
-2. เลือก "U" → Surface with Edges
-3. เลือก "U" → Glyph (vectors)
-4. Filter → Stream Tracer
+1. Click "Apply" (ปุ่มสีเขียวด้านบน) → แสดง mesh
+2. เลือก "U" → Surface with Edges → แสดง velocity magnitude เป็นสี
+3. เลือก "U" → Glyph → แสดง velocity vectors (ลูกศร)
+4. Filter → Stream Tracer (หรือ Streamlines) → แสดง pathlines
+
+**เคล็ดลับ:**
+- ใช้ **Color by** → **U** → **Magnitude** เพื่อดู velocity distribution
+- ใช้ **Rescale to Custom Range** ปรับ scale สีให้ชัดเจน
+- บันทึกภาพ: **File** → **Export Screenshot...** หรือกด `Ctrl+E`
 
 ---
 

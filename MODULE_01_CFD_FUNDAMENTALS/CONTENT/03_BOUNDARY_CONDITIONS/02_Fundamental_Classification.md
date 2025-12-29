@@ -98,6 +98,10 @@ heatedWall
 
 **ใช้เมื่อ:** รู้ flux แต่ไม่รู้ค่าที่ผิว (เช่น heater ให้ heat flux คงที่)
 
+> **⚠️ หมายเหตุ:** ใน OpenFOAM `fixedGradient` กำหนด **gradient** ของ field โดยตรง ไม่ใช่ heat flux
+> - สำหรับ Temperature: `gradient` = $\partial T/\partial n$ [K/m]
+> - Actual heat flux: $q'' = -k \cdot \nabla T$ [W/m²] (โดย $k$ = thermal conductivity)
+
 ---
 
 ## 3. Robin (Mixed)
@@ -246,6 +250,8 @@ procBoundary0to1 { type processor; }
 **y+ คืออะไร:** ระยะห่างจากผนังในหน่วย wall units
 
 $$y^+ = \frac{y \cdot u_\tau}{\nu}$$
+
+โดยที่ $u_\tau = \sqrt{\frac{\tau_w}{\rho}}$ คือ friction velocity (ความเร็วเฉือนจากแรงเสียดทานผนัง)
 
 **ทำไมสำคัญ:**
 - y+ < 5: Viscous sublayer → ต้องใช้ Low-Re model

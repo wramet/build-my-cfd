@@ -34,6 +34,38 @@ graph LR
 
 ---
 
+### Continuum Hypothesis: เมื่อไหร่ CFD ใช้ไม่ได้?
+
+> **⚠️ ข้อจำกัดของ Continuum Approach**
+> สมการ N-S ถูกพัฒนาภายใต้สมมติฐานว่าของไหลเป็นตัวกลางต่อเนื่อง แต่สมมติฐานนี้ **ละเมิดได้** เมื่อ scale ของปัญหาใกล้เคียงกับ mean free path (ระยะห่างเฉลี่ยที่โมเลกุลเดินทางระหว่างการชน)
+
+**Knudsen Number (Kn):** ตัวชี้วัดความถูกต้องของ continuum assumption
+
+$$Kn = \frac{\lambda}{L}$$
+
+โดยที่:
+- $\lambda$ = mean free path [m] (ระยะห่างเฉลี่ยระหว่างโมเลกุล)
+- $L$ = characteristic length scale [m] (ขนาดของปัญหา)
+
+| Flow Regime | Kn Range | Approach | ตัวอย่าง |
+|-------------|----------|----------|----------|
+| **Continuum** | Kn < 0.01 | N-S Equations ✓ | การไหลในท่อ, รถยนต์, อากาศยาน |
+| **Slip** | 0.01 < Kn < 0.1 | N-S + Slip BC | MEMS, Microfluidics |
+| **Transition** | 0.1 < Kn < 10 | Boltzmann Equation | Vacuum systems |
+| **Free Molecular** | Kn > 10 | Particle methods | Spacecraft re-entry |
+
+**ตัวอย่างคำนวณ:**
+- **Air ที่ STP:** $\lambda \approx 68$ nm
+- **L = 1 mm (pipe):** $Kn = 68 \times 10^{-9} / 0.001 \approx 7 \times 10^{-5}$ → **Continuum ✓**
+- **L = 100 nm (nanofluidic):** $Kn = 68 \times 10^{-9} / 10^{-7} \approx 0.68$ → **Continuum ละเมิด ✗**
+
+> **💡 สรุป:** สำหรับงาน CFD ทั่วไป (macroscopic flows), continuum assumption ถือเป็นจริงเสมอ ยกเว้น:
+> - Microfluidics (channel < 10 μm)
+> - High-altitude aerodynamics (rarefied gas)
+> - Vacuum technology
+
+---
+
 ## กฎการอนุรักษ์พื้นฐาน
 
 ฟิสิกส์ของการไหลถูกควบคุมโดยกฎการอนุรักษ์ 3 ข้อ ซึ่งเป็นหลักการพื้นฐานที่ไม่มีข้อยกเว้น
@@ -142,7 +174,26 @@ $$\mathbf{u} = \overline{\mathbf{u}} + \mathbf{u}'$$
 
 โดย $\overline{\mathbf{u}}$ คือค่าเฉลี่ย และ $\mathbf{u}'$ คือค่าผันผวน (fluctuation)
 
-**RANS Equations** มีพจน์เพิ่มเติมคือ **Reynolds stress** $-\rho \overline{\mathbf{u}' \mathbf{u}'}$ ที่ต้องใช้ Turbulence model (เช่น k-ε, k-ω) ในการประมาณค่า
+**⚠️ ปัญหา Closure:**
+เมื่อแทนค่า decomposition ลงในสมการ N-S และทำการ averaging จะเกิดพจน์ใหม่:
+$$-\rho \overline{\mathbf{u}' \mathbf{u}'}$$
+
+เรียกพจน์นี้ว่า **Reynolds Stress Tensor** — ซึ่งเป็น **unknown 6 components** ใน 3D!
+
+**ทำไมเป็นปัญหา?**
+- เรามีสมการ 4 คือ (continuity + 3 momentum components)
+- แต่มี unknowns เพิ่มขึ้น 6 ตัว (Reynolds stresses)
+- → **ระบบไม่สมบูรณ์ (under-determined)**
+
+**ทางออก: Turbulence Modeling**
+ต้อง "ปิด" (close) ระบบโดยใช้ **Turbulence Models** ซึ่งสร้างความสัมพันธ์ระหว่าง Reynolds stresses กับค่าเฉลี่ย $\overline{\mathbf{u}}$:
+
+| Model | Approach | ใช้เมื่อ |
+|-------|----------|----------|
+| **k-ε** | Eddy viscosity (2 equations) | Industrial flows, far-field |
+| **k-ω** | Eddy viscosity (2 equations) | Near-wall, adverse pressure gradient |
+| **LES** | Filter large eddies | Transient, detail needed |
+| **DNS** | Solve all scales | Research, very low Re |
 
 ---
 

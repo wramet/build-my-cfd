@@ -1,15 +1,15 @@
 # การตั้งค่า Castellated Mesh (Castellated Mesh Settings)
 
-> [!TIP]为什么这很重要？
-> **为什么这很重要？**
+> [!TIP] ทำไมต้องให้ความสำคัญกับเรื่องนี้?
+> **ทำไมต้องให้ความสำคัญกับเรื่องนี้?**
 >
-> `castellatedMeshControls` 是 **SnappyHexMesh 的核心大脑**，决定了网格分辨率如何在几何体周围分布。
-> 直接影响：
-> - **仿真精度**：梯度、边界层的捕捉能力
-> - **计算成本**：cell 数量直接影响求解时间
-> - **网格质量**：不合理的 refinement 会导致高 skewness 或 non-orthogonality
+> `castellatedMeshControls` คือ **"สมอง" ของ SnappyHexMesh** ที่กำหนดว่าความละเอียดของ Mesh จะกระจายตัวอย่างไรรอบๆ เรขาคณิต
+> ส่งผลโดยตรง:
+> - **ความแม่นยำของการจำลอง**: ความสามารถในการจับ Gradient และ Boundary Layer
+> - **ต้นทุนการคำนวณ**: จำนวน Cell ส่งผลต่อเวลาที่ Solver ใช้
+> - **คุณภาพ Mesh**: Refinement ที่ไม่เหมาะสมจะทำให้เกิด Skewness หรือ Non-orthogonality สูง
 >
-> **简单来说**：这是"在哪里要多细、在哪里可以粗"的战略决策，平衡精度与效率的关键。
+> **โดยสรุป**: นี่คือ "การตัดสินใจเชิงกลยุทธ์" ว่า "ตรงไหนควรละเอียด ตรงไหนควรหยาบ" เพื่อหาสมดุลระหว่างความแม่นยำและประสิทธิภาพ
 
 หัวใจของการควบคุมความละเอียด (Resolution) ของ Mesh อยู่ที่ Dict ย่อยชื่อ `castellatedMeshControls` ในไฟล์ `snappyHexMeshDict`
 
@@ -23,17 +23,17 @@
 
 > [!NOTE] **📂 OpenFOAM Context**
 >
-> **文件位置 (File Location):**
-> - `system/snappyHexMeshDict` → `castellatedMeshControls` 子字典
+> **ตำแหน่งไฟล์ (File Location):**
+> - `system/snappyHexMeshDict` → `castellatedMeshControls` พจนานุกรมย่อย
 >
-> **核心关键词 (Key Keywords):**
-> - `maxGlobalCells` - 全局 cell 数量上限（防止内存溢出）
-> - `nCellsBetweenLevels` - 不同 refinement level 之间的缓冲层数量
-> - `maxLoadUnbalance` - 并行计算时的负载平衡参数
-> - `minRefinementCells` - 最小 refinement cell 数量阈值（过滤噪声）
+> **คำสำคัญหลัก (Key Keywords):**
+> - `maxGlobalCells` - จำนวน Cell สูงสุดทั้งหมด (ป้องกัน Memory Overflow)
+> - `nCellsBetweenLevels` - จำนวนชั้น Buffer ระหว่าง Refinement level ต่างๆ
+> - `maxLoadUnbalance` - พารามิเตอร์ Load Balancing สำหรับ Parallel
+> - `minRefinementCells` - ค่า threshold จำนวน Cell ขั้นต่ำสำหรับ Refinement (กรอง Noise)
 >
-> **影响范围：**
-> 这些参数控制 **SnappyHexMesh 算法的全局行为**，不针对特定几何，而是控制整个网格生成过程的资源分配和质量约束。
+> **ขอบเขตผลกระทบ:**
+> พารามิเตอร์เหล่านี้ควบคุม **พฤติกรรมทั่วไปของอัลกอริทึม SnappyHexMesh** ไม่ได้เจาะจงเฉพาะเรขาคณิต แต่ควบคุมการจัดสรรทรัพยากรและข้อจำกัดคุณภาพของกระบวนการสร้าง Mesh ทั้งหมด
 
 ```cpp
 castellatedMeshControls
@@ -57,21 +57,21 @@ castellatedMeshControls
 
 > [!NOTE] **📂 OpenFOAM Context**
 >
-> **文件位置 (File Location):**
-> - `system/snappyHexMeshDict` → `castellatedMeshControls` → `features` 列表
-> - **前置步骤**：需要先运行 `surfaceFeatureExtract` 生成 `.eMesh` 文件
+> **ตำแหน่งไฟล์ (File Location):**
+> - `system/snappyHexMeshDict` → `castellatedMeshControls` → `features` รายการ
+> - **ขั้นตอนก่อนหน้า**: ต้องรัน `surfaceFeatureExtract` เพื่อสร้างไฟล์ `.eMesh` ก่อน
 >
-> **核心关键词 (Key Keywords):**
-> - `file` - 指定特征边文件（`.eMesh` 格式）
-> - `level` - 指定特征边周围的 refinement level
+> **คำสำคัญหลัก (Key Keywords):**
+> - `file` - ระบุไฟล์ Feature Edge (รูปแบบ `.eMesh`)
+> - `level` - ระบุ Refinement level รอบๆ เส้น Feature
 >
-> **影响范围：**
-> 这个设置控制 **如何捕捉几何体的尖锐边缘和特征线**，确保网格能准确描述几何细节，特别是在曲率突变区域（如汽车车身的棱边、翼型前缘等）。
+> **ขอบเขตผลกระทบ:**
+> การตั้งค่านี้ควบคุม **วิธีการจับเส้นขอบและเส้น Feature ของเรขาคณิต** เพื่อให้ Mesh สามารถอธิบายรายละเอียดของเรขาคณิตได้อย่างแม่นยำ โดยเฉพาะบริเวณที่มีการเปลี่ยนแปลงของความโค้งสูง (เช่น ขอบรถ, ปลายปีก)
 >
-> **典型应用场景：**
-> - 汽车外气动：车身腰线、车窗边缘
-> - 航空航天：机翼前缘、后缘
-> - 旋转机械：叶片边缘
+> **สถานการณ์การใช้งานทั่วไป:**
+> - รถยนต์ Aerodynamics: ร่องรถ, ขอบหน้าต่าง
+> - การบิน: ปลายปีกด้านหน้า, ด้านหลัง
+> - เครื่องจักรที่หมุน: ขอบใบพัด
 
 ใช้เพื่อบังคับให้ Mesh ละเอียดรอบๆ เส้นขอบคม (Feature Edges) ที่สกัดมาจาก `surfaceFeatureExtract`
 
@@ -89,27 +89,27 @@ features
 
 > [!NOTE] **📂 OpenFOAM Context**
 >
-> **文件位置 (File Location):**
-> - `system/snappyHexMeshDict` → `castellatedMeshControls` → `refinementSurfaces` 字典
+> **ตำแหน่งไฟล์ (File Location):**
+> - `system/snappyHexMeshDict` → `castellatedMeshControls` → `refinementSurfaces` พจนานุกรม
 >
-> **核心关键词 (Key Keywords):**
-> - `level (min max)` - 指定每个 patch 的最小和最大 refinement level
-> - `patchInfo` - 定义边界条件类型（自动创建 `polyMesh/boundary` 文件）
-> - `type wall` / `type patch` - 边界类型定义
+> **คำสำคัญหลัก (Key Keywords):**
+> - `level (min max)` - ระบุ Refinement level ต่ำสุดและสูงสุดสำหรับแต่ละ patch
+> - `patchInfo` - นิยามประเภท Boundary Condition (สร้างไฟล์ `polyMesh/boundary` อัตโนมัติ)
+> - `type wall` / `type patch` - นิยามประเภท Boundary
 >
-> **影响范围：**
-> 这是 **SnappyHexMesh 最关键的设置**，直接决定：
-> - 几何表面的网格分辨率
-> - 边界层的起始质量（与后续 `addLayersControls` 配合）
-> - 求解器的边界条件设置（通过 `patchInfo` 自动生成）
+> **ขอบเขตผลกระทบ:**
+> นี่คือ **การตั้งค่าที่สำคัญที่สุดของ SnappyHexMesh** ที่กำหนดโดยตรง:
+> - ความละเอียดของ Mesh บนผิวเรขาคณิต
+> - คุณภาพเริ่มต้นของ Boundary Layer (ทำงานร่วมกับ `addLayersControls`)
+> - การตั้งค่า Boundary Condition ของ Solver (สร้างอัตโนมัติผ่าน `patchInfo`)
 >
-> **关键点：**
-> - Min level：基础分辨率，用于大部分表面
-> - Max level：高曲率或尖锐区域自动使用
-> - `patchInfo` 直接影响后续 `0/` 目录中的边界条件文件
+> **จุดสำคัญ:**
+> - Min level: ความละเอียดพื้นฐาน สำหรับผิวส่วนใหญ่
+> - Max level: ใช้กับบริเวณที่มีความโค้งสูงหรือมุมแหลมโดยอัตโนมัติ
+> - `patchInfo` ส่งผลต่อไฟล์ Boundary Condition ในโฟลเดอร์ `0/` โดยตรง
 >
-> **与求解器的连接：**
-> `refinementSurfaces` 中定义的 patch 名称和类型会直接出现在求解阶段的 `0/U`、`0/p`、`0/k` 等文件的边界条件中！
+> **การเชื่อมต่อกับ Solver:**
+> ชื่อและประเภท Patch ที่ระบุใน `refinementSurfaces` จะปรากฏโดยตรงใน Boundary Condition ของไฟล์ `0/U`, `0/p`, `0/k` ฯลฯ ในขั้นตอน Solver!
 
 ส่วนที่สำคัญที่สุด ใช้กำหนดความละเอียดของพื้นผิวแต่ละ Patch
 
@@ -169,26 +169,26 @@ graph LR
 
 > [!NOTE] **📂 OpenFOAM Context**
 >
-> **文件位置 (File Location):**
+> **ตำแหน่งไฟล์ (File Location):**
 > - `system/snappyHexMeshDict` → `castellatedMeshControls` → `resolveFeatureAngle`
 >
-> **核心关键词 (Key Keywords):**
-> - `resolveFeatureAngle` - 角度阈值（单位：度）
-> - 与 `refinementSurfaces` 中的 `(min max)` level 配合使用
+> **คำสำคัญหลัก (Key Keywords):**
+> - `resolveFeatureAngle` - ค่า Threshold ของมุม (หน่วย: องศา)
+> - ใช้ร่วมกับ `(min max)` level ใน `refinementSurfaces`
 >
-> **工作机制：**
-> 这个参数控制 **何时自动升级到 Max Level**：
-> - SnappyHexMesh 会计算每个 cell 内表面的法向量变化角度
-> - 如果角度变化 **超过** `resolveFeatureAngle`，说明该区域曲率高或几何特征复杂
-> - 算法自动使用 **Max Level** 进行 refinement
+> **กลไกการทำงาน:**
+> พารามิเตอร์นี้ควบคุม **เมื่อไรที่จะอัปเกรดเป็น Max Level โดยอัตโนมัติ**:
+> - SnappyHexMesh จะคำนวณค่ามุมของ Normal Vector บนผิวภายในแต่ละ Cell
+> - หากการเปลี่ยนแปลงของมุม **เกิน** `resolveFeatureAngle` แสดงว่าบริเวณนั้นมีความโค้งสูงหรือเรขาคณิตซับซ้อน
+> - อัลกอริทึมจะใช้ **Max Level** เพื่อ Refinement อัตโนมัติ
 >
-> **典型设置：**
-> - `30`（默认值）：适用于大多数工程应用
-> - `15-20`：复杂几何（如复杂的发动机舱内部）
-> - `45-60`：简单几何，减少不必要的 refinement
+> **การตั้งค่าทั่วไป:**
+> - `30` (ค่า Default): เหมาะสำหรับงานวิศวกรรมส่วนใหญ่
+> - `15-20`: เรขาคณิตซับซ้อน (เช่น ภายในห้องเครื่องยนต์ที่ซับซ้อน)
+> - `45-60`: เรขาคณิตง่าย ลด Refinement ที่ไม่จำเป็น
 >
-> **与 `refinementSurfaces` 的协同：**
-> 这个参数决定了 `level (min max)` 中 Max level 的 **触发条件**！
+> **การทำงานร่วมกับ `refinementSurfaces`:**
+> พารามิเตอร์นี้กำหนด **เงื่อนไขการทำงาน** ของ Max level ใน `level (min max)`!
 
 ```cpp
 resolveFeatureAngle 30;
@@ -201,32 +201,32 @@ resolveFeatureAngle 30;
 
 > [!NOTE] **📂 OpenFOAM Context**
 >
-> **文件位置 (File Location):**
-> - `system/snappyHexMeshDict` → `castellatedMeshControls` → `refinementRegions` 字典
+> **ตำแหน่งไฟล์ (File Location):**
+> - `system/snappyHexMeshDict` → `castellatedMeshControls` → `refinementRegions` พจนานุกรม
 >
-> **核心关键词 (Key Keywords):**
-> - `mode` - 指定 refinement 模式（`inside`/`outside`/`distance`）
-> - `levels` - 指定 refinement level
-> - 与 `constant/triSurface/` 中的几何文件配合使用
+> **คำสำคัญหลัก (Key Keywords):**
+> - `mode` - ระบุโหมด Refinement (`inside`/`outside`/`distance`)
+> - `levels` - ระบุ refinement level
+> - ทำงานร่วมกับไฟล์เรขาคณิตใน `constant/triSurface/`
 >
-> **影响范围：**
-> 这个设置控制 **体积区域的网格分辨率**，与 `refinementSurfaces`（表面 refinement）形成互补：
+> **ขอบเขตผลกระทบ:**
+> การตั้งค่านี้ควบคุม **ความละเอียดของ Mesh ในปริมาตร** เสริมให้กับ `refinementSurfaces` (surface refinement):
 >
-> **三种模式的应用场景：**
-> - `inside`：尾迹区域、燃烧室内部、管道核心流区
-> - `outside`：外场（Domain 边界附近）
-> - `distance`：基于距离的梯度 refinement（例如：在物体周围创建多层加密区域）
+> **สถานการณ์การใช้งาน 3 โหมด:**
+> - `inside`: บริเวณ Wake, ภายในห้องเผาไหม้, ส่วนกลางของท่อ
+> - `outside`: ภายนอก (ใกล้ขอบเขต Domain)
+> - `distance`: Refinement แบบ Gradient ตามระยะห่าง (เช่น สร้างหลายชั้นรอบวัตถุ)
 >
-> **典型应用案例：**
-> - **汽车外气动**：在车身后方创建 `wakeBox`，`mode inside`，捕捉尾迹涡流
-> - **风力发电机**：在转子周围创建圆柱形 `distance` refinement，捕捉叶片尾迹
-> - **换热器**：在管束之间创建 `box` refinement，捕捉复杂流动
+> **ตัวอย่างการใช้งาน:**
+> - **รถยนต์ Aerodynamics**: สร้าง `wakeBox` ด้านหลังรถ, `mode inside`, เพื่อจับ Wake Vortex
+> - **กังหันลม**: สร้าง `distance` refinement ทรงกระบอกรอบๆ Rotor, เพื่อจับ Wake ใบพัด
+> - **เครื่องแลกเปลี่ยนความร้อน**: สร้าง `box` refinement ระหว่างท่อ, เพื่อจับการไหลที่ซับซ้อน
 >
-> **与求解器的连接：**
-> `refinementRegions` 直接影响流动现象的捕捉能力：
-> - 尾迹 refinement → 影响升力、阻力的计算精度
-> - 剪切层 refinement → 影响湍流模型的性能
-> - 边界层附近 refinement → 为 `addLayersControls` 提供更好的基础网格
+> **การเชื่อมต่อกับ Solver:**
+> `refinementRegions` ส่งผลต่อความสามารถในการจับกระแสการไหล:
+> - Wake refinement → ส่งผลต่อความแม่นยำของการคำนวณ Lift, Drag
+> - Shear Layer refinement → ส่งผลต่อประสิทธิภาพของ Turbulence Model
+> - Boundary Layer 附近 refinement → ให้ฐานที่ดีกว่าสำหรับ `addLayersControls`
 
 ใช้กำหนดความละเอียด **ภายในปริมาตร** (Volume Refinement) ไม่ใช่แค่ผิว
 *   ใช้รูปทรง (`searchableSurface`) เช่น box, sphere, cylinder มากำหนดโซน
@@ -250,31 +250,31 @@ refinementRegions
 
 > [!NOTE] **📂 OpenFOAM Context**
 >
-> **文件位置 (File Location):**
+> **ตำแหน่งไฟล์ (File Location):**
 > - `system/snappyHexMeshDict` → `castellatedMeshControls` → `locationInMesh`
 >
-> **核心关键词 (Key Keywords):**
-> - `locationInMesh` - 坐标点 `(x y z)`
-> - 与 `castellatedMesh` 删除算法配合使用
+> **คำสำคัญหลัก (Key Keywords):**
+> - `locationInMesh` - พิกัดจุด `(x y z)`
+> - ทำงานร่วมกับอัลกอริทึมการลบของ `castellatedMesh`
 >
-> **工作机制：**
-> 这是 **SnappyHexMesh 的"种子点"（Seed Point）**：
-> - SnappyHexMesh 从这个点开始"填充"流体域
-> - 该点所在区域会被保留为 **Fluid**
-> - 其他被几何体占据的区域会被删除（变成 Solid）
+> **กลไกการทำงาน:**
+> นี่คือ **"Seed Point" (จุดเริ่มต้น)** ของ SnappyHexMesh:
+> - SnappyHexMesh เริ่ม "เติมเต็ม" Fluid Domain จากจุดนี้
+> - บริเวณที่จุดนี้อยู่จะถูกเก็บเป็น **Fluid**
+> - บริเวณที่เรขาคณิตครอบครองจะถูกลบ (กลายเป็น Solid)
 >
-> **关键点：**
-> - **External Flow**：点必须在流体域中（不在几何体内部）
-> - **Internal Flow**：点必须在流体区域内（不在管道壁内）
-> - **Multi-region**：需要使用 `locationInMesh` 列表为每个区域指定种子点
+> **จุดสำคัญ:**
+> - **External Flow**: จุดต้องอยู่ใน Fluid Domain (ไม่ใช่ภายในเรขาคณิต)
+> - **Internal Flow**: จุดต้องอยู่ในบริเวณ Fluid (ไม่ใช่ภายในผนังท่อ)
+> - **Multi-region**: ต้องใช้ `locationInMesh` รายการเพื่อระบุจุดเริ่มต้นสำหรับแต่ละบริเวณ
 >
-> **常见错误：**
-> - ❌ 点落在几何体表面上（会导致失败）
-> - ❌ 点落在背景网格的 face 或 node 上（需要微调坐标）
-> - ✅ 建议使用 ParaView 查看几何，然后手动选取一个清晰的流体域点
+> **ข้อผิดพลาดที่พบบ่อย:**
+> - ❌ จุดตกอยู่บนผิวเรขาคณิต (จะทำให้ล้มเหลว)
+> - ❌ จุดตกอยู่บน Face หรือ Node ของ Background Mesh (ต้องปรับพิกัดเล็กน้อย)
+> - ✅ แนะนำให้ใช้ ParaView ดูเรขาคณิต แล้วเลือกจุดใน Fluid Domain ที่ชัดเจน
 >
-> **调试技巧：**
-> 如果网格生成失败，首先检查 `locationInMesh` 是否正确！这是 **最常见的错误源**。
+> **เทคนิคการ Debug:**
+> หากการสร้าง Mesh ล้มเหลว ให้ตรวจสอบ `locationInMesh` ก่อนเป็นอันดับแรก! นี่คือ **แหล่งที่มาของข้อผิดพลาดที่พบบ่อยที่สุด**
 
 ```cpp
 locationInMesh (1.5 2.0 0.5);

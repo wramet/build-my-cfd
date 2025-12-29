@@ -57,6 +57,12 @@ $$\rho c_p \frac{DT}{Dt} = k \nabla^2 T + Q$$
 
 **ความหมาย:** พลังงานไม่สูญหาย เพียงเปลี่ยนรูป
 
+> **⚠️ ข้อควรระวังเรื่อง Temperature Units:**
+> - **Incompressible solvers** (`icoFoam`, `simpleFoam`): ใช้ `T` เป็น **temperature** [K] หรือ [°C]
+> - **Compressible solvers** (`rhoSimpleFoam`, `sonicFoam`): ใช้ `T` เป็น **static temperature** [K]
+> - **Energy equation** บาง solver ใช้ `h` (enthalpy) [J/kg] แทน `T`
+> - อ่าน `ThermophysicalModels` ใน solver guide ให้ดีก่อนรัน!
+
 ---
 
 ## ความเชื่อมโยงกับ OpenFOAM

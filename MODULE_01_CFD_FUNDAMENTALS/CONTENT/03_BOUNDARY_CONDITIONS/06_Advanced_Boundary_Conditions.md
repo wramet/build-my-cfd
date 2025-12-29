@@ -41,18 +41,23 @@ inlet
     type    codedFixedValue;
     value   uniform (0 0 0);      // Initial guess
     name    pulsatingInlet;       // Unique name สำหรับ compile
-    
+
     code
     #{
         scalar t = this->db().time().value();       // เวลาปัจจุบัน
         scalar U0 = 10.0;                            // Mean velocity
         scalar freq = 0.5;                           // Frequency (Hz)
-        
+
         vectorField& field = *this;                  // Reference to BC field
-        field = vector(U0 * (1 + 0.3*sin(2*M_PI*freq*t)), 0, 0);
+        field = vector(U0 * (1 + 0.3*sin(2*constant::mathematical::pi*freq*t)), 0, 0);
     #};
 }
 ```
+
+> **⚠️ หมายเหตุ:** ใช้ `constant::mathematical::pi` แทน `M_PI`
+> - `M_PI` อาจไม่มีในทุกระบบ/standard
+> - `constant::mathematical::pi` เป็น OpenFOAM constant ที่ใช้ได้เสมอ
+> - ทางเลือก: นิยาม `const scalar pi = constant::mathematical::pi;` ก่อน
 
 **ทำไมใช้ codedFixedValue?**
 - ไม่ต้อง compile solver ใหม่
@@ -132,19 +137,23 @@ inlet
     type    codedFixedValue;
     value   uniform (0 0 0);
     name    parabolicInlet;
-    
+
     code
     #{
         const fvPatch& p = this->patch();
         const vectorField& Cf = p.Cf();              // Face centers
-        
+
         scalar R = 0.01;        // Pipe radius
         scalar Umax = 1.0;      // Centerline velocity
-        
+
         vectorField& field = *this;
         forAll(field, faceI)
         {
-            scalar r = mag(Cf[faceI].y());           // Radial distance
+            // CORRECTED: Calculate radial distance from pipe centerline
+            // Assuming pipe aligned along x-axis, centered at (0, 0, 0)
+            scalar r = sqrt(sqr(Cf[faceI].y()) + sqr(Cf[faceI].z()));
+
+            // Parabolic profile
             field[faceI] = vector(Umax*(1 - sqr(r/R)), 0, 0);
         }
     #};
@@ -152,6 +161,16 @@ inlet
 ```
 
 **Physics:** $u(r) = U_{max}\left(1 - \frac{r^2}{R^2}\right)$
+
+> **⚠️ ข้อผิดพลาดในเวอร์ชันก่อนหน้า:**
+> เดิมใช้ `mag(Cf[faceI].y())` ซึ่งถือเฉพาะ component-y เท่านั้น
+> ถ้า pipe ไม่ได้อยู่บนแกน x-y plane เฉยๆ การคำนวณจะผิด
+>
+> **เวอร์ชันที่ถูกต้อง:**
+> ```cpp
+> scalar r = sqrt(sqr(Cf[faceI].y()) + sqr(Cf[faceI].z()));
+> ```
+> ซึ่งคำนวณ radial distance จาก centerline ครบถูกต้อง
 
 ---
 

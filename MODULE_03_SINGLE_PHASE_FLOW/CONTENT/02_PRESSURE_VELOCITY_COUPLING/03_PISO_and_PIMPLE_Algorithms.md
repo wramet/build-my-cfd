@@ -87,6 +87,24 @@ relaxationFactors
 
 ### Nested Loop Structure
 
+```mermaid
+flowchart TD
+    A[Start Time Step] --> B{nOuterCorrectors &gt; 0?}
+    B -->|Yes| C[Outer Loop Iteration]
+    C --> D[Solve Momentum Eq.<br/>with Under-Relaxation]
+    D --> E{nCorrectors &gt; 0?}
+    E -->|Yes| F[Inner Loop Iteration]
+    F --> G[Solve Pressure Eq.]
+    G --> H[Correct Velocity]
+    H --> I{Inner Loop<br/>Done?}
+    I -->|No| F
+    I -->|Yes| J[Correct Turbulence]
+    J --> K{Outer Loop<br/>Converged?}
+    K -->|No| C
+    K -->|Yes| L[End Time Step]
+    B -->|No| L
+```
+
 ```
 while (time loop)
     for (outer = 1 to nOuterCorrectors)  // SIMPLE-like

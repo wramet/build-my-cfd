@@ -172,6 +172,19 @@ fvScalarMatrix phiEqn
 phiEqn.solve();
 ```
 
+> **💡 ความแตกต่าง fvm:: vs fvc:::**
+>
+> | Prefix | ชื่อเต็ม | การใช้งาน | ผลลัพธ์ |
+> |--------|-----------|-------------|---------|
+> | `fvm::` | Finite Volume Matrix | **Implicit** — สำหรับ unknowns | สร้าง matrix coefficients → แก้ด้วย linear solver |
+> | `fvc::` | Finite Volume Calculated | **Explicit** — สำหรับ knowns | คำนวณค่าทันที → ใช้เป็น source term |
+>
+> **กฎง่ายๆ:**
+> - ถ้าตัวแปร **กำลังจะหา** (เช่น U, p ใน iteration นี้) → ใช้ `fvm::`
+> - ถ้าตัวแปร **รู้ค่าแล้ว** (เช่น p จาก iteration ก่อนหน้า) → ใช้ `fvc::`
+> - `fvm::` ทำให้ matrix **ใหญ่ขึ้น** แต่ **stable กว่า**
+> - `fvc::` ทำให้ compute **เร็วกว่า** แต่ **ต้องลด Δt**
+
 ---
 
 ## Files ที่เกี่ยวข้อง

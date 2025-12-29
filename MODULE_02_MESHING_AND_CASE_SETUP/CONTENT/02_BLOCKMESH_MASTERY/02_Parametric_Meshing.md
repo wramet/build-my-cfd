@@ -174,6 +174,165 @@ with open('system/blockMeshDict', 'w') as f:
 
 Library **PyFoam** มี module `PyFoam.RunDictionary.BlockMesh` ที่ช่วยเขียน Dictionary โดยไม่ต้องสร้าง Template เอง แต่ใช้วิธีเรียก Method ของ Object แทน (เหมาะกับโปรแกรมเมอร์จ๋าๆ)
 
+### 3.1 การติดตั้ง PyFoam
+
+```bash
+# การติดตั้งผ่าน pip (แนะนำ)
+pip install PyFoam
+
+# หรือผ่าน conda
+conda install -c conda-forge pyfoam
+```
+
+### 3.2 โครงสร้างการใช้งานพื้นฐาน
+
+**PyFoam Workflow:**
+```mermaid
+graph LR
+    A[1. Python Script<br/>สร้าง BlockMesh Object] --> B[2. เพิ่ม Vertices<br/>เรียก method]
+    B --> C[3. เพิ่ม Blocks<br/>กำหนด Grading]
+    C --> D[4. เพิ่ม Boundary<br/>ระบุ Patch types]
+    D --> E[5. Write Dict<br/>สร้าง blockMeshDict]
+    E --> F[6. Run blockMesh<br/>Generate Mesh]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#ffe0b2
+    style D fill:#ffcc80
+    style E fill:#f1f8e9
+    style F fill:#c8e6c9
+```
+
+### 3.3 ตัวอย่าง: สร้าง Box Mesh อย่างง่าย
+
+```python
+#!/usr/bin/env python
+from PyFoam.RunDictionary.BlockMesh import BlockMesh
+from PyFoam.Basics.FoamFileGenerator import FoamFileGenerator
+import os
+
+# 1. กำหนดพารามิเตอร์
+L = 1.0  # ความยาว (m)
+H = 0.5  # ความสูง (m)
+W = 0.3  # ความกว้าง (m)
+nx = 20  # จำนวน cell ทิศทาง X
+ny = 10  # จำนวน cell ทิศทาง Y
+nz = 5   # จำนวน cell ทิศทาง Z
+
+# 2. สร้าง BlockMesh Object
+blockMesh = BlockMesh(".")
+
+# 3. เพิ่ม Vertices (8 จุดสำหรับกล่อง)
+vertices = [
+    [0, 0, 0],       # 0
+    [L, 0, 0],       # 1
+    [L, H, 0],       # 2
+    [0, H, 0],       # 3
+    [0, 0, W],       # 4
+    [L, 0, W],       # 5
+    [L, H, W],       # 6
+    [0, H, W],       # 7
+]
+
+for i, v in enumerate(vertices):
+    blockMesh.addVertex(v, index=i)
+
+# 4. เพิ่ม Block (กำหนด topology และจำนวน cell)
+blockMesh.addBlock(
+    vertices=[0, 1, 2, 3, 4, 5, 6, 7],  # 8 vertices ตามลำดับ
+    cells=(nx, ny, nz),                   # จำนวน cell
+    grading=[1, 1, 1]                     # simpleGrading (uniform)
+)
+
+# 5. เพิ่ม Boundary Patches
+blockMesh.addPatch("inlet", "patch", faces=[[0, 4, 7, 3]])
+blockMesh.addPatch("outlet", "patch", faces=[[1, 2, 6, 5]])
+blockMesh.addPatch("walls", "wall", faces=[
+    [0, 1, 5, 4],  # bottom
+    [3, 7, 6, 2],  # top
+    [0, 3, 2, 1],  # left
+    [4, 5, 6, 7],  # right
+])
+
+# 6. เขียนไฟล์ blockMeshDict
+outputDir = "system"
+os.makedirs(outputDir, exist_ok=True)
+
+blockMesh.write(os.path.join(outputDir, "blockMeshDict"))
+
+print("✅ blockMeshDict generated successfully!")
+print(f"   Location: {outputDir}/blockMeshDict")
+print(f"   Mesh: {nx}×{ny}×{nz} = {nx*ny*nz} cells")
+```
+
+### 3.4 ตัวอย่างขั้นสูง: O-Grid สำหรับ Airfoil
+
+```python
+#!/usr/bin/env python
+from PyFoam.RunDictionary.BlockMesh import BlockMesh
+import numpy as np
+
+def generate_ogrid_airfoil(chord=1.0, n_cells=50):
+    """
+    สร้าง O-Grid Mesh สำหรับ Airfoil ด้วย PyFoam
+    """
+    blockMesh = BlockMesh(".")
+
+    # คำนวณจุดรอบๆ (Parameterized)
+    n_angle = 16  # จำนวนจุดรอบวงกลม
+    radius = chord * 0.1
+
+    for i in range(n_angle):
+        theta = 2 * np.pi * i / n_angle
+        x = radius * np.cos(theta)
+        y = radius * np.sin(theta)
+        blockMesh.addVertex([x, y, 0], index=i)
+
+    # เพิ่ม Blocks รอบๆ (12 blocks สำหรับ O-Grid)
+    # ... (โค้ดเต็มจะยาวกว่านี้)
+
+    return blockMesh
+
+# ใช้งาน
+mesh = generate_ogrid_airfoil(chord=1.0, n_cells=50)
+mesh.write("system/blockMeshDict")
+```
+
+### 3.5 ข้อดีและข้อเสียของ PyFoam
+
+| ประเด็น | PyFoam | Jinja2 |
+|:---|:---|:---|
+| **การเรียนรู้** | ยากกว่า (OOP) | ง่ายกว่า (Template) |
+| **ความยืดหยุ่น** | สูงมาก (Full Python) | สูง (Python + Template) |
+| **Debugging** | ง่าย (Python IDE) | ปานกลาง |
+| **การดูแลรักษา** | ดี (Object-Oriented) | ดี (Template-based) |
+| **การแชร์** | ยาก (ต้องรู้ Python) | ง่าย (Template อ่านง่าย) |
+
+### 3.6 การใช้ PyFoam ร่วมกับ OpenFOAM Utilities
+
+```python
+from PyFoam.Execution.AnalyzedRunner import AnalyzedRunner
+from PyFoam.RunDictionary.ParsedParameterFile import ParsedParameterFile
+
+# อ่านและแก้ไข blockMeshDict
+blockDict = ParsedParameterFile("system/blockMeshDict")
+
+# เปลี่ยนค่าพารามิเตอร์แบบ Dynamic
+blockDict["blocks"][0]["nCells"] = [100, 50, 10]  # เพิ่มความละเอียด
+blockDict.writeFile()
+
+# รัน blockMesh ผ่าน PyFoam
+blockmesh = AnalyzedRunner("blockMesh")
+blockmesh.start()
+```
+
+> [!TIP] **เมื่อไหนควรใช้ PyFoam?**
+> - ต้องการ **Automated Mesh Generation** แบบ Advanced (เช่น Loop เปลี่ยน Geometry)
+> - ต้องการ **Integration** กับ Optimization Algorithms (เช่น Genetic Algorithm, Bayesian Optimization)
+> - ต้องการ **Post-processing** และ **Analysis** ผลลัพธ์แบบ Auto
+>
+> หากแค่เปลี่ยนค่า nx, ny, nz ง่ายๆ ให้ใช้ M4 หรือ Jinja2 จะเร็วกว่า
+
 ## ข้อดีของ Parametric Meshing
 
 > [!NOTE] **📂 OpenFOAM Context**

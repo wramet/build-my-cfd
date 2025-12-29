@@ -98,6 +98,14 @@ $$a\phi_f + b\frac{\partial\phi}{\partial n}\bigg|_f = c$$
 α = valueFraction
 ```
 
+**Mathematical formulation:**
+$$\phi_f = \text{valueFraction} \times \phi_{\text{specified}} + (1 - \text{valueFraction}) \times \phi_{\text{extrapolated}}$$
+
+โดยที่:
+- $\text{valueFraction} = 1$ → Dirichlet ($\phi_f = \phi_{\text{specified}}$)
+- $\text{valueFraction} = 0$ → Neumann ($\phi_f = \phi_{\text{extrapolated}}$)
+- $\text{valueFraction} \in (0,1)$ → Mixed BC
+
 ---
 
 ## Well-Posedness (Hadamard)
