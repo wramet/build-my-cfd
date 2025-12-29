@@ -8,6 +8,13 @@
 
 > **Verification** = Are we solving the equations correctly?
 
+<!-- IMAGE: IMG_08_001 -->
+<!-- 
+Purpose: เพื่อแยกแยะ "Verification" กับ "Validation" ให้ขาดจากกัน. ภาพนี้ต้องใช้แผนภาพ V-Model หรือ Parallel Paths ที่แสดงว่า: Verification คือการเช็คคณิตศาสตร์ (Math Check) ส่วน Validation คือการเช็คฟิสิกส์ (Reality Check)
+Prompt: "Conceptual Diagram: Verification vs Validation. **Left Path (Verification):** 'Solving the equations right'. Flow: Code $\rightarrow$ Mathematics $\rightarrow$ Numerical Solution. Icon: Calculator/Checkmark. **Right Path (Validation):** 'Solving the right equations'. Flow: Real World $\rightarrow$ Physics Model $\rightarrow$ Simulation Result. Icon: Experiment/Balance Scale. **Comparison:** In the center, show Simulation Result being compared against MATH (Verification) vs EXPERIMENT (Validation). STYLE: Blueprint schematic, clear logical flow, contrasting colors."
+-->
+![IMG_08_001: Verification vs Validation](IMG_08_001.jpg)
+
 ---
 
 ## 1. Verification Types
@@ -60,6 +67,13 @@ done
 
 # Should see error ~ h^p (p = order of scheme)
 ```
+
+<!-- IMAGE: IMG_08_002 -->
+<!-- 
+Purpose: เพื่อแสดงกราฟ "Grid Convergence" ซึ่งเป็นหลักฐานสำคัญที่สุดของ Verification. ภาพนี้ต้องโชว์กราฟ Log-Log ของ Error vs Grid Step ($h$). ความชันของเส้น (Slope) คือ Order of Accuracy.
+Prompt: "Standard Grid Convergence Plot (Log-Log Scale). **X-axis:** Grid Spacing $h$ (Decreasing $\rightarrow$). **Y-axis:** Error Norm $E$ (Decreasing $\downarrow$). **Data Points:** 4-5 points showing error dropping as grid gets finer. **Reference Lines:** Dashed lines representing Slope = 1 (1st Order) and Slope = 2 (2nd Order). **Annotation:** Calculate 'Observed Order $p$' from the slope. Show 'Asymptotic Range' where the slope becomes constant. STYLE: Academic scientific plot, clean grid lines, LaTeX labels."
+-->
+![IMG_08_002: Grid Convergence Study](IMG_08_002.jpg)
 
 ---
 

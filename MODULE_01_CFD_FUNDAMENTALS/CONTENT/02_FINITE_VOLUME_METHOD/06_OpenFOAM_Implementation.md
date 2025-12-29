@@ -349,6 +349,13 @@ $$\nabla \cdot \left(\frac{H}{A}\right) - \nabla \cdot \left(\frac{1}{A}\nabla p
 นี่คือ "Rhie-Chow interpolation" ซึ่งป้องกัน pressure checkerboard
 </details>
 
+<!-- IMAGE: IMG_01_006 -->
+<!--
+Purpose: อธิบายปัญหา Checkerboard Pressure ที่เกิดขึ้นหากใช้ Linear Interpolation ปกติกับ Collocated Grid ซึ่งดูเหมือนถูกต้อง (Gradient=0) แต่จริงๆ ผิด (Oscillation). เปรียบเทียบกับ Rhie-Chow ที่แก้ปัญหานี้
+Prompt: "Checkerboard Pressure Concept. **Top Panel (Collocated Grid):** A 1D row of cells showing pressure values [100, 0, 100, 0]. The central difference gradient is zero despite oscillation. Label: 'Unphysical Oscillation'. **Bottom Panel (Staggered/Rhie-Chow):** Smooth pressure gradient showing correct interpolation. Label: 'Rhie-Chow Corrected'. **Style:** Scientific plot or grid schematic, red oscillation vs green smooth line."
+-->
+![IMG_01_006: Checkerboard Pressure vs Rhie-Chow](IMG_01_006.jpg)
+
 ---
 
 ## เอกสารที่เกี่ยวข้อง

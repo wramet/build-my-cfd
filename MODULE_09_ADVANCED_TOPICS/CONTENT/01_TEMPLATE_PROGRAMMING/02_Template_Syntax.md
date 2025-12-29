@@ -8,6 +8,13 @@
 
 > Template syntax = `template<parameters> declaration`
 
+<!-- IMAGE: IMG_09_001 -->
+<!-- 
+Purpose: เพื่อแสดงหลักการ "Generic Programming" ของ C++ Template. ภาพนี้ต้องสื่อว่า Code ต้นฉบับมีแค่ "แม่พิมพ์" (Template) อันเดียว แต่ Compiler ปั๊มออกมาเป็น Class หลายเวอร์ชัน (Instantiation) เช่น `GeometricField<scalar>`, `GeometricField<vector>`.
+Prompt: "C++ Template Instantiation Mechanism. **Input Source:** A Blueprint Scroll marked `template<class T> class Field`. **Processing:** A Compiler Gear Machine interacting with the blueprint. **Output (Generated Code):** Three distinct Instantiated Classes popping out: 1. `Field<Scalar>` (Yellow). 2. `Field<Vector>` (Green). 3. `Field<Tensor>` (Red). **Concept:** 'Write Once, Generate Many'. STYLE: Compiler process conceptual art, crisp code blocks, industrial machine metaphor."
+-->
+![IMG_09_001: C++ Template Instantiation](IMG_09_001.jpg)
+
 ---
 
 ## 1. Class Template

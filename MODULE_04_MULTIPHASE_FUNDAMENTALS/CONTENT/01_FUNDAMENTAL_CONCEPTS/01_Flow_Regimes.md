@@ -98,6 +98,13 @@
 | **Slug Flow** | ช่วงก๊าซขนาดใหญ่สลับกับช่วงของเหลว | ความเร็วปานกลาง | โครงสร้างที่ซับซ้อน |
 | **Annular Flow** | ของเหลวเกาะผนังท่อเป็นวงแหวน | ความเร็วก๊าซสูงมาก | แกนก๊าซ + ชั้นฟิล์มของเหลว |
 
+<!-- IMAGE: IMG_04_005 -->
+<!-- 
+Purpose: เพื่อแสดงวิวัฒนาการของ Flow Regimes ในท่อตั้งเมื่อความเร็วแก๊สเพิ่มขึ้น. ภาพนี้ต้องสื่อให้เห็นการเปลี่ยนแปลง "Topology" ของ Interface อย่างชัดเจน: จากฟองเล็กๆ (Dispersed) -> รวมตัวเป็นก้อนใหญ่ (Slug) -> แตกตัวจนปั่นป่วน (Churn) -> แยกชั้นสมบูรณ์ (Annular)
+Prompt: "Technical Illustration of Vertical Gas-Liquid Flow Regimes. **Composition:** Four vertical pipe sections arranged side-by-side. **1. Bubbly Flow:** Small, spherical air bubbles (white) uniformly distributed in liquid (blue). **2. Slug Flow:** Large bullet-shaped 'Taylor Bubbles' occupying most of the pipe cross-section. **3. Churn Flow:** Chaotic, distorted large bubbles, highly turbulent interface (neither slug nor annular). **4. Annular Flow:** A continuous gas core in the center, with a thin liquid film clinging to the walls. **Labels:** Arrow at the bottom indicating 'Increasing Gas Velocity $\rightarrow$'. STYLE: Realistic engineering conceptual art, cut-away view inside the pipes, deep blue liquid vs bright white gas, high contrast."
+-->
+![[IMG_04_005.jpg]]
+
 [Diagram: การแสดงภาพรูปแบบการไหลทั้งสี่ในท่อแนวตั้ง]
 
 ---

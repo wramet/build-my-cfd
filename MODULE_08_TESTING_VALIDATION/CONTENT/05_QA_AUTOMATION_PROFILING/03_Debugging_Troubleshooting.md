@@ -32,6 +32,13 @@ flowchart TD
     E --> F[Check physics]
 ```
 
+<!-- IMAGE: IMG_08_005 -->
+<!-- 
+Purpose: เพื่อเสนอแผนที่นำทาง (Roadmap) สำหรับการแก้ปัญหา Simulation พัง (Divergence/Crash). ภาพนี้ต้องแยกแยะอาการให้ออก: 1. พังทันที (Setup ผิด) 2. พังกลางทาง (Numerics/Physics) 3. ผลลัพธ์ผิด (Model/BCs). และเสนอวิธีแก้ในแต่ละกิ่ง
+Prompt: "Troubleshooting Decision Tree for OpenFOAM. **Root Node:** 'Simulation Fails'. **Branch 1:** 'Dies Immediately' $\rightarrow$ Action: Check `0/`, `system/`, Syntax. **Branch 2:** 'Diverges (NaN) at Time > 0' $\rightarrow$ Action: Check CFL, Mesh Quality (`checkMesh`), Schemes. **Branch 3:** 'Runs but Results Wrong' $\rightarrow$ Action: Check Physics Model, Boundary Conditions, Units. **Tools Icon:** Magnifying glass over Log File. STYLE: Decision Tree Flowchart, clean connectors, actionable steps."
+-->
+![IMG_08_005: CFD Debugging Flowchart](IMG_08_005.jpg)
+
 ---
 
 ## 3. Log Analysis

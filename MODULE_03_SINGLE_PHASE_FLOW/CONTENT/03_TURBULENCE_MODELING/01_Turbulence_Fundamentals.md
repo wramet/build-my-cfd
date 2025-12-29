@@ -12,6 +12,13 @@
 | Transitional | $2300 < Re < 4000$ | Transition models |
 | Turbulent | $Re > 4000$ | RANS, LES, DNS |
 
+<!-- IMAGE: IMG_03_005 -->
+<!-- 
+Purpose: เพื่อเปรียบเทียบ "ราคา" (Cost) และ "ความละเอียด" (Resolution) ของวิธีการจำลอง Turbulence 3 ระดับหลัก. ภาพนี้ต้องสื่อว่า DNS ละเอียดสุดแต่แพงสุด (ยอดพีระมิด), LES คือทางสายกลาง, และ RANS คือฐานที่กว้างที่สุด (ใช้บ่อยสุดแต่หยาบสุด)
+Prompt: "Infographic Pyramid diagram of Turbulence Modeling Hierarchy. **Levels:** 1. **Base (Bottom): RANS (Reynolds-Averaged Navier-Stokes)** - Broadest base, labelled 'Industrial Standard / Low Cost / High Approximation'. 2. **Middle: LES (Large Eddy Simulation)** - Labelled 'Resolves Large Scales / Research & High-Fidelity'. 3. **Apex (Top): DNS (Direct Numerical Simulation)** - Sharp tip, labelled 'Resolves All Scales / Extremely Expensive'. **Side Arrows:** Arrow pointing UP labelled 'Computational Cost & Accuracy'. Arrow pointing DOWN labelled 'Usage Frequency'. STYLE: Clean corporate infographic, flat design, distinct colors for each level (e.g., Grey, Blue, Gold)."
+-->
+![[IMG_03_005.JPg]]
+
 ---
 
 ## 1. Turbulence Characteristics
@@ -23,6 +30,13 @@
 | **Dissipative** | Energy cascades from large to small scales |
 | **3D** | Always three-dimensional |
 | **Multi-scale** | Integral scale → Kolmogorov scale |
+
+<!-- IMAGE: IMG_03_003 -->
+<!-- 
+Purpose: เพื่ออธิบาย "Energy Cascade" ซึ่งเป็นหัวใจของ Turbulence: พลังงานถูกส่งจาก Eddy ขนาดใหญ่ $\rightarrow$ ขนาดเล็ก $\rightarrow$ หายไปเป็นความร้อนโดย Viscosity. ภาพนี้ต้องเชื่อมโยงภาพลักษณ์ทางกายภาพ (Vortices) กับกราฟทางคณิตศาสตร์ (Spectrum Log-Log Plot)
+Prompt: "Dual-panel technical illustration of the Turbulent Energy Cascade. **Left Panel (Physical View):** A large swirling vortex breaking down into smaller and smaller eddies, finally turning into heat at the smallest scale. **Right Panel (Spectral View):** Log-log plot of Energy $E(\kappa)$ vs Batchelor Wavenumber $\kappa$. Curve shows 3 zones: 1. **Production** (Low $\kappa$, high Energy). 2. **Inertial Subrange** (Slope $-5/3$). 3. **Dissipation** (High $\kappa$, steep drop-off). Connect the physical eddies on the left to their corresponding position on the graph on the right with dotted lines. STYLE: High-end textbook illustration, detailed line work, mathematical precision."
+-->
+![[IMG_03_003.JPG]]
 
 ```mermaid
 flowchart LR

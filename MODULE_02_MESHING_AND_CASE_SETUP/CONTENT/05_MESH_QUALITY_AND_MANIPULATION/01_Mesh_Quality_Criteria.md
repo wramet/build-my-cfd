@@ -19,6 +19,13 @@
 
 ## 1. Non-Orthogonality (ความไม่ตั้งฉาก)
 
+<!-- IMAGE: IMG_02_001 -->
+<!-- 
+Purpose: เพื่ออธิบาย "ศัตรูตัวฉกาจที่สุด" ของ FVM: Non-Orthogonality. ภาพนี้ต้องแสดงให้เห็นชัดเจนว่าใน Mesh ที่บิดเบี้ยว เวกเตอร์เชื่อมศูนย์กลาง (d) ไม่ขนานกับเวกเตอร์พื้นที่หน้าตัด (n) ซึ่งทำให้การคำนวณ Flux ตรงๆ ผิดพลาด ต้องเปรียบเทียบกรณี Ideal (90 องศา) กับ Realistic (Skewed มุม theta) เพื่อให้ผู้เรียนเข้าใจว่าทำไมต้องมี "corrector loops" ใน fvSolution
+Prompt: "2D Engineering Diagram comparing Mesh Orthogonality. **Left Panel (Orthogonal):** Two perfect square cells (P and N), flux vector 'd' parallel to surface normal 'n'. Label: 'Good: theta = 0 deg'. **Right Panel (Non-Orthogonal):** Skewed cells, vector 'd' misaligned with 'n'. Red arc showing angle 'theta'. Label: 'Bad: theta > 70 deg'. **Style:** Clean technical drawing, black lines, white background, mathematical labels."
+-->
+![[IMG_02_001.jpg]]
+
 > [!NOTE]
 > **📂 OpenFOAM Context**
 >
@@ -56,6 +63,13 @@ abla^2 \phi$) ต้องการคำนวณ Flux ผ่านหน้า
 
 ## 2. Skewness (ความเบ้)
 
+<!-- IMAGE: IMG_02_002 -->
+<!-- 
+Purpose: เพื่ออธิบายความหมายของ Skewness ที่คนมักเข้าใจผิด (ไม่ใช่แค่รูปร่างเบี้ยว แต่คือ "จุดตัดไม่ตรงศูนย์กลางหน้า"). ภาพต้องซูมไปที่หน้าตัด (Face) ระหว่าง 2 Cells และโชว์ระยะห่าง (Needle/Error vector) ระหว่างจุดที่เส้นเชื่อมศูนย์กลางเจาะทะลุ ($f_i$) กับจุดกึ่งกลางทางเรขาคณิต ($f_c$)
+Prompt: "2D Technical Diagram of Skewness Error. **Geometry:** Two adjacent irregular quadrilateral cells sharing a face. **Key Elements:** 1. A dashed line connecting cell centers P and N. 2. A Blue Point at the true geometric center of the specific shared face (labeled 'fc'). 3. A Red 'X' where the P-N line intersects the face (labeled 'fi'). 4. A distinct Red Vector arrow showing the distance between 'fc' and 'fi', labeled 'Error'. **Style:** 2D flat schematic, zoom-in view, white background, black lines. No 3D."
+-->
+![[IMG_02_002.jpg]]
+
 > [!NOTE]
 > **📂 OpenFOAM Context**
 >
@@ -83,6 +97,13 @@ abla^2 \phi$) ต้องการคำนวณ Flux ผ่านหน้า
 *   ลด `featureAngle` ไม่ให้พยายามจับมุมที่แหลมเกินไป
 
 ## 3. Aspect Ratio (อัตราส่วนกว้างยาว)
+
+<!-- IMAGE: IMG_02_003 -->
+<!-- 
+Purpose: เพื่อแสดงความสัมพันธ์ระหว่าง Aspect Ratio และทิศทางการไหล (Flow Alignment). ภาพนี้ต้องแก้ความเข้าใจผิดว่า "Cell ผอมๆ ไม่ดีเสมอไป" — จริงๆ แล้วดีมากใน Boundary Layer ตราบใดที่ Flow ไหลขนานด้านยาว. ต้องเปรียบเทียบกรณี "Good High AR" (Aligned) กับ "Bad High AR" (Misaligned/Cross-flow)
+Prompt: "Comparative diagram of Cell Aspect Ratio vs Flow Direction. **Top Panel (Boundary Layer - Good):** A row of very thin, stretched prism cells (Aspect Ratio > 50) near a wall. Streamlines (Flow arrows) run **parallel** to the long axis of cells. Green checkmark 'Acceptable'. **Bottom Panel (Free Shear - Bad):** The same thin cells, but Streamlines cut **across** them perpendicularly (Cross-flow). Red cross 'Inaccurate/Diffusive'. STYLE: Engineering flow visualization, streamline arrows in blue, mesh lines in black, clear Good/Bad indicators."
+-->
+![[IMG_02_003.jpg]]
 
 > [!NOTE]
 > **📂 OpenFOAM Context**

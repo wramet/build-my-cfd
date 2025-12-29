@@ -30,6 +30,13 @@ flowchart LR
     C --> D[Analyze]
 ```
 
+<!-- IMAGE: IMG_07_003 -->
+<!-- 
+Purpose: เพื่อแสดงวงจร "CFD Automation Pipeline" ที่สมบูรณ์. การ Automate ไม่ใช่แค่การรัน Solver แต่ต้องครอบคลุมตั้งแต่การสร้าง Mesh ($\rightarrow$ Pre) ไปจนถึงการสรุปผลกราฟ ($\rightarrow$ Post) เพื่อให้มั่นใจในความ "Reproducible"
+Prompt: "Sequential CFD Automation Pipeline. **Stage 1 (Pre-processing):** Icons for 'CAD Import' and 'Meshing (blockMesh)'. **Stage 2 (Solving):** Icon for 'CPU/Server Rack' running calculations. **Stage 3 (Post-processing):** Icons for 'Sampling' and 'Visualization (ParaView)'. **Integration:** A conveyor belt connecting all stages, driven by a 'Script/Bot'. Label: 'Fully Automated Workflow'. STYLE: Industrial process diagram, clean and efficient looking."
+-->
+[[IMG_07_003.jpg]]
+
 ---
 
 ## 3. Script Structure

@@ -51,6 +51,13 @@ $$ \frac{\partial \alpha}{\partial t} + \nabla \cdot (\mathbf{U} \alpha) + \unde
 
 ในไฟล์ `system/fvSolution` คุณสามารถคุมระดับความแรงของการบีบได้ผ่าน `cAlpha`:
 
+<!-- IMAGE: IMG_04_002 -->
+<!-- 
+Purpose: เพื่อแสดงผลของค่า `cAlpha` ในไฟล์ `fvSolution` ว่าทำหน้าที่ "บีบ" Interface ให้คมขึ้นได้อย่างไร และถ้าบีบมากไปจะเกิดอะไรขึ้น. ภาพนี้ต้องช่วยผู้เรียนจูนค่า `cAlpha` ได้อย่างมั่นใจ
+Prompt: "Comparative visualization of VOF Interface Sharpness (3 Panels). The scene is a water droplet falling in air. **Panel 1 (cAlpha = 0):** The droplet edge is extremely blurry/smeared across many cells (Numerical Diffusion). Color fades from blue to white over a wide distance. **Panel 2 (cAlpha = 1 - Standard):** The droplet edge is sharp and crisp, confined to 1-2 cells. Perfect balance. **Panel 3 (cAlpha > 2 - Aggressive):** The interface is razor-sharp (1 cell) but shows unphysical 'wiggles' or spiky artifacts on the surface (Over-compression instability). STYLE: High-end CFD post-processing simulation render, using a 'cool-warm' or 'blue-white' colormap to show $\alpha$ concentration."
+-->
+![[IMG_04_002.jpg]]
+
 | ค่า `cAlpha` | พฤติกรรม (Behavior) | คำแนะนำ (Recommendation) |
 | :---: | :--- | :--- |
 | **0** | ปิดการบีบอัด | ไม่แนะนำ ผิวจะเบลอเละในไม่กี่ steps ยกเว้นคุณต้องการจำลองการกระจายตัวของสารเคมี (Scalar transport) |

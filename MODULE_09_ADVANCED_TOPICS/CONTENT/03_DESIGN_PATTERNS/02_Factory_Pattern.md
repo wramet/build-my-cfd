@@ -8,6 +8,13 @@ Factory Pattern ใน OpenFOAM
 
 > **Factory** = Create objects without specifying exact class
 
+<!-- IMAGE: IMG_09_004 -->
+<!-- 
+Purpose: เพื่อเปรียบเทียบความยุ่งเหยิงของการเขียน Code แบบ Hard-Coded (Spaghetti if-else) กับความงามของ Factory Pattern. ภาพนี้ต้องโชว์ 2 สถานการณ์ เพื่อชูจุดเด่นของ "Open-Closed Principle" (เพิ่ม Feature ใหม่โดยไม่ต้องแก้ Code เก่า)
+Prompt: "Comparison Diagram: Hard-Coded vs Factory Pattern. **Panel A (The Mess):** Code blocks showing a massive Chain of `if (type == 'A') ... else if (type == 'B') ...`. A stressed developer adding a new case involves cutting the chain. **Panel B (Factory Pattern):** A Clean 'Factory Hub' where small Model Modules (A, B, C, New D) plug in independently. The Factory doesn't change when Module D is plugged in. STYLE: Software architecture comparison, clean vs messy contrast, modular blocks."
+-->
+![IMG_09_004: Factory Pattern](IMG_09_004.jpg)
+
 ---
 
 ## 1. Problem Solved

@@ -8,6 +8,13 @@
 
 > Chemical reactions in flowing fluids
 
+<!-- IMAGE: IMG_06_003 -->
+<!-- 
+Purpose: เพื่อแสดงโครงสร้างของ "เปลวไฟ" (Flame Structure) ในเชิง CFD. ภาพนี้ต้องโชว์การเปลี่ยนแปลงของ 3 ตัวแปรหลักเมื่อผ่านเปลวไฟ: 1. เชื้อเพลิง ($Y_{Fuel}$) ลดลง 2. ผลิตภัณฑ์ ($Y_{Product}$) เพิ่มขึ้น 3. อุณหภูมิ ($T$) พุ่งสูงขึ้น และจุดที่กราฟตัดกันคือตำแหน่งของ "Reaction Zone"
+Prompt: "Combustion Physics Profile Diagram (Pre-mixed Flame). **X-axis:** Distance through flame. **Y-axis:** Normalized Value (0 to 1). **Curves:** 1. **Fuel Mass Fraction (Blue):** Starts at 1, drops sharply to 0 at the flame front. 2. **Oxidizer Mass Fraction (Green):** Follows Fuel curve. 3. **Product Mass Fraction (Purple):** Starts at 0, rises sharply to 1. 4. **Temperature (Red):** S-Curve starting low (Unburnt) and rising to high (Burnt). **Highlight:** A vertical zone labeled 'Reaction Zone $\dot{\omega}$' where the gradients are steepest. STYLE: Textbook scientific plot, clear lines, distinct zones."
+-->
+![[IMG_06_003.jpg]]
+
 ---
 
 ## 1. Species Transport

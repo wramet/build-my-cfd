@@ -43,6 +43,13 @@ flowchart TD
     E --> F[Report]
 ```
 
+<!-- IMAGE: IMG_08_004 -->
+<!-- 
+Purpose: เพื่อแสดงกระบวนการ Validation อย่างเป็นระบบ. ไม่ใช่แค่วัดตาเปล่า แต่ต้องวัด Error. ภาพนี้ต้องโชว์การนำข้อมูลจาก 2 แหล่ง (Simulation vs Experiment) มาซ้อนทับกัน (Overlay) และคำนวณ Metric ความผิดพลาด
+Prompt: "Standard CFD Validation Workflow Diagram. **Parallel Inputs:** 1. **Simulation Data:** Line Probes/Contours from OpenFOAM. 2. **Experimental Data:** PIV Laser Data/Wind Tunnel Sensors (with Error Bars). **Convergence Point:** A 'Comparison Plot' showing Simulation Line overlapping with Experimental Dots. **Metric Calculation:** An equation box showing `Error % = |Sim - Exp| / Exp`. **Outcome:** Pass/Fail Stamp. STYLE: Scientific methodology chart, clean data plots, logical arrows."
+-->
+![IMG_08_004: CFD Validation Workflow](IMG_08_004.jpg)
+
 ---
 
 ## 4. Data Extraction

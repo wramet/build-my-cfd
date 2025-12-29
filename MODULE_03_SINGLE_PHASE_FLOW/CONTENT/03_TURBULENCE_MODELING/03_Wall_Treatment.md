@@ -15,6 +15,13 @@
 
 ## 1. Boundary Layer Structure
 
+<!-- IMAGE: IMG_03_002 -->
+<!-- 
+Purpose: เพื่ออธิบาย "Law of the Wall" ผ่านกราฟ Semi-log ($u^+$ vs Log $y^+$). ภาพนี้สำคัญมากในการตัดสินใจเลือกขนาด Mesh ($y^+$) โดยต้องแสดงให้เห็นพฤติกรรม 2 แบบที่แตกต่างกัน: 1) Viscous Sublayer (เส้นตรง Linear) ที่แรงหนืดครองผิวด้านล่าง และ 2) Log-law Region (เส้นตรง Logarithmic) ที่ Inertia เริ่มมีบทบาท
+Prompt: "Engineering Plot of Law of the Wall (u+ vs y+). **Axes:** X-axis 'Log y+', Y-axis 'u+'. **Curve:** A single continuous curve starting from origin. It has a straight linear slope for y+ < 5 (Viscous Sublayer) and a logarithmic curve for y+ > 30 (Log-law). **Annotations:** Label 'Viscous Sublayer' and 'Log-law Region'. **Style:** Clear scientific plot, black lines, white background, textbook quality."
+-->
+![[IMG_03_002.JPg]]
+
 ### $y^+$ Definition
 
 $$y^+ = \frac{y \cdot u_\tau}{\nu}$$

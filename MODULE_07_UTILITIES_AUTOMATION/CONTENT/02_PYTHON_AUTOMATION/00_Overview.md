@@ -43,6 +43,13 @@
 *   **หน้าที่**: วิเคราะห์ข้อมูลเชิงสถิติจากไฟล์ `postProcessing` (เช่น forces.dat, probes.dat)
 *   **Use Case**: หาค่าเฉลี่ย $C_d, C_l$ ในช่วง 100 iterations สุดท้ายแล้วพล็อตกราฟเปรียบเทียบ
 
+<!-- IMAGE: IMG_07_002 -->
+<!-- 
+Purpose: เพื่อแสดง "Python Tools Ecosystem" สำหรับงาน CFD. สื่อให้เห็นว่า Python เป็น "ศูนย์กลาง" (Glue Language) ที่เชื่อมต่อ OpenFOAM กับเครื่องมืออื่นๆ: PyFoam (Control), fluidfoam (I/O), Pandas (Analysis), PyVista (Vis).
+Prompt: "Infographic of the Modern Python CFD Stack. **Center Core:** Python Logo. **Orbiting Modules:** 1. **PyFoam (Control):** Icon showing a Terminal/Gear. 2. **fluidfoam (Bridge):** Icon showing binary data converting to Arrays. 3. **Pandas (Stats):** Icon showing Data Tables/Charts. 4. **PyVista (Vis):** Icon showing a 3D Rendered Mesh. **Flow:** Arrows connecting OpenFOAM Case folders to these tools via Python. STYLE: Tech Stack Diagram, clean icons, interconnected network."
+-->
+![IMG_07_002: Python CFD Automation Ecosystem](IMG_07_002.jpg)
+
 **Python CFD Toolbox Overview:**
 ```mermaid
 graph TB

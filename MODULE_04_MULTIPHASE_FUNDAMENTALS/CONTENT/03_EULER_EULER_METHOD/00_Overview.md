@@ -29,6 +29,14 @@ flowchart TD
 
 ## 1. Core Concept
 
+<!-- IMAGE: IMG_04_004 -->
+<!-- 
+Purpose: เพื่อเปรียบเทียบปรัชญาการจำลอง (Modeling Philosophy) ระหว่าง VOF และ Eulerian. ภาพนี้ต้องโชว์จุดเด่นที่ต่างกันสุดขั้ว: VOF เห็นผิวคมชัดแต่น่านน้ำเดียว (One U field), Eulerian เห็นเป็นหมอกผสมกัน (Interpenetrating) แต่แยกความเร็วได้ (Two U fields).
+Prompt: "Conceptual Comparison: Interface Capturing vs Interpenetrating Continua. **Left (VOF):** A cup of water with a sharp, free surface. Inside, single velocity vectors ($\mathbf{U}_{mix}$), indicating fluids move together. Label: 'VOF / Interface Capturing'. **Right (Eulerian):** A bubble column where gas and liquid mix like a fog. Inside, TWO sets of overlapping velocity vectors in different colors (Blue $\mathbf{U}_{liq}$, White $\mathbf{U}_{gas}$), indicating slip velocity. Label: 'Two-Fluid / Interpenetrating'. STYLE: Scientific diagram, cross-section view, clear vector fields."
+-->
+
+![[IMG_04_004.jpg]]
+
 > ทั้งสองเฟสถูกพิจารณาเป็น **interpenetrating continua** — coexist ในพื้นที่เดียวกัน
 
 ### Key Features

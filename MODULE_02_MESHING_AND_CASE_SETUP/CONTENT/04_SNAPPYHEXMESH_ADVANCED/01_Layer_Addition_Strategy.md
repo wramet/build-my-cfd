@@ -20,6 +20,13 @@
 
 ## 1. ความสำคัญของ Boundary Layer
 
+<!-- IMAGE: IMG_02_005 -->
+<!-- 
+Purpose: เพื่ออธิบายโครงสร้างของ Boundary Layer Mesh (Prism Layers) และความเชื่อมโยงกับค่า $y^+$. ภาพนี้ต้องแสดงให้เห็นการ "ซ้อนกัน" ของ Layer ที่มีความหนาเพิ่มขึ้นเรื่อยๆ (Expansion) จากผนัง และซ้อนทับด้วยกราฟ Velocity Profile ($u^+$ vs $y^+$) เพื่อให้เห็นว่า Mesh ต้องละเอียดที่สุดตรง Viscous Sublayer
+Prompt: "2D Schematic of Boundary Layer Mesh and Velocity Profile. **Geometry:** A vertical stack of rectangular cells starting from a bottom Wall. **Mesh:** The bottom-most cell is very thin (dy1). The cells above it get progressively thicker (Expansion). **Physics:** A red curve overlay showing a turbulent velocity profile (log-law). The curve starts at 0 at the wall and rises steeply through the thin cells. **Labels:** Label the first cell height 'dy1'. Label the curve 'Velocity Profile'. **Style:** Engineering textbook diagram, 2D side view, clear lines, white background."
+-->
+![[IMG_02_005.jpg]]
+
 > [!NOTE]
 > **📂 OpenFOAM Context**
 >

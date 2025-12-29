@@ -13,10 +13,15 @@
 ## 1. How It Works
 
 ```mermaid
-flowchart LR
-    A[Dictionary: type kEpsilon] --> B[RTS Lookup]
-    B --> C[kEpsilon::New]
-    C --> D[autoPtr kEpsilon]
+sequenceDiagram
+    participant User as Text Dictionary
+    participant RTS as RTS Table (HashTable)
+    participant Model as kEpsilon Model
+    
+    User->>RTS: Look up "kEpsilon"
+    RTS->>RTS: Find Constructor Pointer
+    RTS->>Model: Call New(dictionary, mesh)
+    Model-->>User: Return autoPtr<turbulenceModel>
 ```
 
 ---

@@ -19,6 +19,13 @@
 | `PtrList<T>` | List | Collections |
 | `refPtr<T>` | Optional | Ref or pointer |
 
+<!-- IMAGE: IMG_09_005 -->
+<!-- 
+Purpose: เพื่อสรุปครอบครัว Smart Pointers ของ OpenFOAM ให้เห็นภาพรวมทั้งหมด. ภาพนี้ต้องแยกความแตกต่างของ `autoPtr` (เจ้าของคนเดียว), `tmp` (ถือชั่วคราว), `refPtr` (ยืมเค้ามา หรือ ถือเองก็ได้) และ `PtrList` (ถือทั้งแก๊ง).
+Prompt: "OpenFOAM Smart Pointer Family Tree. **1. autoPtr (The Lone Wolf):** Holds 1 Object exclusively. Icon: Single Key. **2. tmp (The Carrier):** Holds 1 Object with Reference Counting. Icon: Recycling Bin (Disposable). **3. refPtr (The Hybrid):** Can wrap a Reference (&) or a Pointer (*). Icon: Toggle Switch. **4. PtrList (The Squad):** A dynamic array managing multiple autoPtrs. Icon: Container Box. **Visual:** Show ownership lines connecting Pointers to Data Blocks. STYLE: Data structure cheat sheet, clean icons, memory block visualization."
+-->
+![IMG_09_005: Smart Pointer Types](IMG_09_005.jpg)
+
 ---
 
 ## 2. autoPtr

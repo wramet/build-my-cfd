@@ -15,6 +15,13 @@
 >
 > PDE → Discretize (fvm::) → fvMatrix → lduMatrix → Solver → Solution
 
+<!-- IMAGE: IMG_05_005 -->
+<!-- 
+Purpose: เพื่ออธิบายว่า OpenFOAM ไม่ได้เก็บ Matrix แบบเต็ม (Full Dense Matrix) แต่เก็บเฉพาะส่วนที่มีค่าจริงแบบ "LDU Addressing" (Lower - Diagonal - Upper). ภาพนี้ต้องเชื่อมโยงจาก Topology ของ Mesh (Cell P ต่อกับ Neighbors) ไปสู่โครงสร้าง Matrix ที่ Sparse มากๆ
+Prompt: "Data Structure Diagram of LDU Matrix Storage. **Components:** 1. A small 5x5 Matrix grid with only diagonal and a few off-diagonal cells filled (others blank). 2. Three 1D Arrays labeled 'Diagonal', 'Lower', 'Upper'. 3. Arrows connecting the non-zero matrix cells to their corresponding slots in the arrays. **Labeling:** Show that 'Lower' stores lower-triangle neighbors, 'Upper' stores upper-triangle neighbors. **Style:** Computer Science infographic, flat 2D, white background, distinct array blocks."
+-->
+![[IMG_05_005.jpg]]
+
 ```mermaid
 flowchart TD
     A[PDE] --> B[fvMatrix]

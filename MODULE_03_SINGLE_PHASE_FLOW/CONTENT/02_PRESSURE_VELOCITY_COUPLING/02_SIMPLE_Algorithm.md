@@ -13,6 +13,13 @@ Semi-Implicit Method for Pressure-Linked Equations สำหรับ Steady-sta
 
 **SIMPLE** แก้ปัญหา pressure-velocity coupling ผ่าน iterative predictor-corrector:
 
+<!-- IMAGE: IMG_03_001 -->
+<!-- 
+Purpose: เพื่อให้ภาพรวมของขั้นตอนการทำงานของ SIMPLE Algorithm ที่เป็นหัวใจของ steady-state solver. ภาพนี้ต้องแสดงการไหลของข้อมูล (Pressure & Velocity) ระหว่าง Momentum Equation และ Continuity Equation ในลักษณะ Loop ที่ชัดเจน
+Prompt: "Algorithmic flowchart diagram of the SIMPLE loop. **Nodes:** 1. **Guess** ($p^*, \mathbf{u}^*$) 2. **Momentum Predictor** (Solve for intermediate velocity) 3. **Pressure Equation** (Solve Poisson for $p'$) 4. **Correction** (Update $p$ and $\mathbf{u}$) 5. **Check Convergence**. **Flow:** Arrows connecting nodes in a clockwise cycle. **Highlight:** The 'Pressure Correction' step as the core coupling mechanism. STYLE: Clean professional flowchart, rectangular nodes with rounded corners, distinct arrow paths, black and white with blue accent for the 'Correction' phase."
+-->
+![[IMG_03_001.JPg]]
+
 ```mermaid
 flowchart LR
     A[Start] --> B[Momentum Predictor]
@@ -63,6 +70,13 @@ $$p = p^* + \alpha_p \cdot p'$$
 $$\mathbf{u} = \mathbf{u}^* - \frac{1}{a_P}\nabla p'$$
 
 ### Step 4: Under-Relaxation
+
+<!-- IMAGE: IMG_03_004 -->
+<!-- 
+Purpose: เพื่อแสดงผลกระทบของค่า Under-Relaxation Factor ($\alpha$) ที่มีต่อความเสถียร (Stability) และความเร็วในการลู่เข้า (Convergence Rate). กราฟต้องสื่อว่า $\alpha$ มากไปจะแกว่ง/ล้มเหลว, $\alpha$ น้อยไปจะช้า, และมีจุดสมดุลที่เหมาะสม
+Prompt: "Scientific convergence plot (Log-Linear) showing Residuals vs Iterations. **Y-axis:** Log(Residual), **X-axis:** Iterations. **Curves:** 1. **Red Curve ($\alpha=1.0$):** Oscillates wildly and diverges (bad). 2. **Blue Curve ($\alpha=0.3$):** Decays monotonically but very slowly (safe but slow). 3. **Green Curve ($\alpha=0.7$):** Decays rapidly and stably (Optimal). **Labels:** Clear annotations pointing to each curve interpreting the behavior. STYLE: Matplotlib-style plotting, thin distinct lines, grid background, high contrast colors."
+-->
+![[IMG_03_004.JPg]]
 
 $$\phi^{new} = \alpha \cdot \phi^{computed} + (1-\alpha) \cdot \phi^{old}$$
 

@@ -18,6 +18,13 @@ flowchart LR
 
 ## 1. Drag Force Equation
 
+<!-- IMAGE: IMG_04_003 -->
+<!-- 
+Purpose: เพื่อแสดง Free Body Diagram ของฟองอากาศที่กำลังลอยขึ้นในของเหลว. ภาพนี้เป็นกุญแจสำคัญในการเข้าใจเทอม Momentum Source ใน Euler-Euler ($M_{source}$) โดยต้องโชว์แรงหลักทุกตัว: แรงขับเคลื่อน (Buoyancy - Gravity) และแรงต้านทาน (Drag - Mass - Lift)
+Prompt: "Engineering Free Body Diagram (FBD) of a rising gas bubble. **Central Object:** A spherical bubble. **Forces:** 1. **Buoyancy ($\mathbf{F}_b$):** Upward, Green arrow (Driving force). 2. **Gravity ($\mathbf{F}_g$):** Downward, Black arrow. 3. **Drag ($\mathbf{F}_D$):** Downward, Red arrow (Opposing motion). 4. **Lift ($\mathbf{F}_L$):** Sideways, Blue arrow (Due to shear). **Velocities:** Vector $\mathbf{U}_{bubble}$ (Up) and $\mathbf{U}_{liquid}$ (Background flow). **Effect:** Turbulent wake trailing behind the bubble. STYLE: Technical schematics, clean lines, forces color-coded."
+-->
+![[IMG_04_003.jpg]]
+
 $$\mathbf{F}_D = \frac{1}{2} C_D \rho_c A |\mathbf{u}_r| \mathbf{u}_r$$
 
 | Symbol | Meaning | Unit |

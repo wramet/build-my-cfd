@@ -40,6 +40,13 @@
 
 ## 1. ตัวแปร Phase Fraction ($\alpha$)
 
+<!-- IMAGE: IMG_04_001 -->
+<!-- 
+Purpose: เพื่อเปรียบเทียบความแตกต่างระหว่าง "โลกจริง" (Vector/Smooth Interface) กับ "สิ่งที่ OpenFOAM เห็น" (Raster/VOF Field). ภาพนี้ต้องสื่อให้เห็นว่า VOF คือการแปลง Interface ที่คมชัดให้กลายเป็นข้อมูลแบบ "เซลล์ต่อเซลล์" (Discrete) ซึ่งทำให้เกิด Interface โค้งกลายเป็นขั้นบันได
+Prompt: "Visual analogy diagram: 'Physical Reality vs VOF Representation'. **Left Panel (Physics):** A smooth, continuous wave of water moving through air. The interface is a perfect curve. **Right Panel (VOF/Simulation):** The EXACT same wave overlaid on a coarse Grid. The cells are colored by Liquid Fraction $\alpha$: Pure Blue ($\alpha=1$), Pure White ($\alpha=0$), and Shades of Light Blue ($\alpha \approx 0.5$) at the interface. Highlighting the 'Stair-step' or 'Pixelated' nature of the numeric solution. STYLE: Split-screen infographic, clean flat vector art, contrasting 'Smooth' vs 'Pixelated'."
+-->
+![[IMG_04_001.JPg]]
+
 > [!NOTE] **📂 OpenFOAM Context**
 > หัวข้อนี้เกี่ยวข้องกับ **Domain A: Physics & Fields**
 > - **File**: `0/alpha.water` - Field file สำหรับ Phase Fraction

@@ -26,6 +26,13 @@
 
 ### Orthogonality: ทำไมสำคัญ?
 
+<!-- IMAGE: IMG_01_003 -->
+<!-- 
+Purpose: เพื่ออธิบายว่าทำไม "Orthogonality" ถึงสำคัญมากใน FVM โดยเปรียบเทียบกรณี "อุดมคติ" (Orthogonal) ที่เวกเตอร์เชื่อมศูนย์กลาง (d) ขนานกับเวกเตอร์พื้นที่หน้าตัด (Sf) ทำให้คำนวณ Gradient ได้แม่นยำ กับกรณี "ความเป็นจริง" (Non-Orthogonal) ที่มีมุมเบี่ยงเบน (theta) ทำให้ต้องแตกแรงและบวกเทอมแก้ (Non-orthogonal correction) ซึ่งเพิ่ม cost และลด stability
+Prompt: "Detailed technical comparison diagram of Finite Volume Mesh Geometry. **Left Panel (Ideal):** 'Orthogonal Mesh' - Two rectangular cells perfectly aligned. The vector connecting centers ($\mathbf{d}$) is PERFECTLY PARALLEL to the face area vector ($\mathbf{S}_f$). Green checkmark indicating 'Simple & Accurate'. **Right Panel (Reality):** 'Non-Orthogonal Mesh' - Two skewed/rhomboid cells. The vector $\mathbf{d}$ intersects $\mathbf{S}_f$ at a significant angle $\theta$. Show vector decomposition: $\mathbf{S}_f = \mathbf{\Delta} \text{ (Orthogonal part)} + \mathbf{k} \text{ (Correction part)}$. Red alert icon indicating 'Correction Required'. STYLE: Precision engineering blueprint style, blue and black ink on white paper, very sharp thin lines. Mathematical notations in LaTeX font."
+-->
+![[IMG_01_003.jpg]]
+
 | Mesh Type | ลักษณะ | ผลกระทบ |
 |-----------|--------|---------|
 | **Orthogonal** | $d_{PN} \perp S_f$ | Gradient คำนวณถูกต้องทันที |
@@ -56,16 +63,12 @@ $$\nabla \cdot (\phi \mathbf{u}) \rightarrow \sum_f \phi_f \Phi_f$$
 
 **ทางเลือกหลักมี 2 ขั้ว:**
 
-```
-  Upwind                                    Linear (Central)
-    │                                            │
-    ▼                                            ▼
-  เสถียร แต่เบลอ                          แม่นยำ แต่สั่น
-  (1st order)                              (2nd order)
-                    ↓
-             LinearUpwind / TVD
-             (Best of both worlds)
-```
+<!-- IMAGE: IMG_01_004 -->
+<!-- 
+Purpose: เพื่อเปรียบเทียบพฤติกรรมของ Interpolation Schemes หลัก 3 ตัว (Upwind, Linear, Central) เมื่อเจอการเปลี่ยนแปลงค่าแบบ "กระทันหัน" (Step Change). ภาพนี้ต้องสื่อว่า Upwind "เบลอ" (Diffusion), Linear "แกว่ง" (Dispersion), และ Limiters (TVD) คือทางสายกลางที่ "คมและไม่แกว่ง"
+Prompt: "Scientific data plot comparing CFD convection schemes on a 1D step problem. **X-axis:** Space, **Y-axis:** Value $\phi$. **Key Elements:** 1. **True Solution (Black Dashed):** A square wave / sharp step function. 2. **Upwind (Blue Curve):** Smooth, smeared slope showing 'Numerical Diffusion' (Safe but blurry). 3. **Central/Linear (Red Curve):** Sharp slope but with wavy 'Oscillations' near the step showing numerical dispersion (Unstable). 4. **TVD/Limited (Green Curve):** Matches the step closely without oscillations (Accurate & Stable). STYLE: Clean Matplotlib/Python-style scientific plot, with a legend, grid lines, and clear annotations pointing to 'Diffusion' vs 'Oscillation'. High contrast colors."
+-->
+![[IMG_01_004.jpg]]
 
 | Scheme | วิธีคำนวณ $\phi_f$ | Accuracy | Stability |
 |--------|-------------------|----------|-----------|

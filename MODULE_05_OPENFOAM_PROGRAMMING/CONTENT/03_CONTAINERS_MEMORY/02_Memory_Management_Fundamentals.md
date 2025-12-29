@@ -33,6 +33,13 @@
 
 ## Smart Pointers
 
+<!-- IMAGE: IMG_05_003 -->
+<!-- 
+Purpose: เพื่อเปรียบเทียบ Memory Ownership Model ของ Smart Pointers 2 ตัวหลักใน OpenFOAM: `autoPtr` (เจ้าของคนเดียว ห้าม Copy) และ `tmp` (ใช้ชั่วคราว ประหยัดแรมสำหรับการคำนวณ Field ขนาดใหญ่). ภาพนี้ต้องสื่อเรื่อง Move Semantics และ Reference Counting
+Prompt: "Technical C++ Memory Diagram: `autoPtr` vs `tmp`. **Left Panel (autoPtr):** A single Ptr Object holding a Key to a Data block (Heap). Arrow shows 'Exclusive Ownership'. Action 'Move': The Key is passed to another Ptr, and the original becomes Empty (Null). **Right Panel (tmp):** A Large Matrix Data block. Multiple `tmp` objects pointing to it without copying. A small 'Ref Counter' badge says 'Refs: 1'. Explain that this is for 'Large Field Operations' to avoid deep copying. STYLE: Modern Memory/Heap visualization, distinct colors (Red for exclusive, Blue for shared)."
+-->
+![[IMG_05_003.jpg]]
+
 ### 1. autoPtr — Exclusive Ownership
 
 ```cpp

@@ -21,6 +21,13 @@ flowchart TD
     D --> F[kOmegaSST]
 ```
 
+<!-- IMAGE: IMG_09_002 -->
+<!-- 
+Purpose: เพื่อแสดงโครงสร้าง Class Hierarchy ของ Turbulence Model. ภาพนี้ต้องโชว์การสืบทอดแบบ "Abstract $\rightarrow$ Concrete" โดยเริ่มจาก `turbulenceModel` ที่เป็นรากฐาน ไปสู่ `RASModel` และแตกกิ่งไปเป็นโมเดลที่ใช้งานจริง เช่น `kEpsilon`, `kOmegaSST`.
+Prompt: "UML Class Diagram of OpenFOAM Turbulence Models. **Root:** `turbulenceModel` (Abstract Base). **Level 1:** `RASModel` and `LESModel`. **Level 2 (Concrete):** Under RASModel, show `kEpsilon`, `kOmegaSST`, `SpalartAllmaras`. Under LESModel, show `Smagorinsky`, `WALE`. **Key Methods:** Show `correct()`, `divDevReff()`, `nuEff()` in the Base Class to imply Polymorphism. STYLE: Professional Software Design Diagram, clear hierarchy tree."
+-->
+![IMG_09_002: Turbulence Model Hierarchy](IMG_09_002.jpg)
+
 ---
 
 ## 2. Base Class

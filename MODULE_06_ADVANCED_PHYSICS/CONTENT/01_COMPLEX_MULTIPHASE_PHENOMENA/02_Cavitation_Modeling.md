@@ -8,6 +8,13 @@
 
 > **Cavitation** = Phase change from liquid to vapor at low pressure
 
+<!-- IMAGE: IMG_06_004 -->
+<!-- 
+Purpose: เพื่ออธิบายกลไกการเกิด Cavitation ที่ใบพัดหรือ Hydrofoil. ภาพนี้ต้องเชื่อมโยง "กราฟความดัน" ($C_p$) กับ "ตำแหน่งที่เกิดฟอง" (Vapor Region). จุดสำคัญคือ: ฟองจะเกิดเมื่อกราฟความดันจุ่มลงต่ำกว่าเส้น $P_{sat}$ (Saturation Pressure)
+Prompt: "Physics Diagram of Hydrofoil Cavitation. **Scene:** A Hydrofoil cross-section in blue water flow. **Overlay Graphs:** 1. **Pressure Coefficient ($C_p$) Curve:** Plotted along the foil chord. The curve dips deeply on the upper surface (Suction side). 2. **Saturation Line ($P_{sat}$):** A horizontal dashed line intersecting the pressure curve. **Vapor Zone:** Calculate the area where Pressure Curve < Saturation Line $\rightarrow$ Highlight this region on the foil surface as 'Vapor/White Bubble Cloud'. **Collapse:** Show bubbles collapsing at the trailing edge where pressure recovers. STYLE: Mixed-media (Engineering Chart + Physical Flow), clear threshold indicators."
+-->
+![[IMG_06_004.jpg]]
+
 ---
 
 ## 1. Physics

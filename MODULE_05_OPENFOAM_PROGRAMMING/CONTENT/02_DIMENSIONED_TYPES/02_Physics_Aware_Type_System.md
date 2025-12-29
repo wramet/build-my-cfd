@@ -48,6 +48,36 @@ flowchart TD
     C --> E[7 SI Exponents]
 ```
 
+### The 7 Dimension Set
+OpenFOAM uses a standard array of 7 SI base units:
+
+| Index | Property | Unit | Symbol |
+|:---:|:---|:---:|:---:|
+| 0 | Mass | Kilogram | `kg` |
+| 1 | Length | Meter | `m` |
+| 2 | Time | Second | `s` |
+| 3 | Temperature | Kelvin | `K` |
+| 4 | Quantity | Mole | `mol` |
+| 5 | Current | Ampere | `A` |
+| 6 | Luminous | Candela | `cd` |
+
+> **Example:** Velocity ($m/s$) is `[0 1 -1 0 0 0 0]`
+
+### Dimensional Logic
+The compiler enforces physical correctness at compile-time:
+
+- **Addition (+):** Dimensions MUST match.
+  - `Pressure + Velocity` = ❌ **Compilation Error**
+- **Multiplication (*):** Exponents are added.
+  - `Mass (kg) * Accel (m/s^2)` = `Force (kg m/s^2)` ✅
+
+```mermaid
+graph TD
+    A[Operation] --> B{Check Dims}
+    B -- Match --> C[Result Dims]
+    B -- Mismatch --> D[Compiler Error]
+```
+
 ### Components
 
 | Component | Purpose |

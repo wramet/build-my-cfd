@@ -12,6 +12,13 @@ Conjugate Heat Transfer (CHT)
 
 ## 1. Multi-Region Concept
 
+<!-- IMAGE: IMG_06_001 -->
+<!-- 
+Purpose: เพื่อแสดงหลักการของ CHT (Conjugate Heat Transfer) ที่มี 2 Regions แยกกัน (Fluid vs Solid) แต่สื่อสารกันผ่าน Interface. ภาพนี้ต้องโชว์กฎเหล็ก 2 ข้อที่ Interface: 1. อุณหภูมิเท่ากัน ($T_f = T_s$) 2. Heat Flux เท่ากัน ($q''_f = q''_s$).
+Prompt: "Cross-section Diagram of CHT Multi-Region Physics. **Left (Fluid):** Blue streamlines, T-profile curve. Annotate: 'Convection'. **Right (Solid):** Orange gradient. Annotate: 'Conduction'. **Interface:** Vertical line with EQUATIONS: 'T_f = T_s' and 'k_f grad(T) = k_s grad(T)'. **Style:** Engineering thermal analysis schematics, clear mathematical text."
+-->
+![[IMG_06_001.jpg]]
+
 ```mermaid
 flowchart LR
     A[Fluid Region] <-->|Heat Exchange| B[Solid Region]

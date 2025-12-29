@@ -16,11 +16,29 @@
 > ไม่ใช่แค่ตัวเลข แต่คือ "physical quantity บน mesh"
 
 ```mermaid
-flowchart TD
-    A[GeometricField] --> B[Internal Field]
-    A --> C[Boundary Field]
-    A --> D[dimensionSet]
-    A --> E[Mesh Reference]
+classDiagram
+    class GeometricField {
+        +InternalField : Field
+        +BoundaryField : GeometricBoundaryField
+        +Mesh : polyMesh
+        +Dimensions : dimensionSet
+    }
+    class Field {
+        +List<Type>
+    }
+    class GeometricBoundaryField {
+        +List<fvPatchField>
+    }
+    class polyMesh {
+        +Points
+        +Faces
+        +Cells
+    }
+    
+    GeometricField *-- Field : contains
+    GeometricField *-- GeometricBoundaryField : contains
+    GeometricField o-- polyMesh : references
+    GeometricField *-- dimensionSet : has
 ```
 
 ---

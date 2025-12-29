@@ -8,6 +8,13 @@
 
 > **ParaView** = Standard CFD visualization
 
+<!-- IMAGE: IMG_07_004 -->
+<!-- 
+Purpose: เพื่อแนะนำหน้าตา (Interface) ของ ParaView ให้กับผู้เริ่มต้น. ภาพนี้ต้องชี้จุดสำคัญ 4 จุด: 1. Pipeline Browser 2. Properties Panel 3. 3D Viewport 4. Toolbar. พร้อมโชว์ตัวอย่างการ Visualize แบบ Contour หรือ Streamlines ที่สวยงาม
+Prompt: "Mockup of ParaView User Interface. **Central Viewport:** A stunning 3D visualization of aerodynamic flow around a car (Streamlines + Pressure Surface). **Sidebar (Left):** 'Pipeline Browser' showing loaded modules. **Panel (Bottom-Left):** 'Properties' with 'Apply' button highlighted green. **Toolbar (Top):** Icons for 'Slice', 'Clip', 'Glyph'. **Annotations:** Callout bubbles pointing to key areas: 1. Load Data 2. Filters 3. Render View. STYLE: Clean UI mockup, high-resolution aesthetic, dark theme."
+-->
+![[IMG_07_004.jpg]]
+
 ---
 
 ## 1. Open Case

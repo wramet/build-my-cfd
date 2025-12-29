@@ -8,6 +8,13 @@
 
 > **Unit test** = Test individual functions/classes in isolation
 
+<!-- IMAGE: IMG_08_003 -->
+<!-- 
+Purpose: เพื่อแสดง "Pyramid of Testing" ให้เห็นสัดส่วนของการทดสอบ. ฐานรากคือ Unit Test (เยอะ, เร็ว, ราคาถูก). ตรงกลางคือ Integration Test (เทสการเชื่อมต่อ). ยอดคือ System Test (เทสทั้งระบบ). OpenFOAM ควรเน้นฐานรากให้แน่น
+Prompt: "Software Testing Pyramid for CFD Development. **Base Layer (70%):** 'Unit Tests' (Class check, Math routines). Color: Green. Features: Fast, Isolated. **Middle Layer (20%):** 'Integration Tests' (Physics Models, BCs). Color: Blue. Features: Modules connecting. **Top Layer (10%):** 'System/Validation Tests' (Full Case Run). Color: Red. Features: Slow, Expensive. **Constraint:** Arrows on the side showing 'Execution Speed (Fast $\rightarrow$ Slow)' and 'Cost (Low $\rightarrow$ High)'. STYLE: Infographic pyramid, clean flat layers."
+-->
+![IMG_08_003: Testing Pyramid](IMG_08_003.jpg)
+
 ---
 
 ## 1. OpenFOAM Test Structure

@@ -10,7 +10,12 @@
 > - **วิศวกรรมโยธา**: อากาศพลศาสตร์ของสะพาน, แรงลมที่กระทำต่ออาคาร
 > - **วิศวกรรมทางเรือ**: ปฏิสัมพันธ์ระหว่างใบพัดและตัวเรือ, พลวัตของยานพาหนะใต้น้ำ
 
-![[flexible_plate_fsi.png]]
+<!-- IMAGE: IMG_06_005 -->
+<!-- 
+Purpose: เพื่อแสดงปฏิสัมพันธ์ระหว่างของไหลกับโครงสร้างแบบ "2-Way Coupling". Fluid จ่ายแรงให้ Solid $\rightarrow$ Solid เสียรูป $\rightarrow$ การเสียรูปเปลี่ยนหน้าตาของ Fluid Domain. ภาพนี้ต้องโชว์ Loop ของข้อมูล: $p,\tau \rightarrow$ **Displacement** $\rightarrow$ **Mesh Motion**.
+Prompt: "Cycle Diagram of Fluid-Structure Interaction (FSI). **Left Side (Fluid Domain):** A Streamline flow hitting a flexible Flag. Info Arrow Out: *Forces* ($p, \tau$). **Right Side (Solid Domain):** The Flag bending under load (Stress Analysis colors). Info Arrow Out: *Displacement* ($\Delta x$). **The Cycle:** The Displacement arrow feeds back into the Fluid Domain, causing the Fluid Mesh to warp/move (Dynamic Mesh). **Central Hub:** 'Coupling Interface'. STYLE: Dynamic motion visualization, cycling arrows, contrasting Physics Domains."
+-->
+![[IMG_06_005.jpg]]
 
 > [!TIP] **มุมมองเปรียบเทียบ: คู่เต้นรำลีลาศ (The Ballroom Dancers Analogy)**
 > 

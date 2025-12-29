@@ -17,6 +17,13 @@
 > 2. **Neumann:** "น้ำไหลเข้า = 1 L/s" (กำหนด flux)
 > 3. **Robin:** "น้ำไหลออกขึ้นกับระดับน้ำ" (ผสมทั้งสอง)
 
+<!-- IMAGE: IMG_01_005 -->
+<!-- 
+Purpose: เพื่อสร้างภาพจำ (Mental Model) ให้กับผู้เรียนเรื่อง Boundary Conditions 3 ประเภทหลักในทางคณิตศาสตร์ โดยใช้ "ความร้อน" (Heat Transfer) เป็นตัวอย่างเพราะเข้าใจง่ายที่สุด. ภาพนี้ต้องแยกแยะ 1) การกำหนดค่า (Dirichlet) 2) การกำหนดความชัน/Flux (Neumann) และ 3) การกำหนดความสัมพันธ์ (Robin)
+Prompt: "Technical engineering triptych (3-panel diagram) illustrating Thermal Boundary Conditions. **Panel 1 (Left - Dirichlet):** A wall at fixed $T_{wall} = 300K$. The temperature profile curve explicitly connects to this fixed point. Label: 'Fixed Value'. **Panel 2 (Center - Neumann):** A wall with HEAT FLUX arrows ($q''$) entering. The temperature profile slope is fixed ($\partial T / \partial n = const$), but the wall temperature itself is floating. Label: 'Fixed Gradient'. **Panel 3 (Right - Robin):** A convection scenario ($h(T - T_{\infty})$). The profile slope depends on the temperature difference. Label: 'Mixed / Convective'. STYLE: Professional engineering textbook illustration, clean isometric or 2D cross-section, thermal gradient colors (blue to red), sharp black coordinate axes."
+-->
+![[IMG_01_005.JPg]]
+
 | ประเภท | สมการ | OpenFOAM | Physical Meaning |
 |--------|-------|----------|------------------|
 | **Dirichlet** | $\phi = \phi_0$ | `fixedValue` | กำหนดค่าโดยตรง |

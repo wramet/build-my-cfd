@@ -22,6 +22,13 @@
 
 นี่คือกระบวนการเป๊ะๆ ของ `snappyHexMesh`
 
+<!-- IMAGE: IMG_02_004 -->
+<!-- 
+Purpose: เพื่อแสดงกระบวนการทำงาน 3 ขั้นตอนของ snappyHexMesh ให้เห็นภาพชัดเจนเหมือน "ประติมากรรม" เริ่มจาก 1. แกะสลักหยาบ (Castellated) 2. ขัดผิวให้เรียบ (Snap) 3. เคลือบผิวละเอียด (Layers). ภาพนี้ต้องช่วยให้ผู้เรียนจำลำดับการทำงานและผลลัพธ์ของแต่ละขั้นได้
+Prompt: "Sequential 3-Panel Triptych Diagram of snappyHexMesh Process. **Panel 1 (Left - Castellated):** A blocky LEGO-like mesh approximating an airfoil shape. Step-like jagged edges. Label: '1. Castellated'. **Panel 2 (Center - Snap):** The same mesh but vertices are moved to smooth out the jagged edges, fitting the curve perfectly. Label: '2. Snap'. **Panel 3 (Right - Layers):** Zoom in on the surface relative to Panel 2, showing 3 distinct thin prism layers added boundary-aligned. Label: '3. Layers'. **Style:** Technical diagram, flat 2D or simple 3D wireframe, white background, distinct stages side-by-side."
+-->
+![[IMG_02_004.jpg]]
+
 ## 2. โครงสร้างไฟล์ `system/snappyHexMeshDict`
 
 > [!NOTE] **📂 OpenFOAM Context: โครงสร้าง snappyHexMeshDict**

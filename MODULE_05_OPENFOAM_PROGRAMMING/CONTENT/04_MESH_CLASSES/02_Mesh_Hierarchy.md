@@ -18,10 +18,26 @@
 > - `fvMesh`: + **FVM** — "how to discretize?"
 
 ```mermaid
-flowchart TD
-    A[polyMesh] --> B[primitiveMesh]
-    C[fvMesh] --> A
-    D[dynamicFvMesh] --> C
+classDiagram
+    class polyMesh {
+        +points()
+        +faces()
+        +cells()
+        +boundaryMesh()
+    }
+    class fvMesh {
+        +vol()
+        +surface()
+        +magSf()
+        +C()
+    }
+    class dynamicFvMesh {
+        +update()
+        +refine()
+    }
+    
+    polyMesh <|-- fvMesh : inherits (adds FVM data)
+    fvMesh <|-- dynamicFvMesh : inherits (adds motion/refinement)
 ```
 
 ---
