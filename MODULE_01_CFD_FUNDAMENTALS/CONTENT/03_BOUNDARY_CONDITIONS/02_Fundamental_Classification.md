@@ -1,15 +1,25 @@
 # การจำแนก Boundary Conditions
 
-ประเภทหลักของ Boundary Conditions ตามหลักคณิตศาสตร์และการใช้งานใน OpenFOAM
+## Learning Objectives
 
-> **ทำไม BC สำคัญ?**
+หลังจากอ่านบทนี้ คุณควรจะสามารถ:
+- 🎯 **แยกแยะประเภททางคณิตศาสตร์**ของ Boundary Conditions ทั้ง 3 แบบ (Dirichlet, Neumann, Robin) และเข้าใจความหมายทางฟิสิกส์
+- 🎯 **เขียนค่า BC ใน OpenFOAM** สำหรับแต่ละประเภทได้อย่างถูกต้อง
+- 🎯 **เลือก Wall Functions** ที่เหมาะสมกับ y+ และ mesh resolution
+- 🎯 **อธิบายความแตกต่าง**ระหว่าง BC types ที่ดูคล้ายกัน (เช่น `zeroGradient` vs `fixedGradient 0`)
+- 🎯 **ประยุกต์ใช้ Mixed BC** สำหรับปัญหา convection heat transfer
+
+---
+
+## What: ประเภททางคณิตศาสตร์ของ Boundary Conditions
+
+### ทำไม Boundary Conditions สำคัญ?
+
 > - สมการ PDE **ไม่มีคำตอบ unique** ถ้าไม่มี BC
 > - BC ที่ผิดพลาด = คำตอบที่ไม่มีความหมายทางกายภาพ
 > - หลาย simulation ล้มเหลวเพราะ BC ไม่ใช่เพราะ solver
 
----
-
-## ประเภททางคณิตศาสตร์
+### Mental Model: น้ำในถัง
 
 > **💡 คิดแบบนี้:**
 > ลองนึกภาพน้ำในถัง — จะบอกพฤติกรรมที่ขอบได้ 3 แบบ:
@@ -24,6 +34,8 @@ Prompt: "Technical engineering triptych (3-panel diagram) illustrating Thermal B
 -->
 ![[IMG_01_005.JPg]]
 
+### สรุปประเภททางคณิตศาสตร์
+
 | ประเภท | สมการ | OpenFOAM | Physical Meaning |
 |--------|-------|----------|------------------|
 | **Dirichlet** | $\phi = \phi_0$ | `fixedValue` | กำหนดค่าโดยตรง |
@@ -32,7 +44,19 @@ Prompt: "Technical engineering triptych (3-panel diagram) illustrating Thermal B
 
 ---
 
-## 1. Dirichlet (Fixed Value)
+## Why: ทำไมต้องแยกประเภท?
+
+การแยกประเภท BC ตามหลักคณิตศาสตร์ช่วยให้:
+- ✅ **เลือก BC ที่เหมาะสม**กับสภาพปัญหาทางฟิสิกส์
+- ✅ **หลีกเลี่ยงข้อผิดพลาด** เช่น กำหนด fixedValue ทุก boundary ทำให้ไม่ satisfy continuity
+- ✅ **ทำความเข้าใจ solver behavior** เมื่อ BC ไม่เข้ากัน
+- ✅ **ดีบักปัญหา divergence** ที่มักเกิดจาก BC ที่ขัดแย้งกัน
+
+---
+
+## How: การนำไปใช้ใน OpenFOAM
+
+### 1. Dirichlet (Fixed Value)
 
 $$\phi|_{\text{boundary}} = \phi_0$$
 
@@ -62,13 +86,13 @@ hotWall
 
 ---
 
-## 2. Neumann (Fixed Gradient)
+### 2. Neumann (Fixed Gradient)
 
 $$\frac{\partial\phi}{\partial n}\bigg|_{\text{boundary}} = g$$
 
 **"ฉันบอก flux/gradient — ค่าที่ขอบคำนวณจากข้างใน"**
 
-### Zero Gradient ($g = 0$)
+#### Zero Gradient ($g = 0$)
 
 ```cpp
 outlet
@@ -86,7 +110,7 @@ outlet
 - ถ้า flow พัฒนาเต็มที่ → profile ไม่เปลี่ยน → $\partial/\partial n = 0$
 - ถ้าใกล้ outlet เกินไป → profile ยังไม่นิ่ง → **ต้องขยาย domain**
 
-### Fixed Gradient ($g \neq 0$)
+#### Fixed Gradient ($g \neq 0$)
 
 ```cpp
 heatedWall
@@ -104,7 +128,7 @@ heatedWall
 
 ---
 
-## 3. Robin (Mixed)
+### 3. Robin (Mixed)
 
 $$a\phi + b\frac{\partial\phi}{\partial n} = c$$
 
@@ -134,7 +158,7 @@ $$-k\frac{\partial T}{\partial n} = h(T_s - T_\infty)$$
 
 ---
 
-## 4. Wall Functions (Turbulence)
+### 4. Wall Functions (Turbulence)
 
 **ปัญหา:** Boundary layer บางมาก → ต้อง mesh ละเอียดมากใกล้ผนัง
 
@@ -166,14 +190,14 @@ wall
 
 | Approach | y+ Range | ข้อดี | ข้อเสีย |
 |----------|----------|------|---------|
-| **Wall functions** | 30 < y+ < 300 | Mesh หยาบได้ | ไม่แม่นใกล้ผนัง |
+| **Wall functions** | 30 < y+ < 300 | Mesh หยาบได้ | ไม่แม่นยำใกล้ผนัง |
 | **Low-Re models** | y+ < 5 | แม่นยำ | Mesh ละเอียดมาก |
 
 ---
 
-## 5. Coupled/Special
+### 5. Coupled/Special
 
-### Cyclic (Periodic)
+#### Cyclic (Periodic)
 
 ```cpp
 left  { type cyclic; }
@@ -191,7 +215,7 @@ left
 }
 ```
 
-### Symmetry
+#### Symmetry
 
 ```cpp
 symmetryPlane { type symmetry; }
@@ -203,7 +227,7 @@ symmetryPlane { type symmetry; }
 - Velocity ตั้งฉากผนัง = 0
 - Gradient ขนานผนัง = 0
 
-### Processor (Parallel)
+#### Processor (Parallel)
 
 ```cpp
 // สร้างอัตโนมัติเมื่อ decomposePar
@@ -214,19 +238,86 @@ procBoundary0to1 { type processor; }
 
 ---
 
-## สรุป OpenFOAM BC Types
+## Visual Summary: BC Classification Decision Tree
 
-| BC Type | คณิตศาสตร์ | ใช้ที่ | Keywords |
-|---------|-----------|--------|----------|
-| `fixedValue` | Dirichlet | Inlet U, Wall T | `value` |
-| `zeroGradient` | Neumann (g=0) | Outlet, Wall p | — |
-| `fixedGradient` | Neumann | Heat flux | `gradient` |
-| `mixed` | Robin | Convection | `refValue`, `valueFraction` |
-| `noSlip` | Dirichlet (U=0) | Wall U | — |
-| `slip` | U⋅n=0, τ=0 | Inviscid wall | — |
-| `symmetry` | Mirror | Symmetry plane | — |
-| `cyclic` | Periodic | Repeating | neighbourPatch |
-| `inletOutlet` | Switching | Backflow safe | `inletValue` |
+```
+┌─────────────────────────────────────────────────────────────┐
+│           Boundary Condition Classification                 │
+└─────────────────────────────────────────────────────────────┘
+                              │
+              ┌───────────────┴───────────────┐
+              │   What do you know at BC?     │
+              └───────────────┬───────────────┘
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        │                     │                     │
+   Known Value         Known Flux            Both Related
+   (Dirichlet)         (Neumann)              (Robin)
+        │                     │                     │
+        ▼                     ▼                     ▼
+  ┌───────────┐       ┌─────────────┐     ┌──────────────┐
+  │fixedValue │       │zeroGradient │     │    mixed     │
+  │           │       │fixedGradient│     │              │
+  │Examples:  │       │Examples:    │     │Examples:     │
+  │- Inlet U  │       │- Outlet     │     │- Convection  │
+  │- Wall T   │       │- Adiabatic  │     │- Radiation   │
+  └───────────┘       └─────────────┘     └──────────────┘
+                              │
+                              │ For Turbulence
+                              ▼
+                    ┌─────────────────────┐
+                    │   Wall Functions    │
+                    │ (y+ dependent)      │
+                    ├─────────────────────┤
+                    │ 30 < y+ < 300:      │
+                    │ Use wall functions  │
+                    │                     │
+                    │ y+ < 5:             │
+                    │ Resolve viscous     │
+                    │ sublayer            │
+                    └─────────────────────┘
+```
+
+---
+
+## Key Takeaways
+
+### สรุปเปรียบเทียบทุกประเภท
+
+| BC Type | คณิตศาสตร์ | ใช้ที่ | Keywords | ตัวอย่าง |
+|---------|-----------|--------|----------|-----------|
+| `fixedValue` | Dirichlet | Inlet U, Wall T | `value` | Velocity inlet, isothermal wall |
+| `zeroGradient` | Neumann (g=0) | Outlet, Wall p | — | Fully developed outlet, adiabatic wall |
+| `fixedGradient` | Neumann | Heat flux | `gradient` | Constant heat flux wall |
+| `mixed` | Robin | Convection | `refValue`, `valueFraction` | Convective cooling |
+| `noSlip` | Dirichlet (U=0) | Wall U | — | No-slip wall |
+| `slip` | U⋅n=0, τ=0 | Inviscid wall | — | Frictionless wall |
+| `symmetry` | Mirror | Symmetry plane | — | Symmetry boundary |
+| `cyclic` | Periodic | Repeating | neighbourPatch | Periodic flow |
+| `inletOutlet` | Switching | Backflow safe | `inletValue` | Outlet with potential backflow |
+| `kqRWallFunction` | Wall Func | Turbulence k | — | Turbulent wall treatment |
+| `epsilonWallFunction` | Wall Func | Turbulence ε | — | Turbulent dissipation |
+| `omegaWallFunction` | Wall Func | Turbulence ω | — | SST k-ω model |
+
+### หลักการสำคัญ
+
+1. **Dirichlet vs Neumann:**
+   - Dirichlet: กำหนดค่า → solver หา gradient
+   - Neumann: กำหนด gradient → solver หาค่า
+
+2. **Continuity requirement:**
+   - Pressure ต้องมี reference point อย่างน้อย 1 จุด
+   - ใช้ fixedValue ทุก boundary → อาจไม่ converge
+
+3. **Wall Functions:**
+   - 30 < y+ < 300: ใช้ wall functions
+   - y+ < 5: ต้อง mesh ละเอียดมาก
+   - 5 < y+ < 30: **หลีกเลี่ยง!** buffer zone
+
+4. **Robin/Mixed BC:**
+   - valueFraction = 1 → Dirichlet
+   - valueFraction = 0 → Neumann
+   - 0 < valueFraction < 1 → ผสมทั้งสอง
 
 ---
 
@@ -298,6 +389,7 @@ outlet
 
 ## เอกสารที่เกี่ยวข้อง
 
-- **บทก่อนหน้า:** [01_Introduction.md](01_Introduction.md) — บทนำ
-- **บทถัดไป:** [03_Selection_Guide_Which_BC_to_Use.md](03_Selection_Guide_Which_BC_to_Use.md) — คู่มือการเลือก BC
-- **ดูเพิ่ม:** [05_Common_Boundary_Conditions_in_OpenFOAM.md](05_Common_Boundary_Conditions_in_OpenFOAM.md) — BC ที่ใช้บ่อยใน OpenFOAM
+- **บทก่อนหน้า:** [01_Introduction.md](01_Introduction.md) — บทนำและแนวคิดเบื้องต้นเรื่อง Boundary Conditions
+- **บทถัดไป:** [03_Selection_Guide_Which_BC_to_Use.md](03_Selection_Guide_Which_BC_to_Use.md) — คู่มือการเลือก BC ที่เหมาะสมกับแต่ละสถานการณ์
+- **ดูเพิ่ม:** [05_Common_Boundary_Conditions_in_OpenFOAM.md](05_Common_Boundary_Conditions_in_OpenFOAM.md) — BC ที่ใช้บ่อยใน OpenFOAM พร้อมตัวอย่างโค้ด
+- **ดูเพิ่ม:** [04_Advanced_Boundary_Conditions.md](04_Advanced_Boundary_Conditions.md) — BC ขั้นสูงและกรณีพิเศษ

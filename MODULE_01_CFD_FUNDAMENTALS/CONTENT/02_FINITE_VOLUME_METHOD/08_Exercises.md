@@ -1293,7 +1293,7 @@ Setup complete OpenFOAM case ตั้งแต่เริ่มจนถึง
 
 ---
 
-#### 问题描述
+#### ข้อมูลปัญหา
 
 **Geometry:** Backward-facing step (classic CFD benchmark)
 

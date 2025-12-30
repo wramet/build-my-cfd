@@ -1,15 +1,22 @@
 # ภาพรวม Boundary Conditions
 
-**Boundary Conditions (BC)** กำหนดพฤติกรรมของตัวแปรที่ขอบเขตของโดเมน
+## Learning Objectives
 
-> **ทำไม BC ถึงสำคัญที่สุด?**
-> - **กำหนดปัญหาให้สมบูรณ์** — PDE ต้องมี BC จึงจะมี unique solution
-> - **ควบคุมพฤติกรรมการไหล** — Inlet, outlet, wall ต้องสะท้อน physics จริง
-> - **ส่งผลต่อ stability** — BC ที่ไม่สอดคล้องกันทำให้ diverge
+หลังจากศึกษาบทนี้ ผู้เรียนควรจะสามารถ:
+
+1. **อธิบายความสำคัญของ Boundary Conditions (BC)** ในการแก้ปัญหา CFD และผลกระทบต่อความถูกต้องของผลลัพธ์
+2. **จำแนกประเภทของ BC** ทั้ง 3 ประเภทหลัก (Dirichlet, Neumann, Robin) และเลือกใช้ OpenFOAM BC types ที่เหมาะสม
+3. **ตั้งค่า BC ที่เหมาะสม** สำหรับ velocity, pressure, และ temperature ในสถานการณ์ต่างๆ
+4. **ใช้หลักการ BC compatibility** ระหว่าง velocity และ pressure อย่างถูกต้อง
+5. **หลีกเลี่ยงข้อผิดพลาดทั่วไป** ในการตั้งค่า BC ที่อาจทำให้การคำนวณ diverge
 
 ---
 
-## ประเภทหลักของ BC
+## 3W Framework
+
+### What (อะไร) - Boundary Conditions คืออะไร?
+
+**Boundary Conditions (BC)** คือการกำหนดพฤติกรรมของตัวแปร (velocity, pressure, temperature, ฯลฯ) ที่ขอบเขตของโดเมนคำนวณ ซึ่งประกอบด้วย 3 ประเภทหลัก:
 
 | ประเภท | คณิตศาสตร์ | OpenFOAM Type | ใช้เมื่อ |
 |--------|-----------|---------------|---------|
@@ -17,9 +24,28 @@
 | **Neumann** | $\frac{\partial \phi}{\partial n} = g$ | `fixedGradient`, `zeroGradient` | กำหนด flux หรือ fully developed |
 | **Robin** | $\alpha\phi + \beta\frac{\partial\phi}{\partial n} = \gamma$ | `mixed` | Convective heat transfer |
 
+### Why (ทำไม) - ทำไม BC ถึงสำคัญ?
+
+> **BC คือสิ่งที่ทำให้โจทย์ปัญหาสมบูรณ์และมีคำตอบที่ถูกต้อง**
+
+- **กำหนดปัญหาให้สมบูรณ์** — PDE ต้องมี BC จึงจะมี **unique solution** โดยเฉพาะอย่างยิ่งใน incompressible flow
+- **ควบคุมพฤติกรรมการไหล** — Inlet, outlet, wall ต้องสะท้อน **physics จริง** มิฉะนั้นผลลัพธ์จะไม่มีความหมายทางฟิสิกส์
+- **ส่งผลต่อ stability** — BC ที่ไม่สอดคล้องกันหรือขัดแย้งกันทำให้ **diverge** แม้ว่า discretization จะถูกต้อง
+- **ส่งผลต่อความแม่นยำ** — BC ที่ไม่เหมาะสมสร้าง **boundary layer artifacts** หรือ unphysical reflections
+
+### How (อย่างไร) - แนวทางการใช้งาน
+
+**แนวทางการตั้งค่า BC ใน OpenFOAM:**
+
+1. **เลือกประเภท BC** ตามสภาพฟิสิกส์ (Dirichlet/Neumann/Robin) → ดูตารางประเภทหลักด้านบน
+2. **ตั้งค่า BC สำหรับแต่ละตัวแปร** (U, p, T, k, ε, ฯลฯ) → ดูตาราง BC ที่ใช้บ่อยด้านล่าง
+3. **ตรวจสอบความสอดคล้อง** ระหว่าง velocity และ pressure → ดูหัวข้อ "ความสอดคล้องของ BC"
+4. **ตรวจสอบ BC compatibility** 6 ข้อหลัก → ดูกฎเกณฑ์ในหัวข้อ "ข้อควรระวังเรื่อง BC Selection"
+5. **แก้ปัญหา** หากเกิด divergence หรือผลลัพธ์แปลกปลอม → ดูไฟล์ [07_Troubleshooting_Boundary_Conditions.md](07_Troubleshooting_Boundary_Conditions.md)
+
 ---
 
-## BC ที่ใช้บ่อย
+## BC ที่ใช้บ่อยใน OpenFOAM
 
 ### Velocity (U)
 
@@ -116,6 +142,22 @@
 
 $\frac{\partial\phi}{\partial n} = 0$ → ค่าไม่เปลี่ยนแปลงในทิศทางตั้งฉากกับขอบ → ใช้สำหรับ fully developed flow หรือ adiabatic wall
 </details>
+
+---
+
+## Key Takeaways
+
+✅ **Boundary Conditions คือหัวใจของการแก้ปัญหา CFD** — ไม่ว่า discretization จะดีแค่ไหน ถ้า BC ผิด ผลลัพธ์ก็จะผิด
+
+✅ **3 ประเภทหลัก:** Dirichlet (กำหนดค่า), Neumann (กำหนด gradient), Robin (ผสมทั้งสอง) — แต่ละประเภทมี use case ที่แตกต่างกัน
+
+✅ **ความสอดคล้องของ BC สำคัญมาก** — โดยเฉพาะ coupling ระหว่าง velocity และ pressure (fixedValue ↔ zeroGradient)
+
+✅ **ต้องมี reference pressure อย่างน้อย 1 จุด** — มิฉะนั้น pressure จะ drift ใน incompressible flow
+
+✅ **BC selection ต้องคำนึงถึง:** compressibility, backflow, turbulence, initial conditions, และ physical constraints
+
+✅ **BC ที่ไม่ถูกต้องเป็นสาเหตุหลักของ divergence** — ตรวจสอบ BC ก่อนเสมอเมื่อเจอปัญหา convergence
 
 ---
 

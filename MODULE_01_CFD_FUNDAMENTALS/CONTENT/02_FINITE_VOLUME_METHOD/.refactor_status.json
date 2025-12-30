@@ -7,7 +7,8 @@
         "04_Temporal_Discretization.md",
         "06_OpenFOAM_Implementation.md",
         "08_Exercises.md",
-        "07_Best_Practices.md"
+        "07_Best_Practices.md",
+        "05_Matrix_Assembly.md"
     ],
     "skipped": [
         "05_Matrix_Assembly.md",

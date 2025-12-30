@@ -8,13 +8,14 @@
 > - **เลือก solver ได้เหมาะสม:** แต่ละ equation ต้องการ solver ที่ต่างกัน
 > - **ปรับ performance:** ทราบว่า tolerance/relaxation ส่งผลอย่างไร
 > - **Custom source terms:** เขียน semi-implicit source ได้ถูกต้อง
+> - **fvm vs fvc mastery:** เข้าใจว่าอะไรควรเป็น implicit หรือ explicit
 
 ---
 
 ## Prerequisites
 
 ⚠️ **ควรอ่านก่อน:**
-- [02_Fundamental_Concepts.md](02_Fundamental_Concepts.md) — เข้าใจ Matrix Concept เบื้องต้น
+- [02_Fundamental_Concepts.md](02_Fundamental_Concepts.md) — FVM Theory Foundation และ general transport equation
 - [03_Spatial_Discretization.md](03_Spatial_Discretization.md) — Diffusion/Convection coefficients และ non-orthogonal correction
 - [04_Temporal_Discretization.md](04_Temporal_Discretization.md) — Temporal contribution และ CFL
 
@@ -24,11 +25,12 @@
 
 หลังจากอ่านบทนี้ คุณจะสามารถ:
 - **คำนวณ** coefficient แต่ละตัวใน matrix ($a_P$, $a_N$, $b_P$) จาก discretization terms ทุกประเภท
-- **อธิบาย** โครงสร้าง sparse matrix และทำไม OpenFOAM เลือกใช้
+- **อธิบาย** โครงสร้าง sparse matrix และทำไม OpenFOAM เลือกใช้ LDU format
 - **เลือก** linear solver ที่เหมาะสมกับแต่ละประเภทสมการ (GAMG vs PBiCGStab)
 - **แก้ปัญหา** matrix instability และ solver divergence อย่างเป็นระบบ
 - **ปรับแต่ง** relaxation factors, tolerance, และ solver settings อย่างมีหลักการ
 - **เขียน** semi-implicit source terms ที่ stable
+- **แยกแยะ** ได้อย่างชัดเจนว่าควรใช้ `fvm::` หรือ `fvc::` สำหรับแต่ละ term
 
 ---
 
@@ -66,16 +68,18 @@ $$|a_P| \geq \sum_{N} |a_N|$$
 - Guarantees solver converge (สำหรับ M-matrices)
 - ลด oscillation ใน solution
 - เพิ่ม robustness ของ nonlinear iteration
+- เป็นเป้าหมายของ relaxation strategies
 
 ---
 
-## Part 2: Sparse Matrix Structure
+## Part 2: Sparse Matrix Structure - Visualized
 
 ### ทำมาที่ไหน?
 
 Matrix $[A]$ มีโครงสร้าง **Sparse** เพราะ:
 - แต่ละ Cell เชื่อมต่อกับ **Neighbors เท่านั้น** (ไม่ใช่ทุก Cell)
 - Non-zero entries ≈ 6-20 ต่อแถว (3D hexahedral mesh)
+- Storing only non-zeros → memory O(N) แทน O(N²)
 
 ### ASCII Visualization: 1D Mesh
 
@@ -125,6 +129,27 @@ Pattern: Interior cells = 5 non-zeros, Edge cells = 3-4 non-zeros
          Corner cells = 2-3 non-zeros
 ```
 
+### ASCII Visualization: 3D Connectivity
+
+```
+3D Hexahedral Mesh (Cell P with 6 neighbors):
+              N (top)
+               │
+               │
+    W ──────── P ──────── E
+               │
+               │
+              S (bottom)
+
+     (front/rear faces not shown for clarity)
+
+Matrix [A] for Cell P:
+        N  S  E  W  Fr Re  (neighbors)
+Row P: [● ● ● ● ● ●]  ← 6 non-zeros + diagonal
+        ↓
+    Only 7 entries stored out of N_total_cells possible!
+```
+
 ### ทำไม Sparse สำคัญ?
 
 | แง่มุม | Dense Matrix | Sparse Matrix |
@@ -148,18 +173,32 @@ labelList l;      // Addressing: L[i] connects cell owner[i] to neighbour[i]
 labelList u;      // Addressing: U[i] connects cell owner[i] to neighbour[i]
 ```
 
+**Memory Layout:**
+
+```
+Cell Connectivity:
+    Owner cells:  [0, 0, 1, 1, 2, ...]
+    Neighbour:    [1, 3, 2, 4, 5, ...]
+
+Coefficients (size = nFaces):
+    Lower:  [L₀, L₁, L₂, L₃, L₄, ...]  // Owner→Neighbour
+    Upper:  [U₀, U₁, U₂, U₃, U₄, ...]  // Neighbour→Owner (Lᵢ = Uᵢ for symmetric)
+    Diagonal: [D₀, D₁, D₂, D₃, ...]    // size = nCells
+```
+
 **Advantages:**
 - เก็บเฉพาะ non-zeros → memory efficient
 - Symmetric matrix: L = U (เก็บชุดเดียว)
 - ออกแบบมาสำหรับ FVM connectivity
+- รวดเร็วสำหรับ matrix-vector multiplication
 
 > **💡 นั่นคือเหตุผล:** OpenFOAM ใช้ iterative solvers (GAMG, PBiCGStab) ไม่ใช่ direct solvers (LU, QR)
 
 ---
 
-## Part 3: Coefficient Calculations - Step by Step
+## Part 3: Coefficient Calculations - Complete Guide
 
-### สรุป: Term → Coefficient
+### สรุป: Term → Coefficient Mapping
 
 | Term | $a_P$ (Diagonal) | $a_N$ (Off-diagonal) | $b_P$ (Source) | Stability Effect |
 |------|-----------------|---------------------|---------------|------------------|
@@ -180,7 +219,7 @@ $$\frac{\partial \phi}{\partial t} \rightarrow a_P += \frac{\rho V}{\Delta t}, \
 - $\Delta t$ เล็ก → contribution มาก → stable มากขึ้น
 - นี่คือเหตุผลว่าทำไม **ลด $\Delta t$ ช่วยแก้ divergence**
 
-**ตัวอย่างการคำนวณ:**
+**ตัวอย่างการคำนวณ (Step-by-Step):**
 
 สมมติ:
 - $\rho = 1000$ kg/m³
@@ -188,8 +227,11 @@ $$\frac{\partial \phi}{\partial t} \rightarrow a_P += \frac{\rho V}{\Delta t}, \
 - $\Delta t = 0.01$ s
 - $\phi^n = 300$ K (old time value)
 
-$$a_P += \frac{1000 \times 0.001}{0.01} = 100$$
-$$b_P += 100 \times 300 = 30000$$
+**Step 1: คำนวณ temporal coefficient**
+$$a_P^{temp} = \frac{\rho V}{\Delta t} = \frac{1000 \times 0.001}{0.01} = 100$$
+
+**Step 2: คำนวณ source contribution**
+$$b_P^{temp} = a_P^{temp} \times \phi^n = 100 \times 300 = 30000$$
 
 → Temporal term เพิ่ม diagonal 100 (ช่วย stability มาก!)
 
@@ -226,7 +268,7 @@ $$a_N = -\frac{D A_f}{d_{PN}} = -\frac{50 \times 0.01}{0.01} = -50$$
 
 **Step 2: คำนวณ $a_P$**
 
-$$a_P = -\sum_N a_N = -(-50 - 50 - 50 - 50) = 200$$
+$$a_P^{diff} = -\sum_N a_N = -(-50 - 50 - 50 - 50) = 200$$
 
 **Step 3: ตรวจสอบ Diagonal Dominance**
 
@@ -280,11 +322,11 @@ $$\Phi_f = u_f A_f = 10 \times 0.01 = 0.1 \text{ m³/s}$$
 - Face ด้านซ้าย (W-P): $\Phi_f > 0$ → information มาจาก W → $a_W = \Phi_f = 0.1$
 - Face ด้านขวา (P-E): $\Phi_f > 0$ → information ไปที่ E → $a_E = \max(-0.1, 0) = 0$
 
-$$a_W = 0.1, \quad a_E = 0$$
+$$a_W^{conv} = 0.1, \quad a_E^{conv} = 0$$
 
 **Step 3: คำนวณ $a_P$**
 
-$$a_P = -\sum_N a_N = -(0.1 + 0) = -0.1$$
+$$a_P^{conv} = -\sum_N a_N = -(0.1 + 0) = -0.1$$
 
 ⚠️ **Problem:** $a_P = -0.1$ (ติดลบ!) → Unstable!
 
@@ -294,9 +336,9 @@ $$a_P = -\sum_N a_N = -(0.1 + 0) = -0.1$$
 - Upwind: $a_N$ มาจากด้าน upstream เท่านั้น → อาจทำให้ $a_P$ ติดลบ
 - Central: $a_N$ มาจากทั้งสองด้าน → อาจทำให้ **diagonal dominance ลดลง** → unstable
 
-### 3.4 Combined Example: Convection-Diffusion
+### 3.4 Combined Example: Convection-Diffusion with Temporal
 
-**Problem:** 1D steady convection-diffusion ของ T
+**Problem:** 1D transient convection-diffusion ของ T
 
 ```
     W       P       E
@@ -306,10 +348,17 @@ $$a_P = -\sum_N a_N = -(0.1 + 0) = -0.1$$
 Given:
 - u = 1 m/s, A = 0.01 m²
 - D = 0.1 m²/s, d = 0.01 m
-- T_W = 100°C, T_E = 50°C
+- ρ = 1000 kg/m³, V = 0.001 m³
+- Δt = 0.01 s
+- T_W = 100°C, T_E = 50°C, T_Pⁿ = 75°C
 ```
 
-**Step 1: Convection Contribution (Upwind)**
+**Step 1: Temporal Contribution**
+
+$$a_P^{temp} = \frac{\rho V}{\Delta t} = \frac{1000 \times 0.001}{0.01} = 100$$
+$$b_P^{temp} = a_P^{temp} \times T_P^n = 100 \times 75 = 7500$$
+
+**Step 2: Convection Contribution (Upwind)**
 
 $$\Phi_f = u A = 1 \times 0.01 = 0.01$$
 
@@ -317,7 +366,7 @@ $$a_W^{conv} = \Phi_f = 0.01$$
 $$a_E^{conv} = \max(-\Phi_f, 0) = 0$$
 $$a_P^{conv} = -0.01$$
 
-**Step 2: Diffusion Contribution (Central)**
+**Step 3: Diffusion Contribution (Central)**
 
 $$a_N^{diff} = -\frac{D A}{d} = -\frac{0.1 \times 0.01}{0.01} = -0.1$$
 
@@ -325,23 +374,26 @@ $$a_W^{diff} = -0.1$$
 $$a_E^{diff} = -0.1$$
 $$a_P^{diff} = -(-0.1 - 0.1) = 0.2$$
 
-**Step 3: Combine**
+**Step 4: Combine All**
 
-$$a_W = a_W^{conv} + a_W^{diff} = 0.01 - 0.1 = -0.09$$
-$$a_E = a_E^{conv} + a_E^{diff} = 0 - 0.1 = -0.1$$
-$$a_P = a_P^{conv} + a_P^{diff} = -0.01 + 0.2 = 0.19$$
+$$a_W = 0.01 - 0.1 = -0.09$$
+$$a_E = 0 - 0.1 = -0.1$$
+$$a_P = 100 - 0.01 + 0.2 = 100.19$$
+$$b_P = 7500$$
 
-**Step 4: Check Diagonal Dominance**
+**Step 5: Check Diagonal Dominance**
 
-$$|a_P| = 0.19, \quad \sum |a_N| = |-0.09| + |-0.1| = 0.19$$
+$$|a_P| = 100.19, \quad \sum |a_N| = |-0.09| + |-0.1| = 0.19$$
 
-→ Borderline diagonal dominant (แต่ stable)
+→ **Very diagonal dominant!** (Ratio = 0.19/100.19 = 0.002)
 
-**Step 5: Solve**
+**Step 6: Solve**
 
-$$0.19 T_P - 0.09 T_W - 0.1 T_E = 0$$
+$$100.19 T_P - 0.09 T_W - 0.1 T_E = 7500$$
 
-$$T_P = \frac{0.09 \times 100 + 0.1 \times 50}{0.19} = 73.7°C$$
+$$T_P = \frac{7500 + 0.09 \times 100 + 0.1 \times 50}{100.19} = 75.3°C$$
+
+→ Temporal term ช่วยให้ stable มาก!
 
 ### 3.5 Higher-Order Convection Schemes
 
@@ -356,9 +408,123 @@ Different schemes affect coefficients differently:
 
 **Practical Rule:** เมื่อใช้ higher-order schemes → ลด relaxation เพื่อรักษา stability
 
+### 3.6 Non-Orthogonal Correction Effect
+
+เมื่อ mesh ไม่ orthogonal → diffusion term แตกเป็น 2 ส่วน (ดูจาก [03_Spatial_Discretization.md](03_Spatial_Discretization.md)):
+
+**Explicit correction:**
+$$a_P^{orth} = -\sum a_N^{orth}$$
+$$b_P^{correct} = \sum D_f (\nabla \phi)_f \cdot \mathbf{k}$$
+
+→ Correction term ไปที่ RHS → **ลด stability** ถ้ามุมเบี่ยงเบนมาก
+
+**Implicit correction:**
+- เพิ่ม iteration ภายใน time step (`nNonOrthogonalCorrectors`)
+- ทำให้ solution converge ช้าลง
+
 ---
 
-## Part 4: Boundary Conditions - Matrix Effects
+## Part 4: fvm vs fvc - The Critical Distinction
+
+### ความแตกต่างที่สำคัญที่สุด
+
+| Prefix | ชื่อเต็ม | ผลลัพธ์ | ใช้เมื่อ | Matrix Effect |
+|--------|---------|---------|---------|---------------|
+| `fvm::` | Finite Volume Method | → Matrix ($a_P$, $a_N$) | Unknown (กำลังหา) | ✅ เพิ่ม coefficients |
+| `fvc::` | Finite Volume Calculus | → Field (ตัวเลขทันที) | Known (รู้ค่าแล้ว) | ❌ ไปที่ RHS ($b_P$) |
+
+> **ทำไมต้องแยก?**
+> - **fvm:** $\phi$ ยังไม่รู้ → ต้องเก็บเป็น coefficient ใน matrix
+> - **fvc:** $\phi$ รู้แล้ว → คำนวณเป็นตัวเลขได้เลย → ใส่ source
+
+### Decision Tree: fvm or fvc?
+
+```
+Is this variable being solved in the current equation?
+│
+├─ YES → Use fvm:: (implicit, builds matrix)
+│         └─ Example: fvm::ddt(U), fvm::div(phi, U)
+│
+└─ NO  → Use fvc:: (explicit, goes to RHS)
+          └─ Example: fvc::grad(p), fvc::curl(U)
+```
+
+### ตัวอย่าง: Momentum Equation
+
+$$\rho\frac{\partial \mathbf{u}}{\partial t} + \nabla \cdot (\rho \mathbf{u} \mathbf{u}) = -\nabla p + \nabla \cdot (\mu \nabla \mathbf{u})$$
+
+```cpp
+fvVectorMatrix UEqn
+(
+    fvm::ddt(rho, U)              // U ไม่รู้ → เข้า Diagonal (a_P += ρV/Δt)
+  + fvm::div(phi, U)              // U ไม่รู้ → เข้า Diagonal + Off-diagonal
+  - fvm::laplacian(mu, U)         // U ไม่รู้ → เข้า Diagonal + Off-diagonal
+ ==
+    -fvc::grad(p)                 // p รู้แล้ว → คำนวณเป็น Source vector
+);
+```
+
+**ทำไม `fvc::grad(p)`?**
+- p มาจาก pressure correction (SIMPLE/PISO) = รู้ค่าแล้วจาก iteration ก่อนหน้า
+- ใส่เป็น explicit source ใน RHS
+- ไม่สามารถใช้ `fvm::grad(p)` เพราะ gradient operator ไม่สร้าง symmetric matrix
+
+### Matrix Implications Summary
+
+| Operator | fvm:: (Implicit) | fvc:: (Explicit) | Matrix Effect |
+|----------|------------------|------------------|---------------|
+| `ddt(ρ, φ)` | ✅ | ✅ | fvm: $a_P += \frac{\rho V}{\Delta t}$, $b_P += \frac{\rho V}{\Delta t} \phi^n$ |
+| `div(φ, U)` | ✅ | ✅ | fvm: $a_P, a_N$ เพิ่ม, fvc: คำนวณเป็นเลข |
+| `laplacian(Γ, φ)` | ✅ | ✅ | fvm: $a_P, a_N$ เพิ่ม, fvc: คำนวณเป็นเลข |
+| `grad(φ)` | ❌ | ✅ | **ไม่มี fvm::grad** — gradient ไม่สร้าง symmetric matrix |
+| `curl(φ)` | ❌ | ✅ | **ไม่มี fvm::curl** — เหมือนกัน |
+| `div(φ)` | ❌ | ✅ | fvc ใช้คำนวณ divergence ของ known flux field |
+
+> **⚠️ หมายเหตุ:** ไม่มี `fvm::grad()` เพราะ $\nabla \phi$ ไม่ linearize กับ $\phi$ ได้ดี และไม่ได้สร้าง M-matrix
+
+### When to Use Which?
+
+```cpp
+// ✅ CORRECT: fvm for unknown, fvc for known
+fvScalarMatrix TEqn
+(
+    fvm::ddt(T)              // Unknown: T
+  + fvm::div(phi, T)         // Unknown: T
+  - fvm::laplacian(k, T)     // Unknown: T
+ ==
+    fvc::div(phi, T_old)     // Known: T_old (explicit convection for test)
+);
+
+// ❌ WRONG: fvc for unknown (unstable!)
+fvScalarMatrix TEqn
+(
+    fvc::ddt(T)              // Bad! No matrix for time derivative
+  + fvc::div(phi, T)         // Bad! No matrix for convection
+);
+
+// ⚠️ CONTEXT-DEPENDENT: Pressure in momentum equation
+// In SIMPLE/PISO algorithms:
+fvVectorMatrix UEqn
+(
+    fvm::ddt(U)
+  + fvm::div(phi, U)
+  - fvm::laplacian(nu, U)
+ ==
+    -fvc::grad(p)  // p is "known" from previous corrector iteration
+);
+```
+
+### Performance Implications
+
+| Approach | Matrix Size | Solver Cost | Stability | ใช้เมื่อ |
+|----------|-------------|-------------|-----------|----------|
+| **All fvm** | เต็ม | สูง | สูง | Coupled solvers |
+| **Mixed fvm/fvc** | ปานกลาง | ปานกลาง | ปานกลาง | Segregated (SIMPLE/PISO) |
+| **All fvc** | ไม่มี | ต่ำ | ต่ำมาก | Explicit methods |
+
+---
+
+## Part 5: Boundary Conditions - Matrix Effects
 
 ### ประเภท BC และผลต่อ Coefficients
 
@@ -371,6 +537,7 @@ Different schemes affect coefficients differently:
 | **mixed** | ผสม Dirichlet + Neumann | แก้ไข | แก้ไข | เพิ่มค่า BC | `mixed` |
 | **calculated** | คำนวณจาก BC อื่น | — | — | — | `calculated` |
 | **fixedFluxPressure** | Fixed gradient | แก้ไข | — | เพิ่มค่า BC | `fixedFluxPressure` |
+| **codedFixedValue** | User-coded | แก้ไข | ลบ neighbor | เพิ่มค่า BC | `codedFixedValue` |
 
 ### ตัวอย่าง: fixedValue
 
@@ -426,75 +593,16 @@ boundaryField
 - Off-diagonal ที่ boundary ถูกลบออก
 - Diagonal ไม่เปลี่ยน
 
+### BC Impact on Diagonal Dominance
+
+| BC Type | Effect on Diagonal | Stability Impact |
+|---------|-------------------|------------------|
+| **fixedValue** | ✅ เพิ่ม ($a_P += \sum a_N$) | **Improves** |
+| **zeroGradient** | — ไม่เปลี่ยน | Neutral |
+| **mixed** | ⚠️ ขึ้นกับ weight | Variable |
+| **inletOutlet** | ⚠️ ขึ้นกับ flow direction | Variable |
+
 > **💡 Key Insight:** fixedValue BC เพิ่ม diagonal dominant (ดีสำหรับ stability) แต่ zeroGradient ไม่เปลี่ยน matrix
-
----
-
-## Part 5: fvm vs fvc - The Critical Distinction
-
-### ความแตกต่างที่สำคัญที่สุด
-
-| Prefix | ชื่อเต็ม | ผลลัพธ์ | ใช้เมื่อ | Matrix Effect |
-|--------|---------|---------|---------|---------------|
-| `fvm::` | Finite Volume Method | → Matrix ($a_P$, $a_N$) | Unknown (กำลังหา) | ✅ เพิ่ม coefficients |
-| `fvc::` | Finite Volume Calculus | → Field (ตัวเลขทันที) | Known (รู้ค่าแล้ว) | ❌ ไปที่ RHS ($b_P$) |
-
-> **ทำไมต้องแยก?**
-> - **fvm:** $\phi$ ยังไม่รู้ → ต้องเก็บเป็น coefficient ใน matrix
-> - **fvc:** $\phi$ รู้แล้ว → คำนวณเป็นตัวเลขได้เลย → ใส่ source
-
-### ตัวอย่าง: Momentum Equation
-
-$$\rho\frac{\partial \mathbf{u}}{\partial t} + \nabla \cdot (\rho \mathbf{u} \mathbf{u}) = -\nabla p + \nabla \cdot (\mu \nabla \mathbf{u})$$
-
-```cpp
-fvVectorMatrix UEqn
-(
-    fvm::ddt(rho, U)              // U ไม่รู้ → เข้า Diagonal (a_P += ρV/Δt)
-  + fvm::div(phi, U)              // U ไม่รู้ → เข้า Diagonal + Off-diagonal
-  - fvm::laplacian(mu, U)         // U ไม่รู้ → เข้า Diagonal + Off-diagonal
- ==
-    -fvc::grad(p)                 // p รู้แล้ว → คำนวณเป็น Source vector
-);
-```
-
-**ทำไม `fvc::grad(p)`?**
-- p มาจาก pressure correction (SIMPLE/PISO) = รู้ค่าแล้ว
-- ใส่เป็น explicit source ใน RHS
-
-### Matrix Implications Summary
-
-| Operator | fvm:: (Implicit) | fvc:: (Explicit) | Matrix Effect |
-|----------|------------------|------------------|---------------|
-| `ddt(ρ, φ)` | ✅ | ✅ | fvm: $a_P += \frac{\rho V}{\Delta t}$, $b_P += \frac{\rho V}{\Delta t} \phi^n$ |
-| `div(φ, U)` | ✅ | ✅ | fvm: $a_P, a_N$ เพิ่ม, fvc: คำนวณเป็นเลข |
-| `laplacian(Γ, φ)` | ✅ | ✅ | fvm: $a_P, a_N$ เพิ่ม, fvc: คำนวณเป็นเลข |
-| `grad(φ)` | ❌ | ✅ | **ไม่มี fvm::grad** — gradient ไม่สร้าง matrix |
-| `curl(φ)` | ❌ | ✅ | **ไม่มี fvm::curl** — เหมือนกัน |
-| `div(φ)` | ❌ | ✅ | fvc ใช้คำนวณ divergence ของ known flux field |
-
-> **⚠️ หมายเหตุ:** ไม่มี `fvm::grad()` เพราะ $\nabla \phi$ ไม่ linearize กับ $\phi$ ได้ดี
-
-### When to Use Which?
-
-```cpp
-// ✅ CORRECT: fvm for unknown, fvc for known
-fvScalarMatrix TEqn
-(
-    fvm::ddt(T)              // Unknown: T
-  + fvm::div(phi, T)         // Unknown: T
-  - fvm::laplacian(k, T)     // Unknown: T
- ==
-    fvc::div(phi, T_old)     // Known: T_old (explicit convection for test)
-);
-
-// ❌ WRONG: fvc for unknown (unstable!)
-fvScalarMatrix TEqn
-(
-    fvc::ddt(T)              // Bad! No matrix for time derivative
-  + fvc::div(phi, T)         // Bad! No matrix for convection
-);
-```
 
 ---
 

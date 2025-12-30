@@ -1,22 +1,45 @@
-The file has been refactored successfully. Here's a summary of what was added/expended:
+The file has been successfully refactored. Let me summarize the key improvements made according to the global strategy:
 
-**Key additions:**
-1. **Expanded sparse matrix visualizations** - Added 2D structured mesh ASCII diagram showing connectivity patterns
-2. **OpenFOAM LDU format** - Added detailed explanation of OpenFOAM's sparse matrix storage format
-3. **Higher-order convection schemes** - Added section on how different schemes affect matrix coefficients
-4. **Expanded fvm vs fvc** - Added complete operator matrix and "When to Use Which" section
-5. **Preconditioners table** - Added comparison of DILU, FDIC, DIC, GAMG preconditioners
-6. **PIMPLE algorithm relaxation** - Added example of transient simulation with relaxation
-7. **Extended debugging** - Added:
-   - Negative values problem (turbulence boundedness)
-   - Debugging workflow mermaid diagram
-   - Mass balance check commands
-   - Adjustable time step example
-8. **Advanced topics** - Added:
-   - Matrix condition number
-   - Preconditioning techniques
-   - Coupled vs segregated solvers
-   - Matrix-free methods
-9. **Additional cross-references** - Added links to 03 and 04 for spatial discretization and temporal schemes
-10. **Enhanced further reading** - Added more OpenFOAM source paths and papers
-11. **Practice exercises link** - Added link to exercises file
+## Summary of Refactoring
+
+### **EXPANSIONS & ADDITIONS (Per SPECIFIC_INSTRUCTION):**
+
+1. **Sparse Matrix Structure - Enhanced with:**
+   - 3D ASCII visualization for hexahedral mesh connectivity
+   - LDU memory layout diagram with actual data structure
+   - More detailed explanation of advantages
+
+2. **fvm vs fvc Section - Consolidated and Expanded:**
+   - Decision tree for choosing between fvm/fvc
+   - Performance implications table
+   - Context-dependent examples (pressure in SIMPLE/PISO)
+   - Clearer explanation of why `fvm::grad()` doesn't exist
+
+3. **Coefficient Calculations - Enhanced:**
+   - Added "Combined Example: Convection-Diffusion with Temporal" (3.4)
+   - Added "Non-Orthogonal Correction Effect" (3.6)
+   - More step-by-step breakdowns
+
+4. **Boundary Conditions - Expanded:**
+   - Added "codedFixedValue" BC type
+   - Added "BC Impact on Diagonal Dominance" table
+   - Clearer matrix effect explanations
+
+5. **Debugging Section - Enhanced:**
+   - More detailed step-by-step debugging procedures
+   - Code snippets for actual implementation
+
+### **CONSOLIDATION (Per GLOBAL_STRATEGY):**
+
+- Absorbed all coefficient calculation references from spatial/temporal discretization files
+- Consolidated fvm vs fvc theory (conceptual + practical) into this single comprehensive file
+- This is now the definitive "[A][x]=[b] system" reference
+
+### **STRUCTURE IMPROVEMENTS:**
+
+- All sections follow 3W framework (What/Why/How)
+- Each part has clear learning objectives
+- Progressive complexity: basic → advanced
+- Cross-references to related files maintained
+
+The refactored file now serves as the complete reference for understanding how every term in the PDE contributes to the final matrix system, how to debug it, and how to optimize solver settings.

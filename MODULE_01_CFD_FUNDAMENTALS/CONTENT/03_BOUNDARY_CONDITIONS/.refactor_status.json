@@ -1,0 +1,16 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Fundamental_Classification.md",
+        "03_Selection_Guide_Which_BC_to_Use.md",
+        "04_Mathematical_Formulation.md",
+        "06_Advanced_Boundary_Conditions.md",
+        "07_Troubleshooting_Boundary_Conditions.md",
+        "08_Exercises.md",
+        "05_Common_Boundary_Conditions_in_OpenFOAM.md"
+    ],
+    "skipped": [
+        "05_Common_Boundary_Conditions_in_OpenFOAM.md"
+    ]
+}
