@@ -1,0 +1,12 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_The_Workflow.md",
+        "03_The_Lid-Driven_Cavity_Problem.md",
+        "04_Step-by-Step_Tutorial.md",
+        "05_Expected_Results.md",
+        "06_Exercises.md"
+    ],
+    "skipped": []
+}
