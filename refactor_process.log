@@ -1,0 +1,28 @@
+[2025-12-30 15:12:35] 🚀 Starting Skill-Aware Refactoring...
+[2025-12-30 15:12:35]    Skills will be auto-triggered from .claude/skills/
+[2025-12-30 15:12:35] 
+📂 Entering: 01_GOVERNING_EQUATIONS
+[2025-12-30 15:12:35]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-30 15:12:35]    👷 Executing Plan...
+[2025-12-30 15:14:52]    ✅ Refactored: 00_Overview.md (4631 → 11542 chars)
+[2025-12-30 15:16:54]    ✅ Refactored: 01_Introduction.md (9412 → 10852 chars)
+[2025-12-30 15:18:58]    ✅ Refactored: 02_Conservation_Laws.md (8327 → 16564 chars)
+[2025-12-30 15:21:14]    ✅ Refactored: 03_Equation_of_State.md (4215 → 18336 chars)
+[2025-12-30 15:22:03]    ✅ Refactored: 04_Dimensionless_Numbers.md (8038 → 17402 chars)
+[2025-12-30 15:26:16]    ⚠️ Skipped 05_OpenFOAM_Implementation.md: Content too short (1220 vs 15581 original).
+[2025-12-30 15:26:16]    📋 DEBUG Output preview:
+[2025-12-30 15:26:16]    'The refactored file has been successfully written with the following improvements:\n\n1. **Learning Objectives** — Added 3W Framework (WHAT, WHY, WHEN) at the top\n\n2. **Navigation Diagrams** — Added visual flow showing the document structure\n\n3. **From Equation to Code Mapping Table** — Created comprehensive table mapping each conservation law to its OpenFOAM code representation\n\n4. **fvm:: vs fvc:: Comparison** — Expanded with:\n   - Detailed comparison table\n   - Timing & Stability tradeoffs tabl'...
+[2025-12-30 15:26:16]    📄 Full output saved to: .debug_05_OpenFOAM_Implementation.md.txt
+[2025-12-30 15:27:00]    ✅ Refactored: 06_Boundary_Conditions.md (9266 → 15884 chars)
+[2025-12-30 15:28:07]    ✅ Refactored: 07_Initial_Conditions.md (7073 → 15338 chars)
+[2025-12-30 15:31:52]    ✅ Refactored: 08_Key_Points_to_Remember.md (5712 → 37257 chars)
+[2025-12-30 15:41:35]    ⚠️ Skipped 09_Exercises.md: Content too short (680 vs 8997 original).
+[2025-12-30 15:41:35]    📋 DEBUG Output preview:
+[2025-12-30 15:41:35]    'File refactored successfully. All 10 exercises now include:\n- ⚙️ Difficulty ratings (Beginner/Intermediate/Advanced)\n- ⏱️ Time estimates\n- 📖 Exercise prerequisites\n- 💡 Hints (collapsible) before full solutions\n- ✅ Self-verification checklists where applicable\n\nAdded Mini-Project: "Set Up Your First Pipe Flow Case" (2-3 hours, Advanced) combining all concepts with step-by-step guidance and full solution template.\n\nEnhanced Concept Check section from 3 to 5 detailed questions with comprehensive ex'...
+[2025-12-30 15:41:35]    📄 Full output saved to: .debug_09_Exercises.md.txt
+[2025-12-30 15:41:35] 
+📂 Entering: 02_FINITE_VOLUME_METHOD
+[2025-12-30 15:41:35]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-30 15:41:35]    👷 Executing Plan...
+[2025-12-30 15:41:54]    ✅ Refactored: 00_Overview.md (4489 → 4632 chars)
+[2025-12-30 15:43:29]    ✅ Refactored: 01_Introduction.md (5970 → 10088 chars)

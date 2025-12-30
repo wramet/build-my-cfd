@@ -1,7 +1,5 @@
 # ภาพรวม Finite Volume Method
 
-**Finite Volume Method (FVM)** เป็นวิธีการแปลง PDE ให้เป็นระบบสมการพีชคณิต — คือหัวใจของ OpenFOAM
-
 > **ทำไมต้องเข้าใจ FVM?**
 > - เลือก **Discretization Schemes** ใน `fvSchemes` ได้ถูกต้อง
 > - แก้ปัญหา **Divergence** ได้โดยไม่ต้องลองผิดลองถูก
@@ -10,131 +8,120 @@
 
 ---
 
-## หลักการพื้นฐาน
-
-### 1. Conservation Laws
-
-FVM ทำงานบน **Integral form** ของสมการอนุรักษ์:
-
-$$\frac{\partial}{\partial t}\int_V \phi\, dV + \oint_S \mathbf{F} \cdot \mathbf{n}\, dS = \int_V S\, dV$$
-
-### Discretization Workflow
+## เส้นทางการเรียนรู้ FVM ใน OpenFOAM
 
 ```mermaid
 graph TD
-    A[PDE<br/>∂φ/∂t + ∇·F = S] --> B[Integral Form<br/>∫V + ∮S = ∫V S]
-    B --> C[Divide Domain<br/>into Cells]
-    C --> D[Compute Fluxes<br/>at Faces]
-    D --> E[Assemble Matrix<br/>aPφP + ΣaNφN = bP]
-    E --> F[Solve Linear System<br/>GAMG/PCG/PBiCGStab]
-    F --> G[Update Field<br/>φnew]
-    G --> H{Converged?}
-    H -->|No| D
-    H -->|Yes| I[Next Time Step]
+    A[00. Navigation<br/>คุณอยู่ที่นี่] --> B[01. FVM Theory Foundation<br/>หลักการพื้นฐาน]
+    B --> C[02. Governing Equations in FVM<br/>สมการควบคุมในรูป FVM]
+    C --> D[03. Spatial Discretization<br/>Grad, Div, Laplacian]
+    D --> E[04. Temporal Discretization<br/>Time Schemes]
+    E --> F[05. Matrix Assembly & Solvers<br/>Linear Algebra]
+    F --> G[06. OpenFOAM Implementation<br/>fvm/fvc ใช้งานจริง]
+    G --> H[07. Troubleshooting & Debug<br/>แก้ปัญหา]
+    H --> I[08. Practice Exercises<br/>ฝึกปฏิบัติ]
+    
+    style A fill:#e1f5ff
+    style B fill:#fff4e1
+    style C fill:#fff4e1
+    style D fill:#ffe1f5
+    style E fill:#ffe1f5
+    style F fill:#e1ffe1
+    style G fill:#ffe1e1
+    style H fill:#f5e1ff
+    style I fill:#e1ffff
 ```
-
-**ขั้นตอนหลัก:**
-1. **Mesh generation** → แบ่ง domain เป็น cells
-2. **Flux calculation** → คำนวณผลรวมที่ faces
-3. **Matrix assembly** → สร้าง $[A][\phi] = [b]$
-4. **Linear solve** → หาคำตอบด้วย iterative solvers
-5. **Update & repeat** → วนจน converged
-
-| สิ่งที่อนุรักษ์ | สมการ | OpenFOAM Field |
-|----------------|-------|----------------|
-| มวล | $\nabla \cdot \mathbf{u} = 0$ | `U`, `p` |
-| โมเมนตัม | $\rho \frac{D\mathbf{u}}{Dt} = -\nabla p + \nabla \cdot \boldsymbol{\tau}$ | `U`, `p` |
-| พลังงาน | $\rho c_p \frac{DT}{Dt} = k\nabla^2 T$ | `T` |
-
-### 2. Control Volume Approach
-
-โดเมนถูกแบ่งเป็น **Cells** ที่ไม่ทับซ้อนกัน:
-
-```
-Domain → Cells → Faces → Fluxes → Conservation
-```
-
-- ค่าตัวแปรเก็บที่ **Cell Centers**
-- **Fluxes** คำนวณที่ **Faces**
-- ผลรวม Flux = 0 (Conservation)
-
-### 3. Discretization
-
-แปลง Continuous → Discrete:
-
-| Continuous | Discrete | OpenFOAM |
-|-----------|----------|----------|
-| $\frac{\partial \phi}{\partial t}$ | $\frac{\phi^{n+1} - \phi^n}{\Delta t}$ | `fvm::ddt(phi)` |
-| $\nabla \cdot (\phi \mathbf{u})$ | $\sum_f \phi_f \Phi_f$ | `fvm::div(phi, U)` |
-| $\nabla^2 \phi$ | $\sum_f \frac{\phi_N - \phi_P}{d_{PN}} S_f$ | `fvm::laplacian(D, phi)` |
 
 ---
 
-## โครงสร้างบทเรียน
+## ขั้นตอนการแปลง PDE → OpenFOAM
 
-| ไฟล์ | เนื้อหา |
-|------|---------|
-| [01_Introduction.md](01_Introduction.md) | บทนำ FVM และหลักการ |
-| [02_Fundamental_Concepts.md](02_Fundamental_Concepts.md) | Control Volume, Mesh |
-| [03_Spatial_Discretization.md](03_Spatial_Discretization.md) | Gradient, Convection, Diffusion |
-| [04_Temporal_Discretization.md](04_Temporal_Discretization.md) | Euler, Backward, CFL |
-| [05_Matrix_Assembly.md](05_Matrix_Assembly.md) | สร้างระบบ [A][x]=[b] |
-| [06_OpenFOAM_Implementation.md](06_OpenFOAM_Implementation.md) | fvMesh, fvMatrix, fvm/fvc |
-| [07_Best_Practices.md](07_Best_Practices.md) | Mesh quality, Schemes |
-| [08_Exercises.md](08_Exercises.md) | แบบฝึกหัด |
+```mermaid
+graph LR
+    A[สมการ PDE<br/>∂φ/∂t + ∇·F = S] --> B[Discretization<br/>fvSchemes]
+    B --> C[Matrix Assembly<br/>fvm:: operators]
+    C --> D[Linear Solve<br/>fvSolution solvers]
+    D --> E[Solution<br/>Field ทุก Time Step]
+    
+    style A fill:#ffe1e1
+    style B fill:#fff4e1
+    style C fill:#e1f5ff
+    style D fill:#e1ffe1
+    style E fill:#e1ffff
+```
+
+**Key Questions ที่คุณจะได้คำตอบ:**
+- ❓ **01:** FVM ทำงานอย่างไร? → Conservation, Control Volume
+- ❓ **02:** สมการ Navier-Stokes กลายเป็น matrix อย่างไร? → fvm::div, fvm::laplacian
+- ❓ **03:** Gradient/Convection/Diffusion คำนวณอย่างไร? → upwind, linear, limited
+- ❓ **04:** Time step เลือกอย่างไร? → Euler, Backward, CFL
+- ❓ **05:** Sparse matrix แก้ได้อย่างไร? → GAMG, PCG, PBiCGStab
+- ❓ **06:** เขียน OpenFOAM code อย่างไร? → fvm vs fvc
+- ❓ **07:** divergence/instability แก้ยังไง? → troubleshooting tables
+- ❓ **08:** ลงมือทดลองอย่างไร? → progressive exercises
 
 ---
 
 ## Mapping สู่ OpenFOAM
 
-| แนวคิด FVM | OpenFOAM File/Class | ตัวอย่าง |
-|-----------|---------------------|---------|
-| Control Volume | `constant/polyMesh/` | cells, faces, points |
-| Field Values | `0/` directory | U, p, T |
-| Discretization Schemes | `system/fvSchemes` | gradSchemes, divSchemes |
-| Linear Solvers | `system/fvSolution` | PCG, GAMG, tolerances |
-| P-V Coupling | `system/fvSolution` | SIMPLE, PISO, PIMPLE |
+| แนวคิด FVM | OpenFOAM File/Class | เรียนรายละเอียดที่ |
+|-----------|---------------------|------------------|
+| Control Volume & Mesh | `constant/polyMesh/` | 01, 03 |
+| Field Initialization | `0/` directory | 02 |
+| Discretization Schemes | `system/fvSchemes` | 03, 04 |
+| Linear Solvers | `system/fvSolution` | 05 |
+| Pressure-Velocity Coupling | `system/fvSolution` | 02 |
+| Matrix Coefficients | `fvMatrix<type>` | 05, 06 |
+| Implicit Operators | `fvm::ddt`, `fvm::div`, `fvm::laplacian` | 06 |
+| Explicit Operators | `fvc::grad`, `fvc::div`, `fvc::laplacian` | 06 |
 
 ---
 
-## สรุป
+## โครงสร้างบทเรียน
 
-| จุดแข็ง FVM | ประโยชน์ |
-|------------|---------|
-| **Conservation** | มวล/พลังงานอนุรักษ์ในระดับ Cell |
-| **Flexibility** | รองรับ Unstructured Mesh |
-| **Robustness** | จัดการ Boundary Conditions ซับซ้อนได้ |
-| **Efficiency** | Sparse Matrix → แก้ได้เร็ว |
+| ไฟล์ | เนื้อหาหลัก | คำถามหลัก |
+|------|------------|-----------|
+| **01. FVM Theory Foundation** | Control Volume, Conservation, Mesh structure | FVM คืออะไร? ทำไม conservation? |
+| **02. Governing Equations in FVM** | Continuity, Momentum, Energy in FVM form, SIMPLE/PISO | สมการกลายเป็น matrix อย่างไร? |
+| **03. Spatial Discretization** | Gradient, Convection, Diffusion schemes | Term ต่างๆ discretize อย่างไร? |
+| **04. Temporal Discretization** | Time schemes, CFL, Stability | Time step เลือกอย่างไร? |
+| **05. Matrix Assembly & Solvers** | System [A][x]=[b], Iterative solvers, Preconditioners | แก้ linear system อย่างไร? |
+| **06. OpenFOAM Implementation** | fvm/fvc operators, Solver customization | เขียน code อย่างไร? |
+| **07. Troubleshooting & Debug** | Common errors, Diagnostic workflow, Best practices | ปัญหาเกิดจากอะไร? แก้ยังไง? |
+| **08. Practice Exercises** | Progressive problems with solutions | ลงมือฝึกอย่างไร? |
 
 ---
 
-## Concept Check
+## Quick Start: คุณควรเริ่มที่ไหน?
 
-<details>
-<summary><b>1. FVM ต่างจาก FDM (Finite Difference) อย่างไร?</b></summary>
+| ระดับของคุณ | เส้นทางแนะนำ |
+|-------------|--------------|
+| **มือใหม่กับ OpenFOAM** | 01 → 02 → 06 → 08 |
+| **เข้าใจ CFD แล้ว** | 02 → 03 → 04 → 05 → 06 |
+| **แก้ปัญหา Divergence** | 07 → 03 → 04 → 02 |
+| **Custom Solver** | 01 → 02 → 05 → 06 |
 
-FVM ทำงานบน **Integral form** ของสมการ จึงรับประกัน conservation โดยธรรมชาติ ส่วน FDM ทำงานบน differential form ซึ่งไม่รับประกัน conservation
-</details>
+---
 
-<details>
-<summary><b>2. ทำไมค่าตัวแปรเก็บที่ Cell Center ไม่ใช่ที่ Face?</b></summary>
+## ข้อดีของ Finite Volume Method
 
-เพราะ cell-centered approach ทำให้:
-- จัดการ Boundary Conditions ง่าย
-- รองรับ polyhedral mesh ได้
-- Sparse matrix มีโครงสร้างดี
-</details>
-
-<details>
-<summary><b>3. fvm กับ fvc ต่างกันอย่างไร?</b></summary>
-
-- `fvm::` = **Implicit** — สร้าง matrix coefficient
-- `fvc::` = **Explicit** — คำนวณค่าจาก field ปัจจุบัน
-</details>
+| จุดแข็ง | ผลใน OpenFOAM |
+|---------|--------------|
+| **Conservation** | มวล/โมเมนตัม/พลังงานอนุรักษ์ในระดับ cell |
+| **Flexibility** | รองรับ polyhedral, unstructured mesh |
+| **Robustness** | จัดการ complex boundaries ได้ดี |
+| **Efficiency** | Sparse matrix → iterative solvers รวดเร็ว |
 
 ---
 
 ## เอกสารที่เกี่ยวข้อง
 
 - **บทก่อนหน้า:** [../01_GOVERNING_EQUATIONS/00_Overview.md](../01_GOVERNING_EQUATIONS/00_Overview.md) — สมการควบคุม
-- **บทถัดไป:** [01_Introduction.md](01_Introduction.md) — บทนำ FVM
+- **ถัดไป:** [01_Introduction.md](01_Introduction.md) → เจาะลึกทฤษฎี FVM
+
+---
+
+## พร้อมหรือยัง?
+
+✅ **เข้าใจ workflow การทำ CEM แล้ว** → ไป 01_Introduction.md  
+❓ **ต้องการ review สมการก่อน** → กลับไป 01_GOVERNING_EQUATIONS

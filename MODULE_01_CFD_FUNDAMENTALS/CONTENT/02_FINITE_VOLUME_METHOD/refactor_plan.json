@@ -1,0 +1,131 @@
+{
+    "analysis": {
+        "total_files": 9,
+        "sequence": [
+            "00_Overview.md",
+            "01_Introduction.md",
+            "02_Fundamental_Concepts.md",
+            "03_Spatial_Discretization.md",
+            "04_Temporal_Discretization.md",
+            "05_Matrix_Assembly.md",
+            "06_OpenFOAM_Implementation.md",
+            "07_Best_Practices.md",
+            "08_Exercises.md"
+        ],
+        "major_issues": [
+            "MASSIVE REDUNDANCY: Files 00, 01, 02 all cover nearly identical FVM introduction material",
+            "fvm vs fvc explanation repeated in 01, 02, 05, 06",
+            "SIMPLE/PISO/PIMPLE covered in 02, 04, 06, 07",
+            "Discretization workflow appears in 00, 01, 02",
+            "Conservation law explanation duplicated across 00, 01, 02",
+            "Matrix assembly basics scattered across 01, 02, 05",
+            "GAMG solver explanation in 03, 05",
+            "Best practices on mesh quality duplicated in 03, 07"
+        ],
+        "content_distribution": {
+            "theory_fvm_basics": [
+                "00_Overview.md (30%)",
+                "01_Introduction.md (80%)",
+                "02_Fundamental_Concepts.md (60%)"
+            ],
+            "spatial_discretization": [
+                "01_Introduction.md (20%)",
+                "02_Fundamental_Concepts.md (20%)",
+                "03_Spatial_Discretization.md (90%)"
+            ],
+            "temporal_discretization": [
+                "01_Introduction.md (10%)",
+                "04_Temporal_Discretization.md (95%)"
+            ],
+            "matrix_assembly": [
+                "01_Introduction.md (15%)",
+                "02_Fundamental_Concepts.md (15%)",
+                "05_Matrix_Assembly.md (85%)"
+            ],
+            "openfoam_implementation": [
+                "01_Introduction.md (25%)",
+                "02_Fundamental_Concepts.md (20%)",
+                "06_OpenFOAM_Implementation.md (100%)"
+            ],
+            "best_practices": [
+                "07_Best_Practices.md (100%)"
+            ],
+            "exercises": [
+                "08_Exercises.md (100%)"
+            ]
+        },
+        "missing_content": [
+            "No dedicated file for discretization schemes comparison table",
+            "No dedicated troubleshooting guide with error messages",
+            "No visual diagrams for mesh quality parameters"
+        ],
+        "strengths": [
+            "Good hierarchical structure (00→01→02→...)",
+            "Comprehensive coverage of FVM concepts",
+            "Excellent use of examples and calculations",
+            "Strong Concept Check sections",
+            "Good integration of theory with OpenFOAM implementation"
+        ]
+    },
+    "files": {
+        "00_Overview.md": "TRANSFORM into 'Quick Start Navigation' file. Remove all detailed theory (move to 01). Keep ONLY: (1) High-level 'Why FVM matters' bullet points, (2) Visual Mermaid workflow diagram, (3) Mapping table (FVM concept → OpenFOAM files), (4) Module structure roadmap. Target length: 50% of current. Purpose: Get reader excited, provide roadmap, then push to 01.",
+        "01_Introduction.md": "CONSOLIDATE all 'FVM Basics' theory here. Merge content from 00 (conservation laws), 02 (flux balance, storage approach). Keep: (1) PDE→algebraic transformation, (2) FVM advantages table, (3) Basic discretization of each term (convection, diffusion, temporal), (4) Intro to matrix concept. REMOVE: Advanced Navier-Stokes implementation (move to 02), detailed OpenFOAM code examples (move to 06). Add: Learning objectives at top. Target: 'Core Theory' foundation file.",
+        "02_Fundamental_Concepts.md": "RESTRUCTURE into 'Physics & Governing Equations in FVM Context'. Keep: (1) Conservation equations (mass, momentum, energy) with FVM discretization shown, (2) Pressure-velocity coupling detailed explanation, (3) General transport equation, (4) fvm vs fvc conceptual explanation. MOVE: Cell-centered storage basics to 03, flux balance water analogy to 01, matrix assembly preview to 05. This file should answer 'What equations are we discretizing and why?'",
+        "03_Spatial_Discretization.md": "KEEP as-is but CLEAN UP. Remove: Matrix coefficient examples (move to 05), solver recommendations (create summary table only). ADD: (1) Prerequisites section ('Read 02 first'), (2) Learning objectives, (3) Troubleshooting table for spatial schemes errors. Enhance: Non-orthogonal correction example is excellent—keep. This is the 'How to discretize space' technical file.",
+        "04_Temporal_Discretization.md": "CONSOLIDATE and SIMPLIFY. Remove: PISO/PIMPLE details (move to 02—they belong with pressure-velocity coupling), matrix contribution (move to 05). KEEP: Time schemes (Euler, backward, Crank-Nicolson), CFL number explanation, Co calculation examples. MERGE: Algorithm selection table (SIMPLE/PISO/PIMPLE) into 02. This file should be purely about time integration.",
+        "05_Matrix_Assembly.md": "EXPAND and CONSOLIDATE all matrix content. Absorb: Coefficient calculations from 03, fvm vs fvc matrix implications from 01/02/06, temporal contribution from 04, BC effects from 06. ADD: (1) Visual sparse matrix structure diagram, (2) Debugging matrix problems checklist, (3) More step-by-step coefficient calculation examples. This should be the 'Everything about the [A][x]=[b] system' file.",
+        "06_OpenFOAM_Implementation.md": "FOCUS on code. Remove: Theoretical explanations (should reference 01-05), fvm vs fvc theory (in 02/05), SIMPLE/PISO algorithm theory (in 02). KEEP: (1) Core classes API reference (fvMesh, volFields, fvMatrix), (2) Code examples for each equation type, (3) Custom solver template, (4) Configuration file examples. ADD: (1) 'How to read OpenFOAM source code' section, (2) Common compile errors with fixes. Purpose: Bridge theory → practice.",
+        "07_Best_Practices.md": "REENGINEER into 'Troubleshooting & Settings Guide'. Move: Mesh quality details into 03 (where non-orthogonality is discussed), Y+ calculation to dedicated 'Boundary Conditions' module (not FVM). FOCUS on: (1) Divergence troubleshooting table, (2) Scheme selection flowchart, (3) Solver tuning guide, (4) Convergence monitoring. ADD: (1) '10 most common errors' with solutions, (2) Performance optimization tips. Make it actionable.",
+        "08_Exercises.md": "EXPAND with progressive difficulty. Current exercises are good but: (1) Add 'Exercise 0: Warm-up quiz' (basic concepts check), (2) Add more OpenFOAM debug exercises (given log file, diagnose problem), (3) Add 'Mini-project: Complete case setup' with solution. STRUCTURE: Level 1 (theory), Level 2 (calculations), Level 3 (OpenFOAM debugging), Level 4 (case setup)."
+    },
+    "global_strategy": {
+        "phase_1_consolidation": "Merge redundant FVM basics into 01. 01 becomes 'FVM Theory Foundation', 02 becomes 'Governing Equations in FVM', 03-05 remain focused technical files. 00 transforms to navigation roadmap.",
+        "phase_2_removal": "Remove duplicate content: fvm/fvc from 01/02/06 (keep conceptual in 02, practical in 06), SIMPLE/PISO from 04/07 (consolidate in 02), solver details from 03/07 (keep in 05), mesh basics from 03/07 (keep in 03 with reference from 07).",
+        "phase_3_restructuring": "Each file gets clear single purpose: 00=Roadmap, 01=Theory, 02=Physics/Eqns, 03=Spatial, 04=Temporal, 05=Matrix, 06=Code, 07=Troubleshooting, 08=Practice. Add cross-references between files.",
+        "phase_4_enhancement": "Add missing elements: Learning objectives, prerequisites, troubleshooting tables, visual diagrams (Mermaid/ASCII), exercise solutions, debug workflows. Ensure 3W framework (What/Why/How) in every section.",
+        "priority_actions": [
+            "CRITICAL: Fix 00/01/02 overlap—readers get confused seeing same content 3 times",
+            "HIGH: Move all fvm vs fvc theory to 02, practical usage to 06, remove from elsewhere",
+            "HIGH: Consolidate SIMPLE/PISO/PIMPLE into 02 (theory), keep only config in 04/07",
+            "MEDIUM: Move mesh quality from 07 to 03, keep reference link",
+            "MEDIUM: Move matrix assembly scattered pieces into 05",
+            "LOW: Expand exercises with progressive difficulty levels"
+        ]
+    },
+    "content_checklist_compliance": {
+        "current_scores": {
+            "00_Overview.md": "75% - Good structure, missing learning objectives, some redundancy",
+            "01_Introduction.md": "70% - Strong content, redundant with 00/02, missing troubleshooting",
+            "02_Fundamental_Concepts.md": "80% - Excellent physics coverage, scattered focus",
+            "03_Spatial_Discretization.md": "85% - Very strong, some overlap with 05/07",
+            "04_Temporal_Discretization.md": "75% - Good temporal coverage, mixed with coupling algorithms",
+            "05_Matrix_Assembly.md": "80% - Strong core, needs consolidation from other files",
+            "06_OpenFOAM_Implementation.md": "70% - Good code, mixed with theory, needs debugging section",
+            "07_Best_Practices.md": "65% - Useful but scattered, needs focus on troubleshooting",
+            "08_Exercises.md": "60% - Good exercises, needs more structure and variety"
+        },
+        "after_refactor_targets": {
+            "00_Overview.md": "90% - Clean navigation roadmap",
+            "01_Introduction.md": "90% - Consolidated theory foundation",
+            "02_Fundamental_Concepts.md": "90% - Focused physics/equations",
+            "03_Spatial_Discretization.md": "90% - Clean spatial technical guide",
+            "04_Temporal_Discretization.md": "90% - Pure time integration",
+            "05_Matrix_Assembly.md": "90% - Complete matrix reference",
+            "06_OpenFOAM_Implementation.md": "90% - Code-focused with debugging",
+            "07_Best_Practices.md": "90% - Actionable troubleshooting",
+            "08_Exercises.md": "85% - Progressive practice problems"
+        }
+    },
+    "implementation_order": [
+        "1. Refactor 00_Overview.md (quick win, sets structure)",
+        "2. Refactor 01_Introduction.md (merge 00/02 content)",
+        "3. Refactor 02_Fundamental_Concepts.md (focus on physics)",
+        "4. Review 01-02 flow and adjust boundaries",
+        "5. Refactor 05_Matrix_Assembly.md (consolidate matrix content)",
+        "6. Refactor 03_Spatial_Discretization.md (remove matrix/solver overlap)",
+        "7. Refactor 04_Temporal_Discretization.md (remove coupling content)",
+        "8. Refactor 06_OpenFOAM_Implementation.md (code-focused)",
+        "9. Refactor 07_Best_Practices.md (troubleshooting-focused)",
+        "10. Enhance 08_Exercises.md (progressive difficulty)"
+    ]
+}

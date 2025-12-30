@@ -1,0 +1,18 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Conservation_Laws.md",
+        "03_Equation_of_State.md",
+        "04_Dimensionless_Numbers.md",
+        "06_Boundary_Conditions.md",
+        "07_Initial_Conditions.md",
+        "08_Key_Points_to_Remember.md",
+        "05_OpenFOAM_Implementation.md",
+        "09_Exercises.md"
+    ],
+    "skipped": [
+        "05_OpenFOAM_Implementation.md",
+        "09_Exercises.md"
+    ]
+}

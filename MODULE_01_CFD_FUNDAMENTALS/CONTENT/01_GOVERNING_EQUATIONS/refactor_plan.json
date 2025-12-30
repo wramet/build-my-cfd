@@ -1,0 +1,45 @@
+{
+    "files": {
+        "00_Overview.md": "Add learning objectives section. Strengthen the 'Why' - connect governing equations to solver selection. Add mermaid flowchart showing equation → solver mapping. Ensure all subsequent files link back appropriately. Keep as high-level navigation - move detailed temperature unit warning to file 03.",
+        "01_Introduction.md": "Remove redundant continuum mechanics history (duplicates lines 14-16 from overview). Compress Knudsen number section - keep only key threshold values (Kn < 0.01). Expand 'Why Governing Equations Matter' section with specific solver examples. Add learning objectives: identify 3 conservation laws, explain continuum assumption, calculate Reynolds number. Move viscous stress tensor details to file 02 - this is intro, not deep dive.",
+        "02_Conservation_Laws.md": "Excellent derivations - keep. Add troubleshooting table for common conservation violations (mass imbalance causes). Strengthen physical intuition with additional real-world analogies. Add section: 'What Happens When Conservation Breaks' - numerical errors, flux imbalances. Consolidate the 3 equation summaries into one comparison table for quick reference. Link each equation to its OpenFOAM implementation.",
+        "03_Equation_of_State.md": "Move the temperature unit warning from file 00 here - it belongs with EOS discussion. Add comparison table: ideal gas vs incompressible vs real gas EOS (mention capability). Strengthen Mach number threshold explanation with physical examples (automotive vs aerospace). Add 'When EOS Choice Goes Wrong' troubleshooting section. Include EOS specification in thermophysicalProperties file example.",
+        "04_Dimensionless_Numbers.md": "Excellent y+ section - expand with ASCII art showing velocity profiles. Add dimensionless number calculator reference tool or script example. Consolidate all dimensionless numbers into one master table with: formula, physical meaning, threshold values, typical applications. Remove redundant Froude/Weber if not core to fundamentals (mark as optional advanced). Add 'How to Verify Your Re Calculation' checklist.",
+        "05_OpenFOAM_Implementation.md": "Very strong core - organize into clearer sections. Add 'From Equation to Code' mapping table for each conservation law. Expand fvm:: vs fvc:: comparison with timing/stability tradeoffs. Move detailed SIMPLE/PISO/PIMPLE algorithm flowcharts to their own subsections. Add 'Choosing Your Algorithm' decision tree. Consolidate pressure Poisson derivation - it's too long, move to appendix or collapsible section.",
+        "06_Boundary_Conditions.md": "Excellent practical content. Add BC compatibility matrix - which BCs can/cannot coexist on same patch. Strengthen wall function selection flowchart (already good, make more prominent). Add 'BC Pitfalls' section: over-specification, incorrect U-p coupling, backflow issues. Include complete working example: full 0/ directory listing for simple case. Move turbulence calculations to collapsible quick-reference.",
+        "07_Initial_Conditions.md": "Good coverage - add 'IC Strategy Decision Matrix' for different simulation types. Strengthen setFields vs mapFields comparison table. Add 'When ICs Cause Divergence' troubleshooting. Remove codeStream warning - too detailed for fundamentals, mark as advanced optional. Add IC checklist for steady-state vs transient cases.",
+        "08_Key_Points_to_Remember.md": "Excellent summary - enhance with more visual aids. Add concept maps linking related topics (Re → turbulence → wall treatment → BCs). Strengthen checklist with actionable items (add command examples). Convert tables to visual comparison format where possible. Add 'Quick Equation Reference' - one-line summaries of all governing equations. Link each point back to detailed file.",
+        "09_Exercises.md": "Strong exercises - add difficulty ratings (beginner/intermediate/advanced). Include expected time estimates for each exercise. Add 'Exercise Prerequisites' - which files to read first. Provide hints before full solutions ( collapsible). Add mini-project: 'Set up your first pipe flow case' combining all concepts. Include answer key for self-verification."
+    },
+    "global_strategy": "CRITICAL ISSUES TO ADDRESS: 1) Redundancy: Continuum hypothesis and historical context appear in both 00_Overview and 01_Introduction - consolidate into 01 only. 2) Temperature units warning appears in 00 but belongs in 03 (EOS). 3) Reynolds number discussed in 01, 02, and 04 - create single authoritative source in 04, others reference it. 4) Wall treatment content split between 04 and 06 - consolidate wall function selection into 06 with y+ calculation in 04. 5) Missing learning objectives in all files - add to each following 3W framework. 6) Weak cross-referencing - strengthen bidirectional links between related concepts. 7) Add visual navigation diagrams showing module flow. 8) Create glossary of symbols and notations used across all files. 9) Add 'Common Pitfalls' sections to all technical files (01-07). 10) Ensure each file has clear takeaways and transition to next topic.",
+    "priority_improvements": {
+        "high": [
+            "Remove continuum mechanics duplication between 00 and 01",
+            "Add learning objectives to ALL files (currently missing everywhere)",
+            "Strengthen cross-references - many concepts mentioned but not linked",
+            "Consolidate Reynolds number discussion to single authoritative source",
+            "Move temperature unit warning to appropriate file (03)"
+        ],
+        "medium": [
+            "Add troubleshooting tables to all technical files (currently only in some)",
+            "Create master equation reference in file 08",
+            "Expand visual diagrams (mermaid flowcharts, ASCII art)",
+            "Add difficulty ratings and time estimates to exercises",
+            "Strengthen 'Why this matters' sections throughout"
+        ],
+        "low": [
+            "Add symbol glossary",
+            "Create command reference sheet",
+            "Add optional advanced topics appendices",
+            "Include biographical notes (Navier, Stokes) as sidebars"
+        ]
+    },
+    "content_gaps": [
+        "Missing: Connection between governing equations and mesh requirements (non-orthogonality impact)",
+        "Missing: Verification and validation concepts - how to check if solver solved equations correctly",
+        "Missing: Dimensional analysis practical exercises (calculate Re, Ma for your case)",
+        "Missing: Common mistakes when translating theory to OpenFOAM syntax",
+        "Weak: Physical interpretation of each term in equations (needs strengthening throughout)",
+        "Missing: When to use compressible vs incompressible solver decision flowchart"
+    ]
+}
