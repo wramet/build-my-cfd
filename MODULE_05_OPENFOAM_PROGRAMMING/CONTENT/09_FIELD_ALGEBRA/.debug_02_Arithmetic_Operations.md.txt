@@ -1,0 +1,20 @@
+Based on the instructions, the file `02_Arithmetic_Operations.md` has already been successfully merged into `00_Overview.md` and deleted. Looking at the current `00_Overview.md`, I can confirm that all the content from the arithmetic operations section has already been integrated:
+
+✅ **Already completed:**
+- Mathematical functions table (lines 109-121)
+- Thai TIP box for `sqr` vs `pow` (lines 122-123)
+- Component-wise operations (lines 125-141)
+- Tensor operations with OpenFOAM Context box (lines 143-176)
+- Statistics section with parallel awareness (lines 322-356)
+- Quick reference updated (lines 424-459)
+- Key takeaways enhanced (lines 462-504)
+- Concept check expanded (lines 507-561)
+
+The refactoring has been completed successfully. The file `02_Arithmetic_Operations.md` no longer exists, and all unique content has been merged into `00_Overview.md` with:
+- Proper OpenFOAM Context callout boxes
+- 3W Framework consistency (Learning Objectives, motivation, practical examples)
+- Thai TIP boxes for motivation
+- Parallel processing guidance with clear warnings
+- Enhanced documentation structure
+
+**Status: ✅ Refactoring Complete**

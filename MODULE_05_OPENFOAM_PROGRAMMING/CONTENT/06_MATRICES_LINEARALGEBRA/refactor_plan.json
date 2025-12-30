@@ -1,0 +1,13 @@
+{
+    "files": {
+        "00_Overview.md": "Add missing Learning Objectives section. Merge redundant Quick Reference with section 3. The 3W framework is weak—expand 'Why' this matters for CFD practitioners (beyond generic 'it's important'). Add Key Takeaways box.",
+        "01_Introduction.md": "The 'From PDE to Matrix' section in 01 overlaps with 00's Overview—move the discretization explanation to 00 and keep 01 focused on OpenFOAM implementation specifics.",
+        "02_Dense_vs_Sparse_Matrices.md": "The Matrix Assembly and Matrix-Vector Multiplication sections have significant overlap with 03_fvMatrix—decide: 02 should focus on data structures, 03 on operations. Currently both explain the same concepts.",
+        "03_fvMatrix_Architecture.md": "Missing Learning Objectives and Key Takeaways. Sections 7-8 (Boundary Contributions, lduMatrix Storage) are too terse—expand with concrete examples. The A()/H() usage in Concept Check needs section 5 reference. Add 'Why this matters' for custom solver development.",
+        "04_Linear_Solvers_Hierarchy.md": "Solver selection guidance is repeated across 00, 04, and 06—consolidate into single decision matrix in 04, reference elsewhere. GAMG parameters table duplicates what's in 02.",
+        "05_Parallel_Linear_Algebra.md": "The reduction operations table is useful but appears nowhere else—consider cross-reference or move to a shared reference appendix.",
+        "06_Common_Pitfalls.md": "Good—the 'Quick Troubleshooting' table synthesizes content without redundancy. Other files should follow this pattern.",
+        "07_Summary_and_Exercises.md": "The Quick Reference table duplicates content from 01, 02, 03, and 04—should reference those files instead of repeating."
+    },
+    "global_strategy": "This folder has strong technical content but inconsistent structure. (1) Add Learning Objectives to ALL files (currently 0/8 have them). (2) Add Key Takeaways to ALL files (currently 0/8 have them). (3) Consolidate solver selection logic into 04 only—remove from 00 and 06. (4) Move all 'data structure' content to 02, keep 'operations' in 03 to eliminate overlap. (5) Create shared reference appendix for tables that appear in multiple files. (6) Strengthen the 'Why' throughout—connect every technical detail to practical CFD consequences (stability, speed, accuracy). (7) Add more concrete OpenFOAM file paths and case examples in 00, 01, 03, 05. (8) The 3W framework is partially applied—'What' and 'How' are strong, but 'Why' needs expansion across all files."
+}

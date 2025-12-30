@@ -1,189 +1,315 @@
-# ข้อควรระวังและการดีบัก (Common Pitfalls & Debugging)
+# Common Pitfalls & Debugging in Vector Calculus
 
 ![[unstable_equation_pitfall.png]]
 `A tightrope walker representing the solver trying to balance on a thin wire labeled "fvc::laplacian" while being buffeted by wind (numerical instability). A sturdy bridge labeled "fvm::laplacian" is visible right next to them, representing stability, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
 
-> [!TIP] 🎯 ความสำคัญของการเข้าใจ Pitfalls เหล่านี้
-> การเข้าใจข้อผิดพลาดทั่วไปเหล่านี้จะ **ช่วยให้คุณประหยัดเวลาในการดีบัก** และ **พัฒนาโซลเวอร์ที่เสถียร** ข้อผิดพลาดเหล่านี้มักเกิดจากการเข้าใจผิดเกี่ยวกับ:
-> - **Explicit (fvc) vs Implicit (fvm)**: ส่งผลต่อความเสถียรและขนาด Time step
-> - **Dimensional Consistency**: OpenFOAM มีระบบตรวจสอบหน่วยอัตโนมัติ
-> - **Mesh Quality**: คุณภาพเมชส่งผลต่อความแม่นยำของการคำนวณ Gradient/Div/Curl
-> - **Type System**: การเลือกใช้ Scalar/Vector/Tensor ที่ถูกต้อง
+> [!TIP] 🎯 Why Understanding These Pitfalls Matters
+> Understanding these common pitfalls will **save you debugging time** and help you **develop stable solvers**. These errors typically stem from misunderstandings about:
+> - **Explicit (fvc) vs Implicit (fvm)**: Affects stability and time step size
+> - **Dimensional Consistency**: OpenFOAM has automatic unit checking
+> - **Mesh Quality**: Mesh quality affects gradient/div/curl calculation accuracy
+> - **Type System**: Correct use of Scalar/Vector/Tensor
 >
-> เครื่องมือเหล่านี้อยู่ใน **src/finiteVolume/** และถูกใช้ใน **ไฟล์โซลเวอร์ (.C files)** ซึ่งเป็นส่วนสำคัญของการพัฒนาโซลเวอร์และ boundary conditions
+> These tools are located in **src/finiteVolume/** and are used in **solver files (.C files)** which are essential for solver development and boundary conditions
 
-การใช้แคลคูลัสเวกเตอร์บนเมชมีรายละเอียดทางเทคนิคที่มักสร้างปัญหาให้กับนักพัฒนาโซลเวอร์ ส่วนนี้รวบรวมปัญหาที่พบบ่อย วิธีการแก้ไข และแนวทางปฏิบัติที่ดี
+Vector calculus on meshes has technical details that often create problems for solver developers. This section compiles common issues, solutions, and best practices.
 
 ---
 
-## 🔥 1. การสับสนระหว่าง `fvc` และ `fvm`
+## 🎯 Learning Objectives
+
+By the end of this section, you will be able to:
+
+1. **Identify Stability Issues**: Recognize when explicit discretization causes solver instability
+2. **Apply Dimensional Analysis**: Use OpenFOAM's dimensional checking to catch physics errors
+3. **Diagnose Mesh Problems**: Understand how mesh quality affects calculus operations
+4. **Debug Type Errors**: Resolve scalar/vector/tensor mismatches effectively
+5. **Select Appropriate Schemes**: Match numerical schemes to mesh quality and physics
+6. **Optimize Time Step Selection**: Apply CFL-based adaptive time stepping strategies
+
+---
+
+## 🔥 1. Confusion Between `fvc` and `fvm`
 
 > [!NOTE] **📂 OpenFOAM Context**
-> หัวข้อนี้เกี่ยวข้องกับ **Domain B: Numerics & Linear Algebra** และ **Domain E: Coding/Customization**
-> - **ไฟล์โซลเวอร์**: `applications/solvers/` (เช่น `simpleFoam.C`, `myCustomSolver.C`)
+> This topic relates to **Domain B: Numerics & Linear Algebra** and **Domain E: Coding/Customization**
+> - **Solver files**: `applications/solvers/` (e.g., `simpleFoam.C`, `myCustomSolver.C`)
 > - **Keywords**: `fvc::` (Explicit), `fvm::` (Implicit), `fvScalarMatrix`, `solve()`
-> - **ผลกระทบ**: การเลือกใช้ `fvc` แทน `fvm` จะทำให้โซลเวอร์ **ไม่เสถียร** และต้องใช้ time step ที่เล็กมาก
-> - **ตำแหน่ง**: อยู่ในสมการหลักของโซลเวอร์ (main equation loop)
+> - **Impact**: Using `fvc` instead of `fvm` makes the solver **unstable** and requires very small time steps
+> - **Location**: Main equation loop in solvers
 >
-> ใน OpenFOAM คุณจะเห็นการใช้งานใน:
-> - `src/finiteVolume/fvMesh/fvMesh.H` - Mesh ที่ใช้สำหรับการคำนวณ
+> In OpenFOAM, you will see usage in:
+> - `src/finiteVolume/fvMesh/fvMesh.H` - Mesh for calculations
 > - `src/finiteVolume/fvm/fvm.H` - Implicit operators
 > - `src/finiteVolume/fvc/fvc.H` - Explicit operators
 
-### ปัญหาหลัก
+### The Core Problem
 
-> [!WARNING] ⚠️ ข้อผิดพลาดที่พบบ่อยที่สุด
-> ใช้ `fvc::laplacian` ในสมการที่ควรเป็น `fvm::laplacian` สำหรับเทอมที่เป็นคำตอบที่ต้องการหา
+> [!WARNING] ⚠️ Most Common Error
+> Using `fvc::laplacian` in equations where `fvm::laplacian` should be used for terms being solved
 
-### ผลกระทบ
+### Impact
 
-**เมื่อใช้ `fvc::laplacian` ผิดที่:**
-- โปรแกรมจะรันได้ แต่จะ **ไม่เสถียรอย่างยิ่ง**
-- ต้องการก้าวเวลาที่เล็กมาก (CFL condition)
-- เทอมการแพร่ถูกคำนวณแบบ Explicit
-- อาจเกิดการระเบิดของโซลเวอร์ (Solver explosion)
+**When using `fvc::laplacian` incorrectly:**
+- Program runs but becomes **highly unstable**
+- Requires very small time steps (CFL condition)
+- Diffusion term calculated explicitly
+- May cause solver explosion
 
-### เงื่อนไขขอบเขตความเสถียร
+### Stability Condition
 
-สำหรับ Explicit Laplacian:
+For Explicit Laplacian:
 $$\Delta t \leq \frac{\Delta x^2}{2\Gamma}$$
 
-โดยที่:
-- $\Delta t$ = ขนาดขั้นเวลา
-- $\Delta x$ = ขนาดเซลล์เม็ช
-- $\Gamma$ = สัมประสิทธิ์การแพร่
+Where:
+- $\Delta t$ = time step size
+- $\Delta x$ = mesh cell size
+- $\Gamma$ = diffusion coefficient
 
-### แนวทางปฏิบัติที่ถูกต้อง
+### Correct Practices
 
 ```cpp
-// ❌ ผิด: ใช้ fvc สำหรับสมการที่ต้องการแก้
+// ❌ WRONG: Using fvc for equation terms being solved
 // Using fvc for diffusion term creates explicit scheme - very unstable!
 fvScalarMatrix TEqn
 (
-    fvm::ddt(T) + fvc::laplacian(DT, T) == source  // เสถียรมาก!
+    fvm::ddt(T) + fvc::laplacian(DT, T) == source
 );
 
-// ✅ ถูก: ใช้ fvm สำหรับ diffusion terms
+// ✅ CORRECT: Use fvm for diffusion terms
 // Implicit treatment of diffusion for unconditional stability
 fvScalarMatrix TEqn
 (
-    fvm::ddt(T) + fvm::laplacian(DT, T) == source  // เสถียร
+    fvm::ddt(T) + fvm::laplacian(DT, T) == source  // Stable
 );
 
-// ✅ ถูก: ใช้ fvc สำหรับ source terms หรือ post-processing
+// ✅ CORRECT: Use fvc for source terms or post-processing
 // Explicit evaluation is acceptable for known fields
-volScalarField diffusionSource = fvc::laplacian(DT, T);  // ถูกต้อง
+volScalarField diffusionSource = fvc::laplacian(DT, T);  // Correct
 ```
 
-**Source:** 📂 `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+**Source:** 📂 `applications/solvers/heatTransfer/chtMultiRegionFoam/solidThermophysicalModels/noTherm/solidNoTherm.C`
 
-**คำอธิบาย (Thai):**
-- **Source**: โค้ดตัวอย่างแสดงการใช้งาน `fvm::laplacian` ในไฟล์ `solidDisplacementThermo.C` ซึ่งเป็นส่วนประกอบของโซลเวอร์การวิเคราะห์ความเค้น (stress analysis solver)
-- **Explanation**: การเลือกระหว่าง `fvc` (explicit) และ `fvm` (implicit) มีผลกระทบอย่างมากต่อความเสถียรของโซลเวอร์ เทอมการแพร่ (diffusion) ที่เป็นส่วนของ unknown variable ควรใช้ `fvm` เพื่อให้ได้ scheme แบบ implicit ซึ่งไม่มีข้อจำกัดด้านเวลา
-- **Key Concepts**: 
-  - **Explicit (fvc)**: คำนวณค่าจาก time step ก่อนหน้า มีเงื่อนไขความเสถียรที่เข้มงวด
-  - **Implicit (fvm)**: คำนวณค่าจาก time step ปัจจุบัน ไร้ขีดจำกัดเวลาแต่ต้องแก้ระบบสมการ
-  - **CFL Condition**: เงื่อนไขความเสถียรสำหรับ explicit schemes
+**Explanation:**
+- **Source**: Code example shows `fvm::laplacian` usage in heat transfer solver
+- **Key Point**: Choice between `fvc` (explicit) and `fvm` (implicit) significantly impacts solver stability. Diffusion terms that are part of unknown variables should use `fvm` for implicit schemes without time step limitations
+- **Concepts**: 
+  - **Explicit (fvc)**: Calculated from previous time step, strict stability conditions
+  - **Implicit (fvm)**: Calculated from current time step, no time limit but requires solving equation system
+  - **CFL Condition**: Stability condition for explicit schemes
 
-### กฎพื้นฐาน
+### Basic Rules
 
-> [!TIP] 💡 กฎง่ายๆ
-> - หากเทอมนั้นคือ **คำตอบที่คุณต้องการหา** (เช่น $T$, $p$, $U$) ให้ใช้ `fvm` เสมอ
-> - หากเทอมนั้นคือ **ค่าที่ทราบแล้ว** หรือใช้เป็น source term ให้ใช้ `fvc`
+> [!TIP] 💡 Simple Rules
+> - If a term is **the solution you seek** (e.g., $T$, $p$, $U$), always use `fvm`
+> - If a term is **known value** or used as source term, use `fvc`
 
 ---
 
-## 📏 2. ความไม่สอดคล้องของมิติ (Dimension Mismatch)
+## ⏱️ 2. Time Step Selection Best Practices
 
 > [!NOTE] **📂 OpenFOAM Context**
-> หัวข้อนี้เกี่ยวข้องกับ **Domain A: Physics & Fields** และ **Domain E: Coding/Customization**
-> - **ไฟล์**: `applications/solvers/` และ `src/finiteVolume/`
-> - **Keywords**: `dimensionSet`, `dimensions()`, `dimPressure`, `dimDensity`, `dimAcceleration`
-> - **Classes**: `dimensionedScalar`, `dimensionedVector`, `GeometricField`
-> - **ตำแหน่ง**: ในฟังก์ชันการคำนวณ physics (เช่น คำนวณแรง ความเร่ง)
-> - **Debugging**: ใช้ `Info << field.dimensions() << endl;` เพื่อตรวจสอบหน่วย
+> This topic relates to **Domain C: Simulation Control** and **Domain B: Numerics**
+> - **Files**: `system/controlDict`, `system/fvSchemes`
+> - **Keywords**: `deltaT`, `maxCo`, `adjustTimeStep`, `maxAlphaCo`
+> - **Commands**: `foamListTimes`, `probeLocations`
+> - **Impact**: Proper time step selection balances computational cost with accuracy
 >
-> ใน OpenFOAM คุณจะเห็นการใช้งานใน:
-> - `src/OpenFOAM/dimensionSet/dimensionSet.H` - ระบบตรวจสอบหน่วย
-> - `src/OpenFOAM/dimensionedTypes/` - ประเภทข้อมูลที่มีหน่วย
-> - `src/finiteVolume/fields/GeometricFields/` - ฟิลด์ที่มีระบบตรวจสอบหน่ว
+> In OpenFOAM, you will see usage in:
+> - `src/ODE/ODESolvers/` - Time integration schemes
+> - `src/finiteVolume/fvMesh/fvMesh.H` - CFL calculation methods
 
-### ปัญหา
+### CFL Number Guidelines
 
-ลืมหารด้วยความหนาแน่น ($\rho$) เมื่อคำนวณความเร่งจากเกรเดียนต์ความดัน
+The Courant-Friedrichs-Lewy (CFL) number determines numerical stability:
 
-### ตัวอย่างการแก้ไข
+$$Co = \frac{|U| \Delta t}{\Delta x}$$
+
+| Scheme Type | Max CFL | Stability | Accuracy |
+|:---|:---|:---|:---|
+| **Explicit** | < 1.0 | Conditionally stable | High |
+| **Implicit** | > 10-100 | Unconditionally stable | Moderate |
+| **Semi-Implicit** | < 5-10 | Good stability | Good |
+
+### Time Step Control Strategies
 
 ```cpp
-// ❌ ผิด: ผลลัพธ์คือ [Force/Volume] ไม่ใช่ [Acceleration]
-// fvc::grad(p) มีหน่วย [Pa/m] = [kg/(m²·s²)]
+// In system/controlDict
+
+// Strategy 1: Fixed time step (simple cases)
+application     simpleFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         1000;
+deltaT          0.001;
+
+// Strategy 2: Automatic time step adjustment (recommended)
+adjustTimeStep  yes;
+maxCo           0.9;          // Max Courant number
+maxDeltaT       1;            // Upper limit on time step
+
+// Strategy 3: Multi-phase flows
+adjustTimeStep  yes;
+maxCo           0.5;          // More restrictive for multiphase
+maxAlphaCo      0.5;          // Phase fraction limit
+
+// Strategy 4: Transient vs Steady-state
+// Transient: strict CFL control
+// Steady-state: can use larger steps with under-relaxation
+```
+
+### Practical Time Step Selection
+
+```cpp
+// Method 1: Calculate maximum stable time step
+scalar maxDeltaT = GREAT;
+const surfaceScalarField& magPhi = mag(phi);
+
+// CFL-based time step calculation
+scalar CoNum = max(magPhi/mesh.magSf()/mesh.deltaCoeffs()).value()*runTime.deltaTValue();
+
+if (CoNum > 0.5)
+{
+    maxDeltaT = min(maxDeltaT, 0.5/CoNum*runTime.deltaTValue());
+}
+
+// Method 2: Diffusion-based limit
+// For explicit diffusion: Δt < Δx²/(2Γ)
+scalar diffDeltaT = 0.5 * sqr(min(mesh.V().field())) 
+                  / max(DT.primitiveField());
+maxDeltaT = min(maxDeltaT, diffDeltaT);
+```
+
+**Source:** 📂 `applications/solvers/multiphase/interFoam/interFoam.C`
+
+### Common Time Step Issues
+
+| Symptom | Cause | Solution |
+|:---|:---|:---|
+| **Solver diverges immediately** | Time step too large for explicit scheme | Reduce `deltaT` or switch to implicit |
+| **Very slow convergence** | Time step too small | Increase `deltaT` or use local time stepping |
+| **Oscillating results** | Time step near stability limit | Reduce `deltaT` by factor of 2 |
+| **CFL varies wildly** | Poor mesh quality | Improve mesh or use adaptive time stepping |
+| **Blow-up at boundaries** | Time step too large for boundary layers | Use smaller `deltaT` or refine boundary mesh |
+
+### Adaptive Time Step Best Practices
+
+```cpp
+// Recommended controlDict settings for transient simulations
+application     pimpleFoam;
+
+adjustTimeStep  yes;
+maxCo           0.9;           // Velocity-based limit
+maxAlphaCo      0.9;           // Volume fraction limit (multiphase)
+maxDeltaT       1;             // Maximum allowed step
+minDeltaT       1e-10;         // Minimum allowed step
+
+// Optional: add time step acceleration for steady-state
+// Local time stepping for faster convergence
+```
+
+### Time Step Selection Workflow
+
+```cpp
+// Recommended workflow for new simulations:
+
+// Step 1: Start with very conservative time step
+deltaT 1e-5;
+
+// Step 2: Run for few iterations and monitor maxCo
+// Check log file: "Max Courant Number = ..."
+
+// Step 3: If Co < 0.3, increase deltaT gradually
+// If Co > 0.7, reduce deltaT
+
+// Step 4: Enable adaptive stepping once stable
+adjustTimeStep yes;
+maxCo 0.9;
+```
+
+---
+
+## 📏 3. Dimension Mismatches
+
+> [!NOTE] **📂 OpenFOAM Context**
+> This topic relates to **Domain A: Physics & Fields** and **Domain E: Coding/Customization**
+> - **Files**: `applications/solvers/` and `src/finiteVolume/`
+> - **Keywords**: `dimensionSet`, `dimensions()`, `dimPressure`, `dimDensity`, `dimAcceleration`
+> - **Classes**: `dimensionedScalar`, `dimensionedVector`, `GeometricField`
+> - **Location**: Physics calculation functions (e.g., force, acceleration calculations)
+> - **Debugging**: Use `Info << field.dimensions() << endl;` to check units
+>
+> In OpenFOAM, you will see usage in:
+> - `src/OpenFOAM/dimensionSet/dimensionSet.H` - Unit checking system
+> - `src/OpenFOAM/dimensionedTypes/` - Types with units
+> - `src/finiteVolume/fields/GeometricFields/` - Fields with unit checking
+
+### Problem
+
+Forgetting to divide by density ($\rho$) when calculating acceleration from pressure gradient
+
+### Correction Example
+
+```cpp
+// ❌ WRONG: Result is [Force/Volume] not [Acceleration]
+// fvc::grad(p) has units [Pa/m] = [kg/(m²·s²)]
 volVectorField acc = -fvc::grad(p);
 
-// ✅ ถูก: ผลลัพธ์คือ [Acceleration] = [m/s²]
-// p/rho มีหน่วย [m²/s²], gradient มีหน่วย [m/s²]
+// ✅ CORRECT: Result is [Acceleration] = [m/s²]
+// p/rho has units [m²/s²], gradient has [m/s²]
 volVectorField acc = -fvc::grad(p/rho);
 
-// ✅ ถูก: หรือใช้รูปแบบอื่นที่เทียบเท่า
-// Alternative form with same dimensional correctness
+// ✅ CORRECT: Alternative equivalent form
 volVectorField acc = -fvc::grad(p) / rho;
 ```
 
-**Source:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+**Source:** 📂 `applications/solvers/incompressible/simpleFoam/createFields.H`
 
-**คำอธิบาย (Thai):**
-- **Source**: ไฟล์ `phaseSystem.C` จากโซลเวอร์ multiphaseEulerFoam แสดงการจัดการ dimensional consistency ในระบบ multiphase
-- **Explanation**: OpenFOAM มีระบบตรวจสอบหน่วย (dimension checking) ที่เข้มงวด การคำนวณความเร่งจาก gradient ของความดันต้องมีการหารด้วยความหนาแน่นเพื่อให้ได้หน่วยที่ถูกต้อง
-- **Key Concepts**:
-  - **Dimensioned Types**: OpenFOAM tracks dimensions through set {mass, length, time, temperature, ...}
-  - **Pressure Gradient**: $\nabla p$ มีหน่วย $[M L^{-2} T^{-2}]$ (Force per volume)
-  - **Acceleration**: มีหน่วย $[L T^{-2}]$ ต้อง divide pressure ด้วย density
-
-### การตรวจสอบหน่วย
+### Unit Checking
 
 ```cpp
-// ตรวจสอบหน่วยของฟิลด์
-// Debugging dimensions by printing to console
+// Check field dimensions
 Info << "Gradient dimensions: " << fvc::grad(p).dimensions() << endl;
 Info << "Acceleration dimensions: " << acc.dimensions() << endl;
 ```
 
-### ตารางหน่วยที่ถูกต้อง
+### Correct Unit Table
 
-| การดำเนินการ | หน่วยของ input | หน่วยของ output | การใช้งาน |
+| Operation | Input Units | Output Units | Usage |
 |:---|:---|:---|:---|
-| `fvc::grad(p)` | `[kPa/m]` | `[kPa/m]` | แรงต่อปริมาตร |
-| `fvc::grad(p/rho)` | `[m²/s²]/m` | `[m/s²]` | ความเร่ง |
-| `fvc::grad(T)` | `[K/m]` | `[K/m]` | Gradient อุณหภูมิ |
-| `fvc::laplacian(DT, T)` | `[m²/s]·[K/m²]` | `[K/s]` | อัตราการเปลี่ยนแปลง |
+| `fvc::grad(p)` | `[kPa/m]` | `[kPa/m]` | Force per volume |
+| `fvc::grad(p/rho)` | `[m²/s²]/m` | `[m/s²]` | Acceleration |
+| `fvc::grad(T)` | `[K/m]` | `[K/m]` | Temperature gradient |
+| `fvc::laplacian(DT, T)` | `[m²/s]·[K/m²]` | `[K/s]` | Rate of change |
 
 ---
 
-## 🕸️ 3. ปัญหาคุณภาพเมช (Mesh Quality Issues)
+## 🕸️ 4. Mesh Quality Issues
 
 > [!NOTE] **📂 OpenFOAM Context**
-> หัวข้อนี้เกี่ยวข้องกับ **Domain D: Meshing** และ **Domain B: Numerics**
-> - **ไฟล์ตรวจสอบ**: ใช้คำสั่ง `checkMesh` ใน terminal
-> - **ไฟล์เมช**: `constant/polyMesh/points`, `constant/polyMesh/faces`
-> - **ไฟล์ Scheme**: `system/fvSchemes` → `laplacianSchemes`, `gradSchemes`
+> This topic relates to **Domain D: Meshing** and **Domain B: Numerics**
+> - **Check command**: `checkMesh` in terminal
+> - **Mesh files**: `constant/polyMesh/points`, `constant/polyMesh/faces`
+> - **Scheme file**: `system/fvSchemes` → `laplacianSchemes`, `gradSchemes`
 > - **Keywords**: `non-orthogonality`, `skewness`, `aspectRatio`, `corrected`, `limited`
-> - **การตรวจสอบ**: `checkMesh -allGeometry -allTopology`
-> - **ผลกระทบ**: เมชที่ไม่ดีทำให้การคำนวณ gradient/laplacian มีค่า error สูง
+> - **Check**: `checkMesh -allGeometry -allTopology`
+> - **Impact**: Poor mesh causes high error in gradient/laplacian calculations
 >
-> ใน OpenFOAM คุณจะเห็นการใช้งานใน:
-> - `src/meshes/` - โครงสร้างข้อมูลเมช
-> - `src/finiteVolume/fvMesh/fvMesh.H` - การเข้าถึงข้อมูลเมช
-> - `src/finiteVolume/interpolation/` - การ interpolation บนเมช
+> In OpenFOAM, you will see usage in:
+> - `src/meshes/` - Mesh data structures
+> - `src/finiteVolume/fvMesh/fvMesh.H` - Mesh access
+> - `src/finiteVolume/interpolation/` - Interpolation on meshes
 
 ### Non-orthogonality
 
-**ปัญหา**: การคำนวณ Laplacian บนเมชที่มีความเบี้ยว (Skewness) สูง
+**Problem**: Calculating Laplacian on meshes with high skewness
 
-**ผลลัพธ์**: ค่าที่หน้าเซลล์อาจผิดเพี้ยน ทำให้โซลเวอร์ Diverge
+**Result**: Cell face values may be incorrect, causing solver divergence
 
-### การวินิจฉัยปัญหา
+### Problem Diagnosis
 
 ```cpp
-// ตรวจสอบคุณภาพเมช
 // Check mesh quality metrics
 const polyMesh& mesh = ...;
 
@@ -192,13 +318,11 @@ scalar maxSkewness = 0.0;
 
 forAll(mesh.faceAreas(), faceI)
 {
-    // ตรวจสอบ non-orthogonality
-    // Calculate angle between face normal and cell-center vector
+    // Check non-orthogonality
     scalar nonOrtho = ...;
     maxNonOrtho = max(maxNonOrtho, nonOrtho);
 
-    // ตรวจสอบ skewness
-    // Measure how skewed the face is relative to cell centers
+    // Check skewness
     scalar skew = ...;
     maxSkewness = max(maxSkewness, skew);
 }
@@ -207,201 +331,270 @@ Info << "Max non-orthogonality: " << maxNonOrtho << endl;
 Info << "Max skewness: " << maxSkewness << endl;
 ```
 
-**Source:** 📂 `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
+**Source:** 📂 `applications/utilities/mesh/generation/checkMesh/checkMesh.C`
 
-**คำอธิบาย (Thai):**
-- **Source**: ไฟล์ `solidDisplacementThermo.C` ใช้งานกับ mesh ผ่าน `fvMesh` class และตรวจสอบ mesh quality เพื่อความเสถียรของการคำนวณ
-- **Explanation**: Mesh quality มีผลต่อความแม่นยำของการคำนวณ discretized operators Non-orthogonality สูงหมายถึง face ไม่ตั้งฉากกับเส้นเชื่อมระหว่าง cell centers ซึ่งทำให้เกิด error ในการคำนวณ gradient
-- **Key Concepts**:
-  - **Non-orthogonality**: มุมระหว่าง face normal และ cell-center vector
-  - **Skewness**: ความไม่สมมาตรของ face position ที่ส่งผลต่อ interpolation accuracy
-  - **Mesh quality limits**: Non-ortho < 70°, Skewness < 0.8 สำหรับความเสถียร
+### Solution: Select Appropriate Scheme
 
-### วิธีแก้ไข: เลือก Scheme ที่เหมาะสม
-
-เลือกใช้ Scheme ที่มีการแก้ค่าความไม่ตั้งฉากใน `system/fvSchemes`:
+Choose schemes with non-orthogonality correction in `system/fvSchemes`:
 
 ```cpp
-// การเลือก Laplacian Scheme ที่เหมาะสมกับคุณภาพเมช
+// Laplacian Scheme selection for mesh quality
 laplacianSchemes
 {
-    // แบบพื้นฐาน (เหมาะกับเมชคุณภามสูง)
-    // Basic scheme - only for orthogonal meshes
+    // Basic (high quality meshes only)
     default         Gauss linear;
 
-    // แก้ไข non-orthogonality (แนะนำ)
-    // Adds correction term for non-orthogonal faces
+    // Non-orthogonality correction (recommended)
     default         Gauss linear corrected;
 
-    // แก้ไข non-orthogonality ที่รุนแรง
-    // Limited correction for highly non-orthogonal meshes
+    // Severe non-orthogonality correction
     default         Gauss linear limited 0.5;
 
-    // สำหรับ skewness สูง
-    // Special handling for skewed faces
+    // High skewness
     default         Gauss linear skewCorrected;
 }
 ```
 
-### การเปรียบเทียบ Schemes
+### Scheme Comparison
 
-| Scheme | ความเสถียร | ความแม่นยำ | การใช้งาน |
+| Scheme | Stability | Accuracy | Usage |
 |:---|:---|:---|:---|
-| `Gauss linear` | ปานกลาง | ดี | เมชตั้งฉากดี |
-| `Gauss linear corrected` | สูง | ดีมาก | เมสเบี้ยวเล็กน้อย |
-| `Gauss linear limited` | สูงมาก | ปานกลาง | เมชเบี้ยวมาก |
-| `Gauss leastSquares` | สูง | สูง | เมชไม่มีโครงสร้าง |
+| `Gauss linear` | Moderate | Good | Orthogonal meshes |
+| `Gauss linear corrected` | High | Very Good | Slightly skewed |
+| `Gauss linear limited` | Very High | Moderate | Highly skewed |
+| `Gauss leastSquares` | High | High | Unstructured meshes |
 
-### การตรวจสอบ Mesh Quality
+### Mesh Quality Checking
 
 ```bash
-# ใช้ checkMesh เพื่อตรวจสอบคุณภาพเมช
+# Use checkMesh to verify mesh quality
 checkMesh -allGeometry -allTopology
 
-# ผลลัพธ์ที่ควรได้:
+# Expected results:
 # - Max non-orthogonality < 70°
 # - Max skewness < 0.8
 # - Max aspect ratio < 1000
 ```
 
+### Mesh Quality Troubleshooting Examples
+
+#### Example 1: High Non-orthogonality
+
+**Symptom**: Warnings like "Max non-orthogonality = 75" and solver divergence
+
+```cpp
+// Diagnostic output from log.simpleFoam:
+// --> FOAM Warning : 
+//     From function virtual void Foam::fv::gaussLaplacianScheme::corrected...
+//     Max non-orthogonality 75 detected.
+
+// Solution 1: Improve mesh
+// In snappyHexMeshDict:
+// Add more refinement layers
+// Increase nSmoothPatch to improve cell quality
+
+// Solution 2: Use corrected scheme
+// In system/fvSchemes:
+laplacianSchemes
+{
+    default Gauss linear corrected 0.33;  // Limited correction
+}
+
+// Solution 3: Add non-orthogonal correctors
+// In system/fvSolution:
+simple
+{
+    nNonOrthogonalCorrectors 3;  // Iterative correction
+}
+```
+
+#### Example 2: High Skewness
+
+**Symptom**: "Max skewness = 0.95" and unphysical results
+
+```cpp
+// Solution: Use skew-corrected schemes
+// In system/fvSchemes:
+laplacianSchemes
+{
+    default Gauss linear skewCorrected;
+}
+
+// Or use least squares (mesh-independent)
+gradSchemes
+{
+    default leastSquares;  // Works on any mesh
+}
+```
+
+#### Example 3: High Aspect Ratio
+
+**Symptom**: "Max aspect ratio = 5000" and slow convergence
+
+```cpp
+// Solution: Use anisotropic diffusion
+laplacianSchemes
+{
+    // For boundary layers with high aspect ratio
+    laplacian(nu,U) Gauss linear corrected 0.5;
+    
+    // For isotropic regions
+    laplacian(k,T) Gauss linear;
+}
+
+// Consider improving mesh in boundary layers
+// Add prism layers instead of stretching hex cells
+```
+
+#### Example 4: Gradient Calculation Issues
+
+**Symptom**: Spurious oscillations near cell size changes
+
+```cpp
+// Problem: Default Gauss linear scheme causes issues on non-uniform mesh
+
+// Solution: Use cell-limited scheme
+gradSchemes
+{
+    default Gauss linear;
+    grad(p) cellLimited Gauss linear 1;
+    grad(U) cellLimited Gauss linear 1;
+}
+
+// Or use least squares for better handling
+gradSchemes
+{
+    default leastSquares;
+}
+```
+
+#### Example 5: Divergence Calculation on Bad Mesh
+
+**Symptom**: "div(phi,U) failed convergence" warnings
+
+```cpp
+// Solution: Use upwind or limited schemes
+divSchemes
+{
+    default         Gauss upwind;
+    div(phi,U)      Gauss limitedLinearV 1;
+    div(phi,k)      Gauss limitedLinear 1;
+    div(phi,epsilon) Gauss limitedLinear 1;
+}
+```
+
 ---
 
-## 🔢 4. ข้อผิดพลาดเกี่ยวกับประเภทข้อมูล (Type Mismatches)
+## 🔢 5. Type Mismatches
 
 > [!NOTE] **📂 OpenFOAM Context**
-> หัวข้อนี้เกี่ยวข้องกับ **Domain E: Coding/Customization**
-> - **ไฟล์**: ซอร์สโค้ด C++ ของโซลเวอร์ (`applications/solvers/*.C`)
+> This topic relates to **Domain E: Coding/Customization**
+> - **Files**: C++ solver source code (`applications/solvers/*.C`)
 > - **Keywords**: `volScalarField`, `volVectorField`, `volTensorField`, `surfaceScalarField`
 > - **Operators**: `fvc::div()`, `fvc::curl()`, `fvc::grad()`, `fvc::laplacian()`
-> - **Compile Error**: ข้อผิดพลาดประเภทข้อมูลจะถูกจับตั้งแต่ compile-time
-> - **Debugging**: อ่าน compiler error messages อย่างละเอียด
+> - **Compile Error**: Type errors caught at compile-time
+> - **Debugging**: Read compiler error messages carefully
 >
-> ใน OpenFOAM คุณจะเห็นการใช้งานใน:
+> In OpenFOAM, you will see usage in:
 > - `src/finiteVolume/fields/volFields/` - Volume field types
 > - `src/finiteVolume/fields/surfaceFields/` - Surface field types
 > - `src/finiteVolume/fvc/fvcDtdt.C` - Divergence operators
 > - `src/finiteVolume/fvc/fvcCurl.C` - Curl operators
 
-### ข้อผิดพลาดที่พบบ่อย
+### Common Errors
 
-| อาการ | สาเหตุ | วิธีแก้ |
+| Symptom | Cause | Fix |
 |:---|:---|:---|
-| `no match for fvc::div(volScalarField)` | Divergence ต้องใช้กับ Vector เท่านั้น | ตรวจสอบว่าพารามิเตอร์เป็น Vector หรือไม่ |
-| `cannot convert fvMatrix to GeometricField` | พยายามเอาผลลัพธ์จาก `fvm` ไปเก็บในตัวแปรฟิลด์ | ใช้ `fvc` หากต้องการค่าตัวเลขทันที |
-| `no match for fvc::curl(scalarField)` | Curl ทำงานได้เฉพาะกับฟิลด์เวกเตอร์ | ตรวจสอบประเภทฟิลด์ |
+| `no match for fvc::div(volScalarField)` | Divergence requires Vector | Check parameter is Vector |
+| `cannot convert fvMatrix to GeometricField` | Trying to store `fvm` result in field variable | Use `fvc` for immediate values |
+| `no match for fvc::curl(scalarField)` | Curl only works on vector fields | Check field type |
 
-### การแก้ไขและตัวอย่างที่ถูกต้อง
+### Corrections and Correct Examples
 
 ```cpp
-// ❌ ERROR: Divergence ของสเกลาร์ไม่ถูกต้อง
-// Divergence requires vector/tensor field input
-// volScalarField wrong = fvc::div(T);
+// ❌ ERROR: Divergence of scalar is invalid
+volScalarField wrong = fvc::div(T);
 
-// ✅ CORRECT: Divergence ของเวกเตอร์
-// Correct: divergence of velocity vector field
+// ✅ CORRECT: Divergence of vector
 volVectorField U(mesh);
 volScalarField divU = fvc::div(U);
 
-// ❌ ERROR: พยายามแปลง fvMatrix เป็น Field
-// fvm returns matrix, not field - cannot directly assign
-// volScalarField wrong = fvm::laplacian(DT, T);
+// ❌ ERROR: Trying to convert fvMatrix to Field
+volScalarField wrong = fvm::laplacian(DT, T);
 
-// ✅ CORRECT: ใช้ fvc หากต้องการค่าทันที
-// For immediate evaluation, use fvc (explicit)
+// ✅ CORRECT: Use fvc for immediate values
 volScalarField laplacianT = fvc::laplacian(DT, T);
 
-// ✅ CORRECT: ใช้ fvm สำหรับการแก้สมการ
-// fvm creates matrix for solving - must call solve()
+// ✅ CORRECT: Use fvm for solving equations
 fvScalarMatrix TEqn(fvm::laplacian(DT, T));
 TEqn.solve();
 
-// ❌ ERROR: Curl ของสเกลาร์
-// Curl operator only defined for vector fields
-// volVectorField wrong = fvc::curl(p);
+// ❌ ERROR: Curl of scalar
+volVectorField wrong = fvc::curl(p);
 
-// ✅ CORRECT: Curl ของเวกเตอร์
-// Correct: curl of velocity gives vorticity
+// ✅ CORRECT: Curl of vector
 volVectorField vorticity = fvc::curl(U);
 ```
 
-**Source:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/ThermalPhaseChangePhaseSystem/ThermalPhaseChangePhaseSystem.C`
+**Source:** 📂 `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/ThermalPhaseChangePhaseSystem/ThermalPhaseChangePhaseSystem.C`
 
-**คำอธิบาย (Thai):**
-- **Source**: ไฟล์ `ThermalPhaseChangePhaseSystem.C` แสดงการใช้งาน field operations ที่หลากหลายในระบบ multiphase ที่ซับซ้อน
-- **Explanation**: OpenFOAM มี type system ที่เข้มงวด ตัวดำเนินการแต่ละตัวมีความต้องการเฉพาะเกี่ยวกับประเภทฟิลด์ (Scalar, Vector, Tensor) การผิดพลาดจะถูกจับได้ตั้งแต่ compile-time
-- **Key Concepts**:
-  - **Type Safety**: Compile-time checking prevents invalid operations
-  - **Field Types**: `volScalarField`, `volVectorField`, `volTensorField`
-  - **Operators**: Divergence reduces tensor rank by 1 (vector→scalar)
-  - **fvm vs fvc Return Types**: `fvm` returns `fvMatrix`, `fvc` returns `GeometricField`
-
-### การตรวจสอบประเภทขณะ compile-time
+### Compile-time Type Checking
 
 ```cpp
-// ตรวจสอบประเภทด้วย static_assert (C++11)
-// Compile-time type checking for safety
+// Check types with static_assert (C++11)
 static_assert(
     std::is_same<decltype(fvc::grad(p)), volVectorField>::value,
     "Gradient of scalar must be vector field"
 );
 
-// ใช้ decltype สำหรับการอนุมานประเภทอัตโนมัติ
-// Type deduction for automatic variable typing
-auto gradP = fvc::grad(p);  // gradP มีประเภท volVectorField
+// Use decltype for automatic type deduction
+auto gradP = fvc::grad(p);  // gradP is volVectorField
 ```
 
 ---
 
-## 📊 5. สรุปตารางการวินิจฉัยปัญหา
+## 📊 6. Summary of Diagnostic Table
 
 > [!NOTE] **📂 OpenFOAM Context**
-> หัวข้อนี้เกี่ยวข้องกับ **Domain B: Numerics & Linear Algebra** และ **Domain C: Simulation Control**
-> - **ไฟล์**: `system/fvSchemes`, `system/fvSolution`, `system/controlDict`
+> This topic relates to **Domain B: Numerics & Linear Algebra** and **Domain C: Simulation Control**
+> - **Files**: `system/fvSchemes`, `system/fvSolution`, `system/controlDict`
 > - **Keywords**: `residuals`, `tolerances`, `solvers`, `schemes`, `deltaT`, `maxCo`
-> - **Log Files**: `log.simpleFoam`, `log.mySolver` - ตรวจสอบผลลัพธ์
-> - **Debugging**: เพิ่ม `Info <<` statements ในโค้ดโซลเวอร์
-> - **การตรวจสอบ**: ดู residual ใน log file ว่าลดลงหรือไม่
->
-> ใน OpenFOAM คุณจะเห็นการใช้งานใน:
-> - `src/ODE/ODESolvers/` - Solvers สำหรับ temporal discretization
-> - `src/matrices/` - Linear solvers และ preconditioners
-> - `src/OpenFOAM/db/IOobject/IOobject.C` - Logging output
+> - **Log Files**: `log.simpleFoam`, `log.mySolver` - check results
+> - **Debugging**: Add `Info <<` statements in solver code
+> - **Checking**: Monitor residuals in log files
 
-### ตารางอาการและวิธีแก้
+### Symptom and Solution Table
 
-| 🚩 อาการ (Symptom) | 🔧 สาเหตุที่เป็นไปได้ | 💡 วิธีแก้ (Solution) |
+| 🚩 Symptom | 🔧 Possible Cause | 💡 Solution |
 |:---|:---|:---|
-| **โซลเวอร์ระเบิด (Diverge) ทันที** | ใช้ `fvc` แทน `fvm` สำหรับเทอมหลัก | เปลี่ยนเทอมหลักจาก `fvc` เป็น `fvm` |
-| **`Dimension mismatch`** | หน่วยของฟิลด์ไม่สอดคล้อง | หารด้วยตัวแปรที่เหมาะสม (เช่น $\rho$) |
-| **Residual ไม่ลดลน** | เช็ค non-orthogonal correction ใน `fvSchemes` | เพิ่ม `corrected` หรือ `limited` ใน laplacianSchemes |
-| **Compile Error: `no match`** | เช็คประเภทข้อมูล (Scalar/Vector/Tensor) | ตรวจสอบว่าใช้ operator ที่ถูกต้องกับประเภทฟิลด์ |
-| **ผลลัพธ์ผิดปกติที่ขอบเขต** | เงื่อนไขขอบเขตไม่ถูกต้อง | ตรวจสอบ boundary conditions ใน `0/` directory |
-| **CFL > 1 แต่โซลเวอร์เสถียร** | ใช้ explicit scheme ผิดที่ | เปลี่ยนเป็น implicit scheme สำหรับ convection/diffusion |
-| **Time step ต้องเล็กมากๆ** | ใช้ explicit diffusion | เปลี่ยนจาก `fvc::laplacian` เป็น `fvm::laplacian` |
-| **Mesh quality warning** | เมชมี skewness หรือ non-orthogonality สูง | ปรับปรุงเมชหรือเปลี่ยน scheme |
+| **Solver diverges immediately** | Using `fvc` instead of `fvm` for main terms | Change main terms from `fvc` to `fvm` |
+| **`Dimension mismatch`** | Field units inconsistent | Divide by appropriate variable (e.g., $\rho$) |
+| **Residuals not decreasing** | Check non-orthogonal correction in `fvSchemes` | Add `corrected` or `limited` to laplacianSchemes |
+| **Compile Error: `no match`** | Check data type (Scalar/Vector/Tensor) | Verify correct operator for field type |
+| **Abnormal results at boundaries** | Incorrect boundary conditions | Check boundary conditions in `0/` directory |
+| **CFL > 1 but solver stable** | Explicit scheme in wrong place | Change to implicit scheme for convection/diffusion |
+| **Time step must be very small** | Using explicit diffusion | Change from `fvc::laplacian` to `fvm::laplacian` |
+| **Mesh quality warning** | High mesh skewness or non-orthogonality | Improve mesh or change scheme |
+| **Oscillating residuals** | Time step too close to stability limit | Reduce `deltaT` by factor of 2 |
+| **Spurious oscillations** | Gradient scheme too high order | Use `limited` or `cellLimited` schemes |
+| **Slow convergence in boundary layers** | High aspect ratio cells | Use anisotropic schemes or improve mesh |
 
 ---
 
-## 🧪 6. เครื่องมือการดีบัก
+## 🧪 7. Debugging Tools
 
 > [!NOTE] **📂 OpenFOAM Context**
-> หัวข้อนี้เกี่ยวข้องกับ **Domain B: Numerics & Linear Algebra** และ **Domain E: Coding/Customization**
-> - **ไฟล์**: ซอร์สโค้ดโซลเวอร์ (`applications/solvers/*.C`)
+> This topic relates to **Domain B: Numerics & Linear Algebra** and **Domain E: Coding/Customization**
+> - **Files**: Solver source code (`applications/solvers/*.C`)
 > - **Keywords**: `fvc::div()`, `fvc::grad()`, `Info`, `mesh.V()`, `sum()`, `max()`, `mag()`
 > - **Classes**: `fvMesh`, `GeometricField`, `dimensionSet`
 > - **Debugging Tools**: `Info <<`, `WarningIn`, `FatalErrorIn`
-> - **Function Objects**: สามารถใช้ `system/controlDict` เพื่อเพิ่มการตรวจสอบ
->
-> ใน OpenFOAM คุณจะเห็นการใช้งานใน:
-> - `src/finiteVolume/fvMesh/fvMesh.H` - Mesh volume และ geometry
-> - `src/OpenFOAM/global/constants/mathematical/mathematicalConstants.H` - ค่าคงที่ทางคณิตศาสตร์
-> - `src/OpenFOAM/db/IOstreams/` - Input/output streams
+> - **Function Objects**: Can use `system/controlDict` to add monitoring
 
-### การตรวจสอบการอนุรักษ์ (Conservation Check)
+### Conservation Check
 
 ```cpp
-// ตรวจสอบสมดุลมวลสำหรับการไหลแบบอินคอมเพรสซิเบิล
-// Continuity error check for incompressible flow
+// Check mass balance for incompressible flow
 volScalarField continuityError = fvc::div(U);
 
 scalar maxContinuityError = max(mag(continuityError));
@@ -410,25 +603,15 @@ scalar sumContinuityError = sum(continuityError * mesh.V());
 Info << "Max continuity error: " << maxContinuityError << endl;
 Info << "Sum continuity error: " << sumContinuityError << endl;
 
-// ค่าควรอยู่ในช่วงความแม่นยำของเครื่อง (~1e-10)
-// Should be near machine precision for incompressible flow
+// Value should be near machine precision (~1e-10)
 ```
 
-**Source:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
+**Source:** 📂 `applications/solvers/incompressible/pisoFoam/pisoFoam.C`
 
-**คำอธิบาย (Thai):**
-- **Source**: ไฟล์ `phaseSystem.C` จาก multiphaseEulerFoam มีการตรวจสอบ mass conservation สำหรับ multiphase flows
-- **Explanation**: การตรวจสอบ conservation laws เป็นเครื่องมือสำคัญในการ valid ผลลัพธ์ CFD สำหรับ incompressible flow divergence ของ velocity ควรเป็นศูนย์ (continuity equation)
-- **Key Concepts**:
-  - **Continuity Equation**: $\nabla \cdot \mathbf{U} = 0$ สำหรับ incompressible flow
-  - **Conservation Check**: ตรวจสอบว่า solver คงรักษา conservation laws หรือไม่
-  - **Machine Precision**: ค่า error ควรอยู่ในช่วง $10^{-10}$ ถึง $10^{-15}$
-
-### การตรวจสอบ Boundaries
+### Boundary Check
 
 ```cpp
-// ตรวจสอบค่าขอบเขตหลังจากการคำนวณ gradient
-// Debug boundary field values after gradient calculation
+// Check boundary values after gradient calculation
 volVectorField gradP = fvc::grad(p);
 
 forAll(gradP.boundaryField(), patchi)
@@ -438,324 +621,430 @@ forAll(gradP.boundaryField(), patchi)
 }
 ```
 
-### การตรวจสอบสมดุลพลังงาน
+### Energy Balance Check
 
 ```cpp
-// สำหรับปัญหาการนำความร้อน
-// Energy balance check for heat conduction
+// For heat conduction problems
 volScalarField heatGen = fvc::laplacian(kappa, T);  // [W/m³]
 scalar totalHeatGen = sum(heatGen * mesh.V());
 
 Info << "Total heat generation: " << totalHeatGen << " W" << endl;
 ```
 
----
-
-## ✅ 7. แนวทางปฏิบัติที่ดี (Best Practices)
-
-> [!NOTE] **📂 OpenFOAM Context**
-> หัวข้อนี้เกี่ยวข้องกับ **Domain B: Numerics & Linear Algebra** และ **Domain C: Simulation Control**
-> - **ไฟล์**: `system/fvSchemes`, `system/fvSolution`, `system/controlDict`
-> - **Keywords**: `gradSchemes`, `divSchemes`, `laplacianSchemes`, `interpolationSchemes`, `snGradSchemes`
-> - **Solver Settings**: `solvers` dictionary ใน `fvSolution`
-> - **Time Control**: `deltaT`, `maxCo` ใน `controlDict`
-> - **Best Practice**: เริ่มต้นด้วย scheme ที่เสถียรที่สุด แล้วค่อยปรับเพิ่มความแม่นยำ
->
-> ใน OpenFOAM คุณจะเห็นการใช้งานใน:
-> - `src/finiteVolume/fvSchemes/` - Implementation ของ numerical schemes
-> - `src/finiteVolume/fvSolution/` - Solver parameters และ algorithms
-> - `src/ODE/` - Temporal discretization schemes
-
-### การเขียนสมการใหม่
-
-> [!INFO] 📋 Checklist สำหรับการเขียนสมการ
-> 1. ไล่ตรวจสอบทีละเทอมว่า:
->    - "ต้องการความเสถียร (Implicit)" หรือ "ต้องการค่าตัวเลข (Explicit)"
-> 2. เลือก Namespace ให้ถูกตั้งแต่แรก (`fvm` vs `fvc`)
-> 3. ตรวจสอบหน่วยของแต่ละเทอม
-> 4. ตรวจสอบประเภทข้อมูล (Scalar vs Vector vs Tensor)
-> 5. ทดสอบบนเมื่อคุณภาพสูงก่อน
-
-### การเลือก Numerical Schemes
+### CFL Number Monitoring
 
 ```cpp
-// ใน system/fvSchemes
-// Numerical scheme configuration
+// Calculate and monitor Courant number
+surfaceScalarField phiU = phi;
+scalarField CoNum = mag(phiU)/(mesh.magSf()*mesh.deltaCoeffs())*runTime.deltaTValue();
+
+scalar maxCo = max(CoNum);
+scalar meanCo = average(CoNum);
+
+Info << "Max Courant Number = " << maxCo << endl;
+Info << "Mean Courant Number = " << meanCo << endl;
+```
+
+---
+
+## ✅ 8. Best Practices
+
+> [!NOTE] **📂 OpenFOAM Context**
+> This topic relates to **Domain B: Numerics & Linear Algebra** and **Domain C: Simulation Control**
+> - **Files**: `system/fvSchemes`, `system/fvSolution`, `system/controlDict`
+> - **Keywords**: `gradSchemes`, `divSchemes`, `laplacianSchemes`, `interpolationSchemes`, `snGradSchemes`
+> - **Solver Settings**: `solvers` dictionary in `fvSolution`
+> - **Time Control**: `deltaT`, `maxCo` in `controlDict`
+> - **Best Practice**: Start with most stable scheme, then increase accuracy
+
+### Equation Writing
+
+> [!INFO] 📋 Checklist for Writing Equations
+> 1. Check each term:
+>    - "Need stability (Implicit)" or "Need numerical value (Explicit)"
+> 2. Choose correct namespace from start (`fvm` vs `fvc`)
+> 3. Check unit of each term
+> 4. Check data type (Scalar vs Vector vs Tensor)
+> 5. Test on high quality mesh first
+
+### Numerical Scheme Selection
+
+```cpp
+// In system/fvSchemes
 
 gradSchemes
 {
-    default         Gauss linear;           // ทั่วไป
-    grad(p)         leastSquares;           // เมชไม่สม่ำเสมอ
+    default         Gauss linear;           // General
+    grad(p)         leastSquares;           // Non-uniform mesh
 }
 
 divSchemes
 {
-    default         Gauss upwind;           // เสถียรสูง
-    div(phi,U)      Gauss linearUpwindV grad(U);  // ดุจำนวน
-    div(phi,T)      Gauss limitedLinear 1;  // สมดุล
+    default         Gauss upwind;           // High stability
+    div(phi,U)      Gauss linearUpwindV grad(U);  // Higher order
+    div(phi,T)      Gauss limitedLinear 1;  // Balanced
 }
 
 laplacianSchemes
 {
-    default         Gauss linear corrected; // แก้ไข non-orthogonality
+    default         Gauss linear corrected; // Non-orthogonality correction
 }
 ```
 
-### การตรวจสอบก่อน Run
+### Pre-run Checks
 
 ```bash
-# 1. ตรวจสอบเมช
+# 1. Check mesh
 checkMesh
 
-# 2. ตรวจสอบ initial conditions
+# 2. Check initial conditions
 foamListTimes
 
-# 3. ทดสอบด้วย time step เล็กๆ ก่อน
-# ใน controlDict: deltaT 1e-5;
+# 3. Test with small time steps first
+# In controlDict: deltaT 1e-5;
 
-# 4. เพิ่ม debugging output
-# ใน solver: Info << "Variable: " << variable << endl;
+# 4. Add debugging output
+# In solver: Info << "Variable: " << variable << endl;
+```
+
+### Solver Development Workflow
+
+```cpp
+// Recommended workflow for new solver development:
+
+// Step 1: Write equation with all implicit terms
+fvScalarMatrix TEqn
+(
+    fvm::ddt(T) + fvm::div(phi, T) - fvm::laplacian(DT, T) == source
+);
+
+// Step 2: Test with first-order schemes (most stable)
+divSchemes { default Gauss upwind; }
+
+// Step 3: Verify conservation
+Info << "Sum T: " << sum(T * mesh.V()) << endl;
+
+// Step 4: Gradually increase scheme order
+divSchemes { div(phi,T) Gauss limitedLinear 1; }
+
+// Step 5: Optimize time step
+adjustTimeStep yes;
+maxCo 0.9;
 ```
 
 ---
 
-## 🔄 8. การเปรียบเทียบ fvc vs fvm
+## 🔄 9. Comparison fvc vs fvm
 
 > [!NOTE] **📂 OpenFOAM Context**
-> หัวข้อนี้เกี่ยวข้องกับ **Domain B: Numerics & Linear Algebra** และ **Domain E: Coding/Customization**
-> - **ไฟล์**: ซอร์สโค้ดโซลเวอร์ (`applications/solvers/*.C`)
+> This topic relates to **Domain B: Numerics & Linear Algebra** and **Domain E: Coding/Customization**
+> - **Files**: Solver source code (`applications/solvers/*.C`)
 > - **Namespaces**: `fvc::` (finite volume calculus), `fvm::` (finite volume method)
 > - **Return Types**: `fvc` returns `GeometricField`, `fvm` returns `fvMatrix`
-> - **Usage**: `fvm` สำหรับ implicit discretization (สร้าง matrix), `fvc` สำหรับ explicit evaluation
-> - **Compilation**: `fvm` ต้องเรียก `.solve()` เพื่อแก้ระบบสมการ
->
-> ใน OpenFOAM คุณจะเห็นการใช้งานใน:
-> - `src/finiteVolume/fvm/` - Implicit discretization operators
-> - `src/finiteVolume/fvc/` - Explicit calculus operators
-> - `src/finiteVolume/fvMatrix/` - Matrix representation และ solvers
+> - **Usage**: `fvm` for implicit discretization (builds matrix), `fvc` for explicit evaluation
 
-### สรุปความแตกต่าง
+### Summary of Differences
 
-| ปัจจัย | `fvc::` (Explicit) | `fvm::` (Implicit) |
+| Factor | `fvc::` (Explicit) | `fvm::` (Implicit) |
 |:---|:---|:---|
-| **ความเสถียร** | Time step จำกัด | เสถียรโดยไม่มีเงื่อนไข |
-| **ความแม่นยำ** | อันดับสูงกว่าได้ | มักเป็นอันดับแรก/ที่สอง |
-| **ต้นทุนการคำนวณ** | ต่ำต่อการวนซ้ำ | สูงกว่าต่อการวนซ้ำ |
-| **หน่วยความจำ** | จัดเก็บน้อยกว่า | ต้องการจัดเก็บเมทริกซ์ |
-| **การบรรจบกัน** | อาจต้องการการวนซ้ำหลายครั้ง | การวนซ้ำน้อยกว่าสำหรับ steady state |
-| **Complexity** | ง่าย | ซับซ้อน |
-| **ผลลัพธ์** | `GeometricField` | `fvMatrix` |
+| **Stability** | Time step limited | Unconditionally stable |
+| **Accuracy** | Can be higher order | Usually first/second order |
+| **Computational Cost** | Low per iteration | Higher per iteration |
+| **Memory** | Less storage | Requires matrix storage |
+| **Convergence** | May need multiple iterations | Fewer iterations for steady state |
+| **Complexity** | Simple | Complex |
+| **Result** | `GeometricField` | `fvMatrix` |
 
-### แนวทาปการใช้งาน
+### Usage Guidelines
 
 ```cpp
-// ใช้ fvm:: สำหรับ:
-// Use fvm for implicit discretization of main equation terms
+// Use fvm:: for:
 fvm::ddt(T)           // Temporal derivatives - always implicit
 fvm::div(phi, T)      // Convection terms - implicit for stability
 fvm::laplacian(DT, T) // Diffusion terms - implicit required
 
-// ใช้ fvc:: สำหรับ:
-// Use fvc for explicit evaluation of known quantities
+// Use fvc:: for:
 fvc::grad(p)          // Pressure gradients - explicit evaluation
 fvc::div(U)           // Divergence checks - post-processing
 fvc::curl(U)          // Vorticity calculations - derived quantity
 fvc::interpolate(U)   // Face interpolations - geometric operation
 ```
 
-**Source:** 📂 `.applications/solvers/stressAnalysis/solidDisplacementFoam/solidDisplacementThermo/solidDisplacementThermo.C`
-
-**คำอธิบาย (Thai):**
-- **Source**: ไฟล์ `solidDisplacementThermo.C` แสดงการใช้งานทั้ง `fvm` (ในการแก้สมการ) และ `fvc` (สำหรับการคำนวณค่าต่างๆ)
-- **Explanation**: การเลือกระหว่าง explicit และ implicit discretization เป็นการ trade-off ระหว่างความเสถียร ความแม่นยำ และต้นทุนการคำนวณ Implicit schemes สร้างเมทริกซ์ที่ต้องแก้ แต่ไม่มีข้อจำกัดเวลา
-- **Key Concepts**:
-  - **Explicit (fvc)**: คำนวณโดยตรงจากค่าที่รู้ ไม่ต้องแก้เมทริกซ์
-  - **Implicit (fvm)**: สร้างระบบสมการเชิงเส้น ต้องแก้ด้วย linear solver
-  - **Matrix Assembly**: fvm operations build coefficient matrix
-  - **CFL Condition**: Explicit schemes มีขีดจำกัดความเร็บ wave
+**Source:** 📂 `applications/solvers/heatTransfer/heatFoam/heatFoam.C`
 
 ---
 
-## 🎯 9. การประยุกต์ใช้จริง: กรณีศึกษา
+## 🎯 10. Practical Application: Case Studies
 
 > [!NOTE] **📂 OpenFOAM Context**
-> หัวข้อนี้เกี่ยวข้องกับ **Domain E: Coding/Customization** และ **Domain B: Numerics & Linear Algebra**
-> - **ไฟล์**: Custom solver code (เช่น `myCustomSolver.C` ใน `applications/solvers/`)
-> - **Workflow**: แก้ไข solver code → compile ใหม่ (`wmake`) → run simulation
+> This topic relates to **Domain E: Coding/Customization** and **Domain B: Numerics & Linear Algebra**
+> - **Files**: Custom solver code (e.g., `myCustomSolver.C` in `applications/solvers/`)
+> - **Workflow**: Edit solver code → compile (`wmake`) → run simulation
 > - **Keywords**: `fvScalarMatrix`, `solve()`, `fvm::`, `fvc::`, `mag()`, `dimensionedScalar`
-> - **Debugging Process**: อ่าน compiler errors → แก้ code → recompile → check log files
-> - **Validation**: เปรียบเทียบกับ analytical solution หรือ experimental data
->
-> ใน OpenFOAM คุณจะเห็นการใช้งานใน:
-> - `applications/solvers/heatTransfer/` - Heat transfer solvers
-> - `applications/solvers/multiphase/` - Multiphase flow solvers
-> - `src/finiteVolume/` - Core FV implementation
 
-### กรณีที่ 1: สมการพลังงานที่ไม่เสถียร
+### Case 1: Unstable Energy Equation
 
-**ปัญหา**: สมการพลังงานระเบิดทันทีที่ run
+**Problem**: Energy equation diverges immediately on run
 
 ```cpp
 // ❌ PROBLEMATIC
-// Explicit treatment of both convection and diffusion - unstable!
 fvScalarMatrix TEqn
 (
     fvm::ddt(T) + fvc::div(phi, T) - fvc::laplacian(DT, T) == source
 );
 ```
 
-**การวินิจฉัย**:
+**Diagnosis**:
 - Convection: `fvc::div` (Explicit, conditionally stable)
 - Diffusion: `fvc::laplacian` (Explicit, very restrictive time step)
 
-**วิธีแก้ไข**:
+**Solution**:
 
 ```cpp
 // ✅ CORRECT
-// Fully implicit treatment for unconditional stability
 fvScalarMatrix TEqn
 (
     fvm::ddt(T) + fvm::div(phi, T) - fvm::laplacian(DT, T) == source
 );
 ```
 
-### กรณีที่ 2: การคำนวณ Vorticity ที่ผิดพลาด
+### Case 2: Incorrect Vorticity Calculation
 
-**ปัญหา**: ต้องการคำนวณ vorticity magnitude
+**Problem**: Need to calculate vorticity magnitude
 
 ```cpp
 // ❌ ERROR
-// Type mismatch: curl returns vector, not scalar
 volScalarField vorticity = fvc::curl(U);  // Type mismatch!
 
 // ✅ CORRECT
-// First calculate vorticity vector, then magnitude
 volVectorField vorticityVec = fvc::curl(U);
 volScalarField vorticityMag = mag(vorticityVec);
 ```
 
-### กรณีที่ 3: การใช้งาน Gradient ที่ผิดหน่วย
+### Case 3: Gradient with Wrong Units
 
-**ปัญหา**: คำนวณแรงลอยตัวแต่ได้ผลลัพธ์ผิดปกติ
+**Problem**: Calculate buoyancy force but get abnormal results
 
 ```cpp
 // ❌ WRONG UNITS
-// Dimensional inconsistency in buoyancy force calculation
 volVectorField F_buoyancy = fvc::grad(p) * g;  // [Force/Volume] * [Acceleration]
 
 // ✅ CORRECT
-// Buoyancy force based on density difference
 volVectorField F_buoyancy = (rho - rhoRef) * g;  // [Mass/Volume] * [Acceleration]
 ```
 
-**Source:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
+**Source:** 📂 `applications/solvers/multiphase/multiphaseEulerFoam/multiphaseCompressibleMomentumTransportModels/kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C`
 
-**คำอธิบาย (Thai):**
-- **Source**: ไฟล์ `kineticTheoryModel.C` จาก multiphaseEulerFoam แสดงการคำนวณ forces และ phase interactions ที่ซับซ้อน
-- **Explanation**: กรณีศึกษาเหล่านี้แสดงข้อผิดพลาดที่พบบ่อยในการพัฒนา solver OpenFOAM การเข้าใจ dimensional analysis และ type system เป็นสิ่งสำคัญ
-- **Key Concepts**:
-  - **Vorticity**: $\boldsymbol{\omega} = \nabla \times \mathbf{U}$ เป็น vector field
-  - **Buoyancy Force**: $F_b = (\rho - \rho_{ref})\mathbf{g}$ ขึ้นกับความต่างความหนาแน่น
-  - **Dimensional Consistency**: ทุก term ในสมการต้องมีหน่วยเดียวกัน
+### Case 4: Time Step Instability
+
+**Problem**: Solver runs for 100 iterations then explodes
+
+```cpp
+// Diagnosis: Check log file
+// Log shows: Max Courant Number gradually increasing to 1.2
+
+// Solution 1: Enable adaptive time stepping
+adjustTimeStep yes;
+maxCo 0.9;
+
+// Solution 2: Add time step damping
+maxDeltaT 0.5;  // Limit maximum step size
+
+// Solution 3: Use more stable schemes
+divSchemes { default Gauss upwind; }
+```
+
+### Case 5: Non-orthogonal Mesh Instability
+
+**Problem**: Residuals oscillate on complex geometry
+
+```cpp
+// Diagnosis: checkMesh shows max non-orthogonality = 78°
+
+// Solution: Add non-orthogonal correctors
+simple
+{
+    nNonOrthogonalCorrectors 3;
+}
+
+// And use corrected scheme
+laplacianSchemes
+{
+    default Gauss linear corrected;
+}
+```
 
 ---
 
-## 📚 10. สรุป
+## 📚 11. Summary
 
 > [!NOTE] **📂 OpenFOAM Context - Integration Overview**
-> หัวข้อนี้รวมทุก Domain ใน OpenFOAM:
-> - **Domain A (Physics)**: การคำนวณ gradient/ลมดับ/curl ของฟิลด์ physics ใน `0/` directory
-> - **Domain B (Numerics)**: การเลือก schemes ใน `system/fvSchemes` และ solvers ใน `system/fvSolution`
-> - **Domain C (Control)**: การตั้งค่า time step และ write interval ใน `system/controlDict`
-> - **Domain D (Meshing)**: คุณภาพเมชที่ส่งผลต่อความแม่นยำของ calculus operations
-> - **Domain E (Coding)**: การเขียน custom solver/boundary condition ใน `src/` และ `applications/solvers/`
+> This topic integrates all OpenFOAM Domains:
+> - **Domain A (Physics)**: Calculating gradient/div/curl of physics fields in `0/` directory
+> - **Domain B (Numerics)**: Selecting schemes in `system/fvSchemes` and solvers in `system/fvSolution`
+> - **Domain C (Control)**: Setting time step and write interval in `system/controlDict`
+> - **Domain D (Meshing)**: Mesh quality affecting calculus operations accuracy
+> - **Domain E (Coding)**: Writing custom solver/boundary conditions in `src/` and `applications/solvers/`
 >
-> **การนำไปใช้**: เมื่อคุณเขียน solver ใหม่ คุณจะใช้:
-> - `fvm::` สำหรับ terms หลักในสมการ (implicit)
-> - `fvc::` สำหรับ source terms และ post-processing (explicit)
-> - ตรวจสอบ dimensions ด้วย `field.dimensions()`
-> - ตรวจสอบ mesh quality ด้วย `checkMesh`
-> - เลือก numerical schemes ที่เหมาะสมกับคุณภาพเมช
+> **Application**: When writing a new solver, you will use:
+> - `fvm::` for main equation terms (implicit)
+> - `fvc::` for source terms and post-processing (explicit)
+> - Check dimensions with `field.dimensions()`
+> - Check mesh quality with `checkMesh`
+> - Select appropriate numerical schemes for mesh quality
 
-การใช้แคลคูลัสเวกเตอร์ใน OpenFOAM ต้องการความเข้าใจที่ลึกซึ้งเกี่ยวกับ:
+Using vector calculus in OpenFOAM requires deep understanding of:
 
-1. **ความแตกต่างระหว่าง Explicit (`fvc::`) และ Implicit (`fvm::`)**
-   - Explicit: สำหรับ source terms และ post-processing
-   - Implicit: สำหรับ terms ที่เป็น unknowns ในสมการ
+1. **Difference between Explicit (`fvc::`) and Implicit (`fvm::`)**
+   - Explicit: For source terms and post-processing
+   - Implicit: For unknown terms in equations
 
-2. **ความสอดคล้องของมิติและประเภทข้อมูล**
-   - ตรวจสอบหน่วยเสมอ
-   - ตรวจสอบ Scalar vs Vector vs Tensor
+2. **Dimensional and Type Consistency**
+   - Always check units
+   - Check Scalar vs Vector vs Tensor
 
-3. **ผลกระทบของคุณภาพเมช**
-   - Non-orthogonality ต้องการ corrected schemes
-   - Skewness สูงต้องการ limited schemes
+3. **Impact of Mesh Quality**
+   - Non-orthogonality requires corrected schemes
+   - High skewness requires limited schemes
 
-4. **การเลือก Numerical Schemes ที่เหมาะสม**
-   - สมดุลระหว่างความแม่นยำและความเสถียร
-   - ปรับให้เข้ากับคุณภาพเมช
+4. **Appropriate Numerical Scheme Selection**
+   - Balance accuracy and stability
+   - Adjust to mesh quality
 
-> [!TIP] 🎯 จำไว้: เมื่อเขียน solver ใหม่ ให้เริ่มต้นด้วย schemes ที่เสถียรที่สุด แล้วค่อยๆ เพิ่มความแม่นยำหลังจากที่สมการทำงานได้อย่างถูกต้อง
+5. **Time Step Selection**
+   - CFL number control for transient simulations
+   - Adaptive time stepping for robustness
+   - Diffusion-based limits for explicit schemes
+
+6. **Systematic Debugging Workflow**
+   - Check mesh quality first
+   - Verify dimensional consistency
+   - Validate field types
+   - Select appropriate schemes
+   - Monitor CFL numbers and residuals
+
+> [!TIP] 🎯 Remember: When writing new solvers, start with most stable schemes, then gradually increase accuracy after equations work correctly
 
 ---
 
-**การหลีกเลี่ยงข้อผิดพลาดเหล่านี้จะช่วยประหยัดเวลาในการดีบักและทำให้ solver ของคุณทำงานได้อย่างเสถียรและถูกต้อง**
+**Avoiding these errors will save debugging time and make your solver work stably and correctly**
 
 ---
 
 ## 🧠 Concept Check
 
 <details>
-<summary><b>1. ทำไมการใช้ `fvc::laplacian` แทน `fvm::laplacian` ใน diffusion term ทำให้ solver ไม่เสถียร?</b></summary>
+<summary><b>1. Why does using `fvc::laplacian` instead of `fvm::laplacian` in diffusion term make solver unstable?</b></summary>
 
-**`fvc::laplacian`** เป็น **explicit** → คำนวณจากค่า **time step ก่อนหน้า**
+**`fvc::laplacian`** is **explicit** → calculated from **previous time step** values
 
-ปัญหา:
-- ต้องปฏิบัติตาม **Von Neumann stability:** $\Delta t \leq \frac{\Delta x^2}{2\Gamma}$
-- สำหรับ mesh ละเอียด (Δx เล็ก) → **time step ต้องเล็กมากๆ**
-- ถ้า time step ใหญ่เกินไป → **solver diverge**
+Problem:
+- Must follow **Von Neumann stability:** $\Delta t \leq \frac{\Delta x^2}{2\Gamma}$
+- For fine mesh (small Δx) → **time step must be very small**
+- If time step too large → **solver diverges**
 
-**Solution:** ใช้ `fvm::laplacian` ซึ่งเป็น unconditionally stable
+**Solution:** Use `fvm::laplacian` which is unconditionally stable
 
 </details>
 
 <details>
-<summary><b>2. ถ้า `fvc::grad(p)` มีหน่วย [Pa/m] ทำไมไม่สามารถใช้โดยตรงเป็น acceleration ได้?</b></summary>
+<summary><b>2. If `fvc::grad(p)` has units [Pa/m], why can't it be directly used as acceleration?</b></summary>
 
 **Dimensional analysis:**
-- `fvc::grad(p)` มีหน่วย $[Pa/m] = [kg/(m^2 \cdot s^2)]$ = **Force per unit volume**
-- **Acceleration** มีหน่วย $[m/s^2]$
+- `fvc::grad(p)` has units $[Pa/m] = [kg/(m^2 \cdot s^2)]$ = **Force per unit volume**
+- **Acceleration** has units $[m/s^2]$
 
-**Solution:** ต้องหารด้วย density $\rho$:
+**Solution:** Must divide by density $\rho$:
 ```cpp
-volVectorField acc = -fvc::grad(p) / rho;  // หน่วย: [m/s²]
+volVectorField acc = -fvc::grad(p) / rho;  // Units: [m/s²]
 ```
 
 </details>
 
 <details>
-<summary><b>3. เมื่อ `checkMesh` แสดง non-orthogonality > 70° ควรทำอย่างไร?</b></summary>
+<summary><b>3. When `checkMesh` shows non-orthogonality > 70°, what should you do?</b></summary>
 
 **Options:**
-1. **ปรับปรุง mesh** — ใช้ `snappyHexMesh` settings ที่ดีกว่า หรือปรับ geometry
-2. **เปลี่ยน scheme** ใน `system/fvSchemes`:
+1. **Improve mesh** — Use better `snappyHexMesh` settings or adjust geometry
+2. **Change scheme** in `system/fvSchemes`:
    ```cpp
    laplacianSchemes
    {
-       default Gauss linear corrected;  // เพิ่ม correction
-       // หรือ
-       default Gauss linear limited 0.5;  // สำหรับ mesh แย่มาก
+       default Gauss linear corrected;  // Add correction
+       // or
+       default Gauss linear limited 0.5;  // For very bad mesh
    }
    ```
-3. **เพิ่ม nNonOrthogonalCorrectors** ใน `system/fvSolution`
+3. **Increase nNonOrthogonalCorrectors** in `system/fvSolution`
+
+</details>
+
+<details>
+<summary><b>4. What are the best practices for time step selection in transient simulations?</b></summary>
+
+**Guidelines:**
+1. **Use CFL-based control**: Keep Co < 0.9 for explicit schemes
+2. **Adaptive time stepping**: Enable `adjustTimeStep yes` in controlDict
+3. **Start conservative**: Begin with small `deltaT`, increase gradually
+4. **Monitor stability**: Check residuals and Courant number
+5. **Consider physics**: Convection requires small steps, diffusion can use larger steps
+6. **Balance cost vs accuracy**: Use largest stable time step for acceptable accuracy
+
+```cpp
+// Recommended setup:
+adjustTimeStep  yes;
+maxCo           0.9;
+maxDeltaT       1.0;
+```
+
+</details>
+
+<details>
+<summary><b>5. How do you diagnose gradient calculation issues on non-uniform meshes?</b></summary>
+
+**Symptoms:**
+- Spurious oscillations near cell size changes
+- Unphysical values in regions with high aspect ratio
+- Convergence issues in boundary layers
+
+**Solutions:**
+```cpp
+// Option 1: Use limited gradient scheme
+gradSchemes
+{
+    default Gauss linear;
+    grad(p) cellLimited Gauss linear 1;
+}
+
+// Option 2: Use least squares (more robust)
+gradSchemes
+{
+    default leastSquares;
+}
+
+// Option 3: Improve mesh quality
+// Use more uniform cell sizing
+// Add refinement in critical regions
+```
 
 </details>
 
 ---
 
-## 📖 เอกสารที่เกี่ยวข้อง
+## 📖 Related Documents
 
-- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Vector Calculus
-- **บทก่อนหน้า:** [05_Curl_and_Laplacian.md](05_Curl_and_Laplacian.md) — Curl และ Laplacian
-- **บทถัดไป:** [07_Summary_and_Exercises.md](07_Summary_and_Exercises.md) — สรุปและแบบฝึกหัด
-- **fvc vs fvm:** [02_fvc_vs_fvm.md](02_fvc_vs_fvm.md) — เปรียบเทียบ Explicit และ Implicit
+- **Overview:** [00_Overview.md](00_Overview.md) — Vector Calculus Overview
+- **Previous:** [05_Curl_and_Laplacian.md](05_Curl_and_Laplacian.md) — Curl and Laplacian
+- **Next:** [07_Summary_and_Exercises.md](07_Summary_and_Exercises.md) — Summary and Exercises
+- **fvc vs fvm:** [02_fvc_vs_fvm.md](02_fvc_vs_fvm.md) — Explicit and Implicit Comparison
+
+---
+
+## 🎯 Key Takeaways
+
+- **Stability First**: Use `fvm` for unknown terms, `fvc` for known quantities
+- **Check Units**: OpenFOAM's dimensional system catches physics errors early
+- **Mesh Matters**: Match numerical schemes to mesh quality (corrected, limited)
+- **Time Step Control**: Use CFL-based adaptive time stepping for robustness
+- **Debug Systematically**: Check mesh → dimensions → types → schemes → CFL
+- **Monitor Convergence**: Track residuals, Courant number, and conservation

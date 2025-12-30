@@ -2,14 +2,22 @@
 
 คอนเทนเนอร์ใน OpenFOAM — Data structures สำหรับ CFD
 
-> **ทำไม Containers สำคัญ?**
-> - **Fields อยู่ใน containers** — List<scalar>, Field<vector>
-> - เลือกผิด container = performance ย่ำแย่
-> - OpenFOAM containers มี CFD operations ที่ STL ไม่มี
+---
+
+## Learning Objectives | วัตถุประสงค์การเรียนรู้
+
+After completing this section, you should be able to:
+- **Distinguish** between different container types (List, Field, HashTable, PtrList) and their use cases
+- **Apply** the appropriate container for specific CFD programming scenarios
+- **Utilize** Field operations and mathematical functions for efficient data manipulation
+- **Implement** memory-efficient coding practices to avoid performance bottlenecks
+- **Choose** between List and Field based on data characteristics and required operations
 
 ---
 
 ## Overview
+
+OpenFOAM provides specialized container classes that extend standard C++ containers with CFD-specific functionality. Unlike STL containers, OpenFOAM containers include mathematical operations, field aggregations, and seamless integration with OpenFOAM's I/O system.
 
 > **💡 ความแตกต่างจาก STL:**
 > - OpenFOAM containers = **STL + CFD features**
@@ -20,14 +28,24 @@
 
 ## 1. List Types
 
-| Container | ลักษณะ | ใช้เมื่อ |
-|-----------|-------|---------|
-| `List<T>` | Dynamic array | General purpose |
-| `DynamicList<T>` | Auto-grow | Building up data |
-| `SortedList<T>` | Always sorted | Fast lookup |
-| `FixedList<T, N>` | Fixed size | Small, known size |
+### What (คืออะไร)
+List containers are dynamic array structures that provide flexible data storage with automatic memory management.
 
-### List Example
+### Why (ทำไมสำคัญ)
+- **Performance**: Choosing the wrong container leads to poor performance
+- **Flexibility**: Different list types optimize for different usage patterns
+- **Memory**: Proper selection prevents unnecessary reallocations and memory waste
+
+### How (ใช้อย่างไร)
+
+| Container | ลักษณะ | ใช้เมื่อ | Performance |
+|-----------|-------|---------|-------------|
+| `List<T>` | Dynamic array | General purpose, size known | O(1) access, O(n) resize |
+| `DynamicList<T>` | Auto-grow | Building up data incrementally | Amortized O(1) append |
+| `SortedList<T>` | Always sorted | Fast lookup required | O(log n) search |
+| `FixedList<T, N>` | Fixed size | Small, known size at compile-time | Stack allocation, fastest |
+
+#### List Example
 
 ```cpp
 // Create and initialize
@@ -46,7 +64,7 @@ values.resize(200);            // Resize
 values.append(999.0);          // Add to end
 ```
 
-### DynamicList — When Size Unknown
+#### DynamicList — When Size Unknown
 
 ```cpp
 // Create with capacity (not size)
@@ -73,6 +91,16 @@ List<scalar> finalTemps(temps);
 
 ## 2. HashTable — Key-Value Storage
 
+### What (คืออะไร)
+HashTable provides O(1) key-based lookup for storing key-value pairs, commonly used for named properties and dictionary lookups.
+
+### Why (ทำไมสำคัญ)
+- **Fast Lookup**: Constant-time access by name/key instead of linear search
+- **Flexible Storage**: Store any type with string keys
+- **Dictionary Integration**: Natural fit for OpenFOAM dictionary system
+
+### How (ใช้อย่างไร)
+
 > **ใช้เมื่อ:** ต้องการ lookup by name/key
 
 ```cpp
@@ -97,15 +125,31 @@ forAllConstIters(props, iter)
 }
 ```
 
+**Common Use Cases:**
+- Boundary condition properties by patch name
+- Transport coefficients lookup
+- Material property dictionaries
+
 ---
 
 ## 3. Field Types — The Heart of OpenFOAM
+
+### What (คืออะไร)
+Field<T> is the fundamental data structure for CFD computations, representing arrays of physical quantities on mesh entities (cells, faces, points).
+
+### Why (ทำคัญที่สุด)
+- **Mathematical Operations**: Built-in element-wise arithmetic and mathematical functions
+- **CFD Aggregations**: Native support for max, min, average, sum operations
+- **Foundation**: volScalarField, volVectorField, surfaceScalarField all inherit from Field<T>
+- **Performance**: Optimized for numerical computations with expression templates
+
+### How (ใช้อย่างไร)
 
 > **ทำไม Field สำคัญที่สุด?**
 > - **volScalarField, volVectorField สืบทอดจาก Field**
 > - Field = List + mathematical operations + CFD functions
 
-### Basic Field Operations
+#### Basic Field Operations
 
 ```cpp
 // Scalar field
@@ -126,7 +170,7 @@ scalar avgT = average(T);         // Average
 scalar sumT = sum(T);             // Sum
 ```
 
-### Field Arithmetic
+#### Field Arithmetic
 
 ```cpp
 scalarField a(100, 1.0);
@@ -141,7 +185,7 @@ scalarField e = a / b;    // [0.5, 0.5, 0.5, ...]
 scalarField f = 2.0 * a;  // [2, 2, 2, ...]
 ```
 
-### forAll Macro
+#### forAll Macro
 
 > **ทำไมใช้ forAll?**
 > - ให้ index อัตโนมัติ
@@ -175,6 +219,17 @@ forAll(U, cellI)
 
 ## 4. PtrList — List of Pointers
 
+### What (คืออะไร)
+PtrList<T> manages a list of pointers to objects, providing automatic memory management and polymorphism support.
+
+### Why (ทำไมสำคัญ)
+- **Polymorphism**: Store base class pointers pointing to derived objects
+- **Variable Size**: Handle objects of different sizes
+- **Lazy Allocation**: Set individual elements later when needed
+- **Automatic Cleanup**: Automatic memory deallocation on destruction
+
+### How (ใช้อย่างไร)
+
 > **ใช้เมื่อ:**
 > - ต้องการ polymorphism (base class pointer → derived objects)
 > - Object sizes vary
@@ -205,19 +260,56 @@ volScalarField& f = fields[0];
 if (fields.set(i)) { ... }  // true if not null
 ```
 
+**Common Use Cases:**
+- Multiple turbulence fields (k, epsilon, omega, etc.)
+- Boundary condition patch fields
+- Multiple species in reacting flows
+- Multiple regions in multi-region simulations
+
 ---
 
-## 5. List vs Field — When to Use Which
+## 5. List vs Field — Decision Guide
 
-| | List<scalar> | scalarField |
-|-|--------------|-------------|
+### Decision Flowchart
+
+```
+┌─────────────────────────────────┐
+│     What data are you storing?   │
+└─────────────────┬───────────────┘
+                  │
+        ┌─────────┴─────────┐
+        │                   │
+   Physical Data      General Data
+   (T, p, U, rho)     (indices, names)
+        │                   │
+        ▼                   ▼
+   ┌─────────┐         ┌─────────┐
+   │ Field<T> │         │ List<T>  │
+   └─────────┘         └─────────┘
+        │                   │
+    Need math?         Size known?
+        │                   │
+    ┌───┴────┐        ┌────┴────┐
+    │        │        │         │
+   Yes       No      Yes       No
+    │        │        │         │
+   Field    List    List  DynamicList
+```
+
+### Comparison Table
+
+| Feature | List<scalar> | scalarField |
+|---------|--------------|-------------|
 | `max()` | ❌ | ✅ |
 | `min()` | ❌ | ✅ |
 | `average()` | ❌ | ✅ |
 | `sum()` | ❌ | ✅ |
-| Math operations | ❌ | ✅ (+, -, *, /, sqr, sqrt) |
-| General data | ✅ | ✅ |
-| CFD data | ❌ (use Field) | ✅ |
+| Math operations (+, -, *, /) | ❌ | ✅ |
+| sqr(), sqrt(), mag() | ❌ | ✅ |
+| General data storage | ✅ | ✅ |
+| CFD simulation data | ❌ (use Field) | ✅ |
+| Memory efficiency | Higher | Lower (more features) |
+| I/O compatible | Limited | Full OpenFOAM format |
 
 **กฎ:** ถ้าข้อมูลเป็น physical quantity (T, p, U) → ใช้ Field
 
@@ -225,21 +317,26 @@ if (fields.set(i)) { ... }  // true if not null
 
 ## 6. Common Operations Summary
 
-| Operation | Description | Example |
-|-----------|-------------|---------|
-| `max(field)` | Maximum value | `scalar Tmax = max(T)` |
-| `min(field)` | Minimum value | `scalar Tmin = min(T)` |
-| `sum(field)` | Sum of all elements | `scalar total = sum(m)` |
-| `average(field)` | Simple average | `scalar Tavg = average(T)` |
-| `mag(field)` | Magnitude | `scalarField speed = mag(U)` |
-| `sqr(field)` | Square | `scalarField T2 = sqr(T)` |
-| `sqrt(field)` | Square root | `scalarField rootK = sqrt(k)` |
+| Operation | Description | Example | Return Type |
+|-----------|-------------|---------|-------------|
+| `max(field)` | Maximum value | `scalar Tmax = max(T)` | scalar |
+| `min(field)` | Minimum value | `scalar Tmin = min(T)` | scalar |
+| `sum(field)` | Sum of all elements | `scalar total = sum(m)` | scalar |
+| `average(field)` | Simple average | `scalar Tavg = average(T)` | scalar |
+| `mag(field)` | Magnitude | `scalarField speed = mag(U)` | Field<scalar> |
+| `sqr(field)` | Square | `scalarField T2 = sqr(T)` | Field<T> |
+| `sqrt(field)` | Square root | `scalarField rootK = sqrt(k)` | Field<T> |
+| `pow(field, n)` | Power n | `scalarField T3 = pow(T, 3)` | Field<T> |
+| `pos(field)` | Positive part | `scalarField Tpos = pos(T)` | Field<T> |
+| `neg(field)` | Negative part | `scalarField Tneg = neg(T)` | Field<T> |
 
 ---
 
-## 7. Memory Tips
+## 7. Performance Tips & Common Pitfalls
 
-### ❌ Avoid Unnecessary Copies
+### Memory Efficiency
+
+#### ❌ Avoid Unnecessary Copies
 
 ```cpp
 // BAD: creates full copy
@@ -255,7 +352,7 @@ void process(const List<scalar>& data)  // No copy
 }
 ```
 
-### ✅ Pre-allocate for DynamicList
+#### ✅ Pre-allocate for DynamicList
 
 ```cpp
 // BAD: grows repeatedly (many reallocations)
@@ -273,7 +370,7 @@ forAll(source, i)
 }
 ```
 
-### ✅ Use tmp for Large Temporaries
+#### ✅ Use tmp for Large Temporaries
 
 ```cpp
 // BAD: creates intermediate field (large memory)
@@ -282,6 +379,73 @@ volScalarField result = fvc::laplacian(alpha, temp);
 
 // GOOD: chain operations (no intermediate storage)
 volScalarField result = fvc::laplacian(alpha, fvc::grad(p) & U);
+```
+
+### Common Pitfalls
+
+#### Pitfall 1: Using List for Physical Data
+
+```cpp
+// ❌ WRONG: No CFD operations available
+List<scalar> T(100, 300.0);
+scalar avgT = average(T);  // COMPILATION ERROR!
+
+// ✅ CORRECT: Use Field for physical quantities
+scalarField T(100, 300.0);
+scalar avgT = average(T);  // Works!
+```
+
+#### Pitfall 2: Unnecessary Field Copies
+
+```cpp
+// ❌ WRONG: Creates full copy
+scalarField newT = oldT;  
+newT *= 1.1;  // Modifies copy, not original
+
+// ✅ CORRECT: Use reference to avoid copy
+scalarField& newT = oldT;  // Reference
+newT *= 1.1;  // Modifies original
+```
+
+#### Pitfall 3: Forgetting const References
+
+```cpp
+// ❌ WRONG: Pass by value copies entire field
+void process(scalarField data) { ... }
+
+// ✅ CORRECT: Const reference for read-only
+void process(const scalarField& data) { ... }
+```
+
+#### Pitfall 4: Manual Index Instead of forAll
+
+```cpp
+// ❌ WRONG: Error-prone, verbose
+for (label i = 0; i < U.size(); i++)
+{
+    U[i] = ...;
+}
+
+// ✅ CORRECT: Idiomatic OpenFOAM
+forAll(U, i)
+{
+    U[i] = ...;
+}
+```
+
+#### Pitfall 5: HashTable Without Checking Existence
+
+```cpp
+// ❌ WRONG: Crashes if key doesn't exist
+scalar value = props["unknownKey"];
+
+// ✅ CORRECT: Check first
+if (props.found("unknownKey"))
+{
+    scalar value = props["unknownKey"];
+}
+// Or use lookup with default
+scalar value = props.lookup("unknownKey", defaultValue);
 ```
 
 ---
@@ -296,6 +460,30 @@ volScalarField result = fvc::laplacian(alpha, fvc::grad(p) & U);
 | Physical data | `Field<T>` | Has CFD operations |
 | Pointers | `PtrList<T>` | Polymorphism |
 | Smart pointer | `autoPtr<T>`, `tmp<T>` | Memory management |
+
+---
+
+## Key Takeaways | สรุปสำคัญ
+
+1. **Container Selection Matters**: Choose List vs Field based on data type and required operations
+   - Physical quantities (T, p, U) → Field
+   - General data → List
+   
+2. **Field is CFD-Optimized**: Field<T> provides mathematical operations and aggregations that List doesn't
+   - Built-in: max(), min(), average(), sum()
+   - Element-wise arithmetic: +, -, *, /
+   - Math functions: sqr(), sqrt(), mag()
+
+3. **Memory Management is Critical**: 
+   - Use const references to avoid copies
+   - Pre-allocate DynamicList when size is predictable
+   - Chain Field operations to minimize temporaries
+
+4. **forAll is Idiomatic**: Use forAll macro instead of manual indexing for cleaner, safer code
+
+5. **HashTable for Named Access**: Use HashTable when O(1) lookup by name is required
+
+6. **PtrList for Polymorphism**: Use PtrList when managing multiple objects of varying types or sizes
 
 ---
 
@@ -361,6 +549,21 @@ scalar rho = props["density"];  // O(1) access, not O(n)
 ```
 
 **ใช้บ่อยใน:** dictionary lookup, boundary patches by name
+</details>
+
+<details>
+<summary><b>5. ทำไมต้องใช้ const reference?</b></summary>
+
+**ป้องกันการ copy ข้อมูลจำนวนมหาศาล:**
+```cpp
+// BAD: Copies 1 million elements
+void process(List<scalar> data) { ... }
+
+// GOOD: Just a pointer (8 bytes)
+void process(const List<scalar>& data) { ... }
+```
+
+**Performance impact:** Copy = O(n) time + O(n) memory, Reference = O(1) time + O(1) memory
 </details>
 
 ---

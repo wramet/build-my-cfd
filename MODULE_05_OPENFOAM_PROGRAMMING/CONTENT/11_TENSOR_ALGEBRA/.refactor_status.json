@@ -1,0 +1,13 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Tensor_Class_Hierarchy.md",
+        "03_Storage_and_Symmetry.md",
+        "04_Tensor_Operations.md",
+        "05_Eigen_Decomposition.md",
+        "06_Common_Pitfalls.md",
+        "07_Summary_and_Exercises.md"
+    ],
+    "skipped": []
+}

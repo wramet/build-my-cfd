@@ -1,0 +1,13 @@
+{
+    "files": {
+        "00_Overview.md": "Add Learning Objectives, Key Takeaways, and Prerequisites sections. Missing Navigation section at end. Good Quick Reference table but needs expansion with return types.",
+        "01_Introduction.md": "Add Learning Objectives section. Missing clear explanation of face-based structure implications. Should include a simple diagram showing owner-neighbour relationship. Key Takeaways section missing.",
+        "02_Mesh_Hierarchy.md": "Add Learning Objectives and Key Takeaways. The classDiagram mermaid is good - keep it. Missing section on when to use which mesh type. Should include a comparison table of methods available at each hierarchy level.",
+        "03_primitiveMesh.md": "Add Learning Objectives, Key Takeaways, and Practical Examples sections. The connectivity queries are good but need more real-world usage examples. Missing a section on performance considerations for connectivity queries.",
+        "04_polyMesh.md": "CRITICAL: Duplicate 'Directory Structure' section (lines 21-43). Remove duplicate. Add Learning Objectives, Key Takeaways. The patch types table is good - expand with examples. Missing a section on mesh file formats and their contents.",
+        "05_fvMesh.md": "Add Learning Objectives, Key Takeaways. Missing section on objectRegistry pattern explanation. Should include a practical example of creating a custom field and registering it. The geometric quantities section is good but needs more context on when to use each.",
+        "06_Common_Pitfalls.md": "Add Learning Objectives. Good problem-solution format. Should include a section on debugging mesh-related errors. Missing 'Key Takeaways' section summarizing the most critical pitfalls to avoid.",
+        "07_Summary_and_Exercises.md": "Add Learning Objectives and Prerequisites. Exercises are too basic - add progressive difficulty exercises. Should include a capstone exercise combining multiple concepts. Missing 'Next Steps' section pointing to related modules (Fields, Boundary Conditions, etc.)."
+    },
+    "global_strategy": "Apply 3W Framework (What/Why/How) consistently across all files. Each file should start with Learning Objectives and end with Key Takeaways. Add Prerequisites section to Overview. Eliminate redundancy between files (especially mesh hierarchy diagrams repeated across 00, 01, 02, 03, 04, 05). Consolidate Quick Reference tables into a single comprehensive reference or create file-specific tables. Add more practical code examples with explanations. Include cross-references to related OpenFOAM modules (Fields, Boundary Conditions, Solver Development). All files should have consistent Navigation sections at the end."
+}

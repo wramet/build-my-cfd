@@ -1,0 +1,13 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_fvc_vs_fvm.md",
+        "03_Gradient_Operations.md",
+        "04_Divergence_Operations.md",
+        "05_Curl_and_Laplacian.md",
+        "06_Common_Pitfalls.md",
+        "07_Summary_and_Exercises.md"
+    ],
+    "skipped": []
+}

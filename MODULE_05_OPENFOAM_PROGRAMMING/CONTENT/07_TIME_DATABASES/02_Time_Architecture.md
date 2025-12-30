@@ -2,6 +2,17 @@
 
 สถาปัตยกรรมการจัดการเวลาใน OpenFOAM
 
+---
+
+## Learning Objectives
+
+เมื่ออ่านจบบทนี้ คุณจะสามารถ:
+- **อธิบาย** บทบาทและหน้าที่ของ `Time` class ใน OpenFOAM
+- **กำหนดค่า** controlDict เพื่อควบคุม time stepping และ data output
+- **เลือกใช้** temporal discretization schemes ที่เหมาะสมกับปัญหา
+- **ประยุกต์ใช้** adjustable time step สำหรับการจำลองแบบ transient
+- **จัดการ** field I/O และ oldTime storage สำหรับการคำนวณ time-dependent
+
 > [!TIP] ทำไม Time Architecture สำคัญ?
 > **Time Architecture** คือหัวใจของการจำลองแบบที่ไม่คงที่ (unsteady/transient simulation) การเข้าใจการทำงานของ `Time` class และการจัดการ time step จะช่วยให้คุณ:
 > - ควบคุม **ความเสถียร** ของการคำนวณ (โดยเฉพาะ Courant number)
@@ -13,34 +24,21 @@
 
 ## Overview
 
-> [!NOTE] **📂 OpenFOAM Context**
-> บทนี้เกี่ยวข้องกับ **Domain C: Simulation Control**
-> - **ไฟล์หลัก:** `system/controlDict`
-> - **Keywords:** `startFrom`, `startTime`, `stopAt`, `endTime`, `deltaT`, `writeControl`, `writeInterval`, `adjustTimeStep`
-> - **Class:** `Time` ใน `src/OSspecific/POSIX/Time/Time.C`
->
-> ในการจำลองแบบ (solver) คุณจะเห็นการใช้งานในรูปแบบ:
-> ```cpp
-> Time runTime(Time::controlDictName, args);
-> while (runTime.loop()) { ... }
-> ```
+**Domain Context:** บทนี้เกี่ยวข้องกับ **Domain C: Simulation Control** และ **Domain E: Coding/Customization**
+
+- **ไฟล์หลัก:** `system/controlDict`, `system/fvSchemes`
+- **Keywords:** `startFrom`, `startTime`, `stopAt`, `endTime`, `deltaT`, `writeControl`, `writeInterval`, `adjustTimeStep`, `ddtSchemes`
+- **Class:** `Time` ใน `src/OpenFOAM/db/Time/Time.C`
+- **Solver Pattern:** `while (runTime.loop()) { ... }`
 
 คลาส `Time` จัดการ:
 - **Time stepping** — จาก startTime → endTime
-- **Data I/O** — อ่าน/เขียน fields ตาม time folders
+- **Data I/O** — อ่าน/เขียน fields ตาม time directories
 - **Field history** — เก็บ oldTime สำหรับ temporal schemes
 
 ---
 
 ## Core Time Class
-
-> [!NOTE] **📂 OpenFOAM Context**
-> ส่วนนี้เป็น **Domain E: Coding/Customization** — เข้าใจโครงสร้างภายในของ `Time` class
-> - **Source Code:** `src/OpenFOAM/db/Time/Time.H` และ `Time.C`
-> - **Usage:** ในทุก solver files (เช่น `applications/solvers/incompressible/simpleFoam/simpleFoam.C`)
-> - **Constructor Pattern:** `Time runTime(Time::controlDictName, args);`
->
-> ในโค้ด solver คุณจะเห็นการใช้งานจริงใน `while (runTime.loop())` loop
 
 ```cpp
 class Time : public IOobject
@@ -78,15 +76,9 @@ while (runTime.loop())
 
 ---
 
-## controlDict Settings
+## controlDict Configuration
 
-> [!NOTE] **📂 OpenFOAM Context**
-> ส่วนนี้เป็น **Domain C: Simulation Control** — ไฟล์ควบคุมการจำลองแบบที่สำคัญที่สุด
-> - **ไฟล์:** `system/controlDict`
-> - **Keywords:** `application`, `startFrom`, `startTime`, `stopAt`, `endTime`, `deltaT`, `writeControl`, `writeInterval`, `runTimeModifiable`
-> - **การใช้งาน:** กำหนดระยะเวลา, ความละเอียดเวลา, และความถี่ในการบันทึกผลลัพธ์
->
-> นี่เป็นไฟล์แรกที่คุณต้องตรวจสอบเมื่อเริ่มต้นหรือดีบักการจำลองแบบ
+**Domain Context:** **Domain C: Simulation Control** — ไฟล์ควบคุมการจำลองแบบที่สำคัญที่สุด
 
 ```cpp
 // system/controlDict
@@ -106,25 +98,29 @@ writeInterval   100;
 runTimeModifiable true;
 ```
 
-| Keyword | Options | Description |
-|---------|---------|-------------|
-| `startFrom` | startTime, firstTime, latestTime | เริ่มจากเวลาไหน |
-| `stopAt` | endTime, writeNow, noWriteNow, nextWrite | หยุดเมื่อไหร่ |
-| `writeControl` | timeStep, runTime, adjustableRunTime | เงื่อนไขการเขียน |
+### Time Control Parameters
+
+| Parameter | Options | Description |
+|-----------|---------|-------------|
+| `startFrom` | `startTime`, `firstTime`, `latestTime` | เริ่มจากเวลาไหน |
+| `startTime` | Number | เวลาเริ่มต้น (เมื่อใช้ startTime) |
+| `stopAt` | `endTime`, `writeNow`, `noWriteNow`, `nextWrite` | หยุดเมื่อไหร่ |
+| `endTime` | Number | เวลาสิ้นสุด |
+| `deltaT` | Number | Time step size |
+| `writeControl` | `timeStep`, `runTime`, `adjustableRunTime`, `cpuTime` | เงื่อนไขการเขียน |
 | `writeInterval` | Number | ความถี่การเขียน |
+
+### Write Control Strategies
+
+- **timeStep:** เขียนทุก N time steps
+- **runTime:** เขียนทุก N วินาทีของเวลาจำลองแบบ
+- **adjustableRunTime:** เขียนทุก N วินาที แต่ปรับจังหวะเพื่อให้ตรงกับ time step ที่เป็นจริง
 
 ---
 
 ## Field Time Management
 
-> [!NOTE] **📂 OpenFOAM Context**
-> ส่วนนี้เป็น **Domain A: Physics & Fields** + **Domain E: Coding**
-> - **Field Storage:** Fields ถูกเก็บใน time directories (`0/`, `0.1/`, `0.2/`, ...)
-> - **Code Structure:** `GeometricField` class ใน `src/OpenFOAM/fields/GeometricField/GeometricField.C`
-> - **Temporal Schemes:** `system/fvSchemes` → `ddtSchemes`
-> - **Usage:** `U.oldTime()`, `p.oldTime()` ใน solver code
->
-> ระบบ oldTime ทำให้สามารถคำนวณ temporal derivatives (เช่น $\frac{\partial \phi}{\partial t}$) ได้
+**Domain Context:** **Domain A: Physics & Fields** + **Domain B: Numerics**
 
 ### Old Time Storage
 
@@ -146,140 +142,66 @@ const GeometricField& GeometricField::oldTime() const
 }
 ```
 
-### Temporal Schemes
+### Temporal Discretization Schemes
 
-> [!NOTE] **📂 OpenFOAM Context**
-> ส่วนนี้เป็น **Domain B: Numerics & Linear Algebra** — Temporal Discretization
-> - **ไฟล์:** `system/fvSchemes`
-> - **Section:** `ddtSchemes`
-> - **Keywords:** `default`, `Euler`, `backward`, `CrankNicolson`
-> - **Code Implementation:** `src/finiteVolume/finiteVolume/ddtSchemes/`
->
-> การเลือก scheme ส่งผลต่อ **ความแม่นยำ** (order of accuracy) และ **ความเสถียร** (stability limit)
-
-| Scheme | Old Times Needed | Formula |
-|--------|------------------|---------|
-| Euler | 1 ($\phi^n$) | $\frac{\phi^{n+1} - \phi^n}{\Delta t}$ |
-| backward | 2 ($\phi^n$, $\phi^{n-1}$) | $\frac{3\phi^{n+1} - 4\phi^n + \phi^{n-1}}{2\Delta t}$ |
-| CrankNicolson | 1 | $\frac{\phi^{n+1} - \phi^n}{\Delta t} + 0.5(f^{n+1} + f^n)$ |
+**Configuration:** `system/fvSchemes` → `ddtSchemes`
 
 ```cpp
-// system/fvSchemes
 ddtSchemes
 {
-    default         Euler;        // 1st order
-    // default      backward;     // 2nd order
-    // default      CrankNicolson 0.5;
+    default         Euler;           // 1st order implicit
+    // default      backward;        // 2nd order implicit
+    // default      CrankNicolson 0.5;  // 2nd order blended
 }
 ```
 
----
+| Scheme | Order | Old Times Needed | Stability | Use Case |
+|--------|-------|------------------|-----------|----------|
+| **Euler** | 1st | 1 ($\phi^n$) | Unconditionally stable | Quick simulations, debugging |
+| **backward** | 2nd | 2 ($\phi^n$, $\phi^{n-1}$) | Conditionally stable | Higher accuracy transient |
+| **CrankNicolson** | 2nd | 1 | Conditionally stable | Balanced accuracy/stability |
 
-## GeometricField Template
+**Mathematical formulations:**
 
-> [!NOTE] **📂 OpenFOAM Context**
-> ส่วนนี้เป็น **Domain E: Coding/Customization** — เข้าใจ Template Structure ของ Fields
-> - **Source Code:** `src/OpenFOAM/fields/GeometricField/GeometricField.H`
-> - **Type Definitions:** `src/OpenFOAM/fields/GeometricField/geometricFieldFwd.H`
-> - **Usage:** สร้าง custom fields ใน solver หรือ boundary conditions
-> - **Common Types:** `volScalarField`, `volVectorField`, `surfaceScalarField`
->
-> Template นี้เป็นพื้นฐานของทุก field ที่คุณใช้ใน OpenFOAM
-
-```cpp
-template<class Type, template<class> class PatchField, class GeoMesh>
-class GeometricField : public DimensionedField<Type, GeoMesh>
-{
-    // Time management
-    mutable label timeIndex_;
-    mutable GeometricField* field0Ptr_;      // n-1
-    mutable GeometricField* fieldPrevIterPtr_; // Previous iteration
-    
-    // Boundary conditions
-    FieldField<PatchField, Type> boundaryField_;
-};
-```
-
-**Type aliases:**
-```cpp
-typedef GeometricField<scalar, fvPatchField, volMesh> volScalarField;
-typedef GeometricField<vector, fvPatchField, volMesh> volVectorField;
-typedef GeometricField<scalar, fvsPatchField, surfaceMesh> surfaceScalarField;
-```
+- **Euler:** $\frac{\phi^{n+1} - \phi^n}{\Delta t}$
+- **backward:** $\frac{3\phi^{n+1} - 4\phi^n + \phi^{n-1}}{2\Delta t}$
+- **CrankNicolson:** $\frac{\phi^{n+1} - \phi^n}{\Delta t} + 0.5(f^{n+1} + f^n)$
 
 ---
 
-## I/O Options
+## Adjustable Time Stepping
 
-> [!NOTE] **📂 OpenFOAM Context**
-> ส่วนนี้เป็น **Domain A: Physics & Fields** + **Domain E: Coding**
-> - **Field Files:** `0/` (initial conditions), `0.1/`, `0.2/`, ... (time directories)
-> - **I/O Control:** `IOobject` class ใน `src/OpenFOAM/db/IOobject/IOobject.H`
-> - **Read Options:** `MUST_READ`, `READ_IF_PRESENT`, `NO_READ`
-> - **Write Options:** `AUTO_WRITE`, `NO_WRITE`
->
-> การตั้งค่าเหล่านี้กำหนดว่า field จะถูก **อ่าน** หรือ **เขียน** เมื่อไหร่ในระหว่าง simulation
+**Domain Context:** **Domain C: Simulation Control** — Automatic Time Stepping
+
+**Configuration:** `system/controlDict`
 
 ```cpp
-IOobject
-(
-    "p",                    // Field name
-    runTime.timeName(),     // Time folder (e.g., "0")
-    mesh,                   // Registry
-    IOobject::MUST_READ,    // Read behavior
-    IOobject::AUTO_WRITE    // Write behavior
-)
-```
-
-| Read Option | Behavior |
-|-------------|----------|
-| `MUST_READ` | Error if not found |
-| `READ_IF_PRESENT` | Use default if not found |
-| `NO_READ` | Never read |
-
-| Write Option | Behavior |
-|--------------|----------|
-| `AUTO_WRITE` | Write every writeInterval |
-| `NO_WRITE` | Never write |
-
----
-
-## Adjustable Time Step
-
-> [!NOTE] **📂 OpenFOAM Context**
-> ส่วนนี้เป็น **Domain C: Simulation Control** — Automatic Time Stepping
-> - **ไฟล์:** `system/controlDict`
-> - **Keywords:** `adjustTimeStep`, `maxCo`, `maxDeltaT`
-> - **Solver Code:** `applications/solvers/incompressible/pimpleFoam/`
-> - **Physics:** Courant-Friedrichs-Lewy (CFL) condition สำหรับความเสถียร
->
-> ใช้สำหรับ transient solvers (เช่น `pimpleFoam`, `interFoam`) เพื่อปรับ deltaT อัตโนมัติตาม flow velocity
-
-```cpp
-// system/controlDict
 adjustTimeStep  yes;
 maxCo           1;      // Max Courant number
-maxDeltaT       0.1;    // Max time step
+maxDeltaT       0.1;    // Max time step [s]
+```
 
-// Implementation
+**Mechanism:** ปรับ deltaT อัตโนมัติตาม Courant-Friedrichs-Lewy (CFL) condition
+
+```cpp
+// Pseudo-code จาก solver implementation
 scalar Co = max(mag(phi)/mesh.V()*runTime.deltaT()).value();
 scalar newDeltaT = min(maxDeltaT, maxCo/Co * runTime.deltaT().value());
 runTime.setDeltaT(newDeltaT);
 ```
 
+**Guidelines:**
+- **maxCo = 1:** เหมาะสำหรับ PISO/PIMPLE solvers
+- **maxCo = 0.3-0.5:** เหมาะสำหรับ multiphase flows
+- **maxDeltaT:** จำกัดไม่ให้ time step ใหญ่เกินไปเมื่อ flow ช้า
+
 ---
 
-## Function Objects
+## Function Objects for Time Monitoring
 
-> [!NOTE] **📂 OpenFOAM Context**
-> ส่วนนี้เป็น **Domain C: Simulation Control** — Runtime Post-processing
-> - **ไฟล์:** `system/controlDict`
-> - **Section:** `functions { ... }`
-> - **Keywords:** `type`, `writeControl`, `writeInterval`, `fields`
-> - **Code Implementation:** `src/OpenFOAM/db/functionObjects/`
-> - **Common Types:** `fieldAverage`, `probes`, `sets`, `surfaces`, `forces`
->
-> Function objects ช่วย **ประหยัดเวลา** และ **disk space** ด้วยการคำนวณ statistics ระหว่าง simulation แทนการ post-processing ภายหลัง
+**Domain Context:** **Domain C: Simulation Control** — Runtime Post-processing
+
+**Configuration:** `system/controlDict` → `functions`
 
 ```cpp
 functions
@@ -302,6 +224,96 @@ functions
         probeLocations  ((0.5 0 0) (1.0 0 0));
         fields          (p U);
     }
+    
+    timeExecution
+    {
+        type            executionTime;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+}
+```
+
+**Common function objects:**
+- **fieldAverage:** Compute time-averaged fields
+- **probes:** Monitor fields at specific locations
+- **sets:** Sample along lines/surfaces
+- **forces:** Compute forces on patches
+- **executionTime:** Track computational cost
+
+---
+
+## I/O Options
+
+**Domain Context:** **Domain E: Coding** — Field I/O Configuration
+
+```cpp
+IOobject
+(
+    "p",                    // Field name
+    runTime.timeName(),     // Time folder (e.g., "0")
+    mesh,                   // Registry
+    IOobject::MUST_READ,    // Read behavior
+    IOobject::AUTO_WRITE    // Write behavior
+)
+```
+
+### Read Options
+
+| Option | Behavior | Use Case |
+|--------|----------|----------|
+| `MUST_READ` | Error if not found | Initial conditions (0/ folder) |
+| `READ_IF_PRESENT` | Use default if not found | Optional fields |
+| `NO_READ` | Never read | Calculated fields |
+
+### Write Options
+
+| Option | Behavior | Use Case |
+|--------|----------|----------|
+| `AUTO_WRITE` | Write every writeInterval | Solution fields |
+| `NO_WRITE` | Never write | Intermediate/temporary fields |
+
+---
+
+## Common Issues and Solutions
+
+### Issue 1: Time Step Too Large
+
+**Symptoms:** Solver diverges, Courant number exceeds limit
+
+**Solution:**
+```cpp
+// ลด deltaT เบื้องต้น
+deltaT 0.001;
+
+// หรือใช้ adjustable time step
+adjustTimeStep yes;
+maxCo 0.5;
+```
+
+### Issue 2: Excessive Disk Usage
+
+**Symptoms:** Too many time directories written
+
+**Solution:**
+```cpp
+// ลดความถี่การเขียน
+writeControl    adjustableRunTime;
+writeInterval   10;  // เขียนทุก 10 วินาที simulation time
+
+// หรือใช้ purgeWrite
+purgeWrite      5;   // เก็บเฉพาะ 5 time directories ล่าสุด
+```
+
+### Issue 3: Old Time Field Missing
+
+**Symptoms:** Error accessing `oldTime()` when using backward scheme
+
+**Solution:** Ensure solver calls `storeOldTime()` before first iteration
+```cpp
+if (!mesh.solutionDict().found("noOldTime"))
+{
+    U.storeOldTime();
 }
 ```
 
@@ -318,7 +330,7 @@ functions
 <details>
 <summary><b>2. writeControl vs writeInterval ต่างกันอย่างไร?</b></summary>
 
-- **writeControl**: กำหนด *หน่วย* ของ interval (timeStep, runTime, etc.)
+- **writeControl**: กำหนด *หน่วย* ของ interval (timeStep, runTime, adjustableRunTime)
 - **writeInterval**: กำหนด *จำนวน* ของหน่วยนั้น (เช่น ทุก 100 timeSteps หรือทุก 1 วินาที)
 </details>
 
@@ -328,9 +340,29 @@ functions
 ปรับ deltaT อัตโนมัติตาม Courant number — เมื่อ Co เกิน maxCo จะลด deltaT ลง เมื่อ Co ต่ำจะเพิ่ม deltaT (แต่ไม่เกิน maxDeltaT)
 </details>
 
+<details>
+<summary><b>4. Euler vs backward scheme: เลือกอะไรเมื่อไหร่?</b></summary>
+
+- **Euler:** เริ่มต้น simulation, debugging, หรือเมื่อความแม่นยำ temporal ไม่สำคัญ
+- **backward:** เมื่อต้องการความแม่นยำระดับสอง (2nd order) สำหรับ transient cases
+</details>
+
+---
+
+## Key Takeaways
+
+- **Time class** เป็นหัวใจของการจำลองแบบ transient — ควบคุม loop, I/O, และ field history
+- **controlDict** คือศูนย์รวมการตั้งค่าเวลา — startFrom, stopAt, deltaT, writeControl
+- **Temporal schemes** เชื่อมโยงกับ oldTime storage — backward ต้องการ 2 old time levels
+- **Adjustable time step** ช่วยรักษาเสถียรภาพ — ปรับ deltaT ตาม Courant number อัตโนมัติ
+- **Function objects** ให้ runtime monitoring — ลดเวลา post-processing และ disk space
+- **I/O options** ควบคุม field storage — MUST_READ/AUTO_WRITE สำหรับ solution fields
+
 ---
 
 ## 📖 เอกสารที่เกี่ยวข้อง
 
 - **บทก่อนหน้า:** [01_Introduction.md](01_Introduction.md)
 - **บทถัดไป:** [03_ObjectRegistry.md](03_ObjectRegistry.md)
+- **GeometricFields:** [Module 05 - Fields and GeometricFields](../05_FIELDS_GEOMETRICFIELDS/00_Overview.md)
+- **Numerical Methods:** [Module 02 - Pressure-Velocity Coupling](../../03_SINGLE_PHASE_FLOW/CONTENT/02_PRESSURE_VELOCITY_COUPLING/00_Overview.md)

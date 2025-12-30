@@ -1,0 +1,14 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Physics_Aware_Type_System.md",
+        "03_Implementation_Mechanisms.md",
+        "04_Template_Metaprogramming.md",
+        "05_Pitfalls_and_Solutions.md",
+        "06_Engineering_Benefits.md",
+        "07_Mathematical_Formulations.md",
+        "08_Summary_and_Exercises.md"
+    ],
+    "skipped": []
+}

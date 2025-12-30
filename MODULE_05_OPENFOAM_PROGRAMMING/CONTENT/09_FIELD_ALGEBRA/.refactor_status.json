@@ -1,0 +1,13 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Arithmetic_Operations.md",
+        "03_Operator_Overloading.md",
+        "04_Dimensional_Checking.md",
+        "05_Expression_Templates.md",
+        "06_Common_Pitfalls.md",
+        "07_Summary_and_Exercises.md"
+    ],
+    "skipped": []
+}

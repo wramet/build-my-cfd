@@ -1,0 +1,14 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Volume_Fields.md",
+        "03_Surface_Fields.md",
+        "04_Dimensional_Checking.md",
+        "05_Point_Fields.md",
+        "06_Dimensioned_Fields.md",
+        "07_Common_Pitfalls.md",
+        "08_Summary_and_Exercises.md"
+    ],
+    "skipped": []
+}

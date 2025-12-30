@@ -1,0 +1,15 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "02_DimensionSet_Advanced.md",
+        "03_Dimension_Arithmetic.md",
+        "04_Non_Dimensionalization.md",
+        "05_Advanced_Applications.md",
+        "06_Common_Pitfalls.md",
+        "01_Introduction.md",
+        "07_Summary_and_Exercises.md"
+    ],
+    "skipped": [
+        "01_Introduction.md"
+    ]
+}

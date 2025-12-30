@@ -1,0 +1,13 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Dense_vs_Sparse_Matrices.md",
+        "03_fvMatrix_Architecture.md",
+        "04_Linear_Solvers_Hierarchy.md",
+        "05_Parallel_Linear_Algebra.md",
+        "06_Common_Pitfalls.md",
+        "07_Summary_and_Exercises.md"
+    ],
+    "skipped": []
+}

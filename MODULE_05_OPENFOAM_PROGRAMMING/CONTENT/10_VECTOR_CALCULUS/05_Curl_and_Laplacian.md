@@ -11,7 +11,19 @@
 
 > **Academic Vision:** ภาพแบ่งครึ่ง ด้านหนึ่งแสดงน้ำวนที่หมุนติ้ว (Curl/Vorticity) อีกด้านหนึ่งแสดงระลอกคลื่นที่แผ่ออกจากจุดศูนย์กลาง (Laplacian/Diffusion) ภาพประกอบทางวิทยาศาสตร์ที่สะอาดตาและงดงาม ใช้โทนสีฟ้าและเขียวเทล
 
-ตัวดำเนินการ Curl และ Laplacian เป็นพื้นฐานสำคัญของพลศาสตร์ของไหลเชิงคำนวณ (CFD) ช่วยให้สามารถวิเคราะห์โครงสร้างการไหลแบบหมุนวน (rotational flow) และกระบวนการแพร่ (diffusion processes) ได้อย่างมีประสิทธิภาพ
+---
+
+## 🎯 Learning Objectives
+
+หลังจากศึกษาบทนี้ คุณควรจะสามารถ:
+
+1. **อธิบายความแตกต่าง** ระหว่าง **Curl** (post-processing operator) และ **Laplacian** (governing equation operator)
+2. **ใช้งาน `fvc::curl()`** เพื่อคำนวณ vorticity field สำหรับ flow visualization
+3. **เลือกใช้ `fvc::laplacian` vs `fvm::laplacian`** อย่างเหมาะสมตาม use case (post-processing vs governing equations)
+4. **ตั้งค่า `laplacianSchemes`** ใน `system/fvSchemes` สำหรับ non-orthogonal meshes
+5. **วิเคราะห์ stability trade-offs** ระหว่าง explicit และ implicit diffusion discretization
+6. **ประยุกต์ใช้ Q-criterion** และ enstrophy analysis สำหรับ vortex identification
+7. **ระบุตำแหน่งใน OpenFOAM solvers** ที่ใช้ Laplacian operations (เช่น momentum equation, pressure Poisson)
 
 ---
 
@@ -101,7 +113,7 @@ volScalarField enstrophy = 0.5 * magSqr(fvc::curl(U));
 volVectorField vorticityConfinement = epsilon * (fvc::curl(fvc::curl(U)) * fvc::curl(U));
 ```
 
-📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+📂 **Source:** `src/finiteVolume/fvc/fvcCurl.C`
 
 **คำอธิบาย:** โค้ดด้านบนแสดงการใช้งาน `fvc::curl` ใน OpenFOAM ซึ่งเป็นฟังก์ชันสำหรับคำนวณค่า vorticity (การหมุน) จากฟิลด์ความเร็ว
 
@@ -187,7 +199,7 @@ curl(const GeometricField<Type, fvPatchField, volMesh>& vf)
 }
 ```
 
-📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+📂 **Source:** `src/finiteVolume/fvc/fvcCurl.C`
 
 **คำอธิบาย:** โค้ดนี้แสดงการทำงานภายในของ `fvc::curl` ซึ่งคำนวณค่า curl โดยเริ่มจากการหา gradient tensor ก่อน จากนั้นจึงดึงส่วนประกอบที่เกี่ยวข้องออกมาตามสัญลักษณ์ Levi-Civita
 
@@ -234,7 +246,7 @@ volTensorField gradU = fvc::grad(U);
 volScalarField Q = 0.5 * (magSqr(skew(gradU)) - magSqr(symm(gradU)));
 ```
 
-📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+📂 **Source:** `src/finiteVolume/fvc/fvcCurl.C`
 
 **คำอธิบาย:** โค้ดแสดงการคำนวณค่า vorticity magnitude สำหรับการแสดงผล และ Q-criterion สำหรับระบุตำแหน่งแกนของการหมุน
 
@@ -251,7 +263,7 @@ volScalarField enstrophy = 0.5 * magSqr(fvc::curl(U));
 scalar totalEnstrophy = fvc::domainIntegrate(enstrophy).value();
 ```
 
-📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+📂 **Source:** `src/finiteVolume/fvc/fvcCurl.C`
 
 **คำอธิบาย:** Enstrophy คือพลังงานจลน์จากการหมุน ซึ่งคำนวณจากค่า vorticity magnitude squared และใช้วัดความรุนแรงของการไหลแบบปั่นป่วน
 
@@ -288,7 +300,7 @@ volTensorField strainRate = symm(gradU);          // S = 0.5(∇U + ∇U^T)
 volTensorField vorticityTensor = skew(gradU);     // W = 0.5(∇U - ∇U^T)
 ```
 
-📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+📂 **Source:** `src/finiteVolume/fvc/fvcCurl.C`
 
 **คำอธิบาย:** แสดงการใช้งานที่ถูกต้องของ curl operation สำหรับการวิเคราะห์คุณสมบัติการไหล
 
@@ -307,7 +319,7 @@ volVectorField vorticity = vector(gradU.zy() - gradU.yz(),
                                 gradU.yx() - gradU.xy());
 ```
 
-📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+📂 **Source:** `src/finiteVolume/fvc/fvcCurl.C`
 
 **คำอธิบาย:** การปรับปรุงประสิทธิภาพโดยการ reuse gradient tensor แทนการคำนวณซ้ำ
 
@@ -421,6 +433,8 @@ $$
 | **การใช้งาน** | Post-processing, source terms, explicit time | Implicit time, steady-state problems |
 | **ผลลัพธ์** | ฟิลด์ชนิดเดียวกับ input | เมทริกซ์สัมประสิทธิ์สำหรับการแก้สมการ |
 | **ความเสถียร** | ต้องการ time steps เล็กๆ (CFL) | เสถียรโดยไม่มีเงื่อนไขสำหรับการแพร่ |
+| **Computational Cost** | ต่ำ (ไม่ต้อง solve) | สูง (ต้อง solve matrix) |
+| **Stability Limit** | $\Delta t \leq \frac{\Delta x^2}{2\Gamma}$ | Unconditionally stable |
 
 **Explicit Laplacian (`fvc::laplacian`):**
 ```cpp
@@ -434,7 +448,7 @@ volVectorField viscousDiffusion = fvc::laplacian(nu, U);
 volScalarField diffusionSource = fvc::laplacian(DT, T);
 ```
 
-📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+📂 **Source:** `src/finiteVolume/fvc/fvcLaplacian.C`
 
 **คำอธิบาย:** Explicit Laplacian คำนวณค่า diffusion term โดยตรงโดยไม่สร้าง matrix ใช้สำหรับ post-processing หรือ explicit time stepping
 
@@ -468,7 +482,7 @@ fvVectorMatrix UEqn(
 );
 ```
 
-📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+📂 **Source:** `applications/solvers/incompressible/simpleFoam/UEqn.H`
 
 **คำอธิบาย:** Implicit Laplacian สร้าง coefficient matrix สำหรับการแก้สมการ ให้ stability ที่ดีกว่า explicit
 
@@ -483,16 +497,16 @@ fvVectorMatrix UEqn(
 - **Explicit**: ขึ้นอยู่กับเงื่อนไข Courant-Friedrichs-Lewy (CFL): $\Delta t \leq \frac{\Delta x^2}{2\Gamma}$
 - **Implicit**: เสถียรโดยไม่มีเงื่อนไขสำหรับการแพร่ อนุญาตให้ใช้ time steps ที่ใหญ่กว่า
 
-### 2.5 การประยุกต์ใช้งาน
+### 2.5 การประยุกต์ใช้งานใน OpenFOAM Solvers
 
 > [!NOTE] **📂 OpenFOAM Context**
 > การประยุกต์ใช้ Laplacian ใน OpenFOAM Solvers:
-> - **File:** ใช้ใน **solver source code** (เช่น `src/finiteVolume/cfdTools/general/include/adjustPhi.C`)
-> - **Applications in Standard Solvers:**
->   - **SimpleFoam/InterFoam:** ใช้ `fvm::laplacian(nu, U)` ใน momentum equation
->   - **BuoyantFoam:** ใช้ `fvm::laplacian(alpha, T)` ใน energy equation
->   - **ScalarTransportFoam:** ใช้ `fvm::laplacian(D, Y)` ใน species transport
->   - **functionObjects:** ใช้ `fvc::laplacian` สำหรับ post-processing (เช่น `div` fieldObject)
+> - **File Location:** Solver source codes in `applications/solvers/`
+> - **Standard Solvers Using Laplacian:**
+>   - **simpleFoam:** `applications/solvers/incompressible/simpleFoam/UEqn.H` - ใช้ `fvm::laplacian(nu, U)` ใน momentum equation
+>   - **interFoam:** `applications/solvers/multiphase/interFoam/UEqn.H` - ใช้ `fvm::laplacian` สำหรับ viscous terms
+>   - **buoyantSimpleFoam:** `applications/solvers/heatTransfer/buoyantSimpleFoam/EEqn.H` - ใช้ `fvm::laplacian(alpha, T)` ใน energy equation
+>   - **scalarTransportFoam:** `applications/solvers/basic/scalarTransportFoam/scalarTransportFoam.C` - ใช้ `fvm::laplacian(D, Y)` ใน species transport
 > - **Domain:** Domain A (Physics) & Domain E (Coding) - Solver Implementation
 >
 > 💡 **ตัวอย่างใน controlDict:**
@@ -507,6 +521,90 @@ fvVectorMatrix UEqn(
 >     }
 > }
 > ```
+
+**ตัวอย่างจริงจาก simpleFoam Solver:**
+
+```cpp
+// From: applications/solvers/incompressible/simpleFoam/UEqn.H
+// Momentum equation with implicit viscous diffusion
+tmp<fvVectorMatrix> tUEqn
+(
+    fvm::div(phi, U)
+  + fvm::laplacian(nu, U)  // ← Implicit Laplacian for viscous diffusion
+  + fvc::div(phi, turbulence->divDevReff(U))
+ ==
+    fvOptions(U)
+);
+
+fvVectorMatrix& UEqn = tUEqn.ref();
+
+UEqn.relax();
+fvOptions.constrain(UEqn);
+
+solve(UEqn == -fvc::grad(p));
+```
+
+📂 **Source:** `applications/solvers/incompressible/simpleFoam/UEqn.H`
+
+**คำอธิบาย:** ใน simpleFoam solver, Laplacian ถูกใช้ใน momentum equation เพื่อจำลอง viscous diffusion โดยใช้ `fvm::laplacian(nu, U)` ซึ่งเป็น implicit discretization
+
+**แนวคิดสำคัญ:**
+- `nu` คือ kinematic viscosity (สัมประสิทธิ์การแพร่)
+- `fvm::laplacian` สร้าง coefficient matrix สำหรับการแก้สมการโมเมนตัม
+- Implicit treatment ทำให้ stable สำหรับ steady-state simulation
+
+**ตัวอย่างจาก buoyantSimpleFoam (Energy Equation):**
+
+```cpp
+// From: applications/solvers/heatTransfer/buoyantSimpleFoam/EEqn.H
+// Energy equation with thermal diffusion
+fvScalarMatrix EEqn
+(
+    fvm::div(phi, he)
+  + fvm::laplacian(alpha, he)  // ← Implicit thermal diffusion
+  + fvc::div(phi, K) // or fvc::div(phi, dp)
+ ==
+    fvOptions(he)
+);
+
+EEqn.relax();
+fvOptions.constrain(EEqn);
+EEqn.solve();
+```
+
+📂 **Source:** `applications/solvers/heatTransfer/buoyantSimpleFoam/EEqn.H`
+
+**คำอธิบาย:** Energy equation ใช้ `fvm::laplacian(alpha, he)` เพื่อจำลอง thermal diffusion
+
+**แนวคิดสำคัญ:**
+- `alpha` คือ thermal diffusivity
+- `he` คือ specific enthalpy
+- Thermal diffusion เป็นเทอมหลักในสมการพลังงาน
+
+**ตัวอย่างจาก scalarTransportFoam:**
+
+```cpp
+// From: applications/solvers/basic/scalarTransportFoam/scalarTransportFoam.C
+// Scalar transport equation with diffusion
+fvScalarField TEqn
+(
+    fvm::ddt(T)
+  + fvm::div(phi, T)
+  - fvm::laplacian(DT, T)  // ← Implicit scalar diffusion
+ ==
+    fvOptions(T)
+);
+
+TEqn.solve();
+```
+
+📂 **Source:** `applications/solvers/basic/scalarTransportFoam/scalarTransportFoam.C`
+
+**คำอธิบาย:** Scalar transport solver ใช้ Laplacian สำหรับ species diffusion
+
+**แนวคิดสำคัญ:**
+- `DT` คือ diffusivity coefficient
+- Implicit diffusion ทำให้ simulation stable สำหรับ time stepping ขนาดใหญ่
 
 **การใช้งาน Explicit Laplacian:**
 1. **วิเคราะห์การถ่ายเทความร้อน**: คำนวณ divergent heat flux และ temperature gradients
@@ -532,7 +630,7 @@ volScalarField smoothedPressure = fvc::laplacian(lambdaSmoothing, p);
 volScalarField turbulentDiffusionK = fvc::laplacian(nut/sigmak, k);
 ```
 
-📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+📂 **Source:** `src/finiteVolume/fvc/fvcLaplacian.C`
 
 **คำอธิบาย:** ตัวอย่างการใช้ explicit Laplacian ในการวิเคราะห์ heat transfer, species diffusion, และ turbulent diffusion
 
@@ -584,7 +682,7 @@ volScalarField turbulentDiffusion = fvc::laplacian(nut, k);
 volScalarField anisotropicDiffusion = fvc::laplacian(tensorD, T);
 ```
 
-📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+📂 **Source:** `src/finiteVolume/fvc/fvcLaplacian.C`
 
 **คำอธิบาย:** แสดงการใช้งานที่ถูกต้องของ Laplacian operator ทั้ง explicit และ implicit
 
@@ -609,7 +707,7 @@ fvScalarMatrix unstableEqn(
 );
 ```
 
-📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseModel/MovingPhaseModel/MovingPhaseModel.C`
+📂 **Source:** `src/finiteVolume/fvc/fvcLaplacian.C`
 
 **คำอธิบาย:** ข้อผิดพลาดที่พบบ่อยในการใช้งาน Laplacian operator
 
@@ -647,28 +745,162 @@ flowchart LR
 ```
 > **Figure 2:** การเปรียบเทียบหน้าที่ระหว่างตัวดำเนินการเคิร์ลที่ใช้สำหรับวิเคราะห์การหมุน และตัวดำเนินการลาปลาเชียนที่ใช้สำหรับจำลองกระบวนการแพร่กระจายในฟิสิกส์ต่างๆ
 
-| Operator | Symbol | CFD Function | OpenFOAM Example |
-|:---|:---|:---|:---|
-| **Curl** | $\nabla \times$ | คำนวณการหมุน | `fvc::curl(U)` |
-| **Laplacian** | $\nabla^2$ | คำนวณการแพร่ | `fvm::laplacian(nu, U)` |
+### 3.1 ตารางเปรียบเทียบเชิงลึก
 
-**สรุป**: `fvc::curl` ส่วนใหญ่ใช้สำหรับ post-processing และการวิเคราะห์การไหล ในขณะที่ `fvm::laplacian` เป็นพื้นฐานในสมการควบคุม CFD ทั้งหมดเพื่อรับประกันความเสถียรและความถูกต้องทางกายภาพ
+| Operator | Symbol | CFD Function | OpenFOAM Function | When to Use | File Location | Stability | Real Solver Examples |
+|:---|:---|:---|:---|:---|:---|:---|:---|
+| **Curl** | $\nabla \times$ | คำนวณการหมุน | `fvc::curl(U)` | Post-processing, flow visualization, vortex identification | `system/controlDict` (functionObjects), custom utilities | N/A (post-processing only) | N/A - Post-processing only |
+| **Laplacian (Explicit)** | $\nabla^2$ | คำนวณการแพร่แบบ explicit | `fvc::laplacian(gamma, phi)` | Post-processing, source terms, explicit time stepping | Custom utilities, functionObjects | CFL limited: $\Delta t \leq \frac{\Delta x^2}{2\Gamma}$ | Not typically in production solvers |
+| **Laplacian (Implicit)** | $\nabla^2$ | คำนวณการแพร่แบบ implicit | `fvm::laplacian(gamma, phi)` | Governing equations (momentum, energy, pressure Poisson) | Solver source code (`.C` files) | Unconditionally stable | **simpleFoam**: `fvm::laplacian(nu, U)` in `UEqn.H`<br>**interFoam**: `fvm::laplacian` in momentum equation<br>**buoyantSimpleFoam**: `fvm::laplacian(alpha, he)` in `EEqn.H`<br>**scalarTransportFoam**: `fvm::laplacian(DT, T)` |
+
+### 3.2 Physical Context Comparison
+
+| Aspect | Curl Operation | Laplacian Operation |
+|:---|:---|:---|
+| **Physical Role** | **Diagnostic Tool** - วัดและวิเคราะห์ | **Governing Mechanism** - ขับเคลื่อนการเปลี่ยนแปลงทางฟิสิกส์ |
+| **Governing Equations** | ไม่มีใน Navier-Stokesโดยตรง | อยู่ในทุก conservation equation (mass, momentum, energy, species) |
+| **Time Evolution** | ไม่มีผลต่อ time stepping | สำคัญมากต่อ stability ของ time integration |
+| **Mesh Dependency** | ขึ้นกับ `gradSchemes` | ขึ้นกับ `laplacianSchemes` (รวมถึง non-orthogonal correction) |
+| **Computational Cost** | ปานกลาง (gradient + tensor extraction) | Explicit: ต่ำ, Implicit: สูง (matrix solve) |
+| **Solver Impact** | No impact - Post-processing only | **Critical** - Affects convergence and stability |
+
+### 3.3 Practical Decision Tree
+
+```
+Is the operator part of a governing equation?
+├─ YES → Use Laplacian (fvm::laplacian)
+│   ├─ Is the field unknown (being solved)?
+│   │   ├─ YES → fvm::laplacian (implicit)
+│   │   └─ NO → fvc::laplacian (explicit)
+│   └─ Configure in system/fvSchemes
+│
+└─ NO → Use Curl (fvc::curl) for analysis
+    ├─ Need vorticity visualization? → fvc::curl(U)
+    ├─ Need vortex cores? → Q-criterion with fvc::curl(U)
+    └─ Need enstrophy? → magSqr(fvc::curl(U))
+```
+
+### 3.4 Laplacian Scheme Selection Guide
+
+> [!NOTE] **📂 OpenFOAM Context**
+> การเลือก `laplacianSchemes` ที่เหมาะสมใน `system/fvSchemes`:
+> - **File:** `system/fvSchemes` → กำหนด `laplacianSchemes`
+> - **Common Schemes:**
+>   - `Gauss linear` - สำหรับ orthogonal mesh
+>   - `Gauss linear corrected` - สำหรับ non-orthogonal mesh (< 70°)
+>   - `Gauss linear limited [0-1]` - สำหรับ non-orthogonal mesh รุนแรง
+>   - `Gauss cubic corrected` - ความแม่นยำสูงขึ้น แต่แพงกว่า
+> - **Domain:** Domain B (Numerics) - Discretization
+>
+> 💡 **สำคัญ:** หาก mesh มี non-orthogonality > 70° อาจต้องใช้ `limited correction` หรือ `non-orthogonal correction` หลายครั้ง
+
+**ตัวอย่างการตั้งค่า:**
+
+```cpp
+// system/fvSchemes
+laplacianSchemes
+{
+    // สำหรับ orthogonal mesh (เหมาะสมที่สุด)
+    default Gauss linear;
+    
+    // สำหรับ non-orthogonal mesh ปานกลาง
+    // default Gauss linear corrected;
+    
+    // สำหรับ non-orthogonal mesh รุนแรง (> 70°)
+    // default Gauss linear limited 0.5;
+    
+    // สำหรับความแม่นยำสูง (แต่แพงกว่า)
+    // default Gauss cubic corrected;
+}
+```
+
+📂 **Source:** `system/fvSchemes`
+
+**คำอธิบาย:** การเลือก laplacianScheme ที่เหมาะสมขึ้นอยู่กับคุณภาพของ mesh และความต้องการด้านความแม่นยำ
+
+**แนวคิดสำคัญ:**
+- `corrected` เพิ่ม non-orthogonal correction term
+- `limited` จำกัด correction เพื่อป้องกัน instability
+- `cubic` ใช้ cubic interpolation แทน linear (แม่นยำกว่า แต่แพงกว่า)
+
+### 3.5 Code Analysis Examples from Real Solvers
+
+> [!NOTE] **📂 OpenFOAM Context**
+> ตำแหน่งที่ใช้ Laplacian ใน Standard Solvers:
+> 
+> **1. simpleFoam (Incompressible Steady-State):**
+> - **File:** `applications/solvers/incompressible/simpleFoam/UEqn.H`
+> - **Usage:** `fvm::laplacian(nu, U)` ใน momentum equation
+> - **Purpose:** จำลอง viscous diffusion สำหรับ steady-state incompressible flow
+>
+> **2. pimpleFoam (Incompressible Transient):**
+> - **File:** `applications/solvers/incompressible/pimpleFoam/UEqn.H`
+> - **Usage:** `fvm::laplacian(nu, U)` ใน momentum equation
+> - **Purpose:** จำลอง viscous diffusion สำหรับ transient incompressible flow
+>
+> **3. buoyantSimpleFoam (Heat Transfer):**
+> - **File:** `applications/solvers/heatTransfer/buoyantSimpleFoam/EEqn.H`
+> - **Usage:** `fvm::laplacian(alpha, he)` ใน energy equation
+> - **Purpose:** จำลอง thermal diffusion สำหรับ buoyancy-driven flows
+>
+> **4. interFoam (Multiphase):**
+> - **File:** `applications/solvers/multiphase/interFoam/alphaEqn.H`
+> - **Usage:** `fvm::laplacian(gamma*alpha, alpha)` ใน volume fraction equation
+> - **Purpose:** จำลอง interface diffusion สำหรับ two-phase flows
+>
+> **5. scalarTransportFoam (Passive Scalar):**
+> - **File:** `applications/solvers/basic/scalarTransportFoam/scalarTransportFoam.C`
+> - **Usage:** `fvm::laplacian(DT, T)` ใน scalar transport equation
+> - **Purpose:** จำลอง scalar diffusion สำหรับ passive scalar transport
+
+**ตัวอย่าง Code Analysis Exercise:**
+
+```cpp
+// EXERCISE: วิเคราะห์โค้ดด้านล่างจาก simpleFoam
+// From: applications/solvers/incompressible/simpleFoam/UEqn.H
+
+tmp<fvVectorMatrix> tUEqn
+(
+    fvm::div(phi, U)
+  + fvm::laplacian(nu, U)
+  + fvc::div(phi, turbulence->divDevReff(U))
+ ==
+    fvOptions(U)
+);
+
+// คำถาม:
+// 1. ทำไม `fvm::laplacian(nu, U)` ถึงใช้ fvm แทน fvc?
+//    → ตอบ: เพราะ U เป็น unknown field ที่ต้อง solve,
+//       การใช้ implicit Laplacian ทำให้ simulation stable สำหรับ
+//       steady-state solver
+//
+// 2. 'nu' คืออะไร?
+//    → ตอบ: kinematic viscosity (สัมประสิทธิ์การแพร่)
+//
+// 3. จะเกิดอะไรขึ้นหากเปลี่ยนเป็น fvc::laplacian?
+//    → ตอบ: อาจเกิด instability หรือ divergence เนื่องจาก
+//       explicit diffusion มี stability limit
+```
 
 ---
 
-## ประเด็นสำคัญ (Key Takeaways)
+## 🎯 Key Takeaways
 
 ### การดำเนินการ Curl
 - คำนวณแนวโน้มการหมุนโดยใช้ $\nabla \times \mathbf{u}$
 - คืนค่าเป็นฟิลด์เวกเตอร์ที่แสดงการหมุนเฉพาะที่ (local rotation)
 - จำเป็นสำหรับการวิเคราะห์ vorticity และ visualization การไหล
 - สร้างจากการคำนวณ gradient: `curl(U) = extract_cross_components(∇U)`
+- **ใช้เฉพาะใน post-processing** ไม่ใช่ส่วนของ governing equations
+- **ใช้ใน functionObjects** ใน `system/controlDict` สำหรับ automatic calculation
 
 ### การดำเนินการ Laplacian
 - แทนไดเวอร์เจนซ์ของเกรเดียนต์: $\nabla \cdot (\nabla \phi)$
-- เป็นพื้นฐานสำหรับกระบวนการแพร่
+- เป็นพื้นฐานสำหรับกระบวนการแพร่ในทุก CFD solver
 - มีทั้งรูปแบบ explicit (`fvc::`) และ implicit (`fvm::`)
 - สำคัญสำหรับการถ่ายเทความร้อน, การไหลหนืด, การขนส่งสปีชีส์, และการแก้ไขความดัน
+- **ต้องตั้งค่าใน `system/fvSchemes`** สำหรับ discretization
+- **ใช้ในทุก standard solver** (simpleFoam, pimpleFoam, buoyantSimpleFoam, interFoam, scalarTransportFoam)
 
 ### ข้อควรพิจารณาด้านประสิทธิภาพ
 - **Curl**: ต้นทุนการคำนวณส่วนใหญ่มาจากการหา gradient
@@ -677,7 +909,7 @@ flowchart LR
 - **รูปแบบ Explicit**: ราคาถูกกว่าในเชิงการคำนวณแต่ต้องเลือก time step อย่างระมัดระวัง
 
 > [!TIP] แนวทางปฏิบัติที่ดี
-> ใช้ `fvm::laplacian` สำหรับเทอมการแพร่, pressure-velocity coupling, และ stiff source terms ใช้ `fvc::laplacian` สำหรับ post-processing, การประเมิน source term, และรูปแบบ explicit time integration ผสมผสานทั้งสองแนวทางเพื่อความสมดุลที่ดีที่สุด
+> ใช้ `fvm::laplacian` สำหรับเทอมการแพร่, pressure-velocity coupling, และ stiff source terms ใช้ `fvc::laplacian` สำหรับ post-processing, การประเมิน source term, และรูปแบบ explicit time integration ใช้ `fvc::curl` สำหรับ vorticity visualization และ flow analysis หลังจาก simulation เสร็จสิ้น
 
 ---
 
@@ -690,6 +922,7 @@ flowchart LR
 - **Vorticity** ($\omega = \nabla \times U$) คำนวณได้จาก velocity field ที่รู้แล้ว
 - ไม่มี conservation equation สำหรับ vorticity โดยตรงใน standard CFD
 - ใช้สำหรับ **visualization** และ **analysis** หลัง simulation เสร็จ
+- Laplacian ในทางกลับกัน คือ **fundamental operator** ใน conservation equations (mass, momentum, energy)
 
 </details>
 
@@ -701,8 +934,9 @@ flowchart LR
 | **ผลลัพธ์** | `volScalarField` ทันที | `fvScalarMatrix` (ต้อง solve) |
 | **Stability** | จำกัดด้วย $\Delta t \leq \frac{\Delta x^2}{2\Gamma}$ | Unconditionally stable |
 | **ใช้สำหรับ** | Post-processing, source terms | Diffusion ใน governing equations |
+| **Computational Cost** | ต่ำ (ไม่ต้อง solve) | สูง (ต้อง solve linear system) |
 
-**Rule:** ใช้ `fvm::` เมื่อ unknown อยู่ใน Laplacian term
+**Rule:** ใช้ `fvm::` เมื่อ unknown อยู่ใน Laplacian term (เช่น T ใน $\nabla \cdot (k \nabla T)$)
 
 </details>
 
@@ -720,7 +954,82 @@ laplacianSchemes
 }
 ```
 
-**เหตุผล:** `corrected` เพิ่ม explicit correction term เพื่อชดเชย non-orthogonality ของ mesh
+**เหตุผล:** `corrected` เพิ่ม explicit correction term เพื่อชดเชย non-orthogonality ของ mesh แต่อาจต้องการ under-relaxation สำหรับ non-orthogonality > 70°
+
+</details>
+
+<details>
+<summary><b>4. เมื่อไรควรใช้ Q-criterion แทนที่จะใช้ vorticity magnitude?</b></summary>
+
+**Q-criterion** ดีกว่า vorticity magnitude สำหรับ **vortex core identification**:
+- `Q = 0.5 * (||Ω||² - ||S||²)` โดยที่ Ω = vorticity tensor, S = strain rate tensor
+- Q > 0 บ่งชี้ว่า **vorticity dominates strain** → โครงสร้างการหมุนที่ชัดเจน
+- Vorticity magnitude อาจสูงในบริเวณ shear layers ซึ่งไม่จำเป็นต้องเป็น vortex
+
+```cpp
+volTensorField gradU = fvc::grad(U);
+volScalarField Q = 0.5 * (magSqr(skew(gradU)) - magSqr(symm(gradU)));
+```
+
+</details>
+
+<details>
+<summary><b>5. ทำไม implicit Laplacian ถึง stable กว่า explicit?</b></summary>
+
+**Implicit vs Explicit Stability:**
+
+1. **Explicit:** Diffusion term ถูกคำนวณจาก **previous time step**
+   - การเปลี่ยนแปลงของ field ขึ้นกับ diffusion ณ เวลา t
+   - Stability limit: $\Delta t < \frac{\Delta x^2}{2\Gamma}$ (parabolic PDE restriction)
+
+2. **Implicit:** Diffusion term ใช้ **current time step values**
+   - Field values ที่ unknown ถูกรวมใน coefficient matrix
+   - System ถูก solve simultaneously → ไม่มี time step restriction จาก diffusion
+
+**Trade-off:** Implicit แพงกว่า computational cost แต่สามารถใช้ $\Delta t$ ใหญ่กว่าได้ → ประหยัดเวลาโดยรวมสำหรับ steady-state หรือ slowly-varying flows
+
+</details>
+
+<details>
+<summary><b>6. ใน simpleFoam solver, ทำไมต้องใช้ fvm::laplacian(nu, U) แทน fvc::laplacian?</b></summary>
+
+ใน **simpleFoam** (steady-state incompressible solver):
+- **U** เป็น **unknown field** ที่ต้อง solve ที่แต่ละ iteration
+- การใช้ `fvm::laplacian(nu, U)`:
+  - สร้าง coefficient matrix ที่รวม U เข้าไปใน system
+  - Unconditionally stable สำหรับ steady-state iteration
+  - ไม่มี time step restriction
+- หากใช้ `fvc::laplacian(nu, U)`:
+  - Explicit treatment อาจทำให้ **diverge** เมื่อ mesh quality ไม่ดี
+  - ต้องใช้ under-relaxation ที่เข้มงวดมาก
+  - Convergence ช้าลงมาก
+
+**Code Reference:** `applications/solvers/incompressible/simpleFoam/UEqn.H`
+
+</details>
+
+<details>
+<summary><b>7. จะตรวจสอบได้อย่างไรว่า Laplacian scheme ที่เลือกเหมาะสมกับ mesh?</b></summary>
+
+**การตรวจสอบ Laplacian Scheme:**
+
+1. **Check Mesh Quality:**
+   ```bash
+   checkMesh -allGeometry -allTopology
+   ```
+   ดูค่า **non-orthogonality** และ **skewness**
+
+2. **Select Scheme ตาม Mesh Quality:**
+   - **orthogonality < 50°**: `Gauss linear`
+   - **orthogonality 50-70°**: `Gauss linear corrected`
+   - **orthogonality > 70°**: `Gauss linear limited 0.5` หรือ `Gauss cubic corrected`
+
+3. **Monitor Simulation:**
+   - หาก **diverge** ลองเปลี่ยนเป็น `limited correction`
+   - หาก **convergence ช้า** ลอง `cubic corrected` สำหรับความแม่นยำสูงขึ้น
+
+4. **Check Residuals:**
+   - หาก residuals oscillate อาจต้องใช้ under-relaxation หรือเปลี่ยน scheme
 
 </details>
 

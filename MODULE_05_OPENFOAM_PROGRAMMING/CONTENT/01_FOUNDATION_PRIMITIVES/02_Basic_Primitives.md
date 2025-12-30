@@ -1,11 +1,21 @@
+# 02_Basic_Primitives.md
+
+---
+
+## Learning Objectives
+
+หลังจากอ่านบทนี้ คุณจะสามารถ:
+- เลือกใช้ primitive types (`scalar`, `vector`, `tensor`) ได้อย่างถูกต้องตาม context
+- ใช้ vector operators (`&`, `^`, `mag`) และเข้าใจความแตกต่าง
+- คำนวณ tensor operations (trace, determinant, deviatoric)
+- ใช้ fvc functions สำหรับ vector calculus บน mesh
+- หลีกเลี่ยง common pitfalls ในการคำนวณ CFD
+
+---
+
 # Basic Primitives
 
 ประเภทข้อมูลพื้นฐานใน OpenFOAM
-
-> **ทำไมต้องรู้เรื่อง Primitives?**
-> - **ทุกอย่างใน OpenFOAM สร้างจาก primitives เหล่านี้** — Fields, Equations, BCs
-> - ใช้ operators ผิด (เช่น `&` vs `^`) = ผลลัพธ์ผิดโดยไม่ error
-> - การเข้าใจ vector/tensor ช่วยให้ debug ปัญหาได้เร็ว
 
 ---
 
@@ -17,9 +27,17 @@
 > เปรียบเทียบ: C++ `double` รู้แค่ +, -, *, /
 > แต่ OpenFOAM `vector` รู้ dot product, cross product, magnitude
 
+> **ทำไมต้องรู้เรื่อง Primitives?**
+> - **ทุกอย่างใน OpenFOAM สร้างจาก primitives เหล่านี้** — Fields, Equations, BCs
+> - ใช้ operators ผิด (เช่น `&` vs `^`) = ผลลัพธ์ผิดโดยไม่ error
+> - การเข้าใจ vector/tensor ช่วยให้ debug ปัญหาได้เร็ว
+
 ---
 
 ## 1. Scalar Types
+
+### What
+ประเภทข้อมูลพื้นฐานที่เก็บค่าตัวเลขแบบ integer และ floating-point
 
 | Type | Definition | ใช้เมื่อ | ทำไม |
 |------|------------|---------|------|
@@ -31,6 +49,20 @@ label cellI = 0;       // Cell index (integer)
 scalar T = 300.0;      // Temperature (double)
 ```
 
+### Why These Matter for CFD
+- **label:** ใช้ reference cells/faces ในการ loop ผ่าน mesh
+- **scalar:** เก็บค่า physics — pressure, temperature, density, turbulent kinetic energy
+
+### How
+```cpp
+// Type aliasing allows precision change across program
+label nCells = mesh.nCells();        // Mesh size
+scalar rho = 1.225;                  // Air density
+scalar p = 101325;                   // Pressure [Pa]
+```
+
+> **⚠️ Common Pitfall:** อย่า混淆 `label` กับ `scalar` — indices ต้องเป็น integer เสมอ
+
 **ทำไม OpenFOAM ไม่ใช้ `int` และ `double` ตรงๆ?**
 - Type aliasing ช่วยให้เปลี่ยน precision ได้ทั้งโปรแกรม (เช่น compile เป็น float)
 
@@ -38,9 +70,8 @@ scalar T = 300.0;      // Temperature (double)
 
 ## 2. Vector
 
-> **ทำไม vector สำคัญ?**
-> - **Velocity, Force, Gradient** ล้วนเป็น vectors
-> - การคูณ vector ผิดวิธี = คำตอบผิดด้าน หรือผิด dimension
+### What
+3D vector with x, y, z components ที่รองรับ vector operations พื้นฐาน
 
 ```cpp
 // Create
@@ -54,7 +85,11 @@ scalar y = v1.y();  // หรือ v1[1]
 scalar z = v1.z();  // หรือ v1[2]
 ```
 
-### Vector Operations
+### Why These Matter for CFD
+- **Velocity, Force, Gradient** ล้วนเป็น vectors
+- การคูณ vector ผิดวิธี = คำตอบผิดด้าน หรือผิด dimension
+
+### How - Vector Operations
 
 | Operation | Syntax | Result | ใช้เมื่อ |
 |-----------|--------|--------|---------|
@@ -81,13 +116,20 @@ vector n(0, 1, 0);
 scalar Un = U & n;  // = 0 (orthogonal)
 ```
 
+### When to Use Decision Guide
+```
+ต้องการค่า direction? → vector
+ต้องการ magnitude? → mag(vector)
+ต้องการ projection? → vectorA & vectorB
+ต้องการ normal vector? → vectorA ^ vectorB
+```
+
 ---
 
 ## 3. Tensor
 
-> **ทำไม tensor สำคัญ?**
-> - **Stress, Strain, Velocity gradient** เป็น tensors
-> - เข้าใจ tensor = เข้าใจ turbulence modeling
+### What
+3×3 matrix (9 components) ที่ represent linear transformations
 
 ```cpp
 // Create 3x3 tensor (row-major)
@@ -103,7 +145,11 @@ tensor I = tensor::I;    // Identity (diagonal = 1)
 tensor Z = tensor::zero; // Zero tensor
 ```
 
-### Tensor Operations
+### Why These Matter for CFD
+- **Stress, Strain, Velocity gradient** เป็น tensors
+- เข้าใจ tensor = เข้าใจ turbulence modeling
+
+### How - Tensor Operations
 
 | Operation | Syntax | Result | ความหมายทางกายภาพ |
 |-----------|--------|--------|------------------|
@@ -122,13 +168,21 @@ volTensorField gradU = fvc::grad(U);
 volSymmTensorField S = symm(gradU);
 ```
 
+### When to Use Decision Guide
+```
+Quantity มีทิศทาง + transform? → tensor
+Symmetric? → symmTensor (6 components)
+Isotropic? → sphericalTensor (1 component)
+```
+
+> **⚠️ Common Pitfall:** ใช้ `tensor` ทุกอย่างแม้ quantity จะ symmetric — เสีย memory 33%!
+
 ---
 
 ## 4. Symmetric Tensor
 
-> **ทำไมมี symmTensor แยก?**
-> - หลาย physical quantities สมมาตร (stress, strain)
-> - เก็บแค่ 6 components แทน 9 → **ประหยัด memory 33%**
+### What
+Tensor ที่มีความสมมาตร (Aij = Aji) เก็บแค่ 6 components
 
 ```cpp
 // 6 components only (upper triangle + diagonal)
@@ -145,19 +199,47 @@ symmTensor dev_S = dev(S); // Deviatoric part (shear)
 symmTensor sph_S = sph(S); // Spherical part (pressure)
 ```
 
-**ทำไม dev/sph สำคัญ?**
-- **Spherical (sph):** ส่วนที่ทำให้อัดตัว (pressure-like)
-- **Deviatoric (dev):** ส่วนที่ทำให้บิดเบี้ยว (shear)
+### Why These Matter for CFD
+- หลาย physical quantities สมมาตร (stress, strain)
+- เก็บแค่ 6 components แทน 9 → **ประหยัด memory 33%**
 - Turbulence models มักสนใจแค่ deviatoric part
+
+### How - Decomposition
+**Spherical (sph):** ส่วนที่ทำให้อัดตัว (pressure-like)
+```cpp
+symmTensor sph_S = sph(S);  // (1/3)*tr(S)*I
+```
+
+**Deviatoric (dev):** ส่วนที่ทำให้บิดเบี้ยว (shear)
+```cpp
+symmTensor dev_S = dev(S);  // S - sph(S)
+```
+
+**ทำไม dev/sph สำคัญ?**
+- **Spherical:** Pressure, volumetric deformation
+- **Deviatoric:** Shear, shape change
+- Turbulence models มักสนใจแค่ deviatoric part
+
+### When to Use Decision Guide
+```
+Quantity symmetric? → symmTensor
+- Stress tensor → symmTensor ✓
+- Strain rate → symmTensor ✓
+- Velocity gradient → tensor (asymmetric!)
+```
 
 ---
 
 ## 5. Vector Calculus (Fields)
 
-> **ทำไมต้องใช้ fvc functions ไม่ใช่คำนวณเอง?**
-> - fvc ใช้ mesh geometry ถูกต้อง (รวม non-orthogonality)
-> - fvc consistent กับ fvm → mass conservative
+### What
+Operations บน fields ที่ distributed ตาม mesh ใช้ `fvc` (finite volume calculus)
 
+### Why These Matter for CFD
+- fvc ใช้ mesh geometry ถูกต้อง (รวม non-orthogonality)
+- fvc consistent กับ fvm → mass conservative
+
+### How
 ```cpp
 // Gradient: scalar → vector
 volVectorField gradT = fvc::grad(T);
@@ -172,9 +254,22 @@ volVectorField curlU = fvc::curl(U);
 volScalarField lapT = fvc::laplacian(alpha, T);
 ```
 
+### When to Use Decision Guide
+```
+ต้องการ gradient? → fvc::grad(scalar)
+ต้องการ divergence? → fvc::div(vector)
+ต้องการ curl? → fvc::curl(vector)
+ต้องการ Laplacian? → fvc::laplacian(diffusivity, field)
+```
+
+> **⚠️ Common Pitfall:** อย่าใช้ analytical derivatives — fvc รักษา conservation บน non-orthogonal meshes
+
 ---
 
 ## 6. Mathematical Functions
+
+### What
+Built-in functions สำหรับ scalar/vector operations ที่ optimize แล้ว
 
 | Function | Description | ใช้เมื่อ |
 |----------|-------------|---------|
@@ -185,6 +280,22 @@ volScalarField lapT = fvc::laplacian(alpha, T);
 | `sign(x)` | ±1 | Determine direction |
 | `pos/neg(x)` | 1 if positive/negative | Conditional operations |
 
+### Why These Matter for CFD
+- Performance: `magSqr` หลีกเลี่ยง sqrt ที่ช้า
+- Clarity: `sign(x)` ชัดเจนกว่า `x > 0 ? 1 : -1`
+
+### How
+```cpp
+// Kinetic energy per unit mass
+scalar ke = 0.5 * magSqr(U);  // Fast!
+
+// Speed from velocity
+scalar speed = mag(U);         // = sqrt(magSqr(U))
+
+// Conditional flux
+scalar flux = pos(p - pRef) * U;  // Zero if p <= pRef
+```
+
 **ทำไม magSqr ดีกว่า sqr(mag(v))?**
 - `magSqr(v) = v.x()² + v.y()² + v.z()`  → 3 multiplications
 - `sqr(mag(v)) = √(x² + y² + z²)²` → 3 mult + 1 sqrt + 1 sqr
@@ -193,6 +304,9 @@ volScalarField lapT = fvc::laplacian(alpha, T);
 ---
 
 ## 7. Special Values
+
+### What
+Predefined constants สำหรับ initialization และ direction vectors
 
 ```cpp
 // Vector constants
@@ -204,6 +318,23 @@ vector::max      // (VGREAT, VGREAT, VGREAT) — Bounding box init
 vector::x_       // (1, 0, 0)    — x direction
 vector::y_       // (0, 1, 0)    — y direction
 vector::z_       // (0, 0, 1)    — z direction
+```
+
+### Why These Matter for CFD
+- Initialization ที่ consistent ทั่ว codebase
+- Direction vectors สำหรับ BCs, forces, projections
+
+### How
+```cpp
+// Initialize bounding box
+vector minBox = vector::max;
+vector maxBox = vector::zero;
+
+// Gravity direction
+vector g = mag(g) * vector::z_;  // Downward
+
+// Face normal projection
+scalar Un = U & (faceNormal / mag(faceNormal));
 ```
 
 ---
@@ -268,9 +399,34 @@ vector::z_       // (0, 0, 1)    — z direction
 
 ---
 
+## 📚 Key Takeaways
+
+1. **Type Selection:** เลือก primitive types ตาม dimensionality ของ physical quantity
+   - Scalar → pressure, temperature
+   - Vector → velocity, force
+   - Tensor → stress, gradient
+
+2. **Operator Awareness:** OpenFOAM operators ต่างจาก C++!
+   - `&` = dot product, `^` = cross product
+   - ใช้ผิด → compile error หรือผลลัพธ์ผิด
+
+3. **Memory Efficiency:** ใช้ `symmTensor` แทน `tensor` เมื่อ possible
+   - ประหยัด 33% memory
+   - Faster operations
+
+4. **Performance:** ใช้ `magSqr` แทน `sqr(mag)` — avoid unnecessary sqrt
+
+5. **fvc Functions:** ใช้ finite volume calculus แทน analytical derivatives
+   - Conservation บน non-orthogonal meshes
+   - Consistent กับ discretization
+
+---
+
 ## 📖 เอกสารที่เกี่ยวข้อง
 
-- **ภาพรวม:** [00_Overview.md](00_Overview.md)
-- **Smart Pointers:** [04_Smart_Pointers.md](04_Smart_Pointers.md)
-- **Containers:** [05_Containers.md](05_Containers.md)
-- **Exercises:** [07_Exercises.md](07_Exercises.md)
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ดู architecture ภาพรวม
+- **Smart Pointers:** [04_Smart_Pointers.md](04_Smart_Pointers.md) — memory management
+- **Containers:** [05_Containers.md](05_Containers.md) — List, Field, PtrList
+- **Exercises:** [07_Exercises.md](07_Exercises.md) — ฝึกปฏิบัติ
+
+**บทถัดไป:** [03_Dimensions_Units.md](03_Dimensions_Units.md) — ระบบ units ใน OpenFOAM

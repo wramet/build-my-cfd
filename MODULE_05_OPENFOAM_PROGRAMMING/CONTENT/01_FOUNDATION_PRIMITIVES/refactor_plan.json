@@ -1,0 +1,13 @@
+{
+    "files": {
+        "00_Overview.md": "Add Learning Objectives section at the beginning. Move 'Learning Path' diagram to 'Where to Go From Here' section. Add Key Takeaways at the end. The 3W framework is partially applied - enhance the 'What' section with clearer definition of primitives.",
+        "01_Introduction.md": "Add Learning Objectives. The 3W framework is present but 'Why' section should be expanded with more concrete physics examples. Add Key Takeaways. The 'What' section is good but could use a summary table.",
+        "02_Basic_Primitives.md": "Add Learning Objectives and Key Takeaways. 3W framework is partially present - add explicit 'Why These Matter for CFD' subsection for each type. Good examples but need more 'When to Use' decision guides.",
+        "03_Dimensioned_Types_Intro.md": "Add Learning Objectives. 3W framework is strong - good 'Why' motivation. Add Key Takeaways summarizing the 7 SI dimensions and common aliases. Good examples.",
+        "04_Smart_Pointers.md": "Add Learning Objectives. 3W framework present with good motivation. Add Key Takeaways comparison table. Consider adding memory leak example to strengthen 'Why' section.",
+        "05_Containers.md": "Add Learning Objectives. 3W framework applied well. Add Key Takeaways with decision flowchart. Good performance tips - add 'Common Pitfalls' subsection.",
+        "06_Summary.md": "Add Learning Objectives (though this is a summary file). Add explicit Key Takeaways section at the end. This file is already a good reference - consider adding 'Decision Trees' for type selection.",
+        "07_Exercises.md": "Add Learning Objectives per exercise. Each exercise should have explicit 'What You Will Learn' subsection. Add 'Challenge Problems' section for advanced practice. Include solution hints in collapsible sections."
+    },
+    "global_strategy": "The 01_FOUNDATION_PRIMITIVES folder has well-structured content with good examples, but lacks consistent 3W Framework implementation and standard pedagogical elements. Apply these changes globally: (1) Add Learning Objectives at the top of every file; (2) Ensure each major concept has explicit 'What/Why/How' structure; (3) Add Key Takeaways at the end of every file; (4) Create decision flowcharts/tables for type selection; (5) Add more cross-references between files; (6) Include 'Common Pitfalls' sections where applicable. The bilingual approach (Thai/English) is consistent and appropriate for the target audience."
+}

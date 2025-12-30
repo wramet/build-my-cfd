@@ -1,0 +1,13 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Basic_Primitives.md",
+        "03_Dimensioned_Types_Intro.md",
+        "04_Smart_Pointers.md",
+        "05_Containers.md",
+        "06_Summary.md",
+        "07_Exercises.md"
+    ],
+    "skipped": []
+}

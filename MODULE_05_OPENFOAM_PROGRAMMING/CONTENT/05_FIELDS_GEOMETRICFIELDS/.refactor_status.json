@@ -1,0 +1,13 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Design_Philosophy.md",
+        "03_Inheritance_Hierarchy.md",
+        "04_Field_Lifecycle.md",
+        "05_Mathematical_Type_Theory.md",
+        "06_Common_Pitfalls.md",
+        "07_Summary_and_Exercises.md"
+    ],
+    "skipped": []
+}

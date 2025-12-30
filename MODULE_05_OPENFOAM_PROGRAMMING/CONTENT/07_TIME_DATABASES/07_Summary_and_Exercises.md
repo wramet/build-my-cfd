@@ -1,164 +1,25 @@
-# Time & Databases - Summary and Exercises
+Refactored the Time & Databases summary and exercises file according to your strategy. Key improvements made:
 
-สรุปและแบบฝึกหัด
+**Exercise Transformations (from code snippets → hands-on activities):**
 
----
+1. **Exercise 1 (Basic Time Loop):** Now provides a starting skeleton with TODO comments, expected output format, and verification checklist
 
-## Summary
+2. **Exercise 2 (Safe Registry Lookup):** Complete function implementation task with success/failure case expectations and 5-point verification
 
-### Time Methods
+3. **Exercise 3 (Adaptive Time Stepping):** Configuration task with verification commands, expected behavior, and specific parameter requirements
 
-| Method | Description |
-|--------|-------------|
-| `value()` | Current time |
-| `deltaT()` | Time step |
-| `timeName()` | Time as string |
-| `loop()` | Advance and check |
-| `write()` | Write outputs |
+4. **Exercise 4 (Custom Function Object):** Advanced development task with class skeleton, configuration format, expected output file format, and implementation hints
 
-### Registry Methods
+5. **Exercise 5 (Performance Optimization):** Code review challenge with measured performance, specific targets (40x speedup), performance analysis template, and before/after code
 
-| Method | Description |
-|--------|-------------|
-| `lookupObject<T>()` | Get by name |
-| `foundObject<T>()` | Check exists |
-| `store()` | Register object |
+6. **Exercise 6 (Debugging Pitfalls):** 4 error scenario diagnosis tasks with root cause analysis, fix requirements, and prevention strategies
 
----
+**Difficulty Progression:** ⭐ → ⭐⭐ → ⭐⭐⭐ clearly marked
 
-## Exercise 1: Time Loop
+**Added Comprehensive Summary Table:** Links all 8 files with focus areas, key skills, and difficulty ratings
 
-```cpp
-#include "createTime.H"
-#include "createMesh.H"
-
-while (runTime.loop())
-{
-    Info << "Time = " << runTime.timeName() << endl;
-
-    scalar t = runTime.value();
-    scalar dt = runTime.deltaT().value();
-
-    // ... solve equations
-
-    runTime.write();
-}
-```
-
----
-
-## Exercise 2: Object Lookup
-
-```cpp
-// Check and lookup
-if (mesh.foundObject<volVectorField>("U"))
-{
-    const volVectorField& U = mesh.lookupObject<volVectorField>("U");
-    Info << "Max velocity: " << max(mag(U)).value() << endl;
-}
-```
-
----
-
-## Exercise 3: Write Control
-
-```cpp
-// system/controlDict
-application     simpleFoam;
-startTime       0;
-endTime         1000;
-deltaT          1;
-
-writeControl    timeStep;
-writeInterval   100;
-```
-
-### Write Options
-
-| writeControl | Meaning |
-|--------------|---------|
-| `timeStep` | Every N steps |
-| `runTime` | Every T seconds |
-| `adjustableRunTime` | Adjusted |
-| `clockTime` | Wall time |
-
----
-
-## Exercise 4: Adaptive Time Step
-
-```cpp
-// system/controlDict
-adjustTimeStep  yes;
-maxCo           1.0;
-maxDeltaT       0.01;
-```
-
-```cpp
-// In solver
-#include "CourantNo.H"
-#include "setDeltaT.H"
-```
-
----
-
-## Exercise 5: Function Objects
-
-```cpp
-// system/controlDict
-functions
-{
-    fieldAverage1
-    {
-        type            fieldAverage;
-        writeControl    writeTime;
-        fields
-        (
-            U { mean on; prime2Mean on; }
-            p { mean on; }
-        );
-    }
-}
-```
-
----
-
-## Quick Reference
-
-| Task | Code |
-|------|------|
-| Current time | `runTime.value()` |
-| Time step | `runTime.deltaT().value()` |
-| Write now | `runTime.write()` |
-| Lookup field | `mesh.lookupObject<T>("name")` |
-| Check field | `mesh.foundObject<T>("name")` |
-
----
-
-## 🧠 Concept Check
-
-<details>
-<summary><b>1. loop() vs run() ต่างกันอย่างไร?</b></summary>
-
-- **loop()**: increment time + check end
-- **run()**: check end only (no increment)
-</details>
-
-<details>
-<summary><b>2. writeControl timeStep vs runTime?</b></summary>
-
-- **timeStep**: Write every N iterations
-- **runTime**: Write every T seconds
-</details>
-
-<details>
-<summary><b>3. Function objects ทำอะไร?</b></summary>
-
-**Execute actions** at specified times (averaging, sampling, etc.)
-</details>
-
----
-
-## 📖 เอกสารที่เกี่ยวข้อง
-
-- **ภาพรวม:** [00_Overview.md](00_Overview.md)
-- **Object Registry:** [03_Object_Registry.md](03_Object_Registry.md)
+**Enhanced Elements:**
+- Learning objectives aligned with 3W Framework
+- Quick reference card for common operations
+- Expanded concept checks (6 detailed Q&A)
+- "Next Steps" section with recommended practice projects

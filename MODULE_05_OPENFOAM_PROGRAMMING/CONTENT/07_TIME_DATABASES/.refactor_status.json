@@ -1,0 +1,13 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Time_Architecture.md",
+        "03_Object_Registry.md",
+        "04_Functional_Logic.md",
+        "05_Design_Patterns.md",
+        "06_Common_Pitfalls.md",
+        "07_Summary_and_Exercises.md"
+    ],
+    "skipped": []
+}

@@ -1,234 +1,278 @@
-# Field Types - Summary and Exercises
+# Field Types - Exercises and Capstone Projects
 
-สรุปและแบบฝึกหัด Field Types
+แบบฝึกหัดและโปรเจกต์รวม Field Types
 
-> [!TIP] ทำไม Field Types สำคัญ?
-> Field Types คือ **รากฐานของการจัดเก็บข้อมูลฟิสิกส์** ใน OpenFOAM ทุก solver ทำงานกับ fields (เช่น `p`, `U`, `T`) การเข้าใจว่า field แต่ละประเภทเก็บข้อมูลที่ไหน (cell center vs face center vs point) และเข้าถึงข้อมูลยังไง จะช่วยให้คุณ:
-> - เขียน **custom boundary conditions** ได้อย่างถูกต้อง
-> - สร้าง **function objects** สำหรับวิเคราะห์ข้อมูลได้
-> - แก้ไข **solver code** หรือสร้าง solver ใหม่ได้อย่างมั่นใจ
-> - Debug ปัญหาการ **interpolation** ระหว่าง cell/face ได้
+> [!TIP] ทำเนื้อหานี้สำคัญ?
+> หัวข้อนี้เป็น **การเชื่อมโยงความรู้ทั้งหมด** เกี่ยวกับ Field Types เข้ากับโจทย์จริง การแก้โจทย์ต่อไปนี้จะช่วยให้คุณ:
+> - นำ **volume fields, surface fields, point fields** ไปประยุกต์ใช้กับ solver ที่คุณกำลังพัฒนา
+> - เขียน **custom boundary conditions** และ **function objects** ได้อย่างมั่นใจ
+> - เชื่อมต่อ **code implementation** กับ **case files** อย่างถูกต้อง
+> - เข้าใจ **data flow** จากไฟล์ case → memory → output
 >
-> ในมุมมองของไฟล์ case: fields ถูกจัดเก็บในโฟลเดอร์ `0/` (เริ่มต้น) และ `time directories` (ผลลัพธ์) ส่วนการจัดการ fields ผ่านโค้ด C++ จะอยู่ใน `src/` ของ custom solvers หรือ library
+> **Prerequisites:** คุณควรอ่าน 00_Overview.md, 02-06 ก่อนทำแบบฝึกหัดนี้
 
 ---
 
-## Summary
+## 🎯 Learning Objectives
 
-> [!NOTE] **📂 OpenFOAM Context: Field Storage in Case Files**
-> ใน **มุมมองไฟล์ case** (Domain A):
-> - Fields ทั้งหมดถูกจัดเก็บในไฟล์ข้อความภายใต้โฟลเดอร์ `0/` (สำหรับเวลา t=0) และโฟลเดอร์เวลาถัดๆไป (เช่น `0.1/`, `0.2/`, ...)
-> - **volScalarField** → ไฟล์เช่น `0/p`, `0/T`, `0/k` (ค่าที่ cell centers)
-> - **volVectorField** → ไฟล์เช่น `0/U` (ค่าที่ cell centers)
-> - **surfaceScalarField** → ไฟล์เช่น `0/phi` (ค่าที่ face centers)
-> - **pointVectorField** → ไฟล์เช่น `0/pointDisplacement` (ค่าที่ mesh vertices)
->
-> ใน **มุมมองโค้ด C++** (Domain E):
-> - การประกาศ fields อยู่ในไฟล์ solver `.C` เช่น `src/finiteVolume/cfd/tools/general/interFoam/interFoam.C`
-> - Header files: `src/finiteVolume/fields/volFields/volFields.H`, `src/finiteVolume/fields/surfaceFields/surfaceFields.H`
-> - การอ่าน/เขียน fields ผ่าน `IOobject` จะชี้ไปที่โฟลเดอร์ `constant/` หรือ time directories โดยอัตโนมัติ
+เมื่อจบแบบฝึกหัดนี้ คุณจะสามารถ:
+- ✅ สร้าง fields ใน C++ code และเชื่อมต่อกับ case files ได้อย่างถูกต้อง
+- ✅ คำนวณ flux ผ่าน surface fields สำหรับ conservation equations
+- ✅ เขียน custom boundary conditions ที่เข้าถึง patch data
+- ✅ ใช้ point fields สำหรับ dynamic meshing problems
+- ✅ แก้ไข solver code เพื่อเพิ่ม functionality ใหม่
 
-### Field Type Hierarchy
+**Difficulty:** Intermediate | **Estimated Time:** 2-3 hours
 
-| Type | Location | Example |
-|------|----------|---------|
-| `volScalarField` | Cell center | p, T, k |
-| `volVectorField` | Cell center | U |
-| `surfaceScalarField` | Face center | phi |
-| `pointVectorField` | Mesh vertex | pointDisplacement |
+---
 
-### Template Structure
+## 📋 Learning Path
 
-> [!NOTE] **📂 OpenFOAM Context: Template Instantiation in Source Code**
-> ใน **Domain E: Coding/Customization**:
-> - Template `GeometricField<Type, PatchField, GeoMesh>` ถูกใช้ใน **source code** ของ OpenFOAM
-> - การสร้าง field types ต่างๆ เป็นการ **template instantiation**:
->   - `volScalarField` = `GeometricField<scalar, fvPatchField, volMesh>`
->   - `volVectorField` = `GeometricField<vector, fvPatchField, volMesh>`
->   - `surfaceScalarField` = `GeometricField<scalar, fvsPatchField, surfaceMesh>`
-> - **File locations:** นิยามหลักอยู่ใน `src/OpenFOAM/fields/GeometricField/GeometricField.C`
-> - **PatchField definitions:** `src/finiteVolume/fields/fvPatchFields/` (สำหรับ volume fields)
-> - **Surface patchField:** `src/finiteVolume/fields/fvsPatchFields/` (สำหรับ surface fields)
->
-> ใน **custom code** ของคุณ:
-> - เมื่อเขียน solver ใหม่ หรือ function object คุณจะต้อง `#include` headers เหล่านี้จาก `src/finiteVolume/fields/...`
-> - การเลือก `PatchField` และ `GeoMesh` ที่ถูกต้องจะกำหนดว่า field ของคุณ "อยู่ที่ไหน" และ "มี boundary condition แบบไหน"
-
-```cpp
-GeometricField<Type, PatchField, GeoMesh>
-// Type: scalar, vector, tensor
-// PatchField: fvPatchField, fvsPatchField, pointPatchField
-// GeoMesh: volMesh, surfaceMesh, pointMesh
+```
+Prerequisites
+    ↓
+┌─────────────────────────────────────────────────────────────┐
+│ 00_Overview.md (Read all reference tables)                  │
+│ 02_Volume_Fields.md → 03_Surface_Fields.md → 05_Point_Fields.md │
+└─────────────────────────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Exercise 1-5: Foundational Skills (30 min)                  │
+└─────────────────────────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Capstone Project: Integration Challenge (90 min)            │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Exercise 1: Create Fields
+## 📝 Exercise 1: Field Creation and Case Integration
 
-> [!NOTE] **📂 OpenFOAM Context: Field Declaration in Solvers**
-> ใน **Domain E: Coding/Customization**:
-> - การสร้าง fields ด้วย `IOobject` เป็น **standard pattern** ในทุก OpenFOAM solvers
-> - **Typical locations:** ไฟล์ solver เช่น `src/finiteVolume/cfd/tools/general/simpleFoam/simpleFoam.C`
-> - **Keywords สำคัญใน IOobject:**
->   - `IOobject::MUST_READ` → ต้องมีไฟล์ field ใน `0/` (เช่น `0/p`, `0/U`)
->   - `IOobject::NO_READ` → สร้าง field ใหม่โดยไม่ต้องอ่านจากไฟล์ (มักใช้กับ intermediate fields)
->   - `runTime.timeName()` → ชี้ไปที่ time directory ปัจจุบัน (เช่น `0`, `0.1`, ...)
+> [!NOTE] **📂 OpenFOAM Context: From Solver Code to Case Files**
+> **Scenario:** คุณกำลังพัฒนา solver ใหม่สำหรับคำนวณ **turbulent kinetic energy production** ($P_k = -\tau_{ij} \frac{\partial u_i}{\partial x_j}$) และต้องการเพิ่ม field ใหม่ชื่อ `kProduction`
 >
-> **Example mapping:**
-> - เมื่อ solver อ่าน `volScalarField p` ด้วย `MUST_READ` → จะมองหาไฟล์ `0/p` ใน case directory
-> - เมื่อ solver สร้าง `volVectorField U` ใหม่ → จะสร้าง field ใน memory และเขียนลงไฟล์ output เมื่อถึงเวลา write
-> - **Compilation:** ไฟล์ `.C` ของคุณต้องอยู่ในโครงสร้าง `Make/files` เพื่อ compile ให้เป็น executable
+> **Domain E (Coding):** สร้าง field ใน solver
+> ```cpp
+> // ใน createFields.H ของ solver ของคุณ
+> volScalarField kProduction
+> (
+>     IOobject
+>     (
+>         "kProduction",
+>         runTime.timeName(),
+>         mesh,
+>         IOobject::NO_READ,  // ไม่ต้องอ่านจากไฟล์ (คำนวณเอง)
+>         IOobject::AUTO_WRITE // เขียนลงไฟล์ output อัตโนมัติ
+>     ),
+>     mesh,
+>     dimensionedScalar("zero", dimless/dimTime, scalar(0))
+> );
+> ```
+>
+> **Domain A (Case Files):** หลังจากรัน solver ไฟล์ output จะถูกสร้าง:
+> ```
+> 0.5/kProduction  ← output field file
+> ├── dimensions      [0 0 -1 0 0 0 0]  (1/s)
+> ├── internalField   uniform 0;
+> └── boundaryField  { ... }
+> ```
+
+### โจทย์:
+1. สร้าง `volScalarField temperatureVariance` สำหรับเก็บค่า $T'^2 = (T - \bar{T})^2$
+2. กำหนด dimensions และ initial conditions ที่เหมาะสม
+3. ระบุว่า field นี้ควรใช้ `MUST_READ` หรือ `NO_READ` และทำไม?
+
+### 💡 Answer Key:
+<details>
+<summary>คลิกเพื่อดูเฉลย</summary>
 
 ```cpp
-// From file
-volScalarField p
+volScalarField temperatureVariance
 (
-    IOobject("p", runTime.timeName(), mesh, IOobject::MUST_READ),
+    IOobject
+    (
+        "temperatureVariance",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,  // อ่านค่าเริ่มต้นจากไฟล์ case
+        IOobject::AUTO_WRITE
+    ),
     mesh
 );
-
-// With initial value
-volVectorField U
-(
-    IOobject("U", runTime.timeName(), mesh, IOobject::NO_READ),
-    mesh,
-    dimensionedVector("U", dimVelocity, vector::zero)
-);
 ```
+
+- **Dimensions:** `[0 0 0 1 0 0 0]` (K²)
+- **Initial value:** ในไฟล์ `0/temperatureVariance`:
+  ```cpp
+  internalField   uniform 0;  // เริ่มต้นที่ zero หาือไม่มีข้อมูล
+  ```
+- **MUST_READ vs NO_READ:** ใช้ `MUST_READ` ถ้าต้องการกำหนดค่าเริ่มต้นจาก case, ใช้ `NO_READ` ถ้าคำนวณจาก field อื่นทันที
+
+</details>
 
 ---
 
-## Exercise 2: Field Arithmetic
+## 📝 Exercise 2: Flux Computation for Conservation Equations
 
-> [!NOTE] **📂 OpenFOAM Context: Field Operations in Solver Equations**
-> ใน **Domain E: Coding/Customization** (และ Domain A: Physics):
-> - Field arithmetic ถูกใช้ใน **discretized equations** ของ solvers
-> - **Typical locations:** ไฟล์ solver เช่น `src/finiteVolume/cfd/tools/general/simpleFoam/createFields.H` หรือใน main solver loop
+> [!NOTE] **📂 OpenFOAM Context: Mass Flux in Continuity Equation**
+> **Scenario:** คุณกำลังพัฒนา **compressible solver** และต้องคำนวณ **mass flux** $\phi = \rho \mathbf{U} \cdot \mathbf{S}_f$ สำหรับ continuity equation: $\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{U}) = 0$
 >
-> **Connection to Physics (Domain A):**
-> - `rho * magSqr(U)` → คำนวณ **dynamic pressure** ($\frac{1}{2}\rho U^2$) สำหรับ drag/lift forces
-> - `U.component(0)` → เข้าถึง **velocity component** (เช่น $u$, $v$, $w$) สำหรับ boundary conditions
-> - `mag(U)` → คำนวณ **velocity magnitude** สำหรับ Courant number, Reynolds number
+> **Physical Meaning:**
+> - $\phi$ = **mass flow rate** ผ่านแต่ละ face $[\text{kg}/\text{s}]$
+> - $\sum \phi_f = 0$ สำหรับ **steady-state, incompressible flow** (conservation of mass)
 >
-> **Connection to Function Objects:**
-> - การคำนวณเหล่านี้มักถูกใช้ใน **function objects** สำหรับ runtime post-processing
-> - **File:** `system/controlDict` → ระบุ `functions` ที่ใช้ field arithmetic
-> - **Example function objects:** `forces`, `fieldMinMax`, `magSqr`
+> **Connection to Case Files:**
+> - `0/phi` → ไฟล์ flux field (ถ้า solver ต้องการ initial guess)
+> - `system/fvSchemes` → ระบุ interpolation scheme:
+>   ```cpp
+>   interpolationSchemes
+>   {
+>       default         linear;
+>       interpolate(rho) linearUpwind grad(U);
+>   }
+>   ```
+
+### โจทย์:
+1. เขียน code สร้าง `surfaceScalarField massFlux` จาก `volScalarField rho` และ `volVectorField U`
+2. คำนวณ **total mass flow rate** ผ่าน patch ชื่อ "inlet"
+3. ตรวจสอบ mass balance: $\sum \phi_f \approx 0$ สำหรับ incompressible flow
+
+### 💡 Answer Key:
+<details>
+<summary>คลิกเฉลยและคำอธิบาย</summary>
 
 ```cpp
-// Scalar operations
-volScalarField rhoU2 = rho * magSqr(U);
+// 1. Create mass flux
+surfaceScalarField massFlux = fvc::interpolate(rho * U) & mesh.Sf();
 
-// Vector operations
-volScalarField Ux = U.component(0);
-volScalarField magU = mag(U);
-
-// Mixed
-volVectorField momentum = rho * U;
-```
-
----
-
-## Exercise 3: Surface Fields
-
-> [!NOTE] **📂 OpenFOAM Context: Flux Calculation in Finite Volume Method**
-> ใน **Domain B: Numerics & Linear Algebra** (และ Domain E: Coding):
-> - Surface fields คือ **หัวใจของ Finite Volume Method** เพราะ flux ผ่าน faces เป็นพื้นฐานของ conservation laws
-> - **Typical locations:**
->   - Solvers: ไฟล์เช่น `src/finiteVolume/cfd/tools/general/simpleFoam/createPhi.H`
->   - FvSchemes: `system/fvSchemes` → ระบุ `interpolationScheme` สำหรับ cell-to-face interpolation
->
-> **Keywords ใน case files:**
-> - **`phi`** → **mass flux** field $[\text{kg}/\text{s}]$ หรือ **volume flux** $[\text{m}^3/\text{s}]$ ถูกสร้างในทุก incompressible solvers
-> - **File locations:**
->   - `0/phi` → flux field file (สร้างอัตโนมัติโดย solver หรือ manually ในบาง solvers)
->   - `system/fvSchemes` → `interpolationSchemes` คุบควม `linear`, `upwind`, `linearUpwind` สำหรับ `fvc::interpolate()`
->
-> **Connection to discretization (Domain B):**
-> - `fvc::interpolate(rho * U)` → interpolate **cell-centered velocity** ไปยัง **face-centered values**
-> - `& mesh.Sf()` → dot product กับ **face area vector** เพื่อคำนวณ flux
-> - **Flux equation:** $\phi_f = \int_f \mathbf{U} \cdot d\mathbf{S}_f$
-
-```cpp
-// Mass flux
-surfaceScalarField phi = fvc::interpolate(rho * U) & mesh.Sf();
-
-// Face interpolation
-surfaceScalarField Tf = fvc::interpolate(T);
-
-// Volume flux
-surfaceScalarField phiU = fvc::flux(U);
-```
-
----
-
-## Exercise 4: Boundary Access
-
-> [!NOTE] **📂 OpenFOAM Context: Boundary Conditions in Case Files**
-> ใน **Domain A: Physics & Fields** (และ Domain E: Coding):
-> - การเข้าถึง boundary fields คือ **การเชื่อมต่อระหว่าง C++ code กับ boundary condition files** ใน `0/` directory
-> - **Typical locations:**
->   - Boundary condition code: `src/finiteVolume/fields/fvPatchFields/derived/`
->   - Field files: `0/p`, `0/U`, `0/T` → มีส่วน `boundaryField` ที่ระบุ BC สำหรับแต่ละ patch
->
-> **Keywords ใน case files:**
-> - **Patch names** เช่น `"inlet"`, `"outlet"`, `"walls"` → ต้องตรงกับชื่อใน `constant/polyMesh/boundary`
-> - **Boundary condition types**:
->   - `fixedValue` → กำหนดค่าคงที่ (เช่น velocity inlet)
->   - `zeroGradient` → gradient = 0 (เช่น pressure outlet)
->   - `fixedFluxPressure` → flux คงที่ (pressure BC)
->
-> **Connection to Mesh (Domain D):**
-> - `mesh.boundaryMesh().findPatchID("inlet")` → ค้นหา patch ID จากชื่อที่ระบุใน **`constant/polyMesh/boundary`** file
-> - Boundary patches ถูกสร้างโดย **meshing tools** (`blockMesh`, `snappyHexMesh`) และถูกเก็บใน `constant/polyMesh/`
->
-> **Practical use:**
-> - การอ่าน/เขียน boundary values ผ่าน code มักใช้ใน **custom boundary conditions** หรือ **function objects** เช่น:
->   - `src/finiteVolume/fields/fvPatchFields/derived/timeVaryingMappedFixedValue/`
->   - `system/controlDict` → `functions` ที่ monitor boundary values
-
-```cpp
-// Find patch
+// 2. Calculate total mass flow at inlet
 label inletI = mesh.boundaryMesh().findPatchID("inlet");
+scalar massFlowInlet = sum(massFlux.boundaryField()[inletI]);
 
-// Read boundary
-const vectorField& Uin = U.boundaryField()[inletI];
+Info << "Inlet mass flow rate: " << massFlowInlet << " kg/s" << endl;
 
-// Modify boundary
-U.boundaryFieldRef()[inletI] == fixedValue;
-
-// Surface normal gradient
-scalarField snGradT = T.boundaryField()[inletI].snGrad();
+// 3. Check mass balance (for incompressible)
+scalar totalFlux = sum(massFlux);
+Info << "Global mass balance: " << totalFlux << " (should be ~0)" << endl;
 ```
+
+**Physical Interpretation:**
+- `massFlux > 0` → flow **out of cell** (face normal points outward)
+- `massFlux < 0` → flow **into cell**
+- สำหรับ **steady-state incompressible**: $\sum_{\text{all faces}} \phi_f = 0$
+
+</details>
 
 ---
 
-## Exercise 5: Point Fields
+## 📝 Exercise 3: Custom Boundary Condition Development
 
-> [!NOTE] **📂 OpenFOAM Context: Point Mesh and Dynamic Meshing**
-> ใน **Domain D: Meshing** (และ Domain E: Coding):
-> - Point fields ถูกใช้ใน **dynamic meshing**, **FEM (Finite Element Method)**, และ **mesh deformation** problems
-> - **Typical locations:**
->   - Dynamic mesh solvers: `src/finiteVolume/cfd/tools/general/moveDynamicMesh/`
->   - FEM solvers: `src/finiteElement/`
->   - Point mesh code: `src/meshes/pointMesh/`
+> [!NOTE] **📂 OpenFOAM Context: BC Code ↔ Case File Connection**
+> **Scenario:** คุณต้องการสร้าง **time-varying velocity inlet** ที่ velocity ขึ้นกับ elevation (z-direction) เช่น atmospheric boundary layer: $u(z) = U_{ref} \left(\frac{z}{z_{ref}}\right)^\alpha$
 >
-> **Keywords ใน case files:**
-> - **`pointDisplacement`** → field สำหรับ **vertex displacement** ใน dynamic mesh cases
-> - **File locations:**
->   - `0/pointDisplacement` → boundary condition สำหรับ mesh movement
->   - `constant/dynamicMeshDict` → ระบุ dynamic mesh solver (เช่น `linearElasticity`, `solidBodyMotion`)
->   - `system/controlDict` → `runTimeModifiable true` สำหรับ runtime mesh changes
+> **Domain E (Coding):** สร้าง custom BC class
+> ```cpp
+> // ใน src/finiteVolume/fields/fvPatchFields/derived/myTimeVaryingInlet/
+> class myTimeVaryingInletFvPatchVectorField
+>     : public fixedValueFvPatchVectorField
+> {
+>     // Update coefficients จะถูกเรียกทุก time step
+>     virtual void updateCoeffs();
+> };
+> ```
 >
-> **Connection to Mesh (Domain D):**
-> - `pointMesh::New(mesh)` → สร้าง **point mesh** จาก base mesh (`fvMesh`)
-> - Point mesh เก็บข้อมูลที่ **mesh vertices** (ไม่ใช่ cell centers หรือ face centers)
-> - ใช้ใน **mesh quality analysis**, **adaptive mesh refinement**, และ **moving boundaries**
+> **Domain A (Case Files):** ใช้ BC ใน `0/U`:
+> ```cpp
+> inlet
+> {
+>     type            myTimeVaryingInlet;
+>     Uref            10.0;      // Reference velocity [m/s]
+>     zref            10.0;      // Reference height [m]
+>     alpha           0.14;      // Power law exponent
+> }
+> ```
+
+### โจทย์:
+1. เขียนฟังก์ชัน `updateCoeffs()` สำหรับ BC ดังกล่าว
+2. ใช้ `patch().Cf()` (face centers) เพื่อเข้าถึง elevation ของแต่ละ face
+3. ตรวจสอบว่า BC ของคุณถูก compile และ load ได้อย่างถูกต้อง
+
+### 💡 Answer Key:
+<details>
+<summary>คำอธิบายแนวทางการแก้</summary>
+
+```cpp
+void myTimeVaryingInletFvPatchVectorField::updateCoeffs()
+{
+    if (this->updated())
+    {
+        return;  // Skip if already updated
+    }
+    
+    // Get face centers (z-coordinate is component 2)
+    const vectorField& faceCenters = patch().Cf();
+    scalarField z = faceCenters.component(2);
+    
+    // Calculate velocity profile: U(z) = Uref * (z/zref)^alpha
+    scalarField Uprofile = Uref_ * pow(z / zref_, alpha_);
+    
+    // Update boundary values
+    vectorField::operator=(vector(Uprofile, scalar(0), scalar(0)));
+    
+    fixedValueFvPatchVectorField::updateCoeffs();
+}
+```
+
+**Testing:**
+```bash
+# Compile custom BC
+wmake libso
+
+# ใน case directory:
+# 0/U → type myTimeVaryingInlet;
+# รัน solver และตรวจสอบ velocity profile
+paraFoam -builtin
+```
+
+</details>
+
+---
+
+## 📝 Exercise 4: Point Fields for Dynamic Meshing
+
+> [!NOTE] **📂 OpenFOAM Context: Mesh Motion via Point Displacement**
+> **Scenario:** คุณกำลังจำลอง **oscillating airfoil** ที่ pitch รอบ leading edge แบบ sinusoidal: $\theta(t) = \theta_0 \sin(2\pi f t)$
 >
-> **Common applications:**
-> - **Fluid-Structure Interaction (FSI):** คำนวณ displacement ของ solid boundaries
-> - **Moving boundaries:** เช่น piston motion, valve movement
-> - **Mesh morphing:** ปรับ mesh ตาม geometry changes
+> **Domain D (Meshing):** การเคลื่อนที่ของ mesh
+> - **Point displacement:** $\mathbf{d}_p = \mathbf{R}(\theta) \cdot (\mathbf{x}_p - \mathbf{x}_{LE}) - (\mathbf{x}_p - \mathbf{x}_{LE})$
+> - **Mesh quality:** ต้องตรวจสอบว่าไม่มี cells ที่ skew หรือ non-orthogonal มากเกินไป
+>
+> **Domain A (Case Files):** ระบุ dynamic mesh settings
+> ```cpp
+> // constant/dynamicMeshDict
+> dynamicFvMesh   dynamicMotionSolverFvMesh;
+> motionSolverLibs ("libfvMotionSolvers.so");
+> solver          displacementLaplacian;
+>
+> // 0/pointDisplacement
+> airfoil
+> {
+>     type            oscillatingDisplacement;
+>     amplitude       0.1;      // [rad]
+>     frequency       1.0;      // [Hz]
+>     axis            (0 0 1);  // Pitch axis
+> }
+> ```
+
+### โจทย์:
+1. สร้าง `pointVectorField pointD` สำหรับเก็บ displacement
+2. เขียน loop คำนวณ displacement สำหรับแต่ละ vertex ตาม pitch motion
+3. ตรวจสอบ mesh quality หลังจาก motion: `checkMesh -allGeometry -allTopology`
+
+### 💡 Answer Key:
+<details>
+<summary>แนวทางการแก้</summary>
 
 ```cpp
 // Create point mesh
@@ -237,77 +281,217 @@ const pointMesh& pMesh = pointMesh::New(mesh);
 // Point displacement field
 pointVectorField pointD
 (
-    IOobject("pointDisplacement", runTime.timeName(), mesh),
+    IOobject
+    (
+        "pointDisplacement",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
     pMesh,
     dimensionedVector("zero", dimLength, vector::zero)
 );
+
+// Calculate pitch displacement (simplified)
+const pointField& points = mesh.points();
+vectorField displacement(points.size());
+
+vector LE(0, 0, 0);  // Leading edge position
+scalar theta = theta0_ * sin(2 * M_PI * f_ * runTime.value());
+
+forAll(points, i)
+{
+    vector r0 = points[i] - LE;
+    scalar x0 = r0.x();
+    scalar y0 = r0.y();
+    
+    // Rotation matrix (2D)
+    displacement[i] = vector(
+        x0 * cos(theta) - y0 * sin(theta) - x0,
+        x0 * sin(theta) + y0 * cos(theta) - y0,
+        0
+    );
+}
+
+pointD = displacement;
+pointD.correctBoundaryConditions();
 ```
+
+**Mesh Quality Check:**
+```bash
+checkMesh -allGeometry -allTopology -time 0.1
+# ตรวจสอบ: Max non-orthogonality < 70°, Max skewness < 4
+```
+
+</details>
 
 ---
 
-## Quick Reference
+## 🚀 Capstone Project: Turbulent Channel Flow with Custom Post-Processing
 
-> [!NOTE] **📂 OpenFOAM Context: Code Snippets in Practice**
-> ใน **Domain E: Coding/Customization**:
-> - ตารางนี้คือ **quick reference** สำหรับการเขียนโค้ด C++ ใน OpenFOAM
-> - **Typical usage:**
->   - **Solver development:** ใช้ใน main solver loop หรือ createFields.H
->   - **Function objects:** ใช้ใน custom function objects สำหรับ runtime analysis
->   - **Boundary conditions:** ใช้ใน custom BC classes
+> [!NOTE] **📂 OpenFOAM Context: Integration Across All Domains**
+> **Project Overview:** พัฒนา **function object** สำหรับวิเคราะห์ turbulent channel flow โดยคำนวณ:
+> 1. **Wall friction velocity:** $u_\tau = \sqrt{\tau_w / \rho}$
+> 2. **Dimensionless wall distance:** $y^+ = \frac{y u_\tau}{\nu}$
+> 3. **Velocity profile:** $u^+(y^+) = \frac{\bar{u}}{u_\tau}$
 >
-> **Connection to case files:**
-> - Cell value access (`T[cellI]`) → อ่านค่าจาก field ใน memory ที่โหลดจาก `0/T`
-> - Boundary value access → เข้าถึงค่าจาก `boundaryField` ส่วนใน field files
-> - Interpolation (`fvc::interpolate`) → ใช้ schemes จาก `system/fvSchemes`:
->   ```cpp
->   // ใน system/fvSchemes:
->   interpolationSchemes
->   {
->       default linear;
->   }
->   ```
-> - Flux computation → สร้าง `phi` field ที่ใช้ใน continuity equation
->
-> **Keywords ใน compilation:**
-> - เมื่อใช้ snippets เหล่านี้ใน custom code ต้อง:
->   - `#include "fvCFD.H"` → สำหรับ field operations
->   - Link กับ `libfiniteVolume.so` ใน `Make/options`
+> **Domains Involved:**
+> - **Domain A (Physics):** Turbulent boundary layer theory
+> - **Domain D (Meshing):** Near-wall mesh resolution
+> - **Domain E (Coding):** Custom function object implementation
 
-| Need | Code |
-|------|------|
-| Cell value | `T[cellI]` |
-| Boundary value | `T.boundaryField()[patchI][faceI]` |
-| Interpolate to face | `fvc::interpolate(T)` |
-| Compute flux | `fvc::interpolate(U) & mesh.Sf()` |
-| Get component | `U.component(0)` |
-| Magnitude | `mag(U)` |
+### โจทย์:
+1. **Part 1: Field Computation (30 min)**
+   - สร้าง `volScalarField uTau` จาก wall shear stress: $\tau_w = \mu \frac{\partial u}{\partial y}|_{wall}$
+   - ใช้ `T.boundaryField()[wallI].snGrad()` เพื่อคำนวณ gradient
+   - คำนวณ `volScalarField yPlus` สำหรับทุก cell
+
+2. **Part 2: Integration with Case Files (20 min)**
+   - เขียน configuration ใน `system/controlDict` สำหรับ function object
+   - ระบุ output directory สำหรับผลลัพธ์: `postProcessing/wallProfiles/`
+   - เชื่อมต่อกับ field files: `0/U`, `0/nuSgs`
+
+3. **Part 3: Validation and Verification (20 min)**
+   - เปรียบเทียบ $u^+(y^+)$ กับ **law of the wall**: $u^+ = \frac{1}{\kappa} \ln y^+ + B$
+   - ตรวจสอบว่า $y^+_{\text{first cell}} \approx 1$ สำหรับ low-Reynolds simulation
+   - วิเคราะห์ mesh independence: ทดลองกับ $\Delta y$ ต่างกัน
+
+### 💡 Starter Code:
+
+```cpp
+// ใน custom function object: calcWallProfile.C
+const volScalarField::Boundary& wallGradU = U.boundaryField();
+
+label wallI = mesh.boundaryMesh().findPatchID("walls");
+scalarField tauW = mu.boundaryField()[wallI] * wallGradU[wallI].snGrad();
+
+volScalarField uTau
+(
+    IOobject("uTau", runTime.timeName(), mesh),
+    mesh,
+    dimensionedScalar("zero", dimVelocity, scalar(0))
+);
+
+// Continue implementation...
+```
+
+### 📊 Expected Output:
+```
+postProcessing/wallProfiles/
+├── 0.1/
+│   ├── uTau       (scalarField at wall)
+│   ├── yPlus      (volScalarField)
+│   └── uPlus_vs_yPlus (data for plotting)
+```
+
+### 🎯 Success Criteria:
+- ✅ Function object compile และ run ได้
+- ✅ $y^+ < 1$ สำหรับ first cell near wall
+- ✅ $u^+$ profile ตรงกับ law of the wall (within 10%)
+- ✅ Code เชื่อมต่อกับ case files อย่างถูกต้อง
 
 ---
 
 ## 🧠 Concept Check
 
 <details>
-<summary><b>1. volScalarField vs surfaceScalarField ต่างกันอย่างไร?</b></summary>
+<summary><b>1. ทำไม flux field (surfaceScalarField) จำเป็นสำหรับ conservation equations?</b></summary>
 
-- **volScalarField**: ค่าที่ **cell center**
-- **surfaceScalarField**: ค่าที่ **face center**
+เพราะ conservation laws (mass, momentum, energy) ถูกเขียนในรูป **divergence form**: $\nabla \cdot \mathbf{F}$ ซึ่งใน Finite Volume Method แปลงเป็น **sum of fluxes** ผ่าน faces: $\sum_f \mathbf{F}_f \cdot \mathbf{S}_f$
+
+**Connection to physics:**
+- Mass conservation: $\sum \phi_f = 0$ (incompressible)
+- Momentum conservation: $\sum (\rho \mathbf{U} \mathbf{U})_f \cdot \mathbf{S}_f = \text{forces}$
 </details>
 
 <details>
-<summary><b>2. ทำไมต้อง interpolate ก่อนคำนวณ flux?</b></summary>
+<summary><b>2. แบบไหนของ field ควรใช้ MUST_READ vs NO_READ?</b></summary>
 
-เพราะ **velocity is cell-centered** แต่ **flux ต้องการค่าที่ face**
+| Field Type | IOobject::MUST_READ | IOobject::NO_READ |
+|------------|---------------------|-------------------|
+| **Primary physics fields** (`p`, `U`, `T`) | ✅ อ่าน initial/boundary conditions จาก `0/` | ❌ |
+| **Derived/calculated fields** (`kProduction`, `uTau`) | ❌ (optional) | ✅ คำนวณจาก fields อื่น |
+| **Output-only fields** (`residuals`, `yPlus`) | ❌ | ✅ |
+
+**Decision tree:**
+1. Field นี้ต้องการ **user-specified initial values** ใน case? → `MUST_READ`
+2. Field นี้คำนวณ **จาก fields อื่นทันที**? → `NO_READ`
+3. Field นี้เป็น **intermediate field** สำหรับ solver? → `NO_READ, AUTO_WRITE`
 </details>
 
 <details>
-<summary><b>3. snGrad คืออะไร?</b></summary>
+<summary><b>3. ทำไม point fields จำเป็นสำหรับ dynamic meshing?</b></summary>
 
-**Surface normal gradient** = gradient ในทิศตั้งฉากกับ boundary face
+เพราะ **mesh deformation** ต้องการ displacement ของ **vertices** (ไม่ใช่ cell centers)
+
+**Key differences:**
+- **Volume fields:** ค่าที่ cell centers → ใช้สำหรับ physics equations (Navier-Stokes)
+- **Point fields:** ค่าที่ mesh vertices → ใช้สำหรับ mesh motion, FEM
+
+**Connection to case files:**
+- `0/pointDisplacement` → ระบุ displacement BC สำหรับ patches
+- `constant/dynamicMeshDict` → ระบุ motion solver (e.g., `displacementLaplacian`)
 </details>
 
 ---
 
 ## 📖 เอกสารที่เกี่ยวข้อง
 
-- **ภาพรวม:** [00_Overview.md](00_Overview.md)
-- **Point Fields:** [05_Point_Fields.md](05_Point_Fields.md)
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) - ดูตาราง reference ทั้งหมด
+- **Volume Fields:** [02_Volume_Fields.md](02_Volume_Fields.md) - cell-centered storage
+- **Surface Fields:** [03_Surface_Fields.md](03_Surface_Fields.md) - flux computation
+- **Point Fields:** [05_Point_Fields.md](05_Point_Fields.md) - dynamic meshing
+
+---
+
+## 🎓 Key Takeaways
+
+### ✅ สิ่งที่คุณควรได้เรียนรู้:
+
+1. **Field Creation Pattern:**
+   ```cpp
+   IOobject(name, timeName, mesh, READ/WRITE flags) → mesh → dimensions/initialValue
+   ```
+
+2. **Flux Computation:**
+   ```cpp
+   phi = fvc::interpolate(rho * U) & mesh.Sf();  // Mass flux [kg/s]
+   ```
+
+3. **Boundary Access:**
+   ```cpp
+   mesh.boundaryMesh().findPatchID("name") → patchI
+   field.boundaryField()[patchI] → boundary values
+   ```
+
+4. **Code ↔ Case Connection:**
+   - C++ fields ↔ `0/` directory files
+   - Interpolation schemes ↔ `system/fvSchemes`
+   - BC types ↔ `src/finiteVolume/fields/fvPatchFields/`
+
+### 🔍 Common Pitfalls to Avoid:
+- ❌ ลืมระบุ `dimensionSet` → จะได้ **dimension inconsistency** errors
+- ❌ ใช้ `fvc::interpolate` ผิด scheme → ได้ **numerical diffusion**
+- ❌ ไม่เชื่อมต่อ BC code กับ case files → **runtime error**
+- ❌ คำนวณ flux โดยไม่คำนึงถึง **face normal direction**
+
+---
+
+## 📚 Additional Resources
+
+### OpenFOAM Source Code:
+- **Field definitions:** `src/finiteVolume/fields/volFields/volFields.H`
+- **Surface fields:** `src/finiteVolume/fields/surfaceFields/surfaceFields.H`
+- **Point mesh:** `src/meshes/pointMesh/pointMesh.H`
+- **Boundary conditions:** `src/finiteVolume/fields/fvPatchFields/`
+
+### Case File Locations:
+- **Field files:** `0/p`, `0/U`, `0/phi`
+- **Schemes:** `system/fvSchemes`, `system/fvSolution`
+- **Mesh:** `constant/polyMesh/boundary`
+
+### Next Steps:
+1. ลองแก้โจทย์ Capstone Project ใน solver จริง (e.g., `pimpleFoam`)
+2. ดูตัวอย่าง function objects ใน `src/OpenFOAM/db/functionObjects/`
+3. ศึกษา custom BC ใน `tutorials/` เช่น `boundaryConditions/`

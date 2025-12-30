@@ -5,7 +5,7 @@
 > [!TIP] ทำไม Field Algebra สำคัญใน OpenFOAM?
 > Field Algebra คือภาษาพื้นฐานที่ใช้สื่อสารกับ **Fields** (ค่าที่กระจายอยู่บน mesh) ใน OpenFOAM:
 > - **ความสำคัญ:** ทุก solver ใช้ field algebra เพื่อคำนวณ gradient, divergence, laplacian สำหรับสมการกายภาพ
-> - **ความเสถียร:** การเลือกใช้ `fvm` (implicit) กับ `fvc` (explicit) ส่งผลต่อความเสถียรของการคำนวณ
+> - **ความเสถียร:** การเลือกใช้ `fvm` (implicit) กับ `fvc` (explicit) ส่งผลต่อความเสถียรของการคำนาณ
 > - **Performance:** การใช้ expression templates ทำให้การคำนวณหลาย operation รวดเร็วขึ้น
 > - **ขอบเขต:** ใช้ใน **การพัฒนา solver** (`src/finiteVolume/`) และ **function objects** สำหรับ post-processing
 >
@@ -13,6 +13,17 @@
 > - คำนวณค่า `y+` จาก field `U` และ `nut`
 > - สร้าง source term แบบ dynamic สำหรับสมการพลังงาน
 > - คำนวณ vortex identification criteria (Q-criterion, lambda-2)
+
+---
+
+## Learning Objectives
+
+เมื่อจบบทนี้ คุณจะสามารถ:
+- **เขียนสมการพีชคณิตบน fields** เพื่อคำนวณค่าต่างๆ แบบ automatic dimensional checking
+- **เลือกใช้ `fvm` กับ `fvc`** อย่างเหมาะสมตามความต้องการด้านความเสถียรและความแม่นยำ
+- **ประกอบสมการ transport equation** แบบครบถ้วนสำหรับ solver development
+- **คำนวณค่าเชิงสถิติ** และส่งออกผลแบบ parallel-aware
+- **สร้าง flux fields** และใช้งาน surface field operations อย่างถูกต้อง
 
 ---
 
@@ -25,7 +36,7 @@
 >
 > **ไฟล์ที่เกี่ยวข้อง:**
 > - `0/*` - ไฟล์ initial/boundary conditions (อ่าน/เขียน fields: `U`, `p`, `T`)
-> - `constant/transportProperties` - ค่าทางกายภาพ (density, viscosity) ที่ใช้ในการคำนวณ
+> - `constant/transportProperties` - ค่าทางกายภาพ (density, viscosity) ที่ใช้ในการคำนาณ
 >
 > **การใช้งานใน Code:**
 > - **Solver Development:** ใช้ใน `src/finiteVolume/` สำหรับสร้างสมการ line-by-line
@@ -75,10 +86,10 @@
 > - `divSchemes` - เลือก scheme สำหรับ divergence (Gauss upwind, linear)
 > - `laplacianSchemes` - เลือก scheme สำหรับ laplacian (Gauss linear corrected)
 
-| Prefix | Type | Goes To |
-|--------|------|---------|
-| `fvm::` | Implicit | Matrix (LHS) |
-| `fvc::` | Explicit | Source (RHS) |
+| Prefix | Type | Goes To | Usage Example |
+|--------|------|---------|---------------|
+| `fvm::` | Implicit | Matrix (LHS) | `fvm::ddt(T)`, `fvm::div(phi, T)` |
+| `fvc::` | Explicit | Source (RHS) | `fvc::grad(p)`, `fvc::curl(U)` |
 
 ---
 
@@ -110,16 +121,26 @@
 > - **Initial Conditions:** แปลงหน่วยอุณหภูมิ (Celsius → Kelvin)
 > - **Boundary Conditions:** คำนวณค่าที่ boundary patches
 
+**Difficulty:** ⭐ Beginner
+
+**Task:** คำนวณ dynamic pressure และแปลงหน่วยอุณหภูมิ
+
 ```cpp
 // Fields
-volScalarField p, T;
-volVectorField U;
+volScalarField p(IOobject("p", runTime.timeName(), mesh, IOobject::MUST_READ, IOobject::AUTO_WRITE), mesh);
+volScalarField T(IOobject("T", runTime.timeName(), mesh, IOobject::MUST_READ, IOobject::AUTO_WRITE), mesh);
+volVectorField U(IOobject("U", runTime.timeName(), mesh, IOobject::MUST_READ, IOobject::AUTO_WRITE), mesh);
 dimensionedScalar rho("rho", dimDensity, 1000);
 
-// Arithmetic
-volScalarField dynP = 0.5 * rho * magSqr(U);
-volScalarField Ttotal = T + 273.15;
+// Arithmetic - Dimensional consistency maintained
+volScalarField dynP = 0.5 * rho * magSqr(U);           // Dynamic pressure [kg/(m·s²)]
+dimensionedScalar T_offset("T_offset", dimTemperature, 273.15);
+volScalarField Ttotal = T + T_offset;                  // Convert °C to K
 ```
+
+**Expected Output:**
+- `dynP` - Dynamic pressure field
+- `Ttotal` - Temperature in Kelvin
 
 ---
 
@@ -158,19 +179,30 @@ volScalarField Ttotal = T + 273.15;
 > - **Heat conduction:** `laplacian(alpha, T)` ใช้ใน energy equation
 > - **Vorticity calculation:** `curl(U)` ใช้ใน turbulence visualization
 
+**Difficulty:** ⭐⭐ Intermediate
+
+**Task:** คำนวณ gradient, divergence, laplacian, และ curl
+
 ```cpp
-// Gradient
+// Gradient of pressure
 volVectorField gradP = fvc::grad(p);
 
-// Divergence
+// Divergence of velocity field (continuity check)
 volScalarField divU = fvc::div(phi);
 
-// Laplacian
+// Laplacian of temperature (heat conduction)
+dimensionedScalar alpha("alpha", dimArea/sqr(dimTime), 1e-5);
 volScalarField lapT = fvc::laplacian(alpha, T);
 
-// Curl
+// Curl of velocity (vorticity)
 volVectorField omega = fvc::curl(U);
 ```
+
+**Expected Output:**
+- `gradP` - Pressure gradient vectors
+- `divU` - Velocity divergence (should be ~0 for incompressible flow)
+- `lapT` - Temperature laplacian
+- `omega` - Vorticity field
 
 ---
 
@@ -215,18 +247,34 @@ volVectorField omega = fvc::curl(U);
 > - **Source terms:** เพิ่ม heat source, chemical reactions
 > - **Coupling:** Couple multiple equations ผ่าน source terms
 
+**Difficulty:** ⭐⭐⭐ Advanced
+
+**Task:** ประกอบสมการ energy equation แบบครบถ้วน
+
 ```cpp
+// Create a heat source term
+volScalarField Sh(IOobject("Sh", runTime.timeName(), mesh, IOobject::MUST_READ, IOobject::AUTO_WRITE), mesh);
+
+// Assemble temperature equation
 fvScalarMatrix TEqn
 (
-    fvm::ddt(T)                    // Time derivative
-  + fvm::div(phi, T)               // Convection
+    fvm::ddt(T)                    // Time derivative: ∂T/∂t
+  + fvm::div(phi, T)               // Convection: ∇·(φT)
  ==
-    fvm::laplacian(alpha, T)       // Diffusion
-  + fvc::Su(Sh, T)                 // Source (explicit)
+    fvm::laplacian(alpha, T)       // Diffusion: ∇·(α∇T)
+  + fvc::Su(Sh, T)                 // Explicit source: Sh/rho/Cp
 );
 
+// Solve the equation
 TEqn.solve();
+
+// Report convergence
+Info<< "T equation solver performance: " << TEqn.performance() << endl;
 ```
+
+**Expected Output:**
+- Solved temperature field `T`
+- Solver performance statistics
 
 ---
 
@@ -264,13 +312,31 @@ TEqn.solve();
 > - **Boundary conditions:** กำหนด flux values ที่ inlets/outlets
 > - **Post-processing:** คำนวณ mass flow rate ผ่าน surfaces
 
-```cpp
-// Mass flux
-surfaceScalarField phi = fvc::interpolate(rho * U) & mesh.Sf();
+**Difficulty:** ⭐⭐ Intermediate
 
-// Convective flux
+**Task:** สร้าง mass flux และคำนวณ convective transport
+
+```cpp
+// Mass flux calculation
+surfaceScalarField phi
+(
+    IOobject("phi", runTime.timeName(), mesh, IOobject::NO_READ, IOobject::AUTO_WRITE),
+    fvc::interpolate(rho * U) & mesh.Sf()
+);
+
+// Convective flux of temperature
 volScalarField convT = fvc::div(phi, T);
+
+// Mass conservation check
+volScalarField massCont = fvc::div(phi);
+scalar maxMassImbalance = max(mag(massCont)).value();
+Info<< "Max mass imbalance: " << maxMassImbalance << endl;
 ```
+
+**Expected Output:**
+- `phi` - Mass flux field at faces
+- `convT` - Convective temperature flux
+- Mass imbalance indicator
 
 ---
 
@@ -325,12 +391,35 @@ volScalarField convT = fvc::div(phi, T);
 > - **Mass balance:** คำนวณ total mass ด้วย `gSum(rho * mesh.V())`
 > - **Data export:** ส่งข้อมูล statistics ไปยัง log files
 
+**Difficulty:** ⭐⭐⭐ Advanced
+
+**Task:** คำนวณค่าเชิงสถิติแบบ parallel-aware
+
 ```cpp
-scalar maxT = max(T).value();
-scalar minT = min(T).value();
+// Local statistics (per processor)
+scalar maxT_local = max(T).value();
+scalar minT_local = min(T).value();
+
+// Global statistics (across all processors)
+scalar maxT_global = gMax(T);
+scalar minT_global = gMin(T);
 scalar avgT = average(T).value();
-scalar sumT = gSum(T * mesh.V());  // Volume-weighted sum
+
+// Volume-weighted integrals (parallel-aware)
+scalar totalMass = gSum(rho * mesh.V());
+scalar totalInternalEnergy = gSum(rho * T * mesh.V());
+
+// Output results
+Info<< "Temperature statistics:" << nl
+    << "  min (global): " << minT_global << " K" << nl
+    << "  max (global): " << maxT_global << " K" << nl
+    << "  average: " << avgT << " K" << nl
+    << "Total mass: " << totalMass << " kg" << endl;
 ```
+
+**Expected Output:**
+- Min/max/average temperature values
+- Total mass and internal energy
 
 ---
 
@@ -357,14 +446,15 @@ scalar sumT = gSum(T * mesh.V());  // Volume-weighted sum
 > - **Vorticity:** `fvc::curl(U)` สำหรับ turbulence visualization
 > - **Heat flux:** `fvc::interpolate(k) * fvc::grad(T)` สำหรับ wall heat flux
 
-| Operation | Code |
-|-----------|------|
-| Gradient | `fvc::grad(p)` |
-| Divergence | `fvc::div(U)` |
-| Laplacian | `fvc::laplacian(k, T)` |
-| Curl | `fvc::curl(U)` |
-| Interpolate | `fvc::interpolate(T)` |
-| Flux | `linearInterpolate(U) & mesh.Sf()` |
+| Operation | Code | Usage |
+|-----------|------|-------|
+| Gradient | `fvc::grad(p)` | Pressure force, wall gradients |
+| Divergence | `fvc::div(phi, U)` | Continuity, convection |
+| Laplacian | `fvc::laplacian(k, T)` | Diffusion, heat conduction |
+| Curl | `fvc::curl(U)` | Vorticity, turbulence |
+| Interpolate | `fvc::interpolate(T)` | Cell-to-face values |
+| Flux | `linearInterpolate(U) & mesh.Sf()` | Mass flow rate |
+| Statistics | `gSum(T * mesh.V())` | Global integrals |
 
 ---
 
@@ -373,27 +463,84 @@ scalar sumT = gSum(T * mesh.V());  // Volume-weighted sum
 <details>
 <summary><b>1. fvm::div vs fvc::div ต่างกันอย่างไร?</b></summary>
 
-- **fvm::div**: Implicit → matrix coefficients
-- **fvc::div**: Explicit → evaluated immediately
+- **fvm::div**: Implicit → matrix coefficients (LHS of equation)
+- **fvc::div**: Explicit → evaluated immediately (RHS of equation)
+- **Use fvm** for terms requiring stability (convection, diffusion)
+- **Use fvc** for terms calculated from previous iteration (gradients, sources)
 </details>
 
 <details>
 <summary><b>2. ทำไมใช้ Sp vs Su?</b></summary>
 
-- **Sp**: Implicit source (stabilizing)
-- **Su**: Explicit source (may destabilize)
+- **fvm::Sp(source, field)**: Implicit source → adds to matrix diagonal → stabilizing
+- **fvc::Su(source, field)**: Explicit source → RHS only → may destabilize
+- **Guideline**: Use `Sp` for source terms linear in the field variable
 </details>
 
 <details>
 <summary><b>3. gSum vs sum ต่างกันอย่างไร?</b></summary>
 
-- **sum**: Local processor sum
-- **gSum**: Global sum (parallel)
+- **sum**: Local processor sum only (works on single processor)
+- **gSum**: Global sum across all processors (parallel-aware)
+- **Always use gSum** for domain integrals in parallel simulations
 </details>
+
+<details>
+<summary><b>4. ทำไมต้องใช้ dimensionedScalar แทน double?</b></summary>
+
+- **Type safety**: OpenFOAM checks dimensional consistency at compile-time
+- **Prevents errors**: Cannot accidentally add pressure to velocity
+- **Documentation**: Units are explicit in the code
+- **Example**: `dimensionedScalar rho("rho", dimDensity, 1000);`
+</details>
+
+<details>
+<summary><b>5. surfaceScalarField vs volScalarField ต่างกันอย่างไร?</b></summary>
+
+- **volScalarField**: Values defined at cell centers (interior of domain)
+- **surfaceScalarField**: Values defined at cell faces (boundaries between cells)
+- **Flux fields**: Always use `surfaceScalarField` (e.g., `phi`)
+- **Use interpolate**: Convert between volume and surface fields
+</details>
+
+---
+
+## Key Takeaways
+
+> [!NOTE] **📚 Module 09: Field Algebra - Key Concepts**
+>
+> **1. Field Operations:**
+> - **Arithmetic**: `+`, `-`, `*`, `/` work field-wise with dimensional checking
+> - **Calculus**: `fvc::` for explicit, `fvm::` for implicit operations
+> - **Statistics**: `gSum`, `gMax`, `average()` for domain-wide values
+>
+> **2. fvm vs fvc:**
+> - **fvm** (implicit) → matrix coefficients → stable for large timesteps
+> - **fvc** (explicit) → immediate evaluation → for known values
+> - **Rule of thumb**: Use fvm for transport terms, fvc for gradients and sources
+>
+> **3. Solver Development:**
+> - Equation assembly: `fvScalarMatrix TEqn(...)` then `TEqn.solve()`
+> - Source terms: `fvm::Sp` (implicit) vs `fvc::Su` (explicit)
+> - Performance: Expression templates eliminate temporary fields
+>
+> **4. Practical Skills:**
+> - Read fields from `0/` directory with `IOobject`
+> - Create flux fields: `phi = fvc::interpolate(rho*U) & mesh.Sf()`
+> - Calculate statistics: `Info<< "Average T: " << average(T) << endl;`
+>
+> **5. Common Pitfalls:**
+> - **Dimensional mismatch**: Cannot add pressure to temperature → use `dimensionedScalar` offsets
+> - **Parallel unaware**: Use `gSum` instead of `sum` for domain integrals
+> - **Memory overhead**: Expression templates help, but complex chains create temps
+> - **Surface vs Volume**: Use `surfaceScalarField` for fluxes, `volScalarField` for cell values
 
 ---
 
 ## 📖 เอกสารที่เกี่ยวข้อง
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
+- **Operator Overloading:** [03_Operator_Overloading.md](03_Operator_Overloading.md)
 - **Dimensional Checking:** [04_Dimensional_Checking.md](04_Dimensional_Checking.md)
+- **Expression Templates:** [05_Expression_Templates.md](05_Expression_Templates.md)
+- **Common Pitfalls:** [06_Common_Pitfalls.md](06_Common_Pitfalls.md)

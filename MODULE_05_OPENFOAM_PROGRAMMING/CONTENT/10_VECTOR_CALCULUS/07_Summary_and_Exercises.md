@@ -46,18 +46,37 @@ Th --> T2
 
 ---
 
+## 🎯 Learning Objectives (เป้าหมายการเรียนรู้)
+
+หลังจากศึกษาบทนี้และทำแบบฝึกหัดแล้ว คุณควรจะสามารถ:
+
+1. **เลือกใช้ `fvc::` vs `fvm::`** อย่างเหมาะสมสำหรับสมการแต่ละประเภท โดยเข้าใจ trade-offs ระหว่าง explicit และ implicit methods
+2. **อ่านและวิเคราะห์ solver code** จาก OpenFOAM solvers จริง (เช่น simpleFoam, pimpleFoam, interFoam)
+3. **ตั้งค่า discretization schemes** ใน `system/fvSchemes` อย่างเหมาะสมกับปัญหาที่ต้องการแก้
+4. **เขียน custom function objects** สำหรับ post-processing โดยใช้ fvc operators
+5. **Debug ปัญหาความเสถียร** ที่เกิดจากการเลือก scheme ที่ไม่เหมาะสม
+6. **วิเคราะห์ conservation properties** ของสมการผ่าน divergence operator
+7. **ตรวจสอบ solver code จริง** และระบุว่าแต่ละ term ควรใช้ `fvc::` หรือ `fvm::`
+8. **แก้ไข divergence problems** โดยการปรับ schemes, time steps, และ under-relaxation
+
+---
+
 ## 🎓 ประเด็นสำคัญ (Key Takeaways)
 
 > [!NOTE] **📂 OpenFOAM Context: Solver Development & Numerical Methods**
 >
 > หัวข้อนี้เกี่ยวข้องกับ **Domain B: Numerics & Linear Algebra** ซึ่งเป็นพื้นฐานของการพัฒนา solver และการปรับแต่ง numerical methods:
 >
-> - **Source Files:** `src/finiteVolume/fvc/fvc.H` (explicit operations), `src/finiteVolume/fvm/fvm.H` (implicit operations)
+> - **Source Files:** 
+>   - `src/finiteVolume/fvc/fvc.H` (explicit operations)
+>   - `src/finiteVolume/fvm/fvm.H` (implicit operations)
+>   - `applications/solvers/incompressible/simpleFoam/` (steady-state solver example)
+>   - `applications/solvers/incompressible/pimpleFoam/` (transient solver example)
 > - **Solver Implementation:** เมื่อคุณเขียน custom solver ใหม่ คุณต้องตัดสินใจว่าแต่ละ term ในสมการควรใช้ `fvc::` (explicit) หรือ `fvm::` (implicit)
 > - **Matrix Assembly:** `fvm::` operations จะถูก assemble เป็น `fvMatrix` ซึ่งถูกแก้ด้วย linear solvers ที่ระบุใน `system/fvSolution`
 > - **Key Decision:**
->   - ใช้ `fvc::` เมื่อ: คำนวณค่าจาก field ที่รู้แล้ว (เช่น source terms, post-processing)
->   - ใช้ `fvm::` เมื่อ: field ที่ต้องการแก้คือ unknown (เช่น diffusion, transient terms)
+>   - ใช้ `fvc::` เมื่อ: คำนวณค่าจาก field ที่รู้แล้ว (เช่น source terms, post-processing, explicit convection)
+>   - ใช้ `fvm::` เมื่อ: field ที่ต้องการแก้คือ unknown (เช่น diffusion, implicit convection, transient terms)
 
 ### 1. การดำเนินการแบบ Explicit vs Implicit: `fvc::` vs `fvm::`
 
@@ -68,7 +87,7 @@ Th --> T2
 - **หลักการ**: คำนวณโดยตรงโดยใช้ค่าฟิลด์ปัจจุบัน
 - **ผลลัพธ์**: ได้ค่าที่ทราบแล้ว (Known quantities) ซึ่งสามารถประเมินผลได้ทันที
 - **รูปแบบทางคณิตศาสตร์**: `result = known_function(field_values)`
-- **การใช้งานทั่วไป**: การแทรกเทอมต้นทาง (source term), การคำนวณเกรเดียนต์
+- **การใช้งานทั่วไป**: การแทรกเทอมต้นทาง (source term), การคำนวณเกรเดียนต์, post-processing
 - **ผลกระทบต่อประสิทธิภาพ**: ใช้ทรัพยากรน้อยต่อการประเมิน
 - **ลักษณะความเสถียร**: อาจมีข้อจำกัดเรื่อง time step ที่เข้มงวดสำหรับปัญหา transient
 
@@ -77,7 +96,7 @@ Th --> T2
 - **หลักการ**: สร้างเมทริกซ์สัมประสิทธิ์สำหรับค่าฟิลด์ที่ไม่รู้ค่า (unknown field values)
 - **ผลลัพธ์**: สร้างระบบสมการเชิงเส้นที่ต้องการการแก้: `A*x = b`
 - **รูปแบบทางคณิตศาสตร์**: `matrix_coefficients * unknown_field = rhs`
-- **การใช้งานทั่วไป**: เทอมการแพร่ (diffusion terms), เทอมต้นทางที่ต้องการ iterative solution
+- **การใช้งานทั่วไป**: เทอมการแพร่ (diffusion terms), เทอม convection ที่ต้องการความเสถียร, เทอมต้นทางที่ต้องการ iterative solution
 - **ผลกระทบต่อประสิทธิภาพ**: ใช้ทรัพยากรสูงกว่าต่อ time step เนื่องจากการประกอบเมทริกซ์และการแก้สมการ
 - **ลักษณะความเสถียร**: โดยทั่วไปมีความเสถียรมากกว่า อนุญาตให้ใช้ time step ที่ใหญ่ขึ้น
 
@@ -92,8 +111,8 @@ fvScalarMatrix pEqn = fvm::laplacian(k, p);  // Creates matrix system
 pEqn.solve();  // Solves for p
 ```
 
-> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-> 
+> 📂 **Source:** `applications/solvers/incompressible/simpleFoam/UEqn.H`
+>
 > **คำอธิบาย:**
 > โค้ดตัวอย่างนี้แสดงความแตกต่างระหว่างการดำเนินการแบบ Explicit และ Implicit:
 > - **บรรทัดที่ 2**: ใช้ `fvc::grad(p)` คำนวณ gradient ของสนามความดัน p แบบ direct computation โดยใช้ค่าปัจจุบันของ p ผลลัพธ์เป็น volVectorField ที่สามารถใช้งานได้ทันที
@@ -102,7 +121,7 @@ pEqn.solve();  // Solves for p
 >
 > **แนวคิดสำคัญ:**
 > - **Explicit Operation (`fvc::`)**: คำนวณค่าโดยตรงจากสนามที่รู้ค่าแล้ว ไม่ต้องแก้สมการ ใช้สำหรับ source terms, gradients, divergences ของสนามที่รู้ค่า
-> - **Implicit Operation (`fvm::`)**: สร้างเมทริกซ์สำหรับค่าที่ยังไม่รู้ ต้องแก้ระบบสมการเชิงเส้น ใช้สำหรับ diffusion terms, transient terms ที่ต้องการความเสถียร
+> - **Implicit Operation (`fvm::`)**: สร้างเมทริกซ์สำหรับค่าที่ยังไม่รู้ ต้องแก้ระบบสมการเชิงเส้น ใช้สำหรับ diffusion terms, convection terms, transient terms ที่ต้องการความเสถียร
 > - **Trade-off**: Explicit เร็วแต่เสถียรน้อยกว่า Implicit ช้ากว่าแต่เสถียรกว่า สามารถใช้ time step ที่ใหญ่กว่าได้
 
 ### 2. การเลือกใช้ Scheme ใน `fvSchemes`
@@ -139,8 +158,8 @@ divSchemes
 }
 ```
 
-> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-> 
+> 📂 **Source:** `applications/solvers/multiphase/interFoam/alphaEqn.H`
+>
 > **คำอธิบาย:**
 > ไฟล์การตั้งค่า `fvSchemes` นี้กำหนดรูปแบบการ discretize สมการ divergence ซึ่งมีผลต่อความแม่นยำและความเสถียรของการจำลอง:
 > - **div(phi,U)**: ใช้ `Gauss upwind` scheme ซึ่งเป็น first-order accurate แต่ให้ความเสถียรสูง เหมาะสำหรับการไหลที่มีความคมชัดสูง (high gradients)
@@ -151,66 +170,6 @@ divSchemes
 > - **Numerical Diffusion**: Scheme อันดับต่ำ (upwind) สร้าง numerical diffusion มาก ทำให้ profile ของค่าต่างๆ กระจายตัวมากเกินไป
 > - **Stability vs Accuracy**: Scheme ที่แม่นยำกว่า (linear) มักมีข้อจำกัดด้านความเสถียรมากกว่า ต้องอาศัย mesh quality ที่ดี
 > - **Limited Schemes**: ใช้ limiter เพื่อป้องกันการ oscillate ใกล้บริเวณที่มี gradient สูง (shocks, discontinuities)
-
-#### Gradient Schemes
-
-| Scheme | คำอธิบาย | ความแม่นยำ |
-|--------|-------------|----------|
-| `Gauss linear` | ผลต่างกลางมาตรฐาน (Standard central differencing) | ดี |
-| `leastSquares` | ดีกว่าสำหรับเมชไม่มีโครงสร้าง (Unstructured meshes) | ดีกว่า |
-
-```cpp
-gradSchemes
-{
-    grad(p)         Gauss linear;           // Standard central differencing
-    grad(U)         leastSquares;           // More accurate on unstructured meshes
-}
-```
-
-> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-> 
-> **คำอธิบาย:**
-> การเลือก gradient scheme ส่งผลต่อความแม่นยำของการคำนวณ gradient บน mesh:
-> - **Gauss linear**: ใช้ central differencing บน cell faces ผ่านการ interpolate แบบ linear เหมาะสำหรับ structured mesh ที่ orthogonal สูง
-> - **leastSquares**: ใช้วิธี least squares minimization เพื่อหา gradient ที่เหมาะสมที่สุดจาก cells ข้างเคียง ให้ผลดีกว่าบน unstructured meshes
->
-> **แนวคิดสำคัญ:**
-> - **Mesh Orthogonality**: Gauss linear ต้องการ mesh ที่ orthogonal สูง ถ้า non-orthogonal มากจะเกิด error ในการคำนวณ gradient
-> - **Unstructured Meshes**: leastSquares ทำงานได้ดีกว่าบน meshes ที่ซับซ้อนเนื่องจากใช้ข้อมูลจากหลาย cell รอบๆ
-> - **Computational Cost**: leastSquares มี cost สูงกว่า Gauss linear แต่ให้ผลที่แม่นยำกว่าในกรณี meshes ที่ไม่ดี
-
-#### Temporal Schemes
-
-| Scheme | อันดับ (Order) | ความง่าย | ความแม่นยำ |
-|--------|-------|------------|----------|
-| `Euler` | ที่หนึ่ง (First) | ง่ายมาก | ปานกลาง |
-| `backward` | ที่สอง (Second) | ปานกลาง | ดี |
-
-```cpp
-timeSchemes
-{
-    ddt(p)          Euler;                  // First-order, simple
-    ddt(U)          backward;               // Second-order, more accurate
-}
-```
-
-> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-> 
-> **คำอธิบาย:**
-> การเลือก temporal discretization scheme ส่งผลต่อความแม่นยำและความเสถียรของการจำลองแบบ transient:
-> - **Euler**: First-order accurate ใช้ค่าที่ time step ปัจจุบันเพื่อคำนวณค่าถัดไป (forward Euler) หรือใช้ค่า time step ถัดไป (backward Euler) ง่ายต่อการ implement แต่ความแม่นยำต่ำ
-> - **backward**: Second-order accurate ใช้ Backward Differentiation Formula (BDF) ให้ความแม่นยำสูงกว่า แต่ต้องเก็บข้อมูลจาก time steps ก่อนหน้า
->
-> **แนวคิดสำคัญ:**
-> - **Temporal Accuracy**: Scheme อันดับสูงกว่า (backward) ลด temporal truncation error ทำให้สามารถใช้ time step ที่ใหญ่กว่าได้ในบางกรณี
-> - **Memory Requirements**: backward scheme ต้องเก็บค่าจาก time steps ก่อนหน้า ใช้ memory มากกว่า
-> - **Stability**: Implicit schemes (เช่น backward Euler) มีความเสถียรดีกว่า explicit schemes สำหรับ stiff problems
-
-**ผลกระทบของการเลือก Scheme:**
-- **ความแม่นยำเชิงพื้นที่**: Linear (2nd order) vs. upwind (1st order)
-- **การแพร่เชิงตัวเลข (Numerical diffusion)**: Scheme อันดับสูงกว่าช่วยลดการแพร่ที่ไม่สมจริง
-- **ขีดจำกัดความเสถียร**: Scheme ที่แม่นยำกว่ามักต้องการ time step ที่เล็กกว่า
-- **ต้นทุนการคำนวณ**: Scheme ที่ซับซ้อนเพิ่มต้นทุนต่อการดำเนินการ
 
 ### 3. การอนุรักษ์ผ่านตัวดำเนินการ Divergence
 
@@ -235,54 +194,6 @@ timeSchemes
 
 $$\int_V \nabla \cdot \mathbf{F} \, \mathrm{d}V = \oint_{\partial V} \mathbf{F} \cdot \mathbf{n} \, \mathrm{d}A$$
 
-#### ความหมายทางกายภาพ
-
-- **Volume integral**: แหล่งกำเนิด/จุดดูด (Sources/sinks) ภายในปริมาตรควบคุม
-- **Surface integral**: ฟลักซ์สุทธิผ่านขอบเขตของปริมาตรควบคุม
-- **การอนุรักษ์**: สิ่งที่ไหลออกต้องเท่ากับสิ่งที่ไหลเข้าบวกกับแหล่งกำเนิดใดๆ
-
-#### การ Implementation ใน OpenFOAM
-
-```cpp
-// Continuity equation: ∂ρ/∂t + ∇·(ρU) = 0
-fvScalarMatrix contEqn
-(
-    fvm::ddt(rho) + fvc::div(rhoPhi) == 0
-);
-
-// Momentum equation: ∂(ρU)/∂t + ∇·(ρUU) = -∇p + ∇·τ + f
-fvVectorMatrix UEqn
-(
-    fvm::ddt(rho, U)
-  + fvm::div(rhoPhi, U)
- ==
-    -fvc::grad(p)
-  + fvc::div(tauR)
-  + sources
-);
-```
-
-> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-> 
-> **คำอธิบาย:**
-> โค้ดนี้แสดงการ implement สมการ conservation ของ mass และ momentum ใน OpenFOAM:
-> - **สมการ Continuity (บรรทัด 2-4)**: 
->   - `fvm::ddt(rho)`: Temporal derivative of density ρ (implicit)
->   - `fvc::div(rhoPhi)`: Divergence of mass flux ρΦ (explicit)
->   - สมการนี้บังคับให้ mass ถูกอนุรักษ์: อัตราการเปลี่ยนแปลงของ mass ใน cell = -mass flux ออกจาก cell
-> - **สมการ Momentum (บรรทัด 7-13)**:
->   - `fvm::ddt(rho, U)`: Temporal derivative of momentum ρU (implicit)
->   - `fvm::div(rhoPhi, U)`: Convective flux of momentum (implicit)
->   - `-fvc::grad(p)`: Pressure gradient force (explicit)
->   - `fvc::div(tauR)`: Viscous stress divergence (explicit)
->   - `sources`: Additional source terms (e.g., gravity, body forces)
->
-> **แนวคิดสำคัญ:**
-> - **Gauss's Divergence Theorem**: แปลง volume integral of divergence → surface flux summation ทำให้ conservation ถูกบังคับอัตโนมัติ
-> - **Finite Volume Method**: Discretize domain เป็น control volumes และ balance fluxes ผ่าน faces ของแต่ละ cell
-> - **Implicit vs Explicit**: ใช้ `fvm` สำหรับ terms ที่มี unknown variables (ρ, U) และ `fvc` สำหรับ terms ที่คำนวณจากค่าที่รู้แล้ว (p, τ)
-> - **Conservation Properties**: Local conservation (per cell) และ global conservation (entire domain) ถูกรักษาอัตโนมัติโดย method
-
 ### 4. ข้อพิจารณาด้านประสิทธิภาพและความเสถียร
 
 > [!NOTE] **📂 OpenFOAM Context: Simulation Control & Performance Tuning**
@@ -304,55 +215,6 @@ fvVectorMatrix UEqn
 >   - `solvers`: เลือก solver และ preconditioner ที่เหมาะสมกับ problem characteristics
 
 ต้นทุนการคำนวณและความเสถียรเชิงตัวเลขของการดำเนินการ finite volume เกี่ยวข้องกับ **trade-offs** พื้นฐาน
-
-#### ประสิทธิภาพของการดำเนินการแบบ Explicit
-
-- **การใช้หน่วยความจำ**: O(N) สำหรับการจัดเก็บค่าที่ interpolate แล้ว
-- **ต้นทุน CPU**: O(N) ต่อการดำเนินการ พร้อมค่าคงที่ที่เล็ก
-- **ประสิทธิภาพแบบขนาน**: การขยายตัวยอดเยี่ยมเนื่องจากลักษณะการทำงานแบบ local
-- **ขีดจำกัดความเสถียร**: $\mathrm{d}t \leq \frac{\Delta x^2}{2D}$ สำหรับการแพร่
-
-#### ประสิทธิภาพของการดำเนินการแบบ Implicit
-
-- **การใช้หน่วยความจำ**: O(N) สำหรับการจัดเก็บเมทริกซ์ (มักเป็น sparse)
-- **ต้นทุน CPU**: O(N log N) ถึง O(N²) ขึ้นอยู่กับการเลือก solver
-- **ประสิทธิภาพแบบขนาน**: ซับซ้อนกว่าเนื่องจากการแก้เมทริกซ์แบบ global
-- **ขีดจำกัดความเสถียร**: โดยทั่วไปมีข้อจำกัดน้อยกว่ามากสำหรับ time steps
-
-#### เกณฑ์ความเสถียร (Stability Criteria)
-
-```cpp
-// Explicit convection stability (CFL condition)
-CFL = U * dt / dx < 0.5  // Typical limit for upwind schemes
-
-// Explicit diffusion stability
-dt_diffusion <= dx^2 / (2 * D)  // Von Neumann stability
-
-// Implicit schemes have much looser limits
-// Often can use dt_max ~ 10x larger than explicit methods
-```
-
-> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-> 
-> **คำอธิบาย:**
-> โค้ดแสดงเกณฑ์ความเสถียร (stability criteria) สำหรับ explicit และ implicit schemes:
-> - **CFL Condition (บรรทัด 2)**: 
->   - Courant-Friedrichs-Lewy (CFL) number = U·dt/dx
->   - สำหรับ explicit convection: CFL < 0.5 (upwind), CFL < 1 (higher-order schemes)
->   - ความหมาย: fluid ไม่ควรเดินทางไปไกลกว่า 1 cell ต่อ time step
-> - **Diffusion Stability (บรรทัด 5)**:
->   - dt ≤ Δx²/(2D) สำหรับ explicit diffusion
->   - D = diffusion coefficient, Δx = cell size
->   - ข้อจำกัดนี้เข้มงวดมากสำหรับ meshes ที่ละเอียด
-> - **Implicit Advantage (บรรทัด 8-9)**:
->   - Implicit schemes มีข้อจำกัดความเสถียรน้อยกว่ามาก
->   - สามารถใช้ dt ที่ใหญ่กว่า explicit methods ได้ ~10x
->
-> **แนวคิดสำคัญ:**
-> - **Stability vs Accuracy**: Explicit schemes ต้องการ dt เล็ก แต่ง่ายและรวดเร็วต่อ operation; Implicit schemes ใช้ dt ใหญ่ได้แต่แพงกว่าต่อ time step
-> - **CFL Number**: Parameter สำคัญในการควบคุม stability ของ explicit convection ค่าที่สูงเกินไปทำให้ simulation diverge
-> - **Von Neumann Analysis**: วิธีวิเคราะห์ stability ของ linear difference equations ให้ข้อจำกัดของ dt สำหรับ diffusion
-> - **Trade-offs**: Explicit → เหมาะสำหรับ short-time, high-frequency phenomena; Implicit → เหมาะสำหรับ steady-state หรือ long-time simulations
 
 ### 5. ความหมายทางกายภาพของตัวดำเนินการ Finite Volume
 
@@ -385,75 +247,7 @@ dt_diffusion <= dx^2 / (2 * D)  // Von Neumann stability
 >   ```
 > - **Dimensional Consistency:** OpenFOAM ตรวจสอบหน่วยอัตโนมัติ ช่วยป้องกันการเขียนสมการที่ผิดทางฟิสิกส์
 
-แต่ละตัวดำเนินการ finite volume สอดคล้องกับกระบวนการทางฟิสิกส์ที่เฉพาะเจาะจงในพลศาสตร์ของไหล
-
-#### ตัวดำเนินการ Gradient (`fvc::grad`, `fvm::grad`)
-
-- **ความหมายทางกายภาพ**: อัตราการเปลี่ยนแปลงเชิงพื้นที่ของปริมาณสนาม
-- **การประยุกต์ใช้**: เกรเดียนต์ความดัน (แรง), เกรเดียนต์อุณหภูมิ (ฟลักซ์ความร้อน)
-- **รูปแบบทางคณิตศาสตร์**: $\nabla \phi = \frac{\partial \phi}{\partial x}\mathbf{i} + \frac{\partial \phi}{\partial y}\mathbf{j} + \frac{\partial \phi}{\partial z}\mathbf{k}$
-
-#### ตัวดำเนินการ Divergence (`fvc::div`, `fvm::div`)
-
-- **ความหมายทางกายภาพ**: ฟลักซ์สุทธิออกจากปริมาตรควบคุม
-- **การประยุกต์ใช้**: ฟลักซ์มวล, ฟลักซ์โมเมนตัม, ฟลักซ์พลังงาน
-- **รูปแบบทางคณิตศาสตร์**: $\nabla \cdot \mathbf{F} = \frac{\partial F_x}{\partial x} + \frac{\partial F_y}{\partial y} + \frac{\partial F_z}{\partial z}$
-
-#### ตัวดำเนินการ Laplacian (`fvc::laplacian`, `fvm::laplacian`)
-
-- **ความหมายทางกายภาพ**: กระบวนการแพร่, ผลกระทบจากความหนืด
-- **การประยุกต์ใช้**: การนำความร้อน, ความเค้นหนืด, การแพร่ระดับโมเลกุล
-- **รูปแบบทางคณิตศาสตร์**: $\nabla^2 \phi = \nabla \cdot (\nabla \phi) = \frac{\partial^2 \phi}{\partial x^2} + \frac{\partial^2 \phi}{\partial y^2} + \frac{\partial^2 \phi}{\partial z^2}$
-
-#### อนุพันธ์เชิงเวลา (`fvc::ddt`, `fvm::ddt`)
-
-- **ความหมายทางกายภาพ**: อัตราการเปลี่ยนแปลงเทียบกับเวลา
-- **การประยุกต์ใช้**: ผลกระทบที่ไม่คงตัว, ปรากฏการณ์ชั่วคราว (transient phenomena)
-- **รูปแบบทางคณิตศาสตร์**: $\frac{\partial \phi}{\partial t} = \lim_{\Delta t \to 0} \frac{\phi^{t+\Delta t} - \phi^t}{\Delta t}$
-
-#### การจับคู่กระบวนการทางฟิสิกส์ (Physical Process Mapping)
-
-```cpp
-// Heat conduction: q = -k∇T
-volVectorField heatFlux = -k * fvc::grad(T);
-
-// Mass conservation: ∂ρ/∂t + ∇·(ρU) = 0
-fvScalar massEqn = fvm::ddt(rho) + fvc::div(rho*U);
-
-// Viscous stress: τ = μ∇²U
-fvVectorMatrix viscousTerm = fvm::laplacian(mu, U);
-
-// Advection of scalar: ∂φ/∂t + U·∇φ = 0
-fvScalarMatrix advectionEqn = fvm::ddt(phi) + fvm::div(U, phi);
-```
-
-> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-> 
-> **คำอธิบาย:**
-> โค้ดแสดงการ map operators ใน OpenFOAM ไปยังกระบวนการฟิสิกส์ต่างๆ:
-> - **Heat Conduction (บรรทัด 2)**:
->   - Fourier's Law: q = -k∇T
->   - `fvc::grad(T)`: Temperature gradient → driving force สำหรับ heat flux
->   - k: thermal conductivity, q: heat flux vector
-> - **Mass Conservation (บรรทัด 5)**:
->   - Continuity equation: ∂ρ/∂t + ∇·(ρU) = 0
->   - `fvm::ddt(rho)`: Temporal change of mass (implicit)
->   - `fvc::div(rho*U)`: Net mass flux out of cell (explicit)
-> - **Viscous Stress (บรรทัด 8)**:
->   - Newton's Law of Viscosity: τ = μ∇²U
->   - `fvm::laplacian(mu, U)`: Diffusion of momentum due to viscosity
->   - μ: dynamic viscosity, U: velocity field
-> - **Scalar Advection (บรรทัด 11)**:
->   - Advection equation: ∂φ/∂t + U·∇φ = 0
->   - `fvm::ddt(phi)`: Temporal change (implicit)
->   - `fvm::div(U, phi)`: Convective flux of scalar φ (implicit)
->
-> **แนวคิดสำคัญ:**
-> - **Math-Physics Mapping**: แต่ละ operator ใน OpenFOAM สอดคล้องกับกระบวนการฟิสิกส์ที่ชัดเจน
-> - **Gradient → Driving Force**: Temperature gradient drives heat flux, pressure gradient drives fluid motion
-> - **Divergence → Conservation**: Mass, momentum, energy fluxes ผ่าน cell faces
-> - **Laplacian → Diffusion**: Viscosity, thermal conduction, molecular diffusion processes
-> - **Temporal Derivative → Unsteadiness**: Rate of change ของ quantities ต่างๆ ต่อเวลา
+แต่ละตัวดำเนินการ finite volume สอดคล้องกับกระบวนการทางฟิสิกส์ที่เฉพาะเจาะจงในพลศาสตล์ของไหล
 
 ---
 
@@ -464,12 +258,15 @@ fvScalarMatrix advectionEqn = fvm::ddt(phi) + fvm::div(U, phi);
 > แบบฝึกหัดเหล่านี้ออกแบบมาเพื่อให้คุณได้ฝึกทักษะในการเลือกใช้ `fvc::` vs `fvm::` และการตั้งค่า schemes ในสถานการณ์จริง:
 >
 > - **Exercise 1 (Namespace Selection):** เกี่ยวข้องกับการเขียน solver code หรือ custom function object โดยต้องตัดสินใจว่าควรใช้ explicit หรือ implicit
-> - **Exercise 2 (Equation Analysis):** ให้คุณวิเคราะห์สมการจาก solver code จริง (เช่นจาก `src/finiteVolume/cfd/solvers/`)
+> - **Exercise 2 (Equation Analysis):** ให้คุณวิเคราะห์สมการจาก solver code จริง (เช่นจาก `applications/solvers/`)
 > - **Exercise 3 (Application Scenario):** เกี่ยวข้องกับการคำนวณ post-processing quantities และการเลือก scheme ที่เหมาะสมใน `system/fvSchemes`
+> - **Exercise 4 (Code Analysis):** วิเคราะห์ solver code จริงจาก OpenFOAM standard solvers
+> - **Exercise 5 (Debugging):** แก้ไขปัญหาความเสถียรในสมการที่กำหนด
+> - **Exercise 6 (Real Solver Code):** วิเคราะห์และแก้ไข solver code จริงจาก OpenFOAM
 >
 > **การนำไปใช้:**
-> - เมื่อคุณเขียน custom solver → ใช้หลักการจาก Exercise 1
-> - เมื่อคุณ debug solver code → ใช้หลักการจาก Exercise 2
+> - เมื่อคุณเขียน custom solver → ใช้หลักการจาก Exercise 1 และ 6
+> - เมื่อคุณ debug solver code → ใช้หลักการจาก Exercise 2 และ 5
 > - เมื่อคุณตั้งค่า case → ใช้หลักการจาก Exercise 3
 
 ### ส่วนที่ 1: การเลือก Namespace
@@ -496,8 +293,8 @@ fvScalarMatrix TEqn
 );
 ```
 
-> 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
-> 
+> 📂 **Source:** `applications/solvers/heatTransfer/chtMultiRegionFoam/fluid/solveEnergy.H`
+>
 > **คำอธิบาย:**
 > โค้ดสมการอนุรักษ์พลังงาน (energy equation) ที่มีทั้ง implicit และ explicit terms:
 > - **LHS (Left Hand Side)**: Terms ที่มี unknown variable T (temperature)
@@ -523,6 +320,293 @@ fvScalarMatrix TEqn
 - ฟังก์ชัน `fvc` ใดที่คุณควรเริ่มใช้?
 - Scheme ใดใน `fvSchemes` ที่คุณจะเลือกเพื่อให้ได้ความแม่นยำสูงสุดบน mesh ที่ไม่มีโครงสร้าง (unstructured mesh)?
 
+### ส่วนที่ 4: การวิเคราะห์ Solver Code จริง
+
+อ่านโค้ดจาก OpenFOAM solver `simpleFoam` ในไฟล์ `applications/solvers/incompressible/simpleFoam/UEqn.H`:
+
+```cpp
+// Momentum predictor
+tmp<fvVectorMatrix> tUEqn
+(
+    fvm::ddt(U)
+  + fvm::div(phi, U)
+  + MRF.DDt(U)
+  + turbulence->divDevReff(U)
+ ==
+    fvOptions(U)
+);
+
+tUEqn.ref().relax();
+fvOptions.constrain(tUEqn());
+
+solve
+(
+    tUEqn()
+ ==
+    fvc::grad(p)
+);
+
+fvOptions.correct(U);
+```
+
+**คำถาม:**
+1. เทอมไหนบ้างที่ถูก discretize แบบ implicit? ทำไม?
+2. เทอมไหนที่ถูก discretize แบบ explicit? ทำไม?
+3. จะเกิดอะไรขึ้นถ้าเปลี่ยน `fvm::div(phi, U)` เป็น `fvc::div(phi, U)`?
+4. ทำไม pressure gradient `fvc::grad(p)` ถึงอยู่ฝั่ง RHS และเป็น explicit?
+
+> 📂 **Source:** `applications/solvers/incompressible/simpleFoam/UEqn.H`
+>
+> **คำอธิบาย:**
+> โค้ดนี้มาจาก simpleFoam solver ซึ่งเป็น steady-state incompressible flow solver ใช้ SIMPLE algorithm:
+> - **Line 3-7**: Momentum equation ที่มีทั้ง implicit และ explicit terms
+>   - `fvm::ddt(U)`: Temporal term (implicit) - สำหรับ pseudo-transient
+>   - `fvm::div(phi, U)`: Convection term (implicit) - เป็น term ที่สำคัญและต้องการความเสถียร
+>   - `MRF.DDt(U)`: Multiple Reference Frame term (implicit/depending on implementation)
+>   - `turbulence->divDevReff(U)`: Turbulent viscous term (implicit)
+>   - `fvOptions(U)`: Source terms from fvOptions (explicit/implicit depending on type)
+> - **Line 12**: `relax()` - under-relaxation สำหรับ steady-state convergence
+> - **Line 15-17**: Solve momentum equation with pressure gradient as source term
+>   - `fvc::grad(p)`: Pressure gradient (explicit) - ถูกคำนวณจาก pressure field ปัจจุบัน
+> - **Line 19**: `fvOptions.correct(U)` - Apply explicit corrections from fvOptions
+>
+> **แนวคิดสำคัญ:**
+> - **SIMPLE Algorithm**: Pressure-velocity coupling แบบ segregated - pressure และ velocity ถูกแก้แยกกัน
+> - **Implicit Convection**: Convection term ถูก treat implicitly เพื่อความเสถียร แต่ทำให้เกิด non-linearity
+> - **Explicit Pressure**: Pressure gradient เป็น explicit source term เพราะ pressure ถูกแก้ใน separate equation
+> - **Under-Relaxation**: จำเป็นสำหรับ steady-state problems เพื่อป้องกัน divergence
+
+### ส่วนที่ 5: Debugging และ Problem Solving
+
+กรณีศึกษา: Simulation diverge ทันทีหลังจากเริ่ม run คุณพบว่า:
+
+1. **Error message**: "Maximum number of iterations exceeded" สำหรับ pressure solver
+2. **Continuity error**: มีค่ามากกว่า 1.0 (ควรมีค่าน้อยกว่า 1e-3)
+3. **CFL number**: ค่าสูงกว่า 10.0 ในบาง cells
+
+**คำถาม:**
+1. จะแก้ไขอย่างไรโดยการปรับ `system/fvSchemes`?
+2. จะแก้ไขอย่างไรโดยการปรับ `system/controlDict`?
+3. ควรเปลี่ยน term ใดบ้างจาก `fvm` เป็น `fvc` หรือใส่ under-relaxation?
+4. จะ debug ว่าปัญหามาจาก term ไหนในสมการ?
+
+> 📂 **Source:** `applications/solvers/incompressible/pimpleFoam/UEqn.H`
+>
+> **แนวทางการ Debug:**
+> - **Step 1**: ตรวจสอบ mesh quality ด้วย `checkMesh`
+> - **Step 2**: เปลี่ยน schemes ที่มี order สูงให้เป็น upwind เพื่อเพิ่มความเสถียร
+> - **Step 3**: ลด time step หรือใช้ `adjustTimeStep yes` พร้อม `maxCo < 0.5`
+> - **Step 4**: เพิ่ม under-relaxation factors ใน `fvSolution`
+> - **Step 5**: Debug โดย comment out terms ทีละตัวเพื่อหาว่า term ไหนก่อให้เกิดปัญหา
+> - **Step 6**: Monitor residuals และ continuity errors อย่างใกล้ชิด
+
+### ส่วนที่ 6: การวิเคราะห์และแก้ไข Solver Code จริง
+
+อ่านและวิเคราะห์โค้ดจาก `pimpleFoam` solver ในไฟล์ `applications/solvers/incompressible/pimpleFoam/UEqn.H`:
+
+```cpp
+// Solve the Momentum equation
+tmp<fvVectorMatrix> tUEqn
+(
+    fvm::ddt(U)
+  + fvm::div(phi, U)
+  + turbulence->divDevReff(U)
+ ==
+    fvOptions(U)
+);
+
+tUEqn.ref().relax();
+fvOptions.constrain(tUEqn());
+
+if (pimple.momentumPredictor())
+{
+    solve
+    (
+        tUEqn()
+     ==
+        fvc::grad(p)
+    );
+
+    fvOptions.correct(U);
+}
+```
+
+**งาน:**
+1. เปรียบเทียบกับ `simpleFoam` code ใน Exercise 4 - มีความแตกต่างอย่างไร?
+2. ทำไม `pimpleFoam` ใช้ `if (pimple.momentumPredictor())`?
+3. จะเกิดอะไรขึ้นถ้าคุณต้องการเพิ่ม Coriolis force term สำหรับ rotating flows?
+4. เขียน code เพื่อเพิ่ม Coriolis force term: `F_cor = -2Ω × U`
+
+> 📂 **Source:** `applications/solvers/incompressible/pimpleFoam/UEqn.H`
+>
+> **คำอธิบาย:**
+> **ความแตกต่างระหว่าง simpleFoam และ pimpleFoam:**
+> - **simpleFoam**: Steady-state solver ใช้ SIMPLE algorithm
+> - **pimpleFoam**: Transient solver ใช้ PIMPLE algorithm (PISO + SIMPLE)
+> - **momentumPredictor option**: ใน pimpleFoam สามารถเลือกที่จะ solve momentum equation หรือ skip ไปทำ pressure equation ได้
+>
+> **Coriolis Force Implementation:**
+> ```cpp
+> // Coriolis force: F = -2Ω × U
+> // where Ω is angular velocity vector
+> 
+> // Method 1: Explicit treatment (not recommended for stability)
+> volVectorField F_cor = -2.0 * (Omega ^ U);  // ^ is cross product
+> 
+> // Method 2: Implicit treatment (recommended)
+> // Linearized: -2Ω × U ≈ -2Ω × U_old + implicit part
+> // This requires more complex implementation
+> 
+> // Full implementation example:
+> tmp<fvVectorMatrix> tUEqn
+> (
+>     fvm::ddt(U)
+>   + fvm::div(phi, U)
+>   + turbulence->divDevReff(U)
+>   + fvm::Sp(0, U)  // Placeholder for implicit Coriolis
+> ==
+>     fvOptions(U)
+>   - 2.0 * (Omega ^ U)  // Explicit Coriolis
+> );
+> ```
+
+### ส่วนที่ 7: การวิเคราะห์ InterFoam Solver (Multiphase Flow)
+
+อ่านโค้ดจาก `interFoam` solver ในไฟล์ `applications/solvers/multiphase/interFoam/alphaEqn.H`:
+
+```cpp
+// Volume of Fluid advection equation
+surfaceScalarField phiAlpha
+(
+    fvc::flux
+    (
+        phi,
+        alpha1,
+        alphaScheme
+    )
+  + fvc::flux
+    (
+        -fvc::flux(phi),
+        alpha1,
+        alphaScheme
+    )
+);
+
+MULES::explicitSolve
+(
+    geometricOneField(),
+    alpha1,
+    phi,
+    phiAlpha,
+    divAlphaScheme,
+    1.0 + 0.0*alpha1
+);
+```
+
+**คำถาม:**
+1. ทำไมใช้ `fvc::flux` แทนที่จะใช้ `fvm::div`?
+2. `MULES::explicitSolve` ทำหน้าที่อะไร?
+3. ทำไมมี 2 เทอม `fvc::flux` ที่บวกกัน?
+4. จะเกิดอะไรขึ้นถ้าใช้ implicit `fvm::div(phi, alpha1)` แทน?
+
+> 📂 **Source:** `applications/solvers/multiphase/interFoam/alphaEqn.H`
+>
+> **คำอธิบาย:**
+> **VOF Method (Volume of Fluid):**
+> - **alpha1**: Volume fraction of phase 1 (0 = phase 2, 1 = phase 1)
+> - **Interface tracking**: alpha1 ถูก advect ด้วย velocity field
+>
+> **Explicit Flux Calculation:**
+> - **fvc::flux**: คำนวณ face flux ของ alpha1 แบบ explicit
+> - **MULES (Multidimensional Universal Limiter with Explicit Solution)**: Special algorithm สำหรับ VOF
+>   - รักษา boundedness (0 ≤ alpha ≤ 1)
+>   - รักษา conservation
+>   - จัดการกับ sharp interfaces
+>
+> **Why Explicit?**
+> - VOF equation มี non-linearity สูงมาก (sharp interface)
+> - Implicit treatment จะ diffuse interface
+> - MULES algorithm ถูกออกแบบมาเพื่อ explicit advection ที่ bounded
+>
+> **Two-Term Flux:**
+> - เทอมแรก: `fvc::flux(phi, alpha1)` - forward flux
+> - เทอมที่สอง: `fvc::flux(-fvc::flux(phi), alpha1, ...)` - anti-diffusion flux (compressive)
+> - รวมกันเพื่อรักษา interface sharpness
+
+### ส่วนที่ 8: การเขียน Custom Function Object
+
+จงเขียน custom function object เพื่อคำนวณค่าต่อไปนี้และบันทึกผลลัพธ์:
+
+1. **Vorticity magnitude**: `|ω| = |∇ × U|`
+2. **Q-criterion**: `Q = 0.5*(||Ω||² - ||S||²)` โดยที่:
+   - `Ω = 0.5*(∇U - ∇Uᵀ)` (vorticity tensor)
+   - `S = 0.5*(∇U + ∇Uᵀ)` (strain rate tensor)
+
+**Template code:**
+
+```cpp
+// Your task: Complete this function object
+void MyClass::execute()
+{
+    // 1. Calculate velocity gradient: fvc::grad(U)
+    // 2. Calculate vorticity: fvc::curl(U)
+    // 3. Calculate vorticity magnitude
+    // 4. Calculate S and Omega tensors
+    // 5. Calculate Q-criterion
+    // 6. Write fields to disk
+}
+```
+
+> 📂 **Source:** `src/functionObjects/field/vorticity/vorticity.H`
+>
+> **Solution:**
+> ```cpp
+> void MyClass::execute()
+> {
+>     // 1. Calculate velocity gradient
+>     volTensorField gradU = fvc::grad(U_);
+>     
+>     // 2. Calculate vorticity
+>     volVectorField vorticity
+>     (
+>         IOobject("vorticity", mesh_.time().timeName(), mesh_),
+>         fvc::curl(U_)
+>     );
+>     
+>     // 3. Calculate vorticity magnitude
+>     volScalarField magVorticity
+>     (
+>         IOobject("magVorticity", mesh_.time().timeName(), mesh_),
+>         mag(vorticity)
+>     );
+>     
+>     // 4. Calculate strain rate and vorticity tensors
+>     volSymmTensorField S
+>     (
+>         IOobject("S", mesh_.time().timeName(), mesh_),
+>         symm(gradU)  // S = 0.5*(∇U + ∇Uᵀ)
+>     );
+>     
+>     volTensorField Omega
+>     (
+>         IOobject("Omega", mesh_.time().timeName(), mesh_),
+>         gradU - symm(gradU)  // Ω = 0.5*(∇U - ∇Uᵀ) (skew-symmetric part)
+>     );
+>     
+>     // 5. Calculate Q-criterion
+>     // Q = 0.5*(||Ω||² - ||S||²)
+>     volScalarField Q
+>     (
+>         IOobject("Q", mesh_.time().timeName(), mesh_),
+>         0.5 * (sqr(Omega) && sqr(Omega) - sqr(S) && sqr(S))
+>     );
+>     
+>     // 6. Write fields
+>     magVorticity.write();
+>     Q.write();
+> }
+> ```
+
 ---
 
 ## 💡 แนวทางการเฉลย (Solution Guide)
@@ -530,19 +614,632 @@ fvScalarMatrix TEqn
 ### ส่วนที่ 1: เฉลย
 
 1. **`fvc`** - ต้องการค่าตัวเลขสำหรับ output/storage
+   - **เหตุผล**: Vorticity เป็น derived quantity ที่คำนวณจาก velocity field ที่รู้แล้ว
+   - **โค้ดตัวอย่าง**:
+     ```cpp
+     volVectorField vorticity
+     (
+         IOobject("vorticity", runTime.timeName(), mesh, IOobject::NO_READ),
+         fvc::curl(U)
+     );
+     ```
+
 2. **`fvm`** - ต้องการการแก้สมการอุณหภูมิที่เสถียร
+   - **เหตุผล**: Heat conduction เป็น stiff term ที่ต้องการ implicit treatment เพื่อความเสถียร
+   - **โค้ดตัวอย่าง**:
+     ```cpp
+     fvScalarMatrix TEqn
+     (
+         fvm::ddt(T)
+       + fvm::div(phi, T)
+       - fvm::laplacian(alpha, T) == source
+     );
+     TEqn.solve();
+     ```
+
 3. **`fvc`** - ใช้สนามความเร็วที่ทราบค่าแล้ว
+   - **เหตุผล**: Flux calculation สำหรับ explicit term ใช้ค่า velocity ณ current time step
+   - **โค้ดตัวอย่าง**:
+     ```cpp
+     surfaceScalarField phi = fvc::flux(U);
+     ```
+
 4. **`fvc`** - แรงภายนอกมักถูกคำนวณแบบ explicit
+   - **เหตุผล**: Gravity เป็น source term ที่รู้ค่า ไม่ต้องการ implicit treatment
+   - **โค้ดตัวอย่าง**:
+     ```cpp
+     fvVectorMatrix UEqn
+     (
+         fvm::ddt(U) + fvm::div(phi, U) - fvm::laplacian(nu, U)
+       ==
+         - fvc::grad(p) + rho * g  // g: gravity vector
+     );
+     ```
 
 ### ส่วนที่ 2: เฉลย
 
-- **LHS vs RHS**: LHS มีตัวแปรที่ไม่ทราบค่า ($T$) ซึ่งต้องการการสร้างเมทริกซ์ ส่วนเทอม (A) เป็น source term ที่คำนวณจากค่าที่รู้แล้ว ($p, U$)
-- **หน่วย**: เทอม (A) มีหน่วยของ dot product ระหว่าง pressure gradient และ velocity: $[Pa/m] \cdot [m/s] = [kg/(m·s³)]$
+**คำถาม 1: ทำไม LHS ถึงใช้ `fvm` ทั้งหมด แต่เทอม (A) ทางด้าน RHS ใช้ `fvc`?**
+
+**คำตอบ:**
+- **LHS ใช้ `fvm`**: เพราะ LHS มี unknown variable T (temperature) ซึ่งเราต้องการแก้หาค่า
+  - `fvm::ddt(T)`: Temporal derivative ของ T (implicit) - T เป็น unknown ที่ time step ถัดไป
+  - `fvm::div(phi, T)`: Convection term (implicit) - T เป็น unknown, การใส่ T เข้าไปใน matrix ทำให้ระบบเสถียรมากขึ้น
+  - `fvm::laplacian(DT, T)`: Diffusion term (implicit) - T เป็น unknown, diffusion เป็น stiff term ที่ต้องการ implicit treatment
+
+- **RHS ใช้ `fvc`**: เพราะเทอม (A) เป็น source term ที่คำนวณจากค่าที่รู้แล้ว (p, U)
+  - `fvc::grad(p) & U`: Pressure gradient (p) และ velocity (U) ถูกคำนวณจาก time step ปัจจุบัน
+  - เป็นการคำนวณ compression/expansion work ที่เกิดจาก fluid motion
+  - ถ้าทำเป็น implicit จะซับซ้อนและไม่จำเป็นเพราะ p และ U เปลี่ยนช้ากว่า T
+
+**Physical Interpretation:**
+- LHS = Left Hand Side → Terms ที่เกี่ยวข้องกับ unknown variable (T)
+- RHS = Right Hand Side → Source terms ที่รู้ค่าแล้ว
+- Implicit treatment สร้าง matrix system A*T = b ซึ่งเสถียรกว่า
+- Explicit terms ถูกใช้เป็น source term b ในระบบสมการ
+
+**คำถาม 2: ถ้า `T` มีหน่วย [K] และ `p` มีหน่วย [Pa], หน่วยของเทอม (A) คืออะไร?**
+
+**คำตอบ:**
+เทอม (A) = `fvc::grad(p) & U` คือ dot product ระหว่าง pressure gradient และ velocity:
+
+1. **Pressure Gradient** `grad(p)`:
+   - p มีหน่วย [Pa] = [N/m²] = [kg/(m·s²)]
+   - grad(p) มีหน่วย [Pa/m] = [kg/(m²·s²)]
+
+2. **Velocity** `U`:
+   - U มีหน่วย [m/s]
+
+3. **Dot Product** `grad(p) & U`:
+   - หน่วย = [kg/(m²·s²)] · [m/s] = [kg/(m·s³)]
+
+**Physical Meaning:**
+- หน่วย [kg/(m·s³)] = [W/m³] = Power per unit volume
+- แทน energy transfer rate due to compression/expansion work
+- เป็น source/sink term ใน energy equation
+
+**Dimensional Consistency Check:**
+```cpp
+// LHS: dT/dt มีหน่วย [K/s]
+// RHS: grad(p)&U มีหน่วย [W/m³]
+// ต้องมีการแปลงหน่วยให้ตรงกัน:
+// [W/m³] = [J/(s·m³)] = [kg·m²/(s³·m³)] = [kg/(m·s³)]
+// ใน energy equation ที่ถูกต้อง จะมีสัมประสิทธิ์การแปลงหน่วย
+```
 
 ### ส่วนที่ 3: เฉลย
 
-- **ฟังก์ชัน**: ใช้ `fvc::grad(U)` เพื่อคำนวณ velocity gradient tensor
-- **Scheme**: `Gauss leastSquares` ให้ความแม่นยำที่ดีที่สุดบน unstructured meshes
+**คำถาม 1: ฟังก์ชัน `fvc` ใดที่คุณควรเริ่มใช้?**
+
+**คำตอบ:**
+ใช้ `fvc::grad(U)` เพื่อคำนวณ velocity gradient tensor
+
+**โค้ดตัวอย่าง:**
+```cpp
+// Calculate velocity gradient tensor
+volTensorField gradU
+(
+    IOobject("gradU", runTime.timeName(), mesh),
+    fvc::grad(U)
+);
+
+// Calculate shear stress at cell centers (Newtonian fluid)
+volSymmTensorField tau
+(
+    IOobject("tau", runTime.timeName(), mesh),
+    rho * nu * (symm(gradU) - (2.0/3.0)*tr(gradU)*I)
+);
+
+// Interpolate to faces if needed
+surfaceSymmTensorField tauFace(fvc::interpolate(tau));
+```
+
+**อธิบาย:**
+- `fvc::grad(U)`: คำนวณ gradient ของ velocity field
+- ผลลัพธ์คือ velocity gradient tensor ∇U
+- Shear stress τ = μ(∇U + ∇Uᵀ) - ⅔(∇·U)I (สำหรับ compressible flow)
+
+**คำถาม 2: Scheme ใดใน `fvSchemes` ที่คุณจะเลือกเพื่อให้ได้ความแม่นยำสูงสุดบน mesh ที่ไม่มีโครงสร้าง?**
+
+**คำตอบ:**
+ใช้ `Gauss leastSquares` ให้ความแม่นยำที่ดีที่สุดบน unstructured meshes
+
+**ตั้งค่าใน `system/fvSchemes`:**
+```cpp
+gradSchemes
+{
+    grad(U)         leastSquares;  // Best for unstructured meshes
+    grad(p)         leastSquares;  // Best for unstructured meshes
+
+    // Alternative: cellLimited Gauss linear 1
+    // grad(U)    cellLimited Gauss linear 1;
+}
+```
+
+**Comparison:**
+| Scheme | ความแม่นยำ | Mesh Type | Computational Cost |
+|--------|-------------|-----------|-------------------|
+| `Gauss linear` | ดี | Structured/Orthogonal | ต่ำ |
+| `leastSquares` | ดีที่สุด | Unstructured | ปานกลาง |
+| `cellLimited Gauss linear 1` | ดี | Non-orthogonal | ปานกลาง |
+
+**แนวทางการเลือก:**
+- **Structured mesh**: ใช้ `Gauss linear` (เร็วและแม่นยำพอ)
+- **Unstructured mesh**: ใช้ `leastSquares` (แม่นยำที่สุด)
+- **Non-orthogonal mesh**: ใช้ `cellLimited Gauss linear 1` (สมดุลระหว่างความเสถียรและความแม่นยำ)
+
+### ส่วนที่ 4: เฉลย - การวิเคราะห์ simpleFoam
+
+**คำถาม 1: เทอมไหนบ้างที่ถูก discretize แบบ implicit? ทำไม?**
+
+**คำตอบ:**
+Implicit terms:
+1. **`fvm::ddt(U)`** (ถ้าใช้ pseudo-transient)
+   - เหตุผล: Temporal term ควรเป็น implicit เพื่อความเสถียร
+   - สำหรับ steady-state, term นี้มักถูกปิด (comment out)
+
+2. **`fvm::div(phi, U)`**
+   - เหตุผล: Convection term เป็น term ที่สำคัญที่สุดใน momentum equation
+   - เป็น non-linear term (มี U ทั้งใน φ และ U)
+   - Implicit treatment เพิ่มความเสถียร แม้จะต้องใช้ under-relaxation
+
+3. **`turbulence->divDevReff(U)`**
+   - เหตุผล: Viscous/diffusion term เป็น stiff term
+   - Implicit treatment จำเป็นเพื่อป้องกัน severe time step limit
+   - สำหรับ turbulent flow, term นี้รวมทั้ง laminar และ turbulent viscosity
+
+**คำถาม 2: เทอมไหนที่ถูก discretize แบบ explicit? ทำไม?**
+
+**คำตอบ:**
+Explicit terms:
+1. **`fvc::grad(p)`**
+   - เหตุผล: Pressure gradient เป็น source term ใน momentum equation
+   - Pressure ถูกแก้ใน separate equation (Poisson equation)
+   - Explicit treatment สอดคล้องกับ SIMPLE algorithm
+
+2. **`fvOptions(U)`** (depending on type)
+   - เหตุผล: Source terms อาจเป็น explicit หรือ implicit ขึ้นกับ type
+   - Explicit sources ง่ายต่อการ implement
+   - Implicit sources อาจถูกใช้สำหรับ terms ที่ต้องการความเสถียร
+
+**คำถาม 3: จะเกิดอะไรขึ้นถ้าเปลี่ยน `fvm::div(phi, U)` เป็น `fvc::div(phi, U)`?**
+
+**คำตอบ:**
+ผลกระทบหากเปลี่ยนเป็น explicit:
+
+1. **ความเสถียรลดลงอย่างมาก**
+   - Explicit convection มี stability limit: CFL < 1
+   - สำหรับ steady-state, จำเป็นต้องใช้ under-relaxation อย่างมาก
+
+2. **ต้องลด under-relaxation factor ของ U**
+   - จากค่าปกติ ~0.3 ต้องลดเหลือ ~0.1 หรือน้อยกว่า
+   - ทำให้ convergence ช้าลงมาก
+
+3. **อาจ diverge สำหรับ high Reynolds number flows**
+   - Explicit convection ไม่เหมาะสำหรับ turbulent flows
+   - จำเป็นต้องลด time step หรือเพิ่ม under-relaxation
+
+**โค้ดเปรียบเทียบ:**
+```cpp
+// Implicit (Original) - แนะนำ
+fvVectorMatrix UEqn
+(
+    fvm::div(phi, U)  // Stable for larger dt/Co numbers
+);
+
+// Explicit - ไม่แนะนำสำหรับ steady-state
+fvVectorMatrix UEqn
+(
+    fvc::div(phi, U)  // Very restrictive, may diverge
+);
+
+// Semi-implicit (linearized) - ทางเลือกกลาง
+fvVectorMatrix UEqn
+(
+    fvm::div(phi, U) - fvc::div(phi, U)  // Part of SIMPLE algorithm
+);
+```
+
+**คำถาม 4: ทำไม pressure gradient `fvc::grad(p)` ถึงอยู่ฝั่ง RHS และเป็น explicit?**
+
+**คำตอบ:**
+1. **SIMPLE Algorithm Structure**
+   - SIMPLE แบ่งการแก้สมการเป็น 2 ส่วน:
+     - **Momentum equation**: แก้ U โดย fix pressure gradient
+     - **Pressure equation**: แก้ p โดย enforce continuity
+   - Pressure gradient เป็น source term ใน momentum equation
+
+2. **Segregated Solution Approach**
+   - Pressure และ velocity ไม่ถูกแก้พร้อมกัน
+   - Momentum equation ถูกแก้ด้วย pressure gradient จาก iteration ก่อนหน้า
+   - Pressure equation ถูกแก้เพื่อให้ satisfy continuity
+
+3. **Linearization**
+   - Pressure gradient เป็น linear term → ไม่จำเป็นต้องเป็น implicit
+   - Non-linearity มาจาก convection term (ไม่ใช่ pressure)
+   - Explicit pressure gradient ลดความซับซ้อนของ matrix
+
+**Physical Interpretation:**
+```
+Momentum Equation:  ∂U/∂t + U·∇U = -∇p + ν∇²U
+                          ↑
+                    Explicit source term
+
+ใน SIMPLE:
+1. Guess p
+2. Solve momentum with explicit -∇p
+3. Solve pressure correction equation
+4. Correct U and p
+5. Repeat until convergence
+```
+
+### ส่วนที่ 5: เฉลย - Debugging Guide
+
+**แนวทางการแก้ไข:**
+
+**1. การปรับ `system/fvSchemes`:**
+
+```cpp
+// เปลี่ยนจาก high-order schemes เป็น first-order schemes
+divSchemes
+{
+    // เดิม: div(phi,U) Gauss linear;
+    div(phi,U)      Gauss upwind;  // เพิ่มความเสถียร
+
+    // เดิม: div(phi,k) Gauss linear;
+    div(phi,k)      Gauss upwind;  // เพิ่มความเสถียร
+
+    div(phi,omega)  Gauss upwind;  // เพิ่มความเสถียร
+}
+
+gradSchemes
+{
+    // เดิม: grad(p) Gauss linear;
+    grad(p)         cellLimited Gauss linear 1;  // Limited scheme
+
+    grad(U)         cellLimited Gauss linear 1;  // Limited scheme
+}
+
+laplacianSchemes
+{
+    // เพิ่ม non-orthogonal correction
+    laplacian(nu,U) Gauss linear corrected;
+    laplacian((1|A(U)),p) Gauss linear corrected 1;
+}
+```
+
+**เหตุผล:**
+- Upwind schemes: First-order accurate แต่มีความเสถียรสูง
+- Limited gradient schemes: ป้องกัน oscillations
+- Corrected laplacian schemes: จัดการกับ non-orthogonal meshes
+
+**2. การปรับ `system/controlDict`:**
+
+```cpp
+application     rhoPimpleFoam;
+
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         0.5;
+
+deltaT          1e-4;  // ลด time step
+
+// ใช้ automatic time step adjustment
+adjustTimeStep  yes;
+
+maxCo           0.3;   // ลด max Courant number (จาก 1.0 เป็น 0.3)
+
+maxAlphaCo      0.3;   // สำหรับ multiphase flow
+
+// กำหนด time step limits
+maxDeltaT       1e-3;  // จำกัด time step สูงสุด
+```
+
+**เหตุผล:**
+- ลด time step → ลด CFL number → เพิ่มความเสถียร
+- Automatic time step adjustment → ป้องกัน CFL สูงเกินไป
+- MaxCo < 0.5 เป็น rule of thumb สำหรับ explicit convection
+
+**3. การปรับ `system/fvSolution`:**
+
+```cpp
+solvers
+{
+    p
+    {
+        solver          GAMG;
+        tolerance       1e-06;  // ลด tolerance (เดิม 1e-08)
+        relTol          0.01;   // เพิ่ม relative tolerance
+        smoother        GaussSeidel;
+    }
+
+    pFinal
+    {
+        $p;
+        relTol          0;
+    }
+
+    U
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-05;  // ลด tolerance
+        relTol          0.1;    // เพิ่ม relative tolerance
+    }
+}
+
+PIMPLE
+{
+    nCorrectors     2;       // เพิ่มจาก 1 เป็น 2
+    nNonOrthogonalCorrectors 2;  // เพิ่มจาก 0 เป็น 2
+    nAlphaCorrectors 1;
+
+    nOuterCorrectors    2;   // เพิ่มสำหรับ transient cases
+
+    // เพิ่ม under-relaxation
+    relaxationFactors
+    {
+        fields
+        {
+            p               0.3;  // ลดจาก 0.3 เป็น 0.2
+            rho             0.05;
+        }
+
+        equations
+        {
+            U               0.5;  // ลดจาก 0.7 เป็น 0.5
+            UFinal          1;
+        }
+    }
+}
+```
+
+**เหตุผล:**
+- ลด tightness ของ solver tolerances → ลดจำนวน iterations
+- เพิ่ม under-relaxation → เพิ่มความเสถียร แต่ลด convergence rate
+- nNonOrthogonalCorrectors → จัดการกับ non-orthogonal meshes
+
+**4. การ Debug โดยการ Isolate Terms:**
+
+```cpp
+// Step 1: Comment out convection (test diffusion only)
+tmp<fvVectorMatrix> tUEqn
+(
+    fvm::ddt(rho, U)
+  - fvm::laplacian(muf, U)  // Diffusion only
+ ==
+    fvc::grad(p)
+);
+
+// Step 2: Add convection with explicit treatment
+tmp<fvVectorMatrix> tUEqn
+(
+    fvm::ddt(rho, U)
+  + fvc::div(phi, U)  // Explicit convection
+  - fvm::laplacian(muf, U)
+ ==
+    fvc::grad(p)
+);
+
+// Step 3: Add convection with implicit treatment
+tmp<fvVectorMatrix> tUEqn
+(
+    fvm::ddt(rho, U)
+  + fvm::div(phi, U)  // Implicit convection
+  - fvm::laplacian(muf, U)
+ ==
+    fvc::grad(p)
+);
+
+// Step 4: Add turbulence terms
+tmp<fvVectorMatrix> tUEqn
+(
+    fvm::ddt(rho, U)
+  + fvm::div(phi, U)
+  + turbulence->divDevRhoReff(U)  // Add turbulence
+ ==
+    fvc::grad(p)
+);
+```
+
+**Checklist การ Debug:**
+
+1. ✅ **ตรวจสอบ mesh quality**
+   ```bash
+   checkMesh -allGeometry -allTopology
+   ```
+   - Look for: non-orthogonality > 70°, skewness > 4, aspect ratio > 1000
+
+2. ✅ **ตรวจสอบ initial conditions**
+   - ตรวจสอบว่า fields ทั้งหมดมีค่าเริ่มต้นที่ physical
+   - ใช้ `potentialFoam` หรือ `simpleFoam` เพื่อสร้าง initial guess
+
+3. ✅ **ตรวจสอบ boundary conditions**
+   - ตรวจสอบว่า BCs ไม่ contradict กัน
+   - ใช้ `boundaryFoam` เพื่อ debug BCs
+
+4. ✅ **Monitor residuals และ continuity errors**
+   ```cpp
+   // In controlDict
+   functions
+   {
+       residuals
+       {
+           type            residuals;
+           functionObjectLibs ("libsampling.so");
+           fields          (p U k omega);
+       }
+
+       continuityErrors1
+       {
+           type            continuityErrs;
+       }
+   }
+   ```
+
+5. ✅ **เริ่มต้นด้วย first-order schemes**
+   - เปลี่ยนเป็น upwind schemes ทั้งหมด
+   - หลังจาก converge แล้วค่อยเปลี่ยนเป็น higher-order schemes
+
+**Flowchart การ Debug:**
+```
+Simulation Diverges
+        ↓
+   Check Mesh (checkMesh)
+        ↓
+   Mesh OK? → No → Fix mesh
+        ↓ Yes
+   Check BCs
+        ↓
+   Reduce dt / Use adjustTimeStep
+        ↓
+   Use first-order schemes
+        ↓
+   Increase under-relaxation
+        ↓
+   Isolate terms (comment out)
+        ↓
+   Find problematic term
+        ↓
+   Fix specific term
+```
+
+### ส่วนที่ 6: เฉลย - pimpleFoam vs simpleFoam
+
+**คำถาม 1: เปรียบเทียบกับ simpleFoam**
+
+**คำตอบ:**
+| Feature | simpleFoam | pimpleFoam |
+|---------|-----------|------------|
+| Type | Steady-state | Transient |
+| Algorithm | SIMPLE | PIMPLE (PISO + SIMPLE) |
+| Time derivative | ไม่มี (หรือ pseudo-transient) | มี `fvm::ddt` |
+| Under-relaxation | จำเป็น | ไม่จำเป็น (สำหรับ PISO part) |
+| MRF support | มี | มี |
+| Usage | สถานะตันของการไหล | การไหลที่ไม่สถานะตัน |
+
+**คำถาม 2: ทำไมใช้ `if (pimple.momentumPredictor())`?**
+
+**คำตอบ:**
+- **Momentum predictor**: Option ที่ให้เลือกว่าจะ solve momentum equation หรือไม่
+- **Purpose**: 
+  - ถ้า `true`: Solve momentum equation → แม่นยำกว่า แต่ช้ากว่า
+  - ถ้า `false`: Skip momentum solve → เร็วกว่า แต่อาจต้องการ outer iterations มากกว่า
+- **When to use**:
+  - Steady-state (SIMPLE): เปิด `momentumPredictor` เสมอ
+  - Transient (PISO): อาจปิดเพื่อเพิ่มความเร็ว
+
+**คำถาม 3 & 4: เพิ่ม Coriolis Force**
+
+**Solution:**
+
+```cpp
+// In createFields.H or at top of solver
+// Define angular velocity vector (rad/s)
+dimensionedVector Omega
+(
+    "Omega",
+    dimensionSet(0, 0, -1, 0, 0, 0, 0),  // [1/s]
+    vector(0, 0, 10.0)  // Rotating around z-axis at 10 rad/s
+);
+
+// In UEqn.H
+tmp<fvVectorMatrix> tUEqn
+(
+    fvm::ddt(U)
+  + fvm::div(phi, U)
+  + turbulence->divDevReff(U)
+  + (2.0 * Omega ^ U)  // Explicit Coriolis force
+ ==
+    fvOptions(U)
+);
+
+tUEqn.ref().relax();
+fvOptions.constrain(tUEqn());
+
+if (pimple.momentumPredictor())
+{
+    solve(tUEqn() == fvc::grad(p));
+    fvOptions.correct(U);
+}
+```
+
+**หมายเหตุ:**
+- **Explicit Coriolis**: `2.0 * Omega ^ U` (^ operator = cross product)
+- **Implicit Coriolis**: ซับซ้อนกว่า ต้องใช้ linearization
+- **Centrifugal force**: ถ้าต้องการ term นี้ด้วย: `Omega ^ (Omega ^ mesh.C())`
+
+### ส่วนที่ 7: เฉลย - InterFoam Analysis
+
+**คำถาม 1: ทำไมใช้ `fvc::flux` แทน `fvm::div`?**
+
+**คำตอบ:**
+- **VOF Method**: Volume of Fluid เป็น special case ที่ต้องการ:
+  1. **Boundedness**: alpha ต้องอยู่ใน [0, 1] เสมอ
+  2. **Sharp interface**: Interface ระหว่าง phases ต้องคมชัด
+  3. **Conservation**: Mass ต้องอนุรักษ์
+
+- **Explicit flux**:
+  - `fvc::flux` คำนวณ face flux โดยตรง
+  - MULES algorithm ใช้ explicit flux เพื่อรักษา boundedness
+  - Implicit `fvm::div` จะทำให้ interface diffuse (กระจาย)
+
+**คำถาม 2: MULES::explicitSolve ทำหน้าที่อะไร?**
+
+**คำตอบ:**
+- **MULES**: Multidimensional Universal Limiter with Explicit Solution
+- **Functions**:
+  1. **Boundedness**: รักษาค่า alpha ใน [0, 1]
+  2. **Compressivity**: เพิ่ม compressive term เพื่อรักษาความคมชัดของ interface
+  3. **Stability**: ใช้ explicit method ที่ stable ด้วย flux limiter
+
+**คำถาม 3: ทำไมมี 2 เทอม `fvc::flux`?**
+
+**คำตอบ:**
+```cpp
+surfaceScalarField phiAlpha
+(
+    fvc::flux(phi, alpha1, alphaScheme)  // Term 1: Upwind flux
+  + fvc::flux(-fvc::flux(phi), alpha1, alphaScheme)  // Term 2: Compressive flux
+);
+```
+
+- **Term 1**: `fvc::flux(phi, alpha1)` 
+  - Standard upwind flux
+  - Diffusive (กระจาย) → ทำให้ interface กลม → stable
+
+- **Term 2**: `fvc::flux(-fvc::flux(phi), alpha1, ...)`
+  - Anti-diffusion / Compressive flux
+  - Compress interface → ทำให้ interface คมชัด → อาจ unstable
+
+- **Result**: Term 1 + Term 2 = สมดุลระหว่าง stability และ sharpness
+
+**คำถาม 4: จะเกิดอะไรขึ้นถ้าใช้ `fvm::div(phi, alpha1)`?**
+
+**คำตอบ:**
+ผลกระทบ:
+1. **Interface becomes diffused**: Interface จะกระจายตัว ไม่คมชัด
+2. **May violate boundedness**: alpha อาจเกิน [0, 1]
+3. **Mass conservation**: อาจมี error ใน mass balance
+
+**เหตุผลทางคณิตศาสตร์:**
+```cpp
+// Implicit method: fvm::div(phi, alpha1)
+fvScalarMatrix alphaEqn
+(
+    fvm::ddt(alpha1)
+  + fvm::div(phi, alpha1)  // Implicit → diffusive
+);
+alphaEqn.solve();
+
+// Problem:
+// - Discretization matrix ทำ linear interpolation ระหว่าง cells
+// - Interface ที่คม (sharp) จะถูก "smooth out"
+// - VOF method ถูกออกแบบมาเพื่อ explicit flux calculation
+```
 
 ---
 
@@ -551,7 +1248,7 @@ fvScalarMatrix TEqn
 1. **ใช้ `fvm::`** สำหรับการแพร่ (diffusion), pressure-velocity coupling, และ stiff source terms
 2. **ใช้ `fvc::`** สำหรับ post-processing, source terms จากสนามที่รู้ค่า, และ explicit time integration
 3. **ผสมผสานทั้งสอง** เพื่อความสมดุลที่เหมาะสม: จัดการ stiff terms แบบ implicit, non-stiff terms แบบ explicit
-4. **ตรวจสอบคุณภาพ mesh** ก่อนรันการจำลอง โดยเฉพาะอย่างยิ่งสำหรับ schemes อันดับสูง
+4. **ตรวจสอบคุณภาพ mesh** ก่อนรันการจำลอง โดยเฉพอยิ่งสำหรับ schemes อันดับสูง
 5. **ตรวจสอบความสอดคล้องของมิติ (dimensional consistency)** เมื่อเพิ่มเทอมที่เขียนเอง
 6. **ทดสอบความไวต่อ time step** เมื่อใช้การดำเนินการแบบ explicit
 7. **ติดตาม residuals** ของการลู่เข้าสำหรับ implicit solvers
@@ -569,8 +1266,11 @@ fvScalarMatrix TEqn
 | ตัวแปรที่กำลังหา (unknown) | `fvm::` | Implicit → stable, สร้าง matrix |
 | ตัวแปรที่รู้ค่าแล้ว (known) | `fvc::` | Explicit → compute ทันที |
 | Diffusion term | `fvm::laplacian` | Avoid severe time step limit |
+| Convection term (high Re) | `fvm::div` | Stable for larger dt |
+| Convection term (low Re) | `fvc::div` (optional) | Faster, but requires small dt |
 | Source term จาก known field | `fvc::` | Direct evaluation |
 | Post-processing | `fvc::` | Need immediate result |
+| VOF advection (interFoam) | `fvc::flux` + MULES | Bounded, sharp interface |
 
 **Golden Rule:** ถ้าตัวแปรอยู่ใน LHS ของสมการ → `fvm::`, ถ้าอยู่ใน RHS → `fvc::`
 
@@ -587,6 +1287,10 @@ $$\int_V \nabla \cdot \mathbf{F} \, dV = \oint_S \mathbf{F} \cdot \mathbf{n} \, 
 2. **Conservation** ถูกบังคับอัตโนมัติ (flux ที่ออกจาก cell หนึ่ง = flux ที่เข้า cell ข้างเคียง)
 3. เป็นรากฐานของ **Finite Volume Method** ใน OpenFOAM
 
+**ใน OpenFOAM:**
+- `fvc::div(phi)`: Surface flux sum of `phi`
+- Conservation is guaranteed by construction
+
 </details>
 
 <details>
@@ -598,6 +1302,44 @@ $$\int_V \nabla \cdot \mathbf{F} \, dV = \oint_S \mathbf{F} \cdot \mathbf{n} \, 
 3. ✅ ใช้ `checkMesh` ตรวจสอบ mesh quality
 4. ✅ ลด time step หรือใช้ `adjustTimeStep yes` กับ `maxCo < 0.5`
 5. ✅ ตรวจสอบ boundary conditions ใน `0/` directory
+6. ✅ เปลี่ยน schemes เป็น first-order (upwind) เพื่อเพิ่มความเสถียร
+7. ✅ เพิ่ม under-relaxation factors ใน `fvSolution`
+
+**Debug Flow:**
+```
+Diverge → Check mesh → Check BCs → Reduce dt → Use upwind schemes → Increase relaxation → Isolate terms
+```
+
+</details>
+
+<details>
+<summary><b>4. แบบฝึกหัดไหนที่เกี่ยวข้องกับ solver code จริงของ OpenFOAM?</b></summary>
+
+**แบบฝึกหัดที่ใช้ solver code จริง:**
+
+| Exercise | Solver | Source File | Key Concepts |
+|----------|--------|-------------|--------------|
+| Exercise 2 | chtMultiRegionFoam | `solveEnergy.H` | Energy equation, implicit/explicit terms |
+| Exercise 4 | simpleFoam | `UEqn.H` | SIMPLE algorithm, steady-state, under-relaxation |
+| Exercise 5 | pimpleFoam | `UEqn.H` | PIMPLE algorithm, transient, stability issues |
+| Exercise 6 | pimpleFoam | `UEqn.H` | Comparison with simpleFoam, momentum predictor |
+| Exercise 7 | interFoam | `alphaEqn.H` | VOF method, MULES, explicit flux, multiphase |
+
+**การนำไปใช้:**
+- **อ่าน solver code**: ดูว่า OpenFOAM implement สมการจริงอย่างไร
+- **วิเคราะห์**: เข้าใจการเลือก `fvc::` vs `fvm::` ในแต่ละ solver
+- **แก้ไข**: ใช้ความรู้จากแบบฝึกหัดเพื่อ modify solver หรือ debug
+
+**Path ไปยัง source code:**
+```bash
+# OpenFOAM installation directory
+cd $WM_PROJECT_DIR/applications/solvers/
+
+# Specific solvers
+cd incompressible/simpleFoam/
+cd incompressible/pimpleFoam/
+cd multiphase/interFoam/
+```
 
 </details>
 
@@ -609,3 +1351,20 @@ $$\int_V \nabla \cdot \mathbf{F} \, dV = \oint_S \mathbf{F} \cdot \mathbf{n} \, 
 - **บทก่อนหน้า:** [06_Common_Pitfalls.md](06_Common_Pitfalls.md) — ข้อผิดพลาดที่พบบ่อย
 - **fvc vs fvm:** [02_fvc_vs_fvm.md](02_fvc_vs_fvm.md) — เปรียบเทียบ Explicit และ Implicit
 - **Tensor Algebra:** [../11_TENSOR_ALGEBRA/00_Overview.md](../11_TENSOR_ALGEBRA/00_Overview.md) — หัวข้อถัดไป: Tensor Algebra
+
+## 📚 References และตำราเพิ่มเติม
+
+1. **OpenFOAM Source Code**:
+   - `src/finiteVolume/fvc/fvc.H` - Explicit operations implementation
+   - `src/finiteVolume/fvm/fvm.H` - Implicit operations implementation
+   - `applications/solvers/incompressible/simpleFoam/` - Steady-state solver
+   - `applications/solvers/incompressible/pimpleFoam/` - Transient solver
+   - `applications/solvers/multiphase/interFoam/` - Multiphase VOF solver
+
+2. **OpenFOAM Documentation**:
+   - Programmer's Guide: Chapter 2 - Finite Volume Method
+   - User Guide: Discretization Schemes
+
+3. **CFD Textbooks**:
+   - Ferziger & Peric - "Computational Methods for Fluid Dynamics"
+   - Jasak - "OpenFOAM: Technology and Concepts"

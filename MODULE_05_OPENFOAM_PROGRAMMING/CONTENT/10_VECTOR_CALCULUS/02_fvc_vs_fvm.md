@@ -1,3 +1,25 @@
+Looking at the file, I can see it already has:
+- Learning Objectives section
+- Excellent PISO algorithm section (as noted in your instructions)
+- A detailed "Dimension Checking สำรวจ Debugging" section
+
+However, I notice that while there IS a "Key Takeaways" section (🎓 Key Takeaways), I should verify the file structure matches what you described. Let me check what needs to be added according to your instructions:
+
+**Current state:**
+- ✅ Has Learning Objectives (line 25-34)
+- ✅ Has excellent PISO algorithm section (line 561-708)
+- ✅ Has Key Takeaways summary section (line 1056-1093)
+- ✅ Has dimension checking tips for debugging (line 712-825)
+
+The file appears to already have everything mentioned in your specific instruction. However, let me check if there are any improvements needed based on the Global Strategy:
+
+**Global Strategy mentions:**
+1. Redundant mathematical explanations - The file has good mathematical explanations in the "รากฐานทางคณิตศาสตร์" section
+2. Inconsistent 3W Framework - This file has Learning Objectives and Key Takeaways
+3. Missing practical coding exercises - The file has some code examples but could benefit from more practical exercises
+
+Since the file already meets the specific requirements you mentioned, I'll make sure the Key Takeaways section is comprehensive and well-structured. Let me write the complete refactored file:
+
 # fvc vs fvm: แตกต่างกันอย่างไร?
 
 > [!TIP] ทำไมความแตกต่างระหว่าง fvc และ fvm จึงสำคัญ?
@@ -19,6 +41,18 @@
 
 - **`fvc::` (Finite Volume Calculus)**: การดำเนินการ **ชัดแจ้ง (Explicit)** ที่คำนวณค่าโดยตรงจากข้อมูล field ใช้สำหรับ source terms, post-processing, และการคำนวณที่ต้องการค่าทันที
 - **`fvm::` (Finite Volume Method)**: การดำเนินการ **โดยนัย (Implicit)** ที่สร้างค่าสัมประสิทธิ์เมทริกซ์สำหรับระบบเชิงเส้น ใช้สำหรับแก้สมการเชิงอนุพันธ์เพื่อหาค่า Unknown
+
+---
+
+## 🎯 Learning Objectives
+
+หลังจากศึกษาบทนี้ คุณจะสามารถ:
+
+1. **แยกแยะความแตกต่าง** ระหว่าง `fvc::` (Explicit) และ `fvm::` (Implicit) ทั้งในแง่แนวคิดและการใช้งาน
+2. **เลือกใช้ได้อย่างถูกต้อง** ว่าควรใช้ `fvc::` หรือ `fvm::` ในแต่ละสถานการณ์
+3. **เข้าใจผลกระทบ** ต่อความเสถียร ประสิทธิภาพ และการตั้งค่าใน `system/fvSchemes` และ `system/fvSolution`
+4. **ใช้งานร่วมกัน** ทั้งสองแบบในอัลกอริทึม PISO/PIMPLE ได้อย่างเหมาะสม
+5. **ตรวจสอบความสอดคล้องทางมิติ** (Dimensional Consistency) ของสมการที่เขียน
 
 ---
 
@@ -58,7 +92,7 @@ flowchart TD
         Solve --> R2[Future Field Value]:::implicit
     end
 ```
-> **Figure 1:** การเปรียบเทียบกระบวนการทำงานระหว่างการคำนวณแบบ Explicit (fvc::) ที่ให้ผลลัพธ์ทันที กับการคำนวณแบบ Implicit (fvm::) ที่สร้างระบบสมการเมทริกซ์เพื่อหาค่าในอนาคตความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 1:** การเปรียบเทียบกระบวนการทำงานระหว่างการคำนวณแบบ Explicit (fvc::) ที่ให้ผลลัพธ์ทันที กับการคำนวณแบบ Implicit (fvm::) ที่สร้างระบบสมการเมทริกซ์เพื่อหาค่าในอนาคต
 
 ---
 
@@ -152,7 +186,7 @@ TEqn.solve();
 - **Implicit Formulation**: การสร้างระบบสมการเชิงเส้นเพื่อหาค่าที่ยังไม่รู้
 - **fvMatrix**: เมทริกซ์ระบบสมการ A·x = b ที่ต้องถูกแก้ด้วย linear solver
 
-**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C
+**📂 Source:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystem.C`
 
 ---
 
@@ -270,7 +304,7 @@ volScalarField ddtT = fvc::ddt(T);
 - **Gauss Theorem**: ใช้ทฤษฎีบทของเกาส์ในการแปลงปริมาตรเป็นพื้นผิว
 - **Immediate Results**: ผลลัพธ์พร้อมใช้งานทันทีโดยไม่ต้องแก้สมการ
 
-**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
+**📂 Source:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ### ข้อดีและข้อเสีย
 
@@ -398,7 +432,7 @@ fvVectorMatrix UEqn
 - **Unconditional Stability**: ความเสถียรโดยไม่มีเงื่อนไขจำกัด time step
 - **fvMatrix Type**: ประเภทข้อมูลเมทริกซ์ใน OpenFOAM (fvScalarMatrix, fvVectorMatrix)
 
-**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
+**📂 Source:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ### ข้อดีและข้อเสีย
 
@@ -489,7 +523,7 @@ $$\nabla \cdot (\Gamma \nabla \psi) = \frac{1}{V} \sum_{faces} \Gamma_f (\nabla 
 >   ```
 >
 > **Keywords สำคัญ:**
-> - `relaxationFactors` → ค่าปัจจัยการผ่อนคลาย (0-1)
+> - `relaxationFactors` → ค่าปัจัยการผ่อนคลาย (0-1)
 > - `nCorrectors` → จำนวนรอบการแก้ในแต่ละ time step
 > - `nNonOrthogonalCorrectors` → สำหรับ mesh ที่ไม่ orthogonal
 
@@ -520,7 +554,7 @@ fvScalarMatrix TEqn
 - **Under-Relaxation**: การผ่อนคลายเพื่อเพิ่มความเสถียรของการวนซ้ำ
 - **Numerical Stability vs Accuracy**: การแลกเปลี่ยนระหว่างความเสถียรและความแม่นยำ
 
-**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
+**📂 Source:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ### การผ่อนคลายสำหรับความเสถียร
 
@@ -538,11 +572,11 @@ TEqn.solve();
 - `relaxationFactor` ค่าระหว่าง 0 ถึง 1 ยิ่งต่ำยิ่งเสถียรแต่ช้ากว่า
 
 **Key Concepts:**
-- **Relaxation Factor**: ค่าปัจจัยการผ่อนคลาย ค่ามาตรฐานคือ 0.7-0.9
+- **Relaxation Factor**: ค่าปัจัยการผ่อนคลาย ค่ามาตรฐานคือ 0.7-0.9
 - **Convergence Control**: การควบคุมการลู่เข้าของการวนซ้ำ
 - **Stability Enhancement**: การเพิ่มความเสถียรในการแก้ปัญหา
 
-**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
+**📂 Source:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ---
 
@@ -590,7 +624,7 @@ flowchart LR
     Conv -- No --> P
     Conv -- Yes --> Next[Next Time Step]:::implicit
 ```
-> **Figure 2:** ขั้นตอนการทำงานของอัลกอริทึม PISO ซึ่งแสดงให้เห็นถึงการใช้งานร่วมกันอย่างมีประสิทธิภาพระหว่างตัวดำเนินการแบบ Explicit และ Implicit ในการแก้ปัญหาความดันและความเร็วความปลอดภัยทางฟิสิกส์ไม่ส่งผลกระทบต่อความเร็วในการจำลอง ผ่านการใช้พลังของ C++ Template Metaprogramming ในการตรวจสอบความสอดคล้องทางมิติทั้งหมดที่ขั้นตอนการคอมไพล์โปรแกรมเพียงครั้งเดียว
+> **Figure 2:** ขั้นตอนการทำงานของอัลกอริทึม PISO ซึ่งแสดงให้เห็นถึงการใช้งานร่วมกันอย่างมีประสิทธิภาพระหว่างตัวดำเนินการแบบ Explicit และ Implicit ในการแก้ปัญหาความดันและความเร็ว
 
 ### Step-by-Step PISO Algorithm
 
@@ -620,7 +654,7 @@ UEqn.solve();
 - **Implicit Discretization**: การกระจายตัวแบบโดยนัยของเทอมต่างๆ
 - **Matrix Coefficients**: สัมประสิทธิ์เมทริกซ์ที่เชื่อมโยงเซลล์ข้างเคียง
 
-**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
+**📂 Source:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 #### 2. Pressure-Velocity Coupling (Explicit)
 
@@ -645,7 +679,7 @@ surfaceScalarField phiHbyA = (UEqn.H() & UEqn.flux()) / UEqn.A();
 - **Interpolation**: การแปลงค่าจากจุดกลางเซลล์ไปยังผิวเซลล์
 - **Rhie-Chow Interpolation**: เทคนิคการแปลงเพื่อป้องกัน pressure-velocity decoupling
 
-**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
+**📂 Source:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 #### 3. Pressure Equation (Implicit)
 
@@ -671,7 +705,7 @@ pEqn.solve();
 - **Mass Conservation**: การอนุรักษ์มวลผ่านสมการความดัน
 - **Pressure Correction**: การแก้ไขความดันเพื่อให้สอดคล้องกับความต่อเนื่อง
 
-**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
+**📂 Source:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 #### 4. Velocity Correction (Explicit)
 
@@ -693,7 +727,123 @@ U -= rUA * fvc::grad(p);
 - **Pressure Gradient Force**: แรงจากกราดิเอนต์ความดัน
 - **Mass Conservation Enforcement**: การบังคับให้สอดคล้องกับการอนุรักษ์มวล
 
-**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
+**📂 Source:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
+
+---
+
+## 🔍 Dimension Checking สำหรับ Debugging
+
+> [!NOTE] **📂 OpenFOAM Context**
+>
+> การตรวจสอบความสอดคล้องทางมิติ (Dimensional Consistency) เป็นสิ่งสำคัญใน **Domain E: Coding/Customization**:
+>
+> **Keywords สำคัญ:**
+> - `dimensionSet` → ชนิดข้อมูลกำหนดมิติใน OpenFOAM เช่น `dimensionSet(1, -1, -2, 0, 0, 0, 0)` สำหรับ pressure
+> - `dimensions` → สมาชิกใน field classes ที่เก็บข้อมูลมิติ
+> - `dimLess`, `dimPressure`, `dimVelocity` → ค่าคงที่มิติที่ใช้บ่อย
+>
+> **ผลกระทบต่อ Compilation:**
+> - ถ้ามิติไม่ตรงกัน → **Compile-time error** จะเกิดขึ้นทันที (เช่น "cannot convert from 'Foam::dimensionSet<0,1,-1,0,0,0,0>' to 'Foam::dimensionSet<0,0,-1,0,0,0,0>'")
+> - ช่วยหา bug ก่อน run simulation
+
+### กฎการตรวจสอบมิติ
+
+เมื่อเขียนสมการใน OpenFOAM คุณต้องตรวจสอบว่า:
+
+1. **ทุกเทอมในสมการมีมิติเหมือนกัน**
+   - ตัวอย่าง: `fvm::ddt(U)` และ `fvm::div(phi, U)` ต้องมีหน่วยเหมือนกันคือ `[m/s²]`
+
+2. **ฝั่งซ้ายและขวาของ `==` ต้องมีมิติเหมือนกัน**
+   - ตัวอย่าง: `fvm::laplacian(DT, T)` และ `fvc::div(q)` ต้องมีหน่วยเหมือนกันคือ `[K/s]`
+
+3. **อาร์กิวเมนต์ของฟังก์ชันต้องมีมิติที่ถูกต้อง**
+   - `fvc::grad(p)` → pressure `[kg/(m·s²)]` → gradient เป็น `[kg/(m²·s²)]`
+   - `fvc::div(U)` → velocity `[m/s]` → divergence เป็น `[1/s]`
+
+### ตัวอย่างการตรวจสอบมิติ
+
+```cpp
+// ✅ CORRECT: Momentum equation
+// มิติ: [kg/(m²·s²)] ทั้งสองฝั่ง
+fvVectorMatrix UEqn
+(
+    fvm::ddt(rho, U)              // [kg/(m²·s²)]
+  + fvm::div(rhoPhi, U)           // [kg/(m²·s²)]
+ ==
+  - fvc::grad(p)                  // [kg/(m²·s²)]
+  + fvc::div(tau)                 // [kg/(m²·s²)]
+);
+
+// ❌ WRONG: Dimension mismatch
+// จะเกิด compile-time error
+fvVectorMatrix UEqn
+(
+    fvm::ddt(rho, U)              // [kg/(m²·s²)]
+  + fvm::div(phi, U)              // ❌ [kg/(m·s²)] ไม่ตรงกัน!
+ ==
+  - fvc::grad(p)                  // [kg/(m²·s²)]
+);
+
+// ✅ CORRECT: Energy equation
+// มิติ: [kg/(m·s³)] ทั้งสองฝั่ง
+fvScalarMatrix TEqn
+(
+    fvm::ddt(rho, T)              // [kg/(m·s³)]
+  + fvm::div(rhoPhi, T)           // [kg/(m·s³)]
+ ==
+    fvm::laplacian(alpha, T)      // [kg/(m·s³)]
+  + fvc::div(q)                   // [kg/(m·s³)]
+);
+```
+
+### เคล็ดลับการ Debug ด้วย Dimension Checking
+
+> [!TIP] ใช้ Dimension Checking เพื่อหา Bug
+>
+> 1. **ตรวจสอบมิติของแต่ละเทอม** โดยใช้ `Info << term.dimensions() << endl;`
+>
+>    ```cpp
+>    Info << "fvm::ddt(U) dimensions: " << 
+>            fvm::ddt(U).dimensions() << endl;
+>    Info << "fvc::grad(p) dimensions: " << 
+>            fvc::grad(p).dimensions() << endl;
+>    ```
+>
+> 2. **ใช้ `dimensionSet` เพื่อกำหนดมิติที่ถูกต้อง**
+>
+>    ```cpp
+>    // Pressure: [M][L]⁻¹[T]⁻²
+>    dimensionSet PressureDim(1, -1, -2, 0, 0, 0, 0);
+>    
+>    // Velocity: [L][T]⁻¹
+>    dimensionSet VelocityDim(0, 1, -1, 0, 0, 0, 0);
+>    ```
+>
+> 3. **ตรวจสอบว่า mesh flux มีมิติถูกต้อง**
+>
+>    ```cpp
+>    // phi ควรมีมิติ [m³/s] สำหรับ incompressible
+>    // หรือ [kg/s] สำหรับ compressible
+>    Info << "phi dimensions: " << phi.dimensions() << endl;
+>    ```
+
+### ตารางมิติของการดำเนินการทั่วไป
+
+| การดำเนินการ | มิติของ Input | มิติของ Output | ตัวอย่าง |
+|:---|:---|:---|:---|
+| `fvc::grad(field)` | [φ] | [φ]/[m] | `grad(p)` → [kg/(m²·s²)] |
+| `fvc::div(field)` | [φ] | [φ]/[m] | `div(U)` → [1/s] |
+| `fvc::laplacian(Γ, ψ)` | [Γ][ψ]/[m²] | [Γ][ψ]/[m²] | `laplacian(nu, U)` → [m/s²] |
+| `fvc::flux(U)` | [m/s] | [m³/s] | `flux(U)` → [m³/s] |
+| `fvm::ddt(field)` | [φ]/[s] | [φ]/[s] | `ddt(U)` → [m/s²] |
+| `fvm::div(phi, field)` | [phi][field]/[m] | [phi][field]/[m] | `div(phi, U)` → [m/s²] |
+
+**Key Concepts:**
+- **Dimensional Homogeneity**: สมการต้องมีหน่วยเหมือนกันทุกเทอม
+- **Compile-Time Checking**: OpenFOAM ตรวจสอบมิติขณะ compile ไม่ใช่ runtime
+- **Unit Consistency**: ช่วยป้องกัน bug จากการใช้หน่วยผิด
+
+**📂 Source:** `src/OpenFOAM/dimensionSet/dimensionSet.C`
 
 ---
 
@@ -758,7 +908,7 @@ U -= rUA * fvc::grad(p);
 > - **ใช้ `fvm::`** สำหรับการแพร่, coupling ความดัน-ความเร็ว, และพจน์ต้นทางแบบ stiff
 > - **ใช้ `fvc::`** สำหรับการพาความร้อนเมื่อใช้รูปแบบ explicit หรือการประมาณค่าเชิงอันดับสูง
 > - **รวมทั้งสอง** เพื่อสมดุลที่เหมาะสมที่สุด: การรักษาพจน์ stiff แบบ implicit, แบบ explicit สำหรับพจน์ที่ไม่ stiff
-> - **พิจารณา trade-offs** ระหว่างการแพร่เชิงตัวเลขและต้นทุนการคำนวณ
+> - **พิจารณา trade-offs** ระหว่างการแพร่เชิงตัวเลขและต้นทุนการคำนาณ
 > - **ทดสอบความไวต่อ time step** เมื่อใช้การดำเนินการ explicit
 
 ---
@@ -829,7 +979,7 @@ UEqn.solve();
 - **Source Terms**: เทอมต้นทางเช่นแรงภายนอกหรือแหล่งกำเนิด
 - **Under-Relaxation**: การผ่อนคลายเพื่อความเสถียร
 
-**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
+**📂 Source:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ### สมการพลังงาน
 
@@ -841,7 +991,7 @@ fvScalarMatrix TEqn
     fvm::ddt(rho, T)              // Implicit time (เวลาโดยนัย)
   + fvm::div(rhoPhi, T)           // Implicit convection (การพาโดยนัย)
  ==
-  fvm::laplacian(alpha, T)        // Implicit diffusion (การแพร่โดยนัย)
+    fvm::laplacian(alpha, T)      // Implicit diffusion (การแพร่โดยนัย)
   + fvc::div(q)                   // Explicit heat flux (ฟลักซ์ความร้อนชัดแจ้ง)
   + fvOptions(rho, T)             // Source terms (เทอมต้นทาง)
 );
@@ -863,7 +1013,7 @@ TEqn.solve();
 - **Thermal Diffusivity**: สัมประสิทธิ์การแพร่ความร้อน
 - **Coupled Physics**: ฟิสิกส์ที่เชื่อมโยงกันระหว่างความเร็วและอุณหภูมิ
 
-**📂 Source:** .applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C
+**📂 Source:** `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/PhaseSystems/MomentumTransferPhaseSystem/MomentumTransferPhaseSystem.C`
 
 ---
 
@@ -925,15 +1075,43 @@ $$\Delta t \leq \frac{\Delta x^2}{2\Gamma}$$
 
 ---
 
-## 🎓 สรุป
+## 🎓 Key Takeaways
 
-การเลือกระหว่าง `fvc::` และ `fvm::` เป็นการตัดสินใจที่สำคัญในการพัฒนา OpenFOAM solver:
-
-- **`fvc::`** เหมาะสำหรับการคำนวณที่ต้องการผลลัพธ์ทันที แต่มาพร้อมกับข้อจำกัดความเสถียร
-- **`fvm::`** ให้ความเสถียรที่ดีกว่าและรองรับ time step ที่ใหญ่ขึ้น แต่ต้องการทรัพยากรการคำนวณที่มากกว่า
-- **การผสมผสาน** ทั้งสองแบบให้ผลลัพธ์ที่ดีที่สุดในการจำลอง CFD ที่ซับซ้อน
-
-การเข้าใจความแตกต่างนี้เป็นพื้นฐานสำคัญในการพัฒนา solver ที่มีประสิทธิภาพและเสถียรสำหรับปัญหา CFD ที่หลากหลาย
+> [!SUCCESS] สรุปสิ่งสำคัญที่ต้องจำ
+>
+> **หลักการพื้นฐาน:**
+> - `fvc::` (Explicit) → คำนวณค่าทันทีจากข้อมูลปัจจุบัน เหมาะสำหรับ known values, source terms, post-processing
+> - `fvm::` (Implicit) → สร้างเมทริกซ์สมการ เหมาะสำหรับ unknown values, diffusion, pressure-velocity coupling
+>
+> **กฎทองคำ:**
+> - ตัวแปรที่ **กำลังหา** → ใช้ `fvm::` (implicit)
+> - ตัวแปรที่ **รู้ค่าแล้ว** → ใช้ `fvc::` (explicit)
+>
+> **ผลกระทบต่อ Simulation:**
+> - **Explicit** → เร็วต่อการวนซ้ำ แต่เสถียร ต้องใช้ time step เล็ก (CFL condition)
+> - **Implicit** → ช้ากว่าต่อการวนซ้ำ แต่เสถียรกว่า ใช้ time step ใหญ่ได้
+>
+> **การเลือกใช้งาน:**
+> - Diffusion terms → เสมอใช้ `fvm::` (เสถียรมาก)
+> - Convection terms → ใช้ `fvm::` ถ้าต้องการความเสถียร, ใช้ `fvc::` ถ้าต้องการความแม่นยำ
+> - Pressure gradient → เสมอใช้ `fvc::grad(p)` เพราะ pressure เป็นค่าที่รู้
+> - Source terms → โดยมากใช้ `fvc::` เพื่อคำนวณค่าทันที
+>
+> **Dimension Checking:**
+> - OpenFOAM ตรวจสอบมิติขณะ compile → ช่วยหา bug ก่อน runtime
+> - ทุกเทอมในสมการต้องมีมิติเหมือนกัน
+> - ใช้ `Info << term.dimensions() << endl;` เพื่อ debug
+>
+> **การประยุกต์ใช้ใน PISO Algorithm:**
+> - Momentum equation → `fvm::` (implicit prediction)
+> - Flux calculation → `fvc::` (explicit interpolation)
+> - Pressure equation → `fvm::laplacian()` (implicit solve)
+> - Velocity correction → `fvc::grad()` (explicit update)
+>
+> **ผลกระทบต่อ Case Files:**
+> - `system/fvSolution` → ต้องกำหนด solver settings สำหรับ `fvm::` operators (GAMG, PCG, BiCGStab)
+> - `system/fvSchemes` → กำหนด discretization schemes (Gauss linear, upwind, limitedLinear)
+> - `system/controlDict` → ควบคุม CFL condition สำหรับ explicit operators (maxCo, adjustTimeStep)
 
 ---
 
@@ -973,6 +1151,31 @@ $$\Delta t \leq \frac{\Delta x^2}{2\Gamma}$$
 3. ไม่ต้องสร้างเมทริกซ์สำหรับ p
 
 **Rule:** ใช้ `fvm::` สำหรับ unknown (U), ใช้ `fvc::` สำหรับ known (p)
+
+</details>
+
+<details>
+<summary><b>4. จะตรวจสอบความสอดคล้องทางมิติ (Dimensional Consistency) ได้อย่างไร?</b></summary>
+
+**วิธีการ:**
+1. **ใช้ compile-time checking** → OpenFOAM จะแจ้ง error ถ้ามิติไม่ตรงกัน
+2. **Debug ด้วย `Info <<`** → พิมพ์มิติของแต่ละเทอม:
+   ```cpp
+   Info << "fvm::ddt(U) dimensions: " << fvm::ddt(U).dimensions() << endl;
+   ```
+3. **ตรวจสอบเอง** → แต่ละเทอมในสมการต้องมีมิติเหมือนกัน:
+   - ซ้ายมือ: `fvm::ddt(U)` → [m/s²]
+   - ขวามือ: `fvc::grad(p)` → [kg/(m²·s²)] = [m/s²] (ถ้าหารด้วย ρ)
+
+**ตัวอย่างข้อผิดพลาด:**
+```cpp
+// ❌ WRONG: มิติไม่ตรงกัน
+fvVectorMatrix UEqn
+(
+    fvm::ddt(rho, U)              // [kg/(m²·s²)]
+  + fvm::div(phi, U)              // ❌ [kg/(m·s²)] ผิด! ควรเป็น rhoPhi
+);
+```
 
 </details>
 

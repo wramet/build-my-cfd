@@ -7,7 +7,9 @@
 > - ทำความเข้าใจการคำนวณเทนเซอร์ในซอร์สโค้ดของ OpenFOAM (เช่น `src/finiteVolume/`)
 > - หลีกเลี่ยงข้อผิดพลาดจากการใช้ tensor operations ที่ไม่ถูกต้องซึ่งอาจทำให้ simulation crash หรือให้ผลลัพธ์ผิดพลาด
 
-## ภาพรวม (Overview)
+---
+
+## ภาพรวมโมดูล (Module Overview)
 
 พีชคณิตเทนเซอร์เป็นรากฐานทางคณิตศาสตร์สำหรับการแสดง **ปริมาณที่มีทิศทาง (directional quantities)** และการเปลี่ยนแปลงเชิงพื้นที่ในพลศาสตร์ของไหลเชิงคำนวณ (CFD) ซึ่งแตกต่างจากสเกลาร์ (เทนเซอร์อันดับ 0) และเวกเตอร์ (เทนเซอร์อันดับ 1) โดย **เทนเซอร์อันดับสอง (second-order tensors)** อธิบายการแปลงเชิงเส้นระหว่างปริภูมิเวกเตอร์ ทำให้มีความจำเป็นอย่างยิ่งสำหรับการสร้างแบบจำลองความเค้น (stress), ความเครียด (strain) และปรากฏการณ์ความปั่นป่วน (turbulence)
 
@@ -17,6 +19,22 @@
 > - **เทนเซอร์อัตราความเครียด (Strain rate tensors)** (เกรเดียนต์ของการเสียรูป)
 > - **เทนเซอร์ความเค้นเรย์โนลด์ส (Reynolds stress tensors)** (ความสัมพันธ์ในความปั่นป่วน)
 > - **สัมประสิทธิ์การขนส่งแบบแอนไอโซทรอปิก (Anisotropic transport coefficients)**
+
+### แผนที่เส้นทางการเรียนรู้ (Learning Roadmap)
+
+```mermaid
+graph TB
+    A[00_Overview<br/>Roadmap] --> B[01_Introduction<br/>Tensor Fundamentals]
+    B --> C[02_Tensor_Class_Hierarchy<br/>C++ Architecture]
+    C --> D[03_Tensor_Type_System<br/>Type Selection Guide]
+    D --> E[04_Tensor_Operations<br/>Algebra & Calculus]
+    E --> F[05_Eigen_Decomposition<br/>Principal Analysis]
+    F --> G[06_CFD_Applications<br/>Stress & Turbulence]
+    G --> H[07_Summary_and_Exercises<br/>Practice Problems]
+    
+    style A fill:#e3f2fd,stroke:#1565c0
+    style H fill:#c8e6c9,stroke:#2e7d32
+```
 
 ---
 
@@ -36,195 +54,72 @@
 หลังจากจบโมดูลนี้ คุณจะสามารถ:
 
 ### **1. เข้าใจคลาสเทนเซอร์ของ OpenFOAM และการแทนทางคณิตศาสตร์**
-
-OpenFOAM มอบเฟรมเวิร์กพีชคณิตเทนเซอร์ที่ครอบคลุมผ่านคลาสเทนเซอร์หลัก 3 คลาส:
-
-| คลาส (Class) | ขนาด (Size) | องค์ประกอบอิสระ (Independent Components) | คำอธิบาย (Description) |
-|-------|-------|---------------------|----------|
-| **`tensor`** | 3×3 | 9 องค์ประกอบ | เทนเซอร์อันดับสองทั่วไป |
-| **`symmTensor`** | 3×3 | 6 องค์ประกอบ | เทนเซอร์สมมาตร |
-| **`sphericalTensor`** | 3×3 | 1 องค์ประกอบ | เทนเซอร์ทรงกลม (ไอโซทรอปิก) |
-
-**การประกาศคลาสเทนเซอร์ (Tensor Class Declaration):**
-```cpp
-// tensor: General 3×3 second-order tensor
-// Create tensor with all 9 components in row-major order
-tensor t(1, 2, 3, 4, 5, 6, 7, 8, 9);
-
-// symmTensor: Symmetric 3×3 tensor (only 6 independent components)
-// Components order: xx, xy, xz, yy, yz, zz
-symmTensor st(1, 2, 3, 4, 5, 6);
-
-// sphericalTensor: Spherical tensor (isotropic, same value in all diagonal)
-// Single scalar value represents the entire diagonal
-sphericalTensor spt(2.5);
-```
-
-> **📂 แหล่งที่มา (Source):** `.applications/utilities/mesh/advanced/PDRMesh/PDRMesh.C` - ตัวอย่างการใช้งาน tensor operations ใน OpenFOAM utilities
->
-> **คำอธิบาย:**
-> - **`tensor`**: เทนเซอร์ทั่วไปขนาด 3×3 ที่มี 9 components อิสระ เก็บข้อมูลในรูปแบบ row-major order [xx, xy, xz, yx, yy, yz, zx, zy, zz]
-> - **`symmTensor`**: เทนเซอร์สมมาตรขนาด 3×3 ที่มีเพียง 6 components อิสระ เนื่องจาก $T_{ij} = T_{ji}$ จึงเก็บเฉพาะส่วนบนขวาของเมทริกซ์ [xx, xy, xz, yy, yz, zz] ซึ่งช่วยประหยัดหน่วยความจำได้ 33% และเหมาะสำหรับ stress/strain tensors
-> - **`sphericalTensor`**: เทนเซอร์ทรงกลม (isotropic) ที่มีค่าเหมือนกันทุก diagonal element และ off-diagonal เป็น 0 ใช้ scalar เพียงค่าเดียวแทนทั้งเมทริกซ์ เหมาะสำหรับ field ความดัน
-
-**การแทนทางคณิตศาสตร์:**
-คลาสเหล่านี้แสดงเทนเซอร์อันดับสองในรูปแบบ:
-$$\mathbf{T} = \begin{bmatrix} T_{xx} & T_{xy} & T_{xz} \\ T_{yx} & T_{yy} & T_{yz} \\ T_{zx} & T_{zy} & T_{zz} \end{bmatrix}$$
+- อธิบายความแตกต่างระหว่าง `tensor`, `symmTensor`, และ `sphericalTensor`
+- เลือกใช้คลาสเทนเซอร์ที่เหมาะสมกับปัญหาฟิสิกส์ที่ต้องการแก้
+- ประกาศและเริ่มต้นเทนเซอร์ใน OpenFOAM ได้อย่างถูกต้อง
 
 ### **2. ดำเนินการพื้นฐานทางพีชคณิตเทนเซอร์**
-
-เรียนรู้การดำเนินการพื้นฐานที่จำเป็นสำหรับการคำนวณ CFD:
-
-#### **การบวกและการลบ (Addition and Subtraction)**
-```cpp
-// Create identity tensor (diagonal = 1, off-diagonal = 0)
-tensor t1(1, 0, 0, 0, 1, 0, 0, 0, 1);
-
-// Create another tensor with specific components
-tensor t2(0, 1, 0, 1, 0, 0, 0, 0, 1);
-
-// Element-wise addition: each component summed independently
-tensor t_sum = t1 + t2;
-
-// Element-wise subtraction: each component subtracted independently
-tensor t_diff = t1 - t2;
-```
-
-> **📂 แหล่งที่มา (Source):** `.applications/utilities/mesh/manipulation/subsetMesh/subsetMesh.C`
->
-> **คำอธิบาย:** การบวกและลบเทนเซอร์ดำเนินการทีละ component โดยตรง ($C_{ij} = A_{ij} + B_{ij}$) ซึ่งเปรียบเสมือนการซ้อนทับ (superposition) ของสองสถานะทางกลศาสตร์ OpenFOAM เก็บข้อมูลแบบ row-major order เพื่อประสิทธิภาพของ cache
-
-#### **การคูณด้วยสเกลาร์ (Scalar Multiplication)**
-```cpp
-// Define scalar multiplier
-scalar alpha = 2.5;
-
-// Multiply each tensor component by the scalar
-tensor t_scaled = alpha * t1;
-```
-
-> **📂 แหล่งที่มา (Source):** `.applications/utilities/mesh/advanced/PDRMesh/PDRMesh.C`
->
-> **คำอธิบาย:** การคูณด้วยสเกลาร์คือการขยายขนาด (scale) ทุก component ของเทนเซอร์ด้วยค่าคงที่เดียวกัน มักใช้ในการปรับขนาด stress/strain หรือสมบัติของวัสดุ
-
-#### **ผลคูณภายใน (Inner Product / Double Contraction)**
-```cpp
-// Double inner product (Frobenius inner product)
-// Computes sum of all component-wise products
-scalar inner_product = t1 && t2;
-// Equivalent to: tr(t1 · t2^T)
-```
-
-> **📂 แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/...`
->
-> **คำอธิบาย:** การคูณแบบ **Double Contraction (`&&`)** หรือ Frobenius inner product คือการหาผลรวมของผลคูณในแต่ละตำแหน่ง ($s = A:B = \Sigma_{ij} A_{ij} B_{ij}$) ผลลัพธ์ที่ได้เป็น **Scalar** มักใช้คำนวณพลังงาน (เช่น $\sigma:\epsilon$) หรืออัตราการรบกวน (dissipation)
-
-#### **ผลคูณภายนอก (Outer Product)**
-```cpp
-// Define two vectors for dyadic product
-vector v1(1, 2, 3);
-vector v2(4, 5, 6);
-
-// Outer product: creates tensor from two vectors (dyadic product)
-// Result: T_ij = v1_i * v2_j
-tensor outer = v1 * v2;
-```
-
-> **📂 แหล่งที่มา (Source):** `.applications/solvers/multiphase/multiphaseEulerFoam/...`
->
-> **คำอธิบาย:** **Outer Product (`*`)** หรือ Dyadic Product สร้างเทนเซอร์อันดับ 2 จากเวกเตอร์ 2 ตัว ($T_{ij} = v1_i v2_j$) ตัวอย่างสำคัญใน CFD คือ Reynolds Stress Tensor ($R_{ij} = -\rho \overline{u'_i u'_j}$)
-
-#### **การคูณเทนเซอร์ (Tensor Multiplication)**
-```cpp
-// Standard matrix multiplication (single contraction)
-// Result: C_ij = Σ_k A_ik * B_kj
-tensor t_product = t1 * t2;
-```
-
-> **📂 แหล่งที่มา (Source):** `.applications/utilities/postProcessing/dataConversion/foamToVTK/foamToVTK.C`
->
-> **คำอธิบาย:** การคูณเทนเซอร์แบบมาตรฐาน (matrix multiplication) หรือ **Single Contraction** ($C_{ij} = \Sigma_k A_{ik} B_{kj}$) ใช้สำหรับการแปลงพิกัด หรือการส่งต่อการแปลงเชิงเส้นต่อเนื่องกัน
+- ใช้การดำเนินการเชิงพีชคณิต (บวก, ลบ, คูณ, หาร) กับเทนเซอร์ได้อย่างถูกต้อง
+- แยกแยะและใช้ single contraction (`&`), double contraction (`&&`), และ outer product (`*`) ได้อย่างเหมาะสม
+- คำนวณค่า invariant ของเทนเซอร์ (trace, determinant) เพื่อการวิเคราะห์
 
 ### **3. คำนวณการแยกตัวประกอบไอเกน (Eigen Decomposition)**
-
-ดึงค่า eigen และเวกเตอร์ eigen จากเทนเซอร์สมมาตรสำหรับการวิเคราะห์ความเค้นและความปั่นป่วน:
-
-```cpp
-// Create symmetric stress tensor
-symmTensor stress(100, 50, 30, 80, 40, 60);
-
-// Compute eigenvalues (returns as vector, sorted lambda1 >= lambda2 >= lambda3)
-eigenValues ev = eigenValues(stress);
-
-// Extract individual eigenvalues (Principal Stresses)
-scalar lambda1 = ev.component(vector::X);  // Max
-scalar lambda2 = ev.component(vector::Y);  // Intermediate
-scalar lambda3 = ev.component(vector::Z);  // Min
-
-// Compute eigenvectors (returned as tensor columns)
-eigenVectors eigvecs = eigenVectors(stress);
-```
-
-> **📂 แหล่งที่มา (Source):** `.applications/utilities/mesh/manipulation/subsetMesh/subsetMesh.C`
->
-> **คำอธิบาย:**
-> - **Eigenvalue Problem**: แก้สมการ $S \cdot v_k = \lambda_k \cdot v_k$
-> - **Principal Stresses**: ค่า Eigenvalues ($\lambda_1, \lambda_2, \lambda_3$) แทนความเค้นหลัก
-> - **Principal Directions**: เวกเตอร์ Eigenvectors แทนทิศทางหลักที่ความเค้นกระทำตั้งฉาก
-> - **Symmetric Property**: เทนเซอร์สมมาตรจะให้ eigenvectors ที่ตั้งฉากกัน (orthogonal) เสมอ
+- แก้ eigenvalue problem เพื่อหา principal stresses และ principal directions
+- ใช้ `eigenValues()` และ `eigenVectors()` ใน OpenFOAM สำหรับการวิเคราะห์ความเค้น
+- ตีความผลลัพธ์จาก eigen decomposition ในบริบทของ CFD
 
 ### **4. ประยุกต์ใช้ตัวดำเนินการแคลคูลัส (Apply Tensor Calculus Operators)**
-
-ใช้ตัวดำเนินการ finite volume สำหรับการจัดการสนามเทนเซอร์:
-
-#### **เกรเดียนต์ของสนามเทนเซอร์ (Gradient of Tensor Field)**
-```cpp
-// Compute gradient of tensor field (∇τ)
-// Result: third-order tensor field
-volTensorField gradTau = fvc::grad(tau);
-```
-> สร้างเทนเซอร์อันดับ 3 ($\partial \tau_{ij}/\partial x_k$) เพิ่ม rank ขึ้น 1
-
-#### **ไดเวอร์เจนซ์ของสนามเทนเซอร์ (Divergence of Tensor Field)**
-```cpp
-// Compute divergence of tensor field (∇·τ)
-// Result: vector field (force per unit volume)
-volVectorField divTau = fvc::div(tau);
-```
-> ลด rank ลง 1 ($\partial \tau_{ij}/\partial x_j$) ได้สนามเวกเตอร์ เช่น แรงต่อหน่วยปริมาตรในสมการโมเมนตัม
-
-#### **ลาพลาเซียนของสนามเทนเซอร์ (Laplacian of Tensor Field)**
-```cpp
-// Compute Laplacian of tensor field (∇²τ)
-volTensorField laplacianTau = fvc::laplacian(tau);
-```
-> แสดงเทอมการแพร่ (diffusion) ของปริมาณเทนเซอร์
+- คำนวณ gradient, divergence, และ Laplacian ของสนามเทนเซอร์ด้วย `fvc`
+- ใช้ตัวดำเนินการ `symm()`, `skew()`, `dev()` สำหรับการวิเคราะห์แรงเฉือนและการหมุน
+- เชื่อมโยงตัวดำเนินการแคลคูลัสกับสมการการไหลใน CFD
 
 ### **5. ใช้งานในแอปพลิเคชัน CFD จริง**
-
-#### **การสร้างแบบจำลองความปั่นป่วน (Turbulence Modeling)**
-```cpp
-// Compute Reynolds stress: R_ij = -ρ * u'_i * u'_j
-forAll(R, i)
-{
-    R[i] = -rho * UPrime[i] * UPrime[i];
-}
-```
-> $R_{ij}$ เป็น symmetric tensor ที่แสดงการขนส่งโมเมนตัมเนื่องจากความปั่นป่วน
-
-#### **การวิเคราะห์ความเค้น (Stress Analysis)**
-```cpp
-// Strain rate tensor: Symmetric part of velocity gradient
-volSymmTensorField epsilon = symm(fvc::grad(U));
-
-// Cauchy stress tensor: σ = 2μ*ε + λ*tr(ε)*I
-volSymmTensorField sigma = 2*mu*epsilon + lambda*tr(epsilon)*symmTensor::I;
-```
-> ใช้กฎของ Hooke สำหรับวัสดุยืดหยุ่นเชิงเส้น โดยคำนวณความเค้นจากความเครียด
+- สร้างแบบจำลองความปั่นป่วนด้วย Reynolds stress tensor
+- วิเคราะห์ความเค้นและความเครียดในโครงสร้าง
+- เขียนโค้ด OpenFOAM ที่มีประสิทธิภาพสำหรับการคำนวณทางพีชคณิตเทนเซอร์
 
 ---
 
-## การตีความทางฟิสิกส์: การเปรียบเทียบก้อนความเค้น (Physical Interpretation: The Stress Block Analogy)
+## สรุปเนื้อหาโมดูล (Module Content Summary)
+
+### **ไฟล์ที่ 01: Introduction**
+เรียนรู้พื้นฐานของเทนเซอร์: นิยาม, การแทนเทนเซอร์ใน 3 มิติ, และแนวคิดเรื่อง rank ของเทนเซอร์
+
+### **ไฟล์ที่ 02: Tensor Class Hierarchy**
+ศึกษาสถาปัตยกรรม C++ ของเทนเซอร์ใน OpenFOAM: `VectorSpace`, `MatrixSpace`, และ template metaprogramming
+
+### **ไฟล์ที่ 03: Tensor Type System**
+เรียนรู้เกณฑ์การเลือกใช้ `tensor` vs `symmTensor` vs `sphericalTensor` สำหรับสถานการณ์ต่างๆ
+
+### **ไฟล์ที่ 04: Tensor Operations**
+เจาะลึกการดำเนินการพีชคณิตและแคลคูลัส: addition, subtraction, multiplication, contractions, gradient, divergence
+
+### **ไฟล์ที่ 05: Eigen Decomposition**
+แก้ eigenvalue problem และประยุกต์ใช้กับการวิเคราะห์ความเค้นและความปั่นป่วน
+
+### **ไฟล์ที่ 06: CFD Applications**
+ตัวอย่างการประยุกต์ใช้เทนเซอร์ใน turbulence modeling, stress analysis, และ custom boundary conditions
+
+### **ไฟล์ที่ 07: Summary and Exercises**
+แบบฝึกหัดปัญหาจริงและโค้ดชิ้นส่วน (code snippets) สำหรับการฝึกปฏิบัติ
+
+---
+
+## ภาพรวมคลาสเทนเซอร์ของ OpenFOAM (Tensor Classes Overview)
+
+OpenFOAM มอบเฟรมเวิร์กพีชคณิตเทนเซอร์ที่ครอบคลุมผ่านคลาสเทนเซอร์หลัก 3 คลาส:
+
+| คลาส (Class) | ขนาด (Size) | องค์ประกอบอิสระ (Independent Components) | การใช้หน่วยความจำ | คำอธิบาย (Description) |
+|-------|-------|---------------------|----------|----------|
+| **`tensor`** | 3×3 | 9 องค์ประกอบ | 100% | เทนเซอร์อันดับสองทั่วไป |
+| **`symmTensor`** | 3×3 | 6 องค์ประกอบ | 67% | เทนเซอร์สมมาตร |
+| **`sphericalTensor`** | 3×3 | 1 องค์ประกอบ | 11% | เทนเซอร์ทรงกลม (ไอโซทรอปิก) |
+
+> **หมายเหตุ:** การเลือกใช้คลาสเทนเซอร์ที่เหมาะสมไม่เพียงแต่ประหยัดหน่วยความจำ แต่ยังช่วยลดเวลาการคำนวณลงอย่างมาก เนื่องจาก OpenFOAM สามารถใช้ประโยชน์จากสมบัติของความสมมาตรในการเพิ่มประสิทธิภาพการคำนวณได้
+
+---
+
+## การตีความทางฟิสิกส์: ก้อนความเค้น (Physical Interpretation)
 
 > [!NOTE] **📂 OpenFOAM Context**
 > **ส่วนประกอบ (Components):** Physics modeling, Stress analysis
@@ -233,7 +128,6 @@ volSymmTensorField sigma = 2*mu*epsilon + lambda*tr(epsilon)*symmTensor::I;
 > - `0/` - directory สำหรับเก็บสนามเทนเซอร์ (เช่น `0/sigma`, `0/tau`)
 > - `constant/transportProperties` - ค่า viscosity ที่ใช้คำนวณ stress
 > - `applications/solvers/stressAnalysis/` - solvers สำหรับ stress analysis
-> - `applications/solvers/compressible/` - solvers ที่ใช้ stress tensor
 >
 > **คำสั่ง/คำสำคัญ (Keywords):** `stress`, `strain`, `symmTensor`, `symm(fvc::grad(U))`, `dev()`, `tr()`
 
@@ -255,122 +149,8 @@ $$\boldsymbol{\tau} = \begin{bmatrix}
 
 ### การวิเคราะห์ความเค้นหลัก (Principal Stress Analysis)
 
-คำถามพื้นฐานคือ: **ในทิศทางใดที่ก้อนความเค้นนี้จะรับแรงเฉพาะในแนวตั้งฉากเท่านั้น?** (ไม่มีแรงเฉือน)
+คำถามพื้นฐากคือ: **ในทิศทางใดที่ก้อนความเค้นนี้จะรับแรงเฉพาะในแนวตั้งฉากเท่านั้น?** (ไม่มีแรงเฉือน)
 คำถามนี้นำไปสู่การหา **Principal Stresses** ผ่าน eigen decomposition ซึ่งจะหมุนก้อนบาศก์ไปยังมุมที่แรงเฉือนหายไปทั้งหมด เหลือเพียงแรงดึง/อัดในแนวแกนหลัก
-
----
-
-## ลำดับชั้นคลาสเทนเซอร์ (Tensor Class Hierarchy)
-
-> [!NOTE] **📂 OpenFOAM Context**
-> **ส่วนประกอบ (Components):** C++ architecture, Memory layout optimization
->
-> **ไฟล์ที่เกี่ยวข้อง (Files):**
-> - `src/OpenFOAM/fields/Fields/tensor/tensor.H` - definition คลาส tensor
-> - `src/OpenFOAM/fields/Fields/symmTensor/symmTensor.H` - definition คลาส symmTensor
-> - `src/OpenFOAM/fields/Fields/sphericalTensor/sphericalTensor.H` - definition คลาส sphericalTensor
-> - `src/OpenFOAM/primitives/VectorSpace/` - base classes สำหรับ algebra
->
-> **คำสั่ง/คำสำคัญ (Keywords):** `VectorSpace`, `MatrixSpace`, template metaprogramming, row-major storage
-
-OpenFOAM ใช้ระบบลำดับชั้นคลาสที่ซับซ้อนสำหรับการจัดการเทนเซอร์ เพื่อให้ได้ประสิทธิภาพการคำนวณสูงสุดผ่าน **Template Metaprogramming**
-
-```mermaid
-graph TD
-classDef explicit fill:#ffccbc,stroke:#d84315,stroke-width:2px,color:#000
-classDef implicit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
-A["Template&lt;Cmpt&gt;"]:::context
-
-subgraph Storage[" Underlying Storage "]
-    B["MatrixSpace&lt;tensor&lt;Cmpt&gt;, Cmpt, 3, 3&gt;"]:::implicit
-    C["VectorSpace&lt;symmTensor&lt;Cmpt&gt;, Cmpt, 6&gt;"]:::implicit
-    D["VectorSpace&lt;sphericalTensor&lt;Cmpt&gt;, Cmpt, 1&gt;"]:::implicit
-end
-
-subgraph Types[" User Types "]
-    E["tensor: 9 components"]:::explicit
-    F["symmTensor: 6 components"]:::explicit
-    G["sphericalTensor: 1 component"]:::explicit
-end
-
-A --> B
-A --> C
-A --> D
-B --> E
-C --> F
-D --> G
-```
-
-### รูปแบบการจัดเก็บในหน่วยความจำ (Internal Storage Layouts)
-
-1.  **General Tensor (`tensor`)**:
-    - เก็บ 9 สเกลาร์เรียงกันแบบ row-major `[XX][XY][XZ][YX][YY][YZ][ZX][ZY][ZZ]`
-    - เหมาะสำหรับ cache
-
-2.  **Symmetric Tensor (`symmTensor`)**:
-    - เก็บ 6 สเกลาร์ (ส่วนบนขวา) `[XX][XY][XZ][YY][YZ][ZZ]`
-    - ประหยัดหน่วยความจำ 33%
-    - การเข้าถึงส่วนล่างซ้าย (`yx`) จะถูก map กลับไปที่ส่วนบนขวา (`xy`) โดยอัตโนมัติ
-
-3.  **Spherical Tensor (`sphericalTensor`)**:
-    - เก็บ 1 สเกลาร์ `[ii]`
-    - ประหยัดหน่วยความจามากที่สุด ใช้สำหรับ isotropic fields (เช่น ความดัน)
-
----
-
-## กลไกการดำเนินการเทนเซอร์ (Tensor Operations Mechanism)
-
-> [!NOTE] **📂 OpenFOAM Context**
-> **ส่วนประกอบ (Components):** Tensor algebra operations, C++ operator overloading
->
-> **ไฟล์ที่เกี่ยวข้อง (Files):**
-> - `src/OpenFOAM/fields/Fields/tensor/tensorI.H` - implementation การดำเนินการ tensor
-> - `src/OpenFOAM/fields/Fields/symmTensor/symmTensorI.H` - implementation การดำเนินการ symmTensor
-> - `src/finiteVolume/finiteVolume/fvc/fvcGrad.C` - gradient operations
-> - `src/finiteVolume/finiteVolume/fvc/fvcDiv.C` - divergence operations
->
-> **คำสั่ง/คำสำคัญ (Keywords):** `&` (single contraction), `&&` (double contraction), `*` (outer product), `fvc::grad`, `fvc::div`
-
-### 1. Single Contraction (`&`)
-ลด rank ลง 1:
-- Tensor & Vector → Vector ($y_i = \Sigma_j T_{ij} v_j$)
-- Tensor & Tensor → Tensor ($C_{ij} = \Sigma_k A_{ik} B_{kj}$)
-
-### 2. Double Contraction (`&&`)
-ลด rank ลง 2 (ได้ Scalar):
-- Tensor && Tensor → Scalar ($s = \Sigma_{ij} A_{ij} B_{ij}$)
-- เทียบเท่ากับ `tr(A & B.T())`
-- ใช้คำนวณงานและพลังงาน
-
-### 3. Outer Product (`*`)
-เพิ่ม rank ขึ้น 2 (จาก Vector เป็น Tensor):
-- Vector * Vector → Tensor ($T_{ij} = u_i v_j$)
-- ใช้สร้าง Reynolds stress tensor
-
----
-
-## หลุมพรางทั่วไปและแนวทางปฏิบัติที่ดี (Common Pitfalls and Best Practices)
-
-> [!NOTE] **📂 OpenFOAM Context**
-> **ส่วนประกอบ (Components):** Performance optimization, Memory management, Debugging
->
-> **ไฟล์ที่เกี่ยวข้อง (Files):**
-> - `src/OpenFOAM/fields/tmp/` - `tmp<T>` class สำหรับ temporary field management
-> - `src/finiteVolume/fields/volFields/` - vol*Field สำหรับ field references
-> - `applications/solvers/multiphase/multiphaseEulerFoam/` - ตัวอย่างการใช้งานจริง
->
-> **คำสั่ง/คำสำคัญ (Keywords):** `const volTensorField&`, `tmp<volTensorField>`, `symm()`, `dev()`, `component()`
-
-### การสับสนระหว่าง Single และ Double Contraction
-- **ผิด**: `vector v = A && B;` (ผลลัพธ์ของ `&&` คือ scalar ไม่ใช่ vector)
-- **ถูก**: `scalar s = A && B;`
-
-### เทคนิคเพื่อประสิทธิภาพ (Performance Considerations)
-1.  **Pre-computation**: คำนวณค่า invariants (det, tr) เก็บไว้ถ้าต้องใช้ซ้ำ
-2.  **Symmetric Operations**: ใช้ `symmTensor` เมื่อทราบว่าสมมาตร เพื่อลดการคำนวณลงครึ่งหนึ่ง
-3.  **References**: ใช้ `const volTensorField&` แทนการ copy field ทั้งก้อน
-4.  **tmp Templates**: ใช้ `tmp<>` สำหรับการจัดการหน่วยความจำของ field ชั่วคราว
 
 ---
 
@@ -387,12 +167,14 @@ D --> G
 >
 > **คำสั่ง/คำสำคัญ (Keywords):** `volTensorField`, `volSymmTensorField`, `fvc::grad`, `fvc::div`, `eigenValues`, `Reynolds stress`
 
-1.  **สถาปัตยกรรมเทนเซอร์**: OpenFOAM มี 3 คลาสหลัก (`tensor`, `symmTensor`, `sphericalTensor`) เพื่อเพิ่มประสิทธิภาพหน่วยความจำ
-2.  **ความสำคัญของการเลือกใช้**: การเลือกประเภทเทนเซอร์ที่ถูกต้องช่วยประหยัดหน่วยความจำและลดเวลาการคำนวณ
+### **แนวคิดสำคัญ (Key Concepts)**
+
+1.  **สถาปัตยกรรมเทนเซอร์**: OpenFOAM มี 3 คลาสหลัก (`tensor`, `symmTensor`, `sphericalTensor`) เพื่อเพิ่มประสิทธิภาพหน่วยความจำและการคำนวณ
+2.  **ความสำคัญของการเลือกใช้**: การเลือกประเภทเทนเซอร์ที่ถูกต้องช่วยประหยัดหน่วยความจำและลดเวลาการคำนวณลงได้อย่างมาก
 3.  **Eigen Decomposition**: เครื่องมือสำคัญในการวิเคราะห์ความเค้นและความปั่นป่วน หาแกนหลักและค่าหลัก
 4.  **ความหมายทางฟิสิกส์**: เทนเซอร์เชื่อมโยงคณิตศาสตร์กับพฤติกรรมของวัสดุและการไหล (Stress, Strain, Rate of deformation)
 
-### ตารางสรุปการดำเนินการ (Tensor Calculus Operations)
+### **ตารางสรุปการดำเนินการ (Tensor Calculus Operations)**
 
 | การดำเนินการ | สัญลักษณ์ | OpenFOAM Syntax | ผลลัพธ์ | การใช้งาน |
 |-----------|--------|-----------------|-------------|-------------|
@@ -403,8 +185,16 @@ D --> G
 | **Skew part** | $\text{skew}(\mathbf{T})$ | `skew(T)` | tensor | Vorticity |
 | **Deviatoric** | $\text{dev}(\mathbf{T})$ | `dev(T)` | symmTensor | Deviatoric stress |
 
-## ขั้นตอนถัดไป
-ไปที่ [[01_Introduction]] เพื่อเริ่มต้นเจาะลึกเนื้อหาการดำเนินการเทนเซอร์อย่างละเอียด
+---
+
+## จุดประกายการเรียนรู้ (Key Takeaways)
+
+> [!SUCCESS] **สิ่งที่ควรจำไว้**
+> 1. **เลือกให้ถูกประเภท** - ใช้ `symmTensor` สำหรับ stress/strain, `sphericalTensor` สำหรับ pressure, และ `tensor` เฉพาะเมื่อจำเป็น
+> 2. **รู้จักการลด rank** - Single contraction (`&`) ลด rank 1, Double contraction (`&&`) ลด rank 2 (ได้ scalar)
+> 3. **ใช้ eigen อย่างชาญฉลาด** - Eigen decomposition ให้ principal stresses และ principal directions สำหรับการวิเคราะห์ความเค้น
+> 4. **เชื่อมโยงกับฟิสิกส์** - เทนเซอร์ไม่ใช่แค่คณิตศาสตร์ แต่เป็นภาษาที่อธิบายพฤติกรรมของวัสดุและการไหล
+> 5. **เขียนโค้ดอย่างมีประสิทธิภาพ** - ใช้ references (`const volTensorField&`) และ `tmp<>` templates เพื่อลดการ copy ข้อมูล
 
 ---
 
@@ -455,8 +245,14 @@ tensor eigenVec = eigenVectors(sigma); // ทิศทางหลัก (princi
 
 ---
 
+## ขั้นตอนถัดไป (Next Steps)
+
+ไปที่ [[01_Introduction]] เพื่อเริ่มต้นเจาะลึกเนื้อหาการดำเนินการเทนเซอร์อย่างละเอียด
+
+---
+
 ## 📖 เอกสารที่เกี่ยวข้อง
 
 - **บทถัดไป:** [01_Introduction.md](01_Introduction.md) — บทนำสู่ Tensor Algebra
-- **Tensor Class Hierarchy:** [02_Tensor_Class_Hierarchy.md](02_Tensor_Class_Hierarchy.md) — ลำดับชั้นคลาสเทนเซอร์
 - **Vector Calculus:** [../10_VECTOR_CALCULUS/00_Overview.md](../10_VECTOR_CALCULUS/00_Overview.md) — โมดูลก่อนหน้า: Vector Calculus
+- **Field Algebra:** [../09_FIELD_ALGEBRA/00_Overview.md](../09_FIELD_ALGEBRA/00_Overview.md) — โมดูลก่อนหน้า: Field Algebra
