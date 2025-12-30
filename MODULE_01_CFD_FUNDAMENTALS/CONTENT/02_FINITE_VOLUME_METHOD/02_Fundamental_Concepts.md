@@ -1,248 +1,582 @@
-# แนวคิดพื้นฐาน FVM
+# Physics & Governing Equations in FVM Context
 
-Finite Volume Method แบ่งโดเมนเป็น **Control Volumes (Cells)** และใช้หลักการอนุรักษ์กับแต่ละ Cell
+> **Learning Objectives**
+> - Understand the governing equations (mass, momentum, energy) and their physical meaning
+> - Learn how these equations are discretized using the Finite Volume Method
+> - Grasp the pressure-velocity coupling challenge and solution algorithms
+> - Recognize the general transport equation form that underlies all CFD problems
 
-> **ทำไมต้องใช้ FVM?**
-> - **Conservation guarantee:** Flux ที่ออกจาก Cell A = Flux ที่เข้า Cell B → มวล/พลังงานไม่หาย
-> - **Unstructured mesh:** รองรับ geometry ซับซ้อน
-> - **Physical intuition:** สมการมาจากการ balance flux → เข้าใจง่าย
-
----
-
-## หลักการ Control Volume
-
-### Flux Balance
-
-> **💡 คิดแบบนี้:**
-> สมมติ Cell คือกล่องใส่น้ำ — ปริมาณน้ำในกล่องเปลี่ยนแปลงได้จาก 2 ทาง:
-> 1. น้ำไหลเข้า/ออกผ่านผนัง (Flux)
-> 2. มีก๊อกน้ำเปิด/ปิดในกล่อง (Source)
-
-<!-- IMAGE: IMG_01_001 -->
-<!-- 
-Purpose: เพื่อแสดงหัวใจสำคัญของ FVM: การมองของไหลเป็น "ก้อนปริมาตรคงที่" (Control Volume) ที่มีกฎการอนุรักษ์ (Conservation Law) ควบคุมอยู่ โดยแสดงให้เห็นชัดเจนว่าปริมาณทางฟิสิกส์ (phi) เปลี่ยนแปลงได้จากการ "ไหลผ่านผิว" (Flux) และ "การเกิดภายใน" (Source) เท่านั้น ซึ่งต่างจากจุด (Node) ใน FDM
-Prompt: "Engineering Diagram of a Finite Volume Control Cell. **Geometry:** A single isometric wireframe cube (black lines). **Elements:** 1. A central point labeled 'P' (Cell Center). 2. A point on the right face labeled 'f' (Face Center). 3. A straight arrow piercing the right face from inside to outside, labeled 'J_out' (Efflux). 4. A straight arrow entering the left face, labeled 'J_in' (Influx). 5. A normal vector arrow perpendicular to the face, labeled 'Sf'. **Style:** Technical textbook line art, white background, black lines, minimal color (only blue for flux arrows), clear mathematical labels (LaTeX style). No glowing effects, no abstract fluid."
--->
-![IMG_01_001: Control Volume Conservation Concept.jpg](IMG_01_001.jpg)
-
-สำหรับแต่ละ Cell:
-
-$$\underbrace{\frac{d}{dt}\int_V \phi\, dV}_{\text{สะสมในกล่อง}} + \underbrace{\sum_f \mathbf{F}_f \cdot \mathbf{S}_f}_{\text{ไหลออกผ่านผนัง}} = \underbrace{\int_V S\, dV}_{\text{ผลิต/บริโภค}}$$
-
-**ทำไม FVM อนุรักษ์โดยอัตโนมัติ?**
-- Flux ที่ Face ถูกคำนวณ **ครั้งเดียว** และใช้ร่วมกันระหว่าง 2 Cells ที่อยู่ติดกัน
-- สิ่งที่ไหลออกจาก Cell A จะเข้า Cell B พอดี → ไม่มีการสร้างหรือทำลาย
+> **Prerequisites**
+> - Familiarity with basic calculus (partial derivatives, divergence, gradient)
+> - Understanding of vectors and tensor notation
+> - Knowledge of fluid mechanics fundamentals from [01_Introduction](01_Introduction.md)
 
 ---
 
-### Cell-Centered Storage
+## What Equations Are We Discretizing?
 
-**ปัญหา:** เราเก็บค่า ($\phi$) ที่ Cell Center แต่ต้องคำนวณ Flux ที่ Face
+> **Why This Matters:**
+> CFD solvers don't "simulate" fluid flow — they solve mathematical equations that describe fluid physics. Understanding **what** equations we solve and **why** they take their specific form is fundamental to debugging convergence issues, choosing appropriate schemes, and interpreting results correctly.
 
-<!-- IMAGE: IMG_01_002 -->
-<!-- 
-Purpose: เพื่อชี้ให้เห็น "ปัญหาหลัก" ของ FVM แบบ Cell-Centered: ข้อมูลเก็บอยู่ที่ "จุดศูนย์กลาง" (Cell Center) แต่สมการต้องการค่าที่ "ผิว" (Face) เพื่อคำนวณ Flux. ภาพนี้ต้องสื่อว่าค่าที่ Face ($\phi_f$) คือ "Unknown" ที่เราต้องหาทางประมาณค่าขึ้นมา (Interpolation)
-Prompt: "2D Engineering Schematic of Finite Volume Discretization. **Geometry:** Two perfect square cells touching side-by-side. Left square is 'Cell P', Right square is 'Cell N'. **Elements:** 1. A blue dot in the exact center of Cell P labeled 'φ_P'. 2. A blue dot in the exact center of Cell N labeled 'φ_N'. 3. A red 'X' or hollow circle on the shared vertical line between the squares labeled 'φ_f = ?'. 4. A dashed line connecting the two blue dots. 5. A small arrow pointing from left to right across the boundary labeled 'Sf'. **Style:** Flat 2D technical drawing, black outlines on white background, no shading, no 3D, clear LaTeX-style labels."
--->
-![IMG_01_002: The Face Interpolation Problem](IMG_01_002.jpg)
+The Finite Volume Method (FVM) provides the framework for **discretization** — converting continuous partial differential equations (PDEs) into algebraic equations solvable on computers. Before discretizing, we must understand the physics:
 
-**ทางออก:** ใช้ **Interpolation Schemes** เพื่อ "เดา" ค่าที่ Face จากค่าที่ Cell Centers
-
-| ตัวแปร | ความหมาย | ทำไมสำคัญ |
-|--------|----------|----------|
-| $V_P$ | Cell Volume | ใช้คำนวณ accumulation term |
-| $\mathbf{S}_f$ | Face Area Vector | ใช้คำนวณ flux ผ่าน face |
-| $\mathbf{d}_{PN}$ | ระยะห่าง P→N | ใช้คำนวณ gradient |
-
-**OpenFOAM Access:**
-```cpp
-mesh.V()      // Cell volumes
-mesh.Sf()     // Face area vectors
-mesh.delta()  // Cell-to-cell distances
 ```
-
----
-
-## สมการอนุรักษ์
-
-### 1. Mass (Continuity)
-
-$$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$$
-
-**Incompressible:** $\nabla \cdot \mathbf{u} = 0$
-
-**ทำไมสมการนี้สำคัญ?**
-- ไม่ใช่แก้หามวล แต่ใช้เป็น **constraint** สร้างสมการ pressure
-- ถ้า divergence ไม่เป็นศูนย์ = มวลหายไป → ผลลัพธ์ผิด
-
-**OpenFOAM:** บังคับผ่าน pressure correction (SIMPLE/PISO)
-
----
-
-### 2. Momentum (Navier-Stokes)
-
-$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
-
-**แต่ละ term หมายความว่าอะไร?**
-
-| พจน์ | ชื่อ | ความหมายทางกายภาพ | OpenFOAM |
-|------|------|-------------------|----------|
-| $\rho \partial\mathbf{u}/\partial t$ | Local acceleration | ความเร็วเปลี่ยนตามเวลา ณ จุดเดิม | `fvm::ddt(rho, U)` |
-| $\rho (\mathbf{u} \cdot \nabla) \mathbf{u}$ | Convection | ของไหลพาโมเมนตัมไปด้วย (ทำให้ nonlinear!) | `fvm::div(phi, U)` |
-| $-\nabla p$ | Pressure force | ความดันดันจากสูงไปต่ำ | `fvc::grad(p)` |
-| $\mu \nabla^2 \mathbf{u}$ | Viscous force | ความหนืดยับยั้งการไหล (ทำให้เสถียร) | `fvm::laplacian(mu, U)` |
-
-**ทำไม Convection term ถึงยาก?**
-- มี $\mathbf{u}$ คูณ $\mathbf{u}$ → **Nonlinear**
-- ค่าอาจกระโดดมาก → ต้องใช้ scheme ที่เสถียร (upwind)
-
----
-
-### 3. Energy
-
-$$\rho c_p \frac{\partial T}{\partial t} + \rho c_p \mathbf{u} \cdot \nabla T = k \nabla^2 T + Q$$
-
-**ใช้เมื่อไหร่?**
-- ❌ น้ำไหลในท่อที่อุณหภูมิคงที่ → ไม่ต้องแก้
-- ✅ Heat transfer → ต้องแก้
-- ✅ Compressible flow → ต้องแก้ เพราะ ρ ขึ้นกับ T
-
-**OpenFOAM Files:**
-- `0/T` หรือ `0/h` (enthalpy)
-- `constant/thermophysicalProperties`
-
----
-
-## Pressure-Velocity Coupling
-
-> **ปัญหา "งูกินหาง":**
-> - สมการ Momentum ต้องใช้ $p$ → แต่ $p$ มาจากไหน?
-> - สมการ Continuity บังคับให้ $\nabla \cdot \mathbf{u} = 0$ → ใช้สร้างสมการ $p$
-> - แต่สมการ $p$ ต้องใช้ $\mathbf{u}$!
-
-**ทางออก:** ใช้ **Iterative Algorithm**
-
-| Algorithm | ใช้เมื่อ | หลักการ |
-|-----------|---------|---------|
-| **SIMPLE** | Steady-state | วนซ้ำจนนิ่ง ใช้ under-relaxation |
-| **PISO** | Transient, Δt เล็ก | แก้ pressure หลายรอบต่อ time step |
-| **PIMPLE** | Transient, Δt ใหญ่ | รวม SIMPLE + PISO (outer + inner loops) |
-
-**การตั้งค่าใน `system/fvSolution`:**
-
-```cpp
-// Steady-state
-SIMPLE
-{
-    nNonOrthogonalCorrectors 1;  // แก้ mesh เบี้ยว
-    residualControl { p 1e-4; U 1e-4; }
-}
-
-// Transient
-PIMPLE
-{
-    nOuterCorrectors 2;   // SIMPLE-like outer loop
-    nCorrectors 1;        // PISO-like inner loop
-}
+Continuous Physics (PDEs) → FVM Discretization → Algebraic System → Numerical Solution
+         ↑                                                                 ↓
+         └─────────────────── This file covers this step ───────────────────┘
 ```
 
 ---
 
 ## General Transport Equation
 
-**ทุกสมการอนุรักษ์เขียนได้ในรูปเดียวกัน:**
+> **The Universal Form:**
+> ALL conservation laws in fluid dynamics can be written in this single form:
 
-$$\underbrace{\frac{\partial \phi}{\partial t}}_{\text{เวลา}} + \underbrace{\nabla \cdot (\mathbf{u}\phi)}_{\text{พา (Convection)}} = \underbrace{\nabla \cdot (D \nabla \phi)}_{\text{กระจาย (Diffusion)}} + \underbrace{S}_{\text{แหล่ง}}$$
+$$\underbrace{\frac{\partial (\rho \phi)}{\partial t}}_{\text{Time Derivative}} + \underbrace{\nabla \cdot (\rho \mathbf{u} \phi)}_{\text{Convection}} = \underbrace{\nabla \cdot (\Gamma_\phi \nabla \phi)}_{\text{Diffusion}} + \underbrace{S_\phi}_{\text{Source}}$$
 
-**ทำไมรูปนี้สำคัญ?**
-- OpenFOAM ใช้รูปนี้เป็นพื้นฐานในการ discretize ทุกสมการ
-- เข้าใจรูปนี้ = เข้าใจทุก solver
+| Symbol | Meaning | Physical Interpretation |
+|--------|---------|------------------------|
+| $\phi$ | General scalar | Mass (1), momentum (u, v, w), energy (T or h), turbulence quantities (k, ε, ω) |
+| $\rho$ | Density | Fluid density (constant for incompressible, variable for compressible) |
+| $\mathbf{u}$ | Velocity vector | Flow field $(u, v, w)$ |
+| $\Gamma_\phi$ | Diffusion coefficient | Viscosity (μ) for momentum, thermal conductivity (k) for energy |
+| $S_\phi$ | Source term | Body forces, pressure gradients, heat sources, turbulence production |
+
+> **Why This Form Matters:**
+> - **Code Efficiency:** OpenFOAM uses a single discretization template for ALL equations
+> - **Understanding:** Master this form → understand ALL solver implementations
+> - **Debugging:** Errors manifest differently in each term (instability → convection, slow convergence → diffusion)
+
+**For incompressible flow** ($\rho = \text{constant}$), this simplifies to:
+
+$$\frac{\partial \phi}{\partial t} + \nabla \cdot (\mathbf{u} \phi) = \nabla \cdot (D \nabla \phi) + S$$
+
+where $D = \Gamma_\phi / \rho$ is the kinematic diffusion coefficient.
+
+---
+
+## FVM Discretization of the Transport Equation
+
+### Integral Form
+
+FVM begins by integrating the transport equation over a **control volume** (cell):
+
+$$\int_V \frac{\partial \phi}{\partial t} dV + \int_V \nabla \cdot (\mathbf{u} \phi) dV = \int_V \nabla \cdot (D \nabla \phi) dV + \int_V S dV$$
+
+Applying the **divergence theorem** to convert volume integrals of divergences to surface integrals:
+
+$$\underbrace{\int_V \frac{\partial \phi}{\partial t} dV}_{\text{Accumulation}} + \underbrace{\oint_A (\mathbf{u} \phi) \cdot d\mathbf{A}}_{\text{Convection Flux}} = \underbrace{\oint_A (D \nabla \phi) \cdot d\mathbf{A}}_{\text{Diffusion Flux}} + \underbrace{\int_V S dV}_{\text{Source}}$$
+
+### Discrete Form (Single Cell)
+
+For a single cell $P$ with volume $V_P$ and faces $f$:
+
+$$\underbrace{V_P \frac{\phi_P^{n+1} - \phi_P^n}{\Delta t}}_{\text{Temporal Change}} + \underbrace{\sum_f \mathbf{F}_f \cdot \mathbf{S}_f \phi_f}_{\text{Net Convection}} = \underbrace{\sum_f D_f (\nabla \phi)_f \cdot \mathbf{S}_f}_{\text{Net Diffusion}} + \underbrace{V_P S_P}_{\text{Source}}$$
+
+where:
+- $\mathbf{F}_f = \mathbf{u}_f \cdot \mathbf{S}_f$ = volumetric flux through face $f$ [m³/s]
+- $\mathbf{S}_f$ = face area vector (magnitude = face area, direction = outward normal)
+- $\phi_f$ = value of $\phi$ at the face (obtained via interpolation — see [03_Spatial_Discretization](03_Spatial_Discretization.md))
+- $(\nabla \phi)_f$ = gradient of $\phi$ at the face
+
+**This is the equation that OpenFOAM solves for EVERY variable!**
+
+---
+
+## Individual Conservation Equations
+
+Each conservation law is a specific case of the general transport equation with appropriate $\phi$, $\Gamma_\phi$, and $S_\phi$:
+
+### 1. Mass Conservation (Continuity Equation)
+
+**For $\phi = 1$ (mass fraction per unit mass):**
+
+$$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$$
+
+**FVM Discrete Form:**
+
+$$\frac{(\rho_P V_P)^{n+1} - (\rho_P V_P)^n}{\Delta t} + \sum_f \rho_f \mathbf{F}_f \cdot \mathbf{S}_f = 0$$
+
+**For incompressible flow** ($\rho = \text{constant}$):
+
+$$\nabla \cdot \mathbf{u} = 0 \quad \Rightarrow \quad \sum_f \mathbf{F}_f \cdot \mathbf{S}_f = 0$$
+
+> **Physical Meaning:**
+> - **Rate of mass accumulation** + **Net mass flux out** = 0
+> - Mass cannot be created or destroyed
+> - For incompressible flow: volume flux into cell = volume flux out of cell
+
+> **Why This Equation Is Special:**
+> - **No time derivative** for steady incompressible flow → acts as a **constraint**
+> - **No pressure variable** → doesn't form a standalone equation
+> - **Used to derive pressure equation** in pressure-velocity coupling algorithms
+> - **NOT solved directly** — instead, pressure correction enforces $\nabla \cdot \mathbf{u} = 0$
 
 **OpenFOAM Implementation:**
+```cpp
+// Continuity is enforced via pressure correction (see below)
+// Not solved as a standalone equation
+```
+
+---
+
+### 2. Momentum Conservation (Navier-Stokes Equation)
+
+**For $\phi = \mathbf{u}$ (velocity vector):**
+
+$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
+
+**Term-by-Term Breakdown:**
+
+| Term | Mathematical Form | Physical Meaning | OpenFOAM Operator |
+|------|-------------------|------------------|-------------------|
+| **Unsteady** | $\rho \frac{\partial \mathbf{u}}{\partial t}$ | Local acceleration: rate of velocity change at a fixed point | `fvm::ddt(rho, U)` |
+| **Convection** | $\rho (\mathbf{u} \cdot \nabla) \mathbf{u}$ | Inertial force: fluid momentum transport (NONLINEAR!) | `fvm::div(phi, U)` |
+| **Pressure Gradient** | $-\nabla p$ | Surface force: pressure pushes from high to low | `fvc::grad(p)` (explicit) |
+| **Diffusion** | $\mu \nabla^2 \mathbf{u}$ | Viscous force: friction dampens velocity gradients | `fvm::laplacian(mu, U)` |
+| **Source** | $\mathbf{f}$ | Body forces: gravity, buoyancy, centrifugal | `SU` or `Sp` functions |
+
+**FVM Discrete Form (for x-component $u$):**
+
+$$\rho V_P \frac{u_P^{n+1} - u_P^n}{\Delta t} + \rho \sum_f \mathbf{F}_f \cdot \mathbf{S}_f u_f = -\sum_f p_f \mathbf{S}_f^x + \mu \sum_f (\nabla u)_f \cdot \mathbf{S}_f + V_P f^x_P$$
+
+**Key Challenges:**
+
+1. **Nonlinearity (Convection Term):**
+   - Contains $\mathbf{u} \cdot \nabla \mathbf{u}$ — velocity multiplied by its own gradient
+   - Requires **linearization** (use previous iteration values for $\mathbf{F}_f = \rho \mathbf{u}_f \cdot \mathbf{S}_f$)
+   - Can cause **instability** if upwind direction is not respected
+
+2. **Pressure-Velocity Coupling:**
+   - Pressure gradient $-\nabla p$ drives flow BUT pressure is unknown
+   - Continuity provides constraint BUT has no pressure
+   - Requires **special algorithms** (SIMPLE, PISO, PIMPLE — see below)
+
+3. **Boundary Conditions:**
+   - Velocity specified at walls (no-slip: $\mathbf{u} = 0$)
+   - Pressure specified at inlets/outlets
+   - Cannot specify both velocity AND pressure at same boundary (over-specified)
+
+> **⚠️ Critical Insight: The Convection Challenge**
+> The convection term $\rho (\mathbf{u} \cdot \nabla) \mathbf{u}$ is the PRIMARY source of:
+> - **Nonlinearity** → requires iteration
+> - **Instability** → requires upwind schemes or limiters
+> - **Convergence difficulty** → dominant at high Reynolds numbers
+> 
+> **Why:** Information travels **with the flow** (hyperbolic character), unlike diffusion which spreads in all directions (elliptic/parabolic). This requires **upwind-biased discretization** — see [03_Spatial_Discretization](03_Spatial_Discretization.md).
+
+**OpenFOAM Implementation (Vector form):**
+```cpp
+// Momentum equation for incompressible flow
+fvVectorMatrix UEqn
+(
+    fvm::ddt(U)                    // ∂u/∂t
+  + fvm::div(phi, U)               // ∇·(uu) — nonlinear!
+  - fvm::laplacian(nu, U)          // ν∇²u
+ ==
+    - fvc::grad(p)                 // -∇p — explicit!
+  + SU                              // Source terms (e.g., gravity)
+);
+```
+
+> **💡 Why is pressure gradient `fvc::grad(p)` (explicit)?**
+> Because pressure $p$ is obtained from a **separate** pressure correction equation. At the current iteration, $p$ is "known" from the previous correction step, so $\nabla p$ is computed explicitly and added as a source term to the momentum matrix.
+
+---
+
+### 3. Energy Conservation
+
+**For $\phi = T$ (temperature) or $h$ (enthalpy):**
+
+$$\rho c_p \frac{\partial T}{\partial t} + \rho c_p \mathbf{u} \cdot \nabla T = k \nabla^2 T + Q$$
+
+**When Is This Required?**
+
+| Scenario | Solve Energy? | Reason |
+|----------|---------------|--------|
+| **Isothermal incompressible flow** (e.g., water at 20°C in a pipe) | ❌ No | ρ and μ constant → decoupled from momentum |
+| **Heat transfer problems** | ✅ Yes | Temperature affects buoyancy (natural convection) or is output of interest |
+| **Compressible flow** | ✅ Yes | ρ depends on T via equation of state |
+| **Reacting flows** | ✅ Yes | Reaction rates depend on T |
+
+**FVM Discrete Form:**
+
+$$\rho c_p V_P \frac{T_P^{n+1} - T_P^n}{\Delta t} + \rho c_p \sum_f \mathbf{F}_f \cdot \mathbf{S}_f T_f = k \sum_f (\nabla T)_f \cdot \mathbf{S}_f + V_P Q_P$$
+
+**OpenFOAM Implementation:**
+```cpp
+// Energy equation (temperature form)
+fvScalarMatrix TEqn
+(
+    fvm::ddt(T)
+  + fvm::div(phi, T)
+  - fvm::laplacian(alpha, T)  // α = k/(ρ·c_p) = thermal diffusivity
+ ==
+    Source/vol               // Volumetric heat source
+);
+```
+
+**Coupling with Momentum:**
+- For **natural convection**, $T$ affects density via Boussinesq approximation: $\rho = \rho_0[1 - \beta(T - T_0)]$
+- Buoyancy force added to momentum: $\mathbf{f}_{buoyancy} = \rho \mathbf{g} \beta (T - T_0)$
+
+---
+
+## Pressure-Velocity Coupling: The Core Challenge
+
+> **The "Chicken-and-Egg" Problem:**
+> 
+> ```
+> ┌─────────────────────────────────────────────────────┐
+> │                                                     │
+> │   Momentum Eq:  ∂u/∂t + (u·∇)u = -∇p + ν∇²u        │
+> │                         ↑                           │
+> │                         │                           │
+> │                    Need p to solve for u           │
+> │                         │                           │
+> │                         │                           │
+> │   Continuity Eq:      ∇·u = 0                      │
+> │                         ↑                           │
+> │                         │                           │
+> │              Use u to constrain p                  │
+> │                                                     │
+> └─────────────────────────────────────────────────────┘
+> ```
+> 
+> - To solve momentum → need pressure $p$
+> - To find pressure $p$ → need velocity $\mathbf{u}$ (to satisfy continuity)
+> - But $\mathbf{u}$ depends on $p$!
+
+### Solution: Projection Methods
+
+The strategy is to **decouple** pressure and velocity using a **predictor-corrector** approach:
+
+```mermaid
+graph TD
+    A[Start: u*, p* from previous iteration] --> B[Predict: Solve Momentum<br/>with p* to get u*]
+    B --> C[Pressure Correction: Solve Poisson eq<br/>∇²p' = ∇·u* / Δt]
+    C --> D[Correct: u = u* - ∇p'<br/>p = p* + p']
+    D --> E{Converged?}
+    E -->|No| A
+    E -->|Yes| F[Done]
+```
+
+### Three Main Algorithms
+
+| Algorithm | Full Name | Application | Key Features |
+|-----------|-----------|-------------|--------------|
+| **SIMPLE** | Semi-Implicit Method for Pressure-Linked Equations | Steady-state problems | Iterative convergence with under-relaxation |
+| **PISO** | Pressure-Implicit with Splitting of Operators | Transient problems with small Δt | Multiple corrector steps per time step |
+| **PIMPLE** | PISO + SIMPLE | Transient problems with large Δt (coarse time steps) | Hybrid: outer SIMPLE-like loop + inner PISO correctors |
+
+#### SIMPLE Algorithm (Steady-State)
+
+```
+for (int iter = 0; iter < maxIter; iter++)
+{
+    // 1. Guess pressure field p* (initially = 0 or previous)
+    
+    // 2. Solve momentum equation with p* → get intermediate velocity u*
+    solve(fvm::ddt(U) + fvm::div(phi, U) - fvm::laplacian(nu, U) == -fvc::grad(p*));
+    
+    // 3. Solve pressure correction equation
+    //    Derived from: ∇·u = 0
+    //    Results in:  ∇·(∇p') = ∇·u* / Δt  (Poisson equation)
+    solve(fvm::laplacian(1/A, p') == fvc::div(phi)/A);
+    
+    // 4. Correct pressure and velocity
+    p = p* + alpha_p * p';      // alpha_p = under-relaxation factor (0.1-0.5)
+    U = U* - (1/A) * grad(p');  // A = matrix diagonal coefficients
+    
+    // 5. Check convergence (residuals of p and U)
+    if (max(residual_p, residual_U) < tolerance) break;
+}
+```
+
+**Under-relaxation factors** (vital for stability):
+- $\alpha_p = 0.1$ - $0.3$ (pressure)
+- $\alpha_U = 0.5$ - $0.7$ (velocity)
+
+> **Why Under-Relaxation?**
+> - SIMPLE assumes $p$ and $\mathbf{u}$ are "kind of" coupled
+> - Without under-relaxation → pressure corrections overshoot → divergence
+> - Trade-off: slower convergence but stable
+
+#### PISO Algorithm (Transient)
+
+```
+for (int timeStep = 0; timeStep < nSteps; timeStep++)
+{
+    for (int corrector = 0; corrector < nCorrectors; corrector++)
+    {
+        // 1. Solve momentum with current p
+        solve(fvm::ddt(U) + fvm::div(phi, U) - fvm::laplacian(nu, U) == -fvc::grad(p));
+        
+        // 2. Solve pressure correction
+        solve(fvm::laplacian(1/A, p') == fvc::div(phi)/A);
+        
+        // 3. Correct WITHOUT under-relaxation
+        p += p';
+        U -= (1/A) * grad(p');
+    }
+}
+```
+
+**Key differences from SIMPLE:**
+- No under-relaxation (small Δt provides stability)
+- Multiple corrector loops per time step (typically 2-4)
+- Each corrector improves satisfaction of $\nabla \cdot \mathbf{u} = 0$
+- Accuracy improves with corrector iterations
+
+#### PIMPLE (Hybrid)
+
+Combines SIMPLE outer iterations with PISO inner correctors:
+
+```cpp
+PIMPLE
+{
+    nOuterCorrectors 10;    // SIMPLE-like outer iterations
+    nCorrectors      2;     // PISO-like inner correctors
+    nNonOrthogonalCorrectors 0;
+    
+    // Under-relaxation for outer loop
+    relTol          0.01;   // Relative tolerance
+    residualControl
+    {
+        p       1e-4;
+        U       1e-4;
+    }
+}
+```
+
+**When to use PIMPLE?**
+- Large time steps (Co number > 1)
+- Transient simulations where per-time-step convergence is critical
+- Complex physics (multiphase, combustion, heat transfer)
+
+---
+
+## FVM vs fvc: Conceptual Understanding
+
+> **💡 The Fundamental Distinction in OpenFOAM**
+
+OpenFOAM provides two ways to evaluate spatial derivatives — this distinction is CRITICAL for understanding how discretization works:
+
+| Prefix | Full Name | Mathematical Operation | Usage | Result |
+|--------|-----------|------------------------|-------|--------|
+| **`fvm::`** | Finite Volume **Matrix** | Implicit discretization | For **unknown** variables being solved | Matrix coefficients (diagonal, off-diagonal, source) |
+| **`fvc::`** | Finite Volume **Calculated** | Explicit evaluation | For **known** variables from previous iteration | Numerical value (field) |
+
+### When to Use Which?
+
+**Use `fvm::`** (Implicit) when:
+- The variable is **unknown** in the current iteration (e.g., solving for $\phi$)
+- You want **numerical stability** (larger time steps possible)
+- Example: `fvm::ddt(T)`, `fvm::div(phi, U)`, `fvm::laplacian(nu, U)`
+
+**Use `fvc::`** (Explicit) when:
+- The variable is **known** from the previous iteration/time step
+- You want **computational speed** (fewer matrix coefficients)
+- Example: `fvc::grad(p)` (p is known from pressure correction), `fvc::div(phi)` (flux is fixed)
+
+### Impact on Matrix Assembly
+
+For a generic transport equation:
 
 ```cpp
 fvScalarMatrix phiEqn
 (
-    fvm::ddt(phi)              // ∂φ/∂t
-  + fvm::div(phi, U)           // ∇·(uφ)
-  - fvm::laplacian(D, phi)     // ∇·(D∇φ)
+    fvm::ddt(rho, phi)              // IMPLICIT: adds to diagonal & off-diagonal
+  + fvm::div(phi, U)                // IMPLICIT: adds to diagonal & off-diagonal
+  - fvm::laplacian(Gamma, phi)      // IMPLICIT: adds to diagonal & off-diagonal
  ==
-    Su                         // S
+    fvc::div(S)                     // EXPLICIT: adds only to source term
+  + Su                              // Explicit source
 );
-phiEqn.solve();
 ```
 
-> **💡 ความแตกต่าง fvm:: vs fvc:::**
->
-> | Prefix | ชื่อเต็ม | การใช้งาน | ผลลัพธ์ |
-> |--------|-----------|-------------|---------|
-> | `fvm::` | Finite Volume Matrix | **Implicit** — สำหรับ unknowns | สร้าง matrix coefficients → แก้ด้วย linear solver |
-> | `fvc::` | Finite Volume Calculated | **Explicit** — สำหรับ knowns | คำนวณค่าทันที → ใช้เป็น source term |
->
-> **กฎง่ายๆ:**
-> - ถ้าตัวแปร **กำลังจะหา** (เช่น U, p ใน iteration นี้) → ใช้ `fvm::`
-> - ถ้าตัวแปร **รู้ค่าแล้ว** (เช่น p จาก iteration ก่อนหน้า) → ใช้ `fvc::`
-> - `fvm::` ทำให้ matrix **ใหญ่ขึ้น** แต่ **stable กว่า**
-> - `fvc::` ทำให้ compute **เร็วกว่า** แต่ **ต้องลด Δt**
+**Resulting matrix structure:**
+
+$$
+\underbrace{\begin{bmatrix}
+a_P & a_N & \cdots \\
+a_N & a_P & \cdots \\
+\vdots & \vdots & \ddots
+\end{bmatrix}}_{\text{From fvm:: terms}
+\begin{bmatrix}
+\phi_P \\ \phi_N \\ \vdots
+\end{bmatrix}
+= \underbrace{\begin{bmatrix}
+b_P \\ b_N \\ \vdots
+\end{bmatrix}}_{\text{From fvc:: terms + sources}
+$$
+
+- **`fvm::`** → modifies matrix coefficients ($a_P$, $a_N$, etc.)
+- **`fvc::`** → modifies right-hand-side vector ($b_P$, $b_N$)
+
+> **⚠️ Critical Rule:**
+> 
+> - **Implicit (fvm)** = Unconditionally stable but computationally expensive per iteration
+> - **Explicit (fvc)** = Conditionally stable (Δt limited by CFL condition) but cheap
+> 
+> **Practical guidance:** Use `fvm::` for the variable you're solving. Use `fvc::` for coupling terms involving other variables.
+
+**Example: Why pressure gradient is explicit in momentum:**
+```cpp
+// Momentum equation solving for U
+fvVectorMatrix UEqn
+(
+    fvm::ddt(U)
+  + fvm::div(phi, U)          // IMPLICIT: U is unknown
+  - fvm::laplacian(nu, U)     // IMPLICIT: U is unknown
+ ==
+    - fvc::grad(p)             // EXPLICIT: p is known from pressure correction
+);
+
+// p' equation (pressure correction)
+fvScalarMatrix pEqn
+(
+    fvm::laplacian(1/A, p')    // IMPLICIT: p' is unknown
+ ==
+    fvc::div(phi)              // EXPLICIT: phi uses U from momentum
+);
+```
+
+This **decoupling** enables the predictor-corrector approach!
 
 ---
 
-## Files ที่เกี่ยวข้อง
+## Summary: The Equation System in OpenFOAM
 
-| Location | เนื้อหา | ทำไมสำคัญ |
-|----------|---------|----------|
-| `constant/polyMesh/` | Mesh (cells, faces, points) | กำหนดรูปร่างโดเมน |
-| `constant/transportProperties` | ν, ρ, μ | กำหนดคุณสมบัติของไหล |
-| `constant/turbulenceProperties` | Turbulence model | เลือก k-ε, k-ω ฯลฯ |
-| `0/` | Initial & BCs | ค่าเริ่มต้น + ขอบเขต |
-| `system/fvSchemes` | Discretization | เลือก upwind/linear |
-| `system/fvSolution` | Solver settings | เลือก SIMPLE/PISO |
+At each iteration (or time step), OpenFOAM solves a **coupled system** of equations:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    INCOMPRESSIBLE FLOW                        │
+├──────────────────────────────────────────────────────────────┤
+│ 1. Momentum:      ∂u/∂t + ∇·(uu) = -∇p + ν∇²u + f            │
+│    → Solved for:  U (velocity)                               │
+│    → Requires:   p (from step 2)                             │
+│    → Uses:        fvm::ddt, fvm::div, fvm::laplacian         │
+│                  fvc::grad (pressure - explicit)             │
+├──────────────────────────────────────────────────────────────┤
+│ 2. Pressure:      ∇²p' = (ρ/Δt) ∇·u*                         │
+│    → Solved for:  p' (pressure correction)                  │
+│    → Requires:   u* (from step 1)                            │
+│    → Uses:        fvm::laplacian (implicit)                  │
+│                  fvc::div (explicit divergence)              │
+├──────────────────────────────────────────────────────────────┤
+│ 3. Correction:   u = u* - ∇p'/A                              │
+│                  p = p* + α·p'                                │
+│    → Updates:    velocity and pressure fields                │
+├──────────────────────────────────────────────────────────────┤
+│ 4. Energy:       ∂T/∂t + ∇·(uT) = α∇²T + Q                   │
+│    → Solved for:  T (temperature)                            │
+│    → Coupled via: Buoyancy force in momentum (natural convection)│
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Key Files Reference
+
+| File Location | Purpose | What You'll Find |
+|---------------|---------|------------------|
+| `0/U`, `0/p`, `0/T` | Initial & boundary conditions | Field values at t=0 and boundary specifications |
+| `constant/transportProperties` | Fluid properties | Kinematic viscosity (ν), density (ρ) |
+| `constant/turbulenceProperties` | Turbulence model | Selection of k-ε, k-ω, Spalart-Allmaras, etc. |
+| `system/fvSchemes` | Discretization schemes | Choice of interpolation (upwind, linear, limited) |
+| `system/fvSolution` | Solver algorithms | SIMPLE/PISO/PIMPLE settings, tolerances, relaxation |
 
 ---
 
 ## Concept Check
 
 <details>
-<summary><b>1. ทำไม FVM ถึง "อนุรักษ์" โดยธรรมชาติ?</b></summary>
+<summary><b>Q1: Why can't we solve the continuity equation directly for pressure?</b></summary>
 
-เพราะ Flux ที่ Face คำนวณ **ครั้งเดียว** และใช้ร่วมกันระหว่าง 2 Cells → สิ่งที่ออกจาก Cell A จะเข้า Cell B พอดี ไม่มีการสร้างหรือทำลาย
+**Answer:**
+The continuity equation for incompressible flow, $\nabla \cdot \mathbf{u} = 0$, contains **no pressure term**. It's a constraint on velocity, not an equation for pressure. To introduce pressure, we:
+1. Take the divergence of the momentum equation
+2. Use the continuity constraint ($\nabla \cdot \mathbf{u} = 0$)
+3. This yields a **Poisson equation** for pressure: $\nabla^2 p = \text{(function of velocity)}$
 
-**เปรียบเทียบ:** เหมือนระบบน้ำในท่อที่เชื่อมต่อกัน — น้ำที่ออกจากท่อ A ต้องเข้าท่อ B เสมอ
+This is why pressure-velocity coupling algorithms (SIMPLE/PISO) are required — they derive a pressure equation from the continuity constraint.
 </details>
 
 <details>
-<summary><b>2. ในสมการโมเมนตัม ทำไม pressure gradient ใช้ fvc ไม่ใช่ fvm?</b></summary>
+<summary><b>Q2: In the momentum equation, why is the convection term the primary source of nonlinearity?</b></summary>
 
-เพราะ $-\nabla p$ ไม่มี $\mathbf{u}$ อยู่ในนั้น:
-- **fvm::** ใช้กับ **unknown** (เช่น U ที่กำลังหา) → ใส่ใน matrix
-- **fvc::** ใช้กับ **known** (เช่น p จาก iteration ก่อน) → คำนวณเป็นตัวเลข
+**Answer:**
+The convection term $\rho (\mathbf{u} \cdot \nabla) \mathbf{u}$ contains velocity **multiplying** its own gradient. This means:
+1. **Nonlinear coupling**: The coefficient ($\rho \mathbf{u}$) depends on the solution ($\mathbf{u}$)
+2. **Iteration required**: We linearize by using velocity from the previous iteration to compute fluxes $\mathbf{F}_f = \rho \mathbf{u}_f \cdot \mathbf{S}_f$
+3. **Directional dependence**: Information travels downstream, requiring upwind-biased discretization
+4. **Potential instability**: At high Reynolds numbers, convection dominates diffusion, leading to possible oscillations or blow-up
 
-p มาจาก pressure correction ที่แยกต่างหาก จึงเป็น known value
+Compare to diffusion ($\mu \nabla^2 \mathbf{u}$) and unsteady ($\partial \mathbf{u}/\partial t$) terms, which are linear in $\mathbf{u}$.
 </details>
 
 <details>
-<summary><b>3. SIMPLE กับ PISO ต่างกันอย่างไร?</b></summary>
+<summary><b>Q3: When should you use SIMPLE vs. PISO vs. PIMPLE?</b></summary>
 
-| | SIMPLE | PISO |
-|-|--------|------|
-| **ใช้กับ** | Steady-state | Transient |
-| **วิธีการ** | วนซ้ำจนลู่เข้า | แก้ p หลายครั้ง/time step |
-| **Under-relaxation** | ต้องใช้ (0.3-0.7) | ไม่ต้อง |
-| **ทำไม** | ไม่สน intermediate → รอ converge | ทุก step ต้องแม่น |
+**Answer:**
+
+| Algorithm | Use Case | Why |
+|-----------|----------|-----|
+| **SIMPLE** | Steady-state problems | Iterates until convergence; under-relaxation ensures stability |
+| **PISO** | Transient with small Δt (Co < 1) | Multiple correctors per step achieve temporal accuracy without under-relaxation |
+| **PIMPLE** | Transient with large Δt (Co > 1) | Outer SIMPLE loop handles strong coupling; inner PISO handles time accuracy |
+
+**Rule of thumb:**
+- Steady RANS simulation → SIMPLE
+- Transient LES/DNS with small time steps → PISO
+- Transient with coarse time steps (e.g., for faster computation) → PIMPLE
 </details>
 
 <details>
-<summary><b>4. Convection term ทำไมถึง "ยาก" ที่สุดในการ discretize?</b></summary>
+<summary><b>Q4: What's the practical difference between fvm:: and fvc:: operators?</b></summary>
 
-1. **Nonlinear:** มี $u \cdot u$ → ต้องวนซ้ำ (iterate)
-2. **Unbounded:** ค่าอาจกระโดดสูงมาก → oscillation → blow up
-3. **Directional:** ข้อมูลไหลตามทิศทางลม → ต้องคิดเรื่อง upwind/downwind
+**Answer:**
+
+| Aspect | `fvm::` (Implicit) | `fvc::` (Explicit) |
+|--------|-------------------|-------------------|
+| **Matrix contribution** | Modifies coefficients (diagonal, off-diagonal) | Adds to source term only |
+| **Variable state** | Unknown (being solved) | Known (from previous iteration) |
+| **Stability** | Unconditionally stable | Conditionally stable (CFL-limited) |
+| **Computational cost** | Higher (matrix assembly + solving) | Lower (explicit evaluation) |
+| **Example usage** | `fvm::ddt(U)`, `fvm::div(phi, U)` | `fvc::grad(p)`, `fvc::div(phi)` |
+
+**Key principle:** Use `fvm::` for the variable you're solving. Use `fvc::` for coupling terms involving variables from other equations.
+</details>
+
+<details>
+<summary><b>Q5: Why is the general transport equation form so important?</b></summary>
+
+**Answer:**
+
+Because ALL CFD equations follow the same template:
+- Mass ($\phi=1$)
+- Momentum ($\phi = \mathbf{u}, \mathbf{v}, \mathbf{w}$)
+- Energy ($\phi = T$ or $h$)
+- Turbulence ($\phi = k, \epsilon, \omega$)
+- Scalars ($\phi = $ concentration, moisture, etc.)
+
+**Practical benefits:**
+1. **Code reuse:** OpenFOAM uses one discretization framework for all equations
+2. **Unified understanding:** Learn one equation → understand all solvers
+3. **Debugging:** Errors manifest predictably per term (convection instability, diffusion slow convergence)
+4. **Extension:** Adding a new scalar? Just define $\Gamma_\phi$ and $S_\phi$!
 </details>
 
 ---
 
-## เอกสารที่เกี่ยวข้อง
+## Related Documents
 
-- **บทก่อนหน้า:** [01_Introduction.md](01_Introduction.md) — บทนำ FVM
-- **บทถัดไป:** [03_Spatial_Discretization.md](03_Spatial_Discretization.md) — Spatial Discretization
-- **ประยุกต์ใช้:** [06_OpenFOAM_Implementation.md](06_OpenFOAM_Implementation.md) — การ implement ใน OpenFOAM
+- **Previous:** [01_FVM_Theory_Foundation.md](01_FVM_Theory_Foundation.md) — Conservation laws and flux balance
+- **Next:** [03_Spatial_Discretization.md](03_Spatial_Discretization.md) — How to interpolate face values and compute gradients
+- **Applications:** 
+  - [06_OpenFOAM_Implementation.md](06_OpenFOAM_Implementation.md) — Practical fvm/fvc usage in code
+  - [04_Temporal_Discretization.md](04_Temporal_Discretization.md) — Time integration schemes
+  - [05_Matrix_Solution.md](05_Matrix_Solution.md) — Linear solvers and matrix assembly

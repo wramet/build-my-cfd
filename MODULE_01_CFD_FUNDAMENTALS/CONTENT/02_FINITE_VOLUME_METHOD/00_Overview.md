@@ -50,16 +50,6 @@ graph LR
     style E fill:#e1ffff
 ```
 
-**Key Questions ที่คุณจะได้คำตอบ:**
-- ❓ **01:** FVM ทำงานอย่างไร? → Conservation, Control Volume
-- ❓ **02:** สมการ Navier-Stokes กลายเป็น matrix อย่างไร? → fvm::div, fvm::laplacian
-- ❓ **03:** Gradient/Convection/Diffusion คำนวณอย่างไร? → upwind, linear, limited
-- ❓ **04:** Time step เลือกอย่างไร? → Euler, Backward, CFL
-- ❓ **05:** Sparse matrix แก้ได้อย่างไร? → GAMG, PCG, PBiCGStab
-- ❓ **06:** เขียน OpenFOAM code อย่างไร? → fvm vs fvc
-- ❓ **07:** divergence/instability แก้ยังไง? → troubleshooting tables
-- ❓ **08:** ลงมือทดลองอย่างไร? → progressive exercises
-
 ---
 
 ## Mapping สู่ OpenFOAM
@@ -123,5 +113,5 @@ graph LR
 
 ## พร้อมหรือยัง?
 
-✅ **เข้าใจ workflow การทำ CEM แล้ว** → ไป 01_Introduction.md  
+✅ **เข้าใจ workflow แล้ว** → ไป 01_Introduction.md  
 ❓ **ต้องการ review สมการก่อน** → กลับไป 01_GOVERNING_EQUATIONS

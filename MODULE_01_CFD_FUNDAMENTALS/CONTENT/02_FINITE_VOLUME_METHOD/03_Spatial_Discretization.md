@@ -7,6 +7,21 @@
 > 
 > Discretization = แปลงอนุพันธ์เป็นผลต่างของค่าที่จุดต่างๆ
 
+## Prerequisites
+
+⚠️ **ควรอ่านก่อน:** [02_Fundamental_Concepts.md](02_Fundamental_Concepts.md) เพื่อความเข้าใจเรื่อง:
+- Finite Volume Method basics
+- Conservation laws in FVM
+- Mesh structure terminology
+
+## Learning Objectives
+
+หลังจากอ่านบทนี้ คุณจะสามารถ:
+- **อธิบาย** ความแตกต่างระหว่าง convection และ diffusion schemes
+- **เลือก** interpolation scheme ที่เหมาะสมกับปัญหาที่แก้
+- **คำนวณ** non-orthogonal correction สำหรับ mesh ที่ไม่สมมาตร
+- **แก้ปัญหา** numerical instability จากการเลือก scheme ที่ไม่เหมาะสม
+
 ---
 
 ## Mesh Structure
@@ -118,7 +133,7 @@ $$(D \nabla \phi)_f \cdot \mathbf{S}_f = \underbrace{D_f \frac{\phi_N - \phi_P}{
 > - $|\mathbf{S}_f|$ คือขนาด (magnitude) ของ face area vector
 > - $\mathbf{k} = \mathbf{S}_f - \boldsymbol{\Delta}$ คือ non-orthogonal component (เศษที่เหลือหลังลบส่วนที่ขนานกับ $d_{PN}$)
 
-### ตัวอย่างการคำนวณ Non-Orthogonal Correction
+### ตัวอย่างการคำนาณ Non-Orthogonal Correction
 
 **Problem:** 2D mesh ที่ face เอียงมุม θ = 30° จากแนว perpendicular
 
@@ -208,6 +223,8 @@ gradSchemes
 | **Dirichlet** | ค่าที่ขอบ | `fixedValue` | แก้ $a_P$, $b_P$ |
 | **Neumann** | gradient ที่ขอบ | `zeroGradient` | แก้ $b_P$ เท่านั้น |
 
+> **📖 ดูเพิ่มเติม:** รายละเอียด boundary conditions ที่ [06_OpenFOAM_Implementation.md](06_OpenFOAM_Implementation.md)
+
 **ตัวอย่าง `0/U`:**
 
 ```cpp
@@ -224,6 +241,8 @@ boundaryField
 ## Linear Solvers
 
 หลัง discretize ได้ระบบ $[A][\phi] = [b]$ ต้องใช้ iterative solver
+
+> **📖 ดูเพิ่มเติม:** รายละเอียด solver algorithms และ parameter tuning ที่ [05_Linear_Solvers_Matrix_Assembly.md](05_Linear_Solvers_Matrix_Assembly.md)
 
 | Solver | ใช้กับ | ทำไม |
 |--------|-------|------|
@@ -253,7 +272,7 @@ solvers
 
 ---
 
-## สรุป Scheme Recommendations
+## Scheme Recommendations Summary
 
 | Term | Scheme แนะนำ | เหตุผล |
 |------|-------------|--------|
@@ -262,6 +281,19 @@ solvers
 | Diffusion | `linear corrected` | Standard + non-ortho safe |
 | Gradient | `Gauss linear` | เร็ว standard |
 | Time | `backward` (transient accurate) หรือ `Euler` (simple) | ตามความต้องการ |
+
+---
+
+## Troubleshooting: Common Spatial Scheme Errors
+
+| Error Message | สาเหตุที่เป็นไปได้ | วิธีแก้ |
+|--------------|------------------|---------|
+| `--> FOAM FATAL ERROR: Maximum number of iterations exceeded` | Scheme ไม่ converge หรือ tolerance เข้มไป | ลอง: (1) เปลี่ยนเป็น upwind, (2) เพิ่ม tolerance, (3) ลด under-relaxation |
+| `Negative value found in XXX field` | Undershoot จาก high-order scheme | เปลี่ยนเป็น upwind หรือ limitedLinear |
+| `Unbounded value in turbulence field` | k หรือ ε ติดลบ | ใช้ upwind สำหรับ turbulence fields |
+| `checkMesh: non-orthogonality > 70 degrees` | Mesh เบี้ยวมากเกินไป | (1) เพิ่ม nNonOrthogonalCorrectors, (2) สร้าง mesh ใหม่ |
+| `Solution diverges after first iteration` | Convection scheme ไม่เสถียร | เปลี่ยนจาก linear เป็น upwind หรือ linearUpwind |
+| `Oscillations near sharp gradients` | Scheme ไม่มี limiter | ใช้ limitedLinear หรือ TVD scheme |
 
 ---
 
@@ -322,4 +354,6 @@ Upwind = safe แม้ diffusive เล็กน้อย ก็ยังดี
 
 - **บทก่อนหน้า:** [02_Fundamental_Concepts.md](02_Fundamental_Concepts.md) — แนวคิดพื้นฐาน
 - **บทถัดไป:** [04_Temporal_Discretization.md](04_Temporal_Discretization.md) — Temporal Discretization
+- **ดู Matrix Assembly:** [05_Linear_Solvers_Matrix_Assembly.md](05_Linear_Solvers_Matrix_Assembly.md) — ระบบสมการเชิงเส้น
 - **ประยุกต์:** [06_OpenFOAM_Implementation.md](06_OpenFOAM_Implementation.md) — การ implement ใน OpenFOAM
+- **แก้ปัญหา:** [07_Troubleshooting.md](07_Troubleshooting.md) — Debugging และ solving issues

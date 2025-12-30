@@ -1,0 +1,16 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Fundamental_Concepts.md",
+        "03_Spatial_Discretization.md",
+        "04_Temporal_Discretization.md",
+        "06_OpenFOAM_Implementation.md",
+        "08_Exercises.md",
+        "07_Best_Practices.md"
+    ],
+    "skipped": [
+        "05_Matrix_Assembly.md",
+        "07_Best_Practices.md"
+    ]
+}

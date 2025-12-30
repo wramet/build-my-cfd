@@ -1,0 +1,18 @@
+Refactored 07_Best_Practices.md → "Troubleshooting & Settings Guide":
+
+**Key Changes:**
+1. **Moved to 03:** Mesh quality + non-orthogonality (detailed discussion now in Spatial_Discretization.md:line_42)
+2. **Removed from 07:** Y+ calculation + wall functions → references Boundary Conditions module
+3. **Enhanced 07 with:**
+   - "Top 10 Common Errors" with diagnosis tables
+   - Mermaid flowcharts for debugging
+   - Expanded troubleshooting (10 specific error types)
+   - Performance optimization section
+   - Debugging workflow diagram
+
+**Cross-References Added:**
+- Links to 03 for mesh quality details
+- Links to Boundary Conditions module for y+/wall functions
+- Links to 05 for solver algorithms
+
+The file is now a focused troubleshooting guide while removing duplicate content.
