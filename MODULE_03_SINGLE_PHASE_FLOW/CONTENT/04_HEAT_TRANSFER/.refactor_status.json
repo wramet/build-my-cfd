@@ -1,0 +1,13 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "03_Buoyancy_Driven_Flows.md",
+        "04_Conjugate_Heat_Transfer.md",
+        "01_Energy_Equation_Fundamentals.md",
+        "02_Heat_Transfer_Mechanisms.md"
+    ],
+    "skipped": [
+        "01_Energy_Equation_Fundamentals.md",
+        "02_Heat_Transfer_Mechanisms.md"
+    ]
+}

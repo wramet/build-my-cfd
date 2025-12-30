@@ -1,0 +1,7 @@
+Refactored `02_RANS_Models.md` with:
+- Learning Objectives with 3W framework
+- Skills Progression Tracker (8 skills)
+- [What]/[Why]/[How] section labels
+- Expanded content (omega inlet BC, additional model comparison, 4th concept check question)
+- Comprehensive Key Takeaways
+- Enhanced Related Documents (fixed broken link, added descriptions)

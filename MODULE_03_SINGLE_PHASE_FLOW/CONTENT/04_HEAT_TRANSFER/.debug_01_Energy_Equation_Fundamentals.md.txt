@@ -1,0 +1,11 @@
+Refactoring completed. The file now includes:
+
+- **Learning Objectives** at the beginning (WHAT, WHY, HOW framework)
+- **What is the Energy Equation?** section with conservation form
+- **Why Different Forms Matter?** section comparing T/h/e forms with physical interpretation
+- **How It's Implemented** section expanded with detailed OpenFOAM code examples for all three forms
+- **Key Takeaways** with comprehensive comparison table, decision flowchart, essential equations, common mistakes, and quick reference
+- Applied 3W Framework (WHAT, WHY, HOW) consistently throughout
+- Maintained Thai/English consistency per section
+- Enhanced Concept Check with 4 detailed questions
+- Fourier's Law remains in this file (as specified in global strategy)
