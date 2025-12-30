@@ -47,7 +47,7 @@ flowchart TD
 | **Type Safety** | Template parameters | ป้องกันการรวม field types ที่ไม่สอดคล้องกัน (เช่น vector + tensor) |
 | **Performance** | Contiguous memory | Cache efficiency สำหรับ large-scale CFD simulations |
 | **Flexibility** | Polymorphic BC | รองรับ boundary conditions หลากหลายประเภทแบบ runtime |
-| **Physical Correctness** | Dimension checking | ตรวจสอบความสอดคล้องของหน่วย物理学 เช่น ความดัน ≠ ความเร็ว |
+| **Physical Correctness** | Dimension checking | ตรวจสอบความสอดคล้องของหน่วยทางฟิสิกส์ เช่น ความดัน ≠ ความเร็ว |
 
 ---
 

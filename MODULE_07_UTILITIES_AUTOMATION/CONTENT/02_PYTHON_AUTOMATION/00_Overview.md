@@ -9,14 +9,45 @@
 
 ---
 
-## 🌟 ทำไมต้อง Python? (Why Python?)
+## 🎯  Learning Objectives (เป้าหมายการเรียนรู้)
 
-ในอดีต วิศวกร CFD อาจพึ่งพา Bash Script สำหรับการรันงาน แต่ในยุคปัจจุบัน **Python** กลายเป็นมาตรฐานใหม่ด้วยเหตุผลหลัก 3 ประการ:
-1.  **Ecosystem ที่แข็งแกร่ง**: มีไลบรารีคำนวณ (NumPy), จัดการข้อมูล (Pandas), และ AI/ML (Scikit-learn, PyTorch) ที่พร้อมใช้งานทันที
-2.  **Readability**: โค้ด Python อ่านง่ายและดูแลรักษาง่ายกว่า Shell Script ที่ซับซ้อน
-3.  **Integration**: สามารถเชื่อมต่อ OpenFOAM กับเครื่องมือภายนอก เช่น Excel, Web APIs, หรือ Optimization Algorithms ได้อย่างง่ายดาย
+หลังจากอ่านโมดูลนี้ คุณจะสามารถ:
+1. **อธิบาย** ได้ว่าทำไม Python จึงกลายเป็นมาตรฐานสำหรับ CFD Automation ในปัจจุบัน
+2. **แยกแยะ** หน้าที่ของ 4 เครื่องมือหลัก: PyFoam, fluidfoam, PyVista และ Pandas & Matplotlib
+3. **เขียน** Python Script สำหรับทำ Parametric Study แบบอัตโนมัติ
+4. **เลือกใช้** เครื่องมือที่เหมาะสมกับงาน: Control, Data I/O, Visualization หรือ Analysis
+
+---
+
+## 🧠 The 3W Framework
+
+### What (คืออะไร?)
+
+**Python Automation สำหรับ OpenFOAM** คือการใช้ภาษา Python เพื่อ:
+- **ควบคุม** Solver และ Case Structure (PyFoam)
+- **อ่าน/เขียน** ข้อมูล OpenFOAM เข้าสู่ NumPy Arrays (fluidfoam)
+- **สร้างภาพ** 3D โดยไม่ต้องเปิด ParaView (PyVista)
+- **วิเคราะห์** ข้อมูล Statistical และ Plotting (Pandas & Matplotlib)
+
+### Why (ทำไม?)
+
+**3 เหตุผลหลัก:**
+1. **Ecosystem ที่แข็งแกร่ง**: มีไลบรารีคำนวณ (NumPy), จัดการข้อมูล (Pandas), และ AI/ML (Scikit-learn, PyTorch) ที่พร้อมใช้งานทันที
+2. **Readability**: โค้ด Python อ่านง่ายและดูแลรักษาง่ายกว่า Shell Script ที่ซับซ้อน
+3. **Integration**: สามารถเชื่อมต่อ OpenFOAM กับเครื่องมือภายนอก เช่น Excel, Web APIs, หรือ Optimization Algorithms ได้อย่างง่ายดาย
 
 > **"Python is the glue that holds the modern CFD workflow together."**
+
+### How (ใช้อย่างไร?)
+
+**Parametric Workflow พื้นฐาน:**
+1. **Define Parameters**: กำหนดช่วงตัวแปร (เช่น angles = [0, 2, 4, 6, 8, 10])
+2. **Python Loop**: วน Loop ผ่านแต่ละค่า
+3. **Clone Case**: คัดลอก Base Case ด้วย `cp -r` หรือ PyFoam
+4. **Modify Files**: แก้ไข Boundary Conditions ด้วย PyFoam API
+5. **Run Solver**: รัน Solver ด้วย `BasicRunner` หรือ `subprocess`
+6. **Extract Results**: อ่าน `postProcessing` ด้วย Pandas หรือ fluidfoam
+7. **Analyze Data**: สรุปผลด้วย Matplotlib/Seaborn
 
 ---
 
@@ -168,6 +199,7 @@ graph LR
 ## 📝 แบบฝึกหัด (Exercises)
 
 ### แบบฝึกหัดระดับง่าย (Easy)
+
 1. **True/False**: PyFoam ใช้เพื่ออ่านผลลัพธ์ OpenFOAM เข้าสู่ NumPy arrays โดยตรง
    <details>
    <summary>คำตอบ</summary>
@@ -185,11 +217,12 @@ graph LR
    </details>
 
 ### แบบฝึกหัดระดับปานกลาง (Medium)
+
 3. **อธิบาย**: แตกต่างระหว่าง Bash Script และ Python สำหรับ CFD Automation คืออะไร?
    <details>
    <summary>คำตอบ</summary>
-   - Bash Script: เรียบง่าย รวดเร็ว แต่ซับซ้อนเมื่อต้องประมวลผลข้อมูล
-   - Python: มี Ecosystem ที่แข็งแกร่ง (NumPy, Pandas) อ่านง่าย ดูแลรักษาง่าย และเชื่อมต่อกับเครื่องมือภายนอกได้ดี
+   - **Bash Script**: เรียบง่าย รวดเร็ว แต่ซับซ้อนเมื่อต้องประมวลผลข้อมูล
+   - **Python**: มี Ecosystem ที่แข็งแกร่ง (NumPy, Pandas) อ่านง่าย ดูแลรักษาง่าย และเชื่อมต่อกับเครื่องมือภายนอกได้ดี
    </details>
 
 4. **เขียนโค้ด**: จงเขียน Python loop สำหรับสร้าง 5 cases พร้อมกัน (case_0 ถึง case_4) โดยไม่ต้องรัน Solver
@@ -210,56 +243,39 @@ graph LR
    </details>
 
 ### แบบฝึกหัดระดับสูง (Hard)
+
 5. **Hands-on**: ติดตั้ง PyFoam และลองรัน Tutorial case ด้วย `pyFoamPlotRunner.py simpleFoam -case <case>`
 
 6. **วิเคราะห์**: เปรียบเทียบประสิทธิภาพระหว่าง:
    - การใช้ Python Loop รัน Case หลายๆ อันต่อเนื่อง (Sequential)
    - การใช้ HPC Cluster รัน Case แบบ Parallel
+   
    ในแง่ของเวลาทั้งหมดที่ใช้ และประสิทธิภาพการใช้งาน Hardware
+   <details>
+   <summary>Guidelines</summary>
+   
+   **Sequential (Python Loop):**
+   - ข้อดี: ง่ายต่อการ implement, ใช้ hardware ครั้งละ 1 CPU core
+   - ข้อเสีย: ใช้เวลานาน (sum of all cases), ไม่สามารถ scale ได้
+   
+   **Parallel (HPC Cluster):**
+   - ข้อดี: รันหลาย cases พร้อมกัน, ประหยัดเวลา (nearly same as single case)
+   - ข้อเสีย: ต้องมีการจัดการ resource, job queue system
+   
+   **สรุป:** สำหรับ parametric study ขนาดเล็ก (≤10 cases) sequential ก็เพียงพอ แต่สำหรับ large-scale optimization parallel จำเป็น
+   </details>
 
 ---
 
-## 🧠 Concept Check
+## 🎯 Key Takeaways (สรุปสาระสำคัญ)
 
-<details>
-<summary><b>1. PyFoam, fluidfoam, และ PyVista แตกต่างกันอย่างไร?</b></summary>
-
-| Library | หน้าที่หลัก | ตัวอย่างการใช้งาน |
-|---------|------------|-------------------|
-| **PyFoam** | ควบคุม Solver, จัดการ Case | `BasicRunner`, `pyFoamPlotRunner.py` |
-| **fluidfoam** | อ่าน Fields เข้า NumPy | อ่าน U, p, T โดยตรงจาก folder |
-| **PyVista** | 3D Visualization | Slice, Clip, Streamlines |
-
-</details>
-
-<details>
-<summary><b>2. ทำไม Python ถึงดีกว่า Bash Script สำหรับ CFD Automation?</b></summary>
-
-**3 เหตุผลหลัก:**
-1. **Ecosystem:** NumPy, Pandas, Scikit-learn พร้อมใช้
-2. **Readability:** โค้ดอ่านง่าย ดูแลรักษาง่าย
-3. **Integration:** เชื่อมกับ Excel, Web APIs, AI/ML ได้
-
-</details>
-
-<details>
-<summary><b>3. BasicRunner ใน PyFoam ใช้ทำอะไร?</b></summary>
-
-ใช้ **รัน OpenFOAM Solver** จาก Python:
-
-```python
-from PyFoam.Execution.BasicRunner import BasicRunner
-
-runner = BasicRunner(
-    argv=["simpleFoam", "-case", "myCase"],
-    silent=True  # ไม่แสดง output
-)
-runner.start()
-```
-
-**ประโยชน์:** รวมการรัน solver เข้า workflow Python ได้
-
-</details>
+| Concept | สิ่งที่ต้องจำ |
+|---------|-------------|
+| **4 Python Tools** | PyFoam (Control), fluidfoam (I/O), PyVista (Vis), Pandas (Analysis) |
+| **Why Python?** | Ecosystem แข็งแกร่ง, Readability สูง, Integration ง่าย |
+| **Parametric Workflow** | Define → Loop → Clone → Modify → Run → Extract → Analyze |
+| **BasicRunner** | API สำหรับรัน Solver จาก Python script |
+| **Vs Bash** | Python ดีกว่าสำหรับ Data Processing และ Complex Logic |
 
 ---
 

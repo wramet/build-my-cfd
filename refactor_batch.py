@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 import json
+import time
 from pathlib import Path
 import datetime
 
@@ -23,6 +24,10 @@ CLI_FLAGS = ["--dangerously-skip-permissions", "-p"]
 
 # Folders to ignore
 IGNORE_DIRS = {".git", ".obsidian", ".claude", "__pycache__", "TBD", "images", "applications"}
+
+# Retry configuration
+MAX_RETRIES = 3
+RETRY_DELAY_SECONDS = 2
 
 # ==========================================
 # 🛠️ HELPER FUNCTIONS
@@ -139,8 +144,11 @@ def create_refactor_plan(folder_path: Path, file_data: dict) -> dict:
 # 👷 PHASE 2: THE BUILDER (EXECUTION)
 # ==========================================
 
-def execute_file_refactor(file_path: Path, instruction: str, global_strategy: str):
-    """Refactor a single file using skill-aware prompt."""
+def execute_file_refactor(file_path: Path, instruction: str, global_strategy: str) -> bool:
+    """Refactor a single file using skill-aware prompt. Returns True if successful.
+    
+    Includes retry logic with exponential backoff for handling transient failures.
+    """
     original_content = read_file(file_path)
     
     # Skill-aware prompt: "Refactor this OpenFOAM documentation" triggers openfoam-doc-refactor skill
@@ -152,47 +160,110 @@ SPECIFIC INSTRUCTION: {instruction}
 INPUT FILE:
 {original_content}
 
-OUTPUT: The complete refactored markdown content only. No explanations."""
-    try:
-        cmd = [CLI_COMMAND] + CLI_FLAGS + [prompt]
-        result = subprocess.run(cmd, text=True, capture_output=True, encoding="utf-8")
-        
-        # Log stderr if present for debugging
-        if result.stderr:
-            log_message(f"   ⚠️ CLI stderr: {result.stderr[:300]}")
-        
-        if result.returncode == 0 and result.stdout:
-            new_content = result.stdout.strip()
-            orig_len = len(original_content)
-            new_len = len(new_content)
+OUTPUT RULES:
+1. Output the complete refactored markdown content ONLY
+2. Do NOT wrap output in ```markdown``` code blocks
+3. Do NOT include any explanations before or after the content
+4. Start directly with the first line of the markdown (e.g., # Title)"""
+    
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            cmd = [CLI_COMMAND] + CLI_FLAGS + [prompt]
+            result = subprocess.run(cmd, text=True, capture_output=True, encoding="utf-8")
             
-            # Basic validation
-            if new_len > orig_len * 0.5:
-                write_file(file_path, new_content)
-                log_message(f"   ✅ Refactored: {file_path.name} ({orig_len} → {new_len} chars)")
+            # Log stderr if present for debugging
+            if result.stderr:
+                log_message(f"   ⚠️ CLI stderr: {result.stderr[:300]}")
+            
+            if result.returncode == 0 and result.stdout:
+                new_content = result.stdout.strip()
+                
+                # Post-process: Remove markdown code block wrappers if present
+                if new_content.startswith("```markdown"):
+                    new_content = new_content[len("```markdown"):].strip()
+                    if new_content.endswith("```"):
+                        new_content = new_content[:-3].strip()
+                    log_message(f"   🔧 Stripped markdown wrapper from output")
+                elif new_content.startswith("```"):
+                    # Handle generic ``` wrapper
+                    lines = new_content.split('\n')
+                    if lines[0].strip() == '```' or lines[0].startswith('```'):
+                        lines = lines[1:]
+                    if lines and lines[-1].strip() == '```':
+                        lines = lines[:-1]
+                    new_content = '\n'.join(lines).strip()
+                    log_message(f"   🔧 Stripped code block wrapper from output")
+                
+                orig_len = len(original_content)
+                new_len = len(new_content)
+                
+                # Basic validation
+                if new_len > orig_len * 0.5:
+                    write_file(file_path, new_content)
+                    log_message(f"   ✅ Refactored: {file_path.name} ({orig_len} → {new_len} chars)")
+                    return True
+                else:
+                    # Content too short - this might be a transient issue, retry
+                    if attempt < MAX_RETRIES:
+                        delay = RETRY_DELAY_SECONDS * (2 ** (attempt - 1))  # Exponential backoff
+                        log_message(f"   ⚠️ Content too short ({new_len} vs {orig_len}). Retry {attempt}/{MAX_RETRIES} in {delay}s...")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        log_message(f"   ⚠️ Skipped {file_path.name}: Content too short after {MAX_RETRIES} retries ({new_len} vs {orig_len} original).")
+                        # DEBUG: Show what Claude actually returned
+                        log_message(f"   📋 DEBUG Output preview:")
+                        log_message(f"   {new_content[:500]!r}...")
+                        # Save full output to debug file
+                        debug_file = file_path.parent / f".debug_{file_path.name}.txt"
+                        write_file(debug_file, new_content)
+                        log_message(f"   📄 Full output saved to: {debug_file.name}")
+                        return False
             else:
-                log_message(f"   ⚠️ Skipped {file_path.name}: Content too short ({new_len} vs {orig_len} original).")
-                # DEBUG: Show what Claude actually returned
-                log_message(f"   📋 DEBUG Output preview:")
-                log_message(f"   {new_content[:500]!r}...")
-                # Save full output to debug file
-                debug_file = file_path.parent / f".debug_{file_path.name}.txt"
-                write_file(debug_file, new_content)
-                log_message(f"   📄 Full output saved to: {debug_file.name}")
-        else:
-            log_message(f"   ❌ CLI Failed for {file_path.name} (returncode={result.returncode})")
-            if result.stdout:
-                log_message(f"   📋 DEBUG stdout: {result.stdout[:300]!r}")
+                # CLI failed - retry
+                if attempt < MAX_RETRIES:
+                    delay = RETRY_DELAY_SECONDS * (2 ** (attempt - 1))
+                    log_message(f"   ❌ CLI Failed (returncode={result.returncode}). Retry {attempt}/{MAX_RETRIES} in {delay}s...")
+                    time.sleep(delay)
+                    continue
+                else:
+                    log_message(f"   ❌ CLI Failed for {file_path.name} after {MAX_RETRIES} retries (returncode={result.returncode})")
+                    if result.stdout:
+                        log_message(f"   📋 DEBUG stdout: {result.stdout[:300]!r}")
+                    return False
 
-    except Exception as e:
-        log_message(f"   ❌ Error executing refactor: {e}")
+        except Exception as e:
+            if attempt < MAX_RETRIES:
+                delay = RETRY_DELAY_SECONDS * (2 ** (attempt - 1))
+                log_message(f"   ❌ Error: {e}. Retry {attempt}/{MAX_RETRIES} in {delay}s...")
+                time.sleep(delay)
+                continue
+            else:
+                log_message(f"   ❌ Error executing refactor after {MAX_RETRIES} retries: {e}")
+                return False
+    
+    return False  # Should not reach here
 
 # ==========================================
 # 🚀 MAIN LOOP
 # ==========================================
 
 def process_folder(folder_path: Path):
-    """Process a folder using skill-aware prompts."""
+    """Process a folder using skill-aware prompts with per-file tracking."""
+    
+    # Load or create status file for per-file tracking
+    status_file = folder_path / ".refactor_status.json"
+    if status_file.exists():
+        try:
+            with open(status_file, 'r', encoding='utf-8') as f:
+                status = json.load(f)
+        except json.JSONDecodeError:
+            status = {"completed": [], "skipped": []}
+    else:
+        status = {"completed": [], "skipped": []}
+    
+    completed_files = set(status.get("completed", []))
+    
     log_message(f"\n📂 Entering: {folder_path.name}")
     
     # 1. Identify Files (exclude .bak, .json, and other non-content files)
@@ -204,6 +275,15 @@ def process_folder(folder_path: Path):
         and not f.startswith(".")
     ])
     if not md_files: return
+    
+    # Filter out already completed files
+    pending_files = [f for f in md_files if f not in completed_files]
+    
+    if not pending_files:
+        log_message(f"   ✅ All {len(md_files)} files already completed")
+        return
+    
+    log_message(f"   📋 Status: {len(completed_files)}/{len(md_files)} completed, {len(pending_files)} pending")
 
     file_data = {f: read_file(folder_path / f) for f in md_files}
     
@@ -228,22 +308,135 @@ def process_folder(folder_path: Path):
         log_message("   ❌ Skipping: No valid plan.")
         return
 
-    # 3. PHASE 2: Execute Plan
+    # 3. PHASE 2: Execute Plan (only for pending files)
     log_message("   👷 Executing Plan...")
     global_strat = plan.get("global_strategy", "")
     files_plan = plan.get("files", {})
 
     for fname, instruction in files_plan.items():
-        if fname in md_files:
+        if fname in pending_files:
             file_path = folder_path / fname
-            execute_file_refactor(file_path, instruction, global_strat)
+            success = execute_file_refactor(file_path, instruction, global_strat)
+            
+            # Track result
+            if success:
+                status["completed"].append(fname)
+            else:
+                if fname not in status.get("skipped", []):
+                    status.setdefault("skipped", []).append(fname)
+            
+            # Save status after each file
+            write_json(status_file, status)
+        elif fname in completed_files:
+            log_message(f"   ⏭️  Skipping {fname} (already completed)")
+    
+    # Summary
+    total_completed = len(status.get("completed", []))
+    total_skipped = len(status.get("skipped", []))
+    log_message(f"   📊 Summary: {total_completed} completed, {total_skipped} skipped")
+
+def verify_and_retry_all(root_path: Path) -> dict:
+    """Final verification pass: check all subfolders and retry any incomplete files.
+    
+    Returns a summary dict with counts of completed, skipped, and retried files.
+    """
+    log_message("\n🔍 Final Verification Pass: Checking all subfolders...")
+    
+    summary = {
+        "folders_checked": 0,
+        "files_retried": 0,
+        "files_succeeded": 0,
+        "files_still_incomplete": 0
+    }
+    
+    for current_root, dirs, files in os.walk(root_path):
+        dirs.sort()
+        dirs[:] = [d for d in dirs if d not in IGNORE_DIRS and not d.startswith(".")]
+        
+        current_path = Path(current_root)
+        
+        # Target only CONTENT folders
+        if "CONTENT" not in str(current_path) or not any(f.endswith(".md") for f in files):
+            continue
+        
+        status_file = current_path / ".refactor_status.json"
+        if not status_file.exists():
+            continue
+        
+        summary["folders_checked"] += 1
+        
+        # Load status
+        try:
+            with open(status_file, 'r', encoding='utf-8') as f:
+                status = json.load(f)
+        except json.JSONDecodeError:
+            continue
+        
+        # Get skipped files that need retry
+        skipped_files = status.get("skipped", [])
+        completed_files = set(status.get("completed", []))
+        
+        if not skipped_files:
+            continue
+        
+        log_message(f"\n📂 Retrying in: {current_path.name}")
+        log_message(f"   Found {len(skipped_files)} skipped files to retry")
+        
+        # Load plan if exists
+        plan_path = current_path / PLAN_FILE_NAME
+        if not plan_path.exists():
+            log_message(f"   ⚠️ No plan found, skipping retry")
+            continue
+        
+        try:
+            with open(plan_path, 'r', encoding='utf-8') as f:
+                plan = json.load(f)
+        except json.JSONDecodeError:
+            log_message(f"   ⚠️ Invalid plan, skipping retry")
+            continue
+        
+        global_strat = plan.get("global_strategy", "")
+        files_plan = plan.get("files", {})
+        
+        # Retry each skipped file
+        for fname in list(skipped_files):  # Use list() to allow modification during iteration
+            if fname not in files_plan:
+                log_message(f"   ⚠️ {fname} not in plan, skipping")
+                continue
+            
+            file_path = current_path / fname
+            if not file_path.exists():
+                log_message(f"   ⚠️ {fname} not found, skipping")
+                continue
+            
+            summary["files_retried"] += 1
+            instruction = files_plan[fname]
+            
+            log_message(f"   🔄 Retrying: {fname}")
+            success = execute_file_refactor(file_path, instruction, global_strat)
+            
+            if success:
+                summary["files_succeeded"] += 1
+                # Move from skipped to completed
+                skipped_files.remove(fname)
+                status["completed"].append(fname)
+                status["skipped"] = skipped_files
+                write_json(status_file, status)
+                log_message(f"   ✅ Successfully retried: {fname}")
+            else:
+                summary["files_still_incomplete"] += 1
+                log_message(f"   ❌ Still failed: {fname}")
+    
+    return summary
 
 def main():
     root_path = Path(TARGET_ROOT)
     
     log_message("🚀 Starting Skill-Aware Refactoring...")
     log_message("   Skills will be auto-triggered from .claude/skills/")
+    log_message(f"   Retry config: max_retries={MAX_RETRIES}, delay={RETRY_DELAY_SECONDS}s")
 
+    # PHASE 1: Initial pass through all folders
     for current_root, dirs, files in os.walk(root_path):
         # Sort to ensure order
         dirs.sort()
@@ -256,6 +449,23 @@ def main():
         # Target only CONTENT folders
         if "CONTENT" in str(current_path) and any(f.endswith(".md") for f in files):
             process_folder(current_path)
+    
+    # PHASE 2: Final verification and retry pass
+    summary = verify_and_retry_all(root_path)
+    
+    # Final summary
+    log_message("\n" + "="*60)
+    log_message("📊 FINAL SUMMARY")
+    log_message("="*60)
+    log_message(f"   Folders checked in retry pass: {summary['folders_checked']}")
+    log_message(f"   Files retried: {summary['files_retried']}")
+    log_message(f"   Files succeeded on retry: {summary['files_succeeded']}")
+    log_message(f"   Files still incomplete: {summary['files_still_incomplete']}")
+    
+    if summary['files_still_incomplete'] > 0:
+        log_message("\n⚠️ Some files could not be completed. Check the .debug_*.txt files for details.")
+    else:
+        log_message("\n✅ All files processed successfully!")
 
 if __name__ == "__main__":
     main()

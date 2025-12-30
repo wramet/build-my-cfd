@@ -61,7 +61,7 @@ scalar rho = 1.225;                  // Air density
 scalar p = 101325;                   // Pressure [Pa]
 ```
 
-> **⚠️ Common Pitfall:** อย่า混淆 `label` กับ `scalar` — indices ต้องเป็น integer เสมอ
+> **⚠️ Common Pitfall:** อย่าสับสน `label` กับ `scalar` — indices ต้องเป็น integer เสมอ
 
 **ทำไม OpenFOAM ไม่ใช้ `int` และ `double` ตรงๆ?**
 - Type aliasing ช่วยให้เปลี่ยน precision ได้ทั้งโปรแกรม (เช่น compile เป็น float)

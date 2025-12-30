@@ -1,0 +1,10 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Python_Environment_Setup.md",
+        "02_PyFoam_Fundamentals.md",
+        "03_Data_Analysis_with_Pandas.md",
+        "04_Automated_Parametric_Study.md"
+    ],
+    "skipped": []
+}

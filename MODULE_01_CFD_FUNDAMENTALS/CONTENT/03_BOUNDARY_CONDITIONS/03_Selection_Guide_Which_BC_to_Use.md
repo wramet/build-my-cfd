@@ -603,7 +603,7 @@ $$\nabla^2 p = \frac{\rho}{\Delta t} \nabla \cdot \mathbf{U}^*$$
 > 3. External aero → U: `freestreamVelocity`, p: `freestreamPressure` (ใช้คู่กัน)
 > 4. Turbulence walls → use wall functions (ตรวจสอบ y+)
 
-### กฎ黄金 (Golden Rules)
+### กฎทอง (Golden Rules)
 
 | Rule | Description |
 |------|-------------|

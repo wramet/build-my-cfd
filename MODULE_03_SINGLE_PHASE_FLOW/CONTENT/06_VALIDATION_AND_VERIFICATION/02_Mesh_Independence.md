@@ -855,7 +855,7 @@ addLayersControls
 $$\left|\frac{Q_{in} - Q_{out}}{Q_{in}}\right| < 0.01$$
 
 ```python
-# ตรวจสอ能量 conservation
+# ตรวจสอบพลังงาน conservation
 def check_energy_balance(Q_in, Q_out, tolerance=0.01):
     imbalance = abs(Q_in - Q_out) / Q_in
     if imbalance < tolerance:

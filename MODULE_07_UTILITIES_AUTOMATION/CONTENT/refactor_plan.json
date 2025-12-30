@@ -1,0 +1,32 @@
+{
+    "files": {
+        "00_Overview.md": "URGENT: Remove duplicate 'Allrun และ Allclean' answer block (appears 3 times). Add 'Key Takeaways' section with summary of main module benefits. Consider condensing Concept Check to avoid redundancy.",
+        "01_SHELL_SCRIPTING/00_Overview.md": "Add 'Learning Objectives' section listing specific bash scripting skills (variables, loops, functions). Add 'Why Shell Scripting?' section explaining when to use bash vs python. Add 'Key Takeaways' summarizing Allrun/Allclean patterns.",
+        "01_SHELL_SCRIPTING/01_Automation_Strategy.md": "Add 'Why Strategy Matters' section explaining consequences of poor automation. Expand 'How' section with real-world workflow example. Add 'Key Takeaways' table of principles.",
+        "01_SHELL_SCRIPTING/02_Automation_Framework.md": "Add 'Learning Objectives' for framework patterns. Explain 'Why Framework' (reusability, consistency). Add 'Key Takeaways' of runApplication/runParallel functions. Consider adding common pitfalls section.",
+        "02_PYTHON_AUTOMATION/00_Overview.md": "Add 'Learning Objectives' section for Python ecosystem mastery. Condense 'ทำไมต้อง Python?' section to avoid overlap with 01_SHELL_SCRIPTING. Add 'Key Takeaways' comparing PyFoam/fluidfoam/PyVista use cases.",
+        "02_PYTHON_AUTOMATION/01_Python_Environment_Setup.md": "Review and ensure 3W framework. Add clear 'What is Anaconda/Miniconda?' section. Add troubleshooting section for common install issues.",
+        "02_PYTHON_AUTOMATION/02_PyFoam_Fundamentals.md": "Review for 3W framework compliance. Add comparison table: PyFoam commands vs native OpenFOAM commands.",
+        "02_PYTHON_AUTOMATION/03_Data_Analysis_with_Pandas.md": "Add 'Why Pandas for CFD?' section with specific use cases (forces.dat, probes.dat analysis). Add 'Key Takeaways' of common data operations.",
+        "02_PYTHON_AUTOMATION/04_Automated_Parametric_Study.md": "Add 'Learning Objectives' for parametric workflows. Expand 'Why Parametric Studies?' section. Add 'Key Takeaways' checklist for automation.",
+        "04_ADVANCED_VISUALIZATION/00_Overview.md": "CRITICAL: Too brief (15% quality score). Add comprehensive 'Learning Objectives' for ParaView, Python plotting, Blender. Add 'Why Advanced Visualization?' section. Expand from 7 sections to minimum 15 sections covering each tool in depth.",
+        "04_ADVANCED_VISUALIZATION/01_ParaView_Visualization.md": "Review for completeness. Add 'What is ParaView?' section. Expand 'Why ParaView?' vs Python plotting trade-offs.",
+        "04_ADVANCED_VISUALIZATION/02_Python_Plotting.md": "Add 'Learning Objectives' for matplotlib/seaborn skills. Add comparison: ParaView vs Python plotting decision tree.",
+        "05_PROFESSIONAL_PRACTICE/00_Overview.md": "CRITICAL: Extremely brief (15% quality score). Needs complete rewrite. Add full 'Learning Objectives' for Git, documentation, testing. Add 'Why Professional Practice?' section. Expand from 6 sections to minimum 20 sections covering each practice area.",
+        "05_PROFESSIONAL_PRACTICE/01_Project_Organization.md": "Review for 3W framework. Add 'Why Organization Matters' with examples of project failures from poor structure.",
+        "05_PROFESSIONAL_PRACTICE/02_Documentation_Standards.md": "Add 'What Makes Good Documentation?' section. Add before/after examples of documentation improvements.",
+        "05_PROFESSIONAL_PRACTICE/04_Version_Control_Git.md": "Review for redundancy with 00_Overview.md Git explanation. Consolidate to avoid duplication.",
+        "06_EXPERT_UTILITIES/00_Overview.md": "Review and add 'Learning Objectives' for utility categories. Add 'Why Master Utilities?' section.",
+        "06_EXPERT_UTILITIES/01_Utility_Categories_and_Organization.md": "Add 'Learning Objectives' for utility workflow knowledge. Add 'Why Categorize Utilities?' section explaining efficiency benefits. Add 'Key Takeaways' utility reference table.",
+        "06_EXPERT_UTILITIES/02_Architecture_and_Design_Patterns.md": "Review for 3W framework. Ensure 'What is Utility Architecture?' is clear.",
+        "06_EXPERT_UTILITIES/03_Essential_Utilities_for_Common_CFD_Tasks.md": "Review for completeness. Add 'Why These 20 Utilities?' prioritization rationale.",
+        "06_EXPERT_UTILITIES/04_Time-Saving_Benefits.md": "Add specific time savings examples with before/after metrics.",
+        "06_EXPERT_UTILITIES/05_Creating_Custom_Utilities.md": "Add 'Learning Objectives' for C++ utility development. Add 'Why Custom Utilities?' with specific use case examples.",
+        "03_HPC_AND_CLOUD/00_Overview.md": "Review and ensure 3W framework is complete. Add HPC-specific learning objectives.",
+        "03_HPC_AND_CLOUD/01_Domain_Decomposition.md": "Add 'Why Decomposition?' section explaining parallel computing benefits.",
+        "03_HPC_AND_CLOUD/02_Performance_Monitoring.md": "Add 'What to Monitor?' section with key metrics.",
+        "03_HPC_AND_CLOUD/03_Optimization_Techniques.md": "Add 'Why Optimize?' section with cost/time savings examples.",
+        "03_HPC_AND_CLOUD/04_HPC_Integration.md": "Add 'Learning Objectives' for cluster workflows."
+    },
+    "global_strategy": "URGENT QUALITY ISSUES DETECTED: (1) 8/8 sampled files fail 3W Framework compliance - most missing 'Why' sections. (2) 7/8 files missing 'Learning Objectives' - critical for learning sequence. (3) 7/8 files missing 'Key Takeaways' - hurts knowledge retention. (4) REDUNDANCY: 'Allrun/Allclean' explanation duplicated 3x in 00_Overview.md. Git explanations appear in multiple files. (5) QUALITY SCORES: 04_ADVANCED_VISUALIZATION/00_Overview.md (15%), 05_PROFESSIONAL_PRACTICE/00_Overview.md (15%) need complete expansion - they're too brief. REFACTOR PRIORITY: (1) First, expand critically brief overview files (04, 05) to 20+ sections each with full 3W framework. (2) Add 'Learning Objectives' to all files - this is non-negotiable for educational content. (3) Consolidate redundant content (Git, Allrun explanations) into single authoritative location. (4) Add 'Why' sections to explain motivation - currently most files jump straight to 'What/How'. (5) Standardize structure: Learning Objectives → What → Why → How → Examples → Key Takeaways → Exercises."
+}

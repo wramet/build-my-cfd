@@ -155,7 +155,7 @@ $$0 < \frac{\phi_3 - \phi_2}{\phi_2 - \phi_1} < 1$$
 
 ### Definition
 
-**WHAT:** GCI คือ **error band** ที่ estimate ความคลาดเคลื่อนจาก discretization ในรูป百分比
+**WHAT:** GCI คือ **error band** ที่ estimate ความคลาดเคลื่อนจาก discretization ในรูปเปอร์เซ็นต์
 
 **WHY:** Safety factor $F_s$ รับประกันว่า true error อยู่ภายใน band นี้ด้วย confidence 95-99%
 
@@ -1665,7 +1665,7 @@ echo ""
 <summary><b>2. GCI บอกอะไร? และทำไมต้องใช้ safety factor?</b></summary>
 
 **GCI คือ:**
-- **Error band** ที่ estimate discretization error ในรูป百分比
+- **Error band** ที่ estimate discretization error ในรูปเปอร์เซ็นต์
 - บอกว่าผลลัพธ์ห่างจาก grid-independent solution เท่าไหร่
 - Example: $\text{GCI} = 2.5\%$ แปลว่า true error น่าจะอยู่ในช่วง $\pm 2.5\%$
 

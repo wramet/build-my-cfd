@@ -31,7 +31,7 @@
 ### ผลกระทบต่อการตั้งค่า Boundary Conditions
 
 การตั้งค่า BCs ที่ถูกต้องต้องอาศัยความเข้าใจสมการ:
-- **Pressure inlet vs Velocity inlet:** เลือก BC ผิด = ไม่收敛
+- **Pressure inlet vs Velocity inlet:** เลือก BC ผิด = ไม่ converge
 - **Wall BC:** ต้องรู้ว่าสมการกำหนด no-slip condition อย่างไร
 - **Outlet BC:** ต้องเข้าใจ zero gradient condition ที่มาจาก conservative form
 
@@ -129,7 +129,7 @@ $$\text{Re} = \frac{\rho U_{\text{ref}} L}{\mu} = \frac{\text{แรงเฉื
 โดยที่:
 - $\rho$ = ความหนาแน่น [kg/m³]
 - $U_{\text{ref}}$ = ความเร็วอ้างอิง [m/s]
-- $L$ = ความยาว特性 [m]
+- $L$ = ความยาวลักษณะเฉพาะ (characteristic length) [m]
 - $\mu$ = ความหนืดพลศาสตร์ [Pa·s]
 
 ### การตีความ Reynolds Number

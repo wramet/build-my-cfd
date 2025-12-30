@@ -330,7 +330,7 @@ gnuplot> plot "logs/p_0" with lines
 **คำตอบ:**
 - **`Gauss upwind`**: 1st order, **stable** (bound-preserving), แต่ **diffusive** (ทำให้ gradients จางลง)
 - **`Gauss linear`**: 2nd order, **accurate**, แต่อาจ **oscillate** ได้ที่ high Péclet number
-- ที่ถูกต้อง: เริ่มด้วย upwind เพื่อ稳定性 แล้วค่อยเปลี่ยนเป็น linear เมื่อ converge แล้ว
+- ที่ถูกต้อง: เริ่มด้วย upwind เพื่อความเสถียร (stability) แล้วค่อยเปลี่ยนเป็น linear เมื่อ converge แล้ว
 </details>
 
 <details>

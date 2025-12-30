@@ -137,7 +137,7 @@ $$\mathbf{F}^L_{kl} = -C_L \rho_c \alpha_d (\mathbf{u}_r \times \boldsymbol{\ome
 - **Bubbles in shear flow**: Lift coefficient $C_L$ ขึ้นกับ bubble size (Reynolds number)
 - **Small bubbles**: $C_L > 0$ → move toward wall
 - **Large bubbles**: $C_L < 0$ → move toward center
-- ใช้ Tomiyama model สำหรับ广泛的应用
+- ใช้ Tomiyama model สำหรับการใช้งานที่หลากหลาย
 
 ---
 

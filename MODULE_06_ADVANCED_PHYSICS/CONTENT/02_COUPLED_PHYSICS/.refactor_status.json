@@ -1,0 +1,14 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Coupled_Physics_Fundamentals.md",
+        "02_Conjugate_Heat_Transfer.md",
+        "04_Object_Registry_Architecture.md",
+        "05_Advanced_Coupling_Topics.md",
+        "06_Validation_and_Benchmarks.md",
+        "07_Exercises.md"
+    ],
+    "skipped": [
+        "03_Fluid_Structure_Interaction.md"
+    ]
+}

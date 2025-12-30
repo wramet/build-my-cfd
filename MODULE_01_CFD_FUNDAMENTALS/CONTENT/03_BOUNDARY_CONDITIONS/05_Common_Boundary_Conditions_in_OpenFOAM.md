@@ -23,7 +23,7 @@
 
 ### What: Boundary Conditions คืออะไร?
 
-Boundary Conditions (BCs) คือ **ข้อกำหนดที่ขอบเขตของโดเมนคำนวณ** ที่กำหนดค่าของตัวแปร (U, p, T, k, ε, ω ฯลฯ) หรือ gradient ของมันที่ผิว边界 ใน OpenFOAM BCs ถูกกำหนดในไฟล์ `0/` directory สำหรับแต่ละ field
+Boundary Conditions (BCs) คือ **ข้อกำหนดที่ขอบเขตของโดเมนคำนวณ** ที่กำหนดค่าของตัวแปร (U, p, T, k, ε, ω ฯลฯ) หรือ gradient ของมันที่ผิว boundary ใน OpenFOAM BCs ถูกกำหนดในไฟล์ `0/` directory สำหรับแต่ละ field
 
 **ประเภทหลัก:**
 - **Dirichlet BC:** กำหนดค่าโดยตรง → `fixedValue`

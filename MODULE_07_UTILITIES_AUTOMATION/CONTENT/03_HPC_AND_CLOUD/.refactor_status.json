@@ -1,0 +1,10 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Domain_Decomposition.md",
+        "02_Performance_Monitoring.md",
+        "03_Optimization_Techniques.md",
+        "04_HPC_Integration.md"
+    ],
+    "skipped": []
+}

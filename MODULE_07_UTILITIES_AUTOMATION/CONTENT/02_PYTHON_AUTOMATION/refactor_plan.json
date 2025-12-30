@@ -1,0 +1,10 @@
+{
+    "files": {
+        "00_Overview.md": "Keep structure but trim redundant exercises. Has 3W framework (What: 4 tools, Why: ecosystem/readability/integration, How: parametric workflow). Remove duplicate 'Concept Check' section at end (already has exercises). Add Learning Objectives header.",
+        "01_Python_Environment_Setup.md": "Add Learning Objectives and Key Takeaways sections. Complete 3W framework: add What is Anaconda/Miniconda comparison table as opening section. Missing 'What' section - jumps straight to choosing distribution.",
+        "02_PyFoam_Fundamentals.md": "Keep - this is the strongest file with proper 3W structure. Add Learning Objectives header at top. The Tip section at end is good - preserve.",
+        "03_Data_Analysis_with_Pandas.md": "CRITICAL: Extremely incomplete - needs complete rewrite. Missing: 3W framework (no clear What/Why/How), Learning Objectives, Key Takeaways, Prerequisites. Sections are too brief. Need to expand: What is Pandas, Why use for OpenFOAM data, How to read forces.dat/probes.dat, How to plot convergence, How to compare multiple cases. Add mermaid workflows. Add proper exercises with Easy/Medium/Hard structure.",
+        "04_Automated_Parametric_Study.md": "CRITICAL: Severely incomplete - needs complete rewrite. Missing: 3W framework, Learning Objectives, Key Takeaways, Prerequisites, proper examples. Current content is minimal code snippets without explanation. Need comprehensive sections: What is parametric study, Why automate, How to design workflow (template→clone→modify→run→analyze), Complete working example with PyFoam, Parallel execution strategies, Result aggregation, Error handling. Add mermaid workflows. Add proper exercise sections."
+    },
+    "global_strategy": "Files 00, 01, 02 are mostly complete with minor gaps (Learning Objectives, Key Takeaways). Files 03 and 04 need complete reconstruction from skeleton to full documentation. Maintain Thai/English bilingual style. Preserve mermaid diagrams. Ensure each file follows: Learning Objectives → What/Why/How (3W) → Content → Exercises (Easy/Medium/Hard) → Key Takeaways → Related Links."
+}

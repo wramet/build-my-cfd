@@ -556,10 +556,10 @@ Templates also enable compiler optimizations — the compiler knows the exact ty
 - Communication happens through virtual methods (`execute()`, `write()`)
 
 ```cpp
-// Time只知道有"function objects"，不知道具体类型
+// Time รู้แค่ว่ามี "function objects" แต่ไม่รู้ว่าเป็น type อะไร
 functionObjects_.execute();
 
-// Function object只依赖接口，不依赖Time实现细节
+// Function object เรียกใช้แค่ interface ไม่ขึ้นอยู่กับ implementation ของ Time
 class myStats : public functionObject {
     bool execute() override { /* ... */ }
 };

@@ -394,7 +394,7 @@ Dimensionless numbers ช่วยให้เรา:
 
 2. **Scale-Up/Scale-Down:**
    - ทำ lab-scale (เช่น d=1mm) → ขยายเป็น industrial (d=10cm)
-   - ถ้า保持 Re, Eo เท่ากัน → flow pattern เหมือนกัน
+   - ถ้ารักษา Re, Eo เท่ากัน → flow pattern เหมือนกัน
 
 3. **Select Models:**
    - Re บอกว่าควรใช้ laminar หรือ turbulent model

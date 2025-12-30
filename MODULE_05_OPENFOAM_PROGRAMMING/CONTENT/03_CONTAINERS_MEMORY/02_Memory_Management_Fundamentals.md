@@ -246,7 +246,7 @@ Technique สำหรับ optimize การคำนวณ expression โด
 
 #### Why? (Motivation/Benefits)
 - **Zero-copy** — แชร์ memory ระหว่าง intermediate results
-- **Cache-friendly** — ล減 memory bandwidth
+- **Cache-friendly** — ลด memory bandwidth
 - **Fast** — ประหยัดทั้ง memory และ compute time
 
 #### How? (Implementation)
@@ -309,7 +309,7 @@ Memory ที่ถูก allocate แต่ไม่ถูก deallocate — ac
 
 #### Why? (Motivation/Benefits)
 - **CFD applications** — large meshes amplify leaks
-- **Long simulations** — leaks จะชัดเจนใน长时间
+- **Long simulations** — leaks จะชัดเจนในระยะยาว
 - **Production reliability** — prevent crashes in critical runs
 
 #### How? (Detection)

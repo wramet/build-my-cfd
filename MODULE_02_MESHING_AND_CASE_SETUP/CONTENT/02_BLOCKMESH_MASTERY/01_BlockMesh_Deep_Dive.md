@@ -926,7 +926,7 @@ boundary
 
 ### แบบฝึกหัดระดับสูง (Hard)
 
-5. **Hands-on**: สร้าง `blockMeshDict` สำหรับกล่อง 2D (1 หน้า厚度) ที่มี Grading อัดแน่นที่ผนังซ้ายและขวา แล้วรัน `blockMesh` และตรวจสอบด้วย ParaView
+5. **Hands-on**: สร้าง `blockMeshDict` สำหรับกล่อง 2D (1 cell ความหนา) ที่มี Grading อัดแน่นที่ผนังซ้ายและขวา แล้วรัน `blockMesh` และตรวจสอบด้วย ParaView
    
    <details>
    <summary>คำตอบ</summary>

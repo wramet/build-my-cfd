@@ -1,5 +1,18 @@
 # 01. พื้นฐานของไหลนอนนิวตัน (Non-Newtonian Fundamentals)
 
+## 🎯 Learning Objectives
+
+หลังจากอ่านบทนี้ คุณจะสามารถ:
+
+1. **อธิบายความแตกต่าง**ระหว่างของไหลแบบนิวตันและนอนนิวตันด้วยตัวอย่างจริง
+2. **คำนวณอัตราการเฉือน** (shear rate) จากเทนเซอร์ความเร็ว
+3. **จำแนกพฤติกรรม** ของไหลนอนนิวตันทั้ง 4 ประเภทหลัก (shear-thinning, shear-thickening, yield stress, viscoelastic)
+4. **เลือกโมเดลความหนืด** ที่เหมาะสมกับแต่ละแอปพลิเคชัน
+5. **เขียน OpenFOAM dictionary** สำหรับระบุโมเดลความหนืด
+6. **ใช้เทคนิคทางตัวเลข** ที่จำเป็นสำหรับการแก้ปัญหาที่ไม่เชิงเส้น
+
+---
+
 ## 1. บทนำ: ปัญหาทาง Rheological
 
 ทำไมขวดซอสมะเขือเทศถึงไหลยากในตอนแรก แต่พอเขย่าหรือตีแรงๆ แล้วไหลลื่น? หรือทำไมน้ำผึ้งถึงไหลหนืดเท่าเดิมเสมือไม่ว่าจะกวนแรงแค่ไหน?
@@ -13,40 +26,43 @@
 > ของไหลที่ไม่ใช่แบบนิวตันซึ่งมีค่าความหนืดเปลี่ยนแปลงตามอัตราการเฉือน—ก่อให้เกิดความท้าทายพื้นฐานสำหรับ CFD เนื่องจากความไม่เชิงเส้น (Non-linearity) ที่รุนแรงในสมการโมเมนตัม
 
 OpenFOAM ตอบสนองความท้าทายนี้ด้วย **สถาปัตยกรรมแบบขยายได้ที่ใช้รูปแบบ Factory** ซึ่งให้คุณสลับไปมาระหว่างรุ่น Bird-Carreau, Herschel-Bulkley, Power-Law และแบบจำลอง rheological อื่นๆ โดยการเปลี่ยน dictionary entry เพียงรายการเดียว
- 
- > [!TIP] **มุมมองเปรียบเทียบ: การวิ่งในน้ำ vs การวิ่งในฝูงชน (Water vs Crowd)**
- >
- > *   **Newtonian Fluid (น้ำ):** เหมือนการวิ่งในสระน้ำ ไม่ว่าคุณจะวิ่งช้าหรือเร็ว แรงต้านจากน้ำ (Viscosity) จะเพิ่มขึ้นเป็นสัดส่วนคงที่ น้ำไม่ได้เปลี่ยนคุณสมบัติเพราะคุณวิ่งเร็วขึ้น
- > *   **Shear-Thinning (ฝูงชน):** เหมือนการวิ่งฝ่าฝูงงานคอนเสิร์ต
- >     *   ถ้าคุณค่อยๆ แทรกตัว (Low Shear) คนจะไม่หลีกทางให้ (High Viscosity)
- >     *   แต่ถ้าคุณวิ่งชนอย่างแรงและเร็ว (High Shear) คนจะแตกฮือหลบทางให้ (Viscosity Drops) ทำให้คุณผ่านไปได้ง่ายขึ้น
- > *   **Shear-Thickening (แป้งเปียก/ทรายดูด):** เหมือนยิ่งดิ้นยิ่งจม ยิ่งใส่แรงเร็วๆ โมเลกุลยิ่งล็อคตัวกันแน่นขึ้น (Viscosity Increases)
- 
- ---
 
-<!-- IMAGE: IMG_06_002 -->
-<!-- 
-Purpose: เพื่อเปรียบเทียบพฤติกรรม Non-Newtonian 3 ประเภทหลักเมื่อเทียบกับ Newtonian. ภาพนี้ต้องแสดง 2 กราฟคู่กัน: 1. กราฟ Shear Stress vs Strain Rate (Basic) 2. กราฟ Viscosity vs Strain Rate (Insight). เป้าหมายคือให้เห็นว่า "Apparent Viscosity" เปลี่ยนไปอย่างไร
-Prompt: "Dual-Chart Rheology Visualization. **Panel 1 (Stress vs Rate):** X-axis $\dot{\gamma}$, Y-axis $\tau$. Curves: 1. **Linear (Black):** Newtonian (Water). 2. **Curve Down (Blue):** Pseudoplastic (Blood/Paint) - Easy to flow at high speed. 3. **Curve Up (Red):** Dilatant (Cornstarch) - Hard to flow at high speed. 4. **Offset Linear (Green):** Bingham Plastic (Toothpaste) - Needs Yield Stress. **Panel 2 (Viscosity vs Rate):** Log-Log Plot showing Viscosity $\mu$ dropping for Pseudoplastic and rising for Dilatant. STYLE: Scientific charting, clear labels, distinct colored curves."
--->
-![[IMG_06_002.jpg]]
+> [!TIP] **มุมมองเปรียบเทียบ: การวิ่งในน้ำ vs การวิ่งในฝูงชน (Water vs Crowd)**
+>
+> *   **Newtonian Fluid (น้ำ):** เหมือนการวิ่งในสระน้ำ ไม่ว่าคุณจะวิ่งช้าหรือเร็ว แรงต้านจากน้ำ (Viscosity) จะเพิ่มขึ้นเป็นสัดส่วนคงที่ น้ำไม่ได้เปลี่ยนคุณสมบัติเพราะคุณวิ่งเร็วขึ้น
+> *   **Shear-Thinning (ฝูงชน):** เหมือนการวิ่งฝ่าฝู้ยาแยก
+>     *   ถ้าคุณค่อยๆ แทรกตัว (Low Shear) คนจะไม่หลีกทางให้ (High Viscosity)
+>     *   แต่ถ้าคุณวิ่งชนอย่างแรงและเร็ว (High Shear) คนจะแตกฮือหลบทางให้ (Viscosity Drops) ทำให้คุณผ่านไปได้ง่ายขึ้น
+> *   **Shear-Thickening (แป้งเปียก/ทรายดูด):** เหมือนยิ่งดิ้นยิ่งจม ยิ่งใส่แรงเร็วๆ โมเลกุลยิ่งล็อคตัวกันแน่นขึ้น (Viscosity Increases)
+
+---
+
+### 1.1 ภาพประกอบ: การเปรียบเทียบพฤติกรรม Rheology
+
+![IMG_06_002](IMG_06_002.jpg)
+**Figure 1:** กราฟเปรียบเทียบพฤติกรรมความเค้นและความหนืดของของไหลแบบต่างๆ
+- **ซ้าย:** ความสัมพันธ์ระหว่างความเค้นเฉือน ($\tau$) และอัตราการเฉือน ($\dot{\gamma}$)
+- **ขวา:** ความหนืดปรากฏ ($\mu$) เทียบกับอัตราการเฉือน แสดงให้เห็นว่าความหนืดเปลี่ยนแปลงอย่างไรในแต่ละประเภท
 
 ---
 
 ## 2. กรอบทางคณิตศาสตร์
 
-ใน OpenFOAM โมเดลเหล่านี้ถูก Implement ผ่านสมการเชิงโครงสร้าง (Constitutive Equation):
+### 2.1 สมการอำนวยความสะดวก (Constitutive Equation)
+
+ใน OpenFOAM โมเดลเหล่านี้ถูก Implement ผ่านสมการเชิงโครงสร้าง:
 
 $$\boldsymbol{\tau} = \mu(\dot{\gamma}) \cdot \dot{\boldsymbol{\gamma}}$$
 
 โดยที่:
-- $\boldsymbol{\tau}$ คือเทนเซอร์ความเค้น (Stress Tensor)
-- $\mu(\dot{\gamma})$ คือความหนืดปรากฏ (Apparent Viscosity) ที่ขึ้นกับอัตราการเฉือน
-- $\dot{\boldsymbol{\gamma}}$ คือเทนเซอร์อัตราการเสียรูป (Rate-of-deformation Tensor)
+- $\boldsymbol{\tau}$ คือเทนเซอร์ความเค้น (Stress Tensor) [Pa]
+- $\mu(\dot{\gamma})$ คือความหนืดปรากฏ (Apparent Viscosity) ที่ขึ้นกับอัตราการเฉือน [Pa·s]
+- $\dot{\boldsymbol{\gamma}}$ คือเทนเซอร์อัตราการเสียรูป (Rate-of-deformation Tensor) [s⁻¹]
 
-![[shear_deformation_tensor.png]]
+![shear_deformation_tensor.png](shear_deformation_tensor.png)
+**Figure 2:** การแสดงกราฟิกของการเฉือนในของไหล แสดงความสัมพันธ์ระหว่างความเร็วและอัตราการเฉือน
 
-### ขนาดของอัตราการเฉือน (Shear Rate Magnitude)
+### 2.2 ขนาดของอัตราการเฉือน (Shear Rate Magnitude)
 
 อัตราการเฉือน $\dot{\gamma}$ คือค่าสเกลาร์ที่บอกความแรงของการเสียรูปในของไหล คำนวณจาก Invariant ที่สองของเทนเซอร์อัตราการเสียรูป $\mathbf{D}$:
 
@@ -54,7 +70,10 @@ $$\mathbf{D} = \frac{1}{2}\left(\nabla \mathbf{u} + (\nabla \mathbf{u})^T\right)
 
 $$\dot{\gamma} = \sqrt{2\mathbf{D}:\mathbf{D}} = \sqrt{2\sum_{i,j} D_{ij}D_{ij}}$$
 
-ใน OpenFOAM C++ คำนวณได้ดังนี้:
+> [!NOTE] ความสำคัญของ Rate-of-Deformation Tensor
+> เทนเซอร์ $\mathbf{D}$ เป็นเทนเซอร์สมมาตรที่อธิบายอัตราการเสียรูปขององค์ประกอบของไหล การใช้ symmetric part ของ velocity gradient รับประกันการรักษาปริมาตรในการไหลที่ไม่บีบอัด
+
+#### การ Implement ใน OpenFOAM C++
 
 ```cpp
 // Calculate symmetric part of velocity gradient tensor
@@ -66,82 +85,81 @@ volSymmTensorField D = symm(fvc::grad(U));
 volScalarField shearRate = sqrt(2.0)*mag(D);
 ```
 
-> [!NOTE] คำอธิบายโค้ด
-> **ที่มา:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
->
-> **คำอธิบาย:**
-> - `symm()` ฟังก์ชันดึงส่วนสมมาตรของเทนเซอร์เกรเดียนต์ความเร็ว ซึ่งรับประกันการรักษาปริมาตรในการไหลที่ไม่บีบอัด
-> - `fvc::grad(U)` คำนวณเกรเดียนต์ของสนามความเร็ว $\nabla \mathbf{u}$
-> - `mag(D)` หาค่าขนาดของเทนเซอร์ D
->
-> **แนวคิดสำคัญ:**
-> 1. **Rate-of-Deformation Tensor (D):** เทนเซอร์สมมาตรที่อธิบายอัตราการเสียรูปขององค์ประกอบของไหล
-> 2. **Shear Rate Calculation:** อัตราการเฉือนเป็น scalar measure ของความเร็วในการเสียรูป สำคัญมากสำหรับโมเดลความหนืดแบบไม่ใช่นิวตัน
+**ที่มา:** 📂 `src/transportModels/viscosityModels/viscosityModel/viscosityModel.C`
 
 > [!TIP] การคำนวณเทนเซอร์อัตราการเสียรูป
-> ฟังก์ชัน `symm()` ดึงส่วนสมมาตรของเทนเซอร์เกรเดียนต์ความเร็ว ซึ่งรับประกันการรักษาปริมาตรในการไหลที่ไม่บีบอัด
+> ฟังก์ชัน `symm()` ดึงส่วนสมมาตรของเทนเซอร์เกรเดียนต์ความเร็ว ซึ่งรับประกันการรักษาปริมาตรในการไหลที่ไม่บีบอัด ในขณะที่ `mag(D)` หาค่าขนาดของเทนเซอร์ผ่าน double contraction
 
 ---
 
 ## 3. พฤติกรรมทาง Rheology ที่สำคัญ
 
-![[viscosity_vs_shearrate_curves.png]]
+![viscosity_vs_shearrate_curves.png](viscosity_vs_shearrate_curves.png)
+**Figure 3:** กราฟแสดงความสัมพันธ์ระหว่างความหนืดและอัตราการเฉือนสำหรับของไหลแบบต่างๆ
+
+### 3.1 การจำแนกพฤติกรรม
 
 | พฤติกรรม | คำอธิบาย | ตัวอย่าง | ค่าดัชนีกฎกำลัง $n$ |
 | :--- | :--- | :--- | :--- |
 | **Shear-Thinning** | ความหนืดลดลงเมื่ออัตราการเฉือนเพิ่มขึ้น (Pseudoplastic) | ซอสมะเขือเทศ, เลือด, สีทาบ้าน | $n < 1$ |
-| **Shear-Thickening** | ความหนืดเพิ่มขึ้นเมื่ออัตราการเฉือนเพิ่มขึ้น (Dilatant) | แป้งข้าวโพดผสมน้ำ | $n > 1$ |
+| **Shear-Thickening** | ความหนืดเพิ่มขึ้นเมื่ออัตราการเฉือนเพิ่มขึ้น (Dilatant) | แป้งข้าวโพดผสมน้ำ (Oobleck) | $n > 1$ |
 | **Yield Stress** | ต้องใช้แรงเค้นเกินค่าหนึ่งก่อนที่วัสดุจะเริ่มไหล | ยาสีฟัน, มายองเนส, เจล | ต้องมี $\tau_y$ |
-| **Viscoelastic** | แสดงพฤติกรรมทั้งความหนืดและความยืดหยุ่น (มี "ความจำ") | โพลิเมอร์หลอมเหลว | ซับซ้อน |
+| **Viscoelastic** | แสดงพฤติกรรมทั้งความหนืดและความยืดหยุ่น (มี "ความจำ") | โพลิเมอร์หลอมเหลว, ยางยืด | ซับซ้อน |
+| **Newtonian** | ความหนืดคงที่ไม่ขึ้นกับอัตราการเฉือน | น้ำ, อากาศ, น้ำมันพืช | $n = 1$ |
+
+### 3.2 การเปรียบเทียบสมการ
 
 ```mermaid
 graph LR
-classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
-Newton["Newtonian<br/>μ = constant<br/>τ = μ·γ̇"]:::implicit
-NonNewton["Non-Newtonian<br/>μ = f(γ̇)<br/>τ = μ(γ̇)·γ̇"]:::explicit
+classDef newtonian fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef nonnewtonian fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+classDef base fill:#f5f5f5,stroke:#616161,stroke-width:2px
+
+Newton["Newtonian<br/>μ = constant<br/>τ = μ·γ̇"]:::newtonian
+NonNewton["Non-Newtonian<br/>μ = f(γ̇)<br/>τ = μ(γ̇)·γ̇"]:::nonnewtonian
 
 Newton --> NonNewton
 ```
-> **Figure 1:** แผนภาพแสดงการเปรียบเทียบสมบัติทางฟิสิกส์ระหว่างของไหลแบบนิวตัน (Newtonian) และของไหลที่ไม่ใช่แบบนิวตัน (Non-Newtonian) โดยระบุความแตกต่างของความหนืดและความสัมพันธ์ระหว่างความเค้นและอัตราการเฉือน
 
+**Figure 4:** แผนภาพแสดงการเปรียบเทียบสมบัติทางฟิสิกส์ระหว่างของไหลแบบนิวตันและของไหลที่ไม่ใช่แบบนิวตัน
 
 ---
 
 ## 4. โมเดล Rheological ทั่วไปใน OpenFOAM
 
-### โมเดลกฎกำลัง (Power-Law Model)
+> [!IMPORTANT] **Cross-Reference**
+> รายละเอียดเต็มของโมเดลความหนืดและพารามิเตอร์ทั้งหมดอยู่ใน **[02_OpenFOAM_Implementation.md](02_OpenFOAM_Implementation.md)** ส่วนนี้นำเสนอภาพรวมของโมเดลหลักๆ
 
-แบบจำลองที่ไม่ใช่แบบนิวตันที่ง่ายที่สุดเชื่อมโยงความหนืดกับอัตราการเฉือนดังนี้:
+### 4.1 โมเดลกฎกำลัง (Power-Law Model)
+
+แบบจำลองที่ไม่ใช่แบบนิวตันที่ง่ายที่สุด:
 
 $$\mu(\dot{\gamma}) = K \dot{\gamma}^{n-1}$$
 
-โดยที่:
+**พารามิเตอร์:**
 - $K$ คือดัชนีความสม่ำเสมอ (Consistency Index) [Pa·s$^n$]
 - $n$ คือดัชนีกฎกำลัง (Power Law Index):
-  - **$n < 1$**: พฤติกรรม Shear-thinning (pseudoplastic)
-  - **$n > 1$**: พฤติกรรม Shear-thickening (dilatant)
-  - **$n = 1$**: ลดรูปเป็นของไหลแบบนิวตัน
+  - **$n < 1$**: Shear-thinning (pseudoplastic)
+  - **$n > 1$**: Shear-thickening (dilatant)
+  - **$n = 1$**: ลดรูปเป็นของไหลแบบนิวตัน ($\mu = K$)
 
-### โมเดล Bird-Carreau
+### 4.2 โมเดล Bird-Carreau
 
-แบบจำลองที่ซับซ้อนมากขึ้นซึ่งจับความหนืดเมื่อไม่มีการเฉือนและเมื่อเฉือนอย่างไม่สิ้นสุด:
+แบบจำลองที่จับความหนืดเมื่อไม่มีการเฉือนและเมื่อเฉือนอย่างไม่สิ้นสุด:
 
 $$\mu(\dot{\gamma}) = \mu_{\infty} + (\mu_0 - \mu_{\infty})\left[1 + (\lambda\dot{\gamma})^2\right]^{\frac{n-1}{2}}$$
 
-โดยที่:
-- $\mu_0$: ความหนืดเมื่อไม่มีการเฉือน (Zero-shear viscosity)
-- $\mu_{\infty}$: ความหนืดเมื่อเฉือนอย่างไม่สิ้นสุด (Infinite-shear viscosity)
-- $\lambda$: มาตราส่วนเวลาลักษณะเฉพาะ (Time constant)
-- $n$: ดัชนีกฎกำลัง (Power law index)
+**พารามิเตอร์:**
+- $\mu_0$: ความหนืดเมื่อไม่มีการเฉือน (Zero-shear viscosity) [Pa·s]
+- $\mu_{\infty}$: ความหนืดเมื่อเฉือนอย่างไม่สิ้นสุด (Infinite-shear viscosity) [Pa·s]
+- $\lambda$: มาตราส่วนเวลาลักษณะเฉพาะ (Time constant) [s]
+- $n$: ดัชนีกฎกำลัง (Power law index) [-]
 
-**OpenFOAM Code Implementation:**
+#### OpenFOAM Code Implementation
 
 ```cpp
 // BirdCarreau viscosity model implementation
 // Calculates apparent viscosity based on shear rate
-// Model: mu = mu_inf + (mu_0 - mu_inf) * [1 + (lambda*gamma_dot)^2]^((n-1)/2)
 return
     nuInf_                                                    // Infinite-shear viscosity
   + (nu0 - nuInf_)                                           // Viscosity range
@@ -159,20 +177,9 @@ return
     );
 ```
 
-> [!NOTE] คำอธิบายโค้ด
-> **ที่มา:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
->
-> **คำอธิบาย:**
-> - โค้ดนี้ implement สมการ Bird-Carreau สำหรับคำนวณความหนืดปรากฏ (apparent viscosity)
-> - ใช้ `pow()` function ซ้อนกันเพื่อคำนวณเทอมกำลัง
-> - รองรับทั้ง normalized และ non-normalized strain rate
->
-> **แนวคิดสำคัญ:**
-> 1. **Zero-Shear Viscosity (nu0):** ความหนืดเมื่ออัตราการเฉือนเข้าใกล้ศูนย์
-> 2. **Infinite-Shear Viscosity (nuInf):** ความหนืดเมื่ออัตราการเฉือนสูงมาก
-> 3. **Transition Region:** โมเดลนี้จับภาพการเปลี่ยนผ่านระหว่างสองขั้นนี้ได้อย่างราบรื่น
+**ที่มา:** 📂 `src/transportModels/viscosityModels/BirdCarreau/BirdCarreau.C`
 
-### โมเดล Herschel-Bulkley
+### 4.3 โมเดล Herschel-Bulkley
 
 รวมพฤติกรรมแรงเฉือนให้ไหลด้วยการไหลแบบกฎกำลัง:
 
@@ -181,13 +188,13 @@ $$\mu(\dot{\gamma}) = \begin{cases}
 \tau_y/\dot{\gamma} + K\dot{\gamma}^{n-1} & \text{if } \tau \geq \tau_y
 \end{cases}$$
 
-โดยที่:
-- $\tau_y$: แรงเฉือนให้ไหล (Yield stress)
-- $\tau$: ขนาดความเค้นเฉือน
-- $K$: ดัชนีความสม่ำเสมอ (Consistency index)
-- $n$: ดัชนีพฤติกรรมการไหล (Flow behavior index)
+**พารามิเตอร์:**
+- $\tau_y$: แรงเฉือนให้ไหล (Yield stress) [Pa]
+- $\tau$: ขนาดความเค้นเฉือน [Pa]
+- $K$: ดัชนีความสม่ำเสมอ (Consistency index) [Pa·s$^n$]
+- $n$: ดัชนีพฤติกรรมการไหล (Flow behavior index) [-]
 
-**OpenFOAM Code Implementation:**
+#### OpenFOAM Code Implementation
 
 ```cpp
 // Define dimensional constants for time operations
@@ -195,7 +202,6 @@ dimensionedScalar tone("tone", dimTime, 1.0);
 dimensionedScalar rtone("rtone", dimless/dimTime, 1.0);
 
 // Herschel-Bulkley viscosity calculation with numerical safeguards
-// Prevents division by zero and limits maximum viscosity
 return
 (
     min                                                        // Limit maximum viscosity
@@ -211,25 +217,16 @@ return
 );
 ```
 
-> [!NOTE] คำอธิบายโค้ด
-> **ที่มา:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
->
-> **คำอธิบาย:**
-> - ใช้ `max(strainRate, vSmall)` เพื่อป้องกันการหารด้วยศูนย์เมื่อ strainRate ต่ำมาก
-> - ใช้ `min(nu0, ...)` เพื่อจำกัดความหนืดไม่ให้เกินค่าสูงสุดที่กำหนด
-> - `tone` และ `rtone` ใช้สำหรับ dimension consistency ในการคำนวณ
->
-> **แนวคิดสำคัญ:**
-> 1. **Yield Stress (tauY):** ค่าความเค้นขั้นต่ำที่ต้องใช้เพื่อให้วัสดุเริ่มไหล
-> 2. **Numerical Stability:** การใช้ safeguards เพื่อป้องกันปัญหาทาง numerical
-> 3. **Viscosity Clipping:** จำกัดค่าความหนืดไม่ให้เกินค่าที่กำหนดไว้
+**ที่มา:** 📂 `src/transportModels/viscosityModels/HerschelBulkley/HerschelBulkley.C`
 
 > [!WARNING] การป้องกันทางตัวเลข
 > OpenFOAM ใช้ `max(strainRate, vSmall)` เพื่อป้องกันการหารด้วยศูนย์ และ `min(nu0, ...)` เพื่อจำกัดความหนืดไม่ให้เกินค่าสูงสุดที่กำหนด
 
 ---
 
-## 5. ทำไมต้องใช้ CFD จำลอง?
+## 5. ทำความท้าทายทางตัวเลขของ CFD
+
+### 5.1 ความไม่เชิงเส้นในสมการโมเมนตัม
 
 พฤติกรรมนอนนิวตันทำให้เกิดความไม่เชิงเส้น (Non-linearity) ที่รุนแรงในสมการโมเมนตัม:
 
@@ -237,13 +234,15 @@ $$\rho \left( \frac{\partial \mathbf{u}}{\partial t} + \mathbf{u} \cdot \nabla \
 
 เนื่องจาก $\mu$ ขึ้นกับ $\mathbf{u}$ (ผ่าน $\dot{\gamma}$) การแก้สมการจึงต้องใช้การวนซ้ำ (Iteration) เพื่อให้ค่าความหนืดและความเร็วสอดคล้องกัน
 
-### ขั้นตอนการแก้ปัญหา
+### 5.2 ขั้นตอนการแก้ปัญหา
 
-1. **Picard Iteration**: อัพเดตความหนืดตามการวนซ้ำก่อนหน้า
-2. **Newton-Raphson**: แก้ระบบที่เชื่อมโยงพร้อมกับการแยกส่วนที่สอดคล้องกัน
-3. **Under-Relaxation**: ป้องกันการเบี่ยงเบนด้วยการผ่อนคลายความหนืด
+| เทคนิค | คำอธิบาย | การใช้งาน |
+|--------|-------------|-------------|
+| **Picard Iteration** | อัพเดตความหนืดตามการวนซ้ำก่อนหน้า | กรณีทั่วไป |
+| **Newton-Raphson** | แก้ระบบที่เชื่อมโยงพร้อมกับการแยกส่วนที่สอดคล้องกัน | ความแม่นยำสูง |
+| **Under-Relaxation** | ป้องกันการเบี่ยงเบนด้วยการผ่อนคลายความหนืด | ความเสถียรสูง |
 
-**OpenFOAM Code Implementation - Under-Relaxation:**
+#### Under-Relaxation Implementation
 
 ```cpp
 // Under-relaxation for viscosity in non-Newtonian simulations
@@ -252,50 +251,43 @@ $$\rho \left( \frac{\partial \mathbf{u}}{\partial t} + \mathbf{u} \cdot \nabla \
 mu_ = relaxationFactor_*mu_ + (1.0 - relaxationFactor_)*muOld_;
 ```
 
-> [!NOTE] คำอธิบายโค้ด
-> **ที่มา:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
->
-> **คำอธิบาย:**
-> - Under-relaxation คือเทคนิคที่ใช้ weighted average ระหว่างค่าใหม่และค่าเก่า
+**ที่มา:** 📂 `src/transportModels/viscosityModels/viscosityModel/viscosityModel.C`
+
+> [!NOTE] หลักการ Under-Relaxation
+> - Under-relaxation ใช้ weighted average ระหว่างค่าใหม่และค่าเก่า
 > - `relaxationFactor` มักอยู่ระหว่าง 0.0 ถึง 1.0 (ค่าน้อย = การผ่อนคลายมากขึ้น)
 > - ช่วยป้องกันการ oscillate หรือ diverge ในการแก้ปัญหาที่ไม่เชิงเส้น
->
-> **แนวคิดสำคัญ:**
-> 1. **Relaxation Factor:** ค่าสัมประสิทธิ์ที่ควบคุมความเร็วในการอัพเดตความหนืด
-> 2. **Numerical Stability:** เทคนิคนี้ช่วยเพิ่มความเสถียรในการแก้ปัญหาแบบ iterative
-> 3. **Convergence:** การค่อยๆ ปรับค่าทำให้การแก้ปัญหาลู่เข้าสู่คำตอบได้ดีขึ้น
-
-ซึ่ง OpenFOAM มีโครงสร้างที่รองรับเรื่องนี้อย่างมีประสิทธิภาพ
 
 ---
 
 ## 6. สถาปัตยกรรม OpenFOAM สำหรับ Non-Newtonian Fluids
 
-### ลำดับชั้นของคลาส
+### 6.1 ลำดับชั้นของคลาส
 
 OpenFOAM จัดระเบียบโมเดลของไหลที่ไม่ใช่นิวตันเป็นต้นไม้การสืบทอดที่ชัดเจน:
 
 ```mermaid
 graph TD
-classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-classDef explicit fill:#ffccbc,stroke:#bf360c,stroke-width:2px
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:2px
-Base["viscosityModel"]:::context
-Gen["generalisedNewtonian"]:::implicit
-Strain["strainRateViscosityModel"]:::implicit
-Models["Concrete Models:<br/>- BirdCarreau<br/>- HerschelBulkley<br/>- PowerLaw"]:::explicit
+classDef base fill:#f5f5f5,stroke:#616161,stroke-width:2px
+classDef abstract fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+classDef concrete fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+
+Base["viscosityModel<br/>(Abstract Base)"]:::base
+Gen["generalisedNewtonian<br/>(Generalized Models)"]:::abstract
+Strain["strainRateViscosityModel<br/>(Shear-Rate Based)"]:::abstract
+Models["Concrete Models:<br/>• BirdCarreau<br/>• HerschelBulkley<br/>• PowerLaw<br/>• CrossPowerLaw<br/>• Casson"]:::concrete
 
 Base --> Gen --> Strain --> Models
 ```
-> **Figure 2:** แผนภูมิแสดงลำดับชั้นของคลาส (Class Hierarchy) ใน OpenFOAM สำหรับการจัดการแบบจำลองความหนืด ซึ่งแยกส่วนอินเทอร์เฟซหลักออกจากกลไกการคำนวณอัตราความเครียดและแบบจำลองทางรีโอโลยีเฉพาะทาง
 
-### Factory Pattern การเลือกขณะ Runtime
+**Figure 5:** แผนภูมิแสดงลำดับชั้นของคลาสใน OpenFOAM สำหรับการจัดการแบบจำลองความหนืด
 
-OpenFOAM ใช้ **dictionary-driven factory pattern** ที่ซับซ้อนในการสร้างอินสแตนซ์ของโมเดลความหนืด:
+### 6.2 Factory Pattern: การเลือกขณะ Runtime
+
+OpenFOAM ใช้ **dictionary-driven factory pattern** ในการสร้างอินสแตนซ์ของโมเดลความหนืด:
 
 ```cpp
 // Factory method for creating viscosity models at runtime
-// Uses dictionary lookup to instantiate appropriate model
 template<class BasicTransportModel>
 autoPtr<viscosityModel<BasicTransportModel>>
 viscosityModel<BasicTransportModel>::New
@@ -316,51 +308,40 @@ viscosityModel<BasicTransportModel>::New
 }
 ```
 
-**การระบุใน Dictionary:**
+**ที่มา:** 📂 `src/transportModels/viscosityModels/viscosityModel/viscosityModelNew.C`
+
+#### การระบุใน Dictionary
 
 ```cpp
 transportModel  HerschelBulkley;
 
 HerschelBulkleyCoeffs
 {
-    nu0          [0 2 -1 0 0 0 0] 1e-06;
-    tauY         [0 2 -2 0 0 0 0] 10;
-    k            [0 2 -1 0 0 0 0] 0.01;
-    n            [0 0 0 0 0 0 0]  0.7;
+    nu0          [0 2 -1 0 0 0 0] 1e-06;    // Zero-shear viscosity [m²/s]
+    tauY         [0 2 -2 0 0 0 0] 10;      // Yield stress [Pa]
+    k            [0 2 -1 0 0 0 0] 0.01;    // Consistency index
+    n            [0 0 0 0 0 0 0]  0.7;     // Power law index
 }
 ```
 
-> [!NOTE] คำอธิบายโค้ด
-> **ที่มา:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
->
-> **คำอธิบาย:**
-> - Factory pattern ทำให้สามารถเพิ่มโมเดลใหม่ได้โดยไม่ต้องแก้ไขโค้ดหลัก
-> - `dictionaryConstructorTablePtr_` เป็น lookup table ที่เก็บ pointers ไปยัง constructors
-> - `autoPtr` จัดการ memory allocation อัตโนมัติ
->
-> **แนวคิดสำคัญ:**
-> 1. **Runtime Polymorphism:** การเลือกโมเดลขณะ runtime ผ่าน dictionary configuration
-> 2. **Factory Pattern:** Design pattern ที่แยกการสร้าง object ออกจากการใช้งาน
-> 3. **Extensibility:** สามารถเพิ่มโมเดลใหม่โดยการลงทะเบียน constructor เท่านั้น
-
 > [!INFO] ข้อดีของ Factory Pattern
 > - **Runtime Flexibility**: เปลี่ยนโมเดลได้โดยแก้ไข dictionary เท่านั้น
-> - **Type Safety**: การตรวจสอบขณะ compile มั่นใจว่าโมเดลทั้งหมมนำอินเทอร์เฟซที่จำเป็นไปใช้งาน
+> - **Type Safety**: การตรวจสอบขณะ compile มั่นใจว่าโมเดลทั้งหมดนำอินเทอร์เฟซที่จำเป็นไปใช้งาน
 > - **Extensibility**: เพิ่มโมเดลใหม่ได้โดยไม่ต้องคอมไพล์ OpenFOAM libraries หลักใหม่
 
 ---
 
 ## 7. การใช้งานและการประยุกต์ใช้
 
-### Solvers ที่แนะนำ
+### 7.1 Solvers ที่แนะนำ
 
 | Solver | ชนิดของปัญหา | สภาวะการไหล | ความเหมาะสม |
 |--------|-------------|-------------|-------------|
 | **simpleFoam** | การไหลอัดตัวไม่ได้ | สภาวะคงตัว | กรณีศึกษาพื้นฐาน |
 | **pimpleFoam** | การไหลอัดตัวไม่ได้ | สภาวะไม่คงตัว | กรณีศึกษาซับซ้อน |
-| **nonNewtonianIcoFoam** | เฉพาะนิวตัน-นอนนิวตัน | สภาวะไม่คงตัว | เฉพาะทาง |
+| **nonNewtonianIcoFoam** | นิวตัน-นอนนิวตัน | สภาวะไม่คงตัว | เฉพาะทาง |
 
-### การประยุกต์ใช้ทางอุตสาหกรรม
+### 7.2 การประยุกต์ใช้ทางอุตสาหกรรม
 
 | การประยุกต์ใช้ | โมเดลที่เหมาะสม | ลักษณะเฉพาะ |
 |----------------|-------------------|---------------|
@@ -374,106 +355,173 @@ HerschelBulkleyCoeffs
 
 ## 8. ข้อควรพิจารณาทางตัวเลข
 
-### เทคนิคการปรับความสม่ำเสมอ (Regularization)
+### 8.1 เทคนิคการปรับความสม่ำเสมอ (Regularization)
 
-สำหรับแบบจำลองเช่น Herschel-Bulkley ความเสถียรทางตัวเลขต้องการการปรับความสม่ำเสมอ:
+สำหรับแบบจำลองเช่น Herschel-Bulkley ความเสถียรทางตัวเลขต้องการการปรับความสม่ำเสมอเพื่อลดความไม่ต่อเนื่องที่ yield stress:
 
-**Papanastasiou Regularization:**
+#### Papanastasiou Regularization
+
 ```cpp
 // Papanastasiou regularization for yield stress fluids
-// Smooths the discontinuity at yield stress
-volScalarField regularizationFactor = tauY_/(m_*shearRate_ + dimensionedScalar("small", dimless, SMALL));
+// Smooths the discontinuity at yield stress using exponential approach
+volScalarField regFactor = tauY_ * (1 - exp(-m_*shearRate_)) / shearRate_;
 ```
 
-**Bercovier-Engleman Regularization:**
+#### Bercovier-Engleman Regularization
+
 ```cpp
 // Bercovier-Engleman regularization method
 // Adds small epsilon to prevent division by zero
-volScalarField regularizationFactor = tauY_/(shearRate_ + epsilon_);
+volScalarField regFactor = tauY_/(shearRate_ + epsilon_);
 ```
 
-> [!NOTE] คำอธิบายโค้ด
-> **ที่มา:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
->
-> **คำอธิบาย:**
-> - Regularization คือเทคนิคที่ใช้ทำให้ฟังก์ชันไม่ต่อเนื่องกลายเป็นฟังก์ชันเรียบ
-> - Papanastasiou ใช้ exponential smoothing บริเวณ yield stress
-> - Bercovier-Engleman เพิ่มค่า epsilon เล็กๆ เพื่อป้องกันการหารด้วยศูนย์
->
-> **แนวคิดสำคัญ:**
-> 1. **Yield Stress Discontinuity:** ปัญหาทาง numerical เมื่อความเค้นใกล้ yield stress
-> 2. **Regularization Parameter:** ค่าที่ควบคุมระดับการทำให้เรียบ
-> 3. **Numerical Stability:** เทคนิคเหล่านี้ช่วยเพิ่มความเสถียรของการแก้ปัญหา
+> [!NOTE] เลือกวิธี Regularization
+> - **Papanastasiou**: ใช้ exponential smoothing ให้ผลลัพธ์ราบรื่นกว่า แต่ต้องมีพารามิเตอร์ m ที่เหมาะสม
+> - **Bercovier-Engleman**: เพิ่ม epsilon เล็กๆ ง่ายต่อการ implement แต่อาจมีความแม่นยำน้อยกว่า
 
-### การจัดการบริเวณ High-Gradient
+### 8.2 การจัดการบริเวณ High-Gradient
 
 ใกล้มุมแหลมหรือการขยายตัวกะทันหัน อัตราการเฉือนสามารถกลายเป็นขนาดใหญ่อย่างมาก ทำให้ความหนืดลดลงถึงค่าที่ไม่สมจริง
 
-**วิธีการแก้ไข:**
+#### วิธีการแก้ไข
 
-1. **การตัดค่าความหนืด** (Viscosity Clipping):
+**1. การตัดค่าความหนืด (Viscosity Clipping)**
+
 ```cpp
 // Clip viscosity to stay within physically realistic bounds
-// Prevents numerical issues from extreme viscosity values
 nu_ = max(nuMin_, min(nuMax_, nuPower));
 ```
 
-> [!NOTE] คำอธิบายโค้ด
-> **ที่มา:** 📂 `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/populationBalanceModel/populationBalanceModel/populationBalanceModel.C`
->
-> **คำอธิบาย:**
-> - `max(nuMin_, ...)` รับค่าที่มากกว่าระหว่างค่าต่ำสุดที่กำหนดและค่าที่คำนวณได้
-> - `min(nuMax_, ...)` รับค่าที่น้อยกว่าระหว่างค่าสูงสุดที่กำหนดและค่าที่คำนวณได้
-> - การผสมกันทั้งสองจะกำหนดช่วงที่อนุญาตสำหรับค่าความหนืด
->
-> **แนวคิดสำคัญ:**
-> 1. **Physical Bounds:** การจำกัดค่าความหนืดให้อยู่ในช่วงที่สมจริง
-> 2. **Numerical Protection:** ป้องกันปัญหาที่เกิดจากค่าสูงหรือต่ำเกินไป
-> 3. **Stability:** ช่วยให้การแก้ปัญหามีความเสถียรมากขึ้น
+**ที่มา:** 📂 `src/transportModels/viscosityModels/viscosityModel/viscosityModel.C`
 
-2. **การปรับ Mesh**: เพิ่มการปรับ mesh ในพื้นที่ high-gradient
-3. **เรขาคณิตที่ราบรื่น**: ใช้มุมมนแทนที่มุม 90° แหลม
+**2. การปรับ Mesh**: เพิ่มการปรับ mesh ในพื้นที่ high-gradient
+
+**3. เรขาคณิตที่ราบรื่น**: ใช้มุมมนแทนที่มุม 90° แหลม
 
 ---
 
-## สรุป
+## 📋 Key Takeaways
 
-ไหลนอนนิวตันใน OpenFOAM ถูกจัดการผ่านสถาปัตยกรรมที่ elegantly ออกแบบมาให้:
+✅ **ความแตกต่างพื้นฐาน**: ของไหลนิวตันมีความหนืดคงที่ ในขณะที่ของไหลนอนนิวตันมีความหนืดที่ขึ้นกับอัตราการเฉือน
 
-1. **ความยืดหยุ่น**: สลับโมเดลได้ทาง dictionary
-2. **ความสอดคล้อง**: การคำนวณอัตราการเฉือนที่รวมศูนย์
-3. **ความปลอดภัย**: การป้องกันทางตัวเลขในตัว
-4. **ความสามารถขยาย**: เพิ่มโมเดลใหม่ได้ง่าย
+✅ **การคำนวณอัตราการเฉือน**: ใช้เทนเซอร์อัตราการเสียรูป $\mathbf{D} = \frac{1}{2}(\nabla \mathbf{u} + (\nabla \mathbf{u})^T)$ และคำนวณ $\dot{\gamma} = \sqrt{2\mathbf{D}:\mathbf{D}}$
 
-สถาปัตยกรรมนี้ทำให้การจำลองพฤติกรรมที่ซับซ้อนของของไหลในชีวิตจริง — จากซอสมะเขือเทศไปจนถึงการไหลของเลือด — เป็นไปได้อย่างมีประสิทธิภาพและแม่นยำ
- 
- ---
- 
- ## 🧠 Concept Check: ทดสอบความเข้าใจ
- 
- <details>
- <summary><b>1. Shear-Thinning (Pseudoplastic) คืออะไร และดัชนี n เป็นอย่างไร?</b></summary>
- 
- **คำตอบ:** คือพฤติกรรมที่ **ความหนืดลดลงเมื่อถูกกวน/เฉือนแรงขึ้น** (ยิ่งสั่นยิ่งไหลลื่น) เช่น ซอสมะเขือเทศ หรือเลือด มีค่า Power-law index **n < 1**
- </details>
- 
- <details>
- <summary><b>2. Yield Stress ($\tau_y$) คืออะไร? ถ้าแรงกระทำไม่ถึงค่านี้จะเกิดอะไรขึ้น?</b></summary>
- 
- **คำตอบ:** คือ **ความเค้นขั้นต่ำที่ต้องเอาชนะก่อนที่ของไหลจะเริ่มไหล** (เหมือนแรงเสียดทานสถิตในของแข็ง) ถ้าความเค้น ($\tau$) น้อยกว่า $\tau_y$ วัสดุจะมีพฤติกรรมเหมือน **ของแข็ง** (Solid-like behavior) และไม่ไหล หรือมีความหนืดเป็นอนันต์ในทางทฤษฎี
- </details>
- 
- <details>
- <summary><b>3. ทำไมการแก้สมการ Non-Newtonian ถึงมักต้องใช้ Under-Relaxation?</b></summary>
- 
- **คำตอบ:** เพราะสมการมีความ **ไม่เชิงเส้นสูง (High Non-linearity)** ความหนืด ($\mu$) ขึ้นกับความเร็ว ($U$) และความเร็วก็ขึ้นกับความหนืด วนกันเป็นงูกินหาง การอัพเดตค่าแบบเต็มๆ (Full Update) ในแต่ละรอบอาจทำให้ค่าแกว่งไปมา (Oscillation) หรือระเบิด (Divergence) ได้ การใช้ Relaxation ช่วยหน่วงการเปลี่ยนแปลงให้ค่อยๆ ลู่เข้าสู่คำตอบที่ถูกต้องอย่างนิ่มนวล
- </details>
+✅ **โมเดลหลัก 3 แบบ**: Power-Law (ง่าย), Bird-Carreau (จับทั้ง zero/infinite shear), Herschel-Bulkley (มี yield stress)
+
+✅ **ความท้าทายทางตัวเลข**: ความไม่เชิงเส้นต้องการ iterative solution และ under-relaxation เพื่อความเสถียร
+
+✅ **สถาปัตยกรรม OpenFOAM**: ใช้ factory pattern ที่ขับเคลื่อนด้วย dictionary ทำให้เปลี่ยนโมเดลได้โดยไม่ต้อง recompile
+
+✅ **การใช้งานจริง**: แต่ละอุตสาหกรรมมีโมเดลที่เหมาะสม - เลือกให้ตรงกับพฤติกรรมของวัสดุ
+
+---
+
+## 🧠 Concept Check: ทดสอบความเข้าใจ
+
+<details>
+<summary><b>1. Shear-Thinning (Pseudoplastic) คืออะไร และดัชนี n เป็นอย่างไร?</b></summary>
+
+**คำตอบ:** คือพฤติกรรมที่ **ความหนืดลดลงเมื่อถูกกวน/เฉือนแรงขึ้น** (ยิ่งสั่นยิ่งไหลลื่น) เช่น ซอสมะเขือเทศ หรือเลือด มีค่า Power-law index **n < 1**
+
+**ตัวอย่างจริง:**
+- ซอสมะเขือเทศ: ต้องเขย่าแรงๆ ถึงจะไหล
+- เลือด: ไหลง่ายในหลอดเลือดขนาดใหญ่ (high shear) แต่หนืดในหลอดเลือดฝอย
+- สีทาบ้าน: ต้องใช้แรงกวน เมื่อหยุดกวนก็หนืดขึ้นทันที
+
+</details>
+
+<details>
+<summary><b>2. Yield Stress ($\tau_y$) คืออะไร? ถ้าแรงกระทำไม่ถึงค่านี้จะเกิดอะไรขึ้น?</b></summary>
+
+**คำตอบ:** คือ **ความเค้นขั้นต่ำที่ต้องเอาชนะก่อนที่ของไหลจะเริ่มไหล** (เหมือนแรงเสียดทานสถิตในของแข็ง) ถ้าความเค้น ($\tau$) น้อยกว่า $\tau_y$ วัสดุจะมีพฤติกรรมเหมือน **ของแข็ง** (Solid-like behavior) และไม่ไหล หรือมีความหนืดเป็นอนันต์ในทางทฤษฎี
+
+**ตัวอย่างจริง:**
+- ยาสีฟัน: อยู่ในท่อได้ไม่ไหล (เพราะไม่มีแรงเฉือน) แต่เมื่อบีบออกมา (เกิน $\tau_y$) ก็ไหลได้
+- มายองเนส: อยู่บนช้อนได้ไม่ไหล แต่เมื่อสั่นหรือกดจึงจะไหล
+- โคลนตะกอน: อยู่นิ่งๆ เหมือนของแข็ง แต่เมื่อมีแรงสั่นก็เริ่มไหล
+
+</details>
+
+<details>
+<summary><b>3. ทำไมการแก้สมการ Non-Newtonian ถึงมักต้องใช้ Under-Relaxation?</b></summary>
+
+**คำตอบ:** เพราะสมการมีความ **ไม่เชิงเส้นสูง (High Non-linearity)** ความหนืด ($\mu$) ขึ้นกับความเร็ว ($U$) และความเร็วก็ขึ้นกับความหนืด วนกันเป็นงูกินหาง การอัพเดตค่าแบบเต็มๆ (Full Update) ในแต่ละรอบอาจทำให้ค่าแกว่งไปมา (Oscillation) หรือระเบิด (Divergence) ได้ การใช้ Relaxation ช่วยหน่วงการเปลี่ยนแปลงให้ค่อยๆ ลู่เข้าสู่คำตอบที่ถูกต้องอย่างนิ่มนวล
+
+**หลักการ:**
+- ไม่มี Relaxation: $\mu_{new} = \text{calculated value}$ (อาจ oscillate)
+- มี Relaxation: $\mu_{new} = \omega \cdot \mu_{calculated} + (1-\omega) \cdot \mu_{old}$ (ค่อยๆ เปลี่ยน)
+- $\omega$ (relaxation factor) มักอยู่ระหว่าง 0.3-0.8
+
+**ตัวอย่าง:**
+```
+Iteration 1: μ = 0.001 (ค่าเริ่มต้น)
+Iteration 2: μ คำนวณได้ 0.010 → ใช้ 0.7*0.010 + 0.3*0.001 = 0.0073
+Iteration 3: μ คำนวณได้ 0.008 → ใช้ 0.7*0.008 + 0.3*0.0073 = 0.0078
+...
+Convergence: μ → 0.008 (ลู่เข้า)
+```
+
+</details>
+
+<details>
+<summary><b>4. เลือกโมเดลอย่างไรให้เหมาะกับแอปพลิเคชัน?</b></summary>
+
+**คำตอบ:** พิจารณาจากพฤติกรรมของวัสดุและเงื่อนไขการไหล:
+
+| สถานการณ์ | โมเดลที่เหมาะสม | เหตุผล |
+|------------|------------------|---------|
+| ของไหลธรรมดาที่ไม่รู้จัก | Newtonian | เริ่มต้นง่ายที่สุด |
+| เลือด/ซอส/สี | Bird-Carreau | จับทั้ง zero และ infinite shear viscosity |
+| ยาสีฟัน/มายองเนส | Herschel-Bulkley | มี yield stress ชัดเจน |
+| แป้ง/วัสดุเคลือบ | Power Law | ง่าย พอสำหรับงานวิศวกรรม |
+| โพลิเมอร์หลอมเหลว | Cross Power Law | จับพฤติกรรมได้แม่นยำ |
+
+**ขั้นตอนการเลือก:**
+1. **วัด/ค้นหาข้อมูล** ของความหนืด vs อัตราการเฉือน
+2. **วิเคราะห์พฤติกรรม** - มี yield stress ไหม? เปลี่ยนแค่ไหน?
+3. **เริ่มจากง่าย** - Power law ก่อน ถ้าไม่พอค่อยเปลี่ยน
+4. **ตรวจสอบกับทดลอง** - เปรียบเทียบ CFD กับข้อมูลจริง
+
+</details>
+
+<details>
+<summary><b>5. Regularization คืออะไร ทำไมต้องใช้กับ Yield Stress Fluids?</b></summary>
+
+**คำตอบ:** Regularization คือเทคนิคทางคณิตศาสตร์ที่ทำให้ฟังก์ชันที่ไม่ต่อเนื่องกลายเป็นฟังก์ชันเรียบ เพื่อให้แก้สมการได้ง่ายและเสถียรขึ้น สำหรับ yield stress fluids มีปัญหาที่ $\mu = \infty$ เมื่อ $\dot{\gamma} \rightarrow 0$ ซึ่งทำให้คอมพิวเตอร์ไม่สามารถคำนวณได้
+
+**ปัญหา:**
+- สมการ Herschel-Bulkley: $\mu = \tau_y/\dot{\gamma} + K\dot{\gamma}^{n-1}$
+- เมื่อ $\dot{\gamma} \rightarrow 0$: พจน์แรก $\tau_y/\dot{\gamma} \rightarrow \infty$ (หารด้วยศูนย์!)
+- คอมพิวเตอร์: ไม่สามารถคำนวณ $\infty$ ได้
+
+**วิธีแก้:**
+- **Papanastasiou**: $\mu = \frac{\tau_y}{\dot{\gamma}}(1-e^{-m\dot{\gamma}}) + K\dot{\gamma}^{n-1}$
+  - เมื่อ $\dot{\gamma} \rightarrow 0$: $(1-e^{-m\dot{\gamma}}) \approx m\dot{\gamma}$ ทำให้ $\mu \rightarrow m\tau_y$ (finite!)
+- **Bercovier-Engleman**: $\mu = \frac{\tau_y}{\dot{\gamma}+\epsilon} + K\dot{\gamma}^{n-1}$
+  - บวก epsilon เล็กๆ ป้องกันการหารด้วยศูนย์
+
+</details>
 
 ---
 
 ## 📖 เอกสารที่เกี่ยวข้อง
 
-- **ภาพรวม:** [00_Overview.md](00_Overview.md) — ภาพรวม Non-Newtonian Fluids
-- **บทถัดไป:** [02_OpenFOAM_Implementation.md](02_OpenFOAM_Implementation.md) — การใช้งานใน OpenFOAM
+### ภายใน Module นี้
+- **ภาพรวม:** [00_Overview.md](00_Overview.md) — แผนที่เนื้อหาและ roadmap ของ Non-Newtonian Fluids
+- **บทถัดไป:** [02_OpenFOAM_Implementation.md](02_OpenFOAM_Implementation.md) — รายละเอียดการ implement โมเดลต่างๆ ใน OpenFOAM
+- **เทคนิคขั้นสูง:** [04_Numerical_Methods.md](04_Numerical_Methods.md) — วิธีแก้ปัญหาทางตัวเลขขั้นสูง
+
+### โมดูลที่เกี่ยวข้อง
+- **Multiphase Fundamentals:** [../MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/04_INTERPHASE_FORCES/00_Overview.md](../../MODULE_04_MULTIPHASE_FUNDAMENTALS/CONTENT/04_INTERPHASE_FORCES/00_Overview.md) — แรงระหว่างเฟส
 - **Coupled Physics:** [../02_COUPLED_PHYSICS/00_Overview.md](../02_COUPLED_PHYSICS/00_Overview.md) — ฟิสิกส์แบบคัปปลิง
 - **Reacting Flows:** [../03_REACTING_FLOWS/00_Overview.md](../03_REACTING_FLOWS/00_Overview.md) — การไหลแบบมีปฏิกิริยา
+
+### OpenFOAM Source Code References
+- **viscosityModel base class:** 📂 `src/transportModels/viscosityModels/viscosityModel/viscosityModel.H`
+- **Bird-Carreau implementation:** 📂 `src/transportModels/viscosityModels/BirdCarreau/BirdCarreau.C`
+- **Herschel-Bulkley implementation:** 📂 `src/transportModels/viscosityModels/HerschelBulkley/HerschelBulkley.C`
+- **Power Law implementation:** 📂 `src/transportModels/viscosityModels/powerLaw/powerLaw.C`
+
+---
+
+**หน้าถัดไป:** [02_OpenFOAM_Implementation.md](02_OpenFOAM_Implementation.md) → รายละเอียดการ implement โมเดลความหนืดใน OpenFOAM

@@ -826,7 +826,7 @@ C = 2.0 * (A + B);  // Handled entirely by optimized field algebra
 > **Domain:** Coding/Customization (C++ Operator Precedence)
 > - **C++ Precedence Rules:** Tensor operators ใน OpenFOAM ทำตาม C++ standard precedence
 > - **Critical Importance:** การเข้าใจ precedence สำคัญเพื่อหลีกเลี่ยงข้อผิดพลาดใน discretization
-> - **Common Mistakes:** การ混淆 ระหว่าง `&`, `&&`, และ `*`
+> - **Common Mistakes:** สับสนระหว่าง `&`, `&&`, และ `*`
 
 ### 8.1 ตารางลำดับความสำคัญ
 

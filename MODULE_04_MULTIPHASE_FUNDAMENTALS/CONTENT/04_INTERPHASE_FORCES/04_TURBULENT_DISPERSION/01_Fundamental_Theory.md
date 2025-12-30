@@ -172,7 +172,7 @@ St >> 1: ██░░░░░░░░ (Minimal dispersion)
 ### 4.1 Without Turbulent Dispersion
 
 เมื่อไม่มี TD:
-- **Sharp α gradients** ถูก维持
+- **Sharp α gradients** ถูกรักษา
 - Particles อาจ concentrate ในบาง regions
 - Unphysical clustering → ไม่ realistic
 

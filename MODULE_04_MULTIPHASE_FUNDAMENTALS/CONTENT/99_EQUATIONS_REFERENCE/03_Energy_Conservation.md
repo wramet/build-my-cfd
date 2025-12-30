@@ -318,7 +318,7 @@ $$Q_{latent,k} = \sum_{l \neq k} \dot{m}_{lk} \cdot L_{lk}$$
 **ทำไม latent heat สำคัญ?**
 
 1. **Huge energy effect** — $L_{water} \approx 2.26 \times 10^6$ J/kg (very large!)
-2. **Controls phase change rate** — heat transfer ถูก消耗 ไปกับ latent heat
+2. **Controls phase change rate** — heat transfer ถูกใช้ไปกับ latent heat
 3. **Temperature pinning** — saturation temperature คงที่ระหว่าง phase change
 
 **Practical Impact:**
@@ -854,7 +854,7 @@ paraFoam -builtin
 
 **Because:**
 - Enthalpy เป็น **conserved variable** (เหมือน mass, momentum)
-- **Latent heat รวมอยู่ใน enthalpy** แล้ว → phase change ได้自然 (natural)
+- **Latent heat รวมอยู่ใน enthalpy** แล้ว → phase change ได้อย่างเป็นธรรมชาติ (natural)
 - Temperature formulation ต้องเพิ่ม source term สำหรับ phase change แยก
 - **OpenFOAM default** — most multiphase solvers ใช้ enthalpy
 

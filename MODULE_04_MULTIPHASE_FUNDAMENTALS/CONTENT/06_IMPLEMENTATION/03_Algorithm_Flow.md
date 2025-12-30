@@ -1,6 +1,23 @@
 # Algorithm Flow
 
-ขั้นตอนการทำงานของอัลกอริทึม PIMPLE ใน multiphaseEulerFoam
+---
+
+## Learning Objectives
+
+**What** you will learn:
+- Step-by-step execution flow of PIMPLE algorithm in Euler-Euler multiphase solvers
+- How phase fraction, momentum, pressure, and energy equations are solved sequentially
+- Stability controls and convergence mechanisms specific to multiphase flows
+
+**Why** this matters:
+- Understanding algorithm flow is essential for debugging convergence issues
+- Proper sequencing of equation solvers prevents numerical instability
+- Knowledge of PIMPLE controls enables efficient simulation setup and tuning
+
+**How** you will apply this:
+- Diagnose and fix common convergence problems in multiphase simulations
+- Optimize PIMPLE settings for your specific flow regime
+- Adjust under-relaxation and time-stepping controls for stable solutions
 
 ---
 
@@ -50,9 +67,7 @@ while (runTime.loop())
 
 ## 2. Phase Fraction Equations (alphaEqns.H)
 
-### Governing Equation
-
-$$\frac{\partial(\alpha_k \rho_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k) = \dot{m}_k$$
+**Governing Equation:** $$\frac{\partial(\alpha_k \rho_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k) = \dot{m}_k$$
 
 **Constraint:** $\sum_k \alpha_k = 1$
 
@@ -91,9 +106,7 @@ divSchemes
 
 ## 3. Momentum Equations (UEqns.H)
 
-### Governing Equation
-
-$$\frac{\partial(\alpha_k \rho_k \mathbf{u}_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \mathbf{u}_k) = -\alpha_k \nabla p + \nabla \cdot \boldsymbol{\tau}_k + \alpha_k \rho_k \mathbf{g} + \mathbf{M}_k$$
+**Governing Equation:** $$\frac{\partial(\alpha_k \rho_k \mathbf{u}_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k \mathbf{u}_k) = -\alpha_k \nabla p + \nabla \cdot \boldsymbol{\tau}_k + \alpha_k \rho_k \mathbf{g} + \mathbf{M}_k$$
 
 ### OpenFOAM Code
 
@@ -129,9 +142,7 @@ forAll(phases, phasei)
 
 ## 4. Pressure Equation (pEqn.H)
 
-### Governing Principle
-
-$$\sum_k \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k) = 0$$
+**Governing Principle:** $$\sum_k \nabla \cdot (\alpha_k \rho_k \mathbf{u}_k) = 0$$
 
 ### PISO Algorithm
 
@@ -178,9 +189,7 @@ solvers
 
 ## 5. Energy Equations (EEqns.H)
 
-### Governing Equation
-
-$$\frac{\partial(\alpha_k \rho_k h_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k h_k \mathbf{u}_k) = \nabla \cdot (k \nabla T_k) + Q_k$$
+**Governing Equation:** $$\frac{\partial(\alpha_k \rho_k h_k)}{\partial t} + \nabla \cdot (\alpha_k \rho_k h_k \mathbf{u}_k) = \nabla \cdot (k \nabla T_k) + Q_k$$
 
 ### OpenFOAM Code
 
@@ -258,6 +267,60 @@ PIMPLE
 | nOuterCorrectors | SIMPLE iterations | 1-5 |
 | nCorrectors | PISO corrections | 1-3 |
 | nAlphaSubCycles | Sub-cycling for sharp interfaces | 1-4 |
+
+---
+
+## 8. Troubleshooting Common Convergence Issues
+
+### Problem: Phase Fraction Bounding Failures
+
+**Symptoms:** alpha values outside [0,1], warning messages about boundedness
+
+**Solutions:**
+- Reduce `maxAlphaCo` (try 0.1-0.2)
+- Increase `nAlphaSubCycles` for sharper interface resolution
+- Use MULES limiting with implicit compression
+- Reduce time step: `maxCo 0.3`
+
+### Problem: Pressure Oscillations / Checkerboard
+
+**Symptoms:** Pressure field shows checkerboard pattern, unrealistic pressure gradients
+
+**Solutions:**
+- Verify Rhie-Chow interpolation is active (automatic in standard solvers)
+- Check mesh quality: non-orthogonality > 70° causes issues
+- Increase `nNonOrthogonalCorrectors` to 2-3 for highly non-orthogonal meshes
+- Use `GAMG` solver for pressure with appropriate preconditioner
+
+### Problem: Momentum Equation Divergence
+
+**Symptoms:** Residuals increasing, velocity field becoming unphysical
+
+**Solutions:**
+- Decrease under-relaxation factors: `U 0.5`, `p 0.2`
+- Increase `nOuterCorrectors` to 4-5 for stronger coupling
+- Check interphase force models - very high drag coefficients can cause stiffness
+- Ensure proper initialization of velocity fields
+
+### Problem: Slow Convergence
+
+**Symptoms:** Excessive PIMPLE iterations per time step
+
+**Solutions:**
+- Increase `nCorrectors` (PISO) for better pressure-velocity coupling
+- Optimize solver tolerances in `fvSolution` - don't over-converge within outer iterations
+- Use appropriate solver selection (GAMG for pressure, PBiCGStab for U/h)
+- Consider using `residualControls` to exit outer loops early when converged
+
+### Problem: Energy Equation Instability
+
+**Symptoms:** Temperature spikes, unrealistic enthalpy values
+
+**Solutions:**
+- Reduce enthalpy under-relaxation: `h 0.5`
+- Check interphase heat transfer coefficients
+- Ensure `Cp` and thermal conductivity are physically reasonable
+- Use smaller time steps during initial transient
 
 ---
 

@@ -71,7 +71,7 @@ $$a\phi + b\frac{\partial\phi}{\partial n} = c$$
 การ discretize BC แต่ละประเภทส่งผลต่อระบบสมการเชิงเส้น $A\mathbf{x} = \mathbf{b}$ ที่แตกต่างกัน:
 
 - **Dirichlet:** แก้ไข diagonal และ source term → แก้ปัญหา singularity ของเมทริกซ์
-- **Neumann:** เพิ่ม flux เข้า source term → 保持 sparsity structure
+- **Neumann:** เพิ่ม flux เข้า source term → รักษา sparsity structure
 - **Robin:** แก้ไขทั้ง diagonal และ off-diagonal → ต้อง careful ในการ implement
 
 ### 2. Well-Posedness ของปัญหา (Hadamard's Conditions)

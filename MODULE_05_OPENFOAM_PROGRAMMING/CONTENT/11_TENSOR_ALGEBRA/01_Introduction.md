@@ -77,7 +77,7 @@ T -->|Magnitude + Directions + Transformations| HT[Higher Order Tensors<br/>Rare
 >
 > เทนเซอร์ความเค้น Cauchy ในทางปฏิบัติจะถูกคำนวณและจัดเก็บในรูปแบบ **VolFields**:
 > - **0/* (Initial Conditions):** เทนเซอร์ความเค้นเริ่มต้น (ถ้ามี) จะถูกกำหนดที่นี่
-> - **constant/transportProperties:** ความหนื粘 ($\mu$) และความหนื粘ของปั่นป่วน ($\mu_t$) ที่ใช้คำนวณเทนเซอร์ความเค้น
+> - **constant/transportProperties:** ความหนืด ($\mu$) และความหนืดของปั่นป่วน ($\mu_t$) ที่ใช้คำนวณเทนเซอร์ความเค้น
 > - **constant/turbulenceProperties:** เทนเซอร์ความเค้น Reynolds ($R_{ij}$) ในโมเดลความปั่นป่วน RANS
 > - **Code Context:** ใน Solver Code จะใช้ `volSymmTensorField` เพื่อเก็บความเค้นทุกจุดใน mesh
 >
