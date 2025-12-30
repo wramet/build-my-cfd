@@ -1,0 +1,8 @@
+{
+    "files": {
+        "01_Layer_Addition_Strategy.md": "Add Learning Objectives at top. Create Key Takeaways section summarizing 3 critical decisions: relativeSizes choice, y+ calculation, quality control parameters. Add Expected Outcomes section with visual examples of good vs bad layers.",
+        "02_Refinement_Regions.md": "Add Learning Objectives focusing on when to use each mode (inside/outside/distance). Create comparison table for the three modes with use cases. Add Common Pitfalls section. Key Takeaways should emphasize overlapping regions behavior and background mesh dependency.",
+        "03_Multi_Region_Meshing.md": "Add Learning Objectives about CHT workflow. Create Pre-requisites section listing required knowledge (basic sHM, boundary conditions). Add Troubleshooting section for common splitMeshRegions failures. Key Takeaways must summarize the 5-step workflow and cellZone vs faceZone distinction."
+    },
+    "global_strategy": "All three files lack Learning Objectives, Key Takeaways, and Expected Outcomes sections - these must be added consistently. The 3W Framework is partially applied (good WHY in tips, WHAT in content, but HOW needs more step-by-step workflows). Redundancy: Section 2 in file 01 (addLayersControls settings) duplicates information already in OpenFOAM Context boxes - consolidate. Section 3 in all files has similar OpenFOAM Context box formatting - standardize. Missing: Learning Objectives, Key Takeaways, Expected Outcomes, Prerequisites, Common Pitfalls. Assessment section exists but needs Practical Exercises tied to real OpenFOAM workflows."
+}

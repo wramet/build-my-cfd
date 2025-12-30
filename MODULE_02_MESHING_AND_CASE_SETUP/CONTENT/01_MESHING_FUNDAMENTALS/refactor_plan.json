@@ -1,0 +1,7 @@
+{
+    "files": {
+        "01_Introduction_to_Meshing.md": "Comprehensive file with good 3W coverage in intro. Missing: Learning Objectives section, Key Takeaways summary. Redundant: Mesh quality metrics (section 4) overlaps with potential dedicated quality file. Excessive OpenFOAM Context notes interrupt flow. Refactor: Extract learning objectives to top, add key takeaways at end, consolidate mesh quality section, reduce context note frequency.",
+        "02_OpenFOAM_Mesh_Structure.md": "Technical deep-dive with strong practical value. Missing: Learning Objectives, Key Takeaways, Hands-on example section. Good: Explanations are clear. Redundant: Some connectivity explanation repeats file 01. Refactor: Add learning objectives, add step-by-step file reading example, remove redundant mesh component explanations, consolidate boundary types into clearer reference table."
+    },
+    "global_strategy": "Folder lacks structured learning framework. Apply 3W consistently: add Learning Objectives at start of each file, add Key Takeaways at end. Reduce excessive OpenFOAM Context callout boxes (currently 6-8 per file) to 2-3 strategically placed notes. Cross-reference redundancy: mesh quality appears in both files—create dedicated 03_Mesh_Quality.md file. Add practical workflow: 04_Quick_Reference.md with common commands and troubleshooting. Target: 4-file sequence with clear progression (concepts → structure → quality → reference)."
+}

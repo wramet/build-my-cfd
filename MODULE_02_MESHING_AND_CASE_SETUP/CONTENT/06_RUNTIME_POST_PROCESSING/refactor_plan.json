@@ -1,0 +1,8 @@
+{
+    "files": {
+        "01_Introduction_to_FunctionObjects.md": "Add missing Learning Objectives section at the beginning. Current What/Why/How coverage is good. Concept Check exercises are well-structured but could add more hands-on tutorial examples.",
+        "02_Forces_and_Coefficients.md": "Strong 3W framework. Add Learning Objectives section. The mathematical formula for drag coefficient equation has formatting issues (line 77-78). Consider adding a step-by-step tutorial example with actual numbers.",
+        "03_Sampling_and_Probes.md": "Good coverage but lacks Learning Objectives and Key Takeaways sections. Would benefit from comparison table showing when to use probes vs sets vs surfaces. Consider adding practical workflow examples."
+    },
+    "global_strategy": "Overall documentation quality is high with excellent use of OpenFOAM context boxes, code examples, mermaid diagrams, and tiered exercises. Main gaps: (1) All files missing explicit Learning Objectives sections at the start, (2) Key Takeaways summaries absent, (3) Some mathematical formatting issues need fixing, (4) Could add more practical troubleshooting tips for common errors."
+}

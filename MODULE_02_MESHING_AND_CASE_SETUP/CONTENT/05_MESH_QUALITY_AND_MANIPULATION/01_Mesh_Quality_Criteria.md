@@ -1,5 +1,15 @@
 # เกณฑ์คุณภาพเมช (Mesh Quality Criteria)
 
+## Learning Objectives
+
+หลังจากอ่านบทนี้ คุณจะสามารถ:
+
+1. **ระบุเกณฑ์คุณภาพเมชหลัก** (Key Mesh Quality Metrics) - รู้จักและเข้าใจ Non-orthogonality, Skewness, Aspect Ratio, และ Mesh Volume
+2. **เข้าใจผลกระทบต่อความเสถียรของ Solver** (Understand Impact on Solver Stability) - ทราบว่าแต่ละเกณฑ์กระทบต่อความเสถียร ความแม่นยำ และความเร็วของการคำนวณอย่างไร
+3. **ทราบค่าที่ยอมรับได้** (Know Acceptable Thresholds) - รู้ค่าที่เป็นเกณฑ์ว่า Mesh นั้นดีพอหรือต้องปรับปรุง
+
+---
+
 > [!TIP]
 > **ทำไม Mesh Quality สำคัญต่อการจำลอง?**
 >
@@ -8,14 +18,32 @@
 > *   **Mesh ที่มี Skewness สูง:** ทำให้เสียการแม่นยำระดับ Second-order ลดเหลือ First-order ทำให้ผลลัพธ์มีความคลาดเคลื่อนสูง
 > *   **Negative Volume:** Solver จะหยุดทำงานทันที (Diverge หรือ Crash) เพราะไม่สามารถคำนวณปริมาตรของ Cell ที่กลับด้านได้
 >
-> การตรวจสอบ Mesh Quality ด้วย `checkMesh` จึงเป็น **ขั้นตอนบังคับ** ก่อนรัน Simulation ทุกครั้ง
+> การตรวจสอบ Mesh Quality จึงเป็น **ขั้นตอนบังคับ** ก่อนรัน Simulation ทุกครั้ง
 
 "Mesh ที่ดีคือ Mesh ที่ Solver ชอบ" แล้ว Solver ชอบแบบไหน? คำตอบคือ **Orthogonal, Low Skewness, Smooth Grading**
 
 > **ลิงก์ที่เกี่ยวข้อง**:
 > - ดู Layer Addition ที่กระทบคุณภาพ → [../04_SNAPPYHEXMESH_ADVANCED/01_Layer_Addition_Strategy.md](../04_SNAPPYHEXMESH_ADVANCED/01_Layer_Addition_Strategy.md)
 
-เมื่อคุณรันคำสั่ง `checkMesh` (หรือ `checkMesh -allGeometry -allTopology`) OpenFOAM จะรายงานค่าสถิติต่างๆ หากเข้าใจความหมาย คุณจะรู้ทันทีว่าต้องแก้ตรงไหน
+> [!NOTE]
+> **📂 OpenFOAM Context: checkMesh Overview**
+>
+> **คำสั่งพื้นฐาน:**
+> *   `checkMesh` - ตรวจสอบพื้นฐาน
+> *   `checkMesh -allGeometry -allTopology` - ตรวจสอบทั้งหมด (แนะนำ)
+>
+> **สิ่งที่ checkMesh สร้าง:**
+> *   **รายงานค่าสถิติ** - ค่า Max/Avg/ของแต่ละเกณฑ์
+> *   **CellSets** - กลุ่ม Cell/Faces ที่มีปัญหา (เช่น `nonOrthoFaces`, `skewFaces`, `negativeVolumeCells`)
+> *   **Mesh Quality Report** - สรุปผลการตรวจสอบ
+>
+> **การดู CellSets ใน ParaView:**
+> 1. เปิดไฟล์ `.foam` หรือ `.OpenFOAM`
+> 2. ติ๊ก "Include Sets" ใน Properties panel
+> 3. ใช้ "Extract Block" เพื่อดูเฉพาะ CellSets ที่มีปัญหา
+> 4. ปรับ Opacity ของ Mesh หลักเพื่อให้เห็นตำแหน่งชัดเจน
+
+---
 
 ## 1. Non-Orthogonality (ความไม่ตั้งฉาก)
 
@@ -26,12 +54,20 @@ Prompt: "2D Engineering Diagram comparing Mesh Orthogonality. **Left Panel (Orth
 -->
 ![[IMG_02_001.jpg]]
 
+นี่คือศัตรูตัวฉกาจที่สุดของ FVM
+
+*   **นิยาม:** มุมระหว่างเส้นเชื่อมจุดศูนย์กลางเซลล์ ($d$) กับ Normal vector ($n$) ของหน้า
+*   **ทำไมถึงแย่:** สมการ Diffusion ($\nabla^2 \phi$) ต้องการคำนวณ Flux ผ่านหน้า หาก $d$ กับ $n$ ไม่ขนานกัน Flux จะถูกคำนวณผิด
+*   **การแก้ไขของ Solver:** OpenFOAM มี "Non-orthogonal Corrector" (ใน `fvSolution` -> `nNonOrthogonalCorrectors`)
+    *   Mesh ดี (< 70): ใช้ 0 รอบ (เร็วสุด)
+    *   Mesh พอใช้ (70-80): ใช้ 1 รอบ
+    *   Mesh แย่ (80-85): ใช้ 2-3 รอบ (ช้าลง 2-3 เท่า!)
+    *   Mesh พัง (> 85): มักจะ Diverge หรือต้องใช้ `nonOrthogonalCorrectors` สูงมากจนไม่คุ้ม
+
 > [!NOTE]
 > **📂 OpenFOAM Context**
 >
-> ค่า **Non-orthogonality** ถูกคำนวณและรายงานโดยคำสั่ง `checkMesh` ซึ่งจะตรวจสอบคุณภาพของ Mesh ทั้งหมด
->
-> **การตั้งค่าการแก้ไข:**
+> **การตั้งค่า Non-orthogonal Correctors:**
 > *   **File:** `system/fvSolution`
 > *   **Keyword:** `nNonOrthogonalCorrectors` (อยู่ภายใต้ `SIMPLE` / `PISO` / `PIMPLE`)
 >
@@ -43,23 +79,14 @@ Prompt: "2D Engineering Diagram comparing Mesh Orthogonality. **Left Panel (Orth
 > ```
 >
 > **การวินิจฉัย:**
-> *   รันคำสั่ง: `checkMesh -allGeometry -allTopology`
-> *   ดูค่าสูงสุดของ `Max: nonOrthogonality`
-
-นี่คือศัตรูตัวฉกาจที่สุดของ FVM
-
-*   **นิยาม:** มุมระหว่างเส้นเชื่อมจุดศูนย์กลางเซลล์ ($d$) กับ Normal vector ($n$) ของหน้า
-*   **ทำไมถึงแย่:** สมการ Diffusion ($
-abla^2 \phi$) ต้องการคำนวณ Flux ผ่านหน้า หาก $d$ กับ $n$ ไม่ขนานกัน Flux จะถูกคำนวณผิด
-*   **การแก้ไขของ Solver:** OpenFOAM มี "Non-orthogonal Corrector" (ใน `fvSolution` -> `nNonOrthogonalCorrectors`)
-    *   Mesh ดี (< 70): ใช้ 0 รอบ (เร็วสุด)
-    *   Mesh พอใช้ (70-80): ใช้ 1 รอบ
-    *   Mesh แย่ (80-85): ใช้ 2-3 รอบ (ช้าลง 2-3 เท่า!)
-    *   Mesh พัง (> 85): มักจะ Diverge หรือต้องใช้ `nonOrthogonalCorrectors` สูงมากจนไม่คุ้ม
+> *   ดูค่าสูงสุดของ `Max: nonOrthogonality` ในรายงาน checkMesh
+> *   ใช้ ParaView เปิดดู `nonOrthoFaces` CellSet
 
 **วิธีแก้ที่ต้นเหตุ:**
 *   ใน `blockMesh`: พยายามให้เส้น Grid ตัดกันเป็นมุมฉาก
 *   ใน `snappyHexMesh`: เพิ่ม `nCellsBetweenLevels` เพื่อให้การเปลี่ยนขนาด Cell นุ่มนวลขึ้น
+
+---
 
 ## 2. Skewness (ความเบ้)
 
@@ -70,10 +97,13 @@ Prompt: "2D Technical Diagram of Skewness Error. **Geometry:** Two adjacent irre
 -->
 ![[IMG_02_002.jpg]]
 
+*   **นิยาม:** ระยะห่างระหว่างจุดที่เส้นเชื่อม Cell ตัดผ่านหน้า ($P_{intersect}$) กับจุด Centroid ของหน้า ($P_{face}$)
+*   **ทำไมถึงแย่:** การคำนวณค่าที่หน้า (Interpolation) จะใช้สมมติฐานว่าค่าอยู่ที่กลางหน้า ถ้าจุดตัดมันเบี้ยวไปไกล Error จะสูง (Second-order accuracy ลดลงเหลือ First-order)
+*   **Internal Skewness:** ยอมรับได้ไม่เกิน 4 (OpenFOAM definition)
+*   **Boundary Skewness:** มักเกิดที่ผิวขรุขระ หรือมุมแหลม
+
 > [!NOTE]
 > **📂 OpenFOAM Context**
->
-> ค่า **Skewness** ถูกตรวจสอบโดย `checkMesh` และสร้าง CellSet ชื่อ `skewFaces` สำหรับหน้าที่มีปัญหา
 >
 > **การป้องกันใน Mesh Generation:**
 > *   **File:** `system/snappyHexMeshDict`
@@ -83,18 +113,14 @@ Prompt: "2D Technical Diagram of Skewness Error. **Geometry:** Two adjacent irre
 >     *   `snapControls` -> `nSmoothPatch` - การปรับพื้นผิวให้เรียบ
 >
 > **การตรวจสอบ:**
-> *   รัน: `checkMesh -allTopology`
-> *   ดูค่า `Max: skewness`
+> *   ดูค่า `Max: skewness` ในรายงาน
 > *   ใช้ ParaView เพื่อดู `skewFaces` set
-
-*   **นิยาม:** ระยะห่างระหว่างจุดที่เส้นเชื่อม Cell ตัดผ่านหน้า ($P_{intersect}$) กับจุด Centroid ของหน้า ($P_{face}$)
-*   **ทำไมถึงแย่:** การคำนวณค่าที่หน้า (Interpolation) จะใช้สมมติฐานว่าค่าอยู่ที่กลางหน้า ถ้าจุดตัดมันเบี้ยวไปไกล Error จะสูง (Second-order accuracy ลดลงเหลือ First-order)
-*   **Internal Skewness:** ยอมรับได้ไม่เกิน 4 (OpenFOAM definition)
-*   **Boundary Skewness:** มักเกิดที่ผิวขรุขระ หรือมุมแหลม
 
 **วิธีแก้:**
 *   ตรวจสอบ `snappyHexMesh` ขั้นตอน Snap ว่าดึงจุดแรงเกินไปไหม
 *   ลด `featureAngle` ไม่ให้พยายามจับมุมที่แหลมเกินไป
+
+---
 
 ## 3. Aspect Ratio (อัตราส่วนกว้างยาว)
 
@@ -105,10 +131,14 @@ Prompt: "Comparative diagram of Cell Aspect Ratio vs Flow Direction. **Top Panel
 -->
 ![[IMG_02_003.jpg]]
 
+*   **นิยาม:** ด้านยาวสุด / ด้านสั้นสุด
+*   **ผลกระทบ:**
+    *   ถ้า Flow ไหลขนานกับด้านยาว (เช่น Boundary Layer): **ไม่เป็นไร** (Aspect Ratio 1000 ก็รับได้)
+    *   ถ้า Flow ไหลตั้งฉากหรือเฉียง (เช่น หมุนวน): Aspect Ratio สูงจะทำให้ Error กระจายตัวไม่เท่ากัน (Anisotropic error)
+*   **คำแนะนำ:** พยายามเลี้ยงให้ต่ำกว่า 20-50 ในบริเวณที่มีการหมุนวน (Vortices)
+
 > [!NOTE]
 > **📂 OpenFOAM Context**
->
-> ค่า **Aspect Ratio** ถูกตรวจสอบโดย `checkMesh` และแสดงผลในส่วน Mesh statistics
 >
 > **การควบคุมใน Mesh Generation:**
 > *   **File:** `system/snappyHexMeshDict`
@@ -121,21 +151,23 @@ Prompt: "Comparative diagram of Cell Aspect Ratio vs Flow Direction. **Top Panel
 > *   Boundary Layer: Aspect Ratio สูงถึง 1000 ยังรับได้ (ถ้าไหลขนาน)
 > *   บริเวณที่มี Vortex: ควรเก็บต่ำกว่า 20-50
 
-*   **นิยาม:** ด้านยาวสุด / ด้านสั้นสุด
-*   **ผลกระทบ:**
-    *   ถ้า Flow ไหลขนานกับด้านยาว (เช่น Boundary Layer): **ไม่เป็นไร** (Aspect Ratio 1000 ก็รับได้)
-    *   ถ้า Flow ไหลตั้งฉากหรือเฉียง (เช่น หมุนวน): Aspect Ratio สูงจะทำให้ Error กระจายตัวไม่เท่ากัน (Anisotropic error)
-*   **คำแนะนำ:** พยายามเลี้ยงให้ต่ำกว่า 20-50 ในบริเวณที่มีการหมุนวน (Vortices)
+---
 
 ## 4. Mesh Volume (Negative Volume)
+
+ถ้า `checkMesh` บอกว่า **"Failed with ... negative volume cells"**
+
+*   **ความหมาย:** Cell กลับตะศิลา (Inside-out) หรือบิดจนพับ
+*   **สาเหตุ:**
+    *   `blockMesh`: เรียงจุดผิดกฎมือขวา
+    *   `snappyHexMesh`: การ Snap ผิดพลาด (จุดถูกดึงทะลุอีกฝั่ง)
+    *   Dynamic Mesh: Mesh เคลื่อนที่จนทับกัน
+*   **ทางแก้:** ต้องแก้ที่ Mesh เท่านั้น Solver รันไม่ได้แน่นอน 100%
 
 > [!NOTE]
 > **📂 OpenFOAM Context**
 >
-> ค่า **Mesh Volume** ถูกตรวจสอบโดย `checkMesh` ถ้าเจอ Negative volume จะแสดง Error รุนแรง
->
 > **การวินิจฉัยและการแก้ไข:**
-> *   **คำสั่ง:** `checkMesh -allGeometry -allTopology`
 > *   **CellSets ที่เกิดขึ้น:** `negativeVolumeCells`
 > *   **การดูตำแหน่ง:** ใช้ ParaView เปิด Mesh และเลือก "Include Sets"
 >
@@ -146,13 +178,9 @@ Prompt: "Comparative diagram of Cell Aspect Ratio vs Flow Direction. **Top Panel
 >     *   `locationInMesh` - ตั้งค่าผิดตำแหน่ง
 > *   **File:** `dynamicMeshDict` (ถ้าใช้ Dynamic Mesh) - Mesh เคลื่อนที่จนทับกัน
 
-ถ้า `checkMesh` บอกว่า **"Failed with ... negative volume cells"**
-*   **ความหมาย:** Cell กลับตะศิลา (Inside-out) หรือบิดจนพับ
-*   **สาเหตุ:**
-    *   `blockMesh`: เรียงจุดผิดกฎมือขวา
-    *   `snappyHexMesh`: การ Snap ผิดพลาด (จุดถูกดึงทะลุอีกฝั่ง)
-    *   Dynamic Mesh: Mesh เคลื่อนที่จนทับกัน
-*   **ทางแก้:** ต้องแก้ที่ Mesh เท่านั้น Solver รันไม่ได้แน่นอน 100%
+---
+
+## 5. Mesh Quality Acceptance Criteria
 
 **Mesh Quality Acceptance Criteria:**
 ```mermaid
@@ -176,38 +204,8 @@ graph TB
     style Warning2 fill:#ff9800
 ```
 
-## 5. วิธีตรวจสอบตำแหน่ง Cell ที่มีปัญหา
-
-> [!NOTE]
-> **📂 OpenFOAM Context**
->
-> **การใช้ CellSet ที่สร้างโดย checkMesh:**
->
-> **คำสั่ง Terminal:**
-> *   `checkMesh -allGeometry -allTopology` - สร้าง CellSets ต่างๆ
-> *   `foamToVTK -cellSet nonOrthoFaces` - แปลง CellSet เป็น VTK
-> *   `setsToZones` - แปลง CellSets เป็น CellZones (ถ้าต้องการ)
->
-> **การดูใน ParaView:**
-> 1. เปิดไฟล์ `.foam` หรือ `.OpenFOAM`
-> 2. ใน Properties panel, ติ๊ก "Include Sets"
-> 3. ใช้ "Extract Block" เพื่อดูเฉพาะ CellSets ที่มีปัญหา
-> 4. ปรับ Opacity ของ Mesh หลักเพื่อให้เห็นตำแหน่งปัญหาชัดเจน
->
-> **CellSets ที่พบบ่อย:**
-> *   `nonOrthoFaces` - หน้าที่มี Non-orthogonality สูง
-> *   `skewFaces` - หน้าที่มี Skewness สูง
-> *   `negativeVolumeCells` - Cell ที่มีปริมาตรติดลบ
-
-เมื่อ `checkMesh` เจอ Error มันจะสร้าง **CellSet** ชื่อ `nonOrthoFaces`, `skewFaces` ฯลฯ ไว้ให้
-
-**วิธีดูใน ParaView:**
-1.  รัน `foamToVTK -cellSet nonOrthoFaces` (หรือเปิด .foam ปกติ)
-2.  ใน ParaView เลือก "Include Sets" (ติ๊กถูก)
-3.  เปลี่ยน Opacity ของ Mesh หลักให้จางลง
-4.  คุณจะเห็นจุดสีแดงๆ โผล่ขึ้นมา นั่นคือตำแหน่งที่ต้องแก้!
-
 > [!SUMMARY]
+> **ค่าที่ยอมรับได้ (Acceptable Thresholds):**
 > *   **Orthogonality:** < 70 (Safe), < 85 (Manageable)
 > *   **Skewness:** < 4
 > *   **Aspect Ratio:** < 1000 (Boundary Layer), < 20 (Free stream)
@@ -250,6 +248,34 @@ graph TB
 ### แบบฝึกหัดระดับสูง (Hard)
 5. **Hands-on**: รัน `checkMesh` กับ Tutorial case ใดๆ แล้วตรวจสอบว่ามี cells ที่มีปัญหา Non-ortho หรือ Skewness กี่ cell และอยู่ตรงไหน
 
+---
+
+## Key Takeaways
+
+**🎯 สรุปสิ่งสำคัญ (Key Takeaways):**
+
+1. **Mesh Quality คือปัจจัยสำคัญที่สุด** - กำหนดความเสถียรและความแม่นยำของการจำลอง
+   - Non-orthogonality สูง → ต้องใช้ Correctors เพิ่ม → Solver ช้าลง
+   - Skewness สูง → Second-order accuracy ลดเหลือ First-order → ความแม่นยำลดลง
+   - Negative Volume → Solver Crash ทันที
+
+2. **เกณฑ์ค่าที่ยอมรับได้:**
+   - **Non-orthogonality:** < 70° (ดีมาก), < 85° (ยอมรับได้)
+   - **Skewness:** < 4 (OpenFOAM definition)
+   - **Aspect Ratio:** < 1000 สำหรับ Boundary Layer, < 20 สำหรับ Vortex regions
+   - **Volume:** ต้องเป็นค่าบวกเสมอ
+
+3. **การใช้ checkMesh:**
+   - รัน `checkMesh -allGeometry -allTopology` ก่อนเริ่ม Simulation ทุกครั้ง
+   - ตรวจสอบค่า Max/Avg ของแต่ละเกณฑ์
+   - ใช้ ParaView เปิดดู CellSets (`nonOrthoFaces`, `skewFaces`, `negativeVolumeCells`) เพื่อหาตำแหน่งที่ต้องแก้
+
+4. **การแก้ปัญหาที่ต้นเหตุ:**
+   - Non-orthogonality: เพิ่ม `nNonOrthogonalCorrectors` หรือปรับ Mesh ให้ตัดกันเป็นมุมฉาก
+   - Skewness: ปรับ `nCellsBetweenLevels`, `featureAngle`, และ `snapControls`
+   - Negative Volume: ตรวจสอบการเรียงจุดใน `blockMeshDict` หรือลด `nSnapPatch`
+
+5. **Aspect Ratio ไม่ใช่ปัญหาเสมอไป** - ถ้า Flow ไหลขนานกับด้านยาวของ Cell (เช่น Boundary Layer) ค่าสูงถึง 1000 ก็ยอมรับได้
 
 ---
 

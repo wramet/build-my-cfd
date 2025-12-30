@@ -1,0 +1,8 @@
+{
+    "files": {
+        "01_The_sHM_Workflow.md": "Keep workflow overview but remove redundant phase explanations that overlap with 03_Castellated_Mesh_Settings.md. Focus on high-level 3-phase concept and analogy. Add 'Learning Objectives' section at start. Ensure 'Key Takeaways' at end.",
+        "02_Geometry_Preparation.md": "Good standalone content. Add 'Learning Objectives' at start. Section 6 on surfaceFeatureExtract appears truncated - complete this section. Add 'Key Takeaways' at end summarizing geometry quality checklist.",
+        "03_Castellated_Mesh_Settings.md": "This is highly technical and overlaps with 01. Move detailed parameter explanations from 01 into this file. Add 'Learning Objectives'. The section on resolveFeatureAngle appears truncated - complete it. Add 'Key Takeaways' with parameter recommendations."
+    },
+    "global_strategy": "Apply 3W Framework (What/Why/How) consistently across all files. Add Learning Objectives at start of each file. Add Key Takeaways summary at end of each file. Resolve content overlap: 01 should remain high-level workflow introduction, while 03 contains detailed parameter reference. Complete truncated sections in files 02 and 03. Ensure all OpenFOAM Context callouts are present and properly formatted."
+}

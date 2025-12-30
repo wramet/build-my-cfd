@@ -1,55 +1,67 @@
-# การใช้งาน TopoSet และ CellZones (Using TopoSet and CellZones)
+# Using TopoSet and CellZones (การใช้งาน TopoSet และ CellZones)
 
-> [!TIP] 为什么这很重要？（ทำไมเรื่องนี้สำคัญ？）
-> TopoSet และ CellZones เป็นเครื่องมือสำคัญในการ **กำหนดเขตการคำนวณเฉพาะส่วน** ภายใน Mesh ที่สร้างไว้แล้วโดยไม่ต้องแก้ Geometry เดิม ซึ่งมีประโยชน์อย่างมากใน:
-> - **Porous Media Modeling** - กำหนดโซนที่มีความพรุน (Porosity) เฉพาะจุด
-> - **MRF (Multiple Reference Frame)** - กำหนดโซนที่หมุนเป็นพิเศษ (เช่พัดลม, ใบพัด)
-> - **Conjugate Heat Transfer (CHT)** - กำหนดโซนที่เป็น Solid และ Fluid แยกกัน
-> - **Source Terms** - กำหนดแหล่งกำเนิดความร้อน/มวลในพื้นที่เฉพาะ
-> - **Dynamic Mesh Manipulation** - เปลี่ยน Boundary Type บางส่วนโดยไม่ต้อง Re-mesh
+## Learning Objectives (เป้าหมายการเรียนรู้)
+
+After completing this section, you will be able to:
+- **Distinguish** between Sets and Zones, and know when to use each
+- **Create** `topoSetDict` configurations for common mesh selection scenarios
+- **Apply** logical operations (new, add, subtract, invert) to build complex mesh regions
+- **Convert** Sets to Zones for solver integration (MRF, Porosity, CHT)
+- **Use** `createPatch` to modify boundary conditions without re-meshing
+
+---
+
+## Why This Matters (ทำไมเรื่องนี้สำคัญ)
+
+> [!TIP] **Core Value**
+> TopoSet and CellZones are essential tools for **defining computational sub-regions** within an existing mesh without modifying the original geometry. This enables:
+> - **Porous Media Modeling** - Define zones with specific porosity
+> - **MRF (Multiple Reference Frame)** - Define rotating zones (fans, propellers)
+> - **Conjugate Heat Transfer (CHT)** - Separate Solid and Fluid zones
+> - **Source Terms** - Define heat/mass sources in specific regions
+> - **Dynamic Mesh Manipulation** - Change boundary types without re-meshing
 >
-> การเข้าใจ TopoSet จะช่วยให้คุณสามารถ **ปรับแต่ง Mesh ที่สร้างแล้ว** (Post-meshing manipulation) เพื่อตอบโจทย์การจำลองที่ซับซ้อนได้อย่างยืดหยุ่น
+> Understanding TopoSet enables **flexible post-meshing manipulation** to address complex simulation requirements.
 
-`topoSet` คือ "มีดพับ Swiss Army" ของ OpenFOAM สำหรับการจัดการกลุ่มของ Cell, Face, และ Point หากคุณต้องการ:
-*   กำหนด Porous Media ในโซนเฉพาะ
-*   กำหนดแหล่งกำเนิดความร้อน (Heat Source) ตรงกลางห้อง
-*   เปลี่ยน Type ของ Boundary จาก Wall เป็น Inlet บางส่วน
+`topoSet` is the "Swiss Army knife" of OpenFOAM for managing groups of Cells, Faces, and Points. Use it when you need to:
+- Define Porous Media in specific zones
+- Define Heat Sources in the middle of a room
+- Change Boundary Types from Wall to Inlet for specific sections
 
-คุณต้องใช้ `topoSet`
+---
 
-> **ลิงก์ที่เกี่ยวข้อง**:
-> - ดู Mesh Manipulation Tools → [03_Mesh_Manipulation_Tools.md](./03_Mesh_Manipulation_Tools.md)
-> - ดู Multi-Region Meshing → [../04_SNAPPYHEXMESH_ADVANCED/03_Multi_Region_Meshing.md](../04_SNAPPYHEXMESH_ADVANCED/03_Multi_Region_Meshing.md)
+## 📂 OpenFOAM Context
 
-## 1. โครงสร้างไฟล์ `system/topoSetDict`
+**File Location**: `system/topoSetDict`
 
-> [!NOTE] **📂 OpenFOAM Context**
-> ใน OpenFOAM Case Directory คุณจะสร้างไฟล์ชื่อ `system/topoSetDict` เพื่อกำหนด Actions สำหรับการเลือกและจัดการกลุ่มของ Mesh Elements
->
-> **คำสั่งรัน**: `topoSet` (จะอ่านค่าจาก `system/topoSetDict`)
->
-> **Keywords สำคัญในไฟล์**:
-> - `actions` - List ของคำสั่งที่จะ execute ตามลำดับ
-> - `name` - ชื่อของ Set/Zone ที่จะสร้าง
-> - `type` - ประเภท: `cellSet`, `faceSet`, `pointSet`, `cellZoneSet`, `faceZoneSet`
-> - `action` - ประเภทการกระทำ: `new`, `add`, `subtract`, `delete`, `invert`
-> - `source` - แหล่งที่มาของการเลือก: `boxToCell`, `cylinderToCell`, `boundaryToFace`, `setToCellZone` เป็นต้น
->
-> **Output Files**:
-> - Sets จะถูกเก็บใน `constant/polyMesh/sets/`
-> - Zones จะถูกเก็บใน `constant/polyMesh/cellZones` และ `constant/polyMesh/faceZones`
+**Run Command**: `topoSet` (reads from `system/topoSetDict`)
 
-ไฟล์นี้ทำงานเป็น List ของคำสั่ง (Actions) ที่ทำตามลำดับ
+**Key Keywords**:
+- `actions` - List of commands executed in sequence
+- `name` - Name of Set/Zone to create
+- `type` - Type: `cellSet`, `faceSet`, `pointSet`, `cellZoneSet`, `faceZoneSet`
+- `action` - Operation type: `new`, `add`, `subtract`, `delete`, `invert`
+- `source` - Selection method: `boxToCell`, `cylinderToCell`, `boundaryToFace`, `setToCellZone`
+
+**Output Files**:
+- Sets stored in: `constant/polyMesh/sets/`
+- Zones stored in: `constant/polyMesh/cellZones` and `constant/polyMesh/faceZones`
+
+---
+
+## 1. File Structure: `system/topoSetDict`
+
+The file works as a sequential list of commands (Actions):
 
 ```cpp
 actions
 (
-    // Action 1: สร้าง CellSet จากกล่อง
+    // Action 1: Create CellSet from box
     {
-        name    c0;             // ชื่อ Set ที่จะสร้าง
-        type    cellSet;        // ประเภท (cellSet, faceSet, pointSet)
-        action  new;            // คำสั่ง (new, add, subtract, delete, invert)
-        source  boxToCell;      // แหล่งที่มา (Box)
+        name    c0;             // Name of Set to create
+        type    cellSet;        // Type (cellSet, faceSet, pointSet)
+        action  new;            // Command (new, add, subtract, delete, invert)
+        source  boxToCell;      // Source (Box)
         sourceInfo
         {
             min (0 0 0);
@@ -57,192 +69,236 @@ actions
         }
     }
 
-    // Action 2: เอา c0 มาทำเป็น Zone
+    // Action 2: Convert c0 to Zone
     {
         name    c0Zone;
-        type    cellZoneSet;    // สร้าง Zone (ถาวรกว่า Set)
+        type    cellZoneSet;    // Create Zone (more permanent than Set)
         action  new;
         source  setToCellZone;
         sourceInfo
         {
-            set c0;             // เอามาจาก Set c0
+            set c0;             // Take from Set c0
         }
     }
 );
 ```
 
-## 2. Set vs Zone ต่างกันอย่างไร?
+---
 
-> [!NOTE] **📂 OpenFOAM Context**
-> ความแตกต่างระหว่าง Set และ Zone สำคัญมากต่อการใช้งานจริง:
->
-> **Set (ชั่วคราว)**:
-> - เก็บใน: `constant/polyMesh/sets/<setName>`
-> - ใช้สำหรับ: เป็น Intermediate step ในการเลือก Mesh Elements
-> - ใช้งานร่วมกับ: `topoSet` (เพื่อสร้าง Set ใหม่จาก Set เดิม), `subsetMesh`, ` refineMesh`
-> - **ข้อดี**: สร้างและลบได้เร็ว ไม่กระทบ Mesh โครงสร้างหลัก
->
-> **Zone (ถาวร)**:
-> - เก็บใน: `constant/polyMesh/cellZones` หรือ `constant/polyMesh/faceZones`
-> - ใช้สำหรับ: **Solver และ Boundary Conditions** อ่านค่าโดยตรง
-> - ใช้งานร่วมกับ:
->   - `constant/fvOptions` - สำหรับ Porous Media, Source Terms
->   - `constant/MRFProperties` - สำหรับ Moving Reference Frame
->   - `constant/regionProperties` - สำหรับ Multi-region CHT
->   - `0/` Boundary Conditions - สำหรับ FaceZones
-> - **ข้อดี**: Solver รู้จักและสามารถ apply Physics ได้โดยตรง
+## 2. Set vs Zone: Key Differences
 
-*   **Set (ชั่วคราว):** เก็บเป็นไฟล์ list ธรรมดาใน `constant/polyMesh/sets/` ใช้สำหรับเป็นตัวกลางในการเลือก หรือใช้ใน `topoSet` step ถัดไป
-*   **Zone (ถาวร):** เก็บเป็นส่วนหนึ่งของ Mesh (`constant/polyMesh/cellZones`) ใช้สำหรับ Solver (เช่น กำหนด MRF, Porosity, Baffle)
+| Aspect | **Set (Temporary)** | **Zone (Permanent)** |
+|--------|---------------------|----------------------|
+| **Storage** | `constant/polyMesh/sets/<setName>` | `constant/polyMesh/cellZones` or `faceZones` |
+| **Purpose** | Intermediate step for mesh element selection | Directly read by Solver and Boundary Conditions |
+| **Tools** | `topoSet`, `subsetMesh`, `refineMesh` | `fvOptions`, `MRFProperties`, `regionProperties` |
+| **Advantages** | Fast to create/delete, doesn't affect main mesh structure | Solver recognizes and applies physics directly |
+| **Use Cases** | Building complex regions through boolean operations | Porous Media, MRF zones, CHT regions, Baffles |
 
-> **Rule of Thumb:** ใช้ Set เพื่อเลือกพื้นที่ แล้วจบด้วยการเปลี่ยน Set เป็น Zone เพื่อใช้งานจริง
+> **Rule of Thumb:** Use Sets to select regions, then finish by converting Sets to Zones for actual solver use.
 
-## 3. Sources ยอดนิยม (ท่าไม้ตาย)
-
-> [!NOTE] **📂 OpenFOAM Context**
-> Sources คือวิธีการเลือก Mesh Elements ที่แตกต่างกัน ใน `system/topoSetDict` แต่ละ Source จะมีการใช้งานที่เหมาะสมกับ Geometry และ Use Case ที่แตกต่างกัน:
->
-> **สำหรับ Cell Selection**:
-> - `boxToCell` - เลือก Cell ในกล่องสี่เหลี่ยม → ใช้กับ: Porous zone แบบทรงสี่เหลี่ยม, Heat source ในห้อง
-> - `cylinderToCell` - เลือก Cell ในทรงกระบอก → ใช้กับ: ท่อ, ถัง, พัดลมแบบ axial
-> - `sphereToCell` - เลือก Cell ในทรงกลม → ใช้กับ: Heat source แบบทรงกลม, ตัวกลางแบบ isotropic
-> - `stlToCell` (ผ่าน `surfaceToCell`) - เลือก Cell ภายใน/นอก STL surface → ใช้กับ: Complex geometry ที่ import มา
->
-> **สำหรับ Face Selection**:
-> - `boundaryToFace` - เลือก Face ทั้งหมดบน Patch → ใช้กับ: เปลี่ยน Boundary Condition, สร้าง Baffle
-> - `boxToFace` - เลือก Face ที่ตัดกล่อง → ใช้กับ: Internal boundary ภายใน domain
->
-> **สำหรับ Point Selection**:
-> - `boxToPoint` - เลือก Point ในกล่อง → ใช้กับ: Probe locations, Sampling points
->
-> **สำหรับ Zone Conversion**:
-> - `setToCellZone` - แปลง CellSet → CellZone
-> - `setToFaceZone` - แปลง FaceSet → FaceZone
-
-### 3.1 `boxToCell`
-เลือก Cell ที่ศูนย์กลางอยู่ในกล่อง
-
-### 3.2 `cylinderToCell`
-เลือก Cell ในทรงกระบอก (เหมาะกับถัง, ท่อ)
-```cpp
-p1 (0 0 0); // จุดเริ่มแกน
-p2 (0 1 0); // จุดปลายแกน
-radius 0.5;
+**Decision Tree:**
+```
+Need to define a mesh region?
+    ↓
+Is it for intermediate processing? → Use Set
+    ↓
+Is it for solver/physics? → Convert to Zone first
 ```
 
-### 3.3 `stlToCell` (Advanced)
-เลือก Cell ที่อยู่ข้างใน (หรือข้างนอก) ไฟล์ STL
-*   ต้องใช้ `surfaceToCell` แล้วเลือก `useSurfaceOrientation true`
+---
 
-### 3.4 `boundaryToFace`
-เลือก Face ทั้งหมดที่เป็นของ Patch ที่กำหนด
+## 3. Popular Sources (Selection Methods)
+
+### 3.1 For Cell Selection
+
+| Source | Description | Common Use Cases |
+|--------|-------------|------------------|
+| `boxToCell` | Select cells in rectangular box | Rectangular porous zones, room heat sources |
+| `cylinderToCell` | Select cells in cylinder | Pipes, tanks, axial fans |
+| `sphereToCell` | Select cells in sphere | Spherical heat sources, isotropic media |
+| `surfaceToCell` | Select cells inside/outside STL surface | Complex imported geometries |
+
+### 3.2 For Face Selection
+
+| Source | Description | Common Use Cases |
+|--------|-------------|------------------|
+| `boundaryToFace` | Select all faces on a patch | Change BCs, create baffles |
+| `boxToFace` | Select faces intersecting box | Internal boundaries within domain |
+
+### 3.3 For Point Selection
+
+| Source | Description | Common Use Cases |
+|--------|-------------|------------------|
+| `boxToPoint` | Select points in box | Probe locations, sampling points |
+
+### 3.4 For Zone Conversion
+
+| Source | Description |
+|--------|-------------|
+| `setToCellZone` | Convert CellSet → CellZone |
+| `setToFaceZone` | Convert FaceSet → FaceZone |
+
+### Code Examples
+
+**`boxToCell`** - Select cells whose centers are in a box:
 ```cpp
-source boundaryToFace;
-sourceInfo { name "inlet.*"; } // ใช้ Regex ได้
+source  boxToCell;
+sourceInfo
+{
+    min (0 0 0);
+    max (1 1 1);
+}
 ```
+
+**`cylinderToCell`** - Select cells in a cylinder (for tanks, pipes):
+```cpp
+source  cylinderToCell;
+sourceInfo
+{
+    p1 (0 0 0);      // Axis start point
+    p2 (0 1 0);      // Axis end point
+    radius 0.5;
+}
+```
+
+**`boundaryToFace`** - Select all faces belonging to a patch:
+```cpp
+source  boundaryToFace;
+sourceInfo 
+{ 
+    name "inlet.*";  // Regex supported
+}
+```
+
+**`surfaceToCell`** (Advanced) - Select cells inside/outside an STL file:
+```cpp
+source  surfaceToCell;
+sourceInfo
+{
+    file "geometry.stl";
+    useSurfaceOrientation true;  // true = inside, false = outside
+}
+```
+
+---
 
 ## 4. Logical Operations
 
-> [!NOTE] **📂 OpenFOAM Context**
-> Logical Operations ใน `topoSet` ช่วยให้คุณสร้าง Complex Selection ได้อย่างยืดหยุ่นโดยไม่ต้องสร้าง Geometry ใหม่:
->
-> **Workflow ทั่วไป**:
-> 1. `new` - สร้าง Base Set แรก (เช่น กล่องใหญ่)
-> 2. `add` - เพิ่มพื้นที่อื่นเข้ามา (Union 2 กล่อง)
-> 3. `subtract` - ลบพื้นที่ที่ไม่ต้องการ (สร้างรู/โพรง)
-> 4. `invert` - กลับด้าน (เลือกทุกอย่างนอกเหนือจากที่เลือกไว้)
->
-> **Use Cases ที่พบบ่อย**:
-> - **Hollow Box**: สร้างกล่องใหญ่ (`new` + `boxToCell`) → ลบกล่องเล็กตรงกลาง (`subtract` + `boxToCell`)
-> - **Porous Catalyst Bed**: สร้างทรงกระบอก (`new` + `cylinderToCell`) → ลบทรงกระบอกเล็กตรงกลาง (เพื่อทำเป็นท่อลม)
-> - **Complex Boundary**: เลือก Patch หลัก (`new` + `boundaryToFace`) → ลบส่วนที่เป็น Inlet/Outlet (`subtract` + `boundaryToFace`)
->
-> **ตัวอย่างการใช้งานจริง**:
-> ```cpp
-> // สร้าง Porous Zone แบบกล่องกลวง
-> {
->     name    porousBox;
->     type    cellSet;
->     action  new;
->     source  boxToCell;
->     sourceInfo { min (0 0 0); max (1 1 1); }
-> }
-> {
->     name    porousBox;
->     type    cellSet;
->     action  subtract;
->     source  boxToCell;
->     sourceInfo { min (0.3 0.3 0.3); max (0.7 0.7 0.7); }
-> }
-> ```
+The power of `topoSet` lies in its Boolean operations:
 
-ความเจ๋งของ `topoSet` คือการทำ Boolean Operation:
+### Action Types
 
-1.  **new:** สร้าง Set ใหม่ (ล้างของเก่าทิ้งถ้าชื่อซ้ำ)
-2.  **add:** เอามาเพิ่มใส่ Set เดิม (Union)
-3.  **subtract:** เอาออกจาก Set เดิม (Difference)
-    *   *ตัวอย่าง:* เลือกกล่องใหญ่ (`new`) แล้วลบกล่องเล็กตรงกลางออก (`subtract`) -> ได้กล่องกลวง
-4.  **invert:** กลับด้าน (เลือกทุกอย่างที่ไม่อยู่ใน Set)
+| Action | Description | Use Case |
+|--------|-------------|----------|
+| `new` | Create new Set (clears existing if name repeats) | Create base selection |
+| `add` | Add to existing Set (Union) | Combine two regions |
+| `subtract` | Remove from existing Set (Difference) | Create holes/cavities |
+| `invert` | Reverse selection (select everything not in Set) | Select exterior region |
 
-## 5. การประยุกต์ใช้: `createPatch`
+### Common Workflows
 
-> [!NOTE] **📂 OpenFOAM Context**
-> `createPatch` เป็นเครื่องมือที่ทำงานคู่กับ `topoSet` เพื่อเปลี่ยนแปลง Boundary Conditions โดยไม่ต้อง Re-mesh:
->
-> **Workflow แบบเต็ม**:
-> 1. **Step 1**: สร้าง `system/topoSetDict` → รัน `topoSet` → ได้ FaceSet (เช่น `myInletFaces`)
-> 2. **Step 2**: สร้าง `system/createPatchDict` → ระบุการเปลี่ยน Patch
-> 3. **Step 3**: รัน `createPatch -overwrite`
->
-> **ไฟล์ที่เกี่ยวข้อง**:
-> - `system/topoSetDict` - กำหนด FaceSet ที่ต้องการ
-> - `system/createPatchDict` - กำหนดการสร้าง Patch ใหม่
-> - `0/<patchName>` - Boundary Conditions ที่ถูกสร้าง/เปลี่ยนแปลง
-> - `constant/polyMesh/boundary` - รายชื่อ Patch ที่อัปเดตแล้ว
->
-> **Keywords ใน `createPatchDict`**:
-> ```cpp
-> patchInfo
-> (
->     {
->         name newInlet;           // ชื่อ Patch ใหม่
->         dictionary {
->             type patch;          // ประเภท BC (patch, wall, cyclic, etc.)
->         }
->         constructFrom set;       // สร้างจาก Set
->         set myInletFaces;        // ชื่อ FaceSet จาก topoSet
->         zone myInletFaces;       // ชื่อ FaceZone (optional)
->     }
-> );
-> ```
->
-> **Use Cases ที่พบบ่อย**:
-> - **Split Inlet**: แยก Inlet ออกเป็นหลายส่วน (เช่น 50% ปกติ, 50% สูง)
-> - **Add Outlet**: เพิ่ม Outlet ในพื้นที่ที่เดิมเป็น Wall
-> - **Create Baffle**: สร้าง Internal Baffle โดยเลือก Face ภายใน Mesh
-> - **Cyclic BC**: สร้าง Cyclic Patch สำหรับ Periodic Flow
+**Hollow Box**: Create large box (`new` + `boxToCell`) → Subtract small center (`subtract` + `boxToCell`)
 
-หลังจากได้ FaceSet แล้ว เรามักใช้คู่กับ `createPatch` เพื่อเปลี่ยน Boundary Condition
+```cpp
+// Create large box
+{
+    name    porousBox;
+    type    cellSet;
+    action  new;
+    source  boxToCell;
+    sourceInfo { min (0 0 0); max (1 1 1); }
+}
+// Subtract center (create hollow box)
+{
+    name    porousBox;
+    type    cellSet;
+    action  subtract;
+    source  boxToCell;
+    sourceInfo { min (0.3 0.3 0.3); max (0.7 0.7 0.7); }
+}
+```
 
-**ตัวอย่าง:** เปลี่ยนผนังบางส่วนเป็น Inlet
-1.  `topoSet`: สร้าง `faceSet` ชื่อ `myInletFaces` จากกล่องที่ครอบผนังส่วนนั้น
-2.  `createPatchDict`:
-    ```cpp
-    patchInfo
-    (
-        {
-            name newInlet;
-            dictionary { type patch; }
-            constructFrom set;
-            set myInletFaces;
+**Porous Catalyst Bed**: Create cylinder (`new` + `cylinderToCell`) → Subtract small center cylinder (for air tube)
+
+**Complex Boundary**: Select main patch (`new` + `boundaryToFace`) → Subtract inlet/outlet portions (`subtract` + `boundaryToFace`)
+
+---
+
+## 5. Advanced Application: `createPatch`
+
+After creating FaceSets, use `createPatch` to change boundary conditions.
+
+### Complete Workflow
+
+1. **Step 1**: Create `system/topoSetDict` → Run `topoSet` → Get FaceSet (e.g., `myInletFaces`)
+2. **Step 2**: Create `system/createPatchDict` → Specify patch changes
+3. **Step 3**: Run `createPatch -overwrite`
+
+### Related Files
+
+- `system/topoSetDict` - Defines FaceSet to use
+- `system/createPatchDict` - Defines new patch creation
+- `0/<patchName>` - Boundary conditions created/modified
+- `constant/polyMesh/boundary` - Updated patch list
+
+### `createPatchDict` Keywords
+
+```cpp
+patchInfo
+(
+    {
+        name newInlet;           // New patch name
+        dictionary {
+            type patch;          // BC type (patch, wall, cyclic, etc.)
         }
-    );
-    ```
-3.  รัน `createPatch -overwrite`
+        constructFrom set;       // Build from Set
+        set myInletFaces;        // FaceSet name from topoSet
+        zone myInletFaces;       // FaceZone name (optional)
+    }
+);
+```
 
-นี่คือวิธีที่ยืดหยุ่นที่สุดในการจัดการ Boundary โดยไม่ต้องแก้ Geometry ใหม่!
+### Common Use Cases
 
-**topoSet Workflow (Set → Zone):**
+- **Split Inlet**: Separate inlet into multiple parts (e.g., 50% normal, 50% high velocity)
+- **Add Outlet**: Add outlet in area that was previously a wall
+- **Create Baffle**: Create internal baffle by selecting faces inside mesh
+- **Cyclic BC**: Create cyclic patch for periodic flow
+
+### Example: Convert Wall Section to Inlet
+
+```cpp
+// Step 1: topoSetDict - Create FaceSet
+{
+    name    myInletFaces;
+    type    faceSet;
+    action  new;
+    source  boxToFace;
+    sourceInfo { min (0 0 0); max (0.5 1 0); }
+}
+
+// Step 2: createPatchDict
+patchInfo
+(
+    {
+        name newInlet;
+        dictionary { type patch; }
+        constructFrom set;
+        set myInletFaces;
+    }
+);
+
+// Step 3: Run
+createPatch -overwrite
+```
+
+This is the most flexible way to manage boundaries without re-meshing!
+
+---
+
+## Workflow Diagram
+
 ```mermaid
 graph TB
     Start[1. Define Actions<br/>in topoSetDict] --> Step2[2. Create Set<br/>cellSet/faceSet/pointSet]
@@ -265,36 +321,46 @@ graph TB
 
 ---
 
-## 🧠 Concept Check: ทดสอบความเข้าใจ
+## 📚 Key Takeaways
 
-### แบบฝึกหัดระดับง่าย (Easy)
-1. **True/False**: Set คือโครงสร้างถาวรใน Mesh ใช้สำหรับ Solver
+1. **Sets are temporary, Zones are permanent** - Use Sets for building selections, convert to Zones for solver use
+2. **Workflow**: Create Set → Apply Boolean Operations → Convert to Zone → Use in Solver
+3. **Sources match geometry** - Use `boxToCell` for rectangles, `cylinderToCell` for pipes/tanks, `surfaceToCell` for complex STL
+4. **Boolean operations enable complex shapes** - Combine `new`, `add`, `subtract`, `invert` to create hollow regions, composite shapes
+5. **createPatch extends functionality** - Modify boundary types without re-meshing by using topoSet + createPatch together
+
+---
+
+## 🧠 Concept Check
+
+### Easy Level
+1. **True/False**: Sets are permanent structures in the mesh used by solvers.
    <details>
-   <summary>คำตอบ</summary>
-   ❌ เท็จ - Set คือชั่วคราว (เก็บใน constant/polyMesh/sets/) ส่วน Zone คือถาวร
+   <summary>Answer</summary>
+   ❌ False - Sets are temporary (stored in `constant/polyMesh/sets/`), while Zones are permanent.
    </details>
 
-2. **เลือกตอบ**: Action ไหนที่ใช้เพื่อสร้าง Set ใหม่ทับของเก่า?
+2. **Multiple Choice**: Which action creates a new Set, replacing any existing Set with the same name?
    - a) add
    - b) new
    - c) subtract
    - d) invert
    <details>
-   <summary>คำตอบ</summary>
-   ✅ b) new - สร้าง Set ใหม่ (ล้างของเก่าทิ้งถ้าชื่อซ้ำ)
+   <summary>Answer</summary>
+   ✅ b) new - Creates new Set (clears existing if name repeats)
    </details>
 
-### แบบฝึกหัดระดับปานกลาง (Medium)
-3. **อธิบาย**: แตกต่างระหว่าง `add` และ `subtract` ใน action คืออะไร?
+### Medium Level
+3. **Explain**: What is the difference between `add` and `subtract` actions?
    <details>
-   <summary>คำตอบ</summary>
-   - add: เอา Set ใหม่มารวมกับ Set เดิม (Union)
-   - subtract: เอา elements ออกจาก Set เดิม (Difference)
+   <summary>Answer</summary>
+   - add: Combine new Set with existing Set (Union)
+   - subtract: Remove elements from existing Set (Difference)
    </details>
 
-4. **สร้าง**: จงเขียน topoSetDict action สำหรับสร้าง CellZone ชื่อ `porousZone` จาก CellSet ชื่อ `c0`
+4. **Create**: Write a topoSetDict action to create a CellZone named `porousZone` from a CellSet named `c0`.
    <details>
-   <summary>คำตอบ</summary>
+   <summary>Answer</summary>
    ```cpp
    {
        name    porousZone;
@@ -309,13 +375,46 @@ graph TB
    ```
    </details>
 
-### แบบฝึกหัดระดับสูง (Hard)
-5. **Hands-on**: ใช้ topoSet สร้าง Box กลวง (โดยเลือกกล่องใหญ่แล้วลบกล่องเล็กตรงกลางออก)
+### Hard Level
+5. **Hands-on**: Use topoSet to create a hollow box (select large box, then subtract small center box).
 
+   <details>
+   <summary>Answer</summary>
+   ```cpp
+   actions
+   (
+       // Create large box
+       {
+           name    hollowBox;
+           type    cellSet;
+           action  new;
+           source  boxToCell;
+           sourceInfo { min (0 0 0); max (1 1 1); }
+       }
+       // Subtract center box
+       {
+           name    hollowBox;
+           type    cellSet;
+           action  subtract;
+           source  boxToCell;
+           sourceInfo { min (0.3 0.3 0.3); max (0.7 0.7 0.7); }
+       }
+       // Convert to Zone
+       {
+           name    hollowBoxZone;
+           type    cellZoneSet;
+           action  new;
+           source  setToCellZone;
+           sourceInfo { set hollowBox; }
+       }
+   );
+   ```
+   </details>
 
 ---
 
-## 📖 เอกสารที่เกี่ยวข้อง
+## 📖 Related Documents
 
-*   **บทก่อนหน้า**: [01_Mesh_Quality_Criteria.md](01_Mesh_Quality_Criteria.md)
-*   **บทถัดไป**: [03_Mesh_Manipulation_Tools.md](03_Mesh_Manipulation_Tools.md)
+- **Previous**: [01_Mesh_Quality_Criteria.md](01_Mesh_Quality_Criteria.md)
+- **Next**: [03_Mesh_Manipulation_Tools.md](03_Mesh_Manipulation_Tools.md)
+- **Multi-Region Meshing**: [../04_SNAPPYHEXMESH_ADVANCED/03_Multi_Region_Meshing.md](../04_SNAPPYHEXMESH_ADVANCED/03_Multi_Region_Meshing.md)

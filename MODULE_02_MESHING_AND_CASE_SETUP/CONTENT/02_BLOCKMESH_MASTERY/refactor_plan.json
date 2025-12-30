@@ -1,0 +1,10 @@
+{
+    "files": {
+        "01_BlockMesh_Deep_Dive.md": "Add Learning Objectives section at start. Convert What/Why content into clear 3W Framework. Add Key Takeaways summary. The OpenFOAM Context callouts are good - keep this pattern. Missing practical worked examples with complete blockMeshDict.",
+        "02_Parametric_Meshing.md": "Add Learning Objectives. Content shows good 3W structure implicitly. Add comparison table of M4 vs Python/Jinja2 vs PyFoam at the end. Add Key Takeaways. The workflow diagrams are excellent - preserve these. Missing complete runnable example files.",
+        "03_Advanced_Topologies.md": "This file is missing - needs to be created covering C-grid, O-grid, H-grid, Y-junction, and multi-block strategies with visual diagrams and worked examples.",
+        "04_Quality_Assessment.md": "This file is missing - needs to be created covering checkMesh usage, mesh quality metrics (orthogonality, aspect ratio, non-orthogonality, skewness), and common mesh quality issues with solutions.",
+        "05_Practical_Exercises.md": "This file is missing - needs to be created with progressive hands-on exercises: simple box → graded mesh → cylinder with edges → multi-block topology → airfoil O-grid."
+    },
+    "global_strategy": "Apply 3W Framework (What/Why/How) consistently across all files. Add Learning Objectives and Key Takeaways to every file. Create 3 missing files to complete the learning sequence. Ensure each file has complete runnable code examples. Cross-reference between files should follow the established link pattern. All files need consistent OpenFOAM Context callouts and practical exercises with solutions."
+}

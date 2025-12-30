@@ -1,0 +1,8 @@
+{
+    "files": {
+        "01_Mesh_Quality_Criteria.md": "Add 'Learning Objectives' section at the beginning listing: 1) Identify key mesh quality metrics, 2) Understand impact on solver stability, 3) Know acceptable thresholds. Add 'Key Takeaways' summary section at the end. Remove redundant explanations about checkMesh command that appear in multiple sections.",
+        "02_Using_TopoSet_and_CellZones.md": "Add 'Learning Objectives' section: 1) Distinguish Sets vs Zones, 2) Create topoSetDict configurations, 3) Apply logical operations. The 'Why this matters' block is excellent but needs to be followed by clear learning objectives. Add 'Key Takeaways' section summarizing Set vs Zone decision tree. Consolidate the multiple '📂 OpenFOAM Context' boxes - some are repetitive.",
+        "03_Mesh_Manipulation_Tools.md": "Add 'Learning Objectives' section: 1) Apply transformPoints operations, 2) Merge/stitch meshes, 3) Optimize with renumberMesh. The content is well-structured with good 3W balance. Add 'Key Takeaways' with decision flowchart. The mermaid diagram is excellent - keep it. Consider adding a quick-reference table for all tools with use-cases."
+    },
+    "global_strategy": "All three files follow the 3W Framework reasonably well (What/Why/How), but lack structured Learning Objectives upfront and Key Takeaways summaries. The '📂 OpenFOAM Context' boxes are excellent pedagogical elements but sometimes redundant. Main issues: 1) Missing learning objectives at the start of each file, 2) Missing comprehensive takeaway summaries at the end, 3) Some command explanations repeated across files (especially checkMesh). Cross-referencing between files is good. Language consistency needs review (mix of Thai, English, Chinese)."
+}
