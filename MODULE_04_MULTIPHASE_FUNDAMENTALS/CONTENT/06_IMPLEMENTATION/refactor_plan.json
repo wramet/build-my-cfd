@@ -1,0 +1,11 @@
+{
+    "files": {
+        "00_Overview.md": "Add missing Learning Objectives section. Convert 'Concept Check' to proper Key Takeaways. Add Practical Example section with real multiphaseEulerFoam case setup.",
+        "01_Solver_Overview.md": "No major changes needed. Already has good structure. Consider adding brief comparison table at start for quick solver selection.",
+        "02_Code_Architecture.md": "Add Learning Objectives section. Merge with 03_Model_Architecture.md - they have significant overlap in phaseSystem/phaseModel content. The 'fvm vs fvc' section is excellent - keep this.",
+        "03_Model_Architecture.md": "MERGE with 02_Code_Architecture.md. This file focuses on interfacial models hierarchy, 02 focuses on class implementation. Combined file should follow: Core Classes → Runtime Selection → Interfacial Models → fvm/fvc → Memory Management.",
+        "04_Algorithm_Flow.md": "Excellent content. Add Learning Objectives section. Consider consolidating Governing Equation displays - currently repeated across sections. Add Troubleshooting subsection with common convergence issues.",
+        "05_Parallel_Implementation.md": "Good standalone content. Add Learning Objectives. Expand HPC section with actual SLURM script example. Add 'Common Parallel Pitfalls' section specific to multiphase (load imbalance with phase segregation)."
+    },
+    "global_strategy": "This folder shows moderate redundancy. Primary issue: 02_Code_Architecture.md and 03_Model_Architecture.md have ~40% content overlap on phaseSystem/phaseModel. Recommended action: MERGE these two files into '02_Code_and_Model_Architecture.md' following learning progression: Core Classes → Solution Structure → Interfacial Models → Implementation Details. Renumber subsequent files (03 becomes 04, 04 becomes 05, 05 becomes 06). All files lack explicit Learning Objectives at the start - add these following 3W framework: What (content preview), Why (importance), How (application goals)."
+}

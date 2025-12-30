@@ -4,6 +4,17 @@
 
 ---
 
+## Learning Objectives
+
+**What will you learn?**
+
+- Identify the characteristics and suitable applications for each drag model
+- Select the appropriate drag model based on dispersed phase type, flow regime, and dimensionless numbers
+- Compare and contrast models for bubble systems, particle systems, and granular flows
+- Understand when to use simple correlations versus complex multi-regime models
+
+---
+
 ## Overview
 
 ```mermaid
@@ -32,10 +43,7 @@ $$C_D = \max\left(\frac{24}{Re}(1 + 0.15Re^{0.687}), 0.44\right)$$
 - Spherical particles/bubbles
 - $Re < 1000$
 - Clean systems
-
-```cpp
-drag { (air in water) { type SchillerNaumann; } }
-```
+- Low to moderate Reynolds numbers
 
 ---
 
@@ -53,10 +61,8 @@ $$C_D = \begin{cases}
 
 - Deformable bubbles
 - Gas-liquid with $Eo > 1$
-
-```cpp
-drag { (air in water) { type IshiiZuber; } }
-```
+- Clean bubble systems
+- Wide range of bubble shapes
 
 ---
 
@@ -70,10 +76,8 @@ $$C_D = \max\left[\min\left(\frac{24}{Re}(1+0.15Re^{0.687}), \frac{72}{Re}\right
 
 - Contaminated bubbles (surfactants)
 - General purpose for gas-liquid
-
-```cpp
-drag { (air in water) { type Tomiyama; } }
-```
+- Systems with impurities
+- Practical industrial applications
 
 ### Comparison
 
@@ -96,10 +100,8 @@ where $u_t$ from Grace correlation
 
 - High viscosity ratio
 - Large bubbles
-
-```cpp
-drag { (air in water) { type Grace; } }
-```
+- Pure liquid systems
+- Wide range of Morton numbers
 
 ---
 
@@ -113,10 +115,8 @@ $$C_D = \frac{24}{\alpha_c Re}(1 + 0.15(\alpha_c Re)^{0.687}) \cdot \alpha_c^{-1
 
 - Fluidized beds (dilute: $\alpha_d < 0.2$)
 - Gas-solid systems
-
-```cpp
-drag { (particles in air) { type WenYu; } }
-```
+- Low particle volume fractions
+- Dilute phase transport
 
 ---
 
@@ -133,10 +133,8 @@ $$\beta = \begin{cases}
 
 - Dense fluidized beds
 - Gas-solid with variable $\alpha$
-
-```cpp
-drag { (particles in air) { type GidaspowErgunWenYu; } }
-```
+- Circulating fluidized beds
+- Systems transitioning between dense and dilute regimes
 
 ---
 
@@ -152,14 +150,12 @@ where $v_r$ is terminal velocity ratio
 
 - Fluidized beds
 - Empirically tuned for specific systems
-
-```cpp
-drag { (particles in air) { type SyamlalOBrien; } }
-```
+- When experimental data available for calibration
+- Gas-solid flow with known terminal velocities
 
 ---
 
-## 8. Model Selection Guide
+## 8. Model Selection Flowchart
 
 ```mermaid
 flowchart TD
@@ -172,7 +168,32 @@ flowchart TD
     F -->|No| H[Tomiyama]
     D -->|< 0.2| I[WenYu]
     D -->|> 0.2| J[GidaspowErgunWenYu]
+    D -->|Calibrated| K[SyamlalOBrien]
 ```
+
+---
+
+## Model Comparison Summary
+
+| Model | Phase Type | Volume Fraction | Key Parameter | Complexity | Best Application |
+|-------|-----------|-----------------|---------------|------------|------------------|
+| SchillerNaumann | Gas-liquid, Solid-liquid | Dilute | Re | Low | Spherical bubbles/particles |
+| IshiiZuber | Gas-liquid | Dilute | Eo | Medium | Clean deformed bubbles |
+| Tomiyama | Gas-liquid | Dilute | Re, Eo | Medium | Contaminated bubbles |
+| Grace | Gas-liquid | Dilute | Eo, Mo | High | Large bubbles, high viscosity |
+| WenYu | Gas-solid | Dilute (α_d < 0.2) | α_c | Low | Dilute fluidized beds |
+| GidaspowErgunWenYu | Gas-solid | All | α_c | High | Dense fluidized beds |
+| SyamlalOBrien | Gas-solid | All | v_r | Medium | Calibrated systems |
+
+---
+
+## Key Takeaways
+
+- **Bubble systems**: Use Schiller-Naumann for spherical bubbles (Eo < 1), Ishii-Zuber for clean deformed bubbles, Tomiyama for contaminated systems
+- **Gas-solid dilute**: Wen-Yu is appropriate for particle volume fractions below 0.2
+- **Gas-solid dense**: Gidaspow blends Ergun (dense) and Wen-Yu (dilute) with a switching function at α_c = 0.8
+- **Calibrated models**: Syamlal-O'Brien requires experimental data but can provide better accuracy for specific systems
+- **Dimensionless numbers**: Eötvös number (Eo) indicates bubble deformation, Reynolds number (Re) indicates flow regime, volume fraction (α) determines particle-particle interactions
 
 ---
 
@@ -186,23 +207,7 @@ flowchart TD
 | Grace | High μ ratio | Terminal velocity |
 | WenYu | Dilute gas-solid | α |
 | Gidaspow | Dense gas-solid | α (switching) |
-
----
-
-## OpenFOAM Configuration
-
-```cpp
-// constant/phaseProperties
-drag
-{
-    (air in water)
-    {
-        type            Tomiyama;
-        residualRe      1e-3;
-        residualAlpha   1e-6;
-    }
-}
-```
+| SyamlalOBrien | Calibrated systems | v_r |
 
 ---
 
@@ -225,6 +230,12 @@ drag
 <summary><b>3. residualRe คืออะไร?</b></summary>
 
 ค่า minimum Re เพื่อป้องกัน division by zero เมื่อ velocity ใกล้ศูนย์
+</details>
+
+<details>
+<summary><b>4. เมื่อไรควรใช้ Grace correlation?</b></summary>
+
+เมื่อระบบมี viscosity ratio สูง หรือ bubble ขนาดใหญ่ในของเหลวที่มีความหนืดสูง ซึ่ง Schiller-Naumann หรือ Ishii-Zuber อาจไม่แม่นยำพอ
 </details>
 
 ---

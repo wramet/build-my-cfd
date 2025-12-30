@@ -1,0 +1,12 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_The_VOF_Concept.md",
+        "02_Interface_Compression.md",
+        "03_Setting_Up_InterFoam.md",
+        "04_Adaptive_Time_Stepping.md"
+    ],
+    "skipped": [
+        "01_The_VOF_Concept.md"
+    ]
+}

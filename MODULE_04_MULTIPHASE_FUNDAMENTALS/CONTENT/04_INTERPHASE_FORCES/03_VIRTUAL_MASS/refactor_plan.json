@@ -1,0 +1,8 @@
+{
+    "files": {
+        "00_Overview.md": "Good high-level summary but lacks Learning Objectives and Key Takeaways sections. Add standard 3W framework headers (What/Why/How). Keep the concise format - it's working well.",
+        "01_Fundamental_Concepts.md": "Good coverage of theory with 3W elements implicitly present. Add explicit Learning Objectives at start, Key Takeaways summary at end. The Zuber correlation for concentration effects is valuable - expand this section slightly with more context on when it applies.",
+        "02_OpenFOAM_Implementation.md": "Strong technical content but repeats conceptual explanations from file 01. Remove redundant theory sections (physical interpretation, when important, coefficient values table). Focus purely on implementation: class structure, configuration syntax, numerical treatment, stability, verification. Add 'Common Pitfalls' section."
+    },
+    "global_strategy": "Apply strict separation: Overview (quick reference), Fundamental Concepts (theory & physics), Implementation (code & numerics). Remove all redundancy - each equation/concept should appear in ONE primary file with brief cross-references only. Add missing pedagogical elements (Learning Objectives, Key Takeaways) to all files. Maintain the Thai/English bilingual style - it's working well."
+}

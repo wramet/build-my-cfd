@@ -4,6 +4,39 @@
 
 ---
 
+## Learning Objectives
+
+### What
+- Classification of OpenFOAM multiphase solvers by numerical method (VOF, Euler-Euler, Lagrangian)
+- Key capabilities, configurations, and use cases for each solver family
+- Quick reference tables for solver selection and typical settings
+
+### Why
+- Choosing the correct solver is critical for simulation accuracy, stability, and computational efficiency
+- Different physical regimes (free surface vs. dispersed vs. dilute) require fundamentally different numerical approaches
+- Understanding solver capabilities prevents wasted computation time on inappropriate methods
+
+### How
+- Use the decision flowchart and quick selection tables to match your physics to the right solver
+- Reference the key file configurations when setting up new cases
+- Apply the common settings templates (PIMPLE, alpha controls) as starting points for your simulations
+
+---
+
+## Quick Solver Selection Table
+
+| Scenario | Solver | Method | Key Advantage |
+|----------|--------|--------|---------------|
+| Free surface, waves, sloshing | `interFoam` | VOF | Sharp interface, mass conserved |
+| High-quality interface tracking | `interIsoFoam` | Geometric VOF | Superior interface sharpness |
+| Bubble column, stirred tank | `twoPhaseEulerFoam` | Euler-Euler | Efficient for moderate α_d |
+| Multi-phase industrial systems | `multiphaseEulerFoam` | Euler-Euler | N phases, KTGF, population balance |
+| Fluidized bed, granular flow | `multiphaseEulerFoam` | Euler-Euler + KTGF | Granular temperature modeling |
+| Spray, atomization | `sprayFoam` | Euler-Lagrange | Track droplets, breakup |
+| Dilute particle flow | `DPMFoam` | Euler-Lagrange | Particle tracking, deposition |
+
+---
+
 ## Solver Classification
 
 ```mermaid
@@ -37,7 +70,7 @@ flowchart TD
 interFoam
 ```
 
-### Key Files
+#### Key Files
 
 | File | Purpose |
 |------|---------|
@@ -49,6 +82,7 @@ interFoam
 
 - **Geometric VOF** for sharper interfaces
 - Better mass conservation
+- Computationally more expensive than interFoam
 
 ---
 
@@ -72,7 +106,7 @@ interFoam
 | Features | KTGF, population balance |
 | Use Case | Complex industrial systems |
 
-### Key Files
+#### Key Files
 
 | File | Purpose |
 |------|---------|
@@ -93,12 +127,18 @@ interFoam
 | Dispersed | Lagrangian particles |
 | Use Case | Dilute particle-laden flows |
 
-### Key Files
+#### Key Files
 
 | File | Purpose |
 |------|---------|
 | `constant/kinematicCloudProperties` | Particle properties |
 | `constant/injectionProperties` | Injection settings |
+
+### sprayFoam
+
+- Specialized for atomization and sprays
+- Includes breakup, evaporation models
+- Often used in combustion applications
 
 ---
 
@@ -215,5 +255,6 @@ reconstructPar
 ## Related Documents
 
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
-- **Algorithm Flow:** [04_Algorithm_Flow.md](04_Algorithm_Flow.md)
-- **Model Architecture:** [03_Model_Architecture.md](03_Model_Architecture.md)
+- **Code and Model Architecture:** [02_Code_and_Model_Architecture.md](02_Code_and_Model_Architecture.md)
+- **Algorithm Flow:** [03_Algorithm_Flow.md](03_Algorithm_Flow.md)
+- **Parallel Implementation:** [04_Parallel_Implementation.md](04_Parallel_Implementation.md)

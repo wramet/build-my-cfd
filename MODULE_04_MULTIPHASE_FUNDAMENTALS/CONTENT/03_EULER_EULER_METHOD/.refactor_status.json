@@ -1,0 +1,9 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Mathematical_Framework.md",
+        "03_Implementation_Concepts.md"
+    ],
+    "skipped": []
+}

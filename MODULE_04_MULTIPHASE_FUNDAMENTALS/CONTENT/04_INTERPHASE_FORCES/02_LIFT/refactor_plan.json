@@ -1,0 +1,9 @@
+{
+    "files": {
+        "00_Overview.md": "Good overview but lacks explicit Learning Objectives section. Add 'Learning Objectives' at start. Some redundancy with 01_Fundamental_Lift_Concepts.md on basic equation and physical origin - keep higher-level overview here, move detailed derivations to 01.",
+        "01_Fundamental_Lift_Concepts.md": "Significant redundancy with 00_Overview.md. The lift equation, physical origin, direction table, and coefficient values are duplicated. This file should focus on DEEP DIVE into fundamentals: mathematical derivation, physical mechanism explanation, parameter analysis. Move conceptual overview to 00. Missing: Learning Objectives, Key Takeaways.",
+        "02_Specific_Lift_Models.md": "Good structure but overlaps with 00_Overview.md on Tomiyama equation. 00 should show ONE example, 02 should cover ALL models in detail. Missing: Learning Objectives, implementation notes for each model, comparison table with computational cost.",
+        "03_OpenFOAM_Implementation.md": "Strong technical content but redundant configuration examples (shown in 00 and 02). This should be THE authoritative reference for ALL implementation details. Remove duplicate configs from other files. Missing: Learning Objectives, complete working example case, troubleshooting guide."
+    },
+    "global_strategy": "1. Apply strict 3W Framework to ALL files: add Learning Objectives (What), Physical Context (Why), Implementation Steps (How). 2. Eliminate redundancy: 00 = conceptual overview with ONE example, 01 = mathematical fundamentals, 02 = ALL models detailed, 03 = ONLY OpenFOAM implementation. 3. Add missing sections: Learning Objectives, Prerequisites, Key Takeaways, Further Reading to every file. 4. Cross-reference consistency: ensure all Related Documents links exist and work bidirectionally."
+}

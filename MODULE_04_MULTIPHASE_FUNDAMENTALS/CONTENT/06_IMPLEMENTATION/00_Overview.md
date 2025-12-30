@@ -9,27 +9,27 @@
 
 ---
 
-## Overview
+## Learning Objectives
 
-> **💡 multiphaseEulerFoam = N phases, shared pressure, interphase coupling**
->
-> ทุกเฟสแบ่ง pressure field เดียวกัน แต่มี velocity แยก
+### What You Will Learn
+- Core OpenFOAM classes: `phaseSystem`, `phaseModel`, and interfacial models
+- Governing equations for Eulerian-Eulerian multiphase flow
+- PIMPLE algorithm implementation for multiphase systems
+- Memory management patterns in multiphaseEulerFoam
 
-> **multiphaseEulerFoam** = Eulerian multi-phase solver สำหรับ N phases ที่ใช้ shared pressure field
+### Why This Matters
+Understanding the solver architecture enables you to:
+- Diagnose convergence issues effectively
+- Customize interphase force models for specific applications
+- Optimize solver settings for your multiphase system
+- Extend the solver with new physics models
 
-```mermaid
-flowchart TD
-    A[phaseSystem] --> B[phaseModel Dict]
-    A --> C[MomentumTransfer]
-    A --> D[HeatTransfer]
-    A --> E[MassTransfer]
-    B --> B1[Phase 1]
-    B --> B2[Phase 2]
-    B --> B3[Phase N]
-    C --> C1[Drag]
-    C --> C2[Lift]
-    C --> C3[Virtual Mass]
-```
+### How You Will Apply This
+After this section, you will be able to:
+- Configure a complete multiphaseEulerFoam case
+- Select appropriate interphase models for your application
+- Debug simulation failures using code-level knowledge
+- Navigate the OpenFOAM source code for further customization
 
 ---
 
@@ -186,31 +186,413 @@ maxCo           1.0;
 
 ---
 
-## Concept Check
+## Key Takeaways
 
-<details>
-<summary><b>1. ทำไม multiphaseEulerFoam ใช้ shared pressure field?</b></summary>
+### Shared Pressure Field
+ใน Eulerian-Eulerian approach ทุกเฟส occupy พื้นที่เดียวกัน → ความดันต้องเท่ากันที่ทุกจุดเพื่อ enforce continuity
 
-เพราะใน Eulerian-Eulerian approach ทุกเฟส occupy พื้นที่เดียวกัน → ความดันต้องเท่ากันที่ทุกจุดเพื่อ enforce continuity
-</details>
+### Partial Elimination Algorithm (PEA)
+กำจัด drag term ออกจาก pressure equation → convergence ดีขึ้นสำหรับ **high density ratio** systems
 
-<details>
-<summary><b>2. PEA ช่วยอะไร?</b></summary>
-
-**Partial Elimination Algorithm** กำจัด drag term ออกจาก pressure equation → convergence ดีขึ้นสำหรับ **high density ratio** systems
-</details>
-
-<details>
-<summary><b>3. nOuterCorrectors กับ nCorrectors ต่างกันอย่างไร?</b></summary>
-
+### PIMPLE Settings
 - **nOuterCorrectors**: SIMPLE loops (update all equations)
 - **nCorrectors**: PISO corrections (pressure-velocity only)
-</details>
+
+---
+
+## Practical Example: Bubble Column Simulation
+
+Below is a complete multiphaseEulerFoam case setup for a bubble column with air bubbles in water.
+
+### Case Directory Structure
+
+```
+bubbleColumn/
+├── 0/
+│   ├── alpha.air
+│   ├── alpha.water
+│   ├── U.air
+│   ├── U.water
+│   ├── p_rgh
+│   ├── k
+│   └── epsilon
+├── constant/
+│   ├── phaseProperties
+│   ├── turbulenceProperties.air
+│   ├── turbulenceProperties.water
+│   └── transportProperties
+├── system/
+│   ├── controlDict
+│   ├── fvSchemes
+│   └── fvSolution
+└── Allrun
+```
+
+### 0/alpha.air
+
+```cpp
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2112                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      alpha.air;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform 0;
+
+boundaryField
+{
+    walls
+    {
+        type            zeroGradient;
+    }
+
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 0.3;
+    }
+
+    outlet
+    {
+        type            pressureInletOutletVelocity;
+        value           uniform 0;
+    }
+}
+
+// ************************************************************************* //
+```
+
+### 0/U.air
+
+```cpp
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2112                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    location    "0";
+    object      U.air;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    walls
+    {
+        type            noSlip;
+    }
+
+    inlet
+    {
+        type            flowRateInletVelocity;
+        massFlowRate    0.001;
+        value           uniform (0 0 1);
+    }
+
+    outlet
+    {
+        type            pressureInletOutletVelocity;
+        value           uniform (0 0 0);
+    }
+}
+
+// ************************************************************************* //
+```
+
+### constant/phaseProperties
+
+```cpp
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2112                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      phaseProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+phases
+(
+    water
+    {
+        transportModel  Newtonian;
+        nu              1e-06;
+        rho             1000;
+    }
+    air
+    {
+        transportModel  Newtonian;
+        nu              1.48e-05;
+        rho             1;
+
+        diameterModel   constant;
+        d               0.003;
+    }
+);
+
+// Drag Model: Schiller-Naumann for solid spheres
+drag
+{
+    (air in water)
+    {
+        type            SchillerNaumann;
+    }
+}
+
+// Lift Force: Tomiyama model for deformable bubbles
+lift
+{
+    (air in water)
+    {
+        type            Tomiyama;
+    }
+}
+
+// Virtual Mass: Standard coefficient for dispersed bubbles
+virtualMass
+{
+    (air in water)
+    {
+        type            constantCoefficient;
+        Cvm             0.5;
+    }
+}
+
+// Turbulent Dispersion Force
+turbulentDispersion
+{
+    (air in water)
+    {
+        type            none;
+    }
+}
+
+// ************************************************************************* //
+```
+
+### system/fvSolution
+
+```cpp
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2112                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+solvers
+{
+    "alpha.*"
+    {
+        nAlphaCorr      1;
+        nAlphaSubCycles 2;
+        MULESCorr       yes;
+        nLimiterIter    3;
+
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-08;
+        relTol          0;
+    }
+
+    "p_rgh.*"
+    {
+        solver          GAMG;
+        tolerance       1e-06;
+        relTol          0.01;
+
+        smoother        GaussSeidel;
+        nCellsInCoarsestLevel 10;
+    }
+
+    "U.*"
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-06;
+        relTol          0.1;
+    }
+
+    "k.*"
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-06;
+        relTol          0.1;
+    }
+
+    "epsilon.*"
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-06;
+        relTol          0.1;
+    }
+}
+
+PIMPLE
+{
+    // SIMPLE iterations
+    nOuterCorrectors    3;
+
+    // PISO corrections
+    nCorrectors         2;
+
+    // Alpha equation corrections
+    nAlphaCorr          1;
+    nAlphaSubCycles     2;
+
+    // Momentum predictor
+    momentumPredictor   yes;
+
+    // Transient options
+    transonic           no;
+    consistent          yes;
+
+    // Partial elimination for high density ratio
+    partialElimination  yes;
+}
+
+relaxationFactors
+{
+    fields
+    {
+        "p_rgh"         0.7;
+    }
+    equations
+    {
+        "U.*"           0.7;
+        "k.*"           0.7;
+        "epsilon.*"     0.7;
+    }
+}
+
+// ************************************************************************* //
+```
+
+### system/controlDict
+
+```cpp
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2112                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application     multiphaseEulerFoam;
+
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         10;
+
+deltaT          0.001;
+
+adjustTimeStep  yes;
+
+maxCo           0.5;
+
+maxAlphaCo      0.5;
+
+functions
+{
+    #includeFunc phaseMassFlow
+    #includeFunc phaseMeanVelocity
+}
+
+// ************************************************************************* //
+```
+
+### Running the Simulation
+
+```bash
+# Run the solver
+multiphaseEulerFoam
+
+# Or use the provided script
+./Allrun
+
+# For parallel processing
+decomposePar
+mpirun -np 4 multiphaseEulerFoam -parallel
+reconstructPar
+```
+
+### Monitoring Convergence
+
+```bash
+# Monitor phase volume fractions
+probeLocations postProcessing/probeLocations/
+
+# Check mass balance
+foamListTimes
+grep -h "alpha.air" 0*/alpha.air | head
+
+# Visualize with ParaView
+paraFoam -builtin
+```
 
 ---
 
 ## Related Documents
 
 - **บทถัดไป:** [01_Solver_Overview.md](01_Solver_Overview.md)
-- **Algorithm Flow:** [04_Algorithm_Flow.md](04_Algorithm_Flow.md)
-- **Model Architecture:** [03_Model_Architecture.md](03_Model_Architecture.md)
+- **Code and Model Architecture:** [02_Code_and_Model_Architecture.md](02_Code_and_Model_Architecture.md)
+- **Algorithm Flow:** [03_Algorithm_Flow.md](03_Algorithm_Flow.md)
+- **Parallel Implementation:** [04_Parallel_Implementation.md](04_Parallel_Implementation.md)

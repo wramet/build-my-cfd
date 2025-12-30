@@ -1,18 +1,34 @@
 # รูปแบบการไหลหลายเฟส (Multiphase Flow Regimes)
 
-> [!TIP] ทำไม Flow Regimes จึงมีความสำคัญใน OpenFOAM?
+> [!TIP] **ทำไม Flow Regimes จึงมีความสำคัญใน OpenFOAM?**
 > การระบุ Flow Regime ที่ถูกต้องเป็นพื้นฐานที่สำคัญที่สุดก่อนเริ่ม Simulation ทุกครั้ง ถ้าเลือก Solver ผิด เช่น ใช้ VOF กับ Bubbly flow ที่มีฟองนับพันฟอง คอมพิวเตอร์อาจทำงานไม่ได้เลย (คอมพิวเตอร์แฮงก์) หรือใช้ Eulerian-Eulerian กับ Stratified flow ที่ควรใช้ VOF ก็จะได้ผลลัพธ์ที่ไม่แม่นยำ การเข้าใจ Flow Regime จึงเป็นเหมือน "แผนที่เส้นทาง" ที่บอกว่าควรใช้เครื่องมืออะไรในการแก้ปัญหา เพื่อให้การจำลองเสถียร รวดเร็ว และแม่นยำ
 
-## ภาพรวม (Overview)
+## การเรียนรู้ (Learning Objectives)
 
-**Flow regimes** ในการไหลหลายเฟส คือรูปแบบการกระจายตัวของเฟส (phase distribution) และลักษณะทางโทโพโลยีของรอยต่อ (interface topology) ที่เกิดขึ้นตามสภาวะการไหล คุณสมบัติทางกายภาพ และข้อจำกัดทางเรขาคณิต การทำความเข้าใจรูปแบบเหล่านี้เป็นสิ่งสำคัญอย่างยิ่ง (fundamental) ในการเลือกวิธีการจำลอง (modeling approach) และสมการปิด (closure relations) ที่เหมาะสมใน OpenFOAM
+หลังจากศึกษาบทนี้ คุณจะสามารถ:
+- แบ่งประเภท Flow Regimes ตามโทโพโลยีของรอยต่อ (Interface Topology)
+- ระบุรูปแบบการไหลในท่อ (Bubbly, Slug, Churn, Annular, Stratified)
+- ใช้ตัวเลขไร้มิติ (Froude, Reynolds, Void Fraction) เพื่อทำนายการเปลี่ยนรูปแบบ
+- เลือก Solver ที่เหมาะสม (VOF vs. Eulerian-Eulerian vs. Lagrangian) ตาม Flow Regime
+- เข้าใจแนวคิด Blended Interfacial Models สำหรับรูปแบบการไหลที่เปลี่ยนผ่าน
 
-> [!INFO] ความสำคัญของ Flow Regimes
-> การระบุ Flow regime ที่ถูกต้องกำหนดสิ่งต่อไปนี้:
-> - การเลือก Solver (Eulerian-Eulerian vs. VOF vs. Hybrid)
-> - การเลือกโมเดลแรงระหว่างเฟส (Drag, Lift, Virtual mass)
-> - กลยุทธ์การจำลองความปั่นป่วน (Turbulence modeling)
-> - ข้อกำหนดความเสถียรเชิงตัวเลข (Numerical stability)
+---
+
+## 🧭 Solver Selection Flowchart
+
+```mermaid
+flowchart TD
+classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
+Start[Check Topology]:::context --> Sep{Large Interface?}:::explicit
+Sep -->|Yes| VOF[VOF: interFoam]:::implicit
+Sep -->|No| Disp{Dispersed?}:::explicit
+Disp -->|Yes| Dense{Dense?}:::explicit
+Dense -->|Yes| EEDense[multiphaseEulerFoam]:::implicit
+Dense -->|No| EEDilute[DPMFoam]:::implicit
+Disp -->|Mixed| Trans[Blended Models]:::implicit
+```
 
 ---
 
@@ -24,7 +40,7 @@
 > - **Dispersed Flow:** ใช้ Eulerian-Eulerian solvers เช่น `multiphaseEulerFoam` → ตั้งค่าใน `constant/phaseProperties` พร้อม Drag/Lift models
 > - **โครงสร้างไฟล์:** แต่ละ Solver มีไฟล์ตั้งค่าเฉพาะที่ `constant/` สำหรับนิยามเฟสและคุณสมบัติระหว่างเฟส
 
-การไหลหลายเฟสสามารถแบ่งประเภทพื้นฐานตามลักษณะทางกายภาพของรอยต่อได้ดังนี้:
+การไหลหลายเฟสสามารถแบ่งประเภทพื้นฐาตามลักษณะทางกายภาพของรอยต่อได้ดังนี้:
 
 ### 1. การไหลแบบกระจายตัว (Dispersed Flow)
 
@@ -91,7 +107,7 @@
 
 ### 2. การไหลในท่อแนวนอน (Horizontal Pipe Flow)
 
-| รูปแบบ (Regime) | ลักษณะเฉพาะ | สภาวะการเกิด | โครงสร้าง |
+| รูปแบบ (Regime) | ลักษณะเฉพระ | สภาวะการเกิด | โครงสร้าง |
 |----------------|-------------|--------------|------------|
 | **Stratified Flow** | แยกชั้นตามแรงโน้มถ่วง (ของเหลวอยู่ล่าง) | ท่อแนวนอนหรือท่อเอียงเล็กน้อย | รอยต่อชัดเจนแยกเฟส |
 | **Wavy Flow** | เกิดคลื่นที่รอยต่อระหว่างเฟส | ความเร็วก๊าซปานกลาง | รอยต่อที่มีคลื่น |
@@ -217,7 +233,7 @@ $$Re = \frac{\rho U D}{\mu}$$
 
 ---
 
-## การนำไปใช้ใน OpenFOAM
+## 💻 OpenFOAM Implementation
 
 > [!NOTE] **📂 OpenFOAM Context**
 > การนำแนวคิด Flow Regime ไปใช้ใน OpenFOAM เกี่ยวข้องกับ **การเลือกและตั้งค่า Solver** ตามหมวดหมู่:
@@ -226,23 +242,23 @@ $$Re = \frac{\rho U D}{\mu}$$
 > - **Numerical Schemes:** กำหนด `divSchemes` และ `laplacianSchemes` ใน `system/fvSchemes` ให้เหมาะกับ interface capturing (เช่น `Gauss vanLeer` สำหรับ VOF)
 > - **Solution Control:** ปรับ `PIMPLE` settings ใน `system/fvSolution` สำหรับความเสถียรของ multiphase flow
 
-### กลยุทธ์การเลือก Solver
+### การเลือก Solver ตามรูปแบบการไหล
 
-```mermaid
-flowchart TD
-classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
-classDef explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
-classDef context fill:#f5f5f5,stroke:#616161,stroke-width:1px,color:#000,stroke-dasharray: 5 5
-Start[Check Topology]:::context --> Sep{Large Interface?}:::explicit
-Sep -->|Yes| VOF[VOF: interFoam]:::implicit
-Sep -->|No| Disp{Dispersed?}:::explicit
-Disp -->|Yes| Dense{Dense?}:::explicit
-Dense -->|Yes| EEDense[multiphaseEulerFoam]:::implicit
-Dense -->|No| EEDilute[DPMFoam]:::implicit
-Disp -->|Mixed| Trans[Blended Models]:::implicit
-```
+| รูปแบบการไหล | Solver ที่เหมาะสม | เหตุผล |
+|--------------|------------------|---------|
+| **Separated (Stratified/Annular)** | `interFoam`, `multiphaseInterFoam` | VOF methods เหมาะสำหรับรอยต่อขนาดใหญ่ที่ชัดเจน |
+| **Dispersed Dense (Bubbly/Particle)** | `multiphaseEulerFoam` | Eulerian-Eulerian สำหรับความเข้มข้นสูง |
+| **Dispersed Dilute** | `DPMFoam`, `reactingParcelFoam` | Eulerian-Lagrangian สำหรับอนุภาคเจือจาง |
+| **Transitional (Slug/Churn)** | `multiphaseEulerFoam` พร้อม Blended Models | ต้องการโมเดลแบบผสม |
 
-### การใช้โมเดลแบบผสม (Blended Interfacial Models)
+> [!TIP] **Solver Configuration Guide**
+> การตั้งค่า OpenFOAM สำหรับ Flow Regimes ที่แตกต่างกัน ดูรายละเอียดเพิ่มเติมได้ใน **Solver Configuration Guide** (Sidebar แยก)
+
+---
+
+## 📋 Sidebar: Solver Configuration Guide
+
+### Blended Interfacial Models
 
 ในกรณีที่รูปแบบการไหลมีการเปลี่ยนแปลง OpenFOAM ใช้ `BlendedInterfacialModel` เพื่อเปลี่ยนผ่านระหว่างโมเดลอย่างราบรื่น
 
@@ -268,7 +284,7 @@ tmp<volScalarField> K() const
 - **Model Bubbly vs. Model Separated:** โมเดลสำหรับรูปแบบการไหลที่แตกต่างกัน โดย Bubbly model ใช้สำหรับฟองกระจายตัว ส่วน Separated model ใช้สำหรับรอยต่อขนาดใหญ่
 - **Smooth Transition:** การเปลี่ยนผ่านแบบต่อเนื่องช่วยหลีกเลี่ยงปัญหาความไม่เสถียรเชิงตัวเลขที่อาจเกิดจากการเปลี่ยนโมเดลแบบกระทันหัน
 
-### การตรวจจับรูปแบบการไหล (Flow Regime Detection)
+### Flow Regime Detection
 
 OpenFOAM มีกลไกในการตรวจจับรูปแบบการไหลเฉพาะที่:
 
@@ -292,15 +308,6 @@ volScalarField regimeIndicator = calculateRegime(alpha1, U1, U2);
 - **Void Fraction Gradient:** ความชันของเศษส่วนปริมาตรของเฟสบอกตำแหน่งและความหนาของรอยต่อ ซึ่งช่วยแยกแยะระหว่าง dispersed flow (มี gradient สูงหลายจุด) กับ separated flow (มี gradient สูงเพียงชั้นเดียว)
 - **Curvature Calculation:** ความโค้งของรอยต่อใช้ในการคำนวณแรงตึงผิว (surface tension force) ซึ่งมีความสำคัญในรูปแบบการไหลที่มีฟองหรือหยด
 - **Regime Indicator:** ตัวบ่งชี้ที่คำนวณจาก phase fraction, velocity และคุณสมบัติอื่นๆ เพื่อจำแนกประเภทของรูปแบบการไหลโดยอัตโนมัติ
-
-### การเลือก Solver ตามรูปแบบการไหล
-
-| รูปแบบการไหล | Solver ที่เหมาะสม | เหตุผล |
-|--------------|------------------|---------|
-| **Separated (Stratified/Annular)** | `interFoam`, `multiphaseInterFoam` | VOF methods เหมาะสำหรับรอยต่อขนาดใหญ่ที่ชัดเจน |
-| **Dispersed Dense (Bubbly/Particle)** | `multiphaseEulerFoam` | Eulerian-Eulerian สำหรับความเข้มข้นสูง |
-| **Dispersed Dilute** | `DPMFoam`, `reactingParcelFoam` | Eulerian-Lagrangian สำหรับอนุภาคเจือจาง |
-| **Transitional (Slug/Churn)** | `multiphaseEulerFoam` พร้อม Blended Models | ต้องการโมเดลแบบผสม |
 
 ### ตัวอย่างการตั้งค่าใน OpenFOAM
 

@@ -1,0 +1,9 @@
+{
+    "files": {
+        "00_Overview.md": "This file repeats content from 01 and lacks 3W structure. Transform into a true roadmap with Learning Objectives, modular breakdown, and navigation hub. Remove detailed equations/mathematical formulations—save those for 02.",
+        "01_Introduction.md": "Heavily redundant with 00_Overview (core concept, governing equations, closure models, comparison tables, solver info). Keep only: What/Why (concept + motivation), When to Use, and high-level architecture. Move equations to 02, implementation to 03.",
+        "02_Mathematical_Framework.md": "Good equation coverage but thin on derivations and physical meaning. Add: step-by-step averaging derivation, physical interpretation of each force term, and turbulence modeling explanation. Add Learning Objectives and Key Takeaways.",
+        "03_Implementation_Concepts.md": "Strong OpenFOAM-specific content but repeats volume averaging and equations from 01-02. Keep only unique implementation details: OpenFOAM classes, phaseProperties structure, numerical schemes, BCs, PIMPLE configuration. Remove duplicated theory."
+    },
+    "global_strategy": "Apply strict 3W separation across the learning sequence: (1) 00 as pure roadmap/nav hub with LOs/KTs, (2) 01 for What/Why concept only, (3) 02 for How math/derivations, (4) 03 for How OpenFOAM implementation. Eliminate inter-file redundancy—each equation/concept should live in ONE primary file and be referenced, not repeated. Add missing LOs/KTs to all files. Standardize Thai/English balance for consistency."
+}

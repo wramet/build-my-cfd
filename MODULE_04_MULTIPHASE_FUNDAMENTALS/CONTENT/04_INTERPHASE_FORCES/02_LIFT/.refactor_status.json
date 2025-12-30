@@ -1,0 +1,9 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Fundamental_Lift_Concepts.md",
+        "02_Specific_Lift_Models.md",
+        "03_OpenFOAM_Implementation.md"
+    ],
+    "skipped": []
+}

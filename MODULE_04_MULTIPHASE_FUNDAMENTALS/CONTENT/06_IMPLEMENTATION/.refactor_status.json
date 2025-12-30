@@ -1,0 +1,11 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Solver_Overview.md",
+        "02_Code_Architecture.md",
+        "03_Model_Architecture.md",
+        "04_Algorithm_Flow.md",
+        "05_Parallel_Implementation.md"
+    ],
+    "skipped": []
+}
