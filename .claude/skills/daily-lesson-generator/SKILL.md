@@ -1,3 +1,11 @@
+---
+name: Daily Lesson Generator
+description: |
+  Use this skill when: user wants to generate daily learning content, asks for "daily lesson", "สร้างเนื้อหาวันนี้", or "เรียนต่อจากเมื่อวาน".
+  
+  This skill generates daily learning content pulling from MODULE_01-10 according to the learning path.
+---
+
 # Daily Lesson Generator Skill
 
 สร้างเนื้อหาการเรียนรู้รายวัน โดยดึงจาก MODULE_01-10
