@@ -11,10 +11,14 @@
             "id": "821559d4f99f5acb",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "daily_learning/2026-01-01.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "2026-01-01"
             }
           }
         ]
@@ -180,12 +184,25 @@
       "bases:Create new base": false
     }
   },
-  "active": "15521585bcd515c5",
+  "active": "821559d4f99f5acb",
   "lastOpenFiles": [
+    "content_development_checklist.md",
+    "analyze_quality.py",
+    "resume_stage6.sh",
+    "resume_from_4_1.sh",
+    "enhance_only.sh",
+    "run_enhancement.sh",
+    "daily_learning/2026-01-01.md",
+    "CLAUDE.md",
+    "batch_generate.sh",
+    "daily_learning/2026-01-01.old_workflow.md",
+    "generate_day.sh",
+    "daily_learning/2025-12-31.manual_backup.md",
     "daily_learning/2025-12-31.md",
+    "01_FOUNDATION_PRIMITIVES_refactor_plan.json",
+    "What is Non Conservation?.md",
     "daily_learning/2024-12-31.md",
     "temp.md",
-    "What is Non Conservation?.md",
     "Sol/1.1 Sol_n.md",
     "Sol",
     "daily_learning/README.md",
@@ -201,23 +218,9 @@
     "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/01_FOUNDATION_PRIMITIVES/05_Common_Pitfalls.md",
     "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/01_FOUNDATION_PRIMITIVES/08_Exercises.md",
     "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/01_FOUNDATION_PRIMITIVES/07_Summary.md",
-    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/09_Exercises.md.tmp.39407.1767154546065",
-    "MODULE_09_ADVANCED_TOPICS/CONTENT/03_DESIGN_PATTERNS/05_Performance_Analysis.md.tmp.38192.1767149121083",
-    "MODULE_09_ADVANCED_TOPICS/CONTENT/03_DESIGN_PATTERNS/05_Performance_Analysis.md.tmp.38192.1767149078892",
-    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/05_OpenFOAM_Implementation.md.tmp.34216.1767141957167",
-    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/05_OpenFOAM_Implementation.md.tmp.34216.1767141946428",
-    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/05_OpenFOAM_Implementation.md.tmp.34216.1767141938065",
-    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/05_OpenFOAM_Implementation.md.tmp.34216.1767141927355",
-    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/05_OpenFOAM_Implementation.md.tmp.34216.1767141922192",
     "MODULE_10_CFD_ENGINE_DEVELOPMENT/CONTENT/05_BEYOND_OPENFOAM/01e_Benchmark_Comparison.md",
     "MODULE_10_CFD_ENGINE_DEVELOPMENT/CONTENT/05_BEYOND_OPENFOAM/01d_PyFR_Tutorial.md",
     "MODULE_10_CFD_ENGINE_DEVELOPMENT/CONTENT/05_BEYOND_OPENFOAM/01c_Nektar_Plus_Plus.md",
-    "MODULE_10_CFD_ENGINE_DEVELOPMENT/CONTENT/05_BEYOND_OPENFOAM/01b_SU2_Tutorial.md",
-    "MODULE_10_CFD_ENGINE_DEVELOPMENT/CONTENT/05_BEYOND_OPENFOAM/01a_Introduction_and_Comparison.md",
-    "MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/01_Introduction.md",
-    "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/09_FIELD_ALGEBRA/02_Arithmetic_Operations.md",
-    "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/09_FIELD_ALGEBRA/01_Introduction.md",
-    "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/01_FOUNDATION_PRIMITIVES/06_Common_Pitfalls.md",
     "images/img_10_010.jpg",
     "images/img_10_009.jpg",
     "images/img_10_008.jpg",
