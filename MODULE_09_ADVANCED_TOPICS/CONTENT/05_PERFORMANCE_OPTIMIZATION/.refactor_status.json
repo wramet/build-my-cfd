@@ -1,0 +1,13 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Expression_Templates_Syntax.md",
+        "03_Internal_Mechanics.md",
+        "04_Compilation_and_Machine_Code.md",
+        "05_Design_Patterns_and_Trade-offs.md",
+        "06_Common_Errors_and_Debugging.md",
+        "07_Appendices.md"
+    ],
+    "skipped": []
+}

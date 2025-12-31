@@ -2,7 +2,7 @@
 
 **LES, DES, and Transition Modeling for Flows Where RANS is Insufficient**
 
-**Estimated Reading Time:** 30-35 minutes
+**Estimated Reading Time:** 35-40 minutes
 
 ---
 
@@ -16,15 +16,21 @@ By the end of this section, you will be able to:
 - **Set up** DES simulations with proper RANS-LES hybrid meshing strategies
 - **Implement** transition modeling using the γ-Reθ model for practical engineering flows
 - **Evaluate** computational costs and accuracy trade-offs between different turbulence approaches
+- **Diagnose** common issues like Grid-Induced Separation and incorrect transition prediction
 
 ---
 
 ## Prerequisites
 
-- **Turbulence Fundamentals** ([Module 03, Section 03](03_TURBULENCE_MODELING/01_Turbulence_Fundamentals.md)): RANS equations, turbulence scales, k-ε and k-ω SST models
-- **Wall Treatment** ([Module 03, Section 03](03_TURBULENCE_MODELING/03_Wall_Treatment.md)): y+ concepts, wall functions vs. resolved boundary layers
-- **Basic OpenFOAM Setup** ([Module 02](../../MODULE_02_MESHING_AND_CASE_SETUP/)): Creating case directories, setting boundary conditions
-- **Mesh Quality** ([Module 02, Section 05](../../MODULE_02_MESHING_AND_CASE_SETUP/CONTENT/05_MESH_QUALITY_AND_MANIPULATION/01_Mesh_Quality_Criteria.md)): Mesh requirements for different flow regimes
+**Essential Knowledge:**
+- **Turbulence Fundamentals** ([Module 03, Section 03](03_TURBULENCE_MODELING/01_Turbulence_Fundamentals.md)) - RANS equations, turbulence scales, k-ε and k-ω SST models
+- **Wall Treatment** ([Module 03, Section 03](03_TURBULENCE_MODELING/03_Wall_Treatment.md)) - y+ concepts, wall functions vs. resolved boundary layers
+- **Basic OpenFOAM Setup** ([Module 02](../../MODULE_02_MESHING_AND_CASE_SETUP/)) - Creating case directories, setting boundary conditions
+- **Mesh Quality** ([Module 02, Section 05](../../MODULE_02_MESHING_AND_CASE_SETUP/CONTENT/05_MESH_QUALITY_AND_MANIPULATION/01_Mesh_Quality_Criteria.md)) - Mesh requirements for different flow regimes
+
+**Recommended Background:**
+- **RANS Models** ([Module 03, Section 03](03_TURBULENCE_MODELING/02_RANS_Models.md)) - Understanding of k-ε, k-ω, and Spalart-Allmaras models
+- **Numerical Methods** ([Module 03, Section 07](07_ADVANCED_TOPICS/01_Numerical_Methods.md)) - Discretization schemes (helpful for LES stability)
 
 ---
 
@@ -57,22 +63,39 @@ By the end of this section, you will be able to:
 | LES (wall-modeled) | 20-50× | Good to excellent | High Re flows where DES insufficient |
 | DNS | 10,000×+ | Exact | Research only, very low Re |
 
+**Quick decision tree:**
+```
+Need unsteady features?
+├─ No → Use RANS (fastest)
+└─ Yes
+   ├─ Low Re (< 10⁶) + thin boundary layers?
+   │  └─ Yes → Use wall-resolved LES (most accurate)
+   ├─ High Re (> 10⁶) + wall-bounded?
+   │  └─ Yes → Use DES (balance accuracy/cost)
+   └─ Separated flows without walls?
+      └─ Yes → Use LES (best accuracy)
+
+Need transition prediction?
+├─ Yes (Re < 10⁶, low Tu) → Use γ-Reθ model
+└─ No → Fully turbulent RANS
+```
+
 ---
 
 ## 1. Large Eddy Simulation (LES)
 
 ### 1.1 Why Use LES?
 
-**Motivation:** RANS models average all turbulence fluctuations, which works well for steady, attached flows but fails for flows dominated by unsteady, coherent structures. LES bridges this gap by:
+**Motivation:** RANS models time-average all turbulence fluctuations, which works well for steady, attached flows but fails for flows dominated by unsteady, coherent structures. LES bridges this gap by:
 
 - **Resolving** large, energy-carrying eddies directly (which are flow-dependent and cannot be modeled universally)
 - **Modeling** only small, isotropic eddies (which are more universal and easier to model)
 - **Capturing** unsteady phenomena like vortex shedding, bluff body wakes, and mixing layers naturally
 
 **When to choose LES:**
-- You need accurate unsteady flow features
+- You need accurate unsteady flow features (vortex shedding, acoustic sources, mixing)
 - The flow is dominated by large-scale turbulent structures
-- Computational resources are sufficient (factor of ~100× RANS)
+- Computational resources are sufficient (factor of ~100× RANS for wall-resolved)
 - Reynolds number is moderate (Re < 10⁶ for wall-resolved LES)
 - You need detailed spectral or frequency-domain information
 
@@ -80,6 +103,7 @@ By the end of this section, you will be able to:
 - High Reynolds number with thin boundary layers (use DES or wall-modeled LES instead)
 - Only steady-state statistics are needed (RANS may suffice)
 - Computational budget is limited (DES is more efficient)
+- High Re external aerodynamics with attached boundary layers (DES better)
 
 ### 1.2 What is LES? (Theoretical Foundation)
 
@@ -91,6 +115,11 @@ $$\frac{\partial \bar{u}_i}{\partial t} + \bar{u}_j\frac{\partial \bar{u}_i}{\pa
 Where:
 - $\bar{u}_i$ = filtered (resolved) velocity
 - $\tau_{ij} = \overline{u_i u_j} - \bar{u}_i \bar{u}_j$ = subgrid-scale stress tensor (must be modeled)
+
+**Filtering operation:**
+$$\bar{u}(\mathbf{x}) = \int G(\mathbf{x} - \mathbf{x'}; \Delta) u(\mathbf{x'}) d\mathbf{x'}$$
+
+Where $G$ is the filter function and $\Delta$ is the filter width (typically related to cell size).
 
 **Subgrid-Scale (SGS) Models:**
 
@@ -106,22 +135,25 @@ Where:
 - $C_s$ computed dynamically during simulation
 - Better for complex flows with varying turbulence characteristics
 - Can backscatter (energy from small to large scales)
+- More expensive and potentially unstable
 
 **WALE (Wall-Adapting Local Eddy-viscosity):**
 - Better near-wall behavior
 - Correct $y^3$ scaling near walls
 - Recommended for wall-bounded flows
+- Zero eddy viscosity in pure shear (automatically)
 
 **k-equation SGS:**
 - Solves transport equation for SGS turbulent kinetic energy
 - More expensive but more accurate for complex flows
+- Better for flows with rapid changes in turbulence
 
 | SGS Model | Advantages | Disadvantages | Typical Use |
 |-----------|------------|---------------|-------------|
-| Smagorinsky | Simple, robust | Over-dissipates, poor near walls | General flows, initial studies |
-| dynamicKEqn | Adapts to flow | Can be unstable | Complex flows with varying turbulence |
-| WALE | Good wall behavior | More complex | Wall-bounded flows |
-| kEqn | More physical | Expensive | High-accuracy requirements |
+| Smagorinsky | Simple, robust, stable | Over-dissipates, poor near walls | General flows, initial studies |
+| dynamicKEqn | Adapts to flow, backscatter | Can be unstable, expensive | Complex flows with varying turbulence |
+| WALE | Good wall behavior, automatic | More complex | Wall-bounded flows |
+| kEqn | More physical, accurate | Expensive | High-accuracy requirements |
 
 ### 1.3 How to Set Up LES in OpenFOAM
 
@@ -155,6 +187,11 @@ $$N_{LES} \approx \frac{Re_L}{144} \left(\frac{L}{\delta}\right)^3$$
 
 Where $Re_L$ is Reynolds number based on length $L$ and boundary layer thickness $\delta$.
 
+**Example:** For Re = 10⁶ with L/δ = 100:
+$$N_{LES} \approx \frac{10^6}{144} \times 100^3 \approx 7 \times 10^{10} \text{ cells (impractical)}$$
+
+This demonstrates why wall-resolved LES is impractical at high Re.
+
 #### Step 2: Configure turbulenceProperties
 
 ```cpp
@@ -186,6 +223,13 @@ LES
     // dynamicKEqnCoeffs
     // {
     //     filter       simple;
+    // }
+
+    // If using WALE:
+    // WALECoeffs
+    // {
+    //     Ck          0.094;
+    //     Cw          0.325;
     // }
 }
 ```
@@ -355,6 +399,16 @@ PIMPLE
 4. Run until statistical convergence (monitor bulk velocity)
 5. Compare mean velocity and Reynolds stress profiles to Moser et al. DNS data
 
+**Key files to create:**
+- `constant/polyMesh/blockMeshDict` - Channel mesh
+- `constant/turbulenceProperties` - LES configuration
+- `0/U`, `0/p`, `0/k`, `0/nuSgs` - Initial/boundary conditions
+- `system/controlDict`, `system/fvSchemes`, `system/fvSolution` - Solver settings
+
+**Validation data:**
+- Mean velocity: u+ = y+ for y+ < 5 (viscous sublayer)
+- Log-law region: u+ = (1/κ) ln(y+) + B, κ ≈ 0.41, B ≈ 5.0
+
 ---
 
 ## 2. Detached Eddy Simulation (DES)
@@ -372,11 +426,13 @@ PIMPLE
 - Wall-bounded flows with massive separation
 - Bluff bodies with wakes (aircraft, buildings, vehicles)
 - Cases where LES is too expensive but RANS is inaccurate
+- External aerodynamics at moderate to high Re
 
 **When NOT to choose DES:**
-- Attached flows (RANS is sufficient)
-- Purely separated flows without walls (LES is better)
+- Attached flows (RANS is sufficient and faster)
+- Purely separated flows without walls (LES is better and simpler)
 - Cases with ambiguous RANS-LES transition (may cause GIS)
+- Very low Re flows (wall-resolved LES may be feasible)
 
 ### 2.2 What is DES? (Theoretical Foundation)
 
@@ -386,13 +442,20 @@ PIMPLE
 $$l_{DES} = \min(l_{RANS}, C_{DES} \Delta)$$
 
 Where:
-- $l_{RANS}$ = RANS length scale (e.g., $k^{3/2}/\epsilon$ for k-ε)
+- $l_{RANS}$ = RANS length scale (e.g., $k^{3/2}/\epsilon$ for k-ε, or $\tilde{\nu}/S$ for Spalart-Allmaras)
 - $C_{DES}$ = calibration constant (typically 0.65)
 - $\Delta$ = local grid spacing (usually max(Δx, Δy, Δz))
 
 **Switching behavior:**
-- Near walls: $l_{RANS} < C_{DES}\Delta$ → RANS mode
-- Separated regions: $C_{DES}\Delta < l_{RANS}$ → LES mode
+- Near walls: $l_{RANS} < C_{DES}\Delta$ → RANS mode (modeled turbulence)
+- Separated regions: $C_{DES}\Delta < l_{RANS}$ → LES mode (resolved turbulence)
+
+**Eddy viscosity modification:**
+$$\nu_t = \frac{l_{DES}^2}{\nu} |\tilde{S}|$$
+
+This ensures that:
+- In RANS regions: standard RANS eddy viscosity
+- In LES regions: SGS eddy viscosity with length scale ≈ Δ
 
 ### 2.3 DES Variants
 
@@ -407,6 +470,19 @@ Where:
 - Causes premature switch to LES mode
 - Results in "artificial separation" due to modeled stress depletion
 - **DDES prevents this** with shielding function based on eddy viscosity
+
+**DDES shielding function:**
+$$f_d = 1 - \tanh\left([\beta_1 d]^2\right)$$
+
+Where:
+- $d$ = distance to wall
+- $\beta_1$ = calibration parameter
+- $f_d → 1$ in LES region, $f_d → 0$ in RANS region
+
+**IDDES additional features:**
+- Wall-modeled LES capability in near-wall region
+- Better handling of "gray area" between RANS and LES
+- More accurate for flows with thin boundary layers
 
 ### 2.4 How to Set Up DES in OpenFOAM
 
@@ -439,6 +515,12 @@ refinementRegions
 }
 ```
 
+**Recommended meshing workflow:**
+1. Start with coarse mesh, run RANS to identify separation zones
+2. Refine only in separated regions
+3. Keep moderate resolution in attached boundary layers
+4. Use gradual refinement (max 2:1 size ratio between adjacent cells)
+
 #### Step 2: Configure turbulenceProperties
 
 ```cpp
@@ -469,6 +551,11 @@ DES
     // }
 }
 ```
+
+**Model selection guidelines:**
+- **SpalartAllmarasDDES**: Default choice for most applications (prevents GIS)
+- **SpalartAllmarasIDDES**: Use for high Re flows with thin boundary layers
+- **SpalartAllmarasDES**: Avoid unless validating against old cases
 
 #### Step 3: Initial and Boundary Conditions
 
@@ -520,6 +607,18 @@ boundaryField
         value           uniform 0;
     }
 }
+```
+
+**Best practice: Initialize from RANS solution**
+```bash
+# 1. Run RANS first
+simpleFoam
+
+# 2. Map RANS solution to DES case
+mapFields ../ransCase -consistent
+
+# 3. Switch turbulenceProperties to DES
+# 4. Continue with pimpleFoam
 ```
 
 #### Step 4: Solver Settings
@@ -627,6 +726,12 @@ postProcess -func " DESLengthScale"
 - Examine mesh refinement in RANS zones (should be moderate)
 - Compare RANS solution: if DES separates earlier, likely GIS
 
+**Visualization in ParaView:**
+1. Load `DESLenghtScale` field
+2. Compare `l_RANS` and `C_DES*Δ`
+3. Identify transition zones where they are equal
+4. Check for unexpected early transitions
+
 ### 2.7 Practical DES Exercise: Flow Past a Cube
 
 **Objective:** Set up DES for turbulent flow over a surface-mounted cube (Re_H = 40,000).
@@ -641,6 +746,11 @@ postProcess -func " DESLengthScale"
 4. Monitor DES switching behavior
 5. Compare wake statistics and Strouhal number to experiments
 
+**Expected validation:**
+- Strouhal number St ≈ 0.1-0.15 for vortex shedding
+- Recirculation length L/H ≈ 1-2
+- Reynolds stress distribution in wake
+
 ---
 
 ## 3. Transition Modeling
@@ -652,6 +762,7 @@ postProcess -func " DESLengthScale"
 - **Overpredict skin friction** (laminar BL has lower drag)
 - **Miss separation bubbles** (laminar separation → turbulent reattachment)
 - **Inaccurate lift prediction** (transition affects pressure distribution)
+- **Wrong heat transfer** (laminar vs. turbulent Nusselt number differs significantly)
 
 **When to use transition modeling:**
 - External aerodynamics at low Re (airfoils, wings, wind turbines)
@@ -664,8 +775,18 @@ postProcess -func " DESLengthScale"
 - High Re flows (Re > 10⁷) with naturally turbulent boundary layers
 - Internal flows with high disturbance levels
 - When turbulence intensity is high (> 5%)
+- When transition location is known to be very near leading edge
+
+**Impact of transition (example: airfoil at Re = 200,000):**
+| Parameter | Fully Turbulent | With Transition | Difference |
+|-----------|----------------|-----------------|------------|
+| Drag coefficient Cd | 0.025 | 0.015 | -40% |
+| Lift coefficient Cl | 0.8 | 0.9 | +12.5% |
+| Transition location | N/A (x/c = 0) | x/c = 0.4 | — |
 
 ### 3.2 What is Transition? (Physical Mechanisms)
+
+**Transition types:**
 
 | Transition Type | Physical Mechanism | Trigger | Typical Applications |
 |----------------|-------------------|---------|---------------------|
@@ -676,9 +797,19 @@ postProcess -func " DESLengthScale"
 
 **Key parameters:**
 - **Tu (turbulence intensity):** Free-stream disturbance level
+  - Tu < 0.5%: Clean wind tunnel, natural transition
+  - Tu = 1-3%: Typical atmospheric conditions
+  - Tu > 5%: Turbomachinery, rough surfaces
 - **Reθ (momentum thickness Reynolds number):** Critical threshold for transition
 - **Pressure gradient:** Accelerating (stabilizing) vs. decelerating (destabilizing)
 - **Surface roughness:** Trips transition earlier
+- **Acoustic disturbances:** Can trigger early transition
+
+**Transition prediction challenges:**
+- Strongly dependent on free-stream turbulence intensity
+- Sensitive to pressure gradient
+- Surface roughness effects difficult to quantify
+- Three-dimensional effects (crossflow) complicate prediction
 
 ### 3.3 The γ-Reθ Model
 
@@ -686,10 +817,21 @@ postProcess -func " DESLengthScale"
 - **γ (gamma):** Intermittency (0 = laminar, 1 = turbulent)
 - **Reθ:** Momentum thickness Reynolds number (controls transition onset)
 
+**Model advantages:**
+- Local (non-local calculations not required)
+- Compatible with standard RANS models (k-ω SST)
+- Calibrated for wide range of flows
+- Relatively easy to implement
+
 **Transport equations:**
 
 **Intermittency (γ):**
 $$\frac{\partial (\rho \gamma)}{\partial t} + \frac{\partial (\rho u_j \gamma)}{\partial x_j} = P_\gamma - E_\gamma + \frac{\partial}{\partial x_j}\left[(\nu + \frac{\nu_t}{\sigma_\gamma})\frac{\partial \gamma}{\partial x_j}\right]$$
+
+Where:
+- $P_\gamma$ = production term (triggers transition)
+- $E_\gamma$ = destruction term (relaminarization)
+- $\sigma_\gamma$ = model constant
 
 **Transition momentum thickness Re (Reθ):**
 $$\frac{\partial (\rho \tilde{R}e_\theta)}{\partial t} + \frac{\partial (\rho u_j \tilde{R}e_\theta)}{\partial x_j} = P_{\theta} + \frac{\partial}{\partial x_j}\left[\sigma_{\theta}(\nu + \nu_t)\frac{\partial \tilde{R}e_\theta}{\partial x_j}\right]$$
@@ -698,6 +840,14 @@ $$\frac{\partial (\rho \tilde{R}e_\theta)}{\partial t} + \frac{\partial (\rho u_
 - Eddy viscosity is multiplied by intermittency: $\nu_{t,eff} = \nu_t \cdot \gamma$
 - In laminar regions (γ → 0): turbulence production is suppressed
 - In turbulent regions (γ → 1): standard RANS behavior
+- Production term in k-equation: $P_k = \gamma \cdot P_{k,standard}$
+
+**Transition onset criteria:**
+$$Re_{\theta} > Re_{\theta,c}(Tu, \lambda_\theta)$$
+
+Where:
+- $Re_{\theta,c}$ = critical Reynolds number (function of Tu and pressure gradient)
+- $\lambda_\theta$ = pressure gradient parameter
 
 ### 3.4 How to Set Up Transition Modeling in OpenFOAM
 
@@ -710,7 +860,12 @@ $$\frac{\partial (\rho \tilde{R}e_\theta)}{\partial t} + \frac{\partial (\rho u_
 **Grid requirements:**
 - y+ ≈ 1 (resolve viscous sublayer for accurate transition prediction)
 - Similar resolution to wall-resolved LES in boundary layer
-- Adequate streamwise resolution to capture transition region
+- Adequate streamwise resolution to capture transition region (Δx+ ≈ 50)
+- At least 20-30 cells in boundary layer
+
+**Computational cost:**
+- 1.2-1.5× standard RANS (due to additional equations)
+- Significantly cheaper than LES/DES for applicable flows
 
 #### Step 2: Configure turbulenceProperties
 
@@ -883,6 +1038,16 @@ print(f"omega = {omega:.2f} 1/s")
 print(f"ReTheta = {ReTheta:.0f}")
 ```
 
+**Tu-based inlet values:**
+
+| Tu | k (for U=10 m/s) | Reθ | Transition behavior |
+|----|------------------|-----|---------------------|
+| 0.1% | 0.00015 | 200 | Very late transition |
+| 0.5% | 0.00375 | 400 | Late transition |
+| 1% | 0.015 | 600 | Moderate transition |
+| 2% | 0.06 | 1000 | Early transition |
+| 5% | 0.375 | 2000 | Very early transition |
+
 #### Step 5: Solver Settings
 
 ```cpp
@@ -926,6 +1091,12 @@ laplacianSchemes
 }
 ```
 
+**Solution strategy:**
+1. Start with first-order schemes and low maxCo (0.3-0.5)
+2. Run until solution stabilizes
+3. Gradually increase to second-order schemes
+4. Increase maxCo to 0.5-0.8 for efficiency
+
 ### 3.5 Practical Transition Modeling Exercise: Airfoil at Low Re
 
 **Objective:** Predict transition on NACA 0012 airfoil at Re_c = 200,000, α = 2°.
@@ -944,8 +1115,14 @@ laplacianSchemes
 
 **Expected results:**
 - Transition at x/c ≈ 0.3-0.5 (depends on Tu)
-- Lower drag than fully turbulent
+- Lower drag than fully turbulent (Cd reduced by 30-50%)
 - Possible laminar separation bubble near leading edge
+- Higher lift than fully turbulent prediction
+
+**Validation:**
+- Compare Cf distribution to XFOIL or experimental data
+- Check for sudden rise in Cf (indicates transition)
+- Verify transition location matches expected range
 
 ### 3.6 Troubleshooting Transition Models
 
@@ -955,6 +1132,16 @@ laplacianSchemes
 | Early transition | γ drops too quickly | Increase inlet Reθ, decrease Tu |
 | Unstable solution | Oscillations in γ | Reduce maxCo, use upwind schemes initially |
 | Wrong transition location | γ transitions at wrong x | Adjust Reθ based on experimental data |
+| Solution diverges | Residuals increase | Use lower under-relaxation, start with first-order schemes |
+| No effect on results | Same as fully turbulent | Verify transition is enabled, check γ field values |
+
+**Verification checklist:**
+- [ ] Transition model enabled in turbulenceProperties
+- [ ] k-ω SST is the base RANS model
+- [ ] Mesh has y+ ≈ 1 in boundary layer
+- [ ] Inlet Tu and Reθ are physically reasonable
+- [ ] Gamma field shows variation (0 < γ < 1 in transition region)
+- [ ] Results differ from fully turbulent case
 
 ---
 
@@ -962,18 +1149,34 @@ laplacianSchemes
 
 ### 4.1 Model Selection Summary
 
-**Model Selection Guide:**
-- **RANS:** Use for attached flows, steady-state calculations, initial design iterations
-- **Transition modeling:** Add for low Re external flows, turbomachinery, when transition affects performance
-- **DES:** Use for high Re flows with massive separation where LES is too expensive
-- **LES:** Use for fundamental studies, moderate Re flows, when detailed unsteady information is needed
+**Quick decision guide:**
 
-**Computational Cost Hierarchy:**
 ```
-RANS (baseline) → Transition (+20-50%) → DES (5-20×) → LES (100×) → DNS (10,000×)
+FLOW ASSESSMENT
+│
+├─ Need unsteady features?
+│  ├─ No → RANS (fast, adequate for attached flows)
+│  └─ Yes → Continue
+│
+├─ Reynolds number
+│  ├─ Low (< 10⁶) → Wall-resolved LES (most accurate)
+│  └─ High (> 10⁶) → Continue
+│
+├─ Wall-bounded?
+│  ├─ Yes → DES (optimal cost/accuracy balance)
+│  └─ No → LES (simplest, most accurate)
+│
+└─ Need transition prediction?
+   ├─ Yes (Re < 10⁶, low Tu) → γ-Reθ model
+   └─ No → Fully turbulent
 ```
 
-**Critical Success Factors:**
+**Computational cost hierarchy:**
+```
+RANS (1×) → Transition (1.2-1.5×) → DES (5-20×) → LES (100×) → DNS (10,000×)
+```
+
+**Critical success factors:**
 
 | Aspect | LES | DES | Transition |
 |--------|-----|-----|------------|
@@ -993,94 +1196,108 @@ RANS (baseline) → Transition (+20-50%) → DES (5-20×) → LES (100×) → DN
 | CFL too high for LES | Temporal aliasing, wrong dynamics | Keep maxCo ≤ 0.5, monitor Co distribution |
 | Insufficient sampling time | Poor statistics, noisy results | Sample for > 10 large-eddy turnover times |
 | Wrong inlet turbulence | Wrong transition/separation behavior | Match experimental Tu and length scale |
+| Using wrong SGS model | Poor results for specific flow | Use WALE for wall-bounded, dynamic for complex flows |
+| Ignoring GIS in DES | Artificial separation, wrong physics | Use DDES/IDDES, verify RANS mode in attached BL |
 
 ### 4.3 Quick Reference Tables
 
 **LES SGS Model Selection:**
 
-| Application | Recommended Model | Cs/Settings |
-|-------------|-------------------|-------------|
-| General flows | Smagorinsky | Cs = 0.1-0.15 |
-| Wall-bounded | WALE | Default settings |
-| Complex flows | dynamicKEqn | Dynamic calculation |
-| High accuracy | kEqn | Solve SGS k-equation |
+| Application | Recommended Model | Cs/Settings | Reason |
+|-------------|-------------------|-------------|---------|
+| General flows | Smagorinsky | Cs = 0.1-0.15 | Simple, robust, good starting point |
+| Wall-bounded | WALE | Default settings | Correct y³ scaling near walls |
+| Complex flows | dynamicKEqn | Dynamic calculation | Adapts to local flow conditions |
+| High accuracy | kEqn | Solve SGS k-equation | Most physical, higher cost |
 
 **DES Variant Selection:**
 
 | Application | Recommended Model | Notes |
 |-------------|-------------------|-------|
-| General purpose | SpalartAllmarasDDES | Prevents GIS |
+| General purpose | SpalartAllmarasDDES | Prevents GIS, default choice |
 | High Re, thin BL | SpalartAllmarasIDDES | Wall-modeled LES capability |
-| Research (old cases) | SpalartAllmarasDES | May have GIS issues |
+| Research (old cases) | SpalartAllmarasDES | May have GIS issues, avoid for new cases |
 
 **Transition Model Applications:**
 
-| Flow Type | Tu Range | Expected Transition |
-|-----------|----------|-------------------|
-| Clean wind tunnel | 0.1-0.5% | Late (x/c > 0.5) |
-| Atmosphere (low) | 1-2% | Moderate (x/c ≈ 0.3-0.5) |
-| Turbomachinery | 3-10% | Early (x/c < 0.2) |
-| Rough surfaces | > 5% | Very early |
+| Flow Type | Tu Range | Expected Transition | Reθ Range |
+|-----------|----------|-------------------|-----------|
+| Clean wind tunnel | 0.1-0.5% | Late (x/c > 0.5) | 100-300 |
+| Atmosphere (low) | 1-2% | Moderate (x/c ≈ 0.3-0.5) | 400-800 |
+| Turbomachinery | 3-10% | Early (x/c < 0.2) | 1000-2000 |
+| Rough surfaces | > 5% | Very early | > 2000 |
 
-### 4.4 Workflow Quick Guides
+**Mesh Requirements Summary:**
 
-**LES Quick Start:**
-```bash
-# 1. Check mesh resolution
-checkMesh
-python3 calculate_yplus.py  # Verify y+ ≈ 1, Δ+ ≈ 50
+| Method | y+ | Δx+ | Δz+ | Aspect Ratio | Cost |
+|--------|----|----|----|--------------|------|
+| RANS | 1-100 | — | — | < 1000 | 1× |
+| LES (wall-resolved) | ≈ 1 | 50-100 | 15-30 | 20-40 | 100× |
+| DES (RANS zone) | 30-100 | — | — | < 100 | 5-20× |
+| DES (LES zone) | — | ≈ 50 | ≈ 20 | ≈ 1-20 | — |
+| Transition | ≈ 1 | ≈ 50 | — | < 50 | 1.2-1.5× |
 
-# 2. Set up turbulence
-# constant/turbulenceProperties: simulationType LES;
-# constant/turbulenceProperties: LESModel Smagorinsky;
+### 4.4 Best Practices
 
-# 3. Set time step
-# system/controlDict: maxCo 0.5;
+**LES:**
+1. Start with Smagorinsky model (Cs = 0.1-0.15)
+2. Verify mesh resolution before running (check y+, Δ+)
+3. Keep CFL ≤ 0.5 for temporal accuracy
+4. Initialize from RANS if possible (faster startup)
+5. Sample statistics only after flow development (≥ 10T)
+6. Use second-order time schemes (backward) for accuracy
 
-# 4. Run
-pimpleFoam
+**DES:**
+1. Always use DDES or IDDES (avoid original DES)
+2. Initialize from RANS solution (mapFields)
+3. Refine only in separated regions (NOT attached BL)
+4. Monitor for GIS (compare to RANS solution)
+5. Use y+ ≈ 30-100 in RANS regions
+6. Verify LES mode in separated regions
 
-# 5. Monitor
-tail -f log.pimpleFoam | grep Co
-```
+**Transition:**
+1. Use with k-ω SST only (best calibrated)
+2. Resolve viscous sublayer (y+ ≈ 1)
+3. Match inlet Tu to experimental conditions
+4. Start with low CFL and first-order schemes
+5. Verify γ shows variation (0 < γ < 1)
+6. Compare to fully turbulent case to quantify effect
 
-**DES Quick Start:**
-```bash
-# 1. Create hybrid mesh
-# Near-wall: y+ ≈ 50, moderate resolution
-# Wake: refined, isotropic
+### 4.5 Key Takeaways
 
-# 2. Run RANS first
-simpleFoam  # Get good initial conditions
+1. **RANS is sufficient** for attached, steady flows
+   - Use as default for initial design iterations
+   - Transition modeling adds 20-50% cost for low Re flows
 
-# 3. Switch to DES
-# constant/turbulenceProperties: simulationType DES;
-# constant/turbulenceProperties: DESModel SpalartAllmarasDDES;
+2. **LES provides most accurate unsteady results**
+   - Resolves large eddies directly
+   - Requires y+ ≈ 1, Δ+ ≈ 50 (wall-resolved)
+   - Prohibitively expensive at high Re (~100× RANS)
 
-# 4. Continue DES run
-pimpleFoam
-```
+3. **DES balances accuracy and cost**
+   - RANS in boundary layer, LES in separated regions
+   - 5-20× RANS cost (much cheaper than wall-resolved LES)
+   - Use DDES/IDDES to prevent Grid-Induced Separation
 
-**Transition Quick Start:**
-```bash
-# 1. Create fine mesh with y+ ≈ 1
-# 2. Estimate inlet conditions
-# k = 1.5*(U*Tu)^2
-# omega = k^0.5/(l*0.09^0.25)
+4. **Transition modeling is essential for low Re**
+   - Significant drag reduction (30-50%)
+   - Affects lift, separation, heat transfer
+   - γ-Reθ model is practical for engineering flows
 
-# 3. Set up transition model
-# constant/turbulenceProperties: transitionModel gammaReTheta;
+5. **Mesh quality is critical**
+   - LES: y+ ≈ 1, isotropic cells, Δ+ ≈ 50
+   - DES: Hybrid mesh, moderate refinement in RANS zones
+   - Transition: y+ ≈ 1, adequate streamwise resolution
 
-# 4. Initialize gamma and ReTheta
-# 0/gamma: internalField uniform 1
-# 0/ReTheta: internalField uniform 1000
+6. **Inlet conditions matter**
+   - LES/DES: Realistic turbulence spectra
+   - Transition: Correct Tu and Reθ
+   - Always match experimental conditions when possible
 
-# 5. Run
-pimpleFoam
-
-# 6. Check transition location
-# Look for gamma dropping from 1 to 0 then returning to 1
-```
+7. **Computational cost scales with Reynolds number**
+   - Wall-resolved LES cost ∝ Re^(2.4-2.8)
+   - DES cost ∝ Re^1.5 (much better scaling)
+   - Transition modeling adds minimal overhead
 
 ---
 
@@ -1097,11 +1314,23 @@ pimpleFoam
 - Time step: maxCo ≤ 0.5
 
 **Tasks:**
-1. Generate appropriate mesh
-2. Set up LES with Smagorinsky model
-3. Run until statistical convergence
-4. Compare reattachment length (x_r/h) to experiments (~6-7)
-5. Extract mean velocity profiles at various x/h locations
+1. Generate appropriate mesh using blockMeshDict
+2. Set up LES with Smagorinsky model in turbulenceProperties
+3. Configure fvSchemes and fvSolution for LES
+4. Run until statistical convergence (monitor reattachment length)
+5. Compare reattachment length (x_r/h) to experiments (~6-7)
+6. Extract mean velocity profiles at various x/h locations
+
+**Validation:**
+- Reattachment length: x_r/h ≈ 6-7
+- Mean velocity profiles at x/h = 1, 3, 5, 7
+- Reynolds stress profiles (-u'v', u'²)
+
+**Files to create:**
+- `constant/polyMesh/blockMeshDict` - Step geometry
+- `constant/turbulenceProperties` - LES configuration
+- `0/U`, `0/p`, `0/k`, `0/nuSgs` - Initial/boundary conditions
+- `system/controlDict`, `system/fvSchemes`, `system/fvSolution` - Solver settings
 
 **Expected outcome:** Accurate prediction of reattachment length and turbulent statistics.
 
@@ -1116,15 +1345,22 @@ pimpleFoam
 - Compare to RANS (k-ω SST)
 
 **Tasks:**
-1. Create mesh with y+ ≈ 50 on cylinder surface
-2. Refine wake region for LES mode
-3. Run both RANS and DES
+1. Create mesh with y+ ≈ 50 on cylinder surface (RANS zone)
+2. Refine wake region for LES mode (isotropic cells)
+3. Run both RANS and DES simulations
 4. Compare:
    - Strouhal number (St ≈ 0.2 for this Re)
    - Lift and drag coefficients
    - Wake structure and vortex shedding
+   - Computational cost
 
-**Expected outcome:** DES captures unsteady vortex shedding, RANS does not.
+**Validation:**
+- Strouhal number: St = fD/U∞ ≈ 0.2
+- Drag coefficient: Cd ≈ 1.2
+- Lift coefficient amplitude: Cl' ≈ 0.5
+- DES should capture vortex shedding, RANS should not
+
+**Key learning:** DES captures unsteady physics that RANS misses, at moderate computational cost.
 
 ### Exercise 3: Transition Modeling on Airfoil
 
@@ -1135,17 +1371,58 @@ pimpleFoam
 - Re_c = 200,000, α = 2°
 - Mesh: C-mesh with y+ ≈ 1
 - Model: k-ω SST + γ-Reθ
+- Inlet Tu = 0.1% (clean wind tunnel)
 
 **Tasks:**
-1. Generate fine boundary layer mesh
-2. Set inlet Tu = 0.5% (clean tunnel)
+1. Generate fine boundary layer mesh (≈ 30 cells in BL)
+2. Set inlet conditions: Tu = 0.1%, Reθ = 200
 3. Run with and without transition model
 4. Compare:
-   - Skin friction coefficient Cf
+   - Skin friction coefficient Cf distribution
    - Drag coefficient (Cd)
-   - Transition location vs. XFOIL
+   - Transition location vs. XFOIL predictions
+   - Lift coefficient (Cl)
+
+**Validation:**
+- Compare to XFOIL predictions
+- Check transition location (x/c ≈ 0.3-0.5)
+- Verify drag reduction (≈ 30-50% lower than fully turbulent)
+- Examine Cf for sudden rise (indicates transition)
 
 **Expected outcome:** Transition model predicts delayed transition and lower drag compared to fully turbulent.
+
+### Exercise 4: Comparative Study
+
+**Objective:** Compare all advanced methods on same geometry.
+
+**Geometry:** 2D hill at Re_h = 10,000
+
+**Methods to test:**
+1. RANS (k-ω SST)
+2. Transition model (γ-Reθ)
+3. DES (SpalartAllmarasDDES)
+4. LES (Smagorinsky)
+
+**Tasks:**
+1. Set up each method separately
+2. Run all simulations to convergence
+3. Compare:
+   - Separation bubble size
+   - Reattachment length
+   - Velocity profiles
+   - Computational cost (CPU hours)
+   - Wall clock time
+
+**Analysis:**
+- Create table comparing accuracy vs. cost
+- Identify which method is optimal for this flow
+- Discuss trade-offs and recommendations
+
+**Expected findings:**
+- RANS: Fast but may miss separation details
+- Transition: Similar to RANS (fully turbulent at this Re)
+- DES: Good accuracy, moderate cost
+- LES: Best accuracy, highest cost
 
 ---
 
@@ -1158,6 +1435,7 @@ pimpleFoam
 - **RANS:** Time-averages all turbulence fluctuations, models everything with eddy viscosity
 - **LES:** Spatially filters equations, resolves large eddies directly, models only small subgrid scales
 - **Result:** LES captures unsteady, large-scale turbulent structures that RANS cannot
+- **Cost:** LES is ~100× more expensive than RANS for wall-resolved simulations
 </details>
 
 <details>
@@ -1167,6 +1445,7 @@ pimpleFoam
 - **Wall-resolved LES:** Requires y+ ≈ 1 everywhere → extremely fine mesh near walls → ~100× RANS cost
 - **DES:** Uses RANS in boundary layer (y+ ≈ 30-100) + LES only in separated regions → 5-20× RANS cost
 - **Savings:** Near-wall resolution dominates cell count for high Re; DES avoids this by using RANS there
+- **Trade-off:** Slightly less accurate than pure LES but much more affordable
 </details>
 
 <details>
@@ -1175,8 +1454,8 @@ pimpleFoam
 **Answer:**
 - **GIS:** Occurs when DES switches to LES mode too early in attached boundary layers due to local mesh refinement
 - **Consequence:** Artificial separation because RANS-modeled stresses are depleted
-- **DDES solution:** Adds "delay function" that keeps model in RANS mode in thick boundary layers, even if mesh is locally refined
-- **Key:** DDES shields the RANS mode from premature switching
+- **DDES solution:** Adds "delay function" (fd) that keeps model in RANS mode in thick boundary layers, even if mesh is locally refined
+- **Key:** DDES shields the RANS mode from premature switching using eddy viscosity and wall distance
 </details>
 
 <details>
@@ -1188,7 +1467,7 @@ Use transition modeling when:
 - Free-stream turbulence intensity is low (< 3%)
 - Laminar regions significantly affect performance (drag, lift, heat transfer)
 - Applications: Low Re airfoils, turbomachinery, wind turbines, some heat transfer cases
-- **Skip transition** for high Re flows (> 10⁷) or high turbulence environments
+- **Skip transition** for high Re flows (> 10⁷) or high turbulence environments (> 5% Tu)
 </details>
 
 <details>
@@ -1197,10 +1476,10 @@ Use transition modeling when:
 **Answer:**
 Three additional fields beyond standard k-ω SST:
 1. **gamma (γ):** Intermittency (0 = laminar, 1 = turbulent)
-2. **ReTheta:** Transition momentum thickness Reynolds number
-3. **thetat:** Critical Reθ at transition onset
+2. **ReTheta:** Transition momentum thickness Reynolds number (controls onset)
+3. **thetat:** Critical Reθ at transition onset (boundary condition)
 
-These fields are transported and coupled to the turbulence model via intermittency.
+These fields are transported and coupled to the turbulence model via intermittency. The eddy viscosity is modified as νt,eff = νt · γ.
 </details>
 
 <details>
@@ -1208,22 +1487,56 @@ These fields are transported and coupled to the turbulence model via intermitten
 
 **Answer:**
 - **y+ ≈ 1** (resolve viscous sublayer)
-- **Streamwise spacing:** Δx+ ≈ 50-100
-- **Spanwise spacing:** Δz+ ≈ 15-30
+- **Streamwise spacing:** Δx+ ≈ 50-100 in wall units
+- **Spanwise spacing:** Δz+ ≈ 15-30 in wall units
 - **Cell aspect ratio:** ≈ 1 (isotropic) in core, up to 20-40 near walls
 - **CFL number:** 0.3-0.5 for temporal accuracy
 
-These requirements make wall-resolved LES extremely expensive at high Re.
+These requirements make wall-resolved LES extremely expensive at high Re. The cell count scales as N ∝ Re^2.4, which is why DES is preferred for high Re flows.
 </details>
 
 <details>
 <summary><b>7. How do you choose between Smagorinsky, WALE, and dynamic SGS models for LES?</b></summary>
 
 **Answer:**
-- **Smagorinsky:** Default choice, simple, robust. Good for general flows.
-- **WALE:** Better near-wall behavior (correct y³ scaling). Use for wall-bounded flows.
-- **dynamicKEqn:** Adapts Cs to local flow conditions. Good for complex flows with varying turbulence.
-- **Choice:** Start with Smagorinsky; switch to WALE for wall-bounded cases or dynamic for complex flows.
+- **Smagorinsky:** Default choice, simple, robust. Good for general flows. Cs = 0.1-0.2
+- **WALE:** Better near-wall behavior (correct y³ scaling). Use for wall-bounded flows. No Cs needed
+- **dynamicKEqn:** Adapts Cs to local flow conditions. Good for complex flows with varying turbulence. Can backscatter energy
+- **Choice:** Start with Smagorinsky; switch to WALE for wall-bounded cases or dynamic for complex flows with varying turbulence characteristics
+</details>
+
+<details>
+<summary><b>8. What are the key differences between DES, DDES, and IDDES?</b></summary>
+
+**Answer:**
+- **DES (original):** Simple min(l_RANS, C_DES·Δ) switching. Prone to Grid-Induced Separation (GIS)
+- **DDES (Delayed DES):** Adds shielding function fd to prevent premature switching in attached boundary layers. Prevents GIS
+- **IDDES (Improved DDES):** Combines DDES with wall-modeled LES capability. Best near-wall treatment for high Re flows with thin boundary layers
+- **Recommendation:** Use DDES for most cases, IDDES for high Re with thin BL, avoid original DES
+</details>
+
+<details>
+<summary><b>9. How does turbulence intensity (Tu) affect transition prediction?</b></summary>
+
+**Answer:**
+- **Low Tu (< 0.5%):** Late transition, typically x/c > 0.5 for airfoils. Natural transition via T-S waves
+- **Moderate Tu (1-3%):** Moderate transition, x/c ≈ 0.3-0.5. Typical atmospheric conditions
+- **High Tu (> 5%):** Early transition, x/c < 0.2. Bypass transition, common in turbomachinery
+- **Effect on Reθ:** Higher Tu → lower critical Reθ → earlier transition
+- **Modeling:** γ-Reθ model uses Tu to calculate critical Reθ for transition onset
+</details>
+
+<details>
+<summary><b>10. What are the signs that your LES mesh is too coarse?</b></summary>
+
+**Answer:**
+- Excessive energy dissipation (turbulent kinetic energy decays too fast)
+- SGS eddy viscosity is too high (νSgs >> ν)
+- Poor agreement with experimental data (especially in spectral content)
+- Missing high-frequency fluctuations in velocity probes
+- Inaccurate prediction of separation or reattachment
+- **Verification:** Check Δ+ = Δ·uτ/ν ≈ 50-100 in critical regions
+- **Solution:** Refine mesh or switch to DES if refinement is impractical
 </details>
 
 ---
@@ -1233,12 +1546,13 @@ These requirements make wall-resolved LES extremely expensive at high Re.
 ### Within This Module
 - **Prerequisites:**
   - [Turbulence Fundamentals](01_Turbulence_Fundamentals.md) - RANS basics, turbulence scales
+  - [RANS Models](02_RANS_Models.md) - k-ε, k-ω, Spalart-Allmaras models
   - [Wall Treatment](03_Wall_Treatment.md) - y+ concepts, wall functions
 
 ### Complementary Topics
 - **High-Performance Computing:** [01_High_Performance_Computing.md](01_High_Performance_Computing.md) - Parallel scaling for LES/DES
-- **Numerical Methods:** [03_Numerical_Methods.md](03_Numerical_Methods.md) - Discretization schemes and AMR
-- **Mesh Quality:** [Module 02, Section 05](../../MODULE_02_MESHING_AND_CASE_SETUP/CONTENT/05_MESH_QUALITY_AND_MANIPULATION/01_Mesh_Quality_Criteria.md) - Mesh requirements
+- **Numerical Methods:** [03_Numerical_Methods.md](03_Numerical_Methods.md) - Discretization schemes (relevant for LES stability)
+- **Mesh Quality:** [Module 02, Section 05](../../MODULE_02_MESHING_AND_CASE_SETUP/CONTENT/05_MESH_QUALITY_AND_MANIPULATION/01_Mesh_Quality_Criteria.md) - Mesh requirements for advanced turbulence
 
 ### Further Reading
 - Pope, S. B. (2000). *Turbulent Flows*. Cambridge University Press. (Chapters 10-13 for LES)
@@ -1248,4 +1562,4 @@ These requirements make wall-resolved LES extremely expensive at high Re.
 
 ---
 
-**Last Updated:** 2025-12-30
+**Last Updated:** 2025-12-31

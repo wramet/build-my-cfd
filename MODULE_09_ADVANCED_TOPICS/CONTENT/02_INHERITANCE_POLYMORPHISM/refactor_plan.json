@@ -1,0 +1,14 @@
+{
+    "files": {
+        "00_Overview.md": "Add missing 'Learning Objectives' section at the beginning. Ensure each concept in the key concepts table has corresponding detailed sections. Add explicit 'Prerequisites' section listing C++ fundamentals needed.",
+        "01_Introduction.md": "Eliminate redundancy - 'Module Contents' table duplicates overview. Add specific learning objectives. Expand 'Why in OpenFOAM?' with concrete use cases. Include simple before/after code comparison showing inheritance benefits.",
+        "02_Abstract_Interfaces.md": "Add 'When to Use' decision matrix. Include practical exercise creating custom interface. Expand troubleshooting section for common interface mistakes. Add performance implications of virtual functions.",
+        "03_Inheritance_Hierarchies.md": "Verify IMG_09_002.jpg matches markdown hierarchy. Add section on designing hierarchies (principles like Liskov Substitution). Include anti-patterns to avoid. Expand TypeName macro explanation with examples.",
+        "04_Run_Time_Selection_System.md": "Add step-by-step tutorial for implementing RTS in new class. Include common debugging scenarios. Expand macro explanation with what each generates. Add troubleshooting checklist.",
+        "05_Design_Patterns_in_Physics.md": "Significant redundancy with files 02, 03, 04 - refactor to focus ONLY on patterns beyond basic inheritance/polymorphism. Add Strategy, Template Method, Factory patterns with OpenFOAM-specific examples. Consider merging into 03 or 04.",
+        "06_Common_Errors_and_Debugging.md": "Add 'Prevention Checklist' for each error type. Include detection strategies (how to identify). Expand with real OpenFOAM error messages. Add debugging tools section (gdb, valgrind).",
+        "07_Performance_Considerations.md": "Add benchmarking code examples. Include measurable examples from actual OpenFOAM solvers. Add decision tree: when to use virtual vs template. Expand profiling section with specific tools.",
+        "08_Practical_Exercise.md": "Expand with progressive difficulty levels. Add solution files or hints. Include verification steps for each exercise. Add extension challenges. Connect to real OpenFOAM use cases."
+    },
+    "global_strategy": "CRITICAL ISSUES: (1) File 05 has 70% redundancy with 02-04 - either merge or refactor to cover ONLY advanced patterns. (2) All files missing standard 3W Framework: explicitly add 'What' (definition), 'Why' (benefits), 'How' (implementation) to each major concept. (3) Missing consistent learning scaffolding: each file needs explicit Learning Objectives at start and Key Takeaways summary at end. (4) Add practical progression: theory → simple example → OpenFOAM example → exercise. (5) Consider consolidating files 02+03 (interfaces and hierarchies are tightly coupled) and files 04+05 (RTS is a pattern)."
+}

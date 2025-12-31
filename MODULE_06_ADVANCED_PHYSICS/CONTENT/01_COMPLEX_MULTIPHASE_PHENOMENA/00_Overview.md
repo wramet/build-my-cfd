@@ -473,47 +473,81 @@ paraFoam -builtin
 
 **Objective**: Simulate nucleate boiling in a 2D channel with bottom heating
 
-**Learning Goals**:
-- Set up thermal phase change model
-- Configure temperature-dependent properties
-- Analyze boiling patterns and heat transfer
-
-**WHAT you'll simulate**:
+#### WHAT you'll simulate
 - Water flowing in a channel (velocity: 0.1 m/s)
 - Bottom wall at $T_{wall} = 383$ K ($T_{sat} = 373$ K)
 - Top wall at $T_{wall} = 300$ K
 - Observe vapor bubble formation and growth
 
-**WHY this matters**:
+#### WHY this matters
 - Demonstrates temperature-driven phase change
 - Relevant to electronics cooling, reactor design
 - Shows importance of wall superheat
 
-**HOW to implement**:
-1. **Geometry & Mesh**: 2D channel (length: 0.1 m, height: 0.01 m)
-2. **Solver**: `reactingTwoPhaseEulerFoam`
-3. **Key Settings**:
-   ```cpp
-   // constant/phaseProperties
-   phaseChangeModel thermalPhaseChange;
-   hLv  2.26e6;        // Latent heat
-   Tsat 373.15;        // Saturation temperature
-   r    100;           // Relaxation factor
-   ```
-4. **Boundary Conditions**:
-   - Inlet: liquid water at 300 K
-   - Bottom wall: fixedValue 383 K (heated)
-   - Top wall: fixedValue 300 K (cooled)
-5. **Run**:
-   ```bash
-   reactingTwoPhaseEulerFoam
-   ```
-6. **Post-process**: Visualize vapor volume fraction, temperature field
+#### HOW to implement
+
+**Step 1: Geometry & Mesh**
+```bash
+# Create 2D channel (length: 0.1 m, height: 0.01 m)
+blockMesh
+```
+
+**Step 2: Select Solver**
+```bash
+# Use reactingTwoPhaseEulerFoam for thermal phase change
+solver: reactingTwoPhaseEulerFoam
+```
+
+**Step 3: Configure Phase Change Model**
+```cpp
+// constant/phaseProperties
+phaseChangeModel thermalPhaseChange;
+
+thermalPhaseChangeCoeffs
+{
+    hLv     2.26e6;      // Latent heat [J/kg]
+    Tsat    373.15;      // Saturation temperature [K]
+    r       100;         // Mass transfer coefficient [1/s]
+}
+```
+
+**Step 4: Set Boundary Conditions**
+```cpp
+// 0/T
+inlet
+{
+    type            fixedValue;
+    value           uniform 300;  // K
+}
+
+bottomWall
+{
+    type            fixedValue;
+    value           uniform 383;  // K (heated)
+}
+
+topWall
+{
+    type            fixedValue;
+    value           uniform 300;  // K (cooled)
+}
+```
+
+**Step 5: Run Simulation**
+```bash
+reactingTwoPhaseEulerFoam
+```
+
+**Step 6: Post-process**
+```bash
+paraFoam -builtin
+# Visualize: alpha.vapor (vapor volume fraction), T (temperature)
+```
 
 **Expected Results**:
-- Vapor bubbles form near heated wall
-- Bubbles grow and detach (buoyancy)
-- Heat transfer enhancement near boiling region
+- Vapor bubbles form near heated wall where T > T_sat
+- Bubbles grow and detach due to buoyancy
+- Heat transfer enhancement visible in temperature field
 
 ---
 
@@ -521,42 +555,83 @@ paraFoam -builtin
 
 **Objective**: Analyze cavitation patterns on a NACA hydrofoil
 
-**Learning Goals**:
-- Set up Schnerr-Sauer cavitation model
-- Understand pressure-cavitation relationship
-- Calculate cavitation number
-
-**WHAT you'll simulate**:
+#### WHAT you'll simulate
 - NACA 0012 hydrofoil at angle of attack = 8°
 - Inlet velocity: 10 m/s
 - Outlet pressure: 1 bar
 - Observe vapor cavity on suction side
 
-**WHY this matters**:
+#### WHY this matters
 - Critical for marine propeller design
 - Demonstrates pressure-driven phase change
 - Shows link between pressure distribution and cavitation
 
-**HOW to implement**:
-1. **Geometry**: NACA 0012 airfoil profile
-2. **Solver**: `interPhaseChangeFoam`
-3. **Key Settings**:
-   ```cpp
-   // constant/transportProperties
-   phaseChangeModel SchnerrSauer;
-   pSat  2300;          // Pa (water at 20°C)
-   n     1e13;          // Nucleation density
-   dNuc  2e-6;          // Nucleation diameter [m]
-   ```
-4. **Boundary Conditions**:
-   - Inlet: velocity = (10 0 0) m/s, p = 2 bar
-   - Outlet: p = 1 bar (pressure drop drives cavitation)
-   - Walls: no-slip
-5. **Mesh**: Refine near leading/trailing edges
-6. **Post-process**:
-   - Visualize alpha.vapor (vapor volume fraction)
-   - Calculate cavitation number: $\sigma = (p - p_{sat}) / (0.5 \rho U^2)$
-   - Plot pressure coefficient along foil surface
+#### HOW to implement
+
+**Step 1: Geometry**
+```bash
+# Use NACA 0012 airfoil profile
+# Angle of attack: 8 degrees
+```
+
+**Step 2: Select Solver**
+```bash
+solver: interPhaseChangeFoam
+```
+
+**Step 3: Configure Cavitation Model**
+```cpp
+// constant/transportProperties
+phases (water vapor);
+
+phaseChangeModel SchnerrSauer;
+
+SchnerrSauerCoeffs
+{
+    n       1e13;    // Nucleation site density [1/m³]
+    dNuc    2e-6;    // Nucleation diameter [m]
+    pSat    2300;    // Saturation pressure [Pa] at 20°C
+    Cc      1;       // Condensation coefficient
+    Cv      1;       // Vaporization coefficient
+}
+```
+
+**Step 4: Set Boundary Conditions**
+```cpp
+// 0/p
+inlet
+{
+    type            fixedValue;
+    value           uniform 2e5;  // 2 bar
+}
+
+outlet
+{
+    type            fixedValue;
+    value           uniform 1e5;  // 1 bar (pressure drop drives cavitation)
+}
+
+// 0/U
+inlet
+{
+    type            fixedValue;
+    value           uniform (10 0 0);  // m/s
+}
+```
+
+**Step 5: Mesh Refinement**
+```bash
+# Refine near leading/trailing edges
+# Capture pressure gradients
+```
+
+**Step 6: Post-process**
+```bash
+# Calculate cavitation number
+# σ = (p - p_sat) / (0.5 * rho * U^2)
+paraFoam -builtin
+# Visualize: alpha.vapor, p field
+```
 
 **Expected Results**:
 - Vapor cavity forms on suction side where p < p_sat
@@ -569,42 +644,91 @@ paraFoam -builtin
 
 **Objective**: Simulate polydisperse bubbles in a bubble column
 
-**Learning Goals**:
-- Implement QMOM population balance
-- Analyze bubble size evolution
-- Compare with constant-diameter assumption
-
-**WHAT you'll simulate**:
+#### WHAT you'll simulate
 - Cylindrical column (height: 1 m, diameter: 0.1 m)
 - Air injected from bottom at 0.01 m/s
 - Water as continuous phase
 - Bubbles undergo breakup and coalescence
 
-**WHY this matters**:
+#### WHY this matters
 - Relevant to chemical reactors, fermenters
 - Shows importance of size distribution
 - Demonstrates PBE vs monodisperse comparison
 
-**HOW to implement**:
-1. **Geometry**: 2D axisymmetric column
-2. **Solver**: `multiphaseEulerFoam` with PBE
-3. **Key Settings**:
-   ```cpp
-   // constant/phaseProperties
-   populationBalance on;
-   breakupModel Lehr;
-   coalescenceModel constant;
-   nNodes  4;       // Number of quadrature nodes
-   ```
-4. **Boundary Conditions**:
-   - Inlet (bottom): gas volume fraction = 0.2
-   - Outlet (top): pressure = atmospheric
-   - Walls: no-slip
-5. **Run with/without PBE** for comparison
-6. **Post-process**:
-   - Mean Sauter diameter (d32) vs height
-   - Gas holdup (volume fraction) distribution
-   - Interfacial area density
+#### HOW to implement
+
+**Step 1: Geometry**
+```bash
+# 2D axisymmetric column
+# Height: 1 m, Diameter: 0.1 m
+```
+
+**Step 2: Select Solver**
+```bash
+solver: multiphaseEulerFoam
+```
+
+**Step 3: Configure Population Balance**
+```cpp
+// constant/phaseProperties
+populationBalance on;
+
+populationBalanceCoeffs
+{
+    continuousPhaseName water;
+    dispersedPhase air;
+    
+    // QMOM settings
+    nNodes  4;    // Number of quadrature nodes
+    
+    // Breakup kernel
+    breakupModel Lehr;
+    breakupCoeffs
+    {
+        // Lehr model parameters
+    }
+    
+    // Coalescence kernel
+    coalescenceModel constant;
+    coalescenceCoeffs
+    {
+        // Constant coalescence rate
+    }
+}
+```
+
+**Step 4: Set Boundary Conditions**
+```cpp
+// 0/alpha.air
+inlet
+{
+    type            fixedValue;
+    value           uniform 0.2;  // Gas volume fraction
+}
+
+outlet
+{
+    type            pressureInletOutletVelocity;
+    value           uniform 0;
+}
+```
+
+**Step 5: Run Comparison**
+```bash
+# Run WITHOUT PBE (constant diameter)
+multiphaseEulerFoam
+
+# Run WITH PBE
+multiphaseEulerFoam
+```
+
+**Step 6: Post-process**
+```bash
+# Plot: d32 (Sauter mean diameter) vs height
+# Compare gas holdup with/without PBE
+# Calculate interfacial area density
+paraFoam -builtin
+```
 
 **Expected Results**:
 - Without PBE: constant bubble diameter

@@ -11,6 +11,19 @@
 
 ---
 
+## 🎯 Learning Objectives (เป้าหมายการเรียนรู้)
+
+หลังจากอ่านบทนี้ คุณควรจะสามารถ:
+
+1. **อธิบาย (Explain)** ความสำคัญของ Performance Profiling และผลกระทบต่อ OpenFOAM Simulation
+2. **วัด (Measure)** เมตริกประสิทธิภาพหลัก (Execution Time, Memory, Scaling) ด้วยเครื่องมือที่เหมาะสม
+3. **ใช้ (Use)** เครื่องมือ Profiling ทั้งแบบ Built-in (cpuTime, functionObjects) และ External (perf, gprof, valgrind)
+4. **วิเคราะห์ (Analyze)** Strong Scaling และ Weak Scaling เพื่อประเมินประสิทธิภาพ Parallel
+5. **ระบุ (Identify)** และ **แก้ไข (Fix)** จุดคอขวบทั่วไปใน OpenFOAM Solvers
+6. **ประยุกต์ (Apply)** เทคนิค Profiling กับ Custom Solvers และ Case ของตัวเอง
+
+---
+
 ## 1.1 เมตริกประสิทธิภาพหลัก (Key Performance Metrics)
 
 > [!NOTE] **📂 OpenFOAM Context**
@@ -24,6 +37,15 @@
 > **🔑 คำสำคัญ:** `cpuTime`, `profiling`, `functionObjects`, `perf`, `valgrind`
 
 ### 1.1.1 Execution Time (เวลาการประมวลผล)
+
+**What (คืออะไร):** Execution Time คือเวลาที่ Solver ใช้ในการคำนวณ แบ่งเป็น 3 ประเภท:
+
+**Why (ทำไมสำคัญ):**
+- เป็นตัวชี้วัดหลักว่า Simulation จะเสร็จเมื่อไหร่
+- ช่วยตัดสินใจเรื่อง Resource Planning (เช่า HPC กี่ Core กี่ชั่วโมง)
+- ใช้เปรียบเทียบประสิทธิภาพระหว่าง Solver Configurations ต่างๆ
+
+**How (วิธีวัด):**
 
 ```cpp
 // ใน Solver code
@@ -47,6 +69,15 @@ int main(int argc, char *argv[])
 
 ### 1.1.2 Memory Usage (การใช้หน่วยความจำ)
 
+**What (คืออะไร):** ปริมาณหน่วยความจำ (RAM) ที่ Solver ใช้ระหว่างรัน
+
+**Why (ทำไมสำคัญ):**
+- ถ้า RAM เต็ม → ใช้ Swap → Performance ตก 10-100x
+- ช่วยวางแผนว่าเครื่อง/HPC รองรับ Case นี้ได้ไหม
+- ใช้ประเมิน Trade-off: แก้ Mesh Density หรือลด Fields ที่เก็บ
+
+**How (วิธีวัด):**
+
 ```bash
 # ตรวจสอบ Peak Memory
 /usr/bin/time -v simpleFoam 2>&1 | grep "Maximum resident set size"
@@ -60,6 +91,15 @@ int main(int argc, char *argv[])
 - **Heap vs Stack**: `volScalarField` อยู่ใน Heap, local variables อยู่ใน Stack
 
 ### 1.1.3 Scaling Metrics (เมตริกการปรับขนาด)
+
+**What (คืออะไร):** ตัวชี้วัดประสิทธิภาพของ Parallel Computing
+
+**Why (ทำไมสำคัญ):**
+- ช่วยตัดสินใจว่าควรใช้กี่ Core ใน HPC
+- ทราบว่าการเพิ่ม Core ยังคุ้มไหม (Diminishing Returns)
+- ใช้ประเมิน Cost-benefit: เพิ่ม Core แพงขึ้นแต่เร็วขึ้นกี่เปอร์เซ็นต์
+
+**How (วิธีคำนวณ):**
 
 | Metric | คำนวณ | ใช้เมื่อ |
 |--------|--------|-----------|
@@ -77,6 +117,15 @@ int main(int argc, char *argv[])
 ## 1.2 เครื่องมือ Profiling ใน OpenFOAM (OpenFOAM Profiling Tools)
 
 ### 1.2.1 Built-in Profiling (Profiling ในตัว)
+
+**What (คืออะไร):** เครื่องมือที่ OpenFOAM มีให้มาโดยไม่ต้องติดตั้งเพิ่ม
+
+**Why (ทำไมใช้):**
+- ไม่ต้องแก้ Compiler Flags หรือติดตั้ง Tools ภายนอก
+- เหมาะสำหรับ Basic Profiling และ Production Runs
+- Output แสดงใน Log Files โดยตรง
+
+**How (วิธีใช้):**
 
 **วิธีที่ 1: ใช้ `cpuTime` ใน Solver Code**
 
@@ -122,6 +171,15 @@ Profiling information
 ```
 
 ### 1.2.2 External Profiling Tools (เครื่องมือภายนอก)
+
+**What (คืออะไร):** Tools ภายนอกที่ใช้สำหรับ Deep Profiling ระดับ OS/Hardware
+
+**Why (ทำไมใช้):**
+- ได้รายละเอียดลึกกว่า Built-in (Function-level, Assembly-level)
+- สามารถ Detect ปัญหา Memory Leak, Cache Miss, CPU Stalls
+- จำเป็นต้องใช้เมื่อต้อง Optimize Performance ขั้นสูง
+
+**How (วิธีใช้):**
 
 **Tool 1: `perf` (Linux Performance Counter)**
 
@@ -187,7 +245,14 @@ ms_print massif.out.12345
 
 ### 1.3.1 Strong Scaling (การปรับขนาดแบบ Strong)
 
-> **จุดมุ่งหมาย:** เร่งการคำนาณ **ปัญหาขนาดคงที่** ด้วยการเพิ่ม CPU
+**What (คืออะไร):** การเร่งการคำนวณ **ปัญหาขนาดคงที่** ด้วยการเพิ่ม CPU
+
+**Why (ทำสำคัญ):**
+- ใช้เมื่อมี Case ขนาดคงที่และอยากเสร็จเร็วขึ้น
+- ช่วยตัดสินใจว่าควรใช้กี่ Core (Cost vs Speed)
+- ทราบจุดที่การเพิ่ม Core ไม่คุ้ม (Diminishing Returns)
+
+**How (วิธีทดสอบ):**
 
 ```bash
 # Script ทดสอบ Strong Scaling
@@ -219,7 +284,14 @@ done
 
 ### 1.3.2 Weak Scaling (การปรับขนาดแบบ Weak)
 
-> **จุดมุ่งหมาย:** เพิ่มขนาดปัญหาตามสัดส่วน CPU เพื่อให้ **เวลาคงที่**
+**What (คืออะไร):** การเพิ่มขนาดปัญหาตามสัดส่วน CPU เพื่อให้ **เวลาคงที่**
+
+**Why (ทำสำคัญ):**
+- ใช้เมื่อต้องการรัน Mesh ขนาดใหญ่ที่สุดที่ HPC รองรับ
+- เหมาะกับ Large-scale Simulations (เช่น LES, DNS)
+- ทราบว่า Parallel Code สามารถ Scale ได้ดีแค่ไหน
+
+**How (วิธีทดสอบ):**
 
 ```bash
 # Script ทดสอบ Weak Scaling
@@ -314,6 +386,138 @@ scalar globalSum = returnReduce(localSum, sumOp<scalar>());
 
 ---
 
+## 🏋️‍♂️ แบบฝึกหัดปฏิบัติ (Practical Exercise)
+
+### Exercise 1: Basic Profiling ด้วย `cpuTime`
+
+**ภารกิจ:** เพิ่ม `cpuTime` tracking ใน Custom Solver
+
+```cpp
+// เพิ่ม code นี้ใน solver
+#include "cpuTime.H"
+
+// ใน time loop
+cpuTime totalTimer, meshUpdateTimer, solveTimer;
+
+meshUpdateTimer.start();
+mesh.update();
+scalar meshTime = meshUpdateTimer.cpuTimeIncrement();
+
+solveTimer.start();
+solve(fvm::ddt(U) + fvm::div(phi, U) - fvm::laplacian(nu, U));
+scalar solveTime = solveTimer.cpuTimeIncrement();
+
+Info << "Timing breakdown:" << nl
+     << "  Mesh update: " << meshTime << " s (" << meshTime/totalTimer.cpuTimeIncrement()*100 << "%)" << nl
+     << "  Solve:       " << solveTime << " s (" << solveTime/totalTimer.cpuTimeIncrement()*100 << "%)" << endl;
+```
+
+**Expected Output:**
+```
+Timing breakdown:
+  Mesh update: 0.52 s (4.2%)
+  Solve:       11.87 s (95.8%)
+```
+
+### Exercise 2: Strong Scaling Test
+
+**ภารกิจ:** ทดสอบ Strong Scaling ด้วย Script นี้
+
+```bash
+#!/bin/bash
+# strongScalingTest.sh
+
+SOLVER=simpleFoam
+CASE_NAME=cavity
+CORES=(1 2 4 8)
+echo "#Cores Time(s) Speedup Efficiency" > scaling_results.txt
+
+T1=0
+for n in "${CORES[@]}"; do
+    cp -r $CASE_NAME ${CASE_NAME}_n${n}
+    decomposePar -np $n -case ${CASE_NAME}_n${n} > /dev/null
+    mpirun -np $n $SOLVER -parallel -case ${CASE_NAME}_n${n} > log.${n} 2>&1
+    T=$(grep "ExecutionTime" log.${n} | awk '{print $3}')
+    
+    if [ $n -eq 1 ]; then
+        T1=$T
+    fi
+    
+    S=$(echo "$T1 / $T" | bc -l)
+    E=$(echo "$S / $n" | bc -l)
+    
+    printf "%d %s %s %s\n" $n $T $S $E >> scaling_results.txt
+    rm -rf ${CASE_NAME}_n${n}
+done
+
+cat scaling_results.txt
+```
+
+### Exercise 3: Memory Profiling
+
+**ภารกิจ:** ติดตาม Peak Memory ระหว่าง Simulation
+
+```bash
+#!/bin/bash
+# memoryProfile.sh
+
+SOLVER=simpleFoam
+CASE=cavity
+
+decomposePar -case $CASE
+mpirun -np 4 $SOLVER -parallel -case $CASE > log.solver 2>&1 &
+
+PID=$!
+while kill -0 $PID 2>/dev/null; do
+    MEM=$(ps -o rss= -p $PID | awk '{sum+=$1} END {print sum/1024}')
+    echo "$(date +%s) $MEM" >> memory_usage.dat
+    sleep 5
+done
+
+# Plot กราฟ
+gnuplot -e "set terminal png; set output 'memory.png'; plot 'memory_usage.dat' with lines title 'Memory (MB)'"
+```
+
+---
+
+## 📋 Key Takeaways (สรุปสาระสำคัญ)
+
+### What (อะไรคือ Performance Profiling?)
+Performance Profiling คือการวัดและวิเคราะห์ประสิทธิภาพของ OpenFOAM Solvers เพื่อระบุและแก้ไขจุดคอขวบ
+
+### Why (ทำไมต้องทำ?)
+- **Gut Feeling มักผิด** - คุณคิดว่า Linear Solver ช้า แต่จริงๆ อาจเป็น I/O หรือ MPI Communication
+- **Cost Optimization** - ช่วยตัดสินใจว่าควรใช้กี่ Core เพื่อประหยัดเงิน HPC
+- **Time Savings** - แก้ที่ Bottleneck ที่แท้จริง สามารถลดเวลาได้ 30-50%
+
+### How (ทำอย่างไร?)
+1. **เลือกเครื่องมือที่เหมาะสม**
+   - Built-in (`cpuTime`, `profiling`) → สำหรับ Basic Profiling
+   - External (`perf`, `gprof`) → สำหรับ Deep Dive
+
+2. **วัดเมตริกหลัก 3 อย่าง**
+   - Execution Time (Wall Clock, CPU Time)
+   - Memory Usage (RSS, Peak)
+   - Scaling (Speedup, Efficiency)
+
+3. **ทดสอบ Scaling**
+   - Strong Scaling: เพิ่ม Core กับ Mesh คงที่
+   - Weak Scaling: เพิ่ม Core พร้อม Mesh
+
+4. **วินิจฉัยและแก้ไข**
+   - Profile ก่อน อย่าเดา!
+   - ดู % time → Focus ที่ Top Bottlenecks
+   - แก้ไข → Verify ด้วยการ Profile อีกครั้ง
+
+### Best Practices
+- ✅ **Profile Early** - อย่ารอจน Project ใกล้ Deadline
+- ✅ **Profile Often** - ทุกครั้งที่เปลี่ยน Solver/Mesh
+- ✅ **Document Results** - เก็บ Log ไว้เปรียบเทียบ
+- ❌ **Don't Guess** - ใช้ Data ไม่ใช่ Gut Feeling
+- ❌ **Don't Premature Optimize** - แก้ที่ Bottleneck ไม่ใช่ที่อื่น
+
+---
+
 ## 🧠 ตรวจสอบความเข้าใจ (Concept Check)
 
 1. **ถาม:** ทำไมต้อง Profile แทนที่จะเดา?
@@ -332,6 +536,18 @@ scalar globalSum = returnReduce(localSum, sumOp<scalar>());
    <details>
    <summary>เฉลย</summary>
    <b>ตอบ:</b> แปลว่า Process รอ communication กันมาก เกิดจาก (1) Load imbalance ให้แก้ decomposition, (2) Global reduction บ่อยเกินไปให้ลด frequency, หรือ (3) Network ช้าให้เปลี่ยนจาก Ethernet เป็น InfiniBand
+   </details>
+
+4. **ถาม:** ความแตกต่างระหว่าง Wall Clock Time และ CPU Time?
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b> <b>Wall Clock Time</b> คือเวลาจริงที่ผู้ใช้รอ (รวม I/O wait, MPI communication, sleep) <b>CPU Time</b> คือเวลาที่ CPU ทำงานจริง (ไม่รวมเวลาที่ Process รอ I/O หรือ Process อื่น)
+   </details>
+
+5. **ถาม:** Amdahl's Law บอกอะไรกับเรา?
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b> Amdahl's Law บอกว่า Speedup สูงสุดถูกจำกัดด้วยส่วน Serial (1-P) ถ้า Code มีส่วน Serial 10% ไม่ว่าจะใช้กี่ CPU ก็ตาม Speedup สูงสุดคือ 10x เท่านั้น ดังนั้นการลดส่วน Serial สำคัญกว่าการเพิ่ม CPU
    </details>
 
 ---

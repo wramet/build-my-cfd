@@ -1,0 +1,12 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Factory_Pattern.md",
+        "03_Strategy_Pattern.md",
+        "04_Pattern_Synergy.md",
+        "06_Practical_Exercise.md",
+        "05_Performance_Analysis.md"
+    ],
+    "skipped": []
+}

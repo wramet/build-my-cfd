@@ -1,0 +1,15 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "02_GPU_Computing.md",
+        "03_Modern_Cpp_for_CFD.md",
+        "01a_Introduction_and_Comparison.md",
+        "01b_SU2_Tutorial.md",
+        "01c_Nektar_Plus_Plus.md",
+        "01d_PyFR_Tutorial.md",
+        "01e_Benchmark_Comparison.md"
+    ],
+    "skipped": [
+        "01_Alternative_Architectures.md"
+    ]
+}

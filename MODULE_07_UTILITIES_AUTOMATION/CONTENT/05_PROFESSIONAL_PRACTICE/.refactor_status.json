@@ -1,0 +1,11 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Project_Organization.md",
+        "02_Documentation_Standards.md",
+        "04_Version_Control_Git.md",
+        "05_Testing_and_QA.md",
+        "03_Open_Source_Contribution.md"
+    ],
+    "skipped": []
+}

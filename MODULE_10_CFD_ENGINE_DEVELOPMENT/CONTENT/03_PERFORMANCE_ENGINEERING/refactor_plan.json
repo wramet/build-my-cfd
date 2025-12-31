@@ -1,0 +1,10 @@
+{
+    "files": {
+        "00_Overview.md": "Excellent structure with comprehensive mermaid diagrams. Add: 1) Learning Objectives section at top, 2) Key Takeaways summary at end, 3) Prerequisites section linking to previous modules. The Quick Wins section is valuable - keep it.",
+        "01_Profiling_Tools.md": "Strong practical focus with real examples. Add: 1) Learning Objectives upfront, 2) Consolidated 'Quick Reference' table summarizing when to use each tool, 3) Missing 'Next Steps' section connecting to Memory Layout. The profiling workflow diagram is excellent.",
+        "02_Memory_Layout_Cache.md": "Technical depth is excellent with AMAT calculations. Add: 1) Learning Objectives, 2) 'Common Pitfalls' section (cache anti-patterns in CFD), 3) Summary checklist for cache-friendly code. The cache miss calculation example is outstanding - preserve this practical approach.",
+        "03_Loop_Optimization.md": "Assembly comparison is very valuable. Add: 1) Learning Objectives, 2) 'Vectorization Checklist' for OpenFOAM code, 3) Section on measuring vectorization success. The expression templates section is good - consider expanding with OpenFOAM-specific examples.",
+        "04_Parallel_Scaling.md": "Real motorbike scaling data is excellent. Add: 1) Learning Objectives, 2) 'Scaling Analysis Template' for users' own cases, 3) Troubleshooting guide for poor scaling. The efficiency calculation table is perfect - keep this format."
+    },
+    "global_strategy": "This module has strong technical content with excellent practical examples (assembly code, real profiling output, actual scaling data). Main gap is missing pedagogical structure: no Learning Objectives in any file, inconsistent Key Takeaways, and weak cross-referencing between files. Apply standard 3W Framework more explicitly (What: clear concept definitions, Why: performance impact with numbers, How: concrete code examples). Add 'Common Pitfalls' sections to each file based on real debugging scenarios. Create module-level prerequisites map showing dependencies on previous topics (CRTP, memory management, design patterns)."
+}

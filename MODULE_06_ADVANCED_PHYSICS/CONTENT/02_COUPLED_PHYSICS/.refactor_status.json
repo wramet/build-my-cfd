@@ -6,9 +6,9 @@
         "04_Object_Registry_Architecture.md",
         "05_Advanced_Coupling_Topics.md",
         "06_Validation_and_Benchmarks.md",
-        "07_Exercises.md"
-    ],
-    "skipped": [
+        "07_Exercises.md",
+        "03_Fluid_Structure_Interaction.md",
         "03_Fluid_Structure_Interaction.md"
-    ]
+    ],
+    "skipped": []
 }

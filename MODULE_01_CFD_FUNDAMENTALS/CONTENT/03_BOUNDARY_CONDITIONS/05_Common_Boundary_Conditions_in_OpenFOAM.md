@@ -16,6 +16,7 @@
 6. **ใช้ BC ขั้นสูง** เช่น inletOutlet, fixedFluxPressure, externalWallHeatFlux ได้อย่างเหมาะสม
 7. **ใช้ BC comparison matrix** เพื่อเลือก BC ที่เหมาะสมกับปัญหา
 8. **ใช้ decision trees** ในการตัดสินใจเลือก BC
+9. **ตรวจสอบความสอดคล้อง** ระหว่าง BCs ของตัวแปรต่าง fields (U, p, T, k, ε, ω)
 
 ---
 
@@ -30,6 +31,16 @@ Boundary Conditions (BCs) คือ **ข้อกำหนดที่ขอบ
 - **Neumann BC:** กำหนด gradient → `fixedGradient`, `zeroGradient`
 - **Robin BC:** ผสมค่าและ gradient → `externalWallHeatFlux`, `inletOutlet`
 
+**โครงสร้างของ BC ใน OpenFOAM:**
+```cpp
+boundaryName
+{
+    type            fixedValue;      // BC type
+    value           uniform (10 0 0); // Field value(s)
+    // Additional parameters depending on BC type
+}
+```
+
 ### Why: ทำไม BC สำคัญ?
 
 > **⚠️ ผลกระทบของ BC ที่ผิด:**
@@ -42,6 +53,10 @@ BC ที่ถูกต้องรับประกันว่า:
 - **Well-posed problem:** มีคำตอบเฉพาะ (unique solution)
 - **Physical consistency:** สอดคล้องกับฟิสิกส์จริง
 - **Numerical stability:** solver สามารถหาคำตอบได้
+
+**ความสำคัญของ BC consistency:**
+- การกำหนด BC สำหรับตัวแปรหนึ่ง (เช่น U) มีผลโดยตรงต่อ BCs ของตัวแปรอื่น (เช่น p)
+- การกำหนด BC ที่ขัดแย้งกัน → simulation ไม่ converge หรือให้ผลลัพธ์ผิด
 
 ### How: ใช้ BC อย่างไร?
 
@@ -66,6 +81,7 @@ BC ที่ถูกต้องรับประกันว่า:
 | `slip` | Mixed | Inviscid/far-field | uₙ = 0, τ = 0 | - |
 | `zeroGradient` | Neumann | Fully developed flow | ∂U/∂n = 0 | - |
 | `inletOutlet` | Adaptive | Outlet with possible backflow | Out: ∂U/∂n=0, In: Uₛ | inletValue |
+| `pressureInletOutletVelocity` | Adaptive | Outlet with pressure-driven backflow | Out: ∂U/∂n=0, In: U(∇p) | - |
 | `pressureInletVelocity` | Calculated | Pressure-driven inlet | U = f(∇p) | value (initial) |
 | `freestreamVelocity` | Adaptive | External aero far-field | blends with freestream | freestreamValue |
 | `movingWallVelocity` | Dirichlet | Moving wall/belt | U = U_wall | value |
@@ -150,10 +166,18 @@ inlet
 
 **ใช้เมื่อ:** รู้ velocity profile ที่ inlet
 
+**Physics:**
+- Dirichlet BC: U = U_specified ที่ boundary
+- เหมาะสำหรับ forced flow ที่รู้ flow rate หรือ velocity
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** Simulation diverge ที่ inlet
 - **สาเหตุ:** กำหนด U เท่านั้น แต่ pressure ยังไม่มี reference
 - **แก้ไข:** กำหนด `fixedValue` สำหรับ pressure ที่ outlet
+
+- **ปัญหา:** Velocity profile ไม่ realistic หลัง inlet
+- **สาเหตุ:** กำหนด uniform value แต่ flow จริงมี profile
+- **แก้ไข:** ใช้ `codedFixedValue` หรือ `timeVaryingMappedFixedValue` สำหรับ non-uniform profile
 
 ### noSlip
 
@@ -166,11 +190,20 @@ wall { type noSlip; }
 **ทำไมใช้ noSlip?**
 - ของไหลจริง "ติด" ผนัง → U = 0 ที่ผิว
 - นี่คือ no-slip condition พื้นฐาน
+- ใช้สำหรับ viscous flow ทั่วไป
+
+**Physics:**
+- No-slip condition: U = 0 ที่ผนังจริง
+- Shear stress: τ = μ(∂U/∂y) จะถูกคำนวณอัตโนมัติ
 
 **⚠️ Troubleshooting:**
 - **ปัญหา:** y+ สูงเกินไป ทำให้ผิดพลาดใน viscous sublayer
 - **สาเหตุ:** ใช้ noSlip กับ mesh หยาบเกินไป
 - **แก้ไข:** ใช้ wall functions แทน (ดู turbulence BCs)
+
+- **ปัญหา:** Convergence ช้ามาก
+- **สาเหตุ:** Mesh ละเอียดเกินไปใกล้ผนัง → ค่า y+ ต่ำเกินไป
+- **แก้ไข:** ใช้ wall functions หรือใช้ low-Re turbulence models
 
 ### slip
 
@@ -183,13 +216,21 @@ symmetryWall { type slip; }
 **ใช้เมื่อ:**
 - Inviscid simulation (ไม่สนใจ viscosity)
 - Far-field boundary ที่ไม่ต้องการ friction
+- Symmetry plane (เทียบเท่ากับ `symmetry` BC)
 
 **Physics:** $u_n = 0$, $\tau = 0$
+
+- Flow ผ่านผนังโดยไม่มี friction
+- เหมาะสำหรับ inviscid flow (Euler equations)
 
 **⚠️ Troubleshooting:**
 - **ปัญหา:** Shear layer ไม่ถูกต้อง
 - **สาเหตุ:** ใช้ slip กับ viscous flow
 - **แก้ไข:** เปลี่ยนเป็น noSlip สำหรับผนังจริง
+
+- **ปัญหา:** Mass loss ที่ slip boundary
+- **สาเหตุ:** ใช้ slip แต่ mesh ไม่ aligned กับ flow direction
+- **แก้ไข:** ตรวจสอบว่า boundary normal ตั้งฉากกับ flow direction
 
 ### zeroGradient
 
@@ -203,10 +244,18 @@ outlet { type zeroGradient; }
 - สมมติ flow พัฒนาเต็มที่ (fully developed)
 - Profile ไม่เปลี่ยนแปลง → $\partial U/\partial n = 0$
 
+**Physics:**
+- Neumann BC: ∂U/∂n = 0
+- Flow ที่ outlet มี profile เหมือนกับตัวก่อนหน้า
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** Backflow เกิดขึ้น และ simulation ล้มเหลว
 - **สาเหตุ:** zeroGradient ไม่รู้จักการไหลกลับเข้า
 - **แก้ไข:** ใช้ `inletOutlet` แทน
+
+- **ปัญหา:** Velocity ที่ outlet ไม่ realistic
+- **สาเหตุ:** Outlet ใกล้กับ region ที่สนใจมากเกินไป
+- **แก้ไข:** ขยายโดเมน ให้ outlet ห่างจาก region ที่สนใจ
 
 ### inletOutlet
 
@@ -225,10 +274,43 @@ outlet
 - zeroGradient ไม่จัดการ backflow → อาจ diverge
 - inletOutlet: ไหลออก = zeroGradient, ไหลเข้า = inletValue
 
+**Physics:**
+- Flow ออก: ∂U/∂n = 0
+- Flow เข้า: U = inletValue
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** Backflow มี direction ผิด
 - **สาเหตุ:** `inletValue` ไม่สอดคล้องกับ pressure field
 - **แก้ไข:** ใช้ `pressureInletOutletVelocity` แทน (คำนวณ U จาก ∇p)
+
+- **ปัญหา:** Backflow มีมากเกินไป
+- **สาเหตุ:** Outlet ใกล้กับ region ที่มี recirculation มากเกินไป
+- **แก้ไข:** ขยายโดเมน หรือใช้ `pressureInletOutletVelocity`
+
+### pressureInletOutletVelocity
+
+เป็นตัวแปรที่จัดการ backflow อัตโนมัติเช่นกัน แต่จะคำนวณความเร็วจากความดัน
+
+```cpp
+outlet
+{
+    type    pressureInletOutletVelocity;
+    value   uniform (0 0 0);
+}
+```
+
+**ใช้เมื่อ:**
+- มี backflow ที่ outlet และต้องการให้ velocity สอดคล้องกับ pressure field
+- ใช้ร่วมกับ `fixedFluxPressure` หรือ `zeroGradient` สำหรับ pressure
+
+**Physics:**
+- Flow ออก: ∂U/∂n = 0
+- Flow เข้า: U = -∇p/(μ|U|) คำนวณจาก pressure gradient
+
+**⚠️ Troubleshooting:**
+- **ปัญหา:** Convergence ไม่ดี
+- **สาเหตุ:** ใช้ `pressureInletOutletVelocity` แต่ pressure BC ไม่เหมาะสม
+- **แก้ไข:** ใช้ร่วมกับ `fixedFluxPressure` สำหรับ pressure
 
 ### pressureInletVelocity
 
@@ -244,10 +326,18 @@ inlet
 
 **ใช้เมื่อ:** รู้ pressure ไม่รู้ velocity (pressure-driven flow)
 
+**Physics:**
+- U คำนวณจาก pressure gradient: U = -K∇p
+- เหมาะสำหรับ natural convection หรือ pressure-driven flow
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** Velocity inlet ไม่สมดุล mass
 - **สาเหตุ:** กำหนด pressure ไว้ไม่ดี หรือไม่มี pressure outlet
 - **แก้ไข:** ตรวจสอบว่ามี pressure reference point เช่น `fixedValue` ที่ outlet
+
+- **ปัญหา:** Mass flow rate ไม่คงที่
+- **สาเหตุ:** ไม่ได้กำหนด pressure reference ที่ชัดเจน
+- **แก้ไข:** กำหนด `fixedValue` สำหรับ pressure ที่ outlet
 
 ### freestreamVelocity
 
@@ -265,10 +355,18 @@ farField
 - Freestream = ห่างจาก body พอ → flow ไม่ถูกรบกวน
 - ปรับตัวตาม local flow direction
 
+**Physics:**
+- ใช้ร่วมกับ `freestreamPressure`
+- Blend ระหว่าง freestream value กับ computed value ตาม distance
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** Freestream BCs สร้าง reflection
 - **สาเหตุ:** ขอบเขตใกล้กับ body มากเกินไป
 - **แก้ไข:** ขยายโดเมน หรือใช้ far-field ที่เหมาะสมกว่า
+
+- **ปัญหา:** Non-physical waves ที่ freestream boundary
+- **สาเหตุ:** ไม่ได้ใช้ `freestreamPressure` ร่วมกับ `freestreamVelocity`
+- **แก้ไข:** ใช้ทั้งคู่ร่วมกัน
 
 ### movingWallVelocity
 
@@ -284,10 +382,18 @@ belt
 
 **ใช้เมื่อ:** Conveyor belt, rotating disk, car wheel on ground
 
+**Physics:**
+- U_wall = U_specified
+- ของไหลที่ผนังมีความเร็วเท่ากับผนัง
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** Mesh distortion หรือ negative volumes
 - **สาเหตุ:** ใช้ `movingWallVelocity` กับ moving mesh ผิดวิธี
 - **แก้ไข:** ตรวจสอบว่า mesh คงที่ (stationary mesh) หรือใช้ dynamic mesh solvers
+
+- **ปัญหา:** Shear stress ไม่ถูกต้อง
+- **สาเหตุ:** ไม่ได้กำหนดความเร็วอย่างถูกต้อง
+- **แก้ไข:** ตรวจสอบว่า velocity magnitude และ direction ถูกต้อง
 
 ---
 
@@ -309,10 +415,18 @@ outlet
 - เป็น **reference point** สำหรับ pressure
 - ถ้าไม่มี reference → p สามารถ drift ได้ (Poisson equation)
 
+**Physics:**
+- กำหนด p = p_ref ที่ boundary
+- สำคัญมากสำหรับ incompressible flow (pressure จะ drift ถ้าไม่มี reference)
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** Pressure drift หรือไม่ converge
 - **สาเหตุ:** กำหนด `fixedValue` มากเกินไป (over-constrained)
 - **แก้ไข:** กำหนด fixedValue เพียงจุดเดียว ให้ BCs อื่นเป็น zeroGradient
+
+- **ปัญหา:** Pressure field ไม่สมดุล
+- **สาเหตุ:** กำหนด `fixedValue` สำหรับ pressure ที่ inlet และ outlet
+- **แก้ไข:** กำหนด `fixedValue` จุดเดียว (มักเป็น outlet) ให้อีกจุดเป็น `zeroGradient`
 
 ### zeroGradient
 
@@ -327,10 +441,18 @@ wall  { type zeroGradient; }
 - Inlet ที่กำหนด U แล้ว (ปล่อยให้ p คำนวณมา)
 - Wall ทั่วไป (ไม่มี pressure flux ผ่านผนัง)
 
+**Physics:**
+- ∂p/∂n = 0 → ไม่มี pressure gradient ผ่าน boundary
+- Pressure คำนวณจาก continuity equation
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** Pressure field ไม่สเถียร
 - **สาเหตุ:** กำหนด zeroGradient ทุก boundary ไม่มี reference
 - **แก้ไข:** ต้องมีอย่างน้อยหนึ่งจุดที่เป็น `fixedValue`
+
+- **ปัญหา:** Pressure oscillation
+- **สาเหตุ:** ใช้ `zeroGradient` สำหรับ pressure ที่ inlet ที่มี velocity fluctuation
+- **แก้ไข:** ใช้ `totalPressure` แทน
 
 ### totalPressure
 
@@ -349,10 +471,17 @@ inlet
 
 **Physics:** $p_0 = p + \frac{1}{2}\rho|U|^2$
 
+- Total pressure = static pressure + dynamic pressure
+- ใช้สำหรับ compressible flow หรือ high-Mach flow
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** Mass flow rate ไม่ถูกต้อง
 - **สาเหตุ:** กำหนด total pressure แต่ไม่ได้กำหนด velocity BCs ที่สอดคล้องกัน
 - **แก้ไข:** ใช้ `totalPressure` ร่วมกับ `pressureInletVelocity` ที่ inlet เดียวกัน
+
+- **ปัญหา:** Pressure ไม่ converge
+- **สาเหตุ:** กำหนด `totalPressure` ที่ inlet และ outlet
+- **แก้ไข:** กำหนด `totalPressure` จุดเดียว ให้อีกจุดเป็น `fixedValue`
 
 ### freestreamPressure
 
@@ -368,10 +497,18 @@ farField
 
 **ใช้คู่กับ:** `freestreamVelocity` สำหรับ external aero
 
+**Physics:**
+- Blend ระหว่าง freestream value กับ computed value
+- ใช้สำหรับ external aerodynamics
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** Non-physical pressure waves
 - **สาเหตุ:** Freestream boundary ใกล้ object มากเกินไป
 - **แก้ไข:** ขยายโดเมน ให้ farfield ห่างจาก body อย่างน้อย 5-10 characteristic lengths
+
+- **ปัญหา:** Pressure ไม่ realistic
+- **สาเหตุ:** ไม่ได้ใช้ `freestreamVelocity` ร่วมกับ `freestreamPressure`
+- **แก้ไข:** ใช้ทั้งคู่ร่วมกัน
 
 ### fixedFluxPressure
 
@@ -389,10 +526,18 @@ wall
 - ถ้ามี body force (gravity): $\partial p/\partial n \neq 0$
 - `fixedFluxPressure` จัดการอัตโนมัติ
 
+**Physics:**
+- ∂p/∂n = ρg·n → pressure gradient เพื่อรักษา mass flux
+- สำคัญสำหรับ buoyant flow ที่มี gravity
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** Vertical velocity artifacts ใน buoyant flow
 - **สาเหตุ:** ใช้ `zeroGradient` แทน `fixedFluxPressure` ที่ผนัง
 - **แก้ไข:** เปลี่ยนเป็น `fixedFluxPressure` สำหรับผนังทั้งหมดใน buoyant cases
+
+- **ปัญหา:** Pressure ไม่ converge
+- **สาเหตุ:** ไม่ได้กำหนด pressure reference
+- **แก้ไข:** กำหนด `fixedValue` สำหรับ pressure ที่ outlet
 
 ---
 
@@ -412,10 +557,18 @@ hotWall
 
 **ใช้เมื่อ:** ผนังรักษาอุณหภูมิคงที่ (isothermal wall)
 
+**Physics:**
+- Dirichlet BC: T = T_specified
+- ใช้สำหรับผนังที่มีการควบคุมอุณหภูมิ
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** อุณหภูมิผนังไม่สมดุลกับ heat flux
 - **สาเหตุ:** กำหนด T คงที่ แต่ heat source/sink ไม่สมดุล
 - **แก้ไข:** ใช้ `externalWallHeatFlux` แทน เพื่อให้สมดุล energy
+
+- **ปัญหา:** Temperature gradient สูงผิดปกติ
+- **สาเหตุ:** Mesh หยาบเกินไปใกล้ผนัง
+- **แก้ไข:** ยุบ mesh ใกล้ผนัง หรือใช้ wall functions
 
 ### zeroGradient
 
@@ -427,10 +580,17 @@ insulated { type zeroGradient; }
 
 **Physics:** $\partial T/\partial n = 0$ → $q = 0$
 
+- ไม่มี heat flux ผ่านผนัง
+- ใช้สำหรับ insulated wall
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** อุณหภูมิในโดเมนสูงขึ้นเรื่อยๆ ไม่ stabilise
 - **สาเหตุ:** ไม่มี heat sink (ทุกผนังเป็น adiabatic)
 - **แก้ไข:** เพิ่มผนังที่มี heat flux ออก (fixedValue หรือ externalWallHeatFlux)
+
+- **ปัญหา:** Temperature ไม่สมดุล
+- **สาเหตุ:** Heat source ในโดเมน แต่ไม่มี heat sink
+- **แก้ไข:** เพิ่มผนังที่มี heat flux ออก
 
 ### fixedGradient
 
@@ -466,6 +626,10 @@ $$q'' = -50 \times 1000 = -50,000 \text{ W/m}^2$$
   - เช่น: ต้องการ q'' = 5000 W/m², k = 50 W/(m·K)
   - ∇T = -5000/50 = -100 K/m
   - ใส่ `gradient uniform -100;`
+
+- **ปัญหา:** Temperature ไม่ converge
+- **สาเหตุ:** กำหนด gradient สูงเกินไป → heat flux สูงเกินไป
+- **แก้ไข:** ลดค่า gradient หรือเพิ่ม under-relaxation สำหรับ energy equation
 
 ### externalWallHeatFlux
 
@@ -506,11 +670,20 @@ fluxWall
 **ทำไมดีกว่า fixedGradient?**
 - ใช้ h และ T_ambient โดยตรง (intuitive)
 - รองรับหลาย modes
+- คำนวณ temperature gradient อัตโนมัติ
 
 **⚠️ Troubleshooting:**
 - **ปัญหา:** อุณหภูมิผนังไม่ converge
 - **สาเหตุ:** Heat transfer coefficient h สูงเกินไป → stiff system
 - **แก้ไข:** ลดค่า h หรือเพิ่ม under-relaxation สำหรับ energy equation
+
+- **ปัญหา:** Heat balance ไม่สมดุล
+- **สาเหตุ:** ไม่ได้กำหนด heat sink ที่ชัดเจน
+- **แก้ไข:** ตรวจสอบว่า heat in = heat out
+
+- **ปัญหา:** Temperature ไม่ realistic
+- **สาเหตุ:** กำหนด h ผิด หรือ T_ambient ผิด
+- **แก้ไข:** ตรวจสอบค่า h และ T_ambient ให้ถูกต้อง
 
 ---
 
@@ -557,6 +730,10 @@ inlet
 - **สาเหตุ:** k สูง แต่ ε ต่ำเกินไป
 - **แก้ไข:** ตรวจสอบสูตรคำนวณ ε และ ω (ดูด้านล่าง) ให้สัดส่วนถูกต้อง
 
+- **ปัญหา:** Turbulence quantities ไม่ realistic
+- **สาเหตุ:** กำหนดค่า k, ε, ω ไม่ถูกต้อง
+- **แก้ไข:** ใช้สูตรคำนวณ (ดูด้านล่าง) หรือใช้ turbulence generator
+
 ### At Wall (Wall Functions)
 
 ```cpp
@@ -596,6 +773,10 @@ wall
   - ถ้า y+ สูงเกิน: ยุบ mesh ใกล้ผนัง (first cell ใกล้ขึ้น)
   - หรือใช้ low-Re models ที่ resolve viscous sublayer
 
+- **ปัญหา:** Wall functions ไม่ทำงาน
+- **สาเหตุ:** ไม่ได้กำหนด wall function types สำหรับทุก turbulence fields
+- **แก้ไข:** ตรวจสอบว่า k, ε/ω, nut ใช้ wall functions ครบ
+
 ### At Outlet
 
 ```cpp
@@ -609,6 +790,10 @@ outlet { type zeroGradient; }
 - **ปัญหา:** Turbulence quantities ไม่ realistic ที่ outlet
 - **สาเหตุ:** Outlet ใกล้กับ region ที่น่าสนใจเกินไป
 - **แก้ไข:** ขยายโดเมน ให้ outlet ห่างจาก region ที่สนใจอย่างน้อย 10 characteristic lengths
+
+- **ปัญหา:** Turbulence backflow
+- **สาเหตุ:** ไม่ได้จัดการ backflow สำหรับ turbulence
+- **แก้ไข:** ใช้ `inletOutlet` สำหรับ k, ε, ω
 
 ---
 
@@ -626,10 +811,18 @@ symmetryPlane { type symmetry; }
 - $u_n = 0$ (no flow across symmetry)
 - $\partial \phi / \partial n = 0$ for scalars
 
+**ใช้เมื่อ:**
+- Flow มี symmetry จริงๆ
+- ต้องการลดขนาดโดเมน
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** Mass imbalance หรือ non-physical asymmetry
 - **สาเหตุ:** ใช้ symmetry กับ flow ที่ไม่สมมาตรจริง
 - **แก้ไข:** ตรวจสอบว่า flow จริงๆ มี symmetry หรือไม่ ถ้าไม่แน่ใจใช้ full domain
+
+- **ปัญหา:** Solver error "symmetry plane not aligned"
+- **สาเหตุ:** Symmetry plane ไม่ aligned กับ coordinate axes
+- **แก้ไข:** ตรวจสอบว่า symmetry plane ตั้งฉากกับ coordinate axes
 
 ### cyclic
 
@@ -642,10 +835,18 @@ right { type cyclic; }
 
 **ใช้เมื่อ:** Flow เป็น pattern ซ้ำๆ (pipe, heat exchanger)
 
+**Physics:**
+- ค่าที่ boundary หนึ่ง = ค่าที่ boundary อีกข้าง
+- Mass/momentum/energy ผ่าน cyclic boundary ได้
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** Simulation ไม่ converge
 - **สาเหตุ:** Face meshes ที่ cyclic boundaries ไม่ตรงกัน
 - **แก้ไข:** ใช้ `createPatch` หรือแก้ไข `polyMesh/boundary` ให้ matching
+
+- **ปัญหา:** "Cyclic patches not matching" error
+- **สาเหตุ:** Cyclic patches ไม่มีจำนวน faces เท่ากัน
+- **แก้ไข:** ใช้ `createNonConformalCyclicPairs` หรือสร้าง mesh ใหม่
 
 ### empty
 
@@ -657,10 +858,18 @@ frontAndBack { type empty; }
 
 **ใช้เมื่อ:** Mesh มี 1 cell ในทิศทาง z (pseudo-2D)
 
+**Physics:**
+- ไม่มี flux ในทิศทางที่เป็น empty
+- ใช้สำหรับ 2D simulation
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** "empty boundary in 3D case" error
 - **สาเหตุ:** ใช้ `empty` กับ mesh 3D จริง
 - **แก้ไข:** ตรวจสอบว่า mesh มี 1 cell เท่านั้น ในทิศทางที่เป็น empty
+
+- **ปัญหา:** Solver ไม่รับรู้จัก empty boundary
+- **สาเหตุ:** ใช้ `empty` กับ solver ที่ไม่รองรับ 2D
+- **แก้ไข:** ใช้ solver ที่รองรับ 2D หรือเปลี่ยนเป็น `symmetry`
 
 ### wedge
 
@@ -673,10 +882,18 @@ wedgeBack  { type wedge; }
 
 **ใช้เมื่อ:** ปัญหา axisymmetric (pipe, nozzle, jet)
 
+**Physics:**
+- ใช้สำหรับ axisymmetric flow
+- ลดขนาดโดเมนเหลือเพียง 1 wedge
+
 **⚠️ Troubleshooting:**
 - **ปัญหา:** "wedge patch angles do not match" error
 - **สาเหตุ:** มุม wedge ไม่เป็นคู่ หรือไม่อยู่ในตำแหน่งที่ถูกต้อง
 - **แก้ไข:** ตรวจสอบว่า wedge front และ back สร้างมุมเดียวกัน (< 5° แนะนำ)
+
+- **ปัญหา:** "wedge patches not aligned" error
+- **สาเหตุ:** Wedge patches ไม่ aligned กับ axis of symmetry
+- **แก้ไข:** ตรวจสอบว่า wedge patches อยู่บน axis of symmetry
 
 ---
 

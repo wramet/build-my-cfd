@@ -1,0 +1,11 @@
+{
+    "completed": [
+        "00_Project_Overview.md",
+        "01_Phase1_1D_Heat_Equation.md",
+        "02_Phase2_Custom_BC.md",
+        "03_Phase3_Turbulence_Model.md",
+        "04_Phase4_Parallelization.md",
+        "05_Phase5_Optimization.md"
+    ],
+    "skipped": []
+}

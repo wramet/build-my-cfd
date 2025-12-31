@@ -1,0 +1,14 @@
+{
+    "files": {
+        "00_Overview.md": "Expand with Learning Objectives and Key Takeaways sections. Add Prerequisites subsection. Consider merging content with 01_Project_Overview.md as they overlap significantly (both introduce project goals and structure).",
+        "01_Project_Overview.md": "Deduplicate content - overlaps with 00_Overview.md. Add 'Why This Project Matters' section. Enhance with specific Learning Outcomes. Consider merging into 00_Overview.md or clearly differentiating (00=module overview, 01=specific project details).",
+        "02_Model_Development_Rationale.md": "Add Learning Objectives. Expand 'Why' section - explain philosophy behind each design goal. Add trade-offs discussion. Include anti-patterns to avoid.",
+        "03_Folder_and_File_Organization.md": "Complete 3W framework - missing 'Why' explanations for conventions. Add Prerequisites (basic file system knowledge). Include Key Takeaways summary.",
+        "04_Compilation_process.md": "Add 'How wmake works internally' section. Include common compilation scenarios table. Add troubleshooting flowchart. Missing Key Takeaways.",
+        "05_Inheritance_and_Virtual_Functions.md": "Add Prerequisites section (C++ basics required). Expand with more examples showing common pitfalls. Add comparison table: virtual vs override vs final.",
+        "06_Design_Pattern_Rationale.md": "Add Learning Objectives. Include 'Pattern Selection Guide' - when to use which. Add anti-patterns section. Missing Key Takeaways.",
+        "07_Common_Errors_and_Debugging.md": "Good content but structure needs improvement - organize by error phase (compile/link/runtime). Add debugging workflow diagram. Include prevention tips for each error type.",
+        "08_Final_Challenge.md": "Add evaluation criteria/checklist with clear success metrics. Include sample solution structure. Add hints section for stuck learners. Expand with intermediate milestones."
+    },
+    "global_strategy": "Apply consistent 3W (What/Why/How) framework across all files. Add standardized sections: Learning Objectives, Prerequisites, Key Takeaways to all files. Resolve significant redundancy between 00_Overview.md and 01_Project_Overview.md - recommend merging or clearly distinguishing scope. Enhance cross-references between related concepts. Add visual elements (flowcharts, tables) where missing. Ensure bilingual consistency (Thai/English) is maintained throughout. Consider adding a 'Putting It All Together' integration file that connects concepts across the module."
+}

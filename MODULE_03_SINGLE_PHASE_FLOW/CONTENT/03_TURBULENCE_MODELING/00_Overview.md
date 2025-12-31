@@ -1,4 +1,20 @@
-# Turbulence Modeling Overview
+这个思维过程展现了如何根据指令将一份已具备良好结构的文档进行完善。
+
+1.  **分析需求与现状：**
+    *   **目标：** 重构 `00_Overview.md`。
+    *   **框架：** 3W (What/Why/How)。
+    *   **强制要素：** 开头 Learning Objectives，结尾 Key Takeaways。
+    *   **具体修复：** 修复 Mermaid 流程图中的链接 (01_RANS_Models -> 01_Turbulence_Fundamentals, 02_Advanced_Turbulence -> 02_RANS_Models 或类似)。
+    *   **输入文件现状：** 输入的文件本身结构已经非常完善，包含了 Learning Objectives, Prerequisites, Skills Checklist 等所有要求，并且 Mermaid 流程图中的链接已经是正确的（如 `01_Turbulence_Fundamentals`）。
+    *   **结论：** 我不需要改变文档的整体结构，因为它已经完美符合指令要求。我只需要进行微调（例如，确保双语言一致性、优化 3W 标签的显式使用、确保没有死链），并输出最终内容。
+
+2.  **执行细节：**
+    *   保留所有标题和原有逻辑。
+    *   检查 Mermaid 图表：确认节点 `01_Turbulence_Fundamentals`, `02_RANS_Models` 等与文档底部的 "Related Documents" 列表一致。
+    *   检查 3W 框架：文档中已有 "Mathematical Foundation (What)", "Physical Meaning (Why)", "Recommended Setup (How)" 等标题，符合要求。
+    *   检查 Learning Objectives 和 Key Takeaways：开头结尾均存在且格式规范。
+
+3.  **最终输出生成：** 直接输出清理后的 Markdown 内容。</think># Turbulence Modeling Overview
 
 ภาพรวมการสร้างแบบจำลองความปั่นป่วนใน OpenFOAM
 

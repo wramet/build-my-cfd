@@ -6,7 +6,8 @@
 - **อธิบาย** แนวคิด VOF ผ่านการเปรียบเทียบ Raster vs Vector Graphics
 - **คำนวณ** คุณสมบัติของ "ของไหลผสม" (Mixture Properties) จากค่า Phase Fraction
 - **เข้าใจ** ปัญหา Numerical Diffusion และผลกระทบต่อ Surface Tension
-- **แยกแยะ** ความแตกต่างระหว่าง VOF, Level Set และ Eulerian-Eulerian
+- **แยกแยะ** ความแตกต่างระหว่าง VOF และวิธีอื่นๆ (Level Set, Eulerian-Eulerian)
+- **ประยุกต์** ใช้งาน `alpha.water` field ใน OpenFOAM อย่างเหมาะสม
 
 ## 📋 Prerequisites
 
@@ -121,7 +122,7 @@ $$ \frac{\partial \alpha}{\partial t} + \nabla \cdot (\mathbf{U} \alpha) = 0 $$
 - **ผ่านไป 10 ชั่วโมง:** รอยต่อเบลอ 0.9, 0.7, 0.5, 0.3, 0.1 (กิน 4-5 Cells)
 - **หายนะ:** ผิวเบลอ → คำนวณ Surface Tension ไม่ได้ → น้ำดูระเหย
 
-**Solution:** Interface Compression (บทถัดไป **[[02_Interface_Compression]]**)
+**Solution:** Interface Compression (บทถัดไป **[[02_Interface_Compression.md]]**)
 
 ---
 
@@ -151,9 +152,32 @@ $$ \mathbf{F}_{st} = \sigma \kappa \nabla \alpha $$
 | Feature | VOF (OpenFOAM) | Level Set | Eulerian-Eulerian |
 | :--- | :--- | :--- | :--- |
 | **ตัวแปรหลัก** | Volume Fraction ($\alpha$) | Distance Function ($\phi$) | $\alpha$ + 2 Velocity Fields |
-| **จุดเด่น** | Mass Conservation ดีเยี่ยม | ผิวเรียบเนียน, Curvature แม่น | แยก Velocity ของแต่ละเฟสได้ |
-| **จุดด้อย** | Interface อาจเบลอ (Numerical Smearing) | Mass Loss นิรภัย | เปลืองทรัพยากรมาก |
-| **งานที่เหมาะ** | Dam break, Tank sloshing | Droplet dynamics | Bubble columns, Sedimentation |
+| **Mass Conservation** | ⭐⭐⭐⭐⭐ Excellent | ⭐⭐⭐ Fair (Mass loss possible) | ⭐⭐⭐⭐ Good |
+| **Interface Sharpness** | ⭐⭐⭐ Good (with compression) | ⭐⭐⭐⭐⭐ Excellent | ⭐⭐ Fair |
+| **Topology Changes** | ⭐⭐⭐⭐⭐ Handles easily | ⭐⭐⭐⭐ Handles well | ⭐⭐⭐⭐⭐ Handles easily |
+| **Computational Cost** | ⭐⭐⭐ Moderate | ⭐⭐⭐ Moderate | ⭐ High (2 velocity solvers) |
+| **Curvature Accuracy** | ⭐⭐⭐ Good (if sharp) | ⭐⭐⭐⭐⭐ Excellent | ⭐⭐ Fair |
+| **งานที่เหมาะ** | Dam break, Tank sloshing, Wave impact | Droplet dynamics, Bubble shapes | Bubble columns, Sedimentation, Particle-laden flows |
+
+**Key Insight:** OpenFOAM เลือก VOF เป็นหลักเพราะงานวิศวกรรมส่วนใหญ่ต้องการ **Mass Conservation** เป็นหลัก (มวลต้องหายไม่ได้) และต้องจัดการ Topology changes ที่รุนแรง (เช่น คลื่นแตก, ฟองแตก)
+
+---
+
+## 🎛️ Parameters Quick Reference
+
+| Parameter | Location | Typical Value | Purpose |
+| :--- | :--- | :--- | :--- |
+| **cAlpha** | `system/fvSolution` | 0 - 1 (default: 1) | Interface compression coefficient |
+| **maxCo** | `system/controlDict` | 0.2 - 0.5 | Maximum Courant number for stability |
+| **nAlphaCorr** | `system/fvSolution` | 1 - 2 | Number of alpha corrector iterations |
+| **nAlphaSubCycles** | `system/fvSolution` | 1 - 5 | Sub-cycling for sharp interface |
+| **sigma** | `constant/transportProperties` | 0.07 (water-air) | Surface tension coefficient |
+| **MULESCoeffs** | `system/fvSolution` | (varies) | Flux limiter settings for boundedness |
+
+> [!TIP] **Quick Guidelines**
+> - **Dam break / Sloshing**: `cAlpha: 1`, `maxCo: 0.3`, `nAlphaCorr: 1`
+> - **Droplet dynamics**: `cAlpha: 0.5-1`, `maxCo: 0.2`, `nAlphaSubCycles: 2-3`
+> - **Bubble columns**: `cAlpha: 1`, `maxCo: 0.4`, `nAlphaCorr: 2`
 
 ---
 
@@ -177,33 +201,98 @@ $\rho = 0.5(1000) + 0.5(1) = 500.5 \, kg/m^3$
 **ไม่รู้** มันรู้แค่ "ปริมาณ" (Volume Fraction) เราต้องใช้เทคนิค Reconstruction เช่น Isosurface เพื่อสร้างภาพ Interface
 </details>
 
+<details>
+<summary><b>4. ทำไม Density Ratio สูง (1000:1) ถึงเป็นปัญหา?</b></summary>
+
+เพราะที่ Interface ความหนาแน่นจะกระโดดจาก 1 → 1000 ในระยะเพียง 1-2 Cells ทำให้ Pressure solver ต้องแก้สมการที่มีค่าสัมประสิทธิ์ที่แตกต่างกันมาก ซึ่งอาจทำให้เกิดปัญหาความเสถียร (Divergence) หากไม่มีการปรับแต่งที่เหมาะสม
+</details>
+
 ---
 
 ## 🎓 How to Apply: Key Takeaways
 
-### ✅ What to Remember
-1. **VOF = Raster Graphics**: ยอมสละความคมชัดเพื่อ Topology flexibility
+### ✅ Core Concepts to Remember
+1. **VOF = Raster Graphics**: ยอมสละความคมชัดเพื่อ Topology flexibility (การแตกรวมของฟอง/คลื่น)
 2. **Density Jump is Critical**: อัตราส่วน 1000:1 ที่ Interface เป็นความท้าทายหลักของ Solver
-3. **Sharp Interface = Everything**: Interface เบลอ → Surface Tension ผิด → Spurious Currents
+3. **Sharp Interface = Everything**: Interface เบลอ → Surface Tension ผิด → Spurious Currents → การคำนวณล้มเหลว
 4. **Mass Conservation is King**: นี่คือเหตุผลที่ OpenFOAM เลือก VOF ไม่ใช่ Level Set
 
-### 🔧 Practical Settings
-```cpp
-// ใน constant/transportProperties
-sigma          sigma [0 2 -2 0 0 0 0] 0.07;  // Water-Air surface tension
+### 🔧 Practical Application
 
-// ใน 0/alpha.water
+#### Step 1: ตั้งค่าเริ่มต้นใน `0/alpha.water`
+```cpp
+dimensions      [0 0 0 0 0 0 0];
+
 internalField   uniform 0;  // 0 = เต็มอากาศ, 1 = เต็มน้ำ
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 1;  // น้ำไหลเข้า
+    }
+    
+    walls
+    {
+        type            zeroGradient;  // ไม่มีการไหลผ่านผนัง
+    }
+}
 ```
 
-### ⚠️ Common Pitfalls
-- **ไม่กำหนดค่าเริ่มต้น α** → Solver ไม่รู้ว่ามีน้ำตรงไหน
-- **Mesh หยาบเกินไป** → Interface เบลอ และ Curvature คำนวณผิด
-- **ไม่เข้าใจ Numerical Diffusion** → น้ำดูระเหยหายไปเรื่อยๆ
+#### Step 2: กำหนดคุณสมบัติใน `constant/transportProperties`
+```cpp
+phases (water air);
+
+water
+{
+    transportModel  Newtonian;
+    nu              nu [0 2 -1 0 0 0 0] 1e-06;
+    rho             rho [1 -3 0 0 0 0 0] 1000;
+}
+
+air
+{
+    transportModel  Newtonian;
+    nu              nu [0 2 -1 0 0 0 0] 1.48e-05;
+    rho             rho [1 -3 0 0 0 0 0] 1;
+}
+
+sigma           sigma [0 2 -2 0 0 0 0] 0.07;  // Surface tension
+```
+
+#### Step 3: ปรับแต่ง Numerics ใน `system/fvSolution`
+```cpp
+solvers
+{
+    "alpha.water.*"
+    {
+        nAlphaCorr      1;
+        nAlphaSubCycles 2;
+        cAlpha          1;
+        
+        MULESCoeffs
+        {
+            // Flux limiter settings
+        }
+    }
+}
+```
+
+### ⚠️ Common Pitfalls to Avoid
+
+| Pitfall | Symptom | Solution |
+| :--- | :--- | :--- |
+| **ไม่กำหนดค่าเริ่มต้น α** | Solver ไม่รู้ว่ามีน้ำตรงไหน | ใช้ `setFields` หรือ `funkySetFields` สร้าง initial patch |
+| **Mesh หยาบเกินไป** | Interface เบลอ, Curvature ผิด | ใช้ Refinement region บริเวณ interface |
+| **maxCo สูงเกินไป** | Interface เบลอ, Solver diverge | ลด `maxCo` ให้อยู่ที่ 0.2-0.3 |
+| **ไม่เข้าใจ Numerical Diffusion** | น้ำดูระเหยหายไปเรื่อยๆ | เปิด Interface Compression (`cAlpha > 0`) |
+| **กำหนด BC ผิด** | น้ำไหลออก/เข้าผนัง | ใช้ `zeroGradient` ที่ผนัง ไม่ใช่ `fixedValue 0` |
 
 ---
 
 ## 📖 เอกสารที่เกี่ยวข้อง
 
 - **บทก่อนหน้า**: [00_Overview.md](00_Overview.md)
-- **บทถัดไป**: [02_Interface_Compression.md](02_Interface_Compression.md) - เรียนรู้วิธีรักษาความคมของ Interface
+- **บทถัดไป**: [02_Interface_Compression.md](02_Interface_Compression.md) - เรียนรู้วิธีรักษาความคมของ Interface ด้วย Interface Compression
+- **บทเกี่ยวข้อง**: [03_Surface_Tension_Models.md](03_Surface_Tension_Models.md) - ทำความเข้าใจ CSF Model และ Spurious Currents อย่างละเอียด

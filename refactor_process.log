@@ -2062,3 +2062,1446 @@
 [2025-12-31 01:07:25]    📋 Status: 2/4 completed, 2 pending
 [2025-12-31 01:07:25]    ℹ️  Using existing plan: refactor_plan.json
 [2025-12-31 01:07:25]    👷 Executing Plan...
+[2025-12-31 01:07:52]    📄 Plan saved to refactor_plan.json
+[2025-12-31 01:07:52]    👷 Executing Plan...
+[2025-12-31 01:08:13] 🚀 Starting Skill-Aware Refactoring...
+[2025-12-31 01:08:13]    Skills will be auto-triggered from .claude/skills/
+[2025-12-31 01:08:13]    Retry config: max_retries=3, delay=2s
+[2025-12-31 01:08:13] 
+📂 Entering: 01_GOVERNING_EQUATIONS
+[2025-12-31 01:08:13]    ✅ All 10 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 02_FINITE_VOLUME_METHOD
+[2025-12-31 01:08:13]    ✅ All 9 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 03_BOUNDARY_CONDITIONS
+[2025-12-31 01:08:13]    ✅ All 9 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 04_FIRST_SIMULATION
+[2025-12-31 01:08:13]    ✅ All 7 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: CONTENT
+[2025-12-31 01:08:13]    ✅ All 1 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 01_MESHING_FUNDAMENTALS
+[2025-12-31 01:08:13]    ✅ All 2 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 02_BLOCKMESH_MASTERY
+[2025-12-31 01:08:13]    ✅ All 2 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 03_SNAPPYHEXMESH_BASICS
+[2025-12-31 01:08:13]    ✅ All 3 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 04_SNAPPYHEXMESH_ADVANCED
+[2025-12-31 01:08:13]    ✅ All 3 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 05_MESH_QUALITY_AND_MANIPULATION
+[2025-12-31 01:08:13]    ✅ All 3 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 06_RUNTIME_POST_PROCESSING
+[2025-12-31 01:08:13]    ✅ All 3 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 01_INCOMPRESSIBLE_FLOW_SOLVERS
+[2025-12-31 01:08:13]    ✅ All 4 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 02_PRESSURE_VELOCITY_COUPLING
+[2025-12-31 01:08:13]    ✅ All 6 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 03_TURBULENCE_MODELING
+[2025-12-31 01:08:13]    ✅ All 5 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 04_HEAT_TRANSFER
+[2025-12-31 01:08:13]    ✅ All 5 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 05_PRACTICAL_APPLICATIONS
+[2025-12-31 01:08:13]    ✅ All 4 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 06_VALIDATION_AND_VERIFICATION
+[2025-12-31 01:08:13]    ✅ All 4 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 07_ADVANCED_TOPICS
+[2025-12-31 01:08:13]    ✅ All 5 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: CONTENT
+[2025-12-31 01:08:13]    ✅ All 1 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 01_FUNDAMENTAL_CONCEPTS
+[2025-12-31 01:08:13]    ✅ All 3 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 02_VOF_METHOD
+[2025-12-31 01:08:13]    ✅ All 5 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 03_EULER_EULER_METHOD
+[2025-12-31 01:08:13]    ✅ All 4 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 01_DRAG
+[2025-12-31 01:08:13]    ✅ All 4 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 02_LIFT
+[2025-12-31 01:08:13]    ✅ All 4 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 03_VIRTUAL_MASS
+[2025-12-31 01:08:13]    ✅ All 3 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 04_TURBULENT_DISPERSION
+[2025-12-31 01:08:13]    ✅ All 3 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 05_MODEL_SELECTION
+[2025-12-31 01:08:13]    ✅ All 6 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 06_IMPLEMENTATION
+[2025-12-31 01:08:13]    📋 Status: 6/5 completed, 2 pending
+[2025-12-31 01:08:13]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-31 01:08:13]    👷 Executing Plan...
+[2025-12-31 01:08:13]    ⏭️  Skipping 00_Overview.md (already completed)
+[2025-12-31 01:08:13]    ⏭️  Skipping 01_Solver_Overview.md (already completed)
+[2025-12-31 01:08:13]    ⏭️  Skipping 02_Code_Architecture.md (already completed)
+[2025-12-31 01:08:13]    ⏭️  Skipping 03_Model_Architecture.md (already completed)
+[2025-12-31 01:08:13]    ⏭️  Skipping 04_Algorithm_Flow.md (already completed)
+[2025-12-31 01:08:13]    ⏭️  Skipping 05_Parallel_Implementation.md (already completed)
+[2025-12-31 01:08:13]    📊 Summary: 6 completed, 0 skipped
+[2025-12-31 01:08:13] 
+📂 Entering: 07_VALIDATION
+[2025-12-31 01:08:13]    ✅ All 5 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 99_EQUATIONS_REFERENCE
+[2025-12-31 01:08:13]    ✅ All 5 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 01_FOUNDATION_PRIMITIVES
+[2025-12-31 01:08:13]    📋 Status: 8/10 completed, 2 pending
+[2025-12-31 01:08:13]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-31 01:08:13]    👷 Executing Plan...
+[2025-12-31 01:08:13]    ⏭️  Skipping 00_Overview.md (already completed)
+[2025-12-31 01:08:13]    ⏭️  Skipping 01_Introduction.md (already completed)
+[2025-12-31 01:08:13]    ⏭️  Skipping 02_Basic_Primitives.md (already completed)
+[2025-12-31 01:08:13]    ⏭️  Skipping 03_Dimensioned_Types_Intro.md (already completed)
+[2025-12-31 01:08:13]    ⏭️  Skipping 04_Smart_Pointers.md (already completed)
+[2025-12-31 01:08:13]    ⏭️  Skipping 05_Containers.md (already completed)
+[2025-12-31 01:08:13]    ⏭️  Skipping 06_Summary.md (already completed)
+[2025-12-31 01:08:13]    ⏭️  Skipping 07_Exercises.md (already completed)
+[2025-12-31 01:08:13]    📊 Summary: 8 completed, 0 skipped
+[2025-12-31 01:08:13] 
+📂 Entering: 02_DIMENSIONED_TYPES
+[2025-12-31 01:08:13]    ✅ All 9 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 03_CONTAINERS_MEMORY
+[2025-12-31 01:08:13]    ✅ All 6 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 04_MESH_CLASSES
+[2025-12-31 01:08:13]    ✅ All 8 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 05_FIELDS_GEOMETRICFIELDS
+[2025-12-31 01:08:13]    ✅ All 8 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 06_MATRICES_LINEARALGEBRA
+[2025-12-31 01:08:13]    ✅ All 8 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 07_TIME_DATABASES
+[2025-12-31 01:08:13]    ✅ All 8 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 08_FIELD_TYPES
+[2025-12-31 01:08:13]    ✅ All 9 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 09_FIELD_ALGEBRA
+[2025-12-31 01:08:13]    ✅ All 7 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 10_VECTOR_CALCULUS
+[2025-12-31 01:08:13]    ✅ All 8 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 11_TENSOR_ALGEBRA
+[2025-12-31 01:08:13]    ✅ All 8 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 12_DIMENSIONAL_ANALYSIS
+[2025-12-31 01:08:13]    ✅ All 8 files already completed
+[2025-12-31 01:08:13] 
+📂 Entering: 01_COMPLEX_MULTIPHASE_PHENOMENA
+[2025-12-31 01:08:13]    📋 Status: 2/4 completed, 2 pending
+[2025-12-31 01:08:13]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-31 01:08:13]    👷 Executing Plan...
+[2025-12-31 01:10:04]    ✅ Refactored: 00_Overview.md (35163 → 36304 chars)
+[2025-12-31 01:10:04]    ⏭️  Skipping 01_Phase_Change_Modeling.md (already completed)
+[2025-12-31 01:10:04]    ⏭️  Skipping 02_Cavitation_Modeling.md (already completed)
+[2025-12-31 02:01:19]    ✅ Refactored: 03_Population_Balance_Modeling.md (49258 → 49257 chars)
+[2025-12-31 02:01:19]    📊 Summary: 4 completed, 2 skipped
+[2025-12-31 02:01:19] 
+📂 Entering: 02_COUPLED_PHYSICS
+[2025-12-31 02:01:19]    📋 Status: 7/8 completed, 1 pending
+[2025-12-31 02:01:19]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-31 02:01:19]    👷 Executing Plan...
+[2025-12-31 02:01:19]    ⏭️  Skipping 00_Overview.md (already completed)
+[2025-12-31 02:01:19]    ⏭️  Skipping 01_Coupled_Physics_Fundamentals.md (already completed)
+[2025-12-31 02:01:19]    ⏭️  Skipping 02_Conjugate_Heat_Transfer.md (already completed)
+[2025-12-31 02:03:07]    ✅ Refactored: 03_Fluid_Structure_Interaction.md (21174 → 30196 chars)
+[2025-12-31 02:03:07]    ⏭️  Skipping 04_Object_Registry_Architecture.md (already completed)
+[2025-12-31 02:03:07]    ⏭️  Skipping 05_Advanced_Coupling_Topics.md (already completed)
+[2025-12-31 02:03:07]    ⏭️  Skipping 06_Validation_and_Benchmarks.md (already completed)
+[2025-12-31 02:03:07]    ⏭️  Skipping 07_Exercises.md (already completed)
+[2025-12-31 02:03:07]    📊 Summary: 8 completed, 1 skipped
+[2025-12-31 02:03:07] 
+📂 Entering: 03_REACTING_FLOWS
+[2025-12-31 02:03:07]    ✅ All 7 files already completed
+[2025-12-31 02:03:07] 
+📂 Entering: 04_NON_NEWTONIAN_FLUIDS
+[2025-12-31 02:03:07]    ✅ All 6 files already completed
+[2025-12-31 02:03:07] 
+📂 Entering: CONTENT
+[2025-12-31 02:03:07]    ✅ All 1 files already completed
+[2025-12-31 02:03:07] 
+📂 Entering: 01_SHELL_SCRIPTING
+[2025-12-31 02:03:07]    ✅ All 3 files already completed
+[2025-12-31 02:03:07] 
+📂 Entering: 02_PYTHON_AUTOMATION
+[2025-12-31 02:03:07]    ✅ All 5 files already completed
+[2025-12-31 02:03:07] 
+📂 Entering: 03_HPC_AND_CLOUD
+[2025-12-31 02:03:07]    ✅ All 5 files already completed
+[2025-12-31 02:03:07] 
+📂 Entering: 04_ADVANCED_VISUALIZATION
+[2025-12-31 02:03:07]    📋 Status: 0/5 completed, 5 pending
+[2025-12-31 02:03:07]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-31 02:03:07]    👷 Executing Plan...
+[2025-12-31 02:03:46]    ✅ Refactored: 00_Overview.md (941 → 12888 chars)
+[2025-12-31 02:05:17]    ✅ Refactored: 01_ParaView_Visualization.md (1812 → 18905 chars)
+[2025-12-31 02:07:25]    ✅ Refactored: 02_Python_Plotting.md (2125 → 40124 chars)
+[2025-12-31 02:12:02]    ✅ Refactored: 03_Blender_Rendering.md (12833 → 46287 chars)
+[2025-12-31 02:13:58]    ✅ Refactored: 04_Animation_Techniques.md (11466 → 42221 chars)
+[2025-12-31 02:13:58]    📊 Summary: 5 completed, 0 skipped
+[2025-12-31 02:13:58] 
+📂 Entering: 05_PROFESSIONAL_PRACTICE
+[2025-12-31 02:13:58]    📋 Status: 0/6 completed, 6 pending
+[2025-12-31 02:13:58]    🧠 Generating Refactoring Plan...
+[2025-12-31 02:14:31]    📄 Plan saved to refactor_plan.json
+[2025-12-31 02:14:31]    👷 Executing Plan...
+[2025-12-31 02:14:48]    ✅ Refactored: 00_Overview.md (931 → 3039 chars)
+[2025-12-31 02:15:32]    ✅ Refactored: 01_Project_Organization.md (1086 → 6367 chars)
+[2025-12-31 02:16:55]    ✅ Refactored: 02_Documentation_Standards.md (1293 → 11574 chars)
+[2025-12-31 02:20:33]    ⚠️ Content too short (610 vs 9394). Retry 1/3 in 2s...
+[2025-12-31 02:24:11]    ⚠️ Content too short (327 vs 9394). Retry 2/3 in 4s...
+[2025-12-31 02:24:45]    ⚠️ Skipped 03_Open_Source_Contribution.md: Content too short after 3 retries (771 vs 9394 original).
+[2025-12-31 02:24:45]    📋 DEBUG Output preview:
+[2025-12-31 02:24:45]    'The file `03_Open_Source_Contribution.md` is already well-refactored and includes all the required elements:\n\n✅ **Learning Objectives** - Clear section at the start (หัวข้อที่ 11)\n✅ **3W Framework** - WHAT/WHY/HOW structure implemented (หัวข้อที่ 19, 60, 89)\n✅ **Key Takeaways** - Comprehensive summary section at the end (หัวข้อที่ 361)\n✅ **Comprehensive Content** - Covers all aspects of open source contribution\n✅ **Bilingual Formatting** - Consistent Thai/English usage\n\nThe file demonstrates:\n- '...
+[2025-12-31 02:24:45]    📄 Full output saved to: .debug_03_Open_Source_Contribution.md.txt
+[2025-12-31 02:25:25]    ✅ Refactored: 04_Version_Control_Git.md (1154 → 12624 chars)
+[2025-12-31 02:26:11]    ✅ Refactored: 05_Testing_and_QA.md (12379 → 15017 chars)
+[2025-12-31 02:26:11]    📊 Summary: 5 completed, 1 skipped
+[2025-12-31 02:26:11] 
+📂 Entering: 06_EXPERT_UTILITIES
+[2025-12-31 02:26:11]    📋 Status: 0/8 completed, 8 pending
+[2025-12-31 02:26:11]    🧠 Generating Refactoring Plan...
+[2025-12-31 02:26:36]    📄 Plan saved to refactor_plan.json
+[2025-12-31 02:26:36]    👷 Executing Plan...
+[2025-12-31 02:27:24]    ✅ Refactored: 00_Overview.md (1094 → 11577 chars)
+[2025-12-31 02:28:27]    ✅ Refactored: 01_Utility_Categories_and_Organization.md (10903 → 13592 chars)
+[2025-12-31 02:30:29]    ✅ Refactored: 02_Architecture_and_Design_Patterns.md (15027 → 36202 chars)
+[2025-12-31 02:33:39]    ✅ Refactored: 03_Essential_Utilities_for_Common_CFD_Tasks.md (1413 → 1251 chars)
+[2025-12-31 02:36:23]    ✅ Refactored: 04_Time-Saving_Benefits.md (11652 → 39220 chars)
+[2025-12-31 02:38:11]    ✅ Refactored: 05_Creating_Custom_Utilities.md (1105 → 25733 chars)
+[2025-12-31 02:40:26]    ✅ Refactored: 06_Integration_with_Solver_Workflows.md (1196 → 24917 chars)
+[2025-12-31 02:44:25]    ✅ Refactored: 07_Best_Practices.md (1241 → 1004 chars)
+[2025-12-31 02:44:25]    📊 Summary: 8 completed, 0 skipped
+[2025-12-31 02:44:25] 
+📂 Entering: 01_TESTING_FUNDAMENTALS
+[2025-12-31 02:44:25]    📋 Status: 0/1 completed, 1 pending
+[2025-12-31 02:44:25]    🧠 Generating Refactoring Plan...
+[2025-12-31 02:44:56]    📄 Plan saved to refactor_plan.json
+[2025-12-31 02:44:56]    👷 Executing Plan...
+[2025-12-31 02:45:58]    ✅ Refactored: 00_Overview.md (2858 → 11985 chars)
+[2025-12-31 02:45:58]    📊 Summary: 1 completed, 0 skipped
+[2025-12-31 02:45:58] 
+📂 Entering: 02_VERIFICATION_FUNDAMENTALS
+[2025-12-31 02:45:58]    📋 Status: 0/5 completed, 5 pending
+[2025-12-31 02:45:58]    🧠 Generating Refactoring Plan...
+[2025-12-31 02:46:20]    📄 Plan saved to refactor_plan.json
+[2025-12-31 02:46:20]    👷 Executing Plan...
+[2025-12-31 02:46:45]    ✅ Refactored: 00_Overview.md (2354 → 3321 chars)
+[2025-12-31 02:47:34]    ✅ Refactored: 01_Introduction.md (3757 → 8898 chars)
+[2025-12-31 02:48:42]    ✅ Refactored: 02a_Method_of_Manufactured_Solutions_MMS.md (10231 → 12371 chars)
+[2025-12-31 02:50:36]    ✅ Refactored: 02b_Richardson_Extrapolation_GCI.md (8312 → 11488 chars)
+[2025-12-31 02:51:49]    ✅ Refactored: 03_OpenFOAM_Architecture.md (2259 → 22269 chars)
+[2025-12-31 02:51:49]    📊 Summary: 5 completed, 0 skipped
+[2025-12-31 02:51:49] 
+📂 Entering: 03_TEST_FRAMEWORK_CODING
+[2025-12-31 02:51:49]    📋 Status: 0/4 completed, 4 pending
+[2025-12-31 02:51:49]    🧠 Generating Refactoring Plan...
+[2025-12-31 02:52:02]    📄 Plan saved to refactor_plan.json
+[2025-12-31 02:52:02]    👷 Executing Plan...
+[2025-12-31 02:52:48]    ✅ Refactored: 00_Overview.md (2698 → 11753 chars)
+[2025-12-31 02:55:30]    ✅ Refactored: 01_Unit_Testing.md (3255 → 48440 chars)
+[2025-12-31 02:56:51]    ⚠️ Content too short (659 vs 2728). Retry 1/3 in 2s...
+[2025-12-31 03:44:00]    ✅ Refactored: 02_Validation_Coding.md (2728 → 28540 chars)
+[2025-12-31 03:45:10]    ✅ Refactored: 03_Automation_Scripts.md (2298 → 1512 chars)
+[2025-12-31 03:45:10]    📊 Summary: 4 completed, 0 skipped
+[2025-12-31 03:45:10] 
+📂 Entering: 04_VALIDATION_BENCHMARKS
+[2025-12-31 03:45:10]    📋 Status: 0/4 completed, 4 pending
+[2025-12-31 03:45:10]    🧠 Generating Refactoring Plan...
+[2025-12-31 03:45:22]    📄 Plan saved to refactor_plan.json
+[2025-12-31 03:45:22]    👷 Executing Plan...
+[2025-12-31 04:02:27]    ✅ Refactored: 00_Overview.md (1893 → 11390 chars)
+[2025-12-31 04:03:35]    ⚠️ Content too short (1410 vs 3336). Retry 1/3 in 2s...
+[2025-12-31 04:04:32]    ✅ Refactored: 01_Physical_Validation.md (3336 → 25653 chars)
+[2025-12-31 04:05:48]    ✅ Refactored: 02_Mesh_BC_Verification.md (2209 → 20816 chars)
+[2025-12-31 04:08:15]    ✅ Refactored: 03_Best_Practices.md (2512 → 39998 chars)
+[2025-12-31 04:08:15]    📊 Summary: 4 completed, 0 skipped
+[2025-12-31 04:08:15] 
+📂 Entering: 05_QA_AUTOMATION_PROFILING
+[2025-12-31 04:08:15]    📋 Status: 0/4 completed, 4 pending
+[2025-12-31 04:08:15]    🧠 Generating Refactoring Plan...
+[2025-12-31 04:08:48]    📄 Plan saved to refactor_plan.json
+[2025-12-31 04:08:48]    👷 Executing Plan...
+[2025-12-31 04:11:02]    ✅ Refactored: 00_Overview.md (14355 → 14404 chars)
+[2025-12-31 04:14:48]    ⚠️ Content too short (1155 vs 9823). Retry 1/3 in 2s...
+[2025-12-31 04:16:48]    ✅ Refactored: 01_Performance_Profiling.md (9823 → 16396 chars)
+[2025-12-31 04:21:10]    ⚠️ Content too short (1078 vs 2718). Retry 1/3 in 2s...
+[2025-12-31 04:23:10]    ⚠️ Content too short (961 vs 2718). Retry 2/3 in 4s...
+[2025-12-31 04:36:06]    ⚠️ Skipped 02_Regression_Testing.md: Content too short after 3 retries (997 vs 2718 original).
+[2025-12-31 04:36:06]    📋 DEBUG Output preview:
+[2025-12-31 04:36:06]    'File successfully refactored with:\n\n1. **Comprehensive bilingual content** - All sections in Thai and English\n2. **Learning Objectives** - Clearly defined at the top\n3. **3W Framework** - What/Why/How structure throughout\n4. **OpenFOAM Context callouts** - Domain-specific annotations with file paths and keywords\n5. **Multiple mermaid diagrams** - Test hierarchy, Tolerance selection, Impact analysis, TDD cycle\n6. **Detailed examples** - Allrun/Allclean scripts with full validation\n7. **Reference '...
+[2025-12-31 04:36:06]    📄 Full output saved to: .debug_02_Regression_Testing.md.txt
+[2025-12-31 04:38:20]    ⚠️ Content too short (1033 vs 2939). Retry 1/3 in 2s...
+[2025-12-31 04:40:50]    ⚠️ Content too short (1072 vs 2939). Retry 2/3 in 4s...
+[2025-12-31 04:42:51]    ✅ Refactored: 03_Debugging_Troubleshooting.md (2939 → 32383 chars)
+[2025-12-31 04:42:51]    📊 Summary: 3 completed, 1 skipped
+[2025-12-31 04:42:51] 
+📂 Entering: 01_TEMPLATE_PROGRAMMING
+[2025-12-31 04:42:51]    📋 Status: 0/8 completed, 8 pending
+[2025-12-31 04:42:51]    🧠 Generating Refactoring Plan...
+[2025-12-31 04:43:06]    📄 Plan saved to refactor_plan.json
+[2025-12-31 04:43:06]    👷 Executing Plan...
+[2025-12-31 04:43:34]    ✅ Refactored: 00_Overview.md (2605 → 6262 chars)
+[2025-12-31 04:45:24]    ✅ Refactored: 01_Introduction.md (2381 → 1272 chars)
+[2025-12-31 04:46:09]    ✅ Refactored: 02_Template_Syntax.md (3497 → 15981 chars)
+[2025-12-31 04:47:56]    ⚠️ Content too short (832 vs 14531). Retry 1/3 in 2s...
+[2025-12-31 04:49:32]    ✅ Refactored: 03_Internal_Mechanics.md (14531 → 15146 chars)
+[2025-12-31 04:50:35]    ✅ Refactored: 04_Instantiation_and_Specialization.md (2601 → 11949 chars)
+[2025-12-31 04:51:23]    ✅ Refactored: 05_Design_Patterns.md (2536 → 26792 chars)
+[2025-12-31 04:52:41]    ⚠️ Content too short (464 vs 2350). Retry 1/3 in 2s...
+[2025-12-31 04:53:05]    ⚠️ Content too short (1139 vs 2350). Retry 2/3 in 4s...
+[2025-12-31 04:53:42]    ✅ Refactored: 06_Common_Errors_and_Debugging.md (2350 → 14463 chars)
+[2025-12-31 04:55:28]    ✅ Refactored: 07_Practical_Exercise.md (2931 → 25237 chars)
+[2025-12-31 04:55:28]    📊 Summary: 8 completed, 0 skipped
+[2025-12-31 04:55:28] 
+📂 Entering: 02_INHERITANCE_POLYMORPHISM
+[2025-12-31 04:55:28]    📋 Status: 0/9 completed, 9 pending
+[2025-12-31 04:55:28]    🧠 Generating Refactoring Plan...
+[2025-12-31 04:55:46]    📄 Plan saved to refactor_plan.json
+[2025-12-31 04:55:46]    👷 Executing Plan...
+[2025-12-31 04:56:36]    ✅ Refactored: 00_Overview.md (2115 → 8862 chars)
+[2025-12-31 04:57:30]    ✅ Refactored: 01_Introduction.md (2415 → 12899 chars)
+[2025-12-31 04:57:36]    ⚠️ Content too short (237 vs 2613). Retry 1/3 in 2s...
+[2025-12-31 04:58:24]    ✅ Refactored: 02_Abstract_Interfaces.md (2613 → 16496 chars)
+[2025-12-31 04:59:35]    ✅ Refactored: 03_Inheritance_Hierarchies.md (3401 → 19986 chars)
+[2025-12-31 05:01:01]    ✅ Refactored: 04_Run_Time_Selection_System.md (2646 → 27993 chars)
+[2025-12-31 05:13:26]    ✅ Refactored: 05_Design_Patterns_in_Physics.md (2612 → 37491 chars)
+[2025-12-31 05:15:03]    ✅ Refactored: 06_Common_Errors_and_Debugging.md (2299 → 29178 chars)
+[2025-12-31 05:16:30]    ✅ Refactored: 07_Performance_Considerations.md (2177 → 17971 chars)
+[2025-12-31 05:18:01]    ✅ Refactored: 08_Practical_Exercise.md (2467 → 27553 chars)
+[2025-12-31 05:18:01]    📊 Summary: 9 completed, 0 skipped
+[2025-12-31 05:18:01] 
+📂 Entering: 03_DESIGN_PATTERNS
+[2025-12-31 05:18:01]    📋 Status: 0/7 completed, 7 pending
+[2025-12-31 05:18:01]    🧠 Generating Refactoring Plan...
+[2025-12-31 05:18:17]    📄 Plan saved to refactor_plan.json
+[2025-12-31 05:18:17]    👷 Executing Plan...
+[2025-12-31 05:18:57]    ✅ Refactored: 00_Overview.md (2407 → 9223 chars)
+[2025-12-31 05:19:46]    ✅ Refactored: 01_Introduction.md (2076 → 15819 chars)
+[2025-12-31 05:20:45]    ✅ Refactored: 02_Factory_Pattern.md (3208 → 18238 chars)
+[2025-12-31 05:22:22]    ✅ Refactored: 03_Strategy_Pattern.md (2201 → 23977 chars)
+[2025-12-31 05:23:32]    ✅ Refactored: 04_Pattern_Synergy.md (2596 → 16000 chars)
+[2025-12-31 05:24:55]    ⚠️ Content too short (906 vs 16736). Retry 1/3 in 2s...
+[2025-12-31 05:25:12]    ⚠️ Content too short (1185 vs 16736). Retry 2/3 in 4s...
+[2025-12-31 05:25:56]    ⚠️ Skipped 05_Performance_Analysis.md: Content too short after 3 retries (407 vs 16736 original).
+[2025-12-31 05:25:56]    📋 DEBUG Output preview:
+[2025-12-31 05:25:56]    'Refactoring complete. The file already had the standard template applied with:\n- ✅ Learning Objectives\n- ✅ Prerequisites  \n- ✅ Overview (3W Framework)\n- ✅ Main Content with structured sections\n- ✅ Key Takeaways\n- ✅ Quick Reference\n- ✅ Concept Check (5 questions instead of 2)\n- ✅ Related Documents\n\nThe image placeholder was replaced with a text-based visualization since no corresponding image file exists.'...
+[2025-12-31 05:25:56]    📄 Full output saved to: .debug_05_Performance_Analysis.md.txt
+[2025-12-31 05:27:42]    ✅ Refactored: 06_Practical_Exercise.md (2654 → 36417 chars)
+[2025-12-31 05:27:42]    📊 Summary: 6 completed, 1 skipped
+[2025-12-31 05:27:42] 
+📂 Entering: 04_MEMORY_MANAGEMENT
+[2025-12-31 05:27:42]    📋 Status: 0/8 completed, 8 pending
+[2025-12-31 05:27:42]    🧠 Generating Refactoring Plan...
+[2025-12-31 05:27:56]    📄 Plan saved to refactor_plan.json
+[2025-12-31 05:27:56]    👷 Executing Plan...
+[2025-12-31 05:28:43]    ⚠️ Content too short (763 vs 2631). Retry 1/3 in 2s...
+[2025-12-31 05:29:19]    ✅ Refactored: 00_Overview.md (2631 → 12407 chars)
+[2025-12-31 05:30:35]    ✅ Refactored: 01_Introduction.md (12451 → 12257 chars)
+[2025-12-31 05:31:52]    ⚠️ Content too short (797 vs 2348). Retry 1/3 in 2s...
+[2025-12-31 05:32:48]    ✅ Refactored: 02_Memory_Syntax_and_Design.md (2348 → 16195 chars)
+[2025-12-31 05:34:50]    ✅ Refactored: 03_Internal_Mechanics.md (2189 → 20860 chars)
+[2025-12-31 05:36:11]    ✅ Refactored: 04_Mathematical_Foundations.md (18604 → 24226 chars)
+[2025-12-31 05:38:07]    ✅ Refactored: 05_Implementation_Mechanisms.md (1873 → 18744 chars)
+[2025-12-31 05:40:05]    ✅ Refactored: 07_Common_Errors_and_Debugging.md (2046 → 23892 chars)
+[2025-12-31 05:40:05]    📊 Summary: 7 completed, 0 skipped
+[2025-12-31 05:40:05] 
+📂 Entering: 05_PERFORMANCE_OPTIMIZATION
+[2025-12-31 05:40:05]    📋 Status: 0/8 completed, 8 pending
+[2025-12-31 05:40:05]    🧠 Generating Refactoring Plan...
+[2025-12-31 05:40:21]    📄 Plan saved to refactor_plan.json
+[2025-12-31 05:40:21]    👷 Executing Plan...
+[2025-12-31 05:41:15]    ✅ Refactored: 00_Overview.md (1951 → 12242 chars)
+[2025-12-31 05:41:52]    ✅ Refactored: 01_Introduction.md (1589 → 11917 chars)
+[2025-12-31 05:42:34]    ✅ Refactored: 02_Expression_Templates_Syntax.md (2012 → 14728 chars)
+[2025-12-31 05:44:05]    ✅ Refactored: 03_Internal_Mechanics.md (2067 → 29582 chars)
+[2025-12-31 05:45:06]    ✅ Refactored: 04_Compilation_and_Machine_Code.md (1603 → 18220 chars)
+[2025-12-31 05:46:39]    ✅ Refactored: 05_Design_Patterns_and_Trade-offs.md (1842 → 15764 chars)
+[2025-12-31 05:47:45]    ✅ Refactored: 06_Common_Errors_and_Debugging.md (1733 → 18523 chars)
+[2025-12-31 05:49:23]    ✅ Refactored: 07_Appendices.md (1316 → 24608 chars)
+[2025-12-31 05:49:23]    📊 Summary: 8 completed, 0 skipped
+[2025-12-31 05:49:23] 
+📂 Entering: 06_ARCHITECTURE_EXTENSIBILITY
+[2025-12-31 05:49:23]    📋 Status: 0/8 completed, 8 pending
+[2025-12-31 05:49:23]    🧠 Generating Refactoring Plan...
+[2025-12-31 05:49:34]    📄 Plan saved to refactor_plan.json
+[2025-12-31 05:49:34]    👷 Executing Plan...
+[2025-12-31 05:50:13]    ✅ Refactored: 00_Overview.md (1825 → 9245 chars)
+[2025-12-31 05:51:02]    ✅ Refactored: 01_Introduction.md (1533 → 12881 chars)
+[2025-12-31 05:52:16]    ✅ Refactored: 02_Runtime_Selection_Tables.md (1933 → 18293 chars)
+[2025-12-31 05:53:37]    ✅ Refactored: 03_Dynamic_Library_Loading.md (1602 → 22763 chars)
+[2025-12-31 05:54:45]    ✅ Refactored: 04_FunctionObject_Integration.md (2125 → 31671 chars)
+[2025-12-31 05:55:59]    ✅ Refactored: 05_Design_Patterns.md (1952 → 36346 chars)
+[2025-12-31 05:56:56]    ✅ Refactored: 06_Common_Errors_and_Debugging.md (2092 → 15751 chars)
+[2025-12-31 05:58:44]    ✅ Refactored: 07_Practical_Exercise.md (1964 → 38821 chars)
+[2025-12-31 05:58:44]    📊 Summary: 8 completed, 0 skipped
+[2025-12-31 05:58:44] 
+📂 Entering: 07_PRACTICAL_PROJECT
+[2025-12-31 05:58:44]    📋 Status: 0/9 completed, 9 pending
+[2025-12-31 05:58:44]    🧠 Generating Refactoring Plan...
+[2025-12-31 05:58:55]    📄 Plan saved to refactor_plan.json
+[2025-12-31 05:58:55]    👷 Executing Plan...
+[2025-12-31 05:59:38]    ✅ Refactored: 00_Overview.md (1521 → 14038 chars)
+[2025-12-31 06:00:40]    ✅ Refactored: 01_Project_Overview.md (1757 → 17024 chars)
+[2025-12-31 06:04:58]    ✅ Refactored: 02_Model_Development_Rationale.md (1922 → 21615 chars)
+[2025-12-31 06:06:06]    ✅ Refactored: 03_Folder_and_File_Organization.md (1939 → 15852 chars)
+[2025-12-31 06:07:11]    ✅ Refactored: 04_Compilation_process.md (1694 → 18590 chars)
+[2025-12-31 06:08:05]    ✅ Refactored: 05_Inheritance_and_Virtual_Functions.md (2022 → 26871 chars)
+[2025-12-31 06:08:59]    ✅ Refactored: 06_Design_Pattern_Rationale.md (1781 → 18763 chars)
+[2025-12-31 06:10:35]    ✅ Refactored: 07_Common_Errors_and_Debugging.md (1982 → 22415 chars)
+[2025-12-31 06:54:21]    ✅ Refactored: 08_Final_Challenge.md (1667 → 37097 chars)
+[2025-12-31 06:54:21]    📊 Summary: 9 completed, 0 skipped
+[2025-12-31 06:54:21] 
+📂 Entering: 01_CODE_ANATOMY
+[2025-12-31 06:54:21]    📋 Status: 0/5 completed, 5 pending
+[2025-12-31 06:54:21]    🧠 Generating Refactoring Plan...
+[2025-12-31 06:54:38]    📄 Plan saved to refactor_plan.json
+[2025-12-31 06:54:38]    👷 Executing Plan...
+[2025-12-31 06:55:18]    ✅ Refactored: 00_Overview.md (2197 → 9935 chars)
+[2025-12-31 06:57:08]    ✅ Refactored: 01_icoFoam_Walkthrough.md (11519 → 35756 chars)
+[2025-12-31 06:58:49]    ✅ Refactored: 02_simpleFoam_Walkthrough.md (13477 → 26060 chars)
+[2025-12-31 07:00:22]    ✅ Refactored: 03_kEpsilon_Model_Anatomy.md (18200 → 26704 chars)
+[2025-12-31 07:01:26]    ✅ Refactored: 04_fvMatrix_Deep_Dive.md (12673 → 27090 chars)
+[2025-12-31 07:01:26]    📊 Summary: 5 completed, 0 skipped
+[2025-12-31 07:01:26] 
+📂 Entering: 02_ADVANCED_PATTERNS
+[2025-12-31 07:01:26]    📋 Status: 0/6 completed, 6 pending
+[2025-12-31 07:01:26]    🧠 Generating Refactoring Plan...
+[2025-12-31 07:01:53]    📄 Plan saved to refactor_plan.json
+[2025-12-31 07:01:53]    👷 Executing Plan...
+[2025-12-31 07:02:06]    ✅ Refactored: 00_Overview.md (1817 → 5490 chars)
+[2025-12-31 07:03:50]    ✅ Refactored: 01_Strategy_in_fvSchemes.md (5927 → 17249 chars)
+[2025-12-31 07:04:22]    ✅ Refactored: 02_Template_Method_Pattern.md (6485 → 10622 chars)
+[2025-12-31 07:05:33]    ✅ Refactored: 03_Singleton_MeshObject.md (6170 → 29845 chars)
+[2025-12-31 07:06:22]    ✅ Refactored: 04_Visitor_Pattern.md (5652 → 18706 chars)
+[2025-12-31 07:08:31]    ⚠️ Content too short (923 vs 6154). Retry 1/3 in 2s...
+[2025-12-31 07:09:18]    ✅ Refactored: 05_CRTP_Pattern.md (6154 → 22026 chars)
+[2025-12-31 07:09:18]    📊 Summary: 6 completed, 0 skipped
+[2025-12-31 07:09:18] 
+📂 Entering: 03_PERFORMANCE_ENGINEERING
+[2025-12-31 07:09:18]    📋 Status: 0/5 completed, 5 pending
+[2025-12-31 07:09:18]    🧠 Generating Refactoring Plan...
+[2025-12-31 07:09:40]    📄 Plan saved to refactor_plan.json
+[2025-12-31 07:09:40]    👷 Executing Plan...
+[2025-12-31 07:10:13]    ✅ Refactored: 00_Overview.md (2448 → 9623 chars)
+[2025-12-31 07:12:19]    ⚠️ Content too short (1360 vs 14811). Retry 1/3 in 2s...
+[2025-12-31 07:14:42]    ✅ Refactored: 01_Profiling_Tools.md (14811 → 27902 chars)
+[2025-12-31 07:17:29]    ✅ Refactored: 02_Memory_Layout_Cache.md (16150 → 31830 chars)
+[2025-12-31 07:19:14]    ✅ Refactored: 03_Loop_Optimization.md (16995 → 32845 chars)
+[2025-12-31 07:20:42]    ✅ Refactored: 04_Parallel_Scaling.md (19225 → 27709 chars)
+[2025-12-31 07:20:42]    📊 Summary: 5 completed, 0 skipped
+[2025-12-31 07:20:42] 
+📂 Entering: 04_CAPSTONE_PROJECT
+[2025-12-31 07:20:42]    📋 Status: 0/6 completed, 6 pending
+[2025-12-31 07:20:42]    🧠 Generating Refactoring Plan...
+[2025-12-31 07:20:57]    📄 Plan saved to refactor_plan.json
+[2025-12-31 07:20:57]    👷 Executing Plan...
+[2025-12-31 07:21:39]    ✅ Refactored: 00_Project_Overview.md (3950 → 11784 chars)
+[2025-12-31 07:23:18]    ✅ Refactored: 01_Phase1_1D_Heat_Equation.md (18181 → 27222 chars)
+[2025-12-31 07:24:05]    ✅ Refactored: 02_Phase2_Custom_BC.md (16039 → 17073 chars)
+[2025-12-31 07:25:23]    ✅ Refactored: 03_Phase3_Turbulence_Model.md (14097 → 30060 chars)
+[2025-12-31 07:26:07]    ✅ Refactored: 04_Phase4_Parallelization.md (7488 → 16949 chars)
+[2025-12-31 07:27:41]    ✅ Refactored: 05_Phase5_Optimization.md (20232 → 23124 chars)
+[2025-12-31 07:27:41]    📊 Summary: 6 completed, 0 skipped
+[2025-12-31 07:27:41] 
+📂 Entering: 05_BEYOND_OPENFOAM
+[2025-12-31 07:27:41]    📋 Status: 0/4 completed, 4 pending
+[2025-12-31 07:27:41]    🧠 Generating Refactoring Plan...
+[2025-12-31 07:28:11]    📄 Plan saved to refactor_plan.json
+[2025-12-31 07:28:11]    👷 Executing Plan...
+[2025-12-31 07:28:44]    ✅ Refactored: 00_Overview.md (1550 → 9205 chars)
+[2025-12-31 07:33:07]    ⚠️ Content too short (2479 vs 28165). Retry 1/3 in 2s...
+[2025-12-31 07:34:44]    ⚠️ Content too short (3263 vs 28165). Retry 2/3 in 4s...
+[2025-12-31 07:36:47]    ⚠️ Skipped 01_Alternative_Architectures.md: Content too short after 3 retries (2592 vs 28165 original).
+[2025-12-31 07:36:47]    📋 DEBUG Output preview:
+[2025-12-31 07:36:47]    'Perfect! Now let me provide you with a summary of the completed refactoring:\n\n## Refactoring Complete: Alternative CFD Frameworks Module\n\n### Summary\n\nThe **01_Alternative_Architectures.md** monolithic file (1,197 lines) has been successfully refactored into **5 focused, pedagogically-structured files**:\n\n### New File Structure\n\n1. **01a_Introduction_and_Comparison.md** (8.0K)\n   - Framework comparison table\n   - Commercial vs Open Source analysis\n   - Architecture philosophies\n   - Decision fra'...
+[2025-12-31 07:36:47]    📄 Full output saved to: .debug_01_Alternative_Architectures.md.txt
+[2025-12-31 07:41:39]    ✅ Refactored: 02_GPU_Computing.md (22385 → 32715 chars)
+[2025-12-31 07:43:49]    ✅ Refactored: 03_Modern_Cpp_for_CFD.md (7072 → 30513 chars)
+[2025-12-31 07:43:49]    📊 Summary: 3 completed, 1 skipped
+[2025-12-31 07:43:49] 
+🔍 Final Verification Pass: Checking all subfolders...
+[2025-12-31 07:43:49] 
+📂 Retrying in: 01_GOVERNING_EQUATIONS
+[2025-12-31 07:43:49]    Found 2 skipped files to retry
+[2025-12-31 07:43:49]    🔄 Retrying: 05_OpenFOAM_Implementation.md
+[2025-12-31 07:46:46]    ⚠️ Content too short (2361 vs 33671). Retry 1/3 in 2s...
+[2025-12-31 07:47:29]    ⚠️ Content too short (1602 vs 33671). Retry 2/3 in 4s...
+[2025-12-31 07:48:40]    ✅ Refactored: 05_OpenFOAM_Implementation.md (33671 → 22047 chars)
+[2025-12-31 07:48:40]    ✅ Successfully retried: 05_OpenFOAM_Implementation.md
+[2025-12-31 07:48:40]    🔄 Retrying: 09_Exercises.md
+[2025-12-31 07:49:00]    ⚠️ Content too short (1036 vs 46854). Retry 1/3 in 2s...
+[2025-12-31 07:52:56]    ⚠️ Content too short (1638 vs 46854). Retry 2/3 in 4s...
+[2025-12-31 08:38:14]    ⚠️ Skipped 09_Exercises.md: Content too short after 3 retries (1881 vs 46854 original).
+[2025-12-31 08:38:14]    📋 DEBUG Output preview:
+[2025-12-31 08:38:14]    'The file appears to already have most of the requested improvements. Let me verify what specific improvements are still needed by checking the specific instruction requirements:\n\nBased on my analysis, the current file already has:\n\n✅ Difficulty ratings (Beginner/Intermediate/Advanced) with emoji indicators\n✅ Time estimates for each exercise\n✅ Prerequisites listed for each exercise\n✅ Hints before full solutions (using collapsible sections)\n✅ Mini-project: "Set up your first pipe flow case"\n✅ Answ'...
+[2025-12-31 08:38:14]    📄 Full output saved to: .debug_09_Exercises.md.txt
+[2025-12-31 08:38:14]    ❌ Still failed: 09_Exercises.md
+[2025-12-31 08:38:14] 
+📂 Retrying in: 02_FINITE_VOLUME_METHOD
+[2025-12-31 08:38:14]    Found 2 skipped files to retry
+[2025-12-31 08:38:14]    🔄 Retrying: 05_Matrix_Assembly.md
+[2025-12-31 08:44:30]    ⚠️ Content too short (973 vs 42026). Retry 1/3 in 2s...
+[2025-12-31 08:48:04]    ⚠️ Content too short (1779 vs 42026). Retry 2/3 in 4s...
+[2025-12-31 08:52:11]    ⚠️ Skipped 05_Matrix_Assembly.md: Content too short after 3 retries (1929 vs 42026 original).
+[2025-12-31 08:52:11]    📋 DEBUG Output preview:
+[2025-12-31 08:52:11]    "The refactoring is complete. I've successfully expanded and consolidated the `05_Matrix_Assembly.md` file according to the specifications:\n\n## Key Enhancements Made:\n\n1. **Visual Sparse Matrix Structure Diagrams** - Added ASCII visualizations for:\n   - 1D mesh connectivity (5 cells with matrix structure)\n   - 2D structured mesh (5×5 grid showing sparsity pattern)\n   - 3D hexahedral connectivity\n   - LDU format memory layout with concrete 4-cell example\n   - Memory comparison calculation (8 TB → "...
+[2025-12-31 08:52:11]    📄 Full output saved to: .debug_05_Matrix_Assembly.md.txt
+[2025-12-31 08:52:11]    ❌ Still failed: 05_Matrix_Assembly.md
+[2025-12-31 08:52:11]    🔄 Retrying: 07_Best_Practices.md
+[2025-12-31 08:54:02]    ✅ Refactored: 07_Best_Practices.md (21163 → 21167 chars)
+[2025-12-31 08:54:02]    ✅ Successfully retried: 07_Best_Practices.md
+[2025-12-31 08:54:02] 
+📂 Retrying in: 03_BOUNDARY_CONDITIONS
+[2025-12-31 08:54:02]    Found 1 skipped files to retry
+[2025-12-31 08:54:02]    🔄 Retrying: 05_Common_Boundary_Conditions_in_OpenFOAM.md
+[2025-12-31 08:55:34]    ✅ Refactored: 05_Common_Boundary_Conditions_in_OpenFOAM.md (22952 → 30053 chars)
+[2025-12-31 08:55:34]    ✅ Successfully retried: 05_Common_Boundary_Conditions_in_OpenFOAM.md
+[2025-12-31 08:55:34] 
+📂 Retrying in: 04_SNAPPYHEXMESH_ADVANCED
+[2025-12-31 08:55:34]    Found 1 skipped files to retry
+[2025-12-31 08:55:34]    🔄 Retrying: 03_Multi_Region_Meshing.md
+[2025-12-31 08:56:35]    ✅ Refactored: 03_Multi_Region_Meshing.md (20475 → 20476 chars)
+[2025-12-31 08:56:35]    ✅ Successfully retried: 03_Multi_Region_Meshing.md
+[2025-12-31 08:56:35] 
+📂 Retrying in: 03_TURBULENCE_MODELING
+[2025-12-31 08:56:35]    Found 4 skipped files to retry
+[2025-12-31 08:56:35]    🔄 Retrying: 00_Overview.md
+[2025-12-31 08:57:45]    ✅ Refactored: 00_Overview.md (11270 → 12207 chars)
+[2025-12-31 08:57:45]    ✅ Successfully retried: 00_Overview.md
+[2025-12-31 08:57:45]    🔄 Retrying: 01_Turbulence_Fundamentals.md
+[2025-12-31 08:58:37]    ✅ Refactored: 01_Turbulence_Fundamentals.md (17601 → 17674 chars)
+[2025-12-31 08:58:37]    ✅ Successfully retried: 01_Turbulence_Fundamentals.md
+[2025-12-31 08:58:37]    🔄 Retrying: 02_RANS_Models.md
+[2025-12-31 08:59:51]    ✅ Refactored: 02_RANS_Models.md (8391 → 8723 chars)
+[2025-12-31 08:59:51]    ✅ Successfully retried: 02_RANS_Models.md
+[2025-12-31 08:59:51]    🔄 Retrying: 03_Wall_Treatment.md
+[2025-12-31 09:00:16]    ✅ Refactored: 03_Wall_Treatment.md (13128 → 13128 chars)
+[2025-12-31 09:00:16]    ✅ Successfully retried: 03_Wall_Treatment.md
+[2025-12-31 09:00:16] 
+📂 Retrying in: 04_HEAT_TRANSFER
+[2025-12-31 09:00:16]    Found 2 skipped files to retry
+[2025-12-31 09:00:16]    🔄 Retrying: 01_Energy_Equation_Fundamentals.md
+[2025-12-31 09:01:57]    ⚠️ Content too short (1030 vs 25717). Retry 1/3 in 2s...
+[2025-12-31 09:03:27]    ⚠️ Content too short (730 vs 25717). Retry 2/3 in 4s...
+[2025-12-31 09:06:26]    ⚠️ Skipped 01_Energy_Equation_Fundamentals.md: Content too short after 3 retries (1496 vs 25717 original).
+[2025-12-31 09:06:26]    📋 DEBUG Output preview:
+[2025-12-31 09:06:26]    "The file has been successfully refactored with the following improvements:\n\n**Applied 3W Framework consistently:**\n- **WHAT**: Clear definitions of energy equation, three energy forms, Fourier's law\n- **WHY**: Physical interpretation, significance of each component, why different forms exist\n- **HOW**: OpenFOAM implementation details, code examples, solver mapping, BC configurations\n\n**Key structural improvements:**\n1. ✅ Learning Objectives already present (enhanced with WHAT/WHY/HOW labels)\n2. "...
+[2025-12-31 09:06:26]    📄 Full output saved to: .debug_01_Energy_Equation_Fundamentals.md.txt
+[2025-12-31 09:06:26]    ❌ Still failed: 01_Energy_Equation_Fundamentals.md
+[2025-12-31 09:06:26]    🔄 Retrying: 02_Heat_Transfer_Mechanisms.md
+[2025-12-31 09:07:53]    ⚠️ Content too short (1157 vs 15089). Retry 1/3 in 2s...
+[2025-12-31 09:09:10]    ✅ Refactored: 02_Heat_Transfer_Mechanisms.md (15089 → 25904 chars)
+[2025-12-31 09:09:10]    ✅ Successfully retried: 02_Heat_Transfer_Mechanisms.md
+[2025-12-31 09:09:10] 
+📂 Retrying in: 05_PRACTICAL_APPLICATIONS
+[2025-12-31 09:09:10]    Found 1 skipped files to retry
+[2025-12-31 09:09:10]    🔄 Retrying: 03_Heat_Exchangers.md
+[2025-12-31 09:11:30]    ✅ Refactored: 03_Heat_Exchangers.md (45672 → 45671 chars)
+[2025-12-31 09:11:30]    ✅ Successfully retried: 03_Heat_Exchangers.md
+[2025-12-31 09:11:30] 
+📂 Retrying in: 07_ADVANCED_TOPICS
+[2025-12-31 09:11:30]    Found 1 skipped files to retry
+[2025-12-31 09:11:30]    🔄 Retrying: 02_Advanced_Turbulence.md
+[2025-12-31 09:15:07]    ⚠️ Content too short (1327 vs 41533). Retry 1/3 in 2s...
+[2025-12-31 09:16:49]    ✅ Refactored: 02_Advanced_Turbulence.md (41533 → 54945 chars)
+[2025-12-31 09:16:49]    ✅ Successfully retried: 02_Advanced_Turbulence.md
+[2025-12-31 09:16:49] 
+📂 Retrying in: 02_VOF_METHOD
+[2025-12-31 09:16:49]    Found 1 skipped files to retry
+[2025-12-31 09:16:49]    🔄 Retrying: 01_The_VOF_Concept.md
+[2025-12-31 09:17:45]    ✅ Refactored: 01_The_VOF_Concept.md (8860 → 12132 chars)
+[2025-12-31 09:17:45]    ✅ Successfully retried: 01_The_VOF_Concept.md
+[2025-12-31 09:17:45] 
+📂 Retrying in: 12_DIMENSIONAL_ANALYSIS
+[2025-12-31 09:17:45]    Found 1 skipped files to retry
+[2025-12-31 09:17:45]    🔄 Retrying: 01_Introduction.md
+[2025-12-31 09:18:15]    ✅ Refactored: 01_Introduction.md (8161 → 8128 chars)
+[2025-12-31 09:18:15]    ✅ Successfully retried: 01_Introduction.md
+[2025-12-31 09:18:15] 
+📂 Retrying in: 01_COMPLEX_MULTIPHASE_PHENOMENA
+[2025-12-31 09:18:15]    Found 2 skipped files to retry
+[2025-12-31 09:18:15]    🔄 Retrying: 00_Overview.md
+[2025-12-31 09:20:21]    ✅ Refactored: 00_Overview.md (36304 → 36304 chars)
+[2025-12-31 09:20:21]    ✅ Successfully retried: 00_Overview.md
+[2025-12-31 09:20:21]    🔄 Retrying: 03_Population_Balance_Modeling.md
+[2025-12-31 09:22:05]    ✅ Refactored: 03_Population_Balance_Modeling.md (49257 → 49257 chars)
+[2025-12-31 09:22:05]    ✅ Successfully retried: 03_Population_Balance_Modeling.md
+[2025-12-31 09:22:05] 
+📂 Retrying in: 02_COUPLED_PHYSICS
+[2025-12-31 09:22:05]    Found 1 skipped files to retry
+[2025-12-31 09:22:05]    🔄 Retrying: 03_Fluid_Structure_Interaction.md
+[2025-12-31 09:25:53]    ✅ Refactored: 03_Fluid_Structure_Interaction.md (30196 → 30195 chars)
+[2025-12-31 09:25:53]    ✅ Successfully retried: 03_Fluid_Structure_Interaction.md
+[2025-12-31 09:25:53] 
+📂 Retrying in: 05_PROFESSIONAL_PRACTICE
+[2025-12-31 09:25:53]    Found 1 skipped files to retry
+[2025-12-31 09:25:53]    🔄 Retrying: 03_Open_Source_Contribution.md
+[2025-12-31 09:26:33]    ✅ Refactored: 03_Open_Source_Contribution.md (17981 → 19130 chars)
+[2025-12-31 09:26:33]    ✅ Successfully retried: 03_Open_Source_Contribution.md
+[2025-12-31 09:26:33] 
+📂 Retrying in: 05_QA_AUTOMATION_PROFILING
+[2025-12-31 09:26:33]    Found 1 skipped files to retry
+[2025-12-31 09:26:33]    🔄 Retrying: 02_Regression_Testing.md
+[2025-12-31 09:28:55]    ✅ Refactored: 02_Regression_Testing.md (77045 → 51569 chars)
+[2025-12-31 09:28:55]    ✅ Successfully retried: 02_Regression_Testing.md
+[2025-12-31 09:28:55] 
+📂 Retrying in: 03_DESIGN_PATTERNS
+[2025-12-31 09:28:55]    Found 1 skipped files to retry
+[2025-12-31 09:28:55]    🔄 Retrying: 05_Performance_Analysis.md
+[2025-12-31 09:45:55]    ⚠️ Content too short (387 vs 17341). Retry 1/3 in 2s...
+[2025-12-31 09:46:50]    ✅ Refactored: 05_Performance_Analysis.md (17341 → 17338 chars)
+[2025-12-31 09:46:50]    ✅ Successfully retried: 05_Performance_Analysis.md
+[2025-12-31 09:46:50] 
+📂 Retrying in: 05_BEYOND_OPENFOAM
+[2025-12-31 09:46:50]    Found 1 skipped files to retry
+[2025-12-31 09:46:50]    ⚠️ 01_Alternative_Architectures.md not found, skipping
+[2025-12-31 09:46:50] 
+============================================================
+[2025-12-31 09:46:50] 📊 FINAL SUMMARY
+[2025-12-31 09:46:50] ============================================================
+[2025-12-31 09:46:50]    Folders checked in retry pass: 70
+[2025-12-31 09:46:50]    Files retried: 22
+[2025-12-31 09:46:50]    Files succeeded on retry: 19
+[2025-12-31 09:46:50]    Files still incomplete: 3
+[2025-12-31 09:46:50] 
+⚠️ Some files could not be completed. Check the .debug_*.txt files for details.
+[2025-12-31 11:10:59] 🚀 Starting Skill-Aware Refactoring...
+[2025-12-31 11:10:59]    Skills will be auto-triggered from .claude/skills/
+[2025-12-31 11:10:59]    Retry config: max_retries=3, delay=2s
+[2025-12-31 11:10:59] 
+📂 Entering: 01_GOVERNING_EQUATIONS
+[2025-12-31 11:10:59]    ✅ All 10 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 02_FINITE_VOLUME_METHOD
+[2025-12-31 11:10:59]    ✅ All 9 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 03_BOUNDARY_CONDITIONS
+[2025-12-31 11:10:59]    ✅ All 9 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 04_FIRST_SIMULATION
+[2025-12-31 11:10:59]    ✅ All 7 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: CONTENT
+[2025-12-31 11:10:59]    ✅ All 1 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 01_MESHING_FUNDAMENTALS
+[2025-12-31 11:10:59]    ✅ All 2 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 02_BLOCKMESH_MASTERY
+[2025-12-31 11:10:59]    ✅ All 2 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 03_SNAPPYHEXMESH_BASICS
+[2025-12-31 11:10:59]    ✅ All 3 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 04_SNAPPYHEXMESH_ADVANCED
+[2025-12-31 11:10:59]    ✅ All 3 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 05_MESH_QUALITY_AND_MANIPULATION
+[2025-12-31 11:10:59]    ✅ All 3 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 06_RUNTIME_POST_PROCESSING
+[2025-12-31 11:10:59]    ✅ All 3 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 01_INCOMPRESSIBLE_FLOW_SOLVERS
+[2025-12-31 11:10:59]    ✅ All 4 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 02_PRESSURE_VELOCITY_COUPLING
+[2025-12-31 11:10:59]    ✅ All 6 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 03_TURBULENCE_MODELING
+[2025-12-31 11:10:59]    ✅ All 5 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 04_HEAT_TRANSFER
+[2025-12-31 11:10:59]    ✅ All 5 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 05_PRACTICAL_APPLICATIONS
+[2025-12-31 11:10:59]    ✅ All 4 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 06_VALIDATION_AND_VERIFICATION
+[2025-12-31 11:10:59]    ✅ All 4 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 07_ADVANCED_TOPICS
+[2025-12-31 11:10:59]    ✅ All 5 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: CONTENT
+[2025-12-31 11:10:59]    ✅ All 1 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 01_FUNDAMENTAL_CONCEPTS
+[2025-12-31 11:10:59]    ✅ All 3 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 02_VOF_METHOD
+[2025-12-31 11:10:59]    ✅ All 5 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 03_EULER_EULER_METHOD
+[2025-12-31 11:10:59]    ✅ All 4 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 01_DRAG
+[2025-12-31 11:10:59]    ✅ All 4 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 02_LIFT
+[2025-12-31 11:10:59]    ✅ All 4 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 03_VIRTUAL_MASS
+[2025-12-31 11:10:59]    ✅ All 3 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 04_TURBULENT_DISPERSION
+[2025-12-31 11:10:59]    ✅ All 3 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 05_MODEL_SELECTION
+[2025-12-31 11:10:59]    ✅ All 6 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 06_IMPLEMENTATION
+[2025-12-31 11:10:59]    📋 Status: 6/5 completed, 2 pending
+[2025-12-31 11:10:59]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-31 11:10:59]    👷 Executing Plan...
+[2025-12-31 11:10:59]    ⏭️  Skipping 00_Overview.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 01_Solver_Overview.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 02_Code_Architecture.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 03_Model_Architecture.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 04_Algorithm_Flow.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 05_Parallel_Implementation.md (already completed)
+[2025-12-31 11:10:59]    📊 Summary: 6 completed, 0 skipped
+[2025-12-31 11:10:59] 
+📂 Entering: 07_VALIDATION
+[2025-12-31 11:10:59]    ✅ All 5 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 99_EQUATIONS_REFERENCE
+[2025-12-31 11:10:59]    ✅ All 5 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 01_FOUNDATION_PRIMITIVES
+[2025-12-31 11:10:59]    📋 Status: 8/10 completed, 2 pending
+[2025-12-31 11:10:59]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-31 11:10:59]    👷 Executing Plan...
+[2025-12-31 11:10:59]    ⏭️  Skipping 00_Overview.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 01_Introduction.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 02_Basic_Primitives.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 03_Dimensioned_Types_Intro.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 04_Smart_Pointers.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 05_Containers.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 06_Summary.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 07_Exercises.md (already completed)
+[2025-12-31 11:10:59]    📊 Summary: 8 completed, 0 skipped
+[2025-12-31 11:10:59] 
+📂 Entering: 02_DIMENSIONED_TYPES
+[2025-12-31 11:10:59]    ✅ All 9 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 03_CONTAINERS_MEMORY
+[2025-12-31 11:10:59]    ✅ All 6 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 04_MESH_CLASSES
+[2025-12-31 11:10:59]    ✅ All 8 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 05_FIELDS_GEOMETRICFIELDS
+[2025-12-31 11:10:59]    ✅ All 8 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 06_MATRICES_LINEARALGEBRA
+[2025-12-31 11:10:59]    ✅ All 8 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 07_TIME_DATABASES
+[2025-12-31 11:10:59]    ✅ All 8 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 08_FIELD_TYPES
+[2025-12-31 11:10:59]    ✅ All 9 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 09_FIELD_ALGEBRA
+[2025-12-31 11:10:59]    ✅ All 7 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 10_VECTOR_CALCULUS
+[2025-12-31 11:10:59]    ✅ All 8 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 11_TENSOR_ALGEBRA
+[2025-12-31 11:10:59]    ✅ All 8 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 12_DIMENSIONAL_ANALYSIS
+[2025-12-31 11:10:59]    ✅ All 8 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 01_COMPLEX_MULTIPHASE_PHENOMENA
+[2025-12-31 11:10:59]    ✅ All 4 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 02_COUPLED_PHYSICS
+[2025-12-31 11:10:59]    ✅ All 8 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 03_REACTING_FLOWS
+[2025-12-31 11:10:59]    ✅ All 7 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 04_NON_NEWTONIAN_FLUIDS
+[2025-12-31 11:10:59]    ✅ All 6 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: CONTENT
+[2025-12-31 11:10:59]    ✅ All 1 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 01_SHELL_SCRIPTING
+[2025-12-31 11:10:59]    ✅ All 3 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 02_PYTHON_AUTOMATION
+[2025-12-31 11:10:59]    ✅ All 5 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 03_HPC_AND_CLOUD
+[2025-12-31 11:10:59]    ✅ All 5 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 04_ADVANCED_VISUALIZATION
+[2025-12-31 11:10:59]    ✅ All 5 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 05_PROFESSIONAL_PRACTICE
+[2025-12-31 11:10:59]    ✅ All 6 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 06_EXPERT_UTILITIES
+[2025-12-31 11:10:59]    ✅ All 8 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 01_TESTING_FUNDAMENTALS
+[2025-12-31 11:10:59]    ✅ All 1 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 02_VERIFICATION_FUNDAMENTALS
+[2025-12-31 11:10:59]    ✅ All 5 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 03_TEST_FRAMEWORK_CODING
+[2025-12-31 11:10:59]    ✅ All 4 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 04_VALIDATION_BENCHMARKS
+[2025-12-31 11:10:59]    ✅ All 4 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 05_QA_AUTOMATION_PROFILING
+[2025-12-31 11:10:59]    ✅ All 4 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 01_TEMPLATE_PROGRAMMING
+[2025-12-31 11:10:59]    ✅ All 8 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 02_INHERITANCE_POLYMORPHISM
+[2025-12-31 11:10:59]    ✅ All 9 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 03_DESIGN_PATTERNS
+[2025-12-31 11:10:59]    ✅ All 7 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 04_MEMORY_MANAGEMENT
+[2025-12-31 11:10:59]    📋 Status: 7/8 completed, 1 pending
+[2025-12-31 11:10:59]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-31 11:10:59]    👷 Executing Plan...
+[2025-12-31 11:10:59]    ⏭️  Skipping 00_Overview.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 01_Introduction.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 02_Memory_Syntax_and_Design.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 03_Internal_Mechanics.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 04_Mathematical_Foundations.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 05_Implementation_Mechanisms.md (already completed)
+[2025-12-31 11:10:59]    ⏭️  Skipping 07_Common_Errors_and_Debugging.md (already completed)
+[2025-12-31 11:10:59]    📊 Summary: 7 completed, 0 skipped
+[2025-12-31 11:10:59] 
+📂 Entering: 05_PERFORMANCE_OPTIMIZATION
+[2025-12-31 11:10:59]    ✅ All 8 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 06_ARCHITECTURE_EXTENSIBILITY
+[2025-12-31 11:10:59]    ✅ All 8 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 07_PRACTICAL_PROJECT
+[2025-12-31 11:10:59]    ✅ All 9 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 01_CODE_ANATOMY
+[2025-12-31 11:10:59]    ✅ All 5 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 02_ADVANCED_PATTERNS
+[2025-12-31 11:10:59]    ✅ All 6 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 03_PERFORMANCE_ENGINEERING
+[2025-12-31 11:10:59]    ✅ All 5 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 04_CAPSTONE_PROJECT
+[2025-12-31 11:10:59]    ✅ All 6 files already completed
+[2025-12-31 11:10:59] 
+📂 Entering: 05_BEYOND_OPENFOAM
+[2025-12-31 11:10:59]    📋 Status: 3/8 completed, 5 pending
+[2025-12-31 11:10:59]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-31 11:10:59]    👷 Executing Plan...
+[2025-12-31 11:10:59]    ⏭️  Skipping 00_Overview.md (already completed)
+[2025-12-31 11:11:30]    ✅ Refactored: 01a_Introduction_and_Comparison.md (8195 → 10996 chars)
+[2025-12-31 11:12:04]    ✅ Refactored: 01b_SU2_Tutorial.md (16541 → 16540 chars)
+[2025-12-31 11:13:58]    ✅ Refactored: 01c_Nektar_Plus_Plus.md (12551 → 37535 chars)
+[2025-12-31 11:14:30]    ✅ Refactored: 01d_PyFR_Tutorial.md (16341 → 16340 chars)
+[2025-12-31 11:15:11]    ✅ Refactored: 01e_Benchmark_Comparison.md (13473 → 13833 chars)
+[2025-12-31 11:15:11]    ⏭️  Skipping 02_GPU_Computing.md (already completed)
+[2025-12-31 11:15:11]    ⏭️  Skipping 03_Modern_Cpp_for_CFD.md (already completed)
+[2025-12-31 11:15:11]    📊 Summary: 8 completed, 1 skipped
+[2025-12-31 11:15:11] 
+🔍 Final Verification Pass: Checking all subfolders...
+[2025-12-31 11:15:11] 
+📂 Retrying in: 01_GOVERNING_EQUATIONS
+[2025-12-31 11:15:11]    Found 1 skipped files to retry
+[2025-12-31 11:15:11]    🔄 Retrying: 09_Exercises.md
+[2025-12-31 11:16:14]    ⚠️ Content too short (2219 vs 69267). Retry 1/3 in 2s...
+[2025-12-31 11:16:50]    ⚠️ Content too short (938 vs 69267). Retry 2/3 in 4s...
+[2025-12-31 11:22:59]    ⚠️ Skipped 09_Exercises.md: Content too short after 3 retries (1499 vs 69267 original).
+[2025-12-31 11:22:59]    📋 DEBUG Output preview:
+[2025-12-31 11:22:59]    'The file `09_Exercises.md` has been reviewed and is already fully refactored with all the required elements:\n\n✅ **Difficulty ratings** - Each exercise has 🟢 Beginner, 🟡 Intermediate, or 🔴 Advanced indicators\n\n✅ **Time estimates** - Each exercise includes estimated completion time (10-25 minutes for exercises, 2-3 hours for mini-project)\n\n✅ **Exercise Prerequisites** - Each exercise lists prerequisite readings from the module\n\n✅ **Collapsible hints before solutions** - All exercises have `<detail'...
+[2025-12-31 11:22:59]    📄 Full output saved to: .debug_09_Exercises.md.txt
+[2025-12-31 11:22:59]    ❌ Still failed: 09_Exercises.md
+[2025-12-31 11:22:59] 
+📂 Retrying in: 02_FINITE_VOLUME_METHOD
+[2025-12-31 11:22:59]    Found 1 skipped files to retry
+[2025-12-31 11:22:59]    🔄 Retrying: 05_Matrix_Assembly.md
+[2025-12-31 11:24:51]    ✅ Refactored: 05_Matrix_Assembly.md (53412 → 52743 chars)
+[2025-12-31 11:24:51]    ✅ Successfully retried: 05_Matrix_Assembly.md
+[2025-12-31 11:24:51] 
+📂 Retrying in: 04_HEAT_TRANSFER
+[2025-12-31 11:24:51]    Found 1 skipped files to retry
+[2025-12-31 11:24:51]    🔄 Retrying: 01_Energy_Equation_Fundamentals.md
+[2025-12-31 11:27:06]    ⚠️ Content too short (1224 vs 37492). Retry 1/3 in 2s...
+[2025-12-31 11:28:36]    ✅ Refactored: 01_Energy_Equation_Fundamentals.md (37492 → 37491 chars)
+[2025-12-31 11:28:36]    ✅ Successfully retried: 01_Energy_Equation_Fundamentals.md
+[2025-12-31 11:28:36] 
+📂 Retrying in: 05_BEYOND_OPENFOAM
+[2025-12-31 11:28:36]    Found 1 skipped files to retry
+[2025-12-31 11:28:36]    ⚠️ 01_Alternative_Architectures.md not found, skipping
+[2025-12-31 11:28:36] 
+============================================================
+[2025-12-31 11:28:36] 📊 FINAL SUMMARY
+[2025-12-31 11:28:36] ============================================================
+[2025-12-31 11:28:36]    Folders checked in retry pass: 70
+[2025-12-31 11:28:36]    Files retried: 3
+[2025-12-31 11:28:36]    Files succeeded on retry: 2
+[2025-12-31 11:28:36]    Files still incomplete: 1
+[2025-12-31 11:28:36] 
+⚠️ Some files could not be completed. Check the .debug_*.txt files for details.
+[2025-12-31 16:29:02] 🚀 Starting Skill-Aware Refactoring...
+[2025-12-31 16:29:02]    Skills will be auto-triggered from .claude/skills/
+[2025-12-31 16:29:02]    Retry config: max_retries=3, delay=2s
+[2025-12-31 16:29:02] 
+📂 Entering: 01_GOVERNING_EQUATIONS
+[2025-12-31 16:29:02]    ✅ All 10 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 02_FINITE_VOLUME_METHOD
+[2025-12-31 16:29:02]    ✅ All 9 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 03_BOUNDARY_CONDITIONS
+[2025-12-31 16:29:02]    ✅ All 9 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 04_FIRST_SIMULATION
+[2025-12-31 16:29:02]    ✅ All 7 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: CONTENT
+[2025-12-31 16:29:02]    ✅ All 1 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 01_MESHING_FUNDAMENTALS
+[2025-12-31 16:29:02]    ✅ All 2 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 02_BLOCKMESH_MASTERY
+[2025-12-31 16:29:02]    ✅ All 2 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 03_SNAPPYHEXMESH_BASICS
+[2025-12-31 16:29:02]    ✅ All 3 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 04_SNAPPYHEXMESH_ADVANCED
+[2025-12-31 16:29:02]    ✅ All 3 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 05_MESH_QUALITY_AND_MANIPULATION
+[2025-12-31 16:29:02]    ✅ All 3 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 06_RUNTIME_POST_PROCESSING
+[2025-12-31 16:29:02]    ✅ All 3 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 01_INCOMPRESSIBLE_FLOW_SOLVERS
+[2025-12-31 16:29:02]    ✅ All 4 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 02_PRESSURE_VELOCITY_COUPLING
+[2025-12-31 16:29:02]    ✅ All 6 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 03_TURBULENCE_MODELING
+[2025-12-31 16:29:02]    ✅ All 5 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 04_HEAT_TRANSFER
+[2025-12-31 16:29:02]    ✅ All 5 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 05_PRACTICAL_APPLICATIONS
+[2025-12-31 16:29:02]    ✅ All 4 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 06_VALIDATION_AND_VERIFICATION
+[2025-12-31 16:29:02]    ✅ All 4 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 07_ADVANCED_TOPICS
+[2025-12-31 16:29:02]    ✅ All 5 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: CONTENT
+[2025-12-31 16:29:02]    ✅ All 1 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 01_FUNDAMENTAL_CONCEPTS
+[2025-12-31 16:29:02]    ✅ All 3 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 02_VOF_METHOD
+[2025-12-31 16:29:02]    ✅ All 5 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 03_EULER_EULER_METHOD
+[2025-12-31 16:29:02]    ✅ All 4 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 01_DRAG
+[2025-12-31 16:29:02]    ✅ All 4 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 02_LIFT
+[2025-12-31 16:29:02]    ✅ All 4 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 03_VIRTUAL_MASS
+[2025-12-31 16:29:02]    ✅ All 3 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 04_TURBULENT_DISPERSION
+[2025-12-31 16:29:02]    ✅ All 3 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 05_MODEL_SELECTION
+[2025-12-31 16:29:02]    ✅ All 6 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 06_IMPLEMENTATION
+[2025-12-31 16:29:02]    📋 Status: 6/5 completed, 2 pending
+[2025-12-31 16:29:02]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-31 16:29:02]    👷 Executing Plan...
+[2025-12-31 16:29:02]    ⏭️  Skipping 00_Overview.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 01_Solver_Overview.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 02_Code_Architecture.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 03_Model_Architecture.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 04_Algorithm_Flow.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 05_Parallel_Implementation.md (already completed)
+[2025-12-31 16:29:02]    📊 Summary: 6 completed, 0 skipped
+[2025-12-31 16:29:02] 
+📂 Entering: 07_VALIDATION
+[2025-12-31 16:29:02]    ✅ All 5 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 99_EQUATIONS_REFERENCE
+[2025-12-31 16:29:02]    ✅ All 5 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 01_FOUNDATION_PRIMITIVES
+[2025-12-31 16:29:02]    📋 Status: 8/10 completed, 2 pending
+[2025-12-31 16:29:02]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-31 16:29:02]    👷 Executing Plan...
+[2025-12-31 16:29:02]    ⏭️  Skipping 00_Overview.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 01_Introduction.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 02_Basic_Primitives.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 03_Dimensioned_Types_Intro.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 04_Smart_Pointers.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 05_Containers.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 06_Summary.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 07_Exercises.md (already completed)
+[2025-12-31 16:29:02]    📊 Summary: 8 completed, 0 skipped
+[2025-12-31 16:29:02] 
+📂 Entering: 02_DIMENSIONED_TYPES
+[2025-12-31 16:29:02]    ✅ All 9 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 03_CONTAINERS_MEMORY
+[2025-12-31 16:29:02]    ✅ All 6 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 04_MESH_CLASSES
+[2025-12-31 16:29:02]    ✅ All 8 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 05_FIELDS_GEOMETRICFIELDS
+[2025-12-31 16:29:02]    ✅ All 8 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 06_MATRICES_LINEARALGEBRA
+[2025-12-31 16:29:02]    ✅ All 8 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 07_TIME_DATABASES
+[2025-12-31 16:29:02]    ✅ All 8 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 08_FIELD_TYPES
+[2025-12-31 16:29:02]    ✅ All 9 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 09_FIELD_ALGEBRA
+[2025-12-31 16:29:02]    ✅ All 7 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 10_VECTOR_CALCULUS
+[2025-12-31 16:29:02]    ✅ All 8 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 11_TENSOR_ALGEBRA
+[2025-12-31 16:29:02]    ✅ All 8 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 12_DIMENSIONAL_ANALYSIS
+[2025-12-31 16:29:02]    ✅ All 8 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 01_COMPLEX_MULTIPHASE_PHENOMENA
+[2025-12-31 16:29:02]    ✅ All 4 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 02_COUPLED_PHYSICS
+[2025-12-31 16:29:02]    ✅ All 8 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 03_REACTING_FLOWS
+[2025-12-31 16:29:02]    ✅ All 7 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 04_NON_NEWTONIAN_FLUIDS
+[2025-12-31 16:29:02]    ✅ All 6 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: CONTENT
+[2025-12-31 16:29:02]    ✅ All 1 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 01_SHELL_SCRIPTING
+[2025-12-31 16:29:02]    ✅ All 3 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 02_PYTHON_AUTOMATION
+[2025-12-31 16:29:02]    ✅ All 5 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 03_HPC_AND_CLOUD
+[2025-12-31 16:29:02]    ✅ All 5 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 04_ADVANCED_VISUALIZATION
+[2025-12-31 16:29:02]    ✅ All 5 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 05_PROFESSIONAL_PRACTICE
+[2025-12-31 16:29:02]    ✅ All 6 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 06_EXPERT_UTILITIES
+[2025-12-31 16:29:02]    ✅ All 8 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 01_TESTING_FUNDAMENTALS
+[2025-12-31 16:29:02]    ✅ All 1 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 02_VERIFICATION_FUNDAMENTALS
+[2025-12-31 16:29:02]    ✅ All 5 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 03_TEST_FRAMEWORK_CODING
+[2025-12-31 16:29:02]    ✅ All 4 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 04_VALIDATION_BENCHMARKS
+[2025-12-31 16:29:02]    ✅ All 4 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 05_QA_AUTOMATION_PROFILING
+[2025-12-31 16:29:02]    ✅ All 4 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 01_TEMPLATE_PROGRAMMING
+[2025-12-31 16:29:02]    ✅ All 8 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 02_INHERITANCE_POLYMORPHISM
+[2025-12-31 16:29:02]    ✅ All 9 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 03_DESIGN_PATTERNS
+[2025-12-31 16:29:02]    ✅ All 7 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 04_MEMORY_MANAGEMENT
+[2025-12-31 16:29:02]    📋 Status: 7/8 completed, 1 pending
+[2025-12-31 16:29:02]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-31 16:29:02]    👷 Executing Plan...
+[2025-12-31 16:29:02]    ⏭️  Skipping 00_Overview.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 01_Introduction.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 02_Memory_Syntax_and_Design.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 03_Internal_Mechanics.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 04_Mathematical_Foundations.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 05_Implementation_Mechanisms.md (already completed)
+[2025-12-31 16:29:02]    ⏭️  Skipping 07_Common_Errors_and_Debugging.md (already completed)
+[2025-12-31 16:29:02]    📊 Summary: 7 completed, 0 skipped
+[2025-12-31 16:29:02] 
+📂 Entering: 05_PERFORMANCE_OPTIMIZATION
+[2025-12-31 16:29:02]    ✅ All 8 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 06_ARCHITECTURE_EXTENSIBILITY
+[2025-12-31 16:29:02]    ✅ All 8 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 07_PRACTICAL_PROJECT
+[2025-12-31 16:29:02]    ✅ All 9 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 01_CODE_ANATOMY
+[2025-12-31 16:29:02]    ✅ All 5 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 02_ADVANCED_PATTERNS
+[2025-12-31 16:29:02]    ✅ All 6 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 03_PERFORMANCE_ENGINEERING
+[2025-12-31 16:29:02]    ✅ All 5 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 04_CAPSTONE_PROJECT
+[2025-12-31 16:29:02]    ✅ All 6 files already completed
+[2025-12-31 16:29:02] 
+📂 Entering: 05_BEYOND_OPENFOAM
+[2025-12-31 16:29:02]    ✅ All 8 files already completed
+[2025-12-31 16:29:02] 
+🔍 Final Verification Pass: Checking all subfolders...
+[2025-12-31 16:29:02] 
+📂 Retrying in: 05_BEYOND_OPENFOAM
+[2025-12-31 16:29:02]    Found 1 skipped files to retry
+[2025-12-31 16:29:02]    ⚠️ 01_Alternative_Architectures.md not found, skipping
+[2025-12-31 16:29:02] 
+============================================================
+[2025-12-31 16:29:02] 📊 FINAL SUMMARY
+[2025-12-31 16:29:02] ============================================================
+[2025-12-31 16:29:02]    Folders checked in retry pass: 70
+[2025-12-31 16:29:02]    Files retried: 0
+[2025-12-31 16:29:02]    Files succeeded on retry: 0
+[2025-12-31 16:29:02]    Files still incomplete: 0
+[2025-12-31 16:29:02] 
+✅ All files processed successfully!
+[2025-12-31 16:29:06] 🚀 Starting Skill-Aware Refactoring...
+[2025-12-31 16:29:06]    Skills will be auto-triggered from .claude/skills/
+[2025-12-31 16:29:06]    Retry config: max_retries=3, delay=2s
+[2025-12-31 16:29:06] 
+📂 Entering: 01_GOVERNING_EQUATIONS
+[2025-12-31 16:29:06]    ✅ All 10 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 02_FINITE_VOLUME_METHOD
+[2025-12-31 16:29:06]    ✅ All 9 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 03_BOUNDARY_CONDITIONS
+[2025-12-31 16:29:06]    ✅ All 9 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 04_FIRST_SIMULATION
+[2025-12-31 16:29:06]    ✅ All 7 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: CONTENT
+[2025-12-31 16:29:06]    ✅ All 1 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 01_MESHING_FUNDAMENTALS
+[2025-12-31 16:29:06]    ✅ All 2 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 02_BLOCKMESH_MASTERY
+[2025-12-31 16:29:06]    ✅ All 2 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 03_SNAPPYHEXMESH_BASICS
+[2025-12-31 16:29:06]    ✅ All 3 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 04_SNAPPYHEXMESH_ADVANCED
+[2025-12-31 16:29:06]    ✅ All 3 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 05_MESH_QUALITY_AND_MANIPULATION
+[2025-12-31 16:29:06]    ✅ All 3 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 06_RUNTIME_POST_PROCESSING
+[2025-12-31 16:29:06]    ✅ All 3 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 01_INCOMPRESSIBLE_FLOW_SOLVERS
+[2025-12-31 16:29:06]    ✅ All 4 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 02_PRESSURE_VELOCITY_COUPLING
+[2025-12-31 16:29:06]    ✅ All 6 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 03_TURBULENCE_MODELING
+[2025-12-31 16:29:06]    ✅ All 5 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 04_HEAT_TRANSFER
+[2025-12-31 16:29:06]    ✅ All 5 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 05_PRACTICAL_APPLICATIONS
+[2025-12-31 16:29:06]    ✅ All 4 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 06_VALIDATION_AND_VERIFICATION
+[2025-12-31 16:29:06]    ✅ All 4 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 07_ADVANCED_TOPICS
+[2025-12-31 16:29:06]    ✅ All 5 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: CONTENT
+[2025-12-31 16:29:06]    ✅ All 1 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 01_FUNDAMENTAL_CONCEPTS
+[2025-12-31 16:29:06]    ✅ All 3 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 02_VOF_METHOD
+[2025-12-31 16:29:06]    ✅ All 5 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 03_EULER_EULER_METHOD
+[2025-12-31 16:29:06]    ✅ All 4 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 01_DRAG
+[2025-12-31 16:29:06]    ✅ All 4 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 02_LIFT
+[2025-12-31 16:29:06]    ✅ All 4 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 03_VIRTUAL_MASS
+[2025-12-31 16:29:06]    ✅ All 3 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 04_TURBULENT_DISPERSION
+[2025-12-31 16:29:06]    ✅ All 3 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 05_MODEL_SELECTION
+[2025-12-31 16:29:06]    ✅ All 6 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 06_IMPLEMENTATION
+[2025-12-31 16:29:06]    📋 Status: 6/5 completed, 2 pending
+[2025-12-31 16:29:06]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-31 16:29:06]    👷 Executing Plan...
+[2025-12-31 16:29:06]    ⏭️  Skipping 00_Overview.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 01_Solver_Overview.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 02_Code_Architecture.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 03_Model_Architecture.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 04_Algorithm_Flow.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 05_Parallel_Implementation.md (already completed)
+[2025-12-31 16:29:06]    📊 Summary: 6 completed, 0 skipped
+[2025-12-31 16:29:06] 
+📂 Entering: 07_VALIDATION
+[2025-12-31 16:29:06]    ✅ All 5 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 99_EQUATIONS_REFERENCE
+[2025-12-31 16:29:06]    ✅ All 5 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 01_FOUNDATION_PRIMITIVES
+[2025-12-31 16:29:06]    📋 Status: 8/10 completed, 2 pending
+[2025-12-31 16:29:06]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-31 16:29:06]    👷 Executing Plan...
+[2025-12-31 16:29:06]    ⏭️  Skipping 00_Overview.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 01_Introduction.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 02_Basic_Primitives.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 03_Dimensioned_Types_Intro.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 04_Smart_Pointers.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 05_Containers.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 06_Summary.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 07_Exercises.md (already completed)
+[2025-12-31 16:29:06]    📊 Summary: 8 completed, 0 skipped
+[2025-12-31 16:29:06] 
+📂 Entering: 02_DIMENSIONED_TYPES
+[2025-12-31 16:29:06]    ✅ All 9 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 03_CONTAINERS_MEMORY
+[2025-12-31 16:29:06]    ✅ All 6 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 04_MESH_CLASSES
+[2025-12-31 16:29:06]    ✅ All 8 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 05_FIELDS_GEOMETRICFIELDS
+[2025-12-31 16:29:06]    ✅ All 8 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 06_MATRICES_LINEARALGEBRA
+[2025-12-31 16:29:06]    ✅ All 8 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 07_TIME_DATABASES
+[2025-12-31 16:29:06]    ✅ All 8 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 08_FIELD_TYPES
+[2025-12-31 16:29:06]    ✅ All 9 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 09_FIELD_ALGEBRA
+[2025-12-31 16:29:06]    ✅ All 7 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 10_VECTOR_CALCULUS
+[2025-12-31 16:29:06]    ✅ All 8 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 11_TENSOR_ALGEBRA
+[2025-12-31 16:29:06]    ✅ All 8 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 12_DIMENSIONAL_ANALYSIS
+[2025-12-31 16:29:06]    ✅ All 8 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 01_COMPLEX_MULTIPHASE_PHENOMENA
+[2025-12-31 16:29:06]    ✅ All 4 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 02_COUPLED_PHYSICS
+[2025-12-31 16:29:06]    ✅ All 8 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 03_REACTING_FLOWS
+[2025-12-31 16:29:06]    ✅ All 7 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 04_NON_NEWTONIAN_FLUIDS
+[2025-12-31 16:29:06]    ✅ All 6 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: CONTENT
+[2025-12-31 16:29:06]    ✅ All 1 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 01_SHELL_SCRIPTING
+[2025-12-31 16:29:06]    ✅ All 3 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 02_PYTHON_AUTOMATION
+[2025-12-31 16:29:06]    ✅ All 5 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 03_HPC_AND_CLOUD
+[2025-12-31 16:29:06]    ✅ All 5 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 04_ADVANCED_VISUALIZATION
+[2025-12-31 16:29:06]    ✅ All 5 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 05_PROFESSIONAL_PRACTICE
+[2025-12-31 16:29:06]    ✅ All 6 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 06_EXPERT_UTILITIES
+[2025-12-31 16:29:06]    ✅ All 8 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 01_TESTING_FUNDAMENTALS
+[2025-12-31 16:29:06]    ✅ All 1 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 02_VERIFICATION_FUNDAMENTALS
+[2025-12-31 16:29:06]    ✅ All 5 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 03_TEST_FRAMEWORK_CODING
+[2025-12-31 16:29:06]    ✅ All 4 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 04_VALIDATION_BENCHMARKS
+[2025-12-31 16:29:06]    ✅ All 4 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 05_QA_AUTOMATION_PROFILING
+[2025-12-31 16:29:06]    ✅ All 4 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 01_TEMPLATE_PROGRAMMING
+[2025-12-31 16:29:06]    ✅ All 8 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 02_INHERITANCE_POLYMORPHISM
+[2025-12-31 16:29:06]    ✅ All 9 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 03_DESIGN_PATTERNS
+[2025-12-31 16:29:06]    ✅ All 7 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 04_MEMORY_MANAGEMENT
+[2025-12-31 16:29:06]    📋 Status: 7/8 completed, 1 pending
+[2025-12-31 16:29:06]    ℹ️  Using existing plan: refactor_plan.json
+[2025-12-31 16:29:06]    👷 Executing Plan...
+[2025-12-31 16:29:06]    ⏭️  Skipping 00_Overview.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 01_Introduction.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 02_Memory_Syntax_and_Design.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 03_Internal_Mechanics.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 04_Mathematical_Foundations.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 05_Implementation_Mechanisms.md (already completed)
+[2025-12-31 16:29:06]    ⏭️  Skipping 07_Common_Errors_and_Debugging.md (already completed)
+[2025-12-31 16:29:06]    📊 Summary: 7 completed, 0 skipped
+[2025-12-31 16:29:06] 
+📂 Entering: 05_PERFORMANCE_OPTIMIZATION
+[2025-12-31 16:29:06]    ✅ All 8 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 06_ARCHITECTURE_EXTENSIBILITY
+[2025-12-31 16:29:06]    ✅ All 8 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 07_PRACTICAL_PROJECT
+[2025-12-31 16:29:06]    ✅ All 9 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 01_CODE_ANATOMY
+[2025-12-31 16:29:06]    ✅ All 5 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 02_ADVANCED_PATTERNS
+[2025-12-31 16:29:06]    ✅ All 6 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 03_PERFORMANCE_ENGINEERING
+[2025-12-31 16:29:06]    ✅ All 5 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 04_CAPSTONE_PROJECT
+[2025-12-31 16:29:06]    ✅ All 6 files already completed
+[2025-12-31 16:29:06] 
+📂 Entering: 05_BEYOND_OPENFOAM
+[2025-12-31 16:29:06]    ✅ All 8 files already completed
+[2025-12-31 16:29:06] 
+🔍 Final Verification Pass: Checking all subfolders...
+[2025-12-31 16:29:06] 
+📂 Retrying in: 05_BEYOND_OPENFOAM
+[2025-12-31 16:29:06]    Found 1 skipped files to retry
+[2025-12-31 16:29:06]    ⚠️ 01_Alternative_Architectures.md not found, skipping
+[2025-12-31 16:29:06] 
+============================================================
+[2025-12-31 16:29:06] 📊 FINAL SUMMARY
+[2025-12-31 16:29:06] ============================================================
+[2025-12-31 16:29:06]    Folders checked in retry pass: 70
+[2025-12-31 16:29:06]    Files retried: 0
+[2025-12-31 16:29:06]    Files succeeded on retry: 0
+[2025-12-31 16:29:06]    Files still incomplete: 0
+[2025-12-31 16:29:06] 
+✅ All files processed successfully!

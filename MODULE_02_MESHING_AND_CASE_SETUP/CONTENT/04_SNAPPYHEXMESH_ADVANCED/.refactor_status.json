@@ -2,9 +2,8 @@
     "completed": [
         "01_Layer_Addition_Strategy.md",
         "02_Refinement_Regions.md",
+        "03_Multi_Region_Meshing.md",
         "03_Multi_Region_Meshing.md"
     ],
-    "skipped": [
-        "03_Multi_Region_Meshing.md"
-    ]
+    "skipped": []
 }

@@ -1,0 +1,14 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Abstract_Interfaces.md",
+        "03_Inheritance_Hierarchies.md",
+        "04_Run_Time_Selection_System.md",
+        "05_Design_Patterns_in_Physics.md",
+        "06_Common_Errors_and_Debugging.md",
+        "07_Performance_Considerations.md",
+        "08_Practical_Exercise.md"
+    ],
+    "skipped": []
+}

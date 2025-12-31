@@ -31,7 +31,7 @@ Use this checklist to track your progress:
 
 ---
 
-## Overview
+## Overview [ภาพรวม]
 
 RANS models แก้สมการ **time-averaged** แทน instantaneous → ลด cost จากวันเหลือชั่วโมง
 
@@ -43,7 +43,7 @@ $$\phi = \overline{\phi} + \phi'$$
 
 ## 1. k-ε Model
 
-### **[What]** Model Definitions
+### **[What]** Model Definitions [ความหมาย]
 
 #### Transport Equations
 
@@ -67,14 +67,14 @@ $$\nu_t = C_\mu \frac{k^2}{\varepsilon}$$
 | $\sigma_k$ | 1.0 |
 | $\sigma_\varepsilon$ | 1.3 |
 
-### **[Why]** Selection Criteria
+### **[Why]** Selection Criteria [เกณฑ์การเลือกใช้]
 
-✅ **Advantages:** Stable, fast convergence, good for free-shear flows  
-❌ **Disadvantages:** Poor near-wall treatment, under-predicts separation
+✅ **Advantages [ข้อดี]:** Stable, fast convergence, good for free-shear flows  
+❌ **Disadvantages [ข้อเสีย]:** Poor near-wall treatment, under-predicts separation
 
-**Best for:** Internal flows, pipe flows, simple geometries without separation
+**Best for [เหมาะสำหรับ]:** Internal flows, pipe flows, simple geometries without separation
 
-### **[How]** OpenFOAM Implementation
+### **[How]** OpenFOAM Implementation [การนำไปใช้ใน OpenFOAM]
 
 ```cpp
 simulationType RAS;
@@ -91,7 +91,7 @@ RAS
 
 ## 2. k-ω SST Model
 
-### **[What]** Model Definitions
+### **[What]** Model Definitions [ความหมาย]
 
 #### Blending Function
 
@@ -115,14 +115,14 @@ $$\nu_t = \frac{a_1 k}{\max(a_1\omega, SF_2)}$$
 | $\beta^*$ | 0.09 | 0.09 |
 | $a_1$ | 0.31 | 0.31 |
 
-### **[Why]** Selection Criteria
+### **[Why]** Selection Criteria [เกณฑ์การเลือกใช้]
 
-✅ **Advantages:** Excellent near-wall treatment, good separation prediction, handles adverse pressure gradients  
-❌ **Disadvantages:** Higher computational cost, more sensitive to mesh quality
+✅ **Advantages [ข้อดี]:** Excellent near-wall treatment, good separation prediction, handles adverse pressure gradients  
+❌ **Disadvantages [ข้อเสีย]:** Higher computational cost, more sensitive to mesh quality
 
-**Best for:** External aerodynamics, separated flows, airfoils, flows with adverse pressure gradients
+**Best for [เหมาะสำหรับ]:** External aerodynamics, separated flows, airfoils, flows with adverse pressure gradients
 
-### **[How]** OpenFOAM Implementation
+### **[How]** OpenFOAM Implementation [การนำไปใช้ใน OpenFOAM]
 
 ```cpp
 simulationType RAS;
@@ -147,7 +147,7 @@ RAS
 | Adverse pressure gradient | ✗ | ✓ |
 | Fast computation | ✓ | ✗ |
 
-### Recommendation [คำแนะนำ]
+### **[Why]** Recommendation [คำแนะนำ]
 
 - **Default choice:** k-ω SST (most reliable for general engineering applications)
 - **Simple internal flow:** k-ε acceptable (faster, stable)
@@ -157,7 +157,7 @@ RAS
 
 ## 4. OpenFOAM Implementation [การนำไปใช้ใน OpenFOAM]
 
-### **[How]** Configuration Setup
+### **[How]** Configuration Setup [การตั้งค่า]
 
 #### turbulenceProperties
 
@@ -172,7 +172,7 @@ RAS
 }
 ```
 
-#### Initial/Boundary Conditions
+#### Initial/Boundary Conditions [เงื่อนไขเริ่มต้นและขอบเขต]
 
 **From Intensity and Length Scale:**
 
@@ -196,7 +196,7 @@ inlet
 }
 ```
 
-#### Wall Boundary Conditions
+#### Wall Boundary Conditions [เงื่อนไขขอบเขตผนัง]
 
 ```cpp
 // 0/k
@@ -302,4 +302,4 @@ $$\nu_t = \frac{a_1 k}{\max(a_1\omega, SF_2)}$$
 
 - **บทก่อนหน้า:** [01_Turbulence_Fundamentals.md](01_Turbulence_Fundamentals.md)
 - **บทถัดไป:** [03_Wall_Treatment.md](03_Wall_Treatment.md)
-- **หัวข้อขั้นสูง:** [02_Advanced_Turbulence.md](../07_ADVANCED_TOPICS/02_Advanced_Turbulence.md)
+- **หัวข้อขั้นสูง:** [02_INHERITANCE_POLYMORPHISM](../../MODULE_09_ADVANCED_TOPICS/CONTENT/02_INHERITANCE_POLYMORPHISM/00_Overview.md) - Runtime selection for turbulence models

@@ -1,61 +1,139 @@
 # Phase 5: Optimization
 
-Achieve 2x Speedup
+---
+
+## Learning Objectives
+
+By the end of this phase, you will be able to:
+
+- **Apply profiling techniques** (perf, gprof) to identify performance hotspots in OpenFOAM solvers
+- **Optimize linear solver settings** by selecting appropriate algorithms and preconditioners for your problem type
+- **Balance accuracy vs. speed** through intelligent tolerance settings and discretization scheme adjustments
+- **Measure and validate performance improvements** quantitatively with before/after comparisons
+- **Achieve 2x speedup** through systematic optimization while maintaining solution accuracy
 
 ---
 
-## Objective
+## 1. Why Optimization? (The Why)
 
-> **ทำให้ solver เร็วขึ้นอย่างน้อย 2 เท่า** จาก baseline
+Performance optimization is critical for practical CFD workflows:
+
+- **Faster design iterations**: Reduce simulation time from hours to minutes
+- **Larger problems**: Enable more detailed meshes within reasonable timeframes
+- **Cost efficiency**: Maximize HPC cluster utilization and reduce computational costs
+- **Competitive advantage**: Rapid prototyping requires rapid simulation
+
+**The optimization challenge**: OpenFOAM solvers have dozens of tunable parameters. Which ones matter most? How do you avoid sacrificing accuracy? This phase teaches you a systematic approach.
 
 ---
 
-## เป้าหมายการเรียนรู้
+## 2. Optimization Strategy (The What)
 
-- ใช้เทคนิค profiling
-- Optimize solver settings
-- วัดผลการปรับปรุงอย่างเชิงปริมาณ
+### The Optimization Hierarchy
 
----
+Not all optimizations yield equal benefits. Focus efforts on high-impact areas:
 
-## Step 1: สร้าง Baseline
-
-```bash
-# Run baseline case
-cd tutorials/turbulent_channel
-
-# Record baseline time
-time mpirun -np 4 myHeatFoam -parallel > log.baseline 2>&1
-
-# Extract timing
-grep "ClockTime" log.baseline | tail -1
-# Example: ClockTime = 120 s
+```
+Impact hierarchy (typical turbulent flow):
+┌─────────────────────────────────────────────────────┐
+│ 65% Linear Solver (GAMG vs PCG)          ← BIGGEST │
+│ 15% Gradient/Divergence Schemes                    │
+│ 10% I/O Operations                                  │
+│ 5%  Compiler Optimization                           │
+│ 5%  Other (mesh, BCs, etc.)                        │
+└─────────────────────────────────────────────────────┘
 ```
 
-**Baseline: 120 seconds** (example)
+### Optimization Decision Tree
+
+<details>
+<summary><b>Click to expand: Optimization Strategy Selection Guide</b></summary>
+
+```
+START: Measure baseline performance
+│
+├─ What is problem size?
+│  ├─ < 50k cells → Focus on compiler flags, stay with PCG
+│  └─ > 100k cells → Use GAMG, parallel scaling
+│
+├─ Where is time spent? (Run perf/gprof)
+│  ├─ > 60% in linear solver → Optimize fvSolution settings
+│  ├─ > 30% in I/O → Reduce write frequency
+│  ├─ > 20% in gradients → Check discretization schemes
+│  └─ > 15% in turbulence → Consider simpler model
+│
+├─ Is solution accuracy critical?
+│  ├─ YES → Keep relTol=0, monitor residuals closely
+│  └─ NO  → Use relTol=0.01, accept small accuracy loss
+│
+└─ Target speedup achieved?
+   ├─ NO → Try additional optimizations from hierarchy
+   └─ YES → Verify accuracy, document results
+```
+
+</details>
+
+### Key Parameters to Tune
+
+| Parameter | Impact | Trade-off |
+|:---|:---|:---|
+| **Solver type** (PCG → GAMG) | ⭐⭐⭐⭐⭐ | Memory usage, setup cost |
+| **relTol** (0 → 0.01) | ⭐⭐⭐⭐ | Accuracy |
+| **Write interval** | ⭐⭐⭐ | Data resolution |
+| **Compiler flags** (-O1 → -O3) | ⭐⭐⭐ | Compilation time, debugging |
+| **Discretization schemes** | ⭐⭐ | Accuracy |
 
 ---
 
-## Step 2: Profile
+## 3. Implementation Guide (The How)
 
-### Use perf
+### Step 1: Establish Performance Baseline
+
+**Before optimizing anything, measure your starting point.**
+
+<details>
+<summary><b>Checkpoint: Expected Baseline Output</b></summary>
 
 ```bash
-# Profile single-processor run for analysis
+cd tutorials/turbulent_channel
+
+# Run baseline case with timing
+time mpirun -np 4 myHeatFoam -parallel > log.baseline 2>&1
+
+# Extract final clock time
+grep "ClockTime" log.baseline | tail -1
+# Expected: ClockTime = 120 s (example - yours will vary)
+
+# Count total solver iterations
+grep "No Iterations" log.baseline | wc -l
+# Expected: ~15,000 total iterations
+```
+
+**Record your baseline:**
+- Total runtime: _____ s
+- Solver iterations: _____
+- Memory usage: _____ GB
+
+</details>
+
+### Step 2: Profile to Identify Hotspots
+
+**Profiling reveals where time is actually spent—don't guess!**
+
+<details>
+<summary><b>Option A: Using perf (Linux kernel profiling)</b></summary>
+
+```bash
+# Profile single-processor run for detailed analysis
 perf record -g myHeatFoam > log.profile 2>&1
 
-# Analyze
+# Generate hierarchical report
 perf report --hierarchy
 ```
 
-### ตัวอย่าง perf Output จริง
-
+**Expected output excerpt** (top 10 lines shown):
 ```bash
-$ perf report --hierarchy
-#
 # Children      Self  Command  Shared Object       Symbol
-# ........  ........  .......  ..................  .......................................
-#
     65.25%     0.00%  myHeatFoam  myHeatFoam          [.] Foam::fvMatrix<double>::solve
     42.18%     0.00%  myHeatFoam  libmyHeatFoam.so    [.] Foam::GAMG::solve
     38.50%     2.15%  myHeatFoam  libGAMGPrecon.so    [.] Foam::GAMG::performCycle
@@ -64,558 +142,63 @@ $ perf report --hierarchy
      8.76%     0.31%  myHeatFoam  libturbulence.so    [.] Foam::kEpsilon::correct
      6.18%     0.18%  myHeatFoam  libfiniteVolume.so  [.] Foam::lduMatrix::Amul
      5.32%     5.32%  myHeatFoam  [kernel]            [k] memcpy
-     4.85%     0.12%  myHeatFoam  libfiniteVolume.so  [.] Foam::fvPatchField::updateCoeffs
-     4.10%     0.08%  myHeatFoam  libmyHeatFoam.so    [.] Foam::tmp<Foam::GeometricField<double>>::~tmp
 ```
 
 **Interpretation:**
-- **65%** spent in linear solver (`fvMatrix::solve`)
-- **42%** in GAMG preconditioner → this is where we should focus!
+- **65%** in linear solver (`fvMatrix::solve`) ← **Primary target!**
+- **42%** in GAMG preconditioner
 - **15%** in gradient calculations
 - **12%** in divergence terms
 
-### Alternative: gprof
+</details>
+
+<details>
+<summary><b>Option B: Using gprof (GCC profiling)</b></summary>
 
 ```bash
-# First, recompile with profiling
+# Step 1: Recompile with profiling flags
 cd myHeatFoam
 vim Make/options
 
-# Add:
+# Add profiling flag:
 EXE_INC = \
     ... \
     -pg
 
-# Recompile
+# Step 2: Recompile
 wclean
 wmake
 
-# Run
+# Step 3: Run solver to generate profiling data
 myHeatFoam
 
-# วิเคราะห์
+# Step 4: Analyze
 gprof myHeatFoam gmon.out > gprof_report.txt
 ```
 
-### ตัวอย่าง gprof Output จริง
-
+**Expected output excerpt:**
 ```
 Flat profile:
 
- Each sample counts as 0.01 seconds.
-  %   cumulative   self              self     total
- time   seconds   seconds    calls  us/call  us/call  name
- 42.18      5.06     5.06   150000     33.7     45.2  Foam::GAMG::solve
- 15.32      6.90     1.84    30000     61.3    125.0  Foam::fvc::grad<double>
- 12.45      8.39     1.49    30000     49.7    102.3  Foam::fvm::div<double>
-  8.76      9.44     1.05    15000     70.0    150.0  Foam::kEpsilon::correct
-  6.18     10.18     0.74   450000      1.6      3.2  Foam::lduMatrix::Amul
-  5.32     10.82     0.64  4582341      0.0      0.0  memcpy
-  4.85     11.40     0.58    30000     19.3     38.5  Foam::fvPatchField::updateCoeffs
-  4.10     11.89     0.49   60000      8.2     16.4  Foam::tmp::~tmp
+ %   cumulative   self              self     total
+time   seconds   seconds    calls  us/call  us/call  name
+42.18      5.06     5.06   150000     33.7     45.2  Foam::GAMG::solve
+15.32      6.90     1.84    30000     61.3    125.0  Foam::fvc::grad<double>
+12.45      8.39     1.49    30000     49.7    102.3  Foam::fvm::div<double>
+ 8.76      9.44     1.05    15000     70.0    150.0  Foam::kEpsilon::correct
+ 6.18     10.18     0.74   450000      1.6      3.2  Foam::lduMatrix::Amul
 ```
 
-### ระบุ Hotspots
+**Remove profiling flags after analysis** (they slow down execution by ~10%).
 
-```
-Typical breakdown:
-+ 65%  fvMatrix::solve (Linear Solver) ← OPTIMIZE THIS!
-   + 42%  GAMG preconditioner
-   + 15%  BC communication
-   + 8%   Matrix operations
-+ 15%  fvc::grad
-+ 12%  fvm::div
-+ 9%   Turbulence
-+ 9%   Other (I/O, memcpy, etc.)
-```
+</details>
 
-**Focus on:** Linear Solver (65%) — biggest gain potential!
+#### Troubleshooting: Profiling Issues
 
----
+<details>
+<summary><b>Issue: perf command not found</b></summary>
 
-## Step 3: Optimize Linear Solver
-
-### fvSolution เดิม
-
-```cpp
-solvers
-{
-    T
-    {
-        solver          PCG;
-        preconditioner  DIC;
-        tolerance       1e-06;
-        relTol          0;
-    }
-}
-```
-
-### fvSolution ที่ Optimize แล้ว
-
-```cpp
-solvers
-{
-    T
-    {
-        solver          GAMG;       // Multigrid!
-        smoother        GaussSeidel;
-        tolerance       1e-06;
-        relTol          0.01;       // Stop early!
-        nPreSweeps      0;
-        nPostSweeps     2;
-        nFinestSweeps   2;
-        cacheAgglomeration true;
-        agglomerator    faceAreaPair;
-        mergeLevels     1;
-    }
-}
-```
-
-**Expected:** 30-50% faster solve
-
----
-
-## Step 4: Reduce I/O
-
-### Original controlDict
-
-```cpp
-writeControl    runTime;
-writeInterval   0.1;     // Write every 0.1 s
-```
-
-### Optimized controlDict
-
-```cpp
-writeControl    runTime;
-writeInterval   1;       // Write every 1 s (10x less!)
-writeCompression true;   // Smaller files
-purgeWrite      5;       // Keep only last 5 times
-```
-
-**Expected:** 5-10% faster (less I/O stalls)
-
----
-
-## Step 5: Adjust Discretization
-
-### Accuracy vs Speed Tradeoffs
-
-```cpp
-gradSchemes
-{
-    // Original: corrected (accurate, slower)
-    default         Gauss linear corrected;
-    
-    // Faster: orthogonal (if mesh is good)
-    // default      Gauss linear;
-}
-
-laplacianSchemes
-{
-    // Original: corrected
-    default         Gauss linear corrected;
-    
-    // Faster: limited correction
-    // default      Gauss linear limited 0.5;
-}
-```
-
-> [!WARNING]
-> Changing schemes may affect accuracy!
-> Only use for well-behaved meshes
-
----
-
-## Step 6: Compiler Optimization
-
-### Recompile with Optimization
-
-```bash
-# Edit Make/options
-EXE_INC = \
-    ... \
-    -O3 \
-    -march=native \
-    -DNDEBUG              # Disable debug checks
-
-# Recompile
-wmake
-```
-
-**Expected:** 10-20% faster
-
----
-
-## Step 7: Measure Improvement
-
-### Run Optimized Case
-
-```bash
-time mpirun -np 4 myHeatFoam -parallel > log.optimized 2>&1
-
-# Compare
-BASELINE=120
-OPTIMIZED=$(grep "ClockTime" log.optimized | tail -1 | awk '{print $3}')
-SPEEDUP=$(echo "scale=2; $BASELINE / $OPTIMIZED" | bc)
-echo "Speedup: ${SPEEDUP}x"
-```
-
----
-
-## Step-by-Step Optimization Results
-
-### Optimization 1: เปลี่ยนจาก PCG เป็น GAMG
-
-**ก่อน (PCG):**
-```bash
-# system/fvSolution
-solvers
-{
-    T
-    {
-        solver          PCG;
-        preconditioner  DIC;
-        tolerance       1e-06;
-        relTol          0;
-    }
-}
-```
-
-**Runtime output:**
-```bash
-Time = 0.1
-T: Solving, Initial residual = 1.00e-02, Final residual = 9.87e-07, No Iterations 45
-ExecutionTime = 8.54 s  ClockTime = 10 s
-
-Time = 0.2
-T: Solving, Initial residual = 9.85e-03, Final residual = 9.76e-07, No Iterations 44
-ExecutionTime = 17.12 s ClockTime = 20 s
-...
-Final ClockTime = 120 s
-```
-
-**After (GAMG):**
-```bash
-# system/fvSolution
-solvers
-{
-    T
-    {
-        solver          GAMG;
-        smoother        GaussSeidel;
-        tolerance       1e-06;
-        relTol          0;
-        nPreSweeps      0;
-        nPostSweeps     2;
-        nFinestSweeps   2;
-        cacheAgglomeration on;
-        agglomerator    faceAreaPair;
-        mergeLevels     1;
-    }
-}
-```
-
-**Runtime output:**
-```bash
-Time = 0.1
-T: Solving, Initial residual = 1.00e-02, Final residual = 9.92e-07, No Iterations 8
-ExecutionTime = 5.82 s  ClockTime = 6 s
-
-Time = 0.2
-T: Solving, Initial residual = 9.88e-03, Final residual = 9.78e-07, No Iterations 7
-ExecutionTime = 11.64 s ClockTime = 12 s
-...
-Final ClockTime = 80 s
-```
-
-**Results:**
-- **Time:** 120s → 80s
-- **Speedup:** 1.5x
-- **Iterations:** 45 → 8 per timestep
-- **Why:** Multigrid solves multiple scales simultaneously
-
----
-
-### Optimization 2: เพิ่ม relTol
-
-**ก่อน (relTol = 0):**
-```bash
-T: Solving, Initial residual = 1.00e-02, Final residual = 9.92e-07, No Iterations 8
-```
-
-**After (relTol = 0.01):**
-```bash
-solvers
-{
-    T
-    {
-        solver          GAMG;
-        relTol          0.01;       // Stop early!
-        // ... other settings
-    }
-}
-```
-
-**Runtime output:**
-```bash
-T: Solving, Initial residual = 1.00e-02, Final residual = 8.54e-05, No Iterations 3
-ExecutionTime = 3.12 s  ClockTime = 3.5 s
-```
-
-**Results:**
-- **Time:** 80s → 70s
-- **Speedup:** 1.14x
-- **Iterations:** 8 → 3 per timestep
-- **Accuracy:** residual reduced to 1e-4 instead of 1e-6 (still good enough!)
-
-**Verification of accuracy:**
-```python
-# Compare final T field
-import numpy as np
-
-T_baseline = np.loadtxt('baseline_T.csv')
-T_relTol = np.loadtxt('reltol_T.csv')
-
-error = np.max(np.abs(T_baseline - T_relTol))
-print(f"Max difference: {error:.6e}")
-# Output: Max difference: 2.345e-04 (negligible!)
-```
-
----
-
-### Optimization 3: ลด I/O
-
-**ก่อน (write ทุก 0.1s):**
-```bash
-# system/controlDict
-writeControl    runTime;
-writeInterval   0.1;
-```
-
-**Output:**
-```bash
-Time = 0.1
-T: Solving...
-Writing T
-ExecutionTime = 5.82 s  ClockTime = 6 s
-Writing T to file "0.1/T" ← I/O overhead!
-
-Time = 0.2
-T: Solving...
-Writing T
-ExecutionTime = 11.64 s ClockTime = 12 s
-Writing T to file "0.2/T" ← I/O overhead!
-```
-
-**หลัง (write ทุก 1s):**
-```bash
-# system/controlDict
-writeControl    runTime;
-writeInterval   1;       // 10x less frequent!
-writeCompression true;   // Compressed files
-purgeWrite      5;       // Keep only last 5 timesteps
-```
-
-**Runtime output:**
-```bash
-Time = 0.1
-T: Solving...
-ExecutionTime = 5.42 s  ClockTime = 5.8 s  ← No I/O!
-
-Time = 0.2
-T: Solving...
-ExecutionTime = 10.84 s ClockTime = 11.6 s ← No I/O!
-
-Time = 1.0
-T: Solving...
-Writing T
-ExecutionTime = 54.2 s ClockTime = 58 s
-Writing T to file "1/T" ← Only write now!
-```
-
-**Results:**
-- **Time:** 70s → 65s
-- **Speedup:** 1.08x
-- **Disk writes:** 100 → 10 files
-- **Disk space:** 2.5GB → 250MB (with compression)
-
----
-
-### Optimization 4: Compiler Optimization
-
-**ก่อน (-O1, debug mode):**
-```bash
-# Make/options
-EXE_INC = \
-    -I$(LIB_SRC)/finiteVolume/lnInclude \
-    -I$(LIB_SRC)/meshTools/lnInclude \
-    -g -O1      # Debug symbols, low optimization
-```
-
-**Check current binary:**
-```bash
-$ file myHeatFoam
-myHeatFoam: ELF 64-bit LSB executable, x86-64, not stripped
-
-$ size myHeatFoam
-   text    data     bss     dec     hex filename
- 245832   12480   28764  287076   461f4 myHeatFoam
-```
-
-**หลัง (-O3, native architecture):**
-```bash
-# Make/options
-EXE_INC = \
-    -I$(LIB_SRC)/finiteVolume/lnInclude \
-    -I$(LIB_SRC)/meshTools/lnInclude \
-    -O3 \                    # Maximum optimization
-    -march=native \          # CPU-specific instructions
-    -DNDEBUG \               # No debug checks
-    -funroll-loops           # Unroll loops
-```
-
-**Recompile:**
-```bash
-$ wclean
-$ wmake
-
-Making dependency list for source file myHeatFoam.C
-SOURCE=myHeatFoam.C ;  g++ -std=c++11 -m64 -Dlinux64 \
-    -DMPICH_SKIP_MPICXX -fPIC -O3 -march=native -DNDEBUG \
-    -funroll-loops -I... -c myHeatFoam.C
-...
-LD: g++ -std=c++11 -m64 -Dlinux64 -DMPICH_SKIP_MPICXX \
-    -fPIC -O3 -march=native -Xlinker --add-needed \
-    -o /home/user/OpenFOAM/.../platforms/linux64GccDPInt32Opt/bin/myHeatFoam
-```
-
-**Check optimized binary:**
-```bash
-$ size myHeatFoam
-   text    data     bss     dec     hex filename
- 312456   12840   29876  355172   56b64 myHeatFoam  ← Larger (unrolled loops)
-```
-
-**Runtime comparison:**
-```bash
-# Before (-O1)
-$ time mpirun -np 4 myHeatFoam -parallel
-real    1m5.000s
-user    3m45.200s
-sys     0m15.400s
-
-# After (-O3 -march=native)
-$ time mpirun -np 4 myHeatFoam -parallel
-real    0m55.000s
-user    3m10.800s
-sys     0m12.200s
-```
-
-**Results:**
-- **Time:** 65s → 55s
-- **Speedup:** 1.18x
-- **Code size:** Increased 23% (unrolled loops)
-- **Note:** Binary is larger but runs faster!
-
----
-
-## สรุปการ Optimization ทั้งหมด
-
-| Step | Optimization | Time (s) | Δ Time | Speedup | Cumulative |
-|:---:|:---|:---:|:---:|:---:|:---:|
-| 0 | **Baseline (PCG)** | 120 | — | 1.00x | 1.00x |
-| 1 | Switch to GAMG | 80 | -40 | 1.50x | 1.50x |
-| 2 | Add relTol 0.01 | 70 | -10 | 1.14x | 1.71x |
-| 3 | Reduce I/O | 65 | -5 | 1.08x | **1.85x** |
-| 4 | Compiler -O3 | 55 | -10 | 1.18x | **2.18x** |
-
-**Goal achieved: 2x speedup!** 🎉
-
----
-
-## ตารางเปรียบเทียบก่อน/หลัง
-
-| Metric | Baseline | Optimized | Improvement |
-|:---|:---:|:---:|:---:|
-| **Total Time** | 120 s | 55 s | **2.18x faster** |
-| **Solver Iterations** | 45/timestep | 3/timestep | 15x fewer |
-| **Total Iterations** | 15,000 | 1,000 | 15x fewer |
-| **Time per Iteration** | 8 ms | 55 ms | 7x slower (but OK!) |
-| **Write Events** | 100 | 10 | 10x fewer |
-| **Disk Usage** | 2.5 GB | 250 MB | 10x less |
-| **Binary Size** | 287 KB | 355 KB | +24% |
-| **Memory Usage** | 1.2 GB | 1.1 GB | -8% |
-| **Max T Error** | — | 2.3e-4 | Negligible |
-
----
-
-## Additional Optimizations
-
-### 1. Under-relaxation Tuning
-
-```cpp
-relaxationFactors
-{
-    equations
-    {
-        T       0.9;    // Higher = faster convergence
-    }
-}
-```
-
-### 2. Adjust Iterations
-
-```cpp
-PIMPLE
-{
-    nOuterCorrectors    2;    // Reduce if stable
-    nCorrectors         1;
-}
-```
-
-### 3. Time Step
-
-```cpp
-deltaT          0.01;     // Larger if stable
-```
-
----
-
-## Measuring Specific Improvements
-
-### Linear Solver Iterations
-
-```bash
-# Count solver iterations
-grep "iterations" log.baseline | wc -l
-grep "iterations" log.optimized | wc -l
-
-# Fewer iterations = faster solver
-```
-
-### Time per Iteration
-
-```bash
-# Calculate
-grep "ExecutionTime" log.* | awk '{print $5}' | sort -n | tail -10
-```
-
----
-
-## ปัญหา Profiling และ Optimization ที่พบบ่อย
-
-### ปัญหา 1: perf ไม่มี
-
-**อาการ:**
-```bash
-$ perf record -g myHeatFoam
-bash: perf: command not found
-```
-
-**วินิจฉัย:** perf tools ไม่ได้ติดตั้งในระบบ
-
-**วิธีแก้:**
+**Solution:**
 ```bash
 # Ubuntu/Debian
 sudo apt-get install linux-tools-common linux-tools-generic
@@ -623,225 +206,260 @@ sudo apt-get install linux-tools-common linux-tools-generic
 # CentOS/RHEL
 sudo yum install perf
 
-# Or use alternative profiling methods
-# Option 1: gprof (requires recompilation with -pg)
-# Option 2: time command (basic timing)
-# Option 3: OpenFOAM built-in profiling
+# Alternative: Use built-in OpenFOAM timing
+time mpirun -np 4 myHeatFoam -parallel
 ```
 
----
+</details>
 
-### ปัญหา 2: ไม่มีสิทธิ์ใช้ perf
+<details>
+<summary><b>Issue: perf permission denied</b></summary>
 
-**อาการ:**
+**Solution:**
 ```bash
-$ perf record -g myHeatFoam
-Error:
-You may not have permission to collect stats.
-Consider tweaking /proc/sys/kernel/perf_event_paranoid:
--1 - For system-wide profiling
-0 - For kernel profiling (needs CAP_SYS_ADMIN)
-1 - For profiling kernel and user space (default)
-2 - For user-space profiling only
->=3 - No profiling allowed
-```
-
-**วิธีแก้:**
-```bash
-# Temporary fix (current session only)
+# Temporary fix (current session)
 echo 0 | sudo tee /proc/sys/kernel/perf_event_paranoid
 
-# Permanent fix (add to /etc/sysctl.conf)
+# Permanent fix
 echo "kernel.perf_event_paranoid = 0" | sudo tee -a /etc/sysctl.conf
 sudo sysctl -p
-
-# Alternative: Run with sudo (not recommended for production)
-sudo perf record -g myHeatFoam
 ```
+
+</details>
 
 ---
 
-### ปัญหา 3: Solver Diverge หลัง Optimization
+### Step 3: Optimize Linear Solver Settings
 
-**อาการ:**
-```bash
-Time = 5.0
-T: Solving, Initial residual = 1.00e+00, Final residual = nan, No Iterations 1000
---> FOAM FATAL ERROR:
-Illegal wave speed detected
-```
+**The highest-impact optimization—typically 30-50% speedup.**
 
-**วินิจฉัย:** relTol aggressive เกินไปหรือ solver settings ไม่เข้ากัน
+#### Original Configuration (system/fvSolution)
 
-**วิธีแก้:**
-```bash
-# 1. Reduce relTol gradually
-relTol 0.01;   # Was 0.1
-relTol 0.001;  # Even more conservative
-
-# 2. Check mesh quality
-checkMesh
-
-# 3. Verify time step stability
-deltaT  0.001;  # Reduce from 0.01
-
-# 4. Add under-relaxation
-relaxationFactors
-{
-    equations
-    {
-        T       0.7;    # Reduce from 0.9
-    }
-}
-```
-
----
-
-### ปัญหา 4: GAMG ช้ากว่า PCG
-
-**อาการ:**
-```bash
-# With PCG: 60 seconds
-# With GAMG: 85 seconds ← Slower!
-```
-
-**วินิจฉัย:** GAMG overhead สูงเกินไปสำหรับปัญหาเล็กหรือ settings ผิด
-
-**วิธีแก้:**
-```bash
-# 1. Check problem size
-# GAMG is only beneficial for >100k cells
-
-# 2. Optimize GAMG parameters
-solvers
-{
-    T
-    {
-        solver          GAMG;
-        smoother        GaussSeidel;     // Try: DILU, DIC
-        nPreSweeps      0;               // Try: 1
-        nPostSweeps     2;               // Try: 1
-        nFinestSweeps   2;               // Try: 1
-        cacheAgglomeration on;           // Critical!
-        mergeLevels     1;               // Try: 2
-        maxCoarseDirs  50;              // Add this
-    }
-}
-
-# 3. For small meshes, stick with PCG
+```cpp
 solvers
 {
     T
     {
         solver          PCG;
-        preconditioner  DIC;             // Or DILU
+        preconditioner  DIC;
+        tolerance       1e-06;
+        relTol          0;
     }
 }
 ```
 
+**Typical performance:**
+- Iterations per timestep: 40-50
+- Total runtime: 120 s (baseline)
+
+#### Optimized Configuration
+
+```cpp
+solvers
+{
+    T
+    {
+        solver          GAMG;              // Multigrid solver
+        smoother        GaussSeidel;
+        tolerance       1e-06;
+        relTol          0.01;              // Stop at 1% of initial residual
+        nPreSweeps      0;
+        nPostSweeps     2;
+        nFinestSweeps   2;
+        cacheAgglomeration true;           // Cache mesh agglomeration
+        agglomerator    faceAreaPair;
+        mergeLevels     1;
+    }
+}
+```
+
+**Key changes:**
+- **PCG → GAMG**: Algebraic multigrid solves multiple scales simultaneously
+- **relTol 0 → 0.01**: Stop when residual reduced by 100x (vs. absolute tolerance)
+- **cacheAgglomeration**: Reuse mesh coarsening structure
+
+<details>
+<summary><b>Checkpoint: Expected Performance Improvement</b></summary>
+
+```bash
+# Run optimized case
+mpirun -np 4 myHeatFoam -parallel > log.gamg 2>&1
+
+# Compare iterations
+echo "Baseline iterations:"
+grep "No Iterations" log.baseline | head -5
+echo "GAMG iterations:"
+grep "No Iterations" log.gamg | head -5
+
+# Expected output:
+# Baseline:  T: Solving, ..., No Iterations 45
+# GAMG:      T: Solving, ..., No Iterations 8
+
+# Measure speedup
+BASELINE=120
+GAMG_TIME=$(grep "ClockTime" log.gamg | tail -1 | awk '{print $3}')
+SPEEDUP=$(echo "scale=2; $BASELINE / $GAMG_TIME" | bc)
+echo "Speedup: ${SPEEDUP}x"
+# Expected: 1.4x - 1.6x
+```
+
+**Expected results:**
+- Runtime: 120s → 75s (1.6x speedup)
+- Iterations per step: 45 → 8
+- **Why it works**: Multigrid eliminates low-frequency errors efficiently
+
+</details>
+
+#### Troubleshooting: Solver Optimization
+
+<details>
+<summary><b>Issue: GAMG slower than PCG on small meshes</b></summary>
+
+**Diagnosis**: GAMG has setup overhead. For meshes < 100k cells, PCG may be faster.
+
+**Solution**:
+```cpp
+// For small meshes (< 100k cells), use optimized PCG
+solvers
+{
+    T
+    {
+        solver          PCG;
+        preconditioner  DIC;              // Or DILU for better convergence
+        tolerance       1e-06;
+        relTol          0.01;
+    }
+}
+
+// For large meshes (> 100k cells), use GAMG
+solvers
+{
+    T
+    {
+        solver          GAMG;
+        // ... (as above)
+    }
+}
+```
+
+</details>
+
+<details>
+<summary><b>Issue: Solver divergence after optimization</b></summary>
+
+**Diagnosis**: relTol too aggressive or solver settings incompatible with mesh quality.
+
+**Solution**:
+```bash
+# 1. Reduce relTol gradually
+relTol 0.001;     // More conservative than 0.01
+
+# 2. Check mesh quality
+checkMesh
+
+# 3. Verify time step stability
+deltaT  0.001;    // Reduce if unstable
+
+# 4. Add under-relaxation (if using PIMPLE)
+relaxationFactors
+{
+    equations
+    {
+        T       0.7;    // Reduce from 1.0
+    }
+}
+```
+
+</details>
+
 ---
 
-### ปัญหา 5: -O3 Compilation ได้ผลลัพธ์ผิด
+### Step 4: Reduce I/O Overhead
 
-**อาการ:**
-```bash
-# Results with -O1: Max T = 350 K
-# Results with -O3: Max T = 312 K ← Different!
-```
+**Frequent file writes can stall simulations—especially on parallel filesystems.**
 
-**วินิจฉัย:** Aggressive optimization เปลี่ยนพฤติกรรม floating-point
+#### Original Configuration (system/controlDict)
 
-**วิธีแก้:**
-```bash
-# 1. Verify it's not numerical tolerance
-diff <(grep "ClockTime" log.O1) <(grep "ClockTime" log.O3)
-
-# 2. Check for strict aliasing issues
-EXE_INC = \
-    ... \
-    -O3 \
-    -fno-strict-aliasing    # Add this
-
-# 3. Ensure floating-point consistency
-EXE_INC = \
-    ... \
-    -O3 \
-    -fno-fast-math          # Don't reorder FP operations
-
-# 4. Use intermediate optimization
-EXE_INC = \
-    ... \
-    -O2                     # Between -O1 and -O3
-```
-
----
-
-### ปัญหา 6: ไม่สามารถทำ 2x Speedup ได้
-
-**อาการ:** ได้แค่ 1.3x speedup แม้ทำครบทุก optimization
-
-**วินิจฉัย:**
-1. Baseline ดีอยู่แล้ว
-2. Optimize ผิดจุด
-3. Mesh size เล็กเกินไป
-
-**วิธีแก้:**
-```bash
-# 1. Check if baseline is already efficient
-perf report baseline
-# If solver is only 30% of time, optimizing it gives <1.3x
-
-# 2. Identify real bottleneck
-perf report --hierarchy
-# Maybe I/O or turbulence model is the issue
-
-# 3. Try larger problem size
-# Scale up mesh by 8x (2x in each direction)
-# Better parallel scaling with larger problems
-
-# 4. Consider algorithmic changes
-# Switch turbulence model: kEpsilon → kOmegaSST
-# Use faster BC: zeroGradient → fixedValue
-```
-
----
-
-### Issue 7: Disk Space Running Out
-
-**Symptom:**
-```bash
-$ ls -lh 0.1/T
--rw-r--r-- 1 user user 2.5G Oct 15 10:30 0.1/T
-
-$ df -h .
-Filesystem      Size  Used Avail Use% Mounted on
-/dev/sda1       50G   48G  2.0G  96% /home  ← Almost full!
-```
-
-**Solution:**
-```bash
-# Immediate: Clean old time directories
-rm -rf 0.*
-foamListTimes -rm
-
-# Add to controlDict:
+```cpp
 writeControl    runTime;
-writeInterval   1;         # Write less frequently
-writeCompression true;     # Compress output
-purgeWrite      3;         # Keep only last 3 timesteps
+writeInterval   0.1;     // Write every 0.1 seconds
+```
 
-# Add to system/controlDict:
+**Impact**: 100 write events over 10-second simulation
+
+#### Optimized Configuration
+
+```cpp
+writeControl    runTime;
+writeInterval   1;       // Write every 1 second (10x reduction)
+writeCompression true;   // Compress output files
+purgeWrite      5;       // Keep only last 5 timesteps
+```
+
+**Additional optimization**: Write only essential fields
+```cpp
 functions
 {
-    # Only write essential fields
     writeFields
     {
         type            sets;
-        fields          (T);  # Only T, not U, p, k, epsilon
+        fields          (T);     // Only temperature, not U, p, k, epsilon
     }
 }
+```
 
-# Post-process on-the-fly (don't store)
+<details>
+<summary><b>Checkpoint: Expected I/O Reduction</b></summary>
+
+```bash
+# Compare disk usage
+du -sh 0.* baseline/
+du -sh 1.* optimized/
+
+# Expected results:
+# Baseline:  2.5 GB (100 time directories)
+# Optimized: 250 MB  (10 time directories, compressed)
+
+# Runtime comparison
+echo "Baseline with frequent I/O:"
+grep "ClockTime" log.baseline | tail -1
+# ClockTime = 80 s (after GAMG optimization)
+
+echo "Optimized with reduced I/O:"
+grep "ClockTime" log.io_optimized | tail -1
+# ClockTime = 72 s
+
+# Speedup: 1.11x cumulative
+```
+
+**Expected results:**
+- Runtime: 80s → 72s (1.11x speedup)
+- Disk usage: 2.5 GB → 250 MB (10x reduction)
+
+</details>
+
+#### Troubleshooting: I/O Issues
+
+<details>
+<summary><b>Issue: Disk space exhausted</b></summary>
+
+**Immediate action**:
+```bash
+# Remove old time directories
+foamListTimes -rm
+
+# Check disk space
+df -h .
+```
+
+**Preventive configuration** (add to controlDict):
+```cpp
+writeControl    runTime;
+writeInterval   2;             // Write even less frequently
+writeCompression true;
+purgeWrite      3;             // Keep only last 3 snapshots
+
+// Post-process on-the-fly instead of storing
 functions
 {
     probes
@@ -850,122 +468,397 @@ functions
         functionObjectLibs ("libsampling.so");
         writeControl    timeStep;
         writeInterval   1;
-        probeLocations  ( (0.05 0.05 0) );  // Single point
+        probeLocations  ( (0.05 0.05 0) );
         fields          (T);
     }
 }
 ```
 
----
-
-## Optimization Verification Checklist
-
-Before claiming "2x speedup", verify:
-
-- [ ] **Accuracy preserved:**
-  ```bash
-  # Compare key metrics
-  baseline_T=$(tail -1 postProcessing/patchAverage/baseline/right_T.dat | awk '{print $2}')
-  optimized_T=$(tail -1 postProcessing/patchAverage/optimized/right_T.dat | awk '{print $2}')
-  error=$(echo "scale=6; ($baseline_T - $optimized_T) / $baseline_T" | bc)
-  echo "Relative error: $error"
-  # Should be < 1%
-  ```
-
-- [ ] **Reproducible:**
-  ```bash
-  # Run 3 times
-  for i in 1 2 3; do
-      time mpirun -np 4 myHeatFoam -parallel > log.run.$i 2>&1
-  done
-
-  # Check variance < 5%
-  ```
-
-- [ ] **Stable convergence:**
-  ```bash
-  # Check residuals
-  grep "Final residual" log.optimized | tail -20
-  # Should monotonically decrease
-  ```
-
-- [ ] **Physical correctness:**
-  ```bash
-  # Check energy balance
-  # Heat flux in should equal heat flux out
-  ```
+</details>
 
 ---
 
-## Concept Check
+### Step 5: Adjust Discretization Schemes
+
+**Trade accuracy for speed—only for well-behaved problems.**
 
 <details>
-<summary><b>1. ทำไม GAMG เร็วกว่า PCG?</b></summary>
+<summary><b>Optional Optimization: Faster schemes (use with caution)</b></summary>
 
-**PCG:** (Conjugate Gradient)
+```cpp
+// Original: maximum accuracy
+gradSchemes
+{
+    default         Gauss linear corrected;     // Non-orthogonal correction
+}
+
+laplacianSchemes
+{
+    default         Gauss linear corrected;     // Non-orthogonal correction
+}
+
+// Faster: reduced corrections (requires high-quality mesh)
+gradSchemes
+{
+    default         Gauss linear;               // No correction (orthogonal only)
+}
+
+laplacianSchemes
+{
+    default         Gauss linear limited 0.5;   // Limited correction
+}
+```
+
+**When to use**:
+- ✓ Mesh is predominantly orthogonal (> 95%)
+- ✓ Preliminary design studies
+- ✓ Well-understood physics
+
+**When NOT to use**:
+- ✗ High aspect ratio cells
+- ✗ Complex geometries
+- ✗ Production-quality results
+
+**Expected speedup**: 5-10% (varies heavily with mesh quality)
+
+</details>
+
+---
+
+### Step 6: Compiler Optimization
+
+**Rebuild solver with aggressive compiler flags—typically 10-20% speedup.**
+
+#### Step 6a: Check Current Compilation
+
+```bash
+# Examine current Make/options
+cat myHeatFoam/Make/options
+
+# Check binary size and optimization
+file myHeatFoam
+size myHeatFoam
+```
+
+#### Step 6b: Add Optimization Flags
+
+Edit `myHeatFoam/Make/options`:
+
+```cpp
+EXE_INC = \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude \
+    -O3 \                    // Maximum optimization
+    -march=native \          // CPU-specific instruction sets
+    -DNDEBUG \               // Disable debug checks
+    -funroll-loops           // Unroll small loops
+```
+
+#### Step 6c: Recompile and Verify
+
+```bash
+# Clean and rebuild
+wclean
+wmake
+
+# Check new binary size (should be larger)
+size myHeatFoam
+
+# Run benchmark
+time mpirun -np 4 myHeatFoam -parallel > log.o3 2>&1
+```
+
+<details>
+<summary><b>Checkpoint: Expected Compiler Improvement</b></summary>
+
+```bash
+# Binary size comparison
+# Before (-O1):  text=245KB, data=12KB
+# After  (-O3):  text=312KB, data=13KB  (+27% size from loop unrolling)
+
+# Runtime comparison
+BASELINE=72
+O3_TIME=$(grep "ClockTime" log.o3 | tail -1 | awk '{print $3}')
+SPEEDUP=$(echo "scale=2; $BASELINE / $O3_TIME" | bc)
+echo "Speedup: ${SPEEDUP}x"
+# Expected: 1.15x - 1.20x
+
+# Overall cumulative speedup
+echo "Cumulative speedup: $(echo "scale=2; 120 / $O3_TIME" | bc)x"
+# Target: 2.0x or higher
+```
+
+**Expected results:**
+- Runtime: 72s → 60s (1.20x speedup)
+- Binary size: +25% (larger but faster)
+- **Overall cumulative**: 120s → 60s (2.0x speedup achieved!)
+
+</details>
+
+#### Troubleshooting: Compiler Issues
+
+<details>
+<summary><b>Issue: Different results with -O3 optimization</b></summary>
+
+**Diagnosis**: Aggressive optimization can reorder floating-point operations, causing small numerical differences.
+
+**Solutions**:
+```bash
+# Option 1: Ensure floating-point consistency
+EXE_INC = \
+    ... \
+    -O3 \
+    -fno-fast-math          // Don't reorder FP operations
+
+# Option 2: Disable strict aliasing
+EXE_INC = \
+    ... \
+    -O3 \
+    -fno-strict-aliasing    // Safer pointer optimization
+
+# Option 3: Use intermediate optimization
+EXE_INC = \
+    ... \
+    -O2                     // Between -O1 and -O3
+
+# Verify accuracy difference is acceptable
+diff <(grep "ClockTime" log.O1) <(grep "ClockTime" log.O3)
+```
+
+**Acceptable threshold**: < 0.1% difference in key quantities (max T, heat flux, etc.)
+
+</details>
+
+---
+
+### Step 7: Validate Accuracy Preservation
+
+**Speedup is meaningless if results are wrong!**
+
+<details>
+<summary><b>Accuracy Verification Checklist</b></summary>
+
+```bash
+# 1. Compare key metrics (e.g., max temperature)
+BASELINE_T=$(tail -1 postProcessing/baseline/max_T.dat | awk '{print $2}')
+OPTIMIZED_T=$(tail -1 postProcessing/optimized/max_T.dat | awk '{print $2}')
+ERROR=$(echo "scale=6; ($BASELINE_T - $OPTIMIZED_T) / $BASELINE_T" | bc)
+echo "Relative error: $ERROR"
+# Should be < 0.01 (1%)
+
+# 2. Check convergence behavior
+grep "Final residual" log.optimized | tail -20
+# Should monotonically decrease (no oscillations)
+
+# 3. Verify physical consistency
+# Example: Energy balance check (heat in = heat out)
+
+# 4. Visual inspection
+paraFoam -builtin
+# Compare contour plots side-by-side
+```
+
+**Acceptance criteria**:
+- ✓ Key quantity error < 1%
+- ✓ Monotonic residual convergence
+- ✓ Physical conservation maintained
+- ✓ Visual inspection consistent
+
+</details>
+
+---
+
+## 4. Results Summary
+
+### Optimization Results Table
+
+| Step | Optimization | Time (s) | Δ Time | Speedup | Cumulative |
+|:---:|:---|:---:|:---:|:---:|:---:|
+| 0 | **Baseline (PCG)** | 120 | — | 1.00× | 1.00× |
+| 1 | Switch to GAMG | 75 | -45 | 1.60× | 1.60× |
+| 2 | Add relTol 0.01 | 68 | -7 | 1.10× | 1.76× |
+| 3 | Reduce I/O | 62 | -6 | 1.10× | 1.94× |
+| 4 | Compiler -O3 | 55 | -7 | 1.13× | **2.18×** |
+
+**Goal achieved: 2× speedup!** 🎉
+
+### Before/After Comparison
+
+| Metric | Baseline | Optimized | Improvement |
+|:---|:---:|:---:|:---:|
+| **Total Time** | 120 s | 55 s | **2.18× faster** |
+| **Solver Iterations** | 45/timestep | 3/timestep | 15× fewer |
+| **Total Iterations** | 15,000 | 1,000 | 15× fewer |
+| **Write Events** | 100 | 10 | 10× fewer |
+| **Disk Usage** | 2.5 GB | 250 MB | 10× reduction |
+| **Memory Usage** | 1.2 GB | 1.1 GB | 8% reduction |
+| **Max Temperature Error** | — | 2.3×10⁻⁴ | Negligible |
+
+---
+
+## 5. Key Takeaways
+
+1. **Profile before optimizing**: Never guess where time is spent. Use perf or gprof to identify hotspots quantitatively.
+
+2. **Focus on high-impact areas**: The linear solver typically consumes 60-70% of runtime. Optimize this first for maximum ROI.
+
+3. **GAMG > PCG for large meshes**: Algebraic multigrid solvers provide 1.5-2× speedup on meshes > 100k cells by handling multiple scales simultaneously.
+
+4. **relTol is your friend**: Setting relTol=0.01 (stop at 1% of initial residual) provides 10-15% speedup with minimal accuracy loss for most engineering applications.
+
+5. **I/O matters**: Frequent file writes can consume 10-15% of runtime. Reduce write frequency and enable compression for substantial gains.
+
+6. **Compiler flags are easy wins**: -O3 -march=native provides 10-20% speedup with zero code changes.
+
+7. **Validate everything**: Speedup is worthless if results are wrong. Always verify key quantities within 1% of baseline.
+
+8. **Diminishing returns apply**: Each optimization yields smaller gains. Stop when the cost (complexity, accuracy risk) exceeds the benefit.
+
+9. **Problem size matters**: GAMG and advanced optimizations pay off primarily on large meshes. Small problems may not benefit.
+
+10. **Document your optimizations**: Keep a log of changes and their impact for future reference and reproducibility.
+
+---
+
+## 6. Concept Check
+
+<details>
+<summary><b>1. Why is GAMG faster than PCG for large problems?</b></summary>
+
+**Answer:**
+
+**PCG (Preconditioned Conjugate Gradient):**
 - O(n) per iteration
-- Many iterations needed
-- Doesn't handle scales well
+- Requires many iterations (40-50) for convergence
+- Struggles with low-frequency errors
+- Single-scale solver
 
-**GAMG:** (Algebraic Multigrid)
-- O(n) total (optimal!)
-- Solves coarse and fine together
-- Excellent for Laplacian equations
+**GAMG (Geometric-Algebraic Multigrid):**
+- O(n) total complexity (optimal!)
+- Solves coarse and fine scales simultaneously
+- Eliminates low-frequency errors on coarse grids
+- Fewer iterations (3-8) per timestep
 
-**When GAMG works best:**
-- Elliptic equations (pressure, temperature)
-- Large meshes (>100k cells)
+**When GAMG excels:**
+- Elliptic equations (pressure Poisson, heat diffusion)
+- Large meshes (> 100k cells)
+- Problems with multiple length scales
+
+**When PCG is better:**
+- Small meshes (< 50k cells)
+- Limited memory availability
+- Quick prototype runs
+
 </details>
 
 <details>
-<summary><b>2. relTol ทำอะไร?</b></summary>
+<summary><b>2. What does relTol actually do?</b></summary>
 
-**Stopping criteria:**
-- `tolerance`: Stop when residual < tolerance
-- `relTol`: Stop when residual < relTol × initial_residual
+**Answer:**
+
+relTol provides a **relative stopping criterion** vs. the absolute tolerance.
+
+**Stopping condition**: Solver stops when EITHER condition is met:
+```
+residual < tolerance          (absolute: e.g., 1e-6)
+OR
+residual < relTol × initial_residual  (relative: e.g., 1e-4)
+```
 
 **Example:**
 ```
 Initial residual: 1e-2
-tolerance: 1e-6
-relTol: 0.01
+tolerance:       1e-6
+relTol:          0.01
 
 Stop when:
-  residual < 1e-6  OR
-  residual < 0.01 × 1e-2 = 1e-4  ← This triggers first!
+  residual < 1e-6                        (would take many iterations)
+  OR residual < 0.01 × 1e-2 = 1e-4       (triggers first!)
 ```
 
-**relTol 0.01:** "Reduce residual by 100x" — often enough!
+**relTol=0.01 means**: "Reduce residual by 100× from initial value"
+
+**Why it works**: Early timesteps don't need machine precision. 1% residual is often sufficient for convergence to final solution.
+
+</details>
+
+<details>
+<summary><b>3. Why does -O3 produce different results than -O1?</b></summary>
+
+**Answer:**
+
+Aggressive compiler optimizations can change floating-point operation order:
+
+**-O1 optimizations** (conservative):
+- Basic inlining
+- Simple loop unrolling
+- Preserves FP operation order
+
+**-O3 optimizations** (aggressive):
+- Extensive loop unrolling
+- Vectorization (SIMD)
+- Instruction reordering
+- **Can change FP addition order**
+
+**The problem**: Floating-point addition is not associative due to rounding:
+```cpp
+(a + b) + c ≠ a + (b + c)  // Different rounding!
+```
+
+**Solutions**:
+1. Verify accuracy difference is acceptable (< 0.1%)
+2. Use `-fno-fast-math` to preserve FP operation order
+3. Use `-O2` as intermediate option
+4. Ensure reproducibility with fixed random seeds, etc.
+
+**Bottom line**: Small numerical differences are expected. Verify they don't affect engineering conclusions.
+
 </details>
 
 ---
 
-## Final Checklist
+## 7. Final Verification Checklist
 
-- [ ] Profile completed
-- [ ] Hotspots identified
-- [ ] Linear solver optimized
-- [ ] I/O reduced
-- [ ] Compiler flags set
-- [ ] **2x speedup achieved**
-- [ ] Before/after comparison documented
+Before claiming successful optimization, verify:
 
----
-
-## Project Complete! 🎉
-
-คุณได้สร้าง:
-1. Heat equation solver จาก scratch
-2. Custom boundary condition
-3. Turbulence integration
-4. Parallel execution
-5. Optimized performance
-
-**พร้อมสำหรับเขียน CFD Engine ของคุณเอง!**
+- [ ] **Baseline measured**: Record initial runtime, iterations, memory usage
+- [ ] **Profiling completed**: Identified hotspots with perf or gprof
+- [ ] **Linear solver optimized**: GAMG configured for large meshes
+- [ ] **Tolerance adjusted**: relTol set to 0.01 (if acceptable)
+- [ ] **I/O reduced**: Write interval and compression configured
+- [ ] **Compiler flags set**: -O3 -march=native in Make/options
+- [ ] **Recompiled**: Solver rebuilt with optimization
+- [ ] **Performance measured**: 2× speedup achieved (or better)
+- [ ] **Accuracy validated**: Key quantities within 1% of baseline
+- [ ] **Convergence verified**: Residuals decrease monotonically
+- [ ] **Results documented**: Before/after comparison saved
 
 ---
 
-## ก้าวต่อไป
+## 8. Project Completion 🎉
 
-- [Beyond OpenFOAM](../05_BEYOND_OPENFOAM/00_Overview.md) — เรียนรู้ alternatives
-- เริ่มต้น project ใหม่ของคุณเอง!
+Congratulations! You have completed the comprehensive capstone project:
+
+**Phase 1**: Built 1D heat equation solver from scratch  
+**Phase 2**: Implemented custom boundary conditions  
+**Phase 3**: Integrated turbulence modeling (k-ε)  
+**Phase 4**: Parallelized with MPI domain decomposition  
+**Phase 5**: Achieved 2× performance optimization  
+
+**Skills mastered**:
+- OpenFOAM solver architecture
+- Custom boundary condition development
+- Runtime selection and polymorphism
+- Parallel CFD programming
+- Performance profiling and optimization
+
+**You are now ready to**: Design and implement your own CFD engines, extend OpenFOAM for your research, and contribute to the open-source CFD community.
+
+---
+
+## Next Steps
+
+- Explore [Beyond OpenFOAM](../05_BEYOND_OPENFOAM/00_Overview.md) for alternative CFD tools
+- Start your own research project with the capstone codebase as a template
+- Contribute bug fixes or features to the OpenFOAM foundation
+- Dive into advanced topics (template metaprogramming, GPU acceleration)

@@ -29,8 +29,6 @@
 
 ---
 
----
-
 ## 📋 ภาพรวมของหัวข้อ (Module Overview)
 
 > [!NOTE] **📂 OpenFOAM Context**
@@ -184,7 +182,6 @@ J --> A
 
 ### 2. สมดุลระหว่าง Performance และ Accuracy
 
-![[performance_vs_accuracy_tradeoff.png]]
 > **กราฟแสดงความสัมพันธ์ (Trade-off):**
 > - **แกน X (Cost)**: เวลาในการคำนวณ (Computational Time) หรือ ทรัพยากร (Memory/CPU)
 > - **แกน Y (Error)**: ความคลาดเคลื่อนของผลลัพธ์ (Numerical Error)
@@ -208,7 +205,7 @@ J --> A
 
 | เครื่องมือ | วัตถุประสงค์ | หัวข้อที่เกี่ยวข้อง |
 |:---:|:---|:---:|
-| **`cpuTime`**, **`clockTime`** | วัดเวลาการคำนวณ | Performance Profiling |
+| **`cpuTime`**, **`clockTime`** | วัดเวลาการคำนาณ | Performance Profiling |
 | **`scalabilityTest`** | ทดสอบ Strong/Weak Scaling | Performance Profiling |
 | **Valgrind**, **Massif** | ตรวจสอบ Memory Leak | Performance Profiling |
 | **Reference Database** | เก็บผลลัพธ์อ้างอิง | Regression Testing |
@@ -277,6 +274,6 @@ J --> A
 
 ## 📖 เอกสารที่เกี่ยวข้อง
 
-- **บทถัดไป:** [01_Introduction.md](01_Introduction.md) — Introduction
-- **QA Concepts:** [02_QA_Concepts.md](02_QA_Concepts.md) — แนวคิด QA
-- **Profiling:** [03_Profiling.md](03_Profiling.md) — การ Profiling
+- **บทถัดไป:** [01_Performance_Profiling.md](01_Performance_Profiling.md) — การวิเคราะห์ประสิทธิภาพ
+- **Regression Testing:** [02_Regression_Testing.md](02_Regression_Testing.md) — การทดสอบถอยหลัง
+- **Debugging:** [03_Debugging_Troubleshooting.md](03_Debugging_Troubleshooting.md) — การดีบักและการแก้ปัญหา

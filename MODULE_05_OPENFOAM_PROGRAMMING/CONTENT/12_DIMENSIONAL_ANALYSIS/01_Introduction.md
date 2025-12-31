@@ -10,9 +10,9 @@ By the end of this section, you will be able to:
 
 ## What is Dimensional Analysis?
 
-Dimensional analysis is a systematic method for verifying the consistency of physical equations by checking that all terms have compatible units. OpenFOAM implements this as a compile-time and runtime checking system that acts as a safety net for CFD simulations.
+Dimensional analysis is a systematic method for verifying the consistency of physical equations by checking that all terms have compatible units. The principle, first formalized by Fourier in 1822, states that all terms in a physically meaningful equation must have identical dimensions. Only quantities with matching dimensions can be meaningfully compared, added, or equated.
 
-The core principle, first formalized by Fourier in 1822, states that all terms in a physically meaningful equation must have identical dimensions. Only quantities with matching dimensions can be meaningfully compared, added, or equated.
+OpenFOAM implements this as a compile-time and runtime checking system that acts as a safety net for CFD simulations.
 
 ## Why Does OpenFOAM Need It?
 
@@ -23,8 +23,7 @@ In complex CFD calculations, we handle transport equations with multiple terms:
 
 If you forget to divide by area or multiply by time in any term, the units change immediately. In other CFD software, you might not realize this until results diverge. In OpenFOAM, **the program stops immediately and reports the error**.
 
-This provides several critical benefits:
-
+**Benefits:**
 1. **Physical Consistency**: Ensures all equations remain dimensionally balanced
 2. **Error Prevention**: Detects unit-related bugs before they corrupt results
 3. **Verification**: Additional checks for numerical schemes

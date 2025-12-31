@@ -4,12 +4,11 @@
         "00_Overview.md",
         "01_Turbulence_Fundamentals.md",
         "02_RANS_Models.md",
-        "03_Wall_Treatment.md"
-    ],
-    "skipped": [
+        "03_Wall_Treatment.md",
         "00_Overview.md",
         "01_Turbulence_Fundamentals.md",
         "02_RANS_Models.md",
         "03_Wall_Treatment.md"
-    ]
+    ],
+    "skipped": []
 }

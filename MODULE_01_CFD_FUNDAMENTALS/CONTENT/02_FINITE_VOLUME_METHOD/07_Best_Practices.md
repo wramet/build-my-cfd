@@ -1,4 +1,4 @@
-# Troubleshooting & Settings Guide
+# Troubleshooting & Best Practices Guide
 
 แนวทางการ Debug และ Tuning OpenFOAM Simulations เพื่อแก้ปัญหาที่เกิดขึ้นจริง
 
@@ -9,7 +9,7 @@
 
 ## Prerequisites
 
-⚠️ **ควรอ่านก่อน:** 
+⚠️ **ควรอ่านก่อน:**
 - [03_Spatial_Discretization.md](03_Spatial_Discretization.md) — Non-orthogonality, interpolation schemes, gradient corrections
 - [05_Linear_Solvers_Matrix_Assembly.md](05_Linear_Solvers_Matrix_Assembly.md) — Matrix assembly, solver algorithms
 - [06_OpenFOAM_Implementation.md](06_OpenFOAM_Implementation.md) — Practical implementation details
@@ -65,7 +65,7 @@ graph TD
 | Mesh quality | `checkMesh` → non-ortho > 70° | ใช้ `limited corrected`, เพิ่ม correctors |
 | Physics mismatch | ใช้ wall function แต่ y+ < 5 | Refine mesh หรือเปลี่ยน low-Re model |
 
-> **📖 Mesh Quality:** ดูการแก้ non-orthogonality ที่ [03_Spatial_Discretization.md](03_Spatial_Discretization.md) → Mesh Structure Section
+> **📖 Mesh Quality:** ดูการแก้ non-orthogonality ที่ [03_Spatial_Discretization.md](03_Spatial_Discretization.md)
 
 ---
 
@@ -831,8 +831,8 @@ simpleCoeffs { n (4 2 1); }
 - **Algorithms:** [02_Fundamental_Concepts.md](02_Fundamental_Concepts.md) — SIMPLE/PISO/PIMPLE theory
 - **Next:** [08_Exercises.md](08_Exercises.md) — Practice problems
 
-### Boundary Conditions
-- **y+ Calculation:** ดู [03_BOUNDARY_CONDITIONS/](../../03_BOUNDARY_CONDITIONS/) module
+### External Modules
+- **Boundary Conditions:** ดู [03_BOUNDARY_CONDITIONS/](../../03_BOUNDARY_CONDITIONS/) module สำหรับ y+ calculation
 
 ### External Resources
 - OpenFOAM User Guide: Solver settings

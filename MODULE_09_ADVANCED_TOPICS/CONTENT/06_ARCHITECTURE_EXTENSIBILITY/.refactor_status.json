@@ -1,0 +1,13 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Runtime_Selection_Tables.md",
+        "03_Dynamic_Library_Loading.md",
+        "04_FunctionObject_Integration.md",
+        "05_Design_Patterns.md",
+        "06_Common_Errors_and_Debugging.md",
+        "07_Practical_Exercise.md"
+    ],
+    "skipped": []
+}

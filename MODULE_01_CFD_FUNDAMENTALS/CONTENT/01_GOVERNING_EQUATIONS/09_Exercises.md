@@ -1,9 +1,46 @@
-# แบบฝึกหัด: สมการควบคุมและ OpenFOAM
+# 09_Exercises: Governing Equations & OpenFOAM Practice
 
 > **ทำไมต้องทำแบบฝึกหัด?**
 > - **ทฤษฎีอย่างเดียวไม่พอ** — ต้องลองคำนวณด้วยตัวเองจึงจะเข้าใจ
-> - ฝึก **debug** ปัญหาที่พบบ่อย
-> - เตรียมพร้อมสำหรับโปรเจคจริง
+> - ฝึก **debug** ปัญหาที่พบบ่อยในการใช้งานจริง
+> - เตรียมพร้อมสำหรับโปรเจคจริงที่ซับซ้อนกว่า
+> - สร้างความมั่นใจในการตั้งค่า OpenFOAM case ด้วยตัวเอง
+
+---
+
+## 📍 Visual Learning Path
+
+```mermaid
+graph TD
+    A[Exercise 1:<br/>Mass Conservation] --> B[Exercise 2:<br/>Simplify N-S]
+    B --> C[Exercise 3:<br/>Select Solver]
+    C --> D[Exercise 4:<br/>Boundary Conditions]
+    D --> E[Exercise 5:<br/>Initial Conditions]
+    E --> F[Exercise 6:<br/>Translate Equations]
+    F --> G[Exercise 7:<br/>Discretization]
+    G --> H[Exercise 8:<br/>Debug Divergence]
+    H --> I[Exercise 9:<br/>Wall y+]
+    I --> J[Exercise 10:<br/>Algorithm]
+    J --> K[🎯 Mini-Project:<br/>Pipe Flow Case]
+
+    style A fill:#e1f5e1
+    style B fill:#fff4e1
+    style C fill:#e1f5e1
+    style D fill:#fff4e1
+    style E fill:#fff4e1
+    style F fill:#ffe1e1
+    style G fill:#ffe1e1
+    style H fill:#fff4e1
+    style I fill:#fff4e1
+    style J fill:#e1f5e1
+    style K fill:#e1e1ff
+```
+
+**Legend:**
+- 🟢 Green (Beginner): Fundamental concepts
+- 🟡 Yellow (Intermediate): Requires some experience
+- 🔴 Red (Advanced): Complex problem-solving
+- 🔵 Blue (Mini-Project): Comprehensive application
 
 ---
 
@@ -11,45 +48,67 @@
 
 หลังจากผ่านแบบฝึกหัดนี้ คุณจะสามารถ:
 
-1. **อนุพันธ์** สมการ conservation จาก first principles
-2. **ลดรูป** สมการ Navier-Stokes สำหรับเงื่อนไขเฉพาะ
-3. **เลือก** solver และ discretization schemes ที่เหมาะสม
-4. **ตั้งค่า** boundary conditions และ initial conditions ที่ถูกต้อง
-5. **คำนวณ** ค่า turbulence parameters และ mesh requirements
-6. **Debug** ปัญหา simulation divergence ได้
-7. **ตั้งค่า** case จริงใน OpenFOAM ตั้งแต่เริ่มจนจบ
+1. **อนุพันธ์** (Derive) สมการ conservation จาก first principles
+2. **ลดรูป** (Simplify) สมการ Navier-Stokes สำหรับเงื่อนไขเฉพาะ
+3. **เลือก** (Select) solver และ discretization schemes ที่เหมาะสม
+4. **ตั้งค่า** (Configure) boundary conditions และ initial conditions ที่ถูกต้อง
+5. **คำนวณ** (Calculate) ค่า turbulence parameters และ mesh requirements
+6. **Debug** ปัญหา simulation divergence อย่าง systematic
+7. **ตั้งค่า** (Set up) OpenFOAM case ตั้งแต่เริ่มจนจบ
 
 ---
 
 ## 📋 Exercise Index
 
-| แบบฝึกหัด | หัวข้อ | ระดับ | เวลาโดยประมาณ | Prerequisites |
-|-----------|--------|--------|-----------------|---------------|
-| 1 | การอนุรักษ์มวล | Beginner | 15 นาที | [02_Conservation_Laws.md](02_Conservation_Laws.md) |
-| 2 | ลดรูป Navier-Stokes | Intermediate | 20 นาที | [01_Introduction.md](01_Introduction.md) |
-| 3 | เลือก Solver | Beginner | 10 นาที | [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md) |
-| 4 | Boundary Conditions | Intermediate | 25 นาที | [06_Boundary_Conditions.md](06_Boundary_Conditions.md) |
-| 5 | Initial Conditions | Intermediate | 15 นาที | [04_Dimensionless_Numbers.md](04_Dimensionless_Numbers.md), [07_Initial_Conditions.md](07_Initial_Conditions.md) |
-| 6 | แปลสมการเป็น OpenFOAM | Advanced | 20 นาที | [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md) |
-| 7 | Discretization Schemes | Advanced | 15 นาที | [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md) |
-| 8 | Debug Divergence | Intermediate | 20 นาที | [05-07](05_OpenFOAM_Implementation.md), [06_Boundary_Conditions.md](06_Boundary_Conditions.md), [07_Initial_Conditions.md](07_Initial_Conditions.md) |
-| 9 | Wall y+ Calculation | Intermediate | 15 นาที | [04_Dimensionless_Numbers.md](04_Dimensionless_Numbers.md), [06_Boundary_Conditions.md](06_Boundary_Conditions.md) |
-| 10 | Algorithm Selection | Beginner | 10 นาที | [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md) |
-| **Mini-Project** | Pipe Flow Case Setup | Advanced | 2-3 ชัม. | ทั้งหมด |
+| # | แบบฝึกหัด | ระดับ | เวลา | Prerequisites | Skills Developed |
+|---|------------|--------|--------|---------------|------------------|
+| 1 | [การอนุรักษ์มวล](#exercise-1-การอนุรักษ์มวล) | 🟢 Beginner | 15 นาที | [02_Conservation_Laws.md](02_Conservation_Laws.md) | Derivation, Control volume analysis |
+| 2 | [ลดรูป Navier-Stokes](#exercise-2-ลดรูป-navier-stokes) | 🟡 Intermediate | 20 นาที | [01_Introduction.md](01_Introduction.md) | Equation simplification, Assumptions |
+| 3 | [เลือก Solver](#exercise-3-เลือก-solver) | 🟢 Beginner | 10 นาที | [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md) | Solver selection, Flow classification |
+| 4 | [Boundary Conditions](#exercise-4-boundary-conditions) | 🟡 Intermediate | 25 นาที | [06_Boundary_Conditions.md](06_Boundary_Conditions.md) | BC syntax, U-p coupling |
+| 5 | [Initial Conditions](#exercise-5-initial-conditions-for-turbulence) | 🟡 Intermediate | 15 นาที | [04_Dimensionless_Numbers.md](04_Dimensionless_Numbers.md), [07_Initial_Conditions.md](07_Initial_Conditions.md) | Turbulence parameters, IC calculation |
+| 6 | [แปลสมการเป็น OpenFOAM](#exercise-6-แปลสมการเป็น-openfoam) | 🔴 Advanced | 20 นาที | [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md) | fvm vs fvc, fvMatrix format |
+| 7 | [Discretization Schemes](#exercise-7-เลือก-discretization-scheme) | 🔴 Advanced | 15 นาที | [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md) | Scheme selection, Accuracy vs stability |
+| 8 | [Debug Divergence](#exercise-8-debug-divergence) | 🟡 Intermediate | 20 นาที | [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md), [06_Boundary_Conditions.md](06_Boundary_Conditions.md), [07_Initial_Conditions.md](07_Initial_Conditions.md) | Diagnostic workflow, Troubleshooting |
+| 9 | [Wall y+ Calculation](#exercise-9-wall-y-calculation) | 🟡 Intermediate | 15 นาที | [04_Dimensionless_Numbers.md](04_Dimensionless_Numbers.md), [06_Boundary_Conditions.md](06_Boundary_Conditions.md) | y+ calculation, Mesh design |
+| 10 | [Algorithm Selection](#exercise-10-algorithm-selection) | 🟢 Beginner | 10 นาที | [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md) | SIMPLE/PISO/PIMPLE usage |
+| **🎯** | [Mini-Project: Pipe Flow](#-mini-project-set-up-your-first-pipe-flow-case) | 🔴 Advanced | 2-3 ชม. | ทั้งหมด | End-to-end case setup |
 
 ---
 
-## แบบฝึกหัดที่ 1: การอนุรักษ์มวล
+## 📖 Glossary of Symbols & Notations
 
-**⚙️ ระดับ:** Beginner | **⏱️ เวลา:** 15 นาที | **📖 Prerequisites:** [02_Conservation_Laws.md](02_Conservation_Laws.md)
+| Symbol | Meaning | Typical Units | Used In |
+|--------|---------|---------------|---------|
+| $\rho$ | Density | kg/m³ | Continuity, Momentum |
+| $\mathbf{u}$ or $u, v, w$ | Velocity | m/s | All equations |
+| $p$ | Pressure | Pa (or m²/s² for kinematic) | Momentum |
+| $\mu$ | Dynamic viscosity | Pa·s | Momentum |
+| $\nu$ | Kinematic viscosity | m²/s | N-S equation |
+| $k$ | Turbulent kinetic energy | m²/s² | Turbulence modeling |
+| $\epsilon$ | Dissipation rate | m²/s³ | k-ε model |
+| $y^+$ | Dimensionless wall distance | - | Wall treatment |
+| $Re$ | Reynolds number | - | Flow classification |
+| $Ma$ | Mach number | - | Compressibility |
+| $C_f$ | Skin friction coefficient | - | Wall y+ calculation |
+| $u_\tau$ | Friction velocity | m/s | Wall y+ calculation |
+| $\phi$ | General scalar variable | varies | Transport equation |
+| $\alpha$ | Under-relaxation factor | - | Solver settings |
+
+---
+
+## Exercise 1: การอนุรักษ์มวล
+
+**⚙️ ระดับ:** 🟢 Beginner | **⏱️ เวลา:** 15 นาที | **📖 Prerequisites:** [02_Conservation_Laws.md](02_Conservation_Laws.md)
 
 ### Learning Outcomes
 - เข้าใจการอนุพันธ์สมการ continuity จาก control volume analysis
 - เชื่อมโยงรูปแบบ integral กับ differential form
+- ประยุกต์ใช้ Reynolds Transport Theorem
 
 ### โจทย์
 
-หาสมการ Continuity สำหรับการไหล 1 มิติโดยใช้ control volume
+หาสมการ Continuity สำหรับการไหล 1 มิติโดยใช้ control volume analysis
 
 ### ขั้นตอน
 
@@ -65,69 +124,128 @@
 - ❌ ลืมพิจารณา temporal term ($\partial \rho/\partial t$) สำหรับ unsteady flow
 - ❌ สับสนระหว่าง Eulerian และ Lagrangian descriptions
 - ❌ ไม่ระบุ assumptions (ในที่นี้ 1D, constant area)
+- ❌ ลืมตรวจสอบ dimensional consistency
 
 <details>
-<summary><b>💡 คำใบ้</b></summary>
+<summary><b>💡 คำใบ้ (Hint)</b></summary>
 
-- เริ่มจากสมการ: $\frac{\partial}{\partial t}(\rho A dx) = \dot{m}_{in} - \dot{m}_{out}$
-- แทนค่า $\dot{m}_{in}$ และ $\dot{m}_{out}$
-- ตัด $A$ และ $dx$ ออก จะได้ differential equation
+**Step-by-step guidance:**
+
+1. **เริ่มจากสมการ:**
+   $$\frac{\partial}{\partial t}(\rho A dx) = \dot{m}_{in} - \dot{m}_{out}$$
+
+2. **แทนค่า mass flow rates:**
+   $$\frac{\partial}{\partial t}(\rho A dx) = \rho u A - \left(\rho u + \frac{\partial(\rho u)}{\partial x}dx\right)A$$
+
+3. **ตัด $A$ และ $dx$ ออก** (assuming constant area):
+   $$\frac{\partial \rho}{\partial t} = -\frac{\partial(\rho u)}{\partial x}$$
+
+4. **จัดรูปแบบให้สวยงาม:**
+   $$\frac{\partial \rho}{\partial t} + \frac{\partial(\rho u)}{\partial x} = 0$$
+
+**Physical interpretation:**
+- Term 1: การเปลี่ยนแปลงของความหนาแน่นใน control volume
+- Term 2: Net mass flow out of control volume
+- Sum = 0: Conservation of mass
 </details>
 
 <details>
-<summary><b>✅ ดูคำตอบ</b></summary>
+<summary><b>✅ ดูคำตอบ (Answer)</b></summary>
+
+**สมการ Continuity 1D:**
 
 $$\frac{\partial \rho}{\partial t} + \frac{\partial(\rho u)}{\partial x} = 0$$
 
-สำหรับ incompressible ($\rho = \text{const}$):
+**สำหรับ incompressible flow** ($\rho = \text{constant}$):
 $$\frac{\partial u}{\partial x} = 0$$
+
+**สำหรับ steady flow** ($\partial/\partial t = 0$):
+$$\frac{\partial(\rho u)}{\partial x} = 0 \quad \Rightarrow \quad \rho u = \text{constant}$$
 
 **ใน OpenFOAM:** สมการนี้ถูกบังคับผ่าน pressure correction ใน SIMPLE/PISO algorithm (ดูรายละเอียดใน [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md))
 
 **Self-Verification:**
 - [ ] Dimensional analysis: แต่ละ term มีหน่วย [kg/(m³·s)] หรือไม่?
 - [ ] เมื่อ $\rho$ = constant, ได้ $\nabla \cdot \mathbf{u} = 0$ หรือไม่?
+- [ ] สมการสอดคล้องกับ mass balance หรือไม่?
+
+**Physical Insight:**
+- สมการ continuity คือ การแสดงว่า "มวลไม่หายไปไหน"
+- ใน incompressible flow: volume flow rate คงที่ (ไม่ใช่ mass flow rate)
+- ใน OpenFOAM: pressure equation คือ continuity equation ในรูปแบบอื่น
 </details>
+
+**🔗 Related Topics:**
+- → [Exercise 2: ลดรูป Navier-Stokes](#exercise-2-ลดรูป-navier-stokes)
+- → [Exercise 4: Boundary Conditions](#exercise-4-boundary-conditions)
 
 ---
 
-## แบบฝึกหัดที่ 2: ลดรูป Navier-Stokes
+## Exercise 2: ลดรูป Navier-Stokes
 
-**⚙️ ระดับ:** Intermediate | **⏱️ เวลา:** 20 นาที | **📖 Prerequisites:** [01_Introduction.md](01_Introduction.md)
+**⚙️ ระดับ:** 🟡 Intermediate | **⏱️ เวลา:** 20 นาที | **📖 Prerequisites:** [01_Introduction.md](01_Introduction.md)
 
 ### Learning Outcomes
 - ฝึกลดรูปสมการ N-S ด้วย assumptions ที่กำหนด
 - เข้าใจการแยกสมการ momentum ในแต่ละทิศทาง
+- รู้จักว่า term ใดจะหายไปเมื่อใช้ assumptions ต่างๆ
 
 ### โจทย์
 
-ลดรูปสมการ Navier-Stokes สำหรับ steady, incompressible, 2D flow
+ลดรูปสมการ Navier-Stokes สำหรับ **steady, incompressible, 2D flow**
 
-### สมการเต็ม
+### สมการเต็ม (Vector Form)
 
 $$\rho \left(\frac{\partial \mathbf{u}}{\partial t} + \mathbf{u} \cdot \nabla \mathbf{u}\right) = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
 
 ### Common Pitfalls
-- ❌ ลดรูปไม่ครบทุก term — ทีละขั้นตอน
+- ❌ ลดรูปไม่ครบทุก term — ทำทีละขั้นตอน
 - ❌ ลืมว่า $\rho$ = constant ทำให้ลดออกจาก viscous term ได้
 - ❌ สับสน $\nabla^2 \mathbf{u}$ กับ $\nabla(\nabla \cdot \mathbf{u})$
+- ❌ ลืมแยกสมการ momentum ในแต่ละทิศทาง
+- ❌ ไม่ตรวจสอบ dimensional consistency หลังจากลดรูป
 
 <details>
-<summary><b>💡 คำใบ้</b></summary>
+<summary><b>💡 คำใบ้ (Hint)</b></summary>
 
-- **Steady:** $\frac{\partial}{\partial t} = 0$ ทุก term
-- **Incompressible:** $\rho = \text{constant}$, $\nabla \cdot \mathbf{u} = 0$
-- **2D:** ไม่มีการเปลี่ยนแปลงในทิศทาง z ($\frac{\partial}{\partial z} = 0$, $w = 0$)
-- แยกสมการ momentum ในแต่ละทิศทาง (x, y)
+**Assumptions และผลกระทบ:**
+
+1. **Steady flow** ($\frac{\partial}{\partial t} = 0$):
+   - Unsteady term $\frac{\partial \mathbf{u}}{\partial t}$ หายไป
+   - ไม่มี time derivative ในทุก equations
+
+2. **Incompressible** ($\rho = \text{constant}$, $\nabla \cdot \mathbf{u} = 0$):
+   - $\rho$ สามารถย้ายออกจาก derivatives ได้
+   - Continuity: $\nabla \cdot \mathbf{u} = 0$
+
+3. **2D flow** ($\frac{\partial}{\partial z} = 0$, $w = 0$):
+   - Z-components หายไป
+   - เหลือเฉพาะ x และ y directions
+
+**Step-by-step:**
+1. ใช้ steady assumption → remove $\partial/\partial t$
+2. ใช้ 2D assumption → remove z-components
+3. ใช้ incompressible → simplify $\rho$
+4. แยกสมการ momentum ในแต่ละทิศทาง (x, y)
+
+**Term-by-term breakdown:**
+```
+Steady:        ρ(∂u/∂t) = 0
+2D:           w = 0, ∂/∂z = 0
+Incompressible: ∇·u = ∂u/∂x + ∂v/∂y = 0
+```
 </details>
 
 <details>
-<summary><b>✅ ดูคำตอบ</b></summary>
+<summary><b>✅ ดูคำตอบ (Answer)</b></summary>
 
-**ขั้นที่ 1: Steady** ($\partial/\partial t = 0$)
+**ขั้นที่ 1: Apply Steady Assumption** ($\partial/\partial t = 0$)
+
 $$\rho \mathbf{u} \cdot \nabla \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
 
-**ขั้นที่ 2: 2D** ($\partial/\partial z = 0$, $w = 0$)
+**ขั้นที่ 2: Apply 2D Assumption** ($\partial/\partial z = 0$, $w = 0$)
+
+สมการ momentum ใน 2D แยกเป็น 2 components:
 
 **X-momentum:**
 $$\rho \left(u \frac{\partial u}{\partial x} + v \frac{\partial u}{\partial y}\right) = -\frac{\partial p}{\partial x} + \mu \left(\frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}\right) + f_x$$
@@ -135,23 +253,52 @@ $$\rho \left(u \frac{\partial u}{\partial x} + v \frac{\partial u}{\partial y}\r
 **Y-momentum:**
 $$\rho \left(u \frac{\partial v}{\partial x} + v \frac{\partial v}{\partial y}\right) = -\frac{\partial p}{\partial y} + \mu \left(\frac{\partial^2 v}{\partial x^2} + \frac{\partial^2 v}{\partial y^2}\right) + f_y$$
 
-**ใน OpenFOAM:** ใช้ `simpleFoam` กับ `ddtSchemes { default steadyState; }`
+**ขั้นที่ 3: Apply Incompressible Continuity**
+
+$$\frac{\partial u}{\partial x} + \frac{\partial v}{\partial y} = 0$$
+
+**ใน OpenFOAM:**
+```cpp
+// system/fvSchemes
+ddtSchemes
+{
+    default         steadyState;  // ไม่มี unsteady terms
+}
+
+// Solver: simpleFoam
+```
 
 **Self-Verification:**
 - [ ] Unsteady terms หายไปหมือนไม่?
 - [ ] Z-components หายไปหรือไม่?
 - [ ] แต่ละ term มี dimension ถูกต้องหรือไม่? ([Pa/m] หรือ [kg/(m²·s²)])
+- [ ] Continuity equation ถูกต้องหรือไม่? ($\nabla \cdot \mathbf{u} = 0$)
+
+**Physical Interpretation:**
+- **Convection terms** ($u \frac{\partial u}{\partial x} + v \frac{\partial u}{\partial y}$): Non-linear terms ที่ทำให้ N-S ยาก
+- **Pressure gradient** ($-\frac{\partial p}{\partial x}$): Driving force
+- **Viscous terms** ($\mu \nabla^2 \mathbf{u}$): Diffusion ของ momentum
+- **Body force** ($\mathbf{f}$): เช่น gravity
+
+**Alternative Notation:**
+ในหนังสือบางเล่ม ใช้ kinematic viscosity $\nu = \mu/\rho$:
+$$u \frac{\partial u}{\partial x} + v \frac{\partial u}{\partial y} = -\frac{1}{\rho}\frac{\partial p}{\partial x} + \nu \left(\frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}\right) + \frac{f_x}{\rho}$$
 </details>
+
+**🔗 Related Topics:**
+- → [Exercise 1: Continuity Equation](#exercise-1-การอนุรักษ์มวล)
+- → [Exercise 3: Solver Selection](#exercise-3-เลือก-solver)
 
 ---
 
-## แบบฝึกหัดที่ 3: เลือก Solver
+## Exercise 3: เลือก Solver
 
-**⚙️ ระดับ:** Beginner | **⏱️ เวลา:** 10 นาที | **📖 Prerequisites:** [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md)
+**⚙️ ระดับ:** 🟢 Beginner | **⏱️ เวลา:** 10 นาที | **📖 Prerequisites:** [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md)
 
 ### Learning Outcomes
 - เลือก solver ที่เหมาะสมจาก flow parameters
 - เข้าใจความแตกต่างระหว่าง solvers ต่างๆ
+- จำแนก flow ตาม Reynolds number และ Mach number
 
 ### โจทย์
 
@@ -168,24 +315,48 @@ $$\rho \left(u \frac{\partial v}{\partial x} + v \frac{\partial v}{\partial y}\r
 - ❌ ไม่พิจารณา turbulence vs laminar (ใช้ k-ε กับ low Re)
 - ❌ ไม่พิจารณา compressibility (ใช้ incompressible solver กับ Ma > 0.3)
 - ❌ สับสน steady vs transient solvers
+- ❌ ลืมพิจารณา special physics (free surface, multiphase, etc.)
 
 <details>
-<summary><b>💡 คำใบ้</b></summary>
+<summary><b>💡 คำใบ้ (Hint)</b></summary>
 
-- **Reynolds Number ($Re$):** ตัดสินใจ laminar (< 2300) หรือ turbulent (> 4000) — *ดูเพิ่มใน [04_Dimensionless_Numbers.md](04_Dimensionless_Numbers.md)*
-- **Mach Number ($Ma$):** ตัดสินใจ incompressible (< 0.3) หรือ compressible (> 0.3)
-- **Steady vs Transient:** SIMPLE สำหรับ steady, PISO/PIMPLE สำหรับ transient
+**Decision Tree:**
+
+**1. Reynolds Number ($Re$):** ตัดสินใจ laminar หรือ turbulent
+- $Re < 2300$: **Laminar** (pipe flow)
+- $2300 < Re < 4000$: **Transition** (hard to predict)
+- $Re > 4000$: **Turbulent** (need turbulence model)
+- *ดูเพิ่มใน [04_Dimensionless_Numbers.md](04_Dimensionless_Numbers.md)*
+
+**2. Mach Number ($Ma$):** ตัดสินใจ incompressible หรือ compressible
+- $Ma < 0.3$: **Incompressible** (density ≈ constant)
+- $Ma > 0.3$: **Compressible** (density varies significantly)
+
+**3. Steady vs Transient:**
+- **SIMPLE** สำหรับ steady-state
+- **PISO** สำหรับ transient with small time steps
+- **PIMPLE** สำหรับ transient with large time steps
+
+**4. Special Physics:**
 - **Free Surface:** ต้องใช้ VOF method (interFoam, interIsoFoam)
+- **Multiphase:** multiphaseInterFoam, twoPhaseEulerFoam
+- **Heat Transfer:** buoyantSimpleFoam, buoyantPimpleFoam
 
 **Solver Families:**
-- `simpleFoam`: Steady, incompressible
-- `pimpleFoam`: Transient, incompressible
-- `rhoSimpleFoam`/`rhoPimpleFoam`: Compressible
-- `interFoam`: Free surface
+```
+Incompressible:
+├── Steady:    simpleFoam
+├── Transient: pimpleFoam, pisoFoam
+└── Free Surface: interFoam
+
+Compressible:
+├── Steady:    rhoSimpleFoam
+└── Transient: rhoPimpleFoam, rhoPisoFoam
+```
 </details>
 
 <details>
-<summary><b>✅ ดูคำตอบ</b></summary>
+<summary><b>✅ ดูคำตอบ (Answer)</b></summary>
 
 | กรณี | Solver | เหตุผล |
 |------|--------|--------|
@@ -194,24 +365,57 @@ $$\rho \left(u \frac{\partial v}{\partial x} + v \frac{\partial v}{\partial y}\r
 | C | `rhoSimpleFoam` | Steady, Compressible ($Ma > 0.3$), Turbulent |
 | D | `interFoam` (laminar) | Transient, Free surface, Laminar |
 
+**Detailed Analysis:**
+
+**กรณี A:**
+- $Re = 1500 < 2300$ → Laminar flow
+- $Ma = 0.1 < 0.3$ → Incompressible
+- Steady → Use SIMPLE algorithm
+- **Solver:** `simpleFoam` (no turbulence model needed)
+
+**กรณี B:**
+- $Re = 50,000 > 4000$ → Turbulent flow
+- $Ma = 0.05 < 0.3$ → Incompressible
+- Transient → Use PISO/PIMPLE
+- **Solver:** `pimpleFoam` with k-ε model
+
+**กรณี C:**
+- $Re = 10,000 > 4000$ → Turbulent flow
+- $Ma = 0.5 > 0.3$ → Compressible
+- Steady → Use SIMPLE for compressible
+- **Solver:** `rhoSimpleFoam`
+
+**กรณี D:**
+- $Re = 500 < 2300$ → Laminar flow
+- $Ma = 0.02 < 0.3$ → Incompressible
+- Transient + Free Surface → Use VOF method
+- **Solver:** `interFoam`
+
 **Self-Verification:**
 - [ ] กรณี A: Re = 1500 → laminar ใช่หรือไม่?
 - [ ] กรณี B: Re = 50,000 → turbulent ใช่หรือไม่?
 - [ ] กรณี C: Ma = 0.5 → compressible ใช่หรือไม่?
 - [ ] กรณี D: free surface ต้องใช้ VOF solver ใช่หรือไม่?
 
-**หมายเหตุ:** กรณี C อาจใช้ `rhoPimpleFoam` ถ้าต้องการ transient
+**หมายเหตุเพิ่มเติม:**
+- กรณี C อาจใช้ `rhoPimpleFoam` ถ้าต้องการ transient
+- กรณี D ถ้า $Re$ สูงกว่า 4000 ต้องใช้ `interFoam` + turbulence model
 </details>
+
+**🔗 Related Topics:**
+- → [Exercise 10: Algorithm Selection](#exercise-10-algorithm-selection)
+- → [Mini-Project: Pipe Flow](#mini-project-set-up-your-first-pipe-flow-case)
 
 ---
 
-## แบบฝึกหัดที่ 4: Boundary Conditions
+## Exercise 4: Boundary Conditions
 
-**⚙️ ระดับ:** Intermediate | **⏱️ เวลา:** 25 นาที | **📖 Prerequisites:** [06_Boundary_Conditions.md](06_Boundary_Conditions.md)
+**⚙️ ระดับ:** 🟡 Intermediate | **⏱️ เวลา:** 25 นาที | **📖 Prerequisites:** [06_Boundary_Conditions.md](06_Boundary_Conditions.md)
 
 ### Learning Outcomes
 - เขียน BCs สำหรับ OpenFOAM อย่างถูกต้อง
 - เข้าใจความสัมพันธ์ระหว่าง U และ p BCs
+- หลีกเลี่ยงข้อผิดพลาดที่พบบ่อยในการตั้งค่า BCs
 
 ### โจทย์
 
@@ -229,19 +433,47 @@ case/
 - ❌ **ผิด dimensions:** ลืมระบุ dimensions หรือระบุผิด
 - ❌ **ไม่ตรงกัน:** U inlet และ p outlet ไม่อยู่ตรงข้ามกัน
 - ❌ **ผิด syntax:** ลืม semicolon `;` ปิดวงเล็บ `}`
+- ❌ **ผิดประเภท:** ใช้ `fixedValue` แทนที่จะใช้ `zeroGradient` สำหรับ gradient BCs
 
 <details>
-<summary><b>💡 คำใบ้</b></summary>
+<summary><b>💡 คำใบ้ (Hint)</b></summary>
 
-**Golden Rule:** BC ของ U และ p ต้อง **ตรงกันข้าม**:
-- **Velocity (U):** inlet ใช้ fixedValue, outlet ใช้ zeroGradient
-- **Pressure (p):** inlet ใช้ zeroGradient, outlet ใช้ fixedValue (ปกติ = 0)
-- **Walls:** noSlip สำหรับ velocity, zeroGradient สำหรับ pressure
-- อย่าลืม dimensions สำหรับแต่ละ field:
-  - U: `[0 1 -1 0 0 0 0]` = [m/s]
-  - p: `[0 2 -2 0 0 0 0]` = [m²/s²] = [Pa/kg/m³]
+**Golden Rule:** BC ของ U และ p ต้อง **ตรงกันข้าม** (opposite)
 
-**หมายเหตุ:** ใน OpenFOAM, p คือ kinematic pressure (p/ρ) สำหรับ incompressible flow
+**Velocity-Pressure Coupling:**
+```
+Boundary | Velocity (U) | Pressure (p)
+----------|-------------|---------------
+Inlet     | fixedValue  | zeroGradient
+Outlet    | zeroGradient| fixedValue
+Walls     | noSlip      | zeroGradient
+```
+
+**Why opposite?**
+- ถ้า fix ทั้ง velocity และ pressure ที่ inlet → over-constrained (ไม่มี degrees of freedom)
+- Pressure-velocity coupling ใน incompressible flow ต้องการ BC ที่สมดุล
+
+**Dimensions สำคัญมาก:**
+- **Velocity (U):** `[0 1 -1 0 0 0 0]` = [m/s]
+- **Pressure (p):** `[0 2 -2 0 0 0 0]` = [m²/s²] = [Pa/kg/m³] (kinematic pressure)
+
+**Boundary Types:**
+- `fixedValue`: กำหนดค่าคงที่
+- `zeroGradient`: gradient = 0 (∂φ/∂n = 0)
+- `noSlip`: velocity = 0 ที่ wall (special case of fixedValue)
+
+**Common BC Combinations:**
+```
+Inlet-Outlet (Pipe flow):
+  U_inlet = fixedValue (velocity specified)
+  U_outlet = zeroGradient (fully developed)
+  p_inlet = zeroGradient
+  p_outlet = fixedValue 0 (reference pressure)
+
+Wall:
+  U_wall = noSlip
+  p_wall = zeroGradient
+```
 </details>
 
 <details>
@@ -268,6 +500,11 @@ boundaryField
     }
 }
 ```
+
+**Explanation:**
+- `inlet`: fixedValue (10 0 0) → กำหนด velocity 10 m/s ในทิศทาง x
+- `outlet`: zeroGradient → velocity gradient = 0 (fully developed flow)
+- `walls`: noSlip → velocity = 0 ที่ผนัง
 </details>
 
 <details>
@@ -295,29 +532,45 @@ boundaryField
 }
 ```
 
+**Explanation:**
+- `inlet`: zeroGradient → pressure gradient = 0
+- `outlet`: fixedValue 0 → reference pressure = 0 (gauge pressure)
+- `walls`: zeroGradient → pressure gradient = 0 ที่ผนัง
+
 **Self-Verification Checklist:**
 - [ ] U inlet ใช้ fixedValue (10 0 0)
 - [ ] U outlet ใช้ zeroGradient
 - [ ] p inlet ใช้ zeroGradient
 - [ ] p outlet ใช้ fixedValue 0
 - [ ] ไม่มี BC ขัดแย้ง (inlet และ outlet ตรงข้ามกัน)
-- [ ] dimensions ถูกต้องสำหรับทั้ง U และ p
+- [ ] dimensions ถูกต้องสำรอทั้ง U และ p
 - [ ] Syntax ถูกต้อง (semicolons, braces)
 
 **ถ้า simulation ไม่ converge:**
 - ตรวจสอบ BC ว่าขัดแย้งกันหรือไม่
 - ตรวจสอบว่า outlet pressure ถูกต้อง (reference pressure)
+- ลองเปลี่ยน outlet BC เป็น `zeroGradient` ชั่วคราว
+
+**Advanced BC Types:**
+- `flowRateInletVelocity`: กำหนด flow rate แทน velocity
+- `totalPressure`: กำหนด total pressure (p + ½ρu²)
+- `fixedFluxPressure`: กำหนด pressure gradient
 </details>
+
+**🔗 Related Topics:**
+- → [Exercise 5: Initial Conditions](#exercise-5-initial-conditions-for-turbulence)
+- → [Exercise 8: Debug Divergence](#exercise-8-debug-divergence)
 
 ---
 
-## แบบฝึกหัดที่ 5: Initial Conditions for Turbulence
+## Exercise 5: Initial Conditions for Turbulence
 
-**⚙️ ระดับ:** Intermediate | **⏱️ เวลา:** 15 นาที | **📖 Prerequisites:** [04_Dimensionless_Numbers.md](04_Dimensionless_Numbers.md), [07_Initial_Conditions.md](07_Initial_Conditions.md)
+**⚙️ ระดับ:** 🟡 Intermediate | **⏱️ เวลา:** 15 นาที | **📖 Prerequisites:** [04_Dimensionless_Numbers.md](04_Dimensionless_Numbers.md), [07_Initial_Conditions.md](07_Initial_Conditions.md)
 
 ### Learning Outcomes
 - คำนวณค่าเริ่มต้น k และ ε จาก flow parameters
 - ตั้งค่า IC ที่เหมาะสมสำหรับ turbulent flow
+- หลีกเลี่ยงข้อผิดพลาดจากการใช้ค่า IC = 0
 
 ### โจทย์
 
@@ -331,30 +584,59 @@ boundaryField
 - ❌ **สมการผิด:** ใช้สูตรไม่ถูกต้องสำหรับ k และ ε
 - ❌ **หน่วยผิด:** dimensions ของ k และ ε ไม่ถูกต้อง
 - ❌ **ค่ามากเกินไป:** k หรือ ε สูงเกินไป → unstable
+- ❌ **ลืม wall functions:** ไม่ใช้ wall function BCs สำหรับ k และ ε
 
 <details>
-<summary><b>💡 คำใบ้</b></summary>
+<summary><b>💡 คำใบ้ (Hint)</b></summary>
 
 **สูตรคำนวณ (ดูรายละเอียดใน [04_Dimensionless_Numbers.md](04_Dimensionless_Numbers.md)):**
-- $k = \frac{3}{2}(I \cdot U)^2$
-- $\epsilon = C_\mu^{0.75} \cdot k^{1.5} / l$
-- $C_\mu = 0.09$ (ค่าคงที่สำหรับ k-ε model)
 
-**Unit check:**
+**Turbulent Kinetic Energy (k):**
+$$k = \frac{3}{2}(I \cdot U)^2$$
+
+เมื่อ:
+- $I$ = turbulence intensity (5% = 0.05)
+- $U$ = mean velocity magnitude
+
+**Dissipation Rate (ε):**
+$$\epsilon = C_\mu^{0.75} \cdot k^{1.5} / l$$
+
+เมื่อ:
+- $C_\mu = 0.09$ (ค่าคงที่สำหรับ k-ε model)
+- $l$ = turbulence length scale
+
+**Unit Check:**
 - $k$: [m²/s²] (specific turbulent kinetic energy)
 - $\epsilon$: [m²/s³] (dissipation rate per unit mass)
+
+**Typical Values:**
+- **Low turbulence** (quiet flow): $I \approx 1\%$
+- **Medium turbulence** (typical): $I \approx 5\%$
+- **High turbulence** (jet, mixing): $I \approx 10-20\%$
+
+**Length Scale Estimates:**
+- Pipe flow: $l \approx 0.07 \times D$
+- Channel flow: $l \approx 0.1 \times h$
+- Free shear layer: $l \approx 0.1 \times \delta$ (layer thickness)
 
 **หมายเหตุ:**
 - ค่าเหล่านี้เป็นการประมาณเบื้องต้น
 - ค่าจริงจะ converge ระหว่างการรัน simulation
+- ค่า IC ไม่ต้องแม่นยำมาก แต่ต้องไม่เป็น 0
 </details>
 
 <details>
-<summary><b>✅ ดูคำตอบ</b></summary>
+<summary><b>✅ ดูคำตอบ (Answer)</b></summary>
 
-$$k = \frac{3}{2}(I \cdot U)^2 = \frac{3}{2}(0.05 \times 10)^2 = 0.375 \text{ m}^2/\text{s}^2$$
+**ขั้นที่ 1: คำนวณ k**
 
-$$\epsilon = C_\mu^{0.75} \cdot k^{1.5} / l = 0.09^{0.75} \times 0.375^{1.5} / 0.01 \approx 3.73 \text{ m}^2/\text{s}^3$$
+$$k = \frac{3}{2}(I \cdot U)^2 = \frac{3}{2}(0.05 \times 10)^2 = \frac{3}{2}(0.5)^2 = 0.375 \text{ m}^2/\text{s}^2$$
+
+**ขั้นที่ 2: คำนวณ ε**
+
+$$\epsilon = C_\mu^{0.75} \cdot k^{1.5} / l = 0.09^{0.75} \times 0.375^{1.5} / 0.01$$
+
+$$\epsilon = 0.165 \times 0.229 / 0.01 \approx 3.78 \text{ m}^2/\text{s}^3$$
 
 **ไฟล์ 0/k:**
 ```cpp
@@ -383,14 +665,14 @@ boundaryField
 **ไฟล์ 0/epsilon:**
 ```cpp
 dimensions      [0 2 -3 0 0 0 0];
-internalField   uniform 3.73;
+internalField   uniform 3.78;
 
 boundaryField
 {
     inlet
     {
         type    fixedValue;
-        value   uniform 3.73;
+        value   uniform 3.78;
     }
     outlet
     {
@@ -399,7 +681,7 @@ boundaryField
     walls
     {
         type    epsilonWallFunction;
-        value   uniform 3.73;
+        value   uniform 3.78;
     }
 }
 ```
@@ -408,18 +690,33 @@ boundaryField
 - [ ] k มี dimension [0 2 -2 0 0 0 0] ถูกต้องหรือไม่?
 - [ ] ε มี dimension [0 2 -3 0 0 0 0] ถูกต้องหรือไม่?
 - [ ] k และ ε ไม่เป็น 0
-- [ ] คำนวณถูกต้อง: k = 0.375, ε ≈ 3.73
+- [ ] คำนวณถูกต้อง: k ≈ 0.375, ε ≈ 3.78
+- [ ] ใช้ wall functions ที่ walls?
+
+**Physical Interpretation:**
+- k = 0.375 m²/s² → พลังงานจลน์ของ turbulence (เฉลี่ย)
+- ε = 3.78 m²/s³ → อัตราการสลายตัวของ turbulence
+- อัตราส่วน k/ε → time scale ของ turbulence: τ = k/ε ≈ 0.1 s
+
+**ถ้า Simulation Diverge:**
+- ลองลดค่า k และ ε ลง (เช่น ครึ่งหนึ่ง)
+- หรือใช้ค่า I ต่ำกว่า (เช่น 1-2%)
 </details>
+
+**🔗 Related Topics:**
+- → [Exercise 4: Boundary Conditions](#exercise-4-boundary-conditions)
+- → [Exercise 9: Wall y+ Calculation](#exercise-9-wall-y-calculation)
 
 ---
 
-## แบบฝึกหัดที่ 6: แปลสมการเป็น OpenFOAM
+## Exercise 6: แปลสมการเป็น OpenFOAM
 
-**⚙️ ระดับ:** Advanced | **⏱️ เวลา:** 20 นาที | **📖 Prerequisites:** [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md)
+**⚙️ ระดับ:** 🔴 Advanced | **⏱️ เวลา:** 20 นาที | **📖 Prerequisites:** [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md)
 
 ### Learning Outcomes
 - แปลสมการ PDE เป็น fvMatrix format
 - เลือกใช้ `fvm::` กับ `fvc::` อย่างถูกต้อง
+- เข้าใจความแตกต่างระหว่าง implicit และ explicit discretization
 
 ### โจทย์
 
@@ -427,32 +724,62 @@ boundaryField
 
 $$\frac{\partial T}{\partial t} + \nabla \cdot (\mathbf{u} T) = \nabla \cdot (D \nabla T) + S$$
 
+เมื่อ:
+- $T$ = scalar field (เช่น temperature)
+- $\mathbf{u}$ = velocity field (known)
+- $D$ = diffusivity coefficient
+- $S$ = source term
+
 ### Common Pitfalls
 - ❌ **ใช้ fvc แทน fvm:** สำหรับ unknown field → ไม่ converge
 - ❌ **ใช้ fvm แทน fvc:** สำหรับ known field → เสียเวลาคำนวณ
 - ❌ **ลืม source term:** ไม่รวม S ในสมการ
 - ❌ **ลืม relax:** ไม่ใช้ under-relaxation สำหรับ non-linear problems
+- ❌ **สับสน phi:** ลืมว่า `phi = rho*U*f` (flux field)
 
 <details>
-<summary><b>💡 คำใบ้</b></summary>
+<summary><b>💡 คำใบ้ (Hint)</b></summary>
 
 **Implicit vs Explicit:**
-- **`fvm::` (Finite Volume Matrix):** Implicit discretization — field เป็น unknown
-- **`fvc::` (Finite Volume Calculus):** Explicit discretization — field เป็น known
 
-**Mapping:**
-- $\frac{\partial T}{\partial t}$ → `fvm::ddt(T)` — T เป็น unknown
-- $\nabla \cdot (\mathbf{u} T)$ → `fvm::div(phi, T)` — implicit หรือ `fvc::div(phi, T)` — explicit
-- $\nabla \cdot (D \nabla T)$ → `fvm::laplacian(D, T)` — implicit
-- $S$ → `fvOptions(T)` หรือ source term อื่นๆ
+**`fvm::` (Finite Volume Matrix):** Implicit discretization
+- Field เป็น **unknown** ที่ต้องการแก้
+- สร้าง matrix coefficients: $[A]\{x\} = \{b\}$
+- แก้ร่วมกับ unknown values ใน system of equations
+- เสถียรกว่า สำหรับ time stepping ขนาดใหญ่
+- ตัวอย่าง: `fvm::ddt(T)`, `fvm::div(phi, T)`, `fvm::laplacian(D, T)`
+
+**`fvc::` (Finite Volume Calculus):** Explicit discretization
+- Field เป็น **known** จาก time step ก่อนหน้า
+- คำนวณจาก field ปัจจุบันที่รู้ค่าแล้ว
+- ใส่ใน source term (right-hand side)
+- เร็วกว่า แต่อาจ unstable สำหรับ large time steps
+- ตัวอย่าง: `fvc::grad(p)`, `fvc::div(phi)`, `fvc::laplacian(nu, U)`
+
+**Mapping PDE to OpenFOAM:**
+
+| PDE Term | OpenFOAM | Implicit/Explicit | Note |
+|----------|----------|-------------------|------|
+| $\frac{\partial T}{\partial t}$ | `fvm::ddt(T)` | Implicit | T เป็น unknown |
+| $\nabla \cdot (\mathbf{u} T)$ | `fvm::div(phi, T)` | Implicit | T เป็น unknown |
+| $\nabla \cdot (D \nabla T)$ | `fvm::laplacian(D, T)` | Implicit | T เป็น unknown |
+| $-\nabla p$ | `-fvc::grad(p)` | Explicit | p เป็น known |
+| $S$ | `fvOptions(T)` | Either | Depends on setup |
 
 **Guideline:**
 - ใช้ `fvm::` เมื่อ field เป็น unknown ที่ต้องการแก้
 - ใช้ `fvc::` เมื่อ field เป็นค่าที่รู้แล้ว หรือต้องการคำนวณ explicit
+- Pressure gradient ใช้ `fvc::` เพราะ pressure ถูกแก้แยกจาก velocity
+
+**Special Note:**
+- `phi` = surface flux field = $\rho \mathbf{u} \cdot \mathbf{S}_f$ (where $\mathbf{S}_f$ = face area vector)
+- ใน incompressible flow: `phi = U & mesh.Sf()` (if rho = 1)
 </details>
 
 <details>
-<summary><b>✅ ดูคำตอบ</b></summary>
+<summary><b>✅ ดูคำตอบ (Answer)</b></summary>
+
+**Implicit Implementation (Recommended):**
 
 ```cpp
 fvScalarMatrix TEqn
@@ -464,48 +791,89 @@ fvScalarMatrix TEqn
     fvOptions(T)                   // Source term S
 );
 
-TEqn.relax();                      // Under-relaxation (ถ้าต้องการ)
+TEqn.relax();                      // Under-relaxation (optional)
 TEqn.solve();                      // Solve linear system
 ```
 
 **คำอธิบาย:**
 - `fvm::ddt(T)`: Time derivative - implicit (T เป็น unknown)
 - `fvm::div(phi, T)`: Convection - implicit (T เป็น unknown)
-  - อาจใช้ `fvc::div(phi, T)` ถ้าต้องการ explicit (เร็วกว่า แต่อาจ unstable)
-- `fvm::laplacian(D, T)`: Diffusion - implicit
+- `fvm::laplacian(D, T)`: Diffusion - implicit (T เป็น unknown)
 - `fvOptions(T)`: Source terms (explicit/implicit ขึ้นกับการตั้งค่า)
+- `TEqn.relax()`: Under-relaxation เพื่อ stability
+- `TEqn.solve()`: Solve linear system $[A]\{T\} = \{b\}$
 
-**Self-Verification:**
-- [ ] ใช้ `fvm::` สำหรับทุก term ที่มี T เป็น unknown?
-- [ ] สมการมีรูปแบบ `fvScalarMatrix TEqn(...);`?
-- [ ] มีการเรียก `TEqn.solve()`?
+**Explicit Convection Alternative:**
 
-**Alternative (Explicit convection):**
 ```cpp
 solve
 (
     fvm::ddt(T)
-  + fvc::div(phi, T)     // Explicit convection
+  + fvc::div(phi, T)     // Explicit convection (เร็วกว่า แต่อาจ unstable)
   - fvm::laplacian(D, T)
  ==
     fvOptions(T)
 );
 ```
+
+**ข้อดี/ข้อเสีย:**
+
+| Method | Pros | Cons |
+|--------|------|------|
+| **Fully implicit** | เสถียรกว่า, ใช้ time step ใหญ่ได้ | ช้ากว่า, ใช้ memory มาก |
+| **Explicit convection** | เร็วกว่า, ใช้ memory น้อย | อาจ unstable, ต้องใช้ time step เล็ก |
+
+**Self-Verification:**
+- [ ] ใช้ `fvm::` สำหรับทุก term ที่มี T เป็น unknown?
+- [ ] สมการมีรูปแบบ `fvScalarMatrix TEqn(...);`?
+- [ ] มีการเรียก `TEqn.solve()`?
+- [ ] ถ้าใช้ explicit, ได้ตรวจสอบ Courant number หรือไม่?
+
+**Physical Interpretation:**
+- **Transient term** ($\partial T/\partial t$): การเปลี่ยนแปลงของ T เมื่อเวลาผ่านไป
+- **Convection term** ($\nabla \cdot (\mathbf{u} T)$): การลากของ T โดย velocity field
+- **Diffusion term** ($\nabla \cdot (D \nabla T)$): การแพร่ของ T จาก gradient
+- **Source term** ($S$): generation/destruction ของ T
+
+**Advanced: Pressure-Velocity Coupling**
+
+ใน momentum equation, pressure gradient ใช้ `fvc::`:
+```cpp
+// Momentum equation
+solve
+(
+    fvm::ddt(U)
+  + fvm::div(phi, U)
+  - fvm::laplacian(nu, U)
+ ==
+  - fvc::grad(p)  // Explicit - p เป็น known จาก iteration ก่อนหน้า
+);
+```
+
+ทำไม? เพราะ:
+1. Pressure ถูกแก้แยกจาก velocity (pressure correction equation)
+2. เมื่อแก้ momentum equation, pressure field เป็น "known" จาก iteration ก่อนหน้า
+3. ดังนั้น $-\nabla p$ จึงเป็น **explicit force term**
 </details>
+
+**🔗 Related Topics:**
+- → [Exercise 7: Discretization Schemes](#exercise-7-เลือก-discretization-scheme)
+- → [Concept Check 1: fvm vs fvc](#concept-check)
 
 ---
 
-## แบบฝึกหัดที่ 7: เลือก Discretization Scheme
+## Exercise 7: เลือก Discretization Scheme
 
-**⚙️ ระดับ:** Advanced | **⏱️ เวลา:** 15 นาที | **📖 Prerequisites:** [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md)
+**⚙️ ระดับ:** 🔴 Advanced | **⏱️ เวลา:** 15 นาที | **📖 Prerequisites:** [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md)
 
 ### Learning Outcomes
 - เลือก discretization schemes ที่เหมาะสมกับ flow characteristics
 - เข้าใจ trade-off ระหว่าง accuracy และ stability
+- รู้จัก schemes ที่พบบ่อยใน OpenFOAM
 
 ### โจทย์
 
-เลือก scheme ใน `fvSchemes` สำหรับ high-Re turbulent flow
+เลือก scheme ใน `fvSchemes` สำหรับ **high-Re turbulent flow**
 
 | Term | Scheme? | เหตุผล? |
 |------|---------|---------|
@@ -518,34 +886,67 @@ solve
 - ❌ **ใช้ upwind ทั้งหมด:** numerical diffusion สูงเกินไป
 - ❌ **ไม่พิจารณา mesh quality:** ใช้ `linear` กับ non-orthogonal mesh
 - ❌ **ลืม corrected:** ใช้ `Gauss linear` แทน `Gauss linear corrected`
+- ❌ **ไม่ใช้ limiter:** ใช้ `linear` สำหรับ turbulence → oscillations
 
 <details>
-<summary><b>💡 คำใบ้</b></summary>
+<summary><b>💡 คำใบ้ (Hint)</b></summary>
 
-**Convection schemes:**
-- `upwind`: 1st order, เสถียร แต่ diffuse (numerical diffusion สูง)
-- `linear`: 2nd order, แม่นยำ แต่อาจ unstable (unbounded)
-- `linearUpwind`: 2nd order, เสถียรกว่า linear (upwind-biased)
-- `limitedLinear`: 2nd order + limiter (bounded)
+**Convection Schemes (divSchemes):**
 
-**Laplacian schemes:**
-- `linear`: 2nd order central differencing (standard)
-- `linear corrected`: แก้ไข non-orthogonality (สำคัญสำหรับ non-orthogonal mesh)
+| Scheme | Order | Accuracy | Stability | Boundedness | Use Case |
+|--------|-------|----------|-----------|-------------|----------|
+| `upwind` | 1st | Low | High | Guaranteed | Initial iterations, turbulence |
+| `linear` | 2nd | High | Low | Not guaranteed | Simple cases, low Re |
+| `linearUpwind` | 2nd | High | Medium-High | Not guaranteed | Momentum (stable) |
+| `limitedLinear` | 2nd | High | Medium | Guaranteed | Final converged solutions |
+| `quick` | 3rd | Very High | Low | Not guaranteed | Structured meshes, research |
 
-**Gradient schemes:**
-- `Gauss linear`: Standard central differencing
-- `cellLimited`: Prevent overshoots (bounded)
-- `leastSquares`: สำหรับ non-orthogonal mesh
+**Laplacian Schemes:**
 
-**Guidelines:**
-- Momentum: `linearUpwind` หรือ `limitedLinear` (2nd order, stable)
-- Turbulence (k, ε, ω): `upwind` (bounded, stable)
-- Laplacian: `linear corrected` (non-orthogonal correction)
-- Gradients: `cellLimited` (prevent overshoots)
+| Scheme | Description | Use Case |
+|--------|-------------|----------|
+| `Gauss linear` | 2nd order central differencing | Orthogonal meshes |
+| `Gauss linear corrected` | + non-orthogonal correction | Non-orthogonal meshes (recommended) |
+| `Gauss linear uncorrected` | No correction | Debugging only |
+
+**Gradient Schemes:**
+
+| Scheme | Description | Use Case |
+|--------|-------------|----------|
+| `Gauss linear` | Standard central differencing | General use |
+| `cellLimited Gauss linear` | Limited to prevent overshoots | High gradient flows |
+| `leastSquares` | For non-orthogonal meshes | Poor quality meshes |
+
+**Guidelines for High-Re Turbulent Flow:**
+
+1. **Momentum (div(phi,U)):**
+   - `linearUpwind` → 2nd order, stable
+   - หรือ `limitedLinear` → 2nd order + bounded
+
+2. **Turbulence (div(phi,k), div(phi,epsilon)):**
+   - `upwind` → bounded, stable
+   - turbulence sensitive ต่อ oscillations
+
+3. **Laplacian:**
+   - `linear corrected` → สำคัญสำหรับ non-orthogonal mesh
+
+4. **Gradient:**
+   - `cellLimited` → prevent overshoots
+
+**Trade-off Summary:**
+```
+Accuracy vs Stability:
+  upwind    → Low accuracy, High stability
+  linear    → High accuracy, Low stability
+  linearUpwind  → High accuracy, Medium stability
+  limitedLinear → High accuracy, Medium stability, Bounded
+```
 </details>
 
 <details>
-<summary><b>✅ ดูคำตอบ</b></summary>
+<summary><b>✅ ดูคำตอบ (Answer)</b></summary>
+
+**Recommended Configuration:**
 
 ```cpp
 divSchemes
@@ -569,17 +970,30 @@ gradSchemes
 ```
 
 **เหตุผล:**
-- **Convection (div):** 
-  - `linearUpwind` ให้ความแม่นยำ 2nd order และเสถียรกว่า `linear`
-  - ใช้ `upwind` สำหรับ k, ε เพราะ sensitive ต่อ oscillations
-  
-- **Laplacian:** 
-  - `linear corrected` สำหรับ non-orthogonal mesh
-  - สำคัญสำหรับ diffusion-dominated problems
-  
-- **Gradient:** 
-  - `cellLimited` ป้องกัน overshoots ใน flow ที่มี gradients สูง
+
+**1. Convection (divSchemes):**
+- **`div(phi,U)`:** `Gauss linearUpwind grad(U)`
+  - 2nd order accuracy
+  - More stable than `linear` (upwind-biased)
+  - Good for momentum in turbulent flows
+
+- **`div(phi,k)`, `div(phi,epsilon)`:** `Gauss upwind`
+  - 1st order accuracy
+  - Bounded (no negative values)
+  - Turbulence quantities sensitive ต่อ oscillations
+  - k, ε must be > 0
+
+**2. Laplacian:**
+- **`Gauss linear corrected`:**
+  - 2nd order central differencing
+  - **Corrected** สำคัญมากสำหรับ non-orthogonal meshes
+  - แก้ไข error จาก non-orthogonality
+
+**3. Gradient:**
+- **`grad(U)`:** `cellLimited Gauss linear 1`
+  - Limited to prevent overshoots
   - 1 = limiter coefficient (0 = most limiting, 1 = no limiting)
+  - สำคัญสำหรับ flows ที่มี high gradients
 
 **Self-Verification:**
 - [ ] ใช้ 2nd order scheme สำหรับ momentum?
@@ -587,25 +1001,66 @@ gradSchemes
 - [ ] มี non-orthogonality correction สำหรับ laplacian?
 - [ ] ใช้ limiter สำหรับ gradients?
 
-**Alternative (More aggressive):**
+**Alternative (More Aggressive):**
+
 ```cpp
 divSchemes
 {
     div(phi,U)      Gauss limitedLinear 1;       // 2nd order + limiter
-    div(phi,k)      Gauss limitedLinear 1;       // 2nd order for k
+    div(phi,k)      Gauss limitedLinear 1;       // 2nd order for k (risky)
 }
 ```
+
+**Progressive Strategy (Recommended for Hard Cases):**
+
+1. **Initial iterations:**
+   ```cpp
+   div(phi,U)      Gauss upwind;  // Stable, start with this
+   ```
+
+2. **Intermediate:**
+   ```cpp
+   div(phi,U)      Gauss linearUpwind grad(U);  // Switch to this
+   ```
+
+3. **Final convergence:**
+   ```cpp
+   div(phi,U)      Gauss limitedLinear 1;  // For final accuracy
+   ```
+
+**Scheme Comparison:**
+
+| Scheme | Numerical Diffusion | Stability | CPU Time | Recommendation |
+|--------|---------------------|-----------|----------|----------------|
+| `upwind` | High | Very High | Low | Initial iterations |
+| `linearUpwind` | Low-Medium | High | Medium | **Recommended** |
+| `limitedLinear` | Low | Medium | Medium | Final convergence |
+| `linear` | Very Low | Low | Low | Simple cases only |
+
+**ถ้า Unstable:**
+- เปลี่ยนจาก `linearUpwind` → `upwind`
+- หรือใช้ `limitedLinear` ด้วย limiter ที่เข้มขึ้น
+- ลด under-relaxation factors
+
+**ถ้า Diffusive (ค่าลดเร็วเกินไป):**
+- เปลี่ยนจาก `upwind` → `linearUpwind`
+- หรือใช้ `limitedLinear` ด้วย limiter ที่น้อยลง
 </details>
+
+**🔗 Related Topics:**
+- → [Exercise 6: Translate Equations](#exercise-6-แปลสมการเป็น-openfoam)
+- → [Concept Check 5: Scheme Differences](#concept-check)
 
 ---
 
-## แบบฝึกหัดที่ 8: Debug Divergence
+## Exercise 8: Debug Divergence
 
-**⚙️ ระดับ:** Intermediate | **⏱️ เวลา:** 20 นาที | **📖 Prerequisites:** [05-07](05_OpenFOAM_Implementation.md), [06_Boundary_Conditions.md](06_Boundary_Conditions.md), [07_Initial_Conditions.md](07_Initial_Conditions.md)
+**⚙️ ระดับ:** 🟡 Intermediate | **⏱️ เวลา:** 20 นาที | **📖 Prerequisites:** [05-07](05_OpenFOAM_Implementation.md), [06_Boundary_Conditions.md](06_Boundary_Conditions.md), [07_Initial_Conditions.md](07_Initial_Conditions.md)
 
 ### Learning Outcomes
 - วินิจฉัยสาเหตุของ simulation divergence
 - แก้ไขปัญหา divergence อย่าง systematic
+- ใช้เครื่องมือ diagnostic ใน OpenFOAM
 
 ### โจทย์
 
@@ -623,105 +1078,186 @@ Floating point exception
 - ❌ **ไม่ check mesh:** mesh quality แย่มักเป็นสาเหตุหลัก
 - ❌ **ปรับมากเกินไป:** เพิ่ม under-relaxation มากเกินไป → ช้ามาก
 - ❌ **ลืม check log:** ไม่ดู error messages อย่างละเอียด
+- ❌ **แก้ผิดจุด:** เปลี่ยน solver แทนที่จะแก้ BCs
 
 <details>
-<summary><b>💡 คำใบ้</b></summary>
+<summary><b>💡 คำใบ้ (Hint)</b></summary>
 
-**สาเหตุที่พบบ่อย (เรียงลำดับความน่าจะเป็น):**
-1. **Initial conditions ไม่ถูกต้อง** — k = 0, ε = 0, U = 0
-2. **Boundary conditions ขัดแย้งกัน** — fixedValue ทั้ง inlet และ outlet
-3. **Mesh quality problems** — non-orthogonality สูง, aspect ratio สูง
-4. **Time step ใหญ่เกินไป** — Courant number > 1
-5. **Under-relaxation สูงเกินไป** — convergence ช้าหรือ diverge
+**Debug Workflow (เรียงลำดับความน่าจะเป็น):**
+
+```
+1. Mesh Quality (15%)
+   ↓
+2. Initial Conditions (40%)
+   ↓
+3. Boundary Conditions (30%)
+   ↓
+4. Time Step (10%)
+   ↓
+5. Solver Settings (5%)
+```
+
+**สาเหตุที่พบบ่อย:**
+
+**1. Initial Conditions ไม่ถูกต้อง (40%)**
+- k = 0 หรือ epsilon = 0 → ν_t = 0 → viscous term หาย
+- U = 0 ทั่วหมด → ไม่มี convection
+- Pressure = 0 ทั่วหมด → ไม่มี driving force
+
+**2. Boundary Conditions ขัดแย้งกัน (30%)**
+- fixedValue ทั้ง U และ p ที่ outlet
+- ไม่มี pressure reference point
+- Inlet/outlet ไม่ตรงข้ามกัน
+
+**3. Mesh Quality Problems (15%)**
+- Non-orthogonality สูง (> 70°)
+- Aspect ratio สูง (> 1000)
+- Skewness สูง (> 2)
+
+**4. Time Step ใหญ่เกินไป (10%)**
+- Courant number (Co) > 1
+- สำหรับ transient cases
+
+**5. Under-Relaxation สูงเกินไป (5%)**
+- ค่าเริ่มต้นสูงเกินไปสำหรับ hard case
 
 **Diagnostic Tools:**
 ```bash
 checkMesh -allTopology -allGeometry  # ตรวจสอบ mesh
 foamListTimes                        # ดู time steps
 grep "Solving for" log.*             # ดู residuals
+grep "continuity" log.*              # ดู mass balance
 ```
 
-**Debug Workflow:**
-1. Check mesh quality
-2. Check initial conditions
-3. Check boundary conditions
-4. Check time step / Courant number
-5. Check solver settings (relaxation, schemes)
+**Diagnostic Commands:**
+```bash
+# Check mesh
+checkMesh
+
+# View residuals in real-time
+tail -f log.simpleFoam | grep "Solving for"
+
+# Check Courant number (transient)
+foamListTimes
+grep "Courant" log.simpleFoam
+```
 </details>
 
 <details>
-<summary><b>✅ ดูคำตอบ</b></summary>
+<summary><b>✅ ดูคำตอบ (Answer)</b></summary>
 
 **สาเหตุที่เป็นไปได้ (เรียงจากมากไปน้อย):**
 
 ### 1. Initial Conditions ไม่ถูกต้อง (40%)
-- k = 0 หรือ epsilon = 0 → ν_t = 0 → viscous term หาย
-- U = 0 ทั่วหมด → ไม่มี convection
-- **แก้ไข:**
-  ```cpp
-  // 0/k
-  internalField   uniform 0.375;
-  
-  // 0/epsilon
-  internalField   uniform 3.73;
-  
-  // 0/U
-  internalField   uniform (5 0 0);  // ไม่ใช่ (0 0 0)
-  ```
+
+**Symptoms:**
+- k = 0 หรือ epsilon = 0
+- U = 0 ทั่วหมด
+- Diverge ที่ iteration แรกๆ
+
+**แก้ไข:**
+```cpp
+// 0/k
+internalField   uniform 0.375;  // ไม่ใช่ 0!
+
+// 0/epsilon
+internalField   uniform 3.73;   // ไม่ใช่ 0!
+
+// 0/U
+internalField   uniform (5 0 0);  // ไม่ใช่ (0 0 0)
+```
+
+**Physical Explanation:**
+- k = 0 → ν_t = 0 → ไม่มี turbulent viscosity
+- ใน high-Re flow, ν_t >> ν (molecular viscosity)
+- ถ้า ν_t = 0, effective viscosity ต่ำเกินไป → unstable
 
 ### 2. Boundary Conditions ขัดแย้งกัน (30%)
-- fixedValue ทั้ง U และ p ที่ outlet
-- ไม่มี pressure reference point
-- **แก้ไข:**
-  - Inlet: fixedValue U + zeroGradient p
-  - Outlet: zeroGradient U + fixedValue p = 0
-  - Walls: noSlip U + zeroGradient p
+
+**Symptoms:**
+- Residuals ไม่ลดลง
+- "floating point exception"
+- Continuity errors สูง
+
+**แก้ไข:**
+- Inlet: fixedValue U + zeroGradient p
+- Outlet: zeroGradient U + fixedValue p = 0
+- Walls: noSlip U + zeroGradient p
+
+```cpp
+// CORRECT:
+// 0/U
+inlet   { type fixedValue; value uniform (10 0 0); }
+outlet  { type zeroGradient; }
+
+// 0/p
+inlet   { type zeroGradient; }
+outlet  { type fixedValue; value uniform 0; }
+```
 
 ### 3. Mesh Quality Problems (15%)
-- Non-orthogonality สูง (> 70°)
-- Aspect ratio สูง (> 1000)
-- Skewness สูง (> 2)
-- **แก้ไข:**
-  ```bash
-  checkMesh -allTopology -allGeometry
-  
-  # ถ้า non-orthogonality สูง:
-  # 1. สร้าง mesh ใหม่
-  # 2. หรือเพิ่ม nNonOrthogonalCorrectors
+
+**Symptoms:**
+- "floating point exception"
+- สมการไม่ converge แม้จะปรับ settings แล้ว
+
+**Check:**
+```bash
+checkMesh -allTopology -allGeometry
+```
+
+**แก้ไข:**
+- Non-orthogonality > 70° → สร้าง mesh ใหม่
+- หรือเพิ่ม nNonOrthogonalCorrectors:
+  ```cpp
+  SIMPLE
+  {
+      nNonOrthogonalCorrectors 2;  // เพิ่มจาก 1
+  }
   ```
 
 ### 4. Time Step ใหญ่เกินไป (10%)
-- Courant number (Co) > 1
-- **แก้ไข:**
-  ```cpp
-  // controlDict
-  deltaT          0.001;
-  adjustTimeStep  yes;
-  maxCo           0.5;
-  
-  // หรือใช้ maxCo ต่ำกว่า:
-  maxCo           0.3;  // สำหรับ transient ที่เสถียร
-  ```
+
+**Symptoms:**
+- Courant number > 1
+- Diverge หลังจาก few iterations
+
+**Check:**
+```bash
+grep "Courant number" log.simpleFoam
+```
+
+**แก้ไข:**
+```cpp
+// controlDict
+deltaT          0.001;
+adjustTimeStep  yes;
+maxCo           0.5;  // หรือ 0.3 สำหรับ stability
+```
 
 ### 5. Under-Relaxation สูงเกินไป (5%)
-- ค่าเริ่มต้นสูงเกินไปสำหรับ hard case
-- **แก้ไข:**
-  ```cpp
-  // fvSolution
-  relaxationFactors
-  {
-      fields 
-      { 
-          p   0.2;  // ลดจาก 0.3
-      }
-      equations 
-      { 
-          U       0.4;  // ลดจาก 0.5
-          k       0.4;
-          epsilon 0.4;
-      }
-  }
-  ```
+
+**Symptoms:**
+- Oscillating residuals
+- Diverge หลังจากหลาย iterations
+
+**แก้ไข:**
+```cpp
+// fvSolution
+relaxationFactors
+{
+    fields
+    {
+        p   0.2;  // ลดจาก 0.3
+    }
+    equations
+    {
+        U       0.4;  // ลดจาก 0.5
+        k       0.4;
+        epsilon 0.4;
+    }
+}
+```
 
 **Common Pitfalls Summary:**
 - ❌ ลืมกำหนด k และ epsilon สำหรับ turbulent flow
@@ -736,17 +1272,40 @@ grep "Solving for" log.*             # ดู residuals
 - [ ] BCs ไม่ขัดแย้งกัน?
 - [ ] Courant number < 1?
 - [ ] Under-relaxation factors สมเหตุสมผล?
+
+**Debugging Flowchart:**
+```
+Start
+  ↓
+Check mesh → Fail? → Remesh
+  ↓ Pass
+Check ICs → k,ε = 0? → Fix ICs
+  ↓ OK
+Check BCs → Conflict? → Fix BCs
+  ↓ OK
+Check Co → Co > 1? → Reduce Δt
+  ↓ OK
+Check relaxation → Too high? → Reduce
+  ↓ OK
+Should converge now!
+```
 </details>
+
+**🔗 Related Topics:**
+- → [Exercise 4: Boundary Conditions](#exercise-4-boundary-conditions)
+- → [Exercise 5: Initial Conditions](#exercise-5-initial-conditions-for-turbulence)
+- → [Mini-Project: Pipe Flow](#mini-project-set-up-your-first-pipe-flow-case)
 
 ---
 
-## แบบฝึกหัดที่ 9: Wall y+ Calculation
+## Exercise 9: Wall y+ Calculation
 
-**⚙️ ระดับ:** Intermediate | **⏱️ เวลา:** 15 นาที | **📖 Prerequisites:** [04_Dimensionless_Numbers.md](04_Dimensionless_Numbers.md), [06_Boundary_Conditions.md](06_Boundary_Conditions.md)
+**⚙️ ระดับ:** 🟡 Intermediate | **⏱️ เวลา:** 15 นาที | **📖 Prerequisites:** [04_Dimensionless_Numbers.md](04_Dimensionless_Numbers.md), [06_Boundary_Conditions.md](06_Boundary_Conditions.md)
 
 ### Learning Outcomes
 - คำนวณ first cell height จากค่า y+ ที่ต้องการ
 - เข้าใจความสัมพันธ์ระหว่าง y+, mesh, และ wall treatment
+- เลือก wall treatment ที่เหมาะสมกับ mesh resolution
 
 ### โจทย์
 
@@ -760,20 +1319,44 @@ grep "Solving for" log.*             # ดู residuals
 - ❌ **ไม่คำนวณ y+:** เลยกำหนด first cell height แบบสุ่ม
 - ❌ **ใช้สูตรผิด:** ใช้สูตรที่ไม่เหมาะสมกับ flow
 - ❌ **ไม่ปรับ mesh:** ไม่ตรวจสอบ y+ หลังจากรัน
-- ❌ **สับสน y+ กี่ y*:** y* ต่างจาก y+
+- ❌ **สับสน y+ กับ y*:** y* ต่างจาก y+ (y* ใช้สำหรับ compressible)
+- ❌ **ไม่รู้จัก wall treatments:** ใช้ wall function กับ low-Re mesh
 
 <details>
-<summary><b>💡 คำใบ้</b></summary>
+<summary><b>💡 คำใบ้ (Hint)</b></summary>
 
 **ขั้นตอนการคำนวณ:**
-1. คำนวณ Reynolds number: $Re = UL/\nu$
-2. ประมาณ skin friction coefficient: $C_f \approx 0.058 \cdot Re^{-0.2}$ (สำหรับ turbulent pipe flow)
-3. คำนวณ friction velocity: $u_\tau = U \sqrt{C_f/2}$
-4. คำนวณ first cell height: $y = \frac{y^+ \cdot \nu}{u_\tau}$
+
+**1. คำนวณ Reynolds number:**
+$$Re = \frac{UL}{\nu}$$
+
+**2. ประมาณ skin friction coefficient:**
+$$C_f \approx 0.058 \cdot Re^{-0.2}$$
+
+(suitable for turbulent pipe/plate flow)
+
+**3. คำนวณ friction velocity:**
+$$u_\tau = U \sqrt{C_f/2}$$
+
+**4. คำนวณ first cell height:**
+$$y = \frac{y^+ \cdot \nu}{u_\tau}$$
 
 **Wall Treatment Guidelines (ดูเพิ่มใน [06_Boundary_Conditions.md](06_Boundary_Conditions.md)):**
-- **Wall functions:** y+ ≈ 30-100 (first cell หนา)
-- **Low-Re models:** y+ ≈ 1 (first cell บางมาก)
+
+| Wall Treatment | y+ Range | First Cell | Solver | Use Case |
+|----------------|----------|------------|--------|----------|
+| **Wall Functions** | 30-100 | Thick | Standard | High-Re, limited mesh |
+| **Low-Re Models** | ~1 | Very thin | Special | High accuracy, fine mesh |
+
+**ความสัมพันธ์:**
+- $y^+ = \frac{y u_\tau}{\nu}$ (dimensionless wall distance)
+- $y = y^+ \cdot \nu / u_\tau$ (physical distance)
+- $u_\tau$ = friction velocity (≈ 3-5% ของ U สำหรับ turbulent flow)
+
+**Typical Values:**
+- $y^+ \approx 1$: First cell ≈ 0.01-0.1 mm (very fine)
+- $y^+ \approx 50$: First cell ≈ 0.5-2 mm (moderate)
+- $y^+ \approx 100$: First cell ≈ 1-5 mm (coarse)
 
 **หมายเหตุสำคัญ:**
 - นี่เป็นการประมาณค่าเบื้องต้น
@@ -782,7 +1365,7 @@ grep "Solving for" log.*             # ดู residuals
 </details>
 
 <details>
-<summary><b>✅ ดูคำตอบ</b></summary>
+<summary><b>✅ ดูคำตอบ (Answer)</b></summary>
 
 **ขั้นที่ 1:** คำนวณ Re และ $C_f$
 
@@ -801,13 +1384,44 @@ $$y = \frac{y^+ \cdot \nu}{u_\tau} = \frac{50 \times 1.5 \times 10^{-5}}{0.83} \
 **สรุป:** First cell height ≈ 0.9 mm สำหรับ $y^+ = 50$
 
 **ใน OpenFOAM:**
-1. สร้าง mesh ด้วย first cell height ≈ 0.9 mm
-2. รัน simulation
-3. ตรวจสอบ y+:
-   ```bash
-   yPlusRAS -latestTime
-   ```
-4. ถ้า y+ ไม่อยู่ในช่วง 30-100 ปรับ mesh และรันใหม่
+
+**1. สร้าง mesh:**
+```cpp
+// system/blockMeshDict
+// กำหนด grading เพื่อให้ first cell ≈ 0.9 mm
+boundary
+(
+    inlet { ... }
+    outlet { ... }
+    walls
+    {
+        // ใช้ grading เพื่อให้ first cell บาง
+        type wall;
+    }
+);
+```
+
+**2. รัน simulation:**
+```bash
+simpleFoam > log.simpleFoam 2>&1 &
+```
+
+**3. ตรวจสอบ y+:**
+```bash
+yPlusRAS -latestTime
+```
+
+**4. ตรวจสอบผล:**
+```bash
+paraFoam -builtin
+# View y+ contour on walls
+# ต้องอยู่ในช่วง 30-100
+```
+
+**5. ถ้า y+ ไม่อยู่ในช่วง 30-100:**
+- y+ < 30: เพิ่ม first cell height
+- y+ > 100: ลด first cell height
+- ปรับ mesh และรันใหม่
 
 **Self-Verification:**
 - [ ] Re = 1.33 × 10⁶ (turbulent)
@@ -816,22 +1430,55 @@ $$y = \frac{y^+ \cdot \nu}{u_\tau} = \frac{50 \times 1.5 \times 10^{-5}}{0.83} \
 - [ ] y ≈ 0.9 mm (reasonable สำหรับ wall functions)
 - [ ] Units ถูกต้องทุกขั้นตอน?
 
-**Alternative (สำหรับ y+ = 1):**
+**Physical Interpretation:**
+- **Friction velocity** $u_\tau$ = velocity scale ใกล้ผนัง
+- $u_\tau \approx 0.04U$ สำหรับ turbulent flow (ดังนั้น $u_\tau \approx 0.83$ m/s)
+- **y+** = dimensionless distance จากผนัง
+  - y+ < 5: Viscous sublayer (linear velocity profile)
+  - y+ = 30-100: Buffer layer (logarithmic region)
+  - y+ > 100: Outer layer
+
+**Alternative: สำหรับ y+ = 1 (Low-Re Model)**
+
 ถ้าต้องการ y+ = 1 (low-Re model):
 $$y = \frac{1 \times 1.5 \times 10^{-5}}{0.83} \approx 0.000018 \text{ m} = 0.018 \text{ mm}$$
 
 → First cell ต้องบางมาก (~18 μm) → computational cost สูงมาก
+
+**Trade-off:**
+
+| Approach | First Cell | Mesh Size | CPU Time | Accuracy |
+|----------|-----------|-----------|----------|----------|
+| **Wall Functions (y+ ≈ 50)** | ~1 mm | Moderate | Moderate | Good for engineering |
+| **Low-Re (y+ ≈ 1)** | ~0.02 mm | Very large | Very high | High accuracy |
+
+**y+ Ranges:**
+- **y+ < 11:** Viscous sublayer → use low-Re model
+- **11 < y+ < 30:** Buffer region → avoid
+- **30 < y+ < 100:** Logarithmic region → wall functions OK
+- **y+ > 100:** Wake region → wall functions OK
+- **y+ > 300:** Too coarse → inaccurate
+
+**ถ้า y+ ไม่ถูกต้อง:**
+- **y+ น้อยเกินไป (< 30):** เพิ่ม first cell height
+- **y+ มากเกินไป (> 100):** ลด first cell height
+- **y+ แตกต่างมากบน wall ต่างๆ:** ใช้ non-uniform mesh
 </details>
+
+**🔗 Related Topics:**
+- → [Exercise 5: Initial Conditions](#exercise-5-initial-conditions-for-turbulence)
+- → [Mini-Project: Pipe Flow](#mini-project-set-up-your-first-pipe-flow-case)
 
 ---
 
-## แบบฝึกหัดที่ 10: Algorithm Selection
+## Exercise 10: Algorithm Selection
 
-**⚙️ ระดับ:** Beginner | **⏱️ เวลา:** 10 นาที | **📖 Prerequisites:** [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md)
+**⚙️ ระดับ:** 🟢 Beginner | **⏱️ เวลา:** 10 นาที | **📖 Prerequisites:** [05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md)
 
 ### Learning Outcomes
 - เลือก SIMPLE, PISO, หรือ PIMPLE ที่เหมาะสม
 - เข้าใจ trade-offs ระหว่าง algorithms
+- ตั้งค่า parameters ใน fvSolution อย่างถูกต้อง
 
 ### โจทย์
 
@@ -841,47 +1488,73 @@ $$y = \frac{1 \times 1.5 \times 10^{-5}}{0.83} \approx 0.000018 \text{ m} = 0.01
 - ❌ **ใช้ SIMPLE กับ transient:** ผิด concept — SIMPLE สำหรับ steady
 - ❌ **ใช้ PISO กับ large time step:** อาจ unstable
 - ❌ **ใช้ PIMPLE กับ steady:** เสียเวลา — SIMPLE เร็วกว่า
-- ❌ **ไม่พิจารณa nOuterCorrectors:** ลืมตั้งค่าให้ถูกต้อง
+- ❌ **ไม่พิจารณา nOuterCorrectors:** ลืมตั้งค่าให้ถูกต้อง
+- ❌ **สับสน nCorrectors vs nOuterCorrectors:** ใช้ผิด context
 
 <details>
-<summary><b>💡 คำใบ้</b></summary>
+<summary><b>💡 คำใบ้ (Hint)</b></summary>
 
 **Algorithm Overview:**
 
-| Algorithm | ใช้เมื่อ | Time Step | Outer Loop |
-|-----------|-----------|-----------|------------|
-| **SIMPLE** | Steady-state | N/A | ใช่ (iterate จน converge) |
-| **PISO** | Transient | เล็ก (Co < 1) | ไม่ใช่ |
-| **PIMPLE** | Transient | ใหญ่ (Co > 1) | ใช่ (merge SIMPLE + PISO) |
+| Algorithm | ใช้เมื่อ | Time Step | Outer Loop | nCorrectors | nOuterCorrectors |
+|-----------|-----------|-----------|------------|-------------|------------------|
+| **SIMPLE** | Steady-state | N/A | ใช่ | ไม่มี | ใช่ |
+| **PISO** | Transient | เล็ก (Co < 1) | ไม่ใช่ | ใช่ | ไม่มี |
+| **PIMPLE** | Transient | ใหญ่ (Co > 1) | ใช่ | ใช่ | ใช่ |
 
 **Considerations:**
-- **Steady vs Transient:** SIMPLE สำหรับ steady, PISO/PIMPLE สำหรับ transient
-- **Courant Number:** PISO สำหรับ Co < 1, PIMPLE สำหรับ Co > 1
-- **Convergence:** SIMPLE/PIMPLE มี outer loop, PISO ไม่มี
-- **Speed:** SIMPLE > PIMPLE > PISO (สำหรับ time step ใหญ่)
 
-**References:**
-- SIMPLE: Semi-Implicit Method for Pressure-Linked Equations
-- PISO: Pressure-Implicit with Splitting of Operators
-- PIMPLE: PISO + SIMPLE (merged)
+**1. Steady vs Transient:**
+- SIMPLE สำหรับ steady-state
+- PISO/PIMPLE สำหรับ transient
+
+**2. Courant Number:**
+- PISO: Co < 1 (small time steps)
+- PIMPLE: Co > 1 (large time steps)
+
+**3. Convergence:**
+- SIMPLE/PIMPLE: มี outer loop (iterate จน converge)
+- PISO: ไม่มี outer loop (single pass per time step)
+
+**4. Speed:**
+- SIMPLE > PIMPLE > PISO (สำหรับ time step ใหญ่)
+
+**Algorithm Origins:**
+- **SIMPLE:** Semi-Implicit Method for Pressure-Linked Equations
+- **PISO:** Pressure-Implicit with Splitting of Operators
+- **PIMPLE:** PISO + SIMPLE (merged algorithm)
+
+**Key Parameters:**
+- `nCorrectors`: Number of pressure corrections per iteration/time step
+- `nOuterCorrectors`: Number of outer iterations (SIMPLE/PIMPLE only)
+- `nNonOrthogonalCorrectors`: Number of non-orthogonal corrections
+
+**Guidelines:**
+```
+Steady-state                → SIMPLE
+Transient, Co < 0.5         → PISO
+Transient, Co = 0.5-1       → PIMPLE (nOuterCorrectors = 1-2)
+Transient, Co > 1           → PIMPLE (nOuterCorrectors = 2-3)
+```
 </details>
 
 <details>
-<summary><b>✅ ดูคำตอบ</b></summary>
+<summary><b>✅ ดูคำตอบ (Answer)</b></summary>
 
 | Algorithm | ใช้เมื่อ | ข้อดี | ข้อเสีย |
 |-----------|---------|-------|---------|
-| **SIMPLE** | Steady-state | วนซ้ำจนลู่เข้า, เสถียร | ไม่เหมาะกับ transient |
+| **SIMPLE** | Steady-state | วนซ้ำจนลู่เข้า, เสถียร, เร็ว | ไม่เหมาะกับ transient |
 | **PISO** | Transient, $\Delta t$ เล็ก (Co < 1) | ไม่ต้อง outer loop, เร็ว | อาจ unstable ถ้า $\Delta t$ ใหญ่ |
 | **PIMPLE** | Transient, $\Delta t$ ใหญ่ (Co > 1) | Outer corrections รองรับ Co > 1 | ช้ากว่า PISO |
 
 **การตั้งค่าใน fvSolution:**
 
+**SIMPLE - Steady state:**
 ```cpp
-// SIMPLE - Steady state
 SIMPLE
 {
     nNonOrthogonalCorrectors 1;
+
     residualControl
     {
         p   1e-4;
@@ -889,28 +1562,32 @@ SIMPLE
         // k   1e-4;
         // epsilon 1e-4;
     }
-    
+
     // ไม่มี nCorrectors สำหรับ SIMPLE
     // ใช้ residualControl แทน
 }
+```
 
-// PISO - Transient with small time steps
+**PISO - Transient with small time steps:**
+```cpp
 PISO
 {
     nCorrectors                 2;    // Pressure corrections per time step
     nNonOrthogonalCorrectors    1;
-    
+
     // ไม่มี nOuterCorrectors
     // ไม่มี residualControl
 }
+```
 
-// PIMPLE - Transient with large time steps
+**PIMPLE - Transient with large time steps:**
+```cpp
 PIMPLE
 {
     nOuterCorrectors            2;    // Like SIMPLE iterations (per time step)
     nCorrectors                 1;    // PISO corrections (per outer iteration)
     nNonOrthogonalCorrectors    0;
-    
+
     residualControl
     {
         p   1e-3;
@@ -922,9 +1599,21 @@ PIMPLE
 ```
 
 **Key Differences:**
-1. **SIMPLE:** ไม่มี `nCorrectors`, มี `residualControl`
-2. **PISO:** มี `nCorrectors`, ไม่มี `nOuterCorrectors`, ไม่มี `residualControl`
-3. **PIMPLE:** มีทั้งหมด — เป็นการรวม SIMPLE + PISO
+
+1. **SIMPLE:**
+   - ไม่มี `nCorrectors`
+   - มี `residualControl`
+   - มี `nOuterCorrectors` (default = number of iterations)
+
+2. **PISO:**
+   - มี `nCorrectors`
+   - ไม่มี `nOuterCorrectors`
+   - ไม่มี `residualControl`
+
+3. **PIMPLE:**
+   - มีทั้งหมด — เป็นการรวม SIMPLE + PISO
+   - `nOuterCorrectors` ควบคุม SIMPLE-like iterations
+   - `nCorrectors` ควบคุม PISO-like corrections
 
 **Self-Verification:**
 - [ ] SIMPLE ใช้กับ steady-state เท่านั้น?
@@ -939,18 +1628,51 @@ PIMPLE
 // ถ้า Co = 0.5-1: ใช้ PIMPLE (nOuterCorrectors = 1-2)
 // ถ้า Co > 1: ใช้ PIMPLE (nOuterCorrectors = 2-3)
 ```
+
+**Algorithm Selection Flowchart:**
+```
+Start
+  ↓
+Steady-state?
+  Yes → SIMPLE
+  No  ↓
+  Courant number?
+    Co < 0.5 → PISO
+    Co > 0.5 → PIMPLE
+```
+
+**Performance Comparison:**
+
+| Algorithm | Iterations/Time Step | CPU Time/Step | Total CPU Time |
+|-----------|---------------------|---------------|----------------|
+| SIMPLE | 10-100 (until converge) | Medium | Low (steady only) |
+| PISO | 2-4 | Low | Medium (many steps) |
+| PIMPLE | 5-20 | High | High (large steps) |
+
+**Common Pitfalls:**
+- ❌ ใช้ SIMPLE กับ transient → wrong algorithm
+- ❌ ใช้ PISO กับ Co > 1 → unstable
+- ❌ ใช้ PIMPLE กับ steady → waste of time
+- ❌ ลืมตั้ง nOuterCorrectors → PIMPLE ทำงานเหมือน PISO
 </details>
+
+**🔗 Related Topics:**
+- → [Exercise 3: Solver Selection](#exercise-3-เลือก-solver)
+- → [Concept Check 3: nNonOrthogonalCorrectors](#concept-check)
 
 ---
 
 ## 🎯 Mini-Project: Set Up Your First Pipe Flow Case
 
-**⚙️ ระดับ:** Advanced | **⏱️ เวลา:** 2-3 ชั่วโมง | **📖 Prerequisites:** ทุกไฟล์ในบทนี้
+> **"ความรู้ทางทฤษฎีไม่เพียงพอ — ต้องลงมือปฏิบัติจริง"**
+
+**⚙️ ระดับ:** 🔴 Advanced | **⏱️ เวลา:** 2-3 ชั่วโมง | **📖 Prerequisites:** ทุกไฟล์ในบทนี้
 
 ### Learning Outcomes
 - ตั้งค่า OpenFOAM case ตั้งแต่เริ่มจนจบ
 - ประยุกต์ใช้ทฤษฎีทั้งหมดในบทนี้
 - Analyze และ validate ผลลัพธ์
+- Debug ปัญหาที่เกิดขึ้นระหว่างการรัน
 
 ### ภารกิจ
 
@@ -964,10 +1686,22 @@ PIMPLE
 - Wall treatment: Wall functions ($y^+ \approx 30-100$)
 
 **Success Criteria:**
-1. Simulation converges ภายใน 1000 iterations
-2. Final y+ อยู่ในช่วง 30-100
-3. Pressure drop สอดคล้องกับ Darcy-Weisbach correlation
-4. Velocity profile แสดงลักษณะ turbulent
+1. ✅ Simulation converges ภายใน 1000 iterations
+2. ✅ Final y+ อยู่ในช่วง 30-100
+3. ✅ Pressure drop สอดคล้องกับ Darcy-Weisbach correlation (± 20%)
+4. ✅ Velocity profile แสดงลักษณะ turbulent
+
+### 📊 Evaluation Rubric
+
+| Criteria | Excellent (10 pts) | Good (7 pts) | Satisfactory (4 pts) | Needs Improvement (0 pts) |
+|----------|-------------------|--------------|---------------------|--------------------------|
+| **Convergence** | < 500 iterations, residuals < 1e-6 | 500-1000 iterations, residuals < 1e-5 | 1000-1500 iterations, residuals < 1e-4 | > 1500 iterations or residuals > 1e-4 |
+| **y+ Compliance** | 45-55 (ideal range) | 30-100 (acceptable) | 20-30 or 100-120 (borderline) | < 20 or > 120 (unacceptable) |
+| **Physics Accuracy** | Δp within ±10% of theory | Δp within ±20% of theory | Δp within ±30% of theory | Δp error > ±30% |
+| **Code Quality** | Clean, documented, reusable | Mostly clean, some comments | Basic structure, minimal comments | Disorganized, hard to follow |
+| **Documentation** | Complete with screenshots | Good documentation | Basic documentation | Little to no documentation |
+
+**Passing Score:** 28/40 points (70%)
 
 ### Common Pitfalls
 - ❌ **ไม่คำนวณพารามิเตอร์เริ่มต้น:** กำหนด mesh แบบสุ่ม
@@ -980,10 +1714,10 @@ PIMPLE
 ### Step 1: Pre-processing (30 นาที)
 
 **Tasks:**
-1. คำนวณ Reynolds number
-2. คำนวณ first cell height
-3. สร้าง mesh
-4. ตรวจสอบ mesh quality
+1. ✅ คำนวณ Reynolds number
+2. ✅ คำนวณ first cell height
+3. ✅ สร้าง mesh
+4. ✅ ตรวจสอบ mesh quality
 
 <details>
 <summary><b>💡 Hint: Calculations</b></summary>
@@ -1004,13 +1738,23 @@ $$Re = \frac{U D}{\nu} = \frac{5 \times 0.1}{10^{-6}} = 500,000 \text{ (Turbulen
 **4. BlockMesh Template:**
 ```cpp
 // system/blockMeshDict
+convertToMeters 1;
+
 vertices
 (
     (0 0 0)              // 0
     (1 0 0)              // 1
     (1 0.05 0)           // 2  (radius = 0.05 m)
     (0 0.05 0)           // 3
-    // ... เพิ่ม z-direction
+    (0 0 0.1)            // 4
+    (1 0 0.1)            // 5
+    (1 0.05 0.1)         // 6
+    (0 0.05 0.1)         // 7
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (200 50 20) simpleGrading (1 1 1)
 );
 
 boundary
@@ -1019,6 +1763,7 @@ boundary
     outlet   { type patch; faces ((1 2 6 5)); }
     walls    { type wall;  faces ((3 2 6 7)); }
     axis     { type empty; faces ((0 1 5 4)); }
+    frontAndBack { type empty; faces ((0 1 2 3)(4 5 6 7)); }
 );
 ```
 
@@ -1040,10 +1785,10 @@ checkMesh -allTopology -allGeometry
 ### Step 2: Boundary Conditions (45 นาที)
 
 **Tasks:**
-1. สร้าง 0/U
-2. สร้าง 0/p
-3. สร้าง 0/k
-4. สร้าง 0/epsilon
+1. ✅ สร้าง 0/U
+2. ✅ สร้าง 0/p
+3. ✅ สร้าง 0/k
+4. ✅ สร้าง 0/epsilon
 
 <details>
 <summary><b>💡 Hint: Turbulence Parameters</b></summary>
@@ -1058,7 +1803,7 @@ checkMesh -allTopology -allGeometry
 **0/U:**
 ```cpp
 dimensions      [0 1 -1 0 0 0 0];
-internalField   uniform (5 0 0);  // หรือ (0 0 0) ถ้าต้องการ
+internalField   uniform (5 0 0);
 
 boundaryField
 {
@@ -1076,6 +1821,10 @@ boundaryField
         type    noSlip;
     }
     axis
+    {
+        type    empty;
+    }
+    frontAndBack
     {
         type    empty;
     }
@@ -1103,6 +1852,10 @@ boundaryField
         type    zeroGradient;
     }
     axis
+    {
+        type    empty;
+    }
+    frontAndBack
     {
         type    empty;
     }
@@ -1134,6 +1887,10 @@ boundaryField
     {
         type    empty;
     }
+    frontAndBack
+    {
+        type    empty;
+    }
 }
 ```
 
@@ -1162,6 +1919,10 @@ boundaryField
     {
         type    empty;
     }
+    frontAndBack
+    {
+        type    empty;
+    }
 }
 ```
 
@@ -1172,6 +1933,8 @@ RAS
 {
     RASModel        kEpsilon;
     turbulence      on;
+
+    printCoeffs     on;
 }
 ```
 </details>
@@ -1189,9 +1952,9 @@ RAS
 ### Step 3: Solver Settings (30 นาที)
 
 **Tasks:**
-1. สร้าง system/controlDict
-2. สร้าง system/fvSchemes
-3. สร้าง system/fvSolution
+1. ✅ สร้าง system/controlDict
+2. ✅ สร้าง system/fvSchemes
+3. ✅ สร้าง system/fvSolution
 
 <details>
 <summary><b>💡 Hint: Settings</b></summary>
@@ -1199,6 +1962,7 @@ RAS
 **system/controlDict:**
 ```cpp
 application     simpleFoam;
+
 startFrom       startTime;
 startTime       0;
 stopAt          endTime;
@@ -1261,14 +2025,15 @@ solvers
         solver          GAMG;
         tolerance       1e-06;
         relTol          0.1;
+        smoother        GaussSeidel;
     }
-    
+
     pFinal
     {
         $p;
         relTol          0;
     }
-    
+
     U
     {
         solver          smoothSolver;
@@ -1276,7 +2041,7 @@ solvers
         tolerance       1e-05;
         relTol          0.1;
     }
-    
+
     k
     {
         solver          smoothSolver;
@@ -1284,7 +2049,7 @@ solvers
         tolerance       1e-05;
         relTol          0.1;
     }
-    
+
     epsilon
     {
         $k;
@@ -1294,7 +2059,7 @@ solvers
 SIMPLE
 {
     nNonOrthogonalCorrectors 1;
-    
+
     residualControl
     {
         p       1e-5;
@@ -1339,11 +2104,11 @@ nu              [0 2 -1 0 0 0 0] 1e-6;  // Water
 ### Step 4: Run and Post-process (45 นาที)
 
 **Tasks:**
-1. รัน simulation
-2. ตรวจสอบ convergence
-3. คำนวณ y+
-4. ดูผลลัพธ์ใน ParaView
-5. Validate ผลลัพธ์
+1. ✅ รัน simulation
+2. ✅ ตรวจสอบ convergence
+3. ✅ คำนวณ y+
+4. ✅ ดูผลลัพธ์ใน ParaView
+5. ✅ Validate ผลลัพธ์
 
 <details>
 <summary><b>💡 Hint: Commands and Analysis</b></summary>
@@ -1398,12 +2163,12 @@ paraFoam -builtin
 ```
 
 **What to check:**
-- Velocity profile:
+- **Velocity profile:**
   - ตรงกลางท่อ → แบน (flat) สำหรับ turbulent
   - ใกล้ผนัง → velocity gradient สูง
-- Pressure drop:
+- **Pressure drop:**
   - Linear decrease ตามความยาวท่อ
-- Wall y+:
+- **Wall y+:**
   - ดู contour ของ y+ บน wall
   - ต้องอยู่ในช่วง 30-100
 
@@ -1502,17 +2267,20 @@ pipeFlow/
 <summary><b>คำตอบ</b></summary>
 
 **คำตอบ:**
-- **`fvm::` (Finite Volume Matrix):** Implicit discretization
-  - สร้าง matrix coefficients
-  - แก้ร่วมกับ unknown values ใน system of equations
-  - Field เป็น unknown ที่ต้องการแก้
-  - ตัวอย่าง: `fvm::ddt(T)`, `fvm::div(phi, T)`, `fvm::laplacian(D, T)`
 
-- **`fvc::` (Finite Volume Calculus):** Explicit discretization
-  - คำนวณจาก field ปัจจุบันที่รู้ค่าแล้ว
-  - ใส่ใน source term
-  - Field เป็น known value
-  - ตัวอย่าง: `fvc::grad(p)`, `fvc::div(phi)`, `fvc::laplacian(nu, U)`
+**`fvm::` (Finite Volume Matrix):** Implicit discretization
+- สร้าง matrix coefficients
+- แก้ร่วมกับ unknown values ใน system of equations
+- Field เป็น unknown ที่ต้องการแก้
+- เสถียรกว่า สำหรับ large time steps
+- ตัวอย่าง: `fvm::ddt(T)`, `fvm::div(phi, T)`, `fvm::laplacian(D, T)`
+
+**`fvc::` (Finite Volume Calculus):** Explicit discretization
+- คำนวณจาก field ปัจจุบันที่รู้ค่าแล้ว
+- ใส่ใน source term (right-hand side)
+- Field เป็น known value
+- เร็วกว่า แต่อาจ unstable
+- ตัวอย่าง: `fvc::grad(p)`, `fvc::div(phi)`, `fvc::laplacian(nu, U)`
 
 **เลือกใช้:**
 - `fvm::` เมื่อ field เป็น unknown ที่ต้องการแก้
@@ -1617,7 +2385,7 @@ Non-orthogonality check Max: 75.2 average: 15.3
 - Turbulence: 0.5-0.8
 - Temperature: 0.8-0.9
 
-**Trade-off:** 
+**Trade-off:**
 - ค่าน้อย (α ↓) = เสถียร แต่ช้า (iterations มาก)
 - ค่ามาก (α ↑) = เร็ว แต่อาจ diverge
 
@@ -1625,12 +2393,12 @@ Non-orthogonality check Max: 75.2 average: 15.3
 ```cpp
 relaxationFactors
 {
-    fields 
-    { 
+    fields
+    {
         p   0.3;  // Pressure - ใช้ค่าต่ำ เพราะ sensitive
     }
-    equations 
-    { 
+    equations
+    {
         U   0.5;  // Velocity - ใช้ค่าปานกลาง
         k   0.5;  // Turbulence - ใช้ค่าปานกลาง
     }
@@ -1664,7 +2432,7 @@ relaxationFactors
 - ใช้ค่าจาก upstream cell
 - Numerical diffusion สูง (diffuse gradients)
 - ไม่มี oscillations (bounded)
-- เหมาะสำหรับ: 
+- เหมาะสำหรับ:
   - Initial iterations (stability)
   - Turbulence quantities (k, epsilon, omega)
   - Cases ที่ accuracy ไม่สำคัญ
@@ -1673,7 +2441,7 @@ relaxationFactors
 - ใช้ linear reconstruction จาก upstream, พิจารณา gradient
 - แม่นยำกว่า (2nd order)
 - Stable กว่า `linear` เพราะใช้ upwind-biased reconstruction
-- เหมาะสำหรับ: 
+- เหมาะสำหรับ:
   - Momentum equations
   - Final converged solutions
   - Cases ที่ต้องการ accuracy สูง

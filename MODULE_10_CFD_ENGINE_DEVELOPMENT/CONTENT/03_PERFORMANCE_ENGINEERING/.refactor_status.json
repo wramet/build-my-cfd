@@ -1,0 +1,10 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Profiling_Tools.md",
+        "02_Memory_Layout_Cache.md",
+        "03_Loop_Optimization.md",
+        "04_Parallel_Scaling.md"
+    ],
+    "skipped": []
+}

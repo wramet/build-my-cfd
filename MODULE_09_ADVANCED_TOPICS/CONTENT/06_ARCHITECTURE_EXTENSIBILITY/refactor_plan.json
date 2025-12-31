@@ -1,0 +1,13 @@
+{
+    "files": {
+        "00_Overview.md": "Add explicit Learning Objectives section at the beginning. Create Key Takeaways section summarizing the 5 core extensibility mechanisms. The Quick Reference table is good - keep it.",
+        "01_Introduction.md": "Strong redundancy with 00_Overview.md - the extensibility features table is nearly identical. Either merge this content into 00_Overview or differentiate it by focusing on WHY extensibility matters (motivation) rather than WHAT it is (features). Add Learning Objectives.",
+        "02_Runtime_Selection_Tables.md": "Good technical depth. Add Learning Objectives. The macro reference table is excellent. Consider adding a complete minimal working example showing all pieces together.",
+        "03_Dynamic_Library_Loading.md": "Missing the critical HOW - step-by-step compilation process with actual Make/files example. Add Learning Objectives. The 'What Happens on Load' section is good but should be expanded with timing details.",
+        "04_FunctionObject_Integration.md": "Strong practical content. Add Learning Objectives. The built-in function objects table is valuable. Add a complete working example showing execute() and write() implementation.",
+        "05_Design_Patterns.md": "Good conceptual mapping. Add Learning Objectives. The pattern-to-OpenFOAM mapping table is excellent. Consider adding sequence diagrams for the key patterns.",
+        "06_Common_Errors_and_Debugging.md": "Good troubleshooting focus. Add Learning Objectives. Consider adding a debugging flowchart. Each error section could benefit from 'prevention' subsections.",
+        "07_Practical_Exercise.md": "Exercises are skeletal - they need complete working code examples, not fragments. Add expected outcomes and verification steps for each exercise. Add Learning Objectives."
+    },
+    "global_strategy": "This folder has significant redundancy between 00_Overview and 01_Introduction (~70% overlap in extensibility concepts). Apply 3W Framework by redistributing: 00_Overview = WHAT (architecture overview, all mechanisms), 01_Introduction = WHY (motivation, benefits, when to use each mechanism), 02-05 = HOW (detailed implementation). All files need explicit Learning Objectives at the top and Key Takeaways at the bottom. The practical exercises need to be complete, runnable examples with verification steps, not code fragments."
+}

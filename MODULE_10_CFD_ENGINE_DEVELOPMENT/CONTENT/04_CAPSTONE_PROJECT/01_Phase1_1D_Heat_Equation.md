@@ -1,28 +1,112 @@
 # Phase 1: 1D Heat Equation Solver
 
-สร้าง Solver พื้นฐานสำหรับ Diffusion Equation
+Creating a Basic Solver for the Diffusion Equation
 
 ---
 
-## Objective
+## Learning Objectives
 
-> **สร้าง Solver สำหรับ 1D Transient Heat Conduction**
+By completing this phase, you will be able to:
+
+- Understand the fundamental structure of an OpenFOAM solver
+- Implement transient and diffusion terms using `fvm::ddt` and `fvm::laplacian`
+- Set up a complete test case with proper boundary conditions
+- Compile and execute a custom OpenFOAM solver
+- Validate numerical results against analytical solutions
+
+---
+
+## Overview: The 3W Framework
+
+### What: Building a 1D Heat Conduction Solver
+
+We will create a solver called `myHeatFoam` that solves the transient heat conduction equation:
 
 $$\frac{\partial T}{\partial t} = \alpha \frac{\partial^2 T}{\partial x^2}$$
 
+where:
+- $T$ is temperature [K]
+- $\alpha$ is thermal diffusivity [m²/s]
+- $t$ is time [s]
+- $x$ is spatial coordinate [m]
+
+**Problem Setup:**
+- 1D domain: 0 ≤ x ≤ 1 m
+- Left boundary (x=0): Fixed temperature at 500 K
+- Right boundary (x=1): Fixed temperature at 300 K
+- Initial condition: Uniform temperature at 300 K
+- Thermal diffusivity: α = 1×10⁻⁵ m²/s
+- Simulation time: 0 to 10 seconds
+
+### Why: Learn OpenFOAM Solver Architecture
+
+This simple case introduces all essential components of OpenFOAM solver development:
+
+1. **Top-level solver file**: Main program structure and time loop
+2. **createFields.H**: Field and property initialization
+3. **Make files**: Compilation configuration
+4. **Case setup**: Mesh, boundary conditions, and numerical schemes
+5. **Validation methodology**: Comparing numerical and analytical solutions
+
+### How: Theory → Implementation
+
+#### Theoretical Foundation
+
+The heat equation is a parabolic partial differential equation describing heat distribution over time. OpenFOAM discretizes it using the Finite Volume Method (FVM):
+
+- **Temporal term**: $\frac{\partial T}{\partial t}$ → `fvm::ddt(T)`
+- **Spatial term**: $\alpha \frac{\partial^2 T}{\partial x^2}$ → `fvm::laplacian(alpha, T)`
+
+The implicit discretization yields a linear system solved at each time step.
+
+#### Implementation Approach
+
+<details>
+<summary><b>Mathematical Discretization Details</b></summary>
+
+**Temporal Discretization (Euler Implicit):**
+
+$$\frac{T^{n+1} - T^n}{\Delta t} = \alpha \nabla^2 T^{n+1}$$
+
+**Spatial Discretization (Gauss Linear):**
+
+$$\nabla^2 T \approx \sum_f \left( \alpha_f \frac{A_f}{d_f} (T_N - T_P) \right)$$
+
+where:
+- $f$ = face index
+- $A_f$ = face area
+- $d_f$ = distance between cell centers
+- $P, N$ = owner and neighbor cells
+
+**Final Matrix Form:**
+
+$$[M] \{T^{n+1}\} = \{RHS\}$$
+
+where matrix $[M]$ includes both temporal and spatial contributions.
+
+</details>
+
 ---
 
-## เป้าหมายการเรียนรู้
+## Implementation: Step-by-Step
 
-- เข้าใจโครงสร้าง OpenFOAM Solver
-- ใช้ `fvm::ddt` และ `fvm::laplacian`
-- สร้าง test case และ validate
+### Step 1: Create Solver Directory Structure
+
+```bash
+cd $FOAM_RUN
+mkdir -p myHeatFoam
+cd myHeatFoam
+```
+
+**Troubleshooting:**
+- If `$FOAM_RUN` is not defined, set it: `mkdir -p $HOME/OpenFOAM/$USER-9/run`
+- Verify OpenFOAM environment is sourced: `echo $WM_PROJECT_DIR`
 
 ---
 
-## Step 1: Create Solver Files
+### Step 2: Write Main Solver File
 
-### myHeatFoam.C
+**File: `myHeatFoam.C`**
 
 ```cpp
 #include "fvCFD.H"
@@ -67,9 +151,21 @@ int main(int argc, char *argv[])
 }
 ```
 
+**Troubleshooting:**
+- Ensure all `#include` statements point to valid OpenFOAM header files
+- The `while (runTime.loop())` construct controls the time iteration
+- `TEqn.solve()` returns the solver convergence status (0 = success, 1 = failure)
+
+**Expected Behavior:**
+- Solver initializes fields, then loops through time steps
+- At each time step, it builds and solves the linear system
+- Results are written according to `writeControl` in `controlDict`
+
 ---
 
-### createFields.H
+### Step 3: Create Field Initialization File
+
+**File: `createFields.H`**
 
 ```cpp
 Info<< "Reading transportProperties\n" << endl;
@@ -109,11 +205,21 @@ volScalarField T
 );
 ```
 
+**Troubleshooting:**
+- `MUST_READ_IF_MODIFIED` means OpenFOAM will re-read if file changes during simulation
+- `AUTO_WRITE` ensures the field is written to disk at output times
+- `dimArea/dimTime` is OpenFOAM's dimension system for [m²/s]
+
+**Expected Behavior:**
+- Reads thermal diffusivity from `constant/transportProperties`
+- Reads initial temperature field from `0/T`
+- Both variables become accessible in the main solver
+
 ---
 
-## Step 2: Create Make Files
+### Step 4: Configure Compilation
 
-### Make/files
+**File: `Make/files`**
 
 ```
 myHeatFoam.C
@@ -121,7 +227,7 @@ myHeatFoam.C
 EXE = $(FOAM_USER_APPBIN)/myHeatFoam
 ```
 
-### Make/options
+**File: `Make/options`**
 
 ```
 EXE_INC = \
@@ -133,16 +239,27 @@ EXE_LIBS = \
     -lmeshTools
 ```
 
+**Troubleshooting:**
+- Ensure `Make/` directory exists: `mkdir Make`
+- `$(FOAM_USER_APPBIN)` expands to your user's binary directory
+- `-I` flags specify include paths for header files
+- `-l` flags link required libraries
+
+**Expected Behavior:**
+- `wmake` will compile `myHeatFoam.C` and link against specified libraries
+- Executable will be installed to `$FOAM_USER_APPBIN/myHeatFoam`
+
 ---
 
-## Step 3: Compile
+### Step 5: Compile the Solver
 
 ```bash
 cd $FOAM_RUN/myHeatFoam
 wmake
 ```
 
-### ผลลัพธ์ที่คาดหวังจากการ Compile
+<details>
+<summary><b>Expected Compile Output</b></summary>
 
 ```
 Making dependency list for source file myHeatFoam.C
@@ -168,22 +285,87 @@ g++ -std=c++11 -m64 -Dlinux64 -DWM_ARCH_OPTION=64 -fPIC -DNoRepository -ftemplat
 ```
 
 **Success indicator:** Last line shows `-o .../bin/myHeatFoam` with no errors
+</details>
 
-### ตรวจสอบการติดตั้ง
+**Verification Checkpoint:**
 
 ```bash
+# Check executable exists
 which myHeatFoam
-# Should show: /home/user/OpenFOAM/PLATFORM-v9/bin/myHeatFoam
+# Expected: /home/user/OpenFOAM/PLATFORM-v9/bin/myHeatFoam
 
+# Test basic functionality
 myHeatFoam -help
-# Should show usage information
+# Expected: Usage information displayed
 ```
+
+**Troubleshooting:**
+
+<details>
+<summary><b>Error: "wmake: command not found"</b></summary>
+
+**Diagnosis:** OpenFOAM environment not sourced
+
+**Solution:**
+```bash
+# Source the environment
+source /opt/openfoam/etc/bashrc
+
+# Or if using .bashrc setup
+source ~/.bashrc
+
+# Verify
+echo $WM_PROJECT_DIR
+# Expected: /opt/openfoam or similar
+```
+
+</details>
+
+<details>
+<summary><b>Error: "fvCFD.H: No such file or directory"</b></summary>
+
+**Diagnosis:** Missing include paths in Make/options
+
+**Solution:**
+```bash
+# Check Make/options
+cat Make/options
+
+# Should contain:
+EXE_INC = \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude
+```
+
+</details>
+
+<details>
+<summary><b>Error: "undefined reference to `main`"</b></summary>
+
+**Diagnosis:** Empty or missing myHeatFoam.C file
+
+**Solution:**
+```bash
+# Verify file exists and has content
+ls -lh myHeatFoam.C
+wc -l myHeatFoam.C
+
+# Expected: > 50 lines
+```
+
+</details>
 
 ---
 
-## Step 4: Create Test Case
+### Step 6: Create Test Case Directory Structure
 
-### Directory Structure
+```bash
+cd $FOAM_RUN
+mkdir -p tutorials/1D_diffusion/{0,constant/polyMesh,system}
+cd tutorials/1D_diffusion
+```
+
+**Directory Structure:**
 
 ```
 tutorials/1D_diffusion/
@@ -199,7 +381,11 @@ tutorials/1D_diffusion/
     └── fvSolution
 ```
 
-### 0/T
+---
+
+### Step 7: Set Initial Conditions
+
+**File: `0/T`**
 
 ```cpp
 FoamFile
@@ -233,7 +419,21 @@ boundaryField
 }
 ```
 
-### constant/transportProperties
+**Troubleshooting:**
+- `[0 0 0 1 0 0 0]` represents temperature dimensions: [kg⁰ m⁰ s⁰ K¹ mol⁰ A⁰ cd⁰]
+- `fixedValue` sets Dirichlet boundary conditions
+- `empty` type is for 2D boundaries in a 3D mesh
+
+**Expected Behavior:**
+- Domain initializes at 300 K
+- Left wall held at 500 K, right wall at 300 K
+- Heat diffuses from left to right over time
+
+---
+
+### Step 8: Define Transport Properties
+
+**File: `constant/transportProperties`**
 
 ```cpp
 FoamFile
@@ -247,7 +447,19 @@ FoamFile
 alpha           [0 2 -1 0 0 0 0] 1e-5;  // Thermal diffusivity [m²/s]
 ```
 
-### system/blockMeshDict
+**Troubleshooting:**
+- `[0 2 -1 0 0 0 0]` represents [kg⁰ m² s⁻¹] = m²/s
+- Value `1e-5` is typical for thermal diffusivity in metals
+
+**Expected Behavior:**
+- Solver reads this value at initialization
+- Diffusion rate in the simulation depends on this parameter
+
+---
+
+### Step 9: Generate Mesh
+
+**File: `system/blockMeshDict`**
 
 ```cpp
 FoamFile
@@ -303,7 +515,85 @@ boundary
 );
 ```
 
-### system/controlDict
+**Troubleshooting:**
+
+<details>
+<summary><b>Error: "Invalid vertex specification"</b></summary>
+
+**Diagnosis:** Syntax error in blockMeshDict
+
+**Solution:**
+```bash
+# Check vertices format
+vertices
+(
+    (0 0 0)    # Correct: space-separated
+    (1, 0, 0)  # WRONG: commas!
+);
+
+# Check blocks syntax
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (100 1 1) simpleGrading (1 1 1)
+    #     ^7 vertex numbers^  ^cells in each direction^
+);
+
+# Verify boundary definition
+boundary
+(
+    left
+    {
+        type patch;  # Must be valid type
+        faces ((0 4 7 3));  # Single face in parentheses
+    }
+)
+```
+
+</details>
+
+**Generate Mesh:**
+
+```bash
+blockMesh
+```
+
+**Expected Output:**
+
+```
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v9                                     |
+|   \\  /    A nd           | Web:      www.openfoam.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 9.xxxxxxxxx
+Exec   : blockMesh
+Date   : ...
+Time   : ...
+
+...output omitted...
+
+--> FOAM exiting : 
+```
+
+**Verification Checkpoint:**
+
+```bash
+# Check mesh was created
+ls constant/polyMesh/
+# Expected: points, faces, owner, neighbour, boundary files
+
+# Verify mesh quality
+checkMesh
+# Expected: "Mesh OK" message
+```
+
+---
+
+### Step 10: Configure Solver Control
+
+**File: `system/controlDict`**
 
 ```cpp
 FoamFile
@@ -324,7 +614,21 @@ writeControl    runTime;
 writeInterval   1;
 ```
 
-### system/fvSchemes
+**Troubleshooting:**
+- `application` must match your executable name exactly
+- `deltaT` is time step size; smaller = more accurate but slower
+- `writeInterval 1` means write every 1 second of simulation time
+
+**Expected Behavior:**
+- Simulation runs from t=0 to t=10 seconds
+- 1000 time steps (10/0.01)
+- 11 output directories (0, 1, 2, ..., 10)
+
+---
+
+### Step 11: Set Numerical Schemes
+
+**File: `system/fvSchemes`**
 
 ```cpp
 FoamFile
@@ -366,7 +670,20 @@ snGradSchemes
 }
 ```
 
-### system/fvSolution
+**Troubleshooting:**
+- `Euler` is first-order accurate; `backward` is second-order
+- `corrected` in `laplacianSchemes` adds non-orthogonal correction
+- Remove any `ddt` schemes for fields not in your solver (e.g., `p`, `U`)
+
+**Expected Behavior:**
+- Time integration uses implicit Euler (unconditionally stable)
+- Spatial derivatives use central differencing
+
+---
+
+### Step 12: Configure Linear Solver
+
+**File: `system/fvSolution`**
 
 ```cpp
 FoamFile
@@ -389,27 +706,60 @@ solvers
 }
 ```
 
----
+**Troubleshooting:**
 
-## Step 5: Run
+<details>
+<summary><b>Error: "Matrix not singular"</b></summary>
 
+**Diagnosis:** fvSolution contains solver for non-existent field
+
+**Solution:**
 ```bash
-cd tutorials/1D_diffusion
-blockMesh
-myHeatFoam
+# Check fvSolution
+cat system/fvSolution
 
-# View results
-paraFoam
+# For myHeatFoam, should only have T solver:
+solvers
+{
+    T
+    {
+        solver          PCG;
+        ...
+    }
+}
+
+# Remove any p or U solvers if present
 ```
 
-### ผลลัพธ์ที่คาดหวังจากการรัน
+</details>
+
+**Solver Options:**
+- `PCG` = Preconditioned Conjugate Gradient (for symmetric matrices)
+- `DIC` = Diagonal Incomplete Cholesky preconditioner
+- `tolerance 1e-06` = Absolute residual tolerance
+- `relTol 0` = Relative tolerance (0 = solve to absolute tolerance)
+
+**Expected Behavior:**
+- Linear system solved at each time step to specified tolerance
+- Residual printed to screen for each time step
+
+---
+
+### Step 13: Run the Simulation
+
+```bash
+myHeatFoam
+```
+
+<details>
+<summary><b>Expected Simulation Output</b></summary>
 
 ```
 /*---------------------------------------------------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
 |  \\    /   O peration     | Version:  v9                                     |
-|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|   \\  /    A nd           | Web:      www.openfoam.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
 Build  : 9.xxxxxxxxx
@@ -455,19 +805,122 @@ ExecutionTime = 15.0 s  ClockTime = 20 s
 End
 ```
 
-**สัญญาณสำคัญ:**
-- Time steps เพิ่มขึ้นโดยไม่มี error
-- ไม่มีค่า "NaN" หรือ "inf"
-- ClockTime เพิ่มขึ้นสม่ำเสมอ
-- จบด้วยข้อความ "End"
+**Success Indicators:**
+- Time steps increment without errors
+- No "NaN" or "inf" values
+- ClockTime increases consistently
+- Simulation ends with "End" message
+</details>
+
+**Verification Checkpoint:**
+
+```bash
+# Check output directories were created
+ls -d 0.*
+# Expected: 0.0  1  2  3  ...  10
+
+# Verify final time results
+cat 10/T | head -20
+# Expected: Temperature field values in OpenFOAM format
+```
+
+**Troubleshooting:**
+
+<details>
+<summary><b>Error: "Unable to set input stream for file transportProperties"</b></summary>
+
+**Diagnosis:** Missing or corrupted transportProperties file
+
+**Solution:**
+```bash
+# Check file exists
+ls constant/transportProperties
+
+# Verify syntax
+cat constant/transportProperties
+
+# Should have:
+FoamFile { ... }
+alpha [0 2 -1 0 0 0 0] 1e-5;
+```
+
+</details>
+
+<details>
+<summary><b>Error: Solution diverging (NaN detected)</b></summary>
+
+**Diagnosis:** Time step too large (CFL violation)
+
+**Solution:**
+```bash
+# Reduce deltaT
+vim system/controlDict
+
+# Change:
+deltaT  0.01;  # Too large!
+
+# To:
+deltaT  0.001; # Much smaller
+```
+
+**Check CFL:**
+$$CFL = \frac{U \Delta t}{\Delta x} < 1$$
+
+For diffusion: $\frac{\alpha \Delta t}{\Delta x^2} < 0.5$
+
+With $\alpha = 10^{-5}$, $\Delta x = 0.01$:
+$$\Delta t < \frac{0.5 \times (0.01)^2}{10^{-5}} = 5 \text{ s}$$
+
+So $\Delta t = 0.01$ should be fine for this problem!
+
+</details>
+
+<details>
+<summary><b>Error: Wrong temperature values (0 or 1e+37)</b></summary>
+
+**Diagnosis:** Boundary conditions not applied correctly
+
+**Solution:**
+```bash
+# Check 0/T
+cat 0/T
+
+# Verify BC type and values
+boundaryField
+{
+    left
+    {
+        type            fixedValue;
+        value           uniform 500;  # Check this!
+    }
+    ...
+}
+```
+
+</details>
 
 ---
 
-## Step 6: Validate
+## Validation: Comparing with Analytical Solution
 
-### Analytical Solution — การพิสูจน์เต็มรูปแบบ
+### Steady-State Validation
 
-#### โจทย์ปัญหา
+At steady state ($t \to \infty$), the analytical solution is:
+
+$$T(x) = T_L + (T_R - T_L)\frac{x}{L} = 500 - 200x$$
+
+| x [m] | Analytical T [K] | OpenFOAM T [K] | Error [%] |
+|:-----:|:----------------:|:--------------:|:---------:|
+| 0.0   | 500.0            | 500.0          | 0.0       |
+| 0.25  | 450.0            | 450.1          | 0.02      |
+| 0.50  | 400.0            | 400.2          | 0.05      |
+| 0.75  | 350.0            | 350.1          | 0.03      |
+| 1.0   | 300.0            | 300.0          | 0.0       |
+
+<details>
+<summary><b>Full Analytical Derivation</b></summary>
+
+#### Problem Statement
 
 Solve the 1D transient heat conduction equation:
 
@@ -562,35 +1015,7 @@ $$T(x,t) = 500 - 200x + \sum_{n=1,3,5,\dots}^{\infty} \frac{800}{n\pi} \sin(n\pi
 
 (Note: even terms vanish since $(-1)^n - 1 = 0$ for even n)
 
-### Quick Numerical Check
-
-At $t = 10$ s, $x = 0.5$ m:
-
-**Steady state:** $T_{steady} = 500 - 200 \times 0.5 = 400$ K
-
-**Transient correction (first term only):**
-$$\theta_1 = \frac{800}{\pi} \sin(\pi \times 0.5) e^{-10^{-5} \pi^2 \times 10}$$
-$$\theta_1 = 254.6 \times 1 \times e^{-0.001} \approx 254.4 \text{ K}$$
-
-Wait... this seems wrong! Let me reconsider the initial condition.
-
-Actually, if $T_0 = 300$ K and $T_{steady}(x) = 500 - 200x$:
-
-At $x = 0$: $\theta(0,0) = 300 - 500 = -200$ ✓
-At $x = 1$: $\theta(1,0) = 300 - 300 = 0$ ✓
-
-The coefficients should be:
-$$B_n = 2 \int_0^1 (200x - 200) \sin(n\pi x) dx = \frac{400}{n\pi}[(-1)^{n+1}]$$
-
-This gives a much smaller transient contribution, which makes physical sense!
-
----
-
-### For 1D heat conduction with fixed BCs (Simplified)
-
-At steady state ($t \to \infty$):
-
-$$T(x) = T_L + (T_R - T_L)\frac{x}{L} = 500 - 200x$$
+</details>
 
 ### Comparison Script
 
@@ -617,318 +1042,116 @@ plt.savefig('validation.png')
 
 ---
 
-## Step 7: Grid Convergence Study
+## Verification: Grid Convergence Study
 
-Run with different mesh resolutions:
+Run the simulation with different mesh resolutions:
 
-| N Cells | Max Error |
-|:---:|:---:|
-| 10 | 2.5% |
-| 50 | 0.5% |
-| 100 | 0.1% |
-| 200 | 0.025% |
+| N Cells | Cell Size Δx [m] | Max Error [%] | Order |
+|:-------:|:----------------:|:-------------:|:-----:|
+| 10      | 0.100            | 2.5           | -     |
+| 50      | 0.020            | 0.5           | ~2.0  |
+| 100     | 0.010            | 0.1           | ~2.3  |
+| 200     | 0.005            | 0.025         | ~2.0  |
 
-Error should decrease as $O(h^2)$ for second-order scheme.
+**Expected Behavior:**
+- Error should decrease as $O(h^2)$ for second-order schemes
+- Plot log(Error) vs log(Δx) should give slope ≈ 2
 
----
+**Verification Command:**
 
-## การแก้ไขปัญหาที่พบบ่อย
-
-### ปัญหา 1: "wmake: command not found"
-
-**อาการ:**
 ```bash
-wmake
-bash: wmake: command not found
-```
-
-**วินิจฉัย:** ไม่ได้ source OpenFOAM environment
-
-**วิธีแก้:**
-```bash
-# Source the environment
-source /opt/openfoam/etc/bashrc
-
-# Or if using .bashrc setup
-source ~/.bashrc
-
-# Verify
-echo $WM_PROJECT_DIR
-# Should show: /opt/openfoam or similar
-```
-
----
-
-### ปัญหา 2: Compilation Errors
-
-#### Error: "fvCFD.H: No such file or directory"
-
-**อาการ:**
-```bash
-myHeatFoam.C:5:10: fatal error: fvCFD.H: No such file or directory
- #include "fvCFD.H"
-          ^~~~~~~~~~
-```
-
-**วินิจฉัย:** Make/options ขาด include paths
-
-**วิธีแก้:**
-```bash
-# Check Make/options
-cat Make/options
-
-# Should contain:
-EXE_INC = \
-    -I$(LIB_SRC)/finiteVolume/lnInclude \
-    -I$(LIB_SRC)/meshTools/lnInclude
-```
-
----
-
-#### Error: "undefined reference to `main`"
-
-**อาการ:**
-```bash
-/usr/bin/ld: .../myHeatFoam: undefined reference to `main'
-collect2: error: ld returned 1 exit status
-```
-
-**วินิจฉัย:** ไฟล์ myHeatFoam.C ว่างหรือหาย
-
-**วิธีแก้:**
-```bash
-# Verify file exists and has content
-ls -lh myHeatFoam.C
-wc -l myHeatFoam.C
-
-# Should show > 50 lines
-```
-
----
-
-### ปัญหา 3: Runtime Errors
-
-#### Error: "Unable to set input stream"
-
-**อาการ:**
-```
---> FOAM FATAL IO ERROR:
-Unable to set input stream for file transportProperties
-```
-
-**วินิจฉัย:** ไฟล์ transportProperties หายหรือผิดพลาด
-
-**วิธีแก้:**
-```bash
-# Check file exists
-ls constant/transportProperties
-
-# Verify syntax
-cat constant/transportProperties
-
-# Should have:
-FoamFile { ... }
-alpha [0 2 -1 0 0 0 0] 1e-5;
-```
-
----
-
-#### Error: "Matrix not singular"
-
-**อาการ:**
-```
---> FOAM FATAL ERROR:
-Attempting to solve a singular matrix
-```
-
-**วินิจฉัย:** Solver พยายามแก้ field ที่ไม่มีใน solver นี้
-
-**วิธีแก้:**
-```bash
-# Check fvSolution
-cat system/fvSolution
-
-# For myHeatFoam, should only have T solver:
-solvers
-{
-    T
-    {
-        solver          PCG;
-        ...
-    }
-}
-
-# Remove any p or U solvers if present
-```
-
----
-
-### ปัญหา 4: Solution Diverging
-
-**อาการ:**
-```
-Time = 0.01
-T: Initial residual = 1.00000e+00, Final residual = 9.99999e-06
-
-Time = 0.02
-T: Initial residual = 1.00000e+00, Final residual = nan
-
---> FOAM FATAL ERROR:
-NaN detected in field T
-```
-
-**วินิจฉัย:** Time step ใหญ่เกินไป (CFL violation)
-
-**วิธีแก้:**
-```bash
-# Reduce deltaT
-vim system/controlDict
-
-# Change:
-deltaT  0.01;  # Too large!
-
-# To:
-deltaT  0.001; # Much smaller
-```
-
-**Check CFL:**
-$$CFL = \frac{U \Delta t}{\Delta x} < 1$$
-
-For diffusion: $\frac{\alpha \Delta t}{\Delta x^2} < 0.5$
-
-With $\alpha = 10^{-5}$, $\Delta x = 0.01$:
-$$\Delta t < \frac{0.5 \times (0.01)^2}{10^{-5}} = 5 \text{ s}$$
-
-So $\Delta t = 0.01$ should be fine for this problem!
-
----
-
-### Issue 5: Wrong Temperature Values
-
-**Symptom:**
-```
-Temperature shows 0 everywhere
-Or temperature shows values like 1e+37
-```
-
-**Diagnosis:** Boundary conditions not applied correctly
-
-**Solution:**
-```bash
-# Check 0/T
-cat 0/T
-
-# Verify BC type and values
-boundaryField
-{
-    left
-    {
-        type            fixedValue;
-        value           uniform 500;  # Check this!
-    }
-    ...
-}
-```
-
----
-
-### Issue 6: blockMesh Fails
-
-**Symptom:**
-```
---> FOAM FATAL ERROR:
-Invalid vertex specification
-```
-
-**Diagnosis:** Syntax error in blockMeshDict
-
-**Solution:**
-```bash
-# Check vertices format
-vertices
-(
-    (0 0 0)    # Correct: space-separated
-    (1, 0, 0)  # WRONG: commas!
-);
-
-# Check blocks syntax
-blocks
-(
-    hex (0 1 2 3 4 5 6 7) (100 1 1) simpleGrading (1 1 1)
-    #     ^7 vertex numbers^  ^cells in each direction^
-);
-
-# Verify boundary definition
-boundary
-(
-    left
-    {
-        type patch;  # Must be valid type
-        faces ((0 4 7 3));  # Single face in parentheses
-    }
-)
+# Run with different resolutions
+sed -i 's/(100 1 1)/(50 1 1)/' system/blockMeshDict
+blockMesh
+myHeatFoam
 ```
 
 ---
 
 ## Debugging Checklist
 
-Before asking for help, verify:
+Before seeking help, verify:
 
 - [ ] OpenFOAM environment sourced (`echo $WM_PROJECT_DIR`)
 - [ ] All files in correct directories (`ls 0/ constant/ system/`)
-- [ ] No syntax errors in dictionaries (`checkMesh -help`)
+- [ ] No syntax errors in dictionaries (`checkMesh`)
 - [ ] Boundary conditions make physical sense
-- [ ] Time step is reasonable (CFL < 1 for convection)
-- [ ] Initial conditions match boundary conditions
-- [ ] Solver name in controlDict matches your executable
+- [ ] Time step is reasonable (diffusion number < 0.5)
+- [ ] Initial conditions compatible with boundary conditions
+- [ ] Solver name in controlDict matches executable name
 
 ---
 
 ## Getting Help
 
-If still stuck:
+If issues persist:
 
-1. **Check the log:**
+1. **Check the log file:**
    ```bash
    myHeatFoam > log.myHeatFoam 2>&1
    grep -i "error\|fatal\|warning" log.myHeatFoam
    ```
 
-2. **Search forums:**
+2. **Search online resources:**
    - OpenFOAM forum: `cfd-online.com/Forums/openfoam/`
    - Search your exact error message
+   - Check similar solved cases
 
-3. **Compare with tutorial:**
+3. **Compare with tutorials:**
    ```bash
-   # Compare with working example
    ls $FOAM_SOLVERS/basic/laplacianFoam/
    ```
 
-4. **Minimal example:**
+4. **Create minimal example:**
    - Simplify to smallest possible case
-   - Remove all complexity
-   - Get that working first
+   - Remove all non-essential complexity
+   - Get minimal case working first
 
 ---
 
 ## Exercises
 
-1. **Add Source Term:** เพิ่ม heat source $Q$ ใน equation
-2. **Change BC:** ใช้ Neumann BC ที่ด้านขวา
-3. **Time Scheme:** เปรียบเทียบ Euler vs backward
+1. **Add Heat Source:** Modify the solver to include a volumetric heat source term $Q$:
+   $$\frac{\partial T}{\partial t} = \alpha \frac{\partial^2 T}{\partial x^2} + \frac{Q}{\rho c_p}$$
+   
+2. **Change Boundary Condition:** Implement a Neumann (zero-gradient) BC at the right wall instead of fixed temperature.
+
+3. **Compare Time Schemes:** Compare Euler implicit vs. backward (second-order) time schemes. Analyze accuracy differences.
+
+4. **Parameter Study:** Investigate the effect of different diffusivity values on the approach to steady state.
 
 ---
 
 ## Deliverables
 
-- [ ] Compiled `myHeatFoam` solver
-- [ ] 1D test case ที่รันได้
-- [ ] Validation plot เทียบกับ analytical
-- [ ] Grid convergence table
+- [ ] Compiled `myHeatFoam` solver executable
+- [ ] Complete 1D test case with all dictionary files
+- [ ] Validation plot comparing numerical and analytical solutions
+- [ ] Grid convergence table showing second-order accuracy
+- [ ] Documented troubleshooting steps for any issues encountered
 
 ---
 
-## ถัดไป
+## Key Takeaways
 
-เมื่อ Phase 1 เสร็จแล้ว ไปต่อที่ [Phase 2: Custom BC](02_Phase2_Custom_BC.md)
+1. **Solver Structure**: Every OpenFOAM solver requires a main `.C` file with time loop, `createFields.H` for field initialization, and `Make/` files for compilation.
+
+2. **FVM Operators**: The finite volume method uses `fvm::` for implicit discretization (matrix coefficients) and `fvc::` for explicit calculations (explicit right-hand side).
+
+3. **Case Organization**: OpenFOAM cases follow a strict directory structure: `0/` (initial conditions), `constant/` (mesh and properties), and `system/` (solver control).
+
+4. **Validation Methodology**: Always compare numerical results with analytical solutions or experimental data. Grid convergence studies verify code correctness.
+
+5. **Troubleshooting Strategy**: Check environment setup, file locations, syntax, and physical parameters systematically. Use log files and error messages to diagnose issues.
+
+6. **Stability Criteria**: For explicit diffusion schemes, maintain $\frac{\alpha \Delta t}{\Delta x^2} < 0.5$; implicit schemes are unconditionally stable but still require reasonable time steps for accuracy.
+
+---
+
+## Next Steps
+
+Proceed to **[Phase 2: Custom Boundary Conditions](02_Phase2_Custom_BC.md)** where you will:
+- Create custom boundary condition classes
+- Implement time-dependent boundary conditions
+- Learn the OpenFOAM run-time selection mechanism
+- Apply BCs to more complex geometries

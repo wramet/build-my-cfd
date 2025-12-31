@@ -5,14 +5,13 @@
         "02_Conservation_Laws.md",
         "03_Equation_of_State.md",
         "04_Dimensionless_Numbers.md",
+        "05_OpenFOAM_Implementation.md",
         "06_Boundary_Conditions.md",
         "07_Initial_Conditions.md",
         "08_Key_Points_to_Remember.md",
-        "05_OpenFOAM_Implementation.md",
         "09_Exercises.md"
     ],
-    "skipped": [
-        "05_OpenFOAM_Implementation.md",
-        "09_Exercises.md"
-    ]
+    "skipped": [],
+    "last_updated": "2025-12-31",
+    "notes": "09_Exercises.md verified - contains all required elements: difficulty ratings, time estimates, prerequisites, collapsible hints/solutions, mini-project with evaluation rubric, learning objectives, visual navigation, glossary, self-verification checklists, and Common Pitfalls sections"
 }

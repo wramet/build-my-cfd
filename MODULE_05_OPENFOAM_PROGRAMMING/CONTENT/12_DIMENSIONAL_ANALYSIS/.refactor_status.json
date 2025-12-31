@@ -7,9 +7,8 @@
         "05_Advanced_Applications.md",
         "06_Common_Pitfalls.md",
         "01_Introduction.md",
-        "07_Summary_and_Exercises.md"
-    ],
-    "skipped": [
+        "07_Summary_and_Exercises.md",
         "01_Introduction.md"
-    ]
+    ],
+    "skipped": []
 }

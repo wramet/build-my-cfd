@@ -1,0 +1,10 @@
+{
+    "files": {
+        "00_Overview.md": "Add Learning Objectives section at the beginning. Add Key Takeaways section before Related Documents. The current structure is good but these two sections are missing per the 3W Framework standard.",
+        "01_Introduction.md": "Add Learning Objectives section. The Overview section should be restructured with clearer 'What' (Verification definition), 'Why' (importance), 'How' (methods) structure. Add Key Takeaways section before Related Documents. Remove redundant MMS code block that duplicates 02a content.",
+        "02a_Method_of_Manufactured_Solutions_MMS.md": "This is the strongest file with good 3W Framework application. Add Learning Objectives at the beginning. The content has good depth but could benefit from Key Takeaways summary at the end summarizing the 4-step MMS workflow.",
+        "02b_Richardson_Extrapolation_GCI.md": "Add Learning Objectives section. Good technical content but needs Key Takeaways section to summarize when to use GCI vs MMS. The comparison table in 2.5 is excellent - move this earlier or reference from overview.",
+        "03_OpenFOAM_Architecture.md": "This file needs the most work. Add Learning Objectives. Restructure with clear 3W sections: What (architecture overview), Why (importance for testing), How (testing strategies). The content is too brief - expand on how each architecture component relates to verification testing. Add Key Takeaways. Add practical OpenFOAM file path examples throughout."
+    },
+    "global_strategy": "The folder shows inconsistency in applying the 3W Framework. Files 00 and 01 are too brief and overlap significantly - they should be merged or 01 should focus deeper on practical implementation. Files 02a and 02b are well-developed with good OpenFOAM context and code examples. File 03 is underdeveloped and needs expansion to match the depth of 02a/02b. All files are missing Learning Objectives and Key Takeaways sections which are standard for the framework. The bilingual approach (Thai headings with English content) works well but should be consistent across all files."
+}

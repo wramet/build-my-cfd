@@ -6,6 +6,19 @@
 
 ---
 
+## Learning Objectives (วัตถุประสงค์การเรียนรู้)
+
+After completing this module, you should be able to:
+
+| Objective | Description |
+|:---|:---|
+| **Distinguish** | Difference between Verification and Validation |
+| **Apply** | Code verification (MMS) and Solution verification (GCI) |
+| **Analyze** | Convergence behavior and conservation properties |
+| **Evaluate** | OpenFOAM solver accuracy using systematic methods |
+
+---
+
 ## 1. V&V Definitions
 
 | Concept | Question | OpenFOAM Files |
@@ -76,6 +89,18 @@
 
 **Order of accuracy** — error vs mesh size (ความผิดพลาด vs ขนาดเมช)
 </details>
+
+---
+
+## Key Takeaways (สรุปสิ่งสำคัญ)
+
+| Concept | Key Point |
+|:---|:---|
+| **V vs V** | Verification = solving equations right; Validation = solving right equations |
+| **Three Types** | Code (implementation), Solution (convergence), Calculation (conservation) |
+| **MMS** | Most rigorous code verification method using manufactured analytical solutions |
+| **GCI** | Quantifies numerical uncertainty from grid convergence studies |
+| **OpenFOAM** | Check residuals in logs, conservation in `sum local`, implement MMS in custom solvers |
 
 ---
 

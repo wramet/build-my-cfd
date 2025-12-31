@@ -8,9 +8,8 @@
         "06_Advanced_Boundary_Conditions.md",
         "07_Troubleshooting_Boundary_Conditions.md",
         "08_Exercises.md",
+        "05_Common_Boundary_Conditions_in_OpenFOAM.md",
         "05_Common_Boundary_Conditions_in_OpenFOAM.md"
     ],
-    "skipped": [
-        "05_Common_Boundary_Conditions_in_OpenFOAM.md"
-    ]
+    "skipped": []
 }

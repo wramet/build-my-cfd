@@ -1,0 +1,13 @@
+{
+    "files": {
+        "00_Overview.md": "Add Learning Objectives section before current content. Create Key Takeaways section consolidating all Quick Reference tables. Add Prerequisites section listing required C++/OpenFOAM knowledge.",
+        "01_Introduction.md": "Add Learning Objectives. Expand Profiling section with perf output examples. Add 'Before You Begin' prerequisites checklist. Missing 'Why This Matters' context for CFD performance.",
+        "02_Expression_Templates_Syntax.md": "Add Learning Objectives. Missing 'Why' section explaining motivation for expression templates. Add 'When to Use' guidelines table. Expand best practices with more anti-patterns.",
+        "03_Internal_Mechanics.md": "Add Learning Objectives. Add prerequisite warnings about advanced C++ concepts. Missing 'How Compiler Decides' section. Add visual diagram for optimization pipeline.",
+        "04_Compilation_and_Machine_Code.md": "Add Learning Objectives. Missing actual optimization examples showing before/after assembly. Add WM_COMPILE_OPTION effects table. Link to wmake details.",
+        "05_Design_Patterns_and_Trade-offs.md": "Add Learning Objectives. Add decision flowchart for template vs virtual. Missing real CFD examples of each pattern. Add 'Hybrid Pattern' elaboration.",
+        "06_Common_Errors_and_Debugging.md": "Add Learning Objectives. Expand with profiler output examples showing each error type. Missing 'Detection vs Fix' table. Add performance impact quantification.",
+        "07_Appendices.md": "Transform from reference dump to learning resource. Add practical exercises for each tool. Missing 'Further Reading' section. Consolidate redundant compiler flags (duplicate from 04)."
+    },
+    "global_strategy": "1) Add missing 3W Framework: every file needs explicit Learning Objectives, 'Why This Matters' context, and 'How To Apply' guidance. 2) Remove redundancy: compiler flags duplicated in 04 and 07, profiling scattered across 01, 04, 07. 3) Strengthen progression: 00 should set up complete learning roadmap, each subsequent file should explicitly reference and build on previous concepts. 4) Add practical depth: more before/after code comparisons, profiler output examples, performance metrics. 5) Include Key Takeaways at end of every file. 6) Add cross-references to related modules (Template Programming, Memory Management)."
+}

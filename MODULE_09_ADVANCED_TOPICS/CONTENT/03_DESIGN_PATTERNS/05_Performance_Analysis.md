@@ -1,20 +1,62 @@
-# 05 การวิเคราะห์ประสิทธิภาพ (Performance Analysis) ของรูปแบบการออกแบบ
+# 05 Performance Analysis
 
-> [!TIP] 💡 ทำไม Performance Analysis สำคัญสำหรับ OpenFOAM?
-> **ประสิทธิภาพ (Performance)** เป็นปัจจัยสำคัญที่แยกระหว่างการจำลอง CFD ที่เสร็จภายในเวลาที่เป็นจริงกับการที่ต้องใช้เวลาหลายวัน ในฐานะวิศวกร OpenFOAM คุณต้องเข้าใจว่า:
-> - **Virtual Function Overhead** เกิดจาก **Run-Time Selection** ของ turbulence models, boundary conditions, และ discretization schemes
-> - **Memory Management** ส่งผลต่อขนาด mesh และ field operations ที่สามารถจำลองได้
-> - **Parallel Performance** ถูกควบคุมโดย `decomposePar` และ domain decomposition settings
-> - **Solver Efficiency** ถูกกำหนดโดย linear solver choices ใน `system/fvSolution`
->
-> **ความสมดุลระหว่างความยืดหยุ่น (Flexibility) และประสิทธิภาพ (Performance)** เป็นกุญแจสำคัญในการพัฒนา solvers และ models ที่มีประสิทธิภาพสูง
+Performance considerations of design patterns in OpenFOAM
 
-![[cfd_performance_bottlenecks.png]]
-`A clean scientific illustration of "Performance Bottlenecks" in a CFD simulation. Show a pie chart representing 100% execution time. Large slice (50%): Linear Solver. Medium slice (20%): Matrix Assembly. Small slices: BC Updates (10%), I/O (10%), and Design Patterns/Virtual Calls (<1%). Use clear labels and a minimalist palette, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
+---
 
-การใช้รูปแบบการออกแบบ (Design Patterns) ไม่ได้มาฟรีๆ ในแง่ของทรัพยากรการคำนวณ ในฐานะวิศวกร CFD คุณต้องเข้าใจผลกระทบต่อประสิทธิภาพ:
+## 🎯 Learning Objectives
 
-### โอเวอร์เฮดของ Virtual Function ในบริบท CFD
+After completing this section, you will be able to:
+- **Analyze** the computational overhead of virtual functions and design patterns
+- **Evaluate** memory usage implications of pattern-based implementations
+- **Compare** compile-time vs runtime performance trade-offs
+- **Optimize** field operations and solver performance in OpenFOAM
+- **Profile** OpenFOAM applications to identify bottlenecks
+
+---
+
+## 📋 Prerequisites
+
+Before studying this section, you should have:
+- **Understanding** of virtual functions and polymorphism ([02_Inheritance_Polymorphism](../02_INHERITANCE_POLYMORPHM/00_Overview.md))
+- **Knowledge** of Run-Time Selection system ([02_Factory_Pattern.md](02_Factory_Pattern.md))
+- **Familiarity** with OpenFOAM solvers and linear algebra
+- **Basic profiling** knowledge (gprof, perf, or similar tools)
+
+---
+
+## 📖 Overview (3W Framework)
+
+### WHAT - Performance Analysis คืออะไร?
+
+**Performance Analysis** คือการประเมินผลกระทบด้านประสิทธิภาพของ Design Patterns ที่ใช้ใน OpenFOAM โดยเฉพาะ:
+
+- **Virtual Function Overhead** - ค่าใช้จ่ายจาก dynamic dispatch
+- **Memory Management** - การใช้หน่วยความจำเพิ่มเติมจาก patterns
+- **Compile-Time vs Runtime** - trade-offs ระหว่าง templates และ virtual functions
+- **Parallel Performance** - ผลกระทบต่อ domain decomposition และ MPI communication
+
+### WHY - ทำต้องวิเคราะห์ Performance?
+
+ในงาน CFD ประสิทธิภาพเป็นปัจจัยสำคัญ:
+
+- **Simulation Time** แยกความแตกต่างระหว่างการจำลองที่เสร็จภายในเวลาที่เป็นจริงกับการใช้เวลาหลายวัน
+- **Resource Limits** - หน่วยความจำและเวลา CPU มีจำกัด
+- **Scalability** - การจำลองขนาดใหญ่ต้องมีประสิทธิภาพที่ดี
+- **Flexibility vs Performance** - ต้องหาความสมดุลระหว่างความยืดหยุ่นและประสิทธิภาพ
+
+### HOW - วิเคราะห์อย่างไร?
+
+1. **Benchmarking** - วัดเวลาของ operations ที่สำคัญ
+2. **Profiling** - ใช้เครื่องมือระบุ bottlenecks
+3. **Code Analysis** - เข้าใจ overhead ของแต่ละ pattern
+4. **Optimization** - ปรับปรุงจุดที่ช้าที่สุด
+
+---
+
+## 📚 Main Content
+
+### 1. Virtual Function Overhead in CFD Context
 
 > [!NOTE] **📂 OpenFOAM Context: Runtime Type Selection (RTS)**
 > **Virtual Functions** เป็นหัวใจของ **Run-Time Selection System** ใน OpenFOAM:
@@ -22,94 +64,125 @@
 > - **TypeInfo Macros**: ใช้ `TypeName` และ `New` เพื่อลงทะเบียน classes กับ RTSTable
 > - **Virtual Table Pointer (vptr)**: เพิ่มขนาด object ประมาณ 8 bytes บน 64-bit systems
 > - **ใช้ใน**: ทุก derived classes ของ `fvPatchField`, `turbulenceModel`, `RASModel`, `LESModel`
->
-> **ตัวอย่างการใช้งาน**: เมื่อคุณระบุ `kEpsilon` ใน `constant/turbulenceProperties` ระบบจะใช้ virtual function เพื่อสร้าง object ของ `kEpsilon` model ผ่าน `autoPtr<turbulenceModel>::New(mesh)`
 
-**การวิเคราะห์ Benchmark**:
-- การดำเนินการกับ Field (เช่น `U + V`): ~1000 ns
-- การเรียก virtual function: ~2 ns
-- **โอเวอร์เฮด**: ~0.2% ต่อการเรียก
+#### 1.1 Benchmark Analysis
 
-**การอธิบายทางคณิตศาสตร์**:
+| Operation | Time | Relative Cost |
+|-----------|------|---------------|
+| Field operation (`U + V`) | ~1000 ns | 100% |
+| Virtual function call | ~2 ns | 0.2% |
+| Memory allocation | ~100-500 ns | 10-50% |
 
-กำหนด:
-- $t_{\text{field}}$ = เวลาการดำเนินการกับ field
-- $t_{\text{virtual}}$ = เวลาการส่งผ่านแบบ virtual
-- $n$ = จำนวนการดำเนินการต่อ time step
+**สรุป**: Virtual function overhead ≈ **0.2%** เมื่อเทียบกับ field operations
 
-เวลาทั้งหมดเมื่อใช้ virtual calls:
-$$
-T_{\text{virtual}} = n \cdot (t_{\text{field}} + t_{\text{virtual}})
-$$
+#### 1.2 Why This Overhead is Acceptable
 
-เวลาทั้งหมดเมื่อไม่ใช้ virtual calls (static dispatch):
-$$
-T_{\text{static}} = n \cdot t_{\text{field}}
-$$
+ใน CFD simulations เวลาส่วนใหญ่ (99%+) ถูกใช้ไปกับ:
+- **Field Operations** - การคำนวณบน meshes ขนาดใหญ่
+- **Linear Solvers** - การแก้สมการเชิงเส้นที่ซับซ้อน
+- **Matrix Assembly** - การประกอบเมทริกซ์จาก discretization
 
-โอเวอร์เฮดสัมพัทธ์:
-$$
-\frac{T_{\text{virtual}} - T_{\text{static}}}{T_{\text{static}}} = \frac{t_{\text{virtual}}}{t_{\text{field}}} \approx 0.002 \ (0.2\%)
-$$
+ดังนั้น overhead ของ virtual calls จึงมีนัยสำคัญน้อยมากเมื่อเทียบกับประโยชน์ที่ได้รับจากความยืดหยุ่น
 
-**สรุป**: โอเวอร์เฮดของ virtual function น้อยมากเมื่อเปรียบเทียบกับการดำเนินการกับ field ความยืดหยุ่นที่ได้รับมีค่ามากกว่าค่าใช้จ่ายด้านประสิทธิภาพอย่างมีนัยสำคัญ
+---
 
-### การวิเคราะห์โอเวอร์เฮดของหน่วยความจำ
+### 2. Memory Overhead Analysis
 
 > [!NOTE] **📂 OpenFOAM Context: Memory Management in Field Classes**
 > **Memory Overhead** จาก Design Patterns มีนัยสำคัญเมื่อเปรียบเทียบกับ Field Storage:
 > - **GeometricField Storage**: `volScalarField` (1M cells) ≈ 8 MB, `volVectorField` ≈ 24 MB
 > - **Smart Pointers**: `autoPtr`, `refPtr` เพิ่ม overhead 8 bytes ต่อ pointer
 > - **Temporary Fields**: `tmp<Field>` ช่วยลด memory allocation ผ่าน reference counting
-> - **ใช้ใน**: `src/OpenFOAM/fields/`, `src/finiteVolume/fields/`
->
-> **ตัวอย่างการใช้งาน**: เมื่อคุณสร้าง `volScalarField p` ใน `0/` directory, object นี้ใช้ `refPtr` เพื่อ manage lifetime และลดการ copy ข้อมูลระหว่าง operations
 
-**Strategy Pattern**:
-- แต่ละ strategy object: ~64 bytes (vtable pointer + member variables)
-- การจำลองทั่วไป: 10-20 strategy objects
-- **รวม**: ~1-2 KB (เล็กน้อยเมื่อเปรียบเทียบกับการจัดเก็บ field)
+**Typical Memory Distribution:**
 
-**Factory Registration**:
-- Static tables: ~100 bytes ต่อ registered type
-- OpenFOAM ทั่วไป: ~1000 registered types
-- **รวม**: ~100 KB (ยังคงน้อย)
+```
+Field Data (1M cells)  ████████████████████ 80-1200 MB
+Pattern Overhead       ▌ 100-200 KB
+Smart Pointers         ▌ ~1 KB per object
+```
 
-### ประสิทธิภาพเวลา Compile เทียบกับ Runtime
+**สรุป**: Pattern overhead น้อยมากเมื่อเทียบกับ field storage (99.9%+ ของ memory ถูกใช้โดย field data)
+
+#### 2.1 Memory Breakdown
+
+| Component | Memory per Object | Typical Count | Total Overhead |
+|-----------|-------------------|---------------|----------------|
+| **Field Data** (1M cells) | 8-24 MB | 10-50 fields | 80-1200 MB |
+| **Strategy Objects** | ~64 bytes | 10-20 | ~1-2 KB |
+| **Factory Registration** | ~100 bytes | ~1000 types | ~100 KB |
+| **vptr per object** | 8 bytes | varies | minimal |
+
+**สรุป**: Pattern overhead น้อยมากเมื่อเทียบกับ field storage
+
+#### 2.2 Smart Pointer Overhead
+
+OpenFOAM ใช้ smart pointers เพื่อ manage memory:
+
+```cpp
+// autoPtr: Single ownership, 8 bytes overhead
+autoPtr<turbulenceModel> turb = turbulenceModel::New(dict);
+
+// refPtr: Reference counted, 16 bytes overhead (ptr + count)
+refPtr<volScalarField> pField;
+
+// tmp: Temporary fields with reference counting
+tmp<volScalarField> tResult = U + V;
+```
+
+---
+
+### 3. Compile-Time vs Runtime Performance
 
 > [!NOTE] **📂 OpenFOAM Context: Template Metaprogramming & Compile-Time Polymorphism**
 > **Templates vs Virtual Functions** เป็น trade-off ระหว่าง compile-time และ runtime performance:
 > - **Template Instantiation**: ถูกใช้ใน `GeometricField`, `fvMatrix`, `lduMatrix` สำหรับ type-safe polymorphism
 > - **Expression Templates**: ช่วยลด temporary objects ใน field operations เช่น `U + V`
 > - **Compile-Time Optimization**: Compiler สามารถ inline, unroll, และ vectorize code ได้ดีขึ้น
-> - **ใช้ใน**: `src/OpenFOAM/fields/`, `src/finiteVolume/`, `src/finiteVolume/fvMatrices/`
->
-> **ตัวอย่างการใช้งาน**: การเขียน `solve(fvm::ddt(U) + fvm::div(phi, U) - fvm::laplacian(nu, U))` ใช้ templates สร้าง `fvVectorMatrix` ที่ optimized สำหรับ `volVectorField`
 
-**โอเวอร์เฮดของ Template Instantiation**:
-การใช้ templates ใน OpenFOAM ให้ polymorphism ระดับ compile ซึ่งขจัดโอเวอร์เฮดของ virtual function อย่างไรก็ตาม สิ่งนี้มาพร้อมกับต้นทุนของเวลาคอมไพล์ที่เพิ่มขึ้นและขนาดไบนารี
+#### 3.1 Trade-off Comparison
 
-**การวิเคราะห์ Code Bloat**:
-- Template instantiation สำหรับ `GeometricField<Type, PatchField, GeoMesh>` กับประเภททั่วไป:
-  - `volScalarField`, `volVectorField`, `surfaceScalarField`: ~500 KB แต่ละตัว
-  - Template code ทั้งหมด: ~2-5 MB ต่อ executable
+| Aspect | Templates | Virtual Functions |
+|--------|-----------|-------------------|
+| **Runtime Overhead** | None (static dispatch) | ~2 ns per call |
+| **Compile Time** | Slow (code bloat) | Fast |
+| **Binary Size** | Large (2-5 MB) | Small |
+| **Flexibility** | Compile-time only | Runtime selection |
+| **Code Bloat** | High (per instantiation) | Low |
 
-**การปรับให้เหมาะสมระดับ Runtime**:
-OpenFOAM ใช้การปรับให้เหมาะสมระดับ runtime หลายอย่าง:
-1. **Expression Templates**: ช่วยให้ lazy evaluation ของการดำเนินการกับ field
-2. **Operator Overloading**: ให้ไวยากรณ์ทางคณิตศาสตร์ตามธรรมชาติโดยไม่มีผลกระทบต่อประสิทธิภาพ
-3. **Memory Pool Management**: ลดโอเวอร์เฮดการจัดสรรใน loop ที่แน่นหนา
+#### 3.2 OpenFOAM's Hybrid Approach
 
-### พิจารณาประสิทธิภาพแบบขนาน
+OpenFOAM ใช้ทั้งสองแนวทาง:
+
+```cpp
+// Templates: Type-safe, no overhead (GeometricField)
+GeometricField<scalar, fvPatchField, volMesh> p;
+
+// Virtual functions: Runtime flexibility (turbulenceModel)
+autoPtr<turbulenceModel> turb = turbulenceModel::New(dict);
+```
+
+#### 3.3 Expression Templates
+
+```cpp
+// Lazy evaluation - no temporary created
+tmp<volScalarField> result = U + V;  // Expression template
+
+// Computed only when assigned
+volScalarField final = result();  // Actual computation here
+```
+
+---
+
+### 4. Parallel Performance Considerations
 
 > [!NOTE] **📂 OpenFOAM Context: Parallel Processing & Domain Decomposition**
 > **Parallel Performance** ถูกควบคุมโดยการแบ่งโดเมนและการสื่อสารระหว่างโปรเซสเซอร์:
 > - **Domain Decomposition**: ถูกกำหนดใน `system/decomposeParDict` ด้วย method เช่น `scotch`, `metis`, `simple`
 > - **Communication Overhead**: เกิดจาก processor boundaries ใน mesh และ MPI communication
 > - **Load Balancing**: ขึ้นอยู่กับ quality ของ decomposition และ mesh refinement
-> - **ใช้ใน**: `applications/solvers/`, `src/parallel/`, `src/OPstream/`, `src/IPstream/`
->
-> **ตัวอย่างการใช้งาน**: เมื่อคุณรัน `decomposePar` จากนั้น `mpirun -np 4 solver`, OpenFOAM ใช้ `Gather`, `Scatter`, และ `mapDistribute` เพื่อแลกเปลี่ยนข้อมูลระหว่าง sub-domains
+
+#### 4.1 Speedup Analysis
 
 ```mermaid
 graph TD
@@ -128,60 +201,58 @@ F --> G[Communication Overhead]:::explicit
 G --> H[Actual Parallel Time]:::success
 H --> I
 ```
-> **Figure 1:** แผนผังแสดงการคำนวณประสิทธิภาพการทำงานแบบขนาน (Actual Speedup) โดยพิจารณาจากเวลาที่ใช้ในการประมวลผลของโปรเซสเซอร์ที่ทำงานช้าที่สุด (Max Compute Time) รวมกับค่าภาระในการสื่อสารข้อมูลระหว่างกัน (Communication Overhead) ซึ่งเป็นปัจจัยสำคัญที่จำกัดประสิทธิภาพสูงสุดในการคำนวณขนาดใหญ่
 
-**โอเวอร์เฮดการแบ่งโดเมน**:
-- โอเวอร์เฮดการสื่อสารต่อคู่โปรเซสเซอร์: ~50-100 μs ต่อข้อความ
-- การจำลอง CFD ทั่วไป: 10-100 ข้อความต่อ time step
-- **โอเวอร์เฮดแบบขนานทั้งหมด**: ~1-10 ms ต่อ time step
+#### 4.2 Parallel Overhead Breakdown
 
-**ผลกระทบการกระจายภาระงาน**:
-การกระจายภาระงานที่ไม่ดีสามารถส่งผลกระทบต่อประสิทธิภาพอย่างมีนัยสำคัญ:
-$$
-\text{Speedup}_{\text{actual}} = \frac{T_{\text{sequential}}}{\max(T_i) + T_{\text{communication}}}
-$$
+| Source | Overhead | Impact |
+|--------|----------|--------|
+| **MPI Communication** | ~50-100 μs/message | 1-10 ms/timestep |
+| **Load Imbalance** | varies | Can be severe |
+| **Memory Bandwidth** | ~50-100 GB/s limit | Bottleneck for large cases |
 
-โดยที่ $T_i$ คือเวลาคำนวณบนโปรเซสเซอร์ $i$
+#### 4.3 Actual Speedup Formula
 
-**ข้อจำกัดของ Memory Bandwidth**:
-ในการจำลองขนาดใหญ่ memory bandwidth มักจะกลายเป็นปัจจัยจำกัด:
-- Memory bandwidth ทั่วไป: ~50-100 GB/s
-- การดำเนินการกับ field: ~10-50 GB/s แบนด์วิดธ์ยั่งยืน
-- **ประสิทธิภาพ**: ~20-80% ขึ้นอยู่กับรูปแบบการเข้าถึง
+```
+Speedup_actual = T_sequential / (max(T_i) + T_communication)
+```
 
-### การปรับให้เหมาะสมประสิทธิภาพ Solver
+Where:
+- `T_sequential` = Sequential execution time
+- `T_i` = Compute time on processor i
+- `T_communication` = Communication overhead
+
+---
+
+### 5. Solver Performance Optimization
 
 > [!NOTE] **📂 OpenFOAM Context: Linear Solvers in fvSolution**
 > **Solver Performance** ถูกควบคุมโดย settings ใน `system/fvSolution`:
 > - **Linear Solvers**: ถูกกำหนดใน `solvers` หรือ `solver` sub-dictionary ของ `fvSolution`
 > - **Solver Types**: `GAMG` (Algebraic Multigrid), `PCG` (Conjugate Gradient), `smoothSolver`
 > - **Preconditioners**: `DIC` (Diagonal Incomplete Cholesky), `DILU`, `GAMG` สำหรับเร่ง convergence
-> - **Tolerances**: `tolerance`, `relTol`, และ `maxIter` ควบคุม accuracy vs speed
-> - **ใช้ใน**: `src/finiteVolume/fvMatrices/solvers/`, `src/ODE/ODESolvers/`, `src/matrices/lduMatrix/solvers/`
->
-> **ตัวอย่างการใช้งาน**: ใน `system/fvSolution`, คุณอาจใช้ `GAMG` สำหรับ pressure equation (fast, large problems) และ `smoothSolver` สำหรับ velocity equations (robust, smaller problems)
 
-**การเลือก Linear Solver**:
-Solver ต่างๆ ให้ลักษณะประสิทธิภาพที่แตกต่างกัน:
+#### 5.1 Linear Solver Performance
 
-| Solver Type | Complexity | Memory Usage | Best For |
-|-------------|------------|--------------|----------|
-| Diagonal | O(n) | Low | Diagonally dominant systems |
-| PCG | O(n√n) | Medium | Symmetric positive definite |
-| GAMG | O(n log n) | High | Large-scale problems |
-| SmoothSolver | O(n²) | Low-Medium | Small-medium problems |
+| Solver Type | Complexity | Memory | Best For | Iterations |
+|-------------|------------|--------|----------|------------|
+| **Diagonal** | O(n) | Low | Diagonally dominant | 1 |
+| **PCG** | O(n√n) | Medium | SPD matrices | 50-200 |
+| **GAMG** | O(n log n) | High | Large problems | 10-50 |
+| **SmoothSolver** | O(n²) | Low-Medium | Small-medium | 100-500 |
 
-**ผลกระทบของ Preconditioner**:
-การเลือก preconditioner สามารถส่งผลต่อการลู่เข้าอย่างมีนัยสำคัญ:
-- ไม่ใช้ preconditioning: 100-1000 iterations
-- Diagonal preconditioning: 50-200 iterations  
-- ILU/GAMG: 10-50 iterations
+#### 5.2 Preconditioner Impact
 
-**การตรวจสอบการลู่เข้า**:
-คลาส `SolverPerformance` ของ OpenFOAM ติดตาม:
+| Preconditioner | Iterations | Speedup vs None |
+|----------------|------------|-----------------|
+| None | 100-1000 | 1x |
+| Diagonal | 50-200 | 2-5x |
+| DIC/DILU | 20-100 | 5-10x |
+| GAMG | 10-50 | 10-20x |
+
+#### 5.3 SolverPerformance Structure
+
 ```cpp
 // Structure to track solver performance metrics
-// Tracks convergence data for linear solvers
 struct SolverPerformance {
     scalar finalResidual_;      // Final residual after solving
     scalar initialResidual_;    // Initial residual before solving
@@ -193,132 +264,214 @@ struct SolverPerformance {
 
 ---
 
-📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/BlendedInterfacialModel/BlendedInterfacialModel.C`
-
-**Explanation:** 
-โครงสร้าง `SolverPerformance` ใช้ใน OpenFOAM เพื่อติดตามและรายงานประสิทธิภาพของ linear solvers ในการแก้สมการเชิงเส้นที่เกิดจากการ discretize สมการ Navier-Stokes โครงสร้างนี้ถูกใช้ใน multiphase solvers เพื่อตรวจสอบว่าการแก้สมการสำหรับแต่ละ phase ลู่เข้าหรือไม่
-
-**Key Concepts:**
-- Residual tracking สำหรับการ monitor ความแม่นยำ
-- Iteration counting สำหรับ performance analysis
-- Convergence tolerance เป็นตัวกำหนดเกณฑ์การหยุด
-- Preconditioner ส่งผลต่อจำนวน iterations ที่ต้องการ
-- Linear solver complexity สัมพันธ์กับขนาดของปัญหาและ memory usage
-
----
-
-### การปรับให้เหมาะสมการดำเนินการกับ Field
+### 6. Field Operations Optimization
 
 > [!NOTE] **📂 OpenFOAM Context: Field Operations & Memory Layout**
 > **Field Operations Performance** ขึ้นอยู่กับ memory layout และ compiler optimizations:
 > - **forAll Macro**: ถูกกำหนดใน `src/OpenFOAM/macros/macros.H` สำหรับ iterate ผ่าน fields
 > - **Memory Layout**: Fields ใช้ **row-major order** สำหรับ cache-friendly access patterns
 > - **SIMD Vectorization**: Compiler สามารถ vectorize operations บน contiguous memory
-> - **Temporary Fields**: `tmp<Field>` ลด memory allocations ผ่าน reference counting
-> - **ใช้ใน**: `src/OpenFOAM/fields/`, `src/finiteVolume/fields/volFields/`, `src/finiteVolume/fields/surfaceFields/`
->
-> **ตัวอย่างการใช้งาน**: เมื่อคุณเขียน `U = U + V;` ใน solver, OpenFOAM ใช้ expression templates และ SIMD vectorization เพื่อ compute อย่างมีประสิทธิภาพ
 
-**Loop Unrolling**:
-OpenFOAM ใช้ compiler directives เพื่อปรับให้เหมาะสมการดำเนินการกับ field:
+#### 6.1 Memory Access Patterns
+
+| Pattern | Description | Benefit |
+|---------|-------------|---------|
+| **Temporal Locality** | Reuse data recently accessed | Cache hits |
+| **Spatial Locality** | Access contiguous memory | Prefetching |
+| **Row-Major Order** | Sequential cell storage | SIMD friendly |
+
+#### 6.2 Loop Optimization
+
 ```cpp
-// In finiteVolume/fields/volFields/volFields.H
-// Loop over all cells in the field
+// forAll macro - enables auto-vectorization
 forAll(U, i) {
     U[i] = U[i] + V[i];  // Auto-vectorized by compiler
 }
+
+// Compiler can use SIMD instructions
+// Processes 4-8 elements simultaneously
 ```
 
----
+#### 6.3 Cache Optimization Techniques
 
-📂 **Source:** `.applications/utilities/parallelProcessing/decomposePar/decomposePar.C`
-
-**Explanation:** 
-ฟังก์ชัน `forAll` เป็น macro ที่พบบ่อยใน OpenFOAM สำหรับการ iterate ผ่าน elements ของ field คอมไพเลอร์สมัยใหม่สามารถ auto-vectorize การดำเนินการภายใน loop ให้ทำงานบน SIMD registers ได้อัตโนมัติ ซึ่งเพิ่มประสิทธิภาพการคำนวณอย่างมีนัยสำคัญ
-
-**Key Concepts:**
-- Loop unrolling ช่วยลด overhead ของ loop control
-- SIMD vectorization ทำให้ประมวลผลข้อมูลหลายค่าพร้อมกัน
-- Memory layout ที่เป็นมิตรกับ cache ช่วยเพิ่ม throughput
-- Compiler directives ช่วยให้ compiler ทำ optimization ได้ดีขึ้น
+- **Aligned Allocation** - Memory aligned to cache line boundaries (64 bytes)
+- **Block-Based Operations** - Process data in cache-friendly chunks
+- **Memory Prefetching** - Reduce cache misses in large operations
 
 ---
 
-**การปรับให้เหมาะสม Cache**:
-Fields ถูกจัดเก็บใน memory layout ที่เป็นมิตรกับ cache:
-- **Row-major order**: ปรับปรุง spatial locality
-- **Aligned allocation**: ทำให้มั่นใจถึงการใช้ cache line ที่เหมาะสมที่สุด
-- **Memory prefetching**: ลด cache misses ในการดำเนินการขนาดใหญ่
-
-### รูปแบบการเข้าถึงหน่วยความจำ
-
-> [!NOTE] **📂 OpenFOAM Context: Memory Access Patterns & Cache Optimization**
-> **Memory Access Performance** ขึ้นอยู่กับ data locality และ cache behavior:
-> - **Temporal Locality**: ใช้ `tmp<Field>` และ reference counting เพื่อ reuse data
-> - **Spatial Locality**: Fields ใช้ contiguous memory layout สำหรับ sequential access
-> - **Cache Line Alignment**: Memory allocation ถูก aligned กับ cache line boundaries (64 bytes)
-> - **Memory Pools**: `UList<T>` และ `List<T>` ใช้ memory pools ลด allocation overhead
-> - **ใช้ใน**: `src/OpenFOAM/containers/Lists/`, `src/OpenFOAM/fields/`
->
-> **ตัวอย่างการใช้งาน**: เมื่อคุณ iterate ผ่าน mesh faces ด้วย `forAll(mesh.faces(), i)`, spatial locality ของ face data ช่วยลด cache misses
-
-**Temporal Locality**:
-OpenFOAM เวอร์ชันล่าสุดปรับให้เหมาะสม temporal locality ผ่าน:
-- การนำ field กลับมาใช้ในการดำเนินการประกอบ
-- การกำจัด field ชั่วคราว
-- Register promotion สำหรับการดำเนินการกับ field ขนาดเล็ก
-
-**Spatial Locality**:
-การปรับให้เหมาะสมรวมถึง:
-- การจัดสรรหน่วยความจำติดกันสำหรับข้อมูล field
-- การดำเนินการแบบ block-based สำหรับการใช้ cache ที่ดีขึ้น
-- SIMD vectorization สำหรับการดำเนินการแบบ element-wise
-
-### การวิเคราะห์ Profiling และ Bottleneck
+### 7. Profiling and Bottleneck Identification
 
 > [!NOTE] **📂 OpenFOAM Context: Profiling Tools & Performance Monitoring**
 > **Profiling OpenFOAM Applications** ช่วยระบุ bottlenecks ใน solvers และ utilities:
 > - **functionObjects**: ใช้ `solverPerformance`, `cpuTime`, `execParFunction` ใน `system/controlDict` สำหรับ runtime profiling
 > - **Profiling Tools**: `gprof`, `perf`, `valgrind`, `Intel VTune` สำหรับ detailed analysis
-> - **Bottleneck Identification**: Linear solvers (40-60%), Matrix assembly (15-25%), BC updates (5-15%)
-> - **Optimization Strategies**: Algorithm selection (solvers, preconditioners), compiler flags (`-O3`, `-march=native`)
-> - **ใช้ใน**: `applications/solvers/`, `src/OpenFOAM/db/functionObjects/`, `src/OSspecific/`
->
-> **ตัวอย่างการใช้งาน**: เพิ่ม `libs ("libprofilingFunctionObjects.so")` และ `functions { prof1 { type execParFunction; } }` ใน `system/controlDict` เพื่อ profile การทำงานของ solver
 
-**เครื่องมือ Profiling**:
-- `gprof`: การวิเคราะห์การเรียกฟังก์ชัน
-- `perf`: การวิเคราะห์ hardware counter
-- `valgrind`: การวิเคราะห์หน่วยความจำและการวิเคราะห์ cache
-- `Intel VTune`: การปรับให้เหมาะสมประสิทธิภาพขั้นสูง
+#### 7.1 Typical CFD Bottlenecks
 
-**Bottlenecks ทั่วไป**:
-1. **Linear Solver Convergence**: 40-60% ของเวลาทำงาน
-2. **Matrix Assembly**: 15-25% ของเวลาทำงาน
-3. **Boundary Condition Updates**: 5-15% ของเวลาทำงาน
-4. **File I/O**: 5-10% ของเวลาทำงาน
+| Bottleneck | % Runtime | Location |
+|------------|-----------|----------|
+| **Linear Solver** | 40-60% | `fvMatrix::solve()` |
+| **Matrix Assembly** | 15-25% | `fvm::div()`, `fvm::laplacian()` |
+| **BC Updates** | 5-15% | `fvPatchField::updateCoeffs()` |
+| **File I/O** | 5-10% | `Time::write()` |
+| **Design Patterns** | <1% | Virtual calls, RTS |
 
-**กลยุทธ์การปรับให้เหมาะสม**:
-1. **การปรับปรุงเชิงอัลกอริทึม**: การเลือก solver ที่ดีขึ้น
-2. **การปรับให้เหมาะสมโครงสร้างข้อมูล**: ปรับปรุง memory layout
-3. **การปรับให้เหมาะสมคอมไพเลอร์**: Vectorization, unrolling
-4. **การปรับขนาดแบบขนาน**: การแบ่งโดเมนที่ดีขึ้น
+#### 7.2 Profiling Tools
+
+| Tool | Use Case | Output |
+|------|----------|--------|
+| **gprof** | Function call analysis | Call graph, times |
+| **perf** | Hardware counters | Cache misses, cycles |
+| **valgrind/cachegrind** | Memory analysis | Cache simulation |
+| **Intel VTune** | Advanced optimization | Hotspots, vectorization |
+
+#### 7.3 Optimization Strategies
+
+```
+1. Algorithm Selection
+   → Choose appropriate solver/preconditioner
+   → Use GAMG for large problems
+
+2. Data Structure Optimization
+   → Improve memory layout
+   → Use cache-friendly access patterns
+
+3. Compiler Optimization
+   → Enable -O3 -march=native
+   → Profile-guided optimization (PGO)
+
+4. Parallel Scaling
+   → Better domain decomposition
+   → Reduce communication overhead
+```
+
+---
+
+## ✅ Key Takeaways
+
+### Core Performance Insights
+
+1. **Virtual Function Overhead น้อยมาก** (~0.2%)
+   - Field operations dominate execution time
+   - Flexibility benefits outweigh performance cost
+   - Don't avoid patterns for performance reasons
+
+2. **Memory Overhead ไม่ใช่ปัญหา**
+   - Pattern overhead: ~100 KB
+   - Field storage: ~100 MB - 1 GB
+   - Smart pointers add minimal overhead
+
+3. **Templates vs Virtual Functions**
+   - Templates: Zero runtime cost, compile-time flexibility
+   - Virtual functions: Runtime flexibility, minimal overhead
+   - OpenFOAM uses both appropriately
+
+4. **Parallel Performance**
+   - Communication overhead is the main limitation
+   - Load balancing is critical
+   - Memory bandwidth becomes bottleneck at scale
+
+5. **Profiling คือ Key**
+   - 40-60% time in linear solvers
+   - Profile before optimizing
+   - Focus on actual bottlenecks
+
+### Performance Guidelines
+
+| Situation | Recommendation |
+|-----------|----------------|
+| Choosing patterns | Use patterns freely - overhead is minimal |
+| Solver selection | Profile first, then optimize solvers |
+| Memory concerns | Focus on field storage, not pattern overhead |
+| Parallel runs | Optimize decomposition and communication |
+| Hot code paths | Use templates for zero-cost abstractions |
+
+---
+
+## 📋 Quick Reference
+
+### Performance Comparison
+
+| Pattern | Runtime Overhead | Memory Overhead | Flexibility |
+|---------|------------------|-----------------|-------------|
+| **Factory + RTS** | ~0.2% | ~100 KB | ⭐⭐⭐⭐⭐ |
+| **Strategy** | ~0.2% | ~1-2 KB | ⭐⭐⭐⭐⭐ |
+| **Template** | 0% | 2-5 MB binary | ⭐⭐⭐ |
+| **Observer** | ~0.1% | ~100 bytes/object | ⭐⭐⭐⭐ |
+
+### Common Bottlenecks
+
+```
+Linear Solvers    ████████████ 40-60%
+Matrix Assembly   ██████ 15-25%
+BC Updates        ███ 5-15%
+File I/O          ██ 5-10%
+Patterns          ▌ <1%
+```
+
+---
 
 ## 🧠 Concept Check
 
 <details>
-<summary>1. ทำไม Virtual Function Overhead ประมาณ 0.2% ถึงถือว่า "ยอมรับได้" ในงาน CFD?</summary>
+<summary><b>1. ทำไม Virtual Function Overhead ประมาณ 0.2% ถึงถือว่า "ยอมรับได้" ในงาน CFD?</b></summary>
 
 **คำตอบ:** เพราะในงาน CFD เวลาส่วนใหญ่ (99%+) ถูกใช้ไปกับการคำนวณตัวเลขใน **Field Operations** (เช่น บวก ลบ คูณ หาร Matrix ขนาดใหญ่) และการแก้สมการ Linear Solver ซึ่งมีการวนลูปมหาศาล ดังนั้น Overhead เล็กน้อยจากการเรียกฟังก์ชัน (Dispatch) จึงแทบไม่มีผลกระทบต่อเวลาโดยรวม เมื่อเทียบกับความยืดหยุ่นที่ได้มา
+
 </details>
 
 <details>
-<summary>2. Speedup จริงในการคำนวณแบบขนาน (Parallel Computing) มักจะน้อยกว่า Speedup ในอุดมคติเสมอ เพราะเหตุใด?</summary>
+<summary><b>2. Speedup จริงในการคำนวณแบบขนาน (Parallel Computing) มักจะน้อยกว่า Speedup ในอุดมคติเสมอ เพราะเหตุใด?</b></summary>
 
 **คำตอบ:** เพราะมี **Communication Overhead** ซึ่งเป็นเวลาที่เสียไปในการส่งข้อมูลระหว่าง Processor และปัญหา **Load Imbalance** ที่บาง Processor อาจทำงานเสร็จช้ากว่าเพื่อน ทำให้ Processor อื่นต้องรอ (Waiting Time)
+
 </details>
 
-## 📖 เอกสารที่เกี่ยวข้อง
+<details>
+<summary><b>3. เมื่อไหร่ควรใช้ Templates แทน Virtual Functions?</b></summary>
 
-*   **ก่อนหน้า:** [04_Pattern_Synergy.md](04_Pattern_Synergy.md) - การทำงานร่วมกันของ Patterns
-*   **ถัดไป:** [06_Practical_Exercise.md](06_Practical_Exercise.md) - แบบฝึกหัดภาคปฏิบัติการสร้าง Custom Model
+**คำตอบ:**
+- **ใช้ Templates** เมื่อ: Type เป็นที่รู้จักตั้งแต่ compile-time, ต้องการ zero overhead, หรือทำงานกับ generic types
+- **ใช้ Virtual Functions** เมื่อ: ต้องการ runtime flexibility, เลือก type จาก dictionary, หรือใช้กับ Run-Time Selection system
+
+</details>
+
+<details>
+<summary><b>4. Bottleneck หลักใน OpenFOAM solvers คืออะไร?</b></summary>
+
+**คำตอบ:** **Linear Solvers** (40-60% ของเวลาทำงาน) เป็น bottleneck หลัก รองลงมาคือ Matrix Assembly (15-25%) และ Boundary Condition Updates (5-15%) ส่วน Design Patterns มีผลน้อยมาก (<1%)
+
+</details>
+
+<details>
+<summary><b>5. จะ optimize ประสิทธิภาพ OpenFOAM solver ได้อย่างไร?</b></summary>
+
+**คำตอบ:**
+1. **Profile ก่อน** - ใช้ gprof, perf หรือ Intel VTune เพื่อหา bottlenecks จริง
+2. **Optimize Solvers** - เลือก solver และ preconditioner ที่เหมาะสม (GAMG สำหรับ large problems)
+3. **Improve Decomposition** - ใช้ scotch/metis สำหรับ load balancing ที่ดี
+4. **Compiler Flags** - ใช้ `-O3 -march=native` สำหรับ optimization
+5. **ไม่ต้องกังวลเรื่อง Patterns** - Overhead น้อยมากเมื่อเทียบกับ operations หลัก
+
+</details>
+
+---
+
+## 📖 Related Documents
+
+### Within This Module
+- **Pattern Fundamentals:** [01_Introduction.md](01_Introduction.md) — ทฤษฎีและการจำแนก patterns
+- **Factory Pattern:** [02_Factory_Pattern.md](02_Factory_Pattern.md) — RTS mechanics และ implementation
+- **Strategy Pattern:** [03_Strategy_Pattern.md](03_Strategy_Pattern.md) — Schemes และ runtime selection
+- **Pattern Synergy:** [04_Pattern_Synergy.md](04_Pattern_Synergy.md) — การทำงานร่วมกันของ patterns
+- **Practical Exercise:** [06_Practical_Exercise.md](06_Practical_Exercise.md) — ฝึกปฏิบัติการสร้าง Custom Model
+
+### Related Modules
+- **Module 5 - OpenFOAM Programming:** Virtual methods, polymorphism, memory management
+- **Module 8 - Testing:** Performance testing and benchmarking
+
+### External References
+- **OpenFOAM Programmer's Guide** — Performance optimization chapter
+- **OpenFOAM Source Code** — `$FOAM_SRC/finiteVolume/fvMatrices/solvers/`
+- **Intel VTune Profiler** — Advanced profiling documentation

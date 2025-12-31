@@ -1,0 +1,14 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Project_Overview.md",
+        "02_Model_Development_Rationale.md",
+        "03_Folder_and_File_Organization.md",
+        "04_Compilation_process.md",
+        "05_Inheritance_and_Virtual_Functions.md",
+        "06_Design_Pattern_Rationale.md",
+        "07_Common_Errors_and_Debugging.md",
+        "08_Final_Challenge.md"
+    ],
+    "skipped": []
+}

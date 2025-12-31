@@ -1,47 +1,88 @@
 # Phase 2: Custom Boundary Condition
 
-สร้าง Convective Heat Transfer BC
+Creating a Convective Heat Transfer Boundary Condition
 
 ---
 
-## Objective
+## Learning Objectives
 
-> **สร้าง `myConvectiveFvPatchScalarField`** สำหรับ convective heat transfer
+By the end of this phase, you will be able to:
+
+- Understand and navigate the OpenFOAM boundary condition class hierarchy
+- Implement a custom BC using the `mixedFvPatchField` base class
+- Compile boundary conditions into shared libraries and link them to solvers
+- Apply mathematical derivation to translate physical BCs into OpenFOAM implementation
+- Debug common BC compilation and runtime errors
+
+---
+
+## What is a Convective Boundary Condition?
+
+A convective boundary condition models heat transfer between a surface and surrounding fluid using **Newton's Law of Cooling**:
 
 $$q'' = h(T - T_\infty)$$
 
-ที่ boundary: $-k \frac{\partial T}{\partial n} = h(T - T_\infty)$
+At the boundary, heat flux from convection equals conductive flux:
 
----
-
-## เป้าหมายการเรียนรู้
-
-- เข้าใจ BC class hierarchy
-- Implement `mixedFvPatchField`
-- Compile boundary condition เป็น library
-
----
-
-## Mathematical Background
-
-### From Physics to OpenFOAM Implementation
-
-#### Newton's Law of Cooling
-
-At the boundary, heat flux from convection equals heat flux by conduction:
-
-$$q''_{convection} = q''_{conduction}$$
-
-$$h(T_s - T_\infty) = -k \frac{\partial T}{\partial n}$$
+$$-k \frac{\partial T}{\partial n} = h(T - T_\infty)$$
 
 Where:
-- $h$ = heat transfer coefficient [W/m²K]
-- $T_s$ = surface (boundary) temperature [K]
-- $T_\infty$ = ambient temperature [K]
+- $h$ = convective heat transfer coefficient [W/m²K]
+- $T$ = surface temperature [K]
+- $T_\infty$ = ambient temperature [K]  
 - $k$ = thermal conductivity [W/mK]
-- $\frac{\partial T}{\partial n}$ = temperature gradient normal to wall
 
-#### Discretization at Boundary Face
+**Why implement this?** OpenFOAM provides `externalWallHeatFlux` but implementing your own teaches the fundamental BC architecture used throughout OpenFOAM.
+
+---
+
+## Why Use mixedFvPatchField?
+
+OpenFOAM's `mixedFvPatch` implements the generalized Robin boundary condition:
+
+$$T_b = f \cdot T_{ref} + (1-f) \cdot T_c + \frac{g}{\delta}$$
+
+This single form can represent:
+- **Dirichlet** (fixedValue): set $f=1$, $T_b = T_{ref}$
+- **Neumann** (fixedGradient): set $f=0$, $T_b = T_c + g/\delta$
+- **Robin** (convective): set $0<f<1$, weighted combination
+
+Our convective BC maps naturally to this form by deriving the proper value fraction.
+
+---
+
+## How to Implement: Mathematical Derivation
+
+### From Physics to Code
+
+**Step 1: Balance heat flux at boundary**
+
+$$h(T_b - T_\infty) = -k \frac{T_b - T_c}{\delta}$$
+
+**Step 2: Solve for boundary temperature $T_b$**
+
+Expand terms:
+$$h T_b - h T_\infty = -\frac{k}{\delta} T_b + \frac{k}{\delta} T_c$$
+
+Collect $T_b$ terms:
+$$T_b\left(h + \frac{k}{\delta}\right) = h T_\infty + \frac{k}{\delta} T_c$$
+
+Solve:
+$$T_b = \frac{h T_\infty + \frac{k}{\delta} T_c}{h + \frac{k}{\delta}}$$
+
+**Step 3: Match to OpenFOAM mixed form**
+
+$$T_b = \frac{h}{h + k/\delta} T_\infty + \frac{k/\delta}{h + k/\delta} T_c + 0$$
+
+Therefore:
+- **valueFraction** = $\frac{h}{h + k/\delta}$
+- **refValue** = $T_\infty$
+- **refGrad** = 0
+
+<details>
+<summary><strong>📖 Extended Derivation (Discretization Details)</strong></summary>
+
+#### Finite Difference Approximation
 
 Consider a boundary cell with center $P$ and boundary face $f$:
 
@@ -52,112 +93,42 @@ Consider a boundary cell with center $P$ and boundary face $f$:
     T_c                T_b
 ```
 
-Using finite difference approximation:
+Using first-order finite difference:
 
 $$\frac{\partial T}{\partial n} \approx \frac{T_b - T_c}{\delta}$$
 
-Substitute into Newton's law:
+#### Limiting Behavior Check
 
-$$h(T_b - T_\infty) = -k \frac{T_b - T_c}{\delta}$$
+**Case 1: Very high h (h → ∞)**
+- valueFraction → 1
+- $T_b = T_\infty$ (Dirichlet/fixedValue)
+- Physical: infinite convection → surface equals ambient
 
-#### Solve for Boundary Temperature $T_b$
+**Case 2: Very low h (h → 0)**
+- valueFraction → 0  
+- $T_b = T_c$ (zeroGradient/insulated)
+- Physical: no convection → no heat flux
 
-Expand:
-$$h T_b - h T_\infty = -\frac{k}{\delta} T_b + \frac{k}{\delta} T_c$$
+**Case 3: Typical values**
+- h = 100, k = 1, δ = 0.01
+- δCoeffs = 100
+- valueFraction = 100 / (100 + 1×100) = 0.5
+- $T_b = 0.5 T_\infty + 0.5 T_c$
 
-Collect $T_b$ terms:
-$$h T_b + \frac{k}{\delta} T_b = h T_\infty + \frac{k}{\delta} T_c$$
+</details>
 
-Factor:
-$$T_b \left(h + \frac{k}{\delta}\right) = h T_\infty + \frac{k}{\delta} T_c$$
+---
 
-Solve:
-$$T_b = \frac{h T_\infty + \frac{k}{\delta} T_c}{h + \frac{k}{\delta}}$$
+## Implementation: Step-by-Step
 
-#### Rewrite in OpenFOAM Mixed Form
+### Step 1: Create BC Directory Structure
 
-OpenFOAM's `mixedFvPatch` uses:
-
-$$T_b = \text{valueFraction} \times \text{refValue} + (1 - \text{valueFraction}) \times T_c + \frac{\text{refGrad}}{\delta}$$
-
-Match with our equation:
-
-$$T_b = \frac{h}{h + \frac{k}{\delta}} T_\infty + \frac{\frac{k}{\delta}}{h + \frac{k}{\delta}} T_c + 0$$
-
-Therefore:
-- **valueFraction** = $\frac{h}{h + k \cdot \delta}$
-- **refValue** = $T_\infty$
-- **refGrad** = 0
-
-Where $\delta$ in OpenFOAM is accessed via `patch().deltaCoeffs()` (returns $1/\delta$).
-
-#### In Code
-
-This is exactly what's in `updateCoeffs()`:
-
-```cpp
-void myConvectiveFvPatchScalarField::updateCoeffs()
-{
-    if (updated())
-    {
-        return;
-    }
-
-    // Get δ coefficient (OpenFOAM stores 1/δ)
-    const scalarField& delta = patch().deltaCoeffs();
-
-    // valueFraction = h / (h + k/δ)
-    // But deltaCoeffs returns 1/δ, so:
-    // valueFraction = h / (h + k * deltaCoeffs)
-    valueFraction() = h_ / (h_ + kappa_ * delta);
-
-    refValue() = Tinf_;      // Ambient temperature
-    refGrad() = 0;           // No explicit gradient term
-
-    mixedFvPatchScalarField::updateCoeffs();
-}
+```bash
+mkdir -p $FOAM_RUN/myConvectiveBC/Make
+cd $FOAM_RUN/myConvectiveBC
 ```
 
----
-
-### Quick Derivation Check
-
-**Limit cases:**
-
-1. **Very high h (h → ∞):** `valueFraction → 1`
-   - $T_b = T_\infty$ (Dirichlet/fixedValue)
-   - Makes sense: infinite convection → surface equals ambient
-
-2. **Very low h (h → 0):** `valueFraction → 0`
-   - $T_b = T_c$ (zeroGradient/insulated)
-   - Makes sense: no convection → no heat flux
-
-3. **Typical values:** h = 100, k = 1, δ = 0.01
-   - δCoeffs = 100
-   - valueFraction = 100 / (100 + 1×100) = 0.5
-   - $T_b = 0.5 T_\infty + 0.5 T_c$
-   - Equal weighting between ambient and cell
-
----
-
-Robin (mixed) BC:
-
-$$T_b = \frac{h T_\infty + k\frac{T_c}{\delta}}{h + \frac{k}{\delta}}$$
-
-Where:
-- $T_b$ = boundary temperature
-- $T_c$ = cell center temperature
-- $\delta$ = distance from cell center to boundary
-- $h$ = heat transfer coefficient
-- $k$ = thermal conductivity
-- $T_\infty$ = ambient temperature
-
----
-
-## Step 1: Create BC Files
-
-### Directory Structure
-
+**Required files:**
 ```
 myConvectiveBC/
 ├── Make/
@@ -169,7 +140,10 @@ myConvectiveBC/
 
 ---
 
-### myConvectiveFvPatchScalarField.H
+### Step 2: Write Header File (.H)
+
+<details>
+<summary><strong>myConvectiveFvPatchScalarField.H</strong></summary>
 
 ```cpp
 #ifndef myConvectiveFvPatchScalarField_H
@@ -278,9 +252,14 @@ public:
 #endif
 ```
 
+</details>
+
 ---
 
-### myConvectiveFvPatchScalarField.C
+### Step 3: Write Implementation File (.C)
+
+<details>
+<summary><strong>myConvectiveFvPatchScalarField.C</strong></summary>
 
 ```cpp
 #include "myConvectiveFvPatchScalarField.H"
@@ -390,16 +369,13 @@ void myConvectiveFvPatchScalarField::updateCoeffs()
         return;
     }
 
-    // Get distance from cell center to face
+    // Get distance from cell center to face (OpenFOAM stores 1/δ)
     const scalarField& delta = patch().deltaCoeffs();
 
-    // Mixed BC coefficients
-    // T_face = valueFraction * refValue + (1-valueFraction) * T_cell
-    //        + refGrad / delta
-
-    // From: -k dT/dn = h(T - Tinf)
-    // We derive: valueFraction = h / (h + k/delta)
-
+    // Mixed BC: T_face = valueFraction * refValue + (1-valueFraction) * T_cell
+    // Derived from: -k dT/dn = h(T - Tinf)
+    // Result: valueFraction = h / (h + k * deltaCoeffs)
+    
     valueFraction() = h_ / (h_ + kappa_ * delta);
     refValue() = Tinf_;
     refGrad() = 0;
@@ -429,11 +405,15 @@ makePatchTypeField
 } // End namespace Foam
 ```
 
+</details>
+
+**🔍 Implementation Checkpoint:** Verify `updateCoeffs()` implements the derived formula correctly before proceeding.
+
 ---
 
-## Step 2: Make Files
+### Step 4: Create Build Files
 
-### Make/files
+#### Make/files
 
 ```
 myConvectiveFvPatchScalarField.C
@@ -441,7 +421,7 @@ myConvectiveFvPatchScalarField.C
 LIB = $(FOAM_USER_LIBBIN)/libmyConvectiveBC
 ```
 
-### Make/options
+#### Make/options
 
 ```
 EXE_INC = \
@@ -454,42 +434,97 @@ LIB_LIBS = \
 
 ---
 
-## Step 3: Compile
+### Step 5: Compile the BC
 
 ```bash
-cd myConvectiveBC
+cd $FOAM_RUN/myConvectiveBC
 wmake libso
-
-# Output:
-# Making dependency list for source file myConvectiveFvPatchScalarField.C
-# ...
-# libmyConvectiveBC.so
 ```
+
+**Expected output:**
+```
+Making dependency list for source file myConvectiveFvPatchScalarField.C
+...
+ls $FOAM_USER_LIBBIN/libmyConvectiveBC.so
+```
+
+**Checkpoint:** Verify library exists at `$FOAM_USER_LIBBIN/libmyConvectiveBC.so`
+
+<details>
+<summary><strong>🔧 Troubleshooting: Compilation Errors</strong></summary>
+
+**Error: "undefined reference to vtable"**
+```bash
+# Symptoms:
+# .so: undefined reference to 'vtable for Foam::myConvectiveFvPatchScalarField'
+
+# Solution: Ensure ALL virtual functions are implemented
+virtual void updateCoeffs();        // Required
+virtual void write(Ostream&) const;  // Required
+virtual tmp<fvPatchScalarField> clone() const;  // Required
+```
+
+**Error: "fatal error: mixedFvPatchFields.H: No such file"**
+```bash
+# Solution: Check Make/options includes finiteVolume
+EXE_INC = \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+```
+
+**Error: Template instantiation errors**
+```bash
+# Solution: Verify makePatchTypeField macro at end of .C file
+makePatchTypeField
+(
+    fvPatchScalarField,
+    myConvectiveFvPatchScalarField
+);
+```
+
+</details>
 
 ---
 
-## Step 4: Update Solver
+### Step 6: Update Solver Makefiles
 
-### Make/options (myHeatFoam)
+Edit `myHeatFoam/Make/options`:
 
-```
+```makefile
 EXE_INC = \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(LIB_SRC)/meshTools/lnInclude \
-    -I$(FOAM_USER_LIBBIN)/../myConvectiveBC    // Add this
+    -I$(FOAM_USER_LIBBIN)/../myConvectiveBC
 
 EXE_LIBS = \
     -lfiniteVolume \
     -lmeshTools \
-    -L$(FOAM_USER_LIBBIN) -lmyConvectiveBC     // Add this
+    -L$(FOAM_USER_LIBBIN) -lmyConvectiveBC
+```
+
+Recompile solver:
+```bash
+cd $FOAM_RUN/myHeatFoam
+wmake
 ```
 
 ---
 
-## Step 5: Create Test Case
+### Step 7: Create Test Case
 
-### 0/T with Convective BC
+**Directory structure:**
+```
+test_convective/
+├── 0/
+│   └── T
+├── constant/
+│   └── polyMesh/
+└── system/
+    ├── controlDict
+    ├── fvSchemes
+    └── fvSolution
+```
 
+**0/T file:**
 ```cpp
 FoamFile
 {
@@ -508,11 +543,11 @@ boundaryField
     left
     {
         type            fixedValue;
-        value           uniform 500;           // Hot surface
+        value           uniform 500;
     }
     right
     {
-        type            myConvective;          // Our custom BC!
+        type            myConvective;          // Custom BC
         h               100;                   // [W/m²K]
         Tinf            300;                   // [K]
         kappa           1;                     // [W/mK]
@@ -527,286 +562,203 @@ boundaryField
 
 ---
 
-## Step 6: Validate
+## Validation and Testing
 
-### Expected Behavior
-
-At steady state:
-- Heat flux at right = $h(T_{surface} - T_{inf})$
-- Should match internal conduction
-
-### Validation
+### Run Test Case
 
 ```bash
-# Run
+cd test_convective
+blockMesh
 myHeatFoam
+```
 
-# Check surface temperature
+**Expected output checkpoint:**
+```
+Time = 1
+diffusion epsilon = 0.01
+...
+```
+
+### Check Surface Temperature
+
+```bash
 postProcess -func "patchAverage(name=right, T)"
+cat postProcessing/patchAverage/0/right_T.dat
 ```
 
-Compare with expected $T_{surface}$ from energy balance.
+**Expected behavior:**
+- Initial T = 500 K (hot left boundary)
+- Right surface cools toward 300 K ambient
+- Steady state depends on h/k ratio
 
----
+<details>
+<summary><strong>🔍 Detailed Validation: Energy Balance Check</strong></summary>
 
-## การ Debug ปัญหาที่พบบ่อย
+**At steady state:**
+- Conductive flux = Convective flux
+- $-k \frac{dT}{dx} = h(T_{surface} - T_{\infty})$
 
-### ปัญหา 1: "undefined reference to vtable"
-
-**อาการ:**
+**Check with postProcess:**
 ```bash
-# .so: undefined reference to 'vtable for Foam::myConvectiveFvPatchScalarField'
-collect2: error: ld returned 1 exit status
+# Get temperature gradient at right patch
+postProcess -func "grad(T)"
+
+# Sample near right boundary
+sample -surface -sampleDict system/sampleDict
 ```
 
-**วินิจฉัย:** ไม่ได้ implement virtual functions ครบ
+**Analytical solution for 1D:**
+$$T(x) = T_{\infty} + (T_L - T_{\infty})\frac{1 + Bi(x/L)}{1 + Bi}$$
 
-**วิธีแก้:**
-```cpp
-// Make sure ALL virtual functions from mixedFvPatchScalarField are implemented:
+Where $Bi = hL/k$ (Biot number)
 
-// In .H file:
-virtual void updateCoeffs();        // Must implement
-virtual void write(Ostream&) const;  // Must implement
+</details>
 
-// Check you didn't forget:
-virtual tmp<fvPatchScalarField> clone() const;  // Constructor clone
-virtual tmp<fvPatchScalarField> clone(const DimensionedField<scalar, volMesh>&) const;
+<details>
+<summary><strong>🔧 Runtime Debugging Checklist</strong></summary>
+
+**Problem 1: "Unknown boundary patch type myConvective"**
 ```
+--> FOAM FATAL IO ERROR:
+Unknown boundary patch type myConvective
+Valid patch types: (fixedValue fixedGradient ...)
+```
+**Solution:**
+1. Check TypeName in .H: `TypeName("myConvective");`
+2. Check type in 0/T: `type myConvective;`
+3. Verify makePatchTypeField macro in .C
+4. Ensure library compiled successfully
 
-**Common mistake:** Forgetting to implement `write()` method
-
----
-
-### ปัญหา 2: Library Not Found
-
-**อาการ:**
-```bash
+**Problem 2: "cannot open shared object file"**
+```
 myHeatFoam: error while loading shared libraries:
 libmyConvectiveBC.so: cannot open shared object file
 ```
-
-**วินิจฉัย:** Library path ไม่อยู่ใน `LD_LIBRARY_PATH`
-
-**วิธีแก้:**
+**Solution:**
 ```bash
 # Check library exists
 ls $FOAM_USER_LIBBIN/libmyConvectiveBC.so
 
-# Add to Make/options in solver:
-EXE_LIBS = \
-    ... \
-    -L$(FOAM_USER_LIBBIN) -lmyConvectiveBC
+# Check Make/options in solver has:
+EXE_LIBS = -L$(FOAM_USER_LIBBIN) -lmyConvectiveBC
 
-# Or add to ~/.bashrc:
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$FOAM_USER_LIBBIN
+# Rebuild solver
+cd $FOAM_RUN/myHeatFoam && wmake
 ```
 
----
-
-### ปัญหา 3: BC Not Loading
-
-**อาการ:**
+**Problem 3: Temperature oscillation**
 ```
---> FOAM FATAL IO ERROR:
-Unknown boundary patch type myConvective
-Valid patch types:
-10
-(
-fixedValue
-fixedGradient
-...
-)
+Time = 1, right patch T = 450 K
+Time = 2, right patch T = 320 K
+Time = 3, right patch T = 430 K
 ```
-
-**วินิจฉัย:** BC ไม่ได้ลงทะเบียนกับ RTS
-
-**วิธีแก้:**
-```cpp
-// Check end of .C file:
-
-makePatchTypeField
-(
-    fvPatchScalarField,
-    myConvectiveFvPatchScalarField
-);
-
-// This macro expands to:
-// - Creates factory function
-// - Registers with run-time selection table
-
-// Make sure TypeName matches:
-// In .H:
-TypeName("myConvective");  // Case sensitive!
-
-// In 0/T:
-type            myConvective;  // Must match exactly!
-```
-
----
-
-### ปัญหา 4: Wrong Heat Flux
-
-**อาการ:**
-Boundary temperature ไม่ตรงกับค่าที่คาดหวัง
-
-**วินิจฉัย:** คำนวณผิดพลาดใน `updateCoeffs()`
-
-**การ Debug:**
-```cpp
-// Add to updateCoeffs():
-void myConvectiveFvPatchScalarField::updateCoeffs()
-{
-    if (updated())
-    {
-        return;
-    }
-
-    const scalarField& delta = patch().deltaCoeffs();
-
-    // DEBUG: Print first face values
-    if (Pstream::master())
-    {
-        Info<< "myConvective BC:" << nl
-            << "  h = " << h_ << nl
-            << "  kappa = " << kappa_ << nl
-            << "  Tinf = " << Tinf_ << nl
-            << "  delta[0] = " << delta[0] << nl
-            << "  valueFraction[0] = " << (h_ / (h_ + kappa_ * delta[0])) << nl;
-    }
-
-    valueFraction() = h_ / (h_ + kappa_ * delta);
-    refValue() = Tinf_;
-    refGrad() = 0;
-
-    mixedFvPatchScalarField::updateCoeffs();
-}
-```
-
-**Check output:**
-```
-myConvective BC:
-  h = 100
-  kappa = 1
-  Tinf = 300
-  delta[0] = 100
-  valueFraction[0] = 0.5
-```
-
-Verify: `valueFraction = 100 / (100 + 1×100) = 0.5` ✓
-
----
-
-### ปัญหา 5: Temperature Oscillation
-
-**อาการ:**
-```
-Time = 1
-right patch T = 450 K
-
-Time = 2
-right patch T = 320 K
-
-Time = 3
-right patch T = 430 K
-```
-
-**วินิจฉัย:** Convection แรงเกินไปทำให้ instability
-
-**วิธีแก้:**
+**Solution:**
 ```bash
-# Under-relax the BC (not directly supported in mixedFvPatch)
-
-# Workaround: Reduce time step
-vim system/controlDict
-
+# Reduce time step for stability
 deltaT  0.001;  # Was 0.01
 
-# Or add relaxation to solver
-vim system/fvSolution
-
+# Add solver relaxation
+system/fvSolution:
 solvers
 {
     T
     {
         solver          PCG;
         tolerance       1e-06;
-        relTol          0.01;  # Add this
+        relTol          0.01;
     }
 }
 ```
 
----
-
-## ทดสอบ BC ของคุณ
-
-### Minimal Test Case
-
+**Problem 4: Incorrect heat flux**
 ```bash
-# Create minimal case
-mkdir test_convective
-cd test_convective
-
-# Copy from phase 1
-cp -r ../../1D_diffusion/* .
-
-# Modify 0/T
-vim 0/T
-
-# Change right BC:
-right
+# Add debug output to updateCoeffs():
+if (Pstream::master() && this->size() > 0)
 {
-    type            myConvective;
-    h               100;
-    Tinf            300;
-    kappa           1;
-    value           uniform 300;
+    Info<< "myConvective BC:" << nl
+        << "  h = " << h_ << nl
+        << "  kappa = " << kappa_ << nl
+        << "  delta[0] = " << delta[0] << nl
+        << "  valueFraction[0] = " << (h_ / (h_ + kappa_ * delta[0])) << endl;
 }
-
-# Run
-blockMesh
-myHeatFoam
-
-# Check result
-postProcess -func "patchAverage(name=right, T)"
-cat postProcessing/patchAverage/0/right_T.dat
 ```
 
-### ผลลัพธ์ที่คาดหวัง
+**Check:**
+- valueFraction should be between 0 and 1
+- For h=100, k=1, δ=0.01: valueFraction = 0.5
 
-```
-# Patch right T
-500
-450
-425
-410
-400
-395
-390
-...
-```
-
-Temperature should approach steady state based on convection strength.
+</details>
 
 ---
 
-## Exercises
+## Practical Debugging Worksheet
 
-1. **Add Time-varying Tinf:** Make ambient temperature a function of time
-2. **Field-based h:** Read h from a `volScalarField` instead of constant
-3. **Radiation Term:** Add $q'' = \epsilon \sigma (T^4 - T_{inf}^4)$
+Use this checklist when BC fails:
 
----
-
-## Deliverables
-
-- [ ] Compiled `libmyConvectiveBC.so`
-- [ ] Updated solver linking to library
-- [ ] Test case with convective BC
-- [ ] Validation of heat balance
+| Symptom | Check | Command |
+|---------|-------|---------|
+| Compilation error | All virtual functions implemented? | `grep "virtual" *.H` |
+| Linking error | Library path correct? | `ls $FOAM_USER_LIBBIN/lib*.so` |
+| Runtime error | TypeName matches dictionary? | `grep TypeName *.H` |
+| Wrong values | updateCoeffs() formula correct? | Add debug Info<< |
+| Instability | Time step too large? | Reduce deltaT |
 
 ---
 
-## ถัดไป
+## Extensions
 
-เมื่อ Phase 2 เสร็จแล้ว ไปต่อที่ [Phase 3: Add Turbulence](03_Phase3_Turbulence_Model.md)
+### Exercise 1: Time-Varying Ambient Temperature
+
+```cpp
+// In .H, add:
+autoPtr<Function1<scalar>> TinfFunction_;
+
+// In constructor dict:
+TinfFunction_ = Function1<scalar>::New("Tinf", dict);
+
+// In updateCoeffs():
+scalar TinfNow = TinfFunction_->value(this->db().time().timeOutputValue());
+refValue() = TinfNow;
+```
+
+### Exercise 2: Spatially-Varying h
+
+Read h from a `volScalarField`:
+```cpp
+// In updateCoeffs():
+const volScalarField& hField = 
+    db().lookupObject<volScalarField>("hField");
+```
+
+### Exercise 3: Add Radiation Term
+
+$$q'' = h(T - T_\infty) + \epsilon \sigma (T^4 - T_{\infty}^4)$$
+
+Requires nonlinear iteration (linearize $T^4$ ≈ $4T_{ref}^3(T - T_{ref})$).
+
+---
+
+## Key Takeaways
+
+- **mixedFvPatchField** is the universal BC base class for Robin-type conditions
+- Derive **valueFraction**, **refValue**, and **refGrad** from first principles
+- BC class hierarchy: `fvPatchField` → `mixedFvPatchField` → custom BC
+- **Runtime selection**: `TypeName` + `makePatchTypeField` macro enable dictionary loading
+- Always test limiting behavior (h→0, h→∞) to verify implementation
+- Debug BCs by printing `updateCoeffs()` values on first iteration
+
+---
+
+## Deliverables Checklist
+
+- [ ] Compiled `libmyConvectiveBC.so` at `$FOAM_USER_LIBBIN`
+- [ ] Modified `myHeatFoam` Make/options linking the library
+- [ ] Test case `0/T` using `type myConvective`
+- [ ] Validation showing surface temperature approaching expected steady state
+- [ ] Debug worksheet with observed values
+
+---
+
+## Next Phase
+
+Proceed to [Phase 3: Add Turbulence Model](03_Phase3_Turbulence_Model.md) to implement a k-epsilon turbulence model from scratch.

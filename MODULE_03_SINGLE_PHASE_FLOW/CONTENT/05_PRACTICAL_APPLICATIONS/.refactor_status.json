@@ -3,9 +3,8 @@
         "00_Overview.md",
         "01_External_Aerodynamics.md",
         "02_Internal_Flow_and_Piping.md",
+        "03_Heat_Exchangers.md",
         "03_Heat_Exchangers.md"
     ],
-    "skipped": [
-        "03_Heat_Exchangers.md"
-    ]
+    "skipped": []
 }

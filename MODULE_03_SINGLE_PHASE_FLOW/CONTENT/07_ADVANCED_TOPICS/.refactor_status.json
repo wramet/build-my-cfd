@@ -4,9 +4,8 @@
         "01_High_Performance_Computing.md",
         "03_Numerical_Methods.md",
         "04_Multiphysics.md",
+        "02_Advanced_Turbulence.md",
         "02_Advanced_Turbulence.md"
     ],
-    "skipped": [
-        "02_Advanced_Turbulence.md"
-    ]
+    "skipped": []
 }

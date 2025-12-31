@@ -11,6 +11,18 @@
 
 ---
 
+## 🎯 Learning Objectives (วัตถุประสงค์การเรียนรู้)
+
+หลังจากศึกษาบทนี้ ผู้เรียนจะสามารถ:
+
+1. **อธิบายหลักการ**ของ Richardson Extrapolation และเงื่อนไขที่จำเป็นในการใช้งาน
+2. **คำนวณ Grid Convergence Index (GCI)** จากข้อมูลเมช 3 ขนาดด้วย Python/MATLAB
+3. **ตีความผลลัพธ์ GCI** และรายงานค่าความไม่แน่นอนจากเมชอย่างมืออาชีพ
+4. **เปรียบเทียบ GCI กับ MMS** และเลือกวิธีที่เหมาะสมกับสถานการณ์
+5. **ประยุกต์ใช้งานใน OpenFOAM** ผ่านการตั้งค่า `blockMeshDict`, `snappyHexMeshDict`, และ `forces` functionObject
+
+---
+
 ## 2.3 การประมาณค่าของริชาร์ดสัน (Richardson Extrapolation)
 
 > [!NOTE] **📂 OpenFOAM Context**
@@ -45,9 +57,9 @@ $$
 
 ### 2.3.2 เงื่อนไขการใช้งาน (Conditions)
 
-1. เมชต้องอยู่ในช่วง Asymptotic Range (ลู่เข้าแล้ว)
-2. อัตราส่วน $r$ ควรจะคงที่ (แนะนำ $r = 2$ หรืออย่างน้อย $\sqrt{2}$)
-3. รูปทรงของเมชต้องคล้ายกัน (Geometrically Similar)
+1. **เมชต้องอยู่ในช่วง Asymptotic Range** (ลู่เข้าแล้ว)
+2. **อัตราส่วน $r$ ควรจะคงที่** (แนะนำ $r = 2$ หรืออย่างน้อย $\sqrt{2}$)
+3. **รูปทรงของเมชต้องคล้ายกัน** (Geometrically Similar)
 
 ---
 
@@ -190,6 +202,59 @@ print(f"Reported Value: {Cd_fine} +/- {Cd_fine*gci:.4f}")
 
 ---
 
+## 📋 Key Takeaways (สรุปสิ่งสำคัญ)
+
+### 🔑 แนวคิดหลัก (Core Concepts)
+
+1. **Richardson Extrapolation** ใช้ผลลัพธ์จากเมชหลายขนาดประมาณค่า Exact Solution ทางอ้อม ทำงานได้ดีที่สุดเมื่อเมชอยู่ใน **Asymptotic Range**
+
+2. **Grid Convergence Index (GCI)** คือมาตรฐานในการรายงาน **Uncertainty จากเมช** ด้วย Safety Factor ($F_s$) ที่เหมาะสม:
+   - $F_s = 1.25$ สำหรับเมช 3 ขนาด (แนะนำ)
+   - $F_s = 3.0$ สำหรับเมช 2 ขนาด
+
+3. **เงื่อนไขที่จำเป็น:**
+   - เมชต้องมี **Geometric Similarity** (รูปทรงคล้ายกัน)
+   - อัตราส่วน Refinement ($r$) ควรคงที่ ($r=2$ หรือ $\sqrt{2}$)
+   - ต้องใช้ **Numerical Schemes เดียวกัน** ทุกเคสใน `system/fvSchemes`
+
+### 🆚 GCI vs MMS: เมื่อไหร่ใช้วิธีไหน?
+
+| ด้าน | **GCI (Richardson)** | **MMS** |
+| :--- | :--- | :--- |
+| **แหล่งที่มาของ Exact Solution** | ประมาณค่าจากเมชหลายขนาด | สร้างขึ้นเอง (Manufactured) |
+| **ความแม่นยำ** | ประมาณค่า ใช้จริงได้ | แม่นยำที่สุด เช็คทุกเทอม |
+| **ความยากในการตั้งค่า** | ปานกลาง (ต้องเตรียมเมช 3 ขนาด) | สูง (ต้องเขียน Source Terms) |
+| **เหมาะกับ** | ปัญหาจริง ที่ไม่มี Analytical Solution | ทดสอบ Solver ใหม่ หรือ Debug Code |
+| **มาตรฐานรายงาน** | ใช้กันทั่วไปในงานวิจัย/วิศวกรรม | ใช้ในการพัฒนา Solver |
+
+### 🔧 การนำไปใช้ใน OpenFOAM
+
+**Workflow การทำ GCI:**
+
+1. **เตรียมเมช 3 ขนาด** โดยแก้ไข:
+   - `system/blockMeshDict`: เปลี่ยน `nx`, `ny`, `nz`
+   - `system/snappyHexMeshDict`: เปลี่ยน `levels`
+
+2. **รันการจำลอง** ด้วย Schemes เดียวกัน:
+   ```cpp
+   // system/fvSchemes - ต้องเหมือนกันทุกเคส
+   d2Schemes  default none;
+   ```
+
+3. **เก็บข้อมูล** ด้วย `forces` functionObject:
+   ```cpp
+   functions { forces1 { type forces; ... } }
+   ```
+
+4. **คำนวณ GCI** ด้วย Python/MATLAB จาก `postProcessing/forces/0/coeffs`
+
+5. **รายงานผล** พร้อม Uncertainty:
+   ```
+   Drag Coefficient: 0.345 ± 0.002 (GCI = 0.6%)
+   ```
+
+---
+
 ## 🧠 ตรวจสอบความเข้าใจ (Concept Check)
 
 1. **ถาม:** ถ้าคำนวณ GCI แล้วได้ค่า $p$ (Apparent Order) เป็น 0.5 ทั้งที่ใช้ Scheme แบบ Second-order ($p=2$) เกิดจากอะไรได้บ้าง?
@@ -208,6 +273,18 @@ print(f"Reported Value: {Cd_fine} +/- {Cd_fine*gci:.4f}")
    <details>
    <summary>เฉลย</summary>
    <b>ตอบ:</b> เมื่อเมชอยู่ใน Asymptotic Range คือความละเอียดเพียงพอที่ error จะลดลงตามทฤษฎี และอัตราส่วน refinement (r) คงที่ ซึ่งหมายความว่าเมชต้องมีความละเอียดพอสมควรก่อนที่จะใช้วิธีนี้
+   </details>
+
+4. **ถาม:** ควรใช้ GCI หรือ MMS สำหรับการตรวจสอบความถูกต้องของ OpenFOAM case ใหม่?
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b> ขึ้นอยู่กับเป้าหมาย ถ้าเป็น **ปัญหาจริงที่ไม่มี Analytical Solution** (เช่น กรณีศึกษาทางอุตสาหกรรม) ให้ใช้ **GCI** เพราะเป็นวิธีมาตรฐานและใช้งานได้จริง แต่ถ้ากำลัง **ทดสอบ Solver ใหม่** หรือ **Debug numerical schemes** ให้ใช้ **MMS** เพราะให้ความแม่นยำสูงสุดและตรวจสอบได้ทุกเทอมของสมการ
+   </details>
+
+5. **ถาม:** ทำไมต้องใช้ Numerical Schemes เดียวกันทุกเคสเมื่อทำ GCI?
+   <details>
+   <summary>เฉลย</summary>
+   <b>ตอบ:</b> เพราะ GCI ตั้งอยู่บนสมมติฐานว่า **Order of Convergence ($p$) คงที่** ถ้าเปลี่ยน Scheme (เช่น จาก Gauss linear 2nd order เป็น Upwind 1st order) ค่า $p$ จะเปลี่ยน ทำให้การคำนวณ GCI ไม่ถูกต้อง ดังนั้นใน `system/fvSchemes` ต้องกำหนด schemes เหมือนกันทุกเคส โดยเฉพาะ `d2Schemes` และ `interpolationSchemes`
    </details>
 
 ---

@@ -11,6 +11,22 @@
 
 การตรวจสอบความถูกต้องเชิงตัวเลข (Numerical Verification) มีวัตถุประสงค์เพื่อยืนยันว่าอัลกอริทึมและระเบียบวิธีเชิงตัวเลขได้รับการพิจารณาและนำไปใช้ในโค้ดอย่างถูกต้อง และบรรลุความแม่นยำตามที่ระบุไว้ในทฤษฎี
 
+---
+
+## 🎯 วัตถุประสงค์การเรียนรู้ (Learning Objectives)
+
+หลังจากศึกษาบทนี้ คุณควรจะสามารถ:
+
+1. **เข้าใจหลักการของ MMS**: อธิบายแนวคิดการวิศวกรรมย้อนกลับ (Reverse Engineering) ในการตรวจสอบโค้ด OpenFOAM และเหตุผลที่ต้องใช้วิธีนี้เมื่อขาดผลเฉลยเชิงวิเคราะห์
+
+2. **ดำเนินการ MMS 4 ขั้นตอน**: กำหนดฟังก์ชันผลเฉลย, คำนวณ Source Term, นำไปใช้ใน OpenFOAM ด้วย `fvc::laplacian` และ `fvm::laplacian`, และตรวจสอบลำดับความแม่นยำ
+
+3. **เขียนโค้ด MMS ใน OpenFOAM**: ใช้ `volScalarField`, `mesh.C()`, และ `solve()` เพื่อสร้าง Custom Solver ที่คำนวณความผิดพลาดเทียบกับผลเฉลยที่ผลิตขึ้น
+
+4. **วิเคราะห์ผลลัพธ์**: คำนวณ L2 Norm, พล็อตกราฟความสัมพันธ์ระหว่างความผิดพลาดและขนาดเมช, และยืนยันลำดับความแม่นยำที่ได้จากการทดสอบ
+
+---
+
 ## 2.1 หลักการพื้นฐานของ MMS (Basic Principles of MMS)
 
 > [!NOTE] **📂 OpenFOAM Context**
@@ -222,6 +238,31 @@ $$L_2 \text{ Error} = \sqrt{\frac{1}{V_{total}} \sum_{i=1}^{N} V_i (\phi_i - \ph
    <summary>เฉลย</summary>
    <b>ตอบ:</b> อาจเกิดจาก (1) เมชยังไม่ละเอียดพอ (ไม่อยู่ใน Asymptotic Range), (2) มี Numerical Dissipation จาก scheme ที่ใช้, หรือ (3) มีบั๊กในการดิสครีตซึ่งควรตรวจสอบเพิ่มเติม
    </details>
+
+---
+
+## 📝 สรุปสิ่งสำคัญ (Key Takeaways)
+
+**เวิร์กโฟลว์ MMS 4 ขั้นตอน:**
+
+1. **กำหนดฟังก์ชัน $\phi_{exact}$**: เลือกฟังก์ชันตรีโกณมิติที่ต่อเนื่องและหาอนุพันธ์ได้ง่าย เช่น $\sin(\pi x/L)\cos(\pi y/L)$
+
+2. **คำนวณ Source Term $S$**: แทนค่า $\phi_{exact}$ ลงในสมการเชิงอนุพันธ์และหาอนุพันธ์เพื่อให้ได้ $S = -L(\phi_{exact})$
+
+3. **Implement ใน OpenFOAM**: ใช้ `volScalarField` สร้างฟิลด์ `phiExact` และคำนวณ `sourceTerm` ด้วย `fvc::laplacian` แล้วแก้สมการด้วย `solve(fvm::laplacian(D, phi) == sourceTerm)`
+
+4. **ตรวจสอบ Order of Accuracy**: รันการจำลองด้วยเมช 3-4 ระดับ คำนวณ L2 Error และพล็อตกราฟ $\log(\text{Error})$ เทียบ $\log(\Delta x)$ เพื่อยืนยันลำดับความแม่นยำ
+
+**แนวคิดสำคัญ:**
+- MMS ใช้ **Reverse Engineering Approach**: กำหนดคำตอบก่อนแล้วหาคำถาม (Source Term) ที่ทำให้คำตอบนั้นถูกต้อง
+- **Source Term** ทำหน้าที่ชดเชยความไม่สมดุลของสมการเมื่อบังคับใช้ Manufactured Solution ที่ไม่ได้เป็นผลเฉลยตามธรรมชาติ
+- **L2 Norm** วัดความผิดพลาดเชิงบูรณาการทั่วทั้งโดเมน ให้ค่าที่เชื่อถือได้กว่า Max Error
+- **Grid Convergence Study** จำเป็นเพื่อยืนยันว่าโค้ดมีความแม่นยำตามทฤษฎี (เช่น slope = 2 สำหรับ Second-order scheme)
+
+**OpenFOAM Implementation Highlights:**
+- ใช้ `fvc::` (finite volume calculus) สำหรับ explicit calculations และ `fvm::` (finite volume method) สำหรับ implicit terms
+- `mesh.C()` ให้ตำแหน่งจุดศูนย์กลางเซลล์สำหรับคำนวณฟังก์ชัน analytical
+- `functionObjects` ใน `controlDict` ช่วยบันทึก Error norms โดยอัตโนมัติ
 
 ---
 

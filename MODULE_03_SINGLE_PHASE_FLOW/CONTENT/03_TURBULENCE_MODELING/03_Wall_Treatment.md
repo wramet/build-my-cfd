@@ -15,17 +15,6 @@
 5. **Verify** and adjust $y^+$ values through mesh refinement
 6. **Troubleshoot** common wall treatment issues
 
-**Skills Checklist:**
-
-| Skill | Beginner | Intermediate | Advanced |
-|-------|----------|--------------|----------|
-| Understanding $y^+$ concept | ☐ | ☐ | ☐ |
-| Selecting wall treatment strategy | ☐ | ☐ | ☐ |
-| Configuring wall BCs in OpenFOAM | ☐ | ☐ | ☐ |
-| Checking $y^+$ with postProcess | ☐ | ☐ | ☐ |
-| Calculating first cell height | ☐ | ☐ | ☐ |
-| Troubleshooting divergence issues | ☐ | ☐ | ☐ |
-
 ### Decision Flowchart
 
 ```mermaid
@@ -38,6 +27,17 @@ flowchart TD
     C --> F[nutLowReWallFunction]
     E --> G[nutkWallFunction]
 ```
+
+**Skills Checklist:**
+
+| Skill | Beginner | Intermediate | Advanced |
+|-------|----------|--------------|----------|
+| Understanding $y^+$ concept | ☐ | ☐ | ☐ |
+| Selecting wall treatment strategy | ☐ | ☐ | ☐ |
+| Configuring wall BCs in OpenFOAM | ☐ | ☐ | ☐ |
+| Checking $y^+$ with postProcess | ☐ | ☐ | ☐ |
+| Calculating first cell height | ☐ | ☐ | ☐ |
+| Troubleshooting divergence issues | ☐ | ☐ | ☐ |
 
 ---
 

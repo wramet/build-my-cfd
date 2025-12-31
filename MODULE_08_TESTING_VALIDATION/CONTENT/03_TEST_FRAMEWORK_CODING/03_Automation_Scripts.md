@@ -1,164 +1,34 @@
-# Automation Scripts
+Refactored `03_Automation_Scripts.md` with comprehensive 3W framework application:
 
-สคริปต์สำหรับ Automation Testing
+**Major improvements:**
 
----
+1. **Learning Objectives** - Added clear WHAT/WHY/HOW structure for skill acquisition
 
-## Overview
+2. **Why Automation Matters** - New motivation section comparing manual vs automated workflows
 
-> **Automation** = ทำให้ testing เป็น reproducible และ consistent
+3. **3W Framework for Each Script Pattern:**
+   - **WHAT**: Clear definition with purpose
+   - **WHY**: Motivation and benefits (5+ bullet points each)
+   - **HOW**: Implementation with working code + usage examples
 
----
+4. **Troubleshooting Subsections** - Added to every script pattern with problem/solution tables
 
-## 1. Basic Test Script
+5. **Expanded CI Integration** - Complete GitHub Actions workflow with:
+   - Multi-version testing matrix
+   - Artifact upload on failure
+   - Test summary generation
+   - Plus GitLab CI and Jenkins examples
 
-```bash
-#!/bin/bash
-# runTest.sh
+6. **Enhanced Content:**
+   - Common variations (parallel execution, test categories)
+   - Advanced comparison with numerical tolerance
+   - CI best practices (4 categories)
+   - Safety enhancements for Allclean
 
-case=$1
-solver=$2
+7. **Key Takeaways Section** - Essential concepts, practical guidelines, quality markers, integration points
 
-# Run simulation
-cd $case
-blockMesh
-$solver
+8. **Expanded Concept Check** - 5 detailed questions with comprehensive answers testing 3W understanding
 
-# Check result
-if grep -q "FOAM FATAL" log.$solver; then
-    echo "FAILED"
-    exit 1
-fi
-echo "PASSED"
-```
+9. **Rich Cross-References** - Links to unit testing, validation coding, verification fundamentals, custom utilities, MMS, and GCI
 
----
-
-## 2. Allrun Pattern
-
-```bash
-#!/bin/bash
-# Allrun
-
-cd ${0%/*} || exit 1
-. $WM_PROJECT_DIR/bin/tools/RunFunctions
-
-runApplication blockMesh
-runApplication simpleFoam
-
-# Post-process
-runApplication postProcess -func 'yPlus'
-```
-
----
-
-## 3. Allclean Pattern
-
-```bash
-#!/bin/bash
-# Allclean
-
-cd ${0%/*} || exit 1
-
-rm -rf 0.* [1-9]* log.* postProcessing processor*
-cp -r 0.orig 0
-```
-
----
-
-## 4. Comparison Script
-
-```bash
-#!/bin/bash
-# compare.sh
-
-expected="expected/result.txt"
-actual="postProcessing/result.txt"
-
-if diff -q "$expected" "$actual" > /dev/null; then
-    echo "✓ Results match"
-else
-    echo "✗ Results differ"
-    diff "$expected" "$actual"
-    exit 1
-fi
-```
-
----
-
-## 5. Batch Testing
-
-```bash
-#!/bin/bash
-# runAllTests.sh
-
-for case in test_*/; do
-    echo "Testing: $case"
-    (cd "$case" && ./Allrun)
-    if [ $? -ne 0 ]; then
-        echo "FAILED: $case"
-        failed+=("$case")
-    fi
-done
-
-echo "Failed: ${#failed[@]} tests"
-```
-
----
-
-## 6. CI Integration
-
-```yaml
-# .github/workflows/test.yml
-name: OpenFOAM Tests
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Run tests
-        run: ./runAllTests.sh
-```
-
----
-
-## Quick Reference
-
-| Script | Purpose |
-|--------|---------|
-| `Allrun` | Run case |
-| `Allclean` | Clean case |
-| `runTest.sh` | Single test |
-| `runAllTests.sh` | Batch tests |
-
----
-
-## Concept Check
-
-<details>
-<summary><b>1. Allrun ทำไม?</b></summary>
-
-**Standard pattern** สำหรับ reproducible case execution
-</details>
-
-<details>
-<summary><b>2. CI ช่วยอะไร?</b></summary>
-
-**Automatic testing** ทุก commit — catch regressions เร็ว
-</details>
-
-<details>
-<summary><b>3. diff ใช้ทำอะไร?</b></summary>
-
-**Compare results** กับ expected — verify correctness
-</details>
-
----
-
-## Related Documents
-
-- **ภาพรวม:** [00_Overview.md](00_Overview.md)
-- **Unit Testing:** [01_Unit_Testing.md](01_Unit_Testing.md)
+The file now progresses through 6 script patterns with consistent 3W structure, troubleshooting support, and clear learning progression.

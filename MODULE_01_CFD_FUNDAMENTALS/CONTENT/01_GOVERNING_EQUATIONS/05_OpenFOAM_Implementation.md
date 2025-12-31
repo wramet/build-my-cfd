@@ -5,31 +5,6 @@
 > - **WHY:** เพื่อเลือก discretization method, solver algorithm, และ numerical schemes ที่เหมาะสมกับปัญหาของคุณ
 > - **WHEN:** ก่อนเริ่ม simulation ทุกครั้ง เพื่อตั้งค่า `fvSchemes` และ `fvSolution` อย่างถูกต้อง
 
-เมื่อเราเข้าใจสมการควบคุม (Navier-Stokes) แล้ว คำถามถัดไปคือ: **OpenFOAM แปลงคณิตศาสต์เหล่านี้เป็นโค้ดอย่างไร?**
-
-> **ทำไมบทนี้สำคัญมาก?**
-> - เข้าใจ **fvm:: vs fvc::** → เลือก implicit/explicit ถูก
-> - เข้าใจ **SIMPLE/PISO/PIMPLE** → เลือก algorithm ถูก
-> - เข้าใจ **fvSchemes/fvSolution** → ตั้งค่าได้ถูกต้อง
-> - เข้าใจ **Pressure-Velocity Coupling** → แก้ปัญหา divergence ได้
-
----
-
-## แผนที่เนื้อหา (Module Flow)
-
-```mermaid
-graph TD
-    A[04: Dimensionless Numbers] --> B[05: OpenFOAM Implementation]
-    B --> C[06: Boundary Conditions]
-    B --> D[07: Initial Conditions]
-
-    B --> E[From Equations to Code]
-    B --> F[Discretization Methods]
-    B --> G[Solver Algorithms]
-
-    style B fill:#e1f5ff
-```
-
 ---
 
 ## Navigation Diagram
@@ -54,11 +29,11 @@ graph TD
 │  │                                                                     │   │
 │  │  1. From Equation to Code (Matrix Assembly)                        │   │
 │  │  2. fvm:: vs fvc:: (Implicit vs Explicit)                           │   │
-│  │  3. Pressure-Velocity Coupling (Poisson Equation)                  │   │
-│  │  4. SIMPLE / PISO / PIMPLE Algorithms                               │   │
-│  │  5. Field Types & Dimensional Checking                             │   │
-│  │  6. fvSchemes (Discretization)                                      │   │
-│  │  7. fvSolution (Linear Solvers)                                     │   │
+│  │  3. Pressure-Velocity Coupling Algorithms                           │   │
+│  │  4. Field Types & Dimensional Checking                             │   │
+│  │  5. fvSchemes (Discretization)                                      │   │
+│  │  6. fvSolution (Linear Solvers)                                     │   │
+│  │  7. Boundary Condition Compatibility                                │   │
 │  │                                                                     │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │       │                                                                     │
@@ -73,23 +48,39 @@ graph TD
 
 ---
 
-## ส่วนที่ 1: จากสมการสู่ Matrix (From Equation to Code)
+## Module Flow
 
-### กระบวนการ Discretization ใน FVM
+```mermaid
+graph TD
+    A[04: Dimensionless Numbers] --> B[05: OpenFOAM Implementation]
+    B --> C[06: Boundary Conditions]
+    B --> D[07: Initial Conditions]
+    
+    B --> E[Equation → Code]
+    B --> F[Solver Choice]
+    
+    style B fill:#e1f5ff
+```
 
-Finite Volume Method (FVM) ที่ OpenFOAM ใช้นั้น มีหลักการสำคัญคือ: **อะไรก็ตามที่ไหลเข้าเซลล์หนึ่ง ต้องไหลออกจากเซลล์ข้างเคียง** (conservation property)
+---
 
-| ขั้นตอน | กระบวนการ | ผลลัพธ์ |
-|----------|-------------|----------|
-| **1** | แบ่งพื้นที่เป็น Control Volumes | แต่ละเซลล์ใน mesh = control volume หนึ่ง |
-| **2** | Integrate สมการบน Volume | แปลง PDE → integral form |
-| **3** | ใช้ Gauss Theorem | Volume integral → Surface integral (flux) |
-| **4** | Approximate Fluxes ที่ผิวหน้า | ใช้ interpolation schemes |
-| **5** | สร้าง Linear Equations | **[A]{x} = {b}** |
+## Section 1: From Equation to Matrix
+
+### Discretization Process in FVM
+
+Finite Volume Method (FVM) ใน OpenFOAM มีหลักการ: **อะไรก็ตามที่ไหลเข้าเซลล์หนึ่ง ต้องไหลออกจากเซลล์ข้างเคียง** (conservation property)
+
+| Step | Process | Result |
+|------|---------|--------|
+| **1** | Divide domain into Control Volumes | Each cell = one control volume |
+| **2** | Integrate equations over Volume | PDE → integral form |
+| **3** | Apply Gauss Theorem | Volume integral → Surface integral (flux) |
+| **4** | Approximate Fluxes at faces | Use interpolation schemes |
+| **5** | Create Linear Equations | **[A]{x} = {b}** |
 
 ### From Conservation Law to Matrix: Step-by-Step
 
-**ตัวอย่าง:** สมการ diffusion อย่างง่าย: $\nabla^2 T = 0$
+**Example:** สมการ diffusion อย่างง่าย: $\nabla^2 T = 0$
 
 ```
 Step 1: Continuous Equation
@@ -110,16 +101,16 @@ Step 5: Linear System
 
 ### From Equation to Code Mapping Table
 
-| สมการควบคุม | Continuous Form | OpenFOAM Code (fvMatrix) | Matrix Type |
-|--------------|----------------|-------------------------|-------------|
-| **Continuity** | $\nabla \cdot \mathbf{u} = 0$ | `fvc::div(phi)` ใน pressure eqn | Scalar (pressure) |
+| Conservation Law | Continuous Form | OpenFOAM Code (fvMatrix) | Matrix Type |
+|------------------|-----------------|--------------------------|-------------|
+| **Continuity** | $\nabla \cdot \mathbf{u} = 0$ | `fvc::div(phi)` in pressure eqn | Scalar (pressure) |
 | **Momentum** | $\frac{\partial \mathbf{u}}{\partial t} + \nabla \cdot (\mathbf{u}\mathbf{u}) = -\nabla p + \nu \nabla^2 \mathbf{u}$ | `fvm::ddt(U) + fvm::div(phi, U) == -fvc::grad(p) + fvm::laplacian(nu, U)` | Vector (3× scalar) |
 | **Energy** | $\frac{\partial T}{\partial t} + \nabla \cdot (\mathbf{u} T) = \alpha \nabla^2 T$ | `fvm::ddt(T) + fvm::div(phi, T) == fvm::laplacian(alpha, T)` | Scalar |
 | **Mass (compressible)** | $\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$ | `fvm::ddt(rho) + fvm::div(rhoPhi, rho)` | Scalar |
 
 > **📖 รายละเอียดสมการ:** ดูการพิสูจน์ใน [02_Conservation_Laws.md](02_Conservation_Laws.md)
 
-### ตัวอย่าง Discretization ของเซลล์เดียว
+### Single Cell Discretization Example
 
 สำหรับเซลล์ P ที่มีเซลล์ข้างเคียง N, S, E, W:
 
@@ -138,622 +129,418 @@ Matrix Form:  [A] · {T} = {b}
              └───────────────────────┘
 ```
 
-เมื่อเขียนสำหรับทุกเซลล์รวมกัน จะได้ **sparse matrix** ขนาดใหญ่ที่ต้องแก้ด้วย iterative methods
+เมื่อรวมทุกเซลล์ จะได้ **sparse matrix** ขนาดใหญ่ที่ต้องแก้ด้วย iterative methods
 
 ---
 
-## ส่วนที่ 2: fvm:: และ fvc:: — Implicit vs Explicit
+## Section 2: fvm:: vs fvc:: — Implicit vs Explicit
 
-### ความแตกต่างพื้นฐาน
-
-ใน OpenFOAM คุณจะเห็น namespace สองตัวที่ใช้บ่อยมาก: `fvm::` และ `fvc::`
+### Fundamental Difference
 
 | Aspect | **fvm::** (Finite Volume Method) | **fvc::** (Finite Volume Calculus) |
-|--------|--------------------------------|-----------------------------------|
-| **Discretization** | **Implicit** — ค่า unknown อยู่ใน matrix | **Explicit** — ใช้ค่าจาก iteration ก่อนหน้า |
-| **ตำแหน่งในสมการ** | ฝั่งซ้าย [A] ใน [A]{x} = {b} | ฝั่งขวา {b} (source term) |
-| **ต้องแก้ matrix?** | ✓ ใช่ | ✗ ไม่ใช่ |
-| **เสถียรภาพ** | เสถียรกว่า, ใช้ Δt ใหญ่ได้ | มี stability limit (CFL) |
-| **ความเร็ว** | ช้ากว่า (ต้อง solve matrix) | เร็วกว่า (คำนวณตรงๆ) |
-| **หน่วยความจำ** | สูงกว่า (เก็บ matrix) | ต่ำกว่า |
+|--------|----------------------------------|------------------------------------|
+| **Discretization** | **Implicit** — unknown ใน matrix | **Explicit** — ใช้ค่าจาก iteration ก่อนหน้า |
+| **Position in Equation** | Left side [A] in [A]{x} = {b} | Right side {b} (source term) |
+| **Solve Matrix?** | ✓ Yes | ✗ No |
+| **Stability** | More stable, larger Δt | Stability limit (CFL) |
+| **Speed** | Slower (solve matrix) | Faster (direct calculation) |
+| **Memory** | Higher (store matrix) | Lower |
 
 ### Timing & Stability Tradeoffs
 
-| Configuration | Time Step | Stability | Accuracy | Computational Cost | ใช้เมื่อ |
-|--------------|-----------|-----------|----------|-------------------|----------|
-| **All fvm::** | Large (Co > 1) | ✓ เสถียรมาก | Medium | สูง | Steady-state |
-| **All fvc::** | Small (Co < 1) | ✗ เสถียรน้อย | High | ต่ำ | Explicit solvers |
-| **Mixed** | Medium | ✓ เสถียร | High | ปานกลาง | ส่วนใหญ่ (แนะนำ) |
+| Configuration | Time Step | Stability | Accuracy | Computational Cost | Use When |
+|---------------|-----------|-----------|----------|--------------------|----------|
+| **All fvm::** | Large (Co > 1) | ✓ Very stable | Medium | High | Steady-state |
+| **All fvc::** | Small (Co < 1) | ✗ Less stable | High | Low | Explicit solvers |
+| **Mixed** | Medium | ✓ Stable | High | Medium | Most cases (recommended) |
 
-### การเลือกใช้ fvm:: vs fvc::
+### Choosing fvm:: vs fvc::
 
 ```cpp
-// ตัวอย่างสมการโมเมนตัม
+// Momentum equation example
 fvVectorMatrix UEqn
 (
     fvm::ddt(U)           // ✓ implicit: ∂U/∂t — stability
   + fvm::div(phi, U)      // ✓ implicit: convection — stability
     ==
     fvm::laplacian(nu, U) // ✓ implicit: diffusion — stability
-  - fvc::grad(p)          // ✗ explicit: pressure gradient — coupling requirement
+  - fvc::grad(p)          // ✗ explicit: pressure gradient — coupling
 );
 ```
 
-**ทำไมใช้ `-fvc::grad(p)` (explicit)?**
-เพราะ pressure p ยังไม่รู้ค่าจริงใน iteration นี้ เราใช้ค่าจาก iteration ก่อนหน้าไปก่อน แล้วจะแก้ไขในขั้นตอน pressure correction ทีหลัง
+**ทำไมใช้ `-fvc::grad(p)` (explicit)?**  
+Pressure p ยังไม่รู้ค่าจริงใน iteration นี้ เราใช้ค่าจาก iteration ก่อนหน้า แล้วแก้ไขใน pressure correction step
 
-### Operators ที่ใช้บ่อย
+### Common Operators
 
-| Operator | สมการ | ความหมาย | fvm:: / fvc:: |
-|----------|----------|------------|---------------|
-| `ddt(φ)` | ∂φ/∂t | อนุพันธ์เทียบเวลา | ทั้งคู่ |
-| `div(F, φ)` | ∇·(Fφ) | Convection (การพา) | ทั้งคู่ |
-| `laplacian(Γ, φ)` | ∇·(Γ∇φ) | Diffusion (การแพร่) | fvm:: (ส่วนใหญ่) |
-| `grad(p)` | ∇p | Gradient | fvc:: เท่านั้ง |
+| Operator | Equation | Meaning | fvm:: / fvc:: |
+|----------|----------|---------|---------------|
+| `ddt(φ)` | ∂φ/∂t | Time derivative | Both |
+| `div(F, φ)` | ∇·(Fφ) | Convection | Both |
+| `laplacian(Γ, φ)` | ∇·(Γ∇φ) | Diffusion | fvm:: (usually) |
+| `grad(p)` | ∇p | Gradient | fvc:: only |
 | `Sp(S, φ)` | S·φ | Source term (implicit) | fvm:: |
 | `Su(S, φ)` | S | Source term (explicit) | fvc:: |
 
 ---
 
-## ส่วนที่ 3: Pressure-Velocity Coupling
+## Section 3: Pressure-Velocity Coupling Algorithms
 
-### ปัญหาพื้นฐานใน Incompressible Flow
+### The Incompressible Flow Problem
 
-ใน incompressible flow มีปัญหาพิเศษ: **ไม่มีสมการวิวัฒนาการของ pressure โดยตรง**
+ใน incompressible flow มีปัญหา: **ไม่มีสมการวิวัฒนาการของ pressure โดยตรง**
 
-- สมการโมเมนตัมเกี่ยวข้องกับ **U และ p**
-- สมการความต่อเนื่อง (∇·U = 0) เป็นแค่ **constraint**
-- ไม่มีสมการที่บอกว่า **p มีค่าเท่าไหร่** โดยตรง
+- Momentum equation เกี่ยวข้องกับ **U และ p**
+- Continuity (∇·U = 0) เป็น **constraint**
+- ไม่มีสมการที่บอก **p มีค่าเท่าไหร่** โดยตรง
 
-นี่คือที่มาของ **Pressure Poisson Equation**
+นี่คือที่มาของ **Pressure-Velocity Coupling Algorithms**
 
 <details>
-<summary><b>📐 การพัฒนา Pressure Poisson Equation (Click to expand)</b></summary>
+<summary><b>📐 Pressure Poisson Equation Derivation (Click to expand)</b></summary>
 
-**Step 1: เริ่มจาก Momentum Equation (discretized form)**
-
+**Step 1: Momentum Equation (discretized)**  
 $$\mathbf{H}(\mathbf{U}) - \nabla p = 0$$
 
-โดยที่:
-- $\mathbf{H}(\mathbf{U})$ = พจน์ทั้งหมดจาก convection + diffusion + time derivative (เป็นฟังก์ชันของ $\mathbf{U}$)
-- $\nabla p$ = pressure gradient
+where $\mathbf{H}(\mathbf{U})$ = convection + diffusion + time terms
 
-**Step 2: Isolate velocity terms**
-
+**Step 2: Isolate velocity**  
 $$\mathbf{U} = \frac{1}{A_P} \mathbf{H}(\mathbf{U}) - \frac{1}{A_P} \nabla p$$
 
-โดยที่ $A_P$ = diagonal coefficient จาก matrix assembly
-
-ให้:
-- $\mathbf{H}/A_P = \mathbf{H}^*$ (HbyA ใน OpenFOAM)
-- $1/A_P = rAU$ (reciprocal of A_U ใน OpenFOAM)
-
-ดังนั้น:
+Let $\mathbf{H}^* = \mathbf{H}/A_P$ and $rAU = 1/A_P$:
 $$\mathbf{U} = \mathbf{H}^* - rAU \nabla p$$
 
-**Step 3: Apply Divergence (จาก Continuity: ∇·U = 0)**
-
+**Step 3: Apply Divergence (from continuity: ∇·U = 0)**  
 $$\nabla \cdot (\mathbf{H}^* - rAU \nabla p) = 0$$
 
-$$\nabla \cdot \mathbf{H}^* - \nabla \cdot (rAU \nabla p) = 0$$
-
-**Step 4: Rearrange ได้ Pressure Poisson Equation**
-
+**Step 4: Pressure Poisson Equation**  
 $$\boxed{\nabla \cdot (rAU \nabla p) = \nabla \cdot \mathbf{H}^*}$$
-
-นี่คือสมการที่เราแก้ใน OpenFOAM!
 
 </details>
 
-### Pressure-Velocity Coupling Algorithm
-
-```mermaid
-graph TB
-    A[Start: U*, p* from previous step] --> B[Solve Momentum Equation<br/>with old pressure]
-    B --> C[Get Predicted Velocity U*<br/>(∇·U* ≠ 0)]
-    C --> D[Solve Pressure Poisson Eq<br/>∇·rAU∇p = ∇·H*]
-    D --> E[Get Corrected Pressure p']
-    E --> F[Correct Velocity<br/>U = U* - rAU∇p']
-    F --> G{Check Convergence?}
-    G -->|No| B
-    G -->|Yes| H[Next Time Step]
-
-    style D fill:#ffcccc
-    style F fill:#ccffcc
-```
-
-### Implementation ใน OpenFOAM
-
-```cpp
-// 1. Predictor: Solve momentum with old pressure
-fvVectorMatrix UEqn
-(
-    fvm::ddt(U) + fvm::div(phi, U) - fvm::laplacian(nu, U)
-);
-UEqn.solve();
-
-// 2. Calculate HbyA = H/A
-volVectorField HbyA("HbyA", U);
-HbyA = rAU*UEqn.H();
-
-// 3. Solve Pressure Poisson Equation
-fvScalarMatrix pEqn
-(
-    fvm::laplacian(rAUf, p) == fvc::div(phiHbyA)  // ∇·(rAU∇p) = ∇·H*
-);
-pEqn.solve();
-
-// 4. Corrector: Correct velocity
-U = HbyA - rAU * fvc::grad(p);  // U = H* - rAU∇p
-```
-
-> **💡 Key Point:** สมการ Poisson เป็น **elliptic type** — ข้อมูลจากทุกจุดใน domain มีผลต่อคำตอบทุกที่ ทำให้การแก้สมการนี้เป็นขั้นตอนที่ใช้เวลานานที่สุด (60-80% ของเวลา simulation)
-
-### Compressible vs Incompressible Momentum Equations
-
-| ประเภท | ความหนาแน่น | สมการโมเมนตัม | ความดัน | Solver |
-|--------|--------------|------------------|----------|--------|
-| **Incompressible** | ρ = คงที่ | `fvm::ddt(U) + fvm::div(phi, U) == -fvc::grad(p) + fvm::laplacian(nu, U)` | Kinematic (p/ρ) [m²/s²] | `simpleFoam`, `pimpleFoam` |
-| **Compressible** | ρ = ผันแปร | `fvm::ddt(rho, U) + fvm::div(rhoPhi, U) == -fvc::grad(p) + fvm::laplacian(muEff, U)` | Absolute [Pa] | `rhoSimpleFoam`, `sonicFoam` |
-
-> **⚠️ IMPORTANT:** ใน incompressible flow ความดันที่เราแก้หาคือ **kinematic pressure** (p/ρ) ซึ่งมีหน่วยเป็น m²/s² ไม่ใช่ Pa แบบ absolute pressure
-
----
-
-## ส่วนที่ 4: SIMPLE, PISO, และ PIMPLE Algorithms
-
-ทั้งสาม algorithms นี้ใช้หลักการ pressure-velocity coupling เดียวกัน แต่ต่างกันที่โครงสร้างการ iterate
-
-### Decision Tree: Choosing Your Algorithm
+### Algorithm Decision Tree
 
 ```mermaid
 graph TD
     A{Steady or Transient?} -->|Steady| B[SIMPLE]
     A -->|Transient| C{Time Step Size?}
-
-    C -->|Small Δt<br/>Co < 1| D{Need Accuracy?}
-    C -->|Large Δt<br/>Co > 1| E[PIMPLE<br/>nOuter ≥ 2]
-
+    
+    C -->|Small Δt Co < 1| D{Need Accuracy?}
+    C -->|Large Δt Co > 1| E[PIMPLE nOuter ≥ 2]
+    
     D -->|Maximum| F[PISO]
-    D -->|Balanced| G[PIMPLE<br/>nOuter = 1]
-
+    D -->|Balanced| G[PIMPLE nOuter = 1]
+    
     style B fill:#c8e6c9
     style E fill:#fff9c4
     style F fill:#bbdefb
     style G fill:#e1bee7
 ```
 
-### Algorithm Comparison Table
+---
 
-| Algorithm | Full Name | ประเภท | Time Step | Under-relaxation | ความเร็ว | ความแม่นยำ | Solver |
-|-----------|-----------|--------|-----------|------------------|----------|--------------|--------|
-| **SIMPLE** | Semi-Implicit Method for Pressure-Linked Equations | Steady-state | N/A | ✓ จำเป็น | ช้ากว่า | เฉพี่ยตอบสุดท้าย | `simpleFoam` |
-| **PISO** | Pressure Implicit with Splitting of Operators | Transient | เล็ก (Co < 1) | ✗ ไม่ต้อง | เร็ว | สูง (temporal) | `icoFoam`, `pisoFoam` |
-| **PIMPLE** | PISO + SIMPLE | Transient | ใหญ่/เล็กได้ | ✓ (ถ้า nOuter > 1) | ปานกลาง | ปรับได้ | `pimpleFoam` |
+### 3.1 SIMPLE Algorithm (Steady-State)
 
-### SIMPLE Algorithm (Steady-State)
+**Semi-Implicit Method for Pressure-Linked Equations**
 
 ```mermaid
 graph TD
     A[Start] --> B[Initialize Fields]
-    B --> C[Outer Loop<br/>nCorr = 1,2,3...]
-    C --> D[1. Solve Momentum<br/>(with under-relaxation)]
+    B --> C[Outer Loop nCorr = 1,2,3]
+    C --> D[1. Solve Momentum with relaxation]
     D --> E[2. Solve Pressure Eq]
     E --> F[3. Correct Velocity]
     F --> G[4. Update Turbulence]
     G --> H{Residuals Low?}
     H -->|No| C
     H -->|Yes| I[Converged]
-
+    
     style D fill:#fff3e0
     style E fill:#ffebee
 ```
 
-**การตั้งค่า fvSolution:**
+**fvSolution setup:**
 ```cpp
 SIMPLE
 {
     nNonOrthogonalCorrectors 0;
-
+    
     residualControl
     {
         p       1e-4;
         U       1e-4;
-        k       1e-4;
-        omega   1e-4;
     }
-
+    
     relaxationFactors
     {
-        fields
-        {
-            p       0.3;    // ต้อง relax มาก
-        }
-        equations
-        {
-            U       0.7;    // moderate relaxation
-            k       0.7;
-            omega   0.7;
-        }
+        fields { p 0.3; }
+        equations { U 0.7; }
     }
 }
 ```
 
-**Under-relaxation จำเป็นใน SIMPLE** เพราะเราใช้ค่าจาก iteration ก่อนหน้าในหลายจุด ถ้าไม่ชะลอการเปลี่ยนแปลง solution จะ oscillate หรือ diverge
+**⚠️ Under-relaxation required** — prevents oscillation/divergence
 
-### PISO Algorithm (Transient, Small Time Step)
+---
+
+### 3.2 PISO Algorithm (Transient, Small Time Step)
+
+**Pressure Implicit with Splitting of Operators**
 
 ```mermaid
 graph TD
-    A[New Time Step] --> B[Inner Loop<br/>nCorr = 1,2,3...]
+    A[New Time Step] --> B[Inner Loop nCorr = 1,2,3]
     B --> C[1. Solve Momentum]
     C --> D[2. Solve Pressure Eq]
     D --> E[3. Correct Velocity]
     E --> F{nCorr Complete?}
     F -->|No| B
     F -->|Yes| G[Next Time Step]
-
+    
     style C fill:#e3f2fd
     style D fill:#f3e5f5
 ```
 
-**การตั้งค่า fvSolution:**
+**fvSolution setup:**
 ```cpp
 PISO
 {
-    nCorrectors             2;      // 2-3 corrections ต่อ time step
+    nCorrectors 2;
     nNonOrthogonalCorrectors 1;
-
-    // ไม่ต้องการ relaxation — time derivative act as pseudo-relaxation
+    // No relaxation — time derivative = pseudo-relaxation
 }
 ```
 
-PISO ไม่ต้อง under-relaxation เพราะ time derivative term ทำหน้าที่เป็น **pseudo-relaxation** อยู่แล้ว แต่ข้อจำกัดคือต้องใช้ time step เล็กมาก (Courant number < 1)
+**✓ No under-relaxation needed** — but requires small time step (Co < 1)
 
-### PIMPLE Algorithm (Best of Both Worlds)
+---
 
-PIMPLE รวมข้อดีของทั้งสอง: **outer loop แบบ SIMPLE + inner loop แบบ PISO**
+### 3.3 PIMPLE Algorithm (Best of Both Worlds)
+
+**PISO + SIMPLE**
 
 ```mermaid
 graph TD
-    A[New Time Step] --> B[Outer Loop<br/>nOuterCorr = 1,2...]
-    B --> C[Inner Loop<br/>nCorr = 1,2...]
-    C --> D[1. Solve Momentum<br/>(with relaxation if nOuter>1)]
+    A[New Time Step] --> B[Outer Loop nOuter = 1,2]
+    B --> C[Inner Loop nCorr = 1,2]
+    C --> D[1. Solve Momentum with relaxation if nOuter>1]
     D --> E[2. Solve Pressure Eq]
     E --> F[3. Correct Velocity]
     F --> G{nCorr Complete?}
     G -->|No| C
-    G -->|Yes| H{nOuterCorr Complete?}
+    G -->|Yes| H{nOuter Complete?}
     H -->|No| B
     H -->|Yes| I[Next Time Step]
-
+    
     style D fill:#fff9c4
     style E fill:#f8bbd0
 ```
 
-**การตั้งค่า fvSolution:**
+**fvSolution setup:**
 ```cpp
 PIMPLE
 {
-    nOuterCorrectors    2;      // > 1 → ต้องมี relaxation
-    nCorrectors         2;      // PISO corrections
-
-    residualControl
-    {
-        p               1e-4;
-        U               1e-4;
-    }
-
+    nOuterCorrectors 2;  // > 1 → needs relaxation
+    nCorrectors 2;
+    
+    residualControl { p 1e-4; U 1e-4; }
+    
     relaxationFactors
     {
-        fields
-        {
-            p           0.3;
-        }
-        equations
-        {
-            U           0.7;
-        }
+        fields { p 0.3; }
+        equations { U 0.7; }
     }
 }
 ```
 
-ข้อดี: สามารถใช้ time step ใหญ่กว่า PISO ได้ (Courant > 1) เหมาะสำหรับ simulation ระยะยาวที่ยอมเสีย temporal accuracy บ้าง
-
-### Choosing Your Algorithm — Quick Reference
-
-| สถานการณ์ | Algorithm | nOuterCorrectors | Time Step | ตัวอย่าง |
-|-----------|-----------|------------------|-----------|----------|
-| Steady-state | SIMPLE | N/A | N/A | การไหลในท่อ, แผงระบายความร้อน |
-| Transient, Co < 1, ต้องการความแม่นยำสูง | PISO | 1 | เล็ก | Vortex shedding, Acoustic |
-| Transient, Co < 1, ยอมแลกเปลี่ยนความแม่นยำ | PIMPLE | 1 | เล็ก | การไหลทั่วไป |
-| Transient, Co > 1 | PIMPLE | ≥ 2 | ใหญ่ | Mixing tanks, ระยะเวลานาน |
+**✓ Can use larger time steps** (Co > 1) with outer loop convergence
 
 ---
 
-## ส่วนที่ 5: Field Types และ Dimensional Checking
+### Algorithm Comparison
 
-### Field Types ใน OpenFOAM
+| Algorithm | Type | Time Step | Under-relaxation | Speed | Accuracy | Solver |
+|-----------|------|-----------|------------------|-------|----------|--------|
+| **SIMPLE** | Steady-state | N/A | ✓ Required | Slower | Final state | `simpleFoam` |
+| **PISO** | Transient | Small (Co < 1) | ✗ Not needed | Fast | High temporal | `icoFoam` |
+| **PIMPLE** | Transient | Large/Small | ✓ (if nOuter>1) | Medium | Adjustable | `pimpleFoam` |
 
-OpenFOAM จัดการข้อมูลเป็น **fields** ที่เก็บค่าบน mesh โดยมีสองตำแหน่งหลัก:
+---
+
+## Section 4: Field Types & Dimensional Checking
+
+### Field Types in OpenFOAM
 
 #### Volume Fields (Cell-Centered)
 
-| Type | Description | ตัวอย่าง Field |
-|------|-------------|------------------|
-| `volScalarField` | scalar at cell centers | p, T, k, epsilon, omega |
+| Type | Description | Example Fields |
+|------|-------------|----------------|
+| `volScalarField` | scalar at cell centers | p, T, k, ε, ω |
 | `volVectorField` | vector at cell centers | U (velocity) |
-| `volTensorField` | tensor at cell centers | stress tensor, grad(U) |
+| `volTensorField` | tensor at cell centers | stress tensor |
 | `volSymmTensorField` | symmetric tensor | Reynolds stress |
 
 #### Surface Fields (Face-Centered)
 
-| Type | Description | ตัวอย่าง Field |
-|------|-------------|------------------|
-| `surfaceScalarField` | scalar at faces | phi (volumetric flux), mesh.Sf.mag() |
+| Type | Description | Example Fields |
+|------|-------------|----------------|
+| `surfaceScalarField` | scalar at faces | φ (flux), mesh.Sf.mag() |
 | `surfaceVectorField` | vector at faces | Sf (face area vector) |
 
-### การประกาศ Field
+### Field Declaration
 
 ```cpp
-// ประกาศ volScalarField (pressure)
 volScalarField p
 (
     IOobject
     (
-        "p",                    // ชื่อ field
-        runTime.timeName(),     // time directory (เช่น "0")
-        mesh,                   // mesh object
-        IOobject::MUST_READ,    // อ่านจากไฟล์
-        IOobject::AUTO_WRITE   // เขียนอัตโนมัติ
+        "p",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
     ),
-    mesh
-);
-
-// ประกาศ volVectorField (velocity)
-volVectorField U
-(
-    IOobject("U", runTime.timeName(), mesh, IOobject::MUST_READ),
     mesh
 );
 ```
 
 ### Dimensional Checking
 
-OpenFOAM มีระบบตรวจสอบหน่วยอัตโนมัติ หน่วยถูกแทนด้วย 7 ตัวเลข:
+OpenFOAM validates units automatically using 7 dimensions:
 
 ```
 [mass length time temperature moles current luminosity]
 ```
 
-| ปริมาณ | หน่วย SI | dimensions | การใช้ใน OpenFOAM |
-|--------|----------|------------|---------------------|
+| Quantity | SI Unit | dimensions | Usage |
+|----------|---------|------------|-------|
 | Velocity | m/s | [0 1 -1 0 0 0 0] | `U` |
-| Pressure (absolute) | Pa = N/m² | [1 -1 -2 0 0 0 0] | compressible solvers |
-| Kinematic pressure | m²/s² | [0 2 -2 0 0 0 0] | incompressible solvers |
-| Dynamic viscosity | Pa·s | [1 -1 -1 0 0 0 0] | `mu` |
+| Pressure (absolute) | Pa | [1 -1 -2 0 0 0 0] | compressible |
+| Kinematic pressure | m²/s² | [0 2 -2 0 0 0 0] | incompressible |
 | Kinematic viscosity | m²/s | [0 2 -1 0 0 0 0] | `nu` |
-| Density | kg/m³ | [1 -3 0 0 0 0 0] | `rho` |
-| Temperature | K | [0 0 0 1 0 0 0] | `T` |
 
-**ประโยชน์:** ถ้าคุณเขียนสมการที่หน่วยไม่ลงตัว OpenFOAM จะ error ทันที — นี่คือ safety net ที่ช่วยหาบั๊กได้เยอะมาก
-
-```cpp
-// ตัวอย่าง dimensional checking
-dimensionedScalar nu
-(
-    "nu",
-    dimViscosity,           // [0 2 -1 0 0 0 0]
-    1e-6                    // value [m²/s]
-);
-
-// ถ้ากำหนดผิด:
-dimensionedScalar nu("nu", dimPressure, 1e-6);  // ERROR! dimensions don't match
-```
+> **⚠️ IMPORTANT:** Incompressible flow uses **kinematic pressure** (p/ρ) with units m²/s², NOT Pa
 
 ---
 
-## ส่วนที่ 6: fvSchemes — Discretization Methods
+## Section 5: fvSchemes — Discretization Methods
 
-ไฟล์ `system/fvSchemes` กำหนดว่าจะ discretize แต่ละเทอมในสมการอย่างไร
-
-### โครงสร้างไฟล์ fvSchemes
+### File Structure
 
 ```cpp
-// อนุพันธ์เทียบเวลา — ∂/∂t
 ddtSchemes
 {
-    default         Euler;          // 1st order, stable
-    // default      backward;       // 2nd order, accurate
-    // default      CrankNicolson;  // 2nd order, อาจ oscillate
+    default Euler;          // 1st order, stable
+    // default backward;     // 2nd order, accurate
 }
 
-// Gradient — ∇φ
 gradSchemes
 {
-    default         Gauss linear;   // 2nd order central differencing
-    //              Gauss linearUpwind grad(U);  // สำหรับ high Re
+    default Gauss linear;
 }
 
-// Convection — ∇·(Fφ)
 divSchemes
 {
-    default         none;           // บังคับให้กำหนดทุกเทอม (safety)
-
-    div(phi,U)      Gauss upwind;                       // 1st order — เริ่มต้น
-    div(phi,k)      Gauss upwind;                       // 1st order — turbulence
-    div(phi,epsilon) Gauss upwind;
-    div(phi,omega)   Gauss upwind;
-
-    // หลังจากลู่เข้าแล้ว เปลี่ยนเป็น:
-    // div(phi,U)      Gauss linearUpwind grad(U);     // 2nd order, bounded
-    // div(phi,U)      Gauss vanLeer;                  // TVD, bounded
-    // div(phi,U)      Gauss limitedLinearV 1;         // TVD, adjustable
+    default none;
+    
+    div(phi,U) Gauss upwind;                   // 1st order — start
+    div(phi,U) Gauss linearUpwind grad(U);     // 2nd order — after convergence
+    div(phi,U) Gauss vanLeer;                  // TVD, bounded
 }
 
-// Diffusion — ∇·(Γ∇φ)
 laplacianSchemes
 {
-    default         Gauss linear corrected;  // 2nd order, non-orthogonal correction
-    //              Gauss linear uncorrected; // เร็วกว่า แต่น้อยกว่าถ้า mesh non-orthogonal
+    default Gauss linear corrected;
 }
 
-// Interpolation ที่ face
 interpolationSchemes
 {
-    default         linear;
+    default linear;
 }
 
-// Surface normal gradient
 snGradSchemes
 {
-    default         corrected;
+    default corrected;
 }
 ```
 
-### Discretization Schemes Comparison
+### Scheme Comparison
 
-#### Time Schemes (ddtSchemes)
+#### Time Schemes
 
-| Scheme | Order | Stability | Accuracy | ใช้เมื่อ |
+| Scheme | Order | Stability | Accuracy | Use When |
 |--------|-------|-----------|----------|----------|
-| **Euler** | 1st | ✓ เสถียรมาก | ต่ำ | เริ่มต้น, steady-state |
-| **backward** | 2nd | ✓ เสถียร | สูง | Transient, ต้องการ temporal accuracy |
-| **CrankNicolson** | 2nd | ✗ อาจ oscillate | สูงสุด | Transient ที่ละเอียดมาก |
+| **Euler** | 1st | ✓ Very stable | Low | Starting, steady-state |
+| **backward** | 2nd | ✓ Stable | High | Transient, temporal accuracy |
+| **CrankNicolson** | 2nd | ✗ May oscillate | Very high | Detailed transient |
 
-#### Convection Schemes (divSchemes)
+#### Convection Schemes
 
-| Scheme | Order | Bounded | Numerical Diffusion | ใช้เมื่อ |
+| Scheme | Order | Bounded | Numerical Diffusion | Use When |
 |--------|-------|---------|---------------------|----------|
-| **upwind** | 1st | ✓ ใช่ | สูงมาก | เริ่มต้น, ensure convergence |
-| **linearUpwind** | 2nd | ✓ ใช่ | ปานกลาง | หลังจาก solution ลู่เข้าแล้ว |
-| **linear** | 2nd | ✗ ไม่ | ต่ำ | Mesh ดีมาก, simple flows |
-| **vanLeer** | 2nd | ✓ ใช่ | ต่ำ | High-gradient flows (shocks) |
-| **limitedLinear** | 2nd | ✓ ใช่ | ต่ำ | General purpose, adjustable |
+| **upwind** | 1st | ✓ Yes | Very high | Starting, ensure convergence |
+| **linearUpwind** | 2nd | ✓ Yes | Medium | After convergence |
+| **vanLeer** | 2nd | ✓ Yes | Low | High-gradient flows |
+| **limitedLinear** | 2nd | ✓ Yes | Low | General purpose |
 
-> **💡 Best Practice:** เริ่มต้นด้วย `upwind` → พอลู่เข้าแล้วเปลี่ยนเป็น `linearUpwind` หรือ `limitedLinear`
-
-#### Laplacian Schemes
-
-| Scheme | Non-Orthogonal Correction | เร็ว | ใช้เมื่อ |
-|--------|---------------------------|------|----------|
-| **Gauss linear** | ✗ ไม่ | ✓ เร็ว | Orthogonal mesh |
-| **Gauss linear corrected** | ✓ ใช่ | ช้ากว่า | Non-orthogonal mesh (ส่วนใหญ่) |
+**💡 Best Practice:** Start with `upwind` → switch to `linearUpwind` after convergence
 
 ---
 
-## ส่วนที่ 7: fvSolution — Linear Solvers และ Algorithms
+## Section 6: fvSolution — Linear Solvers
 
-ไฟล์ `system/fvSolution` กำหนดวิธีแก้ matrix equation และค่าควบคุมการ convergence
-
-### โครงสร้างไฟล์ fvSolution
+### File Structure
 
 ```cpp
-// ==================== SOLVERS ====================
 solvers
 {
-    // Pressure equation
     p
     {
-        solver          GAMG;           // Multigrid — แนะนำสำหรับ pressure
-        tolerance       1e-06;          // Absolute tolerance
-        relTol          0.01;           // Relative tolerance (1% ของ initial residual)
-        smoother        GaussSeidel;
-
-        // GAMG settings
-        nPreSweeps      0;
-        nPostSweeps     2;
-        nFinestSweeps   2;
-
-        // Agglomeration
-        cacheAgglomeration on;
-        nCellsInCoarsestLevel 10;
-        directSolveCoarsest off;
+        solver GAMG;
+        tolerance 1e-06;
+        relTol 0.01;
+        smoother GaussSeidel;
     }
-
-    // Final pressure solve (convergence)
+    
     pFinal
     {
-        $p;                             // คัดลอกการตั้งค่าจาก p
-        relTol          0;              // แก้จน residual < tolerance
-        tolerance       1e-06;
+        $p;
+        relTol 0;
     }
-
-    // Velocity equation
+    
     U
     {
-        solver          smoothSolver;
-        smoother        GaussSeidel;
-        tolerance       1e-05;
-        relTol          0.1;            // 10% relaxation per iteration
-    }
-
-    // Turbulence fields
-    "(k|epsilon|omega)"
-    {
-        solver          smoothSolver;
-        smoother        symGaussSeidel;
-        tolerance       1e-06;
-        relTol          0.1;
+        solver smoothSolver;
+        smoother GaussSeidel;
+        tolerance 1e-05;
+        relTol 0.1;
     }
 }
 
-// ==================== ALGORITHMS ====================
 SIMPLE
 {
     nNonOrthogonalCorrectors 0;
-
-    residualControl
-    {
-        p       1e-4;
-        U       1e-4;
-    }
-
-    relaxationFactors
-    {
-        p       0.3;
-        U       0.7;
-    }
+    residualControl { p 1e-4; U 1e-4; }
+    relaxationFactors { p 0.3; U 0.7; }
 }
 ```
 
 ### Linear Solvers Comparison
 
-| Solver | ชนิด Matrix | ความเร็ว | หน่วยความจำ | ใช้กับ | แนะนำ |
-|--------|-------------|----------|--------------|---------|--------|
-| **GAMG** | Symmetric | เร็วมาก | ปานกลาง | Pressure | ✓ Pressure (เริ่มต้น) |
-| **smoothSolver** | ทั้งหมด | ช้า | ต่ำ | U, k, ε, ω | ✓ เริ่มต้น, small meshes |
-| **PBiCGStab** | Non-symmetric | เร็ว | ปานกลาง | U, velocity | ✓ Large meshes, non-symmetric |
-| **PCG** | Symmetric positive-definite | เร็ว | ปานกลาง | Pressure (incomp) | ✓ ถ้า GAMG ไม่ลู่เข้า |
-
-### Solver Parameters Explained
-
-| Parameter | ความหมาย | ค่าแนะนำ | หมายเหตุ |
-|-----------|----------|-----------|----------|
-| **tolerance** | Absolute residual | 1e-6 to 1e-5 | ค่าที่ยอมรับได้ |
-| **relTol** | Relative tolerance | 0.01 (p), 0.1 (U) | หยุดเมื่อ residual < relTol × initial |
-| **nSweeps** | Iterations per solve | 2-4 | smoothSolver |
-| **maxIter** | Maximum iterations | 1000 | Safety limit |
-
-### Residual Control
-
-```cpp
-residualControl
-{
-    p           1e-4;    // Stop when p residual < 1e-4
-    U           1e-4;
-    k           1e-4;
-    epsilon     1e-4;
-}
-```
+| Solver | Matrix Type | Speed | Memory | Use For | Recommended |
+|--------|-------------|-------|--------|---------|-------------|
+| **GAMG** | Symmetric | Very fast | Medium | Pressure | ✓ Pressure (start) |
+| **smoothSolver** | All | Slow | Low | U, k, ε, ω | ✓ Starting |
+| **PBiCGStab** | Non-symmetric | Fast | Medium | Velocity | ✓ Large meshes |
+| **PCG** | Symmetric PD | Fast | Medium | Pressure (incomp) | ✓ If GAMG fails |
 
 ---
 
-## ส่วนที่ 8: Boundary Conditions ที่สอดคล้องกัน
+## Section 7: Boundary Condition Compatibility
 
-### กฎสำคัญ: U-p Complementary
+### U-p Complementary Rule
 
-**boundary ที่กำหนด velocity ต้องปล่อย pressure ลอย และในทางกลับกัน**
+**Boundary ที่กำหนด velocity ต้องปล่อย pressure ลอย และในทางกลับกัน**
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────┐
@@ -764,166 +551,86 @@ residualControl
 │  ─────────────                   ─────────────                            │
 │  fixedValue          <───  INCOMPATIBLE  ───>            fixedValue      │
 │       │                             ✗                              │      │
-│       │  ใช่อย่างใดอย่างหนึ่งเท่านั้น                          │      │
 │       ▼                             ✓                              ▼      │
 │  fixedValue   ──────────────────────►         zeroGradient              │
-│       │                                                                   │
 │       ▼                             ✓                              ▼      │
 │  zeroGradient  ──────────────────────►         fixedValue               │
 │                                                                           │
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
-### ตัวอย่าง BC ที่ถูกต้อง
+### Correct BC Examples
 
 ```cpp
-// INLET — กำหนด velocity
-inlet
-{
-    type            fixedValue;
-    value           uniform (10 0 0);  // [m/s]
-}
+// INLET
+inlet { type fixedValue; value uniform (10 0 0); }  // U
+inlet { type zeroGradient; }                        // p
 
-inlet
-{
-    type            zeroGradient;      // ปล่อย pressure ลอย
-}
+// OUTLET
+outlet { type zeroGradient; }                       // U
+outlet { type fixedValue; value uniform 0; }        // p
 
-// OUTLET — กำหนด pressure
-outlet
-{
-    type            zeroGradient;      // ปล่อย velocity ไหลออก
-}
-
-outlet
-{
-    type            fixedValue;        // reference pressure
-    value           uniform 0;         // [Pa] หรือ [m²/s²] สำหรับ kinematic
-}
-
-// WALL — no-slip
-wall
-{
-    type            noSlip;            // หรือ fixedValue uniform (0 0 0)
-}
-
-wall
-{
-    type            zeroGradient;      // ปล่อย pressure ลอย
-}
+// WALL
+wall { type noSlip; }                               // U
+wall { type zeroGradient; }                         // p
 ```
 
-> **⚠️ WARNING:** ถ้าคุณใส่ fixedValue ทั้ง U และ p ที่ boundary เดียวกัน ระบบจะ over-specified และ solution จะไม่ถูกต้อง
+> **⚠️ WARNING:** Never use `fixedValue` for both U and p at same boundary — over-specified!
 
 ---
 
-## ส่วนที่ 9: Time Step และ Courant Number
-
-### Courant Number (Co)
-
-$$\text{Co} = \frac{|\mathbf{u}| \cdot \Delta t}{\Delta x}$$
-
-**ความหมายทางกายภาพ:** Co = 1 หมายความว่า fluid เดินทางข้าม **1 cell** ใน **1 time step**
-
-### Time Step Guidelines
-
-| Scheme | Max Co | Accuracy | Stability | ใช้เมื่อ |
-|--------|--------|----------|-----------|----------|
-| **Explicit (fvc::)** | < 1 | สูง | ✗ Conditionally stable | เวลาสำคัญมาก |
-| **Implicit (fvm::)** | < 5-10 | ปานกลาง | ✓ Unconditionally stable | General purpose |
-| **PISO** | < 1 | สูง | ✓ Stable (pseudo-relaxation) | Transient ละเอียด |
-| **SIMPLE** | N/A | N/A | ✓ Steady | Steady-state |
-| **PIMPLE (nOuter > 1)** | > 1 ได้ | ปานกลาง | ✓ Stable | Long transients |
-
-### การตั้งค่าใน controlDict
-
-```cpp
-application     simpleFoam;
-
-startFrom       latestTime;
-
-startTime       0;
-
-stopAt          endTime;
-
-endTime         1000;
-
-deltaT          0.001;             // Fixed time step
-
-// หรือ automatic time step adjustment:
-adjustTimeStep  yes;
-maxCo           0.9;               // Target Co < 0.9
-maxDeltaT       1;                 // Maximum time step
-
-writeControl    timeStep;
-writeInterval   100;
-
-purgeWrite      5;
-
-writeFormat     ascii;
-writePrecision  6;
-```
-
----
-
-## Common Pitfalls (ข้อผิดพลาดที่พบบ่อย)
+## Common Pitfalls
 
 <details>
-<summary><b>❌ Pitfall 1: Simulation Diverge — ทำยังไงดี?</b></summary>
+<summary><b>❌ Pitfall 1: Simulation Diverges</b></summary>
 
-**อาการ:** Residuals เพิ่มขึ้นเรื่อยๆ จน overflow
-
-**แก้ตามลำดับนี้:**
-
-1. **ลด Time Step** → ลด `maxCo` เหลือ 0.5 หรือน้อยกว่า
-2. **เปลี่ยนเป็น upwind** → ใช้ 1st order scheme สำหรับ convection ก่อน
-3. **ตรวจสอบ Mesh** → รัน `checkMesh` ดู:
-   - non-orthogonality < 70°
-   - skewness < 4
-   - aspect ratio < 1000
-4. **เพิ่ม Relaxation** → ลด relaxation factor (เช่น p จาก 0.3 เป็น 0.2)
-5. **ตรวจสอบ BCs** → ให้แน่ใจว่า U-p สอดคล้องกัน
-6. **Initialize ด้วย potentialFoam** → สร้าง initial velocity field ที่ดีกว่า uniform
+**Fix in order:**
+1. Reduce time step → `maxCo < 0.5`
+2. Switch to `upwind` scheme
+3. Check mesh → `checkMesh` (non-orthogonality < 70°, skewness < 4)
+4. Increase relaxation → reduce factors
+5. Verify BCs compatibility
+6. Initialize with `potentialFoam`
 </details>
 
 <details>
-<summary><b>❌ Pitfall 2: ใช้ fvc:: กับ terms ที่ควรใช้ fvm::</b></summary>
+<summary><b>❌ Pitfall 2: Using fvc:: for fvm:: terms</b></summary>
 
-**ตัวอย่าง:** ใช้ `fvc::laplacian(nu, U)` แทน `fvm::laplacian(nu, U)`
+**Example:** `fvc::laplacian(nu, U)` instead of `fvm::laplacian(nu, U)`
 
-**ผล:** แก้สมการได้เร็ว แต่ไม่เสถียร ต้องใช้ time step เล็กมาก
+**Result:** Fast solve but unstable, requires tiny time step
 
-**วิธีแก้:** ใช้ `fvm::` สำหรับ terms ที่เกี่ยวกับ unknown (ddt, div, laplacian)
+**Fix:** Use `fvm::` for unknown terms (ddt, div, laplacian)
 </details>
 
 <details>
-<summary><b>❌ Pitfall 3: เลือก solver ผิดกับ equation type</b></summary>
+<summary><b>❌ Pitfall 3: Wrong solver for equation type</b></summary>
 
-**ตัวอย่าง:** ใช้ `PCG` (symmetric) กับ velocity equation (non-symmetric)
+**Example:** Using `PCG` (symmetric) for velocity (non-symmetric)
 
-**ผล:** Solver ไม่ลู่เข้า หรือลู่เข้าช้ามาก
+**Result:** Solver fails to converge
 
-**วิธีแก้:** ใช้ `PBiCGStab` สำหรับ non-symmetric matrices (เช่น velocity)
+**Fix:** Use `PBiCGStab` for non-symmetric matrices
 </details>
 
 <details>
-<summary><b>❌ Pitfall 4: ไม่ใช้ non-orthogonal correction</b></summary>
+<summary><b>❌ Pitfall 4: No non-orthogonal correction</b></summary>
 
-**ตัวอย่าง:** Mesh มี non-orthogonality = 65° แต่ใช้ `Gauss linear uncorrected`
+**Example:** Mesh has 65° non-orthogonality but uses `Gauss linear uncorrected`
 
-**ผล:** ความแม่นยำต่ำ ผลลัพธ์ผิดพลาด
+**Result:** Poor accuracy
 
-**วิธีแก้:** ใช้ `Gauss linear corrected` และเพิ่ม `nNonOrthogonalCorrectors`
+**Fix:** Use `Gauss linear corrected` + increase `nNonOrthogonalCorrectors`
 </details>
 
 <details>
-<summary><b>❌ Pitfall 5: Over-specified boundary conditions</b></summary>
+<summary><b>❌ Pitfall 5: Over-specified BCs</b></summary>
 
-**ตัวอย่าง:** กำหนดทั้ง U และ p เป็น `fixedValue` ที่ inlet เดียวกัน
+**Example:** Both U and p set to `fixedValue` at same inlet
 
-**ผล:** Mass imbalance → simulation diverge
+**Result:** Mass imbalance → divergence
 
-**วิธีแก้:** ดูตาราง "Boundary Condition Compatibility" ด้านบน
+**Fix:** Follow BC compatibility table
 </details>
 
 ---
@@ -932,18 +639,16 @@ writePrecision  6;
 
 ✅ **fvm:: vs fvc::** — Implicit (stable, slow) vs Explicit (fast, stability limit)
 
-✅ **Pressure-Velocity Coupling** — ไม่มีสมการ pressure โดยตรง ต้องแก้ Poisson equation
-
-✅ **เลือก Algorithm ตามปัญหา:**
+✅ **Algorithm Selection:**
    - Steady-state → SIMPLE
    - Transient, Co < 1 → PISO
    - Transient, Co > 1 → PIMPLE (nOuter ≥ 2)
 
-✅ **fvSchemes** — เริ่มด้วย `upwind` → เปลี่ยนเป็น `linearUpwind` หลังลู่เข้า
+✅ **fvSchemes** — Start with `upwind` → switch to `linearUpwind` after convergence
 
-✅ **fvSolution** — ใช้ `GAMG` สำหรับ pressure, `smoothSolver` สำหรับ velocity
+✅ **fvSolution** — Use `GAMG` for pressure, `smoothSolver` for velocity
 
-✅ **Boundary Conditions** — กำหนด U ต้องปล่อย p ลอย และในทางกลับกัน
+✅ **BCs** — Fix U → float p, Fix p → float U
 
 ✅ **Courant Number** — Explicit: Co < 1, Implicit: Co < 5-10, PISO: Co < 1
 
@@ -954,87 +659,68 @@ writePrecision  6;
 <details>
 <summary><b>1. controlDict, fvSchemes, และ fvSolution มีหน้าที่ต่างกันอย่างไร?</b></summary>
 
-| ไฟล์ | หน้าที่ |
-|------|--------|
-| **controlDict** | ควบคุมการรัน: เวลา, timestep, output, Co |
-| **fvSchemes** | วิธี Discretization: grad, div, laplacian, ddt |
-| **fvSolution** | วิธีแก้สมการ: solver, tolerances, relaxation, algorithms |
-
+| File | Purpose |
+|------|---------|
+| **controlDict** | Time control: timestep, output, Co |
+| **fvSchemes** | Discretization: grad, div, laplacian, ddt |
+| **fvSolution** | Solvers: algorithms, tolerances, relaxation |
 </details>
 
 <details>
-<summary><b>2. PISO และ SIMPLE แตกต่างกันอย่างไร?</b></summary>
+<summary><b>2. SIMPLE, PISO, และ PIMPLE แตกต่างกันอย่างไร?</b></summary>
 
-| Algorithm | ประเภท | Time Step | Relaxation | ใช้เมื่อ |
-|-----------|--------|-----------|-----------|----------|
-| **SIMPLE** | Steady-state | N/A | ✓ จำเป็น | การไหลคงตัว |
-| **PISO** | Transient | เล็ก (Co < 1) | ✗ ไม่ต้อง | การไหลไม่คงตัว |
-| **PIMPLE** | Transient | ใหญ่/เล็กได้ | ✓ (ถ้า nOuter>1) | General transient |
-
+| Algorithm | Type | Time Step | Relaxation | Use When |
+|-----------|------|-----------|------------|----------|
+| **SIMPLE** | Steady-state | N/A | ✓ Required | Steady flow |
+| **PISO** | Transient | Small (Co < 1) | ✗ Not needed | Accurate transient |
+| **PIMPLE** | Transient | Large/Small | ✓ (if nOuter>1) | General transient |
 </details>
 
 <details>
-<summary><b>3. เมื่อไหร่ควรใช้ fvm:: และเมื่อไหร่ควรใช้ fvc::?</b></summary>
+<summary><b>3. เมื่อไหร่ควรใช้ fvm:: และเมื่อไหร์ควรใช้ fvc::?</b></summary>
 
-**ใช้ fvm:: (implicit):**
-- เมื่อต้องการ stability (ddt, div, laplacian)
-- เมื่อสามารถใช้ time step ใหญ่ได้
-- Terms ที่มี unknowns หลัก
+**Use fvm:: (implicit):**
+- Need stability (ddt, div, laplacian)
+- Can use larger time steps
+- Main unknown terms
 
-**ใช้ fvc:: (explicit):**
-- Gradient terms (เช่น `grad(p)`)
-- Source terms ที่ไม่ได้เป็น unknown หลัก
-- Terms ที่ต้องอ้างอิงค่าจาก iteration ก่อนหน้า
-</details>
-
-<details>
-<summary><b>4. Pressure Poisson equation คืออะไร ทำไมสำคัญ?</b></summary>
-
-Pressure Poisson equation คือสมการที่แปลงจาก continuity equation (∇·U = 0) โดยใช้ momentum equation มาช่วย ทำให้เราสามารถแก้หา pressure field ได้
-
-สมการรูปแบบ: $\nabla \cdot (rAU \nabla p) = \nabla \cdot \mathbf{H}^*$
-
-สำคัญเพราะ:
-1. Pressure ไม่มีสมการวิวัฒนาการโดยตรงใน incompressible flow
-2. เป็นขั้นตอนที่ใช้เวลานานที่สุด (60-80% ของเวลา simulation)
-3. กำหนด coupling ระหว่าง pressure และ velocity
-
+**Use fvc:: (explicit):**
+- Gradient terms (e.g., `grad(p)`)
+- Non-critical source terms
+- Terms referencing previous iteration values
 </details>
 
 ---
 
-## Glossary of Symbols & Notations
+## Glossary of Symbols
 
-| Symbol | ความหมาย | หน่วย SI | ปรากฏใน |
-|--------|----------|------------|----------|
-| $\mathbf{u}$, $U$ | Velocity | m/s | ทุกสมการ |
-| $p$ | Pressure | Pa (compressible), m²/s² (incompressible) | Momentum |
-| $\phi$ | Flux ($\mathbf{u} \cdot \mathbf{S}_f$) | m³/s | convection terms |
-| $\rho$ | Density | kg/m³ | Mass, Momentum (compressible) |
-| $\mu$ | Dynamic viscosity | Pa·s | Momentum |
-| $\nu$ | Kinematic viscosity | m²/s | Momentum (incompressible) |
-| $A_P$ | Diagonal coefficient | — | Matrix assembly |
-| $rAU$ | Reciprocal of $A_U$ | — | Pressure equation |
-| $\mathbf{H}^*$, HbyA | $\mathbf{H}/A_P$ | — | Pressure equation |
-| $[A]\{x\} = \{b\}$ | Linear system | — | Matrix solver |
-| Co | Courant number | — | Time stepping |
-| $\Delta t$ | Time step | s | Time discretization |
+| Symbol | Meaning | SI Unit |
+|--------|---------|---------|
+| $\mathbf{u}$, $U$ | Velocity | m/s |
+| $p$ | Pressure | Pa (compressible), m²/s² (incompressible) |
+| $\phi$ | Flux ($\mathbf{u} \cdot \mathbf{S}_f$) | m³/s |
+| $\rho$ | Density | kg/m³ |
+| $\nu$ | Kinematic viscosity | m²/s |
+| $A_P$ | Diagonal coefficient | — |
+| $rAU$ | Reciprocal of $A_U$ | — |
+| $\mathbf{H}^*$ | $\mathbf{H}/A_P$ | — |
+| Co | Courant number | — |
 
 ---
 
 ## Navigation
 
 ### ← Previous
-- **[04_Dimensionless_Numbers.md](04_Dimensionless_Numbers.md)** — เลขไร้มิติ (Re, Ma, y+), ใช้คำนวณเพื่อเลือก solver และ schemes
+**[04_Dimensionless_Numbers.md](04_Dimensionless_Numbers.md)** — Dimensionless numbers (Re, Ma, y+)
 
 ### → Next
-- **[06_Boundary_Conditions.md](06_Boundary_Conditions.md)** — เงื่อนไขขอบเขต (Dirichlet, Neumann, Mixed), Wall functions ตาม y+
+**[06_Boundary_Conditions.md](06_Boundary_Conditions.md)** — Boundary conditions, wall functions
 
 ### See Also
-- **[02_Conservation_Laws.md](02_Conservation_Laws.md)** — กฎการอนุรักษ์มวล, โมเมนตัม, พลังงาน
-- **[03_Equation_of_State.md](03_Equation_of_State.md)** — สมการสถานะและ **⚠️ Temperature units warning**
-- **[00_Overview.md](00_Overview.md)** — ภาพรวมของ Governing Equations
+- **[02_Conservation_Laws.md](02_Conservation_Laws.md)** — Conservation laws
+- **[03_Equation_of_State.md](03_Equation_of_State.md)** — Equation of state (⚠️ Temperature units)
+- **[00_Overview.md](00_Overview.md)** — Governing equations overview
 
 ---
 
-**📍 คุณอยู่ที่นี่:** `05_OpenFOAM_Implementation.md` → บทถัดไป: [`06_Boundary_Conditions.md`](06_Boundary_Conditions.md)
+**📍 You are here:** `05_OpenFOAM_Implementation.md` → Next: [`06_Boundary_Conditions.md`](06_Boundary_Conditions.md)

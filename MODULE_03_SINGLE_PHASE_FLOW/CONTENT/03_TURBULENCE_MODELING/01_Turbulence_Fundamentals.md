@@ -355,7 +355,7 @@ tmp<fvVectorMatrix> tUEqn
 **Current Topic:** 01_Turbulence_Fundamentals → Focus: **RANS Fundamentals** & **Model Selection** (Novice → Practitioner)
 
 **Next Steps:**
-- 02_RANS_Models → Deep dive into k-ε, k-ω, RSM models
+- 02_Advanced_Turbulence → Deep dive into k-ω, RSM, and advanced models
 - 03_Wall_Treatment → Near-wall modeling & y⁺ considerations
 - 04_LES_Fundamentals → Beyond RANS to scale-resolving methods
 
@@ -475,14 +475,14 @@ flowchart TD
 
 ### Within This Module
 - **ภาพรวม:** [00_Overview.md](00_Overview.md)
-- **โมเดล RANS ขั้นสูง:** [02_RANS_Models.md](02_RANS_Models.md)
+- **โมเดลขั้นสูง:** [02_Advanced_Turbulence.md](02_Advanced_Turbulence.md)
 - **Wall Treatment:** [03_Wall_Treatment.md](03_Wall_Treatment.md)
 - **LES Fundamentals:** [04_LES_Fundamentals.md](04_LES_Fundamentals.md)
 
 ### Cross-Module References
 - **Governing Equations:** [../../MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/02_Continuity_and_Momentum_Equations.md](../../MODULE_01_CFD_FUNDAMENTALS/CONTENT/01_GOVERNING_EQUATIONS/02_Continuity_and_Momentum_Equations.md)
 - **First Simulation:** [../../MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION/04_Step-by-Step_Tutorial.md](../../MODULE_01_CFD_FUNDAMENTALS/CONTENT/04_FIRST_SIMULATION/04_Step-by-Step_Tutorial.md)
-- **Advanced Topics:** [07_ADVANCED_TOPICS/02_Advanced_Turbulence.md](../../MODULE_03_SINGLE_PHASE_FLOW/CONTENT/07_ADVANCED_TOPICS/02_Advanced_Turbulence.md)
+- **Boundary Conditions:** [../../MODULE_02_MESHING_AND_CASE_SETUP/CONTENT/02_CASE_SETUP/03_Boundary_Conditions.md](../../MODULE_02_MESHING_AND_CASE_SETUP/CONTENT/02_CASE_SETUP/03_Boundary_Conditions.md)
 
 ### External Resources
 - **OpenFOAM Guide:** [https://www.openfoam.com/documentation/user-guide/turbulence](https://www.openfoam.com/documentation/user-guide/turbulence)

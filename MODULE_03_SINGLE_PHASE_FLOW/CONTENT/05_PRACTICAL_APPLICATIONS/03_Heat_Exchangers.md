@@ -1394,7 +1394,7 @@ Temperature gradient สูงสุดอยู่ใน **viscous sublayer** (
 
 **Practical Guideline:**
 - **$y^+ \approx 1$:** Resolves viscous sublayer → แม่นยำสำหรับ heat transfer (< 5% error)
-- **$30 < y^+ < 300$::** ใช้ wall functions → แม่นยำพอสมควรสำหรับ engineering (10-20% error)
+- **$30 < y^+ < 300$:** ใช้ wall functions → แม่นยำพอสมควรสำหรับ engineering (10-20% error)
 - **$y^+ > 300$:** หยาบเกินไปสำหรับ heat transfer → ผิดพลาดสูง (> 30% error)
 
 **Verification:**

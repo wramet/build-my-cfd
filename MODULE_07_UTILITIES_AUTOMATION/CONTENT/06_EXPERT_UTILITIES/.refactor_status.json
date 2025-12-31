@@ -1,0 +1,13 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Utility_Categories_and_Organization.md",
+        "02_Architecture_and_Design_Patterns.md",
+        "03_Essential_Utilities_for_Common_CFD_Tasks.md",
+        "04_Time-Saving_Benefits.md",
+        "05_Creating_Custom_Utilities.md",
+        "06_Integration_with_Solver_Workflows.md",
+        "07_Best_Practices.md"
+    ],
+    "skipped": []
+}

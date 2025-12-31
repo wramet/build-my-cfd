@@ -18,6 +18,17 @@
 
 ---
 
+## 🎯 Learning Objectives
+
+เมื่ออ่านจบบทนี้ คุณจะสามารถ:
+
+1. **ทางคณิตศาสตร์ (Mathematical):** เขียนและอธิบายสมการทางคณิตศาสตร์ที่เกี่ยวข้องกับ Reference Counting และ Memory Overhead
+2. **กาภาพปฏิบัติ (Practical):** ใช้ `tmp<T>` และ `autoPtr<T>` ใน Custom Boundary Conditions และ Solvers ได้อย่างเหมาะสม
+3. **การวิเคราะห์ (Analytical):** วิเคราะห์ปัญหา False Sharing และ Cache Alignment ใน Parallel Computing
+4. **การดีบัก (Debugging):** ตรวจสอบ Memory Leaks และ Double Deletes โดยใช้เครื่องมือเช่น `valgrind`
+
+---
+
 ## การนับการอ้างอิงเป็นสถานะเครื่องจักร
 
 > [!NOTE] **📂 OpenFOAM Context**
@@ -34,6 +45,8 @@
 > - `unref()` - ลดจำนวนการอ้างอิง (-1)
 > - `refCount_` - ตัวแปรสมาชิกที่เก็บจำนวนการอ้างอิง
 
+### 📘 What: State Machine Definition
+
 กำหนดให้ $r(t) \in \mathbb{N}_0$ เป็นจำนวนการอ้างอิงของอ็อบเจกต์ในเวลา $t$ การดำเนินการ `ref()` และ `unref()` จะปรับเปลี่ยนค่านี้:
 
 $$
@@ -49,7 +62,15 @@ $$
 \forall t : r(t) = 0 \implies m(t) = 0
 $$
 
-โดยที่ $m(t) \in \{0,1\}$ บ่งบอกว่าหน่วยความจำถูกจอง ($1$) หรือถูกปล่อย ($0$) การ implement การนับการอ้างอิงที่ถูกต้องจะเป็นไปตามความไม่เปลี่ยนแปลงนี้ด้วยความน่าจะเป็น 1 ซึ่งจะรับประกันว่าไม่มีการรั่วไหลของหน่วยความจำ
+โดยที่ $m(t) \in \{0,1\}$ บ่งบอกว่าหน่วยความจำถูกจอง ($1$) หรือถูกปล่อย ($0$)
+
+### 🛠️ How: Implementation Mechanism
+
+การ implement การนับการอ้างอิงที่ถูกต้องจะเป็นไปตามความไม่เปลี่ยนแปลงนี้ด้วยความน่าจะเป็น 1 ซึ่งจะรับประกันว่าไม่มีการรั่วไหลของหน่วยความจำ กลไกนี้ถูกนำไปใช้ในคลาส `refCount` ของ OpenFOAM ซึ่งเป็นพื้นฐานของ `tmp<T>` และ `autoPtr<T>`
+
+### 🔗 Why: Design Rationale
+
+การใช้ State Machine สำหรับ Reference Counting ช่วยให้สามารถพิสูจน์ความถูกต้องของระบบการจัดการหน่วยความจำได้ทางคณิตศาสตร์ ซึ่งสำคัญมากสำหรับระบบที่ต้องรันเป็นเวลานานๆ ในการจำลอง CFD
 
 ---
 
@@ -69,13 +90,27 @@ $$
 > - `s` - ขนาดของแต่ละ Data Point (เช่น 8 bytes สำหรับ double)
 > - `refCount_` - ตัวแปรสมาชิกที่เก็บจำนวนการอ้างอิง (≈ 4 bytes)
 
+### 📘 What: Memory Overhead Equation
+
 สำหรับฟิลด์ที่มี $N$ องศาอิสระ (เช่น เซลล์, หน้า) แต่ละตัวมีขนาด $s$ ไบต์ การใช้หน่วยความจำทั้งหมดกับการนับการอ้างอิงคือ:
 
 $$
 M_{\text{total}} = N \cdot s + \underbrace{4}_{\text{refCount\_}} + \underbrace{\mathcal{O}(1)}_{\text{smart‑pointer overhead}}
 $$
 
+### 🛠️ How: Overhead Breakdown
+
 ค่าใช้จ่ายเพิ่มเติมเป็น **ค่าคงที่** (≈ 4 ไบต์) ไม่ขึ้นกับขนาดของฟิลด์ ทำให้เป็นเรื่องเล็กน้อยสำหรับฟิลด์ CFD ขนาดใหญ่ ($N \sim 10^6$–$10^9$)
+
+### 🔗 Why: Scalability Impact
+
+สำหรับฟิลด์ขนาดใหญ่ สัดส่วนของ overhead จะเข้าใกล้ศูนย์:
+
+$$
+\lim_{N \to \infty} \frac{4 + \mathcal{O}(1)}{N \cdot s} = 0
+$$
+
+นี่คือเหตุผลที่ Reference Counting เหมาะสมกับ CFD ซึ่งมักมีข้อมูลจำนวนมาก
 
 ---
 
@@ -96,13 +131,21 @@ $$
 > - `mpirun` - คำสั่งรัน Parallel ใน OpenFOAM
 > - `decomposePar` - เครื่องมือแบ่ง Domain สำหรับ Parallel computing
 
+### 📘 What: Atomic Operation Cost
+
 ในการรันแบบขนาน การนับการอ้างอิงแบบ atomic ใช้ `std::atomic<int>` พร้อมข้อจำกัดของ memory-order ต้นทุนของการเพิ่ม/ลดค่าแบบ atomic มีค่าประมาณ:
 
 $$
 t_{\text{atomic}} \approx t_{\text{non‑atomic}} + \text{memory‑barrier penalty}
 $$
 
+### 🛠️ How: Memory Barrier Mechanism
+
 โดยค่าใช้จ่ายเพิ่มเติมขึ้นอยู่กับฮาร์ดแวร์ (โดยทั่วไป 10–50 ns) สำหรับฟิลด์ที่เข้าถึงโดยหลาย thread ค่าใช้จ่ายเพิ่มเติมนี้ยอมรับได้เมื่อเทียบกับต้นทุนของการคัดลอกข้อมูลฟิลด์
+
+### 🔗 Why: Parallel Safety Trade-off
+
+การใช้ Atomic Operations สำคัญในสภาพแวดล้อม Parallel เพื่อป้องกัน Race Conditions ที่อาจเกิดขึ้นเมื่อหลาย Thread พยายามอัปเดต Reference Count พร้อมกัน
 
 ---
 
@@ -123,6 +166,8 @@ $$
 > - `cache line` - หน่วยข้อมูลที่ CPU โหลดจากหน่วยความจำ (64 bytes บน x86-64)
 > - `mpirun` - คำสั่งรัน Parallel ใน OpenFOAM
 
+### 📘 What: False Sharing Problem
+
 ```mermaid
 graph LR
 classDef implicit fill:#e1f5fe,stroke:#01579b,stroke-width:2px
@@ -137,17 +182,21 @@ T2[Thread 2]:::explicit --> CL2
 ```
 > **Figure 1:** แผนผังการจัดวางตัวนับการอ้างอิง (refCount_) บนหน่วยความจำแคช โดยมีการใช้ `alignas(64)` เพื่อแยกตัวแปรของแต่ละออบเจกต์ให้อยู่คนละ Cache Line ป้องกันปัญหา False Sharing ที่จะทำให้ประสิทธิภาพลงลงเมื่อมีการประมวลผลแบบขนาน (Parallel Processing)
 
+### 🛠️ How: Cache Alignment Solution
+
 เพื่อหลีกเลี่ยง **false sharing** ในการเข้าถึงแบบขนาน ตัวแปรสมาชิกที่สำคัญ (เช่น `refCount_`) ถูกวางไว้บน cache line ที่แยกกัน (64 ไบต์บน x86‑64) คำสั่งการจัดแนว `alignas(64)` จะทำให้แน่ใจว่า:
 
 $$
 \text{address}(refCount\_) \mod 64 = 0
 $$
 
-นี้จะป้องกันไม่ให้สอง thread ทำให้ cache line ของกันและกันเป็นโมฆะเมื่ออัปเดตจำนวนการอ้างอิงของอ็อบเจกต์ที่แตกต่างกัน
+### 🔗 Why: Performance Impact
+
+นี้จะป้องกันไม่ให้สอง thread ทำให้ cache line ของกันและกันเป็นโมฆะเมื่ออัปเดตจำนวนการอ้างอิงของอ็อบเจกต์ที่แตกต่างกัน ซึ่งสามารถทำให้เกิด Performance Degradation ได้ใน Parallel Runs
 
 ---
 
-## รากฐานทางคณิตศาสตร์ของ Smart Pointers
+## รากฐานทางคณิตศาสต์ของ Smart Pointers
 
 > [!NOTE] **📂 OpenFOAM Context**
 > **หมวดหมู่:** Domain E: Coding/Customization (C++ Source Code)
@@ -170,7 +219,7 @@ $$
 > - `T` - ประเภทข้อมูล เช่น `volScalarField`, `volVectorField`
 > - `ref()` / `unref()` - ฟังก์ชันสำหรับเพิ่ม/ลด จำนวนการอ้างอิง
 
-### ความสัมพันธ์ระหว่าง autoPtr และ tmp
+### 📘 What: Smart Pointer Semantics
 
 สำหรับการจัดการหน่วยความจำที่ถูกต้อง เราสามารถนิยาม semantic ของ smart pointers เป็นฟังก์ชันทางคณิตศาสตร์:
 
@@ -183,11 +232,13 @@ $$
 \end{cases}
 $$
 
+### 🛠️ How: Ownership Guarantees
+
 โดยที่:
 - `autoPtr` รับประกันว่า $\forall t : |\{p \mid \text{owns}(p, t)\}| \leq 1$ (มีเจ้าของได้เพียงคนเดียว)
-- `tmp` รับประกันว่า $\sum_i \text{refCount}_i(p) = r(p)$ ผลรวมของการอ้างอิงทั้งหมด
+- `tmp` รับประกันว่า $\sum_i \text{refCount}_i(p) = r(p)$ ผลรวมของการอ้างอิงทั้งหมมี
 
-### ทฤษฎีบทของการจัดการหน่วยความจำที่ปลอดภัย
+### 🔗 Why: Memory Safety Theorem
 
 **ทฤษฎีบท:** ระบบการจัดการหน่วยความจำของ OpenFOAM เป็น **memory-safe** ถ้า:
 
@@ -214,22 +265,26 @@ $$
 >   - `applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystemSolve.C`
 >   - `applications/solvers/compressible/rhoPimpleFoam/UEqn.H`
 > - **การใช้งาน:** ในไฟล์ `*.H` ของ Solvers คุณจะเห็นการใช้ `tmp<T>` อย่างแพร่หลาย
-> - **ผลกระทบ:** การใช้ `tmp<T>` อย่างถูกต้องสามารถเพิ่มประสิทธิภาพได้ 10-30% สำหรับการคำนวณที่ซับซ้อน
+> - **ผลกระทบ:** การใช้ `tmp<T>` อย่างถูกต้องสามารถเพิ่มประสิทธิภาพได้ 10-30% สำหรับการคำนาณที่ซับซ้อน
 > - **Best Practice:** เมื่อเขียน Custom Solver หรือ Modified Equation ให้ใช้ `tmp<T>` สำหรับ Intermediate Fields
 >
 > **คำศัพท์สำคัญ:**
 > - `tmp<volScalarField>` - Temporary Field สำหรับ Scalar quantities
 > - `tmp<volVectorField>` - Temporary Field สำหรับ Vector quantities
-> - `lazy evaluation` - การคำนวณที่เกิดขึ้นเมื่อจำเป็นต้องใช้ค่าจริง
+> - `lazy evaluation` - การคำนาณที่เกิดขึ้นเมื่อจำเป็นต้องใช้ค่าจริง
 > - `expression templates` - เทคนิค C++ สำหรับ optimize expressions
 
-ในการคำนวณ CFD การดำเนินการฟิลด์สามารถแสดงเป็นนิพจน์เชิงฟังก์ชัน:
+### 📘 What: Field Algebra Operations
+
+ในการคำนาณ CFD การดำเนินการฟิลด์สามารถแสดงเป็นนิพจน์เชิงฟังก์ชัน:
 
 $$
 \mathbf{C} = \alpha \mathbf{A} + \beta \mathbf{B}
 $$
 
 โดยที่ $\mathbf{A}, \mathbf{B}, \mathbf{C}$ เป็นฟิลด์และ $\alpha, \beta \in \mathbb{R}$
+
+### 🛠️ How: Lazy Evaluation Implementation
 
 ระบบ `tmp` ช่วยให้สามารถเขียน:
 
@@ -242,11 +297,11 @@ tmp<volScalarField> C = alpha*A + beta*B;
 📂 **Source:** `.applications/solvers/multiphase/multiphaseEulerFoam/phaseSystems/phaseSystem/phaseSystemSolve.C`
 
 **คำอธิบาย:**
-- **วัตถุประสงค์ (Source):** ไฟล์ `phaseSystemSolve.C` ใน multiphaseEulerFoam solver แสดงการใช้ `tmp<surfaceScalarField>` สำหรับการจัดการฟิลด์ชั่วคราวในการคำนวณระบบหลายเฟส โดยเฉพาะในส่วนของการคำนวณ effective flux ของเฟสที่เคลื่อนที่
+- **วัตถุประสงค์ (Source):** ไฟล์ `phaseSystemSolve.C` ใน multiphaseEulerFoam solver แสดงการใช้ `tmp<surfaceScalarField>` สำหรับการจัดการฟิลด์ชั่วคราวในการคำนาณระบบหลายเฟส โดยเฉพาะในส่วนของการคำนาณ effective flux ของเฟสที่เคลื่อนที่
 - **การอธิบาย (Explanation):** การใช้ `tmp` ช่วยให้สามารถสร้างฟิลด์ชั่วคราวสำหรับเก็บผลลัพธ์ของนิพจน์ทางคณิตศาสตร์โดยไม่ต้องคัดลอกข้อมูลจริง ระบบจะใช้การนับการอ้างอิงเพื่อติดตามว่ามีส่วนไหนของโค้ดที่ยังต้องการใช้ฟิลด์นี้อยู่ และจะคืนหน่วยความจำโดยอัตโนมัติเมื่อไม่มีการอ้างอิงเหลืออยู่
 - **แนวคิดสำคัญ (Key Concepts):**
   - **Reference Counting (การนับการอ้างอิง):** ระบบติดตามจำนวนการอ้างอิงถึงฟิลด์ เพื่อกำหนดเวลาที่จะคืนหน่วยความจำ
-  - **Lazy Evaluation (การประเมินผลแบบล่าช้า):** การคำนวณเกิดขึ้นจริงเมื่อมีการเข้าถึงค่าในฟิลด์ ไม่ใช่เมื่อสร้างนิพจน์
+  - **Lazy Evaluation (การประเมินผลแบบล่าช้า):** การคำนาณเกิดขึ้นจริงเมื่อมีการเข้าถึงค่าในฟิลด์ ไม่ใช่เมื่อสร้างนิพจน์
   - **Expression Template (เทมเพลตนิพจน์):** เทคนิคการสร้าง expression tree เพื่อหลีกเลี่ยงการคัดลอกข้อมูลชั่วคราว
   - **Memory Safety (ความปลอดภัยของหน่วยความจำ):** การรับประกันว่าไม่มี memory leaks หรือ double delete ผ่าน RAII semantics
 
@@ -256,7 +311,11 @@ $$
 \text{Evaluate}(C, i) = \alpha \cdot \text{Evaluate}(A, i) + \beta \cdot \text{Evaluate}(B, i)
 $$
 
-สำหรับแต่ละ index $i$ การคำนวณเกิดขึ้นตามความต้องการ เก็บไว้ใน expression tree จนกว่าจะมีการเข้าถึง
+สำหรับแต่ละ index $i$ การคำนาณเกิดขึ้นตามความต้องการ เก็บไว้ใน expression tree จนกว่าจะมีการเข้าถึง
+
+### 🔗 Why: Performance Benefits
+
+การใช้ Lazy Evaluation ช่วยลดการคัดลอกข้อมูลที่ไม่จำเป็น ซึ่งสำคัญมากสำหรับ Field ขนาดใหญ่ที่มี Cells หลายล้าน
 
 ---
 
@@ -277,6 +336,8 @@ $$
 > - `atomic ops` - การดำเนินการที่ Thread-Safe สำหรับ Parallel computing
 > - `memory overhead` - หน่วยความจำเพิ่มเติมที่ใช้สำหรับ Bookkeeping
 
+### 📘 What: Trade-off Comparison
+
 ### Trade-off: Reference Counting vs Manual Management
 
 | แง่มุม | Reference Counting | Manual Management |
@@ -286,6 +347,8 @@ $$
 | **ความซับซ้อน** | ⚠️ ต้องการ refCount class | ✅ ง่าย (ตรงไปตรงมา) |
 | **Parallel** | ⚠️ ต้องการ atomic ops | ✅ ไม่ต้องการ sync |
 | **Memory Overhead** | 4 bytes/object | 0 bytes |
+
+### 🛠️ How: Total Cost Equation
 
 ### สมการค่าใช้จ่ายทั้งหมด
 
@@ -298,6 +361,8 @@ $$
 $$
 T_{\text{overhead}} = \sum_{\text{operations}} (t_{\text{ref}} + t_{\text{unref}}) + n_{\text{atomic}} \cdot t_{\text{memory barrier}}
 $$
+
+### 🔗 Why: Acceptable Overhead Rationale
 
 สำหรับการจำลอง CFD ขนาดใหญ่ $T_{\text{computation}} \gg T_{\text{overhead}}$ ทำให้การค้าเสียเล็กน้อยในด้านประสิทธิภาพเป็นที่ยอมรับได้เมื่อเทียบกับประโยชน์ด้านความปลอดภัยและการบำรุงรักษาโค้ด
 
@@ -322,6 +387,8 @@ $$
 > - `double delete` - การคืนหน่วยความจำซ้ำ
 > - `segmentation fault` - ข้อผิดพลาดที่เกิดจากการเข้าถึง Memory ที่ไม่ได้จอง
 > - `RAII` - Resource Acquisition Is Initialization วิธีการจัดการทรัพยากรใน C++
+
+### 📘 What: Memory Safety Theorems
 
 ### การไม่มี Memory Leaks
 
@@ -373,6 +440,57 @@ $$
 
 ∴ ระบบป้องกัน double delete โดย semantic การเป็นเจ้าของ
 
+### 🛠️ How: Debugging Memory Issues
+
+**ใช้ Valgrind:**
+```bash
+valgrind --leak-check=full --show-leak-kinds=all solverName -case
+```
+
+**ตรวจสอบ Memory Corruption:**
+```bash
+gdb --args solverName -case
+# Run within gdb and watch for segmentation faults
+```
+
+### 🔗 Why: Production Reliability
+
+การพิสูจน์ความถูกต้องทางคณิตศาสตร์ของ Memory Safety ช่วยให้มั่นใจได้ว่า Custom Solvers และ Boundary Conditions จะทำงานได้อย่างเสถียรใน Production Runs ซึ่งอาจใช้เวลาหลายวันหรือหลายสัปดาห์
+
+---
+
+## 💡 Practical Implications: การแก้ไขปัญหา Memory ใน Custom Code
+
+เนื้อหาทางทฤษฎีทั้งหมดข้างต้นมีความสำคัญอย่างยิ่งเมื่อต้อง Debug ปัญหา Memory ในโค้ดของคุณเอง:
+
+### 🚨 Common Memory Issues และการแก้ไข
+
+| อาการ | สาเหตุที่เป็นไปได้ | การวินิจฉัย | การแก้ไข |
+|---------|---------------------|-------------|----------|
+| **Segmentation Fault** หลังจากรัน 100 ขั้นตอนเวลา | Double Delete หรือ Dangling Pointer | ใช้ `gdb` ตรวจสอบ Backtrace | ตรวจสอบการใช้ `tmp<T>` vs `autoPtr<T>` |
+| **RAM เต็ม** หลังจากรัน 1 ชั่วโมง | Memory Leaks | ใช้ `valgrind --leak-check=full` | ตรวจสอบว่าทุก `new` มี `delete` หรือใช้ Smart Pointers |
+| **Performance ลดลงใน Parallel runs** | False Sharing | ใช้ `perf` ดู Cache Misses | ใช้ `alignas(64)` กับตัวแปรที่ถูก Shared |
+| **Crash เฉพาะใน Parallel runs** | Race Condition ใน Reference Counting | ใช้ `ThreadSanitizer` | ตรวจสอบว่าใช้ `std::atomic` อย่างถูกต้อง |
+
+### 🛠️ Debugging Workflow
+
+1. **ทดสอบกับ Small Case:** ใช้ Mesh เล็กๆ เพื่อให้ Debug ได้เร็ว
+2. **รัน Valgrind:** ตรวจสอบ Memory Leaks ก่อน
+3. **ใช้ GDB:** หากมี Segmentation Fault ให้หาตำแหน่งที่เกิด Error
+4. **ตรวจสอบ Smart Pointers:** แน่ใจว่าใช้ `tmp<T>` อย่างถูกต้องสำหรับ Intermediate Fields
+5. **ทดสอบ Parallel:** รัน `mpirun -np 4` หรือมากกว่า เพื่อหา Thread-Safety Issues
+
+### 📊 Performance Profiling
+
+```bash
+# ดู Cache Misses และ Memory Access
+perf record -e cache-misses solverName -case
+perf report
+
+# ดู Memory Usage ระหว่าง Runtime
+/usr/bin/time -v solverName -case
+```
+
 ---
 
 ## สรุปคุณสมบัติทางคณิตศาสตร์
@@ -388,6 +506,16 @@ $$
 4. **Ownership Uniqueness**: $\forall o, t : |\text{owners}(o, t)| \leq 1$ (สำหรับ `autoPtr`)
 
 5. **Lifetime Determinism**: $\forall o : \exists t_{\text{delete}}(o)$ ซึ่ง deterministic หากทราบลำดับของ operations
+
+---
+
+## 🔑 Key Takeaways
+
+1. **Reference Counting ใช้หน่วยความจำเพียงค่าคงที่ (4 bytes)** เมื่อเทียบกับ Field ขนาดใหญ่ ทำให้เหมาะสมกับ CFD
+2. **`tmp<T>` ควรใช้สำหรับ Intermediate Fields** ใน Solvers และ Boundary Conditions เพื่อลดการคัดลอกข้อมูล
+3. **Cache Alignment (`alignas(64)`) สำคัญใน Parallel runs** เพื่อป้องกัน False Sharing
+4. **Memory Safety สามารถพิสูจน์ได้ทางคณิตศาสตร์** ซึ่งช่วยให้มั่นใจในเสถียรภาพของ Production Runs
+5. **การ Debug Memory ใช้ Valgrind และ GDB** เป็นเครื่องมือหลักสำหรับตรวจสอบความถูกต้องของ Custom Code
 
 ---
 
@@ -409,7 +537,32 @@ $$
 **คำตอบ:** จะต้องทำให้จำนวนการอ้างอิง $r(p, t)$ มีค่าเท่ากับ 0 หลังจากทำการ `unref()` ($r(p, t^+) = 0$) ซึ่งเป็นสัญญาณบ่งบอกว่าไม่มีส่วนใดของโปรแกรมต้องการใช้ออบเจกต์นี้อีกต่อไป
 </details>
 
-## 📖 เอกสารที่เกี่ยวข้อง
+<details>
+<summary>3. จะตรวจสอบ Memory Leaks ใน Custom Boundary Condition ได้อย่างไร?</summary>
 
-*   **ก่อนหน้า:** [03_Internal_Mechanics.md](03_Internal_Mechanics.md) - กลไกภายในของการจัดการหน่วยความจำ
+**คำตอบ:** ใช้ `valgrind --leak-check=full solverName -case` โดยเริ่มจาก Small Case ก่อน หากพบ Memory Leaks ให้ตรวจสอบว่า:
+1. ใช้ `tmp<T>` แทนการ `new` โดยตรง
+2. ทุกครั้งที่ `new` ต้องมี `delete` หรือใช้ Smart Pointers
+3. Destructor ของ Custom Classes ลบทรัพยากรทั้งหมด
+</details>
+
+<details>
+<summary>4. False Sharing คืออะไรและเกิดขึ้นได้อย่างไรใน Parallel Computing?</summary>
+
+**คำตอบ:** False Sharing คือปัญหาที่เกิดเมื่อหลาย Thread อัปเดตตัวแปรที่แตกต่างกันแต่อยู่บน Cache Line เดียวกัน (64 bytes) ทำให้ CPU ต้อง Sync Cache ระหว่าง Cores ซ้ำๆ ส่งผลให้ประสิทธิภาพลดลง แก้ไขโดยใช้ `alignas(64)` เพื่อให้ตัวแปรแต่ละตัวอยู่คนละ Cache Line
+</details>
+
+---
+
+## 📖 เอกสารที่เกี่ยวข้อย
+
+### บทนี้ในบริบท Module
+
+*   **ก่อนหน้า:** [03_Internal_Mechanisms.md](03_Internal_Mechanisms.md) - กลไกภายในของการจัดการหน่วยความจำ
 *   **ถัดไป:** [05_Implementation_Mechanisms.md](05_Implementation_Mechanisms.md) - กลไกการนำไปใช้งานจริง
+
+### การเชื่อมโยงกับ OpenFOAM Domains
+
+*   **Domain E (Coding/Customization):** ทฤษฎีนี้ถูกนำไปใช้ใน Custom Boundary Conditions และ Solvers
+*   **Domain C (Simulation Control):** การจัดการ Memory สำคัญใน Parallel Computing
+*   **Domain A (Case Setup):** การเข้าใจ Memory ช่วยในการวางแผน Resources สำหรับ Large Cases

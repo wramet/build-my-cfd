@@ -1,21 +1,35 @@
-# 03 กลไกภายใน: ตัวแปรสมาชิกและความหมายทางฟิสิกส์
+# 03 กลไกภายในของเทมเพลต: การสร้างตัวแปรและการแก้ปัญหาชื่อ
 
-> [!TIP] ความสำคัญของ GeometricField
-> ทำความเข้าใจโครงสร้างภายในของ `GeometricField` เป็นพื้นฐานสำคัญสำหรับการพัฒนาโค้ด OpenFOAM ขั้นสูง ช่วยให้เข้าใจว่าข้อมูลฟิสิกส์ถูกจัดเก็บและเข้าถึงอย่างไร ซึ่งส่งผลโดยตรงต่อประสิทธิภาพของการคำนวณ ความถูกต้องทางตัวเลข และความสามารถในการปรับแต่ง solver หรือ boundary condition ให้เหมาะกับปัญหาทางวิศวกรรมเฉพาะทาง
+> [!TIP] ความสำคัญของ Template Instantiation
+> ทำความเข้าใจกลไกภายในของการสร้างตัวแปรเทมเพลต (Template Instantiation) เป็นพื้นฐานสำคัญสำหรับการพัฒนาโค้ด OpenFOAM ขั้นสูง ช่วยให้เข้าใจว่าคอมไพเลอร์จัดการเทมเพลตอย่างไร เมื่อใดเกิดข้อผิดพลาด และเพื่อให้สามารถเขียนเทมเพลตที่ยืดหยุ่นและมีประสิทธิภาพได้
 
-![[geometric_field_anatomy.png]]
-`A clean scientific diagram illustrating the internal components of a GeometricField. Show a 3D computational mesh. Highlight the "Internal Field" (values at cell centers), "Boundary Fields" (values at the boundary faces), and the connection to the "fvMesh" object. Include a callout for the "dimensionSet" showing SI units. Use a minimalist palette with black lines and clear labels, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
+![[template_instantiation_process.png]]
+`A clean technical diagram illustrating the C++ template instantiation process. Show source code with template definition, compiler processing with type substitution, and generated concrete class instances. Include callouts for "Two-Phase Lookup", "Name Resolution", and "Symbol Table". Use a minimalist palette with black lines and clear labels, scientific textbook diagram, clean vector line art, white background, high definition, flat design, educational infographic --ar 16:9`
 
-เมื่อเราสร้างอินสแตนซ์ของเทมเพลต เช่น `GeometricField<Type>`, OpenFOAM จะจัดระเบียบข้อมูลภายในเพื่อให้สอดคล้องกับโครงสร้างของเมช (Mesh) และความต้องการทางฟิสิกส์:
+เมื่อเราใช้เทมเพลตใน C++ และ OpenFOAM เช่น `GeometricField<scalar, fvPatchField, volMesh>` คอมไพเลอร์ต้องดำเนินการกระบวนการที่ซับซ้อนเพื่อแปลงเทมเพลตนี้เป็นโค้ดที่สามารถ execute ได้จริง
 
-## สถาปัตยกรรมการจัดเก็บข้อมูลหลัก
+## Learning Objectives
+
+หลังจากศึกษาบทนี้ คุณควรจะสามารถ:
+
+1. **อธิบาย** ขั้นตอนของ Template Instantiation และความแตกต่างระหว่าง implicit และ explicit instantiation
+2. **วิเคราะห์** กลไก Two-Phase Lookup ใน C++ และผลกระทบต่อการเขียนเทมเพลต
+3. **จัดการ** ปัญหา Name Resolution และ dependent names ในเทมเพลต
+4. **ประยุกต์** ความรู้เรื่อง instantiation กับ GeometricField และเทมเพลต OpenFOAM อื่นๆ
+5. **ดีบัก** ข้อผิดพลาดที่เกิดจาก template instantiation อย่างมีประสิทธิภาพ
+
+---
+
+## สถาปัตยกรรมของ GeometricField
 
 > [!NOTE] **📂 OpenFOAM Context**
 > **Domain:** Coding/Customization (src/ directory)
 > - **Source File:** `src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H`
-> - **Key Classes:** `GeometricField`, `Field<Type>`, `DimensionedField`
-> - **Usage:** เมื่อสร้างฟิลด์ใหม่ในโค้ด เช่น `volScalarField p(mesh, dimensionSet, ...)` ข้อมูลภายในจะถูกจัดเก็บใน `internalField_` ซึ่งเป็นสมาชิกหลักที่เข้าถึงค่าที่ cell centers ทั้งหมด
-> - **Memory Access:** ในไฟล์ `0/p`, `0/U` ข้อมูล `internalField` คือส่วนที่ไม่ใช่ `boundaryField` ในไฟล์
+> - **Key Classes:** `GeometricField`, `Field<Type>`, `DimensionedField`, `fvMesh`
+> - **Usage:** เมื่อสร้างฟิลด์ใหม่ในโค้ด เช่น `volScalarField p(mesh, dimensionSet, ...)` คอมไพเลอร์จะ instantiate `GeometricField<scalar, fvPatchField, volMesh>`
+> - **Memory Layout:** ข้อมูลภายในถูกจัดเก็บใน `internalField_` ซึ่งเป็นสมาชิกหลักที่เข้าถึงค่าที่ cell centers
+
+ก่อนเจาะลึกกลไกการทำงานของเทมเพลต ให้เราทบทวนโครงสร้างภายในของ `GeometricField` ซึ่งเป็นเทมเพลตหลักที่ใช้จัดเก็บข้อมูลฟิสิกส์ใน OpenFOAM:
 
 ```mermaid
 graph LR
@@ -37,232 +51,375 @@ D
 N
 end
 ```
-> **Figure 1:** องค์ประกอบภายในของ `GeometricField` ที่แสดงความสัมพันธ์ระหว่างข้อมูลฟิลด์หลัก (Internal และ Boundary) กับบริบทประกอบอื่นๆ เช่น เรขาคณิตของเมช, ระบบหน่วยมิติ, และชื่อเรียกสำหรับระบบ I/O
 
-ใจกลางของ `GeometricField` คือสมาชิก `internalField_`:
+**Figure 1:** องค์ประกอบภายในของ `GeometricField<Type, PatchField, GeoMesh>` แสดงความสัมพันธ์ระหว่างข้อมูลหลัก บริบทเรขาคณิต และ metadata
+
+### 1. Internal Field - การจัดเก็บค่าที่ Cell Centers
 
 ```cpp
-// Definition of GeometricField template class
-// Template parameters: Type (field data type), PatchField (boundary field type), GeoMesh (mesh type)
+// Template definition with three parameters
 template<class Type, template<class> class PatchField, class GeoMesh>
 class GeometricField {
 private:
-    // 1. Storage of physical quantities at cell centers
-    Field<Type> internalField_;  // Cell-centered values: φᵢ at cell i
+    // Main storage: cell-centered values
+    Field<Type> internalField_;  // φᵢ at cell center i
 ```
 
 **🔍 ที่มา (Source):** 
-`src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H`
+`src/OpenFOAM/fields/GeometricArrays/GeometricField/GeometricField.H:157`
 
 **📖 คำอธิบาย (Explanation):**
-คอนเทนเนอร์ `Field<Type>` นี้จัดเก็บค่าหลักของปริมาณทางกายภาพที่ศูนย์กลางเซลล์ทั่วทั้งโดเมนการคำนวณ พารามิเตอร์เทมเพลต `Type` กำหนดลักษณะทางคณิตศาสตร์ของปริมาณที่จัดเก็บ:
 
-- **ฟิลด์สเกลาร์** (`Type = scalar`): `internalField_[i]` จัดเก็บค่าเดียวเช่นความดัน $p_i$, อุณหภูมิ $T_i$, หรือความเข้มข้น $C_i$ ที่เซลล์ $i$
-- **ฟิลด์เวกเตอร์** (`Type = vector`): `internalField_[i]` จัดเก็บสามองค์ประกอบ $(u_i, v_i, w_i)$ แทนความเร็วหรือปริมาณเวกเตอร์อื่น ๆ ที่เซลล์ $i$
-- **ฟิลด์เทนเซอร์** (`Type = tensor`): `internalField_[i]` จัดเก็บเทนเซอร์ $3×3$ ที่สมบูรณ์แทนความเครียด, อัตราการบิดเบี้ยว, หรือปริมาณทางกายภาพอันดับสองอื่น ๆ ที่เซลล์ $i$
+เมื่อ instantiate `GeometricField<scalar, fvPatchField, volMesh>`:
+- **Type = scalar**: `internalField_` จะเป็น `Field<scalar>` เก็บค่าเดียวต่อเซลล์ (เช่น ความดัน $p_i$, อุณหภูมิ $T_i$)
+- **Type = vector**: `internalField_` จะเป็น `Field<vector>` เก็บ 3 components ต่อเซลล์ (เช่น ความเร็ว $(u_i, v_i, w_i)$)
+- **Type = tensor**: `internalField_` จะเป็น `Field<tensor>` เก็บเทนเซอร์ $3×3$ ต่อเซลล์
 
-`internalField_` จับคู่โดยตรงกับหลักการการกระจายปริมาตรจำกัดที่ปริมาณทางกายภาพถูกกำหนดที่ศูนย์กลางเซลล์และประมาณในปริมาตรเซลล์แต่ละเซลล์โดยใช้ scheme การแทรกสอดที่เหมาะสม
+คอมไพเลอร์สร้าง implementation ที่แตกต่างกันสำหรับแต่ละ `Type` ที่ใช้ ซึ่งเป็นรูปแบบพื้นฐานของ **template instantiation**
 
-**🎯 หัวใจสำคัญ (Key Concepts):**
-- **Cell-centered storage**: ค่าที่ศูนย์กลางเซลล์เป็นแนวทางหลักของ Finite Volume Method
-- **Template parameter Type**: กำหนดประเภทข้อมูลทางคณิตศาสตร์ (scalar/vector/tensor)
-- **Memory layout**: เค้าโครงหน่วยความจำต่อเนื่องสำหรับประสิทธิภาพสูง
-
-## การนำฟิสิกส์ขอบเขตไปใช้
-
-> [!NOTE] **📂 OpenFOAM Context**
-> **Domain:** Physics & Fields (0/ directory) + Coding (src/ directory)
-> - **Case Files:** `0/p`, `0/U`, `0/T` และไฟล์ฟิลด์อื่นๆ
-> - **Keywords:** `boundaryField`, patch types (`fixedValue`, `zeroGradient`, `noSlip`, etc.)
-> - **Source Location:** `src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H`, `src/OpenFOAM/fields/FieldFields/`
-> - **Implementation:** แต่ละ patch ใน `boundaryField` มี `PatchField<Type>` ที่ระบุเงื่อนไขขอบเขต ซึ่งถูกอ่านจากไฟล์ `0/` และสร้างขึ้นจาก runtime selection table
-> - **Custom BC:** การสร้าง boundary condition ใหม่ต้องสืบทอดจาก `PatchField<Type>` ใน `src/finiteVolume/fields/fvPatchFields/`
-
-สมาชิก `boundaryField_` ให้กรอบงานสำหรับการนำเงื่อนไขขอบเขตไปใช้:
+### 2. Boundary Field - การจัดการเงื่อนไขขอบเขต
 
 ```cpp
-    // 2. Management of boundary physics
-    // FieldField is a container of boundary patch fields
+    // Boundary conditions management
     FieldField<PatchField<Type>, GeoMesh> boundaryField_;
 ```
 
 **🔍 ที่มา (Source):** 
-`src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H`
+`src/OpenFOAM/fields/GeometricArrays/GeometricField/GeometricField.H:160`
 
 **📖 คำอธิบาย (Explanation):**
-คอนเทนเนอร์ที่ซับซ้อนนี้จัดเก็บข้อมูลเงื่อนไขขอบเขตสำหรับพาทช์ขอบเขตทั้งหมดในเมช แต่ละออบเจกต์ `PatchField<Type>` ห่อหุ้มฟิสิกส์ของพฤติกรรมฟิลด์ที่ขอบเขตเฉพาะ:
 
-- **เงื่อนไขขอบเขตสเกลาร์**: `PatchField<scalar>` ใช้เงื่อนไขเช่น fixedValue สำหรับอุณหภูมิหรือความดันที่กำหนด, zeroGradient สำหรับผนังแอดิอะแบติก, และเงื่อนไขผสมสำหรับการถ่ายเทความร้อยแบบคอนเวคชัน
-- **เงื่อนไขขอบเขตเวกเตอร์**: `PatchField<vector>` จัดการเงื่อนไขขอบเขตความเร็วที่ซับซ้อนรวมถึง noSlip (ผนังไม่ลื่น), movingWall (ขอบเขตเคลื่อนที่), pressureInletVelocity, และ symmetryPlane
-- **เงื่อนไขขอบเขตเทนเซอร์**: `PatchField<tensor>` จัดการเงื่อนไขขอบเขตความเครียดและขอบเขตฟิลด์เทนเซอร์อื่น ๆ
+เมื่อ instantiate ด้วย `PatchField = fvPatchField`:
+- แต่ละ boundary patch จะมี `fvPatchField<scalar>` สำหรับ scalar field
+- หรือ `fvPatchField<vector>` สำหรับ vector field
+- Runtime polymorphism ผ่าน virtual functions ของ `PatchField` base class
 
-แต่ละพาทช์ขอบเขตรักษาแบบจำลองฟิสิกส์อิสระของตัวเอง อนุญาตให้มีเงื่อนไขขอบเขตที่แตกต่างกันในส่วนต่าง ๆ ของโดเมนการคำนวณ คอนเทนเนอร์ `FieldField` ให้การเข้าถึงออบเจกต์ฟิลด์เฉพาะพาทช์เหล่านี้อย่างมีประสิทธิภาพระหว่างการประกอบเมทริกซ์และขั้นตอนการแก้ปัญหา
+---
 
-**🎯 หัวใจสำคัญ (Key Concepts):**
-- **Patch-based architecture**: แต่ละพาทช์มีเงื่อนไขขอบเขตอิสระ
-- **Runtime polymorphism**: ประเภทเงื่อนไขขอบเขตถูกกำหนดขณะทำงาน
-- **FieldField container**: คอนเทนเนอร์สำหรับจัดการชุดของพาทช์ฟิลด์
-
-## การผสานรวมบริบทเรขาคณิต
+## ขั้นตอน Template Instantiation
 
 > [!NOTE] **📂 OpenFOAM Context**
-> **Domain:** Meshing (constant/ directory) + Coding (src/ directory)
-> - **Case Files:** `constant/polyMesh/points`, `constant/polyMesh/faces`, `constant/polyMesh/owner`, `constant/polyMesh/neighbour`
-> - **Key Classes:** `fvMesh`, `polyMesh`, `volMesh`, `surfaceMesh`
-> - **Source Location:** `src/OpenFOAM/meshes/polyMesh/polyMesh.H`, `src/finiteVolume/fields/fvPatchFields/`
-> - **Usage:** เมื่อสร้างฟิลด์ใน solver, ต้อง pass `mesh` object: `volScalarField p(mesh, dimensionSet, ...)` ซึ่ง `mesh_` จะเก็บ reference ไปยัง `fvMesh` ที่มีข้อมูลเรขาคณิตทั้งหมด
-> - **Geometry Access:** `mesh.V()` (cell volumes), `mesh.Sf()` (face area vectors), `mesh.C()` (cell centers)
+> **Domain:** Compilation/Build (wmake/Make/)
+> - **Build Process:** เมื่อรัน `wmake` คอมไพเลอร์จะ instantiate templates สำหรับทุก Type ที่ถูกใช้ใน solver
+> - **Symbol Visibility:** Template code ถูก compile ใน translation unit แต่ละไฟล์ อาจเกิด symbol duplication ใน object files
+> - **Explicit Instantiation:** OpenFOAM ใช้ explicit instantiation ใน `.C` files เพื่อลด compile time เช่นใน `src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.C`
 
-สมาชิก `mesh_` สร้างรากฐานเรขาคณิตสำหรับการดำเนินงานฟิลด์ทั้งหมด:
+### Implicit Instantiation
+
+เกิดเมื่อคอมไพเลอร์พบการใช้เทมเพลตกับ type ที่เฉพาะเจาะจง:
 
 ```cpp
-    // 3. Mesh geometry context
-    // Reference to mesh geometry for finite volume operations
-    const GeoMesh& mesh_;  // Reference to mesh geometry
+// In your solver code
+volScalarField p(mesh, dimensionSet(0, 2, -2, 0, 0, 0, 0), "p");
+volVectorField U(mesh, dimensionSet(0, 1, -1, 0, 0, 0, 0), "U");
+
+// Compiler implicitly instantiates:
+// - GeometricField<scalar, fvPatchField, volMesh> for p
+// - GeometricField<vector, fvPatchField, volMesh> for U
 ```
 
-**🔍 ที่มา (Source):** 
-`src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H`
+**ขั้นตอนการทำงาน:**
 
-**📖 คำอธิบาย (Explanation):**
-การอ้างอิงนี้ให้การเข้าถึงบริบทเรขาคณิตที่สมบูรณ์ที่จำเป็นสำหรับการคำนวณปริมาตรจำกัด:
+1. **Template Argument Deduction**: คอมไพเลอร์อนุมาน template arguments จาก types ของ arguments
+2. **Type Substitution**: แทนที่ template parameters ด้วย concrete types
+3. **Function Signature Generation**: สร้าง signature ที่สมบูรณ์สำหรับ instantiated function
+4. **Compilation**: compile เทมเพลตที่ถูก instantiate นี้เป็น machine code
 
-- **เมชปริมาตร (`volMesh`)**: เมื่อ `GeoMesh = volMesh`, ฟิลด์แทนปริมาณที่จุดศูนย์กลางเซลล์โดยมีการเข้าถึงปริมาตรเซลล์ $\Delta V_i$, พื้นที่ผิวหน้า $A_f$, และการเชื่อมต่อเซลล์ข้างเคียง
-- **เมชผิวหน้า (`surfaceMesh`)**: เมื่อ `GeoMesh = surfaceMesh`, ฟิลด์แทนปริมาณที่จุดศูนย์กลางผิวหน้าที่ใช้สำหรับการคำนวณฟลักซ์และการสร้างฟังก์ชันไล่ระดับ
+### Explicit Instantiation
 
-การอ้างอิงเมชช่วยให้การดำเนินงานฟิลด์สามารถเข้าถึงข้อมูลเรขาคณิตที่จำเป็นรวมถึง:
-- พิกัดจุดศูนย์กลางเซลล์ $\mathbf{r}_i$ สำหรับการแทรกสอดและการสร้างใหม่
-- เวกเตอร์ปกติผิวหน้า $\mathbf{n}_f$ สำหรับการคำนวณฟลักซ์
-- ปริมาตรเซลล์ $\Delta V_i$ สำหรับปริพันธ์ปริมาตรในวิธีการปริมาตรจำกัด
-- รายการเซลล์ข้างเคียงสำหรับการสร้างตัวดำเนินการแยก
-
-**🎯 หัวใจสำคัญ (Key Concepts):**
-- **GeoMesh abstraction**: ชั้นนามธรรมสำหรับทั้ง volMesh และ surfaceMesh
-- **Const reference**: การอ้างอิงคงที่ป้องกันการเปลี่ยนแปลงเรขาคณิต
-- **Geometric context**: ให้บริบทสำหรับการดำเนินงานเชิงปริมาตรจำกัด
-
-## กรอบการวิเคราะห์มิติ
-
-> [!NOTE] **📂 OpenFOAM Context**
-> **Domain:** Physics & Fields (All field files) + Coding (src/ directory)
-> - **Case Files:** ทุกไฟล์ฟิลด์ใน `0/` และ `constant/` มี `dimensions` keyword, เช่น `dimensions [0 2 -2 0 0 0 0];` สำหรับความดัน
-> - **Keywords:** `dimensions`, `dimensionSet`, `DimensionedField`
-> - **Source Location:** `src/OpenFOAM/dimensionSet/dimensionSet.H`, `src/OpenFOAM/dimensionedTypes/`
-> - **Usage Example:** `dimensionSet(1, -1, -2, 0, 0, 0, 0)` สำหรับหน่วยความดัน (kg·m⁻¹·s⁻²)
-> - **Error Prevention:** ถ้ากำหนดมิติผิด เช่น บวกความดันกับความเร็ว จะเกิด compile error หรือ runtime error จาก dimensional consistency check
-
-สมาชิก `dimensions_` ใช้ระบบการวิเคราะห์มิติอันทรงพลังของ OpenFOAM:
+บอกคอมไพเลอร์ล่วงหน้าว่าจะ instantiate เทมเพลตกับ types ใด:
 
 ```cpp
-    // 4. Physical dimensions (unit analysis)
-    // Dimension set for dimensional consistency checking
-    dimensionSet dimensions_;  // Dimensions [M L T Θ N I J]
+// In GeometricField.C
+template class GeometricField<scalar, fvPatchField, volMesh>;
+template class GeometricField<vector, fvPatchField, volMesh>;
+template class GeometricField<tensor, fvPatchField, volMesh>;
+template class GeometricField<symmTensor, fvPatchField, volMesh>;
 ```
 
-**🔍 ที่มา (Source):** 
-`src/OpenFOAM/dimensionSet/dimensionSet.H`
+**ประโยชน์:**
+- ลด compile time เพราะ instantiate ครั้งเดียวในไฟล์ `.C`
+- ลด object file size หลีกเลี่ยง code bloat
+- ควบคุมได้ว่าจะสร้าง version ใดบ้าง
 
-**📖 คำอธิบาย (Explanation):**
-ออบเจกต์ `dimensionSet` นี้เข้ารหัสมิติทางกายภาพของฟิลด์โดยใช้หน่วยฐาน SI:
-- **M**: มวล [kg]
-- **L**: ความยาว [m]
-- **T**: เวลา [s]
-- **Θ**: อุณหภูมิ [K]
-- **N**: ปริมาณของสาร [mol]
-- **I**: กระแสไฟฟ้า [A]
-- **J**: ความเข้มแสง [cd]
+---
 
-มิติฟิลด์ CFD ทั่วไป ได้แก่:
-- **ความดัน**: $[M L^{-1} T^{-2}]$ = kg·m⁻¹·s⁻²
-- **ความเร็ว**: $[L T^{-1}]$ = m·s⁻¹
-- **ความหนืดไดนามิก**: $[M L^{-1} T^{-1}]$ = kg·m⁻¹·s⁻¹
-- **ความหนืดจลน์**: $[L^2 T^{-1}]$ = m²·s⁻¹
-- **ความนำความร้อย**: $[M L T^{-3} Θ^{-1}]$ = W·m⁻¹·K⁻¹
-
-การวิเคราะห์มิตินี้ช่วยให้การตรวจสอบความสม่ำเสมอของสมการโดยอัตโนมัติ ป้องกันการดำเนินการที่ไม่มีความหมายทางกายภาพระหว่างการจัดการพีชคณิตของนิพจน์ฟิลด์
-
-**🎯 หัวใจสำคัญ (Key Concepts):**
-- **Dimensional consistency**: การตรวจสอบความสอดคล้องของมิติอัตโนมัติ
-- **SI base units**: ระบบหน่วยฐาน SI 7 หน่วย
-- **Compile-time checking**: การตรวจสอบขณะคอมไพล์ป้องกันข้อผิดพลาด
-
-## ระบบการระบุฟิลด์
+## Two-Phase Lookup
 
 > [!NOTE] **📂 OpenFOAM Context**
-> **Domain:** Simulation Control (system/controlDict) + I/O Operations
-> - **Case Files:** ชื่อฟิลด์ใช้เป็นชื่อไฟล์ เช่น `0/p`, `0/U`, `0/T`
-> - **Keywords:** `name`, field identifiers, I/O operations
-> - **Source Location:** `src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H`
-> - **Usage:** ในโค้ด สร้างฟิลด์ด้วย: `volScalarField p("p", mesh, dimensionSet, ...)` โดย "p" คือชื่อฟิลด์ที่ใช้ในการอ่าน/เขียนไฟล์และการระบุใน function objects
-> - **Function Objects:** ใน `system/controlDict`, function objects อ้างอิงฟิลด์ด้วยชื่อนี้ เช่น `fields (p U T);`
+> **Domain:** Coding/Customization (Template Library Design)
+> - **Impact:** เมื่อเขียนเทมเพลตใหม่ ต้องระวัง dependent names ที่อาจไม่ถูกพบใน Phase 1
+> - **Example:** ใน `GeometricField` การเรียก `mesh_.C()` (cell centers) ต้องใช้ `this->mesh_.C()` หรือ `this->mesh_.C()` ในบาง context
 
-สมาชิก `name_` ให้การระบุที่อ่านได้:
+Two-Phase Lookup คือกลไกที่คอมไพเลอร์ C++ ใช้ค้นหา names (variables, functions, types) ภายใน template definitions:
+
+### Phase 1: Template Definition Parsing
+
+เกิดเมื่อคอมไพเลอร์ **อ่าน** template definition ครั้งแรก:
 
 ```cpp
-    // 5. Field identification
-    // Human-readable name for I/O operations and debugging
-    word name_;  // "p", "U", "T", etc. - for I/O and debugging
+template<class Type>
+class GeometricField {
+    const GeoMesh& mesh_;  // mesh_ ถูกบันทึก
+    
+    Type average() const {
+        // mesh_.C() เป็น dependent name - ขึ้นกับ GeoMesh
+        return sum(mesh_.C()) / mesh_.size();  // ❶ ไม่ตรวจสอบตอนนี้!
+    }
+};
 ```
 
-**🔍 ที่มา (Source):** 
-`src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H`
+ใน Phase 1 คอมไพเลอร์:
+- ✅ ตรวจ **syntax** ว่าถูกต้อง
+- ✅ ตรวจ **non-dependent names** (names ที่ไม่ขึ้นกับ template parameters)
+- ❌ **ไม่ตรวจ** dependent names (เช่น `mesh_.C()`) เพราะยังไม่รู้ Type ของ `GeoMesh`
 
-**📖 คำอธิบาย (Explanation):**
-ตัวระบุสตริงนี้ให้บริการหลายวัตถุประสงค์ในกรอบงาน OpenFOAM:
-- **การดำเนินงานไฟล์ I/O**: กำหนดชื่อไฟล์ฟิลด์สำหรับการอ่าน/เขียนข้อมูลการจำลอง
-- **การประมวลผลหลัง**: ช่วยให้เลือกฟิลด์และการสร้างภาพในเครื่องมือเช่น paraFoam
-- **การดีบักกิ้ง**: ให้ตัวระบุที่มีความหมายสำหรับข้อความแสดงข้อผิดพลาดและการจัดการฟิลด์
-- **ส่วนติดต่อผู้ใช้**: ช่วยให้อ้างอิงฟิลด์อย่างเป็นธรรมชาติในพจนานุกรมควบคุมและข้อมูลจำเพาะเงื่อนไขขอบเขต
+### Phase 2: Template Instantiation
 
-ชื่อฟิลด์ทั่วไปตามข้อตกลงที่ก่อตั้ง: "p" สำหรับความดัน, "U" สำหรับความเร็ว, "T" สำหรับอุณหภูมิ, "k" และ "ω" สำหรับปริมาณความปั่นป่วน, และ "alpha" สำหรับเศษส่วนเฟสในการไหลหลายเฟส
+เกิดเมื่อคอมไพเลอร์ **ใช้** template กับ concrete type:
 
-**🎯 หัวใจสำคัญ (Key Concepts):**
-- **word type**: ประเภทสตริงพิเศษของ OpenFOAM ที่มีประสิทธิภาพ
-- **I/O mapping**: การจับคู่ชื่อฟิลด์กับไฟล์
-- **Field conventions**: ข้อตกลงการตั้งชื่อมาตรฐาน
+```cpp
+// ตอนนี้ GeoMesh = volMesh
+GeometricField<scalar, fvPatchField, volMesh> field;
+// คอมไพเลอร์ตรวจสอบว่า volMesh มีสมาชิก C() หรือไม่
+```
 
-## ความคู่แบบกายภาพ-การคำนวณ
+ใน Phase 2 คอมไพเลอร์:
+- ✅ แทนที่ `GeoMesh` ด้วย `volMesh`
+- ✅ ตรวจสอบว่า `volMesh` มี method `C()` จริงๆ
+- ✅ ตรวจสอบ return types และ function signatures
+
+### Dependent vs Non-Dependent Names
+
+| Name Type | Definition | Lookup Phase |
+|-----------|------------|--------------|
+| **Non-Dependent** | ไม่ขึ้นกับ template parameters | Phase 1 |
+| **Dependent** | ขึ้นกับ template parameters | Phase 2 |
+
+```cpp
+template<class Type>
+class MyClass {
+    int x_;              // ❶ Non-dependent: Type รู้จักแล้ว
+    Type value_;         // ❷ Dependent: ขึ้นกับ Type
+    Type::iterator it_;  // ❸ Dependent: iterator อยู่ใน Type
+    
+    void method() {
+        x_ = 5;          // ❶ OK: ตรวจสอบใน Phase 1
+        value_ = 0;      // ❷ OK: ตรวจสอบใน Phase 2
+        it_->begin();    // ❸ Needs: typename keyword (ดูด้านล่าง)
+    }
+};
+```
+
+### การแก้ปัญหา Dependent Names
+
+ใช้ `typename` และ `template` keywords เพื่อบอกคอมไพเลอร์ว่าเป็น dependent names:
+
+```cpp
+template<class Type>
+class GeometricField {
+    // ใช้ typename เมื่อ dependent name เป็น type
+    typedef typename Type::value_type value_type;
+    
+    // ใช้ template keyword เมื่อ dependent name เป็น template method
+    template<class T>
+    void callTemplateMethod(T& obj) {
+        obj.template method<Type>();  // บอก compiler ว่า method เป็น template
+    }
+};
+```
+
+---
+
+## Name Resolution ใน Templates
 
 > [!NOTE] **📂 OpenFOAM Context**
-> **Domain:** Coding/Customization (Solver Development)
-> - **Overall Architecture:** การออกแบบ `GeometricField` เป็นฐานของการเขียน solver ทุกตัวใน OpenFOAM
-> - **Solver Development:** เมื่อเขียน solver ใหม่ ต้องเข้าใจว่าฟิลด์ถูกจัดเก็บและเข้าถึงอย่างไร เพื่อให้สามารถดำเนินการทางคณิตศาสตร์ (การบวก, การคูณ, การไล่ระดับ) ได้อย่างถูกต้อง
-> - **Performance:** การเข้าใจ memory layout ช่วยในการ optimize การคำนวณ เช่น การใช้ SIMD operations, cache-friendly access patterns
-> - **Field Operations:** การดำเนินการกับฟิลด์ทั้งหมด (เช่น `fvc::ddt(p)`, `fvm::laplacian(nu, U)`) ขึ้นอยู่กับโครงสร้างภายในของ `GeometricField`
-> - **Code Location:** `src/OpenFOAM/fields/GeometricFields/GeometricField/` และ `src/finiteVolume/` สำหรับ finite volume operations
+> **Domain:** Debugging/Troubleshooting
+> - **Common Error:** "no matching function call" เมื่อ instantiate template
+> - **Cause:** Function ไม่ถูกพบใน Phase 1 เพราะเป็น dependent name
+> - **Solution:** ใช้ `using` declarations, `this->` pointer, หรือ qualify names อย่างเต็มรูปแบบ
 
-ความงามของ `GeometricField` อยู่ในลักษณะคู่ของมันทั้งเป็นคอนเทนเนอร์ปริมาณทางกายภาพและโครงสร้างข้อมูลการคำนวณ ตัวแปรสมาชิกแต่ละตัวสะพานช่องว่างระหว่างแนวคิด CFD ทฤษฎีและการนำไปใช้จริง:
+### ปัญหาที่พบบ่อย
 
-- **ความสำคัญทางกายภาพ**: `internalField_` แทนค่าฟิลด์ต่อเนื่อง
-- **การดำเนินงานทางคณิตศาสตร์**: ช่วยให้การจัดการพีชคณิตรักษาความสม่ำเสมอของมิติ
-- **ประสิทธิภาพการคำนวณ**: ให้เค้าโครงหน่วยความจำที่เหมาะสมและรูปแบบการเข้าถึงแคชที่เป็นมิตร
-- **ความแม่นยำทางตัวเลข**: รักษาความแม่นยำผ่านการออกแบบ scheme การแทรกสอดและการไล่ระดับอย่างระมัดระวัง
+```cpp
+template<class Type>
+class Base {
+public:
+    void interfaceMethod();
+};
 
-ปรัชญาการออกแบบนี้ช่วยให้ผู้ปฏิบัติงาน CFD ทำงานกับปริมาณที่มีความหมายทางกายภาพในขณะที่กรอบงานจัดการรายละเอียดการนำไปใช้ทางตัวเลขที่ซับซ้อนโดยอัตโนมัติ
+template<class Type>
+class Derived : public Base<Type> {
+public:
+    void myMethod() {
+        interfaceMethod();  // ❌ Error: not found in Phase 1
+    }
+};
+```
 
-**🔍 ที่มา (Source):** 
-`src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H`
+**ทำไมไม่พบ?** `interfaceMethod` เป็น dependent name (อยู่ใน `Base<Type>`) ดังนั้นไม่ถูกค้นหาใน Phase 1
 
-**🎯 หัวใจสำคัญ (Key Concepts):**
-- **Dual nature**: ลักษณะคู่ทั้งทางกายภาพและการคำนวณ
-- **Abstraction layers**: ชั้นนามธรรมที่แยกฟิสิกส์จากการนำไปใช้
-- **Design philosophy**: ปรัชญาการออกแบบที่เน้นความง่ายในการใช้งาน
+### ทางแก้ไข
+
+**Option 1: Use `this->`**
+```cpp
+void myMethod() {
+    this->interfaceMethod();  // ✅ OK: บอก compiler ว่าเป็น dependent name
+}
+```
+
+**Option 2: Qualify with base class**
+```cpp
+void myMethod() {
+    Base<Type>::interfaceMethod();  // ✅ OK: ระบุ source อย่างชัดเจน
+}
+```
+
+**Option 3: Using declaration**
+```cpp
+template<class Type>
+class Derived : public Base<Type> {
+    using Base<Type>::interfaceMethod;  // นำเข้าสู่ scope
+    
+public:
+    void myMethod() {
+        interfaceMethod();  // ✅ OK: ถูกนำเข้าแล้ว
+    }
+};
+```
+
+---
+
+## ตัวอย่างใน OpenFOAM: GeometricField Instantiation
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Coding/Customization (Solver & Boundary Condition Development)
+> - **Real Example:** ใน `src/finiteVolume/cfdTools/general/adjustPhi/adjustPhi.C`
+> - **Usage:** Function template ที่รับ `GeometricField<Type>` และถูก instantiate สำหรับ scalar/vector
+
+```cpp
+// Template function in header
+template<class Type>
+Type calculateSum(const GeometricField<Type, fvPatchField, volMesh>& field) {
+    Type sum = Zero;
+    forAll(field, i) {
+        sum += field.internalField()[i];
+    }
+    return sum;
+}
+
+// Explicit instantiation in .C file
+template scalar calculateSum<scalar>(
+    const GeometricField<scalar, fvPatchField, volMesh>&
+);
+template vector calculateSum<vector>(
+    const GeometricField<vector, fvPatchField, volMesh>&
+);
+```
+
+**ขั้นตอน instantiation:**
+
+1. **Header included**: Template definition ถูกอ่านใน Phase 1
+2. **Function called**: เมื่อเรียก `calculateSum(p)` โดยที่ `p` เป็น `volScalarField`
+3. **Type deduction**: `Type` = `scalar`
+4. **Instantiation**: สร้าง `calculateSum<scalar>` ที่ compile ได้จริง
+5. **Linking**: Linker เชื่อมต่อกับ explicit instantiation ใน `.C` file
+
+---
+
+## การ Debug Template Instantiation Errors
+
+> [!NOTE] **📂 OpenFOAM Context**
+> **Domain:** Debugging/Troubleshooting
+> - **Common Compiler:** GCC/Clang ด้วย `-std=c++11` หรือใหม่กว่า
+> - **Error Messages:** มักยาวและซับซ้อนเพราะ expand template instantiation stack
+> - **Tools:** `wmake |& grep -A 10 "error:"` เพื่อดู errors ที่เกี่ยวข้อง
+
+### ประเภทข้อผิดพลาดทั่วไป
+
+| Error Type | Cause | Solution |
+|------------|-------|----------|
+| **no type named 'X' in 'Y'** | Dependent type ไม่มี `typename` | เพิ่ม `typename` keyword |
+| **no matching function** | Function ไม่ถูกพบใน Phase 1 | ใช้ `this->` หรือ qualify name |
+| **template argument deduction failed** | Types ไม่ match | ตรวจสอบ template parameters |
+| **undefined reference to** | Instantiation ไม่ถูก export | เพิ่ม explicit instantiation |
+
+### เทคนิคการดีบัก
+
+1. **Static Assert สำหรับ Type Checking**
+```cpp
+template<class Type>
+void myFunction(const GeometricField<Type, ...>& field) {
+    static_assert(std::is_same<Type, scalar>::value || 
+                  std::is_same<Type, vector>::value,
+                  "Type must be scalar or vector");
+}
+```
+
+2. **Enable_if สำหรับ SFINAE**
+```cpp
+template<class Type, typename = typename std::enable_if<
+    std::is_floating_point<Type>::value>::type>
+void onlyForFloatingPoint(const GeometricField<Type, ...>& field);
+```
+
+3. **Type Traits สำหรับ Inspection**
+```cpp
+template<class Type>
+constexpr bool isVectorField() {
+    return std::is_same<Type, vector>::value;
+}
+```
+
+---
 
 ## 🧠 Concept Check
 
 <details>
-<summary>1. `internalField_` เก็บข้อมูลอะไร และอยู่ที่ตำแหน่งใดของ Mesh?</summary>
+<summary>1. Template Instantiation แตกต่างกันอย่างไรระหว่าง implicit และ explicit?</summary>
 
-**คำตอบ:** เก็บค่าของสนาม (Field Values) ที่ **จุดศูนย์กลางของเซลล์ (Cell Centers)**
+**คำตอบ:** 
+- **Implicit**: เกิดอัตโนมัติเมื่อคอมไพเลอร์พบการใช้เทมเพลตกับ concrete type
+- **Explicit**: โปรแกรมเมอร์ระบุไว้ล่วงหน้าด้วย `template class MyClass<Type>;` เพื่อควบคุมเวลาและที่ที่ instantiation เกิดขึ้น
 </details>
 
 <details>
-<summary>2. หน่วยมิติ (Dimensions) ใน OpenFOAM มีทั้งหมดกี่หน่วยฐาน?</summary>
+<summary>2. Two-Phase Lookup ทำงานอย่างไรใน C++ templates?</summary>
 
-**คำตอบ:** 7 หน่วยฐาน (Base Units) ตามระบบ SI ได้แก่ Mass, Length, Time, Temperature, Quantity, Current, Luminous Intensity
+**คำตอบ:**
+- **Phase 1**: เมื่ออ่าน template definition ครั้งแรก - ตรวจ syntax และ non-dependent names
+- **Phase 2**: เมื่อ instantiate กับ concrete type - ตรวจ dependent names และสร้าง code จริง
 </details>
+
+<details>
+<summary>3. ทำไมต้องใช้ `typename` keyword สำหรับ dependent types?</summary>
+
+**คำตอบ:** เพื่อบอกคอมไพเลอร์ว่า name นั้นเป็น type ไม่ใช่ static member หรือ function ซึ่ง compiler ไม่สามารถแยกแยะได้ใน Phase 1 เพราะยังไม่รู้ concrete type
+</details>
+
+<details>
+<summary>4. Dependent names ใน OpenFOAM templates ส่งผลต่อการเขียนโค้ดอย่างไร?</summary>
+
+**คำตอบ:** ต้องระวังเมื่อเรียก methods ของ template parameters (เช่น `mesh_.C()`) หรือเข้าถึง types ภายใน template parameters อาจต้องใช้ `this->`, qualify names อย่างเต็มรูปแบบ หรือเพิ่ม `typename` keyword
+</details>
+
+---
 
 ## 📖 เอกสารที่เกี่ยวข้อง
 
-*   **ก่อนหน้า:** [02_Template_Syntax.md](02_Template_Syntax.md) - ไวยากรณ์ Template
-*   **ถัดไป:** [04_Instantiation_and_Specialization.md](04_Instantiation_and_Specialization.md) - การสร้าง Instance และการทำ Specialization
+*   **ก่อนหน้า:** [02_Template_Syntax.md](02_Template_Syntax.md) - ไวยากรณ์เทมเพลตพื้นฐาน
+*   **ถัดไป:** [04_Instantiation_and_Specialization.md](04_Instantiation_and_Specialization.md) - การสร้างตัวแปรขั้นสูงและ Template Specialization
+
+---
+
+## 🎯 Key Takeaways
+
+1. **Template Instantiation** เป็นกระบวนการแปลงเทมเพลตเป็น code ที่สามารถ execute ได้ โดยคอมไพเลอร์ substitute template parameters ด้วย concrete types
+
+2. **Two-Phase Lookup** แบ่งการตรวจสอบ names เป็น 2 ขั้นตอน: Phase 1 (ตรวจ non-dependent names) และ Phase 2 (ตรวจ dependent names หลัง instantiation)
+
+3. **Dependent Names** คือ names ที่ขึ้นกับ template parameters ซึ่งต้องใช้ `typename`, `template` keywords หรือ `this->` pointer เพื่อช่วยคอมไพเลอร์ในการค้นหา
+
+4. **GeometricField** ใช้ template instantiation เพื่อสร้าง versions ที่แตกต่างกันสำหรับ scalar, vector, tensor fields ซึ่งช่วยให้โค้ด reusable และ type-safe
+
+5. **Debugging Template Errors** ต้องการความเข้าใจ instantiation stack และข้อความ error ที่ยาว สามารถใช้ static_assert, type traits และ SFINAE เพื่อช่วยในการ debug

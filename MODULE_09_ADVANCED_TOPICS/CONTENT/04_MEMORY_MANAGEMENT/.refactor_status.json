@@ -1,0 +1,12 @@
+{
+    "completed": [
+        "00_Overview.md",
+        "01_Introduction.md",
+        "02_Memory_Syntax_and_Design.md",
+        "03_Internal_Mechanics.md",
+        "04_Mathematical_Foundations.md",
+        "05_Implementation_Mechanisms.md",
+        "07_Common_Errors_and_Debugging.md"
+    ],
+    "skipped": []
+}

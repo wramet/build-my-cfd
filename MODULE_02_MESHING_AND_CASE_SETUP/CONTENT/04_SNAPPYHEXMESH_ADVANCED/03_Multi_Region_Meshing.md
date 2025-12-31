@@ -218,7 +218,7 @@ CellZones:
 > **Output structure**:
 > - `constant/fluid/polyMesh/` → Mesh สำหรับ Fluid region
 > - `constant/solid/polyMesh/` → Mesh สำหรับ Solid region
-> - `0/fluid/` → Boundary conditions สำรับ Fluid (U, p, T, k, epsilon, etc.)
+> - `0/fluid/` → Boundary conditions สำหรับ Fluid (U, p, T, k, epsilon, etc.)
 > - `0/solid/` → Boundary conditions สำหรับ Solid (T, etc.)
 >
 > **Boundary type ที่เกิดขึ้น**:
@@ -387,7 +387,7 @@ checkMesh -topology | grep -A 10 "CellZones"
 ### 4. การ Debug ทีละขั้นตอน
 
 ```bash
-# 1. ตรวจสอบ CellZomes
+# 1. ตรวจสอบ CellZones
 cat constant/polyMesh/cellZones
 
 # 2. ตรวจสอบ FaceZones

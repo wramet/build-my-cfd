@@ -1,6 +1,6 @@
-# Testing and QA
+# Testing and Quality Assurance
 
-การทดสอบและประกันคุณภาพ (Testing and Quality Assurance)
+การทดสอบและประกันคุณภาพ
 
 > **ลิงก์ที่เกี่ยวข้อง**:
 > - ดูภาพรวม Professional Practice → [00_Overview.md](./00_Overview.md)
@@ -40,9 +40,11 @@
 
 ---
 
-## 🔍 1. Validation vs Verification
+## 🔍 Validation vs Verification
 
-### 1.1 ความแตกต่าง
+### What - คืออะไร?
+
+**Validation** และ **Verification** คือสองกระบวนการที่แตกต่างกันในการทดสอบความถูกต้องของ simulation:
 
 | แนวคิด | คำถาม | เป้าหมาย | ตัวอย่าง |
 |:--------|:--------|:-----------|:---------|
@@ -53,7 +55,14 @@
 > - **Verification**: "คำนวณถูกไหม?" (Code check)
 > - **Validation**: "โมเดลถูกไหม?" (Physics check)
 
-### 1.2 ตัวอย่างกรณีศึกษา
+### Why - ทำไมสำคัญ?
+
+ในการทำงานจริง:
+- **Verification** ช่วยมั่นใจว่า solver ทำงานถูกต้อง ไม่มีบั๊กในการคำนวณ
+- **Validation** ช่วยมั่นใจว่าเราเลือกโมเดลทางฟิสิกส์ที่เหมาะสมกับปัญหา
+- การขาดกระบวนการใดกระบวนการหนึ่งอาจนำไปสู่ผลลัพธ์ที่ผิดพลาดแม้ว่า simulation จะรันผ่าน
+
+### How - ทำอย่างไร?
 
 **Verification Example:**
 ```bash
@@ -70,15 +79,25 @@
 
 ---
 
-## 📊 2. Grid Convergence Study (GCI)
+## 📊 Grid Convergence Study (GCI)
 
-### 2.1 ทำไมต้องทำ GCI?
+### What - คืออะไร?
+
+**Grid Convergence Index (GCI)** คือเมตริกที่ใช้วัดว่า mesh resolution ที่ใช้มีความละเอียดเพียงพอหรือยัง โดยเปรียบเทียบผลลัพธ์จาก mesh 3 ระดับความละเอียดที่ต่างกัน
+
+### Why - ทำไมต้องทำ?
 
 Mesh ที่หยาบเกินไป → ผลลัพธ์ไม่แม่นยำ
 Mesh ที่ละเอียดเกินไป → สิ้นเปลืองเวลาและทรัพยากร
 **Grid Convergence** ช่วยหา "จุดพอดี" (Optimal mesh resolution)
 
-### 2.2 ขั้นตอนการทำ GCI
+ในโครงการอุตสาหกรรม:
+- การใช้ mesh ที่ละเอียดเกินไปอาจทำให้ใช้เวลาคำนวณนานเกินไป
+- การใช้ mesh ที่หยาบเกินไปอาจทำให้ผลลัพธ์ไม่น่าเชื่อถือ
+
+### How - ทำอย่างไร?
+
+#### ขั้นตอนการทำ GCI
 
 ```mermaid
 graph TD
@@ -90,7 +109,7 @@ graph TD
     F --> G[7. Calculate GCI<br/>Check convergence]
 ```
 
-### 2.3 ตัวอย่างการทำ GCI
+#### ตัวอย่างการทำ GCI
 
 **สถานการณ์**: ต้องการหาค่า Drag coefficient ($C_d$) ของ Cylinder
 
@@ -118,7 +137,7 @@ p = np.abs(np.log((ϕ3 - ϕ2) / (ϕ2 - ϕ1)) / np.log(r))
 print(f"Order of convergence: p = {p:.2f}")
 ```
 
-### 2.4 เกณฑ์การตัดสิน
+#### เกณฑ์การตัดสิน
 
 | เงื่อนไข | ความหมาย |
 |:---------|:----------|
@@ -128,9 +147,11 @@ print(f"Order of convergence: p = {p:.2f}")
 
 ---
 
-## 🤖 3. Automated Testing Framework
+## 🤖 Automated Testing Framework
 
-### 3.1 ประเภทของ Testing
+### What - คืออะไร?
+
+**Automated Testing** คือระบบทดสอบที่สามารถรันเองโดยไม่ต้องใช้คนดูแลทุกขั้นตอน ประกอบด้วยหลายประเภท:
 
 | Test Type | ขอบเขต | เวลาที่ใช้ | ตัวอย่าง |
 |-----------|--------|------------|----------|
@@ -139,7 +160,17 @@ print(f"Order of convergence: p = {p:.2f}")
 | **System** | Full workflow | ชั่วโมง | ทดสอบ case ตั้งแต่เริ่มจบ |
 | **Regression** | ป้องกันการเสีย | ทุกครั้งก่อน commit | เปรียบเทียบกับ baseline |
 
-### 3.2 Allrun with Automatic Check
+### Why - ทำไมสำคัญ?
+
+ในการพัฒนา OpenFOAM:
+- **Unit Tests** ช่วยตรวจจับบั๊กใน utility/ฟังก์ชันเดี่ยว
+- **Integration Tests** ช่วยมั่นใจว่า components ต่างๆ ทำงานร่วมกันได้
+- **Regression Tests** ป้องกันการทำลายฟีเจอร์ที่ทำงานได้อยู่แล้วเมื่อมีการแก้โค้ด
+- **System Tests** มั่นใจว่า case ทั้งหมดทำงานได้ตั้งแต่เริ่มถึงจบ
+
+### How - ทำอย่างไร?
+
+#### Allrun with Automatic Check
 
 ```bash
 #!/bin/bash
@@ -184,7 +215,7 @@ fi
 echo "✅ All tests passed!"
 ```
 
-### 3.3 Automated Test Suite
+#### Automated Test Suite
 
 ```bash
 #!/bin/bash
@@ -229,7 +260,7 @@ if [ $failed -gt 0 ]; then
 fi
 ```
 
-### 3.4 ตรวจสอบผลลัพธ์ด้วย Python
+#### ตรวจสอบผลลัพธ์ด้วย Python
 
 ```python
 # validate_results.py
@@ -265,13 +296,23 @@ validate_forces(".")
 
 ---
 
-## 📈 4. Regression Testing
+## 📈 Regression Testing
 
-### 4.1 คืออะไร?
+### What - คืออะไร?
 
 **Regression Test** = ทดสอบว่า "การเปลี่ยนแปลง" (code update, mesh refinement) ไม่ทำให้ผลลัพธ์ที่เคยถูกต้องกลายเป็นผิดพลาด
 
-### 4.2 สร้าง Baseline Results
+### Why - ทำไมสำคัญ?
+
+ในการพัฒนาซอฟต์แวร์:
+- เมื่อแก้บั๊กหรือเพิ่มฟีเจอร์ อาจทำให้ส่วนอื่นที่เคยทำงานได้เสียได้
+- Regression testing ช่วยตรวจจับการถดย้อน (regression) ของคุณภาพ
+- ช่วยมั่นใจว่าการอัปเกรด OpenFOAM version ไม่ทำให้ผลลัพธ์เปลี่ยน
+- เป็นหลักประกันคุณภาพที่สำคัญในโครงการระยะยาว
+
+### How - ทำอย่างไร?
+
+#### สร้าง Baseline Results
 
 ```bash
 #!/bin/bash
@@ -289,7 +330,7 @@ cp $case_dir/postProcessing/probes/0/p baseline_pressure.dat
 echo "✅ Baseline created!"
 ```
 
-### 4.3 ทดสอบเทียบกับ Baseline
+#### ทดสอบเทียบกับ Baseline
 
 ```python
 # regression_test.py
@@ -333,9 +374,21 @@ regression_test("postProcessing/forces/0/forces.dat",
 
 ---
 
-## 🧪 5. การทดสอบ Utility แบบ Unit Test
+## 🧪 Unit Testing for Utilities
 
-### 5.1 ทดสอบ Custom Utility
+### What - คืออะไร?
+
+**Unit Testing** คือการทดสอบ component เดี่ยว (เช่น custom utility) โดยแยกจากระบบที่ใหญ่กว่า
+
+### Why - ทำไมสำคัญ?
+
+- ตรวจจับบั๊กใน utility ตั้งแต่เริ่มพัฒนา
+- ทำให้แก้ไขโค้ดได้อย่างมั่นใจ
+- ช่วย document การทำงานของ utility
+
+### How - ทำอย่างไร?
+
+#### ทดสอบ Custom Utility
 
 ```bash
 #!/bin/bash
@@ -452,7 +505,7 @@ echo "✅ Unit test passed!"
 **3 เหตุผลหลัก:**
 1. **หา mesh resolution ที่เหมาะสม** (ไม่หยาบเกินไป/ละเอียดเกินไป)
 2. **ประเมินความแม่นยำ** ของผลลัพธ์
-3. **ประหยัดเวลาและทรัพยากร** (ไม่ refine โดยไม่จำเป็น)
+3. **ประหยัดเวลาและทรัพยากร** (ไม่ refine โดยไม่จำเปลือง)
 </details>
 
 <details>
@@ -462,6 +515,36 @@ echo "✅ Unit test passed!"
 
 ตัวอย่าง: คุณอัปเกรด OpenFOAM version → รัน regression test → ถ้าผ่าน → มั่นใจว่า behavior ยังเหมือนเดิม
 </details>
+
+---
+
+## 📚 Key Takeaways
+
+### สิ่งสำคัญที่ควรนำไปใช้
+
+1. **Validation ≠ Verification**
+   - Verification: ตรวจสอบว่าคำนวณถูกต้อง (เทียบกับ analytical solution)
+   - Validation: ตรวจสอบว่าใช้โมเดลที่ถูกต้อง (เทียบกับ experimental data)
+
+2. **Grid Convergence จำเป็นสำหรับผลลัพธ์ที่เชื่อถือได้**
+   - ต้องทดสอบอย่างน้อย 3 mesh resolutions
+   - GCI < 5% แสดงว่า mesh ละเอียดพอ
+
+3. **Automated Testing ช่วยประหยัดเวลาและลดข้อผิดพลาด**
+   - Unit tests สำหรับ utilities
+   - Integration tests สำหรับ workflow
+   - Regression tests เพื่อป้องกันการถดย้อย
+
+4. **Baseline Results คือหลักประกันคุณภาพ**
+   - สร้าง baseline เมื่อ result ถูกต้อง
+   - เปรียบเทียบทุกครั้งที่มีการเปลี่ยนแปลง
+   - ตั้งค่า tolerance ที่เหมาะสม (ปกติ 1-2%)
+
+### เชื่อมโยงกับ Professional Practice
+
+- **Documentation**: บันทึก test procedures และ results
+- **Version Control**: เก็บ test scripts และ baseline data ใน Git
+- **Project Organization**: สร้าง `tests/` directory ใน project structure
 
 ---
 
