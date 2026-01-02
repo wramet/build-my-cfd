@@ -1,0 +1,49 @@
+/* Obsidian CSS Snippet: Larger Mermaid Diagrams (Robust Scroll) */
+
+/* 1. Container Settings */
+.mermaid {
+    display: block !important;
+    overflow-x: auto !important;
+    /* Allow scrolling */
+    width: 100% !important;
+    /* Fit container initially */
+    background-color: var(--background-primary);
+    margin-bottom: 24px;
+}
+
+/* 2. General SVG Settings (Works for Graph/Flowchart) */
+.mermaid svg {
+    /* Natural size logic */
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    /* Allow exceeding screen width */
+    min-width: 100% !important;
+    /* At least fill screen */
+}
+
+/* 3. Specific Fix for Class Diagrams (Targeting via internal structure) */
+/* Class Diagrams often default to 100% width, causing shrink. 
+   We force a minimum width and try max-content again. */
+.mermaid:has(g.classGroup) svg {
+    min-width: 1000px !important;
+    /* Force wide canvas to trigger scroll */
+    width: max-content !important;
+    /* Try usage of intrinsic width */
+}
+
+/* 4. Font Sizing */
+.mermaid text,
+.mermaid tspan,
+.mermaid .label,
+.mermaid .nodeLabel,
+.mermaid g.classGroup text {
+    font-size: 16px !important;
+    font-family: var(--font-text) !important;
+}
+
+/* 5. Class Diagram Specific Text Size Override */
+.mermaid g.classGroup text {
+    font-size: 16px !important;
+    /* Slightly larger for class members */
+}
