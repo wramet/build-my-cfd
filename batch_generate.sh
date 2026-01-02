@@ -36,22 +36,17 @@ run_day() {
     sleep 30
 }
 
-# --- 5-DAY HARDCORE OPENFOAM SCHEDULE ---
+# --- 2-DAY TEST SCHEDULE (Day 1 & 2) ---
 
-# Day 2: The Core of FVM (Discretization & Mesh)
-# Focus: fvMesh, cells, faces, fvm:: vs fvc::, implicit/explicit
+# Day 1: Governing Equations
+run_day "2026-01-01" "Governing Equations & OpenFOAM Implementation"
+
+# Day 2: The Core of FVM
 run_day "2026-01-02" "Finite Volume Method & Discretization"
 
-# Day 3: The Gateway (Boundary Conditions)
-# Focus: fvPatchField, MixedBC, implementing custom BC, evaluate()
-run_day "2026-01-03" "Boundary Conditions & Field Operations"
-
-# Day 4: The Physics (Turbulence Modeling & Transport)
-# Focus: turbulenceModel hierarchy, RAS vs LES implementation, transportModel
-run_day "2026-01-04" "Turbulence Modeling & Transport Hierarchy"
-
-# Day 5: The Solver (Algorithms & Time Stepping)
-# Focus: PISO vs PIMPLE loop, convergence control, residual handling, fvSolution
-run_day "2026-01-05" "Solver Algorithms (PIMPLE/PISO) & Time Stepping"
+# Future Days (Commented out for testing)
+# run_day "2026-01-03" "Boundary Conditions & Field Operations"
+# run_day "2026-01-04" "Turbulence Modeling & Transport Hierarchy"
+# run_day "2026-01-05" "Solver Algorithms (PIMPLE/PISO) & Time Stepping"
 
 echo "${GREEN}✨ All 5 Days of HARDCORE Content Generated! Time to wake up! ☀️${NC}"

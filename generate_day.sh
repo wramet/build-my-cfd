@@ -91,43 +91,72 @@ git_restore_from_last() {
 echo "${BLUE}=== Stage 0: Creating Template ===${NC}"
 log "INFO" "Stage 0: Creating template"
 
+# Format rules summary for AI prompts
+FORMAT_RULES="CRITICAL FORMAT RULES:
+1. Use ASCII-only anchors (no Thai in anchor IDs)
+2. Math: Use \$inline\$ and \$\$block\$\$ with NO spaces after \$
+3. Code blocks: Always specify language (cpp, bash, foam)
+4. Mermaid: Use graph TD for flowcharts, classDiagram for classes
+5. Tables: Always include header row
+6. Callouts: Use > [!INFO], > [!WARNING], > [!TIP]
+7. Thai explanations in parentheses or blockquotes
+8. Keep technical terms (class names, functions) in English"
+
 cat > "$TARGET_FILE" <<EOF
+---
+tags: [openfoam, cfd, hardcore, day-${DATE##*-}]
+date: $DATE
+aliases: [$TOPIC]
+difficulty: hardcore
+topic: $TOPIC
+---
+
 # $TOPIC
 ## HARDCORE Level - $DATE
 
 ---
 
-## 1. Theory: Core Equations & Physics
+## Table of Contents
+- [1. Theory](#1-theory-core-equations--physics)
+- [2. Class Hierarchy](#2-openfoam-class-hierarchy--implementation)
+- [3. Code Walkthrough](#3-code-walkthrough)
+- [4. Dictionary Analysis](#4-dictionary-analysis--configuration)
+- [5. Practical Tasks](#5-hands-on-practical-tasks--coding)
+- [6. Concept Checks](#6-concept-checks)
+
+---
+
+## 1. Theory: Core Equations & Physics {#1-theory-core-equations--physics}
 
 <!-- PLACEHOLDER_THEORY -->
 
 ---
 
-## 2. OpenFOAM Class Hierarchy & Implementation
+## 2. OpenFOAM Class Hierarchy & Implementation {#2-openfoam-class-hierarchy--implementation}
 
 <!-- PLACEHOLDER_CLASS -->
 
 ---
 
-## 3. Code Walkthrough
+## 3. Code Walkthrough {#3-code-walkthrough}
 
 <!-- PLACEHOLDER_CODE -->
 
 ---
 
-## 4. Dictionary Analysis & Configuration
+## 4. Dictionary Analysis & Configuration {#4-dictionary-analysis--configuration}
 
 <!-- PLACEHOLDER_DICT -->
 
 ---
 
-## 5. Hands-on: Practical Tasks & Coding
+## 5. Hands-on: Practical Tasks & Coding {#5-hands-on-practical-tasks--coding}
 
 <!-- PLACEHOLDER_TASKS -->
 
 ---
 
-## 6. Concept Checks
+## 6. Concept Checks {#6-concept-checks}
 
 <!-- PLACEHOLDER_CHECKS -->
 
@@ -167,7 +196,7 @@ run_stage() {
         
         # Run aider with timeout
         if $TIMEOUT_CMD $TIMEOUT_SECONDS aider --model anthropic/claude-3-opus-20240229 \
-            --yes --file "$TARGET_FILE" --map-tokens 4096 \
+            --yes --no-auto-commits --file "$TARGET_FILE" --map-tokens 4096 \
             --message "$INSTRUCTION" > /dev/null 2>&1; then
             
             local AFTER_LINES=$(wc -l < "$TARGET_FILE")
@@ -218,9 +247,10 @@ run_stage() {
 # ========================================
 run_stage 1 "Stage 1: Theory" "Focus ONLY on '<!-- PLACEHOLDER_THEORY -->'.
 Replace that placeholder with mathematical theory for '$TOPIC'.
-- Show governing equations in vector form.
-- Explain key terms in Thai.
-- DO NOT touch other sections."
+- Show governing equations in vector form using \$\$ block math.
+- Explain key terms clearly in English.
+- DO NOT touch other sections.
+$FORMAT_RULES"
 
 # ========================================
 # Stage 2: Class Hierarchy
@@ -228,8 +258,9 @@ Replace that placeholder with mathematical theory for '$TOPIC'.
 run_stage 2 "Stage 2: Class Hierarchy" "Focus ONLY on '<!-- PLACEHOLDER_CLASS -->'.
 Replace that placeholder with:
 - Key C++ classes for '$TOPIC'.
-- ASCII art inheritance diagrams.
-- Reference \$FOAM_SRC files."
+- ASCII art or Mermaid classDiagram for inheritance.
+- Reference \$FOAM_SRC files.
+$FORMAT_RULES"
 
 # ========================================
 # Stage 3: Code Walkthrough (Dynamic Sub-Stages)
@@ -282,25 +313,41 @@ if [ ${#FILES[@]} -gt 0 ]; then
     echo "${CYAN}--- Phase 2: Executing ${#FILES[@]} sub-stages ---${NC}"
     log "INFO" "Phase 2: Will analyze ${#FILES[@]} files"
     
-    # Phase 2: Execute - Run mini-stage for each file
+    # Phase 2: Execute - Run mini-stage for each file (using placeholder chaining)
     SUBSTAGE_NUM=1
+    TOTAL_FILES=${#FILES[@]}
     for FILE in "${FILES[@]}"; do
+        IS_LAST=$( [ $SUBSTAGE_NUM -eq $TOTAL_FILES ] && echo "true" || echo "false" )
+        
         if [ $SUBSTAGE_NUM -eq 1 ]; then
-            # First file: Replace the PLACEHOLDER_CODE marker
+            # First file: Replace PLACEHOLDER_CODE and add PLACEHOLDER_CODE_NEXT
             run_stage "3.$SUBSTAGE_NUM" "Stage 3.$SUBSTAGE_NUM: $FILE" "Replace '<!-- PLACEHOLDER_CODE -->' with a code walkthrough for '$FILE'.
 Include:
 - Heading '### 3.$SUBSTAGE_NUM $FILE'
 - Key code snippets (max 30 lines).
-- Brief Thai explanation.
+- Brief explanation in English.
+- At the END of your added content, ADD the line: <!-- PLACEHOLDER_CODE_NEXT -->
 DO NOT touch other sections."
         else
-            # Subsequent files: Append after existing content in Section 3
-            run_stage "3.$SUBSTAGE_NUM" "Stage 3.$SUBSTAGE_NUM: $FILE" "Add another subsection at the END of '## 3. Code Walkthrough' for file '$FILE'.
-Add AFTER the existing content in Section 3:
+            # Subsequent files: Replace PLACEHOLDER_CODE_NEXT
+            if [ "$IS_LAST" = "true" ]; then
+                # Last file: No new placeholder needed
+                run_stage "3.$SUBSTAGE_NUM" "Stage 3.$SUBSTAGE_NUM: $FILE" "Replace '<!-- PLACEHOLDER_CODE_NEXT -->' with a code walkthrough for '$FILE'.
+Include:
 - Heading '### 3.$SUBSTAGE_NUM $FILE'
 - Key code snippets (max 30 lines).
-- Brief Thai explanation.
-DO NOT remove or modify existing content."
+- Brief explanation in English.
+DO NOT add any new placeholders. DO NOT touch other sections."
+            else
+                # Middle file: Replace and add new placeholder
+                run_stage "3.$SUBSTAGE_NUM" "Stage 3.$SUBSTAGE_NUM: $FILE" "Replace '<!-- PLACEHOLDER_CODE_NEXT -->' with a code walkthrough for '$FILE'.
+Include:
+- Heading '### 3.$SUBSTAGE_NUM $FILE'
+- Key code snippets (max 30 lines).
+- Brief explanation in English.
+- At the END of your added content, ADD the line: <!-- PLACEHOLDER_CODE_NEXT -->
+DO NOT touch other sections."
+            fi
         fi
         SUBSTAGE_NUM=$((SUBSTAGE_NUM + 1))
     done
@@ -311,7 +358,7 @@ else
     # Fallback: Just do one simple code walkthrough
     run_stage 3 "Stage 3: Code Walkthrough" "Replace '<!-- PLACEHOLDER_CODE -->'.
 Add a brief code walkthrough for the main solver file related to '$TOPIC'.
-Keep it concise. Thai explanations."
+Keep it concise. English explanations."
 fi
 
 # ========================================
@@ -324,7 +371,7 @@ log "INFO" "Stage 4: Starting practice content generation"
 run_stage "4.1a" "Stage 4.1a: fvSchemes" "Replace '<!-- PLACEHOLDER_DICT -->' with:
 ### 4.1 fvSchemes Analysis
 - Analysis of ddtSchemes, gradSchemes, divSchemes, laplacianSchemes.
-- Brief Thai explanation.
+- Brief explanation in English.
 - ADD '<!-- PLACEHOLDER_FVSOLUTION -->' at the end of this subsection.
 DO NOT touch other sections."
 
@@ -332,7 +379,7 @@ DO NOT touch other sections."
 run_stage "4.1b" "Stage 4.1b: fvSolution" "Replace '<!-- PLACEHOLDER_FVSOLUTION -->' with:
 ### 4.2 fvSolution Analysis
 - Analysis of solvers and relaxation factors.
-- Brief Thai explanation.
+- Brief explanation in English.
 DO NOT touch other sections."
 
 # Stage 4.2: Coding Tasks
@@ -346,7 +393,7 @@ DO NOT touch other sections."
 run_stage "4.3" "Stage 4.3: Checks" "Replace '<!-- PLACEHOLDER_CHECKS -->' with:
 - 3-5 concept check questions about '$TOPIC'.
 - After each question, provide the answer in a blockquote (> **Answer:** ...).
-- Answers in Thai.
+- Answers in English.
 DO NOT touch other sections."
 
 # ========================================
@@ -358,28 +405,50 @@ log "INFO" "Starting enhancement stages"
 # ----------------------------------------
 # Stage 5: Deep Dive - Memory & Source Paths
 # ----------------------------------------
-run_stage 5 "Stage 5: Deep Dive" "Read Section 3 (Code Walkthrough) and ENHANCE it by adding:
-1. For each code file mentioned, add '\$FOAM_SRC/path/to/file.H' reference.
-2. Add a '#### Memory Layout' subsection with ASCII diagram showing data structures.
-3. Add '#### Call Stack' showing which functions call which.
-DO NOT remove existing content. Only ADD to it."
+# ----------------------------------------
+# Stage 5: Deep Dive - Memory & Source Paths (Split)
+# ----------------------------------------
+
+# Stage 5a: Source Paths
+run_stage "5a" "Stage 5a: Source Paths" "Read Section 3 (Code Walkthrough) and ENHANCE it:
+- For each code file mentioned, add '\$FOAM_SRC/path/to/file.H' reference.
+- Add it as a bullet point or small note.
+DO NOT remove existing content. Only ADD."
+
+# Stage 5b: Memory Layout
+run_stage "5b" "Stage 5b: Memory Layout" "Read Section 3 (Code Walkthrough) and ENHANCE it:
+- Add a '#### Memory Layout' subsection for the MAIN class (e.g. fvMesh or fvMatrix).
+- Add an ASCII diagram showing the data structure (e.g. pointers, arrays).
+DO NOT remove existing content. Only ADD."
 
 # ----------------------------------------
-# Stage 6: Diagram Enrich - Mermaid diagrams
+# Stage 6: Diagrams (Split into 6a/6b)
 # ----------------------------------------
-run_stage 6 "Stage 6: Diagrams" "Read the entire document and ADD Mermaid diagrams where helpful:
-1. In Section 2 (Class Hierarchy), add a Mermaid class diagram.
-2. In Section 3 (Code Walkthrough), add a Mermaid flowchart for algorithm steps.
-Use \`\`\`mermaid code blocks. DO NOT remove existing content."
+
+# Stage 6a: Class Diagram for Section 2
+run_stage "6a" "Stage 6a: Class Diagram" "Focus ONLY on Section 2 (OpenFOAM Class Hierarchy).
+Add ONE Mermaid classDiagram showing the main class relationships.
+Use \`\`\`mermaid code blocks.
+KEEP LABELS SHORT (max 15 chars per node).
+Limit to 6-8 classes for readability.
+DO NOT touch other sections."
+
+# Stage 6b: Flowchart for Section 3
+run_stage "6b" "Stage 6b: Flowchart" "Focus ONLY on Section 3 (Code Walkthrough).
+Add ONE Mermaid flowchart (graph TD) showing the algorithm flow.
+Use \`\`\`mermaid code blocks.
+KEEP LABELS SHORT (1-3 words per node).
+Limit to 6-8 nodes for readability.
+DO NOT touch other sections."
 
 # ----------------------------------------
-# Stage 7: Polish & Cross-References
+# Stage 7: Polish (Summaries only - TOC is in template)
 # ----------------------------------------
-run_stage 7 "Stage 7: Polish" "Final polish of the document:
-1. Add internal links between sections (e.g., 'See Section 2.3 for details').
-2. Ensure all Thai explanations are clear and grammatically correct.
-3. Add a 'Summary' paragraph at the end of each major section.
-4. Check for any incomplete sentences and fix them.
+
+# Stage 7: Section Summaries
+run_stage 7 "Stage 7: Summaries" "Add a brief 'Summary' paragraph at the END of each major section (1-6).
+Each summary should be 2-3 sentences in English.
+Format: > **Summary:** [summary text]
 DO NOT remove existing content."
 
 # ========================================
@@ -393,6 +462,79 @@ sed -i '' 's/<!-- PLACEHOLDER_[A-Z]* -->//g' "$TARGET_FILE"
 
 # Remove any stray diff markers (safety)
 sed -i '' '/^<<<<<<< SEARCH/,$d' "$TARGET_FILE" 2>/dev/null || true
+
+# Validate Links (Internal & External)
+validate_links() {
+    log "INFO" "Validating links..."
+    echo "${BLUE}🔍 Validating links...${NC}"
+    
+    python3 -c "
+import sys
+import re
+import urllib.request
+from urllib.parse import unquote
+
+file_path = '$TARGET_FILE'
+with open(file_path, 'r', encoding='utf-8') as f:
+    content = f.read()
+
+# Find headers for anchor checking
+headers = set()
+for line in content.splitlines():
+    if line.startswith('#'):
+        # Check for explicit anchor {#...}
+        match = re.search(r'\{#([^\}]+)\}$', line)
+        if match:
+            slug = match.group(1)
+            headers.add(slug)
+            continue
+
+        # Default: Convert header to anchor
+        text = line.lstrip('#').strip().lower()
+        slug = re.sub(r'[^\w\- ]', '', text).replace(' ', '-')
+        headers.add(slug)
+
+# Find links: [text](url)
+links = re.findall(r'\[([^\]]+)\]\(([^)]+)\)', content)
+errors = []
+
+print(f'Checking {len(links)} links...')
+
+for text, url in links:
+    if url.startswith('#'):
+        # Internal anchor
+        anchor = url.lstrip('#')
+        if anchor not in headers:
+            # Try loosely matching (sometimes LLM guesses wrong)
+            if anchor not in [h.replace('-', '') for h in headers]:
+                errors.append(f'❌ Broken Internal Link: [{text}]({url}) - Anchor not found')
+    elif url.startswith('http'):
+        # External URL (Optional: Check connectivity)
+        try:
+            req = urllib.request.Request(url, method='HEAD')
+            # Set User-Agent to avoid 403s
+            req.add_header('User-Agent', 'Mozilla/5.0')
+            with urllib.request.urlopen(req, timeout=5) as response:
+                if response.status >= 400:
+                    errors.append(f'❌ Broken External Link: [{text}]({url}) - Status {response.status}')
+        except Exception as e:
+            # Don't fail the build for external links, just warn
+            print(f'⚠️  Warning External Link: [{text}]({url}) - {e}')
+    else:
+        # Local file
+        import os
+        if not os.path.exists(url):
+             errors.append(f'❌ Broken File Link: [{text}]({url}) - File not found')
+
+if errors:
+    print('\n'.join(errors))
+    sys.exit(1)
+else:
+    print('✅ All links validated!')
+" || echo "${YELLOW}⚠️ Link validation found issues (check log)${NC}"
+}
+
+validate_links
 
 # Final commit
 git_checkpoint "Final - All stages complete"

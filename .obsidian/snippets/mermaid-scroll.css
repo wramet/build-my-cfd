@@ -1,0 +1,16 @@
+/* ไฟล์: mermaid-scroll.css */
+
+/* สั่งให้กล่อง Mermaid ยอมให้มี Scrollbar แนวนอน */
+.mermaid {
+    overflow-x: auto !important;
+    text-align: center;
+    /* จัดกึ่งกลางถ้ามันเล็กกว่าจอ */
+    margin-bottom: 20px;
+}
+
+/* สั่งให้ตัว SVG ขยายเท่าขนาดจริง ไม่ต้องบีบ */
+.mermaid svg {
+    max-width: none !important;
+    width: auto !important;
+    height: auto !important;
+}

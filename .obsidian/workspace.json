@@ -4,17 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "346db7c81d51fd0e",
+        "id": "5801643472dd98e6",
         "type": "tabs",
         "children": [
           {
-            "id": "821559d4f99f5acb",
+            "id": "7287b4e69678787b",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
                 "file": "daily_learning/2026-01-01.md",
-                "mode": "source",
+                "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
@@ -53,7 +53,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "img_08_005",
+                "query": "fv_mesh",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "MODULE_09_ADVANCED_TOPICS/CONTENT/02_INHERITANCE_POLYMORPHISM/04_Run_Time_Selection_System.md",
+                "file": "daily_learning/2026-01-01.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of 04_Run_Time_Selection_System"
+              "title": "Outline of 2026-01-01"
             }
           }
         ],
@@ -184,30 +184,37 @@
       "bases:Create new base": false
     }
   },
-  "active": "821559d4f99f5acb",
+  "active": "7287b4e69678787b",
   "lastOpenFiles": [
+    "daily_learning/2026-01-02.md",
+    "daily_learning/2026-01-01.md",
+    "TBD/staging.md",
+    "quality_control_checklist.md",
+    "daily_learning/assets/fv_mesh_owner_neighbour_1767278470077.png",
+    "daily_learning/assets",
+    "images/IMG_01_001.jpg",
+    "mermaid-scroll.css",
+    "obsidian_format_rules.md",
+    "obsidian_rule_draft.md",
+    "resume_day1.sh",
+    "check_links.py",
+    "resume_day2_stage5.sh",
+    "<source>markdown",
     "content_development_checklist.md",
     "analyze_quality.py",
     "resume_stage6.sh",
     "resume_from_4_1.sh",
     "enhance_only.sh",
-    "run_enhancement.sh",
-    "daily_learning/2026-01-01.md",
     "CLAUDE.md",
-    "batch_generate.sh",
     "daily_learning/2026-01-01.old_workflow.md",
-    "generate_day.sh",
     "daily_learning/2025-12-31.manual_backup.md",
     "daily_learning/2025-12-31.md",
-    "01_FOUNDATION_PRIMITIVES_refactor_plan.json",
     "What is Non Conservation?.md",
     "daily_learning/2024-12-31.md",
     "temp.md",
     "Sol/1.1 Sol_n.md",
-    "Sol",
     "daily_learning/README.md",
     "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/07_TIME_DATABASES/07_Summary_and_Exercises.md",
-    "daily_learning",
     "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/09_FIELD_ALGEBRA/06_Summary_and_Exercises.md",
     "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/09_FIELD_ALGEBRA/05_Common_Pitfalls.md",
     "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/09_FIELD_ALGEBRA/04_Expression_Templates.md",
@@ -217,10 +224,6 @@
     "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/01_FOUNDATION_PRIMITIVES/06_Summary.md",
     "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/01_FOUNDATION_PRIMITIVES/05_Common_Pitfalls.md",
     "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/01_FOUNDATION_PRIMITIVES/08_Exercises.md",
-    "MODULE_05_OPENFOAM_PROGRAMMING/CONTENT/01_FOUNDATION_PRIMITIVES/07_Summary.md",
-    "MODULE_10_CFD_ENGINE_DEVELOPMENT/CONTENT/05_BEYOND_OPENFOAM/01e_Benchmark_Comparison.md",
-    "MODULE_10_CFD_ENGINE_DEVELOPMENT/CONTENT/05_BEYOND_OPENFOAM/01d_PyFR_Tutorial.md",
-    "MODULE_10_CFD_ENGINE_DEVELOPMENT/CONTENT/05_BEYOND_OPENFOAM/01c_Nektar_Plus_Plus.md",
     "images/img_10_010.jpg",
     "images/img_10_009.jpg",
     "images/img_10_008.jpg",
@@ -228,8 +231,6 @@
     "images/img_10_006.jpg",
     "images/img_10_005.jpg",
     "images/img_10_004.jpg",
-    "images/img_10_003.jpg",
-    "images/img_10_002.jpg",
-    "images/img_10_001.jpg"
+    "images/img_10_003.jpg"
   ]
 }
