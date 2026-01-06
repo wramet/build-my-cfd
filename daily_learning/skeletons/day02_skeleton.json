@@ -1,0 +1,227 @@
+{
+    "day": "02",
+    "title": "Finite Volume Method Basics",
+    "date": "2026-01-06",
+    "difficulty": "hardcore",
+    "learning_objectives": [
+        {
+            "verb": "Implement",
+            "topic": "Gauss Divergence Theorem",
+            "equation": "∫_V ∇·F dV = ∮_S F·n dS",
+            "importance": "หัวใจของ FVM - เปลี่ยน volume integral เป็น surface flux"
+        },
+        {
+            "verb": "คำนวณ (Calculate)",
+            "topic": "Face Geometry & Interpolation",
+            "details": "Face area vector (Sf), Face center (Cf), Linear interpolation (fx)"
+        },
+        {
+            "verb": "เข้าใจ (Understand)",
+            "topic": "Owner-Neighbour Addressing",
+            "challenge": "LDU Matrix assembly จาก face list"
+        }
+    ],
+    "theory_sections": [
+        {
+            "id": "2.1",
+            "title_en": "Integral Form of Conservation Laws",
+            "title_th": "กฎการอนุรักษ์ในรูปแบบอินทิกรัล",
+            "equations": [
+                {
+                    "name": "General Transport Equation",
+                    "latex": "\\frac{\\partial}{\\partial t} \\int_V \\rho \\phi dV + \\oint_S \\rho \\phi \\mathbf{U} \\cdot d\\mathbf{S} = \\oint_S \\Gamma \\nabla \\phi \\cdot d\\mathbf{S} + \\int_V S_\\phi dV",
+                    "explanation": "Rate of change + Convection = Diffusion + Source"
+                }
+            ],
+            "warning": "FVM แก้สมการนี้โดยตรง ไม่ใช่ differential form ทำให้ conserve mass/momentum ได้ดีกว่า FDM"
+        },
+        {
+            "id": "2.2",
+            "title_en": "Gauss Divergence Theorem",
+            "title_th": "ทฤษฎีบทการลู่ออกของเกาส์",
+            "equations": [
+                {
+                    "name": "Divergence to Surface Flux",
+                    "latex": "\\int_V \\nabla \\cdot \\mathbf{F} dV = \\oint_S \\mathbf{F} \\cdot d\\mathbf{S} \\approx \\sum_f \\mathbf{F}_f \\cdot \\mathbf{S}_f",
+                    "explanation": "ผลรวมของ Flux ที่ไหลผ่านทุกหน้าของ Cell"
+                },
+                {
+                    "name": "Gradient to Surface Integral",
+                    "latex": "\\int_V \\nabla \\phi dV = \\oint_S \\phi d\\mathbf{S} \\approx \\sum_f \\phi_f \\mathbf{S}_f",
+                    "explanation": "ใช้คำนวณ Gradient ที่ Cell Center"
+                }
+            ],
+            "variables": [
+                {
+                    "symbol": "S_f",
+                    "name": "Face Area Vector",
+                    "unit": "m²",
+                    "note": "Magnitude = area, Direction = normal outward"
+                },
+                {
+                    "symbol": "F_f",
+                    "name": "Face Flux",
+                    "unit": "varies"
+                }
+            ]
+        },
+        {
+            "id": "2.3",
+            "title_en": "Interpolation Schemes",
+            "title_th": "การประมาณค่าที่หน้า (Interpolation)",
+            "equations": [
+                {
+                    "name": "Linear Interpolation (Central)",
+                    "latex": "\\phi_f = f_x \\phi_P + (1-f_x) \\phi_N",
+                    "explanation": "Second-order accuracy but unbounded (oscillates)"
+                },
+                {
+                    "name": "Upwind Interpolation",
+                    "latex": "\\phi_f = \\phi_P \\text{ if } F \\ge 0 \\text{ else } \\phi_N",
+                    "explanation": "First-order, bounded, stable but diffusive"
+                }
+            ]
+        },
+        {
+            "id": "2.4",
+            "title_en": "Owner-Neighbour Addressing",
+            "title_th": "การกำหนดเจ้าของและเพื่อนบ้าน",
+            "equations": [
+                {
+                    "name": "Flux across internal face",
+                    "latex": "F_f = \\mathbf{U}_f \\cdot \\mathbf{S}_f",
+                    "explanation": "Computed using face-interpolated velocity and face-area vector"
+                },
+                {
+                    "name": "Conservation across face",
+                    "latex": "F_f^{owner} = - F_f^{neighbour}",
+                    "explanation": "Flux leaving owner equals flux entering neighbour (sign convention)"
+                }
+            ]
+        }
+    ],
+    "openfoam_analysis": [
+        {
+            "class": "fvMesh",
+            "header": "src/finiteVolume/fvMesh/fvMesh.H",
+            "purpose": "เก็บข้อมูล Grid และ Geometry ทั้งหมด",
+            "key_members": [
+                {
+                    "name": "V()",
+                    "type": "scalarField",
+                    "purpose": "Cell volumes"
+                },
+                {
+                    "name": "Sf()",
+                    "type": "vectorField",
+                    "purpose": "Face area vectors"
+                },
+                {
+                    "name": "C()",
+                    "type": "vectorField",
+                    "purpose": "Cell centers"
+                },
+                {
+                    "name": "Cf()",
+                    "type": "vectorField",
+                    "purpose": "Face centers"
+                },
+                {
+                    "name": "owner()",
+                    "type": "labelList",
+                    "purpose": "Index of owner cell for each face"
+                },
+                {
+                    "name": "neighbour()",
+                    "type": "labelList",
+                    "purpose": "Index of neighbour cell for each face"
+                }
+            ],
+            "usage_example": "const surfaceVectorField& Sf = mesh.Sf();"
+        },
+        {
+            "class": "surfaceInterpolation",
+            "header": "src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolation.H",
+            "purpose": "Class แม่ของ interpolation schemes (linear, upwind)",
+            "key_methods": [
+                {
+                    "name": "interpolate()",
+                    "purpose": "Interpolate volField to surfaceField"
+                },
+                {
+                    "name": "weights()",
+                    "purpose": "Calculate geometric weights (fx)"
+                }
+            ]
+        }
+    ],
+    "implementation_skeleton": {
+        "classes": [
+            {
+                "name": "FiniteVolume",
+                "methods": [
+                    {
+                        "name": "calculateGeometricProps()",
+                        "purpose": "Compute V, Sf, C, Cf from points/faces"
+                    },
+                    {
+                        "name": "div()",
+                        "purpose": "Discrete divergence operator (Gauss)"
+                    },
+                    {
+                        "name": "grad()",
+                        "purpose": "Discrete gradient operator (Gauss)"
+                    },
+                    {
+                        "name": "interpolate()",
+                        "purpose": "Linear interpolation P -> f"
+                    }
+                ],
+                "critical_implementation": "Loops over faces NOT cells for flux calculation (Efficiency)"
+            }
+        ],
+        "algorithm_steps": [
+            "1. Loop over all faces",
+            "2. Calc flux F = U_f . S_f",
+            "3. Add F to Owner cell source/matrix",
+            "4. Subtract F from Neighbour cell source/matrix",
+            "5. Handle boundary faces"
+        ]
+    },
+    "concept_checks": [
+        {
+            "question": "ทำไม OpenFOAM ถึง loop over faces แทนที่จะ loop over cells ในการสร้าง Matrix?",
+            "answer_key_points": [
+                "Each internal face connect ONLY 2 cells (Owner/Neighbour)",
+                "Computing flux once per face ensures exact conservation (F_out_A = F_in_B)",
+                "More efficient: N_faces approx 3 * N_cells (for hex mesh)",
+                "Avoids double calculation"
+            ]
+        },
+        {
+            "question": "Gauss Theorem แปลง Volume Integral เป็นอะไร?",
+            "answer_key_points": [
+                "Surface Integral (Closed loop)",
+                "Summation of fluxes over all faces of the cell",
+                "Basis of Finite Volume discretization"
+            ]
+        }
+    ],
+    "pitfalls": [
+        {
+            "symptom": "Flux imbalance (net mass gain/loss)",
+            "cause": "Incorrect sign of S_f for boundary faces หรือการ interpolate phi ผิด",
+            "fix": "ตรวจสอบว่า boundary Sf ชี้ outward จาก domain เสมอ"
+        },
+        {
+            "symptom": "Oscillations in scalar field",
+            "cause": "Using linear interpolation (Central) for convection-dominated flow",
+            "fix": "Use Upwind or TVD schemes"
+        }
+    ],
+    "connections": {
+        "previous_day": "Day 01: Governing Equations",
+        "next_day": "Day 03: Spatial Discretization",
+        "key_link": "Geometry -> Discretization -> Schemes"
+    }
+}

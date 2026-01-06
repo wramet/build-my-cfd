@@ -1,0 +1,231 @@
+{
+  "day": "07",
+  "title": "Linear Algebra for CFD (LDU format)",
+  "date": "2026-01-07",
+  "difficulty": "hardcore",
+
+  "learning_objectives": [
+    {
+      "verb": "เข้าใจ (Understand)",
+      "topic": "LDU matrix format และการประยุกต์ใช้ใน unstructured mesh",
+      "equation": "A = L + D + U",
+      "importance": "โครงสร้างข้อมูลพื้นฐานสำหรับ sparse matrix ใน CFD; การเข้าถึง coefficient อย่างมีประสิทธิภาพ"
+    },
+    {
+      "verb": "ออกแบบ (Design)",
+      "topic": "Data structures สำหรับเก็บ sparse matrix และการ map กับ mesh connectivity",
+      "components": ["LduMatrix", "LduAddressing", "Field<scalar> สำหรับ diagonal/upper/lower"]
+    },
+    {
+      "verb": "Implement",
+      "topic": "Matrix assembly จาก finite volume discretization terms (laplacian, div)",
+      "challenge": "การคำนวณ matrix coefficients จาก flux และการจัดการ boundary condition entries"
+    }
+  ],
+
+  "theory_sections": [
+    {
+      "id": "7.1",
+      "title_en": "Sparse Matrix Storage for Unstructured Meshes",
+      "title_th": "การจัดเก็บ Sparse Matrix สำหรับ Unstructured Meshes",
+      "equations": [
+        {
+          "name": "Linear system from discretization",
+          "latex": "A \\phi = b",
+          "explanation": "ระบบสมการเส้นตรงที่ได้จากการ discretize PDEs ด้วย Finite Volume Method"
+        },
+        {
+          "name": "LDU decomposition",
+          "latex": "A = L + D + U",
+          "explanation": "การแยกเมทริกซ์ A เป็นส่วนล่าง (Lower), แนวทแยง (Diagonal), และบน (Upper)"
+        }
+      ],
+      "variables": [
+        {"symbol": "A", "name": "coefficient matrix", "unit": "depends on equation"},
+        {"symbol": "ϕ", "name": "solution vector (field)", "unit": "depends on field"},
+        {"symbol": "b", "name": "source vector", "unit": "depends on equation"}
+      ],
+      "warning": "ใน unstructured mesh, การเข้าถึงเซลล์เพื่อนต้องใช้ addressing arrays (owner/neighbor) แทนการ indexing แบบ structured grid"
+    },
+    {
+      "id": "7.2",
+      "title_en": "LDU Format: Storage and Addressing",
+      "title_th": "รูปแบบ LDU: การจัดเก็บและการหาที่อยู่",
+      "equations": [
+        {
+          "name": "Matrix-vector product in LDU format",
+          "latex": "(A \\phi)_P = D_P \\phi_P + \\sum_{N} U_{PN} \\phi_N + \\sum_{N} L_{PN} \\phi_N",
+          "explanation": "การคูณเมทริกซ์-เวกเตอร์ใช้เฉพาะค่าใน diagonal, upper, lower โดย N คือเพื่อนบ้านของเซลล์ P"
+        }
+      ],
+      "variables": [
+        {"symbol": "D_P", "name": "diagonal coefficient for cell P", "unit": "depends on equation"},
+        {"symbol": "U_{PN}", "name": "upper coefficient for face (P→N)", "unit": "depends on equation"},
+        {"symbol": "L_{PN}", "name": "lower coefficient for face (N→P)", "unit": "depends on equation"}
+      ],
+      "warning": "Upper และ lower coefficients มักจะสัมพันธ์กัน (เช่น symmetric diffusion: U = L) แต่ convection อาจทำให้ไม่สมมาตร"
+    },
+    {
+      "id": "7.3",
+      "title_en": "From Discretization to Matrix Coefficients",
+      "title_th": "จาก Discretization ไปสู่ Matrix Coefficients",
+      "equations": [
+        {
+          "name": "Diffusion term contribution",
+          "latex": "\\nabla \\cdot (\\Gamma \\nabla \\phi) \\Rightarrow a_P \\phi_P + \\sum_N a_N \\phi_N",
+          "explanation": "Laplacian discretization ให้ symmetric coefficients: a_P = sum(Γ_f * |S_f|/d_{PN}), a_N = -Γ_f * |S_f|/d_{PN}"
+        },
+        {
+          "name": "Convection term contribution",
+          "latex": "\\nabla \\cdot (\\mathbf{U} \\phi) \\Rightarrow \\sum_f F_f \\phi_f",
+          "explanation": "Divergence discretization ขึ้นกับ scheme (upwind, central) ทำให้เกิด asymmetric coefficients"
+        }
+      ],
+      "variables": [
+        {"symbol": "Γ_f", "name": "diffusion coefficient at face", "unit": "e.g., m²/s"},
+        {"symbol": "F_f", "name": "mass flux at face", "unit": "kg/s"},
+        {"symbol": "d_{PN}", "name": "distance between cells P and N", "unit": "m"}
+      ],
+      "warning": "Convection-dominant problems ทำให้เมทริกซ์ไม่สมมาตร (non-symmetric) → ต้องใช้ solvers เช่น BiCGStab"
+    }
+  ],
+
+  "openfoam_analysis": [
+    {
+      "class": "lduMatrix",
+      "header": "src/OpenFOAM/matrices/lduMatrix/lduMatrix/lduMatrix.H",
+      "purpose": "Base class สำหรับ sparse matrix ใน LDU format, เก็บเฉพาะ non-zero entries",
+      "key_members": [
+        {"name": "diag_", "type": "Field<Type>", "purpose": "Diagonal coefficients"},
+        {"name": "upper_", "type": "Field<Type>", "purpose": "Upper triangle coefficients (owner→neighbor)"},
+        {"name": "lower_", "type": "Field<Type>", "purpose": "Lower triangle coefficients (neighbor→owner)"},
+        {"name": "lduAddr_", "type": "const lduAddressing&", "purpose": "Reference to mesh addressing (owner/neighbor lists)"}
+      ],
+      "key_methods": [
+        {"name": "Amul(Field<Type>&, const Field<Type>&)", "purpose": "Matrix-vector multiplication: A*x"},
+        {"name": "Tmul(Field<Type>&, const Field<Type>&)", "purpose": "Transpose matrix-vector multiplication: A^T*x"},
+        {"name": "sumDiag()", "purpose": "Sum absolute values of diagonal for stability check"},
+        {"name": "negSumDiag()", "purpose": "Construct negative sum of off-diagonals (for boundedness)"}
+      ],
+      "usage_example": "lduMatrix matrix(lduAddr); matrix.diag() = ...; matrix.upper() = ...;"
+    },
+    {
+      "class": "lduAddressing",
+      "header": "src/OpenFOAM/matrices/lduMatrix/lduAddressing/lduAddressing.H",
+      "purpose": "Provide owner/neighbor lists and addressing for faces in the mesh",
+      "addressing_structure": {
+        "lowerAddr": "List of owner cells for each face (P)",
+        "upperAddr": "List of neighbor cells for each face (N)",
+        "losortAddr": "Sorted addressing for efficient lower triangle access",
+        "ownerStartAddr": "Start index in losort for each cell's lower coefficients"
+      },
+      "key_methods": [
+        {"name": "lowerAddr()", "purpose": "Return list of owner cells (size = nFaces)"},
+        {"name": "upperAddr()", "purpose": "Return list of neighbor cells (size = nFaces)"},
+        {"name": "losortAddr()", "purpose": "Permutation list to sort faces by owner cell"},
+        {"name": "ownerStartAddr()", "purpose": "Start index in losort for each cell's faces"}
+      ]
+    },
+    {
+      "class": "fvMatrix<Type>",
+      "header": "src/finiteVolume/fvMatrices/fvMatrix/fvMatrix.H",
+      "purpose": "Finite-volume equation matrix system, inherits from lduMatrix, adds source and boundary conditions",
+      "matrix_structure": {
+        "extends": "lduMatrix",
+        "adds_source": "Field<Type> source_ (RHS vector b)",
+        "adds_internalfield": "GeometricField<Type, fvPatchField, volMesh>& psi_ (solution field reference)",
+        "boundary_contributions": "Manipulates diag/source for boundary conditions"
+      },
+      "key_methods": [
+        {"name": "fvMatrix(const GeometricField<Type, fvPatchField, volMesh>&)", "purpose": "Constructor, references the solution field"},
+        {"name": "operator+=(const fvMatrix<Type>&)", "purpose": "Add another fvMatrix (equation coupling)"},
+        {"name": "operator==(const dimensioned<Type>&)", "purpose": "Set RHS source term"},
+        {"name": "solve()", "purpose": "Solve the linear system using the selected solver"}
+      ]
+    }
+  ],
+
+  "implementation_skeleton": {
+    "classes": [
+      {
+        "name": "LduMatrixAssembler",
+        "responsibility": "Assemble LDU matrix coefficients from finite volume discretization terms",
+        "key_methods": [
+          {"name": "addLaplacianCoeff(scalar gamma)", "purpose": "Add symmetric diffusion coefficients to diag/upper/lower"},
+          {"name": "addConvectionCoeff(const surfaceScalarField& phi)", "purpose": "Add asymmetric convection coefficients (upwind scheme)"},
+          {"name": "addDiagonalSource(const volScalarField& source)", "purpose": "Add source term to diagonal and RHS"},
+          {"name": "applyBoundaryConditions(const fvBoundaryMesh&)", "purpose": "Modify matrix coefficients and source for BCs"}
+        ],
+        "critical_implementation": "การคำนวณ face coefficient จาก owner/neighbor addresses และการบวกเข้าไปใน diag/upper/lower อย่างถูกต้อง"
+      },
+      {
+        "name": "CsrConverter",
+        "responsibility": "Convert LDU matrix to CSR format for external solver libraries",
+        "key_methods": [
+          {"name": "toCsr(const lduMatrix&)", "purpose": "Return CSR arrays (rowPtr, colInd, values)"},
+          {"name": "fromCsr(...)", "purpose": "Construct lduMatrix from CSR format"}
+        ]
+      }
+    ],
+    "algorithm_steps": [
+      "1. รับ mesh addressing (owner/neighbor) จาก lduAddressing",
+      "2. สร้าง lduMatrix object พร้อมจัดสรร memory สำหรับ diag, upper, lower",
+      "3. สำหรับแต่ละ face f:",
+      "   - owner cell P = lowerAddr[f], neighbor cell N = upperAddr[f]",
+      "   - คำนวณ face coefficient a_f (จาก diffusion, convection, etc.)",
+      "   - upper[f] += a_f  // owner→neighbor contribution",
+      "   - lower[f] += a_f (หรือค่าอื่นสำหรับ asymmetric)",
+      "   - diag[P] -= a_f; diag[N] -= a_f  // หักออกจาก diagonal เพื่อความ conservative",
+      "4. เพิ่ม diagonal source terms (เช่น จาก temporal discretization) ลงใน diag และ source",
+      "5. ปรับค่า diag และ source สำหรับ boundary conditions (FixedValue → add to diag/source, ZeroGradient → no change)",
+      "6. เรียกเมทริกซ์ complete (ตรวจสอบว่า diagonal dominant หรือไม่)"
+    ]
+  },
+
+  "concept_checks": [
+    {
+      "question": "ทำไม LDU format ถึงเหมาะสมกับ unstructured mesh ใน CFD?",
+      "answer_key_points": [
+        "Unstructured mesh ไม่มี regular indexing → ต้องใช้ connectivity lists (owner/neighbor)",
+        "LDU เก็บเฉพาะ non-zero entries (diag, upper, lower) → ประหยัด memory",
+        "Face-based storage สอดคล้องกับ finite volume flux calculations",
+        "การเข้าถึงเพื่อนบ้านทำได้เร็วผ่าน addressing arrays"
+      ],
+      "implementation_note": "lduAddressing สร้างจาก fvMesh และใช้ใน lduMatrix constructor"
+    },
+    {
+      "question": "Boundary condition แบบ FixedValue ถูกจัดการใน matrix อย่างไร?",
+      "answer_key_points": [
+        "เซลล์ boundary (patch face cells) มีค่า ϕ ถูก fix",
+        "นำ contribution จาก boundary face มาเพิ่มเข้าไปใน source term (b)",
+        "เพิ่มค่ามหาศาล (large value) ไปที่ diagonal coefficient ของเซลล์นั้น",
+        "ผลลัพธ์คือสมการสำหรับเซลล์นั้นกลายเป็น D_P * ϕ_P ≈ D_P * ϕ_fixed → ϕ_P ≈ ϕ_fixed"
+      ],
+      "implementation_note": "ใน fvMatrix::boundaryManipulate(), method addBoundarySource()"
+    }
+  ],
+
+  "pitfalls": [
+    {
+      "symptom": "Solver fails with 'zero diagonal' error",
+      "cause": "Diagonal coefficient เป็นศูนย์หรือติดลบมาก เนื่องจาก incorrect sign ใน matrix assembly",
+      "fix": "ตรวจสอบการบวก/ลบ coefficients: สำหรับ diffusion, a_f เป็นบวก, diag[P] และ diag[N] ต้องหัก a_f ออก"
+    },
+    {
+      "symptom": "Solution exhibits checkerboarding",
+      "cause": "Matrix ไม่ใช่ diagonal dominant เพราะ convection term ใหญ่เกินไปโดยไม่มี diffusion",
+      "fix": "เพิ่ม artificial diffusion หรือใช้ upwind scheme เพื่อเสริม diagonal dominance"
+    },
+    {
+      "symptom": "Memory usage สูงผิดปกติ",
+      "cause": "การสร้าง dense matrix แทนที่จะเป็น sparse LDU format",
+      "fix": "ตรวจสอบว่าใช้ lduMatrix และเก็บเฉพาะ diag/upper/lower arrays"
+    }
+  ],
+
+  "connections": {
+    "previous_day": "Day 06: Boundary Conditions",
+    "next_day": "Day 08: Iterative Solvers (CG, BiCGStab)",
+    "key_link": "LDU matrix จาก Day 07 จะถูกส่งไปยัง iterative solvers ใน Day 08 เพื่อแก้สมการ"
+  }
+}

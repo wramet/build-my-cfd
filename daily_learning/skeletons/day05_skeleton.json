@@ -1,0 +1,271 @@
+{
+    "day": "05",
+    "title": "Mesh Topology (Owner-Neighbor)",
+    "date": "2026-01-05",
+    "difficulty": "hardcore",
+
+    "learning_objectives": [
+        {
+            "verb": "เข้าใจ (Understand)",
+            "topic": "Owner-Neighbor addressing และ face normal vector convention",
+            "equation": "$\mathbf{S}_f = \mathbf{S}_f^{outward}$ จาก owner cell",
+            "importance": "Foundation ของ Gauss divergence theorem และ flux calculation - กำหนดทิศทางของ convection/diffusion terms"
+        },
+        {
+            "verb": "ออกแบบ (Design)",
+            "core_concept": "Data structures สำหรับ unstructured mesh topology",
+            "components": ["cells", "faces", "points", "boundary patches"],
+            "importance": "การออกแบบมีผลต่อ cache efficiency และ memory bandwidth สำหรับ loops หลายแสนครั้งต่อ time step"
+        },
+        {
+            "verb": "Implement",
+            "topic": "Face-based loops สำหรับ assembly ของ matrix coefficients",
+            "challenge": "การแยกการคำนวณสำหรับ internal faces vs. boundary faces โดยรักษา conservation"
+        }
+    ],
+
+    "theory_sections": [
+        {
+            "id": "5.1",
+            "title_en": "Unstructured Mesh Topology Fundamentals",
+            "title_th": "พื้นฐานของโครงสร้าง Mesh แบบ Unstructured",
+            "equations": [
+                {
+                    "name": "Gauss Divergence Theorem (Discrete Form)",
+                    "latex": "\\int_{V_P} \\nabla \\cdot \\mathbf{U} \\, dV = \\sum_{f} \\mathbf{U}_f \\cdot \\mathbf{S}_f",
+                    "explanation": "Volume integral ของ divergence เท่ากับผลรวมของ flux ผ่านทุก face ของ cell"
+                },
+                {
+                    "name": "Face Area Vector Convention",
+                    "latex": "\\mathbf{S}_f = A_f \\mathbf{\\hat{n}}_f",
+                    "explanation": "Vector มี magnitude เท่ากับพื้นที่ face และ direction ตาม normal จาก owner ไป neighbor"
+                }
+            ],
+            "variables": [
+                {"symbol": "$\\mathbf{S}_f$", "name": "Face area vector", "unit": "m²", "convention": "Pointing from owner to neighbor"},
+                {"symbol": "$A_f$", "name": "Face area", "unit": "m²"},
+                {"symbol": "$\\mathbf{\\hat{n}}_f$", "name": "Unit normal vector", "unit": "-"},
+                {"symbol": "$V_P$", "name": "Cell volume", "unit": "m³"}
+            ],
+            "critical_note": "Owner cell คือ cell ที่มี index น้อยกว่า (lower index) สำหรับ internal faces. ทิศทางของ $\\mathbf{S}_f$ กำหนด sign ของ flux: positive flux = จาก owner ไป neighbor"
+        },
+        {
+            "id": "5.2",
+            "title_en": "Connectivity and Addressing",
+            "title_th": "การเชื่อมต่อและการอ้างอิงข้อมูล",
+            "core_concepts": [
+                "Owner-Neighbor Lists: จัดเก็บ cell index ทั้งสองข้างของแต่ละ internal face",
+                "Boundary Faces: มีเพียง owner cell, neighbor เป็น -1 หรืออ้างอิงถึง boundary patch",
+                "Face Interpolation: ความสัมพันธ์ระหว่าง cell-centered values ($\\phi_P$, $\\phi_N$) กับ face value ($\\phi_f$)"
+            ],
+            "addressing_diagram": {
+                "internal_face": "owner() -> cell I, neighbor() -> cell J (where I < J)",
+                "boundary_face": "owner() -> cell I, neighbor() -> boundary patch index"
+            }
+        }
+    ],
+
+    "openfoam_analysis": [
+        {
+            "class": "fvMesh",
+            "header": "src/finiteVolume/fvMesh/fvMesh.H",
+            "purpose": "Top-level mesh class ที่รวบรวม geometry (points, faces, cells) และ topological addressing",
+            "inheritance": "fvMesh → polyMesh → objectRegistry",
+            "key_data_members": [
+                {
+                    "name": "primitiveMesh::faceOwner_",
+                    "type": "labelList",
+                    "purpose": "List of owner cell indices for all faces (internal + boundary)"
+                },
+                {
+                    "name": "primitiveMesh::faceNeighbour_",
+                    "type": "labelList",
+                    "purpose": "List of neighbor cell indices for INTERNAL faces only (size = nInternalFaces)"
+                },
+                {
+                    "name": "primitiveMesh::nInternalFaces_",
+                    "type": "label",
+                    "purpose": "Number of internal faces (faces connecting two cells)"
+                },
+                {
+                    "name": "boundary_",
+                    "type": "PtrList<fvPatch>",
+                    "purpose": "List of boundary patches (fvPatch) จัดการ boundary faces และ conditions"
+                }
+            ],
+            "key_methods": [
+                {
+                    "name": "owner()",
+                    "return": "const labelList&",
+                    "purpose": "Return reference to faceOwner_ list"
+                },
+                {
+                    "name": "neighbour()",
+                    "return": "const labelList&",
+                    "purpose": "Return reference to faceNeighbour_ list (for internal faces)"
+                },
+                {
+                    "name": "Sf()",
+                    "return": "const surfaceVectorField&",
+                    "purpose": "Face area vectors field (surfaceVectorField)"
+                },
+                {
+                    "name": "magSf()",
+                    "return": "const surfaceScalarField&",
+                    "purpose": "Magnitude of face area vectors (surfaceScalarField)"
+                },
+                {
+                    "name": "C()",
+                    "return": "const volVectorField&",
+                    "purpose": "Cell center positions"
+                },
+                {
+                    "name": "Cf()",
+                    "return": "const surfaceVectorField&",
+                    "purpose": "Face center positions"
+                }
+            ],
+            "usage_example": "// Loop over all internal faces\nconst labelList& owner = mesh.owner();\nconst labelList& neighbour = mesh.neighbour();\nforAll(owner, faceI) {\n    label own = owner[faceI];\n    label nei = neighbour[faceI];\n    // ... assembly coefficients for own and nei ...\n}"
+        },
+        {
+            "class": "lduAddressing",
+            "header": "src/OpenFOAM/matrices/lduMatrix/lduAddressing/lduAddressing.H",
+            "purpose": "Lightweight class จัดการ addressing สำหรับ LDU matrix format (Lower-Diagonal-Upper)",
+            "key_methods": [
+                {
+                    "name": "size()",
+                    "return": "label",
+                    "purpose": "Number of equations (cells) ในระบบ"
+                },
+                {
+                    "name": "lowerAddr()",
+                    "return": "const labelList&",
+                    "purpose": "Indices of cells ที่อยู่ 'lower' ใน matrix (owner cells)"
+                },
+                {
+                    "name": "upperAddr()",
+                    "return": "const labelList&",
+                    "purpose": "Indices of cells ที่อยู่ 'upper' ใน matrix (neighbor cells)"
+                },
+                {
+                    "name": "losort()",
+                    "return": "const labelList&",
+                    "purpose": "Sorting index สำหรับ lower triangular (optimization)"
+                }
+            ],
+            "matrix_structure_note": "LDU format ใช้ owner-neighbor lists เป็น natural addressing: lowerAddr = owner, upperAddr = neighbour สำหรับ internal faces"
+        }
+    ],
+
+    "implementation_skeleton": {
+        "classes": [
+            {
+                "name": "FluxCalculator",
+                "responsibility": "คำนวณ face flux และ assemble convection/diffusion terms",
+                "key_methods": [
+                    {
+                        "name": "calculateConvectionFlux(...)",
+                        "purpose": "คำนวณ face flux $\\phi_f = \\mathbf{U}_f \\cdot \\mathbf{S}_f$ โดยใช้ interpolation scheme",
+                        "algorithm": [
+                            "Interpolate U to faces (linear, upwind, etc.)",
+                            "Dot product with Sf()",
+                            "Apply rho สำหรับ compressible flow"
+                        ]
+                    },
+                    {
+                        "name": "assembleDiffusionTerm(...)",
+                        "purpose": "Assemble laplacian (diffusion) matrix coefficients",
+                        "critical_code": "// Face normal gradient contribution\nscalar coeff = gamma_f * magSf[faceI] / deltaMag;\n// Owner contribution: +coeff to diagonal, -coeff to upper\n// Neighbor contribution: +coeff to diagonal, -coeff to lower"
+                    },
+                    {
+                        "name": "applyBoundaryConditions(...)",
+                        "purpose": "จัดการ boundary faces แยกจาก internal faces",
+                        "note": "Boundary faces มีเพียง owner cell, neighbor contribution มาจาก boundary condition type (fixedValue, zeroGradient, etc.)"
+                    }
+                ]
+            },
+            {
+                "name": "MeshQuery",
+                "responsibility": "Provide geometric information และ topology queries",
+                "key_methods": [
+                    {
+                        "name": "cellCells(label cellI)",
+                        "purpose": "Return list of neighboring cells (via faces) ของ cellI"
+                    },
+                    {
+                        "name": "faceCells(label faceI)",
+                        "purpose": "Return pair (owner, neighbor) สำหรับ faceI (neighbor = -1 สำหรับ boundary)"
+                    },
+                    {
+                        "name": "cellVolumes()",
+                        "return": "const scalarField&",
+                        "purpose": "Return cell volumes (V())"
+                    }
+                ]
+            }
+        ],
+        "algorithm_steps": [
+            "1. Initialize fvMatrix coefficients: diag, upper, lower, source to zero",
+            "2. Loop over internal faces (faceI from 0 to nInternalFaces-1):",
+            "   a. Get owner (own) and neighbor (nei) cell indices",
+            "   b. Calculate face flux (convection) หรือ diffusion coefficient",
+            "   c. For convection (implicit): add contribution to diag[own], diag[nei] และ off-diagonals",
+            "   d. For diffusion: add gamma_f * magSf/delta ไปยัง diag และ off-diag (sign ตาม owner-neighbor convention)",
+            "3. Loop over boundary faces (per patch):",
+            "   a. Get owner cell และ boundary condition type",
+            "   b. Apply boundary contribution (e.g., fixedValue adds to source, zeroGradient adds nothing)",
+            "4. Solve linear system (Day 07-08)",
+            "5. Update field values และ correct boundary conditions"
+        ],
+        "critical_implementation": "Internal face loop ต้องคำนวณ contributions สำหรับทั้ง owner และ neighbor cells พร้อมกัน เพื่อให้ matrix symmetric (สำหรับ diffusion) หรือ skew-symmetric (สำหรับ convection) ตามความเหมาะสม"
+    },
+
+    "concept_checks": [
+        {
+            "question": "ทำไม internal face ถึงมี owner และ neighbor cell แต่ boundary face มีเพียง owner?",
+            "answer_key_points": [
+                "Internal face เชื่อมต่อระหว่างสอง cells ใน domain → ต้องรู้ทั้งสองฝั่งเพื่อคำนวณ flux",
+                "Boundary face มีเพียง cell ฝั่งเดียว (ภายใน domain) อีกฝั่งคือ 'ภายนอก' ซึ่งถูกกำหนดโดย boundary condition",
+                "Boundary condition กำหนดว่าจะจัดการ flux ที่ขอบอย่างไร (เช่น fixedValue, zeroGradient, fixedFlux)"
+            ],
+            "implementation_note": "ใน OpenFOAM, faceNeighbour_ list มีขนาด nInternalFaces เท่านั้น, boundary faces ไม่มี entry ใน list นี้"
+        },
+        {
+            "question": "การคำนวณ divergence ของ velocity ($\\nabla \\cdot \\mathbf{U}$) ผ่าน Gauss theorem ใน unstructured mesh ทำอย่างไร?",
+            "answer_key_points": [
+                "Discretized form: $(\\nabla \\cdot \\mathbf{U})_P = \\frac{1}{V_P} \\sum_{f} \\mathbf{U}_f \\cdot \\mathbf{S}_f$",
+                "Loop ผ่านทุก face ของ cell P (ต้องหา faces ของ cell P จาก cell-faces addressing)",
+                "$\\mathbf{U}_f$ คำนวณจาก interpolation ของ cell-centered values (linear, upwind)",
+                "Face area vector $\\mathbf{S}_f$ มาจาก mesh.Sf()[faceI], ทิศทางจาก owner ไป neighbor",
+                "สำหรับ face ที่ P เป็น owner, contribution เป็น $+ \\mathbf{U}_f \\cdot \\mathbf{S}_f$",
+                "สำหรับ face ที่ P เป็น neighbor, เพราะ $\\mathbf{S}_f$ ชี้จาก owner (อีก cell) มาที่ P, เราต้องใช้ $- \\mathbf{U}_f \\cdot \\mathbf{S}_f$ เพื่อให้ sign ถูกต้อง"
+            ]
+        }
+    ],
+
+    "pitfalls": [
+        {
+            "symptom": "Matrix ไม่ symmetric เมื่อควรจะเป็น (เช่น diffusion term)",
+            "cause": "การเพิ่ม coefficients สำหรับ owner และ neighbor ไม่สมมาตร (sign ผิด)",
+            "fix": "ตรวจสอบว่าใช้ convention เดียวกัน: สำหรับ internal face, owner cell ได้ +coeff ใน diagonal และ -coeff ใน upper, neighbor cell ได้ +coeff ใน diagonal และ -coeff ใน lower"
+        },
+        {
+            "symptom": "Mass ไม่ conserve (net flux ไม่เป็นศูนย์สำหรับ closed domain)",
+            "cause": "การคำนวณ face flux ไม่สอดคล้องกันระหว่างสอง cells ที่ share face",
+            "fix": "ต้องใช้ face flux เดียวกันสำหรับทั้ง owner และ neighbor cells (flux จาก owner ไป neighbor = - flux จาก neighbor ไป owner)"
+        },
+        {
+            "symptom": "Boundary condition ถูก ignore หรือประมวลผลผิด",
+            "cause": "ลืม loop ผ่าน boundary faces หรือใช้ boundary condition type ผิด",
+            "fix": "ต้องแยก loop สำหรับ boundary patches และประยุกต์ boundary condition อย่างถูกต้อง (เช่น fixedValue แก้ไข source และ diagonal, zeroGradient ไม่ต้องทำอะไร)"
+        }
+    ],
+
+    "connections": {
+        "previous_day": "Day 04: Temporal Discretization",
+        "previous_link": "Day 04 กำหนดวิธี discretize time derivative, Day 05 กำหนดวิธี discretize spatial terms บน mesh",
+        "next_day": "Day 06: Boundary Conditions",
+        "next_day_preview": "Day 06 จะลงรายละเอียดการจัดการ boundary faces และ boundary condition types (Dirichlet, Neumann, Robin) บน topology จาก Day 05",
+        "key_concept_link": "Mesh topology (Day 05) + Boundary conditions (Day 06) = Complete spatial discretization framework สำหรับ Day 07-08 (Linear Algebra & Solvers)"
+    }
+}

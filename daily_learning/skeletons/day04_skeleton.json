@@ -1,0 +1,307 @@
+{
+  "day": "04",
+  "title": "Temporal Discretization: Euler, Crank-Nicolson, CFL",
+  "date": "2026-01-04",
+  "difficulty": "hardcore",
+
+  "learning_objectives": [
+    {
+      "verb": "เข้าใจ (Understand)",
+      "topic": "ความหมายของ Temporal discretization และความเสถียรภาพ",
+      "equation": "∂φ/∂t ≈ (φ^{n+1} - φ^n)/Δt",
+      "importance": "กำหนดความถูกต้องและเสถียรภาพของการคำนวณ - Scheme ผิดจะทำให้ผลลัพธ์เพี้ยนหรือ diverge"
+    },
+    {
+      "verb": "วิเคราะห์ (Analyze)",
+      "topic": "คุณสมบัติของ Euler (explicit/implicit) และ Crank-Nicolson",
+      "components": ["Stability region", "Truncation error", "Computational cost"],
+      "importance": "Explicit Euler เร็วแต่ต้องใช้ Δt เล็ก, Implicit Euler เสถียรแต่เผยแพร่ numerical diffusion"
+    },
+    {
+      "verb": "Implement",
+      "topic": "CFL condition และ adaptive time stepping",
+      "challenge": "คำนวณ CFL number ที่ถูกต้องบน unstructured mesh โดยคำนึงถึง phase change"
+    }
+  ],
+
+  "theory_sections": [
+    {
+      "id": "4.1",
+      "title_en": "Time Integration Fundamentals",
+      "title_th": "พื้นฐานการอินทิเกรตตามเวลา",
+      "equations": [
+        {
+          "name": "General time derivative",
+          "latex": "\\frac{\\partial \\phi}{\\partial t} = f(\\phi, t)",
+          "explanation": "สมการอนุพันธ์ทั่วไปที่ต้องการ discretize ตามเวลา"
+        },
+        {
+          "name": "Taylor series expansion",
+          "latex": "\\phi(t+\\Delta t) = \\phi(t) + \\Delta t \\frac{\\partial \\phi}{\\partial t} + \\frac{\\Delta t^2}{2} \\frac{\\partial^2 \\phi}{\\partial t^2} + O(\\Delta t^3)",
+          "explanation": "พื้นฐานของ finite difference methods"
+        }
+      ],
+      "variables": [
+        {"symbol": "φ", "name": "field variable (U, p, T, α)", "unit": "depends on field"},
+        {"symbol": "Δt", "name": "time step", "unit": "s"},
+        {"symbol": "n", "name": "time level", "unit": "dimensionless"}
+      ]
+    },
+    {
+      "id": "4.2",
+      "title_en": "Euler Methods: Explicit vs Implicit",
+      "title_th": "วิธีออยเลอร์: Explicit กับ Implicit",
+      "equations": [
+        {
+          "name": "Explicit Euler (Forward Euler)",
+          "latex": "\\phi^{n+1} = \\phi^n + \\Delta t \\cdot f(\\phi^n, t^n)",
+          "explanation": "ใช้ค่าที่รู้แล้ว (n) คำนวณค่าใหม่ (n+1) - ง่ายแต่ต้องจำกัด Δt"
+        },
+        {
+          "name": "Implicit Euler (Backward Euler)",
+          "latex": "\\phi^{n+1} = \\phi^n + \\Delta t \\cdot f(\\phi^{n+1}, t^{n+1})",
+          "explanation": "ต้องแก้สมการหา φ^{n+1} - เสถียรกว่าแต่ computational cost สูงกว่า"
+        },
+        {
+          "name": "Stability criterion for explicit Euler",
+          "latex": "\\Delta t \\leq \\frac{2}{|\\lambda_{max}|}",
+          "explanation": "λ_max = eigenvalue สูงสุดของ system - สำหรับ diffusion: Δt ≤ Δx²/(2ν)"
+        }
+      ],
+      "key_points": [
+        "Explicit Euler: conditionally stable (CFL condition)",
+        "Implicit Euler: unconditionally stable (A-stable)",
+        "Implicit Euler มี numerical diffusion สูง (first-order accurate)"
+      ]
+    },
+    {
+      "id": "4.3",
+      "title_en": "Crank-Nicolson Method",
+      "title_th": "วิธีแครงค์-นิโคลสัน",
+      "equations": [
+        {
+          "name": "Crank-Nicolson discretization",
+          "latex": "\\phi^{n+1} = \\phi^n + \\frac{\\Delta t}{2} \\left[ f(\\phi^n, t^n) + f(\\phi^{n+1}, t^{n+1}) \\right]",
+          "explanation": "เฉลี่ยระหว่าง explicit และ implicit - second-order accurate"
+        },
+        {
+          "name": "Alternative form",
+          "latex": "\\frac{\\phi^{n+1} - \\phi^n}{\\Delta t} = \\frac{1}{2} \\left( \\frac{\\partial \\phi}{\\partial t}^n + \\frac{\\partial \\phi}{\\partial t}^{n+1} \\right)",
+          "explanation": "Form ที่เห็นชัดว่าใช้ค่าเฉลี่ยของ time derivative"
+        }
+      ],
+      "key_points": [
+        "Second-order accuracy (O(Δt²))",
+        "Unconditionally stable สำหรับ linear problems",
+        "อาจเกิด numerical oscillation (ไม่เป็น positive definite)",
+        "สำหรับ phase change: ต้องระวังเพราะ interface 移動เร็ว"
+      ]
+    },
+    {
+      "id": "4.4",
+      "title_en": "CFL Condition for Compressible Flow with Phase Change",
+      "title_th": "เงื่อนไข CFL สำหรับการไหลแบบบีบอัดพร้อมการเปลี่ยนสถานะ",
+      "equations": [
+        {
+          "name": "Classical CFL condition",
+          "latex": "CFL = \\frac{|\\mathbf{U}| \\Delta t}{\\Delta x} < C_{max}",
+          "explanation": "Information ไม่ควรเดินทางเกิน 1 cell ต่อ time step"
+        },
+        {
+          "name": "Extended CFL for phase change",
+          "latex": "CFL_{total} = \\max\\left(\\frac{|\\mathbf{U}| \\Delta t}{\\Delta x},\\ \\frac{\\nu \\Delta t}{\\Delta x^2},\\ \\frac{|\\dot{m}/\\rho| \\Delta t}{\\Delta x}\\right)",
+          "explanation": "รวม effects ของ convection, diffusion, และ interface velocity จาก phase change"
+        },
+        {
+          "name": "Interface CFL number",
+          "latex": "CFL_{interface} = \\frac{|\\mathbf{U}_{interface}| \\Delta t}{\\Delta x}",
+          "explanation": "Interface velocity อาจสูงมากจาก expansion term (R410A density ratio ~22:1)"
+        }
+      ],
+      "critical_note": "สำหรับ evaporator simulation: CFL_{interface} มักเป็นตัวกำหนด Δt แทนที่จะเป็น CFL convection ปกติ"
+    }
+  ],
+
+  "openfoam_analysis": [
+    {
+      "class": "ddtScheme",
+      "header": "src/finiteVolume/finiteVolume/ddtSchemes/ddtScheme/ddtScheme.H",
+      "purpose": "Abstract base class สำหรับ time discretization schemes",
+      "key_derived_classes": [
+        {"name": "EulerDdtScheme", "scheme": "Implicit Euler (first-order)"},
+        {"name": "CrankNicolsonDdtScheme", "scheme": "Crank-Nicolson (second-order)"},
+        {"name": "backwardDdtScheme", "scheme": "Second-order backward (BDF2)"}
+      ],
+      "key_methods": [
+        {
+          "name": "fvmDdt(GeometricField<Type, fvPatchField, volMesh>&)",
+          "purpose": "สร้าง implicit time derivative matrix"
+        },
+        {
+          "name": "fvcDdt(GeometricField<Type, fvPatchField, volMesh>&)",
+          "purpose": "คำนวณ explicit time derivative"
+        }
+      ]
+    },
+    {
+      "class": "CourantNo",
+      "header": "src/finiteVolume/cfdTools/incompressible/CourantNo.H",
+      "purpose": "คำนวณ Courant number (CFL) บน mesh",
+      "key_functions": [
+        {
+          "name": "CourantNo(GeometricField<Type, fvPatchField, volMesh>&, scalar&)",
+          "purpose": "คำนวณ local CFL number ในแต่ละ cell"
+        },
+        {
+          "name": "maxCo(GeometricField<Type, fvPatchField, volMesh>&)",
+          "purpose": "หาค่า CFL สูงสุดใน domain"
+        }
+      ],
+      "implementation_detail": "OpenFOAM ใช้ face-based flux (phi) แทน cell-centered velocity ในการคำนวณ CFL"
+    },
+    {
+      "class": "timeSelector",
+      "header": "src/OpenFOAM/db/Time/timeSelector.H",
+      "purpose": "จัดการ time directory และ time step selection",
+      "key_methods": [
+        {"name": "select(const fileName&, const word&)", "purpose": "เลือก time directories"},
+        {"name": "selectIfPresent(Time&, const argList&)", "purpose": "เลือกหากมีอยู่"}
+      ]
+    }
+  ],
+
+  "implementation_skeleton": {
+    "time_discretization_modules": [
+      {
+        "name": "TimeIntegrator",
+        "responsibility": "จัดการ time stepping และ scheme selection",
+        "key_methods": [
+          {
+            "name": "setTimeScheme(const word& schemeName)",
+            "purpose": "เลือก scheme: Euler, CrankNicolson, backward"
+          },
+          {
+            "name": "calculateDT()",
+            "purpose": "คำนวณ Δt ใหม่ตาม CFL condition และ stability limits"
+          },
+          {
+            "name": "enforceMaxDT(scalar maxDT)",
+            "purpose": "จำกัด Δt ไม่ให้เกินค่าที่กำหนด (สำหรับ phase change)"
+          }
+        ]
+      },
+      {
+        "name": "CFLCalculator",
+        "responsibility": "คำนวณ CFL number โดยคำนึงถึง phase change",
+        "key_methods": [
+          {
+            "name": "calculateConvectionCFL(const volVectorField& U)",
+            "purpose": "คำนวณ convective CFL = |U|·Δt/Δx"
+          },
+          {
+            "name": "calculateDiffusionCFL(const volScalarField& nu)",
+            "purpose": "คำนวณ diffusive CFL = ν·Δt/Δx²"
+          },
+          {
+            "name": "calculateInterfaceCFL(const volScalarField& alpha, const volScalarField& mDot)",
+            "purpose": "คำนวณ interface CFL จาก expansion velocity"
+          },
+          {
+            "name": "getMaxCFL()",
+            "purpose": "คืนค่า CFL สูงสุดจากทั้งหมด"
+          }
+        ]
+      }
+    ],
+    "algorithm_steps": [
+      "1. เริ่มจาก Δt เริ่มต้น (จาก controlDict)",
+      "2. ในแต่ละ time step:",
+      "   a. อ่าน fields ที่เวลา t = t^n",
+      "   b. คำนวณ CFL number ทั้งหมด (convection, diffusion, interface)",
+      "   c. หาก CFR > CFL_max: ลด Δt แล้วกลับไป step 2a",
+      "   d. แก้สมการ momentum โดยใช้ ddt scheme ที่เลือก",
+      "   e. แก้สมการ pressure (มี expansion source)",
+      "   f. แก้สมการ alpha (มี compression term)",
+      "   g. อัพเดต properties (ρ, μ)",
+      "   h. บันทึกผลลัพธ์หากถึง output time",
+      "   i. เพิ่มเวลา: t = t + Δt",
+      "   j. คำนวณ Δt ใหม่สำหรับ step ต่อไป"
+    ],
+    "critical_implementation": [
+      {
+        "location": "CFLCalculator::calculateInterfaceCFL()",
+        "code_snippet": "scalar interfaceVel = mag(mDot[celli] * (1.0/rhoV - 1.0/rhoL));",
+        "explanation": "Interface velocity จาก expansion term - สำคัญมากสำหรับ evaporator"
+      },
+      {
+        "location": "TimeIntegrator::calculateDT()",
+        "code_snippet": "scalar newDT = maxDT_ / (maxCFL + SMALL);",
+        "warning": "ต้องป้องกันการหารด้วยศูนย์ (ใช้ SMALL)"
+      }
+    ]
+  },
+
+  "concept_checks": [
+    {
+      "question": "ทำไม Explicit Euler ถึงต้องการ Δt ที่เล็กมากสำหรับ diffusion problems?",
+      "answer_key_points": [
+        "Stability condition: Δt ≤ Δx²/(2ν) สำหรับ 1D diffusion",
+        "ถ้า Δx เล็ก (mesh ละเอียด) → Δt ต้องเล็กมากตามสัดส่วนกำลังสอง",
+        "ทำให้ computational cost สูงมากสำหรับ fine meshes",
+        "นี่คือเหตุผลที่ implicit methods เป็นที่นิยมใน CFD"
+      ],
+      "equation_relation": "จาก theory section 4.2: Δt ≤ 2/|λ_max| โดย λ_max ∝ ν/Δx²"
+    },
+    {
+      "question": "Crank-Nicolson เป็น second-order accurate แต่มีข้อเสียอะไรสำหรับ two-phase flow?",
+      "answer_key_points": [
+        "อาจเกิด numerical oscillation (ไม่เป็น positive definite)",
+        "สำหรับ sharp interfaces (alpha 0→1): oscillation ทำให้ alpha < 0 หรือ > 1",
+        "ต้องใช้ under-relaxation หรือ limiters เพิ่มเติม",
+        "ใน OpenFOAM: มักใช้ blended scheme (0.9*implicitEuler + 0.1*CrankNicolson)"
+      ],
+      "implementation_note": "ใน Solver::solveAlpha() ต้องใช้ bounded scheme สำหรับ alpha"
+    },
+    {
+      "question": "CFL condition สำหรับ evaporator ต่างจาก single-phase flow อย่างไร?",
+      "answer_key_points": [
+        "ต้องคำนึงถึง interface velocity จาก expansion term",
+        "R410A: ρ_l/ρ_v ≈ 22 → expansion velocity สูงมาก",
+        "Interface CFL มักเป็นตัวกำหนด Δt แทน convective CFL",
+        "ต้อง monitor CFL ทั้งสามประเภท: convection, diffusion, interface"
+      ],
+      "practical_tip": "ใน evaporator simulation ให้ตั้ง CoMax ≈ 0.25 และ monitor interface CFL แยก"
+    }
+  ],
+
+  "pitfalls": [
+    {
+      "symptom": "Solution diverges เมื่อ mesh ละเอียดขึ้น",
+      "cause": "ใช้ explicit time stepping โดยไม่ลด Δt ตาม Δx²",
+      "fix": "เปลี่ยนเป็น implicit scheme หรือลด Δt ตาม Δx²",
+      "check": "CFL_diffusion = ν·Δt/Δx² ต้อง < 0.5 สำหรับ explicit diffusion"
+    },
+    {
+      "symptom": "Interface กระเพื่อม (oscillates) รอบค่า 0 และ 1",
+      "cause": "ใช้ Crank-Nicolson โดยไม่มี limiter สำหรับ alpha equation",
+      "fix": "ใช้ bounded scheme หรือ blended scheme (ส่วนใหญ่ implicit)",
+      "code_fix": "ddtScheme = bounded Euler; // ใน fvSchemes"
+    },
+    {
+      "symptom": "Δt ลดลงอย่างมากเมื่อ interface เคลื่อนที่",
+      "cause": "ไม่ได้จำกัด interface CFL แยกต่างหาก",
+      "fix": "เพิ่ม maxInterfaceCo ใน controlDict และใช้ adaptive Δt",
+      "implementation": "ใน TimeIntegrator::calculateDT() ให้ใช้ max(convectiveCo, interfaceCo)"
+    }
+  ],
+
+  "connections": {
+    "previous_day": "Day 03: Spatial Discretization (Upwind, Central, TVD)",
+    "next_day": "Day 05: Mesh Topology (Owner-Neighbor, Face Addressing)",
+    "key_links": [
+      "วันนี้ (time discretization) + วันก่อน (space discretization) = complete FVM formulation",
+      "CFL condition ขึ้นกับ mesh (Δx) → link ไป Day 05",
+      "Time stepping ต้องสอดคล้องกับ phase change model (Day 11)"
+    ]
+  }
+}

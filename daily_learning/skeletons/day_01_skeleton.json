@@ -1,0 +1,331 @@
+{
+    "day": "01",
+    "title": "Conservation Laws for CFD",
+    "date": "2026-01-01",
+    "difficulty": "hardcore",
+    "learning_objectives": [
+        {
+            "verb": "เข้าใจ (Understand)",
+            "topic": "การได้มาซึ่งสมการอนุรักษ์พื้นฐาน (Mass, Momentum, Energy) สำหรับการไหลแบบสองสถานะ",
+            "equation": "∂(ρ)/∂t + ∇·(ρU) = 0",
+            "importance": "เป็นรากฐานของ CFD Engine ทั้งหมด - ข้อผิดพลาดที่นี่จะ propagate ไปทุกส่วน"
+        },
+        {
+            "verb": "วิเคราะห์ (Analyze)",
+            "topic": "การแปลงสมการอนุรักษ์ทั่วไปไปสู่รูปแบบที่ใช้กับ Phase Change (Evaporation)",
+            "components": ["Mixture formulation", "Phase interface tracking", "Mass transfer modeling"]
+        },
+        {
+            "verb": "ออกแบบ (Design)",
+            "core_concept": "Expansion Term จาก Phase Change",
+            "equation": "∇·U = ṁ(1/ρv - 1/ρl)",
+            "challenge": "การจัดการ source term ที่มีความแข็ง (stiff) ในสมการ pressure"
+        }
+    ],
+    "theory_sections": [
+        {
+            "id": "1.1",
+            "title_en": "General Conservation Law (Integral Form)",
+            "title_th": "กฎการอนุรักษ์ทั่วไป (รูปอินทิกรัล)",
+            "equations": [
+                {
+                    "name": "General conservation law",
+                    "latex": "\\frac{d}{dt} \\int_{V} \\phi \\, dV + \\oint_{S} \\mathbf{F} \\cdot \\mathbf{n} \\, dS = \\int_{V} Q \\, dV",
+                    "explanation": "Rate of change + Net flux = Source/Sink ใน control volume V"
+                },
+                {
+                    "name": "Reynolds Transport Theorem",
+                    "latex": "\\frac{d}{dt} \\int_{V(t)} \\phi \\, dV = \\int_{V} \\frac{\\partial \\phi}{\\partial t} \\, dV + \\oint_{S} \\phi \\mathbf{U} \\cdot \\mathbf{n} \\, dS",
+                    "explanation": "แปลง Lagrangian derivative เป็น Eulerian form สำหรับ moving/deforming control volume"
+                }
+            ],
+            "variables": [
+                {
+                    "symbol": "φ",
+                    "name": "conserved quantity per unit volume",
+                    "unit": "depends on quantity (kg/m³, J/m³, etc.)"
+                },
+                {
+                    "symbol": "F",
+                    "name": "flux vector",
+                    "unit": "φ per unit area per time"
+                },
+                {
+                    "symbol": "Q",
+                    "name": "source/sink term",
+                    "unit": "φ per unit volume per time"
+                }
+            ],
+            "fundamental_concept": "กฎนี้เป็น universal framework สำหรับทุกสมการอนุรักษ์ - แค่เปลี่ยน definition ของ φ, F, Q"
+        },
+        {
+            "id": "1.2",
+            "title_en": "Mass Conservation (Continuity Equation)",
+            "title_th": "การอนุรักษ์มวล (สมการความต่อเนื่อง)",
+            "equations": [
+                {
+                    "name": "Single-phase incompressible",
+                    "latex": "\\nabla \\cdot \\mathbf{U} = 0",
+                    "explanation": "สำหรับของไหลที่บีบอัดไม่ได้ (ρ constant) - divergence ของ velocity เป็นศูนย์"
+                },
+                {
+                    "name": "Single-phase compressible",
+                    "latex": "\\frac{\\partial \\rho}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U}) = 0",
+                    "explanation": "สำหรับของไหลที่บีบอัดได้ - ต้องติดตามการเปลี่ยนแปลงของ density"
+                },
+                {
+                    "name": "Two-phase mixture (VOF formulation)",
+                    "latex": "\\frac{\\partial \\rho}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U}) = 0 \\quad \\text{where} \\quad \\rho = \\alpha \\rho_l + (1-\\alpha) \\rho_v",
+                    "explanation": "ใช้ volume fraction α (0=gas, 1=liquid) ในการคำนวณ mixture density"
+                },
+                {
+                    "name": "With phase change (CRITICAL - Expansion Term)",
+                    "latex": "\\nabla \\cdot \\mathbf{U} = \\dot{m} \\left( \\frac{1}{\\rho_v} - \\frac{1}{\\rho_l} \\right)",
+                    "explanation": "เมื่อมี mass transfer ṁ ระหว่าง phase - divergence ของ velocity ไม่เป็นศูนย์เพราะ density ต่างกันมาก (R410A: ρ_l/ρ_v ≈ 22)"
+                }
+            ],
+            "derivation_steps": [
+                "เริ่มจาก mixture continuity: ∂ρ/∂t + ∇·(ρU) = 0",
+                "แทน ρ = αρ_l + (1-α)ρ_v",
+                "ใช้ chain rule: ∂ρ/∂t = ρ_l(∂α/∂t) + ρ_v(∂(1-α)/∂t) + α(∂ρ_l/∂t) + (1-α)(∂ρ_v/∂t)",
+                "สมมติ ρ_l, ρ_v constant ในแต่ละ phase (incompressible within phase)",
+                "จาก VOF equation: ∂α/∂t + ∇·(αU) + ∇·(U_c α(1-α)) = ṁ(1/ρ_l - 1/ρ_v)",
+                "แทนค่าและจัดรูปจะได้ expansion term ข้างต้น"
+            ],
+            "warning": "Expansion term นี้เป็น critical สำหรับ phase change - หากไม่มี solver จะ diverge เพราะ velocity field ไม่สอดคล้องกับ mass transfer"
+        },
+        {
+            "id": "1.3",
+            "title_en": "Momentum Conservation (Navier-Stokes Equations)",
+            "title_th": "การอนุรักษ์โมเมนตัม (สมการนาเวีย-สโตกส์)",
+            "equations": [
+                {
+                    "name": "General form",
+                    "latex": "\\frac{\\partial (\\rho \\mathbf{U})}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U} \\mathbf{U}) = -\\nabla p + \\nabla \\cdot \\boldsymbol{\\tau} + \\rho \\mathbf{g} + \\mathbf{f}_{\\sigma}",
+                    "explanation": "Rate of change + Convection = Pressure gradient + Viscous stress + Gravity + Surface tension"
+                },
+                {
+                    "name": "Newtonian fluid stress tensor",
+                    "latex": "\\boldsymbol{\\tau} = \\mu \\left[ \\nabla \\mathbf{U} + (\\nabla \\mathbf{U})^T \\right] - \\frac{2}{3} \\mu (\\nabla \\cdot \\mathbf{U}) \\mathbf{I}",
+                    "explanation": "สำหรับ Newtonian fluid - stress แปรผันตรงกับ rate of strain"
+                },
+                {
+                    "name": "Incompressible form",
+                    "latex": "\\frac{\\partial \\mathbf{U}}{\\partial t} + \\nabla \\cdot (\\mathbf{U} \\mathbf{U}) = -\\frac{1}{\\rho} \\nabla p + \\nu \\nabla^2 \\mathbf{U} + \\mathbf{g}",
+                    "explanation": "สำหรับของไหลบีบอัดไม่ได้ (∇·U=0) - simplified form"
+                }
+            ],
+            "stress_tensor_components": [
+                {
+                    "term": "μ[∇U + (∇U)ᵀ]",
+                    "physical_meaning": "Viscous stress จาก velocity gradients"
+                },
+                {
+                    "term": "-(2/3)μ(∇·U)I",
+                    "physical_meaning": "Bulk viscosity term - สำคัญเมื่อ ∇·U ≠ 0 (เช่นใน phase change)"
+                }
+            ],
+            "surface_tension_model": "f_σ = σκ∇α (Continuum Surface Force model) - แรง surface tension แปรผันกับ curvature κ ของ interface"
+        },
+        {
+            "id": "1.4",
+            "title_en": "Energy Conservation (First Law of Thermodynamics)",
+            "title_th": "การอนุรักษ์พลังงาน (กฎข้อที่หนึ่งของอุณหพลศาสตร์)",
+            "equations": [
+                {
+                    "name": "Total energy (e_t = e + ½U·U)",
+                    "latex": "\\frac{\\partial (\\rho e_t)}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U} e_t) = -\\nabla \\cdot (p \\mathbf{U}) + \\nabla \\cdot (\\boldsymbol{\\tau} \\cdot \\mathbf{U}) + \\nabla \\cdot (k \\nabla T) + \\rho \\mathbf{g} \\cdot \\mathbf{U} + \\dot{q}",
+                    "explanation": "Conservation of total energy (internal + kinetic) - ซับซ้อนและมักไม่ใช้โดยตรง"
+                },
+                {
+                    "name": "Temperature form (preferred for incompressible)",
+                    "latex": "\\rho c_p \\left( \\frac{\\partial T}{\\partial t} + \\mathbf{U} \\cdot \\nabla T \\right) = \\nabla \\cdot (k \\nabla T) + \\dot{q} + \\Phi_v",
+                    "explanation": "สมการอุณหภูมิ - ใช้เมื่อ pressure work และ viscous dissipation น้อย (Φ_v = τ:∇U)"
+                },
+                {
+                    "name": "With phase change (latent heat)",
+                    "latex": "\\rho c_p \\frac{DT}{Dt} = \\nabla \\cdot (k \\nabla T) + \\dot{q} - \\dot{m} L",
+                    "explanation": "เพิ่ม latent heat term - เมื่อของเหลวระเหย (ṁ>0) จะดูดความร้อน L จาก surroundings"
+                }
+            ],
+            "energy_forms": [
+                {
+                    "type": "Internal energy (e)",
+                    "relation": "de = c_v dT (สำหรับ ideal gas)"
+                },
+                {
+                    "type": "Enthalpy (h = e + p/ρ)",
+                    "relation": "dh = c_p dT (สำหรับ ideal gas) - สะดวกกว่าเพราะรวม pressure work"
+                }
+            ],
+            "phase_change_coupling": "Energy equation coupled กับ mass transfer ผ่าน latent heat term - ṁ มาจาก Lee model: ṁ = Cα_lρ_l(T - T_sat)"
+        },
+        {
+            "id": "1.5",
+            "title_en": "Two-Phase Specific Formulations",
+            "title_th": "สูตรเฉพาะสำหรับการไหลสองสถานะ",
+            "equations": [
+                {
+                    "name": "Volume Fraction (VOF) Transport",
+                    "latex": "\\frac{\\partial \\alpha}{\\partial t} + \\nabla \\cdot (\\alpha \\mathbf{U}) + \\nabla \\cdot [\\mathbf{U}_c \\alpha (1-\\alpha)] = \\frac{\\dot{m}}{\\rho_l}",
+                    "explanation": "สมการ tracking interface - term ที่สามคือ compressive flux เพื่อรักษา interface ให้ sharp"
+                },
+                {
+                    "name": "Mixture Properties",
+                    "latex": "\\begin{aligned} \\rho &= \\alpha \\rho_l + (1-\\alpha) \\rho_v \\\\ \\mu &= \\alpha \\mu_l + (1-\\alpha) \\mu_v \\\\ k &= \\alpha k_l + (1-\\alpha) k_v \\end{aligned}",
+                    "explanation": "Linear interpolation ของ properties ระหว่าง liquid และ vapor phases"
+                },
+                {
+                    "name": "Surface Tension (CSF Model)",
+                    "latex": "\\mathbf{f}_{\\sigma} = \\sigma \\kappa \\nabla \\alpha \\quad \\text{where} \\quad \\kappa = -\\nabla \\cdot \\left( \\frac{\\nabla \\alpha}{|\\nabla \\alpha|} \\right)",
+                    "explanation": "Continuum Surface Force - model แรง surface tension เป็น body force ที่ interface region"
+                }
+            ],
+            "interface_sharpening": "Compressive velocity U_c = c|U|∇α/|∇α| - บังคับให้ flux ไปในทิศทางที่รักษา interface ให้ sharp (c ≈ 1)"
+        }
+    ],
+    "openfoam_analysis": [
+        {
+            "class": "volScalarField",
+            "header": "src/OpenFOAM/fields/GeometricFields/volFields/volScalarField.H",
+            "purpose": "Cell-centered scalar field สำหรับ p, T, alpha, และ fields อื่นๆ",
+            "inheritance_hierarchy": [
+                "GeometricField<scalar, fvPatchField, volMesh>",
+                "DimensionedField<scalar, volMesh>",
+                "Field<scalar>",
+                "List<scalar>"
+            ],
+            "key_members": [
+                {
+                    "name": "internalField_",
+                    "type": "Field<scalar>",
+                    "purpose": "ค่าที่ cell centers (size = nCells) - เก็บใน List<scalar>"
+                },
+                {
+                    "name": "boundaryField_",
+                    "type": "GeometricBoundaryField<scalar, fvPatchField, volMesh>",
+                    "purpose": "Container ของ boundary conditions สำหรับแต่ละ patch"
+                },
+                {
+                    "name": "mesh_",
+                    "type": "const volMesh&",
+                    "purpose": "Reference ไปยัง mesh object - ใช้สำหรับ geometric calculations"
+                }
+            ],
+            "key_methods": [
+                {
+                    "name": "correctBoundaryConditions()",
+                    "purpose": "Update boundary values หลังจาก solve - critical สำหรับ coupled BCs"
+                },
+                {
+                    "name": "boundaryFieldRef()",
+                    "purpose": "Return non-const reference to boundary field - สำหรับ modification"
+                },
+                {
+                    "name": "operator==",
+                    "purpose": "Assignment จาก scalar, field, หรือ geometric field อื่น"
+                }
+            ],
+            "phase1_enhancement": "เพิ่ม method addExpansionSource(mDot, rhoV, rhoL) เพื่อจัดการ expansion term ใน pressure equation"
+        },
+        {
+            "class": "volVectorField",
+            "header": "src/OpenFOAM/fields/GeometricFields/volFields/volVectorField.H",
+            "purpose": "Cell-centered vector field สำหรับ velocity U",
+            "key_characteristics": [
+                "เก็บ 3 components (x, y, z) ใน internalField_",
+                "แต่ละ component เป็น scalar field แยกกันแต่เก็บใน object เดียว",
+                "Support vector operations: grad, div, curl, etc."
+            ],
+            "component_access": [
+                "U.component(0) → scalar field ของ x-component",
+                "U.x() → same แต่ผ่าน method",
+                "สามารถแก้ไขแต่ละ component แยกกันได้"
+            ]
+        },
+        {
+            "class": "surfaceScalarField",
+            "header": "src/OpenFOAM/fields/GeometricFields/surfaceFields/surfaceScalarField.H",
+            "purpose": "Face-centered scalar field สำหรับ fluxes (phi) และ face values",
+            "critical_role": "เก็บ mass flux φ = ρU·S ผ่านแต่ละ face - เป็นตัวเชื่อมระหว่าง equations",
+            "addressing_scheme": [
+                "internal faces: index 0 ถึง nInternalFaces-1",
+                "boundary faces: grouped by patches",
+                "owner-neighbor addressing กำหนดทิศทางของ flux"
+            ]
+        },
+        {
+            "class": "fvMesh",
+            "header": "src/finiteVolume/fvMesh/fvMesh.H",
+            "purpose": "Finite Volume Mesh - เก็บ geometry และ connectivity",
+            "core_data_structures": [
+                {
+                    "name": "points_",
+                    "type": "pointField",
+                    "purpose": "พิกัดของจุดทั้งหมด (vertices)"
+                },
+                {
+                    "name": "faces_",
+                    "type": "faceList",
+                    "purpose": "List ของ faces แต่ละ face เป็น list ของ point indices"
+                },
+                {
+                    "name": "owner_",
+                    "type": "labelList",
+                    "purpose": "Cell index ที่มี lower index สำหรับแต่ละ face (size = nFaces)"
+                },
+                {
+                    "name": "neighbour_",
+                    "type": "labelList",
+                    "purpose": "Cell index ที่มี higher index สำหรับ internal faces (size = nInternalFaces)"
+                }
+            ],
+            "geometric_calculations": [
+                "V() → cell volumes",
+                "Sf() → face area vectors",
+                "C() → cell centers",
+                "Cf() → face centers"
+            ]
+        },
+        {
+            "namespace": "fvm",
+            "purpose": "Implicit finite volume operators - สร้าง fvMatrix สำหรับ solve",
+            "key_operators": [
+                {
+                    "operator": "ddt(phi)",
+                    "returns": "fvMatrix<Type>",
+                    "description": "Time derivative - implicit discretization"
+                },
+                {
+                    "operator": "div(phi, U)",
+                    "returns": "fvMatrix<vector>",
+                    "description": "Convection term - สามารถใช้ different schemes ได้"
+                },
+                {
+                    "operator": "laplacian(gamma, phi)",
+                    "returns": "fvMatrix<Type>",
+                    "description": "Diffusion term - symmetric matrix"
+                }
+            ]
+        },
+        {
+            "namespace": "fvc",
+            "purpose": "Explicit finite volume operators - คำนวณ geometric fields",
+            "key_operators": [
+                {
+                    "operator": "grad(phi)",
+                    "returns": "volVectorField",
+                    "description": "Gradient - explicit calculation"
+                },
+                {
+                    "operator": "div(phi)",
+                    "returns": "volScalarField",
+                    "description": "Divergence - explicit calculation"
+                },
+                {
+                    "operator": "laplacian(gamma, phi)",
+                    "returns": "volScalarField",
+                    "description": "Laplacian - explicit calculation"
+                }
+            ]
+        }

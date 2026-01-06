@@ -1,0 +1,284 @@
+{
+  "day": "10",
+  "title": "Two-Phase Fundamentals (VOF, Alpha)",
+  "date": "2026-01-10",
+  "difficulty": "hardcore",
+
+  "learning_objectives": [
+    {
+      "verb": "เข้าใจ (Understand)",
+      "topic": "หลักการของ Volume of Fluid (VOF) method และสมการการขนส่ง volume fraction (alpha)",
+      "equation": "∂α/∂t + ∇·(Uα) + ∇·(U_r α(1-α)) = 0",
+      "importance": "VOF เป็น interface-capturing method ที่ใช้ volume fraction (α) ในการติดตาม interface ระหว่างสอง phase โดย α=0 คือ phase หนึ่ง, α=1 คืออีก phase, และ 0<α<1 คือ interface region"
+    },
+    {
+      "verb": "ออกแบบ (Design)",
+      "topic": "Interface compression term และ MULES (Multidimensional Universal Limiter with Explicit Solution) เพื่อรักษา interface sharpness",
+      "components": ["Volume Fraction Transport Equation", "Compression Term", "MULES Limiter", "Boundedness Enforcement"]
+    },
+    {
+      "verb": "Implement",
+      "topic": "Alpha equation solution ใน OpenFOAM framework พร้อม interface compression และ boundedness handling",
+      "challenge": "การรักษา boundedness ของ α (0≤α≤1) ในขณะที่รักษา interface ให้ sharp โดยไม่เกิด numerical diffusion หรือ overshoots"
+    }
+  ],
+
+  "theory_sections": [
+    {
+      "id": "10.1",
+      "title_en": "Volume Fraction Transport Equation",
+      "title_th": "สมการการขนส่ง Volume Fraction",
+      "equations": [
+        {
+          "name": "Basic transport equation",
+          "latex": "\\frac{\\partial \\alpha}{\\partial t} + \\nabla \\cdot (\\mathbf{U} \\alpha) = 0",
+          "explanation": "สมการพื้นฐานสำหรับการขนส่ง volume fraction โดยไม่มี interface compression; ทำให้ interface กระจายตัวเนื่องจาก numerical diffusion"
+        },
+        {
+          "name": "With interface compression",
+          "latex": "\\frac{\\partial \\alpha}{\\partial t} + \\nabla \\cdot (\\mathbf{U} \\alpha) + \\nabla \\cdot (\\mathbf{U}_r \\alpha (1-\\alpha)) = 0",
+          "explanation": "เพิ่ม compression term ที่ใช้ relative velocity U_r เพื่อบีบ interface ให้ sharp โดย term นี้จะมีผลเฉพาะบริเวณ interface (0<α<1)"
+        },
+        {
+          "name": "Relative compression velocity",
+          "latex": "\\mathbf{U}_r = \\mathbf{n}_f \\min \\left[ C_\\alpha \\frac{|\\phi|}{|\\mathbf{S}_f|}, \\max\\left(\\frac{|\\phi|}{|\\mathbf{S}_f|}\\right) \\right]",
+          "explanation": "Compression velocity ในทิศทาง normal ของ interface (n_f) โดย C_α คือ compression factor (typically 1) และ φ คือ face flux"
+        }
+      ],
+      "variables": [
+        {"symbol": "α", "name": "volume fraction", "unit": "dimensionless"},
+        {"symbol": "U", "name": "velocity field", "unit": "m/s"},
+        {"symbol": "U_r", "name": "compression velocity", "unit": "m/s"},
+        {"symbol": "C_α", "name": "compression factor", "unit": "dimensionless"},
+        {"symbol": "n_f", "name": "interface normal vector", "unit": "dimensionless"}
+      ],
+      "warning": "Compression term ต้อง discretize แบบ explicit เท่านั้น (ใช้ fvc::) เพื่อรักษา boundedness; implicit discretization จะทำให้เกิด unbounded solutions"
+    },
+    {
+      "id": "10.2",
+      "title_en": "MULES (Multidimensional Universal Limiter with Explicit Solution)",
+      "title_th": "MULES (Multidimensional Universal Limiter with Explicit Solution)",
+      "equations": [
+        {
+          "name": "MULES formulation",
+          "latex": "\\alpha^{n+1} = \\alpha^n - \\sum_f \\left[ \\phi_f \\alpha_f^{n+1/2} + \\phi_{r,f} \\alpha_f^{n+1/2} (1-\\alpha_f^{n+1/2}) \\right] \\frac{\\Delta t}{V_P}",
+          "explanation": "Explicit solution ที่ใช้ limiter เพื่อ enforce boundedness (0≤α≤1) โดย α_f^{n+1/2} คือ face value ที่คำนวณด้วย high-resolution scheme ที่มี limiter"
+        },
+        {
+          "name": "Flux limiter function",
+          "latex": "\\psi(\\theta) = \\max[0, \\min(1, 2\\theta), \\min(2, \\theta)]",
+          "explanation": "Sweby limiter ที่ใช้ใน MULES เพื่อควบคุม face value ของ α ให้อยู่ใน bounds โดย θ คือ gradient ratio"
+        },
+        {
+          "name": "Boundedness correction",
+          "latex": "\\alpha_f^{MULES} = \\alpha_f^{upwind} + \\psi(\\theta) (\\alpha_f^{high} - \\alpha_f^{upwind})",
+          "explanation": "Face value ที่ปรับแล้วด้วย limiter ψ(θ) เพื่อให้ได้ high-order accuracy ในขณะที่รักษา boundedness"
+        }
+      ],
+      "variables": [
+        {"symbol": "ψ", "name": "flux limiter function", "unit": "dimensionless"},
+        {"symbol": "θ", "name": "gradient ratio (r)", "unit": "dimensionless"},
+        {"symbol": "α_f^{upwind}", "name": "upwind face value", "unit": "dimensionless"},
+        {"symbol": "α_f^{high}", "name": "high-order face value", "unit": "dimensionless"}
+      ],
+      "warning": "MULES ต้องใช้ explicit time integration เท่านั้น; implicit MULES ไม่มีใน OpenFOAM เพราะจะทำลาย boundedness property"
+    },
+    {
+      "id": "10.3",
+      "title_en": "Interface Compression Term Implementation",
+      "title_th": "การนำ Interface Compression Term ไปใช้",
+      "equations": [
+        {
+          "name": "Discrete compression flux",
+          "latex": "\\phi_{r,f} = \\mathbf{U}_{r,f} \\cdot \\mathbf{S}_f = C_\\alpha \\, \\mathbf{n}_f \\cdot \\mathbf{S}_f \\, \\min\\left[ \\frac{|\\phi_f|}{|\\mathbf{S}_f|}, \\max\\left(\\frac{|\\phi|}{|\\mathbf{S}|}\\right) \\right]",
+          "explanation": "Compression flux ที่ face f โดยคำนวณจาก compression velocity และ face area vector"
+        },
+        {
+          "name": "Interface normal calculation",
+          "latex": "\\mathbf{n}_f = \\frac{(\\nabla \\alpha)_f}{|(\\nabla \\alpha)_f + \\delta|}",
+          "explanation": "Interface normal vector ที่ face โดย δ คือ small number เพื่อป้องกัน division by zero"
+        },
+        {
+          "name": "Compression term discretization",
+          "latex": "\\nabla \\cdot (\\mathbf{U}_r \\alpha (1-\\alpha)) \\approx \\sum_f \\phi_{r,f} \\alpha_f (1-\\alpha_f)",
+          "explanation": "Discrete form ของ compression term ที่ face f โดย α_f คือ interpolated face value ของ α"
+        }
+      ],
+      "variables": [
+        {"symbol": "φ_{r,f}", "name": "compression face flux", "unit": "m³/s"},
+        {"symbol": "S_f", "name": "face area vector", "unit": "m²"},
+        {"symbol": "δ", "name": "small stabilization factor", "unit": "1/m"}
+      ],
+      "warning": "Compression term ต้องใช้ face interpolation ที่สอดคล้องกับ MULES limiter; มิฉะนั้นอาจเกิด unboundedness หรือ interface distortion"
+    },
+    {
+      "id": "10.4",
+      "title_en": "Two-Phase Property Calculation",
+      "title_th": "การคำนวณคุณสมบัติของสอง phase",
+      "equations": [
+        {
+          "name": "Mixture density",
+          "latex": "\\rho = \\alpha \\rho_1 + (1-\\alpha) \\rho_2",
+          "explanation": "ความหนาแน่นของ mixture ที่คำนวณจาก weighted average ตาม volume fraction"
+        },
+        {
+          "name": "Mixture viscosity",
+          "latex": "\\mu = \\alpha \\mu_1 + (1-\\alpha) \\mu_2",
+          "explanation": "Dynamic viscosity ของ mixture (arithmetic mean) หรืออาจใช้ harmonic mean สำหรับบางกรณี"
+        },
+        {
+          "name": "Surface tension force (CSF model)",
+          "latex": "\\mathbf{F}_{st} = \\sigma \\kappa \\nabla \\alpha",
+          "explanation": "Continuum Surface Force (CSF) model ที่คำนวณ surface tension force จาก surface tension coefficient σ และ curvature κ"
+        },
+        {
+          "name": "Interface curvature",
+          "latex": "\\kappa = -\\nabla \\cdot \\left( \\frac{\\nabla \\alpha}{|\\nabla \\alpha|} \\right)",
+          "explanation": "Curvature ของ interface ที่คำนวณจาก divergence ของ interface normal vector"
+        }
+      ],
+      "variables": [
+        {"symbol": "ρ", "name": "mixture density", "unit": "kg/m³"},
+        {"symbol": "μ", "name": "mixture dynamic viscosity", "unit": "Pa·s"},
+        {"symbol": "σ", "name": "surface tension coefficient", "unit": "N/m"},
+        {"symbol": "κ", "name": "interface curvature", "unit": "1/m"}
+      ],
+      "warning": "Curvature calculation ไวต่อ numerical noise ใน ∇α; ต้องใช้ smoothing หรือ reconstruction techniques เพื่อความแม่นยำ"
+    }
+  ],
+
+  "openfoam_analysis": [
+    {
+      "class": "MULES",
+      "header": "src/finiteVolume/fvMatrices/fvMatrix/fvMatrix.H",
+      "purpose": "Multidimensional Universal Limiter with Explicit Solution สำหรับ solving bounded scalar transport equations",
+      "key_members": [
+        {"name": "limiter", "type": "surfaceScalarField", "purpose": "Flux limiter field สำหรับแต่ละ face"},
+        {"name": "lambda", "type": "scalarField", "purpose": "Correction factors สำหรับแต่ละ cell เพื่อ enforce boundedness"}
+      ],
+      "key_methods": [
+        {"name": "explicitSolve(const volScalarField& alpha, const surfaceScalarField& phi, surfaceScalarField& phiAlpha)", "purpose": "Solve alpha equation with MULES limiter for given flux field"},
+        {"name": "limit(scalarField& psi, const scalarField& psiMax, const scalarField& psiMin)", "purpose": "Apply limiter to enforce bounds on scalar field"},
+        {"name": "correct(volScalarField& alpha)", "purpose": "Apply correction to alpha field to ensure 0≤α≤1"}
+      ],
+      "usage_example": "MULES::explicitSolve(alpha, phi, phiAlpha, 1, 0);"
+    },
+    {
+      "class": "interfaceProperties",
+      "header": "src/transportModels/interfaceProperties/interfaceProperties.H",
+      "purpose": "จัดการ interface-related calculations ใน VOF method รวมถึง curvature และ surface tension",
+      "key_members": [
+        {"name": "cAlpha_", "type": "scalar", "purpose": "Compression factor สำหรับ interface compression term"},
+        {"name": "sigma_", "type": "dimensionedScalar", "purpose": "Surface tension coefficient"},
+        {"name": "nHatf_", "type": "surfaceVectorField", "purpose": "Interface normal vectors ที่ face centers"}
+      ],
+      "key_methods": [
+        {"name": "correct()", "purpose": "Update interface normal และ curvature fields"},
+        {"name": "sigmaK()", "purpose": "Return surface tension force term σκ∇α"},
+        {"name": "nHat()", "purpose": "Return interface normal vector field"}
+      ],
+      "algorithm_integration": "ถูกใช้ใน interFoam และ multiphase solvers เพื่อคำนวณ surface tension forces และ interface compression"
+    },
+    {
+      "class": "twoPhaseMixture",
+      "header": "src/transportModels/twoPhaseMixture/twoPhaseMixture.H",
+      "purpose": "จัดการ properties ของสอง phase และ mixture properties ตาม volume fraction α",
+      "key_members": [
+        {"name": "alpha1_", "type": "volScalarField", "purpose": "Volume fraction ของ phase 1"},
+        {"name": "nuModel1_", "type": "viscosityModel", "purpose": "Viscosity model สำหรับ phase 1"},
+        {"name": "nuModel2_", "type": "viscosityModel", "purpose": "Viscosity model สำหรับ phase 2"}
+      ],
+      "key_methods": [
+        {"name": "nu()", "purpose": "Return kinematic viscosity field ของ mixture"},
+        {"name": "rho()", "purpose": "Return density field ของ mixture"},
+        {"name": "mu()", "purpose": "Return dynamic viscosity field ของ mixture"}
+      ],
+      "vof_implementation": "ถูก inherit โดยในcompressibleTwoPhaseMixture และ compressibleInterFoam solvers"
+    }
+  ],
+
+  "implementation_skeleton": {
+    "classes": [
+      {
+        "name": "AlphaTransportSolver",
+        "responsibility": "Orchestrate alpha equation solution with MULES and interface compression",
+        "key_methods": [
+          {"name": "solveAlpha()", "purpose": "Solve alpha transport equation with compression term using MULES"},
+          {"name": "calculateCompressionFlux()", "purpose": "Compute interface compression flux φ_r based on alpha gradient"},
+          {"name": "enforceBounds()", "purpose": "Ensure 0≤α≤1 after transport step"},
+          {"name": "updateMixtureProperties()", "purpose": "Update ρ, μ, และ properties อื่นๆ ตาม alpha field ใหม่"}
+        ],
+        "critical_implementation": "ต้องเรียก MULES::explicitSolve พร้อม compression flux ที่คำนวณจาก interface normal และ C_α factor"
+      },
+      {
+        "name": "InterfaceSharpener",
+        "responsibility": "Manage interface compression and sharpening operations",
+        "key_methods": [
+          {"name": "computeInterfaceNormal()", "purpose": "Calculate interface normal vectors from ∇α"},
+          {"name": "applyCompression()", "purpose": "Apply compression term to alpha equation fluxes"},
+          {"name": "reconstructInterface()", "purpose": "Optional interface reconstruction (PLIC) for sharper interface"}
+        ]
+      }
+    ],
+    "algorithm_steps": [
+      "1. อ่าน solver settings จาก fvSolution (MULES parameters, compression factor C_α)",
+      "2. คำนวณ interface normal vectors: n_f = ∇α/|∇α+δ|",
+      "3. คำนวณ compression flux: φ_r = C_α n_f·S_f min(|φ|/|S_f|, maxVel)",
+      "4. รวม compression flux เข้ากับ total flux สำหรับ alpha equation: φ_alpha = φ + φ_r",
+      "5. เรียก MULES::explicitSolve(alpha, phi, phiAlpha) เพื่อ solve alpha transport equation",
+      "6. Enforce bounds: alpha = max(0, min(1, alpha))",
+      "7. อัพเดท mixture properties: ρ = αρ1 + (1-α)ρ2, μ = αμ1 + (1-α)μ2",
+      "8. คำนวณ surface tension force ถ้ามี: F_st = σκ∇α",
+      "9. ส่งต่อ properties ไปยัง momentum equation และ pressure-velocity coupling",
+      "10. สำหรับ transient flows ทำซ้ำทุก time step; สำหรับ steady-state ทำซ้ำใน outer loop"
+    ]
+  },
+
+  "concept_checks": [
+    {
+      "question": "ทำไมต้องใช้ interface compression term ใน VOF method? จะเกิดอะไรขึ้นถ้าไม่ใช้?",
+      "answer_key_points": [
+        "Without compression: numerical diffusion ทำให้ interface กระจายตัว (smear) หลายเซลล์ ทำให้ไม่ sharp",
+        "Compression term เพิ่ม artificial flux ที่บีบ interface ให้แคบลง โดย flux นี้มีค่าสูงสุดที่ α=0.5 และเป็นศูนย์ที่ α=0 หรือ 1",
+        "Term ∇·(U_r α(1-α)) เป็น conservative และมีผลเฉพาะบริเวณ interface เท่านั้น",
+        "Compression factor C_α ควบคุมความแรงของการบีบ: C_α=0 → no compression, C_α=1 → standard compression, C_α>1 → stronger compression"
+      ],
+      "implementation_note": "ใน OpenFOAM, compression term ถูกเพิ่มใน alpha equation ผ่านฟังก์ชัน fvc::flux(phi, alpha, alphaScheme) และ fvc::flux(phir, alpha, alphaScheme)"
+    },
+    {
+      "question": "MULES แตกต่างจาก conventional high-resolution schemes อย่างไร?",
+      "answer_key_points": [
+        "Conventional schemes (TVD, NVD) ใช้ limiter เพื่อป้องกัน oscillations แต่ยังอาจเกิด boundedness violation ได้",
+        "MULES ใช้ explicit solution ร่วมกับ limiter ที่ enforce strict bounds (0≤α≤1) ในทุก cell",
+        "MULES ทำงานโดยการแก้ explicit equation และ apply corrections หลังจากการคำนวณ fluxes",
+        "MULES ถูกออกแบบมาเฉพาะสำหรับ bounded scalar transport เช่น volume fraction",
+        "ใน OpenFOAM, MULES เป็น default solver สำหรับ alpha equation ใน interFoam และ multiphase solvers"
+      ],
+      "implementation_note": "MULES ถูกเรียกผ่านฟังก์ชัน MULES::explicitSolve() ในไฟล์ alphaEqn.H ของ interFoam"
+    }
+  ],
+
+  "pitfalls": [
+    {
+      "symptom": "Interface หนาเกินไป (มากกว่า 3-5 cells)",
+      "cause": "Compression factor C_α ต่ำเกินไป หรือไม่ได้ใช้ compression term เลย",
+      "fix": "เพิ่ม C_α เป็น 1 หรือมากกว่า; ตรวจสอบว่า compression flux ถูกคำนวณและเพิ่มใน alpha equation"
+    },
+    {
+      "symptom": "α มีค่าอยู่นอก bounds (α<0 หรือ α>1)",
+      "cause": "ไม่ได้ใช้ MULES หรือ limiter ไม่ทำงานถูกต้อง; อาจเกิดจาก implicit discretization ของ compression term",
+      "fix": "ใช้ MULES::explicitSolve() เสมอ; ตรวจสอบว่า compression term ใช้ explicit discretization (fvc::) เท่านั้น"
+    },
+    {
+      "symptom": "Interface มีรูปร่างผิดเพี้ยน (wiggles, kinks)",
+      "cause": "Curvature calculation มี noise สูง หรือ compression แรงเกินไป",
+      "fix": "ใช้ smoothing กับ ∇α ก่อนคำนวณ curvature; ลด C_α; ใช้ interface reconstruction (PLIC) แทน compression"
+    }
+  ],
+
+  "connections": {
+    "previous_day": "Day 09: Pressure-Velocity Coupling (SIMPLE, PISO)",
+    "next_day": "Day 11: Phase Change (Evaporation, Condensation)",
+    "key_link": "VOF method ใน Day 10 ใช้ pressure-velocity coupling จาก Day 09; interface tracking จะถูกขยายไปสู่ phase change ใน Day 11"
+  }
+}

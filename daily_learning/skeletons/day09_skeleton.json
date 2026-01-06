@@ -1,0 +1,275 @@
+{
+  "day": "09",
+  "title": "Pressure-Velocity Coupling (SIMPLE, PISO)",
+  "date": "2026-01-09",
+  "difficulty": "hardcore",
+
+  "learning_objectives": [
+    {
+      "verb": "เข้าใจ (Understand)",
+      "topic": "หลักการของ Pressure-Velocity Coupling ใน incompressible flow และความจำเป็นของ Rhie-Chow interpolation",
+      "equation": "∇·U = 0",
+      "importance": "Pressure-velocity coupling เป็นหัวใจของ CFD simulation สำหรับ incompressible flow เพราะ pressure และ velocity มีความสัมพันธ์กันผ่าน continuity equation โดยไม่มี explicit pressure equation"
+    },
+    {
+      "verb": "ออกแบบ (Design)",
+      "topic": "SIMPLE และ PISO algorithms สำหรับ steady และ transient flows พร้อม Rhie-Chow interpolation เพื่อป้องกัน pressure-velocity decoupling",
+      "components": ["Momentum Predictor", "Pressure Corrector", "Velocity Corrector", "Rhie-Chow Face Velocity Interpolation"]
+    },
+    {
+      "verb": "Implement",
+      "topic": "Pressure equation derivation และ implementation ใน OpenFOAM framework",
+      "challenge": "การจัดการ under-relaxation ใน SIMPLE และ multiple correction steps ใน PISO เพื่อรักษา stability และ accuracy"
+    }
+  ],
+
+  "theory_sections": [
+    {
+      "id": "9.1",
+      "title_en": "Pressure-Velocity Coupling Problem in Incompressible Flow",
+      "title_th": "ปัญหา Pressure-Velocity Coupling ในการไหลแบบอัดตัวไม่ได้",
+      "equations": [
+        {
+          "name": "Momentum equation (discretized)",
+          "latex": "a_P \\mathbf{U}_P + \\sum_N a_N \\mathbf{U}_N = -\\nabla p + \\mathbf{b}",
+          "explanation": "สมการโมเมนตัมที่ผ่านการ discretize แล้วแสดงความสัมพันธ์ระหว่างความเร็วที่ cell center กับความดัน gradient"
+        },
+        {
+          "name": "Continuity constraint",
+          "latex": "\\nabla \\cdot \\mathbf{U} = 0",
+          "explanation": "เงื่อนไขความต่อเนื่องสำหรับ incompressible flow ที่ทำให้ pressure และ velocity coupled"
+        }
+      ],
+      "variables": [
+        {"symbol": "a_P", "name": "diagonal coefficient of momentum matrix", "unit": "kg/(m³·s)"},
+        {"symbol": "a_N", "name": "neighbor coefficients", "unit": "kg/(m³·s)"},
+        {"symbol": "b", "name": "source term excluding pressure", "unit": "kg/(m²·s²)"}
+      ],
+      "warning": "หาก discretize pressure และ velocity ที่ตำแหน่งเดียวกัน (collocated grid) จะเกิด pressure-velocity decoupling ทำให้ solution มี oscillation (checkerboard pattern)"
+    },
+    {
+      "id": "9.2",
+      "title_en": "Rhie-Chow Interpolation for Face Velocity",
+      "title_th": "Rhie-Chow Interpolation สำหรับความเร็วที่หน้าเซลล์",
+      "equations": [
+        {
+          "name": "Rhie-Chow face velocity",
+          "latex": "\\mathbf{U}_f = \\overline{\\mathbf{U}}_f - \\overline{\\left(\\frac{1}{a_P}\\right)}_f \\left(\\nabla p_f - \\overline{\\nabla p}_f\\right)",
+          "explanation": "สูตรสำหรับคำนวณความเร็วที่ face โดยเพิ่ม pressure gradient correction term เพื่อป้องกัน decoupling"
+        },
+        {
+          "name": "Simplified form in OpenFOAM",
+          "latex": "\\phi_f = \\overline{\\phi}_f - \\overline{\\left(\\frac{1}{a_P}\\right)}_f \\left(\\nabla_{\\perp} p_f - \\overline{\\nabla_{\\perp} p}_f\\right) \\cdot \\mathbf{S}_f",
+          "explanation": "Flux form ที่ใช้ใน OpenFOAM โดย φ คือ face flux (U·S) และ ∇⟂ คือ normal gradient"
+        }
+      ],
+      "variables": [
+        {"symbol": "U_f", "name": "velocity vector at face center", "unit": "m/s"},
+        {"symbol": "φ_f", "name": "volumetric flux at face", "unit": "m³/s"},
+        {"symbol": "S_f", "name": "face area vector", "unit": "m²"},
+        {"symbol": "∇⟂p_f", "name": "normal pressure gradient at face", "unit": "Pa/m"}
+      ],
+      "warning": "Rhie-Chow interpolation ต้องใช้ consistent discretization ของ pressure gradient term ใน momentum equation และ face interpolation weights"
+    },
+    {
+      "id": "9.3",
+      "title_en": "SIMPLE Algorithm (Semi-Implicit Method for Pressure-Linked Equations)",
+      "title_th": "อัลกอริทึม SIMPLE (Semi-Implicit Method for Pressure-Linked Equations)",
+      "equations": [
+        {
+          "name": "Momentum predictor",
+          "latex": "a_P \\mathbf{U}_P^* + \\sum_N a_N \\mathbf{U}_N^* = -\\nabla p^{old} + \\mathbf{b}",
+          "explanation": "ขั้นตอนแรก: แก้สมการโมเมนตัมด้วย pressure field จาก iteration ก่อนหน้า (หรือ initial guess) ได้ predicted velocity U*"
+        },
+        {
+          "name": "Pressure equation",
+          "latex": "\\nabla \\cdot \\left( \\frac{1}{a_P} \\nabla p' \\right) = \\nabla \\cdot \\mathbf{U}^*",
+          "explanation": "Pressure correction equation ที่ได้จาก substituting velocity correction (U' = -∇p'/a_P) ลงใน continuity equation"
+        },
+        {
+          "name": "Velocity and pressure correction",
+          "latex": "\\begin{aligned} \\mathbf{U} &= \\mathbf{U}^* - \\frac{1}{a_P} \\nabla p' \\\\ p &= p^{old} + \\alpha_p p' \\end{aligned}",
+          "explanation": "Correct velocity ด้วย pressure gradient และ update pressure ด้วย under-relaxation factor α_p (typically 0.3-0.7)"
+        }
+      ],
+      "variables": [
+        {"symbol": "U*", "name": "predicted velocity", "unit": "m/s"},
+        {"symbol": "p'", "name": "pressure correction", "unit": "Pa"},
+        {"symbol": "α_p", "name": "pressure under-relaxation factor", "unit": "dimensionless"}
+      ],
+      "warning": "SIMPLE ต้องใช้ under-relaxation เพื่อรักษา stability ใน steady-state problems; มากเกินไปทำให้ converge ช้า น้อยเกินไปทำให้ diverge"
+    },
+    {
+      "id": "9.4",
+      "title_en": "PISO Algorithm (Pressure Implicit with Splitting of Operators)",
+      "title_th": "อัลกอริทึม PISO (Pressure Implicit with Splitting of Operators)",
+      "equations": [
+        {
+          "name": "Momentum predictor (same as SIMPLE)",
+          "latex": "a_P \\mathbf{U}_P^* + \\sum_N a_N \\mathbf{U}_N^* = -\\nabla p^n + \\mathbf{b}",
+          "explanation": "Predict velocity using pressure from previous time step p^n"
+        },
+        {
+          "name": "First pressure correction",
+          "latex": "\\nabla \\cdot \\left( \\frac{1}{a_P} \\nabla p' \\right) = \\nabla \\cdot \\mathbf{U}^*",
+          "explanation": "Solve for first pressure correction p'"
+        },
+        {
+          "name": "First velocity correction",
+          "latex": "\\mathbf{U}^{**} = \\mathbf{U}^* - \\frac{1}{a_P} \\nabla p'",
+          "explanation": "Correct velocity to satisfy continuity"
+        },
+        {
+          "name": "Second pressure correction",
+          "latex": "\\nabla \\cdot \\left( \\frac{1}{a_P} \\nabla p'' \\right) = \\nabla \\cdot \\mathbf{U}^{**}",
+          "explanation": "Solve for second pressure correction p'' to account for non-orthogonal correction and explicit terms"
+        },
+        {
+          "name": "Final update",
+          "latex": "\\begin{aligned} p^{n+1} &= p^n + p' + p'' \\\\ \\mathbf{U}^{n+1} &= \\mathbf{U}^{**} - \\frac{1}{a_P} \\nabla p'' \\end{aligned}",
+          "explanation": "Update pressure and velocity for next time step"
+        }
+      ],
+      "variables": [
+        {"symbol": "p'", "name": "first pressure correction", "unit": "Pa"},
+        {"symbol": "p''", "name": "second pressure correction", "unit": "Pa"},
+        {"symbol": "U**", "name": "intermediate corrected velocity", "unit": "m/s"}
+      ],
+      "warning": "PISO ใช้สำหรับ transient flows โดยไม่ต้อง under-relax pressure แต่ต้องมี multiple correction steps (typically 2-3) เพื่อรักษา accuracy"
+    }
+  ],
+
+  "openfoam_analysis": [
+    {
+      "class": "fvVectorMatrix",
+      "header": "src/finiteVolume/fvMatrices/fvMatrix/fvMatrix.H",
+      "purpose": "Matrix representation of vector equations (e.g., momentum equation) for discretization",
+      "key_members": [
+        {"name": "psi_", "type": "GeometricField<Type, fvPatchField, volMesh>", "purpose": "Reference to the solution field"},
+        {"name": "dimensions_", "type": "dimensionSet", "purpose": "Physical dimensions of the equation"},
+        {"name": "source_", "type": "Field<Type>", "purpose": "Source term vector"}
+      ],
+      "key_methods": [
+        {"name": "solve(const dictionary&)", "purpose": "Solve the matrix system with solver settings"},
+        {"name": "relax(scalar alpha)", "purpose": "Apply under-relaxation to the matrix coefficients"},
+        {"name": "flux()", "purpose": "Calculate face fluxes from current solution"}
+      ],
+      "usage_example": "fvVectorMatrix UEqn(fvm::div(phi, U) - fvm::laplacian(nu, U) == -fvc::grad(p));"
+    },
+    {
+      "class": "pimpleControl",
+      "header": "src/finiteVolume/cfdTools/general/solutionControl/pimpleControl/pimpleControl.H",
+      "purpose": "Control class for PIMPLE algorithm (combined PISO-SIMPLE) managing outer (SIMPLE) and inner (PISO) loops",
+      "key_members": [
+        {"name": "nOuterCorr_", "type": "label", "purpose": "Number of outer (SIMPLE) corrections"},
+        {"name": "nCorr_", "type": "label", "purpose": "Number of inner (PISO) corrections"},
+        {"name": "momentumPredictor_", "type": "bool", "purpose": "Flag to enable/disable momentum predictor step"}
+      ],
+      "key_methods": [
+        {"name": "correct()", "purpose": "Execute one outer correction loop"},
+        {"name": "loop()", "purpose": "Return reference to the outer loop"},
+        {"name": "turbCorr()", "purpose": "Check if turbulence should be corrected in this iteration"}
+      ],
+      "algorithm_integration": "ควบคุมการทำงานของ pimpleFoam โดยรวมทั้ง SIMPLE-style outer iterations สำหรับ steady-state และ PISO-style inner corrections สำหรับ transient"
+    },
+    {
+      "class": "surfaceInterpolation",
+      "header": "src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolation.H",
+      "purpose": "จัดการ interpolation จาก cell centers ไปยัง face centers สำหรับ Rhie-Chow correction",
+      "key_members": [
+        {"name": "weights_", "type": "surfaceScalarField", "purpose": "Interpolation weights for face values"},
+        {"name": "deltaCoeffs_", "type": "surfaceScalarField", "purpose": "Distance-based coefficients for gradient calculation"}
+      ],
+      "key_methods": [
+        {"name": "interpolate(const GeometricField<Type, fvPatchField, volMesh>&)", "purpose": "Interpolate volField to surfaceField using linear interpolation"},
+        {"name": "snGrad(const GeometricField<Type, fvPatchField, volMesh>&)", "purpose": "Calculate surface normal gradient"}
+      ],
+      "rhie_chow_implementation": "Rhie-Chow correction ถูก implement ใน fvc::flux(phiHbyA) โดยคำนวณ face flux ด้วย corrected pressure gradient term"
+    }
+  ],
+
+  "implementation_skeleton": {
+    "classes": [
+      {
+        "name": "PressureVelocityCoupler",
+        "responsibility": "Orchestrate SIMPLE/PISO algorithms with proper Rhie-Chow interpolation and under-relaxation",
+        "key_methods": [
+          {"name": "solveMomentumPredictor()", "purpose": "Solve momentum equation with current pressure field"},
+          {"name": "constructPressureEquation()", "purpose": "Assemble pressure equation from continuity constraint and Rhie-Chow fluxes"},
+          {"name": "correctVelocity()", "purpose": "Update velocity field using pressure gradient correction"},
+          {"name": "applyUnderRelaxation()", "purpose": "Apply under-relaxation to fields for stability (SIMPLE only)"}
+        ],
+        "critical_implementation": "ต้องคำนวณ face flux (φ) ด้วย Rhie-Chow correction ในทุกขั้นตอนของ pressure equation assembly"
+      },
+      {
+        "name": "RhieChowInterpolator",
+        "responsibility": "Compute face fluxes with pressure gradient correction to prevent checkerboard oscillations",
+        "key_methods": [
+          {"name": "interpolateVelocity(const volVectorField& U, const volScalarField& p)", "purpose": "Return face velocity field with Rhie-Chow correction"},
+          {"name": "faceFlux(const surfaceScalarField& phiHbyA, const volScalarField& p)", "purpose": "Compute corrected face flux for pressure equation"},
+          {"name": "correctPressureGradient(const surfaceScalarField& snGradp)", "purpose": "Calculate normal pressure gradient correction term"}
+        ]
+      }
+    ],
+    "algorithm_steps": [
+      "1. อ่าน solver settings จาก fvSolution (SIMPLE/PISO parameters, under-relaxation factors)",
+      "2. เริ่ม outer loop (สำหรับ SIMPLE) หรือ time loop (สำหรับ PISO)",
+      "3. Momentum predictor: แก้สมการโมเมนตัมด้วย pressure field ปัจจุบัน",
+      "4. สร้าง face flux ด้วย Rhie-Chow interpolation: φ = interpolate(U) & S_f - (1/aP)_f * (∇⟂p - interpolate(∇p))",
+      "5. Pressure corrector: แก้ pressure equation ∇·(1/aP ∇p') = ∇·U*",
+      "6. Velocity corrector: อัพเดท velocity field: U = U* - 1/aP ∇p'",
+      "7. สำหรับ SIMPLE: apply under-relaxation ต่อ pressure และ velocity fields",
+      "8. สำหรับ PISO: ทำซ้ำ steps 4-6 สำหรับ multiple corrections (typically 2-3 times)",
+      "9. ตรวจสอบ convergence (สำหรับ SIMPLE) หรือ proceed ไปยัง time step ต่อไป (สำหรับ PISO)",
+      "10. บันทึก fields และ update boundary conditions"
+    ]
+  },
+
+  "concept_checks": [
+    {
+      "question": "ทำไมต้องใช้ Rhie-Chow interpolation ใน collocated grid? จะเกิดอะไรขึ้นถ้าไม่ใช้?",
+      "answer_key_points": [
+        "Collocated grid เก็บ pressure และ velocity ที่ตำแหน่งเดียวกัน ทำให้ discrete continuity equation ไม่สามารถ detect pressure oscillations ได้",
+        "Without Rhie-Chow: pressure-velocity decoupling เกิด checkerboard pattern (alternating high/low pressure ใน neighboring cells)",
+        "Rhie-Chow เพิ่ม pressure gradient correction term ใน face flux calculation เพื่อเชื่อมโยง pressure ที่ cell centers กับ face fluxes",
+        "Correction term นี้มีค่าเป็นศูนย์สำหรับ smooth pressure field แต่จะ damp oscillations สำหรับ non-smooth fields"
+      ],
+      "implementation_note": "ใน OpenFOAM, Rhie-Chow correction ถูก implement อัตโนมัติใน fvm::div(phi, U) operator เมื่อใช้ face flux ที่คำนวณจาก corrected interpolation"
+    },
+    {
+      "question": "อะไรคือความแตกต่างหลักระหว่าง SIMPLE และ PISO algorithms?",
+      "answer_key_points": [
+        "SIMPLE: สำหรับ steady-state problems ใช้ under-relaxation เพื่อรักษา stability, มีเพียงหนึ่ง pressure correction ต่อ outer iteration",
+        "PISO: สำหรับ transient problems ใช้ multiple pressure corrections (2-3) ต่อ time step โดยไม่ต้อง under-relax pressure",
+        "SIMPLE ต้องการ outer iterations หลายรอบเพื่อ converge ไปยัง steady-state solution",
+        "PISO ทำ inner corrections เพื่อรักษา accuracy ภายในแต่ละ time step สำหรับ transient flows",
+        "PIMPLE: รวมทั้งสองวิธี โดยมี outer loop (เหมือน SIMPLE) สำหรับ time-step relaxation และ inner loop (เหมือน PISO) สำหรับ pressure-velocity coupling"
+      ],
+      "implementation_note": "ใน OpenFOAM, pimpleFoam ใช้ PIMPLE algorithm ซึ่งสามารถทำงานได้ทั้งในโหมด transient (PISO-dominated) และ steady-state (SIMPLE-dominated)"
+    }
+  ],
+
+  "pitfalls": [
+    {
+      "symptom": "Solution diverges หรือเกิด severe oscillations ใน pressure field",
+      "cause": "Under-relaxation factors ตั้งค่าไม่เหมาะสม (ต่ำเกินไปสำหรับ SIMPLE) หรือ missing Rhie-Chow correction",
+      "fix": "ตรวจสอบว่าใช้ Rhie-Chow interpolation สำหรับ face flux; ปรับ under-relaxation factors (เริ่มที่ 0.3 สำหรับ pressure, 0.7 สำหรับ momentum)"
+    },
+    {
+      "symptom": "Mass imbalance แม้ solution converge แล้ว",
+      "cause": "Pressure equation boundary conditions ไม่สอดคล้องกับ velocity boundary conditions หรือ Rhie-Chow implementation มีข้อผิดพลาด",
+      "fix": "ตรวจสอบ pressure boundary conditions (มักใช้ zeroGradient หรือ fixedFluxPressure); ตรวจสอบ face flux calculation ใน pressure equation"
+    },
+    {
+      "symptom": "Transient solution มี time-step restriction แม้ใช้ implicit method",
+      "cause": "PISO correction steps ไม่เพียงพอสำหรับ large time steps หรือ non-orthogonal correction ไม่ถูกต้อง",
+      "fix": "เพิ่ม nCorrectors ใน PISO loop; ใช้ skewness correction ใน mesh หรือลด time step"
+    }
+  ],
+
+  "connections": {
+    "previous_day": "Day 08: Iterative Solvers (CG, BiCGStab)",
+    "next_day": "Day 10: Turbulence Modeling (RANS, LES)",
+    "key_link": "Pressure-velocity coupling ใน Day 09 ใช้ linear solvers จาก Day 08 เพื่อแก้ pressure equation; ผลลัพธ์ velocity field จะถูกส่งไปยัง turbulence models ใน Day 10"
+  }
+}
