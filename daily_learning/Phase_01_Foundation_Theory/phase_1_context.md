@@ -67,9 +67,9 @@ $$
 $$
 
 Where:
-- $\dot{m}$ = mass transfer rate (evaporation)
-- $\rho_v$ = vapor density
-- $\rho_l$ = liquid density
+-1$\dot{m}1= mass transfer rate (evaporation)
+-1$\rho_v1= vapor density
+-1$\rho_l1= liquid density
 
 **Why it matters:** This term accounts for volume expansion during phase change.
 Without it, the solver will diverge.
@@ -82,13 +82,13 @@ Without it, the solver will diverge.
 
 ### Day 01: Governing Equations
 - **Physics**: Derived Conservation of Mass, Momentum, Energy for *two-phase mixture*.
-- **Key Equation**: $\nabla \cdot \mathbf{U} = \dot{m} \left( \frac{1}{\rho_v} - \frac{1}{\rho_l} \right)$ (Expansion Term).
+- **Key Equation**:1$\nabla \cdot \mathbf{U} = \dot{m} \left( \frac{1}{\rho_v} - \frac{1}{\rho_l} \right)1(Expansion Term).
 - **Implmentation**:
     - `volScalarField` extension: `addExpansionSource(const dimensionedScalar& mDot, ...)`
     - **Outcome**: A coupled system of PDEs ready for discretization.
 
 ### Day 02: FVM Basics
-- **Theory**: Gauss's Divergence Theorem application ($ \int_V \nabla \cdot \phi dV = \sum_f \phi_f \cdot S_f $).
+- **Theory**: Gauss's Divergence Theorem application (1\int_V \nabla \cdot \phi dV = \sum_f \phi_f \cdot S_f1$).
 - **Implementation**:
     - `fvMesh`: Implemented basic owner-neighbour addressing.
     - `surfaceScalarField`: Created distinct type for face-fluxes.
@@ -96,12 +96,12 @@ Without it, the solver will diverge.
 
 ### Day 03: Spatial Discretization
 - **Schemes Implemented**:
-    - **Upwind (UDS)**: $ \phi_f = \phi_P $ if flux > 0. Stable, Diffusive.
-    - **Central (CDS)**: $ \phi_f = 0.5(\phi_P + \phi_N) $. Accurate, Oscillatory (unbounded).
-    - **TVD**: Hybrid. $ \phi_f = \phi_P + \frac{1}{2} \psi(r) (\phi_N - \phi_P) $.
+    - **Upwind (UDS)**:1$ \phi_f = \phi_P1$ if flux > 0. Stable, Diffusive.
+    - **Central (CDS)**:1$ \phi_f = 0.5(\phi_P + \phi_N)1$. Accurate, Oscillatory (unbounded).
+    - **TVD**: Hybrid.1$ \phi_f = \phi_P + \frac{1}{2} \psi(r) (\phi_N - \phi_P)1$.
 - **Classes**:
     - `TVDLimiter`: Base class.
-    - `VanLeerLimiter`: Smooth limiter ($ \psi(r) = (r+|r|)/(1+r) $).
+    - `VanLeerLimiter`: Smooth limiter (1\psi(r) = (r+|r|)/(1+r)1$).
     - `SuperBeeLimiter`: Compressive limiter (for VOF).
 
 ### Day 04: Temporal Discretization
@@ -109,7 +109,7 @@ Without it, the solver will diverge.
     - **Euler Implicit**: First-order, Unconditionally stable.
     - **Crank-Nicolson**: Second-order, marginally stable (requires good IC).
 - **Stability**:
-    - `CourantNumber` class: Implemented $ Co = \frac{U \Delta t}{\Delta x} $ calculation.
+    - `CourantNumber` class: Implemented1$ Co = \frac{U \Delta t}{\Delta x}1$ calculation.
 
 ### Day 05: Mesh Topology
 - **Data Structures**:
@@ -128,7 +128,7 @@ Without it, the solver will diverge.
 - **Assembly**:
     - `fvm::div`: Assembles flux contributions (asymmetric).
     - `fvm::laplacian`: Assembles diffusion contributions (symmetric).
-- **Outcome**: A fully assembled linear system $ Ax = b $.
+- **Outcome**: A fully assembled linear system1$ Ax = b1$.
 
 ### Day 08: Iterative Solvers
 - **Algorithms**:
@@ -142,14 +142,14 @@ Without it, the solver will diverge.
 - **Algorithm (PISO)**:
     1. **Predictor**: Solve Momentum (implicit U).
     2. **Loop**:
-        - Calc $ H_{by}A $.
-        - Solve Pressure Poisson: $ \nabla \cdot ( \frac{1}{A_P} \nabla p ) = \nabla \cdot H_{by}A $.
+        - Calc1$ H_{by}A1$.
+        - Solve Pressure Poisson:1$ \nabla \cdot ( \frac{1}{A_P} \nabla p ) = \nabla \cdot H_{by}A1$.
         - **Corrector**: Correct U and Flux.
 - **Rhie-Chow**: Implemented within `fvc::reconstruct` to prevent checkerboarding.
 
 ### Day 10: Two-Phase Fundamentals (VOF)
 - **Method**: Volume of Fluid (VOF) with MULES.
-- **Equation**: $ \frac{\partial \alpha}{\partial t} + \nabla \cdot (U \alpha) + \nabla \cdot (U_r \alpha (1-\alpha)) = 0 $.
+- **Equation**:1$ \frac{\partial \alpha}{\partial t} + \nabla \cdot (U \alpha) + \nabla \cdot (U_r \alpha (1-\alpha)) = 01$.
 - **Classes**:
     - `AlphaEquation`: Solver class with sub-cycling.
     - `InterfaceCompression`: The artificial compression term.
@@ -157,8 +157,8 @@ Without it, the solver will diverge.
 ### Day 11: Phase Change Theory
 - **Model**: Lee Model (Assumption: Thermodynamic Equilibrium at Interface).
 - **Source Terms**:
-    - Evaporation ($\alpha_l \rightarrow \alpha_v$): $ \dot{m} = C \alpha_l \rho_l \frac{T - T_{sat}}{T_{sat}} $.
-    - Condensation ($\alpha_v \rightarrow \alpha_l$): $ \dot{m} = C \alpha_v \rho_v \frac{T_{sat} - T}{T_{sat}} $.
+    - Evaporation ($\alpha_l \rightarrow \alpha_v$):1$ \dot{m} = C \alpha_l \rho_l \frac{T - T_{sat}}{T_{sat}}1$.
+    - Condensation ($\alpha_v \rightarrow \alpha_l$):1$ \dot{m} = C \alpha_v \rho_v \frac{T_{sat} - T}{T_{sat}}1$.
 - **Implementation**: `LinearizedSource` added to `fvMatrix`.
 
 ### Day 12: Phase 1 Review & Integration
