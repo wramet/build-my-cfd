@@ -1,61 +1,108 @@
 ---
-description: Create daily learning content (English-only) using Source-First approach with Direct API integration for DeepSeek models
+description: Create daily learning content (English-only) using Source-First approach with integrated workflow
 ---
 
 # /create-day
 
-Generate daily CFD learning content (**English-only**) with Source-First methodology and **Direct API integration**.
+Generate daily CFD learning content (**English-only**) with Source-First methodology.
 
-## Important: Model Switching Issue
-
-The `Task` tool in Claude Code has a **Lazy Delegation** issue - it loads agent personas but doesn't actually switch API models.
-
-**Solution:** This skill now uses **direct API calls** to DeepSeek when needed, bypassing the Task tool limitation.
+**Architecture:** Integrated workflow combining Claude (GLM-4.7) and DeepSeek (Direct API)
 
 ---
 
 ## Usage
 
 ```
-/create-day --day=XX
+/create-day --day=XX --topic="TOPIC"
 ```
 
-Where `XX` is the day number (01-12).
+Where:
+- `XX` is day number (01-12)
+- `"TOPIC"` is the topic (optional, will read from roadmap if not provided)
 
----
-
-## Workflow Overview
-
-This skill executes a complete 6-stage pipeline:
-
-| Stage | Model | API Method | Purpose |
-|-------|--------|-------------|---------|
-| 1 | GLM-4.7 | Main Agent | Ground truth extraction (WebSearch + Source) |
-| 2 | GLM-4.7 | Main Agent | Create CFD curriculum skeleton |
-| 3 | DeepSeek R1 | **Direct API** | Verify skeleton against ground truth |
-| 4 | DeepSeek Chat V3 | **Direct API** | Expand to full English content |
-| 5 | DeepSeek R1 | **Direct API** | Final technical verification |
-| 6 | - | Python Script | Syntax QC |
+**Example:**
+```bash
+/create-day --day=05 --topic="Spatial Discretization Schemes"
+```
 
 ---
 
 ## Quick Start
 
-```
-/create-day --day=05
+```bash
+# Use the integrated workflow script
+bash .claude/scripts/run_content_workflow.sh 05 "Spatial Discretization Schemes"
 ```
 
-This provides step-by-step instructions for each stage.
+Or use `/create-day` for step-by-step guidance.
+
+---
+
+## Architecture
+
+### Model Assignment
+
+| Stage | Model | API Method | Purpose |
+|-------|--------|-------------|---------|
+| 1-2 | GLM-4.7 | **Via Claude** | Ground truth extraction + Skeleton creation |
+| 3 | DeepSeek R1 | **Direct API** | Verify skeleton against ground truth |
+| 4 | DeepSeek Chat V3 | **Direct API** | Expand to full English content |
+| 5 | DeepSeek R1 | **Direct API** | Final technical verification |
+| 6 | - | Python Script | Syntax QC |
+
+### Workflow Flow
+
+```mermaid
+flowchart TD
+    Start([/create-day --day=XX]) --> User1[User: Run Stage 1-2<br/>in Claude]
+    User1 --> R1[Stage 1: Research<br/>GLM-4.7]
+    R1 --> F[verified_facts ⭐]
+    F --> R2[Stage 2: Skeleton<br/>GLM-4.7]
+    R2 --> S[skeleton.json]
+    S --> V1[Stage 3: Verify<br/>DeepSeek R1<br/>Direct API]
+    V1 -->|Pass| D[Stage 4: Content<br/>DeepSeek Chat V3<br/>Direct API]
+    V1 -->|Fail| R2
+    D --> C[Phase_01/XX.md]
+    C --> V2[Stage 5: Final Verify<br/>DeepSeek R1<br/>Direct API]
+    V2 --> QC[Stage 6: Syntax QC<br/>Python Script]
+    QC --> Done([✅ Complete])
+
+    style R1 fill:#e1f5e1,stroke:#4caf50
+    style R2 fill:#e1f5e1,stroke:#4caf50
+    style V1 fill:#f8d7da,stroke:#dc3545
+    style V2 fill:#f8d7da,stroke:#dc3545
+    style D fill:#e0e0e0,stroke:#6c757d
+    style QC fill:#fff3cd,stroke:#ffc107
+    style Done fill:#d4edda,stroke:#28a745
+```
+
+---
+
+## Integrated Workflow
+
+### Why Use Integrated Script?
+
+The `.claude/scripts/run_content_workflow.sh` script:
+
+**Combines:**
+1. **Claude Main Agent** for stages 1-2 (WebSearch + Roadmap reading)
+2. **Python Wrapper** for stages 3-5 (Direct DeepSeek API calls)
+3. **Python QC Script** for stage 6 (Syntax validation)
+
+**Benefits:**
+- ✅ Guaranteed DeepSeek execution (no Task tool delegation issues)
+- ✅ Interactive prompts at each stage
+- ✅ Error handling and verification
+- ✅ Clear progress indicators
+- ✅ Summary of all outputs
 
 ---
 
 ## Stage-by-Stage Instructions
 
-### Stage 1: Extract Ground Truth (GLM-4.7 via Main Agent)
+### Stage 1: Extract Ground Truth (GLM-4.7)
 
-**Purpose:** Extract verified facts from OpenFOAM source code AND find latest documentation
-
-**Prompt to Claude:**
+**Ask Claude:**
 ```
 Research Day XX: [TOPIC]
 
@@ -79,11 +126,9 @@ Use this JSON structure:
 
 ---
 
-### Stage 2: Generate Skeleton (GLM-4.7 via Main Agent)
+### Stage 2: Generate Skeleton (GLM-4.7)
 
-**Purpose:** Create CFD curriculum structure from roadmap + ground truth (**English-only**)
-
-**Prompt to Claude:**
+**Ask Claude:**
 ```
 Plan Day XX: [TOPIC]
 
@@ -104,9 +149,13 @@ Output: daily_learning/skeletons/dayXX_skeleton.json
 
 ### Stage 3: Verify Skeleton (DeepSeek R1 - Direct API)
 
-**Script:**
+**Or use integrated script:**
 ```bash
-# Prepare prompt
+bash .claude/scripts/run_content_workflow.sh 05 "Spatial Discretization Schemes"
+```
+
+**Or manually:**
+```bash
 cat > /tmp/stage3_prompt.txt << 'PROMPT'
 Verify skeleton for Day XX
 
@@ -122,11 +171,8 @@ Verification tasks:
 Output format:
 - PASS if all checks succeed
 - FAIL with specific issues if any mismatch found
-
-Be thorough and specific about any issues found.
 PROMPT
 
-# Call DeepSeek R1 directly
 python3 .claude/scripts/deepseek_content.py \
   deepseek-reasoner \
   /tmp/stage3_prompt.txt \
@@ -141,9 +187,10 @@ cat /tmp/verification_report_dayXX.txt
 
 ### Stage 4: Generate Content (DeepSeek Chat V3 - Direct API)
 
-**Script:**
+**Or use integrated script** (recommended)
+
+**Or manually:**
 ```bash
-# Prepare prompt
 cat > /tmp/stage4_prompt.txt << 'PROMPT'
 Expand Day XX: [TOPIC] - ENGLISH ONLY
 
@@ -169,13 +216,10 @@ Format:
 Output complete markdown file content.
 PROMPT
 
-# Call DeepSeek Chat V3 directly
 python3 .claude/scripts/deepseek_content.py \
   deepseek-chat \
   /tmp/stage4_prompt.txt \
   > daily_learning/Phase_01_Foundation_Theory/XX.md
-
-echo "Content generated to: daily_learning/Phase_01_Foundation_Theory/XX.md"
 ```
 
 **Output:** `Phase_01_Foundation_Theory/XX.md`
@@ -184,7 +228,9 @@ echo "Content generated to: daily_learning/Phase_01_Foundation_Theory/XX.md"
 
 ### Stage 5: Final Verification (DeepSeek R1 - Direct API)
 
-**Script:**
+**Or use integrated script** (recommended)
+
+**Or manually:**
 ```bash
 cat > /tmp/stage5_prompt.txt << 'PROMPT'
 Final verification for Day XX
@@ -215,7 +261,9 @@ cat /tmp/final_verification_dayXX.txt
 
 ### Stage 6: Syntax QC (Python Script)
 
-**Script:**
+**Or use integrated script** (recommended)
+
+**Or manually:**
 ```bash
 python3 .claude/scripts/qc_syntax_check.py \
   --file=daily_learning/Phase_01_Foundation_Theory/XX.md
@@ -243,18 +291,43 @@ fi
 
 ---
 
-## Verification
-
-### Verify Direct API is Working
-
-After running any DeepSeek stage:
+## Using the Integrated Script
 
 ```bash
-# Check proxy logs - should show NO DeepSeek (we bypass proxy)
+# Run the complete workflow interactively
+bash .claude/scripts/run_content_workflow.sh 05 "Spatial Discretization Schemes"
+
+# The script will:
+# 1. Prompt you to run Stage 1 (Claude research)
+# 2. Wait for you to complete, then prompt for Stage 2 (Claude skeleton)
+# 3. Call DeepSeek R1 directly for verification
+# 4. Call DeepSeek Chat V3 directly for content generation
+# 5. Call DeepSeek R1 directly for final verification
+# 6. Run syntax QC
+# 7. Show summary of all outputs
+```
+
+### Script Features
+
+- **Interactive prompts** at each stage
+- **Error handling** with clear messages
+- **Verification** between stages
+- **Progress indicators** (colors)
+- **Summary** of all generated files
+- **Direct API calls** to DeepSeek (bypasses proxy)
+
+---
+
+## Verification
+
+### After Running
+
+```bash
+# Verify DeepSeek was used directly (not through proxy)
 grep -c "deepseek-chat" proxy.log  # Should return 0
 grep -c "deepseek-reasoner" proxy.log  # Should return 0
 
-# Check direct API calls were made
+# Verify direct API calls were made
 ls -la /tmp/stage*_prompt.txt
 ls -la /tmp/*verification*.txt
 ```
@@ -262,28 +335,25 @@ ls -la /tmp/*verification*.txt
 ### Expected Behavior
 
 ```
-Stage 1-2: Main Agent (GLM-4.7) → Uses proxy
-Stage 3-5: DeepSeek API Direct → BYPASSES proxy
+Stage 1-2: Claude (GLM-4.7) → Uses proxy → OK
+Stage 3-5: DeepSeek API Direct → BYPASSES proxy → OK
 ```
 
 ---
 
 ## Troubleshooting
 
-### Direct API Fails
+### Integrated Script Fails
 
 ```bash
-# Test API connection
-curl -X POST https://api.deepseek.com/v1/chat/completions \
-  -H "Authorization: Bearer sk-a8d183f6f9904326913cb4e799eaba17" \
-  -H "Content-Type: application/json" \
-  -d '{"model":"deepseek-chat","messages":[{"role":"user","content":"test"}],"max_tokens":10}'
+# Make script executable
+chmod +x .claude/scripts/run_content_workflow.sh
 
-# Check if requests is installed
-python3 -c "import requests; print('requests available')"
+# Check Python is available
+python3 --version
 
-# Check API key in script
-grep DEEPSEEK_API_KEY .claude/scripts/deepseek_content.py
+# Test DeepSeek API directly
+python3 .claude/scripts/deepseek_content.py deepseek-chat <(echo "test")
 ```
 
 ### Content Quality Issues
@@ -292,69 +362,18 @@ If DeepSeek generates poor content:
 
 1. **Review prompt** - Ensure constraints are clear
 2. **Check ground truth** - Verify skeleton JSON structure
-3. **Adjust temperature** - Modify script (default 0.7)
-4. **Retry with more examples** - Add specific formatting requirements
+3. **Adjust prompt** - Edit stage prompt files in `/tmp/`
+4. **Retry** - Re-run that specific stage
 
-### JSON Validation
-
-```bash
-# Validate ground truth structure
-python3 -c "import json; json.load(open('/tmp/verified_facts_dayXX.json'))"
-
-# Validate skeleton structure
-python3 -c "import json; json.load(open('daily_learning/skeletons/dayXX_skeleton.json'))"
-```
-
----
-
-## Full Example Workflow
+### QC Script Not Found
 
 ```bash
-# Day 05: Spatial Discretization Schemes
+# Check if QC script exists
+ls -la .claude/scripts/qc_syntax_check.py
 
-# 1. Research (ask Claude with prompt from Stage 1)
-# 2. Create skeleton (ask Claude with prompt from Stage 2)
-
-# 3. Verify skeleton (DeepSeek R1 directly)
-python3 .claude/scripts/deepseek_content.py deepseek-reasoner /tmp/stage3_prompt.txt
-
-# 4. Generate content (DeepSeek Chat V3 directly)
-python3 .claude/scripts/deepseek_content.py deepseek-chat /tmp/stage4_prompt.txt
-
-# 5. Final verify (DeepSeek R1 directly)
-python3 .claude/scripts/deepseek_content.py deepseek-reasoner /tmp/stage5_prompt.txt
-
-# 6. Syntax QC
-python3 .claude/scripts/qc_syntax_check.py \
-  --file=daily_learning/Phase_01_Foundation_Theory/05.md
+# If not found, skip Stage 6
+echo "⚠️  QC script not found, skipping syntax check"
 ```
-
----
-
-## Key Principles
-
-### Source-First Rule
-
-```
-Ground Truth from Source > Documentation > AI Analysis
-```
-
-### Model Assignment
-
-| Task | Model | Method | Why? |
-|------|--------|---------|-------|
-| Ground Truth | GLM-4.7 | Main Agent + WebSearch |
-| Skeleton | GLM-4.7 | Main Agent knows roadmap |
-| Verify | DeepSeek R1 | **Direct API** - reasoning |
-| Content | DeepSeek Chat V3 | **Direct API** - math+physics |
-| Final Verify | DeepSeek R1 | **Direct API** - thorough check |
-
-### English-Only Content
-
-- ✅ All content in English
-- ✅ No Thai translation required
-- ✅ Headers in English only
-- ✅ Technical terms in English
 
 ---
 
@@ -371,32 +390,56 @@ Ground Truth from Source > Documentation > AI Analysis
 
 ---
 
-## Architecture Diagram
+## Quick Reference
 
-```mermaid
-flowchart TD
-    Start([/create-day --day=XX]) --> R1[Stage 1: Research<br/>GLM-4.7<br/>Main Agent]
-    R1 --> F[verified_facts_dayXX.json ⭐]
-    F --> R2[Stage 2: Skeleton<br/>GLM-4.7<br/>Main Agent]
-    R2 --> S[skeletons/dayXX_skeleton.json]
-    S --> V1[Stage 3: Verify<br/>DeepSeek R1<br/>Direct API]
-    V1 -->|Pass ✅| D[Stage 4: Content<br/>DeepSeek Chat V3<br/>Direct API]
-    V1 -->|Fail ❌| R2
-    D --> C[Phase_01/XX.md]
-    C --> V2[Stage 5: Final Verify<br/>DeepSeek R1<br/>Direct API]
-    V2 --> QC[Stage 6: Syntax QC<br/>Python Script]
-    QC --> Done([✅ Complete])
+### Manual Stages (if not using integrated script)
 
-    style R1 fill:#e1f5e1,stroke:#4caf50
-    style R2 fill:#e1f5e1,stroke:#4caf50
-    style V1 fill:#f8d7da,stroke:#dc3545
-    style V2 fill:#f8d7da,stroke:#dc3545
-    style D fill:#e0e0e0,stroke:#6c757d
-    style QC fill:#fff3cd,stroke:#ffc107
-    style Done fill:#d4edda,stroke:#28a745
+```bash
+# Stage 3: Verify Skeleton
+python3 .claude/scripts/deepseek_content.py deepseek-reasoner /tmp/stage3_prompt.txt
+
+# Stage 4: Generate Content
+python3 .claude/scripts/deepseek_content.py deepseek-chat /tmp/stage4_prompt.txt
+
+# Stage 5: Final Verify
+python3 .claude/scripts/deepseek_content.py deepseek-reasoner /tmp/stage5_prompt.txt
+```
+
+### Integrated Script (Recommended)
+
+```bash
+# Run everything interactively
+bash .claude/scripts/run_content_workflow.sh 05 "Spatial Discretization Schemes"
 ```
 
 ---
 
+## Key Principles
+
+### Source-First Rule
+
+```
+Ground Truth from Source > Documentation > AI Analysis
+```
+
+### Model Assignment
+
+| Task | Model | Method |
+|------|--------|---------|
+| Ground Truth | GLM-4.7 | Claude Main Agent |
+| Skeleton | GLM-4.7 | Claude Main Agent |
+| Verify | DeepSeek R1 | **Direct API** |
+| Content | DeepSeek Chat V3 | **Direct API** |
+| Final Verify | DeepSeek R1 | **Direct API** |
+
+### English-Only Content
+
+- ✅ All content in English
+- ✅ No Thai translation required
+- ✅ Headers in English only
+- ✅ Technical terms in English
+
+---
+
 **Last Updated:** 2026-01-26
-**Approach:** Direct API integration for DeepSeek models (bypasses Task tool Lazy Delegation)
+**Approach:** Integrated workflow combining Claude (GLM-4.7) + Direct DeepSeek API
