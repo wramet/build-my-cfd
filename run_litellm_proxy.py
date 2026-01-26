@@ -5,6 +5,7 @@ import litellm.proxy.proxy_server as proxy_server_module
 from litellm.proxy.proxy_server import app, proxy_config, llm_router
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
+import json
 
 # Force Config Path
 default_config = "litellm_config.yaml"
@@ -37,6 +38,49 @@ try:
 
 except Exception as e:
     print(f"❌ Failed to load config manually: {e}")
+
+# ==========================================
+# CUSTOM MIDDLEWARE: Cap max_tokens for DeepSeek
+# ==========================================
+@app.middleware("http")
+async def deepseek_token_capper(request: Request, call_next):
+    # DEBUG: Print everything
+    print(f"🔍 [Middleware] Path: {request.url.path} Method: {request.method}")
+    
+    # Check for messages endpoint (broad match)
+    if "messages" in str(request.url.path) and request.method == "POST":
+        try:
+            # Read and parse body
+            body = await request.body()
+            data = json.loads(body)
+            
+            # Check if target is DeepSeek or we just want to be safe
+            # Actually, let's print the model received
+            # print(f"🔍 Model requested: {data.get('model')}")
+
+            if "model" in data and ("deepseek" in data["model"] or "deepseek" in str(data.get("model"))):
+                current_max = data.get("max_tokens", 0)
+                if current_max > 8192:
+                    print(f"✂️  Capping max_tokens from {current_max} to 8192 for {data['model']}")
+                    data["max_tokens"] = 8192
+                    
+                    # Re-encode body and force update request state
+                    new_body = json.dumps(data).encode("utf-8")
+                    
+                    # Hack: update the private _body attribute so downstream sees the new data
+                    # (Starlette caches the body here after the first await)
+                    request._body = new_body
+
+                    # Also update content-length header if possible? 
+                    # LiteLLM might not check it, but let's be safe.
+                    # It's hard to update headers in Starlette Request inplace.
+                    # Usually just updating body is enough for json consumption.
+
+        except Exception as e:
+            print(f"⚠️ Middleware Error: {e}")
+
+    response = await call_next(request)
+    return response
 
 # ==========================================
 # MOCK ANTHROPIC ENDPOINTS FOR CLI COMPATIBILITY
