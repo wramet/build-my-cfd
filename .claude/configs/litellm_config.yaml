@@ -45,6 +45,7 @@ model_list:
       api_base: https://api.deepseek.com/v1
       api_key: "sk-a8d183f6f9904326913cb4e799eaba17"
       drop_params: true
+      max_tokens: 8192
 
   # Subagent: deepseek-coder → DeepSeek Coder V2
   - model_name: deepseek-coder

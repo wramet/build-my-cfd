@@ -128,7 +128,7 @@ flowchart TD
 | **ตัวอย่างฟังก์ชัน** | `fvc::grad`, `fvc::div`, `fvc::flux`, `fvc::laplacian` | `fvm::ddt`, `fvm::div`, `fvm::laplacian` |
 | **การใช้หน่วยความจำ** | น้อยกว่า | มากกว่า (เก็บเมทริกซ์) |
 | **ประสิทธิภาพต่อการวนซ้ำ** | เร็วกว่า | ช้ากว่า (ต้อง solve) |
-| **ข้อจำกัด Time Step** | CFL: $\Delta t \leq \frac{\Delta x^2}{2\Gamma}$ | เสถียรโดยไม่มีเงื่อนไข |
+| **ข้อจำกัด Time Step** | CFL:1$\Delta t \leq \frac{\Delta x^2}{2\Gamma}1| เสถียรโดยไม่มีเงื่อนไข |
 
 ---
 
@@ -155,8 +155,8 @@ flowchart TD
 
 > [!TIP] กฎทองคำในการเลือกใช้ fvc หรือ fvm
 >
-> - หากตัวแปรนั้นคือ **คำตอบที่เรากำลังหา** $\rightarrow$ ใช้ **`fvm`** (เพื่อให้สมการเป็นแบบ Implicit)
-> - หากตัวแปรนั้นคือ **ค่าคงที่หรือค่าที่รู้แล้ว** จากขั้นตอนก่อนหน้า $\rightarrow$ ใช้ **`fvc`** (เพื่อคำนวณเป็นสัมประสิทธิ์หรือเทอม Source)
+> - หากตัวแปรนั้นคือ **คำตอบที่เรากำลังหา**1$\rightarrow1ใช้ **`fvm`** (เพื่อให้สมการเป็นแบบ Implicit)
+> - หากตัวแปรนั้นคือ **ค่าคงที่หรือค่าที่รู้แล้ว** จากขั้นตอนก่อนหน้า1$\rightarrow1ใช้ **`fvc`** (เพื่อคำนวณเป็นสัมประสิทธิ์หรือเทอม Source)
 
 ### ตัวอย่างในโซลเวอร์
 
@@ -337,7 +337,7 @@ volScalarField ddtT = fvc::ddt(T);
 >       }
 >       pFinal
 >       {
->           $p;                           // สืบทอดจาก p
+>1$p;                           // สืบทอดจาก p
 >           relTol          0;
 >       }
 >       U
@@ -467,9 +467,9 @@ fvVectorMatrix UEqn
 $$\nabla \phi = \frac{1}{V} \sum_{faces} \phi_f \mathbf{S}_f$$
 
 โดยที่:
-- $V$ คือปริมาตรของ cell
-- $\phi_f$ คือค่าที่ face (interpolated)
-- $\mathbf{S}_f$ คือเวกเตอร์พื้นที่ของ face
+-1$V1คือปริมาตรของ cell
+-1$\phi_f1คือค่าที่ face (interpolated)
+-1$\mathbf{S}_f1คือเวกเตอร์พื้นที่ของ face
 
 #### Divergence Operator
 
@@ -480,8 +480,8 @@ $$\nabla \cdot \mathbf{\phi} = \frac{1}{V} \sum_{faces} \mathbf{\phi}_f \cdot \m
 $$\nabla \cdot (\Gamma \nabla \psi) = \frac{1}{V} \sum_{faces} \Gamma_f (\nabla \psi)_f \cdot \mathbf{S}_f$$
 
 โดยที่:
-- $\Gamma$ คือสัมประสิทธิ์การ diffused
-- $(\nabla \psi)_f$ คือ gradient ที่ face
+-1$\Gamma1คือสัมประสิทธิ์การ diffused
+-1$(\nabla \psi)_f1คือ gradient ที่ face
 
 ---
 
@@ -1065,9 +1065,9 @@ $$\Delta t \leq \frac{\Delta x}{|\mathbf{u}|_{\max}}$$
 $$\Delta t \leq \frac{\Delta x^2}{2\Gamma}$$
 
 โดยที่:
-- $\Delta x$ คือขนาดของเซลล์เมช
-- $|\mathbf{u}|_{\max}$ คือความเร็วสูงสุด
-- $\Gamma$ คือสัมประสิทธิ์การ diffused
+-1$\Delta x1คือขนาดของเซลล์เมช
+-1$|\mathbf{u}|_{\max}1คือความเร็วสูงสุด
+-1$\Gamma1คือสัมประสิทธิ์การ diffused
 
 ### Implicit Advantages
 
@@ -1138,7 +1138,7 @@ $$\Delta t \leq \frac{\Delta x^2}{2\Gamma}$$
 
 **`fvc::`** คำนวณจากค่าปัจจุบัน (known):
 - ต้องปฏิบัติตามเงื่อนไข **CFL** (Courant-Friedrichs-Lewy)
-- $\Delta t \leq \frac{\Delta x}{|u|_{max}}$ สำหรับ convection
+-1$\Delta t \leq \frac{\Delta x}{|u|_{max}}1สำหรับ convection
 
 </details>
 

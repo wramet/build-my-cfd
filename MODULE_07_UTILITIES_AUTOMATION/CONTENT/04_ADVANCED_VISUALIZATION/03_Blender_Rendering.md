@@ -103,7 +103,7 @@ flowchart TD
 
 ---
 
-## เวิร์กโฟลว์: OpenFOAM $\to$ ParaView $\to$ Blender
+## เวิร์กโฟลว์: OpenFOAM1$\to1ParaView1$\to1Blender
 
 ### ภาพรวมกระบวนการ
 

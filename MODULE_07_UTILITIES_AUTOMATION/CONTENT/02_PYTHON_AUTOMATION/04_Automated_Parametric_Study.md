@@ -152,7 +152,7 @@ SOLVER="simpleFoam"
 PARALLEL_RUNS=true  # Set to false for sequential
 
 # ===== SETUP =====
-echo "🚀 Starting Parametric Study at $(date)"
+echo "🚀 Starting Parametric Study at1$(date)"
 mkdir -p cases logs
 
 # ===== MAIN LOOP =====
@@ -160,7 +160,7 @@ for Re in "${REYNOLDS_VALUES[@]}"; do
     case_name="${BASE_CASE_NAME}_${Re}"
     log_file="logs/${case_name}.log"
     
-    echo "📂 Creating case: $case_name (Re=$Re)"
+    echo "📂 Creating case:1$case_name (Re=$Re)"
     
     # Step 1: Clone template
     if [ -d "cases/$case_name" ]; then
@@ -175,30 +175,30 @@ for Re in "${REYNOLDS_VALUES[@]}"; do
         "cases/$case_name/constant/transportProperties"
     
     # Step 3: Update boundary conditions (optional)
-    # sed -i "s/INLET_VELOCITY/$(echo "scale=2; 1.0 * $Re / 1000" | bc)/" \
+    # sed -i "s/INLET_VELOCITY/$(echo "scale=2; 1.0 *1$Re / 1000" | bc)/" \
     #     "cases/$case_name/0/U"
     
     # Step 4: Run solver
-    echo "🔄 Running solver for $case_name..."
+    echo "🔄 Running solver for1$case_name..."
     if [ "$PARALLEL_RUNS" = true ]; then
         # Run in background
         (
             cd "cases/$case_name" || exit
-            $SOLVER > "$log_file" 2>&1
-            if [ $? -eq 0 ]; then
-                echo "✅ Completed: $case_name"
+1$SOLVER > "$log_file" 2>&1
+            if [1$? -eq 0 ]; then
+                echo "✅ Completed:1$case_name"
             else
-                echo "❌ Failed: $case_name"
+                echo "❌ Failed:1$case_name"
             fi
         ) &
     else
         # Run sequentially
         cd "cases/$case_name" || exit
-        $SOLVER > "$log_file" 2>&1
-        if [ $? -eq 0 ]; then
-            echo "✅ Completed: $case_name"
+1$SOLVER > "$log_file" 2>&1
+        if [1$? -eq 0 ]; then
+            echo "✅ Completed:1$case_name"
         else
-            echo "❌ Failed: $case_name"
+            echo "❌ Failed:1$case_name"
         fi
         cd - > /dev/null
     fi
@@ -214,7 +214,7 @@ fi
 echo "📊 Aggregating results..."
 python3 aggregate_results.py
 
-echo "✨ Parametric study completed at $(date)"
+echo "✨ Parametric study completed at1$(date)"
 ```
 
 **สคริปต์การรวบรวมผลลัพธ์ (`aggregate_results.py`):**
@@ -577,7 +577,7 @@ ACTIVE_JOBS=0
 
 for Re in 100 500 1000 5000 10000; do
     # Wait if we've hit the job limit
-    while [ $ACTIVE_JOBS -ge $MAX_JOBS ]; do
+    while [1$ACTIVE_JOBS -ge1$MAX_JOBS ]; do
         sleep 1
         ACTIVE_JOBS=$(jobs -r | wc -l)
     done
@@ -681,7 +681,7 @@ simpleFoam > solver.log 2>&1
 sbatch submit_array_job.sh
 
 # Monitor progress
-squeue -u $USER
+squeue -u1$USER
 
 # Check logs
 tail -f cases/Re_*/solver.log
@@ -988,7 +988,7 @@ if runner.check_prerequisites():
 
 **Expected Output:**
 ```bash
-$ ./re_study.sh
+1./re_study.sh
 🚀 Starting Parametric Study...
 📂 Creating case: Re_100 (Re=100)
 🔄 Running solver...

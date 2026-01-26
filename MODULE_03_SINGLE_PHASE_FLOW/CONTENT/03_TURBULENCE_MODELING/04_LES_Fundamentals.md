@@ -86,9 +86,9 @@ $$\tau_{ij}^{SGS} = \overline{u_i u_j} - \bar{u}_i \bar{u}_j$$
 
 | Model | Formula | Recommended For | Pros | Cons |
 |-------|---------|-----------------|------|------|
-| **Smagorinsky** | $\nu_{SGS} = (C_s \Delta)^2 |\bar{S}|$ | Simple free shear flows | Robust, well-tested | Over-dissipative near walls |
+| **Smagorinsky** |1$\nu_{SGS} = (C_s \Delta)^2 |\bar{S}|1| Simple free shear flows | Robust, well-tested | Over-dissipative near walls |
 | **WALE** | Strain/vorticity combination | Wall-bounded flows | Correct y³ near-wall behavior | Less validated |
-| **Dynamic** | Computes $C_s$ locally | Complex flows with separation | No tuning needed | Can be unstable |
+| **Dynamic** | Computes1$C_s1locally | Complex flows with separation | No tuning needed | Can be unstable |
 | **oneEqEddy** | Solves k-equation | General industrial cases | Better for non-equilibrium | Additional PDE solve |
 
 ### Smagorinsky Model (HOW)
@@ -401,7 +401,7 @@ solvers
     
     pFinal
     {
-        $p;
+1$p;
         relTol          0;
     }
     

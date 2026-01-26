@@ -123,7 +123,7 @@ RAS
 
 **การเลือกโมเดลที่เหมาะสม | Choosing the Right Model**
 
-| Model | Best For | เหมาะกับ | $y^+$ Range |
+| Model | Best For | เหมาะกับ |1$y^+1Range |
 |-------|----------|-----------|-------------|
 | `kEpsilon` | Free-shear flows, far from walls | การไหลแบบเสรี, ห่างจากผนัง | 30-300 |
 | `kOmegaSST` | Wall-bounded, separation prone | การไหลที่มีผนัง, การแยกชั้น | 1 or 30-300 |
@@ -137,10 +137,10 @@ RAS
 $$\tau_{ij} = 2\mu_t S_{ij} - \frac{2}{3}\rho k \delta_{ij}$$
 
 Where:
-- $\mu_t$ = turbulent viscosity (ความหนืดของความปั่นป่วน)
-- $S_{ij}$ = mean strain rate tensor
-- $k$ = turbulent kinetic energy
-- $\delta_{ij}$ = Kronecker delta
+-1$\mu_t1= turbulent viscosity (ความหนืดของความปั่นป่วน)
+-1$S_{ij}1= mean strain rate tensor
+-1$k1= turbulent kinetic energy
+-1$\delta_{ij}1= Kronecker delta
 
 ### Physical Meaning (Why)
 
@@ -199,19 +199,19 @@ LES
 $$y^+ = \frac{y u_\tau}{\nu}, \quad u_\tau = \sqrt{\frac{\tau_w}{\rho}}$$
 
 Where:
-- $y$ = distance from wall
-- $u_\tau$ = friction velocity
-- $\nu$ = kinematic viscosity
-- $\tau_w$ = wall shear stress
+-1$y1= distance from wall
+-1$u_\tau1= friction velocity
+-1$\nu1= kinematic viscosity
+-1$\tau_w1= wall shear stress
 
 ### Strategy Selection (Why)
 
-| Approach | $y^+$ Target | Wall Functions | เหมาะกับ |
+| Approach |1$y^+1Target | Wall Functions | เหมาะกับ |
 |----------|--------------|----------------|-----------|
 | Wall-resolved | ≈ 1 | `nutLowReWallFunction` | งานละเอียดสูง, LES |
 | Wall-modeled | 30-300 | `nutkWallFunction` | งานอุตสาหกรรมทั่วไป |
 
-**⚠️ Avoid:** $y^+ = 5-30$ (buffer layer — neither approach valid)
+**⚠️ Avoid:**1$y^+ = 5-301(buffer layer — neither approach valid)
 
 ### Boundary Conditions (How)
 
@@ -258,9 +258,9 @@ $$\epsilon = C_\mu^{0.75} \frac{k^{1.5}}{l}$$
 $$\omega = \frac{\sqrt{k}}{C_\mu^{0.25} l}$$
 
 Where:
-- $I$ = turbulence intensity (ความเข้มของความปั่นป่วน, typically 0.01 - 0.1)
-- $l$ = mixing length (ความยาวการผสม, typically 0.07 × hydraulic diameter)
-- $C_\mu = 0.09$ (standard constant)
+-1$I1= turbulence intensity (ความเข้มของความปั่นป่วน, typically 0.01 - 0.1)
+-1$l1= mixing length (ความยาวการผสม, typically 0.07 × hydraulic diameter)
+-1$C_\mu = 0.091(standard constant)
 
 ### OpenFOAM Implementation (How)
 
@@ -344,10 +344,10 @@ functions
 </details>
 
 <details>
-<summary><b>2. $y^+$ ควรอยู่ในช่วงไหน?</b></summary>
+<summary><b>2.1$y^+1ควรอยู่ในช่วงไหน?</b></summary>
 
-- **Wall-resolved:** $y^+ \approx 1$ (ใช้ Low-Re model หรือ LES)
-- **Wall functions:** $y^+ = 30-300$ (หลีกเลี่ยง buffer layer 5-30)
+- **Wall-resolved:**1$y^+ \approx 11(ใช้ Low-Re model หรือ LES)
+- **Wall functions:**1$y^+ = 30-3001(หลีกเลี่ยง buffer layer 5-30)
 </details>
 
 <details>

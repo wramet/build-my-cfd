@@ -56,7 +56,7 @@ async def deepseek_token_capper(request: Request, call_next):
             
             # Check if target is DeepSeek or we just want to be safe
             # Actually, let's print the model received
-            # print(f"🔍 Model requested: {data.get('model')}")
+            print(f"🔍 Model: {data.get('model')} | Content: {str(data)[:100]}...")
 
             if "model" in data and ("deepseek" in data["model"] or "deepseek" in str(data.get("model"))):
                 current_max = data.get("max_tokens", 0)

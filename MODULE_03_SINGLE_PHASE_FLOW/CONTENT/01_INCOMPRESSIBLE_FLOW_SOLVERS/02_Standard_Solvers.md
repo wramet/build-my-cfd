@@ -315,9 +315,9 @@ CrossPowerLawCoeffs
 
 | Model | Equation | Typical Applications |
 |-------|----------|---------------------|
-| PowerLaw | $\mu = K \dot{\gamma}^{n-1}$ | Simple shear-thinning/thickening fluids |
-| Cross | $\mu = \frac{\mu_0}{1 + (K\dot{\gamma})^m}$ | Polymer melts, suspensions |
-| Carreau | $\mu = \mu_\infty + (\mu_0 - \mu_\infty)[1 + (\lambda\dot{\gamma})^2]^{(n-1)/2}$ | Blood, general non-Newtonian |
+| PowerLaw |1$\mu = K \dot{\gamma}^{n-1}1| Simple shear-thinning/thickening fluids |
+| Cross |1$\mu = \frac{\mu_0}{1 + (K\dot{\gamma})^m}1| Polymer melts, suspensions |
+| Carreau |1$\mu = \mu_\infty + (\mu_0 - \mu_\infty)[1 + (\lambda\dot{\gamma})^2]^{(n-1)/2}1| Blood, general non-Newtonian |
 | BirdCarreau | Similar to Carreau with different parameters | Viscoelastic fluids |
 
 **Case-Specific Notes:**
@@ -335,8 +335,8 @@ CrossPowerLawCoeffs
 
 $$\frac{\partial \mathbf{u}}{\partial t} + \nabla \cdot (\mathbf{u}\mathbf{u}) = -\nabla p + \nu \nabla^2 \mathbf{u} \underbrace{- 2\boldsymbol{\Omega} \times \mathbf{u} - \boldsymbol{\Omega} \times (\boldsymbol{\Omega} \times \mathbf{r})}_{\text{SRF terms}}$$
 
-- **Coriolis force:** $-2\boldsymbol{\Omega} \times \mathbf{u}$ — Deflects moving fluid
-- **Centrifugal force:** $-\boldsymbol{\Omega} \times (\boldsymbol{\Omega} \times \mathbf{r})$ — Pushes outward
+- **Coriolis force:**1$-2\boldsymbol{\Omega} \times \mathbf{u}1— Deflects moving fluid
+- **Centrifugal force:**1$-\boldsymbol{\Omega} \times (\boldsymbol{\Omega} \times \mathbf{r})1— Pushes outward
 
 **Configuration in `constant/SRFProperties`:**
 ```cpp

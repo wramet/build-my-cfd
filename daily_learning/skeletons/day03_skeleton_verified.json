@@ -1,0 +1,378 @@
+{
+  "day": "03",
+  "title": "Spatial Discretization Schemes",
+  "subtitle": "Understanding Upwind, Central, and TVD Schemes in OpenFOAM",
+  "language": "English",
+  "learning_objectives": [
+    {
+      "type": "understand",
+      "objective": "Understand the fundamental differences between first-order upwind, second-order central, and high-order TVD discretization schemes",
+      "key_concepts": ["Grid orientation dependence", "Numerical diffusion", "Oscillations", "Accuracy vs stability"]
+    },
+    {
+      "type": "analyze",
+      "objective": "Analyze the mathematical foundations of gradient ratio calculation and normalized variable diagrams",
+      "key_concepts": ["Gradient ratio r", "Normalized variable phi_ct", "TVD criteria", "Monotonicity preservation"]
+    },
+    {
+      "type": "implement",
+      "objective": "Implement basic interpolation schemes (upwind, linear) and TVD limiters (van Leer, van Albada, SuperBee) in OpenFOAM",
+      "key_concepts": ["Template classes", "Multiple inheritance", "Runtime selection", "Limiter functions"]
+    },
+    {
+      "type": "evaluate",
+      "objective": "Evaluate scheme performance characteristics including accuracy, stability, and convergence properties",
+      "key_concepts": ["Taylor series expansion", "Truncation error", "CFL condition", "Numerical stability"]
+    },
+    {
+      "type": "diagnose",
+      "objective": "Diagnose and troubleshoot common discretization-related issues in CFD simulations",
+      "key_concepts": ["Oscillations at shocks", "Excessive numerical diffusion", "Convergence stagnation", "Mesh dependency"]
+    },
+    {
+      "type": "synthesize",
+      "objective": "Synthesize knowledge of discretization schemes with practical CFD solver development requirements",
+      "key_concepts": ["Scheme selection strategy", "Adaptive discretization", "Multi-grid compatibility", "Hardware optimization"]
+    }
+  ],
+  "theory_sections": [
+    {
+      "section": 1,
+      "title": "First-Order Upwind Discretization (UDS)",
+      "content": {
+        "introduction": "Introduction to upwind scheme and its physical interpretation",
+        "mathematical_formulation": {
+          "formula": "$f_e = f_P \\text{ if } U_e > 0, \\text{ or } f_N \\text{ if } U_e < 0$",
+          "description": "⭐ First-order upwind scheme uses upstream values",
+          "implementation": "⭐ Weights calculation: `weights = pos0(faceFlux)` from `openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/upwind/upwind.H:118`"
+        },
+        "characteristics": {
+          "pros": ["Unconditionally stable", "No oscillations", "Simple implementation"],
+          "cons": ["First-order accurate", "High numerical diffusion", "Poor resolution of gradients"]
+        },
+        "physical_interpretation": "Upwind scheme respects the physical direction of information propagation"
+      }
+    },
+    {
+      "section": 2,
+      "title": "Second-Order Central Discretization (CDS)",
+      "content": {
+        "introduction": "Introduction to central differencing and its properties",
+        "mathematical_formulation": {
+          "formula": "$f_e = \\frac{1}{2}(f_P + f_N)$",
+          "description": "⭐ Central scheme uses geometric averaging",
+          "implementation": "⭐ Weights calculation: `weights = mesh().surfaceInterpolation::weights()` from `openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/schemes/linear/linear.H:96`"
+        },
+        "characteristics": {
+          "pros": ["Second-order accurate", "Low numerical diffusion", "Symmetric treatment"],
+          "cons": ["Prone to oscillations", "Conditional stability", "No upwinding"]
+        },
+        "stability_analysis": "Central scheme requires appropriate stabilization for convection-dominated flows"
+      }
+    },
+    {
+      "section": 3,
+      "title": "Total Variation Diminishing (TVD) Schemes",
+      "content": {
+        "introduction": "Theory of TVD schemes and their properties",
+        "tvd_criteria": {
+          "definition": " schemes satisfy: $TV(\\phi^{n+1}) \\leq TV(\\phi^n)$",
+          "importance": "Prevents spurious oscillations while maintaining higher-order accuracy"
+        },
+        "limiter_functions": {
+          "van_leer": {
+            "formula": "⭐ $\\phi(r) = \\frac{r + |r|}{1 + |r|}$ from `openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/vanLeer/vanLeer.H:80`",
+            "properties": ["Smooth differentiable", "Second-order accurate", "Good general-purpose"]
+          },
+          "van_albada": {
+            "formula": "⭐ $\\phi(r) = \\frac{r(r + 1)}{r^2 + 1}$ from `openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/vanAlbada/vanAlbada.H:80`",
+            "properties": ["Smooth differentiable", "Third-order accurate in smooth regions", "Uses $\\max(r, 0)$ clamping"]
+          },
+          "superbee": {
+            "formula": "⭐ $\\phi(r) = \\max(\\min(2r, 1), \\min(r, 2), 0)$ from `openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/SuperBee/SuperBee.H:80`",
+            "properties": ["Most compressive", "Sharp shocks", "More oscillation-prone"]
+          }
+        }
+      }
+    },
+    {
+      "section": 4,
+      "title": "Normalized Variable Diagram (NVD)",
+      "content": {
+        "introduction": "Understanding the normalized variable diagram approach",
+        "key_variables": {
+          "gradient_ratio": {
+            "formula": "⭐ $r = \\frac{2\\nabla c_f}{\\nabla f} - 1$ from `openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/LimitedScheme/NVDTVD.H:95`",
+            "components": {
+              "$\\nabla f$": "$\\phi_N - \\phi_P$ (difference between neighbor and owner values)",
+              "$\\nabla c_f$": "$d \\cdot \\nabla c_P$ (if faceFlux > 0) or $d \\cdot \\nabla c_N$ (if faceFlux ≤ 0)"
+            }
+          },
+          "normalized_variable": {
+            "formula": "⭐ $\\phi_{ct} = 1 - \\frac{1}{2}\\frac{\\nabla f}{\\nabla c_f}$ from `openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/LimitedScheme/NVDTVD.H:61`",
+            "note": "Special handling when $|\\nabla c_f| \\geq 1000|\\nabla f|$ to avoid numerical issues"
+          }
+        },
+        "nvd_zones": {
+          "linear": "$0 \\leq \\phi_{ct} \\leq 1$",
+          "quadratic": "$\\phi_{ct} < 0$ or $\\phi_{ct} > 1$",
+          "extrema": "$\\phi_{ct} \\approx 0.5$"
+        }
+      }
+    },
+    {
+      "section": 5,
+      "title": "TVD Limiter Comparison and Selection",
+      "content": {
+        "limiter_comparison": {
+          "minmod": {
+            "formula": "$\\phi(r) = \\max(\\min(r, 1), 0)$",
+            "characteristics": ["Most dissipative", "Most robust", "First-order at extrema"]
+          },
+          "muscl": {
+            "formula": "$\\phi(r) = \\max(\\min(\\min(2r, 0.5r + 0.5), 2), 0)$",
+            "characteristics": ["van Leer's MUSCL", "Good compromise", "Second-order accurate"]
+          },
+          "umist": {
+            "formula": "$\\phi(r) = \\max(\\min(\\min(\\min(2r, 0.75r + 0.25), 0.25r + 0.75), 2), 0)$",
+            "characteristics": ["Smooth, third-order", "Good for smooth flows", "Less compressive"]
+          },
+          "ospre": {
+            "formula": "$\\phi(r) = \\frac{1.5r(r + 1)}{r(r + 1) + 1}$",
+            "characteristics": ["Smooth differentiable", "Third-order accurate", "Uses $\\max(r, 0)$ clamping"]
+          },
+          "gamma": {
+            "formula": "$\\phi(\\phi_{ct}) = \\max(\\phi_{ct}/k, 0)$ with $\\min(..., 1)$",
+            "characteristics": ["User-controlled compression", "TVD conformant", "$0 \\leq k \\leq 1$"]
+          }
+        },
+        "selection_guidelines": {
+          "shock_capturing": "SuperBee, Minmod",
+          "smooth_flows": "vanAlbada, UMIST, OSPRE",
+          "general_use": "vanLeer, MUSCL",
+          "robustness": "Minmod, upwind"
+        }
+      }
+    }
+  ],
+  "openfoam_reference": {
+    "class_hierarchy": {
+      "base_classes": [
+        {
+          "name": "surfaceInterpolationScheme<Type>",
+          "file_path": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolationScheme/surfaceInterpolationScheme.H:55",
+          "is_abstract": true,
+          "description": "Abstract base class for all surface interpolation schemes",
+          "key_methods": [
+            "virtual tmp<surfaceScalarField> weights(const VolField<Type>&) const = 0",
+            "virtual tmp<SurfaceField<Type>> interpolate(const VolField<Type>&) const",
+            "virtual bool corrected() const"
+          ]
+        },
+        {
+          "name": "limitedSurfaceInterpolationScheme<Type>",
+          "file_path": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/limitedSurfaceInterpolationScheme/limitedSurfaceInterpolationScheme.H:49",
+          "is_abstract": true,
+          "description": "Abstract base class for limited surface interpolation schemes",
+          "key_methods": [
+            "virtual tmp<surfaceScalarField> limiter(const VolField<Type>&) const = 0",
+            "tmp<surfaceScalarField> weights(const VolField<Type>&, const surfaceScalarField& CDweights, tmp<surfaceScalarField> tLimiter) const"
+          ]
+        }
+      ],
+      "concrete_schemes": [
+        {
+          "name": "upwind<Type>",
+          "file_path": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/upwind/upwind.H:51",
+          "inherits_from": "limitedSurfaceInterpolationScheme<Type>",
+          "description": "First-order upwind interpolation scheme",
+          "limiter": "returns surfaceScalarField with value 0 (dimensionedScalar(dimless, 0))",
+          "weights": "returns pos0(this->faceFlux_)"
+        },
+        {
+          "name": "linear<Type>",
+          "file_path": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/schemes/linear/linear.H:50",
+          "inherits_from": "surfaceInterpolationScheme<Type>",
+          "description": "Centred interpolation scheme class",
+          "weights": "returns this->mesh().surfaceInterpolation::weights()"
+        }
+      ],
+      "tvd_schemes": {
+        "template_class": {
+          "name": "LimitedScheme<Type, Limiter, LimitFunc>",
+          "file_path": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/LimitedScheme/LimitedScheme.H:63",
+          "description": "Template class to create NVD/TVD limited weighting-factors",
+          "template_parameters": ["Type - field type", "Limiter - limiter class", "LimitFunc - limiting function"],
+          "inheritance": ["limitedSurfaceInterpolationScheme<Type>", "Limiter"]
+        },
+        "limiters": [
+          {
+            "name": "vanLeerLimiter<LimiterFunc>",
+            "file_path": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/vanLeer/vanLeer.H:53",
+            "formula": "⭐ $(r + |r|)/(1 + |r|)$",
+            "description": "Limiter for vanLeer interpolation scheme"
+          },
+          {
+            "name": "vanAlbadaLimiter<LimiterFunc>",
+            "file_path": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/vanAlbada/vanAlbada.H:53",
+            "formula": "⭐ $r*(r + 1)/(sqr(r) + 1)$",
+            "description": "Limiter for vanAlbada interpolation scheme",
+            "note": "Uses max(r, 0) to clamp r >= 0"
+          },
+          {
+            "name": "SuperBeeLimiter<LimiterFunc>",
+            "file_path": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/SuperBee/SuperBee.H:53",
+            "formula": "⭐ $max(max(min(2*r, 1), min(r, 2)), 0)$",
+            "description": "Limiter for SuperBee interpolation scheme"
+          }
+        ]
+      },
+      "nvd_helper": {
+        "name": "NVDTVD",
+        "file_path": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/LimitedScheme/NVDTVD.H:44",
+        "description": "Normalized Variable Diagram (NVD) / TVD scheme helper class",
+        "methods": [
+          {
+            "name": "phict",
+            "returns": "scalar",
+            "formula": "⭐ $1 - 0.5*gradf/gradcf$ with special handling for large gradients",
+            "description": "Calculates normalized variable phi_ct"
+          },
+          {
+            "name": "r",
+            "returns": "scalar",
+            "formula": "⭐ $2*(gradcf/gradf) - 1$ with special handling for large gradients",
+            "description": "Calculates gradient ratio r"
+          }
+        ]
+      }
+    },
+    "file_structure": {
+      "base_directory": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/",
+      "categories": {
+        "Base Classes": [
+          "surfaceInterpolationScheme/surfaceInterpolationScheme.H",
+          "limitedSchemes/limitedSurfaceInterpolationScheme/limitedSurfaceInterpolationScheme.H",
+          "limitedSchemes/LimitedScheme/LimitedScheme.H"
+        ],
+        "Basic Schemes": [
+          "schemes/linear/linear.H",
+          "limitedSchemes/upwind/upwind.H"
+        ],
+        "TVD Limiters": [
+          "limitedSchemes/vanLeer/vanLeer.H",
+          "limitedSchemes/vanAlbada/vanAlbada.H",
+          "limitedSchemes/SuperBee/SuperBee.H",
+          "limitedSchemes/Minmod/Minmod.H",
+          "limitedSchemes/MUSCL/MUSCL.H",
+          "limitedSchemes/UMIST/UMIST.H",
+          "limitedSchemes/OSPRE/OSPRE.H",
+          "limitedSchemes/Gamma/Gamma.H"
+        ],
+        "NVD/TVD Helpers": [
+          "limitedSchemes/LimitedScheme/NVDTVD.H",
+          "limitedSchemes/LimitedScheme/LimitFuncs.H"
+        ]
+      }
+    }
+  },
+  "class_design": {
+    "architecture_patterns": {
+      "inheritance_hierarchy": {
+        "diagram": "```mermaid\nclassDiagram\n    class surfaceInterpolationScheme<Type> {\n        <<abstract>>\n        +weights()*\n        +interpolate()\n        +corrected()\n    }\n    \n    class limitedSurfaceInterpolationScheme<Type> {\n        <<abstract>>\n        +limiter()*\n        +weights()\n        +flux()\n    }\n    \n    class linear<Type> {\n        +weights()\n    }\n    \n    class upwind<Type> {\n        +limiter()\n        +weights()\n    }\n    \n    class LimitedScheme<Type, Limiter, LimitFunc> {\n        +limiter()\n    }\n    \n    surfaceInterpolationScheme <|-- linear\n    surfaceInterpolationScheme <|-- limitedSurfaceInterpolationScheme\n    limitedSurfaceInterpolationScheme <|-- upwind\n    limitedSurfaceInterpolationScheme <|-- LimitedScheme\n    ```",
+        "description": "⭐ Verified inheritance hierarchy showing relationship between scheme classes"
+      },
+      "template_pattern": {
+        "description": "LimitedScheme uses template parameterization for different limiters",
+        "example": "template<class Type, class Limiter, template<class> class LimitFunc>\nclass LimitedScheme\n    : public limitedSurfaceInterpolationScheme<Type>,\n      public Limiter"
+      },
+      "strategy_pattern": {
+        "description": "Runtime selection allows switching between schemes at runtime",
+        "implementation": "declareRunTimeSelectionTable(\n    tmp,\n    surfaceInterpolationScheme,\n    Mesh,\n    (const fvMesh& mesh, Istream& schemeData),\n    (mesh, schemeData)\n);"
+      }
+    }
+  },
+  "implementation": {
+    "key_implementation_details": [
+      {
+        "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/upwind/upwind.H:101-113",
+        "code": "virtual tmp<surfaceScalarField> limiter(const VolField<Type>&) const\n{\n    return surfaceScalarField::New\n    (\n        \"upwindLimiter\",\n        this->mesh(),\n        dimensionedScalar(dimless, 0)\n    );\n}",
+        "description": "⭐ Upwind scheme returns limiter of 0, making it equivalent to pure upwind differencing"
+      },
+      {
+        "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/upwind/upwind.H:115-119",
+        "code": "tmp<surfaceScalarField> weights() const\n{\n    return pos0(this->faceFlux_);\n}",
+        "description": "⭐ pos0 returns 1 where faceFlux >= 0, 0 otherwise"
+      },
+      {
+        "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/schemes/linear/linear.H:90-97",
+        "code": "tmp<surfaceScalarField> weights(const VolField<Type>&) const\n{\n    return this->mesh().surfaceInterpolation::weights();\n}",
+        "description": "⭐ Linear (central) scheme uses geometric interpolation weights from mesh"
+      },
+      {
+        "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/vanLeer/vanLeer.H:64-81",
+        "code": "scalar limiter\n(\n    const scalar,\n    const scalar faceFlux,\n    const typename LimiterFunc::phiType& phiP,\n    const typename LimiterFunc::phiType& phiN,\n    const typename LimiterFunc::gradPhiType& gradcP,\n    const typename LimiterFunc::gradPhiType& gradcN,\n    const vector& d\n) const\n{\n    scalar r = LimiterFunc::r\n    (\n        faceFlux, phiP, phiN, gradcP, gradcN, d\n    );\n\n    return (r + mag(r))/(1 + mag(r));\n}",
+        "description": "⭐ van Leer limiter implementation using gradient ratio r"
+      },
+      {
+        "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/SuperBee/SuperBee.H:64-81",
+        "code": "scalar limiter\n(\n    const scalar cdWeight,\n    const scalar faceFlux,\n    const typename LimiterFunc::phiType& phiP,\n    const typename LimiterFunc::phiType& phiN,\n    const typename LimiterFunc::gradPhiType& gradcP,\n    const typename LimiterFunc::gradPhiType& gradcN,\n    const vector& d\n) const\n{\n    scalar r = LimiterFunc::r\n    (\n        faceFlux, phiP, phiN, gradcP, gradcN, d\n    );\n\n    return max(max(min(2*r, 1), min(r, 2)), 0);\n}",
+        "description": "⭐ SuperBee limiter - most compressive TVD limiter"
+      }
+    ]
+  },
+  "concept_checks": [
+    {
+      "question": "Why does the upwind scheme inherit from limitedSurfaceInterpolationScheme instead of directly from surfaceInterpolationScheme?",
+      "answer": "⭐ Because upwind is a limited scheme that uses the limiter framework, even though it always returns a limiter value of 0. The inheritance follows the hierarchy: surfaceInterpolationScheme → limitedSurfaceInterpolationScheme → upwind.",
+      "difficulty": "intermediate",
+      "key_concept": "Class inheritance hierarchy"
+    },
+    {
+      "question": "What is the significance of using mag(r) in the van Leer limiter formula instead of just r?",
+      "answer": "⭐ Using mag(r) ensures the limiter is always positive and symmetric. This prevents negative limiter values which could lead to unphysical oscillations. The formula (r + mag(r))/(1 + mag(r)) guarantees phi(r) ≥ 0 for all r.",
+      "difficulty": "advanced",
+      "key_concept": "Limiter properties"
+    },
+    {
+      "question": "Explain the mathematical difference between the gradient ratio r calculation in NVDTVD and a simple ratio of gradients.",
+      "answer": "⭐ The NVDTVD formula r = 2*(gradcf/gradf) - 1 transforms the gradient ratio into a normalized coordinate system. This transformation ensures that r = 0 represents a linear profile, r = 1 represents a quadratic profile, and r = -1 represents an inverted quadratic profile.",
+      "difficulty": "advanced",
+      "key_concept": "Gradient ratio normalization"
+    },
+    {
+      "question": "Why does the upwind scheme's weights function use pos0(faceFlux) instead of a more complex calculation?",
+      "answer": "⭐ Because upwind scheme is first-order and only needs to know the direction of flow. pos0(faceFlux) returns 1 for inflow faces (faceFlux ≥ 0) and 0 for outflow faces, which is exactly what's needed for pure upwind differencing.",
+      "difficulty": "basic",
+      "key_concept": "Upwind weights calculation"
+    },
+    {
+      "question": "Compare the van Leer and van Albada limiters in terms of their mathematical properties and practical performance.",
+      "answer": "⭐ Van Leer: phi(r) = (r + |r|)/(1 + |r|) - Continuous first derivative, good for smooth flows. Van Albada: phi(r) = r(r + 1)/(r² + 1) - Continuous second derivative, more accurate in smooth regions but requires max(r, 0) clamping. Van Albada is more accurate but van Leer is more robust.",
+      "difficulty": "advanced",
+      "key_concept": "Limiter comparison"
+    },
+    {
+      "question": "Why does the SuperBee limiter use max(max(min(2r, 1), min(r, 2)), 0) instead of a simpler form?",
+      "answer": "⭐ The nested min/max operations create a piecewise function that provides maximum compression while maintaining TVD properties. The min(2r, 1) limits compression near smooth regions, min(r, 2) allows higher compression near extrema, and the outer max ensures non-negativity. This creates the most compressive TVD limiter.",
+      "difficulty": "advanced",
+      "key_concept": "SuperBee limiter design"
+    }
+  ],
+  "verification_status": {
+    "ground_truth_extraction": "✅ COMPLETED",
+    "skeleton_generation": "✅ COMPLETED",
+    "content_generation": "⏳ PENDING",
+    "syntax_qc": "⏳ PENDING",
+    "translation": "⏳ PENDING",
+    "final_validation": "⏳ PENDING",
+    "critical_notes": [
+      "⭐ All formulas verified from actual OpenFOAM source code",
+      "⭐ Class inheritance hierarchy verified from header files",
+      "⭐ upwind inherits from limitedSurfaceInterpolationScheme (not directly from surfaceInterpolationScheme)",
+      "⭐ van Leer formula uses mag(r), NOT r",
+      "⭐ All TVD limiters use LimiterFunc as base class",
+      "⭐ LimitedScheme uses multiple inheritance"
+    ]
+  }
+}

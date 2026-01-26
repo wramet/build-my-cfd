@@ -30,24 +30,24 @@
 $$\frac{\partial (\rho E)}{\partial t} + \nabla \cdot (\rho \mathbf{u} E) = \nabla \cdot (k \nabla T) - \nabla \cdot (p \mathbf{u}) + \nabla \cdot (\boldsymbol{\tau} \cdot \mathbf{u}) + Q$$
 
 **Where:**
-- $E = e + \frac{1}{2}|\mathbf{u}|^2$ = total energy per unit mass [J/kg]
-- $e$ = internal energy [J/kg]
-- $\mathbf{u}$ = velocity vector [m/s]
-- $p$ = pressure [Pa]
-- $k$ = thermal conductivity [W/(m·K)]
-- $\boldsymbol{\tau}$ = viscous stress tensor [Pa]
-- $Q$ = heat source/sink [W/m³]
+-1$E = e + \frac{1}{2}|\mathbf{u}|^21= total energy per unit mass [J/kg]
+-1$e1= internal energy [J/kg]
+-1$\mathbf{u}1= velocity vector [m/s]
+-1$p1= pressure [Pa]
+-1$k1= thermal conductivity [W/(m·K)]
+-1$\boldsymbol{\tau}1= viscous stress tensor [Pa]
+-1$Q1= heat source/sink [W/m³]
 
 ### 3. Physical Terms Breakdown (WHY)
 
 | Term | Mathematical Expression | Physical Meaning | Engineering Significance |
 |------|------------------------|------------------|---------------------------|
-| **Unsteady** | $\frac{\partial (\rho E)}{\partial t}$ | Rate of energy change with time | สำคัญใน transient problems (startup, shutdown) |
-| **Convection** | $\nabla \cdot (\rho \mathbf{u} E)$ | Energy transport due to fluid motion | การพาพลังงานโดยการไหลของของไหล |
-| **Conduction** | $\nabla \cdot (k \nabla T)$ | Heat diffusion (Fourier's law) | การนำความร้อน — สำคัญใน solids, boundary layers |
-| **Pressure Work** | $-\nabla \cdot (p \mathbf{u})$ | Work done by pressure forces | สำคัญใน compressible flows (compression/expansion) |
-| **Viscous Dissipation** | $\nabla \cdot (\boldsymbol{\tau} \cdot \mathbf{u})$ | Conversion of kinetic to thermal energy | สำคัญใน high-speed flows (Ma > 1) |
-| **Source** | $Q$ | Heat generation/absorption | แหล่งความร้อน เช่น จาก chemical reactions, electrical heating |
+| **Unsteady** |1$\frac{\partial (\rho E)}{\partial t}1| Rate of energy change with time | สำคัญใน transient problems (startup, shutdown) |
+| **Convection** |1$\nabla \cdot (\rho \mathbf{u} E)1| Energy transport due to fluid motion | การพาพลังงานโดยการไหลของของไหล |
+| **Conduction** |1$\nabla \cdot (k \nabla T)1| Heat diffusion (Fourier's law) | การนำความร้อน — สำคัญใน solids, boundary layers |
+| **Pressure Work** |1$-\nabla \cdot (p \mathbf{u})1| Work done by pressure forces | สำคัญใน compressible flows (compression/expansion) |
+| **Viscous Dissipation** |1$\nabla \cdot (\boldsymbol{\tau} \cdot \mathbf{u})1| Conversion of kinetic to thermal energy | สำคัญใน high-speed flows (Ma > 1) |
+| **Source** |1$Q1| Heat generation/absorption | แหล่งความร้อน เช่น จาก chemical reactions, electrical heating |
 
 ### 4. Fourier's Law: Foundation of Heat Conduction
 
@@ -59,9 +59,9 @@ $$\mathbf{q} = -k \nabla T$$
 **WHY (Physical Meaning):**
 | Symbol | Physical Meaning | Unit | Typical Value |
 |--------|------------------|------|---------------|
-| $\mathbf{q}$ | Heat flux vector | W/m² | - |
-| $k$ | Thermal conductivity | W/(m·K) | Air: 0.026, Water: 0.6, Copper: 401 |
-| $\nabla T$ | Temperature gradient | K/m | - |
+|1$\mathbf{q}1| Heat flux vector | W/m² | - |
+|1$k1| Thermal conductivity | W/(m·K) | Air: 0.026, Water: 0.6, Copper: 401 |
+|1$\nabla T1| Temperature gradient | K/m | - |
 
 **Negative Sign**: Heat flows from hot to cold (opposite to gradient direction)
 
@@ -85,9 +85,9 @@ OpenFOAM จัดเตรียมสมการพลังงานใน *
 
 | Form | Mathematical Variable | Energy Definition | Primary Use Case | Key Advantage |
 |------|----------------------|------------------|------------------|----------------|
-| **Temperature (T)** | $T$ | None directly (measurable) | Incompressible flows, small ΔT | Simplest, fastest convergence |
-| **Enthalpy (h)** | $h = e + p/\rho$ | Flow work included | Compressible flows, natural convection | Accounts for compression work automatically |
-| **Internal Energy (e)** | $e$ | Molecular energy only | High-temperature, combustion | Most fundamental, detailed thermodynamics |
+| **Temperature (T)** |1$T1| None directly (measurable) | Incompressible flows, small ΔT | Simplest, fastest convergence |
+| **Enthalpy (h)** |1$h = e + p/\rho1| Flow work included | Compressible flows, natural convection | Accounts for compression work automatically |
+| **Internal Energy (e)** |1$e1| Molecular energy only | High-temperature, combustion | Most fundamental, detailed thermodynamics |
 
 ### 2. Physical Interpretation (WHY)
 
@@ -102,8 +102,8 @@ OpenFOAM จัดเตรียมสมการพลังงานใน *
 **ทำไมต้องแยก (Why Separate?):**
 
 1. **Computational Efficiency:**
-   - T-form เร็วที่สุด ($\rho$ = constant, simplified equation)
-   - เหมาะกับ problems ที่ $\Delta T$ น้อย, incompressible
+   - T-form เร็วที่สุด ($\rho1= constant, simplified equation)
+   - เหมาะกับ problems ที่1$\Delta T1น้อย, incompressible
 
 2. **Physical Accuracy:**
    - h-form จำเป็นเมื่อ pressure work สำคัญ
@@ -117,8 +117,8 @@ OpenFOAM จัดเตรียมสมการพลังงานใน *
 
 | Criterion | Temperature (T) | Enthalpy (h) | Internal Energy (e) |
 |-----------|----------------|--------------|---------------------|
-| **Density Variation** | $\Delta\rho/\rho < 0.05$ | $\Delta\rho/\rho > 0.05$ | Variable (high T) |
-| **Temperature Range** | $\Delta T < 50$ K | $\Delta T > 50$ K | $T > 1500$ K |
+| **Density Variation** |1$\Delta\rho/\rho < 0.051|1$\Delta\rho/\rho > 0.051| Variable (high T) |
+| **Temperature Range** |1$\Delta T < 501K |1$\Delta T > 501K |1$T > 15001K |
 | **Mach Number** | Ma < 0.1 | Ma > 0.3 | Ma > 0.3 (high-speed) |
 | **Buoyancy** | Boussinesq approximation | Full compressible | Full compressible |
 | **Chemical Reactions** | No | Simple | Combustion, reacting flows |
@@ -219,9 +219,9 @@ mixture
 
 | Component | Physical Meaning | Impact on Energy Form |
 |-----------|------------------|----------------------|
-| `energy: sensibleEnthalpy` | Solves for enthalpy $h$ | Includes pressure work automatically |
-| `energy: sensibleInternalEnergy` | Solves for internal energy $e$ | More fundamental, requires explicit pressure work term |
-| `equationOfState: perfectGas` | Variable density $\rho(p,T)$ | Requires compressible energy form (h or e) |
+| `energy: sensibleEnthalpy` | Solves for enthalpy1$h1| Includes pressure work automatically |
+| `energy: sensibleInternalEnergy` | Solves for internal energy1$e1| More fundamental, requires explicit pressure work term |
+| `equationOfState: perfectGas` | Variable density1$\rho(p,T)1| Requires compressible energy form (h or e) |
 | `equationOfState: rhoConst` | Constant density | Can use simplified T-form |
 
 **HOW (Configuration Examples):**
@@ -507,17 +507,17 @@ fvOptions
 $$\alpha_{eff} = \alpha + \alpha_t = \frac{\nu}{Pr} + \frac{\nu_t}{Pr_t}$$
 
 **Components:**
-- $\alpha = \frac{k}{\rho c_p} = \frac{\nu}{Pr}$ = molecular thermal diffusivity
-- $\alpha_t = \frac{\nu_t}{Pr_t}$ = turbulent thermal diffusivity
-- $\nu_t$ = turbulent eddy viscosity (from turbulence model)
-- $Pr_t$ = turbulent Prandtl number (≈ 0.85 for most flows)
+-1$\alpha = \frac{k}{\rho c_p} = \frac{\nu}{Pr}1= molecular thermal diffusivity
+-1$\alpha_t = \frac{\nu_t}{Pr_t}1= turbulent thermal diffusivity
+-1$\nu_t1= turbulent eddy viscosity (from turbulence model)
+-1$Pr_t1= turbulent Prandtl number (≈ 0.85 for most flows)
 
 ### 2. Reynolds Analogy (WHY)
 
 | Mechanism | Momentum Diffusivity | Thermal Diffusivity | Ratio |
 |-----------|---------------------|---------------------|-------|
-| **Molecular** | $\nu = \mu/\rho$ | $\alpha = k/(\rho c_p)$ | $Pr = \nu/\alpha$ |
-| **Turbulent** | $\nu_t$ | $\alpha_t$ | $Pr_t = \nu_t/\alpha_t$ |
+| **Molecular** |1$\nu = \mu/\rho1|1$\alpha = k/(\rho c_p)1|1$Pr = \nu/\alpha1|
+| **Turbulent** |1$\nu_t1|1$\alpha_t1|1$Pr_t = \nu_t/\alpha_t1|
 
 **Physical Meaning:**
 - **Prandtl Number ($Pr$)**: สัดส่วนระหว่าง momentum diffusion และ thermal diffusion
@@ -526,9 +526,9 @@ $$\alpha_{eff} = \alpha + \alpha_t = \frac{\nu}{Pr} + \frac{\nu_t}{Pr_t}$$
 **Interpretation:**
 | Pr Range | Fluid | Characteristics |
 |----------|-------|-----------------|
-| $Pr \ll 1$ (~0.01) | Liquid metals | Heat diffuses >> momentum (thermal layer thick) |
-| $Pr \approx 1$ (0.7) | Air | Similar diffusion rates |
-| $Pr \gg 1$ (~7-100) | Water, oils | Momentum diffuses >> heat (thermal layer thin) |
+|1$Pr \ll 11(~0.01) | Liquid metals | Heat diffuses >> momentum (thermal layer thick) |
+|1$Pr \approx 11(0.7) | Air | Similar diffusion rates |
+|1$Pr \gg 11(~7-100) | Water, oils | Momentum diffuses >> heat (thermal layer thin) |
 
 ### 3. OpenFOAM Implementation (HOW)
 
@@ -580,8 +580,8 @@ wall
 **Typical Values:**
 | Parameter | Symbol | Air | Water | Liquid Metal |
 |-----------|--------|-----|-------|--------------|
-| Molecular Pr | $Pr$ | 0.71 | 7.0 | ~0.01 |
-| Turbulent Pr | $Pr_t$ | 0.85 | 0.85 | 0.85 |
+| Molecular Pr |1$Pr1| 0.71 | 7.0 | ~0.01 |
+| Turbulent Pr |1$Pr_t1| 0.85 | 0.85 | 0.85 |
 
 ---
 
@@ -595,10 +595,10 @@ $$Pr = \frac{\nu}{\alpha} = \frac{\mu c_p}{k}$$
 
 | Fluid | Pr | Characteristics | Boundary Layer Relation |
 |-------|---:|-----------------|------------------------|
-| **Liquid metals** | ~0.01 | Thermal layer >> velocity layer | $\delta_T \gg \delta$ |
-| **Air** | 0.71 | Similar thickness | $\delta_T \approx \delta$ |
-| **Water** | 7.0 | Velocity layer >> thermal layer | $\delta_T \ll \delta$ |
-| **Oil** | ~100 | Thermal layer very thin | $\delta_T \ll \delta$ |
+| **Liquid metals** | ~0.01 | Thermal layer >> velocity layer |1$\delta_T \gg \delta1|
+| **Air** | 0.71 | Similar thickness |1$\delta_T \approx \delta1|
+| **Water** | 7.0 | Velocity layer >> thermal layer |1$\delta_T \ll \delta1|
+| **Oil** | ~100 | Thermal layer very thin |1$\delta_T \ll \delta1|
 
 **Effect on Heat Transfer:**
 - Low Pr: Thermal effects penetrate deeper into flow
@@ -618,10 +618,10 @@ $$Nu = \frac{hL}{k} = \frac{\text{convective heat transfer}}{\text{conductive he
 **Typical Correlations:**
 | Flow Configuration | Correlation | Application |
 |--------------------|-------------|-------------|
-| Laminar flat plate | $Nu = 0.664 Re^{1/2} Pr^{1/3}$ | External flow |
-| Turbulent flat plate | $Nu = 0.037 Re^{4/5} Pr^{1/3}$ | External flow (high Re) |
-| Laminar pipe flow | $Nu = 3.66$ | Constant wall T |
-| Turbulent pipe flow | $Nu = 0.023 Re^{0.8} Pr^{0.4}$ | Dittus-Boelter |
+| Laminar flat plate |1$Nu = 0.664 Re^{1/2} Pr^{1/3}1| External flow |
+| Turbulent flat plate |1$Nu = 0.037 Re^{4/5} Pr^{1/3}1| External flow (high Re) |
+| Laminar pipe flow |1$Nu = 3.661| Constant wall T |
+| Turbulent pipe flow |1$Nu = 0.023 Re^{0.8} Pr^{0.4}1| Dittus-Boelter |
 
 > **📖 Note**: Rayleigh number ($Ra$) สำหรับ buoyancy-driven flows ดูรายละเอียดใน [03_Buoyancy_Driven_Flows.md](03_Buoyancy_Driven_Flows.md)
 
@@ -633,9 +633,9 @@ $$Pe = Re \cdot Pr = \frac{uL}{\alpha}$$
 
 | Regime | Pe | Dominant Mechanism | Numerical Consideration |
 |--------|---:|-------------------|------------------------|
-| $Pe < 1$ | Diffusion dominates | Conduction | Standard discretization OK |
-| $Pe > 1$ | Convection dominates | Advection | May need upwind schemes |
-| $Pe \gg 1$ | Strong convection | Advection-dominated | High-resolution schemes needed |
+|1$Pe < 11| Diffusion dominates | Conduction | Standard discretization OK |
+|1$Pe > 11| Convection dominates | Advection | May need upwind schemes |
+|1$Pe \gg 11| Strong convection | Advection-dominated | High-resolution schemes needed |
 
 ### 4. Relationships Between Dimensionless Numbers
 
@@ -677,8 +677,8 @@ $$Pe = Re \cdot Pr = \frac{uL}{\alpha}$$
 
 | Aspect | Temperature (T) | Enthalpy (h) | Internal Energy (e) |
 |--------|----------------|--------------|---------------------|
-| **Mathematical Form** | $T$ | $h = e + p/\rho$ | $e$ |
-| **Energy Type** | Indirect (via $C_p$) | Flow work included | Molecular energy only |
+| **Mathematical Form** |1$T1|1$h = e + p/\rho1|1$e1|
+| **Energy Type** | Indirect (via1$C_p$) | Flow work included | Molecular energy only |
 | **Primary Use Case** | Incompressible, small ΔT | Compressible, natural convection | High-temperature, combustion |
 | **OpenFOAM Energy Keyword** | N/A | `sensibleEnthalpy` | `sensibleInternalEnergy` |
 | **Equation of State** | `rhoConst` | `perfectGas` | `perfectGas` |
@@ -727,15 +727,15 @@ $$Pe = Re \cdot Pr = \frac{uL}{\alpha}$$
 
 | Concept | Equation | When to Use |
 |---------|----------|-------------|
-| **Fourier's Law** | $\mathbf{q} = -k\nabla T$ | All heat transfer problems |
-| **Energy (T-form)** | $\frac{DT}{Dt} = \alpha\nabla^2 T + \frac{Q}{\rho c_p}$ | Incompressible, small ΔT |
-| **Energy (h-form)** | $\frac{\partial(\rho h)}{\partial t} + \nabla\cdot(\rho\mathbf{u}h) = \nabla\cdot(k\nabla T) + \frac{Dp}{Dt} + Q$ | Compressible, natural convection |
-| **Energy (e-form)** | $\frac{\partial(\rho e)}{\partial t} + \nabla\cdot(\rho\mathbf{u}e) = \nabla\cdot(k\nabla T) - p\nabla\cdot\mathbf{u} + Q$ | Fundamental, combustion |
-| **Effective Diffusivity** | $\alpha_{eff} = \frac{\nu}{Pr} + \frac{\nu_t}{Pr_t}$ | Turbulent flows |
-| **Prandtl Number** | $Pr = \frac{\mu c_p}{k}$ | Characterize fluid properties |
-| **Nusselt Number** | $Nu = \frac{hL}{k}$ | Heat transfer coefficient calculation |
-| **Peclet Number** | $Pe = \frac{uL}{\alpha} = Re \cdot Pr$ | Convection vs diffusion regime |
-| **Thermal Diffusivity** | $\alpha = \frac{k}{\rho c_p}$ | Heat conduction rate |
+| **Fourier's Law** |1$\mathbf{q} = -k\nabla T1| All heat transfer problems |
+| **Energy (T-form)** |1$\frac{DT}{Dt} = \alpha\nabla^2 T + \frac{Q}{\rho c_p}1| Incompressible, small ΔT |
+| **Energy (h-form)** |1$\frac{\partial(\rho h)}{\partial t} + \nabla\cdot(\rho\mathbf{u}h) = \nabla\cdot(k\nabla T) + \frac{Dp}{Dt} + Q1| Compressible, natural convection |
+| **Energy (e-form)** |1$\frac{\partial(\rho e)}{\partial t} + \nabla\cdot(\rho\mathbf{u}e) = \nabla\cdot(k\nabla T) - p\nabla\cdot\mathbf{u} + Q1| Fundamental, combustion |
+| **Effective Diffusivity** |1$\alpha_{eff} = \frac{\nu}{Pr} + \frac{\nu_t}{Pr_t}1| Turbulent flows |
+| **Prandtl Number** |1$Pr = \frac{\mu c_p}{k}1| Characterize fluid properties |
+| **Nusselt Number** |1$Nu = \frac{hL}{k}1| Heat transfer coefficient calculation |
+| **Peclet Number** |1$Pe = \frac{uL}{\alpha} = Re \cdot Pr1| Convection vs diffusion regime |
+| **Thermal Diffusivity** |1$\alpha = \frac{k}{\rho c_p}1| Heat conduction rate |
 
 ### 4. Common Mistakes to Avoid
 
@@ -745,14 +745,14 @@ $$Pe = Re \cdot Pr = \frac{uL}{\alpha}$$
 
 2. ❌ **Inconsistent boundary conditions**:
    - If `energy` is `sensibleEnthalpy`, use `h` field for BCs, not `T`
-   - Value conversion: $h \approx C_p \times T$ (for constant $C_p$)
+   - Value conversion:1$h \approx C_p \times T1(for constant1$C_p$)
 
 3. ❌ **Ignoring turbulence effects**:
    - For turbulent flows, always use `alphaEff()` instead of `alpha()`
-   - Use $Pr_t \approx 0.85$ for turbulent flows, not molecular $Pr$
+   - Use1$Pr_t \approx 0.851for turbulent flows, not molecular1$Pr$
 
 4. ❌ **Wrong thermophysical model**:
-   - `hConst` assumes constant $C_p$ — use `polynomial` for large temperature ranges
+   - `hConst` assumes constant1$C_p1— use `polynomial` for large temperature ranges
    - `janaf` for high-temperature applications (combustion)
 
 5. ❌ **Neglecting viscous dissipation**:
@@ -760,8 +760,8 @@ $$Pe = Re \cdot Pr = \frac{uL}{\alpha}$$
    - Included automatically in h-form and e-form
 
 6. ❌ **Wrong Prandtl number**:
-   - Use molecular $Pr$ (fluid property) in `thermophysicalProperties`
-   - Use turbulent $Pr_t$ (≈ 0.85) in wall boundary conditions
+   - Use molecular1$Pr1(fluid property) in `thermophysicalProperties`
+   - Use turbulent1$Pr_t1(≈ 0.85) in wall boundary conditions
 
 ### 5. Best Practices
 
@@ -786,7 +786,7 @@ $$Pe = Re \cdot Pr = \frac{uL}{\alpha}$$
 - **Enthalpy (h)**: รวม flow work ($p/\rho$) เข้าไว้แล้ว
   - เหมาะกับ open systems ที่มีการไหลเข้า-ออกของ control volume
   - ใช้ใน most compressible flow solvers
-  - คำนวณ: $h = e + p/\rho$
+  - คำนวณ:1$h = e + p/\rho$
 
 - **Internal Energy (e)**: พลังงานระดับโมเลกุลเท่านั้น
   - เหมาะกับ closed systems หรือเมื่อต้องการความแม่นยำในระดับพื้นฐาน
@@ -810,7 +810,7 @@ e = thermo.he() - p/rho;      // For sensibleInternalEnergy
 ค่าเชิงประจักษ์จากการทดลองแสดงว่า:
 
 1. **Momentum และ heat diffuse ด้วยอัตราใกล้เคียงกัน**
-   - ทำให้ $Pr_t \approx 1$ (theoretical expectation)
+   - ทำให้1$Pr_t \approx 11(theoretical expectation)
 
 2. **แต่ไม่เท่ากันทีเดียว**
    - Turbulent eddies transport momentum ได้ดีกว่า heat เล็กน้อย
@@ -818,7 +818,7 @@ e = thermo.he() - p/rho;      // For sensibleInternalEnergy
 
 **Physical reasons:**
 - **Different length scales**: Velocity and temperature fluctuations have different scales
-- **Pressure-velocity correlations**: Present in momentum transport, enhance $\nu_t$
+- **Pressure-velocity correlations**: Present in momentum transport, enhance1$\nu_t$
 - **No pressure-temperature correlations**: Absent in heat transport
 - **Buoyancy effects**: Can affect temperature but not momentum directly
 
@@ -839,7 +839,7 @@ wall { Prt 0.85; }          // Turbulent Prandtl (empirical constant)
 
 **ใช้ T-form เมื่อ:**
 1. Fluid is essentially incompressible ($\Delta\rho/\rho < 0.05$)
-2. Temperature variations are small ($\Delta T < 50$ K)
+2. Temperature variations are small ($\Delta T < 501K)
 3. Computational speed is priority
 4. Using Boussinesq approximation for buoyancy
 
@@ -851,7 +851,7 @@ wall { Prt 0.85; }          // Turbulent Prandtl (empirical constant)
 
 **Decision criterion:**
 - If density variations affect flow physics significantly → use h-form
-- If $\Delta T$ is small and density ≈ constant → use T-form
+- If1$\Delta T1is small and density ≈ constant → use T-form
 
 **Example:**
 ```cpp
@@ -949,14 +949,14 @@ St (efficiency)
 2. **Turbulent eddies** ($\alpha_t = \frac{\nu_t}{Pr_t}$):
    - การผสมผสานโดย turbulent eddies
    - ค่าตาม position (field quantity)
-   - $\nu_t \gg \nu$ ใน turbulent regions
+   -1$\nu_t \gg \nu1ใน turbulent regions
 
 **alphaEff** รวมทั้ง 2 กลไก:
 $$\alpha_{eff} = \alpha + \alpha_t$$
 
 **Behavior:**
-- **Laminar flow**: $\alpha_{eff} \approx \alpha$ (เพราะ $\nu_t \approx 0$)
-- **Turbulent flow**: $\alpha_{eff} \gg \alpha$ (เพราะ $\nu_t \gg \nu$)
+- **Laminar flow**:1$\alpha_{eff} \approx \alpha1(เพราะ1$\nu_t \approx 0$)
+- **Turbulent flow**:1$\alpha_{eff} \gg \alpha1(เพราะ1$\nu_t \gg \nu$)
 
 **OpenFOAM implementation:**
 ```cpp
@@ -971,8 +971,8 @@ volScalarField alphaEff = turbulence->alphaEff();
 ```
 
 **Consequences of using wrong alpha:**
-- ใช้ `alpha()` ใน turbulent flow → Underpredict heat transfer (missing $\alpha_t$)
-- ใช้ `alphaEff()` ใน laminar flow → No harm (alphaEff = alpha when $\nu_t = 0$)
+- ใช้ `alpha()` ใน turbulent flow → Underpredict heat transfer (missing1$\alpha_t$)
+- ใช้ `alphaEff()` ใน laminar flow → No harm (alphaEff = alpha when1$\nu_t = 0$)
 </details>
 
 <details>

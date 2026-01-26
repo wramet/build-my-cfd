@@ -363,16 +363,16 @@ where ω = relaxation factor (0 < ω ≤ 1)
 **Process Flow:**
 
 1. **Continuous PDE:**
-   $$\frac{\partial T}{\partial t} + \nabla \cdot (\mathbf{U} T) = \nabla \cdot (\alpha \nabla T)$$
+1$$\frac{\partial T}{\partial t} + \nabla \cdot (\mathbf{U} T) = \nabla \cdot (\alpha \nabla T)$$
 
 2. **Discretization (FVM):**
-   $$\int_V \frac{\partial T}{\partial t} dV + \oint_A \mathbf{U} T \cdot d\mathbf{A} = \oint_A \alpha \nabla T \cdot d\mathbf{A}$$
+1$$\int_V \frac{\partial T}{\partial t} dV + \oint_A \mathbf{U} T \cdot d\mathbf{A} = \oint_A \alpha \nabla T \cdot d\mathbf{A}$$
 
 3. **Discrete form per cell P:**
-   $$a_P T_P + \sum_{NB} a_{NB} T_{NB} = b_P$$
+1$$a_P T_P + \sum_{NB} a_{NB} T_{NB} = b_P$$
 
 4. **Matrix form (Ax = b):**
-   $$\begin{bmatrix} a_1 & a_{12} & \cdots \\ a_{21} & a_2 & \cdots \\ \vdots & \vdots & \ddots \end{bmatrix} 
+1$$\begin{bmatrix} a_1 & a_{12} & \cdots \\ a_{21} & a_2 & \cdots \\ \vdots & \vdots & \ddots \end{bmatrix} 
    \begin{bmatrix} T_1 \\ T_2 \\ \vdots \end{bmatrix} = 
    \begin{bmatrix} b_1 \\ b_2 \\ \vdots \end{bmatrix}$$
 

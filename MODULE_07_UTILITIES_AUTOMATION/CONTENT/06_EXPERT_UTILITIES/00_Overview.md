@@ -148,7 +148,7 @@ Utilities are the building blocks for **automated CFD workflows**:
 for nu in 0.01 0.1 1.0; do
     cp -r case_base case_nu_$nu
     cd case_nu_$nu
-    sed -i "s/nu.*/nu [0 2 $nu 0 0 0 0 0 0];/" constant/transportProperties
+    sed -i "s/nu.*/nu [0 21$nu 0 0 0 0 0 0];/" constant/transportProperties
     blockMesh > log.blockMesh
     checkMesh > log.checkMesh
     simpleFoam > log.simpleFoam
@@ -176,7 +176,7 @@ Before using utilities, ensure:
 
 ```bash
 # OpenFOAM environment sourced
-echo $WM_PROJECT
+echo1$WM_PROJECT
 # Output: OpenFOAM
 
 # Utility paths accessible
@@ -249,10 +249,10 @@ This module covers utilities from **fundamental concepts** to **expert-level cus
 
 ```bash
 # List all standard utilities
-ls $FOAM_APPBIN
+ls1$FOAM_APPBIN
 
 # Search for specific utility
-ls $FOAM_APPBIN | grep -i mesh
+ls1$FOAM_APPBIN | grep -i mesh
 
 # Get utility help
 <utilityName> -help

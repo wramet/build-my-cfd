@@ -465,9 +465,9 @@ output.RowData.append(Re, "Reynolds Number")
 
 Then use **Text Source** or **Python Annotation** to display:
 ```
-Time: ${Time (s):.2f} s
-Max Velocity: ${Max Velocity (m/s):.2f} m/s
-Re: ${Reynolds Number:.0f}
+Time:1${Time (s):.2f} s
+Max Velocity:1${Max Velocity (m/s):.2f} m/s
+Re:1${Reynolds Number:.0f}
 ```
 
 #### C. Graph Synchronization

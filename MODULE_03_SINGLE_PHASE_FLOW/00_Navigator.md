@@ -390,7 +390,7 @@
 > ```cpp
 > myCustomFoam.C
 >
-> EXE = $(FOAM_USER_APPBIN)/myCustomFoam
+> EXE =1$(FOAM_USER_APPBIN)/myCustomFoam
 > ```
 >
 > **ตัวอย่าง Advanced Solver Settings:**

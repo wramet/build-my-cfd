@@ -5,7 +5,7 @@ import sys
 def polish_content(content):
     # 1. Regex replacements (Global)
     
-    # Backticks around math `$...$` -> $...$
+    # Backticks around math `$...$` ->1$...$
     # We use a loop to handle multiple occurrences on one line safely? 
     # Actually regex handles it.
     content = re.sub(r'`(\$[^`\n]+\$)`', r'\1', content)

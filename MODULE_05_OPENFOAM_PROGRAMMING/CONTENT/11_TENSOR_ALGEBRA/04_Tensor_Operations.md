@@ -140,10 +140,10 @@ tensor E = 2.5 * A;
 
 | สมการคณิตศาสตร์ | OpenFOAM Code | คำอธิบาย |
 |:---|:---|:---|
-| $\mathbf{C} = \mathbf{A} + \mathbf{B}$ | `tensor C = A + B;` | การบวกเทนเซอร์ |
-| $\mathbf{D} = \mathbf{A} - \mathbf{B}$ | `tensor D = A - B;` | การลบเทนเซอร์ |
-| $\mathbf{E} = \alpha \cdot \mathbf{A}$ | `tensor E = 2.5 * A;` | การคูณสเกลาร์ |
-| $F_{ij} = \frac{A_{ij} + B_{ij}}{2}$ | `tensor F = 0.5 * (A + B);` | การหาค่าเฉลี่ย |
+|1$\mathbf{C} = \mathbf{A} + \mathbf{B}1| `tensor C = A + B;` | การบวกเทนเซอร์ |
+|1$\mathbf{D} = \mathbf{A} - \mathbf{B}1| `tensor D = A - B;` | การลบเทนเซอร์ |
+|1$\mathbf{E} = \alpha \cdot \mathbf{A}1| `tensor E = 2.5 * A;` | การคูณสเกลาร์ |
+|1$F_{ij} = \frac{A_{ij} + B_{ij}}{2}1| `tensor F = 0.5 * (A + B);` | การหาค่าเฉลี่ย |
 
 > **หลักการสำคัญ:** การดำเนินการเหล่านี้ถูก implement โดยใช้ **Expression Templates** ที่สร้าง lazy evaluation trees เพื่อประสิทธิภาพสูงสุด
 
@@ -210,9 +210,9 @@ flowchart TD
 
 | ตัวดำเนินการ | ชื่อการดำเนินการ | ความหมายทางคณิตศาสตร์ | ผลลัพธ์ |
 |:---:|:---|:---|:---:|
-| **`&`** | Single Contraction (Dot Product) | $\mathbf{T} \cdot \mathbf{v}$ หรือ $\mathbf{A} \cdot \mathbf{B}$ | **Vector** หรือ **Tensor** |
-| **`&&`** | Double Contraction (Double Dot) | $\mathbf{A} : \mathbf{B} = \text{tr}(\mathbf{A} \cdot \mathbf{B}^T)$ | **Scalar** |
-| **`*`** | Outer Product | $\mathbf{u} \otimes \mathbf{v}$ | **Tensor** |
+| **`&`** | Single Contraction (Dot Product) |1$\mathbf{T} \cdot \mathbf{v}1หรือ1$\mathbf{A} \cdot \mathbf{B}1| **Vector** หรือ **Tensor** |
+| **`&&`** | Double Contraction (Double Dot) |1$\mathbf{A} : \mathbf{B} = \text{tr}(\mathbf{A} \cdot \mathbf{B}^T)1| **Scalar** |
+| **`*`** | Outer Product |1$\mathbf{u} \otimes \mathbf{v}1| **Tensor** |
 
 ### 2.2 การหดตัวหนึ่งระดับ (`&`) - Single Contraction
 
@@ -268,8 +268,8 @@ vector w = A & v;
 
 | สมการคณิตศาสตร์ | OpenFOAM Code | บริบททางฟิสิกส์ |
 |:---|:---|:---|
-| $\mathbf{t} = \boldsymbol{\sigma} \cdot \mathbf{n}$ | `vector t = sigma & n;` | Traction vector บนพื้นผิว |
-| $\mathbf{F} = \int_A \boldsymbol{\sigma} \cdot \mathbf{n} \, dA$ | `vector F = sum(mesh.Sf() & sigma.boundaryField()[patchi]);` | แรงรวมบน patch |
+|1$\mathbf{t} = \boldsymbol{\sigma} \cdot \mathbf{n}1| `vector t = sigma & n;` | Traction vector บนพื้นผิว |
+|1$\mathbf{F} = \int_A \boldsymbol{\sigma} \cdot \mathbf{n} \, dA1| `vector F = sum(mesh.Sf() & sigma.boundaryField()[patchi]);` | แรงรวมบน patch |
 
 ### 2.3 การหดตัวสองระดับ (`&&`) - Double Contraction
 
@@ -289,15 +289,15 @@ $$\mathbf{A} : \mathbf{B} = A_{11}B_{11} + A_{12}B_{12} + A_{13}B_{13} + A_{21}B
 scalar s = A && B;
 ```
 
-> **ความสำคัญ:** ใช้ในการคำนวณงานและพลังงาน เช่น Dissipation function $\Phi = \boldsymbol{\tau} : \nabla \mathbf{u}$
+> **ความสำคัญ:** ใช้ในการคำนวณงานและพลังงาน เช่น Dissipation function1$\Phi = \boldsymbol{\tau} : \nabla \mathbf{u}$
 
 #### จากคณิตศาสตร์ไปยัง OpenFOAM Code: Dissipation
 
 | สมการคณิตศาสตร์ | OpenFOAM Code | บริบททางฟิสิกส์ |
 |:---|:---|:---|
-| $\Phi = \boldsymbol{\tau} : \nabla \mathbf{u}$ | `scalar Phi = tau && gradU;` | Dissipation function |
-| $k = \frac{1}{2} \mathbf{R} : \mathbf{I}$ | `scalar k = 0.5 * (R && I);` | Turbulent kinetic energy |
-| $W = \int_V \boldsymbol{\sigma} : \mathbf{D} \, dV$ | `scalar W = sum(sigma & D * mesh.V());` | งานเสียดทานรวม |
+|1$\Phi = \boldsymbol{\tau} : \nabla \mathbf{u}1| `scalar Phi = tau && gradU;` | Dissipation function |
+|1$k = \frac{1}{2} \mathbf{R} : \mathbf{I}1| `scalar k = 0.5 * (R && I);` | Turbulent kinetic energy |
+|1$W = \int_V \boldsymbol{\sigma} : \mathbf{D} \, dV1| `scalar W = sum(sigma & D * mesh.V());` | งานเสียดทานรวม |
 
 ### 2.4 ผลคูณภายนอก (`*`) - Outer Product
 
@@ -342,8 +342,8 @@ tensor T = u * v;
 
 | สมการคณิตศาสตร์ | OpenFOAM Code | บริบททางฟิสิกส์ |
 |:---|:---|:---|
-| $\boldsymbol{\tau} = -\rho \overline{\mathbf{u}' \otimes \mathbf{u}'}$ | `symmTensor tau = -rho * sqrt(k_/k_)*Uprime_*Uprime_;` | Reynolds stress |
-| $\mathbf{T} = \mathbf{u} \otimes \mathbf{v}$ | `tensor T = U * V;` | Gradient tensor จาก outer product |
+|1$\boldsymbol{\tau} = -\rho \overline{\mathbf{u}' \otimes \mathbf{u}'}1| `symmTensor tau = -rho * sqrt(k_/k_)*Uprime_*Uprime_;` | Reynolds stress |
+|1$\mathbf{T} = \mathbf{u} \otimes \mathbf{v}1| `tensor T = U * V;` | Gradient tensor จาก outer product |
 
 ---
 
@@ -390,10 +390,10 @@ flowchart TD
 
 | ฟังก์ชัน | สูตร | คำอธิบาย |
 |:---:|:---|:---|
-| **`tr(T)`** | $T_{xx} + T_{yy} + T_{zz}$ | **Trace**: ผลรวมแนวทแยง (เช่น ความดัน) |
-| **`det(T)`** | $\det(\mathbf{T})$ | **Determinant**: ปริมาตรสเกลลิ่ง |
-| **`inv(T)`** | $\mathbf{T}^{-1}$ | **Inverse**: เมทริกซ์ผกผัน |
-| **`T.T()`** | $T_{ji}$ | **Transpose**: สลับแถว-หลัก |
+| **`tr(T)`** |1$T_{xx} + T_{yy} + T_{zz}1| **Trace**: ผลรวมแนวทแยง (เช่น ความดัน) |
+| **`det(T)`** |1$\det(\mathbf{T})1| **Determinant**: ปริมาตรสเกลลิ่ง |
+| **`inv(T)`** |1$\mathbf{T}^{-1}1| **Inverse**: เมทริกซ์ผกผัน |
+| **`T.T()`** |1$T_{ji}1| **Transpose**: สลับแถว-หลัก |
 
 ### 3.2 ตัวอย่างโค้ด OpenFOAM
 
@@ -410,9 +410,9 @@ tensor invA = inv(A);     // Inverse (if det != 0)
 
 | สมการคณิตศาสตร์ | OpenFOAM Code | บริบททางฟิสิกส์ |
 |:---|:---|:---|
-| $I_1 = \text{tr}(\boldsymbol{\sigma})$ | `scalar I1 = tr(sigma);` | Invariant แรกของ stress |
-| $J = \det(\mathbf{F})$ | `scalar J = det(F);` | Jacobian determinant |
-| $\boldsymbol{\sigma}' = \boldsymbol{\sigma} - \frac{1}{3}\text{tr}(\boldsymbol{\sigma})\mathbf{I}$ | `symmTensor sigma_dev = sigma - (1.0/3.0)*tr(sigma)*I;` | Deviatoric stress |
+|1$I_1 = \text{tr}(\boldsymbol{\sigma})1| `scalar I1 = tr(sigma);` | Invariant แรกของ stress |
+|1$J = \det(\mathbf{F})1| `scalar J = det(F);` | Jacobian determinant |
+|1$\boldsymbol{\sigma}' = \boldsymbol{\sigma} - \frac{1}{3}\text{tr}(\boldsymbol{\sigma})\mathbf{I}1| `symmTensor sigma_dev = sigma - (1.0/3.0)*tr(sigma)*I;` | Deviatoric stress |
 
 ---
 
@@ -487,10 +487,10 @@ tensor Omega = skew(T);
 
 | สมการคณิตศาสตร์ | OpenFOAM Code | บริบททางฟิสิกส์ |
 |:---|:---|:---|
-| $\boldsymbol{\tau} = 2\mu \text{dev}(\mathbf{D})$ | `symmTensor tau = 2*nu*dev(symm(fvc::grad(U)));` | Newtonian stress |
-| $\mathbf{D} = \text{symm}(\nabla \mathbf{u})$ | `symmTensorField D = symm(fvc::grad(U));` | Strain rate tensor |
-| $\boldsymbol{\Omega} = \text{skew}(\nabla \mathbf{u})$ | `tensor Omega = skew(fvc::grad(U));` | Vorticity tensor |
-| $\mathbf{R} = -\frac{2}{3}k\mathbf{I} + 2\nu_t \text{dev}(\mathbf{D})$ | `symmTensor R = -(2.0/3.0)*k_*I + 2*nut_*dev(symm(fvc::grad(U)));` | Reynolds stress (k-epsilon) |
+|1$\boldsymbol{\tau} = 2\mu \text{dev}(\mathbf{D})1| `symmTensor tau = 2*nu*dev(symm(fvc::grad(U)));` | Newtonian stress |
+|1$\mathbf{D} = \text{symm}(\nabla \mathbf{u})1| `symmTensorField D = symm(fvc::grad(U));` | Strain rate tensor |
+|1$\boldsymbol{\Omega} = \text{skew}(\nabla \mathbf{u})1| `tensor Omega = skew(fvc::grad(U));` | Vorticity tensor |
+|1$\mathbf{R} = -\frac{2}{3}k\mathbf{I} + 2\nu_t \text{dev}(\mathbf{D})1| `symmTensor R = -(2.0/3.0)*k_*I + 2*nut_*dev(symm(fvc::grad(U)));` | Reynolds stress (k-epsilon) |
 
 #### การประยุกต์ใช้
 
@@ -558,9 +558,9 @@ vector dir1 = eigVecs.col(0); // Direction of sigma1
 
 | สมการคณิตศาสตร์ | OpenFOAM Code | บริบททางฟิสิกส์ |
 |:---|:---|:---|
-| $\sigma_{vm} = \sqrt{\frac{3}{2} \text{dev}(\boldsymbol{\sigma}) : \text{dev}(\boldsymbol{\sigma})}$ | `scalar sigma_vm = sqrt(1.5 * (devSigma && devSigma));` | Von Mises stress |
-| $\sigma_1, \sigma_2, \sigma_3 = \text{eig}(\boldsymbol{\sigma})$ | `vector eig = eigenValues(sigma);` | Principal stresses |
-| $J_2 = \frac{1}{2} \text{dev}(\boldsymbol{\sigma}) : \text{dev}(\boldsymbol{\sigma})$ | `scalar J2 = 0.5 * (devSigma && devSigma);` | Second invariant |
+|1$\sigma_{vm} = \sqrt{\frac{3}{2} \text{dev}(\boldsymbol{\sigma}) : \text{dev}(\boldsymbol{\sigma})}1| `scalar sigma_vm = sqrt(1.5 * (devSigma && devSigma));` | Von Mises stress |
+|1$\sigma_1, \sigma_2, \sigma_3 = \text{eig}(\boldsymbol{\sigma})1| `vector eig = eigenValues(sigma);` | Principal stresses |
+|1$J_2 = \frac{1}{2} \text{dev}(\boldsymbol{\sigma}) : \text{dev}(\boldsymbol{\sigma})1| `scalar J2 = 0.5 * (devSigma && devSigma);` | Second invariant |
 
 > **การใช้งาน:** ทำนายการล้มเหลวของวัสดุ (Failure Prediction) โดยตรวจสอบว่าความเค้นหลักเกินขีดจำกัดหรือไม่
 
@@ -640,9 +640,9 @@ volTensorTensorField gradT = fvc::grad(T);
 
 | สมการคณิตศาสตร์ | OpenFOAM Code | บริบททางฟิสิกส์ |
 |:---|:---|:---|
-| $\nabla \mathbf{u}$ | `volTensorField gradU = fvc::grad(U);` | Velocity gradient tensor |
-| $\nabla \boldsymbol{\sigma}$ | `volTensorTensorField gradSigma = fvc::grad(sigma);` | Stress gradient (rank-3) |
-| $\nabla p$ | `volVectorField gradP = fvc::grad(p);` | Pressure gradient |
+|1$\nabla \mathbf{u}1| `volTensorField gradU = fvc::grad(U);` | Velocity gradient tensor |
+|1$\nabla \boldsymbol{\sigma}1| `volTensorTensorField gradSigma = fvc::grad(sigma);` | Stress gradient (rank-3) |
+|1$\nabla p1| `volVectorField gradP = fvc::grad(p);` | Pressure gradient |
 
 ### 6.3 Divergence (`fvc::div`)
 
@@ -684,9 +684,9 @@ tmp<fvVectorMatrix> tUEqn
 
 | สมการคณิตศาสตร์ | OpenFOAM Code | บริบททางฟิสิกส์ |
 |:---|:---|:---|
-| $\nabla \cdot \boldsymbol{\tau}$ | `volVectorField divTau = fvc::div(tau);` | แรงเฉือนต่อหน่วยปริมาตร |
-| $\nabla \cdot (\rho \mathbf{u} \otimes \mathbf{u})$ | `fvc::div(phi*U);` | Convection term |
-| $\nabla \cdot (k \nabla T)$ | `fvc::laplacian(k, T);` | Heat conduction |
+|1$\nabla \cdot \boldsymbol{\tau}1| `volVectorField divTau = fvc::div(tau);` | แรงเฉือนต่อหน่วยปริมาตร |
+|1$\nabla \cdot (\rho \mathbf{u} \otimes \mathbf{u})1| `fvc::div(phi*U);` | Convection term |
+|1$\nabla \cdot (k \nabla T)1| `fvc::laplacian(k, T);` | Heat conduction |
 
 ### 6.4 การตั้งค่า Numerical Schemes
 
@@ -927,8 +927,8 @@ scalar s_correct = A && (B + C);  // ✓ If this is what you meant
 
 | Operator | Result | Formula | ใช้สำหรับ |
 |----------|--------|---------|----------|
-| `&` | Vector/Tensor | $w_i = T_{ij} v_j$ | Matrix-vector multiplication |
-| `&&` | Scalar | $s = A_{ij} B_{ij}$ | Frobenius inner product |
+| `&` | Vector/Tensor |1$w_i = T_{ij} v_j1| Matrix-vector multiplication |
+| `&&` | Scalar |1$s = A_{ij} B_{ij}1| Frobenius inner product |
 
 **ตัวอย่าง:**
 ```cpp
@@ -945,9 +945,9 @@ scalar s = A && B;     // Tensor : Tensor → Scalar
 $$\text{dev}(\mathbf{T}) = \mathbf{T} - \frac{1}{3}\text{tr}(\mathbf{T})\mathbf{I}$$
 
 **การใช้งาน:**
-- **Newtonian Stress:** $\tau = 2\mu \cdot \text{dev}(\mathbf{S})$
-- **Reynolds Stress:** deviatoric part ของ $-\rho \overline{u'_i u'_j}$
-- **Von Mises Stress:** $\sigma_{vm} = \sqrt{\frac{3}{2} \text{dev}(\sigma):\text{dev}(\sigma)}$
+- **Newtonian Stress:**1$\tau = 2\mu \cdot \text{dev}(\mathbf{S})$
+- **Reynolds Stress:** deviatoric part ของ1$-\rho \overline{u'_i u'_j}$
+- **Von Mises Stress:**1$\sigma_{vm} = \sqrt{\frac{3}{2} \text{dev}(\sigma):\text{dev}(\sigma)}$
 
 </details>
 

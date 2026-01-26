@@ -1,0 +1,213 @@
+{
+    "day": "14",
+    "title": "Structured Mesh for Tube",
+    "date": "2026-01-14",
+    "difficulty": "hardcore",
+
+    "learning_objectives": [
+        {
+            "verb": "เข้าใจ (Understand)",
+            "topic": "Block-structured mesh topology สำหรับท่อ (tube)",
+            "equation": "x = R cos(θ), y = R sin(θ), z = ζ",
+            "importance": "พื้นฐานสำหรับ evaporator tube geometry - ต้องมี quality สูงเพื่อความแม่นยำ"
+        },
+        {
+            "verb": "ออกแบบ (Design)",
+            "topic": "Multi-block structure สำหรับ complex tube geometries",
+            "components": ["BlockMeshDict", "Edge grading", "Boundary merging"]
+        },
+        {
+            "verb": "Implement",
+            "topic": "Automatic mesh generation สำหรับ parametric tube designs",
+            "challenge": "การรักษา orthogonality ใน curved sections"
+        }
+    ],
+
+    "theory_sections": [
+        {
+            "id": "14.1",
+            "title_en": "Structured Mesh Fundamentals",
+            "title_th": "พื้นฐานของ Structured Mesh",
+            "equations": [
+                {
+                    "name": "Parametric mapping",
+                    "latex": "\\mathbf{x}(\\xi, \\eta, \\zeta) = \\sum_{i=0}^{1}\\sum_{j=0}^{1}\\sum_{k=0}^{1} N_{i}(\\xi)N_{j}(\\eta)N_{k}(\\zeta)\\mathbf{X}_{ijk}",
+                    "explanation": "Trilinear interpolation จาก computational space (ξ,η,ζ) ไปยัง physical space (x,y,z)"
+                },
+                {
+                    "name": "Jacobian matrix",
+                    "latex": "J_{ij} = \\frac{\\partial x_i}{\\partial \\xi_j}",
+                    "explanation": "เมทริกซ์สำหรับ coordinate transformation - ใช้คำนวณ cell volumes และ face areas"
+                }
+            ],
+            "variables": [
+                {"symbol": "ξ, η, ζ", "name": "Computational coordinates", "unit": "-"},
+                {"symbol": "X_ijk", "name": "Control points", "unit": "m"},
+                {"symbol": "J", "name": "Jacobian determinant", "unit": "m³"}
+            ],
+            "warning": "Negative Jacobian → invalid cells (ต้องตรวจสอบเสมอ)"
+        },
+        {
+            "id": "14.2",
+            "title_en": "Tube Geometry Parameterization",
+            "title_th": "การกำหนดพารามิเตอร์สำหรับรูปทรงท่อ",
+            "equations": [
+                {
+                    "name": "Circular cross-section",
+                    "latex": "\\begin{cases} x = R \\cos(\\theta) \\\\ y = R \\sin(\\theta) \\\\ z = z \\end{cases}",
+                    "explanation": "Cross-section แบบวงกลม - ใช้สำหรับ straight tubes"
+                },
+                {
+                    "name": "Bend section",
+                    "latex": "\\begin{cases} x = (R_b + r\\cos\\phi)\\cos\\theta \\\\ y = (R_b + r\\cos\\phi)\\sin\\theta \\\\ z = r\\sin\\phi \\end{cases}",
+                    "explanation": "Toroidal coordinates สำหรับ tube bends"
+                }
+            ],
+            "variables": [
+                {"symbol": "R", "name": "Tube radius", "unit": "m"},
+                {"symbol": "R_b", "name": "Bend radius", "unit": "m"},
+                {"symbol": "θ", "name": "Azimuthal angle", "unit": "rad"},
+                {"symbol": "φ", "name": "Bend angle", "unit": "rad"}
+            ],
+            "note": "ต้องรักษา aspect ratio ~1 ใน boundary layer regions"
+        }
+    ],
+
+    "openfoam_analysis": [
+        {
+            "class": "blockMesh",
+            "header": "src/mesh/blockMesh/blockMesh/blockMesh.H",
+            "purpose": "Generate structured hexahedral mesh จาก blockMeshDict",
+            "key_members": [
+                {"name": "blocks_", "type": "List<block>", "purpose": "List of mesh blocks"},
+                {"name": "vertices_", "type": "pointField", "purpose": "Mesh vertices"},
+                {"name": "edges_", "type": "HashTable<edge, curvedEdge*>", "purpose": "Curved edge definitions"}
+            ],
+            "key_methods": [
+                {"name": "createTopology()", "purpose": "สร้าง cell, face, point connectivity"},
+                {"name": "createMesh()", "purpose": "Generate mesh geometry"},
+                {"name": "calcGeometry()", "purpose": "คำนวณ cell volumes, face areas"}
+            ],
+            "usage_example": "blockMesh -dict system/blockMeshDict"
+        },
+        {
+            "class": "block",
+            "header": "src/mesh/blockMesh/blockMesh/block.H",
+            "purpose": "Define single structured block ด้วย hex cells",
+            "matrix_structure": {
+                "points": "8 vertices (hexahedron)",
+                "cells": "nx × ny × nz hex cells",
+                "grading": "Expansion ratios ในแต่ละ direction"
+            },
+            "operators": [
+                {"method": "points()", "returns": "List<point>", "purpose": "Get block vertices"},
+                {"method": "cells()", "returns": "label", "purpose": "Total cell count"},
+                {"method": "grading()", "returns": "vector", "purpose": "Expansion ratios"}
+            ]
+        },
+        {
+            "class": "curvedEdge",
+            "header": "src/mesh/blockMesh/blockMesh/curvedEdge/curvedEdge.H",
+            "purpose": "Base class สำหรับ curved edges (arc, spline)",
+            "key_members": [
+                {"name": "start_", "type": "point", "purpose": "Start point"},
+                {"name": "end_", "type": "point", "purpose": "End point"}
+            ],
+            "key_methods": [
+                {"name": "position(const scalar)", "returns": "point", "purpose": "Interpolate point along curve"},
+                {"name": "length()", "returns": "scalar", "purpose": "Total curve length"}
+            ],
+            "subclasses": ["arcEdge", "splineEdge", "polyLineEdge"]
+        }
+    ],
+
+    "implementation_skeleton": {
+        "classes": [
+            {
+                "name": "TubeMeshGenerator",
+                "responsibility": "Generate parametric tube meshes สำหรับ evaporator",
+                "key_methods": [
+                    {"name": "generateStraightTube()", "purpose": "สร้าง straight tube mesh"},
+                    {"name": "generateBendSection()", "purpose": "สร้าง bend section ด้วย toroidal mapping"},
+                    {"name": "generateUTypeBend()", "purpose": "สร้าง U-bend สำหรับ heat exchanger"},
+                    {"name": "addBoundaryLayer()", "purpose": "เพิ่ม boundary layer refinement"}
+                ],
+                "critical_implementation": "ต้องรักษา orthogonality > 20° ในทุก cells"
+            },
+            {
+                "name": "MeshQualityChecker",
+                "responsibility": "Validate mesh quality metrics",
+                "key_methods": [
+                    {"name": "checkOrthogonality()", "purpose": "ตรวจสอบ face normal vs. owner-neighbor vector"},
+                    {"name": "checkSkewness()", "purpose": "ตรวจสอบ skewness angle"},
+                    {"name": "checkAspectRatio()", "purpose": "ตรวจสอบ cell aspect ratio"},
+                    {"name": "checkNonOrthogonality()", "purpose": "ตรวจสอบ non-orthogonal correction needs"}
+                ]
+            }
+        ],
+        "algorithm_steps": [
+            "1. กำหนด tube parameters: length, diameter, bend radius",
+            "2. สร้าง block structure: 4 blocks สำหรับ circular cross-section",
+            "3. กำหนด edge grading: boundary layer refinement near walls",
+            "4. Generate vertices และ curved edges สำหรับ bends",
+            "5. สร้าง topology: cells, faces, boundary patches",
+            "6. Calculate geometry: cell volumes, face areas, centers",
+            "7. Run quality checks: orthogonality, skewness, aspect ratio",
+            "8. Export mesh ใน OpenFOAM format"
+        ],
+        "blockMeshDict_example": {
+            "vertices": "16 points สำหรับ straight tube section",
+            "blocks": "hex (0 1 2 3 4 5 6 7) (20 12 80) simpleGrading (1 1 1)",
+            "edges": "arc 0 4 (0.1 0 0) สำหรับ curved section",
+            "boundary": "inlet, outlet, wall patches",
+            "mergePatchPairs": "สำหรับ periodic boundaries"
+        }
+    },
+
+    "concept_checks": [
+        {
+            "question": "ทำไม structured mesh ถึงเหมาะสำหรับ tube flows?",
+            "answer_key_points": [
+                "High quality cells → numerical accuracy สูง",
+                "Alignment กับ flow direction → reduced false diffusion",
+                "Efficient boundary layer resolution ด้วย edge grading",
+                "Predictable cell count และ memory requirements"
+            ],
+            "implementation_note": "TubeMeshGenerator::generateStraightTube() line 45-78"
+        },
+        {
+            "question": "จะจัดการกับ tube bends อย่างไรให้ mesh quality ดี?",
+            "answer_key_points": [
+                "ใช้ multiple blocks เพื่อรักษา orthogonality",
+                "Apply toroidal coordinate mapping สำหรับ smooth curvature",
+                "เพิ่ม cell density ใน bend region เพื่อ capture secondary flows",
+                "ตรวจสอบ skewness และ non-orthogonality หลัง generation"
+            ],
+            "implementation_note": "TubeMeshGenerator::generateBendSection() line 112-156"
+        }
+    ],
+
+    "pitfalls": [
+        {
+            "symptom": "Negative Jacobian ใน bend regions",
+            "cause": "Excessive curvature หรือ improper block decomposition",
+            "fix": "เพิ่มจำนวน blocks หรือลด bend angle"
+        },
+        {
+            "symptom": "High non-orthogonality (>70°)",
+            "cause": "Poor block alignment หรือ skewed cells",
+            "fix": "ปรับ block vertices หรือใช้ non-orthogonal correction"
+        },
+        {
+            "symptom": "Boundary layer cells หนาเกินไป",
+            "cause": "Incorrect grading ratios",
+            "fix": "ใช้ geometric progression: ratio = (total expansion)^(1/(n-1))"
+        }
+    ],
+
+    "connections": {
+        "previous_day": "Day 13: Mesh Fundamentals - unstructured mesh basics",
+        "next_day": "Day 15: Unstructured Mesh for Fins",
+        "key_link": "Structured tube mesh → Day 15's fin attachment points"
+    }
+}

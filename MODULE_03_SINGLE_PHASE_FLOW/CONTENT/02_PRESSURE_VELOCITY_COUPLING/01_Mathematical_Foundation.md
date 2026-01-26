@@ -42,7 +42,7 @@ $$\nabla \cdot \mathbf{u} = 0$$
 **Momentum Equation:**
 $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla)\mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u}$$
 
-> **Key Insight:** ความดันทำหน้าที่เป็น **Lagrange multiplier** เพื่อบังคับ constraint $\nabla \cdot \mathbf{u} = 0$ — ไม่ใช่ thermodynamic variable ในของไหล incompressible
+> **Key Insight:** ความดันทำหน้าที่เป็น **Lagrange multiplier** เพื่อบังคับ constraint1$\nabla \cdot \mathbf{u} = 01— ไม่ใช่ thermodynamic variable ในของไหล incompressible
 
 ---
 
@@ -54,20 +54,20 @@ $$a_P \mathbf{u}_P + \sum_N a_N \mathbf{u}_N = \mathbf{b}_P - \nabla p_P$$
 
 | Symbol | Meaning |
 |--------|---------|
-| $a_P$ | Diagonal coefficient (central cell) |
-| $a_N$ | Neighbor coefficients |
-| $\mathbf{b}_P$ | Source term (convection, diffusion, external forces) |
+|1$a_P1| Diagonal coefficient (central cell) |
+|1$a_N1| Neighbor coefficients |
+|1$\mathbf{b}_P1| Source term (convection, diffusion, external forces) |
 
 ### 2.2 H-Operator Formulation
 
-Isolate $\mathbf{u}_P$:
+Isolate1$\mathbf{u}_P$:
 
 $$\mathbf{u}_P = \frac{\mathbf{H}(\mathbf{u})}{a_P} - \frac{1}{a_P}\nabla p$$
 
 **Where:**
 $$\mathbf{H}(\mathbf{u}) = \mathbf{b}_P - \sum_N a_N \mathbf{u}_N$$
 
-> **Physical Meaning:** $\mathbf{H}(\mathbf{u})/a_P$ คือ "predicted velocity" ที่ขับเคลื่อนโดยทุกเทอมยกเว้นความดัน
+> **Physical Meaning:**1$\mathbf{H}(\mathbf{u})/a_P1คือ "predicted velocity" ที่ขับเคลื่อนโดยทุกเทอมยกเว้นความดัน
 
 ---
 
@@ -75,7 +75,7 @@ $$\mathbf{H}(\mathbf{u}) = \mathbf{b}_P - \sum_N a_N \mathbf{u}_N$$
 
 ### 3.1 Derivation
 
-นำ divergence ของ H-form และบังคับ continuity constraint $\nabla \cdot \mathbf{u} = 0$:
+นำ divergence ของ H-form และบังคับ continuity constraint1$\nabla \cdot \mathbf{u} = 0$:
 
 $$\nabla \cdot \left(\frac{1}{a_P}\nabla p\right) = \nabla \cdot \left(\frac{\mathbf{H}(\mathbf{u})}{a_P}\right)$$
 
@@ -96,11 +96,11 @@ $$\nabla \cdot \left(\frac{1}{a_P}\nabla p\right) = \nabla \cdot \left(\frac{\ma
 
 | Math Symbol | OpenFOAM Variable | Description |
 |-------------|-------------------|-------------|
-| $1/a_P$ | `rAU` | Reciprocal diagonal coefficient |
-| $\mathbf{H}/a_P$ | `HbyA` | Predicted velocity |
-| $\nabla p$ | `fvc::grad(p)` | Pressure gradient (explicit) |
-| $\nabla \cdot \mathbf{u}$ | `fvc::div(U)` | Divergence (explicit) |
-| $\nabla^2 p$ | `fvm::laplacian(p)` | Laplacian (implicit) |
+|1$1/a_P1| `rAU` | Reciprocal diagonal coefficient |
+|1$\mathbf{H}/a_P1| `HbyA` | Predicted velocity |
+|1$\nabla p1| `fvc::grad(p)` | Pressure gradient (explicit) |
+|1$\nabla \cdot \mathbf{u}1| `fvc::div(U)` | Divergence (explicit) |
+|1$\nabla^2 p1| `fvm::laplacian(p)` | Laplacian (implicit) |
 
 ### 4.2 pEqn.H Structure
 
@@ -125,8 +125,8 @@ U.correctBoundaryConditions();
 ```
 
 > **Code-to-Math Mapping:**
-> - `fvm::laplacian(rAU, p)` → $\nabla \cdot (rAU \nabla p)$
-> - `fvc::div(phiHbyA)` → $\nabla \cdot (\mathbf{H}/a_P)$
+> - `fvm::laplacian(rAU, p)` →1$\nabla \cdot (rAU \nabla p)$
+> - `fvc::div(phiHbyA)` →1$\nabla \cdot (\mathbf{H}/a_P)$
 
 ---
 
@@ -173,8 +173,8 @@ $$p^{k+1} = p^k + \alpha_p p'$$
 
 | Variable | Typical Range | Effect |
 |----------|---------------|--------|
-| $\alpha_u$ | 0.5-0.7 | Controls velocity update rate |
-| $\alpha_p$ | 0.2-0.4 | Controls pressure correction rate |
+|1$\alpha_u1| 0.5-0.7 | Controls velocity update rate |
+|1$\alpha_p1| 0.2-0.4 | Controls pressure correction rate |
 
 ### 6.2 Configuration File
 
@@ -214,17 +214,17 @@ relaxationFactors
 
 ### Mathematical Foundation
 - **Saddle-point problem:** Incompressible NS ไม่มี pressure equation ต้อง derive จาก continuity constraint
-- **H-operator:** $\mathbf{H}(\mathbf{u}) = \mathbf{b}_P - \sum_N a_N \mathbf{u}_N$ — predicted velocity โดยไม่รวม pressure gradient
-- **Pressure Poisson:** $\nabla \cdot (rAU \nabla p) = \nabla \cdot (\mathbf{H}/a_P)$ — elliptic equation ที่ well-posed
+- **H-operator:**1$\mathbf{H}(\mathbf{u}) = \mathbf{b}_P - \sum_N a_N \mathbf{u}_N1— predicted velocity โดยไม่รวม pressure gradient
+- **Pressure Poisson:**1$\nabla \cdot (rAU \nabla p) = \nabla \cdot (\mathbf{H}/a_P)1— elliptic equation ที่ well-posed
 
 ### OpenFOAM Implementation
-- **Variable mapping:** `rAU` = $1/a_P$, `HbyA` = $\mathbf{H}/a_P$
+- **Variable mapping:** `rAU` =1$1/a_P$, `HbyA` =1$\mathbf{H}/a_P$
 - **Pressure equation:** `fvm::laplacian(rAU, p) == fvc::div(phiHbyA)`
 - **Velocity correction:** `U = HbyA - rAU*fvc::grad(p)`
 - **Rhie-Chow:** Face flux interpolation ป้องกัน checkerboard บน collocated grid
 
 ### Practical Settings
-- **Relaxation:** $\alpha_p = 0.2-0.4$, $\alpha_u = 0.5-0.7$
+- **Relaxation:**1$\alpha_p = 0.2-0.4$,1$\alpha_u = 0.5-0.7$
 - **Solvers:** GAMG สำหรับ pressure, smoothSolver/GaussSeidel สำหรับ velocity
 - **Tolerance:** 1e-06 absolute, 0.01 relative เป็นค่าเริ่มต้นที่พอเหมาะ
 
@@ -247,9 +247,9 @@ relaxationFactors
 <details>
 <summary><b>1. ทำไมถึงเรียก pressure ว่า Lagrange multiplier?</b></summary>
 
-เพราะมันไม่ได้มาจาก conservation law โดยตรง แต่เป็นตัวแปรที่ "บังคับ" constraint $\nabla \cdot \mathbf{u} = 0$ — ในการไหล incompressible ความดันไม่ใช่ thermodynamic variable แต่เป็น mechanical force ที่เกิดจาก constraint ของ mass conservation
+เพราะมันไม่ได้มาจาก conservation law โดยตรง แต่เป็นตัวแปรที่ "บังคับ" constraint1$\nabla \cdot \mathbf{u} = 01— ในการไหล incompressible ความดันไม่ใช่ thermodynamic variable แต่เป็น mechanical force ที่เกิดจาก constraint ของ mass conservation
 
-**Mathematical Context:** ใน optimization theory, Lagrange multiplier $\lambda$ ใช้บังคับ constraint $g(x)=0$ ใน Lagrangian $\mathcal{L} = f(x) + \lambda g(x)$ — ใน NS, pressure ทำหน้าที่เช่นเดียวกัน
+**Mathematical Context:** ใน optimization theory, Lagrange multiplier1$\lambda1ใช้บังคับ constraint1$g(x)=01ใน Lagrangian1$\mathcal{L} = f(x) + \lambda g(x)1— ใน NS, pressure ทำหน้าที่เช่นเดียวกัน
 </details>
 
 <details>

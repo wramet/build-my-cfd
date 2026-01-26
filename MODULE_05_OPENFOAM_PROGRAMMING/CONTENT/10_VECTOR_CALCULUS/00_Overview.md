@@ -84,24 +84,24 @@ E --> F[Real Solver Applications]:::section
 $$\int_V \nabla \cdot \mathbf{F} \, \mathrm{d}V = \oint_S \mathbf{F} \cdot \mathbf{n} \, \mathrm{d}S$$
 
 **ตัวแปรในสมการ:**
-- $V$: ปริมาตรของควบคุม (control volume)
-- $S$: พื้นผิวขอบเขตของปริมาตรควบคุม
-- $\mathbf{F}$: เวกเตอร์สนามใดๆ (vector field) - อาจเป็น velocity, flux, หรือ gradient
-- $\mathbf{n}$: เวกเตอร์หน่วยที่ตั้งฉากกับพื้นผิว (unit normal vector)
-- $\mathrm{d}V$: องค์ประกอบปริมาตร
-- $\mathrm{d}S$: องค์ประกอบพื้นที่ผิว
+-1$V$: ปริมาตรของควบคุม (control volume)
+-1$S$: พื้นผิวขอบเขตของปริมาตรควบคุม
+-1$\mathbf{F}$: เวกเตอร์สนามใดๆ (vector field) - อาจเป็น velocity, flux, หรือ gradient
+-1$\mathbf{n}$: เวกเตอร์หน่วยที่ตั้งฉากกับพื้นผิว (unit normal vector)
+-1$\mathrm{d}V$: องค์ประกอบปริมาตร
+-1$\mathrm{d}S$: องค์ประกอบพื้นที่ผิว
 
 > **Figure 2:** ทฤษฎีบทของ Gauss (Divergence Theorem) แสดงความสัมพันธ์ระหว่าง volume integral ของ divergence และ surface integral ของ flux ซึ่งเป็นรากฐานของ Finite Volume Method
 
 ### การ Discretization บน Control Volume
 
-สำหรับเซลล์ควบคุมที่มีปริมาตร $V_P$ (P = owner cell):
+สำหรับเซลล์ควบคุมที่มีปริมาตร1$V_P1(P = owner cell):
 
 $$\nabla \cdot \mathbf{F} \approx \frac{1}{V_P} \sum_{f} \mathbf{F}_f \cdot \mathbf{S}_f$$
 
 โดยที่:
-- $\mathbf{S}_f = \mathbf{n}_f A_f$ = เวกเตอร์พื้นที่หน้า (face area vector)
-- $\mathbf{F}_f$ = ค่าที่ face ที่ได้จากการ interpolation ระหว่าง owner และ neighbor cells
+-1$\mathbf{S}_f = \mathbf{n}_f A_f1= เวกเตอร์พื้นที่หน้า (face area vector)
+-1$\mathbf{F}_f1= ค่าที่ face ที่ได้จากการ interpolation ระหว่าง owner และ neighbor cells
 - การรวมผลรวม ($\sum_f$) ครอบคลุมทุกหน้าเซลล์ (internal faces + boundary faces)
 
 > **Figure 3:** การ Discretization บน control volume แสดงการประมาณค่า divergence ด้วยการรวม flux บนทุกหน้าเซลล์ ($\sum_f \mathbf{F}_f \cdot \mathbf{S}_f$) หารด้วยปริมาตรเซลล์ ($V_P$)
@@ -223,15 +223,15 @@ fvVectorMatrix UEqn(
 
 **คำอธิบาย (Explanation):**
 - `fvm::ddt(T)` - คำนวณ derivative เชิงเวลา ($\partial T/\partial t$) แบบ first-order Euler implicit สำหรับการอินทิเกรตเวลาแบบ implicit ให้ความเสถียรสูง
-- `fvm::laplacian(DT, T)` - สร้างเมทริกซ์สำหรับเทอมการแพร่ (diffusion term: $\nabla \cdot (D_T \nabla T)$) แบบ implicit สร้าง diagonal-dominant matrix ที่เสถียร
-- `fvm::div(phi, U)` - สร้างเมทริกซ์สำหรับเทอมการพา (convection term: $\nabla \cdot (\phi \mathbf{U})$) แบบ implicit ใช้ในสมการโมเมนตัม
+- `fvm::laplacian(DT, T)` - สร้างเมทริกซ์สำหรับเทอมการแพร่ (diffusion term:1$\nabla \cdot (D_T \nabla T)$) แบบ implicit สร้าง diagonal-dominant matrix ที่เสถียร
+- `fvm::div(phi, U)` - สร้างเมทริกซ์สำหรับเทอมการพา (convection term:1$\nabla \cdot (\phi \mathbf{U})$) แบบ implicit ใช้ในสมการโมเมนตัม
 
 **แนวคิดสำคัญ (Key Concepts):**
 - **Matrix Assembly:** การดำเนินการ `fvm::` สร้างเมทริกซ์สัมประสิทธิ์:
   - **Diagonal coefficients** ($a_P$): ค่าสัมประสิทธิ์ที่ cell center หลัก
   - **Off-diagonal coefficients** ($a_N$): ค่าสัมประสิทธิ์ที่ neighbor cells
   - **Source terms** ($b$): เทอมที่ไม่ขึ้นกับตัวแปรที่แก้
-- **Implicit Scheme:** ค่า field ใหม่อยู่ทั้งสองฝั่งของสมการ ต้องแก้ระบบเมทริกซ์ $[A]x = b$
+- **Implicit Scheme:** ค่า field ใหม่อยู่ทั้งสองฝั่งของสมการ ต้องแก้ระบบเมทริกซ์1$[A]x = b$
 - **Stability:** การใช้ implicit มักจะเสถียรกว่า (unconditionally stable) อนุญาตให้ใช้ time step ที่ใหญ่ขึ้น
 - **Linear System:** เมทริกซ์จะถูกแก้ด้วย linear solvers ที่กำหนดใน `system/fvSolution`:
   - **PCG** (Preconditioned Conjugate Gradient): สำหรับ symmetric matrices (Laplacian)

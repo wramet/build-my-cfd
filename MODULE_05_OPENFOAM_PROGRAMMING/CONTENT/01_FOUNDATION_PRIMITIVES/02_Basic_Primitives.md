@@ -378,7 +378,7 @@ scalar Un = U & (faceNormal / mag(faceNormal));
 <details>
 <summary><b>3. dev(T) คืออะไร? ใช้เมื่อไหร่?</b></summary>
 
-**Deviatoric part**: $T_{dev} = T - \frac{1}{3}tr(T)I$
+**Deviatoric part**:1$T_{dev} = T - \frac{1}{3}tr(T)I$
 
 **ความหมาย:** ลบส่วน isotropic (pressure-like) ออก เหลือแต่ส่วน shear
 

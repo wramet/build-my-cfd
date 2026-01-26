@@ -138,7 +138,7 @@ mkdir -p mesh scripts/{run,post,utils} results docs
 
 ```bash
 # Create template with minimal case structure
-cp -r $FOAM_TUTORIALS/incompressible/simpleFoam/pitzDaily template/
+cp -r1$FOAM_TUTORIALS/incompressible/simpleFoam/pitzDaily template/
 cd template
 # Customize with your standard settings
 ```
@@ -152,7 +152,7 @@ cd template
 #!/bin/bash
 # Usage: runSimulation.sh <caseName>
 CASE_DIR=../../cases/$1
-cd $CASE_DIR
+cd1$CASE_DIR
 blockMesh
 simpleFoam
 ```

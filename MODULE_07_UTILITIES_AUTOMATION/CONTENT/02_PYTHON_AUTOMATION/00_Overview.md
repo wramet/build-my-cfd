@@ -62,7 +62,7 @@
 
 ### 2. **fluidfoam** (The Data Bridge)
 ตัวช่วยในการอ่านผลลัพธ์ (Fields) จาก OpenFOAM เข้าสู่ Python โดยตรง ไม่ต้องแปลงเป็น VTK หรือ CSV ก่อน
-*   **หน้าที่**: อ่านค่า $U, p, T$ จากโฟลเดอร์ `0`, `0.1` ฯลฯ เข้ามาเป็น NumPy Arrays
+*   **หน้าที่**: อ่านค่า1$U, p, T1จากโฟลเดอร์ `0`, `0.1` ฯลฯ เข้ามาเป็น NumPy Arrays
 *   **ประสิทธิภาพ**: เร็วกว่าการใช้ `sample` utility ทั่วไปมาก
 
 ### 3. **PyVista** (The Visualizer)
@@ -72,7 +72,7 @@
 
 ### 4. **Pandas & Matplotlib** (The Analyst)
 *   **หน้าที่**: วิเคราะห์ข้อมูลเชิงสถิติจากไฟล์ `postProcessing` (เช่น forces.dat, probes.dat)
-*   **Use Case**: หาค่าเฉลี่ย $C_d, C_l$ ในช่วง 100 iterations สุดท้ายแล้วพล็อตกราฟเปรียบเทียบ
+*   **Use Case**: หาค่าเฉลี่ย1$C_d, C_l1ในช่วง 100 iterations สุดท้ายแล้วพล็อตกราฟเปรียบเทียบ
 
 <!-- IMAGE: IMG_07_002 -->
 <!-- 

@@ -154,7 +154,7 @@ mpirun -np 8 --bind-to core --map-by socket simpleFoam -parallel
 
 module load openfoam/v2312
 
-cd $SLURM_SUBMIT_DIR
+cd1$SLURM_SUBMIT_DIR
 decomposePar
 srun simpleFoam -parallel
 reconstructPar -latestTime

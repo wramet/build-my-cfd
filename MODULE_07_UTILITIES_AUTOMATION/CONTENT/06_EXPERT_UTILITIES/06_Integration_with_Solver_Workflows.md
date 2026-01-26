@@ -100,7 +100,7 @@ echo "========================================"
 # 1. Generate base mesh
 echo "[1/5] Running blockMesh..."
 blockMesh > log.blockMesh 2>&1
-if [ $? -ne 0 ]; then
+if [1$? -ne 0 ]; then
     echo "ERROR: blockMesh failed. Check log.blockMesh"
     exit 1
 fi
@@ -109,7 +109,7 @@ fi
 if [ -f system/snappyHexMeshDict ]; then
     echo "[2/5] Running snappyHexMesh..."
     snappyHexMesh -overwrite > log.snappyHexMesh 2>&1
-    if [ $? -ne 0 ]; then
+    if [1$? -ne 0 ]; then
         echo "ERROR: snappyHexMesh failed. Check log.snappyHexMesh"
         exit 1
     fi
@@ -118,7 +118,7 @@ fi
 # 3. Check mesh quality
 echo "[3/5] Checking mesh quality..."
 checkMesh > log.checkMesh 2>&1
-if [ $? -ne 0 ]; then
+if [1$? -ne 0 ]; then
     echo "WARNING: Mesh quality issues detected. Check log.checkMesh"
 fi
 
@@ -131,7 +131,7 @@ fi
 # 5. Decompose for parallel run
 echo "[5/5] Decomposing case..."
 decomposePar > log.decomposePar 2>&1
-if [ $? -ne 0 ]; then
+if [1$? -ne 0 ]; then
     echo "ERROR: decomposePar failed. Check log.decomposePar"
     exit 1
 fi
@@ -160,21 +160,21 @@ echo "========================================"
 
 # Get number of processors
 NPROCS=$(getNumberOfProcessors)
-echo "Running on $NPROCS processors"
+echo "Running on1$NPROCS processors"
 
 # Check if this is a parallel run
-if [ $NPROCS -gt 1 ]; then
+if [1$NPROCS -gt 1 ]; then
     echo "========================================"
     echo "Starting Parallel Solver Execution"
     echo "========================================"
     
     # Parallel execution
-    mpirun -np $NPROCS \
+    mpirun -np1$NPROCS \
         simpleFoam -parallel \
         > log.solver 2>&1
     
     # Check solver exit status
-    if [ $? -ne 0 ]; then
+    if [1$? -ne 0 ]; then
         echo "ERROR: Solver execution failed. Check log.solver"
         tail -50 log.solver
         exit 1
@@ -187,7 +187,7 @@ else
     # Serial execution
     simpleFoam > log.solver 2>&1
     
-    if [ $? -ne 0 ]; then
+    if [1$? -ne 0 ]; then
         echo "ERROR: Solver execution failed. Check log.solver"
         tail -50 log.solver
         exit 1
@@ -196,7 +196,7 @@ fi
 
 echo "========================================"
 echo "Solver execution completed successfully!"
-echo "Final time: $(foamListTimes -latestTime)"
+echo "Final time:1$(foamListTimes -latestTime)"
 echo "========================================"
 ```
 
@@ -223,19 +223,19 @@ echo "========================================"
 
 # Get latest time directory
 LATEST_TIME=$(foamListTimes -latestTime)
-echo "Latest time: $LATEST_TIME"
+echo "Latest time:1$LATEST_TIME"
 
 # 1. Reconstruct parallel results
 NPROCS=$(getNumberOfProcessors)
-if [ $NPROCS -gt 1 ]; then
+if [1$NPROCS -gt 1 ]; then
     echo "[1/5] Reconstructing parallel results..."
     reconstructPar -latestTime > log.reconstructPar 2>&1
 fi
 
 # 2. Run postProcess functions
 echo "[2/5] Computing derived fields..."
-postProcess -func 'yPlus' -time $LATEST_TIME > log.yPlus 2>&1
-postProcess -func 'wallShearStress' -time $LATEST_TIME > log.wss 2>&1
+postProcess -func 'yPlus' -time1$LATEST_TIME > log.yPlus 2>&1
+postProcess -func 'wallShearStress' -time1$LATEST_TIME > log.wss 2>&1
 
 # 3. Export to VTK for ParaView
 echo "[3/5] Exporting to VTK format..."
@@ -244,15 +244,15 @@ foamToVTK -latestTime > log.foamToVTK 2>&1
 # 4. Generate plots (if Python scripts available)
 echo "[4/5] Generating plots..."
 if [ -f scripts/plot_results.py ]; then
-    python3 scripts/plot_results.py $LATEST_TIME
+    python3 scripts/plot_results.py1$LATEST_TIME
 fi
 
 # 5. Generate summary report
 echo "[5/5] Generating summary..."
 echo "Simulation Summary:" > SUMMARY.txt
-echo "Case: $(basename $(pwd))" >> SUMMARY.txt
-echo "Latest Time: $LATEST_TIME" >> SUMMARY.txt
-echo "Completion: $(date)" >> SUMMARY.txt
+echo "Case:1$(basename1$(pwd))" >> SUMMARY.txt
+echo "Latest Time:1$LATEST_TIME" >> SUMMARY.txt
+echo "Completion:1$(date)" >> SUMMARY.txt
 
 if grep -q "Finalise" log.solver; then
     echo "Status: CONVERGED" >> SUMMARY.txt
@@ -291,22 +291,22 @@ START_TIME=$(date +%s)
 print_header() {
     echo ""
     echo "╔════════════════════════════════════════╗"
-    echo "║  $1"
+    echo "║1$1"
     echo "╚════════════════════════════════════════╝"
     echo ""
 }
 
 # Function to handle errors
 error_exit() {
-    echo "❌ ERROR: $1"
-    echo "Workflow stopped at phase: $CURRENT_PHASE"
+    echo "❌ ERROR:1$1"
+    echo "Workflow stopped at phase:1$CURRENT_PHASE"
     exit 1
 }
 
 # Main workflow
 print_header "OPENFOAM WORKFLOW - START"
-echo "Case directory: $(pwd)"
-echo "Start time: $(date)"
+echo "Case directory:1$(pwd)"
+echo "Start time:1$(date)"
 echo ""
 
 # Phase 1: Pre-Processing
@@ -333,8 +333,8 @@ SECONDS=$((ELAPSED % 60))
 
 # Final summary
 print_header "WORKFLOW COMPLETED SUCCESSFULLY"
-echo "Total elapsed time: ${HOURS}h ${MINUTES}m ${SECONDS}s"
-echo "Results available in: $(foamListTimes -latestTime)"
+echo "Total elapsed time:1${HOURS}h1${MINUTES}m1${SECONDS}s"
+echo "Results available in:1$(foamListTimes -latestTime)"
 echo "Check SUMMARY.txt for detailed report"
 echo ""
 echo "✅ All phases completed!"
@@ -405,7 +405,7 @@ functions
     
     coeffs1
     {
-        $forces1;
+1$forces1;
         type            forceCoeffs;
         liftDir         (0 1 0);
         dragDir         (1 0 0);
@@ -535,7 +535,7 @@ if [ -d "0.001" ]; then
         # Modify controlDict for restart
         LATEST_TIME=$(foamListTimes -latestTime)
         sed -i "s/startFrom.*;/startFrom latestTime;/" system/controlDict
-        echo "Restarting from time $LATEST_TIME"
+        echo "Restarting from time1$LATEST_TIME"
     fi
 fi
 
@@ -557,13 +557,13 @@ VELOCITIES=(5 10 15 20)
 
 for U_INF in "${VELOCITIES[@]}"; do
     echo "========================================"
-    echo "Running case for UInf = $U_INF m/s"
+    echo "Running case for UInf =1$U_INF m/s"
     echo "========================================"
     
     # Create case directory
     CASE_DIR="case_Uinf_${U_INF}"
-    cp -r base_case $CASE_DIR
-    cd $CASE_DIR
+    cp -r base_case1$CASE_DIR
+    cd1$CASE_DIR
     
     # Modify boundary condition
     sed -i "s/UINF_VALUE/$U_INF/g" 0/U
@@ -573,7 +573,7 @@ for U_INF in "${VELOCITIES[@]}"; do
     
     # Store results
     cd ..
-    echo "Completed case: $CASE_DIR"
+    echo "Completed case:1$CASE_DIR"
 done
 
 echo "All parameter sweep cases completed!"
@@ -594,14 +594,14 @@ CASES=(
 
 # Loop through cases
 for CASE in "${CASES[@]}"; do
-    echo "Processing $CASE..."
+    echo "Processing1$CASE..."
     
     if [ -d "$CASE" ]; then
-        cd $CASE
-        ./Allrun || echo "WARNING: $CASE failed"
+        cd1$CASE
+        ./Allrun || echo "WARNING:1$CASE failed"
         cd ..
     else
-        echo "ERROR: Directory $CASE not found"
+        echo "ERROR: Directory1$CASE not found"
     fi
 done
 
@@ -724,7 +724,7 @@ simpleCoeffs
 
 # 4. Check load balancing
 for i in processor*; do
-    echo "$i: $(ls $i/0 | wc -l) cells"
+    echo "$i:1$(ls1$i/0 | wc -l) cells"
 done
 
 # 5. Reconstruct properly
@@ -880,7 +880,7 @@ foamToVTK → Visualization
 ```bash
 # Good: Check exit status
 command > log.command 2>&1
-if [ $? -ne 0 ]; then
+if [1$? -ne 0 ]; then
     echo "ERROR: command failed"
     exit 1  # Non-zero = error
 fi

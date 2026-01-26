@@ -41,14 +41,14 @@ Natural convection dominates in many engineering applications:
 
 | Solver | Type | Use Case | Key Feature |
 |--------|------|----------|-------------|
-| `buoyantBoussinesqSimpleFoam` | Steady-state | $\Delta T < 30°C$ | Boussinesq approximation, SIMPLE algorithm |
-| `buoyantBoussinesqPimpleFoam` | Transient | $\Delta T < 30°C$, time-dependent | Boussinesq, PIMPLE algorithm |
-| `buoyantSimpleFoam` | Steady-state | Large $\Delta T$, compressible | Full compressible formulation |
-| `buoyantPimpleFoam` | Transient | Fire, large $\Delta T$ | Compressible, ideal gas law |
+| `buoyantBoussinesqSimpleFoam` | Steady-state |1$\Delta T < 30°C1| Boussinesq approximation, SIMPLE algorithm |
+| `buoyantBoussinesqPimpleFoam` | Transient |1$\Delta T < 30°C$, time-dependent | Boussinesq, PIMPLE algorithm |
+| `buoyantSimpleFoam` | Steady-state | Large1$\Delta T$, compressible | Full compressible formulation |
+| `buoyantPimpleFoam` | Transient | Fire, large1$\Delta T1| Compressible, ideal gas law |
 
 **Decision Guide:**
-- Small $\Delta T$ (< 30°C for air) → Boussinesq solvers (faster, simpler)
-- Large $\Delta T$ (> 50°C) → Full compressible solvers (more accurate)
+- Small1$\Delta T1(< 30°C for air) → Boussinesq solvers (faster, simpler)
+- Large1$\Delta T1(> 50°C) → Full compressible solvers (more accurate)
 - Steady state desired → `SimpleFoam` variants
 - Time evolution important → `PimpleFoam` variants
 
@@ -58,7 +58,7 @@ Natural convection dominates in many engineering applications:
 
 ### WHAT: Mathematical Formulation
 
-ถือว่า $\rho = \text{constant}$ ทุกที่ **ยกเว้น** ในเทอมแรงลอยตัว:
+ถือว่า1$\rho = \text{constant}1ทุกที่ **ยกเว้น** ในเทอมแรงลอยตัว:
 
 **Density Variation:**
 $$\rho = \rho_0 [1 - \beta(T - T_0)]$$
@@ -67,17 +67,17 @@ $$\rho = \rho_0 [1 - \beta(T - T_0)]$$
 $$\mathbf{F}_b = \rho_0 \mathbf{g} \beta (T - T_0)$$
 
 Where:
-- $\rho_0$ = reference density [kg/m³]
-- $\beta$ = thermal expansion coefficient [1/K]
-- $T_0$ = reference temperature [K]
-- $\mathbf{g}$ = gravitational acceleration [m/s²]
+-1$\rho_01= reference density [kg/m³]
+-1$\beta1= thermal expansion coefficient [1/K]
+-1$T_01= reference temperature [K]
+-1$\mathbf{g}1= gravitational acceleration [m/s²]
 
 ### WHY: Validity and Approximation Error
 
 **When to Use:**
-- $\beta \Delta T \ll 1$ (typically $\beta \Delta T < 0.1$)
-- $\Delta T < 30°C$ for air
-- $\Delta T < 5°C$ for water
+-1$\beta \Delta T \ll 11(typically1$\beta \Delta T < 0.1$)
+-1$\Delta T < 30°C1for air
+-1$\Delta T < 5°C1for water
 - Flow speeds small compared to speed of sound
 
 **Why It Works:**
@@ -93,7 +93,7 @@ Think of hot air rising. The air expands slightly (density decreases ~3% per 10�
 Starting from the general momentum equation with gravity:
 $$\frac{\partial (\rho \mathbf{U})}{\partial t} + \nabla \cdot (\rho \mathbf{U} \mathbf{U}) = -\nabla p + \mu \nabla^2 \mathbf{U} + \rho \mathbf{g}$$
 
-Applying Boussinesq ($\rho \approx \rho_0$ everywhere except in $\rho \mathbf{g}$):
+Applying Boussinesq ($\rho \approx \rho_01everywhere except in1$\rho \mathbf{g}$):
 $$\rho_0 \left[ \frac{\partial \mathbf{U}}{\partial t} + \nabla \cdot (\mathbf{U} \mathbf{U}) \right] = -\nabla p + \mu \nabla^2 \mathbf{U} + \rho_0 [1 - \beta(T - T_0)] \mathbf{g}$$
 
 Rearranging with modified pressure ($p^* = p - \rho_0 \mathbf{g} \cdot \mathbf{x}$):
@@ -148,7 +148,7 @@ $$Ra = \frac{g \beta \Delta T L^3}{\nu \alpha} = \frac{\text{Buoyancy Forces}}{\
 $$Gr = \frac{g \beta \Delta T L^3}{\nu^2} = \frac{\text{Buoyancy Forces}}{\text{Viscous Forces}^2}$$
 
 - Ratio of buoyancy to viscous forces
-- Related to Rayleigh number: $Ra = Gr \cdot Pr$
+- Related to Rayleigh number:1$Ra = Gr \cdot Pr$
 
 **Prandtl Number (Pr):**
 $$Pr = \frac{\nu}{\alpha} = \frac{\text{Momentum Diffusivity}}{\text{Thermal Diffusivity}}$$
@@ -156,23 +156,23 @@ $$Pr = \frac{\nu}{\alpha} = \frac{\text{Momentum Diffusivity}}{\text{Thermal Dif
 - Fluid property (geometry-independent)
 - Compares velocity boundary layer to thermal boundary layer
 
-| Fluid | Temperature | $\nu$ [m²/s] | $\alpha$ [m²/s] | Pr |
+| Fluid | Temperature |1$\nu1[m²/s] |1$\alpha1[m²/s] | Pr |
 |-------|-------------|--------------|-----------------|-----|
-| Air | 20°C | $1.5 \times 10^{-5}$ | $2.1 \times 10^{-5}$ | 0.71 |
-| Water | 20°C | $1.0 \times 10^{-6}$ | $1.4 \times 10^{-7}$ | 7.0 |
-| Engine Oil | 20°C | $1.0 \times 10^{-4}$ | $9.0 \times 10^{-8}$ | ~1100 |
+| Air | 20°C |1$1.5 \times 10^{-5}1|1$2.1 \times 10^{-5}1| 0.71 |
+| Water | 20°C |1$1.0 \times 10^{-6}1|1$1.4 \times 10^{-7}1| 7.0 |
+| Engine Oil | 20°C |1$1.0 \times 10^{-4}1|1$9.0 \times 10^{-8}1| ~1100 |
 
 ### WHY: Physical Significance
 
 **Rayleigh Number Regimes:**
 
-| $Ra$ Range | Flow Regime | Physical Characteristics | Heat Transfer |
+|1$Ra1Range | Flow Regime | Physical Characteristics | Heat Transfer |
 |------------|-------------|--------------------------|---------------|
-| $< 10^3$ | **Conduction dominant** | Minimal fluid motion | $Nu \approx 1$ (pure conduction) |
-| $10^3 - 10^9$ | **Laminar convection** | Steady, organized circulation patterns | $Nu \propto Ra^{1/4}$ |
-| $> 10^9$ | **Turbulent convection** | Unsteady, chaotic, mixing dominates | $Nu \propto Ra^{1/3}$ |
+|1$< 10^31| **Conduction dominant** | Minimal fluid motion |1$Nu \approx 11(pure conduction) |
+|1$10^3 - 10^91| **Laminar convection** | Steady, organized circulation patterns |1$Nu \propto Ra^{1/4}1|
+|1$> 10^91| **Turbulent convection** | Unsteady, chaotic, mixing dominates |1$Nu \propto Ra^{1/3}1|
 
-**Why $Ra = 10^9$ is Critical:**
+**Why1$Ra = 10^91is Critical:**
 This marks the transition to turbulence where:
 - Boundary layers become unstable
 - Time-averaged statistics become meaningful
@@ -206,7 +206,7 @@ Calculate Ra for your geometry
 
 **Example Calculation:**
 
-Vertical plate, $L = 0.3$ m, $\Delta T = 20$ K, air at 20°C:
+Vertical plate,1$L = 0.31m,1$\Delta T = 201K, air at 20°C:
 
 $$Ra = \frac{(9.81)(3.0 \times 10^{-3})(20)(0.3)^3}{(1.5 \times 10^{-5})(2.1 \times 10^{-5})}$$
 $$Ra = \frac{0.0159}{3.15 \times 10^{-10}} \approx 5.0 \times 10^7$$
@@ -243,7 +243,7 @@ dimensions      [0 1 -2 0 0 0 0];
 value           (0 0 -9.81);  // Negative z-direction
 ```
 
-**Why:** Defines direction and magnitude of gravity. The buoyancy force opposes this direction when $T > T_{ref}$.
+**Why:** Defines direction and magnitude of gravity. The buoyancy force opposes this direction when1$T > T_{ref}$.
 
 **constant/transportProperties - Boussinesq Parameters**
 
@@ -257,11 +257,11 @@ Prt     [0 0 0 0 0 0 0]   0.9;      // Turbulent Prandtl number
 
 **Thermal Expansion Coefficients:**
 
-| Fluid | Temperature | $\beta$ [1/K] |
+| Fluid | Temperature |1$\beta1[1/K] |
 |-------|-------------|---------------|
-| Air | 20°C | $3.0 \times 10^{-3}$ |
-| Water | 20°C | $2.1 \times 10^{-4}$ |
-| Water | 80°C | $6.3 \times 10^{-4}$ |
+| Air | 20°C |1$3.0 \times 10^{-3}1|
+| Water | 20°C |1$2.1 \times 10^{-4}1|
+| Water | 80°C |1$6.3 \times 10^{-4}1|
 
 **Why These Values Matter:**
 - **$\nu$**: Controls viscous damping and boundary layer thickness
@@ -297,7 +297,7 @@ laplacianSchemes
 ```
 
 **WHY `bounded` Scheme for Temperature:**
-1. **Prevents unphysical values:** Temperature oscillations can create $T < 0$ K or $T > 10^6$ K
+1. **Prevents unphysical values:** Temperature oscillations can create1$T < 01K or1$T > 10^61K
 2. **Ensures stability:** Bounded schemes guarantee solution stays within bounds
 3. **Maintains energy balance:** Non-physical temperatures corrupt buoyancy force
 
@@ -334,7 +334,7 @@ relaxationFactors
 }
 ```
 
-**Why $T$ Relaxation = 0.5:**
+**Why1$T1Relaxation = 0.5:**
 - Temperature and velocity are **strongly coupled** through buoyancy
 - Low relaxation prevents oscillation between momentum and energy equations
 - Trade-off: slower convergence per iteration, but more stable
@@ -445,15 +445,15 @@ heatedWall
 $$Nu = \frac{h L}{k} = \frac{q'' L}{k \Delta T}$$
 
 Where:
-- $h$ = convective heat transfer coefficient [W/(m²·K)]
-- $L$ = characteristic length [m]
-- $k$ = thermal conductivity [W/(m·K)]
-- $q''$ = wall heat flux [W/m²]
+-1$h1= convective heat transfer coefficient [W/(m²·K)]
+-1$L1= characteristic length [m]
+-1$k1= thermal conductivity [W/(m·K)]
+-1$q''1= wall heat flux [W/m²]
 
 **Physical Meaning:**
-- $Nu = 1$: Pure conduction (no convection enhancement)
-- $Nu > 1$: Convection enhances heat transfer
-- Typical values: $Nu \sim 10-1000$ depending on $Ra$
+-1$Nu = 1$: Pure conduction (no convection enhancement)
+-1$Nu > 1$: Convection enhances heat transfer
+- Typical values:1$Nu \sim 10-10001depending on1$Ra$
 
 ### HOW: OpenFOAM Implementation
 
@@ -508,18 +508,18 @@ Nu_local = q_wall * L / (k_fluid * dT)
 
 | Configuration | Rayleigh Range | Correlation | Notes |
 |---------------|----------------|-------------|-------|
-| Vertical plate (laminar) | $10^4 < Ra < 10^9$ | $Nu = 0.59 Ra^{1/4}$ | Average Nu |
-| Vertical plate (turbulent) | $10^9 < Ra < 10^{13}$ | $Nu = 0.10 Ra^{1/3}$ | Local independent of x |
-| Horizontal plate (hot facing up) | $10^5 < Ra < 10^7$ | $Nu = 0.54 Ra^{1/4}$ | Upper surface |
-| Horizontal plate (hot facing down) | $10^5 < Ra < 10^{10}$ | $Nu = 0.27 Ra^{1/4}$ | Lower surface |
-| Enclosed cavity | $10^3 < Ra < 10^9$ | $Nu = 0.18 Ra^{1/4}$ | Aspect ratio ≈ 1 |
+| Vertical plate (laminar) |1$10^4 < Ra < 10^91|1$Nu = 0.59 Ra^{1/4}1| Average Nu |
+| Vertical plate (turbulent) |1$10^9 < Ra < 10^{13}1|1$Nu = 0.10 Ra^{1/3}1| Local independent of x |
+| Horizontal plate (hot facing up) |1$10^5 < Ra < 10^71|1$Nu = 0.54 Ra^{1/4}1| Upper surface |
+| Horizontal plate (hot facing down) |1$10^5 < Ra < 10^{10}1|1$Nu = 0.27 Ra^{1/4}1| Lower surface |
+| Enclosed cavity |1$10^3 < Ra < 10^91|1$Nu = 0.18 Ra^{1/4}1| Aspect ratio ≈ 1 |
 
 **Comparison Procedure:**
 
-1. Calculate $Ra$ from simulation parameters
-2. Compute theoretical $Nu$ from correlation
-3. Extract $Nu$ from OpenFOAM results
-4. Compare: $\frac{|Nu_{CFD} - Nu_{corr}|}{Nu_{corr}} < 10\%$ → Good agreement
+1. Calculate1$Ra1from simulation parameters
+2. Compute theoretical1$Nu1from correlation
+3. Extract1$Nu1from OpenFOAM results
+4. Compare:1$\frac{|Nu_{CFD} - Nu_{corr}|}{Nu_{corr}} < 10\%1→ Good agreement
 
 ---
 
@@ -529,7 +529,7 @@ Nu_local = q_wall * L / (k_fluid * dT)
 
 **Symptoms:**
 - Residuals increase exponentially
-- Temperature values become unrealistic ($T < 0$ K or $T > 10^6$ K)
+- Temperature values become unrealistic ($T < 01K or1$T > 10^61K)
 
 **Causes & Solutions:**
 
@@ -571,8 +571,8 @@ SIMPLE
 | Cause | Diagnosis | Solution |
 |-------|-----------|----------|
 | Gravity direction wrong | Check `constant/g` | Verify direction opposes buoyancy |
-| $\beta$ too small | Check units | Should be $O(10^{-3})$ for air |
-| $\Delta T$ too small | Calculate $Ra$ | May need larger $\Delta T$ |
+|1$\beta1too small | Check units | Should be1$O(10^{-3})1for air |
+|1$\Delta T1too small | Calculate1$Ra1| May need larger1$\Delta T1|
 | Wrong solver | Check solver type | Ensure using buoyancy solver |
 
 **Verification:**
@@ -591,7 +591,7 @@ grep "beta" constant/transportProperties
 ### Issue 3: Slow Convergence
 
 **Symptoms:**
-- Residuals plateau at $10^{-2}$ to $10^{-3}$
+- Residuals plateau at1$10^{-2}1to1$10^{-3}$
 - Solution oscillates between iterations
 
 **Solutions:**
@@ -628,7 +628,7 @@ SIMPLE
 ### Boussinesq Approximation
 
 ✅ **Use When:**
-- $\Delta T < 30°C$ (air) or $\Delta T < 5°C$ (water)
+-1$\Delta T < 30°C1(air) or1$\Delta T < 5°C1(water)
 - Flow speeds << speed of sound
 - Small density variations ($\beta \Delta T < 0.1$)
 
@@ -657,7 +657,7 @@ Calculate Ra = g·β·ΔT·L³/(ν·α)
 
 ### Solver Selection Matrix
 
-| $\Delta T$ | Steady | Transient |
+|1$\Delta T1| Steady | Transient |
 |------------|--------|-----------|
 | Small (< 30°C) | `buoyantBoussinesqSimpleFoam` | `buoyantBoussinesqPimpleFoam` |
 | Large (> 50°C) | `buoyantSimpleFoam` | `buoyantPimpleFoam` |
@@ -665,11 +665,11 @@ Calculate Ra = g·β·ΔT·L³/(ν·α)
 ### Critical Settings Checklist
 
 - [ ] **Gravity:** `constant/g` defined in correct direction
-- [ ] **Beta:** Thermal expansion coefficient set correctly ($\sim 10^{-3}$ for air)
+- [ ] **Beta:** Thermal expansion coefficient set correctly ($\sim 10^{-3}1for air)
 - [ ] **Bounded schemes:** `div(phi,T)` uses `bounded Gauss`
-- [ ] **Relaxation:** $T$ relaxation ≤ 0.5 for stability
-- [ ] **Residuals:** Tight tolerance on $T$ ($< 10^{-6}$)
-- [ ] **Validation:** Compare $Nu$ with correlations
+- [ ] **Relaxation:**1$T1relaxation ≤ 0.5 for stability
+- [ ] **Residuals:** Tight tolerance on1$T1($< 10^{-6}$)
+- [ ] **Validation:** Compare1$Nu1with correlations
 
 ### Physical Insight
 
@@ -693,18 +693,18 @@ This **two-way coupling** between momentum and energy is what makes buoyancy-dri
 สมมติว่าความหนาแน่นคงที่ทุกที่ **ยกเว้น** ในเทอมแรงลอยตัว:
 $$\rho = \rho_0[1 - \beta(T-T_0)]$$
 
-ใช้ได้เมื่อ $\beta\Delta T \ll 1$ (เช่น $\Delta T < 30°C$ สำหรับอากาศ)
+ใช้ได้เมื่อ1$\beta\Delta T \ll 11(เช่น1$\Delta T < 30°C1สำหรับอากาศ)
 
 ข้อดี: ลดความซับซ้อนของสมการ เร็วกว่า compressible formulation
-ข้อเสีย: ใช้ไม่ได้กับ $\Delta T$ ใหญ่
+ข้อเสีย: ใช้ไม่ได้กับ1$\Delta T1ใหญ่
 </details>
 
 <details>
 <summary><b>2. ทำไม `bounded` scheme สำคัญสำหรับ T?</b></summary>
 
 ป้องกัน temperature oscillation และค่าที่ไม่เป็นกายภาพ เช่น:
-- $T < 0$ K (negative absolute temperature - impossible!)
-- $T > 10^6$ K (unrealistic for room temperature flows)
+-1$T < 01K (negative absolute temperature - impossible!)
+-1$T > 10^61K (unrealistic for room temperature flows)
 
  bounded scheme รับประกันว่า:
 - Temperature อยู่ในช่วงที่กำหนด
@@ -715,9 +715,9 @@ $$\rho = \rho_0[1 - \beta(T-T_0)]$$
 </details>
 
 <details>
-<summary><b>3. $Ra > 10^9$ บ่งบอกอะไร?</b></summary>
+<summary><b>3.1$Ra > 10^91บ่งบอกอะไร?</b></summary>
 
-$Ra > 10^9$ บ่งบอกว่าการไหลเป็น **turbulent natural convection**
+$Ra > 10^91บ่งบอกว่าการไหลเป็น **turbulent natural convection**
 
 ลักษณะเฉพาะ:
 - Boundary layers กลายเป็น unstable (transition to turbulence)
@@ -729,7 +729,7 @@ $Ra > 10^9$ บ่งบอกว่าการไหลเป็น **turbulen
 - **ต้อง refine mesh** ตามสูตร y⁺ calculation
 - **อาจต้องใช้ transient solver** แม้จะต้องการ steady state
 
-Correlation: $Nu \propto Ra^{1/3}$ (turbulent) vs $Nu \propto Ra^{1/4}$ (laminar)
+Correlation:1$Nu \propto Ra^{1/3}1(turbulent) vs1$Nu \propto Ra^{1/4}1(laminar)
 </details>
 
 <details>

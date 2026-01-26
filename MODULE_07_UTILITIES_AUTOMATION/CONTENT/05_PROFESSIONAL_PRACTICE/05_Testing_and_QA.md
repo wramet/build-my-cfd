@@ -176,13 +176,13 @@ print(f"Order of convergence: p = {p:.2f}")
 #!/bin/bash
 # test_allrun.sh - รันและตรวจสอบอัตโนมัติ
 
-cd ${0%/*} || exit 1
+cd1${0%/*} || exit 1
 
 # รัน case
 ./Allrun
 
 # เช็คว่ารันสำเร็จไหม
-if [ $? -ne 0 ]; then
+if [1$? -ne 0 ]; then
     echo "❌ Simulation FAILED!"
     exit 1
 fi
@@ -190,7 +190,7 @@ fi
 # ตรวจสอบ residuals
 echo "Checking residuals..."
 latest_log=$(ls -t log.* | head -1)
-if grep -q "solution singularity" $latest_log; then
+if grep -q "solution singularity"1$latest_log; then
     echo "❌ Solution diverged!"
     exit 1
 fi
@@ -205,7 +205,7 @@ fi
 echo "Validating results..."
 if [ -f "expected_results.txt" ]; then
     diff -q expected_results.txt postProcessing/results.txt
-    if [ $? -ne 0 ]; then
+    if [1$? -ne 0 ]; then
         echo "⚠️  Results differ from expected!"
     else
         echo "✅ Results match expected!"
@@ -226,19 +226,19 @@ failed_cases=()
 passed=0
 failed=0
 
-for case in $test_dir/*/; do
+for case in1$test_dir/*/; do
     case_name=$(basename "$case")
-    echo "Testing: $case_name"
+    echo "Testing:1$case_name"
 
     # รัน test
     (cd "$case" && ./Allrun > test.log 2>&1)
 
     # เช็คผล
-    if [ $? -eq 0 ]; then
-        echo "✅ $case_name PASSED"
+    if [1$? -eq 0 ]; then
+        echo "✅1$case_name PASSED"
         ((passed++))
     else
-        echo "❌ $case_name FAILED"
+        echo "❌1$case_name FAILED"
         failed_cases+=("$case_name")
         ((failed++))
     fi
@@ -247,14 +247,14 @@ done
 echo ""
 echo "=========================================="
 echo "Test Summary:"
-echo "  Passed: $passed"
-echo "  Failed: $failed"
+echo "  Passed:1$passed"
+echo "  Failed:1$failed"
 echo "=========================================="
 
-if [ $failed -gt 0 ]; then
+if [1$failed -gt 0 ]; then
     echo "Failed cases:"
     for c in "${failed_cases[@]}"; do
-        echo "  - $c"
+        echo "  -1$c"
     done
     exit 1
 fi
@@ -321,11 +321,11 @@ validate_forces(".")
 case_dir="baseline_case"
 
 # รัน simulation
-(cd $case_dir && ./Allrun)
+(cd1$case_dir && ./Allrun)
 
 # บันทึกผลลัพธ์ที่สำคัญ
-cp $case_dir/postProcessing/forces/0/forces.dat baseline_forces.dat
-cp $case_dir/postProcessing/probes/0/p baseline_pressure.dat
+cp1$case_dir/postProcessing/forces/0/forces.dat baseline_forces.dat
+cp1$case_dir/postProcessing/probes/0/p baseline_pressure.dat
 
 echo "✅ Baseline created!"
 ```
@@ -396,8 +396,8 @@ regression_test("postProcessing/forces/0/forces.dat",
 
 # สร้าง test case ง่ายๆ
 test_case="test_util"
-mkdir -p $test_case
-cd $test_case
+mkdir -p1$test_case
+cd1$test_case
 
 # สร้าง mesh ง่ายๆ
 blockMesh > log.blockMesh 2>&1
@@ -468,7 +468,7 @@ echo "✅ Unit test passed!"
    #!/bin/bash
    log_file="log.simpleFoam"
 
-   if grep -q "solution singularity" $log_file; then
+   if grep -q "solution singularity"1$log_file; then
        echo "❌ Solution DIVERGED!"
        exit 1
    else

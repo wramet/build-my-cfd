@@ -340,7 +340,7 @@ export PYTHONPATH=$PYTHONPATH:$FOAM_LIBBIN/pyFoam
 source ~/.bashrc
 
 # รันคำสั่งนี้ใน OpenFOAM case
-cd $FOAM_RUN/tutorials/incompressible/simpleFoam/pitzDaily
+cd1$FOAM_RUN/tutorials/incompressible/simpleFoam/pitzDaily
 pyFoamListCases.py .
 
 # ควรแสดงรายชื่อ solvers ที่มี
@@ -361,7 +361,7 @@ print("FOAM_LIBBIN:", os.environ.get('FOAM_LIBBIN'))
 ```bash
 # ถ้า PyFoam ไม่เห็น OpenFOAM
 # ตรวจสอบว่า source OpenFOAM หรือยัง
-echo $WM_PROJECT_DIR
+echo1$WM_PROJECT_DIR
 
 # ถ้าแสดงค่าว่าง → ต้อง source OpenFOAM ก่อน
 source /opt/openfoam9/etc/bashrc
@@ -557,7 +557,7 @@ pyFoamListCases.py: command not found
 **วิธีแก้:**
 ```bash
 # ตรวจสอบว่า source OpenFOAM หรือยัง
-echo $WM_PROJECT_DIR
+echo1$WM_PROJECT_DIR
 
 # ถ้าว่าง → source OpenFOAM ก่อน
 source /opt/openfoam9/etc/bashrc

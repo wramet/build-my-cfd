@@ -296,16 +296,16 @@ volScalarField P = 2.0 * nut * magS * magS;
 $$T = \underbrace{\frac{1}{3}tr(T)I}_{\text{Spherical}} + \underbrace{dev(T)}_{\text{Deviatoric}}$$
 
 **Where:**
-- Spherical part: $\frac{1}{3}tr(T)I$ = Isotropic component
-- Deviatoric part: $T - \frac{1}{3}tr(T)I$ = Anisotropic component
+- Spherical part:1$\frac{1}{3}tr(T)I1= Isotropic component
+- Deviatoric part:1$T - \frac{1}{3}tr(T)I1= Anisotropic component
 
 #### Velocity Gradient Decomposition
 
 $$\nabla U = \underbrace{S}_{\text{Symmetric}} + \underbrace{\Omega}_{\text{Skew-symmetric}}$$
 
 **Where:**
-- $S = \frac{1}{2}(\nabla U + (\nabla U)^T)$ = Strain rate tensor
-- $\Omega = \frac{1}{2}(\nabla U - (\nabla U)^T)$ = Rotation tensor
+-1$S = \frac{1}{2}(\nabla U + (\nabla U)^T)1= Strain rate tensor
+-1$\Omega = \frac{1}{2}(\nabla U - (\nabla U)^T)1= Rotation tensor
 
 ### 📊 Decomposition Types
 
@@ -438,10 +438,10 @@ volScalarField mu = K * pow(strainRateMag, n - 1.0);
 
 | Operation | Syntax | Rank Reduction | Mathematical Form | Physical Meaning |
 |-----------|--------|----------------|-------------------|------------------|
-| Dot (single) | `a & b` | -1 | $a_i b_i$ (vectors) | Projection, work |
-| Double dot | `A && B` | -2 | $\sum_{i,j} A_{ij} B_{ij}$ | Stress power, contraction |
-| Outer | `a * b` | +1 | $a_i b_j$ | Dyadic product |
-| Cross | `a ^ b` | Vector (3D only) | $\varepsilon_{ijk} a_j b_k$ | Moment, vorticity |
+| Dot (single) | `a & b` | -1 |1$a_i b_i1(vectors) | Projection, work |
+| Double dot | `A && B` | -2 |1$\sum_{i,j} A_{ij} B_{ij}1| Stress power, contraction |
+| Outer | `a * b` | +1 |1$a_i b_j1| Dyadic product |
+| Cross | `a ^ b` | Vector (3D only) |1$\varepsilon_{ijk} a_j b_k1| Moment, vorticity |
 
 ### 💻 Code Examples
 
@@ -804,14 +804,14 @@ volScalarField epsilon_turb = 2.0 * nut * (S && S);
 
 | Operation | Code | Formula | Application |
 |-----------|------|---------|-------------|
-| Strain rate | `symm(gradU)` | $\frac{1}{2}(\nabla U + \nabla U^T)$ | Turbulence modeling |
-| Vorticity | `fvc::curl(U)` | $\nabla \times U$ | Vortex detection |
-| Magnitude | `mag(S)` | $\sqrt{S:S}$ | Scaling |
-| Deviatoric | `dev(T)` | $T - \frac{1}{3}tr(T)I$ | Shear stress |
-| Spherical | `sph(T)` | $\frac{1}{3}tr(T)I$ | Pressure |
-| Trace | `tr(T)` | $\sum T_{ii}$ | Invariants |
+| Strain rate | `symm(gradU)` |1$\frac{1}{2}(\nabla U + \nabla U^T)1| Turbulence modeling |
+| Vorticity | `fvc::curl(U)` |1$\nabla \times U1| Vortex detection |
+| Magnitude | `mag(S)` |1$\sqrt{S:S}1| Scaling |
+| Deviatoric | `dev(T)` |1$T - \frac{1}{3}tr(T)I1| Shear stress |
+| Spherical | `sph(T)` |1$\frac{1}{3}tr(T)I1| Pressure |
+| Trace | `tr(T)` |1$\sum T_{ii}1| Invariants |
 | Determinant | `det(T)` | - | Jacobian |
-| Inverse | `inv(T)` | $T^{-1}$ | Transformation |
+| Inverse | `inv(T)` |1$T^{-1}1| Transformation |
 | Eigenvalues | `eigenValues(T)` | - | Principal values |
 
 ---
@@ -950,8 +950,8 @@ scalar trace = tr(T);
    - I₃ = det(T): Third invariant (volume change)
 
 3. **Decomposition:**
-   - Spherical: $\frac{1}{3}tr(T)I$ = isotropic part
-   - Deviatoric: $T - \frac{1}{3}tr(T)I$ = traceless part
+   - Spherical:1$\frac{1}{3}tr(T)I1= isotropic part
+   - Deviatoric:1$T - \frac{1}{3}tr(T)I1= traceless part
    - Symmetric: (T + Tᵀ)/2 = deformation
    - Skew: (T - Tᵀ)/2 = rotation
 

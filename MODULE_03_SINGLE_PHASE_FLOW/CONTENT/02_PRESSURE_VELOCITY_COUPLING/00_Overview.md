@@ -149,7 +149,7 @@ $$\mathbf{u}_f = \overline{\mathbf{u}}_f - \mathbf{D}_f (\nabla p_f - \overline{
 <details>
 <summary><b>1. ทำไมความดันใน incompressible flow ถึงเรียกว่า Lagrange multiplier?</b></summary>
 
-เพราะความดันไม่ได้มาจาก equation of state แต่เป็นตัวแปรที่ "บังคับ" ให้ $\nabla \cdot \mathbf{u} = 0$ — มันไม่ใช่ thermodynamic variable แต่เป็น mathematical constraint enforcer ที่เกิดจากการพยายามบังคับให้ velocity field สอดคล้องกับ continuity equation
+เพราะความดันไม่ได้มาจาก equation of state แต่เป็นตัวแปรที่ "บังคับ" ให้1$\nabla \cdot \mathbf{u} = 01— มันไม่ใช่ thermodynamic variable แต่เป็น mathematical constraint enforcer ที่เกิดจากการพยายามบังคับให้ velocity field สอดคล้องกับ continuity equation
 </details>
 
 <details>
@@ -161,7 +161,7 @@ $$\mathbf{u}_f = \overline{\mathbf{u}}_f - \mathbf{D}_f (\nabla p_f - \overline{
 <details>
 <summary><b>3. PIMPLE ดีกว่า PISO อย่างไรสำหรับ large time steps?</b></summary>
 
-PIMPLE มี **outer corrector loops** ที่ทำงานเหมือน SIMPLE — ช่วยให้ลู่เข้าได้แม้ $Co > 1$ โดย PISO จะ diverge ถ้า time step ใหญ่เกินไป เพราะ PISO อาศัยการที่ time step เล็กพอที่ pressure change ระหว่าง time steps จะไม่มาก แต่ PIMPLE ใช้ under-relaxation และ outer iterations ในการแก้ปัญหานี้
+PIMPLE มี **outer corrector loops** ที่ทำงานเหมือน SIMPLE — ช่วยให้ลู่เข้าได้แม้1$Co > 11โดย PISO จะ diverge ถ้า time step ใหญ่เกินไป เพราะ PISO อาศัยการที่ time step เล็กพอที่ pressure change ระหว่าง time steps จะไม่มาก แต่ PIMPLE ใช้ under-relaxation และ outer iterations ในการแก้ปัญหานี้
 </details>
 
 <details>

@@ -1,271 +1,229 @@
 {
-    "day": "05",
-    "title": "Mesh Topology (Owner-Neighbor)",
-    "date": "2026-01-05",
-    "difficulty": "hardcore",
+  "day": "05",
+  "title": "Mesh Topology Concepts",
+  "learning_objectives": [
+    "Understand the fundamental mesh data structures in OpenFOAM (points, faces, cells)",
+    "Explain the owner-neighbor addressing scheme and its importance in CFD",
+    "Differentiate between primitiveMesh, polyMesh, and fvMesh hierarchies",
+    "Analyze how mesh topology affects numerical accuracy and computational efficiency",
+    "Identify common boundary condition types through mesh patches"
+  ],
 
-    "learning_objectives": [
-        {
-            "verb": "เข้าใจ (Understand)",
-            "topic": "Owner-Neighbor addressing และ face normal vector convention",
-            "equation": "$\mathbf{S}_f = \mathbf{S}_f^{outward}$ จาก owner cell",
-            "importance": "Foundation ของ Gauss divergence theorem และ flux calculation - กำหนดทิศทางของ convection/diffusion terms"
-        },
-        {
-            "verb": "ออกแบบ (Design)",
-            "core_concept": "Data structures สำหรับ unstructured mesh topology",
-            "components": ["cells", "faces", "points", "boundary patches"],
-            "importance": "การออกแบบมีผลต่อ cache efficiency และ memory bandwidth สำหรับ loops หลายแสนครั้งต่อ time step"
-        },
-        {
-            "verb": "Implement",
-            "topic": "Face-based loops สำหรับ assembly ของ matrix coefficients",
-            "challenge": "การแยกการคำนวณสำหรับ internal faces vs. boundary faces โดยรักษา conservation"
-        }
-    ],
-
-    "theory_sections": [
-        {
-            "id": "5.1",
-            "title_en": "Unstructured Mesh Topology Fundamentals",
-            "title_th": "พื้นฐานของโครงสร้าง Mesh แบบ Unstructured",
-            "equations": [
-                {
-                    "name": "Gauss Divergence Theorem (Discrete Form)",
-                    "latex": "\\int_{V_P} \\nabla \\cdot \\mathbf{U} \\, dV = \\sum_{f} \\mathbf{U}_f \\cdot \\mathbf{S}_f",
-                    "explanation": "Volume integral ของ divergence เท่ากับผลรวมของ flux ผ่านทุก face ของ cell"
-                },
-                {
-                    "name": "Face Area Vector Convention",
-                    "latex": "\\mathbf{S}_f = A_f \\mathbf{\\hat{n}}_f",
-                    "explanation": "Vector มี magnitude เท่ากับพื้นที่ face และ direction ตาม normal จาก owner ไป neighbor"
-                }
-            ],
-            "variables": [
-                {"symbol": "$\\mathbf{S}_f$", "name": "Face area vector", "unit": "m²", "convention": "Pointing from owner to neighbor"},
-                {"symbol": "$A_f$", "name": "Face area", "unit": "m²"},
-                {"symbol": "$\\mathbf{\\hat{n}}_f$", "name": "Unit normal vector", "unit": "-"},
-                {"symbol": "$V_P$", "name": "Cell volume", "unit": "m³"}
-            ],
-            "critical_note": "Owner cell คือ cell ที่มี index น้อยกว่า (lower index) สำหรับ internal faces. ทิศทางของ $\\mathbf{S}_f$ กำหนด sign ของ flux: positive flux = จาก owner ไป neighbor"
-        },
-        {
-            "id": "5.2",
-            "title_en": "Connectivity and Addressing",
-            "title_th": "การเชื่อมต่อและการอ้างอิงข้อมูล",
-            "core_concepts": [
-                "Owner-Neighbor Lists: จัดเก็บ cell index ทั้งสองข้างของแต่ละ internal face",
-                "Boundary Faces: มีเพียง owner cell, neighbor เป็น -1 หรืออ้างอิงถึง boundary patch",
-                "Face Interpolation: ความสัมพันธ์ระหว่าง cell-centered values ($\\phi_P$, $\\phi_N$) กับ face value ($\\phi_f$)"
-            ],
-            "addressing_diagram": {
-                "internal_face": "owner() -> cell I, neighbor() -> cell J (where I < J)",
-                "boundary_face": "owner() -> cell I, neighbor() -> boundary patch index"
-            }
-        }
-    ],
-
-    "openfoam_analysis": [
-        {
-            "class": "fvMesh",
-            "header": "src/finiteVolume/fvMesh/fvMesh.H",
-            "purpose": "Top-level mesh class ที่รวบรวม geometry (points, faces, cells) และ topological addressing",
-            "inheritance": "fvMesh → polyMesh → objectRegistry",
-            "key_data_members": [
-                {
-                    "name": "primitiveMesh::faceOwner_",
-                    "type": "labelList",
-                    "purpose": "List of owner cell indices for all faces (internal + boundary)"
-                },
-                {
-                    "name": "primitiveMesh::faceNeighbour_",
-                    "type": "labelList",
-                    "purpose": "List of neighbor cell indices for INTERNAL faces only (size = nInternalFaces)"
-                },
-                {
-                    "name": "primitiveMesh::nInternalFaces_",
-                    "type": "label",
-                    "purpose": "Number of internal faces (faces connecting two cells)"
-                },
-                {
-                    "name": "boundary_",
-                    "type": "PtrList<fvPatch>",
-                    "purpose": "List of boundary patches (fvPatch) จัดการ boundary faces และ conditions"
-                }
-            ],
-            "key_methods": [
-                {
-                    "name": "owner()",
-                    "return": "const labelList&",
-                    "purpose": "Return reference to faceOwner_ list"
-                },
-                {
-                    "name": "neighbour()",
-                    "return": "const labelList&",
-                    "purpose": "Return reference to faceNeighbour_ list (for internal faces)"
-                },
-                {
-                    "name": "Sf()",
-                    "return": "const surfaceVectorField&",
-                    "purpose": "Face area vectors field (surfaceVectorField)"
-                },
-                {
-                    "name": "magSf()",
-                    "return": "const surfaceScalarField&",
-                    "purpose": "Magnitude of face area vectors (surfaceScalarField)"
-                },
-                {
-                    "name": "C()",
-                    "return": "const volVectorField&",
-                    "purpose": "Cell center positions"
-                },
-                {
-                    "name": "Cf()",
-                    "return": "const surfaceVectorField&",
-                    "purpose": "Face center positions"
-                }
-            ],
-            "usage_example": "// Loop over all internal faces\nconst labelList& owner = mesh.owner();\nconst labelList& neighbour = mesh.neighbour();\nforAll(owner, faceI) {\n    label own = owner[faceI];\n    label nei = neighbour[faceI];\n    // ... assembly coefficients for own and nei ...\n}"
-        },
-        {
-            "class": "lduAddressing",
-            "header": "src/OpenFOAM/matrices/lduMatrix/lduAddressing/lduAddressing.H",
-            "purpose": "Lightweight class จัดการ addressing สำหรับ LDU matrix format (Lower-Diagonal-Upper)",
-            "key_methods": [
-                {
-                    "name": "size()",
-                    "return": "label",
-                    "purpose": "Number of equations (cells) ในระบบ"
-                },
-                {
-                    "name": "lowerAddr()",
-                    "return": "const labelList&",
-                    "purpose": "Indices of cells ที่อยู่ 'lower' ใน matrix (owner cells)"
-                },
-                {
-                    "name": "upperAddr()",
-                    "return": "const labelList&",
-                    "purpose": "Indices of cells ที่อยู่ 'upper' ใน matrix (neighbor cells)"
-                },
-                {
-                    "name": "losort()",
-                    "return": "const labelList&",
-                    "purpose": "Sorting index สำหรับ lower triangular (optimization)"
-                }
-            ],
-            "matrix_structure_note": "LDU format ใช้ owner-neighbor lists เป็น natural addressing: lowerAddr = owner, upperAddr = neighbour สำหรับ internal faces"
-        }
-    ],
-
-    "implementation_skeleton": {
-        "classes": [
-            {
-                "name": "FluxCalculator",
-                "responsibility": "คำนวณ face flux และ assemble convection/diffusion terms",
-                "key_methods": [
-                    {
-                        "name": "calculateConvectionFlux(...)",
-                        "purpose": "คำนวณ face flux $\\phi_f = \\mathbf{U}_f \\cdot \\mathbf{S}_f$ โดยใช้ interpolation scheme",
-                        "algorithm": [
-                            "Interpolate U to faces (linear, upwind, etc.)",
-                            "Dot product with Sf()",
-                            "Apply rho สำหรับ compressible flow"
-                        ]
-                    },
-                    {
-                        "name": "assembleDiffusionTerm(...)",
-                        "purpose": "Assemble laplacian (diffusion) matrix coefficients",
-                        "critical_code": "// Face normal gradient contribution\nscalar coeff = gamma_f * magSf[faceI] / deltaMag;\n// Owner contribution: +coeff to diagonal, -coeff to upper\n// Neighbor contribution: +coeff to diagonal, -coeff to lower"
-                    },
-                    {
-                        "name": "applyBoundaryConditions(...)",
-                        "purpose": "จัดการ boundary faces แยกจาก internal faces",
-                        "note": "Boundary faces มีเพียง owner cell, neighbor contribution มาจาก boundary condition type (fixedValue, zeroGradient, etc.)"
-                    }
-                ]
-            },
-            {
-                "name": "MeshQuery",
-                "responsibility": "Provide geometric information และ topology queries",
-                "key_methods": [
-                    {
-                        "name": "cellCells(label cellI)",
-                        "purpose": "Return list of neighboring cells (via faces) ของ cellI"
-                    },
-                    {
-                        "name": "faceCells(label faceI)",
-                        "purpose": "Return pair (owner, neighbor) สำหรับ faceI (neighbor = -1 สำหรับ boundary)"
-                    },
-                    {
-                        "name": "cellVolumes()",
-                        "return": "const scalarField&",
-                        "purpose": "Return cell volumes (V())"
-                    }
-                ]
-            }
-        ],
-        "algorithm_steps": [
-            "1. Initialize fvMatrix coefficients: diag, upper, lower, source to zero",
-            "2. Loop over internal faces (faceI from 0 to nInternalFaces-1):",
-            "   a. Get owner (own) and neighbor (nei) cell indices",
-            "   b. Calculate face flux (convection) หรือ diffusion coefficient",
-            "   c. For convection (implicit): add contribution to diag[own], diag[nei] และ off-diagonals",
-            "   d. For diffusion: add gamma_f * magSf/delta ไปยัง diag และ off-diag (sign ตาม owner-neighbor convention)",
-            "3. Loop over boundary faces (per patch):",
-            "   a. Get owner cell และ boundary condition type",
-            "   b. Apply boundary contribution (e.g., fixedValue adds to source, zeroGradient adds nothing)",
-            "4. Solve linear system (Day 07-08)",
-            "5. Update field values และ correct boundary conditions"
-        ],
-        "critical_implementation": "Internal face loop ต้องคำนวณ contributions สำหรับทั้ง owner และ neighbor cells พร้อมกัน เพื่อให้ matrix symmetric (สำหรับ diffusion) หรือ skew-symmetric (สำหรับ convection) ตามความเหมาะสม"
+  "theory_sections": [
+    {
+      "section": "Mesh Data Hierarchy",
+      "subsection": "primitiveMesh: Foundation of Topology",
+      "concepts": [
+        "Points: 3D coordinate storage using point class",
+        "Faces: Connectivity using face class (labelList)",
+        "Cells: Volume regions using cell class (labelList)",
+        "Key primitiveMesh methods: nPoints(), nFaces(), nCells()",
+        "Mesh addressing: owner and neighbor face lists"
+      ],
+      "formulas": [
+        "Face vector: $\\mathbf{f} = [p_0, p_1, p_2, ..., p_{n-1}]$",
+        "Cell definition: $cell = [f_0, f_1, f_2, ..., f_{m-1}]$",
+        "Owner addressing: $owner[face_i] = cell_j$",
+        "Neighbor addressing: $neighbor[face_i] = cell_k$"
+      ]
     },
+    {
+      "section": "Advanced Mesh Concepts",
+      "subsection": "polyMesh: Polygonal Mesh Implementation",
+      "concepts": [
+        "Inheritance from objectRegistry",
+        "Boundary handling through polyPatch classes",
+        "Cell zones, face zones, point zones for mesh partitioning",
+        "Mesh data lazy evaluation strategy",
+        "Parallel distribution through polyDistributionMap"
+      ],
+      "formulas": []
+    },
+    {
+      "section": "Finite Volume Specifics",
+      "subsection": "fvMesh: FV-Specific Topology",
+      "concepts": [
+        "Inheritance from polyMesh + lduMesh + surfaceInterpolation",
+        "Surface interpolation data structures",
+        "Cell volume and face area storage",
+        "Boundary field integration",
+        "Mesh motion and topological change handling"
+      ],
+      "formulas": []
+    },
+    {
+      "section": "Boundary Condition Implementation",
+      "subsection": "Patch Types and Characteristics",
+      "concepts": [
+        "Boundary conditions as patches",
+        "Common patch types: wall, cyclic, processor, symmetry",
+        "Patch addressing schemes",
+        "Communication between patches",
+        "Boundary condition implementation in field interpolation"
+      ],
+      "formulas": []
+    }
+  ],
+
+    "openfoam_reference": {
+    "key_classes": [
+      {
+        "name": "primitiveMesh",
+        "file": "openfoam_temp/src/OpenFOAM/meshes/primitiveMesh/primitiveMesh.H",
+        "base_class": "lduMesh",
+        "methods": [
+          "nPoints() const",
+          "nFaces() const",
+          "nCells() const",
+          "points() const",
+          "faces() const",
+          "cells() const",
+          "faceOwner() const",
+          "faceNeighbour() const"
+        ]
+      },
+      {
+        "name": "polyMesh",
+        "file": "openfoam_temp/src/OpenFOAM/meshes/polyMesh/polyMesh.H",
+        "base_class": "objectRegistry",
+        "methods": [
+          "boundaryMesh() const",
+          "cellZones() const",
+          "faceZones() const",
+          "pointZones() const",
+          "points() const",
+          "faces() const",
+          "cells() const"
+        ]
+      },
+      {
+        "name": "fvMesh",
+        "file": "openfoam_temp/src/finiteVolume/fvMesh/fvMesh.H",
+        "base_class": "public polyMesh, public lduMesh, public surfaceInterpolation",
+        "methods": [
+          "V() const",
+          "Sf() const",
+          "magSf() const",
+          "interpolate()",
+          "boundaryField() const"
+        ]
+      },
+      {
+        "name": "face",
+        "file": "openfoam_temp/src/OpenFOAM/meshes/meshShapes/face/face.H",
+        "base_class": "labelList",
+        "methods": [
+          "size() const",
+          "centre() const",
+          "normal() const",
+          "area() const"
+        ]
+      },
+      {
+        "name": "cell",
+        "file": "openfoam_temp/src/OpenFOAM/meshes/meshShapes/cell/cell.H",
+        "base_class": "labelList",
+        "methods": [
+          "size() const",
+          "centre() const",
+          "volume() const",
+          "mag() const"
+        ]
+      },
+      {
+        "name": "point",
+        "file": "openfoam_temp/src/OpenFOAM/meshes/meshShapes/point/point.H",
+        "base_class": "Vector",
+        "methods": [
+          "x() const",
+          "y() const",
+          "z() const",
+          "mag() const",
+          "distance()"
+        ]
+      }
+    ],
+    "patch_classes": [
+      {
+        "name": "wallPolyPatch",
+        "file": "openfoam_temp/src/OpenFOAM/meshes/polyMesh/polyPatches/derived/wall/wallPolyPatch.H",
+        "base_class": "polyPatch"
+      },
+      {
+        "name": "cyclicPolyPatch",
+        "file": "openfoam_temp/src/OpenFOAM/meshes/polyMesh/polyPatches/constraint/cyclic/cyclicPolyPatch.H",
+        "base_class": "coupledPolyPatch"
+      },
+      {
+        "name": "processorPolyPatch",
+        "file": "openfoam_temp/src/OpenFOAM/meshes/polyMesh/polyPatches/constraint/processor/processorPolyPatch.H",
+        "base_class": "coupledPolyPatch"
+      },
+      {
+        "name": "symmetryPolyPatch",
+        "file": "openfoam_temp/src/OpenFOAM/meshes/polyMesh/polyPatches/constraint/symmetry/symmetryPolyPatch.H",
+        "base_class": "polyPatch"
+      }
+    ]
+  },
+
+    "implementation": {
+    "code_snippets": [
+      {
+        "description": "Basic mesh data access",
+        "code": "#include \"fvMesh.H\"\n\nvoid meshInfo(const fvMesh& mesh)\n{\n    // Access basic mesh dimensions\n    Info<< \"Number of points: \" << mesh.nPoints() << endl;\n    Info<< \"Number of faces: \" << mesh.nFaces() << endl;\n    Info<< \"Number of cells: \" << mesh.nCells() << endl;\n    \n    // Access mesh points\n    const pointField& points = mesh.points();\n    Info<< \"First point: \" << points[0] << endl;\n    \n    // Access faces\n    const faceList& faces = mesh.faces();\n    Info<< \"First face has \" << faces[0].size() << \" points\" << endl;\n}",
+        "file": "basicMeshAccess.C"
+      },
+      {
+        "description": "Owner-neighbor addressing",
+        "code": "#include \"fvMesh.H\"\n\nvoid addressingInfo(const fvMesh& mesh)\n{\n    // Face owner and neighbor lists\n    const labelList& owner = mesh.faceOwner();\n    const labelList& neighbour = mesh.faceNeighbour();\n    \n    // Count internal faces (have neighbors)\n    label nInternalFaces = 0;\n    forAll(neighbour, facei)\n    {\n        if (neighbour[facei] != -1)\n        {\n            nInternalFaces++;\n            // This is an internal face\n            label cellOwner = owner[facei];\n            label cellNeighbour = neighbour[facei];\n        }\n    }\n    \n    Info<< \"Internal faces: \" << nInternalFaces \n        << \" Boundary faces: \" << mesh.nFaces() - nInternalFaces << endl;}",
+        "file": "addressing.C"
+      },
+      {
+        "description": "Boundary patch iteration",
+        "code": "#include \"fvMesh.H\"\n\nvoid boundaryInfo(const fvMesh& mesh)\n{\n    // Iterate over boundary patches\n    forAll(mesh.boundaryMesh(), patchi)\n    {\n        const polyPatch& patch = mesh.boundaryMesh()[patchi];\n        \n        Info<< \"Patch \" << patch.name() \n            << \" type: \" << patch.type()\n            << \" nFaces: \" << patch.size() << endl;\n        \n        // Access patch-specific data\n        if (isA<wallPolyPatch>(patch))\n        {\n            Info<< \"  This is a wall boundary\" << endl;\n        }\n        else if (isA<cyclicPolyPatch>(patch))\n        {\n            Info<< \"  This is a cyclic boundary\" << endl;\n        }\n    }\n}",
+        "file": "boundaryPatches.C"
+      },
+      {
+        "description": "Mesh zones management",
+        "code": "#include \"fvMesh.H\"\n\nvoid zonesInfo(const fvMesh& mesh)\n{\n    // Cell zones\n    const cellZoneList& cellZones = mesh.cellZones();\n    Info<< \"Cell zones: \" << cellZones.size() << endl;\n    \n    forAll(cellZones, zonei)\n    {\n        const cellZone& zone = cellZones[zonei];\n        Info<< \"  Zone \" << zone.name() << \" has \" << zone.size() << \" cells\" << endl;\n    }\n    \n    // Face zones\n    const faceZoneList& faceZones = mesh.faceZones();\n    Info<< \"Face zones: \" << faceZones.size() << endl;\n    \n    // Point zones\n    const pointZoneList& pointZones = mesh.pointZones();\n    Info<< \"Point zones: \" << pointZones.size() << endl;\n}",
+        "file": "meshZones.C"
+      },
+      {
+        "description": "Mesh data lazy evaluation",
+        "code": "#include \"fvMesh.H\"\n#include \"volFields.H\"\n#include \"surfaceFields.H\"\n\nvoid meshDataInfo(const fvMesh& mesh)\n{\n    // Cell volumes (lazy evaluation)\n    const scalarField& V = mesh.V();\n    Info<< \"Total volume: \" << sum(V) << endl;\n    Info<< \"Min cell volume: \" << gMin(V) \n        << \" Max cell volume: \" << gMax(V) << endl;\n    \n    // Face areas\n    const vectorField& Sf = mesh.Sf();\n    const scalarField& magSf = mesh.magSf();\n    \n    Info<< \"Total face area: \" << sum(magSf) << endl;\n    \n    // Face centres\n    const vectorField& Cf = mesh.Cf();\n    Info<< \"First face centre: \" << Cf[0] << endl;\n}",
+        "file": "lazyEvaluation.C"
+      }
+    ],
+    "compilation_instructions": "OpenFOAM applications compiled with:\nmkdir -p $FOAM_APP/bin\nwmake $FOAM_APP/bin/myMeshInfo",
+    "testing_procedure": "Test with cavity tutorial case:\ncavityFoam > mesh_info.log\ngrep -A 5 -B 5 mesh_info.log"
+  },
 
     "concept_checks": [
-        {
-            "question": "ทำไม internal face ถึงมี owner และ neighbor cell แต่ boundary face มีเพียง owner?",
-            "answer_key_points": [
-                "Internal face เชื่อมต่อระหว่างสอง cells ใน domain → ต้องรู้ทั้งสองฝั่งเพื่อคำนวณ flux",
-                "Boundary face มีเพียง cell ฝั่งเดียว (ภายใน domain) อีกฝั่งคือ 'ภายนอก' ซึ่งถูกกำหนดโดย boundary condition",
-                "Boundary condition กำหนดว่าจะจัดการ flux ที่ขอบอย่างไร (เช่น fixedValue, zeroGradient, fixedFlux)"
-            ],
-            "implementation_note": "ใน OpenFOAM, faceNeighbour_ list มีขนาด nInternalFaces เท่านั้น, boundary faces ไม่มี entry ใน list นี้"
-        },
-        {
-            "question": "การคำนวณ divergence ของ velocity ($\\nabla \\cdot \\mathbf{U}$) ผ่าน Gauss theorem ใน unstructured mesh ทำอย่างไร?",
-            "answer_key_points": [
-                "Discretized form: $(\\nabla \\cdot \\mathbf{U})_P = \\frac{1}{V_P} \\sum_{f} \\mathbf{U}_f \\cdot \\mathbf{S}_f$",
-                "Loop ผ่านทุก face ของ cell P (ต้องหา faces ของ cell P จาก cell-faces addressing)",
-                "$\\mathbf{U}_f$ คำนวณจาก interpolation ของ cell-centered values (linear, upwind)",
-                "Face area vector $\\mathbf{S}_f$ มาจาก mesh.Sf()[faceI], ทิศทางจาก owner ไป neighbor",
-                "สำหรับ face ที่ P เป็น owner, contribution เป็น $+ \\mathbf{U}_f \\cdot \\mathbf{S}_f$",
-                "สำหรับ face ที่ P เป็น neighbor, เพราะ $\\mathbf{S}_f$ ชี้จาก owner (อีก cell) มาที่ P, เราต้องใช้ $- \\mathbf{U}_f \\cdot \\mathbf{S}_f$ เพื่อให้ sign ถูกต้อง"
-            ]
-        }
-    ],
-
-    "pitfalls": [
-        {
-            "symptom": "Matrix ไม่ symmetric เมื่อควรจะเป็น (เช่น diffusion term)",
-            "cause": "การเพิ่ม coefficients สำหรับ owner และ neighbor ไม่สมมาตร (sign ผิด)",
-            "fix": "ตรวจสอบว่าใช้ convention เดียวกัน: สำหรับ internal face, owner cell ได้ +coeff ใน diagonal และ -coeff ใน upper, neighbor cell ได้ +coeff ใน diagonal และ -coeff ใน lower"
-        },
-        {
-            "symptom": "Mass ไม่ conserve (net flux ไม่เป็นศูนย์สำหรับ closed domain)",
-            "cause": "การคำนวณ face flux ไม่สอดคล้องกันระหว่างสอง cells ที่ share face",
-            "fix": "ต้องใช้ face flux เดียวกันสำหรับทั้ง owner และ neighbor cells (flux จาก owner ไป neighbor = - flux จาก neighbor ไป owner)"
-        },
-        {
-            "symptom": "Boundary condition ถูก ignore หรือประมวลผลผิด",
-            "cause": "ลืม loop ผ่าน boundary faces หรือใช้ boundary condition type ผิด",
-            "fix": "ต้องแยก loop สำหรับ boundary patches และประยุกต์ boundary condition อย่างถูกต้อง (เช่น fixedValue แก้ไข source และ diagonal, zeroGradient ไม่ต้องทำอะไร)"
-        }
-    ],
-
-    "connections": {
-        "previous_day": "Day 04: Temporal Discretization",
-        "previous_link": "Day 04 กำหนดวิธี discretize time derivative, Day 05 กำหนดวิธี discretize spatial terms บน mesh",
-        "next_day": "Day 06: Boundary Conditions",
-        "next_day_preview": "Day 06 จะลงรายละเอียดการจัดการ boundary faces และ boundary condition types (Dirichlet, Neumann, Robin) บน topology จาก Day 05",
-        "key_concept_link": "Mesh topology (Day 05) + Boundary conditions (Day 06) = Complete spatial discretization framework สำหรับ Day 07-08 (Linear Algebra & Solvers)"
+    {
+      "question": "What is the purpose of owner-neighbor addressing in finite volume meshes?",
+      "answer": "Owner-neighbor addressing determines which cells share each internal face, enabling flux calculations between adjacent control volumes. Each internal face has exactly one owner cell and one neighbor cell, while boundary faces have only an owner cell.",
+      "verification": "Check mesh.faceOwner() and mesh.faceNeighbour() return lists of size nFaces()"
+    },
+    {
+      "question": "How does polyMesh differ from primitiveMesh?",
+      "answer": "primitiveMesh provides basic topological data (points, faces, cells), while polyMesh adds mesh boundaries, zones, parallel distribution, and time-varying capabilities. polyMesh inherits from objectRegistry and manages mesh data across time steps.",
+      "verification": "Verify polyMesh.H shows inheritance from objectRegistry and boundaryMesh() method"
+    },
+    {
+      "question": "What is lazy evaluation in OpenFOAM mesh data?",
+      "answer": "Mesh data like cell volumes and face areas are computed on-demand when accessed, not stored permanently. This conserves memory but means subsequent accesses incur computational cost.",
+      "verification": "Call mesh.V() multiple times - first access computes, subsequent access retrieves cached value"
+    },
+    {
+      "question": "How do patches enable boundary condition implementation?",
+      "answer": "Patches group boundary faces by type (wall, cyclic, etc.) and provide communication protocols for parallel processing. Each patch knows its neighbors and how to exchange boundary values.",
+      "verification": "Check wallPolyPatch inherits from polyPatch and has specific wall treatment methods"
+    },
+    {
+      "question": "Why does fvMesh inherit from multiple base classes?",
+      "answer": "fvMesh combines polyMesh (topology), lduMesh (linear algebra addressing), and surfaceInterpolation (surface field operations) to provide complete FV functionality in a single class.",
+      "verification": "Verify fvMesh.H shows: public polyMesh, public lduMesh, public surfaceInterpolation"
     }
+  ]
 }

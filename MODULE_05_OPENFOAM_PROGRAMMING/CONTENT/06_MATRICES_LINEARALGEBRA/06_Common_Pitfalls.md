@@ -122,7 +122,7 @@ solvers
 // → บังคับ converge จริงใน final iteration
 pFinal
 {
-    $p;                    // Inherit settings from p
+1$p;                    // Inherit settings from p
     relTol          0;     // ไม่ใช้ relTol → converge จนถึง tolerance
     tolerance       1e-06; // Absolute convergence
 }
@@ -214,7 +214,7 @@ p
 
 pFinal
 {
-    $p;                    // Inherit tolerance 1e-06
+1$p;                    // Inherit tolerance 1e-06
     relTol          0;      // ❌ No relative criterion
     
     // pFinal หยุดเมื่อ:

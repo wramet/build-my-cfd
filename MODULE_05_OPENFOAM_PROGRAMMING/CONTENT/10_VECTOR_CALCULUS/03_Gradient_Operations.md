@@ -30,22 +30,22 @@ By the end of this section, you will be able to:
 > The gradient operator is implemented using **Gauss Theorem** which converts volume integrals to surface integrals
 > - **📍 Source Code**: `src/finiteVolume/fvc/fvcGrad.C`
 > - **🔑 C++ Command**: `volVectorField gradP = fvc::grad(p);`
-> - **📊 Mathematics**: $\nabla \phi = \frac{1}{V} \sum_f \phi_f \mathbf{S}_f$
+> - **📊 Mathematics**:1$\nabla \phi = \frac{1}{V} \sum_f \phi_f \mathbf{S}_f$
 > - **🎯 Result**: Scalar → Vector, Vector → Tensor transformation
 >
 > **🔗 Case Files Connection**: This operation is used by every solver to compute gradients of pressure and velocity from fields in the `0/` directory (e.g., `0/p`, `0/U`) according to settings in `system/fvSchemes`
 
-The **nabla operator $\nabla$** transforms scalar fields to vector fields and vector fields to tensor fields. In the finite volume method, this continuous differential operator is discretized using **Gauss's Divergence Theorem**:
+The **nabla operator1$\nabla$** transforms scalar fields to vector fields and vector fields to tensor fields. In the finite volume method, this continuous differential operator is discretized using **Gauss's Divergence Theorem**:
 
 $$
 \nabla \phi = \frac{1}{V} \sum_{f=1}^{n_f} \phi_f \mathbf{S}_f
 $$
 
 **Where:**
-- $V$ = cell volume
-- $n_f$ = number of faces
-- $\phi_f$ = field value interpolated to face $f$
-- $\mathbf{S}_f = \mathbf{n}_f A_f$ = face area vector
+-1$V1= cell volume
+-1$n_f1= number of faces
+-1$\phi_f1= field value interpolated to face1$f$
+-1$\mathbf{S}_f = \mathbf{n}_f A_f1= face area vector
 
 ```mermaid
 flowchart LR
@@ -172,7 +172,7 @@ $$
 \phi_N \approx \phi_P + (\nabla \phi)_P \cdot (\mathbf{x}_N - \mathbf{x}_P)
 $$
 
-For cell $P$ with neighbors $N_1, N_2, ..., N_m$, we solve:
+For cell1$P1with neighbors1$N_1, N_2, ..., N_m$, we solve:
 
 $$
 \begin{bmatrix}
@@ -201,7 +201,7 @@ $$
 \mathbf{A}^T \mathbf{A} \nabla \phi_P = \mathbf{A}^T \mathbf{b}
 $$
 
-Where $\mathbf{A}$ contains geometric coefficients and $\mathbf{b}$ contains field differences.
+Where1$\mathbf{A}1contains geometric coefficients and1$\mathbf{b}1contains field differences.
 
 > [!TIP] Least Squares Advantages
 > - ✅ Higher accuracy on skewed meshes
@@ -357,8 +357,8 @@ Info << "Boundary gradient values: " << gradP.boundaryField() << endl;
 
 | Scheme | Complexity | Notes |
 |--------|------------|-------|
-| **Gauss gradient** | $O(n_{faces})$ | Fast operation |
-| **Least squares** | $O(n_{cells})$ | With additional matrix solving |
+| **Gauss gradient** |1$O(n_{faces})1| Fast operation |
+| **Least squares** |1$O(n_{cells})1| With additional matrix solving |
 
 ### 7.3 Accuracy vs Stability Trade-off
 
@@ -432,11 +432,11 @@ gradSchemes
 >   - `src/finiteVolume/cfdTools/incompressible/simpleFoam/` - SIMPLE algorithm
 >   - `src/finiteVolume/cfdTools/incompressible/pisoFoam/` - PISO algorithm
 > - **🔑 Navier-Stokes Equation**:
->   $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
+>1$$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \mathbf{u} = -\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}$$
 > - **🎯 Gradient Usage**:
->   - $-\nabla p$: Pressure gradient force
->   - $\nabla \mathbf{u}$: Velocity gradient tensor
->   - $\nabla \rho$: Density gradient (buoyancy)
+>   -1$-\nabla p$: Pressure gradient force
+>   -1$\nabla \mathbf{u}$: Velocity gradient tensor
+>   -1$\nabla \rho$: Density gradient (buoyancy)
 >
 > **💻 Implementation**: Solvers use `fvc::grad()` (explicit) and `fvm::grad()` (implicit) to solve equations
 
@@ -504,8 +504,8 @@ U -= rAU * fvc::grad(p);
 
 **Result**: `volVectorField` (vector field at cell centers)
 
-**Units**: If `p` has units $[Pa] = [kg/(m \cdot s^2)]$
-- $\nabla p$ has units $[Pa/m] = [kg/(m^2 \cdot s^2)]$
+**Units**: If `p` has units1$[Pa] = [kg/(m \cdot s^2)]$
+-1$\nabla p1has units1$[Pa/m] = [kg/(m^2 \cdot s^2)]$
 - Represents force per unit volume
 
 </details>

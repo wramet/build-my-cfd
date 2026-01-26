@@ -66,21 +66,21 @@
 
 ```
 #!/bin/bash          ← Shebang: Tells system which interpreter to use
-cd ${0%/*} || exit 1 ← Navigate to script directory (robust path handling)
+cd1${0%/*} || exit 1 ← Navigate to script directory (robust path handling)
 # Commands here...   ← Actual OpenFOAM commands
 ```
 
 **Key components:**
 
 1. **Shebang (`#!/bin/bash`)**: First line specifying the interpreter program
-2. **Path navigation**: `cd ${0%/*}` ensures script works from any directory
+2. **Path navigation**: `cd1${0%/*}` ensures script works from any directory
 3. **Command execution**: Sequential execution of OpenFOAM utilities
 4. **Error handling**: `|| exit 1` stops execution if commands fail
 
 **ส่วนประกอบพื้นฐานของสคริปต์:**
 
 1. **Shebang (`#!/bin/bash`)**: บรรทัดแรกระบุโปรแกรม interpreter
-2. **การนำทางเส้นทาง**: `cd ${0%/*}` รับประกันว่าสคริปต์ทำงานจากไดเรกทอรีใดก็ได้
+2. **การนำทางเส้นทาง**: `cd1${0%/*}` รับประกันว่าสคริปต์ทำงานจากไดเรกทอรีใดก็ได้
 3. **การ execute คำสั่ง**: การ execute ตามลำดับของ utilities ของ OpenFOAM
 4. **การจัดการข้อผิดพลาด**: `|| exit 1` หยุดการ execute หากคำสั่งล้มเหลว
 
@@ -125,8 +125,8 @@ cd ${0%/*} || exit 1 ← Navigate to script directory (robust path handling)
 
 ```bash
 #!/bin/bash
-cd ${0%/*} || exit 1    # Navigate to script directory
-. $WM_PROJECT_DIR/bin/tools/RunFunctions  # Load OpenFOAM helper functions
+cd1${0%/*} || exit 1    # Navigate to script directory
+.1$WM_PROJECT_DIR/bin/tools/RunFunctions  # Load OpenFOAM helper functions
 
 # Mesh generation
 runApplication blockMesh
@@ -156,14 +156,14 @@ runApplication foamToVTK
 #!/bin/bash
 ├─ Shebang line - specifies bash interpreter
 │
-cd ${0%/*} || exit 1
-├─ ${0%/*} = directory containing this script
+cd1${0%/*} || exit 1
+├─1${0%/*} = directory containing this script
 ├─ cd = change to that directory
 └─ || exit 1 = stop if directory change fails
 │
-. $WM_PROJECT_DIR/bin/tools/RunFunctions
+.1$WM_PROJECT_DIR/bin/tools/RunFunctions
 ├─ . (dot) = source command (load functions into current shell)
-├─ $WM_PROJECT_DIR = OpenFOAM installation directory
+├─1$WM_PROJECT_DIR = OpenFOAM installation directory
 └─ Provides: runApplication, runParallel, etc.
 │
 runApplication blockMesh
@@ -178,8 +178,8 @@ runApplication blockMesh
 
 ```bash
 #!/bin/bash
-cd ${0%/*} || exit 1
-. $WM_PROJECT_DIR/bin/tools/RunFunctions
+cd1${0%/*} || exit 1
+.1$WM_PROJECT_DIR/bin/tools/RunFunctions
 
 runApplication simpleFoam
 runApplication `(new solver)`
@@ -190,8 +190,8 @@ runApplication postProcess -func "yPlus"
 
 ```bash
 #!/bin/bash
-cd ${0%/*} || exit 1
-. $WM_PROJECT_DIR/bin/tools/RunFunctions
+cd1${0%/*} || exit 1
+.1$WM_PROJECT_DIR/bin/tools/RunFunctions
 
 runApplication decomposePar
 runParallel simpleFoam 4          # Run on 4 cores
@@ -206,7 +206,7 @@ runApplication reconstructPar
 
 ```bash
 #!/bin/bash
-cd ${0%/*} || exit 1    # Navigate to script directory
+cd1${0%/*} || exit 1    # Navigate to script directory
 
 # Remove all time directories except 0 and 0.orig
 rm -rf 0.[0-9]* [1-9]* processor* 
@@ -228,7 +228,7 @@ cp -rf 0.orig 0
 
 ```bash
 #!/bin/bash
-cd ${0%/*} || exit 1
+cd1${0%/*} || exit 1
 
 # Preserve 0.orig directory
 echo "Cleaning case directory..."
@@ -237,7 +237,7 @@ echo "Preserving 0.orig directory"
 # Selective cleaning with confirmation
 read -p "Remove processor directories? (y/n) " -n 1 -r
 echo
-if [[ $REPLY =~ ^[Yy]$ ]]
+if [[1$REPLY =~ ^[Yy]1]]
 then
     rm -rf processor*
     echo "Processor directories removed"
@@ -345,7 +345,7 @@ cp /home/user/OpenFOAM/templates/0.orig 0
 ```bash
 #!/bin/bash
 # SOLUTION: Always navigate to script directory
-cd ${0%/*} || exit 1
+cd1${0%/*} || exit 1
 
 # SOLUTION: Use specific patterns, verify backups exist
 if [ -d 0.orig ]
@@ -360,7 +360,7 @@ fi
 templateDir=$FOAM_TUTORIALS/incompressible/simpleFoam/airFoil2D
 if [ -d "$templateDir" ]
 then
-    cp -rf $templateDir/0.orig .
+    cp -rf1$templateDir/0.orig .
 fi
 
 # SOLUTION: Always specify shebang
@@ -370,7 +370,7 @@ fi
 ### Pitfall Checklist | รายการตรวจสอบข้อผิดพลาด
 
 - [ ] **Always** start with `#!/bin/bash` shebang
-- [ ] **Always** include `cd ${0%/*} || exit 1`
+- [ ] **Always** include `cd1${0%/*} || exit 1`
 - [ ] **Never** hard-code absolute paths (use `$WM_PROJECT_DIR`)
 - [ ] **Always** backup `0` to `0.orig` before cleaning
 - [ ] **Never** use `rm -rf 0.*` without checking `0.orig` exists
@@ -486,7 +486,7 @@ fi
 </details>
 
 <details>
-<summary><b>3. What does ${0%/*} mean and why is it important? | ${0%/*} หมายถึงอะไรและทำไมสำคัญ?</b></summary>
+<summary><b>3. What does1${0%/*} mean and why is it important? |1${0%/*} หมายถึงอะไรและทำไมสำคัญ?</b></summary>
 
 **Answer:** 
 
@@ -500,7 +500,7 @@ fi
 ```bash
 # If script is: /home/user/OpenFOAM/run/myCase/Allrun
 ${0%/*}  # Expands to: /home/user/OpenFOAM/run/myCase
-cd ${0%/*} || exit 1  # Change to that directory
+cd1${0%/*} || exit 1  # Change to that directory
 ```
 
 **`${0%/*}` เป็นการขยายพารามิเตอร์ bash ที่ดึง** เส้นทางไดเรกทอรี **จากตำแหน่งของสคริปต์เอง:**
@@ -511,7 +511,7 @@ cd ${0%/*} || exit 1  # Change to that directory
 
 **Why it's important:**
 
-| Without `cd ${0%/*}` | With `cd ${0%/*}` |
+| Without `cd1${0%/*}` | With `cd1${0%/*}` |
 |---------------------|-------------------|
 | Must be in case directory to run | Can run from any directory |
 | `./Allrun` works, `../case/Allrun` fails | Both work correctly |
@@ -520,7 +520,7 @@ cd ${0%/*} || exit 1  # Change to that directory
 
 **ทำไมสำคัญ:**
 
-| โดยไม่มี `cd ${0%/*}` | ด้วย `cd ${0%/*}` |
+| โดยไม่มี `cd1${0%/*}` | ด้วย `cd1${0%/*}` |
 |---------------------|-------------------|
 | ต้องอยู่ในไดเรกทอรีกรณีเพื่อรัน | สามารถรันจากไดเรกทอรีใดก็ได้ |
 | `./Allrun` ทำงาน, `../case/Allrun` ล้มเหลว | ทั้งคู่ทำงานได้อย่างถูกต้อง |

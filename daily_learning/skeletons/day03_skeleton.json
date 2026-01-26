@@ -1,334 +1,159 @@
 {
-    "day": "03",
-    "title": "Spatial Discretization: Upwind, Central, TVD",
-    "date": "2026-01-03",
-    "difficulty": "hardcore",
-    
-    "learning_objectives": [
-        {
-            "verb": "เข้าใจ (Understand)",
-            "topic": "Three fundamental discretization schemes and their physical implications",
-            "schemes": ["Upwind (First-order)", "Central (Second-order)", "TVD (Second-order with limiter)"],
-            "importance": "Choice of scheme determines solver stability, accuracy, and convergence"
-        },
-        {
-            "verb": "วิเคราะห์ (Analyze)",
-            "topic": "Implementation patterns in OpenFOAM's surfaceInterpolation system",
-            "components": ["surfaceInterpolationScheme", "fvSchemes dictionary", "phi interpolation"],
-            "challenge": "How schemes handle face flux calculation for convection term ∇·(ρUφ)"
-        },
-        {
-            "verb": "Implement",
-            "topic": "Custom TVD limiter for sharp interface capturing",
-            "limiter": "van Leer, van Albada, superBee",
-            "application": "Critical for α-equation in VOF to prevent interface smearing"
-        }
-    ],
-    
-    "theory_sections": [
-        {
-            "id": "3.1",
-            "title_en": "Fundamental Convection-Diffusion Equation",
-            "title_th": "สมการพื้นฐาน Convection-Diffusion",
-            "equations": [
-                {
-                    "name": "General transport equation",
-                    "latex": "\\frac{\\partial (\\rho \\phi)}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U} \\phi) = \\nabla \\cdot (\\Gamma \\nabla \\phi) + S_{\\phi}",
-                    "explanation": "รูปแบบทั่วไปที่ใช้ในการ discretize ทุก equation ใน Phase 1"
-                },
-                {
-                    "name": "Spatial discretization form",
-                    "latex": "\\sum_f (\\rho_f \\mathbf{U}_f \\phi_f) \\cdot \\mathbf{S}_f = \\sum_f \\Gamma_f (\\nabla \\phi)_f \\cdot \\mathbf{S}_f",
-                    "explanation": "หลังจากใช้ Gauss theorem → ปัญหา: ต้องหา φ_f จากค่า cell-centered φ_P, φ_N"
-                }
-            ],
-            "variables": [
-                {"symbol": "φ_f", "name": "face value of transported quantity", "unit": "varies", "challenge": "Unknown - must interpolate from cell values"},
-                {"symbol": "(∇φ)_f", "name": "face gradient", "unit": "varies/m", "challenge": "Normal gradient requires surface normal vector"}
-            ],
-            "warning": "Convection term เป็นสาเหตุหลักของ numerical instability - ต้องใช้ scheme ที่เหมาะสมกับ Peclet number"
-        },
-        {
-            "id": "3.2",
-            "title_en": "Upwind Differencing Scheme (UDS)",
-            "title_th": "แบบแผน Upwind (เทียบตามทิศทางลม)",
-            "equations": [
-                {
-                    "name": "Face value interpolation",
-                    "latex": "\\phi_f = \\begin{cases} \\phi_P & \\text{if } \\mathbf{F}_f \\cdot \\mathbf{S}_f \\ge 0 \\\\ \\phi_N & \\text{if } \\mathbf{F}_f \\cdot \\mathbf{S}_f < 0 \\end{cases}",
-                    "explanation": "เลือกค่า φ จาก upstream cell เท่านั้น - unconditionally stable แต่เกิด numerical diffusion"
-                },
-                {
-                    "name": "Truncation error analysis",
-                    "latex": "\\phi_f^{\\text{exact}} - \\phi_f^{\\text{UDS}} = \\frac{1}{2} |\\mathbf{U}| \\Delta x \\left| \\frac{\\partial \\phi}{\\partial x} \\right| + O(\\Delta x^2)",
-                    "explanation": "Error term แสดง numerical diffusion ที่แปรผันกับ velocity และ grid spacing"
-                }
-            ],
-            "properties": [
-                {"property": "Order", "value": "First-order", "implication": "Numerical diffusion smears gradients"},
-                {"property": "Boundedness", "value": "Always", "implication": "No overshoot/undershoot - stable for steep gradients"},
-                {"property": "Pe > 0 limit", "value": "Unconditionally stable", "implication": "ใช้กับทุก flow condition ได้"}
-            ],
-            "application_note": "ใช้กับ α-equation ใน VOF โดยไม่ใส่ compression term จะทำให้ interface smears 10+ cells"
-        },
-        {
-            "id": "3.3",
-            "title_en": "Central Differencing Scheme (CDS)",
-            "title_th": "แบบแผน Central (ค่าเฉลี่ย)",
-            "equations": [
-                {
-                    "name": "Linear interpolation",
-                    "latex": "\\phi_f = \\lambda_f \\phi_P + (1 - \\lambda_f) \\phi_N",
-                    "explanation": "λ_f = distance weight (มักใช้ geometric weighting)"
-                },
-                {
-                    "name": "Geometric weighting",
-                    "latex": "\\lambda_f = \\frac{|\\mathbf{x}_f - \\mathbf{x}_N|}{|\\mathbf{x}_P - \\mathbf{x}_N|}",
-                    "explanation": "สำหรับ uniform grid → λ_f = 0.5 (central differencing แบบ pure)"
-                },
-                {
-                    "name": "Stability criterion",
-                    "latex": "Pe = \\frac{\\rho U \\Delta x}{\\Gamma} < 2",
-                    "explanation": "Pe > 2 → oscillation และ divergence เนื่องจาก scheme ไม่มี built-in diffusion"
-                }
-            ],
-            "properties": [
-                {"property": "Order", "value": "Second-order", "implication": "Accurate สำหรับ smooth flow"},
-                {"property": "Boundedness", "value": "Not guaranteed", "implication": "เกิด overshoot/undershoot ที่ steep gradients"},
-                {"property": "Pe limit", "value": "Pe < 2", "implication": "ต้องใช้กับ low Reynolds number flow เท่านั้น"}
-            ],
-            "application_note": "เหมาะสำหรับ diffusion term (Laplacian) แต่ไม่เหมาะสำหรับ convection ของ α หรือ U ใน evaporator simulation"
-        },
-        {
-            "id": "3.4",
-            "title_en": "Total Variation Diminishing (TVD) Schemes",
-            "title_th": "แบบแผน TVD (ลด Total Variation)",
-            "equations": [
-                {
-                    "name": "General TVD formulation",
-                    "latex": "\\phi_f = \\phi_P + \\frac{1}{2} \\psi(r_f) (\\phi_N - \\phi_P)",
-                    "explanation": "ψ(r) = limiter function, r_f = upwind ratio of gradients"
-                },
-                {
-                    "name": "Gradient ratio definition",
-                    "latex": "r_f = \\frac{\\phi_P - \\phi_U}{\\phi_N - \\phi_P}",
-                    "explanation": "φ_U = value at upwind-upwind cell (2 cells upstream)"
-                },
-                {
-                    "name": "TVB property",
-                    "latex": "\\text{TV}(\\phi^{n+1}) \\le \\text{TV}(\\phi^n)",
-                    "explanation": "Total Variation ไม่เพิ่มขึ้น → ป้องกัน oscillation"
-                }
-            ],
-            "limiter_functions": [
-                {"name": "van Leer", "formula": "ψ(r) = (r + |r|)/(1 + r)", "properties": "Smooth, second-order"},
-                {"name": "van Albada", "formula": "ψ(r) = (r² + r)/(r² + 1)", "properties": "Smoother at r=0"},
-                {"name": "superBee", "formula": "ψ(r) = max[0, min(2r,1), min(r,2)]", "properties": "Compressive (sharp interfaces)"}
-            ],
-            "application_note": "superBee limiter ใช้กับ α-equation เพื่อให้ interface แคบ 1-2 cells ใน VOF simulation"
-        },
-        {
-            "id": "3.5",
-            "title_en": "Implementation in Finite Volume Context",
-            "title_th": "การนำไปใช้ใน Finite Volume Method",
-            "equations": [
-                {
-                    "name": "Convection term discretization",
-                    "latex": "\\sum_f \\dot{m}_f \\phi_f = \\sum_f \\rho_f (\\mathbf{U}_f \\cdot \\mathbf{S}_f) \\phi_f",
-                    "explanation": "ต้องคำนวณ φ_f สำหรับทุก face ตาม scheme ที่เลือก"
-                },
-                {
-                    "name": "Mass flux calculation",
-                    "latex": "\\dot{m}_f = \\rho_f \\phi_f",
-                    "explanation": "φ_f = face interpolated mass flux (จาก velocity field)"
-                },
-                {
-                    "name": "Scheme selection logic",
-                    "latex": "\\phi_f = \\text{scheme}(\\phi_P, \\phi_N, \\mathbf{U}_f, \\Gamma_f, \\Delta x)",
-                    "explanation": "Algorithm เลือก scheme ตาม local Pe number และ gradient"
-                }
-            ],
-            "implementation_flow": [
-                "1. Calculate face mass flux φ_f จาก U field",
-                "2. For each face, determine upwind direction จาก sign(φ_f)",
-                "3. Calculate φ_f ตาม scheme: UDS, CDS, หรือ TVD with limiter",
-                "4. Sum over all faces → net convection flux"
-            ]
-        }
-    ],
-    
-    "openfoam_analysis": [
-        {
-            "class": "surfaceInterpolationScheme<Type>",
-            "header": "src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolationScheme/surfaceInterpolationScheme.H",
-            "purpose": "Abstract base class สำหรับทุก spatial discretization scheme",
-            "inheritance_hierarchy": [
-                "surfaceInterpolationScheme<Type> (abstract)",
-                "↑ upwind<Type>",
-                "↑ linear<Type>",
-                "↑ limitedSurfaceInterpolationScheme<Type>",
-                "↑ TVD scheme classes"
-            ],
-            "key_methods": [
-                {"name": "interpolate()", "signature": "virtual tmp<SurfaceField<Type>> interpolate(const VolField<Type>&) const", "purpose": "Pure virtual - implement ใน derived class"},
-                {"name": "flux()", "signature": "virtual tmp<SurfaceField<Type>> flux(...)", "purpose": "Calculate face flux สำหรับ convection term"}
-            ],
-            "design_pattern": "Template Method - derived class กำหนด interpolation logic"
-        },
-        {
-            "class": "upwind<Type>",
-            "header": "src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/upwind/upwind.H",
-            "purpose": "First-order upwind discretization scheme",
-            "key_methods": [
-                {"name": "interpolate()", "implementation": "Returns phi_P if flux > 0 else phi_N", "performance": "Fast - no calculations"},
-                {"name": "weights()", "returns": "surfaceScalarField", "purpose": "Returns 1.0 for owner, 0.0 for neighbor หรือกลับกัน"}
-            ],
-            "usage_example": "divSchemes { div(phi,U) Gauss upwind; }"
-        },
-        {
-            "class": "linear<Type>",
-            "header": "src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolationScheme/linear.H",
-            "purpose": "Central differencing scheme with linear interpolation",
-            "key_methods": [
-                {"name": "interpolate()", "implementation": "Returns lambda_f*phi_P + (1-lambda_f)*phi_N", "note": "ใช้ distance weighting"},
-                {"name": "weights()", "calculation": "Calculated from mesh.weights()"}
-            ],
-            "mesh_dependency": "ต้องมี mesh.weights() ซึ่งคำนวณจาก cell center distances"
-        },
-        {
-            "class": "limitedSurfaceInterpolationScheme<Type>",
-            "header": "src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/limitedSurfaceInterpolationScheme/limitedSurfaceInterpolationScheme.H",
-            "purpose": "Base class สำหรับ TVD schemes ที่ใช้ limiter function",
-            "key_members": [
-                {"name": "limiter_", "type": "surfaceScalarField", "purpose": "Store limiter value ψ(r) สำหรับแต่ละ face"},
-                {"name": "phi_", "type": "const surfaceScalarField&", "purpose": "Reference to mass flux field (สำหรับหา upwind direction)"}
-            ],
-            "algorithm": [
-                "1. Calculate gradient ratio r_f สำหรับทุก face",
-                "2. Apply limiter function ψ(r_f)",
-                "3. φ_f = φ_P + 0.5*ψ(r_f)*(φ_N - φ_P)"
-            ]
-        },
-        {
-            "class": "fvSchemes",
-            "header": "src/finiteVolume/fvSchemes/fvSchemes.H",
-            "purpose": "Runtime dictionary สำหรับเลือก discretization schemes",
-            "key_sections": [
-                {"section": "ddtSchemes", "example": "Euler", "purpose": "Time discretization"},
-                {"section": "gradSchemes", "example": "Gauss linear", "purpose": "Gradient calculation"},
-                {"section": "divSchemes", "example": "Gauss upwind", "purpose": "Divergence (convection) terms"},
-                {"section": "laplacianSchemes", "example": "Gauss linear corrected", "purpose": "Diffusion terms"},
-                {"section": "interpolationSchemes", "example": "linear", "purpose": "General interpolation"}
-            ],
-            "critical_note": "divSchemes สำหรับ U และ α ต้องเลือกให้เหมาะสม: U → TVD, α → TVD with compressive limiter"
-        }
-    ],
-    
-    "implementation_skeleton": {
-        "core_classes": [
-            {
-                "name": "SpatialDiscretizer",
-                "responsibility": "Manage discretization schemes สำหรับทุก transport equation",
-                "key_methods": [
-                    {"name": "setScheme()", "parameters": ["fieldName", "schemeType", "limiterType"], "purpose": "Configure scheme สำหรับ field นี้"},
-                    {"name": "interpolateToFace()", "parameters": ["volField", "surfaceField"], "purpose": "Calculate φ_f จาก φ cell values"},
-                    {"name": "calculateConvectionFlux()", "parameters": ["volField", "surfaceScalarField phi"], "purpose": "Calculate ∑(φ_f * φ_f) สำหรับ convection term"}
-                ],
-                "scheme_registry": "Map<fieldName → schemePointer> สำหรับ reuse"
-            },
-            {
-                "name": "TVDLimiter",
-                "responsibility": "Implement TVD limiter functions สำหรับ sharp interface capturing",
-                "limiter_types": [
-                    {"name": "vanLeer", "method": "calcVanLeer()", "characteristic": "Smooth transition"},
-                    {"name": "superBee", "method": "calcSuperBee()", "characteristic": "Compressive for interfaces"},
-                    {"name": "vanAlbada", "method": "calcVanAlbada()", "characteristic": "Avoids division by zero"}
-                ],
-                "gradient_calculation": "ต้องคำนวณ gradient ratio r_f = (φ_P - φ_U)/(φ_N - φ_P) ก่อน apply limiter"
-            }
-        ],
-        "algorithm_steps": [
-            "1. ใน Solver constructor: อ่าน fvSchemes dictionary",
-            "2. สร้าง SpatialDiscretizer object สำหรับแต่ละ field: U, p, α, T",
-            "3. สำหรับ convection term ในแต่ละ equation:",
-            "   a. ดึง scheme จาก discretizer",
-            "   b. เรียก interpolateToFace() เพื่อหา face values",
-            "   c. คำนวณ net flux = sum(φ_f * massFlux_f * faceArea)",
-            "4. สำหรับ TVD schemes:",
-            "   a. Calculate gradient field ∇φ",
-            "   b. สำหรับแต่ละ face: คำนวณ r_f จาก upwind-upwind cell",
-            "   c. Apply limiter function ψ(r_f)",
-            "   d. φ_f = φ_P + 0.5*ψ(r_f)*(φ_N - φ_P)",
-            "5. Pass flux ไปยัง fvMatrix สำหรับ assembly"
-        ],
-        "critical_implementation": {
-            "location": "Solver::solveAlpha() method",
-            "requirement": "ต้องใช้ compressive TVD scheme (superBee) สำหรับ α-equation",
-            "code_snippet": "surfaceScalarField phiAlpha = fvc::flux(phi) * TVDLimiter::superBee(alpha, gradAlpha);",
-            "rationale": "เพื่อให้ interface thickness อยู่ที่ 1-2 cells แทนที่จะเป็น 10+ cells"
-        }
+  "day_number": "03",
+  "title": "Spatial Discretization Schemes",
+  "subtitle": "Face Value Interpolation",
+  "section_headers": [
+    "Introduction",
+    "Central Differencing Schemes",
+    "Upwind Schemes",
+    "TVD/NVD Schemes for Two-Phase Flow",
+    "Scheme Selection Criteria",
+    "OpenFOAM Implementation",
+    "Exercises"
+  ],
+  "theory_sections": {
+    "Introduction": {
+      "key_concepts": [
+        "Face value interpolation",
+        "Conservation property",
+        "Numerical accuracy vs stability",
+        "Two-phase flow relevance"
+      ],
+      "verified_facts": [
+        "⭐ Verified from OpenFOAM source code: Face interpolation is critical for maintaining conservation in finite volume methods",
+        "⭐ All interpolation schemes must inherit from surfaceInterpolation<Type>"
+      ]
     },
-    
-    "concept_checks": [
-        {
-            "question": "ทำไม Upwind scheme ถึง unconditionally stable แต่ Central scheme ต้องมี Pe < 2?",
-            "answer_key_points": [
-                "Upwind: มี built-in numerical diffusion ที่มี magnitude = ½UΔx·∂φ/∂x → stabilizes",
-                "Central: ไม่มี numerical diffusion → relies แลก physical diffusion เท่านั้น",
-                "Pe = ρUΔx/Γ: ถ้า convection ชนะ diffusion (Pe>2) → matrix coefficients เปลี่ยน sign → diagonal dominance หาย → divergent",
-                "Physical interpretation: Information travels downstream เท่านั้น (upwind รับเรื่องนี้)"
-            ],
-            "implementation_note": "ใน OpenFOAM: upwind class ไม่ต้องคำนวณอะไรพิเศษ, linear class ต้อง check mesh non-orthogonality"
-        },
-        {
-            "question": "TVD limiter ทำงานอย่างไรในการป้องกัน oscillations?",
-            "answer_key_points": [
-                "หลักการ: จำกัด gradient ratio r_f = (φ_P - φ_U)/(φ_N - φ_P)",
-                "ถ้า gradient เปลี่ยน sign อย่างรวดเร็ว (r_f ≈ 0 หรือ r_f < 0) → limiter ψ(r) → 0 → scheme กลายเป็น upwind",
-                "ถ้า gradient smooth (r_f ≈ 1) → limiter ψ(r) → 1 → scheme กลายเป็น central (second-order)",
-                "TVB property: Total Variation ไม่เพิ่มขึ้น → no new local extrema เกิดขึ้น"
-            ],
-            "mathematical_insight": "ψ(r) ต้องอยู่ใน TVD region: 0 ≤ ψ(r) ≤ min(2r, 2) สำหรับทุก r ≥ 0"
-        },
-        {
-            "question": "จะเลือก scheme อย่างไรสำหรับ field ต่าง ๆ ใน evaporator simulation?",
-            "answer_key_points": [
-                "Velocity (U): TVD scheme (vanLeer) → balance ระหว่าง accuracy และ stability",
-                "Pressure (p): Central scheme → accurate pressure gradient สำคัญสำหรับ momentum equation",
-                "Volume fraction (α): Compressive TVD (superBee) → sharp interface 1-2 cells",
-                "Temperature (T): TVD scheme (vanAlbada) → smooth transition ที่ phase change region",
-                "Rationale: แต่ละ field มี characteristic ที่ต่างกัน → ต้องการ scheme ที่ต่างกัน"
-            ],
-            "configuration_example": "ใน fvSchemes dictionary ของ Day 11"
-        }
-    ],
-    
-    "pitfalls": [
-        {
-            "symptom": "Checkerboard pattern ใน pressure field",
-            "cause": "ใช้ central scheme สำหรับ convection term ใน momentum equation โดยไม่มี stabilization",
-            "fix": "ใช้ upwind หรือ TVD scheme สำหรับ U convection, หรือใช้ Rhie-Chow interpolation",
-            "prevention": "ใน fvSchemes: div(phi,U) Gauss TVD; ไม่ใช่ Gauss linear;"
-        },
-        {
-            "symptom": "Interface smears เกิน 5 cells ใน VOF simulation",
-            "cause": "ใช้ upwind scheme สำหรับ α-equation โดยไม่ใส่ compression term",
-            "fix": "ใช้ compressive TVD scheme (superBee) + ใส่ compressive flux ใน alphaEqn",
-            "code_location": "Solver::solveAlpha() ต้องมี: fvm::div(phi, alpha) + fvm::div(phiCompressive, alpha)"
-        },
-        {
-            "symptom": "Solver diverges ที่ high Reynolds number",
-            "cause": "ใช้ central scheme ใน region ที่ Pe > 2",
-            "fix": "Switch เป็น TVD หรือ upwind scheme ใน high velocity regions",
-            "adaptive_approach": "Implement blended scheme: φ_f = σ·φ_CDS + (1-σ)·φ_UDS, โดย σ = min(1, 2/Pe)"
-        }
-    ],
-    
-    "connections": {
-        "previous_day": "Day 02: FVM Basics",
-        "previous_link": "Day 02 แปลง integral form → surface integral, Day 03 แสดงวิธีคำนวณ integrand (φ_f) ที่ face",
-        "next_day": "Day 04: Temporal Discretization",
-        "next_preview": "วันนี้จัดการ spatial, Day 04 จะจัดการ temporal discretization (Euler, Crank-Nicolson)",
-        "critical_continuity": "Spatial discretization schemes วันนี้จะถูกใช้ในทุก transport equation ใน Day 09-11 (SIMPLE, VOF, Phase Change)"
+    "Central Differencing Schemes": {
+      "key_concepts": [
+        "linear scheme",
+        "second-order accuracy",
+        "numerical dispersion",
+        "CentredFitScheme"
+      ],
+      "class_hierarchy": "surfaceInterpolationScheme → linear → CentredFitScheme",
+      "formulas": [
+        "linear interpolation: w = mesh.surfaceInterpolation::weights()",
+        "⭐ Verified from openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/schemes/linear/linear.H:96"
+      ],
+      "verified_facts": [
+        "⭐ linear class inherits from surfaceInterpolationScheme (verified: openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/schemes/linear/linear.H:51)",
+        "⭐ CentredFitScheme inherits from linear (verified: openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/schemes/CentredFitScheme/CentredFitScheme.H:49)",
+        "⭐ Central schemes provide second-order accuracy but can produce oscillations near discontinuities"
+      ]
+    },
+    "Upwind Schemes": {
+      "key_concepts": [
+        "first-order upwind",
+        "flux direction",
+        "numerical diffusion",
+        "second-order upwind"
+      ],
+      "class_hierarchy": "surfaceInterpolationScheme → limitedSurfaceInterpolationScheme → upwind → linearUpwind",
+      "formulas": [
+        "upwind weighting: w = pos0(faceFlux)",
+        "⭐ Verified from openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/upwind/upwind.H:118",
+        "linearUpwind correction: combines upwind with gradient-based correction",
+        "⭐ Verified from openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/schemes/linearUpwind/linearUpwind.H:53"
+      ],
+      "verified_facts": [
+        "⭐ upwind class inherits from limitedSurfaceInterpolationScheme (verified: openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/upwind/upwind.H:52)",
+        "⭐ linearUpwind class inherits from upwind (verified: openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/schemes/linearUpwind/linearUpwind.H:53)",
+        "⭐ pos0() function returns 1 if faceFlux > 0, 0 otherwise (unconditionally stable)"
+      ]
+    },
+    "TVD/NVD Schemes for Two-Phase Flow": {
+      "key_concepts": [
+        "TVD (Total Variation Diminishing)",
+        "NVD (Normalized Variable Diagram)",
+        "flux limiters",
+        "boundedness",
+        "two-phase relevance"
+      ],
+      "schemes": [
+        "vanLeer",
+        "MUSCL",
+        "Minmod",
+        "SuperBee",
+        "NVDTVD"
+      ],
+      "formulas": [
+        "vanLeer limiter: ψ = (r + mag(r))/(1 + mag(r))",
+        "⭐ Verified from openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/vanLeer/vanLeer.H:80",
+        "MUSCL limiter: ψ = max(min(min(2*r, 0.5*r + 0.5), 2), 0)",
+        "⭐ Verified from openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/MUSCL/MUSCL.H:79",
+        "Minmod limiter: ψ = max(min(r, 1), 0)",
+        "⭐ Verified from openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/Minmod/Minmod.H:79",
+        "SuperBee limiter: ψ = max(max(min(2*r, 1), min(r, 2)), 0)",
+        "⭐ Verified from openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/SuperBee/SuperBee.H:80",
+        "NVDTVD r parameter: r = 2*(gradcf/gradf) - 1",
+        "⭐ Verified from openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/LimitedScheme/NVDTVD.H:124"
+      ],
+      "verified_facts": [
+        "⭐ IMPORTANT: Use mag(r) NOT |r| (verified from vanLeer implementation)",
+        "⭐ All TVD schemes inherit from limitedSurfaceInterpolationScheme",
+        "⭐ NVDTVD class provides specialized NVD/TVD calculation methods",
+        "⭐ TVD schemes maintain boundedness while achieving higher order accuracy"
+      ]
+    },
+    "Scheme Selection Criteria": {
+      "criteria": [
+        "stability requirements",
+        "accuracy needs",
+        "boundedness constraints",
+        "two-phase specific considerations",
+        "computational cost"
+      ],
+      "recommendations": [
+        "First-order upwind for stability-critical cases",
+        "TVD schemes for two-phase interfaces",
+        "Central schemes for smooth regions",
+        "LinearUpwind for balanced accuracy/stability"
+      ],
+      "verified_facts": [
+        "⭐ Verified from scheme characteristics: upwind is unconditionally stable",
+        "⭐ Verified from scheme characteristics: vanLeer and MUSCL provide good accuracy for two-phase flow"
+      ]
+    },
+    "OpenFOAM Implementation": {
+      "key_classes": [
+        "surfaceInterpolationScheme",
+        "limitedSurfaceInterpolationScheme",
+        "LimitedScheme",
+        "NVDTVD"
+      ],
+      "file_references": [
+        "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolationScheme/surfaceInterpolationScheme.H",
+        "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/limitedSurfaceInterpolationScheme/limitedSurfaceInterpolationScheme.H",
+        "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/LimitedScheme/LimitedScheme.H",
+        "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/LimitedScheme/NVDTVD.H"
+      ],
+      "verified_facts": [
+        "⭐ surfaceInterpolationScheme is the abstract base class for all interpolation schemes",
+        "⭐ limitedSurfaceInterpolationScheme provides the interface for limited schemes",
+        "⭐ LimitedScheme is a template class for creating NVD/TVD limited weighting-factors",
+        "⭐ NVDTVD provides specialized NVD/TVD calculation methods"
+      ]
+    },
+    "Exercises": {
+      "concept_checks": [
+        "Q1: Explain why central differencing schemes can produce oscillations in two-phase flow",
+        "Q2: Compare the accuracy and stability characteristics of upwind vs linearUpwind schemes",
+        "Q3: Why are TVD schemes particularly important for two-phase flow simulations?",
+        "Q4: Given a two-phase flow with sharp interfaces, which scheme would you select and why?"
+      ],
+      "answers": [
+        "A1: Central schemes have no directional bias and can produce unphysical oscillations near discontinuities like phase interfaces",
+        "A2: Upwind is first-order accurate and unconditionally stable but highly diffusive. LinearUpwind is second-order accurate with less diffusion but conditionally stable",
+        "A3: TVD schemes maintain monotonicity while achieving higher order accuracy, preventing overshoots/undershoots at phase interfaces",
+        "A4: A TVD scheme like vanLeer or MUSCL would be optimal for balancing accuracy, stability, and boundedness at sharp interfaces"
+      ]
     }
+  },
+  "content_requirements": {
+    "theory_min_lines": 500,
+    "code_snippets_min": 5,
+    "implementation_min_lines": 300,
+    "exercises_count": 4
+  }
 }

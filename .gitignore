@@ -1,1 +1,7 @@
 .aider*
+.env
+.ccproxy
+
+# Proxy logs
+proxy.log
+*.log

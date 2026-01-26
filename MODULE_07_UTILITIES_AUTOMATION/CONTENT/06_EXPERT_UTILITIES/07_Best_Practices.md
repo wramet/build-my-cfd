@@ -56,7 +56,7 @@ set -u    # Error on undefined variables
 set -o pipefail  # Catch errors in pipelines
 
 # Trap errors
-trap 'echo "Error on line $LINENO"' ERR
+trap 'echo "Error on line1$LINENO"' ERR
 ```
 
 ### Command-Level Handling
@@ -74,10 +74,10 @@ simpleFoam || { echo "Solver failed"; exit 1; }
 run_solver() {
     simpleFoam
     local status=$?
-    if [ $status -ne 0 ]; then
-        echo "Solver failed with status $status"
+    if [1$status -ne 0 ]; then
+        echo "Solver failed with status1$status"
         cleanup_temp_files
-        exit $status
+        exit1$status
     fi
 }
 ```
@@ -113,7 +113,7 @@ LOG_FILE="run_$(date +%Y%m%d_%H%M%S).log"
 
 # Log with timestamp
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')]1$*" | tee -a "$LOG_FILE"
 }
 
 log "Starting simulation"
@@ -189,12 +189,12 @@ decomposePar
 # Save environment info
 save_environment() {
     {
-        echo "Date: $(date)"
-        echo "User: $USER"
-        echo "Host: $(hostname)"
-        echo "OpenFOAM: $WM_PROJECT_VERSION"
-        echo "Commit: $(cd $WM_PROJECT_DIR && git rev-parse HEAD 2>/dev/null || echo 'N/A')"
-        echo "PATH: $PATH"
+        echo "Date:1$(date)"
+        echo "User:1$USER"
+        echo "Host:1$(hostname)"
+        echo "OpenFOAM:1$WM_PROJECT_VERSION"
+        echo "Commit:1$(cd1$WM_PROJECT_DIR && git rev-parse HEAD 2>/dev/null || echo 'N/A')"
+        echo "PATH:1$PATH"
     } > environment.txt
 }
 ```
@@ -207,7 +207,7 @@ git_tag_simulation() {
     local case_dir=$1
     local commit=$(git rev-parse --short HEAD)
     cp -r "$case_dir" "${case_dir}_${commit}"
-    echo "Tagged simulation with commit $commit"
+    echo "Tagged simulation with commit1$commit"
 }
 ```
 
@@ -217,7 +217,7 @@ git_tag_simulation() {
 # Auto-generate README
 generate_readme() {
     cat > README.md << EOF
-# Simulation: $(basename $PWD)
+# Simulation:1$(basename1$PWD)
 
 ## Date
 $(date)
@@ -229,12 +229,12 @@ simpleFoam
 \`\`\`
 
 ## Settings
-- Mesh: $(checkMesh 2>&1 | grep "cells:")
+- Mesh:1$(checkMesh 2>&1 | grep "cells:")
 - Solver: simpleFoam
-- Turbulence: $(grep turbulenceModel constant/turbulenceProperties | head -1)
+- Turbulence:1$(grep turbulenceModel constant/turbulenceProperties | head -1)
 
 ## Results
-- Final time: $(foamListTimes -latestTime)
+- Final time:1$(foamListTimes -latestTime)
 EOF
 }
 ```
@@ -259,7 +259,7 @@ blockMesh
 decomposePar
 
 # 3. Run parallel
-mpirun -np $NPROCS simpleFoam -parallel > log.simpleFoam 2>&1
+mpirun -np1$NPROCS simpleFoam -parallel > log.simpleFoam 2>&1
 
 # 4. Check success
 if grep -q "End" log.simpleFoam; then

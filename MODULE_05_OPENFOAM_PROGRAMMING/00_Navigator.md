@@ -230,7 +230,7 @@
 > **Key Files:**
 > - `fvc/` → Explicit Calculus (grad, div, laplacian) → ใช้ใน `system/fvSchemes`
 > - `fvm/` → Implicit Calculus → สร้าง Matrix สำหรับ Solver
-> - **Application:** **ใจกลางของ Solver** เมื่อ Discretize PDE เช่น $\nabla \cdot (\rho \mathbf{U})$
+> - **Application:** **ใจกลางของ Solver** เมื่อ Discretize PDE เช่น1$\nabla \cdot (\rho \mathbf{U})$
 > - **Connection:** Keywords ใน `system/fvSchemes` เช่น `gradSchemes`, `divSchemes`, `laplacianSchemes` คือการเลือก Numerical Schemes สำหรับ Operations เหล่านี้
 
 | 📖 เนื้อหา | 📝 คำอธิบาย | 🔧 Source Code ที่เกี่ยวข้อง |

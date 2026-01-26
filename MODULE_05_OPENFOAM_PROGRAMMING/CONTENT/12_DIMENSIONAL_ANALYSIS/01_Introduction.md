@@ -94,9 +94,9 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \
 
 | Term | Dimensions |
 |------|------------|
-| Transient: $\rho \frac{\partial \mathbf{u}}{\partial t}$ | M/(L²·T²) |
-| Convection: $\rho (\mathbf{u} \cdot \nabla) \mathbf{u}$ | M/(L²·T²) |
-| Pressure gradient: $-\nabla p$ | M/(L²·T²) |
+| Transient:1$\rho \frac{\partial \mathbf{u}}{\partial t}1| M/(L²·T²) |
+| Convection:1$\rho (\mathbf{u} \cdot \nabla) \mathbf{u}1| M/(L²·T²) |
+| Pressure gradient:1$-\nabla p1| M/(L²·T²) |
 
 All terms have identical dimensions, confirming dimensional consistency.
 

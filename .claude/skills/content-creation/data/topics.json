@@ -1,0 +1,113 @@
+{
+  "Phase_01_Foundation_Theory": {
+    "phase": "Phase 01: Foundation Theory",
+    "days": {
+      "01": {
+        "topic": "Governing Equations of Fluid Flow",
+        "target_path": "openfoam_temp/src/finiteVolume",
+        "description": "Continuity, momentum, energy equations with OpenFOAM implementation",
+        "keywords": ["navier-stokes", "continuity", "momentum", "transport"]
+      },
+      "02": {
+        "topic": "Finite Volume Method Basics",
+        "target_path": "openfoam_temp/src/finiteVolume",
+        "description": "Discretization, mesh, flux calculations",
+        "keywords": ["finiteVolume", "fvMesh", "flux", "discretization"]
+      },
+      "03": {
+        "topic": "Spatial Discretization Schemes",
+        "target_path": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation",
+        "description": "upwind, linear, vanLeer schemes with divergence/gradient operators",
+        "keywords": ["upwind", "linear", "vanLeer", "divergence", "gradient", "interpolation"]
+      },
+      "04": {
+        "topic": "Temporal Discretization",
+        "target_path": "openfoam_temp/src/finiteVolume",
+        "description": "Euler, Crank-Nicolson, backward schemes",
+        "keywords": ["ddtScheme", "Euler", "backward", "time", "integration"]
+      },
+      "05": {
+        "topic": "Pressure-Velocity Coupling",
+        "target_path": "openfoam_temp/src/finiteVolume",
+        "description": "SIMPLE, PISO, PIMPLE algorithms",
+        "keywords": ["SIMPLE", "PISO", "PIMPLE", "pressure", "velocity"]
+      },
+      "06": {
+        "topic": "Boundary Conditions",
+        "target_path": "openfoam_temp/src/finiteVolume/fields/fvBoundaryFields",
+        "description": "Dirichlet, Neumann, mixed BCs in OpenFOAM",
+        "keywords": ["fixedValue", "zeroGradient", "mixed", "boundary"]
+      },
+      "07": {
+        "topic": "Linear Solvers and Preconditioners",
+        "target_path": "openfoam_temp/src/OpenFOAM/matrices",
+        "description": "GAMG, ICCG, BiCGStab solvers",
+        "keywords": ["solver", "GAMG", "ICCG", "preconditioner"]
+      },
+      "08": {
+        "topic": "Turbulence Modeling Fundamentals",
+        "target_path": "openfoam_temp/src/turbulenceModels",
+        "description": "RANS, k-epsilon, k-omega models",
+        "keywords": ["RANS", "kEpsilon", "kOmega", "turbulence"]
+      },
+      "09": {
+        "topic": "Advanced Turbulence Models",
+        "target_path": "openfoam_temp/src/turbulenceModels",
+        "description": "LES, DES, SAS approaches",
+        "keywords": ["LES", "DES", "SAS", "wallFunctions"]
+      },
+      "10": {
+        "topic": "Mesh Generation Fundamentals",
+        "target_path": "openfoam_temp/src/meshTools",
+        "description": "blockMesh, snappyHexMesh basics",
+        "keywords": ["blockMesh", "snappyHexMesh", "mesh"]
+      },
+      "11": {
+        "topic": "Parallel Processing with HPC",
+        "target_path": "openfoam_temp/src/OpenFOAM/mpi",
+        "description": "Domain decomposition, MPI communication",
+        "keywords": ["decomposePar", "mpi", "parallel", "scotch"]
+      },
+      "12": {
+        "topic": "Verification and Validation",
+        "target_path": "openfoam_temp/src",
+        "description": "Mesh independence, experimental validation",
+        "keywords": ["verification", "validation", "uncertainty"]
+      }
+    }
+  },
+  "Phase_02_Advanced_CFD": {
+    "phase": "Phase 02: Advanced CFD",
+    "days": {
+      "13": {"topic": "Multiphase Flow Modeling", "target_path": "openfoam_temp/src/multiphaseInterFoam"},
+      "14": {"topic": "Heat Transfer and Conjugate Heat Transfer", "target_path": "openfoam_temp/src/thermophysicalModels"},
+      "15": {"topic": "Compressible Flow Solvers", "target_path": "openfoam_temp/src/compressibleRASModels"},
+      "16": {"topic": "Chemistry and Combustion", "target_path": "openfoam_temp/src/combustionModels"},
+      "17": {"topic": "Dynamic Mesh and Moving Boundaries", "target_path": "openfoam_temp/src/dynamicFvMesh"},
+      "18": {"topic": "Optimization and Adjoint Methods", "target_path": "openfoam_temp/src/optimisation"},
+      "19": {"topic": "Acoustics and Aeroacoustics", "target_path": "openfoam_temp/src/acoustics"},
+      "20": {"topic": "Rotating Machinery", "target_path": "openfoam_temp/src/OpenFOAM/meshes"},
+      "21": {"topic": "Weather and Atmospheric Modeling", "target_path": "openfoam_temp/src/atmosphericModels"},
+      "22": {"topic": "Particle Tracking and Discrete Phase", "target_path": "openfoam_temp/src/lagrangian"},
+      "23": {"topic": "Free Surface Flows", "target_path": "openfoam_temp/src/transportModels"},
+      "24": {"topic": "Phase 2 Capstone Project", "target_path": "openfoam_temp/src"}
+    }
+  },
+  "Phase_03_OpenFOAM_Programming": {
+    "phase": "Phase 03: OpenFOAM Programming",
+    "days": {
+      "25": {"topic": "OpenFOAM Development Environment", "target_path": "openfoam_temp/src/OpenFOAM"},
+      "26": {"topic": "Basic Data Types and Fields", "target_path": "openfoam_temp/src/OpenFOAM/fields"},
+      "27": {"topic": "Mesh Topology and Classes", "target_path": "openfoam_temp/src/OpenFOAM/meshes"},
+      "28": {"topic": "Boundary Conditions Programming", "target_path": "openfoam_temp/src/finiteVolume/fields/fvBoundaryFields"},
+      "29": {"topic": "Creating Custom Discretization Schemes", "target_path": "openfoam_temp/src/finiteVolume/interpolation"},
+      "30": {"topic": "Programming Turbulence Models", "target_path": "openfoam_temp/src/turbulenceModels"},
+      "31": {"topic": "Custom Thermophysical Models", "target_path": "openfoam_temp/src/thermophysicalModels"},
+      "32": {"topic": "ODE and Chemistry Solvers", "target_path": "openfoam_temp/src/ODE"},
+      "33": {"topic": "Parallel Programming in OpenFOAM", "target_path": "openfoam_temp/src/OpenFOAM/mpi"},
+      "34": {"topic": "Creating Custom Applications", "target_path": "openfoam_temp/src/applications/solvers"},
+      "35": {"topic": "Debugging and Profiling", "target_path": "openfoam_temp/src/OpenFOAM"},
+      "36": {"topic": "Phase 3 Capstone: Custom Solver", "target_path": "openfoam_temp/src"}
+    }
+  }
+}

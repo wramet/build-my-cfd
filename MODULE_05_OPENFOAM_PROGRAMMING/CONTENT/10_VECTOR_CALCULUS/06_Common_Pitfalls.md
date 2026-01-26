@@ -62,9 +62,9 @@ For Explicit Laplacian:
 $$\Delta t \leq \frac{\Delta x^2}{2\Gamma}$$
 
 Where:
-- $\Delta t$ = time step size
-- $\Delta x$ = mesh cell size
-- $\Gamma$ = diffusion coefficient
+-1$\Delta t1= time step size
+-1$\Delta x1= mesh cell size
+-1$\Gamma1= diffusion coefficient
 
 ### Correct Practices
 
@@ -101,7 +101,7 @@ volScalarField diffusionSource = fvc::laplacian(DT, T);  // Correct
 ### Basic Rules
 
 > [!TIP] 💡 Simple Rules
-> - If a term is **the solution you seek** (e.g., $T$, $p$, $U$), always use `fvm`
+> - If a term is **the solution you seek** (e.g.,1$T$,1$p$,1$U$), always use `fvm`
 > - If a term is **known value** or used as source term, use `fvc`
 
 ---
@@ -568,7 +568,7 @@ auto gradP = fvc::grad(p);  // gradP is volVectorField
 | 🚩 Symptom | 🔧 Possible Cause | 💡 Solution |
 |:---|:---|:---|
 | **Solver diverges immediately** | Using `fvc` instead of `fvm` for main terms | Change main terms from `fvc` to `fvm` |
-| **`Dimension mismatch`** | Field units inconsistent | Divide by appropriate variable (e.g., $\rho$) |
+| **`Dimension mismatch`** | Field units inconsistent | Divide by appropriate variable (e.g.,1$\rho$) |
 | **Residuals not decreasing** | Check non-orthogonal correction in `fvSchemes` | Add `corrected` or `limited` to laplacianSchemes |
 | **Compile Error: `no match`** | Check data type (Scalar/Vector/Tensor) | Verify correct operator for field type |
 | **Abnormal results at boundaries** | Incorrect boundary conditions | Check boundary conditions in `0/` directory |
@@ -939,7 +939,7 @@ Using vector calculus in OpenFOAM requires deep understanding of:
 **`fvc::laplacian`** is **explicit** → calculated from **previous time step** values
 
 Problem:
-- Must follow **Von Neumann stability:** $\Delta t \leq \frac{\Delta x^2}{2\Gamma}$
+- Must follow **Von Neumann stability:**1$\Delta t \leq \frac{\Delta x^2}{2\Gamma}$
 - For fine mesh (small Δx) → **time step must be very small**
 - If time step too large → **solver diverges**
 
@@ -951,10 +951,10 @@ Problem:
 <summary><b>2. If `fvc::grad(p)` has units [Pa/m], why can't it be directly used as acceleration?</b></summary>
 
 **Dimensional analysis:**
-- `fvc::grad(p)` has units $[Pa/m] = [kg/(m^2 \cdot s^2)]$ = **Force per unit volume**
-- **Acceleration** has units $[m/s^2]$
+- `fvc::grad(p)` has units1$[Pa/m] = [kg/(m^2 \cdot s^2)]1= **Force per unit volume**
+- **Acceleration** has units1$[m/s^2]$
 
-**Solution:** Must divide by density $\rho$:
+**Solution:** Must divide by density1$\rho$:
 ```cpp
 volVectorField acc = -fvc::grad(p) / rho;  // Units: [m/s²]
 ```

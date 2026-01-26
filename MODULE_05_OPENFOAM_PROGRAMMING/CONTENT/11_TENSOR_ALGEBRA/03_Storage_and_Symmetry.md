@@ -44,7 +44,7 @@
 
 **ผลกระทบเชิงวิศวกรรม:**
 - การใช้ `symmTensor` สำหรับ stress/strain ไม่เพียงประหยัด memory แต่ยัง **รับประกันความถูกต้องทางฟิสิกส์**
-- การใช้ `tensor` แบบเต็มสำหรับปริมาณที่ไม่สมมาตร (เช่น velocity gradient $\nabla \mathbf{u}$)
+- การใช้ `tensor` แบบเต็มสำหรับปริมาณที่ไม่สมมาตร (เช่น velocity gradient1$\nabla \mathbf{u}$)
 
 ---
 
@@ -69,7 +69,7 @@
   0   1   2   3   4   5   6   7   8
 ```
 
-รูปแบบนี้แสดงเมทริกซ์เทนเซอร์ $3 \times 3$ แบบสมบูรณ์:
+รูปแบบนี้แสดงเมทริกซ์เทนเซอร์1$3 \times 31แบบสมบูรณ์:
 $$\mathbf{T} = \begin{bmatrix} T_{xx} & T_{xy} & T_{xz} \\ T_{yx} & T_{yy} & T_{yz} \\ T_{zx} & T_{zy} & T_{zz} \end{bmatrix}$$
 
 **ข้อดี:**
@@ -97,7 +97,7 @@ scalar xy_component = gradU[i].xy(); // ตรงไปตรงมา
   0   1   2   3   4   5
 ```
 
-การจัดเก็บนี้ใช้ประโยชน์จากคุณสมบัติทางคณิตศาสตร์ของความสมมาตรซึ่ง $T_{ij} = T_{ji}$
+การจัดเก็บนี้ใช้ประโยชน์จากคุณสมบัติทางคณิตศาสตร์ของความสมมาตรซึ่ง1$T_{ij} = T_{ji}$
 
 โครงสร้างหน่วยความจำสอดคล้องกับ:
 $$\mathbf{S} = \begin{bmatrix} S_{xx} & S_{xy} & S_{xz} \\ \color{blue}{S_{xy}} & S_{yy} & S_{yz} \\ \color{blue}{S_{xz}} & \color{blue}{S_{yz}} & S_{zz} \end{bmatrix}$$
@@ -129,7 +129,7 @@ scalar yx_component = sigma[i].yx(); // ได้ค่าเท่ากับ 
 ### 2.3 เทนเซอร์ทรงกลม (`sphericalTensor`)
 
 **Memory Layout:**
-- **สเกลาร์เดี่ยว $\lambda$** ที่แสดง $\lambda \mathbf{I}$:
+- **สเกลาร์เดี่ยว1$\lambda$** ที่แสดง1$\lambda \mathbf{I}$:
 $$\mathbf{\Lambda} = \lambda \mathbf{I} = \lambda \begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix}$$
 
 **ข้อดี:**
@@ -308,7 +308,7 @@ volSymmTensorField devS = dev(S);    // dev(S) = S - (1/3)tr(S)I
 **คณิตศาสตร์:**
 $$\boldsymbol{\tau} = 2\mu \mathbf{D} + \lambda (\nabla \cdot \mathbf{u})\mathbf{I}$$
 
-โดยที่ $\mathbf{D} = \text{symm}(\nabla \mathbf{u})$ คือ strain rate tensor
+โดยที่1$\mathbf{D} = \text{symm}(\nabla \mathbf{u})1คือ strain rate tensor
 
 **OpenFOAM Code:**
 ```cpp
@@ -346,7 +346,7 @@ volSymmTensorField tau
 
 ### 4.1 ความหมายทางคณิตศาสตร์ของเทนเซอร์
 
-เทนเซอร์ $\mathbf{T}$ ในพื้นที่ 3 มิติคือการแมปเชิงเส้นระหว่างเวกเตอร์:
+เทนเซอร์1$\mathbf{T}1ในพื้นที่ 3 มิติคือการแมปเชิงเส้นระหว่างเวกเตอร์:
 $$\mathbf{v}_{\text{out}} = \mathbf{T} \cdot \mathbf{v}_{\text{in}}$$
 
 ในรูปแบบส่วนประกอบ ($i,j = 1,2,3$):
@@ -384,16 +384,16 @@ $$v_i = \sum_{j=1}^3 T_{ij} \, w_j$$
 $$\mathbf{S} = \text{symm}(\mathbf{T}) = \frac{1}{2}(\mathbf{T} + \mathbf{T}^T)$$
 
 การใช้งานใน CFD:
-- **เทนเซอร์อัตราการเสียรูป**: $\mathbf{D} = \text{symm}(\nabla \mathbf{u})$
-- **เทนเซอร์ความเค้นในของไหลนิวตัน**: $\boldsymbol{\tau} = 2\mu \mathbf{D}$
-- **เทนเซอร์ความเค้นเรย์โนลด์ส**: $\mathbf{R} = \text{symm}(-\rho \overline{u' \otimes u'})$
+- **เทนเซอร์อัตราการเสียรูป**:1$\mathbf{D} = \text{symm}(\nabla \mathbf{u})$
+- **เทนเซอร์ความเค้นในของไหลนิวตัน**:1$\boldsymbol{\tau} = 2\mu \mathbf{D}$
+- **เทนเซอร์ความเค้นเรย์โนลด์ส**:1$\mathbf{R} = \text{symm}(-\rho \overline{u' \otimes u'})$
 
 **ส่วนแอนตี้สมมาตร (Skew/Antisymmetric Part)** คือ:
 $$\mathbf{A} = \text{skew}(\mathbf{T}) = \frac{1}{2}(\mathbf{T} - \mathbf{T}^T)$$
 
 การใช้งาน:
 - **แสดงการหมุน (Rotation)**
-- **เกี่ยวข้องกับ Vorticity** ผ่านเทนเซอร์ vorticity $\boldsymbol{\Omega} = \text{skew}(\nabla \mathbf{u})$
+- **เกี่ยวข้องกับ Vorticity** ผ่านเทนเซอร์ vorticity1$\boldsymbol{\Omega} = \text{skew}(\nabla \mathbf{u})$
 
 **ส่วน Deviatoric (Traceless Symmetric Part):**
 $$\text{dev}(\mathbf{T}) = \mathbf{T} - \frac{1}{3}\text{tr}(\mathbf{T})\mathbf{I}$$
@@ -525,12 +525,12 @@ volSymmTensorField strainRate = symm(fvc::grad(U));  // ใช้ symmTensor อ
 <details>
 <summary><b>1. ทำไม `symmTensor` จึงเก็บเพียง 6 components แทน 9?</b></summary>
 
-เพราะ **Symmetry Property:** $T_{ij} = T_{ji}$
+เพราะ **Symmetry Property:**1$T_{ij} = T_{ji}$
 
 **ตัวอย่าง:**
-- $T_{xy} = T_{yx}$ → เก็บแค่ $T_{xy}$
-- $T_{xz} = T_{zx}$ → เก็บแค่ $T_{xz}$
-- $T_{yz} = T_{zy}$ → เก็บแค่ $T_{yz}$
+-1$T_{xy} = T_{yx}1→ เก็บแค่1$T_{xy}$
+-1$T_{xz} = T_{zx}1→ เก็บแค่1$T_{xz}$
+-1$T_{yz} = T_{zy}1→ เก็บแค่1$T_{yz}$
 
 **ประโยชน์:** ประหยัดหน่วยความจำ **33%** และ OpenFOAM จะ return ค่าที่ถูกต้องอัตโนมัติเมื่อเรียก `S.yx()` (จะได้ `S.xy()`)
 
@@ -551,11 +551,11 @@ $$\mathbf{T} = \underbrace{\frac{1}{2}(\mathbf{T} + \mathbf{T}^T)}_{\text{symm}(
 <summary><b>3. การเลือกใช้ `symmTensor` มีผลต่อ Numerical Stability อย่างไร?</b></summary>
 
 **ข้อดีด้าน Numerical Stability:**
-1. **บังคับ Symmetry โดยโครงสร้าง:** ไม่ต้องกังวลว่า round-off errors จะทำให้ $T_{xy} \neq T_{yx}$
+1. **บังคับ Symmetry โดยโครงสร้าง:** ไม่ต้องกังวลว่า round-off errors จะทำให้1$T_{xy} \neq T_{yx}$
 2. **ลด Operations:** คำนวณเฉพาะ 6 components → ลดโอกาส accumulation errors
 3. **Physics-consistent:** Stress tensor ต้องสมมาตร → `symmTensor` รับประกัน
 
-**ใช้ `tensor` เมื่อ:** ต้องการ full gradient (เช่น $\nabla U$) ที่ไม่สมมาตร
+**ใช้ `tensor` เมื่อ:** ต้องการ full gradient (เช่น1$\nabla U$) ที่ไม่สมมาตร
 
 </details>
 

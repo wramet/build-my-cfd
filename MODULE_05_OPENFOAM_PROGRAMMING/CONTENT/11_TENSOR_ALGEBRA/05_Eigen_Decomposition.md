@@ -691,7 +691,7 @@ $$\boldsymbol{\sigma} =
 \end{bmatrix}
 $$
 
-Eigenvalue problem: $\boldsymbol{\sigma} \cdot \mathbf{n} = \sigma \mathbf{n}$
+Eigenvalue problem:1$\boldsymbol{\sigma} \cdot \mathbf{n} = \sigma \mathbf{n}$
 
 - **σ₁ (largest)**: Maximum principal stress → tensile failure criterion
 - **σ₂ (middle)**: Intermediate principal stress
@@ -780,15 +780,15 @@ if (sigmaVM > sigmaYield)
 
 **Mathematical Foundation**:
 
-Reynolds stress: $\mathbf{R} = \overline{\mathbf{u}' \mathbf{u}'^T}$
+Reynolds stress:1$\mathbf{R} = \overline{\mathbf{u}' \mathbf{u}'^T}$
 
-Turbulent kinetic energy: $k = \frac{1}{2} \text{tr}(\mathbf{R})$
+Turbulent kinetic energy:1$k = \frac{1}{2} \text{tr}(\mathbf{R})$
 
-Anisotropy tensor: $\mathbf{b} = \frac{\mathbf{R}}{2k} - \frac{\mathbf{I}}{3}$
+Anisotropy tensor:1$\mathbf{b} = \frac{\mathbf{R}}{2k} - \frac{\mathbf{I}}{3}$
 
 **Constraints**:
-- **Traceless**: $b_1 + b_2 + b_3 = 0$
-- **Bounds**: $-\frac{1}{3} \leq b_i \leq \frac{2}{3}$
+- **Traceless**:1$b_1 + b_2 + b_3 = 0$
+- **Bounds**:1$-\frac{1}{3} \leq b_i \leq \frac{2}{3}$
 
 **Lumley Triangle States**:
 
@@ -881,12 +881,12 @@ Info << "Turbulence State: " << turbulenceState << endl
 
 **Mathematical Foundation**:
 
-Decompose velocity gradient: $\nabla \mathbf{u} = \mathbf{S} + \mathbf{\Omega}$
+Decompose velocity gradient:1$\nabla \mathbf{u} = \mathbf{S} + \mathbf{\Omega}$
 
-- **S** (symmetric): Strain rate tensor, $S = \frac{1}{2}(\nabla \mathbf{u} + \nabla \mathbf{u}^T)$
-- **Ω** (anti-symmetric): Rotation rate tensor, $\Omega = \frac{1}{2}(\nabla \mathbf{u} - \nabla \mathbf{u}^T)$
+- **S** (symmetric): Strain rate tensor,1$S = \frac{1}{2}(\nabla \mathbf{u} + \nabla \mathbf{u}^T)$
+- **Ω** (anti-symmetric): Rotation rate tensor,1$\Omega = \frac{1}{2}(\nabla \mathbf{u} - \nabla \mathbf{u}^T)$
 
-**λ₂-Criterion**: Vortex cores where $\lambda_2(\mathbf{S}^2 + \mathbf{\Omega}^2) < 0$
+**λ₂-Criterion**: Vortex cores where1$\lambda_2(\mathbf{S}^2 + \mathbf{\Omega}^2) < 0$
 
 **Physical Interpretation**:
 
@@ -1124,9 +1124,9 @@ $$
 \end{bmatrix}
 $$
 
-- **Column 0**: $\mathbf{v}_1$ (eigenvector for largest eigenvalue)
-- **Column 1**: $\mathbf{v}_2$ (eigenvector for middle eigenvalue)
-- **Column 2**: $\mathbf{v}_3$ (eigenvector for smallest eigenvalue)
+- **Column 0**:1$\mathbf{v}_11(eigenvector for largest eigenvalue)
+- **Column 1**:1$\mathbf{v}_21(eigenvector for middle eigenvalue)
+- **Column 2**:1$\mathbf{v}_31(eigenvector for smallest eigenvalue)
 
 ---
 
@@ -1309,7 +1309,7 @@ volScalarField minField = min(lambdaField);
 
 ### **Essential Concepts**
 
-1. **Eigenvalue Problem**: $\mathbf{T} \cdot \mathbf{v} = \lambda \mathbf{v}$
+1. **Eigenvalue Problem**:1$\mathbf{T} \cdot \mathbf{v} = \lambda \mathbf{v}$
    - **λ (eigenvalue)**: Principal magnitude (stretching/compression factor)
    - **v (eigenvector)**: Principal direction (natural coordinate axis)
    - **Physical Meaning**: Natural coordinate system where tensor is diagonal
@@ -1326,13 +1326,13 @@ volScalarField minField = min(lambdaField);
    - **Always prefer symmetric tensors** for eigenvalue analysis when possible
 
 4. **Key Applications**:
-   - **Principal Stresses**: $\sigma_1 \geq \sigma_2 \geq \sigma_3$ for failure analysis
-   - **Turbulence Anisotropy**: $b = R/(2k) - I/3$ with eigenvalues $[-1/3, 2/3]$
-   - **Vortex Identification**: $\lambda_2$-criterion: $\lambda_2(S^2 + \Omega^2) < 0$
-   - **Coordinate Transformations**: Diagonalization $T = V \Lambda V^{-1}$
+   - **Principal Stresses**:1$\sigma_1 \geq \sigma_2 \geq \sigma_31for failure analysis
+   - **Turbulence Anisotropy**:1$b = R/(2k) - I/31with eigenvalues1$[-1/3, 2/3]$
+   - **Vortex Identification**:1$\lambda_2$-criterion:1$\lambda_2(S^2 + \Omega^2) < 0$
+   - **Coordinate Transformations**: Diagonalization1$T = V \Lambda V^{-1}$
 
 5. **Common Pitfalls**:
-   - Eigenvalues **sorted descending**: $\lambda_1 = x() \geq \lambda_2 = y() \geq \lambda_3 = z()$
+   - Eigenvalues **sorted descending**:1$\lambda_1 = x() \geq \lambda_2 = y() \geq \lambda_3 = z()$
    - Eigenvectors stored as **columns**, not rows
    - Always validate physical constraints (bounds, trace)
    - Protect against division by zero (e.g., k = 0 in anisotropy)
@@ -1346,7 +1346,7 @@ volScalarField minField = min(lambdaField);
 | **Turbulence Anisotropy** | Isotropy level (b₁, b₂, b₃) | Alignment with flow | `eigenValues(anisotropyTensor)` |
 | **Vortex Detection** | λ₂ criterion | Vortex axis orientation | `eigenValues(S² + Ω²)` |
 | **Mesh Quality** | Aspect ratio (λ_max/λ_min) | Principal axes | `eigenValues(cellTransform)` |
-| **Matrix Functions** | exp(Λ), log(Λ), √Λ | Transformation matrix | Diagonalization: $V \Lambda V^{-1}$ |
+| **Matrix Functions** | exp(Λ), log(Λ), √Λ | Transformation matrix | Diagonalization:1$V \Lambda V^{-1}1|
 
 ### **Physical Interpretation Guide**
 
@@ -1364,7 +1364,7 @@ volScalarField minField = min(lambdaField);
 Before using eigenvalue results:
 
 - [ ] **Bounds Check**: Are eigenvalues within theoretical range?
-- [ ] **Trace Check**: Does $\sum \lambda_i = \text{tr}(T)$?
+- [ ] **Trace Check**: Does1$\sum \lambda_i = \text{tr}(T)$?
 - [ ] **Orthogonality Check**: Are eigenvectors perpendicular (symmetric tensors)?
 - [ ] **Normalization Check**: Are eigenvectors unit vectors?
 - [ ] **Reality Check**: Are eigenvalues real (for symmetric tensors)?
@@ -1477,10 +1477,10 @@ symmTensor R
 ```
 
 **Tasks**:
-1. Compute turbulent kinetic energy: $k = \frac{1}{2} \text{tr}(R)$
-2. Compute anisotropy tensor: $\mathbf{b} = \frac{\mathbf{R}}{2k} - \frac{\mathbf{I}}{3}$
+1. Compute turbulent kinetic energy:1$k = \frac{1}{2} \text{tr}(R)$
+2. Compute anisotropy tensor:1$\mathbf{b} = \frac{\mathbf{R}}{2k} - \frac{\mathbf{I}}{3}$
 3. Find eigenvalues of anisotropy tensor
-4. Verify trace constraint: $b_1 + b_2 + b_3 = 0$
+4. Verify trace constraint:1$b_1 + b_2 + b_3 = 0$
 5. Classify turbulence state using Lumley triangle
 
 <details>
@@ -1562,9 +1562,9 @@ Info << "Lumley triangle coordinates:" << nl
 **Given**: Velocity gradient tensor field `volTensorField gradU`
 
 **Tasks**:
-1. Compute strain rate tensor: $S = \text{symm}(\nabla \mathbf{u})$
-2. Compute rotation rate tensor: $\Omega = \text{skew}(\nabla \mathbf{u})$
-3. Compute $M = S^2 + \Omega^2$
+1. Compute strain rate tensor:1$S = \text{symm}(\nabla \mathbf{u})$
+2. Compute rotation rate tensor:1$\Omega = \text{skew}(\nabla \mathbf{u})$
+3. Compute1$M = S^2 + \Omega^2$
 4. Find eigenvalues of M
 5. Extract λ₂ (middle eigenvalue)
 6. Create iso-surface where λ₂ < 0
@@ -1695,7 +1695,7 @@ vortexCoreThreshold.write();
 
 ### **Exercise 4: Matrix Exponential via Eigenvalues**
 
-**Problem**: Compute matrix exponential $\exp(\mathbf{T})$ using eigenvalue decomposition
+**Problem**: Compute matrix exponential1$\exp(\mathbf{T})1using eigenvalue decomposition
 
 **Given**: General tensor
 
@@ -1706,7 +1706,7 @@ tensor T(1, 2, 3, 4, 5, 6, 7, 8, 9);
 **Tasks**:
 1. Compute eigenvalues and eigenvectors
 2. Construct diagonal matrix with exp(λ)
-3. Reconstruct using: $\exp(\mathbf{T}) = \mathbf{V} \exp(\mathbf{\Lambda}) \mathbf{V}^{-1}$
+3. Reconstruct using:1$\exp(\mathbf{T}) = \mathbf{V} \exp(\mathbf{\Lambda}) \mathbf{V}^{-1}$
 
 <details>
 <summary><b>Solution</b></summary>

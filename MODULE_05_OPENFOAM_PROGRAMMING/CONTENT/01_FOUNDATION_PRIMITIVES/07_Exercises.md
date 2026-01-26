@@ -517,7 +517,7 @@ int main(int argc, char *argv[])
 ```
 exercise.C
 
-EXE = $(FOAM_USER_APPBIN)/exercise
+EXE =1$(FOAM_USER_APPBIN)/exercise
 ```
 
 #### Make/options

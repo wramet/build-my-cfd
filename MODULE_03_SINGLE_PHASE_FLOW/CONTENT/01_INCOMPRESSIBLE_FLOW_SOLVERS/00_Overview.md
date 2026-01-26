@@ -29,8 +29,8 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \
 
 | Criterion | Requirement |
 |-----------|-------------|
-| Mach number | $Ma < 0.3$ |
-| Density variation | $< 5\%$ |
+| Mach number |1$Ma < 0.31|
+| Density variation |1$< 5\%1|
 | Compressibility effects | Negligible |
 
 **Physics:** At low Mach numbers, density changes due to pressure variations are negligible → fluid behaves as incompressible
@@ -50,7 +50,7 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \rho (\mathbf{u} \cdot \nabla) \
 
 ### Pressure-Velocity Coupling Challenge
 
-Incompressible flow lacks a density-based pressure equation → pressure must enforce continuity constraint $\nabla \cdot \mathbf{u} = 0$
+Incompressible flow lacks a density-based pressure equation → pressure must enforce continuity constraint1$\nabla \cdot \mathbf{u} = 0$
 
 | Algorithm | Key Feature | Stability Mechanism |
 |-----------|-------------|---------------------|
@@ -177,9 +177,9 @@ functions
 
 | Variable | Steady Target | Transient Target |
 |----------|---------------|------------------|
-| Pressure | $< 10^{-5}$ | Monitor for trend |
-| Velocity | $< 10^{-5}$ | Monitor for trend |
-| Turbulence (k, ε, ω) | $< 10^{-4}$ | Monitor for trend |
+| Pressure |1$< 10^{-5}1| Monitor for trend |
+| Velocity |1$< 10^{-5}1| Monitor for trend |
+| Turbulence (k, ε, ω) |1$< 10^{-4}1| Monitor for trend |
 
 **Note:** For transient simulations, residuals should plateau at acceptable levels rather than drop to machine precision.
 
@@ -206,14 +206,14 @@ The key distinction: steady vs transient, and turbulent vs laminar capability.
 <details>
 <summary><b>Q3: Why does the pressure equation not have a time derivative in incompressible flow?</b></summary>
 
-**Answer:** In incompressible flow, pressure is **not a thermodynamic variable** but a **mathematical Lagrange multiplier** that enforces the continuity constraint $\nabla \cdot \mathbf{u} = 0$. Pressure adjusts instantaneously (infinite speed of sound assumption) to maintain mass conservation. This is why pressure-velocity coupling algorithms (SIMPLE/PISO/PIMPLE) are required — there's no independent pressure evolution equation.
+**Answer:** In incompressible flow, pressure is **not a thermodynamic variable** but a **mathematical Lagrange multiplier** that enforces the continuity constraint1$\nabla \cdot \mathbf{u} = 0$. Pressure adjusts instantaneously (infinite speed of sound assumption) to maintain mass conservation. This is why pressure-velocity coupling algorithms (SIMPLE/PISO/PIMPLE) are required — there's no independent pressure evolution equation.
 </details>
 
 ---
 
 ## Key Takeaways
 
-1. **Mach number criterion**: $Ma < 0.3$ is the primary condition for using incompressible solvers
+1. **Mach number criterion**:1$Ma < 0.31is the primary condition for using incompressible solvers
 2. **Solver selection** depends on:
    - Steady vs transient flow
    - Laminar vs turbulent flow

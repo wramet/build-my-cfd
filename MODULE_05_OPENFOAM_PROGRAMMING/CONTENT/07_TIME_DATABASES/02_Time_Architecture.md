@@ -158,14 +158,14 @@ ddtSchemes
 | Scheme | Order | Old Times Needed | Stability | Use Case |
 |--------|-------|------------------|-----------|----------|
 | **Euler** | 1st | 1 ($\phi^n$) | Unconditionally stable | Quick simulations, debugging |
-| **backward** | 2nd | 2 ($\phi^n$, $\phi^{n-1}$) | Conditionally stable | Higher accuracy transient |
+| **backward** | 2nd | 2 ($\phi^n$,1$\phi^{n-1}$) | Conditionally stable | Higher accuracy transient |
 | **CrankNicolson** | 2nd | 1 | Conditionally stable | Balanced accuracy/stability |
 
 **Mathematical formulations:**
 
-- **Euler:** $\frac{\phi^{n+1} - \phi^n}{\Delta t}$
-- **backward:** $\frac{3\phi^{n+1} - 4\phi^n + \phi^{n-1}}{2\Delta t}$
-- **CrankNicolson:** $\frac{\phi^{n+1} - \phi^n}{\Delta t} + 0.5(f^{n+1} + f^n)$
+- **Euler:**1$\frac{\phi^{n+1} - \phi^n}{\Delta t}$
+- **backward:**1$\frac{3\phi^{n+1} - 4\phi^n + \phi^{n-1}}{2\Delta t}$
+- **CrankNicolson:**1$\frac{\phi^{n+1} - \phi^n}{\Delta t} + 0.5(f^{n+1} + f^n)$
 
 ---
 

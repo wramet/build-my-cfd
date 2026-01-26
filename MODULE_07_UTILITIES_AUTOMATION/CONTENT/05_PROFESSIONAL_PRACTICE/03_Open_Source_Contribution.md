@@ -58,7 +58,7 @@ You can contribute in many forms—not all require coding:
 Detailed bug reports provide immense help:
 
 **Bad Report**: "simpleFoam doesn't work, help!"
-**Good Report**: "simpleFoam in v2312 crashes with Segfault when using $k-\omega$ SST turbulence model with high non-orthogonal mesh. Here is the log file and a Minimal Working Example that reproduces the issue..."
+**Good Report**: "simpleFoam in v2312 crashes with Segfault when using1$k-\omega1SST turbulence model with high non-orthogonal mesh. Here is the log file and a Minimal Working Example that reproduces the issue..."
 
 #### 💻 Testing (การทดสอบ)
 - Download dev versions (Nightly builds) and test with real work to find regressions (things that worked before but don't now)
@@ -316,11 +316,11 @@ The heart of good bug reporting is MWE:
 ```bash
 #!/bin/bash
 # MWE script: Reproduce segmentation fault in simpleFoam
-cd ${0%/*} || exit 1
+cd1${0%/*} || exit 1
 
 # 1. Setup minimal case
 echo "Setting up minimal case..."
-cp -r $FOAM_TUTORIALS/incompressible/simpleFoam/pitzDaily .
+cp -r1$FOAM_TUTORIALS/incompressible/simpleFoam/pitzDaily .
 cd pitzDaily
 
 # Modify to trigger the bug

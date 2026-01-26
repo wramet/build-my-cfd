@@ -397,7 +397,7 @@ Utility approach:
 
 ROI:
   Time saved:        18 hours (82%)
-  Value:             If 1 hour = $100, saved $1,800
+  Value:             If 1 hour =1$100, saved1$1,800
   Break-even:        Case #1
 ```
 
@@ -475,10 +475,10 @@ Yearly ROI:
 # Description: Complete automated workflow with error handling
 # Usage: ./Allrun [np]  (np = number of processors, default = 4)
 
-cd ${0%/*} || exit 1
+cd1${0%/*} || exit 1
 
 # Source OpenFOAM run functions
-. $WM_PROJECT_DIR/bin/tools/RunFunctions
+.1$WM_PROJECT_DIR/bin/tools/RunFunctions
 
 # Configuration
 NP=${1:-4}  # Number of processors (default: 4)
@@ -493,24 +493,24 @@ NC='\033[0m' # No Color
 
 # Logging
 LOG_DIR="logs"
-mkdir -p $LOG_DIR
+mkdir -p1$LOG_DIR
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 
 log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+    echo -e "${GREEN}[INFO]${NC}1$1"
 }
 
 log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
+    echo -e "${YELLOW}[WARN]${NC}1$1"
 }
 
 log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    echo -e "${RED}[ERROR]${NC}1$1"
 }
 
 # Error handling
 set -e  # Exit on error
-trap 'log_error "Script failed at line $LINENO"' ERR
+trap 'log_error "Script failed at line1$LINENO"' ERR
 
 # ========================================
 # Phase 1: Pre-processing
@@ -524,31 +524,31 @@ log_info "Cleaning previous results..."
 
 # Generate mesh
 log_info "Generating mesh..."
-runApplication blockMesh 2>&1 | tee $LOG_DIR/blockMesh.$TIMESTAMP.log
+runApplication blockMesh 2>&1 | tee1$LOG_DIR/blockMesh.$TIMESTAMP.log
 
 # Check mesh quality
 log_info "Checking mesh quality..."
-runApplication checkMesh 2>&1 | tee $LOG_DIR/checkMesh.$TIMESTAMP.log
+runApplication checkMesh 2>&1 | tee1$LOG_DIR/checkMesh.$TIMESTAMP.log
 
 # Verify mesh quality
-if grep -q "Failed.*n.*:" $LOG_DIR/checkMesh.$TIMESTAMP.log; then
+if grep -q "Failed.*n.*:"1$LOG_DIR/checkMesh.$TIMESTAMP.log; then
     log_error "Mesh has critical errors!"
-    log_error "Check $LOG_DIR/checkMesh.$TIMESTAMP.log for details"
+    log_error "Check1$LOG_DIR/checkMesh.$TIMESTAMP.log for details"
     exit 1
 fi
 
 # Optional: Check mesh statistics
-NON_ORTHO=$(grep "Mesh non-orthogonality" $LOG_DIR/checkMesh.$TIMESTAMP.log | awk '{print $4}')
-ASPECT_RATIO=$(grep "Max aspect ratio" $LOG_DIR/checkMesh.$TIMESTAMP.log | awk '{print $4}')
+NON_ORTHO=$(grep "Mesh non-orthogonality"1$LOG_DIR/checkMesh.$TIMESTAMP.log | awk '{print1$4}')
+ASPECT_RATIO=$(grep "Max aspect ratio"1$LOG_DIR/checkMesh.$TIMESTAMP.log | awk '{print1$4}')
 
 log_info "Mesh quality metrics:"
-log_info "  Non-orthogonality: $NON_ORTHO"
-log_info "  Max aspect ratio: $ASPECT_RATIO"
+log_info "  Non-orthogonality:1$NON_ORTHO"
+log_info "  Max aspect ratio:1$ASPECT_RATIO"
 
 # Initialize fields if needed
 if [ -f "system/setFieldsDict" ]; then
     log_info "Initializing fields..."
-    runApplication setFields 2>&1 | tee $LOG_DIR/setFields.$TIMESTAMP.log
+    runApplication setFields 2>&1 | tee1$LOG_DIR/setFields.$TIMESTAMP.log
 fi
 
 # ========================================
@@ -558,8 +558,8 @@ fi
 log_info "=== Phase 2: Parallel Decomposition ==="
 
 if [ "$PARALLEL" = true ] && [ -f "system/decomposeParDict" ]; then
-    log_info "Decomposing mesh for $NP processors..."
-    runApplication decomposePar 2>&1 | tee $LOG_DIR/decomposePar.$TIMESTAMP.log
+    log_info "Decomposing mesh for1$NP processors..."
+    runApplication decomposePar 2>&1 | tee1$LOG_DIR/decomposePar.$TIMESTAMP.log
 else
     log_warn "Skipping decomposition (serial run)"
     PARALLEL=false
@@ -572,11 +572,11 @@ fi
 log_info "=== Phase 3: Running Solver ==="
 
 if [ "$PARALLEL" = true ]; then
-    log_info "Running $SOLVER in parallel ($NP processors)..."
-    runParallel $SOLVER $NP 2>&1 | tee $LOG_DIR/$SOLVER.$TIMESTAMP.log
+    log_info "Running1$SOLVER in parallel ($NP processors)..."
+    runParallel1$SOLVER1$NP 2>&1 | tee1$LOG_DIR/$SOLVER.$TIMESTAMP.log
 else
-    log_info "Running $SOLVER (serial)..."
-    runApplication $SOLVER 2>&1 | tee $LOG_DIR/$SOLVER.$TIMESTAMP.log
+    log_info "Running1$SOLVER (serial)..."
+    runApplication1$SOLVER 2>&1 | tee1$LOG_DIR/$SOLVER.$TIMESTAMP.log
 fi
 
 # ========================================
@@ -587,7 +587,7 @@ log_info "=== Phase 4: Post-processing ==="
 
 if [ "$PARALLEL" = true ]; then
     log_info "Reconstructing parallel results..."
-    runApplication reconstructPar 2>&1 | tee $LOG_DIR/reconstructPar.$TIMESTAMP.log
+    runApplication reconstructPar 2>&1 | tee1$LOG_DIR/reconstructPar.$TIMESTAMP.log
 fi
 
 # ========================================
@@ -602,7 +602,7 @@ if [ -d "postProcessing" ]; then
     
     # Generate quick summary
     find postProcessing -name "*.dat" -type f | while read file; do
-        log_info "  - $file"
+        log_info "  -1$file"
     done
 else
     log_warn "No function object data found"
@@ -617,30 +617,30 @@ log_info "=== Phase 6: Validation ==="
 
 # Check for convergence
 FINAL_LOG="$LOG_DIR/$SOLVER.$TIMESTAMP.log"
-if grep -q "solution singularity" $FINAL_LOG; then
+if grep -q "solution singularity"1$FINAL_LOG; then
     log_warn "Potential solution singularity detected"
 fi
 
-if grep -q "time step continuity errors" $FINAL_LOG; then
+if grep -q "time step continuity errors"1$FINAL_LOG; then
     log_warn "Continuity errors detected - check results carefully"
 fi
 
 # Extract final residuals
 log_info "Final residuals:"
-grep "Final residuals" $FINAL_LOG || log_warn "No final residuals found"
+grep "Final residuals"1$FINAL_LOG || log_warn "No final residuals found"
 
 # ========================================
 # Completion
 # ========================================
 
 log_info "=== Simulation Completed Successfully ==="
-log_info "Logs saved to: $LOG_DIR/"
-log_info "Total wall time: $(grep 'ExecutionTime' $FINAL_LOG | tail -1)"
+log_info "Logs saved to:1$LOG_DIR/"
+log_info "Total wall time:1$(grep 'ExecutionTime'1$FINAL_LOG | tail -1)"
 
 echo ""
 log_info "Next steps:"
-echo "  1. Check mesh quality: $LOG_DIR/checkMesh.$TIMESTAMP.log"
-echo "  2. Review convergence: $LOG_DIR/$SOLVER.$TIMESTAMP.log"
+echo "  1. Check mesh quality:1$LOG_DIR/checkMesh.$TIMESTAMP.log"
+echo "  2. Review convergence:1$LOG_DIR/$SOLVER.$TIMESTAMP.log"
 echo "  3. Visualize results: paraView &"
 echo "  4. Extract function object data: ls postProcessing/"
 
@@ -854,17 +854,17 @@ TEMPLATE_DIR="templates/airfoil_2D"
 RESULTS_DIR="parametric_results"
 RESULTS_FILE="$RESULTS_DIR/Cd_vs_Velocity.dat"
 
-mkdir -p $RESULTS_DIR
+mkdir -p1$RESULTS_DIR
 
 # Initialize results file
-echo "# Velocity(m/s) Cd Cl" > $RESULTS_FILE
+echo "# Velocity(m/s) Cd Cl" >1$RESULTS_FILE
 
 # Header
 echo "========================================"
 echo "  Parametric Study: Velocity Sweep"
 echo "========================================"
-echo "Velocities: ${VELOCITIES[@]}"
-echo "Total cases: ${#VELOCITIES[@]}"
+echo "Velocities:1${VELOCITIES[@]}"
+echo "Total cases:1${#VELOCITIES[@]}"
 echo ""
 
 # Loop through velocities
@@ -872,28 +872,28 @@ for vel in "${VELOCITIES[@]}"; do
     CASE_NAME="${BASE_CASE}_vel_${vel}"
     
     echo "----------------------------------------"
-    echo "Case: $CASE_NAME (Velocity = $vel m/s)"
+    echo "Case:1$CASE_NAME (Velocity =1$vel m/s)"
     echo "----------------------------------------"
     
     # Clone base case
     echo "  [1/4] Cloning template..."
-    cp -r $TEMPLATE_DIR $CASE_NAME
+    cp -r1$TEMPLATE_DIR1$CASE_NAME
     
     # Modify velocity in boundary conditions
     echo "  [2/4] Updating boundary conditions..."
-    sed -i.bak "s/INFLOW_VELOCITY/$vel/g" $CASE_NAME/0/U
+    sed -i.bak "s/INFLOW_VELOCITY/$vel/g"1$CASE_NAME/0/U
     
     # Update transport properties if needed
-    # sed -i.bak "s/KINEMATIC_VISCOSITY/1.5e-5/g" $CASE_NAME/constant/transportProperties
+    # sed -i.bak "s/KINEMATIC_VISCOSITY/1.5e-5/g"1$CASE_NAME/constant/transportProperties
     
     # Run simulation
     echo "  [3/4] Running simulation..."
-    (cd $CASE_NAME && ./Allrun 4 > /dev/null 2>&1)
+    (cd1$CASE_NAME && ./Allrun 4 > /dev/null 2>&1)
     
     # Check if simulation succeeded
     if [ ! -f "$CASE_NAME/postProcessing/forceCoeffs/0/forceCoeffs.dat" ]; then
         echo "  [ERROR] Simulation failed!"
-        rm -rf $CASE_NAME
+        rm -rf1$CASE_NAME
         continue
     fi
     
@@ -901,16 +901,16 @@ for vel in "${VELOCITIES[@]}"; do
     echo "  [4/4] Extracting results..."
     
     # Get last time step values
-    Cd=$(tail -1 $CASE_NAME/postProcessing/forceCoeffs/0/forceCoeffs.dat | awk '{print $7}')
-    Cl=$(tail -1 $CASE_NAME/postProcessing/forceCoeffs/0/forceCoeffs.dat | awk '{print $8}')
+    Cd=$(tail -11$CASE_NAME/postProcessing/forceCoeffs/0/forceCoeffs.dat | awk '{print1$7}')
+    Cl=$(tail -11$CASE_NAME/postProcessing/forceCoeffs/0/forceCoeffs.dat | awk '{print1$8}')
     
     # Write to results file
-    echo "$vel $Cd $Cl" >> $RESULTS_FILE
+    echo "$vel1$Cd1$Cl" >>1$RESULTS_FILE
     
-    echo "  Results: Cd = $Cd, Cl = $Cl"
+    echo "  Results: Cd =1$Cd, Cl =1$Cl"
     
     # Clean up (optional - keep cases for debugging)
-    # rm -rf $CASE_NAME
+    # rm -rf1$CASE_NAME
     
     echo "  ✓ Completed"
     echo ""
@@ -919,7 +919,7 @@ done
 echo "========================================"
 echo "  Parametric Study Completed!"
 echo "========================================"
-echo "Results saved to: $RESULTS_FILE"
+echo "Results saved to:1$RESULTS_FILE"
 echo ""
 
 # Generate plot
@@ -941,7 +941,7 @@ echo ""
 # Display results table
 echo "Results Summary:"
 echo "----------------"
-column -t $RESULTS_FILE
+column -t1$RESULTS_FILE
 
 exit 0
 ```
@@ -1092,8 +1092,8 @@ exit 0
 
 ```bash
 #!/bin/bash
-cd ${0%/*} || exit 1
-. $WM_PROJECT_DIR/bin/tools/RunFunctions
+cd1${0%/*} || exit 1
+.1$WM_PROJECT_DIR/bin/tools/RunFunctions
 
 # Error handling
 set -e
@@ -1152,19 +1152,19 @@ BASE_CASE="airfoil_base"
 
 for re in "${RE_VALUES[@]}"; do
     case_name="Re_${re}"
-    cp -r $BASE_CASE $case_name
+    cp -r1$BASE_CASE1$case_name
     
     # Update viscosity: nu = U * L / Re
     # Assuming U=10, L=1: nu = 10 / re
-    nu=$(echo "scale=8; 10 / $re" | bc)
-    sed -i "s/KINEMATIC_VISCOSITY/$nu/" $case_name/constant/transportProperties
+    nu=$(echo "scale=8; 10 /1$re" | bc)
+    sed -i "s/KINEMATIC_VISCOSITY/$nu/"1$case_name/constant/transportProperties
     
     # Run simulation
-    (cd $case_name && ./Allrun)
+    (cd1$case_name && ./Allrun)
     
     # Extract results
-    Cd=$(tail -1 $case_name/postProcessing/forceCoeffs/0/forceCoeffs.dat | awk '{print $7}')
-    echo "$re $Cd" >> Cd_vs_Re.dat
+    Cd=$(tail -11$case_name/postProcessing/forceCoeffs/0/forceCoeffs.dat | awk '{print1$7}')
+    echo "$re1$Cd" >> Cd_vs_Re.dat
 done
 
 # Generate plot

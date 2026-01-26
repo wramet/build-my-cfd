@@ -29,7 +29,7 @@ By the end of this section, you will be able to:
 สรุปและแบบฝึกหัด Linear Algebra ใน OpenFOAM
 
 > [!TIP] **ทำไม Linear Algebra สำคัญใน OpenFOAM?**
-> **Linear Algebra** เป็นหัวใจของการแก้สมการพาร์เทียลดิฟเฟอเรนเชียล (PDE) ใน CFD ทุกประเภท ไม่ว่าจะเป็น การไหลของไหล (fluid flow), การถ่ายเทความร้อน (heat transfer), หรือการละลายของไอเสีย (turbulence) เมื่อเรา **discretize** สมการบน mesh จะได้รับ **system of linear equations** ในรูปแบบ $[A][x] = [b]$
+> **Linear Algebra** เป็นหัวใจของการแก้สมการพาร์เทียลดิฟเฟอเรนเชียล (PDE) ใน CFD ทุกประเภท ไม่ว่าจะเป็น การไหลของไหล (fluid flow), การถ่ายเทความร้อน (heat transfer), หรือการละลายของไอเสีย (turbulence) เมื่อเรา **discretize** สมการบน mesh จะได้รับ **system of linear equations** ในรูปแบบ1$[A][x] = [b]$
 >
 > **การเลือก solver ที่เหมาะสม** และ **การตั้งค่า tolerance** ส่งผลโดยตรงต่อ:
 > - **Stability:** การทำงานที่เสถียรของ simulation (ไม่ explode)
@@ -192,7 +192,7 @@ fvScalarMatrix TEqn
 1. **`fvm::ddt(T)` ใส่ค่าใน matrix ตรงไหน?**
    - Diagonal หรือ off-diagonal?
    - เพราะอะไร?
-   - **Hint:** ดูรูปแบบ backward Euler: $\frac{T^{n+1}_P - T^n_P}{\Delta t}$
+   - **Hint:** ดูรูปแบบ backward Euler:1$\frac{T^{n+1}_P - T^n_P}{\Delta t}$
 
 2. **`fvm::div(phi, T)` สร้าง off-diagonal terms อย่างไร?**
    - Upwind scheme ใส่ค่าอะไรใน upper/lower?
@@ -319,8 +319,8 @@ relaxationFactors
    - ข้อดี-ข้อเสีย?
 
 2. **Field vs. Equation relaxation ต่างกันอย่างไร?**
-   - Field: $\phi^{new} = \phi^{old} + \alpha(\phi^{calc} - \phi^{old})$
-   - Equation: modifies diagonal coefficients: $A_{PP} = A_{PP} / \alpha$
+   - Field:1$\phi^{new} = \phi^{old} + \alpha(\phi^{calc} - \phi^{old})$
+   - Equation: modifies diagonal coefficients:1$A_{PP} = A_{PP} / \alpha$
    - เมื่อไหร่ใช้อันไหน?
 
 3. **ถ้าลด p relaxation จาก 0.3 เป็น 0.1 จะเกิดอะไรขึ้น?**
@@ -470,12 +470,12 @@ TEqn.solve();
 ### Exercise 1: Matrix Assembly
 
 1. **`fvm::ddt` → Diagonal**
-   - เพราะ backward Euler: $\frac{T^{n+1}_P - T^n_P}{\Delta t}$
+   - เพราะ backward Euler:1$\frac{T^{n+1}_P - T^n_P}{\Delta t}$
    - เฉพาะ cell P มีค่า T^{n+1} → diagonal only
-   - Source term: $-T^n_P/\Delta t$ → RHS
+   - Source term:1$-T^n_P/\Delta t1→ RHS
 
 2. **`fvm::div` → Off-diagonal**
-   - Upwind scheme: $F_f \max(\phi_f, 0)$ for upper, $F_f \min(-\phi_f, 0)$ for lower
+   - Upwind scheme:1$F_f \max(\phi_f, 0)1for upper,1$F_f \min(-\phi_f, 0)1for lower
    - Flux ระหว่าง neighbor cells → coupling ใน matrix
    - Explicit `fvc::div` → ทุกค่าไป RHS (no matrix coupling)
 
@@ -528,7 +528,7 @@ TEqn.solve();
    - **Strategy:** Start low (0.2), increase gradually as residuals drop
 
 2. **Field vs. Equation:**
-   - **Field relaxation:** Direct update: $\phi^{new} = \phi^{old} + \alpha(\phi^{calc} - \phi^{old})$
+   - **Field relaxation:** Direct update:1$\phi^{new} = \phi^{old} + \alpha(\phi^{calc} - \phi^{old})$
      - Use for: pressure in SIMPLE (field coupling is key)
    - **Equation relaxation:** Matrix modification: diagonal /= α
      - Use for: momentum, scalars, where equation stiffness matters
@@ -1066,7 +1066,7 @@ fvScalarMatrix TEqn
 | Aspect | Field Relaxation | Equation Relaxation |
 |--------|------------------|-------------------|
 | **Application point** | After solution | Before/during solution |
-| **Implementation** | $\phi^{new} = \phi^{old} + \alpha(\phi^{calc} - \phi^{old})$ | Modifies matrix diagonal: $A_{PP} = A_{PP} / \alpha$ |
+| **Implementation** |1$\phi^{new} = \phi^{old} + \alpha(\phi^{calc} - \phi^{old})1| Modifies matrix diagonal:1$A_{PP} = A_{PP} / \alpha1|
 | **Use case** | Pressure (SIMPLE) | Momentum, scalars |
 | **Stability effect** | Decouples non-linear updates | Increases diagonal dominance |
 | **Speed effect** | Minimal overhead | Slightly slower (matrix modification) |

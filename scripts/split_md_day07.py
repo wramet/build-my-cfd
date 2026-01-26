@@ -40,4 +40,4 @@ def split_markdown(file_path, output_dir):
         current_file.close()
     print(f"Split completed into {file_counter-1} files")
 
-split_markdown('daily_learning/2026-01-07.md', 'daily_learning/temp_qc/day07')
+split_markdown('daily_learning/07.md', 'daily_learning/temp_qc/day07')

@@ -107,15 +107,15 @@ module load openfoam/10
 module load mpi/openmpi
 
 # --- Job Execution ---
-echo "Job started on $(hostname) at $(date)"
-echo "Working directory: $PWD"
-echo "Job ID: $SLURM_JOB_ID"
+echo "Job started on1$(hostname) at1$(date)"
+echo "Working directory:1$PWD"
+echo "Job ID:1$SLURM_JOB_ID"
 
 # Load OpenFOAM environment
-source $WM_PROJECT_DIR/etc/bashrc
+source1$WM_PROJECT_DIR/etc/bashrc
 
 # Run OpenFOAM case
-cd $SLURM_SUBMIT_DIR
+cd1$SLURM_SUBMIT_DIR
 
 # Decompose (if needed)
 if [ ! -d "processor0" ]; then
@@ -125,7 +125,7 @@ fi
 
 # Run solver
 echo "Running solver..."
-mpirun -np $SLURM_NTASKS simpleFoam -parallel
+mpirun -np1$SLURM_NTASKS simpleFoam -parallel
 
 # Reconstruct
 echo "Reconstructing case..."
@@ -135,7 +135,7 @@ reconstructPar
 echo "Running paraFoam..."
 paraFoam -batch
 
-echo "Job completed at $(date)"
+echo "Job completed at1$(date)"
 ```
 
 ### 2.2 Advanced SLURM Options
@@ -176,7 +176,7 @@ JOB2=$(sbatch --parsable --dependency=afterok:$JOB1 decompose.sh)
 JOB3=$(sbatch --parsable --dependency=afterok:$JOB2 solve.sh)
 JOB4=$(sbatch --parsable --dependency=afterok:$JOB3 postprocess.sh)
 
-echo "Submitted workflow: $JOB1 → $JOB2 → $JOB3 → $JOB4"
+echo "Submitted workflow:1$JOB1 →1$JOB2 →1$JOB3 →1$JOB4"
 ```
 
 ---
@@ -203,13 +203,13 @@ module load openfoam/10
 module load mpi/openmpi
 
 # --- Job Execution ---
-cd $PBS_O_WORKDIR
+cd1$PBS_O_WORKDIR
 
-echo "Job started on $(hostname) at $(date)"
-echo "Job ID: $PBS_JOB_ID"
-echo "Number of nodes: $PBS_NUM_NODES"
+echo "Job started on1$(hostname) at1$(date)"
+echo "Job ID:1$PBS_JOB_ID"
+echo "Number of nodes:1$PBS_NUM_NODES"
 
-source $WM_PROJECT_DIR/etc/bashrc
+source1$WM_PROJECT_DIR/etc/bashrc
 
 # Decompose
 if [ ! -d "processor0" ]; then
@@ -217,12 +217,12 @@ if [ ! -d "processor0" ]; then
 fi
 
 # Run solver
-mpirun -np $PBS_NP simpleFoam -parallel
+mpirun -np1$PBS_NP simpleFoam -parallel
 
 # Reconstruct
 reconstructPar
 
-echo "Job completed at $(date)"
+echo "Job completed at1$(date)"
 ```
 
 ### 3.2 Advanced PBS Options
@@ -241,15 +241,15 @@ echo "Job completed at $(date)"
 
 ```bash
 #!/bin/bash
-#$ -N OpenFOAM_Case                    # Job name
-#$ -cwd                                # Change to working directory
-#$ -j y                                # Join output/error
-#$ -o output.$JOB_ID.txt               # Output file
-#$ -pe mpi 64                          # Parallel environment, 64 slots
-#$ -l h_rt=24:00:00                    # Runtime limit
-#$ -l h_vmem=4G                        # Memory per slot
-#$ -M user@example.com                 # Email
-#$ -m be                               # Email on begin/end
+#1-N OpenFOAM_Case                    # Job name
+#1-cwd                                # Change to working directory
+#1-j y                                # Join output/error
+#1-o output.$JOB_ID.txt               # Output file
+#1-pe mpi 64                          # Parallel environment, 64 slots
+#1-l h_rt=24:00:00                    # Runtime limit
+#1-l h_vmem=4G                        # Memory per slot
+#1-M user@example.com                 # Email
+#1-m be                               # Email on begin/end
 
 # --- Environment Setup ---
 module purge
@@ -257,11 +257,11 @@ module load openfoam/10
 module load mpi/openmpi
 
 # --- Job Execution ---
-echo "Job started on $(hostname) at $(date)"
-echo "Job ID: $JOB_ID"
-echo "NSLOTS: $NSLOTS"
+echo "Job started on1$(hostname) at1$(date)"
+echo "Job ID:1$JOB_ID"
+echo "NSLOTS:1$NSLOTS"
 
-source $WM_PROJECT_DIR/etc/bashrc
+source1$WM_PROJECT_DIR/etc/bashrc
 
 # Decompose
 if [ ! -d "processor0" ]; then
@@ -269,12 +269,12 @@ if [ ! -d "processor0" ]; then
 fi
 
 # Run solver
-mpirun -np $NSLOTS simpleFoam -parallel
+mpirun -np1$NSLOTS simpleFoam -parallel
 
 # Reconstruct
 reconstructPar
 
-echo "Job completed at $(date)"
+echo "Job completed at1$(date)"
 ```
 
 ---
@@ -308,11 +308,11 @@ aws ec2 run-instances \
 
 | Instance Type | Cores | RAM | Use Case | Cost/hr (approx) |
 |--------------|-------|-----|----------|-----------------|
-| **c5n.18xlarge** | 72 | 192 GB | Standard CFD | $2.50 |
-| **c5.24xlarge** | 96 | 192 GB | High core count | $3.60 |
-| **z1d.12xlarge** | 48 | 384 GB | Large mesh cases | $2.40 |
-| **p3.8xlarge** | 32 | 248 GB | GPU acceleration | $6.50 |
-| **hpc6a.48xlarge** | 192 | 384 GB | HPC-optimized | $4.00 |
+| **c5n.18xlarge** | 72 | 192 GB | Standard CFD |1$2.50 |
+| **c5.24xlarge** | 96 | 192 GB | High core count |1$3.60 |
+| **z1d.12xlarge** | 48 | 384 GB | Large mesh cases |1$2.40 |
+| **p3.8xlarge** | 32 | 248 GB | GPU acceleration |1$6.50 |
+| **hpc6a.48xlarge** | 192 | 384 GB | HPC-optimized |1$4.00 |
 
 #### 5.1.3 AWS ParallelCluster
 
@@ -496,7 +496,7 @@ sudo mount -t nfs -o rw,hard,rsize=65536,wsize=65536,tcp 10.0.0.4:/anf-volume /m
 ```bash
 # 1. Install gcloud CLI
 curl https://sdk.cloud.google.com | bash
-exec -l $SHELL
+exec -l1$SHELL
 gcloud init
 
 # 2. Create Compute Engine instance
@@ -522,11 +522,11 @@ mpirun -np 96 simpleFoam -parallel
 
 | Machine Type | Cores | RAM | Use Case | Cost/hr |
 |--------------|-------|-----|----------|---------|
-| **n2-highmem-96** | 96 | 768 GB | Large cases | $6.00 |
-| **n2-highcpu-128** | 128 | 512 GB | CPU-intensive | $5.00 |
-| **c2-standard-112** | 112 | 448 GB | Compute-optimized | $4.50 |
-| **n2d-highmem-96** | 96 | 768 GB | AMD-based | $4.00 |
-| **a2-highgpu-8g** | 96 | 860 GB | GPU (8x A100) | $12.00 |
+| **n2-highmem-96** | 96 | 768 GB | Large cases |1$6.00 |
+| **n2-highcpu-128** | 128 | 512 GB | CPU-intensive |1$5.00 |
+| **c2-standard-112** | 112 | 448 GB | Compute-optimized |1$4.50 |
+| **n2d-highmem-96** | 96 | 768 GB | AMD-based |1$4.00 |
+| **a2-highgpu-8g** | 96 | 860 GB | GPU (8x A100) |1$12.00 |
 
 #### 5.3.3 Cloud HPC Toolkit
 
@@ -638,13 +638,13 @@ globus login
 
 # 3. Transfer files
 globus transfer \
-  --source-endpoint $SOURCE_UUID \
-  --dest-endpoint $DEST_UUID \
+  --source-endpoint1$SOURCE_UUID \
+  --dest-endpoint1$DEST_UUID \
   /path/to/source \
   /path/to/dest
 
 # 4. Monitor transfer
-globus task wait $TASK_ID
+globus task wait1$TASK_ID
 ```
 
 ---
@@ -693,9 +693,9 @@ cat > run.slurm << 'EOF'
 #SBATCH --partition=standard
 
 module load openfoam
-cd $SLURM_SUBMIT_DIR
+cd1$SLURM_SUBMIT_DIR
 decomposePar
-mpirun -np $SLURM_NTASKS simpleFoam -parallel
+mpirun -np1$SLURM_NTASKS simpleFoam -parallel
 reconstructPar
 EOF
 
@@ -703,7 +703,7 @@ EOF
 sbatch run.slurm
 
 # 3. Monitor job
-watch -n 5 squeue -u $USER
+watch -n 5 squeue -u1$USER
 
 # 4. Check output
 tail -f slurm-12345.out
@@ -763,8 +763,8 @@ while true; do
     timeout 7200 simpleFoam -parallel
     
     # Check if job is being preempted
-    if [ $? -eq 124 ]; then
-        echo "Checkpoint reached at time $LATEST_TIME"
+    if [1$? -eq 124 ]; then
+        echo "Checkpoint reached at time1$LATEST_TIME"
         break
     fi
 done
@@ -911,7 +911,7 @@ squeue: Job 12345 is in PENDING state indefinitely
 **Solutions:**
 ```bash
 # Check queue status
-squeue -u $USER -o "%.18i %.9P %.20j %.8u %.2t %.10M %.6D %R"
+squeue -u1$USER -o "%.18i %.9P %.20j %.8u %.2t %.10M %.6D %R"
 
 # Check why job is pending
 scontrol show job 12345
@@ -939,13 +939,13 @@ MPI_Comm_rank: Invalid communicator
 ```bash
 # Check number of processors matches decomposition
 ls -d processor* | wc -l
-echo $SLURM_NTASKS
+echo1$SLURM_NTASKS
 
 # Ensure correct number of MPI ranks
-mpirun -np $(ls -d processor* | wc -l) simpleFoam -parallel
+mpirun -np1$(ls -d processor* | wc -l) simpleFoam -parallel
 
 # Check for host file issues
-cat $SLURM_JOB_NODELIST
+cat1$SLURM_JOB_NODELIST
 ```
 
 #### Issue 3: Out of Memory Errors
@@ -1013,7 +1013,7 @@ MPI communication dominates runtime
 **Solutions:**
 ```bash
 # Test interconnect performance
-mpirun -np $SLURM_NTASKS osu_latency
+mpirun -np1$SLURM_NTASKS osu_latency
 
 # Check if using expected interconnect
 ibstat  # InfiniBand
@@ -1021,7 +1021,7 @@ ibdevsnetdev
 
 # Bind MPI processes to cores
 mpirun --bind-to core --map-by socket:PE=1 \
-  -np $SLURM_NTASKS simpleFoam -parallel
+  -np1$SLURM_NTASKS simpleFoam -parallel
 
 # Use optimized MPI flags
 export I_MPI_FABRICS=ofi
@@ -1101,12 +1101,12 @@ REMOTE_DIR="~/cases/openfoam"
 # 1. Transfer case
 rsync -avz --progress \
   --exclude='processor*' \
-  case.tar.gz $CLUSTER:$REMOTE_DIR/
+  case.tar.gz1$CLUSTER:$REMOTE_DIR/
 
 # 2. Transfer decomposition
 rsync -avz --progress \
   case/system/decomposeParDict \
-  $CLUSTER:$REMOTE_DIR/case/system/
+1$CLUSTER:$REMOTE_DIR/case/system/
 ```
 
 ### 11.3 Submit HPC Job
@@ -1130,7 +1130,7 @@ module purge
 module load openfoam/10
 module load mpi/openmpi
 
-cd $SLURM_SUBMIT_DIR
+cd1$SLURM_SUBMIT_DIR
 
 # Extract case
 tar xzf case.tar.gz
@@ -1140,7 +1140,7 @@ cd case/
 decomposePar
 
 # Run solver
-mpirun -np $SLURM_NTASKS simpleFoam -parallel
+mpirun -np1$SLURM_NTASKS simpleFoam -parallel
 
 # Reconstruct
 reconstructPar -latestTime
@@ -1154,7 +1154,7 @@ EOF
 sbatch run.slurm
 
 # 3. Monitor job
-watch -n 10 squeue -u $USER
+watch -n 10 squeue -u1$USER
 ```
 
 ### 11.4 Monitor and Retrieve Results
@@ -1169,8 +1169,8 @@ JOB_ID=$1
 
 # 1. Monitor job
 while true; do
-    STATUS=$(ssh $CLUSTER "squeue -j $JOB_ID -o %T | tail -n 1")
-    echo "Job status: $STATUS"
+    STATUS=$(ssh1$CLUSTER "squeue -j1$JOB_ID -o %T | tail -n 1")
+    echo "Job status:1$STATUS"
     
     if [ "$STATUS" = "COMPLETED" ]; then
         echo "Job completed successfully"
@@ -1181,16 +1181,16 @@ while true; do
 done
 
 # 2. Check for errors
-ssh $CLUSTER "cat $REMOTE_DIR/slurm-$JOB_ID.err" | grep -i error
+ssh1$CLUSTER "cat1$REMOTE_DIR/slurm-$JOB_ID.err" | grep -i error
 
 # 3. Retrieve results
 rsync -avz --progress \
-  $CLUSTER:$REMOTE_DIR/case/VTK/ \
+1$CLUSTER:$REMOTE_DIR/case/VTK/ \
   ./results/VTK/
 
 # 4. Retrieve log files
-scp $CLUSTER:$REMOTE_DIR/slurm-$JOB_ID.* ./
-scp $CLUSTER:$REMOTE_DIR/case/log.simpleFoam ./
+scp1$CLUSTER:$REMOTE_DIR/slurm-$JOB_ID.* ./
+scp1$CLUSTER:$REMOTE_DIR/case/log.simpleFoam ./
 ```
 
 ---
@@ -1202,7 +1202,7 @@ scp $CLUSTER:$REMOTE_DIR/case/log.simpleFoam ./
 | Action | SLURM | PBS | SGE |
 |--------|-------|-----|-----|
 | **Submit** | `sbatch script.sh` | `qsub script.sh` | `qsub script.sh` |
-| **Check Status** | `squeue -u $USER` | `qstat -u $USER` | `qstat -u $USER` |
+| **Check Status** | `squeue -u1$USER` | `qstat -u1$USER` | `qstat -u1$USER` |
 | **Delete Job** | `scancel JOBID` | `qdel JOBID` | `qdel JOBID` |
 | **Job Info** | `scontrol show job JOBID` | `qstat -f JOBID` | `qstat -j JOBID` |
 | **Queue Info** | `sinfo` | `qstat -Q` | `qstat -g c` |

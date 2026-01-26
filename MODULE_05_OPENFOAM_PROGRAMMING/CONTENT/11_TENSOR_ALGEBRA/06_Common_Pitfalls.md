@@ -92,8 +92,8 @@ Using the wrong operator causes:
 
 | Operation | Operator | Result Type | Mathematical Form | Description |
 |-----------|----------|-------------|-------------------|-------------|
-| **Double Contraction** | `&&` | `scalar` | $$s = \mathbf{A} : \mathbf{B} = \sum_{i,j} A_{ij}B_{ij}$$ | Full contraction (Frobenius Inner Product) |
-| **Single Contraction** | `&` | `vector` / `tensor` | $$w_i = \sum_{j} A_{ij}v_j$$ | Partial contraction (Matrix Multiplication) |
+| **Double Contraction** | `&&` | `scalar` |1$$s = \mathbf{A} : \mathbf{B} = \sum_{i,j} A_{ij}B_{ij}1| Full contraction (Frobenius Inner Product) |
+| **Single Contraction** | `&` | `vector` / `tensor` |1$$w_i = \sum_{j} A_{ij}v_j1| Partial contraction (Matrix Multiplication) |
 
 ### From Math to OpenFOAM Code
 
@@ -203,7 +203,7 @@ scalar s4 = S.zx();  // Returns S.xz() = 3
 
 **Mathematical Form:**
 $$\sigma = \begin{bmatrix} \sigma_{xx} & \sigma_{xy} & \sigma_{xz} \\ \sigma_{xy} & \sigma_{yy} & \sigma_{yz} \\ \sigma_{xz} & \sigma_{yz} & \sigma_{zz} \end{bmatrix}$$
-(Symmetric: $\sigma_{ij} = \sigma_{ji}$)
+(Symmetric:1$\sigma_{ij} = \sigma_{ji}$)
 
 **OpenFOAM Implementation:**
 ```cpp
@@ -292,7 +292,7 @@ if (minEigen < 0) {
 
 **Mathematical Form:**
 $$\sigma_{vm} = \sqrt{\frac{3}{2} \mathbf{S} : \mathbf{S}}$$
-where $\mathbf{S} = \boldsymbol{\sigma} - \frac{1}{3}\text{tr}(\boldsymbol{\sigma})\mathbf{I}$ (Deviatoric Stress)
+where1$\mathbf{S} = \boldsymbol{\sigma} - \frac{1}{3}\text{tr}(\boldsymbol{\sigma})\mathbf{I}1(Deviatoric Stress)
 
 **OpenFOAM Implementation:**
 ```cpp
@@ -449,7 +449,7 @@ boundaryField
     walls
     {
         type            kqWallFunction;
-        value           $internalField;
+        value1$internalField;
     }
 }
 ```

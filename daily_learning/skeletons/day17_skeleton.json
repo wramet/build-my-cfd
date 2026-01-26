@@ -1,0 +1,451 @@
+{
+    "day": "17",
+    "title": "Mesh I/O - Reading, Writing, and Manipulation",
+    "date": "2026-01-17",
+    "difficulty": "hardcore",
+    "learning_objectives": [
+        {
+            "verb": "เข้าใจ (Understand)",
+            "topic": "OpenFOAM mesh file formats และ directory structure",
+            "equation": "",
+            "importance": "Critical for interoperability - ต้องอ่าน mesh จาก external meshers ได้"
+        },
+        {
+            "verb": "ออกแบบ (Design)",
+            "topic": "Mesh data structures สำหรับ efficient I/O และ manipulation",
+            "components": ["Points", "Faces", "Cells", "Boundary Patches", "Parallel Decomposition"]
+        },
+        {
+            "verb": "Implement",
+            "topic": "Mesh refinement และ quality checking algorithms",
+            "challenge": "การรักษา mesh quality หลัง refinement และ handling hanging nodes"
+        }
+    ],
+    "theory_sections": [
+        {
+            "id": "17.1",
+            "title_en": "Mesh File Formats and Structure",
+            "title_th": "รูปแบบไฟล์ mesh และโครงสร้าง directory",
+            "equations": [
+                {
+                    "name": "Mesh connectivity",
+                    "latex": "\\text{Cell}_i = \\sum_{j=1}^{n_f} \\text{Face}_j",
+                    "explanation": "เซลล์ประกอบด้วยหลายๆ หน้า (faces) ที่เชื่อมต่อกัน"
+                },
+                {
+                    "name": "Face area vector",
+                    "latex": "\\mathbf{S}_f = \\sum_{i=1}^{n_p} \\frac{1}{2} (\\mathbf{x}_i \\times \\mathbf{x}_{i+1})",
+                    "explanation": "พื้นที่ของหน้า (face) คำนวณจาก cross product ของจุดยอด"
+                }
+            ],
+            "variables": [
+                {
+                    "symbol": "points",
+                    "name": "Mesh vertices coordinates",
+                    "unit": "m"
+                },
+                {
+                    "symbol": "faces",
+                    "name": "Face connectivity list",
+                    "unit": "dimensionless"
+                },
+                {
+                    "symbol": "owner",
+                    "name": "Owner cell for each face",
+                    "unit": "dimensionless"
+                },
+                {
+                    "symbol": "neighbour",
+                    "name": "Neighbour cell for each face",
+                    "unit": "dimensionless"
+                }
+            ],
+            "warning": "Mesh files ต้องเรียงลำดับตาม OpenFOAM convention: points → faces → owner → neighbour → boundary"
+        },
+        {
+            "id": "17.2",
+            "title_en": "Mesh Quality Metrics",
+            "title_th": "ตัวชี้วัดคุณภาพ mesh",
+            "equations": [
+                {
+                    "name": "Cell non-orthogonality",
+                    "latex": "\\theta = \\cos^{-1}\\left(\\frac{\\mathbf{S}_f \\cdot \\mathbf{d}}{|\\mathbf{S}_f||\\mathbf{d}|}\\right)",
+                    "explanation": "มุมระหว่าง face normal กับ vector เชื่อม cell centers"
+                },
+                {
+                    "name": "Skewness",
+                    "latex": "\\text{skewness} = 1 - \\frac{|\\mathbf{d}_f|}{|\\mathbf{d}|}",
+                    "explanation": "อัตราส่วนระหว่าง distance vector กับ cell center vector"
+                },
+                {
+                    "name": "Aspect ratio",
+                    "latex": "\\text{AR} = \\frac{\\text{max edge length}}{\\text{min edge length}}",
+                    "explanation": "อัตราส่วนระหว่างความยาว edge สูงสุดกับต่ำสุด"
+                }
+            ],
+            "variables": [
+                {
+                    "symbol": "θ",
+                    "name": "Non-orthogonality angle",
+                    "unit": "degrees"
+                },
+                {
+                    "symbol": "AR",
+                    "name": "Aspect ratio",
+                    "unit": "dimensionless"
+                },
+                {
+                    "symbol": "V",
+                    "name": "Cell volume",
+                    "unit": "m³"
+                }
+            ],
+            "warning": "Non-orthogonality > 70° ทำให้ diffusion term discretization มี error สูงมาก"
+        },
+        {
+            "id": "17.3",
+            "title_en": "Parallel Mesh Decomposition",
+            "title_th": "การแบ่ง mesh สำหรับการคำนวณแบบขนาน",
+            "equations": [
+                {
+                    "name": "Domain decomposition",
+                    "latex": "\\Omega = \\bigcup_{i=1}^{N_p} \\Omega_i",
+                    "explanation": "Domain แบ่งเป็น subdomains สำหรับแต่ละ processor"
+                },
+                {
+                    "name": "Processor boundary faces",
+                    "latex": "\\Gamma_{ij} = \\partial\\Omega_i \\cap \\partial\\Omega_j",
+                    "explanation": "Faces ที่อยู่ระหว่าง processor i และ j"
+                }
+            ],
+            "variables": [
+                {
+                    "symbol": "N_p",
+                    "name": "Number of processors",
+                    "unit": "dimensionless"
+                },
+                {
+                    "symbol": "Ω_i",
+                    "name": "Subdomain for processor i",
+                    "unit": "m³"
+                },
+                {
+                    "symbol": "Γ_ij",
+                    "name": "Processor boundary",
+                    "unit": "m²"
+                }
+            ],
+            "warning": "ต้องรักษา load balancing - แต่ละ processor ควรมีจำนวนเซลล์ใกล้เคียงกัน"
+        }
+    ],
+    "openfoam_analysis": [
+        {
+            "class": "polyMesh",
+            "header": "src/OpenFOAM/meshes/polyMesh/polyMesh.H",
+            "purpose": "Polygonal mesh representation - core mesh class",
+            "key_members": [
+                {
+                    "name": "points_",
+                    "type": "pointField",
+                    "purpose": "Mesh vertices coordinates"
+                },
+                {
+                    "name": "faces_",
+                    "type": "faceList",
+                    "purpose": "Face connectivity lists"
+                },
+                {
+                    "name": "owner_",
+                    "type": "labelList",
+                    "purpose": "Owner cell for each internal face"
+                },
+                {
+                    "name": "neighbour_",
+                    "type": "labelList",
+                    "purpose": "Neighbour cell for each internal face"
+                },
+                {
+                    "name": "boundary_",
+                    "type": "polyBoundaryMesh",
+                    "purpose": "Boundary patches information"
+                }
+            ],
+            "key_methods": [
+                {
+                    "name": "readUpdate()",
+                    "purpose": "Update mesh after topology changes (refinement)"
+                },
+                {
+                    "name": "checkMesh()",
+                    "purpose": "Validate mesh quality and connectivity"
+                },
+                {
+                    "name": "globalData()",
+                    "purpose": "Access parallel decomposition data"
+                }
+            ],
+            "usage_example": "polyMesh mesh(IOobject(...), xferCopy<pointField>(points), ...);"
+        },
+        {
+            "class": "fvMesh",
+            "header": "src/finiteVolume/fvMesh/fvMesh.H",
+            "purpose": "Finite volume mesh - extends polyMesh with FV-specific data",
+            "key_members": [
+                {
+                    "name": "phi_",
+                    "type": "surfaceScalarField*",
+                    "purpose": "Face flux field (cached for efficiency)"
+                },
+                {
+                    "name": "Sf_",
+                    "type": "surfaceVectorField*",
+                    "purpose": "Face area vectors"
+                },
+                {
+                    "name": "magSf_",
+                    "type": "surfaceScalarField*",
+                    "purpose": "Face area magnitudes"
+                },
+                {
+                    "name": "C_",
+                    "type": "volVectorField*",
+                    "purpose": "Cell centers"
+                }
+            ],
+            "key_methods": [
+                {
+                    "name": "initMesh()",
+                    "purpose": "Initialize FV-specific data structures"
+                },
+                {
+                    "name": "updateMesh()",
+                    "purpose": "Update after mesh motion/refinement"
+                },
+                {
+                    "name": "schemesDict()",
+                    "purpose": "Access discretization schemes dictionary"
+                }
+            ]
+        },
+        {
+            "class": "IOobject",
+            "header": "src/OpenFOAM/db/IOobject/IOobject.H",
+            "purpose": "Object description for I/O operations",
+            "key_members": [
+                {
+                    "name": "name_",
+                    "type": "word",
+                    "purpose": "Object name"
+                },
+                {
+                    "name": "headerClassName_",
+                    "type": "word",
+                    "purpose": "Class name for object registry"
+                },
+                {
+                    "name": "note_",
+                    "type": "string",
+                    "purpose": "Optional note/description"
+                },
+                {
+                    "name": "instance_",
+                    "type": "fileName",
+                    "purpose": "Directory instance (e.g., 'constant')"
+                },
+                {
+                    "name": "local_",
+                    "type": "fileName",
+                    "purpose": "Local object path"
+                }
+            ],
+            "key_methods": [
+                {
+                    "name": "typeHeaderOk()",
+                    "purpose": "Check if object exists and has correct type"
+                },
+                {
+                    "name": "headerOk()",
+                    "purpose": "Check if object exists"
+                },
+                {
+                    "name": "readHeader()",
+                    "purpose": "Read object header without data"
+                }
+            ],
+            "usage_example": "IOobject ioObj(\"points\", mesh.time().constant(), mesh, IOobject::MUST_READ);"
+        }
+    ],
+    "implementation_skeleton": {
+        "classes": [
+            {
+                "name": "MeshReader",
+                "responsibility": "Read mesh from various formats (OpenFOAM, Gmsh, Fluent)",
+                "key_methods": [
+                    {
+                        "name": "readFoamMesh()",
+                        "purpose": "Read OpenFOAM native format from constant/polyMesh"
+                    },
+                    {
+                        "name": "readGmshMesh()",
+                        "purpose": "Read Gmsh .msh format with element type mapping"
+                    },
+                    {
+                        "name": "readFluentMesh()",
+                        "purpose": "Read Fluent .msh format (ASCII)"
+                    },
+                    {
+                        "name": "convertToPolyMesh()",
+                        "purpose": "Convert external format to polyMesh"
+                    }
+                ],
+                "critical_implementation": "ต้อง handle mixed element types (tet, hex, prism, pyramid, wedge)"
+            },
+            {
+                "name": "MeshWriter",
+                "responsibility": "Write mesh in various formats",
+                "key_methods": [
+                    {
+                        "name": "writeFoamMesh()",
+                        "purpose": "Write OpenFOAM native format"
+                    },
+                    {
+                        "name": "writeVTK()",
+                        "purpose": "Write VTK format for visualization"
+                    },
+                    {
+                        "name": "writeEnsight()",
+                        "purpose": "Write Ensight Gold format"
+                    },
+                    {
+                        "name": "writeDecomposedMesh()",
+                        "purpose": "Write decomposed mesh for parallel runs"
+                    }
+                ],
+                "critical_implementation": "ต้องรักษา boundary patch names และ types"
+            },
+            {
+                "name": "MeshRefiner",
+                "responsibility": "Refine mesh based on various criteria",
+                "key_methods": [
+                    {
+                        "name": "refineByRegion()",
+                        "purpose": "Refine specific region (e.g., near interface)"
+                    },
+                    {
+                        "name": "refineByField()",
+                        "purpose": "Refine based on field gradient (e.g., alpha gradient)"
+                    },
+                    {
+                        "name": "refineByDistance()",
+                        "purpose": "Refine based on distance to surface"
+                    },
+                    {
+                        "name": "handleHangingNodes()",
+                        "purpose": "Create constraint faces for hanging nodes"
+                    }
+                ],
+                "critical_implementation": "ต้อง update owner/neighbour addressing หลัง refinement"
+            },
+            {
+                "name": "MeshQualityChecker",
+                "responsibility": "Check and report mesh quality metrics",
+                "key_methods": [
+                    {
+                        "name": "checkNonOrthogonality()",
+                        "purpose": "Calculate and report non-orthogonality"
+                    },
+                    {
+                        "name": "checkSkewness()",
+                        "purpose": "Calculate and report skewness"
+                    },
+                    {
+                        "name": "checkAspectRatio()",
+                        "purpose": "Calculate and report aspect ratio"
+                    },
+                    {
+                        "name": "checkVolume()",
+                        "purpose": "Check for negative or very small volumes"
+                    },
+                    {
+                        "name": "generateQualityReport()",
+                        "purpose": "Generate comprehensive quality report"
+                    }
+                ],
+                "critical_implementation": "ต้อง identify bad cells และ suggest fixes"
+            }
+        ],
+        "algorithm_steps": [
+            "1. Read mesh points, faces, boundary from file",
+            "2. Build owner-neighbour addressing (if not provided)",
+            "3. Calculate geometric data: cell centers, volumes, face areas",
+            "4. Check mesh quality metrics",
+            "5. If refinement needed: mark cells, split cells/faces, update connectivity",
+            "6. Handle processor boundaries for parallel decomposition",
+            "7. Write mesh in desired format",
+            "8. Validate written mesh matches original"
+        ]
+    },
+    "concept_checks": [
+        {
+            "question": "OpenFOAM mesh เก็บข้อมูลอะไรบ้างในไฟล์ constant/polyMesh?",
+            "answer_key_points": [
+                "points: พิกัดของจุดยอดทั้งหมด",
+                "faces: ลิสต์ของจุดยอดที่ประกอบเป็นแต่ละหน้า",
+                "owner: เซลล์ที่เป็น owner ของแต่ละ internal face",
+                "neighbour: เซลล์ที่เป็น neighbour ของแต่ละ internal face",
+                "boundary: ข้อมูล boundary patches (ชื่อ, type, start face, nFaces)",
+                "pointZones, faceZones, cellZones: สำหรับ zone definitions"
+            ],
+            "implementation_note": "ใน MeshReader::readFoamMesh() line xxx"
+        },
+        {
+            "question": "ทำไมต้องมีทั้ง owner และ neighbour lists?",
+            "answer_key_points": [
+                "Owner-neighbour กำหนดทิศทางของ face area vector (จาก owner ไป neighbour)",
+                "ใช้ในการคำนวณ flux: positive flux = จาก owner ไป neighbour",
+                "ช่วยระบุ internal faces (มีทั้ง owner และ neighbour) vs boundary faces (มีแค่ owner)",
+                "จำเป็นสำหรับ matrix assembly (lower/upper coefficients)"
+            ],
+            "implementation_note": "ใน polyMesh constructor line xxx"
+        },
+        {
+            "question": "Mesh refinement ทำงานอย่างไรใน unstructured mesh?",
+            "answer_key_points": [
+                "Mark cells ที่ต้องการ refine (based on criteria)",
+                "Split marked cells: hex → 8 hexes, tet → 8 tets (regular refinement)",
+                "Create new points at edge midpoints",
+                "Create new faces และ update connectivity",
+                "Handle hanging nodes ด้วย constraint faces",
+                "Update all geometric data (centers, volumes, areas)"
+            ],
+            "implementation_note": "ใน MeshRefiner::refineByField() line xxx"
+        }
+    ],
+    "pitfalls": [
+        {
+            "symptom": "Mesh อ่านได้แต่ solver ล่มตอนคำนวณ geometric data",
+            "cause": "Face orientation ไม่สอดคล้อง (clockwise vs counter-clockwise)",
+            "fix": "ตรวจสอบ face orientation ด้วย face::areaNormal() และ reverse ถ้าจำเป็น"
+        },
+        {
+            "symptom": "Parallel run ล่มที่ processor boundaries",
+            "cause": "Processor boundary faces ไม่ match ระหว่าง processors",
+            "fix": "ตรวจสอบ decomposition ด้วย decomposePar -checkMesh และ ensure consistent ordering"
+        },
+        {
+            "symptom": "Refinement ทำให้ mesh quality แย่ลงมาก",
+            "cause": "Refine โดยไม่พิจารณา non-orthogonality หรือ skewness",
+            "fix": "ใช้ selective refinement + smoothing หรือ swap diagonal เพื่อ improve quality"
+        },
+        {
+            "symptom": "Memory usage สูงมากหลัง refinement",
+            "cause": "Refine ทุกเซลล์โดยไม่จำเป็น หรือไม่ใช้ hierarchical refinement",
+            "fix": "ใช้ field-based refinement เฉพาะ region ที่ต้องการ และ limit refinement level"
+        }
+    ],
+    "connections": {
+        "previous_day": "Day 16: Mesh Generation Fundamentals",
+        "next_day": "Day 18: Dynamic Mesh and AMR",
+        "key_link": "Today's mesh I/O → Day 18's adaptive mesh refinement (ต้อง update mesh ระหว่าง runtime)"
+    }
+}

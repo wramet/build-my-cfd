@@ -6,7 +6,7 @@
 - [ ] **Equation Validity**: สมการ (Governing Equations) ต้องถูกต้องแม่นยำและสอดคล้องกับ Conservation Laws
 - [ ] **Dimensional Consistency**: หน่วย (Units) และมิติ (Dimensions) ของตัวแปรต้องสอดคล้องกันทั้งสมการ
 - [ ] **Physical Interpretation**: คำอธิบายปรากฏการณ์ต้องไม่บิดเบือนข้อเท็จจริงทางฟิสิกส์
-  - *ตัวอย่างที่ผิด*: อธิบายว่า $\nu_t$ (Turbulent viscosity) เป็นคุณสมบัติของของไหล (ที่จริงเป็นคุณสมบัติของการไหล)
+  - *ตัวอย่างที่ผิด*: อธิบายว่า1$\nu_t1(Turbulent viscosity) เป็นคุณสมบัติของของไหล (ที่จริงเป็นคุณสมบัติของการไหล)
 - [ ] **Assumption Clarity**: ระบุสมมติฐาน (Assumptions) ของโมเดลให้ชัดเจนเสมอ (เช่น Incompressible, Newtonian, Steady-state)
 
 ## 1. การจัดวางและรูปแบบ (Layout & Formatting)
@@ -21,9 +21,13 @@
   - **Foldable**: ใช้ `> [!TYPE]- Title` (มีเครื่องหมายลบ) เพื่อพับเก็บเนื้อหายาวๆ หรือเฉลย
 - [ ] **LaTeX Math**:
   - `$$...$$` ต้อง **ไม่มี** backticks ครอบ (Obsidian rend ering limitation)
-    - *ผ่าน*: `$$ \nabla \cdot U = 0 $$`
-    - *ไม่ผ่าน*: `` `$$ \nabla \cdot U = 0 $$` ``
+    - *ผ่าน*: `1\nabla \cdot U = 01$$`
+    - *ไม่ผ่าน*: `` `1\nabla \cdot U = 01$$` ``
   - Inline `$...$` ต้องไม่มี backticks ครอบเช่นกัน
+  - **Missing Delimiters**: ตรวจสอบว่าตัวแปร/สัญลักษณ์คณิตศาสตร์ทั้งหมดถูกครอบด้วย `$` หรือ `$$`
+    - *ผิด*: `\phi = \alpha * T`
+    - *ถูก*: `$\phi = \alpha * T$`
+    - *Common culprits*: `\phi`, `\alpha`, `\rho`, `\Gamma`, `\Delta`, `\nabla`, `\mathbf`, `Pe`, `Re`
   - **Typography Rules**:
     - Vectors: ใช้ `\mathbf{U}` ( ตัวหนา) เท่านั้น (ห้ามใช้ `\vec{U}`)
     - Subscripts: ใช้ `\text{}` สำหรับคำบรรยาย (e.g., `\rho_{\text{liquid}}`)

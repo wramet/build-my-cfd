@@ -1,18 +1,18 @@
-# DeepSeek V3 Content Expansion Template
+# DeepSeek V3 Content Expansion Template (English Edition)
 
 ## Purpose
-รับ **Technical Skeleton** จาก DeepSeek R1 แล้ว **Expand** เป็น Full "Hardcore" Lesson
+Receive **Technical Skeleton** from DeepSeek R1 and **Expand** into a Full "Hardcore" Lesson in English.
 
 ## CRITICAL: Content Length Requirements
 
 > [!IMPORTANT]
-> **เนื้อหาต้องยาวอย่างน้อย 1500 บรรทัด**
-> - Theory Section: 300+ บรรทัด
-> - OpenFOAM Reference: 400+ บรรทัด (รวม code snippets)
-> - Class Design: 200+ บรรทัด
-> - Implementation: 400+ บรรทัด (C++ code)
-> - Build & Test: 150+ บรรทัด
-> - Concept Checks: 100+ บรรทัด
+> **Content must be at least 1500 lines long.**
+> - Theory Section: 300+ lines
+> - OpenFOAM Reference: 400+ lines (including code snippets)
+> - Class Design: 200+ lines
+> - Implementation: 400+ lines (C++ code)
+> - Build & Test: 150+ lines
+> - Concept Checks: 100+ lines
 
 ---
 
@@ -27,35 +27,36 @@ aliases: [{Title}]
 difficulty: hardcore
 topic: {Topic}
 project: CFD Engine Development (90 Days)
+language: en
 ---
 ```
 
-### 2. วัตถุประสงค์การเรียนรู้ (Learning Objectives)
-- **4-6 objectives** แต่ละอันมี:
-  - Action verb (เข้าใจ/Understand, ออกแบบ/Design, Implement, ทดสอบ/Test)
-  - Topic ที่เฉพาะเจาะจง
-  - สมการหรือ code ที่เกี่ยวข้อง
+### 2. Learning Objectives
+- **4-6 objectives**, each with:
+  - Action verb (Understand, Design, Implement, Test)
+  - Specific topic
+  - Relevant equations or code references
 
-### 3. Section 1: ทฤษฎี (Theory) - 300+ บรรทัด
-**Sub-sections ที่ต้องมี:**
+### 3. Section 1: Theory - 300+ lines
+**Required Sub-sections:**
 
-#### 1.1 พื้นฐานทางคณิตศาสตร์
-- สมการหลักพร้อม LaTeX
-- คำอธิบายแต่ละ variable (ตาราง)
+#### 1.1 Mathematical Foundations
+- Key equations with LaTeX
+- Detailed variable explanation (Table)
 - Physical meaning
 - **WARNING/TIP callouts**
 
-#### 1.2 ข้อตัดสินใจในการออกแบบ
-- ตาราง trade-offs
-- เหตุผลในการเลือกแนวทาง
+#### 1.2 Design Decisions
+- Trade-offs table
+- Rationale for chosen approach
 
-#### 1.3 คอนเซปต์หลัก
-- นิยามและช่วงค่า
-- ตารางสรุป
+#### 1.3 Core Concepts
+- Definitions and validity ranges
+- Summary table
 - **Common PITFALLS table**
 
-### 4. Section 2: OpenFOAM Reference - 400+ บรรทัด
-**ต้องมี 3-5 code snippets แต่ละอันประกอบด้วย:**
+### 4. Section 2: OpenFOAM Reference - 400+ lines
+**Must include 3-5 key code snippets, each containing:**
 
 ```markdown
 #### Snippet N: {Title}
@@ -79,12 +80,12 @@ project: CFD Engine Development (90 Days)
 > {Important lesson to apply}
 ```
 
-**เปรียบเทียบ:**
-- สิ่งที่เราเรียนรู้ได้ (What We Can LEARN) - 5+ points
-- สิ่งที่เราจะทำต่างออกไป (What We Do DIFFERENTLY) - Table
+**Comparison:**
+- What We Can LEARN - 5+ points
+- What We Do DIFFERENTLY - Table
 
-### 5. Section 3: Class Design - 200+ บรรทัด
-**ต้องมี:**
+### 5. Section 3: Class Design - 200+ lines
+**Must include:**
 
 #### Mermaid Class Diagram (Complete)
 ```mermaid
@@ -95,35 +96,36 @@ classDiagram
     }
     // All classes with relationships
 ```
+**CRITICAL:** Quote all method signatures in Mermaid to handle special characters (e.g. `+calc("...")` instead of `+calc(...)`).
 
 #### Class Specifications (For each class)
-- วัตถุประสงค์ (Purpose)
-- ตาราง Member Variables (Name | Type | Purpose)
-- Key Methods พร้อม signature
+- Purpose
+- Member Variables Table (Name | Type | Purpose)
+- Key Methods with signatures
 
 #### Design Rationale
-- ทำไมถึงออกแบบแบบนี้?
-- ความแตกต่างจาก OpenFOAM (Table)
+- Why this design?
+- Comparison with OpenFOAM (Table)
 
-### 6. Section 4: Implementation - 400+ บรรทัด
-**ต้องมี:**
+### 6. Section 4: Implementation - 400+ lines
+**Must include:**
 
-#### 4.1 ไฟล์ Header (.H)
+#### 4.1 Header File (.H)
 - Complete header file (100+ lines)
-- Comments อธิบายแต่ละส่วน
+- Documentation comments
 
-#### 4.2 ไฟล์ Implementation (.C)
+#### 4.2 Implementation File (.C)
 - Complete implementation (250+ lines)
-- ทุก method ต้องมี implementation
-- CRITICAL: ต้อง implement expansion term ในสมการ pressure
+- Every method must be implemented (no placeholders)
+- CRITICAL: Include expansion term in pressure equation logic
 
 #### 4.3 Implementation Notes
-- Critical implementation details
+- Critical details
 - How to avoid divergence
 - Common bugs table
 
-### 7. Section 5: Build & Test - 150+ บรรทัด
-**ต้องมี:**
+### 7. Section 5: Build & Test - 150+ lines
+**Must include:**
 
 #### 5.1 Build Instructions
 - Prerequisites table
@@ -132,21 +134,21 @@ classDiagram
 - Common issues table
 
 #### 5.2 Unit Tests
-- 5-8 test functions
+- 5-8 test functions using Catch2 or GoogleTest style
 - Complete test code
 - Expected output
 
 #### 5.3 Validation
-- Analytical benchmark
+- Analytical benchmark or simple test case
 - Expected results table
 
-### 8. Section 6: Concept Checks - 100+ บรรทัด
-**4-6 questions แต่ละอันมี:**
+### 8. Section 6: Concept Checks - 100+ lines
+**4-6 questions, each with:**
 
 ```markdown
-### คำถาม N: {Question in Thai}
+### Question N: {Question text}
 
-> **คำตอบ:**
+> **Answer:**
 > {Detailed answer - minimum 10 lines}
 > - Bullet points for key concepts
 > - Equations where relevant
@@ -155,8 +157,8 @@ classDiagram
 ```
 
 ### 9. References & Related Days
-- เอกสารอ้างอิง (3-5 references)
-- บทเรียนที่เกี่ยวข้อง (Previous/Next/See also)
+- References (3-5 items)
+- Related Lessons (Previous/Next/See also)
 
 ---
 
@@ -164,82 +166,86 @@ classDiagram
 
 ```markdown
 > [!WARNING] **Title**
-> Critical information - ถ้าทำผิดจะมีปัญหา
+> Critical information - ignore at your peril
 
 > [!TIP] **Title**
-> Best practice หรือ optimization
+> Best practice or optimization
 
 > [!INFO] **Title**
 > Background context
 
 > [!IMPORTANT] **Title**
-> Key concept ที่ต้องจำ
+> Key concept to memorize
 ```
 
 ---
 
 ## Format Checklist
 
-- [ ] ความยาวรวม ≥ 1500 บรรทัด
+- [ ] Total length ≥ 1500 lines
 - [ ] Learning Objectives: 4-6 items
-- [ ] Theory: สมการครบ + LaTeX valid
-- [ ] OpenFOAM snippets: 3-5 ตัวอย่าง (20+ lines each)
-- [ ] Class diagram: Mermaid complete
+- [ ] Theory: Equations complete + LaTeX valid
+- [ ] OpenFOAM snippets: 3-5 examples (20+ lines each)
+- [ ] Class diagram: Mermaid complete and valid syntax
 - [ ] Implementation code: ≥ 300 lines total
 - [ ] Unit tests: 5-8 tests
 - [ ] Concept checks: 4-6 questions + detailed answers
 - [ ] Callouts: WARNING, TIP, INFO, IMPORTANT
 - [ ] Tables: Trade-offs, Pitfalls, Variables
-- [ ] Bilingual headers: Thai + English
+- [ ] Headers: English Only
 
 ---
 
 ## Prompt for V3
 
 ```
-คุณคือ CFD Professor ที่กำลังเขียน "Hardcore" learning material
+You are a CFD Professor and Expert C++ Developer writing "Hardcore" learning material.
 
 **CRITICAL REQUIREMENT:**
-เนื้อหาต้องยาวอย่างน้อย 1500 บรรทัด - นี่คือข้อบังคับที่ต้องทำตาม
+The content MUST be at least 1500 lines long. Be explicitly verbose, detailed, and thorough.
+**LANGUAGE:**
+Use **ENGLISH ONLY**. Do not use Thai or any other language.
+**END MARKER:**
+You MUST end your output with the exact string: ``. This is REQUIRED to verify completion.
 
-**Input:** JSON skeleton จาก R1 Analysis
+**Input:** JSON skeleton from R1 Analysis
 
 **Your Task:**
-Expand skeleton เป็น Full Lesson โดย:
+Expand the skeleton into a Full Lesson by:
 
 1. **Theory Section (300+ lines):**
-   - ขยายทุก equation ให้มีคำอธิบายละเอียด
-   - เพิ่ม physical meaning
-   - ใส่ WARNING/TIP callouts
-   - ตาราง variables
+   - Expand every equation with detailed derivation and explanation.
+   - Add physical meaning.
+   - Use WARNING/TIP callouts liberally.
+   - Include variable tables.
 
 2. **OpenFOAM Reference (400+ lines):**
-   - 3-5 code snippets (20+ lines each)
-   - อธิบาย "What This Does" ทุก snippet
-   - เปรียบเทียบกับ Your Engine
+   - Provide 3-5 real code snippets (20+ lines each).
+   - Explain "What This Does" line-by-line.
+   - Compare with "Our Engine".
 
 3. **Class Design (200+ lines):**
-   - Complete Mermaid classDiagram
-   - ระบุ member variables และ methods ครบ
-   - อธิบาย design rationale
+   - Create a Complete Mermaid classDiagram (quote all signatures).
+   - List member variables and methods.
+   - Explain design rationale.
 
 4. **Implementation (400+ lines):**
-   - C++ code เต็ม (Header + Implementation)
-   - Comment ทุกส่วนสำคัญ
-   - ระบุ CRITICAL implementation details
+   - Write Full C++ code (Header + Implementation).
+   - Comment every significant line.
+   - Highlight CRITICAL implementation details.
 
 5. **Build & Test (150+ lines):**
-   - CMakeLists.txt complete
-   - Unit tests 5-8 functions
-   - Validation case
+   - Complete CMakeLists.txt.
+   - Write 5-8 Unit Test functions.
+   - Describe Validation case.
 
 6. **Concept Checks (100+ lines):**
-   - 4-6 questions
-   - คำตอบละเอียด (10+ lines each)
+   - 4-6 deep comprehension questions.
+   - Detailed answers (10+ lines each).
 
 **JSON Skeleton:**
 {R1_OUTPUT}
 
 **Output:**
-Complete Markdown file - ALL sections - minimum 1500 lines
+Complete Markdown file - ALL sections - minimum 1500 lines - English Only
 ```

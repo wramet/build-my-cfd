@@ -1,89 +1,82 @@
 ---
-description: Batch generate Phase 1 (Days 01-12) using Hybrid DeepSeek R1 + V3 Pipeline
+description: Batch generate Phase 1-6 (Days 01-90) using English First + Localization Pipeline
 ---
 
-# Hybrid Batch Generation Workflow (R1 + V3)
+# ⚠️ STRICT WORKFLOW: Content Generation Pipeline
 
-## Prerequisites
-1. `DEEPSEEK_API_KEY` ตั้งค่าแล้ว
-2. `aider` installed
-3. Templates ready in `daily_learning/templates/` (using V3 expansion template)
+## AI Model Assignment (ห้ามเปลี่ยน!)
 
-## Pipeline Overview
+| ขั้นตอน | AI Model | วิธีการ |
+|---------|----------|---------|
+| **1. Generate Content (English)** | **DeepSeek V3** | รัน `scripts/generate_day_v3.py` |
+| **2. Quality Control (QC)** | **Claude / Gemini (Agent)** | Agent ตรวจสอบและแก้ไขโดยตรง |
+| **3. Translation (English → Thai)** | **Claude / Gemini (Agent)** | Agent แปลและเขียนไฟล์โดยตรง |
+| **4. Final QC** | **Claude / Gemini (Agent)** | Agent ตรวจสอบไฟล์ Thai สุดท้าย |
 
-```
-Scout (Agent) → R1 (Skeleton) → V3 (Expand) → QC (Agent)
-```
+> [!CAUTION]
+> **ห้ามใช้ DeepSeek สำหรับ QC หรือ Translation โดยเด็ดขาด!**
+> DeepSeek ใช้สำหรับการสร้างเนื้อหา English ต้นฉบับเท่านั้น
 
-## Step-by-Step Execution
+---
 
-### 1. Preparation
+## Pipeline Steps
+
+### Step 1: Generate English Content (DeepSeek)
 ```bash
-# Ensure directories exist
-mkdir -p daily_learning/skeletons daily_learning/drafts
+python3 scripts/generate_day_v3.py \
+  --day "XX" \
+  --topic "Topic Name" \
+  --skeleton "daily_learning/skeletons/dayXX_skeleton.json" \
+  --output "daily_learning/drafts/dayXX_deepseek_english.md"
 ```
 
-### 2. Per-Day Loop (Day 01 - 12)
+**Output:** `daily_learning/drafts/dayXX_deepseek_english.md`
 
-#### 2.1 Scout Phase
-Identify relevant OpenFOAM source files for the day's topic.
+---
 
-#### 2.2 Analysis Phase (DeepSeek R1)
-Generate JSON Skeleton.
-**Important:** Use `--read` for context and templates.
+### Step 2: Quality Control (Agent - Claude/Gemini)
+Agent ต้องตรวจสอบ English draft โดย:
+1. ตรวจ LaTeX syntax (`$...$` และ `$$...$$`)
+2. ตรวจ Mermaid diagram syntax
+3. ตรวจ Heading hierarchy (H1 → H2 → H3)
+4. ตรวจ Code block closure
+5. ตรวจความครบถ้วนของเนื้อหา (ทุก Section ที่กำหนดใน skeleton)
 
-```bash
-export DEEPSEEK_API_KEY="..."
-aider --model r1 --yes-always \
-  --read daily_learning/phase_1_context.md \
-  --read daily_learning/templates/deepseek_r1_template.md \
-  {source_files} \
-  --message "Day {N}: {Topic}
-  Analyze and create JSON skeleton following deepseek_r1_template.md.
-  Output: daily_learning/skeletons/day{N}_skeleton.json"
-```
+**Action:** แก้ไขไฟล์โดยตรงด้วย `replace_file_content` หรือ `multi_replace_file_content`
 
-#### 2.3 Expansion Phase (DeepSeek V3)
-Expand to full content (1500+ lines).
-**Critical:** Use `--no-git` to avoid repo confusion and ensure file writing.
+---
 
-```bash
-# Must run from daily_learning directory to match relative paths if needed, 
-# or use absolute paths. Recommended: Run from root with explicit paths.
+### Step 3: Translation (Agent - Claude/Gemini)
+Agent ต้องแปลไฟล์ English → Engineering Thai โดย:
+1. **แปล:** ข้อความภาษาอังกฤษ → "Engineering Thai" (ภาษาไทย + ศัพท์เทคนิคอังกฤษ)
+2. **ไม่แตะ:** Code blocks, LaTeX equations, Mermaid diagrams, File paths
+3. **ศัพท์เทคนิคที่ไม่แปล:** Finite Volume, Mesh, Flux, Gradient, Divergence, Owner-Neighbor, etc.
 
-cd daily_learning
-aider --model v3 --yes-always --no-git \
-  --read phase_1_context.md \
-  --read templates/deepseek_v3_expand_template.md \
-  --read skeletons/day{N}_skeleton.json \
-  --message "Day {N}: {Topic}
-  Expand skeleton to FULL lesson (1500+ lines) using deepseek_v3_expand_template.md.
-  Output: drafts/day{N}_draft.md"
-cd .. # Return to root
-```
+**Output File:** `daily_learning/Phase_XX_.../YYYY-MM-DD.md`
 
-#### 2.4 QC Phase
-Review `daily_learning/drafts/day{N}_draft.md`:
-- Check for 1500+ lines
-- Check for "Hardcore" depth
-- Move to `daily_learning/2026-01-{DD}.md`
+---
 
-### 3. Context Update
-Isolate critical equations/classes from finished day and append to `phase_1_context.md` (optional but recommended for continuity).
+### Step 4: Final QC (Agent - Claude/Gemini)
+Agent ตรวจสอบไฟล์ Thai final ตาม `quality_control_checklist.md`:
+1. Frontmatter ถูกต้อง
+2. Headers เป็น bilingual format
+3. TOC ใช้ Wiki-links
+4. LaTeX/Mermaid/Code blocks ไม่เสียหาย
 
-## Day-Topic Mapping
+---
 
-| Day | Topic | Key Files |
-|-----|-------|-----------|
-| 01 | Governing Equations | fvMatrix.H, volFields.H |
-| 02 | Finite Volume Method | fvMesh.H, surfaceInterpolation.H |
-| 03 | Spatial Discretization | gaussConvectionScheme.H, upwind/linearSchemes |
-| 04 | Temporal Discretization | ddtScheme.H, eulerDdtScheme.H |
-| 05 | Mesh Topology | polyMesh.H, primitiveMesh.H |
-| 06 | Boundary Conditions | fvPatchField.H, fixedValue/zeroGradient |
-| 07 | Linear Algebra | lduMatrix.H, PCG.H |
-| 08 | Iterative Solvers | smoothSolver.H, GAMG.H |
-| 09 | Pressure-Velocity | PISO.H, SIMPLE.H |
-| 10 | Two-Phase Flow | interfaceProperties.H, alphaEqn.H |
-| 11 | Phase Change Theory | phaseChangeTwoPhaseMixture.H |
-| 12 | Phase 1 Review | N/A |
+## File Locations
+
+| ประเภท | Path |
+|--------|------|
+| Skeletons | `daily_learning/skeletons/dayXX_skeleton.json` |
+| English Drafts | `daily_learning/drafts/dayXX_deepseek_english.md` |
+| Thai Finals (Phase 1) | `daily_learning/Phase_01_Foundation_Theory/YYYY-MM-DD.md` |
+| QC Checklist | `quality_control_checklist.md` |
+| **Governance Rules** | `CONVENTIONS.md` |
+
+---
+
+## Current Status Tracking
+
+เมื่อรัน batch ให้ Agent อัพเดต status ใน `task.md` artifact ทุกครั้งที่เสร็จแต่ละ Day

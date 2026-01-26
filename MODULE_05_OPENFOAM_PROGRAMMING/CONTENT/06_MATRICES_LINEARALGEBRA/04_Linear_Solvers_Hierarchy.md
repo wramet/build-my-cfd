@@ -530,7 +530,7 @@ p
 
 pFinal
 {
-    $p;                    // Inherit from p
+1$p;                    // Inherit from p
     relTol      0;         // But force full solve at last iteration
 }
 
@@ -585,7 +585,7 @@ solvers
 
     pFinal
     {
-        $p;
+1$p;
         relTol          0;
     }
 
@@ -658,7 +658,7 @@ solvers
 
     pFinal
     {
-        $p;
+1$p;
         relTol          0;
     }
 
@@ -763,7 +763,7 @@ solvers
 
     p_rghFinal
     {
-        $p_rgh;
+1$p_rgh;
         relTol          0;
     }
 
@@ -1029,7 +1029,7 @@ p
 
 pFinal
 {
-    $p;
+1$p;
     relTol      0;         // Final iteration = full solve
 }
 ```
@@ -1287,7 +1287,7 @@ p
 
 pFinal
 {
-    $p;
+1$p;
     relTol          0;         // But final iteration must be tight
 }
 

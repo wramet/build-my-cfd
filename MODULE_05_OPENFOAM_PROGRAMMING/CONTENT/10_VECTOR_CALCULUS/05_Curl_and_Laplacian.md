@@ -40,7 +40,7 @@
 
 ### 1.1 รากฐานทางคณิตศาสตร์
 
-**ตัวดำเนินการ Curl** $\nabla \times$ วัดแนวโน้มของการหมุนหรือความหนาแน่นของการหมุนวนของสนามเวกเตอร์ ในพลศาสตร์ของไหล:
+**ตัวดำเนินการ Curl**1$\nabla \times1วัดแนวโน้มของการหมุนหรือความหนาแน่นของการหมุนวนของสนามเวกเตอร์ ในพลศาสตร์ของไหล:
 
 $$
 \nabla \times \mathbf{u} =
@@ -74,8 +74,8 @@ $$
 $$
 
 โดยที่:
-- $\mathbf{n}$ คือเวกเตอร์หนึ่งหน่วยที่ตั้งฉากกับพื้นผิว $A$
-- $C$ คือขอบเขตของพื้นผิว
+-1$\mathbf{n}1คือเวกเตอร์หนึ่งหน่วยที่ตั้งฉากกับพื้นผิว1$A$
+-1$C1คือขอบเขตของพื้นผิว
 
 ```mermaid
 flowchart LR
@@ -143,8 +143,8 @@ $$
 $$
 
 โดยที่:
-- $\epsilon_{ijk}$ คือ Levi-Civita symbol
-- $G_{kj} = \partial v_k / \partial x_j$ คือองค์ประกอบของ gradient tensor
+-1$\epsilon_{ijk}1คือ Levi-Civita symbol
+-1$G_{kj} = \partial v_k / \partial x_j1คือองค์ประกอบของ gradient tensor
 
 **การ Implement ใน Source Code:**
 
@@ -280,8 +280,8 @@ $$
 $$
 
 โดยที่:
-- $\phi$ คือศักย์สเกลาร์ (scalar potential)
-- $\mathbf{A}$ คือศักย์เวกเตอร์ (vector potential)
+-1$\phi1คือศักย์สเกลาร์ (scalar potential)
+-1$\mathbf{A}1คือศักย์เวกเตอร์ (vector potential)
 
 ### 1.5 ตัวอย่างการใช้งาน
 
@@ -338,16 +338,16 @@ volVectorField vorticity = vector(gradU.zy() - gradU.yz(),
 > - **Keywords:** `fvm::laplacian()`, `fvc::laplacian()`, `Gauss linear corrected`, `Gauss cubic corrected`
 > - **Domain:** Domain B (Numerics) & Domain E (Coding) - Equation Discretization
 > - **Physical Meaning:** แทน **Diffusion Terms** ในสมการ:
->   - **Momentum:** $\nabla \cdot (\nu \nabla \mathbf{U})$ - ความหนืด (Viscous diffusion)
->   - **Energy:** $\nabla \cdot (\alpha \nabla T)$ - การนำความร้อน (Thermal diffusion)
->   - **Species:** $\nabla \cdot (D \nabla Y)$ - การแพร่ของสาร (Mass diffusion)
->   - **Pressure Poisson:** $\nabla^2 p$ - การแก้สมการความดัน
+>   - **Momentum:**1$\nabla \cdot (\nu \nabla \mathbf{U})1- ความหนืด (Viscous diffusion)
+>   - **Energy:**1$\nabla \cdot (\alpha \nabla T)1- การนำความร้อน (Thermal diffusion)
+>   - **Species:**1$\nabla \cdot (D \nabla Y)1- การแพร่ของสาร (Mass diffusion)
+>   - **Pressure Poisson:**1$\nabla^2 p1- การแก้สมการความดัน
 >
 > ⚠️ **CRITICAL:** หากเลือก `laplacianScheme` ที่ไม่เหมาะสม การจำลองอาจ **diverge** หรือได้ผลลัพธ์ที่ **inaccurate**!
 
 ### 2.1 รากฐานทางคณิตศาสตร์
 
-**ตัวดำเนินการ Laplacian** $\nabla^2$ แทนไดเวอร์เจนซ์ของเกรเดียนต์ ซึ่งอธิบายลักษณะของกระบวนการแพร่:
+**ตัวดำเนินการ Laplacian**1$\nabla^21แทนไดเวอร์เจนซ์ของเกรเดียนต์ ซึ่งอธิบายลักษณะของกระบวนการแพร่:
 
 $$
 \nabla^2 \phi = \nabla \cdot (\nabla \phi) = \frac{\partial^2 \phi}{\partial x^2} + \frac{\partial^2 \phi}{\partial y^2} + \frac{\partial^2 \phi}{\partial z^2}
@@ -380,8 +380,8 @@ $$
 >       default Gauss linear limited 0.5;
 >   }
 >   ```
-> - **Interpolation Schemes:** ใช้ `interpolationSchemes` สำหรับค่า $\Gamma_f$ ที่ face centers
-> - **Surface Normal Gradient:** ใช้ `snGradSchemes` สำหรับ $(\nabla \phi)_f \cdot \mathbf{n}_f$
+> - **Interpolation Schemes:** ใช้ `interpolationSchemes` สำหรับค่า1$\Gamma_f1ที่ face centers
+> - **Surface Normal Gradient:** ใช้ `snGradSchemes` สำหรับ1$(\nabla \phi)_f \cdot \mathbf{n}_f$
 > - **Domain:** Domain B (Numerics) - Discretization Schemes
 >
 > 💡 **สำคัญ:** `corrected` scheme จัดการกับ **non-orthogonal meshes** โดยปรับปรุงความแม่นยำของ gradient calculation
@@ -393,11 +393,11 @@ $$
 $$
 
 โดยที่:
-- $V_P$ คือปริมาตรควบคุม (control volume)
-- $\Gamma_f$ คือสัมประสิทธิ์การแพร่ที่ถูก interpolate ไปยังหน้า $f$
-- $(\nabla \phi)_f$ คือ face-normal gradient ของฟิลด์ $\phi$
-- $\mathbf{S}_f$ คือเวกเตอร์พื้นที่หน้าที่ชี้ออกด้านนอก
-- $\sum_f$ ดำเนินการบนทุกหน้าของปริมาตรควบคุม
+-1$V_P1คือปริมาตรควบคุม (control volume)
+-1$\Gamma_f1คือสัมประสิทธิ์การแพร่ที่ถูก interpolate ไปยังหน้า1$f$
+-1$(\nabla \phi)_f1คือ face-normal gradient ของฟิลด์1$\phi$
+-1$\mathbf{S}_f1คือเวกเตอร์พื้นที่หน้าที่ชี้ออกด้านนอก
+-1$\sum_f1ดำเนินการบนทุกหน้าของปริมาตรควบคุม
 
 **การ Interpolation สัมประสิทธิ์การแพร่:**
 
@@ -434,7 +434,7 @@ $$
 | **ผลลัพธ์** | ฟิลด์ชนิดเดียวกับ input | เมทริกซ์สัมประสิทธิ์สำหรับการแก้สมการ |
 | **ความเสถียร** | ต้องการ time steps เล็กๆ (CFL) | เสถียรโดยไม่มีเงื่อนไขสำหรับการแพร่ |
 | **Computational Cost** | ต่ำ (ไม่ต้อง solve) | สูง (ต้อง solve matrix) |
-| **Stability Limit** | $\Delta t \leq \frac{\Delta x^2}{2\Gamma}$ | Unconditionally stable |
+| **Stability Limit** |1$\Delta t \leq \frac{\Delta x^2}{2\Gamma}1| Unconditionally stable |
 
 **Explicit Laplacian (`fvc::laplacian`):**
 ```cpp
@@ -494,7 +494,7 @@ fvVectorMatrix UEqn(
 
 ### 2.4 ข้อจำกัดด้านความเสถียร (Stability Limitations)
 
-- **Explicit**: ขึ้นอยู่กับเงื่อนไข Courant-Friedrichs-Lewy (CFL): $\Delta t \leq \frac{\Delta x^2}{2\Gamma}$
+- **Explicit**: ขึ้นอยู่กับเงื่อนไข Courant-Friedrichs-Lewy (CFL):1$\Delta t \leq \frac{\Delta x^2}{2\Gamma}$
 - **Implicit**: เสถียรโดยไม่มีเงื่อนไขสำหรับการแพร่ อนุญาตให้ใช้ time steps ที่ใหญ่กว่า
 
 ### 2.5 การประยุกต์ใช้งานใน OpenFOAM Solvers
@@ -749,9 +749,9 @@ flowchart LR
 
 | Operator | Symbol | CFD Function | OpenFOAM Function | When to Use | File Location | Stability | Real Solver Examples |
 |:---|:---|:---|:---|:---|:---|:---|:---|
-| **Curl** | $\nabla \times$ | คำนวณการหมุน | `fvc::curl(U)` | Post-processing, flow visualization, vortex identification | `system/controlDict` (functionObjects), custom utilities | N/A (post-processing only) | N/A - Post-processing only |
-| **Laplacian (Explicit)** | $\nabla^2$ | คำนวณการแพร่แบบ explicit | `fvc::laplacian(gamma, phi)` | Post-processing, source terms, explicit time stepping | Custom utilities, functionObjects | CFL limited: $\Delta t \leq \frac{\Delta x^2}{2\Gamma}$ | Not typically in production solvers |
-| **Laplacian (Implicit)** | $\nabla^2$ | คำนวณการแพร่แบบ implicit | `fvm::laplacian(gamma, phi)` | Governing equations (momentum, energy, pressure Poisson) | Solver source code (`.C` files) | Unconditionally stable | **simpleFoam**: `fvm::laplacian(nu, U)` in `UEqn.H`<br>**interFoam**: `fvm::laplacian` in momentum equation<br>**buoyantSimpleFoam**: `fvm::laplacian(alpha, he)` in `EEqn.H`<br>**scalarTransportFoam**: `fvm::laplacian(DT, T)` |
+| **Curl** |1$\nabla \times1| คำนวณการหมุน | `fvc::curl(U)` | Post-processing, flow visualization, vortex identification | `system/controlDict` (functionObjects), custom utilities | N/A (post-processing only) | N/A - Post-processing only |
+| **Laplacian (Explicit)** |1$\nabla^21| คำนวณการแพร่แบบ explicit | `fvc::laplacian(gamma, phi)` | Post-processing, source terms, explicit time stepping | Custom utilities, functionObjects | CFL limited:1$\Delta t \leq \frac{\Delta x^2}{2\Gamma}1| Not typically in production solvers |
+| **Laplacian (Implicit)** |1$\nabla^21| คำนวณการแพร่แบบ implicit | `fvm::laplacian(gamma, phi)` | Governing equations (momentum, energy, pressure Poisson) | Solver source code (`.C` files) | Unconditionally stable | **simpleFoam**: `fvm::laplacian(nu, U)` in `UEqn.H`<br>**interFoam**: `fvm::laplacian` in momentum equation<br>**buoyantSimpleFoam**: `fvm::laplacian(alpha, he)` in `EEqn.H`<br>**scalarTransportFoam**: `fvm::laplacian(DT, T)` |
 
 ### 3.2 Physical Context Comparison
 
@@ -887,7 +887,7 @@ tmp<fvVectorMatrix> tUEqn
 ## 🎯 Key Takeaways
 
 ### การดำเนินการ Curl
-- คำนวณแนวโน้มการหมุนโดยใช้ $\nabla \times \mathbf{u}$
+- คำนวณแนวโน้มการหมุนโดยใช้1$\nabla \times \mathbf{u}$
 - คืนค่าเป็นฟิลด์เวกเตอร์ที่แสดงการหมุนเฉพาะที่ (local rotation)
 - จำเป็นสำหรับการวิเคราะห์ vorticity และ visualization การไหล
 - สร้างจากการคำนวณ gradient: `curl(U) = extract_cross_components(∇U)`
@@ -895,7 +895,7 @@ tmp<fvVectorMatrix> tUEqn
 - **ใช้ใน functionObjects** ใน `system/controlDict` สำหรับ automatic calculation
 
 ### การดำเนินการ Laplacian
-- แทนไดเวอร์เจนซ์ของเกรเดียนต์: $\nabla \cdot (\nabla \phi)$
+- แทนไดเวอร์เจนซ์ของเกรเดียนต์:1$\nabla \cdot (\nabla \phi)$
 - เป็นพื้นฐานสำหรับกระบวนการแพร่ในทุก CFD solver
 - มีทั้งรูปแบบ explicit (`fvc::`) และ implicit (`fvm::`)
 - สำคัญสำหรับการถ่ายเทความร้อน, การไหลหนืด, การขนส่งสปีชีส์, และการแก้ไขความดัน
@@ -932,11 +932,11 @@ tmp<fvVectorMatrix> tUEqn
 | Aspect | `fvc::laplacian` (Explicit) | `fvm::laplacian` (Implicit) |
 |--------|---------------------------|---------------------------|
 | **ผลลัพธ์** | `volScalarField` ทันที | `fvScalarMatrix` (ต้อง solve) |
-| **Stability** | จำกัดด้วย $\Delta t \leq \frac{\Delta x^2}{2\Gamma}$ | Unconditionally stable |
+| **Stability** | จำกัดด้วย1$\Delta t \leq \frac{\Delta x^2}{2\Gamma}1| Unconditionally stable |
 | **ใช้สำหรับ** | Post-processing, source terms | Diffusion ใน governing equations |
 | **Computational Cost** | ต่ำ (ไม่ต้อง solve) | สูง (ต้อง solve linear system) |
 
-**Rule:** ใช้ `fvm::` เมื่อ unknown อยู่ใน Laplacian term (เช่น T ใน $\nabla \cdot (k \nabla T)$)
+**Rule:** ใช้ `fvm::` เมื่อ unknown อยู่ใน Laplacian term (เช่น T ใน1$\nabla \cdot (k \nabla T)$)
 
 </details>
 
@@ -980,13 +980,13 @@ volScalarField Q = 0.5 * (magSqr(skew(gradU)) - magSqr(symm(gradU)));
 
 1. **Explicit:** Diffusion term ถูกคำนวณจาก **previous time step**
    - การเปลี่ยนแปลงของ field ขึ้นกับ diffusion ณ เวลา t
-   - Stability limit: $\Delta t < \frac{\Delta x^2}{2\Gamma}$ (parabolic PDE restriction)
+   - Stability limit:1$\Delta t < \frac{\Delta x^2}{2\Gamma}1(parabolic PDE restriction)
 
 2. **Implicit:** Diffusion term ใช้ **current time step values**
    - Field values ที่ unknown ถูกรวมใน coefficient matrix
    - System ถูก solve simultaneously → ไม่มี time step restriction จาก diffusion
 
-**Trade-off:** Implicit แพงกว่า computational cost แต่สามารถใช้ $\Delta t$ ใหญ่กว่าได้ → ประหยัดเวลาโดยรวมสำหรับ steady-state หรือ slowly-varying flows
+**Trade-off:** Implicit แพงกว่า computational cost แต่สามารถใช้1$\Delta t1ใหญ่กว่าได้ → ประหยัดเวลาโดยรวมสำหรับ steady-state หรือ slowly-varying flows
 
 </details>
 

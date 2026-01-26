@@ -1,0 +1,349 @@
+{
+    "day": "18",
+    "title": "VTK Mesh Output",
+    "date": "2026-01-18",
+    "difficulty": "hardcore",
+    "learning_objectives": [
+        {
+            "verb": "เข้าใจ (Understand)",
+            "topic": "VTK file format structure และ data organization",
+            "equation": "VTK_XML_Format = UnstructuredGrid + Piece + CellData/PointData",
+            "importance": "Critical for visualization และ data exchange - ต้องเข้าใจโครงสร้างเพื่อเขียนไฟล์ที่ถูกต้อง"
+        },
+        {
+            "verb": "ออกแบบ (Design)",
+            "topic": "Mesh topology mapping จาก OpenFOAM ไป VTK",
+            "components": ["Cell mapping", "Point mapping", "Connectivity arrays", "Type conversion"]
+        },
+        {
+            "verb": "Implement",
+            "topic": "Parallel VTK output with ghost cell handling",
+            "challenge": "การรวมข้อมูลจากหลาย processors ให้เป็นไฟล์เดียวที่ถูกต้อง"
+        }
+    ],
+    "theory_sections": [
+        {
+            "id": "18.1",
+            "title_en": "VTK File Format Fundamentals",
+            "title_th": "พื้นฐานรูปแบบไฟล์ VTK",
+            "equations": [
+                {
+                    "name": "VTK XML Structure",
+                    "latex": "\\text{VTKFile} \\rightarrow \\text{UnstructuredGrid} \\rightarrow \\text{Piece} \\rightarrow \\begin{cases} \\text{Points} \\\\ \\text{Cells} \\\\ \\text{CellData} \\\\ \\text{PointData} \\end{cases}",
+                    "explanation": "Hierarchical structure ของ VTK XML format"
+                },
+                {
+                    "name": "Cell Connectivity",
+                    "latex": "\\text{connectivity} = [p_0, p_1, \\dots, p_{n-1}] \\quad \\text{type} = \\text{VTK_HEXAHEDRON}",
+                    "explanation": "การเก็บข้อมูล connectivity ของแต่ละ cell"
+                }
+            ],
+            "variables": [
+                {
+                    "symbol": "Points",
+                    "name": "Mesh vertices coordinates",
+                    "unit": "m"
+                },
+                {
+                    "symbol": "Cells",
+                    "name": "Cell connectivity and types",
+                    "unit": "dimensionless"
+                },
+                {
+                    "symbol": "offsets",
+                    "name": "Offset array for cell connectivity",
+                    "unit": "dimensionless"
+                },
+                {
+                    "symbol": "types",
+                    "name": "VTK cell type identifiers",
+                    "unit": "dimensionless"
+                }
+            ],
+            "warning": "VTK ใช้ 0-based indexing แต่ OpenFOAM บางส่วนใช้ 1-based - ต้องแปลงให้ถูกต้อง"
+        },
+        {
+            "id": "18.2",
+            "title_en": "Parallel VTK Output (PVTK)",
+            "title_th": "การเขียนไฟล์ VTK แบบขนาน",
+            "equations": [
+                {
+                    "name": "Parallel File Structure",
+                    "latex": "\\text{.pvtu} \\rightarrow \\text{Piece} \\rightarrow \\text{Source} = \\text{piece_0.vtu, piece_1.vtu, \\dots}",
+                    "explanation": "Master file ที่เชื่อมโยงกับไฟล์ย่อยจากแต่ละ processor"
+                },
+                {
+                    "name": "Ghost Cell Identification",
+                    "latex": "\\text{ghostLevel} = \\begin{cases} 0 & \\text{real cell} \\\\ 1 & \\text{ghost cell} \\end{cases}",
+                    "explanation": "การระบุ ghost cells สำหรับ parallel visualization"
+                }
+            ],
+            "variables": [
+                {
+                    "symbol": ".pvtu",
+                    "name": "Parallel VTK master file",
+                    "unit": "N/A"
+                },
+                {
+                    "symbol": ".vtu",
+                    "name": "VTK Unstructured Grid file per processor",
+                    "unit": "N/A"
+                },
+                {
+                    "symbol": "GhostLevel",
+                    "name": "Ghost cell level indicator",
+                    "unit": "dimensionless"
+                }
+            ],
+            "warning": "ใน parallel run, ต้องเขียน .pvtu file ที่รวมข้อมูลจากทุก processors"
+        },
+        {
+            "id": "18.3",
+            "title_en": "Field Data Organization",
+            "title_th": "การจัดระเบียบข้อมูลฟิลด์",
+            "equations": [
+                {
+                    "name": "Cell-Centered Data",
+                    "latex": "\\text{CellData} = \\{p, T, \\alpha, \\mathbf{U}\\}",
+                    "explanation": "ข้อมูลที่ศูนย์กลางเซลล์ (volField)"
+                },
+                {
+                    "name": "Point-Centered Data",
+                    "latex": "\\text{PointData} = \\{\\text{interpolated fields}\\}",
+                    "explanation": "ข้อมูลที่จุด (pointField) - ต้อง interpolate จาก cell centers"
+                }
+            ],
+            "variables": [
+                {
+                    "symbol": "NumberOfComponents",
+                    "name": "Number of components in vector/tensor fields",
+                    "unit": "dimensionless"
+                },
+                {
+                    "symbol": "DataArray",
+                    "name": "VTK data array element",
+                    "unit": "depends on field"
+                }
+            ],
+            "warning": "Vector fields ใน VTK ต้อง flatten เป็น array ของ components: [Ux0, Uy0, Uz0, Ux1, ...]"
+        }
+    ],
+    "openfoam_analysis": [
+        {
+            "class": "vtkMesh",
+            "header": "src/OpenFOAM/meshes/meshShapes/vtkMesh/vtkMesh.H",
+            "purpose": "แปลง OpenFOAM mesh เป็น VTK format",
+            "key_members": [
+                {
+                    "name": "mesh_",
+                    "type": "const fvMesh&",
+                    "purpose": "Reference to OpenFOAM mesh"
+                },
+                {
+                    "name": "cellMap_",
+                    "type": "labelList",
+                    "purpose": "Mapping from OpenFOAM to VTK cell indices"
+                },
+                {
+                    "name": "pointMap_",
+                    "type": "labelList",
+                    "purpose": "Mapping from OpenFOAM to VTK point indices"
+                }
+            ],
+            "key_methods": [
+                {
+                    "name": "write()",
+                    "purpose": "Write VTK file for mesh"
+                },
+                {
+                    "name": "interpolateFields()",
+                    "purpose": "Interpolate cell fields to points"
+                },
+                {
+                    "name": "vtuFileName()",
+                    "purpose": "Generate VTK filename for processor"
+                }
+            ],
+            "usage_example": "vtkMesh vMesh(mesh); vMesh.write(\"mesh.vtu\");"
+        },
+        {
+            "class": "vtkPV4Readers",
+            "header": "src/OpenFOAM/db/IOobjects/vtkPV4Readers/vtkPV4Readers.H",
+            "purpose": "อ่าน VTK files ใน parallel environment",
+            "key_members": [
+                {
+                    "name": "timeDirs_",
+                    "type": "HashTable<vtkPV4blockMesh>",
+                    "purpose": "Time directories for animation"
+                },
+                {
+                    "name": "procDirs_",
+                    "type": "List<fileName>",
+                    "purpose": "Processor directories in parallel"
+                }
+            ],
+            "key_methods": [
+                {
+                    "name": "readTimeDirs()",
+                    "purpose": "Read time directories for time series"
+                },
+                {
+                    "name": "createPvtuFile()",
+                    "purpose": "Create .pvtu master file"
+                }
+            ]
+        },
+        {
+            "class": "vtkTopo",
+            "header": "src/OpenFOAM/meshes/meshShapes/vtkTopo/vtkTopo.H",
+            "purpose": "จัดการ VTK topology และ cell types",
+            "key_members": [
+                {
+                    "name": "vtkCellTypes_",
+                    "type": "Map<label>",
+                    "purpose": "Mapping จาก OpenFOAM cell shapes ไป VTK types"
+                },
+                {
+                    "name": "vtkPointFields_",
+                    "type": "PtrList<pointScalarField>",
+                    "purpose": "Point-centered fields สำหรับ output"
+                }
+            ],
+            "key_methods": [
+                {
+                    "name": "foamToVtkCell()",
+                    "purpose": "Convert OpenFOAM cell shape to VTK type"
+                },
+                {
+                    "name": "writeCellTypes()",
+                    "purpose": "Write VTK cell type array"
+                },
+                {
+                    "name": "writeOffsets()",
+                    "purpose": "Write connectivity offsets"
+                }
+            ]
+        }
+    ],
+    "implementation_skeleton": {
+        "classes": [
+            {
+                "name": "VtkOutputManager",
+                "responsibility": "จัดการ VTK output ทั้งหมด - serial และ parallel",
+                "key_methods": [
+                    {
+                        "name": "writeMesh()",
+                        "purpose": "เขียน mesh topology เป็น VTK format"
+                    },
+                    {
+                        "name": "writeFields()",
+                        "purpose": "เขียน field data (U, p, T, alpha) เป็น VTK"
+                    },
+                    {
+                        "name": "writeParallel()",
+                        "purpose": "เขียน parallel VTK files (.pvtu + .vtu)"
+                    },
+                    {
+                        "name": "interpolateToPoints()",
+                        "purpose": "Interpolate cell-centered fields to mesh points"
+                    }
+                ],
+                "critical_implementation": "writeParallel() ต้องจัดการ ghost cells และสร้าง .pvtu file ที่ถูกต้อง"
+            },
+            {
+                "name": "VtkFileWriter",
+                "responsibility": "Low-level VTK XML file writing",
+                "key_methods": [
+                    {
+                        "name": "writeHeader()",
+                        "purpose": "เขียน VTK XML header และ metadata"
+                    },
+                    {
+                        "name": "writePoints()",
+                        "purpose": "เขียน point coordinates array"
+                    },
+                    {
+                        "name": "writeCells()",
+                        "purpose": "เขียน cell connectivity, offsets, และ types"
+                    },
+                    {
+                        "name": "writeDataArray()",
+                        "purpose": "เขียน field data array ด้วย format ที่ถูกต้อง"
+                    }
+                ],
+                "critical_implementation": "writeDataArray() ต้องรองรับ scalar, vector, และ tensor fields"
+            }
+        ],
+        "algorithm_steps": [
+            "1. Initialize VtkOutputManager ด้วย mesh reference",
+            "2. สร้าง cellMap และ pointMap สำหรับ index mapping",
+            "3. เขียน points: แปลง coordinates จาก OpenFOAM เป็น VTK order",
+            "4. เขียน cells: สร้าง connectivity, offsets, และ types arrays",
+            "5. Interpolate cell-centered fields ไปยัง points (optional)",
+            "6. เขียน CellData: volScalarField (p, T, alpha) และ volVectorField (U)",
+            "7. ถ้า parallel: เขียน .vtu file สำหรับแต่ละ processor",
+            "8. ถ้า parallel: สร้าง .pvtu master file บน processor 0",
+            "9. Include ghost cell information ใน parallel output",
+            "10. Verify VTK file ด้วย ParaView หรือ VisIt"
+        ]
+    },
+    "concept_checks": [
+        {
+            "question": "ทำไมต้องมี cellMap และ pointMap ใน vtkMesh class?",
+            "answer_key_points": [
+                "OpenFOAM ใช้ internal mesh ordering ที่ต่างจาก VTK",
+                "ต้อง map cell indices จาก OpenFOAM ไป VTK สำหรับ parallel decomposition",
+                "Point map จำเป็นเมื่อมีจุดที่ใช้ร่วมกันระหว่าง cells",
+                "Mapping ช่วยรักษา topological correctness ใน output"
+            ],
+            "implementation_note": "ใน VtkOutputManager::writeMesh() line 145-167"
+        },
+        {
+            "question": ".pvtu file ทำงานอย่างไรใน parallel visualization?",
+            "answer_key_points": [
+                ".pvtu เป็น XML file ที่อ้างอิงถึง .vtu files จากทุก processors",
+                "ParaView อ่าน .pvtu และโหลดข้อมูลจากทุกไฟล์อัตโนมัติ",
+                "Master file บน processor 0 รวม metadata ของทั้งหมด",
+                "Support ghost cells และ processor boundaries"
+            ],
+            "implementation_note": "ใน VtkOutputManager::writeParallel() line 289-312"
+        },
+        {
+            "question": "如何处理 vector fields ใน VTK output?",
+            "answer_key_points": [
+                "VTK เก็บ vector fields เป็น flattened array ของ components",
+                "Format: [Ux0, Uy0, Uz0, Ux1, Uy1, Uz1, ...]",
+                "ต้องระบุ NumberOfComponents=\"3\" ใน DataArray",
+                "Tensor fields ต้อง flatten เป็น 9 components"
+            ],
+            "implementation_note": "ใน VtkFileWriter::writeDataArray() line 78-95"
+        }
+    ],
+    "pitfalls": [
+        {
+            "symptom": "ParaView แสดง mesh ผิดรูปหรือขาดหาย",
+            "cause": "Cell connectivity หรือ offsets ผิด",
+            "fix": "ตรวจสอบ mapping จาก OpenFOAM cell faces ไป VTK connectivity"
+        },
+        {
+            "symptom": "Parallel run แสดงข้อมูลไม่ครบทุก processors",
+            "cause": ".pvtu file ไม่ได้รวม .vtu files จากทุก processors",
+            "fix": "ตรวจสอบว่า processor 0 รวบรวมข้อมูลจากทุก processors"
+        },
+        {
+            "symptom": "Field values แสดงผิดใน ParaView",
+            "cause": "Data type ใน VTK file ผิด (เช่น float vs double)",
+            "fix": "ใช้ format=\"ascii\" หรือ \"binary\" อย่างสม่ำเสมอ"
+        },
+        {
+            "symptom": "Ghost cells แสดงเป็น holes ใน mesh",
+            "cause": "ไม่ได้ระบุ ghost cell levels ใน VTK output",
+            "fix": "เพิ่ม GhostLevel array ใน CellData"
+        }
+    ],
+    "connections": {
+        "previous_day": "Day 17: Mesh Quality Metrics",
+        "next_day": "Day 19: Phase 2 Review & Advanced Meshing",
+        "key_link": "Mesh quality metrics จาก Day 17 → VTK visualization ใน Day 18 → Advanced meshing techniques ใน Day 19"
+    }
+}

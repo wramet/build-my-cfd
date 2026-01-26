@@ -79,7 +79,7 @@ Prerequisites
 > ```
 
 ### โจทย์:
-1. สร้าง `volScalarField temperatureVariance` สำหรับเก็บค่า $T'^2 = (T - \bar{T})^2$
+1. สร้าง `volScalarField temperatureVariance` สำหรับเก็บค่า1$T'^2 = (T - \bar{T})^2$
 2. กำหนด dimensions และ initial conditions ที่เหมาะสม
 3. ระบุว่า field นี้ควรใช้ `MUST_READ` หรือ `NO_READ` และทำไม?
 
@@ -116,11 +116,11 @@ volScalarField temperatureVariance
 ## 📝 Exercise 2: Flux Computation for Conservation Equations
 
 > [!NOTE] **📂 OpenFOAM Context: Mass Flux in Continuity Equation**
-> **Scenario:** คุณกำลังพัฒนา **compressible solver** และต้องคำนวณ **mass flux** $\phi = \rho \mathbf{U} \cdot \mathbf{S}_f$ สำหรับ continuity equation: $\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{U}) = 0$
+> **Scenario:** คุณกำลังพัฒนา **compressible solver** และต้องคำนวณ **mass flux**1$\phi = \rho \mathbf{U} \cdot \mathbf{S}_f1สำหรับ continuity equation:1$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{U}) = 0$
 >
 > **Physical Meaning:**
-> - $\phi$ = **mass flow rate** ผ่านแต่ละ face $[\text{kg}/\text{s}]$
-> - $\sum \phi_f = 0$ สำหรับ **steady-state, incompressible flow** (conservation of mass)
+> -1$\phi1= **mass flow rate** ผ่านแต่ละ face1$[\text{kg}/\text{s}]$
+> -1$\sum \phi_f = 01สำหรับ **steady-state, incompressible flow** (conservation of mass)
 >
 > **Connection to Case Files:**
 > - `0/phi` → ไฟล์ flux field (ถ้า solver ต้องการ initial guess)
@@ -136,7 +136,7 @@ volScalarField temperatureVariance
 ### โจทย์:
 1. เขียน code สร้าง `surfaceScalarField massFlux` จาก `volScalarField rho` และ `volVectorField U`
 2. คำนวณ **total mass flow rate** ผ่าน patch ชื่อ "inlet"
-3. ตรวจสอบ mass balance: $\sum \phi_f \approx 0$ สำหรับ incompressible flow
+3. ตรวจสอบ mass balance:1$\sum \phi_f \approx 01สำหรับ incompressible flow
 
 ### 💡 Answer Key:
 <details>
@@ -160,7 +160,7 @@ Info << "Global mass balance: " << totalFlux << " (should be ~0)" << endl;
 **Physical Interpretation:**
 - `massFlux > 0` → flow **out of cell** (face normal points outward)
 - `massFlux < 0` → flow **into cell**
-- สำหรับ **steady-state incompressible**: $\sum_{\text{all faces}} \phi_f = 0$
+- สำหรับ **steady-state incompressible**:1$\sum_{\text{all faces}} \phi_f = 0$
 
 </details>
 
@@ -169,7 +169,7 @@ Info << "Global mass balance: " << totalFlux << " (should be ~0)" << endl;
 ## 📝 Exercise 3: Custom Boundary Condition Development
 
 > [!NOTE] **📂 OpenFOAM Context: BC Code ↔ Case File Connection**
-> **Scenario:** คุณต้องการสร้าง **time-varying velocity inlet** ที่ velocity ขึ้นกับ elevation (z-direction) เช่น atmospheric boundary layer: $u(z) = U_{ref} \left(\frac{z}{z_{ref}}\right)^\alpha$
+> **Scenario:** คุณต้องการสร้าง **time-varying velocity inlet** ที่ velocity ขึ้นกับ elevation (z-direction) เช่น atmospheric boundary layer:1$u(z) = U_{ref} \left(\frac{z}{z_{ref}}\right)^\alpha$
 >
 > **Domain E (Coding):** สร้าง custom BC class
 > ```cpp
@@ -242,10 +242,10 @@ paraFoam -builtin
 ## 📝 Exercise 4: Point Fields for Dynamic Meshing
 
 > [!NOTE] **📂 OpenFOAM Context: Mesh Motion via Point Displacement**
-> **Scenario:** คุณกำลังจำลอง **oscillating airfoil** ที่ pitch รอบ leading edge แบบ sinusoidal: $\theta(t) = \theta_0 \sin(2\pi f t)$
+> **Scenario:** คุณกำลังจำลอง **oscillating airfoil** ที่ pitch รอบ leading edge แบบ sinusoidal:1$\theta(t) = \theta_0 \sin(2\pi f t)$
 >
 > **Domain D (Meshing):** การเคลื่อนที่ของ mesh
-> - **Point displacement:** $\mathbf{d}_p = \mathbf{R}(\theta) \cdot (\mathbf{x}_p - \mathbf{x}_{LE}) - (\mathbf{x}_p - \mathbf{x}_{LE})$
+> - **Point displacement:**1$\mathbf{d}_p = \mathbf{R}(\theta) \cdot (\mathbf{x}_p - \mathbf{x}_{LE}) - (\mathbf{x}_p - \mathbf{x}_{LE})$
 > - **Mesh quality:** ต้องตรวจสอบว่าไม่มี cells ที่ skew หรือ non-orthogonal มากเกินไป
 >
 > **Domain A (Case Files):** ระบุ dynamic mesh settings
@@ -332,9 +332,9 @@ checkMesh -allGeometry -allTopology -time 0.1
 
 > [!NOTE] **📂 OpenFOAM Context: Integration Across All Domains**
 > **Project Overview:** พัฒนา **function object** สำหรับวิเคราะห์ turbulent channel flow โดยคำนวณ:
-> 1. **Wall friction velocity:** $u_\tau = \sqrt{\tau_w / \rho}$
-> 2. **Dimensionless wall distance:** $y^+ = \frac{y u_\tau}{\nu}$
-> 3. **Velocity profile:** $u^+(y^+) = \frac{\bar{u}}{u_\tau}$
+> 1. **Wall friction velocity:**1$u_\tau = \sqrt{\tau_w / \rho}$
+> 2. **Dimensionless wall distance:**1$y^+ = \frac{y u_\tau}{\nu}$
+> 3. **Velocity profile:**1$u^+(y^+) = \frac{\bar{u}}{u_\tau}$
 >
 > **Domains Involved:**
 > - **Domain A (Physics):** Turbulent boundary layer theory
@@ -343,7 +343,7 @@ checkMesh -allGeometry -allTopology -time 0.1
 
 ### โจทย์:
 1. **Part 1: Field Computation (30 min)**
-   - สร้าง `volScalarField uTau` จาก wall shear stress: $\tau_w = \mu \frac{\partial u}{\partial y}|_{wall}$
+   - สร้าง `volScalarField uTau` จาก wall shear stress:1$\tau_w = \mu \frac{\partial u}{\partial y}|_{wall}$
    - ใช้ `T.boundaryField()[wallI].snGrad()` เพื่อคำนวณ gradient
    - คำนวณ `volScalarField yPlus` สำหรับทุก cell
 
@@ -353,9 +353,9 @@ checkMesh -allGeometry -allTopology -time 0.1
    - เชื่อมต่อกับ field files: `0/U`, `0/nuSgs`
 
 3. **Part 3: Validation and Verification (20 min)**
-   - เปรียบเทียบ $u^+(y^+)$ กับ **law of the wall**: $u^+ = \frac{1}{\kappa} \ln y^+ + B$
-   - ตรวจสอบว่า $y^+_{\text{first cell}} \approx 1$ สำหรับ low-Reynolds simulation
-   - วิเคราะห์ mesh independence: ทดลองกับ $\Delta y$ ต่างกัน
+   - เปรียบเทียบ1$u^+(y^+)1กับ **law of the wall**:1$u^+ = \frac{1}{\kappa} \ln y^+ + B$
+   - ตรวจสอบว่า1$y^+_{\text{first cell}} \approx 11สำหรับ low-Reynolds simulation
+   - วิเคราะห์ mesh independence: ทดลองกับ1$\Delta y1ต่างกัน
 
 ### 💡 Starter Code:
 
@@ -387,8 +387,8 @@ postProcessing/wallProfiles/
 
 ### 🎯 Success Criteria:
 - ✅ Function object compile และ run ได้
-- ✅ $y^+ < 1$ สำหรับ first cell near wall
-- ✅ $u^+$ profile ตรงกับ law of the wall (within 10%)
+- ✅1$y^+ < 11สำหรับ first cell near wall
+- ✅1$u^+1profile ตรงกับ law of the wall (within 10%)
 - ✅ Code เชื่อมต่อกับ case files อย่างถูกต้อง
 
 ---
@@ -398,11 +398,11 @@ postProcessing/wallProfiles/
 <details>
 <summary><b>1. ทำไม flux field (surfaceScalarField) จำเป็นสำหรับ conservation equations?</b></summary>
 
-เพราะ conservation laws (mass, momentum, energy) ถูกเขียนในรูป **divergence form**: $\nabla \cdot \mathbf{F}$ ซึ่งใน Finite Volume Method แปลงเป็น **sum of fluxes** ผ่าน faces: $\sum_f \mathbf{F}_f \cdot \mathbf{S}_f$
+เพราะ conservation laws (mass, momentum, energy) ถูกเขียนในรูป **divergence form**:1$\nabla \cdot \mathbf{F}1ซึ่งใน Finite Volume Method แปลงเป็น **sum of fluxes** ผ่าน faces:1$\sum_f \mathbf{F}_f \cdot \mathbf{S}_f$
 
 **Connection to physics:**
-- Mass conservation: $\sum \phi_f = 0$ (incompressible)
-- Momentum conservation: $\sum (\rho \mathbf{U} \mathbf{U})_f \cdot \mathbf{S}_f = \text{forces}$
+- Mass conservation:1$\sum \phi_f = 01(incompressible)
+- Momentum conservation:1$\sum (\rho \mathbf{U} \mathbf{U})_f \cdot \mathbf{S}_f = \text{forces}$
 </details>
 
 <details>

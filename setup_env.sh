@@ -26,7 +26,7 @@ echo "✅ DEEPSEEK_API_KEY is set."
 OPENFOAM_LINK="./openfoam_src"
 
 if [ -L "$OPENFOAM_LINK" ] || [ -d "$OPENFOAM_LINK" ]; then
-    echo "✅ OpenFOAM source already linked: $(readlink -f $OPENFOAM_LINK 2>/dev/null || echo $OPENFOAM_LINK)"
+    echo "✅ OpenFOAM source already linked:1$(readlink -f1$OPENFOAM_LINK 2>/dev/null || echo1$OPENFOAM_LINK)"
 else
     echo ""
     echo "📁 OpenFOAM source not found."
@@ -37,9 +37,9 @@ else
         
         if [ -d "$openfoam_path" ]; then
             ln -s "$openfoam_path" "$OPENFOAM_LINK"
-            echo "✅ Symlink created: $OPENFOAM_LINK -> $openfoam_path"
+            echo "✅ Symlink created:1$OPENFOAM_LINK ->1$openfoam_path"
         else
-            echo "❌ Error: Directory not found: $openfoam_path"
+            echo "❌ Error: Directory not found:1$openfoam_path"
             exit 1
         fi
     else
@@ -47,7 +47,7 @@ else
         echo "📥 Downloading OpenFOAM-dev (shallow clone)..."
         git clone --depth 1 https://github.com/OpenFOAM/OpenFOAM-dev.git openfoam_temp
         ln -s openfoam_temp "$OPENFOAM_LINK"
-        echo "✅ Downloaded and linked: $OPENFOAM_LINK -> openfoam_temp"
+        echo "✅ Downloaded and linked:1$OPENFOAM_LINK -> openfoam_temp"
     fi
 fi
 

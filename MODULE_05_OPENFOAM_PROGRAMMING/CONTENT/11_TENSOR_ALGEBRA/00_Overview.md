@@ -178,12 +178,12 @@ $$\boldsymbol{\tau} = \begin{bmatrix}
 
 | การดำเนินการ | สัญลักษณ์ | OpenFOAM Syntax | ผลลัพธ์ | การใช้งาน |
 |-----------|--------|-----------------|-------------|-------------|
-| **Gradient** | $\nabla \mathbf{T}$ | `fvc::grad(T)` | Third-order tensor | Stress gradients |
-| **Divergence** | $\nabla \cdot \boldsymbol{\tau}$ | `fvc::div(tau)` | Vector | Body forces |
-| **Laplacian** | $\nabla^2 \mathbf{T}$ | `fvc::laplacian(T)` | Tensor | Diffusion |
-| **Symmetric part** | $\text{sym}(\mathbf{T})$ | `symm(T)` | symmTensor | Strain rates |
-| **Skew part** | $\text{skew}(\mathbf{T})$ | `skew(T)` | tensor | Vorticity |
-| **Deviatoric** | $\text{dev}(\mathbf{T})$ | `dev(T)` | symmTensor | Deviatoric stress |
+| **Gradient** |1$\nabla \mathbf{T}1| `fvc::grad(T)` | Third-order tensor | Stress gradients |
+| **Divergence** |1$\nabla \cdot \boldsymbol{\tau}1| `fvc::div(tau)` | Vector | Body forces |
+| **Laplacian** |1$\nabla^2 \mathbf{T}1| `fvc::laplacian(T)` | Tensor | Diffusion |
+| **Symmetric part** |1$\text{sym}(\mathbf{T})1| `symm(T)` | symmTensor | Strain rates |
+| **Skew part** |1$\text{skew}(\mathbf{T})1| `skew(T)` | tensor | Vorticity |
+| **Deviatoric** |1$\text{dev}(\mathbf{T})1| `dev(T)` | symmTensor | Deviatoric stress |
 
 ---
 
@@ -208,7 +208,7 @@ $$\boldsymbol{\tau} = \begin{bmatrix}
 | คลาส | Components | Memory | ใช้สำหรับ |
 |------|------------|--------|----------|
 | `tensor` | 9 | มากสุด | General tensors (velocity gradient) |
-| `symmTensor` | 6 | ประหยัด 33% | Stress, Strain (ใช้ $T_{ij} = T_{ji}$) |
+| `symmTensor` | 6 | ประหยัด 33% | Stress, Strain (ใช้1$T_{ij} = T_{ji}$) |
 | `sphericalTensor` | 1 | ประหยัด 89% | Isotropic pressure |
 
 **Rule:** ใช้คลาสที่เฉพาะเจาะจงที่สุดที่เหมาะกับ physics

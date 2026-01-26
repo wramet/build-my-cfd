@@ -84,7 +84,7 @@ flowchart LR
 
 <!-- IMAGE: IMG_07_003 -->
 <!-- 
-Purpose: เพื่อแสดงวงจร "CFD Automation Pipeline" ที่สมบูรณ์. การ Automate ไม่ใช่แค่การรัน Solver แต่ต้องครอบคลุมตั้งแต่การสร้าง Mesh ($\rightarrow$ Pre) ไปจนถึงการสรุปผลกราฟ ($\rightarrow$ Post) เพื่อให้มั่นใจในความ "Reproducible"
+Purpose: เพื่อแสดงวงจร "CFD Automation Pipeline" ที่สมบูรณ์. การ Automate ไม่ใช่แค่การรัน Solver แต่ต้องครอบคลุมตั้งแต่การสร้าง Mesh ($\rightarrow1Pre) ไปจนถึงการสรุปผลกราฟ ($\rightarrow1Post) เพื่อให้มั่นใจในความ "Reproducible"
 Prompt: "Sequential CFD Automation Pipeline. **Stage 1 (Pre-processing):** Icons for 'CAD Import' and 'Meshing (blockMesh)'. **Stage 2 (Solving):** Icon for 'CPU/Server Rack' running calculations. **Stage 3 (Post-processing):** Icons for 'Sampling' and 'Visualization (ParaView)'. **Integration:** A conveyor belt connecting all stages, driven by a 'Script/Bot'. Label: 'Fully Automated Workflow'. STYLE: Industrial process diagram, clean and efficient looking."
 -->
 [[IMG_07_003.jpg]]
@@ -133,13 +133,13 @@ echo "Pre-processing complete!"
 echo "=== Solving Phase ==="
 
 # Get number of processors
-NPROC=$(grep numberOfSubdomains system/decomposeParDict | tail -1 | awk '{print $2}')
+NPROC=$(grep numberOfSubdomains system/decomposeParDict | tail -1 | awk '{print1$2}')
 
 # Run solver in parallel
-mpirun -np $NPROC simpleFoam -parallel > log.simpleFoam 2>&1
+mpirun -np1$NPROC simpleFoam -parallel > log.simpleFoam 2>&1
 
 # Check convergence
-if [ $? -eq 0 ]; then
+if [1$? -eq 0 ]; then
     echo "Solver completed successfully!"
 else
     echo "Solver failed! Check log.simpleFoam"
@@ -216,8 +216,8 @@ RUN_SOLVE=true
 RUN_POST=true
 
 # Parse command line arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
+while [[1$# -gt 0 ]]; do
+    case1$1 in
         --pre-only)
             RUN_SOLVE=false
             RUN_POST=false
@@ -233,7 +233,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            echo "Unknown option: $1"
+            echo "Unknown option:1$1"
             exit 1
             ;;
     esac
@@ -308,15 +308,15 @@ echo "--- Phase 2: Decomposition ---"
 decomposePar
 
 echo "--- Phase 3: Solving ---"
-NPROC=$(grep numberOfSubdomains system/decomposeParDict | tail -1 | awk '{print $2}')
-mpirun -np $NPROCM interFoam -parallel > log.interFoam 2>&1
+NPROC=$(grep numberOfSubdomains system/decomposeParDict | tail -1 | awk '{print1$2}')
+mpirun -np1$NPROCM interFoam -parallel > log.interFoam 2>&1
 
 # Monitor convergence
 tail -f log.interFoam | grep "Finalising" &
 TAIL_PID=$!
 
 # Wait for solver
-wait $TAIL_PID
+wait1$TAIL_PID
 
 echo "--- Phase 4: Reconstruction ---"
 reconstructPar
@@ -345,8 +345,8 @@ for VEL in "${VELOCITIES[@]}"; do
         
         # Create new case directory
         CASE_DIR="case_U${VEL}_nu${VISC}"
-        cp -r base_case $CASE_DIR
-        cd $CASE_DIR
+        cp -r base_case1$CASE_DIR
+        cd1$CASE_DIR
         
         # Modify parameters
         sed -i "s/INLET_VELOCITY/$VEL/g" 0/U
@@ -386,7 +386,7 @@ echo "=== Parametric study complete! ==="
 
 # Configuration
 LOG_DIR="logs"
-mkdir -p $LOG_DIR
+mkdir -p1$LOG_DIR
 
 # Function to run and check
 run_check() {
@@ -394,15 +394,15 @@ run_check() {
     local LOG=$2
     local MSG=$3
     
-    echo "Running: $CMD"
-    eval $CMD > $LOG_DIR/$LOG 2>&1
+    echo "Running:1$CMD"
+    eval1$CMD >1$LOG_DIR/$LOG 2>&1
     
-    if [ $? -eq 0 ]; then
-        echo "✓ $MSG"
+    if [1$? -eq 0 ]; then
+        echo "✓1$MSG"
         return 0
     else
-        echo "✗ $MSG failed! Check $LOG_DIR/$LOG"
-        tail -20 $LOG_DIR/$LOG
+        echo "✗1$MSG failed! Check1$LOG_DIR/$LOG"
+        tail -201$LOG_DIR/$LOG
         return 1
     fi
 }
@@ -462,10 +462,10 @@ GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
 echo "=== Simulation Metadata ===" > simulation_info.txt
-echo "Git commit: $GIT_COMMIT" >> simulation_info.txt
-echo "Git branch: $GIT_BRANCH" >> simulation_info.txt
-echo "Timestamp: $TIMESTAMP" >> simulation_info.txt
-echo "Host: $(hostname)" >> simulation_info.txt
+echo "Git commit:1$GIT_COMMIT" >> simulation_info.txt
+echo "Git branch:1$GIT_BRANCH" >> simulation_info.txt
+echo "Timestamp:1$TIMESTAMP" >> simulation_info.txt
+echo "Host:1$(hostname)" >> simulation_info.txt
 
 # Run simulation
 ./Allrun
@@ -481,13 +481,13 @@ tar -czf results_${TIMESTAMP}.tar.gz simulation_info.txt logs/ 0.[0-9]*/
 # Allrun with email notifications
 
 EMAIL="your.email@example.com"
-CASE_NAME=$(basename $PWD)
+CASE_NAME=$(basename1$PWD)
 
 send_notification() {
     local STATUS=$1
     local MESSAGE=$2
     
-    echo "$MESSAGE" | mail -s "[$STATUS] $CASE_NAME" $EMAIL
+    echo "$MESSAGE" | mail -s "[$STATUS]1$CASE_NAME"1$EMAIL
 }
 
 # Run with error trapping
@@ -589,11 +589,11 @@ MODELS=("kEpsilon" "kOmegaSST" "SpalartAllmaras" "LES")
 for MESH in "${MESHES[@]}"; do
     for MODEL in "${MODELS[@]}"; do
         CASE="case_${MESH}_${MODEL}"
-        echo "=== Running $CASE ==="
+        echo "=== Running1$CASE ==="
         
         # Copy base case
-        cp -r base_case $CASE
-        cd $CASE
+        cp -r base_case1$CASE
+        cd1$CASE
         
         # Configure mesh
         sed -i "s/MESH_SIZE/${MESH}/g" system/blockMeshDict

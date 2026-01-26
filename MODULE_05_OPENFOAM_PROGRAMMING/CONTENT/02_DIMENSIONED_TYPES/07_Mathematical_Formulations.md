@@ -40,11 +40,11 @@ By the end of this section, you will be able to:
 
 ### 1.1 Mathematical Principle
 
-For a physical relationship involving $n$ variables with $k$ fundamental dimensions:
+For a physical relationship involving1$n1variables with1$k1fundamental dimensions:
 
 $$f(Q_1, Q_2, ..., Q_n) = 0$$
 
-The theorem guarantees we can form $n - k$ independent dimensionless π-groups:
+The theorem guarantees we can form1$n - k1independent dimensionless π-groups:
 
 $$\Pi_m = \prod_{i=1}^n Q_i^{b_{im}} \quad \text{for} \quad m = 1, 2, ..., n-k$$
 
@@ -52,23 +52,23 @@ $$\Pi_m = \prod_{i=1}^n Q_i^{b_{im}} \quad \text{for} \quad m = 1, 2, ..., n-k$$
 
 1. **List all variables** and their dimensions
 2. **Count fundamental dimensions** ($k$)
-3. **Choose repeating variables** ($k$ variables that don't form dimensionless group)
+3. **Choose repeating variables** ($k1variables that don't form dimensionless group)
 4. **Form π-groups** by combining repeating variables with each remaining variable
 5. **Solve exponent equations** for dimensional consistency
 
 ### 1.3 Example: Pipe Flow Pressure Drop
 
-**Variables:** $\Delta p, \rho, \mu, U, D$
+**Variables:**1$\Delta p, \rho, \mu, U, D$
 
 | Variable | Symbol | Dimension | Role |
 |----------|--------|-----------|------|
-| Pressure drop | $\Delta p$ | $[ML^{-1}T^{-2}]$ | Dependent |
-| Density | $\rho$ | $[ML^{-3}]$ | Repeating |
-| Viscosity | $\mu$ | $[ML^{-1}T^{-1}]$ | Repeating |
-| Velocity | $U$ | $[LT^{-1}]$ | Repeating |
-| Diameter | $D$ | $[L]$ | Repeating |
+| Pressure drop |1$\Delta p1|1$[ML^{-1}T^{-2}]1| Dependent |
+| Density |1$\rho1|1$[ML^{-3}]1| Repeating |
+| Viscosity |1$\mu1|1$[ML^{-1}T^{-1}]1| Repeating |
+| Velocity |1$U1|1$[LT^{-1}]1| Repeating |
+| Diameter |1$D1|1$[L]1| Repeating |
 
-$n = 5$ variables, $k = 3$ dimensions (M, L, T) → $5 - 3 = 2$ dimensionless groups
+$n = 51variables,1$k = 31dimensions (M, L, T) →1$5 - 3 = 21dimensionless groups
 
 **π₁ (Euler number):**
 $$\Pi_1 = \Delta p \cdot \rho^a \cdot \mu^b \cdot U^c \cdot D^d$$
@@ -151,10 +151,10 @@ Choose characteristic scales for each variable:
 
 | Quantity | Scale | Dimensional | Dimensionless |
 |----------|-------|-------------|---------------|
-| Length | $L_{ref}$ | $\mathbf{x} = L_{ref} \tilde{\mathbf{x}}$ | $\tilde{\mathbf{x}} = \mathbf{x}/L_{ref}$ |
-| Velocity | $U_{ref}$ | $\mathbf{u} = U_{ref} \tilde{\mathbf{u}}$ | $\tilde{\mathbf{u}} = \mathbf{u}/U_{ref}$ |
-| Time | $L_{ref}/U_{ref}$ | $t = (L_{ref}/U_{ref}) \tilde{t}$ | $\tilde{t} = t U_{ref}/L_{ref}$ |
-| Pressure | $\rho U_{ref}^2$ | $p = \rho U_{ref}^2 \tilde{p}$ | $\tilde{p} = p/(\rho U_{ref}^2)$ |
+| Length |1$L_{ref}1|1$\mathbf{x} = L_{ref} \tilde{\mathbf{x}}1|1$\tilde{\mathbf{x}} = \mathbf{x}/L_{ref}1|
+| Velocity |1$U_{ref}1|1$\mathbf{u} = U_{ref} \tilde{\mathbf{u}}1|1$\tilde{\mathbf{u}} = \mathbf{u}/U_{ref}1|
+| Time |1$L_{ref}/U_{ref}1|1$t = (L_{ref}/U_{ref}) \tilde{t}1|1$\tilde{t} = t U_{ref}/L_{ref}1|
+| Pressure |1$\rho U_{ref}^21|1$p = \rho U_{ref}^2 \tilde{p}1|1$\tilde{p} = p/(\rho U_{ref}^2)1|
 
 ### 3.3 Navier-Stokes Transformation
 
@@ -164,7 +164,7 @@ $$\rho \frac{\partial \mathbf{u}}{\partial t} + \nabla \cdot (\rho \mathbf{u} \m
 **Substitute Reference Scales:**
 $$\rho \frac{U_{ref}}{L_{ref}/U_{ref}} \frac{\partial \tilde{\mathbf{u}}}{\partial \tilde{t}} + \frac{\rho U_{ref}^2}{L_{ref}} \tilde{\nabla} \cdot (\tilde{\mathbf{u}} \tilde{\mathbf{u}}) = -\frac{\rho U_{ref}^2}{L_{ref}} \tilde{\nabla} \tilde{p} + \frac{\mu U_{ref}}{L_{ref}^2} \tilde{\nabla}^2 \tilde{\mathbf{u}}$$
 
-**Divide by $\rho U_{ref}^2/L_{ref}$:**
+**Divide by1$\rho U_{ref}^2/L_{ref}$:**
 $$\frac{\partial \tilde{\mathbf{u}}}{\partial \tilde{t}} + \tilde{\nabla} \cdot (\tilde{\mathbf{u}} \tilde{\mathbf{u}}) = -\tilde{\nabla} \tilde{p} + \frac{1}{Re} \tilde{\nabla}^2 \tilde{\mathbf{u}}$$
 
 **Result:** Single dimensionless parameter ($Re$) governs the entire flow physics!
@@ -178,8 +178,8 @@ $$\rho c_p \frac{\partial T}{\partial t} + \rho c_p \mathbf{u} \cdot \nabla T = 
 $$\frac{\partial \tilde{T}}{\partial \tilde{t}} + \tilde{\mathbf{u}} \cdot \tilde{\nabla} \tilde{T} = \frac{1}{Re Pr} \tilde{\nabla}^2 \tilde{T}$$
 
 Where:
-- **Prandtl number:** $Pr = \frac{\mu c_p}{k} = \frac{\nu}{\alpha}$
-- **Péclet number:** $Pe = Re \cdot Pr$
+- **Prandtl number:**1$Pr = \frac{\mu c_p}{k} = \frac{\nu}{\alpha}$
+- **Péclet number:**1$Pe = Re \cdot Pr$
 
 ---
 
@@ -193,33 +193,33 @@ $$Re_{model} = Re_{prototype}$$
 $$\frac{\rho_m U_m L_m}{\mu_m} = \frac{\rho_p U_p L_p}{\mu_p}$$
 
 **Scaling Example:**
-- Model scale: $1:10$ ($L_m = 0.1 L_p$)
+- Model scale:1$1:101($L_m = 0.1 L_p$)
 - Same fluid ($\rho_m = \rho_p, \mu_m = \mu_p$)
-- Required velocity: $U_m = 10 U_p$
+- Required velocity:1$U_m = 10 U_p$
 
 ### 4.2 Key Dimensionless Numbers
 
 | Number | Formula | Physical Ratio | Application |
 |--------|---------|----------------|-------------|
-| **Reynolds** | $Re = \frac{\rho U L}{\mu}$ | Inertia/Viscosity | Viscous flows, turbulence |
-| **Froude** | $Fr = \frac{U}{\sqrt{gL}}$ | Inertia/Gravity | Free surface flows, ships |
-| **Euler** | $Eu = \frac{\Delta p}{\rho U^2}$ | Pressure/Inertia | Pressure drop, cavitation |
-| **Weber** | $We = \frac{\rho U^2 L}{\sigma}$ | Inertia/Surface tension | Sprays, bubbles, droplets |
-| **Mach** | $Ma = \frac{U}{c}$ | Velocity/Sound speed | Compressible flow |
-| **Strouhal** | $St = \frac{f L}{U}$ | Frequency/Convection | Vortex shedding, acoustics |
-| **Prandtl** | $Pr = \frac{\nu}{\alpha}$ | Momentum/Thermal diffusion | Heat transfer |
-| **Nusselt** | $Nu = \frac{h L}{k}$ | Convective/Conductive heat transfer | Heat transfer coefficient |
-| **Grashof** | $Gr = \frac{g \beta \Delta T L^3}{\nu^2}$ | Buoyancy/Viscous forces | Natural convection |
+| **Reynolds** |1$Re = \frac{\rho U L}{\mu}1| Inertia/Viscosity | Viscous flows, turbulence |
+| **Froude** |1$Fr = \frac{U}{\sqrt{gL}}1| Inertia/Gravity | Free surface flows, ships |
+| **Euler** |1$Eu = \frac{\Delta p}{\rho U^2}1| Pressure/Inertia | Pressure drop, cavitation |
+| **Weber** |1$We = \frac{\rho U^2 L}{\sigma}1| Inertia/Surface tension | Sprays, bubbles, droplets |
+| **Mach** |1$Ma = \frac{U}{c}1| Velocity/Sound speed | Compressible flow |
+| **Strouhal** |1$St = \frac{f L}{U}1| Frequency/Convection | Vortex shedding, acoustics |
+| **Prandtl** |1$Pr = \frac{\nu}{\alpha}1| Momentum/Thermal diffusion | Heat transfer |
+| **Nusselt** |1$Nu = \frac{h L}{k}1| Convective/Conductive heat transfer | Heat transfer coefficient |
+| **Grashof** |1$Gr = \frac{g \beta \Delta T L^3}{\nu^2}1| Buoyancy/Viscous forces | Natural convection |
 
 ### 4.3 Incomplete Similarity
 
 When multiple dimensionless groups are involved, **complete similarity** is impossible:
 
 **Example:** Ship model testing
-- Reynolds similarity requires: $U_m = \frac{L_p}{L_m} U_p$
-- Froude similarity requires: $U_m = \sqrt{\frac{L_m}{L_p}} U_p$
+- Reynolds similarity requires:1$U_m = \frac{L_p}{L_m} U_p$
+- Froude similarity requires:1$U_m = \sqrt{\frac{L_m}{L_p}} U_p$
 
-**Solution:** Match $Fr$ for wave effects, apply empirical corrections for $Re$ effects.
+**Solution:** Match1$Fr1for wave effects, apply empirical corrections for1$Re1effects.
 
 ---
 
@@ -234,37 +234,37 @@ $$\boldsymbol{\tau} = \mu \dot{\boldsymbol{\gamma}}$$
 
 | Tensor | Dimension | dimensionSet |
 |--------|-----------|--------------|
-| Stress $\boldsymbol{\tau}$ | $[ML^{-1}T^{-2}]$ | `[1 -1 -2 0 0 0 0]` |
-| Strain rate $\dot{\boldsymbol{\gamma}}$ | $[T^{-1}]$ | `[0 0 -1 0 0 0 0]` |
-| Viscosity $\mu$ | $[ML^{-1}T^{-1}]$ | `[1 -1 -1 0 0 0 0]` |
+| Stress1$\boldsymbol{\tau}1|1$[ML^{-1}T^{-2}]1| `[1 -1 -2 0 0 0 0]` |
+| Strain rate1$\dot{\boldsymbol{\gamma}}1|1$[T^{-1}]1| `[0 0 -1 0 0 0 0]` |
+| Viscosity1$\mu1|1$[ML^{-1}T^{-1}]1| `[1 -1 -1 0 0 0 0]` |
 
 **Verification:**
 $$[\mu][\dot{\gamma}] = [ML^{-1}T^{-1}][T^{-1}] = [ML^{-1}T^{-2}] = [\boldsymbol{\tau}] \quad \checkmark$$
 
 ### 5.2 Convective Term Dimensional Analysis
 
-**Term:** $\nabla \cdot (\rho \mathbf{u} \mathbf{u})$
+**Term:**1$\nabla \cdot (\rho \mathbf{u} \mathbf{u})$
 
 | Component | Dimension |
 |-----------|-----------|
-| $\rho$ | $[ML^{-3}]$ |
-| $\mathbf{u}$ | $[LT^{-1}]$ |
-| $\mathbf{u} \mathbf{u}$ | $[L^2T^{-2}]$ |
-| $\rho \mathbf{u} \mathbf{u}$ | $[ML^{-1}T^{-2}]$ |
-| $\nabla \cdot (\cdot)$ | $[L^{-1}]$ |
-| **Result** | $[MT^{-2}]$ (momentum flux per volume) |
+|1$\rho1|1$[ML^{-3}]1|
+|1$\mathbf{u}1|1$[LT^{-1}]1|
+|1$\mathbf{u} \mathbf{u}1|1$[L^2T^{-2}]1|
+|1$\rho \mathbf{u} \mathbf{u}1|1$[ML^{-1}T^{-2}]1|
+|1$\nabla \cdot (\cdot)1|1$[L^{-1}]1|
+| **Result** |1$[MT^{-2}]1(momentum flux per volume) |
 
 ### 5.3 Reynolds Stress Tensor
 
-**RANS closure:** $-\rho \overline{\mathbf{u}' \mathbf{u}'}$
+**RANS closure:**1$-\rho \overline{\mathbf{u}' \mathbf{u}'}$
 
 | Quantity | Dimension | Physical Meaning |
 |----------|-----------|------------------|
-| Velocity fluctuation $\mathbf{u}'$ | $[LT^{-1}]$ | Turbulent velocity |
-| $\mathbf{u}' \mathbf{u}'$ | $[L^2T^{-2}]$ | Turbulent kinetic energy correlation |
-| $-\rho \overline{\mathbf{u}' \mathbf{u}'}$ | $[ML^{-1}T^{-2}]$ | Turbulent momentum flux (stress) |
+| Velocity fluctuation1$\mathbf{u}'1|1$[LT^{-1}]1| Turbulent velocity |
+|1$\mathbf{u}' \mathbf{u}'1|1$[L^2T^{-2}]1| Turbulent kinetic energy correlation |
+|1$-\rho \overline{\mathbf{u}' \mathbf{u}'}1|1$[ML^{-1}T^{-2}]1| Turbulent momentum flux (stress) |
 
-**Dimensional consistency:** Same dimensions as viscous stress $\boldsymbol{\tau}$, allowing turbulence modeling via eddy viscosity $\mu_t$.
+**Dimensional consistency:** Same dimensions as viscous stress1$\boldsymbol{\tau}$, allowing turbulence modeling via eddy viscosity1$\mu_t$.
 
 ---
 
@@ -408,9 +408,9 @@ dimensionSet::checking(true);
 <details>
 <summary><b>1. Why does Buckingham π theorem produce exactly n-k dimensionless groups?</b></summary>
 
-The theorem is based on **linear algebra**: We have a dimensional matrix where each row represents a fundamental dimension and each column represents a variable. The rank of this matrix is at most $k$ (number of fundamental dimensions). The null space (solutions to the homogeneous system) has dimension $n - \text{rank} \geq n - k$. Each independent null space vector corresponds to one dimensionless π-group.
+The theorem is based on **linear algebra**: We have a dimensional matrix where each row represents a fundamental dimension and each column represents a variable. The rank of this matrix is at most1$k1(number of fundamental dimensions). The null space (solutions to the homogeneous system) has dimension1$n - \text{rank} \geq n - k$. Each independent null space vector corresponds to one dimensionless π-group.
 
-**Physical intuition:** With $k$ fundamental dimensions, we need exactly $k$ "repeating variables" to express all dimensions. The remaining $n-k$ variables must combine with these to form dimensionless groups.
+**Physical intuition:** With1$k1fundamental dimensions, we need exactly1$k1"repeating variables" to express all dimensions. The remaining1$n-k1variables must combine with these to form dimensionless groups.
 </details>
 
 <details>
@@ -418,41 +418,41 @@ The theorem is based on **linear algebra**: We have a dimensional matrix where e
 
 **Criteria for selecting repeating variables:**
 1. **Must be independent:** No combination should be dimensionless
-2. **Must span the dimension space:** Together, they contain all $k$ fundamental dimensions
+2. **Must span the dimension space:** Together, they contain all1$k1fundamental dimensions
 3. **Should be physically meaningful:** Choose variables you can control or measure
-4. **Avoid the dependent variable:** If $\Delta p$ is what you're solving for, don't use it as repeating
+4. **Avoid the dependent variable:** If1$\Delta p1is what you're solving for, don't use it as repeating
 
-**Typical choices:** Characteristic length ($L$), velocity ($U$), fluid property ($\rho$ or $\mu$)
+**Typical choices:** Characteristic length ($L$), velocity ($U$), fluid property ($\rho1or1$\mu$)
 
-**Example:** For pipe flow, use $D, U, \rho$ (not $\Delta p$ or $\mu$)
+**Example:** For pipe flow, use1$D, U, \rho1(not1$\Delta p1or1$\mu$)
 </details>
 
 <details>
-<summary><b>3. Why is $\rho U_{ref}^2$ the standard pressure scale instead of just $U_{ref}^2$?</b></summary>
+<summary><b>3. Why is1$\rho U_{ref}^21the standard pressure scale instead of just1$U_{ref}^2$?</b></summary>
 
-**Dimensional consistency:** Pressure has units $[ML^{-1}T^{-2}]$. Velocity squared is $[L^2T^{-2}]$ — we're missing the mass dimension! Multiplying by density $\rho$ adds the required $[ML^{-3]$ to get proper pressure units.
+**Dimensional consistency:** Pressure has units1$[ML^{-1}T^{-2}]$. Velocity squared is1$[L^2T^{-2}]1— we're missing the mass dimension! Multiplying by density1$\rho1adds the required1$[ML^{-3]1to get proper pressure units.
 
-**Physical meaning:** $\rho U^2$ represents **dynamic pressure** — the pressure generated by fluid motion. This is the natural scale for:
-- Momentum equation: pressure gradients appear alongside $\rho \mathbf{u} \cdot \nabla \mathbf{u}$
-- Bernoulli equation: $p + \frac{1}{2}\rho U^2 = \text{constant}$
-- Drag coefficients: $C_d = \frac{F_d}{\frac{1}{2}\rho U^2 A}$
+**Physical meaning:**1$\rho U^21represents **dynamic pressure** — the pressure generated by fluid motion. This is the natural scale for:
+- Momentum equation: pressure gradients appear alongside1$\rho \mathbf{u} \cdot \nabla \mathbf{u}$
+- Bernoulli equation:1$p + \frac{1}{2}\rho U^2 = \text{constant}$
+- Drag coefficients:1$C_d = \frac{F_d}{\frac{1}{2}\rho U^2 A}$
 
-**Alternative scales:** For low Mach number flows, sometimes use $\mu U / L$ (viscous pressure scale), leading to the Euler number $Eu = \frac{\Delta p}{\rho U^2}$.
+**Alternative scales:** For low Mach number flows, sometimes use1$\mu U / L1(viscous pressure scale), leading to the Euler number1$Eu = \frac{\Delta p}{\rho U^2}$.
 </details>
 
 <details>
 <summary><b>4. When is complete similarity impossible, and how do we handle it?</b></summary>
 
-**Problem:** When multiple dimensionless groups govern the physics (e.g., $Re$ and $Fr$ for ship resistance), we cannot simultaneously match all groups in a scaled model.
+**Problem:** When multiple dimensionless groups govern the physics (e.g.,1$Re1and1$Fr1for ship resistance), we cannot simultaneously match all groups in a scaled model.
 
 **Example:** Ship model at 1:10 scale
-- Match $Fr$: $U_m = \sqrt{L_m/L_p} U_p = 0.316 U_p$
-- Resulting $Re_m$: $0.316 \times 0.1 Re_p = 0.0316 Re_p$ (mismatch!)
+- Match1$Fr$:1$U_m = \sqrt{L_m/L_p} U_p = 0.316 U_p$
+- Resulting1$Re_m$:1$0.316 \times 0.1 Re_p = 0.0316 Re_p1(mismatch!)
 
 **Solutions:**
-1. **Match the dominant group:** Match $Fr$ for wave-making resistance
+1. **Match the dominant group:** Match1$Fr1for wave-making resistance
 2. **Apply empirical corrections:** Use ITTC-1978 method for viscous correction
-3. **Use different fluids:** Change $\mu$ or $\rho$ to match both (often impractical)
+3. **Use different fluids:** Change1$\mu1or1$\rho1to match both (often impractical)
 4. **Computational supplement:** Use CFD to extrapolate to full scale
 
 **Key principle:** Match the group that governs the physics you're studying, and correct for the rest.

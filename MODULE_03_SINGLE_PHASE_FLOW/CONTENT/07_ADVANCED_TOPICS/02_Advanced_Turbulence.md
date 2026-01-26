@@ -113,13 +113,13 @@ Need transition prediction?
 $$\frac{\partial \bar{u}_i}{\partial t} + \bar{u}_j\frac{\partial \bar{u}_i}{\partial x_j} = -\frac{1}{\rho}\frac{\partial \bar{p}}{\partial x_i} + \nu\frac{\partial^2 \bar{u}_i}{\partial x_j^2} - \frac{\partial \tau_{ij}}{\partial x_j}$$
 
 Where:
-- $\bar{u}_i$ = filtered (resolved) velocity
-- $\tau_{ij} = \overline{u_i u_j} - \bar{u}_i \bar{u}_j$ = subgrid-scale stress tensor (must be modeled)
+-1$\bar{u}_i1= filtered (resolved) velocity
+-1$\tau_{ij} = \overline{u_i u_j} - \bar{u}_i \bar{u}_j1= subgrid-scale stress tensor (must be modeled)
 
 **Filtering operation:**
 $$\bar{u}(\mathbf{x}) = \int G(\mathbf{x} - \mathbf{x'}; \Delta) u(\mathbf{x'}) d\mathbf{x'}$$
 
-Where $G$ is the filter function and $\Delta$ is the filter width (typically related to cell size).
+Where1$G1is the filter function and1$\Delta1is the filter width (typically related to cell size).
 
 **Subgrid-Scale (SGS) Models:**
 
@@ -127,19 +127,19 @@ Where $G$ is the filter function and $\Delta$ is the filter width (typically rel
 $$\nu_t = (C_s \Delta)^2 |\bar{S}|$$
 
 Where:
-- $C_s$ = Smagorinsky constant (typically 0.1-0.2)
-- $\Delta$ = filter width (usually cube root of cell volume)
-- $|\bar{S}| = \sqrt{2\bar{S}_{ij}\bar{S}_{ij}}$ = strain rate magnitude
+-1$C_s1= Smagorinsky constant (typically 0.1-0.2)
+-1$\Delta1= filter width (usually cube root of cell volume)
+-1$|\bar{S}| = \sqrt{2\bar{S}_{ij}\bar{S}_{ij}}1= strain rate magnitude
 
 **Dynamic Smagorinsky:**
-- $C_s$ computed dynamically during simulation
+-1$C_s1computed dynamically during simulation
 - Better for complex flows with varying turbulence characteristics
 - Can backscatter (energy from small to large scales)
 - More expensive and potentially unstable
 
 **WALE (Wall-Adapting Local Eddy-viscosity):**
 - Better near-wall behavior
-- Correct $y^3$ scaling near walls
+- Correct1$y^31scaling near walls
 - Recommended for wall-bounded flows
 - Zero eddy viscosity in pure shear (automatically)
 
@@ -185,7 +185,7 @@ controls
 **Mesh estimation formula:**
 $$N_{LES} \approx \frac{Re_L}{144} \left(\frac{L}{\delta}\right)^3$$
 
-Where $Re_L$ is Reynolds number based on length $L$ and boundary layer thickness $\delta$.
+Where1$Re_L1is Reynolds number based on length1$L1and boundary layer thickness1$\delta$.
 
 **Example:** For Re = 10⁶ with L/δ = 100:
 $$N_{LES} \approx \frac{10^6}{144} \times 100^3 \approx 7 \times 10^{10} \text{ cells (impractical)}$$
@@ -442,13 +442,13 @@ PIMPLE
 $$l_{DES} = \min(l_{RANS}, C_{DES} \Delta)$$
 
 Where:
-- $l_{RANS}$ = RANS length scale (e.g., $k^{3/2}/\epsilon$ for k-ε, or $\tilde{\nu}/S$ for Spalart-Allmaras)
-- $C_{DES}$ = calibration constant (typically 0.65)
-- $\Delta$ = local grid spacing (usually max(Δx, Δy, Δz))
+-1$l_{RANS}1= RANS length scale (e.g.,1$k^{3/2}/\epsilon1for k-ε, or1$\tilde{\nu}/S1for Spalart-Allmaras)
+-1$C_{DES}1= calibration constant (typically 0.65)
+-1$\Delta1= local grid spacing (usually max(Δx, Δy, Δz))
 
 **Switching behavior:**
-- Near walls: $l_{RANS} < C_{DES}\Delta$ → RANS mode (modeled turbulence)
-- Separated regions: $C_{DES}\Delta < l_{RANS}$ → LES mode (resolved turbulence)
+- Near walls:1$l_{RANS} < C_{DES}\Delta1→ RANS mode (modeled turbulence)
+- Separated regions:1$C_{DES}\Delta < l_{RANS}1→ LES mode (resolved turbulence)
 
 **Eddy viscosity modification:**
 $$\nu_t = \frac{l_{DES}^2}{\nu} |\tilde{S}|$$
@@ -475,9 +475,9 @@ This ensures that:
 $$f_d = 1 - \tanh\left([\beta_1 d]^2\right)$$
 
 Where:
-- $d$ = distance to wall
-- $\beta_1$ = calibration parameter
-- $f_d → 1$ in LES region, $f_d → 0$ in RANS region
+-1$d1= distance to wall
+-1$\beta_11= calibration parameter
+-1$f_d → 11in LES region,1$f_d → 01in RANS region
 
 **IDDES additional features:**
 - Wall-modeled LES capability in near-wall region
@@ -829,25 +829,25 @@ postProcess -func " DESLengthScale"
 $$\frac{\partial (\rho \gamma)}{\partial t} + \frac{\partial (\rho u_j \gamma)}{\partial x_j} = P_\gamma - E_\gamma + \frac{\partial}{\partial x_j}\left[(\nu + \frac{\nu_t}{\sigma_\gamma})\frac{\partial \gamma}{\partial x_j}\right]$$
 
 Where:
-- $P_\gamma$ = production term (triggers transition)
-- $E_\gamma$ = destruction term (relaminarization)
-- $\sigma_\gamma$ = model constant
+-1$P_\gamma1= production term (triggers transition)
+-1$E_\gamma1= destruction term (relaminarization)
+-1$\sigma_\gamma1= model constant
 
 **Transition momentum thickness Re (Reθ):**
 $$\frac{\partial (\rho \tilde{R}e_\theta)}{\partial t} + \frac{\partial (\rho u_j \tilde{R}e_\theta)}{\partial x_j} = P_{\theta} + \frac{\partial}{\partial x_j}\left[\sigma_{\theta}(\nu + \nu_t)\frac{\partial \tilde{R}e_\theta}{\partial x_j}\right]$$
 
 **Coupling with turbulence model:**
-- Eddy viscosity is multiplied by intermittency: $\nu_{t,eff} = \nu_t \cdot \gamma$
+- Eddy viscosity is multiplied by intermittency:1$\nu_{t,eff} = \nu_t \cdot \gamma$
 - In laminar regions (γ → 0): turbulence production is suppressed
 - In turbulent regions (γ → 1): standard RANS behavior
-- Production term in k-equation: $P_k = \gamma \cdot P_{k,standard}$
+- Production term in k-equation:1$P_k = \gamma \cdot P_{k,standard}$
 
 **Transition onset criteria:**
 $$Re_{\theta} > Re_{\theta,c}(Tu, \lambda_\theta)$$
 
 Where:
-- $Re_{\theta,c}$ = critical Reynolds number (function of Tu and pressure gradient)
-- $\lambda_\theta$ = pressure gradient parameter
+-1$Re_{\theta,c}1= critical Reynolds number (function of Tu and pressure gradient)
+-1$\lambda_\theta1= pressure gradient parameter
 
 ### 3.4 How to Set Up Transition Modeling in OpenFOAM
 

@@ -1,0 +1,7 @@
+You are an OpenFOAM C++ Expert. Explain Section 2.1 (surfaceInterpolationScheme) from the provided text. 
+Focus on:
+1. Class Declaration & Inheritance: What is 'refCount' and why used?
+2. Runtime Selection Table: How does 'New()' work?
+3. The 'interpolate()' method: The core abstract method.
+4. Compare Standard OpenFOAM vs The Project's Custom Implementation (defaultWeights).
+Explain in Thai mixed with C++ terms.

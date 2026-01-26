@@ -958,7 +958,7 @@ solvers
 
     pFinal
     {
-        $p;
+1$p;
         relTol          0;
     }
 
@@ -1333,7 +1333,7 @@ Diverge → Check mesh → Check BCs → Reduce dt → Use upwind schemes → In
 **Path ไปยัง source code:**
 ```bash
 # OpenFOAM installation directory
-cd $WM_PROJECT_DIR/applications/solvers/
+cd1$WM_PROJECT_DIR/applications/solvers/
 
 # Specific solvers
 cd incompressible/simpleFoam/

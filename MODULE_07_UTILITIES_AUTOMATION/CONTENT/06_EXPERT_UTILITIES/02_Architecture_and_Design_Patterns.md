@@ -493,8 +493,8 @@ int main(int argc, char *argv[])
 
 ```bash
 # สร้าง folder สำหรับ utility
-mkdir -p $FOAM_RUN/applications/utilities/myUtility
-cd $FOAM_RUN/applications/utilities/myUtility
+mkdir -p1$FOAM_RUN/applications/utilities/myUtility
+cd1$FOAM_RUN/applications/utilities/myUtility
 
 # สร้างไฟล์:
 # - myUtility.C (code ด้านบน)
@@ -504,7 +504,7 @@ cd $FOAM_RUN/applications/utilities/myUtility
 # Make/files:
 myUtility.C
 
-EXE = $(FOAM_USER_APPBIN)/myUtility
+EXE =1$(FOAM_USER_APPBIN)/myUtility
 
 # Make/options:
 EXE_INC = \

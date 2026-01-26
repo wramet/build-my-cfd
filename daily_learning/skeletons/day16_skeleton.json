@@ -1,0 +1,241 @@
+{
+    "day": "16",
+    "title": "Mesh Quality & Refinement",
+    "date": "2026-01-16",
+    "difficulty": "hardcore",
+
+    "learning_objectives": [
+        {
+            "verb": "เข้าใจ (Understand)",
+            "topic": "Mesh quality metrics และผลกระทบต่อ numerical accuracy",
+            "equation": "Skewness, Aspect Ratio, Non-orthogonality",
+            "importance": "Mesh quality ที่ไม่ดีทำให้ solver diverge หรือได้ผลลัพธ์ผิดพลาด"
+        },
+        {
+            "verb": "ออกแบบ (Design)",
+            "topic": "Dynamic mesh refinement สำหรับ two-phase flow",
+            "components": ["Refinement criteria", "Hanging node handling", "Field mapping"]
+        },
+        {
+            "verb": "Implement",
+            "topic": "Gradient-based refinement และ interface refinement",
+            "challenge": "การรักษา mesh quality ระหว่าง refinement cycles"
+        }
+    ],
+
+    "theory_sections": [
+        {
+            "id": "16.1",
+            "title_en": "Mesh Quality Metrics",
+            "title_th": "ตัวชี้วัดคุณภาพเมช",
+            "equations": [
+                {
+                    "name": "Skewness",
+                    "latex": "\\text{Skewness} = \\max\\left(\\frac{\\theta_{\\max} - \\theta_e}{180 - \\theta_e}, \\frac{\\theta_e - \\theta_{\\min}}{\\theta_e}\\right)",
+                    "explanation": "วัดความเบี้ยวของเซลล์ (0=ดี, 1=แย่) โดย θ_e คือมุมที่ต้องการ (60° สำหรับ tetra, 90° สำหรับ hex)"
+                },
+                {
+                    "name": "Aspect Ratio",
+                    "latex": "AR = \\frac{L_{\\max}}{L_{\\min}}",
+                    "explanation": "อัตราส่วนระหว่างด้านยาวที่สุดต่อด้านสั้นที่สุด (ควร < 5)"
+                },
+                {
+                    "name": "Non-orthogonality",
+                    "latex": "\\theta_{no} = \\arccos\\left(\\frac{\\mathbf{d} \\cdot \\mathbf{S}_f}{|\\mathbf{d}| |\\mathbf{S}_f|}\\right)",
+                    "explanation": "มุมระหว่าง vector d (owner→neighbor) และ face normal S_f (ควร < 70°)"
+                }
+            ],
+            "variables": [
+                {"symbol": "θ_max", "name": "maximum face angle", "unit": "degrees"},
+                {"symbol": "θ_min", "name": "minimum face angle", "unit": "degrees"},
+                {"symbol": "L_max", "name": "maximum cell dimension", "unit": "m"},
+                {"symbol": "L_min", "name": "minimum cell dimension", "unit": "m"}
+            ],
+            "warning": "Non-orthogonality สูงทำให้ implicit diffusion term ต้องใช้ non-orthogonal correction"
+        },
+        {
+            "id": "16.2",
+            "title_en": "Refinement Criteria for Two-Phase Flow",
+            "title_th": "เกณฑ์การปรับปรุงเมชสำหรับการไหลสองสถานะ",
+            "equations": [
+                {
+                    "name": "Gradient-based refinement",
+                    "latex": "R = \\frac{|\\nabla \\phi| \\Delta}{\\phi_{\\max} - \\phi_{\\min}}",
+                    "explanation": "Refine เมื่อ normalized gradient เกิน threshold"
+                },
+                {
+                    "name": "Interface refinement",
+                    "latex": "\\text{Refine if } 0.01 < \\alpha < 0.99",
+                    "explanation": "Refine เซลล์ที่อยู่ใกล้ interface (alpha ระหว่าง 0.01 ถึง 0.99)"
+                },
+                {
+                    "name": "Curvature-based refinement",
+                    "latex": "\\kappa = \\nabla \\cdot \\left(\\frac{\\nabla \\alpha}{|\\nabla \\alpha|}\\right)",
+                    "explanation": "Refine บริเวณที่มี curvature สูง (interface ที่โค้งงอมาก)"
+                }
+            ],
+            "variables": [
+                {"symbol": "φ", "name": "field variable (U, T, alpha)", "unit": "variable"},
+                {"symbol": "Δ", "name": "cell size", "unit": "m"},
+                {"symbol": "κ", "name": "interface curvature", "unit": "1/m"}
+            ],
+            "warning": "ต้องใช้ buffer layers รอบเซลล์ที่ refine เพื่อป้องกัน hanging nodes และรักษา mesh smoothness"
+        }
+    ],
+
+    "openfoam_analysis": [
+        {
+            "class": "polyMesh",
+            "header": "src/OpenFOAM/meshes/polyMesh/polyMesh.H",
+            "purpose": "Unstructured polyhedral mesh representation",
+            "key_members": [
+                {"name": "points_", "type": "pointField", "purpose": "Mesh vertices coordinates"},
+                {"name": "faces_", "type": "faceList", "purpose": "Face connectivity (list of point indices)"},
+                {"name": "owner_", "type": "labelList", "purpose": "Owner cell for each face"},
+                {"name": "neighbour_", "type": "labelList", "purpose": "Neighbor cell for each face (internal faces only)"}
+            ],
+            "key_methods": [
+                {"name": "checkMesh()", "purpose": "Validate mesh topology and geometry"},
+                {"name": "updateMesh()", "purpose": "Update mesh after refinement"},
+                {"name": "cellCentres()", "purpose": "Calculate cell centers"}
+            ],
+            "usage_example": "const polyMesh& mesh = ...; mesh.checkMesh();"
+        },
+        {
+            "class": "dynamicFvMesh",
+            "header": "src/dynamicFvMesh/dynamicFvMesh/dynamicFvMesh.H",
+            "purpose": "Base class for dynamic meshes (refinement, motion)",
+            "key_members": [
+                {"name": "time_", "type": "const Time&", "purpose": "Reference to time database"},
+                {"name": "mesh_", "type": "fvMesh&", "purpose": "Reference to underlying fvMesh"}
+            ],
+            "key_methods": [
+                {"name": "update()", "purpose": "Update mesh (pure virtual)"},
+                {"name": "mapFields()", "purpose": "Map solution fields to new mesh"},
+                {"name": "setRefinement()", "purpose": "Apply refinement pattern"}
+            ],
+            "inheritance": "dynamicFvMesh ← fvMesh ← polyMesh"
+        },
+        {
+            "class": "hexRef8",
+            "header": "src/dynamicMesh/polyTopoChange/polyTopoChange/hexRef/hexRef8.H",
+            "purpose": "8:1 hex refinement (1 parent → 8 children)",
+            "key_members": [
+                {"name": "cellLevel_", "type": "labelList", "purpose": "Refinement level for each cell"},
+                {"name": "pointLevel_", "type": "labelList", "purpose": "Refinement level for each point"},
+                {"name": "history_", "type": "refinementHistory", "purpose": "Track parent-child relationships"}
+            ],
+            "key_methods": [
+                {"name": "setRefinement()", "purpose": "Refine selected cells"},
+                {"name": "consistentRefinement()", "purpose": "Ensure 2:1 balance (no hanging nodes)"},
+                {"name": "unrefine()", "purpose": "Coarsen selected cells"}
+            ],
+            "warning": "ต้อง maintain 2:1 balance เพื่อรักษา mesh validity"
+        }
+    ],
+
+    "implementation_skeleton": {
+        "classes": [
+            {
+                "name": "MeshQualityChecker",
+                "responsibility": "Calculate and report mesh quality metrics",
+                "key_methods": [
+                    {"name": "calculateSkewness()", "purpose": "Calculate cell skewness"},
+                    {"name": "calculateAspectRatio()", "purpose": "Calculate cell aspect ratio"},
+                    {"name": "calculateNonOrthogonality()", "purpose": "Calculate face non-orthogonality"},
+                    {"name": "generateReport()", "purpose": "Generate quality report with statistics"}
+                ],
+                "critical_implementation": "ต้อง handle polyhedral cells (ไม่ใช่แค่ hex/tet)"
+            },
+            {
+                "name": "DynamicRefiner",
+                "responsibility": "Dynamic mesh refinement based on field criteria",
+                "key_methods": [
+                    {"name": "markRefinementCells()", "purpose": "Mark cells for refinement based on criteria"},
+                    {"name": "applyRefinement()", "purpose": "Apply refinement with 2:1 balance"},
+                    {"name": "mapSolutionFields()", "purpose": "Map U, p, T, alpha to new mesh"},
+                    {"name": "enforceMaxLevel()", "purpose": "Prevent over-refinement"}
+                ],
+                "critical_implementation": "Field mapping ต้อง conservative โดยเฉพาะ alpha (VOF)"
+            },
+            {
+                "name": "RefinementCriterion",
+                "responsibility": "Base class for refinement criteria",
+                "key_methods": [
+                    {"name": "mark()", "purpose": "Mark cells for refinement (pure virtual)"},
+                    {"name": "update()", "purpose": "Update criteria based on current fields"}
+                ],
+                "inheritance": [
+                    {"class": "GradientCriterion", "purpose": "Refine based on field gradients"},
+                    {"class": "InterfaceCriterion", "purpose": "Refine near alpha interface"},
+                    {"class": "CurvatureCriterion", "purpose": "Refine based on interface curvature"}
+                ]
+            }
+        ],
+        "algorithm_steps": [
+            "1. Solve equations for one time step → U, p, T, alpha",
+            "2. Calculate refinement criteria:",
+            "   - Gradient of U, T",
+            "   - Alpha interface (0.01 < alpha < 0.99)",
+            "   - Interface curvature (if enabled)",
+            "3. Mark cells for refinement (add buffer layers)",
+            "4. Check 2:1 balance and adjust",
+            "5. Apply refinement using hexRef8",
+            "6. Map solution fields to new mesh:",
+            "   - U, p, T: volume-weighted averaging",
+            "   - alpha: conservative mapping (preserve integral)",
+            "7. Update mesh-dependent quantities:",
+            "   - phi (face fluxes)",
+            "   - grad schemes",
+            "8. Continue to next time step"
+        ]
+    },
+
+    "concept_checks": [
+        {
+            "question": "ทำไมต้อง maintain 2:1 balance ใน mesh refinement?",
+            "answer_key_points": [
+                "ป้องกัน hanging nodes (face ที่มีมากกว่า 2 neighboring cells)",
+                "รักษา mesh validity สำหรับ finite volume discretization",
+                "ทำให้ matrix stencil มี consistency",
+                "อนุญาตให้ใช้ standard interpolation schemes ได้"
+            ],
+            "implementation_note": "ใน DynamicRefiner::applyRefinement() เรียก hexRef8::consistentRefinement()"
+        },
+        {
+            "question": "การ map field หลัง refinement ต้องระวังอะไรเป็นพิเศษสำหรับ VOF (alpha)?",
+            "answer_key_points": [
+                "ต้อง conservative: ∫α dV ก่อนและหลัง refinement ต้องเท่ากัน",
+                "Interface sharpness ต้องไม่สูญหาย (no smearing)",
+                "Bounds preservation: 0 ≤ α ≤ 1",
+                "ใช้ volume-weighted averaging สำหรับ internal cells",
+                "ใช้ face interpolation สำหรับ boundary conditions"
+            ],
+            "implementation_note": "ใน DynamicRefiner::mapSolutionFields() ใช้ special VOF mapper"
+        }
+    ],
+
+    "pitfalls": [
+        {
+            "symptom": "Solver diverges after refinement",
+            "cause": "Field mapping ไม่ conservative โดยเฉพาะ phi (face fluxes)",
+            "fix": "Reconstruct phi จาก U หลัง refinement: phi = (U · S_f)"
+        },
+        {
+            "symptom": "Interface smears หลัง refinement",
+            "cause": "Linear interpolation ของ alpha ทำให้ diffuse",
+            "fix": "ใช้ PLIC (Piecewise Linear Interface Calculation) หรือ donor-acceptor scheme"
+        },
+        {
+            "symptom": "Mesh quality deteriorates หลังหลาย refinement cycles",
+            "cause": "Skewness และ non-orthogonality สะสม",
+            "fix": "Apply mesh smoothing หรือ limit maximum refinement level"
+        }
+    ],
+
+    "connections": {
+        "previous_day": "Day 15: Mesh Generation (blockMesh, snappyHexMesh)",
+        "next_day": "Day 17: Parallel Computing (Domain Decomposition)",
+        "key_link": "Mesh refinement สร้าง load imbalance → ต้อง rebalance ใน Day 17"
+    }
+}

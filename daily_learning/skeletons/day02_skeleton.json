@@ -1,227 +1,214 @@
+```json
 {
-    "day": "02",
-    "title": "Finite Volume Method Basics",
-    "date": "2026-01-06",
-    "difficulty": "hardcore",
-    "learning_objectives": [
-        {
-            "verb": "Implement",
-            "topic": "Gauss Divergence Theorem",
-            "equation": "∫_V ∇·F dV = ∮_S F·n dS",
-            "importance": "หัวใจของ FVM - เปลี่ยน volume integral เป็น surface flux"
-        },
-        {
-            "verb": "คำนวณ (Calculate)",
-            "topic": "Face Geometry & Interpolation",
-            "details": "Face area vector (Sf), Face center (Cf), Linear interpolation (fx)"
-        },
-        {
-            "verb": "เข้าใจ (Understand)",
-            "topic": "Owner-Neighbour Addressing",
-            "challenge": "LDU Matrix assembly จาก face list"
-        }
-    ],
-    "theory_sections": [
-        {
-            "id": "2.1",
-            "title_en": "Integral Form of Conservation Laws",
-            "title_th": "กฎการอนุรักษ์ในรูปแบบอินทิกรัล",
-            "equations": [
-                {
-                    "name": "General Transport Equation",
-                    "latex": "\\frac{\\partial}{\\partial t} \\int_V \\rho \\phi dV + \\oint_S \\rho \\phi \\mathbf{U} \\cdot d\\mathbf{S} = \\oint_S \\Gamma \\nabla \\phi \\cdot d\\mathbf{S} + \\int_V S_\\phi dV",
-                    "explanation": "Rate of change + Convection = Diffusion + Source"
-                }
-            ],
-            "warning": "FVM แก้สมการนี้โดยตรง ไม่ใช่ differential form ทำให้ conserve mass/momentum ได้ดีกว่า FDM"
-        },
-        {
-            "id": "2.2",
-            "title_en": "Gauss Divergence Theorem",
-            "title_th": "ทฤษฎีบทการลู่ออกของเกาส์",
-            "equations": [
-                {
-                    "name": "Divergence to Surface Flux",
-                    "latex": "\\int_V \\nabla \\cdot \\mathbf{F} dV = \\oint_S \\mathbf{F} \\cdot d\\mathbf{S} \\approx \\sum_f \\mathbf{F}_f \\cdot \\mathbf{S}_f",
-                    "explanation": "ผลรวมของ Flux ที่ไหลผ่านทุกหน้าของ Cell"
-                },
-                {
-                    "name": "Gradient to Surface Integral",
-                    "latex": "\\int_V \\nabla \\phi dV = \\oint_S \\phi d\\mathbf{S} \\approx \\sum_f \\phi_f \\mathbf{S}_f",
-                    "explanation": "ใช้คำนวณ Gradient ที่ Cell Center"
-                }
-            ],
-            "variables": [
-                {
-                    "symbol": "S_f",
-                    "name": "Face Area Vector",
-                    "unit": "m²",
-                    "note": "Magnitude = area, Direction = normal outward"
-                },
-                {
-                    "symbol": "F_f",
-                    "name": "Face Flux",
-                    "unit": "varies"
-                }
-            ]
-        },
-        {
-            "id": "2.3",
-            "title_en": "Interpolation Schemes",
-            "title_th": "การประมาณค่าที่หน้า (Interpolation)",
-            "equations": [
-                {
-                    "name": "Linear Interpolation (Central)",
-                    "latex": "\\phi_f = f_x \\phi_P + (1-f_x) \\phi_N",
-                    "explanation": "Second-order accuracy but unbounded (oscillates)"
-                },
-                {
-                    "name": "Upwind Interpolation",
-                    "latex": "\\phi_f = \\phi_P \\text{ if } F \\ge 0 \\text{ else } \\phi_N",
-                    "explanation": "First-order, bounded, stable but diffusive"
-                }
-            ]
-        },
-        {
-            "id": "2.4",
-            "title_en": "Owner-Neighbour Addressing",
-            "title_th": "การกำหนดเจ้าของและเพื่อนบ้าน",
-            "equations": [
-                {
-                    "name": "Flux across internal face",
-                    "latex": "F_f = \\mathbf{U}_f \\cdot \\mathbf{S}_f",
-                    "explanation": "Computed using face-interpolated velocity and face-area vector"
-                },
-                {
-                    "name": "Conservation across face",
-                    "latex": "F_f^{owner} = - F_f^{neighbour}",
-                    "explanation": "Flux leaving owner equals flux entering neighbour (sign convention)"
-                }
-            ]
-        }
-    ],
-    "openfoam_analysis": [
-        {
-            "class": "fvMesh",
-            "header": "src/finiteVolume/fvMesh/fvMesh.H",
-            "purpose": "เก็บข้อมูล Grid และ Geometry ทั้งหมด",
-            "key_members": [
-                {
-                    "name": "V()",
-                    "type": "scalarField",
-                    "purpose": "Cell volumes"
-                },
-                {
-                    "name": "Sf()",
-                    "type": "vectorField",
-                    "purpose": "Face area vectors"
-                },
-                {
-                    "name": "C()",
-                    "type": "vectorField",
-                    "purpose": "Cell centers"
-                },
-                {
-                    "name": "Cf()",
-                    "type": "vectorField",
-                    "purpose": "Face centers"
-                },
-                {
-                    "name": "owner()",
-                    "type": "labelList",
-                    "purpose": "Index of owner cell for each face"
-                },
-                {
-                    "name": "neighbour()",
-                    "type": "labelList",
-                    "purpose": "Index of neighbour cell for each face"
-                }
-            ],
-            "usage_example": "const surfaceVectorField& Sf = mesh.Sf();"
-        },
-        {
-            "class": "surfaceInterpolation",
-            "header": "src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolation.H",
-            "purpose": "Class แม่ของ interpolation schemes (linear, upwind)",
-            "key_methods": [
-                {
-                    "name": "interpolate()",
-                    "purpose": "Interpolate volField to surfaceField"
-                },
-                {
-                    "name": "weights()",
-                    "purpose": "Calculate geometric weights (fx)"
-                }
-            ]
-        }
-    ],
-    "implementation_skeleton": {
-        "classes": [
-            {
-                "name": "FiniteVolume",
-                "methods": [
-                    {
-                        "name": "calculateGeometricProps()",
-                        "purpose": "Compute V, Sf, C, Cf from points/faces"
-                    },
-                    {
-                        "name": "div()",
-                        "purpose": "Discrete divergence operator (Gauss)"
-                    },
-                    {
-                        "name": "grad()",
-                        "purpose": "Discrete gradient operator (Gauss)"
-                    },
-                    {
-                        "name": "interpolate()",
-                        "purpose": "Linear interpolation P -> f"
-                    }
-                ],
-                "critical_implementation": "Loops over faces NOT cells for flux calculation (Efficiency)"
-            }
-        ],
-        "algorithm_steps": [
-            "1. Loop over all faces",
-            "2. Calc flux F = U_f . S_f",
-            "3. Add F to Owner cell source/matrix",
-            "4. Subtract F from Neighbour cell source/matrix",
-            "5. Handle boundary faces"
-        ]
+  "learning_objectives": [
+    "Understand the mathematical foundation of Gauss's Divergence Theorem in finite volume discretization",
+    "Analyze the fvMesh class structure and its role in storing geometric properties (cell volumes, face areas, centers)",
+    "Examine Gauss discretization schemes for divergence, gradient, and Laplacian operators",
+    "Comprehend owner-neighbor addressing and LDU storage format for unstructured meshes",
+    "Implement basic control volume flux calculations using face interpolation",
+    "Connect mathematical formulations to OpenFOAM's C++ implementation patterns"
+  ],
+  "theory_sections": {
+    "gauss_divergence_theorem": {
+      "equation": "∫_V ∇·φ dV = ∮_∂V φ·dS ≈ Σ_f φ_f·S_f",
+      "description": "Fundamental theorem converting volume integral of divergence to surface integral of fluxes",
+      "discretization": "Second-order approximation using face-interpolated values",
+      "application": "Mass conservation (∇·U), convection terms (∇·(Uφ))"
     },
-    "concept_checks": [
-        {
-            "question": "ทำไม OpenFOAM ถึง loop over faces แทนที่จะ loop over cells ในการสร้าง Matrix?",
-            "answer_key_points": [
-                "Each internal face connect ONLY 2 cells (Owner/Neighbour)",
-                "Computing flux once per face ensures exact conservation (F_out_A = F_in_B)",
-                "More efficient: N_faces approx 3 * N_cells (for hex mesh)",
-                "Avoids double calculation"
-            ]
-        },
-        {
-            "question": "Gauss Theorem แปลง Volume Integral เป็นอะไร?",
-            "answer_key_points": [
-                "Surface Integral (Closed loop)",
-                "Summation of fluxes over all faces of the cell",
-                "Basis of Finite Volume discretization"
-            ]
-        }
-    ],
-    "pitfalls": [
-        {
-            "symptom": "Flux imbalance (net mass gain/loss)",
-            "cause": "Incorrect sign of S_f for boundary faces หรือการ interpolate phi ผิด",
-            "fix": "ตรวจสอบว่า boundary Sf ชี้ outward จาก domain เสมอ"
-        },
-        {
-            "symptom": "Oscillations in scalar field",
-            "cause": "Using linear interpolation (Central) for convection-dominated flow",
-            "fix": "Use Upwind or TVD schemes"
-        }
-    ],
-    "connections": {
-        "previous_day": "Day 01: Governing Equations",
-        "next_day": "Day 03: Spatial Discretization",
-        "key_link": "Geometry -> Discretization -> Schemes"
+    "control_volume_geometry": {
+      "cell_volume": "V_P - volume of polyhedral cell",
+      "face_area_vector": "S_f - vector normal to face with magnitude equal to face area",
+      "cell_center": "C_P - centroid of cell volume",
+      "face_center": "C_f - centroid of face area",
+      "owner_neighbor": "Each internal face connects two cells: owner (lower index) and neighbor (higher index)"
+    },
+    "gauss_scheme_formulation": {
+      "divergence": "∇·φ ≈ (1/V_P) Σ_f (interp(φ)_f · S_f)",
+      "gradient": "∇φ ≈ (1/V_P) Σ_f (interp(φ)_f S_f)",
+      "laplacian": "∇·(Γ∇φ) ≈ (1/V_P) Σ_f (Γ_f (∇φ)_f · S_f)",
+      "interpolation": "Face values obtained from cell-centered values using selected scheme (linear, upwind, etc.)"
+    },
+    "ldu_addressing": {
+      "format": "Lower-Diagonal-Upper storage for sparse matrices",
+      "lowerAddr": "Owner cell indices for each face",
+      "upperAddr": "Neighbor cell indices for each face",
+      "diagonal": "Coefficients for cell centers",
+      "off_diagonal": "Coefficients for face connections"
     }
+  },
+  "openfoam_analysis": {
+    "fvMesh_class": {
+      "inheritance": ["polyMesh", "lduMesh", "surfaceInterpolation"],
+      "key_data_members": {
+        "boundary_": "fvBoundaryMesh - handles patch boundary conditions",
+        "VPtr_": "Cell volumes (demand-driven)",
+        "SfPtr_": "Face area vectors",
+        "CPtr_": "Cell centers",
+        "CfPtr_": "Face centers",
+        "phiPtr_": "Face motion fluxes",
+        "lduPtr_": "Matrix addressing"
+      },
+      "geometric_properties": {
+        "computation": "Demand-driven (calculated when first accessed)",
+        "clearance": "Automatically cleared on mesh motion/topology changes",
+        "time_levels": "V0Ptr_, V00Ptr_ for old-time volumes"
+      },
+      "addressing_methods": {
+        "owner()": "Returns lowerAddr() from ldu addressing",
+        "neighbour()": "Returns upperAddr() from ldu addressing",
+        "interfaces()": "Returns boundary().interfaces() for processor coupling"
+      }
+    },
+    "gauss_schemes": {
+      "gaussDivScheme": {
+        "template_class": "template<class Type> class gaussDivScheme",
+        "inheritance": "fv::divScheme<Type>",
+        "key_method": "fvcDiv() - returns volume field of divergence",
+        "discretization": "Basic second-order using face interpolated values and Gauss theorem"
+      },
+      "gaussGrad": {
+        "template_class": "template<class Type> class gaussGrad",
+        "inheritance": "fv::gradScheme<Type>",
+        "interpolation_scheme": "tinterpScheme_ (default: linear<Type>)",
+        "key_methods": ["gradf()", "calcGrad()", "correctBoundaryConditions()"],
+        "discretization": "Second-order gradient using face interpolation and Gauss theorem"
+      },
+      "gaussLaplacianScheme": {
+        "template_class": "template<class Type, class GType> class gaussLaplacianScheme",
+        "inheritance": "fv::laplacianScheme<Type, GType>",
+        "key_methods": ["fvmLaplacian()", "fvcLaplacian()"],
+        "specializations": "Macros for scalar diffusivity (defineFvmLaplacianScalarGamma)",
+        "discretization": "Second-order using face-gradients and Gauss theorem"
+      }
+    },
+    "design_patterns": {
+      "template_metaprogramming": "Extensive use of templates for type-generic operations",
+      "runtime_type_info": "TypeName() macro for runtime scheme selection",
+      "demand_driven": "Geometric data computed only when needed",
+      "scheme_factory": "Construction from Istream for runtime selection"
+    }
+  },
+  "implementation_skeleton": {
+    "core_classes": [
+      {
+        "class_name": "ControlVolumeMesh",
+        "purpose": "Base mesh class storing topology and geometry",
+        "data_members": [
+          "points_: List<point>",
+          "cells_: List<cell>",
+          "faces_: List<face>",
+          "owner_: List<label>",
+          "neighbour_: List<label>"
+        ],
+        "methods": [
+          "calcCellVolumes(): void",
+          "calcFaceAreas(): void",
+          "calcCellCenters(): void",
+          "calcFaceCenters(): void",
+          "updateGeometry(): void"
+        ]
+      },
+      {
+        "class_name": "FiniteVolumeField",
+        "template_params": ["Type", "Mesh"],
+        "purpose": "Base class for cell-centered and face-centered fields",
+        "data_members": [
+          "internalField_: Field<Type>",
+          "boundaryField_: BoundaryField<Type>",
+          "mesh_: const Mesh&"
+        ],
+        "methods": [
+          "interpolateFace(const label facei): Type",
+          "gradient(): GeometricField<typename outerProduct<vector, Type>::type, volMesh>",
+          "divergence(): GeometricField<typename innerProduct<vector, Type>::type, volMesh>"
+        ]
+      },
+      {
+        "class_name": "GaussDivergence",
+        "template_params": ["Type"],
+        "purpose": "Compute divergence using Gauss theorem",
+        "methods": [
+          "operator()(const GeometricField<Type, volMesh>& vf): tmp<GeometricField<typename innerProduct<vector, Type>::type, volMesh>>",
+          "calculate(const GeometricField<Type, volMesh>& vf): void"
+        ],
+        "algorithm": [
+          "Loop over all internal faces",
+          "Get owner and neighbor indices",
+          "Interpolate field to face",
+          "Compute flux = interp(vf)_f · S_f",
+          "Add to owner cell, subtract from neighbor",
+          "Divide by cell volume"
+        ]
+      },
+      {
+        "class_name": "LduMatrix",
+        "purpose": "Sparse matrix in LDU format",
+        "data_members": [
+          "diag_: scalarField",
+          "upper_: scalarField",
+          "lower_: scalarField",
+          "source_: scalarField",
+          "lduAddr_: lduAddressing"
+        ],
+        "methods": [
+          "addToDiag(const label celli, const scalar value): void",
+          "addToUpper(const label facei, const scalar value): void",
+          "addToLower(const label facei, const scalar value): void",
+          "addToSource(const label celli, const scalar value): void",
+          "solve(): scalarField"
+        ]
+      }
+    ],
+    "key_algorithms": [
+      {
+        "name": "Flux Calculation",
+        "pseudocode": [
+          "for each internal face f:",
+          "  owner = owner[f], neighbor = neighbor[f]",
+          "  phi_f = interpolate(U, f) · S_f",
+          "  flux[owner] += phi_f",
+          "  flux[neighbor] -= phi_f",
+          "for each boundary face f:",
+          "  owner = owner[f]",
+          "  phi_f = boundary_value(U, f) · S_f",
+          "  flux[owner] += phi_f"
+        ]
+      },
+      {
+        "name": "Gauss Gradient Reconstruction",
+        "pseudocode": [
+          "Initialize grad = zero",
+          "for each internal face f:",
+          "  owner = owner[f], neighbor = neighbor[f]",
+          "  phi_f = 0.5*(phi[owner] + phi[neighbor])",
+          "  grad[owner] += phi_f * S_f",
+          "  grad[neighbor] -= phi_f * S_f",
+          "for each boundary face f:",
+          "  owner = owner[f]",
+          "  phi_f = boundary_value(phi, f)",
+          "  grad[owner] += phi_f * S_f",
+          "Divide each cell's grad by cell volume"
+        ]
+      }
+    ]
+  },
+  "concept_checks": [
+    {
+      "question": "Given a hexahedral cell with 6 faces, explain how the divergence of velocity ∇·U would be computed using Gauss's theorem in a finite volume context.",
+      "hint": "Consider face area vectors and interpolated velocity values at each face."
+    },
+    {
+      "question": "How does the owner-neighbor convention affect the sign of flux contributions in the discretized divergence operator?",
+      "hint": "Think about the direction of the face area vector relative to cell ownership."
+    },
+    {
+      "question": "Why does fvMesh store geometric properties (V, Sf, C, Cf) as demand-driven data, and what triggers their recalculation?",
+      "hint": "Consider mesh motion and topology changes during simulation."
+    },
+    {
+      "question": "Explain the difference between fvc::div and fvm::div in OpenFOAM, and how each relates to the Gauss divergence scheme implementation.",
+      "hint": "Think about explicit vs implicit discretization and matrix assembly."
+    }
+  ]
 }
+```

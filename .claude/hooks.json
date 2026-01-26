@@ -1,0 +1,44 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "tool == \"Write\" && tool_input.file_path matches \"\\\\.md$\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "#!/bin/bash\nif [ \"$file_path\" != \"\"\" ]; then\n  echo \"[Hook] Creating markdown: $file_path\"\nfi"
+          }
+        ]
+      },
+      {
+        "matcher": "tool == \"Bash\" && tool_input.command matches \"git commit\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "#!/bin/bash\necho \"[Hook] Checking commit message format...\"\nif ! echo \"$command\" | grep -qE \"^git commit.*-m \\\".+\\\".+\"; then\n  echo \"[Hook] ⚠️  Use: git commit -m 'title' -m 'body'\"\nfi"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "tool == \"Write\" && tool_input.file_path matches \"daily_learning.*\\\\.md$\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "#!/bin/bash\nif [ \"$file_path\" != \"\"\" ]; then\n  echo \"[Hook] Created: $file_path ($(wc -l < \"$file_path\") lines)\"\nfi"
+          }
+        ]
+      },
+      {
+        "matcher": "tool == \"Edit\" && tool_input.file_path matches \"\\\\.py$\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "#!/bin/bash\necho \"[Hook] Python file modified: $file_path\"\necho \"[Hook] Consider running: black $file_path\""
+          }
+        ]
+      }
+    ]
+  }
+}

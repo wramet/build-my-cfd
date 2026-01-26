@@ -384,8 +384,8 @@ PBiCGStab
 ```bash
 # Method 1: Count cells per processor
 for proc in processor*; do
-    cells=$(grep "nCells:" $proc/constant/polyMesh/owner | head -1 | awk '{print $2}')
-    echo "$proc: $cells cells"
+    cells=$(grep "nCells:"1$proc/constant/polyMesh/owner | head -1 | awk '{print1$2}')
+    echo "$proc:1$cells cells"
 done
 
 # Method 2: Use decomposePar -debug
@@ -402,10 +402,10 @@ Calculate the load imbalance factor:
 $$\mathcal{I} = \frac{W_{max} - W_{avg}}{W_{avg}}$$
 
 Where:
-- $W_{max}$ = Maximum cells per processor
-- $W_{avg}$ = Average cells per processor
+-1$W_{max}1= Maximum cells per processor
+-1$W_{avg}1= Average cells per processor
 
-| Imbalance $\mathcal{I}$ | Quality | Action |
+| Imbalance1$\mathcal{I}1| Quality | Action |
 |------------------------|---------|--------|
 | < 0.05 | Excellent | None needed |
 | 0.05 - 0.10 | Very Good | None needed |
@@ -486,10 +486,10 @@ Calculate parallel efficiency:
 $$E_p = \frac{S_p}{p} = \frac{T_1 / T_p}{p}$$
 
 Where:
-- $S_p$ = Speedup on $p$ processors
-- $T_1$ = Serial runtime
-- $T_p$ = Parallel runtime
-- $p$ = Number of processors
+-1$S_p1= Speedup on1$p1processors
+-1$T_11= Serial runtime
+-1$T_p1= Parallel runtime
+-1$p1= Number of processors
 
 | Efficiency | Interpretation |
 |-----------|----------------|
@@ -541,8 +541,8 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${GREEN}=== OpenFOAM Parallel Run Script ===${NC}"
-echo "Number of processors: $NP"
-echo "Solver: $SOLVER"
+echo "Number of processors:1$NP"
+echo "Solver:1$SOLVER"
 echo ""
 
 # ============================================
@@ -550,7 +550,7 @@ echo ""
 # ============================================
 echo -e "${YELLOW}[1/5] Running blockMesh...${NC}"
 blockMesh > log.blockMesh 2>&1
-if [ $? -ne 0 ]; then
+if [1$? -ne 0 ]; then
     echo -e "${RED}blockMesh failed! Check log.blockMesh${NC}"
     exit 1
 fi
@@ -561,9 +561,9 @@ checkMesh > log.checkMesh 2>&1
 # ============================================
 # Step 2: Decomposition
 # ============================================
-echo -e "${YELLOW}[2/5] Decomposing case for $NP processors...${NC}"
+echo -e "${YELLOW}[2/5] Decomposing case for1$NP processors...${NC}"
 decomposePar > log.decomposePar 2>&1
-if [ $? -ne 0 ]; then
+if [1$? -ne 0 ]; then
     echo -e "${RED}decomposePar failed! Check log.decomposePar${NC}"
     exit 1
 fi
@@ -571,9 +571,9 @@ fi
 # Check load balance
 echo "Load balance check:"
 for proc in processor*; do
-    cells=$(grep "nCells:" $proc/constant/polyMesh/owner 2>/dev/null | head -1 | awk '{print $2}')
+    cells=$(grep "nCells:"1$proc/constant/polyMesh/owner 2>/dev/null | head -1 | awk '{print1$2}')
     if [ ! -z "$cells" ]; then
-        echo "  $proc: $cells cells"
+        echo "1$proc:1$cells cells"
     fi
 done
 
@@ -585,10 +585,10 @@ echo "Log file: log.$SOLVER"
 echo "Monitor with: tail -f log.$SOLVER"
 echo ""
 
-mpirun -np $NP $SOLVER -parallel > log.$SOLVER 2>&1
+mpirun -np1$NP1$SOLVER -parallel > log.$SOLVER 2>&1
 SOLVER_EXIT=$?
 
-if [ $SOLVER_EXIT -ne 0 ]; then
+if [1$SOLVER_EXIT -ne 0 ]; then
     echo -e "${RED}Solver failed! Check log.$SOLVER${NC}"
     exit 1
 fi
@@ -598,7 +598,7 @@ fi
 # ============================================
 echo -e "${YELLOW}[4/5] Reconstructing results...${NC}"
 reconstructPar -latestTime > log.reconstructPar 2>&1
-if [ $? -ne 0 ]; then
+if [1$? -ne 0 ]; then
     echo -e "${RED}reconstructPar failed! Check log.reconstructPar${NC}"
     exit 1
 fi
@@ -639,7 +639,7 @@ NP=32 SOLVER=pimpleFoam ./parallel_run.sh
 
 1. **Start from serial case**
    ```bash
-   cd $FOAM_RUN/cavity
+   cd1$FOAM_RUN/cavity
    cp -r cavity cavity_parallel
    cd cavity_parallel
    ```
@@ -673,7 +673,7 @@ NP=32 SOLVER=pimpleFoam ./parallel_run.sh
 4. **Analyze results**
    - Compare serial vs parallel runtime
    - Check cells per processor
-   - Calculate speedup: $S_4 = T_{serial} / T_{parallel}$
+   - Calculate speedup:1$S_4 = T_{serial} / T_{parallel}$
 
 #### Expected Results
 

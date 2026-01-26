@@ -108,16 +108,16 @@ $$\varepsilon_{total} = \varepsilon_{discretization} + \varepsilon_{iteration} +
 The systematic approach for demonstrating mesh independence:
 
 1. **Create three meshes**: coarse ($h_1$), medium ($h_2$), fine ($h_3$)
-2. **Refinement ratio**: $r = h_i/h_{i+1} > 1.3$ (ideally $r = 2$)
+2. **Refinement ratio**:1$r = h_i/h_{i+1} > 1.31(ideally1$r = 2$)
 3. **Run identical settings** on each mesh
-4. **Monitor key output**: $f$ (e.g., drag coefficient, Nusselt number)
+4. **Monitor key output**:1$f1(e.g., drag coefficient, Nusselt number)
 
 แนวทางเป็นระบบในการสาธิตความไม่ขึ้นกับ mesh:
 
 1. **สร้างสาม mesh**: หยาบ ($h_1$), กลาง ($h_2$), ละเอียด ($h_3$)
-2. **อัตราการละเอียด**: $r = h_i/h_{i+1} > 1.3$ (เหมาะ $r = 2$)
+2. **อัตราการละเอียด**:1$r = h_i/h_{i+1} > 1.31(เหมาะ1$r = 2$)
 3. **รันการตั้งค่าเหมือนกัน** บนแต่ละ mesh
-4. **เฝ้าดู output หลัก**: $f$ (เช่น สัมประสิทธิ์ drag, จำนวน Nusselt)
+4. **เฝ้าดู output หลัก**:1$f1(เช่น สัมประสิทธิ์ drag, จำนวน Nusselt)
 
 ### Observed Order of Convergence  ลำดับการลู่เข้าที่สังเกตได้
 
@@ -126,18 +126,18 @@ Calculate how quickly errors decrease with refinement:
 $$p = \frac{\log\left(\frac{f_3 - f_2}{f_2 - f_1}\right)}{\log(r)}$$
 
 Where:
-- $f_1, f_2, f_3$ are solutions on fine, medium, coarse meshes
-- $r$ is the refinement ratio
-- Expected $p$: 1st order (upwind), 2nd order (linear schemes)
+-1$f_1, f_2, f_31are solutions on fine, medium, coarse meshes
+-1$r1is the refinement ratio
+- Expected1$p$: 1st order (upwind), 2nd order (linear schemes)
 
 คำนวณความเร็วในการลดลงของความคลาดเคลื่อนเมื่อละเอียดขึ้น:
 
 $$p = \frac{\log\left(\frac{f_3 - f_2}{f_2 - f_1}\right)}{\log(r)}$$
 
 โดยที่:
-- $f_1, f_2, f_3$ คือคำตอบบน mesh ละเอียด, กลาง, หยาบ
-- $r$ คืออัตราการละเอียด
-- $p$ ที่คาดหวัง: ลำดับที่ 1 (upwind), ลำดับที่ 2 (สกุลเชิงเส้น)
+-1$f_1, f_2, f_31คือคำตอบบน mesh ละเอียด, กลาง, หยาบ
+-1$r1คืออัตราการละเอียด
+-1$p1ที่คาดหวัง: ลำดับที่ 1 (upwind), ลำดับที่ 2 (สกุลเชิงเส้น)
 
 ### Richardson Extrapolation  การ Extrapolate ของ Richardson
 
@@ -166,8 +166,8 @@ $$f_{exact} \approx f_1 + \frac{f_1 - f_2}{r^p - 1}$$
 $$GCI_{fine} = F_s \frac{|f_1 - f_2|/|f_1|}{r^p - 1} \times 100\%$$
 
 Where:
-- $F_s = 1.25$ is a safety factor for 3-grid studies
-- $F_s = 3.0$ for 2-grid studies (more conservative)
+-1$F_s = 1.251is a safety factor for 3-grid studies
+-1$F_s = 3.01for 2-grid studies (more conservative)
 - **Target**: GCI < 5% for most engineering applications
 - **Excellent**: GCI < 1% for high-accuracy work
 
@@ -176,8 +176,8 @@ Where:
 $$GCI_{fine} = F_s \frac{|f_1 - f_2|/|f_1|}{r^p - 1} \times 100\%$$
 
 โดยที่:
-- $F_s = 1.25$ คือ factor ความปลอดภัยสำหรับการศึกษา 3-grid
-- $F_s = 3.0$ สำหรับการศึกษา 2-grid (อนุรักษ์นิยมมากกว่า)
+-1$F_s = 1.251คือ factor ความปลอดภัยสำหรับการศึกษา 3-grid
+-1$F_s = 3.01สำหรับการศึกษา 2-grid (อนุรักษ์นิยมมากกว่า)
 - **เป้าหมาย**: GCI < 5% สำหรับงานวิศวกรรมส่วนใหญ่
 - **ยอดเยี่ยม**: GCI < 1% สำหรับงานความแม่นยำสูง
 
@@ -191,17 +191,17 @@ When comparing CFD results with reference solutions (analytical, experimental, o
 
 | Norm | Formula สูตร | Use การใช้ |
 |------|---------|-----|
-| **$L_1$ Norm** | $\frac{\int |f - f_{ref}| dV}{\int dV}$ | Average error (global accuracy) |
-| **$L_2$ Norm** | $\sqrt{\frac{\int (f - f_{ref})^2 dV}{\int dV}}$ | RMS error (large errors penalized) |
-| **$L_\infty$ Norm** | $\max |f - f_{ref}|$ | Maximum error (local accuracy) |
+| **$L_11Norm** |1$\frac{\int |f - f_{ref}| dV}{\int dV}1| Average error (global accuracy) |
+| **$L_21Norm** |1$\sqrt{\frac{\int (f - f_{ref})^2 dV}{\int dV}}1| RMS error (large errors penalized) |
+| **$L_\infty1Norm** |1$\max |f - f_{ref}|1| Maximum error (local accuracy) |
 
 เมื่อเปรียบเทียบผลลัพธ์ CFD กับคำตอบอ้างอิง (analytical, experimental, หรือ numerical ที่ละเอียดมาก) ให้ใช้บรรทัดฐานเหล่านี้:
 
 | บรรทัดฐาน | สูตร | การใช้ |
 |------|---------|-----|
-| **$L_1$** | $\frac{\int |f - f_{ref}| dV}{\int dV}$ | ความคลาดเคลื่อนเฉลี่ย (ความแม่นยำทั่วโลก) |
-| **$L_2$** | $\sqrt{\frac{\int (f - f_{ref})^2 dV}{\int dV}}$ | ความคลาดเคลื่อน RMS (ให้น้ำหนักความคลาดเคลื่อนใหญ่) |
-| **$L_\infty$** | $\max |f - f_{ref}|$ | ความคลาดเคลื่อนสูงสุด (ความแม่นยำในเครื่อง) |
+| **$L_1$** |1$\frac{\int |f - f_{ref}| dV}{\int dV}1| ความคลาดเคลื่อนเฉลี่ย (ความแม่นยำทั่วโลก) |
+| **$L_2$** |1$\sqrt{\frac{\int (f - f_{ref})^2 dV}{\int dV}}1| ความคลาดเคลื่อน RMS (ให้น้ำหนักความคลาดเคลื่อนใหญ่) |
+| **$L_\infty$** |1$\max |f - f_{ref}|1| ความคลาดเคลื่อนสูงสุด (ความแม่นยำในเครื่อง) |
 
 ### How to Choose  วิธีเลือก
 
@@ -224,38 +224,38 @@ The dimensionless wall distance determines near-wall modeling requirements:
 $$y^+ = \frac{u_\tau y}{\nu}, \quad u_\tau = \sqrt{\frac{\tau_w}{\rho}}$$
 
 Where:
-- $u_\tau$ is friction velocity
-- $y$ is distance to the wall
-- $\nu$ is kinematic viscosity
-- $\tau_w$ is wall shear stress
+-1$u_\tau1is friction velocity
+-1$y1is distance to the wall
+-1$\nu1is kinematic viscosity
+-1$\tau_w1is wall shear stress
 
 ระยะห่างผนังไร้มิติกำหนดความต้องการของการจำลองใกล้ผนัง:
 
 $$y^+ = \frac{u_\tau y}{\nu}, \quad u_\tau = \sqrt{\frac{\tau_w}{\rho}}$$
 
 โดยที่:
-- $u_\tau$ คือความเร็วแรงเสียดทาน
-- $y$ คือระยะห่างถึงผนัง
-- $\nu$ คือความหนืดจลน์
-- $\tau_w$ คือความเค้นเสียดทานผนัง
+-1$u_\tau1คือความเร็วแรงเสียดทาน
+-1$y1คือระยะห่างถึงผนัง
+-1$\nu1คือความหนืดจลน์
+-1$\tau_w1คือความเค้นเสียดทานผนัง
 
-### $y^+$ Requirements for Different Models  ความต้องการ $y^+$ สำหรับโมเดลต่างๆ
+###1$y^+1Requirements for Different Models  ความต้องการ1$y^+1สำหรับโมเดลต่างๆ
 
-| $y^+$ Range | Region | Recommended Model |
+|1$y^+1Range | Region | Recommended Model |
 |-------------|--------|-------|
-| **< 1-5** | Viscous sublayer | Low-Re models ($k$-$\omega$ SST, low-Re $k$-$\varepsilon$) |
+| **< 1-5** | Viscous sublayer | Low-Re models ($k$-$\omega1SST, low-Re1$k$-$\varepsilon$) |
 | **5-30** | Buffer layer | **Avoid** - difficult region for all models |
-| **30-300** | Log-law region | Wall functions (standard $k$-$\varepsilon$, scalable wall functions) |
+| **30-300** | Log-law region | Wall functions (standard1$k$-$\varepsilon$, scalable wall functions) |
 | **> 300** | Outer layer | **Too coarse** - results unreliable |
 
-| ช่วง $y^+$ | บริเวณ | โมเดลที่แนะนำ |
+| ช่วง1$y^+1| บริเวณ | โมเดลที่แนะนำ |
 |-------------|--------|-------|
-| **< 1-5** | ชั้นไหลเวียนช้า | โมเดล Low-Re ($k$-$\omega$ SST, low-Re $k$-$\varepsilon$) |
+| **< 1-5** | ชั้นไหลเวียนช้า | โมเดล Low-Re ($k$-$\omega1SST, low-Re1$k$-$\varepsilon$) |
 | **5-30** | ชั้นบัฟเฟอร์ | **หลีกเลี่ยง** - บริเวณที่ยากสำหรับโมเดลทั้งหมด |
-| **30-300** | บริเวณกฎ log | Wall functions (มาตรฐาน $k$-$\varepsilon$, scalable wall functions) |
+| **30-300** | บริเวณกฎ log | Wall functions (มาตรฐาน1$k$-$\varepsilon$, scalable wall functions) |
 | **> 300** | ชั้นนอก | **หยาบเกินไป** - ผลลัพธ์ไม่น่าเชื่อถือ |
 
-### Checking $y^+$ in OpenFOAM  การตรวจสอบ $y^+$ ใน OpenFOAM
+### Checking1$y^+1in OpenFOAM  การตรวจสอบ1$y^+1ใน OpenFOAM
 
 ```bash
 # After simulation completes
@@ -275,14 +275,14 @@ functions
 
 **Result interpretation:**
 - Check `yPlus` field in post-processing directory
-- For wall-resolved: target $y^+ \approx 1$ everywhere
-- For wall functions: target $30 < y^+ < 300$
+- For wall-resolved: target1$y^+ \approx 11everywhere
+- For wall functions: target1$30 < y^+ < 300$
 - Refine near-wall mesh if outside target range
 
 **การตีความผลลัพธ์:**
 - ตรวจสอบ field `yPlus` ในไดเรกทอรี post-processing
-- สำหรับ wall-resolved: เป้าหมาย $y^+ \approx 1$ ทุกที่
-- สำหรับ wall functions: เป้าหมาย $30 < y^+ < 300$
+- สำหรับ wall-resolved: เป้าหมาย1$y^+ \approx 11ทุกที่
+- สำหรับ wall functions: เป้าหมาย1$30 < y^+ < 300$
 - ละเอียด mesh ใกล้ผนังหากอยู่นอกช่วงเป้าหมาย
 
 ---
@@ -310,36 +310,36 @@ $$RMSE = \sqrt{\frac{1}{N}\sum_{i=1}^N (y_i^{CFD} - y_i^{exp})^2}$$
 $$R^2 = 1 - \frac{\sum(y_i^{CFD} - y_i^{exp})^2}{\sum(y_i^{exp} - \bar{y}^{exp})^2}$$
 
 Where:
-- $\bar{y}^{exp}$ is the mean of experimental data
-- $R^2 = 1$ indicates perfect correlation
-- $R^2 = 0$ indicates no correlation
+-1$\bar{y}^{exp}1is the mean of experimental data
+-1$R^2 = 11indicates perfect correlation
+-1$R^2 = 01indicates no correlation
 
-**Target**: $R^2 > 0.95$ for good agreement
+**Target**:1$R^2 > 0.951for good agreement
 
 **วัดสหสัมพันธ์** ระหว่างข้อมูล CFD และการทดลอง:
 
 $$R^2 = 1 - \frac{\sum(y_i^{CFD} - y_i^{exp})^2}{\sum(y_i^{exp} - \bar{y}^{exp})^2}$$
 
 โดยที่:
-- $\bar{y}^{exp}$ คือค่าเฉลี่ยของข้อมูลการทดลอง
-- $R^2 = 1$ บ่งชี้สหสัมพันธ์สมบูรณ์
-- $R^2 = 0$ บ่งชี้ไม่มีสหสัมพันธ์
+-1$\bar{y}^{exp}1คือค่าเฉลี่ยของข้อมูลการทดลอง
+-1$R^2 = 11บ่งชี้สหสัมพันธ์สมบูรณ์
+-1$R^2 = 01บ่งชี้ไม่มีสหสัมพันธ์
 
-**เป้าหมาย**: $R^2 > 0.95$ สำหรับความตกลงที่ดี
+**เป้าหมาย**:1$R^2 > 0.951สำหรับความตกลงที่ดี
 
 ### Other Useful Metrics  มาตรอื่นที่มีประโยชน์
 
 | Metric | Formula สูตร | Application การใช้ |
 |---------|--------------|---------------------|
-| **MAE** | $\frac{1}{N}\sum|y^{CFD} - y^{exp}|$ | Less sensitive to outliers |
-| **Max Error** | $\max|y^{CFD} - y^{exp}|$ | Local accuracy check |
-| **Relative Error** | $|\frac{y^{CFD} - y^{exp}}{y^{exp}}|$ | Percentage deviation |
+| **MAE** |1$\frac{1}{N}\sum|y^{CFD} - y^{exp}|1| Less sensitive to outliers |
+| **Max Error** |1$\max|y^{CFD} - y^{exp}|1| Local accuracy check |
+| **Relative Error** |1$|\frac{y^{CFD} - y^{exp}}{y^{exp}}|1| Percentage deviation |
 
 | มาตร | สูตร | การใช้ |
 |---------|--------------|---------------------|
-| **MAE** | $\frac{1}{N}\sum|y^{CFD} - y^{exp}|$ | ไวต่อ outliers น้อยกว่า |
-| **Max Error** | $\max|y^{CFD} - y^{exp}|$ | ตรวจสอบความแม่นยำในเครื่อง |
-| **Relative Error** | $|\frac{y^{CFD} - y^{exp}}{y^{exp}}|$ | ร้อยละของความคลาดเคลื่อน |
+| **MAE** |1$\frac{1}{N}\sum|y^{CFD} - y^{exp}|1| ไวต่อ outliers น้อยกว่า |
+| **Max Error** |1$\max|y^{CFD} - y^{exp}|1| ตรวจสอบความแม่นยำในเครื่อง |
+| **Relative Error** |1$|\frac{y^{CFD} - y^{exp}}{y^{exp}}|1| ร้อยละของความคลาดเคลื่อน |
 
 ---
 
@@ -398,7 +398,7 @@ $$R^2 = 1 - \frac{\sum(y_i^{CFD} - y_i^{exp})^2}{\sum(y_i^{exp} - \bar{y}^{exp})
 | **Single mesh study** | Unknown discretization error | Always use ≥3 meshes |
 | **Non-uniform refinement** | Invalid GCI calculation | Refine all regions uniformly |
 | **Parameter tuning** | Overfitted results | Perform blind validation |
-| **Ignoring $y^+$** | Wrong turbulence behavior | Check $y^+$ for all walls |
+| **Ignoring1$y^+$** | Wrong turbulence behavior | Check1$y^+1for all walls |
 | **No uncertainty quantification** | Results not trustworthy | Always report GCI/error bounds |
 
 | ข้อผิดพลาด | ผลที่ตามมา | วิธีแก้ |
@@ -406,7 +406,7 @@ $$R^2 = 1 - \frac{\sum(y_i^{CFD} - y_i^{exp})^2}{\sum(y_i^{exp} - \bar{y}^{exp})
 | **การศึกษา mesh เดียว** | ความคลาดเคลื่อน discretization ไม่ทราบ | ใช้เสมอ ≥3 meshes |
 | **การละเอียดไม่สม่ำเสมอ** | การคำนวณ GCI ไม่ถูกต้อง | ละเอียดทุกบริเวณอย่างสม่ำเสมอ |
 | **การปรับพารามิเตอร์** | ผลลัพธ์ overfitted | ดำเนินการตรวจสอบเบื้องต้น |
-| **ละเลย $y^+$** | พฤติกรรมความปั่นผิด | ตรวจสอบ $y^+$ สำหรับผนังทั้งหมด |
+| **ละเลย1$y^+$** | พฤติกรรมความปั่นผิด | ตรวจสอบ1$y^+1สำหรับผนังทั้งหมด |
 | **ไม่มีการวัดความไม่แน่นอน** | ผลลัพธ์ไม่น่าเชื่อถือ | รายงาน GCI/ช่วงความคลาดเคลื่อนเสมอ |
 
 ---
@@ -473,14 +473,14 @@ checkMesh -allTopology -allGeometry -writeFields 'yPlus(nonDimensional)'
 1. **Verify code** with MMS if developing new models
 2. **Perform mesh study** using ≥3 systematically refined meshes
 3. **Calculate GCI** and report uncertainty bounds
-4. **Check $y^+$** and adjust mesh if needed
+4. **Check1$y^+$** and adjust mesh if needed
 5. **Validate against experiments** using blind comparison
 6. **Document everything** for reproducibility
 
 1. **ตรวจสอบโค้ด** ด้วย MMS หากพัฒนาโมเดลใหม่
 2. **ดำเนินการศึกษา mesh** โดยใช้ ≥3 meshes ที่ละเอียดอย่างเป็นระบบ
 3. **คำนวณ GCI** และรายงานช่วงความไม่แน่นอน
-4. **ตรวจสอบ $y^+$** และปรับ mesh หากจำเป็น
+4. **ตรวจสอบ1$y^+$** และปรับ mesh หากจำเป็น
 5. **ตรวจสอบกับการทดลอง** โดยใช้การเปรียบเทียบแบบตาบอด
 6. **บันทึกทุกอย่าง** สำหรับการทำซ้ำ
 
@@ -514,21 +514,21 @@ checkMesh -allTopology -allGeometry -writeFields 'yPlus(nonDimensional)'
 </details>
 
 <details>
-<summary><b>3. $y^+ \approx 1$ vs $y^+ \approx 30$ ใช้กับ model ต่างกันอย่างไร?</b></summary>
+<summary><b>3.1$y^+ \approx 11vs1$y^+ \approx 301ใช้กับ model ต่างกันอย่างไร?</b></summary>
 
-**$y^+ \approx 1$ (Wall-resolved)**:
-- Low-Re models: $k$-$\omega$ SST, low-Re $k$-$\varepsilon$
+**$y^+ \approx 11(Wall-resolved)**:
+- Low-Re models:1$k$-$\omega1SST, low-Re1$k$-$\varepsilon$
 - Resolve viscous sublayer directly
 - Mesh ละเอียดมากใกล้ผนัง
 - ค่าใช้จ่าย computational สูง
 
-**$y^+ \approx 30-300$ (Wall functions)**:
-- Standard $k$-$\varepsilon$, scalable wall functions
+**$y^+ \approx 30-3001(Wall functions)**:
+- Standard1$k$-$\varepsilon$, scalable wall functions
 - ใช้กฎ log-law
 - Mesh หยาบกว่าใกล้ผนัง
 - ประหยัด computational แต่ลดความแม่นยำใกล้ผนัง
 
-⚠️ หลีกเลี่ยงช่วง $5 < y^+ < 30$ (buffer layer)
+⚠️ หลีกเลี่ยงช่วง1$5 < y^+ < 301(buffer layer)
 </details>
 
 <details>

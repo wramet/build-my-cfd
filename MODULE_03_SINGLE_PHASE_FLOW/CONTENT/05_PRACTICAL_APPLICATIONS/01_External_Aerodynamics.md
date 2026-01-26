@@ -64,10 +64,10 @@ The dimensionless force coefficients are defined as:
 $$C_D = \frac{F_D}{0.5 \rho U_\infty^2 A}, \quad C_L = \frac{F_L}{0.5 \rho U_\infty^2 A}$$
 
 where:
-- $F_D, F_L$ = Drag and lift forces [N]
-- $\rho$ = Fluid density [kg/m³]
-- $U_\infty$ = Freestream velocity [m/s]
-- $A$ = Reference area (frontal for drag, planform for lift) [m²]
+-1$F_D, F_L1= Drag and lift forces [N]
+-1$\rho1= Fluid density [kg/m³]
+-1$U_\infty1= Freestream velocity [m/s]
+-1$A1= Reference area (frontal for drag, planform for lift) [m²]
 
 **Calculation in OpenFOAM:** Force coefficients are computed automatically using function objects (see Section 4)
 
@@ -75,8 +75,8 @@ where:
 
 $$C_p = \frac{p - p_\infty}{0.5 \rho U_\infty^2}$$
 
-- $C_p = 1$ at stagnation points
-- $C_p < 0$ in separated wake regions
+-1$C_p = 11at stagnation points
+-1$C_p < 01in separated wake regions
 - Used to identify separation and reattachment points
 
 ### Strouhal Number (Vortex Shedding)
@@ -84,8 +84,8 @@ $$C_p = \frac{p - p_\infty}{0.5 \rho U_\infty^2}$$
 $$St = \f_s D}{U_\infty}$$
 
 For circular cylinders:
-- $St \approx 0.2$ for $10^3 < Re_D < 10^5$
-- Vortex shedding frequency: $f_s = St \cdot U_\infty / D$
+-1$St \approx 0.21for1$10^3 < Re_D < 10^5$
+- Vortex shedding frequency:1$f_s = St \cdot U_\infty / D$
 
 **Implication:** Transient simulations require time step resolution of at least 20 samples per shedding cycle
 
@@ -93,7 +93,7 @@ For circular cylinders:
 
 $$Re_L = \frac{\rho U_\infty L}{\mu}$$
 
-Characteristic length $L$ varies by application:
+Characteristic length1$L1varies by application:
 - Vehicles: Wheelbase or length
 - Airfoils: Chord length
 - Cylinders: Diameter
@@ -111,7 +111,7 @@ Characteristic length $L$ varies by application:
 | Sides | 5-10L | Minimizes blockage ratio (< 3% for accuracy) |
 | Top | 5-10L | Reduces ceiling effects on flow separation |
 
-**Blockage Ratio:** $\frac{A_{object}}{A_{inlet}} < 0.03$ (3%)
+**Blockage Ratio:**1$\frac{A_{object}}{A_{inlet}} < 0.031(3%)
 
 For ground vehicles:
 - **Ground clearance:** 0.5-1.0 × vehicle height
@@ -217,18 +217,18 @@ addLayersControls
 
 | Approach | Target y+ | First Cell Height | Layers | Application |
 |----------|-----------|-------------------|--------|-------------|
-| **Wall-resolved LES** | ≈ 1 | $\Delta y_1 = \frac{y^+ \mu}{\rho u_\tau}$ | 20-30 | Fundamental research, high-fidelity |
-| **Wall-resolved RANS** | ≈ 1 | $\Delta y_1 \approx 10^{-5}$ m (air, 30 m/s) | 15-20 | Accurate separation prediction |
-| **Wall functions** | 30-300 | $\Delta y_1 \approx 10^{-3}$ m (air, 30 m/s) | 5-10 | Industrial applications, fast turnaround |
-| **Rough walls** | > 300 | > $10^{-2}$ m | 3-5 | Rough surfaces, ground vehicles |
+| **Wall-resolved LES** | ≈ 1 |1$\Delta y_1 = \frac{y^+ \mu}{\rho u_\tau}1| 20-30 | Fundamental research, high-fidelity |
+| **Wall-resolved RANS** | ≈ 1 |1$\Delta y_1 \approx 10^{-5}1m (air, 30 m/s) | 15-20 | Accurate separation prediction |
+| **Wall functions** | 30-300 |1$\Delta y_1 \approx 10^{-3}1m (air, 30 m/s) | 5-10 | Industrial applications, fast turnaround |
+| **Rough walls** | > 300 | >1$10^{-2}1m | 3-5 | Rough surfaces, ground vehicles |
 
 **First Cell Height Calculator:**
 
 $$\Delta y_1 = \frac{y^+ \mu}{\rho u_\tau}, \quad u_\tau = U_\infty \sqrt{\frac{C_f}{2}}$$
 
-For air at 30 m/s (flat plate, $C_f \approx 0.003$):
-- Wall-resolved ($y^+ = 1$): $\Delta y_1 \approx 1 \times 10^{-5}$ m = 0.01 mm
-- Wall functions ($y^+ = 100$): $\Delta y_1 \approx 1 \times 10^{-3}$ m = 1 mm
+For air at 30 m/s (flat plate,1$C_f \approx 0.003$):
+- Wall-resolved ($y^+ = 1$):1$\Delta y_1 \approx 1 \times 10^{-5}1m = 0.01 mm
+- Wall functions ($y^+ = 100$):1$\Delta y_1 \approx 1 \times 10^{-3}1m = 1 mm
 
 ---
 
@@ -589,7 +589,7 @@ relaxationFactors
 **Convergence Criteria:**
 - Residuals drop by 3-4 orders of magnitude
 - Force coefficients stabilize (ΔCd < 0.001 over 100 iterations)
-- Mass balance: $\sum \dot{m}_{in} - \sum \dot{m}_{out} < 0.1\%$
+- Mass balance:1$\sum \dot{m}_{in} - \sum \dot{m}_{out} < 0.1\%$
 
 ### 7.2 Transient Solver (pimpleFoam)
 
@@ -645,10 +645,10 @@ For Co = 0.8, Δx = 0.01 m, U = 30 m/s:
 - Δt < 0.8 × 0.01 / 30 ≈ 2.7 × 10⁻⁴ s
 
 **Vortex Shedding Resolution:**
-- Shedding period: $T_s = 1/f_s = D / (St \cdot U_\infty)$
+- Shedding period:1$T_s = 1/f_s = D / (St \cdot U_\infty)$
 - Required time steps per period: > 20
 - Example (cylinder, D = 0.1 m, St = 0.2, U = 30 m/s):
-  - $T_s$ = 0.1 / (0.2 × 30) = 0.0167 s
+  -1$T_s1= 0.1 / (0.2 × 30) = 0.0167 s
   - Δt < 0.0167 / 20 ≈ 8 × 10⁻⁴ s
 
 ### 7.3 Numerical Schemes
@@ -742,9 +742,9 @@ functions
 ```
 
 **Analysis Metrics:**
-- **Wake deficit:** $\Delta U = U_\infty - U_{wake}$ (target: < 20% at outlet)
-- **Pressure recovery:** $C_p$ should approach 0 at outlet
-- **Turbulence intensity:** $I = \sqrt{\frac{2}{3}k} / U$ in wake
+- **Wake deficit:**1$\Delta U = U_\infty - U_{wake}1(target: < 20% at outlet)
+- **Pressure recovery:**1$C_p1should approach 0 at outlet
+- **Turbulence intensity:**1$I = \sqrt{\frac{2}{3}k} / U1in wake
 
 ### 8.2 Surface Pressure Distribution
 
@@ -772,7 +772,7 @@ surfacePressure
 
 **Visualization:**
 - ParaView: `Cp` field on vehicle surface
-- Identify: High $C_p$ at stagnation, low $C_p$ in separated regions
+- Identify: High1$C_p1at stagnation, low1$C_p1in separated regions
 
 ### 8.3 Drag Decomposition
 
@@ -793,8 +793,8 @@ tail -1 postProcessing/forceCoeffs/0/forceCoeffs.dat
 ```
 
 **Percentage Calculation:**
-- Pressure drag %: $C_{D,pressure} / C_D × 100 = 0.292 / 0.315 × 100 ≈ 93\%$
-- Friction drag %: $C_{D,friction} / C_D × 100 = 0.023 / 0.315 × 100 ≈ 7\%$
+- Pressure drag %:1$C_{D,pressure} / C_D × 100 = 0.292 / 0.315 × 100 ≈ 93\%$
+- Friction drag %:1$C_{D,friction} / C_D × 100 = 0.023 / 0.315 × 100 ≈ 7\%$
 
 ### 8.4 Q-Criterion for Vortex Identification
 
@@ -1030,7 +1030,7 @@ Vortex shedding occurs due to **flow instability** in the wake:
 1. **Boundary layer separation** occurs at both sides of the cylinder (≈ 80-85° from stagnation)
 2. **Shear layers** roll up into discrete vortices due to Kelvin-Helmholtz instability
 3. **Alternate shedding** creates oscillating pressure field (low pressure on vortex-generating side)
-4. **Strouhal number** (St ≈ 0.2) relates shedding frequency to velocity and diameter: $f_s = St \cdot U_\infty / D$
+4. **Strouhal number** (St ≈ 0.2) relates shedding frequency to velocity and diameter:1$f_s = St \cdot U_\infty / D$
 
 **Practical Impact:** Vortex shedding causes oscillating lift and drag forces, leading to vibration (e.g., bridge resonance, telephone wire "singing"). In OpenFOAM, resolve this with transient simulations (pimpleFoam) and Δt small enough to capture the shedding frequency.
 

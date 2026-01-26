@@ -12,7 +12,7 @@
 - ใช้ Richardson extrapolation เพื่อประมาณค่าที่แม่นยำ
 - ตรวจสอบ asymptotic range เพื่อยืนยันความถูกต้องของการวิเคราะห์
 - ประยุกต์ใช้ OpenFOAM tools สำหรับสร้างและเปรียบเทียบหลายระดับ mesh
-- กำหนดขนาดเซลล์แรกให้เหมาะสมกับ $y^+$ target ใน turbulence modeling
+- กำหนดขนาดเซลล์แรกให้เหมาะสมกับ1$y^+1target ใน turbulence modeling
 
 **After completing this section, you will be able to:**
 - Explain mesh independence concept and its importance for CFD result credibility
@@ -20,7 +20,7 @@
 - Apply Richardson extrapolation to estimate accurate values
 - Verify asymptotic range to confirm analysis validity
 - Utilize OpenFOAM tools for generating and comparing multiple mesh levels
-- Determine first cell height for target $y^+$ in turbulence modeling
+- Determine first cell height for target1$y^+1in turbulence modeling
 
 ---
 
@@ -34,17 +34,17 @@
 
 - **Discretization Error**: ความผิดพลาดจากการแบ่งโดเมนต่อเนื่องเป็นเซลล์จำกัด
 - **Grid Convergence**: สถานะที่ผลลัพธ์ลู่เข้าสู่ค่าคงที่เมื่อลดขนาดเซลล์
-- **Asymptotic Range**: ช่วงที่ error ลดลงตามสมการ $O(h^p)$ อย่างสม่ำเสมอ
+- **Asymptotic Range**: ช่วงที่ error ลดลงตามสมการ1$O(h^p)1อย่างสม่ำเสมอ
 
 ### สัญลักษณ์หลัก | Main Symbols
 
 | Symbol | หมายถึง | Meaning |
 |--------|---------|--------|
-| $h$ | ขนาด characteristic cell | Characteristic cell size |
-| $r$ | Refinement ratio ($h_{coarse}/h_{fine}$) | Refinement ratio |
-| $p$ | Observed order of accuracy | อันดับของความแม่นยำที่สังเกตได้ |
-| $f$ | Quantity of interest | ปริมาณที่สนใจ |
-| $GCI$ | Grid Convergence Index | ดัชนีการลู่เข้าของกริด |
+|1$h1| ขนาด characteristic cell | Characteristic cell size |
+|1$r1| Refinement ratio ($h_{coarse}/h_{fine}$) | Refinement ratio |
+|1$p1| Observed order of accuracy | อันดับของความแม่นยำที่สังเกตได้ |
+|1$f1| Quantity of interest | ปริมาณที่สนใจ |
+|1$GCI1| Grid Convergence Index | ดัชนีการลู่เข้าของกริด |
 
 ---
 
@@ -104,9 +104,9 @@ According to ASME V&V 20 standard, at least 3 mesh levels are required to calcul
 
 $$r = \frac{h_{coarse}}{h_{fine}} = \frac{h_1}{h_2} = \frac{h_2}{h_3}$$
 
-**Requirement:** $r > 1.3$ (ideal: $r = \sqrt{2} \approx 1.414$)
+**Requirement:**1$r > 1.31(ideal:1$r = \sqrt{2} \approx 1.414$)
 
-**หมายเหตุ**: $h$ สามารถคำนวณจาก $h = (1/N)^{1/d}$ เมื่อ $N$ = จำนวนเซลล์, $d$ = มิติ (2 หรือ 3)
+**หมายเหตุ**:1$h1สามารถคำนวณจาก1$h = (1/N)^{1/d}1เมื่อ1$N1= จำนวนเซลล์,1$d1= มิติ (2 หรือ 3)
 
 ---
 
@@ -116,9 +116,9 @@ $$r = \frac{h_{coarse}}{h_{fine}} = \frac{h_1}{h_2} = \frac{h_2}{h_3}$$
 
 $$p = \frac{\ln\left|\frac{f_3 - f_2}{f_2 - f_1}\right|}{\ln(r)}$$
 
-เมื่อ $f_1, f_2, f_3$ คือ quantity of interest บน coarse, medium, fine mesh
+เมื่อ1$f_1, f_2, f_31คือ quantity of interest บน coarse, medium, fine mesh
 
-Where $f_1, f_2, f_3$ are the quantity of interest on coarse, medium, fine meshes
+Where1$f_1, f_2, f_31are the quantity of interest on coarse, medium, fine meshes
 
 ### Step 2: Richardson Extrapolation | การประมาณค่า Richardson
 
@@ -132,13 +132,13 @@ This formula provides an estimate more accurate than the fine mesh ($O(h^{p+1})$
 
 $$GCI_{fine} = F_s \frac{|f_1 - f_2|/|f_1|}{r^p - 1} \times 100\%$$
 
-เมื่อ $F_s$ คือ safety factor:
-- $F_s = 1.25$ สำหรับ 3 grids (recommended)
-- $F_s = 3.0$ สำหรับ 2 grids (conservative)
+เมื่อ1$F_s1คือ safety factor:
+-1$F_s = 1.251สำหรับ 3 grids (recommended)
+-1$F_s = 3.01สำหรับ 2 grids (conservative)
 
-Where $F_s$ is the safety factor:
-- $F_s = 1.25$ for 3 grids (recommended)
-- $F_s = 3.0$ for 2 grids (conservative)
+Where1$F_s1is the safety factor:
+-1$F_s = 1.251for 3 grids (recommended)
+-1$F_s = 3.01for 2 grids (conservative)
 
 ### Step 4: Asymptotic Range Check | การตรวจสอบ Asymptotic Range
 
@@ -154,15 +154,15 @@ If not within this range, mesh is not refined enough or solution is not smooth
 
 ### ตัวอย่างการคำนวณ | Calculation Example
 
-**Scenario**: Drag coefficient ของทรงกลม ($D = 1$ m, $U_\infty = 10$ m/s)
+**Scenario**: Drag coefficient ของทรงกลม ($D = 11m,1$U_\infty = 101m/s)
 
-| Mesh | Cells | $h$ (m) | $C_d$ |
+| Mesh | Cells |1$h1(m) |1$C_d1|
 |------|-------|---------|-------|
 | Coarse | 50,000 | 0.020 | 1.245 |
 | Medium | 100,000 | 0.015 | 1.198 |
 | Fine | 200,000 | 0.010 | 1.187 |
 
-**Step 1**: $r = 0.020/0.015 = 1.333$
+**Step 1**:1$r = 0.020/0.015 = 1.333$
 
 **Step 2**: Order of accuracy
 $$p = \frac{\ln|1.187-1.198|/|1.198-1.245|}{\ln(1.333)} = \frac{\ln(0.234)}{\ln(1.333)} = 2.01$$
@@ -173,10 +173,10 @@ $$C_{d,exact} \approx 1.245 + \frac{1.245-1.198}{1.333^{2.01}-1} = 1.181$$
 **Step 4**: GCI
 $$GCI_{fine} = 1.25 \times \frac{|1.245-1.198|/|1.245|}{1.333^{2.01}-1} \times 100\% = 2.98\%$$
 
-**Step 5**: Asymptotic check (calculate $GCI_{coarse}$ similarly):
+**Step 5**: Asymptotic check (calculate1$GCI_{coarse}1similarly):
 $$Ratio = 0.96 \checkmark$$
 
-**ผลสรุป**: $C_d = 1.187 \pm 2.98\%$ (mesh uncertainty)
+**ผลสรุป**:1$C_d = 1.187 \pm 2.98\%1(mesh uncertainty)
 
 ---
 
@@ -261,15 +261,15 @@ for level, config in mesh_configs.items():
 ```bash
 # Run all cases (สามารถใช้ script ช่วยได้)
 for level in coarse medium fine; do
-    echo "Running $level..."
-    cd $level
+    echo "Running1$level..."
+    cd1$level
     simpleFoam > log.$level 2>&1
     cd ..
 done
 
 # หรือใช้ parallel
 for level in coarse medium fine; do
-    cd $level
+    cd1$level
     decomposePar
     mpirun -np 4 simpleFoam -parallel
     reconstructPar
@@ -355,7 +355,7 @@ grep "Cd = " coarse/postProcessing/forceCoeffsObj/0/coefficient.dat | tail -1
 # หรือ extract ค่าสุดท้าย
 for level in coarse medium fine; do
     echo -n "$level: "
-    tail -1 $level/postProcessing/forceCoeffsObj/0/coefficient.dat | awk '{print $2}'
+    tail -11$level/postProcessing/forceCoeffsObj/0/coefficient.dat | awk '{print1$2}'
 done
 ```
 
@@ -530,34 +530,34 @@ In asymptotic range:           True
 
 ---
 
-## 4. $y^+$ Requirements | ข้อกำหนด $y^+$
+## 4.1$y^+1Requirements | ข้อกำหนด1$y^+$
 
 สำหรับ turbulent flow simulations ความละเอียดของ mesh ใกล้ผนัง ($y^+$) มีผลต่อความแม่นยำของผลลัพธ์อย่างมาก
 
 For turbulent flow simulations, near-wall mesh resolution ($y^+$) significantly affects result accuracy
 
-### ความสำคัญของ $y^+$ | Why $y^+$ Matters
+### ความสำคัญของ1$y^+1| Why1$y^+1Matters
 
-$y^+$ คือ dimensionless distance จากผนัง:
+$y^+1คือ dimensionless distance จากผนัง:
 
-$y^+$ is the dimensionless distance from the wall:
+$y^+1is the dimensionless distance from the wall:
 
 $$y^+ = \frac{y \cdot u_\tau}{\nu} = \frac{y \cdot \sqrt{\tau_w/\rho}}{\nu}$$
 
 ### ข้อแนะนำตาม Turbulence Model | Recommendations by Turbulence Model
 
-| Approach | $y^+$ Range | Wall Function | OpenFOAM Type | การใช้งาน | Use Case |
+| Approach |1$y^+1Range | Wall Function | OpenFOAM Type | การใช้งาน | Use Case |
 |----------|-------------|---------------|---------------|-------------|----------|
-| **Low-Re Models** | $y^+ < 1$ | Direct resolution | `nutLowReWallFunction` | ละเอียดมาก, แพง | High accuracy, research |
-| **Wall Functions** | $30 < y^+ < 300$ | Log-law | `nutkWallFunction` | ประหยัด, พอถูง | Industrial, fast |
-| **Enhanced Wall** | $1 < y^+ < 5$ | Blended | `nutUSpaldingWallFunction` | ความแม่นยำสูง | Accurate but expensive |
-| **Buffer Zone** | $1 < y^+ < 30$ | ❌ AVOID | ❌ | ไม่ valid | Inaccurate region |
+| **Low-Re Models** |1$y^+ < 11| Direct resolution | `nutLowReWallFunction` | ละเอียดมาก, แพง | High accuracy, research |
+| **Wall Functions** |1$30 < y^+ < 3001| Log-law | `nutkWallFunction` | ประหยัด, พอถูง | Industrial, fast |
+| **Enhanced Wall** |1$1 < y^+ < 51| Blended | `nutUSpaldingWallFunction` | ความแม่นยำสูง | Accurate but expensive |
+| **Buffer Zone** |1$1 < y^+ < 301| ❌ AVOID | ❌ | ไม่ valid | Inaccurate region |
 
-**⚠️ CRITICAL**: หลีกเลี่ยงช่วง $1 < y^+ < 30$ (buffer layer) เพราะทั้ง linear law และ log-law ไม่ valid
+**⚠️ CRITICAL**: หลีกเลี่ยงช่วง1$1 < y^+ < 301(buffer layer) เพราะทั้ง linear law และ log-law ไม่ valid
 
-**⚠️ CRITICAL**: Avoid $1 < y^+ < 30$ (buffer layer) as neither linear nor log-law is valid
+**⚠️ CRITICAL**: Avoid1$1 < y^+ < 301(buffer layer) as neither linear nor log-law is valid
 
-### ตรวจสอบ $y^+$ ใน OpenFOAM | Check $y^+$ in OpenFOAM
+### ตรวจสอบ1$y^+1ใน OpenFOAM | Check1$y^+1in OpenFOAM
 
 #### Step 1: รัน Simulation ให้ Converge
 
@@ -565,7 +565,7 @@ $$y^+ = \frac{y \cdot u_\tau}{\nu} = \frac{y \cdot \sqrt{\tau_w/\rho}}{\nu}$$
 simpleFoam > log &
 ```
 
-#### Step 2: คำนวณ $y^+$
+#### Step 2: คำนวณ1$y^+$
 
 ```bash
 # คำนวณหลังจาก converge
@@ -597,9 +597,9 @@ foamCalc mag grad(U)
 
 ### คำนวณ First Cell Height | Calculate First Cell Height
 
-กำหนดขนาดเซลล์แรกให้ได้ $y^+$ ที่ต้องการ
+กำหนดขนาดเซลล์แรกให้ได้1$y^+1ที่ต้องการ
 
-Determine first cell height to achieve target $y^+$
+Determine first cell height to achieve target1$y^+$
 
 ```python
 #!/usr/bin/env python3
@@ -738,7 +738,7 @@ castellatedMeshControls
             expansionRatio 1.2;
             
             // First layer thickness
-            firstLayerThickness ${y50};  // Use calculated value
+            firstLayerThickness1${y50};  // Use calculated value
             
             // Final layer thickness
             finalLayerThickness 0.5;
@@ -840,13 +840,13 @@ addLayersControls
 | **การตีพิมพ์** | Publication | < 2% | Journal papers | บทความวิจัย |
 | **วิจัยขั้นสูง** | High-end Research | < 1% | Benchmarking | การเปรียบเทียบมาตรฐาน |
 
-### เกณฑ์ $y^+$ | $y^+$ Criteria
+### เกณฑ์1$y^+1|1$y^+1Criteria
 
-| สถานการณ์ | Situation | $y^+$ Range | การยอมรับ | Acceptance |
+| สถานการณ์ | Situation |1$y^+1Range | การยอมรับ | Acceptance |
 |-----------|-----------|-------------|-------------|-------------|
-| **Low-Re model** | Resolved turbulence | $0.2 < y^+ < 1$ | Max $y^+ < 1$ on 95% walls | 95% ของผนังมี $y^+ < 1$ |
-| **Wall functions** | High-Re model | $30 < y^+ < 300$ | Mean $y^+ = 50 \pm 20$ | เฉลี่ย $50 \pm 20$ |
-| **Avoid** | Buffer zone | $1 < y^+ < 30$ | ❌ Reject | ❌ ปฏิเสธ |
+| **Low-Re model** | Resolved turbulence |1$0.2 < y^+ < 11| Max1$y^+ < 11on 95% walls | 95% ของผนังมี1$y^+ < 11|
+| **Wall functions** | High-Re model |1$30 < y^+ < 3001| Mean1$y^+ = 50 \pm 201| เฉลี่ย1$50 \pm 201|
+| **Avoid** | Buffer zone |1$1 < y^+ < 301| ❌ Reject | ❌ ปฏิเสธ |
 
 ### Additional Checks | การตรวจสอบเพิ่มเติม
 
@@ -923,23 +923,23 @@ residuals
 
 **วิธีแก้**: ใช้อย่างน้อย 3 ระดับตามมาตรฐาน ASME V&V 20
 
-**Impact**: GCI จะมี safety factor สูงมาก ($F_s = 3.0$ vs $1.25$)
+**Impact**: GCI จะมี safety factor สูงมาก ($F_s = 3.01vs1$1.25$)
 </details>
 
 <details>
 <summary><b>2. Refinement ratio ไม่คงที่</b></summary>
 
-**ปัญหา**: $r_{12} \neq r_{23}$ ทำให้สูตร GCI ไม่ valid
+**ปัญหา**:1$r_{12} \neq r_{23}1ทำให้สูตร GCI ไม่ valid
 
-**วิธีแก้**: ใช้ refinement ratio คงที่ ($r = \sqrt{2}$ แนะนำ)
+**วิธีแก้**: ใช้ refinement ratio คงที่ ($r = \sqrt{2}1แนะนำ)
 
-**Check**: $|r_{12} - r_{23}| < 0.1$
+**Check**:1$|r_{12} - r_{23}| < 0.1$
 </details>
 
 <details>
 <summary><b>3. ไม่อยู่ใน asymptotic range</b></summary>
 
-**ปัญหา**: อัตราส่วน $GCI_{coarse}/(r^p \cdot GCI_{fine})$ ไม่อยู่ใน [0.9, 1.1]
+**ปัญหา**: อัตราส่วน1$GCI_{coarse}/(r^p \cdot GCI_{fine})1ไม่อยู่ใน [0.9, 1.1]
 
 **สาเหตุ**: Mesh ยังไม่ละเอียดพอ หรือ solution ไม่ smooth
 
@@ -961,13 +961,13 @@ residuals
 </details>
 
 <details>
-<summary><b>5. $y^+$ อยู่ใน buffer zone</b></summary>
+<summary><b>5.1$y^+1อยู่ใน buffer zone</b></summary>
 
-**ปัญหา**: $1 < y^+ < 30$ ทั้ง wall functions และ resolved turbulence ให้ผลผิดพลาด
+**ปัญหา**:1$1 < y^+ < 301ทั้ง wall functions และ resolved turbulence ให้ผลผิดพลาด
 
 **วิธีแก้**: 
-- สำหรับ wall functions: refine ให้ $y^+ > 30$
-- สำหรับ low-Re: refine ให้ $y^+ < 1$
+- สำหรับ wall functions: refine ให้1$y^+ > 30$
+- สำหรับ low-Re: refine ให้1$y^+ < 1$
 
 **Check**: `postProcess -func yPlus` หลังจาก converge
 </details>
@@ -1013,7 +1013,7 @@ residuals
 
 1. **Mesh Independence คือหัวใจของ CFD credibility** - ไม่มีค่านี้ ผลลัพธ์ไม่น่าเชื่อถือ
 2. **ASME V&V 20 เป็นมาตรฐานสากล** - ใช้ 3-grid method ด้วย GCI
-3. **$y^+$ สำคัญเท่ากับ global convergence** สำหรับ turbulent flow
+3. **$y^+1สำคัญเท่ากับ global convergence** สำหรับ turbulent flow
 4. **Asymptotic range check ไม่ต้องมีก็ได้แต่แนะนำ** - ยืนยันความ valid ของ GCI
 5. **Mesh quality เท่ากับ convergence** - coarse mesh ที่ดี > fine mesh ที่เสียหาย
 6. **บันทึกทุกอย่าง** - reproducibility คือหัวใจของวิทยาศาสตร์
@@ -1056,12 +1056,12 @@ residuals
 **คำตอบ**: 
 - 2 ระดับให้แค่ rate of change → ไม่รู้ว่า solution converge ด้วยอันดับเท่าไร
 - 3 ระดับให้คำนวณ **observed order of accuracy ($p$)** → บอกว่า solution กำลัง converge อย่างไร (p = 2 หมายถึง second-order)
-- จาก $p$ คำนวณ GCI ได้ (safety factor = 1.25 vs 3.0)
+- จาก1$p1คำนวณ GCI ได้ (safety factor = 1.25 vs 3.0)
 
 **Answer**: 
 - 2 levels → only rate of change, don't know convergence order
 - 3 levels → calculate **observed order ($p$)** → tells how solution converges (p = 2 means second-order)
-- From $p$, can calculate GCI (safety factor = 1.25 vs 3.0)
+- From1$p$, can calculate GCI (safety factor = 1.25 vs 3.0)
 </details>
 
 <details>
@@ -1069,31 +1069,31 @@ residuals
 
 **คำตอบ**: 
 - **GCI = uncertainty band** จาก discretization error
-- GCI = 2% แปลว่า true value อยู่ในช่วง $\pm 2\%$ ของค่าที่คำนวณ (95% confidence)
+- GCI = 2% แปลว่า true value อยู่ในช่วง1$\pm 2\%1ของค่าที่คำนวณ (95% confidence)
 - ค่า GCI ต่ำ = mesh independence ดี
 - มาตรฐาน: < 2% (publication), < 5% (design)
 
 **Answer**: 
 - **GCI = uncertainty band** from discretization error
-- GCI = 2% means true value is within $\pm 2\%$ of calculated value (95% confidence)
+- GCI = 2% means true value is within1$\pm 2\%1of calculated value (95% confidence)
 - Low GCI = good mesh independence
 - Standards: < 2% (publication), < 5% (design)
 </details>
 
 <details>
-<summary><b>3. ทำไม $y^+$ = 5-30 ไม่ดี? Why is y+ = 5-30 bad?</b></summary>
+<summary><b>3. ทำไม1$y^+1= 5-30 ไม่ดี? Why is y+ = 5-30 bad?</b></summary>
 
 **คำตอบ**: 
 - Buffer layer = transition zone ระหว่าง viscous sublayer ($y^+ < 5$) และ log-law region ($y^+ > 30$)
 - ทั้ง linear law ($u^+ = y^+$) และ log-law ไม่ valid ในบริเวณนี้
 - Wall functions จะให้ผลผิดพลาด และ resolved turbulence ก็ไม่ได้ประโยชน์
-- **แนะนำ**: $y^+ < 1$ (low-Re) หรือ $y^+ = 30-300$ (wall functions)
+- **แนะนำ**:1$y^+ < 11(low-Re) หรือ1$y^+ = 30-3001(wall functions)
 
 **Answer**: 
 - Buffer layer = transition zone between viscous sublayer ($y^+ < 5$) and log-law region ($y^+ > 30$)
 - Neither linear law ($u^+ = y^+$) nor log-law is valid here
 - Wall functions give wrong results, resolved turbulence gives no benefit
-- **Recommend**: $y^+ < 1$ (low-Re) or $y^+ = 30-300$ (wall functions)
+- **Recommend**:1$y^+ < 11(low-Re) or1$y^+ = 30-3001(wall functions)
 </details>
 
 <details>
@@ -1121,13 +1121,13 @@ residuals
 
 **คำตอบ**: 
 - ให้ **estimate ของ exact solution** โดยไม่ต้อง refine mesh ต่อ
-- Accuracy สูงกว่า fine mesh ($O(h^{p+1})$ vs $O(h^p)$)
+- Accuracy สูงกว่า fine mesh ($O(h^{p+1})1vs1$O(h^p)$)
 - ใช้เปรียบเทียบกับ experimental data ได้ดีกว่า
 - **ข้อจำกัด**: Valid ใน asymptotic range เท่านั้น
 
 **Answer**: 
 - Provides **estimate of exact solution** without further refinement
-- More accurate than fine mesh ($O(h^{p+1})$ vs $O(h^p)$)
+- More accurate than fine mesh ($O(h^{p+1})1vs1$O(h^p)$)
 - Better for comparison with experimental data
 - **Limitation**: Valid only in asymptotic range
 </details>

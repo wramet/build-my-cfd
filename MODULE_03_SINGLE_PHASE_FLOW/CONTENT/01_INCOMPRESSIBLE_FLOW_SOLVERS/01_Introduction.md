@@ -18,21 +18,21 @@ By the end of this section, you will be able to:
 
 $$\nabla \cdot \mathbf{u} = 0$$
 
-**Validity Criterion:** $Ma < 0.3$
+**Validity Criterion:**1$Ma < 0.3$
 
 | Mach Number | Flow Regime | Solver Type |
 |-------------|-------------|-------------|
-| $Ma < 0.3$ | Incompressible | Incompressible solvers |
-| $Ma \geq 0.3$ | Compressible | Compressible solvers |
+|1$Ma < 0.31| Incompressible | Incompressible solvers |
+|1$Ma \geq 0.31| Compressible | Compressible solvers |
 
 ### 1.2 Core Solvers Overview
 
 | Solver | Algorithm | Type | Turbulence | Time-Step | Primary Use Case |
 |--------|-----------|------|------------|-----------|------------------|
 | **simpleFoam** | SIMPLE | Steady-state | RAS | N/A | Industrial applications, turbulent flows |
-| **icoFoam** | PISO | Transient | Laminar only | Small $\Delta t$ | Transient laminar flows, educational |
-| **pisoFoam** | PISO | Transient | RAS/LES | Small $\Delta t$ | Time-accurate turbulent flows |
-| **pimpleFoam** | PIMPLE | Transient | RAS/LES | Large $\Delta t$ | Large time-step simulations |
+| **icoFoam** | PISO | Transient | Laminar only | Small1$\Delta t1| Transient laminar flows, educational |
+| **pisoFoam** | PISO | Transient | RAS/LES | Small1$\Delta t1| Time-accurate turbulent flows |
+| **pimpleFoam** | PIMPLE | Transient | RAS/LES | Large1$\Delta t1| Large time-step simulations |
 
 ### 1.3 Governing Equations
 
@@ -48,7 +48,7 @@ $$\frac{\partial \mathbf{u}}{\partial t} + \nabla \cdot (\mathbf{u}\mathbf{u}) =
 
 $$Re = \frac{UL}{\nu}$$
 
-Where $U$ is characteristic velocity, $L$ is characteristic length, and $\nu$ is kinematic viscosity.
+Where1$U1is characteristic velocity,1$L1is characteristic length, and1$\nu1is kinematic viscosity.
 
 ### 1.4 Algorithm Fundamentals
 
@@ -84,7 +84,7 @@ Where $U$ is characteristic velocity, $L$ is characteristic length, and $\nu$ is
 ### 2.2 Why Choose Incompressible Solvers?
 
 **Physical Justification:**
-- Density variations negligible for $Ma < 0.3$
+- Density variations negligible for1$Ma < 0.3$
 - Computational efficiency (simpler equations)
 - Faster convergence for low-speed applications
 - Well-validated for industrial applications
@@ -101,15 +101,15 @@ Where $U$ is characteristic velocity, $L$ is characteristic length, and $\nu$ is
 | Aspect | SIMPLE | PISO | PIMPLE |
 |--------|--------|------|--------|
 | **Under-relaxation needed?** | Yes | No | Optional |
-| **Time-step constraint** | None (pseudo-time) | $Co < 1$ | Relaxed by outer loops |
+| **Time-step constraint** | None (pseudo-time) |1$Co < 11| Relaxed by outer loops |
 | **Convergence mechanism** | Residual reduction | Time accuracy | Both |
 | **Typical use** | Steady design | Transient physics | Flexible transient |
 
 ### 2.4 Why Turbulence Modeling Matters
 
 **Physical Reality:**
-- $Re > 4000$ → Turbulent flow (pipes)
-- $Re > 10^5$ → Typically turbulent in practice
+-1$Re > 40001→ Turbulent flow (pipes)
+-1$Re > 10^51→ Typically turbulent in practice
 - Laminar solvers (icoFoam) **cannot** capture turbulent physics
 
 **Solver Support:**
@@ -146,9 +146,9 @@ flowchart TD
 ```
 
 **Decision Gates:**
-1. **Mach Number:** $Ma = U / c$ where $c$ is speed of sound
+1. **Mach Number:**1$Ma = U / c1where1$c1is speed of sound
 2. **Reynolds Number:** Determines turbulence requirement
-3. **Courant Number:** $Co = U \Delta t / \Delta x$ determines time-step constraint
+3. **Courant Number:**1$Co = U \Delta t / \Delta x1determines time-step constraint
 
 ### 3.2 Scenario-Based Selection Guide
 
@@ -156,9 +156,9 @@ flowchart TD
 |----------|-------------------|-----------|
 | Steady-state turbulent flow | `simpleFoam` | Fastest convergence, under-relaxation prevents divergence |
 | Steady-state laminar flow | `simpleFoam` or `icoFoam` | `simpleFoam` typically more robust; `icoFoam` simpler |
-| Transient laminar, small $\Delta t$ | `icoFoam` | Lightweight, no turbulence overhead |
-| Transient turbulent, small $\Delta t$ | `pisoFoam` | Time-accurate with PISO corrections |
-| Transient turbulent, large $\Delta t$ | `pimpleFoam` | Outer iterations enable stability |
+| Transient laminar, small1$\Delta t1| `icoFoam` | Lightweight, no turbulence overhead |
+| Transient turbulent, small1$\Delta t1| `pisoFoam` | Time-accurate with PISO corrections |
+| Transient turbulent, large1$\Delta t1| `pimpleFoam` | Outer iterations enable stability |
 | DES/LES simulations | `pimpleFoam` | Only solver supporting advanced turbulence models |
 
 ### 3.3 Configuring SIMPLE (simpleFoam)
@@ -351,7 +351,7 @@ checkMesh -allGeometry -allTopology
 
 ```bash
 # 1. Copy template
-cp -r $FOAM_TUTORIALS/incompressible/simpleFoam/pitzDaily myCase
+cp -r1$FOAM_TUTORIALS/incompressible/simpleFoam/pitzDaily myCase
 cd myCase
 
 # 2. Check mesh
@@ -409,48 +409,48 @@ Without under-relaxation, SIMPLE iterations would typically oscillate and diverg
 **Answer:** **No**, `icoFoam` cannot simulate turbulent flows because:
 
 1. **No turbulence model implementation:** icoFoam only solves the laminar Navier-Stokes equations
-2. **Missing turbulence equations:** No transport equations for $k$, $\omega$, $\epsilon$, etc.
+2. **Missing turbulence equations:** No transport equations for1$k$,1$\omega$,1$\epsilon$, etc.
 3. **DNS requirement:** Resolving all turbulence scales would require impractically fine meshes
 
 **Correct alternatives:**
-- `pisoFoam` for transient turbulent with small $\Delta t$
-- `pimpleFoam` for transient turbulent with large $\Delta t$
+- `pisoFoam` for transient turbulent with small1$\Delta t$
+- `pimpleFoam` for transient turbulent with large1$\Delta t$
 - `simpleFoam` for steady-state turbulent
 
-**Exception:** Direct Numerical Simulation (DNS) at very low $Re$ where flow is laminar by definition.
+**Exception:** Direct Numerical Simulation (DNS) at very low1$Re1where flow is laminar by definition.
 </details>
 
 <details>
 <summary><b>Q4: What is the physical significance of the Mach number threshold Ma < 0.3?</b></summary>
 
-**Answer:** The $Ma < 0.3$ threshold corresponds to **< 5% density variation** for air:
+**Answer:** The1$Ma < 0.31threshold corresponds to **< 5% density variation** for air:
 
 $$\frac{\Delta \rho}{\rho} \approx \frac{1}{2} Ma^2$$
 
-At $Ma = 0.3$:
-- $\Delta \rho / \rho \approx 0.5 \times 0.3^2 = 4.5\%$
+At1$Ma = 0.3$:
+-1$\Delta \rho / \rho \approx 0.5 \times 0.3^2 = 4.5\%$
 
 **Physical interpretation:**
-- Below $Ma = 0.3$: Pressure waves propagate much faster than flow → negligible compression
-- Above $Ma = 0.3$: Compressibility effects become significant → need compressible solvers
+- Below1$Ma = 0.3$: Pressure waves propagate much faster than flow → negligible compression
+- Above1$Ma = 0.3$: Compressibility effects become significant → need compressible solvers
 
 **Practical examples:**
-- Car at 100 km/h: $Ma \approx 0.08$ → incompressible ✅
-- Commercial aircraft: $Ma \approx 0.8$ → compressible ✈️
-- Water flow: $Ma \approx 0.001$ (speed of sound ~ 1500 m/s) → always incompressible 💧
+- Car at 100 km/h:1$Ma \approx 0.081→ incompressible ✅
+- Commercial aircraft:1$Ma \approx 0.81→ compressible ✈️
+- Water flow:1$Ma \approx 0.0011(speed of sound ~ 1500 m/s) → always incompressible 💧
 </details>
 
 ---
 
 ## 5. KEY TAKEAWAYS
 
-✅ **Incompressible solvers** are valid for $Ma < 0.3$ (density variations < 5%)
+✅ **Incompressible solvers** are valid for1$Ma < 0.31(density variations < 5%)
 
 ✅ **Solver selection decision tree:**
 - Steady + turbulent → `simpleFoam`
 - Steady + laminar → `simpleFoam` or `icoFoam`
-- Transient + turbulent + small $\Delta t$ → `pisoFoam`
-- Transient + turbulent + large $\Delta t$ → `pimpleFoam`
+- Transient + turbulent + small1$\Delta t1→ `pisoFoam`
+- Transient + turbulent + large1$\Delta t1→ `pimpleFoam`
 - Transient + laminar → `icoFoam`
 
 ✅ **Algorithm choice affects stability:**
@@ -465,7 +465,7 @@ At $Ma = 0.3$:
 
 ✅ **Always verify mesh quality** before simulation (non-orthogonality < 70°)
 
-✅ **Configure Courant number** appropriately: $Co < 1$ for PISO, $Co$ can exceed 1 for PIMPLE with outer corrections
+✅ **Configure Courant number** appropriately:1$Co < 11for PISO,1$Co1can exceed 1 for PIMPLE with outer corrections
 
 ---
 

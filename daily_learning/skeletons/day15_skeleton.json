@@ -1,0 +1,396 @@
+{
+    "day": "15",
+    "title": "Mesh Geometry Calculations",
+    "date": "2026-01-15",
+    "difficulty": "hardcore",
+    "learning_objectives": [
+        {
+            "verb": "เข้าใจ (Understand)",
+            "topic": "Fundamental mesh geometry quantities and their physical meaning",
+            "equation": "S_f = n_f A_f",
+            "importance": "Face area vectors are critical for flux calculations - direction matters for divergence theorem"
+        },
+        {
+            "verb": "ออกแบบ (Design)",
+            "topic": "Efficient storage and computation of mesh geometry",
+            "components": ["Cell centers", "Face centers", "Face area vectors", "Cell volumes", "Cell-to-face weights"]
+        },
+        {
+            "verb": "Implement",
+            "topic": "Non-orthogonal mesh correction algorithms",
+            "challenge": "Handling skewed meshes without numerical instability"
+        }
+    ],
+    "theory_sections": [
+        {
+            "id": "15.1",
+            "title_en": "Fundamental Mesh Geometry Quantities",
+            "title_th": "ปริมาณพื้นฐานของเมชเรขาคณิต",
+            "equations": [
+                {
+                    "name": "Face area vector",
+                    "latex": "\\mathbf{S}_f = \\mathbf{n}_f A_f",
+                    "explanation": "Vector with magnitude = face area, direction = face normal"
+                },
+                {
+                    "name": "Cell center calculation",
+                    "latex": "\\mathbf{C}_P = \\frac{1}{V_P} \\int_V \\mathbf{x} dV",
+                    "explanation": "Volume-weighted average of all points in cell"
+                },
+                {
+                    "name": "Face center calculation",
+                    "latex": "\\mathbf{C}_f = \\frac{1}{A_f} \\int_A \\mathbf{x} dA",
+                    "explanation": "Area-weighted average of all points on face"
+                },
+                {
+                    "name": "Non-orthogonal correction",
+                    "latex": "\\nabla \\phi \\cdot \\mathbf{S}_f = (\\nabla \\phi)_f \\cdot \\mathbf{S}_f + \\mathbf{k}_f \\cdot (\\nabla \\phi)_f",
+                    "explanation": "Decomposition into orthogonal and non-orthogonal components"
+                }
+            ],
+            "variables": [
+                {
+                    "symbol": "S_f",
+                    "name": "Face area vector",
+                    "unit": "m²"
+                },
+                {
+                    "symbol": "n_f",
+                    "name": "Face unit normal",
+                    "unit": "-"
+                },
+                {
+                    "symbol": "A_f",
+                    "name": "Face area magnitude",
+                    "unit": "m²"
+                },
+                {
+                    "symbol": "C_P",
+                    "name": "Cell center",
+                    "unit": "m"
+                },
+                {
+                    "symbol": "C_f",
+                    "name": "Face center",
+                    "unit": "m"
+                },
+                {
+                    "symbol": "V_P",
+                    "name": "Cell volume",
+                    "unit": "m³"
+                },
+                {
+                    "symbol": "d_{PN}",
+                    "name": "Cell-to-cell distance vector",
+                    "unit": "m"
+                }
+            ],
+            "warning": "Face area vectors must point from owner to neighbor cells - incorrect orientation breaks flux calculations"
+        },
+        {
+            "id": "15.2",
+            "title_en": "Non-Orthogonal Mesh Corrections",
+            "title_th": "การแก้ไขเมชที่ไม่ตั้งฉาก",
+            "equations": [
+                {
+                    "name": "Over-relaxed approach",
+                    "latex": "\\nabla \\phi \\cdot \\mathbf{S}_f = \\frac{\\phi_N - \\phi_P}{|\\mathbf{d}_{PN}|} \\frac{\\mathbf{S}_f \\cdot \\mathbf{d}_{PN}}{|\\mathbf{d}_{PN}|} + \\mathbf{k}_f \\cdot (\\nabla \\phi)_f",
+                    "explanation": "Decomposition into orthogonal (implicit) and non-orthogonal (explicit) parts"
+                },
+                {
+                    "name": "Non-orthogonal correction vector",
+                    "latex": "\\mathbf{k}_f = \\mathbf{S}_f - \\mathbf{d}_{PN} \\frac{\\mathbf{S}_f \\cdot \\mathbf{d}_{PN}}{|\\mathbf{d}_{PN}|^2}",
+                    "explanation": "Component of S_f perpendicular to d_PN"
+                },
+                {
+                    "name": "Skewness correction",
+                    "latex": "\\mathbf{C}_f' = \\mathbf{C}_f + (\\mathbf{C}_f - \\mathbf{C}_s) \\cdot \\frac{\\mathbf{S}_f}{A_f}",
+                    "explanation": "Corrected face center for skewed faces"
+                }
+            ],
+            "variables": [
+                {
+                    "symbol": "k_f",
+                    "name": "Non-orthogonal correction vector",
+                    "unit": "m²"
+                },
+                {
+                    "symbol": "C_s",
+                    "name": "Skewness correction point",
+                    "unit": "m"
+                },
+                {
+                    "symbol": "f_x",
+                    "name": "Interpolation weight",
+                    "unit": "-"
+                }
+            ],
+            "warning": "Non-orthogonal corrections must be limited to prevent instability - typically max 0.5-0.85"
+        }
+    ],
+    "openfoam_analysis": [
+        {
+            "class": "fvMesh",
+            "header": "src/finiteVolume/fvMesh/fvMesh.H",
+            "purpose": "Finite volume mesh with geometry calculations",
+            "key_members": [
+                {
+                    "name": "points_",
+                    "type": "pointField",
+                    "purpose": "Mesh vertices coordinates"
+                },
+                {
+                    "name": "faces_",
+                    "type": "faceList",
+                    "purpose": "Face connectivity (list of point indices)"
+                },
+                {
+                    "name": "owner_",
+                    "type": "labelList",
+                    "purpose": "Owner cell index for each face"
+                },
+                {
+                    "name": "neighbour_",
+                    "type": "labelList",
+                    "purpose": "Neighbor cell index for each internal face"
+                },
+                {
+                    "name": "C_",
+                    "type": "volVectorField",
+                    "purpose": "Cell centers"
+                },
+                {
+                    "name": "Cf_",
+                    "type": "surfaceVectorField",
+                    "purpose": "Face centers"
+                },
+                {
+                    "name": "Sf_",
+                    "type": "surfaceVectorField",
+                    "purpose": "Face area vectors"
+                },
+                {
+                    "name": "magSf_",
+                    "type": "surfaceScalarField",
+                    "purpose": "Face area magnitudes"
+                },
+                {
+                    "name": "V_",
+                    "type": "volScalarField",
+                    "purpose": "Cell volumes"
+                }
+            ],
+            "key_methods": [
+                {
+                    "name": "initMesh()",
+                    "purpose": "Initialize mesh geometry after construction"
+                },
+                {
+                    "name": "updateMesh(const mapPolyMesh&)",
+                    "purpose": "Update geometry after mesh motion/adaptation"
+                },
+                {
+                    "name": "weights()",
+                    "purpose": "Return linear interpolation weights"
+                },
+                {
+                    "name": "deltaCoeffs()",
+                    "purpose": "Return 1/|d_PN| for each face"
+                },
+                {
+                    "name": "nonOrthCorrectionVectors()",
+                    "purpose": "Return k_f vectors for non-orthogonal correction"
+                }
+            ],
+            "usage_example": "const vectorField& cellCenters = mesh.C();\nconst vectorField& faceCenters = mesh.Cf();\nconst scalarField& cellVolumes = mesh.V();"
+        },
+        {
+            "class": "primitiveMesh",
+            "header": "src/OpenFOAM/meshes/primitiveMesh/primitiveMesh.H",
+            "purpose": "Base class providing basic mesh topology and geometry",
+            "key_members": [
+                {
+                    "name": "points_",
+                    "type": "pointField",
+                    "purpose": "Mesh points"
+                },
+                {
+                    "name": "faces_",
+                    "type": "faceList",
+                    "purpose": "Faces as lists of point labels"
+                },
+                {
+                    "name": "cells_",
+                    "type": "cellList",
+                    "purpose": "Cells as lists of face labels"
+                }
+            ],
+            "key_methods": [
+                {
+                    "name": "faceCentres()",
+                    "purpose": "Calculate face centers from points"
+                },
+                {
+                    "name": "faceAreas()",
+                    "purpose": "Calculate face area vectors"
+                },
+                {
+                    "name": "cellCentres()",
+                    "purpose": "Calculate cell centers from faces"
+                },
+                {
+                    "name": "cellVolumes()",
+                    "purpose": "Calculate cell volumes"
+                }
+            ]
+        },
+        {
+            "class": "surfaceInterpolation",
+            "header": "src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolation.H",
+            "purpose": "Interpolation from cell centers to face centers",
+            "key_members": [
+                {
+                    "name": "weights_",
+                    "type": "surfaceScalarField",
+                    "purpose": "Linear interpolation weights f_x"
+                },
+                {
+                    "name": "deltaCoeffs_",
+                    "type": "surfaceScalarField",
+                    "purpose": "1/|d_PN| for gradient calculations"
+                }
+            ],
+            "key_methods": [
+                {
+                    "name": "interpolate(const GeometricField<Type, fvPatchField, volMesh>&)",
+                    "purpose": "Interpolate volField to surfaceField"
+                },
+                {
+                    "name": "makeWeights()",
+                    "purpose": "Calculate interpolation weights"
+                }
+            ]
+        }
+    ],
+    "implementation_skeleton": {
+        "classes": [
+            {
+                "name": "MeshGeometryCalculator",
+                "responsibility": "Calculate and cache all mesh geometry quantities",
+                "key_methods": [
+                    {
+                        "name": "calculateFaceGeometry()",
+                        "purpose": "Compute face centers and area vectors"
+                    },
+                    {
+                        "name": "calculateCellGeometry()",
+                        "purpose": "Compute cell centers and volumes"
+                    },
+                    {
+                        "name": "calculateWeights()",
+                        "purpose": "Compute interpolation weights f_x = |d_fN|/|d_PN|"
+                    },
+                    {
+                        "name": "calculateNonOrthogonalCorrections()",
+                        "purpose": "Compute k_f vectors for non-orthogonal meshes"
+                    },
+                    {
+                        "name": "checkMeshQuality()",
+                        "purpose": "Validate mesh orthogonality, skewness, aspect ratio"
+                    }
+                ],
+                "critical_implementation": "Face area vectors must be calculated with correct orientation (owner→neighbor) using right-hand rule with face vertices"
+            },
+            {
+                "name": "NonOrthogonalCorrector",
+                "responsibility": "Handle non-orthogonal mesh corrections in discretization",
+                "key_methods": [
+                    {
+                        "name": "correctLaplacian()",
+                        "purpose": "Apply non-orthogonal correction to laplacian terms"
+                    },
+                    {
+                        "name": "correctGradient()",
+                        "purpose": "Apply non-orthogonal correction to gradient terms"
+                    },
+                    {
+                        "name": "limitCorrection()",
+                        "purpose": "Limit correction factor to prevent instability"
+                    }
+                ]
+            }
+        ],
+        "algorithm_steps": [
+            "1. Read mesh points and connectivity from file",
+            "2. Calculate face centers: C_f = (1/A_f) ∫_A x dA (sum over triangles for polygonal faces)",
+            "3. Calculate face area vectors: S_f = ∑_triangles (1/2)(v1 × v2) for each triangular decomposition",
+            "4. Orient S_f from owner to neighbor cells",
+            "5. Calculate cell volumes: V_P = (1/3) ∑_faces (C_f · S_f) for tetrahedral decomposition",
+            "6. Calculate cell centers: C_P = (1/V_P) ∫_V x dV ≈ (1/V_P) ∑_tetrahedra V_tet * C_tet",
+            "7. Calculate interpolation weights: f_x = |C_f - C_N| / |C_P - C_N|",
+            "8. Calculate non-orthogonal correction vectors: k_f = S_f - d_PN (S_f·d_PN)/|d_PN|²",
+            "9. Calculate delta coefficients: deltaCoeffs = 1/|d_PN|",
+            "10. Cache all geometry fields for efficient access"
+        ]
+    },
+    "concept_checks": [
+        {
+            "question": "ทำไมต้องใช้ face area vector (S_f) แทนที่จะใช้แค่ face area (A_f)?",
+            "answer_key_points": [
+                "Flux calculation ใช้ dot product: φ_f = U_f · S_f",
+                "Divergence theorem: ∫_V ∇·φ dV = ∑_f φ_f · S_f",
+                "Direction ของ S_f ระบุทิศทางการไหลเข้า/ออก cell",
+                "S_f ชี้จาก owner cell ไปยัง neighbor cell เสมอ"
+            ],
+            "implementation_note": "ใน MeshGeometryCalculator::calculateFaceGeometry() line xxx"
+        },
+        {
+            "question": "Non-orthogonal correction สำคัญอย่างไรใน evaporator simulation?",
+            "answer_key_points": [
+                "Evaporator meshes มักมีความซับซ้อน (tubes, fins) → non-orthogonal",
+                "Without correction: diffusion flux คำนวณผิด → interface smearing",
+                "Over-relaxed approach: แยก orthogonal (implicit) และ non-orthogonal (explicit)",
+                "ต้อง limit correction factor ป้องกัน instability"
+            ],
+            "implementation_note": "ใน NonOrthogonalCorrector::correctLaplacian() line xxx"
+        },
+        {
+            "question": "Cell center (C_P) คำนวณอย่างไรสำหรับ polyhedral cells?",
+            "answer_key_points": [
+                "Definition: C_P = (1/V_P) ∫_V x dV (volume-weighted average)",
+                "Implementation: แบ่ง cell เป็น tetrahedra (C_f เป็น vertex)",
+                "แต่ละ tetrahedron: V_tet = (1/6)|(a-b)·(c-d)|",
+                "C_tet = centroid ของ tetrahedron",
+                "C_P ≈ (1/V_P) ∑ V_tet * C_tet"
+            ],
+            "implementation_note": "ใน MeshGeometryCalculator::calculateCellGeometry() line xxx"
+        }
+    ],
+    "pitfalls": [
+        {
+            "symptom": "Flux calculations give wrong sign",
+            "cause": "Face area vectors not oriented from owner to neighbor",
+            "fix": "Ensure S_f = ∑_triangles (1/2)(v1 × v2) with consistent vertex ordering"
+        },
+        {
+            "symptom": "Solver diverges on skewed meshes",
+            "cause": "Non-orthogonal correction too large",
+            "fix": "Implement limiter: correctionFactor = min(correction, maxCorrection)"
+        },
+        {
+            "symptom": "Mass imbalance in two-phase flow",
+            "cause": "Inaccurate cell volumes near interface",
+            "fix": "Use exact geometric calculations, not approximations"
+        },
+        {
+            "symptom": "Poor gradient reconstruction",
+            "cause": "Interpolation weights not optimal for skewed faces",
+            "fix": "Use inverse distance weighting: f_x = |d_fN|/|d_PN|"
+        }
+    ],
+    "connections": {
+        "previous_day": "Day 14: Mesh Generation Fundamentals",
+        "next_day": "Day 16: Dynamic Mesh Handling",
+        "key_link": "Today's geometry calculations → Day 16's mesh motion algorithms"
+    }
+}

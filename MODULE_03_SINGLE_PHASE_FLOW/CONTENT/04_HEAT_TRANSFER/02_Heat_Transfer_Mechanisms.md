@@ -20,9 +20,9 @@ OpenFOAM supports all three heat transfer mechanisms through different solver ca
 
 | กลไก | Governing Equation | ไฟล์ตั้งค่า | 何时重要 |
 |------|-------------------|------------|---------|
-| **Conduction** | $\mathbf{q} = -k \nabla T$ | `fvSchemes` → `laplacianSchemes` | Solids, boundary layers |
-| **Convection** | $q = h(T_s - T_\infty)$ | `fvSchemes` → `divSchemes` | Fluid flow, heat exchangers |
-| **Radiation** | $q = \varepsilon \sigma (T^4)$ | `constant/radiationProperties` | High temperatures, combustion |
+| **Conduction** |1$\mathbf{q} = -k \nabla T1| `fvSchemes` → `laplacianSchemes` | Solids, boundary layers |
+| **Convection** |1$q = h(T_s - T_\infty)1| `fvSchemes` → `divSchemes` | Fluid flow, heat exchangers |
+| **Radiation** |1$q = \varepsilon \sigma (T^4)1| `constant/radiationProperties` | High temperatures, combustion |
 
 > **📖 Cross-references:**  
 > - Fourier's Law and conduction fundamentals → [01_Energy_Equation_Fundamentals.md](01_Energy_Equation_Fundamentals.md)  
@@ -40,9 +40,9 @@ Heat conduction is described by **Fourier's Law**:
 $$\mathbf{q} = -k \nabla T$$
 
 **Physical Meaning:**
-- $\mathbf{q}$ = heat flux vector [W/m²] — energy flow per unit area
-- $k$ = thermal conductivity [W/(m·K)] — material property
-- $\nabla T$ = temperature gradient [K/m] — driving force
+-1$\mathbf{q}1= heat flux vector [W/m²] — energy flow per unit area
+-1$k1= thermal conductivity [W/(m·K)] — material property
+-1$\nabla T1= temperature gradient [K/m] — driving force
 - Negative sign → heat flows from hot to cold (opposite to gradient)
 
 **Thermal Diffusivity:**
@@ -94,13 +94,13 @@ laplacianSchemes
 
 **Material Properties Comparison:**
 
-| Material | $k$ [W/(m·K)] | $\alpha$ [m²/s] | Application |
+| Material |1$k1[W/(m·K)] |1$\alpha1[m²/s] | Application |
 |----------|---------------|-----------------|-------------|
-| Copper | 400 | $1.17 \times 10^{-4}$ | Heat exchangers |
-| Aluminum | 237 | $9.7 \times 10^{-5}$ | Heat sinks |
-| Steel | 50 | $1.4 \times 10^{-5}$ | Structural components |
-| Air | 0.026 | $2.2 \times 10^{-5}$ | Insulation (trapped) |
-| Water | 0.6 | $1.4 \times 10^{-7}$ | Liquid cooling |
+| Copper | 400 |1$1.17 \times 10^{-4}1| Heat exchangers |
+| Aluminum | 237 |1$9.7 \times 10^{-5}1| Heat sinks |
+| Steel | 50 |1$1.4 \times 10^{-5}1| Structural components |
+| Air | 0.026 |1$2.2 \times 10^{-5}1| Insulation (trapped) |
+| Water | 0.6 |1$1.4 \times 10^{-7}1| Liquid cooling |
 
 ---
 
@@ -112,10 +112,10 @@ laplacianSchemes
 $$q_w = h_c (T_w - T_\infty)$$
 
 Where:
-- $q_w$ = wall heat flux [W/m²]
-- $h_c$ = convective heat transfer coefficient [W/(m²·K)]
-- $T_w$ = wall temperature [K]
-- $T_\infty$ = bulk/fluid temperature [K]
+-1$q_w1= wall heat flux [W/m²]
+-1$h_c1= convective heat transfer coefficient [W/(m²·K)]
+-1$T_w1= wall temperature [K]
+-1$T_\infty1= bulk/fluid temperature [K]
 
 **Dimensionless Numbers:**
 
@@ -123,18 +123,18 @@ Where:
 
 | Number | Formula | Physical Meaning | Typical Range |
 |--------|---------|------------------|---------------|
-| **Reynolds** | $Re = \frac{\rho U L}{\mu}$ | Inertia / Viscous forces | $10^2 - 10^7$ |
-| **Prandtl** | $Pr = \frac{\mu c_p}{k}$ | Momentum / Thermal diffusivity | 0.7 (air) - 7000 (oils) |
-| **Nusselt** | $Nu = \frac{h L}{k}$ | Convective / Conductive heat transfer | $1 - 1000+$ |
+| **Reynolds** |1$Re = \frac{\rho U L}{\mu}1| Inertia / Viscous forces |1$10^2 - 10^71|
+| **Prandtl** |1$Pr = \frac{\mu c_p}{k}1| Momentum / Thermal diffusivity | 0.7 (air) - 7000 (oils) |
+| **Nusselt** |1$Nu = \frac{h L}{k}1| Convective / Conductive heat transfer |1$1 - 1000+1|
 
-**Empirical Correlations for $Nu$:**
+**Empirical Correlations for1$Nu$:**
 
 **Dittus-Boelter (Turbulent Flow in Pipes):**
 $$Nu = 0.023 \, Re^{0.8} \, Pr^{n}$$
-- $n = 0.4$ for heating ($T_w > T_\infty$)
-- $n = 0.3$ for cooling ($T_w < T_\infty$)
+-1$n = 0.41for heating ($T_w > T_\infty$)
+-1$n = 0.31for cooling ($T_w < T_\infty$)
 
-**Use Case:** Estimate $h$ when experimental data is unavailable:
+**Use Case:** Estimate1$h1when experimental data is unavailable:
 $$h = \frac{Nu \cdot k}{L}$$
 
 ### WHY: Natural vs Forced Convection
@@ -143,7 +143,7 @@ $$h = \frac{Nu \cdot k}{L}$$
 |--------|-------------------|-------------------|
 | **Driving Force** | External (pump, fan, blower) | Buoyancy (density differences) |
 | **Governing Parameter** | Reynolds number ($Re$) | Rayleigh number ($Ra$) |
-| **Velocity Scale** | Imposed ($U$) | $U \sim \sqrt{g \beta \Delta T L}$ |
+| **Velocity Scale** | Imposed ($U$) |1$U \sim \sqrt{g \beta \Delta T L}1|
 | **Applications** | Heat exchangers, electronics cooling, HVAC | Radiators, atmospheric flows, cooling fins |
 | **OpenFOAM Solvers** | `simpleFoam` + energy, `pimpleFoam` | `buoyantBoussinesqSimpleFoam`, `buoyantSimpleFoam` |
 
@@ -186,17 +186,17 @@ fvVectorMatrix UEqn
 ```
 
 **Boussinesq Applicability:**
-- Valid when $\Delta T / T_{ref} < 0.1$ (~10% variation)
-- For air: $\Delta T < 30$ K at room temperature
+- Valid when1$\Delta T / T_{ref} < 0.11(~10% variation)
+- For air:1$\Delta T < 301K at room temperature
 - Faster than full compressible solvers
 
-**Natural Convection Regimes (based on $Ra$):**
+**Natural Convection Regimes (based on1$Ra$):**
 
-| $Ra$ Range | Regime | Characteristics | Solver Recommendation |
+|1$Ra1Range | Regime | Characteristics | Solver Recommendation |
 |------------|--------|-----------------|----------------------|
-| $< 10^3$ | Conduction-dominated | Negligible fluid motion | `laplacianFoam` (solid approximation) |
-| $10^3 - 10^9$ | Laminar natural convection | Steady, buoyancy-driven | `buoyantBoussinesqSimpleFoam` |
-| $> 10^9$ | Turbulent natural convection | Unsteady, chaotic | `buoyantPimpleFoam` |
+|1$< 10^31| Conduction-dominated | Negligible fluid motion | `laplacianFoam` (solid approximation) |
+|1$10^3 - 10^91| Laminar natural convection | Steady, buoyancy-driven | `buoyantBoussinesqSimpleFoam` |
+|1$> 10^91| Turbulent natural convection | Unsteady, chaotic | `buoyantPimpleFoam` |
 
 ---
 
@@ -209,29 +209,29 @@ Thermal radiation is electromagnetic energy emission due to temperature:
 $$q_{rad} = \varepsilon \sigma (T_{hot}^4 - T_{cold}^4)$$
 
 **Parameters:**
-- $\sigma = 5.67 \times 10^{-8}$ W/(m²·K⁴) — Stefan-Boltzmann constant
-- $\varepsilon$ = emissivity (0 to 1) — surface property
-- $T^4$ dependence — **strong** temperature sensitivity
+-1$\sigma = 5.67 \times 10^{-8}1W/(m²·K⁴) — Stefan-Boltzmann constant
+-1$\varepsilon1= emissivity (0 to 1) — surface property
+-1$T^41dependence — **strong** temperature sensitivity
 
 **Key Insight:** Radiation increases dramatically with temperature:
-- Doubling $T$ → 16× increase in $q_{rad}$
-- $T = 300$ K → negligible
-- $T = 1500$ K → dominant mechanism
+- Doubling1$T1→ 16× increase in1$q_{rad}$
+-1$T = 3001K → negligible
+-1$T = 15001K → dominant mechanism
 
 ### WHY: When Radiation Matters
 
 | Application | Why Radiation Dominates | Temperature Range | Emissivity Examples |
 |-------------|------------------------|-------------------|-------------------|
-| **Combustion chambers** | Flames > 1500 K, soot participates | $> 1000$ K | 0.8-0.9 (soot) |
-| **Furnaces, boilers** | Large $\Delta T$, participating gases | 800 - 2000 K | 0.4-0.9 |
+| **Combustion chambers** | Flames > 1500 K, soot participates |1$> 10001K | 0.8-0.9 (soot) |
+| **Furnaces, boilers** | Large1$\Delta T$, participating gases | 800 - 2000 K | 0.4-0.9 |
 | **Solar heating** | Direct radiation source | 300 - 400 K (with source) | 0.9 (black absorber) |
-| **Electronics cooling** | Usually negligible | $< 400$ K | 0.1-0.9 (materials) |
+| **Electronics cooling** | Usually negligible |1$< 4001K | 0.1-0.9 (materials) |
 | **Spacecraft** | Vacuum → no convection | 200 - 400 K | 0.1-0.8 (surfaces) |
 
 **Rule of Thumb:**
-- Radiation significant when $T > 600$ K OR $\Delta T > 200$ K
+- Radiation significant when1$T > 6001K OR1$\Delta T > 2001K
 - In vacuum/space, radiation is the **only** heat transfer mechanism
-- With participating media (smoke, soot, CO₂, H₂O), radiation can dominate even at lower $T$
+- With participating media (smoke, soot, CO₂, H₂O), radiation can dominate even at lower1$T$
 
 ### HOW: Radiation Models in OpenFOAM
 
@@ -255,8 +255,8 @@ P1Coeffs
 $$\nabla \cdot \left( \frac{1}{3\kappa} \nabla G \right) = \kappa (4\sigma T^4 - G)$$
 
 Where:
-- $G$ = incident radiation [W/m²] — radiative energy flux
-- $\kappa$ = absorption coefficient [1/m]
+-1$G1= incident radiation [W/m²] — radiative energy flux
+-1$\kappa1= absorption coefficient [1/m]
 - P1 approximates radiation as a diffusion process
 
 **Advantages:**
@@ -293,8 +293,8 @@ viewFactorCoeffs
 
 **Physical Model:**
 - Computes geometric view factors between all surface pairs
-- Solves radiative exchange integral: $q_{i} = \sum_j F_{ij} \sigma \varepsilon (T_i^4 - T_j^4)$
-- $F_{ij}$ = view factor from surface $i$ to $j$
+- Solves radiative exchange integral:1$q_{i} = \sum_j F_{ij} \sigma \varepsilon (T_i^4 - T_j^4)$
+-1$F_{ij}1= view factor from surface1$i1to1$j$
 
 **Advantages:**
 - Accurate for surface-to-surface radiation
@@ -302,7 +302,7 @@ viewFactorCoeffs
 - Exact geometric treatment
 
 **Limitations:**
-- **Computationally expensive:** $O(N^2)$ where $N$ = number of faces
+- **Computationally expensive:**1$O(N^2)1where1$N1= number of faces
 - Long setup time (view factor calculation)
 - Not suitable for participating media
 
@@ -351,7 +351,7 @@ $$-k \frac{\partial T}{\partial n} = h (T_w - T_\infty)$$
 **Advantages of `externalWallHeatFluxTemperature`:**
 - **No external mesh needed** — avoids meshing ambient fluid
 - **Reduced computational cost** — smaller domain
-- **Empirical flexibility** — use measured $h$ or correlations
+- **Empirical flexibility** — use measured1$h1or correlations
 - **Multilayer support** — can model composite walls
 
 ### HOW: BC Implementation Examples
@@ -544,35 +544,35 @@ thermoType
 
 | Mechanism | Governing Law | Key Parameter | Dominant When | OpenFOAM Implementation |
 |-----------|---------------|---------------|---------------|------------------------|
-| **Conduction** | $\mathbf{q} = -k \nabla T$ | $k$ [W/(m·K)] | Solids, low velocity | `laplacian(DT,T)` in all solvers |
-| **Forced Convection** | $q = h(T_s - T_\infty)$ | $h$ [W/(m²·K)] | High $Re$, external flow | `div(phi,T)` + external convection BC |
-| **Natural Convection** | $\mathbf{f}_b = \rho \beta \Delta T \mathbf{g}$ | $Ra$ | Buoyancy-driven, $Ra > 10^3$ | `buoyantBoussinesqSimpleFoam` |
-| **Radiation** | $q = \varepsilon \sigma T^4$ | $\varepsilon$, $T^4$ | $T > 600$ K, participating media | `radiationModel` (P1 or viewFactor) |
+| **Conduction** |1$\mathbf{q} = -k \nabla T1|1$k1[W/(m·K)] | Solids, low velocity | `laplacian(DT,T)` in all solvers |
+| **Forced Convection** |1$q = h(T_s - T_\infty)1|1$h1[W/(m²·K)] | High1$Re$, external flow | `div(phi,T)` + external convection BC |
+| **Natural Convection** |1$\mathbf{f}_b = \rho \beta \Delta T \mathbf{g}1|1$Ra1| Buoyancy-driven,1$Ra > 10^31| `buoyantBoussinesqSimpleFoam` |
+| **Radiation** |1$q = \varepsilon \sigma T^41|1$\varepsilon$,1$T^41|1$T > 6001K, participating media | `radiationModel` (P1 or viewFactor) |
 
 ### 2. Critical Dimensionless Numbers
 
 | Number | Formula | Physical Meaning | Use For |
 |--------|---------|------------------|---------|
-| **Prandtl ($Pr$)** | $\frac{\mu c_p}{k}$ | Ratio of momentum to thermal diffusivity | Fluid property, velocity/thermal BL thickness ratio |
-| **Nusselt ($Nu$)** | $\frac{h L}{k}$ | Ratio of convective to conductive transfer | Calculating $h$ from correlations |
-| **Rayleigh ($Ra$)** | $\frac{g \beta \Delta T L^3}{\nu \alpha}$ | Ratio of buoyancy to viscous forces | Natural convection regime selection |
+| **Prandtl ($Pr$)** |1$\frac{\mu c_p}{k}1| Ratio of momentum to thermal diffusivity | Fluid property, velocity/thermal BL thickness ratio |
+| **Nusselt ($Nu$)** |1$\frac{h L}{k}1| Ratio of convective to conductive transfer | Calculating1$h1from correlations |
+| **Rayleigh ($Ra$)** |1$\frac{g \beta \Delta T L^3}{\nu \alpha}1| Ratio of buoyancy to viscous forces | Natural convection regime selection |
 
 ### 3. Implementation Checklist
 
-- [ ] **Identify dominant mechanism(s):** Conduction always present; evaluate $Re$, $Ra$, $T$ for convection/radiation
+- [ ] **Identify dominant mechanism(s):** Conduction always present; evaluate1$Re$,1$Ra$,1$T1for convection/radiation
 - [ ] **Select solver:** Use flowchart in Section 5
 - [ ] **Configure thermophysicalProperties:** Match EoS to physics (Boussinesq vs compressible)
 - [ ] **Set boundary conditions:** Use `externalWallHeatFluxTemperature` for convection
 - [ ] **Add radiation model (if needed):** P1 (participating) vs viewFactor (surface-to-surface)
-- [ ] **Validate with correlations:** Compare $Nu$ with empirical correlations (Dittus-Boelter)
+- [ ] **Validate with correlations:** Compare1$Nu1with empirical correlations (Dittus-Boelter)
 
 ### 4. Common Mistakes to Avoid
 
 | Mistake | Consequence | Solution |
 |---------|-------------|----------|
 | Using Boussinesq for large ΔT | Large errors in density → incorrect buoyancy | Switch to `buoyantSimpleFoam` for ΔT > 30 K |
-| Forgetting radiation at high T | Underpredicted heat transfer (can be >50% error) | Add `radiationModel` when $T > 600$ K |
-| Wrong $h$ value | Inaccurate BC → wrong temperature field | Calculate $h$ from $Nu$ correlations using Dittus-Boelter |
+| Forgetting radiation at high T | Underpredicted heat transfer (can be >50% error) | Add `radiationModel` when1$T > 6001K |
+| Wrong1$h1value | Inaccurate BC → wrong temperature field | Calculate1$h1from1$Nu1correlations using Dittus-Boelter |
 | Using P1 for transparent media | Overpredicted radiation | Use `viewFactor` for vacuum/air |
 | Neglecting multilayer walls | Incorrect thermal resistance | Use `thicknessLayers`, `kappaLayers` |
 
@@ -613,7 +613,7 @@ kappaLayers     (0.7 0.04);
 <details>
 <summary><b>1. เมื่อไหร่ควรใช้ Boussinesq approximation และทำไม?</b></summary>
 
-**ใช้เมื่อ:** $\Delta T / T_{ref} < 0.1$ (≈10%) หรือ $\Delta T < 30$ K สำหรับอากาศ
+**ใช้เมื่อ:**1$\Delta T / T_{ref} < 0.11(≈10%) หรือ1$\Delta T < 301K สำหรับอากาศ
 
 **ทำไม:** 
 - เร็วกว่า full compressible solver (density คงที่ → solve น้อยกว่า)
@@ -659,7 +659,7 @@ $$R_{total} = \sum \frac{L_i}{k_i} + \frac{1}{h}$$
 <details>
 <summary><b>4. ทำไม radiation มีความสำคัญมากใน high-temperature applications?</b></summary>
 
-**เพราะ:** $q_{rad} \propto T^4$ — อยู่ในรูป power 4
+**เพราะ:**1$q_{rad} \propto T^41— อยู่ในรูป power 4
 
 **Impact:**
 - T เพิ่ม 2 เท่า → q เพิ่ม **16 เท่า**
@@ -686,17 +686,17 @@ $$Nu = 0.023 \, Re^{0.8} \, Pr^{n}$$
 - ประมาณค่า Nusselt number เมื่อไม่มี experimental data
 
 **ขั้นตอนใช้:**
-1. Calculate $Re = \rho U D / \mu$
-2. Find $Pr$ from fluid properties table
-3. Compute $Nu$ using Dittus-Boelter
-4. Calculate $h = Nu \cdot k / D$
-5. Use $h$ ใน `externalWallHeatFluxTemperature` BC
+1. Calculate1$Re = \rho U D / \mu$
+2. Find1$Pr1from fluid properties table
+3. Compute1$Nu1using Dittus-Boelter
+4. Calculate1$h = Nu \cdot k / D$
+5. Use1$h1ใน `externalWallHeatFluxTemperature` BC
 
 **ตัวอย่าง:**
-- Air flowing in pipe: $Re = 10^5$, $Pr = 0.7$, heating ($n=0.4$)
-- $Nu = 0.023 \times (10^5)^{0.8} \times (0.7)^{0.4} = 230$
-- If $D = 0.05$ m, $k = 0.026$ W/(m·K):
-  - $h = 230 \times 0.026 / 0.05 = 120$ W/(m²·K)
+- Air flowing in pipe:1$Re = 10^5$,1$Pr = 0.7$, heating ($n=0.4$)
+-1$Nu = 0.023 \times (10^5)^{0.8} \times (0.7)^{0.4} = 230$
+- If1$D = 0.051m,1$k = 0.0261W/(m·K):
+  -1$h = 230 \times 0.026 / 0.05 = 1201W/(m²·K)
 </details>
 
 <details>

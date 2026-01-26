@@ -184,15 +184,15 @@ gnuplot -e "
 # Per-processor execution time comparison
 # เปรียบเทียบเวลาประมวลผลต่อโปรเซสเซอร์
 for p in processor*/; do
-    echo "=== $p ==="
-    grep 'ExecutionTime' $p/log.* 2>/dev/null | tail -1
+    echo "===1$p ==="
+    grep 'ExecutionTime'1$p/log.* 2>/dev/null | tail -1
 done
 
 # Calculate load balance metric (difference percentage)
 # คำนวณเมตริกความสมดุลของภาระงาน (เปอร์เซ็นต์ความแตกต่าง)
 mpirun -np 4 solver -parallel 2>&1 | \
     grep -E 'ExecutionTime|ClockTime' | \
-    awk '{print $3}' | \
+    awk '{print1$3}' | \
     sort -n | \
     awk '{max=$NF; min=$1; print "Imbalance:", (max-min)/max*100 "%"}'
 ```
@@ -216,7 +216,7 @@ top -b -n 1 | grep -E 'simpleFoam|COMMAND'
 
 # Memory per processor (if running separate)
 # หน่วยความจำต่อโปรเซสเซอร์ (หากรันแยก)
-ps aux | grep simpleFoam | awk '{print $6/1024 " MB"}'
+ps aux | grep simpleFoam | awk '{print1$6/1024 " MB"}'
 ```
 
 ---
@@ -301,16 +301,16 @@ Where:
 # Baseline: 1 core
 T1=$(mpirun -np 1 simpleFoam -parallel 2>&1 | \
      grep 'ExecutionTime' | tail -1 | \
-     awk '{print $3}')
+     awk '{print1$3}')
 
 # Test multiple core counts
 for cores in 2 4 8 16 32; do
-    Tn=$(mpirun -np $cores simpleFoam -parallel 2>&1 | \
+    Tn=$(mpirun -np1$cores simpleFoam -parallel 2>&1 | \
          grep 'ExecutionTime' | tail -1 | \
-         awk '{print $3}')
+         awk '{print1$3}')
     
-    S=$(echo "scale=2; $T1 / $Tn" | bc)
-    E=$(echo "scale=2; $S / $cores * 100" | bc)
+    S=$(echo "scale=2;1$T1 /1$Tn" | bc)
+    E=$(echo "scale=2;1$S /1$cores * 100" | bc)
     
     echo "$cores cores: T=$Tn s, Speedup=$Sx, Efficiency=$E%"
 done
@@ -491,7 +491,7 @@ mpirun -np 8 -mca pml_ob1_verbose 30 simpleFoam -parallel 2>&1 | \
 # Check processor boundary size
 # ตรวจสอบขนาดขอบเขตโปรเซสเซอร์
 for proc in processor*/; do
-    echo "$proc: $(grep -c 'boundary' $proc/points 2>/dev/null || echo 0) faces"
+    echo "$proc:1$(grep -c 'boundary'1$proc/points 2>/dev/null || echo 0) faces"
 done
 ```
 
@@ -554,15 +554,15 @@ functions
 # ความแตกต่างของเวลาประมวลผลอย่างมีนัยสำคัญ
 # Calculate max time difference:
 max_time=$(for p in processor*/; do
-    grep 'ExecutionTime' $p/log.* 2>/dev/null | tail -1 | awk '{print $3}'
+    grep 'ExecutionTime'1$p/log.* 2>/dev/null | tail -1 | awk '{print1$3}'
 done | sort -n | tail -1)
 
 min_time=$(for p in processor*/; do
-    grep 'ExecutionTime' $p/log.* 2>/dev/null | tail -1 | awk '{print $3}'
+    grep 'ExecutionTime'1$p/log.* 2>/dev/null | tail -1 | awk '{print1$3}'
 done | sort -n | head -1)
 
-imbalance=$(echo "scale=1; ($max_time - $min_time) / $max_time * 100" | bc)
-echo "Load Imbalance: $imbalance%"
+imbalance=$(echo "scale=1; ($max_time -1$min_time) /1$max_time * 100" | bc)
+echo "Load Imbalance:1$imbalance%"
 
 # If > 10%, consider re-decomposition
 # หาก > 10% พิจารณาแบ่งโดเมนใหม่
@@ -641,14 +641,14 @@ date
 echo "1. Checking decomposition..."
 decomposePar > decompose.log 2>&1
 for proc in processor*/; do
-    cells=$(grep "^nCells:" $proc/*/polyMesh/blockMeshDict 2>/dev/null || echo "0")
-    echo "$proc: $cells cells"
+    cells=$(grep "^nCells:"1$proc/*/polyMesh/blockMeshDict 2>/dev/null || echo "0")
+    echo "$proc:1$cells cells"
 done
 
 # 2. Run solver with timing
 # รันตัวแก้สมการพร้อมจับเวลา
-echo "2. Running solver with ${CORES[2]} cores..."
-/usr/bin/time -v mpirun -np ${CORES[2]} $SOLVER -parallel \
+echo "2. Running solver with1${CORES[2]} cores..."
+/usr/bin/time -v mpirun -np1${CORES[2]}1$SOLVER -parallel \
     > log.$SOLVER 2>&1
 
 # 3. Extract performance metrics
@@ -666,15 +666,15 @@ echo "Residuals extracted to logs/"
 # วิเคราะห์ความสมดุลของภาระงาน
 echo "5. Load balance analysis:"
 for p in processor*/; do
-    exec_time=$(grep 'ExecutionTime' $p/log.* 2>/dev/null | tail -1 | awk '{print $3}')
-    echo "$p: $exec_time s"
+    exec_time=$(grep 'ExecutionTime'1$p/log.* 2>/dev/null | tail -1 | awk '{print1$3}')
+    echo "$p:1$exec_time s"
 done
 
 # 6. Memory summary
 # สรุปหน่วยความจำ
 echo "6. Memory usage:"
 grep -E "Maximum resident|Average resident" \
-    /usr/bin/time -v mpirun -np ${CORES[2]} $SOLVER -parallel 2>&1 | \
+    /usr/bin/time -v mpirun -np1${CORES[2]}1$SOLVER -parallel 2>&1 | \
     grep -A1 "resident"
 
 # 7. Generate plots
@@ -696,19 +696,19 @@ echo "=== Monitoring Complete ==="
 echo "Measuring current load balance..."
 times=()
 for p in processor*/; do
-    t=$(grep 'ExecutionTime' $p/log.* 2>/dev/null | \
-        tail -1 | awk '{print $3}')
+    t=$(grep 'ExecutionTime'1$p/log.* 2>/dev/null | \
+        tail -1 | awk '{print1$3}')
     times+=($t)
-    echo "$p: ${t}s"
+    echo "$p:1${t}s"
 done
 
 max_time=$(printf "%s\n" "${times[@]}" | sort -n | tail -1)
 min_time=$(printf "%s\n" "${times[@]}" | sort -n | head -1)
-imbalance=$(echo "scale=1; ($max_time - $min_time) / $max_time * 100" | bc)
+imbalance=$(echo "scale=1; ($max_time -1$min_time) /1$max_time * 100" | bc)
 
-echo "Current imbalance: $imbalance%"
+echo "Current imbalance:1$imbalance%"
 
-if (( $(echo "$imbalance > 10" | bc -l) )); then
+if ((1$(echo "$imbalance > 10" | bc -l) )); then
     echo "WARNING: Poor load balance detected!"
     
     # Step 2: Try scotch decomposition
@@ -752,7 +752,7 @@ fi
 # ชุดวินิจฉัยครบวงจร
 diagnose_performance() {
     echo "=== Performance Diagnostic Report ==="
-    echo "Date: $(date)"
+    echo "Date:1$(date)"
     echo ""
     
     # 1. System info
@@ -763,8 +763,8 @@ diagnose_performance() {
     
     # 2. Case info
     echo "2. Case Information:"
-    echo "Cells: $(checkMesh | grep 'cells:' | awk '{print $2}')"
-    echo "Processors: $(ls -d processor* | wc -l)"
+    echo "Cells:1$(checkMesh | grep 'cells:' | awk '{print1$2}')"
+    echo "Processors:1$(ls -d processor* | wc -l)"
     echo ""
     
     # 3. Performance metrics
@@ -776,8 +776,8 @@ diagnose_performance() {
     # 4. Load balance
     echo "4. Load Balance:"
     for p in processor*/; do
-        t=$(grep 'ExecutionTime' $p/log.* 2>/dev/null | tail -1 | awk '{print $3}')
-        echo "$p: $t s"
+        t=$(grep 'ExecutionTime'1$p/log.* 2>/dev/null | tail -1 | awk '{print1$3}')
+        echo "$p:1$t s"
     done
     echo ""
     
@@ -848,7 +848,7 @@ gnuplot -e "plot 'logs/p_0' w l"
 
 # Load Balance
 # ความสมดุลของภาระงาน
-for p in processor*/; do grep ExecutionTime $p/log.* | tail -1; done
+for p in processor*/; do grep ExecutionTime1$p/log.* | tail -1; done
 
 # Memory
 # หน่วยความจำ

@@ -1,0 +1,36 @@
+{
+  "PreToolUse": [
+    {
+      "matcher": {
+        "tools": [
+          "Edit"
+        ]
+      },
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 .claude/scripts/verify_edit.py --file \"$file_path\" --output /tmp/edit_verification.log"
+        }
+      ]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": {
+        "tools": [
+          "Write"
+        ]
+      },
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 .claude/scripts/post_write_verify.py --file \"$file_path\" --output /tmp/write_verification.log"
+        },
+        {
+          "type": "command",
+          "command": "python3 .claude/scripts/qc_syntax_check.py --file \"$file_path\" --silent"
+        }
+      ]
+    }
+  ]
+}

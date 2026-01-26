@@ -901,9 +901,9 @@ mpirun -np 4 solver -parallel > log.testB 2>&1
 mpirun -np 4 solver -parallel > log.testC 2>&1
 
 # Compare results
-echo "Baseline:" $(grep "ExecutionTime" log.baseline | tail -1 | awk '{print $3}')
-echo "Test A:" $(grep "ExecutionTime" log.testA | tail -1 | awk '{print $3}')
-echo "Test B:" $(grep "ExecutionTime" log.testB | tail -1 | awk '{print $3}')
+echo "Baseline:"1$(grep "ExecutionTime" log.baseline | tail -1 | awk '{print1$3}')
+echo "Test A:"1$(grep "ExecutionTime" log.testA | tail -1 | awk '{print1$3}')
+echo "Test B:"1$(grep "ExecutionTime" log.testB | tail -1 | awk '{print1$3}')
 ```
 
 ### 3. Measure Speedup and Efficiency
@@ -916,12 +916,12 @@ echo "Test B:" $(grep "ExecutionTime" log.testB | tail -1 | awk '{print $3}')
 # HOW: Calculate speedup ratio and percentage improvement
 
 # Speedup = Baseline Time / Optimized Time
-baseline_time=$(grep "ExecutionTime" log.baseline | tail -1 | awk '{print $3}')
-optimized_time=$(grep "ExecutionTime" log.optimized | tail -1 | awk '{print $3}')
-speedup=$(echo "$baseline_time / $optimized_time" | bc -l)
+baseline_time=$(grep "ExecutionTime" log.baseline | tail -1 | awk '{print1$3}')
+optimized_time=$(grep "ExecutionTime" log.optimized | tail -1 | awk '{print1$3}')
+speedup=$(echo "$baseline_time /1$optimized_time" | bc -l)
 
-echo "Speedup: $speedup"
-echo "Improvement: $(echo "($baseline_time - $optimized_time) / $baseline_time * 100" | bc -l)%"
+echo "Speedup:1$speedup"
+echo "Improvement:1$(echo "($baseline_time -1$optimized_time) /1$baseline_time * 100" | bc -l)%"
 
 # Target: > 20% improvement for significant optimization
 ```

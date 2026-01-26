@@ -172,7 +172,7 @@ The **most critical AMR decision** is choosing appropriate refinement criteria. 
 
 1. **Create Base Mesh:**
    ```bash
-   cp -r $FOAM_TUTORIALS/multiphase/interFoam/laminar/damBreak \
+   cp -r1$FOAM_TUTORIALS/multiphase/interFoam/laminar/damBreak \
          myDamBreakAMR
    cd myDamBreakAMR
    ```
@@ -387,7 +387,7 @@ flowchart LR
 
 1. **Copy Tutorial:**
    ```bash
-   cp -r $FOAM_TUTORIALS/incompressible/pimpleFoam/TJunction \
+   cp -r1$FOAM_TUTORIALS/incompressible/pimpleFoam/TJunction \
          myCylinderSchemes
    cd myCylinderSchemes
    ```

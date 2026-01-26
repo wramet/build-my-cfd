@@ -61,11 +61,11 @@ $$\nu_t = C_\mu \frac{k^2}{\varepsilon}$$
 
 | Constant | Value |
 |----------|-------|
-| $C_\mu$ | 0.09 |
-| $C_1$ | 1.44 |
-| $C_2$ | 1.92 |
-| $\sigma_k$ | 1.0 |
-| $\sigma_\varepsilon$ | 1.3 |
+|1$C_\mu1| 0.09 |
+|1$C_11| 1.44 |
+|1$C_21| 1.92 |
+|1$\sigma_k1| 1.0 |
+|1$\sigma_\varepsilon1| 1.3 |
 
 ### **[Why]** Selection Criteria [เกณฑ์การเลือกใช้]
 
@@ -95,7 +95,7 @@ RAS
 
 #### Blending Function
 
-SST ใช้ $F_1$ เพื่อสลับ:
+SST ใช้1$F_11เพื่อสลับ:
 - Near wall ($F_1 \to 1$): k-ω behavior
 - Free stream ($F_1 \to 0$): k-ε behavior
 
@@ -109,11 +109,11 @@ $$\nu_t = \frac{a_1 k}{\max(a_1\omega, SF_2)}$$
 
 | Constant | Inner | Outer |
 |----------|-------|-------|
-| $\alpha_k$ | 0.85 | 1.0 |
-| $\alpha_\omega$ | 0.5 | 0.856 |
-| $\beta$ | 0.075 | 0.0828 |
-| $\beta^*$ | 0.09 | 0.09 |
-| $a_1$ | 0.31 | 0.31 |
+|1$\alpha_k1| 0.85 | 1.0 |
+|1$\alpha_\omega1| 0.5 | 0.856 |
+|1$\beta1| 0.075 | 0.0828 |
+|1$\beta^*1| 0.09 | 0.09 |
+|1$a_11| 0.31 | 0.31 |
 
 ### **[Why]** Selection Criteria [เกณฑ์การเลือกใช้]
 
@@ -232,23 +232,23 @@ postProcess -func yPlus
 <details>
 <summary><b>1. k-ε ทำไมทำนาย separation แย่?</b></summary>
 
-เพราะ k-ε มักจะ **over-predict $\nu_t$** ใกล้ผนัง → flow เกาะผิวได้ดีเกินจริง → delay separation
+เพราะ k-ε มักจะ **over-predict1$\nu_t$** ใกล้ผนัง → flow เกาะผิวได้ดีเกินจริง → delay separation
 </details>
 
 <details>
 <summary><b>2. SST "blend" ระหว่าง k-ω และ k-ε อย่างไร?</b></summary>
 
-ใช้ **blending function $F_1$**:
-- ใกล้ผนัง: $F_1 \to 1$ → k-ω (ดีสำหรับ boundary layer)
-- ไกลผนัง: $F_1 \to 0$ → k-ε (เสถียรใน free stream)
+ใช้ **blending function1$F_1$**:
+- ใกล้ผนัง:1$F_1 \to 11→ k-ω (ดีสำหรับ boundary layer)
+- ไกลผนัง:1$F_1 \to 01→ k-ε (เสถียรใน free stream)
 </details>
 
 <details>
-<summary><b>3. $y^+ = 1$ จำเป็นเสมอไหม?</b></summary>
+<summary><b>3.1$y^+ = 11จำเป็นเสมอไหม?</b></summary>
 
 **ไม่** — ขึ้นกับ approach:
-- Low-Re (resolve viscous sublayer): $y^+ \approx 1$
-- Wall functions: $y^+ = 30-300$
+- Low-Re (resolve viscous sublayer):1$y^+ \approx 1$
+- Wall functions:1$y^+ = 30-300$
 </details>
 
 <details>
@@ -266,7 +266,7 @@ postProcess -func yPlus
 
 $$\nu_t = \frac{a_1 k}{\max(a_1\omega, SF_2)}$$
 
-ช่วย **ป้องกัน over-prediction ของ $\nu_t$** ใน separation zones → ทำให้ทำนาย separation ได้ดีกว่า k-ω มาตรฐาน
+ช่วย **ป้องกัน over-prediction ของ1$\nu_t$** ใน separation zones → ทำให้ทำนาย separation ได้ดีกว่า k-ω มาตรฐาน
 </details>
 
 ---
@@ -274,7 +274,7 @@ $$\nu_t = \frac{a_1 k}{\max(a_1\omega, SF_2)}$$
 ## Key Takeaways [สรุปสิ่งสำคัญ]
 
 ### **[What]** - Definitions [ความหมาย]
-- **RANS:** Time-averaged approach using Reynolds decomposition $\phi = \overline{\phi} + \phi'$
+- **RANS:** Time-averaged approach using Reynolds decomposition1$\phi = \overline{\phi} + \phi'$
 - **k-ε:** Two-equation model solving for turbulent kinetic energy ($k$) and dissipation rate ($\varepsilon$)
 - **k-ω SST:** Blended model combining k-ω near walls and k-ε in free stream with eddy viscosity limiter
 

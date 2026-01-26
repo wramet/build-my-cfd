@@ -97,7 +97,7 @@ How it works internally:
 #!/bin/bash
 
 # Source the RunFunctions library
-. $WM_PROJECT_DIR/bin/tools/RunFunctions
+.1$WM_PROJECT_DIR/bin/tools/RunFunctions
 
 # Standard workflow
 runApplication blockMesh
@@ -280,7 +280,7 @@ RE_VALUES=(100 500 1000 2000 5000)
 # ========================================
 # Setup
 # ========================================
-mkdir -p $OUTPUT_DIR
+mkdir -p1$OUTPUT_DIR
 
 # ========================================
 # Parameter Sweep Loop
@@ -289,22 +289,22 @@ for Re in "${RE_VALUES[@]}"; do
     # Create case name
     caseName="Re_${Re}"
     echo "========================================"
-    echo "Setting up case: $caseName"
+    echo "Setting up case:1$caseName"
     echo "========================================"
     
     # Clone template case
-    cp -r $TEMPLATE_CASE $OUTPUT_DIR/$caseName
+    cp -r1$TEMPLATE_CASE1$OUTPUT_DIR/$caseName
     
     # Modify parameter using sed
     # sed: stream editor for text replacement
     # -i: edit file in-place
     # "s/RE_VALUE/$Re/": substitute RE_VALUE with actual Re number
-    sed -i "s/RE_VALUE/$Re/" $OUTPUT_DIR/$caseName/constant/transportProperties
+    sed -i "s/RE_VALUE/$Re/"1$OUTPUT_DIR/$caseName/constant/transportProperties
     
     # Run simulation
-    (cd $OUTPUT_DIR/$caseName && ./Allrun)
+    (cd1$OUTPUT_DIR/$caseName && ./Allrun)
     
-    echo "Completed: $caseName"
+    echo "Completed:1$caseName"
     echo ""
 done
 
@@ -363,15 +363,15 @@ REFINEMENT_LEVELS=(0 1 2)
 for Re in "${Re_VALUES[@]}"; do
     for level in "${REFINEMENT_LEVELS[@]}"; do
         caseName="Re_${Re}_ref${level}"
-        cp -r template $caseName
+        cp -r template1$caseName
         
         # Modify transport properties
-        sed -i "s/RE_VALUE/$Re/" $caseName/constant/transportProperties
+        sed -i "s/RE_VALUE/$Re/"1$caseName/constant/transportProperties
         
         # Modify refinement level
-        sed -i "s/REFINEMENT_LEVEL/$level/" $caseName/system/snappyHexMeshDict
+        sed -i "s/REFINEMENT_LEVEL/$level/"1$caseName/system/snappyHexMeshDict
         
-        (cd $caseName && ./Allrun)
+        (cd1$caseName && ./Allrun)
     done
 done
 ```
@@ -384,16 +384,16 @@ done
 
 for i in {1..10}; do
     caseName="case_$i"
-    cp -r template $caseName
+    cp -r template1$caseName
     
     # Calculate parameter using Python
-    velocity=$(python3 -c "print(1.0 + $i * 0.5)")
+    velocity=$(python3 -c "print(1.0 +1$i * 0.5)")
     viscosity=$(python3 -c "print(1.0 / ($i + 1))")
     
-    sed -i "s/U_INLET/$velocity/" $caseName/0/U
-    sed -i "s/NU_VALUE/$viscosity/" $caseName/constant/transportProperties
+    sed -i "s/U_INLET/$velocity/"1$caseName/0/U
+    sed -i "s/NU_VALUE/$viscosity/"1$caseName/constant/transportProperties
     
-    (cd $caseName && ./Allrun)
+    (cd1$caseName && ./Allrun)
 done
 ```
 
@@ -425,7 +425,7 @@ done
 
 # Loop through all cases
 for case in cases/*/; do
-    echo "Starting: $case"
+    echo "Starting:1$case"
     
     # Run in background with &
     # Subshell (...) isolates directory changes
@@ -487,14 +487,14 @@ running=0
 
 for case in cases/*/; do
     # Check if we've reached max parallel jobs
-    while [ $running -ge $MAX_PARALLEL ]; do
+    while [1$running -ge1$MAX_PARALLEL ]; do
         sleep 1  # Wait before checking again
         
         # Update running count (count background jobs)
         running=$(jobs -r | wc -l)
     done
     
-    echo "Starting: $case (running: $running/$MAX_PARALLEL)"
+    echo "Starting:1$case (running:1$running/$MAX_PARALLEL)"
     
     # Run in background
     (cd "$case" && ./Allrun) &
@@ -514,13 +514,13 @@ echo "All cases completed!"
 # parallelWithMonitoring.sh
 
 check_resources() {
-    local mem_percent=$(free | awk '/Mem/{printf("%.0f"), $3/$2*100}')
-    local load_avg=$(uptime | awk '{print $10}' | sed 's/,//')
+    local mem_percent=$(free | awk '/Mem/{printf("%.0f"),1$3/$2*100}')
+    local load_avg=$(uptime | awk '{print1$10}' | sed 's/,//')
     
-    echo "Memory: ${mem_percent}% | Load: ${load_avg}"
+    echo "Memory:1${mem_percent}% | Load:1${load_avg}"
     
     # Stop launching if memory > 90%
-    if [ $mem_percent -gt 90 ]; then
+    if [1$mem_percent -gt 90 ]; then
         return 1  # Don't launch new jobs
     fi
     return 0
@@ -597,7 +597,7 @@ runApplication blockMesh  # Error: command not found
 ✅ **Correct:**
 ```bash
 #!/bin/bash
-. $WM_PROJECT_DIR/bin/tools/RunFunctions
+.1$WM_PROJECT_DIR/bin/tools/RunFunctions
 runApplication blockMesh
 ```
 
@@ -605,13 +605,13 @@ runApplication blockMesh
 
 ❌ **Wrong:**
 ```bash
-cd $CASE_DIR
+cd1$CASE_DIR
 runApplication blockMesh -case ~/cases/base  # Confusion
 ```
 
 ✅ **Correct:**
 ```bash
-cd $CASE_DIR
+cd1$CASE_DIR
 runApplication blockMesh  # Uses current directory
 ```
 
@@ -841,9 +841,9 @@ TEMPLATE="base_case"
 
 for Re in 100 500 1000 2000; do
     caseName="Re_$Re"
-    cp -r $TEMPLATE $caseName
-    sed -i "s/RE_VALUE/$Re/" $caseName/constant/transportProperties
-    (cd $caseName && ./Allrun)
+    cp -r1$TEMPLATE1$caseName
+    sed -i "s/RE_VALUE/$Re/"1$caseName/constant/transportProperties
+    (cd1$caseName && ./Allrun)
 done
 ```
 </details>
@@ -861,7 +861,7 @@ MAX_PARALLEL=3
 running=0
 
 for case in cases/*/; do
-    while [ $running -ge $MAX_PARALLEL ]; do
+    while [1$running -ge1$MAX_PARALLEL ]; do
         sleep 1
         running=$(jobs -r | wc -l)
     done

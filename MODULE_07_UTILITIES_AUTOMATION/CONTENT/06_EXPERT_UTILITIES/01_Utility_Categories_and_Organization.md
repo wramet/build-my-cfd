@@ -350,11 +350,11 @@ foamToVTK -fields "(p U)"
 
 ```bash
 # ดู utilities ทั้งหมด
-ls $FOAM_APPBIN
-ls $FOAM_USER_APPBIN
+ls1$FOAM_APPBIN
+ls1$FOAM_USER_APPBIN
 
 # ค้นหา utility ที่มีชื่อ "mesh"
-ls $FOAM_APPBIN | grep -i mesh
+ls1$FOAM_APPBIN | grep -i mesh
 
 # ดู help
 utilityName -help

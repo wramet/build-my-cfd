@@ -37,9 +37,9 @@
 
 | คณิตศาสตร์ | คำอธิบาย | OpenFOAM Code |
 |--------------|------------|---------------|
-| $\mathbf{T} = \begin{bmatrix} T_{xx} & T_{xy} & T_{xz} \\ T_{yx} & T_{yy} & T_{yz} \\ T_{zx} & T_{zy} & T_{zz} \end{bmatrix}$ | เมทริกซ์เต็ม 9 components | `tensor T(1,2,3,4,5,6,7,8,9);` |
-| $\mathbf{S} = \begin{bmatrix} S_{xx} & S_{xy} & S_{xz} \\ S_{xy} & S_{yy} & S_{yz} \\ S_{xz} & S_{yz} & S_{zz} \end{bmatrix}$ | เมทริกซ์สมมาตร 6 components | `symmTensor S(1,2,3,4,5,6);` |
-| $\boldsymbol{\Lambda} = \lambda\mathbf{I}$ | เมทริกซ์ไอโซทรอปิก | `sphericalTensor P(2.0);` |
+|1$\mathbf{T} = \begin{bmatrix} T_{xx} & T_{xy} & T_{xz} \\ T_{yx} & T_{yy} & T_{yz} \\ T_{zx} & T_{zy} & T_{zz} \end{bmatrix}1| เมทริกซ์เต็ม 9 components | `tensor T(1,2,3,4,5,6,7,8,9);` |
+|1$\mathbf{S} = \begin{bmatrix} S_{xx} & S_{xy} & S_{xz} \\ S_{xy} & S_{yy} & S_{yz} \\ S_{xz} & S_{yz} & S_{zz} \end{bmatrix}1| เมทริกซ์สมมาตร 6 components | `symmTensor S(1,2,3,4,5,6);` |
+|1$\boldsymbol{\Lambda} = \lambda\mathbf{I}1| เมทริกซ์ไอโซทรอปิก | `sphericalTensor P(2.0);` |
 
 ### ตัวอย่างการเลือกประเภทเทนเซอร์
 
@@ -187,8 +187,8 @@ volTensorField gradU(fvc::grad(U));  // Automatically creates 9-component tensor
 ```
 
 ### การประยุกต์ใช้
-- เกรเดียนต์ความเร็ว (Velocity gradients, $\nabla \mathbf{u}$)
-- เกรเดียนต์การเปลี่ยนรูปทรง (Deformation gradients, $\mathbf{F}$)
+- เกรเดียนต์ความเร็ว (Velocity gradients,1$\nabla \mathbf{u}$)
+- เกรเดียนต์การเปลี่ยนรูปทรง (Deformation gradients,1$\mathbf{F}$)
 - เทนเซอร์การหมุน (Rotation tensors)
 - การแปลงทั่วไป
 
@@ -215,7 +215,7 @@ volTensorField gradU(fvc::grad(U));  // Automatically creates 9-component tensor
 > ```
 
 ### What & Why
-เทนเซอร์ที่มีคุณสมบัติสมมาตร $T_{ij} = T_{ji}$ จัดเก็บเพียง **6 components** ประหยัดหน่วยความจำ **33%**
+เทนเซอร์ที่มีคุณสมบัติสมมาตร1$T_{ij} = T_{ji}1จัดเก็บเพียง **6 components** ประหยัดหน่วยความจำ **33%**
 
 ### How: การจัดเก็บที่เพิ่มประสิทธิภาพ
 
@@ -419,8 +419,8 @@ volSymmTensorField sigma(...);  // Cauchy stress
 |--------|------------------|---------------------|
 | **Components** | 9 (full 3×3) | 6 (symmetric) |
 | **Memory** | 100% | 67% |
-| **ใช้สำหรับ** | Velocity gradient $\nabla U$ | Stress, Strain rate |
-| **Symmetry** | ไม่มี | $T_{ij} = T_{ji}$ |
+| **ใช้สำหรับ** | Velocity gradient1$\nabla U1| Stress, Strain rate |
+| **Symmetry** | ไม่มี |1$T_{ij} = T_{ji}1|
 
 **Rule:** ใช้ `symmTensor` เมื่อ physics requires symmetry
 </details>
@@ -429,7 +429,7 @@ volSymmTensorField sigma(...);  // Cauchy stress
 <summary><b>3. เมื่อใดควรใช้ `sphericalTensor`?</b></summary>
 
 ✅ **ใช้เมื่อ tensor เป็น isotropic** (ค่าเท่ากันทุกทิศทาง):
-- **Pressure:** $p\mathbf{I}$ (hydrostatic pressure)
+- **Pressure:**1$p\mathbf{I}1(hydrostatic pressure)
 - **Isotropic resistance:** ใน porous media
 - **Identity operations:** scaling ทุกทิศทางเท่ากัน
 

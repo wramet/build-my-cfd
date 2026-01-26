@@ -42,9 +42,9 @@
 
 | Regime | Condition | Model | OpenFOAM Keyword |
 |--------|-----------|-------|------------------|
-| Laminar | $Re < 2300$ (pipe) | `laminar` | `simulationType laminar;` |
-| Transitional | $2300 < Re < 4000$ | Transition models | `simulationType RAS;` + transition model |
-| Turbulent | $Re > 4000$ | RANS, LES, DNS | `simulationType RAS;` / `LES;` / `DNS;` |
+| Laminar |1$Re < 23001(pipe) | `laminar` | `simulationType laminar;` |
+| Transitional |1$2300 < Re < 40001| Transition models | `simulationType RAS;` + transition model |
+| Turbulent |1$Re > 40001| RANS, LES, DNS | `simulationType RAS;` / `LES;` / `DNS;` |
 
 > **Why This Matters:** การเลือก regime ที่ถูกต้องสำคัญเพราะ model ที่ไม่เหมาะสมจะให้ผลลัพธ์ที่คลาดเคลื่อนอย่างมาก
 
@@ -71,8 +71,8 @@ Prompt: "Infographic Pyramid diagram of Turbulence Modeling Hierarchy. **Levels:
 
 <!-- IMAGE: IMG_03_003 -->
 <!--
-Purpose: เพื่ออธิบาย "Energy Cascade" ซึ่งเป็นหัวใจของ Turbulence: พลังงานถูกส่งจาก Eddy ขนาดใหญ่ $\rightarrow$ ขนาดเล็ก $\rightarrow$ หายไปเป็นความร้อนโดย Viscosity. ภาพนี้ต้องเชื่อมโยงภาพลักษณะทางกายภาพ (Vortices) กับกราฟทางคณิตศาสตร์ (Spectrum Log-Log Plot)
-Prompt: "Dual-panel technical illustration of the Turbulent Energy Cascade. **Left Panel (Physical View):** A large swirling vortex breaking down into smaller and smaller eddies, finally turning into heat at the smallest scale. **Right Panel (Spectral View):** Log-log plot of Energy $E(\kappa)$ vs Batchelor Wavenumber $\kappa$. Curve shows 3 zones: 1. **Production** (Low $\kappa$, high Energy). 2. **Inertial Subrange** (Slope $-5/3$). 3. **Dissipation** (High $\kappa$, steep drop-off). Connect the physical eddies on the left to their corresponding position on the graph on the right with dotted lines. STYLE: High-end textbook illustration, detailed line work, mathematical precision."
+Purpose: เพื่ออธิบาย "Energy Cascade" ซึ่งเป็นหัวใจของ Turbulence: พลังงานถูกส่งจาก Eddy ขนาดใหญ่1$\rightarrow1ขนาดเล็ก1$\rightarrow1หายไปเป็นความร้อนโดย Viscosity. ภาพนี้ต้องเชื่อมโยงภาพลักษณะทางกายภาพ (Vortices) กับกราฟทางคณิตศาสตร์ (Spectrum Log-Log Plot)
+Prompt: "Dual-panel technical illustration of the Turbulent Energy Cascade. **Left Panel (Physical View):** A large swirling vortex breaking down into smaller and smaller eddies, finally turning into heat at the smallest scale. **Right Panel (Spectral View):** Log-log plot of Energy1$E(\kappa)1vs Batchelor Wavenumber1$\kappa$. Curve shows 3 zones: 1. **Production** (Low1$\kappa$, high Energy). 2. **Inertial Subrange** (Slope1$-5/3$). 3. **Dissipation** (High1$\kappa$, steep drop-off). Connect the physical eddies on the left to their corresponding position on the graph on the right with dotted lines. STYLE: High-end textbook illustration, detailed line work, mathematical precision."
 -->
 ![[IMG_03_003.JPG]]
 
@@ -95,8 +95,8 @@ $$\phi = \bar{\phi} + \phi'$$
 
 | Term | Symbol | Physical Meaning |
 |------|--------|------------------|
-| Time-averaged (mean) | $\bar{\phi}$ | ค่าเฉลี่ยตามเวลา — "โครงสร้างหลัก" |
-| Fluctuation | $\phi'$ | การสั่นไหว — $\overline{\phi'} = 0$ |
+| Time-averaged (mean) |1$\bar{\phi}1| ค่าเฉลี่ยตามเวลา — "โครงสร้างหลัก" |
+| Fluctuation |1$\phi'1| การสั่นไหว —1$\overline{\phi'} = 01|
 
 **Applied to velocity:**
 $$\mathbf{u} = \bar{\mathbf{u}} + \mathbf{u}'$$
@@ -132,9 +132,9 @@ $$\boldsymbol{\tau}_R = 2\mu_t \bar{\mathbf{D}} - \frac{2}{3}\rho k \mathbf{I}$$
 
 | Term | Definition | Physical Meaning |
 |------|------------|------------------|
-| $\mu_t$ | Eddy viscosity | ความหนืดของ turbulent eddies — **ไม่ใช่คุณสมบัติของของไหล** |
-| $\bar{\mathbf{D}}$ | Mean strain rate tensor | การบิดเบี้ยวของ flow |
-| $k$ | Turbulent kinetic energy | พลังงานของ fluctuation |
+|1$\mu_t1| Eddy viscosity | ความหนืดของ turbulent eddies — **ไม่ใช่คุณสมบัติของของไหล** |
+|1$\bar{\mathbf{D}}1| Mean strain rate tensor | การบิดเบี้ยวของ flow |
+|1$k1| Turbulent kinetic energy | พลังงานของ fluctuation |
 
 ### Effective Viscosity
 $$\nu_{eff} = \nu + \nu_t$$
@@ -152,22 +152,22 @@ $$\nu_{eff} = \nu + \nu_t$$
 ### Turbulent Kinetic Energy (TKE)
 $$k = \frac{1}{2}\overline{u'_i u'_i} = \frac{1}{2}(\overline{u'^2} + \overline{v'^2} + \overline{w'^2})$$
 
-- **หน่วย:** $m^2/s^2$
+- **หน่วย:**1$m^2/s^2$
 - **ความหมาย:** พลังงานของการสั่นสะเทือน
 
 ### Dissipation Rate
 $$\varepsilon = \nu \overline{\frac{\partial u'_i}{\partial x_j}\frac{\partial u'_i}{\partial x_j}}$$
 
-- **หน่วย:** $m^2/s^3$
+- **หน่วย:**1$m^2/s^3$
 - **ความหมาย:** อัตราที่ TKE ถูกทำลายเป็นความร้อน (ที่ Kolmogorov scale)
 
 ### Specific Dissipation Rate
 $$\omega = \frac{\varepsilon}{\beta^* k}$$
 
-- **หน่วย:** $1/s$
+- **หน่วย:**1$1/s$
 - **ความหมาย:** อัตราส่วนระหว่างการสร้างและการทำลาย
 
-> **Why Three Variables?** $k$ บอก "พลังงานมีเท่าไหร่" / $\varepsilon$ บอก "หายไปเร็วแค่ไหน" / $\omega$ บอก "scale มีขนาดเท่าไหร่" (length scale ∝ k/ω)
+> **Why Three Variables?**1$k1บอก "พลังงานมีเท่าไหร่" /1$\varepsilon1บอก "หายไปเร็วแค่ไหน" /1$\omega1บอก "scale มีขนาดเท่าไหร่" (length scale ∝ k/ω)
 
 ---
 
@@ -190,11 +190,11 @@ $$\frac{\partial \varepsilon}{\partial t} + \bar{u}_j \frac{\partial \varepsilon
 
 | Constant | Value | Physical Role |
 |----------|-------|---------------|
-| $C_\mu$ | 0.09 | Relates $k$, $\varepsilon$ to $\nu_t$ |
-| $C_1$ | 1.44 | Production of $\varepsilon$ |
-| $C_2$ | 1.92 | Destruction of $\varepsilon$ |
-| $\sigma_k$ | 1.0 | Diffusivity of $k$ |
-| $\sigma_\varepsilon$ | 1.3 | Diffusivity of $\varepsilon$ |
+|1$C_\mu1| 0.09 | Relates1$k$,1$\varepsilon1to1$\nu_t1|
+|1$C_11| 1.44 | Production of1$\varepsilon1|
+|1$C_21| 1.92 | Destruction of1$\varepsilon1|
+|1$\sigma_k1| 1.0 | Diffusivity of1$k1|
+|1$\sigma_\varepsilon1| 1.3 | Diffusivity of1$\varepsilon1|
 
 > **Why k-ε Popular:** **Robust** (เสถียร), **Fast** (คำนวณเร็ว), **Calibrated** (มีประสบการณ์มาก) — แต่ไม่เหมาะกับ flow ที่ซับซ้อน (separation, strong pressure gradient)
 
@@ -366,7 +366,7 @@ tmp<fvVectorMatrix> tUEqn
 <details>
 <summary><b>1. ทำไม Reynolds Stress ถึงต้องการ closure model?</b></summary>
 
-**Why:** เพราะการทำ Reynolds averaging สร้างเทอมใหม่ $\overline{u'_i u'_j}$ (6 ตัวแปร) ที่ไม่มีสมการควบคุม — ต้องสร้างสมการเพิ่มหรือใช้สมมติฐานเช่น Boussinesq
+**Why:** เพราะการทำ Reynolds averaging สร้างเทอมใหม่1$\overline{u'_i u'_j}1(6 ตัวแปร) ที่ไม่มีสมการควบคุม — ต้องสร้างสมการเพิ่มหรือใช้สมมติฐานเช่น Boussinesq
 
 **What:** Closure problem คือการที่เรามี unknowns มากกว่า equations — ต้อง "ปิด" ระบบด้วย turbulence model
 
@@ -374,21 +374,21 @@ tmp<fvVectorMatrix> tUEqn
 </details>
 
 <details>
-<summary><b>2. $\nu_t$ กับ $\nu$ ต่างกันอย่างไร?</b></summary>
+<summary><b>2.1$\nu_t1กับ1$\nu1ต่างกันอย่างไร?</b></summary>
 
 **What:**
 - **$\nu$**: Molecular viscosity — คุณสมบัติของ **ของไหล** (constant สำหรับ given T, P)
 - **$\nu_t$**: Eddy viscosity — คุณสมบัติของ **การไหล** (varies ตาม position & time)
 
 **Why:**
-- $\nu$ มาจาก molecular interaction — ค่าต่ำ (water ≈ 10⁻⁶ m²/s)
-- $\nu_t$ มาจาก turbulent mixing — ค่าสูงกว่า $\nu$ มาก (100-1000× ใน high Re flow)
+-1$\nu1มาจาก molecular interaction — ค่าต่ำ (water ≈ 10⁻⁶ m²/s)
+-1$\nu_t1มาจาก turbulent mixing — ค่าสูงกว่า1$\nu1มาก (100-1000× ใน high Re flow)
 
 **How:**
-- $\nu$ ใช้ใน `constant/transportProperties`
-- $\nu_t$ คำนวณจาก turbulence model: `nut` field — **ไม่ต้อง set manual**
+-1$\nu1ใช้ใน `constant/transportProperties`
+-1$\nu_t1คำนวณจาก turbulence model: `nut` field — **ไม่ต้อง set manual**
 
-**Consequence:** $\nu_{eff} = \nu + \nu_t \approx \nu_t$ (ใน high Re flow)
+**Consequence:**1$\nu_{eff} = \nu + \nu_t \approx \nu_t1(ใน high Re flow)
 </details>
 
 <details>
@@ -402,9 +402,9 @@ tmp<fvVectorMatrix> tUEqn
 - Small eddies ทำลายพลังงานด้วย viscosity (dissipation)
 
 **How (in k-ε model):**
-- $P_k$ ≈ production rate ที่ large scales
-- $\varepsilon$ ≈ dissipation rate ที่ small scales
-- Equilibrium: $P_k \approx \varepsilon$ (ใน high Re)
+-1$P_k1≈ production rate ที่ large scales
+-1$\varepsilon1≈ dissipation rate ที่ small scales
+- Equilibrium:1$P_k \approx \varepsilon1(ใน high Re)
 
 **Key Insight:** ทุก turbulence model พยายามจำลอง cascade นี้ — ไม่ว่าจะด้วย 1, 2 หรือ 7 equations
 </details>
@@ -445,7 +445,7 @@ flowchart TD
 | **Physics** | Turbulence = multi-scale, dissipative, 3D, chaotic motion |
 | **Problem** | Reynolds averaging creates unclosed Reynolds stresses (closure problem) |
 | **Solution** | Boussinesq hypothesis relates stresses to strain rate via eddy viscosity |
-| **Model** | k-ε model: 2 equations (k, ε) → $\nu_t$ → closure |
+| **Model** | k-ε model: 2 equations (k, ε) →1$\nu_t1→ closure |
 | **Implementation** | `turbulenceProperties` + initial fields (`0/k`, `0/epsilon`, `0/nut`) |
 
 ### 🎯 Selection Guide
@@ -464,9 +464,9 @@ flowchart TD
 
 ### 🔧 Practical Tips
 
-1. **Initial Conditions:** $k = 1.5 (U I)^2$, $\varepsilon = C_\mu^{3/4} k^{3/2} / \ell$
-2. **Mesh Quality:** $y^+$ ≈ 30-300 for wall functions, $y^+$ < 1 for low-Re models
-3. **Convergence:** Monitor residuals of $k$ and $\varepsilon$ (not just $U$ and $p$)
+1. **Initial Conditions:**1$k = 1.5 (U I)^2$,1$\varepsilon = C_\mu^{3/4} k^{3/2} / \ell$
+2. **Mesh Quality:**1$y^+1≈ 30-300 for wall functions,1$y^+1< 1 for low-Re models
+3. **Convergence:** Monitor residuals of1$k1and1$\varepsilon1(not just1$U1and1$p$)
 4. **Validation:** Always compare with experimental data or higher-fidelity simulations
 
 ---

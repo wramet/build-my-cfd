@@ -25,8 +25,8 @@
 >
 > | ต้องการจำลอง | Solver | Key File |
 > |-------------|--------|----------|
-> | Natural convection (small $\Delta T$) | `buoyantBoussinesqSimpleFoam` | `thermophysicalProperties` |
-> | Large $\Delta T$ / compressible | `buoyantSimpleFoam` | `thermophysicalProperties` |
+> | Natural convection (small1$\Delta T$) | `buoyantBoussinesqSimpleFoam` | `thermophysicalProperties` |
+> | Large1$\Delta T1/ compressible | `buoyantSimpleFoam` | `thermophysicalProperties` |
 > | Transient with buoyancy | `buoyantPimpleFoam` | `g`, `thermophysicalProperties` |
 > | Solid-fluid coupling (CHT) | `chtMultiRegionFoam` | `regionProperties` |
 
@@ -38,9 +38,9 @@
 
 | Mode | Mechanism | OpenFOAM Term |
 |------|-----------|---------------|
-| **Conduction** | $q = -k\nabla T$ | `fvm::laplacian(k, T)` |
-| **Convection** | $q = h(T_s - T_\infty)$ | `fvm::div(phi, h)` |
-| **Radiation** | $q = \varepsilon\sigma T^4$ | `radiationModel` |
+| **Conduction** |1$q = -k\nabla T1| `fvm::laplacian(k, T)` |
+| **Convection** |1$q = h(T_s - T_\infty)1| `fvm::div(phi, h)` |
+| **Radiation** |1$q = \varepsilon\sigma T^41| `radiationModel` |
 
 ### WHY: Physical Importance
 
@@ -91,12 +91,12 @@ mixture
 |------------|-------------------|-------------|----------|
 | Incompressible liquid | `rhoConst` | `const` | Water, oils (properties constant) |
 | Ideal gas | `perfectGas` | `sutherland` | Air at varying temperatures |
-| Boussinesq | `Boussinesq` | `const` | Natural convection, small $\Delta T$ |
+| Boussinesq | `Boussinesq` | `const` | Natural convection, small1$\Delta T1|
 
 ### HOW: Key Differences
 
-- **heRhoThermo:** $\rho$ ถูกกำหนดโดยตรง (incompressible หรือ low-Mach)
-- **hePsiThermo:** $\psi = 1/(RT)$ ใช้สำหรับ fully compressible flows
+- **heRhoThermo:**1$\rho1ถูกกำหนดโดยตรง (incompressible หรือ low-Mach)
+- **hePsiThermo:**1$\psi = 1/(RT)1ใช้สำหรับ fully compressible flows
 
 > **📖 ดูรายละเอียดเพิ่มเติมใน:** [01_Energy_Equation_Fundamentals.md](01_Energy_Equation_Fundamentals.md)
 
@@ -134,7 +134,7 @@ external
 }
 ```
 
-**WHY:** Simulate convection ที่ boundary โดยไม่ต้อง mesh external domain — ใช้ coefficient $h$ และ $T_\infty$
+**WHY:** Simulate convection ที่ boundary โดยไม่ต้อง mesh external domain — ใช้ coefficient1$h1และ1$T_\infty$
 
 ### Adiabatic
 
@@ -165,10 +165,10 @@ Buoyancy drives natural convection — coupling ระหว่าง temperatur
 
 $$\rho = \rho_0 [1 - \beta(T - T_0)]$$
 
-Valid when: $\beta \Delta T \ll 1$ (typically $\Delta T < 30$°C for air)
+Valid when:1$\beta \Delta T \ll 11(typically1$\Delta T < 30$°C for air)
 
 **ข้อดี:**
-- ลด computational cost — $\rho$ เป็นค่าคงที่ในส่วนใหญ่
+- ลด computational cost —1$\rho1เป็นค่าคงที่ในส่วนใหญ่
 - Simple to implement
 
 **ข้อจำกัด:**
@@ -185,17 +185,17 @@ Valid when: $\beta \Delta T \ll 1$ (typically $\Delta T < 30$°C for air)
 
 | Number | Formula | Physical Meaning |
 |--------|---------|------------------|
-| $Ra$ | $\frac{g\beta\Delta T L^3}{\nu\alpha}$ | Buoyancy vs diffusion |
-| $Pr$ | $\frac{\nu}{\alpha}$ | Momentum vs thermal diffusion |
-| $Nu$ | $\frac{hL}{k}$ | Convection vs conduction |
+|1$Ra1|1$\frac{g\beta\Delta T L^3}{\nu\alpha}1| Buoyancy vs diffusion |
+|1$Pr1|1$\frac{\nu}{\alpha}1| Momentum vs thermal diffusion |
+|1$Nu1|1$\frac{hL}{k}1| Convection vs conduction |
 
 ### WHY: Flow Regime Determination
 
-| $Ra$ Range | Regime | Characteristics |
+|1$Ra1Range | Regime | Characteristics |
 |------------|--------|-----------------|
-| $< 10^3$ | Conduction dominant | Heat transfer โดย conduction เป็นหลัก |
-| $10^3 - 10^9$ | Laminar convection | Buoyancy-driven laminar flow |
-| $> 10^9$ | Turbulent convection | Turbulent natural convection |
+|1$< 10^31| Conduction dominant | Heat transfer โดย conduction เป็นหลัก |
+|1$10^3 - 10^91| Laminar convection | Buoyancy-driven laminar flow |
+|1$> 10^91| Turbulent convection | Turbulent natural convection |
 
 ### HOW: Practical Use
 
@@ -238,14 +238,14 @@ $$Nu = \frac{q'' L}{k \Delta T}$$
 <details>
 <summary><b>1. Boussinesq approximation ใช้เมื่อไหร่?</b></summary>
 
-ใช้เมื่อ $\Delta T$ น้อย (< 30°C สำหรับอากาศ) — สมมติว่า $\rho = const$ ยกเว้นในเทอม buoyancy ช่วยลด computational cost
+ใช้เมื่อ1$\Delta T1น้อย (< 30°C สำหรับอากาศ) — สมมติว่า1$\rho = const1ยกเว้นในเทอม buoyancy ช่วยลด computational cost
 </details>
 
 <details>
 <summary><b>2. `heRhoThermo` vs `hePsiThermo` ต่างกันอย่างไร?</b></summary>
 
-- **heRhoThermo**: ใช้ $\rho$ โดยตรง (incompressible หรือ low-Mach)
-- **hePsiThermo**: ใช้ $\psi = 1/(RT)$ (fully compressible)
+- **heRhoThermo**: ใช้1$\rho1โดยตรง (incompressible หรือ low-Mach)
+- **hePsiThermo**: ใช้1$\psi = 1/(RT)1(fully compressible)
 </details>
 
 <details>
@@ -258,11 +258,11 @@ $$Nu = \frac{q'' L}{k \Delta T}$$
 
 ## Key Takeaways
 
-1. **Solver Selection:** เลือก solver ตาม physics — `buoyantBoussinesqSimpleFoam` (small $\Delta T$), `buoyantSimpleFoam` (large $\Delta T$), `chtMultiRegionFoam` (solid-fluid coupling)
+1. **Solver Selection:** เลือก solver ตาม physics — `buoyantBoussinesqSimpleFoam` (small1$\Delta T$), `buoyantSimpleFoam` (large1$\Delta T$), `chtMultiRegionFoam` (solid-fluid coupling)
 2. **Thermophysical Properties:** ใช้ `heRhoThermo` สำหรับ incompressible/low-Mach, `hePsiThermo` สำหรับ compressible
 3. **Boundary Conditions:** `fixedValue`, `fixedGradient`, `externalWallHeatFluxTemperature` คือ BCs หลักสำหรับ heat transfer
 4. **Buoyancy:** ใช้ Boussinesq approximation สำหรับ small temperature variations — ตั้งค่าใน `constant/g`
-5. **Dimensionless Numbers:** $Ra$, $Pr$, $Nu$ ใช้เลือก solver, ตั้งค่า properties และ validate ผลลัพธ์
+5. **Dimensionless Numbers:**1$Ra$,1$Pr$,1$Nu1ใช้เลือก solver, ตั้งค่า properties และ validate ผลลัพธ์
 
 ---
 

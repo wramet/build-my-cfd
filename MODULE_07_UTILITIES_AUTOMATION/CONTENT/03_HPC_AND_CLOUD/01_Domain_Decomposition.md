@@ -96,12 +96,12 @@ $$
 $$
 
 Where: โดยที่:
-- $V = \{v_1, v_2, \ldots, v_N\}$ = Set of mesh cells (เซลล์เมชทั้งหมด)
-- $P$ = Number of processors (จำนวน processor)
-- $V_i$ = Cells assigned to processor $i$ (เซลล์ที่มอบหมายให้ processor $i$)
-- $\bar{V} = N/P$ = Target cells per processor (เซลล์เป้าหมายต่อ processor)
-- $\text{EdgeCut}$ = Number of edges crossing processor boundaries (จำนวนเส้นขอบที่ตัดข้ามขอบเขต processor)
-- $\alpha$ = Weighting factor for communication cost (ปัจจัยถ่วงน้ำหนักสำหรับต้นทุนการสื่อสาร)
+-1$V = \{v_1, v_2, \ldots, v_N\}1= Set of mesh cells (เซลล์เมชทั้งหมด)
+-1$P1= Number of processors (จำนวน processor)
+-1$V_i1= Cells assigned to processor1$i1(เซลล์ที่มอบหมายให้ processor1$i$)
+-1$\bar{V} = N/P1= Target cells per processor (เซลล์เป้าหมายต่อ processor)
+-1$\text{EdgeCut}1= Number of edges crossing processor boundaries (จำนวนเส้นขอบที่ตัดข้ามขอบเขต processor)
+-1$\alpha1= Weighting factor for communication cost (ปัจจัยถ่วงน้ำหนักสำหรับต้นทุนการสื่อสาร)
 
 ### Load Balance Metric | เมตริกความสมดุลโหลด
 
@@ -109,7 +109,7 @@ $$
 \text{Load Balance} = \frac{N_{\max}}{\bar{N}} \times 100\%
 $$
 
-Where $N_{\max}$ is the maximum cells on any processor and $\bar{N} = N/P$ is the average.
+Where1$N_{\max}1is the maximum cells on any processor and1$\bar{N} = N/P1is the average.
 
 **Ideal value:** ≤ 105% (within 5% imbalance)
 
@@ -122,11 +122,11 @@ T_{\text{total}} = T_{\text{compute}} + T_{\text{communicate}} = \frac{N}{P} \cd
 $$
 
 Where: โดยที่:
-- $T_{\text{compute}}$ = Computation time (เวลาคำนวณ)
-- $T_{\text{communicate}}$ = Communication time (เวลาสื่อสาร)
-- $t_c$ = Time per cell operation (เวลาต่อการดำเนินการเซลล์เดียว)
-- $C$ = Number of halo cells (จำนวน halo cell)
-- $t_s$ = Time per MPI send/receive (เวลาต่อการส่ง/รับ MPI)
+-1$T_{\text{compute}}1= Computation time (เวลาคำนวณ)
+-1$T_{\text{communicate}}1= Communication time (เวลาสื่อสาร)
+-1$t_c1= Time per cell operation (เวลาต่อการดำเนินการเซลล์เดียว)
+-1$C1= Number of halo cells (จำนวน halo cell)
+-1$t_s1= Time per MPI send/receive (เวลาต่อการส่ง/รับ MPI)
 
 ---
 
@@ -216,7 +216,7 @@ $$
 N_i = \text{round}\left(\frac{L_i \cdot N}{\sum_j L_j \cdot n_j}\right) \quad \text{for } i \in \{x, y, z\}
 $$
 
-Where $L_i$ is domain length in direction $i$ and $n_i$ is the division count.
+Where1$L_i1is domain length in direction1$i1and1$n_i1is the division count.
 
 **Advantages:** ข้อดี:
 - Fastest decomposition method
@@ -456,7 +456,7 @@ decomposePar -verbose | grep "cells"
 
 # Count cells per processor
 for i in processor*; do
-    echo "$i: $(grep 'cells' $i/constant/polyMesh/owner | wc -l) cells"
+    echo "$i:1$(grep 'cells'1$i/constant/polyMesh/owner | wc -l) cells"
 done
 ```
 
@@ -528,9 +528,9 @@ ls 0/ constant/     # Should contain reconstructed data
 
 | Metric | Formula | Target | Good | Poor |
 |--------|---------|--------|------|-------|
-| **Load Balance** | $N_{\max} / \bar{N}$ | ≤ 1.05 | ≤ 1.03 | > 1.10 |
-| **Interface Ratio** | $N_{\text{interface}} / N_{\text{total}}$ | ≤ 0.05 | ≤ 0.03 | > 0.10 |
-| **Halo Cell Ratio** | $N_{\text{halo}} / N_{\text{interior}}$ | ≤ 0.15 | ≤ 0.10 | > 0.25 |
+| **Load Balance** |1$N_{\max} / \bar{N}1| ≤ 1.05 | ≤ 1.03 | > 1.10 |
+| **Interface Ratio** |1$N_{\text{interface}} / N_{\text{total}}1| ≤ 0.05 | ≤ 0.03 | > 0.10 |
+| **Halo Cell Ratio** |1$N_{\text{halo}} / N_{\text{interior}}1| ≤ 0.15 | ≤ 0.10 | > 0.25 |
 
 ### Analyze Quality with decomposePar | วิเคราะห์คุณภาพด้วย decomposePar
 
@@ -682,13 +682,13 @@ ls processor*/constant/polyMesh/patches/
 
 # Verify mesh consistency
 for i in processor*; do
-    echo "Checking $i"
-    checkMesh -case $i > check_$i.log 2>&1
+    echo "Checking1$i"
+    checkMesh -case1$i > check_$i.log 2>&1
 done
 
 # Compare cell counts
 for i in processor*/; do
-    grep "^nCells" $i/constant/polyMesh/faces
+    grep "^nCells"1$i/constant/polyMesh/faces
 done
 ```
 
@@ -702,7 +702,7 @@ done
 
 ```bash
 # 1. Navigate to tutorial case
-cd $FOAM_TUTORIALS/incompressible/simpleFoam/pitzDaily
+cd1$FOAM_TUTORIALS/incompressible/simpleFoam/pitzDaily
 
 # 2. Create decomposeParDict
 cat > system/decomposeParDict << EOF
@@ -716,8 +716,8 @@ decomposePar
 
 # 4. Check balance
 for i in processor*/; do
-    cells=$(grep "nCells" $i/constant/polyMesh/faces | head -1)
-    echo "$i: $cells"
+    cells=$(grep "nCells"1$i/constant/polyMesh/faces | head -1)
+    echo "$i:1$cells"
 done
 
 # 5. Calculate load balance ratio
@@ -779,7 +779,7 @@ EOF
 sbatch submit.sh
 
 # 3. Monitor
-squeue -u $USER
+squeue -u1$USER
 tail -f slurm-*.out
 ```
 

@@ -15,7 +15,7 @@ Generate hardcore CFD learning content for Day N using the DeepSeek hybrid workf
 or with explicit topic:
 
 ```
-/teach 2026-01-05 "Mesh Topology Concepts"
+/teach 05 "Mesh Topology Concepts"
 ```
 
 ---
@@ -62,7 +62,17 @@ Extract: topic title, key concepts, expected deliverables.
    - Contains: Previous day's content
    - Purpose: Ensures continuity and avoids repetition
 
-**Print:** "📖 Context loaded: phase_N_context.md + Day {N-1}"
+3. **CONVENTIONS.md** (MANDATORY): `CONVENTIONS.md` at project root
+   - Contains: 8-pillar governance rules (Accuracy, Pedagogy, DRY, Context, Verification, Tone, Progression, Visualization)
+   - Purpose: Ensures consistent quality across all generated content
+
+**Print:** "📖 Context loaded: phase_N_context.md + Day {N-1} + CONVENTIONS.md"
+
+### Step 2.5: Skill Invocation
+
+Before generating content, conceptually "load" these skills:
+- **`auto_qc`**: Will be applied after V3 writes content (Engineering Thai fixes)
+- **`quality_gate`**: Final checklist before delivery (Physics, Pedagogy, Style)
 
 ### Step 3: Search Existing Modules (Claude Scout)
 
@@ -87,7 +97,7 @@ Search in `./openfoam_src` for relevant files:
 ### Step 5: Analyze with R1 (via Aider)
 
 ```bash
-aider --alias r1 --read openfoam_src/...
+aider --alias r1 --read CONVENTIONS.md --read openfoam_src/...
 ```
 
 Prompt R1:
@@ -100,7 +110,7 @@ Prompt R1:
 ### Step 6: Write with V3 (via Aider)
 
 ```bash
-aider --alias v3 daily_learning/YYYY-MM-DD.md
+aider --alias v3 --read CONVENTIONS.md daily_learning/YYYY-MM-DD.md
 ```
 
 Prompt V3:

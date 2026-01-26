@@ -897,14 +897,14 @@ Poor decomposition → some processors have 2x more cells → those procs become
 
 ```bash
 # Navigate to a tutorial case
-cd $FOAM_TUTORIALS/incompressible/simpleFoam/airFoil2D
+cd1$FOAM_TUTORIALS/incompressible/simpleFoam/airFoil2D
 
 # Decompose with scotch
 decomposePar
 
 # Examine processor distribution
 for i in processor*; do
-    echo "$i: $(grep 'cells' $i/constant/polyMesh/points | wc -l) cells"
+    echo "$i:1$(grep 'cells'1$i/constant/polyMesh/points | wc -l) cells"
 done
 
 # Visualize in ParaView

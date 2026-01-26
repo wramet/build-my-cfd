@@ -1,0 +1,315 @@
+{
+    "day": "13",
+    "title": "Tube Geometry & Mesh Data Structure",
+    "date": "2026-01-13",
+    "difficulty": "hardcore",
+    "learning_objectives": [
+        {
+            "verb": "เข้าใจ (Understand)",
+            "topic": "Tube Geometry Parameterization สำหรับ Evaporator",
+            "equation": "x = R·cos(θ), y = R·sin(θ), z = t",
+            "importance": "Foundation สำหรับ structured mesh generation - ต้อง parameterize ได้ถูกต้อง"
+        },
+        {
+            "verb": "ออกแบบ (Design)",
+            "topic": "Mesh Data Structure สำหรับ Tube Geometry",
+            "components": ["Point List", "Face List", "Cell List", "Boundary Patches"]
+        },
+        {
+            "verb": "Implement",
+            "topic": "PrimitiveMesh Class สำหรับ Tube Geometry",
+            "challenge": "การสร้าง connectivity ที่ถูกต้องระหว่าง points, faces, cells"
+        }
+    ],
+    "theory_sections": [
+        {
+            "id": "13.1",
+            "title_en": "Tube Geometry Parameterization",
+            "title_th": "การกำหนดพารามิเตอร์สำหรับท่อ",
+            "equations": [
+                {
+                    "name": "Circular Cross-section",
+                    "latex": "\\begin{cases} x = R \\cdot \\cos(\\theta) \\\\ y = R \\cdot \\sin(\\theta) \\\\ z = t \\end{cases}",
+                    "explanation": "Parameterization ของ cross-section วงกลม โดยที่ θ ∈ [0, 2π), t ∈ [0, L]"
+                },
+                {
+                    "name": "Grid Generation Parameters",
+                    "latex": "\\begin{cases} N_r = \\frac{R}{\\Delta r} \\\\ N_\\theta = \\frac{2\\pi}{\\Delta\\theta} \\\\ N_z = \\frac{L}{\\Delta z} \\end{cases}",
+                    "explanation": "จำนวน cells ในแต่ละ direction: radial, circumferential, axial"
+                },
+                {
+                    "name": "Cell Volume (Hexahedral)",
+                    "latex": "V_{cell} = \\frac{\\pi (r_{outer}^2 - r_{inner}^2)}{N_\\theta} \\cdot \\frac{L}{N_z}",
+                    "explanation": "Volume ของ cell ใน cylindrical coordinates"
+                }
+            ],
+            "variables": [
+                {
+                    "symbol": "R",
+                    "name": "tube radius",
+                    "unit": "m"
+                },
+                {
+                    "symbol": "L",
+                    "name": "tube length",
+                    "unit": "m"
+                },
+                {
+                    "symbol": "N_r",
+                    "name": "radial cells",
+                    "unit": "-"
+                },
+                {
+                    "symbol": "N_θ",
+                    "name": "circumferential cells",
+                    "unit": "-"
+                },
+                {
+                    "symbol": "N_z",
+                    "name": "axial cells",
+                    "unit": "-"
+                }
+            ],
+            "warning": "ต้องระวัง aspect ratio ของ cells โดยเฉพาะใกล้ผนัง (boundary layer) - Δr ต้องเล็กมากเมื่อเทียบกับ RΔθ และ Δz"
+        },
+        {
+            "id": "13.2",
+            "title_en": "Mesh Topology for Structured Grid",
+            "title_th": "โครงสร้างของ Mesh สำหรับ Structured Grid",
+            "equations": [
+                {
+                    "name": "Point Indexing (i,j,k)",
+                    "latex": "P(i,j,k) = i + j \\cdot (N_r+1) + k \\cdot (N_r+1) \\cdot (N_\\theta+1)",
+                    "explanation": "Linear indexing จาก structured indices (i: radial, j: circumferential, k: axial)"
+                },
+                {
+                    "name": "Cell Indexing",
+                    "latex": "C(i,j,k) = i + j \\cdot N_r + k \\cdot N_r \\cdot N_\\theta",
+                    "explanation": "Cell index จาก structured indices"
+                },
+                {
+                    "name": "Face Area Calculation",
+                    "latex": "A_{r-face} = r \\Delta\\theta \\Delta z, \\quad A_{\\theta-face} = \\Delta r \\Delta z, \\quad A_{z-face} = r \\Delta\\theta \\Delta r",
+                    "explanation": "Face areas ใน cylindrical coordinates"
+                }
+            ],
+            "variables": [
+                {
+                    "symbol": "P(i,j,k)",
+                    "name": "point index",
+                    "unit": "-"
+                },
+                {
+                    "symbol": "C(i,j,k)",
+                    "name": "cell index",
+                    "unit": "-"
+                },
+                {
+                    "symbol": "A",
+                    "name": "face area",
+                    "unit": "m²"
+                }
+            ],
+            "warning": "ต้องรักษา right-hand rule สำหรับ face normal vectors - มิฉะนั้น flux calculation จะผิด"
+        }
+    ],
+    "openfoam_analysis": [
+        {
+            "class": "primitiveMesh",
+            "header": "src/OpenFOAM/meshes/primitiveMesh/primitiveMesh.H",
+            "purpose": "Base class สำหรับ mesh topology (points, faces, cells) โดยไม่มี geometry",
+            "key_members": [
+                {
+                    "name": "points_",
+                    "type": "pointField",
+                    "purpose": "List of all points (vertices) in the mesh"
+                },
+                {
+                    "name": "faces_",
+                    "type": "faceList",
+                    "purpose": "List of faces, each face is a list of point indices"
+                },
+                {
+                    "name": "cells_",
+                    "type": "cellList",
+                    "purpose": "List of cells, each cell is a list of face indices"
+                }
+            ],
+            "key_methods": [
+                {
+                    "name": "nPoints()",
+                    "purpose": "Return number of points"
+                },
+                {
+                    "name": "nFaces()",
+                    "purpose": "Return number of faces (internal + boundary)"
+                },
+                {
+                    "name": "nCells()",
+                    "purpose": "Return number of cells"
+                },
+                {
+                    "name": "faceOwner()",
+                    "purpose": "Return owner cell for each face"
+                },
+                {
+                    "name": "faceNeighbour()",
+                    "purpose": "Return neighbour cell for internal faces (-1 for boundary)"
+                }
+            ],
+            "usage_example": "primitiveMesh mesh(points, faces, cells);"
+        },
+        {
+            "class": "polyMesh",
+            "header": "src/OpenFOAM/meshes/polyMesh/polyMesh.H",
+            "purpose": "Complete mesh class with geometry, topology, and boundary",
+            "key_members": [
+                {
+                    "name": "points_",
+                    "type": "pointField",
+                    "purpose": "Point coordinates (inherited from primitiveMesh)"
+                },
+                {
+                    "name": "faces_",
+                    "type": "faceList",
+                    "purpose": "Face definitions (inherited)"
+                },
+                {
+                    "name": "owner_",
+                    "type": "labelList",
+                    "purpose": "Owner cell for each face"
+                },
+                {
+                    "name": "neighbour_",
+                    "type": "labelList",
+                    "purpose": "Neighbour cell for internal faces"
+                },
+                {
+                    "name": "boundary_",
+                    "type": "polyBoundaryMesh",
+                    "purpose": "Boundary patches and conditions"
+                }
+            ],
+            "key_methods": [
+                {
+                    "name": "C()",
+                    "purpose": "Return cell centers"
+                },
+                {
+                    "name": "Cf()",
+                    "purpose": "Return face centers"
+                },
+                {
+                    "name": "Sf()",
+                    "purpose": "Return face area vectors"
+                },
+                {
+                    "name": "magSf()",
+                    "purpose": "Return face areas"
+                },
+                {
+                    "name": "V()",
+                    "purpose": "Return cell volumes"
+                }
+            ]
+        }
+    ],
+    "implementation_skeleton": {
+        "classes": [
+            {
+                "name": "TubeMeshGenerator",
+                "responsibility": "Generate structured hexahedral mesh for tube geometry",
+                "key_methods": [
+                    {
+                        "name": "generatePoints()",
+                        "purpose": "Generate point coordinates based on tube parameters"
+                    },
+                    {
+                        "name": "generateFaces()",
+                        "purpose": "Create face connectivity from point indices"
+                    },
+                    {
+                        "name": "generateCells()",
+                        "purpose": "Create cell connectivity from faces"
+                    },
+                    {
+                        "name": "createBoundaryPatches()",
+                        "purpose": "Define inlet, outlet, wall patches"
+                    }
+                ],
+                "critical_implementation": "ต้องรักษา ordering ที่ถูกต้องของ points ในแต่ละ face เพื่อให้ face normal ชี้ออกจาก owner cell"
+            },
+            {
+                "name": "StructuredIndexing",
+                "responsibility": "Map between structured (i,j,k) indices and linear indices",
+                "key_methods": [
+                    {
+                        "name": "pointIndex(i,j,k)",
+                        "purpose": "Convert structured indices to point index"
+                    },
+                    {
+                        "name": "cellIndex(i,j,k)",
+                        "purpose": "Convert structured indices to cell index"
+                    },
+                    {
+                        "name": "faceIndex(direction, i,j,k)",
+                        "purpose": "Get face index based on direction (R, θ, Z)"
+                    }
+                ]
+            }
+        ],
+        "algorithm_steps": [
+            "1. Define tube parameters: R, L, N_r, N_θ, N_z",
+            "2. Generate points using cylindrical parameterization",
+            "3. Create faces for each cell: 6 faces per hexahedron",
+            "4. Assign owner/neighbour for each face",
+            "5. Create boundary patches: inlet (z=0), outlet (z=L), wall (r=R)",
+            "6. Calculate geometric quantities: cell centers, volumes, face areas",
+            "7. Verify mesh quality: non-negative volumes, face normals consistency"
+        ]
+    },
+    "concept_checks": [
+        {
+            "question": "ทำไมต้องใช้ structured mesh สำหรับ tube geometry แทนที่จะใช้ unstructured?",
+            "answer_key_points": [
+                "Computational efficiency: structured mesh มี predictable connectivity",
+                "Boundary layer resolution: ควบคุม cell distribution ใน radial direction ได้ดี",
+                "Numerical accuracy: hexahedral cells ให้ accuracy สูงกว่า tetrahedral",
+                "Implementation simplicity: indexing (i,j,k) ทำให้ matrix assembly ง่ายขึ้น"
+            ],
+            "implementation_note": "ใน TubeMeshGenerator::generatePoints() ใช้ cylindrical coordinates"
+        },
+        {
+            "question": "Face normal vector ต้องชี้ทิศทางไหน และทำไมถึงสำคัญ?",
+            "answer_key_points": [
+                "Face normal ต้องชี้จาก owner cell ไปยัง neighbour cell",
+                "สำคัญสำหรับ flux calculation: φ_f = U_f · S_f",
+                "Wrong normal direction → wrong sign of flux → mass imbalance",
+                "OpenFOAM ใช้ right-hand rule: points ใน face ต้องเรียงตาม counter-clockwise เมื่อมองจาก owner"
+            ],
+            "implementation_note": "ตรวจสอบใน TubeMeshGenerator::generateFaces()"
+        }
+    ],
+    "pitfalls": [
+        {
+            "symptom": "Negative cell volumes",
+            "cause": "Points ใน face เรียงผิดทิศทาง (clockwise แทนที่จะเป็น counter-clockwise)",
+            "fix": "ใช้ right-hand rule check และ reverse face ordering ถ้าจำเป็น"
+        },
+        {
+            "symptom": "Boundary faces ไม่ถูกระบุเป็น patch",
+            "cause": "Faces ที่มี neighbour = -1 ต้องถูก assign ให้กับ boundary patch",
+            "fix": "ตรวจสอบว่า boundary faces ทั้งหมดถูกเพิ่มเข้าไปใน boundary patch list"
+        },
+        {
+            "symptom": "High aspect ratio cells",
+            "cause": "Δr << RΔθ หรือ Δr << Δz",
+            "fix": "ใช้ grading ใน radial direction: finer cells ใกล้ผนัง"
+        }
+    ],
+    "connections": {
+        "previous_day": "Day 12: Phase 1 Review & Integration",
+        "next_day": "Day 14: Mesh Quality Metrics & Verification",
+        "key_link": "Today's mesh structure → Day 14's quality checking → Day 15's field initialization"
+    }
+}
