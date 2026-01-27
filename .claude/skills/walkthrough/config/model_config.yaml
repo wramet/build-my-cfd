@@ -1,0 +1,33 @@
+models:
+  ground_truth:
+    type: python_script
+    script: extract_facts.py
+    output_dir: /tmp
+
+  theory:
+    primary: deepseek-reasoner
+    backup: glm-4.7
+    description: Mathematical derivations and theory explanations
+
+  code:
+    primary: deepseek-chat
+    backup: deepseek-reasoner
+    description: Code structure and implementation analysis
+
+  synthesis:
+    primary: glm-4.7
+    backup: deepseek-chat
+    description: Final walkthrough synthesis and formatting
+
+deepseek:
+  wrapper_script: deepseek_content.py
+  timeout: 300
+
+verification:
+  strict_mode: true
+  stop_on_failure: true
+  cleanup_on_failure: true
+
+output:
+  base_dir: daily_learning/walkthroughs
+  file_template: day_{day:02d}_walkthrough.md

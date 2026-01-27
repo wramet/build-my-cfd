@@ -1,0 +1,65 @@
+gates:
+  1:
+    name: file_structure
+    description: File structure validation
+    required: true
+    checks:
+      - file_exists
+      - has_theory_section
+      - has_code_section
+      - has_implementation_section
+    on_failure: stop
+
+  2:
+    name: ground_truth
+    description: Ground truth extraction
+    required: true
+    thresholds:
+      min_facts: 5
+      min_classes: 2
+    on_failure: stop
+
+  3:
+    name: theory_equations
+    description: Theory equation verification
+    required: true
+    checks:
+      - equations_match_ground_truth
+      - latex_syntax_valid
+      - no_nested_delimiters
+    on_failure: stop
+
+  4:
+    name: code_structure
+    description: Code structure verification
+    required: true
+    checks:
+      - classes_match_ground_truth
+      - methods_match_ground_truth
+      - no_hallucinated_references
+    on_failure: stop
+
+  5:
+    name: implementation
+    description: Implementation consistency
+    required: true
+    checks:
+      - implementation_consistent_with_theory
+      - references_verified
+      - file_paths_valid
+    on_failure: stop
+
+  6:
+    name: final_coherence
+    description: Final coherence check
+    required: true
+    checks:
+      - overall_consistency
+      - all_markers_present
+      - no_truncated_content
+    on_failure: stop
+
+strict_mode:
+  enabled: true
+  exit_on_failure: true
+  cleanup_partial: true
