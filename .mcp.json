@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "deepseek": {
+      "command": "python3",
+      "args": [
+        "/Users/woramet/Documents/th_new/.claude/mcp/deepseek_mcp_server.py"
+      ],
+      "env": {
+        "DEEPSEEK_API_KEY": "sk-9ea39bd4d5e042c49f7b0337668162b6"
+      }
+    }
+  }
+}
