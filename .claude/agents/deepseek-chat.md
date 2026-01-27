@@ -81,8 +81,9 @@ You excel at:
 
 ## Configuration
 
-- **Model:** `deepseek/deepseek-chat` (routed via proxy)
-- **Base URL:** `http://localhost:4000`
+- **Model:** `deepseek/deepseek-chat`
+- **Base URL:** `https://api.deepseek.com/v1` (direct API - no proxy required)
+- **Implementation:** Uses `deepseek_content.py` for direct API calls
 - **Specialization:** Math + Physics for CFD
 
 ---

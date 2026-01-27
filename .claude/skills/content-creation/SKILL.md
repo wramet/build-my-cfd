@@ -45,8 +45,9 @@ Or use `/create-day` for step-by-step guidance.
 | Stage | Model | API Method | Purpose |
 |-------|--------|-------------|---------|
 | 1-2 | GLM-4.7 | **Via Claude** | Ground truth extraction + Skeleton creation |
-| 3 | DeepSeek R1 | **Direct API** | Verify skeleton against ground truth |
-| 4 | DeepSeek Chat V3 | **Direct API** | Expand to full English content |
+| 2.5 | - | **Python Script** | Generate structural blueprint (progressive overload) |
+| 3 | DeepSeek R1 | **Direct API** | Verify skeleton + blueprint against ground truth |
+| 4 | DeepSeek Chat V3 | **Direct API** | Expand to full English content (follows blueprint) |
 | 5 | DeepSeek R1 | **Direct API** | Final technical verification |
 | 6 | - | Python Script | Syntax QC |
 
@@ -59,8 +60,10 @@ flowchart TD
     R1 --> F[verified_facts ⭐]
     F --> R2[Stage 2: Skeleton<br/>GLM-4.7]
     R2 --> S[skeleton.json]
-    S --> V1[Stage 3: Verify<br/>DeepSeek R1<br/>Direct API]
-    V1 -->|Pass| D[Stage 4: Content<br/>DeepSeek Chat V3<br/>Direct API]
+    S --> BP[Stage 2.5: Blueprint<br/>Python Script<br/>NEW: Progressive Overload]
+    BP --> BL[blueprint.json]
+    BL --> V1[Stage 3: Verify<br/>DeepSeek R1<br/>Direct API]
+    V1 -->|Pass| D[Stage 4: Content<br/>DeepSeek Chat V3<br/>Direct API<br/>FOLLOWS BLUEPRINT]
     V1 -->|Fail| R2
     D --> C[Phase_01/XX.md]
     C --> V2[Stage 5: Final Verify<br/>DeepSeek R1<br/>Direct API]
@@ -69,9 +72,11 @@ flowchart TD
 
     style R1 fill:#e1f5e1,stroke:#4caf50
     style R2 fill:#e1f5e1,stroke:#4caf50
+    style BP fill:#fff3cd,stroke:#ffc107,stroke-width:3px
+    style BL fill:#fff3cd,stroke:#ffc107
     style V1 fill:#f8d7da,stroke:#dc3545
     style V2 fill:#f8d7da,stroke:#dc3545
-    style D fill:#e0e0e0,stroke:#6c757d
+    style D fill:#d1ecf1,stroke:#17a2b8,stroke-width:3px
     style QC fill:#fff3cd,stroke:#ffc107
     style Done fill:#d4edda,stroke:#28a745
 ```
@@ -147,6 +152,77 @@ Output: daily_learning/skeletons/dayXX_skeleton.json
 
 ---
 
+### Stage 2.5: Generate Structural Blueprint (Python Script - NEW)
+
+**Purpose:** Create progressive-overload learning structure from template library
+
+**Run automatically:**
+```bash
+python3 .claude/scripts/generate_blueprint.py <day> "<topic>"
+
+# Example:
+python3 .claude/scripts/generate_blueprint.py 04 "Temporal Discretization"
+```
+
+**What It Does:**
+1. Reads skeleton.json + verified_facts.json
+2. Determines template type (Engine-Builder / Scientist / Mathematician / **Integration Engineer** ⭐)
+3. Generates blueprint.json with progressive overload structure
+4. Auto-approves (no manual review needed)
+
+**Template Types:**
+
+| Template | Focus | Best For | Structure |
+|----------|--------|----------|-----------|
+| **Engine-Builder** | Code-heavy | Matrix Assembly, Solver Core | Concept (20%) → Architecture (30%) → Implementation (40%) → Testing (10%) |
+| **Scientist** | Physics-heavy | Phase Change, VOF, Turbulence | Theory (25%) → Physics Explained (40%) → Implementation (25%) → Validation (10%) |
+| **Mathematician** | Theory-heavy | Discretization, Stability | Theory (30%) → Physical Challenge (20%) → Architecture (35%) → QA (15%) |
+| **Integration Engineer** ⭐ | Hybrid | Expansion Term, Tabulation, Boiling Test | Theory+Physics (25%) → Strategy (30%) → Validation (25%) → Debug (20%) |
+
+**Blueprint Example:**
+
+*Mathematician Template (Day 04: Temporal Discretization):*
+```json
+{
+  "template": "mathematician",
+  "structure": {
+    "parts": [
+      {"title": "Core Theory", "ratio": 0.30, "readability": "beginner"},
+      {"title": "Physical Challenge", "ratio": 0.20, "readability": "intermediate"},
+      {"title": "Architecture & Implementation", "ratio": 0.35, "readability": "advanced"},
+      {"title": "Quality Assurance", "ratio": 0.15, "readability": "professional"}
+    ]
+  },
+  "rules": {
+    "boilerplate_policy": "quarantine_to_appendix",
+    "ratio_tolerance": 0.05
+  }
+}
+```
+
+*Integration Engineer Template (Day 61: The Expansion Term):*
+```json
+{
+  "template": "integration_engineer",
+  "structure": {
+    "parts": [
+      {"title": "Theory & Physics Unified", "ratio": 0.25, "readability": "intermediate"},
+      {"title": "Implementation Strategy", "ratio": 0.30, "readability": "advanced"},
+      {"title": "Testing & Validation", "ratio": 0.25, "readability": "professional"},
+      {"title": "Debugging Guide", "ratio": 0.20, "readability": "expert"}
+    ]
+  },
+  "rules": {
+    "boilerplate_policy": "integration_points_only",
+    "critical_for_phase_4": true
+  }
+}
+```
+
+**Output:** `blueprints/dayXX_blueprint.json` ⭐
+
+---
+
 ### Stage 3: Verify Skeleton (DeepSeek R1 - Direct API)
 
 **Or use integrated script:**
@@ -195,21 +271,43 @@ cat > /tmp/stage4_prompt.txt << 'PROMPT'
 Expand Day XX: [TOPIC] - ENGLISH ONLY
 
 SKELETON: $(cat daily_learning/skeletons/dayXX_skeleton.json)
+BLUEPRINT: $(cat daily_learning/blueprints/dayXX_blueprint.json)
 
 CRITICAL REQUIREMENTS:
 - ENGLISH-ONLY content (no Thai translation)
+- Follow EXACT structure defined in blueprint.json
+- Progressive Overload: Start simple, ramp to complex, consolidate
+- Concept First, Code Second: Show diagrams before code
+- Quarantine Boilerplate: Move headers/constructors to appendix
 - Theory: ≥500 lines with complete derivations
 - Code: 3-5 snippets with file paths and line numbers
 - Implementation: ≥300 lines C++ code
 - Exercises: 4-6 concept checks
 - All ⭐ facts remain unchanged
 
+STRUCTURAL RULES from blueprint:
+- Part 1 (Core Theory): Start with Taylor series, beginner-friendly
+- Part 2 (Physical Challenge): Explain why theory fails in practice
+- Part 3 (Architecture): Show class/workflow diagrams BEFORE code
+- Part 4 (QA): Explain strategy, don't paste 100 lines of test code
+
+APPENDIX REQUIREMENT (MANDATORY):
+- EVERY output MUST end with an Appendix section
+- Use EXACT title and format below:
+```markdown
+## Appendix: Complete File Listings
+
+> For copy-paste convenience, here are the complete, compilable files discussed above, including all necessary headers, constructors, and CMake configurations.
+```
+- Include ALL quarantined boilerplate code in appendix
+- Files must be 100% copy-pasteable and production-ready
+
 Write comprehensive technical content suitable for CFD learners.
 
 Format:
 - Use $$ for display math equations
 - Use $ for inline math
-- Include proper Mermaid diagrams
+- Include proper Mermaid diagrams (class diagrams, flowcharts)
 - All code blocks must have language tags
 - Headers in English only
 
@@ -237,12 +335,17 @@ Final verification for Day XX
 
 CONTENT: $(cat daily_learning/Phase_01_Foundation_Theory/XX.md)
 GROUND TRUTH: $(cat /tmp/verified_facts_dayXX.json)
+BLUEPRINT: $(cat daily_learning/blueprints/dayXX_blueprint.json)
 
 Verification tasks:
 1. All Mermaid diagrams match ground truth
 2. All formulas in LaTeX match ground truth (check operators!)
 3. Code snippets are syntactically correct
 4. No ⚠️ claims without explanation
+5. Structure follows blueprint progressive overload (Part 1 beginner → Part 4 professional)
+6. Boilerplate code quarantined to appendix (headers, constructors)
+7. MANDATORY: Appendix section present with exact title "## Appendix: Complete File Listings"
+8. Appendix contains complete, compilable code (not just snippets)
 
 Output verification report with specific issues if any found.
 PROMPT
@@ -335,9 +438,11 @@ ls -la /tmp/*verification*.txt
 ### Expected Behavior
 
 ```
-Stage 1-2: Claude (GLM-4.7) → Uses proxy → OK
-Stage 3-5: DeepSeek API Direct → BYPASSES proxy → OK
+Stage 1-2: Claude (GLM-4.7) → Direct API via Z.ai endpoint → OK
+Stage 3-5: DeepSeek API Direct → Direct API to DeepSeek → OK
 ```
+
+**Note:** Claude Code uses GLM-4.7 directly through Z.ai's Anthropic-compatible endpoint (`https://api.z.ai/api/anthropic`), not through the `.ccproxy_alt` proxy. The proxy is optional and not required for this workflow.
 
 ---
 
@@ -377,14 +482,38 @@ echo "⚠️  QC script not found, skipping syntax check"
 
 ---
 
+## New Template System Files
+
+### Template Library
+
+**Location:** `.claude/templates/structural_blueprints.json`
+
+**Contains:** 3 structural templates with progressive overload rules
+
+**Templates:**
+1. **Engine-Builder** - Code-heavy topics
+2. **Scientist** - Physics-heavy topics
+3. **Mathematician** - Theory-heavy topics
+
+### Blueprint Directory
+
+**Location:** `daily_learning/blueprints/`
+
+**Purpose:** Store auto-generated learning structure files
+
+**Format:** JSON with parts, ratios, and guidelines
+
+---
+
 ## Output Files
 
 | Stage | Model | File | Description |
 |-------|--------|------|-------------|
 | 1 | GLM-4.7 | `/tmp/verified_facts_dayXX.json` | Ground truth ⭐ |
 | 2 | GLM-4.7 | `skeletons/dayXX_skeleton.json` | CFD curriculum skeleton |
-| 3 | DeepSeek R1 | `/tmp/verification_report_dayXX.txt` | Skeleton verification |
-| 4 | DeepSeek Chat V3 | `Phase_01_Foundation_Theory/XX.md` | English content |
+| 2.5 | Python | `blueprints/dayXX_blueprint.json` | Progressive overload structure ⭐ NEW |
+| 3 | DeepSeek R1 | `/tmp/verification_report_dayXX.txt` | Skeleton + blueprint verification |
+| 4 | DeepSeek Chat V3 | `Phase_01_Foundation_Theory/XX.md` | English content (follows blueprint) |
 | 5 | DeepSeek R1 | `/tmp/final_verification_dayXX.txt` | Final verification |
 | 6 | - | QC report | Syntax validation |
 

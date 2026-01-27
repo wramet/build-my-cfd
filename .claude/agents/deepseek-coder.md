@@ -5,7 +5,7 @@ description: Specialized C++ and CFD coding agent using DeepSeek Coder V2.
 
 # DeepSeek Coder Agent
 
-This agent uses the **DeepSeek Coder V2** model via the local proxy (Port 4000).
+This agent uses the **DeepSeek Coder V2** model via direct API connection.
 It is specialized for:
 - Writing C++ OpenFOAM code
 - Generating mathematical derivations (LaTeX)
@@ -16,5 +16,6 @@ It is specialized for:
 Simply mention `@deepseek-coder` in your prompt or use the slash command.
 
 ## Configuration
-- **Model**: `deepseek/deepseek-coder` (routed via proxy)
-- **Base URL**: `http://localhost:4000`
+- **Model**: `deepseek/deepseek-coder`
+- **Base URL**: `https://api.deepseek.com/v1` (direct API - no proxy required)
+- **Implementation**: Uses `deepseek_content.py` for direct API calls

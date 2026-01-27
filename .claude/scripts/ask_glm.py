@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 GLM-4.7 API Helper Script for /teach-deep workflow
-Supports parallel execution and OpenAI-compatible interface
+Now connects directly to Z.ai (no proxy required)
 """
 
 import argparse
@@ -10,10 +10,10 @@ import os
 import sys
 from openai import OpenAI
 
-# PROXY CONFIGURATION (Option B)
-# We point to the local proxy which handles routing
-API_KEY = "sk-dummy-key"
-BASE_URL = "http://localhost:4000"
+# Z.ai DIRECT API CONFIGURATION
+# Uses Z.ai's OpenAI-compatible endpoint
+API_KEY = os.environ.get("ANTHROPIC_API_KEY", "your-zai-api-key")
+BASE_URL = "https://open.bigmodel.cn/api/paas/v4"  # Z.ai OpenAI-compatible endpoint
 
 def ask_glm(prompt: str, system: str = None, model: str = "glm-4.7", max_tokens: int = 8192, tools: bool = False) -> str:
     """Send a prompt to the Local Proxy and return the response."""

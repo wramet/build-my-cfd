@@ -52,6 +52,8 @@ When creating daily content, ALWAYS follow this sequence:
 - `/create-day` - Generate new daily content with Source-First workflow
 - `/walkthrough` - Interactive walkthrough with Source-First verification
 - `/qc-modular` - Section-by-section QC for large files
+- `/walkthrough` - Interactive walkthrough with Source-First verification
+- `/qc-modular` - Section-by-section QC for large files
 
 ### Scripts Available
 
@@ -117,6 +119,31 @@ th_new/
 | Main orchestrator | GLM-4.7 | Native tools, Web Search, Top-Tier coding |
 | Complex reasoning | DeepSeek R1 | Math derivations, analysis |
 | Coding | DeepSeek V3 | Fast code generation |
+
+### Model Setup
+
+**Claude Code + GLM-4.7 (Direct Integration - No Proxy Required):**
+
+```bash
+# Point Claude Code to Z.ai's Anthropic-compatible endpoint
+export ANTHROPIC_API_KEY="your-zai-api-key"
+export ANTHROPIC_BASE_URL="https://api.z.ai/api/anthropic"
+
+# Claude Code will now use GLM-4.7 directly
+claude
+```
+
+**DeepSeek Models (Direct API - No Proxy Required):**
+
+The project uses `deepseek_content.py` which connects directly to DeepSeek's API at `https://api.deepseek.com/v1`.
+
+### Proxy (Optional)
+
+The `.ccproxy_alt/` directory contains a custom routing proxy on `localhost:4000`. This is **optional** and only needed if:
+- You want custom model routing middleware
+- You're using scripts explicitly configured for `localhost:4000` (e.g., `ask_glm.py`)
+
+**Most project features work WITHOUT the proxy running.**
 
 ---
 
