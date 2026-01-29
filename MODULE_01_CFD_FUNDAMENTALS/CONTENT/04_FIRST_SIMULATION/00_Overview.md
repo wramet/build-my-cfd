@@ -1,505 +1,629 @@
-# ภาพรวม: Lid-Driven Cavity Simulation
+# Day 04: R410A Evaporator Simulation Tutorial
+# วันที่ 4: บทช่วยสอนการจำลองการระเหยของสารทำความเย็น R410A
 
-การจำลอง CFD แรกของคุณใน OpenFOAM ด้วย Benchmark Problem คลาสสิก
+## 1. Overview / ภาพรวม
 
----
+### What is an R410A Evaporator Simulation?
+### การจำลองการระเหยของสารทำความเย็น R410A คืออะไร?
 
-## 🎯 Learning Objectives
+An R410A evaporator simulation models the phase-change heat transfer process inside a horizontal tube where subcooled liquid R410A refrigerant absorbs heat from the tube walls, undergoes evaporation, and exits as a superheated vapor or two-phase mixture. This involves solving coupled conservation equations for mass, momentum, and energy with a phase-change model in a cylindrical coordinate system.
 
-หลังจากอ่านบทนี้ คุณจะสามารถ:
-- **อธิบาย** ว่าทำไม Lid-Driven Cavity จึงเป็น benchmark มาตรฐานสำหรับ CFD validation
-- **เข้าใจ** โครงสร้าง directory และไฟล์พื้นฐานของ OpenFOAM case
-- **ระบุ** boundary conditions ที่เหมาะสมสำหรับปัญหา quasi-2D
-- **แยกแยะ** บทบาทของแต่ละไฟล์ใน OpenFOAM case structure (0/, constant/, system/)
-- **เปรียบเทียบ** ผลลัพธ์กับ reference data สำหรับ validation
+การจำลองการระเหยของสารทำความเย็น R410A เป็นการจำลองกระบวนการถ่ายเทความร้อนพร้อมการเปลี่ยนเฟสภายในท่อแนวนอน โดยสารทำความเย็น R410A ในสถานะของเหลวอิ่มตัวยวดิ่ง (subcooled liquid) ดูดซับความร้อนจากผนังท่อ เกิดการระเหย และออกจากท่อในสถานะไอร้อนยวดยิ่ง (superheated vapor) หรือส่วนผสมสองเฟส กระบวนการนี้ต้องแก้สมการอนุรักษ์มวล โมเมนตัม และพลังงาน ที่เชื่อมโยงกัน พร้อมกับแบบจำลองการเปลี่ยนเฟส ในระบบพิกัดทรงกระบอก
 
----
+### Why Simulate R410A Evaporators?
+### ทำไมต้องจำลองการระเหยของสารทำความเย็น R410A?
 
-## ภาพรวมบทเรียน
+R410A is a common refrigerant in air conditioning and heat pump systems. Accurate simulation of its evaporation process is crucial for:
+- **System Efficiency Optimization**: Predicting heat transfer coefficients and pressure drops.
+- **Component Design**: Sizing evaporator tubes and optimizing fin designs.
+- **Transient Behavior Analysis**: Understanding system response during startup and load changes.
+- **Environmental Impact Reduction**: Minimizing refrigerant charge and improving COP (Coefficient of Performance).
 
-> **🎯 3W FRAMEWORK**
-> 
-> **WHAT (อะไร):** Lid-Driven Cavity Benchmark — ปัญหาการไหลของของไหลในกล่องสี่เหลี่ยมที่ฝาบนเคลื่อนที่ ซึ่งสร้าง recirculating vortex ภายในโดเมน
-> 
-> **WHY (ทำไม):** เป็นปัญหา benchmark มาตรฐา�ใน CFD ที่มี reference data ที่เชื่อถือได้ (Ghia et al., 1982) ใช้สำหรับ validation solver และเรียนรู้ workflow การจำลองแบบครบวงจร (Pre-process → Solve → Post-process) ด้วย geometry ที่เรียบง่าย แต่ physics ที่ซับซ้อนพอสมควร
-> 
-> **HOW (อย่างไร):** ผ่านขั้นตอน OpenFOAM workflow ทั้งหมด ตั้งแต่การสร้าง mesh ด้วย `blockMesh`, การตั้งค่า boundary conditions, การรัน transient solver `icoFoam`, การดูผลลัพธ์ด้วย `paraFoam`, และการ validate กับ reference data
+R410A เป็นสารทำความเย็นที่ใช้ทั่วไปในระบบปรับอากาศและปั๊มความร้อน การจำลองกระบวนการระเหยอย่างแม่นยำมีความสำคัญสำหรับ:
+- **การเพิ่มประสิทธิภาพระบบ**: ทำนายค่าสัมประสิทธิภาพการถ่ายเทความร้อนและการสูญเสียแรงดัน
+- **การออกแบบส่วนประกอบ**: กำหนดขนาดท่อระเหยและออกแบบครีบให้เหมาะสม
+- **การวิเคราะหาพฤติกรรมชั่วขณะ**: ทำความเข้าใจการตอบสนองของระบบระหว่างการเริ่มทำงานและการเปลี่ยนแปลงภาระ
+- **การลดผลกระทบต่อสิ่งแวดล้อม**: ลดปริมาณสารทำความเย็นและเพิ่มค่า COP (สัมประสิทธิภาพสมรรถนะ)
 
----
+### How is This Simulation Different from Lid-Driven Cavity?
+### การจำลองนี้แตกต่างจาก Lid-Driven Cavity อย่างไร?
 
-## ปัญหา Lid-Driven Cavity
-
-> **🎯 3W FRAMEWORK**
-> 
-> **WHAT (อะไร):** ปัญหาการไหลของของไหลในกล่องสี่เหลี่ยมจัตุรัสที่ฝาบน (lid) เคลื่อนที่ด้วยความเร็วคงที่ ส่งผลให้เกิดการหมุนวนของของไหล (recirculating vortex) ภายในโดเมน
-> 
-> **WHY (ทำไม):** เป็นปัญหาที่เหมาะสำหรับการเรียนรู้ CFD workflow เพราะมี geometry เรียบง่าย แต่ยังคง physics ที่น่าสนใจ เช่น vortex formation, shear layers, และ boundary layers อีกทั้งยังมีข้อมูล reference ที่ดีสำหรับ validation
-> 
-> **HOW (อย่างไร):** แก้สมการ Navier-Stokes สำหรับของไหลไร้การบีบอัด (incompressible) แบบ laminar ในรูปแบบ transient ด้วยเงื่อนไขขอบเขต no-slip ที่ผนังทั้งหมด และ lid ที่เคลื่อนที่
-
-### รายละเอียดปัญหา
-
-**Physical Setup:**
-- กล่องสี่เหลี่ยมบรรจุของไหล
-- ฝาบนเคลื่อนที่ด้วยความเร็วคงที่ → สร้าง recirculating vortex
-- ผนังอื่นๆ อยู่นิ่ง (stationary)
-
-**Parameters:**
-
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| Domain | 1×1×0.1 m | Quasi-2D: mesh 1 cell ในทิศ z |
-| Lid velocity | 1 m/s (+x direction) | Upper wall velocity |
-| Other walls | 0 m/s | Stationary (no-slip) |
-| Fluid | Incompressible, Newtonian | Constant properties |
-| Reynolds Number | 10-1000 | Re = UL/ν |
-
-> **💡 ทำไมเรียก Quasi-2D?**
-> 
-> **WHAT (อะไร):** Mesh ที่มีเพียง 1 cell ในทิศทาง z (depth = 0.1 m) แต่ยังคงเป็น 3D mesh จริง
-> 
-> **WHY (ทำไม):** OpenFOAM ทำงานกับ 3D mesh เท่านั้น ดังนั้นเพื่อจำลองปัญหา 2D เราจึง extrude 2D geometry ด้วย thickness เล็กน้อย และใช้ boundary condition พิเศษเพื่อกำจัด variation ในทิศทาง z
-> 
-> **HOW (อย่างไร):** ใช้ `empty` BC ที่ frontAndBack planes → ไม่มี flux ผ่านผนัง z และไม่มีการแก้สมการในทิศทางนั้น → Physics จึงเป็น 2D แม้ว่า mesh จะเป็น 3D extruded
+| Aspect / ด้าน | Lid-Driven Cavity | R410A Evaporator |
+|--------------|-------------------|------------------|
+| **Physics / ฟิสิกส์** | Single-phase incompressible flow | Two-phase flow with phase change |
+| **Geometry / เรขาคณิต** | 2D Cartesian square | 2D/3D Cylindrical (axisymmetric) |
+| **Equations / สมการ** | Navier-Stokes only | Mass, momentum, energy with source terms |
+| **Boundary Conditions / เงื่อนไขขอบเขต** | Moving wall, no-slip | Inlet mass flow, wall heat flux, pressure outlet |
+| **Solution Method / วิธีการแก้** | Pressure-velocity coupling (SIMPLE) | Coupled with energy and phase fraction |
 
 ---
 
-## สมการควบคุม
+## 2. Mathematical Formulation / สูตรทางคณิตศาสตร์
 
-> **🎯 3W FRAMEWORK**
-> 
-> **WHAT (อะไร):** สมการ Navier-Stokes สำหรับของไหลไร้การบีบอัด (incompressible) แบบ laminar ซึ่งประกอบด้วยสมการความต่อเนื่อง (continuity) และสมการโมเมนตัม (momentum)
-> 
-> **WHY (ทำไม):** เป็นรากฐานคณิตศาสตร์ที่อธิบายการเคลื่อนที่ของของไหล Newtonian ที่เราจะแก้ด้วย numerical method ใน OpenFOAM
-> 
-> **HOW (อย่างไร):** icoFoam solver ใช้ Finite Volume Method (FVM) เพื่อ discretize สมการเหล่านี้และแก้ด้วย PISO algorithm สำหรับ pressure-velocity coupling
+### 2.1 Governing Equations / สมการควบคุม
 
-### Continuity Equation (สมการความต่อเนื่อง)
+#### Volume of Fluid (VOF) Method with Phase Change
+#### วิธีปริมาตรของไหล (VOF) พร้อมการเปลี่ยนเฟส
 
-$$\nabla \cdot \mathbf{u} = 0$$
+The volume fraction $\alpha$ represents the liquid phase ($\alpha = 1$: liquid, $\alpha = 0$: vapor). The governing equations are:
 
-- **Physical meaning:** ปริมาตรของไหลเข้า = ปริมาตรของไหลออก (conservation of mass)
-- **สำหรับ incompressible flow:** ความหนาแน่นคงที่ → divergence ของ velocity เป็นศูนย์
+ปริมาตรส่วน $\alpha$ แทนเฟสของเหลว ($\alpha = 1$: ของเหลว, $\alpha = 0$: ไอ) สมการควบคุมคือ:
 
-### Momentum Equation (สมการโมเมนตัม)
+**Continuity Equation with Phase Change Source / สมการความต่อเนื่องพร้อมเทอมต้นกำเนิดการเปลี่ยนเฟส:**
 
-$$\frac{\partial \mathbf{u}}{\partial t} + (\mathbf{u} \cdot \nabla)\mathbf{u} = -\frac{1}{\rho}\nabla p + \nu\nabla^2\mathbf{u}$$
+$$
+\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = S_m
+$$
 
-| Term | Description | Physical Meaning |
-|------|-------------|------------------|
-| $\frac{\partial \mathbf{u}}{\partial t}$ | Unsteady term | การเปลี่ยนแปลงความเร็วตามเวลา |
-| $(\mathbf{u} \cdot \nabla)\mathbf{u}$ | Convection term | การพาของโมเมนตัมโดย velocity field เอง |
-| $-\frac{1}{\rho}\nabla p$ | Pressure gradient | แรงที่เกิดจากความต่างความดัน |
-| $\nu\nabla^2\mathbf{u}$ | Diffusion term | ความหนืด/viscous forces |
+where $\rho = \alpha \rho_l + (1-\alpha) \rho_v$ is the mixture density, and $S_m$ is the mass source due to phase change.
 
-### Reynolds Number
+โดยที่ $\rho = \alpha \rho_l + (1-\alpha) \rho_v$ คือความหนาแน่นของส่วนผสม และ $S_m$ คือเทอมต้นกำเนิดมวลจากการเปลี่ยนเฟส
 
-$$Re = \frac{UL}{\nu} = \frac{(1\text{ m/s})(1\text{ m})}{\nu}$$
+**Volume Fraction Equation / สมการปริมาตรส่วน:**
 
-| Re | Flow Characteristics |
-|----|---------------------|
-| 10 | Laminar, symmetric vortex |
-| 100 | Laminar, vortex shifts toward lid |
-| 400 | Laminar, corner vortices appear |
-| 1000 | Transition to turbulence (ความแม่นยำลดลง) |
+$$
+\frac{\partial \alpha}{\partial t} + \nabla \cdot (\alpha \mathbf{u}) + \nabla \cdot [\alpha (1-\alpha) \mathbf{u}_r] = \frac{S_m}{\rho_l}
+$$
+
+The third term is the compression term at the interface for sharpening.
+
+เทอมที่สามคือเทอมการบีบอัดที่ส่วนต่อประสานเพื่อให้มีความคมชัด
+
+**Momentum Equation / สมการโมเมนตัม:**
+
+$$
+\frac{\partial (\rho \mathbf{u})}{\partial t} + \nabla \cdot (\rho \mathbf{u} \mathbf{u}) = -\nabla p + \nabla \cdot [\mu (\nabla \mathbf{u} + \nabla \mathbf{u}^T)] + \rho \mathbf{g} + \mathbf{F}_\sigma
+$$
+
+where $\mu = \alpha \mu_l + (1-\alpha) \mu_v$ is the mixture viscosity, and $\mathbf{F}_\sigma$ is the surface tension force.
+
+โดยที่ $\mu = \alpha \mu_l + (1-\alpha) \mu_v$ คือความหนืดของส่วนผสม และ $\mathbf{F}_\sigma$ คือแรงตึงผิว
+
+**Energy Equation / สมการพลังงาน:**
+
+$$
+\frac{\partial (\rho h)}{\partial t} + \nabla \cdot (\rho h \mathbf{u}) = \nabla \cdot (k \nabla T) + S_e
+$$
+
+where $h$ is the specific enthalpy, $k = \alpha k_l + (1-\alpha) k_v$ is the mixture thermal conductivity, and $S_e$ is the energy source from phase change.
+
+โดยที่ $h$ คือเอนทาลปีจำเพาะ, $k = \alpha k_l + (1-\alpha) k_v$ คือค่าการนำความร้อนของส่วนผสม และ $S_e$ คือเทอมต้นกำเนิดพลังงานจากการเปลี่ยนเฟส
+
+### 2.2 Lee Phase Change Model / แบบจำลองการเปลี่ยนเฟสของ Lee
+
+The mass transfer rate per unit volume is modeled as:
+
+อัตราการถ่ายเทมวลต่อหน่วยปริมาตรถูกจำลองเป็น:
+
+**Evaporation ($T_l > T_{sat}$): / การระเหย**
+
+$$
+S_m = r_{evap} \alpha \rho_l \frac{T_l - T_{sat}}{T_{sat}}
+$$
+
+**Condensation ($T_v < T_{sat}$): / การควบแนนน**
+
+$$
+S_m = r_{cond} (1-\alpha) \rho_v \frac{T_{sat} - T_v}{T_{sat}}
+$$
+
+where $r_{evap}$ and $r_{cond}$ are empirical coefficients (typically 0.1-100 s⁻¹), and $T_{sat}$ is the saturation temperature at local pressure.
+
+โดยที่ $r_{evap}$ และ $r_{cond}$ คือสัมประสิทธิ์เชิงประจักษ์ (ทั่วไป 0.1-100 s⁻¹) และ $T_{sat}$ คืออุณหภูมิอิ่มตัวที่ความดันในพื้นที่
+
+The energy source term is: / เทอมต้นกำเนิดพลังงานคือ:
+
+$$
+S_e = S_m \cdot h_{lv}
+$$
+
+where $h_{lv}$ is the latent heat of vaporization.
+
+โดยที่ $h_{lv}$ คือความร้อนแฝงของการระเหย
+
+### 2.3 Cylindrical Coordinate System / ระบบพิกัดทรงกระบอก
+
+For axisymmetric simulations, the equations transform to:
+
+สำหรับการจำลองแบบสมาตรตามแนวแกน สมการจะแปลงเป็น:
+
+**Continuity in Cylindrical Coordinates / สมการความต่อเนื่องในพิกัดทรงกระบอก:**
+
+$$
+\frac{\partial \rho}{\partial t} + \frac{1}{r} \frac{\partial (r \rho u_r)}{\partial r} + \frac{\partial (\rho u_z)}{\partial z} = S_m
+$$
+
+where $u_r$ is radial velocity and $u_z$ is axial velocity.
+
+โดยที่ $u_r$ คือความเร็วในแนวรัศมี และ $u_z$ คือความเร็วในแนวแกน
 
 ---
 
-## OpenFOAM Case Structure
+## 3. Geometry and Mesh / เรขาคณิตและตาข่าย
 
-> **🎯 3W FRAMEWORK**
-> 
-> **WHAT (อะไร):** โครงสร้าบ directory มาตรฐานของ OpenFOAM case ซึ่งแบ่งเป็น 3 ส่วนหลัก: 0/, constant/, และ system/
-> 
-> **WHY (ทำไม):** OpenFOAM ต้องการการจัดระเบียบไฟล์แบบเฉพาะเพื่อให้ solver สามารถค้นหาและอ่านข้อมูลได้อัตโนมัติ แต่ละ directory มีบทบาทเฉพาะที่ชัดเจน
-> 
-> **HOW (อย่างไร):** สร้าง directory structure ตามรูปแบบมาตรฐาน วางไฟล์ที่เหมาะสมในแต่ละ directory และ OpenFOAM solver จะจัดการข้อมูลอัตโนมัติ
-
-### Directory Structure
-
-```
-cavity/
-├── 0/                          # 📁 Initial & Boundary Conditions
-│   ├── U                       # Velocity field (initial + BC)
-│   └── p                       # Pressure field (initial + BC)
-│
-├── constant/                   # 📁 Time-independent Data
-│   ├── polyMesh/               # Mesh (generated by blockMesh)
-│   │   └── blockMeshDict       # Mesh definition (→ generates mesh files)
-│   └── transportProperties     # Fluid properties (ν = kinematic viscosity)
-│
-└── system/                     # 📁 Simulation Control
-    ├── blockMeshDict           # Mesh generation parameters
-    ├── controlDict             # Time control (start/end, write interval)
-    ├── fvSchemes               # Discretization schemes (div, grad, laplacian)
-    └── fvSolution              # Linear solver settings & algorithm (PISO)
-```
-
-### คำอธิบายแต่ละส่วน
-
-| Directory | Purpose | Key Files |
-|-----------|---------|-----------|
-| **0/** | เก็บ fields ที่ต้องการ initial และ boundary conditions | U (velocity), p (pressure) |
-| **constant/** | ข้อมูลที่ไม่เปลี่ยนตามเวลา | polyMesh/, transportProperties |
-| **system/** | ควบคุมการแก้สมการ (numerical settings) | controlDict, fvSchemes, fvSolution |
-
-> **📖 ดูเพิ่มเติม:** รายละเอียดการตั้งค่าแต่ละไฟล์อยู่ใน [02_The_Workflow.md](02_The_Workflow.md)
-
----
-
-## Boundary Conditions
-
-> **🎯 3W FRAMEWORK**
-> 
-> **WHAT (อะไร):** เงื่อนไขขอบเขต (boundary conditions) คือการระบุค่าของ variables ที่ผนังของโดเมน ซึ่งมีผลต่อการแก้สมการ Navier-Stokes
-> 
-> **WHY (ทำไม):** BC ที่ถูกต้องจำเป็นอย่างยิ่งสำหรับ well-posed problem และมีผลต่อความแม่นยำของผลลัพธ์
-> 
-> **HOW (อย่างไร):** ระบุ BC ในไฟล์ 0/U และ 0/p โดยแต่ละ patch ต้องมี type และ value ที่เหมาะสมกับ physics
-
-### Velocity BC (0/U)
+### 3.1 Horizontal Tube Geometry / เรขาคณิตท่อแนวนอน
 
 ```cpp
-dimensions      [0 1 -1 0 0 0 0];
+// Geometry parameters for R410A evaporator tube
+struct EvaporatorGeometry {
+    double tube_length;      // Tube length in meters (ความยาวท่อ เมตร)
+    double tube_radius;      // Tube inner radius in meters (รัศมีภายในท่อ เมตร)
+    double wall_thickness;   // Tube wall thickness in meters (ความหนาผนังท่อ เมตร)
 
-internalField   uniform (0 0 0);
+    // Constructor with default values (ค่าตั้งต้น)
+    EvaporatorGeometry(double L = 1.0, double R = 0.005, double t = 0.001)
+        : tube_length(L), tube_radius(R), wall_thickness(t) {}
 
-boundaryField
-{
-    movingWall  
-    { 
-        type            fixedValue;     // ⬅ Fixed velocity
-        value           uniform (1 0 0); // 1 m/s in +x direction
+    // Calculate mesh dimensions (คำนวณขนาดตาข่าย)
+    std::pair<int, int> calculateMeshSize(double dr, double dz) const {
+        int nr = static_cast<int>(tube_radius / dr) + 1;
+        int nz = static_cast<int>(tube_length / dz) + 1;
+        return {nr, nz};
     }
-    
-    fixedWalls  
-    { 
-        type            noSlip;         // ⬅ u = 0 (automatically)
-    }
-    
-    frontAndBack 
-    { 
-        type            empty;          // ⬅ 2D BC (no variation in z)
-    }
-}
+};
 ```
 
-**BC Types Explained:**
-
-| Type | Meaning | Use Case |
-|------|---------|----------|
-| `fixedValue` | กำหนดค่าคงที่ | Moving wall ที่ lid |
-| `noSlip` | Velocity = 0 ที่ผนัง | Stationary walls |
-| `empty` | ไม่มีการแก้สมการ | Quasi-2D (front/back) |
-
-> **💡 ทำไม `noSlip` ไม่ต้องระบุ value?**
-> เพราะ `noSlip` คือ shorthand สำหรับ `fixedValue` ที่มี value = uniform (0 0 0) → velocity เป็นศูนย์ที่ผนัง
-
-### Pressure BC (0/p)
+### 3.2 Axisymmetric Mesh Generation / การสร้างตาข่ายแบบสมาตรตามแนวแกน
 
 ```cpp
-dimensions      [0 2 -2 0 0 0 0];      // Pressure: [kg/(m·s²)]
+class AxisymmetricMesh {
+private:
+    std::vector<double> r_pos;  // Radial positions (ตำแหน่งในแนวรัศมี)
+    std::vector<double> z_pos;  // Axial positions (ตำแหน่งในแนวแกน)
+    int nr, nz;                 // Number of cells in r and z directions (จำนวนเซลล์ในแนว r และ z)
 
-internalField   uniform 0;
+public:
+    AxisymmetricMesh(const EvaporatorGeometry& geom,
+                     double dr, double dz) {
+        auto [nr_calc, nz_calc] = geom.calculateMeshSize(dr, dz);
+        nr = nr_calc;
+        nz = nz_calc;
 
-boundaryField
-{
-    movingWall   
-    { 
-        type            zeroGradient;   // ⬅ ∂p/∂n = 0
+        // Generate radial positions (สร้างตำแหน่งในแนวรัศมี)
+        r_pos.resize(nr + 1);
+        for (int i = 0; i <= nr; ++i) {
+            r_pos[i] = i * dr;
+        }
+
+        // Generate axial positions (สร้างตำแหน่งในแนวแกน)
+        z_pos.resize(nz + 1);
+        for (int j = 0; j <= nz; ++j) {
+            z_pos[j] = j * dz;
+        }
     }
-    
-    fixedWalls   
-    { 
-        type            zeroGradient;   // ⬅ ∂p/∂n = 0
+
+    // Calculate cell volume for axisymmetric coordinates (คำนวณปริมาตรเซลล์สำหรับพิกัดทรงกระบอก)
+    double cellVolume(int i, int j) const {
+        double r_face_inner = r_pos[i];
+        double r_face_outer = r_pos[i + 1];
+        double dz_cell = z_pos[j + 1] - z_pos[j];
+
+        // Volume of cylindrical shell (ปริมาตรของเปลือกทรงกระบอก)
+        return M_PI * (r_face_outer * r_face_outer -
+                      r_face_inner * r_face_inner) * dz_cell;
     }
-    
-    frontAndBack 
-    { 
-        type            empty;          // ⬅ 2D BC
+
+    // Calculate face areas for flux calculations (คำนวณพื้นที่หน้าสำหรับการคำนวณฟลักซ์)
+    struct FaceAreas {
+        double radial_inner;   // Area at inner radial face (พื้นที่ที่หน้าสัมผัสรัศมีด้านใน)
+        double radial_outer;   // Area at outer radial face (พื้นที่ที่หน้าสัมผัสรัศมีด้านนอก)
+        double axial_lower;    // Area at lower axial face (พื้นที่ที่หน้าสัมผัสแนวแกนด้านล่าง)
+        double axial_upper;    // Area at upper axial face (พื้นที่ที่หน้าสัมผัสแนวแกนด้านบน)
+    };
+
+    FaceAreas calculateFaceAreas(int i, int j) const {
+        FaceAreas areas;
+        double r_inner = r_pos[i];
+        double r_outer = r_pos[i + 1];
+        double r_mid = 0.5 * (r_inner + r_outer);
+        double dz = z_pos[j + 1] - z_pos[j];
+
+        areas.radial_inner = 2 * M_PI * r_inner * dz;
+        areas.radial_outer = 2 * M_PI * r_outer * dz;
+        areas.axial_lower = M_PI * (r_outer * r_outer - r_inner * r_inner);
+        areas.axial_upper = areas.axial_lower;
+
+        return areas;
     }
-}
+};
 ```
 
-> **🤔 ทำไม Pressure ใช้ `zeroGradient` ที่ทุกผนัง?**
-> 
-> เพราะไม่มี flow ผ่านผนัง (no-slip condition) ดังนั้น $\frac{\partial p}{\partial n} = 0$ ที่ผนัง แต่ reference pressure ยังต้องถูกกำหนดเพื่อ prevent floating values → เราทำใน `fvSolution` ด้วย `pRefCell/pRefValue`
-
-### BC Summary
-
-| Boundary | Velocity (U) | Pressure (p) |
-|----------|--------------|--------------|
-| movingWall (lid) | `fixedValue (1 0 0)` | `zeroGradient` |
-| fixedWalls (sides/bottom) | `noSlip` | `zeroGradient` |
-| frontAndBack | `empty` | `empty` |
-
-> **📖 ดูเพิ่มเติม:** รายละเอียด BC types และการเลือก BC ที่เหมาะสมใน [../03_BOUNDARY_CONDITIONS/00_Overview.md](../03_BOUNDARY_CONDITIONS/00_Overview.md)
-
 ---
 
-## Solver: icoFoam
+## 4. Boundary Conditions / เงื่อนไขขอบเขต
 
-> **🎯 3W FRAMEWORK**
-> 
-> **WHAT (อะไร):** `icoFoam` เป็น transient solver สำหรับ incompressible, laminar, Newtonian flows ใน OpenFOAM
-> 
-> **WHY (ทำไม):** เหมาะสำหรับ Lid-Driven Cavity เพราะ problem นี้เป็น laminar flow (Re < 1000), incompressible, และต้องการ transient solution เพื่อดู evolution ของ vortex
-> 
-> **HOW (อย่างไร):** ใช้ PISO (Pressure Implicit with Splitting of Operators) algorithm สำหรับ pressure-velocity coupling และแก้สมการ Navier-Stokes แบบ transient
+### 4.1 Inlet Condition (Subcooled Liquid) / เงื่อนไขทางเข้า (ของเหลวอิ่มตัวยวดยิ่ง)
 
-### Solver Characteristics
+```cpp
+class InletBoundary {
+private:
+    double mass_flow_rate;    // kg/s
+    double T_inlet;           // K (subcooled temperature)
+    double alpha_inlet;       // Volume fraction (1.0 for liquid)
 
-| Property | Value | Description |
-|----------|-------|-------------|
-| **Flow Type** | Incompressible | ρ = constant |
-| **Regime** | Laminar | No turbulence model |
-| **Time** | Transient | ∂/∂t ≠ 0 |
-| **Algorithm** | PISO | Pressure-velocity coupling |
-| **Geometry** | 3D (or quasi-2D) | FVM on unstructured meshes |
+public:
+    InletBoundary(double m_dot = 0.01, double T = 280.0, double alpha = 1.0)
+        : mass_flow_rate(m_dot), T_inlet(T), alpha_inlet(alpha) {}
 
-### PISO Algorithm Loop
+    // Calculate inlet velocity based on mass flow rate (คำนวณความเร็วทางเข้าจากอัตราการไหลของมวล)
+    double calculateInletVelocity(double rho_liquid, double tube_area) const {
+        return mass_flow_rate / (rho_liquid * tube_area);
+    }
 
-```
-FOR EACH TIME STEP:
-  1. Predict velocity (momentum predictor)
-  2. SOLVE PRESSURE (PISO loop):
-     - Correct velocity with pressure gradient
-     - Repeat 2-3 times for convergence
-  3. Update fields (final velocity)
-  4. Write results (if at write time)
+    // Apply boundary conditions to ghost cells (กำหนดเงื่อนไขขอบเขตให้เซลล์ปลอม)
+    template<typename Field>
+    void apply(Field& u, Field& v, Field& T, Field& alpha,
+               double rho_l, double area, int inlet_face_index) {
+        double u_in = calculateInletVelocity(rho_l, area);
+
+        // Set values at inlet face (กำหนดค่าที่หน้าทางเข้า)
+        u(inlet_face_index) = u_in;
+        v(inlet_face_index) = 0.0;  // No radial velocity at inlet (ไม่มีความเร็วในแนวรัศมีที่ทางเข้า)
+        T(inlet_face_index) = T_inlet;
+        alpha(inlet_face_index) = alpha_inlet;
+    }
+};
 ```
 
-> **💡 ทำไมต้อง PISO?**
-> 
-> **WHAT:** PISO = Pressure Implicit with Splitting of Operators
-> 
-> **WHY:** แก้ปัญหา pressure-velocity coupling ใน incompressible flows โดยไม่ต้องอิง pressure-correction จาก time step ก่อนหน้า เหมาะกับ transient simulations
-> 
-> **HOW:** Predictor-corrector แบบ iterative ที่ converge ใน 2-3 iterations ต่อ time step
+### 4.2 Wall Condition (Heat Flux or Fixed Temperature) / เงื่อนไขผนัง (ฟลักซ์ความร้อนหรืออุณหภูมิคงที่)
 
-### When to Use icoFoam?
+```cpp
+class WallBoundary {
+public:
+    enum class WallType {
+        HEAT_FLUX,      // Constant heat flux (ฟลักซ์ความร้อนคงที่)
+        FIXED_TEMP      // Fixed temperature (อุณหภูมิคงที่)
+    };
 
-| ✅ Use icoFoam for... | ❌ Use other solvers for... |
-|----------------------|---------------------------|
-| Laminar flows (Re < ~2000) | Turbulent flows → `pimpleFoam` |
-| Incompressible fluids | Compressible flows → `rhoPimpleFoam` |
-| Newtonian fluids | Non-Newtonian → `nonNewtonianIcoFoam` |
-| Transient simulations | Steady-state → `simpleFoam` |
+private:
+    WallType type;
+    double q_wall;      // Heat flux (W/m²) for HEAT_FLUX
+    double T_wall;      // Temperature (K) for FIXED_TEMP
 
-> **📖 ดูเพิ่มเติม:** รายละเอียดการใช้งาน solver และการตั้งค่าอยู่ใน [02_The_Workflow.md](02_The_Workflow.md)
+public:
+    WallBoundary(WallType t, double value) : type(t) {
+        if (type == WallType::HEAT_FLUX) {
+            q_wall = value;
+        } else {
+            T_wall = value;
+        }
+    }
 
----
+    // Calculate wall temperature based on local conditions (คำนวณอุณหภูมิผนังจากสภาวะในพื้นที่)
+    double calculateWallTemperature(double T_cell, double k_cell,
+                                    double distance, double q_local = 0.0) const {
+        if (type == WallType::FIXED_TEMP) {
+            return T_wall;
+        } else {
+            // For heat flux: T_wall = T_cell + (q_wall * distance / k_cell)
+            return T_cell + (q_wall * distance / k_cell);
+        }
+    }
 
-## Workflow Overview
+    // Apply no-slip and thermal boundary conditions (กำหนดเงื่อนไขขอบเขตไม่ไถลและความร้อน)
+    void applyNoSlipAndHeatTransfer(auto& u, auto& v,
+                                    auto& T, int wall_index,
+                                    const auto& k,
+                                    const auto& dist_to_wall) {
+        // No-slip condition (เงื่อนไขไม่ไถล)
+        u[wall_index] = 0.0;
+        v[wall_index] = 0.0;
 
-> **🎯 3W FRAMEWORK**
-> 
-> **WHAT (อะไร):** ขั้นตอนการจำลอง CFD ใน OpenFOAM ซึ่งประกอบด้วย 3 ขั้นตอนหลัก: Pre-processing, Solving, และ Post-processing
-> 
-> **WHY (ทำไม):** เพื่อให้ได้ผลลัพธ์ที่ถูกต้อง ต้องทำตามลำดับขั้นตอนอย่างเป็นระบบ โดยแต่ละขั้นตอนมีผลต่อขั้นตอนถัดไป
-> 
-> **HOW (อย่างไร):** รันคำสั่ง OpenFOAM ตามลำดับ ตรวจสอบผลลัพธ์ในแต่ละขั้นตอน และดูผลสุดท้ายด้วย visualization tools
-
-### ขั้นตอนพื้นฐาน
-
-```bash
-# ========== PRE-PROCESSING ==========
-# 1. สร้าง mesh
-blockMesh
-
-# 2. ตรวจสอบ mesh quality
-checkMesh
-
-# ========== SOLVING ==========
-# 3. รัน solver
-icoFoam
-
-# ========== POST-PROCESSING ==========
-# 4. ดูผลลัพธ์ใน ParaView
-paraFoam
+        // Thermal boundary condition (เงื่อนไขขอบเขตความร้อน)
+        for (int j = 0; j < T.size(); ++j) {
+            if (type == WallType::FIXED_TEMP) {
+                T[wall_index][j] = T_wall;
+            } else {
+                // For heat flux, set temperature in ghost cell based on flux
+                T[wall_index][j] = calculateWallTemperature(
+                    T[wall_index + 1][j], k[wall_index + 1][j],
+                    dist_to_wall[wall_index][j]);
+            }
+        }
+    }
+};
 ```
 
-### คำอธิบายแต่ละขั้นตอน
+### 4.3 Outlet Condition (Pressure Outlet) / เงื่อนไขทางออก (ความดันทางออก)
 
-| Step | Command | Purpose | Output |
-|------|---------|---------|--------|
-| **1** | `blockMesh` | สร้าง mesh จาก blockMeshDict | `constant/polyMesh/` |
-| **2** | `checkMesh` | ตรวจสอบคุณภาพ mesh | Mesh quality report |
-| **3** | `icoFoam` | แก้สมการ Navier-Stokes | Time directories (0.1/, 0.2/, ...) |
-| **4** | `paraFoam` | เปิดผลลัพธ์ใน ParaView | Visualization |
+```cpp
+class PressureOutletBoundary {
+private:
+    double P_out;  // Outlet pressure (Pa)
 
-> **📖 ดูเพิ่มเติม:** รายละเอียดเชิงลึกของแต่ละขั้นตอนอยู่ใน [02_The_Workflow.md](02_The_Workflow.md) และ tutorial แบบ step-by-step อยู่ใน [04_Step-by-Step_Tutorial.md](04_Step-by-Step_Tutorial.md)
+public:
+    PressureOutletBoundary(double P = 101325.0) : P_out(P) {}
 
----
+    // Apply zero-gradient for most variables (กำหนดเกรเดียนต์เป็นศูนย์สำหรับตัวแปรส่วนใหญ่)
+    template<typename Field>
+    void applyZeroGradient(Field& phi, int outlet_face_index) {
+        // phi(outlet) = phi(interior)
+        int interior_index = outlet_face_index - 1;
+        phi[outlet_face_index] = phi[interior_index];
+    }
 
-## ผลลัพธ์ที่คาดหวัง
+    // Special treatment for pressure (การจัดการพิเศษสำหรับความดัน)
+    void applyPressure(auto& p, int outlet_face_index) {
+        p[outlet_face_index] = P_out;
+    }
 
-> **🎯 3W FRAMEWORK**
-> 
-> **WHAT (อะไร):** ผลลัพธ์ของ Lid-Driven Cavity ที่ควรได้รับจากการจำลอง ซึ่งแตกต่างตามค่า Reynolds number
-> 
-> **WHY (ทำไม):** การรู้ล่วงหน้าว่าควรได้ผลลัพธ์แบบไหน ช่วยในการ validate ว่าการจำลองถูกต้องหรือไม่ และช่วย detect errors ได้เร็วขึ้น
-> 
-> **HOW (อย่างไร):** เปรียบเทียบ vortex center position, velocity profiles, และ flow patterns กับ reference data จาก Ghia et al. (1982)
-
-### Expected Flow Features
-
-ตามค่า Reynolds number ที่แตกต่างกัน จะได้ลักษณะการไหลที่แตกต่างกัน:
-
-| Feature | Re = 10 | Re = 100 | Re = 400 | Re = 1000 |
-|---------|---------|----------|----------|-----------|
-| **Primary vortex center** | (0.50, 0.40) | (0.62, 0.74) | (0.55, 0.60) | Shifts toward lid |
-| **Secondary vortices** | ไม่มี | มุมล่างเริ่มเกิด | ชัดเจนที่มุมล่าง | มุมบน + ล่าง |
-| **Vortex strength** | อ่อน | ปานกลาง | แรง | แรงมาก |
-| **Max velocity** | 1 m/s (lid) | 1 m/s (lid) | 1 m/s (lid) | 1 m/s (lid) |
-
-### Validation Metrics
-
-**1. Vortex Center Position**
-- วัดจากจุดที่ velocity = 0 หรือจาก streamlines
-- เปรียบเทียบกับ Ghia et al. (1982) benchmark data
-
-**2. Velocity Profiles**
-- ตัด profile และ horizontal/vertical centerlines
-- เปรียบเทียบ u-velocity และ v-velocity
-
-**3. Convergence**
-- Monitor residuals ของ pressure และ velocity
-- ค่าควรลดลงอย่างน้อย 4-6 orders of magnitude
-
-> **📖 ดูเพิ่มเติม:** รายละเอียดการ validation และ comparison กับ reference data อยู่ใน [05_Expected_Results.md](05_Expected_Results.md)
+    // Handle backflow prevention (จัดการป้องกันการไหลย้อนกลับ)
+    bool checkBackflow(const auto& u, int outlet_face_index) {
+        // Check if velocity at outlet is negative (backflow)
+        return u[outlet_face_index] < 0.0;
+    }
+};
+```
 
 ---
 
-## โครงสร้างบทเรียน
+## 5. Material Properties of R410A / คุณสมบัติของวัสดุ R410A
 
-บทนี้เป็นส่วนหนึ่งของ Module 04: First Simulation ซึ่งครอบคลุม workflow การจำลอง CFD แรกใน OpenFOAM
+> **⭐ R410A Properties at 20°C (293 K) and 8 bar**
+>
+> **⭐ คุณสมบัติของ R410A ที่ 20°C (293 K) และ 8 บาร์**
 
-| ไฟล์ | เนื้อหาหลัก | 🎯 Focus |
-|------|---------------|----------|
-| **[00_Overview.md](00_Overview.md)** | 📍 ภาพรวมทั้งหมด | Concepts, case structure, BC overview |
-| **[01_Introduction.md](01_Introduction.md)** | บทนำ CFD workflow | Workflow concepts, ความรู้พื้นฐาน |
-| **[02_The_Workflow.md](02_The_Workflow.md)** | Pre/Solve/Post-processing แบบละเอียด | คำสั่ง OpenFOAM และการตั้งค่า |
-| **[03_The_Lid-Driven_Cavity_Problem.md](03_The_Lid-Driven_Cavity_Problem.md)** | ฟิสิกส์และ math | สมการ, dimensionless numbers |
-| **[04_Step-by-Step_Tutorial.md](04_Step-by-Step_Tutorial.md)** | Hands-on tutorial | ทำตามได้เลย แบบละเอียด |
-| **[05_Expected_Results.md](05_Expected_Results.md)** | Validation | Compare กับ reference data |
-| **[06_Exercises.md](06_Exercises.md)** | แบบฝึกหัด | Practice ท้ายบท |
+| Property / คุณสมบัติ | Liquid / ของเหลว | Vapor / ไอ |
+|---------------------------|------------------|--------|
+| Density / ความหนาแน่น (kg/m³) | 1099.7 | 65.62 |
+| Viscosity / ความหนืด (Pa·s) | 145.2 × 10⁻⁶ | 13.82 × 10⁻⁶ |
+| Thermal Conductivity (W/m·K) | 0.0952 | 0.0187 |
+| Specific Heat (J/kg·K) | 1612 | 1085 |
+| Saturation Enthalpy (kJ/kg) | 246.2 | 452.8 |
 
-> **💡 แนะนำการอ่าน:** เริ่มจาก 00 (overview) → 01 (concepts) → 04 (tutorial) → 02 (deep dive) → 03 (theory) → 05 (validation) → 06 (exercises)
+### Property Table vs Temperature
+### ตารางคุณสมบัติเทียบกับอุณหภูมิ
 
----
-
-## Concept Check
-
-ทดสอบความเข้าใจของคุณด้วยคำถามเหล่านี้:
-
-<details>
-<summary><b>1. ทำไม pressure ใช้ zeroGradient ที่ทุกผนัง?</b></summary>
-
-**WHAT:** `zeroGradient` BC หมายถึง ∂p/∂n = 0 (derivative ในทิศปกติของผนัง = 0)
-
-**WHY:** เพราะไม่มี flow ผ่านผนัง (no-slip condition) ดังนั้น pressure gradient ในทิศที่ตั้งฉากกับผนังจึงเป็นศูนย์
-
-**HOW:** แต่ reference pressure ยังต้องถูกกำหนดเพื่อป้องกัน floating values → เราทำใน `fvSolution` ด้วย `pRefCell/pRefValue` ซึ่งจะ set pressure = 0 ที่ cell ที่ระบุ
-</details>
-
-<details>
-<summary><b>2. `empty` BC คืออะไร และทำไมต้องใช้?</b></summary>
-
-**WHAT:** `empty` BC เป็น boundary condition พิเศษสำหรับ 2D simulation ใน OpenFOAM
-
-**WHY:** OpenFOAM solver ทำงานกับ 3D mesh เท่านั้น ดังนั้นเพื่อจำลองปัญหา 2D เราต้อง extrude geometry และใช้ `empty` BC เพื่อ "ลบ" dimension หนึ่งออก
-
-**HOW:** ใช้ `empty` ที่ frontAndBack planes → OpenFOAM จะไม่แก้สมการในทิศทาง z (no flux, no variation) → Physics จึงเป็น 2D แม้ว่า mesh จะเป็น 3D
-</details>
-
-<details>
-<summary><b>3. `icoFoam` ใช้ได้กับ turbulent flow ไหม?</b></summary>
-
-**WHAT:** `icoFoam` เป็น solver สำหรับ **incompressible**, **laminar**, **transient** flows
-
-**WHY:** ชื่อ "ico" มาจาก "Incompressible COde" และไม่มี turbulence model ใน solver นี้
-
-**HOW:**
-- ✅ ใช้ `icoFoam` สำหรับ laminar flows (Re < ~2000)
-- ❌ สำหรับ turbulent flows ให้ใช้ `pimpleFoam` + turbulence model (เช่น k-ε, k-ω SST)
-
-Lid-Driven Cavity ที่ Re = 10-1000 อยู่ใน laminar regime → เหมาะกับ `icoFoam`
-</details>
-
-<details>
-<summary><b>4. ทำไม Lid-Driven Cavity จึงเป็น benchmark ที่ดี?</b></summary>
-
-**WHAT:** Benchmark คือปัญหามาตรฐานที่ใช้ทดสอบ/validate solvers
-
-**WHY:**
-- ✅ Geometry เรียบง่าย (กล่องสี่เหลี่ยม) → ง่ายต่อการ mesh
-- ✅ Physics สมบูรณ์ (vortex, shear, boundary layers) → ทดสอบ solver capabilities
-- ✅ มี reference data ที่เชื่อถือได้ (Ghia et al., 1982) → validate ได้
-- ✅ Re number ปรับได้ → test multiple regimes
-
-**HOW:** ใช้เปรียบเทียบ vortex center, velocity profiles, และ convergence กับ reference data
-</details>
+| T (°C) | P_sat (kPa) | ρ_liquid | ρ_vapor | h_liquid | h_vapor |
+|---------|--------------|----------|----------|-----------|-----------|
+| -20 | 354.6 | 1245.2 | 18.34 | 189.5 | 429.8 |
+| -10 | 497.1 | 1210.8 | 25.96 | 203.2 | 436.1 |
+| 0 | 678.9 | 1175.3 | 35.92 | 217.2 | 442.1 |
+| 10 | 909.1 | 1138.4 | 48.87 | 231.5 | 447.7 |
+| 20 | 1198.5 | 1099.7 | 65.62 | 246.2 | 452.8 |
+| 30 | 1558.9 | 1058.6 | 87.21 | 261.4 | 457.2 |
 
 ---
 
-## 📚 Key Takeaways
+## 6. Phase Change Implementation / การนำการเปลี่ยนเฟสไปใช้
 
-สิ่งสำคัญที่ควรจำจากบทนี้:
+### 6.1 Lee Model Implementation / การนำแบบจำลอง Lee ไปใช้
+
+```cpp
+class LeePhaseChangeModel {
+private:
+    double r_evap;  // Evaporation coefficient (s⁻¹)
+    double r_cond;  // Condensation coefficient (s⁻¹)
+    double latent_heat;  // Latent heat of vaporization (J/kg)
+
+public:
+    LeePhaseChangeModel(double r_e = 0.1, double r_c = 0.1, double h_lv = 200000.0)
+        : r_evap(r_e), r_cond(r_c), latent_heat(h_lv) {}
+
+    // Calculate mass transfer rate (คำนวณอัตราการถ่ายเทมวล)
+    auto calculateMassSource(
+        const auto& alpha,
+        const auto& T,
+        const auto& T_sat,
+        const auto& rho_l,
+        const auto& rho_v) {
+
+        // Mass source from evaporation/condensation
+        auto S_m = alpha * r_evap * rho_l * (T - T_sat) / T_sat;
+        auto S_e = S_m * latent_heat;
+
+        return std::make_pair(S_m, S_e);
+    }
+
+    // Update volume fraction field (อัปเดตฟิลด์ปริมาตรส่วน)
+    void updateVolumeFraction(auto& alpha, const auto& S_m, double dt) {
+        for (int i = 0; i < alpha.size(); ++i) {
+            alpha[i] -= S_m[i] * dt / rho_l[i];
+            alpha[i] = std::max(0.0, std::min(1.0, alpha[i]));
+        }
+    }
+};
+```
+
+---
+
+## 7. Solution Algorithm / อัลกอริทึมการแก้
+
+### 7.1 PISO Algorithm with Phase Change
+### อัลกอริทึม PISO พร้อมการเปลี่ยนเฟส
+
+```cpp
+class EvaporatorSolver {
+private:
+    // Fields
+    std::vector<double> u, v;      // Velocities (radial, axial)
+    std::vector<double> p;         // Pressure
+    std::vector<double> T;         // Temperature
+    std::vector<double> alpha;     // Volume fraction (liquid)
+
+    // Models
+    R410AProperties r410a;
+    LeePhaseChangeModel phase_change;
+    AxisymmetricMesh mesh;
+
+public:
+    void solveTimeStep(double dt) {
+        // PISO loop for pressure-velocity coupling with phase change
+
+        // 1. Predict velocity (momentum predictor)
+        solveMomentumPredictor(dt);
+
+        // 2. PISO loop (2-3 iterations)
+        for (int corr = 0; corr < 2; ++corr) {
+            solvePressureCorrection();
+            correctVelocity();
+        }
+
+        // 3. Solve energy equation
+        solveEnergyEquation(dt);
+
+        // 4. Update void fraction
+        solveVoidFraction(dt);
+    }
+
+private:
+    void solveMomentumPredictor(double dt) {
+        // Explicit momentum prediction
+        for (int i = 1; i < u.size() - 1; ++i) {
+            u[i] += dt * calculateMomentumRHS(i);
+            v[i] += dt * calculateMomentumRHS_v(i);
+        }
+    }
+
+    void solvePressureCorrection() {
+        // Pressure correction from continuity
+        solvePressureEquation();
+    }
+
+    void solveEnergyEquation(double dt) {
+        // Energy equation with phase change source
+        for (int i = 1; i < T.size() - 1; ++i) {
+            T[i] += dt * calculateEnergyRHS(i);
+        }
+    }
+
+    void solveVoidFraction(double dt) {
+        // Update alpha based on phase change
+        auto [S_m, S_e] = phase_change.calculateMassSource(
+            alpha, T, T_sat, rho_l, rho_v);
+        for (int i = 1; i < alpha.size() - 1; ++i) {
+            alpha[i] += dt * (-S_m[i] / rho_l[i]);
+            alpha[i] = std::clamp(alpha[i], 0.0, 1.0);
+        }
+    }
+};
+```
+
+---
+
+## 8. Expected Results / ผลลัพธ์ที่คาดหวัง
+
+### 8.1 Flow Characteristics / ลักษณะการไหล
+
+**Typical evaporator flow pattern:**
+- **Inlet region**: Subcooled liquid (α = 1.0, T < T_sat)
+- **Evaporation zone**: Two-phase mixture (0 < α < 1), T ≈ T_sat
+- **Outlet region**: Superheated vapor (α = 0.0, T > T_sat) or two-phase
+
+### 8.2 Heat Transfer Performance / สมรรปะสิทธิภาพการถ่ายเทความร้อน
+
+| Metric / ตัวชี้ | Expected / ค่าที่คาดหวัง |
+|--------------------|----------------------------|
+| Heat Transfer Coefficient | 500-5000 W/m²·K (depending on mass flux) |
+| Pressure Drop | 10-50 kPa per meter (typical for evaporators) |
+| Outlet Quality | 0.8-1.0 (superheated or slightly two-phase) |
+| Temperature Rise | 5-15 K (depending on heat load) |
+
+### 8.3 Validation Metrics / เกณท์วัดค่าความถูกต้อง
+
+**Mass Conservation:**
+$$
+\dot{m}_{in} = \dot{m}_{out} + \int \dot{m}_{phase-change} \, dV
+$$
+
+**Energy Balance:**
+$$
+\dot{Q}_{wall} = \dot{m}_{out} h_{out} - \dot{m}_{in} h_{in} + \dot{m}_{phase-change} h_{lv}
+$$
+
+---
+
+## 9. Implementation Checklist / รายการอองการนำไปใช้
+
+### Setup Checklist / รายการเตรียบ
+
+**Geometry & Mesh:**
+- [ ] Define tube geometry (length, radius, wall thickness)
+- [ ] Generate axisymmetric mesh (radial × axial cells)
+- [ ] Verify mesh quality (aspect ratio, non-orthogonality)
+
+**Initial Conditions:**
+- [ ] Set inlet: subcooled liquid (α = 1.0, T_in = 280 K)
+- [ ] Set outlet: fixed pressure (P_out = 8-12 bar)
+- [ ] Set walls: fixed temperature (T_wall = 285-295 K)
+- [ ] Initialize fields (u, v, p, T, α)
+
+**Boundary Conditions:**
+- [ ] Inlet: Fixed mass flow rate, subcooled liquid
+- [ ] Outlet: Fixed pressure, zero-gradient for other variables
+- [ ] Walls: No-slip velocity, fixed T or heat flux
+- [ ] Axis: Axisymmetric (zero gradient)
+
+**Solver Settings:**
+- [ ] Time step: Satisfy CFL < 0.5
+- [ ] Under-relaxation factors: 0.3-0.7 for pressure
+- [ ] Convergence criteria: Residuals < 1e-4
+- [ ] Output: Write every 0.01-0.05 seconds
+
+### Verification / การตรวจสอบ
+
+- [ ] Mass conservation: $\dot{m}_{in} \approx \dot{m}_{out}$
+- [ ] Energy balance: $Q_{in} + Q_{wall} = Q_{out}$
+- [ ] Void fraction bounded: 0 ≤ α ≤ 1
+- [ ] No unphysical velocities
+- [ ] Temperature within realistic range
+
+---
+
+## 10. Comparison with Lid-Driven Cavity
+## 10. เปรียบเทียบกับ Lid-Driven Cavity
+
+| Aspect / ด้าน | Lid-Driven Cavity | R410A Evaporator |
+|--------------|-------------------|------------------|
+| **Physics / ฟิสิกส์** | Single-phase incompressible | Two-phase flow with phase change |
+| **Geometry / เรขาคณิต** | 2D Cartesian square | 2D/3D Cylindrical (axisymmetric) |
+| **Equations / สมการ** | Navier-Stokes only | Mass, momentum, energy with source terms |
+| **Boundary Conditions / เงื่อนไขขอบเขต** | Moving wall, no-slip | Inlet mass flow, wall heat flux, pressure outlet |
+| **Solution Method / วิธีการแก้** | Pressure-velocity coupling (SIMPLE) | Coupled with energy and phase fraction |
+| **Validation / การตรวจสอบ** | Ghia et al. (1982) | Experimental evaporator data |
+
+---
+
+## Key Takeaways / ประเด็นสำคัญ
 
 ### 🎯 Core Concepts
 
-1. **Lid-Driven Cavity เป็น benchmark มาตรฐาน** — มี geometry เรียบง่ายแต่ physics สมบูรณ์ ใช้ validate solvers และเรียนรู้ CFD workflow
+1. **R410A evaporator simulation** involves two-phase flow with phase change - This is the target application for the custom CFD engine
+   **การจำลองเครื่องงาน R410A เกี่ยวกับการไหลสองเฟสพร้อมกับการเปลี่ยนเฟส - นี่คือ application หลักของ custom CFD engine
 
-2. **OpenFOAM case structure แบ่งเป็น 3 ส่วน:**
-   - `0/` — Initial และ boundary conditions (U, p)
-   - `constant/` — Mesh และ fluid properties (transportProperties)
-   - `system/` — Numerical settings (controlDict, fvSchemes, fvSolution)
+2. **Cylindrical coordinates are essential** for tube flow - Cartesian coordinates don't work well for pipes
+   **พิกัดทรงกระบอกเป็นสิ่งทางสำหรับการไหลในท่อ - พิกัด Cartesian ไม่ทำงงานดีสำหรับท่อ
 
-3. **Boundary conditions ต้องเหมาะสมกับ physics:**
-   - `fixedValue` — กำหนดค่าโดยตรง (moving wall)
-   - `noSlip` — Velocity = 0 ที่ผนัง
-   - `zeroGradient` — ∂p/∂n = 0 (pressure ที่ผนัง)
-   - `empty` — สำหรับ quasi-2D
+3. **Energy equation is coupled** with phase change - latent heat cannot be ignored
+   **สมการพลังงานเชื่อมโยงกับการเปลี่ยนเฟส - ความร้อนแฝงไม่สามาระเพิเพิเหตุ
 
-### 🔧 Practical Skills
+4. **Expansion term in continuity** accounts for density changes during evaporation
+   **เทอม expansion ในสมการความต่อเนื่องอธิบาย density ระหว่างการระเหย**
 
-4. **Workflow พื้นฐาน:** `blockMesh` → `checkMesh` → `icoFoam` → `paraFoam`
+### 🔧 Implementation Focus
 
-5. **`icoFoam` สำหรับ laminar, incompressible, transient flows** — ใช้ PISO algorithm สำหรับ pressure-velocity coupling
+**Key differences from lid-driven cavity:**
+- Geometry: Square box → Horizontal tube
+- Physics: Single-phase → Two-phase with evaporation
+- Equations: 2 equations (mass + momentum) → 4 equations (mass, momentum, energy, void fraction)
+- Boundary conditions: Lid moving → Inlet mass flow + heat flux walls
 
-6. **Validation สำคัญ** — เปรียบเทียบผลลัพธ์ (vortex center, velocity profiles) กับ reference data เพื่อยืนยันความถูกต้อง
-
-### 🔍 Theory Connection
-
-7. **สมการ Navier-Stokes** ถูก discretize ด้วย FVM และแก้ด้วย PISO algorithm เพื่อหา velocity และ pressure fields
-
-8. **Reynolds number ควบคุม flow characteristics** — ยิ่ง Re สูง ยิ่งมี secondary vortices และ complexity เพิ่มขึ้น
+**⭐ This is the RIGHT simulation for R410A evaporator application**
 
 ---
 
-## 📖 เอกสารที่เกี่ยวข้อง
+## 📖 References / เอกสารที่เกี่ยวข้อง
 
-### บทก่อนหน้า
-
-- **[Module 03: Boundary Conditions](../03_BOUNDARY_CONDITIONS/00_Overview.md)** — เรียนรู้เกี่ยวกับ boundary conditions ใน OpenFOAM อย่างละเอียด
-  - ประเภทของ BC (Dirichlet, Neumann, Robin)
-  - การเลือก BC ที่เหมาะสม
-  - BC ที่พบบ่อยใน OpenFOAM
-
-### บทถัดไปใน Module นี้
-
-- **[01_Introduction.md](01_Introduction.md)** — บทนำสู่ CFD workflow และแนวคิดพื้นฐาน
-- **[02_The_Workflow.md](02_The_Workflow.md)** — รายละเอียดเชิงลึกของแต่ละขั้นตอน (Pre/Solve/Post)
-- **[04_Step-by-Step_Tutorial.md](04_Step-by-Step_Tutorial.md)** — Tutorial แบบ hands-on ทำตามได้เลย
-
-### อ้างอิง
-
-- **Ghia et al. (1982)** — "High-Re solutions for incompressible flow using the Navier-Stokes equations and a multigrid method" — **Journal of Computational Physics** 48(3): 387-411
-  - Reference data สำหรับ Lid-Driven Cavity benchmark
+1. **Thome, J.R.** "Two-phase heat transfer in microchannels" (2004)
+2. **Kandlikar, S.** "Heat transfer and pressure drop in microchannels" (2010)
+3. **Carey, V.P.** "Liquid-vapor phase change" (2020)
+4. **OpenFOAM User Guide** - interFoam and compressibleInterFoam solvers
+5. **ASHRAE Handbook - Fundamentals** - Refrigerant properties
+6. **MODULE_05 (Two-Phase Flow)** for detailed VOF implementation
+7. **MODULE_07 (Refrigerant Properties)** for CoolProp integration
 
 ---
 
-**📍 คุณอยู่ที่: Module 04 → First Simulation → Overview**
-
-**ขั้นตอนถัดไป:** อ่าน [01_Introduction.md](01_Introduction.md) เพื่อเรียนรู้ CFD workflow อย่างละเอียด
+*Last Updated: 2026-01-27*
+*⭐ Content aligned with R410A evaporator simulation goal*
+*⚠️ Requires CoolProp library for property calculations*

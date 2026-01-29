@@ -1,31 +1,51 @@
-# 🗺️ Learning Navigator: OpenFOAM Programming
+# 🗺️ Learning Navigator: Modern C++ for Custom CFD Solver Development
 
-> [!TIP] ทำไมต้องเข้าใจ OpenFOAM Programming?
-> การเข้าใจโครงสร้าง Source Code ของ OpenFOAM เป็นพื้นฐานสำคัญในการ:
-> - **พัฒนา Custom Solvers** สำหรับปัญหาทางวิศวกรรมเฉพาะทาง
-> - **สร้าง Boundary Conditions ใหม่** ที่ไม่มีในไลบรารีมาตรฐาน
-> - **เขียน Function Objects** สำหรับ Post-processing แบบกำหนดเอง
-> - **ดีบักและแก้ไขปัญหา** เมื่อ Simulation ไม่ Converge หรือเกิด Error
-> - **ปรับปรุง Performance** ของ Solver ผ่านการเข้าใจ Linear Solvers และ Matrix Assembly
+> [!TIP] ทำไมต้องเรียนรู้ Modern C++ สำหรับ Custom CFD Solver?
+> การเข้าใจ Modern C++ (C++17/20) เป็นพื้นฐานสำคัญในการ:
+> - **สร้าง Custom Solvers** สำหรับปัญหาทางวิศวกรรมเฉพาะทาง (R410A evaporator, two-phase flow)
+> - **ใช้ Smart Pointers** (`std::unique_ptr`, `std::shared_ptr`) สำหรับ memory safety
+> - **ออกแบบ Class Hierarchies** สำหรับ Mesh, Fields, และ Solvers
+> - **สร้าง CMake Build System** สำหรับ cross-platform compilation
+> - **ปรับปรุง Performance** ผ่าน Move Semantics, Template Metaprogramming, และ Expression Templates
 
-> **วัตถุประสงค์**: เอกสารนี้เป็น **เส้นทางการเรียนรู้แบบคู่ขนาน** ที่เชื่อมโยงเนื้อหาการเขียนโปรแกรม OpenFOAM กับ Source Code จริงของไลบรารีหลัก
+> **วัตถุประสงค์**: เอกสารนี้เป็น **เส้นทางการเรียนรู้** สำหรับพัฒนา Custom CFD Engine สำหรับ Refrigerant Two-Phase Flow โดยใช้ Modern C++ Best Practices
 
 ---
 
 ## 📋 สารบัญ
 
-1. [Foundation Primitives](#1-foundation-primitives-ประเภทข้อมูลพื้นฐาน)
-2. [Dimensioned Types](#2-dimensioned-types-ประเภทที่มีมิติ)
-3. [Containers & Memory](#3-containers--memory-คอนเทนเนอร์และหน่วยความจำ)
-4. [Mesh Classes](#4-mesh-classes-คลาสเมช)
-5. [Fields & GeometricFields](#5-fields--geometricfields-ฟิลด์)
-6. [Matrices & Linear Algebra](#6-matrices--linear-algebra-เมทริกซ์และพีชคณิตเชิงเส้น)
-7. [Time & Databases](#7-time--databases-เวลาและฐานข้อมูล)
-8. [Field Types](#8-field-types-ประเภทฟิลด์)
-9. [Field Algebra](#9-field-algebra-พีชคณิตฟิลด์)
-10. [Vector Calculus](#10-vector-calculus-แคลคูลัสเวกเตอร์)
-11. [Tensor Algebra](#11-tensor-algebra-พีชคณิตเทนเซอร์)
-12. [Dimensional Analysis](#12-dimensional-analysis-การวิเคราะห์มิติ)
+1. [Modern C++ Fundamentals](#1-modern-c-fundamentals-c17c20-สำหรับ-cfd)
+2. [Smart Pointers & Memory](#2-smart-pointers--memory-management-การจัดการหน่วยความจำ)
+3. [RAII Patterns](#3-raii-patterns-รูปแบบการจัดการทรัพยากร)
+4. [Custom Mesh Classes](#4-custom-mesh-class-hierarchies-ลำดับชั้นคลาสเมชแบบกำหนดเอง)
+5. [Field Classes](#5-field-classes-with-value-semantics-คลาสฟิลด์ด้วย-value-semantics)
+6. [Linear Algebra](#6-linear-algebra-with-standard-libraries-พีชคณิตเชิงเส้นด้วย-standard-libraries)
+7. [IO & Serialization](#7-io--serialization-with-modern-c-การจัดการข้อมูล)
+8. [Expression Templates](#8-expression-templates-for-field-algebra-เทมเพลตนิพจน์สำหรับพีชคณิตฟิลด์)
+9. [Vector/Tensor Calculus](#9-vectortensor-calculus-libraries-ไลบรารีแคลคูลัสเวกเตอร์เทนเซอร์)
+10. [Dimensional Analysis](#10-dimensional-analysis-at-compile-time-การวิเคราะห์มิติ-compile-time)
+11. [CMake Build System](#11-cmake-build-system-for-cfd-solvers-ระบบ-build-cmake)
+12. [Solver Class Design](#12-solver-class-design-and-composition-การออกแบบคลาส-solver)
+
+---
+
+## 🔄 Module Transformation
+
+**From:** OpenFOAM Programming (usage-focused, wmake compilation)
+**To:** Modern C++ for Custom CFD Solver Development (implementation-focused, CMake build)
+
+### Key Changes
+
+| Aspect | Old (OpenFOAM Usage) | New (Modern C++) |
+|--------|---------------------|------------------|
+| Smart Pointers | `autoPtr`, `tmp` | `std::unique_ptr`, `std::shared_ptr` |
+| Memory Management | OpenFOAM RAII | Standard RAII + Move Semantics |
+| Build System | `wmake` | `CMake` |
+| Field Types | OpenFOAM `Field<T>` | Custom `Field<T>` with STL |
+| Linear Algebra | `lduMatrix`, `fvMatrix` | Eigen, Blaze, or custom |
+| Mesh Classes | `polyMesh`, `fvMesh` | Custom hierarchy |
+| Solver Design | OpenFOAM patterns | Modern design patterns |
+| IO System | `IOobject`, `Time` | HDF5, JSON, std::filesystem |
 
 ---
 

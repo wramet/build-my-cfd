@@ -350,6 +350,138 @@ Upwind = safe แม้ diffusive เล็กน้อย ก็ยังดี
 
 ---
 
+---
+
+## 10. Cylindrical Coordinate FVM for R410A Tube Flow
+## 10. การแบ่งส่วน FVM ในพิกัดทรงกระบอกสำหรับการไหล R410A ในท่อ
+
+> **🔧 R410A Evaporator Focus**
+>
+> สำหรับเครื่องระเหย R410A การไหลของสารทำความเย็นอยู่ในท่อวงกลม (รัศมี ~5mm, ความยาว ~1-10m) พิกัดทรงกระบอก $(r, \theta, z)$ เป็นพิกัดธรรมชาติ:
+
+### 10.1 ตัวดำเนินการเชิงอนุพันธ์ในพิกัดทรงกระบอก
+
+**Gradient:**
+$$
+\nabla \phi = \frac{\partial \phi}{\partial r}\hat{\mathbf{r}} + \frac{1}{r}\frac{\partial \phi}{\partial \theta}\hat{\boldsymbol{\theta}} + \frac{\partial \phi}{\partial z}\hat{\mathbf{z}}
+$$
+
+**Divergence:**
+$$
+\nabla \cdot \mathbf{U} = \frac{1}{r}\frac{\partial}{\partial r}(r U_r) + \frac{1}{r}\frac{\partial U_\theta}{\partial \theta} + \frac{\partial U_z}{\partial z}
+$$
+
+**Laplacian:**
+$$
+\nabla^2 \phi = \frac{1}{r}\frac{\partial}{\partial r}\left(r\frac{\partial \phi}{\partial r}\right) + \frac{1}{r^2}\frac{\partial^2 \phi}{\partial \theta^2} + \frac{\partial^2 \phi}{\partial z^2}
+$$
+
+### 10.2 การลดรูปแบบสมมาตรแนวแกน (Axisymmetric)
+
+สำหรับเครื่องระเหย R410A ส่วนใหญ่ flow เป็น **axisymmetric** ($\partial/\partial\theta = 0$, $U_\theta = 0$):
+
+$$
+\nabla \phi = \frac{\partial \phi}{\partial r}\hat{\mathbf{r}} + \frac{\partial \phi}{\partial z}\hat{\mathbf{z}}
+$$
+
+$$
+\nabla \cdot \mathbf{U} = \frac{1}{r}\frac{\partial}{\partial r}(r U_r) + \frac{\partial U_z}{\partial z}
+$$
+
+$$
+\nabla^2 \phi = \frac{1}{r}\frac{\partial}{\partial r}\left(r\frac{\partial \phi}{\partial r}\right) + \frac{\partial^2 \phi}{\partial z^2}
+$$
+
+### 10.3 เรขาคณิตของปริมาตรควบคุม
+
+สำหรับ cell ที่จุด $(r_c, z_c)$ พร้อมขนาด $\Delta r$ และ $\Delta z$:
+
+**ปริมาตร:**
+$$
+V_{cell} = \int_{r_c-\Delta r/2}^{r_c+\Delta r/2} \int_0^{2\pi} \int_{z_c-\Delta z/2}^{z_c+\Delta z/2} r \, dr \, d\theta \, dz = 2\pi r_c \Delta r \Delta z
+$$
+
+**พื้นที่ผิว:**
+- หน้ารัศมี ($r = r_f$): $A_r = 2\pi r_f \Delta z$
+- หน้าแนวแกน ($z = z_f$): $A_z = \pi(r_{\text{outer}}^2 - r_{\text{inner}}^2)$
+
+### 10.4 การแบ่งส่วนเทอมการแพร่กระจายในแนวรัศมี
+
+$$
+\int_V \nabla \cdot (\mu \nabla \phi) \, dV = \oint_S \mu \nabla \phi \cdot d\mathbf{S}
+$$
+
+รูปแบบที่แบ่งส่วนแล้ว:
+$$
+\mu_e A_e \left(\frac{\phi_E - \phi_P}{\Delta r_e}\right) - \mu_w A_w \left(\frac{\phi_P - \phi_W}{\Delta r_w}\right) + \mu_n A_n \left(\frac{\phi_N - \phi_P}{\Delta z_n}\right) - \mu_s A_s \left(\frac{\phi_P - \phi_S}{\Delta z_s}\right)
+$$
+
+> **⚠️ สังเกต:** พื้นที่หน้ารัศมี $A_r = 2\pi r \Delta z$ แปรผันตรงกับ $r$ นี่คือความแตกต่างหลักจาก Cartesian!
+
+### 10.5 C++ Implementation สำหรับ Cylindrical FVM
+
+```cpp
+// Cylindrical mesh for R410A evaporator tube
+class CylindricalFVMesh {
+    double R_tube;      // Tube radius [m] (typically ~0.005 m)
+    double L_tube;      // Tube length [m] (typically 1-10 m)
+    int nr, nz;         // Grid points in r, z
+    double dr, dz;      // Cell sizes
+
+public:
+    CylindricalFVMesh(double R, double L, int n_r, int n_z)
+        : R_tube(R), L_tube(L), nr(n_r), nz(n_z) {
+        dr = R / nr;
+        dz = L / nz;
+    }
+
+    // Cell volume at (i, j)
+    double cellVolume(int i, int j) {
+        double r_center = (i + 0.5) * dr;
+        return 2.0 * M_PI * r_center * dr * dz;
+    }
+
+    // Radial face area
+    double radialFaceArea(int i) {
+        double r_face = i * dr;
+        return 2.0 * M_PI * r_face * dz;
+    }
+
+    // Axial face area (annulus)
+    double axialFaceArea(int i) {
+        double r_inner = i * dr;
+        double r_outer = (i + 1) * dr;
+        return M_PI * (r_outer*r_outer - r_inner*r_inner);
+    }
+};
+
+// Diffusion term in cylindrical coordinates
+double radialDiffusion(int i, int j, const Field& phi, double mu, const CylindricalFVMesh& mesh) {
+    // r * dphi/dr at faces
+    double r_e = (i + 1) * mesh.dr;
+    double dphi_dr_e = (phi(i+1, j) - phi(i, j)) / mesh.dr;
+
+    double r_w = i * mesh.dr;
+    double dphi_dr_w = (phi(i, j) - phi(i-1, j)) / mesh.dr;
+
+    // Integral of div(r * grad(phi))
+    return mu * (r_e * dphi_dr_e - r_w * dphi_dr_w) * mesh.dz;
+}
+```
+
+### 10.6 R410A Evaporator Specific Considerations
+
+| ประเด็น | คำอธิบาย | ผลกระทบ |
+|---------|-----------|---------|
+| **รัศมีท่อเล็ก** | $R \approx 5$ mm | ต้อง mesh ละเอียดในแนวรัศมี |
+| **สัดส่วน aspect สูง** | $L/R \approx 1000$ | ใช้ non-uniform mesh |
+| **Heat flux จากผนัง** | Constant q หรือ T | BC ที่ผนังสำคัญมาก |
+| **Two-phase interface** | Void fraction $\alpha(r, z)$ | ติดตาม interface ใน $(r, z)$ |
+
+> **🔗 See Also:** Day 04 for complete R410A evaporator simulation example with cylindrical mesh
+
+---
+
 ## เอกสารที่เกี่ยวข้อง
 
 - **บทก่อนหน้า:** [02_Fundamental_Concepts.md](02_Fundamental_Concepts.md) — แนวคิดพื้นฐาน

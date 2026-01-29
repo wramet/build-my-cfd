@@ -795,3 +795,274 @@ fan
 ---
 
 **หัวข้อถัดไป:** [07_Troubleshooting_Boundary_Conditions.md](07_Troubleshooting_Boundary_Conditions.md) — การวินิจฉัยและแก้ปัญหา BCs
+
+---
+
+## 9. R410A Evaporator Boundary Conditions
+## 9. เงื่อนไขขอบเขตสำหรับเครื่องระเหย R410A
+
+> **🔧 R410A Evaporator Focus**
+>
+> สำหรับเครื่องระเหย R410A เงื่อนไขขอบเขตจะเฉพาะเจาะจงกับการไหลสองเฟส:
+> - **Inlet**: ของเหลวอิ่มตัวยวดยิ่ง (subcooled liquid)
+> - **Wall**: ถ่ายเทความร้อนจากภายนอก
+> - **Outlet**: สารผสมสองเฟส (two-phase mixture)
+> - **Axis**: แกนสมมาตร (สำหรับ 2D axisymmetric)
+
+### 9.1 Inlet BC: Subcooled Liquid R410A
+
+**Operating conditions ทั่วไป:**
+- Mass flow rate: 0.02-0.05 kg/s
+- Subcooling: 3-10K below $T_{sat}$
+- Void fraction: $\alpha = 0$ (all liquid)
+
+```cpp
+// 0/U - Velocity inlet
+inlet
+{
+    type            fixedValue;
+    // Calculate from: m_dot = ρ * A * U
+    // For R410A liquid at 280K: ρ ≈ 1100 kg/m³
+    // Tube diameter: 8mm → A = 5.03e-5 m²
+    // m_dot = 0.03 kg/s → U = 0.03/(1100*5.03e-5) ≈ 0.54 m/s
+    value           uniform (0.54 0 0);
+}
+
+// T - Temperature (subcooled)
+inlet
+{
+    type            fixedValue;
+    // T_sat ≈ 283K at 1.0 MPa, subcooling 3K
+    value           uniform 280;  // K
+}
+
+// alpha.water - Void fraction (liquid = 1, vapor = 0)
+inlet
+{
+    type            fixedValue;
+    value           uniform 1;    // All liquid at inlet
+}
+
+// k - Turbulence kinetic energy
+inlet
+{
+    type            turbulentInlet;
+    intensity       0.05;         // 5% turbulence
+    lengthScale     0.00056;      // 0.07 * D
+    value           uniform 0.001;
+}
+```
+
+### 9.2 Wall BC: Heat Transfer from External Fluid
+
+**Heat transfer modes:**
+| Mode | Formula | Usage |
+|------|---------|-------|
+| **Constant heat flux** | $q = \text{constant}$ | Electric heating |
+| **Constant temperature** | $T_w = \text{constant}$ | Known external T |
+| **Convection** | $q = h(T_{ext} - T_w)$ | Realistic external fluid |
+
+```cpp
+// T - Temperature with external heat transfer
+wall
+{
+    type            externalWallHeatFlux;
+    mode            coefficient;
+    // Heat transfer coefficient (water-side: 500-2000 W/m²K)
+    h               uniform 1000;      // W/m²K
+    // External fluid temperature
+    Ta              uniform 300;       // K (27°C)
+    value           uniform 290;       // Initial guess
+}
+
+// U - Velocity (no-slip)
+wall
+{
+    type            noSlip;
+}
+
+// alpha.water - Void fraction
+wall
+{
+    type            zeroGradient;     // No phase storage at wall
+}
+
+// p_rgh - Pressure
+wall
+{
+    type            zeroGradient;
+}
+```
+
+> **💡 Physical intuition:** ความร้อนไหลจากภายนอก (air/water) → ผนังท่อ → R410A ระเหย
+
+### 9.3 Outlet BC: Two-Phase Mixture
+
+**Pressure fix at saturation:**
+```cpp
+// p_rgh - Pressure (fixed at saturation)
+outlet
+{
+    type            fixedValue;
+    // For R410A at 285K: P_sat ≈ 1.08 MPa
+    value           uniform 1.08e6;   // Pa
+}
+
+// U - Velocity (zero gradient, fully developed)
+outlet
+{
+    type            zeroGradient;
+}
+
+// T - Temperature
+outlet
+{
+    type            zeroGradient;
+}
+
+// alpha.water - Void fraction (allow backflow)
+outlet
+{
+    type            inletOutlet;
+    inletValue      uniform 0.2;      // Backflow value (vapor-rich)
+    value           uniform 0.8;      // Expected: 80% vapor
+}
+```
+
+### 9.4 Axis BC: Centerline (2D Axisymmetric)
+
+```cpp
+axis
+{
+    type            symmetry;         // Axis of symmetry
+}
+
+// For fields that respect symmetry:
+U
+{
+    type            symmetry;
+}
+
+T
+{
+    type            symmetry;
+}
+
+alpha.water
+{
+    type            symmetry;
+}
+```
+
+### 9.5 R410A Evaporator Parameters
+
+| Parameter | Typical Range | Unit |
+|-----------|---------------|------|
+| Mass flow rate | 0.02-0.05 | kg/s |
+| Inlet temperature | 275-283 | K |
+| Saturation temperature | 283-288 | K |
+| Operating pressure | 1.0-1.2 | MPa |
+| Heat flux | 3-8 | kW/m² |
+| Tube diameter | 8-10 | mm |
+| Outlet quality | 0.7-1.0 | - |
+
+### 9.6 Complete BC Setup Example
+
+```cpp
+// 0/p_rgh - Pressure boundary conditions
+boundaryField
+{
+    inlet
+    {
+        type            fixedFluxPressure;
+        value           uniform 0;
+    }
+
+    outlet
+    {
+        type            fixedValue;
+        value           uniform 1.08e6;    // Pa (saturation)
+    }
+
+    wall
+    {
+        type            zeroGradient;
+    }
+
+    axis
+    {
+        type            symmetry;
+    }
+}
+
+// T - Temperature
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 280;      // K (subcooled)
+    }
+
+    wall
+    {
+        type            externalWallHeatFlux;
+        mode            coefficient;
+        h               uniform 1000;    // W/m²K
+        Ta              uniform 300;     // K
+        value           uniform 290;
+    }
+
+    outlet
+    {
+        type            zeroGradient;
+    }
+
+    axis
+    {
+        type            symmetry;
+    }
+}
+
+// alpha.water - Void fraction
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 1;       // All liquid
+    }
+
+    wall
+    {
+        type            zeroGradient;
+    }
+
+    outlet
+    {
+        type            inletOutlet;
+        inletValue      uniform 0.2;     // Backflow vapor
+        value           uniform 0.8;     // Expected quality
+    }
+
+    axis
+    {
+        type            symmetry;
+    }
+}
+```
+
+### 9.7 Convergence Tips for Two-Phase BCs
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| **Mass imbalance** | BC ไม่สมดุล | Check $\sum \dot{m}_{in} = \sum \dot{m}_{out}$ |
+| **Pressure oscillation** | Outlet pressure fix แรงเกินไป | Use `fixedFluxPressure` with relaxation |
+| **Void fraction unbounded** | Backflow กับ inletValue ผิด | Set realistic `inletValue` |
+| **Divergence at start** | Initial condition far from BC | Use gradual ramping |
+
+> **🔗 See Also:** Day 04 for complete R410A evaporator simulation example with all BCs applied
+
+---
+
+**หัวข้อถัดไป:** [07_Troubleshooting_Boundary_Conditions.md](07_Troubleshooting_Boundary_Conditions.md) — การวินิจฉัยและแก้ปัญหา BCs

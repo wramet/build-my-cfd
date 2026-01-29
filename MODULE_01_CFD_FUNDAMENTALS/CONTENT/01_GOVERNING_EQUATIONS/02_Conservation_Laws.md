@@ -411,6 +411,161 @@ fvScalarMatrix TEqn
 - **[05_OpenFOAM_Implementation.md](05_OpenFOAM_Implementation.md)** — การ implement ใน OpenFOAM code
 - **[06_Turbulence_Modeling.md](06_Turbulence_Modeling.md)** — การจำลองการไหลแบบ turbulent
 
+---
+
+## 10. Two-Phase Flow with Phase Change (R410A Evaporator)
+## 10. การไหลสองเฟสพร้อมการเปลี่ยนเฟส (เครื่องระเหย R410A)
+
+> **🔧 R410A Evaporator Focus**
+>
+> สำหรับการจำลองเครื่องระเหย R410A สมการอนุรักษ์ต้องถูกปรับปรุงเพื่อรองรับ:
+> - **การเปลี่ยนเฟส** (ของเหลว → ไอ) พร้อมการขยายตัวของปริมาตรอย่างมหาศาล
+> - **ความร้อนแฝง** (latent heat) ที่ถูกดูดซับระหว่างการระเหย
+> - **การติดตาม interface** ระหว่างของเหลวและไอด้วย void fraction
+
+### 10.1 สมการความต่อเนื่องที่มี Phase Change
+
+ในการระเหย ปริมาตรขยายตัวอย่างมากเนื่องจากความแตกต่างของความหนาแน่น:
+
+$$
+\boxed{\nabla \cdot \mathbf{U} = \dot{m}\left(\frac{1}{\rho_v} - \frac{1}{\rho_l}\right)}
+$$
+
+โดยที่ $\dot{m}$ คืออัตราการถ่ายโอนมวลต่อหน่วยปริมาตร (kg/m³s)
+
+**สำหรับ R410A ที่ $T_{sat} \approx 283$ K:**
+| คุณสมบัติ | ค่า | หน่วย |
+|---------|------|------|
+| ความหนาแน่นของเหลว ($\rho_l$) | ~1000 | kg/m³ |
+| ความหนาแน่นไอ ($\rho_v$) | ~30 | kg/m³ |
+| อัตราส่วนความหนาแน่น ($\rho_v/\rho_l$) | ~1/30 | - |
+| ความร้อนแฝง ($L$) | ~200 | kJ/kg |
+
+> **💡 Physical Intuition:** เมื่อ 1 kg ของ R410A ระเหย → ปริมาตรขยายตัว ~30 เท่า!
+
+### 10.2 แบบจำลอง Lee สำหรับการระเหย/ควบแน่น
+
+$$
+\dot{m} =
+\begin{cases}
+r_e \alpha_l \rho_l \dfrac{T - T_{sat}}{T_{sat}} & \text{for evaporation } (T > T_{sat}) \\[10pt]
+r_c \alpha_v \rho_v \dfrac{T_{sat} - T}{T_{sat}} & \text{for condensation } (T < T_{sat})
+\end{cases}
+$$
+
+โดยที่:
+- $r_e, r_c$ = สัมประสิทธิ์การระเหย/ควบแน่น (s⁻¹) → ค่าทั่วไป: $r_e = 0.1$, $r_c = 0.01$
+- $\alpha_l, \alpha_v$ = เศษส่วนปริมาตรของเหลว/ไอ ($\alpha_l + \alpha_v = 1$)
+
+**สัญชาตญาณ:**
+- ยิ่ง $T$ เกิน $T_{sat}$ มาก → อัตราการระเหยเร็วขึ้น
+- ยิ่ง $\alpha_l$ มาก → มีของเหลวให้ระเหยมากขึ้น
+
+### 10.3 สมการพลังงานที่มี Latent Heat
+
+$$
+\frac{\partial (\rho h)}{\partial t} + \nabla \cdot (\rho \mathbf{U} h) = \nabla \cdot (k \nabla T) + \underbrace{\dot{m} L}_{S_e}
+$$
+
+เทอมต้นกำเนิด $S_e = \dot{m} L$ คำนึงถึง:
+- **การระเหย** ($\dot{m} > 0$): ดูดซับความร้อน → อุณหภูมิลดลง
+- **การควบแน่น** ($\dot{m} < 0$): ปลดปล่อยความร้อน → อุณหภูมิเพิ่มขึ้น
+
+### 10.4 สมการ Void Fraction Transport
+
+เพื่อติดตาม interface ระหว่างของเหลวและไอ:
+
+$$
+\frac{\partial \alpha_v}{\partial t} + \nabla \cdot (\alpha_v \mathbf{U}) = \frac{\dot{m}}{\rho_v}
+$$
+
+หรือสำหรับเศษส่วนของเหลว:
+$$
+\frac{\partial \alpha_l}{\partial t} + \nabla \cdot (\alpha_l \mathbf{U}) = -\frac{\dot{m}}{\rho_l}
+$$
+
+### 10.5 C++ Implementation สำหรับ Phase Change
+
+```cpp
+// Lee phase change model for R410A evaporator
+class LeePhaseChangeModel {
+    double r_evap;        // Evaporation coefficient [s⁻¹]
+    double r_cond;        // Condensation coefficient [s⁻¹]
+    double T_sat;         // Saturation temperature [K]
+    double latent_heat;   // Latent heat of vaporization [J/kg]
+
+public:
+    LeePhaseChangeModel(double re, double rc, double Tsat, double L)
+        : r_evap(re), r_cond(rc), T_sat(Tsat), latent_heat(L) {}
+
+    // Calculate mass transfer rate [kg/m³s]
+    auto calculateMassSource(const auto& alpha_l, const auto& alpha_v,
+                              const auto& T, const auto& rho_l, const auto& rho_v) {
+        double delta_T = T - T_sat;
+        double m_dot;
+
+        if (delta_T > 0) {
+            // Evaporation: liquid → vapor
+            m_dot = r_evap * alpha_l * rho_l * delta_T / T_sat;
+        } else {
+            // Condensation: vapor → liquid
+            m_dot = r_cond * alpha_v * rho_v * (-delta_T) / T_sat;
+        }
+
+        // Return pair: (mass source, energy source)
+        return std::make_pair(m_dot, m_dot * latent_heat);
+    }
+};
+
+// R410A evaporator example
+LeePhaseChangeModel r410a(0.1, 0.01, 283.0, 200000.0);
+
+// In solver loop:
+auto [m_dot, S_energy] = r410a.calculateMassSource(
+    alpha_l[cellI], alpha_v[cellI],
+    T[cellI], rho_l, rho_v
+);
+
+// Update equations:
+continuity_eqn += m_dot * (1.0/rho_v - 1.0/rho_l);
+energy_eqn += S_energy;
+```
+
+### 10.6 Mixture Properties (สมบัติส่วนผสม)
+
+เนื่องจากมีทั้งของเหลวและไอ ต้องคำนวณสมบัติส่วนผสม:
+
+$$
+\rho_{mix} = \alpha_v \rho_v + \alpha_l \rho_l
+$$
+
+$$
+\mu_{mix} = \alpha_v \mu_v + \alpha_l \mu_l
+$$
+
+```cpp
+// Calculate mixture density
+double calculateMixtureDensity(double alpha_v, double rho_v, double rho_l) {
+    return alpha_v * rho_v + (1.0 - alpha_v) * rho_l;
+}
+```
+
+### 10.7 ข้อควรพิจารณาสำหรับ R410A Evaporator
+
+| ประเด็น | คำอธิบาย | การแก้ไข |
+|---------|-----------|-----------|
+| **Strong source terms** | Phase change สร้าง source term ที่แรงมาก | ใช้ under-relaxation (0.1-0.3) |
+| **Property variations** | $\rho, \mu, k$ เปลี่ยนมากกับ T, P | ใช้ lookup tables จาก CoolProp |
+| **Interface diffusion** | Numerical diffusion เบลอ interface | ใช้ interface compression scheme |
+| **Time step constraints** | CFL จำกัดโดยความเร็วเฟส | ใช้ adaptive time stepping |
+
+> **🔗 See Also:**
+> - Day 05: [Two-Phase Flow Fundamentals](../05_TWO_PHASE_FLOW/00_Two_Phase_Flow_Fundamentals.md) — VOF method, interface compression
+> - Day 06: [Phase Change Theory](../06_PHASE_CHANGE_THEORY/00_Expansion_Term.md) — Expansion term derivation
+> - Day 07: [Refrigerant Properties](../07_REFRIGERANT_PROPERTIES/00_Refrigerant_Properties.md) — R410A property tables
+
+---
+
 ### อ้างอิงข้าม Module
 - **Reynolds Number** → ดูรายละเอียดใน [04_Turbulence_Basics](../04_TURBULENCE_MODELING/CONTENT/01_Turbulence_Basics.md)
 - **Wall Treatment** → ดู y+ calculation ใน [06_Wall_Functions](../04_TURBULENCE_MODELING/CONTENT/06_Wall_Functions.md)
