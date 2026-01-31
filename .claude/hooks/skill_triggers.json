@@ -1,0 +1,134 @@
+{
+  "triggers": {
+    "pre_edit": {
+      "actions": [
+        {
+          "type": "skill_trigger",
+          "skill": "systematic_debugging",
+          "description": "Apply Iron Law debugging before making edits",
+          "conditions": {
+            "file_extension": ".md"
+          },
+          "parameters": {
+            "phase": "root_cause_investigation",
+            "file_path": "{{file_path}}"
+          },
+          "stop_on_failure": false
+        }
+      ]
+    },
+    "post_write": {
+      "actions": [
+        {
+          "type": "skill_trigger",
+          "skill": "source-first",
+          "description": "Verify Source-First compliance after writing",
+          "conditions": {
+            "file_extension": ".md"
+          },
+          "parameters": {
+            "verify": true,
+            "content_path": "{{file_path}}"
+          },
+          "stop_on_failure": false
+        },
+        {
+          "type": "skill_trigger",
+          "skill": "mermaid_expert",
+          "description": "Validate Mermaid diagrams in written content",
+          "conditions": {
+            "file_pattern": ".*daily_learning.*\\.md$"
+          },
+          "parameters": {
+            "validate": true,
+            "file_path": "{{file_path}}"
+          },
+          "stop_on_failure": false
+        }
+      ]
+    },
+    "pre_tool_read": {
+      "actions": [
+        {
+          "type": "skill_trigger",
+          "skill": "cpp_pro",
+          "description": "Prepare C++ context for OpenFOAM files",
+          "conditions": {
+            "file_extension": ".C",
+            "has_context_key": "openfoam_context"
+          },
+          "parameters": {
+            "mode": "openfoam_aware",
+            "context": "prepare"
+          },
+          "stop_on_failure": false
+        }
+      ]
+    },
+    "verification_gate": {
+      "actions": [
+        {
+          "type": "skill_trigger",
+          "skill": "systematic_debugging",
+          "description": "Debug verification gate failures",
+          "conditions": {
+            "context_value_equals": ["gate_status", "failed"]
+          },
+          "parameters": {
+            "phase": "pattern_analysis",
+            "gate_id": "{{gate_id}}"
+          },
+          "stop_on_failure": false
+        }
+      ]
+    },
+    "content_generation": {
+      "actions": [
+        {
+          "type": "skill_trigger",
+          "skill": "scientific_skills",
+          "description": "Apply LaTeX standards to generated content",
+          "conditions": {
+            "context_value_equals": ["content_type", "theory"]
+          },
+          "parameters": {
+            "format": "latex",
+            "content": "{{content}}"
+          },
+          "stop_on_failure": false
+        }
+      ]
+    },
+    "diagram_request": {
+      "actions": [
+        {
+          "type": "skill_trigger",
+          "skill": "mermaid_expert",
+          "description": "Generate Mermaid diagram for visualization",
+          "parameters": {
+            "diagram_type": "{{diagram_type}}",
+            "topic": "{{topic}}"
+          },
+          "stop_on_failure": false
+        }
+      ]
+    },
+    "git_operations": {
+      "actions": [
+        {
+          "type": "skill_trigger",
+          "skill": "git-operations",
+          "description": "Enforce conventional commit standards",
+          "conditions": {
+            "context_value_equals": ["operation", "commit"]
+          },
+          "parameters": {
+            "verify": true,
+            "commit_message": "{{commit_message}}"
+          },
+          "stop_on_failure": true
+        }
+      ]
+    }
+  }
+}

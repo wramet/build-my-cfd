@@ -10,6 +10,10 @@
         {
           "type": "command",
           "command": "python3 .claude/scripts/verify_edit.py --file \"$file_path\" --output /tmp/edit_verification.log"
+        },
+        {
+          "type": "monitoring",
+          "command": "python3 .claude/scripts/perf_monitor_hook.py --tool=Edit --file=\"$file_path\" --action=pre"
         }
       ]
     }
@@ -22,6 +26,10 @@
         ]
       },
       "hooks": [
+        {
+          "type": "monitoring",
+          "command": "python3 .claude/scripts/perf_monitor_hook.py --tool=Write --file=\"$file_path\" --action=post"
+        },
         {
           "type": "command",
           "command": "python3 .claude/scripts/post_write_verify.py --file \"$file_path\" --output /tmp/write_verification.log"
