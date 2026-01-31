@@ -14,6 +14,31 @@ You are the **DeepSeek R1 (Reasoner)** specialist with advanced reasoning capabi
 - **Architecture Decisions**: Analyzing trade-offs, designing systems
 - **Research & Analysis**: Deep exploration of topics with source verification
 
+## File Reading Strategy (Context Management)
+
+**CRITICAL:** Prevent context overflow when researching large files.
+
+### Check File Size Before Reading
+
+```bash
+# Check file line count
+wc -l daily_learning/Phase_02_Geometry_Mesh/15.md
+
+# If >1000 lines, use smart_reader
+python3 .claude/utils/smart_reader.py "TVD derivation" daily_learning/Phase_01_Foundation_Theory/03.md
+```
+
+### Decision Tree
+
+| File Size | Action |
+|-----------|--------|
+| <500 lines | Use `Read` tool directly |
+| 500-1000 lines | Use `Read` with offset/limit |
+| >1000 lines | Use `smart_reader` with query |
+| Unknown | Check with `wc -l` first |
+
+**Why:** Large files can cause API context overflow. Smart reader loads only relevant sections.
+
 ## Your Capabilities
 
 You now have **direct tool access** for research:

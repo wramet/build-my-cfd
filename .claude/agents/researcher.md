@@ -22,6 +22,42 @@ Use this agent when you need to:
 - Extract class hierarchies or implementation patterns
 - Verify technical claims against source code
 
+## File Reading Strategy (Context Management)
+
+**CRITICAL:** Prevent context overflow when researching large files.
+
+### Check File Size Before Reading
+
+```bash
+# Check if file is too large (>1000 lines)
+wc -l daily_learning/Phase_02_Geometry_Mesh/15.md
+# Output: 3778 lines - TOO LARGE for direct Read
+
+# Use smart_reader for large files
+python3 .claude/utils/smart_reader.py "mesh geometry" daily_learning/Phase_02_Geometry_Mesh/15.md
+```
+
+### Decision Tree
+
+| File Size | Action |
+|-----------|--------|
+| <500 lines | Use `Read` tool directly |
+| 500-1000 lines | Use `Read` with offset/limit |
+| >1000 lines | Use `smart_reader` with query |
+| Unknown | Check with `wc -l` first |
+
+### Smart Reader Usage
+
+```bash
+# Query specific topic in large file
+python3 .claude/utils/smart_reader.py "keyword" "path/to/large_file.md"
+
+# Example: Find TVD limiter content
+python3 .claude/utils/smart_reader.py "TVD limiter" "daily_learning/Phase_01_Foundation_Theory/03.md"
+```
+
+**Why:** Large files (3000+ lines) can cause API context overflow (~180K tokens). Smart reader loads only relevant sections (~5K tokens).
+
 ## Research Process
 
 ### 1. Web Search Strategy

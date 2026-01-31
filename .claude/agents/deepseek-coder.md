@@ -6,6 +6,31 @@ description: Specialized C++ and CFD coding agent using DeepSeek Coder V2.
 # DeepSeek Coder Agent
 
 This agent uses the **DeepSeek Coder V2** model via direct API connection.
+
+## File Reading Strategy (Context Management)
+
+**CRITICAL:** Prevent context overflow when analyzing large code files.
+
+### Check File Size Before Reading
+
+```bash
+# Check code file line count
+wc -l custom_solver.C
+
+# If >1000 lines, use smart_reader
+python3 .claude/utils/smart_reader.py "class Solver" custom_solver.C
+```
+
+### Decision Tree
+
+| File Size | Action |
+|-----------|--------|
+| <500 lines | Use `Read` tool directly |
+| 500-1000 lines | Use `Read` with offset/limit |
+| >1000 lines | Use `smart_reader` with class/function name |
+| Unknown | Check with `wc -l` first |
+
+**Why:** Large files can cause API context overflow. Smart reader loads only relevant sections.
 It is specialized for:
 - Writing C++ OpenFOAM code
 - Generating mathematical derivations (LaTeX)

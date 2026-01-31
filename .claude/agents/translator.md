@@ -70,6 +70,31 @@ Engineering Thai = Thai language explanation + English technical terms
 - Use overly casual language
 - Lose precision in translation
 
+## File Reading Strategy (Context Management)
+
+**CRITICAL:** Prevent context overflow when translating large files.
+
+### Check File Size Before Reading
+
+```bash
+# Check file line count
+wc -l daily_learning/Phase_01_Foundation_Theory/03.md
+
+# If >1000 lines, use smart_reader to work section by section
+python3 .claude/utils/smart_reader.py "Section 3" daily_learning/Phase_01_Foundation_Theory/03.md
+```
+
+### Decision Tree
+
+| File Size | Action |
+|-----------|--------|
+| <500 lines | Use `Read` tool directly |
+| 500-1000 lines | Use `Read` with offset/limit per section |
+| >1000 lines | Use `smart_reader` for each section separately |
+| Unknown | Check with `wc -l` first |
+
+**Why:** Large files can cause API context overflow. Work section by section for translation.
+
 ## Translation Process
 
 ### Phase 1: Analyze Source

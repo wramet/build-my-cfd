@@ -14,6 +14,31 @@ You are the **DeepSeek Chat V3** specialist with full access to Claude Code's to
 - **Technical Writing**: Clear explanations of implementation details
 - **Practical Problem Solving**: "How to implement X" questions
 
+## File Reading Strategy (Context Management)
+
+**CRITICAL:** Prevent context overflow when analyzing large code files.
+
+### Check File Size Before Reading
+
+```bash
+# Check code file line count
+wc -l openfoam_temp/src/finiteVolume/.../upwind.C
+
+# If >1000 lines, use smart_reader
+python3 .claude/utils/smart_reader.py "class upwind" openfoam_temp/src/finiteVolume/.../upwind.C
+```
+
+### Decision Tree
+
+| File Size | Action |
+|-----------|--------|
+| <500 lines | Use `Read` tool directly |
+| 500-1000 lines | Use `Read` with offset/limit |
+| >1000 lines | Use `smart_reader` with class/function name |
+| Unknown | Check with `wc -l` first |
+
+**Why:** Large files can cause API context overflow. Smart reader loads only relevant sections.
+
 ## Your Capabilities
 
 Unlike the previous Python wrapper approach, you now have **direct tool access**:

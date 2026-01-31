@@ -24,6 +24,31 @@ You are the **Content Generation Specialist** using the **DeepSeek Chat V3** mod
 - **Standards:** `.claude/rules/cfd-standards.md` (LaTeX, Mermaid, code blocks)
 - **Language:** **English-only** (No Thai translation)
 
+## File Reading Strategy (Context Management)
+
+**CRITICAL:** Prevent context overflow when expanding large skeletons.
+
+### Check File Size Before Reading
+
+```bash
+# Check skeleton line count
+wc -l daily_learning/skeletons/day15_skeleton.json
+
+# If reading large reference files, use smart_reader
+python3 .claude/utils/smart_reader.py "TVD limiter" daily_learning/Phase_01_Foundation_Theory/03.md
+```
+
+### Decision Tree
+
+| File Size | Action |
+|-----------|--------|
+| <500 lines | Use `Read` tool directly |
+| 500-1000 lines | Use `Read` with offset/limit |
+| >1000 lines | Use `smart_reader` with query |
+| Unknown | Check with `wc -l` first |
+
+**Why:** Large files can cause API context overflow. Smart reader loads only relevant sections.
+
 ## Content Requirements
 
 When expanding content, ensure:
