@@ -1,0 +1,151 @@
+# Verification Thresholds for Module Revision
+# Defines the 9 verification gates and their requirements
+
+gates:
+  1:
+    name: "Module Structure"
+    description: "Verify module directory structure exists"
+    required: true
+    on_failure: "stop"
+    checks:
+      - "Module directory exists"
+      - "Content directory exists"
+      - "Day folders present"
+    thresholds:
+      min_days: 1
+
+  2:
+    name: "Ground Truth Extraction"
+    description: "Extract facts from OpenFOAM source code"
+    required: true
+    on_failure: "continue"
+    checks:
+      - "Facts extracted from source"
+      - "Classes documented"
+      - "Formulas verified"
+    thresholds:
+      min_facts: 5
+      min_classes: 2
+
+  3:
+    name: "Content Generation"
+    description: "Generate or revise content with implementation focus"
+    required: true
+    on_failure: "continue"
+    checks:
+      - "Content structure valid"
+      - "Implementation focus applied"
+      - "Source-First markers added"
+    thresholds:
+      min_sections: 3
+      min_code_blocks: 2
+
+  4:
+    name: "Math Verification"
+    description: "Verify mathematical derivations with DeepSeek R1"
+    required: true
+    on_failure: "stop"
+    checks:
+      - "Derivations mathematically sound"
+      - "Physical consistency verified"
+      - "Assumptions documented"
+    thresholds:
+      min_equations: 1
+      verification_confidence: 0.8
+
+  5:
+    name: "Code Verification"
+    description: "Verify C++ implementation with DeepSeek Chat V3"
+    required: true
+    on_failure: "stop"
+    checks:
+      - "Modern C++ syntax used"
+      - "Implementation correct"
+      - "No obvious issues"
+    thresholds:
+      min_code_snippets: 1
+      syntax_valid: true
+
+  6:
+    name: "Implementation Consistency"
+    description: "Verify theory matches code matches implementation"
+    required: true
+    on_failure: "continue"
+    checks:
+      - "Theory consistent with code"
+      - "Implementation follows theory"
+      - "All references verified"
+    thresholds:
+      consistency_score: 0.7
+
+  7:
+    name: "Two-Phase Physics"
+    description: "Verify two-phase flow physics"
+    required: true
+    on_failure: "stop"
+    checks:
+      - "Void fraction bounded [0,1]"
+      - "Density ratio handled correctly"
+      - "Surface tension included"
+      - "Interface compression present"
+    thresholds:
+      density_ratio_tolerance: 0.1
+      void_fraction_bounds: [0.0, 1.0]
+
+  8:
+    name: "Expansion Term"
+    description: "Verify expansion term implementation"
+    required: true
+    on_failure: "stop"
+    checks:
+      - "Derivation mathematically sound"
+      - "Sign convention correct"
+      - "Implemented in pressure equation"
+      - "Density ratio terms correct"
+    thresholds:
+      expansion_term_present: true
+      sign_convention: "positive_for_evaporation"
+
+  9:
+    name: "Property Integration"
+    description: "Verify CoolProp/R410A property integration"
+    required: true
+    on_failure: "continue"
+    checks:
+      - "CoolProp API correct"
+      - "R410A properties accurate"
+      - "Table interpolation valid"
+      - "Temperature ranges appropriate"
+    thresholds:
+      property_accuracy: 0.95
+      temperature_range: [200, 400]
+
+# Overall Settings
+settings:
+  strict_mode: true
+  stop_on_critical_failure: true
+  allow_partial_completion: false
+  verification_timeout: 300
+
+# Day-Specific Thresholds
+day_thresholds:
+  11:
+    # Expansion Term (Priority)
+    focus: "expansion_term"
+    critical_gates: [4, 8]
+    min_expansion_term_derivations: 1
+    require_lee_model: true
+
+  10:
+    # Two-Phase Flow
+    focus: "two_phase_flow"
+    critical_gates: [7]
+    require_vof_method: true
+    require_void_fraction: true
+
+  12:
+    # Refrigerant Properties
+    focus: "properties"
+    critical_gates: [9]
+    require_coolprop: true
+    require_r410a_data: true

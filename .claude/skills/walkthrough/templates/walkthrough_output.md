@@ -50,6 +50,14 @@
 
 ---
 
+## Active Learning Q&A
+
+*Your questions and answers from learning sessions*
+
+> 💡 **Tip:** Use `/qa --day {N} "your question"` to ask questions and have them recorded here!
+
+---
+
 ## Verification Summary
 
 ### Gate-by-Gate Results

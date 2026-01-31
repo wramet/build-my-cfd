@@ -1,0 +1,107 @@
+# Model Configuration for Module Revision
+# Maps different content types to appropriate AI models
+
+models:
+  deepseek-chat:
+    name: "DeepSeek Chat V3"
+    purpose: "Fast code generation and verification"
+    strengths:
+      - "C++ code generation"
+      - "Code review and verification"
+      - "API documentation"
+    timeout: 120
+
+  deepseek-reasoner:
+    name: "DeepSeek R1"
+    purpose: "Complex reasoning and mathematical derivations"
+    strengths:
+      - "Mathematical derivations"
+      - "Physics verification"
+      - "Architecture decisions"
+      - "TVD limiter conditions"
+    timeout: 180
+
+  glm-4.7:
+    name: "GLM-4.7"
+    purpose: "Main orchestrator and content generation"
+    strengths:
+      - "Content generation"
+      - "Workflow orchestration"
+      - "Draft creation"
+    timeout: 120
+
+# Task-to-Model Mapping
+task_mapping:
+  ground_truth_extraction:
+    primary: "extract_facts.py"
+    backup: null
+
+  math_derivations:
+    primary: "deepseek-reasoner"
+    backup: "glm-4.7"
+
+  code_verification:
+    primary: "deepseek-chat"
+    backup: "deepseek-reasoner"
+
+  content_generation:
+    primary: "glm-4.7"
+    backup: "deepseek-chat"
+
+  final_verification:
+    primary: "deepseek-reasoner"
+    secondary: "deepseek-chat"
+
+# Module-Specific Configurations
+module_configs:
+  expansion_term:
+    math_model: "deepseek-reasoner"
+    code_model: "deepseek-chat"
+    verification_level: "strict"
+
+  two_phase_flow:
+    math_model: "deepseek-reasoner"
+    code_model: "deepseek-chat"
+    verification_level: "strict"
+
+  properties:
+    math_model: "deepseek-chat"
+    code_model: "deepseek-chat"
+    verification_level: "standard"
+
+# Prompts Configuration
+prompts:
+  math_verification: |
+    Verify this mathematical derivation for {topic}:
+    {content}
+
+    Check for:
+    1. Mathematical correctness
+    2. Physical consistency
+    3. Correct assumptions
+
+    Explain your reasoning step by step.
+
+  code_verification: |
+    Verify this C++ implementation for {topic}:
+    {content}
+
+    Check for:
+    1. Modern C++ syntax
+    2. Correct implementation
+    3. Potential issues
+    4. Suggested improvements
+
+    Provide specific feedback.
+
+  content_generation: |
+    Generate content for {topic} with implementation focus.
+
+    Requirements:
+    - Focus on C++ implementation details
+    - Include verified formulas
+    - Provide code examples
+    - Use Source-First approach
+
+    Ground truth:
+    {ground_truth}
