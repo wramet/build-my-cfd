@@ -6,7 +6,10 @@
         "/Users/woramet/Documents/th_new/.claude/mcp/deepseek_mcp_server.py"
       ],
       "env": {
-        "DEEPSEEK_API_KEY": "sk-9ea39bd4d5e042c49f7b0337668162b6"
+        "DEEPSEEK_API_KEY": "sk-a8d183f6f9904326913cb4e799eaba17",
+        "PROMPT_CACHE_ENABLED": "true",
+        "CACHE_SIZE_MB": "100",
+        "CACHE_DIR": "/tmp/prompt_cache"
       }
     }
   }

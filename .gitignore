@@ -5,3 +5,4 @@
 # Proxy logs
 proxy.log
 *.log
+*.pyc/__pycache__/
