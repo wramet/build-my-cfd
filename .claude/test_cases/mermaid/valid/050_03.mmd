@@ -1,0 +1,6 @@
+graph LR
+    subgrid[1D Grid with Discontinuity]
+    
+    C1[Cell 1: φ=0] --> C2[Cell 2: φ=0] --> C3[Cell 3: φ=0] --> C4[Cell 4: φ=1] --> C5[Cell 5: φ=1] --> C6[Cell 6: φ=1]
+    
+    F3[Face 3-4] -->|Central Differencing| Osc[Oscillations!]

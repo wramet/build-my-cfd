@@ -1,0 +1,38 @@
+flowchart TD
+    Start["Start Face Interpolation"] --> GetFlux["Get Face Flux Field"]
+    GetFlux --> CheckDirection{"Flux > 0?"}
+    
+    CheckDirection -->|Yes| OwnerSide["Use Owner Cell as Upwind"]
+    CheckDirection -->|No| NeighborSide["Use Neighbor Cell as Upwind"]
+    
+    OwnerSide --> CalcWeightP["Calculate Weight for φ_P"]
+    NeighborSide --> CalcWeightN["Calculate Weight for φ_N"]
+    
+    CalcWeightP --> GetScheme{"Select Interpolation Scheme"}
+    CalcWeightN --> GetScheme
+    
+    GetScheme --> Linear["Linear: w = d_FN / d_PN"]
+    GetScheme --> Upwind["Upwind: w = 0 or 1"]
+    GetScheme --> TVD["TVD: w = f * ψ(r)"]
+    
+    Linear --> Interpolate["φ_f = w*φ_P + (1-w)*φ_N"]
+    Upwind --> Interpolate
+    TVD --> Interpolate
+    
+    Interpolate --> ApplyLimiter{"Need Limiter?"}
+    ApplyLimiter -->|Yes| CalcR["Calculate r = (φ_P-φ_U)/(φ_N-φ_P)"]
+    ApplyLimiter -->|No| StoreResult["Store φ_f"]
+    
+    CalcR --> SelectLimiter{"Select Limiter Function"}
+    
+    SelectLimiter --> vanLeer["vanLeer: (r+|r|) / (1+|r|)"]
+    SelectLimiter --> SuperBee["SuperBee: max(min(2r,1), min(r,2))"]
+    SelectLimiter --> Minmod["Minmod: max(min(r,1),0)"]
+    
+    vanLeer --> ComputePsi["Compute ψ(r)"]
+    SuperBee --> ComputePsi
+    Minmod --> ComputePsi
+    
+    ComputePsi --> TVDInterpolate["φ_f = φ_P + 0.5*ψ(r)*(φ_N-φ_P)"]
+    TVDInterpolate --> StoreResult
+    StoreResult --> End["End"]

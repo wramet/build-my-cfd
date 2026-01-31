@@ -1,0 +1,14 @@
+graph TD
+    subgraph "R410A Evaporator Physics"
+        A["Liquid Inlet<br/>x = 0.0-0.2"] --> B["Two-Phase Flow<br/>Boiling Region"]
+        B --> C["Vapor Outlet<br/>x = 0.8-1.0"]
+
+        D["Heat Flux q\" = 3 kW/m²"] --> E["Phase Change Rate ṁ"]
+        E --> F["Latent Heat Absorption<br/>ṁ × h_lv"]
+
+        G["Surface Tension<br/>σ = 0.05 N/m"] --> H["Interface Force<br/>F_σ = σκ∇α"]
+    end
+
+    style A fill:#9cf,stroke:#333
+    style C fill:#fc9,stroke:#333
+    style B fill:#ccc,stroke:#333

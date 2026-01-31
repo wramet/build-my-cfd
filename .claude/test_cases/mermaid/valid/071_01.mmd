@@ -1,0 +1,23 @@
+graph TD
+    subgraph "Control Volume Ω"
+        A[Mass Inside Ω]
+        B[Energy Inside Ω]
+        C[Momentum Inside Ω]
+    end
+    
+    D[Mass Flow IN] -->|Through Surface ∂Ω| A
+    E[Mass Flow OUT] -->|Through Surface ∂Ω| A
+    
+    F[Momentum Flow IN] --> C
+    G[Momentum Flow OUT] --> C
+    
+    H[Energy Flow IN] --> B
+    I[Energy Flow OUT] --> B
+    
+    J[Source/Sink] --> A
+    K[Body Forces] --> C
+    L[Heat Transfer] --> B
+    
+    A --> M[Rate of Change = In - Out + Generation]
+    C --> N[Rate of Change = In - Out + Forces]
+    B --> O[Rate of Change = In - Out + Work + Heat]

@@ -1,0 +1,26 @@
+classDiagram
+    class "fvMatrix<Type>" {
+        +solve()*
+        +fvMatrix(const GeometricField<Type, fvPatchField, volMesh>&)
+        -lduMatrix::solverPerformance solve(const dictionary&)
+    }
+    
+    class "GeometricField<Type, PatchField, GeoMesh>" {
+        +internalField() const
+        +boundaryField() const
+        -Internal::FieldType internalField_
+        -Boundary boundaryField_
+    }
+    
+    class "volField" {
+        <<typedef>>
+    }
+    
+    class "surfaceField" {
+        <<typedef>>
+    }
+    
+    "fvMatrix<Type>" --|> "refCount"
+    "GeometricField<Type, PatchField, GeoMesh>" --|> "DimensionedField<Type, GeoMesh>"
+    "volField" --> "GeometricField<scalar, fvPatchField, volMesh>"
+    "surfaceField" --> "GeometricField<scalar, fvsPatchField, surfaceMesh>"

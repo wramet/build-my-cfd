@@ -1,0 +1,12 @@
+graph LR
+    A[Ground Truth<br/>from Source + Web] --> B[Verify at Each Stage]
+    B --> C[Specialized Agents<br/>for Each Task]
+    C --> D[Verify Output<br/>with verifier]
+    D --> E[English-Only<br/>Content Publishes]
+    E --> F[Final QC]
+
+    style A fill:#e8f5e9
+    style C fill:#fff3e0
+    style D fill:#f8d7da
+    style E fill:#e0e0e0
+    style F fill:#4caf50,color:#fff

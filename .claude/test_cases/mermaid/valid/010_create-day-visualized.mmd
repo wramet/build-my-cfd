@@ -1,0 +1,24 @@
+flowchart TD
+    subgraph Tasks["Tasks"]
+        T1[Ground Truth<br/>Extraction]
+        T2[Curriculum<br/>Planning]
+        T3[Verification]
+        T4[English<br/>Content]
+    end
+
+    subgraph Agents["Agents/Models"]
+        R[researcher<br/>GLM-4.7<br/>WebSearch + Source]
+        A[architect<br/>GLM-4.7<br/>Curriculum Specialist]
+        V[verifier<br/>DeepSeek R1<br/>Reasoning + Python]
+        D[DeepSeek Coder V2<br/>Code Specialist]
+    end
+
+    T1 --> R
+    T2 --> A
+    T3 --> V
+    T4 --> D
+
+    style R fill:#e1f5e1,stroke:#4caf50
+    style A fill:#fff3cd,stroke:#ffc107
+    style V fill:#f8d7da,stroke:#dc3545
+    style D fill:#e0e0e0,stroke:#6c757d

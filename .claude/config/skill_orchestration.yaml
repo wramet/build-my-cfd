@@ -1,0 +1,68 @@
+# Skill Orchestration Configuration
+
+# Global settings
+orchestration:
+  enabled: true
+  cache_enabled: true
+  default_timeout: 30
+  parallel_enabled: true
+  max_parallel_workers: 4
+
+# Cache settings
+cache:
+  max_size: 100
+  ttl: 3600  # 1 hour in seconds
+
+# Metrics settings
+metrics:
+  enabled: true
+  retain_days: 30
+
+# Feature flags
+features:
+  agent_skill_bridge: true
+  hook_skill_triggers: true
+  verification_assistant: true
+  script_api: true
+
+# Skill-specific overrides
+skill_overrides:
+  content-creation:
+    timeout: 120  # Longer timeout for content generation
+    cache_enabled: false  # Don't cache content generation results
+
+  create-module:
+    timeout: 180
+    cache_enabled: false
+
+  walkthrough:
+    timeout: 90
+    cache_enabled: false
+
+  # Reference skills can be cached longer
+  cpp_pro:
+    cache_ttl: 7200  # 2 hours
+
+  mermaid_expert:
+    cache_ttl: 7200
+
+  scientific_skills:
+    cache_ttl: 7200
+
+# Execution modes
+modes:
+  # Strict mode: Fail on any skill error
+  strict:
+    stop_on_error: true
+    verify_source_first: true
+
+  # Permissive mode: Continue on non-critical errors
+  permissive:
+    stop_on_error: false
+    verify_source_first: true
+
+  # Fast mode: Skip verification checks (use with caution)
+  fast:
+    stop_on_error: false
+    verify_source_first: false
+    cache_enabled: true

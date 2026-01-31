@@ -1,250 +1,76 @@
+Calling deepseek-chat...
 {
-  "day": "08",
-  "title": "Iterative Solvers (CG, BiCGStab)",
-  "date": "2026-01-08",
-  "difficulty": "hardcore",
-
-  "learning_objectives": [
+  "title": "Day 08: Iterative Solvers Theory",
+  "topic": "Solving Linear Systems",
+  "sections": [
     {
-      "verb": "เข้าใจ (Understand)",
-      "topic": "หลักการทำงานของ Conjugate Gradient (CG) และ Bi-Conjugate Gradient Stabilized (BiCGStab) solvers",
-      "equation": "A x = b",
-      "importance": "Iterative solvers เป็นหัวใจของ CFD simulation เพราะ direct solvers ใช้ memory มากเกินไปสำหรับ large sparse systems"
+      "title": "Introduction to Iterative Solvers",
+      "subsections": [
+        "Why iterative methods",
+        "Direct vs iterative approaches",
+        "Convergence concepts"
+      ]
     },
     {
-      "verb": "ออกแบบ (Design)",
-      "topic": "Solver framework ที่รองรับทั้ง symmetric และ asymmetric matrices พร้อม preconditioners",
-      "components": ["lduMatrix::solver", "PCG", "PBiCGStab", "diagonalPreconditioner", "DIC/DILU"]
+      "title": "OpenFOAM Solver Base Class and Direct Solvers",
+      "subsections": [
+        "lduMatrix::solver abstract base-class for solvers ⭐",
+        "diagonalSolver: Direct solver using diagonal elements only ⭐",
+        "Direct solver limitations for large systems"
+      ]
     },
     {
-      "verb": "Implement",
-      "topic": "Matrix-vector operations และ convergence criteria ใน iterative solver loop",
-      "challenge": "การจัดการ residual calculation, tolerance checking, และ restart mechanism"
+      "title": "Jacobi and Gauss-Seidel Methods",
+      "subsections": [
+        "Jacobi iteration formula",
+        "GaussSeidel: Successive substitution smoother ⭐",
+        "Gauss-Seidel improvement over Jacobi",
+        "Convergence rates",
+        "When to use smoothers"
+      ]
+    },
+    {
+      "title": "Conjugate Gradient (CG) Method for Symmetric Systems",
+      "subsections": [
+        "PCG: Preconditioned Conjugate Gradient (SPD matrices) ⭐",
+        "CG algorithm steps",
+        "Krylov subspace concept",
+        "SPD matrix requirement ⭐",
+        "Preconditioning importance"
+      ]
+    },
+    {
+      "title": "BiCGStab for Non-Symmetric Systems",
+      "subsections": [
+        "PBiCG: Preconditioned Bi-conjugate Gradient (asymmetric) ⭐",
+        "PBiCGStab: Preconditioned BiCGStabilized (more stable) ⭐",
+        "BiCG algorithm",
+        "Stabilization improvements",
+        "Van der Vorst formulation (1992) ⭐",
+        "When to use BiCGStab"
+      ]
+    },
+    {
+      "title": "Convergence Criteria and Monitoring",
+      "subsections": [
+        "Convergence: relative_residual = ||r^(k+1)|| / ||r^0|| <= tolerance ⭐",
+        "Relative residual definition",
+        "Tolerance settings",
+        "Max iterations",
+        "Solver performance metrics"
+      ]
     }
   ],
-
-  "theory_sections": [
-    {
-      "id": "8.1",
-      "title_en": "Conjugate Gradient Method for Symmetric Positive Definite Matrices",
-      "title_th": "วิธี Conjugate Gradient สำหรับเมทริกซ์สมมาตรบวกแน่นอน",
-      "equations": [
-        {
-          "name": "CG algorithm",
-          "latex": "\\begin{aligned} & \\alpha_k = \\frac{r_k^T r_k}{p_k^T A p_k} \\\\ & x_{k+1} = x_k + \\alpha_k p_k \\\\ & r_{k+1} = r_k - \\alpha_k A p_k \\\\ & \\beta_k = \\frac{r_{k+1}^T r_{k+1}}{r_k^T r_k} \\\\ & p_{k+1} = r_{k+1} + \\beta_k p_k \\end{aligned}",
-          "explanation": "CG algorithm ใช้ orthogonal search directions (p_k) ที่ conjugate กับ A เพื่อ converge ในจำนวน iteration น้อยที่สุด"
-        },
-        {
-          "name": "Preconditioned CG (PCG)",
-          "latex": "M^{-1} A x = M^{-1} b",
-          "explanation": "Preconditioner M ทำให้ condition number ของระบบดีขึ้น ลดจำนวน iteration โดย M ควรประมาณ A และ invert ได้ง่าย"
-        }
-      ],
-      "variables": [
-        {"symbol": "r_k", "name": "residual vector at iteration k", "unit": "depends on equation"},
-        {"symbol": "p_k", "name": "search direction vector", "unit": "depends on equation"},
-        {"symbol": "α_k", "name": "step length", "unit": "dimensionless"},
-        {"symbol": "β_k", "name": "direction update coefficient", "unit": "dimensionless"}
-      ],
-      "warning": "CG ใช้ได้เฉพาะกับ symmetric positive definite matrices เท่านั้น (เช่น diffusion-only problems) หาก matrix ไม่สมมาตรต้องใช้ BiCGStab"
-    },
-    {
-      "id": "8.2",
-      "title_en": "Bi-Conjugate Gradient Stabilized Method for Asymmetric Matrices",
-      "title_th": "วิธี Bi-Conjugate Gradient Stabilized สำหรับเมทริกซ์ไม่สมมาตร",
-      "equations": [
-        {
-          "name": "BiCGStab algorithm",
-          "latex": "\\begin{aligned} & \\rho_k = \\tilde{r}_0^T r_k \\\\ & \\beta_k = (\\rho_k / \\rho_{k-1}) (\\alpha_{k-1} / \\omega_{k-1}) \\\\ & p_k = r_k + \\beta_k (p_{k-1} - \\omega_{k-1} v_{k-1}) \\\\ & v_k = A p_k \\\\ & \\alpha_k = \\rho_k / (\\tilde{r}_0^T v_k) \\\\ & s = r_k - \\alpha_k v_k \\\\ & t = A s \\\\ & \\omega_k = (t^T s) / (t^T t) \\\\ & x_{k+1} = x_k + \\alpha_k p_k + \\omega_k s \\\\ & r_{k+1} = s - \\omega_k t \\end{aligned}",
-          "explanation": "BiCGStab ใช้สอง orthogonal sequences (Lanczos process) และ stabilization step เพื่อหลีกเลี่ยง breakdown ที่พบใน BiCG"
-        },
-        {
-          "name": "Preconditioned BiCGStab",
-          "latex": "\\begin{aligned} & M_1^{-1} A M_2^{-1} y = M_1^{-1} b \\\\ & x = M_2^{-1} y \\end{aligned}",
-          "explanation": "Left/right preconditioning ช่วยปรับปรุง convergence rate สำหรับ strongly asymmetric matrices (เช่น convection-dominated flows)"
-        }
-      ],
-      "variables": [
-        {"symbol": "ρ_k", "name": "inner product with shadow residual", "unit": "depends on equation"},
-        {"symbol": "ω_k", "name": "stabilization parameter", "unit": "dimensionless"},
-        {"symbol": "v_k", "name": "matrix-vector product A p_k", "unit": "depends on equation"},
-        {"symbol": "s, t", "name": "intermediate vectors", "unit": "depends on equation"}
-      ],
-      "warning": "BiCGStab อาจมี irregular convergence (oscillation) ในบางปัญหา; ต้อง monitor residual และอาจต้องใช้ restart หรือ switch to GMRES"
-    },
-    {
-      "id": "8.3",
-      "title_en": "Preconditioners: Diagonal, DIC, DILU",
-      "title_th": "Preconditioners: Diagonal, DIC, DILU",
-      "equations": [
-        {
-          "name": "Diagonal (Jacobi) preconditioner",
-          "latex": "M = \\text{diag}(A)",
-          "explanation": "ง่ายที่สุด แต่ประสิทธิภาพต่ำ เหมาะสำหรับ diagonally dominant matrices"
-        },
-        {
-          "name": "DIC/DILU (simplified incomplete LU)",
-          "latex": "M = (D + L) D^{-1} (D + U)",
-          "explanation": "Incomplete LU factorization ที่เก็บเฉพาะ entries ที่ตรงกับ pattern ของ A; DIC สำหรับ symmetric, DILU สำหรับ asymmetric"
-        }
-      ],
-      "variables": [
-        {"symbol": "D", "name": "diagonal of A", "unit": "depends on equation"},
-        {"symbol": "L", "name": "strict lower triangle of A", "unit": "depends on equation"},
-        {"symbol": "U", "name": "strict upper triangle of A", "unit": "depends on equation"}
-      ],
-      "warning": "DIC/DILU ต้องใช้ additional storage สำหรับ factored matrix และอาจไม่ stable สำหรับ highly asymmetric matrices"
-    }
+  "verified_facts": [
+    "lduMatrix::solver is abstract base-class for solvers",
+    "diagonalSolver: Direct solver using diagonal elements only",
+    "GaussSeidel: Successive substitution smoother",
+    "PCG: Preconditioned Conjugate Gradient (SPD matrices)",
+    "PBiCG: Preconditioned Bi-conjugate Gradient (asymmetric)",
+    "PBiCGStab: Preconditioned BiCGStabilized (more stable)",
+    "PBiCGStab reference: Van der Vorst (1992)",
+    "Convergence: relative_residual = ||r^(k+1)|| / ||r^0|| <= tolerance"
   ],
-
-  "openfoam_analysis": [
-    {
-      "class": "lduMatrix::solver",
-      "header": "src/OpenFOAM/matrices/lduMatrix/solvers/lduMatrix/lduMatrixSolver.H",
-      "purpose": "Base class สำหรับ iterative solvers, จัดการ control parameters (tolerance, maxIter) และ convergence checking",
-      "key_members": [
-        {"name": "dict_", "type": "dictionary", "purpose": "Solver settings from fvSolution"},
-        {"name": "tolerance_", "type": "scalar", "purpose": "Convergence tolerance (relative residual)"},
-        {"name": "relTol_", "type": "scalar", "purpose": "Relative tolerance for early exit"},
-        {"name": "maxIter_", "type": "label", "purpose": "Maximum number of iterations"}
-      ],
-      "key_methods": [
-        {"name": "solve(...)", "purpose": "Main solve method, returns solverPerformance"},
-        {"name": "scalarNormProduct(...)", "purpose": "Compute norm for residual checking"},
-        {"name": "stop(...)", "purpose": "Check convergence criteria"}
-      ],
-      "usage_example": "solverPerformance perf = solverPtr->solve(psi);"
-    },
-    {
-      "class": "PCG",
-      "header": "src/OpenFOAM/matrices/lduMatrix/solvers/PCG/PCG.H",
-      "purpose": "Preconditioned Conjugate Gradient solver for symmetric matrices",
-      "algorithm_steps": [
-        "1. Initialize: r = b - A*x, p = M⁻¹*r",
-        "2. For k=0..maxIter:",
-        "   - α = (r·M⁻¹*r) / (p·A·p)",
-        "   - x = x + α*p",
-        "   - r_new = r - α*A·p",
-        "   - Check convergence",
-        "   - β = (r_new·M⁻¹*r_new) / (r·M⁻¹*r)",
-        "   - p = M⁻¹*r_new + β*p",
-        "   - r = r_new"
-      ],
-      "key_methods": [
-        {"name": "PCG(const word& fieldName, const lduMatrix& matrix, ...)", "purpose": "Constructor with matrix reference"},
-        {"name": "solve(Field<Type>& psi, const Field<Type>& source)", "purpose": "Execute PCG algorithm"}
-      ],
-      "preconditioner_integration": "รับ preconditioner ผ่าน virtual method preconjugate() ใน derived class"
-    },
-    {
-      "class": "PBiCGStab",
-      "header": "src/OpenFOAM/matrices/lduMatrix/solvers/PBiCGStab/PBiCGStab.H",
-      "purpose": "Preconditioned Bi-Conjugate Gradient Stabilized solver for asymmetric matrices",
-      "algorithm_steps": [
-        "1. Initialize: r = b - A*x, r̃0 = r (shadow residual)",
-        "2. For k=0..maxIter:",
-        "   - ρ = r̃0·r",
-        "   - β = (ρ/ρ_prev)*(α/ω)",
-        "   - p = r + β*(p - ω*v)",
-        "   - v = A·p (preconditioned)",
-        "   - α = ρ / (r̃0·v)",
-        "   - s = r - α*v",
-        "   - t = A·s (preconditioned)",
-        "   - ω = (t·s) / (t·t)",
-        "   - x = x + α*p + ω*s",
-        "   - r = s - ω*t",
-        "   - Check convergence"
-      ],
-      "key_methods": [
-        {"name": "PBiCGStab(const word& fieldName, const lduMatrix& matrix, ...)", "purpose": "Constructor"},
-        {"name": "solve(Field<Type>& psi, const Field<Type>& source)", "purpose": "Execute BiCGStab algorithm"}
-      ],
-      "restart_mechanism": "หาก residual ไม่ลดลงหลังจากหลาย iteration อาจต้อง restart ด้วย r̃0 = r (shadow residual update)"
-    }
-  ],
-
-  "implementation_skeleton": {
-    "classes": [
-      {
-        "name": "IterativeSolverDriver",
-        "responsibility": "Orchestrate solver selection (PCG/PBiCGStab) based on matrix symmetry and preconditioner setup",
-        "key_methods": [
-          {"name": "selectSolver(const lduMatrix& A)", "purpose": "Choose PCG if symmetric, PBiCGStab otherwise"},
-          {"name": "setupPreconditioner(const dictionary& precDict)", "purpose": "Instantiate diagonalPreconditioner/DIC/DILU"},
-          {"name": "monitorConvergence(const solverPerformance& perf)", "purpose": "Log residual history and detect stagnation"}
-        ],
-        "critical_implementation": "การตรวจสอบ symmetry ของ matrix โดยตรวจสอบว่า lower() == upper() ภายใน tolerance"
-      },
-      {
-        "name": "PreconditionerFactory",
-        "responsibility": "Create preconditioner objects based on fvSolution settings",
-        "key_methods": [
-          {"name": "create(const word& precType, const lduMatrix& matrix)", "purpose": "Return autoPtr<lduMatrix::preconditioner>"},
-          {"name": "diagonalPreconditioner::precondition(Field<Type>& w, const Field<Type>& r)", "purpose": "w = D⁻¹ * r (simple diagonal scaling)"},
-          {"name": "DILUPreconditioner::calcReciprocalD(Field<Type>& rD)", "purpose": "Compute reciprocal diagonal for incomplete LU"}
-        ]
-      }
-    ],
-    "algorithm_steps": [
-      "1. อ่าน solver settings จาก fvSolution (solver, preconditioner, tolerance, maxIter)",
-      "2. ตรวจสอบ symmetry ของ matrix: compare lower() และ upper() coefficients",
-      "3. สร้าง solver object (PCG หรือ PBiCGStab) พร้อม preconditioner ที่เลือก",
-      "4. เรียก solve() method โดยส่ง initial guess (psi) และ source (b)",
-      "5. ในแต่ละ iteration:",
-      "   - คำนวณ matrix-vector product ผ่าน lduMatrix::Amul()",
-      "   - คำนวณ preconditioned vector ผ่าน preconditioner::precondition()",
-      "   - อัพเดท solution และ residual vectors",
-      "   - ตรวจสอบ convergence: ||r|| / ||b|| < tolerance",
-      "6. หากบรรลุ tolerance: return solution; หากถึง maxIter: throw warning หรือ proceed",
-      "7. บันทึก solver performance (initial/final residual, nIterations) สำหรับ reporting"
-    ]
-  },
-
-  "concept_checks": [
-    {
-      "question": "ทำไม CG ถึงใช้ไม่ได้กับ convection-dominated problems?",
-      "answer_key_points": [
-        "CG ต้องการ symmetric positive definite matrix",
-        "Convection term ทำให้ matrix ไม่สมมาตร (asymmetric)",
-        "BiCGStab ออกแบบมาเพื่อ asymmetric matrices โดยใช้สอง orthogonal sequences",
-        "PCG จะ diverge หรือ converge ช้ามากหากใช้กับ asymmetric matrix"
-      ],
-      "implementation_note": "ใน OpenFOAM, fvSolution dictionary ควรเลือก PBiCGStab สำหรับสมการ momentum ใน turbulent flows"
-    },
-    {
-      "question": "Preconditioner ช่วยเพิ่ม solver performance อย่างไร?",
-      "answer_key_points": [
-        "ลด condition number ของระบบ → ลดจำนวน iteration",
-        "ทำให้ eigenvalue distribution กระจายตัวแคบลง",
-        "Diagonal preconditioner ใช้ง่ายแต่ประสิทธิภาพจำกัด",
-        "DIC/DILU ใช้ memory เพิ่มแต่ลด iteration ได้มากสำหรับ stiff problems",
-        "Trade-off ระหว่าง preconditioner cost กับ iteration count"
-      ],
-      "implementation_note": "เลือก preconditioner ใน fvSolution: preconditioner DILU; สำหรับ symmetric diffusion ใช้ DIC"
-    }
-  ],
-
-  "pitfalls": [
-    {
-      "symptom": "Solver diverges หรือ residual grows",
-      "cause": "Matrix ไม่ใช่ positive definite (มี negative diagonal) หรือ preconditioner ไม่เหมาะสม",
-      "fix": "ตรวจสอบ diagonal dominance; เปลี่ยนเป็น BiCGStab หาก matrix asymmetric; ลด relaxation factor"
-    },
-    {
-      "symptom": "Convergence stalls (residual ไม่ลดลงหลาย iteration)",
-      "cause": "Preconditioner ineffective หรือ tolerance ต่ำเกินไป",
-      "fix": "เปลี่ยน preconditioner เป็น DILU/GAMG; เพิ่ม maxIter; ตรวจสอบว่า source term สอดคล้องกับ boundary conditions"
-    },
-    {
-      "symptom": "Solver ใช้เวลานานแม้ residual ลดลงเร็ว",
-      "cause": "Matrix-vector operations (Amul) มี cost สูงเนื่องจาก mesh ใหญ่",
-      "fix": "ใช้ algebraic multigrid (AMG) preconditioner เพื่อเรือก convergence rate; ลด tolerance ถ้าเหมาะสม"
-    }
-  ],
-
-  "connections": {
-    "previous_day": "Day 07: Linear Algebra for CFD (LDU format)",
-    "next_day": "Day 09: Algebraic Multigrid (AMG) Preconditioners",
-    "key_link": "LDU matrix จาก Day 07 ถูกส่งไปยัง iterative solvers ใน Day 08; Day 09 จะปรับปรุง performance ด้วย advanced preconditioners"
-  }
+  "code_snippets": [],
+  "exercises": []
 }

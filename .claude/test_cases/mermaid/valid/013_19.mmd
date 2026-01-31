@@ -1,0 +1,28 @@
+sequenceDiagram
+    participant Main as IntegratedEvaporatorSolver
+    participant Trigger as RefinementCriterion
+    participant DMesh as dynamicFvMesh
+    participant Mapper as FieldMapper
+    participant Physics as Phase1SolverCore
+
+    Note over Main,Physics: Start of a Single Time Step
+    Main->>Trigger: refineFlag(alpha, gradT)
+    Trigger-->>Main: cellsToRefine (labelList)
+
+    alt Cells Need Refinement
+        Main->>DMesh: update(cellsToRefine)
+        DMesh-->>Main: mapPolyMesh (mpm)
+        Note over Main,Mapper: CRITICAL: Map all fields to new mesh topology
+        Main->>Mapper: mapFieldsAfterRefinement(mpm)
+        Mapper->>Mapper: for (field : allVolFields) { field.map(mpm); }
+        Mapper->>Mapper: for (field : allSurfaceFields) { field.map(mpm); }
+        Mapper-->>Main: Mapping Complete
+        Note over Main,Physics: Physics matrices are now invalid. Must rebuild.
+        Main->>Physics: clearMatrices()
+    end
+
+    Main->>Physics: solve(U, p, T, alpha, mDot)
+    Physics->>Physics: Assemble fvMatrices (A, H, etc.)
+    Physics->>Physics: Execute PISO/VOF/Energy Loop
+    Physics-->>Main: Updated Fields
+    Main->>Main: Write Output, Increment Time

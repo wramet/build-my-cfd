@@ -12,7 +12,8 @@
 4. [Memory Management](#4-memory-management)
 5. [Performance Optimization](#5-performance-optimization)
 6. [Architecture & Extensibility](#6-architecture--extensibility)
-7. [Practical Project](#7-practical-project)
+7. [R410A Optimization Strategies](#7-r410a-optimization-strategies)
+8. [Practical Project](#8-practical-project)
 
 ---
 
@@ -76,7 +77,17 @@
 
 ---
 
-## 7. Practical Project
+## 7. R410A Optimization Strategies
+
+> **Domain:** Two-Phase Flow Performance Tuning
+
+| เนื้อหา | คำอธิบาย |
+|--------|----------|
+| [CONTENT/06_R410A_Optimization_Strategies.md](CONTENT/06_R410A_Optimization_Strategies.md) | Solver tuning for refrigerant flow |
+
+---
+
+## 8. Practical Project
 
 > **Domain:** Build Your Own Model
 
@@ -95,7 +106,8 @@ graph TD
     C --> D[Memory]
     D --> E[Performance]
     E --> F[Architecture]
-    F --> G[Project]
+    F --> G[R410A Optimization]
+    G --> H[Project]
 ```
 
 ---
@@ -108,4 +120,8 @@ graph TD
 
 ---
 
-*Last Updated: 2025-12-28*
+*Last Updated: 2026-01-28*
+
+## 🆕 New Content Added
+
+- **R410A Optimization Strategies** (Section 7): Comprehensive guide for optimizing R410A two-phase flow simulations including solver tuning, parallel computing, and memory optimization.

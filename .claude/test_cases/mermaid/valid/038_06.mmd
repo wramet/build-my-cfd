@@ -1,0 +1,49 @@
+classDiagram
+    class fvPatchField {
+        <<abstract>>
+        #const fvPatch& patch_
+        #Field~Type~* refValuePtr_
+        #Field~Type~* refGradPtr_
+        #Field~scalar~* valueFractionPtr_
+        +updateCoeffs()*
+        +evaluate()*
+        +valueInternalCoeffs()* Field~Type~
+        +valueBoundaryCoeffs()* Field~Type~
+        +gradientInternalCoeffs()* Field~Type~
+        +gradientBoundaryCoeffs()* Field~Type~
+    }
+    
+    class fixedValuePatchField {
+        +updateCoeffs()
+        +evaluate()
+        +valueInternalCoeffs() Field~Type~
+        +valueBoundaryCoeffs() Field~Type~
+    }
+    
+    class zeroGradientPatchField {
+        +updateCoeffs()
+        +evaluate()
+        +gradientInternalCoeffs() Field~Type~
+        +gradientBoundaryCoeffs() Field~Type~
+    }
+    
+    class fixedGradientPatchField {
+        +updateCoeffs()
+        +evaluate()
+        +gradientInternalCoeffs() Field~Type~
+        +gradientBoundaryCoeffs() Field~Type~
+    }
+    
+    class mixedFvPatchField {
+        +updateCoeffs()
+        +evaluate()
+        +valueInternalCoeffs() Field~Type~
+        +valueBoundaryCoeffs() Field~Type~
+        +gradientInternalCoeffs() Field~Type~
+        +gradientBoundaryCoeffs() Field~Type~
+    }
+    
+    fvPatchField <|-- fixedValuePatchField
+    fvPatchField <|-- zeroGradientPatchField
+    fvPatchField <|-- fixedGradientPatchField
+    fvPatchField <|-- mixedFvPatchField

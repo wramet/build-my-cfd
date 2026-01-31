@@ -1,0 +1,36 @@
+classDiagram
+    direction LR
+    class lduMatrix {
+        +scalarField *lowerPtr_
+        +scalarField *diagPtr_
+        +scalarField *upperPtr_
+        +solve(scalarField& psi)
+    }
+    class lduMatrix__solver {
+        <<abstract>>
+        #const lduMatrix& matrix_
+        #const FieldField~Field, scalar~& interfaceBouCoeffs_
+        #const FieldField~Field, scalar~& interfaceIntCoeffs_
+        #lduInterfaceFieldPtrsList interfaces_
+        +solve(scalarField& psi, const scalarField& source, const direction cmpt) = 0
+        +solverPerformance solve(scalarField& psi, ...)
+    }
+    class PCG {
+        +solve(...)
+    }
+    class PBiCGStab {
+        +solve(...)
+    }
+    class smoothSolver {
+        +solve(...)
+        #virtual void smooth(scalarField& psi, ...)
+    }
+    class GaussSeidel {
+        +smooth(...)
+    }
+
+    lduMatrix --> lduMatrix__solver : creates
+    lduMatrix__solver <|-- smoothSolver
+    lduMatrix__solver <|-- PCG
+    lduMatrix__solver <|-- PBiCGStab
+    smoothSolver <|-- GaussSeidel

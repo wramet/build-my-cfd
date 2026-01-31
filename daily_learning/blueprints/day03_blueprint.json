@@ -1,0 +1,17 @@
+{
+  "template": "mathematician",
+  "day": "03",
+  "topic": "Spatial Discretization Schemes",
+  "structure": {
+    "parts": [
+      {"title": "Core Theory", "ratio": 0.30, "readability": "beginner"},
+      {"title": "Physical Challenge", "ratio": 0.20, "readability": "intermediate"},
+      {"title": "Architecture & Implementation", "ratio": 0.35, "readability": "advanced"},
+      {"title": "Quality Assurance", "ratio": 0.15, "readability": "professional"}
+    ]
+  },
+  "rules": {
+    "boilerplate_policy": "quarantine_to_appendix",
+    "ratio_tolerance": 0.05
+  }
+}

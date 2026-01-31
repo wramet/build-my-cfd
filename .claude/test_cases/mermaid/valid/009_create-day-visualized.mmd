@@ -1,0 +1,59 @@
+flowchart LR
+    subgraph Sources["📚 Sources"]
+        Web[Web Documentation]
+        Source[OpenFOAM Source Code]
+        Roadmap[roadmap.md]
+        Standards[CFD Standards]
+    end
+
+    subgraph Stage1["Stage 1: Researcher"]
+        R[researcher agent]
+    end
+
+    subgraph Stage3["Stage 3: Architect"]
+        A[architect agent]
+    end
+
+    subgraph Stage4["Stage 4: Verifier"]
+        V1[verifier agent]
+    end
+
+    subgraph Stage5["Stage 5: DeepSeek Coder V2"]
+        D[DeepSeek Coder V2]
+    end
+
+    subgraph Stage6["Stage 6: Verifier"]
+        V2[verifier agent]
+    end
+
+    subgraph Outputs["📄 Outputs (English)"]
+        O1[verified_facts.json ⭐]
+        O2[skeleton.json]
+        O3[Phase_01/XX.md ✅]
+    end
+
+    Web --> R
+    Source --> R
+    Roadmap --> A
+    Standards --> A
+
+    R --> O1
+    O1 --> A
+    O1 --> V1
+    O2 --> V1
+
+    A --> O2
+    O2 --> D
+    O1 --> D
+
+    D --> O3
+    O3 --> V2
+    O1 --> V2
+
+    style Sources fill:#e1f5e1
+    style Stage1 fill:#e1f5e1,stroke:#4caf50
+    style Stage3 fill:#fff3cd,stroke:#ffc107
+    style Stage4 fill:#f8d7da,stroke:#dc3545
+    style Stage5 fill:#e0e0e0,stroke:#6c757d
+    style Stage6 fill:#f8d7da,stroke:#dc3545
+    style Outputs fill:#d4edda

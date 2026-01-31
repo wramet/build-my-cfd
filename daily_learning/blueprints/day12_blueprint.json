@@ -1,0 +1,116 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "day": "12",
+    "topic": "Phase 1 Review and Integration",
+    "template": "mathematician",
+    "template_type": "theory_heavy",
+    "purpose": "Derive and explain mathematical concepts with rigorous proofs",
+    "generated_at": "2026-01-26T22:33:35.394640"
+  },
+  "template": {
+    "name": "Mathematician",
+    "type": "theory_heavy",
+    "progressive_overload": "core theory, physical challenge, architecture, QA",
+    "boilerplate_policy": "quarantine_to_appendix",
+    "code_ratio": 0.25
+  },
+  "structure": {
+    "parts": [
+      {
+        "id": "p1",
+        "title": "Core Theory",
+        "ratio": 0.3,
+        "readability": "beginner",
+        "approach": "derivations",
+        "content_type": "theory",
+        "guideline": "Start with basic concepts, build to full derivations",
+        "estimated_lines": 600
+      },
+      {
+        "id": "p2",
+        "title": "Physical Challenge",
+        "ratio": 0.2,
+        "readability": "intermediate",
+        "approach": "problem solving",
+        "content_type": "analysis",
+        "guideline": "Show practical problems and solutions",
+        "estimated_lines": 400
+      },
+      {
+        "id": "p3",
+        "title": "Architecture & Implementation",
+        "ratio": 0.35,
+        "readability": "advanced",
+        "approach": "code first",
+        "content_type": "code",
+        "guideline": "Show class diagrams before implementation",
+        "estimated_lines": 700
+      },
+      {
+        "id": "p4",
+        "title": "Quality Assurance",
+        "ratio": 0.15,
+        "readability": "professional",
+        "approach": "testing",
+        "content_type": "validation",
+        "guideline": "Verify with unit tests and benchmarks",
+        "estimated_lines": 300
+      }
+    ]
+  },
+  "content_requirements": {
+    "topics_to_cover": [],
+    "formulas_to_include": [
+      {
+        "name": "complete_governing_equations",
+        "latex": "\\begin{cases} \\frac{\\partial \\rho}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U}) = \\dot{m} \\left( \\frac{1}{\\rho_v} - \\frac{1}{\\rho_l} \\right) \\\\ \\frac{\\partial (\\rho \\mathbf{U})}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U} \\mathbf{U}) = -\\nabla p + \\nabla \\cdot \\tau + \\rho \\mathbf{g} \\\\ \\frac{\\partial \\alpha}{\\partial t} + \\nabla \\cdot (\\alpha \\mathbf{U}) + \\nabla \\cdot (\\alpha (1-\\alpha) \\mathbf{U}_c) = \\frac{\\dot{m}}{\\rho_l} \\\\ \\frac{\\partial (\\rho c_p T)}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U} c_p T) = \\nabla \\cdot (k \\nabla T) + \\dot{m} h_{lv} \\end{cases}",
+        "source": "derived from Phase 1 curriculum"
+      },
+      {
+        "name": "finite_volume_discretization",
+        "latex": "\\int_V \\frac{\\partial \\phi}{\\partial t} dV + \\oint_{\\partial V} \\mathbf{F} \\cdot d\\mathbf{S} = \\int_V S_\\phi dV \\quad \\Rightarrow \\quad a_P \\phi_P + \\sum_N a_N \\phi_N = b_P",
+        "source": "Day 02 FVM content"
+      },
+      {
+        "name": "simple_algorithm",
+        "latex": "\\mathbf{U}^* = \\mathbf{H}(\\mathbf{U}^n) - \\frac{1}{A_P} \\nabla p^n \\\\ \\nabla \\cdot \\left( \\frac{1}{A_P} \\nabla p' \\right) = \\nabla \\cdot \\mathbf{U}^* - S_p \\\\ \\mathbf{U}^{n+1} = \\mathbf{U}^* - \\frac{1}{A_P} \\nabla p'",
+        "source": "Day 09 Pressure-Velocity Coupling"
+      },
+      {
+        "name": "expansion_term",
+        "latex": "\\nabla \\cdot \\mathbf{U} = \\dot{m} \\left( \\frac{1}{\\rho_v} - \\frac{1}{\\rho_l} \\right)",
+        "source": "Day 11 Phase Change Theory"
+      }
+    ],
+    "class_hierarchy": {
+      "fvSolution": {
+        "location": "etc/controlDict (symbolic)",
+        "purpose": "Dictionary for solver settings, algorithms, relaxation factors"
+      },
+      "Time": {
+        "location": "src/OpenFOAM/db/Time/Time.H",
+        "purpose": "Manages time loop, time step selection, I/O operations"
+      },
+      "dynamicFvMesh": {
+        "location": "src/dynamicFvMesh/dynamicFvMesh/dynamicFvMesh.H",
+        "purpose": "Base class for dynamic meshes that change during simulation"
+      }
+    }
+  },
+  "rules": {
+    "ratio_tolerance": 0.05,
+    "boilerplate_policy": "quarantine_to_appendix",
+    "concept_first": [
+      "diagrams",
+      "introduction",
+      "overview"
+    ],
+    "progressive_complexity": [
+      "beginner",
+      "intermediate",
+      "advanced",
+      "professional"
+    ]
+  }
+}

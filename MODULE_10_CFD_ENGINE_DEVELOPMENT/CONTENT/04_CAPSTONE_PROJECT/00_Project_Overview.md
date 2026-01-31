@@ -1,4 +1,4 @@
-# Phase 0: Project Overview
+# Phase 0: Project Overview (R410A Evaporator Focus)
 
 ---
 
@@ -6,11 +6,12 @@
 
 By the end of this capstone project, you will be able to:
 
-- Design and implement a complete OpenFOAM solver from scratch
-- Apply the Finite Volume Method to solve heat transfer problems
-- Develop custom boundary conditions and integrate turbulence models
-- Optimize solver performance through profiling and parallelization
-- Validate numerical results against analytical solutions
+- Design and implement a complete OpenFOAM solver for **R410A evaporator simulation**
+- Apply the Finite Volume Method to solve **two-phase flow with phase change**
+- Develop **custom boundary conditions** for tube heat transfer and evaporation
+- Integrate **VOF method** and **phase change models** for liquid-vapor interfaces
+- Optimize solver performance for **conjugate heat transfer** in evaporator tubes
+- Validate numerical results against **experimental evaporator data**
 - Follow professional software development practices (version control, testing, documentation)
 
 ---
@@ -18,25 +19,25 @@ By the end of this capstone project, you will be able to:
 ## 3W Overview
 
 ### What?
-Build a complete incompressible heat transfer solver (`myHeatFoam`) starting from a 1D heat equation and progressively adding complexity: custom boundary conditions, turbulence modeling, parallel execution, and performance optimization.
+Build a complete **R410A evaporator solver** (`myEvaporatorFoam`) starting from a 1D tube heat transfer and progressively adding complexity: two-phase VOF modeling, phase change implementation, custom tube wall heat transfer, parallel execution, and performance optimization for evaporator tubes.
 
 ### Why?
 This project bridges theory and practice by requiring you to:
-- **Apply all concepts** from Modules 1-9 in a unified, realistic implementation
-- **Experience the full development lifecycle**: design → implement → test → optimize → document
-- **Solve real engineering challenges** encountered by OpenFOAM developers daily
-- **Build a portfolio piece** demonstrating your OpenFOAM proficiency to employers or collaborators
+- **Apply all concepts** from Modules 1-9 to a **real R410A evaporator** engineering problem
+- **Experience the full development lifecycle**: design → implement → test → optimize → document for multiphase flow
+- **Solve real engineering challenges** in refrigeration systems: phase change, tube flow, and conjugate heat transfer
+- **Build a portfolio piece** demonstrating expertise in **industrial-scale CFD simulation** for HVAC applications
 
 ### How?
 Through five progressive phases, each building on the previous:
 
 ```mermaid
 flowchart LR
-    P1[Phase 1: 1D Heat] --> P2[Phase 2: Custom BC]
-    P2 --> P3[Phase 3: Turbulence]
-    P3 --> P4[Phase 4: Parallel]
+    P1[Phase 1: 1D Tube Heat] --> P2[Phase 2: Evap BC]
+    P2 --> P3[Phase 3: Two-Phase VOF]
+    P3 --> P4[Phase 4: Phase Change]
     P4 --> P5[Phase 5: Optimize]
-    
+
     style P1 fill:#e1f5e1
     style P2 fill:#fff4e1
     style P3 fill:#ffe1f5
@@ -49,16 +50,16 @@ flowchart LR
 ## Project Phases Overview
 
 <details>
-<summary>📊 Phase Summary Table</summary>
+<summary>📊 Phase Summary Table (R410A Evaporator Focus)</summary>
 
 | Phase | Goal | Skills Acquired | Difficulty | Est. Time |
 |:---:|:---|:---|:---:|:---:|
-| **1** | Working 1D solver | Basic FVM, fvMatrix, time-stepping | ⭐⭐ | 4-6 hrs |
-| **2** | Custom BC implementation | BC development, virtual functions | ⭐⭐⭐ | 4-6 hrs |
-| **3** | Add k-ε turbulence | Turbulence modeling, coupled physics | ⭐⭐⭐⭐ | 6-8 hrs |
-| **4** | MPI parallel execution | Domain decomposition, scaling | ⭐⭐⭐ | 4-6 hrs |
-| **5** | 2x speedup optimization | Profiling, compiler optimizations | ⭐⭐⭐⭐ | 4-6 hrs |
-| **Total** | **Complete solver** | **Full development lifecycle** | - | **22-32 hrs** |
+| **1** | 1D tube heat transfer | Basic FVM, tube geometry, heat transfer | ⭐⭐ | 4-6 hrs |
+| **2** | Evaporation boundary conditions | Wall heat flux, tube BCs, evaporation modeling | ⭐⭐⭐ | 4-6 hrs |
+| **3** | Two-phase VOF implementation | Interface tracking, multiphase coupling | ⭐⭐⭐⭐ | 6-8 hrs |
+| **4** | Phase change models | Schnerr-Sauer, Lee evaporation models | ⭐⭐⭐⭐ | 6-8 hrs |
+| **5** | Conjugate heat transfer optimization | Solid-fluid coupling, parallel scaling | ⭐⭐⭐⭐ | 4-6 hrs |
+| **Total** | **R410A evaporator solver** | **Multiphase development lifecycle** | - | **24-34 hrs** |
 
 </details>
 
@@ -72,10 +73,11 @@ Ensure you have completed these requirements before starting:
 - [ ] **Module 1-3**: OpenFOAM fundamentals, basic solver usage, C++ foundations
 - [ ] **Module 4**: Boundary conditions and field manipulation
 - [ ] **Module 5**: Advanced solver programming techniques
-- [ ] **Module 6**: Multiphase/coupled physics understanding
+- [ ] **Module 6**: **Multiphase/coupled physics understanding** (critical for two-phase)
 - [ ] **Module 7**: Utilities, automation, and visualization tools
 - [ ] **Module 8**: Testing, verification, and validation methodologies
 - [ ] **Module 9**: Template programming, design patterns, memory management
+- [ ] **Module 10**: Custom solver development for multiphase flows
 
 ### Technical Skills
 - [ ] **Code Anatomy**: Read and understood solver walkthroughs (Module 10)
@@ -106,18 +108,18 @@ which wmake
 cd $FOAM_RUN
 
 # Create project folder
-mkdir -p myHeatFoam
-cd myHeatFoam
+mkdir -p myEvaporatorFoam
+cd myEvaporatorFoam
 ```
 
 ### 2. Initialize from Template
 
 ```bash
-# Copy laplacianFoam as starting point
-cp -r $FOAM_SOLVERS/basic/laplacianFoam/* .
+# Copy multiphaseInterFoam as starting point (for VOF)
+cp -r $FOAM_SOLVERS/multiphase/multiphaseInterFoam/* .
 
 # Rename main file
-mv laplacianFoam.C myHeatFoam.C
+mv multiphaseInterFoam.C myEvaporatorFoam.C
 ```
 
 ### 3. Configure Build System
@@ -125,9 +127,9 @@ mv laplacianFoam.C myHeatFoam.C
 **Create `Make/files`:**
 ```bash
 cat > Make/files << 'EOF'
-myHeatFoam.C
+myEvaporatorFoam.C
 
-EXE = $(FOAM_USER_APPBIN)/myHeatFoam
+EXE = $(FOAM_USER_APPBIN)/myEvaporatorFoam
 EOF
 ```
 
@@ -138,11 +140,17 @@ EXE_INC = \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(LIB_SRC)/meshTools/lnInclude \
     -I$(LIB_SRC)/transportModels \
+    -I$(LIB_SRC)/multiphase/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/lnInclude \
     -I$(LIB_SRC)/turbulenceModels
 
 EXE_LIBS = \
     -lfiniteVolume \
-    -lmeshTools
+    -lmeshTools \
+    -lmultiphaseEuler \
+    -lcompressibleMultiphaseMomentum \
+    -lthermophysicalModels \
+    -lturbulenceModels
 EOF
 ```
 
@@ -154,42 +162,47 @@ wclean
 wmake
 
 # Expected output:
-# wmake LnInclude myHeatFoam
-# wmake linux64GccDPOpt myHeatFoam
+# wmake LnInclude myEvaporatorFoam
+# wmake linux64GccDPOpt myEvaporatorFoam
 # Source files
-#     myHeatFoam.C
+#     myEvaporatorFoam.C
 # ...
-# ln: ../../lib/linux64GccDPOpt/libmyHeatFoam.so
-# ln: ../../lib/linux64GccDPOpt/libmyHeatFoam.so
-#    created symbolic link from ../../lib/linux64GccDPOpt/libmyHeatFoam.so to
-#    ./libmyHeatFoam.so
+# ln: ../../lib/linux64GccDPOpt/libmyEvaporatorFoam.so
+# ln: ../../lib/linux64GccDPOpt/libmyEvaporatorFoam.so
+#    created symbolic link from ../../lib/linux64GccDPOpt/libmyEvaporatorFoam.so to
+#    ./libmyEvaporatorFoam.so
 ```
 
 ---
 
-## Final Project Structure
+## Final Project Structure (R410A Evaporator)
 
 ```
-myHeatFoam/
+myEvaporatorFoam/
 ├── Make/
 │   ├── files                      # Source file list
 │   └── options                    # Compilation flags
-├── myHeatFoam.C                   # Main solver (all phases)
-├── createFields.H                 # Field creation helper
-├── myConvectiveBC/                # Custom BC (Phase 2)
-│   ├── myConvectiveFvPatchScalarField.H
-│   ├── myConvectiveFvPatchScalarField.C
+├── myEvaporatorFoam.C             # Main solver (all phases)
+├── createFields.H                 # Field creation helper (R410A properties)
+├── myTubeWallBC/                  # Custom tube wall BC (Phase 2)
+│   ├── myTubeWallFvPatchVectorField.H
+│   ├── myTubeWallFvPatchVectorField.C
 │   └── Make/
 │       ├── files
 │       └── options
 ├── tutorials/
-│   ├── 1D_diffusion/              # Phase 1: Basic verification
+│   ├── 1D_tube/                   # Phase 1: Basic tube heat transfer
 │   │   ├── 0/
 │   │   ├── constant/
 │   │   └── system/
-│   ├── convective_cooling/        # Phase 2: BC testing
-│   ├── turbulent_channel/         # Phase 3: Turbulence validation
-│   └── parallel_channel/          # Phase 4-5: Scaling & optimization
+│   ├── evaporator_test/           # Phase 2: Evaporation BC testing
+│   ├── two_phase_tube/            # Phase 3: VOF interface tracking
+│   ├── phase_change_tube/         # Phase 4: Evaporation modeling
+│   └── evaporator_validation/    # Phase 5: Conjugate heat transfer
+├── R410A_properties/              # Property tables and models
+│   ├── transportProperties         # R410A thermophysical properties
+│   ├── phaseChangeModels          # Schnerr-Sauer, Lee models
+│   └── saturationTables          # Saturation property data
 └── README.md                      # Project documentation
 ```
 
@@ -197,102 +210,96 @@ myHeatFoam/
 
 ## Phase-Specific Objectives
 
-### Phase 1: 1D Heat Equation 🔥
+### Phase 1: 1D Tube Heat Transfer 🔥
 
 **Governing Equation:**
-$$\frac{\partial T}{\partial t} = \alpha \nabla^2 T$$
+$$\rho c_p \frac{\partial T}{\partial t} = \frac{1}{r}\frac{\partial}{\partial r}\left(k r \frac{\partial T}{\partial r}\right)$$
 
 **Deliverables:**
-- ✅ Working `myHeatFoam` solver for 1D conduction
-- ✅ Analytical solution comparison (error < 1%)
-- ✅ Grid convergence study (GCI calculation)
-- ✅ Test case with proper boundary/initial conditions
+- ✅ Working `myEvaporatorFoam` solver for 1D cylindrical heat conduction
+- ✅ Analytical solution comparison for tube wall heat transfer (error < 1%)
+- ✅ Grid convergence study for cylindrical coordinates
+- ✅ Test case with tube geometry and wall heat flux boundary conditions
 
 **Success Criteria:**
-- Solver compiles without errors
-- Results match analytical solution within expected tolerance
-- Code includes clear comments explaining FVM discretization
+- Solver compiles with multiphase libraries
+- Results match cylindrical heat conduction analytical solution
+- Code includes proper cylindrical coordinate discretization
 
 ---
 
-### Phase 2: Custom Boundary Condition 🌡️
+### Phase 2: Evaporation Boundary Conditions 🌡️
 
 **Governing Equation:**
-$$q'' = h(T - T_\infty) \quad \text{(Convective cooling)}$$
+$$q''_{wall} = h_{tp}(T_{wall} - T_{sat}) \quad \text{(Two-phase heat transfer)}$$
 
 **Deliverables:**
-- ✅ `myConvectiveFvPatchScalarField` class implementation
-- ✅ Compiled as shared library
-- ✅ Test case demonstrating convective BC behavior
-- ✅ Comparison with fixed temperature BC
+- ✅ `myTubeWallFvPatchVectorField` class implementation for tube walls
+- ✅ R410A saturation temperature property lookup
+- ✅ Test case demonstrating evaporation BC behavior
+- ✅ Comparison with empirical heat transfer correlations
 
 **Success Criteria:**
-- BC loads correctly at runtime
-- Robin boundary condition properly implemented
-- Heat flux matches expected values
+- BC loads correctly with multiphase solver
+- Two-phase heat transfer coefficient properly implemented
+- Wall temperature matches expected evaporation behavior
 
 ---
 
-### Phase 3: Add Turbulence 💨
+### Phase 3: Two-Phase VOF Implementation 💨
 
 **Governing Equation:**
-$$\frac{\partial T}{\partial t} + \nabla \cdot (\mathbf{U} T) = \nabla \cdot \left(\frac{\nu_t}{Pr_t} + \alpha\right) \nabla T$$
+$$\frac{\partial \alpha}{\partial t} + \nabla \cdot (\mathbf{U} \alpha) = 0$$
 
 **Deliverables:**
-- ✅ Integrated k-ε turbulence model
-- ✅ Turbulent channel flow test case
-- ✅ Nusselt number calculation and validation
-- �y Comparison with empirical correlations
+- ✅ VOF interface tracking implementation
+- ✅ R410A liquid-vapor interface capturing
+- ✅ Tube geometry with proper boundary conditions
+- ✅ Validation against analytical bubble rise velocity
 
 **Success Criteria:**
-- Turbulence model converges
-- Nu number matches literature within 10%
-- Proper near-wall treatment (y+ considerations)
+- VOF equation converges for tube flow
+- Interface sharpness maintained (no numerical diffusion)
+- Mass conservation error < 0.1%
 
 ---
 
-### Phase 4: Parallelize 🖥️
+### Phase 4: Phase Change Modeling 🔥
 
 **Implementation:**
-```bash
-decomposePar
-mpirun -np 4 myHeatFoam -parallel
-reconstructPar
-```
+Schnerr-Sauer cavitation model:
+$$\dot{m} = \rho_l \rho_v \frac{\alpha_v (1-\alpha_l)}{\rho_l} \sqrt{\frac{2}{3} \frac{|p_v - p|}{\rho_l}}$$
 
 **Deliverables:**
-- ✅ Proper domain decomposition setup
-- ✅ Scaling test (1, 2, 4, 8 CPUs)
-- ✅ Speedup and efficiency analysis
-- ✅ Load balancing verification
+- ✅ Schnerr-Sauer phase change model implementation
+- ✅ R410A vapor pressure model
+- ✅ Mass transfer source terms in VOF equation
+- ✅ Evaporation rate validation against data
 
 **Success Criteria:**
-- Parallel runs produce identical results to serial
-- Speedup > 1.5x on 4 cores
-- Efficiency > 60% at 8 cores
+- Phase change model converges with VOF
+- Evaporation rate matches experimental data within 15%
+- Interface behavior matches expected evaporator flow patterns
 
 ---
 
-### Phase 5: Optimize ⚡
+### Phase 5: Conjugate Heat Transfer Optimization 🔥🌡️
 
-**Goal:** 2x speedup over baseline
-
-**Techniques:**
-- Compiler optimizations (`-O3`, `-march=native`)
-- Linear solver tuning (GAMG vs. PCG)
-- Matrix assembly optimization
-- Memory allocation reduction
+**Implementation:**
+Coupled solid-fluid heat transfer:
+$$-k_s \nabla T_s \cdot \mathbf{n} = k_f \nabla T_f \cdot \mathbf{n} \quad \text{at interface}$$
 
 **Deliverables:**
-- ✅ Profiling results (`perf`, `valgrind`)
-- ✅ Optimized solver settings
-- ✅ Before/after performance comparison
-- ✅ Final documentation
+- ✅ Conjugate heat transfer between tube wall and refrigerant
+- ✅ R410A property tables integration
+- ✅ Parallel scaling for large evaporator meshes
+- ✅ Validation against experimental evaporator performance
 
 **Success Criteria:**
-- Achieved 2x speedup or better
-- No loss in solution accuracy
-- Clear documentation of optimizations
+- Conjugate heat transfer converges
+- Heat transfer coefficient within 10% of experimental data
+- Achieve 2x speedup with parallelization
+- Quality distribution matches evaporator measurements
 
 ---
 
@@ -303,10 +310,11 @@ reconstructPar
 
 | Criterion | Weight | Assessment Criteria |
 |:---:|:---:|:---|
-| **Correctness** | 40% | - Solver produces physically correct results<br>- Validated against analytical/empirical data<br>- Proper convergence behavior |
-| **Code Quality** | 20% | - Follows OpenFOAM coding standards<br>- Clear comments and documentation<br>- Proper memory management<br>- Error handling |
-| **Documentation** | 20% | - README with setup instructions<br>- Inline code comments<br>- Validation results documented<br>- Known limitations listed |
-| **Performance** | 20% | - Meets optimization targets<br>- Efficient implementation<br>- Proper parallel scaling<br>- Profiling data provided |
+| **Correctness** | 35% | - Solver produces physically correct two-phase results<br>- Validated against evaporator experimental data<br>- Proper mass/energy conservation<br>- Accurate interface tracking |
+| **R410A Physics** | 20% | - Proper phase change modeling<br>- Correct thermodynamic properties<br>- Accurate heat transfer coefficients<br>- Realistic evaporator flow patterns |
+| **Code Quality** | 20% | - Follows OpenFOAM coding standards<br>- Clear comments and documentation<br>- Proper multiphase memory management<br>- Error handling for VOF convergence |
+| **Documentation** | 15% | - README with evaporator setup instructions<br>- R410A property documentation<br>- Validation results against experimental data<br>- Known limitations for industrial use |
+| **Performance** | 10% | - Meets optimization targets for evaporator cases<br>- Efficient VOF implementation<br>- Proper parallel scaling for large meshes<br>- Profiling data provided |
 
 </details>
 
@@ -365,8 +373,10 @@ libs ("libmyConvectiveBC.so");
 - **Wiki:** https://openfoamwiki.net
 
 ### Module References
-- Review **Module 10, Section 1 (Code Anatomy)** for detailed solver walkthroughs
-- Consult **Module 9, Section 7 (Practical Project)** for additional implementation guidance
+- Review **Module 10, Section 1 (Code Anatomy)** for detailed multiphase solver walkthroughs
+- Consult **Module 1-3, Section 5 (Two-Phase Flow)** for R410A properties
+- Reference **Module 6, Section 2 (VOF Method)** for interface tracking implementation
+- Use **Module 8, Section 3 (Evaporator Validation)** for experimental data comparison
 
 ---
 
@@ -374,31 +384,33 @@ libs ("libmyConvectiveBC.so");
 
 After completing this capstone project, you will have:
 
-✅ **End-to-End Development Experience**: Designed, implemented, tested, and optimized a complete OpenFOAM solver from scratch
+✅ **R410A Evaporator Expertise**: Built a complete solver for industrial refrigeration systems with proper two-phase physics
 
-✅ **Deep Understanding of FVM**: Applied finite volume discretization to real heat transfer problems with hands-on implementation
+✅ **Multiphase FVM Mastery**: Applied finite volume discretization to VOF, phase change, and conjugate heat transfer
 
-✅ **Professional Development Practices**: Used version control, wrote documentation, performed validation, and optimized performance
+✅ **Industrial-Grade Practices**: Used version control, documented R410A properties, validated against experimental data, and optimized for performance
 
-✅ **Customization Skills**: Developed custom boundary conditions, integrated turbulence models, and extended OpenFOAM functionality
+✅ **Advanced Customization Skills**: Developed tube wall boundary conditions, integrated phase change models, and extended OpenFOAM for evaporator applications
 
-✅ **Parallel Computing Expertise**: Implemented domain decomposition and analyzed scaling behavior on multi-core systems
+✅ **Scalable Computing Expertise**: Implemented parallel computing for large evaporator meshes and analyzed scaling behavior
 
-✅ **Portfolio-Ready Project**: A complete, validated solver with documentation demonstrating your OpenFOAM proficiency
+✅ **Portfolio-Ready Project**: A complete, validated R410A evaporator solver demonstrating expertise in industrial CFD simulation
 
-✅ **Problem-Solving Mindset**: Encountered and resolved real debugging, compilation, and numerical challenges faced by CFD developers
+✅ **HVAC Industry Application**: Skills directly applicable to heat exchanger design, refrigeration systems, and thermal engineering
 
-✅ **Foundation for Advanced Work**: Skills transferable to developing custom multiphase, reacting, or specialized physics solvers
+✅ **Multiphase Physics Foundation**: Deep understanding of VOF, phase change, and two-phase heat transfer transferable to other applications
 
 ---
 
 ## Next Steps
 
-Ready to begin? Start with **[Phase 1: 1D Heat Equation](01_Phase1_1D_Heat_Equation.md)**
+Ready to begin? Start with **[Phase 1: 1D Tube Heat Transfer](01_Phase1_1D_Heat_Equation.md)**
 
-> **Pro Tip:** Create a git repository before starting Phase 1 to track your progress and enable experimentation without fear of breaking working code.
+> **Pro Tip:** Create a git repository before starting Phase 1 to track your R410A evaporator development and enable experimentation without fear of breaking working code.
 > ```bash
 > git init
 > git add .
-> git commit -m "Initial project setup from template"
+> git commit -m "Initial R410A evaporator solver setup"
 > ```
+>
+> **Important:** First, download R410A property data from NIST Chemistry WebBook for accurate phase change modeling.

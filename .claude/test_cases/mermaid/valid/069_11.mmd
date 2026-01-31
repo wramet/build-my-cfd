@@ -1,0 +1,29 @@
+classDiagram
+    class phaseChangeModel {
+        <<abstract>>
+        +correct() void
+        +correct() void
+        +mDotAlphal() tmp~volScalarField~
+        +mDot() tmp~volScalarField~
+        +mDotP() tmp~volScalarField~
+        +vDotAlphal() tmp~volScalarField~
+        +vDot() tmp~volScalarField~
+        +vDotP() tmp~volScalarField~
+    }
+    
+    class Lee {
+        +C_ scalar
+        +Tactivate_ scalar
+        +correct() void
+        +mDotAlphal() tmp~volScalarField~
+    }
+    
+    class phaseChangeTwoPhaseMixture {
+        -phaseChangeModel* phaseChangeModel_
+        +correct() void
+        +mDotAlphal() tmp~volScalarField~
+    }
+    
+    phaseChangeModel <|-- Lee
+    phaseChangeModel <|-- otherModels
+    phaseChangeTwoPhaseMixture o-- phaseChangeModel

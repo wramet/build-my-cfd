@@ -1,255 +1,175 @@
 {
   "day": "12",
   "title": "Phase 1 Review & Integration",
-  "date": "2026-01-12",
-  "difficulty": "hardcore",
-
+  "topic": "Foundation Summary and Transition",
   "learning_objectives": [
     {
-      "verb": "สังเคราะห์ (Synthesize)",
-      "topic": "บูรณาการความรู้จาก Days 01-11 เกี่ยวกับ governing equations, finite volume method, two-phase flow, phase change, และ OpenFOAM programming",
+      "verb": "Synthesize",
+      "topic": "Integrate knowledge from Days 01-11 about governing equations, finite volume method, two-phase flow, phase change, and OpenFOAM programming",
       "equation": "Integrated_CFD_Engine = ∑(Day_i_Knowledge) × Implementation_Coherence",
-      "importance": "Phase 1 ครอบคลุมพื้นฐานทั้งหมดที่จำเป็นสำหรับการพัฒนา CFD Engine สำหรับ evaporator simulation; Day 12 เป็นโอกาสในการเชื่อมโยงจุดต่างๆ ให้เป็นภาพรวมที่สมบูรณ์"
+      "importance": "Phase 1 covers all fundamentals needed for evaporator CFD engine development; Day 12 provides opportunity to connect all concepts into a complete picture"
     },
     {
-      "verb": "ประเมิน (Evaluate)",
-      "topic": "Comprehensive 'Final Exam' หรือ 'Integration Project' ที่ทดสอบความเข้าใจทั้งทฤษฎีและการนำไปใช้",
+      "verb": "Evaluate",
+      "topic": "Comprehensive review and integration test covering both theory and implementation",
       "components": ["Theory Questions", "Code Implementation", "Debugging Scenarios", "Performance Analysis"]
     },
     {
-      "verb": "เตรียมพร้อม (Prepare)",
-      "topic": "Transition จาก Phase 1 (Fundamentals) ไปสู่ Phase 2 (Geometry & Meshing) โดยเข้าใจความเชื่อมโยงระหว่าง equations, discretization, และ geometric representation",
-      "challenge": "การเชื่อมโยง mathematical formulations กับ geometric implementation ใน OpenFOAM mesh classes และ boundary conditions"
+      "verb": "Prepare",
+      "topic": "Transition from Phase 1 (Fundamentals) to Phase 2 (Geometry & Meshing) with understanding of connection between equations, discretization, and geometric representation",
+      "challenge": "Connecting mathematical formulations to geometric implementation in OpenFOAM mesh classes and boundary conditions"
     }
   ],
-
   "theory_sections": [
     {
       "id": "12.1",
-      "title_en": "Phase 1 Knowledge Synthesis: From Equations to Implementation",
-      "title_th": "การสังเคราะห์ความรู้ Phase 1: จากสมการสู่การนำไปใช้",
+      "title": "Phase 1 Knowledge Synthesis: From Equations to Implementation",
       "equations": [
         {
-          "name": "Complete Governing Equation Set",
-          "latex": "\\begin{cases} \\frac{\\partial \\rho}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U}) = \\dot{m} \\left( \\frac{1}{\\rho_v} - \\frac{1}{\\rho_l} \\right) \\\\ \\frac{\\partial (\\rho \\mathbf{U})}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U} \\mathbf{U}) = -\\nabla p + \\nabla \\cdot \\tau + \\rho \\mathbf{g} \\\\ \\frac{\\partial \\alpha}{\\partial t} + \\nabla \\cdot (\\alpha \\mathbf{U}) + \\nabla \\cdot (\\alpha (1-\\alpha) \\mathbf{U}_c) = \\frac{\\dot{m}}{\\rho_l} \\\\ \\frac{\\partial (\\rho c_p T)}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U} c_p T) = \\nabla \\cdot (k \\nabla T) + \\dot{m} h_{lv} \\end{cases}",
-          "explanation": "ชุดสมการที่สมบูรณ์สำหรับ evaporator simulation: continuity with phase change, momentum, VOF transport with compression, และ energy with latent heat"
+          "name": "Complete Governing Equation Set with Expansion Term",
+          "latex": "\\begin{cases} \\nabla \\cdot \\mathbf{U} = \\dot{m} \\left( \\frac{1}{\\rho_v} - \\frac{1}{\\rho_l} \\right) \\\\ \\frac{\\partial (\\rho \\mathbf{U})}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U} \\mathbf{U}) = -\\nabla p + \\nabla \\cdot \\tau + \\rho \\mathbf{g} \\\\ \\frac{\\partial \\alpha}{\\partial t} + \\nabla \\cdot (\\alpha \\mathbf{U}) + \\nabla \\cdot [\\alpha (1-\\alpha) \\mathbf{U}_c] = \\frac{\\dot{m}}{\\rho_l} \\\\ \\rho c_p \\frac{\\partial T}{\\partial t} + \\rho c_p \\mathbf{U} \\cdot \\nabla T = \\nabla \\cdot (k \\nabla T) + \\dot{m} h_{lv} \\end{cases}",
+          "explanation": "Complete equation set for evaporator simulation: velocity divergence with phase change, momentum, VOF transport with compression, and energy with latent heat"
         },
         {
           "name": "Finite Volume Discretization Framework",
           "latex": "\\int_V \\frac{\\partial \\phi}{\\partial t} dV + \\oint_{\\partial V} \\mathbf{F} \\cdot d\\mathbf{S} = \\int_V S_\\phi dV \\quad \\Rightarrow \\quad a_P \\phi_P + \\sum_N a_N \\phi_N = b_P",
-          "explanation": "กรอบการ discretize แบบ finite volume ที่ใช้กับทุกสมการ: time derivative, flux integration, และ source terms"
+          "explanation": "FVM discretization framework used for all equations: time derivative, flux integration, and source terms"
         },
         {
           "name": "Pressure-Velocity Coupling (SIMPLE/PISO)",
-          "latex": "\\mathbf{U}^* = \\mathbf{H}(\\mathbf{U}^n) - \\frac{1}{A_P} \\nabla p^n \\\\ \\nabla \\cdot \\left( \\frac{1}{A_P} \\nabla p' \\right) = \\nabla \\cdot \\mathbf{U}^* - S_p \\\\ \\mathbf{U}^{n+1} = \\mathbf{U}^* - \\frac{1}{A_P} \\nabla p'",
-          "explanation": "Algorithm สำหรับ coupled incompressible/compressible flow with phase change source term S_p"
+          "latex": "\\mathbf{U}^* = \\mathbf{H}(\\mathbf{U}^n) - \\frac{1}{A_P} \\nabla p^n \\\\ \\nabla \\cdot \\left( \\frac{1}{A_P} \\nabla p' \\right) = \\nabla \\cdot \\mathbf{U}^* - S_{\\text{expansion}} \\\\ \\mathbf{U}^{n+1} = \\mathbf{U}^* - \\frac{1}{A_P} \\nabla p'",
+          "explanation": "Algorithm for coupled flow with phase change source term S_expansion"
         }
-      ],
-      "variables": [
-        {"symbol": "∑(Day_i_Knowledge)", "name": "Cumulative knowledge from Days 01-11", "unit": "conceptual units"},
-        {"symbol": "Implementation_Coherence", "name": "Measure of how well components work together", "unit": "dimensionless"},
-        {"symbol": "τ", "name": "Stress tensor (viscous + turbulent)", "unit": "Pa"},
-        {"symbol": "U_c", "name": "Compression velocity for interface sharpening", "unit": "m/s"}
-      ],
-      "warning": "การบูรณาการที่ผิดพลาดมักเกิดจาก misunderstanding ของ coupling ระหว่าง equations; ต้องเข้าใจว่าแต่ละ component เชื่อมต่อกันอย่างไรใน code"
+      ]
     },
     {
       "id": "12.2",
-      "title_en": "Integration Project: Complete Evaporator Solver",
-      "title_th": "โปรเจคบูรณาการ: Evaporator Solver ที่สมบูรณ์",
+      "title": "OpenFOAM Configuration Integration",
       "equations": [
         {
           "name": "Project Success Metric",
           "latex": "\\text{Success} = \\frac{\\text{Correct Physics} \\times \\text{Numerical Stability} \\times \\text{Performance}}{\\text{Development Time}}",
-          "explanation": "เมตริกสำหรับประเมิน integration project ที่รวมความถูกต้องทางฟิสิกส์, ความเสถียรเชิงตัวเลข, ประสิทธิภาพ และเวลาในการพัฒนา"
-        },
-        {
-          "name": "Code Architecture Quality",
-          "latex": "Q_{\\text{arch}} = \\sum_{i} (\\text{Cohesion}_i - \\text{Coupling}_i) + \\text{Extensibility}",
-          "explanation": "คุณภาพของ software architecture วัดจาก high cohesion, low coupling, และความสามารถในการขยายต่อ"
+          "explanation": "Metric for evaluating integration project combining physics correctness, numerical stability, performance, and development time"
         }
-      ],
-      "variables": [
-        {"symbol": "Correct Physics", "name": "Implementation matches theoretical equations", "unit": "0-1 scale"},
-        {"symbol": "Numerical Stability", "name": "Solver converges without oscillations/divergence", "unit": "0-1 scale"},
-        {"symbol": "Performance", "name": "Computational efficiency", "unit": "iterations/second"}
-      ],
-      "warning": "Integration project ต้องทดสอบกับ multiple scenarios: single-phase, two-phase without phase change, phase change with Lee model, และ full evaporator conditions"
+      ]
     },
     {
       "id": "12.3",
-      "title_en": "Transition to Phase 2: Geometry & Meshing",
-      "title_th": "การเปลี่ยนสู่ Phase 2: เรขาคณิตและการสร้าง mesh",
+      "title": "Algorithm Selection and Configuration",
       "equations": [
         {
           "name": "Geometry-Discretization Relationship",
           "latex": "\\text{Discretization Error} \\propto \\frac{\\Delta x^p}{\\text{Geometric Quality}}",
-          "explanation": "ความสัมพันธ์ระหว่าง geometric quality ของ mesh กับ discretization error: mesh ที่มีคุณภาพต่ำจะเพิ่ม numerical error แม้ใช้ scheme order สูง"
+          "explanation": "Relationship between mesh geometric quality and discretization error: poor quality mesh increases numerical error even with high-order schemes"
         },
         {
-          "name": "Boundary Condition Implementation",
-          "latex": "\\phi_{\\text{boundary}} = f(\\phi_{\\text{internal}}, \\text{BC Type}, \\text{Patch Geometry})",
-          "explanation": "Boundary conditions ใน OpenFOAM ขึ้นอยู่กับ patch geometry และต้อง implement อย่างถูกต้องใน finite volume context"
+          "name": "SIMPLE vs PISO vs PIMPLE Selection Criteria",
+          "latex": "\\text{Algorithm} = f(\\text{Time-dependent}, \\text{Density Variation}, \\text{Required Accuracy})",
+          "explanation": "Selection criteria for pressure-velocity coupling algorithms based on problem characteristics"
         }
-      ],
-      "variables": [
-        {"symbol": "Δx", "name": "Cell size", "unit": "m"},
-        {"symbol": "p", "name": "Order of spatial discretization", "unit": "dimensionless"},
-        {"symbol": "Geometric Quality", "name": "Mesh quality metrics (non-orthogonality, skewness, aspect ratio)", "unit": "0-1 scale"}
-      ],
-      "warning": "Phase 2 จะเน้นการสร้าง geometry ที่เหมาะสมสำหรับ evaporator simulation; ความเข้าใจใน Phase 1 equations จำเป็นเพื่อกำหนด mesh requirements ที่ถูกต้อง (เช่น refinement ที่ interface)"
+      ]
     }
   ],
-
   "openfoam_analysis": [
     {
       "class": "fvSolution",
-      "header": "etc/controlDict (symbolic)",
-      "purpose": "Dictionary ที่เก็บ solver settings, algorithms, และ relaxation factors สำหรับทั้งระบบ",
+      "header": "etc/fvSolution (controlDict for solver settings)",
+      "purpose": "Dictionary storing solver settings, algorithms, and relaxation factors for the entire system",
       "key_members": [
-        {"name": "solvers", "type": "dictionary", "purpose": "Settings สำหรับ linear solvers (p, U, alpha, T)"},
+        {"name": "solvers", "type": "dictionary", "purpose": "Settings for linear solvers (p, U, alpha, T)"},
         {"name": "PISO", "type": "dictionary", "purpose": "PISO algorithm parameters (nCorrectors, nNonOrthogonalCorrectors)"},
         {"name": "SIMPLE", "type": "dictionary", "purpose": "SIMPLE algorithm parameters (relaxation factors)"},
-        {"name": "relaxationFactors", "type": "dictionary", "purpose": "Under-relaxation สำหรับ fields ต่างๆ"}
-      ],
-      "key_methods": [
-        {"name": "read()", "purpose": "อ่านค่าจาก system/fvSolution file"},
-        {"name": "subDict()", "purpose": "Access nested dictionaries"}
-      ],
-      "integration_importance": "ไฟล์นี้เป็นศูนย์กลางของการ integrate ทุก component; การตั้งค่าที่ไม่เหมาะสมทำให้ solver ล้มเหลวแม้ equations ถูกต้อง"
+        {"name": "relaxationFactors", "type": "dictionary", "purpose": "Under-relaxation for various fields"}
+      ]
+    },
+    {
+      "class": "fvSchemes",
+      "header": "etc/fvSchemes (discretization schemes)",
+      "purpose": "Dictionary specifying discretization schemes for temporal, divergence, gradient, and laplacian terms",
+      "key_members": [
+        {"name": "ddtSchemes", "type": "dictionary", "purpose": "Temporal discretization (Euler, backward)"},
+        {"name": "gradSchemes", "type": "dictionary", "purpose": "Gradient calculation schemes"},
+        {"name": "divSchemes", "type": "dictionary", "purpose": "Divergence schemes (upwind, Gauss linear)"},
+        {"name": "laplacianSchemes", "type": "dictionary", "purpose": "Laplacian schemes (Gauss linear corrected)"}
+      ]
     },
     {
       "class": "Time",
       "header": "src/OpenFOAM/db/Time/Time.H",
-      "purpose": "จัดการ time loop, time step selection, และ I/O operations",
+      "purpose": "Manages time loop, time step selection, and I/O operations",
       "key_members": [
         {"name": "deltaT_", "type": "scalar", "purpose": "Current time step size"},
-        {"name": "timeName()", "type": "word", "purpose": "Current time name สำหรับ I/O"},
-        {"name": "runTime", "type": "Time&", "purpose": "Reference to the global time object"}
+        {"name": "timeName()", "type": "word", "purpose": "Current time name for I/O"},
+        {"name": "runTime", "type": "Time&", "purpose": "Reference to global time object"}
       ],
       "key_methods": [
-        {"name": "run()", "purpose": "ตรวจสอบว่า simulation ยังทำงานอยู่"},
+        {"name": "run()", "purpose": "Check if simulation should continue"},
         {"name": "loop()", "type": "macro", "purpose": "Time loop construct (while (runTime.run()))"},
         {"name": "write()", "purpose": "Write fields at current time"},
-        {"name": "setDeltaT()", "purpose": "Adjust time step ตาม stability criteria"}
-      ],
-      "algorithm_integration": "Time class เป็นโครงสร้างหลักที่เชื่อมโยงทุกส่วนของ solver; ต้องเข้าใจเพื่อ implement adaptive time stepping สำหรับ phase change simulations"
-    },
-    {
-      "class": "dynamicFvMesh",
-      "header": "src/dynamicFvMesh/dynamicFvMesh/dynamicFvMesh.H",
-      "purpose": "Base class สำหรับ dynamic meshes ที่ปรับเปลี่ยนได้ระหว่าง simulation",
-      "key_members": [
-        {"name": "meshMotionSolver_", "type": "autoPtr<motionSolver>", "purpose": "Pointer to mesh motion solver"},
-        {"name": "topoChanger_", "type": "autoPtr<polyTopoChanger>", "purpose": "Pointer to topology changer"}
-      ],
-      "key_methods": [
-        {"name": "update()", "purpose": "Update mesh ตาม motion หรือ topology changes"},
-        {"name": "movePoints()", "purpose": "Move mesh points ตาม velocity field"}
-      ],
-      "phase2_preview": "Class นี้เป็นตัวอย่างของ geometric capabilities ใน OpenFOAM ที่จะเจาะลึกใน Phase 2; mesh dynamics สำคัญสำหรับ complex evaporator geometries"
+        {"name": "setDeltaT()", "purpose": "Adjust time step according to stability criteria"}
+      ]
     }
   ],
-
   "implementation_skeleton": {
-    "classes": [
+    "sections": [
       {
-        "name": "IntegratedEvaporatorSolver",
-        "responsibility": "Main solver class ที่รวมทุก component จาก Days 01-11",
-        "key_methods": [
-          {"name": "solveIntegratedSystem()", "purpose": "Execute complete solution sequence: read, initialize, time loop, solve all equations, write"},
-          {"name": "validatePhysics()", "purpose": "Validate implementation against theoretical expectations (mass/energy balance, interface sharpness)"},
-          {"name": "generateFinalReport()", "purpose": "Produce comprehensive report of simulation results และ performance metrics"}
-        ],
-        "critical_implementation": "ต้อง ensure proper coupling ระหว่าง all equations; ใช้ appropriate under-relaxation และ linear solver settings"
+        "title": "Boundary Condition Integration",
+        "subsections": [
+          "Inlet BCs: fixed velocity, fixed alpha (liquid), fixed temperature",
+          "Outlet BCs: zero gradient, pressure outlet",
+          "Wall BCs: no-slip, fixed T or fixed heat flux",
+          "Axis BCs: symmetry (for 2D axisymmetric)"
+        ]
       },
       {
-        "name": "Phase1Exam",
-        "responsibility": "Comprehensive test suite ที่ประเมินความเข้าใจทั้งทฤษฎีและการนำไปใช้",
-        "key_methods": [
-          {"name": "theoryQuestions()", "purpose": "Test understanding of governing equations, discretization, algorithms"},
-          {"name": "codeDebugging()", "purpose": "Provide buggy code snippets สำหรับ identification และ fixing"},
-          {"name": "performanceAnalysis()", "purpose": "Analyze solver performance และ propose optimizations"}
+        "title": "Turbulence Model Selection",
+        "subsections": [
+          "Mixing Length model for evaporator flows",
+          "Integration with momentum equation",
+          "Wall distance calculation",
+          "Effective viscosity: ν_eff = ν + ν_t"
+        ]
+      },
+      {
+        "title": "Solver Configuration Integration",
+        "subsections": [
+          "controlDict: time control, write intervals",
+          "fvSolution: solver settings, relaxation, PISO parameters",
+          "fvSchemes: discretization scheme selection",
+          "Verification: checkMesh, foamJob utilities"
+        ]
+      },
+      {
+        "title": "Complete Solver Workflow",
+        "subsections": [
+          "1. Read mesh and fields",
+          "2. Initialize fields (p, U, alpha, T, properties)",
+          "3. Time loop with adaptive stepping",
+          "4. Solve momentum (with turbulence if applicable)",
+          "5. Solve pressure equation WITH phase change source",
+          "6. Correct velocity and flux",
+          "7. Solve alpha equation WITH compression and Lee model",
+          "8. Solve energy equation WITH latent heat source",
+          "9. Update mixture properties (ρ, μ, c_p, k)",
+          "10. Apply BCs and under-relaxation",
+          "11. Check convergence criteria",
+          "12. Write results"
         ]
       }
-    ],
-    "algorithm_steps": [
-      "1. Review และ synthesize knowledge จาก Days 01-11: สร้าง mind map ของ interconnected concepts",
-      "2. Implement integrated evaporator solver โดยใช้ components ที่พัฒนามาแล้ว:",
-      "   a. Initialize fields (p, U, alpha, T, properties)",
-      "   b. Time loop with adaptive time stepping",
-      "   c. Solve momentum (with turbulence if applicable)",
-      "   d. Solve pressure equation WITH phase change source term",
-      "   e. Correct velocity และ flux",
-      "   f. Solve alpha equation WITH compression และ Lee model source",
-      "   g. Solve energy equation WITH latent heat source",
-      "   h. Update mixture properties (rho, mu, cp, k)",
-      "   i. Apply boundary conditions และ under-relaxation",
-      "   j. Check convergence criteria",
-      "3. Run validation cases:",
-      "   a. Single-phase flow (verify against analytical solutions)",
-      "   b. Two-phase without phase change (verify interface transport)",
-      "   c. Phase change with Lee model (verify mass/energy conservation)",
-      "   d. Full evaporator conditions (verify realistic behavior)",
-      "4. Analyze results: mass balance error, interface thickness, temperature distribution, convergence history",
-      "5. Prepare for Phase 2: ระบุ geometric requirements สำหรับ evaporator mesh (refinement regions, boundary layer cells, non-orthogonality limits)",
-      "6. Document lessons learned และ create transition plan ไปสู่ Phase 2"
     ]
   },
-
-  "concept_checks": [
-    {
-      "question": "ถ้าคุณต้องออกแบบ integration test สำหรับ evaporator solver คุณจะทดสอบอะไรบ้าง และใช้ metrics อะไรในการประเมิน?",
-      "answer_key_points": [
-        "Mass conservation: ∫(∂ρ/∂t)dV + ∫ρU·dS = 0 (error < 1e-6)",
-        "Energy conservation: ∫(energy accumulation)dV + ∫(energy flux)dS = ∫(latent heat source)dV",
-        "Interface sharpness: วัด thickness ของ interface region (ควรอยู่ที่ 2-3 cells)",
-        "Numerical stability: convergence history, absence of oscillations",
-        "Physical realism: temperature distribution, pressure drop, phase change rate",
-        "Performance: execution time, memory usage, scalability"
-      ],
-      "implementation_note": "Implement monitoring ใน solver โดยใช้ field integrals (fvc::domainIntegrate) และเขียนออกมาแต่ละ time step"
-    },
-    {
-      "question": "Phase 1 (Fundamentals) เชื่อมโยงกับ Phase 2 (Geometry) อย่างไร? อธิบายด้วยตัวอย่าง specific จาก evaporator simulation",
-      "answer_key_points": [
-        "Mesh quality affects discretization error ในทุก equations: non-orthogonal cells เพิ่ม error ใน gradient calculation",
-        "Interface tracking ต้องการ adequate mesh refinement ใน interface region; geometric capabilities ใน Phase 2 ช่วยสร้าง appropriate refinement zones",
-        "Boundary conditions ขึ้นอยู่กับ patch geometry: complex evaporator geometries มี patches หลายประเภท (inlet, outlet, walls, symmetry)",
-        "Phase change simulations sensitive to cell volumes: small cells ใน wrong locations ทำให้ time step จำกัดจาก CFL condition",
-        "Phase 2 จะสอนการสร้าง geometry ที่เหมาะสมสำหรับ equations จาก Phase 1: e.g., boundary layer mesh สำหรับ accurate wall heat transfer",
-        "Dynamic meshing (ถ้าจำเป็น) สำหรับ moving boundaries หรือ adaptive refinement ต้องการ understanding ของทั้ง geometric และ equation aspects"
-      ],
-      "implementation_note": "ใน transition ไป Phase 2, ระบุ mesh requirements จาก Phase 1 analysis: max aspect ratio, non-orthogonality, skewness limits"
-    }
+  "verified_facts": [
+    "Expansion term: nabla dot U = m_dot (1/rho_v - 1/rho_l) - Derived from Day 11",
+    "Pressure equation with source: div(1/A grad p') = div U* - S_expansion - From Day 09 with Day 11 modification",
+    "VOF equation: ∂α/∂t + div(αU) + div[α(1-α)U_c] = ṁ/ρ_l - From Days 10 and 11",
+    "Energy with latent heat: ρc_p∂T/∂t + ρc_pU·∇T = div(k∇T) + ṁh_lv - From Day 11",
+    "fvSolution dictionary: Stores solver settings (controlDict) - OpenFOAM infrastructure",
+    "fvSchemes dictionary: Stores discretization schemes - Required for accurate solution",
+    "Time class: Manages time loop (src/OpenFOAM/db/Time/Time.H) - Critical for transient simulations"
+    "SIMPLE: For steady-state, single corrector per iteration",
+    "PISO: For transient, multiple correctors per time step",
+    "PIMPLE: For transient with large density variations"
   ],
-
-  "pitfalls": [
-    {
-      "symptom": "Integration test ล้มเหลวแม้แต่ละ component ทำงานแยกกันได้ดี",
-      "cause": "Incompatible data exchange ระหว่าง components หรือ incorrect coupling sequence",
-      "fix": "Review solution sequence; ensure fields are properly updated และ boundary conditions are consistent ระหว่าง equations"
-    },
-    {
-      "symptom": "Solver ทำงานช้ามากเมื่อรวมทุก features",
-      "cause": "Inefficient implementation, excessive I/O, หรือ inappropriate linear solver settings",
-      "fix": "Profile code; optimize critical sections; adjust solver settings ใน fvSolution; consider field caching"
-    },
-    {
-      "symptom": "ผลลัพธ์ไม่สมจริงแม้ equations ถูกต้อง",
-      "cause": "Incorrect boundary conditions, improper initial conditions, หรือ missing physical effects",
-      "fix": "Validate against benchmark cases; verify BC implementation; check property definitions"
-    },
-    {
-      "symptom": "Difficulty transitioning to Phase 2 concepts",
-      "cause": "Insufficient understanding ของความสัมพันธ์ระหว่าง discretization และ geometry",
-      "fix": "Review finite volume fundamentals; study how geometric quantities (cell volumes, face areas, normals) ใช้ใน discretization"
-    }
-  ],
-
-  "connections": {
-    "previous_day": "Day 11: Phase Change Theory (Lee Model)",
-    "next_day": "Day 13: Geometry Fundamentals (Phase 2 Introduction)",
-    "key_link": "Day 12 สังเคราะห์ทุกอย่างจาก Days 01-11 เพื่อสร้าง foundation ที่แข็งแกร่งก่อนเข้าสู่ Phase 2 ที่จะเน้น geometric aspects ของ CFD engine development"
-  }
+  "code_snippets": [],
+  "exercises": []
 }

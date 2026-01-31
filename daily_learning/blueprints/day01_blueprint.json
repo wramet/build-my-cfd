@@ -1,0 +1,11 @@
+{
+  "day": 1,
+  "topic": "Introduction to CFD and OpenFOAM",
+  "template": "balanced",
+  "sections": [
+    "Core Theory",
+    "OpenFOAM Reference",
+    "Implementation",
+    "Exercises"
+  ]
+}

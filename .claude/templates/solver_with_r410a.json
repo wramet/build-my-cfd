@@ -1,0 +1,102 @@
+{
+  "template_name": "solver_with_r410a",
+  "phase": "Solver Core",
+  "phase_range": "Days 20-49",
+  "r410a_integration": "25%",
+  "total_target_lines": 1000,
+  "description": "Template for Phase 3: OpenFOAM solver architecture with two-phase R410A handling",
+  "structure": {
+    "parts": [
+      {
+        "id": "p1",
+        "title": "OpenFOAM Architecture",
+        "ratio": 0.20,
+        "readability": "intermediate",
+        "approach": "structural",
+        "content_type": "architecture",
+        "guideline": "Run-time selection, top-level code organization"
+      },
+      {
+        "id": "p2",
+        "title": "Field Types",
+        "ratio": 0.25,
+        "readability": "advanced",
+        "approach": "detailed",
+        "content_type": "code",
+        "guideline": "volScalarField, volVectorField, surfaceScalarField for two-phase flow"
+      },
+      {
+        "id": "p3",
+        "title": "Matrix Assembly",
+        "ratio": 0.20,
+        "readability": "advanced",
+        "approach": "mathematical",
+        "content_type": "math_code",
+        "guideline": "fvMatrix, fvm::div, fvm::laplacian with phase change terms"
+      },
+      {
+        "id": "p4",
+        "title": "Solution Algorithms",
+        "ratio": 0.10,
+        "readability": "advanced",
+        "approach": "algorithmic",
+        "content_type": "algorithms",
+        "guideline": "PIMPLE, SIMPLE, pressure-velocity coupling"
+      }
+    ]
+  },
+  "part_5_structure": {
+    "id": "p5",
+    "title": "R410A Solver Implementation",
+    "ratio": 0.25,
+    "readability": "advanced",
+    "approach": "implementation",
+    "content_type": "domain_specific",
+    "guideline": "Implement R410A two-phase flow with phase change",
+    "sections": [
+      {
+        "section": "5.1",
+        "title": "Two-Phase Field Handling",
+        "target_lines": 60,
+        "content": "volScalarField alpha for liquid volume fraction, property evaluation"
+      },
+      {
+        "section": "5.2",
+        "title": "Property Evaluation",
+        "target_lines": 50,
+        "content": "R410A property tables, CoolProp integration, interpolation"
+      },
+      {
+        "section": "5.3",
+        "title": "Phase Change Source Terms",
+        "target_lines": 60,
+        "content": "Mass source, energy source, expansion term implementation"
+      },
+      {
+        "section": "5.4",
+        "title": "createFields.H Example",
+        "target_lines": 30,
+        "content": "OpenFOAM createFields.H showing R410A field setup"
+      }
+    ]
+  },
+  "r410a_context": {
+    "application": "Two-phase solver for R410A",
+    "refrigerant": "R410A",
+    "solver_requirements": [
+      "VOF method for interface tracking",
+      "Phase change models (Lee, thermal)",
+      "Property evaluation with T/P dependence",
+      "Pressure equation with expansion term"
+    ],
+    "base_solver": "interFoam or compressibleInterFoam"
+  },
+  "quality_requirements": {
+    "min_theory_lines": 400,
+    "min_code_snippets": 5,
+    "all_formulas_verified": true,
+    "bilingual_headers": true,
+    "english_content": true,
+    "include_class_diagrams": true
+  }
+}

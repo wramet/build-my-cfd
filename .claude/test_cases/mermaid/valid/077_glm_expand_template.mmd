@@ -1,0 +1,29 @@
+classDiagram
+    class Mesh {
+        +int nCells
+        +int nFaces
+        +Vector~3~* cellCenters
+        +readMesh(filename)
+        +getCellNeighbors(cellId)
+    }
+
+    class Field {
+        <<abstract>>
+        +string name
+        +Mesh* mesh
+        +scalar* data
+    }
+
+    class Solver {
+        +Mesh* mesh
+        +ScalarField* p
+        +VectorField* U
+        +solveMomentum()
+        +solvePressure()
+    }
+
+    Field <|-- ScalarField
+    Field <|-- VectorField
+    Solver *-- Mesh
+    Solver *-- ScalarField
+``​`

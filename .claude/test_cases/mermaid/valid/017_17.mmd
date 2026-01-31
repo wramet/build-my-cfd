@@ -1,0 +1,40 @@
+sequenceDiagram
+    participant User
+    participant MeshManager
+    participant FieldGradientRefiner
+    participant polyMesh
+    participant fvMesh
+    participant MeshQualityChecker
+
+    User->>MeshManager: refineMesh(refineDict)
+    activate MeshManager
+
+    MeshManager->>MeshManager: parse dict, create/configure refiner
+    MeshManager->>FieldGradientRefiner: refine(cellsToRefine)
+    activate FieldGradientRefiner
+
+    FieldGradientRefiner->>FieldGradientRefiner: calculateGradientCriteria()
+    FieldGradientRefiner->>FieldGradientRefiner: splitHexCell() / splitTetCell()
+    loop For each cell to refine
+        FieldGradientRefiner->>polyMesh: Access points, faces, cells
+        FieldGradientRefiner->>polyMesh: Add new points/faces/cells
+    end
+    FieldGradientRefiner->>FieldGradientRefiner: handleHangingNodes()
+    FieldGradientRefiner->>polyMesh: update owner/neighbour lists
+    FieldGradientRefiner-->>MeshManager: return true
+    deactivate FieldGradientRefiner
+
+    MeshManager->>MeshManager: updateFVGeometry()
+    MeshManager->>fvMesh: recalculate Sf(), C_(), V()
+    activate fvMesh
+    fvMesh-->>MeshManager: done
+    deactivate fvMesh
+
+    MeshManager->>MeshQualityChecker: generateReport()
+    activate MeshQualityChecker
+    MeshQualityChecker->>MeshQualityChecker: checkNonOrthogonality() etc.
+    MeshQualityChecker-->>MeshManager: QualityReport
+    deactivate MeshQualityChecker
+
+    MeshManager-->>User: return QualityReport
+    deactivate MeshManager

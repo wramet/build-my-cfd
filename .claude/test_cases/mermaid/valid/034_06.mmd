@@ -1,0 +1,16 @@
+graph TD
+    A[Boundary Conditions] --> B[Dirichlet<br/>Fixed Value]
+    A --> C[Neumann<br/>Fixed Gradient]
+    A --> D[Robin/Mixed<br/>Combined]
+    
+    B --> B1[fixedValue]
+    B --> B2[fixedProfile]
+    B --> B3[timeVaryingFixedValue]
+    
+    C --> C1[zeroGradient]
+    C --> C2[fixedGradient]
+    C --> C3[inletOutlet]
+    
+    D --> D1[mixed]
+    D --> D2[convective]
+    D --> D3[outletInlet]

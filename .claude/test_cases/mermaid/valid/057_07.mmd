@@ -1,0 +1,13 @@
+graph TD
+    A[R410A Two-Phase Matrix] --> B[Liquid Region<br/>κ ≈ 10]
+    A --> C[Interface Region<br/>κ ≈ 170]
+    A --> D[Vapor Region<br/>κ ≈ 20]
+
+    B --> E["Diagonally dominant<br/>Easy to solve"]
+    C --> F["Large property jumps<br/>Ill-conditioned"]
+    D --> G["Moderate conditioning<br/>Solvable"]
+
+    F --> H["⚠️ Requires special treatment:<br/>Preconditioning + Under-relaxation"]
+
+    style F fill:#ffebee
+    style H fill:#fff3e0

@@ -1,0 +1,14 @@
+flowchart TD
+    A[Start SIMPLE Loop] --> B[Momentum Predictor<br>Solve for U* using p*]
+    B --> C[Pressure Correction<br>Solve Poisson: ∇·rAU∇p' = ∇·U*]
+    C --> D[Velocity Correction<br>U = U* - rAU∇p']
+    D --> E[Update Fluxes<br>φ = φ* - rAU_f∇p'_f]
+    E --> F{Converged?}
+    F -->|No| B
+    F -->|Yes| G[End]
+    
+    style A fill:#e1f5fe
+    style B fill:#fff3e0
+    style C fill:#e8f5e8
+    style D fill:#f3e5f5
+    style E fill:#fff8e1

@@ -94,7 +94,7 @@ classDiagram
         +Type memberVar
         +Type methodName()
     }
-    // All classes with relationships
+    %% Note: Add relationships between classes here
 ```
 **CRITICAL:** Quote all method signatures in Mermaid to handle special characters (e.g. `+calc("...")` instead of `+calc(...)`).
 

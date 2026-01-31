@@ -1,0 +1,62 @@
+classDiagram
+    direction TB
+
+    class VtkOutputManager {
+        -const fvMesh& mesh_
+        -const Time& runTime_
+        -labelList cellMap_
+        -labelList pointMap_
+        -autoPtr~VtkFileWriter~ writer_
+        -autoPtr~VtkFieldInterpolator~ interpolator_
+        -word outputFormat_
+        -bool writeGhostCells_
+        +VtkOutputManager(const fvMesh&, const word& format="binary")
+        +~VtkOutputManager()
+        +void writeMesh(const fileName& baseName) const
+        +void writeFields(const PtrList~volScalarField~&, const PtrList~volVectorField~&) const
+        +void writeParallel(const fileName& baseName) const
+        -void buildCellAndPointMaps()
+        -void writeProcessorVtu(const fileName&, const label) const
+        -void writeMasterPvtu(const fileName&, const labelList&) const
+    }
+
+    class VtkFileWriter {
+        -Ostream& os_
+        -word dataFormat_
+        -label indentLevel_
+        +VtkFileWriter(Ostream&, const word& format)
+        +void writeHeader(const word& type)
+        +void writeFooter()
+        +void writePoints(const pointField&, const labelList& pointMap)
+        +void writeCells(const cellList&, const faceList&, const labelList& cellMap)
+        +void writeDataArray(const scalarField&, const word& name, const label nComp=1)
+        +void writeDataArray(const vectorField&, const word& name)
+        +void writeDataArray(const tensorField&, const word& name)
+        -void writeIndent()
+        -void writeDataArrayHeader(const word&, const label, const label)
+        -void writeDataArrayFooter()
+    }
+
+    class VtkFieldInterpolator {
+        -const fvMesh& mesh_
+        -const mapDistribute& pointMapDistributor_
+        +VtkFieldInterpolator(const fvMesh&)
+        +tmp~pointScalarField~ interpolate(const volScalarField&) const
+        +tmp~pointVectorField~ interpolate(const volVectorField&) const
+        +void interpolateFields(const PtrList~volScalarField~&, PtrList~pointScalarField~&, const PtrList~volVectorField~&, PtrList~pointVectorField~&) const
+        -pointScalarField cellToPoint(const volScalarField&) const
+        -pointVectorField cellToPoint(const volVectorField&) const
+    }
+
+    class VtkTopoMapper {
+        -static Map~label~ foamToVtkCellTypeMap_
+        +static label foamToVtkCellType(const label shape)
+        +static void writeConnectivityForCell(const cell&, const faceList&, Ostream&)
+        +static label calculateOffset(const cellList&, const labelList& map)
+        +static labelList generateCellTypes(const cellList&, const labelList& map)
+    }
+
+    VtkOutputManager --> VtkFileWriter : "uses for low-level I/O"
+    VtkOutputManager --> VtkFieldInterpolator : "uses for field processing"
+    VtkOutputManager --> VtkTopoMapper : "uses for topology mapping"
+    VtkFileWriter ..> VtkTopoMapper : "calls static methods"

@@ -1,0 +1,17 @@
+graph LR
+    subgraph "Mass Balance for Control Volume"
+        A["Mass Accumulation"] --> B["Rate of mass increase inside CV"]
+        C["Mass Flow IN"] --> D["ρU_x|_x ΔyΔz + ρU_y|_y ΔxΔz + ρU_z|_z ΔxΔy"]
+        E["Mass Flow OUT"] --> F["ρU_x|_x+Δx ΔyΔz + ρU_y|_y+Δy ΔxΔz + ρU_z|_z+Δz ΔxΔy"]
+        G["Mass Source"] --> H["S_m ΔxΔyΔz"]
+    end
+    
+    B --> I["∂/∂t ρ ΔxΔyΔz"]
+    D --> J["+"]
+    F --> K["-"]
+    H --> L["+"]
+    
+    J --> M["Balance Equation"]
+    K --> M
+    L --> M
+    I --> M

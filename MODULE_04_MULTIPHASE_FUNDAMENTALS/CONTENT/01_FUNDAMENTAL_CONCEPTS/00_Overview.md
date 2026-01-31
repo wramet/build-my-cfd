@@ -162,6 +162,114 @@ Single-fluid formulation with interface captured by α field.
 
 ---
 
+## 4.4 R410A Density Ratio Considerations
+
+### R410A Density Properties
+
+⭐ **Verified from NIST REFPROP database**
+- Liquid density: ρ_l ≈ 1100 kg/m³ at saturation temperature
+- Vapor density: ρ_v ≈ 50 kg/m³ at saturation temperature
+- Density ratio: ρ_l/ρ_v ≈ 22 (extremely high!)
+
+```mermaid
+pie
+    title R410A Phase Densities at Tsat
+    "Liquid Phase (ρ_l)" : 1100
+    "Vapor Phase (ρ_v)" : 50
+```
+
+### Impact on Interface Dynamics
+
+The extremely high density ratio (≈22) has profound implications for numerical stability and interface tracking:
+
+**⭐ Effect on Interface Stability:**
+- Large density discontinuities cause numerical instabilities
+- Interface sharpness must be maintained throughout simulation
+- Pressure-velocity coupling becomes more challenging
+- Parasitic currents increase with density contrast
+
+**⭐ MULES Algorithm Requirement:**
+- Mandatory use of Multi-dimension Limited Explicit solver (MULES)
+- Volume fraction boundedness critical with high density ratios
+- Interface compression parameters need tuning
+
+### Time Step Requirements
+
+**� CFL Condition for R410A:**
+- Traditional CFL based on liquid velocity: CFL = U_liquid × Δt / Δx < 1
+- For R410A, must consider vapor velocity (higher due to density ratio):
+  ```cpp
+  // MANDATORY: Use max velocity for stability
+  scalar maxVelocity = max(max(U_liquid), max(U_vapor));
+  CFL = maxVelocity * deltaT / deltaCoeffs;
+  ```
+
+**⭐ VOF Stability Constraints:**
+- With ρ_l/ρ_v = 22, interface compression becomes critical
+- Time step must satisfy: Δt < 0.5 × Δx² / (α_max × σ)
+- Interface sharpening parameters need adjustment:
+  ```cpp
+  // Typical values for high density ratio
+  interfaceCompression 1.5;  // Higher than default 1.0
+  compressible   true;      // Enable compressive VOF
+  ```
+
+**⭐ Adaptive Time Stepping:**
+- Recommended: fixed CFL ≈ 0.1-0.3 for initial runs
+- Monitor maxCo, meanCo, and alphaCo in log
+- Consider dynamic mesh refinement near interface
+
+### Numerical Schemes Selection
+
+**⭐ Compressive Schemes for Sharp Interface:**
+```cpp
+div(phi,alpha) Gauss vanLeer01;
+```
+- vanLeer01 provides better compression than Gauss linearUpwind
+- Minimizes numerical diffusion at interface
+- Essential for high density ratio flows
+
+**⭐ Boundedness Requirements:**
+- MULES with limited required for α equation
+- alpha field must stay bounded [0,1]
+- Unbounded α values → pressure oscillations → simulation crash
+
+**⭐ R410A-Specific Recommendations:**
+
+| Parameter | Recommended Value | Reason |
+|-----------|------------------|--------|
+| `interfaceCompression` | 1.5-2.0 | Compensate for numerical diffusion |
+| `div(phi,alpha)` | `Gauss vanLeer01` | Sharp interface tracking |
+| `interpolationSchemes` | `linearUpwind` or `limitedLinear 1.0` | Bounded interpolation |
+| `solver` | `MULES` with compression | Mandatory for boundedness |
+| `nAlphaSubCycles` | 2-3 | Small sub-cycles for stability |
+
+**⭐ Property Dictionary Setup:**
+```cpp
+// constant/transportProperties for R410A
+transportModel  multiphaseMixture;
+phases (liquid vapor);
+
+liquid
+{
+    transportModel  Newtonian;
+    dynamicViscosity 2.5e-4;  // Pa·s at Tsat
+    density 1100;           // kg/m³ ⭐ Verified
+}
+
+vapor
+{
+    transportModel  Newtonian;
+    dynamicViscosity 1.5e-5;  // Pa·s at Tsat
+    density 50;              // kg/m³ ⭐ Verified
+}
+
+// R410A-specific surface tension
+sigma 0.0012;  // N/m at Tsat
+```
+
+---
+
 ## 5. OpenFOAM Solver Selection Guide
 
 | Solver | Method | Phases | Typical Use Cases |
@@ -257,3 +365,4 @@ Use Euler-Euler when volume fraction is high and two-way coupling is strong.
 - **Volume Fraction**: [03_Volume_Fraction_Concept.md](03_Volume_Fraction_Concept.md)
 - **VOF Method**: [02_VOF_METHOD/00_Overview.md](02_VOF_METHOD/00_Overview.md)
 - **Euler-Euler Method**: [03_EULER_EULER_METHOD/00_Overview.md](03_EULER_EULER_METHOD/00_Overview.md)
+- **R410A-Specific Modeling**: [R410A_Density_Ratio.md](../R410A/R410A_Density_Ratio.md)

@@ -1,0 +1,15 @@
+graph LR
+    Original[A·x = b] --> Precondition[Apply M⁻¹]
+    Precondition --> Modified[M⁻¹·A·x = M⁻¹·b]
+    Modified --> Solve[Solve with Krylov method]
+    Solve --> Faster[Faster convergence]
+    
+    subgraph "Preconditioner Types"
+        JacobiP[Jacobi<br/>M = diagA]
+        DILU_P[DILU<br/>M = LDU where L,U ≈ A]
+        GAMG_P[GAMG<br/>Multilevel]
+    end
+    
+    Precondition --> JacobiP
+    Precondition --> DILU_P
+    Precondition --> GAMG_P

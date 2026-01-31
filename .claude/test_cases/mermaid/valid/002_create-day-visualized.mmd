@@ -1,0 +1,19 @@
+flowchart TD
+    subgraph Agents["🤖 Specialized Subagents"]
+        direction TB
+        R[researcher<br/>GLM-4.7<br/>WebSearch + Source]
+        A[architect<br/>GLM-4.7<br/>Curriculum Planning]
+        V[verifier<br/>DeepSeek R1<br/>Verification]
+        D[DeepSeek Coder V2<br/>Content Generation]
+    end
+
+    R -->|Stage 1| S1[🔍 Ground Truth]
+    A -->|Stage 3| S3[🏗️ Skeleton]
+    V -->|Stage 4| S4[🔒 Verify Skeleton]
+    D -->|Stage 5| S5[📝 English Content]
+    V -->|Stage 6| S6[🔒 Final Verify]
+
+    style R fill:#e1f5e1,stroke:#4caf50
+    style A fill:#fff3cd,stroke:#ffc107
+    style V fill:#f8d7da,stroke:#dc3545
+    style D fill:#e0e0e0,stroke:#6c757d

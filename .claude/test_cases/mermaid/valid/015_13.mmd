@@ -1,0 +1,64 @@
+classDiagram
+    direction LR
+
+    note for TubeMeshGenerator "Orchestrates the complete\nmesh generation pipeline."
+    note for StructuredIndexing "Maps (i,j,k) indices\nto linear mesh indices."
+
+    class primitiveMesh {
+        <<OpenFOAM Base Class>>
+        -points_ : pointField
+        -faces_ : faceList
+        -cells_ : cellList
+        +nPoints() const
+        +nFaces() const
+        +nCells() const
+        +faceOwner() const
+        +faceNeighbour() const
+    }
+
+    class polyMesh {
+        <<OpenFOAM Complete Mesh>>
+        -owner_ : labelList
+        -neighbour_ : labelList
+        -boundary_ : polyBoundaryMesh
+        +C() const : vectorField
+        +Cf() const : vectorField
+        +Sf() const : vectorField
+        +V() const : scalarField
+    }
+
+    class TubeMeshGenerator {
+        -tubeRadius_ : scalar
+        -tubeLength_ : scalar
+        -nRadial_ : label
+        -nTheta_ : label
+        -nAxial_ : label
+        -radialGrading_ : scalar
+        -indexer_ : StructuredIndexing
+        +TubeMeshGenerator(scalar R, scalar L, label Nr, label Nt, label Nz, scalar grading=1.0)
+        +generatePoints() pointField
+        +generateFaces(const pointField& points) faceList
+        +generateOwnerNeighbour(const faceList& faces) : pair~labelList, labelList~
+        +createBoundaryPatches(const faceList& faces, const labelList& owner) : polyBoundaryMesh
+        +createPolyMesh() : autoPtr~polyMesh~
+        -createHexCellFaces(label i, label j, label k) : FixedList~face, 6~
+        -calculateFaceNormal(const face& f, const pointField& points) : vector
+    }
+
+    class StructuredIndexing {
+        -nRadial_ : label
+        -nTheta_ : label
+        -nAxial_ : label
+        +StructuredIndexing(label Nr, label Nt, label Nz)
+        +pointIndex(label i, label j, label k) const : label
+        +cellIndex(label i, label j, label k) const : label
+        +faceIndexR(label i, label j, label k) const : label
+        +faceIndexTheta(label i, label j, label k) const : label
+        +faceIndexZ(label i, label j, label k) const : label
+        +isValidPointIndex(label i, label j, label k) const : bool
+        +isValidCellIndex(label i, label j, label k) const : bool
+    }
+
+    polyMesh --|> primitiveMesh : Inherits from
+    TubeMeshGenerator --> StructuredIndexing : Uses
+    TubeMeshGenerator ..> polyMesh : Creates

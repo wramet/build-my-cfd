@@ -1,0 +1,17 @@
+{
+  "template": "scientist",
+  "day": "06",
+  "topic": "Boundary Conditions Theory",
+  "structure": {
+    "parts": [
+      {"title": "Theoretical Foundation", "ratio": 0.25, "readability": "beginner"},
+      {"title": "Physics Explained", "ratio": 0.40, "readability": "intermediate"},
+      {"title": "Implementation", "ratio": 0.25, "readability": "advanced"},
+      {"title": "Validation", "ratio": 0.10, "readability": "professional"}
+    ]
+  },
+  "rules": {
+    "boilerplate_policy": "quarantine_to_appendix",
+    "ratio_tolerance": 0.05
+  }
+}

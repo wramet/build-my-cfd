@@ -1,0 +1,19 @@
+graph TD
+    subgraph "Energy Balance for Control Volume"
+        A["Energy Accumulation"] --> B["Rate of energy increase"]
+        C["Convective Energy IN"] --> D["ρeU·n"]
+        E["Convective Energy OUT"] --> F["-ρeU·n"]
+        G["Heat Conduction IN"] --> H["-q·n = k∇T·n"]
+        H --> I["Fourier's Law"]
+        J["Work by Surface Forces"] --> K["σ·U·n"]
+        L["Work by Body Forces"] --> M["ρg·U"]
+        N["Heat Sources"] --> O["Q_h"]
+    end
+    
+    B --> P["∂(ρe)/∂t"]
+    D --> Q["+"]
+    F --> Q
+    G --> R["+"]
+    J --> S["+"]
+    L --> T["+"]
+    N --> U["+"]

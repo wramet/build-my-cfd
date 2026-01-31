@@ -47,6 +47,7 @@
 | [[01_FUNDAMENTAL_CONCEPTS/00_Overview]] | ภาพรวมแนวคิดพื้นฐาน | `solvers/multiphase/interFoam/` |
 | [[01_FUNDAMENTAL_CONCEPTS/01_Flow_Regimes]] | ระบอบการไหล | `solvers/multiphase/` |
 | [[01_FUNDAMENTAL_CONCEPTS/02_Interfacial_Phenomena]] | ปรากฏการณ์ที่ผิวสัมผัส | `solvers/multiphase/interFoam/` |
+| [[R410A/R410A_Density_Ratio]] | R410A ความหนาแน่นสูง | โมเดลเฉพาะ R410A |
 
 ### 🎯 Study Guide
 
@@ -337,6 +338,7 @@ graph TD
     classDef content fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     classDef code fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
     classDef milestone fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    classDef special fill:#fce4ec,stroke:#c2185b,stroke-width:2px
 
     A[01_FUNDAMENTAL_CONCEPTS]:::content --> B[interFoam basics]:::code
     B --> C[02_VOF_METHOD]:::content
@@ -345,6 +347,8 @@ graph TD
     E --> F[multiphaseEulerFoam]:::code
     F --> G[05_MODEL_SELECTION]:::content
     G --> H[🎯 Choose Right Solver for Your Problem!]:::milestone
+    A --> I[R410A Density Ratio]:::special
+    I --> J[Specialized R410A Cases]:::code
 ```
 
 ---
@@ -358,6 +362,7 @@ graph TD
 | **Mixing tanks** | Euler-Euler | `multiphaseEulerFoam/` |
 | **Free surface** | VOF | `interFoam/` |
 | **Cavitation** | VOF + Cavitation | `cavitatingFoam/` |
+| **R410A Evaporator** | VOF + High density ratio | `R410A/` |
 
 ---
 

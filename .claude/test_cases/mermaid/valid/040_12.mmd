@@ -1,0 +1,14 @@
+flowchart TD
+    A[Inlet BCs] --> B[Velocity: fixedValue]
+    A --> C[Alpha: fixedValue 1<br/>liquid]
+    A --> D[Temperature: fixedValue<br/>subcooled]
+    
+    E[Outlet BCs] --> F[Pressure: fixedFluxPressure]
+    E --> G[Velocity: zeroGradient]
+    E --> H[Alpha: zeroGradient]
+    
+    I[Wall BCs] --> J[Velocity: noSlip]
+    I --> K[Temperature: fixedValue<br/>or fixedGradient]
+    I --> L[Alpha: zeroGradient]
+    
+    M[Symmetry/Axis] --> N[All fields: symmetry]

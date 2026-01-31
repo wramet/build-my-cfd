@@ -1,0 +1,43 @@
+classDiagram
+    class volScalarField {
+        +internalField()
+        +boundaryField()
+    }
+    
+    class alpha1 {
+        <<volScalarField>>
+        +name: "alpha.water"
+        +dimensions: [0 0 0 0 0 0 0]
+    }
+    
+    class interfaceProperties {
+        +sigma()
+        +kappa()
+        +nHatf()
+    }
+    
+    class MULES {
+        <<namespace>>
+        +limiter()
+        +solve()
+        +explicitSolve()
+    }
+    
+    class twoPhaseMixture {
+        +rho1()
+        +rho2()
+        +mu1()
+        +mu2()
+    }
+    
+    class incompressibleTwoPhaseMixture {
+        +nu()
+        +rho()
+    }
+    
+    volScalarField <|-- alpha1
+    twoPhaseMixture <|-- incompressibleTwoPhaseMixture
+    interfaceProperties --> incompressibleTwoPhaseMixture
+    
+    note for alpha1 "Volume fraction field for phase 1\n(typically liquid)"
+    note for MULES "Multidimensional Universal Limiter\nfor Explicit Solution"

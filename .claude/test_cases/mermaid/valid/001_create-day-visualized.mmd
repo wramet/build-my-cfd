@@ -1,0 +1,20 @@
+flowchart TD
+    Start([/create-day --day=XX]) --> R[Stage 1: researcher<br/>GLM-4.7]
+    R --> F[verified_facts_dayXX.json ⭐]
+    F --> A[Stage 3: architect<br/>GLM-4.7]
+    A --> S[skeletons/dayXX_skeleton.json]
+    S --> V1[Stage 4: verifier<br/>DeepSeek R1]
+    V1 -->|Pass ✅| D[Stage 5: DeepSeek Coder V2<br/>Content Generation]
+    V1 -->|Fail ❌| A
+    D --> C[Phase_01/XX.md]
+    C --> V2[Stage 6: verifier<br/>DeepSeek R1]
+    V2 --> QC[Syntax QC Script]
+    QC --> Done([✅ Complete])
+
+    style R fill:#e1f5e1,stroke:#4caf50
+    style A fill:#fff3cd,stroke:#ffc107
+    style V1 fill:#f8d7da,stroke:#dc3545
+    style V2 fill:#f8d7da,stroke:#dc3545
+    style D fill:#e0e0e0,stroke:#6c757d
+    style QC fill:#e1f5e1,stroke:#4caf50
+    style Done fill:#d4edda,stroke:#28a745

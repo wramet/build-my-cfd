@@ -1,0 +1,11 @@
+flowchart TD
+    A["Single-Phase Flow"] --> B["Δt_single = 0.5 * Δx / |U|<br/>(CFL ≤ 1)"]
+    B --> C["Example: Δx = 1mm, U = 1 m/s<br/>Δt_single = 0.0005 s"]
+
+    D["R410A Two-Phase Flow"] --> E["Δt_R410A = Δt_single / 17<br/>(CFL ≤ 0.3, ρ_l/ρ_v = 17)"]
+    E --> F["Example: Δx = 1mm, U = 1 m/s<br/>Δt_R410A = 0.00003 s"]
+
+    G["⚠️ 17× Time Step Reduction"]
+
+    C --> G
+    F --> G

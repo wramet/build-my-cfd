@@ -1,0 +1,16 @@
+graph TD
+    subgraph "R410A Evaporator BCs"
+        A["Inlet BC"] --> B["Fixed Quality<br/>x = 0.1-0.2"]
+        A --> C["Mass Flow Rate<br/>ṁ = 0.01 kg/s"]
+        A --> D["Fixed Pressure<br/>P = 1.0 MPa"]
+
+        E["Outlet BC"] --> F["Pressure Outlet<br/>with Backflow"]
+        E --> G["Quality: x = 0.8-1.0"]
+
+        H["Wall BC"] --> I["Heat Flux<br/>q\" = 3 kW/m²"]
+        H --> J["Contact Angle<br/>θ = 45°"]
+        H --> K["No-slip<br/>U = 0"]
+
+        L["Interface BC"] --> M["Surface Tension<br/>F_σ = σκ∇α"]
+        L --> N["Compression<br/>U_r"]
+    end

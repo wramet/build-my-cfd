@@ -1,0 +1,13 @@
+graph LR
+    A[Tube Domain] --> B[Inlet<br/>Dirichlet BC]
+    A --> C[Wall<br/>No-slip BC]
+    A --> D[Outlet<br/>Neumann BC]
+    
+    B --> B1[Velocity: fixedValue]
+    B --> B2[Pressure: zeroGradient]
+    
+    C --> C1[Velocity: fixedValue 0,0,0]
+    C --> C2[Pressure: zeroGradient]
+    
+    D --> D1[Velocity: zeroGradient]
+    D --> D2[Pressure: fixedValue]

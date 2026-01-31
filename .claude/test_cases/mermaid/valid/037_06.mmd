@@ -1,0 +1,16 @@
+graph TD
+    A["Discretized Equation"] --> B["Internal Faces<br/>aP += an, aN = -an"]
+    A --> C["Boundary Faces"]
+    
+    C --> D["Dirichlet BC"]
+    C --> E["Neumann BC"]
+    C --> F["Robin BC"]
+    
+    D --> D1["aP += ΓA/Δx"]
+    D --> D2["b += ΓA/Δx * φb"]
+    
+    E --> E1["No change to aP"]
+    E --> E2["b += ΓA * gb if gb≠0"]
+    
+    F --> F1["aP += αΓA/Δx"]
+    F --> F2["b += αΓA/Δx * φb + (1-α)ΓA*gb"]

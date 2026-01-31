@@ -1,0 +1,57 @@
+classDiagram
+    namespace fv {
+        class fvMatrix["fvMatrix&lt;Type&gt;"] {
+            +diag() scalarField
+            +source() Field_Type
+            +solve()
+        }
+        
+        class ddtScheme["ddtScheme&lt;Type&gt;"] {
+            <<abstract>>
+            #phi_ tmp_GeometricField
+            +fvmDdt(GeometricField) tmp_fvMatrix
+            +fvcDdt(GeometricField) tmp_GeometricField
+        }
+        
+        class EulerDdtScheme {
+            +fvmDdt(GeometricField) tmp_fvMatrix
+            +fvcDdt(GeometricField) tmp_GeometricField
+        }
+        
+        class backwardDdtScheme {
+            +fvmDdt(GeometricField) tmp_fvMatrix
+            +fvcDdt(GeometricField) tmp_GeometricField
+        }
+        
+        class CrankNicolsonDdtScheme {
+            -ocCoeff_ scalar
+            +fvmDdt(GeometricField) tmp_fvMatrix
+        }
+        
+        class steadyStateDdtScheme {
+            +fvmDdt() tmp_fvMatrix
+        }
+        
+        class boundedDdtScheme {
+            +fvmDdt() tmp_fvMatrix
+        }
+        
+        class localEulerDdtScheme {
+            +fvmDdt() tmp_fvMatrix
+        }
+        
+        class CoEulerDdtScheme
+        class SLTSDdtScheme
+    }
+
+    %% Relationships must be defined outside the namespace block
+    ddtScheme <|-- EulerDdtScheme
+    ddtScheme <|-- backwardDdtScheme
+    ddtScheme <|-- CrankNicolsonDdtScheme
+    ddtScheme <|-- steadyStateDdtScheme
+    ddtScheme <|-- boundedDdtScheme
+    ddtScheme <|-- localEulerDdtScheme
+    ddtScheme <|-- CoEulerDdtScheme
+    ddtScheme <|-- SLTSDdtScheme
+    
+    fvMatrix ..> ddtScheme : Used by fvmDdt

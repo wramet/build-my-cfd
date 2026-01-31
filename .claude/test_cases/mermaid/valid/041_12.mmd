@@ -1,0 +1,49 @@
+classDiagram
+    class Time {
+        -scalar deltaT_
+        -label timeIndex_
+        +run() bool
+        +loop() void
+        +write() void
+        +setDeltaT(scalar) void
+    }
+    
+    class fvMesh {
+        -pointField points_
+        -faceList faces_
+        -labelList owner_
+        -labelList neighbour_
+        +V() const scalarField
+        +Sf() const vectorField
+        +magSf() const scalarField
+    }
+    
+    class volField~T~ {
+        <<template>>
+        -Field~T~ internalField_
+        -FieldField~Field, T~ boundaryField_
+        +boundaryFieldRef() BoundaryField~T~&
+        +correctBoundaryConditions() void
+    }
+    
+    class fvMatrix~T~ {
+        <<template>>
+        -scalarField source_
+        -scalarField diag_
+        -scalarField upper_
+        -scalarField lower_
+        +solve(dictionary) SolverPerformance~T~
+    }
+    
+    class solver {
+        +solve(U, p, alpha, T) void
+        -solveMomentum() void
+        -solvePressure() void
+        -solveVOF() void
+        -solveEnergy() void
+    }
+    
+    Time --> solver : controls
+    fvMesh --> solver : provides geometry
+    volField --> solver : fields to solve
+    fvMatrix --> solver : linear systems

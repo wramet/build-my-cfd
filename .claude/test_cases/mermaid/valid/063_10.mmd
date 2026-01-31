@@ -1,0 +1,20 @@
+graph LR
+    A[Original Interface] --> B[Numerical Diffusion]
+    B --> C[Smeared Interface]
+    C --> D[Apply Compression]
+    D --> E[Sharpened Interface]
+    
+    subgraph "Without Compression"
+        A --> B --> C
+    end
+    
+    subgraph "With Compression"
+        C --> D --> E
+    end
+    
+    F[α = 0.0] --> G[0 < α < 1.0] --> H[α = 1.0]
+    I[Pure Phase 2] --> J[Interface Region] --> K[Pure Phase 1]
+    
+    style F fill:#e1f5fe
+    style H fill:#fce4ec
+    style G fill:#f3e5f5

@@ -1,0 +1,18 @@
+flowchart TD
+    A[Algorithm Selection for R410A] --> B{Simulation Type?}
+
+    B -->|Steady State| C[SIMPLE]
+    B -->|Transient| D[PISO]
+    B -->|Pseudo-Transient<br/>Large Δt needed| E[PIMPLE ✅]
+
+    C --> F[1 corrector per iteration<br/>Under-relaxation required]
+    D --> G[2-5 correctors per time step<br/>No under-relaxation]
+    E --> H[2-3 correctors per outer loop<br/>Under-relaxation + multiple correctors]
+
+    F --> I["✅ Used for: <br/>- Final steady-state R410A solution"]
+    G --> J["✅ Used for: <br/>- Time-accurate R410A evaporation"]
+    H --> K["✅✅ BEST for: <br/>- R410A evaporator with large Δt<br/>- Stability-critical cases"]
+
+    style E fill:#e8f5e8
+    style H fill:#e8f5e8
+    style K fill:#c8e6c9

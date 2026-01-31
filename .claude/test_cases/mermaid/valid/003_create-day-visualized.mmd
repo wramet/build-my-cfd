@@ -1,0 +1,8 @@
+flowchart TD
+    Topic[Day XX Topic] --> Research[researcher agent<br/>GLM-4.7]
+    Web[WebSearch] --> Research
+    Source[OpenFOAM Source] --> Research
+    Research --> Output["verified_facts_dayXX.json ⭐"]
+
+    style Research fill:#e1f5e1,stroke:#4caf50
+    style Output fill:#d4edda,stroke:#28a745

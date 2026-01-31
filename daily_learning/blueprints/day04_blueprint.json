@@ -1,0 +1,148 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "day": "04",
+    "topic": "Temporal Discretization",
+    "template": "mathematician",
+    "template_type": "theory_heavy",
+    "purpose": "Theory-heavy topics requiring mathematical rigor and scheme understanding",
+    "generated_at": "2026-01-26T18:19:10.038777"
+  },
+  "template": {
+    "name": "Mathematician",
+    "type": "theory_heavy",
+    "progressive_overload": {
+      "start": "simple_math_derivations",
+      "ramp_up": "physics_intuition",
+      "peak": "c_plus_plus_architecture",
+      "consolidate": "qa_best_practices"
+    },
+    "boilerplate_policy": "quarantine_to_appendix",
+    "code_ratio": 0.35
+  },
+  "structure": {
+    "parts": [
+      {
+        "id": "part1",
+        "title": "Core Theory",
+        "ratio": 0.3,
+        "readability": "beginner",
+        "approach": "clean_taylor_series",
+        "content_type": "theory",
+        "guideline": "Start with simple Taylor series, show all derivations clearly",
+        "estimated_lines": 600
+      },
+      {
+        "id": "part2",
+        "title": "Physical Challenge",
+        "ratio": 0.2,
+        "readability": "intermediate",
+        "approach": "why_standard_math_fails",
+        "content_type": "physics",
+        "guideline": "Explain where theory fails in practice (e.g., VOF instability)",
+        "estimated_lines": 400
+      },
+      {
+        "id": "part3",
+        "title": "Architecture & Implementation",
+        "ratio": 0.35,
+        "readability": "advanced",
+        "approach": "concept_first_code_second",
+        "content_type": "architecture",
+        "guideline": "Show workflow diagram FIRST, then explain code, NO boilerplate",
+        "estimated_lines": 700
+      },
+      {
+        "id": "part4",
+        "title": "Quality Assurance",
+        "ratio": 0.15,
+        "readability": "professional",
+        "approach": "strategy_over_code",
+        "content_type": "testing",
+        "guideline": "Explain QA strategy, compile instructions, not 100 lines of test code",
+        "estimated_lines": 300
+      }
+    ]
+  },
+  "content_requirements": {
+    "topics_to_cover": [
+      "Introduction to Time Discretization",
+      "Euler Methods",
+      "Higher-Order Methods",
+      "CFL Number and Stability",
+      "OpenFOAM ddtSchemes Class Hierarchy",
+      "Code Analysis - Euler Implicit",
+      "Code Analysis - Backward Second Order",
+      "Time Step Selection for VOF",
+      "Implementation Guide",
+      "Exercises"
+    ],
+    "formulas_to_include": [
+      {
+        "name": "euler_implicit",
+        "latex": "",
+        "source": ""
+      },
+      {
+        "name": "backward_second_order",
+        "latex": "",
+        "source": ""
+      },
+      {
+        "name": "crank_nicolson",
+        "latex": "",
+        "source": ""
+      },
+      {
+        "name": "cfl_condition",
+        "latex": "",
+        "source": ""
+      }
+    ],
+    "class_hierarchy": {
+      "base_class": "ddtScheme<Type>",
+      "derived_classes": [
+        "EulerDdtScheme<Type>",
+        "backwardDdtScheme<Type>",
+        "CrankNicolsonDdtScheme<Type>",
+        "steadyStateDdtScheme<Type>",
+        "boundedDdtScheme<Type>",
+        "localEulerDdtScheme<Type>",
+        "CoEulerDdtScheme<Type>",
+        "SLTSDdtScheme<Type>"
+      ],
+      "base_class_location": "openfoam_temp/src/finiteVolume/finiteVolume/ddtSchemes/ddtScheme/ddtScheme.H:65-68"
+    }
+  },
+  "rules": {
+    "ratio_tolerance": 0.05,
+    "boilerplate_policy": "quarantine_to_appendix",
+    "concept_first": [
+      "## Part 3.1: Architecture Overview",
+      "### Class Diagram",
+      "### Workflow Diagram"
+    ],
+    "progressive_complexity": {
+      "beginner": [
+        "Let's start with",
+        "The basic idea is",
+        "Simply put"
+      ],
+      "intermediate": [
+        "Building on this",
+        "Now we understand",
+        "The challenge is"
+      ],
+      "advanced": [
+        "The implementation",
+        "Core logic",
+        "Here's how"
+      ],
+      "professional": [
+        "Best practices",
+        "Production considerations",
+        "Validation"
+      ]
+    }
+  }
+}

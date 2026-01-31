@@ -1,0 +1,14 @@
+flowchart TD
+    Start["Start Matrix-Vector Multiply"] --> Init["Initialize result = 0"]
+    Init --> Loop1["Loop over all cells i"]
+    Loop1 --> AddDiag["result[i] += diag[i] * psi[i]"]
+    
+    AddDiag --> LoopLower["Loop over lower neighbors j"]
+    LoopLower --> AddLower["result[i] += lower[i,j] * psi[j]"]
+    
+    AddLower --> LoopUpper["Loop over upper neighbors j"]
+    LoopUpper --> AddUpper["result[i] += upper[i,j] * psi[j]"]
+    
+    AddUpper --> CheckDone{"All cells processed?"}
+    CheckDone -->|No| Loop1
+    CheckDone -->|Yes| End["Return result"]

@@ -1,0 +1,8 @@
+graph LR
+    P[Cell P<br/>Value: φ_P] -->|Distance: d_PF| F[Face f<br/>Interpolated: φ_f]
+    F -->|Distance: d_FN| N[Cell N<br/>Value: φ_N]
+    
+    subgraph Distances
+        D1["d_PF = |x_f - x_P|"]
+        D2["d_FN = |x_N - x_f|"]
+    end

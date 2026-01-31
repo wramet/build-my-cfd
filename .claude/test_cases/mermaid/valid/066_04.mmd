@@ -1,0 +1,22 @@
+flowchart TD
+    A["Start Time Loop"] --> B{"Choose ddtScheme<br>from fvSchemes"}
+    B --> C["Explicit?"]
+    
+    C -->|Yes| D["Evaluate using<br>phi.oldTime() values"]
+    D --> E["Update phi directly"]
+    
+    C -->|No| F["Implicit?"]
+    
+    F -->|Yes| G["Add to fvMatrix diagonal<br>and source"]
+    G --> H["Solve linear system"]
+    H --> I["Update phi from solution"]
+    
+    F -->|SteadyState| J["Return zero"]
+    
+    E --> K["Advance Time"]
+    I --> K
+    J --> K
+    
+    K --> L{"Reached<br>endTime?"}
+    L -->|No| A
+    L -->|Yes| M["End"]

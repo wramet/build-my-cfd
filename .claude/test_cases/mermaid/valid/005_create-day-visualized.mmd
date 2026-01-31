@@ -1,0 +1,8 @@
+flowchart TD
+    Facts[verified_facts_dayXX.json] --> Architect[architect agent<br/>GLM-4.7]
+    Roadmap[roadmap.md] --> Architect
+    Standards[CFD Standards] --> Architect
+    Architect --> Skeleton["skeletons/dayXX_skeleton.json"]
+
+    style Architect fill:#fff3cd,stroke:#ffc107
+    style Skeleton fill:#d4edda,stroke:#28a745

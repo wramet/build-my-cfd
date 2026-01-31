@@ -49,7 +49,7 @@
 เหมาะสำหรับงาน: Bubble columns, Fluidized beds, Sedimentation
 
 - **03_EULER_EULER_METHOD**: ทฤษฎี Interpenetrating Continua (เมื่อน้ำและอากาศอยู่ทับที่กันได้)
-- **04_INTERPHASE_FORCES**: รวมมิตรแรงกระทำ (Drag, Lift, Virtual Mass)
+- **04_INTERPHASE_FORCES**: รวมมิตรแรงกระทำ (Drag, Lift, Virtual Mass, Surface Tension)
 - **05_MODEL_SELECTION**: วิธีเลือกโมเดลให้เหมาะกับงาน
 
 ### 🛠 Level 3: Advanced Topics

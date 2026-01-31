@@ -1,0 +1,21 @@
+graph TB
+    Solvers[Linear Solvers] --> Iterative[Iterative Methods]
+    Solvers --> Direct[Direct Methods<br/>Too expensive for CFD]
+    
+    Iterative --> Stationary[Stationary Methods]
+    Iterative --> Krylov[Krylov Subspace Methods]
+    
+    Stationary --> Jacobi[Jacobi]
+    Stationary --> GaussSeidel[Gauss-Seidel]
+    Stationary --> SOR[Successive Over-Relaxation]
+    
+    Krylov --> CG[Conjugate Gradient<br/>Symmetric Positive Definite]
+    Krylov --> GMRES[GMRES<br/>General matrices]
+    Krylov --> BICG[Bi-Conjugate Gradient]
+    Krylov --> BICGSTAB[BiCGStab<br/>Most popular in CFD]
+    
+    BICGSTAB --> PBiCG[PBiCG in OpenFOAM]
+    BICGSTAB --> PBiCGStab[PBiCGStab in OpenFOAM]
+    CG --> PCG[PCG in OpenFOAM]
+    
+    PCG --> GAMG[GAMG<br/>Geometric Algebraic Multigrid]

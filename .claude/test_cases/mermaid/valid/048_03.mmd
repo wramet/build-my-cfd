@@ -1,0 +1,6 @@
+graph LR
+    U[Upwind Cell U] --> P[Cell P] --> F[Face f] --> N[Neighbor Cell N]
+    
+    subgraph Gradient Ratio
+        r["r = (φ_P - φ_U) / (φ_N - φ_P)"]
+    end

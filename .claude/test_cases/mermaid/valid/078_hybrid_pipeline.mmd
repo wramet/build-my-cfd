@@ -1,0 +1,29 @@
+graph TD
+    subgraph "Stage 1: Scout (Claude/Gemini)"
+        A[roadmap.md] --> B[Identify Day Topic]
+        B --> C[Find OpenFOAM Files]
+        C --> D[file_paths.txt]
+    end
+
+    subgraph "Stage 2: Analyze (DeepSeek R1)"
+        D --> E[Read Source Files]
+        E --> F[Math + Code Analysis]
+        F --> G[dayNN_skeleton.json]
+    end
+
+    subgraph "Stage 3: Expand (GLM 4.7)"
+        G --> H[Load R1 Skeleton]
+        H --> I[Expand to Full Content]
+        I --> J[dayNN_draft.md]
+    end
+
+    subgraph "Stage 4: QC (Claude/Gemini)"
+        J --> K[Quality Check]
+        K --> L[Engineering Thai]
+        L --> M[2026-01-NN.md]
+    end
+
+    style A fill:#e1f5fe
+    style G fill:#fff3e0
+    style J fill:#e8f5e9
+    style M fill:#f3e5f5

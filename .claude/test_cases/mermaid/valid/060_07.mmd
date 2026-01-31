@@ -1,0 +1,16 @@
+graph TD
+    Fine[Fine Grid<br/>1M cells] --> Restrict[Restrict residual]
+    Restrict --> Medium[Medium Grid<br/>250k cells]
+    Medium --> Restrict2[Restrict]
+    Restrict2 --> Coarse[Coarse Grid<br/>62k cells]
+    Coarse --> SolveCoarse[Solve exactly]
+    SolveCoarse --> Interpolate2[Interpolate correction]
+    Interpolate2 --> Medium2[Medium Grid]
+    Medium2 --> Interpolate[Interpolate]
+    Interpolate --> Fine2[Fine Grid]
+    
+    Fine --> Smooth[Pre-smoother<br/>e.g., DILU]
+    Fine2 --> Smooth2[Post-smoother]
+    
+    Smooth --> Restrict
+    SolveCoarse --> Interpolate2

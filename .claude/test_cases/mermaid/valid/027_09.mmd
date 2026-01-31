@@ -1,0 +1,23 @@
+flowchart TD
+    A[Start CFD Simulation] --> B{Problem Type?}
+    B -->|Steady-State| C[Use SIMPLE]
+    B -->|Transient| D[Use PISO]
+    
+    C --> E[Under-relaxation needed?]
+    E -->|Yes| F[α_U=0.7, α_p=0.3]
+    E -->|No| G[May diverge]
+    F --> H[Iterate to convergence]
+    
+    D --> I[Time accuracy critical?]
+    I -->|Yes| J[Use 3-5 PISO correctors]
+    I -->|No| K[Use 2 PISO correctors]
+    J --> L[Tight coupling per time step]
+    K --> M[Moderate coupling]
+    
+    H --> N[Check residuals < 1e-6]
+    L --> N
+    M --> N
+    N --> O[Solution Complete]
+    
+    style C fill:#e8f5e8
+    style D fill:#e1f5fe

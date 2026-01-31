@@ -49,6 +49,7 @@ Phase Fraction → Velocity Field → Temperature Field
 - 📄 [01_Mass_Conservation.md](01_Mass_Conservation.md) - การอนุรักษ์มวลและ volume fraction
 - 📄 [02_Momentum_Conservation.md](02_Momentum_Conservation.md) - การอนุรักษ์โมเมนตัม
 - 📄 [03_Energy_Conservation.md](03_Energy_Conservation.md) - การอนุรักษ์พลังงาน
+- 📄 [05_Expansion_Terms_Equations.md](05_Expansion_Terms_Equations.md) - พจน์ขยายจากการเปลี่ยนเฟส (NEW)
 
 ---
 
@@ -257,6 +258,7 @@ RAS { RASModel kEpsilon; }
 | **Turb. Dispersion** | F_TD = -C_TD ρ_c k_c ∇α_d | C_TD, k_c | 04.04 |
 | **Surface Tension** | Δp = σκ, F_σ = σκ∇α | σ, κ | 04 |
 | **Heat Transfer** | Q = hA(T_l - T_k) | h, Nu, Pr | 03 |
+| **Phase Change** | ∂ρ/∂t + ∇·(ρU) = ˙m'''(ρ_v-ρ_l) | ˙m''', h_fg, σ | 05 |
 | **Terminal Velocity** | u_t = √(4Δρgd/3ρ_c C_D) | u_t, C_D | - |
 
 **สัญลักษณ์ (Notation):**
@@ -535,6 +537,7 @@ Check simulation:
 - **📄 02_Momentum_Conservation.md** - สมการอนุรักษ์โมเมนตัมและ stress tensor
 - **📄 03_Energy_Conservation.md** - สมการอนุรักษ์พลังงานและ heat transfer
 - **📄 04_Interfacial_Phenomena_Equations.md** - สมการแรงต่างๆ ระหว่างเฟส
+- **📄 05_Expansion_Terms_Equations.md** - พจน์ขยายจากการเปลี่ยนเฟส (NEW)
 
 ### ใน Module 04 (Multiphase Fundamentals):
 - **📘 Section 01: Fundamental Concepts** - Flow regimes, dimensionless numbers

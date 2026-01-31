@@ -1,0 +1,13 @@
+flowchart LR
+    A[Cell Center U] --> B[Face Interpolation]
+    C[Cell Center p] --> B
+    D[Momentum Coefficients] --> B
+    B --> E[Face Flux φ]
+    E --> F[Continuity Check]
+    F --> G[Pressure Correction]
+    
+    subgraph "Rhie-Chow Principle"
+        B
+    end
+    
+    style B fill:#e8f5e8

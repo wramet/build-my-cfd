@@ -1,0 +1,41 @@
+flowchart TD
+    A[Start R410A Time Step] --> B[Initialize: pⁿ, Uⁿ, αⁿ, Tⁿ]
+    B --> C[Update properties: ρ, μ, k using αⁿ]
+
+    C --> D{PIMPLE Outer Loop<br/>nCorrectors = 2-3}
+    D --> E[Corrector 1]
+
+    E --> F[1. Solve Momentum with mixture ρ, μ]
+    F --> G[UEqn: aₚU = H - ∇p]
+
+    G --> H[2. Solve Alpha with MULES<br/>∂α/∂t + ∇·αU = 0]
+    H --> I[Apply limiter: 0 ≤ α ≤ 1]
+
+    I --> J[3. Update Properties<br/>ρ = αρₗ + 1-αρᵥ]
+    J --> K[μ = αμₗ + 1-αμᵥ]
+
+    K --> L[4. Solve Energy with phase change<br/>∂ρh/∂t + ∇·ρUh = ∇·k∇T + ṁhₗᵥ]
+
+    L --> M[5. Solve Pressure<br/>∇·rAU∇p = ∇·U* + source]
+
+    M --> N[6. Correct Fluxes<br/>φ = φ* - rAU∇p]
+
+    N --> O[7. Correct Velocity<br/>U = U* - rAU∇p]
+
+    O --> P{More correctors?<br/>corrector < nCorrectors}
+    P -->|Yes| Q[Return to step 1<br/>with updated p, U]
+    P -->|No| R{Converged?<br/>residuals < tolerance}
+
+    R -->|No| D
+    R -->|Yes| S[Advance Time: n → n+1]
+
+    S --> T[Output Results]
+    T --> U{End Time?}
+    U -->|No| A
+    U -->|Yes| V[Simulation Complete]
+
+    style A fill:#e1f5fe
+    style C fill:#fff3e0
+    style E fill:#e8f5e8
+    style M fill:#f3e5f5
+    style V fill:#c8e6c9

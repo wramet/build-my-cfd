@@ -1,0 +1,27 @@
+classDiagram
+    class lduMatrix {
+        -scalarField *diagPtr_
+        -scalarField *upperPtr_
+        -scalarField *lowerPtr_
+        +lduInterfaceFieldPtrsList interfaces_
+        +void Amul(scalarField&, const scalarField&)
+        +void Tmul(scalarField&, const scalarField&)
+        +scalar norm() const
+    }
+    
+    class lduAddressing {
+        +label nCells()
+        +const labelUList& losortAddr() const
+        +const labelUList& ownerStartAddr() const
+    }
+    
+    class solverPerformance {
+        -word solverName_
+        -word fieldName_
+        -scalar initialResidual_
+        -scalar finalResidual_
+        -label nIterations_
+    }
+    
+    lduMatrix --> lduAddressing : uses
+    lduMatrix --> solverPerformance : returns

@@ -1,0 +1,25 @@
+graph TD
+    A[Flow Regimes in Tubes] --> B[Horizontal Flow]
+    A --> C[Vertical Upward Flow]
+    
+    B --> D[Bubbly Flow]
+    B --> E[Stratified Flow]
+    B --> F[Slug Flow]
+    B --> G[Annular Flow]
+    B --> H[Mist Flow]
+    
+    C --> I[Bubbly Flow]
+    C --> J[Slug/Churn Flow]
+    C --> K[Annular Flow]
+    C --> L[Mist Flow]
+    
+    D --> M[Small bubbles<br/>in continuous liquid]
+    E --> N[Liquid at bottom,<br/>vapor at top]
+    F --> O[Large vapor slugs<br/>separated by liquid]
+    G --> P[Liquid film on wall,<br/>vapor core]
+    H --> Q[Droplets in vapor,<br/>thin liquid film]
+    
+    subgraph "Increasing Vapor Quality"
+        D --> F --> G --> H
+        I --> J --> K --> L
+    end

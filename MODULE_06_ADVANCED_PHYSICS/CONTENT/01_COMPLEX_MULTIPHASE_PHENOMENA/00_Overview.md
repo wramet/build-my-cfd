@@ -453,6 +453,271 @@ paraFoam -builtin
 
 ---
 
+## 🔄 R410A Flow Regimes in Evaporator Tubes (สภาพการไหลของ R410A ในท่�ะระบายความร้อน)
+
+### Flow Regime Maps for Evaporator Tubes (แผนภูมิสภาพการไหลสำหรับท่อระบายความร้อน)
+
+#### Baker Map for Horizontal Tubes (แผนภูมิ เบกเกอร์ สำหรับท่อแนวนอน)
+
+The **Baker map** is the standard flow regime classification for horizontal tube flow. For R410A evaporators, we must consider the refrigerant's unique thermophysical properties:
+
+```mermaid
+graph TB
+    subgraph Baker Map for R410A
+        A[Gas Fraction x] --> B[Regime Identification]
+        B --> C{Superficial Gas Velocity J_g}
+        C -->|J_g < 0.5 m/s| D[Bubbly Flow]
+        C -->|0.5 < J_g < 3 m/s| E[Slug Flow]
+        C -->|3 < J_g < 10 m/s| F[Churn Flow]
+        C -->|J_g > 10 m/s| G[Annular/Mist Flow]
+    end
+
+    style D fill:#8f8,stroke:#333
+    style E fill:#ff8,stroke:#333
+    style F fill:#f88,stroke:#333
+    style G fill:#88f,stroke:#333
+```
+
+**R410A-Specific Adjustments**:
+- ⭐ Density ratio $\rho_l/\rho_g$ ≈ 25 (vs. 100 for water/steam) affects transition velocities
+- ⭐ Surface tension σ ≈ 8.2 mN/m (25% lower than water) promotes bubble coalescence
+- ⭐ Oil content (POE lubricant) shifts transitions by 10-20%
+
+#### Taitel-Dukler Map for Vertical Tubes (แผนภูมิ ไทเทล-ดักเลอร์ สำหรับท่อแนวตั้ง)
+
+Vertical R410A flow follows different patterns due to buoyancy effects:
+
+```mermaid
+graph TD
+    subgraph Vertical Flow Regimes
+        A[Kinematic Ratio F] --> B{Flow Pattern}
+        F = j_g / sqrt(g D (ρ_l - ρ_g)/ρ_l)
+
+        B -->|F < 0.04| C[Bubbly]
+        B -->|0.04 < F < 0.35| D[Slug]
+        B -->|0.35 < F < 1.0| E[Churn]
+        B -->|F > 1.0| F[Annular]
+    end
+
+    style C fill:#8f8,stroke:#333
+    style D fill:#ff8,stroke:#333
+    style E fill:#f88,stroke:#333
+    style F fill:#88f,stroke:#333
+```
+
+**Critical Parameters**:
+- F < 0.04: Bubble coalescence dominates
+- 0.04 < F < 0.35: Taylor bubble formation
+- F > 1.0: Strong upward annular flow
+
+### Flow Regimes in R410A Evaporators (สภาพการไหลของ R410A ในท่อระบายความร้อน)
+
+#### Bubbly Flow (การไหลแบบฟองอากาศ)
+
+**Characteristics**:
+- Quality range: x < 0.1
+- Bubble shape: spherical → elliptical as velocity increases
+- Bubble diameter: 0.1-2 mm (smaller than water due to lower σ)
+- Heat transfer mechanism: forced convection + nucleation
+
+```mermaid
+graph LR
+    subgraph Bubbly Flow
+        A[Liquid continuous phase] --> B[Individual gas bubbles]
+        B --> C[d_b = 0.1-2 mm]
+        C --> D[Bubble coalescence]
+    end
+```
+
+**R410A-Specific Features**:
+- ⭐ Nucleation sites: Higher density due to lower surface tension
+- ⭐ Bubble departure diameter: Smaller than refrigerants with higher σ
+- ⭐ Heat transfer enhancement: 5-10× single-phase flow
+
+#### Slug Flow (การไหลแบบน้ำเต้า)
+
+**Characteristics**:
+- Quality range: 0.1 < x < 0.3
+- Structure: Taylor bubbles with liquid slugs
+- Bubble length: 1-5 tube diameters
+- Frequency: 5-20 Hz depending on tube diameter
+
+```cpp
+// Typical slug flow parameters for R410A
+const tubeDiameter = 0.0095;    // 9.5 mm
+const bubbleLength = 0.03;       // 30 mm (3-4 D)
+const voidFraction = 0.3;       // At slug flow transition
+```
+
+**Heat Transfer Characteristics**:
+- Local heat transfer peaks 2-5× single-phase
+- Intermittent cooling of wall surface
+- Enhanced mixing compared to bubbly flow
+
+#### Annular Flow (การไหลแบบวงแหวน)
+
+**Characteristics**:
+- Quality range: x > 0.3
+- Structure: Liquid film on walls, gas core in center
+- Film thickness: 0.1-1 mm
+- Wave formation on liquid film
+
+```mermaid
+graph TD
+    subgraph Annular Flow Cross-Section
+        A[Tube Wall] --> B[Liquid Film δ = 0.1-1 mm]
+        B --> C[Vapor Core]
+        C --> D[Droplets in vapor core?]
+        D -->|At high x| E[Mist flow]
+    end
+
+    style A fill:#333
+    style B fill:#00f
+    style C fill:#8f8
+    style D fill:#ff8
+    style E fill:#f88
+```
+
+**R410A Film Dynamics**:
+- Film flow rate: $Q_f = \frac{\rho_l \delta^2}{\mu_l}$
+- Interfacial waves: Increase heat transfer by 30-50%
+- Dryout risk: Critical at x > 0.8 for 10 mm tubes
+
+#### Mist Flow (การไหลแบบหมอก)
+
+**Characteristics**:
+- Quality range: x > 0.8
+- Structure: Gas phase with entrained liquid droplets
+- Droplet size: 10-50 μm
+- Very low liquid holdup
+
+**Engineering Implications**:
+- ⭐ High pressure drop due to wall friction
+- ⭐ Possible compressor liquid slugging
+- ⭐ Heat transfer dominated by forced convection
+
+### Quality-Based Regime Transitions (การเปลี่ยนสภาพการไหลตามคุณสมบัติ)
+
+#### Quality Definition (คำนวณคุณภาพ)
+
+The vapor quality (x) is defined as:
+$$x = \frac{h - h_l}{h_v - h_l}$$
+
+where:
+- h = mixture enthalpy [J/kg]
+- $h_l$ = saturated liquid enthalpy [J/kg]
+- $h_v$ = saturated vapor enthalpy [J/kg]
+
+**R410A Thermophysical Properties**:
+
+| Quality x | Temperature (°C) | Pressure (bar) | Density (kg/m³) | Heat Transfer (W/m²K) |
+|-----------|------------------|---------------|-----------------|-----------------------|
+| 0.0       | 5.0              | 17.9          | 1190            | 2000-5000             |
+| 0.1       | 5.0              | 17.9          | 1100            | 4000-8000             |
+| 0.2       | 5.0              | 17.9          | 1000            | 6000-12000            |
+| 0.3       | 5.0              | 17.9          | 900             | 8000-15000            |
+| 0.4       | 5.0              | 17.9          | 800             | 10000-18000           |
+| 0.5       | 5.0              | 17.9          | 700             | 12000-20000           |
+
+#### Transition Criteria (เกณฑ์การเปลี่ยนสภาพ)
+
+**Bubbly → Slug Transition**:
+- Critical void fraction: α_g = 0.25-0.30
+- Flow velocity criterion: $U_{g} > 0.3 \sqrt{gD}$
+- R410A adjustment: occurs at lower velocity due to lower density ratio
+
+**Slug → Annular Transition**:
+- Critical quality: x = 0.25-0.35
+- Weber number: $We = \frac{\rho_g U^2 D}{\sigma} > 30$
+- Tube diameter effect: smaller tubes shift transition to higher quality
+
+**Annular → Mist Transition**:
+- Critical quality: x = 0.75-0.90
+- Film thickness criterion: δ/D < 0.05
+- Weber number: $We > 200$
+
+### Mass Flux Effects (ผลกระทบของอัตราการไหล)
+
+#### Superficial Velocity Effects
+
+```cpp
+// Mass flux effects on flow transitions
+volScalarField G = rho_mixture * U_magnitude;  // kg/m²s
+
+if (G < 100) {
+    // Low mass flux: buoyancy dominates
+    transitionQualities.bubblyToSlug = 0.20;
+    transitionQualities.slugToAnnular = 0.30;
+} else if (G > 300) {
+    // High mass flux: inertia dominates
+    transitionQualities.bubblyToSlug = 0.25;
+    transitionQualities.slugToAnnular = 0.35;
+}
+```
+
+**Mass Flux Ranges for R410A**:
+
+| Mass Flux (kg/m²s) | Flow Pattern | Typical Velocity (m/s) |
+|-------------------|--------------|-------------------------|
+| 50-150            | Stratified   | 0.1-0.3                 |
+| 150-300           | Slug/Bubbly  | 0.3-0.8                 |
+| 300-500           | Annular      | 0.8-1.5                 |
+| 500-800           | Mist/Annular | 1.5-2.5                 |
+
+### R410A-Specific Characteristics (ลักษณะเฉพาะของ R410A)
+
+#### Density Ratio Effects (ผลกระทบของอัตราส่วนความหนาแน่น)
+
+The density ratio $\rho_l/\rho_g$ significantly impacts flow patterns:
+
+**For R410A at 5°C**:
+- ρ_l = 1190 kg/m³
+- ρ_g = 18.2 kg/m³
+- Ratio = 65.4 (vs. 1000 for water/steam)
+
+**Impact on Flow Maps**:
+- Lower transition velocities compared to water
+- More stable annular flow regime
+- Reduced bubble coalescence rates
+
+#### Surface Tension Influence (ผลกระทบของแรงตึงผิวน้ำ)
+
+R410A surface tension characteristics:
+
+```cpp
+// Surface tension temperature dependence
+surfaceTension = 0.0082 - 0.00012 * (T - 273); // 8.2 mN/m at 5°C
+
+// Weber number calculation
+We = rho_gas * U_squared * D / surfaceTension;
+```
+
+**Effects**:
+- Smaller bubble departure diameters
+- Earlier transition to annular flow
+- Increased interfacial heat transfer coefficients
+
+#### Refrigerant Oil Effects (ผลกระทบของน้ำมันหล่อลื่น)
+
+POE (Polyol Ester) oil in R410A systems:
+
+- **Typical oil concentration**: 1-5% by weight
+- **Effect on surface tension**: Reduces by 10-20%
+- **Effect on viscosity**: Increases liquid phase viscosity by 15-30%
+
+**Flow Regime Modifications**:
+- Oil promotes slug flow at lower qualities
+- Reduces annular film stability
+- Increases pressure drop by 5-15%
+
+> **⭐ IMPLEMENTATION NOTE**: When modeling R410A evaporator flows in OpenFOAM:
+> 1. Use the `reactingTwoPhaseEulerFoam` solver
+> 2. Define R410A properties in `constant/thermophysicalProperties`
+> 3. Implement quality-dependent heat transfer correlations
+> 4. Include surface tension effects in interface model selection
+
+---
+
 ## 🆚 Comparative Summary: Three Phenomena
 
 | Aspect | Phase Change | Cavitation | Population Balance |

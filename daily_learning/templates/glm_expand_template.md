@@ -172,13 +172,12 @@ while (pimple.correct())
 - Key methods และ member variables
 
 **Example:**
-```markdown
 ```mermaid
 classDiagram
     class Mesh {
         +int nCells
         +int nFaces
-        +Vector~3~* cellCenters
+        +Vector cellCenters
         +readMesh(filename)
         +getCellNeighbors(cellId)
     }
@@ -186,14 +185,14 @@ classDiagram
     class Field {
         <<abstract>>
         +string name
-        +Mesh* mesh
-        +scalar* data
+        +Mesh mesh
+        +scalar data
     }
 
     class Solver {
-        +Mesh* mesh
-        +ScalarField* p
-        +VectorField* U
+        +Mesh mesh
+        +ScalarField p
+        +VectorField U
         +solveMomentum()
         +solvePressure()
     }
@@ -202,7 +201,6 @@ classDiagram
     Field <|-- VectorField
     Solver *-- Mesh
     Solver *-- ScalarField
-``​`
 ```
 
 #### 3.2 รายละเอียดคลาส (Class Specifications)

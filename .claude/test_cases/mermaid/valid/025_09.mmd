@@ -1,0 +1,17 @@
+flowchart TD
+    A[Start Time Step] --> B[Momentum Predictor<br>Solve aₚU* = H(Uⁿ) - ∇pⁿ]
+    B --> C[First Corrector<br>p¹: ∇·rAU∇p¹ = ∇·U*]
+    C --> D[U¹: U¹ = U* - rAU∇p¹]
+    D --> E{More correctors?}
+    E -->|Yes| F[Next Corrector<br>pᵏ⁺¹: ∇·rAU∇pᵏ⁺¹ = ∇·Uᵏ]
+    F --> G[Uᵏ⁺¹: Uᵏ⁺¹ = Uᵏ - rAU∇pᵏ⁺¹]
+    G --> E
+    E -->|No| H[Update: Uⁿ⁺¹ = Uᵏ, pⁿ⁺¹ = pᵏ]
+    H --> I[Next Time Step]
+    
+    style A fill:#e1f5fe
+    style B fill:#fff3e0
+    style C fill:#e8f5e8
+    style D fill:#f3e5f5
+    style F fill:#ffebee
+    style G fill:#e8f5e8

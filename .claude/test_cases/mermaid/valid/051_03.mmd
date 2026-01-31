@@ -1,0 +1,45 @@
+classDiagram
+    class surfaceInterpolationScheme {
+        <<abstract>>
+        +interpolate() virtual
+        +weights() virtual
+        +deltaCoeffs()
+    }
+    
+    class limitedSurfaceInterpolationScheme {
+        <<abstract>>
+        +limiter() virtual
+        +psi() virtual
+    }
+    
+    class linear {
+        +interpolate()
+        +weights()
+    }
+    
+    class upwind {
+        +interpolate()
+        +weights()
+    }
+    
+    class vanLeer {
+        +limiter()
+        +psi()
+    }
+    
+    class SuperBee {
+        +limiter()
+        +psi()
+    }
+    
+    class Minmod {
+        +limiter()
+        +psi()
+    }
+    
+    surfaceInterpolationScheme <|-- limitedSurfaceInterpolationScheme
+    surfaceInterpolationScheme <|-- linear
+    surfaceInterpolationScheme <|-- upwind
+    limitedSurfaceInterpolationScheme <|-- vanLeer
+    limitedSurfaceInterpolationScheme <|-- SuperBee
+    limitedSurfaceInterpolationScheme <|-- Minmod

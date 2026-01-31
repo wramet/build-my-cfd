@@ -1,0 +1,47 @@
+classDiagram
+    direction TB
+
+    class TubeMeshGenerator {
+        -scalar tubeLength_
+        -scalar tubeRadius_
+        -scalar bendRadius_
+        -label nCellsAxial_
+        -label nCellsRadial_
+        -label nCellsCircumferential_
+        -scalar boundaryLayerThickness_
+        -scalar gradingRatio_
+        +TubeMeshGenerator(dict)
+        +generateStraightTube() fvMesh
+        +generateBendSection(scalar angle) fvMesh
+        +generateUTypeBend(scalar spacing) fvMesh
+        -createBlockVertices(pointField&, List~labelList~&)
+        -defineEdgeGrading(vectorField&)
+        -addBoundaryLayer(pointField&, vectorField&)
+        -writeBlockMeshDict(const fileName&) void
+    }
+
+    class MeshQualityChecker {
+        -const fvMesh& mesh_
+        -scalar orthogonalityThreshold_
+        -scalar skewnessThreshold_
+        -scalar aspectRatioThreshold_
+        +MeshQualityChecker(const fvMesh&)
+        +checkOrthogonality() scalarField
+        +checkSkewness() scalarField
+        +checkAspectRatio() scalarField
+        +checkNonOrthogonality() scalarField
+        +generateReport(const fileName&) void
+        -faceOrthogonality(label facei) scalar
+        -cellSkewness(label celli) scalar
+        -cellAspectRatio(label celli) scalar
+    }
+
+    class blockMesh {
+        +createTopology() void
+        +createMesh() void
+        +calcGeometry() void
+    }
+
+    TubeMeshGenerator --> MeshQualityChecker : "Validates"
+    TubeMeshGenerator ..> blockMesh : "Creates input for"
+    MeshQualityChecker --> fvMesh : "Analyzes"

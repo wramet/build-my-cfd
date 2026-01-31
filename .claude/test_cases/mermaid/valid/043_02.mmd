@@ -1,0 +1,14 @@
+graph LR
+    A[Volume Integral] -->|Gauss Theorem| B[Surface Integral]
+    B --> C[Sum over Faces]
+    C --> D[Algebraic Form]
+    
+    subgraph "Mathematical Transformation"
+        A
+        B
+    end
+    
+    subgraph "Numerical Implementation"
+        C
+        D
+    end

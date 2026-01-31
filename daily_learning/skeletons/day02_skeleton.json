@@ -1,214 +1,94 @@
-```json
 {
+  "day": 2,
+  "topic": "Finite Volume Method Basics",
+  "title": "Day 02: From PDE to Algebraic Equations",
+  "structure": {
+    "introduction": {
+      "title": "Introduction to Finite Volume Method",
+      "sections": [
+        "What is FVM and why it's fundamental to OpenFOAM",
+        "Connection to Day 01 (Governing Equations)",
+        "Roadmap context: Foundation for spatial discretization"
+      ]
+    },
+    "part_1_control_volumes": {
+      "title": "Part 1: Control Volume Concept",
+      "sections": [
+        "Definition of control volume in FVM",
+        "OpenFOAM's fvMesh class and geometric data",
+        "Cell volumes (V), face areas (Sf), centers (C, Cf)",
+        "Owner-neighbour topology"
+      ]
+    },
+    "part_2_gauss_theorem": {
+      "title": "Part 2: Gauss Divergence Theorem",
+      "sections": [
+        "Mathematical formulation",
+        "Converting volume integrals to surface integrals",
+        "Why this is useful for conservation laws",
+        "Visual representation"
+      ]
+    },
+    "part_3_discretization_overview": {
+      "title": "Part 3: Discretization in OpenFOAM",
+      "sections": [
+        "Overview of discretization process",
+        "fvSchemes class and scheme selection",
+        "Gauss theorem in OpenFOAM (gaussGrad, gaussDivScheme)",
+        "From continuous PDE to discrete algebraic equations"
+      ]
+    },
+    "part_4_implementation": {
+      "title": "Part 4: OpenFOAM Implementation",
+      "sections": [
+        "gaussGrad implementation walkthrough",
+        "Face loop accumulation algorithm",
+        "Volume normalization",
+        "Code analysis with line numbers"
+      ]
+    },
+    "exercises": {
+      "title": "Exercises",
+      "sections": [
+        "Exercise 1: Calculate gradient manually for simple 2D mesh",
+        "Exercise 2: Verify Gauss theorem on simple geometry",
+        "Exercise 3: Understanding owner-neighbour convention",
+        "Exercise 4: Implement discrete gradient calculation",
+        "Exercise 5: Analyze fvMesh structure in OpenFOAM",
+        "Exercise 6: Connect FVM to conservation laws"
+      ]
+    }
+  },
+  "verified_facts": {
+    "class_hierarchy": {
+      "fvMesh": "⭐ Verified: openfoam_temp/src/finiteVolume/fvMesh/fvMesh.H",
+      "fvSchemes": "⭐ Verified: openfoam_temp/src/finiteVolume/finiteVolume/fvSchemes/fvSchemes.H",
+      "gaussGrad": "⭐ Verified: openfoam_temp/src/finiteVolume/finiteVolume/gradSchemes/gaussGrad/gaussGrad.H",
+      "gaussDivScheme": "⭐ Verified: openfoam_temp/src/finiteVolume/finiteVolume/divSchemes/gaussDivScheme/gaussDivScheme.H"
+    },
+    "formulas": {
+      "gauss_divergence_theorem": "⭐ Verified from mathematical documentation",
+      "discrete_gradient": "⭐ Verified: gaussGrad.C:70-76",
+      "face_loop_accumulation": "⭐ Verified: gaussGrad.C:74-75",
+      "volume_normalization": "⭐ Verified: gaussGrad.C:91"
+    }
+  },
   "learning_objectives": [
-    "Understand the mathematical foundation of Gauss's Divergence Theorem in finite volume discretization",
-    "Analyze the fvMesh class structure and its role in storing geometric properties (cell volumes, face areas, centers)",
-    "Examine Gauss discretization schemes for divergence, gradient, and Laplacian operators",
-    "Comprehend owner-neighbor addressing and LDU storage format for unstructured meshes",
-    "Implement basic control volume flux calculations using face interpolation",
-    "Connect mathematical formulations to OpenFOAM's C++ implementation patterns"
+    "Understand the control volume concept in FVM",
+    "Explain Gauss divergence theorem and its application",
+    "Describe how OpenFOAM uses Gauss theorem for discretization",
+    "Analyze the fvMesh class structure",
+    "Trace the code path from mathematical formula to implementation",
+    "Calculate discrete gradients using the finite volume approach"
   ],
-  "theory_sections": {
-    "gauss_divergence_theorem": {
-      "equation": "∫_V ∇·φ dV = ∮_∂V φ·dS ≈ Σ_f φ_f·S_f",
-      "description": "Fundamental theorem converting volume integral of divergence to surface integral of fluxes",
-      "discretization": "Second-order approximation using face-interpolated values",
-      "application": "Mass conservation (∇·U), convection terms (∇·(Uφ))"
-    },
-    "control_volume_geometry": {
-      "cell_volume": "V_P - volume of polyhedral cell",
-      "face_area_vector": "S_f - vector normal to face with magnitude equal to face area",
-      "cell_center": "C_P - centroid of cell volume",
-      "face_center": "C_f - centroid of face area",
-      "owner_neighbor": "Each internal face connects two cells: owner (lower index) and neighbor (higher index)"
-    },
-    "gauss_scheme_formulation": {
-      "divergence": "∇·φ ≈ (1/V_P) Σ_f (interp(φ)_f · S_f)",
-      "gradient": "∇φ ≈ (1/V_P) Σ_f (interp(φ)_f S_f)",
-      "laplacian": "∇·(Γ∇φ) ≈ (1/V_P) Σ_f (Γ_f (∇φ)_f · S_f)",
-      "interpolation": "Face values obtained from cell-centered values using selected scheme (linear, upwind, etc.)"
-    },
-    "ldu_addressing": {
-      "format": "Lower-Diagonal-Upper storage for sparse matrices",
-      "lowerAddr": "Owner cell indices for each face",
-      "upperAddr": "Neighbor cell indices for each face",
-      "diagonal": "Coefficients for cell centers",
-      "off_diagonal": "Coefficients for face connections"
-    }
-  },
-  "openfoam_analysis": {
-    "fvMesh_class": {
-      "inheritance": ["polyMesh", "lduMesh", "surfaceInterpolation"],
-      "key_data_members": {
-        "boundary_": "fvBoundaryMesh - handles patch boundary conditions",
-        "VPtr_": "Cell volumes (demand-driven)",
-        "SfPtr_": "Face area vectors",
-        "CPtr_": "Cell centers",
-        "CfPtr_": "Face centers",
-        "phiPtr_": "Face motion fluxes",
-        "lduPtr_": "Matrix addressing"
-      },
-      "geometric_properties": {
-        "computation": "Demand-driven (calculated when first accessed)",
-        "clearance": "Automatically cleared on mesh motion/topology changes",
-        "time_levels": "V0Ptr_, V00Ptr_ for old-time volumes"
-      },
-      "addressing_methods": {
-        "owner()": "Returns lowerAddr() from ldu addressing",
-        "neighbour()": "Returns upperAddr() from ldu addressing",
-        "interfaces()": "Returns boundary().interfaces() for processor coupling"
-      }
-    },
-    "gauss_schemes": {
-      "gaussDivScheme": {
-        "template_class": "template<class Type> class gaussDivScheme",
-        "inheritance": "fv::divScheme<Type>",
-        "key_method": "fvcDiv() - returns volume field of divergence",
-        "discretization": "Basic second-order using face interpolated values and Gauss theorem"
-      },
-      "gaussGrad": {
-        "template_class": "template<class Type> class gaussGrad",
-        "inheritance": "fv::gradScheme<Type>",
-        "interpolation_scheme": "tinterpScheme_ (default: linear<Type>)",
-        "key_methods": ["gradf()", "calcGrad()", "correctBoundaryConditions()"],
-        "discretization": "Second-order gradient using face interpolation and Gauss theorem"
-      },
-      "gaussLaplacianScheme": {
-        "template_class": "template<class Type, class GType> class gaussLaplacianScheme",
-        "inheritance": "fv::laplacianScheme<Type, GType>",
-        "key_methods": ["fvmLaplacian()", "fvcLaplacian()"],
-        "specializations": "Macros for scalar diffusivity (defineFvmLaplacianScalarGamma)",
-        "discretization": "Second-order using face-gradients and Gauss theorem"
-      }
-    },
-    "design_patterns": {
-      "template_metaprogramming": "Extensive use of templates for type-generic operations",
-      "runtime_type_info": "TypeName() macro for runtime scheme selection",
-      "demand_driven": "Geometric data computed only when needed",
-      "scheme_factory": "Construction from Istream for runtime selection"
-    }
-  },
-  "implementation_skeleton": {
-    "core_classes": [
-      {
-        "class_name": "ControlVolumeMesh",
-        "purpose": "Base mesh class storing topology and geometry",
-        "data_members": [
-          "points_: List<point>",
-          "cells_: List<cell>",
-          "faces_: List<face>",
-          "owner_: List<label>",
-          "neighbour_: List<label>"
-        ],
-        "methods": [
-          "calcCellVolumes(): void",
-          "calcFaceAreas(): void",
-          "calcCellCenters(): void",
-          "calcFaceCenters(): void",
-          "updateGeometry(): void"
-        ]
-      },
-      {
-        "class_name": "FiniteVolumeField",
-        "template_params": ["Type", "Mesh"],
-        "purpose": "Base class for cell-centered and face-centered fields",
-        "data_members": [
-          "internalField_: Field<Type>",
-          "boundaryField_: BoundaryField<Type>",
-          "mesh_: const Mesh&"
-        ],
-        "methods": [
-          "interpolateFace(const label facei): Type",
-          "gradient(): GeometricField<typename outerProduct<vector, Type>::type, volMesh>",
-          "divergence(): GeometricField<typename innerProduct<vector, Type>::type, volMesh>"
-        ]
-      },
-      {
-        "class_name": "GaussDivergence",
-        "template_params": ["Type"],
-        "purpose": "Compute divergence using Gauss theorem",
-        "methods": [
-          "operator()(const GeometricField<Type, volMesh>& vf): tmp<GeometricField<typename innerProduct<vector, Type>::type, volMesh>>",
-          "calculate(const GeometricField<Type, volMesh>& vf): void"
-        ],
-        "algorithm": [
-          "Loop over all internal faces",
-          "Get owner and neighbor indices",
-          "Interpolate field to face",
-          "Compute flux = interp(vf)_f · S_f",
-          "Add to owner cell, subtract from neighbor",
-          "Divide by cell volume"
-        ]
-      },
-      {
-        "class_name": "LduMatrix",
-        "purpose": "Sparse matrix in LDU format",
-        "data_members": [
-          "diag_: scalarField",
-          "upper_: scalarField",
-          "lower_: scalarField",
-          "source_: scalarField",
-          "lduAddr_: lduAddressing"
-        ],
-        "methods": [
-          "addToDiag(const label celli, const scalar value): void",
-          "addToUpper(const label facei, const scalar value): void",
-          "addToLower(const label facei, const scalar value): void",
-          "addToSource(const label celli, const scalar value): void",
-          "solve(): scalarField"
-        ]
-      }
-    ],
-    "key_algorithms": [
-      {
-        "name": "Flux Calculation",
-        "pseudocode": [
-          "for each internal face f:",
-          "  owner = owner[f], neighbor = neighbor[f]",
-          "  phi_f = interpolate(U, f) · S_f",
-          "  flux[owner] += phi_f",
-          "  flux[neighbor] -= phi_f",
-          "for each boundary face f:",
-          "  owner = owner[f]",
-          "  phi_f = boundary_value(U, f) · S_f",
-          "  flux[owner] += phi_f"
-        ]
-      },
-      {
-        "name": "Gauss Gradient Reconstruction",
-        "pseudocode": [
-          "Initialize grad = zero",
-          "for each internal face f:",
-          "  owner = owner[f], neighbor = neighbor[f]",
-          "  phi_f = 0.5*(phi[owner] + phi[neighbor])",
-          "  grad[owner] += phi_f * S_f",
-          "  grad[neighbor] -= phi_f * S_f",
-          "for each boundary face f:",
-          "  owner = owner[f]",
-          "  phi_f = boundary_value(phi, f)",
-          "  grad[owner] += phi_f * S_f",
-          "Divide each cell's grad by cell volume"
-        ]
-      }
-    ]
-  },
-  "concept_checks": [
-    {
-      "question": "Given a hexahedral cell with 6 faces, explain how the divergence of velocity ∇·U would be computed using Gauss's theorem in a finite volume context.",
-      "hint": "Consider face area vectors and interpolated velocity values at each face."
-    },
-    {
-      "question": "How does the owner-neighbor convention affect the sign of flux contributions in the discretized divergence operator?",
-      "hint": "Think about the direction of the face area vector relative to cell ownership."
-    },
-    {
-      "question": "Why does fvMesh store geometric properties (V, Sf, C, Cf) as demand-driven data, and what triggers their recalculation?",
-      "hint": "Consider mesh motion and topology changes during simulation."
-    },
-    {
-      "question": "Explain the difference between fvc::div and fvm::div in OpenFOAM, and how each relates to the Gauss divergence scheme implementation.",
-      "hint": "Think about explicit vs implicit discretization and matrix assembly."
-    }
+  "prerequisites": [
+    "Day 01: Governing Equations (continuity, momentum, energy)",
+    "Basic calculus (integrals, divergence)",
+    "Vector calculus (gradient, divergence operators)"
+  ],
+  "next_steps": [
+    "Day 03: Spatial Discretization Schemes (interpolation)",
+    "Day 04: Temporal Discretization",
+    "Understanding specific schemes (upwind, central differencing, TVD)"
   ]
 }
-```

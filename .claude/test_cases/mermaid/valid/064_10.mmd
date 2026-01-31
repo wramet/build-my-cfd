@@ -1,0 +1,19 @@
+flowchart TD
+    A[Start: α at time n] --> B[Calculate explicit fluxes F]
+    B --> C[Apply limiting to fluxes]
+    C --> D{Check boundedness?}
+    D -->|Yes| E[Accept fluxes]
+    D -->|No| F[Apply correction]
+    F --> G[Iteration count < nIter?]
+    G -->|Yes| C
+    G -->|No| E
+    E --> H[Update α to time n+1]
+    H --> I[End]
+    
+    subgraph "MULES Parameters"
+        J[nIter: Maximum limiter iterations]
+        K[Default: nIter = 3]
+    end
+    
+    style J fill:#fff3e0
+    style K fill:#fff3e0

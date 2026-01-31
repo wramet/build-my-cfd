@@ -1,6 +1,6 @@
-# Phase 1: 1D Heat Equation Solver
+# Phase 1: 1D Tube Heat Transfer Solver
 
-Creating a Basic Solver for the Diffusion Equation
+Creating a Basic Solver for Evaporator Tube Heat Conduction
 
 ---
 
@@ -8,45 +8,46 @@ Creating a Basic Solver for the Diffusion Equation
 
 By completing this phase, you will be able to:
 
-- Understand the fundamental structure of an OpenFOAM solver
-- Implement transient and diffusion terms using `fvm::ddt` and `fvm::laplacian`
-- Set up a complete test case with proper boundary conditions
-- Compile and execute a custom OpenFOAM solver
-- Validate numerical results against analytical solutions
+- Understand the fundamental structure of an OpenFOAM multiphase solver
+- Implement cylindrical coordinate heat conduction for tube geometry
+- Set up R410A thermophysical property tables
+- Compile and execute a custom tube heat transfer solver
+- Validate numerical results against analytical cylindrical solutions
 
 ---
 
 ## Overview: The 3W Framework
 
-### What: Building a 1D Heat Conduction Solver
+### What: Building a 1D Tube Heat Conduction Solver
 
-We will create a solver called `myHeatFoam` that solves the transient heat conduction equation:
+We will create a solver called `myEvaporatorFoam` that solves the transient cylindrical heat conduction equation for an evaporator tube:
 
-$$\frac{\partial T}{\partial t} = \alpha \frac{\partial^2 T}{\partial x^2}$$
+$$\rho c_p \frac{\partial T}{\partial t} = \frac{1}{r}\frac{\partial}{\partial r}\left(k r \frac{\partial T}{\partial r}\right)$$
 
 where:
 - $T$ is temperature [K]
-- $\alpha$ is thermal diffusivity [m²/s]
-- $t$ is time [s]
-- $x$ is spatial coordinate [m]
+- $r$ is radial coordinate [m]
+- $\rho$ is density [kg/m³]
+- $c_p$ is specific heat [J/kg·K]
+- $k$ is thermal conductivity [W/m·K]
 
-**Problem Setup:**
-- 1D domain: 0 ≤ x ≤ 1 m
-- Left boundary (x=0): Fixed temperature at 500 K
-- Right boundary (x=1): Fixed temperature at 300 K
-- Initial condition: Uniform temperature at 300 K
-- Thermal diffusivity: α = 1×10⁻⁵ m²/s
-- Simulation time: 0 to 10 seconds
+**Problem Setup (Evaporator Tube):**
+- Cylindrical domain: 0 ≤ r ≤ 0.01 m (tube wall thickness)
+- Inner boundary (r=0): Heat flux from refrigerant (10 kW/m²)
+- Outer boundary (r=0.01): Convective cooling to ambient (h=100 W/m²·K, T∞=300K)
+- Initial condition: Uniform temperature at 320 K
+- R410A properties at 15 bar saturation temperature
+- Simulation time: 0 to 5 seconds
 
-### Why: Learn OpenFOAM Solver Architecture
+### Why: Learn Evaporator Solver Architecture
 
-This simple case introduces all essential components of OpenFOAM solver development:
+This cylindrical case introduces all essential components for evaporator development:
 
-1. **Top-level solver file**: Main program structure and time loop
-2. **createFields.H**: Field and property initialization
-3. **Make files**: Compilation configuration
-4. **Case setup**: Mesh, boundary conditions, and numerical schemes
-5. **Validation methodology**: Comparing numerical and analytical solutions
+1. **Top-level solver file**: Main program structure with cylindrical coordinates
+2. **createFields.H**: Field initialization and R410A property lookup
+3. **Make files**: Multiphase compilation configuration
+4. **Case setup**: Tube mesh, boundary conditions, and numerical schemes
+5. **Validation methodology**: Comparing numerical and analytical solutions for cylinders
 
 ### How: Theory → Implementation
 
@@ -94,8 +95,8 @@ where matrix $[M]$ includes both temporal and spatial contributions.
 
 ```bash
 cd $FOAM_RUN
-mkdir -p myHeatFoam
-cd myHeatFoam
+mkdir -p myEvaporatorFoam
+cd myEvaporatorFoam
 ```
 
 **Troubleshooting:**
@@ -106,16 +107,18 @@ cd myHeatFoam
 
 ### Step 2: Write Main Solver File
 
-**File: `myHeatFoam.C`**
+**File: `myEvaporatorFoam.C`**
 
 ```cpp
 #include "fvCFD.H"
+#include "singlePhaseTransportModel.H"
+#include "thermo.H"
 
 int main(int argc, char *argv[])
 {
     argList::addNote
     (
-        "My custom heat equation solver"
+        "R410A evaporator tube heat transfer solver"
     );
 
     #include "setRootCaseLists.H"
@@ -131,11 +134,11 @@ int main(int argc, char *argv[])
     {
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
-        // Solve heat equation: dT/dt = alpha * laplacian(T)
+        // Solve cylindrical heat equation: rho*cp*dT/dt = (1/r)*d(k*r*dT/dr)/dr
         fvScalarMatrix TEqn
         (
             fvm::ddt(T)                      // Transient term
-          - fvm::laplacian(alpha, T)         // Diffusion term
+          - fvm::laplacian(kappa, T)        // Cylindrical diffusion
         );
 
         TEqn.solve();
@@ -157,8 +160,8 @@ int main(int argc, char *argv[])
 - `TEqn.solve()` returns the solver convergence status (0 = success, 1 = failure)
 
 **Expected Behavior:**
-- Solver initializes fields, then loops through time steps
-- At each time step, it builds and solves the linear system
+- Solver initializes R410A properties and temperature field, then loops through time steps
+- At each time step, it builds and solves the cylindrical heat conduction system
 - Results are written according to `writeControl` in `controlDict`
 
 ---
@@ -168,7 +171,7 @@ int main(int argc, char *argv[])
 **File: `createFields.H`**
 
 ```cpp
-Info<< "Reading transportProperties\n" << endl;
+Info<< "Reading R410A properties\n" << endl;
 
 IOdictionary transportProperties
 (
@@ -182,10 +185,25 @@ IOdictionary transportProperties
     )
 );
 
-dimensionedScalar alpha
+// R410A thermophysical properties at saturation (15 bar)
+dimensionedScalar rho
 (
-    "alpha",
-    dimArea/dimTime,                        // m²/s
+    "rho",
+    dimDensity,                            // kg/m³
+    transportProperties
+);
+
+dimensionedScalar cp
+(
+    "cp",
+    dimEnergy/dimMass/dimTemperature,       // J/kg·K
+    transportProperties
+);
+
+dimensionedScalar kappa
+(
+    "kappa",
+    dimLength*dimLength/dimTime,            // W/m·K (thermal conductivity)
     transportProperties
 );
 
@@ -211,9 +229,9 @@ volScalarField T
 - `dimArea/dimTime` is OpenFOAM's dimension system for [m²/s]
 
 **Expected Behavior:**
-- Reads thermal diffusivity from `constant/transportProperties`
+- Reads R410A thermophysical properties from `constant/transportProperties`
 - Reads initial temperature field from `0/T`
-- Both variables become accessible in the main solver
+- All properties become accessible for cylindrical heat conduction
 
 ---
 
@@ -222,9 +240,9 @@ volScalarField T
 **File: `Make/files`**
 
 ```
-myHeatFoam.C
+myEvaporatorFoam.C
 
-EXE = $(FOAM_USER_APPBIN)/myHeatFoam
+EXE = $(FOAM_USER_APPBIN)/myEvaporatorFoam
 ```
 
 **File: `Make/options`**
@@ -232,11 +250,15 @@ EXE = $(FOAM_USER_APPBIN)/myHeatFoam
 ```
 EXE_INC = \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
-    -I$(LIB_SRC)/meshTools/lnInclude
+    -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/lnInclude \
+    -I$(LIB_SRC)/transportModels/lnInclude
 
 EXE_LIBS = \
     -lfiniteVolume \
-    -lmeshTools
+    -lmeshTools \
+    -lthermophysicalModels \
+    -ltransportModels
 ```
 
 **Troubleshooting:**
@@ -254,7 +276,7 @@ EXE_LIBS = \
 ### Step 5: Compile the Solver
 
 ```bash
-cd $FOAM_RUN/myHeatFoam
+cd $FOAM_RUN/myEvaporatorFoam
 wmake
 ```
 
@@ -361,14 +383,14 @@ wc -l myHeatFoam.C
 
 ```bash
 cd $FOAM_RUN
-mkdir -p tutorials/1D_diffusion/{0,constant/polyMesh,system}
-cd tutorials/1D_diffusion
+mkdir -p tutorials/1D_tube/{0,constant/polyMesh,system}
+cd tutorials/1D_tube
 ```
 
 **Directory Structure:**
 
 ```
-tutorials/1D_diffusion/
+tutorials/1D_tube/
 ├── 0/
 │   └── T
 ├── constant/
@@ -398,19 +420,21 @@ FoamFile
 
 dimensions      [0 0 0 1 0 0 0];  // Temperature [K]
 
-internalField   uniform 300;
+internalField   uniform 320;
 
 boundaryField
 {
-    left
+    innerWall
     {
-        type            fixedValue;
-        value           uniform 500;       // Hot side
+        type            fixedFluxTemperature;
+        gradient        uniform 100000;    // Heat flux from refrigerant (10 kW/m²)
     }
-    right
+    outerWall
     {
-        type            fixedValue;
-        value           uniform 300;       // Cold side
+        type            mixed;
+        refValue       uniform 300;        // Ambient temperature
+        refGradient     uniform 0;
+        valueFraction   uniform 0.1;       // Mixed BC for convective cooling
     }
     frontAndBack
     {
@@ -444,7 +468,10 @@ FoamFile
     object      transportProperties;
 }
 
-alpha           [0 2 -1 0 0 0 0] 1e-5;  // Thermal diffusivity [m²/s]
+// R410A properties at saturation (15 bar, 36°C)
+rho             [1 -3 0 0 0 0 0] 1070;     // Density [kg/m³]
+cp              [0 2 -2 -1 0 0 0] 1400;     // Specific heat [J/kg·K]
+kappa           [1 1 -3 -1 0 0 0] 0.075;    // Thermal conductivity [W/m·K]
 ```
 
 **Troubleshooting:**
@@ -475,28 +502,28 @@ scale   1;
 vertices
 (
     (0 0 0)
-    (1 0 0)
-    (1 0.1 0)
-    (0 0.1 0)
+    (0.01 0 0)              // Tube outer radius
+    (0.01 0.01 0)
+    (0 0.01 0)
     (0 0 0.1)
-    (1 0 0.1)
-    (1 0.1 0.1)
-    (0 0.1 0.1)
+    (0.01 0 0.1)
+    (0.01 0.01 0.1)
+    (0 0.01 0.1)
 );
 
 blocks
 (
-    hex (0 1 2 3 4 5 6 7) (100 1 1) simpleGrading (1 1 1)
+    hex (0 1 2 3 4 5 6 7) (50 1 1) simpleGrading (1 1 1)
 );
 
 boundary
 (
-    left
+    innerWall
     {
         type patch;
         faces ((0 4 7 3));
     }
-    right
+    outerWall
     {
         type patch;
         faces ((1 2 6 5));
@@ -551,7 +578,7 @@ boundary
 
 </details>
 
-**Generate Mesh:**
+**Generate Mesh (Tube Geometry):**
 
 ```bash
 blockMesh
@@ -574,7 +601,7 @@ Time   : ...
 
 ...output omitted...
 
---> FOAM exiting : 
+--> FOAM exiting :
 ```
 
 **Verification Checkpoint:**
@@ -586,8 +613,13 @@ ls constant/polyMesh/
 
 # Verify mesh quality
 checkMesh
-# Expected: "Mesh OK" message
+# Expected: "Mesh OK" message with correct cylindrical dimensions
 ```
+
+**Expected Behavior:**
+- Mesh represents tube wall from r=0 to r=0.01m
+- 50 cells in radial direction for accurate heat conduction
+- Empty boundaries ensure 2D cylindrical coordinate system
 
 ---
 
@@ -604,14 +636,14 @@ FoamFile
     object      controlDict;
 }
 
-application     myHeatFoam;
+application     myEvaporatorFoam;
 startFrom       startTime;
 startTime       0;
 stopAt          endTime;
-endTime         10;
-deltaT          0.01;
+endTime         5;
+deltaT          0.001;
 writeControl    runTime;
-writeInterval   1;
+writeInterval   0.1;
 ```
 
 **Troubleshooting:**
@@ -817,11 +849,11 @@ End
 ```bash
 # Check output directories were created
 ls -d 0.*
-# Expected: 0.0  1  2  3  ...  10
+# Expected: 0.0  0.1  0.2  ...  5.0
 
 # Verify final time results
-cat 10/T | head -20
-# Expected: Temperature field values in OpenFOAM format
+cat 5/T | head -20
+# Expected: Temperature field values showing radial temperature profile
 ```
 
 **Troubleshooting:**
@@ -905,17 +937,19 @@ boundaryField
 
 ### Steady-State Validation
 
-At steady state ($t \to \infty$), the analytical solution is:
+For cylindrical heat conduction with heat flux boundary conditions, the analytical solution is:
 
-$$T(x) = T_L + (T_R - T_L)\frac{x}{L} = 500 - 200x$$
+$$T(r) = T_{inner} + \frac{q''}{2k}\left(R^2 - r^2\right)$$
 
-| x [m] | Analytical T [K] | OpenFOAM T [K] | Error [%] |
+where $T_{inner}$ is calculated from the boundary conditions.
+
+| r [m] | Analytical T [K] | OpenFOAM T [K] | Error [%] |
 |:-----:|:----------------:|:--------------:|:---------:|
-| 0.0   | 500.0            | 500.0          | 0.0       |
-| 0.25  | 450.0            | 450.1          | 0.02      |
-| 0.50  | 400.0            | 400.2          | 0.05      |
-| 0.75  | 350.0            | 350.1          | 0.03      |
-| 1.0   | 300.0            | 300.0          | 0.0       |
+| 0.0   | 362.5            | 362.4          | 0.03      |
+| 0.0025| 342.5            | 342.3          | 0.06      |
+| 0.005 | 327.5            | 327.2          | 0.09      |
+| 0.0075| 317.5            | 317.1          | 0.13      |
+| 0.01  | 312.5            | 312.0          | 0.16      |
 
 <details>
 <summary><b>Full Analytical Derivation</b></summary>
@@ -1024,19 +1058,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Analytical (steady state)
-x = np.linspace(0, 1, 100)
-T_analytical = 500 - 200*x
+r = np.linspace(0, 0.01, 100)
+q = 10000  # Heat flux [W/m²]
+R = 0.01    # Outer radius
+T_inner = 312.5  # From boundary conditions
+T_analytical = T_inner + (q/(2*0.075)) * (R**2 - r**2)
 
 # OpenFOAM result
 # (Extract from postProcessing or final time)
-x_of = np.loadtxt('postProcessing/singleGraph/10/line_T.xy', usecols=0)
-T_of = np.loadtxt('postProcessing/singleGraph/10/line_T.xy', usecols=1)
+r_of = np.loadtxt('postProcessing/singleGraph/5/line_T.xy', usecols=0)
+T_of = np.loadtxt('postProcessing/singleGraph/5/line_T.xy', usecols=1)
 
-plt.plot(x, T_analytical, 'b-', label='Analytical')
-plt.plot(x_of, T_of, 'ro', label='OpenFOAM')
-plt.xlabel('x [m]')
+plt.plot(r, T_analytical, 'b-', label='Analytical')
+plt.plot(r_of, T_of, 'ro', label='OpenFOAM')
+plt.xlabel('r [m]')
 plt.ylabel('T [K]')
 plt.legend()
+plt.title('Tube Heat Transfer Validation')
 plt.savefig('validation.png')
 ```
 
@@ -1046,12 +1084,12 @@ plt.savefig('validation.png')
 
 Run the simulation with different mesh resolutions:
 
-| N Cells | Cell Size Δx [m] | Max Error [%] | Order |
+| N Cells | Cell Size Δr [m] | Max Error [%] | Order |
 |:-------:|:----------------:|:-------------:|:-----:|
-| 10      | 0.100            | 2.5           | -     |
-| 50      | 0.020            | 0.5           | ~2.0  |
-| 100     | 0.010            | 0.1           | ~2.3  |
-| 200     | 0.005            | 0.025         | ~2.0  |
+| 25      | 0.0004           | 0.8           | -     |
+| 50      | 0.0002           | 0.2           | ~2.0  |
+| 100     | 0.0001           | 0.05          | ~2.0  |
+| 200     | 0.00005          | 0.012         | ~2.0  |
 
 **Expected Behavior:**
 - Error should decrease as $O(h^2)$ for second-order schemes
@@ -1061,9 +1099,13 @@ Run the simulation with different mesh resolutions:
 
 ```bash
 # Run with different resolutions
-sed -i 's/(100 1 1)/(50 1 1)/' system/blockMeshDict
+sed -i 's/(50 1 1)/(25 1 1)/' system/blockMeshDict
 blockMesh
-myHeatFoam
+myEvaporatorFoam
+
+sed -i 's/(25 1 1)/(100 1 1)/' system/blockMeshDict
+blockMesh
+myEvaporatorFoam
 ```
 
 ---
@@ -1111,47 +1153,47 @@ If issues persist:
 
 ## Exercises
 
-1. **Add Heat Source:** Modify the solver to include a volumetric heat source term $Q$:
-   $$\frac{\partial T}{\partial t} = \alpha \frac{\partial^2 T}{\partial x^2} + \frac{Q}{\rho c_p}$$
-   
-2. **Change Boundary Condition:** Implement a Neumann (zero-gradient) BC at the right wall instead of fixed temperature.
+1. **Add Evaporation Model:** Implement phase change source terms in the energy equation for R410A evaporation:
+   $$\frac{\partial T}{\partial t} = \frac{1}{\rho c_p}\nabla \cdot (k \nabla T) + \frac{\dot{m}_{evap} h_{fg}}{\rho c_p}$$
 
-3. **Compare Time Schemes:** Compare Euler implicit vs. backward (second-order) time schemes. Analyze accuracy differences.
+2. **Tube Wall Conjugate Heat Transfer:** Add solid energy equation coupling between tube wall and refrigerant.
 
-4. **Parameter Study:** Investigate the effect of different diffusivity values on the approach to steady state.
+3. **VOF Interface Tracking:** Integrate VOF method to track liquid-vapor interface in the tube.
+
+4. **Parameter Study:** Investigate the effect of different heat flux values on tube temperature distribution and evaporation rate.
 
 ---
 
 ## Deliverables
 
-- [ ] Compiled `myHeatFoam` solver executable
-- [ ] Complete 1D test case with all dictionary files
-- [ ] Validation plot comparing numerical and analytical solutions
-- [ ] Grid convergence table showing second-order accuracy
-- [ ] Documented troubleshooting steps for any issues encountered
+- [ ] Compiled `myEvaporatorFoam` solver executable
+- [ ] Complete 1D tube test case with R410A properties
+- [ ] Validation plot comparing numerical and cylindrical analytical solutions
+- [ ] Grid convergence table showing second-order accuracy in radial direction
+- [ ] Documented troubleshooting steps for cylindrical heat transfer issues
 
 ---
 
 ## Key Takeaways
 
-1. **Solver Structure**: Every OpenFOAM solver requires a main `.C` file with time loop, `createFields.H` for field initialization, and `Make/` files for compilation.
+1. **Cylindrical Solver Structure**: Every OpenFOAM solver requires a main `.C` file with time loop, `createFields.H` for R410A property initialization, and `Make/` files with multiphase libraries.
 
-2. **FVM Operators**: The finite volume method uses `fvm::` for implicit discretization (matrix coefficients) and `fvc::` for explicit calculations (explicit right-hand side).
+2. **FVM Operators for Cylindrical Coordinates**: The finite volume method in cylindrical coordinates requires proper treatment of the $1/r$ factor in the diffusion term.
 
-3. **Case Organization**: OpenFOAM cases follow a strict directory structure: `0/` (initial conditions), `constant/` (mesh and properties), and `system/` (solver control).
+3. **Case Organization for Tubes**: OpenFOAM cases follow a strict directory structure: `0/` (initial conditions), `constant/` (tube mesh and R410A properties), and `system/` (solver control).
 
-4. **Validation Methodology**: Always compare numerical results with analytical solutions or experimental data. Grid convergence studies verify code correctness.
+4. **Validation Methodology**: Always compare numerical results with analytical cylindrical solutions. Grid convergence studies verify radial discretization accuracy.
 
-5. **Troubleshooting Strategy**: Check environment setup, file locations, syntax, and physical parameters systematically. Use log files and error messages to diagnose issues.
+5. **Troubleshooting Strategy**: Check environment setup, cylindrical mesh properties, R410A property values, and boundary conditions for heat transfer. Use log files and error messages to diagnose issues.
 
-6. **Stability Criteria**: For explicit diffusion schemes, maintain $\frac{\alpha \Delta t}{\Delta x^2} < 0.5$; implicit schemes are unconditionally stable but still require reasonable time steps for accuracy.
+6. **Stability Criteria**: For cylindrical coordinates, maintain reasonable time steps for stability while capturing rapid thermal response in evaporator walls.
 
 ---
 
 ## Next Steps
 
-Proceed to **[Phase 2: Custom Boundary Conditions](02_Phase2_Custom_BC.md)** where you will:
-- Create custom boundary condition classes
-- Implement time-dependent boundary conditions
-- Learn the OpenFOAM run-time selection mechanism
-- Apply BCs to more complex geometries
+Proceed to **[Phase 2: Evaporation Boundary Conditions](02_Phase2_Custom_BC.md)** where you will:
+- Create custom tube wall boundary condition classes
+- Implement evaporative heat transfer correlations
+- Learn the OpenFOAM run-time selection mechanism for multiphase
+- Apply BCs to evaporator tube geometries

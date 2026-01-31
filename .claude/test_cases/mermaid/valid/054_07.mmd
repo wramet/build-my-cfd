@@ -1,0 +1,17 @@
+graph TD
+    A[Matrix A] --> L[Lower Triangle L]
+    A --> D[Diagonal D]
+    A --> U[Upper Triangle U]
+    
+    L --> L_coeff[lower coefficients]
+    D --> D_coeff[diag coefficients]
+    U --> U_coeff[upper coefficients]
+    
+    L_coeff -->|owner to neighbour| L_storage
+    U_coeff -->|neighbour to owner| U_storage
+    
+    subgraph "LDU Storage Layout"
+        L_storage[Lower array]
+        D_storage[Diagonal array]
+        U_storage[Upper array]
+    end

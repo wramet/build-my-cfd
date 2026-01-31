@@ -1,0 +1,248 @@
+{
+  "metadata": {
+    "version": "2.0",
+    "name": "R410A Integration Engineer",
+    "type": "domain_specific",
+    "purpose": "Apply CFD theory to R410A refrigerant evaporator simulations",
+    "target_application": "Refrigerant Two-Phase Flow with Evaporation in Tube",
+    "project_alignment": "R410A evaporator CFD engine development"
+  },
+  "template": {
+    "name": "R410A Integration Engineer",
+    "type": "domain_specific",
+    "approach": "theory → properties → modifications → implementation",
+    "boilerplate_policy": "quarantine_to_appendix",
+    "code_ratio": 0.35
+  },
+  "structure": {
+    "parts": [
+      {
+        "id": "p1",
+        "title": "Foundation Theory",
+        "ratio": 0.25,
+        "readability": "beginner",
+        "approach": "derivations",
+        "content_type": "theory",
+        "guideline": "Standard governing equations (continuity, momentum, energy)",
+        "topics": [
+          "Control volume analysis",
+          "Reynolds Transport Theorem",
+          "Continuity equation",
+          "Navier-Stokes equations",
+          "Energy equation (enthalpy form)"
+        ],
+        "estimated_lines": 500
+      },
+      {
+        "id": "p2",
+        "title": "R410A Properties & Physics",
+        "ratio": 0.20,
+        "readability": "intermediate",
+        "approach": "data-driven",
+        "content_type": "application",
+        "guideline": "Concrete property data with physical interpretation",
+        "mandatory_content": [
+          "Property table (ρ, μ, k, c_p, σ, h_lv)",
+          "Density ratio significance",
+          "Phase change physics",
+          "Surface tension effects",
+          "Temperature/pressure ranges"
+        ],
+        "estimated_lines": 400
+      },
+      {
+        "id": "p3",
+        "title": "Equation Modifications for R410A",
+        "ratio": 0.25,
+        "readability": "advanced",
+        "approach": "comparison",
+        "content_type": "analysis",
+        "guideline": "Side-by-side comparison: standard vs. R410A equations",
+        "mandatory_comparisons": [
+          "Continuity: add mass source ṁ",
+          "Momentum: add F_σ + ṁU_i",
+          "Energy: add ṁh_lv",
+          "VOF: add interface compression"
+        ],
+        "estimated_lines": 500
+      },
+      {
+        "id": "p4",
+        "title": "OpenFOAM Implementation",
+        "ratio": 0.30,
+        "readability": "professional",
+        "approach": "code-first",
+        "content_type": "code",
+        "guideline": "Complete R410A solver with phase change",
+        "mandatory_implementations": [
+          "Lee model for mass transfer",
+          "CSF model for surface tension",
+          "MULES for VOF transport",
+          "Energy equation with latent heat",
+          "Complete solver structure"
+        ],
+        "estimated_lines": 600
+      }
+    ]
+  },
+  "r410a_data": {
+    "properties": {
+      "liquid_density": {
+        "value": 1200,
+        "units": "kg/m³",
+        "conditions": "T = 10°C, P = 1.0 MPa"
+      },
+      "vapor_density": {
+        "value": 70,
+        "units": "kg/m³",
+        "conditions": "T = 10°C, P = 1.0 MPa"
+      },
+      "density_ratio": {
+        "value": "17:1",
+        "significance": "Large ratio causes numerical challenges"
+      },
+      "liquid_viscosity": {
+        "value": 1.2e-4,
+        "units": "Pa·s"
+      },
+      "vapor_viscosity": {
+        "value": 1.3e-5,
+        "units": "Pa·s"
+      },
+      "viscosity_ratio": {
+        "value": "10:1"
+      },
+      "surface_tension": {
+        "value": 0.05,
+        "units": "N/m",
+        "significance": "Dominant force at small scales"
+      },
+      "latent_heat": {
+        "value": 200,
+        "units": "kJ/kg",
+        "significance": "Large energy exchange during phase change"
+      },
+      "thermal_conductivity_liquid": {
+        "value": 0.08,
+        "units": "W/m·K"
+      },
+      "thermal_conductivity_vapor": {
+        "value": 0.014,
+        "units": "W/m·K"
+      },
+      "saturation_temperature": {
+        "value": "280-285",
+        "units": "K",
+        "conditions": "P = 1.0-1.2 MPa"
+      }
+    },
+    "key_physics": [
+      {
+        "phenomenon": "Two-phase flow",
+        "description": "Liquid and vapor coexist with sharp interface",
+        "model": "Volume of Fluid (VOF)"
+      },
+      {
+        "phenomenon": "Phase change",
+        "description": "Mass transfer due to evaporation/condensation",
+        "model": "Lee model"
+      },
+      {
+        "phenomenon": "Surface tension",
+        "description": "Force at liquid-vapor interface",
+        "model": "Continuum Surface Force (CSF)"
+      },
+      {
+        "phenomenon": "Latent heat",
+        "description": "Energy exchange during phase change",
+        "value": "200 kJ/kg"
+      }
+    ]
+  },
+  "equation_modifications": {
+    "continuity": {
+      "standard": "\\frac{\\partial \\rho}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U}) = 0",
+      "r410a": "\\frac{\\partial \\rho}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U}) = \\dot{m}",
+      "added_term": "\\dot{m} (mass transfer rate)",
+      "significance": "Accounts for evaporation/condensation"
+    },
+    "momentum": {
+      "standard": "\\frac{\\partial (\\rho \\mathbf{U})}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U} \\otimes \\mathbf{U}) = -\\nabla p + \\nabla \\cdot \\boldsymbol{\\tau}",
+      "r410a": "\\frac{\\partial (\\rho \\mathbf{U})}{\\partial t} + \\cdots = \\cdots + \\mathbf{F}_\\sigma + \\dot{m}\\mathbf{U}_i",
+      "added_terms": [
+        "\\mathbf{F}_\\sigma = \\sigma \\kappa \\nabla \\alpha (surface tension)",
+        "\\dot{m}\\mathbf{U}_i (momentum transfer)"
+      ],
+      "significance": "Surface tension dominates at small scales"
+    },
+    "energy": {
+      "standard": "\\frac{\\partial (\\rho h)}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U} h) = \\nabla \\cdot (k \\nabla T)",
+      "r410a": "\\frac{\\partial (\\rho h)}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U} h) = \\nabla \\cdot (k \\nabla T) + \\dot{m} h_{lv}",
+      "added_term": "\\dot{m} h_{lv} (latent heat)",
+      "significance": "Dominant term in energy balance"
+    },
+    "vof": {
+      "standard": "\\frac{\\partial \\alpha}{\\partial t} + \\nabla \\cdot (\\alpha \\mathbf{U}) = 0",
+      "r410a": "\\frac{\\partial \\alpha}{\\partial t} + \\nabla \\cdot (\\alpha \\mathbf{U}) + \\nabla \\cdot [\\alpha(1-\\alpha)\\mathbf{U}_r] = \\dot{m}(\\frac{1}{\\rho_l} - \\frac{1}{\\rho_v})",
+      "added_terms": [
+        "\\nabla \\cdot [\\alpha(1-\\alpha)\\mathbf{U}_r] (interface compression)",
+        "\\dot{m}(\\frac{1}{\\rho_l} - \\frac{1}{\\rho_v}) (phase change source)"
+      ],
+      "significance": "Sharp interface tracking with phase change"
+    }
+  },
+  "mandatory_sections": {
+    "property_table": {
+      "required": true,
+      "format": "markdown table with at least 6 properties",
+      "include_both_phases": true
+    },
+    "equation_comparison": {
+      "required": true,
+      "format": "side-by-side or before/after",
+      "explain_modifications": true
+    },
+    "code_implementation": {
+      "required": true,
+      "must_include": [
+        "Lee model implementation",
+        "CSF surface tension",
+        "VOF transport with MULES",
+        "Complete solver structure"
+      ]
+    },
+    "visual_aids": {
+      "required": true,
+      "minimum": 3,
+      "types": ["system_diagram", "flowchart", "mermaid"]
+    }
+  },
+  "quality_checks": {
+    "domain_specificity": {
+      "mentions_r410a": "at least 10 times",
+      "property_table_present": true,
+      "modified_equations_shown": true,
+      "phase_change_discussed": true,
+      "surface_tension_discussed": true
+    },
+    "practical_applicability": {
+      "code_runs": true,
+      "properties_are_real": true,
+      "implementation_complete": true
+    }
+  },
+  "success_criteria": {
+    "content_quality": {
+      "connects_to_project": true,
+      "can_implement_directly": true,
+      "understands_modifications": true
+    },
+    "learner_outcomes": [
+      "Knows R410A properties by heart",
+      "Understands WHY equations need modification",
+      "Can implement phase change source terms",
+      "Can add surface tension to momentum equation",
+      "Can write complete R410A solver"
+    ]
+  }
+}

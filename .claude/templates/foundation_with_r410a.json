@@ -1,0 +1,101 @@
+{
+  "template_name": "foundation_with_r410a",
+  "phase": "Foundation Theory",
+  "phase_range": "Days 01-12",
+  "r410a_integration": "15%",
+  "total_target_lines": 800,
+  "description": "Template for Phase 1: Strong CFD foundation with light R410A motivation",
+  "structure": {
+    "parts": [
+      {
+        "id": "p1",
+        "title": "Theory Overview",
+        "ratio": 0.25,
+        "readability": "beginner",
+        "approach": "conceptual",
+        "content_type": "theory",
+        "guideline": "Introduction to the topic with physical concepts, use water/air examples for clarity"
+      },
+      {
+        "id": "p2",
+        "title": "Mathematical Foundation",
+        "ratio": 0.25,
+        "readability": "intermediate",
+        "approach": "derivation",
+        "content_type": "math",
+        "guideline": "Complete derivations with proper LaTeX, step-by-step explanations"
+      },
+      {
+        "id": "p3",
+        "title": "OpenFOAM Implementation",
+        "ratio": 0.25,
+        "readability": "advanced",
+        "approach": "practical",
+        "content_type": "code",
+        "guideline": "Class hierarchies, code architecture, verified snippets with file references"
+      },
+      {
+        "id": "p4",
+        "title": "Examples & Applications",
+        "ratio": 0.10,
+        "readability": "beginner",
+        "approach": "illustrative",
+        "content_type": "examples",
+        "guideline": "General examples using water/air to build fundamental CFD understanding"
+      }
+    ]
+  },
+  "part_5_structure": {
+    "id": "p5",
+    "title": "R410A Evaporator Application",
+    "ratio": 0.15,
+    "readability": "intermediate",
+    "approach": "application",
+    "content_type": "domain_specific",
+    "guideline": "Connect general theory to R410A evaporator simulation",
+    "sections": [
+      {
+        "section": "5.1",
+        "title": "Why it Matters for R410A Evaporator",
+        "target_lines": 30,
+        "content": "Explain connection to evaporator simulation, what specific challenges arise for R410A"
+      },
+      {
+        "section": "5.2",
+        "title": "R410A Property Data",
+        "target_lines": 20,
+        "content": "Relevant property table for this topic with actual values"
+      },
+      {
+        "section": "5.3",
+        "title": "Equation Modifications for R410A",
+        "target_lines": 40,
+        "content": "Standard vs R410A equations with explanations of added terms"
+      },
+      {
+        "section": "5.4",
+        "title": "Implementation Preview",
+        "target_lines": 30,
+        "content": "OpenFOAM code snippet showing R410A approach"
+      }
+    ]
+  },
+  "r410a_context": {
+    "application": "Evaporator two-phase flow",
+    "refrigerant": "R410A",
+    "conditions": "P = 1.0-1.2 MPa, T = 280-285 K",
+    "key_challenges": [
+      "Large density ratio (17:1)",
+      "Phase change at saturation conditions",
+      "Surface tension effects",
+      "Property variations with T and P"
+    ]
+  },
+  "quality_requirements": {
+    "min_theory_lines": 500,
+    "min_code_snippets": 3,
+    "all_formulas_verified": true,
+    "bilingual_headers": true,
+    "english_content": true
+  }
+}

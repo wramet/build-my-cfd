@@ -1,0 +1,21 @@
+flowchart TD
+    A[PDE] --> B{Discretization Type}
+    
+    B -->|Explicit| C[fvc Operations]
+    B -->|Implicit| D[fvm Operations]
+    
+    C --> E[Immediate Calculation]
+    E --> F[New GeometricField]
+    
+    D --> G[Matrix Assembly]
+    G --> H[Linear System]
+    H --> I[Matrix Solver]
+    I --> J[Updated Field]
+    
+    subgraph "Key Difference"
+        C
+        D
+    end
+    
+    style C fill:#e8f5e8
+    style D fill:#fff3e0

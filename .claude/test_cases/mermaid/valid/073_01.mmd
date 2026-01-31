@@ -1,0 +1,19 @@
+graph TD
+    subgraph "Navier-Stokes Equation Terms"
+        A["Rate of Momentum Change"] --> B["∂(ρU)/∂t"]
+        C["Convective Flux"] --> D["∇·(ρU⊗U)"]
+        E["Pressure Force"] --> F["-∇p"]
+        G["Viscous Force"] --> H["∇·τ"]
+        I["Gravity Force"] --> J["ρg"]
+        K["Other Body Forces"] --> L["f_body"]
+    end
+    
+    B --> M["="]
+    D --> M
+    F --> N["+"]
+    H --> N
+    J --> N
+    L --> N
+    
+    M --> O["Complete N-S Equation"]
+    N --> O

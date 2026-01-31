@@ -1,0 +1,12 @@
+flowchart TD
+    Skeleton[Skeleton JSON] --> Verifier[verifier agent<br/>DeepSeek R1]
+    Ground[Ground Truth] --> Verifier
+    Verifier --> Report{Verification Report}
+    Report -->|Pass ✅| Proceed[Proceed to Stage 5]
+    Report -->|Fail ❌| Issues[Specific Issues]
+    Issues --> Retry[Return to Stage 3]
+
+    style Verifier fill:#f8d7da,stroke:#dc3545
+    style Report fill:#fff3cd
+    style Proceed fill:#d4edda
+    style Retry fill:#f8d7da

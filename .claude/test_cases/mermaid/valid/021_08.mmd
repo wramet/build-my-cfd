@@ -1,0 +1,7 @@
+flowchart TD
+    A[Start: k=0, Initial guess ψ⁽⁰⁾] --> B{Check Convergence};
+    B -- No --> C[For i = 1 to n:<br>ψᵢ_new = bᵢ - Σⱼ≠ᵢ Aᵢⱼ ψⱼ⁽ᵏ⁾ / Aᵢᵢ];
+    C --> D[Update: ψ⁽ᵏ⁺¹⁾ = ψ_new];
+    D --> E[k = k + 1];
+    E --> B;
+    B -- Yes --> F[Return ψ⁽ᵏ⁾];

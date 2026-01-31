@@ -1,0 +1,15 @@
+flowchart TD
+    A["Start: ψ⁽⁰⁾, r⁽⁰⁾=b-Aψ⁽⁰⁾, p⁽⁰⁾=r⁽⁰⁾"] --> B["Choose r̃⁽⁰⁾ e.g., r̃⁽⁰⁾=r⁽⁰⁾"]
+    B --> C{"Converged?"}
+    
+    C -- No --> D["ρₖ = r̃⁽⁰⁾⋅r⁽ᵏ⁾, β=(ρₖ/ρₖ₋₁)(α/ωₖ₋₁)<br>p⁽ᵏ⁾ = r⁽ᵏ⁾ + β(p⁽ᵏ⁻¹⁾ - ωₖ₋₁v⁽ᵏ⁻¹⁾)"]
+    D --> E["Precondition: y = M⁻¹p⁽ᵏ⁾, v⁽ᵏ⁾=A y"]
+    E --> F["α = ρₖ / r̃⁽⁰⁾⋅v⁽ᵏ⁾<br>s = r⁽ᵏ⁾ - α v⁽ᵏ⁾"]
+    
+    F --> G["Precondition: z = M⁻¹s, t = A z"]
+    G --> H["ωₖ = t⋅s / t⋅t<br>ψ⁽ᵏ⁺¹⁾ = ψ⁽ᵏ⁾ + α y + ωₖ z"]
+    
+    H --> I["r⁽ᵏ⁺¹⁾ = s - ωₖ t"]
+    I --> C
+    
+    C -- Yes --> J["Return ψ⁽ᵏ⁾"]

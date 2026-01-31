@@ -1,0 +1,40 @@
+{
+  "day": "01",
+  "file": "/Users/woramet/Documents/th_new/daily_learning/Phase_01_Foundation_Theory/01.md",
+  "timestamp": "2026-01-31T20:55:47.453650",
+  "session_id": "qc_day01_205547",
+  "results": {
+    "phase1_syntax": {
+      "code_blocks": {
+        "count": 40,
+        "valid": true
+      },
+      "latex": {
+        "vec_count": 0,
+        "valid": true
+      },
+      "line_count": {
+        "count": 800,
+        "valid": true
+      },
+      "qc_script": {
+        "passed": true,
+        "output": "\u2705 Syntax Check Passed\n"
+      }
+    },
+    "phase2_localization": {
+      "thai_content": {
+        "char_count": 0,
+        "has_thai": false
+      }
+    },
+    "phase3_evaluation": {
+      "D1_technical": 80,
+      "D2_pedagogical": 80,
+      "D3_linguistic": 85,
+      "D4_formatting": 90,
+      "overall": 83.75
+    },
+    "phase4_output": {}
+  }
+}

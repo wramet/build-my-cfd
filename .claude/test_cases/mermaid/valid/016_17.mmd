@@ -1,0 +1,135 @@
+classDiagram
+    direction TB
+
+    note for MeshManager "Orchestrates I/O, refinement,\nand quality checking workflows."
+    note for MeshReader "Abstract base for format-specific readers.\nPolymorphic read() method."
+    note for MeshRefiner "Abstract base for refinement strategies.\nPolymorphic refine() method."
+
+    class MeshManager {
+        -polyMesh& mesh_
+        -unique_ptr~MeshReader~ reader_
+        -unique_ptr~MeshWriter~ writer_
+        -unique_ptr~MeshRefiner~ refiner_
+        -unique_ptr~MeshQualityChecker~ checker_
+        +MeshManager(polyMesh& mesh)
+        +readMesh(const fileName& file, const word& format) bool
+        +writeMesh(const fileName& file, const word& format) bool
+        +refineMesh(const dictionary& refineDict) bool
+        +checkQuality(const dictionary& qualityDict) QualityReport
+        +updateFVData() void
+    }
+
+    class MeshReader {
+        <<abstract>>
+        #polyMesh& targetMesh_
+        +MeshReader(polyMesh& mesh)
+        +virtual read(const fileName& file) bool = 0
+        #buildOwnerNeighbour() void
+        #calculateGeometry() void
+    }
+
+    class FoamMeshReader {
+        -labelList pointMap_
+        -labelList faceMap_
+        +read(const fileName& file) override bool
+        -readPoints(const fileName& pointsFile) void
+        -readFaces(const fileName& facesFile) void
+        -readBoundary(const fileName& boundaryFile) void
+    }
+
+    class GmshMeshReader {
+        -Map~label~ gmshToFoamType_
+        +read(const fileName& file) override bool
+        -parseNodes(IFstream& is) void
+        -parseElements(IFstream& is) void
+        -convertElement(const labelList& nodeIds, label gmshType) void
+    }
+
+    class MeshWriter {
+        <<abstract>>
+        #const polyMesh& sourceMesh_
+        +MeshWriter(const polyMesh& mesh)
+        +virtual write(const fileName& file) bool = 0
+    }
+
+    class FoamMeshWriter {
+        +write(const fileName& file) override bool
+        -writePoints(const fileName& pointsFile) void
+        -writeFaces(const fileName& facesFile) void
+        -writeBoundary(const fileName& boundaryFile) void
+    }
+
+    class VTKMeshWriter {
+        +write(const fileName& file) override bool
+        -writeUnstructuredGrid(OFstream& os) void
+        -writeCellData(OFstream& os) void
+    }
+
+    class MeshRefiner {
+        <<abstract>>
+        #polyMesh& targetMesh_
+        #labelList refinementLevel_
+        +MeshRefiner(polyMesh& mesh)
+        +virtual refine(const labelList& cellsToRefine) bool = 0
+        #splitHexCell(label cellI, DynamicList~point~& newPoints, DynamicList~face~& newFaces, DynamicList~cell~& newCells) void
+        #createInternalFaces(const label parentCell, const labelList& childCells, DynamicList~face~& newFaces) void
+    }
+
+    class FieldGradientRefiner {
+        -const volScalarField& field_
+        -scalar gradientThreshold_
+        -scalar maxRefinementLevel_
+        +FieldGradientRefiner(polyMesh& mesh, const volScalarField& field, const dictionary& dict)
+        +refine(const labelList& cellsToRefine) override bool
+        -calculateGradientCriteria() labelList
+    }
+
+    class RegionBasedRefiner {
+        -boundBox refinementRegion_
+        -label regionLevel_
+        +RegionBasedRefiner(polyMesh& mesh, const boundBox& region, label level)
+        +refine(const labelList& cellsToRefine) override bool
+        -isInsideRegion(const point& cellCentre) bool
+    }
+
+    class MeshQualityChecker {
+        -const polyMesh& mesh_
+        -scalar nonOrthoThreshold_
+        -scalar skewThreshold_
+        -scalar aspectRatioThreshold_
+        +MeshQualityChecker(const polyMesh& mesh, const dictionary& dict)
+        +checkNonOrthogonality() scalarField
+        +checkSkewness() scalarField
+        +checkAspectRatio() scalarField
+        +checkVolumes() scalarField
+        +generateReport() QualityReport
+        -calculateFacePyramidVolume(label faceI, label cellI) scalar
+    }
+
+    class QualityReport {
+        -scalar maxNonOrthogonality_
+        -scalar maxSkewness_
+        -scalar maxAspectRatio_
+        -label nNegativeVolumes_
+        -labelList badCells_
+        +printSummary(Ostream& os) void
+        +getBadCells() const labelList
+        +isAcceptable() const bool
+    }
+
+    MeshManager --> MeshReader : owns
+    MeshManager --> MeshWriter : owns
+    MeshManager --> MeshRefiner : owns
+    MeshManager --> MeshQualityChecker : owns
+    MeshManager --> polyMesh : references
+
+    MeshReader <|-- FoamMeshReader
+    MeshReader <|-- GmshMeshReader
+
+    MeshWriter <|-- FoamMeshWriter
+    MeshWriter <|-- VTKMeshWriter
+
+    MeshRefiner <|-- FieldGradientRefiner
+    MeshRefiner <|-- RegionBasedRefiner
+
+    MeshQualityChecker --> QualityReport : creates

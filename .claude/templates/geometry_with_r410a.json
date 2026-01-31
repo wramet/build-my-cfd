@@ -1,0 +1,101 @@
+{
+  "template_name": "geometry_with_r410a",
+  "phase": "Geometry & Mesh",
+  "phase_range": "Days 13-19",
+  "r410a_integration": "20%",
+  "total_target_lines": 900,
+  "description": "Template for Phase 2: Meshing fundamentals with R410A two-phase flow requirements",
+  "structure": {
+    "parts": [
+      {
+        "id": "p1",
+        "title": "Meshing Fundamentals",
+        "ratio": 0.25,
+        "readability": "beginner",
+        "approach": "conceptual",
+        "content_type": "theory",
+        "guideline": "Introduction to meshing concepts and quality metrics"
+      },
+      {
+        "id": "p2",
+        "title": "Quality Metrics",
+        "ratio": 0.25,
+        "readability": "intermediate",
+        "approach": "analytical",
+        "content_type": "math",
+        "guideline": "Mesh quality parameters, orthogonality, non-orthogonality, aspect ratio"
+      },
+      {
+        "id": "p3",
+        "title": "OpenFOAM Mesh Tools",
+        "ratio": 0.25,
+        "readability": "advanced",
+        "approach": "practical",
+        "content_type": "code",
+        "guideline": "blockMesh, snappyHexMesh, refinement settings"
+      },
+      {
+        "id": "p4",
+        "title": "Best Practices",
+        "ratio": 0.05,
+        "readability": "intermediate",
+        "approach": "advisory",
+        "content_type": "guidelines",
+        "guideline": "General meshing best practices for CFD"
+      }
+    ]
+  },
+  "part_5_structure": {
+    "id": "p5",
+    "title": "R410A Evaporator Mesh Requirements",
+    "ratio": 0.20,
+    "readability": "advanced",
+    "approach": "application",
+    "content_type": "domain_specific",
+    "guideline": "Mesh requirements for two-phase R410A evaporator flow",
+    "sections": [
+      {
+        "section": "5.1",
+        "title": "Liquid Film Resolution",
+        "target_lines": 50,
+        "content": "Mesh requirements to resolve liquid film (~100 μm thick) in evaporator tube"
+      },
+      {
+        "section": "5.2",
+        "title": "Interface Capturing",
+        "target_lines": 60,
+        "content": "VOF interface resolution, compression, refinement strategies"
+      },
+      {
+        "section": "5.3",
+        "title": "AMR for Phase Change",
+        "target_lines": 50,
+        "content": "Adaptive mesh refinement for phase change regions"
+      },
+      {
+        "section": "5.4",
+        "title": "blockMeshDict Example",
+        "target_lines": 20,
+        "content": "OpenFOAM blockMeshDict for evaporator tube geometry"
+      }
+    ]
+  },
+  "r410a_context": {
+    "application": "Evaporator tube meshing",
+    "refrigerant": "R410A",
+    "mesh_challenges": [
+      "Liquid film thickness ~100 μm",
+      "Interface must be sharply resolved",
+      "Boundary layer meshing for heat transfer",
+      "Refinement at phase change locations"
+    ],
+    "target_y_plus": "< 1 for phase change heat transfer"
+  },
+  "quality_requirements": {
+    "min_theory_lines": 400,
+    "min_code_snippets": 4,
+    "all_formulas_verified": true,
+    "bilingual_headers": true,
+    "english_content": true
+  }
+}

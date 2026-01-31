@@ -1,0 +1,73 @@
+# MCP Configuration for DeepSeek Integration
+# This file controls how and when MCP tools are used for DeepSeek model calls
+
+# Global MCP settings
+mcp:
+  # Enable/disable MCP usage globally
+  enabled: true
+
+  # Automatically fall back to direct API wrapper if MCP is unavailable
+  fallback_to_wrapper: true
+
+  # Timeout for MCP calls in seconds
+  timeout: 120
+
+# Walkthrough skill specific settings
+walkthrough:
+  # Use MCP for theory generation and analysis
+  use_mcp_for_theory: true
+
+  # Use MCP for code analysis and generation
+  use_mcp_for_code: true
+
+  # Use MCP for verification steps
+  use_mcp_for_verification: true
+
+# Content creation skill specific settings
+content_creation:
+  # Use MCP for skeleton generation (interactive refinement)
+  use_mcp_for_skeleton: true
+
+  # Use MCP for content verification (source code access)
+  use_mcp_for_verification: true
+
+  # Use MCP for content expansion (may be slower due to interactive nature)
+  use_mcp_for_generation: false
+
+  # Use direct API wrapper for bulk content generation (faster)
+  use_wrapper_for_bulk: true
+
+# Model-specific settings
+models:
+  # DeepSeek Chat model settings
+  deepseek-chat:
+    # Preferred method for calling this model
+    preferred_method: auto  # Options: mcp, wrapper, auto
+
+    # Max tokens for responses
+    max_tokens: 4000
+
+    # Temperature for responses
+    temperature: 0.7
+
+  # DeepSeek Reasoner model settings
+  deepseek-reasoner:
+    # Preferred method for calling this model
+    preferred_method: auto  # Options: mcp, wrapper, auto
+
+    # Max tokens for responses
+    max_tokens: 8000
+
+    # Temperature for responses (lower for more analytical output)
+    temperature: 0.3
+
+# Logging settings
+logging:
+  # Log MCP calls
+  log_mcp_calls: true
+
+  # Log fallback to wrapper
+  log_fallback: true
+
+  # Log level: DEBUG, INFO, WARNING, ERROR
+  level: INFO

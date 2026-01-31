@@ -1,0 +1,106 @@
+{
+  "template_name": "r410a_implementation",
+  "phase": "VOF & Phase Change",
+  "phase_range": "Days 50-77",
+  "r410a_integration": "80%",
+  "structure_flip": true,
+  "total_target_lines": 1500,
+  "description": "Template for Phase 4: STRUCTURE FLIP - 20% theory + 80% R410A implementation",
+  "structure": {
+    "parts": [
+      {
+        "id": "p1",
+        "title": "Theory Review",
+        "ratio": 0.10,
+        "readability": "beginner",
+        "approach": "summary",
+        "content_type": "theory_summary",
+        "guideline": "Brief review of key concepts, assume reader knows fundamentals"
+      },
+      {
+        "id": "p2",
+        "title": "R410A Implementation",
+        "ratio": 0.40,
+        "readability": "advanced",
+        "approach": "implementation",
+        "content_type": "implementation",
+        "guideline": "Detailed R410A-specific implementation with full code"
+      },
+      {
+        "id": "p3",
+        "title": "Code Architecture",
+        "ratio": 0.30,
+        "readability": "advanced",
+        "approach": "architectural",
+        "content_type": "code_structure",
+        "guideline": "Complete code architecture for R410A evaporator simulation"
+      },
+      {
+        "id": "p4",
+        "title": "Validation & Testing",
+        "ratio": 0.00,
+        "readability": "advanced",
+        "approach": "validation",
+        "content_type": "testing",
+        "guideline": "Merged into Part 5 - comprehensive validation approach"
+      }
+    ]
+  },
+  "part_5_structure": {
+    "id": "p5",
+    "title": "Complete R410A Implementation",
+    "ratio": 0.20,
+    "readability": "expert",
+    "approach": "complete",
+    "content_type": "full_implementation",
+    "guideline": "Complete working R410A implementation with validation",
+    "sections": [
+      {
+        "section": "5.1",
+        "title": "Detailed Implementation",
+        "target_lines": 150,
+        "content": "Full implementation details with all code, file by file breakdown"
+      },
+      {
+        "section": "5.2",
+        "title": "Property Database Integration",
+        "target_lines": 100,
+        "content": "CoolProp or custom property tables for R410A, lookup tables"
+      },
+      {
+        "section": "5.3",
+        "title": "Full Code Examples",
+        "target_lines": 100,
+        "content": "Complete working OpenFOAM code files for R410A evaporator"
+      },
+      {
+        "section": "5.4",
+        "title": "Validation Results",
+        "target_lines": 50,
+        "content": "Expected results, comparison with literature/correlations"
+      }
+    ]
+  },
+  "r410a_context": {
+    "application": "Complete R410A evaporator simulation",
+    "refrigerant": "R410A",
+    "implementation_focus": [
+      "Surface tension: CSF model with curvature calculation",
+      "Phase change: Lee model or thermal model",
+      "Interface compression: MULES with compression term",
+      "Turbulence: k-omega SST for wall-bounded flow",
+      "Property tables: T/P-dependent R410A properties"
+    ],
+    "structure_flip_note": "This phase flips to 80% R410A implementation - theory is assumed learned from previous phases"
+  },
+  "quality_requirements": {
+    "min_theory_lines": 200,
+    "min_code_snippets": 10,
+    "all_formulas_verified": true,
+    "bilingual_headers": true,
+    "english_content": true,
+    "include_class_diagrams": true,
+    "include_flow_charts": true,
+    "working_code_examples": true
+  }
+}

@@ -1,174 +1,55 @@
 {
-  "day": "01",
-  "title": "Governing Equations Foundation",
-  "date": "2026-01-05",
-  "difficulty": "hardcore",
-  
+  "day": 1,
+  "topic": "Introduction to CFD and OpenFOAM",
   "learning_objectives": [
-    {
-      "verb": "เข้าใจ (Understand)",
-      "topic": "Expansion term ในสมการ Continuity",
-      "equation": "∇·U = ṁ(1/ρv - 1/ρl)",
-      "importance": "Critical for phase change - ไม่มีเทอมนี้ solver จะ diverge"
-    },
-    {
-      "verb": "ออกแบบ (Design)",
-      "topic": "Core data structures สำหรับ CFD engine",
-      "components": ["Mesh", "Fields", "BoundaryConditions"]
-    },
-    {
-      "verb": "Implement",
-      "topic": "Pressure-velocity coupling (SIMPLE/PISO)",
-      "challenge": "การจัดการ source term จากการเปลี่ยนสถานะ"
-    }
+    "Understand the fundamental concepts and applications of Computational Fluid Dynamics (CFD).",
+    "Grasp the general workflow of a CFD simulation (Pre-processing, Solving, Post-processing).",
+    "Learn the history, philosophy, and open-source nature of OpenFOAM.",
+    "Navigate the OpenFOAM directory structure and understand basic file conventions.",
+    "Run a first, simple tutorial case using the standard OpenFOAM workflow."
   ],
-  
-  "theory_sections": [
+  "sections": [
     {
-      "id": "1.1",
-      "title_en": "Continuity Equation with Phase Change",
-      "title_th": "สมการ Continuity ที่มีการเปลี่ยนสถานะ",
-      "equations": [
-        {
-          "name": "General form",
-          "latex": "\\frac{\\partial \\rho}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U}) = 0",
-          "explanation": "Conservation of mass ในรูปแบบทั่วไป"
-        },
-        {
-          "name": "With phase change",
-          "latex": "\\nabla \\cdot \\mathbf{U} = \\dot{m} \\left( \\frac{1}{\\rho_v} - \\frac{1}{\\rho_l} \\right)",
-          "explanation": "Expansion term - ทำให้ divergence ไม่เป็นศูนย์"
-        }
-      ],
-      "variables": [
-        {"symbol": "ṁ", "name": "mass transfer rate", "unit": "kg/m³·s"},
-        {"symbol": "ρv", "name": "vapor density", "unit": "kg/m³"},
-        {"symbol": "ρl", "name": "liquid density", "unit": "kg/m³"}
-      ],
-      "warning": "Expansion term นี้ทำให้เกิดการเปลี่ยนแปลง velocity อย่างรุนแรงที่ interface - ต้องจัดการใน pressure equation"
-    },
-    {
-      "id": "1.2",
-      "title_en": "Momentum Equation (Navier-Stokes)",
-      "title_th": "สมการ Momentum (Navier-Stokes)",
-      "equations": [
-        {
-          "name": "Incompressible form",
-          "latex": "\\frac{\\partial \\mathbf{U}}{\\partial t} + \\nabla \\cdot (\\mathbf{U} \\mathbf{U}) = -\\frac{1}{\\rho} \\nabla p + \\nu \\nabla^2 \\mathbf{U}",
-          "explanation": "Newton's second law for fluid flow"
-        }
-      ],
-      "variables": [
-        {"symbol": "U", "name": "velocity vector", "unit": "m/s"},
-        {"symbol": "p", "name": "pressure", "unit": "Pa"},
-        {"symbol": "ν", "name": "kinematic viscosity", "unit": "m²/s"}
-      ],
-      "warning": "Nonlinear convection term requires appropriate discretization scheme (upwind, TVD) for stability"
-    },
-    {
-      "id": "1.3",
-      "title_en": "Energy Equation with Latent Heat",
-      "title_th": "สมการ Energy ที่มี latent heat",
-      "equations": [
-        {
-          "name": "Temperature form",
-          "latex": "\\frac{\\partial (\\rho c_p T)}{\\partial t} + \\nabla \\cdot (\\rho c_p \\mathbf{U} T) = \\nabla \\cdot (k \\nabla T) + \\dot{q}_{latent}",
-          "explanation": "Conservation of energy including phase‑change heat release"
-        }
-      ],
-      "variables": [
-        {"symbol": "T", "name": "temperature", "unit": "K"},
-        {"symbol": "cp", "name": "specific heat", "unit": "J/(kg·K)"},
-        {"symbol": "k", "name": "thermal conductivity", "unit": "W/(m·K)"},
-        {"symbol": "q̇_latent", "name": "latent heat source", "unit": "W/m³"}
-      ],
-      "warning": "Latent heat source must be coupled with mass transfer rate ṁ to ensure energy conservation"
-    }
-  ],
-  
-  "openfoam_analysis": [
-    {
-      "class": "volScalarField",
-      "header": "src/finiteVolume/fields/volFields/volFields.H",
-      "purpose": "เก็บ scalar field (p, T, alpha) ที่ cell centers",
-      "key_members": [
-        {"name": "internalField_", "type": "Field<scalar>", "purpose": "Internal field values"},
-        {"name": "boundaryField_", "type": "GeometricBoundaryField", "purpose": "Boundary conditions"}
-      ],
-      "key_methods": [
-        {"name": "correctBoundaryConditions()", "purpose": "Update BC values after solve"},
-        {"name": "component()", "purpose": "Extract component for tensors"}
-      ],
-      "usage_example": "volScalarField p(IOobject(\"p\", ...), mesh);"
-    },
-    {
-      "class": "fvMatrix",
-      "header": "src/finiteVolume/fvMatrices/fvMatrix/fvMatrix.H",
-      "purpose": "เก็บ system of linear equations (Ax=b) จากการ discretize",
-      "key_members": [
-        {"name": "diag()", "type": "scalarField", "purpose": "Diagonal coefficients"},
-        {"name": "upper()", "type": "scalarField", "purpose": "Upper triangular coefficients"},
-        {"name": "lower()", "type": "scalarField", "purpose": "Lower triangular coefficients"},
-        {"name": "source()", "type": "scalarField", "purpose": "Source vector b"}
-      ],
-      "key_methods": [
-        {"name": "solve()", "purpose": "Solve Ax=b using linear solver"},
-        {"name": "flux()", "purpose": "Calculate face flux consistent with matrix"}
-      ]
-    }
-  ],
-
-  "implementation_skeleton": {
-    "classes": [
-      {
-        "name": "Solver",
-        "methods": [
-          {"name": "solveMomentum()", "purpose": "Construct and solve UEqn"},
-          {"name": "solvePressure()", "purpose": "Construct and solve pEqn with expansion source"},
-          {"name": "solveAlpha()", "purpose": "Solve multiphase fraction"},
-          {"name": "solveEnergy()", "purpose": "Solve temperature equation"}
-        ],
-        "critical_implementation": "solvePressure() MUST include mDot*(1/rho_v - 1/rho_l) as source"
-      }
-    ],
-    "algorithm_steps": [
-      "1. solveMomentum() → U*",
-      "2. solvePressure() → p (with expansion source)",
-      "3. Correct velocity: U = U* - grad(p)/rho",
-      "4. solveAlpha() → alpha",
-      "5. solveEnergy() → T",
-      "6. updateProperties()",
-      "7. Check convergence"
-    ]
-  },
-  
-  "concept_checks": [
-    {
-      "question": "ทำไมสมการ Continuity ถึงมีเทอมทางขวาที่ไม่เป็นศูนย์?",
-      "answer_key_points": [
-        "Phase change causes volume expansion/contraction",
-        "R410A density ratio ~22:1 means huge expansion",
-        "Must be included in pressure equation to avoid divergence"
+      "header": "Core Theory",
+      "subsections": [
+        "What is CFD? Governing Equations (Navier-Stokes).",
+        "CFD Workflow: Geometry, Meshing, Physics Setup, Solving, Analysis.",
+        "Finite Volume Method (FVM) Overview: Discretization, Conservation."
       ]
     },
     {
-      "question": "fvMatrix เก็บข้อมูล sparse matrix อย่างไร?",
-      "answer_key_points": [
-        "LDU format: diagonal, upper, lower coeffs",
-        "Uses owner-neighbor addressing from mesh"
+      "header": "OpenFOAM Reference",
+      "subsections": [
+        "OpenFOAM History and Open-Source Philosophy.",
+        "Directory Structure: $FOAM_RUN, $FOAM_TUTORIALS, system/, constant/, 0/.",
+        "File Conventions: Dictionaries, Keywords, Header."
+      ]
+    },
+    {
+      "header": "Implementation",
+      "subsections": [
+        "Setting up the Environment: sourcing bashrc, foamVersion.",
+        "Running a First Tutorial: cavity case using blockMesh, icoFoam, paraFoam.",
+        "Basic Terminal Commands: run, foamListTimes, foamLog."
+      ]
+    },
+    {
+      "header": "Exercises",
+      "subsections": [
+        "Navigate the cavity tutorial directories and identify key files.",
+        "Modify the cavity case endTime and writeInterval, then re-run.",
+        "Use paraFoam to visualize the velocity field and pressure."
       ]
     }
   ],
-  
-  "pitfalls": [
-    {
-      "symptom": "Solver diverges",
-      "cause": "Missing expansion term in pressure equation",
-      "fix": "Add mDot*(1/rho_v - 1/rho_l) to pEqn source"
-    }
+  "key_classes": [
+    "fvMesh",
+    "Time",
+    "volVectorField",
+    "volScalarField"
   ],
-
-  "connections": {
-    "key_link": "Today's equations → Day 02's discretization"
-  }
+  "key_formulas": [
+    "Continuity Equation: \u2207\u00b7U = 0",
+    "Incompressible Navier-Stokes: \u2202U/\u2202t + (U\u00b7\u2207)U = -\u2207p/\u03c1 + \u03bd\u2207\u00b2U"
+  ]
 }

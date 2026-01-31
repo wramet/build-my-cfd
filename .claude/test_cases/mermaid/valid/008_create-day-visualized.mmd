@@ -1,0 +1,12 @@
+flowchart TD
+    Content[Phase_01/XX.md] --> Verifier[verifier agent<br/>DeepSeek R1]
+    Ground[Ground Truth] --> Verifier
+    Verifier --> Final{Final Report}
+    Final -->|Pass ✅| QC[qc_syntax_check.py]
+    QC --> Done[Ready to Publish]
+    Final -->|Fail ❌| Fix[Fix Issues]
+
+    style Verifier fill:#f8d7da,stroke:#dc3545
+    style QC fill:#e1f5e1,stroke:#4caf50
+    style Done fill:#d4edda,stroke:#28a745
+    style Fix fill:#f8d7da

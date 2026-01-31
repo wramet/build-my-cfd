@@ -1,302 +1,62 @@
 {
-  "day": "11",
-  "title": "Phase Change Theory (Lee Model)",
-  "date": "2026-01-11",
-  "difficulty": "hardcore",
-
-  "learning_objectives": [
+  "title": "Day 11: Phase Change Theory",
+  "topic": "Evaporation Modeling",
+  "sections": [
     {
-      "verb": "เข้าใจ (Understand)",
-      "topic": "หลักการของ Lee Model สำหรับ mass transfer ระหว่าง phase ในการเปลี่ยนสถานะ (evaporation/condensation)",
-      "equation": "ṁ = r_coeff * α_l ρ_l (T - T_sat) / T_sat (evaporation), ṁ = r_coeff * α_v ρ_v (T_sat - T) / T_sat (condensation)",
-      "importance": "Lee Model เป็น empirical mass transfer model ที่ใช้ temperature-based driving force ในการคำนวณ mass transfer rate ระหว่าง liquid และ vapor phase"
+      "title": "Introduction to Phase Change",
+      "subsections": [
+        "Phase change base class: Base class for all phase change models",
+        "Latent heat of vaporization",
+        "Saturation conditions",
+        "Evaporation in evaporator tubes"
+      ]
     },
     {
-      "verb": "ออกแบบ (Design)",
-      "topic": "Source term linearization (S_u, S_p) ในสมการ continuity และ energy เพื่อรักษา numerical stability",
-      "components": ["Mass Transfer Rate Calculation", "Source Term Linearization", "Energy Equation Coupling", "Boundedness Enforcement"]
+      "title": "Lee Model for Mass Transfer",
+      "subsections": [
+        "Lee evaporation model formula",
+        "Evaporation coefficient",
+        "Mass transfer rate calculation: m_dot = alpha × Y × C × |nabla alpha|",
+        "When to use Lee model"
+      ]
     },
     {
-      "verb": "Implement",
-      "topic": "Phase change implementation ใน OpenFOAM framework พร้อม source term handling ใน pEqn และ TEqn",
-      "challenge": "การรักษา numerical stability เมื่อมี mass transfer ขนาดใหญ่ และการ couple ระหว่าง continuity, momentum, และ energy equations"
+      "title": "Latent Heat Calculations",
+      "subsections": [
+        "Latent heat: L = h2_i - h1_i",
+        "Latent heat fraction: Lfraction = kappa2 / (kappa1 + kappa2)",
+        "Phase change temperature: Tchange = T1 if m_dot > 0, T2 if m_dot < 0, (T1 + T2)/2 if m_dot = 0",
+        "Thermal conductivity weighting"
+      ]
+    },
+    {
+      "title": "Energy Equation with Phase Change",
+      "subsections": [
+        "Direct enthalpy transfer: Energy source terms: direct m_dot × h",
+        "Latent heat source term for Phase 1: -(1 - Lfraction) × m_dot × L",
+        "Latent heat source term for Phase 2: -Lfraction × m_dot × L",
+        "Coupling with continuity",
+        "Energy balance check"
+      ]
+    },
+    {
+      "title": "The Expansion Term",
+      "subsections": [
+        "Why expansion is critical",
+        "Volume change: nabla dot U = m_dot (1/rho_v - 1/rho_l)",
+        "Implementation in pressure equation",
+        "Testing with artificial source"
+      ]
     }
   ],
-
-  "theory_sections": [
-    {
-      "id": "11.1",
-      "title_en": "Lee Model for Mass Transfer Rate",
-      "title_th": "Lee Model สำหรับอัตราการเปลี่ยนมวล",
-      "equations": [
-        {
-          "name": "Evaporation mass transfer rate",
-          "latex": "\\dot{m}_{lv} = r_{coeff} \\, \\alpha_l \\rho_l \\frac{\\max(T - T_{sat}, 0)}{T_{sat}}",
-          "explanation": "Mass transfer rate จาก liquid ไป vapor เมื่อ T > T_sat โดย r_coeff คือ empirical coefficient (หน่วย 1/s) ที่ควบคุมอัตราการเปลี่ยนสถานะ"
-        },
-        {
-          "name": "Condensation mass transfer rate",
-          "latex": "\\dot{m}_{vl} = r_{coeff} \\, \\alpha_v \\rho_v \\frac{\\max(T_{sat} - T, 0)}{T_{sat}}",
-          "explanation": "Mass transfer rate จาก vapor ไป liquid เมื่อ T < T_sat ใช้ coefficient เดียวกันกับ evaporation แต่ใช้ properties ของ vapor phase"
-        },
-        {
-          "name": "Net mass transfer source term",
-          "latex": "S_{m,l} = -\\dot{m}_{lv} + \\dot{m}_{vl}, \\quad S_{m,v} = \\dot{m}_{lv} - \\dot{m}_{vl}",
-          "explanation": "Source terms ในสมการ continuity ของแต่ละ phase โดยมีเครื่องหมายตรงข้ามกันเพื่อรักษา total mass conservation"
-        }
-      ],
-      "variables": [
-        {"symbol": "ṁ_{lv}, ṁ_{vl}", "name": "mass transfer rate", "unit": "kg/m³·s"},
-        {"symbol": "r_coeff", "name": "mass transfer intensity coefficient", "unit": "1/s"},
-        {"symbol": "α_l, α_v", "name": "volume fraction of liquid/vapor", "unit": "dimensionless"},
-        {"symbol": "ρ_l, ρ_v", "name": "density of liquid/vapor", "unit": "kg/m³"},
-        {"symbol": "T_sat", "name": "saturation temperature", "unit": "K"}
-      ],
-      "warning": "ค่า r_coeff ต้องเลือกให้เหมาะสม: ค่ามากเกินไปทำให้ numerical instability, ค่าน้อยเกินไปทำให้ phase change ช้าเกินจริง; typical range 0.1-100 1/s"
-    },
-    {
-      "id": "11.2",
-      "title_en": "Source Term Linearization (S_u, S_p)",
-      "title_th": "การทำให้ Source Term เป็นเชิงเส้น (S_u, S_p)",
-      "equations": [
-        {
-          "name": "Linearized source term form",
-          "latex": "S(\\phi) = S_u + S_p \\phi",
-          "explanation": "รูปแบบมาตรฐานสำหรับ linearization ของ source term ใน finite volume method โดย S_p ≤ 0 เพื่อรักษา diagonal dominance"
-        },
-        {
-          "name": "Linearization for phase continuity",
-          "latex": "S_{\\alpha,l} = S_{u,\\alpha,l} + S_{p,\\alpha,l} \\alpha_l",
-          "explanation": "Linearized source term สำหรับสมการ volume fraction ของ liquid phase มาจาก mass transfer rate"
-        },
-        {
-          "name": "Linearization for energy equation",
-          "latex": "S_T = S_{u,T} + S_{p,T} T",
-          "explanation": "Linearized source term สำหรับสมการ energy ที่มาจาก latent heat release/absorption"
-        },
-        {
-          "name": "Latent heat source term",
-          "latex": "S_{energy} = \\dot{m}_{lv} h_{lv} - \\dot{m}_{vl} h_{lv}",
-          "explanation": "Source term ใน energy equation จาก latent heat ของการเปลี่ยนสถานะ โดย h_lv คือ latent heat"
-        }
-      ],
-      "variables": [
-        {"symbol": "S_u", "name": "constant part of source term", "unit": "varies"},
-        {"symbol": "S_p", "name": "coefficient part of source term", "unit": "varies"},
-        {"symbol": "h_lv", "name": "latent heat of vaporization", "unit": "J/kg"}
-      ],
-      "warning": "ต้องรักษา S_p ≤ 0 เสมอเพื่อให้ matrix diagonally dominant; ถ้า S_p > 0 อาจทำให้ solver diverge"
-    },
-    {
-      "id": "11.3",
-      "title_en": "Energy Equation Coupling",
-      "title_th": "การเชื่อมต่อสมการพลังงาน",
-      "equations": [
-        {
-          "name": "Energy equation with phase change",
-          "latex": "\\frac{\\partial (\\rho c_p T)}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U} c_p T) = \\nabla \\cdot (k \\nabla T) + S_{energy}",
-          "explanation": "สมการ energy ที่มี source term จาก latent heat ของ phase change; ใช้ mixture properties (ρ, c_p, k)"
-        },
-        {
-          "name": "Mixture specific heat",
-          "latex": "c_p = \\alpha_l c_{p,l} + \\alpha_v c_{p,v}",
-          "explanation": "Specific heat ของ mixture คำนวณจาก weighted average ตาม volume fraction"
-        },
-        {
-          "name": "Mixture thermal conductivity",
-          "latex": "k = \\alpha_l k_l + \\alpha_v k_v",
-          "explanation": "Thermal conductivity ของ mixture (arithmetic mean) หรืออาจใช้ harmonic mean สำหรับ interface regions"
-        },
-        {
-          "name": "Temperature-enthalpy coupling",
-          "latex": "h = c_p T + \\alpha_l h_{lv}",
-          "explanation": "Alternative formulation ใช้ enthalpy แทน temperature เพื่อรวม latent heat โดยตรง"
-        }
-      ],
-      "variables": [
-        {"symbol": "c_p", "name": "mixture specific heat", "unit": "J/kg·K"},
-        {"symbol": "k", "name": "mixture thermal conductivity", "unit": "W/m·K"},
-        {"symbol": "h", "name": "mixture enthalpy", "unit": "J/kg"}
-      ],
-      "warning": "Energy equation ต้อง solve พร้อมกับ continuity และ alpha equations; strong coupling อาจต้องการ under-relaxation หรือ coupled solver"
-    },
-    {
-      "id": "11.4",
-      "title_en": "Pressure Equation with Phase Change",
-      "title_th": "สมการความดันที่มีการเปลี่ยนสถานะ",
-      "equations": [
-        {
-          "name": "Continuity equation with mass transfer",
-          "latex": "\\nabla \\cdot \\mathbf{U} = \\dot{m} \\left( \\frac{1}{\\rho_v} - \\frac{1}{\\rho_l} \\right)",
-          "explanation": "Divergence ของ velocity field ไม่เป็นศูนย์เมื่อมี phase change เนื่องจาก density difference ระหว่าง phase"
-        },
-        {
-          "name": "Pressure equation source term",
-          "latex": "S_p = \\dot{m} \\left( \\frac{1}{\\rho_v} - \\frac{1}{\\rho_l} \\right)",
-          "explanation": "Source term ใน pressure equation ที่มาจาก volume expansion/contraction ระหว่าง phase change"
-        },
-        {
-          "name": "Linearized pressure source",
-          "latex": "S_{p,pressure} = S_{u,p} + S_{p,p} p",
-          "explanation": "Linearized form ของ pressure source term เพื่อรักษา numerical stability ใน pressure-velocity coupling"
-        },
-        {
-          "name": "Momentum equation with phase change",
-          "latex": "\\frac{\\partial (\\rho \\mathbf{U})}{\\partial t} + \\nabla \\cdot (\\rho \\mathbf{U} \\mathbf{U}) = -\\nabla p + \\nabla \\cdot \\tau + \\rho \\mathbf{g} + \\mathbf{S}_{momentum}",
-          "explanation": "Momentum equation อาจมี source term จาก momentum transfer ระหว่าง phase (มักถูกละเลยใน Lee model)"
-        }
-      ],
-      "variables": [
-        {"symbol": "ṁ", "name": "net mass transfer rate", "unit": "kg/m³·s"},
-        {"symbol": "S_p", "name": "source term in pressure equation", "unit": "1/s"},
-        {"symbol": "τ", "name": "stress tensor", "unit": "Pa"}
-      ],
-      "warning": "Source term ใน pressure equation มีขนาดใหญ่เมื่อ density ratio สูง (เช่น R410A ~22:1) ทำให้ numerical stiffness; ต้องใช้ under-relaxation ที่เหมาะสม"
-    }
-  ],
-
-  "openfoam_analysis": [
-    {
-      "class": "phaseChangeTwoPhaseMixture",
-      "header": "src/transportModels/twoPhaseMixture/phaseChangeTwoPhaseMixture/phaseChangeTwoPhaseMixture.H",
-      "purpose": "Base class สำหรับ phase change models ใน two-phase mixtures รวมถึง Lee model",
-      "key_members": [
-        {"name": "rCoeff_", "type": "dimensionedScalar", "purpose": "Mass transfer intensity coefficient r_coeff"},
-        {"name": "TSat_", "type": "dimensionedScalar", "purpose": "Saturation temperature T_sat"},
-        {"name": "mDot_", "type": "volScalarField", "purpose": "Mass transfer rate field ṁ"}
-      ],
-      "key_methods": [
-        {"name": "mDot() const", "purpose": "Return mass transfer rate field"},
-        {"name": "correct()", "purpose": "Update mass transfer rate ตาม T และ alpha fields ปัจจุบัน"},
-        {"name": "SuSp()", "purpose": "Return linearized source terms (S_u, S_p) สำหรับ alpha equation"}
-      ],
-      "usage_example": "phaseChangeTwoPhaseMixture->correct(); volScalarField mDot = phaseChangeTwoPhaseMixture->mDot();"
-    },
-    {
-      "class": "fvScalarMatrix",
-      "header": "src/finiteVolume/fvMatrices/fvScalarMatrix/fvScalarMatrix.H",
-      "purpose": "Matrix representation สำหรับ scalar equation ที่รองรับ source term linearization",
-      "key_members": [
-        {"name": "source_", "type": "Field<scalar>", "purpose": "Source vector (b)"},
-        {"name": "diag_", "type": "Field<scalar>", "purpose": "Diagonal coefficients (A)"},
-        {"name": "upper_", "type": "Field<scalar>", "purpose": "Upper matrix coefficients"},
-        {"name": "lower_", "type": "Field<scalar>", "purpose": "Lower matrix coefficients"}
-      ],
-      "key_methods": [
-        {"name": "operator+=(const DimensionedField<scalar, volMesh>& Su)", "purpose": "Add explicit source term S_u"},
-        {"name": "operator+=(const volScalarField::Internal& Sp)", "purpose": "Add implicit source term S_p"},
-        {"name": "relax(scalar alpha)", "purpose": "Apply under-relaxation เพื่อรักษา stability"}
-      ],
-      "algorithm_integration": "ถูกใช้ใน alphaEqn.H และ TEqn.H เพื่อเพิ่ม linearized source terms จาก phase change"
-    },
-    {
-      "class": "twoPhaseMixtureThermo",
-      "header": "src/thermophysicalModels/basic/twoPhaseMixtureThermo/twoPhaseMixtureThermo.H",
-      "purpose": "จัดการ thermal properties ของ two-phase mixture และรวม phase change effects",
-      "key_members": [
-        {"name": "phaseChange_", "type": "autoPtr<phaseChangeTwoPhaseMixture>", "purpose": "Pointer to phase change model"},
-        {"name": "he_", "type": "volScalarField", "purpose": "Enthalpy field"},
-        {"name": "TSat_", "type": "dimensionedScalar", "purpose": "Saturation temperature"}
-      ],
-      "key_methods": [
-        {"name": "correct()", "purpose": "Update thermal properties และ phase change rates"},
-        {"name": "heSource()", "purpose": "Return latent heat source term สำหรับ energy equation"},
-        {"name": "alphaSource()", "purpose": "Return source terms สำหรับ alpha equation"}
-      ],
-      "vof_implementation": "ถูกใช้ใน solvers เช่น interCondensatingEvaporatingFoam และ compressibleInterPhaseChangeFoam"
-    }
-  ],
-
-  "implementation_skeleton": {
-    "classes": [
-      {
-        "name": "PhaseChangeSolver",
-        "responsibility": "Orchestrate phase change calculations with Lee model and source term linearization",
-        "key_methods": [
-          {"name": "calculateMassTransfer()", "purpose": "Compute ṁ using Lee model based on current T and alpha"},
-          {"name": "linearizeSources()", "purpose": "Linearize mass and energy source terms to S_u + S_p*phi form"},
-          {"name": "addToAlphaEqn()", "purpose": "Add linearized source terms to alpha equation matrix"},
-          {"name": "addToEnergyEqn()", "purpose": "Add latent heat source to energy equation"},
-          {"name": "addToPressureEqn()", "purpose": "Add volume expansion source to pressure equation"}
-        ],
-        "critical_implementation": "ต้อง linearize source terms ให้ถูกต้องและรักษา S_p ≤ 0; ต้อง update properties หลัง solve"
-      },
-      {
-        "name": "ThermalCoupler",
-        "responsibility": "Manage coupling between temperature, phase change, and flow fields",
-        "key_methods": [
-          {"name": "solveCoupledEnergy()", "purpose": "Solve energy equation with latent heat source"},
-          {"name": "updateSaturationProperties()", "purpose": "Update T_sat และ latent heat ตาม local pressure"},
-          {"name": "enforceTemperatureBounds()", "purpose": "Ensure T ใกล้เคียง T_sat ใน two-phase regions"}
-        ]
-      }
-    ],
-    "algorithm_steps": [
-      "1. อ่าน phase change settings จาก thermophysicalProperties (r_coeff, T_sat, latent heat)",
-      "2. คำนวณ mass transfer rate: ṁ = r_coeff * α ρ * (T - T_sat)/T_sat (เลือก phase ตาม driving force)",
-      "3. Linearize source terms: S_u, S_p สำหรับ alpha, energy, และ pressure equations",
-      "4. Solve alpha equation: fvm::ddt(alpha) + ... += Su_alpha + Sp_alpha*alpha",
-      "5. Solve energy equation: fvm::ddt(rho*cp*T) + ... += Su_T + Sp_T*T",
-      "6. Update mixture properties: ρ = α_l ρ_l + α_v ρ_v, μ, cp, k",
-      "7. Solve pressure equation: fvm::laplacian(rAU, p) = fvc::div(phi) - S_p (volume expansion)",
-      "8. Correct velocity: U = U* - rAU*fvc::grad(p)",
-      "9. Enforce bounds: 0 ≤ α ≤ 1, T ใกล้เคียง T_sat ใน two-phase regions",
-      "10. สำหรับ transient flows ทำซ้ำทุก time step; สำหรับ steady-state ทำ outer iterations"
-    ]
-  },
-
-  "concept_checks": [
-    {
-      "question": "ทำไมต้อง linearize source terms เป็นรูปแบบ S_u + S_p*ϕ? จะเกิดอะไรขึ้นถ้าใช้ explicit source เท่านั้น?",
-      "answer_key_points": [
-        "Explicit source (S_u only) ทำให้เกิด numerical instability เมื่อ source term ใหญ่ เพราะไม่มี diagonal contribution",
-        "Linearized form S_u + S_p*ϕ ช่วยรักษา diagonal dominance ของ matrix เมื่อ S_p ≤ 0",
-        "Implicit part (S_p*ϕ) ช่วยเพิ่ม stability โดยเฉพาะใน regions ที่มี phase change intensity สูง",
-        "Proper linearization ช่วยให้ใช้ time step ที่ใหญ่ขึ้นได้โดยไม่ diverge",
-        "ใน OpenFOAM, fvScalarMatrix รองรับ operator+= สำหรับทั้ง S_u และ S_p"
-      ],
-      "implementation_note": "ใน alphaEqn.H: alphaEqn += Su_alpha + fvm::Sp(Sp_alpha, alpha)"
-    },
-    {
-      "question": "Lee Model แตกต่างจาก Thermal Phase Change Models อื่นๆ เช่น Schrage Model อย่างไร?",
-      "answer_key_points": [
-        "Lee Model ใช้ temperature difference (T - T_sat) เป็น driving force; เป็น empirical model",
-        "Schrage Model ใช้ kinetic theory และอิงตาม pressure difference (P - P_sat); มี physical basis มากกว่า",
-        "Lee Model ง่ายต่อ implementation และ tuning ผ่าน r_coeff coefficient เดียว",
-        "Lee Model มักใช้ใน engineering applications ที่ต้องการ robustness มากกว่า physical accuracy",
-        "Schrage Model ต้องการข้อมูลเพิ่มเติม เช่น accommodation coefficients และ更适合สำหรับ microscale phase change",
-        "ใน OpenFOAM, Lee Model เป็น default ในหลาย phase change solvers เนื่องจาก simplicity และ stability"
-      ],
-      "implementation_note": "Lee model ถูก implement ใน phaseChangeTwoPhaseMixture derived class; Schrage model ต้อง implement custom class"
-    }
-  ],
-
-  "pitfalls": [
-    {
-      "symptom": "Solver diverges เมื่อเริ่มมี phase change",
-      "cause": "r_coeff สูงเกินไป หรือ source terms ไม่ได้ linearize ถูกต้อง (S_p > 0)",
-      "fix": "ลด r_coeff; ตรวจสอบว่า S_p ≤ 0 เสมอ; ใช้ under-relaxation สำหรับ alpha และ T fields"
-    },
-    {
-      "symptom": "Interface ไม่เคลื่อนที่หรือเคลื่อนที่ช้าเกินไปแม้ T ต่างจาก T_sat มาก",
-      "cause": "r_coeff ต่ำเกินไป หรือ source terms มีขนาดเล็กเนื่องจาก improper scaling",
-      "fix": "เพิ่ม r_coeff; ตรวจสอบ units ของ r_coeff (ต้องเป็น 1/s); ตรวจสอบ driving force calculation"
-    },
-    {
-      "symptom": "Temperature oscillations รอบ interface region",
-      "cause": "Strong coupling ระหว่าง energy equation และ phase change โดยไม่มี under-relaxation",
-      "fix": "ใช้ under-relaxation สำหรับ T equation; อาจใช้ enthalpy formulation แทน temperature; ลด time step"
-    },
-    {
-      "symptom": "Mass conservation error สูง",
-      "cause": "Source terms ใน liquid และ vapor continuity equations ไม่ตรงข้ามกันพอดี",
-      "fix": "ตรวจสอบว่า S_m,l = -S_m,v; ใช้ same calculation สำหรับทั้งสอง phase; enforce local mass balance"
-    }
-  ],
-
-  "connections": {
-    "previous_day": "Day 10: Two-Phase Fundamentals (VOF, Alpha)",
-    "next_day": "Day 12: Advanced Phase Change (Cavitation, Boiling)",
-    "key_link": "Lee Model ใน Day 11 ใช้ alpha transport จาก Day 10; จะถูกขยายไปสู่ complex phase change phenomena ใน Day 12"
-  }
+  "verified_facts": [
+    "phaseChange base class: Base class for all phase change models (file: phaseChange.H)",
+    "efficient_phase_change: m_dot/alpha = C × alpha × |nabla alpha| (rate per unit volume fraction)",
+    "total rate: m_dot = alpha × Y × C × |nabla alpha|",
+    "Latent heat: L = h2_i - h1_i (file: phaseChange.C:410-444)",
+    "Phase change temperature: Tchange = T1 if m_dot > 0, T2 if m_dot < 0, (T1 + T2)/2 otherwise (file: phaseChange.C:370-397)",
+    "Latent heat fraction: Lfraction = kappa2 / (kappa1 + kappa2) (file: phaseChange.C:400-407)",
+    "Energy source terms: direct m_dot × h, latent -(1-Lfraction) × m_dot × L for phase 1, -Lfraction × m_dot × L for phase 2 (file: phaseChange.C:528-599)",
+    "Expansion term: nabla dot U = m_dot (1/rho_v - 1/rho_l) - Critical for pressure-velocity coupling in phase change flows"
+  ]
 }

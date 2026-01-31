@@ -1,6 +1,11 @@
 {
     "completed": [
-        "00_Overview.md"
+        "00_Overview.md",
+        "01_Introduction_to_Testing.md",
+        "02_Unit_Testing.md",
+        "03_Integration_Testing.md",
+        "04_Verification_Methods.md",
+        "05_Validation_with_Data.md"
     ],
     "skipped": []
 }

@@ -1,0 +1,35 @@
+classDiagram
+    class interFoam {
+        +main()
+        +alphaEqn()
+        +UEqn()
+        +pEqn()
+    }
+
+    class R410AEvaporator {
+        +main()
+        +alphaEqn()
+        +UEqn()
+        +pEqn()
+        +hEqn()  // ✅ Energy with phase change
+        +updateProperties()  // ✅ R410A properties
+    }
+
+    class phaseChangeModel {
+        <<abstract>>
+        +calculateMassTransfer()
+        +calculateHeatTransfer()
+    }
+
+    class R410AMixture {
+        +rho()  // ✅ ρ = αρₗ + (1-α)ρᵥ
+        +mu()   // ✅ μ = αμₗ + (1-α)μᵥ
+        +k()    // ✅ k = αkₗ + (1-α)kᵥ
+    }
+
+    interFoam <|-- R410AEvaporator : extends
+    R410AEvaporator --> phaseChangeModel : uses
+    R410AEvaporator --> R410AMixture : uses
+
+    note for R410AEvaporator "Adds: Energy equation,<br/>phase change model,<br/>R410A properties"
+    note for interFoam "Base: Two-phase VOF solver"

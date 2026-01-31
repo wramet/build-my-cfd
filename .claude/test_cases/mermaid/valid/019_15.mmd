@@ -1,0 +1,59 @@
+classDiagram
+    direction LR
+    class fvMesh {
+        -pointField points_
+        -faceList faces_
+        -labelList owner_
+        -labelList neighbour_
+        +initMesh()
+        +updateMesh(mapPolyMesh)
+        +C() volVectorField
+        +Cf() surfaceVectorField
+        +Sf() surfaceVectorField
+        +V() volScalarField
+    }
+
+    class MeshGeometryCalculator {
+        -const fvMesh& mesh_
+        -surfaceVectorField Cf_
+        -surfaceVectorField Sf_
+        -volVectorField C_
+        -volScalarField V_
+        -surfaceScalarField weights_
+        -surfaceScalarField deltaCoeffs_
+        -surfaceVectorField k_
+        -scalar maxNonOrthogonality_
+        -bool geometryValid_
+        +MeshGeometryCalculator(const fvMesh&)
+        +calculateAllGeometry(bool forceRecalc)
+        -calculateFaceGeometry()
+        -calculateCellGeometry()
+        -calculateWeightsAndDeltas()
+        -calculateNonOrthogonalVectors()
+        +checkMeshQuality(scalar& maxSkew, scalar& maxAspect) const
+        +nonOrthogonality() const scalarField
+        +const surfaceVectorField& faceAreaVectors() const
+        +const volScalarField& cellVolumes() const
+    }
+
+    class NonOrthogonalCorrector {
+        -const MeshGeometryCalculator& geometry_
+        -const word correctionScheme_
+        -scalar maxCorrection_
+        -label nCorrectionLoops_
+        +NonOrthogonalCorrector(const MeshGeometryCalculator&, const dictionary&)
+        +correctLaplacian(fvMatrix~scalar~& matrix, const volScalarField& field)
+        +correctLaplacian(fvMatrix~vector~& matrix, const volVectorField& field)
+        +limitCorrection(surfaceScalarField& flux)
+    }
+
+    class surfaceInterpolation {
+        -surfaceScalarField weights_
+        -surfaceScalarField deltaCoeffs_
+        +interpolate(volVectorField&) surfaceVectorField
+        +makeWeights()
+    }
+
+    MeshGeometryCalculator *-- NonOrthogonalCorrector : Provides Geometry
+    MeshGeometryCalculator ..> surfaceInterpolation : Produces Data For
+    NonOrthogonalCorrector ..> fvMatrix : Modifies

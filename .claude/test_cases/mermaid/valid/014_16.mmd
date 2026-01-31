@@ -1,0 +1,119 @@
+classDiagram
+    direction LR
+
+    note for DynamicRefiner "Orchestrates the entire\nrefinement cycle. Manages\ncriteria, applies refinement\nvia hexRef8, and handles\nconservative field mapping. | ควบคุมวงจร refinement ทั้งหมด\nจัดการเกณฑ์ (criteria), สั่งการ\nrefinement ผ่าน hexRef8 และจัดการ\nconservative field mapping"
+
+    note for MeshQualityChecker "Operates on polyMesh.\nCalculates metrics for\nall cells/faces. Used for\nvalidation pre/post refinement. | ทำงานบน polyMesh\nคำนวณเมทริกซ์คุณภาพสำหรับทุก\nเซลล์และทุกหน้า ใช้สำหรับการ\nตรวจสอบความถูกต้องก่อน/หลัง refinement"
+
+    note for RefinementCriterion "Strategy Pattern: Enables\nruntime selection of refinement\ntriggers (gradient, interface,\ncurvature, combined). | รูปแบบ Strategy Pattern: ช่วยให้เลือกตัวจุดชนวน (triggers)\nของการ refinement ได้ในขณะรัน\n(gradient, interface, curvature, แบบผสม)"
+
+    class dynamicFvMesh {
+        <<OpenFOAM Base Class>>
+        +const Time& time_
+        +fvMesh& mesh_
+        +update()* pure virtual
+        +mapFields(const mapPolyMesh&)
+    }
+
+    class polyMesh {
+        <<OpenFOAM Core Class>>
+        +pointField points_
+        +faceList faces_
+        +labelList owner_
+        +labelList neighbour_
+        +checkMesh() bool
+        +updateMesh(const mapPolyMesh&)
+        +cellCentres() volVectorField
+    }
+
+    class hexRef8 {
+        <<OpenFOAM Refinement Engine>>
+        -labelList cellLevel_
+        -labelList pointLevel_
+        -refinementHistory history_
+        +setRefinement(cellsToRefine) bool
+        +consistentRefinement() void
+        +unrefine(cellsToUnrefine) bool
+    }
+
+    class MeshQualityChecker {
+        -const polyMesh& mesh_
+        -scalar maxSkewness_
+        -scalar maxAspectRatio_
+        -scalar maxNonOrthogonality_
+        +MeshQualityChecker(const polyMesh&)
+        +calculateSkewness() volScalarField
+        +calculateAspectRatio() volScalarField
+        +calculateNonOrthogonality() surfaceScalarField
+        +generateReport(Ostream&) void
+        +validate() bool
+    }
+
+    class RefinementCriterion {
+        <<Abstract Base Class>>
+        #const fvMesh& mesh_
+        #scalar refineLevel_
+        #scalar unrefineLevel_
+        +RefinementCriterion(const fvMesh&)
+        +update(const word& fieldName) virtual
+        +mark() virtual labelList =0
+        +read(const dictionary&) virtual
+    }
+
+    class GradientCriterion {
+        -scalar gradientThreshold_
+        +GradientCriterion(const fvMesh&)
+        +mark() override labelList
+        +update(const word& fieldName) override
+    }
+
+    class InterfaceCriterion {
+        -scalar lowerThreshold_
+        -scalar upperThreshold_
+        +InterfaceCriterion(const fvMesh&)
+        +mark() override labelList
+        +update(const volScalarField& alpha) void
+    }
+
+    class CurvatureCriterion {
+        -scalar curvatureThreshold_
+        +CurvatureCriterion(const fvMesh&)
+        +mark() override labelList
+        +calculateCurvature(const volScalarField& alpha) volScalarField
+    }
+
+    class CombinedCriterion {
+        -PtrList~RefinementCriterion~ criteria_
+        -List~scalar~ weights_
+        +CombinedCriterion(const fvMesh&)
+        +addCriterion(autoPtr~RefinementCriterion~, scalar weight)
+        +mark() override labelList
+    }
+
+    class DynamicRefiner {
+        -dynamicFvMesh& dynamicMesh_
+        -autoPtr~hexRef8~ refiner_
+        -PtrList~RefinementCriterion~ criteria_
+        -label maxRefinementLevel_
+        -label nBufferLayers_
+        -MeshQualityChecker qualityChecker_
+        +DynamicRefiner(dynamicFvMesh&, const dictionary&)
+        +update() bool
+        -markRefinementCells() labelList
+        -applyRefinement(const labelList&) bool
+        -mapSolutionFields(const mapPolyMesh&) void
+        -enforceMaxLevel(labelList&) void
+        -addBufferLayers(labelList&) void
+    }
+
+    DynamicRefiner --|> dynamicFvMesh : Inheritance
+    DynamicRefiner *-- "1" hexRef8 : Composition
+    DynamicRefiner *-- "1" MeshQualityChecker : Composition
+    DynamicRefiner o-- "*" RefinementCriterion : Aggregation
+    RefinementCriterion <|-- GradientCriterion : Inheritance
+    RefinementCriterion <|-- InterfaceCriterion : Inheritance
+    RefinementCriterion <|-- CurvatureCriterion : Inheritance
+    RefinementCriterion <|-- CombinedCriterion : Inheritance
+    MeshQualityChecker --> polyMesh : Uses
+    DynamicRefiner --> polyMesh : Uses (via mesh_)
+    hexRef8 --> polyMesh : Operates on

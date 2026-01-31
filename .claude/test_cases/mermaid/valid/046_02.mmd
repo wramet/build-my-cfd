@@ -1,0 +1,20 @@
+graph TD
+    A["Macroscopic Conditions"] --> B["Mass Flow: ṁ_total"]
+    A --> C["Heat Duty: Q_total"]
+    A --> D["Inlet Quality: x_in"]
+
+    B --> E["CFD Face Fluxes"]
+    C --> E
+    D --> E
+
+    E --> F["Mass Flux: ρU·A"]
+    E --> G["Heat Flux: q\" = hΔT"]
+    E --> H["Energy Flux: ṁh_lv"]
+
+    F --> I["Source Terms in Cells"]
+    G --> I
+    H --> I
+
+    style A fill:#e3f2fd
+    style E fill:#fff3e0
+    style I fill:#e8f5e9
