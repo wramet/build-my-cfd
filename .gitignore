@@ -6,3 +6,4 @@
 proxy.log
 *.log
 *.pyc/__pycache__/
+.DS_Store
