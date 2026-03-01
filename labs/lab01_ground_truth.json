@@ -1,0 +1,103 @@
+{
+  "lab_info": {
+    "day": 1,
+    "type": "cfd",
+    "title": "Governing Equations - Continuity Equation Implementation",
+    "topic": "Conservation Laws for CFD",
+    "phase": "Phase_01_Foundation_Theory",
+    "estimated_duration": "3-4 hours"
+  },
+  "learning_objectives": {
+    "cfd": [
+      "Implement the continuity equation in OpenFOAM",
+      "Understand fvm (implicit) vs fvc (explicit) operators",
+      "Add a source term to represent mass transfer (phase change)",
+      "Verify mass conservation through continuity error analysis",
+      "Understand the critical expansion term for phase change"
+    ],
+    "cpp": [
+      "Templates: fvScalarMatrix uses tmp<> template",
+      "Operator overloading: +, == for matrix assembly",
+      "Const references: VolField<Type>& parameters",
+      "Namespace usage: fvm::, fvc::"
+    ]
+  },
+  "ground_truth": {
+    "files": [
+      {
+        "path": "openfoam_temp/src/finiteVolume/cfdTools/compressible/rhoEqn.H",
+        "lines": "32-46",
+        "description": "Compressible continuity equation implementation",
+        "code": "fvScalarMatrix rhoEqn\n(\n    fvm::ddt(rho)\n  + fvc::div(phi)\n  ==\n    fvModels.source(rho)\n);"
+      },
+      {
+        "path": "openfoam_temp/src/finiteVolume/cfdTools/incompressible/continuityErrs.H",
+        "lines": "32-46",
+        "description": "Continuity error calculation for verification",
+        "code": "volScalarField contErr(fvc::div(phi));\nscalar sumLocalContErr = runTime.deltaTValue()*\n    mag(contErr)().weightedAverage(mesh.V()).value();"
+      },
+      {
+        "path": "openfoam_temp/src/finiteVolume/finiteVolume/fvm/fvmDdt.H",
+        "lines": "54-58",
+        "description": "Implicit temporal derivative function signature",
+        "code": "template<class Type>\ntmp<fvMatrix<Type>> ddt\n(\n    const VolField<Type>&\n);"
+      },
+      {
+        "path": "openfoam_temp/src/finiteVolume/finiteVolume/fvm/fvmDiv.C",
+        "lines": "45-60",
+        "description": "Convective term discretization",
+        "code": "template<class Type>\ntmp<fvMatrix<Type>>\ndiv\n(\n    const surfaceScalarField& flux,\n    const VolField<Type>& vf,\n    const word& name\n)"
+      }
+    ],
+    "concepts": {
+      "fvm_vs_fvc": {
+        "fvm": "Finite Volume Matrix - builds implicit matrix coefficients, returns fvMatrix<Type>",
+        "fvc": "Finite Volume Calculus - explicit calculation, returns volField<Type>"
+      },
+      "phi_field": {
+        "definition": "Mass flux field: phi = rho * U * Sf (surfaceScalarField)",
+        "units": "kg/s",
+        "usage": "Used in convective terms"
+      },
+      "expansion_term": {
+        "formula": "nabla \\cdot U = mdot * (1/rho_v - 1/rho_l)",
+        "physical_meaning": "Velocity divergence due to phase change volume expansion",
+        "importance": "CRITICAL for R410A - prevents singular pressure equation during evaporation"
+      },
+      "continuity_equation": {
+        "general_form": "partial_rho/partial_t + nabla \\cdot (rho * U) = S_rho",
+        "incompressible_form": "nabla \\cdot U = 0",
+        "phase_change_form": "nabla \\cdot U = mdot * (1/rho_v - 1/rho_l)"
+      }
+    },
+    "cpp_features": {
+      "templates": [
+        "tmp<fvMatrix<Type>> - smart pointer for temporary objects",
+        "VolField<Type> - template for volume fields (scalar, vector)"
+      ],
+      "operator_overloading": [
+        "operator+ - adds matrices",
+        "operator== - separates LHS (matrix coeffs) from RHS (source)"
+      ],
+      "const_references": "const VolField<Type>& - efficient parameter passing",
+      "namespaces": "fvm (implicit), fvc (explicit), Foam (root namespace)"
+    }
+  },
+  "prerequisites": [
+    "OpenFOAM v9 or v10 installed",
+    "Basic C++ knowledge (Day 01 theory covers this)",
+    "Understanding of continuity equation from Day 01 theory",
+    "Access to terminal and text editor"
+  ],
+  "key_files_to_create": [
+    "lab01 continuity equation source term.C",
+    "createMesh.H",
+    "readTransportProperties.H"
+  ],
+  "verification_criteria": [
+    "Code compiles without errors",
+    "Continuity error < 1e-5 for incompressible test case",
+    "Source term correctly adds mass to domain",
+    "Expansion term creates expected velocity divergence"
+  ]
+}

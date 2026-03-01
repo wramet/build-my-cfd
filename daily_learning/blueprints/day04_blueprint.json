@@ -3,146 +3,166 @@
     "version": "1.0",
     "day": "04",
     "topic": "Temporal Discretization",
+    "phase": "Foundation Theory",
+    "r410a_integration": "15%",
     "template": "mathematician",
     "template_type": "theory_heavy",
-    "purpose": "Theory-heavy topics requiring mathematical rigor and scheme understanding",
-    "generated_at": "2026-01-26T18:19:10.038777"
+    "purpose": "Derive and explain mathematical concepts with rigorous proofs",
+    "generated_at": "2026-02-01T14:11:14.693085"
+  },
+  "r410a_context": {
+    "application": "Evaporator two-phase flow",
+    "refrigerant": "R410A",
+    "conditions": "P = 1.0-1.2 MPa, T = 280-285 K"
   },
   "template": {
     "name": "Mathematician",
     "type": "theory_heavy",
-    "progressive_overload": {
-      "start": "simple_math_derivations",
-      "ramp_up": "physics_intuition",
-      "peak": "c_plus_plus_architecture",
-      "consolidate": "qa_best_practices"
-    },
+    "progressive_overload": "core theory, physical challenge, architecture, QA",
     "boilerplate_policy": "quarantine_to_appendix",
-    "code_ratio": 0.35
+    "code_ratio": 0.25
   },
   "structure": {
     "parts": [
       {
-        "id": "part1",
+        "id": "p1",
         "title": "Core Theory",
         "ratio": 0.3,
         "readability": "beginner",
-        "approach": "clean_taylor_series",
+        "approach": "derivations",
         "content_type": "theory",
-        "guideline": "Start with simple Taylor series, show all derivations clearly",
-        "estimated_lines": 600
+        "guideline": "Start with basic concepts, build to full derivations",
+        "estimated_lines": 240
       },
       {
-        "id": "part2",
+        "id": "p2",
         "title": "Physical Challenge",
         "ratio": 0.2,
         "readability": "intermediate",
-        "approach": "why_standard_math_fails",
-        "content_type": "physics",
-        "guideline": "Explain where theory fails in practice (e.g., VOF instability)",
-        "estimated_lines": 400
+        "approach": "problem solving",
+        "content_type": "analysis",
+        "guideline": "Show practical problems and solutions",
+        "estimated_lines": 160
       },
       {
-        "id": "part3",
+        "id": "p3",
         "title": "Architecture & Implementation",
         "ratio": 0.35,
         "readability": "advanced",
-        "approach": "concept_first_code_second",
-        "content_type": "architecture",
-        "guideline": "Show workflow diagram FIRST, then explain code, NO boilerplate",
-        "estimated_lines": 700
+        "approach": "code first",
+        "content_type": "code",
+        "guideline": "Show class diagrams before implementation",
+        "estimated_lines": 280
       },
       {
-        "id": "part4",
+        "id": "p4",
         "title": "Quality Assurance",
         "ratio": 0.15,
         "readability": "professional",
-        "approach": "strategy_over_code",
-        "content_type": "testing",
-        "guideline": "Explain QA strategy, compile instructions, not 100 lines of test code",
-        "estimated_lines": 300
+        "approach": "testing",
+        "content_type": "validation",
+        "guideline": "Verify with unit tests and benchmarks",
+        "estimated_lines": 120
+      },
+      {
+        "id": "p5",
+        "title": "R410A Evaporator Application",
+        "ratio": 0.15,
+        "readability": "intermediate",
+        "approach": "application",
+        "content_type": "domain_specific",
+        "guideline": "Connect general theory to R410A evaporator simulation",
+        "sections": [
+          "5.1 Why it matters for R410A evaporator",
+          "5.2 R410A property data",
+          "5.3 Equation modifications for R410A",
+          "5.4 Implementation preview (OpenFOAM code)"
+        ],
+        "estimated_lines": 120
       }
     ]
   },
   "content_requirements": {
     "topics_to_cover": [
-      "Introduction to Time Discretization",
-      "Euler Methods",
-      "Higher-Order Methods",
-      "CFL Number and Stability",
-      "OpenFOAM ddtSchemes Class Hierarchy",
-      "Code Analysis - Euler Implicit",
-      "Code Analysis - Backward Second Order",
-      "Time Step Selection for VOF",
-      "Implementation Guide",
-      "Exercises"
+      "Part 1: Core Theory - From Taylor Series to Time Schemes",
+      "Part 2: Physical Challenge - Stability in Practice",
+      "Part 3: Architecture & Implementation - OpenFOAM ddtScheme Framework",
+      "Part 4: Quality Assurance - Verification & Best Practices"
     ],
     "formulas_to_include": [
       {
         "name": "euler_implicit",
         "latex": "",
-        "source": ""
+        "source": "EulerDdtScheme.C:126"
       },
       {
-        "name": "backward_second_order",
+        "name": "backward_scheme",
         "latex": "",
-        "source": ""
+        "source": "backwardDdtScheme.C:88-90"
       },
       {
         "name": "crank_nicolson",
         "latex": "",
-        "source": ""
+        "source": "CrankNicolsonDdtScheme.H:78"
       },
       {
-        "name": "cfl_condition",
+        "name": "cfl_number",
         "latex": "",
         "source": ""
       }
     ],
     "class_hierarchy": {
-      "base_class": "ddtScheme<Type>",
+      "base_class": {
+        "name": "ddtScheme<Type>",
+        "file": "openfoam_temp/src/finiteVolume/finiteVolume/ddtSchemes/ddtScheme/ddtScheme.H",
+        "line": 66,
+        "description": "Abstract base class for ddt schemes"
+      },
       "derived_classes": [
-        "EulerDdtScheme<Type>",
-        "backwardDdtScheme<Type>",
-        "CrankNicolsonDdtScheme<Type>",
-        "steadyStateDdtScheme<Type>",
-        "boundedDdtScheme<Type>",
-        "localEulerDdtScheme<Type>",
-        "CoEulerDdtScheme<Type>",
-        "SLTSDdtScheme<Type>"
-      ],
-      "base_class_location": "openfoam_temp/src/finiteVolume/finiteVolume/ddtSchemes/ddtScheme/ddtScheme.H:65-68"
+        {
+          "name": "EulerDdtScheme<Type>",
+          "file": "openfoam_temp/src/finiteVolume/finiteVolume/ddtSchemes/EulerDdtScheme/EulerDdtScheme.H",
+          "line": 56,
+          "order": "First-order",
+          "description": "Basic first-order Euler implicit/explicit ddt using only the current and previous time-step values"
+        },
+        {
+          "name": "backwardDdtScheme<Type>",
+          "file": "openfoam_temp/src/finiteVolume/finiteVolume/ddtSchemes/backwardDdtScheme/backwardDdtScheme.H",
+          "line": 56,
+          "order": "Second-order",
+          "description": "Second-order backward-differencing ddt using the current and two previous time-step values"
+        },
+        {
+          "name": "CrankNicolsonDdtScheme<Type>",
+          "file": "openfoam_temp/src/finiteVolume/finiteVolume/ddtSchemes/CrankNicolsonDdtScheme/CrankNicolsonDdtScheme.H",
+          "line": 111,
+          "order": "Second-order",
+          "description": "Second-order Crank-Nicolson implicit ddt using the current and previous time-step fields as well as the previous time-step ddt"
+        },
+        {
+          "name": "CoEulerDdtScheme<Type>",
+          "file": "openfoam_temp/src/finiteVolume/finiteVolume/ddtSchemes/CoEulerDdtScheme/CoEulerDdtScheme.H",
+          "line": 62,
+          "order": "First-order",
+          "description": "Courant number limited first-order Euler implicit/explicit ddt"
+        }
+      ]
     }
   },
   "rules": {
     "ratio_tolerance": 0.05,
     "boilerplate_policy": "quarantine_to_appendix",
     "concept_first": [
-      "## Part 3.1: Architecture Overview",
-      "### Class Diagram",
-      "### Workflow Diagram"
+      "diagrams",
+      "introduction",
+      "overview"
     ],
-    "progressive_complexity": {
-      "beginner": [
-        "Let's start with",
-        "The basic idea is",
-        "Simply put"
-      ],
-      "intermediate": [
-        "Building on this",
-        "Now we understand",
-        "The challenge is"
-      ],
-      "advanced": [
-        "The implementation",
-        "Core logic",
-        "Here's how"
-      ],
-      "professional": [
-        "Best practices",
-        "Production considerations",
-        "Validation"
-      ]
-    }
+    "progressive_complexity": [
+      "beginner",
+      "intermediate",
+      "advanced",
+      "professional"
+    ]
   }
 }

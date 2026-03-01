@@ -74,6 +74,137 @@
         "ratio_tolerance": 0.05,
         "code_first": false
       }
+    },
+    "lab": {
+      "name": "Laboratory Exercise",
+      "type": "hands_on",
+      "purpose": "Practical implementation with guided exercises for spaced repetition learning",
+      "focus": "Learning by doing with hands-on coding",
+      "best_for": ["Solver Implementation", "Boundary Condition Coding", "C++ Feature Practice", "Algorithm Implementation", "Debugging Practice"],
+      "progressive_overload": "setup, guided implementation, independent challenges, debugging, analysis",
+      "boilerplate_policy": "include_excerpts",
+      "code_ratio": 0.8,
+      "structure": {
+        "parts": [
+          {"id": "p1", "title": "Setup", "ratio": 0.10, "readability": "beginner", "approach": "guided_setup", "content_type": "setup", "guideline": "Complete environment setup, file copying, verification commands"},
+          {"id": "p2", "title": "Guided Implementation", "ratio": 0.30, "readability": "intermediate", "approach": "step_by_step", "content_type": "implementation", "guideline": "Step-by-step with explanations, C++ concepts highlighted, theory connections"},
+          {"id": "p3", "title": "Independent Challenges", "ratio": 0.35, "readability": "advanced", "approach": "self_directed", "content_type": "practice", "guideline": "Open-ended problems with hints, progressive difficulty, minimal hand-holding"},
+          {"id": "p4", "title": "Debugging & Optimization", "ratio": 0.15, "readability": "professional", "approach": "troubleshooting", "content_type": "optimization", "guideline": "Common errors table, performance profiling, optimization techniques"},
+          {"id": "p5", "title": "Results Analysis", "ratio": 0.10, "readability": "professional", "approach": "analysis", "content_type": "validation", "guideline": "Validation against theory, result interpretation, discussion questions"}
+        ]
+      },
+      "rules": {
+        "boilerplate_policy": "include_excerpts",
+        "ratio_tolerance": 0.05,
+        "code_first": true,
+        "interactive_elements": true,
+        "expected_outputs": true,
+        "troubleshooting_guide": true,
+        "cpp_concepts": true
+      },
+      "lab_requirements": {
+        "estimated_duration": "3-4 hours",
+        "environment": "OpenFOAM v2306",
+        "deliverables": ["Working code", "Test results", "Performance metrics"]
+      }
+    },
+    "lab_enhanced": {
+      "name": "Enhanced Laboratory Exercise",
+      "type": "hands_on_comprehensive",
+      "purpose": "CFD implementation with natural C++/DSA integration for authentic learning",
+      "focus": "Deep learning through real OpenFOAM code patterns",
+      "best_for": ["Governing Equations", "Solver Development", "Advanced Discretization", "Linear Solvers", "Custom Features"],
+      "progressive_overload": "setup, CFD implementation, C++ deep dive, DSA connection, integration, debugging",
+      "boilerplate_policy": "include_excerpts",
+      "code_ratio": 0.75,
+      "structure": {
+        "parts": [
+          {"id": "p1", "title": "Setup", "ratio": 0.10, "readability": "beginner", "approach": "guided_setup", "content_type": "setup", "guideline": "Complete environment setup, file copying, verification commands"},
+          {"id": "p2", "title": "CFD Implementation", "ratio": 0.35, "readability": "intermediate", "approach": "step_by_step", "content_type": "cfd", "guideline": "Implement CFD concept with OpenFOAM operators (fvm, fvc), connect to theory"},
+          {"id": "p3", "title": "C++ Deep Dive", "ratio": 0.20, "readability": "advanced", "approach": "code_analysis", "content_type": "cpp", "optional": false, "guideline": "Deep dive into C++ concepts naturally appearing (templates, smart pointers, operators)"},
+          {"id": "p4", "title": "DSA Connection", "ratio": 0.20, "readability": "advanced", "approach": "data_structure_analysis", "content_type": "dsa", "optional": true, "guideline": "Natural DSA topics (LduMatrix, sparse storage, containers) - only when relevant"},
+          {"id": "p5", "title": "Integration Challenge", "ratio": 0.10, "readability": "professional", "approach": "apply_and_extend", "content_type": "practice", "guideline": "Combine CFD + C++ + DSA knowledge, extend implementation"},
+          {"id": "p6", "title": "Debugging & Analysis", "ratio": 0.05, "readability": "professional", "approach": "troubleshooting", "content_type": "optimization", "guideline": "Common errors, performance analysis, complexity discussion"}
+        ]
+      },
+      "rules": {
+        "boilerplate_policy": "include_excerpts",
+        "ratio_tolerance": 0.08,
+        "code_first": true,
+        "interactive_elements": true,
+        "expected_outputs": true,
+        "troubleshooting_guide": true,
+        "cpp_concepts": true,
+        "dsa_connections": true,
+        "natural_content_only": true,
+        "flexible_duration": true
+      },
+      "lab_requirements": {
+        "estimated_duration": "3-8 hours (based on natural C++/DSA content)",
+        "environment": "OpenFOAM v2306 + source code access",
+        "deliverables": ["Working CFD code", "C++ understanding", "DSA knowledge applied", "Performance analysis"]
+      },
+      "cpp_dsa_topics": {
+        "natural_only": {
+          "description": "Only include C++/DSA topics that naturally appear in OpenFOAM",
+          "include": [
+            "Templates (tmp<>, Field<Type>, fvMatrix<Type>)",
+            "Smart pointers (tmp<>, autoPtr, refPtr)",
+            "Containers (List, HashTable, Map, Dictionary)",
+            "Sparse matrices (LduMatrix, lduAddressing)",
+            "Graph structures (mesh connectivity)",
+            "Trees (octree for spatial search)",
+            "Sorting (stableSort)",
+            "Iterators (forAll, iterator patterns)",
+            "Operator overloading"
+          ],
+          "exclude": [
+            "Graph algorithms (BFS, DFS, shortest path)",
+            "Dynamic programming",
+            "Backtracking",
+            "Advanced trees (BST, AVL, red-black)",
+            "Heaps/priority queues",
+            "Standard search algorithms"
+          ]
+        },
+        "duration_by_richness": {
+          "low": {"score": "0-2", "duration": "3 hours", "examples": ["Basic BCs", "Simple source terms"]},
+          "medium": {"score": "3-5", "duration": "4-5 hours", "examples": ["Continuity equation", "Discretization schemes"]},
+          "high": {"score": "6-8", "duration": "6-8 hours", "examples": ["Custom solvers", "Advanced templates", "Sparse matrices"]}
+        }
+      }
+    },
+    "lab_engineering": {
+      "name": "Engineering Deep Dive",
+      "type": "engineering_focused",
+      "purpose": "Understand design decisions, code architecture, and algorithm implementation for building custom CFD engine",
+      "focus": "Learning WHY/HOW/WHAT things work to enable custom engine development",
+      "best_for": ["CFD Engine Development", "Architecture Understanding", "Algorithm Design", "Custom Feature Implementation"],
+      "progressive_overload": "design decisions, architecture analysis, algorithm mapping, design exercise",
+      "boilerplate_policy": "include_excerpts",
+      "code_ratio": 0.7,
+      "structure": {
+        "parts": [
+          {"id": "p1", "title": "Design Decisions (WHY)", "ratio": 0.25, "readability": "beginner", "approach": "trade_off_analysis", "content_type": "design", "guideline": "Analyze design choices, compare alternatives, understand constraints and trade-offs"},
+          {"id": "p2", "title": "Code Architecture (HOW)", "ratio": 0.25, "readability": "intermediate", "approach": "data_flow_analysis", "content_type": "architecture", "guideline": "Trace execution path, identify abstraction layers, find extension points for custom features"},
+          {"id": "p3", "title": "Algorithm Implementation (WHAT)", "ratio": 0.35, "readability": "advanced", "approach": "math_to_code_mapping", "content_type": "algorithm", "guideline": "Map equations to code line-by-line, read source files, understand translation from math to implementation"},
+          {"id": "p4", "title": "Design Exercise", "ratio": 0.15, "readability": "professional", "approach": "apply_and_extend", "content_type": "application", "guideline": "Add custom feature, compare approaches, verify correctness, apply to R410A-specific problems"}
+        ]
+      },
+      "rules": {
+        "boilerplate_policy": "include_excerpts",
+        "ratio_tolerance": 0.05,
+        "code_first": false,
+        "design_first": true,
+        "source_reading_required": true,
+        "trade_off_analysis": true,
+        "r410a_application": true
+      },
+      "lab_requirements": {
+        "estimated_duration": "3-4 hours",
+        "environment": "OpenFOAM v2306 + source code access",
+        "deliverables": ["Design document", "Architecture diagrams", "Code annotations", "R410A application notes"]
+      }
     }
   },
   "topic_to_template_mapping": {
@@ -85,6 +216,14 @@
     "Iterative Solvers": "engine_builder",
     "Pressure-Velocity Coupling": "scientist",
     "Two-Phase Flow": "scientist",
-    "Phase Change": "scientist"
+    "Phase Change": "scientist",
+    "OpenFOAM Solver Development": "lab",
+    "C++ Basics": "lab",
+    "C++ OOP": "lab",
+    "C++ Templates": "lab",
+    "C++ STL": "lab",
+    "DSA Arrays": "lab",
+    "DSA Graphs": "lab",
+    "Algorithms Solvers": "lab"
   }
 }

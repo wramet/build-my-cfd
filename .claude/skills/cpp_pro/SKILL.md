@@ -1,34 +1,43 @@
 ---
-name: cpp-pro
-author: sickn33 (Ported & Adapted)
-description: Write idiomatic C++ code (Modern vs OpenFOAM aware).
+name: cpp_pro
+description: Write idiomatic C++ code with OpenFOAM awareness
 ---
 
-# C++ Pro
+# C++ Coding Guidance
 
-## Use this skill when
-- Working on C++ tasks or workflows
-- Needing guidance on Modern C++ features (C++11/14/17/20)
-- Refactoring legacy C++ code
-- Optimizing for performance
+When working on C++ code, distinguish between standard Modern C++ and OpenFOAM-specific conventions.
 
-## ⚠️ Important: OpenFOAM Context
-**If working on OpenFOAM code, ignore standard "Modern C++" advice in favor of OpenFOAM conventions:**
-- **Smart Pointers**: Use `autoPtr` and `tmp` instead of `std::unique_ptr` or `std::shared_ptr`.
-- **Memory**: Use OpenFOAM's memory management and object registry.
-- **Containers**: Prefer `List`, `PtrList`, `GeometricField` over `std::vector` for field data.
-- **Loops**: Use `forAll(list, i)` macros where appropriate in legacy code, but prefer range-based loops `for(const auto& x : list)` in newer OpenFOAM versions.
+## Context Detection
 
-## Focus Areas (Standard C++)
-- Modern C++ (C++11/14/17/20/23) features
+**First, determine the context:**
+- OpenFOAM code → Follow OpenFOAM conventions (below)
+- Standalone C++ → Follow Modern C++ best practices
+
+## OpenFOAM Conventions ⚠️
+
+**For OpenFOAM code, use these instead of standard practices:**
+
+| Standard C++ | OpenFOAM Equivalent |
+|--------------|---------------------|
+| `std::unique_ptr` | `autoPtr<T>` |
+| `std::shared_ptr` | `refPtr<T>` |
+| `std::vector` | `List<T>`, `PtrList<T>` |
+| `new T()` | `new T()` with object registry |
+| Range-based `for` | `forAll(list, i)` (legacy) or range-for (newer) |
+
+## Modern C++ Focus Areas
+
+For non-OpenFOAM C++ code:
+- C++11/14/17/20/23 features
 - RAII and smart pointers
 - Template metaprogramming and concepts
 - Move semantics and perfect forwarding
 - STL algorithms and containers
-- Concurrency with std::thread and atomics
+- Concurrency with `std::thread` and atomics
 
-## Approach
-1. **Check Context**: Is this OpenFOAM code or standalone C++?
-2. **Memory Safety**: Prefer stack allocation and RAII.
-3. **Performance**: Leverage STL algorithms (or OpenFOAM equivalents).
-4. **Profile**: Use tools like perf and VTune.
+## Coding Approach
+
+1. **Check Context** → OpenFOAM or standalone?
+2. **Memory Safety** → Prefer stack allocation and RAII
+3. **Performance** → Use STL algorithms (or OpenFOAM equivalents)
+4. **Profile** → Tools: perf, VTune, valgrind

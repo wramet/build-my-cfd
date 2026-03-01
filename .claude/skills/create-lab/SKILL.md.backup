@@ -1,0 +1,684 @@
+---
+name: create-lab
+description: Generate hands-on lab exercises for CFD + C++ learning with spaced repetition
+author: Claude Code + User Collaboration
+version: 1.0
+---
+
+# /create-lab
+
+Generate hands-on coding exercises for **spaced repetition learning** with dual-track coverage:
+- **CFD Track** - Implement CFD concepts using OpenFOAM
+- **C++ Track** - Learn modern C++ using OpenFOAM as teaching examples
+
+---
+
+## Usage
+
+```bash
+/create-lab --day=XX [--type=auto|cfd|cpp]
+```
+
+| Argument | Value | Description |
+|----------|-------|-------------|
+| `--day` | 01-90 | Day number (links to theory content) |
+| `--type` | `auto`, `cfd`, or `cpp` | `auto` (default) = Auto-detect from content |
+
+**Examples:**
+```bash
+# Auto-detect lab type (analyzes Day XX content)
+/create-lab --day=01
+
+# Explicitly specify CFD lab
+/create-lab --day=01 --type=cfd
+
+# Explicitly specify C++ lab
+/create-lab --day=01 --type=cpp
+```
+
+---
+
+## Auto-Detection
+
+**Default behavior:** When `--type` is omitted, the system automatically analyzes the day's content to determine the appropriate lab type.
+
+**Detection factors:**
+- **CFD indicators:** Equations, discretization schemes, OpenFOAM-specific terms
+- **C++ indicators:** Classes, templates, inheritance, operator overloading
+- **Content balance:** Mathematical content vs code content
+- **New concepts:** First-time introduction of C++ features
+
+**Detection output:**
+```
+Primary Type:   CFD
+Confidence:     69%
+Scores:
+  CFD:          84%
+  C++:          15%
+CFD Topic:      Governing Equations
+C++ Concept:   inheritance → cpp_04_inheritance
+
+Recommendation:
+  Content is CFD-focused. Recommend creating a CFD lab for 'Governing Equations'.
+```
+
+**When both types are recommended:**
+If content balances CFD theory and C++ concepts, the system suggests creating **both labs**:
+```bash
+/create-lab --day=XX --type=cfd  # For implementation practice
+/create-lab --day=XX --type=cpp  # For language mastery
+```
+
+---
+
+## Workflow
+
+```mermaid
+flowchart TD
+    Start(["/create-lab --day=XX [--type=auto]"]) --> Detect["Stage 0: Auto-Detect Lab Type<br/>Python Script"]
+    Detect --> S1["Stage 1: Extract Ground Truth<br/>GLM-4.7"]
+    S1 --> S2["Stage 2: Generate Lab Skeleton<br/>GLM-4.7"]
+    S2 --> S3["Stage 3: Verify Skeleton<br/>DeepSeek R1"]
+    S3 -->|Pass| S4["Stage 4: Generate Full Lab<br/>DeepSeek Chat V3"]
+    S3 -->|Fail| S2
+    S4 --> S5["Stage 5: Syntax QC<br/>Python Script"]
+    S5 --> Done(["✅ Lab Ready: XX_lab.md"])
+
+    Detect -->|Both types| Suggest["Recommend: Create both CFD + C++ labs"]
+
+    style Detect fill:#e0f2fe,stroke:#0284c7
+    style Suggest fill:#fef3c7,stroke:#f59e0b,stroke-dasharray: 5 5
+    style S1 fill:#e1f5e1,stroke:#4caf50
+    style S2 fill:#e1f5e1,stroke:#4caf50
+    style S3 fill:#f8d7da,stroke:#dc3545
+    style S4 fill:#d1ecf1,stroke:#17a2b8,stroke-width:3px
+    style S5 fill:#fff3cd,stroke:#ffc107
+    style Done fill:#d4edda,stroke:#28a745
+```
+
+---
+
+## Model Assignment
+
+| Stage | Model | API Method | Purpose |
+|-------|--------|------------|---------|
+| 1 | GLM-4.7 | Via Claude | Extract ground truth from source code |
+| 2 | GLM-4.7 | Via Claude | Generate lab skeleton structure |
+| 3 | DeepSeek R1 | Direct API | Verify technical accuracy |
+| 4 | DeepSeek Chat V3 | Direct API | Expand to full lab content |
+| 5 | Python Script | Native | Syntax validation |
+
+---
+
+## Lab Types
+
+### CFD Lab (`--type=cfd`)
+
+**Purpose:** Implement theory concept from Day XX
+
+**Example topics:**
+- Day 01: Add custom source term to continuity equation
+- Day 02: Implement finite volume discretization
+- Day 03: Code upwind interpolation scheme
+- Day 09: Debug pressure-velocity coupling in simpleFoam
+
+**Structure:**
+- CFD concept is the primary learning objective
+- C++ features are highlighted as secondary learning
+- Focus: "Understand CFD by implementing it"
+
+### C++ Lab (`--type=cpp`)
+
+**Purpose:** Teach specific C++ feature using OpenFOAM examples
+
+**Example topics:**
+- cpp_01: Basic types, operators, control flow
+- cpp_02: Functions, parameters, references
+- cpp_03: Classes, constructors, destructors
+- cpp_07: Template functions and classes
+- cpp_13: Sparse arrays (DSA)
+
+**Structure:**
+- C++ concept is the primary learning objective
+- OpenFOAM code provides practical examples
+- Focus: "Master C++ through CFD examples"
+
+---
+
+## Output Files
+
+| Stage | Model | File | Description |
+|-------|--------|------|-------------|
+| 0 | Python Script | `/tmp/lab_detection_XX.json` | Lab type detection results |
+| 1 | GLM-4.7 | `/tmp/lab_ground_truth_XX.json` | Source code facts |
+| 2 | GLM-4.7 | `labs/labXX_skeleton.json` | Lab structure skeleton |
+| 3 | DeepSeek R1 | `/tmp/lab_verification_XX.txt` | Verification report |
+| 4 | DeepSeek Chat V3 | `daily_learning/Phase_XX/XX_lab.md` | **Full lab content** |
+| 5 | - | QC report | Syntax validation results |
+
+---
+
+## Stage-by-Stage Instructions
+
+### Stage 0: Auto-Detect Lab Type (Python Script)
+
+**Run when `--type` is omitted or set to `auto`:**
+
+```bash
+python3 .claude/scripts/detect_lab_type.py --day=XX --output=json
+```
+
+**What it does:**
+1. Reads Day XX theory content (`daily_learning/Phase_*/XX.md`)
+2. Analyzes keyword frequencies (CFD terms vs C++ terms)
+3. Detects mathematical content (LaTeX) → CFD indicator
+4. Detects new C++ concepts (templates, inheritance, etc.)
+5. Calculates confidence score for each type
+
+**Output:** JSON with detection results
+```json
+{
+  "primary_type": "cfd",
+  "confidence": 69,
+  "cfd_score": 84,
+  "cpp_score": 15,
+  "cfd_topic": "Governing Equations",
+  "cpp_concept": {"name": "inheritance", "module": "cpp_04_inheritance"},
+  "recommendation": "Content is CFD-focused..."
+}
+```
+
+**Decision logic:**
+- If `CFD score > C++ score + 20`: Create CFD lab
+- If `C++ score > CFD score + 20`: Create C++ lab
+- Otherwise: Recommend creating **both** labs
+
+**Output:** `/tmp/lab_detection_XX.json`
+
+---
+
+### Stage 1: Extract Ground Truth (GLM-4.7)
+
+**For CFD labs:**
+```markdown
+Extract from OpenFOAM source code:
+
+1. Relevant class definitions (e.g., fvScalarMatrix)
+2. Method signatures (e.g., fvm::ddt, fvc::div)
+3. File paths and line numbers
+4. Actual implementation code
+
+Output: /tmp/lab_ground_truth_XX.json
+```
+
+**For C++ labs:**
+```markdown
+Extract C++ feature usage from OpenFOAM:
+
+1. How the feature is used (e.g., operator overloading)
+2. Real examples from source code
+3. Best practices and patterns
+4. Common pitfalls
+
+Output: /tmp/lab_ground_truth_XX.json
+```
+
+---
+
+### Stage 2: Generate Lab Skeleton (GLM-4.7)
+
+**Ask Claude:**
+
+```markdown
+Create lab skeleton for Day XX: [Topic]
+
+GROUND TRUTH: /tmp/lab_ground_truth_XX.json
+THEORY CONTENT: daily_learning/Phase_XX/XX.md
+
+Create skeleton with 5-part structure:
+1. Setup (10%) - Environment, files, verification
+2. Guided Implementation (30%) - Step-by-step with explanations
+3. Independent Challenges (35%) - Open-ended problems
+4. Debugging & Optimization (15%) - Common errors, profiling
+5. Results Analysis (10%) - Validation, interpretation
+
+Include:
+- Learning objectives (CFD + C++)
+- Estimated duration (2-4 hours)
+- Prerequisites
+- Deliverables checklist
+
+Output: labs/labXX_skeleton.json
+```
+
+---
+
+### Stage 3: Verify Skeleton (DeepSeek R1 - Direct API)
+
+**Or use integrated script:**
+
+```bash
+cat > /tmp/lab_stage3_prompt.txt << 'EOF'
+Verify lab skeleton for Day XX
+
+SKELETON: $(cat labs/labXX_skeleton.json)
+GROUND TRUTH: $(cat /tmp/lab_ground_truth_XX.json)
+
+Verification tasks:
+1. File paths exist in OpenFOAM source
+2. Code examples are syntactically correct
+3. CFD concepts are accurate
+4. C++ usage follows best practices
+5. Steps are in logical order
+
+Output: PASS if all checks succeed, FAIL with specific issues
+EOF
+
+python3 .claude/scripts/deepseek_content.py \
+  deepseek-reasoner \
+  /tmp/lab_stage3_prompt.txt \
+  > /tmp/lab_verification_XX.txt
+
+cat /tmp/lab_verification_XX.txt
+```
+
+**Output:** `/tmp/lab_verification_XX.txt`
+
+---
+
+### Stage 4: Generate Full Lab (DeepSeek Chat V3 - Direct API)
+
+```bash
+cat > /tmp/lab_stage4_prompt.txt << 'EOF'
+Expand lab for Day XX: [Topic] - ENGLISH ONLY
+
+SKELETON: $(cat labs/labXX_skeleton.json)
+GROUND TRUTH: $(cat /tmp/lab_ground_truth_XX.json)
+
+CRITICAL REQUIREMENTS:
+
+## Lab Structure (5 Parts)
+
+### Part 1: Setup (15 minutes)
+- Environment requirements (OpenFOAM version)
+- Required files list
+- Directory structure
+- Verification commands
+
+### Part 2: Guided Implementation (60-90 minutes)
+- Step-by-step instructions (5-10 steps)
+- Each step includes:
+  - What to do (bash commands or code edits)
+  - What this does (explanation)
+  - File path and line numbers
+  - Current code → Modified code
+  - **C++ Concept Applied** (highlight C++ feature)
+  - **Why this works** (CFD theory connection)
+
+### Part 3: Independent Challenges (60-90 minutes)
+- 2-3 open-ended problems
+- Progressive difficulty
+- Hints (subtle → specific → solution)
+- Expected outputs
+
+### Part 4: Debugging & Optimization (30-60 minutes)
+- Common errors table (Error | Cause | Fix)
+- Performance exercise (foamProfile)
+- Optimization targets
+
+### Part 5: Results Analysis (30 minutes)
+- Validation against theory
+- Python plotting example
+- Discussion questions
+
+## C++ Deep Dive Section
+
+For CFD labs: Highlight 2-3 C++ concepts used
+For C++ labs: Full concept explanation with OpenFOAM examples
+
+## Code Requirements
+
+- All code blocks have language tags (cpp, bash, python)
+- File references include paths and line numbers
+- Expected outputs shown for all steps
+- Common errors documented
+
+## Submission Checklist
+
+- [ ] Code compiles
+- [ ] Simulation runs
+- [ ] Results match expected
+- [ ] Performance targets met
+- [ ] Style guide followed
+
+## Solutions
+
+Use collapsible sections:
+```markdown
+<details>
+<summary>Click to reveal solutions</summary>
+
+Solution content here...
+
+</details>
+```
+
+Write comprehensive lab content suitable for hands-on learning.
+EOF
+
+python3 .claude/scripts/deepseek_content.py \
+  deepseek-chat \
+  /tmp/lab_stage4_prompt.txt \
+  > daily_learning/Phase_XX/XX_lab.md
+```
+
+**Output:** `daily_learning/Phase_XX/XX_lab.md`
+
+---
+
+### Stage 5: Syntax QC (Python Script)
+
+```bash
+# Check code block balance
+awk '/```/{count++} END{print count, (count%2==0 ? "✅" : "❌")}' daily_learning/Phase_XX/XX_lab.md
+
+# Check for required sections
+grep -c "## Part [1-5]" daily_learning/Phase_XX/XX_lab.md
+# Expected: 5
+
+# Run Mermaid validation (if diagrams present)
+python3 .claude/scripts/mermaid_ai_validator.py \
+    --file=daily_learning/Phase_XX/XX_lab.md
+```
+
+---
+
+## Lab Content Requirements
+
+| Section | Minimum | Details |
+|---------|---------|---------|
+| **Learning objectives** | 2-3 | CFD objective + C++ objective |
+| **Setup steps** | 3-5 | With verification commands |
+| **Guided implementation** | 5-10 steps | Each with code + explanation |
+| **Independent challenges** | 2-3 | Progressive difficulty |
+| **C++ concepts** | 2-3 | Highlighted in code sections |
+| **Common errors** | 5-10 | In troubleshooting table |
+| **Expected outputs** | All steps | Show what user should see |
+
+---
+
+## Natural C++/DSA Integration Guidelines
+
+**🔒 Core Principle:** Only teach C++/DSA that naturally appears in OpenFOAM code. Do not force artificial topics.
+
+### Philosophy
+
+Labs should naturally dive deep into C++/DSA concepts that OpenFOAM already uses. This creates authentic learning experiences where students understand WHY these concepts matter for CFD.
+
+**What This Means:**
+- ✅ **DO:** Deep dive into `LduMatrix` sparse storage when teaching continuity equation
+- ✅ **DO:** Explain `tmp<>` smart pointers when working with `fvMatrix`
+- ✅ **DO:** Cover `HashTable` when discussing field caching
+- ❌ **DON'T:** Force BFS/DFS algorithms just because graphs exist in mesh
+- ❌ **DON'T:** Add dynamic programming examples that have no CFD relevance
+- ❌ **DON'T:** Teach AVL trees when OpenFOAM uses octrees instead
+
+### Natural C++/DSA Topics in OpenFOAM
+
+| Topic | OpenFOAM Example | When to Include | Lab Duration Impact |
+|-------|-----------------|-----------------|---------------------|
+| **Lists/Arrays** | `UList`, `DynamicList` | Field access, cell loops | +30 min |
+| **Hash Tables** | `HashTable`, `HashSet` | Dictionary lookup, field caching | +45 min |
+| **Smart Pointers** | `tmp<>`, `autoPtr` | Memory management | +30 min |
+| **Templates** | `Field<Type>`, `fvMatrix<Type>` | Generic programming | +45 min |
+| **Sparse Matrices** | `LduMatrix` | Linear systems | +60 min |
+| **Graph Structures** | Mesh connectivity | Cell-face relations | +45 min |
+| **Trees** | `dynamicIndexedOctree` | Spatial search | +30 min |
+| **Sorting** | `stableSort()` | Field sorting | +30 min |
+
+### NOT Include (Not Natural to OpenFOAM)
+
+| Topic | Why Not Natural |
+|-------|-----------------|
+| **Graph algorithms** (BFS, DFS, shortest path) | OpenFOAM doesn't use these; mesh has graph structure but algorithms are different |
+| **Dynamic programming** | No optimization problems in core CFD solvers |
+| **Backtracking** | Not used in mesh generation or topology in standard OpenFOAM |
+| **Advanced trees** (BST, AVL, red-black) | OpenFOAM uses octrees for spatial search, not binary search trees |
+| **Heaps/priority queues** | Not used in standard solvers |
+| **Standard search algorithms** | Linear search sufficient for most operations |
+
+### Flexible Lab Duration
+
+**Base duration:** 3 hours (standard CFD lab)
+**With rich C++/DSA:** 3-8 hours depending on natural content
+
+**Duration guidelines:**
+- **3 hours:** CFD-heavy, minimal C++/DSA (e.g., basic boundary conditions)
+- **4-5 hours:** Balanced CFD + C++/DSA (e.g., continuity equation with LduMatrix)
+- **6-8 hours:** Rich C++/DSA content (e.g., custom solver with template metaprogramming)
+
+### How to Detect Natural C++/DSA
+
+**Automatic detection during lab generation:**
+
+```python
+# Analyze ground truth for natural C++/DSA indicators
+natural_cpp_dsa_indicators = {
+    'templates': ['tmp<', 'autoPtr<', 'Field<Type>', 'fvMatrix<Type>'],
+    'smart_pointers': ['tmp<>', 'autoPtr', 'refPtr', 'uniquePtr'],
+    'containers': ['UList', 'DynamicList', 'HashTable', 'Map', 'Dictionary'],
+    'sparse_matrices': ['LduMatrix', 'lduAddressing', 'lower()', 'upper()'],
+    'graph_structures': ['mesh.C()', 'mesh.owner()', 'mesh.neighbour()'],
+    'trees': ['octree', 'cellTree', 'indexedOctree'],
+    'sorting': ['stableSort', 'SortableList']
+}
+
+# Calculate C++/DSA richness score
+# Score determines lab duration extension
+```
+
+### Enhanced Lab Structure for Rich C++/DSA
+
+When natural C++/DSA content is detected, use extended structure:
+
+```markdown
+## Part 1: Setup (10%)
+## Part 2: CFD Implementation (30%) - OpenFOAM focus
+## Part 3: C++ Deep Dive (20%) - Core C++ concepts
+## Part 4: DSA Implementation (20%) - Natural algorithms/data structures
+## Part 5: Integration Challenge (15%) - Combine all three
+## Part 6: Debugging & Analysis (5%)
+```
+
+### Example: Including Natural DSA
+
+**When teaching continuity equation:**
+1. **CFD:** Implement $\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{U}) = S_\rho$
+2. **C++ Deep Dive:** Explain `tmp<fvScalarMatrix>` and template specialization
+3. **DSA Connection:** Cover `LduMatrix` sparse storage (naturally appears!)
+
+**Why this works:**
+- Sparse matrices are fundamental to FVM
+- Students see immediate relevance
+- Content is authentic to OpenFOAM
+- No artificial examples needed
+
+### DSA Topics by Natural Relevance
+
+| DSA Topic | Natural in OpenFOAM? | CFD Application | Priority |
+|----------|------------------------|-----------------|----------|
+| **Arrays/Vectors** | ✅ | Field storage | Essential |
+| **Linked Lists** | ✅ | `UList`, `DynamicList` | Essential |
+| **Hash Tables** | ✅ | `HashTable`, dictionary lookup | High |
+| **Trees (Binary)** | ❌ | Compare with octree | Low |
+| **Trees (Octree)** | ✅ | Spatial search, cell location | High |
+| **Graphs** | ⚠️ Structure only | Mesh connectivity | Medium |
+| **BFS/DFS** | ❌ | Not used naturally | Skip |
+| **Shortest Path** | ❌ | Not relevant | Skip |
+| **Sorting** | ⚠️ Basic only | Field sorting | Medium |
+| **Heaps** | ❌ | Not used | Skip |
+| **Dynamic Programming** | ❌ | Not applicable | Skip |
+| **Backtracking** | ❌ | Not used | Skip |
+
+Legend: ✅ Present, ⚠️ Partial, ❌ Absent
+
+### Lab Duration by C++/DSA Richness
+
+| C++/DSA Score | Duration | Example Topics |
+|---------------|----------|----------------|
+| **Low (0-2)** | 3 hours | Basic BCs, simple source terms |
+| **Medium (3-5)** | 4-5 hours | Continuity equation, discretization schemes |
+| **High (6-8)** | 6-8 hours | Custom solvers, advanced templates, sparse matrices |
+
+### Detection Script
+
+```bash
+python3 .claude/scripts/detect_natural_cpp_dsa.py --day=XX
+```
+
+Output:
+```
+Natural C++/DSA Detection for Day XX:
+  Templates:        ✅ Found (tmp<>, Field<Type>)
+  Smart Pointers:   ✅ Found (tmp<>, autoPtr)
+  Containers:       ✅ Found (List, HashTable)
+  Sparse Matrices:  ✅ Found (LduMatrix, lduAddressing)
+  Graph Structures: ⚠️ Structure only (mesh connectivity)
+  Trees:            ❌ Not found
+
+C++/DSA Richness Score: 7/8
+Recommended Lab Duration: 6-8 hours
+Topics to Include:
+  - Templates: tmp<>, Field<Type>, fvMatrix<Type>
+  - Smart Pointers: tmp<> ref counting
+  - Containers: List, HashTable
+  - Sparse Matrices: LduMatrix storage format
+```
+
+---
+
+## Integration with Daily Content
+
+### After Generating Theory
+
+```bash
+# After completing /create-day for Day XX
+
+# Generate corresponding CFD lab
+/create-lab --day=XX --type=cfd
+
+# Generate C++ lab if new concept introduced
+/create-lab --day=XX --type=cpp
+```
+
+### Spaced Repetition Schedule
+
+```
+Day 01: Theory (Governing Equations)
+Day 02: Theory (Finite Volume Method)
+Day 03: Lab 01 (Continuity implementation) ← Spaced practice
+Day 04: Theory (Spatial Discretization)
+Day 05: Lab 02 (FVM implementation) ← Spaced practice
+...
+```
+
+---
+
+## C++ Learning Track (16 Modules)
+
+| Module | Topics | OpenFOAM Examples |
+|--------|--------|-------------------|
+| **cpp_01_basics** | Types, operators, control flow | `dimensionedScalar`, field indexing |
+| **cpp_02_functions** | Functions, parameters, return types | `fvm::ddt()`, `fvc::div()` |
+| **cpp_03_oop** | Classes, constructors, destructors | `fvMesh`, `volScalarField` |
+| **cpp_04_inheritance** | Base/derived, virtual functions | `surfaceInterpolationScheme` hierarchy |
+| **cpp_05_polymorphism** | Virtual dispatch, abstract classes | `limiter()` virtual methods |
+| **cpp_06_operators** | Operator overloading | `operator+`, `operator|=` for fields |
+| **cpp_07_templates** | Function templates, class templates | `tmp<T>`, `Field<Type>` |
+| **cpp_08_stl** | Containers, algorithms, iterators | OpenFOAM vs STL comparison |
+| **cpp_09_memory** | Smart pointers, RAII | `autoPtr`, `refPtr`, `tmp` |
+| **cpp_10_move** | Move semantics, perfect forwarding | `std::move()`, `auto(T&&)` |
+| **cpp_11_constexpr** | Compile-time computation | `dimensionSet` compile-time checks |
+| **cpp_12_concepts** | C++20 concepts | Template constraints |
+| **cpp_13_dsa_arrays** | Sparse arrays, compressed storage | `UILList`, `LduMatrix` |
+| **cpp_14_dsa_graphs** | Mesh as graph, adjacency | Cell-face connectivity |
+| **cpp_15_dsa_trees** | Octree, cell tree | `cellTree`, `boundBox` |
+| **cpp_16_algorithms** | Iterative solvers, CG, BiCGStab | `PCG`, `PBiCGStab` |
+
+---
+
+## Quick Start Example
+
+```bash
+# 1. Generate lab for Day 01 (auto-detects type)
+/create-lab --day=01
+
+# Output:
+# Stage 0: Auto-Detect Lab Type
+#   Primary Type:   CFD
+#   Confidence:     69%
+#   Scores: CFD=84%, C++=15%
+#   → Creating CFD lab...
+
+# 2. Follow the prompts for each stage
+# Stage 0: Auto-detect type (script analyzes content)
+# Stage 1: Extract ground truth (Claude does this)
+# Stage 2: Generate skeleton (Claude does this)
+# Stage 3: Verify (DeepSeek R1 verifies)
+# Stage 4: Generate content (DeepSeek Chat V3 writes lab)
+# Stage 5: QC (script validates)
+
+# 3. Review the generated lab
+cat daily_learning/Phase_01_Foundation_Theory/01_lab.md
+
+# 4. Test the lab yourself
+cd $FOAM_RUN
+mkdir -p lab01
+cd lab01
+# Follow lab steps...
+```
+
+---
+
+## Troubleshooting
+
+### Lab Generation Fails
+
+```bash
+# Check ground truth was extracted
+cat /tmp/lab_ground_truth_XX.json
+
+# Check skeleton was created
+cat labs/labXX_skeleton.json
+
+# Check verification report
+cat /tmp/lab_verification_XX.txt
+```
+
+### DeepSeek API Errors
+
+```bash
+# Test API connection
+python3 .claude/scripts/deepseek_content.py deepseek-chat <(echo "test")
+
+# Check API key
+grep DEEPSEEK_API_KEY .mcp.json
+```
+
+### Lab Content Issues
+
+```bash
+# Re-run specific stage
+# Stage 4: Regenerate content
+python3 .claude/scripts/deepseek_content.py \
+  deepseek-chat \
+  /tmp/lab_stage4_prompt.txt \
+  > daily_learning/Phase_XX/XX_lab.md
+```
+
+---
+
+**Last Updated:** 2026-02-08
+**Approach:** Natural C++/DSA integration - teach only what appears in OpenFOAM
+**Lab Duration:** Flexible (3-8 hours based on natural C++/DSA content)
+**Integration:** Works with `/create-day` workflow

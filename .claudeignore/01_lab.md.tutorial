@@ -1,0 +1,1046 @@
+# Lab Day 01: Governing Equations - Continuity Equation Implementation
+
+> **Phase 01: Foundation Theory (Days 01-12)**
+> **Topic:** Conservation Laws for CFD - Hands-on Implementation
+> **Prerequisites:** Day 01 theory content, OpenFOAM installation
+
+---
+
+## Lab Overview
+
+**Duration:** 3-4 hours
+**Difficulty:** Beginner
+**Type:** CFD Implementation
+
+### Learning Objectives
+
+By completing this lab, you will:
+- **CFD:** Implement the continuity equation in OpenFOAM, understand fvm vs fvc operators, add mass source terms, verify conservation
+- **C++:** Work with templates (`tmp<fvMatrix<Type>>`), operator overloading, const references
+
+---
+
+## Part 1: Setup (15 minutes)
+
+### Environment Requirements
+
+- OpenFOAM v9 or later
+- 4GB RAM minimum
+- Basic terminal knowledge
+- Python 3.x (for analysis scripts)
+
+### Directory Structure
+
+```bash
+lab-day01/
+├── src/
+│   └── myContinuitySolver/
+│       ├── myContinuitySolver.C
+│       ├── createFields.H
+│       └── Make/
+│           ├── files
+│           └── options
+├── testCases/
+│   └── uniformSource/
+│       ├── 0/
+│       ├── constant/
+│       └── system/
+└── README.md
+```
+
+### Setup Commands
+
+```bash
+# 1. Source OpenFOAM environment
+source /opt/openfoam/etc/bashrc  # Adjust path as needed
+
+# 2. Create lab directory
+cd ~/OpenFOAM/${USER}-${WM_PROJECT_VERSION}
+mkdir -p lab-day01/src/myContinuitySolver
+cd lab-day01
+
+# 3. Verify installation
+wmake -help
+which blockMesh
+
+# Expected: Shows wmake usage and blockMesh path
+```
+
+---
+
+## Part 2: Guided Implementation (90 minutes)
+
+### Step 1: Create Solver Skeleton
+
+**Action:** Create basic solver structure
+
+```bash
+cd src/myContinuitySolver
+touch myContinuitySolver.C createFields.H
+mkdir -p Make
+touch Make/files Make/options
+```
+
+**File:** `Make/files`
+```makefile
+myContinuitySolver.C
+
+EXE = $(FOAM_USER_APPBIN)/myContinuitySolver
+```
+
+**File:** `Make/options`
+```makefile
+EXE_INC = \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(LIB_SRC)/fvModels/lnInclude
+
+EXE_LIBS = \
+    -lfiniteVolume \
+    -lfvModels \
+    -lmeshTools
+```
+
+**C++ Concept:** File organization and preprocessor directives
+- **Why:** `#include` brings in declarations, `EXE_INC` tells compiler where to find headers
+- **CFD Connection:** OpenFOAM's finiteVolume library contains all FVM operators
+
+---
+
+### Step 2: Create Main Solver File
+
+**File:** `myContinuitySolver.C`
+
+```cpp
+#include "fvCFD.H"
+#include "fvModels.H"
+#include "fvConstraints.H"
+
+int main(int argc, char *argv[])
+{
+    #include "setRootCase.H"
+    #include "createTime.H"
+    #include "createMesh.H"
+    #include "createFields.H"
+
+    Info<< "\nStarting continuity equation solver\n" << endl;
+    Info<< "Ground truth: openfoam_temp/src/finiteVolume/cfdTools/compressible/rhoEqn.H:32-46\n" << endl;
+
+    // Track initial mass
+    scalar initialMass = fvc::domainIntegrate(rho).value();
+    Info<< "Initial mass in domain: " << initialMass << " kg" << nl << endl;
+
+    while (runTime.loop())
+    {
+        Info<< "Time = " << runTime.timeName() << nl << endl;
+
+        // --- Continuity equation
+        // Reference: openfoam_temp/src/finiteVolume/cfdTools/compressible/rhoEqn.H
+        // Formula: ∂ρ/∂t + ∇·(ρU) = S_ρ
+
+        fvScalarMatrix rhoEqn
+        (
+            fvm::ddt(rho)      // ∂ρ/∂t : Implicit temporal derivative
+          + fvc::div(phi)      // ∇·(ρU) : Explicit convective term (phi = ρU·Sf)
+          ==
+            fvModels.source(rho)  // S_ρ : Source terms from fvModels
+        );
+
+        fvConstraints.constrain(rhoEqn);
+        rhoEqn.solve();
+        fvConstraints.constrain(rho);
+
+        // --- Continuity error calculation
+        // Reference: openfoam_temp/src/finiteVolume/cfdTools/incompressible/continuityErrs.H
+        volScalarField contErr
+        (
+            fvc::ddt(rho) + fvc::div(phi) - fvModels.source(rho)
+        );
+
+        scalar sumLocalContErr = runTime.deltaTValue() *
+            mag(contErr)().weightedAverage(mesh.V()).value();
+        scalar globalContErr = runTime.deltaTValue() *
+            contErr.weightedAverage(mesh.V()).value();
+
+        Info<< "Continuity error : sum local = " << sumLocalContErr
+            << ", global = " << globalContErr << endl;
+
+        // --- Mass conservation check
+        scalar currentMass = fvc::domainIntegrate(rho).value();
+        scalar massChange = currentMass - initialMass;
+
+        Info<< "Mass conservation : initial = " << initialMass
+            << ", current = " << currentMass
+            << ", change = " << massChange << nl << endl;
+
+        runTime.write();
+
+        Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
+            << "  ClockTime = " << runTime.elapsedClockTime() << " s"
+            << nl << endl;
+    }
+
+    Info<< "End\n" << endl;
+
+    return 0;
+}
+```
+
+**C++ Concept:** Templates (`tmp<fvMatrix<Type>>`)
+- **What happens:** `fvm::ddt(rho)` returns `tmp<fvScalarMatrix>`, a smart pointer
+- **Why:** Enables automatic memory management and type safety for different field types
+- **CFD Connection:** Same code works for scalars, vectors, tensors
+
+**Reference:** `openfoam_temp/src/finiteVolume/finiteVolume/fvm/fvmDdt.H:54-58`
+
+---
+
+### Step 3: Create Fields File
+
+**File:** `createFields.H`
+
+```cpp
+Info<< "Reading transport properties\n" << endl;
+IOdictionary transportProperties
+(
+    IOobject
+    (
+        "transportProperties",
+        runTime.constant(),
+        mesh,
+        IOobject::MUST_READ_IF_MODIFIED,
+        IOobject::NO_WRITE
+    )
+);
+
+Info<< "Reading field rho\n" << endl;
+volScalarField rho
+(
+    IOobject
+    (
+        "rho",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+Info<< "Reading field U\n" << endl;
+volVectorField U
+(
+    IOobject
+    (
+        "U",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+Info<< "Reading/calculating face flux field phi\n" << endl;
+surfaceScalarField phi
+(
+    IOobject
+    (
+        "phi",
+        runTime.timeName(),
+        mesh,
+        IOobject::READ_IF_PRESENT,
+        IOobject::AUTO_WRITE
+    ),
+    linearInterpolate(rho*U) & mesh.Sf()
+);
+
+Info<< "Creating fvModels and fvConstraints\n" << endl;
+Foam::fvModels& fvModels = Foam::fvModels::New(mesh);
+Foam::fvConstraints& fvConstraints = Foam::fvConstraints::New(mesh);
+```
+
+**C++ Concept:** Const references (`const VolField<Type>&`)
+- **What happens:** Parameters passed as `const &` prevent modification and avoid copying
+- **Why:** Efficient for large objects like fields (no copy overhead)
+- **CFD Connection:** Ensures explicit operators (`fvc`) don't modify input fields
+
+---
+
+### Step 4: Compile the Solver
+
+```bash
+cd ~/OpenFOAM/${USER}-${WM_PROJECT_VERSION}/lab-day01/src/myContinuitySolver
+wmake
+
+# Expected output:
+# Making dependency list for source file myContinuitySolver.C
+# g++ -std=c++11 -Dlinux64 -DWM_ARCH_OPTION=64 ...
+# Source file: myContinuitySolver.C
+# g++ ... -o /home/user/OpenFOAM/.../platforms/linux64Gcc9.../myContinuitySolver
+# Done
+
+# Verify executable exists
+ls $(FOAM_USER_APPBIN)/myContinuitySolver
+
+# Expected: Shows path to compiled executable
+```
+
+**If compilation fails:**
+```bash
+# Check for common errors
+wmake 2>&1 | grep -i error
+
+# Common fixes:
+# - Missing include: Add #include "fvm.H"
+# - Link error: Check EXE_LIBS in Make/options
+# - Typo: Check field names match createFields.H
+```
+
+---
+
+### Step 5: Create Test Case
+
+```bash
+cd ~/OpenFOAM/${USER}-${WM_PROJECT_VERSION}/lab-day01
+mkdir -p testCases/uniformSource
+cd testCases/uniformSource
+
+# Copy tutorial as base
+cp -r $FOAM_TUTORIALS/incompressible/simpleFoam/pitzDaily/* .
+
+# Modify for our case
+```
+
+**File:** `0/rho` (create this file)
+```cpp
+dimensions      [1 -3 0 0 0 0 0];
+
+internalField   uniform 1.2;  // kg/m³, air density
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 1.2;
+    }
+    outlet
+    {
+        type            zeroGradient;
+    }
+    walls
+    {
+        type            zeroGradient;
+    }
+    "#includeEtc"
+    {
+        type            fixedValue;
+        value           uniform 1.2;
+    }
+}
+```
+
+**File:** `0/U` (modify existing)
+```cpp
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform (1 0 0);  // m/s, inflow velocity
+    }
+    outlet
+    {
+        type            zeroGradient;
+    }
+    walls
+    {
+        type            noSlip;
+    }
+    "#includeEtc"
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+}
+```
+
+**File:** `constant/transportProperties`
+```cpp
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      transportProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+transportModel  Newtonian;
+
+nu              [0 2 -1 0 0 0 0] 1.5e-05;  // m²/s, air kinematic viscosity
+```
+
+**File:** `system/controlDict` (modify)
+```cpp
+application     myContinuitySolver;
+
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         1.0;  // Run for 1 second
+
+deltaT          0.01;  // 10ms time step
+
+writeControl    timeStep;
+
+writeInterval   10;  // Write every 10 steps
+
+functions
+{
+    continuityError
+    {
+        type            coded;
+        libs            ("libutilityFunctionObjects.so");
+        writeControl    writeTime;
+        writeInterval   1;
+
+        name            continuityError;
+        codeWrite
+        #{
+            // Calculate and write continuity error
+            const volScalarField& rho = mesh().lookupObject<volScalarField>("rho");
+            const surfaceScalarField& phi = mesh().lookupObject<surfaceScalarField>("phi");
+
+            volScalarField contErr(fvc::div(phi));
+
+            scalar globalErr = contErr.weightedAverage(mesh().V()).value();
+            scalar maxErr = max(mag(contErr)).value();
+
+            Info<< "Time = " << mesh().time().value()
+                << " Continuity error: global = " << globalErr
+                << ", max = " << maxErr << endl;
+        #};
+    }
+}
+```
+
+**File:** `system/fvSchemes`
+```cpp
+ddtSchemes
+{
+    default         Euler;
+}
+
+gradSchemes
+{
+    default         Gauss linear;
+}
+
+divSchemes
+{
+    default         none;
+    div(phi,rho)    Gauss upwind;  // First-order upwind (stable)
+}
+
+laplacianSchemes
+{
+    default         Gauss linear corrected;
+}
+
+interpolationSchemes
+{
+    default         linear;
+}
+
+snGradSchemes
+{
+    default         corrected;
+}
+```
+
+**File:** `system/fvSolution`
+```cpp
+solvers
+{
+    rho
+    {
+        solver          GAMG;
+        tolerance       1e-06;
+        relTol          0.1;
+        smoother        GaussSeidel;
+    }
+}
+
+SIMPLE
+{
+    nNonOrthogonalCorrectors 0;
+}
+```
+
+---
+
+### Step 6: Run and Verify
+
+```bash
+cd ~/OpenFOAM/${USER}-${WM_PROJECT_VERSION}/lab-day01/testCases/uniformSource
+
+# Generate mesh
+blockMesh
+
+# Expected output:
+# /*---------------------------------------------------------------------------*\
+# | =========                 |                                                 |
+# | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+# ...
+# End
+
+# Run solver
+myContinuitySolver
+
+# Expected output:
+# Starting continuity equation solver
+# Ground truth: openfoam_temp/src/finiteVolume/cfdTools/compressible/rhoEqn.H:32-46
+# Initial mass in domain: 0.00123456 kg
+#
+# Time = 0.01
+# Continuity error : sum local = 1.23e-06, global = 2.34e-08
+# Mass conservation : initial = 0.00123456, current = 0.00123456, change = 1.23e-09
+# ExecutionTime = 0.05 s  ClockTime = 0.06 s
+#
+# [... continues to endTime ...]
+```
+
+---
+
+## Part 3: Independent Challenges (90 minutes)
+
+### Challenge 1: Add Spatially Varying Source Term
+
+**Objective:** Implement a mass source that simulates evaporation in a heated region.
+
+<details>
+<summary>Hint 1 (Subtle)</summary>
+
+Use `mesh.C()` to access cell center positions for spatial variation.
+</details>
+
+<details>
+<summary>Hint 2 (Specific)</summary>
+
+Gaussian distribution: `exp(-0.5 * pow(dist/sigma, 2))`
+</details>
+
+<details>
+<summary>Hint 3 (More Specific)</summary>
+
+Create a `volScalarField massSource` and initialize it using a loop over cells:
+```cpp
+volScalarField massSource
+(
+    IOobject
+    (
+        "massSource",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("zero", dimDensity/dimTime, 0.0)
+);
+
+const vector heaterCenter(0.05, 0.05, 0.005);
+const scalar heaterRadius = 0.01;
+
+forAll(mesh.C(), i)
+{
+    scalar dist = mag(mesh.C()[i] - heaterCenter);
+    if (dist < heaterRadius)
+    {
+        massSource[i] = 1.0 * exp(-2.0 * dist*dist / (heaterRadius*heaterRadius));
+    }
+}
+```
+</details>
+
+<details>
+<summary>Solution</summary>
+
+Add to `createFields.H`:
+```cpp
+// Mass source field for phase change
+volScalarField massSource
+(
+    IOobject
+    (
+        "massSource",
+        runTime.timeName(),
+        mesh,
+        IOobject::READ_IF_PRESENT,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("massSource", dimDensity/dimTime, 0.0)
+);
+
+// If not read from file, initialize with spatially varying source
+if (massSource.headerOk())
+{
+    Info<< "Read massSource from file" << endl;
+}
+else
+{
+    Info<< "Initializing massSource with Gaussian distribution" << endl;
+
+    // Heater properties
+    const vector heaterCenter(0.05, 0.05, 0.005);
+    const scalar heaterRadius = 0.01;
+    const scalar maxRate = 1.0;  // kg/m³/s
+
+    forAll(mesh.C(), celli)
+    {
+        scalar dist = mag(mesh.C()[celli] - heaterCenter);
+        massSource[celli] = maxRate * exp(-2.0 * dist*dist / (heaterRadius*heaterRadius));
+    }
+
+    massSource.write();
+}
+```
+
+Modify continuity equation in `myContinuitySolver.C`:
+```cpp
+fvScalarMatrix rhoEqn
+(
+    fvm::ddt(rho)
+  + fvc::div(phi)
+  ==
+    fvModels.source(rho) + massSource  // Add our source term
+);
+```
+
+**Verification:**
+- Total source rate: `fvc::domainIntegrate(massSource).value()` should be > 0
+- Mass change should equal source integration over time
+</details>
+
+---
+
+### Challenge 2: Calculate Phase Change Expansion Term
+
+**Objective:** Compute the velocity divergence caused by phase change volume expansion.
+
+**Theory Background:**
+
+During evaporation, liquid converts to vapor with large density difference:
+$$
+\nabla \cdot \mathbf{U} = \dot{m} \left( \frac{1}{\rho_v} - \frac{1}{\rho_l} \right)
+$$
+
+For R410A at typical conditions:
+- $\rho_l \approx 1100$ kg/m³ (liquid)
+- $\rho_v \approx 22$ kg/m³ (vapor)
+- Density ratio $\approx 50$
+
+This means evaporation causes ~50x volume expansion!
+
+<details>
+<summary>Hint 1</summary>
+
+Define `rho_l` and `rho_v` as `dimensionedScalar` with units `[1 -3 0 0 0 0 0]`
+</details>
+
+<details>
+<summary>Hint 2</summary>
+
+Calculate expansion term: `massSource * (1.0/rho_v - 1.0/rho_l)`
+</details>
+
+<details>
+<summary>Hint 3</summary>
+
+Use `fvc::div(U)` to get actual velocity divergence for comparison
+</details>
+
+<details>
+<summary>Solution</summary>
+
+Add to `createFields.H`:
+```cpp
+// Phase densities for R410A at 5°C evaporator conditions
+dimensionedScalar rho_l
+(
+    "rho_l",
+    dimDensity,
+    1100.0  // kg/m³, liquid R410A
+);
+
+dimensionedScalar rho_v
+(
+    "rho_v",
+    dimDensity,
+    22.0  // kg/m³, vapor R410A
+);
+
+// Expansion term field
+volScalarField expansionTerm
+(
+    IOobject
+    (
+        "expansionTerm",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    massSource * (scalar(1.0)/rho_v - scalar(1.0)/rho_l)
+);
+
+Info<< "Phase change properties:" << nl
+    << "  rho_l = " << rho_l.value() << " kg/m³" << nl
+    << "  rho_v = " << rho_v.value() << " kg/m³" << nl
+    << "  Expansion factor = " << (1.0/rho_v.value() - 1.0/rho_l.value()) << " m³/kg" << endl;
+```
+
+Add to main solver (after solving rho equation):
+```cpp
+// Update expansion term
+expansionTerm = massSource * (scalar(1.0)/rho_v - scalar(1.0)/rho_l);
+
+// Calculate actual velocity divergence
+volScalarField actualDivU(fvc::div(U));
+
+// Compare
+volScalarField divUError(mag(actualDivU - expansionTerm));
+
+Info<< "Expansion analysis:" << nl
+    << "  max expansion term = " << max(expansionTerm).value() << " 1/s" << nl
+    << "  max actual div(U) = " << max(actualDivU).value() << " 1/s" << nl
+    << "  max error = " << max(divUError).value() << " 1/s" << nl << endl;
+
+// Write for visualization
+expansionTerm.write();
+actualDivU.write();
+divUError.write();
+```
+
+**Verification:**
+- Expansion term should be positive in source regions (evaporation = expansion)
+- Maximum expansion ≈ massSource × (1/22 - 1/1100) ≈ massSource × 0.044 m³/kg
+</details>
+
+---
+
+## Part 4: Debugging & Optimization (45 minutes)
+
+### Common Errors Reference
+
+| Error Message | Cause | Solution |
+|--------------|-------|----------|
+| `undefined symbol 'fvm'` | Missing include | Add `#include "fvm.H"` to solver |
+| `no matching function for 'ddt'` | Wrong field type | Ensure argument is `volScalarField`, not `surfaceScalarField` |
+| `continuity error growing` | Unbalanced source | Check source term units: should be `[1 -3 -1 0 0]` (kg/m³/s) |
+| `dimension inconsistency` | Mismatched terms | All terms must have same dimension: `[1 -3 -1 0 0]` |
+| `segmentation fault` | Null pointer access | Verify fields are created before use |
+
+### Debugging Exercise
+
+**Task:** Your solver compiles but crashes immediately. Diagnose the issue.
+
+**Symptoms:**
+```bash
+myContinuitySolver
+Segmentation fault (core dumped)
+```
+
+**Debug steps:**
+```bash
+# 1. Run with debugger
+gdb myContinuitySolver
+(gdb) run
+(gdb) backtrace  # Shows crash location
+
+# 2. Check common issues
+# - Are all fields initialized before use?
+# - Is mesh valid? (run checkMesh)
+# - Are boundary conditions consistent?
+
+# 3. Add debug output
+Info<< "DEBUG: Created rho field" << endl;
+Info<< "DEBUG: rho size = " << rho.size() << endl;
+```
+
+**Most likely causes:**
+1. Forgetting to include `createFields.H`
+2. Accessing field before mesh creation
+3. Wrong field name in lookup
+
+---
+
+### Performance Optimization
+
+**Task:** Profile your solver and reduce runtime by 20%.
+
+**Profiling:**
+```bash
+# Run with profiling
+foamProfiler myContinuitySolver
+
+# View results
+foamProfiler -graph
+
+# Expected output shows time in:
+# - fvm::ddt: 10-15%
+# - fvc::div: 30-40%
+# - solve(): 30-40%
+# - Other: 10-20%
+```
+
+**Optimization techniques:**
+
+1. **Reduce unnecessary calculations:**
+```cpp
+// Original (calculates divergence twice)
+volScalarField contErr(fvc::ddt(rho) + fvc::div(phi) - massSource);
+
+// Optimized (reuse phi calculation)
+surfaceScalarField phiPrev(phi);
+volScalarField contErr(fvc::ddt(rho));
+contErr += fvc::div(phiPrev);
+contErr -= massSource;
+```
+
+2. **Optimize output frequency:**
+```cpp
+// Only write detailed output every N steps
+if (runTime.timeIndex() % 20 == 0)
+{
+    // Detailed error analysis
+}
+```
+
+3. **Use faster solvers (for larger cases):**
+```cpp
+// In fvSolution, change solver:
+rho
+{
+    solver          PBiCGStab;  // Faster than GAMG for small cases
+    preconditioner  DILU;
+    tolerance       1e-06;
+}
+```
+
+**Target:** Reduce execution time from baseline by 20%
+
+---
+
+## Part 5: Results Analysis (30 minutes)
+
+### Task 1: Mass Conservation Verification
+
+**Objective:** Verify that mass change equals source integration.
+
+**Python analysis script:**
+
+```python
+#!/usr/bin/env python3
+import re
+import numpy as np
+import matplotlib.pyplot as plt
+
+def parse_log(filename='log.myContinuitySolver'):
+    """Parse OpenFOAM log file for mass conservation data"""
+
+    times = []
+    mass_changes = []
+    continuity_errors = []
+
+    with open(filename, 'r') as f:
+        for line in f:
+            # Extract time
+            time_match = re.search(r'Time = ([\d.]+)', line)
+            if time_match:
+                times.append(float(time_match.group(1)))
+
+            # Extract mass change
+            mass_match = re.search(r'change = ([\d.e-]+)', line)
+            if mass_match:
+                mass_changes.append(float(mass_match.group(1)))
+
+            # Extract continuity error
+            err_match = re.search(r'global = ([\d.e-]+)', line)
+            if err_match:
+                continuity_errors.append(float(err_match.group(1)))
+
+    return np.array(times), np.array(mass_changes), np.array(continuity_errors)
+
+# Parse data
+times, mass_changes, errors = parse_log()
+
+# Plot results
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+
+# Mass conservation
+ax1.plot(times, mass_changes, 'b-o', label='Mass change')
+ax1.set_xlabel('Time (s)')
+ax1.set_ylabel('Mass change (kg)')
+ax1.set_title('Mass Conservation Check')
+ax1.grid(True)
+ax1.legend()
+
+# Continuity error
+ax2.semilogy(times, np.abs(errors), 'r-o', label='Global error')
+ax2.set_xlabel('Time (s)')
+ax2.set_ylabel('|Error|')
+ax2.set_title('Continuity Error')
+ax2.grid(True)
+ax2.legend()
+
+plt.tight_layout()
+plt.savefig('mass_conservation.png', dpi=150)
+print("Plot saved to mass_conservation.png")
+
+# Statistics
+print(f"\nMass conservation statistics:")
+print(f"  Final mass change: {mass_changes[-1]:.6e} kg")
+print(f"  Max continuity error: {np.max(np.abs(errors)):.6e}")
+print(f"  Mean continuity error: {np.mean(np.abs(errors)):.6e}")
+```
+
+**Expected results:**
+- Mass change should be close to integrated source
+- Continuity error should decrease or stay small (< 1e-5)
+- No drift in cumulative error
+
+---
+
+### Task 2: Expansion Term Analysis
+
+**Objective:** Verify the expansion term magnitude for given evaporation rate.
+
+**Manual calculation:**
+
+Given:
+- Evaporation rate: $\dot{m} = 1.0$ kg/m³/s
+- Liquid density: $\rho_l = 1100$ kg/m³
+- Vapor density: $\rho_v = 22$ kg/m³
+
+Calculate expansion term:
+$$
+\nabla \cdot \mathbf{U} = 1.0 \times \left( \frac{1}{22} - \frac{1}{1100} \right)
+$$
+$$
+\nabla \cdot \mathbf{U} = 1.0 \times (0.04545 - 0.000909)
+$$
+$$
+\nabla \cdot \mathbf{U} \approx 0.0445 \text{ s}^{-1}
+$$
+
+**Verification:**
+- Compare this theoretical value with `expansionTerm` field output
+- Error should be < 1% in cells with mass source
+
+---
+
+### Discussion Questions
+
+1. **Why is the expansion term so important for R410A?**
+   - Hint: Consider what happens if $\nabla \cdot \mathbf{U} = 0$ during evaporation
+
+2. **What happens to the pressure equation without the expansion term?**
+   - Answer: It becomes singular (matrix cannot be inverted)
+
+3. **Why use `fvm::ddt()` but `fvc::div()` in the continuity equation?**
+   - Hint: What are we solving for? What is known?
+
+4. **How does numerical stability relate to the Courant number?**
+   - Hint: Co = |U|Δt/Δx, what happens if Co > 1?
+
+---
+
+## C++ Deep Dive
+
+### Template Functions in OpenFOAM
+
+**Concept:** OpenFOAM uses templates extensively to write code that works for scalars, vectors, and tensors.
+
+**Example:**
+```cpp
+// In fvmDdt.H
+template<class Type>
+tmp<fvMatrix<Type>> ddt
+(
+    const VolField<Type>& vf
+);
+```
+
+**How it works:**
+1. `Type` is a template parameter (can be `scalar`, `vector`, etc.)
+2. Compiler generates separate functions for each type used
+3. `tmp<fvMatrix<Type>>` is a smart pointer for automatic memory management
+
+**Benefits:**
+- Write once, use for all field types
+- Type safety enforced at compile time
+- No runtime overhead (templates resolved at compilation)
+
+---
+
+### Operator Overloading for Matrix Assembly
+
+**Concept:** OpenFOAM overloads `+`, `-`, `==` operators for intuitive equation syntax.
+
+**Example:**
+```cpp
+fvScalarMatrix rhoEqn
+(
+    fvm::ddt(rho) + fvc::div(phi) == massSource
+);
+```
+
+**What really happens:**
+1. `fvm::ddt(rho)` returns `tmp<fvMatrix<scalar>>`
+2. `fvc::div(phi)` is added using `operator+`
+3. `==` is overloaded to call `fvMatrix::operator==()`
+4. This separates LHS (matrix coefficients) from RHS (source terms)
+
+**Reference:** `openfoam_temp/src/finiteVolume/finiteVolume/fvMatrices/fvMatrix/fvMatrix.C`
+
+---
+
+## Submission Checklist
+
+Before completing this lab, verify:
+
+- [ ] Solver compiles without errors or warnings
+- [ ] Test case runs successfully to endTime
+- [ ] Continuity error < 1e-5 throughout simulation
+- [ ] Mass conservation verified (change = integrated source)
+- [ ] Expansion term calculated correctly
+- [ ] Python analysis script produces plots
+- [ ] Code follows OpenFOAM style guidelines
+- [ ] All files include proper comments
+
+---
+
+## References
+
+- **Day 01 Theory:** `daily_learning/Phase_01_Foundation_Theory/01.md`
+- **Continuity Equation:** `openfoam_temp/src/finiteVolume/cfdTools/compressible/rhoEqn.H:32-46`
+- **Error Calculation:** `openfoam_temp/src/finiteVolume/cfdTools/incompressible/continuityErrs.H:32-46`
+- **FVM Operators:** `openfoam_temp/src/finiteVolume/finiteVolume/fvm/`
+
+---
+
+**Lab Complete!** You've implemented the continuity equation and gained hands-on experience with OpenFOAM's finite volume operators.
+
+**Next:** Day 02 - Finite Volume Method Basics

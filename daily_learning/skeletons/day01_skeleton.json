@@ -1,55 +1,256 @@
 {
-  "day": 1,
-  "topic": "Introduction to CFD and OpenFOAM",
-  "learning_objectives": [
-    "Understand the fundamental concepts and applications of Computational Fluid Dynamics (CFD).",
-    "Grasp the general workflow of a CFD simulation (Pre-processing, Solving, Post-processing).",
-    "Learn the history, philosophy, and open-source nature of OpenFOAM.",
-    "Navigate the OpenFOAM directory structure and understand basic file conventions.",
-    "Run a first, simple tutorial case using the standard OpenFOAM workflow."
-  ],
-  "sections": [
-    {
-      "header": "Core Theory",
-      "subsections": [
-        "What is CFD? Governing Equations (Navier-Stokes).",
-        "CFD Workflow: Geometry, Meshing, Physics Setup, Solving, Analysis.",
-        "Finite Volume Method (FVM) Overview: Discretization, Conservation."
+  "day": "01",
+  "title": "Governing Equations",
+  "subtitle": "Conservation Laws for CFD",
+  "phase": "Phase 01: Foundation Theory",
+  "date": "2026-02-09",
+  "template": "mathematician",
+  "roadmap_reference": "Day 01: Governing Equations",
+  "content_language": "english_only",
+  "verified_facts": "/tmp/verified_facts_day01.json",
+  "structure": {
+    "introduction": {
+      "title": "Introduction to Governing Equations",
+      "purpose": "Understand the fundamental conservation laws that govern fluid flow",
+      "learning_objectives": [
+        "Derive the three conservation laws from first principles",
+        "Understand vector notation and tensor basics",
+        "Identify the expansion term importance for phase change"
       ]
     },
-    {
-      "header": "OpenFOAM Reference",
-      "subsections": [
-        "OpenFOAM History and Open-Source Philosophy.",
-        "Directory Structure: $FOAM_RUN, $FOAM_TUTORIALS, system/, constant/, 0/.",
-        "File Conventions: Dictionaries, Keywords, Header."
+    "part_1": {
+      "title": "Core Theory - Conservation Laws",
+      "ratio": 0.30,
+      "readability": "beginner",
+      "sections": [
+        {
+          "title": "Mass Conservation (Continuity Equation)",
+          "topics": [
+            "Integral form: d/dt ∫_V ρ dV + ∮_S ρ(𝐔·𝐧) dS = S_m ⭐",
+            "Differential form: ∂ρ/∂t + ∇·(ρ𝐔) = S_m ⭐",
+            "Incompressible case: ∇·𝐔 = 0 ⭐",
+            "Phase change modification: ∇·𝐔 = ṁ(1/ρ_v - 1/ρ_l) ⭐ CRITICAL for R410A"
+          ]
+        },
+        {
+          "title": "Momentum Conservation (Navier-Stokes)",
+          "topics": [
+            "Newton's Second Law applied to fluids",
+            "Integral form: d/dt ∫_V ρ𝐔 dV + ∮_S ρ𝐔(𝐔·𝐧) dS = ∮_S 𝐓·𝐧 dS + ∫_V 𝐟_b dV ⭐",
+            "Differential form: ∂(ρ𝐔)/∂t + ∇·(ρ𝐔𝐔) = ∇·𝐓 + 𝐟_b ⭐",
+            "Stress tensor 𝐓 for Newtonian fluids",
+            "Complete expansion for incompressible flow: ∂𝐔/∂t + ∇·(𝐔𝐔) = -∇p/ρ + ∇·(ν∇𝐔) + 𝐠"
+          ]
+        },
+        {
+          "title": "Energy Conservation",
+          "topics": [
+            "First Law of Thermodynamics",
+            "Integral form: d/dt ∫_V ρh dV + ∮_S ρh(𝐔·𝐧) dS = ∮_S k∇T·𝐧 dS + ∫_V Q̇ dV ⭐",
+            "Differential form: ∂(ρh)/∂t + ∇·(ρh𝐔) = ∇·(k∇T) + Q̇ ⭐",
+            "Enthalpy form: ∂(ρh)/∂t + ∇·(ρh𝐔) = ∇·(α∇h) + S_h",
+            "Boundary condition formulations"
+          ]
+        },
+        {
+          "title": "Vector Notation and Tensor Basics",
+          "topics": [
+            "Bold vector notation: 𝐔, 𝐧, 𝐓 (using \\mathbf{} in LaTeX)",
+            "Divergence operator: ∇·𝐔",
+            "Gradient operator: ∇p",
+            "Laplacian operator: ∇²φ",
+            "Tensor operations: ∇·𝐓 (divergence of stress tensor)"
+          ]
+        }
       ]
     },
-    {
-      "header": "Implementation",
-      "subsections": [
-        "Setting up the Environment: sourcing bashrc, foamVersion.",
-        "Running a First Tutorial: cavity case using blockMesh, icoFoam, paraFoam.",
-        "Basic Terminal Commands: run, foamListTimes, foamLog."
+    "part_2": {
+      "title": "Physical Challenge - Why These Equations Matter",
+      "ratio": 0.20,
+      "readability": "intermediate",
+      "sections": [
+        {
+          "title": "The Coupling Problem",
+          "topics": [
+            "Pressure-velocity coupling",
+            "Why ∇·𝐔 = 0 is difficult to enforce",
+            "Segregated vs coupled solvers"
+          ]
+        },
+        {
+          "title": "Phase Change Challenge",
+          "topics": [
+            "Density ratio effects (ρ_l/ρ_v ~ 50-100 for R410A) ⭐",
+            "The expansion term: ∇·𝐔 = ṁ(1/ρ_v - 1/ρ_l) ⭐ CRITICAL",
+            "Why solvers diverge without this term ⭐",
+            "Preview of Day 11 solution"
+          ]
+        },
+        {
+          "title": "Nonlinearity and Turbulence",
+          "topics": [
+            "Convection term ∇·(ρ𝐔𝐔) is nonlinear",
+            "Introduction to turbulence modeling",
+            "Reynolds averaging basics"
+          ]
+        }
       ]
     },
-    {
-      "header": "Exercises",
-      "subsections": [
-        "Navigate the cavity tutorial directories and identify key files.",
-        "Modify the cavity case endTime and writeInterval, then re-run.",
-        "Use paraFoam to visualize the velocity field and pressure."
+    "part_3": {
+      "title": "Architecture & Implementation",
+      "ratio": 0.35,
+      "readability": "advanced",
+      "sections": [
+        {
+          "title": "OpenFOAM Class Hierarchy for Governing Equations",
+          "topics": [
+            "Base class: Foam::fv::ddtScheme (time derivative schemes) ⭐",
+            "Derived: EulerDdtScheme, backwardDdtScheme, CrankNicolsonDdtScheme ⭐",
+            "Base class: Foam::fv::convectionScheme (convection schemes) ⭐",
+            "Derived: gaussConvectionScheme, boundedConvectionScheme ⭐",
+            "Base class: Foam::fv::laplacianScheme (diffusion schemes) ⭐",
+            "Derived: gaussLaplacianScheme ⭐",
+            "Base class: Foam::fv::divScheme (divergence schemes) ⭐",
+            "Mermaid class diagram ⭐"
+          ]
+        },
+        {
+          "title": "Finite Volume Operators",
+          "topics": [
+            "fvm::ddt - Temporal derivative (implicit) ⭐",
+            "fvm::div - Convection term (implicit) ⭐",
+            "fvm::laplacian - Diffusion term (implicit) ⭐",
+            "fvc::div - Explicit divergence ⭐",
+            "fvc::grad - Explicit gradient ⭐",
+            "fvModels.source - Source term for finite volume models ⭐",
+            "Mermaid flowchart for operator selection ⭐"
+          ]
+        },
+        {
+          "title": "Code Analysis - Continuity Equation",
+          "topics": [
+            "File: openfoam_temp/src/finiteVolume/cfdTools/compressible/rhoEqn.H ⭐",
+            "Line-by-line: fvm::ddt(rho) + fvc::div(phi) == fvModels.source(rho) ⭐",
+            "Flux calculation: φ = ρ𝐔·S_f",
+            "Continuity error checking: continuityErrs.H ⭐"
+          ]
+        },
+        {
+          "title": "Code Analysis - Momentum Equation",
+          "topics": [
+            "Typical momentum equation in OpenFOAM",
+            "fvm::div(phi, U) - Convection ⭐",
+            "fvm::laplacian(nu, U) - Diffusion ⭐",
+            "Source terms and boundary conditions"
+          ]
+        },
+        {
+          "title": "Code Analysis - Energy Equation",
+          "topics": [
+            "Enthalpy-based energy equation",
+            "fvm::ddt(rho, h) + fvm::div(phi, h) - fvm::laplacian(alpha, h) == source",
+            "Temperature form alternatives"
+          ]
+        }
+      ]
+    },
+    "part_4": {
+      "title": "Quality Assurance - Verification Exercises",
+      "ratio": 0.15,
+      "readability": "professional",
+      "sections": [
+        {
+          "title": "Concept Check Questions",
+          "exercises": [
+            "Derive ∇·𝐔 = 0 from the integral form of mass conservation",
+            "Explain the physical meaning of each term in ∂(ρ𝐔)/∂t + ∇·(ρ𝐔𝐔) = -∇p + ∇·𝐓 + 𝐟_b",
+            "Why is the expansion term ∇·𝐔 = ṁ(1/ρ_v - 1/ρ_l) critical for R410A phase change?",
+            "Compare explicit (fvc::) vs implicit (fvm::) operators",
+            "What happens to pressure if ∇·𝐔 ≠ 0 during phase change?",
+            "Explain the coupling problem between continuity and momentum equations"
+          ]
+        },
+        {
+          "title": "Code Verification",
+          "exercises": [
+            "Locate continuity equation in rhoEqn.H (lines 33-39) ⭐",
+            "Trace fvm::div implementation in fvmDiv.C ⭐",
+            "Check continuity error calculation in continuityErrs.H ⭐",
+            "Verify ddtScheme base class declaration in ddtScheme.H ⭐",
+            "Identify convectionScheme derived classes in convectionScheme.H ⭐"
+          ]
+        }
       ]
     }
+  },
+  "key_concepts": [
+    {
+      "name": "Continuity Equation",
+      "importance": "Critical - Mass conservation must be satisfied",
+      "phase_change_relevance": "Expansion term breaks ∇·𝐔 = 0 assumption ⭐"
+    },
+    {
+      "name": "Momentum Equation",
+      "importance": "Critical - Describes fluid motion",
+      "phase_change_relevance": "Mixture properties for two-phase"
+    },
+    {
+      "name": "Energy Equation",
+      "importance": "Critical for heat transfer",
+      "phase_change_relevance": "Latent heat source S_h = ṁh_fg"
+    },
+    {
+      "name": "Expansion Term",
+      "importance": "CRITICAL for phase change",
+      "formula": "∇·𝐔 = ṁ(1/ρ_v - 1/ρ_l) ⭐",
+      "roadmap_day": "Day 11, Day 61"
+    }
   ],
-  "key_classes": [
-    "fvMesh",
-    "Time",
-    "volVectorField",
-    "volScalarField"
+  "verified_facts_markers": {
+    "star": "Content verified from OpenFOAM source code",
+    "warning": "Content from documentation, needs source verification"
+  },
+  "appendix_required": true,
+  "appendix_title": "Appendix: Complete File Listings",
+  "mermaid_diagrams_required": [
+    {
+      "type": "classDiagram",
+      "title": "OpenFOAM Governing Equation Scheme Hierarchy",
+      "classes": ["ddtScheme", "EulerDdtScheme", "backwardDdtScheme", "convectionScheme", "gaussConvectionScheme", "laplacianScheme", "gaussLaplacianScheme", "divScheme"]
+    },
+    {
+      "type": "flowchart",
+      "title": "Finite Volume Operator Selection Flow",
+      "nodes": ["fvm::ddt", "fvm::div", "fvm::laplacian", "fvc::div", "fvc::grad"]
+    }
   ],
-  "key_formulas": [
-    "Continuity Equation: \u2207\u00b7U = 0",
-    "Incompressible Navier-Stokes: \u2202U/\u2202t + (U\u00b7\u2207)U = -\u2207p/\u03c1 + \u03bd\u2207\u00b2U"
-  ]
+  "code_snippets_required": [
+    {
+      "file": "openfoam_temp/src/finiteVolume/cfdTools/compressible/rhoEqn.H",
+      "lines": "33-39",
+      "description": "Compressible continuity equation implementation ⭐"
+    },
+    {
+      "file": "openfoam_temp/src/finiteVolume/cfdTools/incompressible/continuityErrs.H",
+      "lines": "33-45",
+      "description": "Continuity error calculation ⭐"
+    },
+    {
+      "file": "openfoam_temp/src/finiteVolume/finiteVolume/fvm/fvmDiv.C",
+      "lines": "46-60",
+      "description": "Implicit divergence operator using convection scheme ⭐"
+    },
+    {
+      "file": "openfoam_temp/src/finiteVolume/finiteVolume/ddtSchemes/ddtScheme/ddtScheme.H",
+      "lines": "65-100",
+      "description": "ddtScheme base class declaration ⭐"
+    }
+  ],
+  "minimum_requirements": {
+    "theory_lines": 500,
+    "code_snippets": 3,
+    "implementation_lines": 300,
+    "exercises": 6,
+    "mermaid_diagrams": 2
+  }
 }

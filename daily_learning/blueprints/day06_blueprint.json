@@ -1,17 +1,241 @@
 {
-  "template": "scientist",
-  "day": "06",
-  "topic": "Boundary Conditions Theory",
+  "metadata": {
+    "version": "1.0",
+    "day": "06",
+    "topic": "Boundary Conditions Theory",
+    "phase": "Foundation Theory",
+    "r410a_integration": "15%",
+    "template": "mathematician",
+    "template_type": "theory_heavy",
+    "purpose": "Derive and explain mathematical concepts with rigorous proofs",
+    "generated_at": "2026-02-01T14:12:14.316924"
+  },
+  "r410a_context": {
+    "application": "Evaporator two-phase flow",
+    "refrigerant": "R410A",
+    "conditions": "P = 1.0-1.2 MPa, T = 280-285 K"
+  },
+  "template": {
+    "name": "Mathematician",
+    "type": "theory_heavy",
+    "progressive_overload": "core theory, physical challenge, architecture, QA",
+    "boilerplate_policy": "quarantine_to_appendix",
+    "code_ratio": 0.25
+  },
   "structure": {
     "parts": [
-      {"title": "Theoretical Foundation", "ratio": 0.25, "readability": "beginner"},
-      {"title": "Physics Explained", "ratio": 0.40, "readability": "intermediate"},
-      {"title": "Implementation", "ratio": 0.25, "readability": "advanced"},
-      {"title": "Validation", "ratio": 0.10, "readability": "professional"}
+      {
+        "id": "p1",
+        "title": "Core Theory",
+        "ratio": 0.3,
+        "readability": "beginner",
+        "approach": "derivations",
+        "content_type": "theory",
+        "guideline": "Start with basic concepts, build to full derivations",
+        "estimated_lines": 240
+      },
+      {
+        "id": "p2",
+        "title": "Physical Challenge",
+        "ratio": 0.2,
+        "readability": "intermediate",
+        "approach": "problem solving",
+        "content_type": "analysis",
+        "guideline": "Show practical problems and solutions",
+        "estimated_lines": 160
+      },
+      {
+        "id": "p3",
+        "title": "Architecture & Implementation",
+        "ratio": 0.35,
+        "readability": "advanced",
+        "approach": "code first",
+        "content_type": "code",
+        "guideline": "Show class diagrams before implementation",
+        "estimated_lines": 280
+      },
+      {
+        "id": "p4",
+        "title": "Quality Assurance",
+        "ratio": 0.15,
+        "readability": "professional",
+        "approach": "testing",
+        "content_type": "validation",
+        "guideline": "Verify with unit tests and benchmarks",
+        "estimated_lines": 120
+      },
+      {
+        "id": "p5",
+        "title": "R410A Evaporator Application",
+        "ratio": 0.15,
+        "readability": "intermediate",
+        "approach": "application",
+        "content_type": "domain_specific",
+        "guideline": "Connect general theory to R410A evaporator simulation",
+        "sections": [
+          "5.1 Why it matters for R410A evaporator",
+          "5.2 R410A property data",
+          "5.3 Equation modifications for R410A",
+          "5.4 Implementation preview (OpenFOAM code)"
+        ],
+        "estimated_lines": 120
+      }
     ]
   },
+  "content_requirements": {
+    "topics_to_cover": [],
+    "formulas_to_include": [],
+    "class_hierarchy": {
+      "base_class": {
+        "name": "fvPatchField<Type>",
+        "file": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/fvPatchField/fvPatchField.H",
+        "lines": "88-92",
+        "inherits_from": "Field<Type>",
+        "description": "Abstract base class with a fat-interface to all derived classes covering all possible ways in which they might be used.",
+        "key_methods": [
+          "snGrad() - Return patch-normal gradient",
+          "updateCoeffs() - Update coefficients associated with patch field",
+          "evaluate() - Evaluate the patch field",
+          "valueInternalCoeffs() - Matrix diagonal coefficients for value evaluation",
+          "valueBoundaryCoeffs() - Matrix source coefficients for value evaluation",
+          "gradientInternalCoeffs() - Matrix diagonal coefficients for gradient evaluation",
+          "gradientBoundaryCoeffs() - Matrix source coefficients for gradient evaluation",
+          "fixesValue() - Return true if this patch field fixes a value",
+          "assignable() - Return true if value is altered by assignment"
+        ]
+      },
+      "basic_conditions": [
+        {
+          "name": "fixedValueFvPatchField<Type>",
+          "file": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/basic/fixedValue/fixedValueFvPatchField.H",
+          "lines": "65-68",
+          "inherits_from": "fvPatchField<Type>",
+          "description": "This boundary condition supplies a fixed value constraint, and is the base class for a number of other boundary conditions.",
+          "fixesValue": true,
+          "assignable": false,
+          "usage": {
+            "property": "value",
+            "description": "Patch face values",
+            "required": true
+          },
+          "example": {
+            "type": "fixedValue",
+            "value": "uniform 0"
+          }
+        },
+        {
+          "name": "fixedGradientFvPatchField<Type>",
+          "file": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/basic/fixedGradient/fixedGradientFvPatchField.H",
+          "lines": "77-80",
+          "inherits_from": "fvPatchField<Type>",
+          "description": "This boundary condition supplies a fixed gradient condition. Patch values are calculated using: x_p = x_c + gradient/delta",
+          "formula": {
+            "latex": "x_p = x_c + \\frac{\\nabla(x)}{\\Delta}",
+            "variables": {
+              "x_p": "patch values",
+              "x_c": "internal field values",
+              "\\nabla(x)": "gradient (user-specified)",
+              "\\Delta": "inverse distance from patch face centre to cell centre"
+            }
+          },
+          "usage": {
+            "property": "gradient",
+            "description": "gradient",
+            "required": true
+          },
+          "example": {
+            "type": "fixedGradient",
+            "gradient": "uniform 0"
+          }
+        },
+        {
+          "name": "zeroGradientFvPatchField<Type>",
+          "file": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/basic/zeroGradient/zeroGradientFvPatchField.H",
+          "lines": "59-62",
+          "inherits_from": "fvPatchField<Type>",
+          "description": "This boundary condition applies a zero-gradient condition from the patch internal field onto the patch faces.",
+          "snGrad_implementation": {
+            "file": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/basic/zeroGradient/zeroGradientFvPatchField.H",
+            "lines": "135-141",
+            "code": "return tmp<Field<Type>>(new Field<Type>(this->size(), Zero));"
+          },
+          "example": {
+            "type": "zeroGradient"
+          }
+        },
+        {
+          "name": "mixedFvPatchField<Type>",
+          "file": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/basic/mixed/mixedFvPatchField.H",
+          "lines": "80-83",
+          "inherits_from": "fvPatchField<Type>",
+          "description": "This boundary condition provides a base class for 'mixed' type boundary conditions, i.e. conditions that mix fixed value and patch-normal gradient conditions.",
+          "formula": {
+            "latex": "x_p = w x_p + (1-w) \\left(x_c + \\frac{\\nabla_\\perp x}{\\Delta}\\right)",
+            "variables": {
+              "x_p": "patch values",
+              "x_c": "patch internal cell values",
+              "w": "weight field (0-1)",
+              "\\Delta": "inverse distance from face centre to internal cell centre"
+            },
+            "source": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/basic/mixed/mixedFvPatchField.H",
+            "lines": "34-36"
+          },
+          "properties": {
+            "refValue": "reference value",
+            "refGradient": "reference normal gradient",
+            "valueFraction": "weight field (0-1)"
+          },
+          "evaluate_implementation": {
+            "file": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/basic/mixed/mixedFvPatchField.C",
+            "lines": "186-205",
+            "formula": "Field<Type>::operator=(valueFraction_*refValue_ + (1.0 - valueFraction_)*(this->patchInternalField() + refGrad_/this->patch().deltaCoeffs()));"
+          },
+          "snGrad_implementation": {
+            "file": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/basic/mixed/mixedFvPatchField.C",
+            "lines": "208-217",
+            "formula": "return valueFraction_*(refValue_ - this->patchInternalField())*this->patch().deltaCoeffs() + (1.0 - valueFraction_)*refGrad_;"
+          }
+        }
+      ],
+      "derived_conditions": [
+        {
+          "name": "inletOutletFvPatchField<Type>",
+          "file": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/derived/inletOutlet/inletOutletFvPatchField.H",
+          "lines": "81-84",
+          "inherits_from": "mixedFvPatchField<Type>",
+          "description": "This boundary condition provides a generic outflow condition, with specified inflow for the case of return flow.",
+          "operation": "The mode of operation is determined by the sign of the flux across the patch faces.",
+          "sign_conventions": {
+            "positive_flux": "out of domain - apply zero-gradient condition",
+            "negative_flux": "into of domain - apply the 'inletValue' fixed-value"
+          },
+          "usage": {
+            "phi": "Flux field name (default: phi)",
+            "inletValue": "Inlet value for reverse flow (required)"
+          },
+          "example": {
+            "type": "inletOutlet",
+            "phi": "phi",
+            "inletValue": "uniform 0",
+            "value": "uniform 0"
+          }
+        }
+      ]
+    }
+  },
   "rules": {
+    "ratio_tolerance": 0.05,
     "boilerplate_policy": "quarantine_to_appendix",
-    "ratio_tolerance": 0.05
+    "concept_first": [
+      "diagrams",
+      "introduction",
+      "overview"
+    ],
+    "progressive_complexity": [
+      "beginner",
+      "intermediate",
+      "advanced",
+      "professional"
+    ]
   }
 }

@@ -1,58 +1,53 @@
+---
+name: source-first
+description: Extract and verify technical facts from source code using Source-First methodology
+---
+
 # Source-First Methodology
+
+Extract and verify technical facts from source code before using AI to generate or explain content.
 
 ## Core Principle
 
 🔒 **Ground Truth from source code > AI analysis > Internal training**
 
-## What is Source-First?
+## When to Use
 
-Source-First is a methodology for creating technically accurate content by:
+Use Source-First when creating content that requires technical accuracy:
 
-1. **Extracting facts FIRST** from actual source code
-2. **Constraining AI** to use only verified facts
-3. **Verifying outputs** at each stage before proceeding
-4. **Marking verified content** with ⭐ for transparency
+- ✅ Class hierarchies and inheritance structures
+- ✅ Mathematical formulas and equations
+- ✅ API signatures and method names
+- ✅ Code examples and implementation details
+- ✅ Technical documentation and references
 
-## Why Source-First?
+Optional for:
+- ❌ General conceptual explanations
+- ❌ High-level overviews
+- ❌ Non-technical commentary
 
-AI models can **hallucinate** technical details:
-- Wrong class hierarchies
-- Incorrect mathematical formulas
-- Non-existent API methods
-- Inaccurate code snippets
+## The Workflow
 
-Source-First prevents this by anchoring all content in **verified ground truth**.
+### 1. Extract Facts First
 
-## The 6-Stage Workflow
+Before asking AI to explain or generate content, extract ground truth from actual source code:
 
-### Stage 1: Extract Ground Truth
-
-```bash
-# Extract class hierarchy
-python3 .claude/scripts/extract_facts.py \
-    --mode hierarchy \
-    --path "openfoam_temp/src/finiteVolume" \
-    --output /tmp/ground_truth.txt
-
-# Extract formulas
-python3 .claude/scripts/extract_facts.py \
-    --mode formulas \
-    --path "openfoam_temp/src/finiteVolume" \
-    --output /tmp/formulas.txt
+```
+Extract class hierarchy from: openfoam_temp/src/finiteVolume
+Extract formulas from actual .H and .C files
+Verify operator accuracy (|r| vs r matters!)
 ```
 
-### Stage 2: Structure Facts
+### 2. Structure and Verify
 
-```bash
-python3 .claude/scripts/extract_facts.py \
-    --mode structure \
-    --input /tmp/ground_truth.txt \
-    --output /tmp/verified_facts.json
-```
+Structure extracted facts into JSON format and verify:
+- Output files exist and are non-empty
+- JSON structure is valid
+- No extraction errors
 
-### Stage 3: AI Analyzes WITH Constraints
+### 3. Constrain AI with Ground Truth
 
-Provide AI with EXPLICIT ground truth as constraints:
+Provide AI with explicit ground truth as constraints:
 
 ```
 **🔒 CRITICAL CONSTRAINTS - YOU MUST FOLLOW:**
@@ -61,169 +56,58 @@ Provide AI with EXPLICIT ground truth as constraints:
 **Rules:**
 - Use ONLY class hierarchy from constraints above
 - Use ONLY formulas from constraints above
-- If something doesn't exist in constraints → Use 'TODO: VERIFY'
+- If something doesn't exist → Use 'TODO: VERIFY'
 ```
 
-### Stage 4: Verify Skeleton
+### 4. Verify Outputs
 
-```bash
-python3 .claude/scripts/verify_skeleton.py \
-    --ground-truth /tmp/verified_facts.json \
-    --skeleton output_skeleton.json \
-    --output verification_report.md
-```
-
-**If verification fails:** Stop and fix before proceeding.
-
-### Stage 5: AI Expands WITH Verification
-
-Expand content with verified skeleton:
-- Include verification report in prompt
-- Mark verified facts with ⭐
-- Label unverified content clearly
-
-### Stage 6: Final Verification
-
-```bash
-python3 .claude/scripts/verify_content.py \
-    --content final_content.md \
-    --ground-truth /tmp/verified_facts.json \
-    --output final_verification.md
-```
-
-## When to Use Source-First
-
-Use for:
-- ✅ Technical documentation
-- ✅ API references
-- ✅ Code examples
-- ✅ Mathematical formulas
-- ✅ Class hierarchies
-- ✅ Implementation details
-
-Don't need for:
-- ❌ General concepts
-- ❌ High-level overviews
-- ❌ Non-technical content
-- ❌ Opinions or commentary
+After AI generates content, verify against ground truth:
+- Class hierarchy matches source
+- Formulas match implementation
+- No hallucinated classes or methods
 
 ## Verification Markers
 
-Use these markers in content:
+Use these markers in generated content:
 
 ```markdown
 ### ⭐ Verified Fact
-> Content verified from actual source code
+> Content verified from actual source code at file:line
 
 ### ⚠️ Unverified Claim
-> Content from documentation, needs verification
+> Content from documentation, needs source verification
 
 ### ❌ Incorrect
-> Common misconception (corrected)
+> Common misconception - here's the correct version
 ```
 
 ## Common Pitfalls
 
-### Pitfall 1: Assuming AI Knows
+### Assuming AI Knows
 
 **Wrong:** "Ask GLM-4.7 what the upwind class hierarchy is"
 
 **Right:** "Extract hierarchy from source code, then ask GLM to explain it"
 
-### Pitfall 2: Verifying After Creation
+### Verifying After Creation
 
 **Wrong:** "Generate content, then verify"
 
-**Right:** "Verify skeleton BEFORE expanding content"
+**Right:** "Extract ground truth, verify skeleton, THEN expand content"
 
-### Pitfall 3: Ignoring Verification Failures
+### Ignoring Verification Failures
 
 **Wrong:** "Close enough, proceed anyway"
 
 **Right:** "Stop, fix, re-verify before proceeding"
 
-## Best Practices
+## Available Tools
 
-1. **Extract First:** Always extract ground truth before involving AI
-2. **Verify Early:** Verify at skeleton stage, not after content is complete
-3. **Be Explicit:** Include ground truth as constraints in AI prompts
-4. **Mark Verified:** Use ⭐ for verified facts, be transparent about uncertainty
-5. **Fail Fast:** Stop workflow immediately when verification fails
+- `extract_facts.py` - Extract class hierarchies and formulas from source
+- `verify_skeleton.py` - Verify AI-generated skeleton against ground truth
+- `verify_content.py` - Verify final content against ground truth
 
-## Example: Class Hierarchy
+## See Also
 
-### ❌ Without Source-First
-
-```
-User: "Explain the upwind class hierarchy"
-AI: "upwind inherits from surfaceInterpolationScheme"
-Reality: WRONG - missing intermediate class!
-```
-
-### ✅ With Source-First
-
-```
-1. Extract: upwind → limitedSurfaceInterpolationScheme → surfaceInterpolationScheme
-2. Verify: Check against source code
-3. Constrain AI: "Use hierarchy: upwind → limitedSurfaceInterpolationScheme → surfaceInterpolationScheme"
-4. Output: Accurate diagram with ⭐ marker
-```
-
-## Example: Mathematical Formula
-
-### ❌ Without Source-First
-
-```
-AI: "van Leer limiter: φ(r) = (r + 1)/(1 + r)"
-Reality: WRONG - denominator should be (1 + |r|)!
-```
-
-### ✅ With Source-First
-
-```
-1. Extract from source: return (r + mag(r))/(1 + mag(r));
-2. Convert: mag(r) → |r|
-3. Verify: φ(r) = (r + |r|)/(1 + |r|)
-4. Constrain AI: Use exact formula from source
-5. Output: ⭐ Verified formula
-```
-
-## Tools & Scripts
-
-### extract_facts.py
-Extracts ground truth from OpenFOAM source code
-
-Modes:
-- `hierarchy`: Extract class inheritance
-- `formulas`: Extract mathematical formulas
-- `structure`: Parse and structure into JSON
-
-### verify_skeleton.py
-Verifies AI-generated skeleton against ground truth
-
-Checks:
-- Class hierarchy matches source
-- Formulas match implementation
-- No hallucinated content
-
-### verify_content.py
-Verifies final content against ground truth
-
-Checks:
-- Mermaid diagrams are accurate
-- Formulas are correct
-- Code snippets are valid
-
-## Summary
-
-Source-First = **Extract → Verify → Constrain AI → Expand → Verify Again**
-
-By following this methodology, you ensure:
-- ✅ Technical accuracy
-- ✅ No hallucinations
-- ✅ Traceable facts
-- ✅ Transparent uncertainty
-
----
-
-**Related Skills:** `ground-truth-verification`, `engineering-thai`
+- [Verification Gates](references/verification-gates.md) - Detailed gate instructions
+- [CFD Content Standards](../../rules/cfd-standards.md) - Formatting and syntax rules

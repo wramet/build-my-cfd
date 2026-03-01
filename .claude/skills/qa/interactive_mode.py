@@ -25,6 +25,42 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 from qa_manager import QAManager
 
 
+# Section-based question suggestions
+SECTION_QUESTIONS = {
+    "2.1": [
+        "Why doesn't the momentum equation provide an equation for pressure?",
+        "What does it mean that momentum is 'elliptic in space for pressure'?",
+        "How does the pressure-velocity coupling cause numerical difficulties?",
+        "What are the differences between SIMPLE, PISO, and PIMPLE algorithms?"
+    ],
+    "2.2": [
+        "Why is the convective term considered nonlinear?",
+        "How does nonlinearity cause numerical instability?",
+        "What iterative methods are used to handle nonlinear terms?",
+        "Can you give an example of how nonlinearity appears in 1D?"
+    ],
+    "2.3": [
+        "Why is the density ratio (ρl/ρv ≈ 50) challenging for R410A simulations?",
+        "What is the expansion term and why is it critical for phase change?",
+        "How does the expansion term prevent solver divergence during evaporation?",
+        "What happens if we use standard incompressible solvers for phase change?"
+    ],
+    # Theory section questions
+    "Core Theory": [
+        "What are the three fundamental conservation laws?",
+        "Why do we use the control volume approach instead of Lagrangian?",
+        "What is the difference between gradient, divergence, and Laplacian?",
+        "How do we go from integral to differential form of continuity equation?"
+    ],
+    "Code Section": [
+        "How does the upwind scheme ensure numerical stability?",
+        "What is the difference between fvm and fvc in OpenFOAM?",
+        "Why does the upwind limiter return 0?",
+        "How are finite volume operators implemented in OpenFOAM?"
+    ]
+}
+
+
 class InteractiveWalkthrough:
     """Interactive walkthrough reader with Q&A capture."""
 
@@ -189,63 +225,100 @@ class InteractiveWalkthrough:
             print("Already at first section.")
 
     def _ask_question(self) -> None:
-        """Handle question input from user."""
+        """Handle question input from user with suggested questions."""
         print("\n" + "-"*70)
         print("ASK A QUESTION")
         print("-"*70)
 
-        # Get question
-        question = input("\nYour question: ").strip()
+        # Get suggested questions for current section
+        suggested = self._get_suggested_questions()
 
-        if not question:
-            print("No question entered.")
-            return
+        if suggested:
+            print("\n📝 Suggested questions for this section:")
+            for i, q in enumerate(suggested, 1):
+                print(f"  {i}. {q}")
+            print(f"  {len(suggested) + 1}. ✏️  Ask my own question")
+            print()
 
-        # Get question type
-        print("\nQuestion type:")
-        print("  [1] Clarification - Explain unclear concepts")
-        print("  [2] Deeper Dive    - Explore beyond content")
-        print("  [3] Implementation - Practical coding questions")
-        print("  [4] Debugging      - Troubleshooting help")
-        print("  [5] Connection     - Link to other topics")
+            try:
+                choice = input(f"Select question [1-{len(suggested) + 1}, default=1]: ").strip() or "1"
+                choice_num = int(choice)
 
-        type_choice = input("\nSelect type [1-5, default=1]: ").strip() or "1"
+                if 1 <= choice_num <= len(suggested):
+                    question = suggested[choice_num - 1]
+                    print(f"\n📌 Selected: {question}")
+                elif choice_num == len(suggested) + 1:
+                    question = input("\n✏️  Your question: ").strip()
+                    if not question:
+                        print("No question entered.")
+                        return
+                else:
+                    print(f"Invalid choice. Please select 1-{len(suggested) + 1}")
+                    return
+            except ValueError:
+                print("Invalid input.")
+                return
+        else:
+            # No suggestions available, ask directly
+            question = input("\nYour question: ").strip()
+            if not question:
+                print("No question entered.")
+                return
 
-        type_map = {
-            "1": "clarification",
-            "2": "deeper-dive",
-            "3": "implementation",
-            "4": "debugging",
-            "5": "connection"
-        }
+        # Get question type (only for custom questions, auto-detect for suggested)
+        if choice_num == len(suggested) + 1:
+            print("\nQuestion type:")
+            print("  [1] Clarification - Explain unclear concepts")
+            print("  [2] Deeper Dive    - Explore beyond content")
+            print("  [3] Implementation - Practical coding questions")
+            print("  [4] Debugging      - Troubleshooting help")
+            print("  [5] Connection     - Link to other topics")
 
-        question_type = type_map.get(type_choice, "clarification")
+            type_choice = input("\nSelect type [1-5, default=1]: ").strip() or "1"
+
+            type_map = {
+                "1": "clarification",
+                "2": "deeper-dive",
+                "3": "implementation",
+                "4": "debugging",
+                "5": "connection"
+            }
+
+            question_type = type_map.get(type_choice, "clarification")
+        else:
+            # Auto-detect type for suggested questions
+            question_type = "deeper-dive"  # Most suggested questions are deeper-dive
 
         # Update Q&A manager with current section
         self.qa_manager.section = self.current_section
 
         # Capture and answer question
-        print("\nGenerating answer...")
+        print("\n🤔 Generating answer (this may take a moment)...")
         qa_entry = self.qa_manager.capture_question(question, question_type)
 
-        # Display answer
+        # Display answer summary (full answer saved to file)
         print("\n" + "="*70)
-        print("ANSWER")
+        print("ANSWER SUMMARY")
         print("="*70)
-        print(qa_entry["answer"])
-        print(f"\n(Model: {qa_entry['model_used']}, Tags: {', '.join(qa_entry['tags']) or 'None'})")
+        summary = qa_entry.get("summary", qa_entry["answer"][:200] + "...")
+        print(summary)
+        print(f"\n📁 Full detailed answer saved to: {self.walkthrough_file.name}")
+        print(f"🏷️  Model: {qa_entry['model_used']} | Tags: {', '.join(qa_entry['tags']) or 'None'}")
 
         # Confirm save
-        save = input("\nSave this Q&A? [Y/n]: ").strip().lower()
+        save = input("\n💾 Save this Q&A? [Y/n]: ").strip().lower()
 
         if save != "n":
             if self.qa_manager.append_to_walkthrough(qa_entry):
-                print("✅ Q&A saved!")
+                print("✅ Q&A saved to walkthrough!")
                 self.questions_asked.append(qa_entry)
             else:
                 print("❌ Failed to save Q&A")
         else:
             print("Q&A not saved.")
+
+        # Ask if ready to continue
+        self._prompt_next_section()
 
     def _jump_to_section(self) -> None:
         """Jump to a specific section."""
@@ -301,6 +374,42 @@ class InteractiveWalkthrough:
         print("  - Questions are automatically saved to the walkthrough")
         print("  - Use Ctrl+C to exit without saving")
         print("-"*70 + "\n")
+
+    def _get_suggested_questions(self) -> List[str]:
+        """Get suggested questions for the current section."""
+        section_lower = self.current_section.lower() if self.current_section else ""
+
+        # Try exact match first
+        for key, questions in SECTION_QUESTIONS.items():
+            if key.lower() in section_lower or section_lower in key.lower():
+                return questions
+
+        # Try partial match
+        for key, questions in SECTION_QUESTIONS.items():
+            key_words = key.lower().split()
+            for word in key_words:
+                if word in section_lower and len(word) > 3:
+                    return questions
+
+        # No suggestions available
+        return []
+
+    def _prompt_next_section(self) -> None:
+        """Ask user if they want to continue to next section."""
+        print("\n" + "-"*70)
+
+        if self.section_index < len(self.sections) - 1:
+            next_title = self.sections[self.section_index + 1]["title"]
+            ready = input(f"➡️  Ready for next section? ('{next_title}') [Y/n]: ").strip().lower()
+
+            if ready != "n":
+                self._next_section()
+                self._display_section(self.section_index)
+            else:
+                print("Staying on current section. Press [N] when ready.")
+        else:
+            print("📚 This was the last section!")
+            print("   Review your Q&A entries or press [E] to exit.")
 
 
 def main():

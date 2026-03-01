@@ -1,7 +1,6 @@
 ---
-name: mermaid-expert
-author: sickn33 (Ported)
-description: Create Mermaid diagrams for flowcharts, sequences, ERDs, and architectures.
+name: mermaid_expert
+description: Create Mermaid diagrams for flowcharts, sequences, ERDs, and architectures
 ---
 
 # Mermaid Expert
@@ -40,6 +39,58 @@ gitGraph, journey, quadrantChart, timeline
 4. Add meaningful labels and descriptions
 5. Test rendering before delivery
 
+## Validation Mode (NEW)
+
+When asked to **validate** Mermaid diagrams:
+
+1. **Analyze with ReAct Loop:**
+   - Examine the diagram structure
+   - Check for Obsidian-specific rendering issues
+   - Validate against Mermaid syntax rules
+
+2. **Check Common Issues:**
+   - Special characters requiring quotes: `|`, `()`, `{}`, `[]`, `·`, `φ`
+   - Non-breaking spaces (U+00A0) breaking parsing
+   - Flowchart TD strictness vs graph TD
+   - Unquoted edge labels with mathematical notation
+   - Class diagram relationship syntax
+
+3. **Use Mermaid CLI (if available):**
+   - Run `mmdc -i diagram.mmd -o test.png` for authoritative validation
+   - Parse CLI error messages
+   - Generate targeted fixes
+
+4. **Provide Specific Fixes:**
+   - Explain WHY the fix is needed
+   - Show before/after examples
+   - Cite Mermaid documentation
+
+5. **Verify the Fix:**
+   - Re-run validation
+   - Confirm diagram renders correctly
+
+## Common Obsidian Rendering Issues
+
+| Issue | Why It Happens | Fix |
+|-------|---------------|-----|
+| `Node[Text\|inside]` | Pipe `|` is reserved for edge labels | `Node["Text\|inside"]` |
+| `-->|Label·φ|` | Special chars in unquoted labels confuse parser | `-->|"Label·φ"\|` |
+| `[text()]` in flowchart | Flowchart TD interprets `()` as shape | `["text()"]` |
+| Non-breaking spaces | U+00A0 breaks Mermaid parser | Replace with U+0020 |
+
+**Example Fix:**
+```mermaid
+## ❌ Before (broken in Obsidian)
+E --> H[Face Normal n = Sf/|Sf|]
+
+## ✅ After (renders correctly)
+E --> H["Face Normal n = Sf/|Sf|"]
+
+**Why:** The pipe character `|` has special meaning in Mermaid (edge labels).
+When used inside node text without quotes, it confuses the parser and breaks
+Obsidian rendering. Wrapping in quotes preserves the literal character.
+```
+
 ## Output
 - Complete Mermaid diagram code
 - Rendering instructions/preview
@@ -47,5 +98,6 @@ gitGraph, journey, quadrantChart, timeline
 - Styling customizations
 - Accessibility considerations
 - Export recommendations
+- **Validation fixes (when in validation mode)**
 
 Always provide both basic and styled versions. Include comments explaining complex syntax.

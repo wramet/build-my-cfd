@@ -1,17 +1,105 @@
 {
-  "template": "mathematician",
-  "day": "05",
-  "topic": "Temporal Discretization",
+  "metadata": {
+    "version": "1.0",
+    "day": "05",
+    "topic": "Mesh Topology Concepts",
+    "phase": "Foundation Theory",
+    "r410a_integration": "15%",
+    "template": "mathematician",
+    "template_type": "theory_heavy",
+    "purpose": "Derive and explain mathematical concepts with rigorous proofs",
+    "generated_at": "2026-02-01T14:11:41.473661"
+  },
+  "r410a_context": {
+    "application": "Evaporator two-phase flow",
+    "refrigerant": "R410A",
+    "conditions": "P = 1.0-1.2 MPa, T = 280-285 K"
+  },
+  "template": {
+    "name": "Mathematician",
+    "type": "theory_heavy",
+    "progressive_overload": "core theory, physical challenge, architecture, QA",
+    "boilerplate_policy": "quarantine_to_appendix",
+    "code_ratio": 0.25
+  },
   "structure": {
     "parts": [
-      {"title": "Core Theory", "ratio": 0.30, "readability": "beginner"},
-      {"title": "Physical Challenge", "ratio": 0.20, "readability": "intermediate"},
-      {"title": "Architecture & Implementation", "ratio": 0.35, "readability": "advanced"},
-      {"title": "Quality Assurance", "ratio": 0.15, "readability": "professional"}
+      {
+        "id": "p1",
+        "title": "Core Theory",
+        "ratio": 0.3,
+        "readability": "beginner",
+        "approach": "derivations",
+        "content_type": "theory",
+        "guideline": "Start with basic concepts, build to full derivations",
+        "estimated_lines": 240
+      },
+      {
+        "id": "p2",
+        "title": "Physical Challenge",
+        "ratio": 0.2,
+        "readability": "intermediate",
+        "approach": "problem solving",
+        "content_type": "analysis",
+        "guideline": "Show practical problems and solutions",
+        "estimated_lines": 160
+      },
+      {
+        "id": "p3",
+        "title": "Architecture & Implementation",
+        "ratio": 0.35,
+        "readability": "advanced",
+        "approach": "code first",
+        "content_type": "code",
+        "guideline": "Show class diagrams before implementation",
+        "estimated_lines": 280
+      },
+      {
+        "id": "p4",
+        "title": "Quality Assurance",
+        "ratio": 0.15,
+        "readability": "professional",
+        "approach": "testing",
+        "content_type": "validation",
+        "guideline": "Verify with unit tests and benchmarks",
+        "estimated_lines": 120
+      },
+      {
+        "id": "p5",
+        "title": "R410A Evaporator Application",
+        "ratio": 0.15,
+        "readability": "intermediate",
+        "approach": "application",
+        "content_type": "domain_specific",
+        "guideline": "Connect general theory to R410A evaporator simulation",
+        "sections": [
+          "5.1 Why it matters for R410A evaporator",
+          "5.2 R410A property data",
+          "5.3 Equation modifications for R410A",
+          "5.4 Implementation preview (OpenFOAM code)"
+        ],
+        "estimated_lines": 120
+      }
     ]
   },
+  "content_requirements": {
+    "topics_to_cover": [],
+    "formulas_to_include": [],
+    "class_hierarchy": {}
+  },
   "rules": {
+    "ratio_tolerance": 0.05,
     "boilerplate_policy": "quarantine_to_appendix",
-    "ratio_tolerance": 0.05
+    "concept_first": [
+      "diagrams",
+      "introduction",
+      "overview"
+    ],
+    "progressive_complexity": [
+      "beginner",
+      "intermediate",
+      "advanced",
+      "professional"
+    ]
   }
 }

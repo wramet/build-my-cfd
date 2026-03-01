@@ -1,70 +1,55 @@
 ---
-description: Active learning Q&A capture for walkthroughs with smart model routing
+name: qa
+description: Capture and answer questions about CFD learning content with context-aware model routing
 ---
 
-# QA Skill
+# Active Learning Q&A
 
-## Overview
+Capture questions during walkthrough reading and record AI-generated answers directly in the walkthrough document.
 
-The `qa` skill enables active learning by capturing questions during walkthrough reading and recording AI-generated answers directly in the walkthrough document.
+## Core Process
 
-**Purpose**: Interactive Q&A + Personal knowledge base
+When a user asks a question about walkthrough content:
 
-## Usage
+1. **Extract Context** - Find relevant section from walkthrough
+2. **Select Model** - Route to appropriate specialist model
+3. **Generate Answer** - Create detailed response
+4. **Format Entry** - Create Q&A entry with tags
+5. **Insert into Walkthrough** - Append to walkthrough document
 
-# QA Skill
+## Two Usage Modes
 
-## Overview
+### Mode 1: User in Terminal (Direct Python Script)
 
-The `/qa` skill enables active learning by capturing questions during walkthrough reading and recording AI-generated answers directly in the walkthrough document.
+When a user wants interactive Q&A in their terminal:
 
-**Purpose**: Interactive Q&A + Personal knowledge base
-
-## Usage
-
-```bash
-# Ask a question about a specific day/section
-/qa --day 1 --section theory "Why does RTT use control volume approach?"
-
-# Specify question type
-/qa --day 2 --type deeper-dive "Explain the upwind scheme derivation"
-
-# Pipe question from stdin
-echo "How does tmp<> work?" | /qa --day 1 --section code
-
-# Interactive walkthrough mode
-/interactive --day 1
+```
+Tell the user to run: python3 .claude/skills/qa/interactive_mode.py --day XX
 ```
 
-## Workflow
+The interactive script provides:
+- Section-by-section navigation
+- Suggested questions for each section
+- Direct answer generation via DeepSeek
+- Auto-saving to walkthrough file
 
-```mermaid
-flowchart TD
-    A[User asks question] --> B{Mode}
-    B -->|Command| C[Parse arguments]
-    B -->|Interactive| D[Display section]
+### Mode 2: Claude Assistance (You Handle the Workflow)
 
-    C --> E[Extract context from walkthrough]
-    D --> E
+When user asks you to do Q&A (like "let's do Q&A for day 02 section 3.1"):
 
-    E --> F[Select model based on type]
-    F --> G{Question type}
-    G -->|Theory/Math| H[DeepSeek R1]
-    G -->|Code/Impl| I[DeepSeek Chat]
-    G -->|General| I
+1. **Read the walkthrough** to understand context
+2. **Present the section content** to the user
+3. **Accept user's question** (natural language)
+4. **Select appropriate model** based on question type and section
+5. **Generate answer** using DeepSeek MCP
+6. **Format and append** Q&A entry to walkthrough
 
-    H --> J[Generate answer]
-    I --> J
-
-    J --> K[Format Q&A entry]
-    K --> L[Insert into walkthrough]
-    L --> M[Display result]
-```
+Do NOT try to run `interactive_mode.py` - it requires terminal stdin and won't work when you invoke it.
 
 ## Model Assignment
 
-| Question Type | Section | Model | Why |
-|---------------|---------|-------|-----|
+| Question Type | Section | Model | Purpose |
+|---------------|---------|-------|---------|
 | clarification | theory | DeepSeek R1 | Theoretical explanations |
 | deeper-dive | theory | DeepSeek R1 | Math derivations |
 | implementation | code | DeepSeek Chat | Code examples |
@@ -93,16 +78,12 @@ Questions are automatically tagged for organization:
 - `turbulence` - Turbulence modeling
 - `mesh` - Mesh/grid topics
 - `gradient` - Gradient operators
-- `time-derivative` - Time derivatives (ddt)
-- `conservation` - Conservation laws
-- `gauss` - Gauss/divergence theorem
 - `openfoam` - OpenFOAM-specific
 - `matrix` - Matrix solvers, fvMatrix
 
 ## Output Location
 
 Q&A entries are appended to:
-
 ```
 daily_learning/walkthroughs/day_XX_walkthrough.md
 ```
@@ -113,105 +94,32 @@ In the `## Active Learning Q&A` section.
 
 ```markdown
 ### 💬 Clarification Question
-**Section:** Theory | **Asked:** 2026-01-28 21:30
+**Section:** [Section name] | **Asked:** [Timestamp]
 
 **Question:**
-Why does RTT use control volume approach?
+[User's question]
 
 **Answer:**
-The RTT connects the system (Lagrangian) and control volume (Eulerian) viewpoints...
-*(Answered by DeepSeek R1)*
+[Full detailed answer with math/code]
 
-**Tags:** `RTT` `control-volume` `turbulence` `conservation`
+**Tags:** `tag1` `tag2` `tag3`
 
 **Related Content:**
-> Snippet from the walkthrough section...
+> [Snippet from walkthrough]
 
 ---
 ```
-
-## Interactive Mode Controls
-
-When using `/interactive --day N`:
-
-| Key | Action |
-|-----|--------|
-| `N` | Next section |
-| `P` | Previous section |
-| `Q` | Ask a question about current section |
-| `J` | Jump to specific section |
-| `S` | Show session summary |
-| `H` | Help |
-| `E` or Ctrl-D | Exit |
 
 ## Integration
 
 This skill integrates with:
 
-- `walkthrough_orchestrator.py` - Reads existing walkthroughs for context
-- `DeepSeekMCPClient` - Model routing for DeepSeek R1/Chat
+- `DeepSeekMCPClient` - Model routing for DeepSeek R1/Chat via MCP
 - MCP integration in `.claude/mcp/` - Direct API calls
+- `qa_manager.py` - Backend logic for Q&A capture (Python use only)
 
-## Context Extraction
+## See Also
 
-The Q&A system extracts relevant context from the walkthrough:
-
-1. **Section-based**: Matches question to theory/code/implementation sections
-2. **Keyword search**: Finds relevant paragraphs in content
-3. **Snippet inclusion**: Includes related content with each answer
-
-## Troubleshooting
-
-### "Walkthrough file not found"
-- Generate walkthrough first: `/walkthrough --day N`
-- Check file exists in `daily_learning/walkthroughs/`
-
-### "No response from DeepSeek"
-- Check API credentials are configured
-- Verify MCP server is running
-- Check network connection to DeepSeek API
-
-### "Empty Q&A section"
-- First question creates the section automatically
-- Subsequent questions append properly
-
-### "Wrong tags assigned"
-- Tags are keyword-based; edit manually if needed
-- Common topics: FVM, discretization, boundary, turbulence
-
-## Example Usage
-
-```bash
-# 1. Generate walkthrough first
-/walkthrough 1
-
-# 2. Read and ask questions interactively
-/interactive --day 1
-
-# Navigation:
->>> N                    # Next section
->>> N                    # Next section
->>> Q                    # Ask a question
-
-Your question: Why is Gauss theorem used in FVM?
-
-Select type [1-5, default=1]: 2
-
-Generating answer...
-[Answer displayed...]
-
-Save this Q&A? [Y/n]: Y
-✅ Q&A saved!
-
->>> E                    # Exit when done
-```
-
-## Success Criteria
-
-- ✅ Questions captured with context
-- ✅ Routed to appropriate specialist model
-- ✅ Auto-tagged by topic
-- ✅ Appended to walkthrough document
-- ✅ Timestamped and organized
-- ✅ Interactive mode for real-time learning
-- ✅ Command mode for on-demand questions
+- [Q&A examples](references/examples.md)
+- [Integration details](references/integration.md)
+- [Walkthrough skill](../walkthrough/SKILL.md)

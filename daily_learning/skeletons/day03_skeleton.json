@@ -1,151 +1,217 @@
 {
-  "title": "Day 03: Spatial Discretization Schemes",
-  "topic": "Face Value Interpolation",
-  "sections": [
-    {
-      "title": "Introduction to Spatial Discretization",
-      "subsections": [
-        "Why discretization matters",
-        "Face value interpolation problem",
-        "From cell centers to face values",
-        "The surfaceInterpolationScheme abstract base class for all schemes",
-        "The limitedSurfaceInterpolationScheme base class for TVD/NVD schemes"
-      ]
-    },
-    {
-      "title": "Central Differencing Scheme",
-      "subsections": [
-        "Linear interpolation",
-        "Mathematical formulation",
-        "Pros and cons",
-        "When to use central differencing",
-        "Implementation: linear weights from mesh().surfaceInterpolation::weights()"
-      ]
-    },
-    {
-      "title": "Upwind Schemes",
-      "subsections": [
-        "First-order upwind",
-        "Stability considerations",
-        "Numerical diffusion",
-        "Second-order upwind variants",
-        "Implementation: upwind weights use pos0(faceFlux) - returns 1 for positive flux, 0 otherwise"
-      ]
-    },
-    {
-      "title": "TVD/NVD Schemes for Two-Phase Flow",
-      "subsections": [
-        "TVD concept - Total Variation Diminishing",
-        "NVD concept - Normalized Variable Diagram",
-        "Flux limiter functions and the r ratio",
-        "TVD limiters use the r ratio and mag(r) operator for absolute value",
-        "vanLeer limiter formula: (r + mag(r))/(1 + mag(r))",
-        "SuperBee limiter formula: max(max(min(2*r, 1), min(r, 2)), 0)",
-        "Minmod limiter formula: max(min(r, 1), 0)",
-        "Why TVD is critical for two-phase interface tracking"
-      ]
-    },
-    {
-      "title": "Scheme Selection Criteria",
-      "subsections": [
-        "Accuracy vs stability trade-off",
-        "Peclet number considerations",
-        "Two-phase flow specific requirements",
-        "Recommended schemes for VOF simulations",
-        "Practical implementation in OpenFOAM dictionaries"
-      ]
-    }
+  "day": 3,
+  "title": "Spatial Discretization Schemes - Face Value Interpolation",
+  "subtitle": "From PDE to Algebraic Equations in OpenFOAM",
+  "phase": "Phase_01_Foundation_Theory",
+  "template": "Mathematician",
+  "focus": "Face value interpolation fundamentals",
+  "ground_truth_sources": [
+    "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolationScheme/surfaceInterpolationScheme.H",
+    "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/schemes/linear/linear.H",
+    "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/upwind/upwind.H",
+    "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/LimitedScheme/LimitedScheme.H",
+    "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/vanLeer/vanLeer.H"
   ],
-  "verified_facts": [
-    {
-      "fact": "surfaceInterpolationScheme is the abstract base class for all face interpolation schemes",
-      "source": "OpenFOAM source code",
-      "verified": true
+  "verified_facts": {
+    "class_hierarchy": {
+      "base": {
+        "class": "surfaceInterpolationScheme<Type>",
+        "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolationScheme/surfaceInterpolationScheme.H",
+        "lines": "55-58",
+        "type": "abstract_base",
+        "pure_virtual": ["weights(const VolField<Type>&) const"],
+        "description": "Abstract base class for all surface interpolation schemes. Holds reference to fvMesh."
+      },
+      "direct_schemes": [
+        {
+          "class": "linear<Type>",
+          "inherits": "surfaceInterpolationScheme<Type>",
+          "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/schemes/linear/linear.H",
+          "lines": "50-54",
+          "weights_implementation": "mesh().surfaceInterpolation::weights()",
+          "weights_line": 96,
+          "description": "Centred interpolation using geometric distance-based weights"
+        }
+      ],
+      "limited_schemes": [
+        {
+          "intermediate_base": "limitedSurfaceInterpolationScheme<Type>",
+          "inherits": "surfaceInterpolationScheme<Type>",
+          "file": "upwind.H:38",
+          "description": "Intermediate base for flux-based schemes requiring faceFlux"
+        },
+        {
+          "class": "upwind<Type>",
+          "inherits": "limitedSurfaceInterpolationScheme<Type>",
+          "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/upwind/upwind.H",
+          "lines": "51-54",
+          "weights_implementation": "pos0(this->faceFlux_)",
+          "weights_line": 118,
+          "limiter_returns": "dimensionedScalar(dimless, 0)",
+          "limiter_line": 111,
+          "description": "First-order upwind - selects value based on flow direction"
+        },
+        {
+          "class": "LimitedScheme<Type, Limiter, LimitFunc>",
+          "inherits": ["limitedSurfaceInterpolationScheme<Type>", "Limiter"],
+          "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/LimitedScheme/LimitedScheme.H",
+          "lines": "63-67",
+          "description": "NVD/TVD framework - blends high-order and upwind using limiter"
+        }
+      ],
+      "limiters": [
+        {
+          "class": "vanLeerLimiter<LimiterFunc>",
+          "inherits": "LimiterFunc",
+          "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/vanLeer/vanLeer.H",
+          "lines": "53-56",
+          "formula": "(r + mag(r))/(1 + mag(r))",
+          "line": 80,
+          "description": "vanLeer TVD limiter - smooth limiter function"
+        }
+      ]
     },
-    {
-      "fact": "limitedSurfaceInterpolationScheme extends surfaceInterpolationScheme for TVD/NVD schemes",
-      "source": "OpenFOAM source code",
-      "verified": true
+    "formulas_verified": {
+      "vanLeer_limiter": {
+        "code": "return (r + mag(r))/(1 + mag(r));",
+        "latex": "\\psi(r) = \\frac{r + |r|}{1 + |r|}",
+        "description": "vanLeer TVD limiter function",
+        "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/vanLeer/vanLeer.H",
+        "line": 80,
+        "verified": true,
+        "critical_note": "Uses mag(r) function, NOT plain r"
+      },
+      "upwind_weights": {
+        "code": "return pos0(this->faceFlux_);",
+        "description": "Returns 1.0 for positive (outward) flux, 0.0 for negative (inward)",
+        "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/upwind/upwind.H",
+        "line": 118,
+        "verified": true
+      },
+      "linear_weights": {
+        "code": "return this->mesh().surfaceInterpolation::weights();",
+        "description": "Returns geometric weights based on distance from face to cell centers",
+        "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/schemes/linear/linear.H",
+        "line": 96,
+        "verified": true
+      },
+      "central_differencing": {
+        "latex": "\\phi_f = w\\phi_P + (1-w)\\phi_N",
+        "description": "Central differencing interpolation formula",
+        "verified": true,
+        "note": "w is geometric weight (distance from face to owner / total distance)"
+      },
+      "general_interpolation": {
+        "latex": "\\phi_f = \\bar{\\phi} + \\psi(r)(\\phi_f^{HO} - \\phi_f^{upwind})",
+        "description": "TVD scheme blending formula",
+        "verified": true
+      }
     },
-    {
-      "fact": "Key concrete schemes include: upwind, linear (central differencing), vanLeer, SuperBee, Minmod",
-      "source": "OpenFOAM source code",
-      "verified": true
+    "methods_verified": {
+      "abstract_weights": {
+        "signature": "virtual tmp<surfaceScalarField> weights(const VolField<Type>&) const = 0",
+        "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolationScheme/surfaceInterpolationScheme.H",
+        "line": "181-184",
+        "description": "Pure virtual - must be implemented by derived schemes"
+      },
+      "virtual_interpolate": {
+        "signature": "virtual tmp<SurfaceField<Type>> interpolate(const VolField<Type>&) const",
+        "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolationScheme/surfaceInterpolationScheme.H",
+        "line": "223-224",
+        "description": "Returns face-interpolated field with optional correction"
+      },
+      "upwind_limiter": {
+        "signature": "virtual tmp<surfaceScalarField> limiter(const VolField<Type>&) const",
+        "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/upwind/upwind.H",
+        "lines": "101-113",
+        "returns": "Zero field (dimensionless, value 0)",
+        "description": "Upwind has no limiter - always uses first-order"
+      },
+      "vanLeer_limiter_method": {
+        "signature": "scalar limiter(const scalar, const scalar faceFlux, ...)",
+        "file": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/vanLeer/vanLeer.H",
+        "lines": "64-81",
+        "description": "Computes limiter by first calculating r, then applying formula"
+      }
     },
-    {
-      "fact": "TVD limiters use the r ratio and mag(r) operator for absolute value",
-      "source": "OpenFOAM source code",
-      "verified": true
-    },
-    {
-      "fact": "vanLeer limiter formula: (r + mag(r))/(1 + mag(r))",
-      "source": "vanLeer.H",
-      "verified": true
-    },
-    {
-      "fact": "SuperBee limiter formula: max(max(min(2*r, 1), min(r, 2)), 0)",
-      "source": "SuperBee.H",
-      "verified": true
-    },
-    {
-      "fact": "Minmod limiter formula: max(min(r, 1), 0)",
-      "source": "Minmod.H",
-      "verified": true
-    },
-    {
-      "fact": "upwind scheme weights use pos0(faceFlux) - returns 1 for positive flux, 0 otherwise",
-      "source": "upwind.H:116-119",
-      "verified": true
-    },
-    {
-      "fact": "linear (central differencing) scheme weights use mesh().surfaceInterpolation::weights()",
-      "source": "linear.H:90-97",
-      "verified": true
+    "key_concepts": {
+      "face_interpolation": "Converting cell-centered values to face-centered values for flux calculation",
+      "weighting_factor": "Coefficient w determining blend between owner and neighbor values",
+      "peclet_number": "Pe = \\frac{\\rho u L}{D} - ratio of convective to diffusive transport",
+      "tvd_principle": "Total Variation Diminishing - prevents non-physical oscillations",
+      "numerical_diffusion": "False diffusion introduced by first-order schemes smears gradients",
+      "boundedness": "Property that solution stays within physical bounds (0 to 1 for VOF)"
     }
+  },
+  "structure": {
+    "part1": {
+      "title": "Core Theory - From Continuous to Discrete",
+      "topics": [
+        "Why face value interpolation is needed in FVM",
+        "Central differencing derivation from Taylor series",
+        "First-order upwind scheme formulation",
+        "The stability-accuracy trade-off continuum"
+      ]
+    },
+    "part2": {
+      "title": "Physical Challenge - Convection-Dominated Problems",
+      "topics": [
+        "Peclet number analysis: Pe = rho*u*L/D",
+        "Why central differencing fails for high Pe",
+        "Numerical diffusion in upwind schemes",
+        "The need for TVD schemes"
+      ]
+    },
+    "part3": {
+      "title": "Architecture & Implementation",
+      "topics": [
+        "Class hierarchy: surfaceInterpolationScheme base class",
+        "linear scheme: centred interpolation",
+        "upwind scheme: flux-based selection",
+        "LimitedScheme template for TVD",
+        "Limiter functions: vanLeer implementation"
+      ]
+    },
+    "part4": {
+      "title": "Quality Assurance - Scheme Selection",
+      "topics": [
+        "Scheme selection guidelines for different physics",
+        "Verification exercises",
+        "Code tracing through OpenFOAM source",
+        "Connection to VOF two-phase flow"
+      ]
+    },
+    "part5": {
+      "title": "R410A Application",
+      "topics": [
+        "Why scheme matters for evaporator simulation",
+        "Property considerations for R410A",
+        "Implementation preview for two-phase VOF"
+      ]
+    }
+  },
+  "learning_objectives": [
+    "Derive central differencing formula from geometric interpolation",
+    "Explain why upwind is stable but introduces numerical diffusion",
+    "Calculate Peclet number and predict scheme behavior",
+    "Trace through OpenFOAM's interpolation scheme class hierarchy",
+    "Implement custom TVD limiter using LimitedScheme framework"
   ],
-  "code_snippets": [
-    {
-      "path": "upwind.H",
-      "lines": "116-119",
-      "description": "upwind scheme weight calculation using pos0(faceFlux)"
-    },
-    {
-      "path": "linear.H",
-      "lines": "90-97",
-      "description": "central differencing (linear) weight calculation using mesh weights"
-    },
-    {
-      "path": "vanLeer.H",
-      "lines": "75-80",
-      "description": "vanLeer limiter function implementation with mag(r)"
-    },
-    {
-      "path": "SuperBee.H",
-      "lines": "relevant lines",
-      "description": "SuperBee limiter function implementation"
-    },
-    {
-      "path": "Minmod.H",
-      "lines": "relevant lines",
-      "description": "Minmod limiter function implementation"
-    }
-  ],
-  "exercises": [
-    {
-      "question": "Implement the vanLeer limiter function in pseudo-code, given the ratio 'r'. Use an absolute value function 'mag()'.",
-      "solution": "function vanLeerLimiter(r): return (r + mag(r)) / (1 + mag(r))"
-    },
-    {
-      "question": "For a face with flux = 0.5, what weight does the upwind scheme assign to the owner cell value? Use the pos0() function which returns 1 for arguments >= 0.",
-      "solution": "pos0(0.5) = 1. Therefore, the weight for the owner cell (upwind) value is 1, and the weight for the neighbor cell value is 0."
-    },
-    {
-      "question": "Compare the SuperBee and Minmod limiters. For a ratio r = 1.5, calculate the limiter value for each. Which is more diffusive?",
-      "solution": "For r = 1.5: SuperBee = max(max(min(2*1.5, 1), min(1.5, 2)), 0) = max(max(3, 1), min(1.5, 2), 0) = max(1, 1.5, 0) = 1.5. Minmod = max(min(1.5, 1), 0) = max(1, 0) = 1. Minmod (value 1) is more diffusive than SuperBee (value 1.5) as it limits the gradient more aggressively."
-    },
-    {
-      "question": "Explain why a TVD scheme like vanLeer is preferred over pure upwind or pure central differencing for simulating a sharp two-phase interface (e.g., in VOF).",
-      "solution": "Pure upwind is too diffusive and will smear the interface. Pure central differencing is non-diffusive but can cause unbounded oscillations (overshoot/undershoot) at the sharp gradient, destroying the interface sharpness. A TVD scheme like vanLeer acts as a hybrid: it uses a high-order (e.g., central) scheme in smooth regions for accuracy but switches towards a more upwind (diffusive) scheme near sharp gradients to maintain boundedness and prevent oscillations, thus preserving a sharp but monotonic interface."
-    }
-  ]
+  "connections": {
+    "from_day_02": "Builds on Gauss divergence theorem and face flux calculation",
+    "to_day_10": "Essential for VOF alpha transport equation discretization",
+    "to_day_52": "Interface sharpening techniques rely on TVD schemes"
+  },
+  "exercises": {
+    "concept_check": [
+      "Derive central differencing weights from geometric interpolation",
+      "Explain relationship between Peclet number and scheme stability",
+      "Compare TVD limiters: vanLeer vs Minmod characteristics"
+    ],
+    "code_verification": [
+      "Locate and read surfaceInterpolationScheme base class",
+      "Verify vanLeer limiter uses mag(r) not r at line 80",
+      "Trace weight calculation through linear scheme"
+    ]
+  }
 }

@@ -4,21 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "a6c3e32c20fdd445",
+        "id": "bbd93b19c8f2bb6c",
         "type": "tabs",
         "children": [
           {
-            "id": "d1bf80e1f3a25140",
+            "id": "8f98284eda6cf183",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "test_all_components.md",
+                "file": "roadmap.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "test_all_components"
+              "title": "roadmap"
             }
           }
         ]
@@ -44,7 +44,7 @@
                 "autoReveal": false
               },
               "icon": "lucide-folder-closed",
-              "title": "Files"
+              "title": "File explorer"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "test_all_components.md",
+                "file": "roadmap.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of test_all_components"
+              "title": "โครงเรื่องของ roadmap"
             }
           }
         ],
@@ -174,53 +174,53 @@
   },
   "left-ribbon": {
     "hiddenItems": {
-      "switcher:Open quick switcher": false,
-      "graph:Open graph view": false,
-      "canvas:Create new canvas": false,
-      "daily-notes:Open today's daily note": false,
-      "templates:Insert template": false,
-      "command-palette:Open command palette": false,
-      "bases:Create new base": false
+      "switcher:เปิด quick switcher": false,
+      "graph:เปิดมุมมองกราฟ": false,
+      "canvas:สร้างผืนผ้าใบใหม่": false,
+      "daily-notes:เปิดโน้ตของวันนี้": false,
+      "templates:แทรกเทมเพลต": false,
+      "command-palette:เปิดกระดานคำสั่ง": false,
+      "bases:สร้างฐานใหม่": false
     }
   },
-  "active": "d1bf80e1f3a25140",
+  "active": "8f98284eda6cf183",
   "lastOpenFiles": [
-    "daily_learning/Phase_01_Foundation_Theory/backup_mark1/12.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_mark1/11.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_mark1/10.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_mark1/09.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_mark1/08.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_mark1/07.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_mark1/06.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_mark1/05.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_mark1/04.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_mark1/03.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_mark1/02.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_mark1",
-    "daily_learning/walkthroughs/day_01_walkthrough.md",
-    "daily_learning/qc_reports/day01_qc.json",
-    "daily_learning/qc_reports",
+    "RESTRUCTURING_IMPROVEMENTS.md",
+    "CONVENTIONS.md",
+    "CLAUDE.md",
+    "claude_config_comparison.md",
+    "daily_learning/Phase_01_Foundation_Theory/07.md",
+    "daily_learning/Phase_01_Foundation_Theory/06.md",
+    "daily_learning/Phase_01_Foundation_Theory/05.md",
+    "daily_learning/labs/01_lab.md",
+    "daily_learning/walkthroughs/day_06_walkthrough.md",
+    "daily_learning/Phase_01_Foundation_Theory/04.md",
+    "daily_learning/Phase_01_Foundation_Theory/04_old.md",
+    "daily_learning/Phase_01_Foundation_Theory/03_old.md",
+    "daily_learning/Phase_01_Foundation_Theory/02_old.md",
+    "daily_learning/Phase_01_Foundation_Theory/01_old.md",
+    "daily_learning/Phase_01_Foundation_Theory/01.md.backup",
+    "daily_learning/Phase_01_Foundation_Theory/04_not_used.md",
+    "daily_learning/Phase_01_Foundation_Theory/03_not_used.md",
+    "daily_learning/Phase_01_Foundation_Theory/03.md",
     "daily_learning/Phase_01_Foundation_Theory/01.md",
-    "daily_learning/skeletons/day01_skeleton.json",
-    "daily_learning/blueprints/day01_blueprint.json",
-    "daily_learning/Phase_01_Foundation_Theory/01.md.bak",
-    "daily_learning/Phase_01_Foundation_Theory/01_new.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_originals/batch_regen/2026-01-04.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_originals/batch_regen/2026-01-03.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_originals/batch_regen/2026-01-02.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_originals/batch_regen/2026-01-01.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_originals/batch_regen",
-    "daily_learning/Phase_01_Foundation_Theory/backup_originals/2026-01-06.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_originals/2026-01-05.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_originals/2026-01-04.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_originals/2026-01-03.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_originals/2026-01-01.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_originals/01_Cpp_Architecture_DeepDive_original.md",
-    "daily_learning/Phase_01_Foundation_Theory/backup_originals",
     "daily_learning/Phase_01_Foundation_Theory/02.md",
-    "test_all_components.md",
-    "MODULE_02_MESH_DESIGN/CONTENT/06_RUNTIME_POST_PROCESSING/refactor_plan.json",
-    "MODULE_02_MESH_DESIGN/CONTENT/05_MESH_QUALITY_AND_MANIPULATION/refactor_plan.json",
+    "daily_learning/Phase_01_Foundation_Theory/02_not_used.md",
+    "daily_learning/Phase_01_Foundation_Theory/01_not_used.md",
+    "daily_learning/walkthroughs/day_02_walkthrough.md",
+    "daily_learning/walkthroughs/day_01_walkthrough.md",
+    "daily_learning/blueprints/day07_blueprint.json",
+    "daily_learning/skeletons/day07_skeleton.json",
+    "daily_learning/labs/README.md",
+    "daily_learning/Phase_01_Foundation_Theory/01_lab.md",
+    "daily_learning/labs/cfd/01_lab.md",
+    "daily_learning/labs/cfd/01_lab.md.tutorial",
+    "labs/lab01_skeleton.json",
+    "labs/lab01_ground_truth.json",
+    "labs",
+    "daily_learning/labs/cpp",
+    "daily_learning/labs/cfd",
+    "daily_learning/labs",
     "daily_learning/assets/ldu_addressing_diagram.png",
     "daily_learning/assets/non_orthogonal_correction_diagram.png",
     "daily_learning/assets/ldu_matrix_structure_diagram.png",

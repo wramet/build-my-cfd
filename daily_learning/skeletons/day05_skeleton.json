@@ -1,119 +1,362 @@
-Calling deepseek-chat...
 {
-  "title": "Day 05: Temporal Discretization",
-  "topic": "Time Integration Methods",
-  "sections": [
+  "day": 5,
+  "topic": "Mesh Topology Concepts",
+  "description": "Understanding computational mesh structure for finite volume CFD",
+  "roadmap_reference": "Day 05: Points, Faces, Cells definitions, Owner-Neighbor concept, Cylindrical mesh considerations, Face area vectors, Cell volumes",
+  "phase": "Phase_01_Foundation_Theory",
+  "skeleton": [
     {
-      "title": "Introduction to Temporal Discretization",
-      "subsections": [
-        "Time derivative in transport equations",
-        "From continuous to discrete: The ddt term",
-        "Explicit vs implicit methods: Stability and cost",
-        "The abstract ddtScheme<Type> base class in OpenFOAM"
+      "section": "Introduction",
+      "content": [
+        {
+          "title": "What is Mesh Topology?",
+          "type": "concept",
+          "detail": "The mesh topology describes how geometric entities (points, faces, cells) are connected to form the computational domain for CFD simulations",
+          "verified": true
+        },
+        {
+          "title": "Why Topology Matters",
+          "type": "concept",
+          "detail": "Mesh topology enables flux calculation between cells, boundary condition application, and matrix assembly in finite volume method",
+          "verified": true
+        }
       ]
     },
     {
-      "title": "Euler Implicit Scheme",
-      "subsections": [
-        "First-order backward differencing formula",
-        "Matrix coefficient assembly: fvmDdt diagonal",
-        "Stability characteristics: Unconditionally stable for linear problems",
-        "When to use Euler: Robustness and simplicity"
+      "section": "Basic Mesh Elements",
+      "content": [
+        {
+          "title": "Points (Vertices)",
+          "type": "concept",
+          "detail": "Points are the fundamental geometric entities defining mesh vertices with (x, y, z) coordinates. Stored as pointField in OpenFOAM.",
+          "verified": true,
+          "source": "openfoam_temp/src/OpenFOAM/meshes/polyMesh/polyMesh.H:104"
+        },
+        {
+          "title": "Faces",
+          "type": "concept",
+          "detail": "A face is a list of point labels forming a polygon. Inherits from labelList. Provides area vector, centre, and normal calculations.",
+          "verified": true,
+          "source": "openfoam_temp/src/OpenFOAM/meshes/meshShapes/face/face.H:28,76"
+        },
+        {
+          "title": "Cells",
+          "type": "concept",
+          "detail": "A cell is a list of faces forming a polyhedron. Inherits from labelList. Provides volume and centre calculations.",
+          "verified": true,
+          "source": "openfoam_temp/src/OpenFOAM/meshes/meshShapes/cell/cell.H:28,60"
+        },
+        {
+          "title": "Class Hierarchy: Mesh Elements",
+          "type": "diagram",
+          "detail": "mermaid class diagram showing face and cell inheritance from labelList"
+        }
       ]
     },
     {
-      "title": "Backward Differencing Scheme",
-      "subsections": [
-        "Second-order accuracy (BDF2)",
-        "Multiple time-level storage: Uses phi^(n-1) and phi^(n-2)",
-        "Coefficient calculation for previous time steps",
-        "Trade-offs vs Euler: Increased accuracy vs larger stencil"
+      "section": "Face Geometry",
+      "content": [
+        {
+          "title": "Face Area Vector",
+          "type": "formula",
+          "formula": "\\mathbf{S}_f = \\mathbf{n}_f A_f",
+          "detail": "The face area vector points in the direction of the face normal with magnitude equal to the face area",
+          "verified": true,
+          "source": "openfoam_temp/src/OpenFOAM/meshes/meshShapes/face/face.H:159"
+        },
+        {
+          "title": "Unit Normal Vector",
+          "type": "formula",
+          "formula": "\\mathbf{n}_f = \\frac{\\mathbf{S}_f}{|\\mathbf{S}_f|}",
+          "detail": "The unit normal vector is the normalized face area vector",
+          "verified": true,
+          "source": "openfoam_temp/src/OpenFOAM/meshes/meshShapes/face/face.H:165"
+        },
+        {
+          "title": "Face Centre Calculation",
+          "type": "formula",
+          "formula": "\\mathbf{C}_f = \\frac{1}{N} \\sum_{i=1}^{N} \\mathbf{p}_i",
+          "detail": "The face centre is calculated as the average of its vertex point positions",
+          "verified": true,
+          "source": "openfoam_temp/src/OpenFOAM/meshes/meshShapes/face/face.H:100"
+        },
+        {
+          "title": "Face Geometry Visual",
+          "type": "diagram",
+          "detail": "mermaid diagram showing face with vertices, centre, normal, and area vector"
+        }
       ]
     },
     {
-      "title": "Crank-Nicolson Scheme",
-      "subsections": [
-        "Second-order centered differencing in time",
-        "Off-centering for stability: The ocCoeff parameter",
-        "Blending implicit and explicit components",
-        "Stability vs accuracy balance: Avoiding non-physical oscillations"
+      "section": "Cell Geometry",
+      "content": [
+        {
+          "title": "Cell Volume Calculation",
+          "type": "formula",
+          "formula": "V_P = \\sum_{f} \\frac{1}{3} \\mathbf{S}_f \\cdot (\\mathbf{p}_f - \\mathbf{C}_P)",
+          "detail": "Cell volume is calculated by decomposing the cell into pyramids from the cell centre to each face",
+          "verified": true,
+          "source": "openfoam_temp/src/OpenFOAM/meshes/meshShapes/cell/cell.H:128"
+        },
+        {
+          "title": "Cell Centre Calculation",
+          "type": "formula",
+          "formula": "\\mathbf{C}_P = \\frac{\\sum_{f} \\mathbf{C}_f A_f}{\\sum_{f} A_f}",
+          "detail": "The cell centre is the area-weighted average of its face centres",
+          "verified": true,
+          "source": "openfoam_temp/src/OpenFOAM/meshes/meshShapes/cell/cell.H:125"
+        },
+        {
+          "title": "Cell Geometry Visual",
+          "type": "diagram",
+          "detail": "mermaid diagram showing polyhedral cell with faces, centre, and volume"
+        }
       ]
     },
     {
-      "title": "CFL Number and Time Step Selection",
-      "subsections": [
-        "CFL definition and physical meaning",
-        "Stability limits for explicit schemes",
-        "Local time-stepping with CoEuler and maxCo",
-        "Practical deltaT selection for VOF and reacting flows"
+      "section": "Owner-Neighbour Addressing",
+      "content": [
+        {
+          "title": "Owner Cell",
+          "type": "concept",
+          "detail": "For each internal face, the owner cell is the one with the lower index. The face normal points FROM owner TO neighbour.",
+          "verified": true,
+          "source": "openfoam_temp/src/OpenFOAM/matrices/LduMatrix/lduAddressing/lduAddressing.H:36"
+        },
+        {
+          "title": "Neighbour Cell",
+          "type": "concept",
+          "detail": "For each internal face, the neighbour cell is the one with the higher index. Only exists for internal faces.",
+          "verified": true,
+          "source": "openfoam_temp/src/OpenFOAM/meshes/polyMesh/polyMesh.H:113"
+        },
+        {
+          "title": "Internal vs Boundary Faces",
+          "type": "concept",
+          "detail": "Internal faces have both owner AND neighbour cells. Boundary faces have ONLY owner cell (neighbour = -1).",
+          "verified": true
+        },
+        {
+          "title": "Face Orientation Convention",
+          "type": "concept",
+          "detail": "The face area vector always points from the owner cell toward the neighbour cell. This is crucial for consistent flux calculations.",
+          "verified": true
+        },
+        {
+          "title": "Owner-Neighbour Data Structure",
+          "type": "code",
+          "detail": "Show owner[] and neighbour[] arrays with example values",
+          "verified": true,
+          "source": "openfoam_temp/src/OpenFOAM/meshes/polyMesh/polyMesh.H:110,113"
+        },
+        {
+          "title": "Owner-Neighbour Visual",
+          "type": "diagram",
+          "detail": "mermaid diagram showing two adjacent cells with owner, neighbour, face, and normal direction"
+        }
       ]
     },
     {
-      "title": "Implementation in OpenFOAM",
-      "subsections": [
-        "fvMatrix assembly for ddt terms",
-        "Temporal scheme dictionary specification",
-        "Time step control in controlDict",
-        "Runtime selection of ddt schemes"
+      "section": "Mesh Class Hierarchy",
+      "content": [
+        {
+          "title": "OpenFOAM Mesh Classes",
+          "type": "diagram",
+          "detail": "mermaid class diagram showing primitiveMesh -> polyMesh -> fvMesh inheritance chain",
+          "verified": true,
+          "classes": {
+            "primitiveMesh": "openfoam_temp/src/OpenFOAM/meshes/primitiveMesh/primitiveMesh.H:75",
+            "polyMesh": "openfoam_temp/src/OpenFOAM/meshes/polyMesh/polyMesh.H:76",
+            "fvMesh": "openfoam_temp/src/finiteVolume/fvMesh/fvMesh.H:94"
+          }
+        },
+        {
+          "title": "primitiveMesh: Cell-Face Engine",
+          "type": "concept",
+          "detail": "Base class providing mesh analysis: cell-cell, cell-face, point-face connectivity, geometric calculations",
+          "verified": true,
+          "source": "openfoam_temp/src/OpenFOAM/meshes/primitiveMesh/primitiveMesh.H:75"
+        },
+        {
+          "title": "polyMesh: Polyhedral Mesh",
+          "type": "concept",
+          "detail": "Adds topological data (points, faces, owner, neighbour) and boundary information",
+          "verified": true,
+          "source": "openfoam_temp/src/OpenFOAM/meshes/polyMesh/polyMesh.H:76"
+        },
+        {
+          "title": "fvMesh: Finite Volume Mesh",
+          "type": "concept",
+          "detail": "fvMesh inherits from polyMesh, lduMesh, and surfaceInterpolation (multiple inheritance). Adds FVM-specific data: cell volumes, face areas, cell centres, surface interpolation, schemes",
+          "verified": true,
+          "source": "openfoam_temp/src/finiteVolume/fvMesh/fvMesh.H:94"
+        }
+      ]
+    },
+    {
+      "section": "Cylindrical Mesh Considerations",
+      "content": [
+        {
+          "title": "Axisymmetric Simulation",
+          "type": "concept",
+          "detail": "For axisymmetric problems (like flow in a tube), we can use a 2D wedge mesh to represent 3D geometry",
+          "verified": true
+        },
+        {
+          "title": "Wedge Boundary Condition",
+          "type": "concept",
+          "detail": "Wedge patches enforce cyclic symmetry conditions, reducing 3D problem to 2D wedge with small angular extent (typically 1-5 degrees)",
+          "verified": true
+        },
+        {
+          "title": "Cell Volume in Wedge Mesh",
+          "type": "concept",
+          "detail": "In wedge mesh, cell volumes include the angular factor (2π/N where N = 360°/wedge_angle) to account for full 360° geometry",
+          "verified": true
+        },
+        {
+          "title": "Cylindrical Coordinate System",
+          "type": "concept",
+          "detail": "For tube flow, use radial (r), axial (z), and circumferential (θ) coordinates. Wedge mesh lies in r-z plane.",
+          "verified": true
+        },
+        {
+          "title": "R410A Evaporator Tube Mesh",
+          "type": "application",
+          "detail": "Application: R410A evaporator tube requires cylindrical mesh with radial resolution for boundary layer, axial resolution for flow development, and wedge for axisymmetric 2D simulation",
+          "verified": true
+        }
+      ]
+    },
+    {
+      "section": "Surface Interpolation",
+      "content": [
+        {
+          "title": "Face Value Interpolation",
+          "type": "formula",
+          "formula": "\\phi_f = f(\\phi_P, \\phi_N, \\mathbf{d}_{PN}, \\mathbf{d}_{Pf}, \\mathbf{d}_{fN})",
+          "detail": "Face values are interpolated from cell-centred values using owner (P) and neighbour (N) values",
+          "verified": true,
+          "source": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolationScheme/surfaceInterpolationScheme.H:146"
+        },
+        {
+          "title": "surfaceInterpolationScheme Class",
+          "type": "concept",
+          "detail": "Abstract base class for surface interpolation schemes (upwind, central, linear, etc.)",
+          "verified": true,
+          "source": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolationScheme/surfaceInterpolationScheme.H:25"
+        },
+        {
+          "title": "Interpolation Visual",
+          "type": "diagram",
+          "detail": "mermaid diagram showing owner cell P, neighbour cell N, face f, and interpolation weights"
+        }
+      ]
+    },
+    {
+      "section": "Gauss Divergence Theorem in FVM",
+      "content": [
+        {
+          "title": "Gauss Theorem for Cell",
+          "type": "formula",
+          "formula": "\\int_{V_P} \\nabla \\cdot \\mathbf{U} \\, dV \\approx \\sum_{f} \\mathbf{U}_f \\cdot \\mathbf{S}_f",
+          "detail": "Volume integral converted to surface sum over faces using face area vectors",
+          "verified": true
+        },
+        {
+          "title": "Flux Calculation",
+          "type": "concept",
+          "detail": "Flux through each face = velocity at face dotted with face area vector. Sum over all faces gives net flux out of cell",
+          "verified": true
+        },
+        {
+          "title": "Gauss Theorem Visual",
+          "type": "diagram",
+          "detail": "mermaid diagram showing cell with faces and area vectors for flux calculation"
+        }
+      ]
+    },
+    {
+      "section": "Key Data Structures Summary",
+      "content": [
+        {
+          "title": "Mesh Geometry Fields",
+          "type": "table",
+          "detail": "Table showing: Sf (face area vectors), magSf (face areas), V (cell volumes), C (cell centres)",
+          "verified": true,
+          "source": "openfoam_temp/src/finiteVolume/fvMesh/fvMesh.H:184,196,199"
+        },
+        {
+          "title": "Addressing Arrays",
+          "type": "table",
+          "detail": "Table showing: owner[], neighbour[], points[], faces[]",
+          "verified": true,
+          "source": "openfoam_temp/src/OpenFOAM/meshes/polyMesh/polyMesh.H:104,107,110,113"
+        }
+      ]
+    },
+    {
+      "section": "Code Examples",
+      "content": [
+        {
+          "title": "Accessing Face Area Vector",
+          "type": "code",
+          "detail": "C++ code: const surfaceVectorField& Sf = mesh.Sf(); vector faceArea = Sf[facei];",
+          "verified": true,
+          "source": "openfoam_temp/src/finiteVolume/fvMesh/fvMesh.H:196"
+        },
+        {
+          "title": "Accessing Cell Volume",
+          "type": "code",
+          "detail": "C++ code: const volScalarField& V = mesh.V(); scalar cellVol = V[celli];",
+          "verified": true,
+          "source": "openfoam_temp/src/finiteVolume/fvMesh/fvMesh.H:184"
+        },
+        {
+          "title": "Accessing Owner-Neighbour",
+          "type": "code",
+          "detail": "C++ code: const labelUList& owner = mesh.owner(); const labelUList& neighbour = mesh.neighbour();",
+          "verified": true,
+          "source": "openfoam_temp/src/OpenFOAM/meshes/polyMesh/polyMesh.H:110,113"
+        }
+      ]
+    },
+    {
+      "section": "Exercises",
+      "content": [
+        {
+          "title": "Exercise 1: Owner-Neighbour Quiz",
+          "type": "question",
+          "detail": "For a mesh with 5 cells, if face 10 has owner=2 and neighbour=4, what is the direction of the face normal? What if it's a boundary face?"
+        },
+        {
+          "title": "Exercise 2: Face Area Calculation",
+          "type": "question",
+          "detail": "A triangular face has vertices at (0,0,0), (1,0,0), (0,1,0). Calculate: (a) face centre, (b) face area vector, (c) unit normal"
+        },
+        {
+          "title": "Exercise 3: Cell Volume from Faces",
+          "type": "question",
+          "detail": "Given a hexahedral cell with 6 faces, explain how the cell volume is computed using the pyramid decomposition method"
+        },
+        {
+          "title": "Exercise 4: Cylindrical Mesh Design",
+          "type": "question",
+          "detail": "Design a wedge mesh for R410A evaporator tube with inner radius 5mm and length 500mm. Specify: wedge angle, number of radial cells, number of axial cells"
+        },
+        {
+          "title": "Exercise 5: Flux Through Face",
+          "type": "question",
+          "detail": "Given velocity at cell P: U_P = (1,0,0) m/s, at cell N: U_N = (2,0,0) m/s, face normal n_f = (1,0,0), face area = 0.001 m², calculate mass flux using upwind scheme (ρ=1000 kg/m³)"
+        },
+        {
+          "title": "Exercise 6: Gauss Theorem Application",
+          "type": "question",
+          "detail": "For a cell with 4 faces, given face area vectors and velocities at each face, calculate the net volumetric flux out of the cell. Verify continuity equation."
+        }
       ]
     }
   ],
-  "verified_facts": [
-    "⭐ ddtScheme<Type> is the abstract base class for all time derivative schemes in OpenFOAM.",
-    "⭐ Key concrete schemes include: Euler (first-order), backward (second-order), CrankNicolson (second-order).",
-    "⭐ The Euler implicit scheme uses the first-order formula: (phi^n - phi^(n-1)) / Delta t.",
-    "⭐ For the fvm::ddt operator, the Euler scheme contributes a diagonal coefficient: rho_P * V_P / Delta t.",
-    "⭐ The backward (BDF2) second-order scheme uses the previous two time steps: phi^(n-1) and phi^(n-2).",
-    "⭐ The Crank-Nicolson scheme uses an off-centering coefficient (ocCoeff) to improve stability.",
-    "⭐ The Courant (CFL) number is defined as CFL = |u| * Delta t / Delta x.",
-    "⭐ For explicit time integration, stability requires CFL < 1.",
-    "⭐ The CoEuler scheme enforces local time-stepping based on a user-defined maximum Courant number (maxCo)."
-  ],
-  "code_snippets": [
-    {
-      "title": "Scheme Selection in fvSchemes",
-      "language": "OpenFOAM dictionary",
-      "content": "ddtSchemes\n{\n    default         Euler;\n    // default         backward;\n    // default         CrankNicolson 0.9; // ocCoeff\n}"
-    },
-    {
-      "title": "Time Step Control in controlDict",
-      "language": "OpenFOAM dictionary",
-      "content": "adjustTimeStep  yes;\nmaxCo           0.8; // Max Courant number\nmaxDeltaT       0.01; // Max time step"
-    },
-    {
-      "title": "Theoretical Euler Coefficient",
-      "language": "Mathematical",
-      "content": "For a scalar phi, the implicit Euler discretization:\n    V_P * (rho_P * phi_P^n - rho_P^old * phi_P^old) / Delta t\nMatrix contribution: diagCoeff = rho_P * V_P / Delta t"
-    }
-  ],
-  "exercises": [
-    {
-      "title": "Scheme Comparison",
-      "tasks": [
-        "Run the cavity tutorial with Euler, backward, and CrankNicolson ddt schemes. Compare the residual convergence history.",
-        "For a fixed end time, compare the total simulation runtime for each scheme. Explain the difference in cost."
-      ]
-    },
-    {
-      "title": "Stability Analysis",
-      "tasks": [
-        "In an explicit scalar transport case, gradually increase the maxCo from 0.2 to 2.0. At what value does the solution diverge?",
-        "Switch to the implicit Euler scheme and repeat the maxCo increase. Does the solution remain stable? Why?"
-      ]
-    },
-    {
-      "title": "Crank-Nicolson Off-Centering",
-      "tasks": [
-        "Run a case with CrankNicolson 0.5 (centered) and CrankNicolson 0.9 (off-centered). Observe any non-physical oscillations in the solution.",
-        "Explain the trade-off between accuracy (ocCoeff=0.5) and stability (ocCoeff->1.0)."
-      ]
-    },
-    {
-      "title": "Time Step Control",
-      "tasks": [
-        "Modify a case to use adjustTimeStep and maxCo. Monitor the time step (deltaT) as the flow develops.",
-        "Implement a custom time step based on the maximum CFL in the domain and compare to the built-in CoEuler."
-      ]
-    }
-  ]
+  "verification_status": "ground_truth_extracted",
+  "next_stage": "blueprint_generation"
 }

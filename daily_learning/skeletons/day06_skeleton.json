@@ -1,96 +1,196 @@
-Calling deepseek-chat...
 {
-  "title": "Day 06: Boundary Conditions Theory",
-  "topic": "BCs for Tube Flow",
-  "sections": [
-    {
-      "title": "Introduction to Boundary Conditions",
-      "subsections": [
-        "What are BCs in FVM: Closure for governing equations at domain boundaries",
-        "Types of boundary conditions: Dirichlet, Neumann, Robin, and derived types",
-        "Physical vs numerical BCs: Physical constraints vs computational stability requirements"
+  "day": 6,
+  "title": "Boundary Conditions Theory",
+  "subtitle": "BCs for Tube Flow with R410A Two-Phase Evaporation",
+  "phase": "01_Foundation_Theory",
+  "structure": {
+    "part1": {
+      "title": "Core Theory - Boundary Condition Fundamentals",
+      "topics": [
+        "What are boundary conditions and why they matter",
+        "Types of boundary conditions: Dirichlet, Neumann, Robin",
+        "Physical interpretation: fixed value, fixed gradient, mixed",
+        "Patch-normal gradient (snGrad) concept"
       ]
     },
-    {
-      "title": "Dirichlet (Fixed Value) BCs",
-      "subsections": [
-        "Mathematical formulation: phi_b = phi_specified",
-        "fixedValue in OpenFOAM: Concrete class derived from fvPatchField",
-        "Matrix coefficient assembly: Internal coefficient = 1, boundary coefficient = specified value",
-        "When to use fixedValue: Known inlet velocity, wall temperature, or specified pressure"
+    "part2": {
+      "title": "Physical Challenge - BC Selection for Evaporator Tube",
+      "topics": [
+        "Inlet BC: Subcooled liquid R410A entry",
+        "Outlet BC: Handling reverse flow and pressure specification",
+        "Wall BC: No-slip, fixed temperature vs fixed heat flux",
+        "Axis BC: Symmetry for 2D axisymmetric formulation",
+        "Well-posedness: ensuring unique solution"
       ]
     },
-    {
-      "title": "Neumann (Fixed Gradient) BCs",
-      "subsections": [
-        "Zero gradient BC: d(phi)/dn = 0 at boundary",
-        "Fixed gradient BC: d(phi)/dn = specified_gradient at boundary",
-        "zeroGradient vs fixedGradient: Both are Neumann conditions with zero or non-zero gradient",
-        "Symmetry applications: zeroGradient for velocity normal component and scalars at symmetry planes"
+    "part3": {
+      "title": "Architecture & Implementation - OpenFOAM fvPatchField Framework",
+      "topics": [
+        "fvPatchField<Type> base class hierarchy",
+        "Basic BC implementations: fixedValue, fixedGradient, zeroGradient",
+        "Mixed (Robin) BC: valueFraction weighting",
+        "Derived BC: inletOutlet for flux-based switching",
+        "Matrix coefficients: InternalCoeffs vs BoundaryCoeffs"
       ]
     },
-    {
-      "title": "Robin (Mixed) BCs",
-      "subsections": [
-        "Mixed condition formulation: a*phi_b + b*d(phi)/dn = c",
-        "valueFraction parameter: Weighting between fixedValue and fixedGradient contributions",
-        "Robin in heat transfer: Convective heat transfer boundary condition",
-        "inletOutlet BC example: Switches between fixedValue (inflow) and zeroGradient (outflow)"
-      ]
-    },
-    {
-      "title": "BCs for Evaporator Tube",
-      "subsections": [
-        "Inlet: Fixed velocity (fixedValue), Fixed volume fraction alpha (fixedValue for liquid phase)",
-        "Outlet: Zero gradient for velocity (zeroGradient) / Fixed pressure (fixedValue or pressureInletOutletVelocity)",
-        "Wall: No-slip velocity (fixedValue vector(0 0 0)), Fixed T (fixedValue) or Fixed heat flux (fixedGradient)",
-        "Axis: Symmetry (wedge or empty patch for 2D axisymmetric simulations)"
+    "part4": {
+      "title": "Quality Assurance - BC Verification and Debugging",
+      "topics": [
+        "Verifying BC implementation in source code",
+        "Common BC mistakes and how to debug",
+        "BC specification in 0/ directory files",
+        "Testing BCs for R410A evaporator case"
       ]
     }
-  ],
-  "verified_facts": [
-    "⭐ fvPatchField<Type> is the abstract base class for all patch field types in OpenFOAM.",
-    "⭐ fixedValue implements a Dirichlet boundary condition (fixed specified value).",
-    "⭐ zeroGradient implements a Neumann boundary condition with zero normal gradient.",
-    "⭐ fixedGradient implements a Neumann boundary condition with a user-specified gradient.",
-    "⭐ mixed implements a Robin boundary condition, combining value and gradient via valueFraction.",
-    "⭐ For fixedValue, valueInternalCoeffs() returns a field of ones.",
-    "⭐ For fixedValue, valueBoundaryCoeffs() returns the reference value from refValue().",
-    "⭐ The snGrad() method returns the gradient at the boundary face."
-  ],
-  "code_snippets": [
+  },
+  "ground_truth_summary": {
+    "class_hierarchy_verified": true,
+    "formulas_verified": true,
+    "implementation_verified": true,
+    "critical_notes": [
+      "fvPatchField inherits from Field<Type>, not a separate hierarchy",
+      "Mixed BC formula uses valueFraction for weighting (0=gradient, 1=value)",
+      "inletOutlet switches based on flux sign (positive=outflow/zeroGrad, negative=inflow/fixedValue)"
+    ]
+  },
+  "key_formulas": [
     {
-      "title": "fixedValue Boundary Definition",
-      "language": "OpenFOAM",
-      "content": "/*--------------------------------*- C++ -*----------------------------------*\\\n  =========                 |\n  \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox\n   \\\\    /   O peration     | Website:  https://openfoam.org\n    \\\\  /    A nd           | Version:  11\n     \\\\/     M anipulation  |\n\\*---------------------------------------------------------------------------*/\ninlet\n{\n    type            fixedValue;\n    value           uniform (1 0 0); // Fixed velocity vector\n}"
+      "name": "Fixed Gradient Boundary Condition",
+      "formula": "x_p = x_c + \\frac{\\nabla(x)}{\\Delta}",
+      "verified": true,
+      "source": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/basic/fixedGradient/fixedGradientFvPatchField.H:31-33"
     },
     {
-      "title": "zeroGradient Boundary Definition",
-      "language": "OpenFOAM",
-      "content": "outlet\n{\n    type            zeroGradient; // d(phi)/dn = 0\n}"
+      "name": "Mixed (Robin) Boundary Condition",
+      "formula": "x_p = w x_p + (1-w) \\left(x_c + \\frac{\\nabla_\\perp x}{\\Delta}\\right)",
+      "verified": true,
+      "source": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/basic/mixed/mixedFvPatchField.H:34-36"
     },
     {
-      "title": "mixed Boundary Definition",
-      "language": "OpenFOAM",
-      "content": "convectiveWall\n{\n    type            mixed;\n    refValue        uniform 300;        // T_infinity\n    refGradient     uniform 1000;       // Heat flux component\n    valueFraction   uniform 0.5;        // Blending factor\n    value           uniform 320;        // Initial/current value\n}"
+      "name": "Mixed BC snGrad Implementation",
+      "formula": "\\nabla_\\perp x = w \\cdot (x_p - x_c) \\cdot \\Delta + (1-w) \\cdot \\nabla_{ref}",
+      "verified": true,
+      "source": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/basic/mixed/mixedFvPatchField.C:208-217"
+    },
+    {
+      "name": "Mixed BC Evaluate Implementation",
+      "formula": "x_p = w \\cdot x_{ref} + (1-w) \\cdot (x_c + \\frac{\\nabla_{ref}}{\\Delta})",
+      "verified": true,
+      "source": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/basic/mixed/mixedFvPatchField.C:193-201"
     }
   ],
-  "exercises": [
-    {
-      "title": "Identify BC Types",
-      "task": "For a 2D axisymmetric evaporator tube simulation, classify each boundary condition type (Dirichlet, Neumann, Robin) for velocity (U), pressure (p), temperature (T), and volume fraction (alpha)."
+  "class_hierarchy": {
+    "base_class": {
+      "name": "fvPatchField<Type>",
+      "file": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/fvPatchField/fvPatchField.H",
+      "lines": "88-92",
+      "inherits_from": "Field<Type>"
     },
-    {
-      "title": "Write Boundary Dictionary",
-      "task": "Write the full boundaryField dictionary for a tube with: 1) Inlet: velocity = (0.5 0 0) m/s, alpha = 1. 2) Outlet: zero gradient for U and alpha, fixed pressure = 0. 3) Wall: no-slip, fixed T = 400K. 4) Axis: symmetry."
+    "level_1_basic": [
+      {
+        "name": "fixedValueFvPatchField<Type>",
+        "file": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/basic/fixedValue/fixedValueFvPatchField.H",
+        "lines": "65-68"
+      },
+      {
+        "name": "fixedGradientFvPatchField<Type>",
+        "file": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/basic/fixedGradient/fixedGradientFvPatchField.H",
+        "lines": "77-80"
+      },
+      {
+        "name": "zeroGradientFvPatchField<Type>",
+        "file": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/basic/zeroGradient/zeroGradientFvPatchField.H",
+        "lines": "59-62"
+      },
+      {
+        "name": "mixedFvPatchField<Type>",
+        "file": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/basic/mixed/mixedFvPatchField.H",
+        "lines": "80-83"
+      }
+    ],
+    "level_2_derived": [
+      {
+        "name": "inletOutletFvPatchField<Type>",
+        "file": "openfoam_temp/src/finiteVolume/fields/fvPatchFields/derived/inletOutlet/inletOutletFvPatchField.H",
+        "lines": "81-84",
+        "inherits_from": "mixedFvPatchField<Type>"
+      }
+    ]
+  },
+  "learning_objectives": [
+    "Understand the mathematical classification of boundary conditions (Dirichlet, Neumann, Robin)",
+    "Explain the physical meaning of fixed value, fixed gradient, and mixed BCs",
+    "Navigate OpenFOAM's fvPatchField class hierarchy",
+    "Select appropriate BCs for R410A evaporator tube simulation",
+    "Implement and verify boundary conditions in OpenFOAM case files"
+  ],
+  "connections_to_other_days": {
+    "from_day_02": "Builds on Gauss divergence theorem and face integrals",
+    "from_day_05": "Requires understanding of mesh topology (points, faces, cells, patches)",
+    "to_day_13": "BC specification affects geometry and mesh generation decisions",
+    "to_day_21": "BCs are critical for pressure-velocity coupling implementation",
+    "to_day_50": "VOF interface requires careful BC specification at walls"
+  },
+  "r410a_application": {
+    "inlet": {
+      "field": "U (velocity)",
+      "bc_type": "fixedValueFvPatchField<vector>",
+      "value": "uniform (U_inlet 0 0)",
+      "reason": "Known inlet velocity for liquid R410A"
     },
-    {
-      "title": "Analyze Matrix Coefficients",
-      "task": "For a fixedValue BC of T = 350K at a wall, state what valueInternalCoeffs() and valueBoundaryCoeffs() would return for the adjacent cell and explain how this enforces the condition in the discretized matrix."
+    "inlet_alpha": {
+      "field": "alpha.liquid",
+      "bc_type": "fixedValueFvPatchField<scalar>",
+      "value": "uniform 1",
+      "reason": "Subcooled liquid enters (100% liquid)"
     },
-    {
-      "title": "Convert Physical Condition to BC",
-      "task": "A tube wall has a convective heat transfer condition: h*(T_w - T_inf) = -k*dT/dn. Map the parameters h, T_inf, k to the refValue, refGradient, and valueFraction fields of a mixed BC."
+    "outlet": {
+      "field": "U (velocity)",
+      "bc_type": "inletOutletFvPatchField<vector>",
+      "inletValue": "uniform (0 0 0)",
+      "reason": "Zero gradient for outflow, fixed zero for reverse flow"
+    },
+    "outlet_p": {
+      "field": "p (pressure)",
+      "bc_type": "fixedValueFvPatchField<scalar>",
+      "value": "uniform 0",
+      "reason": "Fixed outlet pressure (gauge pressure)"
+    },
+    "wall_U": {
+      "field": "U (velocity)",
+      "bc_type": "fixedValueFvPatchField<vector>",
+      "value": "uniform (0 0 0)",
+      "reason": "No-slip condition at wall"
+    },
+    "wall_T": {
+      "field": "T (temperature)",
+      "bc_option_1": "fixedValueFvPatchField<scalar> for fixed temperature",
+      "bc_option_2": "fixedGradientFvPatchField<scalar> for fixed heat flux",
+      "reason": "Either fixed wall temperature or constant heat flux"
+    },
+    "axis": {
+      "field": "all fields",
+      "bc_type": "symmetryFvPatchField",
+      "reason": "2D axisymmetric formulation"
     }
-  ]
+  },
+  "exercises": {
+    "concept_check": [
+      "Explain why boundary conditions are necessary for well-posed PDE problems",
+      "Compare Dirichlet (fixed value) vs Neumann (fixed gradient) boundary conditions",
+      "Derive the mixed (Robin) BC formula from weighted combination",
+      "Explain how inletOutlet switches between BC modes based on flux"
+    ],
+    "code_verification": [
+      "Locate fvPatchField base class in source code",
+      "Verify mixed BC evaluate() formula matches mathematical derivation",
+      "Trace how inletOutlet determines flux direction",
+      "Find the deltaCoeffs() function and explain its purpose"
+    ],
+    "practical_application": [
+      "Specify complete BC set for R410A evaporator tube (U, p, T, alpha)",
+      "Convert between fixed temperature and fixed heat flux wall BCs",
+      "Debug common BC specification errors"
+    ]
+  }
 }

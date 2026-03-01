@@ -1,201 +1,236 @@
 {
-  "day": "04",
+  "day": 4,
+  "phase": "Phase_01_Foundation_Theory",
   "topic": "Temporal Discretization",
-  "title": "Time Integration Methods",
+  "title": "Time Integration Methods for CFD",
+  "learning_objectives": [
+    "Understand the mathematical derivation of temporal discretization schemes from Taylor series",
+    "Compare accuracy, stability, and boundedness of Euler, Backward, and Crank-Nicolson schemes",
+    "Apply CFL condition for time step selection in transient simulations",
+    "Select appropriate time schemes for VOF-based two-phase flow with R410A evaporation"
+  ],
   "sections": [
     {
-      "title": "Introduction to Time Discretization",
+      "title": "Part 1: Core Theory - From Taylor Series to Time Schemes",
+      "readability": "beginner",
+      "ratio": 0.30,
       "content": [
-        "Overview of temporal discretization in CFD",
-        "Explicit vs implicit methods",
-        "Stability and accuracy considerations"
+        {
+          "type": "theory",
+          "title": "Taylor Series Expansion for Time Derivatives",
+          "key_points": [
+            "Forward difference (explicit): truncate Taylor series backward",
+            "Backward difference (implicit): truncate Taylor series forward",
+            "Central difference: average of forward and backward",
+            "Truncation error determines order of accuracy"
+          ]
+        },
+        {
+          "type": "theory",
+          "title": "Euler Implicit Scheme",
+          "key_points": [
+            "First-order accurate: O(Δt)",
+            "Unconditionally stable",
+            "Bounded solution",
+            "Only needs current and previous time levels"
+          ]
+        },
+        {
+          "type": "theory",
+          "title": "Backward Differencing Scheme",
+          "key_points": [
+            "Second-order accurate: O(Δt²)",
+            "Uses three time levels: n+1, n, n-1",
+            "Unconditionally stable but not bounded",
+            "Startup requires Euler for first step"
+          ]
+        },
+        {
+          "type": "theory",
+          "title": "Crank-Nicolson Scheme",
+          "key_points": [
+            "Second-order accurate: O(Δt²)",
+            "Trapezoidal rule: average of explicit and implicit",
+            "Off-centering coefficient for stability",
+            "Can be bounded with flux limiting (MULES)"
+          ]
+        }
       ]
     },
     {
-      "title": "Euler Methods",
+      "title": "Part 2: Physical Challenge - Stability in Practice",
+      "readability": "intermediate",
+      "ratio": 0.20,
       "content": [
-        "Forward Euler (explicit)",
-        "Backward Euler (implicit)",
-        "First-order accuracy analysis",
-        "Stability characteristics"
+        {
+          "type": "analysis",
+          "title": "CFL Condition",
+          "key_points": [
+            "Derivation from convection equation",
+            "CFL ≤ 1 for explicit schemes",
+            "Implicit schemes allow larger CFL",
+            "Local vs global CFL"
+          ]
+        },
+        {
+          "type": "analysis",
+          "title": "Why Theory Fails in Practice",
+          "key_points": [
+            "Non-linear coupling between equations",
+            "Source terms from phase change",
+            "Large density ratio (liquid/vapor)",
+            "Interface tracking adds stiffness"
+          ]
+        },
+        {
+          "type": "example",
+          "title": "R410A Evaporation Time Step Constraints",
+          "key_points": [
+            "VOF interface advection: Co ≤ 0.3",
+            "Phase change source stability",
+            "Property table lookup resolution",
+            "Practical Δt range: 10⁻⁵ to 10⁻³ seconds"
+          ]
+        }
       ]
     },
     {
-      "title": "Higher-Order Methods",
+      "title": "Part 3: Architecture & Implementation - OpenFOAM ddtScheme Framework",
+      "readability": "advanced",
+      "ratio": 0.35,
       "content": [
-        "Backward differencing (second-order)",
-        "Crank-Nicolson scheme",
-        "Off-centering for stability",
-        "Accuracy vs stability trade-offs"
+        {
+          "type": "architecture",
+          "title": "ddtScheme Class Hierarchy",
+          "key_points": [
+            "Abstract base class ddtScheme<Type>",
+            "Virtual fvcDdt() for explicit calculation",
+            "Virtual fvmDdt() for implicit matrix assembly",
+            "Runtime selection via New() constructor"
+          ]
+        },
+        {
+          "type": "code",
+          "title": "Euler Implicit Implementation",
+          "key_points": [
+            "Matrix coefficient: V/Δt on diagonal",
+            "Source contribution: V·φⁿ/Δt",
+            "Handling of moving meshes",
+            "Old-time field storage"
+          ]
+        },
+        {
+          "type": "code",
+          "title": "Backward Scheme Implementation",
+          "key_points": [
+            "Three time level coefficients",
+            "Coefficients vary for non-uniform Δt",
+            "Fallback to Euler at startup",
+            "Storage of old-old-time fields"
+          ]
+        },
+        {
+          "type": "code",
+          "title": "Matrix Assembly for Time Derivative",
+          "key_points": [
+            "fvMatrix<Type> structure",
+            "Diagonal dominance from ddt",
+            "Boundary condition contributions",
+            "Coupling with spatial operators"
+          ]
+        }
       ]
     },
     {
-      "title": "CFL Number and Stability",
+      "title": "Part 4: Quality Assurance - Verification & Best Practices",
+      "readability": "professional",
+      "ratio": 0.15,
       "content": [
-        "Courant-Friedrichs-Lewy condition",
-        "CFL number calculation",
-        "Time step selection criteria",
-        "VOF-specific requirements"
-      ]
-    },
-    {
-      "title": "OpenFOAM ddtSchemes Class Hierarchy",
-      "content": [
-        "ddtScheme abstract base class",
-        "All 8 derived schemes (Euler, backward, CrankNicolson, steadyState, bounded, localEuler, CoEuler, SLTS)",
-        "Runtime type selection mechanism"
-      ]
-    },
-    {
-      "title": "Code Analysis - Euler Implicit",
-      "content": [
-        "fvcDdt explicit implementation",
-        "fvmDdt implicit implementation",
-        "Matrix coefficient assembly",
-        "Source term handling"
-      ]
-    },
-    {
-      "title": "Code Analysis - Backward Second Order",
-      "content": [
-        "Time step history requirement",
-        "Coefficient calculations",
-        "Three-time-level stencil",
-        "Moving mesh support"
-      ]
-    },
-    {
-      "title": "Time Step Selection for VOF",
-      "content": [
-        "Interface tracking requirements",
-        "Explicit vs implicit VOF",
-        "MULES sub-cycling",
-        "Adaptive time stepping strategies"
-      ]
-    },
-    {
-      "title": "Implementation Guide",
-      "content": [
-        "Choosing to right scheme",
-        "Setting up time control",
-        "Adjustable time steps",
-        "Best practices"
-      ]
-    },
-    {
-      "title": "Exercises",
-      "content": [
-        "Concept check questions",
-        "Implementation exercises",
-        "Stability analysis tasks"
+        {
+          "type": "verification",
+          "title": "Temporal Accuracy Verification",
+          "key_points": [
+            "Method of manufactured solutions",
+            "Grid convergence in time",
+            "Expected order reduction test",
+            "Comparison with analytical solutions"
+          ]
+        },
+        {
+          "type": "strategy",
+          "title": "Scheme Selection Strategy",
+          "key_points": [
+            "Euler: Initial development, steady-state",
+            "Backward: Production transient runs",
+            "Crank-Nicolson: VOF with boundedness",
+            "CoEuler: Local time-stepping for steady-state"
+          ]
+        },
+        {
+          "type": "troubleshooting",
+          "title": "Common Issues and Solutions",
+          "key_points": [
+            "Oscillations with Crank-Nicolson → use off-centering",
+            "Divergence with large Δt → reduce CFL or switch scheme",
+            "Mass conservation drift → check temporal accuracy",
+            "Startup instability → use Euler for first steps"
+          ]
+        }
       ]
     }
   ],
-  "class_hierarchy": {
-    "base_class": "ddtScheme<Type>",
-    "base_class_location": "openfoam_temp/src/finiteVolume/finiteVolume/ddtSchemes/ddtScheme/ddtScheme.H:65-68",
-    "derived_classes": [
-      "EulerDdtScheme<Type>",
-      "backwardDdtScheme<Type>",
-      "CrankNicolsonDdtScheme<Type>",
-      "steadyStateDdtScheme<Type>",
-      "boundedDdtScheme<Type>",
-      "localEulerDdtScheme<Type>",
-      "CoEulerDdtScheme<Type>",
-      "SLTSDdtScheme<Type>"
-    ],
-    "note": "Detailed implementation analysis focuses on Euler, backward, and CrankNicolson as they are most commonly used for transient CFD simulations. Other schemes serve specialized purposes."
-  },
-  "formulas": {
-    "euler_explicit": {
-      "formula": "\\frac{\\partial \\phi}{\\partial t} = \\frac{\\phi^{n+1} - \\phi^n}{\\Delta t}",
-      "order": "First-order (O(\\Delta t))",
-      "verified": true,
-      "source": "EulerDdtScheme.C:126"
-    },
-    "euler_implicit_diagonal": {
-      "formula": "a_P = \\frac{1}{\\Delta t} \\cdot V_P",
-      "verified": true,
-      "source": "EulerDdtScheme.C:307"
-    },
-    "euler_implicit_source": {
-      "formula": "b_P = \\frac{1}{\\Delta t} \\cdot \\phi_P^n \\cdot V_P",
-      "verified": true,
-      "source": "EulerDdtScheme.C:315"
-    },
-    "backward_coefficients": {
-      "coefft": "coeff_t = 1 + \\frac{\\Delta t}{\\Delta t + \\Delta t_0}",
-      "coefft0": "coeff_{t0} = coeff_t + coeff_{t00}",
-      "coefft00": "coeff_{t00} = \\frac{\\Delta t \\cdot \\Delta t}{\\Delta t_0 \\cdot (\\Delta t + \\Delta t_0)}",
-      "verified": true,
-      "source": "backwardDdtScheme.C:151-153"
-    },
-    "backward_explicit": {
-      "formula": "\\frac{\\partial \\phi}{\\partial t} = \\frac{1}{\\Delta t} \\left(coeff_t \\phi - coeff_{t0} \\phi_{old} + coeff_{t00} \\phi_{oldold}\\right)",
-      "order": "Second-order (O(\\Delta t^2))",
-      "verified": true,
-      "source": "backwardDdtScheme.C:190-194"
-    },
-    "cfl_number": {
-      "formula": "C = \\frac{|\\mathbf{U}| \\Delta t}{\\Delta x} \\leq 1",
-      "description": "Courant-Friedrichs-Lewy condition for stability",
-      "vof_requirement": "VOF typically requires C \\leq 0.3 for accurate interface tracking",
-      "verified": true
-    },
-    "crank_nicolson_coeff": {
-      "formula": "cnCoeff = \\frac{1}{1 + ocCoeff}",
-      "description": "Crank-Nicolson coefficient for implicit part, ocCoeff in range [0, 1]",
-      "verified": true,
-      "source": "CrankNicolsonDdtScheme.H:78"
-    }
-  },
-  "code_snippets": [
+  "exercises": [
     {
-      "file": "EulerDdtScheme.C",
-      "lines": "94-128",
-      "description": "Euler fvcDdt explicit implementation",
-      "verified": true
+      "id": 1,
+      "type": "derivation",
+      "question": "Derive the backward differencing formula from Taylor series expansion around tⁿ⁺¹",
+      "solution_points": ["Write Taylor series for φⁿ and φⁿ⁻¹", "Solve the system of two equations", "Show the coefficients match OpenFOAM implementation"]
     },
     {
-      "file": "EulerDdtScheme.C",
-      "lines": "287-319",
-      "description": "Euler fvmDdt implicit implementation",
-      "verified": true
+      "id": 2,
+      "type": "analysis",
+      "question": "Given a velocity of 5 m/s and mesh size 1 mm, calculate the maximum stable Δt for explicit Euler",
+      "solution_points": ["Apply CFL condition", "CFL ≤ 1 for explicit", "Calculate Δt_max = Δx/U"]
     },
     {
-      "file": "backwardDdtScheme.C",
-      "lines": "74-198",
-      "description": "Backward fvcDdt with three time levels",
-      "verified": true
+      "id": 3,
+      "type": "comparison",
+      "question": "Compare Euler implicit and Backward schemes for R410A evaporation. Which is preferred and why?",
+      "solution_points": ["Euler: stable, bounded, but first-order", "Backward: second-order, but not bounded", "Recommendation depends on VOF boundedness requirements"]
     },
     {
-      "file": "backwardDdtScheme.C",
-      "lines": "414-462",
-      "description": "Backward fvmDdt matrix assembly",
-      "verified": true
+      "id": 4,
+      "type": "code_analysis",
+      "question": "Explain the role of old-old-time fields (V00, phi00) in the backward scheme",
+      "solution_points": ["Storage of second previous time level", "Required for second-order accuracy", "Fallback mechanism when unavailable"]
     },
     {
-      "file": "ddtScheme.H",
-      "lines": "65-68",
-      "description": "Abstract ddtScheme base class",
-      "verified": true
+      "id": 5,
+      "type": "application",
+      "question": "A VOF simulation shows interface smearing. Current settings: Euler, Co=0.5. What changes?",
+      "solution_points": ["Reduce Co to ≤0.3", "Consider Crank-Nicolson with flux limiting", "Check interface compression"]
+    },
+    {
+      "id": 6,
+      "type": "verification",
+      "question": "Design a verification test for temporal accuracy of the backward scheme",
+      "solution_points": ["Use 1D convection with analytical solution", "Run with successive Δt refinement", "Calculate order of accuracy from error reduction"]
     }
   ],
-  "mermaid_diagrams": [
-    {
-      "type": "classDiagram",
-      "title": "ddtScheme Class Hierarchy",
-      "content": "Shows ddtScheme base class and all 8 derived schemes"
-    },
-    {
-      "type": "flowchart",
-      "title": "Time Step Selection",
-      "content": "CFL calculation and adaptive time stepping"
-    },
-    {
-      "type": "flowchart",
-      "title": "Implicit vs Explicit",
-      "content": "Decision flow for choosing temporal scheme"
-    }
+  "code_snippets_required": 5,
+  "theory_lines_target": 500,
+  "implementation_lines_target": 300,
+  "verified_facts_reference": "/tmp/verified_facts_day04.json",
+  "roadmap_alignment": {
+    "day": 4,
+    "phase": "Foundation Theory",
+    "prerequisites": ["Day 1: Governing Equations", "Day 2: FVM Basics", "Day 3: Spatial Discretization"],
+    "builds_for": ["Day 9: PISO Algorithm", "Day 36: PISO Transient Solver", "Day 51: VOF Alpha Transport"]
+  },
+  "r410a_connections": [
+    "Time step selection affects VOF interface sharpness",
+    "Phase change source terms require stable time integration",
+    "Large density ratio (ρ_l/ρ_v ≈ 100 for R410A) affects stability",
+    "CFL constraint based on liquid velocity (higher than vapor)"
   ]
 }

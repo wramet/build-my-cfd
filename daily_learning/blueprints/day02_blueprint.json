@@ -1,185 +1,144 @@
 {
-  "metadata": {
-    "version": "1.0",
-    "day": "02",
-    "topic": "FVM Basics",
-    "phase": "Foundation Theory",
-    "r410a_integration": "15%",
-    "template": "mathematician",
-    "template_type": "theory_heavy",
-    "purpose": "Derive and explain mathematical concepts with rigorous proofs",
-    "generated_at": "2026-01-31T12:01:39.952332"
-  },
-  "r410a_context": {
-    "application": "Evaporator two-phase flow",
-    "refrigerant": "R410A",
-    "conditions": "P = 1.0-1.2 MPa, T = 280-285 K"
-  },
-  "template": {
-    "name": "Mathematician",
-    "type": "theory_heavy",
-    "progressive_overload": "core theory, physical challenge, architecture, QA",
-    "boilerplate_policy": "quarantine_to_appendix",
-    "code_ratio": 0.25
-  },
+  "day": "02",
+  "topic": "Finite Volume Method Basics - From PDE to Algebraic Equations",
+  "template": "mathematician",
+  "template_rationale": "Theory-heavy topic requiring mathematical derivation of Gauss divergence theorem and its discretization",
+  "generation_date": "2026-02-01",
+  "skeleton_file": "daily_learning/skeletons/day02_skeleton.json",
+  "verified_facts_file": "/tmp/verified_facts_day02.json",
   "structure": {
+    "template": "mathematician",
     "parts": [
       {
         "id": "p1",
-        "title": "Core Theory",
-        "ratio": 0.3,
+        "title": "Core Theory - Gauss Divergence Theorem",
+        "ratio": 0.30,
         "readability": "beginner",
         "approach": "derivations",
         "content_type": "theory",
-        "guideline": "Start with basic concepts, build to full derivations",
-        "estimated_lines": 240
+        "guideline": "Start with control volume concept, derive Gauss theorem from first principles. Show 1D case for intuition, extend to 3D. Include physical interpretation of each term.",
+        "key_equations": [
+          "∫_V ∇·U dV = ∮_S U·dS (Gauss divergence theorem) ⭐",
+          "S_f = n_f A_f (Face area vector) ⭐",
+          "∇φ ≈ (1/V_P) Σ_f φ_f S_f (Discrete gradient) ⭐",
+          "(∇·U)_P ≈ (1/V_P) Σ_f U_f·S_f (Discrete divergence) ⭐"
+        ]
       },
       {
         "id": "p2",
-        "title": "Physical Challenge",
-        "ratio": 0.2,
+        "title": "Physical Challenge - Why FVM Works for CFD",
+        "ratio": 0.20,
         "readability": "intermediate",
-        "approach": "problem solving",
+        "approach": "problem_solving",
         "content_type": "analysis",
-        "guideline": "Show practical problems and solutions",
-        "estimated_lines": 160
+        "guideline": "Explain conservation laws in FVM context. Show owner-neighbor convention with flux signs. Connect to R410A two-phase flow requirements.",
+        "key_challenges": [
+          "Flux conservation between cells ⭐",
+          "Owner-neighbor convention in OpenFOAM",
+          "Why interpolation is needed (preview of Day 03)",
+          "Conservation critical for two-phase evaporation"
+        ]
       },
       {
         "id": "p3",
-        "title": "Architecture & Implementation",
+        "title": "Architecture & Implementation in OpenFOAM",
         "ratio": 0.35,
         "readability": "advanced",
-        "approach": "code first",
+        "approach": "code_first",
         "content_type": "code",
-        "guideline": "Show class diagrams before implementation",
-        "estimated_lines": 280
+        "guideline": "Show Mermaid class diagrams BEFORE code. Explain fvc::surfaceIntegrate line-by-line. Include file paths and line numbers for all verified code.",
+        "key_classes": [
+          "divScheme<Type> (base)",
+          "gaussDivScheme<Type> (Gauss theorem)",
+          "gradScheme<Type> (base)",
+          "gaussGrad<Type> (Gauss theorem)"
+        ],
+        "key_functions": [
+          "fvc::surfaceIntegrate (fvcSurfaceIntegrate.C:42-76) ⭐",
+          "Owner-neighbor flux handling (lines 56-60)",
+          "Boundary face handling (lines 62-73)",
+          "Volume normalization (line 75)"
+        ]
       },
       {
         "id": "p4",
-        "title": "Quality Assurance",
+        "title": "Quality Assurance - Verification Exercises",
         "ratio": 0.15,
         "readability": "professional",
         "approach": "testing",
         "content_type": "validation",
-        "guideline": "Verify with unit tests and benchmarks",
-        "estimated_lines": 120
-      },
-      {
-        "id": "p5",
-        "title": "R410A Evaporator Application",
-        "ratio": 0.15,
-        "readability": "intermediate",
-        "approach": "application",
-        "content_type": "domain_specific",
-        "guideline": "Connect general theory to R410A evaporator simulation",
-        "sections": [
-          "5.1 Why it matters for R410A evaporator",
-          "5.2 R410A property data",
-          "5.3 Equation modifications for R410A",
-          "5.4 Implementation preview (OpenFOAM code)"
-        ],
-        "estimated_lines": 120
+        "guideline": "Provide 6+ concept check questions with detailed solutions. Include code verification exercises that reference actual source files.",
+        "exercise_types": [
+          "Derivation of Gauss theorem",
+          "Owner-neighbor flux convention",
+          "Surface area vector interpretation",
+          "Connection to Day 01 equations",
+          "Code trace through fvc::surfaceIntegrate",
+          "Discrete formula verification"
+        ]
       }
     ]
-  },
-  "content_requirements": {
-    "topics_to_cover": [],
-    "formulas_to_include": [
-      {
-        "name": "gauss_divergence_theorem",
-        "latex": "",
-        "source": ""
-      },
-      {
-        "name": "discrete_gradient",
-        "latex": "",
-        "source": ""
-      },
-      {
-        "name": "face_loop_accumulation",
-        "latex": "",
-        "source": ""
-      },
-      {
-        "name": "volume_normalization",
-        "latex": "",
-        "source": ""
-      },
-      {
-        "name": "fvm_namespace_description",
-        "latex": "",
-        "source": ""
-      }
-    ],
-    "class_hierarchy": {
-      "fvMesh": {
-        "bases": [
-          "polyMesh",
-          "lduMesh",
-          "surfaceInterpolation"
-        ],
-        "description": "Mesh data needed to do the Finite Volume discretisation",
-        "key_members": {
-          "V()": "Return cell volumes",
-          "Sf()": "Return cell face area vectors",
-          "magSf()": "Return cell face area magnitudes",
-          "C()": "Return cell centres",
-          "Cf()": "Return face centres",
-          "owner()": "Internal face owner",
-          "neighbour()": "Internal face neighbour"
-        },
-        "source_file": "openfoam_temp/src/finiteVolume/fvMesh/fvMesh.H"
-      },
-      "fvSchemes": {
-        "bases": [
-          "IOdictionary"
-        ],
-        "description": "Selector class for finite volume differencing schemes",
-        "key_schemes": {
-          "ddtSchemes_": "Temporal discretization schemes",
-          "divSchemes_": "Divergence schemes using Gauss theorem",
-          "gradSchemes_": "Gradient schemes using Gauss theorem",
-          "laplacianSchemes_": "Laplacian schemes",
-          "interpolationSchemes_": "Face interpolation schemes"
-        },
-        "source_file": "openfoam_temp/src/finiteVolume/finiteVolume/fvSchemes/fvSchemes.H"
-      },
-      "gaussGrad": {
-        "bases": [
-          "gradScheme<Type>"
-        ],
-        "description": "Basic second-order gradient scheme using face-interpolation and Gauss' theorem",
-        "key_methods": {
-          "gradf()": "Return gradient using Gauss' theorem on surface field (lines 36-96)",
-          "calcGrad()": "Calculate gradient of volField (lines 99-121)"
-        },
-        "source_file": "openfoam_temp/src/finiteVolume/finiteVolume/gradSchemes/gaussGrad/gaussGrad.H"
-      },
-      "gaussDivScheme": {
-        "bases": [
-          "divScheme<Type>"
-        ],
-        "description": "Basic second-order div using face interpolated values and Gauss' theorem",
-        "key_methods": {
-          "fvcDiv()": "Calculate explicit divergence"
-        },
-        "source_file": "openfoam_temp/src/finiteVolume/finiteVolume/divSchemes/gaussDivScheme/gaussDivScheme.H"
-      }
-    }
   },
   "rules": {
-    "ratio_tolerance": 0.05,
     "boilerplate_policy": "quarantine_to_appendix",
-    "concept_first": [
-      "diagrams",
-      "introduction",
-      "overview"
-    ],
-    "progressive_complexity": [
-      "beginner",
-      "intermediate",
-      "advanced",
-      "professional"
-    ]
+    "ratio_tolerance": 0.05,
+    "code_first": false,
+    "concept_first": true,
+    "diagrams_before_code": true,
+    "all_facts_marked": true,
+    "file_paths_required": true,
+    "line_numbers_required": true
+  },
+  "critical_for_phase_1": true,
+  "foundation_importance": "All FVM discretization in OpenFOAM relies on Gauss theorem",
+  "prerequisites": [
+    "Day 01: Governing Equations - need to know what equations we're discretizing"
+  ],
+  "learning_outcomes": [
+    "Derive Gauss divergence theorem from integral calculus",
+    "Understand control volume concept and mesh topology",
+    "Trace OpenFOAM's fvc::surfaceIntegrate implementation",
+    "Connect continuous PDEs to discrete algebraic equations"
+  ],
+  "connections_to_future_days": [
+    {
+      "day": "03",
+      "topic": "Spatial Discretization Schemes",
+      "connection": "Face interpolation - how to get φ_f from φ_P for Gauss theorem"
+    },
+    {
+      "day": "04",
+      "topic": "Temporal Discretization",
+      "connection": "Time derivative combined with spatial divergence"
+    },
+    {
+      "day": "05",
+      "topic": "Mesh Topology Concepts",
+      "connection": "Detailed structure of cells, faces, points"
+    },
+    {
+      "day": "27-29",
+      "topic": "FVM Operators (fvm::ddt, fvm::div, fvm::laplacian)",
+      "connection": "All use Gauss theorem via fvc::surfaceIntegrate"
+    }
+  ],
+  "r410a_relevance": {
+    "conservation_critical": true,
+    "fvm_importance": "Strict mass and energy conservation required for phase change",
+    "expansion_term": "∇·U = ṁ(1/ρᵥ - 1/ρₗ) requires accurate divergence calculation",
+    "energy_conservation": "Latent heat absorption requires accurate energy flux calculation"
+  },
+  "progressive_overload_notes": {
+    "part_1_start": "Begin with 1D control volume, add dimensions, derive Gauss theorem",
+    "part_1_progression": "Build from integral form to discrete algebraic form",
+    "part_2_shift": "Now consider practical CFD challenges - conservation, flux handling",
+    "part_3_shift": "Examine how OpenFOAM implements these mathematical concepts",
+    "part_4_shift": "Verify understanding through derivations and code tracing"
+  },
+  "hero_concept": {
+    "name": "Gauss Divergence Theorem",
+    "derivation_required": true,
+    "r410a_application": "Mass conservation during evaporation requires ∫∇·U dV = ∮U·dS to hold exactly",
+    "roadmap_days": ["02 (theory)", "27 (fvm::div)", "61 (expansion term)"]
   }
 }

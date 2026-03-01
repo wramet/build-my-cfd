@@ -1,94 +1,271 @@
 {
-  "day": 2,
-  "topic": "Finite Volume Method Basics",
-  "title": "Day 02: From PDE to Algebraic Equations",
+  "day": "02",
+  "title": "Finite Volume Method Basics",
+  "subtitle": "From PDE to Algebraic Equations",
+  "phase": "Phase 01: Foundation Theory",
+  "date": "2026-02-01",
+  "template": "mathematician",
+  "roadmap_reference": "Day 02: Finite Volume Method Basics",
+  "content_language": "english_only",
+  "verified_facts": "/tmp/verified_facts_day02.json",
   "structure": {
     "introduction": {
       "title": "Introduction to Finite Volume Method",
-      "sections": [
-        "What is FVM and why it's fundamental to OpenFOAM",
-        "Connection to Day 01 (Governing Equations)",
-        "Roadmap context: Foundation for spatial discretization"
+      "purpose": "Understand how FVM converts continuous PDEs into discrete algebraic equations",
+      "learning_objectives": [
+        "Derive Gauss divergence theorem and its application to CFD",
+        "Understand control volume concept and mesh structure",
+        "Trace OpenFOAM's fvc::surfaceIntegrate implementation",
+        "Connect Day 01 equations to Day 02 discretization"
       ]
     },
-    "part_1_control_volumes": {
-      "title": "Part 1: Control Volume Concept",
+    "part_1": {
+      "title": "Core Theory - Gauss Divergence Theorem",
+      "ratio": 0.30,
+      "readability": "beginner",
       "sections": [
-        "Definition of control volume in FVM",
-        "OpenFOAM's fvMesh class and geometric data",
-        "Cell volumes (V), face areas (Sf), centers (C, Cf)",
-        "Owner-neighbour topology"
+        {
+          "title": "Control Volume Concept",
+          "topics": [
+            "Domain discretization into non-overlapping cells",
+            "Cell-centered storage - values at cell centers",
+            "Faces as boundaries between cells",
+            "Mesh topology: points, faces, cells"
+          ]
+        },
+        {
+          "title": "Gauss Divergence Theorem - Derivation",
+          "topics": [
+            "Integral form: ∫_V ∇·U dV = ∮_S U·dS",
+            "Physical interpretation - net flux through surface",
+            "1D derivation for intuition",
+            "3D extension to general volumes",
+            "Proof sketch using divergence theorem"
+          ]
+        },
+        {
+          "title": "From Volume Integral to Surface Integral",
+          "topics": [
+            "Why surface integrals are easier to compute",
+            "Face area vectors: S_f = n_f A_f",
+            "Outward normal convention",
+            "Flux calculation: φ = U·S"
+          ]
+        }
       ]
     },
-    "part_2_gauss_theorem": {
-      "title": "Part 2: Gauss Divergence Theorem",
+    "part_2": {
+      "title": "Physical Challenge - Why FVM Works for CFD",
+      "ratio": 0.20,
+      "readability": "intermediate",
       "sections": [
-        "Mathematical formulation",
-        "Converting volume integrals to surface integrals",
-        "Why this is useful for conservation laws",
-        "Visual representation"
+        {
+          "title": "Conservation Laws in FVM",
+          "topics": [
+            "Integral form naturally enforces conservation",
+            "Flux continuity between cells",
+            "Why conservation matters for two-phase flow",
+            "R410A evaporator - mass conservation critical"
+          ]
+        },
+        {
+          "title": "Owner-Neighbor Convention",
+          "topics": [
+            "Each internal face has two adjacent cells",
+            "Face normal direction: owner → neighbour",
+            "Flux sign convention: owner gets +, neighbour gets -",
+            "Boundary face handling"
+          ]
+        },
+        {
+          "title": "Discretization Challenge",
+          "topics": [
+            "Cell values are known, but we need face values",
+            "Interpolation requirement - preview of Day 03",
+            "Non-orthogonal mesh complications",
+            "Accuracy vs stability trade-offs"
+          ]
+        }
       ]
     },
-    "part_3_discretization_overview": {
-      "title": "Part 3: Discretization in OpenFOAM",
+    "part_3": {
+      "title": "Architecture & Implementation in OpenFOAM",
+      "ratio": 0.35,
+      "readability": "advanced",
       "sections": [
-        "Overview of discretization process",
-        "fvSchemes class and scheme selection",
-        "Gauss theorem in OpenFOAM (gaussGrad, gaussDivScheme)",
-        "From continuous PDE to discrete algebraic equations"
+        {
+          "title": "OpenFOAM Class Hierarchy - FVM Schemes",
+          "topics": [
+            "divScheme<Type> base class ⭐",
+            "gaussDivScheme<Type> - Gauss theorem implementation",
+            "gradScheme<Type> base class ⭐",
+            "gaussGrad<Type> - gradient using Gauss theorem",
+            "Mermaid class diagram ⭐"
+          ]
+        },
+        {
+          "title": "Core Function: fvc::surfaceIntegrate",
+          "topics": [
+            "Function signature: void surfaceIntegrate(Field<Type>& ivf, const SurfaceField<Type>& ssf) ⭐",
+            "File: openfoam_temp/src/finiteVolume/finiteVolume/fvc/fvcSurfaceIntegrate.C ⭐",
+            "Algorithm walkthrough (lines 42-76) ⭐",
+            "Internal faces: owner/neighbor handling (lines 56-60)",
+            "Boundary faces: direct addition (lines 62-73)",
+            "Volume normalization (line 75): ivf /= mesh.Vsc()",
+            "Code snippet with line-by-line explanation ⭐"
+          ]
+        },
+        {
+          "title": "Discrete Formulas - Ground Truth Verified",
+          "topics": [
+            "Gauss Divergence: ∫_V ∇·U dV = ∮_S U·dS ⭐",
+            "Gauss Gradient: ∫_V ∇φ dV = ∮_S φ dS ⭐",
+            "Discrete Divergence: (∇·U)_P ≈ (1/V_P) Σ_f U_f·S_f ⭐",
+            "Discrete Gradient: ∇φ ≈ (1/V_P) Σ_f φ_f S_f ⭐",
+            "Connection to Day 01 equations",
+            "Mermaid flowchart for FVM operator selection ⭐"
+          ]
+        },
+        {
+          "title": "Code Analysis - gaussDivScheme",
+          "topics": [
+            "File: openfoam_temp/src/finiteVolume/finiteVolume/divSchemes/gaussDivScheme/gaussDivScheme.H ⭐",
+            "Base class: divScheme<Type> (lines 64-148) ⭐",
+            "TypeName('Gauss') registration (line 63)",
+            "fvcDiv virtual function (lines 87-90)",
+            "How it calls fvc::surfaceIntegrate"
+          ]
+        },
+        {
+          "title": "Code Analysis - gaussGrad",
+          "topics": [
+            "File: openfoam_temp/src/finiteVolume/finiteVolume/gradSchemes/gaussGrad/gaussGrad.H ⭐",
+            "Base class: gradScheme<Type> (lines 60-164) ⭐",
+            "TypeName('Gauss') registration (line 73)",
+            "Protected member: tinterpScheme_ (line 67)",
+            "calcGrad virtual function (lines 125-131)",
+            "Uses linear interpolation by default (line 82)"
+          ]
+        }
       ]
     },
-    "part_4_implementation": {
-      "title": "Part 4: OpenFOAM Implementation",
+    "part_4": {
+      "title": "Quality Assurance - Verification Exercises",
+      "ratio": 0.15,
+      "readability": "professional",
       "sections": [
-        "gaussGrad implementation walkthrough",
-        "Face loop accumulation algorithm",
-        "Volume normalization",
-        "Code analysis with line numbers"
-      ]
-    },
-    "exercises": {
-      "title": "Exercises",
-      "sections": [
-        "Exercise 1: Calculate gradient manually for simple 2D mesh",
-        "Exercise 2: Verify Gauss theorem on simple geometry",
-        "Exercise 3: Understanding owner-neighbour convention",
-        "Exercise 4: Implement discrete gradient calculation",
-        "Exercise 5: Analyze fvMesh structure in OpenFOAM",
-        "Exercise 6: Connect FVM to conservation laws"
+        {
+          "title": "Concept Check Questions",
+          "exercises": [
+            "Derive ∫_V ∇·U dV = ∮_S U·dS from first principles",
+            "Why does owner get +flux and neighbour get -flux?",
+            "What is the physical meaning of S_f = n_f A_f?",
+            "Explain why FVM ensures conservation at cell level",
+            "Connect (∇·U)_P ≈ (1/V_P) Σ_f U_f·S_f to Day 01 continuity",
+            "Why do we divide by mesh.Vsc() in surfaceIntegrate?"
+          ]
+        },
+        {
+          "title": "Code Verification",
+          "exercises": [
+            "Trace fvc::surfaceIntegrate algorithm line-by-line",
+            "Verify flux sign convention in fvcSurfaceIntegrate.C:58-59",
+            "Find where gaussDivScheme inherits from divScheme",
+            "Explain the role of surfaceInterpolationScheme in gaussGrad",
+            "Compare surfaceIntegrate vs surfaceSum - what's the difference?"
+          ]
+        }
       ]
     }
   },
-  "verified_facts": {
-    "class_hierarchy": {
-      "fvMesh": "⭐ Verified: openfoam_temp/src/finiteVolume/fvMesh/fvMesh.H",
-      "fvSchemes": "⭐ Verified: openfoam_temp/src/finiteVolume/finiteVolume/fvSchemes/fvSchemes.H",
-      "gaussGrad": "⭐ Verified: openfoam_temp/src/finiteVolume/finiteVolume/gradSchemes/gaussGrad/gaussGrad.H",
-      "gaussDivScheme": "⭐ Verified: openfoam_temp/src/finiteVolume/finiteVolume/divSchemes/gaussDivScheme/gaussDivScheme.H"
+  "key_concepts": [
+    {
+      "name": "Gauss Divergence Theorem",
+      "formula": "∫_V ∇·U dV = ∮_S U·dS",
+      "importance": "CRITICAL - Foundation of all FVM discretization"
     },
-    "formulas": {
-      "gauss_divergence_theorem": "⭐ Verified from mathematical documentation",
-      "discrete_gradient": "⭐ Verified: gaussGrad.C:70-76",
-      "face_loop_accumulation": "⭐ Verified: gaussGrad.C:74-75",
-      "volume_normalization": "⭐ Verified: gaussGrad.C:91"
+    {
+      "name": "Surface Integrate",
+      "formula": "(∇·U)_P ≈ (1/V_P) Σ_f U_f·S_f",
+      "importance": "Core OpenFOAM operation - fvc::surfaceIntegrate"
+    },
+    {
+      "name": "Owner-Neighbor Convention",
+      "importance": "OpenFOAM mesh topology - determines flux sign"
+    },
+    {
+      "name": "Face Area Vector",
+      "formula": "S_f = n_f A_f",
+      "importance": "Stores both magnitude (area) and direction (normal)"
     }
+  ],
+  "verified_facts_markers": {
+    "star": "Content verified from OpenFOAM source code",
+    "warning": "Content from documentation, needs source verification"
   },
-  "learning_objectives": [
-    "Understand the control volume concept in FVM",
-    "Explain Gauss divergence theorem and its application",
-    "Describe how OpenFOAM uses Gauss theorem for discretization",
-    "Analyze the fvMesh class structure",
-    "Trace the code path from mathematical formula to implementation",
-    "Calculate discrete gradients using the finite volume approach"
+  "appendix_required": true,
+  "appendix_title": "Appendix: Complete File Listings",
+  "mermaid_diagrams_required": [
+    {
+      "type": "classDiagram",
+      "title": "OpenFOAM FVM Scheme Hierarchy",
+      "classes": ["divScheme", "gaussDivScheme", "gradScheme", "gaussGrad"]
+    },
+    {
+      "type": "flowchart",
+      "title": "FVM Discretization Workflow",
+      "nodes": ["PDE", "Gauss Theorem", "Surface Integral", "Discrete Form"]
+    }
   ],
-  "prerequisites": [
-    "Day 01: Governing Equations (continuity, momentum, energy)",
-    "Basic calculus (integrals, divergence)",
-    "Vector calculus (gradient, divergence operators)"
+  "code_snippets_required": [
+    {
+      "file": "openfoam_temp/src/finiteVolume/finiteVolume/fvc/fvcSurfaceIntegrate.C",
+      "lines": "42-76",
+      "description": "Core FVM surfaceIntegrate implementation ⭐"
+    },
+    {
+      "file": "openfoam_temp/src/finiteVolume/finiteVolume/divSchemes/gaussDivScheme/gaussDivScheme.H",
+      "lines": "54-97",
+      "description": "Gauss divergence scheme declaration ⭐"
+    },
+    {
+      "file": "openfoam_temp/src/finiteVolume/finiteVolume/gradSchemes/gaussGrad/gaussGrad.H",
+      "lines": "57-146",
+      "description": "Gauss gradient scheme declaration ⭐"
+    },
+    {
+      "file": "openfoam_temp/src/finiteVolume/finiteVolume/divSchemes/divScheme/divScheme.H",
+      "lines": "64-148",
+      "description": "divScheme base class ⭐"
+    },
+    {
+      "file": "openfoam_temp/src/finiteVolume/finiteVolume/gradSchemes/gradScheme/gradScheme.H",
+      "lines": "60-164",
+      "description": "gradScheme base class ⭐"
+    }
   ],
-  "next_steps": [
-    "Day 03: Spatial Discretization Schemes (interpolation)",
-    "Day 04: Temporal Discretization",
-    "Understanding specific schemes (upwind, central differencing, TVD)"
-  ]
+  "minimum_requirements": {
+    "theory_lines": 500,
+    "code_snippets": 3,
+    "implementation_lines": 300,
+    "exercises": 6,
+    "mermaid_diagrams": 2
+  },
+  "connections": {
+    "from_day01": [
+      "Continuity: ∇·U = 0 → Discretized via fvc::div",
+      "Momentum: ∇·(ρUU) → Requires Gauss theorem",
+      "Energy: ∇·(k∇T) → Surface flux calculation"
+    ],
+    "to_day03": [
+      "Face interpolation - how to get φ_f from φ_P",
+      "Upwind vs Central differencing",
+      "TVD schemes for two-phase flow"
+    ],
+    "to_day05": [
+      "Mesh structure details",
+      "Face area vector calculation",
+      "Cell volume computation"
+    ]
+  }
 }

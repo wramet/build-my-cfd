@@ -1,0 +1,233 @@
+{
+  "lab": {
+    "number": 1,
+    "title": "Implementing the Continuity Equation in OpenFOAM",
+    "type": "CFD",
+    "topic": "Governing Equations - Conservation of Mass",
+    "duration_minutes": 180,
+    "prerequisites": [
+      "OpenFOAM v10 or later installed",
+      "Basic C++ knowledge",
+      "Understanding of partial differential equations",
+      "Day 01 theory content completed"
+    ],
+    "learning_objectives": {
+      "cfd": [
+        "Implement the compressible continuity equation in OpenFOAM",
+        "Understand fvm (implicit) vs fvc (explicit) operators",
+        "Add source terms using fvModels.source()",
+        "Verify mass conservation numerically",
+        "Understand where expansion terms appear (pressure equation)"
+      ],
+      "cpp": [
+        "Work with OpenFOAM template classes (fvMatrix)",
+        "Understand tmp<> smart pointer usage",
+        "Use namespace fvm for implicit operators",
+        "Include proper headers: fvm.H, fvc.H, fvModels.H"
+      ]
+    },
+
+    "structure": {
+      "part1_setup": {
+        "title": "Environment Setup",
+        "duration_minutes": 15,
+        "steps": [
+          "Create lab directory structure",
+          "Copy rhoCentralFoam as base (compressible solver)",
+          "Verify compilation environment",
+          "Create test case with blockMesh"
+        ]
+      },
+
+      "part2_guided": {
+        "title": "Guided Implementation",
+        "duration_minutes": 75,
+        "steps": [
+          {
+            "step": 1,
+            "title": "Analyze rhoEqn.H from OpenFOAM Source",
+            "description": "Locate and study the actual continuity equation implementation",
+            "cpp_concept": "Reading source code, header file organization",
+            "files": ["openfoam_temp/src/finiteVolume/cfdTools/compressible/rhoEqn.H"],
+            "ground_truth": "Lines 33-39 show the actual implementation"
+          },
+          {
+            "step": 2,
+            "title": "Create Custom Continuity Equation File",
+            "description": "Implement continuity matching rhoEqn.H structure: fvm::ddt(rho) + fvc::div(phi) == source",
+            "cpp_concept": "Template functions: tmp<fvMatrix<scalar>>",
+            "files": ["myRhoEqn.H"],
+            "code_template": "fvScalarMatrix rhoEqn(fvm::ddt(rho) + fvc::div(phi) == fvModels.source(rho));"
+          },
+          {
+            "step": 3,
+            "title": "Implement Continuity Error Checking",
+            "description": "Calculate contErr = fvc::div(phi) - fvModels.source(rho)",
+            "cpp_concept": "Field operations: mag(), weightedAverage()",
+            "files": ["checkContinuity.H"],
+            "code_template": "volScalarField contErr(fvc::div(phi) - fvModels.source(rho));"
+          },
+          {
+            "step": 4,
+            "title": "Integrate into Main Solver Time Loop",
+            "description": "Add rhoEqn.solve() before momentum equation",
+            "cpp_concept": "fvMatrix::solve() method, reference management",
+            "files": ["myCompressibleFoam.C"]
+          },
+          {
+            "step": 5,
+            "title": "Compile and Run Test Case",
+            "description": "Build solver with wmake, run forwardStep tutorial",
+            "cpp_concept": "wmake build system, linker dependencies",
+            "files": ["Make/files", "Make/options"]
+          }
+        ]
+      },
+
+      "part3_challenges": {
+        "title": "Independent Challenges",
+        "duration_minutes": 60,
+        "challenges": [
+          {
+            "title": "Challenge 1: Incompressible Continuity Checker",
+            "description": "Create a tool that monitors continuity error for incompressible solvers",
+            "difficulty": "beginner",
+            "hints": [
+              "For incompressible: contErr = fvc::div(phi) should be ~0",
+              "Use continuityErrs.H from incompressible/cfdTools as reference",
+              "Report sumLocal, global, and cumulative errors"
+            ],
+            "deliverable": "Function that prints continuity error statistics",
+            "reference_file": "openfoam_temp/src/finiteVolume/cfdTools/incompressible/continuityErrs.H"
+          },
+          {
+            "title": "Challenge 2: Phase Change Expansion Term Location",
+            "description": "Research and explain WHY expansion goes in pressure equation, not continuity",
+            "difficulty": "intermediate",
+            "hints": [
+              "Review mathematical derivation from Day 01 theory",
+              "Expansion: div(U) = m_dot * (1/rho_v - 1/rho_l)",
+              "For incompressible solver, pressure Poisson equation enforces div(U)=S",
+              "Search OpenFOAM solvers for 'phaseChange' or 'boiling' examples"
+            ],
+            "deliverable": "Written explanation (1 page) with equations",
+            "theory_reference": "Day 01, Section 1.3.3: Case 3 - Phase Change with Mass Transfer"
+          },
+          {
+            "title": "Challenge 3: Custom Source Term Implementation",
+            "description": "Implement a spatially-varying source term S_rho(x,y,z)",
+            "difficulty": "intermediate",
+            "hints": [
+              "Create a volScalarField for the source",
+              "Use coordinate system: mesh.C() to get cell centers",
+              "Source term can be function of position",
+              "Add to rhoEqn using fvm::Sp(source, rho) for implicit"
+            ],
+            "deliverable": "Modified solver with position-dependent source"
+          }
+        ]
+      },
+
+      "part4_debugging": {
+        "title": "Debugging & Optimization",
+        "duration_minutes": 30,
+        "common_errors": [
+          {
+            "error": "Compilation error: 'fvm' has not been declared",
+            "cause": "Missing #include \"fvm.H\"",
+            "fix": "Add #include \"fvm.H\" at top of .H file"
+          },
+          {
+            "error": "Compilation error: 'fvModels' not declared",
+            "cause": "Missing model framework headers",
+            "fix": "Add #include \"fvModels.H\" and #include \"fvConstraints.H\""
+          },
+          {
+            "error": "Solver diverges, density becomes negative",
+            "cause": "Time step too large for explicit fvc::div(phi)",
+            "fix": "Reduce maxCo (Courant number) in controlDict, or use implicit scheme"
+          },
+          {
+            "error": "Continuity error grows monotonically",
+            "cause": "Sign error in source term or incorrect flux calculation",
+            "fix": "Verify phi == rho * U * Sf (mass flux, not volume flux)"
+          },
+          {
+            "error": "Link error: undefined reference to vtable",
+            "cause": "Missing virtual function implementation or library linkage",
+            "fix": "Check Make/options for -lfiniteVolume and other libraries"
+          }
+        ],
+        "performance_exercise": {
+          "title": "Profile Your Solver",
+          "description": "Use foamProfile to identify bottlenecks",
+          "command": "myCompressibleFoam -profile &\nfoamProfile | head -20",
+          "target": "Continuity solve should be < 10% of total runtime"
+        }
+      },
+
+      "part5_analysis": {
+        "title": "Results Analysis",
+        "duration_minutes": 30,
+        "tasks": [
+          "Plot continuity error vs time from log file",
+          "Compare mass at inlet vs outlet (should be equal for steady state)",
+          "Verify Courant number stays below maxCo",
+          "Document: Did solver converge? Final residuals?"
+        ],
+        "validation": {
+          "continuity_error": "< 1e-4 for compressible steady state",
+          "mass_balance": "Total mass change = sum(source * volume)",
+          "convergence": "Initial residuals decrease 3+ orders of magnitude",
+          "stability": "No negative densities anywhere in domain"
+        }
+      }
+    },
+
+    "cpp_deep_dive": {
+      "concept_1": {
+        "title": "Template Classes: fvMatrix<Type>",
+        "description": "OpenFOAM uses templates to handle scalar, vector, tensor fields uniformly",
+        "ground_truth": "File: openfoam_temp/src/finiteVolume/fvMatrices/fvScalarMatrix/fvScalarMatrix.H",
+        "key_insight": "fvScalarMatrix is a typedef: fvMatrix<scalar>. The template parameter Type determines field type.",
+        "lab_relevance": "Understanding why rhoEqn is fvScalarMatrix (rho is scalar field)"
+      },
+      "concept_2": {
+        "title": "The tmp<> Smart Pointer",
+        "description": "Reference-counted temporary object management prevents memory leaks",
+        "ground_truth": "fvm::ddt(rho) returns tmp<fvMatrix<scalar>> (see fvmDdt.H:55-58)",
+        "key_insight": "tmp<> auto-deletes when refcount reaches zero. Enables expression templates.",
+        "lab_relevance": "Why we can write: fvScalarMatrix rhoEqn(fvm::ddt(rho) + fvc::div(phi));"
+      },
+      "concept_3": {
+        "title": "Namespace fvm vs fvc",
+        "description": "Explicit vs implicit operator organization affects numerical stability",
+        "ground_truth": "fvm::ddt returns matrix, fvc::ddt returns field (difference in fvmDdt.H vs fvcDdt.H)",
+        "key_insight": "fvm = finite volume matrix (implicit, goes in Ax=b), fvc = finite volume calculus (explicit, calculated directly)",
+        "lab_relevance": "Choosing: fvm::ddt(rho) for unknown vs fvc::div(phi) when phi is known"
+      }
+    },
+
+    "expansion_term_note": {
+      "title": "Important Note on Phase Change Expansion",
+      "content": "This lab focuses on the CONTINUITY EQUATION (mass conservation). The expansion term for phase change (div(U) = m_dot*(1/rho_v - 1/rho_l)) appears in the PRESSURE EQUATION for incompressible solvers. You will implement pressure-velocity coupling in a later lab (Day 09). For now, focus on understanding the structure: fvm for implicit terms, fvc for explicit terms, and how to add source terms.",
+      "day_01_reference": "Day 01, Section 1.3.3: 'Case 3: Phase Change with Mass Transfer'",
+      "future_labs": "Day 09 (SIMPLE/PISO algorithms), Day 61 (Expansion term implementation)"
+    },
+
+    "deliverables": [
+      "Working custom solver (myCompressibleFoam) that compiles",
+      "Test case (forwardStep or cavity) showing convergence",
+      "Continuity error plot (Python/Gnuplot from log file)",
+      "Lab report (2-3 pages) explaining implementation and results"
+    ],
+
+    "submission_checklist": [
+      "Code compiles without errors (wmake)",
+      "Simulation runs to completion",
+      "Continuity error is within tolerance",
+      "Log file shows convergence",
+      "Code follows OpenFOAM style guide (capitalization, indentation)"
+    ]
+  }
+}
