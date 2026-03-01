@@ -2,157 +2,84 @@
   "metadata": {
     "version": "1.0",
     "day": "04",
-    "topic": "Temporal Discretization",
-    "phase": "Foundation Theory",
-    "r410a_integration": "15%",
-    "template": "mathematician",
-    "template_type": "theory_heavy",
-    "purpose": "Derive and explain mathematical concepts with rigorous proofs",
-    "generated_at": "2026-02-01T14:11:14.693085"
-  },
-  "r410a_context": {
-    "application": "Evaporator two-phase flow",
-    "refrigerant": "R410A",
-    "conditions": "P = 1.0-1.2 MPa, T = 280-285 K"
+    "topic": "Day 04 Topic",
+    "phase": "C++ Through OpenFOAM's Eyes",
+    "phase_id": "Phase_01_CppThroughOpenFOAM",
+    "template": "cpp_deep_dive",
+    "template_type": "code_reading",
+    "purpose": "Analyze C++ patterns in OpenFOAM source code through guided reading and implementation",
+    "generated_at": "2026-03-01T14:46:40.901402"
   },
   "template": {
-    "name": "Mathematician",
-    "type": "theory_heavy",
-    "progressive_overload": "core theory, physical challenge, architecture, QA",
-    "boilerplate_policy": "quarantine_to_appendix",
-    "code_ratio": 0.25
+    "name": "C++ Deep Dive",
+    "type": "code_reading",
+    "progressive_overload": "pattern identification, source code reading, implementation exercise, testing and trade-offs",
+    "boilerplate_policy": "include_excerpts",
+    "code_ratio": 0.65
   },
   "structure": {
     "parts": [
       {
         "id": "p1",
-        "title": "Core Theory",
-        "ratio": 0.3,
+        "title": "Pattern Identification",
+        "ratio": 0.2,
         "readability": "beginner",
-        "approach": "derivations",
+        "approach": "conceptual",
         "content_type": "theory",
-        "guideline": "Start with basic concepts, build to full derivations",
-        "estimated_lines": 240
+        "guideline": "What is the pattern? Why does OpenFOAM use it? What problem does it solve?",
+        "estimated_lines": 180
       },
       {
         "id": "p2",
-        "title": "Physical Challenge",
-        "ratio": 0.2,
+        "title": "Source Code Reading",
+        "ratio": 0.35,
         "readability": "intermediate",
-        "approach": "problem solving",
-        "content_type": "analysis",
-        "guideline": "Show practical problems and solutions",
-        "estimated_lines": 160
+        "approach": "code_analysis",
+        "content_type": "code_reading",
+        "guideline": "Line-by-line analysis of actual OpenFOAM .H and .C files with file:line references",
+        "estimated_lines": 315
       },
       {
         "id": "p3",
-        "title": "Architecture & Implementation",
-        "ratio": 0.35,
+        "title": "Implementation Exercise",
+        "ratio": 0.3,
         "readability": "advanced",
-        "approach": "code first",
+        "approach": "hands_on",
         "content_type": "code",
-        "guideline": "Show class diagrams before implementation",
-        "estimated_lines": 280
+        "guideline": "Write your own version of the pattern, test it, compare with OpenFOAM",
+        "estimated_lines": 270
       },
       {
         "id": "p4",
-        "title": "Quality Assurance",
+        "title": "Design Trade-offs & Testing",
         "ratio": 0.15,
         "readability": "professional",
-        "approach": "testing",
+        "approach": "analysis",
         "content_type": "validation",
-        "guideline": "Verify with unit tests and benchmarks",
-        "estimated_lines": 120
-      },
-      {
-        "id": "p5",
-        "title": "R410A Evaporator Application",
-        "ratio": 0.15,
-        "readability": "intermediate",
-        "approach": "application",
-        "content_type": "domain_specific",
-        "guideline": "Connect general theory to R410A evaporator simulation",
-        "sections": [
-          "5.1 Why it matters for R410A evaporator",
-          "5.2 R410A property data",
-          "5.3 Equation modifications for R410A",
-          "5.4 Implementation preview (OpenFOAM code)"
-        ],
-        "estimated_lines": 120
+        "guideline": "Compare alternatives, benchmark performance, discuss when to use this pattern",
+        "estimated_lines": 135
       }
     ]
   },
   "content_requirements": {
     "topics_to_cover": [
-      "Part 1: Core Theory - From Taylor Series to Time Schemes",
-      "Part 2: Physical Challenge - Stability in Practice",
-      "Part 3: Architecture & Implementation - OpenFOAM ddtScheme Framework",
-      "Part 4: Quality Assurance - Verification & Best Practices"
+      "Introduction to Time Discretization",
+      "Euler Methods",
+      "Higher-Order Methods",
+      "CFL Number and Stability",
+      "OpenFOAM ddtSchemes Class Hierarchy",
+      "Code Analysis - Euler Implicit",
+      "Code Analysis - Backward Second Order",
+      "Time Step Selection for VOF",
+      "Implementation Guide",
+      "Exercises"
     ],
-    "formulas_to_include": [
-      {
-        "name": "euler_implicit",
-        "latex": "",
-        "source": "EulerDdtScheme.C:126"
-      },
-      {
-        "name": "backward_scheme",
-        "latex": "",
-        "source": "backwardDdtScheme.C:88-90"
-      },
-      {
-        "name": "crank_nicolson",
-        "latex": "",
-        "source": "CrankNicolsonDdtScheme.H:78"
-      },
-      {
-        "name": "cfl_number",
-        "latex": "",
-        "source": ""
-      }
-    ],
-    "class_hierarchy": {
-      "base_class": {
-        "name": "ddtScheme<Type>",
-        "file": "openfoam_temp/src/finiteVolume/finiteVolume/ddtSchemes/ddtScheme/ddtScheme.H",
-        "line": 66,
-        "description": "Abstract base class for ddt schemes"
-      },
-      "derived_classes": [
-        {
-          "name": "EulerDdtScheme<Type>",
-          "file": "openfoam_temp/src/finiteVolume/finiteVolume/ddtSchemes/EulerDdtScheme/EulerDdtScheme.H",
-          "line": 56,
-          "order": "First-order",
-          "description": "Basic first-order Euler implicit/explicit ddt using only the current and previous time-step values"
-        },
-        {
-          "name": "backwardDdtScheme<Type>",
-          "file": "openfoam_temp/src/finiteVolume/finiteVolume/ddtSchemes/backwardDdtScheme/backwardDdtScheme.H",
-          "line": 56,
-          "order": "Second-order",
-          "description": "Second-order backward-differencing ddt using the current and two previous time-step values"
-        },
-        {
-          "name": "CrankNicolsonDdtScheme<Type>",
-          "file": "openfoam_temp/src/finiteVolume/finiteVolume/ddtSchemes/CrankNicolsonDdtScheme/CrankNicolsonDdtScheme.H",
-          "line": 111,
-          "order": "Second-order",
-          "description": "Second-order Crank-Nicolson implicit ddt using the current and previous time-step fields as well as the previous time-step ddt"
-        },
-        {
-          "name": "CoEulerDdtScheme<Type>",
-          "file": "openfoam_temp/src/finiteVolume/finiteVolume/ddtSchemes/CoEulerDdtScheme/CoEulerDdtScheme.H",
-          "line": 62,
-          "order": "First-order",
-          "description": "Courant number limited first-order Euler implicit/explicit ddt"
-        }
-      ]
-    }
+    "formulas_to_include": [],
+    "class_hierarchy": {}
   },
   "rules": {
     "ratio_tolerance": 0.05,
-    "boilerplate_policy": "quarantine_to_appendix",
+    "boilerplate_policy": "include_excerpts",
     "concept_first": [
       "diagrams",
       "introduction",

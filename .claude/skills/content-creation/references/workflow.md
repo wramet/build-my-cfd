@@ -110,7 +110,7 @@ Detailed step-by-step instructions for the 6-stage content creation workflow.
 
 **Model:** DeepSeek Chat V3 (Direct API)
 
-**Output:** `Phase_01_Foundation_Theory/XX.md`
+**Output:** `Phase_0X_<PhaseName>/XX.md` (use `phase_utils.py` to resolve correct folder)
 
 ---
 
@@ -127,7 +127,7 @@ Detailed step-by-step instructions for the 6-stage content creation workflow.
 - Line count: ≥1900 target, ≥1500 minimum
 - Theory: Complete derivations, multiple approaches
 - Code: File paths + line numbers + line-by-line
-- HERO CONCEPT: Full derivation + R410A
+- HERO CONCEPT: Full derivation + OpenFOAM source code connection
 - Exercises: ≥6 with detailed solutions
 - Diagrams: ≥3 Mermaid, valid syntax
 

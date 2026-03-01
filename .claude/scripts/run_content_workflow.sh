@@ -15,11 +15,15 @@ fi
 
 DAY_FMT=$(printf "%02d" "$DAY_NUM")
 
+# Get phase folder for this day using phase_utils
+PHASE_FOLDER=$(python3 -c "import sys; sys.path.insert(0, '.claude/scripts'); from phase_utils import get_folder_for_day; print(get_folder_for_day(${DAY_NUM}))")
+
 echo "======================================"
 echo "📋 Daily Content Creation Workflow"
 echo "======================================"
 echo "Day: $DAY_FMT"
 echo "Topic: $DAY_TOPIC"
+echo "Phase Folder: $PHASE_FOLDER"
 echo ""
 
 # Colors
@@ -62,6 +66,19 @@ if [ ! -f "daily_learning/skeletons/day${DAY_FMT}_skeleton.json" ]; then
   exit 1
 fi
 echo -e "${GREEN}✅ Skeleton created${NC}"
+echo ""
+
+# Stage 2.5: Generate Blueprint
+echo -e "${BLUE}[Stage 2.5/6]${NC} Generate Blueprint"
+echo ""
+python3 .claude/scripts/generate_blueprint.py "$DAY_FMT" "$DAY_TOPIC"
+
+if [ $? -eq 0 ]; then
+  echo -e "${GREEN}✅ Blueprint generated${NC}"
+else
+  echo -e "${RED}❌ Blueprint generation failed${NC}"
+  exit 1
+fi
 echo ""
 
 # Stage 3: Verify Skeleton (DeepSeek R1 via Direct API)
@@ -155,11 +172,11 @@ Output complete markdown file content.
 EOF
 
 echo "Calling DeepSeek Chat V3 (this may take 1-2 minutes)..."
-python3 .claude/scripts/deepseek_content.py deepseek-chat /tmp/stage4_prompt_day${DAY_FMT}.txt > daily_learning/Phase_01_Foundation_Theory/${DAY_FMT}.md
+python3 .claude/scripts/deepseek_content.py deepseek-chat /tmp/stage4_prompt_day${DAY_FMT}.txt > daily_learning/${PHASE_FOLDER}/${DAY_FMT}.md
 
 if [ $? -eq 0 ]; then
   echo -e "${GREEN}✅ Content generated${NC}"
-  LINE_COUNT=$(wc -l < "daily_learning/Phase_01_Foundation_Theory/${DAY_FMT}.md")
+  LINE_COUNT=$(wc -l < "daily_learning/${PHASE_FOLDER}/${DAY_FMT}.md")
   echo "   Generated ${LINE_COUNT} lines"
 else
   echo -e "${RED}❌ Content generation failed${NC}"
@@ -174,7 +191,7 @@ echo ""
 cat > /tmp/stage5_prompt_day${DAY_FMT}.txt << 'EOF'
 Final verification for Day ${DAY_FMT}: ${DAY_TOPIC}
 
-CONTENT: $(cat daily_learning/Phase_01_Foundation_Theory/${DAY_FMT}.md)
+CONTENT: $(cat daily_learning/${PHASE_FOLDER}/${DAY_FMT}.md)
 GROUND TRUTH: $(cat /tmp/verified_facts_day${DAY_FMT}.json)
 
 Verification tasks:
@@ -209,7 +226,7 @@ echo -e "${BLUE}[Stage 6/6]${NC} Syntax QC (Python Script)"
 echo ""
 
 if [ -f ".claude/scripts/qc_syntax_check.py" ]; then
-  python3 .claude/scripts/qc_syntax_check.py --file="daily_learning/Phase_01_Foundation_Theory/${DAY_FMT}.md"
+  python3 .claude/scripts/qc_syntax_check.py --file="daily_learning/${PHASE_FOLDER}/${DAY_FMT}.md"
 
   if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Syntax QC PASSED${NC}"
@@ -230,7 +247,8 @@ echo ""
 echo "Output Files:"
 echo "  📋 Ground Truth: /tmp/verified_facts_day${DAY_FMT}.json"
 echo "  📄 Skeleton: daily_learning/skeletons/day${DAY_FMT}_skeleton.json"
-echo "  📄 Content: daily_learning/Phase_01_Foundation_Theory/${DAY_FMT}.md"
+echo "  📄 Blueprint: daily_learning/blueprints/day${DAY_FMT}_blueprint.json"
+echo "  📄 Content: daily_learning/${PHASE_FOLDER}/${DAY_FMT}.md"
 echo "  📋 Verification: /tmp/verification_report_day${DAY_FMT}.txt"
 echo "  📋 Final Verify: /tmp/final_verification_day${DAY_FMT}.txt"
 echo ""

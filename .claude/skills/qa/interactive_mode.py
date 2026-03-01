@@ -40,10 +40,10 @@ SECTION_QUESTIONS = {
         "Can you give an example of how nonlinearity appears in 1D?"
     ],
     "2.3": [
-        "Why is the density ratio (ρl/ρv ≈ 50) challenging for R410A simulations?",
-        "What is the expansion term and why is it critical for phase change?",
-        "How does the expansion term prevent solver divergence during evaporation?",
-        "What happens if we use standard incompressible solvers for phase change?"
+        "How does OpenFOAM use polymorphism in its class hierarchy?",
+        "What are the advantages of using virtual functions for solver selection?",
+        "How does the run-time selection (RTS) pattern work in OpenFOAM?",
+        "Why are template classes used for dimension-specific fields?"
     ],
     # Theory section questions
     "Core Theory": [

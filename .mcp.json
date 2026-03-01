@@ -3,7 +3,7 @@
     "deepseek": {
       "command": "python3",
       "args": [
-        "/Users/woramet/Documents/Build My CFD/.claude/mcp/deepseek_mcp_server.py"
+        "/Users/woramet/Documents/Build My CFD/.claude/worktrees/upbeat-banach/.claude/mcp/deepseek_mcp_server.py"
       ],
       "env": {
         "DEEPSEEK_API_KEY": "sk-7e7f3154057942a48be4a566a720da99",

@@ -1,10 +1,10 @@
-# CFD Engine Development Project
+# C++ & Software Engineering Through OpenFOAM
 
 ## Project Goal
 
-Build a custom CFD engine for **Refrigerant Two-Phase Flow with Evaporation in Tube** using OpenFOAM architecture.
+Learn **intermediate-to-advanced C++ and software engineering** through OpenFOAM case studies and real-world patterns.
 
-**Target:** R410A evaporator simulation (liquid inlet → two-phase flow → vapor outlet)
+**Target:** Master C++ by studying production code (84 sessions, 5 phases)
 
 ---
 
@@ -12,7 +12,7 @@ Build a custom CFD engine for **Refrigerant Two-Phase Flow with Evaporation in T
 
 | File | Purpose |
 |------|---------|
-| [roadmap.md](roadmap.md) | **Master learning plan** - 90 days, 6 phases |
+| [roadmap.md](roadmap.md) | **Master learning plan** - 84 sessions, 5 phases |
 | [.claude/rules/source-first.md](.claude/rules/source-first.md) | Ground truth extraction methodology |
 | [.claude/rules/cfd-standards.md](.claude/rules/cfd-standards.md) | LaTeX, Mermaid, Code standards |
 | [.claude/rules/verification-gates.md](.claude/rules/verification-gates.md) | 6 mandatory verification checkpoints |
@@ -25,9 +25,12 @@ Build a custom CFD engine for **Refrigerant Two-Phase Flow with Evaporation in T
 th_new/
 ├── roadmap.md                           # Master plan (READ THIS FIRST)
 ├── CLAUDE.md                            # This file
-├── daily_learning/                      # Daily content (Days 01-90)
-│   ├── Phase_01_Foundation_Theory/     # Foundation theory (Days 01-12)
-│   ├── Phase_02_Geometry_Mesh/         # Geometry & mesh (Days 13-19)
+├── daily_learning/                      # Daily content (Sessions 01-84)
+│   ├── Phase_01_CppThroughOpenFOAM/     # C++ patterns in OpenFOAM (01-14)
+│   ├── Phase_02_DataStructuresMemory/   # Data structures & memory (15-28)
+│   ├── Phase_03_SoftwareArchitecture/   # Architecture patterns (29-42)
+│   ├── Phase_04_PerformanceOptimization/ # Profiling & optimization (43-56)
+│   ├── Phase_05_FocusedCFDComponent/     # Focused CFD component (57-84)
 │   ├── blueprints/                      # Content blueprints
 │   ├── walkthroughs/                    # Interactive walkthroughs
 │   └── skeletons/                       # Content skeletons
@@ -53,7 +56,7 @@ th_new/
 │   ├── hooks/                          # Automation triggers
 │   ├── mcp/                            # DeepSeek MCP server
 │   ├── config/                         # Performance & agent config
-│   ├── tasks/                          # R410A task tracking (27 tasks)
+│   ├── tasks/                          # Curriculum task tracking (17 tasks)
 │   ├── test_cases/                     # Mermaid diagram tests
 │   ├── utils/                          # Smart file loading
 │   ├── contexts/                       # Mode-specific contexts
@@ -118,7 +121,7 @@ Configuration in `.mcp.json`:
 
 ---
 
-## R410A Task Management
+## Curriculum Task Management
 
 Track progress with the built-in task manager:
 
@@ -133,7 +136,7 @@ python3 .claude/scripts/task_manager.py pending
 .claude/scripts/execute_task.sh TASK_001
 ```
 
-**27 tasks** across 8 phases for R410A integration.
+**17 tasks** across 7 layers for curriculum refactoring and content generation.
 
 ---
 
@@ -203,5 +206,5 @@ Completed optimizations (documented in `.claude/PERFORMANCE_OPTIMIZATION_COMPLET
 
 ---
 
-*Last Updated: 2026-01-31*
-*Project Phase: Foundation + R410A Integration*
+*Last Updated: 2026-03-01*
+*Project Phase: C++ & Software Engineering Learning*

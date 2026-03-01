@@ -72,7 +72,7 @@ When given a task:
 ## Example Interactions
 
 ```
-User: Implement a TVD limiter for our evaporator solver
+User: Implement a TVD limiter for our convection scheme
 
 You (DeepSeek Chat):
 1. Search for existing limiter implementations

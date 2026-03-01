@@ -1,0 +1,144 @@
+# Phase Mapping Configuration v2.0
+# Single source of truth for day-to-phase mapping
+# All scripts read from this file instead of hardcoding ranges
+#
+# Usage in Python:
+#   from phase_utils import get_phase_for_day, get_folder_for_day
+#   phase = get_phase_for_day(15)  # Returns Phase 2 dict
+#   folder = get_folder_for_day(15)  # Returns "Phase_02_DataStructuresMemory"
+
+version: "2.0"
+curriculum: "C++ and Software Engineering Through OpenFOAM"
+total_sessions: 84
+
+# Learning objectives (drives content quality gates)
+learning_objectives:
+  - "Intermediate-to-advanced C++ coding patterns"
+  - "Real-world software architecture and design patterns"
+  - "Performance optimization: data structures, algorithms, profiling"
+  - "OpenFOAM as a case study of production C++ engineering"
+
+phases:
+  - id: "Phase_01_CppThroughOpenFOAM"
+    name: "C++ Through OpenFOAM's Eyes"
+    short_name: "C++ Foundations"
+    days: [1, 14]
+    folder: "Phase_01_CppThroughOpenFOAM"
+    target_lines: 900
+    template: "cpp_deep_dive"
+    content_focus: "cpp_patterns"
+    description: "Templates, CRTP, policy-based design, smart pointers, expression templates"
+    key_topics:
+      - "Template metaprogramming and generic programming"
+      - "CRTP and static polymorphism"
+      - "Policy-based design in OpenFOAM schemes"
+      - "Smart pointers: autoPtr<>, tmp<>, refCount"
+      - "Expression templates and lazy evaluation"
+      - "RAII and resource management"
+      - "Move semantics and perfect forwarding"
+    source_targets:
+      - "src/OpenFOAM/primitives/"
+      - "src/OpenFOAM/fields/Fields/"
+      - "src/OpenFOAM/memory/"
+      - "src/finiteVolume/interpolation/surfaceInterpolation/"
+
+  - id: "Phase_02_DataStructures_Memory"
+    name: "Data Structures & Memory"
+    short_name: "DS & Memory"
+    days: [15, 28]
+    folder: "Phase_02_DataStructures_Memory"
+    target_lines: 1000
+    template: "cpp_deep_dive"
+    content_focus: "data_structures"
+    description: "LDU sparse matrix, cache-friendly storage, HashTable, memory pools"
+    key_topics:
+      - "LDU sparse matrix format vs CSR/CSC"
+      - "Owner-neighbour addressing and cache patterns"
+      - "OpenFOAM List<T> vs std::vector trade-offs"
+      - "HashTable<T> and HashSet implementations"
+      - "Memory allocation strategies and pools"
+      - "Field<T> memory layout and alignment"
+      - "Compact storage for mesh topology"
+    source_targets:
+      - "src/OpenFOAM/matrices/lduMatrix/"
+      - "src/OpenFOAM/containers/"
+      - "src/OpenFOAM/meshes/polyMesh/"
+      - "src/OpenFOAM/fields/Fields/"
+
+  - id: "Phase_03_SoftwareArchitecture"
+    name: "Software Architecture Patterns"
+    short_name: "Architecture"
+    days: [29, 42]
+    folder: "Phase_03_SoftwareArchitecture"
+    target_lines: 1000
+    template: "architecture_analysis"
+    content_focus: "design_patterns"
+    description: "RTS factory, dictionary system, plugin architecture, build system"
+    key_topics:
+      - "RunTimeTypeSelection (RTS) — OpenFOAM's factory pattern"
+      - "Dictionary-driven design: IOdictionary, token system"
+      - "Plugin/scheme architecture: adding schemes without touching core"
+      - "Build system: wmake internals and dependency management"
+      - "IOobject and automatic I/O system"
+      - "Time and object registry"
+      - "Boundary condition framework as strategy pattern"
+    source_targets:
+      - "src/OpenFOAM/db/runTimeSelection/"
+      - "src/OpenFOAM/db/dictionary/"
+      - "src/OpenFOAM/db/IOobject/"
+      - "src/OpenFOAM/db/Time/"
+      - "wmake/"
+
+  - id: "Phase_04_PerformanceOptimization"
+    name: "Performance Optimization"
+    short_name: "Performance"
+    days: [43, 56]
+    folder: "Phase_04_PerformanceOptimization"
+    target_lines: 1000
+    template: "performance_lab"
+    content_focus: "optimization"
+    description: "Profiling, SIMD, OpenMP, cache optimization, memory allocation"
+    key_topics:
+      - "Profiling with perf, gprof, valgrind on OpenFOAM"
+      - "SIMD and auto-vectorization in Field arithmetic"
+      - "OpenMP parallelism: forAll macro and parallel loops"
+      - "Cache miss analysis and data locality"
+      - "Memory allocation strategies in hot loops"
+      - "Algorithm complexity in mesh operations"
+      - "Benchmarking methodology and reporting"
+    source_targets:
+      - "src/OpenFOAM/fields/Fields/Field/"
+      - "src/OpenFOAM/matrices/lduMatrix/solvers/"
+      - "src/OpenFOAM/meshes/polyMesh/"
+      - "src/Pstream/"
+
+  - id: "Phase_05_FocusedCFDComponent"
+    name: "Focused CFD Component"
+    short_name: "1D Solver Project"
+    days: [57, 84]
+    folder: "Phase_05_FocusedCFDComponent"
+    target_lines: 1200
+    template: "solver_implementation"
+    content_focus: "implementation"
+    description: "Apply all learned patterns to build a well-engineered 1D advection-diffusion solver"
+    key_topics:
+      - "Project architecture using RTS, templates, and Field<T>"
+      - "1D mesh with proper data structures"
+      - "FVM operators with expression templates"
+      - "LDU-based linear solver"
+      - "SIMPLE/PISO algorithm implementation"
+      - "Source term extension for phase change"
+      - "Performance profiling and optimization"
+      - "Testing, benchmarking, comparison with OpenFOAM"
+    source_targets:
+      - "src/finiteVolume/fvMatrices/"
+      - "src/finiteVolume/finiteVolume/fvm/"
+      - "src/finiteVolume/finiteVolume/fvc/"
+      - "applications/solvers/"
+
+# Legacy mapping (archived, not used by scripts)
+legacy:
+  r410a_phases:
+    enabled: false
+    archive_path: ".claude/archive/r410a/"
+    note: "Original R410A evaporator roadmap archived for reference"

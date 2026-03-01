@@ -2,165 +2,79 @@
   "metadata": {
     "version": "1.0",
     "day": "03",
-    "topic": "Spatial Discretization Schemes",
-    "phase": "Foundation Theory",
-    "r410a_integration": "15%",
-    "template": "mathematician",
-    "template_type": "theory_heavy",
-    "purpose": "Derive and explain mathematical concepts with rigorous proofs",
-    "generated_at": "2026-02-01T12:21:44.354823"
-  },
-  "r410a_context": {
-    "application": "Evaporator two-phase flow",
-    "refrigerant": "R410A",
-    "conditions": "P = 1.0-1.2 MPa, T = 280-285 K"
+    "topic": "Day 03 Topic",
+    "phase": "C++ Through OpenFOAM's Eyes",
+    "phase_id": "Phase_01_CppThroughOpenFOAM",
+    "template": "cpp_deep_dive",
+    "template_type": "code_reading",
+    "purpose": "Analyze C++ patterns in OpenFOAM source code through guided reading and implementation",
+    "generated_at": "2026-03-01T14:46:40.864500"
   },
   "template": {
-    "name": "Mathematician",
-    "type": "theory_heavy",
-    "progressive_overload": "core theory, physical challenge, architecture, QA",
-    "boilerplate_policy": "quarantine_to_appendix",
-    "code_ratio": 0.25
+    "name": "C++ Deep Dive",
+    "type": "code_reading",
+    "progressive_overload": "pattern identification, source code reading, implementation exercise, testing and trade-offs",
+    "boilerplate_policy": "include_excerpts",
+    "code_ratio": 0.65
   },
   "structure": {
     "parts": [
       {
         "id": "p1",
-        "title": "Core Theory",
-        "ratio": 0.3,
+        "title": "Pattern Identification",
+        "ratio": 0.2,
         "readability": "beginner",
-        "approach": "derivations",
+        "approach": "conceptual",
         "content_type": "theory",
-        "guideline": "Start with basic concepts, build to full derivations",
-        "estimated_lines": 240
+        "guideline": "What is the pattern? Why does OpenFOAM use it? What problem does it solve?",
+        "estimated_lines": 180
       },
       {
         "id": "p2",
-        "title": "Physical Challenge",
-        "ratio": 0.2,
+        "title": "Source Code Reading",
+        "ratio": 0.35,
         "readability": "intermediate",
-        "approach": "problem solving",
-        "content_type": "analysis",
-        "guideline": "Show practical problems and solutions",
-        "estimated_lines": 160
+        "approach": "code_analysis",
+        "content_type": "code_reading",
+        "guideline": "Line-by-line analysis of actual OpenFOAM .H and .C files with file:line references",
+        "estimated_lines": 315
       },
       {
         "id": "p3",
-        "title": "Architecture & Implementation",
-        "ratio": 0.35,
+        "title": "Implementation Exercise",
+        "ratio": 0.3,
         "readability": "advanced",
-        "approach": "code first",
+        "approach": "hands_on",
         "content_type": "code",
-        "guideline": "Show class diagrams before implementation",
-        "estimated_lines": 280
+        "guideline": "Write your own version of the pattern, test it, compare with OpenFOAM",
+        "estimated_lines": 270
       },
       {
         "id": "p4",
-        "title": "Quality Assurance",
+        "title": "Design Trade-offs & Testing",
         "ratio": 0.15,
         "readability": "professional",
-        "approach": "testing",
+        "approach": "analysis",
         "content_type": "validation",
-        "guideline": "Verify with unit tests and benchmarks",
-        "estimated_lines": 120
-      },
-      {
-        "id": "p5",
-        "title": "R410A Evaporator Application",
-        "ratio": 0.15,
-        "readability": "intermediate",
-        "approach": "application",
-        "content_type": "domain_specific",
-        "guideline": "Connect general theory to R410A evaporator simulation",
-        "sections": [
-          "5.1 Why it matters for R410A evaporator",
-          "5.2 R410A property data",
-          "5.3 Equation modifications for R410A",
-          "5.4 Implementation preview (OpenFOAM code)"
-        ],
-        "estimated_lines": 120
+        "guideline": "Compare alternatives, benchmark performance, discuss when to use this pattern",
+        "estimated_lines": 135
       }
     ]
   },
   "content_requirements": {
     "topics_to_cover": [
-      "Face value interpolation in FVM",
-      "Central differencing scheme",
-      "First-order upwind scheme",
-      "Limited schemes (TVD/NVD)",
-      "Limiter functions: vanLeer, Minmod",
-      "Peclet number analysis",
-      "Scheme selection guidelines"
+      "Introduction to Spatial Discretization",
+      "Central Differencing Scheme",
+      "Upwind Schemes",
+      "TVD/NVD Schemes for Two-Phase Flow",
+      "Scheme Selection Criteria"
     ],
-    "formulas_to_include": [
-      {
-        "formula": "vanLeer limiter: $\\psi(r) = \\frac{r + \\mathrm{mag}(r)}{1 + \\mathrm{mag}(r)}$",
-        "source": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/vanLeer/vanLeer.H:80",
-        "verified": true
-      },
-      {
-        "formula": "Minmod limiter: $\\psi(r) = \\max(\\min(r, 1), 0)$",
-        "source": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/Minmod/Minmod.H:79",
-        "verified": true
-      },
-      {
-        "formula": "Upwind weights: $w = \\mathrm{pos0}(\\phi_f)$",
-        "source": "openfoam_temp/src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/upwind/upwind.H:118",
-        "verified": true
-      },
-      {
-        "formula": "Central differencing: $\\phi_f = w\\phi_P + (1-w)\\phi_N$",
-        "verified": false,
-        "note": "Need to verify central differencing formula from source"
-      }
-    ],
-    "class_hierarchy": {
-      "surfaceInterpolationScheme<Type>>": {
-        "location": "surfaceInterpolationScheme.H:56",
-        "abstract": true,
-        "description": "Abstract base class for surface interpolation schemes"
-      },
-      "linear<Type>": {
-        "location": "linear.H:51",
-        "inherits": "surfaceInterpolationScheme<Type>",
-        "description": "Centred interpolation scheme",
-        "weights": "this->mesh().surfaceInterpolation::weights()"
-      },
-      "limitedSurfaceInterpolationScheme<Type>": {
-        "location": "limitedSurfaceInterpolationScheme.H:50",
-        "inherits": "surfaceInterpolationScheme<Type>",
-        "abstract": true,
-        "description": "Abstract base class for limited interpolation schemes"
-      },
-      "upwind<Type>": {
-        "location": "upwind.H:52",
-        "inherits": "limitedSurfaceInterpolationScheme<Type>",
-        "description": "First-order upwind scheme",
-        "limiter": "dimensionedScalar(dimless, 0)"
-      },
-      "LimitedScheme<Type, Limiter, LimitFunc>": {
-        "location": "LimitedScheme.H:64",
-        "inherits": [
-          "limitedSurfaceInterpolationScheme<Type>",
-          "Limiter"
-        ],
-        "description": "Template class for NVD/TVD limited schemes"
-      },
-      "vanLeerLimiter<LimiterFunc>": {
-        "location": "vanLeer.H:54",
-        "inherits": "LimiterFunc",
-        "description": "VanLeer limiter function"
-      },
-      "MinmodLimiter<LimiterFunc>": {
-        "location": "Minmod.H:53",
-        "inherits": "LimiterFunc",
-        "description": "Minmod limiter function"
-      }
-    }
+    "formulas_to_include": [],
+    "class_hierarchy": {}
   },
   "rules": {
     "ratio_tolerance": 0.05,
-    "boilerplate_policy": "quarantine_to_appendix",
+    "boilerplate_policy": "include_excerpts",
     "concept_first": [
       "diagrams",
       "introduction",

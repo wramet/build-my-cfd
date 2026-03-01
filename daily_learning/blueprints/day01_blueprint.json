@@ -1,133 +1,84 @@
 {
-  "day": "01",
-  "topic": "Governing Equations - Conservation Laws for CFD",
-  "template": "mathematician",
-  "template_rationale": "Theory-heavy topic requiring mathematical derivations from first principles",
-  "generation_date": "2026-02-01",
-  "skeleton_file": "daily_learning/skeletons/day01_skeleton.json",
-  "verified_facts_file": "/tmp/daily_learning_stage01/verified_facts_day01.json",
+  "metadata": {
+    "version": "1.0",
+    "day": "01",
+    "topic": "Templates & Generic Programming \u2014 Study Field<Type>",
+    "phase": "C++ Through OpenFOAM's Eyes",
+    "phase_id": "Phase_01_CppThroughOpenFOAM",
+    "template": "cpp_deep_dive",
+    "template_type": "code_reading",
+    "purpose": "Analyze C++ patterns in OpenFOAM source code through guided reading and implementation",
+    "generated_at": "2026-03-01T14:33:39.566415"
+  },
+  "template": {
+    "name": "C++ Deep Dive",
+    "type": "code_reading",
+    "progressive_overload": "pattern identification, source code reading, implementation exercise, testing and trade-offs",
+    "boilerplate_policy": "include_excerpts",
+    "code_ratio": 0.65
+  },
   "structure": {
-    "template": "mathematician",
     "parts": [
       {
         "id": "p1",
-        "title": "Core Theory - Conservation Laws",
-        "ratio": 0.30,
+        "title": "Pattern Identification",
+        "ratio": 0.2,
         "readability": "beginner",
-        "approach": "derivations",
+        "approach": "conceptual",
         "content_type": "theory",
-        "guideline": "Start with basic concepts, build to full derivations. Begin with integral forms, derive differential forms. Show complete mathematical steps with explanations.",
-        "key_equations": [
-          "∂ρ/∂t + ∇·(ρU) = 0 (mass)",
-          "∂(ρU)/∂t + ∇·(ρUU) = -∇p + ∇·τ + Sᵤ (momentum)",
-          "∂(ρh)/∂t + ∇·(ρUh) = ∇·(k∇T) + Sₕ (energy)",
-          "∇·U = ṁ(1/ρᵥ - 1/ρₗ) (expansion term) ⭐"
-        ]
+        "guideline": "What is the pattern? Why does OpenFOAM use it? What problem does it solve?",
+        "estimated_lines": 180
       },
       {
         "id": "p2",
-        "title": "Physical Challenge - Why These Equations Matter",
-        "ratio": 0.20,
+        "title": "Source Code Reading",
+        "ratio": 0.35,
         "readability": "intermediate",
-        "approach": "problem_solving",
-        "content_type": "analysis",
-        "guideline": "Show practical problems: pressure-velocity coupling, phase change effects, nonlinear convection. Connect math to real CFD solver behavior.",
-        "key_challenges": [
-          "Enforcing ∇·U = 0 numerically",
-          "Density ratio effects in two-phase flow",
-          "Expansion term necessity for phase change ⭐",
-          "Nonlinear convection term handling"
-        ]
+        "approach": "code_analysis",
+        "content_type": "code_reading",
+        "guideline": "Line-by-line analysis of actual OpenFOAM .H and .C files with file:line references",
+        "estimated_lines": 315
       },
       {
         "id": "p3",
-        "title": "Architecture & Implementation",
-        "ratio": 0.35,
+        "title": "Implementation Exercise",
+        "ratio": 0.3,
         "readability": "advanced",
-        "approach": "code_first",
+        "approach": "hands_on",
         "content_type": "code",
-        "guideline": "Show Mermaid class diagrams BEFORE code. Explain OpenFOAM operator implementations. Include file paths and line numbers for all verified code.",
-        "key_classes": [
-          "surfaceInterpolationScheme<Type>",
-          "limitedSurfaceInterpolationScheme<Type>",
-          "upwind<Type>"
-        ],
-        "key_operators": [
-          "fvm::ddt - temporal derivative",
-          "fvm::div - convection (implicit)",
-          "fvm::laplacian - diffusion (implicit)",
-          "fvc::div - explicit divergence"
-        ]
+        "guideline": "Write your own version of the pattern, test it, compare with OpenFOAM",
+        "estimated_lines": 270
       },
       {
         "id": "p4",
-        "title": "Quality Assurance - Verification Exercises",
+        "title": "Design Trade-offs & Testing",
         "ratio": 0.15,
         "readability": "professional",
-        "approach": "testing",
+        "approach": "analysis",
         "content_type": "validation",
-        "guideline": "Provide 6+ concept check questions with detailed solutions. Include code verification exercises that reference actual source files.",
-        "exercise_types": [
-          "Derivation exercises",
-          "Conceptual understanding",
-          "Code location and verification",
-          "Physical interpretation"
-        ]
+        "guideline": "Compare alternatives, benchmark performance, discuss when to use this pattern",
+        "estimated_lines": 135
       }
     ]
   },
+  "content_requirements": {
+    "topics_to_cover": [],
+    "formulas_to_include": [],
+    "class_hierarchy": {}
+  },
   "rules": {
-    "boilerplate_policy": "quarantine_to_appendix",
     "ratio_tolerance": 0.05,
-    "code_first": false,
-    "concept_first": true,
-    "diagrams_before_code": true,
-    "all_facts_marked": true,
-    "file_paths_required": true,
-    "line_numbers_required": true
-  },
-  "critical_for_phase_1": true,
-  "foundation_importance": "All subsequent days build on these equations",
-  "prerequisites": [],
-  "learning_outcomes": [
-    "Derive conservation equations from integral to differential form",
-    "Understand the expansion term necessity for phase change",
-    "Navigate OpenFOAM finite volume class hierarchy",
-    "Identify where equations appear in source code"
-  ],
-  "connections_to_future_days": [
-    {
-      "day": "02",
-      "topic": "Finite Volume Method Basics",
-      "connection": "Gauss divergence theorem converts integral forms to FVM"
-    },
-    {
-      "day": "03",
-      "topic": "Spatial Discretization Schemes",
-      "connection": "Convection term ∇·(ρUU) requires upwind/TVD schemes"
-    },
-    {
-      "day": "11",
-      "topic": "Phase Change Theory",
-      "connection": "Expansion term derived from continuity equation"
-    },
-    {
-      "day": "61",
-      "topic": "The Expansion Term (Critical!)",
-      "connection": "Implementation of ∇·U = ṁ(1/ρᵥ - 1/ρₗ)"
-    }
-  ],
-  "r410a_relevance": {
-    "expansion_term_critical": true,
-    "density_ratio": "ρₗ/ρᵥ ≈ 50-100 at typical evaporator conditions",
-    "pressure_divergence_risk": "Without expansion term, pressure equation becomes singular during evaporation",
-    "energy_coupling": "Latent heat hfg ≈ 200 kJ/kg for R410A"
-  },
-  "progressive_overload_notes": {
-    "part_1_start": "Begin with simple 1D mass conservation",
-    "part_1_progression": "Add dimensions, go from integral → differential",
-    "part_2_shift": "Now consider solver difficulties with these equations",
-    "part_3_shift": "Examine how OpenFOAM implements these equations",
-    "part_4_shift": "Verify understanding through exercises and code verification"
+    "boilerplate_policy": "include_excerpts",
+    "concept_first": [
+      "diagrams",
+      "introduction",
+      "overview"
+    ],
+    "progressive_complexity": [
+      "beginner",
+      "intermediate",
+      "advanced",
+      "professional"
+    ]
   }
 }

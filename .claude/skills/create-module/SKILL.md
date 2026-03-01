@@ -1,11 +1,11 @@
 ---
 name: create-module
-description: Create and revise MODULE content with Source-First verification for custom CFD engine implementation
+description: Create and revise MODULE content with Source-First verification for C++ learning through OpenFOAM
 ---
 
 # Module Creation Workflow
 
-Transform MODULE content from general OpenFOAM usage to custom CFD engine implementation for R410A refrigerant evaporator simulation.
+Create comprehensive MODULE content for C++ and Software Engineering learning through OpenFOAM case studies.
 
 ## Core Process
 
@@ -14,10 +14,10 @@ When creating or revising MODULE content, follow this workflow:
 1. **Load Module Config** - Read existing MODULE structure
 2. **Extract Ground Truth** - Use extract_facts.py from OpenFOAM source
 3. **Verify Ground Truth** - Ensure extraction succeeded
-4. **Generate/Revise Content** - Create implementation-focused content
-5. **Verify Math** - DeepSeek R1 checks derivations
-6. **Verify Code** - DeepSeek Chat V3 checks C++ syntax
-7. **Apply Verification Gates** - All 9 gates must pass
+4. **Generate/Revise Content** - Create C++ learning-focused content
+5. **Verify Math** - DeepSeek R1 checks algorithm derivations
+6. **Verify Code** - DeepSeek Chat V3 checks C++ syntax and patterns
+7. **Apply Verification Gates** - All 6 gates must pass
 8. **Generate Final Content** - Output verified content
 9. **Save to Module** - Write to MODULE directory
 
@@ -25,67 +25,104 @@ When creating or revising MODULE content, follow this workflow:
 
 | Stage | Primary Model | Purpose |
 |-------|---------------|---------|
-| Ground Truth | `extract_facts.py` | Extract from OpenFOAM source |
-| Math Derivations | DeepSeek R1 | Verify expansion term, TVD conditions |
-| Code Implementation | DeepSeek Chat V3 | Verify C++ syntax and practices |
+| Ground Truth | `extract_facts.py` | Extract C++ patterns from OpenFOAM source |
+| Algorithm Analysis | DeepSeek R1 | Verify algorithm correctness and complexity |
+| Code Implementation | DeepSeek Chat V3 | Verify C++ syntax, patterns, and best practices |
 | Content Generation | GLM-4.7 | Generate draft content |
 | Final Verification | DeepSeek R1 + V3 | Double-check all claims |
 
 ## Verification Gates
 
-### Gates 1-6: Standard (from source-first skill)
-- File structure, ground truth, equations, code, implementation, coherence
+### Gate 1: File Structure
+- MODULE has proper directory layout
+- Source files exist and are readable
+- Content organized by topics
 
-### Gate 7: Two-Phase Physics
-- Void fraction bounded [0,1]
-- Density ratio handled correctly (ρ_v/ρ_l ≈ 1/30 for R410A)
-- Surface tension included
-- Interface compression present
+### Gate 2: Ground Truth
+- C++ patterns extracted from actual OpenFOAM source
+- Class hierarchies verified
+- File paths and line numbers included
 
-### Gate 8: Expansion Term
-- Derivation mathematically sound
-- Sign convention correct (ṁ positive for evaporation)
-- Implemented in pressure equation
-- Density ratio terms correct
+### Gate 3: Mathematical Content
+- Algorithm derivations complete
+- Complexity analysis correct
+- Big-O notation accurate
 
-### Gate 9: Property Integration
-- CoolProp API correct
-- R410A properties accurate
-- Table interpolation valid
-- Temperature ranges appropriate
+### Gate 4: Code Verification
+- C++ syntax correct
+- Modern C++ standards followed (C++11/14/17)
+- OpenFOAM patterns used correctly
 
-## Module Revision Strategy
+### Gate 5: Implementation Practice
+- Mini-implementations provided
+- Compilation instructions included
+- Testing procedures explained
 
-### Phase 1: Create New Days (Priority)
+### Gate 6: Coherence
+- Theory matches code examples
+- Progressive overload maintained
+- Learning objectives met
 
-**Day 11: Expansion Term** (CRITICAL)
-- Mathematical derivation
-- Implementation in pressure equation
-- Lee evaporation model
+## Module Content Strategy
 
-**Day 10: Two-Phase Flow**
-- VOF method theory
-- Void fraction and quality
-- Large density ratio handling
+### Phase 1: C++ Through OpenFOAM's Eyes (Days 1-14)
+Focus on fundamental C++ patterns in OpenFOAM:
 
-**Day 12: Refrigerant Properties**
-- CoolProp integration
-- R410A property tables
-- Temperature-dependent properties
+**Day 01-03: Smart Pointers & Memory Management**
+- autoPtr, tmp, refPtr
+- RAII principles
+- Memory safety patterns
 
-### Phase 2: Revise Existing Days
+**Day 04-07: Templates & Generic Programming**
+- Template classes in OpenFOAM
+- Expression templates
+- Compile-time polymorphism
 
-| Day | Current Focus | New Focus | Key Changes |
-|-----|--------------|-----------|-------------|
-| 01 | General N-S | R410A evaporator N-S | Add source terms |
-| 02 | Cartesian FVM | Cylindrical FVM | Radial/axial discretization |
-| 03 | Generic schemes | Tube-specific schemes | Near-wall treatment |
-| 04 | Time stepping | VOF-stable time stepping | CFL for two-phase |
-| 05 | General mesh | Cylindrical O-grid | Tube mesh generation |
-| 06 | Generic BCs | Evaporator BCs | Heat flux, saturation |
-| 07 | Sparse matrices | LDU for cylindrical | Matrix optimization |
-| 08 | Iterative solvers | Two-phase solvers | Convergence criteria |
-| 09 | SIMPLE/PISO | PISO with expansion | Modified pressure eq |
+**Day 08-10: Object-Oriented Design**
+- Virtual functions and polymorphism
+- Abstract base classes
+- RTTI and run-time selection
+
+**Day 11-14: Advanced C++ Features**
+- Function objects and lambdas
+- STL integration
+- Move semantics
+
+### Phase 2: Data Structures & Memory (Days 15-28)
+Focus on data structures used in OpenFOAM:
+
+**Key Topics:**
+- UList, List, PtrList implementations
+- Field containers
+- Mesh data structures
+- Hash tables and dictionaries
+
+### Phase 3: Software Architecture (Days 29-42)
+Focus on design patterns and architecture:
+
+**Key Topics:**
+- Factory pattern (run-time selection)
+- Strategy pattern (discretization schemes)
+- Observer pattern (boundary conditions)
+- Plugin architecture
+
+### Phase 4: Performance Optimization (Days 43-56)
+Focus on profiling and optimization:
+
+**Key Topics:**
+- Profiling tools and techniques
+- Memory access patterns
+- Cache optimization
+- Parallel computing basics
+
+### Phase 5: Focused Implementation (Days 57-84)
+Comprehensive CFD component implementation:
+
+**Key Topics:**
+- Complete solver implementation
+- Custom boundary conditions
+- Discretization schemes
+- Turbulence models
 
 ## Markers
 

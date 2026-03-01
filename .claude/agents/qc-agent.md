@@ -319,7 +319,7 @@ Verify that generated CFD learning content meets quality standards consistent wi
 - **Must have**:
   - HERO CONCEPT clearly identified and highlighted
   - Full derivation with step-by-step explanation
-  - R410A refrigerant examples with numerical calculations
+  - OpenFOAM source code examples with file paths and line numbers
   - Physical significance explained
 
 ### 5. Exercises (Weight: 10%)
@@ -372,7 +372,7 @@ Return your analysis in this structure:
 4. HERO CONCEPT: XX%
    - Present: Yes/No
    - Full derivation: Yes/No
-   - R410A examples: Yes/No
+   - Code examples: Yes/No
 5. Exercises: XX%
    - Count: X
    - Solutions: Yes/No
@@ -430,7 +430,7 @@ Return your analysis in this structure:
 
 **Overall**: 0.05 → FAIL ❌
 
-**Regeneration prompt**: "Content quality severely below standards. Please regenerate with:\n1. Target ≥1900 lines\n2. Complete mathematical derivations for all BC types (Dirichlet, Neumann, Robin)\n3. Add OpenFOAM source code analysis with file paths and line numbers\n4. Include R410A evaporator BC examples\n5. Add ≥6 exercises with detailed solutions\n6. Add ≥3 Mermaid diagrams"
+**Regeneration prompt**: "Content quality severely below standards. Please regenerate with:\n1. Target ≥1900 lines\n2. Complete mathematical derivations for all BC types (Dirichlet, Neumann, Robin)\n3. Add OpenFOAM source code analysis with file paths and line numbers\n4. Include practical C++ implementation examples\n5. Add ≥6 exercises with detailed solutions\n6. Add ≥3 Mermaid diagrams"
 
 ---
 
@@ -521,7 +521,7 @@ EOF
 **Common errors:**
 - Missing opening brace { for divSchemes, fluxSchemes, etc.
 - Unbalanced braces in solver definitions
-- Typos like R4A10A instead of R410A
+- Typos in class names (e.g., upw instead of upwind)
 
 ### 5. Language Tags
 

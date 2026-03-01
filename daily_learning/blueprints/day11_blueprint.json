@@ -1,0 +1,90 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "day": "11",
+    "topic": "Day 11 Topic",
+    "phase": "C++ Through OpenFOAM's Eyes",
+    "phase_id": "Phase_01_CppThroughOpenFOAM",
+    "template": "cpp_deep_dive",
+    "template_type": "code_reading",
+    "purpose": "Analyze C++ patterns in OpenFOAM source code through guided reading and implementation",
+    "generated_at": "2026-03-01T14:46:41.105697"
+  },
+  "template": {
+    "name": "C++ Deep Dive",
+    "type": "code_reading",
+    "progressive_overload": "pattern identification, source code reading, implementation exercise, testing and trade-offs",
+    "boilerplate_policy": "include_excerpts",
+    "code_ratio": 0.65
+  },
+  "structure": {
+    "parts": [
+      {
+        "id": "p1",
+        "title": "Pattern Identification",
+        "ratio": 0.2,
+        "readability": "beginner",
+        "approach": "conceptual",
+        "content_type": "theory",
+        "guideline": "What is the pattern? Why does OpenFOAM use it? What problem does it solve?",
+        "estimated_lines": 180
+      },
+      {
+        "id": "p2",
+        "title": "Source Code Reading",
+        "ratio": 0.35,
+        "readability": "intermediate",
+        "approach": "code_analysis",
+        "content_type": "code_reading",
+        "guideline": "Line-by-line analysis of actual OpenFOAM .H and .C files with file:line references",
+        "estimated_lines": 315
+      },
+      {
+        "id": "p3",
+        "title": "Implementation Exercise",
+        "ratio": 0.3,
+        "readability": "advanced",
+        "approach": "hands_on",
+        "content_type": "code",
+        "guideline": "Write your own version of the pattern, test it, compare with OpenFOAM",
+        "estimated_lines": 270
+      },
+      {
+        "id": "p4",
+        "title": "Design Trade-offs & Testing",
+        "ratio": 0.15,
+        "readability": "professional",
+        "approach": "analysis",
+        "content_type": "validation",
+        "guideline": "Compare alternatives, benchmark performance, discuss when to use this pattern",
+        "estimated_lines": 135
+      }
+    ]
+  },
+  "content_requirements": {
+    "topics_to_cover": [
+      "Introduction to Phase Change",
+      "Lee Model for Mass Transfer",
+      "Latent Heat Calculations",
+      "Energy Equation with Phase Change",
+      "The Expansion Term"
+    ],
+    "formulas_to_include": [],
+    "class_hierarchy": {}
+  },
+  "rules": {
+    "ratio_tolerance": 0.05,
+    "boilerplate_policy": "include_excerpts",
+    "concept_first": [
+      "diagrams",
+      "introduction",
+      "overview"
+    ],
+    "progressive_complexity": [
+      "beginner",
+      "intermediate",
+      "advanced",
+      "professional"
+    ]
+  }
+}

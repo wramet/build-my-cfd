@@ -1,144 +1,84 @@
 {
-  "day": "02",
-  "topic": "Finite Volume Method Basics - From PDE to Algebraic Equations",
-  "template": "mathematician",
-  "template_rationale": "Theory-heavy topic requiring mathematical derivation of Gauss divergence theorem and its discretization",
-  "generation_date": "2026-02-01",
-  "skeleton_file": "daily_learning/skeletons/day02_skeleton.json",
-  "verified_facts_file": "/tmp/verified_facts_day02.json",
+  "metadata": {
+    "version": "1.0",
+    "day": "02",
+    "topic": "Template Specialization \u2014 How OpenFOAM Handles Scalar vs Vector",
+    "phase": "C++ Through OpenFOAM's Eyes",
+    "phase_id": "Phase_01_CppThroughOpenFOAM",
+    "template": "cpp_deep_dive",
+    "template_type": "code_reading",
+    "purpose": "Analyze C++ patterns in OpenFOAM source code through guided reading and implementation",
+    "generated_at": "2026-03-01T14:45:33.999711"
+  },
+  "template": {
+    "name": "C++ Deep Dive",
+    "type": "code_reading",
+    "progressive_overload": "pattern identification, source code reading, implementation exercise, testing and trade-offs",
+    "boilerplate_policy": "include_excerpts",
+    "code_ratio": 0.65
+  },
   "structure": {
-    "template": "mathematician",
     "parts": [
       {
         "id": "p1",
-        "title": "Core Theory - Gauss Divergence Theorem",
-        "ratio": 0.30,
+        "title": "Pattern Identification",
+        "ratio": 0.2,
         "readability": "beginner",
-        "approach": "derivations",
+        "approach": "conceptual",
         "content_type": "theory",
-        "guideline": "Start with control volume concept, derive Gauss theorem from first principles. Show 1D case for intuition, extend to 3D. Include physical interpretation of each term.",
-        "key_equations": [
-          "∫_V ∇·U dV = ∮_S U·dS (Gauss divergence theorem) ⭐",
-          "S_f = n_f A_f (Face area vector) ⭐",
-          "∇φ ≈ (1/V_P) Σ_f φ_f S_f (Discrete gradient) ⭐",
-          "(∇·U)_P ≈ (1/V_P) Σ_f U_f·S_f (Discrete divergence) ⭐"
-        ]
+        "guideline": "What is the pattern? Why does OpenFOAM use it? What problem does it solve?",
+        "estimated_lines": 180
       },
       {
         "id": "p2",
-        "title": "Physical Challenge - Why FVM Works for CFD",
-        "ratio": 0.20,
+        "title": "Source Code Reading",
+        "ratio": 0.35,
         "readability": "intermediate",
-        "approach": "problem_solving",
-        "content_type": "analysis",
-        "guideline": "Explain conservation laws in FVM context. Show owner-neighbor convention with flux signs. Connect to R410A two-phase flow requirements.",
-        "key_challenges": [
-          "Flux conservation between cells ⭐",
-          "Owner-neighbor convention in OpenFOAM",
-          "Why interpolation is needed (preview of Day 03)",
-          "Conservation critical for two-phase evaporation"
-        ]
+        "approach": "code_analysis",
+        "content_type": "code_reading",
+        "guideline": "Line-by-line analysis of actual OpenFOAM .H and .C files with file:line references",
+        "estimated_lines": 315
       },
       {
         "id": "p3",
-        "title": "Architecture & Implementation in OpenFOAM",
-        "ratio": 0.35,
+        "title": "Implementation Exercise",
+        "ratio": 0.3,
         "readability": "advanced",
-        "approach": "code_first",
+        "approach": "hands_on",
         "content_type": "code",
-        "guideline": "Show Mermaid class diagrams BEFORE code. Explain fvc::surfaceIntegrate line-by-line. Include file paths and line numbers for all verified code.",
-        "key_classes": [
-          "divScheme<Type> (base)",
-          "gaussDivScheme<Type> (Gauss theorem)",
-          "gradScheme<Type> (base)",
-          "gaussGrad<Type> (Gauss theorem)"
-        ],
-        "key_functions": [
-          "fvc::surfaceIntegrate (fvcSurfaceIntegrate.C:42-76) ⭐",
-          "Owner-neighbor flux handling (lines 56-60)",
-          "Boundary face handling (lines 62-73)",
-          "Volume normalization (line 75)"
-        ]
+        "guideline": "Write your own version of the pattern, test it, compare with OpenFOAM",
+        "estimated_lines": 270
       },
       {
         "id": "p4",
-        "title": "Quality Assurance - Verification Exercises",
+        "title": "Design Trade-offs & Testing",
         "ratio": 0.15,
         "readability": "professional",
-        "approach": "testing",
+        "approach": "analysis",
         "content_type": "validation",
-        "guideline": "Provide 6+ concept check questions with detailed solutions. Include code verification exercises that reference actual source files.",
-        "exercise_types": [
-          "Derivation of Gauss theorem",
-          "Owner-neighbor flux convention",
-          "Surface area vector interpretation",
-          "Connection to Day 01 equations",
-          "Code trace through fvc::surfaceIntegrate",
-          "Discrete formula verification"
-        ]
+        "guideline": "Compare alternatives, benchmark performance, discuss when to use this pattern",
+        "estimated_lines": 135
       }
     ]
   },
+  "content_requirements": {
+    "topics_to_cover": [],
+    "formulas_to_include": [],
+    "class_hierarchy": {}
+  },
   "rules": {
-    "boilerplate_policy": "quarantine_to_appendix",
     "ratio_tolerance": 0.05,
-    "code_first": false,
-    "concept_first": true,
-    "diagrams_before_code": true,
-    "all_facts_marked": true,
-    "file_paths_required": true,
-    "line_numbers_required": true
-  },
-  "critical_for_phase_1": true,
-  "foundation_importance": "All FVM discretization in OpenFOAM relies on Gauss theorem",
-  "prerequisites": [
-    "Day 01: Governing Equations - need to know what equations we're discretizing"
-  ],
-  "learning_outcomes": [
-    "Derive Gauss divergence theorem from integral calculus",
-    "Understand control volume concept and mesh topology",
-    "Trace OpenFOAM's fvc::surfaceIntegrate implementation",
-    "Connect continuous PDEs to discrete algebraic equations"
-  ],
-  "connections_to_future_days": [
-    {
-      "day": "03",
-      "topic": "Spatial Discretization Schemes",
-      "connection": "Face interpolation - how to get φ_f from φ_P for Gauss theorem"
-    },
-    {
-      "day": "04",
-      "topic": "Temporal Discretization",
-      "connection": "Time derivative combined with spatial divergence"
-    },
-    {
-      "day": "05",
-      "topic": "Mesh Topology Concepts",
-      "connection": "Detailed structure of cells, faces, points"
-    },
-    {
-      "day": "27-29",
-      "topic": "FVM Operators (fvm::ddt, fvm::div, fvm::laplacian)",
-      "connection": "All use Gauss theorem via fvc::surfaceIntegrate"
-    }
-  ],
-  "r410a_relevance": {
-    "conservation_critical": true,
-    "fvm_importance": "Strict mass and energy conservation required for phase change",
-    "expansion_term": "∇·U = ṁ(1/ρᵥ - 1/ρₗ) requires accurate divergence calculation",
-    "energy_conservation": "Latent heat absorption requires accurate energy flux calculation"
-  },
-  "progressive_overload_notes": {
-    "part_1_start": "Begin with 1D control volume, add dimensions, derive Gauss theorem",
-    "part_1_progression": "Build from integral form to discrete algebraic form",
-    "part_2_shift": "Now consider practical CFD challenges - conservation, flux handling",
-    "part_3_shift": "Examine how OpenFOAM implements these mathematical concepts",
-    "part_4_shift": "Verify understanding through derivations and code tracing"
-  },
-  "hero_concept": {
-    "name": "Gauss Divergence Theorem",
-    "derivation_required": true,
-    "r410a_application": "Mass conservation during evaporation requires ∫∇·U dV = ∮U·dS to hold exactly",
-    "roadmap_days": ["02 (theory)", "27 (fvm::div)", "61 (expansion term)"]
+    "boilerplate_policy": "include_excerpts",
+    "concept_first": [
+      "diagrams",
+      "introduction",
+      "overview"
+    ],
+    "progressive_complexity": [
+      "beginner",
+      "intermediate",
+      "advanced",
+      "professional"
+    ]
   }
 }
