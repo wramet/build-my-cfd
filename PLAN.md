@@ -348,6 +348,46 @@ Learning **intermediate-to-advanced C++ and software engineering** through OpenF
 
 ### Tooling Issues
 
+#### Issue 3a: Path Mismatch in phase_mapping.yaml ← NEW (found 2026-03-01)
+**Description:** `phase_mapping.yaml` listed folder `Phase_02_DataStructuresMemory` but actual disk folder is `Phase_02_DataStructures_Memory`
+**Impact:** Any script using `phase_utils.py` to build Phase 2 file paths would produce wrong path
+**Root Cause:** Typo introduced during Phase 0 config creation
+**Fix Applied:** Updated `phase_mapping.yaml` `id` and `folder` fields to `Phase_02_DataStructures_Memory`
+**Status:** ✅ RESOLVED
+
+#### Issue 3b: Stale Output Path in workflow.md ← NEW (found 2026-03-01)
+**Description:** `content-creation/references/workflow.md` Stage 4 listed `Phase_01_Foundation_Theory/XX.md` (old R410A path)
+**Impact:** Misleading documentation; new user would write to wrong folder
+**Root Cause:** Workflow doc not updated when curriculum changed from R410A to C++
+**Fix Applied:** Updated to generic `Phase_0X_<PhaseName>/XX.md` with reference to `phase_utils.py`
+**Status:** ✅ RESOLVED
+
+#### Issue 3c: Old Leftover Folders in daily_learning/ ← NEW (found 2026-03-01)
+**Description:** `Phase_01_Foundation_Theory/`, `Phase_02_Geometry_Mesh/`, `Day03_SpatialDiscretization/` still exist
+**Impact:** Confusion when navigating the curriculum directory
+**Root Cause:** Incomplete cleanup during Phase 0 curriculum transition
+**Fix Applied:** Documented; scheduled for Phase 6 cleanup
+**Prevention:** Add folder audit to Phase 6 task list
+**Status:** ⏸️ PENDING (Phase 6)
+
+#### Issue 3d: Phase 2 Topic Deviation from Roadmap ← NEW (found 2026-03-01)
+**Description:** Generated content deviated from roadmap starting Day 18. Added IndirectList, BiIndirectList, PtrList (not in roadmap); moved fvMatrix assembly coverage into mini-project only
+**Impact:** Some standalone coverage of fvMatrix/cache patterns from roadmap is absent
+**Root Cause:** Bulk AI generation without strict roadmap topic enforcement per day
+**Fix Applied:** Deviation accepted; documented in WORKFLOW_GUIDE.md
+**Status:** ✅ ACCEPTED (content coverage is adequate; not regenerating)
+
+#### Issue 3e: DeepSeek API Non-Functional ← RESOLVED (found + fixed 2026-03-01)
+**Description:** DeepSeek API key returned 401 (invalid). MCP server path pointed to non-existent `th_new` dir.
+**Impact:** All documented DeepSeek verification stages (3, 4, 5 in ideal workflow) were unavailable.
+**Root Cause:** API key expired/invalid; MCP server path not updated when project moved to `Build My CFD`
+**Fix Applied:**
+- New API key set in both `.mcp.json` (worktree) and parent `Build My CFD/.mcp.json`
+- Server path corrected to `.claude/mcp/deepseek_mcp_server.py` (worktree-local)
+- Both `deepseek-chat` (V3) and `deepseek-reasoner` (R1) confirmed working (HTTP 200)
+- Restart Claude Code for MCP changes to take effect
+**Status:** ✅ RESOLVED
+
 #### Issue 3: Too Many Verification Scripts
 **Description:** 17 verify_*.py scripts with unclear purposes
 **Impact:** Confusing workflow
@@ -453,8 +493,9 @@ Learning **intermediate-to-advanced C++ and software engineering** through OpenF
 
 - **roadmap.md** - 84-session learning curriculum
 - **CLAUDE.md** - Project documentation
+- **WORKFLOW_GUIDE.md** - ⭐ How content is actually generated (actual vs ideal workflow)
 - **QUALITY_AUDIT_REPORT.md** - Detailed audit of Phases 1-2
-- **.claude/config/phase_mapping.yaml** - Day → Phase mapping
+- **.claude/config/phase_mapping.yaml** - Day → Phase mapping (source of truth for paths)
 - **.claude/tasks/curriculum_tasks.yaml** - Official task tracker
 
 ---

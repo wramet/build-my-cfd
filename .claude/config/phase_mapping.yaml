@@ -42,11 +42,11 @@ phases:
       - "src/OpenFOAM/memory/"
       - "src/finiteVolume/interpolation/surfaceInterpolation/"
 
-  - id: "Phase_02_DataStructuresMemory"
+  - id: "Phase_02_DataStructures_Memory"
     name: "Data Structures & Memory"
     short_name: "DS & Memory"
     days: [15, 28]
-    folder: "Phase_02_DataStructuresMemory"
+    folder: "Phase_02_DataStructures_Memory"
     target_lines: 1000
     template: "cpp_deep_dive"
     content_focus: "data_structures"

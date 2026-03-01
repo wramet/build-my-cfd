@@ -110,7 +110,7 @@ Detailed step-by-step instructions for the 6-stage content creation workflow.
 
 **Model:** DeepSeek Chat V3 (Direct API)
 
-**Output:** `Phase_01_Foundation_Theory/XX.md`
+**Output:** `Phase_0X_<PhaseName>/XX.md` (use `phase_utils.py` to resolve correct folder)
 
 ---
 
