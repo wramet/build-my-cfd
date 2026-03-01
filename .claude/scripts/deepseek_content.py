@@ -40,6 +40,64 @@ def call_deepseek_chat(messages, max_tokens=8192, temperature=0.7):
     response.raise_for_status()
     return response.json()
 
+def validate_content(content):
+    """
+    Validate generated content meets structural quality requirements.
+
+    Returns: (is_valid, issues_list)
+    """
+    issues = []
+    lines = content.split('\n')
+
+    # Check 1: No debug pollution
+    first_line = lines[0].strip() if lines else ""
+    if first_line.startswith("Calling") or first_line.startswith("Error:") or first_line.startswith("Usage:"):
+        issues.append(f"Debug pollution detected: '{first_line}'")
+
+    # Check 2: Starts with header
+    if not first_line.startswith("# Day") and not first_line.startswith("# "):
+        issues.append(f"Invalid first line (should start with '# Day'): '{first_line[:50]}'")
+
+    # Check 3: Has required sections
+    required_sections = ["## Appendix: Complete File Listings"]
+    for section in required_sections:
+        if section not in content:
+            issues.append(f"Missing required section: {section}")
+
+    # Check 4: Warn if suspiciously short (but don't fail)
+    if len(lines) < 300:
+        issues.append(f"Warning: Content seems short ({len(lines)} lines) - verify completeness")
+
+    return len(issues) == 0, issues
+
+
+def clean_content(content):
+    """
+    Remove common debug artifacts from content.
+    """
+    lines = content.split('\n')
+    cleaned = []
+
+    skip_patterns = [
+        "Calling ",
+        "Usage:",
+        "Error:",
+        "Models:",
+    ]
+
+    for line in lines:
+        # Skip lines that match debug patterns at the start
+        is_debug = False
+        for pattern in skip_patterns:
+            if line.strip().startswith(pattern):
+                is_debug = True
+                break
+        if not is_debug:
+            cleaned.append(line)
+
+    return '\n'.join(cleaned)
+
+
 def call_deepseek_reasoner(messages, max_tokens=8192, temperature=0.7):
     """
     Call DeepSeek R1 (reasoner) API directly
@@ -88,7 +146,7 @@ def main():
     messages = [{"role": "user", "content": prompt_text}]
 
     try:
-        print(f"Calling {model}...", file=sys.stderr)
+        # Removed debug output to prevent pollution in content files
 
         if model == "deepseek-chat":
             response = call_deepseek_chat(messages)
@@ -98,9 +156,24 @@ def main():
             print(f"Error: Unknown model: {model}", file=sys.stderr)
             sys.exit(1)
 
-        # Print response
+        # Get and clean content
         if "choices" in response and len(response["choices"]) > 0:
-            print(response["choices"][0]["message"]["content"])
+            raw_content = response["choices"][0]["message"]["content"]
+
+            # Clean any debug artifacts
+            content = clean_content(raw_content)
+
+            # For content generation (deepseek-chat), validate quality
+            if model == "deepseek-chat":
+                is_valid, issues = validate_content(content)
+                if not is_valid:
+                    print("Content validation failed:", file=sys.stderr)
+                    for issue in issues:
+                        print(f"  - {issue}", file=sys.stderr)
+                    # Still output content, but warn user
+                    print("⚠️  WARNING: Content quality issues detected (see stderr above)", file=sys.stderr)
+
+            print(content)
         else:
             print("Error: No response content", file=sys.stderr)
             print(json.dumps(response, indent=2), file=sys.stderr)

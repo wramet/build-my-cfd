@@ -49,6 +49,21 @@ For inline: $equation$
 | Absolute | `|r|` | $|r|$ |
 | Vector | `\mathbf{U}` or `\vec{U}` | $\mathbf{U}$ |
 
+### 🔒 CRITICAL: Vector Notation for Obsidian MathJax
+
+**❌ FORBIDDEN - These will NOT render in Obsidian:**
+- `\bfS`, `\bfF`, `\bfU`, `\bf n` - Invalid (no space/braces)
+- `\bf{S}` - Old LaTeX, not supported by MathJax
+- `\mathbf S` - Missing braces
+
+**✅ REQUIRED - Use these formats:**
+- `\mathbf{S}` - Bold surface vector
+- `\mathbf{F}` - Bold force/flux vector
+- `\mathbf{U}` - Bold velocity vector
+- `\mathbf{n}` - Bold unit normal
+
+**Why:** Obsidian uses MathJax which requires `\mathbf{}` with braces. The `\bf` command is old LaTeX that doesn't work without braces.
+
 ## Mermaid Diagram Standards
 
 ### Class Diagrams
