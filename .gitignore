@@ -5,7 +5,21 @@
 # Proxy logs
 proxy.log
 *.log
+
+# Python cache
 *.pyc
 __pycache__/
+
+# Backup files
 *.backup
+*.bak
+
+# Temporary reports and verification files
+*report.md
+*verification*.txt
+verification_results.txt
+final_verification.txt
+commit_report.md
+
+# macOS
 .DS_Store
