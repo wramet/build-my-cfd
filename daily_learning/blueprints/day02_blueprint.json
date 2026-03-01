@@ -2,174 +2,73 @@
   "metadata": {
     "version": "1.0",
     "day": "02",
-    "topic": "FVM Basics",
-    "phase": "Foundation Theory",
-    "r410a_integration": "15%",
-    "template": "mathematician",
-    "template_type": "theory_heavy",
-    "purpose": "Derive and explain mathematical concepts with rigorous proofs",
-    "generated_at": "2026-01-31T12:01:39.952332"
-  },
-  "r410a_context": {
-    "application": "Evaporator two-phase flow",
-    "refrigerant": "R410A",
-    "conditions": "P = 1.0-1.2 MPa, T = 280-285 K"
+    "topic": "Template Specialization \u2014 How OpenFOAM Handles Scalar vs Vector",
+    "phase": "C++ Through OpenFOAM's Eyes",
+    "phase_id": "Phase_01_CppThroughOpenFOAM",
+    "template": "cpp_deep_dive",
+    "template_type": "code_reading",
+    "purpose": "Analyze C++ patterns in OpenFOAM source code through guided reading and implementation",
+    "generated_at": "2026-03-01T14:45:33.999711"
   },
   "template": {
-    "name": "Mathematician",
-    "type": "theory_heavy",
-    "progressive_overload": "core theory, physical challenge, architecture, QA",
-    "boilerplate_policy": "quarantine_to_appendix",
-    "code_ratio": 0.25
+    "name": "C++ Deep Dive",
+    "type": "code_reading",
+    "progressive_overload": "pattern identification, source code reading, implementation exercise, testing and trade-offs",
+    "boilerplate_policy": "include_excerpts",
+    "code_ratio": 0.65
   },
   "structure": {
     "parts": [
       {
         "id": "p1",
-        "title": "Core Theory",
-        "ratio": 0.3,
+        "title": "Pattern Identification",
+        "ratio": 0.2,
         "readability": "beginner",
-        "approach": "derivations",
+        "approach": "conceptual",
         "content_type": "theory",
-        "guideline": "Start with basic concepts, build to full derivations",
-        "estimated_lines": 240
+        "guideline": "What is the pattern? Why does OpenFOAM use it? What problem does it solve?",
+        "estimated_lines": 180
       },
       {
         "id": "p2",
-        "title": "Physical Challenge",
-        "ratio": 0.2,
+        "title": "Source Code Reading",
+        "ratio": 0.35,
         "readability": "intermediate",
-        "approach": "problem solving",
-        "content_type": "analysis",
-        "guideline": "Show practical problems and solutions",
-        "estimated_lines": 160
+        "approach": "code_analysis",
+        "content_type": "code_reading",
+        "guideline": "Line-by-line analysis of actual OpenFOAM .H and .C files with file:line references",
+        "estimated_lines": 315
       },
       {
         "id": "p3",
-        "title": "Architecture & Implementation",
-        "ratio": 0.35,
+        "title": "Implementation Exercise",
+        "ratio": 0.3,
         "readability": "advanced",
-        "approach": "code first",
+        "approach": "hands_on",
         "content_type": "code",
-        "guideline": "Show class diagrams before implementation",
-        "estimated_lines": 280
+        "guideline": "Write your own version of the pattern, test it, compare with OpenFOAM",
+        "estimated_lines": 270
       },
       {
         "id": "p4",
-        "title": "Quality Assurance",
+        "title": "Design Trade-offs & Testing",
         "ratio": 0.15,
         "readability": "professional",
-        "approach": "testing",
+        "approach": "analysis",
         "content_type": "validation",
-        "guideline": "Verify with unit tests and benchmarks",
-        "estimated_lines": 120
-      },
-      {
-        "id": "p5",
-        "title": "R410A Evaporator Application",
-        "ratio": 0.15,
-        "readability": "intermediate",
-        "approach": "application",
-        "content_type": "domain_specific",
-        "guideline": "Connect general theory to R410A evaporator simulation",
-        "sections": [
-          "5.1 Why it matters for R410A evaporator",
-          "5.2 R410A property data",
-          "5.3 Equation modifications for R410A",
-          "5.4 Implementation preview (OpenFOAM code)"
-        ],
-        "estimated_lines": 120
+        "guideline": "Compare alternatives, benchmark performance, discuss when to use this pattern",
+        "estimated_lines": 135
       }
     ]
   },
   "content_requirements": {
     "topics_to_cover": [],
-    "formulas_to_include": [
-      {
-        "name": "gauss_divergence_theorem",
-        "latex": "",
-        "source": ""
-      },
-      {
-        "name": "discrete_gradient",
-        "latex": "",
-        "source": ""
-      },
-      {
-        "name": "face_loop_accumulation",
-        "latex": "",
-        "source": ""
-      },
-      {
-        "name": "volume_normalization",
-        "latex": "",
-        "source": ""
-      },
-      {
-        "name": "fvm_namespace_description",
-        "latex": "",
-        "source": ""
-      }
-    ],
-    "class_hierarchy": {
-      "fvMesh": {
-        "bases": [
-          "polyMesh",
-          "lduMesh",
-          "surfaceInterpolation"
-        ],
-        "description": "Mesh data needed to do the Finite Volume discretisation",
-        "key_members": {
-          "V()": "Return cell volumes",
-          "Sf()": "Return cell face area vectors",
-          "magSf()": "Return cell face area magnitudes",
-          "C()": "Return cell centres",
-          "Cf()": "Return face centres",
-          "owner()": "Internal face owner",
-          "neighbour()": "Internal face neighbour"
-        },
-        "source_file": "openfoam_temp/src/finiteVolume/fvMesh/fvMesh.H"
-      },
-      "fvSchemes": {
-        "bases": [
-          "IOdictionary"
-        ],
-        "description": "Selector class for finite volume differencing schemes",
-        "key_schemes": {
-          "ddtSchemes_": "Temporal discretization schemes",
-          "divSchemes_": "Divergence schemes using Gauss theorem",
-          "gradSchemes_": "Gradient schemes using Gauss theorem",
-          "laplacianSchemes_": "Laplacian schemes",
-          "interpolationSchemes_": "Face interpolation schemes"
-        },
-        "source_file": "openfoam_temp/src/finiteVolume/finiteVolume/fvSchemes/fvSchemes.H"
-      },
-      "gaussGrad": {
-        "bases": [
-          "gradScheme<Type>"
-        ],
-        "description": "Basic second-order gradient scheme using face-interpolation and Gauss' theorem",
-        "key_methods": {
-          "gradf()": "Return gradient using Gauss' theorem on surface field (lines 36-96)",
-          "calcGrad()": "Calculate gradient of volField (lines 99-121)"
-        },
-        "source_file": "openfoam_temp/src/finiteVolume/finiteVolume/gradSchemes/gaussGrad/gaussGrad.H"
-      },
-      "gaussDivScheme": {
-        "bases": [
-          "divScheme<Type>"
-        ],
-        "description": "Basic second-order div using face interpolated values and Gauss' theorem",
-        "key_methods": {
-          "fvcDiv()": "Calculate explicit divergence"
-        },
-        "source_file": "openfoam_temp/src/finiteVolume/finiteVolume/divSchemes/gaussDivScheme/gaussDivScheme.H"
-      }
-    }
+    "formulas_to_include": [],
+    "class_hierarchy": {}
   },
   "rules": {
     "ratio_tolerance": 0.05,
-    "boilerplate_policy": "quarantine_to_appendix",
+    "boilerplate_policy": "include_excerpts",
     "concept_first": [
       "diagrams",
       "introduction",

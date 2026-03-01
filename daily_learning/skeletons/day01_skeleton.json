@@ -1,55 +1,65 @@
 {
-  "day": 1,
-  "topic": "Introduction to CFD and OpenFOAM",
-  "learning_objectives": [
-    "Understand the fundamental concepts and applications of Computational Fluid Dynamics (CFD).",
-    "Grasp the general workflow of a CFD simulation (Pre-processing, Solving, Post-processing).",
-    "Learn the history, philosophy, and open-source nature of OpenFOAM.",
-    "Navigate the OpenFOAM directory structure and understand basic file conventions.",
-    "Run a first, simple tutorial case using the standard OpenFOAM workflow."
-  ],
-  "sections": [
-    {
-      "header": "Core Theory",
-      "subsections": [
-        "What is CFD? Governing Equations (Navier-Stokes).",
-        "CFD Workflow: Geometry, Meshing, Physics Setup, Solving, Analysis.",
-        "Finite Volume Method (FVM) Overview: Discretization, Conservation."
+  "day": "01",
+  "topic": "Templates & Generic Programming — Study Field<Type>",
+  "short_title": "C++ Templates",
+  "template": "cpp_deep_dive",
+  "target_lines": 900,
+  "ground_truth_verified": true,
+  "structure": {
+    "part_1_introduction": {
+      "title": "Part 1: What is Field<Type> and Why Templates?",
+      "lines_target": 150,
+      "content": [
+        "⭐ Verified: Field<Type> is a template class inheriting from List<Type>",
+        "⭐ Verified: Uses C++ templates for generic programming",
+        "⭐ Verified: Located at src/OpenFOAM/fields/Fields/Field/Field.H"
       ]
     },
-    {
-      "header": "OpenFOAM Reference",
-      "subsections": [
-        "OpenFOAM History and Open-Source Philosophy.",
-        "Directory Structure: $FOAM_RUN, $FOAM_TUTORIALS, system/, constant/, 0/.",
-        "File Conventions: Dictionaries, Keywords, Header."
+    "part_2_class_hierarchy": {
+      "title": "Part 2: Field<Type> Class Hierarchy and Design",
+      "lines_target": 250,
+      "content": [
+        "⭐ Verified: Inherits from List<Type> and tmp<Field<Type>>::refCount",
+        "⭐ Verified: Template parameter 'Type' allows any data type",
+        "⭐ Verified: Mermaid diagram showing inheritance",
+        "Code snippets: Field.H class declaration"
       ]
     },
-    {
-      "header": "Implementation",
-      "subsections": [
-        "Setting up the Environment: sourcing bashrc, foamVersion.",
-        "Running a First Tutorial: cavity case using blockMesh, icoFoam, paraFoam.",
-        "Basic Terminal Commands: run, foamListTimes, foamLog."
+    "part_3_template_specialization": {
+      "title": "Part 3: Type Definitions and Template Specializations",
+      "lines_target": 200,
+      "content": [
+        "⭐ Verified: typedef Field<scalar> scalarField",
+        "⭐ Verified: typedef Field<vector> vectorField",
+        "⭐ Verified: typedef Field<tensor> tensorField",
+        "⭐ Verified: typedef Field<label> labelField"
       ]
     },
-    {
-      "header": "Exercises",
-      "subsections": [
-        "Navigate the cavity tutorial directories and identify key files.",
-        "Modify the cavity case endTime and writeInterval, then re-run.",
-        "Use paraFoam to visualize the velocity field and pressure."
+    "part_4_mathematical_operations": {
+      "title": "Part 4: Template Methods and Operator Overloading",
+      "lines_target": 200,
+      "content": [
+        "⭐ Verified: Methods: max(), sum(), sqr(), pow()",
+        "⭐ Verified: Operators: +=, -=, *=, /=, +, -, *, /",
+        "Code analysis: FieldFunctions.H implementation"
+      ]
+    },
+    "part_5_implementation": {
+      "title": "Part 5: Mini-Implementation — Your Own Field<T>",
+      "lines_target": 300,
+      "content": [
+        "Build simplified Field<T> template class",
+        "Inherit from std::vector<T>",
+        "Implement basic operators",
+        "Test with different types (int, double)",
+        "Include compilation instructions"
       ]
     }
-  ],
-  "key_classes": [
-    "fvMesh",
-    "Time",
-    "volVectorField",
-    "volScalarField"
-  ],
-  "key_formulas": [
-    "Continuity Equation: \u2207\u00b7U = 0",
-    "Incompressible Navier-Stokes: \u2202U/\u2202t + (U\u00b7\u2207)U = -\u2207p/\u03c1 + \u03bd\u2207\u00b2U"
-  ]
+  },
+  "quality_gates": {
+    "gate_1": "All ⭐ facts verified from OpenFOAM source",
+    "gate_2": "Mermaid diagram renders correctly",
+    "gate_3": "Code examples compile",
+    "gate_4": "Template syntax is correct"
+  }
 }
