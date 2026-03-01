@@ -1,0 +1,247 @@
+# Project Context for R410A Evaporator CFD Engine
+# This file provides domain-specific context for content generation
+
+project:
+  name: "R410A Evaporator CFD Engine"
+  goal: "Build custom CFD engine for refrigerant two-phase flow with evaporation in tube"
+
+target_application:
+  domain: "HVAC&R (Heating, Ventilation, Air Conditioning & Refrigeration)"
+  component: "Evaporator"
+  refrigerant: "R410A"
+  flow_type: "Two-phase flow with phase change"
+
+geometry:
+  inlet: "Liquid R410A (subcooled)"
+  outlet: "Vapor R410A (superheated)"
+  wall_boundary: "Fixed temperature or fixed heat flux"
+  flow_direction: "Horizontal tube"
+
+physics:
+  primary:
+    - "Navier-Stokes equations"
+    - "Volume of Fluid (VOF) method"
+    - "Phase change (evaporation)"
+    - "Surface tension"
+    - "Heat transfer"
+
+  secondary:
+    - "Turbulence (mixing length model)"
+    - "Property variations"
+    - "Compressibility effects"
+
+refrigerant:
+  name: "R410A"
+  type: "Zeotropic blend (R32/R125)"
+  properties:
+    liquid:
+      density: 1200  # kg/m³
+      viscosity: 1.2e-4  # Pa·s
+      thermal_conductivity: 0.08  # W/m·K
+      specific_heat: 1500  # J/kg·K
+    vapor:
+      density: 70  # kg/m³
+      viscosity: 1.3e-5  # Pa·s
+      thermal_conductivity: 0.014  # W/m·K
+      specific_heat: 1200  # J/kg·K
+    interface:
+      surface_tension: 0.05  # N/m
+      latent_heat: 200000  # J/kg
+    ratios:
+      density: "17:1"
+      viscosity: "10:1"
+      thermal_conductivity: "6:1"
+
+  operating_conditions:
+    pressure: "1.0-1.2 MPa"
+    temperature: "280-285 K (saturation)"
+    quality_range: "0.0 - 1.0"
+
+key_models:
+  phase_change:
+    name: "Lee model"
+    description: "Mass transfer based on enthalpy departure from saturation"
+    equation: "ṁ = ρ_l ρ_v (α/ρ_l) ((1-α)/ρ_v) ((h - h_sat)/h_lv) r"
+
+  surface_tension:
+    name: "Continuum Surface Force (CSF)"
+    description: "Surface tension as volumetric force"
+    equation: "F_σ = σ κ ∇α"
+
+  interface_tracking:
+    name: "Volume of Fluid (VOF)"
+    description: "Sharp interface tracking with compression"
+    equation: "∂α/∂t + ∇·(αU) + ∇·[α(1-α)U_r] = S_α"
+
+openfoam_implementation:
+  base_solver: "interFoam"
+  modifications:
+    - "Add phase change source terms"
+    - "Implement Lee model"
+    - "Add CSF surface tension"
+    - "Implement property lookup tables"
+    - "Add wall boiling model"
+
+  key_classes:
+    - "volScalarField alpha"
+    - "volScalarField mDot"
+    - "surfaceVectorField Fsigma"
+    - "twoPhaseMixtureThermo"
+
+validation_approach:
+  analytical: "Poiseuille flow, Taylor-Green vortex"
+  experimental: "R410A heat transfer coefficient data"
+  numerical: "Grid independence, order of accuracy"
+
+content_requirements:
+  every_day_must_include:
+    - "Connection to R410A evaporator project"
+    - "Concrete property values when applicable"
+    - "Physical interpretation for refrigerant flow"
+    - "OpenFOAM implementation examples"
+
+  avoid:
+    - "Purely theoretical content without application"
+    - "Generic examples unrelated to R410A"
+    - "Missing property data"
+    - "No code implementation"
+
+learning_progression:
+  phase_1_foundation:
+    focus: "Governing equations, FVM, discretization"
+    r410a_connection: "Standard equations → R410A-modified equations"
+
+  phase_2_geometry_mesh:
+    focus: "Tube mesh generation"
+    r410a_connection: "Mesh resolution for interface tracking"
+
+  phase_3_solver_core:
+    focus: "Matrix assembly, solution algorithms"
+    r410a_connection: "Property tables, implicit coupling"
+
+  phase_4_vof_phase_change:
+    focus: "VOF method, phase change models"
+    r410a_connection: "Lee model, CSF, evaporation"
+
+  phase_5_pre_post:
+    focus: "Property tabulation, visualization"
+    r410a_connection: "CoolProp integration, phase visualization"
+
+  phase_6_integration:
+    focus: "Complete R410A evaporator solver"
+    r410a_connection: "Validation against experimental data"
+
+content_structure:
+  foundation:
+    days: [1, 12]
+    phase: "Foundation Theory"
+    r410a_percent: 15
+    parts: [1, 2, 3, 4, 5]
+    description: "Strong CFD foundation with light R410A motivation"
+    target_lines: 800
+
+  geometry:
+    days: [13, 19]
+    phase: "Geometry & Mesh"
+    r410a_percent: 20
+    parts: [1, 2, 3, 4, 5]
+    description: "Meshing fundamentals with R410A two-phase flow requirements"
+    target_lines: 900
+
+  solver:
+    days: [20, 49]
+    phase: "Solver Core"
+    r410a_percent: 25
+    parts: [1, 2, 3, 4, 5]
+    description: "OpenFOAM solver architecture with two-phase R410A handling"
+    target_lines: 1000
+
+  vof_phase_change:
+    days: [50, 77]
+    phase: "VOF & Phase Change"
+    r410a_percent: 80
+    structure_flip: true
+    parts: [1, 2, 3, 4, 5]
+    description: "STRUCTURE FLIP: 20% theory + 80% R410A implementation"
+    target_lines: 1500
+
+  advanced:
+    days: [78, 87]
+    phase: "Advanced Features"
+    r410a_percent: 90
+    parts: [1, 2, 3, 4, 5]
+    description: "10% theory + 90% R410A practical implementation"
+    target_lines: 1500
+
+  integration:
+    days: [88, 90]
+    phase: "Integration & Validation"
+    r410a_percent: 100
+    parts: [1, 2, 3, 4, 5]
+    description: "100% R410A capstone - complete solver assembly"
+    target_lines: 1200
+
+part_5_requirements:
+  title: "R410A Evaporator Application"
+  mandatory: true
+  sections:
+    - id: "5.1"
+      title: "Why it Matters for R410A Evaporator"
+      target_lines: "30-50"
+      content: "Explain connection to evaporator simulation, identify specific R410A challenges"
+
+    - id: "5.2"
+      title: "R410A Property Data"
+      target_lines: "20-40"
+      content: "Include property table with actual values for this topic"
+
+    - id: "5.3"
+      title: "Equation Modifications for R410A"
+      target_lines: "40-60"
+      content: "Show standard equation, R410A-specific equation, explain added terms"
+
+    - id: "5.4"
+      title: "Implementation Preview"
+      target_lines: "30-50"
+      content: "OpenFOAM code snippet showing R410A approach with file references"
+
+  property_reference:
+    liquid_density: 1200  # kg/m³
+    vapor_density: 70
+    liquid_viscosity: 1.2e-4  # Pa·s
+    vapor_viscosity: 1.3e-5
+    thermal_conductivity_liquid: 0.08  # W/m·K
+    thermal_conductivity_vapor: 0.014
+    specific_heat_liquid: 1500  # J/kg·K
+    specific_heat_vapor: 1200
+    surface_tension: 0.05  # N/m
+    latent_heat: 200000  # J/kg
+
+quality_gates:
+  domain_specificity:
+    - "Content mentions R410A or refrigerant"
+    - "Property values provided"
+    - "Equation modifications shown"
+    - "Code examples applicable"
+
+  practical_relevance:
+    - "Can implement directly in OpenFOAM"
+    - "Solves actual project problem"
+    - "Builds toward final R410A solver"
+
+  structure_requirements:
+    - "Part 5 present with all 4 sections"
+    - "R410A integration percentage matches phase"
+    - "Property values accurate for R410A"
+    - "Code snippets syntactically correct"
+
+success_metrics:
+  immediate:
+    - "Learner can recite R410A properties"
+    - "Learner understands equation modifications"
+    - "Learner can write phase change source code"
+
+  long_term:
+    - "Can build complete R410A solver"
+    - "Validates against experimental data"
+    - "Contributes to OpenFOAM community"

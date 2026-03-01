@@ -64,18 +64,39 @@ class QAManager:
             "matrix": ["matrix", "fvmatrix", "ldu", "solver"],
         }
 
-    def capture_question(self, question: str, question_type: str = "clarification") -> Dict:
+        # Optional pre-generated answer and summary (for manual Q&A entry)
+        self.provided_answer = None
+        self.provided_summary = None
+
+    def set_provided_content(self, answer: str, summary: str = None):
+        """Set pre-generated answer and optional summary for manual Q&A entry."""
+        self.provided_answer = answer
+        self.provided_summary = summary or self._generate_summary_from_answer(answer)
+
+    def capture_question(self, question: str, question_type: str = "clarification",
+                         provided_answer: str = None, provided_summary: str = None) -> Dict:
         """Capture question with context and route to specialist model."""
         self.log(f"Capturing question: {question[:50]}...")
 
         # Extract context from walkthrough
         context = self._extract_context()
 
-        # Select appropriate model
-        model = self._select_model(context, question_type)
-
-        # Generate answer
-        answer = self._generate_answer(question, context, model)
+        # Use provided answer/summary if available, otherwise generate
+        if provided_answer:
+            answer = provided_answer
+            summary = provided_summary or self._generate_summary_from_answer(answer)
+            model = "manual"
+        elif self.provided_answer:
+            answer = self.provided_answer
+            summary = self.provided_summary or self._generate_summary_from_answer(answer)
+            model = "manual"
+        else:
+            # Select appropriate model
+            model = self._select_model(context, question_type)
+            # Generate answer
+            answer = self._generate_answer(question, context, model)
+            # Generate summary for terminal output
+            summary = self._generate_summary_from_answer(answer)
 
         # Extract tags
         tags = self._extract_tags(question, context)
@@ -87,7 +108,8 @@ class QAManager:
             "section": self.section or "general",
             "type": question_type,
             "question": question,
-            "answer": answer,
+            "answer": answer,           # Full detailed answer for markdown file
+            "summary": summary,          # Short summary for terminal output
             "model_used": model,
             "context_snippet": context.get("snippet", ""),
             "tags": tags
@@ -432,6 +454,40 @@ Provide your answer now:"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"[{timestamp}] [{level}] {message}", file=sys.stderr)
 
+    def _generate_summary_from_answer(self, answer: str, max_words: int = 30) -> str:
+        """Generate a short summary from a detailed answer for terminal output.
+
+        Extracts key points:
+        1. First sentence or first ~30 words
+        2. Main conclusion if marked with "Key takeaway:", "Summary:", etc.
+        """
+        # Look for summary/conclusion markers
+        summary_markers = ["Key takeaway:", "Summary:", "**Summary:**", "***Summary***:"]
+        for marker in summary_markers:
+            if marker in answer:
+                idx = answer.find(marker)
+                # Extract text after marker (up to ~100 words or next section)
+                after_marker = answer[idx + len(marker):].strip()
+                words = after_marker.split()[:max_words]
+                return " ".join(words) + ("..." if len(after_marker.split()) > max_words else "")
+
+        # Fallback: use first sentence or first ~30 words
+        # Remove markdown formatting for cleaner terminal output
+        clean_answer = re.sub(r'\*\*', '', answer)  # Remove bold
+        clean_answer = re.sub(r'\$[^$]+\$', '[math]', clean_answer)  # Replace math
+        clean_answer = re.sub(r'```[^`]+```', '[code]', clean_answer)  # Replace code blocks
+
+        # Find first sentence
+        sentences = re.split(r'[.!?]+', clean_answer)
+        if sentences:
+            first_sentence = sentences[0].strip()
+            if len(first_sentence.split()) <= max_words:
+                return first_sentence + "."
+
+        # Use first ~30 words as fallback
+        words = clean_answer.split()[:max_words]
+        return " ".join(words) + "..."
+
 
 def main():
     """Main entry point for Q&A manager."""
@@ -445,6 +501,8 @@ def main():
                                "debugging", "connection"],
                        help="Question type")
     parser.add_argument("--question", type=str, help="Question to ask")
+    parser.add_argument("--answer", type=str, help="Pre-generated detailed answer (saves to file)")
+    parser.add_argument("--summary", type=str, help="Short summary for terminal output")
 
     args = parser.parse_args()
 
@@ -459,16 +517,23 @@ def main():
 
     # Create Q&A manager and process question
     manager = QAManager(args.day, args.section)
-    qa_entry = manager.capture_question(question, args.type)
+
+    # Pass pre-generated content if provided
+    provided_answer = args.answer
+    provided_summary = args.summary
+
+    qa_entry = manager.capture_question(question, args.type, provided_answer, provided_summary)
 
     # Append to walkthrough
     if manager.append_to_walkthrough(qa_entry):
+        # Show only summary in terminal, not full answer
+        summary_to_show = qa_entry.get("summary", "Answer saved to file.")
         print(f"\n✅ Q&A saved to day_{args.day:02d}_walkthrough.md")
         print(f"   Type: {qa_entry['type']}")
         print(f"   Model: {qa_entry['model_used']}")
         print(f"   Tags: {', '.join(qa_entry['tags']) if qa_entry['tags'] else 'None'}")
-        print(f"\n---\n")
-        print(qa_entry["answer"])
+        print(f"\n📝 Summary:\n   {summary_to_show}")
+        print(f"\n💡 Full detailed answer saved to markdown file.")
         sys.exit(0)
     else:
         print("Error: Failed to save Q&A", file=sys.stderr)

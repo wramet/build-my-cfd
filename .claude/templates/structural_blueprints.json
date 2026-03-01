@@ -2,8 +2,17 @@
   "version": "1.0",
   "rules": {
     "ratio_tolerance": 0.05,
-    "concept_first_markers": ["diagrams", "introduction", "overview"],
-    "progressive_complexity_markers": ["beginner", "intermediate", "advanced", "professional"]
+    "concept_first_markers": [
+      "diagrams",
+      "introduction",
+      "overview"
+    ],
+    "progressive_complexity_markers": [
+      "beginner",
+      "intermediate",
+      "advanced",
+      "professional"
+    ]
   },
   "templates": {
     "engine_builder": {
@@ -11,16 +20,52 @@
       "type": "code_heavy",
       "purpose": "Build engine components with focus on implementation and testing",
       "focus": "Code-heavy topics",
-      "best_for": ["Matrix Assembly", "Solver Core", "Operator Implementation"],
+      "best_for": [
+        "Matrix Assembly",
+        "Solver Core",
+        "Operator Implementation"
+      ],
       "progressive_overload": "start with concepts, build architecture, implement, test",
       "boilerplate_policy": "quarantine_to_appendix",
       "code_ratio": 0.5,
       "structure": {
         "parts": [
-          {"id": "p1", "title": "Core Concept", "ratio": 0.20, "readability": "beginner", "approach": "conceptual overview", "content_type": "theory", "guideline": "Explain the what and why before showing how"},
-          {"id": "p2", "title": "Architecture & Design", "ratio": 0.30, "readability": "intermediate", "approach": "class diagrams", "content_type": "design", "guideline": "Show architecture diagrams before code"},
-          {"id": "p3", "title": "Implementation Details", "ratio": 0.40, "readability": "advanced", "approach": "code heavy", "content_type": "code", "guideline": "Complete working code with line-by-line explanation"},
-          {"id": "p4", "title": "Testing & Validation", "ratio": 0.10, "readability": "professional", "approach": "practical testing", "content_type": "validation", "guideline": "Show test cases and expected outputs"}
+          {
+            "id": "p1",
+            "title": "Core Concept",
+            "ratio": 0.20,
+            "readability": "beginner",
+            "approach": "conceptual overview",
+            "content_type": "theory",
+            "guideline": "Explain the what and why before showing how"
+          },
+          {
+            "id": "p2",
+            "title": "Architecture & Design",
+            "ratio": 0.30,
+            "readability": "intermediate",
+            "approach": "class diagrams",
+            "content_type": "design",
+            "guideline": "Show architecture diagrams before code"
+          },
+          {
+            "id": "p3",
+            "title": "Implementation Details",
+            "ratio": 0.40,
+            "readability": "advanced",
+            "approach": "code heavy",
+            "content_type": "code",
+            "guideline": "Complete working code with line-by-line explanation"
+          },
+          {
+            "id": "p4",
+            "title": "Testing & Validation",
+            "ratio": 0.10,
+            "readability": "professional",
+            "approach": "practical testing",
+            "content_type": "validation",
+            "guideline": "Show test cases and expected outputs"
+          }
         ]
       },
       "rules": {
@@ -34,16 +79,53 @@
       "type": "physics_heavy",
       "purpose": "Explain physical phenomena with theory and validation",
       "focus": "Physics-heavy topics",
-      "best_for": ["Phase Change", "VOF", "Turbulence", "Heat Transfer"],
+      "best_for": [
+        "Phase Change",
+        "VOF",
+        "Turbulence",
+        "Heat Transfer"
+      ],
       "progressive_overload": "theory foundation, physics explained, implementation, validation",
       "boilerplate_policy": "quarantine_to_appendix",
       "code_ratio": 0.3,
       "structure": {
         "parts": [
-          {"id": "p1", "title": "Theoretical Foundation", "ratio": 0.25, "readability": "beginner", "approach": "theory first", "content_type": "theory", "guideline": "Start with fundamental equations and concepts"},
-          {"id": "p2", "title": "Physics Explained", "ratio": 0.40, "readability": "intermediate", "approach": "phenomena", "content_type": "physics", "guideline": "Connect theory to real-world physical behavior"},
-          {"id": "p3", "title": "Implementation", "ratio": 0.25, "readability": "advanced", "approach": "practical", "content_type": "code", "guideline": "Show working implementation examples"},
-          {"id": "p4", "title": "Validation", "ratio": 0.10, "readability": "professional", "approach": "verification", "content_type": "validation", "guideline": "Prove correctness with test cases"}
+          {
+            "id": "p1",
+            "title": "Theoretical Foundation",
+            "ratio": 0.25,
+            "readability": "beginner",
+            "approach": "theory first",
+            "content_type": "theory",
+            "guideline": "Start with fundamental equations and concepts"
+          },
+          {
+            "id": "p2",
+            "title": "Physics Explained",
+            "ratio": 0.40,
+            "readability": "intermediate",
+            "approach": "phenomena",
+            "content_type": "physics",
+            "guideline": "Connect theory to real-world physical behavior"
+          },
+          {
+            "id": "p3",
+            "title": "Implementation",
+            "ratio": 0.25,
+            "readability": "advanced",
+            "approach": "practical",
+            "content_type": "code",
+            "guideline": "Show working implementation examples"
+          },
+          {
+            "id": "p4",
+            "title": "Validation",
+            "ratio": 0.10,
+            "readability": "professional",
+            "approach": "verification",
+            "content_type": "validation",
+            "guideline": "Prove correctness with test cases"
+          }
         ]
       },
       "rules": {
@@ -57,22 +139,663 @@
       "type": "theory_heavy",
       "purpose": "Derive and explain mathematical concepts with rigorous proofs",
       "focus": "Theory-heavy topics",
-      "best_for": ["Discretization", "Stability", "Numerical Methods", "Math Derivations"],
+      "best_for": [
+        "Discretization",
+        "Stability",
+        "Numerical Methods",
+        "Math Derivations"
+      ],
       "progressive_overload": "core theory, physical challenge, architecture, QA",
       "boilerplate_policy": "quarantine_to_appendix",
       "code_ratio": 0.25,
       "structure": {
         "parts": [
-          {"id": "p1", "title": "Core Theory", "ratio": 0.30, "readability": "beginner", "approach": "derivations", "content_type": "theory", "guideline": "Start with basic concepts, build to full derivations"},
-          {"id": "p2", "title": "Physical Challenge", "ratio": 0.20, "readability": "intermediate", "approach": "problem solving", "content_type": "analysis", "guideline": "Show practical problems and solutions"},
-          {"id": "p3", "title": "Architecture & Implementation", "ratio": 0.35, "readability": "advanced", "approach": "code first", "content_type": "code", "guideline": "Show class diagrams before implementation"},
-          {"id": "p4", "title": "Quality Assurance", "ratio": 0.15, "readability": "professional", "approach": "testing", "content_type": "validation", "guideline": "Verify with unit tests and benchmarks"}
+          {
+            "id": "p1",
+            "title": "Core Theory",
+            "ratio": 0.30,
+            "readability": "beginner",
+            "approach": "derivations",
+            "content_type": "theory",
+            "guideline": "Start with basic concepts, build to full derivations"
+          },
+          {
+            "id": "p2",
+            "title": "Physical Challenge",
+            "ratio": 0.20,
+            "readability": "intermediate",
+            "approach": "problem solving",
+            "content_type": "analysis",
+            "guideline": "Show practical problems and solutions"
+          },
+          {
+            "id": "p3",
+            "title": "Architecture & Implementation",
+            "ratio": 0.35,
+            "readability": "advanced",
+            "approach": "code first",
+            "content_type": "code",
+            "guideline": "Show class diagrams before implementation"
+          },
+          {
+            "id": "p4",
+            "title": "Quality Assurance",
+            "ratio": 0.15,
+            "readability": "professional",
+            "approach": "testing",
+            "content_type": "validation",
+            "guideline": "Verify with unit tests and benchmarks"
+          }
         ]
       },
       "rules": {
         "boilerplate_policy": "quarantine_to_appendix",
         "ratio_tolerance": 0.05,
         "code_first": false
+      }
+    },
+    "lab": {
+      "name": "Laboratory Exercise",
+      "type": "hands_on",
+      "purpose": "Practical implementation with guided exercises for spaced repetition learning",
+      "focus": "Learning by doing with hands-on coding",
+      "best_for": [
+        "Solver Implementation",
+        "Boundary Condition Coding",
+        "C++ Feature Practice",
+        "Algorithm Implementation",
+        "Debugging Practice"
+      ],
+      "progressive_overload": "setup, guided implementation, independent challenges, debugging, analysis",
+      "boilerplate_policy": "include_excerpts",
+      "code_ratio": 0.8,
+      "structure": {
+        "parts": [
+          {
+            "id": "p1",
+            "title": "Setup",
+            "ratio": 0.10,
+            "readability": "beginner",
+            "approach": "guided_setup",
+            "content_type": "setup",
+            "guideline": "Complete environment setup, file copying, verification commands"
+          },
+          {
+            "id": "p2",
+            "title": "Guided Implementation",
+            "ratio": 0.30,
+            "readability": "intermediate",
+            "approach": "step_by_step",
+            "content_type": "implementation",
+            "guideline": "Step-by-step with explanations, C++ concepts highlighted, theory connections"
+          },
+          {
+            "id": "p3",
+            "title": "Independent Challenges",
+            "ratio": 0.35,
+            "readability": "advanced",
+            "approach": "self_directed",
+            "content_type": "practice",
+            "guideline": "Open-ended problems with hints, progressive difficulty, minimal hand-holding"
+          },
+          {
+            "id": "p4",
+            "title": "Debugging & Optimization",
+            "ratio": 0.15,
+            "readability": "professional",
+            "approach": "troubleshooting",
+            "content_type": "optimization",
+            "guideline": "Common errors table, performance profiling, optimization techniques"
+          },
+          {
+            "id": "p5",
+            "title": "Results Analysis",
+            "ratio": 0.10,
+            "readability": "professional",
+            "approach": "analysis",
+            "content_type": "validation",
+            "guideline": "Validation against theory, result interpretation, discussion questions"
+          }
+        ]
+      },
+      "rules": {
+        "boilerplate_policy": "include_excerpts",
+        "ratio_tolerance": 0.05,
+        "code_first": true,
+        "interactive_elements": true,
+        "expected_outputs": true,
+        "troubleshooting_guide": true,
+        "cpp_concepts": true
+      },
+      "lab_requirements": {
+        "estimated_duration": "3-4 hours",
+        "environment": "OpenFOAM v2306",
+        "deliverables": [
+          "Working code",
+          "Test results",
+          "Performance metrics"
+        ]
+      }
+    },
+    "lab_enhanced": {
+      "name": "Enhanced Laboratory Exercise",
+      "type": "hands_on_comprehensive",
+      "purpose": "CFD implementation with natural C++/DSA integration for authentic learning",
+      "focus": "Deep learning through real OpenFOAM code patterns",
+      "best_for": [
+        "Governing Equations",
+        "Solver Development",
+        "Advanced Discretization",
+        "Linear Solvers",
+        "Custom Features"
+      ],
+      "progressive_overload": "setup, CFD implementation, C++ deep dive, DSA connection, integration, debugging",
+      "boilerplate_policy": "include_excerpts",
+      "code_ratio": 0.75,
+      "structure": {
+        "parts": [
+          {
+            "id": "p1",
+            "title": "Setup",
+            "ratio": 0.10,
+            "readability": "beginner",
+            "approach": "guided_setup",
+            "content_type": "setup",
+            "guideline": "Complete environment setup, file copying, verification commands"
+          },
+          {
+            "id": "p2",
+            "title": "CFD Implementation",
+            "ratio": 0.35,
+            "readability": "intermediate",
+            "approach": "step_by_step",
+            "content_type": "cfd",
+            "guideline": "Implement CFD concept with OpenFOAM operators (fvm, fvc), connect to theory"
+          },
+          {
+            "id": "p3",
+            "title": "C++ Deep Dive",
+            "ratio": 0.20,
+            "readability": "advanced",
+            "approach": "code_analysis",
+            "content_type": "cpp",
+            "optional": false,
+            "guideline": "Deep dive into C++ concepts naturally appearing (templates, smart pointers, operators)"
+          },
+          {
+            "id": "p4",
+            "title": "DSA Connection",
+            "ratio": 0.20,
+            "readability": "advanced",
+            "approach": "data_structure_analysis",
+            "content_type": "dsa",
+            "optional": true,
+            "guideline": "Natural DSA topics (LduMatrix, sparse storage, containers) - only when relevant"
+          },
+          {
+            "id": "p5",
+            "title": "Integration Challenge",
+            "ratio": 0.10,
+            "readability": "professional",
+            "approach": "apply_and_extend",
+            "content_type": "practice",
+            "guideline": "Combine CFD + C++ + DSA knowledge, extend implementation"
+          },
+          {
+            "id": "p6",
+            "title": "Debugging & Analysis",
+            "ratio": 0.05,
+            "readability": "professional",
+            "approach": "troubleshooting",
+            "content_type": "optimization",
+            "guideline": "Common errors, performance analysis, complexity discussion"
+          }
+        ]
+      },
+      "rules": {
+        "boilerplate_policy": "include_excerpts",
+        "ratio_tolerance": 0.08,
+        "code_first": true,
+        "interactive_elements": true,
+        "expected_outputs": true,
+        "troubleshooting_guide": true,
+        "cpp_concepts": true,
+        "dsa_connections": true,
+        "natural_content_only": true,
+        "flexible_duration": true
+      },
+      "lab_requirements": {
+        "estimated_duration": "3-8 hours (based on natural C++/DSA content)",
+        "environment": "OpenFOAM v2306 + source code access",
+        "deliverables": [
+          "Working CFD code",
+          "C++ understanding",
+          "DSA knowledge applied",
+          "Performance analysis"
+        ]
+      },
+      "cpp_dsa_topics": {
+        "natural_only": {
+          "description": "Only include C++/DSA topics that naturally appear in OpenFOAM",
+          "include": [
+            "Templates (tmp<>, Field<Type>, fvMatrix<Type>)",
+            "Smart pointers (tmp<>, autoPtr, refPtr)",
+            "Containers (List, HashTable, Map, Dictionary)",
+            "Sparse matrices (LduMatrix, lduAddressing)",
+            "Graph structures (mesh connectivity)",
+            "Trees (octree for spatial search)",
+            "Sorting (stableSort)",
+            "Iterators (forAll, iterator patterns)",
+            "Operator overloading"
+          ],
+          "exclude": [
+            "Graph algorithms (BFS, DFS, shortest path)",
+            "Dynamic programming",
+            "Backtracking",
+            "Advanced trees (BST, AVL, red-black)",
+            "Heaps/priority queues",
+            "Standard search algorithms"
+          ]
+        },
+        "duration_by_richness": {
+          "low": {
+            "score": "0-2",
+            "duration": "3 hours",
+            "examples": [
+              "Basic BCs",
+              "Simple source terms"
+            ]
+          },
+          "medium": {
+            "score": "3-5",
+            "duration": "4-5 hours",
+            "examples": [
+              "Continuity equation",
+              "Discretization schemes"
+            ]
+          },
+          "high": {
+            "score": "6-8",
+            "duration": "6-8 hours",
+            "examples": [
+              "Custom solvers",
+              "Advanced templates",
+              "Sparse matrices"
+            ]
+          }
+        }
+      }
+    },
+    "lab_engineering": {
+      "name": "Engineering Deep Dive",
+      "type": "engineering_focused",
+      "purpose": "Understand design decisions, code architecture, and algorithm implementation for building custom CFD engine",
+      "focus": "Learning WHY/HOW/WHAT things work to enable custom engine development",
+      "best_for": [
+        "CFD Engine Development",
+        "Architecture Understanding",
+        "Algorithm Design",
+        "Custom Feature Implementation"
+      ],
+      "progressive_overload": "design decisions, architecture analysis, algorithm mapping, design exercise",
+      "boilerplate_policy": "include_excerpts",
+      "code_ratio": 0.7,
+      "structure": {
+        "parts": [
+          {
+            "id": "p1",
+            "title": "Design Decisions (WHY)",
+            "ratio": 0.25,
+            "readability": "beginner",
+            "approach": "trade_off_analysis",
+            "content_type": "design",
+            "guideline": "Analyze design choices, compare alternatives, understand constraints and trade-offs"
+          },
+          {
+            "id": "p2",
+            "title": "Code Architecture (HOW)",
+            "ratio": 0.25,
+            "readability": "intermediate",
+            "approach": "data_flow_analysis",
+            "content_type": "architecture",
+            "guideline": "Trace execution path, identify abstraction layers, find extension points for custom features"
+          },
+          {
+            "id": "p3",
+            "title": "Algorithm Implementation (WHAT)",
+            "ratio": 0.35,
+            "readability": "advanced",
+            "approach": "math_to_code_mapping",
+            "content_type": "algorithm",
+            "guideline": "Map equations to code line-by-line, read source files, understand translation from math to implementation"
+          },
+          {
+            "id": "p4",
+            "title": "Design Exercise",
+            "ratio": 0.15,
+            "readability": "professional",
+            "approach": "apply_and_extend",
+            "content_type": "application",
+            "guideline": "Add custom feature, compare approaches, verify correctness, apply to domain-specific problems"
+          }
+        ]
+      },
+      "rules": {
+        "boilerplate_policy": "include_excerpts",
+        "ratio_tolerance": 0.05,
+        "code_first": false,
+        "design_first": true,
+        "source_reading_required": true,
+        "trade_off_analysis": true,
+        "domain_application": true
+      },
+      "lab_requirements": {
+        "estimated_duration": "3-4 hours",
+        "environment": "OpenFOAM v2306 + source code access",
+        "deliverables": [
+          "Design document",
+          "Architecture diagrams",
+          "Code annotations",
+          "Application notes"
+        ]
+      }
+    },
+    "cpp_deep_dive": {
+      "name": "C++ Deep Dive",
+      "type": "code_reading",
+      "purpose": "Analyze C++ patterns in OpenFOAM source code through guided reading and implementation",
+      "focus": "Learning C++ patterns by studying production code",
+      "best_for": [
+        "Templates",
+        "CRTP",
+        "Smart Pointers",
+        "Expression Templates",
+        "Move Semantics",
+        "Operator Overloading"
+      ],
+      "progressive_overload": "pattern identification, source code reading, implementation exercise, testing and trade-offs",
+      "boilerplate_policy": "include_excerpts",
+      "code_ratio": 0.65,
+      "structure": {
+        "parts": [
+          {
+            "id": "p1",
+            "title": "Pattern Identification",
+            "ratio": 0.20,
+            "readability": "beginner",
+            "approach": "conceptual",
+            "content_type": "theory",
+            "guideline": "What is the pattern? Why does OpenFOAM use it? What problem does it solve?"
+          },
+          {
+            "id": "p2",
+            "title": "Source Code Reading",
+            "ratio": 0.35,
+            "readability": "intermediate",
+            "approach": "code_analysis",
+            "content_type": "code_reading",
+            "guideline": "Line-by-line analysis of actual OpenFOAM .H and .C files with file:line references"
+          },
+          {
+            "id": "p3",
+            "title": "Implementation Exercise",
+            "ratio": 0.30,
+            "readability": "advanced",
+            "approach": "hands_on",
+            "content_type": "code",
+            "guideline": "Write your own version of the pattern, test it, compare with OpenFOAM"
+          },
+          {
+            "id": "p4",
+            "title": "Design Trade-offs & Testing",
+            "ratio": 0.15,
+            "readability": "professional",
+            "approach": "analysis",
+            "content_type": "validation",
+            "guideline": "Compare alternatives, benchmark performance, discuss when to use this pattern"
+          }
+        ]
+      },
+      "rules": {
+        "boilerplate_policy": "include_excerpts",
+        "ratio_tolerance": 0.05,
+        "code_first": false,
+        "source_reading_required": true,
+        "file_references_required": true,
+        "pattern_identification": true
+      },
+      "lab_requirements": {
+        "estimated_duration": "3-5 hours",
+        "environment": "OpenFOAM source code + C++ compiler",
+        "deliverables": [
+          "Pattern analysis notes",
+          "Working implementation",
+          "Comparison document"
+        ]
+      }
+    },
+    "architecture_analysis": {
+      "name": "Architecture Analysis",
+      "type": "design_focused",
+      "purpose": "Analyze software architecture decisions in OpenFOAM and implement patterns",
+      "focus": "Understanding WHY architectural decisions were made",
+      "best_for": [
+        "RTS Factory",
+        "Dictionary System",
+        "Plugin Architecture",
+        "Build System",
+        "I/O System",
+        "BC Framework"
+      ],
+      "progressive_overload": "design decisions, code architecture tracing, pattern implementation, extension challenge",
+      "boilerplate_policy": "include_excerpts",
+      "code_ratio": 0.60,
+      "structure": {
+        "parts": [
+          {
+            "id": "p1",
+            "title": "Design Decisions (WHY)",
+            "ratio": 0.25,
+            "readability": "beginner",
+            "approach": "trade_off_analysis",
+            "content_type": "design",
+            "guideline": "Trade-off analysis: why this pattern over alternatives? What constraints drove the decision?"
+          },
+          {
+            "id": "p2",
+            "title": "Code Architecture (HOW)",
+            "ratio": 0.30,
+            "readability": "intermediate",
+            "approach": "data_flow_analysis",
+            "content_type": "architecture",
+            "guideline": "Trace execution path, identify layers, find extension points"
+          },
+          {
+            "id": "p3",
+            "title": "Pattern Implementation (WHAT)",
+            "ratio": 0.30,
+            "readability": "advanced",
+            "approach": "hands_on",
+            "content_type": "code",
+            "guideline": "Implement the pattern yourself, test, verify correctness"
+          },
+          {
+            "id": "p4",
+            "title": "Extension Challenge",
+            "ratio": 0.15,
+            "readability": "professional",
+            "approach": "apply_and_extend",
+            "content_type": "practice",
+            "guideline": "Add a new plugin/factory/component using the pattern you learned"
+          }
+        ]
+      },
+      "rules": {
+        "boilerplate_policy": "include_excerpts",
+        "ratio_tolerance": 0.05,
+        "code_first": false,
+        "design_first": true,
+        "source_reading_required": true,
+        "trade_off_analysis": true
+      },
+      "lab_requirements": {
+        "estimated_duration": "3-5 hours",
+        "environment": "OpenFOAM source code + C++ compiler",
+        "deliverables": [
+          "Architecture diagram",
+          "Pattern implementation",
+          "Extension component"
+        ]
+      }
+    },
+    "performance_lab": {
+      "name": "Performance Lab",
+      "type": "optimization_focused",
+      "purpose": "Profile, measure, and optimize C++ code using OpenFOAM as benchmark",
+      "focus": "Data-driven performance optimization",
+      "best_for": [
+        "Profiling",
+        "SIMD",
+        "OpenMP",
+        "Cache Optimization",
+        "Memory Allocation",
+        "Benchmarking"
+      ],
+      "progressive_overload": "profiling measurement, optimization theory, optimization implementation, benchmarking analysis",
+      "boilerplate_policy": "include_excerpts",
+      "code_ratio": 0.70,
+      "structure": {
+        "parts": [
+          {
+            "id": "p1",
+            "title": "Profiling & Measurement",
+            "ratio": 0.20,
+            "readability": "beginner",
+            "approach": "measurement",
+            "content_type": "profiling",
+            "guideline": "Measure baseline performance, identify bottlenecks using profiling tools"
+          },
+          {
+            "id": "p2",
+            "title": "Optimization Theory",
+            "ratio": 0.20,
+            "readability": "intermediate",
+            "approach": "theory",
+            "content_type": "theory",
+            "guideline": "Cache analysis, SIMD concepts, parallelism theory — the WHY behind optimizations"
+          },
+          {
+            "id": "p3",
+            "title": "Optimization Implementation",
+            "ratio": 0.40,
+            "readability": "advanced",
+            "approach": "hands_on",
+            "content_type": "code",
+            "guideline": "Apply optimizations, measure improvement after each change, iterate"
+          },
+          {
+            "id": "p4",
+            "title": "Benchmarking & Analysis",
+            "ratio": 0.20,
+            "readability": "professional",
+            "approach": "analysis",
+            "content_type": "validation",
+            "guideline": "Systematic benchmarking, report results, compare approaches, document findings"
+          }
+        ]
+      },
+      "rules": {
+        "boilerplate_policy": "include_excerpts",
+        "ratio_tolerance": 0.05,
+        "code_first": true,
+        "measurement_required": true,
+        "before_after_comparison": true,
+        "benchmark_methodology": true
+      },
+      "lab_requirements": {
+        "estimated_duration": "4-6 hours",
+        "environment": "OpenFOAM source code + perf/gprof/valgrind + C++ compiler with optimization flags",
+        "deliverables": [
+          "Profiling report",
+          "Optimized code",
+          "Benchmark comparison",
+          "Performance analysis document"
+        ]
+      }
+    },
+    "solver_implementation": {
+      "name": "Solver Implementation",
+      "type": "project_focused",
+      "purpose": "Build production-quality solver components applying all learned patterns",
+      "focus": "Combining C++, architecture, and performance into working software",
+      "best_for": [
+        "1D Solver",
+        "FVM Operators",
+        "Linear Solvers",
+        "SIMPLE Algorithm",
+        "Testing Framework"
+      ],
+      "progressive_overload": "design specification, implementation, testing and verification, performance optimization",
+      "boilerplate_policy": "include_excerpts",
+      "code_ratio": 0.75,
+      "structure": {
+        "parts": [
+          {
+            "id": "p1",
+            "title": "Design Specification",
+            "ratio": 0.15,
+            "readability": "beginner",
+            "approach": "specification",
+            "content_type": "design",
+            "guideline": "API design, class diagram, interface specification — plan before coding"
+          },
+          {
+            "id": "p2",
+            "title": "Implementation",
+            "ratio": 0.45,
+            "readability": "intermediate",
+            "approach": "step_by_step",
+            "content_type": "code",
+            "guideline": "Write production-quality code using learned patterns (RTS, templates, LDU)"
+          },
+          {
+            "id": "p3",
+            "title": "Testing & Verification",
+            "ratio": 0.20,
+            "readability": "advanced",
+            "approach": "testing",
+            "content_type": "validation",
+            "guideline": "Unit tests, integration tests, comparison with OpenFOAM reference"
+          },
+          {
+            "id": "p4",
+            "title": "Performance & Reflection",
+            "ratio": 0.20,
+            "readability": "professional",
+            "approach": "analysis",
+            "content_type": "optimization",
+            "guideline": "Profile, optimize, document design decisions and trade-offs vs OpenFOAM"
+          }
+        ]
+      },
+      "rules": {
+        "boilerplate_policy": "include_excerpts",
+        "ratio_tolerance": 0.05,
+        "code_first": false,
+        "design_first": true,
+        "test_driven": true,
+        "openfoam_comparison": true,
+        "production_quality": true
+      },
+      "lab_requirements": {
+        "estimated_duration": "4-8 hours",
+        "environment": "C++ compiler + CMake + OpenFOAM source for reference",
+        "deliverables": [
+          "Working component",
+          "Test suite",
+          "Benchmark results",
+          "Design document"
+        ]
       }
     }
   },
@@ -85,6 +808,38 @@
     "Iterative Solvers": "engine_builder",
     "Pressure-Velocity Coupling": "scientist",
     "Two-Phase Flow": "scientist",
-    "Phase Change": "scientist"
+    "Phase Change": "scientist",
+    "OpenFOAM Solver Development": "lab",
+    "C++ Templates": "cpp_deep_dive",
+    "C++ CRTP": "cpp_deep_dive",
+    "C++ Smart Pointers": "cpp_deep_dive",
+    "C++ Expression Templates": "cpp_deep_dive",
+    "C++ Move Semantics": "cpp_deep_dive",
+    "C++ Operator Overloading": "cpp_deep_dive",
+    "C++ Type Traits": "cpp_deep_dive",
+    "C++ RAII": "cpp_deep_dive",
+    "C++ Iterators": "cpp_deep_dive",
+    "LDU Matrix": "lab_enhanced",
+    "Sparse Matrix": "lab_enhanced",
+    "HashTable": "lab_enhanced",
+    "Memory Layout": "lab_enhanced",
+    "Cache Patterns": "lab_enhanced",
+    "Data Structures": "lab_enhanced",
+    "RTS Factory": "architecture_analysis",
+    "Dictionary System": "architecture_analysis",
+    "Plugin Architecture": "architecture_analysis",
+    "Build System": "architecture_analysis",
+    "IOobject": "architecture_analysis",
+    "Boundary Condition Framework": "architecture_analysis",
+    "Profiling": "performance_lab",
+    "SIMD": "performance_lab",
+    "OpenMP": "performance_lab",
+    "Cache Optimization": "performance_lab",
+    "Memory Allocation": "performance_lab",
+    "Benchmarking": "performance_lab",
+    "1D Solver": "solver_implementation",
+    "FVM Operators": "solver_implementation",
+    "SIMPLE Algorithm": "solver_implementation",
+    "Linear Solver Implementation": "solver_implementation"
   }
 }

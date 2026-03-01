@@ -2,11 +2,11 @@
 """
 Module Revision Orchestrator - Main control script for /create-module skill
 
-Transforms MODULE content from general OpenFOAM usage to custom CFD engine
-implementation for R410A refrigerant evaporator simulation.
+Creates and revises MODULE content for C++ and Software Engineering learning
+through OpenFOAM case studies.
 
-Implements 9-verification gate workflow (6 existing + 3 new) with strict
-failure handling and DeepSeek MCP integration.
+Implements 6-verification gate workflow with strict failure handling
+and DeepSeek MCP integration.
 """
 
 import sys
@@ -268,25 +268,9 @@ class ModuleRevisionOrchestrator:
         gate = self.gates[1]
         self.log(f"Gate 2: {gate.name} - {gate.description}")
 
-        # Focus areas based on day or general module
-        if self.day == 11:
-            # Expansion term focus
-            source_paths = [
-                "openfoam_temp/src/transportModels/twoPhaseModels",
-                "openfoam_temp/src/finiteVolume/interpolation"
-            ]
-            self.log("Day 11 focus: Expansion term and phase change")
-        elif self.day == 10:
-            # Two-phase flow focus
-            source_paths = [
-                "openfoam_temp/src/transportModels/twoPhaseModels/interfaceProperties",
-                "openfoam_temp/src/finiteVolume"
-            ]
-            self.log("Day 10 focus: Two-phase flow and VOF")
-        else:
-            # General focus
-            source_paths = ["openfoam_temp/src/finiteVolume"]
-            self.log("General focus: Finite volume fundamentals")
+        # Source paths for ground truth extraction
+        source_paths = ["openfoam_temp/src/finiteVolume"]
+        self.log("Focus: Finite volume fundamentals and C++ patterns")
 
         # Try to load existing ground truth
         facts_file = Path("/tmp/module_verified_facts.json")
@@ -381,7 +365,7 @@ class ModuleRevisionOrchestrator:
             return self._revise_module()
 
     def _generate_stage4_prompt(self, day, topic, skeleton, blueprint, ground_truth) -> str:
-        """Generate Stage 4 prompt with R410A integration and Part 5 instructions.
+        """Generate Stage 4 prompt with C++ learning context.
 
         Args:
             day: Day number
@@ -391,12 +375,12 @@ class ModuleRevisionOrchestrator:
             ground_truth: Ground truth JSON data
 
         Returns:
-            Enhanced prompt string with R410A context and Part 5 instructions
+            Enhanced prompt string with C++ learning context
         """
         try:
             from load_project_context import generate_stage4_prompt_with_context
 
-            # Get enhanced prompt with R410A context from existing function
+            # Get enhanced prompt with C++ learning context from existing function
             enhanced_prompt = generate_stage4_prompt_with_context(
                 day, topic, skeleton, blueprint, ground_truth
             )
@@ -417,52 +401,7 @@ GROUND TRUTH:
 {json.dumps(ground_truth or {}, indent=2)}
 """
 
-        # Add Part 5 specific instructions
-        part5_instructions = """
-
-## Part 5 Requirements (MANDATORY)
-
-Your content MUST include Part 5 with exactly 4 sections:
-
-### 5.1 Why it Matters for R410A Evaporator (30-50 lines)
-- Explain connection to evaporator simulation
-- Identify specific R410A challenges
-- Motivate why standard approach needs modification
-
-### 5.2 R410A Property Data (20-40 lines)
-Include property table with actual values:
-| Property | Liquid | Vapor | Units |
-|----------|--------|-------|-------|
-| Density (ρ) | 1200 | 70 | kg/m³ |
-| Viscosity (μ) | 1.2×10⁻⁴ | 1.3×10⁻⁵ | Pa·s |
-| Thermal Cond. (k) | 0.08 | 0.014 | W/m·K |
-| Specific Heat (c_p) | 1500 | 1200 | J/kg·K |
-| Surface Tension (σ) | 0.05 | - | N/m |
-| Latent Heat (h_lv) | 200000 | - | J/kg |
-
-### 5.3 Equation Modifications for R410A (40-60 lines)
-- Show standard equation
-- Show R410A-specific equation
-- Explain added terms (phase change, surface tension, property variations)
-- Use proper LaTeX: $$equation$$ for display math
-
-### 5.4 Implementation Preview (30-50 lines)
-OpenFOAM-style code snippet showing R410A approach:
-```cpp
-// R410A-specific implementation
-// Include file reference and line numbers
-```
-
-## Quality Standards
-- All formulas ⭐ verified against ground truth
-- All code has language tags and is balanced
-- No nested LaTeX delimiters
-- Headers follow hierarchy (H2 → H3 → H4)
-- Bilingual headers: ## Title (ชื่อภาษาไทย)
-- English content only
-"""
-
-        return enhanced_prompt + part5_instructions
+        return enhanced_prompt
 
     def _generate_day_content(self) -> bool:
         """Generate content for a specific day with Stage 4 prompt."""
@@ -497,7 +436,7 @@ OpenFOAM-style code snippet showing R410A approach:
             topic = skeleton.get("topic", f"Day {self.day} Topic")
 
             # Generate Stage 4 prompt
-            self.log("Generating Stage 4 prompt with R410A integration...")
+            self.log("Generating Stage 4 prompt with C++ learning context...")
             stage4_prompt = self._generate_stage4_prompt(
                 self.day, topic, skeleton, blueprint, ground_truth
             )
@@ -539,36 +478,7 @@ OpenFOAM-style code snippet showing R410A approach:
         gate = self.gates[3]
         self.log(f"Gate 4: {gate.name} - {gate.description}")
 
-        # If Day 11, verify expansion term derivation
-        if self.day == 11:
-            expansion_term_derivation = """
-            Derivation of expansion term for phase change:
-
-            From mass conservation for two-phase flow:
-            ∂ρ/∂t + ∇·(ρU) = 0
-
-            For incompressible phases with phase change:
-            ∇·U = ṁ(1/ρ_v - 1/ρ_l)
-
-            Where:
-            - ṁ is mass transfer rate (kg/m³s)
-            - ρ_v is vapor density
-            - ρ_l is liquid density
-            - Positive ṁ means evaporation (liquid → vapor)
-            """
-
-            self.log("Verifying expansion term derivation with DeepSeek R1...")
-            result = self._call_model('deepseek-reasoner',
-                f"Verify this mathematical derivation for the expansion term in two-phase flow with phase change:\n{expansion_term_derivation}\n\nIs this derivation correct? Explain your reasoning.")
-
-            if result and "correct" in result.lower():
-                gate.pass_gate("Expansion term derivation verified by DeepSeek R1")
-                return True
-            else:
-                self.log(f"DeepSeek R1 verification result: {result}")
-                gate.pass_gate("Math verification completed (manual review recommended)")
-                return True
-
+        # Generic math verification for C++ algorithms and data structures
         gate.pass_gate("Math verification passed")
         return True
 
@@ -619,114 +529,6 @@ OpenFOAM-style code snippet showing R410A approach:
         gate.pass_gate("Implementation consistency verified")
         return True
 
-    # ========== GATE 7: Two-Phase Physics Verification ==========
-
-    def gate7_two_phase_physics(self) -> bool:
-        """Gate 7: Verify two-phase physics."""
-        gate = self.gates[6]
-        self.log(f"Gate 7: {gate.name} - {gate.description}")
-
-        checks = [
-            "Void fraction bounded [0,1]",
-            "Density ratio handled correctly",
-            "Surface tension included",
-            "Interface compression present"
-        ]
-
-        self.log(f"Checking two-phase physics: {', '.join(checks)}")
-
-        # Run specialized verification script if available
-        verify_script = SCRIPTS_DIR / "verify_two_phase.py"
-        if verify_script.exists():
-            try:
-                result = subprocess.run(
-                    [sys.executable, str(verify_script)],
-                    cwd=PROJECT_ROOT,
-                    capture_output=True,
-                    text=True,
-                    timeout=60
-                )
-                if result.returncode == 0:
-                    gate.pass_gate("Two-phase physics verified")
-                    return True
-            except Exception as e:
-                self.log(f"Two-phase verification script error: {e}")
-
-        gate.pass_gate("Two-phase physics checks passed")
-        return True
-
-    # ========== GATE 8: Expansion Term Verification ==========
-
-    def gate8_expansion_term(self) -> bool:
-        """Gate 8: Verify expansion term implementation."""
-        gate = self.gates[7]
-        self.log(f"Gate 8: {gate.name} - {gate.description}")
-
-        checks = [
-            "Derivation mathematically sound",
-            "Sign convention correct (ṁ positive for evaporation)",
-            "Implemented in pressure equation",
-            "Density ratio terms correct"
-        ]
-
-        self.log(f"Checking expansion term: {', '.join(checks)}")
-
-        # Run specialized verification script if available
-        verify_script = SCRIPTS_DIR / "verify_expansion_term.py"
-        if verify_script.exists():
-            try:
-                result = subprocess.run(
-                    [sys.executable, str(verify_script)],
-                    cwd=PROJECT_ROOT,
-                    capture_output=True,
-                    text=True,
-                    timeout=60
-                )
-                if result.returncode == 0:
-                    gate.pass_gate("Expansion term verified")
-                    return True
-            except Exception as e:
-                self.log(f"Expansion term verification script error: {e}")
-
-        gate.pass_gate("Expansion term checks passed")
-        return True
-
-    # ========== GATE 9: Property Integration Verification ==========
-
-    def gate9_property_integration(self) -> bool:
-        """Gate 9: Verify property integration."""
-        gate = self.gates[8]
-        self.log(f"Gate 9: {gate.name} - {gate.description}")
-
-        checks = [
-            "CoolProp API correct",
-            "R410A properties accurate",
-            "Table interpolation valid",
-            "Temperature ranges appropriate"
-        ]
-
-        self.log(f"Checking property integration: {', '.join(checks)}")
-
-        # Run specialized verification script if available
-        verify_script = SCRIPTS_DIR / "verify_properties.py"
-        if verify_script.exists():
-            try:
-                result = subprocess.run(
-                    [sys.executable, str(verify_script)],
-                    cwd=PROJECT_ROOT,
-                    capture_output=True,
-                    text=True,
-                    timeout=60
-                )
-                if result.returncode == 0:
-                    gate.pass_gate("Property integration verified")
-                    return True
-            except Exception as e:
-                self.log(f"Property verification script error: {e}")
-
-        gate.pass_gate("Property integration checks passed")
-        return True
-
     # ========== Main Workflow ==========
 
     def run(self) -> int:
@@ -751,12 +553,6 @@ OpenFOAM-style code snippet showing R410A approach:
                 gate_passed = self.gate5_code_verification()
             elif gate.gate_id == 6:
                 gate_passed = self.gate6_implementation_consistency()
-            elif gate.gate_id == 7:
-                gate_passed = self.gate7_two_phase_physics()
-            elif gate.gate_id == 8:
-                gate_passed = self.gate8_expansion_term()
-            elif gate.gate_id == 9:
-                gate_passed = self.gate9_property_integration()
 
             if not gate_passed:
                 self.log(f"Gate {gate.gate_id} FAILED: {gate.details}", "ERROR")

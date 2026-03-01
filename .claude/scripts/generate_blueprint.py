@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-Generate structural blueprint for CFD content creation.
+Generate structural blueprint for CFD learning content.
 
 This script reads:
 - Skeleton JSON (content structure)
 - Ground truth JSON (verified facts)
 - Template library (structural patterns)
+- Phase mapping (day-to-phase resolution)
 
 And outputs:
 - Blueprint JSON (learning structure with progressive overload)
@@ -18,6 +19,10 @@ import json
 import sys
 import os
 from pathlib import Path
+
+# Import phase utilities for day-to-phase resolution
+sys.path.insert(0, str(Path(__file__).parent))
+from phase_utils import get_phase_for_day, get_template_for_day, get_target_lines
 
 
 def load_json(filepath):
@@ -40,70 +45,6 @@ def save_json(data, filepath):
     print(f"✅ Saved: {filepath}")
 
 
-def _get_phase_info(day):
-    """
-    Determine phase and R410A integration percentage from day number.
-
-    Args:
-        day: Day number (string or int)
-
-    Returns:
-        Tuple of (phase_name, r410a_percent)
-    """
-    day_int = int(day) if isinstance(day, str) else day
-
-    if 1 <= day_int <= 12:
-        return "Foundation Theory", 15
-    elif 13 <= day_int <= 19:
-        return "Geometry & Mesh", 20
-    elif 20 <= day_int <= 49:
-        return "Solver Core", 25
-    elif 50 <= day_int <= 77:
-        return "VOF & Phase Change", 80  # Structure flip!
-    elif 78 <= day_int <= 87:
-        return "Advanced Features", 90
-    else:  # 88-90
-        return "Integration & Validation", 100
-
-
-def _get_template_for_phase(phase):
-    """
-    Map phase to template file name.
-
-    Args:
-        phase: Phase name string
-
-    Returns:
-        Template file name (without .json extension)
-    """
-    template_map = {
-        "Foundation Theory": "foundation_with_r410a",
-        "Geometry & Mesh": "geometry_with_r410a",
-        "Solver Core": "solver_with_r410a",
-        "VOF & Phase Change": "r410a_implementation",  # Structure flip
-        "Advanced Features": "r410a_advanced",
-        "Integration & Validation": "r410a_capstone"
-    }
-    return template_map.get(phase, "foundation_with_r410a")
-
-
-def _get_target_lines(phase):
-    """
-    Get target line count based on phase.
-
-    Phases with more R410A content get more lines.
-    """
-    lines_map = {
-        "Foundation Theory": 800,
-        "Geometry & Mesh": 900,
-        "Solver Core": 1000,
-        "VOF & Phase Change": 1500,  # More R410A content
-        "Advanced Features": 1500,
-        "Integration & Validation": 1200
-    }
-    return lines_map.get(phase, 800)
-
-
 def determine_template(topic, template_mapping):
     """
     Determine which template to use based on topic keywords.
@@ -113,7 +54,7 @@ def determine_template(topic, template_mapping):
         template_mapping: Dictionary mapping keywords to template names
 
     Returns:
-        Template name (e.g., "mathematician", "engine_builder", "scientist")
+        Template name (e.g., "cpp_deep_dive", "architecture_analysis", "performance_lab")
     """
     topic_lower = topic.lower()
 
@@ -122,26 +63,13 @@ def determine_template(topic, template_mapping):
         if keyword in topic_lower:
             return template_name
 
-    # Special case: Phase 4 integration topics
-    integration_keywords = [
-        "expansion", "dilatation", "pressure source",
-        "tabulation", "property table", "lookup",
-        "boiling", "stefan", "evaporation test",
-        "spurious", "current", "interface",
-        "htc", "validation", "correlation",
-        "phase change", "mass source", "energy source"
-    ]
-    for keyword in integration_keywords:
-        if keyword in topic_lower:
-            return "integration_engineer"
-
-    # Default: use mathematician for theory-heavy content
-    return "mathematician"
+    # Default: use cpp_deep_dive for code-heavy content
+    return "cpp_deep_dive"
 
 
 def generate_blueprint(day, topic, skeleton, ground_truth, template_lib):
     """
-    Generate structural blueprint from inputs with R410A integration.
+    Generate structural blueprint from inputs using phase-based templates.
 
     Args:
         day: Day number (string, e.g., "04")
@@ -151,25 +79,29 @@ def generate_blueprint(day, topic, skeleton, ground_truth, template_lib):
         template_lib: Template library JSON data
 
     Returns:
-        Blueprint dictionary with Part 5 for R410A application
+        Blueprint dictionary with phase-appropriate template
     """
-    # Determine phase and R410A integration percentage
-    phase, r410a_percent = _get_phase_info(day)
+    day_int = int(day)
 
-    # Get phase-specific template name
-    phase_template_name = _get_template_for_phase(phase)
+    # Get phase information using phase_utils
+    phase_info = get_phase_for_day(day_int)
+    phase_name = phase_info["name"]
+
+    # Get template name for this day
+    template_name = get_template_for_day(day_int)
 
     # Get target line count for this phase
-    total_target_lines = _get_target_lines(phase)
+    total_target_lines = get_target_lines(day_int)
 
-    # Determine base template from topic (for content style)
-    template_name = determine_template(topic, template_lib["topic_to_template_mapping"])
+    # Determine base template from topic (for content style override)
+    topic_template = determine_template(topic, template_lib["topic_to_template_mapping"])
 
-    # Try to use phase-specific template if available
-    if phase_template_name in template_lib.get("templates", {}):
-        template = template_lib["templates"][phase_template_name]
-    else:
+    # Use phase template if available in template library, otherwise use topic template
+    if template_name in template_lib.get("templates", {}):
         template = template_lib["templates"][template_name]
+    else:
+        template = template_lib["templates"][topic_template]
+
     # Handle nested structure (template may have "structure" -> "parts")
     if "structure" in template:
         parts_data = template["structure"]["parts"]
@@ -202,17 +134,12 @@ def generate_blueprint(day, topic, skeleton, ground_truth, template_lib):
             "version": template_lib["version"],
             "day": day,
             "topic": topic,
-            "phase": phase,
-            "r410a_integration": f"{r410a_percent}%",
+            "phase": phase_name,
+            "phase_id": phase_info["id"],
             "template": template_name,
             "template_type": template["type"],
             "purpose": template["purpose"],
             "generated_at": __import__('datetime').datetime.now().isoformat()
-        },
-        "r410a_context": {
-            "application": "Evaporator two-phase flow",
-            "refrigerant": "R410A",
-            "conditions": "P = 1.0-1.2 MPa, T = 280-285 K"
         },
         "template": {
             "name": template["name"],
@@ -250,25 +177,6 @@ def generate_blueprint(day, topic, skeleton, ground_truth, template_lib):
             "estimated_lines": 0  # Will be calculated based on total target
         }
         blueprint["structure"]["parts"].append(part)
-
-    # Add Part 5 for R410A application
-    part_5 = {
-        "id": "p5",
-        "title": "R410A Evaporator Application",
-        "ratio": r410a_percent / 100,
-        "readability": "intermediate",
-        "approach": "application",
-        "content_type": "domain_specific",
-        "guideline": "Connect general theory to R410A evaporator simulation",
-        "sections": [
-            "5.1 Why it matters for R410A evaporator",
-            "5.2 R410A property data",
-            "5.3 Equation modifications for R410A",
-            "5.4 Implementation preview (OpenFOAM code)"
-        ],
-        "estimated_lines": 0  # Will be calculated
-    }
-    blueprint["structure"]["parts"].append(part_5)
 
     # Calculate estimated line counts based on phase target
     for part in blueprint["structure"]["parts"]:

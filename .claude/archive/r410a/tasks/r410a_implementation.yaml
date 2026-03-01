@@ -1,0 +1,424 @@
+project: R410A Evaporator CFD Engine - 85% + 15% Content Structure
+created: 2026-01-30
+status: in_progress
+description: Task list for implementing R410A integration into daily learning content
+
+phases:
+  - id: PHASE_0
+    name: Preparation
+    status: pending
+    description: Immediate fixes and documentation review
+    tasks:
+      - id: TASK_001
+        name: Fix Day 01 from backup
+        priority: critical
+        effort: 5min
+        command: "cp daily_learning/Phase_01_Foundation_Theory/01.md.bak daily_learning/Phase_01_Foundation_Theory/01.md"
+        verification: "wc -l daily_learning/Phase_01_Foundation_Theory/01.md | grep -q '1480'"
+        description: |
+          Day 01 has been modified from benchmark quality. Restore from backup.
+          The .bak file is our verified benchmark showing correct 85% + 15% structure.
+        status: pending
+
+      - id: TASK_002
+        name: Review documentation files
+        priority: high
+        effort: 30min
+        description: |
+          Review all 10 documentation files in .claude/benchmarks/:
+          - PHASE_BREAKDOWN.md (900+ lines)
+          - PIPELINE_CHANGES.md (500+ lines)
+          - QUALITY_CHECKLIST.md (400+ lines)
+          - DAY_BY_DAY_EXAMPLES.md (800+ lines)
+          - R410A_PROPERTY_REFERENCE.md (600+ lines)
+          - NEXT_STEPS.md (400+ lines)
+          - LEARNING_STRUCTURE_ANALYSIS.md (400+ lines)
+          - IMPLEMENTATION_GUIDE.md (600+ lines)
+          - CONTENT_GENERATION_TEMPLATE.md (300+ lines)
+          - IMPLEMENTATION_ACTION_PLAN.md (200+ lines)
+        checklist:
+          - All files exist in .claude/benchmarks/
+          - Files are comprehensive and actionable
+          - Cross-references are correct
+          - Code examples are accurate
+          - Next steps are clear
+        status: pending
+
+  - id: PHASE_1
+    name: Pipeline Fixes
+    depends_on: PHASE_0
+    status: pending
+    description: Update content creation pipeline for R410A integration
+    tasks:
+      - id: TASK_003
+        name: Update generate_blueprint.py
+        priority: high
+        effort: 30min
+        file: ".claude/scripts/generate_blueprint.py"
+        description: |
+          Add phase-aware template selection and Part 5 structure.
+          Changes:
+          - Add _get_phase_info() function
+          - Add _get_template_for_phase() function
+          - Add _build_parts_structure() function
+          - Add _load_template() function
+          - Add _get_target_lines() function
+        verification: |
+          python3 -c "
+          from .claude.scripts.generate_blueprint import generate_blueprint
+          bp1 = generate_blueprint(1, 'Governing Equations', ['Mass conservation'])
+          bp4 = generate_blueprint(55, 'Surface Tension', ['CSF model'])
+          assert bp1['r410a_integration'] == '15%', f'Expected 15%, got {bp1[\"r410a_integration\"]}'
+          assert bp4['r410a_integration'] == '80%', f'Expected 80%, got {bp4[\"r410a_integration\"]}'
+          assert len(bp1['parts']) == 5, f'Expected 5 parts, got {len(bp1[\"parts\"])}'
+          print('✅ Blueprint generation works')
+          "
+        status: pending
+
+      - id: TASK_004
+        name: Update Stage 4 prompt in create_module.py
+        priority: high
+        effort: 30min
+        file: ".claude/skills/content-creation/create_module.py"
+        description: |
+          Add Part 5 instructions to Stage 4 prompt generation.
+          Changes:
+          - Add _load_r410a_properties() function
+          - Add _get_phase_instructions() function
+          - Update _generate_stage4_prompt() with R410A context
+          - Include phase-specific instructions
+          - Add structure flip handling for Phase 4
+        verification: |
+          python3 -c "
+          from .claude.skills.content_creation.create_module import _generate_stage4_prompt
+          # Check prompt includes Part 5 instructions
+          # Check prompt includes R410A context
+          # Check prompt includes phase instructions
+          print('✅ Stage 4 prompt includes Part 5 instructions')
+          "
+        status: pending
+
+      - id: TASK_005
+        name: Create template JSON files
+        priority: high
+        effort: 20min
+        files:
+          - ".claude/templates/foundation_with_r410a.json"
+          - ".claude/templates/geometry_with_r410a.json"
+          - ".claude/templates/solver_with_r410a.json"
+          - ".claude/templates/r410a_implementation.json"
+        description: |
+          Create 4 template files for different phases.
+          Use templates from PIPELINE_CHANGES.md.
+          Verify JSON syntax after creation.
+        verification: |
+          for file in .claude/templates/*.json; do
+            python3 -m json.tool "$file" > /dev/null && echo "✅ $file" || echo "❌ $file"
+          done
+        status: pending
+
+      - id: TASK_006
+        name: Update project_context.yaml
+        priority: high
+        effort: 10min
+        file: ".claude/config/project_context.yaml"
+        description: |
+          Add R410A learning goal and phase definitions.
+          Changes:
+          - Add R410A learning goal
+          - Add phase definitions
+          - Add Part 5 requirements
+          - Add R410A context and properties
+        verification: |
+          python3 -c "
+          import yaml
+          with open('.claude/config/project_context.yaml', 'r') as f:
+              config = yaml.safe_load(f)
+          print('✅ YAML syntax valid')
+          print(f'Project: {config[\"project\"][\"name\"]}')
+          print(f'R410A integration: {config[\"content_structure\"][\"foundation\"][\"r410a_percent\"]}%')
+          "
+        status: pending
+
+      - id: TASK_007
+        name: Test Day 02 generation
+        priority: high
+        effort: 1hour
+        description: |
+          Generate Day 02 with fixed pipeline and verify output.
+          Steps:
+          1. Backup existing Day 02
+          2. Generate new Day 02
+          3. Check structure (Parts 1-5)
+          4. Check Part 5 has 4 sections
+          5. Verify line count (~800-900)
+          6. Run quality checklist
+        verification: |
+          # Check structure
+          grep "^## Part" daily_learning/Phase_01_Foundation_Theory/02.md
+          # Check Part 5
+          grep "^### 5\." daily_learning/Phase_01_Foundation_Theory/02.md
+          # Check line count
+          wc -l daily_learning/Phase_01_Foundation_Theory/02.md
+          # Run quality check
+          python3 .claude/scripts/quality_check.py \
+              --content daily_learning/Phase_01_Foundation_Theory/02.md \
+              --checklist .claude/benchmarks/QUALITY_CHECKLIST.md
+        checklist:
+          - Parts 1-5 present
+          - Part 5 has 4 sections
+          - Total ~800-900 lines
+          - R410A content present in Part 5
+          - Follows CFD standards
+          - Quality checklist passes
+        status: pending
+
+      - id: TASK_008
+        name: Run quality checklist on generated content
+        priority: medium
+        effort: 15min
+        description: |
+          Run comprehensive quality check on Day 02 using QUALITY_CHECKLIST.md.
+          Verify structure, content quality, format compliance, and phase-specific checks.
+        verification: |
+          python3 .claude/scripts/quality_check.py \
+              --content daily_learning/Phase_01_Foundation_Theory/02.md \
+              --checklist .claude/benchmarks/QUALITY_CHECKLIST.md
+        status: pending
+
+  - id: PHASE_2
+    name: Content Generation - Phase 1
+    depends_on: PHASE_1
+    status: pending
+    description: Generate Phase 1 content (Days 01-12)
+    tasks:
+      - id: TASK_009
+        name: Generate Day 03 - Spatial discretization
+        priority: medium
+        effort: 30min
+        description: |
+          Generate Day 03 with focus on TVD limiters and compression.
+          Topic: Spatial Discretization
+          Key: TVD + compression schemes
+        status: pending
+
+      - id: TASK_010
+        name: Generate Day 04 - Temporal discretization
+        priority: medium
+        effort: 30min
+        description: |
+          Generate Day 04 with focus on time integration schemes.
+          Topic: Temporal Discretization
+          Key: Euler, backward, Crank-Nicolson
+        status: pending
+
+      - id: TASK_011
+        name: Generate Day 05 - Boundary conditions
+        priority: medium
+        effort: 30min
+        description: |
+          Generate Day 05 with focus on boundary condition types.
+          Topic: Boundary Conditions
+          Key: Dirichlet, Neumann, mixed
+        status: pending
+
+      - id: TASK_012
+        name: Generate Days 06-12
+        priority: medium
+        effort: 3hours
+        description: |
+          Generate remaining Phase 1 days:
+          - Day 06: Linear solvers
+          - Day 07: Matrix assembly
+          - Day 08: Field types
+          - Day 09: fvMesh architecture
+          - Day 10: fvSchemes
+          - Day 11: fvSolution
+          - Day 12: Complete simple case
+        status: pending
+
+  - id: PHASE_3
+    name: Content Generation - Phase 2
+    depends_on: PHASE_2
+    status: pending
+    description: Generate Phase 2 content (Days 13-19) - Geometry & Mesh
+    tasks:
+      - id: TASK_013
+        name: Generate Day 13 - Mesh quality metrics
+        priority: medium
+        effort: 30min
+        description: |
+          Generate Day 13 with focus on mesh quality.
+          Topic: Mesh Quality Metrics
+          R410A integration: 20%
+        status: pending
+
+      - id: TASK_014
+        name: Generate Day 14 - Structured meshing
+        priority: medium
+        effort: 30min
+        description: |
+          Generate Day 14 with focus on structured meshes.
+          Topic: Structured Meshing
+        status: pending
+
+      - id: TASK_015
+        name: Generate Day 15 - Boundary layer meshing
+        priority: medium
+        effort: 30min
+        description: |
+          Generate Day 15 with focus on boundary layers.
+          Topic: Boundary Layer Meshing
+          R410A: Liquid film resolution
+        status: pending
+
+      - id: TASK_016
+        name: Generate Days 16-19
+        priority: medium
+        effort: 2hours
+        description: |
+          Generate remaining Phase 2 days:
+          - Day 16: Unstructured meshing
+          - Day 17: Interface capturing mesh (AMR)
+          - Day 18: Mesh independence
+          - Day 19: snappyHexMesh for evaporator
+        status: pending
+
+  - id: PHASE_4
+    name: Content Generation - Phase 3
+    depends_on: PHASE_3
+    status: pending
+    description: Generate Phase 3 content (Days 20-49) - Solver Core
+    tasks:
+      - id: TASK_017
+        name: Generate Days 20-30 - OpenFOAM architecture
+        priority: low
+        effort: 5hours
+        description: |
+          Generate first third of Phase 3 focusing on architecture.
+          R410A integration: 25%
+        status: pending
+
+      - id: TASK_018
+        name: Generate Days 31-40 - Field operations
+        priority: low
+        effort: 5hours
+        description: |
+          Generate second third of Phase 3 focusing on field types and operations.
+          R410A integration: 25%
+        status: pending
+
+      - id: TASK_019
+        name: Generate Days 41-49 - Solution algorithms
+        priority: low
+        effort: 5hours
+        description: |
+          Generate final third of Phase 3 focusing on solvers and algorithms.
+          R410A integration: 25%
+        status: pending
+
+  - id: PHASE_5
+    name: Content Generation - Phase 4
+    depends_on: PHASE_4
+    status: pending
+    description: |
+      Generate Phase 4 content (Days 50-77) - VOF & Phase Change
+      STRUCTURE FLIP: 20% theory + 80% R410A
+    tasks:
+      - id: TASK_020
+        name: Generate Days 50-60 - Surface tension
+        priority: low
+        effort: 6hours
+        description: |
+          Generate first section of Phase 4 focusing on surface tension.
+          Structure flip: 20% theory + 80% R410A
+        status: pending
+
+      - id: TASK_021
+        name: Generate Days 61-70 - Phase change models
+        priority: low
+        effort: 6hours
+        description: |
+          Generate second section of Phase 4 focusing on phase change.
+          Structure flip: 20% theory + 80% R410A
+        status: pending
+
+      - id: TASK_022
+        name: Generate Days 71-77 - Complete implementation
+        priority: low
+        effort: 4hours
+        description: |
+          Generate final section of Phase 4 with complete R410A implementation.
+          Structure flip: 20% theory + 80% R410A
+        status: pending
+
+  - id: PHASE_6
+    name: Content Generation - Phases 5 & 6
+    depends_on: PHASE_5
+    status: pending
+    description: |
+      Generate Phase 5 (Days 78-87) and Phase 6 (Days 88-90)
+      Phase 5: 10% theory + 90% R410A
+      Phase 6: 100% R410A capstone
+    tasks:
+      - id: TASK_023
+        name: Generate Days 78-87 - Advanced features
+        priority: low
+        effort: 5hours
+        description: |
+          Generate Phase 5 content focusing on advanced features.
+          R410A integration: 90%
+        status: pending
+
+      - id: TASK_024
+        name: Generate Days 88-90 - Capstone
+        priority: low
+        effort: 2hours
+        description: |
+          Generate Phase 6 capstone with 100% R410A content.
+          Complete solver assembly and evaporator case.
+        status: pending
+
+  - id: PHASE_7
+    name: Validation & Documentation
+    depends_on: PHASE_6
+    status: pending
+    description: Final validation and documentation
+    tasks:
+      - id: TASK_025
+        name: Run comprehensive quality check
+        priority: medium
+        effort: 2hours
+        description: |
+          Run quality checklist on all 90 days.
+          Verify all content meets benchmark quality.
+        status: pending
+
+      - id: TASK_026
+        name: Validate against experimental data
+        priority: medium
+        effort: 4hours
+        description: |
+          Validate R410A simulation results against experimental data.
+          Document accuracy and limitations.
+        status: pending
+
+      - id: TASK_027
+        name: Update documentation
+        priority: low
+        effort: 2hours
+        description: |
+          Update all documentation based on implementation lessons learned.
+          Archive templates and scripts for future use.
+        status: pending
+
+# Metadata
+metadata:
+  total_tasks: 27
+  total_phases: 8
+  estimated_hours: 50
+  priority_levels:
+    critical: 1
+    high: 6
+    medium: 8
+    low: 12

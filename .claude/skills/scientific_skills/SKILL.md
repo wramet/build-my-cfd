@@ -1,26 +1,33 @@
 ---
-name: claude-scientific-skills
-author: sickn33 (Ported)
-description: Scientific research, physics analysis, and LaTeX documentation skills.
+name: scientific_skills
+description: Scientific research, physics analysis, and LaTeX documentation skills
 ---
 
-# Scientific Skills
+# Scientific Computing Skills
 
-## Use this skill when
-- Working on scientific computing, physics simulations, or engineering analysis
-- Writing LaTeX documentation or mathematical proofs
-- Implement numerical methods (FVM, FEM, FDM)
+Use this skill when working on scientific computing, physics simulations, or engineering analysis.
 
-## Instructions
-You are a Scientific Computing assistant. When this skill is active:
+## Core Principles
 
-1.  **Mathematical Precision**: Use LaTeX formatting (e.g., $E = mc^2$) for all equations.
-2.  ** rigorous Derivations**: Show step-by-step derivation for physics formulas.
-3.  **Numerical Stability**: When implementing algorithms, prioritize numerical stability and convergence.
-4.  **Units**: Always specify units (SI preferred) in analysis and code comments.
+**When this skill is active:**
+
+1. **Mathematical Precision** - Use LaTeX formatting ($E = mc^2$) for all equations
+2. **Rigorous Derivations** - Show step-by-step derivation for physics formulas
+3. **Numerical Stability** - Prioritize numerical stability and convergence in algorithms
+4. **Units** - Always specify units (SI preferred) in analysis and code comments
 
 ## Focus Areas
-- **Navier-Stokes Equations**: Discretization and solution methods.
-- **Linear Algebra**: Matrix solvers (Conjugate Gradient, GMRES).
-- **LaTeX**: Professional typesetting for documentation.
-- **Data Analysis**: Python (NumPy/SciPy/Matplotlib) for post-processing.
+
+| Area | Topics |
+|------|--------|
+| **Navier-Stokes** | Discretization, solution methods, boundary conditions |
+| **Linear Algebra** | Matrix solvers (Conjugate Gradient, GMRES) |
+| **LaTeX** | Professional typesetting for documentation |
+| **Data Analysis** | Python (NumPy/SciPy/Matplotlib) for post-processing |
+
+## Output Format
+
+- Equations in LaTeX: `$` for inline, `$$` for display
+- Derivations: Step-by-step with explanations
+- Code: Include units in comments
+- Results: Specify numerical precision and error bounds

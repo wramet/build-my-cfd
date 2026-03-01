@@ -21,6 +21,9 @@ import tempfile
 SCRIPTS_DIR = Path(__file__).parent.parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
+# Import phase utilities for day-to-phase resolution
+from phase_utils import get_folder_for_day
+
 # Add MCP module to path
 MCP_DIR = Path(__file__).parent.parent.parent / "mcp"
 sys.path.insert(0, str(MCP_DIR))
@@ -64,8 +67,11 @@ class WalkthroughOrchestrator:
         self.day = day
         self.strict = strict
 
+        # Get phase folder for this day
+        phase_folder = get_folder_for_day(day)
+
         # Paths
-        self.day_file = PROJECT_ROOT / f"daily_learning/Phase_01_Foundation_Theory/{day:02d}.md"
+        self.day_file = PROJECT_ROOT / f"daily_learning/{phase_folder}/{day:02d}.md"
         self.output_file = PROJECT_ROOT / f"daily_learning/walkthroughs/day_{day:02d}_walkthrough.md"
         self.config_dir = Path(__file__).parent / "config"
 

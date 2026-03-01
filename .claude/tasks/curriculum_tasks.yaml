@@ -1,0 +1,158 @@
+# Curriculum Implementation Tasks
+# C++ & Software Engineering Through OpenFOAM
+# Replaces: r410a_implementation.yaml (archived to .claude/archive/r410a/)
+
+version: "2.0"
+curriculum: "C++ and Software Engineering Through OpenFOAM"
+created: "2026-03-01"
+
+# Phase 0: Tooling Preparation
+tasks:
+  - id: TASK_001
+    phase: "PHASE_0_TOOLING"
+    title: "Create phase_mapping.yaml and phase_utils.py"
+    status: "completed"
+    priority: "critical"
+    estimated_time: "25 min"
+    description: "Single source of truth for day-to-phase mapping"
+
+  - id: TASK_002
+    phase: "PHASE_0_TOOLING"
+    title: "Archive R410A files and rewrite configs"
+    status: "completed"
+    priority: "critical"
+    estimated_time: "30 min"
+    description: "Move R410A templates/tasks to archive, rewrite project_context.yaml"
+
+  - id: TASK_003
+    phase: "PHASE_0_TOOLING"
+    title: "Rewrite roadmap.md with new 5-phase structure"
+    status: "in_progress"
+    priority: "critical"
+    estimated_time: "60 min"
+    description: "Complete rewrite of 84-session curriculum"
+
+  - id: TASK_004
+    phase: "PHASE_0_TOOLING"
+    title: "Rewrite topics.json for 84 sessions"
+    status: "pending"
+    priority: "high"
+    estimated_time: "45 min"
+    description: "Day-to-topic mapping for content creation pipeline"
+
+  - id: TASK_005
+    phase: "PHASE_0_TOOLING"
+    title: "Create new content templates (4 JSON files)"
+    status: "pending"
+    priority: "high"
+    estimated_time: "30 min"
+    description: "cpp_deep_dive, architecture_analysis, performance_lab, solver_implementation"
+
+  - id: TASK_006
+    phase: "PHASE_0_TOOLING"
+    title: "Refactor scripts to use phase_utils.py"
+    status: "pending"
+    priority: "high"
+    estimated_time: "60 min"
+    description: "generate_blueprint.py, run_content_workflow.sh, load_project_context.py"
+
+  - id: TASK_007
+    phase: "PHASE_0_TOOLING"
+    title: "Refactor skills (create-module, walkthrough, qa)"
+    status: "pending"
+    priority: "high"
+    estimated_time: "60 min"
+    description: "Remove R410A hardcoding, fix Phase_01 paths"
+
+  - id: TASK_008
+    phase: "PHASE_0_TOOLING"
+    title: "Update agent definitions and documentation"
+    status: "pending"
+    priority: "medium"
+    estimated_time: "45 min"
+    description: "architect.md, researcher.md, deepseek-chat.md, CLAUDE.md"
+
+  - id: TASK_009
+    phase: "PHASE_0_TOOLING"
+    title: "End-to-end verification (V1-V7)"
+    status: "pending"
+    priority: "critical"
+    estimated_time: "15 min"
+    description: "Verify all tools work before content generation"
+
+  # Phase 1: Content Generation — C++ Through OpenFOAM
+  - id: TASK_010
+    phase: "PHASE_1_CONTENT"
+    title: "Create daily_learning/Phase_01_CppThroughOpenFOAM/ structure"
+    status: "pending"
+    priority: "high"
+    estimated_time: "10 min"
+    description: "Create folder and generate Days 01-14 content"
+
+  - id: TASK_011
+    phase: "PHASE_1_CONTENT"
+    title: "Generate Days 01-14 content using Source-First"
+    status: "pending"
+    priority: "high"
+    estimated_time: "8 hours"
+    description: "14 sessions on C++ patterns from OpenFOAM source"
+
+  # Phase 2: Content Generation — Data Structures & Memory
+  - id: TASK_012
+    phase: "PHASE_2_CONTENT"
+    title: "Generate Days 15-28 content using Source-First"
+    status: "pending"
+    priority: "medium"
+    estimated_time: "8 hours"
+    description: "14 sessions on data structures and memory patterns"
+
+  # Phase 3: Content Generation — Software Architecture
+  - id: TASK_013
+    phase: "PHASE_3_CONTENT"
+    title: "Generate Days 29-42 content using Source-First"
+    status: "pending"
+    priority: "medium"
+    estimated_time: "8 hours"
+    description: "14 sessions on architecture patterns from OpenFOAM"
+
+  # Phase 4: Content Generation — Performance Optimization
+  - id: TASK_014
+    phase: "PHASE_4_CONTENT"
+    title: "Generate Days 43-56 content using Source-First"
+    status: "pending"
+    priority: "medium"
+    estimated_time: "8 hours"
+    description: "14 sessions on profiling, SIMD, OpenMP, cache"
+
+  # Phase 5: Content Generation — Focused CFD Component
+  - id: TASK_015
+    phase: "PHASE_5_CONTENT"
+    title: "Generate Days 57-84 content using Source-First"
+    status: "pending"
+    priority: "medium"
+    estimated_time: "16 hours"
+    description: "28 sessions building 1D solver with learned patterns"
+
+  # Codebase Cleanup
+  - id: TASK_016
+    phase: "PHASE_6_CLEANUP"
+    title: "Archive old daily_learning content (Phase_01, Phase_02)"
+    status: "pending"
+    priority: "low"
+    estimated_time: "15 min"
+    description: "Move old Phase_01_Foundation_Theory and Phase_02_Geometry_Mesh to archive"
+
+  - id: TASK_017
+    phase: "PHASE_6_CLEANUP"
+    title: "Reorganize MODULE_* directories"
+    status: "pending"
+    priority: "low"
+    estimated_time: "30 min"
+    description: "Align module structure with new 5-phase curriculum"
+
+summary:
+  total_tasks: 17
+  tooling_tasks: 9
+  content_tasks: 6
+  cleanup_tasks: 2
+  estimated_total: "~60 hours"

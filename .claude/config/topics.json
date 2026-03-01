@@ -1,0 +1,525 @@
+{
+  "version": "1.0",
+  "curriculum": "C++ and Software Engineering Through OpenFOAM",
+  "total_sessions": 84,
+  "description": "Day-to-topic mapping for all 84 sessions. Used by scripts to resolve topic names for content generation.",
+  "usage": {
+    "python": "import json; topics = json.load(open('.claude/config/topics.json')); print(topics['days']['15'])",
+    "bash": "python3 -c \"import json; t=json.load(open('.claude/config/topics.json')); print(t['days']['15']['topic'])\""
+  },
+  "days": {
+    "01": {
+      "topic": "Templates & Generic Programming — Study Field<Type>",
+      "short": "C++ Templates",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/fields/Fields/Field/Field.H"]
+    },
+    "02": {
+      "topic": "Template Specialization — How OpenFOAM Handles Scalar vs Vector",
+      "short": "Template Specialization",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/fields/Fields/Field/FieldFunctions.C"]
+    },
+    "03": {
+      "topic": "Class Templates Deep Dive — GeometricField<Type, PatchField, GeoMesh>",
+      "short": "GeometricField Templates",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H"]
+    },
+    "04": {
+      "topic": "CRTP Pattern — surfaceInterpolationScheme Hierarchy",
+      "short": "C++ CRTP",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolationScheme.H"]
+    },
+    "05": {
+      "topic": "Policy-Based Design — How Schemes Select Behavior at Compile Time",
+      "short": "Policy-Based Design",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/finiteVolume/interpolation/surfaceInterpolation/limitedSchemes/limitedSurfaceInterpolationScheme.H"]
+    },
+    "06": {
+      "topic": "Smart Pointers — autoPtr<>, tmp<>, refCount",
+      "short": "C++ Smart Pointers",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/memory/autoPtr/autoPtr.H", "src/OpenFOAM/memory/tmp/tmp.H"]
+    },
+    "07": {
+      "topic": "RAII and Resource Management — IOobject Lifecycle",
+      "short": "C++ RAII",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/db/IOobject/IOobject.H", "src/OpenFOAM/db/regIOobject/regIOobject.H"]
+    },
+    "08": {
+      "topic": "Move Semantics & Perfect Forwarding — tmp<> Move Constructor",
+      "short": "C++ Move Semantics",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/memory/tmp/tmp.H"]
+    },
+    "09": {
+      "topic": "Expression Templates — Field Arithmetic Without Temporaries",
+      "short": "C++ Expression Templates",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/fields/Fields/Field/FieldFunctions.H"]
+    },
+    "10": {
+      "topic": "Operator Overloading — Field<T> Operator Design",
+      "short": "C++ Operator Overloading",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/fields/Fields/Field/FieldFunctionsM.H"]
+    },
+    "11": {
+      "topic": "Iterators & Range-Based Patterns — The forAll Macro",
+      "short": "C++ Iterators",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/containers/Lists/UList/UList.H"]
+    },
+    "12": {
+      "topic": "Type Traits & SFINAE — OpenFOAM's typeInfo System",
+      "short": "C++ Type Traits",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/primitives/strings/word/typeInfo.H", "src/OpenFOAM/primitives/strings/word/className.H"]
+    },
+    "13": {
+      "topic": "Mini-Project Part 1 — Build a Type-Safe Field<T> with Expression Templates",
+      "short": "Phase 1 Mini-Project (Part 1)",
+      "template": "cpp_deep_dive",
+      "source_files": [],
+      "note": "Integration project combining Days 01-12"
+    },
+    "14": {
+      "topic": "Mini-Project Part 2 — Field<T> Testing, Benchmarking, and tmp<> Integration",
+      "short": "Phase 1 Mini-Project (Part 2)",
+      "template": "cpp_deep_dive",
+      "source_files": [],
+      "note": "Phase 1 milestone: M1"
+    },
+    "15": {
+      "topic": "LDU Matrix Format — Why Not CSR for CFD?",
+      "short": "LDU Matrix",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/matrices/lduMatrix/lduMatrix/lduMatrix.H"]
+    },
+    "16": {
+      "topic": "LDU Addressing — Owner/Neighbour Arrays",
+      "short": "LDU Addressing",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/matrices/lduMatrix/lduAddressing/lduAddressing.H"]
+    },
+    "17": {
+      "topic": "Matrix-Vector Multiply — Cache-Friendly Implementation",
+      "short": "Cache Patterns",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/matrices/lduMatrix/lduMatrix/lduMatrixATmul.C"]
+    },
+    "18": {
+      "topic": "Sparse Matrix Assembly — How fvMatrix Populates LDU",
+      "short": "Sparse Matrix",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/finiteVolume/fvMatrices/fvMatrix/fvMatrix.H"]
+    },
+    "19": {
+      "topic": "Cache Access Patterns — Why Owner/Neighbour Ordering Matters",
+      "short": "Cache Patterns",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/matrices/lduMatrix/lduMatrix/lduMatrixATmul.C"]
+    },
+    "20": {
+      "topic": "OpenFOAM List<T> — Internals vs std::vector",
+      "short": "Data Structures",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/containers/Lists/List/List.H", "src/OpenFOAM/containers/Lists/UList/UList.H"]
+    },
+    "21": {
+      "topic": "DynamicList & CompactListList — Variable-Size Containers",
+      "short": "Data Structures",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/containers/Lists/DynamicList/DynamicList.H", "src/OpenFOAM/containers/Lists/CompactListList/CompactListList.H"]
+    },
+    "22": {
+      "topic": "HashTable<T> — Open Addressing in OpenFOAM",
+      "short": "HashTable",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/containers/HashTables/HashTable/HashTable.H"]
+    },
+    "23": {
+      "topic": "HashSet & wordHashSet — Practical Usage Patterns",
+      "short": "HashTable",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/containers/HashTables/HashSet/HashSet.H"]
+    },
+    "24": {
+      "topic": "Memory Pools — UList and SubList Zero-Copy Views",
+      "short": "Memory Layout",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/containers/Lists/SubList/SubList.H", "src/OpenFOAM/fields/Fields/Field/SubField.H"]
+    },
+    "25": {
+      "topic": "Compact Storage — labelList, faceList for Mesh Topology",
+      "short": "Data Structures",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/meshes/polyMesh/polyMesh.H"]
+    },
+    "26": {
+      "topic": "Field<T> Memory — Alignment, Padding, SIMD Readiness",
+      "short": "Memory Layout",
+      "template": "cpp_deep_dive",
+      "source_files": ["src/OpenFOAM/fields/Fields/Field/Field.H"]
+    },
+    "27": {
+      "topic": "Mini-Project Part 1 — LDU Matrix with Gauss-Seidel Solver",
+      "short": "Phase 2 Mini-Project (Part 1)",
+      "template": "cpp_deep_dive",
+      "source_files": [],
+      "note": "Integration project combining Days 15-26"
+    },
+    "28": {
+      "topic": "Mini-Project Part 2 — LDU Solver Benchmark vs Dense",
+      "short": "Phase 2 Mini-Project (Part 2)",
+      "template": "cpp_deep_dive",
+      "source_files": [],
+      "note": "Phase 2 milestone: M2"
+    },
+    "29": {
+      "topic": "RunTimeTypeSelection (RTS) Overview — Factory Pattern in C++",
+      "short": "RTS Factory",
+      "template": "architecture_analysis",
+      "source_files": ["src/OpenFOAM/db/runTimeSelection/runTimeSelectionTables.H"]
+    },
+    "30": {
+      "topic": "RTS Internals — declareRunTimeSelectionTable Macros",
+      "short": "RTS Factory",
+      "template": "architecture_analysis",
+      "source_files": ["src/OpenFOAM/db/runTimeSelection/runTimeSelectionTables.H"]
+    },
+    "31": {
+      "topic": "Adding a New RTS Class — Write a Custom Scheme",
+      "short": "RTS Factory",
+      "template": "architecture_analysis",
+      "source_files": ["src/finiteVolume/interpolation/surfaceInterpolation/surfaceInterpolationScheme.H"]
+    },
+    "32": {
+      "topic": "Dictionary System — IOdictionary, Token, primitiveEntry",
+      "short": "Dictionary System",
+      "template": "architecture_analysis",
+      "source_files": ["src/OpenFOAM/db/dictionary/dictionary.H", "src/OpenFOAM/db/dictionary/entry/entry.H"]
+    },
+    "33": {
+      "topic": "Dictionary Parsing — How OpenFOAM Reads controlDict",
+      "short": "Dictionary System",
+      "template": "architecture_analysis",
+      "source_files": ["src/OpenFOAM/db/dictionary/dictionary.H"]
+    },
+    "34": {
+      "topic": "Plugin Architecture — How fvSchemes Loads Interpolation Schemes",
+      "short": "Plugin Architecture",
+      "template": "architecture_analysis",
+      "source_files": ["src/finiteVolume/fvMesh/fvSchemes.H"]
+    },
+    "35": {
+      "topic": "IOobject & objectRegistry — Automatic I/O",
+      "short": "IOobject",
+      "template": "architecture_analysis",
+      "source_files": ["src/OpenFOAM/db/IOobject/IOobject.H", "src/OpenFOAM/db/objectRegistry/objectRegistry.H"]
+    },
+    "36": {
+      "topic": "Time Class Architecture — Time Stepping and Object Management",
+      "short": "IOobject",
+      "template": "architecture_analysis",
+      "source_files": ["src/OpenFOAM/db/Time/Time.H"]
+    },
+    "37": {
+      "topic": "Boundary Condition Framework — Strategy Pattern with PatchField",
+      "short": "Boundary Condition Framework",
+      "template": "architecture_analysis",
+      "source_files": ["src/finiteVolume/fields/fvPatchFields/fvPatchField/fvPatchField.H"]
+    },
+    "38": {
+      "topic": "Build System — wmake Internals, Make/files, Make/options",
+      "short": "Build System",
+      "template": "architecture_analysis",
+      "source_files": ["wmake/"]
+    },
+    "39": {
+      "topic": "Dependency Management — lnInclude, Library Linking",
+      "short": "Build System",
+      "template": "architecture_analysis",
+      "source_files": ["wmake/"]
+    },
+    "40": {
+      "topic": "Error Handling — FatalError, WarningIn, InfoProxy",
+      "short": "IOobject",
+      "template": "architecture_analysis",
+      "source_files": ["src/OpenFOAM/db/error/error.H"]
+    },
+    "41": {
+      "topic": "Mini-Project Part 1 — Mini RTS-Style Factory for Linear Solvers",
+      "short": "Phase 3 Mini-Project (Part 1)",
+      "template": "architecture_analysis",
+      "source_files": [],
+      "note": "Integration project combining Days 29-40"
+    },
+    "42": {
+      "topic": "Mini-Project Part 2 — Dictionary-Driven Solver Selection and Testing",
+      "short": "Phase 3 Mini-Project (Part 2)",
+      "template": "architecture_analysis",
+      "source_files": [],
+      "note": "Phase 3 milestone: M3"
+    },
+    "43": {
+      "topic": "Profiling Basics — perf, gprof, callgrind on OpenFOAM",
+      "short": "Profiling",
+      "template": "performance_lab",
+      "source_files": []
+    },
+    "44": {
+      "topic": "Flame Graphs — Visualizing Hot Paths in a CFD Solver",
+      "short": "Profiling",
+      "template": "performance_lab",
+      "source_files": []
+    },
+    "45": {
+      "topic": "Cache Analysis — cachegrind, Understanding L1/L2/L3 Misses",
+      "short": "Cache Optimization",
+      "template": "performance_lab",
+      "source_files": ["src/OpenFOAM/matrices/lduMatrix/lduMatrix/lduMatrixATmul.C"]
+    },
+    "46": {
+      "topic": "SIMD Fundamentals — SSE/AVX and Field Arithmetic",
+      "short": "SIMD",
+      "template": "performance_lab",
+      "source_files": ["src/OpenFOAM/fields/Fields/Field/Field.C"]
+    },
+    "47": {
+      "topic": "Auto-Vectorization — Compiler Flags, Checking Assembly Output",
+      "short": "SIMD",
+      "template": "performance_lab",
+      "source_files": ["src/OpenFOAM/fields/Fields/Field/Field.C"]
+    },
+    "48": {
+      "topic": "OpenMP Basics — Parallel Loops in Field Operations",
+      "short": "OpenMP",
+      "template": "performance_lab",
+      "source_files": ["src/OpenFOAM/fields/Fields/Field/Field.C"]
+    },
+    "49": {
+      "topic": "OpenMP Advanced — Reduction, Scheduling, False Sharing",
+      "short": "OpenMP",
+      "template": "performance_lab",
+      "source_files": []
+    },
+    "50": {
+      "topic": "Memory Allocation — malloc Alternatives, Pool Allocators",
+      "short": "Memory Allocation",
+      "template": "performance_lab",
+      "source_files": []
+    },
+    "51": {
+      "topic": "Avoiding Temporaries — Expression Templates Revisited for Performance",
+      "short": "Benchmarking",
+      "template": "performance_lab",
+      "source_files": ["src/OpenFOAM/fields/Fields/Field/FieldFunctions.H"]
+    },
+    "52": {
+      "topic": "Algorithm Complexity — Mesh Traversal, Face Sorting, Renumbering",
+      "short": "Benchmarking",
+      "template": "performance_lab",
+      "source_files": ["src/OpenFOAM/meshes/polyMesh/polyMesh.H"]
+    },
+    "53": {
+      "topic": "I/O Performance — Parallel I/O, Buffering Strategies",
+      "short": "Benchmarking",
+      "template": "performance_lab",
+      "source_files": []
+    },
+    "54": {
+      "topic": "MPI Fundamentals — Pstream, Domain Decomposition Basics",
+      "short": "Benchmarking",
+      "template": "performance_lab",
+      "source_files": ["src/Pstream/"]
+    },
+    "55": {
+      "topic": "Mini-Project Part 1 — Optimize Field<T> Class with SIMD and OpenMP",
+      "short": "Phase 4 Mini-Project (Part 1)",
+      "template": "performance_lab",
+      "source_files": [],
+      "note": "Integration project combining Days 43-54"
+    },
+    "56": {
+      "topic": "Mini-Project Part 2 — Comprehensive Benchmark Suite and Performance Report",
+      "short": "Phase 4 Mini-Project (Part 2)",
+      "template": "performance_lab",
+      "source_files": [],
+      "note": "Phase 4 milestone: M4"
+    },
+    "57": {
+      "topic": "Project Setup Part 1 — Architecture and Class Hierarchy Design",
+      "short": "1D Solver",
+      "template": "solver_implementation",
+      "source_files": ["src/finiteVolume/fvMatrices/fvMatrix/fvMatrix.H"]
+    },
+    "58": {
+      "topic": "Project Setup Part 2 — Interface Specification and Stub Implementation",
+      "short": "1D Solver",
+      "template": "solver_implementation",
+      "source_files": []
+    },
+    "59": {
+      "topic": "Build System and Testing Framework Part 1 — CMake/wmake Configuration",
+      "short": "1D Solver",
+      "template": "solver_implementation",
+      "source_files": []
+    },
+    "60": {
+      "topic": "Build System and Testing Framework Part 2 — Unit Test Pipeline",
+      "short": "1D Solver",
+      "template": "solver_implementation",
+      "source_files": []
+    },
+    "61": {
+      "topic": "1D Mesh Part 1 — Points, Faces, Cells with Proper Data Structures",
+      "short": "1D Solver",
+      "template": "solver_implementation",
+      "source_files": ["src/OpenFOAM/meshes/polyMesh/polyMesh.H"]
+    },
+    "62": {
+      "topic": "1D Mesh Part 2 — Geometry Computation and Owner/Neighbour Addressing",
+      "short": "1D Solver",
+      "template": "solver_implementation",
+      "source_files": []
+    },
+    "63": {
+      "topic": "1D Mesh Part 3 — Boundary Patches and Non-Uniform Spacing",
+      "short": "1D Solver",
+      "template": "solver_implementation",
+      "source_files": []
+    },
+    "64": {
+      "topic": "1D Mesh Part 4 — Mesh Quality Metrics and VTK Output",
+      "short": "1D Solver",
+      "template": "solver_implementation",
+      "source_files": []
+    },
+    "65": {
+      "topic": "Field & Matrix Part 1 — volScalarField Equivalent with LDU Storage",
+      "short": "1D Solver",
+      "template": "solver_implementation",
+      "source_files": ["src/OpenFOAM/fields/GeometricFields/GeometricField/GeometricField.H"]
+    },
+    "66": {
+      "topic": "Field & Matrix Part 2 — Boundary Coefficient Injection",
+      "short": "1D Solver",
+      "template": "solver_implementation",
+      "source_files": []
+    },
+    "67": {
+      "topic": "Field & Matrix Part 3 — fvMatrix Assembly with Source Vector",
+      "short": "FVM Operators",
+      "template": "solver_implementation",
+      "source_files": ["src/finiteVolume/fvMatrices/fvMatrix/fvMatrix.H"]
+    },
+    "68": {
+      "topic": "Field & Matrix Part 4 — Solver Integration and Under-Relaxation",
+      "short": "FVM Operators",
+      "template": "solver_implementation",
+      "source_files": []
+    },
+    "69": {
+      "topic": "FVM Operators Part 1 — fvm::ddt with Euler Implicit Scheme",
+      "short": "FVM Operators",
+      "template": "solver_implementation",
+      "source_files": ["src/finiteVolume/finiteVolume/fvm/fvmDdt.C"]
+    },
+    "70": {
+      "topic": "FVM Operators Part 2 — fvm::div with Upwind Scheme and RTS",
+      "short": "FVM Operators",
+      "template": "solver_implementation",
+      "source_files": ["src/finiteVolume/finiteVolume/fvm/fvmDiv.C"]
+    },
+    "71": {
+      "topic": "FVM Operators Part 3 — fvm::laplacian with Face Interpolation",
+      "short": "FVM Operators",
+      "template": "solver_implementation",
+      "source_files": ["src/finiteVolume/finiteVolume/fvm/fvmLaplacian.C"]
+    },
+    "72": {
+      "topic": "FVM Operators Part 4 — Explicit Operators fvc::grad and fvc::div",
+      "short": "FVM Operators",
+      "template": "solver_implementation",
+      "source_files": ["src/finiteVolume/finiteVolume/fvc/fvcGrad.C", "src/finiteVolume/finiteVolume/fvc/fvcDiv.C"]
+    },
+    "73": {
+      "topic": "Linear Solvers Part 1 — PCG with Diagonal Preconditioning",
+      "short": "Linear Solver Implementation",
+      "template": "solver_implementation",
+      "source_files": ["src/OpenFOAM/matrices/lduMatrix/solvers/PCG/PCG.H"]
+    },
+    "74": {
+      "topic": "Linear Solvers Part 2 — Gauss-Seidel Integration and Scaling Benchmarks",
+      "short": "Linear Solver Implementation",
+      "template": "solver_implementation",
+      "source_files": ["src/OpenFOAM/matrices/lduMatrix/solvers/GAMG/GAMGSolver.H"]
+    },
+    "75": {
+      "topic": "SIMPLE Algorithm Part 1 — Momentum Predictor and Pressure Equation",
+      "short": "SIMPLE Algorithm",
+      "template": "solver_implementation",
+      "source_files": ["applications/solvers/incompressible/simpleFoam/simpleFoam.C"]
+    },
+    "76": {
+      "topic": "SIMPLE Algorithm Part 2 — Velocity Correction and Rhie-Chow",
+      "short": "SIMPLE Algorithm",
+      "template": "solver_implementation",
+      "source_files": ["applications/solvers/incompressible/simpleFoam/simpleFoam.C"]
+    },
+    "77": {
+      "topic": "SIMPLE Algorithm Part 3 — Convergence Checking and Iteration Control",
+      "short": "SIMPLE Algorithm",
+      "template": "solver_implementation",
+      "source_files": []
+    },
+    "78": {
+      "topic": "SIMPLE Algorithm Part 4 — Scalar Transport Equation Integration",
+      "short": "SIMPLE Algorithm",
+      "template": "solver_implementation",
+      "source_files": []
+    },
+    "79": {
+      "topic": "Source Term Extension Part 1 — RTS-Based fvSource Framework",
+      "short": "1D Solver",
+      "template": "solver_implementation",
+      "source_files": []
+    },
+    "80": {
+      "topic": "Source Term Extension Part 2 — Volumetric Heat Source with Validation",
+      "short": "1D Solver",
+      "template": "solver_implementation",
+      "source_files": []
+    },
+    "81": {
+      "topic": "Testing and Documentation Part 1 — Comprehensive Test Suite",
+      "short": "1D Solver",
+      "template": "solver_implementation",
+      "source_files": []
+    },
+    "82": {
+      "topic": "Testing and Documentation Part 2 — Profiling and User Guide",
+      "short": "1D Solver",
+      "template": "solver_implementation",
+      "source_files": []
+    },
+    "83": {
+      "topic": "Final Benchmark Part 1 — Compare with OpenFOAM Results",
+      "short": "1D Solver",
+      "template": "solver_implementation",
+      "source_files": []
+    },
+    "84": {
+      "topic": "Final Benchmark Part 2 — Design Comparison and Project Report",
+      "short": "1D Solver",
+      "template": "solver_implementation",
+      "source_files": [],
+      "note": "Phase 5 milestone: M5"
+    }
+  }
+}

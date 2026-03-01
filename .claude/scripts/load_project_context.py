@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Load Project Context for Content Generation
+Load Project Context for C++ Learning Content Generation
 
-Injects R410A evaporator project context into the content creation pipeline.
-This ensures all generated content is aligned with the project target.
+Injects C++ and OpenFOAM learning context into the content creation pipeline.
+This ensures all generated content is aligned with the learning objectives.
 
 Usage:
     python3 .claude/scripts/load_project_context.py --day=XX
@@ -13,6 +13,10 @@ import json
 import yaml
 import sys
 from pathlib import Path
+
+# Import phase_utils for centralized day-to-phase resolution
+sys.path.insert(0, str(Path(__file__).parent))
+from phase_utils import get_phase_for_day, get_folder_for_day, get_template_for_day, get_target_lines
 
 
 def load_project_context():
@@ -27,45 +31,53 @@ def load_project_context():
         return yaml.safe_load(f)
 
 
-def load_r410a_template():
-    """Load R410A integration template."""
-    template_file = Path(".claude/templates/r410a_integration_blueprint.json")
-
-    if not template_file.exists():
-        print(f"Warning: R410A template not found: {template_file}")
-        return None
-
-    with open(template_file) as f:
-        return json.load(f)
-
-
 def generate_stage4_prompt_with_context(day, topic, skeleton, blueprint, ground_truth):
     """
-    Generate Stage 4 prompt with R410A project context.
+    Generate Stage 4 prompt with C++ learning project context.
 
     Args:
         day: Day number (e.g., "01")
-        topic: Topic name (e.g., "Governing Equations")
+        topic: Topic name (e.g., "Smart Pointers in OpenFOAM")
         skeleton: Skeleton JSON content
         blueprint: Blueprint JSON content
         ground_truth: Ground truth JSON content
 
     Returns:
-        Enhanced prompt string
+        Enhanced prompt string or None if context unavailable
     """
     project_ctx = load_project_context()
-    r410a_template = load_r410a_template()
 
-    if not project_ctx or not r410a_template:
+    if not project_ctx:
         print("Warning: Could not load project context, using generic prompt")
         return None
 
-    # Extract key information
-    refrigerant = project_ctx["refrigerant"]
-    properties = refrigerant["properties"]
-    conditions = project_ctx["operating_conditions"]
+    # Extract key learning objectives
+    learning_goals = project_ctx.get("learning_objectives", [])
+    content_reqs = project_ctx.get("content_requirements", {})
+    every_session = content_reqs.get("every_session_must_include", [])
+
+    # Resolve phase info using phase_utils (single source of truth)
+    try:
+        day_num = int(day)
+        phase_info = get_phase_for_day(day_num)
+        phase_folder = phase_info["folder"]
+        template_name = phase_info["template"]
+        target_lines = phase_info["target_lines"]
+        content_focus = phase_info.get("content_focus", "")
+    except (ValueError, Exception) as e:
+        print(f"Warning: Could not resolve phase for day {day}: {e}")
+        phase_folder = "Phase_01_CppThroughOpenFOAM"
+        template_name = "cpp_deep_dive"
+        target_lines = 900
+        content_focus = "cpp_patterns"
 
     prompt = f"""Expand Day {day}: {topic} - ENGLISH ONLY
+
+PHASE INFO:
+  Phase Folder: {phase_folder}
+  Template: {template_name}
+  Target Lines: {target_lines}
+  Content Focus: {content_focus}
 
 SKELETON:
 {skeleton}
@@ -78,92 +90,63 @@ GROUND TRUTH:
 
 PROJECT CONTEXT (CRITICAL):
 ===========================
-Target Application: {project_ctx["target_application"]["domain"]}
-Component: {project_ctx["target_application"]["component"]}
-Refrigerant: {refrigerant["name"]} ({refrigerant["type"]})
+Learning Focus: {project_ctx.get("project_name", "C++ & Software Engineering Through OpenFOAM")}
 
-Operating Conditions:
-- Pressure: {conditions["pressure"]}
-- Temperature: {conditions["temperature"]}
-- Quality Range: {conditions["quality_range"]}
+Learning Objectives:
+{chr(10).join(f"- {obj}" for obj in learning_goals)}
 
-Key Property Values:
-Liquid Phase:
-  - Density (ρ_l): {properties["liquid"]["density"]} kg/m³
-  - Viscosity (μ_l): {properties["liquid"]["viscosity"]} Pa·s
-  - Thermal Conductivity (k_l): {properties["liquid"]["thermal_conductivity"]} W/m·K
-  - Specific Heat (c_p,l): {properties["liquid"]["specific_heat"]} J/kg·K
+Content Requirements:
+{chr(10).join(f"- {req}" for req in every_session)}
 
-Vapor Phase:
-  - Density (ρ_v): {properties["vapor"]["density"]} kg/m³
-  - Viscosity (μ_v): {properties["vapor"]["viscosity"]} Pa·s
-  - Thermal Conductivity (k_v): {properties["vapor"]["thermal_conductivity"]} W/m·K
-  - Specific Heat (c_p,v): {properties["vapor"]["specific_heat"]} J/kg·K
-
-Interface:
-  - Surface Tension (σ): {properties["interface"]["surface_tension"]} N/m
-  - Latent Heat (h_lv): {properties["interface"]["latent_heat"]} J/kg
-
-Property Ratios:
-  - Density: {properties["ratios"]["density"]}
-  - Viscosity: {properties["ratios"]["viscosity"]}
-  - Thermal Conductivity: {properties["ratios"]["thermal_conductivity"]}
+Code Ratio Target: {content_reqs.get("code_ratio", {}).get("target", 0.65)} (code / total lines)
 
 CRITICAL REQUIREMENTS:
 - ENGLISH-ONLY content (no Thai translation)
-- Every theoretical concept MUST connect to R410A evaporator application
-- Use concrete property values, not just symbols
-- Show how standard equations need modification for two-phase flow
-- Include property tables with actual values
-- Provide R410A-specific code implementations
+- Every C++ concept MUST connect to OpenFOAM source code examples
+- Use concrete code patterns with file:line references
+- Show how real-world OpenFOAM implements these patterns
+- Include practical implementation examples
 
 MANDATORY CONTENT:
-1. Property Tables:
-   - Include at least 6 R410A properties with actual values
-   - Show both liquid and vapor phases
-   - Indicate operating conditions
+1. Source Code Reading:
+   - Read from actual OpenFOAM .H/.C files
+   - Extract concrete patterns (not just theory)
+   - Include file paths and line numbers
 
-2. Equation Modifications:
-   - Show standard form first
-   - Then show R410A-modified form
-   - Explain each added term (ṁ, F_σ, h_lv)
-   - Use side-by-side comparison format
+2. Pattern Identification:
+   - Identify specific C++ patterns used
+   - Show the pattern in OpenFOAM code
+   - Explain WHY this pattern is used
 
-3. Phase Change Physics:
-   - Explain evaporation/condensation
-   - Show mass transfer calculation
-   - Include latent heat effects
+3. Implementation Practice:
+   - Provide mini-implementation of the pattern
+   - Show compilation and testing
+   - Connect back to OpenFOAM usage
 
-4. Surface Tension:
-   - Explain CSF model
-   - Show curvature calculation
-   - Include magnitude (σ = {properties["interface"]["surface_tension"]} N/m)
-
-5. OpenFOAM Implementation:
-   - Complete code examples
-   - Lee model implementation
-   - CSF surface tension implementation
-   - VOF transport with MULES
+4. Best Practices:
+   - Modern C++ standards (C++11/14/17)
+   - Performance considerations
+   - Memory safety and RAII
 
 STRUCTURAL RULES:
-- Part 1: Foundation Theory (25%) - Standard equations
-- Part 2: R410A Properties (20%) - Concrete data
-- Part 3: Equation Modifications (25%) - Standard vs. R410A
-- Part 4: Implementation (30%) - Complete solver code
+- Follow blueprint progressive overload exactly
+- Theory → Code Example → Implementation → Practice
+- Every code block must have language tags
+- All file references include paths and line numbers
 
 APPENDIX REQUIREMENT (MANDATORY):
 - Every output MUST end with "## Appendix: Complete File Listings"
-- Include complete, compilable code
+- Include complete, compilable code examples
 - All files must be 100% copy-pasteable
 
 Format:
-- Use $$ for display math equations
+- Use $$ for display math equations (for algorithm analysis)
 - Use $ for inline math
-- Include Mermaid diagrams for system visualization
+- Include Mermaid diagrams for class hierarchies and flow charts
 - All code blocks must have language tags
 - Headers in English only
 
-Output complete markdown file content that is immediately applicable to R410A evaporator simulation.
+Output complete markdown file content for C++ learning through OpenFOAM.
 """
 
     return prompt
@@ -176,23 +159,44 @@ def main():
         sys.exit(1)
 
     # Parse arguments
-    day = sys.argv[0].split("=")[1] if "=" in sys.argv[0] else "01"
+    day = None
+    for arg in sys.argv[1:]:
+        if arg.startswith("--day="):
+            day = arg.split("=")[1]
+            break
+
+    if not day:
+        print("Usage: python3 load_project_context.py --day=XX")
+        sys.exit(1)
 
     # Load context
     project_ctx = load_project_context()
-    r410a_template = load_r410a_template()
 
-    print("R410A Project Context Loaded:")
-    print(f"  Refrigerant: {project_ctx['refrigerant']['name']}")
-    print(f"  Density Ratio: {project_ctx['refrigerant']['properties']['ratios']['density']}")
-    print(f"  Surface Tension: {project_ctx['refrigerant']['properties']['interface']['surface_tension']} N/m")
-    print(f"  Latent Heat: {project_ctx['refrigerant']['properties']['interface']['latent_heat']} J/kg")
+    if not project_ctx:
+        print("❌ Could not load project context")
+        sys.exit(1)
+
+    # Resolve phase info using phase_utils
+    try:
+        day_num = int(day)
+        phase_info = get_phase_for_day(day_num)
+        print("C++ Learning Project Context Loaded:")
+        print(f"  Project: {project_ctx.get('project', {}).get('name', 'OpenFOAM C++ Learning')}")
+        print(f"  Day: {day}")
+        print(f"  Phase: {phase_info['name']}")
+        print(f"  Folder: {phase_info['folder']}")
+        print(f"  Template: {phase_info['template']}")
+        print(f"  Target Lines: {phase_info['target_lines']}")
+    except (ValueError, Exception) as e:
+        print(f"❌ Error resolving phase for day {day}: {e}")
+        sys.exit(1)
+
+    print()
+    print("Learning Objectives:")
+    for obj in project_ctx.get("learning_objectives", {}).get("primary", []):
+        print(f"  - {obj}")
     print()
     print("✅ Project context ready for content generation")
-    print()
-    print("Key Models:")
-    for model_name, model_info in project_ctx["key_models"].items():
-        print(f"  - {model_info['name']}: {model_info['description']}")
 
 
 if __name__ == "__main__":

@@ -1,7 +1,6 @@
 ---
 name: systematic_debugging
-author: sickn33 (Ported)
-description: The Iron Law of Debugging - a strict 4-phase process for finding root causes before applying fixes.
+description: The Iron Law of Debugging - find root causes before applying fixes
 ---
 
 # Systematic Debugging
