@@ -1,8 +1,10 @@
-# 84-Session C++ & Software Engineering Roadmap --- Learning from OpenFOAM
+# 84-Session Modern C++ & CFD Architecture Roadmap
 
 ## Overview
 
-This roadmap teaches **intermediate-to-advanced C++** and **real-world software engineering** by studying OpenFOAM as a production-grade case study. Over 84 sessions across 5 phases, you will reverse-engineer design patterns, data structures, architecture decisions, and performance techniques from one of the largest open-source C++ codebases in scientific computing --- then apply everything by building your own mini CFD solver from scratch.
+This roadmap teaches **intermediate-to-advanced C++** and **real-world software engineering** by building a modern CFD framework from scratch using C++17/20 and CMake. Over 84 sessions across 5 phases, you will study OpenFOAM's brilliant mathematical abstractions while replacing its proprietary legacy macros and C++98/03 patterns with clean, standard-compliant modern C++.
+
+**Design philosophy:** Every pattern introduced has a direct modern C++ equivalent. The goal is to build code you could take to any project — not just OpenFOAM.
 
 ---
 
@@ -10,866 +12,924 @@ This roadmap teaches **intermediate-to-advanced C++** and **real-world software 
 
 | Phase | Sessions | Topic | Milestone |
 |-------|----------|-------|-----------|
-| 1 | 01--14 | C++ Through OpenFOAM | Type-safe `Field<T>` with expression templates |
-| 2 | 15--28 | Data Structures & Memory | LDU matrix with Gauss-Seidel solver |
-| 3 | 29--42 | Software Architecture Patterns | Mini RTS-style factory for linear solvers |
-| 4 | 43--56 | Performance Optimization | Optimized `Field<T>` with benchmarks |
-| 5 | 57--84 | Focused CFD Component | 1D advection-diffusion solver with SIMPLE |
+| 1 | 01--14 | Modern C++ Foundation | Type-safe `Field<T>` with C++20 Concepts, expression templates & ranges |
+| 2 | 15--28 | Data Structures & Memory | LDU matrix using `std::span` and cache-friendly layout |
+| 3 | 29--42 | Architecture & Build Systems | Modern Factory pattern & CMake build system |
+| 4 | 43--56 | Performance Optimization | OpenMP, C++17 Parallel Execution, and SIMD profiling |
+| 5 | 57--84 | VOF-Ready CFD Component | 1D SIMPLE solver with bounded scalar transport |
 
 ---
 
 ## Learning Objectives
 
-1. Intermediate-to-advanced C++ coding patterns
-2. Real-world software architecture and design patterns
-3. Performance optimization: data structures, algorithms, profiling
-4. OpenFOAM as a case study of production C++ engineering
+1. Modern C++ (C++17/20) patterns used in real-world scientific computing
+2. CFD mathematical abstractions: fields, mesh topology, LDU matrices, SIMPLE algorithm
+3. Software architecture: Factory pattern, CMake, plugin systems, dependency management
+4. Performance: profiling, SIMD, OpenMP, parallel execution, zero-allocation loops
+5. Building a complete, testable CFD framework with Google Test / Catch2
 
 ---
 
-# Phase 1: C++ Through OpenFOAM's Eyes (Days 01--14)
+# Phase 1: Modern C++ Foundation (Days 01--14)
 
-**Focus:** Templates, CRTP, policy-based design, smart pointers, expression templates, RAII, move semantics.
+**Focus:** C++20 Concepts, smart pointers, expression templates, move semantics, and `std::ranges`.
 
-**Source Targets:**
-- `src/OpenFOAM/primitives/`
-- `src/OpenFOAM/fields/Fields/`
-- `src/OpenFOAM/memory/`
-- `src/finiteVolume/interpolation/surfaceInterpolation/`
+**Build target:** A type-safe `Field<T>` library with expression templates, move semantics, and unit tests.
 
 ---
 
-### Day 01: Templates & Generic Programming --- Study `Field<Type>`
+### Day 01: Templates & Generic Programming — `Field<T>` with `std::vector`
 
-- Read `src/OpenFOAM/fields/Fields/Field/Field.H` and identify template parameters
-- Understand why OpenFOAM uses `Field<scalar>`, `Field<vector>`, `Field<tensor>` instead of separate classes
-- Compare with `std::vector<T>` --- what extra responsibilities does `Field<T>` carry?
-- Write a minimal `Field<T>` template with `size()`, `operator[]`, and a constructor
+- Write a minimal `Field<T>` template backed by `std::vector<T>` (not raw pointers)
+- Compare with OpenFOAM's `Field<Type>` which inherits from `List<Type>` — understand why the modern approach uses composition instead
+- Use `using` alias syntax instead of `typedef` throughout
+- Implement `size()`, `operator[]`, `.sum()`, `.max()` using `std::reduce` from `<numeric>`
+- Note: OpenFOAM's `List<Type>` / `UList<Type>` inheritance and `refCount` are C++98 patterns we will not carry forward
 
-**Deliverable:** A working `Field<T>` template that compiles for `scalar` and `vector` types.
-
----
-
-### Day 02: Template Specialization --- How OpenFOAM Handles Scalar vs Vector
-
-- Study how `Field<scalar>` gains arithmetic operators that `Field<tensor>` does not
-- Examine partial specialization and explicit specialization patterns in OpenFOAM
-- Understand `SFINAE` at a high level --- how the compiler selects overloads
-- Write specializations: `Field<scalar>::max()` vs `Field<vector>::mag()`
-
-**Deliverable:** Template specializations that provide type-appropriate operations.
+**Deliverable:** A `Field<T>` class backed by `std::vector<T>` that compiles for `double` and a simple `Vec3` struct.
 
 ---
 
-### Day 03: Class Templates Deep Dive --- `GeometricField<Type, PatchField, GeoMesh>`
+### Day 02: C++20 Concepts & Constraints
 
-- Read `GeometricField.H` and map out its three template parameters
-- Understand why `PatchField` and `GeoMesh` are template parameters (not runtime choices)
-- Trace how `volScalarField` is a typedef for a specific `GeometricField` instantiation
-- Diagram the relationship: `GeometricField` -> `DimensionedField` -> `Field`
+- Learn what a C++20 Concept is: a named set of requirements on template parameters
+- Apply `requires std::is_arithmetic_v<T>` to constrain `Field<T>` to numeric types only
+- Compare with OpenFOAM's partial specialization approach — Concepts give cleaner compiler errors
+- Write a custom Concept: `template<typename T> concept Numeric = std::is_arithmetic_v<T> || requires(T a, T b) { a + b; }`
+- Study why this replaces the heavy SFINAE patterns common in older C++ code
 
-**Deliverable:** A written class diagram showing the `GeometricField` template hierarchy and its typedefs.
-
----
-
-### Day 04: CRTP Pattern --- `surfaceInterpolationScheme` Hierarchy
-
-- Read `surfaceInterpolationScheme.H` and identify the Curiously Recurring Template Pattern
-- Understand how CRTP enables static polymorphism (no vtable overhead)
-- Compare CRTP with virtual dispatch --- when does OpenFOAM use each?
-- Implement a toy CRTP hierarchy: `Base<Derived>` with `interpolate()`
-
-**Deliverable:** A CRTP-based interpolation scheme hierarchy with two concrete schemes (e.g., `linear`, `upwind`).
+**Deliverable:** A constrained `Field<Numeric T>` that gives a clear compile-time error on `Field<std::string>`.
 
 ---
 
-### Day 05: Policy-Based Design --- How Schemes Select Behavior at Compile Time
+### Day 03: The Mesh-to-Field Relationship — Separating Topology from Values
 
-- Study how `limitedSurfaceInterpolationScheme` uses a `Limiter` policy
-- Read `vanLeer.H` and `SuperBee.H` to see how limiter policies differ
-- Understand the compile-time strategy pattern: policy classes injected as template parameters
-- Implement a `LimitedField<T, LimiterPolicy>` with two policies
+- Design the `GeometricField` concept: mesh topology (cell count, face connectivity) is separate from numerical values
+- Build a minimal `Mesh` struct holding `nCells`, `nFaces`, and cell-center coordinates
+- Build `GeometricField<T>` that holds a `Mesh` reference and a `Field<T>` of values
+- Understand why OpenFOAM's `GeometricField<Type, PatchField, GeoMesh>` three-parameter design exists — then simplify it
+- Enforce the invariant: `field.size() == mesh.nCells()` at construction time
 
-**Deliverable:** A policy-based design example with interchangeable limiter strategies.
-
----
-
-### Day 06: Smart Pointers --- `autoPtr<>`, `tmp<>`, `refCount`
-
-- Read `autoPtr.H` and compare with `std::unique_ptr` --- what does OpenFOAM add?
-- Read `tmp.H` and understand its dual role: owning pointer or const reference
-- Study `refCount` and how `tmp<>` manages reference-counted temporaries
-- Write a mini `tmp<Field<T>>` that handles both owned and borrowed fields
-
-**Deliverable:** A working `tmp<T>` implementation with move semantics and reference counting.
+**Deliverable:** A `GeometricField<double>` that stores a scalar pressure field on a 1D mesh.
 
 ---
 
-### Day 07: RAII and Resource Management --- `IOobject` Lifecycle
+### Day 04: CRTP — Static Polymorphism for Interpolation Schemes
 
-- Read `IOobject.H` and understand how it ties object lifetime to the file system
-- Study how constructors register objects and destructors clean up
-- Trace the lifecycle: construction -> registration -> read -> write -> destruction
-- Identify RAII patterns in `regIOobject` and `objectRegistry`
+- Study the Curiously Recurring Template Pattern (CRTP): `template<class Derived> class Base`
+- Implement a static polymorphism hierarchy for `InterpolationScheme<Derived>` — calling `scheme.interpolate()` with zero virtual dispatch overhead
+- Compare CRTP against virtual dispatch: benchmark both, understand when each is appropriate
+- Write two concrete schemes: `UpwindScheme` and `LinearScheme`, both inheriting via CRTP
+- Understand why OpenFOAM uses CRTP in `surfaceInterpolationScheme<Type, Derived>`
 
-**Deliverable:** A written analysis of the `IOobject` RAII lifecycle with a sequence diagram.
-
----
-
-### Day 08: Move Semantics & Perfect Forwarding --- `tmp<>` Move Constructor
-
-- Read the move constructor and move assignment operator in `tmp.H`
-- Understand why move semantics matter for large field operations (avoid megabyte copies)
-- Study perfect forwarding with `std::forward` and universal references
-- Benchmark: copy vs move for a 1-million-element `Field<scalar>`
-
-**Deliverable:** Benchmark results showing the performance impact of move semantics on field operations.
+**Deliverable:** A compile-time-resolved `InterpolationScheme` hierarchy with benchmarks showing zero overhead vs virtual dispatch.
 
 ---
 
-### Day 09: Expression Templates --- Field Arithmetic Without Temporaries
+### Day 05: Policy-Based Design — Swapping Flux Limiters at Compile Time
 
-- Understand the problem: `a + b + c` creates two temporary `Field` objects
-- Study how expression templates defer evaluation until assignment
-- Read OpenFOAM's approach (or lack thereof) and compare with Eigen/Blitz++
-- Implement a minimal expression template for `Field<scalar>` addition
+- Learn Policy-Based Design: inject behavior into a class via template policy parameters
+- Build `LimitedField<T, LimiterPolicy>` where `LimiterPolicy` provides a `limit(r)` function
+- Implement two limiter policies: `VanLeerLimiter` and `SuperBeeLimiter`
+- Show that changing the limiter requires changing one template argument, not runtime branching
+- Understand the connection to OpenFOAM's `limitedSurfaceInterpolationScheme`
 
-**Deliverable:** An expression template system that evaluates `a + b + c` in a single loop with no temporaries.
-
----
-
-### Day 10: Operator Overloading --- `Field<T>` Operator Design
-
-- Read `FieldFunctions.H` and `FieldFunctionsM.H` (macro-generated operators)
-- Understand why OpenFOAM uses macros to generate `operator+`, `operator*`, etc.
-- Study return-type deduction for mixed-type operations (scalar * vector)
-- Add `operator+`, `operator-`, `operator*` to your `Field<T>` using expression templates
-
-**Deliverable:** A `Field<T>` with complete arithmetic operators backed by expression templates.
+**Deliverable:** A `LimitedField<double, VanLeerLimiter>` and `LimitedField<double, SuperBeeLimiter>` that swap limiters with zero runtime cost.
 
 ---
 
-### Day 11: Iterators & Range-Based Patterns --- The `forAll` Macro
+### Day 06: Modern Ownership — `std::unique_ptr` and `std::shared_ptr`
 
-- Read the `forAll` macro definition and understand what it expands to
-- Compare `forAll(field, i)` with C++11 range-based for loops
-- Study `forAllIter` and `forAllConstIter` for container traversal
-- Discuss: why does OpenFOAM use macros instead of modern C++ ranges?
+- Study C++ ownership semantics: exclusive (`unique_ptr`) vs shared (`shared_ptr`) ownership
+- Understand why OpenFOAM's `autoPtr<T>` was necessary before C++11 — then see that `std::unique_ptr<T>` replaces it completely
+- Learn why `tmp<T>` (OpenFOAM's reference-counted temporary) became obsolete once move semantics arrived in C++11
+- Practice: wrap a `Field<double>` in `std::unique_ptr` and pass ownership between functions
+- Study `make_unique` and `make_shared` — prefer these over `new`
 
-**Deliverable:** A comparison document: `forAll` macro vs range-based for vs `std::for_each`, with performance notes.
-
----
-
-### Day 12: Type Traits & SFINAE --- OpenFOAM's `typeInfo` System
-
-- Read `typeInfo.H`, `className.H`, and the `TypeName` macro
-- Understand how `typeName` provides runtime type identification without full RTTI
-- Study SFINAE (Substitution Failure Is Not An Error) in template overload selection
-- Implement a simplified `typeInfo` system with `typeName()` for your classes
-
-**Deliverable:** A type identification system for your `Field<T>` and scheme classes.
+**Deliverable:** A solver factory function that returns `std::unique_ptr<Field<double>>` — no raw `new`/`delete` in sight.
 
 ---
 
-### Days 13--14: Mini-Project --- Build a Type-Safe `Field<T>` with Expression Templates
+### Day 07: Move Semantics — The End of Expensive Copies
 
-- Combine all Phase 1 concepts into a single cohesive library
-- Requirements: `Field<T>` with expression templates, move semantics, `tmp<>` wrapper, `typeInfo`
-- Add unit tests: arithmetic correctness, no temporary allocations, move vs copy
-- Write a benchmark: 1M-element field arithmetic chain
+- Understand lvalues, rvalues, and rvalue references (`T&&`)
+- Implement `Field(Field&&)` and `operator=(Field&&)` — the move constructor and move assignment
+- Benchmark: moving a 1-million-element `Field<double>` vs. copying it (expect near-zero cost for move)
+- Understand how this replaces OpenFOAM's `tmp<>` mechanism: `tmp<>` existed to avoid copying; move semantics solve the same problem natively
+- Write `Field operator+(Field a, const Field& b)` — note how passing `a` by value + move is optimal
 
-**Deliverable:** A complete `Field<T>` library with expression templates, smart pointer management, and benchmarks. This is the foundation for all subsequent phases.
+**Deliverable:** A `Field<T>` with correct move semantics. Benchmark showing copy = O(n), move = O(1).
 
 ---
 
-## Phase 1 Milestone
+### Day 08: Perfect Forwarding — Passing Arguments Without Copies
 
-> **M1** --- Day 14: Type-safe `Field<T>` library complete, benchmarked, and tested.
+- Learn `std::forward<T>` and forwarding references (`T&&` in template context)
+- Write a factory function `make_field(Args&&... args)` that forwards arguments to `Field<T>` constructors without extra copies
+- Understand the difference between `std::move` (unconditional cast) and `std::forward` (conditional cast)
+- Study how this pattern appears in solver creation routines in CFD frameworks
+- Practice: implement a `FieldFactory::create<T>(Args&&...)` function
+
+**Deliverable:** A `FieldFactory::create<T>()` that constructs any field type with perfect forwarding.
+
+---
+
+### Day 09: Expression Templates — The Temporary Allocation Problem (Part 1)
+
+- Understand the problem: `Field c = a + b + c` creates multiple temporary `Field` objects, each requiring heap allocation
+- Trace through what the compiler generates for chained `Field` operations without expression templates
+- Measure the allocations with Valgrind/AddressSanitizer: count heap allocations per expression
+- Understand the lazy evaluation solution: defer computation until assignment
+- Study OpenFOAM's expression template approach as a historical case study
+
+**Deliverable:** A benchmark showing the allocation problem — N temporaries for N operations on a `Field<double>`.
+
+---
+
+### Day 10: Expression Templates — Zero-Allocation Engine (Part 2)
+
+- Build a minimal expression template engine using modern C++ auto return type deduction
+- Implement `Add<L, R>`, `Mul<L, R>` expression nodes that store references, not computed values
+- Wire up `Field::operator+` to return an `Add<Field, Field>` instead of a new `Field`
+- Implement `Field::operator=(const Expr& e)` that evaluates the entire expression in one pass
+- Verify zero allocations with Valgrind on `Field c = a + b + d + e`
+
+**Deliverable:** An expression template engine for `Field<T>` with verified zero intermediate allocations.
+
+---
+
+### Day 11: C++20 Ranges — Replacing the `forAll` Macro
+
+- Study OpenFOAM's `#define forAll(list, i)` macro — understand why it exists and why macros are problematic (no scope, no type safety, no debugging)
+- Learn `std::views` from C++20 `<ranges>`: `std::views::all`, `std::views::iota`, `std::views::filter`, `std::views::transform`
+- Rewrite every `forAll` pattern as a range-based for loop or range algorithm
+- Write a mesh face loop using `for (auto faceId : std::views::iota(0, mesh.nFaces()))`
+- Benchmark: ranges vs raw loops — understand when the compiler generates identical code
+
+**Deliverable:** A mesh processing function using `std::views` exclusively — zero raw index loops, zero macros.
+
+---
+
+### Day 12: Type Traits & RTTI — Runtime and Compile-Time Type Information
+
+- Learn `<type_traits>`: `std::is_same_v`, `std::is_arithmetic_v`, `std::conditional_t`, `std::enable_if_t`
+- Study RTTI: `typeid()`, `dynamic_cast` — understand their runtime overhead and when to use them
+- Compare with OpenFOAM's custom `typeInfo` system: see how it replicates RTTI functionality manually
+- Use `if constexpr` for compile-time branching that the optimizer can eliminate entirely
+- Understand when `typeid` is appropriate vs. when virtual dispatch is better
+
+**Deliverable:** A type-dispatching `print_field_info()` function using `typeid` + `if constexpr` — no custom type registry needed.
+
+---
+
+### Days 13--14: Mini-Project — Build the Complete `Field<T>` Library
+
+- **Day 13:** Integrate all Phase 1 concepts into a single, coherent `Field<T>` library:
+  - `Field<Numeric T>` with `std::vector` backing and C++20 Concept constraint
+  - Move constructor, move assignment, perfect forwarding factory
+  - Expression template engine with zero allocations
+  - `std::ranges`-based iteration interface
+- **Day 14:** Add tests and benchmarks:
+  - Write unit tests using Google Test or Catch2 for all operations
+  - Benchmark copy vs. move (expect O(n) vs O(1))
+  - Benchmark expression templates vs naive (`a + b + c + d`): verify zero intermediate allocations
+  - Write a `CMakeLists.txt` to build the library and test executable
+
+**Deliverable:** A complete, tested `Field<T>` library. Test suite: ≥10 tests, all passing. Benchmark report: move = O(1), expression templates = 0 allocations.
 
 ---
 
 # Phase 2: Data Structures & Memory (Days 15--28)
 
-**Focus:** LDU sparse matrix, cache-friendly storage, `HashTable`, memory pools, compact topology storage.
+**Focus:** LDU sparse matrix, `std::span`, standard containers, cache optimization, and memory alignment.
 
-**Source Targets:**
-- `src/OpenFOAM/matrices/lduMatrix/`
-- `src/OpenFOAM/containers/`
-- `src/OpenFOAM/meshes/polyMesh/`
-- `src/OpenFOAM/fields/Fields/`
+**Build target:** An LDU matrix library with Gauss-Seidel iterative solver and performance benchmarks.
 
 ---
 
-### Day 15: LDU Matrix Format --- Why Not CSR for CFD?
+### Day 15: LDU Matrix Format — Why Unstructured FV Meshes Need Sparse Storage
 
-- Read `lduMatrix.H` and understand the Lower-Diagonal-Upper storage format
-- Compare LDU with CSR/CSC: memory layout, access patterns, fill-in behavior
-- Understand why LDU suits FVM: symmetric sparsity pattern, face-based addressing
-- Sketch the LDU layout for a simple 5-cell mesh
+- Study the Lower-Diagonal-Upper (LDU) sparse matrix format
+- Understand why dense matrix storage is prohibitive for CFD (memory and compute scale with O(n²))
+- Map the LDU structure to a 1D finite volume mesh: how each face contributes one off-diagonal coefficient
+- Learn the three arrays: `lower[]`, `diagonal[]`, `upper[]`
+- Count nonzeros for a 1D 5-cell mesh and verify the pattern
 
-**Deliverable:** A written comparison of LDU vs CSR with diagrams showing memory layout for a sample mesh.
-
----
-
-### Day 16: LDU Addressing --- Owner/Neighbour Arrays
-
-- Read `lduAddressing.H` and understand `owner()` and `neighbour()` arrays
-- Trace how a mesh face maps to a matrix off-diagonal entry
-- Understand the constraint: `owner[face] < neighbour[face]` and why it matters
-- Implement `lduAddressing` for a structured 1D mesh (N cells, N-1 internal faces)
-
-**Deliverable:** A working `lduAddressing` class for a 1D mesh with owner/neighbour arrays.
+**Deliverable:** A hand-drawn (or diagram) of the LDU sparsity pattern for a 5-cell 1D mesh, and verified nonzero counts.
 
 ---
 
-### Day 17: Matrix-Vector Multiply --- Cache-Friendly Implementation
+### Day 16: LDU Addressing — `owner` and `neighbour` Arrays
 
-- Read `lduMatrix::Amul()` and trace the three-pass multiply (lower, diagonal, upper)
-- Understand why separate passes over lower/upper are cache-friendly
-- Benchmark: LDU multiply vs naive CSR multiply on a 100K-cell mesh
-- Profile cache misses using `cachegrind` or equivalent
+- Implement `owner[]` and `neighbour[]` integer arrays for a 1D mesh
+- Understand what these arrays encode: for each face, which cell is the "owner" and which is the "neighbour"
+- Build a `LDUAddressing` struct that holds these arrays and provides `nFaces()`, `nCells()`
+- Verify the addressing is consistent: each internal face has exactly one owner and one neighbour
+- Connect back to the LDU matrix: face `f` contributes to `lower[f]`, `upper[f]`, and both `diagonal[owner[f]]` and `diagonal[neighbour[f]]`
 
-**Deliverable:** An LDU matrix-vector multiply with cache-miss analysis and benchmark results.
-
----
-
-### Day 18: Sparse Matrix Assembly --- How `fvMatrix` Populates LDU
-
-- Read `fvMatrix.H` and trace how `fvm::laplacian` assembles matrix coefficients
-- Understand the face-loop pattern: for each face, add to `owner` row and `neighbour` row
-- Study how boundary conditions modify the diagonal and source
-- Implement assembly for the 1D Laplacian: `d2T/dx2 = 0` with Dirichlet BCs
-
-**Deliverable:** A 1D Laplacian matrix assembled in LDU format, solved, and verified against the analytical solution.
+**Deliverable:** A `LDUAddressing` class for a 10-cell 1D mesh, verified by printing the owner/neighbour pairs.
 
 ---
 
-### Day 19: Cache Access Patterns --- Why Owner/Neighbour Ordering Matters
+### Day 17: Cache-Friendly Matrix-Vector Multiply — LDU SpMV
 
-- Study how face ordering affects memory access during matrix-vector multiply
-- Understand bandwidth reduction: Cuthill-McKee and reverse Cuthill-McKee reordering
-- Measure the effect of random vs ordered face numbering on multiply performance
-- Experiment with `renumberMesh` in OpenFOAM
+- Implement the LDU sparse matrix-vector multiply: `y = A * x`
+- Trace through the face-loop implementation: for each face, scatter contributions to owner and neighbour cells
+- Profile cache misses using Valgrind's `cachegrind` tool on a large (10,000-cell) 1D mesh
+- Understand why the access pattern for `x[owner[f]]` and `x[neighbour[f]]` causes cache thrashing on unstructured meshes
+- Compare LDU SpMV performance against a CSR-format implementation
 
-**Deliverable:** A benchmark showing the performance impact of face ordering on matrix-vector multiply.
-
----
-
-### Day 20: OpenFOAM `List<T>` --- Internals vs `std::vector`
-
-- Read `List.H` and `UList.H` --- understand the non-owning `UList` base class
-- Compare memory management: `List` always allocates, `UList` can view existing memory
-- Study `setSize()`, `resize()`, and how they differ from `std::vector::resize()`
-- Implement a simplified `List<T>` / `UList<T>` pair
-
-**Deliverable:** A `List<T>` with a non-owning `UList<T>` base class, with tests for view semantics.
+**Deliverable:** An LDU SpMV implementation with cachegrind profiling output. Cache miss report attached.
 
 ---
 
-### Day 21: `DynamicList` & `CompactListList` --- Variable-Size Containers
+### Day 18: Sparse Matrix Assembly — The Face-Loop Pattern
 
-- Read `DynamicList.H` --- OpenFOAM's equivalent of a growable vector with capacity
-- Read `CompactListList.H` --- a flat array with offset indexing (like CSR row pointers)
-- Understand when to use each: `DynamicList` for building, `CompactListList` for access
-- Implement `CompactListList` and use it to store variable-length adjacency lists
+- Implement the face-loop pattern to assemble coefficients for a 1D Laplacian equation: `∇²φ = 0`
+- For each internal face: compute the face diffusivity, add to `lower[f]` and `upper[f]`, subtract from `diagonal[owner[f]]` and `diagonal[neighbour[f]]`
+- Handle boundary conditions: Dirichlet (fixed value) modifies `source[]` and `diagonal[]`; Neumann (zero gradient) adds nothing
+- Assemble a complete 10-cell 1D Laplacian matrix with Dirichlet BCs at both ends
+- Verify by printing the assembled matrix coefficients
 
-**Deliverable:** A `CompactListList` implementation storing cell-to-face connectivity.
-
----
-
-### Day 22: `HashTable<T>` --- Open Addressing in OpenFOAM
-
-- Read `HashTable.H` and identify the collision resolution strategy
-- Study the hash function selection and bucket sizing (power of two)
-- Compare with `std::unordered_map`: open addressing vs chaining
-- Benchmark insertion and lookup for 100K entries
-
-**Deliverable:** A simplified `HashTable<T>` with open addressing and performance comparison against `std::unordered_map`.
+**Deliverable:** A fully assembled LDU matrix for the 1D Laplacian `φ_xx = 0` with Dirichlet BCs. Verified against hand calculation.
 
 ---
 
-### Day 23: `HashSet` & `wordHashSet` --- Practical Usage Patterns
+### Day 19: Cache Access Patterns — Sequential vs Random Face Numbering
 
-- Read `HashSet.H` and understand it as `HashTable<nil>`
-- Study `wordHashSet` usage in OpenFOAM: tracking field names, patch names
-- Examine set operations: intersection, union, difference
-- Use `wordHashSet` to implement a field registry that tracks registered names
+- Benchmark matrix assembly and SpMV with sequential vs random face numbering on a 1D mesh
+- Understand how face renumbering changes the memory access pattern for `owner[]` and `neighbour[]`
+- Use `perf stat` to count L1/L2 cache misses for each numbering scheme
+- Learn what the Reverse Cuthill-McKee algorithm does conceptually (implementation in Phase 4)
+- Quantify the performance difference: sequential should be 2-5× faster on large meshes
 
-**Deliverable:** A field registry using `HashSet` that prevents duplicate registrations.
-
----
-
-### Day 24: Memory Pools --- `UList` and `SubList` Zero-Copy Views
-
-- Read `SubList.H` and understand how it provides a view into a contiguous `List`
-- Study `SubField.H` and its use for patch-level field access without copying
-- Understand the zero-copy philosophy: views share memory with the parent
-- Implement `SubList` with bounds checking in debug mode
-
-**Deliverable:** A `SubList<T>` view class with debug-mode bounds checking and a benchmark showing zero-copy performance.
+**Deliverable:** Benchmark comparing sequential vs random face numbering. Cache miss counts from `perf stat`.
 
 ---
 
-### Day 25: Compact Storage --- `labelList`, `faceList` for Mesh Topology
+### Day 20: Zero-Copy Views with `std::span`
 
-- Read how `polyMesh` stores topology: `points_`, `faces_`, `owner_`, `neighbour_`
-- Understand `faceList` as `List<face>` where `face` is `List<label>` (variable-size)
-- Study the trade-off: flexibility of `faceList` vs compactness of `CompactListList`
-- Calculate memory usage for a 1M-cell hex mesh under both storage schemes
+- Study OpenFOAM's `UList<T>`: a non-owning view into memory owned by `List<T>` — avoids O(n) copying
+- Learn C++20 `std::span<T>`: does exactly what `UList<T>` does, but is standard, memory-safe, and natively integrates with `<algorithm>`
+- Replace all `UList<T>` / `List<T>` concepts with `std::vector<T>` (owning) + `std::span<T>` (non-owning view)
+- Write a function that takes `std::span<const double>` and computes the sum — verify it works on subsets of a `std::vector`
+- Practice zero-copy slicing: pass boundary face data to a BC function without copying
 
-**Deliverable:** A memory analysis comparing `faceList` vs `CompactListList` for mesh topology storage.
-
----
-
-### Day 26: `Field<T>` Memory --- Alignment, Padding, SIMD Readiness
-
-- Examine `Field<scalar>` memory layout: is it 16-byte or 32-byte aligned?
-- Study how alignment affects SIMD (SSE needs 16-byte, AVX needs 32-byte)
-- Read `aligned_alloc` usage (or its absence) in OpenFOAM
-- Modify your `Field<T>` to use aligned allocation and measure the effect
-
-**Deliverable:** An aligned `Field<T>` with benchmarks showing SIMD-friendly vs unaligned performance.
+**Deliverable:** A mesh processing function that passes field subsets as `std::span<const double>` — zero copies verified with address sanitizer.
 
 ---
 
-### Days 27--28: Mini-Project --- LDU Matrix with Gauss-Seidel Solver, Benchmark vs Dense
+### Day 21: Flat Arrays & Offsets — Compact Cell-to-Face Adjacency
 
-- Build a complete LDU matrix class with addressing, assembly, and multiply
-- Implement Gauss-Seidel and Jacobi iterative solvers
-- Assemble and solve the 1D heat equation on a 10K-cell mesh
-- Benchmark: LDU Gauss-Seidel vs dense Gaussian elimination (memory and time)
+- Study OpenFOAM's `CompactListList<T>`: a jagged array stored as a flat `T[]` + integer offsets
+- Replicate this with two `std::vector<int>`: `data[]` for face IDs, `offsets[]` for cell-start positions
+- Build `cell_faces(cellId)` that returns a `std::span<int>` into the flat data — zero copies
+- Verify the compact layout uses less memory than `std::vector<std::vector<int>>` (one allocation vs. many)
+- Benchmark access time: compact layout should show better cache behavior
 
-**Deliverable:** A working LDU matrix library with iterative solvers. Benchmark report comparing sparse vs dense performance.
-
----
-
-## Phase 2 Milestone
-
-> **M2** --- Day 28: LDU matrix library with iterative solvers, benchmarked against dense storage.
+**Deliverable:** A `CellFaceAdjacency` class storing connectivity as flat arrays. Memory and access-time comparison vs nested `vector<vector>`.
 
 ---
 
-# Phase 3: Software Architecture Patterns (Days 29--42)
+### Day 22: Modern Hashing — `std::unordered_map` for Boundary Lookups
 
-**Focus:** RTS factory pattern, dictionary system, plugin architecture, build system, I/O framework, boundary condition design.
+- Study how CFD codes map boundary patch names to boundary condition objects
+- Benchmark `std::unordered_map<std::string, BC>` against `std::map<std::string, BC>` for lookup performance
+- Understand hash map internals: bucket arrays, load factors, rehashing
+- Implement a patch registry: `PatchRegistry` that maps patch name to boundary condition type
+- Learn when to use `std::unordered_map` (frequent lookup, don't care about order) vs `std::map` (ordered iteration needed)
 
-**Source Targets:**
-- `src/OpenFOAM/db/runTimeSelection/`
-- `src/OpenFOAM/db/dictionary/`
-- `src/OpenFOAM/db/IOobject/`
-- `src/OpenFOAM/db/Time/`
-- `wmake/`
-
----
-
-### Day 29: RunTimeTypeSelection (RTS) Overview --- Factory Pattern in C++
-
-- Read `runTimeSelectionTables.H` and understand the macro-based factory pattern
-- Trace how `New()` creates objects by string name at runtime
-- Compare RTS with a textbook factory pattern and with `std::map<string, creator>`
-- Diagram the RTS mechanism: registration, lookup, construction
-
-**Deliverable:** A written analysis of the RTS pattern with a flowchart showing object creation from string name.
+**Deliverable:** A `PatchRegistry` class using `std::unordered_map`. Benchmark: O(1) patch lookup vs O(log n) for `std::map`.
 
 ---
 
-### Day 30: RTS Internals --- `declareRunTimeSelectionTable` Macros
+### Day 23: Polymorphic Memory Resources (PMR) — C++17 `<memory_resource>`
 
-- Expand the macros manually: `declareRunTimeSelectionTable`, `defineRunTimeSelectionTable`
-- Understand the static `HashTable` of constructor function pointers
-- Study the `add...ToTable` helper class that registers at static initialization time
-- Identify the risks: static initialization order fiasco, debugging difficulty
+- Learn C++17 `std::pmr::polymorphic_allocator` and `std::pmr::monotonic_buffer_resource`
+- Understand the use case: temporary matrix objects in the solver loop that are created and destroyed every iteration
+- Use a monotonic buffer resource (stack-allocated arena) to rapidly allocate and deallocate temporary matrices
+- Measure allocation overhead: `std::pmr::vector<double>` with monotonic buffer vs standard `std::vector<double>`
+- Understand how this relates to OpenFOAM's internal memory pool strategies
 
-**Deliverable:** A line-by-line macro expansion showing exactly what the RTS macros generate.
-
----
-
-### Day 31: Adding a New RTS Class --- Write a Custom Scheme
-
-- Follow the steps to add a new `surfaceInterpolationScheme` to OpenFOAM
-- Create the `.H` and `.C` files with proper macros
-- Compile and verify that `New("myScheme", ...)` returns your class
-- Document the exact steps: what to write, what macros to invoke, what to link
-
-**Deliverable:** A working custom interpolation scheme registered via RTS, with step-by-step instructions.
+**Deliverable:** A solver inner loop that uses PMR to allocate temporaries. Allocation overhead benchmark: PMR vs standard allocator.
 
 ---
 
-### Day 32: Dictionary System --- `IOdictionary`, Token, `primitiveEntry`
+### Day 24: Mesh Topology Storage — Memory Footprint Analysis
 
-- Read `dictionary.H`, `entry.H`, `primitiveEntry.H`
-- Understand the token stream: how text is parsed into typed values
-- Study the tree structure: `dictionary` contains `entry` objects (key-value or sub-dictionary)
-- Implement a simplified dictionary that stores `string -> variant(int, double, string)`
+- Calculate the memory footprint of storing face connectivity as: (a) `std::vector<std::vector<int>>`, (b) flat compact arrays, (c) CSR-style format
+- Implement all three representations for a 100-cell 1D mesh and measure actual memory with `Valgrind/Massif`
+- Understand why production CFD codes use compact formats for meshes with millions of cells
+- Profile the three representations on read access (iterate all faces of all cells)
+- Summarize: which format minimizes memory? Which minimizes access time?
 
-**Deliverable:** A mini dictionary class that parses key-value pairs from text.
-
----
-
-### Day 33: Dictionary Parsing --- How OpenFOAM Reads `controlDict`
-
-- Trace the parsing path: file -> `ISstream` -> tokenizer -> `dictionary::read()`
-- Understand token types: `word`, `scalar`, `label`, `string`, punctuation
-- Study how nested `{}` creates sub-dictionaries
-- Extend your mini dictionary to handle nested dictionaries and typed lookups
-
-**Deliverable:** A dictionary parser that reads nested configuration files with typed value retrieval.
+**Deliverable:** Memory footprint report for three mesh topology representations. Access-time benchmark.
 
 ---
 
-### Day 34: Plugin Architecture --- How `fvSchemes` Loads Interpolation Schemes
+### Day 25: Memory Alignment — Preparing for SIMD
 
-- Read `fvSchemes.H` and trace how it reads scheme names from the dictionary
-- Understand the full chain: dictionary -> string name -> RTS lookup -> scheme object
-- Study how this enables adding new schemes without modifying core code
-- Diagram the plugin architecture: user config -> dictionary -> factory -> object
+- Learn memory alignment: why AVX2 SIMD requires 32-byte aligned data
+- Use `alignas(32)` to align `Field<T>` arrays for AVX vectorization
+- Alternatively, use `std::aligned_alloc` for heap-allocated aligned buffers
+- Write a simple `Field<double>` dot product using aligned memory and verify the compiler emits SIMD instructions (check with `-fopt-info-vec` or `objdump`)
+- Understand the difference between aligned and unaligned load intrinsics (`_mm256_load_pd` vs `_mm256_loadu_pd`)
 
-**Deliverable:** A flowchart of the plugin loading chain from configuration file to instantiated scheme object.
-
----
-
-### Day 35: `IOobject` & `objectRegistry` --- Automatic I/O
-
-- Read `IOobject.H` and understand `readOpt` and `writeOpt` enumerations
-- Study `objectRegistry.H` and how it manages a collection of `regIOobject` entries
-- Trace what happens when `objectRegistry` destructs: automatic writing of modified objects
-- Implement a mini `objectRegistry` that stores named objects and writes them on destruction
-
-**Deliverable:** A mini object registry with automatic write-on-destruct behavior.
+**Deliverable:** A `Field<double>` with `alignas(32)` backing. Compiler output showing SIMD instructions generated.
 
 ---
 
-### Day 36: Time Class Architecture --- Time Stepping and Object Management
+### Day 26: Matrix Boundary Conditions — LDU Source and Diagonal Modification
 
-- Read `Time.H` and understand its dual role: time control and top-level `objectRegistry`
-- Study `Time::operator++()` and how it advances the time step
-- Understand output control: `writeInterval`, `writeControl`, `purgeWrite`
-- Diagram the `Time` class responsibilities and its inheritance chain
+- Implement the assembly of boundary conditions into the LDU matrix
+- Dirichlet BC: modify `source[boundaryCell]` and `diagonal[boundaryCell]` — the face coefficient is removed from the off-diagonal and moved to the diagonal (implicit)
+- Neumann BC (zero gradient): the face flux is zero — no modification needed
+- Robin/mixed BC: understand the linear combination of Dirichlet and Neumann
+- Assemble and verify a 1D heat equation with mixed BCs: left wall Dirichlet (T=1), right wall Neumann (dT/dx=0)
 
-**Deliverable:** A class diagram of `Time` showing its roles as time controller, object registry, and I/O manager.
-
----
-
-### Day 37: Boundary Condition Framework --- Strategy Pattern with `PatchField`
-
-- Read `fvPatchField.H` and its virtual interface: `evaluate()`, `updateCoeffs()`
-- Study how `fixedValueFvPatchField` and `zeroGradientFvPatchField` implement the interface
-- Understand how BC coefficients (`valueInternalCoeffs`, `valueBoundaryCoeffs`) feed into `fvMatrix`
-- Implement a mini BC framework: `PatchField` base with `fixedValue` and `zeroGradient`
-
-**Deliverable:** A boundary condition framework with strategy-pattern dispatch and matrix coefficient injection.
+**Deliverable:** An LDU matrix assembly supporting Dirichlet and Neumann BCs. Verified solution for the 1D heat equation.
 
 ---
 
-### Day 38: Build System --- wmake Internals, `Make/files`, `Make/options`
+### Days 27--28: Mini-Project — LDU Matrix Library with Gauss-Seidel Solver
 
-- Read `wmake` scripts and understand the build process
-- Study `Make/files` (source listing) and `Make/options` (include/link paths)
-- Understand `lnInclude` directories and why OpenFOAM flattens headers
-- Compare `wmake` with CMake: pros and cons for a large C++ project
+- **Day 27:** Integrate Phase 2 into a complete LDU matrix library:
+  - `LDUAddressing` with `owner[]`, `neighbour[]`
+  - `LDUMatrix` with assembly from face loops and BC application
+  - `std::span`-based field views for zero-copy access
+  - PMR allocator support for temporaries
+- **Day 28:** Implement a Gauss-Seidel iterative solver and benchmark:
+  - Implement the Gauss-Seidel sweep: iterate over cells, update each using the current residual
+  - Monitor convergence: `||r|| < tolerance`
+  - Benchmark sparse LDU SpMV vs dense matrix-vector multiply for the same system
+  - Add a `CMakeLists.txt` and Google Test unit tests
 
-**Deliverable:** A comparison document: `wmake` vs CMake, with a working `Make/files` and `Make/options` for your library.
-
----
-
-### Day 39: Dependency Management --- `lnInclude`, Library Linking
-
-- Trace how `wmake` generates `lnInclude` symlinks
-- Understand library dependency chains: `libOpenFOAM.so` -> `libfiniteVolume.so`
-- Study `LD_LIBRARY_PATH` and how OpenFOAM finds shared libraries at runtime
-- Set up a multi-library build: your `Field<T>` library linked by your solver
-
-**Deliverable:** A multi-library build configuration where a solver links against your `Field<T>` library.
+**Deliverable:** A complete LDU matrix library with Gauss-Seidel solver. Tests: ≥8 tests covering assembly and solver. Benchmark: sparse vs dense.
 
 ---
 
-### Day 40: Error Handling --- `FatalError`, `WarningIn`, `InfoProxy`
+# Phase 3: Architecture & Build Systems (Days 29--42)
 
-- Read `error.H` and understand `FatalErrorIn`, `FatalIOErrorIn`
-- Study the error stream hierarchy: `messageStream`, `error`, `IOerror`
-- Understand how OpenFOAM formats error messages with file/line info
-- Add structured error handling to your libraries: fatal errors, warnings, info messages
+**Focus:** Modern CMake, `std::function` Factory pattern, plugin architecture, and standard I/O formats.
 
-**Deliverable:** An error handling system for your libraries with formatted messages and abort-on-fatal behavior.
+**Build target:** A CMake-driven Factory that loads a JSON config and instantiates a solver at runtime.
 
 ---
 
-### Days 41--42: Mini-Project --- Mini RTS-Style Factory for Linear Solvers
+### Day 29: Modern CMake — Replacing `wmake`
 
-- Build a complete RTS-style factory system from scratch (no macros)
-- Register at least three solver types: `Jacobi`, `GaussSeidel`, `PCG`
-- Read solver selection from a dictionary file
-- Solve the 1D heat equation using dictionary-selected solver
+- Understand why `wmake` (OpenFOAM's build system) is non-standard and non-portable
+- Write a `CMakeLists.txt` using `target_sources` and `target_include_directories`
+- Learn the Modern CMake idiom: properties are attached to targets, not set globally
+- Build the Phase 1 `Field<T>` library as a CMake target: `add_library(FieldLib STATIC ...)`
+- Run `cmake --build` and verify the library compiles
 
-**Deliverable:** A working RTS factory with dictionary-driven solver selection. Demonstrate adding a new solver without modifying existing code.
+**Deliverable:** A `CMakeLists.txt` that builds the Phase 1 `Field<T>` library. No raw compiler flags, no `wmake`.
 
 ---
 
-## Phase 3 Milestone
+### Day 30: Modern CMake Part 2 — Shared Libraries and Linking
 
-> **M3** --- Day 42: Mini RTS factory with dictionary-driven configuration, demonstrated with linear solvers.
+- Understand `target_link_libraries` with `PUBLIC` vs `PRIVATE` vs `INTERFACE` visibility
+- Build the CFD core as a shared library (`.so`/`.dll`): `add_library(CFDCore SHARED ...)`
+- Build a separate executable that links against `CFDCore`: `target_link_libraries(solver PRIVATE CFDCore)`
+- Understand symbol visibility: `__attribute__((visibility("default")))` and `CMAKE_CXX_VISIBILITY_PRESET`
+- Learn `FetchContent` to pull in external dependencies: fetch Google Test from GitHub
+
+**Deliverable:** A `CMakeLists.txt` with a shared `CFDCore` library, a test executable, and Google Test fetched automatically.
+
+---
+
+### Day 31: The Modern Factory Pattern — `std::function` Registry
+
+- Study OpenFOAM's Run-Time Selection (RTS) macros: `declareRunTimeSelectionTable`, `addToRunTimeSelectionTable` — understand what problem they solve
+- Recognize that RTS macros are a workaround for C++98 limitations: no lambdas, no `std::function`
+- Build a modern Factory using `std::unordered_map<std::string, std::function<std::unique_ptr<Solver>()>>`
+- Register solvers: `registry["GaussSeidel"] = []() { return std::make_unique<GaussSeidelSolver>(); }`
+- Instantiate by name: `auto solver = registry.at("GaussSeidel")()`
+
+**Deliverable:** A `SolverFactory` with `register()` and `create(name)` methods. No macros.
+
+---
+
+### Day 32: Plugin Self-Registration — Static Initializers
+
+- Learn how static initialization works: objects at file scope are initialized before `main()`
+- Use a static initializer to self-register a solver into the Factory without touching the Factory source code
+- Implement a `Registrar<T>` helper class whose constructor calls `SolverFactory::register<T>(name)`
+- Place `static Registrar<GaussSeidelSolver> reg("GaussSeidel");` in the solver's `.cpp` file
+- Understand the SIOF (Static Initialization Order Fiasco) risk and how C++11 "magic statics" solve it
+
+**Deliverable:** A `GaussSeidelSolver` that self-registers using a static initializer. Adding a new solver requires no changes to the Factory core.
+
+---
+
+### Day 33: Configuration I/O — JSON Instead of OpenFOAM Dictionaries
+
+- Study OpenFOAM's custom dictionary format (`FoamFile { ... }`) — understand its capabilities and why it requires a custom parser
+- Integrate `nlohmann/json` (via CMake `FetchContent`) as a standard, well-tested alternative
+- Write a solver configuration JSON file: `{ "solver": "GaussSeidel", "tolerance": 1e-6, "maxIter": 1000 }`
+- Parse the JSON at runtime and extract configuration values with type safety
+- Handle parse errors gracefully with `std::runtime_error`
+
+**Deliverable:** A `SolverConfig` class that reads from JSON. Invalid JSON → clear error message.
+
+---
+
+### Day 34: Dynamic Configuration — Factory + JSON Integration
+
+- Combine Day 31 (Factory) and Day 33 (JSON) into a complete configuration-driven solver creation system
+- Read the solver name from JSON → look up in Factory registry → instantiate and configure the solver
+- Make solver parameters (tolerance, max iterations) configurable from JSON
+- Write two JSON configs (one for Gauss-Seidel, one for Jacobi) and verify both instantiate the correct solver
+- Add error handling: unknown solver name → `std::runtime_error` with list of registered names
+
+**Deliverable:** A main executable that reads `config.json`, instantiates the requested solver via Factory, and runs it on a 1D Laplacian.
+
+---
+
+### Day 35: The Object Registry — Central Field Database
+
+- Study OpenFOAM's `objectRegistry`: a central store of all active fields, enabling automatic I/O
+- Build a `Database` class holding `std::unordered_map<std::string, std::shared_ptr<GeometricField<double>>>`
+- Register fields at creation: `db.add("pressure", std::make_shared<GeometricField<double>>(mesh))`
+- Look up fields by name: `auto& p = db.get<double>("pressure")`
+- Understand why shared ownership (`std::shared_ptr`) is appropriate here: the database and the solver both hold references
+
+**Deliverable:** A `Database` class that stores and retrieves named `GeometricField` objects by type and name.
+
+---
+
+### Day 36: Time & State Control — The Solver Loop Architecture
+
+- Design the `Time` class to control the main solver time loop
+- Implement: `Time::loop()` that advances `t += dt`, checks `t < endTime`, and triggers output at `writeInterval`
+- Implement a simple CFL condition check: `dt = CFL * minCellSize / maxVelocity`
+- Understand how the `Time` class integrates with the `Database` to trigger field writes
+- Study how this maps to OpenFOAM's `runTime` object
+
+**Deliverable:** A `Time` class with configurable `dt`, `endTime`, `writeInterval`, and CFL control. Demonstrated in a simple time loop.
+
+---
+
+### Day 37: Boundary Condition Interface — Virtual + Factory Pattern
+
+- Design a `BoundaryCondition` abstract base class with pure virtual `updateCoeffs(LDUMatrix&, Field<double>&)` method
+- Implement `FixedValueBC` (Dirichlet) and `ZeroGradientBC` (Neumann) as concrete classes
+- Register both BCs in the `SolverFactory` — look up by name from the JSON config
+- Apply the Strategy pattern: the solver calls `bc.updateCoeffs(matrix, field)` without knowing which BC type it is
+- Test: swap between BCs via JSON without recompiling
+
+**Deliverable:** A `BoundaryCondition` hierarchy registered in the Factory. Solver uses BCs polymorphically from JSON config.
+
+---
+
+### Day 38: Modern Error Handling — Exceptions and `<system_error>`
+
+- Learn when to use exceptions: unexpected, unrecoverable states (not normal control flow)
+- Use `std::runtime_error`, `std::invalid_argument`, `std::out_of_range` from `<stdexcept>`
+- Use `std::error_code` and `std::system_error` from `<system_error>` for OS-level errors (file I/O, etc.)
+- Study the "exception safety" levels: basic, strong, nothrow — understand which your `Field<T>` provides
+- Replace all `FatalError << "..." << exit(FatalError)` patterns (OpenFOAM style) with proper C++ exceptions
+
+**Deliverable:** The entire framework throws typed C++ exceptions. No `exit()` calls. All exceptions caught and reported cleanly in `main()`.
+
+---
+
+### Day 39: Dependency Management — CMake `FetchContent`
+
+- Learn CMake `FetchContent` for pulling in external libraries at configure time
+- Fetch and integrate: `nlohmann/json`, `spdlog` (logging), and `Catch2` (testing) — all via `FetchContent`
+- Understand the difference from `find_package`: `FetchContent` downloads the source, `find_package` uses installed libraries
+- Write a `dependencies.cmake` file that centralizes all `FetchContent` declarations
+- Verify the build works from a clean directory with no pre-installed libraries
+
+**Deliverable:** A `CMakeLists.txt` with `FetchContent` for all external dependencies. One-command build from clean directory.
+
+---
+
+### Day 40: Logging — `spdlog` for High-Performance Logging
+
+- Integrate `spdlog` (fetched via CMake `FetchContent`) as the framework's logging system
+- Use `spdlog::info()`, `spdlog::warn()`, `spdlog::error()` — no raw `printf` or `std::cout` in library code
+- Configure log levels from the JSON config: debug mode logs every iteration, production mode logs only convergence
+- Use `spdlog`'s async logger for the inner solver loop — logging should not stall computation
+- Compare `spdlog` performance against raw `printf`: measure throughput in the solver loop
+
+**Deliverable:** A solver that logs convergence history via `spdlog`. Log level configurable from JSON.
+
+---
+
+### Days 41--42: Mini-Project — CMake-Driven Factory Executable
+
+- **Day 41:** Build the complete CMake-driven Factory:
+  - `CMakeLists.txt` with shared `CFDCore` library
+  - All dependencies fetched automatically
+  - `SolverFactory` with JSON configuration
+  - `Database` for field management
+  - `BoundaryCondition` hierarchy
+- **Day 42:** Integration test:
+  - Write a `config.json` that selects `GaussSeidel`, sets `tolerance: 1e-8`, configures BCs
+  - Run the executable: reads JSON → instantiates solver → solves 1D Laplacian → logs convergence
+  - Add `Catch2` tests covering Factory registration, JSON parsing, BC application
+  - Generate a build from a clean directory to verify all `FetchContent` dependencies resolve
+
+**Deliverable:** A self-contained CMake project. One-command build and test. Executable reads JSON, runs solver, passes all tests.
 
 ---
 
 # Phase 4: Performance Optimization (Days 43--56)
 
-**Focus:** Profiling, SIMD, OpenMP, cache optimization, memory allocation, algorithm complexity, I/O performance.
+**Focus:** Profiling, auto-vectorization, OpenMP, C++17 parallel execution, and MPI fundamentals.
 
-**Source Targets:**
-- `src/OpenFOAM/fields/Fields/Field/`
-- `src/OpenFOAM/matrices/lduMatrix/solvers/`
-- `src/OpenFOAM/meshes/polyMesh/`
-- `src/Pstream/`
+**Build target:** An optimized `Field<T>` and LDU solver with a comprehensive benchmark report.
 
 ---
 
-### Day 43: Profiling Basics --- `perf`, `gprof`, `callgrind` on OpenFOAM
+### Day 43: Profiling Workflows — Setup and Methodology
 
-- Set up profiling tools: `perf record`/`perf report`, `gprof`, `valgrind --tool=callgrind`
-- Profile a simple OpenFOAM solver (e.g., `laplacianFoam`) on a test case
-- Identify the top 5 hottest functions and their call counts
-- Document the profiling workflow: compile flags, run command, analysis
+- Compile with `-g -O3 -fno-omit-frame-pointer` for profiling with debug symbols and optimization
+- Use `perf record` + `perf report` on Linux (or `Instruments` on macOS) to profile the solver loop
+- Identify the top 3 hotspots: matrix-vector multiply, field arithmetic, and boundary condition assembly
+- Understand the profiling methodology: measure before optimizing, focus on hotspots only
+- Generate a baseline performance profile for the Phase 2 LDU solver
 
-**Deliverable:** A profiling report for `laplacianFoam` identifying hot functions.
-
----
-
-### Day 44: Flame Graphs --- Visualizing Hot Paths in a CFD Solver
-
-- Generate flame graphs from `perf` data using Brendan Gregg's tools
-- Interpret the flame graph: width = time, depth = call stack
-- Compare flame graphs for different mesh sizes (1K, 10K, 100K cells)
-- Identify the scaling bottleneck: solver, assembly, or I/O
-
-**Deliverable:** Flame graphs for three mesh sizes with analysis of scaling behavior.
+**Deliverable:** A profiling report identifying the top 3 hotspots in the LDU solver. Baseline timing for each Phase 2 component.
 
 ---
 
-### Day 45: Cache Analysis --- `cachegrind`, Understanding L1/L2/L3 Misses
+### Day 44: Flame Graphs — Visualizing Call Stacks
 
-- Run `valgrind --tool=cachegrind` on your LDU matrix-vector multiply
-- Interpret the output: instruction cache vs data cache, L1 vs LL misses
-- Compare cache performance for sequential vs random access patterns
-- Calculate theoretical cache miss rate for LDU multiply and compare with measured
+- Generate a flame graph for the LDU matrix assembly to visually identify the slowest functions
+- Use `perf script` + `flamegraph.pl` (Brendan Gregg's tool) on Linux, or `Instruments` on macOS
+- Read the flame graph: wide blocks = more CPU time, tall stacks = deep call chains
+- Identify: is the bottleneck in `SpMV`? In field arithmetic? In memory allocation?
+- Annotate the flame graph with optimization targets for Days 45-52
 
-**Deliverable:** A cache analysis report with theoretical vs measured miss rates.
-
----
-
-### Day 46: SIMD Fundamentals --- SSE/AVX and Field Arithmetic
-
-- Understand SIMD lanes: SSE (128-bit, 2 doubles), AVX (256-bit, 4 doubles), AVX-512 (8 doubles)
-- Write an explicit SIMD kernel for `Field<scalar>` addition using intrinsics
-- Compare performance: scalar loop vs SSE vs AVX
-- Identify alignment requirements for each instruction set
-
-**Deliverable:** A SIMD-accelerated field addition with benchmark results for each instruction set width.
+**Deliverable:** A flame graph for the LDU solver. Annotated with optimization opportunities.
 
 ---
 
-### Day 47: Auto-Vectorization --- Compiler Flags, Checking Assembly Output
+### Day 45: Auto-Vectorization — Getting SIMD for Free
 
-- Compile your `Field<T>` operations with `-O2 -ftree-vectorize -fopt-info-vec`
-- Read the compiler optimization report: which loops were vectorized?
-- Examine assembly output (`-S`) to verify SIMD instructions were generated
-- Identify and fix vectorization blockers: aliasing, alignment, complex control flow
+- Compile with `-ftree-vectorize -fopt-info-vec -fopt-info-vec-missed` to see which loops vectorize
+- Read the compiler vectorization report: which `Field<T>` loops generate SIMD? Which fail and why?
+- Common vectorization blockers: pointer aliasing (fix with `__restrict__`), non-unit stride access, loop-carried dependencies
+- Apply `__restrict__` to `Field<T>` operator loops and verify the vectorization report improves
+- Measure speedup: auto-vectorized vs scalar baseline (expect 2-4× on float/double)
 
-**Deliverable:** A document showing which loops auto-vectorize and which do not, with fixes for the blockers.
-
----
-
-### Day 48: OpenMP Basics --- Parallel Loops in Field Operations
-
-- Add `#pragma omp parallel for` to `Field<T>` arithmetic
-- Measure speedup with 1, 2, 4, 8 threads on a 10M-element field
-- Understand thread overhead: when is the field too small for OpenMP to help?
-- Identify the crossover point: serial vs parallel
-
-**Deliverable:** Speedup curves for OpenMP-parallelized field operations with crossover analysis.
+**Deliverable:** Vectorization report for all `Field<T>` operations. Speedup measurement: auto-vectorized vs scalar.
 
 ---
 
-### Day 49: OpenMP Advanced --- Reduction, Scheduling, False Sharing
+### Day 46: SIMD Intrinsics — Manual AVX2
 
-- Implement parallel reduction: `Field<scalar>::sum()`, `Field<scalar>::max()`
-- Compare scheduling strategies: static, dynamic, guided
-- Demonstrate false sharing with a counter array and fix it with padding
-- Apply to matrix-vector multiply: parallelize the face loop
+- Write one key inner loop manually using AVX2 intrinsics (`_mm256_add_pd`, `_mm256_mul_pd`, `_mm256_fmadd_pd`)
+- Target: the `Field<T>` dot product or `a = b + alpha * c` (axpy) operation
+- Compare performance: manual AVX2 vs compiler auto-vectorized (expect near-identical on modern compilers)
+- Understand when manual intrinsics are justified: highly specialized patterns the compiler cannot detect
+- Learn aligned vs unaligned loads: `_mm256_load_pd` (requires 32-byte alignment) vs `_mm256_loadu_pd`
 
-**Deliverable:** Parallel reductions and a false-sharing demonstration with fix.
-
----
-
-### Day 50: Memory Allocation --- `malloc` Alternatives, Pool Allocators
-
-- Profile allocation overhead in a solver loop: how many `malloc`/`free` calls per iteration?
-- Implement a simple pool allocator for fixed-size `Field<scalar>` temporaries
-- Compare `malloc`, `jemalloc`, `tcmalloc`, and pool allocator performance
-- Measure the effect on solver iteration time
-
-**Deliverable:** A pool allocator for field temporaries with benchmark results.
+**Deliverable:** A manual AVX2 implementation of `Field<T>` axpy. Benchmark: manual SIMD vs auto-vectorized compiler output.
 
 ---
 
-### Day 51: Avoiding Temporaries --- Expression Templates Revisited for Performance
+### Day 47: OpenMP Basics — Parallelizing Face Loops
 
-- Revisit the expression template system from Phase 1 with performance focus
-- Measure: how many temporaries does `a + b * c - d` create with vs without expression templates?
-- Profile memory allocation count in a typical solver right-hand-side assembly
-- Optimize a real solver expression to eliminate all intermediate allocations
+- Apply `#pragma omp parallel for` to the LDU matrix-vector multiply face loop
+- Identify the data race: multiple threads writing to `y[owner[f]]` and `y[neighbour[f]]` simultaneously
+- Fix with `#pragma omp atomic` or by rewriting as a two-pass (gather then scatter) algorithm
+- Benchmark on 2, 4, 8 threads: find the minimum mesh size where threading helps (overhead vs speedup threshold)
+- Understand the parallel scaling behavior: Amdahl's law for the sequential portions (BC assembly, etc.)
 
-**Deliverable:** Before/after profiling showing temporary elimination in a solver expression.
-
----
-
-### Day 52: Algorithm Complexity --- Mesh Traversal, Face Sorting, Renumbering
-
-- Analyze the complexity of common mesh operations: face lookup, cell neighbor traversal
-- Study bandwidth-reducing reorderings: Cuthill-McKee, Sloan
-- Implement reverse Cuthill-McKee for your 1D/2D mesh
-- Measure the effect on solver convergence rate and matrix-vector multiply time
-
-**Deliverable:** A mesh renumbering implementation with convergence and performance comparison.
+**Deliverable:** A thread-safe OpenMP LDU SpMV. Scaling benchmark: 1 to 8 threads. Threshold mesh size for positive speedup.
 
 ---
 
-### Day 53: I/O Performance --- Parallel I/O, Buffering Strategies
+### Day 48: C++17 Parallel Algorithms — `std::execution::par_unseq`
 
-- Profile I/O time in an OpenFOAM simulation: what fraction of total time is I/O?
-- Study buffered vs unbuffered writes for field output
-- Implement binary field output and compare with ASCII (size and speed)
-- Examine OpenFOAM's `collated` file format for parallel I/O
+- Use `std::transform(std::execution::par_unseq, ...)` on `Field<T>` arithmetic operations
+- Compare against the OpenMP implementation: syntax differences and performance parity
+- Understand when `par_unseq` (unsequenced parallel execution) is safe vs when it can cause data races
+- Apply to: `Field<T>::operator+`, `std::inner_product` (dot product) with parallel execution
+- Identify the backend: on GCC/Clang with TBB or OpenMP backend, `par_unseq` compiles to thread-pool execution
 
-**Deliverable:** An I/O benchmark comparing ASCII, binary, buffered, and unbuffered strategies.
-
----
-
-### Day 54: MPI Fundamentals --- `Pstream`, Domain Decomposition Basics
-
-- Read `Pstream.H` and understand OpenFOAM's MPI abstraction layer
-- Study `UPstream`, `IPstream`, `OPstream` for point-to-point communication
-- Understand domain decomposition: `decomposePar`, processor boundaries
-- Diagram the communication pattern for a halo exchange on a decomposed mesh
-
-**Deliverable:** A written analysis of OpenFOAM's MPI layer with a communication diagram for halo exchange.
+**Deliverable:** `Field<T>` arithmetic using `std::execution::par_unseq`. Performance comparison: C++17 parallel vs OpenMP.
 
 ---
 
-### Days 55--56: Mini-Project --- Optimize Your `Field<T>` Class, Measure with Benchmarks
+### Day 49: False Sharing & Parallel Reductions
 
-- Apply all Phase 4 techniques to your `Field<T>` library from Phase 1
-- Add: aligned allocation, expression templates, OpenMP parallel loops, optional SIMD
-- Create a comprehensive benchmark suite: allocation, arithmetic, reduction, mixed expressions
-- Produce a performance report: baseline vs optimized, with flame graphs
+- Implement parallel maximum and minimum functions for CFL condition calculation using OpenMP reduction
+- Understand false sharing: two threads write to data in the same 64-byte cache line, causing unnecessary cache invalidation
+- Detect false sharing with `perf c2c` or `Intel VTune` cache-to-cache analysis
+- Fix: pad thread-local accumulators to 64-byte cache line size (`alignas(64)`)
+- Benchmark: false-sharing version vs padded version on a 16-thread machine
 
-**Deliverable:** An optimized `Field<T>` library with a comprehensive benchmark report showing measurable improvements.
-
----
-
-## Phase 4 Milestone
-
-> **M4** --- Day 56: Optimized `Field<T>` library with performance report demonstrating measurable improvements over baseline.
+**Deliverable:** A parallel CFL calculation with no false sharing. Benchmark showing the performance difference.
 
 ---
 
-# Phase 5: Focused CFD Component (Days 57--84)
+### Day 50: Allocation Profiling — Valgrind Massif
 
-**Focus:** Apply all learned patterns to build a well-engineered 1D advection-diffusion solver with SIMPLE algorithm.
+- Run Valgrind Massif on the full solver loop to track heap allocations over time
+- Identify: which allocations happen inside the main time loop? (These are the ones to eliminate)
+- Visualize with `ms_print` or `massif-visualizer`: see peak heap usage and allocation call stacks
+- Target for elimination: any `Field<T>` temporary allocation inside `for (t = 0; t < endTime; ...)` loop
+- Build a list of allocations to eliminate in Days 51-52
 
-**Source Targets:**
-- `src/finiteVolume/fvMatrices/`
-- `src/finiteVolume/finiteVolume/fvm/`
-- `src/finiteVolume/finiteVolume/fvc/`
-- `applications/solvers/`
-
----
-
-### Days 57--58: Project Setup --- Architecture and Class Hierarchy
-
-- Design the overall class hierarchy: `Mesh`, `Field`, `Matrix`, `Solver`, `Operator`, `BoundaryCondition`
-- Define interfaces using lessons from Phase 3: RTS for solvers and schemes, dictionary for configuration
-- Set up the build system: `Make/files`, `Make/options` (or CMake)
-- Create the project directory structure and stub files
-
-**Deliverable:** A project skeleton with class hierarchy diagram, build system, and compilable stubs.
+**Deliverable:** A Massif heap profile for the solver loop. List of in-loop allocations to eliminate.
 
 ---
 
-### Days 59--60: Project Setup --- Build System and Testing Framework
+### Day 51: Eliminating Temporaries — Zero-Allocation Inner Loop
 
-- Configure the build for your mini solver: library + application
-- Set up a testing framework (Catch2, Google Test, or simple asserts)
-- Write the first test: `Field<scalar>` arithmetic correctness
-- Establish a CI-like workflow: build, test, benchmark
+- Apply the expression template engine (Phase 1) to eliminate intermediate `Field<T>` allocations in the solver right-hand-side assembly
+- Use PMR (Phase 2, Day 23) with a monotonic buffer for any unavoidable temporaries in the inner loop
+- Pre-allocate all working buffers outside the time loop: `residual`, `correction`, `pFace` — reuse via `resize()`-in-place
+- Verify with Valgrind Massif: the solver inner loop should show **zero** heap allocations after optimization
+- Measure the speedup: allocating vs zero-allocation inner loop (expect 10-30% on memory-bound problems)
 
-**Deliverable:** A working build + test pipeline that compiles and runs unit tests.
-
----
-
-### Days 61--62: 1D Mesh --- Points, Faces, Cells with Proper Data Structures
-
-- Implement a 1D mesh class using `CompactListList` or equivalent for topology
-- Store: points (1D coordinates), faces (cell boundaries), cells (face pairs)
-- Compute geometric quantities: cell volumes (lengths), face areas (1.0), cell centers, face centers
-- Implement owner/neighbour addressing for internal faces
-
-**Deliverable:** A 1D mesh class with geometry computation and owner/neighbour addressing, tested for a 100-cell uniform mesh.
+**Deliverable:** A solver inner loop with **zero** heap allocations. Massif profile confirming zero in-loop allocations. Speedup measurement.
 
 ---
 
-### Days 63--64: 1D Mesh --- Boundary Patches and Non-Uniform Spacing
+### Day 52: Mesh Bandwidth Optimization — Reverse Cuthill-McKee
 
-- Add boundary patch support: inlet (left face), outlet (right face)
-- Implement graded (non-uniform) cell spacing for boundary-layer resolution
-- Add mesh quality metrics: aspect ratio, expansion ratio
-- Write mesh-to-VTK output for visualization in ParaView
+- Implement the Reverse Cuthill-McKee (RCM) algorithm to renumber mesh cells for better memory locality
+- Understand why RCM helps: cells that are geometrically adjacent should be numerically adjacent, improving cache hit rates for SpMV
+- Apply RCM to the 1D mesh from Phase 2 and measure the change in matrix bandwidth
+- Benchmark LDU SpMV before and after RCM reordering (expect 10-20% improvement on large meshes)
+- Compare with the cachegrind results from Day 19 — see how reordering reduces cache misses
 
-**Deliverable:** A 1D mesh with boundary patches, graded spacing, and VTK output.
-
----
-
-### Days 65--66: Field & Matrix --- `volScalarField` Equivalent with LDU Storage
-
-- Implement a `ScalarField` class on the 1D mesh with internal and boundary values
-- Implement the LDU matrix class with 1D mesh addressing
-- Implement boundary coefficient injection: `valueInternalCoeffs`, `valueBoundaryCoeffs`
-- Test: create a field, assemble a matrix, verify dimensions
-
-**Deliverable:** A mesh-aware `ScalarField` and `LDUMatrix` with boundary condition support.
+**Deliverable:** An RCM implementation for 1D mesh. SpMV benchmark before/after reordering. Cache miss comparison.
 
 ---
 
-### Days 67--68: Field & Matrix --- Matrix Assembly and Solver Integration
+### Day 53: Parallel I/O Concepts — ASCII vs Binary Field Output
 
-- Implement `fvMatrix<scalar>` that combines LDU matrix with source vector and boundary contributions
-- Implement the `solve()` interface using your Gauss-Seidel and PCG solvers from Phase 2
-- Add under-relaxation support
-- Test: assemble and solve the Laplacian equation `d2T/dx2 = 0` with Dirichlet BCs
+- Benchmark writing a 1-million-element `Field<double>` to disk: ASCII text vs raw binary (`std::ofstream::binary`)
+- Understand why ASCII is standard in OpenFOAM (human-readable) but slow for large fields
+- Implement binary output: write the array size header then the raw `double[]` data
+- Implement binary input: read the header, `resize()` the `Field<T>`, then read the raw data
+- Measure file size and write/read throughput: binary should be 5-10× faster and 3× smaller
 
-**Deliverable:** A working `fvMatrix` that assembles and solves the 1D Laplacian, verified against analytical solution.
-
----
-
-### Days 69--70: FVM Operators --- `ddt` and `div` Using RTS Selection
-
-- Implement `fvm::ddt` with Euler implicit scheme (matrix contribution + source from old time)
-- Implement `fvm::div` with upwind scheme (face flux, owner/neighbour contributions)
-- Register both operators with your RTS factory for dictionary selection
-- Test `fvm::ddt`: verify time-stepping with a decaying field
-
-**Deliverable:** Working `fvm::ddt` and `fvm::div` operators, RTS-registered, with verification tests.
+**Deliverable:** Binary `Field<T>` serialization. Benchmark: ASCII vs binary throughput and file size.
 
 ---
 
-### Days 71--72: FVM Operators --- `laplacian` and Explicit Operators
+### Day 54: MPI Fundamentals — Domain Decomposition Concepts
 
-- Implement `fvm::laplacian` with face-interpolated diffusivity
-- Implement explicit operators: `fvc::grad`, `fvc::div`
-- Add face interpolation (linear, upwind) using your scheme hierarchy
-- Test: solve the steady diffusion equation and compare with analytical solution
+- Write a basic MPI program: `MPI_Init`, `MPI_Comm_rank`, `MPI_Comm_size`, `MPI_Finalize`
+- Implement `MPI_Send` and `MPI_Recv` to exchange field values between two ranks
+- Understand how processor boundaries in domain-decomposed CFD work: they are "coupled" boundary conditions exchanging ghost cell values
+- Implement a 1D domain decomposition: split a 100-cell mesh into two 50-cell subdomains with MPI halo exchange
+- Understand `MPI_Allreduce` for global reductions (e.g., computing the global maximum residual)
 
-**Deliverable:** Complete FVM operator set (ddt, div, laplacian, grad) with verification.
-
----
-
-### Days 73--74: Linear Solvers --- PCG and Gauss-Seidel with Benchmarking
-
-- Integrate your Phase 2 solvers with the `fvMatrix` framework
-- Implement diagonal preconditioning for PCG
-- Add convergence monitoring: residual history, iteration count
-- Benchmark: PCG vs Gauss-Seidel for the Laplacian on 1K, 10K, 100K cells
-
-**Deliverable:** Integrated linear solvers with convergence monitoring and scaling benchmarks.
+**Deliverable:** A 2-rank MPI program that solves a 1D Laplacian with domain decomposition. Global residual computed via `MPI_Allreduce`.
 
 ---
 
-### Days 75--76: SIMPLE Algorithm --- Pressure-Velocity Coupling
+### Days 55--56: Mini-Project — Optimized `Field<T>` Benchmark Report
 
-- Implement the SIMPLE loop for 1D incompressible flow:
-  1. Momentum predictor: solve for `U*`
-  2. Pressure equation: solve for `p'` using H/A formulation
-  3. Velocity correction: `U = U* - (1/A) * grad(p')`
-- Implement Rhie-Chow interpolation for face velocity
-- Add under-relaxation for pressure and velocity
+- **Day 55:** Integrate all Phase 4 optimizations:
+  - Auto-vectorized `Field<T>` with `__restrict__`
+  - OpenMP-parallel SpMV with no data races
+  - Zero-allocation solver inner loop (expression templates + PMR)
+  - RCM mesh reordering
+- **Day 56:** Generate a comprehensive benchmark report:
+  - Baseline (Phase 2 solver) vs fully optimized (Phase 4) throughput
+  - Scaling: 1 to 8 OpenMP threads
+  - Memory: baseline allocations vs zero-allocation inner loop
+  - Vectorization: scalar vs auto-vectorized vs manual SIMD
+  - Write a 1-page performance summary: what worked, what the bottleneck is at scale
 
-**Deliverable:** A working SIMPLE algorithm for 1D channel flow, verified against the Poiseuille flow analytical solution.
-
----
-
-### Days 77--78: SIMPLE Algorithm --- Convergence and Scalar Transport
-
-- Add SIMPLE convergence checking: residual drop, iteration limits
-- Implement scalar transport: solve `ddt(T) + div(phi, T) = laplacian(DT, T)` within the SIMPLE loop
-- Test: heated 1D channel with inlet temperature and wall flux
-- Verify temperature profile against analytical Graetz-like solution
-
-**Deliverable:** SIMPLE with scalar transport, verified for heated channel flow.
+**Deliverable:** Benchmark report comparing Phase 2 baseline vs Phase 4 optimized. Speedup table across all optimization dimensions.
 
 ---
 
-### Days 79--80: Source Term Extension --- Adding a Volumetric Source
+# Phase 5: VOF-Ready CFD Component (Days 57--84)
 
-- Design a source term framework using RTS: `fvSource` base class with concrete implementations
-- Implement `fixedValueSource` (constant), `fieldProportionalSource` (proportional to field value)
-- Add source terms to both momentum and scalar transport equations
-- Test: channel flow with a volumetric heat source, compare with analytical solution
+**Focus:** Building a 1D SIMPLE solver with bounded scalar transport as the prerequisite for multiphase flow.
 
-**Deliverable:** An RTS-based source term framework integrated with the solver.
+**Build target:** A complete 1D CFD solver with pressure-velocity coupling, scalar transport, flux limiters, and VTK output.
 
 ---
 
-### Days 81--82: Testing and Documentation
+### Days 57--58: Project Architecture — CMake Structure
 
-- Write comprehensive tests for all components: mesh, field, matrix, operators, solver
-- Profile the complete solver: identify bottlenecks with flame graphs
-- Apply Phase 4 optimizations where they matter most
-- Write a user guide: how to set up a case, configure the dictionary, run, and post-process
+- Design the CMake project structure for the full 1D CFD solver:
+  - `Mesh`: points, faces, cell volumes, face areas, boundary patches
+  - `Field`: `Field<T>` with expression templates and move semantics
+  - `Matrix`: `LDUMatrix` with Gauss-Seidel solver
+  - `Operators`: `fvm::laplacian`, `fvm::div`, `fvm::ddt`
+  - `SIMPLE`: momentum predictor, pressure correction, velocity correction
+- Write stub `CMakeLists.txt` for each library target
+- Define the interfaces: `Operators` depends on `Matrix` and `Field`; `SIMPLE` depends on `Operators`
 
-**Deliverable:** A tested and documented solver with profiling report.
-
----
-
-### Days 83--84: Final Benchmark --- Compare with OpenFOAM, Document, Reflect
-
-- Set up an equivalent case in OpenFOAM (`laplacianFoam` or `simpleFoam` on a 1D mesh)
-- Compare results: field values, residual convergence, iteration counts
-- Compare code design: your RTS vs OpenFOAM RTS, your `fvMatrix` vs OpenFOAM's
-- Write a final project report: what you built, what you learned, what you would do differently
-
-**Deliverable:** A final benchmark report comparing your solver with OpenFOAM, and a reflective project summary.
+**Deliverable:** A complete CMake project skeleton. All targets defined, interfaces documented, build succeeds (with empty stubs).
 
 ---
 
-## Phase 5 Milestone
+### Days 59--60: 1D Mesh Implementation
 
-> **M5** --- Day 84: Complete 1D advection-diffusion solver with SIMPLE algorithm, benchmarked against OpenFOAM.
+- Generate 1D mesh: `nCells` cells from `x=0` to `x=L`
+- Compute cell volumes: `V[i] = dx` (uniform spacing)
+- Compute face areas: `A[f] = 1` (1D, unit cross-section)
+- Compute cell-center coordinates: `xC[i] = (i + 0.5) * dx`
+- Compute face-center coordinates: `xF[f] = f * dx`
+- Add inlet and outlet boundary patches: `BoundaryPatch` with face IDs and patch type
 
----
-
-# Milestone Summary
-
-| Milestone | Day | Deliverable | Key Verification |
-|-----------|-----|-------------|------------------|
-| M1 | 14 | Type-safe `Field<T>` with expression templates | Unit tests pass, no temporary allocations in chained expressions |
-| M2 | 28 | LDU matrix with iterative solvers | Solves 1D heat equation, matches analytical solution |
-| M3 | 42 | Mini RTS factory with dictionary config | New solver added without modifying existing code |
-| M4 | 56 | Optimized `Field<T>` with benchmarks | Measurable speedup over Phase 1 baseline |
-| M5 | 84 | 1D solver with SIMPLE, compared to OpenFOAM | Results match OpenFOAM within discretization error |
+**Deliverable:** A `Mesh1D` class. Print all cell volumes, face areas, and centers for a 5-cell mesh — verified against hand calculation.
 
 ---
 
-# Appendix: OpenFOAM Source Reading Guide
+### Days 61--62: Geometric Fields on the 1D Mesh
 
-| Phase | Key Source Files | What to Look For |
-|-------|-----------------|------------------|
-| 1 | `Field.H`, `GeometricField.H`, `tmp.H`, `autoPtr.H` | Template patterns, smart pointer design |
-| 2 | `lduMatrix.H`, `lduAddressing.H`, `List.H`, `HashTable.H` | Storage layout, access patterns |
-| 3 | `runTimeSelectionTables.H`, `dictionary.H`, `IOobject.H`, `Time.H` | Factory pattern, I/O design |
-| 4 | `Field.C` (arithmetic), `lduMatrix` solvers, `Pstream.H` | Hot loops, parallelization |
-| 5 | `fvMatrix.H`, `fvm*.C`, `fvc*.C`, `simpleFoam.C` | FVM discretization, algorithm structure |
+- Combine `Mesh1D` and `Field<T>` into `GeometricField<T>` for the 1D mesh
+- Store cell-centered values (`volScalarField` equivalent): pressure `p`, velocity `U`
+- Store face-centered values (`surfaceScalarField` equivalent): face flux `phi`
+- Implement boundary condition querying: `field.boundaryValue(patchId)` returns the BC object for that patch
+- Enforce the size invariant: `GeometricField<T>(mesh)` always has `size() == mesh.nCells()`
+
+**Deliverable:** `volScalarField` and `surfaceScalarField` equivalents on the 1D mesh. BCs accessible by patch name.
 
 ---
 
-*Last Updated: 2026-03-01*
-*Curriculum: C++ and Software Engineering Through OpenFOAM*
-*Total Sessions: 84 across 5 phases*
+### Days 63--64: Equation Assembly — `fvMatrix`
+
+- Implement the `fvMatrix` equation class that wraps the `LDUMatrix` and source vector
+- `fvMatrix` represents a linear system: `A * phi = b`
+- Implement under-relaxation: `A_new[i][i] *= 1/alpha; b[i] += (1-alpha)/alpha * A[i][i] * phi_old[i]`
+- Implement residual computation: `||A * phi - b|| / ||b||`
+- Build: `operator==(fvMatrix, GeometricField<T>)` to assemble and solve an equation system
+
+**Deliverable:** An `fvMatrix` class with assembly, under-relaxation, and residual computation. Tested on a 1D Laplacian.
+
+---
+
+### Days 65--66: Temporal Operators — `fvm::ddt`
+
+- Implement `fvm::ddt(phi)`: Euler implicit time derivative `(phi - phi_old) / dt`
+- Returns an `fvMatrix` with `diagonal[i] = V[i] / dt`, `source[i] = V[i] / dt * phi_old[i]`
+- Understand why implicit time stepping (treating new-time values implicitly) is unconditionally stable for diffusion
+- Test: solve `dphi/dt = 0` (steady state) and verify `phi` converges to the initial value
+- Test: solve `dphi/dt = 1` and verify `phi` increases linearly with time
+
+**Deliverable:** `fvm::ddt` operator. Two test cases verifying correct temporal behavior.
+
+---
+
+### Days 67--68: Spatial Operators — `fvm::div` and `fvm::laplacian`
+
+- Implement `fvm::laplacian(D, phi)`: `∇·(D∇φ)` using central differencing across each face
+- For each face: `flux = D * (phi[neighbour] - phi[owner]) / distance`
+- Implement `fvm::div(phi, U)`: `∇·(φU)` using upwind differencing based on the sign of face flux `phi`
+- Upwind: if `phi[face] > 0`, use `owner` cell value; if `phi[face] < 0`, use `neighbour` cell value
+- Test: solve 1D steady advection-diffusion with known analytical solution, verify second-order accuracy for laplacian
+
+**Deliverable:** `fvm::laplacian` and `fvm::div` operators. Convergence test: verify laplacian achieves second-order spatial accuracy.
+
+---
+
+### Days 69--70: Linear Solver Integration — PCG and Residual Monitoring
+
+- Integrate the Preconditioned Conjugate Gradient (PCG) solver for symmetric pressure systems
+- Integrate Gauss-Seidel for asymmetric velocity systems
+- Add residual monitoring: print `[solver] iteration: N, residual: X.XXe-Y` every 100 iterations
+- Configure solver selection from JSON: `"pressureSolver": "PCG"`, `"velocitySolver": "GaussSeidel"`
+- Add convergence criteria: `residual < tolerance` (typical: 1e-6 for pressure, 1e-4 for velocity)
+
+**Deliverable:** PCG and Gauss-Seidel solvers integrated with residual monitoring. Solver selection from JSON config.
+
+---
+
+### Days 71--72: The SIMPLE Loop — Pressure-Velocity Coupling
+
+- Implement the SIMPLE (Semi-Implicit Method for Pressure-Linked Equations) algorithm for 1D channel flow:
+  1. **Momentum predictor:** Solve `A * U* = b_U` using current pressure gradient
+  2. **Pressure correction:** Solve `∇·(1/A * ∇p') = ∇·U*`
+  3. **Velocity correction:** `U = U* - (1/A) * ∇p'`
+  4. **Flux correction:** Update face fluxes `phi` from corrected `U`
+- Implement under-relaxation: `alpha_U = 0.7`, `alpha_p = 0.3` (standard SIMPLE values)
+- Test: 1D channel flow with `U_inlet = 1`, `p_outlet = 0` — verify `U` converges to 1.0 everywhere (incompressible 1D)
+
+**Deliverable:** A working SIMPLE loop for 1D channel flow. Convergence history showing residuals dropping below tolerance.
+
+---
+
+### Days 73--74: Rhie-Chow Interpolation — Preventing Pressure Checkerboarding
+
+- Understand the checkerboarding problem: collocated pressure-velocity grids allow decoupled pressure oscillations
+- Implement Rhie-Chow face-flux interpolation: the face flux uses pressure gradient information to suppress decoupling
+- `phi[f] = U_f·n - (1/A_f) * (∇p_f - (1/2)(∇p_owner + ∇p_neighbour))`
+- Test: a 1D mesh with an initial checkerboard pressure field — verify Rhie-Chow suppresses the oscillation while pure interpolation does not
+- Integrate Rhie-Chow into the SIMPLE flux correction step
+
+**Deliverable:** Rhie-Chow face flux interpolation. Demonstration that checkerboard pressure is suppressed.
+
+---
+
+### Days 75--76: Scalar Transport & Flux Limiters — The Multiphase Prerequisite
+
+- Implement the scalar transport equation for an indicator function `alpha` (Volume of Fluid indicator):
+  `∂α/∂t + ∇·(U α) = 0`
+- Add flux limiter support to `fvm::div`: instead of pure upwind, use the limiter to reduce numerical diffusion
+- Implement SuperBee and vanLeer limiters as limiter policies (connecting back to Phase 1, Day 05)
+- The limiter selects the scheme based on the ratio `r = (alpha_D - alpha_U) / (alpha_C - alpha_U)`
+- Test: transport a step function in 1D — compare pure upwind (diffusive) vs limited scheme (sharper)
+
+**Deliverable:** `fvm::div` with flux limiter support. Visual comparison: upwind vs SuperBee vs vanLeer on step transport.
+
+---
+
+### Days 77--78: Boundedness Testing — Keeping `alpha` in [0, 1]
+
+- Solve the VOF advection equation:
+  `∂α/∂t + ∇·(U α) = 0`
+- Use a prescribed velocity field `U = 1` and initial step function `alpha = 1` for x < 0.5, `alpha = 0` elsewhere
+- Verify that vanLeer and SuperBee limiters keep `alpha` strictly bounded between **0** and **1** at all times
+- Measure: with pure upwind, `alpha` smears over many cells; with limiters, the interface stays sharp
+- Quantify: count cells where `alpha < 0` or `alpha > 1` — should be zero with correct limiter implementation
+
+**Deliverable:** Boundedness test for the VOF advection equation. Tabulated results: cells out of bounds for each scheme.
+
+---
+
+### Days 79--80: Factory-Driven Source Terms
+
+- Implement a volumetric source term interface: `SourceTerm::addToMatrix(fvMatrix&, GeometricField<double>&)`
+- Register two source terms in the Factory: `GravitySource` and `HeatSource`
+- Load source term type and parameters from JSON: `"sourceTerms": [{ "type": "GravitySource", "g": 9.81 }]`
+- Test: add a constant body force to the momentum equation and verify the velocity profile shifts accordingly
+- Verify: adding zero source term produces identical results to the no-source case
+
+**Deliverable:** A `SourceTerm` Factory. Gravity source term loaded from JSON. Momentum equation test with non-zero body force.
+
+---
+
+### Days 81--82: VTK Output — Visualizing Results in ParaView
+
+- Write a lightweight VTK legacy format exporter for the 1D mesh and fields
+- VTK ASCII format for 1D: write `POINTS`, `CELLS`, `CELL_TYPES`, and `CELL_DATA` sections
+- Export `p`, `U`, and `alpha` fields to `.vtk` files at each write time
+- Open the VTK file in ParaView and verify the velocity and pressure profiles match the analytical solution
+- Trigger writes from the `Time` class at `writeInterval` — no extra code in the solver loop
+
+**Deliverable:** A VTK exporter for the 1D solver. ParaView screenshot showing the velocity and `alpha` profiles.
+
+---
+
+### Days 83--84: Final Benchmark and Retrospective
+
+- **Day 83:** Run the complete 1D solver:
+  - SIMPLE loop for channel flow: compare against analytical solution `U = 1.0` everywhere
+  - Bounded scalar transport: compare against analytical advection of a step function
+  - Measure: solver iterations to convergence, wall-clock time, residual history
+- **Day 84:** Write a retrospective report:
+  - What Modern C++ patterns were most valuable? (Move semantics, Concepts, expression templates, PMR)
+  - Where did OpenFOAM's architecture prove superior? Where did the modern approach win?
+  - What would Phase 6 add? (3D mesh, parallel domain decomposition, real multiphase PLIC)
+  - Architecture diagram of the complete framework: how all 5 phases connect
+
+**Deliverable:** A benchmark comparing the 1D solver against analytical solutions. A written retrospective (≥500 words). A complete architecture diagram.
+
+---
+
+## Quick Reference
+
+### Tools Used Throughout
+
+| Tool | Phase | Purpose |
+|------|-------|---------|
+| `g++ -std=c++20 -O3` | 1--5 | Compilation standard |
+| `CMake ≥ 3.20` | 3--5 | Build system |
+| Google Test / Catch2 | 1--5 | Unit testing |
+| `nlohmann/json` | 3--5 | Configuration I/O |
+| `spdlog` | 3--5 | Logging |
+| `perf` + flamegraphs | 4 | CPU profiling |
+| `cachegrind` | 2, 4 | Cache profiling |
+| `Valgrind Massif` | 4 | Memory profiling |
+| `ParaView` | 5 | VTK visualization |
+| MPI | 4 | Parallel computing |
+
+### Key C++ Standards Reference
+
+| Feature | Standard | Day First Used |
+|---------|----------|----------------|
+| `using` aliases | C++11 | 01 |
+| Move semantics | C++11 | 07 |
+| `std::unique_ptr` | C++11 | 06 |
+| `std::function` | C++11 | 31 |
+| `std::unordered_map` | C++11 | 22 |
+| `std::execution::par_unseq` | C++17 | 48 |
+| `std::pmr::*` | C++17 | 23 |
+| `if constexpr` | C++17 | 12 |
+| C++20 Concepts | C++20 | 02 |
+| `std::span` | C++20 | 20 |
+| `std::views` / ranges | C++20 | 11 |
+
+---
+
+*Last updated: 2026-03-01*
+*Approach: Modern C++17/20 — no proprietary macros, no legacy patterns*
