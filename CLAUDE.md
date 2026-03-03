@@ -16,6 +16,7 @@ Learn **intermediate-to-advanced C++ and software engineering** through OpenFOAM
 | [.claude/rules/source-first.md](.claude/rules/source-first.md) | Ground truth extraction methodology |
 | [.claude/rules/cfd-standards.md](.claude/rules/cfd-standards.md) | LaTeX, Mermaid, Code standards |
 | [.claude/rules/verification-gates.md](.claude/rules/verification-gates.md) | 6 mandatory verification checkpoints |
+| [.claude/rules/tiered-complexity.md](.claude/rules/tiered-complexity.md) | **Content tier spec** — pre-generation benchmark + post-generation QC |
 
 ---
 
